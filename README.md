@@ -1,5 +1,7 @@
 # Vera Officer Hub (prototype)
 
+**Live site:** https://vera-officer-hub.netlify.app (auto-deploys from `main` via Netlify)
+
 Front-end prototype for an ASU Barrett honors thesis on a low-cost, AI-assisted operations tool for student organizations (Phase 3).
 
 - `index.html` — the whole app (HTML, CSS, JS in one file). Rule engine and Gmail/Calendar links are real; AI output and data storage are simulated.
