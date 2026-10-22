@@ -1,7 +1,7 @@
-# Netlify settings for Vera (Option C: static site + Netlify Functions later)
+# Netlify settings for Platypus (Option C: static site + Netlify Functions)
 [build]
-  publish = "."
-  # functions = "netlify/functions"   # turned on when the backend (/api/*) is added
+  publish = "public"              # only this folder is served as the website
+  functions = "netlify/functions" # server endpoints (/api/*); never served as files
 
 [[headers]]
   for = "/*"

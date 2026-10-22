@@ -398,7 +398,7 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2)
   </div>
   <div class="demo-strip">
     <div class="topbar-in">
-      <b>Prototype v0.1</b><span>Fictional organization and example data. AI answers are simulated; no email is sent from this page.</span>
+      <b>Prototype v0.1</b><span id="aiStatus">Fictional organization and example data. AI answers are simulated; no email is sent from this page.</span>
       <span class="spacer"></span>
       <button class="btn-quiet btn" data-act="reset" type="button">Reset demo</button>
     </div>
@@ -445,10 +445,12 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2)
    ===================================================================== */
 
 const CONFIG = {
-  mode: "mock",                 // "mock" now; "live" once /api/* exists
+  // Live AI is detected at load time from GET /api/health. Which AI company answers is set only by
+  // Netlify environment variables (AI_PRESET, AI_MODEL, AI_API_KEY) — see docs/AI_SETUP.md.
+  live: false,
+  provider: null,
+  model: null,
   apiBase: "/api",
-  aiBaseUrl: "https://openai.rc.asu.edu/v1",   // ASU AIR (server-side only)
-  aiModel: "to be chosen after the Oct 23 RTO consult",
   tz: "America/Phoenix",
   siteUrl: "https://platypus-officer-hub.netlify.app"
 };
@@ -535,6 +537,13 @@ function p80(arr) { // arr = counts for 1,2,3,4+ weeks
   return { weeks: 4, n };
 }
 
+// Simulated AI suggestions, used when live AI is not configured (same shape as /api/plan/draft returns)
+const DEFAULT_AI_STEPS = [
+  { key: "runshow", title: "Draft the run-of-show", role: "Events lead", daysBefore: 7, minutes: 45, why: "A minute-by-minute plan so every officer knows their job on the night." },
+  { key: "outreach", title: "Invite alumni and two partner clubs", role: "Marketing lead", daysBefore: 18, minutes: 30, why: "Networking events draw more when guests come from outside the club." },
+  { key: "signin", title: "Print name tags and the sign-in sheet", role: "Secretary", daysBefore: 2, minutes: 20, why: "The sign-in sheet doubles as the attendance list for closeout." }
+];
+
 function schedule(brief, opts = {}) {
   const ev = sod(brief.date), T = opts.today || TODAY;
   const usgStat = p80(STATE.reports.usg);
@@ -595,10 +604,10 @@ function schedule(brief, opts = {}) {
   add({ key: "closeout", title: "Close out: receipts, attendance and two recap questions", role: "Treasurer", rules: ["R11"].concat(perHead >= 25 ? ["R12"] : []), due: null, minutes: 40, planBy: addBiz(ev, 3),
     why: "Reimbursements are capped at $999. The recap goes into next year's handbook." + (perHead >= 25 ? " Over $25 per person needs a Business Meals Form." : "") });
 
-  if (opts.ai) { // AI suggestions: non-rule steps the AI proposes; the president decides
-    add({ key: "runshow", title: "Draft the run-of-show", role: "Events lead", rules: [], due: null, minutes: 45, planBy: prevBiz(addDays(ev, -7)), ai: true, why: "A minute-by-minute plan so every officer knows their job on the night." });
-    add({ key: "outreach", title: "Invite alumni and two partner clubs", role: "Marketing lead", rules: [], due: null, minutes: 30, planBy: prevBiz(addDays(ev, -18)), ai: true, why: "Networking events draw more when guests come from outside the club." });
-    add({ key: "signin", title: "Print name tags and the sign-in sheet", role: "Secretary", rules: [], due: null, minutes: 20, planBy: prevBiz(addDays(ev, -2)), ai: true, why: "The sign-in sheet doubles as the attendance list for closeout." });
+  if (opts.ai) { // AI suggestions: non-rule team-practice steps; the president keeps or drops them.
+    // Live: suggestions come from POST /api/plan/draft. The AI gives "days before"; the dates are still set here.
+    (opts.aiSteps || DEFAULT_AI_STEPS).forEach((x, i) => add({ key: x.key || "ai" + (i + 1), title: x.title, role: x.role, rules: [], due: null, minutes: x.minutes,
+      planBy: x.daysBefore >= 0 ? prevBiz(addDays(ev, -x.daysBefore)) : addBiz(ev, -x.daysBefore), ai: true, why: x.why }));
   }
 
   for (const s of steps) {
@@ -669,22 +678,68 @@ function taskFromStep(st, eventId, brief) {
 }
 const eventOf = t => STATE.events.find(e => e.id === t.event);
 
-/* ---------------- Mock API (each maps to a Netlify Function later) ---------------- */
+/* ---------------- API layer ----------------
+   Live mode: each call goes to a Netlify Function in /netlify/functions (the AI key stays on the server).
+   If the server has no AI configured, or a call fails or times out, the page falls back to the
+   simulated behaviour below, so the demo always works. */
 const wait = ms => new Promise(r => setTimeout(r, ms));
+async function callApi(path, body) {
+  const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const res = await fetch(CONFIG.apiBase + path, { method: body ? "POST" : "GET", headers: body ? { "content-type": "application/json" } : {}, body: body ? JSON.stringify(body) : undefined, signal: ctrl.signal });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || "HTTP " + res.status);
+    return data;
+  } finally { clearTimeout(timer); }
+}
+let warnedFallback = false;
+function fellBack(err) {
+  console.warn("Live AI call failed; showing a simulated result.", err);
+  if (!warnedFallback) { warnedFallback = true; toast("Live AI didn't answer, so this result is simulated."); }
+}
+async function detectBackend() {
+  try { const h = await callApi("/health"); CONFIG.live = !!h.configured; CONFIG.provider = h.provider; CONFIG.model = h.model; }
+  catch (e) { CONFIG.live = false; }
+  updateAiStatus();
+}
+function updateAiStatus() {
+  const el = $("#aiStatus"); if (!el) return;
+  el.textContent = CONFIG.live
+    ? `Fictional organization and example data. AI answers come live from ${CONFIG.provider}${CONFIG.model ? " (" + CONFIG.model + ")" : ""}; no email is sent from this page.`
+    : "Fictional organization and example data. AI answers are simulated; no email is sent from this page.";
+}
 const api = {
-  // POST /api/plan/draft  — AIR chat with JSON schema returns steps + suggested owners.
-  // The server then runs schedule() so dates come from rules, not from the model.
+  // POST /api/parse-brief — reads the one-sentence description into the brief fields
+  async parseBrief(sentence, base) {
+    if (STATE.ai && CONFIG.live) {
+      try {
+        const r = await callApi("/parse-brief", { sentence, today: ymd(TODAY) });
+        const b = { ...base, ...r.brief };
+        if (typeof r.brief.date === "string") { const p = r.brief.date.split("-"); b.date = new Date(+p[0], +p[1] - 1, +p[2]); }
+        return b;
+      } catch (e) { fellBack(e); }
+    } else await wait(700);
+    return parseSentence(sentence, base);
+  },
+  // POST /api/plan/draft — AI proposes extra team-practice steps; schedule() sets every date.
   async draftPlan(sentence, brief) {
-    await wait(1100);
-    const steps = schedule(brief, { ai: STATE.ai });
-    if (STATE.ai) { // AI owner suggestion based on workload
+    let aiSteps = null;
+    if (STATE.ai && CONFIG.live) {
+      try {
+        const ruleSteps = schedule(brief, { ai: false }).map(s => ({ key: s.key, title: s.title, role: s.role }));
+        const r = await callApi("/plan/draft", { brief: { ...brief, date: ymd(brief.date) }, ruleSteps, roles: OFFICERS.map(o => o.role) });
+        aiSteps = r.suggestions;
+      } catch (e) { fellBack(e); }
+    } else await wait(1100);
+    const steps = schedule(brief, { ai: STATE.ai, aiSteps });
+    if (STATE.ai) { // owner suggestion based on workload (computed here, not by the AI)
       const load = workload();
       const q = steps.find(s => s.key === "quote");
       if (q && load.maya.min > 420) { q.owner = "priya"; q.ownerNote = `Maya already has ${hrs(load.maya.min)} in the next two weeks. Priya has ${hrs(load.priya.min)}.`; }
     }
-    return { steps, model: CONFIG.aiModel };
+    return { steps };
   },
-  // POST /api/plan/approve
+  // POST /api/plan/approve — not wired yet (data store comes with the backend design)
   async approvePlan(brief, steps) {
     await wait(500);
     const id = "e" + (STATE.events.length + 1);
@@ -693,11 +748,24 @@ const api = {
     rebuildOutbox();
     return { eventId: id, created: steps.length };
   },
-  // POST /api/ask — Verdicts scope check first, then an answer that must cite rule IDs
-  async ask(q) { await wait(800); return answerFor(q); },
-  // POST /api/replies/classify — Verdicts: done | waiting | help | other, with confidence
-  async classify(text) { await wait(600); return classifyReply(text); },
-  // POST /api/reports — one-tap duration report; server recomputes the 80th percentile
+  // POST /api/ask — answers only from the rule book, with [Rxx] citations; unsure answers become a refusal
+  async ask(q) {
+    if (STATE.ai && CONFIG.live) {
+      try {
+        const r = await callApi("/ask", { question: q, rules: RULES.map(x => ({ id: x.id, text: x.text, limit: x.limit })) });
+        return r.inScope ? { who: "assistant", text: r.answer, cites: r.citations, scope: r.confidence } : { who: "assistant", refuse: true, text: r.answer, scope: r.confidence };
+      } catch (e) { fellBack(e); }
+    } else await wait(800);
+    return answerFor(q);
+  },
+  // POST /api/replies/classify — done | waiting | help | other, with confidence
+  async classify(text) {
+    if (STATE.ai && CONFIG.live) {
+      try { const r = await callApi("/replies/classify", { text }); return { label: r.label, conf: r.confidence }; } catch (e) { fellBack(e); }
+    } else await wait(600);
+    return classifyReply(text);
+  },
+  // POST /api/reports — one-tap duration report (store not wired yet); the 80th percentile is recomputed here
   async report(proc, weeks) { await wait(250); STATE.reports[proc][Math.min(weeks, 4) - 1]++; return p80(STATE.reports[proc]); }
 };
 
@@ -1562,8 +1630,7 @@ document.addEventListener("click", async e => {
   if (act === "parse") {
     const s = $("#sentence").value; STATE.sentence = s;
     el.disabled = true; el.innerHTML = '<span class="dots"><i></i><i></i><i></i></span> Reading';
-    await wait(700);
-    STATE.planBrief = parseSentence(s, readBrief()); STATE.plan = null; render(); toast("Brief filled in. Check it, then draft the plan."); return;
+    STATE.planBrief = await api.parseBrief(s, readBrief()); STATE.plan = null; render(); toast("Brief filled in. Check it, then draft the plan."); return;
   }
   if (act === "draft") {
     STATE.planBrief = readBrief(); if (STATE.ai && $("#sentence")) STATE.sentence = $("#sentence").value;
@@ -1635,6 +1702,7 @@ seedDemo();
 $("#viewer").value = STATE.viewer; $("#aiToggle").checked = STATE.ai; $("#btsToggle").checked = STATE.bts;
 renderOfficers();
 render();
+detectBackend();
 </script>
 
 </body>
