@@ -1,6 +1,6 @@
-# Vera Officer Hub (prototype)
+# Platypus Officer Hub (prototype)
 
-**Live site:** https://vera-officer-hub.netlify.app (auto-deploys from `main` via Netlify)
+**Live site:** https://platypus-officer-hub.netlify.app (auto-deploys from `main` via Netlify)
 
 Front-end prototype for an ASU Barrett honors thesis on a low-cost, AI-assisted operations tool for student organizations (Phase 3).
 

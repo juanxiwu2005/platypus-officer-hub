@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Vera Officer Hub</title>
+<title>Platypus Officer Hub</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Vera v0.1 front-end prototype for the ERP honors thesis (Phase 3). Fictional organization, example data.">
+<meta name="description" content="Platypus v0.1 front-end prototype for the ERP honors thesis (Phase 3). Fictional organization, example data.">
 <style>
-/* Layout: app shell — left nav (Budget, Handoff, Tasks, AI), center dashboard, right quick links, officer directory at the bottom (matches the Phase 2 survey description). Tokens follow the Vera design-book website. */
+/* Layout: app shell — left nav (Budget, Handoff, Tasks, AI), center dashboard, right quick links, officer directory at the bottom (matches the Phase 2 survey description). Tokens follow the Platypus design-book website. */
 :root {
   --bg: #fbfaf7;
   --surface: #ffffff;
@@ -380,9 +380,9 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2)
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a class="brand" href="#dashboard" aria-label="Vera home">
-      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9" fill="var(--accent)"/><path d="M9 10l7 13 7-13" fill="none" stroke="var(--on-accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <div><b>Vera</b><span id="orgName">Desert Founders Society</span></div>
+    <a class="brand" href="#dashboard" aria-label="Platypus home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="9" fill="var(--accent)"/><path d="M12 24V8h5.5a5 5 0 0 1 0 10H12" fill="none" stroke="var(--on-accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><b>Platypus</b><span id="orgName">Desert Founders Society</span></div>
     </a>
     <div class="top-controls">
       <label class="field-inline" for="viewer">View as
@@ -422,7 +422,7 @@ code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-2)
 <script>
 "use strict";
 /* =====================================================================
-   VERA FRONT-END PROTOTYPE v0.1  ·  ERP honors thesis, Phase 3
+   PLATYPUS FRONT-END PROTOTYPE v0.1  ·  ERP honors thesis, Phase 3
    ---------------------------------------------------------------------
    What is real here:   the rule engine (backward scheduling, business
                         days, buffers), Gmail compose links, Google
@@ -450,7 +450,7 @@ const CONFIG = {
   aiBaseUrl: "https://openai.rc.asu.edu/v1",   // ASU AIR (server-side only)
   aiModel: "to be chosen after the Oct 23 RTO consult",
   tz: "America/Phoenix",
-  siteUrl: "https://<your-vera-site>.netlify.app"
+  siteUrl: "https://platypus-officer-hub.netlify.app"
 };
 
 /* ---------------- Utilities ---------------- */
@@ -493,7 +493,7 @@ const SRC = {
   usgr: { label: "USG Funding Rules", url: "https://www.asuusgt.org/funding-rules" }
 };
 const RULES = [
-  { id: "R01", text: "On-campus, in-person events must be registered in Event Registry.", limit: "At least 14 days (Event Registry page); 30 days (Handbook)", src: ["reg", "hb"], flag: "Two sources disagree. Vera uses the stricter 30 days.", kw: ["register", "registry", "registration", "ritm"] },
+  { id: "R01", text: "On-campus, in-person events must be registered in Event Registry.", limit: "At least 14 days (Event Registry page); 30 days (Handbook)", src: ["reg", "hb"], flag: "Two sources disagree. Platypus uses the stricter 30 days.", kw: ["register", "registry", "registration", "ritm"] },
   { id: "R02", text: "Student-organization events need the advisor present. Public events or events over 250 people need a university representative present throughout.", limit: "—", src: ["reg"], kw: ["advisor", "adviser", "250", "representative"] },
   { id: "R03", text: "Student union spaces are booked in Mazevo, and only the top three officers can submit.", limit: "At least 16 days; outdoor tabling 3 business days; complex setups 2 weeks", src: ["space"], kw: ["room", "space", "mazevo", "book", "reserve", "venue", "tabling"] },
   { id: "R04", text: "The space request must include the event's RITM number from Event Registry.", limit: "At least 14 days before, or the booking may be canceled with a fee", src: ["space"], kw: ["ritm", "room", "space"] },
@@ -550,7 +550,7 @@ function schedule(brief, opts = {}) {
       planBy: minD(prevBiz(due), addBiz(T, 5)), why: "Only the top three officers can submit, and popular rooms go early." });
     const due30 = addDays(ev, -30), due14 = addDays(ev, -14);
     add({ key: "registry", title: "Register the event in Event Registry", role: "President", rules: ["R01"], due: due30, dueNote: "30 days before (Handbook)", altDue: due14, minutes: 25,
-      planBy: prevBiz(due30), why: "Event Registry says 14 days and the Handbook says 30. Vera plans for the stricter 30 days.", conflict: true });
+      planBy: prevBiz(due30), why: "Event Registry says 14 days and the Handbook says 30. Platypus plans for the stricter 30 days.", conflict: true });
   }
   if (food === "offsite") {
     add({ key: "quote", title: "Get the restaurant quote and insurance certificate", role: "Treasurer", rules: ["R06"], due: null, minutes: 30, why: "The Food Exception Request and the USG request both need the quote." });
@@ -576,7 +576,7 @@ function schedule(brief, opts = {}) {
     const crowd = prevBiz(addDays(ev, -(usgStat.weeks * 7 + 3)));
     add({ key: "usg", title: "Submit the USG food request", role: "Treasurer", rules: ["R09", "R11"], due, dueNote: "10 business days before", minutes: 30,
       planBy: minD(official, crowd), after: ["quote", "flyer"].filter(k => S[k] || k === "flyer"),
-      why: `USG asks for 10 business days. Officers report reviews take up to ${usgStat.weeks} weeks (80% of ${usgStat.n} reports), so Vera plans for that.`,
+      why: `USG asks for 10 business days. Officers report reviews take up to ${usgStat.weeks} weeks (80% of ${usgStat.n} reports), so Platypus plans for that.`,
       bufferNote: { official: fmtD(due), crowdWeeks: usgStat.weeks, n: usgStat.n } });
     add({ key: "flyer", title: "Finish the event flyer", role: "Marketing lead", rules: ["R11"], due: null, minutes: 60, planBy: addBiz(S.usg.planBy, -2), why: "USG requires the flyer with the funding request." });
   }
@@ -701,7 +701,7 @@ const api = {
   async report(proc, weeks) { await wait(250); STATE.reports[proc][Math.min(weeks, 4) - 1]++; return p80(STATE.reports[proc]); }
 };
 
-/* ---------------- Ask Vera (simulated) ---------------- */
+/* ---------------- Ask Platypus (simulated) ---------------- */
 function matchRules(q) {
   const s = " " + q.toLowerCase() + " ";
   return RULES.map(r => ({ r, score: r.kw.reduce((a, k) => a + (s.includes(k) ? (k.length > 4 ? 2 : 1) : 0), 0) }))
@@ -709,7 +709,7 @@ function matchRules(q) {
 }
 const CANNED = [
   { test: /pizza|restaurant|off-campus|outside (food|cater)/i, ids: ["R05", "R06"], text: "Not from an outside restaurant if the event is in the Memorial Union. Those venues use Aramark / Sun Devil Dining only [R05]. In other campus spaces, outside food is allowed if you submit a Food Exception Request with the vendor's insurance certificate at least 14 days before the event [R06]." },
-  { test: /how (early|far|soon).*(register|registry)|register.*(how|when)/i, ids: ["R01"], text: "Register at least 30 days before the event [R01]. The Event Registry page says 14 days, but the 2025–26 Handbook says 30, so Vera uses the stricter date and shows both sources." },
+  { test: /how (early|far|soon).*(register|registry)|register.*(how|when)/i, ids: ["R01"], text: "Register at least 30 days before the event [R01]. The Event Registry page says 14 days, but the 2025–26 Handbook says 30, so Platypus uses the stricter date and shows both sources." },
   { test: /homemade|bake|cookies|potluck/i, ids: ["R08", "R07"], text: "No. Homemade food may not be served at student-organization events [R08]. If you want to prepare food on site, you need a temporary food permit ($85) at least 7 business days ahead [R07]." },
   { test: /raffle|lottery/i, ids: ["R15"], text: "ASU cannot run raffles. A free drawing where everyone has an equal chance and no one pays is allowed [R15]." },
   { test: /reimburse|amazon|receipt/i, ids: ["R11"], text: "USG reimbursements are capped at $999, and Amazon purchases may not be reimbursed. Invoices should be addressed to ASU. Checks usually arrive in about 3 weeks [R11]." },
@@ -718,15 +718,15 @@ const CANNED = [
 function answerFor(q) {
   const m = matchRules(q);
   const scope = Math.min(0.97, 0.35 + (m[0] ? m[0].score * 0.12 : 0) + (m.length > 1 ? 0.08 : 0));
-  if (!STATE.ai) return { who: "vera", mode: "search", q, results: m.slice(0, 4).map(x => x.r.id) };
-  if (/\b(best|recommend|favou?rite|cheapest|near campus|reviews?|tastiest)\b/i.test(q)) return { who: "vera", refuse: true, scope: 0.12, text: "That isn't covered by the ASU rule book, so I won't guess. I can help with the rules for bringing outside food to an event." };
+  if (!STATE.ai) return { who: "assistant", mode: "search", q, results: m.slice(0, 4).map(x => x.r.id) };
+  if (/\b(best|recommend|favou?rite|cheapest|near campus|reviews?|tastiest)\b/i.test(q)) return { who: "assistant", refuse: true, scope: 0.12, text: "That isn't covered by the ASU rule book, so I won't guess. I can help with the rules for bringing outside food to an event." };
   const canned = CANNED.find(c => c.test.test(q));
-  if (canned) return { who: "vera", text: canned.text, cites: canned.ids, scope: Math.max(scope, 0.9) };
+  if (canned) return { who: "assistant", text: canned.text, cites: canned.ids, scope: Math.max(scope, 0.9) };
   if (m.length && m[0].score >= 2) {
     const r = m[0].r;
-    return { who: "vera", text: `Here is what the rule book says: ${r.text} Time limit: ${r.limit}. [${r.id}]`, cites: [r.id], scope };
+    return { who: "assistant", text: `Here is what the rule book says: ${r.text} Time limit: ${r.limit}. [${r.id}]`, cites: [r.id], scope };
   }
-  return { who: "vera", refuse: true, scope: Math.min(scope, 0.31),
+  return { who: "assistant", refuse: true, scope: Math.min(scope, 0.31),
     text: "I couldn't find this in the rule book, so I won't guess. For ASU student-organization policy, ask the Tempe Student Organizations office at tempeclubs@asu.edu. If it's about club money, ask USG." };
 }
 function classifyReply(text) {
@@ -772,8 +772,8 @@ const myTasks = id => STATE.tasks.filter(t => t.owner === id && t.status !== "do
 /* ---------------- Action card content ---------------- */
 const HOW = {
   venue: ["Open the Mazevo space request (top three officers only).", "Choose a room for about {n} people and the event time.", "Submit and save the confirmation in the event folder."],
-  registry: ["Open Event Registry and start a new event.", "Paste the event description from the brief.", "Submit, then copy the RITM number into Vera."],
-  ritm: ["Open the room request in Mazevo.", "Paste the RITM number from Event Registry.", "Save. Vera marks the room as confirmed."],
+  registry: ["Open Event Registry and start a new event.", "Paste the event description from the brief.", "Submit, then copy the RITM number into Platypus."],
+  ritm: ["Open the room request in Mazevo.", "Paste the RITM number from Event Registry.", "Save. Platypus marks the room as confirmed."],
   quote: ["Ask the restaurant for an itemized quote for {n} guests.", "Ask for their certificate of insurance.", "Upload both to the event folder."],
   flyer: ["Finish the flyer with date, time, room and the RSVP link.", "Export it as a PDF.", "Upload it to the event folder. The treasurer attaches it to the USG request."],
   foodex: ["Open the Food Exception Request.", "Attach the quote and the insurance certificate.", "Submit, then press \"Submitted – waiting\"."],
@@ -783,7 +783,7 @@ const HOW = {
   headcount: ["Check RSVPs in Sun Devil Central.", "Estimate turnout (last fall, 40% of RSVPs came).", "Send the final number to the caterer."],
   closeout: ["Pay the invoice or submit receipts (cap $999).", "Upload the sign-in sheet as the attendance list.", "Answer two recap questions for next year's team."],
   runshow: ["Copy last year's run-of-show from the handbook.", "Assign each block to an officer.", "Share it two days before."],
-  outreach: ["Pick two partner clubs and five alumni.", "Send the invite text Vera drafted.", "Log who said yes."],
+  outreach: ["Pick two partner clubs and five alumni.", "Send the invite text Platypus drafted.", "Log who said yes."],
   signin: ["Print name tags from the RSVP list.", "Print the sign-in sheet.", "Bring both to the event."],
   speaker: ["Send the speaker the SAP agreement.", "Collect the signed copy.", "Submit the USG guest request with it attached."],
   onsite: ["Apply for the temporary food permit ($85).", "List what will be prepared on site.", "Save the permit in the event folder."],
@@ -805,16 +805,16 @@ function calLink(title, slot, details) {
 function weeklyCheckinLink() {
   const mon = nextWeekday(addDays(TODAY, 1), 1);
   const p = ymd(mon).replace(/-/g, "");
-  const q = new URLSearchParams({ action: "TEMPLATE", text: "Vera check-in: send this week's reminders", dates: `${p}T090000/${p}T091500`, details: "Open Vera, review the Outbox, and send the reminders that start this week.", ctz: CONFIG.tz, recur: "RRULE:FREQ=WEEKLY;BYDAY=MO" });
+  const q = new URLSearchParams({ action: "TEMPLATE", text: "Platypus check-in: send this week's reminders", dates: `${p}T090000/${p}T091500`, details: "Open Platypus, review the Outbox, and send the reminders that start this week.", ctz: CONFIG.tz, recur: "RRULE:FREQ=WEEKLY;BYDAY=MO" });
   return "https://calendar.google.com/calendar/render?" + q.toString();
 }
 function cardText(t) {
   const o = OFF[t.owner], ev = eventOf(t), n = ev ? ev.headcount : 30;
   const slot = slotFor(t);
-  const how = (HOW[t.key] || ["Open the task in Vera and follow the steps."]).map((s, i) => `${i + 1}. ${s.replace("{n}", n)}`).join("\n");
+  const how = (HOW[t.key] || ["Open the task in Platypus and follow the steps."]).map((s, i) => `${i + 1}. ${s.replace("{n}", n)}`).join("\n");
   const waiting = downstreamOf(t).map(d => `${OFF[d.who] ? OFF[d.who].name.split(" ")[0] : "Someone"} ${d.text}.`).join(" ");
   const rule = t.rules.length ? `Rule: ${t.rules.map(id => id + " " + SRC[RULE[id].src[0]].label).join("; ")} (checked ${RULES_CHECKED}).` : "No ASU rule; team practice.";
-  const subject = `[Vera] Start ${fmtDay(slot.day)}: ${t.title}${ev ? " for " + ev.name : ""} (~${t.minutes} min, finish by ${fmtS(t.planBy)})`;
+  const subject = `[Platypus] Start ${fmtDay(slot.day)}: ${t.title}${ev ? " for " + ev.name : ""} (~${t.minutes} min, finish by ${fmtS(t.planBy)})`;
   const body = [
     `Hi ${o.name.split(" ")[0]}, this one is yours as ${o.role}.`, "",
     `WHAT: ${t.title}${ev ? ` for ${ev.name} (${fmtD(ev.date)}, about ${n} guests)` : ""}.`,
@@ -823,7 +823,7 @@ function cardText(t) {
     `HOW (about ${t.minutes} min):`, how, "",
     waiting ? `WHO'S WAITING: ${waiting}` : "",
     `Full card with links and ready-made text: ${CONFIG.siteUrl}/card/${t.id}`, "",
-    `Sent by Alex Rivera, President, Desert Founders Society. Drafted with Vera.`,
+    `Sent by Alex Rivera, President, Desert Founders Society. Drafted with Platypus.`,
     rule
   ].filter((l, i, a) => !(l === "" && a[i - 1] === "")).join("\n");
   return { subject, body, slot };
@@ -865,7 +865,7 @@ const NAV = [
   { id: "tasks", label: "Tasks", icon: "tasks" },
   { id: "outbox", label: "Ready to send", icon: "out", pres: true, count: () => STATE.outbox.filter(m => !m.sent).length },
   { id: "card", label: "Action card", icon: "card" },
-  { id: "ask", label: "Ask Vera", icon: "ask", aiLabel: "Search rule book" },
+  { id: "ask", label: "Ask Platypus", icon: "ask", aiLabel: "Search rule book" },
   { id: "handoff", label: "Handoff", icon: "hand" },
   { id: "budget", label: "Budget", icon: "budget" },
   { group: "Reference" },
@@ -898,12 +898,12 @@ function renderRail() {
         <li><a href="${SRC.space.url}" target="_blank" rel="noopener">${I.link}Room requests (Mazevo)</a></li>
         <li><a href="${SRC.reg.url}" target="_blank" rel="noopener">${I.link}Event Registry</a></li>
       </ul>
-      <p class="small muted" style="margin-top:8px">Vera links to the tools you already use. It does not replace them.</p>
+      <p class="small muted" style="margin-top:8px">Platypus links to the tools you already use. It does not replace them.</p>
       <div class="bts-row" style="margin-top:8px">${bts("rule", "Data", "Org.links[] · stored per organization")}</div>
     </section>
     ${isPres() ? `<section class="card">
       <header><h2>Weekly check-in</h2></header>
-      <p class="small muted">Officers said the biggest risk is forgetting Vera exists (63%). Put a 15-minute Monday slot on your own calendar.</p>
+      <p class="small muted">Officers said the biggest risk is forgetting Platypus exists (63%). Put a 15-minute Monday slot on your own calendar.</p>
       <div class="row" style="margin-top:10px"><a class="btn" href="${weeklyCheckinLink()}" target="_blank" rel="noopener">${I.cal}Add Mondays 9:00</a></div>
       <div class="bts-row" style="margin-top:8px">${bts("rule", "Real link", "Google Calendar template · weekly repeat")}</div>
     </section>` : ""}
@@ -1041,7 +1041,7 @@ function viewOfficerHome() {
       <header><h2>Waiting on you</h2></header>
       <div class="stack">${waitingOnMe.length ? waitingOnMe.map(x => `<div class="note">${avatar(x.d.who)}<div><b>${esc(OFF[x.d.who].name.split(" ")[0])}</b> ${esc(x.d.text)}.<div class="small muted">Your step: ${esc(x.t.title)} · finish by ${fmtS(x.t.planBy)}</div></div></div>`).join("") : '<p class="muted small">No one is blocked by you right now.</p>'}</div>
       <hr class="sep" style="margin:12px 0">
-      <div class="row"><a class="btn" href="#handoff" data-act="role" data-role="${esc(me.role)}">${I.hand}My role handbook</a><a class="btn" href="#ask">${I.ask}${STATE.ai ? "Ask Vera" : "Search rule book"}</a></div>
+      <div class="row"><a class="btn" href="#handoff" data-act="role" data-role="${esc(me.role)}">${I.hand}My role handbook</a><a class="btn" href="#ask">${I.ask}${STATE.ai ? "Ask Platypus" : "Search rule book"}</a></div>
     </section>
   </div>`;
 }
@@ -1093,13 +1093,13 @@ function viewPlan() {
   return `
   <section class="page-head">
     <p class="eyebrow">Plan an event</p>
-    <h1>${ai ? "Describe the event. Vera drafts the steps." : "Fill in the brief. Vera builds the steps from the rule book."}</h1>
+    <h1>${ai ? "Describe the event. Platypus drafts the steps." : "Fill in the brief. Platypus builds the steps from the rule book."}</h1>
     <p class="lede">${ai ? "AI drafts the steps and suggests owners. The rule book sets every date. You approve before anything reaches your officers." : "AI features are off. Steps come only from the rule book and your club's playbook."}</p>
   </section>
   <section class="card composer">
     ${ai ? `<label for="sentence" class="small muted"><b>One sentence is enough</b></label>
     <textarea id="sentence">${esc(STATE.sentence ?? DEFAULT_SENTENCE)}</textarea>
-    <div class="row"><button class="btn" type="button" data-act="parse">${I.spark}Read my sentence</button><span class="small muted">Vera fills in the brief below. Check it before drafting.</span><span class="spacer"></span>${bts("ai", "AIR", "chat · structured output (JSON schema) → brief fields")}</div>
+    <div class="row"><button class="btn" type="button" data-act="parse">${I.spark}Read my sentence</button><span class="small muted">Platypus fills in the brief below. Check it before drafting.</span><span class="spacer"></span>${bts("ai", "AIR", "chat · structured output (JSON schema) → brief fields")}</div>
     <hr class="sep">` : ""}
     ${briefFields(b)}
     <div class="row">
@@ -1129,7 +1129,7 @@ function planHtml(plan) {
       <div class="stat"><b class="num">${busy ? busy[1] : 0}</b><span>steps in the busiest week (${busy ? "week of " + fmtS(new Date(busy[0] + "T00:00")) : "—"})</span></div>
     </div>
     ${late.length ? `<div class="note late" style="margin-top:12px">${I.warn}<div><b>${late.length} step${late.length > 1 ? "s are" : " is"} already late for this date.</b> Options: move the event later, switch to a faster funding source, or drop the item that needs approval (for example, outside food).</div></div>` : ""}
-    ${usg ? `<div class="note ai" style="margin-top:12px">${I.cal}<div><b>Why the USG request starts early:</b> USG asks for 10 business days (deadline ${usg.bufferNote.official}). In ${usg.bufferNote.n} officer reports, 80% of approvals came within ${usg.bufferNote.crowdWeeks} weeks, so Vera plans for that plus 3 days to confirm the caterer. <a href="#budget">See the reports</a></div></div>` : ""}
+    ${usg ? `<div class="note ai" style="margin-top:12px">${I.cal}<div><b>Why the USG request starts early:</b> USG asks for 10 business days (deadline ${usg.bufferNote.official}). In ${usg.bufferNote.n} officer reports, 80% of approvals came within ${usg.bufferNote.crowdWeeks} weeks, so Platypus plans for that plus 3 days to confirm the caterer. <a href="#budget">See the reports</a></div></div>` : ""}
   </section>
   <ol class="steps">${steps.map((s, i) => stepHtml(s, i)).join("")}</ol>
   <section class="card">
@@ -1201,7 +1201,7 @@ function viewTasks() {
     <div class="bts-row" style="margin-top:10px">${bts("rule", "Data", "Tasks table: owner, startBy, planBy, due, status, after[] (dependencies)")}</div>
   </section>
   ${STATE.ai ? `<section class="card">
-    <header><h2>Replies from officers</h2><p>Vera reads short replies and updates the status. Unclear replies go to you.</p></header>
+    <header><h2>Replies from officers</h2><p>Platypus reads short replies and updates the status. Unclear replies go to you.</p></header>
     <div class="stack">${STATE.replies.map(r => replyHtml(r)).join("")}</div>
     <hr class="sep" style="margin:12px 0">
     <form class="ask-bar" data-form="classify"><input id="replyIn" placeholder="Try a reply, e.g. “sent it, still waiting on USG”" aria-label="Officer reply"><button class="btn" type="submit">Read reply</button></form>
@@ -1234,7 +1234,7 @@ function viewOutbox() {
       <pre>${esc(c.body)}</pre>
       <div class="row">
         <a class="btn btn-primary" href="${esc(gmailLink(t))}" target="_blank" rel="noopener" data-act="opened" data-id="${m.id}">${I.mail}Open in Gmail</a>
-        <a class="btn" href="${esc(calLink(t.title, c.slot, "Vera action card: " + CONFIG.siteUrl + "/card/" + t.id))}" target="_blank" rel="noopener">${I.cal}Calendar slot</a>
+        <a class="btn" href="${esc(calLink(t.title, c.slot, "Platypus action card: " + CONFIG.siteUrl + "/card/" + t.id))}" target="_blank" rel="noopener">${I.cal}Calendar slot</a>
         <button class="btn" type="button" data-act="toggleMail" data-id="${m.id}">Show text</button>
         <a class="btn btn-quiet" href="#card" data-act="opencard" data-id="${t.id}">Full card</a>
         <span class="spacer"></span>
@@ -1272,8 +1272,8 @@ function viewCard() {
     <div class="acard-body">
       <div class="kv"><span>WHY</span><div>${esc(t.why)}</div></div>
       <div class="kv"><span>WHEN</span><div>Start <b>${fmtD(c.slot.day)}</b>, suggested ${fmtTime(c.slot.from)}–${fmtTime(c.slot.to)}. Finish by <b>${fmtD(t.planBy)}</b>.${t.due ? ` Official deadline ${fmtD(t.due)}.` : ""}
-        <div class="row" style="margin-top:8px"><a class="btn" href="${esc(calLink(t.title, c.slot, "Vera action card"))}" target="_blank" rel="noopener">${I.cal}Add this slot to my calendar</a></div></div></div>
-      <div class="kv"><span>HOW</span><ol>${(HOW[t.key] || ["Follow the steps in Vera."]).map(s => `<li>${esc(s.replace("{n}", n))}</li>`).join("")}</ol></div>
+        <div class="row" style="margin-top:8px"><a class="btn" href="${esc(calLink(t.title, c.slot, "Platypus action card"))}" target="_blank" rel="noopener">${I.cal}Add this slot to my calendar</a></div></div></div>
+      <div class="kv"><span>HOW</span><ol>${(HOW[t.key] || ["Follow the steps in Platypus."]).map(s => `<li>${esc(s.replace("{n}", n))}</li>`).join("")}</ol></div>
       ${ready.length ? `<div class="kv"><span>READY</span><div class="ready">${ready.map(([k, v]) => `<div class="ready-item"><div class="t"><b>${esc(k)}</b><div class="muted">${esc(v)}</div></div><button class="iconbtn" type="button" data-act="copy" data-text="${esc(v)}" aria-label="Copy ${esc(k)}">${I.copy}</button></div>`).join("")}${STATE.ai ? `<div class="bts-row">${bts("ai", "AIR", "drafted the statement; officer edits freely")}</div>` : ""}</div></div>` : ""}
       <div class="kv"><span>CHAIN</span><div class="stack"><div class="mylink">
         <div class="box">${up.length ? up.map(u => `<b>${esc(shortTitle(u))}</b><span class="muted">${u.owner ? esc(OFF[u.owner].name.split(" ")[0]) : "No owner"} · ${STATUS[u.status]}</span>`).join("<br>") : '<span class="muted">Nothing before this step.</span>'}</div>
@@ -1289,9 +1289,9 @@ function viewCard() {
       </div></div>
       ${t.status === "waiting" && t.key === "usg" ? `<div class="note ai">${I.spark}<div style="flex:1"><b>One-tap question, sent after approval:</b> How many weeks did the USG approval take this time?
         <div class="onetap" style="margin-top:8px">${[1, 2, 3, 4].map(w => `<button class="btn" type="button" data-act="report" data-w="${w}">${w === 4 ? "4+" : w} week${w > 1 ? "s" : ""}</button>`).join("")}</div>
-        <div class="small muted" style="margin-top:6px">Answers are pooled anonymously. They set the buffer Vera uses for the next officer.</div></div></div>` : ""}
+        <div class="small muted" style="margin-top:6px">Answers are pooled anonymously. They set the buffer Platypus uses for the next officer.</div></div></div>` : ""}
     </div>
-    <div class="acard-foot"><span>Sent by Alex Rivera, President, Desert Founders Society. Drafted with Vera.</span><span>${t.rules.length ? "Rules: " + t.rules.map(id => `${id} ${SRC[RULE[id].src[0]].label}`).join("; ") + `, checked ${RULES_CHECKED}.` : "No ASU rule; team practice."}</span></div>
+    <div class="acard-foot"><span>Sent by Alex Rivera, President, Desert Founders Society. Drafted with Platypus.</span><span>${t.rules.length ? "Rules: " + t.rules.map(id => `${id} ${SRC[RULE[id].src[0]].label}`).join("; ") + `, checked ${RULES_CHECKED}.` : "No ASU rule; team practice."}</span></div>
   </article>`;
   return `
   <section class="page-head">
@@ -1313,15 +1313,15 @@ function viewCard() {
   <div class="bts-row">${bts("rule", "Rule engine", "WHEN, CHAIN and deadlines")}${bts(STATE.ai ? "ai" : "rule", STATE.ai ? "AIR" : "Template", "WHY and READY wording")}${bts("ai", "API", "status buttons → PATCH /api/tasks/:id · one-tap → POST /api/reports")}</div>`;
 }
 
-/* ----- Ask Vera ----- */
+/* ----- Ask Platypus ----- */
 function viewAsk() {
   const ai = STATE.ai;
   const sugg = ["How early do we need to register an event?", "Can we sell homemade cookies at our table?", "Is there a limit on USG reimbursements?", "Can we do a raffle at the gala?", "What's the best pizza place near campus?"];
   return `
   <section class="page-head">
-    <p class="eyebrow">${ai ? "Ask Vera" : "Rule book search"}</p>
+    <p class="eyebrow">${ai ? "Ask Platypus" : "Rule book search"}</p>
     <h1>${ai ? "Answers from the rule book, with sources" : "Search the rule book"}</h1>
-    <p class="lede">${ai ? "Vera answers only from the ASU rule book and links every claim. If the rule book doesn't cover it, Vera says so and tells you who to ask." : "AI is off. You get matching rules and their sources, with no generated text."}</p>
+    <p class="lede">${ai ? "Platypus answers only from the ASU rule book and links every claim. If the rule book doesn't cover it, Platypus says so and tells you who to ask." : "AI is off. You get matching rules and their sources, with no generated text."}</p>
   </section>
   <section class="card chat" id="chat">${STATE.chat.map(m => chatMsg(m)).join("")}</section>
   <form class="ask-bar" data-form="ask"><input id="askIn" placeholder="${ai ? "Ask about ASU club rules" : "Search rules, e.g. food, room, raffle"}" aria-label="Question" autocomplete="off"><button class="btn btn-primary" type="submit">${ai ? "Ask" : "Search"}</button></form>
@@ -1330,10 +1330,10 @@ function viewAsk() {
 }
 function chatMsg(m) {
   if (m.who === "user") return `<div class="msg user"><span class="avatar" aria-hidden="true">${initials(OFF[STATE.viewer].name)}</span><div class="bubble">${esc(m.text)}</div></div>`;
-  if (m.pending) return `<div class="msg"><span class="avatar" aria-hidden="true">V</span><div class="bubble"><div class="loading"><span class="dots"><i></i><i></i><i></i></span>Checking the rule book</div></div></div>`;
-  if (m.mode === "search") return `<div class="msg"><span class="avatar" aria-hidden="true">V</span><div class="bubble">${m.results.length ? `<b>${m.results.length} matching rule${m.results.length > 1 ? "s" : ""}</b>${m.results.map(id => `<div><span class="tag">${id}</span> ${esc(RULE[id].text)} <span class="muted small">${esc(RULE[id].limit)}</span></div>`).join("")}` : "No rule matches. Try another word, or email tempeclubs@asu.edu."}</div></div>`;
+  if (m.pending) return `<div class="msg"><span class="avatar" aria-hidden="true">P</span><div class="bubble"><div class="loading"><span class="dots"><i></i><i></i><i></i></span>Checking the rule book</div></div></div>`;
+  if (m.mode === "search") return `<div class="msg"><span class="avatar" aria-hidden="true">P</span><div class="bubble">${m.results.length ? `<b>${m.results.length} matching rule${m.results.length > 1 ? "s" : ""}</b>${m.results.map(id => `<div><span class="tag">${id}</span> ${esc(RULE[id].text)} <span class="muted small">${esc(RULE[id].limit)}</span></div>`).join("")}` : "No rule matches. Try another word, or email tempeclubs@asu.edu."}</div></div>`;
   const text = esc(m.text).replace(/\[(R\d\d)\]/g, (_, id) => `<a class="tag" href="#rules" data-act="rule" data-id="${id}">${id}</a>`);
-  return `<div class="msg"><span class="avatar" aria-hidden="true">V</span><div class="bubble${m.refuse ? " refuse" : ""}"><div>${text}</div>
+  return `<div class="msg"><span class="avatar" aria-hidden="true">P</span><div class="bubble${m.refuse ? " refuse" : ""}"><div>${text}</div>
     ${m.cites && m.cites.length ? `<div class="cites">Sources: ${m.cites.map(id => RULE[id].src.map(k => `<a href="${SRC[k].url}" target="_blank" rel="noopener">${esc(SRC[k].label)}</a>`).join(", ")).join("; ")} · checked ${RULES_CHECKED}</div>` : ""}
     <div class="row small">${m.refuse ? '<span class="tag">Outside the rule book</span>' : `<button class="btn btn-quiet" type="button" data-act="flagAns">${I.flag}This looks outdated</button><button class="btn btn-quiet" type="button" data-act="copy" data-text="${esc(m.text)}">${I.copy}Copy</button>`}${bts("ai", "Scope", Math.round(m.scope * 100) + "% in scope")}</div></div></div>`;
 }
@@ -1402,9 +1402,9 @@ function viewHandoff() {
     </section>
   </div>
   <section class="card">
-    <header><h2>Officer transition checklist</h2><p>ASU steps plus moving Vera itself <span class="tag">R16</span></p></header>
+    <header><h2>Officer transition checklist</h2><p>ASU steps plus moving Platypus itself <span class="tag">R16</span></p></header>
     <ul class="checklist">
-      ${["Contact the advisor about the new officer team", "New top-three officers complete ASU officer training", "Update officers in Sun Devil Central", "Update signers on the club bank account", "Re-register the organization (every spring)", "Move Vera ownership to the new president and re-enter quick links"].map((x, i) => `<li><input type="checkbox" id="tr${i}"><label for="tr${i}">${esc(x)}</label></li>`).join("")}
+      ${["Contact the advisor about the new officer team", "New top-three officers complete ASU officer training", "Update officers in Sun Devil Central", "Update signers on the club bank account", "Re-register the organization (every spring)", "Move Platypus ownership to the new president and re-enter quick links"].map((x, i) => `<li><input type="checkbox" id="tr${i}"><label for="tr${i}">${esc(x)}</label></li>`).join("")}
     </ul>
   </section>`;
 }
@@ -1418,7 +1418,7 @@ function viewBudget() {
   <section class="page-head">
     <p class="eyebrow">Budget</p>
     <h1>Funding status by event</h1>
-    <p class="lede">Vera tracks where each request stands. It is not a full ledger; your budget spreadsheet stays the record.</p>
+    <p class="lede">Platypus tracks where each request stands. It is not a full ledger; your budget spreadsheet stays the record.</p>
   </section>
   <section class="card">
     <div class="tbl-wrap"><table class="tbl">
@@ -1430,7 +1430,7 @@ function viewBudget() {
   <section class="card">
     <header><h2>How long USG approval takes</h2><p>Example reports from officers (${n}), not survey data</p></header>
     <div class="hist" role="img" aria-label="Approval time reports">${rep.map((c, i) => `<div class="col"><div class="b${i + 1 > p.weeks ? " over" : ""}" style="height:${(c / max * 100).toFixed(1)}%"><em>${c}</em></div><div class="lab">${i === 3 ? "4+" : i + 1} wk</div></div>`).join("")}</div>
-    <div class="note ai" style="margin-top:14px">${I.cal}<div><b>80% of approvals came within ${p.weeks} weeks.</b> Vera uses ${p.weeks} weeks as the buffer, not the official 10 business days, and not the average (which would leave half of requests late). Each new report updates this.</div></div>
+    <div class="note ai" style="margin-top:14px">${I.cal}<div><b>80% of approvals came within ${p.weeks} weeks.</b> Platypus uses ${p.weeks} weeks as the buffer, not the official 10 business days, and not the average (which would leave half of requests late). Each new report updates this.</div></div>
     <div class="bts-row" style="margin-top:8px">${bts("rule", "Computed", "80th percentile of Reports where process = usg_food; at least 5 reports before replacing the default")}${bts("ai", "API", "POST /api/reports")}</div>
   </section>`;
 }
@@ -1440,8 +1440,8 @@ function viewRules() {
   return `
   <section class="page-head">
     <p class="eyebrow">Rule book</p>
-    <h1>ASU rules Vera schedules from</h1>
-    <p class="lede">Every date in Vera comes from one of these rules. Each one links to its source and shows when it was checked. These were checked on ${RULES_CHECKED}; verify before relying on them.</p>
+    <h1>ASU rules Platypus schedules from</h1>
+    <p class="lede">Every date in Platypus comes from one of these rules. Each one links to its source and shows when it was checked. These were checked on ${RULES_CHECKED}; verify before relying on them.</p>
   </section>
   <section class="card">
     <div class="tbl-wrap"><table class="tbl">
@@ -1487,7 +1487,7 @@ function viewHow() {
         <tr><td><code>POST /api/plan/approve</code></td><td>President approves</td><td>tasks[], cards[]</td><td>President</td></tr>
         <tr><td><code>POST /api/cards/draft</code></td><td>Card needed</td><td>subject, body, slot</td><td>AIR words it; dates fixed</td></tr>
         <tr><td><code>PATCH /api/tasks/:id</code></td><td>Status button, owner change</td><td>task</td><td>Officer</td></tr>
-        <tr><td><code>POST /api/ask</code></td><td>Ask Vera</td><td>inScope, confidence, answer, citations[]</td><td>Verdicts gate, then AIR with rule book</td></tr>
+        <tr><td><code>POST /api/ask</code></td><td>Ask Platypus</td><td>inScope, confidence, answer, citations[]</td><td>Verdicts gate, then AIR with rule book</td></tr>
         <tr><td><code>POST /api/replies/classify</code></td><td>Officer replies</td><td>label, confidence</td><td>Verdicts; low confidence goes to president</td></tr>
         <tr><td><code>POST /api/reports</code></td><td>One-tap after approval</td><td>p80 weeks, n</td><td>Officers' reports</td></tr>
         <tr><td><code>GET /api/rules</code></td><td>Page load</td><td>rules[]</td><td>Published Google Sheet</td></tr>
@@ -1546,8 +1546,8 @@ function copy(text) {
   try { navigator.clipboard.writeText(text).then(() => toast("Copied"), () => toast("Copy is blocked here. Select the text and copy it.")); }
   catch (e) { toast("Copy is blocked here. Select the text and copy it."); }
 }
-function savePrefs() { try { localStorage.setItem("vera-prefs", JSON.stringify({ viewer: STATE.viewer, ai: STATE.ai, bts: STATE.bts })); } catch (e) {} }
-function loadPrefs() { try { return JSON.parse(localStorage.getItem("vera-prefs") || "{}"); } catch (e) { return {}; } }
+function savePrefs() { try { localStorage.setItem("platypus-prefs", JSON.stringify({ viewer: STATE.viewer, ai: STATE.ai, bts: STATE.bts })); } catch (e) {} }
+function loadPrefs() { try { return JSON.parse(localStorage.getItem("platypus-prefs") || "{}"); } catch (e) { return {}; } }
 
 document.addEventListener("click", async e => {
   const el = e.target.closest("[data-act]"); if (!el) return;
@@ -1567,7 +1567,7 @@ document.addEventListener("click", async e => {
   }
   if (act === "draft") {
     STATE.planBrief = readBrief(); if (STATE.ai && $("#sentence")) STATE.sentence = $("#sentence").value;
-    $("#planOut").innerHTML = `<section class="card"><div class="loading"><span class="dots"><i></i><i></i><i></i></span>${STATE.ai ? "Vera is drafting steps and checking each date against the rule book" : "Building the plan from the rule book"}</div></section>`;
+    $("#planOut").innerHTML = `<section class="card"><div class="loading"><span class="dots"><i></i><i></i><i></i></span>${STATE.ai ? "Platypus is drafting steps and checking each date against the rule book" : "Building the plan from the rule book"}</div></section>`;
     const res = await api.draftPlan(STATE.sentence, STATE.planBrief);
     STATE.plan = { brief: STATE.planBrief, steps: res.steps };
     $("#planOut").innerHTML = planHtml(STATE.plan); return;
@@ -1588,7 +1588,7 @@ document.addEventListener("click", async e => {
   if (act === "cardStatus") {
     const t = task(STATE.card); const k = el.dataset.k;
     if (k === "help") { t.status = "stuck"; t.help = true; toast("Alex gets a note that you need help."); }
-    else { t.status = k; t.help = false; toast(k === "done" ? "Marked done. Teammates waiting on you are notified." : k === "waiting" ? "Marked as submitted. Vera will check back in 5 business days." : "Marked stuck. Alex will see it."); }
+    else { t.status = k; t.help = false; toast(k === "done" ? "Marked done. Teammates waiting on you are notified." : k === "waiting" ? "Marked as submitted. Platypus will check back in 5 business days." : "Marked stuck. Alex will see it."); }
     render(); return;
   }
   if (act === "report") { const r = await api.report("usg", +el.dataset.w); toast(`Thanks. ${r.n} reports now; 80% within ${r.weeks} weeks.`); render(); return; }
@@ -1617,7 +1617,7 @@ document.addEventListener("submit", async e => {
   }
 });
 async function askQuestion(q) {
-  STATE.chat.push({ who: "user", text: q }); const pend = { who: "vera", pending: true }; STATE.chat.push(pend); render();
+  STATE.chat.push({ who: "user", text: q }); const pend = { who: "assistant", pending: true }; STATE.chat.push(pend); render();
   const c = $("#chat"); if (c) c.lastElementChild.scrollIntoView({ block: "nearest" });
   const a = await api.ask(q); STATE.chat[STATE.chat.indexOf(pend)] = a; render();
   const c2 = $("#chat"); if (c2) c2.lastElementChild.scrollIntoView({ block: "nearest" });
