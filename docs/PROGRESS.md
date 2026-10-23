@@ -1,9 +1,9 @@
 # Platypus v1.0 进度
 
 **最后更新：** 2026-10-22（ChatGPT）  
-**当前阶段：** WP3 已完成；WP4 待验收（ChatGPT）。
+**当前阶段：** WP4 已完成；WP5 进行中 | Codex（2026-10-22）。
 
-**下一步：** Juanxi 验收 WP4；通过后开始 WP5，经费、规则、换届手册、关系与预测。
+**下一步：** Codex 在 v1 按预测 → 规则问答 → 经费 → 交接 → 关系的顺序完成 WP5。
 
 ## 工作包
 
@@ -15,8 +15,8 @@
 | WP1 引擎与流程图 | 10/24–10/27 | 已完成 | Claude（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/events | 规则引擎（`src/engine/`）；ASU 日历；活动模板（OA101/102/201 + T-90/60/30/14 + R01–R16）；泳道流程图、甘特图、列表；侧栏编辑；68 个单元测试 + 38 个页面测试 |
 | WP2 今日页与提醒 | 10/27–10/30 | 已完成 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | 逐条审核的 `/api/command` 变更单；前三项风险与渠道草稿；`/api/nudge/draft`；活动条、目标、本周之星；120 个单元测试 + 50 个页面测试；固定命令 20/20 |
 | WP3 任务与干部端 | 10/30–11/2 | 已完成 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/tasks | 任务列表/看板/甘特；认领握手；四个状态；带草稿延期与社长审批；同浏览器一次性签名手机页；3/5/7/8/10 天私下跟进、RACI 和模拟时钟；146 个单元测试 + 62 个页面测试 |
-| WP4 设置与团队 | 11/2–11/4 | 待验收 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/settings | 社长五步/干部五问；演示链接与文件；可编辑设置和私有缓冲；工作量、贡献榜、会议交集；174 个单元测试 + 76 个页面测试，首次使用计时待 Juanxi 验收 |
-| WP5 经费、规则、交接、关系、预测 | 11/4–11/7 | 未开始 | — | — | 提交前检查、规则卡片、换届季、联系人、预测 |
+| WP4 设置与团队 | 11/2–11/4 | 已完成 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/settings | 社长五步/干部五问；演示链接与文件；可编辑设置和私有缓冲；工作量、贡献榜、会议交集；174 个单元测试 + 76 个页面测试，首次使用计时待 Juanxi 验收 |
+| WP5 经费、规则、交接、关系、预测 | 11/4–11/7 | 进行中 | Codex（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | 提交前检查、规则卡片、换届季、联系人、预测 |
 | WP6 定版 | 11/7–11/8 | 未开始 | — | — | 切 AIR 跑测试集、合并到 `main`（需 Juanxi 批准） |
 
 ## 决定记录
@@ -34,6 +34,7 @@
 | 2026-10-22 | WP1 验收通过；授权 ChatGPT 在 v1 接续 WP2 | Juanxi |
 | 2026-10-22 | WP2 验收通过（Juanxi：“继续WP3”）；授权 ChatGPT 在 v1 接续 WP3 | Juanxi |
 | 2026-10-22 | WP3 验收通过（Juanxi：“继续WP4”）；授权 ChatGPT 在 v1 接续 WP4 | Juanxi |
+| 2026-10-22 | WP4（设置与团队）已验收通过；授权 Codex 在 v1 分支接续 WP5 | Juanxi（本次明确授权） |
 | 2026-10-22 | WP4 的系统连接按演示配置实现：选择渠道、保存链接和规划文件；不登录或读取真实账户。五步设置中统一安排此配置 | Juanxi（本次确认） |
 
 ## 等待外部的事
