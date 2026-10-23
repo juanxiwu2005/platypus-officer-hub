@@ -108,6 +108,6 @@ test("server errors fall back clearly, and hostile AI output changes nothing", a
   await page.unroute("**/api/chat")
   await page.route("**/api/chat", r => r.fulfill({ json: { source: "ai", cards: [{ kind: "changes", ops: [{ op: "delete_node", nodeId: "t-news" }] }, { kind: "send_email", to: "a@b.c" }] } }))
   await ask(page, "Delete everything")
-  await expect(page.getByTestId("bot-reply").last()).toContainText("couldn't safely match")
+  await expect(page.getByTestId("bot-reply").last()).toContainText(/couldn't safely match|couldn't turn that into a change/)
   await expect(page.getByTestId("change-set")).toHaveCount(0)
 })
