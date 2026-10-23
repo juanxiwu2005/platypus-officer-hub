@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { ask, demoClock, noOverflow, resetDemo } from "./helpers"
+import { ask, closeRail, demoClock, noOverflow, resetDemo } from "./helpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -41,6 +41,7 @@ test("extension needs a draft and stays pending until the president approves", a
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "e-night:usg").clubDeadline)).toBe("2026-10-30")
   await expect(page.getByTestId("president-review")).toHaveCount(0)
   await page.getByTestId("view-as").selectOption("alex")
+  await closeRail(page)
   await page.getByRole("button", { name: "Approve extension", exact: true }).click()
   const dates = await page.evaluate(() => { const n = JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "e-night:usg"); return [n.clubDeadline, n.officialDeadline] })
   expect(dates).toEqual(["2026-11-06", "2026-11-04"])
@@ -119,9 +120,14 @@ test("board: drag a card to another column, add a task, and an officer cannot mo
   await page.getByRole("button", { name: "Board", exact: true }).click()
   const board = page.getByTestId("task-board")
   const card = board.getByTestId("board-card").filter({ hasText: "Check the officer list in Sun Devil Central" })
-  // Mouse drag-and-drop is checked by hand (see docs/PROGRESS.md); the test uses the card's move menu, which calls the same action.
-  void info
-  await card.getByLabel("Move Check the officer list in Sun Devil Central").selectOption("in_progress")
+  if (info.project.name === "desktop") {
+    // A real mouse drag, grabbing the card by its title (native HTML drag and drop).
+    const a = (await card.boundingBox())!, b = (await board.getByRole("region", { name: "Working on it" }).boundingBox())!
+    await page.mouse.move(a.x + 20, a.y + 15)
+    await page.mouse.down()
+    for (let i = 1; i <= 10; i++) await page.mouse.move(a.x + 20 + (b.x + 60 - a.x - 20) * i / 10, a.y + 15 + 300 * i / 10)
+    await page.mouse.up()
+  } else await card.getByLabel("Move Check the officer list in Sun Devil Central").selectOption("in_progress")
   await expect(board.getByRole("region", { name: "Working on it" })).toContainText("Check the officer list")
   await page.reload()
   await page.getByRole("button", { name: "Board", exact: true }).click()

@@ -1,9 +1,9 @@
 # Platypus v1.0 进度
 
-**最后更新：** 2026-10-23（Claude）
-**当前阶段：** UX 简化改版（U1–U5）主体已完成并推到 v1，待验收；接下来在 Claude Code 里继续收尾（见交接记录第一行）。WP5 并入改版一起验收；真实 AI 验收闸门尚未通过。
+**最后更新：** 2026-10-23 凌晨（Claude，第一部分收尾）
+**当前阶段：** UX 简化改版完成并通过全部自动测试（电脑 + 手机）；Juanxi 已试用并回复“可以用，非常好”。剩下的是第二部分（真实 AI、规则复核、计划文档、无障碍、AIR、定版）。
 
-**下一步：** ① Juanxi 打开预览网址验收新界面；② Claude Code 跑手机版页面测试（`--project=mobile`）并修问题、手动检查看板拖拽；③ 用真实 DeepSeek 试 Ask 面板。
+**下一步（第二部分）：** ① 用真实 DeepSeek 试 Ask 面板并补跑 WP5 的 40 道规则题（需要 Juanxi 登录 Netlify 或关掉预览保护）；② 精写 `/api/chat` 提示词；③ 对照官网复核 R01–R16；④ 更新 PRODUCT_PLAN 第 6 节；⑤ 键盘与无障碍检查；⑥ 换 ASU AIR；⑦ 定版合并 main（需批准）。
 
 ## 工作包
 
@@ -17,7 +17,7 @@
 | WP3 任务与干部端 | 10/30–11/2 | 已完成 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/tasks | 任务列表/看板/甘特；认领握手；四个状态；带草稿延期与社长审批；同浏览器一次性签名手机页；3/5/7/8/10 天私下跟进、RACI 和模拟时钟；146 个单元测试 + 62 个页面测试 |
 | WP4 设置与团队 | 11/2–11/4 | 已完成 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/settings | 社长五步/干部五问；演示链接与文件；可编辑设置和私有缓冲；工作量、贡献榜、会议交集；174 个单元测试 + 76 个页面测试，首次使用计时待 Juanxi 验收 |
 | WP5 经费、规则、交接、关系、预测 | 11/4–11/7 | 待验收 | Codex（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | 五页与接口完成；233 单元 + 90 页面测试；真实 AI 40 题和真实手册审阅待补，见 AI_TESTS.md |
-| UX 改版 U1–U5 | 10/24–10/30 | 待验收 | Claude（2026-10-23） | https://deploy-preview-1--platypus-officer-hub.netlify.app | 三栏布局与 5 个组件；右侧 AI 面板与 `/api/chat`；单主线流程图；可拖看板；经费物流链；交接接力卡；伙伴表格；规则直达链接；设置分块自动保存；每页字数至少减 60% |
+| UX 改版 U1–U5 | 10/24–10/30 | 已完成 | Claude（2026-10-23） | https://deploy-preview-1--platypus-officer-hub.netlify.app | 三栏布局与 5 个组件；右侧 AI 面板与 `/api/chat`；单主线流程图；可拖看板；经费物流链；交接接力卡；伙伴表格；规则直达链接；设置分块自动保存；每页字数至少减 60% |
 | WP6 定版 | 11/7–11/8 | 未开始 | — | — | 切 AIR 跑测试集、合并到 `main`（需 Juanxi 批准） |
 
 ## 决定记录
@@ -50,6 +50,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-10-23 | Claude | **第一部分收尾。** ①手机：发现隐藏的悬停卡和 Today 风险表把手机页面撑宽（页面被缩小、右下角按钮点不到），已修（`html, body { overflow-x: clip }`、悬停卡限宽、窄屏隐藏次要列）；手机上换页自动收起右栏；Demo 菜单在手机上改为整宽。②看板拖拽：找到并修了一个真问题——卡片标题是按钮，Chrome 不允许从按钮开始拖，抓标题拖不动；改成可点击的文字后，用真实鼠标拖拽的自动测试通过。③深色模式看过 Today / Events / 看板，无看不清的地方。④删掉不用的 `@xyflow/react`。⑤字数全部在上限内（同上一行）。⑥检查：244 个单元测试 + **95 个页面测试（电脑 48 + 手机 47，悬停测试只在电脑跑）全部通过**；已同步本地备份。 | 第二部分见文件开头“下一步”。看板在开着右栏的 1440 宽屏上 6 列需要横向滚动（有意保留，和 monday 一样）。 |
 | 2026-10-23 | Claude | **UX 简化改版 U1–U5 主体完成**（一次做完，未分包验收）。①三栏布局：左导航 / 中间内容 / 右栏（`src/components/rail/`：Ask 与 Details 两个标签，`useRail().show()` 打开详情）；演示条收进顶栏 “Demo” 小标（重置、时钟、重放设置），私下更新收进铃铛。②5 个通用组件 `src/components/ui/`：StatusPill（6 色状态）、Chain（物流链）、`.tbl` 表格、Hover/Info 悬停卡、右栏详情；页面标题改为 1–2 个词，问句移到导航悬停。③唯一 AI 入口 Ask 面板：`src/lib/assistant.ts`（本地先处理明确请求：策划活动→表单、前 N 个任务、谁需要提醒、规则关键词、命令语法）+ 新接口 `netlify/functions/chat.mts`；6 种卡片（文字、补信息表单、任务清单、变更单、提醒、规则答案），服务器和浏览器都用 `src/lib/chatCards.ts` 过滤，AI 写的日期全部丢弃；Today 和 Rules 的旧输入框已删。④流程图换成单主线（`src/components/flow/metro.ts` 布局 + `MetroChart.tsx`），泳道图、甘特图和 React Flow 依赖代码已删；手机竖排。⑤Tasks：表格（按活动分组、远期组折叠、负责人和截止日原地改）/ 可拖拽看板（`src/data/board.ts`：自己的随便拖，社长/副社长可拖所有人并给本人留私下记录，认领握手不变）/ Timeline；Customize 面板改状态名称颜色、标签、卡片字段。⑥Funding 物流链表；Partners 可搜索表格 + 新增；Handoff 接力卡 + 右栏分步手册；Rules 一行一条 + 直达出处按钮 + 问 AI 按钮（规则加 `short`/`timing`）；Settings 分 5 块、自动保存 + Undo；Team 工作量条、贡献表、一周空闲热力图；解释文字移到 Help。⑦字数（`scripts/word-count.mjs`）：Today 105、Events 95、Rules 134、Tasks 111、Team 108、Funding 45、Handoff 34、Partners 37、Settings 89，全部在上限内。⑧测试：244 个单元测试通过；页面测试已按新界面重写，**桌面版 48/48 通过**。 | **还没做 / 要接着做：** ① 手机版页面测试（Pixel 7）还没跑：`PW_CHROMIUM=<chromium 路径> npx playwright test --project=mobile`，预计有布局问题要修；② 看板**鼠标拖拽**只人工看过逻辑，自动测试改用卡片上的移动菜单（同一个动作），需要真人在预览里拖一次；③ Ask 面板只用模拟和本地回退测过，没连真实 DeepSeek；④ `@xyflow/react` 依赖已不用，可删；⑤ docs/PRODUCT_PLAN.md 未改（改版依据见《Platypus 简化改版方案》和 AGENTS.md §7）；⑥ 已同步本地备份。 |
 | 2026-10-22 | Codex | WP5 功能完成：固定种子 1,000 次依赖预测与今日风险；六类规则与带出处问答、报错队列、40 题评估脚本；经费阶段/提交检查/用款提醒/Plan B；带逐条来源的岗位手册、卸任确认→社长批准、SEO/R16 第一周清单、岗位与联系人交接；关系页与私有缓冲渐进调整/关闭/换届重置。本机 `npm run check` 全通过：233 个单元测试 + 90 个页面测试，原有测试保留；主体提交 b8a6986 的 CI 通过。已同步本地备份（仅指定 4 文件） | **验收：** [预览 Handoff](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/handoff) → Start handoff season → Treasurer handbook → Draft role handbook，点每条 Source；切 Maya 确认，再切 Alex 批准。Today 展开 Forecast details 才见比例；Rules 问校外餐饮应引 R06、税务题应拒答；Funding 在 11/4 未批时展示 Plan B；Partners 显示岗位与下一场活动。**还剩/已知：** 真实 DeepSeek 40 题、如已配 AIR 则另跑 AIR，以及 Juanxi 审真实 AI 手册，均未完成，不宣称达到 ≥90% / 拒答全对。用户要求停止登录，已停止；示例回退不能冒充真实 AI。**WP6：** 结构版本 5，规则仍待正式复核，保留访问保护与 main；完整说明见 `docs/WP5_ACCEPTANCE.md`、`docs/AI_TESTS.md`。 |
 | 2026-10-22 | ChatGPT | 完成 WP4：社长五步设置、干部五问手机页、可修改设置、私有缓冲及关闭选项；按 Juanxi 确认保存演示渠道/链接/小型虚构规划文件；工作量档位、带来源贡献榜、只用自报时间的会议查找；岗位改名同步流程图与手册目录。本机 `npm run check` 全通过：174 个单元测试、76 个页面测试；原有测试保留。已同步本地备份（只覆盖指定 4 文件，未触碰 Reference/） | **验收：** [预览 Settings](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/settings)。① Replay setup 计时走五步，确认首场活动后才替换演示数据并进入流程图；第四步为演示配置，没有真实账户登录。② Settings 把 Treasurer 改为 VP of Finance 并保存，Events 与 Handoff 应同步。③ Invite officers → Try officer setup，选 Maya 填五问，检查个人偏好。④ Team 看工作量依据、贡献来源和默认 10/22 18:30 的会议交集；12/8 应无时段。⑤ Reset demo 恢复并使旧邀请失效。**还剩：** Juanxi 首次使用计时与手机验收，WP5 完整手册及其余工作。**已知：** 本地虚构身份演示，不支持跨设备邀请；文件只保存、不由 AI 阅读；会议不读取日历；完整手册在 WP5；实时供应商表达质量未实测。结构版本 4。接续说明见 `docs/WP4_ACCEPTANCE.md`。 |

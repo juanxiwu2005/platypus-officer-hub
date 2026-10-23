@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { ask, noOverflow, resetDemo } from "./helpers"
+import { ask, closeRail, noOverflow, resetDemo } from "./helpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -22,7 +22,7 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   await card.getByRole("button", { name: "Apply this change" }).click()
   await expect(page.getByRole("heading", { name: "Founder Dinner Preview" })).toBeVisible()
   await expect(page.getByTestId("flow-chart")).toBeVisible()
-  await expect(card).toContainText("Approved")
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).changeSets[0].status)).toBe("applied")
   expect(chatCalls).toBe(0) // a clear request is handled by the app itself
   await page.reload()
   await expect(page.getByRole("group", { name: "Choose an event" }).getByRole("button")).toHaveCount(3)
@@ -54,6 +54,7 @@ test("top tasks and the risk list come from the app; Remind opens a checked remi
   await expect(risk.getByTestId("forecast").first().getByRole("button")).toHaveAttribute("aria-label", /At risk|Watch/)
   await ask(page, "What are my top 5 tasks?")
   await expect(page.getByTestId("tasks-card")).toContainText("Your top")
+  await closeRail(page)
   await risk.getByRole("button", { name: "Remind" }).first().click()
   const panel = page.getByTestId("nudge-panel")
   await expect(panel.getByTestId("nudge-body")).toContainText("Why now:")

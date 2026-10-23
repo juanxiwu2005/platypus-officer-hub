@@ -32,9 +32,9 @@ export default function Today() {
               <tr key={n.id}>
                 <td><RiskDot result={forecast.nodes[n.id]} /></td>
                 <td><button className="row-btn" onClick={() => rail.show({ kind: "node", id: n.id })}>{n.title}</button></td>
-                <td><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" /> <span className="small">{firstName(state, n.ownerId)}</span></td>
-                <td className="small">{n.clubDeadline ? fmtShort(n.clubDeadline) : ""}</td>
-                <td><NodePill node={n} small /></td>
+                <td><span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" /><span className="small hide-sm">{firstName(state, n.ownerId)}</span></span></td>
+                <td className="small nowrap">{n.clubDeadline ? fmtShort(n.clubDeadline) : ""}</td>
+                <td className="hide-sm"><NodePill node={n} small /></td>
                 <td className="num">{canNudge && n.ownerId && <button className="btn small" disabled={!!nudgeBlocked(state, n)} title={nudgeBlocked(state, n) ?? "Review a private reminder"} onClick={() => rail.show({ kind: "nudge", id: n.id })}>Remind</button>}</td>
               </tr>
             ))}

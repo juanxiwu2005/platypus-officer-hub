@@ -109,7 +109,8 @@ function Board({ nodes }: { nodes: Node[] }) {
               onDragEnd={() => { setDrag(null); setOver(null) }}
               onDragOver={e => { e.preventDefault(); e.stopPropagation(); setOver({ status: st, before: n.id }) }}
               onDrop={e => { e.preventDefault(); e.stopPropagation(); const id = e.dataTransfer.getData("text/plain") || drag; if (id && id !== n.id) move(id, st, n.id); setDrag(null); setOver(null) }}>
-              <button type="button" className="row-btn board-title" onClick={() => rail.show({ kind: "task", id: n.id })}>{n.title}</button>
+              {/* A span, not a <button>: Chrome will not start a drag from inside a button. */}
+              <span role="button" tabIndex={0} className="row-btn board-title" onClick={() => rail.show({ kind: "task", id: n.id })} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); rail.show({ kind: "task", id: n.id }) } }}>{n.title}</span>
               {fields.includes("tags") && !!n.tags?.length && <div className="tag-row">{n.tags.map(id => { const t = tags.find(x => x.id === id); return t && <span key={id} className="tag-chip" style={{ "--tag": t.color } as CSSProperties}>{t.label}</span> })}</div>}
               <div className="board-meta">
                 {fields.includes("owner") && <Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />}

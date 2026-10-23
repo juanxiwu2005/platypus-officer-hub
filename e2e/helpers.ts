@@ -1,7 +1,14 @@
 import { expect, type Page } from "@playwright/test"
 
 /** v1.1 helpers: the demo controls live behind the Demo pill, and AI lives in the right rail. */
+/** On a phone the side panel covers the page; close it before touching the page underneath. */
+export async function closeRail(page: Page) {
+  if ((page.viewportSize()?.width ?? 1280) >= 1200) return
+  const hide = page.getByRole("button", { name: "Hide side panel" })
+  if (await hide.isVisible()) await hide.click()
+}
 export async function openDemoMenu(page: Page) {
+  await closeRail(page)
   const reset = page.getByTestId("reset-demo")
   if (!(await reset.isVisible())) await page.getByTestId("demo-menu").click()
 }

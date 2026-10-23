@@ -26,7 +26,11 @@ function Frame() {
   // A new page starts with Ask, not with the last page's details.
   const lastPath = useRef(location.pathname)
   useEffect(() => {
-    if (lastPath.current !== location.pathname && rail.detail && rail.detail.kind !== "task") rail.closeDetail()
+    if (lastPath.current !== location.pathname) {
+      if (rail.detail && rail.detail.kind !== "task") rail.closeDetail()
+      // On a phone or tablet the panel covers the page, so a new page starts with it closed.
+      if (!window.matchMedia?.("(min-width: 1200px)").matches && !(rail.detail?.kind === "task" && location.search.includes("node="))) rail.setOpen(false)
+    }
     lastPath.current = location.pathname
   }, [location.pathname])
 
