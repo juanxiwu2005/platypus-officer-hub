@@ -109,9 +109,9 @@ export function seedDemo(today: string = DEMO_TODAY): DemoState {
     nodes: [...night, ...speaker, ...standalone],
     nudges: [],
     contributions: [
-      { personId: "jordan", nodeId: "e-night:venue", points: 1, onTime: true },
-      { personId: "alex", nodeId: "e-night:registry", points: 1, onTime: true },
-      { personId: "maya", nodeId: "e-night:quote", points: 1, onTime: true },
+      { personId: "jordan", nodeId: "e-night:venue", points: 2, onTime: true },
+      { personId: "alex", nodeId: "e-night:registry", points: 2, onTime: true },
+      { personId: "maya", nodeId: "e-night:quote", points: 2, onTime: true },
     ],
     contacts: [
       { id: "c-caterer", name: "Desert Table Catering (fictional)", organization: "Local caterer", relation: "Vendor", lastContact: "2026-10-13", cadenceDays: 60, ownerRoleId: "r-fin", eventIds: ["e-night"] },

@@ -1,18 +1,9 @@
+import { Link } from "react-router-dom"
 import { Coming, PageHead } from "../components/Page"
+import { useStore } from "../data/store"
+import { ROLE_FUNCTIONS } from "../data/settings"
 
 export default function Handoff() {
-  return (
-    <>
-      <PageHead path="/handoff" lead="Every role keeps its playbook, contacts and history, so the next officer starts from week 3, not week 0." />
-      <section className="card">
-        <header><h2>Handoff season</h2><span className="tag">Not started</span></header>
-        <p className="muted">Start a handoff season when officer elections are done. Each outgoing officer gets a short checklist; each incoming officer gets the role's playbook.</p>
-      </section>
-      <Coming wp="WP4" items={[
-        "Handoff season with a checklist per role (Sun Devil Central officer list, bank signers, accounts)",
-        "Per-role handbook built from the tasks that role owned",
-        "Onboarding checklist for new officers",
-      ]} />
-    </>
-  )
+  const { state } = useStore()
+  return <><PageHead path="/handoff" lead="Each role keeps its responsibilities together for the next officer." /><section className="card form-stack" data-testid="role-handbooks"><header><h2>Role handbook outlines</h2><span className="tag">From current roles and tasks</span></header><p className="small muted">Role titles follow Settings. Full handbook drafting and handoff season arrive in WP5.</p>{state.roles.map(r => { const nodes = state.nodes.filter(n => state.people.find(p => p.id === n.ownerId)?.roleId === r.id || (!n.ownerId && n.fn === r.fn)); return <details key={r.id}><summary>{r.displayName} handbook</summary><p className="small muted">Function: {ROLE_FUNCTIONS.find(f => f.value === r.fn)?.label} · {state.people.find(p => p.id === r.holderId)?.name ?? "No officer assigned"}</p>{nodes.length ? <ul>{nodes.map(n => <li key={n.id}><Link to={`/tasks?node=${encodeURIComponent(n.id)}`}>{n.title}</Link><p className="small muted">{n.why} · Source: {n.source}</p></li>)}</ul> : <p>No owned steps yet.</p>}</details> })}</section><Coming wp="WP5" items={["Handoff season and checklists", "Full role handbook drafts and incoming officer onboarding"]} /></>
 }

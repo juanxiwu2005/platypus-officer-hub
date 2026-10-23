@@ -310,3 +310,28 @@ progress { accent-color: var(--accent); height: 8px; }
   .controls { margin-left: 0; width: 100%; }
 }
 
+
+/* Setup, personal preferences and shared team planning. */
+.form-stack { display: grid; gap: 16px; min-width: 0; }
+.form-stack label:not(.check-label) { display: grid; gap: 5px; font-size: 13px; color: var(--muted); min-width: 0; }
+.form-stack input:not([type=checkbox]), .form-stack select, .form-stack textarea { width: 100%; min-width: 0; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.form-stack textarea { resize: vertical; }
+.form-stack fieldset { min-width: 0; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: 10px; display: grid; gap: 12px; }
+.form-stack legend { font-weight: 600; padding: 0 6px; }
+.form-stack details { min-width: 0; border-top: 1px solid var(--line); padding-top: 12px; }
+.form-stack details[open] > summary { margin-bottom: 14px; }
+.form-stack summary { cursor: pointer; font-weight: 600; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 14px; }
+.check-label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.check-label input { flex: none; width: 18px; height: 18px; }
+.slot-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 8px; align-items: end; margin-block: 12px; }
+.setup-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.setup-steps li { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; color: var(--muted); font-size: 13px; }
+.setup-steps [aria-current] { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.wrap-link { overflow-wrap: anywhere; }
+.join-page { width: min(700px, 100%); margin: 24px auto; padding: 16px; }
+.team-officer { display: grid !important; gap: 8px; }
+.contribution-board { padding: 0; margin: 0; list-style: none; }
+.contribution-board > li { border-bottom: 1px solid var(--line); padding-block: 12px; display: grid; gap: 8px; }
+.notice { padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); font-size: 13px; }
+@media (max-width: 600px) { .slot-row { grid-template-columns: 1fr 1fr; } .setup-steps li { flex: 1 1 40%; } .form-stack fieldset { padding: 12px; } .join-page { margin-block: 0; } }

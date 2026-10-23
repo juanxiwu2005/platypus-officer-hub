@@ -11,11 +11,14 @@ import Rules from "./pages/Rules"
 import Settings from "./pages/Settings"
 import Help from "./pages/Help"
 import Officer from "./pages/Officer"
+import Setup from "./pages/Setup"
+import Join from "./pages/Join"
 
 export default function App() {
   return (
     <Routes>
       <Route path="officer" element={<Officer />} />
+      <Route path="join" element={<Join />} />
       <Route element={<Layout />}>
         <Route index element={<Today />} />
         <Route path="events" element={<Events />} />
@@ -26,6 +29,7 @@ export default function App() {
         <Route path="partners" element={<Partners />} />
         <Route path="rules" element={<Rules />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="setup" element={<Setup />} />
         <Route path="help" element={<Help />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

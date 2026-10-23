@@ -3,6 +3,9 @@ import { seedDemo } from "../data/seed"
 import { calendarDraftUrl, commonMeetingSlots, contributionBoard, mondayOf, workload } from "../engine/team"
 const base = () => seedDemo("2026-10-22")
 describe("team workload and recognition", () => {
+  it("keeps seeded contribution records consistent with the visible point formula", () => {
+    const s = base(); for (const c of s.contributions) { const n = s.nodes.find(n => n.id === c.nodeId)!; expect(c.points).toBe(({ light: 1, medium: 2, heavy: 3 }[n.tier]) + (c.onTime ? 1 : 0)) }
+  })
   it("weights upcoming open tasks and excludes completed or far-future work", () => {
     const s = base(), template = s.nodes[0]; s.nodes = [1, 2, 3, 4].map(i => ({ ...template, id: String(i), ownerId: "maya", tier: "medium", status: "accepted", latestStart: i === 4 ? "2027-01-01" : "2026-10-23", clubDeadline: i === 4 ? "2027-01-04" : "2026-10-30" }))
     expect(workload(s, "maya")).toMatchObject({ points: 6, band: "Balanced", through: "2026-11-04" })

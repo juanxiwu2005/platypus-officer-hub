@@ -56,7 +56,7 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
         <div className="deadline">
           <div className="dl-label">Latest start</div>
           <div className="dl-date" data-testid="dl-start">{fmtLong(p.latestStart)}</div>
-          <div className="dl-why">{p.explain.latestStart}</div>
+          <div className="dl-why">{n.ownerId === state.viewerId ? p.explain.latestStart : "Working days before the club deadline, allowing for effort and private planning preferences; skips ASU nonworking days."}</div>
         </div>
         <div className="deadline">
           <label className="dl-label" htmlFor="club-date">Club deadline</label>

@@ -63,7 +63,7 @@ export function Layout() {
             <span data-testid="ai-status">Fictional organization and example data. {aiNote} No message is sent from this page.</span>
             <span className="spacer" />
             {canNudge && <details className="demo-clock"><summary>Demo clock</summary><div className="action-row">{[1, 3, 10].map(days => <button key={days} className="btn small" data-testid={`clock-${days}`} onClick={() => dispatch({ type: "advanceClock", days })}>+{days} day{days > 1 ? "s" : ""}</button>)}</div><p>Simulated time only. No messages leave this browser.</p></details>}
-            <button className="btn btn-quiet small" type="button" disabled title="Arrives in WP4">Replay setup</button>
+            {canNudge && <NavLink className="btn btn-quiet small" to="/setup">Replay setup</NavLink>}
             <button
               className="btn btn-quiet small"
               type="button"

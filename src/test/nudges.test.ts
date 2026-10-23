@@ -79,7 +79,8 @@ describe("Today summaries", () => {
   it("counts existing completed-task points in the demo week, shows ties, excludes stale/future and deduplicates", () => {
     expect(weeklyStars(s)).toHaveLength(3)
     const duplicate = { ...s, contributions: [...s.contributions, s.contributions[0]] }
-    expect(weeklyStars(duplicate).map(x => x.points)).toEqual([1, 1, 1])
+    // Seeded light tasks now include the existing on-time bonus; deduplication still counts each once.
+    expect(weeklyStars(duplicate).map(x => x.points)).toEqual([2, 2, 2])
     expect(weeklyStars({ ...s, today: "2026-11-02" })).toEqual([])
     expect(weeklyStars({ ...s, today: "2026-10-19" })).toEqual([])
   })
