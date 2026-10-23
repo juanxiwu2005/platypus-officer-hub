@@ -25,7 +25,7 @@ test("rules: categories as tabs, sources one click away, sourced answers and ref
   const answer = page.getByTestId("rule-answer").last()
   await expect(answer).toContainText("[R06]")
   await expect(answer).not.toContainText("2099")
-  await expect(answer).toContainText("2026-10-07")
+  await expect(answer).toContainText("2026-10-23")
   await answer.getByRole("button", { name: "This is wrong" }).click()
   await ask(page, "Which tax form should we file?")
   await expect(page.getByTestId("rule-answer").last()).toContainText("will not guess")

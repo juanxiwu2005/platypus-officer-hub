@@ -107,6 +107,6 @@ describe("command boundary and review", () => {
   })
   it("grounds answers in actual cited rules and refuses unknown rules", () => {
     expect(sanitizeOps([{ op: "answer_question", answer: "Invented approval", citations: ["R99"] }], state)[0]).toMatchObject({ citations: [], answer: expect.stringContaining("couldn't find") })
-    expect(sanitizeOps([{ op: "answer_question", answer: "Invented approval", citations: ["R06"] }], state)[0]).toMatchObject({ answer: expect.stringContaining("certificate of insurance") })
+    expect(sanitizeOps([{ op: "answer_question", answer: "Invented approval", citations: ["R06"] }], state)[0]).toMatchObject({ answer: expect.stringContaining("proof of insurance") })
   })
 })

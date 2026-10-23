@@ -4,22 +4,22 @@
 
 | 编号 | 类别 | 规则 | 时限 | 出处 | 核实日期 |
 | --- | --- | --- | --- | --- | --- |
-| R01 | 场地与活动 | 校内实体活动须在 Event Registry 登记 | 至少 14 天；学生组织手册写 30 天（取 30 天） | [Event Registry 指南](https://eventreg.asu.edu/about-registry/event-guidelines)；[学生组织手册 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-07 |
-| R02 | 安全与合规 | 学生组织办的活动须有指导老师在场；公开或预计超过 250 人的活动须有校方代表全程在场 | — | [Event Registry 指南](https://eventreg.asu.edu/about-registry/event-guidelines) | 2026-10-07 |
-| R03 | 场地与活动 | 学生活动中心场地经 Mazevo 预约，只有前三名干部能提交 | 至少 16 天；户外摆摊至少 3 个工作日；复杂布置至少 2 周 | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-07 |
-| R04 | 场地与活动 | 场地预约须填上活动登记的 RITM 号 | 至少提前 14 天，否则可能取消并收费 | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-07 |
-| R05 | 餐饮 | Memorial Union、Student Pavilion 等场馆由 Aramark/Sun Devil Dining 独家供餐 | 至少提前 2 周安排 | [学生组织手册 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-07 |
-| R06 | 餐饮 | 使用校外餐饮须提交 Food Exception Request 和供应商保险证明 | 提前 14 天 | 同上 | 2026-10-07 |
-| R07 | 餐饮 | 现场制作食物须申请临时食品许可（$85） | 至少 7 个工作日 | [Catering and Food FAQ（2023，需复核）](https://eoss.asu.edu/sites/default/files/2023-09/FAQ%20-%20Catering%20and%20Food%20Guidelines%202.pdf) | 2026-10-07 |
-| R08 | 餐饮 | 不得提供自制食物 | — | 学生组织手册 2025–26 | 2026-10-07 |
-| R09 | 经费 | USG 餐饮类和服务类（租赁、布置、灯光等）申请 | 提前 10 个工作日 | [USG Spending Guidelines](https://www.asuusgt.org/spending-guidelines) | 2026-10-07 |
-| R10 | 经费 | USG 嘉宾或表演申请，须附签好的 SAP 协议 | 提前 14 个工作日 | 同上 | 2026-10-07 |
-| R11 | 经费 | USG 采购申请须附活动海报、写明公共目的；发票抬头须为 ASU；报销上限 $999，Amazon 可能不予报销；报销支票约 3 周内寄出 | — | 同上 | 2026-10-07 |
-| R12 | 经费 | 人均 $25 及以上的餐饮须交 Business Meals Form 和出勤名单 | — | [USG Funding Rules](https://www.asuusgt.org/funding-rules) | 2026-10-07 |
-| R13 | 场地与活动 | 期末考试期间不得办活动 | — | 学生组织手册 2025–26 | 2026-10-07 |
-| R14 | 安全与合规 | 学生干部最好不要签有法律约束力的合同 | — | 学生组织手册 2025–26 | 2026-10-07 |
-| R15 | 安全与合规 | ASU 不能办抽奖（raffle）；参与者不付费、机会均等的门票抽奖可以 | — | 学生组织手册 2025–26 | 2026-10-07 |
-| R16 | 换届 | 换届：联系指导老师；新干部完成培训、读手册和章程；更新 Sun Devil Central 与银行账户；每年春季重新注册 | 春季 | 学生组织手册 2025–26 | 2026-10-07 |
+| R01 | 场地与活动 | 校内实体活动，以及用学校经费或学生费用的校外活动，须在 Event Registry 登记 | 至少 14 天；学生组织手册写 30 天（取 30 天） | [Event Registry 指南](https://eventreg.asu.edu/about-registry/event-guidelines)；[学生组织手册 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-23 |
+| R02 | 安全与合规 | 学生组织办的活动须有指导老师在场；公开或预计超过 250 人的活动须有校方代表全程在场 | — | [Event Registry 指南](https://eventreg.asu.edu/about-registry/event-guidelines) | 2026-10-23 |
+| R03 | 场地与活动 | 学生活动中心场地经 Mazevo 预约，每个社团最多 3 名选举产生的干部可以开账号 | 至少 16 天；户外摆摊至少 3 个工作日；复杂布置至少 2 周 | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-23 |
+| R04 | 场地与活动 | 场地预约须填上活动登记的 RITM 号 | 至少提前 14 天，否则可能取消并收费 | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-23 |
+| R05 | 餐饮 | Memorial Union、Student Pavilion 等场馆由 Aramark/Sun Devil Dining 独家供餐 | 至少提前 2 周安排 | [学生组织手册 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-23 |
+| R06 | 餐饮 | 使用校外餐饮须提交 Food Exception Request 和供应商保险证明（proof of insurance） | 提前 14 天 | 同上 | 2026-10-23 |
+| R07 | 餐饮 | 现场制作食物须申请临时食品许可（$85） | 至少 7 个工作日 | [Catering and Food FAQ（2023，需复核）](https://eoss.asu.edu/sites/default/files/2023-09/FAQ%20-%20Catering%20and%20Food%20Guidelines%202.pdf) | 2026-10-23 |
+| R08 | 餐饮 | 不得提供自制食物 | — | 学生组织手册 2025–26 | 2026-10-23 |
+| R09 | 经费 | USG 餐饮类和服务类（租赁、布置、灯光等）申请 | 提前 10 个工作日 | [USG Spending Guidelines](https://www.asuusgt.org/spending-guidelines) | 2026-10-23 |
+| R10 | 经费 | USG 嘉宾或表演申请，须附签好的 SAP 协议 | 提前 14 个工作日 | 同上 | 2026-10-23 |
+| R11 | 经费 | USG 采购申请须附活动海报、写明公共目的；发票抬头须为 ASU；报销上限 $999（原文紧跟在 Amazon 那句后面，可能只指 Amazon；Platypus 按 $999 提醒），Amazon 可能不予报销；报销支票约 3 周内寄出 | — | 同上 | 2026-10-23 |
+| R12 | 经费 | 人均 $25 及以上的餐饮须交 Business Meals Form 和出勤名单 | — | [USG Funding Rules](https://www.asuusgt.org/funding-rules) | 2026-10-23 |
+| R13 | 场地与活动 | 期末考试期间不得办活动 | — | 学生组织手册 2025–26 | 2026-10-23 |
+| R14 | 安全与合规 | 学生干部最好不要签有法律约束力的合同 | — | 学生组织手册 2025–26 | 2026-10-23 |
+| R15 | 安全与合规 | ASU 不能办抽奖（raffle）；参与者不付费、机会均等的门票抽奖可以 | — | 学生组织手册 2025–26 | 2026-10-23 |
+| R16 | 换届 | 换届：联系指导老师；新干部完成培训、读手册和章程；告知 Campus Liaisons；更新 Sun Devil Central 与银行账户权限；每年春季重新注册 | 春季 | 学生组织手册 2025–26 | 2026-10-23 |
 
 六个类别（第 6 节规则页）：场地与活动、餐饮、经费、宣传、安全与合规、换届。“宣传”目前没有官方规则，渠道提前量见 `SEO_PLAYBOOK_REFERENCE.md`。
 
@@ -42,3 +42,13 @@
 ## v1.1 界面短句（2026-10-23）
 
 Rules 页每条只显示一句短句（`src/data/rules.ts` 的 `short`）和时限标签（`timing`），全文、出处和核实日期在悬停卡里。短句只是缩写，规则内容以上面的原文为准；改原文时一起检查短句。
+
+## 2026-10-23 逐条复核（WP6 要求）
+
+16 条全部打开原网页核对过，内容仍然成立，核实日期改为 2026-10-23。改动只是措辞更准确：
+- R01：Event Registry 页面写的是“学校场地上的所有实体活动，以及与学校事务相关或用学校经费/学生费用的校外活动”都要登记；该页最少 14 天，手册第 15 页写 30 天，仍取 30 天。
+- R03：原文是“最多 3 名选举产生的干部可以申请账号”，不是“前三名”。
+- R06：手册第 14 页写的是 “vendor proof of insurance”。
+- R07：FAQ 没有日期；申请交给 ASU Food Safety & Health Manager，费用通常由供应商付；时限是 “7 working days”。
+- R11：$999 那句紧跟在 Amazon 句后，可能只适用于 Amazon；Platypus 继续按 $999 提醒（偏保守）。
+- R16：手册第 12 页还要求联系 Campus Liaisons 让换届生效。
