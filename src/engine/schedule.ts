@@ -3,7 +3,7 @@ import { RULES } from "../data/rules"
 import { addDays, daysBetween, fmtLong } from "../lib/dates"
 import {
   BREAKS, FINALS, HOLIDAYS, TERMS, findPeriod, isWeekend, onOrAfter, onOrBefore,
-  personalWorkDay, shiftWork, skippedReasons, type WorkDay,
+  isBusinessDay, personalWorkDay, shiftWork, skippedReasons, type WorkDay,
 } from "./calendar"
 
 /**
@@ -351,4 +351,28 @@ export function applySchedule(state: DemoState): DemoState {
       return { ...n, officialDeadline: p.official, clubDeadline: p.club, latestStart: p.latestStart }
     }),
   }
+}
+
+/** Forecast clock: all simulated completion dates still come from this date engine.
+ * Memoized by owner/start/duration so 1,000 runs do not repeat calendar walks. */
+export function forecastClock(state: DemoState) {
+  const cache = new Map<string, string>()
+  return (node: Node, start: string, effort: number, calendarWait = 0): string => {
+    const key = `${node.ownerId}:${start}:${effort}:${calendarWait}`
+    if (cache.has(key)) return cache.get(key)!
+    const person = state.people.find(p => p.id === node.ownerId)
+    const work = node.ownerId === null ? isBusinessDay : personalWorkDay(person?.busyWeeks)
+    const date = calendarWait > 0 ? onOrAfter(addDays(start, calendarWait)) : shiftWork(onOrAfter(start, work), effort, work)
+    cache.set(key, date)
+    return date
+  }
+}
+
+/** Human-selected handoff window; derived milestones are calculated here, never by AI. */
+export function handoffDates(start: string) {
+  return { interview: addDays(start, 3), handbook: addDays(start, 7), weekOne: addDays(start, 7), weekTwo: addDays(start, 14), review: addDays(start, 30) }
+}
+export function fundingDecisionDate(state: DemoState, eventId: string): string | null {
+  const steps = state.nodes.filter(n => n.eventId === eventId && (n.stepKey === "usg" || n.stepKey === "usgspeaker"))
+  return steps.map(n => n.officialDeadline).filter((d): d is string => !!d).sort()[0] ?? null
 }

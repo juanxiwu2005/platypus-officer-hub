@@ -1,31 +1,26 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { useSchedule, useStore, useViewer } from "../data/store"
+import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
 import { CommandBar } from "../components/CommandBar"
 import { NudgeComposer } from "../components/NudgeComposer"
 import { NodePanel } from "../components/NodePanel"
 import { nudgeBlocked } from "../lib/nudges"
 import { eventStrip, weeklyStars } from "../lib/today"
+import { computeForecast, forecastQueue } from "../engine/forecast"
+import { ForecastBadge } from "../components/ForecastBadge"
 import { PrivateInbox } from "../components/PrivateInbox"
 import { daysBetween, fmtShort } from "../lib/dates"
-import { SEVERITY_RANK, personName, statusOf, worstIssue } from "./helpers"
+import { personName, statusOf } from "./helpers"
 
 export default function Today() {
   const { state } = useStore()
   const { person, canNudge } = useViewer()
   const [nudgeId, setNudgeId] = useState<string | null>(null)
   const [nodeId, setNodeId] = useState<string | null>(null)
-  const sched = useSchedule()
+  const forecast = useMemo(() => computeForecast(state), [state])
   const stars = weeklyStars(state)
-  // WP1: ranked by the rule engine's warnings (red before amber, then nearest club deadline).
-  // The forecast from 1,000 simulated runs (plan §9) replaces this ranking in WP5.
-  const risks = state.nodes
-    .filter(n => n.status !== "done")
-    .map(n => ({ n, issue: worstIssue(sched.nodes[n.id]?.issues) }))
-    .filter((x): x is { n: typeof x.n; issue: NonNullable<typeof x.issue> } => !!x.issue)
-    .sort((a, b) => SEVERITY_RANK[a.issue.severity] - SEVERITY_RANK[b.issue.severity] || (a.n.clubDeadline ?? "").localeCompare(b.n.clubDeadline ?? ""))
-    .slice(0, 3)
+  const risks = forecastQueue(state, forecast)
 
   return (
     <>
@@ -37,12 +32,12 @@ export default function Today() {
         <section className="card" aria-labelledby="risk-h">
           <header><h2 id="risk-h">Needs a nudge</h2><span className="small muted">Top {risks.length} by risk</span></header>
           <ul className="list" data-testid="risk-list">
-            {risks.map(({ n, issue }) => (
+            {risks.map(n => (
               <li key={n.id}>
                 <div>
                   <button className="row-btn" onClick={() => { setNudgeId(null); setNodeId(n.id) }}>{n.title}</button>
                   <div className="small muted">{personName(state, n.ownerId)}{n.clubDeadline ? ` · club deadline ${fmtShort(n.clubDeadline)}` : ""}</div>
-                  <div className={`small ${issue.severity === "error" ? "late-text" : "warn-text"}`}>{issue.text}</div>
+                  <ForecastBadge result={forecast.nodes[n.id]} />
                 </div>
                 <div className="risk-actions"><span className={`tag ${statusOf(n).tone}`}>{statusOf(n).text}</span>{canNudge && <button className="btn small" disabled={!!nudgeBlocked(state, n)} title={nudgeBlocked(state, n) ?? "Review a private reminder"} onClick={() => { setNodeId(null); setNudgeId(n.id) }}>Draft reminder</button>}{!n.ownerId && <span className="small muted">Assign an owner first</span>}</div>
               </li>
@@ -64,6 +59,7 @@ export default function Today() {
                     <div className="small muted">{fmtShort(ev.date)} · in {daysBetween(state.today, ev.date)} days</div>
                     <span className="small muted num">{nodes.length ? `${done}/${nodes.length} steps done` : "No steps yet"}</span>
                   </div>
+                  <ForecastBadge result={forecast.events[ev.id]} />
                   <ol className="step-strip">{eventStrip(nodes).map((n, i) => <li key={n.id}><button className="step-button" onClick={() => { setNudgeId(null); setNodeId(n.id) }}><span className="eyebrow">{i === 0 ? "Current" : `Next ${i}`}</span><b>{n.title}</b><span className="small muted">{personName(state, n.ownerId)} · {n.latestStart ? fmtShort(n.latestStart) : "Date pending"}</span></button></li>)}</ol>
                   {!!nodes.length && done === nodes.length && <p className="small good-text">All steps complete.</p>}
                 </li>
