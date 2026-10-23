@@ -71,7 +71,7 @@ function ownerOf(ctx: Ctx, n: Node): Person | undefined {
 
 function effortOf(ctx: Ctx, n: Node) {
   const p = ownerOf(ctx, n)
-  const buffer = p?.personalBufferDays ?? DEFAULT_PERSONAL_BUFFER
+  const buffer = p?.personalBufferEnabled === false ? DEFAULT_PERSONAL_BUFFER : p?.personalBufferDays ?? DEFAULT_PERSONAL_BUFFER
   const work: WorkDay = personalWorkDay(p?.busyWeeks)
   return { days: Math.max(0, n.estDays) + buffer, buffer, work, person: p }
 }

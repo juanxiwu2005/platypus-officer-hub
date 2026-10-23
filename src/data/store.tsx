@@ -10,6 +10,8 @@ import { advanceClock } from "../engine/followup"
 import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type ReplyInput, type TaskReply } from "./taskWorkflow"
 import { usableGrant } from "../lib/officerLinks"
 import type { OfficerGrant } from "./types"
+import { completeSetup, saveClubSettings, saveProfile, type ClubDraft, type ProfilePatch } from "./settings"
+import type { OrgSettings } from "./types"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -42,6 +44,9 @@ export type Action =
   | { type: "approveRecovery"; entryId: string }
   | { type: "issueOfficerGrant"; grant: OfficerGrant }
   | { type: "officerAction"; token: string; reply: TaskReply | "claim"; input?: ReplyInput }
+  | { type: "saveClubSettings"; draft: ClubDraft; defaults: OrgSettings }
+  | { type: "saveProfile"; personId: string; patch: ProfilePatch; invite?: string }
+  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string }
 
 const NODE_FIELDS: (keyof NodePatch)[] = ["ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
@@ -159,6 +164,9 @@ export function reducer(state: DemoState, action: Action): DemoState {
       if (next === state) return state
       return { ...next, officerGrants: next.officerGrants.map(g => g.id === grant.id ? { ...g, usedOn: state.today } : g) }
     }
+    case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
+    case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
+    case "completeSetup": return completeSetup(state, action.draft, action.event, action.date, action.inviteCode)
   }
 }
 

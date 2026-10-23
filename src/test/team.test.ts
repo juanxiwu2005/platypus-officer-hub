@@ -1,0 +1,46 @@
+import { describe, expect, it } from "vitest"
+import { seedDemo } from "../data/seed"
+import { calendarDraftUrl, commonMeetingSlots, contributionBoard, mondayOf, workload } from "../engine/team"
+const base = () => seedDemo("2026-10-22")
+describe("team workload and recognition", () => {
+  it("weights upcoming open tasks and excludes completed or far-future work", () => {
+    const s = base(), template = s.nodes[0]; s.nodes = [1, 2, 3, 4].map(i => ({ ...template, id: String(i), ownerId: "maya", tier: "medium", status: "accepted", latestStart: i === 4 ? "2027-01-01" : "2026-10-23", clubDeadline: i === 4 ? "2027-01-04" : "2026-10-30" }))
+    expect(workload(s, "maya")).toMatchObject({ points: 6, band: "Balanced", through: "2026-11-04" })
+    s.nodes[0].tier = "heavy"; s.nodes[1].tier = "heavy"; expect(workload(s, "maya").band).toBe("Heavy")
+    s.nodes[0].status = "done"; s.nodes[1].status = "done"; expect(workload(s, "maya").band).toBe("Light")
+  })
+  it("deduplicates completed contributions, excludes future work and shares tied ranks", () => {
+    const s = base(), n = s.nodes[0]; n.status = "done"
+    const c = { personId: "alex", nodeId: n.id, points: 3, onTime: true, completedOn: s.today }
+    s.contributions = [c, c, { ...c, personId: "maya" }, { ...c, personId: "jordan", completedOn: "2027-01-01" }, { ...c, nodeId: s.nodes.find(x => x.status !== "done")!.id, personId: "sam" }]
+    const board = contributionBoard(s); expect(board.find(r => r.person.id === "alex")).toMatchObject({ points: 3, completed: 1, rank: 1 }); expect(board.find(r => r.person.id === "maya")?.rank).toBe(1); expect(board.find(r => r.person.id === "jordan")?.points).toBe(0)
+  })
+  it("never uses personal planning buffers as workload or contribution inputs", () => {
+    const s = base(), w = workload(s, "maya"), c = contributionBoard(s); s.people[1].personalBufferDays = 5
+    expect(workload(s, "maya")).toEqual(w); expect(contributionBoard(s).map(r => r.points)).toEqual(c.map(r => r.points))
+  })
+})
+describe("self-reported meeting intersection", () => {
+  it("returns three nonoverlapping Thursday slots shared by every attendee", () => {
+    const s = base(); expect(commonMeetingSlots(s, s.people.map(p => p.id), s.today, 30).slots).toEqual([{ from: "18:30", to: "19:00" }, { from: "19:00", to: "19:30" }, { from: "19:30", to: "20:00" }])
+  })
+  it("joins adjacent availability and respects the requested duration", () => {
+    const s = base(); s.people[0].freeSlots = [{ day: 4, from: "18:00", to: "18:30" }, { day: 4, from: "18:30", to: "19:00" }]
+    expect(commonMeetingSlots(s, ["alex"], s.today, 60).slots).toEqual([{ from: "18:00", to: "19:00" }])
+    expect(commonMeetingSlots(s, ["alex"], s.today, 90).slots).toHaveLength(0)
+  })
+  it("reports missing availability and no overlap without inferring calendar contents", () => {
+    const s = base(); s.people[0].freeSlots = []; expect(commonMeetingSlots(s, ["alex"], s.today, 30).reason).toContain("has not shared")
+    s.people[0].freeSlots = [{ day: 4, from: "08:00", to: "09:00" }]; expect(commonMeetingSlots(s, ["alex", "maya"], s.today, 30).reason).toContain("No shared time")
+  })
+  it.each(["2026-11-05", "2026-11-26", "2026-12-08", "2026-12-21"])("blocks busy weeks, holidays, finals or winter break: %s", date => {
+    const s = base(); const r = commonMeetingSlots(s, s.people.map(p => p.id), date, 30); expect(r.slots).toHaveLength(0); expect(r.reason).toContain("No club meeting"); expect(r.reason).not.toContain("Sam")
+  })
+  it("rejects invalid dates, attendees and durations", () => {
+    const s = base(); for (const [ids, date, duration] of [[[], s.today, 30], [["alex", "alex"], s.today, 30], [["missing"], s.today, 30], [["alex"], "2026-02-30", 30], [["alex"], "2026-10-21", 30], [["alex"], s.today, 45]] as [string[], string, number][]) expect(commonMeetingSlots(s, ids, date, duration).slots).toHaveLength(0)
+  })
+  it("makes an Arizona Calendar draft with no guests and normalizes busy weeks to Mondays", () => {
+    const u = new URL(calendarDraftUrl("2026-10-22", "18:30", "19:00")); expect(u.searchParams.get("ctz")).toBe("America/Phoenix"); expect(u.searchParams.get("dates")).toBe("20261022T183000/20261022T190000"); expect(u.searchParams.has("add")).toBe(false)
+    expect(mondayOf("2026-10-22")).toBe("2026-10-19"); expect(mondayOf("2026-10-25")).toBe("2026-10-19")
+  })
+})

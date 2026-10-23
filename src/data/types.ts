@@ -44,7 +44,27 @@ export interface Org {
   mission: string
   goals: Goal[]
   settings: OrgSettings
+  workspace: WorkspaceConfig
+  setupCompletedOn: string | null
+  inviteCode: string
 }
+
+export interface PlanningFile {
+  id: string
+  name: string
+  type: string
+  size: number
+  /** Local browser only; small fictional files, never sent to AI. */
+  dataUrl: string
+}
+export interface WorkspaceConfig {
+  calendarUrl: string
+  messaging: "whatsapp" | "email"
+  driveLink: string
+  planningNotes: string
+  files: PlanningFile[]
+}
+export interface FreeSlot { day: number; from: string; to: string }
 
 export interface Role {
   id: string
@@ -66,6 +86,11 @@ export interface Person {
   interests: string
   /** Personal buffer in days. Visible only to the person and used only for scheduling (plan §9). */
   personalBufferDays: number
+  personalBufferEnabled: boolean
+  phone: string
+  expectations: string
+  freeSlots: FreeSlot[]
+  setupCompletedOn: string | null
 }
 
 export type EventType = "speaker" | "social" | "workshop" | "meeting" | "fundraiser" | "offcampus"

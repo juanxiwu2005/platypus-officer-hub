@@ -2,7 +2,7 @@ import type { DemoState, Event, Node, NodeStatus, Role } from "./types"
 import { buildEventNodes } from "../engine/playbooks"
 import { applySchedule } from "../engine/schedule"
 
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -93,6 +93,9 @@ export function seedDemo(today: string = DEMO_TODAY): DemoState {
         sendMode: "review",
         quietHours: { from: "22:00", to: "08:00" },
       },
+      workspace: { calendarUrl: "https://calendar.google.com/", messaging: "whatsapp", driveLink: "", planningNotes: "Programs plans the event; marketing prepares the flyer; finance submits funding requests. The president reviews decisions.", files: [] },
+      setupCompletedOn: null,
+      inviteCode: crypto.randomUUID(),
     },
     roles,
     people: [
@@ -101,7 +104,7 @@ export function seedDemo(today: string = DEMO_TODAY): DemoState {
       { id: "jordan", name: "Jordan Patel", roleId: "r-events", email: "jordan.patel@example.org", channels: ["sms", "email"], remindAt: "morning", busyWeeks: [], careerGoal: "Event and operations management", interests: "Logistics, hospitality", personalBufferDays: 2 },
       { id: "sam", name: "Sam Okafor", roleId: "r-mkt", email: "sam.okafor@example.org", channels: ["whatsapp"], remindAt: "evening", busyWeeks: ["2026-11-02"], careerGoal: "Brand marketing", interests: "Design, social media", personalBufferDays: 1 },
       { id: "priya", name: "Priya Nair", roleId: "r-sec", email: "priya.nair@example.org", channels: ["email"], remindAt: "morning", busyWeeks: [], careerGoal: "Consulting", interests: "Writing, research", personalBufferDays: 1 },
-    ],
+    ].map((p, i) => ({ ...p, channels: p.channels as import("./types").Channel[], remindAt: p.remindAt as "morning" | "evening", personalBufferEnabled: true, phone: "", expectations: "Learn the role and help our club follow through.", freeSlots: [{ day: 4, from: i === 3 ? "18:30" : "18:00", to: "20:00" }, { day: 1, from: "18:00", to: "20:00" }], setupCompletedOn: null })),
     events,
     nodes: [...night, ...speaker, ...standalone],
     nudges: [],
