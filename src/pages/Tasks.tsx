@@ -2,15 +2,21 @@ import { useStore, useViewer } from "../data/store"
 import { Coming, PageHead } from "../components/Page"
 import { fmtShort } from "../lib/dates"
 import { statusOf } from "./helpers"
+import { useSearchParams } from "react-router-dom"
+import { STATUS_ACTIONS } from "../lib/nudges"
 
 export default function Tasks() {
   const { state } = useStore()
   const { person } = useViewer()
+  const [params] = useSearchParams()
+  const linked = state.nodes.find(n => n.id === params.get("node"))
+  const reply = STATUS_ACTIONS.find(a => a.key === params.get("reply"))
   const mine = state.nodes.filter(n => n.ownerId === person.id && n.status !== "done")
   const unclaimed = state.nodes.filter(n => n.status === "unclaimed" && !n.ownerId)
   return (
     <>
       <PageHead path="/tasks" lead="Your own tasks first. Every task has exactly one owner." />
+      {linked && <section className="card" aria-label="Linked task"><h2>{linked.title}</h2><p>{linked.why}</p><p className="small muted">Owner: {state.people.find(p => p.id === linked.ownerId)?.name ?? "No owner"} · Club deadline: {linked.clubDeadline ? fmtShort(linked.clubDeadline) : "not set"}</p>{reply && <p role="status">Preview: {reply.label}. One-tap status updates arrive in WP3; this task has not changed.</p>}</section>}
       <section className="card" aria-labelledby="mine-h">
         <header><h2 id="mine-h">Mine</h2><span className="small muted">{mine.length} open</span></header>
         <ul className="list" data-testid="my-tasks">
@@ -44,3 +50,4 @@ export default function Tasks() {
     </>
   )
 }
+

@@ -1,0 +1,64 @@
+import { useEffect, useRef, useState } from "react"
+import { Link } from "react-router-dom"
+import { useStore, useViewer } from "../data/store"
+import type { Channel } from "../data/types"
+import { callApi } from "../lib/api"
+import { buildNudge, composeUrl, messageText, nudgeBlocked, STATUS_ACTIONS, taskReplyUrl } from "../lib/nudges"
+
+const CHANNEL_LABEL = { whatsapp: "WhatsApp", sms: "Text message", email: "Gmail" }
+export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
+  const { state, dispatch } = useStore()
+  const { canNudge } = useViewer()
+  const node = state.nodes.find(n => n.id === nodeId)
+  const person = state.people.find(p => p.id === node?.ownerId)
+  const [channel, setChannel] = useState<Channel>(person?.channels[0] ?? "whatsapp")
+  const [meaning, setMeaning] = useState<unknown>()
+  const [busy, setBusy] = useState(false)
+  const [source, setSource] = useState("Checked template")
+  const [openedText, setOpenedText] = useState<string | null>(null)
+  const [confirmed, setConfirmed] = useState(false)
+  const heading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => { heading.current?.focus() }, [])
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    window.addEventListener("keydown", esc)
+    return () => window.removeEventListener("keydown", esc)
+  }, [onClose])
+  useEffect(() => {
+    let current = true
+    setBusy(false); setMeaning(undefined)
+    if (!state.aiEnabled || !canNudge || !node || nudgeBlocked(state, node)) return
+    setBusy(true)
+    const downstream = state.nodes.find(n => n.dependsOn.includes(node.id) && n.status !== "done")
+    callApi<{ whyItMatters?: unknown; source: string }>("/nudge/draft", { node: { id: node.id, title: node.title, tier: node.tier, estDays: node.estDays, lastUpdate: node.lastUpdate, latestStart: node.latestStart, clubDeadline: node.clubDeadline, officialDeadline: node.officialDeadline }, downstream: downstream ? { title: downstream.title, latestStart: downstream.latestStart } : null, today: state.today, remindAt: person?.remindAt, mission: state.org.mission })
+      .then(result => { if (current) { setMeaning(result.whyItMatters); setSource("AI + checked template") } })
+      .catch(() => { if (current) setSource("Checked template · AI unavailable") })
+      .finally(() => { if (current) setBusy(false) })
+    return () => { current = false }
+    // Rebuild on task changes, so an old response cannot overwrite a newer task.
+  }, [node, state.aiEnabled, canNudge, state.today, person?.remindAt, state.org.mission])
+  if (!node || !person) return null
+  const blocked = !canNudge ? "Only the president or vice president can prepare reminders." : nudgeBlocked(state, node)
+  const draft = buildNudge(state, node, state.aiEnabled ? meaning : undefined)
+  const message = messageText(draft, window.location.origin, node.id)
+  const url = composeUrl(channel, message, draft.subject)
+  const ready = !blocked && draft.checked && !busy && !confirmed
+  return <aside className="panel nudge-panel" role="dialog" aria-labelledby="nudge-heading" data-testid="nudge-panel">
+    <div className="panel-head"><span className="eyebrow">Private reminder · review first</span><button className="btn btn-quiet" aria-label="Close reminder" onClick={onClose}>✕</button></div>
+    <h2 id="nudge-heading" tabIndex={-1} ref={heading}>{person.name}</h2>
+    <p className="small muted">{state.aiEnabled ? source : "Checked template · AI off"} · {draft.wordCount}/100 words · {draft.checked ? "Wording checked" : "Needs review"}</p>
+    <label className="composer-channel">Preferred channel<select value={channel} onChange={e => { setChannel(e.target.value as Channel); setOpenedText(null) }}>{[...new Set([...person.channels, "whatsapp", "sms", "email"] as Channel[])].map(c => <option key={c} value={c}>{CHANNEL_LABEL[c]}{c === person.channels[0] ? " · preferred" : ""}</option>)}</select></label>
+    <p className="small muted">Preferred time: {person.remindAt === "evening" ? "evening, around 7 pm" : "morning, around 9 am"}. Keep messages between 8 am and 10 pm.</p>
+    <b>{draft.subject}</b>
+    <div className="nudge-body" data-testid="nudge-body">{draft.body}</div>
+    <div className="status-actions" aria-label="Recipient status choices">{STATUS_ACTIONS.map(a => <Link className="btn small" key={a.key} to={taskReplyUrl("", node.id, a.key).slice(2)} onClick={onClose}>{a.label}</Link>)}</div>
+    <p className="small muted">Status links preview the recipient's task page. One-tap updates arrive in WP3.</p>
+    <details><summary className="small">Sources & task details</summary><p className="small">Latest task update: {node.lastUpdate ?? "not recorded"}. Dates and waiting steps come from the rule engine. {node.ruleIds.join(", ") || node.source}.</p><Link to={`/tasks?node=${encodeURIComponent(node.id)}`} onClick={onClose}>Open this task</Link></details>
+    {blocked && <p className="small warn-text" role="status">{blocked}</p>}
+    {confirmed ? <p className="small good-text" role="status">Recorded as sent by you. The app cannot verify delivery.</p> : <>
+      {ready ? <a className="btn btn-primary" href={url} target={channel === "sms" ? undefined : "_blank"} rel="noreferrer" onClick={() => setOpenedText(message)}>Open {CHANNEL_LABEL[channel]} draft</a> : <button className="btn" disabled>{busy ? "Checking draft…" : "Draft unavailable"}</button>}
+      <p className="small muted">Demo: recipient is blank. Select a test destination yourself. Opening a draft does not record it as sent.</p>
+      {openedText === message && ready && <button className="btn" onClick={() => { dispatch({ type: "confirmNudgeSent", nodeId: node.id, channel, text: message }); setConfirmed(true) }}>I sent this reminder</button>}
+    </>}
+  </aside>
+}

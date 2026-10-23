@@ -121,6 +121,28 @@ progress { accent-color: var(--accent); height: 8px; }
 .avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-ink); display: inline-grid; place-items: center; font-size: 12px; font-weight: 700; flex: none; }
 .command { display: grid; gap: 10px; }
 .command textarea { width: 100%; min-height: 64px; resize: vertical; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); }
+.action-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.change-set { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; overflow-wrap: anywhere; }
+.change-set > header { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.change-item { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.review-fields { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-width: 0; }
+.review-fields label, .composer-channel { display: grid; gap: 4px; font-size: 13px; min-width: 0; }
+.review-fields input:not([type="checkbox"]), .review-fields select, .composer-channel select { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--surface-2); }
+.review-fields p { grid-column: 1 / -1; }
+.risk-actions { display: grid; gap: 8px; justify-items: end; flex-shrink: 0; }
+.event-strips .event-strip { display: grid; gap: 10px; justify-content: stretch; }
+.step-strip { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.step-strip li { display: block; border: 0; padding: 0; min-width: 0; }
+.step-button { width: 100%; height: 100%; display: grid; align-content: start; gap: 5px; text-align: left; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer; overflow-wrap: anywhere; }
+.step-strip li:first-child .step-button { border-color: var(--accent); background: var(--accent-soft); }
+.step-button .eyebrow { font-size: 10px; }
+.step-button b { font-size: 12px; }
+.star-card { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; background: var(--accent-soft); border-radius: 10px; }
+.nudge-body { white-space: pre-wrap; font-size: 14px; line-height: 1.65; overflow-wrap: anywhere; }
+.status-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.status-actions .btn { justify-content: center; }
+.good-text { color: var(--good); }
+@media (max-width: 600px) { .review-fields { grid-template-columns: 1fr; } .step-strip { grid-template-columns: 1fr; } .risk-actions { max-width: 125px; } }
 .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 50; }
 
 /* Shared bits (WP1) */
@@ -252,3 +274,4 @@ progress { accent-color: var(--accent); height: 8px; }
   .grid-2, .grid-3 { grid-template-columns: minmax(0, 1fr); }
   .controls { margin-left: 0; width: 100%; }
 }
+
