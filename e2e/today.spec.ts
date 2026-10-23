@@ -41,9 +41,14 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
   await card.getByLabel("Owner", { exact: true }).selectOption("jordan")
   await card.getByRole("button", { name: "Apply this change" }).click()
   await expect(page.getByTestId("risk-list")).toContainText("Jordan")
-  await ask(page, "Set Send the October newsletter to heavy")
+  await ask(page, "Unassign Send the October newsletter")
   await page.getByTestId("change-item").last().getByRole("button", { name: "Reject", exact: true }).click()
   await expect(page.getByTestId("change-item").last()).toContainText("Rejected")
+  // Small edits apply at once and can be undone (v1.2).
+  await ask(page, "Set Send the October newsletter to heavy")
+  await expect(page.getByTestId("applied-set").last()).toContainText("Done")
+  await page.getByTestId("undo-auto").last().click()
+  await expect(page.getByTestId("applied-set").last()).toContainText("Undone")
 })
 
 test("top tasks and the risk list come from the app; Remind opens a checked reminder with four reply links", async ({ page }) => {
@@ -77,8 +82,10 @@ test("officers cannot prepare a reminder or approve a change", async ({ page }) 
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
   await page.getByTestId("view-as").selectOption("maya")
   await expect(page.getByRole("button", { name: "Remind" })).toHaveCount(0)
-  await ask(page, "Set Send the October newsletter to heavy")
+  await ask(page, "Assign Send the October newsletter to Priya")
   await expect(page.getByRole("button", { name: "Apply this change" })).toBeDisabled()
+  await ask(page, "Set Send the October newsletter to heavy")
+  await expect(page.getByTestId("applied-set").last()).toContainText("Not changed")
 })
 
 test("Today fits one screen: risk rows, event chains, goals and the weekly star", async ({ page }) => {

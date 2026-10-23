@@ -1,5 +1,5 @@
 import type { DemoState, Event, Node } from "./types"
-import { sanitizeOps, validDate, type CommandOp } from "../lib/commands"
+import { commandContext, sanitizeOps, validDate, type CommandOp } from "../lib/commands"
 import { buildEventNodes } from "../engine/playbooks"
 import { topoOrder } from "../engine/schedule"
 
@@ -13,7 +13,7 @@ export interface HumanInputs { date?: string }
 /** Validate against fresh state before any mutation. No arbitrary patch or AI date reaches store. */
 export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = {}): string | null {
   if (!canLead(s)) return "Only the president or vice president can approve changes."
-  const op = sanitizeOps([raw], s)[0]
+  const op = sanitizeOps([raw], commandContext(s))[0]
   if (!op) return "This change no longer matches the current demo. Please draft it again."
   if ((op.op === "create_event" || (op.op === "add_node" && !op.eventId)) && !validDate(human.date ?? "")) return "Choose and confirm a date before applying this change."
   if (op.op === "link_dependency") {
@@ -23,6 +23,8 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
     const nodes = s.nodes.map(x => x.id === n.id ? { ...x, dependsOn: [...new Set([...x.dependsOn, upstream.id])] } : x)
     if (topoOrder(nodes).looped.length) return "This link would create a loop. Choose a different dependency."
   }
+  if (op.op === "set_funding_amount" && op.amount < (s.funding.find(f => f.eventId === op.eventId)?.spent ?? 0)) return "The budget cannot be lower than what is already spent."
+  if (op.op === "advance_funding" && s.funding.find(f => f.eventId === op.eventId)?.stage === "attendance_submitted") return "This funding request is already at its last stage."
   if (op.op === "propose_nudge") {
     const n = s.nodes.find(n => n.id === op.nodeId)!
     if (n.status === "done" || !n.ownerId) return "Choose an open task with an owner before drafting a reminder."

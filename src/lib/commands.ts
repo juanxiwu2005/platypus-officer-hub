@@ -1,4 +1,4 @@
-import type { DemoState, Event, Tier } from "../data/types"
+import type { DemoState, Event, NodeStatus, Tier } from "../data/types"
 import { RULES } from "../data/rules"
 
 /** Only these shapes may cross the AI boundary. Unknown keys (including all dates) disappear. */
@@ -10,16 +10,38 @@ export type CommandOp =
   | { op: "link_dependency"; nodeId: string; dependsOnId: string }
   | { op: "propose_nudge"; nodeId: string }
   | { op: "answer_question"; answer: string; citations: string[] }
+  // v1.2: more of the club's own data. Small ones apply at once (with Undo); the rest wait for review.
+  | { op: "set_status"; nodeId: string; status: NodeStatus }
+  | { op: "rename_task"; nodeId: string; title: string }
+  | { op: "set_tags"; nodeId: string; tags: string[] }
+  | { op: "mark_contacted"; contactId: string }
+  | { op: "update_event"; eventId: string; name?: string; headcount?: number }
+  | { op: "add_contact"; name: string; organization: string; relation: string; ownerRoleId: string; cadenceDays: number }
+  | { op: "set_funding_amount"; eventId: string; amount: number }
+  | { op: "advance_funding"; eventId: string }
+
+/** Low-risk edits the assistant may apply straight away; each one can be undone (Juanxi, 2026-10-23). */
+export const SMALL_OPS = ["set_status", "rename_task", "set_tags", "set_tier", "mark_contacted"] as const
+export const isSmallOp = (op: CommandOp) => (SMALL_OPS as readonly string[]).includes(op.op)
+export const STATUSES: NodeStatus[] = ["unclaimed", "accepted", "in_progress", "waiting", "blocked", "done"]
 
 export type CommandContext = {
   events: { id: string; name: string }[]
   nodes: { id: string; title: string }[]
   people: { id: string; name: string }[]
+  contacts?: { id: string; name: string }[]
+  roles?: { id: string; displayName: string }[]
+  tags?: { id: string; label: string }[]
+  funding?: { eventId: string }[]
 }
 export const commandContext = (s: DemoState): CommandContext => ({
   events: s.events.map(({ id, name }) => ({ id, name })),
   nodes: s.nodes.map(({ id, title }) => ({ id, title })),
   people: s.people.map(({ id, name }) => ({ id, name })),
+  contacts: s.contacts.map(({ id, name }) => ({ id, name })),
+  roles: s.roles.map(({ id, displayName }) => ({ id, displayName })),
+  tags: (s.org.board?.tags ?? []).map(({ id, label }) => ({ id, label })),
+  funding: s.funding.map(({ eventId }) => ({ eventId })),
 })
 const text = (v: unknown, max = 100) => typeof v === "string" ? v.trim().slice(0, max) : ""
 const choose = <T extends string>(v: unknown, choices: readonly T[], fallback: T): T => choices.includes(v as T) ? v as T : fallback
@@ -30,6 +52,8 @@ export function sanitizeOps(raw: unknown, ctx: CommandContext): CommandOp[] {
   if (!Array.isArray(raw)) return []
   const node = (id: unknown) => typeof id === "string" && ctx.nodes.some(n => n.id === id)
   const owner = (id: unknown) => id === null || (typeof id === "string" && ctx.people.some(p => p.id === id))
+  const event = (id: unknown) => typeof id === "string" && ctx.events.some(e => e.id === id)
+  const funded = (id: unknown) => typeof id === "string" && (ctx.funding ?? []).some(f => f.eventId === id)
   const ops: CommandOp[] = []
   for (const value of raw.slice(0, 12)) {
     if (!value || typeof value !== "object") continue
@@ -52,6 +76,39 @@ export function sanitizeOps(raw: unknown, ctx: CommandContext): CommandOp[] {
         break
       case "propose_nudge":
         if (node(d.nodeId)) ops.push({ op: d.op, nodeId: d.nodeId as string })
+        break
+      case "set_status":
+        if (node(d.nodeId) && STATUSES.includes(d.status as NodeStatus)) ops.push({ op: d.op, nodeId: d.nodeId as string, status: d.status as NodeStatus })
+        break
+      case "rename_task":
+        if (node(d.nodeId) && text(d.title)) ops.push({ op: d.op, nodeId: d.nodeId as string, title: text(d.title) })
+        break
+      case "set_tags": {
+        const tags = Array.isArray(d.tags) ? [...new Set(d.tags.filter((t): t is string => typeof t === "string" && (ctx.tags ?? []).some(x => x.id === t)))].slice(0, 6) : null
+        if (node(d.nodeId) && tags) ops.push({ op: d.op, nodeId: d.nodeId as string, tags })
+        break
+      }
+      case "mark_contacted":
+        if (typeof d.contactId === "string" && (ctx.contacts ?? []).some(c => c.id === d.contactId)) ops.push({ op: d.op, contactId: d.contactId })
+        break
+      case "update_event": {
+        if (!event(d.eventId)) break
+        const op: Extract<CommandOp, { op: "update_event" }> = { op: d.op, eventId: d.eventId as string }
+        if (text(d.name, 80)) op.name = text(d.name, 80)
+        if (Number.isFinite(Number(d.headcount)) && d.headcount !== null && d.headcount !== undefined) op.headcount = Math.max(1, Math.min(5000, Math.round(Number(d.headcount))))
+        if (op.name || op.headcount) ops.push(op)
+        break
+      }
+      case "add_contact":
+        if (text(d.name, 80) && typeof d.ownerRoleId === "string" && (ctx.roles ?? []).some(r => r.id === d.ownerRoleId)) ops.push({ op: d.op, name: text(d.name, 80), organization: text(d.organization, 80), relation: text(d.relation, 40) || "Partner", ownerRoleId: d.ownerRoleId, cadenceDays: Math.max(1, Math.min(365, Math.round(Number(d.cadenceDays) || 30))) })
+        break
+      case "set_funding_amount": {
+        const amount = Math.round(Number(d.amount) * 100) / 100
+        if (funded(d.eventId) && Number.isFinite(amount) && amount >= 0 && amount <= 1000000) ops.push({ op: d.op, eventId: d.eventId as string, amount })
+        break
+      }
+      case "advance_funding":
+        if (funded(d.eventId)) ops.push({ op: d.op, eventId: d.eventId as string })
         break
       case "answer_question": {
         const citations = Array.isArray(d.citations) ? [...new Set(d.citations.filter((id): id is string => RULES.some(r => r.id === id)))] : []
@@ -115,6 +172,7 @@ export function validDate(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date)) && new Date(date + "T12:00:00Z").toISOString().slice(0, 10) === date
 }
 
+const STATUS_WORDS: Record<NodeStatus, string> = { unclaimed: "Not claimed", accepted: "Claimed", in_progress: "In progress", waiting: "Waiting", blocked: "Blocked", done: "Done" }
 export function opLabel(op: CommandOp, ctx: CommandContext): string {
   const node = (id: string) => ctx.nodes.find(n => n.id === id)?.title ?? "Missing task"
   switch (op.op) {
@@ -125,5 +183,13 @@ export function opLabel(op: CommandOp, ctx: CommandContext): string {
     case "link_dependency": return `${node(op.nodeId)} depends on ${node(op.dependsOnId)}`
     case "propose_nudge": return `Draft a reminder: ${node(op.nodeId)}`
     case "answer_question": return "Rule-book answer"
+    case "set_status": return `Move ${node(op.nodeId)} to ${STATUS_WORDS[op.status]}`
+    case "rename_task": return `Rename ${node(op.nodeId)} to “${op.title}”`
+    case "set_tags": return `Tags on ${node(op.nodeId)}: ${op.tags.map(t => ctx.tags?.find(x => x.id === t)?.label ?? t).join(", ") || "none"}`
+    case "mark_contacted": return `Log contact with ${ctx.contacts?.find(c => c.id === op.contactId)?.name ?? "partner"}`
+    case "update_event": return `Update ${ctx.events.find(e => e.id === op.eventId)?.name ?? "event"}: ${[op.name && `name “${op.name}”`, op.headcount && `${op.headcount} people`].filter(Boolean).join(", ")}`
+    case "add_contact": return `Add partner: ${op.name}${op.organization ? ` (${op.organization})` : ""}`
+    case "set_funding_amount": return `Set ${ctx.events.find(e => e.id === op.eventId)?.name ?? "event"} budget to $${op.amount.toLocaleString("en-US")}`
+    case "advance_funding": return `Move ${ctx.events.find(e => e.id === op.eventId)?.name ?? "event"} funding to the next stage`
   }
 }

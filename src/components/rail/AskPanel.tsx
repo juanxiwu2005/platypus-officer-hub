@@ -9,7 +9,7 @@ import { sanitizeOps } from "../../lib/commands"
 import { NodePill } from "../ui"
 import { Feedback } from "../Feedback"
 import { useRail } from "./RailContext"
-import { ChangeCard } from "./ChangeCard"
+import { AppliedCard, ChangeCard } from "./ChangeCard"
 
 const CHAT_KEY = "platypus.v1.chat"
 const load = (): ChatMsg[] => {
@@ -59,6 +59,7 @@ export function AskPanel() {
     setMessages(m => [...m, user]); setText(""); setBusy(true)
     try {
       const reply = await respond(t, state, person.id, activeFocus, location.pathname, messages)
+      if (reply.autoSet) dispatch({ type: "aiAutoApply", changeSet: reply.autoSet })
       if (reply.changeSet) dispatch({ type: "draftChanges", changeSet: reply.changeSet })
       setMessages(m => [...m, { id: uid(), role: "assistant", cards: reply.cards, source: reply.source }])
     } catch {
@@ -146,6 +147,7 @@ function CardView({ card, onPlan }: { card: ChatCard; onPlan: (c: Extract<ChatCa
       <Feedback id={`ask:${card.question}:${card.answer}`} text={card.answer} />
     </div>
     case "changes": return <ChangeCard id={card.changeSetId} />
+    case "applied": return <AppliedCard id={card.changeSetId} />
     case "form": return <PlanForm card={card} onDone={onPlan} />
   }
 }

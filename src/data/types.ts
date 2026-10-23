@@ -317,6 +317,12 @@ export interface ChangeSet {
   status: "pending" | "applied" | "rejected"
   reviews?: ("pending" | "applied" | "rejected")[]
   source?: string
+  /** v1.2: small changes the assistant applied straight away. `before` holds the records it touched, for Undo. */
+  auto?: boolean
+  by?: string
+  before?: { nodes: Node[]; contacts: Contact[] }
+  notes?: string[]
+  undone?: boolean
 }
 
 export interface DemoState {

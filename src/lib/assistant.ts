@@ -1,8 +1,9 @@
 import type { ChangeSet, DemoState, Node } from "../data/types"
 import { callApi } from "./api"
-import { commandContext, humanEventDate, parseCommand, type CommandOp } from "./commands"
+import { commandContext, humanEventDate, isSmallOp, parseCommand, type CommandOp } from "./commands"
 import { groundedAnswer, RULE_REFUSAL, type RuleAnswer } from "./ruleAnswers"
-import { sanitizeCards, type ChatSummary, type PlanPrefill, type TaskScope, type WireCard } from "./chatCards"
+import { aiSnapshot, knownDates } from "./aiContext"
+import { sanitizeCards, type PlanPrefill, type TaskScope, type WireCard } from "./chatCards"
 import { computeForecast, forecastQueue } from "../engine/forecast"
 import { computeSchedule } from "../engine/schedule"
 import { workload } from "../engine/team"
@@ -18,11 +19,12 @@ export type ChatCard =
   | { kind: "form"; id: string; prefill: Partial<PlanPrefill>; date: string; done?: boolean }
   | { kind: "tasks"; title: string; nodeIds: string[]; remind?: boolean }
   | { kind: "changes"; changeSetId: string }
+  | { kind: "applied"; changeSetId: string }
   | { kind: "nudge"; nodeId: string }
   | { kind: "rule"; question: string; answer: string; citations: string[]; inScope: boolean; label: string }
 export interface ChatMsg { id: string; role: "user" | "assistant"; text?: string; cards?: ChatCard[]; source?: string }
 export interface Focus { kind: "node" | "event" | "page"; id: string; title: string }
-export interface Reply { cards: ChatCard[]; source: string; changeSet?: ChangeSet }
+export interface Reply { cards: ChatCard[]; source: string; changeSet?: ChangeSet; autoSet?: ChangeSet }
 
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
 const canLeadAs = (s: DemoState, id: string) => {
@@ -113,28 +115,27 @@ function draftSet(sentence: string, ops: CommandOp[], source: string): ChangeSet
   return { id: `change-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, sentence, ops, status: "pending", source }
 }
 
+/** Small edits apply at once (with Undo); bigger ones become a change set to review (Juanxi, 2026-10-23). */
+function splitChanges(sentence: string, ops: CommandOp[], source: string): { cards: ChatCard[]; changeSet?: ChangeSet; autoSet?: ChangeSet } {
+  const small = ops.filter(isSmallOp), big = ops.filter(o => !isSmallOp(o))
+  const autoSet = small.length ? draftSet(sentence, small, source) : undefined
+  const changeSet = big.length ? { ...draftSet(sentence, big, source), id: `change-${Date.now()}-${Math.random().toString(36).slice(2, 6)}b` } : undefined
+  return { cards: [...(autoSet ? [{ kind: "applied", changeSetId: autoSet.id } as ChatCard] : []), ...(changeSet ? [{ kind: "changes", changeSetId: changeSet.id } as ChatCard] : [])], changeSet, autoSet }
+}
+
 /** Turn checked wire cards into panel cards (tasks are ranked here, change sets drafted for review). */
 function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: string, source: string, focus: Focus | null): Reply {
   const out: ChatCard[] = []
-  let changeSet: ChangeSet | undefined
+  let changeSet: ChangeSet | undefined, autoSet: ChangeSet | undefined
   for (const c of cards) {
     if (c.kind === "text") out.push(textCard(c.text))
     if (c.kind === "form") out.push({ kind: "form", id: uid(), prefill: c.prefill, date: humanEventDate(text, s.today) })
     if (c.kind === "tasks") out.push(tasksCard(s, viewerId, c.scope, c.limit, focus?.kind === "event" ? focus.id : undefined))
     if (c.kind === "nudge") out.push({ kind: "nudge", nodeId: c.nodeId })
     if (c.kind === "rule") { const a = groundedAnswer({ inScope: c.inScope, confidence: 1, citations: c.citations }, null); out.push({ kind: "rule", question: text, answer: a.answer, citations: a.citations, inScope: a.inScope, label: source }) }
-    if (c.kind === "changes" && !changeSet) { changeSet = draftSet(text, c.ops, source); out.push({ kind: "changes", changeSetId: changeSet.id }) }
+    if (c.kind === "changes" && !changeSet && !autoSet) { const r = splitChanges(text, c.ops, source); changeSet = r.changeSet; autoSet = r.autoSet; out.push(...r.cards) }
   }
-  return { cards: out, source, changeSet }
-}
-
-/** What the model may know beyond names: status, owner, risk colour and overdue flag. Never buffers, profiles or files. */
-export function chatSummary(s: DemoState): ChatSummary {
-  const f = computeForecast(s)
-  return {
-    nodes: s.nodes.filter(n => n.status !== "done").slice(0, 120).map(n => ({ id: n.id, status: n.status, owner: n.ownerId, eventId: n.eventId, risk: f.nodes[n.id]?.color ?? null, overdue: (n.clubDeadline ?? "9999") < s.today })),
-    workload: s.people.map(p => ({ personId: p.id, band: workload(s, p.id).band })),
-  }
+  return { cards: out, source, changeSet, autoSet }
 }
 
 const HELP = "I can rank your top tasks, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
@@ -193,16 +194,17 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   const ops = parseCommand(t, commandContext(s))
   if (ops.length && ops.every(o => o.op === "answer_question") || (!ops.length && RULE_Q_RE.test(t) && keywordRules(t).length)) return ruleReply(t, s)
   if (ops.length && !ops.some(o => o.op === "answer_question")) {
-    const set = draftSet(t, ops, s.aiEnabled ? "Checked command grammar" : "Local demo grammar · AI off")
-    return { cards: [{ kind: "changes", changeSetId: set.id }], source: set.source!, changeSet: set }
+    const source = s.aiEnabled ? "Checked command grammar" : "Local demo grammar · AI off"
+    return { ...splitChanges(t, ops, source), source }
   }
   if (s.aiEnabled) {
+    const snap = aiSnapshot(s)
     try {
       const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
-        message: t, page, focus, context: commandContext(s), summary: chatSummary(s),
+        message: t, page, focus, context: commandContext(s), data: snap,
         history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
       })
-      const cards = sanitizeCards(r.cards, commandContext(s))
+      const cards = sanitizeCards(r.cards, commandContext(s), knownDates(snap))
       const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Checked command grammar"
       if (cards.length) return fromWire(cards, t, s, viewerId, label, focus ?? null)
     } catch {

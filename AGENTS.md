@@ -18,7 +18,7 @@
 
 1. **不放研究数据。** 不提交问卷原始回答、访谈转写、录音、参与者姓名或引语。仓库里只有虚构的演示社团数据。也不要把这些资料贴给任何 AI。
 2. **不放密钥。** API key 只放在 Netlify 的环境变量里（见 `docs/AI_SETUP.md`），绝不写进代码、文档或提交记录。
-3. **日期只由规则引擎计算。** AI 只能起草“变更单”（白名单操作，见计划第 11 节）、提醒、答案和手册；AI 输出里的日期字段一律丢弃。
+3. **日期只由规则引擎计算。** AI 只能通过白名单操作改数据（见计划第 11 节）、起草提醒、答案和手册；AI 输出里的日期字段一律丢弃。v1.2 起（Juanxi 2026-10-23 批准）：AI 文字里只保留和社团数据里已有日期完全一致的日期，其余遮掉；小改动（改状态、改名、标签、难度、记录联系）以当前查看者的权限立即生效并可撤销，其余改动仍要社长或副社长批准。
 4. **`main` 分支就是正式网站。** 每次推送到 `main`，Netlify 都会自动上线。11/8 之前，所有 v1 的工作都在 `v1` 分支上做，**只有 Juanxi 批准后才能合并到 `main`**。
 5. **AI 供应商：** 开发时用 DeepSeek，只处理虚构数据；有真实参与者的 Phase 3 会话必须用 ASU AIR（或 IRB 批准的供应商）。
 6. **界面文字用英文**（用户是美国学生）；文档用中文。
@@ -83,7 +83,7 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 ## 6b. v1.1 改版后的代码地图（2026-10-23，覆盖上面关于页面的旧描述）
 
 - 外框：`src/components/Layout.tsx`（顶栏、Demo 小标、铃铛、导航）+ `src/components/rail/`（`RailContext.tsx` 右栏状态；`Rail.tsx` 两个标签和详情分发；`AskPanel.tsx` 对话；`ChangeCard.tsx` 变更单审核）。
-- 组件：`src/components/ui/`。AI：`src/lib/assistant.ts`（浏览器）、`src/lib/chatCards.ts`（共用过滤）、`netlify/functions/chat.mts`（`/api/chat`）。旧的 `/api/command`、`/api/ask`、`/api/nudge/draft` 仍在用。
+- 组件：`src/components/ui/`。AI：`src/lib/assistant.ts`（浏览器）、`src/lib/chatCards.ts`（共用过滤）、`netlify/functions/chat.mts`（`/api/chat`）。v1.2：`src/lib/aiContext.ts` 把“当前查看者能看到的全部数据”整理给 AI（不含别人的个人缓冲、私信、文件、演示密钥）；`src/data/sharedPool.ts` 是服务器上的虚构共享池，只读，`/api/pool` 可取；小改动走 store 的 `aiAutoApply` / `undoAuto`，大改动走 `reviewChange`。旧的 `/api/command`、`/api/ask`、`/api/nudge/draft` 仍在用。
 - 流程图：`src/components/flow/metro.ts`（纯布局，有单元测试）+ `MetroChart.tsx`。看板：`src/data/board.ts`。
 - 页面测试：`e2e/helpers.ts` 有 `resetDemo`、`demoClock`、`ask`。本机没有下载浏览器时用 `PW_CHROMIUM=<chromium 路径>`。
 

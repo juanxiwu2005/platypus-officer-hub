@@ -3,7 +3,7 @@ import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from "react"
 import type { ChangeSet, DemoState, Event, Node } from "./types"
-import { sanitizeOps } from "../lib/commands"
+import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { canLead, newObjects, validateReview, type HumanInputs } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
 import type { Channel } from "./types"
@@ -15,7 +15,7 @@ import { usableGrant } from "../lib/officerLinks"
 import type { OfficerGrant } from "./types"
 import { completeSetup, saveClubSettings, saveProfile, type ClubDraft, type ProfilePatch } from "./settings"
 import type { BoardSettings, NodeStatus, OrgSettings } from "./types"
-import { addBoardTask, moveTask, saveBoard } from "./board"
+import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -52,6 +52,8 @@ export type Action =
   | { type: "updateNode"; id: string; patch: NodePatch }
   | { type: "updateEvent"; id: string; patch: EventPatch }
   | { type: "draftChanges"; changeSet: ChangeSet }
+  | { type: "aiAutoApply"; changeSet: ChangeSet }
+  | { type: "undoAuto"; id: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
   | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string }
   | { type: "claimTask"; nodeId: string }
@@ -158,9 +160,16 @@ export function reducer(state: DemoState, action: Action): DemoState {
     }
     case "draftChanges": {
       if (state.changeSets.some(c => c.id === action.changeSet.id)) return state
-      const ops = sanitizeOps(action.changeSet.ops, state)
+      const ops = sanitizeOps(action.changeSet.ops, commandContext(state)).filter(op => !isSmallOp(op))
       if (!ops.length) return state
       return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, ops, status: "pending", reviews: ops.map(() => "pending") }] }
+    }
+    case "aiAutoApply": return aiAutoApply(state, action.changeSet)
+    case "undoAuto": {
+      const change = state.changeSets.find(c => c.id === action.id)
+      if (!change?.auto || change.undone || !change.before || (change.by !== state.viewerId && !canLead(state))) return state
+      const nodes = new Map(change.before.nodes.map(n => [n.id, n])), contacts = new Map(change.before.contacts.map(c => [c.id, c]))
+      return applySchedule({ ...state, nodes: state.nodes.map(n => nodes.get(n.id) ?? n), contacts: state.contacts.map(c => contacts.get(c.id) ?? c), changeSets: state.changeSets.map(c => c.id === change.id ? { ...c, undone: true } : c) })
     }
     case "reviewChange": {
       const change = state.changeSets.find(c => c.id === action.id)
@@ -171,7 +180,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
         const raw = action.op ?? op
         // Editing may change fields, never the type of an already-reviewed operation.
         if ((raw as { op?: unknown })?.op !== op.op || validateReview(state, raw, action.human)) return state
-        const clean = sanitizeOps([raw], state)[0]
+        const clean = sanitizeOps([raw], commandContext(state))[0]
         op = clean
         switch (clean.op) {
           case "assign_owner": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { ownerId: clean.ownerId } }); break
@@ -179,6 +188,10 @@ export function reducer(state: DemoState, action: Action): DemoState {
           case "link_dependency": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { dependsOn: [...new Set([...state.nodes.find(n => n.id === clean.nodeId)!.dependsOn, clean.dependsOnId])] } }); break
           case "create_event":
           case "add_node": next = applySchedule({ ...state, ...newObjects(state, clean, `${change.id}:${action.index}`, action.human ?? {}) }); break
+          case "update_event": next = applySchedule({ ...state, events: state.events.map(e => e.id === clean.eventId ? { ...e, ...(clean.name ? { name: clean.name } : {}), ...(clean.headcount ? { headcount: clean.headcount } : {}) } : e) }); break
+          case "add_contact": next = reducer(state, { type: "addContact", name: clean.name, organization: clean.organization, relation: clean.relation, ownerRoleId: clean.ownerRoleId, cadenceDays: clean.cadenceDays }); break
+          case "set_funding_amount": next = reducer(state, { type: "fundingAmount", eventId: clean.eventId, amount: clean.amount }); break
+          case "advance_funding": next = reducer(state, { type: "advanceFunding", eventId: clean.eventId }); break
         }
       }
       const reviews = change.ops.map((_, i) => i === action.index ? action.decision : change.reviews?.[i] ?? "pending")
@@ -289,3 +302,50 @@ export function useViewer() {
   return { person, role, canNudge }
 }
 
+
+/**
+ * Small AI edits apply at once, as the viewer: the same permission checks as clicking in the page.
+ * Anything the viewer may not do is skipped with a note. The touched records are kept for Undo.
+ */
+function aiAutoApply(state: DemoState, set: ChangeSet): DemoState {
+  if (state.changeSets.some(c => c.id === set.id)) return state
+  const ops = sanitizeOps(set.ops, commandContext(state)).filter(isSmallOp)
+  if (!ops.length) return state
+  const lead = canLead(state)
+  const touchedNodes = new Set<string>(), touchedContacts = new Set<string>()
+  const reviews: ("applied" | "rejected")[] = [], notes: string[] = []
+  let next = state
+  for (const op of ops) {
+    let note = ""
+    const before = next
+    switch (op.op) {
+      case "set_status": {
+        const n = next.nodes.find(x => x.id === op.nodeId)!
+        if (n.status === op.status) { note = "Already there."; break }
+        note = canMoveTask(next, n, op.status) ?? ""
+        if (!note) { next = moveTask(next, n.id, op.status, null); touchedNodes.add(n.id) }
+        break
+      }
+      case "rename_task":
+      case "set_tags":
+      case "set_tier":
+        if (!lead) { note = "Only the president or VP can edit task details."; break }
+        next = reducer(next, { type: "updateNode", id: op.nodeId, patch: op.op === "rename_task" ? { title: op.title } : op.op === "set_tags" ? { tags: op.tags } : { tier: op.tier } })
+        touchedNodes.add(op.nodeId)
+        break
+      case "mark_contacted":
+        next = reducer(next, { type: "contacted", id: op.contactId })
+        if (next === before) note = "Only the partner's owner or a lead can log contact."
+        else touchedContacts.add(op.contactId)
+        break
+    }
+    if (!note && next === before) note = "Nothing changed."
+    reviews.push(note ? "rejected" : "applied"); notes.push(note)
+  }
+  const record: ChangeSet = {
+    ...set, ops, reviews, notes, auto: true, by: state.viewerId,
+    status: reviews.includes("applied") ? "applied" : "rejected",
+    before: { nodes: state.nodes.filter(n => touchedNodes.has(n.id)), contacts: state.contacts.filter(c => touchedContacts.has(c.id)) },
+  }
+  return { ...next, changeSets: [...next.changeSets, record] }
+}

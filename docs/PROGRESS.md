@@ -11,6 +11,7 @@
 
 | 工作包 | 计划日期 | 状态 | 负责的 AI | 预览网址 | 备注 |
 | --- | --- | --- | --- | --- | --- |
+| 2026-10-23 | Claude | **AI 数据权限 v1.2。** ①`aiContext.ts`：每次提问把当前查看者能看到的全部数据（社团、角色、人员和工作量、活动、全部任务含状态/负责人/风险/准时概率/三个截止日、经费、伙伴、交接、本人通知、规则摘要）发给 `/api/chat`，约 25 KB；服务器再删一遍可疑字段（key/token/secret/password/signature/phone/文件）并限长。②`sharedPool.ts` + `/api/pool`：虚构共享池（4 个示例社团的审批用时、场地、供应商、经验），只读，AI 只能引用。③新白名单操作：小改动 set_status / rename_task / set_tags / set_tier / mark_contacted 按查看者权限立即生效，Ask 面板显示“Done · Undo”；大改动 assign_owner / add_node / link_dependency / update_event / add_contact / set_funding_amount / advance_funding / create_event 仍走审批卡。④日期：AI 文字中与数据一致的日期保留，其余遮掉。⑤提示词重写。⑥检查：252 个单元测试 + 107 个页面测试全部通过。⑦发现预览网站一直是模拟回答：Netlify 里 `AI_API_KEY` 只填了 Production，Deploy Previews / Branch deploys 为空，已请 Juanxi 补填。 | 真实 DeepSeek 试用要等 Juanxi 在 Deploy Previews 填好 key 并重新部署。共享池是虚构演示，v1.5 换成数据库时要做“社团选择共享哪些字段”的设置。 |
 | 2026-10-23 | Claude | **第二部分。** ①逐条复核 R01–R16（来源核对日 2026-10-23），修正 R01/R03/R06/R07/R11/R16 措辞，记录在 RULES.md。②产品计划第 6 节改写为 v1.1 界面说明。③无障碍：6 个状态色对比度达到 AA；右栏标签结构修正；新增 axe 扫描 10 页 + 面板、键盘操作测试。④AI 面板提示词重写：更会追问（一次只问一个问题，办活动直接给表单）、更会推荐（先逾期/红色风险，再无人认领，再最早开始）；请求里新增一份精简状态摘要（任务状态、负责人、所属活动、风险色、是否逾期、每人工作量档），服务器逐项核对，只留真实 ID 和允许的值，不含档案、缓冲或文件。⑤检查：245 个单元测试 + 107 个页面测试（含无障碍）全部通过；已同步本地备份。 | **需要 Juanxi：** 真实 DeepSeek 试用 Ask 面板和 40 题规则评估（需要登录 Netlify 或关掉预览保护）；RTO 给出 AIR 的 key 和模型后再切换；说“批准合并”后才合并 main 并打 v1.0 标签。 |
 | WP0 地基 | 10/23–10/24 | 已完成 | Claude（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | React + TS + Vite；演示数据与重置；10 个页面；帮助页；13 个单元测试 + 26 个页面测试；CI；draft PR #1 |
 | WP1 引擎与流程图 | 10/24–10/27 | 已完成 | Claude（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/events | 规则引擎（`src/engine/`）；ASU 日历；活动模板（OA101/102/201 + T-90/60/30/14 + R01–R16）；泳道流程图、甘特图、列表；侧栏编辑；68 个单元测试 + 38 个页面测试 |
@@ -27,6 +28,7 @@
 | --- | --- | --- |
 | 2026-10-21 | 产品名定为 Platypus；Phase 3 用方案 C（Netlify + 服务器函数） | Juanxi |
 | 2026-10-22 | 批准产品计划 v1.0 第 16 节全部 10 个决定 | Juanxi |
+| 2026-10-23 | AI 数据权限（v1.2）：AI 能看到当前查看者能看到的全部数据（别人的私人缓冲和私信除外）；服务器上先放虚构的共享池（只读），正式数据库留到 v1.5/v2；小改动直接生效可撤销，大改动先确认；AI 可说系统已算出的日期 | Juanxi |
 | 2026-10-22 | 提醒改为分点结构：Why now → What → When → How（≤3 步）→ Why it matters，正文约 100 词以内 | Juanxi |
 | 2026-10-22 | 多个 AI 轮流开发；GitHub 为正本，本地文件夹为备份 | Juanxi |
 | 2026-10-22 | WP0 验收通过（Juanxi：“继续WP1”） | Juanxi |

@@ -76,7 +76,7 @@ describe("command boundary and review", () => {
     expect(humanEventDate("next Thursday", state.today)).toBe("")
   })
   it("denies officers but allows a vice president", () => {
-    const s = draft({ op: "set_tier", nodeId: "t-news", tier: "heavy" })
+    const s = draft({ op: "assign_owner", nodeId: "t-news", ownerId: "priya" })
     const action = { type: "reviewChange", id: "review-1", index: 0, decision: "applied" } as const
     const officer = { ...s, viewerId: "maya" }
     expect(reducer(officer, action)).toBe(officer)

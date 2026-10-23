@@ -8,7 +8,7 @@ import chatFn from "../../netlify/functions/chat.mts"
 import { seedDemo } from "../data/seed"
 import { commandContext } from "../lib/commands"
 import { nudgeCheck } from "../lib/nudges"
-import { chatSummary } from "../lib/assistant"
+import { aiSnapshot } from "../lib/aiContext"
 
 const state = seedDemo()
 const request = (body: unknown, path = "/api/command") => new Request("https://example.org" + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
@@ -63,17 +63,18 @@ describe("server endpoint contract", () => {
     expect(r.cards[1]).toEqual({ kind: "tasks", scope: "risk", limit: 10 })
     expect((await chatFn(request({}, "/api/chat"))).status).toBe(400)
   })
-  it("/api/chat passes only a checked status summary to the model", async () => {
-    chat.mockResolvedValue({ data: { cards: [{ kind: "text", text: "Start with the USG form." }] }, model: "mock", provider: "mock" })
-    const summary = chatSummary(state)
-    summary.nodes.push({ id: "ghost", status: "done", owner: "x", eventId: null, risk: "purple", overdue: true })
-    ;(summary.nodes[0] as Record<string, unknown>).notes = "secret profile"
-    await chatFn(request({ message: "What should I focus on?", context: commandContext(state), summary }, "/api/chat"))
+  it("/api/chat sends the officer's club data and the shared pool, minus secrets, and keeps only known dates", async () => {
+    chat.mockResolvedValue({ data: { cards: [{ kind: "text", text: "USG is due 2026-10-30, not 2026-12-25." }] }, model: "mock", provider: "mock" })
+    const data = aiSnapshot(state) as Record<string, unknown>
+    data.apiKey = "sk-should-not-pass"
+    const usg = state.nodes.find(n => n.id === "e-night:usg")!
+    const r = await (await chatFn(request({ message: "What should I focus on?", context: commandContext(state), data }, "/api/chat"))).json()
     const sent = JSON.parse(chat.mock.calls[0][0].user)
-    expect(sent.summary.nodes.length).toBeGreaterThan(0)
-    expect(sent.summary.nodes.some((n: { id: string }) => n.id === "ghost")).toBe(false)
-    expect(JSON.stringify(sent.summary)).not.toMatch(/secret profile|purple/)
-    expect(sent.summary.workload.length).toBe(state.people.length)
+    expect(sent.clubData.tasks.length).toBe(state.nodes.length)
+    expect(sent.sharedPool.approvalTimes.length).toBeGreaterThan(0)
+    expect(JSON.stringify(sent)).not.toMatch(/sk-should-not-pass|demoLinkKey|dataUrl/)
     expect(chat.mock.calls[0][0].system).toMatch(/ONE short question/)
+    expect(r.cards[0].text).toContain(usg.clubDeadline === "2026-10-30" ? "2026-10-30" : "[date in plan]")
+    expect(r.cards[0].text).not.toContain("2026-12-25")
   })
 })

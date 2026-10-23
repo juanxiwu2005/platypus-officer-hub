@@ -2,7 +2,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useStore, useViewer } from "../../data/store"
 import type { ChangeSet, Event, Tier } from "../../data/types"
-import { humanEventDate, opLabel, TIERS, type CommandOp } from "../../lib/commands"
+import { commandContext, humanEventDate, opLabel, TIERS, type CommandOp } from "../../lib/commands"
 import { validateReview } from "../../data/changeReview"
 import { Feedback } from "../Feedback"
 import { RULES } from "../../data/rules"
@@ -19,6 +19,21 @@ export function ChangeCard({ id }: { id: string }) {
   const change = state.changeSets.find(c => c.id === id)
   if (!change) return <p className="small muted">This draft was cleared by Reset demo.</p>
   return <ChangeReview change={change} onNudge={nodeId => rail.show({ kind: "nudge", id: nodeId })} />
+}
+
+/** Small edits the assistant already made, with one Undo for the whole set. */
+export function AppliedCard({ id }: { id: string }) {
+  const { state, dispatch } = useStore()
+  const change = state.changeSets.find(c => c.id === id)
+  if (!change) return <p className="small muted">This change was cleared by Reset demo.</p>
+  const ctx = commandContext(state)
+  const done = change.reviews?.some(r => r === "applied")
+  return <section className="change-set applied" aria-label="Changes made" data-testid="applied-set">
+    <header><b>{change.undone ? "Undone" : done ? "Done" : "Not changed"}</b>{done && !change.undone && <button type="button" className="btn small" onClick={() => dispatch({ type: "undoAuto", id })} data-testid="undo-auto">Undo</button>}</header>
+    <ul className="applied-list">{change.ops.map((op, i) => <li key={i} className={change.reviews?.[i] === "applied" ? "" : "muted"}>
+      <span aria-hidden="true">{change.reviews?.[i] === "applied" ? (change.undone ? "↺" : "✓") : "–"}</span> {opLabel(op as CommandOp, ctx)}{change.notes?.[i] && <span className="small muted"> · {change.notes[i]}</span>}
+    </li>)}</ul>
+  </section>
 }
 
 function ChangeReview({ change, onNudge }: { change: ChangeSet; onNudge: (id: string) => void }) {
@@ -51,7 +66,7 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
     if (op.op === "create_event") setTimeout(() => navigate(`/events?event=${encodeURIComponent(`${change.id}:${index}`)}`), 0)
   }
   return <article className="change-item" data-testid="change-item">
-    <b>{opLabel(pending ? op : initial, state)}</b>
+    <b>{opLabel(pending ? op : initial, commandContext(state))}</b>
     {op.op === "answer_question" ? <>
       <p>{op.answer}</p>
       <details><summary>Sources checked</summary><p className="small muted">The cited records from the checked rule book; source pages were not re-fetched during this answer.</p>{op.citations.map(id=>{const r=RULES.find(r=>r.id===id)!;return <div key={id}><b>{id} · checked {r.checkedOn}</b>{r.sources.map(s=><p key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></p>)}</div>})}</details>
@@ -79,6 +94,16 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
       {op.op === "set_tier" && <>{nodeSelect(op.nodeId, nodeId => setOp({ ...op, nodeId }))}{tierSelect(op.tier, tier => setOp({ ...op, tier }))}</>}
       {op.op === "link_dependency" && <>{nodeSelect(op.nodeId, nodeId => setOp({ ...op, nodeId }))}{nodeSelect(op.dependsOnId, dependsOnId => setOp({ ...op, dependsOnId }), "Must wait for")}</>}
       {op.op === "propose_nudge" && nodeSelect(op.nodeId, nodeId => setOp({ ...op, nodeId }))}
+      {op.op === "set_funding_amount" && <label>Budget ($)<input type="number" min={0} max={1000000} value={op.amount} onChange={e => setOp({ ...op, amount: Number(e.target.value) })} /></label>}
+      {op.op === "update_event" && <>
+        <label>Event name<input value={op.name ?? state.events.find(e => e.id === op.eventId)?.name ?? ""} maxLength={80} onChange={e => setOp({ ...op, name: e.target.value })} /></label>
+        <label>Expected people<input type="number" min={1} max={5000} value={op.headcount ?? state.events.find(e => e.id === op.eventId)?.headcount ?? 30} onChange={e => setOp({ ...op, headcount: Number(e.target.value) })} /></label>
+      </>}
+      {op.op === "add_contact" && <>
+        <label>Partner name<input value={op.name} maxLength={80} onChange={e => setOp({ ...op, name: e.target.value })} /></label>
+        <label>Organization<input value={op.organization} maxLength={80} onChange={e => setOp({ ...op, organization: e.target.value })} /></label>
+        <label>Owner role<select value={op.ownerRoleId} onChange={e => setOp({ ...op, ownerRoleId: e.target.value })}>{state.roles.map(r => <option key={r.id} value={r.id}>{r.displayName}</option>)}</select></label>
+      </>}
     </fieldset>}
     {error && <p className="small late-text" role="alert">{error}</p>}
     {!pending && /AI/.test(change.source ?? "") && <Feedback id={change.id + ":" + index} text={change.sentence + " · " + JSON.stringify(op)} />}
