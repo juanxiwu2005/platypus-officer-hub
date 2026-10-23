@@ -61,7 +61,7 @@ test("risk queue has reasons and <=3 items; reminder prefers owner's channel and
   await expect(panel.getByRole("button", { name: "I sent this reminder" })).toHaveCount(0)
   await panel.getByRole("link", { name: "Need help", exact: true }).click()
   await expect(page.getByRole("region", { name: "Linked task" })).toBeVisible()
-  await expect(page.getByRole("status")).toContainText("has not changed")
+  await expect(page.getByText("Opening this page does not change your task.", { exact: false })).toBeVisible()
 })
 
 test("officers cannot prepare a reminder or approve a change", async ({ page }) => {

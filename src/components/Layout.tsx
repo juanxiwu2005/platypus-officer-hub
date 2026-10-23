@@ -2,12 +2,13 @@ import { useEffect, useState } from "react"
 import { NavLink, Outlet } from "react-router-dom"
 import { Icons, Logo } from "./icons"
 import { PAGES } from "../routes"
-import { useStore } from "../data/store"
+import { useStore, useViewer } from "../data/store"
 import { getHealth, type Health } from "../lib/api"
 import { fmtLong } from "../lib/dates"
 
 export function Layout() {
   const { state, dispatch, reset } = useStore()
+  const { canNudge } = useViewer()
   const [health, setHealth] = useState<Health | null>(null)
   const [toast, setToast] = useState<string | null>(null)
 
@@ -61,6 +62,7 @@ export function Layout() {
             <span data-testid="demo-date">Demo date: {fmtLong(state.today)}.</span>
             <span data-testid="ai-status">Fictional organization and example data. {aiNote} No message is sent from this page.</span>
             <span className="spacer" />
+            {canNudge && <details className="demo-clock"><summary>Demo clock</summary><div className="action-row">{[1, 3, 10].map(days => <button key={days} className="btn small" data-testid={`clock-${days}`} onClick={() => dispatch({ type: "advanceClock", days })}>+{days} day{days > 1 ? "s" : ""}</button>)}</div><p>Simulated time only. No messages leave this browser.</p></details>}
             <button className="btn btn-quiet small" type="button" disabled title="Arrives in WP4">Replay setup</button>
             <button
               className="btn btn-quiet small"

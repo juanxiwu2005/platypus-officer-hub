@@ -7,6 +7,7 @@ import { NudgeComposer } from "../components/NudgeComposer"
 import { NodePanel } from "../components/NodePanel"
 import { nudgeBlocked } from "../lib/nudges"
 import { eventStrip, weeklyStars } from "../lib/today"
+import { PrivateInbox } from "../components/PrivateInbox"
 import { daysBetween, fmtShort } from "../lib/dates"
 import { SEVERITY_RANK, personName, statusOf, worstIssue } from "./helpers"
 
@@ -72,6 +73,7 @@ export default function Today() {
         </section>
       </div>
 
+      <PrivateInbox />
       <section className="card" aria-labelledby="goal-h">
         <header><h2 id="goal-h">Semester goals</h2></header>
         <div className="grid-3">
@@ -87,7 +89,7 @@ export default function Today() {
 
       <section className="card" aria-labelledby="star-h">
         <header><h2 id="star-h">Superstar of the week</h2><span className="small muted">{stars.length > 1 ? "Shared spotlight" : "Visible contributions"}</span></header>
-        {stars.length ? <><div className="action-row">{stars.map(star => <div key={star.person.id} className="star-card"><span className="avatar">★</span><b>{star.person.name}</b><span className="small muted">{star.points} contribution point{star.points === 1 ? "" : "s"}</span></div>)}</div><details><summary className="small">How this is counted</summary><p className="small muted">Existing contribution points for completed tasks updated this calendar week, through the demo date. Ties share the spotlight.</p><ul>{stars.flatMap(star => star.nodes.map(n => <li key={n.id} className="small">{star.person.name}: {n.title} · updated {n.lastUpdate}</li>))}</ul></details></> : <p className="muted">No recorded contributions from completed tasks updated this week.</p>}
+        {stars.length ? <><div className="action-row">{stars.map(star => <div key={star.person.id} className="star-card"><span className="avatar">★</span><b>{star.person.name}</b><span className="small muted">{star.points} contribution point{star.points === 1 ? "" : "s"}</span></div>)}</div><details><summary className="small">How this is counted</summary><p className="small muted">Recorded contribution points for tasks completed this calendar week, through the demo date. Legacy examples use their last-update date. Light / medium / heavy tasks earn 1 / 2 / 3 points, plus 1 for finishing by the club deadline. Ties share the spotlight.</p><ul>{stars.flatMap(star => star.nodes.map(n => <li key={n.id} className="small">{star.person.name}: {n.title} · {n.completedOn ? `completed ${n.completedOn}` : `example updated ${n.lastUpdate}`}</li>))}</ul></details></> : <p className="muted">No recorded contributions from completed tasks this week.</p>}
       </section>
       {nodeId && <NodePanel nodeId={nodeId} onClose={() => setNodeId(null)} onSelect={setNodeId} />}
       {nudgeId && <NudgeComposer key={nudgeId} nodeId={nudgeId} onClose={() => setNudgeId(null)} />}

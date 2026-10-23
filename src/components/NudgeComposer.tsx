@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
-import type { Channel } from "../data/types"
+import type { Channel, OfficerGrant } from "../data/types"
+import { makeOfficerGrant, officerUrl, usableGrant, grantToken } from "../lib/officerLinks"
 import { callApi } from "../lib/api"
-import { buildNudge, composeUrl, messageText, nudgeBlocked, STATUS_ACTIONS, taskReplyUrl } from "../lib/nudges"
+import { buildNudge, composeUrl, messageText, nudgeBlocked, STATUS_ACTIONS } from "../lib/nudges"
 
 const CHANNEL_LABEL = { whatsapp: "WhatsApp", sms: "Text message", email: "Gmail" }
 export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
@@ -17,8 +18,17 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
   const [source, setSource] = useState("Checked template")
   const [openedText, setOpenedText] = useState<string | null>(null)
   const [confirmed, setConfirmed] = useState(false)
+  const [grant, setGrant] = useState<OfficerGrant | null>(null)
+  const [linkError, setLinkError] = useState("")
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [])
+  useEffect(() => {
+    let current = true
+    setGrant(null); setLinkError("")
+    if (!canNudge || !node?.ownerId || node.status === "done") return
+    makeOfficerGrant(state, node.id).then(g => { if (current) { dispatch({ type: "issueOfficerGrant", grant: g }); setGrant(g) } }).catch(() => { if (current) setLinkError("Could not prepare a task link. Close and reopen this draft.") })
+    return () => { current = false }
+  }, [nodeId, node?.ownerId, node?.ownerVersion, node?.status, state.today, state.demoLinkKey, canNudge])
   useEffect(() => {
     const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
     window.addEventListener("keydown", esc)
@@ -40,9 +50,9 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
   if (!node || !person) return null
   const blocked = !canNudge ? "Only the president or vice president can prepare reminders." : nudgeBlocked(state, node)
   const draft = buildNudge(state, node, state.aiEnabled ? meaning : undefined)
-  const message = messageText(draft, window.location.origin, node.id)
+  const message = messageText(draft, window.location.origin, node.id, grant ?? undefined)
   const url = composeUrl(channel, message, draft.subject)
-  const ready = !blocked && draft.checked && !busy && !confirmed
+  const ready = !blocked && draft.checked && !busy && !confirmed && !!grant && !!usableGrant(state, grantToken(grant))
   return <aside className="panel nudge-panel" role="dialog" aria-labelledby="nudge-heading" data-testid="nudge-panel">
     <div className="panel-head"><span className="eyebrow">Private reminder · review first</span><button className="btn btn-quiet" aria-label="Close reminder" onClick={onClose}>✕</button></div>
     <h2 id="nudge-heading" tabIndex={-1} ref={heading}>{person.name}</h2>
@@ -51,8 +61,9 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
     <p className="small muted">Preferred time: {person.remindAt === "evening" ? "evening, around 7 pm" : "morning, around 9 am"}. Keep messages between 8 am and 10 pm.</p>
     <b>{draft.subject}</b>
     <div className="nudge-body" data-testid="nudge-body">{draft.body}</div>
-    <div className="status-actions" aria-label="Recipient status choices">{STATUS_ACTIONS.map(a => <Link className="btn small" key={a.key} to={taskReplyUrl("", node.id, a.key).slice(2)} onClick={onClose}>{a.label}</Link>)}</div>
-    <p className="small muted">Status links preview the recipient's task page. One-tap updates arrive in WP3.</p>
+    <div className="status-actions" aria-label="Recipient status choices">{STATUS_ACTIONS.map(a => grant ? <Link className="btn small" key={a.key} to={officerUrl("", grant, a.key).slice(2)} onClick={onClose}>{a.label}</Link> : <button className="btn small" key={a.key} disabled>{a.label}</button>)}</div>
+    <p className="small muted">One-use task links. Local demo: use the browser where the draft was created.</p>
+    {linkError && <p className="small late-text" role="alert">{linkError}</p>}
     <details><summary className="small">Sources & task details</summary><p className="small">Latest task update: {node.lastUpdate ?? "not recorded"}. Dates and waiting steps come from the rule engine. {node.ruleIds.join(", ") || node.source}.</p><Link to={`/tasks?node=${encodeURIComponent(node.id)}`} onClick={onClose}>Open this task</Link></details>
     {blocked && <p className="small warn-text" role="status">{blocked}</p>}
     {confirmed ? <p className="small good-text" role="status">Recorded as sent by you. The app cannot verify delivery.</p> : <>

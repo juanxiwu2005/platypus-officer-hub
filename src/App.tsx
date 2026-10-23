@@ -10,10 +10,12 @@ import Partners from "./pages/Partners"
 import Rules from "./pages/Rules"
 import Settings from "./pages/Settings"
 import Help from "./pages/Help"
+import Officer from "./pages/Officer"
 
 export default function App() {
   return (
     <Routes>
+      <Route path="officer" element={<Officer />} />
       <Route element={<Layout />}>
         <Route index element={<Today />} />
         <Route path="events" element={<Events />} />
