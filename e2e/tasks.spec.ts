@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test"
+import { ask, demoClock, noOverflow, resetDemo } from "./helpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -10,7 +11,7 @@ test("claims an unassigned handover, then updates waiting, help and done without
   await page.getByTestId("view-as").selectOption("jordan")
   const detail = page.getByTestId("task-detail")
   await detail.getByRole("button", { name: "I've got it", exact: true }).click()
-  await expect(detail).toContainText("Claimed")
+  await expect(detail).toContainText("To do")
   await detail.getByRole("button", { name: "Waiting on…", exact: true }).click()
   await detail.getByLabel("Waiting on", { exact: true }).selectOption({ label: "Sam Okafor" })
   await detail.getByRole("button", { name: "Save waiting status" }).click()
@@ -49,8 +50,7 @@ test("extension needs a draft and stays pending until the president approves", a
 
 test("a ten-day jump creates the five private stages and a recovery task, with human approval for takeover", async ({ page }) => {
   await page.goto("/#/tasks")
-  await page.getByText("Demo clock", { exact: true }).click()
-  await page.getByTestId("clock-10").click()
+  await demoClock(page, 10)
   await expect(page.getByTestId("demo-date")).toContainText("Nov 1")
   const log = page.getByTestId("protocol-log")
   await expect(log.locator("li")).toHaveCount(5)
@@ -69,11 +69,9 @@ test("a ten-day jump creates the five private stages and a recovery task, with h
 })
 
 test("the officer link opens only its task, does not change it on load, and can be used once", async ({ page }) => {
-  await page.goto("/#/tasks?node=t-silence")
-  const card = page.getByTestId("task-card").filter({ hasText: "Confirm the workshop checklist" })
-  // Alex opens the task through the team view to prepare Jordan's private draft.
-  await page.getByLabel("Task scope", { exact: true }).selectOption("team")
-  await card.getByRole("button", { name: "Draft reminder", exact: true }).click()
+  await page.goto("/#/tasks")
+  await ask(page, "Remind Jordan about the workshop checklist")
+  await page.getByRole("button", { name: "Open the draft" }).last().click()
   const panel = page.getByTestId("nudge-panel")
   const link = panel.getByRole("link", { name: "Need help", exact: true })
   await expect(link).toHaveAttribute("href", /#\/officer\?token=/)
@@ -92,26 +90,59 @@ test("the officer link opens only its task, does not change it on load, and can 
 
 test("tampered and reset officer links cannot update any task", async ({ page }) => {
   await page.goto("/#/")
-  await page.getByTestId("risk-list").getByRole("button", { name: "Draft reminder", exact: true }).first().click()
+  await page.getByTestId("risk-list").getByRole("button", { name: "Remind", exact: true }).first().click()
   const link = page.getByTestId("nudge-panel").getByRole("link", { name: "Done", exact: true })
   await expect(link).toHaveAttribute("href", /token=/)
   const href = (await link.getAttribute("href"))!
   await page.goto("/" + href.replace("&reply=", "0&reply="))
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
   await page.goto("/#/")
-  await page.getByTestId("reset-demo").click()
+  await resetDemo(page)
   await page.goto("/" + href)
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
 })
 
-test("mine, board and Gantt use the same tasks and remain usable on a phone", async ({ page }) => {
+test("table, board and timeline use the same tasks and remain usable on a phone", async ({ page }) => {
   await page.goto("/#/tasks")
   await page.getByTestId("view-as").selectOption("jordan")
   await expect(page.getByTestId("my-tasks")).toContainText("Confirm the workshop checklist")
   await page.getByRole("button", { name: "Board", exact: true }).click()
   await expect(page.getByTestId("task-board")).toContainText("Confirm the workshop checklist")
-  await expect(page.getByTestId("task-board").getByRole("heading")).toHaveCount(5)
-  await page.getByRole("button", { name: "Gantt", exact: true }).click()
+  await expect(page.getByTestId("task-board").getByRole("heading")).toHaveCount(6)
+  await page.getByRole("button", { name: "Timeline", exact: true }).click()
   await expect(page.getByTestId("task-gantt")).toContainText("Confirm the workshop checklist")
-  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
+  expect(await noOverflow(page)).toBeLessThanOrEqual(1)
+})
+
+test("board: drag a card to another column, add a task, and an officer cannot move someone else's task", async ({ page }, info) => {
+  await page.goto("/#/tasks")
+  await page.getByRole("button", { name: "Board", exact: true }).click()
+  const board = page.getByTestId("task-board")
+  const card = board.getByTestId("board-card").filter({ hasText: "Check the officer list in Sun Devil Central" })
+  // Mouse drag-and-drop is checked by hand (see docs/PROGRESS.md); the test uses the card's move menu, which calls the same action.
+  void info
+  await card.getByLabel("Move Check the officer list in Sun Devil Central").selectOption("in_progress")
+  await expect(board.getByRole("region", { name: "Working on it" })).toContainText("Check the officer list")
+  await page.reload()
+  await page.getByRole("button", { name: "Board", exact: true }).click()
+  await expect(board.getByRole("region", { name: "Working on it" })).toContainText("Check the officer list")
+  await board.getByRole("region", { name: "To do" }).getByRole("button", { name: "+ Add task" }).click()
+  await board.getByLabel("New task name").fill("Order name tags")
+  await board.getByRole("button", { name: "Add", exact: true }).click()
+  await expect(board.getByRole("region", { name: "To do" })).toContainText("Order name tags")
+  await page.getByTestId("view-as").selectOption("maya")
+  await page.getByLabel("Task scope").selectOption("team")
+  await board.getByLabel("Move Send the October newsletter").selectOption("done")
+  await expect(page.locator(".board-notice")).toContainText("your own tasks")
+})
+
+test("board customization renames a status everywhere without changing its meaning", async ({ page }) => {
+  await page.goto("/#/tasks")
+  await page.getByRole("button", { name: "Board", exact: true }).click()
+  await page.getByRole("button", { name: "Customize" }).click()
+  const panel = page.getByTestId("board-settings")
+  await panel.getByLabel("Name for To do").fill("Ready")
+  await panel.getByLabel("Name for To do").blur()
+  await expect(page.getByTestId("task-board").getByRole("heading", { name: "Ready" })).toBeVisible()
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-sdc").status)).toBe("accepted")
 })

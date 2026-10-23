@@ -80,6 +80,13 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 - **部署：** `netlify.toml` 构建命令 `npm run build`，发布目录 `dist`，Node 22。
 - 正式网址：https://platypus-officer-hub.netlify.app （`main`，仍是 v0.1）。`v1` 的预览：draft PR #（见 `docs/PROGRESS.md`）里 Netlify 给出的 Deploy Preview 网址。
 
+## 6b. v1.1 改版后的代码地图（2026-10-23，覆盖上面关于页面的旧描述）
+
+- 外框：`src/components/Layout.tsx`（顶栏、Demo 小标、铃铛、导航）+ `src/components/rail/`（`RailContext.tsx` 右栏状态；`Rail.tsx` 两个标签和详情分发；`AskPanel.tsx` 对话；`ChangeCard.tsx` 变更单审核）。
+- 组件：`src/components/ui/`。AI：`src/lib/assistant.ts`（浏览器）、`src/lib/chatCards.ts`（共用过滤）、`netlify/functions/chat.mts`（`/api/chat`）。旧的 `/api/command`、`/api/ask`、`/api/nudge/draft` 仍在用。
+- 流程图：`src/components/flow/metro.ts`（纯布局，有单元测试）+ `MetroChart.tsx`。看板：`src/data/board.ts`。
+- 页面测试：`e2e/helpers.ts` 有 `resetDemo`、`demoClock`、`ask`。本机没有下载浏览器时用 `PW_CHROMIUM=<chromium 路径>`。
+
 ## 7. 界面规则（2026-10-23 简化改版，Juanxi 批准）
 
 改任何页面前先读这一节。依据：《Platypus 简化改版方案》（https://claude.ai/artifact/QhCthf71crEC62bBua5zJD）。

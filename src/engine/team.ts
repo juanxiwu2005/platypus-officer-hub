@@ -49,3 +49,17 @@ export function calendarDraftUrl(date: string, from: string, to: string): string
   const params = new URLSearchParams({ action: "TEMPLATE", text: "Fictional club planning meeting", dates: `${stamp(from)}/${stamp(to)}`, ctz: "America/Phoenix", details: "Draft from self-reported availability in the Platypus local demo. Check before saving; no invitations have been sent." })
   return `https://calendar.google.com/calendar/render?${params}`
 }
+
+/** Week heat map for the meeting finder (v1.1): how many chosen officers are free in each hour. */
+export function availabilityGrid(s: DemoState, ids: string[], start: string, days = 7, fromHour = 8, toHour = 22) {
+  const people = ids.map(id => s.people.find(p => p.id === id)).filter((p): p is Person => !!p)
+  const dates = Array.from({ length: days }, (_, i) => addDays(start, i))
+  return dates.map(date => {
+    const day = fromISO(date).getDay()
+    return { date, hours: Array.from({ length: toHour - fromHour }, (_, k) => {
+      const h = fromHour + k
+      const free = people.filter(p => personalWorkDay(p.busyWeeks)(date) && p.freeSlots.some(f => f.day === day && Math.min(minutes(f.to), (h + 1) * 60) - Math.max(minutes(f.from), h * 60) >= 30))
+      return { hour: h, free: free.length }
+    }) }
+  })
+}

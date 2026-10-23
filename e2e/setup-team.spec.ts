@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test"
+import { resetDemo } from "./helpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -29,7 +30,8 @@ test("five steps create a first workflow only after approval and retain fictiona
   await expect(step.getByRole("button", { name: "Approve & start workspace", exact: true })).toBeDisabled()
   await step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." }).check()
   await step.getByRole("button", { name: "Approve & start workspace", exact: true }).click()
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Where is each event, and who is up next?")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Events")
+  await page.goto("/#/team")
   await expect(page.getByText("VP of Finance", { exact: true }).first()).toBeVisible()
   const saved = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!); return { events: s.events.length, name: s.org.name, file: s.org.workspace.files[0].name, date: s.events[0].date, official: s.nodes.find((n: { stepKey: string }) => n.stepKey === "usg").officialDeadline } })
   expect(saved).toEqual({ events: 1, name: "Fictional Launch Club", file: "fictional-plan.txt", date: "2026-11-19", official: "2026-11-04" })
@@ -58,22 +60,27 @@ test("first-event API dates are ignored and private profile/files are absent fro
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).events.length)).toBe(2)
 })
 
-test("renaming a role follows through flow lanes and handbook headings", async ({ page }) => {
+test("renaming a role saves itself, can be undone, and follows through team and handoff", async ({ page }) => {
   await page.goto("/#/settings")
+  await page.getByRole("button", { name: "Roles", exact: true }).click()
   const settings = page.getByTestId("club-settings")
+  await settings.getByLabel("Role title", { exact: true }).nth(1).fill("Finance Chair")
+  await expect(settings.getByRole("status")).toContainText("Saved")
+  await settings.getByRole("button", { name: "Undo" }).click()
+  await expect(settings.getByLabel("Role title", { exact: true }).nth(1)).toHaveValue("Treasurer")
   await settings.getByLabel("Role title", { exact: true }).nth(1).fill("VP of Finance")
-  await settings.getByRole("button", { name: "Save club settings", exact: true }).click()
-  await expect(settings.getByRole("status")).toContainText("saved")
-  await page.goto("/#/events")
+  await expect(settings.getByRole("status")).toContainText("Saved")
+  await page.goto("/#/team")
   await expect(page.getByText("VP of Finance", { exact: true }).first()).toBeVisible()
   await page.goto("/#/handoff")
-  await expect(page.getByText("VP of Finance handbook", { exact: true })).toBeVisible()
-  await expect(page.getByTestId("role-handbooks")).not.toContainText("Treasurer handbook")
+  await expect(page.getByTestId("role-handbooks")).toContainText("VP of Finance")
+  await expect(page.getByTestId("role-handbooks")).not.toContainText("Treasurer")
 })
 
 test("officer five-question setup saves preferences and busy weeks while private buffers stay personal", async ({ page }) => {
   const started = Date.now()
   await page.goto("/#/settings")
+  await page.getByRole("button", { name: "Roles", exact: true }).click()
   const settings = page.getByTestId("club-settings")
   await settings.getByText("Invite officers", { exact: true }).click()
   await settings.getByRole("link", { name: "Try officer setup", exact: true }).click()
@@ -93,6 +100,7 @@ test("officer five-question setup saves preferences and busy weeks while private
   await expect(page.getByTestId("club-settings")).toHaveCount(0)
   await expect(page.getByLabel("My extra working days", { exact: true })).toHaveValue("3")
   await page.getByTestId("view-as").selectOption("alex")
+  await page.getByRole("button", { name: "My preferences", exact: true }).click()
   await expect(page.getByLabel("My extra working days", { exact: true })).toHaveValue("1")
   await expect(page.getByTestId("my-settings")).not.toContainText("Week of 2026-10-19")
   await page.goto("/#/team")
@@ -122,12 +130,12 @@ test("invalid defaults and expired invitations cannot change the local demo", as
   const settings = page.getByTestId("club-settings")
   await settings.getByText("Deadline and follow-up defaults", { exact: true }).click()
   await settings.getByLabel("Private check day", { exact: true }).fill("4")
-  await settings.getByRole("button", { name: "Save club settings", exact: true }).click()
   await expect(settings.getByRole("status")).toContainText("must increase")
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).org.settings.silenceProtocol.presidentDay)).toBe(7)
+  await page.getByRole("button", { name: "Roles", exact: true }).click()
   await settings.getByText("Invite officers", { exact: true }).click()
   const href = await settings.getByRole("link", { name: "Try officer setup", exact: true }).getAttribute("href")
-  await page.getByTestId("reset-demo").click()
+  await resetDemo(page)
   await page.goto(href!)
   await expect(page.getByRole("heading", { name: "Check your setup invitation", exact: true })).toBeVisible()
 })

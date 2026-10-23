@@ -6,19 +6,19 @@ export function FollowupPanel() {
   const { state, dispatch } = useStore()
   const { canNudge } = useViewer()
   const [selected, setSelected] = useState("t-silence")
-  if (!canNudge) return null
+  if (!canNudge || (!state.extensionRequests.some(r => r.status === "pending") && !state.protocolLog.length)) return null
   const entries = state.protocolLog.filter(e => e.nodeId === selected)
   const pending = state.extensionRequests.filter(r => r.status === "pending")
   return <section className="card" aria-label="President review" data-testid="president-review">
-    <header><h2>Private follow-up & approvals</h2><span className="small muted">President / vice president only</span></header>
+    <header><h2>Approvals</h2><span className="small muted">Only you see this</span></header>
     <div className="review-queue">{pending.map(r => {
       const node = state.nodes.find(n => n.id === r.nodeId)!
       const stale = node.ownerId !== r.ownerId || node.clubDeadline !== r.previousDeadline || r.requestedDate < state.today
       return <article className="change-item" key={r.id} data-testid="extension-review"><b>{node.title}</b><p className="small">Requested: {r.requestedDate} · current: {node.clubDeadline}</p><a href={r.draftLink} target="_blank" rel="noreferrer">Review current draft</a>{r.reason && <p>{r.reason}</p>}{stale && <p className="small warn-text">This request is out of date. Ask the owner for a fresh request.</p>}<div className="action-row"><button className="btn btn-primary" disabled={stale} onClick={() => dispatch({ type: "reviewExtension", id: r.id, approve: true })}>Approve extension</button><button className="btn" onClick={() => dispatch({ type: "reviewExtension", id: r.id, approve: false })}>Decline extension</button></div></article>
-    })}{!pending.length && <p className="small muted">No extension requests awaiting review.</p>}</div>
+    })}{!pending.length && <p className="empty">No requests waiting.</p>}</div>
     <details className="followup-details" open={entries.length > 0}>
       <summary>Follow-up walkthrough</summary>
-      <p className="small muted">Use the Demo clock above to advance time. Follow-ups are simulated, private, and never sent externally.</p>
+      <p className="small muted">Move the Demo clock to see each private step. Nothing is sent.</p>
       <label className="composer-channel">Follow-up task<select aria-label="Follow-up task" value={selected} onChange={e => setSelected(e.target.value)}>{state.nodes.filter(n => !n.source.startsWith("SEO Ghost Owner Protocol")).map(n => <option key={n.id} value={n.id}>{n.title}</option>)}</select></label>
       <ol className="protocol-log" data-testid="protocol-log">{entries.map(e => {
         const c = state.silenceCases.find(c => c.id === e.caseId)

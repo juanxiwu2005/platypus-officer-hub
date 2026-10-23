@@ -1,4 +1,0 @@
-import { FORECAST_ASSUMPTIONS, type ForecastResult } from "../engine/forecast"
-export function ForecastBadge({ result }: { result: ForecastResult }) {
-  return <div className="forecast" data-testid="forecast"><span className={`tag ${result.color === "red" ? "late" : result.color === "yellow" ? "warn" : "good"}`}>{result.color === "red" ? "Red · At risk" : result.color === "yellow" ? "Yellow · Watch" : "Green · On track"}</span><ul className={result.color === "red" ? "small late-text" : "small warn-text"}>{result.reasons.map(r=><li key={r}>{r}</li>)}</ul><details><summary className="small">Forecast details & assumptions</summary><p>{Math.round(result.probability*100)}% of {result.runs.toLocaleString()} runs finish this step by its club deadline.</p><ul>{FORECAST_ASSUMPTIONS.map(a=><li className="small muted" key={a}>{a}</li>)}</ul></details></div>
-}

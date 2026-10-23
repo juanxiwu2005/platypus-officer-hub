@@ -1,0 +1,29 @@
+import { expect, type Page } from "@playwright/test"
+
+/** v1.1 helpers: the demo controls live behind the Demo pill, and AI lives in the right rail. */
+export async function openDemoMenu(page: Page) {
+  const reset = page.getByTestId("reset-demo")
+  if (!(await reset.isVisible())) await page.getByTestId("demo-menu").click()
+}
+export async function resetDemo(page: Page) {
+  await openDemoMenu(page)
+  await page.getByTestId("reset-demo").click()
+}
+export async function demoClock(page: Page, days: 1 | 3 | 10) {
+  await openDemoMenu(page)
+  await page.getByTestId(`clock-${days}`).click()
+}
+export async function openAsk(page: Page) {
+  const input = page.locator("#ask-input")
+  if (await input.isVisible()) return
+  const tab = page.getByTestId("tab-ask")
+  if (await tab.isVisible()) { await tab.click(); return }
+  await page.locator(".ask-fab").click()
+  await expect(input).toBeVisible()
+}
+export async function ask(page: Page, text: string) {
+  await openAsk(page)
+  await page.locator("#ask-input").fill(text)
+  await page.locator("#ask-input").press("Enter")
+}
+export const noOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)

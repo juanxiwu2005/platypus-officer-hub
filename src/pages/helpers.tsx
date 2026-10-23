@@ -4,17 +4,16 @@ import type { Issue, Severity } from "../engine/schedule"
 type Tone = "" | "good" | "warn" | "late" | "accent"
 
 export const STATUS_LABEL: Record<NodeStatus, { text: string; tone: Tone }> = {
-  unclaimed: { text: "No owner", tone: "late" },
-  accepted: { text: "Claimed", tone: "" },
-  in_progress: { text: "In progress", tone: "accent" },
-  waiting: { text: "Waiting on someone", tone: "warn" },
+  unclaimed: { text: "Not claimed", tone: "" },
+  accepted: { text: "To do", tone: "accent" },
+  in_progress: { text: "Working on it", tone: "warn" },
+  waiting: { text: "Waiting", tone: "warn" },
   blocked: { text: "Stuck", tone: "late" },
   done: { text: "Done", tone: "good" },
 }
 
-/** Status text for a node; an unclaimed node with a proposed owner reads "Not claimed yet". */
+/** Default status words (v1.1). The board's custom labels are applied by <StatusPill>. */
 export function statusOf(n: Node): { text: string; tone: Tone } {
-  if (n.status === "unclaimed" && n.ownerId) return { text: "Not claimed yet", tone: "warn" }
   return STATUS_LABEL[n.status]
 }
 

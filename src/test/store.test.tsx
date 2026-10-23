@@ -18,9 +18,10 @@ describe("store reducer", () => {
   })
 
   it("updateNode accepts only editable fields and re-runs the engine", () => {
-    const s = reducer(base, { type: "updateNode", id: "e-night:usg", patch: { clubDeadlineOverride: "2026-11-02", title: "hacked", officialDeadline: "2027-01-01" } as never })
+    const s = reducer(base, { type: "updateNode", id: "e-night:usg", patch: { clubDeadlineOverride: "2026-11-02", title: "  Submit the USG food form  ", status: "done", officialDeadline: "2027-01-01" } as never })
     const n = s.nodes.find(x => x.id === "e-night:usg")!
-    expect(n.title).toBe("Submit the USG food request")
+    expect(n.title).toBe("Submit the USG food form")
+    expect(n.status).toBe(base.nodes.find(x => x.id === "e-night:usg")!.status)
     expect(n.officialDeadline).toBe("2026-11-04")
     expect(n.clubDeadline).toBe("2026-11-02")
     expect(n.latestStart).toBe("2026-10-29")
@@ -56,8 +57,8 @@ describe("storage", () => {
 })
 
 describe("app shell", () => {
-  it("renders Today with the page question", () => {
+  it("renders Today with its short page title", () => {
     render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><App /></HashRouter></StoreProvider>)
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Who should I nudge today?")
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Today")
   })
 })

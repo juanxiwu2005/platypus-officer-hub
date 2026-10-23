@@ -1,29 +1,34 @@
-import { useEffect, useState } from "react"
-import { NavLink, Outlet } from "react-router-dom"
+import { useEffect, useRef, useState } from "react"
+import { NavLink, Outlet, useLocation } from "react-router-dom"
 import { Icons, Logo } from "./icons"
 import { PAGES } from "../routes"
 import { useStore, useViewer } from "../data/store"
 import { getHealth, type Health } from "../lib/api"
 import { fmtLong } from "../lib/dates"
+import { RailProvider, useRail } from "./rail/RailContext"
+import { Rail } from "./rail/Rail"
+import { PrivateInbox } from "./PrivateInbox"
 
 export function Layout() {
-  const { state, dispatch, reset } = useStore()
-  const { canNudge } = useViewer()
-  const [health, setHealth] = useState<Health | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  return <RailProvider><Frame /></RailProvider>
+}
 
-  useEffect(() => {
-    getHealth().then(setHealth)
-  }, [])
+function Frame() {
+  const { state, dispatch } = useStore()
+  const rail = useRail()
+  const location = useLocation()
+  const [toast, setToast] = useState<string | null>(null)
   useEffect(() => {
     if (!toast) return
     const t = setTimeout(() => setToast(null), 2400)
     return () => clearTimeout(t)
   }, [toast])
-
-  const aiNote = health?.configured
-    ? `AI answers come live from ${health.provider}${health.model ? ` (${health.model})` : ""}.`
-    : "AI answers are simulated."
+  // A new page starts with Ask, not with the last page's details.
+  const lastPath = useRef(location.pathname)
+  useEffect(() => {
+    if (lastPath.current !== location.pathname && rail.detail && rail.detail.kind !== "task") rail.closeDetail()
+    lastPath.current = location.pathname
+  }, [location.pathname])
 
   return (
     <>
@@ -37,13 +42,10 @@ export function Layout() {
             </div>
           </NavLink>
           <div className="controls">
-            <label className="field-inline">
-              View as
-              <select
-                value={state.viewerId}
-                onChange={e => dispatch({ type: "setViewer", viewerId: e.target.value })}
-                data-testid="view-as"
-              >
+            <DemoMenu onReset={() => setToast("Demo data reset")} />
+            <label className="field-inline view-as">
+              <span>View as</span>
+              <select value={state.viewerId} onChange={e => dispatch({ type: "setViewer", viewerId: e.target.value })} data-testid="view-as">
                 {state.people.map(p => {
                   const role = state.roles.find(r => r.id === p.roleId)
                   return <option key={p.id} value={p.id}>{p.name} · {role?.displayName}</option>
@@ -54,38 +56,25 @@ export function Layout() {
               <input type="checkbox" checked={state.aiEnabled} onChange={e => dispatch({ type: "setAi", enabled: e.target.checked })} />
               AI features
             </label>
-          </div>
-        </div>
-        <div className="demo-strip">
-          <div className="bar-in">
-            <b>Prototype v1 · in development</b>
-            <span data-testid="demo-date">Demo date: {fmtLong(state.today)}.</span>
-            <span data-testid="ai-status">Fictional organization and example data. {aiNote} No message is sent from this page.</span>
-            <span className="spacer" />
-            {canNudge && <details className="demo-clock"><summary>Demo clock</summary><div className="action-row">{[1, 3, 10].map(days => <button key={days} className="btn small" data-testid={`clock-${days}`} onClick={() => dispatch({ type: "advanceClock", days })}>+{days} day{days > 1 ? "s" : ""}</button>)}</div><p>Simulated time only. No messages leave this browser.</p></details>}
-            {canNudge && <NavLink className="btn btn-quiet small" to="/setup">Replay setup</NavLink>}
-            <button
-              className="btn btn-quiet small"
-              type="button"
-              data-testid="reset-demo"
-              onClick={() => { reset(); setToast("Demo data reset") }}
-            >
-              Reset demo
+            <Bell />
+            <button type="button" className={`btn ask-toggle ${rail.open ? "on" : ""}`} aria-pressed={rail.open} onClick={() => rail.setOpen(!rail.open)} data-testid="ask-toggle">
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 016.5 3h7A2.5 2.5 0 0116 5.5v5a2.5 2.5 0 01-2.5 2.5H9l-3.5 3v-3A2.5 2.5 0 014 10.5z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
+              Ask Platypus
             </button>
           </div>
         </div>
       </header>
 
-      <div className="shell">
+      <div className={`shell${rail.open ? " with-rail" : ""}`}>
         <nav className="sidenav" aria-label="Sections">
           {PAGES.filter(p => p.group === "main").map(p => (
-            <NavLink key={p.path} to={p.path} end={p.path === "/"}>
+            <NavLink key={p.path} to={p.path} end={p.path === "/"} title={p.question}>
               {Icons[p.icon]}<span>{p.label}</span>
             </NavLink>
           ))}
-          <div className="group">More</div>
+          <div className="group" aria-hidden="true" />
           {PAGES.filter(p => p.group === "footer").map(p => (
-            <NavLink key={p.path} to={p.path}>
+            <NavLink key={p.path} to={p.path} title={p.question}>
               {Icons[p.icon]}<span>{p.label}</span>
             </NavLink>
           ))}
@@ -93,8 +82,61 @@ export function Layout() {
         <main id="main" tabIndex={-1}>
           <Outlet />
         </main>
+        {rail.open && <Rail />}
       </div>
+      {!rail.open && <button type="button" className="ask-fab" onClick={() => rail.setOpen(true)} aria-label="Ask Platypus">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 016.5 3h7A2.5 2.5 0 0116 5.5v5a2.5 2.5 0 01-2.5 2.5H9l-3.5 3v-3A2.5 2.5 0 014 10.5z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
+      </button>}
       {toast && <div className="toast" role="status">{toast}</div>}
     </>
   )
+}
+
+/** Everything about the demo itself lives behind one small pill. */
+function DemoMenu({ onReset }: { onReset: () => void }) {
+  const { state, dispatch, reset } = useStore()
+  const { canNudge } = useViewer()
+  const [open, setOpen] = useState(false)
+  const [health, setHealth] = useState<Health | null>(null)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => { getHealth().then(setHealth) }, [])
+  useEffect(() => {
+    if (!open) return
+    const off = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
+    document.addEventListener("mousedown", off); window.addEventListener("keydown", esc)
+    return () => { document.removeEventListener("mousedown", off); window.removeEventListener("keydown", esc) }
+  }, [open])
+  const aiNote = health?.configured ? `AI answers come live from ${health.provider}${health.model ? ` (${health.model})` : ""}.` : "AI answers are simulated."
+  return <div className="menu-wrap" ref={ref}>
+    <button type="button" className="demo-pill" aria-expanded={open} onClick={() => setOpen(!open)} data-testid="demo-menu">
+      Demo · <span data-testid="demo-date">{fmtLong(state.today)}</span>
+    </button>
+    <div className="menu" hidden={!open} role="group" aria-label="Demo controls">
+      <p className="small muted" data-testid="ai-status">Fictional club and example data. {aiNote} Nothing is sent from this page.</p>
+      {canNudge && <div className="menu-row"><span className="small">Demo clock</span>{[1, 3, 10].map(days => <button key={days} type="button" className="btn small" data-testid={`clock-${days}`} onClick={() => dispatch({ type: "advanceClock", days })}>+{days} day{days > 1 ? "s" : ""}</button>)}</div>}
+      {canNudge && <NavLink className="btn small" to="/setup" onClick={() => setOpen(false)}>Replay setup</NavLink>}
+      <button type="button" className="btn small" data-testid="reset-demo" onClick={() => { reset(); try { window.localStorage.removeItem("platypus.v1.chat") } catch { /* storage unavailable */ } window.dispatchEvent(new Event("platypus:reset")); setOpen(false); onReset() }}>Reset demo</button>
+    </div>
+  </div>
+}
+
+function Bell() {
+  const { state } = useStore()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const unread = state.notifications.filter(n => n.recipientId === state.viewerId && !n.read).length
+  useEffect(() => {
+    if (!open) return
+    const off = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener("mousedown", off)
+    return () => document.removeEventListener("mousedown", off)
+  }, [open])
+  return <div className="menu-wrap" ref={ref}>
+    <button type="button" className="btn btn-quiet icon-btn bell" aria-label={`Private updates, ${unread} unread`} aria-expanded={open} onClick={() => setOpen(!open)} data-testid="bell">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 14V9a5 5 0 0110 0v5l1.5 1.5h-13zM8.5 17.5a1.6 1.6 0 003 0" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
+      {unread > 0 && <span className="badge">{unread}</span>}
+    </button>
+    <div className="menu wide" hidden={!open}><PrivateInbox onPick={() => setOpen(false)} /></div>
+  </div>
 }

@@ -14,7 +14,8 @@ import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type
 import { usableGrant } from "../lib/officerLinks"
 import type { OfficerGrant } from "./types"
 import { completeSetup, saveClubSettings, saveProfile, type ClubDraft, type ProfilePatch } from "./settings"
-import type { OrgSettings } from "./types"
+import type { BoardSettings, NodeStatus, OrgSettings } from "./types"
+import { addBoardTask, moveTask, saveBoard } from "./board"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -25,7 +26,7 @@ import type { OrgSettings } from "./types"
 export const STORAGE_KEY = "platypus.v1.demo"
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
-export type NodePatch = Partial<Pick<Node, "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn">>
+export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount">>
 
 export type Action =
@@ -41,6 +42,10 @@ export type Action =
   | { type: "contacted"; id:string }
   | { type: "contactCadence"; id:string; days:number }
   | { type: "reset" }
+  | { type: "moveTask"; nodeId: string; status: NodeStatus; beforeId?: string | null }
+  | { type: "addTask"; title: string; status: NodeStatus }
+  | { type: "saveBoard"; board: BoardSettings }
+  | { type: "addContact"; name: string; organization: string; relation: string; ownerRoleId: string; cadenceDays: number }
   | { type: "setViewer"; viewerId: string }
   | { type: "setAi"; enabled: boolean }
   | { type: "replace"; state: DemoState }
@@ -62,11 +67,13 @@ export type Action =
   | { type: "saveProfile"; personId: string; patch: ProfilePatch; invite?: string }
   | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string }
 
-const NODE_FIELDS: (keyof NodePatch)[] = ["ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn"]
+const NODE_FIELDS: (keyof NodePatch)[] = ["title", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
 
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   const patch = pick(raw, NODE_FIELDS)
+  if (patch.title !== undefined) { const t = String(patch.title).trim().slice(0, 100); if (t) patch.title = t; else delete patch.title }
+  if (patch.tags !== undefined) patch.tags = Array.isArray(patch.tags) ? [...new Set(patch.tags.filter(t => (state.org.board?.tags ?? []).some(x => x.id === t)))] : []
   if (patch.estDays !== undefined) patch.estDays = Math.max(0, Math.min(30, Math.round(Number(patch.estDays) || 0)))
   let next: DemoState = {
     ...state,
@@ -128,6 +135,14 @@ export function reducer(state: DemoState, action: Action): DemoState {
 
     case "reset":
       return seedDemo()
+    case "moveTask": return moveTask(state, action.nodeId, action.status, action.beforeId ?? null)
+    case "addTask": return addBoardTask(state, action.title, action.status)
+    case "saveBoard": return saveBoard(state, action.board)
+    case "addContact": {
+      const name = action.name.trim().slice(0, 80)
+      if (!canLead(state) || !name || !state.roles.some(r => r.id === action.ownerRoleId) || !Number.isInteger(action.cadenceDays) || action.cadenceDays < 1 || action.cadenceDays > 365) return state
+      return { ...state, contacts: [...state.contacts, { id: `c-${state.contacts.length}-${Date.now().toString(36)}`, name, organization: action.organization.trim().slice(0, 80), relation: action.relation.trim().slice(0, 40) || "Partner", lastContact: null, cadenceDays: action.cadenceDays, ownerRoleId: action.ownerRoleId, eventIds: [] }] }
+    }
     case "setViewer":
       return state.people.some(p => p.id === action.viewerId) ? { ...state, viewerId: action.viewerId } : state
     case "setAi":

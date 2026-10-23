@@ -4,6 +4,7 @@ vi.mock("../../netlify/lib/ai.mts", async importOriginal => ({ ...await importOr
 import command from "../../netlify/functions/command.mts"
 import nudge from "../../netlify/functions/nudge-draft.mts"
 import parseBrief from "../../netlify/functions/parse-brief.mts"
+import chatFn from "../../netlify/functions/chat.mts"
 import { seedDemo } from "../data/seed"
 import { commandContext } from "../lib/commands"
 import { nudgeCheck } from "../lib/nudges"
@@ -49,5 +50,16 @@ describe("server endpoint contract", () => {
     chat.mockResolvedValue({ data: { name: "Dinner", date: "2099-01-01" }, model: "mock" })
     const d = await (await parseBrief(request({ sentence: "Dinner", today: state.today }))).json()
     expect(d.brief).toEqual({ name: "Dinner" })
+  })
+  it("/api/chat answers supported commands without AI and filters every model card", async () => {
+    const local = await chatFn(request({ message: "Assign Send the October newsletter to Priya", context: commandContext(state) }, "/api/chat"))
+    expect(await local.json()).toMatchObject({ source: "rules", cards: [{ kind: "changes", ops: [{ op: "assign_owner", nodeId: "t-news", ownerId: "priya" }] }] })
+    expect(chat).not.toHaveBeenCalled()
+    chat.mockResolvedValue({ data: { cards: [{ kind: "text", text: "Due Nov 4, so start 2026-10-28." }, { kind: "send_email", to: "x@y.z" }, { kind: "tasks", scope: "risk", limit: 99 }, { kind: "rule", citations: ["R06", "R99"], inScope: true }] }, model: "mock", provider: "mock" })
+    const r = await (await chatFn(request({ message: "How is our flyer doing?", context: commandContext(state), history: [{ role: "user", text: "hi" }] }, "/api/chat"))).json()
+    expect(r.cards.map((c: { kind: string }) => c.kind)).toEqual(["text", "tasks", "rule"])
+    expect(JSON.stringify(r.cards)).not.toMatch(/Nov 4|2026-10-28|R99|send_email/)
+    expect(r.cards[1]).toEqual({ kind: "tasks", scope: "risk", limit: 10 })
+    expect((await chatFn(request({}, "/api/chat"))).status).toBe(400)
   })
 })

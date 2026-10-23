@@ -47,6 +47,17 @@ export interface Org {
   workspace: WorkspaceConfig
   setupCompletedOn: string | null
   inviteCode: string
+  /** Task board look (v1.1): renamed statuses, colours, custom tags and which fields cards show. Meanings never change. */
+  board?: BoardSettings
+}
+
+export interface BoardTag { id: string; label: string; color: string }
+export interface BoardSettings {
+  labels?: Partial<Record<NodeStatus, string>>
+  colors?: Partial<Record<NodeStatus, string>>
+  tags?: BoardTag[]
+  /** Card fields shown on the board. */
+  fields?: ("owner" | "due" | "event" | "tags")[]
 }
 
 export interface PlanningFile {
@@ -171,6 +182,10 @@ export interface Node {
   completedOn?: string
   recoveryFrom?: string
   ownerVersion?: number
+  /** Board order inside a status column (v1.1). Lower comes first. */
+  rank?: number
+  /** Custom board tag ids (v1.1). */
+  tags?: string[]
 }
 
 export interface Nudge {
@@ -277,6 +292,10 @@ export interface Rule {
   id: string
   category: "venue" | "food" | "money" | "marketing" | "compliance" | "transition"
   text: string
+  /** v1.1: at most 12 words for the Rules list; the full text shows on hover. */
+  short?: string
+  /** v1.1: the timing chip, e.g. "14 days". */
+  timing?: string
   limit: string
   sources: { label: string; url: string }[]
   checkedOn: string

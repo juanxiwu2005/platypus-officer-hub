@@ -1,95 +1,86 @@
-import { useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { useMemo } from "react"
+import { Link, useNavigate } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
-import { CommandBar } from "../components/CommandBar"
-import { NudgeComposer } from "../components/NudgeComposer"
-import { NodePanel } from "../components/NodePanel"
+import { useRail } from "../components/rail/RailContext"
 import { nudgeBlocked } from "../lib/nudges"
-import { eventStrip, weeklyStars } from "../lib/today"
+import { weeklyStars } from "../lib/today"
 import { computeForecast, forecastQueue } from "../engine/forecast"
-import { ForecastBadge } from "../components/ForecastBadge"
-import { PrivateInbox } from "../components/PrivateInbox"
 import { daysBetween, fmtShort } from "../lib/dates"
-import { personName, statusOf } from "./helpers"
+import { Avatar, Chain, Info, NodePill, RiskDot, Ring } from "../components/ui"
+import { phaseChain } from "../lib/phases"
+import { firstName } from "./helpers"
 
 export default function Today() {
   const { state } = useStore()
-  const { person, canNudge } = useViewer()
-  const [nudgeId, setNudgeId] = useState<string | null>(null)
-  const [nodeId, setNodeId] = useState<string | null>(null)
+  const { canNudge } = useViewer()
+  const rail = useRail()
+  const navigate = useNavigate()
   const forecast = useMemo(() => computeForecast(state), [state])
   const stars = weeklyStars(state)
   const risks = forecastQueue(state, forecast)
 
   return (
     <>
-      <PageHead path="/" lead={<>Good to see you, {person.name.split(" ")[0]}. Type what you want done, or start with the risks below.</>} />
+      <PageHead path="/" />
 
-      <CommandBar onNudge={id => { setNodeId(null); setNudgeId(id) }} />
-
-      <div className="grid-2">
-        <section className="card" aria-labelledby="risk-h">
-          <header><h2 id="risk-h">Needs a nudge</h2><span className="small muted">Top {risks.length} by risk</span></header>
-          <ul className="list" data-testid="risk-list">
+      <section className="card" aria-labelledby="risk-h">
+        <header><h2 id="risk-h">Needs a nudge</h2><Info>The three open steps least likely to finish on time, from 1,000 simulated runs. Rest on a dot to see why.</Info></header>
+        <table className="tbl" data-testid="risk-list">
+          <tbody>
             {risks.map(n => (
-              <li key={n.id}>
-                <div>
-                  <button className="row-btn" onClick={() => { setNudgeId(null); setNodeId(n.id) }}>{n.title}</button>
-                  <div className="small muted">{personName(state, n.ownerId)}{n.clubDeadline ? ` · club deadline ${fmtShort(n.clubDeadline)}` : ""}</div>
-                  <ForecastBadge result={forecast.nodes[n.id]} />
-                </div>
-                <div className="risk-actions"><span className={`tag ${statusOf(n).tone}`}>{statusOf(n).text}</span>{canNudge && <button className="btn small" disabled={!!nudgeBlocked(state, n)} title={nudgeBlocked(state, n) ?? "Review a private reminder"} onClick={() => { setNodeId(null); setNudgeId(n.id) }}>Draft reminder</button>}{!n.ownerId && <span className="small muted">Assign an owner first</span>}</div>
-              </li>
+              <tr key={n.id}>
+                <td><RiskDot result={forecast.nodes[n.id]} /></td>
+                <td><button className="row-btn" onClick={() => rail.show({ kind: "node", id: n.id })}>{n.title}</button></td>
+                <td><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" /> <span className="small">{firstName(state, n.ownerId)}</span></td>
+                <td className="small">{n.clubDeadline ? fmtShort(n.clubDeadline) : ""}</td>
+                <td><NodePill node={n} small /></td>
+                <td className="num">{canNudge && n.ownerId && <button className="btn small" disabled={!!nudgeBlocked(state, n)} title={nudgeBlocked(state, n) ?? "Review a private reminder"} onClick={() => rail.show({ kind: "nudge", id: n.id })}>Remind</button>}</td>
+              </tr>
             ))}
-            {risks.length === 0 && <li className="muted">Nothing at risk right now.</li>}
-          </ul>
-        </section>
+            {risks.length === 0 && <tr><td className="empty">Nothing at risk right now.</td></tr>}
+          </tbody>
+        </table>
+      </section>
 
-        <section className="card" aria-labelledby="ev-h">
-          <header><h2 id="ev-h">Events</h2><Link to="/events" className="small">All events</Link></header>
-          <ul className="list event-strips">
-            {state.events.map(ev => {
-              const nodes = state.nodes.filter(n => n.eventId === ev.id)
-              const done = nodes.filter(n => n.status === "done").length
-              return (
-                <li key={ev.id} className="event-strip" data-testid="event-strip">
-                  <div className="action-row">
-                    <div>{ev.name}</div>
-                    <div className="small muted">{fmtShort(ev.date)} · in {daysBetween(state.today, ev.date)} days</div>
-                    <span className="small muted num">{nodes.length ? `${done}/${nodes.length} steps done` : "No steps yet"}</span>
-                  </div>
-                  <ForecastBadge result={forecast.events[ev.id]} />
-                  <ol className="step-strip">{eventStrip(nodes).map((n, i) => <li key={n.id}><button className="step-button" onClick={() => { setNudgeId(null); setNodeId(n.id) }}><span className="eyebrow">{i === 0 ? "Current" : `Next ${i}`}</span><b>{n.title}</b><span className="small muted">{personName(state, n.ownerId)} · {n.latestStart ? fmtShort(n.latestStart) : "Date pending"}</span></button></li>)}</ol>
-                  {!!nodes.length && done === nodes.length && <p className="small good-text">All steps complete.</p>}
-                </li>
-              )
-            })}
-          </ul>
-        </section>
-      </div>
-
-      <PrivateInbox />
-      <section className="card" aria-labelledby="goal-h">
-        <header><h2 id="goal-h">Semester goals</h2></header>
-        <div className="grid-3">
-          {state.org.goals.map(g => (
-            <div key={g.id}>
-              <div className="small muted">{g.label}</div>
-              <div className="stat num">{g.unit === "USD" ? `$${g.current.toLocaleString()}` : g.current}<span className="small muted"> / {g.unit === "USD" ? `$${g.target.toLocaleString()}` : g.target}</span></div>
-              <progress value={g.current} max={g.target} style={{ width: "100%" }} aria-label={g.label} />
-            </div>
-          ))}
+      <section className="card" aria-labelledby="ev-h">
+        <header><h2 id="ev-h">Events</h2><Link to="/events" className="small">Open</Link></header>
+        <div className="event-rows">
+          {state.events.map(ev => {
+            const nodes = state.nodes.filter(n => n.eventId === ev.id)
+            const done = nodes.filter(n => n.status === "done").length
+            return (
+              <div key={ev.id} className="event-row" data-testid="event-strip">
+                <button type="button" className="row-btn event-name" onClick={() => navigate(`/events?event=${encodeURIComponent(ev.id)}`)}>
+                  <b>{ev.name}</b><span className="small muted">{fmtShort(ev.date)} · {daysBetween(state.today, ev.date)}d</span>
+                </button>
+                <Chain label={`${ev.name} progress`} stops={phaseChain(state, forecast, ev.id).map(p => ({ ...p, onClick: () => navigate(`/events?event=${encodeURIComponent(ev.id)}`) }))} />
+                <span className="small muted num">{done}/{nodes.length}</span>
+                <RiskDot result={forecast.events[ev.id]} />
+              </div>
+            )
+          })}
         </div>
       </section>
 
-      <section className="card" aria-labelledby="star-h">
-        <header><h2 id="star-h">Superstar of the week</h2><span className="small muted">{stars.length > 1 ? "Shared spotlight" : "Visible contributions"}</span></header>
-        {stars.length ? <><div className="action-row">{stars.map(star => <div key={star.person.id} className="star-card"><span className="avatar">★</span><b>{star.person.name}</b><span className="small muted">{star.points} contribution point{star.points === 1 ? "" : "s"}</span></div>)}</div><details><summary className="small">How this is counted</summary><p className="small muted">Recorded contribution points for tasks completed this calendar week, through the demo date. Legacy examples use their last-update date. Light / medium / heavy tasks earn 1 / 2 / 3 points, plus 1 for finishing by the club deadline. Ties share the spotlight.</p><ul>{stars.flatMap(star => star.nodes.map(n => <li key={n.id} className="small">{star.person.name}: {n.title} · {n.completedOn ? `completed ${n.completedOn}` : `example updated ${n.lastUpdate}`}</li>))}</ul></details></> : <p className="muted">No recorded contributions from completed tasks this week.</p>}
-      </section>
-      {nodeId && <NodePanel nodeId={nodeId} onClose={() => setNodeId(null)} onSelect={setNodeId} />}
-      {nudgeId && <NudgeComposer key={nudgeId} nodeId={nudgeId} onClose={() => setNudgeId(null)} />}
+      <div className="grid-2">
+        <section className="card" aria-labelledby="goal-h">
+          <header><h2 id="goal-h">Semester goals</h2></header>
+          <div className="goals">
+            {state.org.goals.map(g => (
+              <div key={g.id} className="goal">
+                <Ring value={g.current} max={g.target} label={`${g.label}: ${g.current} of ${g.target}`} />
+                <div><b className="num">{g.unit === "USD" ? `$${g.current.toLocaleString()}` : g.current}<span className="small muted"> / {g.unit === "USD" ? `$${g.target.toLocaleString()}` : g.target}</span></b><span className="small muted">{g.label}</span></div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="card" aria-labelledby="star-h">
+          <header><h2 id="star-h">Superstar of the week</h2><Info>Points for steps finished this week: light 1, medium 2, heavy 3, plus 1 if on time. Ties share the spotlight.</Info></header>
+          {stars.length ? <div className="stars">{stars.map(star => <span key={star.person.id} className="star"><Avatar name={star.person.name} /> <b>{star.person.name.split(" ")[0]}</b> <span className="small muted">{star.points} pts</span></span>)}</div> : <p className="empty">No finished steps yet this week.</p>}
+        </section>
+      </div>
     </>
   )
 }
-
