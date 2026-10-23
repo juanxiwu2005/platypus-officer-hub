@@ -21,10 +21,17 @@ export default async (req: Request) => {
     const local = parseCommand(message, ctx).filter(op => op.op !== "answer_question" && op.op !== "create_event")
     if (local.length) return json({ cards: [{ kind: "changes", ops: local }], source: "rules", model: null })
     const focus = body.focus && typeof body.focus === "object" ? { kind: str((body.focus as Record<string, unknown>).kind, 20), id: str((body.focus as Record<string, unknown>).id, 120), title: str((body.focus as Record<string, unknown>).title, 160) } : null
+    const sum = body.summary as Record<string, unknown> | undefined
+    const STATUSES = ["unclaimed", "accepted", "in_progress", "waiting", "blocked"]
+    const known = new Set(ctx.nodes.map(n => n.id)), people = new Set(ctx.people.map(p => p.id)), events = new Set(ctx.events.map(e => e.id))
+    const summary = {
+      nodes: (Array.isArray(sum?.nodes) ? sum.nodes : []).slice(0, 150).filter(n => n && known.has(n.id)).map(n => ({ id: str(n.id, 100), status: STATUSES.includes(n.status) ? n.status : "unknown", owner: people.has(n.owner) ? n.owner : null, event: events.has(n.eventId) ? n.eventId : null, risk: ["red", "yellow", "green"].includes(n.risk) ? n.risk : null, overdue: n.overdue === true })),
+      workload: (Array.isArray(sum?.workload) ? sum.workload : []).slice(0, 20).filter(w => w && people.has(w.personId)).map(w => ({ personId: w.personId, band: ["Light", "Balanced", "Heavy"].includes(w.band) ? w.band : "unknown" })),
+    }
     const history = (Array.isArray(body.history) ? body.history : []).slice(-6).map(h => ({ role: h?.role === "assistant" ? "assistant" : "user", text: str(h?.text, 400) })).filter(h => h.text)
     const { data, model, provider } = await chatJSON({
       system: CHAT_SYSTEM,
-      user: JSON.stringify({ message, page: str(body.page, 40), focus, history, context: ctx, rules: RULES.map(({ id, text, limit }) => ({ id, text, limit })) }),
+      user: JSON.stringify({ message, page: str(body.page, 40), focus, history, context: ctx, summary, rules: RULES.map(({ id, short, text }) => ({ id, short, text })) }),
       maxTokens: 900,
       temperature: 0.2,
     })

@@ -8,6 +8,7 @@ import chatFn from "../../netlify/functions/chat.mts"
 import { seedDemo } from "../data/seed"
 import { commandContext } from "../lib/commands"
 import { nudgeCheck } from "../lib/nudges"
+import { chatSummary } from "../lib/assistant"
 
 const state = seedDemo()
 const request = (body: unknown, path = "/api/command") => new Request("https://example.org" + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
@@ -61,5 +62,18 @@ describe("server endpoint contract", () => {
     expect(JSON.stringify(r.cards)).not.toMatch(/Nov 4|2026-10-28|R99|send_email/)
     expect(r.cards[1]).toEqual({ kind: "tasks", scope: "risk", limit: 10 })
     expect((await chatFn(request({}, "/api/chat"))).status).toBe(400)
+  })
+  it("/api/chat passes only a checked status summary to the model", async () => {
+    chat.mockResolvedValue({ data: { cards: [{ kind: "text", text: "Start with the USG form." }] }, model: "mock", provider: "mock" })
+    const summary = chatSummary(state)
+    summary.nodes.push({ id: "ghost", status: "done", owner: "x", eventId: null, risk: "purple", overdue: true })
+    ;(summary.nodes[0] as Record<string, unknown>).notes = "secret profile"
+    await chatFn(request({ message: "What should I focus on?", context: commandContext(state), summary }, "/api/chat"))
+    const sent = JSON.parse(chat.mock.calls[0][0].user)
+    expect(sent.summary.nodes.length).toBeGreaterThan(0)
+    expect(sent.summary.nodes.some((n: { id: string }) => n.id === "ghost")).toBe(false)
+    expect(JSON.stringify(sent.summary)).not.toMatch(/secret profile|purple/)
+    expect(sent.summary.workload.length).toBe(state.people.length)
+    expect(chat.mock.calls[0][0].system).toMatch(/ONE short question/)
   })
 })

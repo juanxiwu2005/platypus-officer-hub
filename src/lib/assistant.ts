@@ -2,7 +2,7 @@ import type { ChangeSet, DemoState, Node } from "../data/types"
 import { callApi } from "./api"
 import { commandContext, humanEventDate, parseCommand, type CommandOp } from "./commands"
 import { groundedAnswer, RULE_REFUSAL, type RuleAnswer } from "./ruleAnswers"
-import { sanitizeCards, type PlanPrefill, type TaskScope, type WireCard } from "./chatCards"
+import { sanitizeCards, type ChatSummary, type PlanPrefill, type TaskScope, type WireCard } from "./chatCards"
 import { computeForecast, forecastQueue } from "../engine/forecast"
 import { computeSchedule } from "../engine/schedule"
 import { workload } from "../engine/team"
@@ -128,6 +128,15 @@ function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: strin
   return { cards: out, source, changeSet }
 }
 
+/** What the model may know beyond names: status, owner, risk colour and overdue flag. Never buffers, profiles or files. */
+export function chatSummary(s: DemoState): ChatSummary {
+  const f = computeForecast(s)
+  return {
+    nodes: s.nodes.filter(n => n.status !== "done").slice(0, 120).map(n => ({ id: n.id, status: n.status, owner: n.ownerId, eventId: n.eventId, risk: f.nodes[n.id]?.color ?? null, overdue: (n.clubDeadline ?? "9999") < s.today })),
+    workload: s.people.map(p => ({ personId: p.id, band: workload(s, p.id).band })),
+  }
+}
+
 const HELP = "I can rank your top tasks, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
 
 /**
@@ -190,7 +199,7 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   if (s.aiEnabled) {
     try {
       const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
-        message: t, page, focus, context: commandContext(s),
+        message: t, page, focus, context: commandContext(s), summary: chatSummary(s),
         history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
       })
       const cards = sanitizeCards(r.cards, commandContext(s))
