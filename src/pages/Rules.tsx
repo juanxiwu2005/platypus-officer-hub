@@ -1,33 +1,8 @@
 import { RULES, RULE_CATEGORIES } from "../data/rules"
-import { Coming, PageHead } from "../components/Page"
-
+import { PageHead } from "../components/Page"
+import { RuleQuestion } from "../components/RuleQuestion"
+import { useStore, useViewer } from "../data/store"
 export default function Rules() {
-  return (
-    <>
-      <PageHead path="/rules" lead="ASU rules Platypus checks every plan against. Each one links to its source." />
-      {RULE_CATEGORIES.map(cat => {
-        const rules = RULES.filter(r => r.category === cat.id)
-        if (rules.length === 0) return null
-        return (
-          <section key={cat.id} className="card" aria-labelledby={`cat-${cat.id}`}>
-            <header><h2 id={`cat-${cat.id}`}>{cat.label}</h2><span className="small muted">{rules.length} rules</span></header>
-            <ul className="list" data-testid={`rules-${cat.id}`}>
-              {rules.map(r => (
-                <li key={r.id} style={{ display: "grid", gap: 4 }}>
-                  <div><span className="rule-id">{r.id}</span> {r.text}</div>
-                  {r.limit !== "—" && <div className="small"><b>Deadline:</b> {r.limit}</div>}
-                  {r.note && <div className="small" style={{ color: "var(--warn)" }}>{r.note}</div>}
-                  <div className="small muted">
-                    {r.sources.map((s, i) => <span key={s.url}>{i > 0 && " · "}<a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></span>)}
-                    {` · checked ${r.checkedOn}`}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )
-      })}
-      <Coming wp="WP1 and WP2" items={["Each rule linked to the steps it governs", "Club-specific rules layered on top of ASU's", "Ask a rule question in the command bar"]} />
-    </>
-  )
+  const {state,dispatch}=useStore();const {canNudge}=useViewer()
+  return <><PageHead path="/rules" lead="Check a short rule, then open its source before relying on it."/><RuleQuestion/>{RULE_CATEGORIES.map(cat=>{const rules=RULES.filter(r=>r.category===cat.id);return <section key={cat.id} className="card" aria-labelledby={`cat-${cat.id}`}><header><h2 id={`cat-${cat.id}`}>{cat.label}</h2><span className="small muted">{rules.length} checked rules</span></header>{!rules.length?<p>No checked official marketing rule in this book. SEO channel timing is club practice; ask Student Organizations for policy.</p>:<ul className="list" data-testid={`rules-${cat.id}`}>{rules.map(r=><li key={r.id} style={{display:"block"}}><details><summary><span className="rule-id">{r.id}</span> {r.text}<span className="small muted"> · {r.limit=== "—"?"No timing listed":r.limit}</span></summary>{r.note&&<p className="warn-text">{r.note}</p>}<p className="small muted">Checked {r.checkedOn} · policy recheck due in WP6</p>{r.sources.map(s=><p key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></p>)}</details></li>)}</ul>}</section>})}{canNudge&&<section className="card"><h2>Reported answers · admin review</h2><p className="small muted">Reports stay in this browser. Nothing is sent outside the club.</p>{state.feedback.length?state.feedback.map(f=><article key={f.id}><p>{f.text}</p><span className="tag">{f.resolved?"Reviewed":"Needs review"}</span>{!f.resolved&&<button className="btn small" onClick={()=>dispatch({type:"resolveReport",id:f.id})}>Mark reviewed</button>}</article>):<p>No reports yet.</p>}</section>}</>
 }

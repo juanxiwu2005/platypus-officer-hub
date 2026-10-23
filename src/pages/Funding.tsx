@@ -1,43 +1,27 @@
-import { useStore } from "../data/store"
-import { Coming, PageHead } from "../components/Page"
-import { fmtShort } from "../lib/dates"
-import type { FundingStage } from "../data/types"
-
-const STAGES: { id: FundingStage; label: string }[] = [
-  { id: "budget_request", label: "Budget request" },
-  { id: "budget_approved", label: "Budget approved" },
-  { id: "purchase_request", label: "Purchase request" },
-  { id: "purchase_approved", label: "Purchase approved" },
-  { id: "ordered_or_reimbursed", label: "Ordered or reimbursed" },
-  { id: "attendance_submitted", label: "Attendance submitted" },
-]
-
-export default function Funding() {
-  const { state } = useStore()
-  return (
-    <>
-      <PageHead path="/funding" lead="USG money moves through six steps. Platypus shows which step each request is on." />
-      {state.funding.map(f => {
-        const ev = state.events.find(e => e.id === f.eventId)
-        const at = STAGES.findIndex(s => s.id === f.stage)
-        return (
-          <section key={f.eventId} className="card" aria-label={`Funding for ${ev?.name}`}>
-            <header>
-              <h2>{ev?.name}</h2>
-              <span className="small muted num">{f.source.toUpperCase()} · ${f.amount.toLocaleString()}{f.spendBy ? ` · spend by ${fmtShort(f.spendBy)}` : ""}</span>
-            </header>
-            <ol className="list" data-testid="funding-stages">
-              {STAGES.map((s, i) => (
-                <li key={s.id}>
-                  <span>{i + 1}. {s.label}</span>
-                  <span className={`tag ${i < at ? "good" : i === at ? "accent" : ""}`}>{i < at ? "Done" : i === at ? "Current" : "Later"}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-        )
-      })}
-      <Coming wp="WP4" items={["Funding pipeline across all events", "Spend-by alarm so approved money is not lost", "Reimbursement checklist (invoice to ASU, $999 cap, about 3 weeks)"]} />
-    </>
-  )
+import { useState } from "react"
+import { useStore, useViewer } from "../data/store"
+import { PageHead } from "../components/Page"
+import { fmtShort,daysBetween } from "../lib/dates"
+import type { Funding } from "../data/types"
+import { PLAN_B } from "../engine/playbooks"
+import { fundingDecisionDate } from "../engine/schedule"
+import { checkPreflight,EMPTY_PACKAGE,type ApplicationPackage } from "../lib/preflight"
+import { callApi } from "../lib/api"
+import { RULES } from "../data/rules"
+export const FUNDING_STAGES=["Budget request","Budget approved","Purchase request","Purchase approved","Ordered or reimbursed","Attendance submitted"]
+export const STAGE_IDS=["budget_request","budget_approved","purchase_request","purchase_approved","ordered_or_reimbursed","attendance_submitted"] as const
+export default function FundingPage(){
+ const {state,dispatch}=useStore();const {canNudge,role}=useViewer();const editable=canNudge||role?.fn==="finance"
+ return <><PageHead path="/funding" lead="Track the next funding step and check the application before submitting."/>{state.events.filter(e=>e.funding!=="none").map(e=>{const f=state.funding.find(x=>x.eventId===e.id);return f?<FundingCard key={e.id} funding={f}/>:<section className="card" key={e.id}><h2>{e.name}</h2><p>No funding request has been started.</p><button className="btn" disabled={!editable} onClick={()=>dispatch({type:"startFunding",eventId:e.id})}>Start funding request</button></section>})}<section className="card"><h2>USG timing · cold start</h2><p>Official submission lead times: food/services 10 business days [R09]; speakers/performers 14 business days with signed SAP [R10]. These are submission deadlines, not measured approval durations.</p><p>Allow at least 6–8 weeks end to end · owner planning experience F3, product plan §9. This is an experience estimate, not official guidance or a real approval-data summary. No observed turnaround statistic is displayed.</p>{RULES.filter(r=>["R09","R10"].includes(r.id)).map(r=><p key={r.id}><a href={r.sources[0].url} target="_blank" rel="noreferrer">{r.id} · {r.sources[0].label}</a> · checked {r.checkedOn}</p>)}</section></>
+}
+function FundingCard({funding:f}:{funding:Funding}){
+ const {state,dispatch}=useStore();const {canNudge,role}=useViewer();const editable=canNudge||role?.fn==="finance"
+ const e=state.events.find(e=>e.id===f.eventId)!;const at=STAGE_IDS.indexOf(f.stage)
+ const [pack,setPack]=useState<ApplicationPackage>(()=>({...EMPTY_PACKAGE,amount:f.amount,attendees:e.headcount,...f.application}))
+ const [result,setResult]=useState<ReturnType<typeof checkPreflight>|null>(null),[label,setLabel]=useState("")
+ const decision=fundingDecisionDate(state,e.id),remaining=Math.max(0,f.amount-(f.spent??0))
+ const lateSpend=f.spendBy&&daysBetween(state.today,f.spendBy)<=14&&remaining>0&&at>=1
+ const patch=(key:keyof ApplicationPackage,value:string|number|boolean)=>setPack({...pack,[key]:value})
+ async function check(){dispatch({type:"fundingPackage",eventId:e.id,application:pack});try{await callApi("/preflight",pack);setLabel("Checked by /api/preflight and the local rule book.")}catch{setLabel("Server unavailable · checked locally against R11 and R12.")}setResult(checkPreflight(pack))}
+ return <section className="card form-stack" aria-label={`Funding for ${e.name}`}><header><h2>{e.name}</h2><span className="small muted">{f.source.toUpperCase()} · ${f.amount.toLocaleString()}</span></header><ol className="funding-pipeline" data-testid="funding-stages">{FUNDING_STAGES.map((s,i)=><li key={s} className={i<=at?"active":""}><b>{i+1}</b><span>{s}</span><small>{i<at?"Done":i===at?"Current":"Later"}</small></li>)}</ol><div className="action-row"><button className="btn" disabled={!editable||at===5} onClick={()=>dispatch({type:"advanceFunding",eventId:e.id})}>Confirm current step complete</button><span className="small muted">A manual record, not an ASU submission or approval.</span></div><div className="form-grid"><label>Allocated amount ($)<input type="number" min="0" value={f.amount} disabled={!editable} onChange={x=>dispatch({type:"fundingAmount",eventId:e.id,amount:Number(x.target.value)})}/></label><label>Spent so far ($)<input type="number" min="0" max={f.amount} value={f.spent??0} disabled={!editable} onChange={x=>dispatch({type:"fundingSpend",eventId:e.id,spent:Number(x.target.value)})}/></label><label>Spend-by date · confirmed by you<input type="date" value={f.spendBy??""} disabled={!editable} onChange={x=>dispatch({type:"fundingSpendBy",eventId:e.id,date:x.target.value})}/></label></div><progress value={f.spent??0} max={f.amount||1} aria-label="Funding used"/><p>${remaining.toLocaleString()} remaining{f.spendBy?` · spend by ${fmtShort(f.spendBy)}`:" · confirm the award's spend-by date"}</p>{lateSpend&&<p role="status" className="warn-text">{f.spendBy!<state.today?"Spend-by date has passed":"Spend-by date is within 14 days"} with money unspent. Check permitted use or return instructions with the funding office.</p>}{decision&&<p>Plan B decision date: {fmtShort(decision)} · rule engine, earliest official funding submission cutoff.</p>}{decision&&state.today>=decision&&at<1&&<aside className="plan-b"><h3>Funding is still unapproved · review Plan B</h3>{PLAN_B.map(b=><p key={b.id}><b>{b.label}</b> · {b.when}</p>)}<p className="small muted">Choose with the president; no event or purchase is changed automatically.</p></aside>}<details><summary>Pre-submission check · R11 / R12</summary><fieldset disabled={!editable} className="form-stack"><label><input type="checkbox" checked={pack.flyer} onChange={x=>patch("flyer",x.target.checked)}/> Event flyer attached</label><label>Public purpose<input value={pack.publicPurpose} onChange={x=>patch("publicPurpose",x.target.value)}/></label><label>Invoice addressed to<input value={pack.invoiceTo} onChange={x=>patch("invoiceTo",x.target.value)}/></label><label><input type="checkbox" checked={pack.reimbursement} onChange={x=>patch("reimbursement",x.target.checked)}/> Reimbursement request</label><label>Request amount ($)<input type="number" min="0" value={pack.amount} onChange={x=>patch("amount",Number(x.target.value))}/></label><label><input type="checkbox" checked={pack.amazon} onChange={x=>patch("amazon",x.target.checked)}/> Amazon purchase</label><label>Total meal cost ($)<input type="number" min="0" value={pack.mealCost} onChange={x=>patch("mealCost",Number(x.target.value))}/></label><label>Meal attendees (estimate only)<input type="number" min="0" step="1" value={pack.attendees} onChange={x=>patch("attendees",Number(x.target.value))}/></label><label><input type="checkbox" checked={pack.businessMealsForm} onChange={x=>patch("businessMealsForm",x.target.checked)}/> Business Meals Form attached</label><label><input type="checkbox" checked={pack.attendanceList} onChange={x=>patch("attendanceList",x.target.checked)}/> Attendance list attached</label><p className="small muted">Record only whether a list is attached; do not upload names or attendance data.</p><button className="btn" onClick={check}>Check before submitting</button></fieldset>{result&&<div data-testid="preflight-result"><p className="small muted">{label}</p><b>{result.ready?"Checklist complete · office review still required":"Resolve these items before submitting"}</b>{result.issues.map(i=><p key={i.field}><a href={result.rules.find(r=>r.id===i.ruleId)!.sources[0].url} target="_blank" rel="noreferrer">[{i.ruleId}]</a> {i.text}</p>)}</div>}</details></section>
 }

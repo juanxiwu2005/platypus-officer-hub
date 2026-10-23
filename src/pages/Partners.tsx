@@ -1,32 +1,5 @@
-import { useStore } from "../data/store"
-import { Coming, PageHead } from "../components/Page"
-import { daysBetween } from "../lib/dates"
-import { roleName } from "./helpers"
-
-export default function Partners() {
-  const { state } = useStore()
-  return (
-    <>
-      <PageHead path="/partners" lead="Speakers, vendors and sponsors belong to the club, not to one officer's phone." />
-      <section className="card" aria-labelledby="ct-h">
-        <header><h2 id="ct-h">Contacts</h2></header>
-        <ul className="list" data-testid="contacts">
-          {state.contacts.map(c => {
-            const since = c.lastContact ? daysBetween(c.lastContact, state.today) : null
-            const due = since !== null && since >= c.cadenceDays
-            return (
-              <li key={c.id}>
-                <div>
-                  <div>{c.name}</div>
-                  <div className="small muted">{c.relation} · {c.organization} · owner: {roleName(state, c.ownerRoleId)}</div>
-                </div>
-                <span className={`tag ${due ? "warn" : ""}`}>{since === null ? "Never contacted" : due ? `${since} days, due for a touch` : `${since} days ago`}</span>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-      <Coming wp="WP4" items={["Contact cadence reminders", "Relationship history linked to events", "Hand contacts over with the role"]} />
-    </>
-  )
-}
+import { Link } from "react-router-dom"
+import { useStore,useViewer } from "../data/store"
+import { PageHead } from "../components/Page"
+import { daysBetween,fmtShort } from "../lib/dates"
+export default function Partners(){const {state,dispatch}=useStore();const {canNudge}=useViewer();return <><PageHead path="/partners" lead="Keep relationships with the role, ready for the next officer."/><section className="card"><h2>Contacts</h2><ul className="list" data-testid="contacts">{state.contacts.map(c=>{const since=c.lastContact?daysBetween(c.lastContact,state.today):null,role=state.roles.find(r=>r.id===c.ownerRoleId),person=state.people.find(p=>p.id===role?.holderId),next=state.events.filter(e=>c.eventIds.includes(e.id)&&e.date>=state.today).sort((a,b)=>a.date.localeCompare(b.date))[0],editable=canNudge||person?.id===state.viewerId;return <li key={c.id} className="contact-card"><div><b>{c.name}</b><p className="small muted">{c.relation} · {c.organization}</p><p>Responsible role: {role?.displayName??"Choose a role"} · {person?.name??"Vacant"}</p><span className={`tag ${since===null||since>=c.cadenceDays?"warn":"good"}`}>{since===null?"No contact recorded":`${since} days since last contact`}</span><p>Suggested frequency: every {c.cadenceDays} days</p><p>{next?<Link to="/events">Next opportunity: {next.name} · {fmtShort(next.date)}</Link>:"No linked upcoming event"}</p><details><summary>Update the contact record</summary><label>Suggested contact interval (days)<input type="number" min="1" max="365" disabled={!editable} value={c.cadenceDays} onChange={e=>dispatch({type:"contactCadence",id:c.id,days:Number(e.target.value)})}/></label><button className="btn" disabled={!editable} onClick={()=>dispatch({type:"contacted",id:c.id})}>Record contact today</button><p className="small muted">Records your confirmation only; sends no message. Contacts stay attached to this role during handoff.</p></details></div></li>})}</ul></section></>}

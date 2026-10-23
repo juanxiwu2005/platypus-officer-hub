@@ -1,3 +1,6 @@
+import { changeHandoff, type HandoffAction } from "./handoff"
+import { validDate } from "../lib/commands"
+import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from "react"
 import type { ChangeSet, DemoState, Event, Node } from "./types"
 import { sanitizeOps } from "../lib/commands"
@@ -26,6 +29,17 @@ export type NodePatch = Partial<Pick<Node, "ownerId" | "clubDeadlineOverride" | 
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount">>
 
 export type Action =
+  | { type: "handoffAction"; action:HandoffAction }
+  | { type: "reportOutput"; outputId:string; text:string }
+  | { type: "resolveReport"; id:string }
+  | { type: "startFunding"; eventId:string }
+  | { type: "advanceFunding"; eventId:string }
+  | { type: "fundingAmount"; eventId:string; amount:number }
+  | { type: "fundingSpend"; eventId:string; spent:number }
+  | { type: "fundingSpendBy"; eventId:string; date:string }
+  | { type: "fundingPackage"; eventId:string; application:ApplicationPackage }
+  | { type: "contacted"; id:string }
+  | { type: "contactCadence"; id:string; days:number }
   | { type: "reset" }
   | { type: "setViewer"; viewerId: string }
   | { type: "setAi"; enabled: boolean }
@@ -80,6 +94,38 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
 
 export function reducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
+    case "handoffAction": return changeHandoff(state,action.action)
+    case "reportOutput": return state.feedback.some(f=>f.outputId===action.outputId&&f.reportedBy===state.viewerId)?state:{...state,feedback:[...state.feedback,{id:`report:${state.feedback.length}`,outputId:action.outputId.slice(0,20000),text:action.text.slice(0,10000),reportedBy:state.viewerId,on:state.today,resolved:false}]}
+    case "resolveReport":return canLead(state)?{...state,feedback:state.feedback.map(f=>f.id===action.id?{...f,resolved:true}:f)}:state
+    case "contacted":
+    case "contactCadence": {
+      const contact=state.contacts.find(c=>c.id===action.id),role=state.roles.find(r=>r.id===contact?.ownerRoleId)
+      if(!contact||(!canLead(state)&&role?.holderId!==state.viewerId))return state
+      if(action.type==="contactCadence"&&(!Number.isInteger(action.days)||action.days<1||action.days>365))return state
+      return {...state,contacts:state.contacts.map(c=>c.id===contact.id?{...c,...(action.type==="contacted"?{lastContact:state.today}:{cadenceDays:action.days})}:c)}
+    }
+    case "startFunding": {
+      const role=state.roles.find(r=>r.holderId===state.viewerId),event=state.events.find(e=>e.id===action.eventId)
+      if((!canLead(state)&&role?.fn!=="finance")||!event||event.funding==="none"||state.funding.some(f=>f.eventId===event.id))return state
+      return {...state,funding:[...state.funding,{eventId:event.id,source:event.funding,amount:0,stage:"budget_request",spendBy:null,spent:0}]}
+    }
+    case "advanceFunding":
+    case "fundingAmount":
+    case "fundingSpend":
+    case "fundingSpendBy":
+    case "fundingPackage": {
+      const role=state.roles.find(r=>r.holderId===state.viewerId),funding=state.funding.find(f=>f.eventId===action.eventId)
+      if((!canLead(state)&&role?.fn!=="finance")||!funding)return state
+      const ids=["budget_request","budget_approved","purchase_request","purchase_approved","ordered_or_reimbursed","attendance_submitted"] as const
+      let patch:Partial<typeof funding>={}
+      if(action.type==="advanceFunding"){const next=ids[ids.indexOf(funding.stage)+1];if(!next)return state;patch={stage:next}}
+      if(action.type==="fundingAmount"){if(!Number.isFinite(action.amount)||action.amount<(funding.spent??0)||action.amount<0||action.amount>1000000)return state;patch={amount:action.amount}}
+      if(action.type==="fundingSpend"){if(!Number.isFinite(action.spent)||action.spent<0||action.spent>funding.amount)return state;patch={spent:action.spent}}
+      if(action.type==="fundingSpendBy"){if(action.date&&!validDate(action.date))return state;patch={spendBy:action.date||null}}
+      if(action.type==="fundingPackage")patch={application:{...action.application}}
+      return {...state,funding:state.funding.map(f=>f===funding?{...f,...patch}:f)}
+    }
+
     case "reset":
       return seedDemo()
     case "setViewer":
@@ -224,7 +270,7 @@ export function useViewer() {
   const { state } = useStore()
   const person = state.people.find(p => p.id === state.viewerId) ?? state.people[0]
   const role = state.roles.find(r => r.id === person.roleId)
-  const canNudge = role?.fn === "president" || role?.fn === "vice_president"
+  const canNudge = role?.holderId === person.id && (role?.fn === "president" || role?.fn === "vice_president")
   return { person, role, canNudge }
 }
 

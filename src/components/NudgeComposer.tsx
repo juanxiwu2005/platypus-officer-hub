@@ -1,3 +1,4 @@
+import { Feedback } from "./Feedback"
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
@@ -60,7 +61,7 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
     <label className="composer-channel">Preferred channel<select value={channel} onChange={e => { setChannel(e.target.value as Channel); setOpenedText(null) }}>{[...new Set([...person.channels, "whatsapp", "sms", "email"] as Channel[])].map(c => <option key={c} value={c}>{CHANNEL_LABEL[c]}{c === person.channels[0] ? " · preferred" : ""}</option>)}</select></label>
     <p className="small muted">Preferred time: {person.remindAt === "evening" ? "evening, around 7 pm" : "morning, around 9 am"}. Keep messages between 8 am and 10 pm.</p>
     <b>{draft.subject}</b>
-    <div className="nudge-body" data-testid="nudge-body">{draft.body}</div>
+    <div className="nudge-body" data-testid="nudge-body">{draft.body}</div><Feedback id={`nudge:${nodeId}:${draft.body}`} text={draft.body}/>
     <div className="status-actions" aria-label="Recipient status choices">{STATUS_ACTIONS.map(a => grant ? <Link className="btn small" key={a.key} to={officerUrl("", grant, a.key).slice(2)} onClick={onClose}>{a.label}</Link> : <button className="btn small" key={a.key} disabled>{a.label}</button>)}</div>
     <p className="small muted">One-use task links. Local demo: use the browser where the draft was created.</p>
     {linkError && <p className="small late-text" role="alert">{linkError}</p>}

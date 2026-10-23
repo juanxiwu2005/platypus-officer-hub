@@ -10,7 +10,9 @@
     "preview": "vite preview --port 4173 --strictPort",
     "test": "vitest run",
     "e2e": "playwright test",
-    "check": "npm run build && npm test && npm run e2e"
+    "check": "npm run build && npm test && npm run e2e",
+    "eval:rules": "node scripts/eval-rules.mjs",
+    "eval:mock": "vitest run src/test/rules-eval.test.ts"
   },
   "dependencies": {
     "@xyflow/react": "12.11.6",

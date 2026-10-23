@@ -87,6 +87,8 @@ export interface Person {
   /** Personal buffer in days. Visible only to the person and used only for scheduling (plan §9). */
   personalBufferDays: number
   personalBufferEnabled: boolean
+  retainBufferAtHandoff?: boolean
+  bufferHistoryFrom?: string
   phone: string
   expectations: string
   freeSlots: FreeSlot[]
@@ -267,6 +269,8 @@ export interface Funding {
   amount: number
   stage: FundingStage
   spendBy: string | null
+  spent?: number
+  application?: import("../lib/preflight").ApplicationPackage
 }
 
 export interface Rule {
@@ -312,6 +316,8 @@ export interface DemoState {
   contacts: Contact[]
   funding: Funding[]
   handoff: HandoffSeason | null
+  handoffRoles: RoleHandoff[]
+  feedback: OutputReport[]
   changeSets: ChangeSet[]
   extensionRequests: ExtensionRequest[]
   notifications: Notice[]
@@ -322,3 +328,8 @@ export interface DemoState {
   demoLinkKey: string
 }
 
+
+export interface HandbookSource { id:string; kind:"task"|"interview"; text:string; nodeId?:string }
+export interface HandbookEntry { sourceId:string; text:string }
+export interface RoleHandoff { roleId:string; outgoingId:string|null; interview:string[]; entries:HandbookEntry[]; sources:HandbookSource[]; startDate?:string; fingerprint:string; source:string; model:string|null; confirmed:boolean; approved:boolean; checks:string[]; completed:boolean; reviewed:boolean; incomingId:string|null }
+export interface OutputReport { id:string; outputId:string; text:string; reportedBy:string; on:string; resolved:boolean }

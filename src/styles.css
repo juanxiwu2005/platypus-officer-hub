@@ -335,3 +335,17 @@ progress { accent-color: var(--accent); height: 8px; }
 .contribution-board > li { border-bottom: 1px solid var(--line); padding-block: 12px; display: grid; gap: 8px; }
 .notice { padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); font-size: 13px; }
 @media (max-width: 600px) { .slot-row { grid-template-columns: 1fr 1fr; } .setup-steps li { flex: 1 1 40%; } .form-stack fieldset { padding: 12px; } .join-page { margin-block: 0; } }
+
+/* WP5: compact forecast, responsive funding and handoff stages. */
+.forecast { margin: .5rem 0; max-width: 100%; }
+.forecast ul { display: block; padding-left: 1.2rem; margin: .4rem 0; }
+.forecast li { display: list-item; border: 0; padding: .1rem 0; }
+.forecast details { max-width: 100%; }
+.funding-pipeline { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); list-style: none; padding: 0; gap: .5rem; }
+.funding-pipeline li { display: flex; flex-direction: column; gap: .3rem; padding: .75rem; border: 1px solid var(--line); border-radius: .7rem; font-size: .8rem; overflow-wrap: anywhere; }
+.funding-pipeline .active { border-color: var(--accent); background: var(--accent-soft); }
+.plan-b { border-left: 3px solid var(--warn); padding: .8rem; }
+.contact-card { align-items: start; }
+blockquote { margin: .75rem 0; padding: .6rem; border-left: 3px solid var(--accent); overflow-wrap: anywhere; }
+[data-testid="rule-answer"] { overflow-wrap: anywhere; }
+@media(max-width:700px) { .funding-pipeline { grid-template-columns:repeat(2,minmax(0,1fr)); } .risk-actions { flex-wrap:wrap; } }

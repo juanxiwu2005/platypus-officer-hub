@@ -92,7 +92,7 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   const event: Event = { ...fields, id, date: eventDate, goalId: d.goals[0].id, playbookId: "seo-event" }
   const people = d.people.map(p => ({ ...p, name: p.name.trim() }))
   const president = d.roles.find(r => r.fn === "president")!
-  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode }, roles: d.roles, people, events: [event], nodes: buildEventNodes(event, d.roles).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), nudges: [], contributions: [], contacts: [], funding: [], handoff: null, changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode }, roles: d.roles, people, events: [event], nodes: buildEventNodes(event, d.roles).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), nudges: [], contributions: [], contacts: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
 
 export const clubDraft = (s: DemoState): ClubDraft => structuredClone({ name: s.org.name, mission: s.org.mission, goals: s.org.goals, roles: s.roles, people: s.people, workspace: s.org.workspace })

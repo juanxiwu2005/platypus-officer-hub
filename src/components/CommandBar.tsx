@@ -4,17 +4,21 @@ import type { ChangeSet, Event, Tier } from "../data/types"
 import { callApi } from "../lib/api"
 import { commandContext, humanEventDate, opLabel, parseCommand, sanitizeOps, TIERS, type CommandOp } from "../lib/commands"
 import { validateReview } from "../data/changeReview"
+import { RuleQuestion } from "./RuleQuestion"
+import { Feedback } from "./Feedback"
 import { RULES } from "../data/rules"
 
 export function CommandBar({ onNudge }: { onNudge: (id: string) => void }) {
   const { state, dispatch } = useStore()
   const [sentence, setSentence] = useState("")
+  const [ruleQuestion, setRuleQuestion] = useState("")
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState("")
   const sequence = useRef(0)
   async function draft() {
     if (!sentence.trim() || busy) return
     const entered = sentence.trim()
+    if (/\?|^(can|what|which|when|how|do|does|is|are|may|should)\b/i.test(entered)) { setRuleQuestion(entered); return }
     setBusy(true); setNotice("")
     try {
       let ops: CommandOp[] = [], source = "Local demo grammar"
@@ -36,6 +40,7 @@ export function CommandBar({ onNudge }: { onNudge: (id: string) => void }) {
     <textarea id="command" maxLength={1000} value={sentence} onChange={e => setSentence(e.target.value)} placeholder="e.g. Plan Founder Dinner on Nov 19, 30 people, outside caterer, USG funding" />
     <div className="action-row"><button className="btn btn-primary" disabled={busy || !sentence.trim()} onClick={draft}>{busy ? "Preparing…" : "Review changes"}</button><span className="small muted">Nothing changes until you approve each item.</span></div>
     {notice && <p role="status" className="small warn-text">{notice}</p>}
+    {ruleQuestion && <RuleQuestion key={ruleQuestion} initial={ruleQuestion}/>}
     {recent.map(change => <ChangeReview key={change.id} change={change} onNudge={onNudge} />)}
   </section>
 }
@@ -44,6 +49,7 @@ function ChangeReview({ change, onNudge }: { change: ChangeSet; onNudge: (id: st
   return <section className="change-set" aria-label="Change set" data-testid="change-set">
     <header><h2>Review changes</h2><span className="tag">{change.status === "pending" ? "Awaiting your review" : "Review complete"}</span></header>
     <p className="small muted">“{change.sentence}” · {change.source}</p>
+    <Feedback id={change.id} text={change.sentence + " · " + JSON.stringify(change.ops)}/>
     {change.ops.map((op, index) => <ChangeItem key={index} change={change} initial={op as CommandOp} index={index} onNudge={onNudge} />)}
   </section>
 }

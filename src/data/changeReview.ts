@@ -6,7 +6,7 @@ import { topoOrder } from "../engine/schedule"
 export const canLead = (s: DemoState) => {
   const person = s.people.find(p => p.id === s.viewerId)
   const role = s.roles.find(r => r.id === person?.roleId)
-  return role?.fn === "president" || role?.fn === "vice_president"
+  return role?.holderId === person?.id && (role?.fn === "president" || role?.fn === "vice_president")
 }
 export interface HumanInputs { date?: string }
 

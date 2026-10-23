@@ -2,7 +2,7 @@ import type { DemoState, Event, Node, NodeStatus, Role } from "./types"
 import { buildEventNodes } from "../engine/playbooks"
 import { applySchedule } from "../engine/schedule"
 
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -118,7 +118,7 @@ export function seedDemo(today: string = DEMO_TODAY): DemoState {
       { id: "c-founder", name: "Riley Brooks (fictional)", organization: "Saguaro Labs (fictional)", relation: "Guest speaker", lastContact: "2026-07-19", cadenceDays: 90, ownerRoleId: "r-pres", eventIds: ["e-speaker"] },
     ],
     funding: [{ eventId: "e-night", source: "usg", amount: 2000, stage: "budget_request", spendBy: "2026-12-19" }],
-    handoff: null,
+    handoff: null, handoffRoles: [], feedback: [],
     changeSets: [],
     extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [],
     demoLinkKey: Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join(""),
