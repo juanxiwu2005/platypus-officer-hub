@@ -15,7 +15,7 @@ const FUNDING = ["usg", "dues", "sponsor", "none"]
 const SYSTEM = `You turn a student-organization officer's one-sentence event description into structured fields.
 Return ONLY a JSON object with these keys (use null when the sentence does not say):
 - name: short event name (string)
-- date: event date as YYYY-MM-DD. If no year is given, choose the next future occurrence after "today".
+- Do not return any dates. Event dates must be entered and confirmed by a person.
 - headcount: expected attendance (integer)
 - venue: "campus" (an ASU room) or "offcampus"
 - food: "none", "offsite" (outside restaurant or caterer), "dining" (Sun Devil Dining / Aramark), or "onsite" (cooked or prepared at the event)
@@ -36,7 +36,6 @@ export default async (req: Request) => {
     const d = (data ?? {}) as Record<string, unknown>
     const brief: Record<string, unknown> = {}
     if (typeof d.name === "string" && d.name.trim()) brief.name = d.name.trim().slice(0, 80)
-    if (typeof d.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.date)) brief.date = d.date
     if (Number.isFinite(Number(d.headcount)) && Number(d.headcount) > 0) brief.headcount = Math.min(5000, Math.round(Number(d.headcount)))
     if (VENUE.includes(String(d.venue))) brief.venue = d.venue
     if (FOOD.includes(String(d.food))) brief.food = d.food
@@ -51,3 +50,4 @@ export default async (req: Request) => {
 }
 
 export const config: Config = { path: "/api/parse-brief", method: "POST" }
+

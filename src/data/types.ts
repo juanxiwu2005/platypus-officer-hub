@@ -208,6 +208,8 @@ export interface ChangeSet {
   sentence: string
   ops: { op: string; [key: string]: unknown }[]
   status: "pending" | "applied" | "rejected"
+  reviews?: ("pending" | "applied" | "rejected")[]
+  source?: string
 }
 
 export interface DemoState {
@@ -228,3 +230,4 @@ export interface DemoState {
   handoff: HandoffSeason | null
   changeSets: ChangeSet[]
 }
+

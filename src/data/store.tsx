@@ -1,5 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from "react"
-import type { DemoState, Event, Node } from "./types"
+import type { ChangeSet, DemoState, Event, Node } from "./types"
+import { sanitizeOps } from "../lib/commands"
+import { canLead, newObjects, validateReview, type HumanInputs } from "./changeReview"
+import { nudgeBlocked } from "../lib/nudges"
+import type { Channel } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
 
@@ -12,7 +16,7 @@ import { applySchedule, computeSchedule, type Schedule } from "../engine/schedul
 export const STORAGE_KEY = "platypus.v1.demo"
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
-export type NodePatch = Partial<Pick<Node, "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink">>
+export type NodePatch = Partial<Pick<Node, "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount">>
 
 export type Action =
@@ -22,8 +26,11 @@ export type Action =
   | { type: "replace"; state: DemoState }
   | { type: "updateNode"; id: string; patch: NodePatch }
   | { type: "updateEvent"; id: string; patch: EventPatch }
+  | { type: "draftChanges"; changeSet: ChangeSet }
+  | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
+  | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string }
 
-const NODE_FIELDS: (keyof NodePatch)[] = ["ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink"]
+const NODE_FIELDS: (keyof NodePatch)[] = ["ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
 
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
@@ -60,6 +67,41 @@ export function reducer(state: DemoState, action: Action): DemoState {
       const patch = pick(action.patch, ["date", "name", "headcount"])
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
       return applySchedule({ ...state, events: state.events.map(e => (e.id === action.id ? { ...e, ...patch } : e)) })
+    }
+    case "draftChanges": {
+      if (state.changeSets.some(c => c.id === action.changeSet.id)) return state
+      const ops = sanitizeOps(action.changeSet.ops, state)
+      if (!ops.length) return state
+      return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, ops, status: "pending", reviews: ops.map(() => "pending") }] }
+    }
+    case "reviewChange": {
+      const change = state.changeSets.find(c => c.id === action.id)
+      if (!change || !canLead(state) || change.status !== "pending" || !change.ops[action.index] || (change.reviews?.[action.index] ?? "pending") !== "pending") return state
+      let next = state
+      let op = change.ops[action.index]
+      if (action.decision === "applied") {
+        const raw = action.op ?? op
+        // Editing may change fields, never the type of an already-reviewed operation.
+        if ((raw as { op?: unknown })?.op !== op.op || validateReview(state, raw, action.human)) return state
+        const clean = sanitizeOps([raw], state)[0]
+        op = clean
+        switch (clean.op) {
+          case "assign_owner": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { ownerId: clean.ownerId } }); break
+          case "set_tier": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { tier: clean.tier } }); break
+          case "link_dependency": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { dependsOn: [...new Set([...state.nodes.find(n => n.id === clean.nodeId)!.dependsOn, clean.dependsOnId])] } }); break
+          case "create_event":
+          case "add_node": next = applySchedule({ ...state, ...newObjects(state, clean, `${change.id}:${action.index}`, action.human ?? {}) }); break
+        }
+      }
+      const reviews = change.ops.map((_, i) => i === action.index ? action.decision : change.reviews?.[i] ?? "pending")
+      const ops = change.ops.map((old, i) => i === action.index ? op : old)
+      const status = reviews.includes("pending") ? "pending" : reviews.every(r => r === "rejected") ? "rejected" : "applied"
+      return { ...next, changeSets: next.changeSets.map(c => c.id === change.id ? { ...c, ops, reviews, status } : c) }
+    }
+    case "confirmNudgeSent": {
+      const n = state.nodes.find(n => n.id === action.nodeId)
+      if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
+      return { ...state, nudges: [...state.nudges, { id: `nudge-${state.nudges.length}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null }] }
     }
   }
 }
@@ -121,3 +163,4 @@ export function useViewer() {
   const canNudge = role?.fn === "president" || role?.fn === "vice_president"
   return { person, role, canNudge }
 }
+
