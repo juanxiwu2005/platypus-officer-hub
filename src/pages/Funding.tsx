@@ -11,11 +11,11 @@ import { RULES } from "../data/rules"
 export const FUNDING_STAGES=["Budget request","Budget approved","Purchase request","Purchase approved","Ordered or reimbursed","Attendance submitted"]
 export const STAGE_IDS=["budget_request","budget_approved","purchase_request","purchase_approved","ordered_or_reimbursed","attendance_submitted"] as const
 export default function FundingPage(){
- const {state,dispatch}=useStore();const {canNudge,role}=useViewer();const editable=canNudge||role?.fn==="finance"
+ const {state,dispatch}=useStore();const {canNudge,role}=useViewer();const editable=canNudge||(role?.fn==="finance"&&role.holderId===state.viewerId)
  return <><PageHead path="/funding" lead="Track the next funding step and check the application before submitting."/>{state.events.filter(e=>e.funding!=="none").map(e=>{const f=state.funding.find(x=>x.eventId===e.id);return f?<FundingCard key={e.id} funding={f}/>:<section className="card" key={e.id}><h2>{e.name}</h2><p>No funding request has been started.</p><button className="btn" disabled={!editable} onClick={()=>dispatch({type:"startFunding",eventId:e.id})}>Start funding request</button></section>})}<section className="card"><h2>USG timing · cold start</h2><p>Official submission lead times: food/services 10 business days [R09]; speakers/performers 14 business days with signed SAP [R10]. These are submission deadlines, not measured approval durations.</p><p>Allow at least 6–8 weeks end to end · owner planning experience F3, product plan §9. This is an experience estimate, not official guidance or a real approval-data summary. No observed turnaround statistic is displayed.</p>{RULES.filter(r=>["R09","R10"].includes(r.id)).map(r=><p key={r.id}><a href={r.sources[0].url} target="_blank" rel="noreferrer">{r.id} · {r.sources[0].label}</a> · checked {r.checkedOn}</p>)}</section></>
 }
 function FundingCard({funding:f}:{funding:Funding}){
- const {state,dispatch}=useStore();const {canNudge,role}=useViewer();const editable=canNudge||role?.fn==="finance"
+ const {state,dispatch}=useStore();const {canNudge,role}=useViewer();const editable=canNudge||(role?.fn==="finance"&&role.holderId===state.viewerId)
  const e=state.events.find(e=>e.id===f.eventId)!;const at=STAGE_IDS.indexOf(f.stage)
  const [pack,setPack]=useState<ApplicationPackage>(()=>({...EMPTY_PACKAGE,amount:f.amount,attendees:e.headcount,...f.application}))
  const [result,setResult]=useState<ReturnType<typeof checkPreflight>|null>(null),[label,setLabel]=useState("")

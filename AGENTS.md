@@ -72,6 +72,10 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
   - WP3 当时的演示结构版本为 3（WP4 已升到 4）；旧版浏览器数据恢复种子。Reset demo 清空状态、通知、申请和链接。验收与下一位说明见 `docs/WP3_ACCEPTANCE.md`；本机已通过 146 个单元测试和 62 个页面测试，原有测试保留。
 - **WP4 设置与团队：** `Setup.tsx` 五步设置，`Join.tsx` 五问同浏览器邀请，`Settings.tsx` 编辑社团和本人偏好；`src/data/settings.ts` 统一验证与写入，`src/engine/team.ts` 计算工作量、贡献和会议交集。`org.workspace` 只保存演示渠道、链接、说明与小型虚构附件，不连接真实账户，附件不发给 AI。个人缓冲关闭后用默认一天，仅本人可见数值解释。
   - 岗位名称沿用同一个 role ID，流程道和 Handoff 手册目录同步；完整手册和换届仍为 WP5。结构版本 **4**；本机通过 **174 个单元测试 + 76 个页面测试**，原测试保留。验收和后续入口见 `docs/WP4_ACCEPTANCE.md`。
+- **WP5 经费、规则、交接、关系、预测：** `src/engine/forecast.ts` 为固定种子 1,000 次纯函数；日期继续走 `schedule.ts`，包括预测完成日期、换届派生日期和经费决定日。Today 按预测概率排前三项，默认颜色/两条原因，展开才有比例。`personalBuffer()` 只用有完成日期的本社团记录渐进调整，Settings 只给本人解释；可关闭，换届默认重置。
+  - `/api/ask` 只让 AI 选服务器 R01–R16，正文从真实规则记录重建；`RuleQuestion` 在 Rules/Today 共用。`/api/preflight` 与浏览器共用 `src/lib/preflight.ts` 的确定性 R11/R12 检查。`Feedback` 报错存在本浏览器，Rules 底部管理员队列查看。
+  - `src/data/handoff.ts` / `src/lib/handbook.ts` 管换届和来源：AI 只选 task/interview ID，逐条显示来源原文；保存来源快照，变更后必须重审；卸任干部本人确认，再由社长批准。只用新编虚构示例访谈，不能读研究资料。完成交接转移未完成任务，联系人保留岗位 ID，个人缓冲不传给新人。
+  - 结构版本 **5**，本机完整检查通过 **233 个单元测试 + 90 个页面测试**。原有测试保留；`evals/rules.json` 为 40 题，`scripts/eval-rules.mjs` 支持真实接口评估，CI 用模拟供应商。**真实 AI 验收未完成**：Netlify 访问受阻，Juanxi 要求停止登录尝试，已停止。不要把模拟 40/40 或本地示例手册称为 DeepSeek/AIR 验收；详见 `docs/AI_TESTS.md` / `docs/WP5_ACCEPTANCE.md`。
 - **服务器：** `netlify/functions/*.mts`：`/api/health`、`/api/ask`、`/api/parse-brief`、`/api/plan/draft`、`/api/replies/classify`；`netlify/lib/ai.mts` 是 AI 供应商适配器，换供应商只改环境变量。
 - **部署：** `netlify.toml` 构建命令 `npm run build`，发布目录 `dist`，Node 22。
 - 正式网址：https://platypus-officer-hub.netlify.app （`main`，仍是 v0.1）。`v1` 的预览：draft PR #（见 `docs/PROGRESS.md`）里 Netlify 给出的 Deploy Preview 网址。

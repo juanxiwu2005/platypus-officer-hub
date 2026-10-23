@@ -41,7 +41,7 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
  if(a.kind==="confirm")return self&&record.entries.length&&record.fingerprint===sourceFingerprint(handbookSources(s,record.roleId))?update({confirmed:true}):s
  if(a.kind==="approve")return lead&&record.confirmed&&record.fingerprint===sourceFingerprint(handbookSources(s,record.roleId))?update({approved:true}):s
  if(a.kind==="check"){
-  if((!lead&&!self&&record.incomingId!==s.viewerId)||!record.approved||!WEEK_ONE.some(i=>i.id===a.itemId))return s
+  if(record.completed||(!lead&&!self&&record.incomingId!==s.viewerId)||!record.approved||!WEEK_ONE.some(i=>i.id===a.itemId))return s
   return update({checks:record.checks.includes(a.itemId)?record.checks.filter(i=>i!==a.itemId):[...record.checks,a.itemId]})
  }
  if(a.kind==="complete"){

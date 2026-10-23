@@ -77,6 +77,7 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
     <b>{opLabel(pending ? op : initial, state)}</b>
     {op.op === "answer_question" ? <>
       <p>{op.answer}</p>
+      <details><summary>Sources checked</summary><p className="small muted">The cited records from the checked rule book; source pages were not re-fetched during this answer.</p>{op.citations.map(id=>{const r=RULES.find(r=>r.id===id)!;return <div key={id}><b>{id} · checked {r.checkedOn}</b>{r.sources.map(s=><p key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></p>)}</div>})}</details>
       <div className="action-row">{op.citations.map(id => { const rule = RULES.find(r => r.id === id)!; return <a key={id} href={rule.sources[0].url} target="_blank" rel="noreferrer">{id} · checked {rule.checkedOn}</a> })}</div>
     </> : pending && <fieldset disabled={!canNudge} className="review-fields">
       <legend className="small muted">Check or edit before applying</legend>

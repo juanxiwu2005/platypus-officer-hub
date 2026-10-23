@@ -19,6 +19,7 @@ test('six rule categories, sourced live answer, refusal and local feedback queue
  await answer.getByText('Sources checked',{exact:true}).click();await expect(answer).toContainText('2026-10-07')
  await answer.getByRole('button',{name:'This is wrong'}).click();await expect(page.getByRole('heading',{name:'Reported answers · admin review'})).toBeVisible();await expect(page.getByText('Needs review',{exact:true})).toBeVisible()
  await page.getByLabel('Rule question',{exact:true}).fill('Which tax form should we file?');await page.getByRole('button',{name:'Ask rule question',exact:true}).click();await expect(answer).toContainText('will not guess')
+ await page.screenshot({path:`output/playwright/wp5-${test.info().project.name}-${test.info().title.includes('handbook')?'handoff':test.info().title.includes('funding')?'funding':'rules'}.png`,fullPage:true})
  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1)
 })
 test('Today sends a policy question through the same sourced ask interface',async({page})=>{
@@ -32,6 +33,7 @@ test('funding preflight checks boundaries and spend-by alarm, and persists manua
  await card.getByText('Pre-submission check · R11 / R12').click();await card.getByLabel('Public purpose',{exact:true}).fill('Fictional educational event');await card.getByLabel('Invoice addressed to').fill('ASU');await card.getByLabel('Event flyer attached').check();await card.getByLabel('Request amount ($)',{exact:true}).fill('1000');await card.getByLabel('Total meal cost ($)').fill('750');await card.getByRole('button',{name:'Check before submitting'}).click();await expect(card.getByTestId('preflight-result')).toContainText('$999');await expect(card.getByTestId('preflight-result')).toContainText('[R12]')
  await card.getByLabel('Request amount ($)',{exact:true}).fill('999');await card.getByLabel('Business Meals Form attached').check();await card.getByLabel('Attendance list attached').check();await card.getByRole('button',{name:'Check before submitting'}).click();await expect(card.getByTestId('preflight-result')).toContainText('Checklist complete')
  await card.getByLabel('Spent so far ($)').fill('500');await page.reload();await expect(page.getByLabel('Spent so far ($)')).toHaveValue('500')
+ await page.screenshot({path:`output/playwright/wp5-${test.info().project.name}-${test.info().title.includes('handbook')?'handoff':test.info().title.includes('funding')?'funding':'rules'}.png`,fullPage:true})
  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1)
 })
 test('Plan B appears when the funding decision date is reached without approval',async({page})=>{
@@ -47,6 +49,7 @@ test('sourced handbook requires outgoing confirmation before presidential approv
  await draft.getByText('Source 1:',{exact:false}).click();await expect(draft.getByRole('link',{name:'Open task record'})).toBeVisible()
  await page.getByTestId('view-as').selectOption('maya');await draft.getByRole('button',{name:'Confirm as outgoing officer',exact:true}).click();await page.getByTestId('view-as').selectOption('alex');await draft.getByRole('button',{name:'Approve as president',exact:true}).click();await expect(draft).toContainText('President approved')
  await page.reload();await page.getByText('Treasurer handbook',{exact:true}).click();await expect(page.getByTestId('handbook-draft')).toContainText('President approved')
+ await page.screenshot({path:`output/playwright/wp5-${test.info().project.name}-${test.info().title.includes('handbook')?'handoff':test.info().title.includes('funding')?'funding':'rules'}.png`,fullPage:true})
  expect(await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth)).toBeLessThanOrEqual(1)
 })
 test('contacts show cadence, role owner and upcoming event, with saved contact record',async({page})=>{

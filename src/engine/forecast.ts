@@ -1,5 +1,5 @@
 import type { DemoState, Node, Tier } from "../data/types"
-import { computeSchedule, forecastClock, topoOrder } from "./schedule"
+import { computeSchedule, forecastClock, personalBuffer, topoOrder } from "./schedule"
 
 export const FORECAST_RUNS = 1000
 export const EFFORT: Record<Tier, [number, number]> = { light: [1, 2], medium: [3, 5], heavy: [5, 10] }
@@ -37,7 +37,7 @@ export function computeForecast(state: DemoState, seed = 20261022): Forecast {
       if (n.status === "done") { finish[n.id] = n.completedOn ?? n.lastUpdate ?? state.today; available[n.id] = finish[n.id]; hit[n.id] += finish[n.id] <= plan.club ? 1 : 0; continue }
       if (!n.ownerId || invalid.has(n.id) || n.dependsOn.some(id => !byId.has(id) || available[id] === "9999-12-31")) { finish[n.id] = available[n.id] = "9999-12-31"; continue }
       const person = state.people.find(p => p.id === n.ownerId)
-      const buffer = person?.personalBufferEnabled === false ? 1 : person?.personalBufferDays ?? 1
+      const buffer = personalBuffer(state, person).days
       const event = state.events.find(e => e.id === n.eventId)
       const start = max(state.today, ...(n.phase === "close" && event ? [event.date] : []), ...n.dependsOn.map(id => available[id] ?? "9999-12-31"))
       const [lo,hi] = EFFORT[n.tier]

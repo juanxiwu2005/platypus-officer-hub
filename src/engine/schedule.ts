@@ -69,9 +69,20 @@ function ownerOf(ctx: Ctx, n: Node): Person | undefined {
   return n.ownerId ? ctx.state.people.find(p => p.id === n.ownerId) : undefined
 }
 
+/** Local, opt-out scheduling adjustment. Legacy records without a completion date do not train it. */
+export function personalBuffer(state: DemoState, person?: Person) {
+  if (!person || person.personalBufferEnabled === false) return { days: DEFAULT_PERSONAL_BUFFER, count: 0, explanation: "Standard one-day buffer; personalization is off or no officer is assigned." }
+  const records = state.contributions.filter((c,i,all) => c.personId === person.id && c.completedOn && (!person.bufferHistoryFrom || c.completedOn > person.bufferHistoryFrom) && all.findIndex(x=>x.nodeId===c.nodeId && x.personId===c.personId)===i && state.nodes.some(n=>n.id===c.nodeId && n.status==="done"))
+  const late = records.filter(c=>!c.onTime).length
+  // Five completed records before adaptation; five equal prior observations soften early swings.
+  const extra = records.length >= 5 ? Math.floor(3 * late / (records.length + 5)) : 0
+  const days = Math.min(5, Math.max(0, person.personalBufferDays) + extra)
+  return { days, count: records.length, explanation: `Your chosen base is ${person.personalBufferDays} day(s). ${records.length} dated local task completions; ${extra} extra scheduling day(s) from the smoothed late-completion share. No contribution points use this value.` }
+}
+
 function effortOf(ctx: Ctx, n: Node) {
   const p = ownerOf(ctx, n)
-  const buffer = p?.personalBufferEnabled === false ? DEFAULT_PERSONAL_BUFFER : p?.personalBufferDays ?? DEFAULT_PERSONAL_BUFFER
+  const buffer = personalBuffer(ctx.state, p).days
   const work: WorkDay = personalWorkDay(p?.busyWeeks)
   return { days: Math.max(0, n.estDays) + buffer, buffer, work, person: p }
 }

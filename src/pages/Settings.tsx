@@ -1,3 +1,4 @@
+import { personalBuffer } from "../engine/schedule"
 import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
@@ -14,7 +15,7 @@ export function InviteLink({ code }: { code: string }) {
 export default function Settings() {
   const { state } = useStore()
   const { person, canNudge } = useViewer()
-  return <><PageHead path="/settings" lead="Change club defaults and your own preferences. Everything in this demo stays in this browser." />{canNudge && <ClubSettings key={state.org.inviteCode} />}<section className="card"><header><h2>My preferences</h2><span className="tag">{person.name}</span></header><p className="small muted">Only your own private planning settings appear here. Use fictional information.</p><MySettings key={person.id} /></section></>
+  return <><PageHead path="/settings" lead="Change club defaults and your own preferences. Everything in this demo stays in this browser." />{canNudge && <ClubSettings key={state.org.inviteCode} />}<section className="card"><header><h2>My preferences</h2><span className="tag">{person.name}</span></header><p className="small muted">Only your own private planning settings appear here. Use fictional information.</p><details><summary>My current personal buffer</summary><p>{personalBuffer(state,person).days} scheduling day(s) · visible only to you</p><p className="small muted">{personalBuffer(state,person).explanation} Adaptation starts after five dated local completions; historical example scores without dates are excluded. Turn personalization off below to use the standard one day.</p></details><MySettings key={person.id} /></section></>
 }
 function ClubSettings() {
   const { state, dispatch } = useStore()
