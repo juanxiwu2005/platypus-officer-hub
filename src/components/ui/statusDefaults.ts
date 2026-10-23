@@ -3,11 +3,12 @@ import type { NodeStatus } from "../../data/types"
 /** Default status words and colours (v1.1). Kept free of React so the store can use them. */
 export const STATUS_ORDER: NodeStatus[] = ["unclaimed", "accepted", "in_progress", "waiting", "blocked", "done"]
 export const STATUS_DEFAULTS: Record<NodeStatus, { label: string; color: string }> = {
-  unclaimed: { label: "Not claimed", color: "#7d8682" },
+  unclaimed: { label: "Not claimed", color: "#5f6763" },
   accepted: { label: "To do", color: "#3a6fd8" },
-  in_progress: { label: "Working on it", color: "#d97b06" },
+  in_progress: { label: "Working on it", color: "#b25c00" },
   waiting: { label: "Waiting", color: "#8656cc" },
-  blocked: { label: "Stuck", color: "#d23f37" },
-  done: { label: "Done", color: "#2b9550" },
+  blocked: { label: "Stuck", color: "#c0362f" },
+  done: { label: "Done", color: "#237a42" },
 }
-export const PALETTE = ["#7d8682", "#3a6fd8", "#d97b06", "#8656cc", "#d23f37", "#2b9550", "#0f8a8a", "#c2418d", "#a0791a", "#4a5568"]
+/** Every colour keeps white text at WCAG AA contrast (4.5:1). */
+export const PALETTE = ["#5f6763", "#3a6fd8", "#b25c00", "#8656cc", "#c0362f", "#237a42", "#0d7373", "#b0367c", "#86650f", "#4a5568"]

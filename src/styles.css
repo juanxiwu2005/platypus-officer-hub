@@ -703,3 +703,7 @@ html, body { overflow-x: clip; }
   .card { padding: 12px; }
 }
 @media (max-width: 600px) { .menu, .menu.wide { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; } }
+.tab-group { display: flex; gap: 4px; }
+.days.good { color: #146c2e; }
+:root[data-theme="dark"] .days.good { color: var(--good); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .days.good { color: var(--good); } }

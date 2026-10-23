@@ -24,7 +24,7 @@ export default function Team() {
             <td><span className="who"><Avatar name={p.name} />{p.name.split(" ")[0]}</span></td>
             <td className="small muted">{roleName(state, p.roleId)}</td>
             <td><Hover card={w.nodes.length ? <>{w.nodes.slice(0, 5).map(n => <span key={n.id} className="hc-line">{n.title}</span>)}</> : "No open work in the next two weeks."}>
-              <span className={`band b${BAND[w.band as keyof typeof BAND]}`} tabIndex={0} aria-label={`${w.band}: ${w.nodes.length} steps`}><i /><i /><i /></span>
+              <span className={`band b${BAND[w.band as keyof typeof BAND]}`} tabIndex={0} role="img" aria-label={`${w.band}: ${w.nodes.length} steps`}><i /><i /><i /></span>
             </Hover></td>
             <td className="small">{w.band}</td>
           </tr>

@@ -17,9 +17,11 @@ export function Rail() {
   const rail = useRail()
   const { tab, setTab, detail } = rail
   return <aside className="rail" aria-label="Assistant and details" data-testid="rail">
-    <div className="rail-tabs" role="tablist" aria-label="Side panel">
-      <button type="button" role="tab" aria-selected={tab === "ask"} onClick={() => setTab("ask")} data-testid="tab-ask">Ask</button>
-      <button type="button" role="tab" aria-selected={tab === "details"} disabled={!detail} onClick={() => setTab("details")} data-testid="tab-details">Details</button>
+    <div className="rail-tabs">
+      <div role="tablist" aria-label="Side panel" className="tab-group">
+        <button type="button" role="tab" aria-selected={tab === "ask"} onClick={() => setTab("ask")} data-testid="tab-ask">Ask</button>
+        <button type="button" role="tab" aria-selected={tab === "details"} disabled={!detail} onClick={() => setTab("details")} data-testid="tab-details">Details</button>
+      </div>
       <span className="spacer" />
       <button type="button" className="btn btn-quiet icon-btn" aria-label="Hide side panel" title="Hide side panel" onClick={() => rail.setOpen(false)}>
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7 4l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>

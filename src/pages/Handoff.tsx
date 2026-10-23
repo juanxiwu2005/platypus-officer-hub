@@ -58,7 +58,7 @@ export default function Handoff() {
             <svg viewBox="0 0 40 12" aria-hidden="true"><path d="M2 6h32M28 1l6 5-6 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             <Avatar name={inc?.name} title={inc?.name ?? "Incoming officer not named yet"} />
           </span>
-          <span className="relay-foot"><Ring value={p.done} max={7} size={34} label={`${p.done} of 7 steps`} /><span className={`pill sm ${p.stage === "Complete" ? "" : "quiet"}`} style={{ "--pill": p.stage === "Complete" ? "#2b9550" : p.done ? "#3a6fd8" : "#7d8682" } as CSSProperties}>{p.stage}</span></span>
+          <span className="relay-foot"><Ring value={p.done} max={7} size={34} label={`${p.done} of 7 steps`} /><span className={`pill sm ${p.stage === "Complete" ? "" : "quiet"}`} style={{ "--pill": p.stage === "Complete" ? "#237a42" : p.done ? "#3a6fd8" : "#5f6763" } as CSSProperties}>{p.stage}</span></span>
         </button>
       })}
     </section>
