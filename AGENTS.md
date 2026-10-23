@@ -79,3 +79,14 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 - **服务器：** `netlify/functions/*.mts`：`/api/health`、`/api/ask`、`/api/parse-brief`、`/api/plan/draft`、`/api/replies/classify`；`netlify/lib/ai.mts` 是 AI 供应商适配器，换供应商只改环境变量。
 - **部署：** `netlify.toml` 构建命令 `npm run build`，发布目录 `dist`，Node 22。
 - 正式网址：https://platypus-officer-hub.netlify.app （`main`，仍是 v0.1）。`v1` 的预览：draft PR #（见 `docs/PROGRESS.md`）里 Netlify 给出的 Deploy Preview 网址。
+
+## 7. 界面规则（2026-10-23 简化改版，Juanxi 批准）
+
+改任何页面前先读这一节。依据：《Platypus 简化改版方案》（https://claude.ai/artifact/QhCthf71crEC62bBua5zJD）。
+
+1. **三栏布局：** 左导航、中间内容、右栏。右栏有两个标签：**Ask**（唯一的 AI 入口，`src/components/rail/`）和 **Details**（点任何东西打开的详情）。不要在页面里再放 AI 输入框。
+2. **只用 5 个组件拼页面**（`src/components/ui/`）：状态色块 `StatusPill`、进度链 `Chain`、表格 `.tbl`、悬停卡 `Hover`/`Info`、右栏详情（`useRail().open(...)`）。
+3. **三级交互：** 看（颜色）→ 停（悬停卡，最多 3 行）→ 点（右栏详情）。不再新增 ▶ 展开和选项卡。
+4. **文字：** 页面标题 1–2 个词；一张卡最多“标题 1 行 + 信息 1 行 + 状态色块”；原因、假设、出处放进悬停或 Help；字号不小于 14px。
+5. **字数上限（主区，`scripts/word-count.mjs` 量）：** Today ≤ 160、Events ≤ 180、Rules ≤ 170、Tasks ≤ 130、Team ≤ 130、Settings 每块 ≤ 125。新增内容超了就先删别的。
+6. **6 种任务状态与颜色全站统一：** Not claimed 灰、To do 蓝、Working on it 橙、Waiting 紫、Stuck 红、Done 绿（名称和颜色可在 Settings → Board 改，含义不变）。
