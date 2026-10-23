@@ -1,8 +1,8 @@
 # Platypus v1.0 进度
 
 **最后更新：** 2026-10-22（Claude）  
-**当前阶段：** WP0 进行中（Claude）。  
-**下一步：** WP0 地基（在 `v1` 分支）。
+**当前阶段：** WP0 待验收（Juanxi 打开预览网址看一遍）。  
+**下一步：** Juanxi 说“可以”后开始 WP1 引擎与流程图（建议用 Opus 5.5 Extra）。
 
 ## 工作包
 
@@ -10,7 +10,7 @@
 
 | 工作包 | 计划日期 | 状态 | 负责的 AI | 预览网址 | 备注 |
 | --- | --- | --- | --- | --- | --- |
-| WP0 地基 | 10/23–10/24 | 进行中 | Claude（2026-10-22） | — | 建 `v1` 分支；React + TS + Vite；演示数据与重置；8 个页面导航；帮助页；测试；draft PR 拿预览网址 |
+| WP0 地基 | 10/23–10/24 | 待验收 | Claude（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | React + TS + Vite；演示数据与重置；10 个页面；帮助页；13 个单元测试 + 26 个页面测试；CI；draft PR #1 |
 | WP1 引擎与流程图 | 10/24–10/27 | 未开始 | — | — | 规则引擎、三个截止日、流程模板（OA101/102/201）、泳道流程图 |
 | WP2 今日页与提醒 | 10/27–10/30 | 未开始 | — | — | `/api/command`、风险队列、一键提醒、`/api/nudge/draft` |
 | WP3 任务与干部端 | 10/30–11/2 | 未开始 | — | — | 认领、四个状态按钮、带草稿延期、沉默协议、RACI |
@@ -37,4 +37,5 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-10-22 | Claude | 完成 WP0：React + TS + Vite 骨架；v0.1 移到 `/legacy/`；虚构社团演示数据存在浏览器里，可一键重置；10 个页面各回答一个问题，没做的部分用“Coming in WPx”标出；Vitest + Playwright（桌面/手机）+ GitHub Actions；draft PR #1 给出预览网址；已同步本地备份 | **验收：** 打开预览网址，点左边每个页面；右上角“View as”换成 Maya，再点 Tasks 看她的任务；点“Reset demo”回到 Alex。**WP1 从这里接：** 规则引擎放 `src/engine/`，重算 `Node` 的三个日期；Events 页的 `Coming` 卡片列了要做的东西。**已知：** 预览网址受 Netlify 团队登录保护（只有登录 Netlify 的人能打开；正式网址不受影响，Phase 3 前要决定是否关掉这个保护或改用正式网址）；节点日期是临时的相对日期，等 WP1 引擎接管；命令框是禁用状态（WP2） |
 | 2026-10-22 | Claude | 加入 `AGENTS.md`、`CLAUDE.md`、`docs/PRODUCT_PLAN.md`、`docs/PROGRESS.md`、`docs/RULES.md`、`docs/SEO_PLAYBOOK_REFERENCE.md`；同步本地备份 | 从 WP0 开始；先读 `AGENTS.md` |
