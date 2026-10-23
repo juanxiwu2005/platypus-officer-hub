@@ -51,7 +51,15 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 
 ## 6. 现在的代码
 
-- `public/index.html`：v0.1 前端（单文件，约 13.7 万字符），正在线上运行。v1 将按计划改为 React + TypeScript + Vite + React Flow（WP0）。
-- `netlify/functions/*.mts`：服务器接口 `/api/health`、`/api/ask`、`/api/parse-brief`、`/api/plan/draft`、`/api/replies/classify`；`netlify/lib/ai.mts` 是 AI 供应商适配器，换供应商只改环境变量。
-- `netlify.toml`：发布目录和函数目录（WP0 改用 Vite 后，发布目录会变成 `dist`）。
-- 正式网址：https://platypus-officer-hub.netlify.app 。`v1` 分支的预览：开一个从 `v1` 到 `main` 的 draft PR，Netlify 会自动给出 Deploy Preview 网址。
+`v1` 分支（WP0 之后）：
+
+- **前端：** React 18 + TypeScript + Vite，入口 `src/main.tsx`，用 HashRouter（网址形如 `/#/tasks`，这样 Netlify 不需要通配跳转，不会挡住 `/api/*` 和 `/legacy/`）。
+  - `src/routes.ts`：10 个页面和每页要回答的那一个问题。`src/components/Layout.tsx`：顶栏（View as、AI 开关）、演示条（Reset demo）、侧边导航。
+  - `src/pages/*.tsx`：每页一个文件。还没做的部分用 `<Coming wp="WPx">` 虚线卡片标出来，做完就删掉对应条目。
+  - `src/data/types.ts`（数据模型，计划第 11 节）、`seed.ts`（虚构社团 Desert Founders Society）、`store.tsx`（只存在浏览器 localStorage，键 `platypus.v1.demo`，改了数据结构就把 `SCHEMA_VERSION` 加 1）、`rules.ts`（R01–R16，必须和 `docs/RULES.md` 一起改）。
+  - `src/lib/dates.ts`：日期工具。WP1 的规则引擎放在 `src/engine/`。
+- **测试：** `npm test`（Vitest 单元测试，`src/test/`）；`npm run e2e`（Playwright，`e2e/`，桌面和手机两种尺寸）；`npm run check` 三样一起跑。GitHub Actions（`.github/workflows/ci.yml`）每次推送都会跑。
+- **旧版：** v0.1 单文件原型移到了 `public/legacy/index.html`，网址 `/legacy/`，保留不动。
+- **服务器：** `netlify/functions/*.mts`：`/api/health`、`/api/ask`、`/api/parse-brief`、`/api/plan/draft`、`/api/replies/classify`；`netlify/lib/ai.mts` 是 AI 供应商适配器，换供应商只改环境变量。
+- **部署：** `netlify.toml` 构建命令 `npm run build`，发布目录 `dist`，Node 22。
+- 正式网址：https://platypus-officer-hub.netlify.app （`main`，仍是 v0.1）。`v1` 的预览：draft PR #（见 `docs/PROGRESS.md`）里 Netlify 给出的 Deploy Preview 网址。

@@ -1,6 +1,9 @@
 .DS_Store
 .env
 .env.*
-node_modules/
-.netlify/
 !.env.example
+.netlify/
+node_modules/
+dist/
+test-results/
+playwright-report/
