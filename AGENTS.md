@@ -66,6 +66,10 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 - **活动页（WP1）：** `src/pages/Events.tsx`，三种视图：流程图（`src/components/flow/FlowChart.tsx`，React Flow，按岗位分泳道，横轴是日期）、甘特图（`Gantt.tsx`）、列表；点步骤打开 `src/components/NodePanel.tsx` 侧栏，可改负责人、社团截止日、用时、RACI、Why、材料链接。
 - **测试：** `npm test`（Vitest 单元测试，`src/test/`）；`npm run e2e`（Playwright，`e2e/`，桌面和手机两种尺寸）；`npm run check` 三样一起跑。GitHub Actions（`.github/workflows/ci.yml`）每次推送都会跑。
 - **旧版：** v0.1 单文件原型移到了 `public/legacy/index.html`，网址 `/legacy/`，保留不动。
+- **WP2 今日页：** `CommandBar.tsx` 逐条审核白名单变更单；`src/lib/commands.ts` 双重过滤 AI 日期。`NudgeComposer.tsx` 和 `src/lib/nudges.ts` 生成并检查五段提醒；`command.mts`、`nudge-draft.mts` 沿用现有供应商适配器。
+- **WP3 任务与干部端：** `src/data/taskWorkflow.ts` 管认领、四种状态、带草稿延期、贡献和 RACI 通知；`src/engine/followup.ts` 管逐日模拟、3/5/7/8/10 天私下跟进；恢复排程仍由 `schedule.ts` 计算。Tasks 有列表/看板/甘特，通知只显示当前角色自己的记录。
+  - `src/lib/officerLinks.ts` 与 `src/pages/Officer.tsx` 提供一次性签名的**同浏览器演示链接**；只绑定一个任务和负责人，一次操作后失效。`demoLinkKey` 是运行时随机的本地演示密钥，不是供应商 key，不发到 AI。跨设备验证和真实身份验证留到 v1.5。
+  - 演示结构版本为 3；旧版浏览器数据恢复种子。Reset demo 清空状态、通知、申请和链接。验收与下一位说明见 `docs/WP3_ACCEPTANCE.md`；本机已通过 146 个单元测试和 62 个页面测试，原有测试保留。
 - **服务器：** `netlify/functions/*.mts`：`/api/health`、`/api/ask`、`/api/parse-brief`、`/api/plan/draft`、`/api/replies/classify`；`netlify/lib/ai.mts` 是 AI 供应商适配器，换供应商只改环境变量。
 - **部署：** `netlify.toml` 构建命令 `npm run build`，发布目录 `dist`，Node 22。
 - 正式网址：https://platypus-officer-hub.netlify.app （`main`，仍是 v0.1）。`v1` 的预览：draft PR #（见 `docs/PROGRESS.md`）里 Netlify 给出的 Deploy Preview 网址。
