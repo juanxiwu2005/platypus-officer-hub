@@ -1,8 +1,8 @@
 # Platypus v1.0 进度
 
 **最后更新：** 2026-10-22（ChatGPT）  
-**当前阶段：** WP1 已完成；WP2 进行中（ChatGPT）。  
-**下一步：** 完成 WP2 今日页与提醒，然后交 Juanxi 验收。
+**当前阶段：** WP2 待验收（ChatGPT）；WP1 已完成。  
+**下一步：** Juanxi 在预览网址验收 WP2；通过后开始 WP3 任务与干部端。
 
 ## 工作包
 
@@ -12,7 +12,7 @@
 | --- | --- | --- | --- | --- | --- |
 | WP0 地基 | 10/23–10/24 | 已完成 | Claude（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | React + TS + Vite；演示数据与重置；10 个页面；帮助页；13 个单元测试 + 26 个页面测试；CI；draft PR #1 |
 | WP1 引擎与流程图 | 10/24–10/27 | 已完成 | Claude（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/events | 规则引擎（`src/engine/`）；ASU 日历；活动模板（OA101/102/201 + T-90/60/30/14 + R01–R16）；泳道流程图、甘特图、列表；侧栏编辑；68 个单元测试 + 38 个页面测试 |
-| WP2 今日页与提醒 | 10/27–10/30 | 进行中 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | `/api/command`、风险队列、一键提醒、`/api/nudge/draft` |
+| WP2 今日页与提醒 | 10/27–10/30 | 待验收 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | 逐条审核的 `/api/command` 变更单；前三项风险与渠道草稿；`/api/nudge/draft`；活动条、目标、本周之星；120 个单元测试 + 50 个页面测试；固定命令 20/20 |
 | WP3 任务与干部端 | 10/30–11/2 | 未开始 | — | — | 认领、四个状态按钮、带草稿延期、沉默协议、RACI |
 | WP4 设置与团队 | 11/2–11/4 | 未开始 | — | — | 首次设置 ≤ 5 分钟、设置页、团队页 |
 | WP5 经费、规则、交接、关系、预测 | 11/4–11/7 | 未开始 | — | — | 提交前检查、规则卡片、换届季、联系人、预测 |
@@ -43,6 +43,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-10-22 | ChatGPT | 完成 WP2：今日页一句话与七种白名单变更单（逐条编辑、通过、拒绝）；双重过滤 AI 日期；风险前三项与私下提醒草稿（WhatsApp / 短信 / Gmail）；五段分点正文、100 词上限与禁用说法检查；活动当前步骤和后两步；学期目标、本周之星及计分依据。已记录 WP1 验收和两项提议获批。本机 `npm run check` 全部通过：120 个单元测试、50 个页面测试，原有测试均保留；固定命令 20/20。代码提交 `d5a1179` 的 GitHub Actions 也通过。已同步本地备份（只覆盖指定 4 个文件，未触碰 Reference/） | **验收：** [预览 Today](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/)（需 Netlify 登录）。① Reset demo，输入 `Plan Founder Dinner on Nov 19, 30 people, outside caterer, USG funding` → Review changes；检查 Event date，逐条 Apply 后才出现新活动。② Needs a nudge 的第一条点 Draft reminder，应该看到 Sam、首选 WhatsApp、五段分点和四个状态入口；切 Gmail 可打开草稿，无需发送。③ 活动条应有 Current / Next 1 / Next 2，Networking Night 的 Current 是海报，点步骤可看详情；下方有目标和本周之星。④ View as 切 Maya，不能发提醒或批准。最后 Reset demo。**还剩：** Juanxi 验收与提醒措辞范例；WP3 的实际认领、四种状态更新、延期、沉默协议与模拟时钟。**已知：** 四个状态入口目前只预览对应任务，明确提示未改状态；草稿不填真实收件人；打开不算已发，需人自己确认。20/20 是确定性命令路径，真实 DeepSeek/AIR 自由表达未实测；接口测试使用模拟 AI。短信外部应用兼容性需手机验收。提醒时段仅提示，无自动发送；本周之星暂按本周更新的已完成任务关联现有分数。详情与下一位的接口说明见 `docs/WP2_ACCEPTANCE.md`。 |
 | 2026-10-22 | Claude | 完成 WP1：规则引擎（三个截止日、依赖倒推和顺推、红/黄提醒，每个日期附一句“为什么”）；ASU 日历；活动模板；活动页的泳道流程图、甘特图、列表和侧栏编辑；今日页的“需要推动”改用引擎的提醒排序；演示条显示演示日期；已同步本地备份 | **验收：** 打开预览网址的 Events 页。① 点 Treasurer 道里的“Submit the USG food request”，侧栏应显示 Wed Oct 28 / Fri Oct 30 / Wed Nov 4（和计划第 4 节的例子一致）。② 点 Marketing lead 道里的“Finish the event flyer”，把 Club deadline 改成 11/02，关掉侧栏：USG 请求变红，活动卡片显示“1 step cannot finish in time”。③ 再点 flyer，按“Use recommended”恢复。④ 切到 Gantt、List 看同样的步骤。⑤ 用手机打开，默认是列表。**WP2 从这里接：** `/api/command` 的变更单只能用 `buildEventNodes()` 和 store 的 `updateNode`/`updateEvent`，日期一律交给 `applySchedule()`；风险队列可以直接用 `useSchedule()` 的 issues。**已知：** 规则引擎没有处理“同一人同时有太多任务”（工作量在 WP4）；流程图不能拖动节点改日期（只能在侧栏改），这是有意的，避免误改 |
 | 2026-10-22 | Claude | 完成 WP0：React + TS + Vite 骨架；v0.1 移到 `/legacy/`；虚构社团演示数据存在浏览器里，可一键重置；10 个页面各回答一个问题，没做的部分用“Coming in WPx”标出；Vitest + Playwright（桌面/手机）+ GitHub Actions；draft PR #1 给出预览网址；已同步本地备份 | **验收：** 打开预览网址，点左边每个页面；右上角“View as”换成 Maya，再点 Tasks 看她的任务；点“Reset demo”回到 Alex。**WP1 从这里接：** 规则引擎放 `src/engine/`，重算 `Node` 的三个日期；Events 页的 `Coming` 卡片列了要做的东西。**已知：** 预览网址受 Netlify 团队登录保护（只有登录 Netlify 的人能打开；正式网址不受影响，Phase 3 前要决定是否关掉这个保护或改用正式网址）；节点日期是临时的相对日期，等 WP1 引擎接管；命令框是禁用状态（WP2） |
 | 2026-10-22 | Claude | 加入 `AGENTS.md`、`CLAUDE.md`、`docs/PRODUCT_PLAN.md`、`docs/PROGRESS.md`、`docs/RULES.md`、`docs/SEO_PLAYBOOK_REFERENCE.md`；同步本地备份 | 从 WP0 开始；先读 `AGENTS.md` |

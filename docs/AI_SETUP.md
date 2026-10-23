@@ -49,3 +49,12 @@ If AI is not configured, or a call fails, the page falls back to its simulated a
 ## 4. Research note (IRB)
 
 Prompts sent to DeepSeek, OpenAI or Anthropic leave ASU. Use only the fictional demo data with those providers. For Phase 3 sessions with real participants, use the provider named in the approved IRB modification (planned: ASU AIR), or add the provider to the modification first.
+
+## 5. WP2 接口（2026-10-22）
+
+- `POST /api/command`：输入 `sentence` 和最小上下文（活动、节点、干部的 ID 和显示名称）。明确匹配的常见句式由程序解析，其他句式交给同一个 `chatJSON()` 适配器。返回 `ops`、`source` 和 `model`；服务器与浏览器都做白名单过滤，丢弃任何日期字段。新活动的日期需要人在变更单中确认。
+- `POST /api/nudge/draft`：输入当前节点的标题、规则算好的三个日期、真实下游步骤和提醒时段。AI 只改写最多 10 词的意义句；程序生成完整五段草稿，检查禁用说法和 100 词上限。浏览器在打开草稿前按最新状态再生成一次，防止旧日期生效。
+- 不增加密钥或新供应商配置，继续使用上面的 `AI_*` 环境变量。AI 关闭或接口失败会明确显示本地演示回退；不会把回退标成实时 AI。
+- `parse-brief` 保留兼容接口，但现在也丢弃 AI 日期；`public/legacy/` 文件没有改动。
+- 固定命令测试和供应商模拟测试已通过，真实 DeepSeek/AIR 自由表达质量仍需在部署环境分别验证。详情见 `WP2_ACCEPTANCE.md`。
+
