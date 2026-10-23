@@ -17,6 +17,19 @@ describe("store reducer", () => {
     expect(reducer(base, { type: "setAi", enabled: false }).aiEnabled).toBe(false)
   })
 
+  it("updateNode accepts only editable fields and re-runs the engine", () => {
+    const s = reducer(base, { type: "updateNode", id: "e-night:usg", patch: { clubDeadlineOverride: "2026-11-02", title: "hacked", officialDeadline: "2027-01-01" } as never })
+    const n = s.nodes.find(x => x.id === "e-night:usg")!
+    expect(n.title).toBe("Submit the USG food request")
+    expect(n.officialDeadline).toBe("2026-11-04")
+    expect(n.clubDeadline).toBe("2026-11-02")
+    expect(n.latestStart).toBe("2026-10-29")
+  })
+
+  it("updateEvent ignores a malformed date", () => {
+    expect(reducer(base, { type: "updateEvent", id: "e-night", patch: { date: "next week" } })).toBe(base)
+  })
+
   it("reset returns a fresh seed", () => {
     const changed = { ...base, viewerId: "sam", nodes: [] }
     const r = reducer(changed, { type: "reset" })
@@ -37,8 +50,8 @@ describe("storage", () => {
   it("falls back to the seed on corrupt or old data", () => {
     window.localStorage.setItem(STORAGE_KEY, "{not json")
     expect(loadState().viewerId).toBe("alex")
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 0 }))
-    expect(loadState().schemaVersion).toBe(1)
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1 }))
+    expect(loadState().schemaVersion).toBe(2)
   })
 })
 

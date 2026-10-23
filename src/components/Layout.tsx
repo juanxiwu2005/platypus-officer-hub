@@ -4,6 +4,7 @@ import { Icons, Logo } from "./icons"
 import { PAGES } from "../routes"
 import { useStore } from "../data/store"
 import { getHealth, type Health } from "../lib/api"
+import { fmtLong } from "../lib/dates"
 
 export function Layout() {
   const { state, dispatch, reset } = useStore()
@@ -57,6 +58,7 @@ export function Layout() {
         <div className="demo-strip">
           <div className="bar-in">
             <b>Prototype v1 · in development</b>
+            <span data-testid="demo-date">Demo date: {fmtLong(state.today)}.</span>
             <span data-testid="ai-status">Fictional organization and example data. {aiNote} No message is sent from this page.</span>
             <span className="spacer" />
             <button className="btn btn-quiet small" type="button" disabled title="Arrives in WP4">Replay setup</button>

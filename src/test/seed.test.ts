@@ -18,12 +18,25 @@ describe("demo seed", () => {
     expect(personIds.has(s.viewerId)).toBe(true)
   })
 
-  it("every node has at most one owner who exists, and unclaimed means no owner", () => {
+  it("every node has at most one owner who exists; only unclaimed nodes may lack an owner", () => {
     const personIds = new Set(s.people.map(p => p.id))
     for (const n of s.nodes) {
       if (n.ownerId) expect(personIds.has(n.ownerId)).toBe(true)
-      expect(n.status === "unclaimed").toBe(n.ownerId === null)
+      if (n.ownerId === null) expect(n.status).toBe("unclaimed")
     }
+  })
+
+  it("every node has dates from the rule engine", () => {
+    for (const n of s.nodes) {
+      expect(n.latestStart).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(n.clubDeadline).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(n.latestStart! <= n.clubDeadline!).toBe(true)
+    }
+  })
+
+  it("contributions point at real nodes", () => {
+    const nodeIds = new Set(s.nodes.map(n => n.id))
+    for (const c of s.contributions) expect(nodeIds.has(c.nodeId)).toBe(true)
   })
 
   it("dependencies, events and rules referenced by nodes exist", () => {

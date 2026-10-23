@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from "react"
-import type { DemoState } from "./types"
+import type { DemoState, Event, Node } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
+import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -10,11 +11,38 @@ import { SCHEMA_VERSION, seedDemo } from "./seed"
  */
 export const STORAGE_KEY = "platypus.v1.demo"
 
+/** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
+export type NodePatch = Partial<Pick<Node, "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink">>
+export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount">>
+
 export type Action =
   | { type: "reset" }
   | { type: "setViewer"; viewerId: string }
   | { type: "setAi"; enabled: boolean }
   | { type: "replace"; state: DemoState }
+  | { type: "updateNode"; id: string; patch: NodePatch }
+  | { type: "updateEvent"; id: string; patch: EventPatch }
+
+const NODE_FIELDS: (keyof NodePatch)[] = ["ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink"]
+const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
+
+function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
+  const patch = pick(raw, NODE_FIELDS)
+  if (patch.estDays !== undefined) patch.estDays = Math.max(0, Math.min(30, Math.round(Number(patch.estDays) || 0)))
+  return {
+    ...state,
+    nodes: state.nodes.map(n => {
+      if (n.id !== id) return n
+      const next: Node = { ...n, ...patch, lastUpdate: state.today }
+      // Claim handshake (plan §4 mechanism 2): a new owner has to accept the task again.
+      if ("ownerId" in patch && patch.ownerId !== n.ownerId && n.status !== "done") {
+        next.status = "unclaimed"
+        next.acceptedOn = null
+      }
+      return next
+    }),
+  }
+}
 
 export function reducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
@@ -25,7 +53,14 @@ export function reducer(state: DemoState, action: Action): DemoState {
     case "setAi":
       return { ...state, aiEnabled: action.enabled }
     case "replace":
-      return action.state
+      return applySchedule(action.state)
+    case "updateNode":
+      return state.nodes.some(n => n.id === action.id) ? applySchedule(updateNode(state, action.id, action.patch)) : state
+    case "updateEvent": {
+      const patch = pick(action.patch, ["date", "name", "headcount"])
+      if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
+      return applySchedule({ ...state, events: state.events.map(e => (e.id === action.id ? { ...e, ...patch } : e)) })
+    }
   }
 }
 
@@ -70,6 +105,12 @@ export function useStore(): StoreValue {
   const v = useContext(StoreContext)
   if (!v) throw new Error("useStore must be used inside <StoreProvider>")
   return v
+}
+
+/** The engine's full result (dates, explanations, issues). Recomputed only when the state changes. */
+export function useSchedule(): Schedule {
+  const { state } = useStore()
+  return useMemo(() => computeSchedule(state), [state])
 }
 
 /** Convenience selectors */

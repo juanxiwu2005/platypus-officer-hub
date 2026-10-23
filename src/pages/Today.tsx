@@ -1,17 +1,20 @@
 import { Link } from "react-router-dom"
-import { useStore, useViewer } from "../data/store"
+import { useSchedule, useStore, useViewer } from "../data/store"
 import { Coming, PageHead } from "../components/Page"
 import { daysBetween, fmtShort } from "../lib/dates"
-import { personName, STATUS_LABEL } from "./helpers"
+import { SEVERITY_RANK, personName, statusOf, worstIssue } from "./helpers"
 
 export default function Today() {
   const { state } = useStore()
   const { person } = useViewer()
-  const open = state.nodes.filter(n => n.status !== "done")
-  // WP0 placeholder ranking: closest club deadline first. The real forecast (plan §9) replaces this in WP5.
-  const risks = open
-    .filter(n => n.clubDeadline && daysBetween(state.today, n.clubDeadline) <= 2)
-    .sort((a, b) => (a.clubDeadline ?? "").localeCompare(b.clubDeadline ?? ""))
+  const sched = useSchedule()
+  // WP1: ranked by the rule engine's warnings (red before amber, then nearest club deadline).
+  // The forecast from 1,000 simulated runs (plan §9) replaces this ranking in WP5.
+  const risks = state.nodes
+    .filter(n => n.status !== "done")
+    .map(n => ({ n, issue: worstIssue(sched.nodes[n.id]?.issues) }))
+    .filter((x): x is { n: typeof x.n; issue: NonNullable<typeof x.issue> } => !!x.issue)
+    .sort((a, b) => SEVERITY_RANK[a.issue.severity] - SEVERITY_RANK[b.issue.severity] || (a.n.clubDeadline ?? "").localeCompare(b.n.clubDeadline ?? ""))
     .slice(0, 3)
 
   return (
@@ -26,17 +29,19 @@ export default function Today() {
 
       <div className="grid-2">
         <section className="card" aria-labelledby="risk-h">
-          <header><h2 id="risk-h">Needs a nudge</h2><span className="small muted">Top {risks.length} by club deadline</span></header>
+          <header><h2 id="risk-h">Needs a nudge</h2><span className="small muted">Top {risks.length} by risk</span></header>
           <ul className="list" data-testid="risk-list">
-            {risks.map(n => (
+            {risks.map(({ n, issue }) => (
               <li key={n.id}>
                 <div>
                   <div>{n.title}</div>
-                  <div className="small muted">{personName(state, n.ownerId)} · club deadline {fmtShort(n.clubDeadline!)}</div>
+                  <div className="small muted">{personName(state, n.ownerId)}{n.clubDeadline ? ` · club deadline ${fmtShort(n.clubDeadline)}` : ""}</div>
+                  <div className={`small ${issue.severity === "error" ? "late-text" : "warn-text"}`}>{issue.text}</div>
                 </div>
-                <span className={`tag ${STATUS_LABEL[n.status].tone}`}>{STATUS_LABEL[n.status].text}</span>
+                <span className={`tag ${statusOf(n).tone}`}>{statusOf(n).text}</span>
               </li>
             ))}
+            {risks.length === 0 && <li className="muted">Nothing at risk right now.</li>}
           </ul>
         </section>
 

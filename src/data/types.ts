@@ -87,11 +87,32 @@ export interface Event {
 export type NodeStatus = "unclaimed" | "accepted" | "in_progress" | "waiting" | "blocked" | "done"
 export type Tier = "light" | "medium" | "heavy"
 
+/** Where a step sits in the SEO workflow (OA101 plan, OA102 prepare, OA201 money, then run and close). */
+export type Phase = "plan" | "prepare" | "money" | "marketing" | "run" | "close"
+
+/**
+ * How the rule engine dates a node (WP1).
+ * - rule: an ASU deadline `days` before the event (official deadline). Calendar-day results that land on a
+ *   closed day move to the business day before.
+ * - target: a club timing from the SEO playbook; positive = before the event, negative = after.
+ * - fixed: a standalone task with explicit dates (not tied to an event).
+ * Nodes with no anchor get their dates from the steps that depend on them.
+ */
+export type Anchor =
+  | { kind: "rule"; ruleId: string; days: number; unit: "calendar" | "business" }
+  | { kind: "target"; days: number; unit: "calendar" | "business"; label: string }
+  | { kind: "fixed"; official: string | null; club: string }
+
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
   id: string
   title: string
   eventId: string | null
+  /** Playbook step this node came from, e.g. "usg". Null for standalone tasks. */
+  stepKey: string | null
+  phase: Phase | null
+  /** The canonical function that owns this step (swimlane when nobody owns it yet). */
+  fn: RoleFunction
   /** R = one owner. A = approver. C = consulted. I = informed (role ids). */
   ownerId: string | null
   approverRoleId: string | null
@@ -99,15 +120,24 @@ export interface Node {
   informedRoleIds: string[]
   dependsOn: string[]
   tier: Tier
+  /** Working days of effort, used for the latest start date. */
+  estDays: number
+  anchor: Anchor | null
+  /** A club deadline set by a person. Moves later steps if needed; never moves the official deadline. */
+  clubDeadlineOverride: string | null
+  /** The three deadlines below are written only by the rule engine (src/engine). */
   officialDeadline: string | null
   clubDeadline: string | null
   latestStart: string | null
   ruleIds: string[]
+  /** unclaimed = sent but not yet accepted with “I've got it” (ownerId may be a proposed owner). */
   status: NodeStatus
   acceptedOn: string | null
   waitingOn: string | null
   draftLink: string | null
   why: string
+  /** Where the step comes from, e.g. "OA101 step 20" or "SEO T-14 checklist". */
+  source: string
   lastUpdate: string | null
 }
 

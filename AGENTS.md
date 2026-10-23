@@ -57,7 +57,13 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
   - `src/routes.ts`：10 个页面和每页要回答的那一个问题。`src/components/Layout.tsx`：顶栏（View as、AI 开关）、演示条（Reset demo）、侧边导航。
   - `src/pages/*.tsx`：每页一个文件。还没做的部分用 `<Coming wp="WPx">` 虚线卡片标出来，做完就删掉对应条目。
   - `src/data/types.ts`（数据模型，计划第 11 节）、`seed.ts`（虚构社团 Desert Founders Society）、`store.tsx`（只存在浏览器 localStorage，键 `platypus.v1.demo`，改了数据结构就把 `SCHEMA_VERSION` 加 1）、`rules.ts`（R01–R16，必须和 `docs/RULES.md` 一起改）。
-  - `src/lib/dates.ts`：日期工具。WP1 的规则引擎放在 `src/engine/`。
+  - `src/lib/dates.ts`：日期工具。
+- **规则引擎（WP1，`src/engine/`）：** 只有这里能算日期，AI 不能。
+  - `calendar.ts`：ASU 工作日、假期、期末周、学期（数据和出处见 `docs/RULES.md` 末尾）；干部的“工作日”还要去掉期末周、学期之间和本人的忙碌周。
+  - `playbooks.ts`：活动流程模板。来自 SEO 的 OA101/OA102/OA201、T-90/60/30/14 清单和 R01–R16。每个步骤有负责职能、锚点（`rule` = ASU 规则给出官方截止日；`target` = 社团惯例时点）、预计用时、依赖和适用条件；`buildEventNodes()` 把模板变成节点。
+  - `schedule.ts`：`computeSchedule(state)` 先倒推（官方截止日 − 社团缓冲、社团时点、下游最晚开始日的前一个工作日，取最早的），再顺推（人设的社团截止日；上游没完成就把下游往后推），最后给出问题：红色 = 赶不上 ASU 截止日或排到活动之后；黄色 = 过了社团截止日或最晚开始日、被上游推迟、没有负责人。每个日期都有一句“为什么”。`applySchedule()` 把日期写回节点，store 每次改动后都会调用。
+  - 演示从固定日期 **2026-10-22（周四）** 开始（`DEMO_TODAY`），所以示例活动的日期对每个人都一样；WP3 的模拟时钟从这里往后走。
+- **活动页（WP1）：** `src/pages/Events.tsx`，三种视图：流程图（`src/components/flow/FlowChart.tsx`，React Flow，按岗位分泳道，横轴是日期）、甘特图（`Gantt.tsx`）、列表；点步骤打开 `src/components/NodePanel.tsx` 侧栏，可改负责人、社团截止日、用时、RACI、Why、材料链接。
 - **测试：** `npm test`（Vitest 单元测试，`src/test/`）；`npm run e2e`（Playwright，`e2e/`，桌面和手机两种尺寸）；`npm run check` 三样一起跑。GitHub Actions（`.github/workflows/ci.yml`）每次推送都会跑。
 - **旧版：** v0.1 单文件原型移到了 `public/legacy/index.html`，网址 `/legacy/`，保留不动。
 - **服务器：** `netlify/functions/*.mts`：`/api/health`、`/api/ask`、`/api/parse-brief`、`/api/plan/draft`、`/api/replies/classify`；`netlify/lib/ai.mts` 是 AI 供应商适配器，换供应商只改环境变量。

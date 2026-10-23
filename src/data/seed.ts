@@ -1,42 +1,76 @@
-import type { DemoState, Node } from "./types"
-import { addDays, onOrAfterWeekday, toISO } from "../lib/dates"
+import type { DemoState, Event, Node, NodeStatus, Role } from "./types"
+import { buildEventNodes } from "../engine/playbooks"
+import { applySchedule } from "../engine/schedule"
 
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
+
+/**
+ * The demo starts on a fixed date, so every participant and every test sees the same plan
+ * (Networking Night on Thu Nov 19, USG food request: start Wed Oct 28, club deadline Fri Oct 30,
+ * ASU deadline Wed Nov 4, as in plan §4). The simulated clock (WP3) moves forward from here.
+ */
+export const DEMO_TODAY = "2026-10-22"
 
 /**
  * The fictional demo organization used for development and Phase 3 sessions.
  * Every name, email and number here is invented. No research data belongs in this file.
- *
- * Node dates below are provisional placeholders relative to "today". From WP1 on, the rule
- * engine recomputes officialDeadline / clubDeadline / latestStart for every node.
+ * Dates are never written here: the rule engine computes them from the playbook (src/engine).
  */
-export function seedDemo(today: string = toISO(new Date())): DemoState {
-  const nightDate = onOrAfterWeekday(addDays(today, 26), 4) // a Thursday about four weeks out
-  const speakerDate = onOrAfterWeekday(addDays(today, 70), 4)
-  const d = (n: number) => addDays(today, n)
+export function seedDemo(today: string = DEMO_TODAY): DemoState {
+  const roles: Role[] = [
+    { id: "r-pres", displayName: "President", fn: "president", holderId: "alex" },
+    { id: "r-fin", displayName: "Treasurer", fn: "finance", holderId: "maya" },
+    { id: "r-events", displayName: "Events lead", fn: "programs", holderId: "jordan" },
+    { id: "r-mkt", displayName: "Marketing lead", fn: "marketing", holderId: "sam" },
+    { id: "r-sec", displayName: "Secretary", fn: "secretary", holderId: "priya" },
+  ]
+  const events: Event[] = [
+    { id: "e-night", name: "Networking Night", date: "2026-11-19", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, goalId: "g-events", playbookId: "seo-event" },
+    { id: "e-speaker", name: "Spring Speaker Night", date: "2027-02-11", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, goalId: "g-events", playbookId: "seo-event" },
+  ]
 
-  const node = (n: Partial<Node> & Pick<Node, "id" | "title">): Node => ({
-    eventId: null,
-    ownerId: null,
-    approverRoleId: "r-pres",
-    consultedRoleIds: [],
-    informedRoleIds: [],
-    dependsOn: [],
-    tier: "light",
-    officialDeadline: null,
-    clubDeadline: null,
-    latestStart: null,
-    ruleIds: [],
-    status: "accepted",
-    acceptedOn: d(-10),
-    waitingOn: null,
-    draftLink: null,
-    why: "",
-    lastUpdate: d(-2),
-    ...n,
+  // Where each Networking Night step stands on the demo date.
+  const nightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
+    draft: { status: "done" },
+    mktneeds: { status: "done" },
+    budget: { status: "done" },
+    approve: { status: "done" },
+    registry: { status: "done" },
+    venue: { status: "done" },
+    quote: { status: "done" },
+    ritm: { status: "in_progress" },
+    foodex: { status: "waiting", waitingOn: "Approval from Student Unions" },
+    flyer: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" },
+    rsvp: { status: "unclaimed", ownerId: null },
+  }
+  const speakerStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
+    partner: { status: "in_progress" },
+    draft: { status: "accepted" },
+  }
+
+  const night = buildEventNodes(events[0], roles, { fundingAmount: 2000 }).map(n => {
+    const s = nightStatus[n.stepKey!] ?? { status: "accepted" as NodeStatus }
+    return { ...n, acceptedOn: s.status === "unclaimed" ? null : "2026-10-08", lastUpdate: "2026-10-20", ...s }
+  })
+  const speaker = buildEventNodes(events[1], roles).map(n => {
+    const s = speakerStatus[n.stepKey!]
+    return s ? { ...n, acceptedOn: "2026-10-19", lastUpdate: "2026-10-20", ...s } : n
   })
 
-  return {
+  const task = (n: Partial<Node> & Pick<Node, "id" | "title" | "fn" | "ownerId">, club: string, official: string | null = null): Node => ({
+    eventId: null, stepKey: null, phase: null, approverRoleId: "r-pres", consultedRoleIds: [], informedRoleIds: [], dependsOn: [],
+    tier: "light", estDays: 1, anchor: { kind: "fixed", official, club }, clubDeadlineOverride: null,
+    officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: "accepted", acceptedOn: "2026-10-01",
+    waitingOn: null, draftLink: null, why: "", source: "Standalone task", lastUpdate: "2026-10-18", ...n,
+  })
+  const standalone: Node[] = [
+    task({ id: "t-news", title: "Send the October newsletter", fn: "marketing", ownerId: "sam", status: "waiting", waitingOn: "Event photos from the secretary", why: "Monthly update to members.", lastUpdate: "2026-10-16" }, "2026-10-21"),
+    task({ id: "t-room", title: "Book the spring weekly meeting room", fn: "programs", ownerId: "jordan", ruleIds: ["R03"], why: "Spring bookings open early in November." }, "2026-11-03"),
+    task({ id: "t-sdc", title: "Check the officer list in Sun Devil Central", fn: "president", ownerId: "alex", ruleIds: ["R16"], why: "A new officer joined this month and must be listed." }, "2026-11-04"),
+    task({ id: "t-recon", title: "Reconcile September receipts", fn: "finance", ownerId: "maya", status: "in_progress", ruleIds: ["R11"], estDays: 2, why: "Two receipts are missing invoice addresses." }, "2026-10-26"),
+  ]
+
+  return applySchedule({
     schemaVersion: SCHEMA_VERSION,
     today,
     viewerId: "alex",
@@ -59,53 +93,28 @@ export function seedDemo(today: string = toISO(new Date())): DemoState {
         quietHours: { from: "22:00", to: "08:00" },
       },
     },
-    roles: [
-      { id: "r-pres", displayName: "President", fn: "president", holderId: "alex" },
-      { id: "r-fin", displayName: "Treasurer", fn: "finance", holderId: "maya" },
-      { id: "r-events", displayName: "Events lead", fn: "programs", holderId: "jordan" },
-      { id: "r-mkt", displayName: "Marketing lead", fn: "marketing", holderId: "sam" },
-      { id: "r-sec", displayName: "Secretary", fn: "secretary", holderId: "priya" },
-    ],
+    roles,
     people: [
       { id: "alex", name: "Alex Rivera", roleId: "r-pres", email: "alex.rivera@example.org", channels: ["email", "whatsapp"], remindAt: "morning", busyWeeks: [], careerGoal: "Product management", interests: "Startups, public speaking", personalBufferDays: 1 },
-      { id: "maya", name: "Maya Chen", roleId: "r-fin", email: "maya.chen@example.org", channels: ["whatsapp", "email"], remindAt: "evening", busyWeeks: [onOrAfterWeekday(d(14), 1)], careerGoal: "Corporate finance", interests: "Budgeting, analytics", personalBufferDays: 1 },
+      { id: "maya", name: "Maya Chen", roleId: "r-fin", email: "maya.chen@example.org", channels: ["whatsapp", "email"], remindAt: "evening", busyWeeks: ["2026-11-09"], careerGoal: "Corporate finance", interests: "Budgeting, analytics", personalBufferDays: 1 },
       { id: "jordan", name: "Jordan Patel", roleId: "r-events", email: "jordan.patel@example.org", channels: ["sms", "email"], remindAt: "morning", busyWeeks: [], careerGoal: "Event and operations management", interests: "Logistics, hospitality", personalBufferDays: 2 },
-      { id: "sam", name: "Sam Okafor", roleId: "r-mkt", email: "sam.okafor@example.org", channels: ["whatsapp"], remindAt: "evening", busyWeeks: [onOrAfterWeekday(d(7), 1)], careerGoal: "Brand marketing", interests: "Design, social media", personalBufferDays: 1 },
+      { id: "sam", name: "Sam Okafor", roleId: "r-mkt", email: "sam.okafor@example.org", channels: ["whatsapp"], remindAt: "evening", busyWeeks: ["2026-11-02"], careerGoal: "Brand marketing", interests: "Design, social media", personalBufferDays: 1 },
       { id: "priya", name: "Priya Nair", roleId: "r-sec", email: "priya.nair@example.org", channels: ["email"], remindAt: "morning", busyWeeks: [], careerGoal: "Consulting", interests: "Writing, research", personalBufferDays: 1 },
     ],
-    events: [
-      { id: "e-night", name: "Networking Night", date: nightDate, type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, goalId: "g-events", playbookId: "oa101-social" },
-      { id: "e-speaker", name: "Spring Speaker Night", date: speakerDate, type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, goalId: "g-events", playbookId: "oa101-speaker" },
-    ],
-    nodes: [
-      node({ id: "n-venue", eventId: "e-night", title: "Reserve the room in Mazevo", ownerId: "jordan", status: "done", ruleIds: ["R03"], latestStart: d(-14), clubDeadline: d(-12), officialDeadline: addDays(nightDate, -16), why: "Rooms near the MU fill up early." }),
-      node({ id: "n-registry", eventId: "e-night", title: "Register the event in Event Registry", ownerId: "alex", status: "done", ruleIds: ["R01"], latestStart: d(-10), clubDeadline: d(-8), officialDeadline: addDays(nightDate, -30), why: "Needed before the room booking can be confirmed." }),
-      node({ id: "n-quote", eventId: "e-night", title: "Get the caterer quote and insurance certificate", ownerId: "maya", status: "done", ruleIds: ["R06"], latestStart: d(-8), clubDeadline: d(-4), why: "The food request and the USG request both need the quote." }),
-      node({ id: "n-ritm", eventId: "e-night", title: "Add the RITM number to the room request", ownerId: "jordan", status: "in_progress", ruleIds: ["R04"], dependsOn: ["n-venue", "n-registry"], latestStart: d(-1), clubDeadline: d(1), officialDeadline: addDays(nightDate, -14), why: "Without it the room booking can be canceled." }),
-      node({ id: "n-foodex", eventId: "e-night", title: "Submit the Food Exception Request", ownerId: "maya", status: "waiting", waitingOn: "Approval from Student Unions", ruleIds: ["R06"], dependsOn: ["n-quote"], latestStart: d(-3), clubDeadline: d(2), officialDeadline: addDays(nightDate, -14), tier: "medium", why: "An outside caterer is not allowed without it." }),
-      node({ id: "n-flyer", eventId: "e-night", title: "Finish the event flyer", ownerId: "sam", status: "waiting", waitingOn: "Speaker headshot from the alumni panelist", ruleIds: ["R11"], latestStart: d(-2), clubDeadline: d(1), tier: "medium", why: "USG requires the flyer with the funding request." }),
-      node({ id: "n-usg", eventId: "e-night", title: "Submit the USG food request", ownerId: "maya", status: "accepted", ruleIds: ["R09", "R11"], dependsOn: ["n-quote", "n-flyer"], latestStart: d(0), clubDeadline: d(2), officialDeadline: addDays(nightDate, -14), tier: "medium", why: "Everything about the dinner waits on this approval." }),
-      node({ id: "n-rsvp", eventId: "e-night", title: "Publish the event and open RSVPs in Sun Devil Central", ownerId: null, status: "unclaimed", acceptedOn: null, latestStart: d(1), clubDeadline: d(4), why: "Catering needs an RSVP count; no RSVPs nearly cost one club its food order." }),
-      node({ id: "n-advisor", eventId: "e-night", title: "Confirm the advisor will attend", ownerId: "alex", status: "accepted", ruleIds: ["R02"], latestStart: d(5), clubDeadline: d(8), why: "Student-organization events need the advisor present." }),
-      node({ id: "n-headcount", eventId: "e-night", title: "Send the final headcount to the caterer", ownerId: "jordan", status: "accepted", dependsOn: ["n-rsvp"], latestStart: addDays(nightDate, -5), clubDeadline: addDays(nightDate, -4), why: "Order for about 40–50% of RSVPs; free evening events rarely fill." }),
-      node({ id: "n-closeout", eventId: "e-night", title: "Close out: reimbursement, attendance list, retro", ownerId: "maya", status: "accepted", ruleIds: ["R11", "R12"], latestStart: addDays(nightDate, 1), clubDeadline: addDays(nightDate, 3), tier: "medium", why: "Unspent or undocumented money causes problems next term." }),
-      node({ id: "n-news", title: "Send the October newsletter", ownerId: "sam", status: "waiting", waitingOn: "Event photos from the secretary", latestStart: d(-4), clubDeadline: d(-1), why: "Monthly update to members.", lastUpdate: d(-6) }),
-      node({ id: "n-room", title: "Book the spring weekly meeting room", ownerId: "jordan", status: "accepted", ruleIds: ["R03"], latestStart: d(3), clubDeadline: d(8), why: "Spring bookings open early in November." }),
-      node({ id: "n-sdc", title: "Check the officer list in Sun Devil Central", ownerId: "alex", status: "accepted", ruleIds: ["R16"], latestStart: d(5), clubDeadline: d(9), why: "A new officer joined this month and must be listed." }),
-      node({ id: "n-recon", title: "Reconcile September receipts", ownerId: "maya", status: "in_progress", ruleIds: ["R11"], latestStart: d(-3), clubDeadline: d(2), why: "Two receipts are missing invoice addresses." }),
-    ],
+    events,
+    nodes: [...night, ...speaker, ...standalone],
     nudges: [],
     contributions: [
-      { personId: "jordan", nodeId: "n-venue", points: 1, onTime: true },
-      { personId: "alex", nodeId: "n-registry", points: 1, onTime: true },
-      { personId: "maya", nodeId: "n-quote", points: 1, onTime: true },
+      { personId: "jordan", nodeId: "e-night:venue", points: 1, onTime: true },
+      { personId: "alex", nodeId: "e-night:registry", points: 1, onTime: true },
+      { personId: "maya", nodeId: "e-night:quote", points: 1, onTime: true },
     ],
     contacts: [
-      { id: "c-caterer", name: "Desert Table Catering (fictional)", organization: "Local caterer", relation: "Vendor", lastContact: d(-9), cadenceDays: 60, ownerRoleId: "r-fin", eventIds: ["e-night"] },
-      { id: "c-founder", name: "Riley Brooks (fictional)", organization: "Saguaro Labs (fictional)", relation: "Guest speaker", lastContact: d(-95), cadenceDays: 90, ownerRoleId: "r-pres", eventIds: ["e-speaker"] },
+      { id: "c-caterer", name: "Desert Table Catering (fictional)", organization: "Local caterer", relation: "Vendor", lastContact: "2026-10-13", cadenceDays: 60, ownerRoleId: "r-fin", eventIds: ["e-night"] },
+      { id: "c-founder", name: "Riley Brooks (fictional)", organization: "Saguaro Labs (fictional)", relation: "Guest speaker", lastContact: "2026-07-19", cadenceDays: 90, ownerRoleId: "r-pres", eventIds: ["e-speaker"] },
     ],
-    funding: [{ eventId: "e-night", source: "usg", amount: 2000, stage: "budget_request", spendBy: addDays(nightDate, 30) }],
+    funding: [{ eventId: "e-night", source: "usg", amount: 2000, stage: "budget_request", spendBy: "2026-12-19" }],
     handoff: null,
     changeSets: [],
-  }
+  })
 }

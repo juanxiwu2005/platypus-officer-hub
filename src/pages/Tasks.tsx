@@ -1,13 +1,13 @@
 import { useStore, useViewer } from "../data/store"
 import { Coming, PageHead } from "../components/Page"
 import { fmtShort } from "../lib/dates"
-import { STATUS_LABEL } from "./helpers"
+import { statusOf } from "./helpers"
 
 export default function Tasks() {
   const { state } = useStore()
   const { person } = useViewer()
   const mine = state.nodes.filter(n => n.ownerId === person.id && n.status !== "done")
-  const unclaimed = state.nodes.filter(n => n.status === "unclaimed")
+  const unclaimed = state.nodes.filter(n => n.status === "unclaimed" && !n.ownerId)
   return (
     <>
       <PageHead path="/tasks" lead="Your own tasks first. Every task has exactly one owner." />
@@ -20,7 +20,7 @@ export default function Tasks() {
                 <div>{n.title}</div>
                 <div className="small muted">{n.latestStart ? `start by ${fmtShort(n.latestStart)}` : ""}{n.clubDeadline ? ` · club deadline ${fmtShort(n.clubDeadline)}` : ""}</div>
               </div>
-              <span className={`tag ${STATUS_LABEL[n.status].tone}`}>{STATUS_LABEL[n.status].text}</span>
+              <span className={`tag ${statusOf(n).tone}`}>{statusOf(n).text}</span>
             </li>
           ))}
           {mine.length === 0 && <li className="muted">Nothing open. Nice.</li>}
