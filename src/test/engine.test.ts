@@ -152,6 +152,25 @@ describe("changing a date moves later steps and flags rule breaks", () => {
     expect(codes(s, "usg")).toContain("official_missed")
   })
 
+  it("close-out steps never start before the event, even with an early date", () => {
+    const s = setClub(base(), "closeout", "2026-11-10")
+    const p = plan(s, "closeout")
+    expect(p.latestStart >= "2026-11-20").toBe(true)
+    expect(p.latestStart <= p.club).toBe(true)
+  })
+
+  it("no change ever makes a step start after its own club deadline", () => {
+    const start = base()
+    const dates = ["2026-10-01", "2026-10-30", "2026-11-12", "2026-11-25"]
+    for (const n of start.nodes.filter(x => x.eventId)) {
+      for (const d of dates) {
+        const s = reducer(start, { type: "updateNode", id: n.id, patch: { clubDeadlineOverride: d } })
+        const sched = computeSchedule(s)
+        for (const m of s.nodes) expect(sched.nodes[m.id].latestStart <= sched.nodes[m.id].club).toBe(true)
+      }
+    }
+  })
+
   it("moving the event recomputes every date", () => {
     const s = reducer(base(), { type: "updateEvent", id: "e-night", patch: { date: "2026-12-03" } })
     expect(plan(s, "usg").official).toBe("2026-11-17")

@@ -202,6 +202,10 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     if (n.phase === "close" && start < afterEvent) {
       start = onOrAfter(afterEvent, e.work)
       sWhy = "The first business day after the event"
+      if (club < start) {
+        club = shiftWork(start, e.days, e.work)
+        clubWhy = "Close-out work can only start after the event"
+      }
     }
     let pushedBy: string | null = null
     let earliest: string | null = null
