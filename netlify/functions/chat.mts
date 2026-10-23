@@ -31,7 +31,11 @@ export default async (req: Request) => {
     if (!message) throw new BadRequest("Please type a message.")
     const c = body.context as Record<string, unknown> | undefined
     const rows = (value: unknown, key: string, cap: number) => (Array.isArray(value) ? value : []).slice(0, cap).filter(v => v && typeof v === "object").map(v => ({ id: str(v.id, 100), [key]: str(v[key], 120) })).filter(v => v.id)
-    const ctx = { events: rows(c?.events, "name", 40), nodes: rows(c?.nodes, "title", 400), people: rows(c?.people, "name", 50) } as CommandContext
+    const ctx = {
+      events: rows(c?.events, "name", 40), nodes: rows(c?.nodes, "title", 400), people: rows(c?.people, "name", 50),
+      contacts: rows(c?.contacts, "name", 200), roles: rows(c?.roles, "displayName", 40), tags: rows(c?.tags, "label", 40),
+      funding: (Array.isArray(c?.funding) ? c.funding : []).slice(0, 40).map(f => ({ eventId: str(f?.eventId, 100) })).filter(f => f.eventId),
+    } as CommandContext
     const local = parseCommand(message, ctx).filter(op => op.op !== "answer_question" && op.op !== "create_event")
     if (local.length) return json({ cards: [{ kind: "changes", ops: local }], source: "rules", model: null })
     const focus = body.focus && typeof body.focus === "object" ? { kind: str((body.focus as Record<string, unknown>).kind, 20), id: str((body.focus as Record<string, unknown>).id, 120), title: str((body.focus as Record<string, unknown>).title, 160) } : null

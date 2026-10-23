@@ -73,6 +73,8 @@ export function sanitizeCards(raw: unknown, ctx: CommandContext, allowedDates: S
       case "changes": {
         const ops = sanitizeOps(c.ops, ctx).filter(op => op.op !== "answer_question")
         if (ops.length) out.push({ kind: "changes", ops })
+        // Never let the reply promise a change that did not survive the checks.
+        else out.push({ kind: "text", text: "I couldn't turn that into a change I'm allowed to make. Try naming the exact task, event or partner." })
         break
       }
       case "nudge":

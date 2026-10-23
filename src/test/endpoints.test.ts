@@ -77,4 +77,11 @@ describe("server endpoint contract", () => {
     expect(r.cards[0].text).toContain(usg.clubDeadline === "2026-10-30" ? "2026-10-30" : "[date in plan]")
     expect(r.cards[0].text).not.toContain("2026-12-25")
   })
+  it("/api/chat keeps budget, partner and tag changes (ids for funding, contacts, roles and tags reach the server)", async () => {
+    const f = state.funding[0], c = state.contacts[0]
+    chat.mockResolvedValue({ data: { cards: [{ kind: "changes", ops: [{ op: "set_funding_amount", eventId: f.eventId, amount: 450 }, { op: "mark_contacted", contactId: c.id }, { op: "add_contact", name: "New Partner", organization: "X", relation: "Sponsor", ownerRoleId: state.roles[0].id, cadenceDays: 30 }] }, { kind: "changes", ops: [{ op: "set_funding_amount", eventId: "ghost", amount: 1 }] }] }, model: "mock", provider: "mock" })
+    const r = await (await chatFn(request({ message: "Raise the budget to $450", context: commandContext(state) }, "/api/chat"))).json()
+    expect(r.cards[0].ops.map((o: { op: string }) => o.op)).toEqual(["set_funding_amount", "mark_contacted", "add_contact"])
+    expect(r.cards[1]).toMatchObject({ kind: "text" })
+  })
 })
