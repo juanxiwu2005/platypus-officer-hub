@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { HashRouter } from "react-router-dom"
 import { reducer, loadState, saveState, STORAGE_KEY, StoreProvider } from "../data/store"
-import { seedDemo } from "../data/seed"
+import { SCHEMA_VERSION, seedDemo } from "../data/seed"
 import App from "../App"
 
 describe("store reducer", () => {
@@ -51,7 +51,7 @@ describe("storage", () => {
     window.localStorage.setItem(STORAGE_KEY, "{not json")
     expect(loadState().viewerId).toBe("alex")
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1 }))
-    expect(loadState().schemaVersion).toBe(2)
+    expect(loadState().schemaVersion).toBe(SCHEMA_VERSION)
   })
 })
 

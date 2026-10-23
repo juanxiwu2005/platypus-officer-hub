@@ -1,5 +1,7 @@
 import type { Channel, DemoState, Node } from "../data/types"
 import { daysBetween, fmtShort } from "./dates"
+import type { OfficerGrant } from "../data/types"
+import { officerUrl } from "./officerLinks"
 
 export const STATUS_ACTIONS = [
   { key: "done", label: "Done" }, { key: "waiting", label: "Waiting on…" },
@@ -22,9 +24,13 @@ export function nudgeBlocked(state: DemoState, n: Node): string | null {
   if (n.status === "done") return "This task is complete. No reminder is needed."
   if (!n.ownerId) return "Assign an owner first."
   const sent = state.nudges.filter(x => x.nodeId === n.id)
+  const simulated = state.protocolLog.filter(e => e.nodeId === n.id && e.kind === "reminder" && e.recipientIds.length).length
   if (sent.some(x => x.response !== null)) return "The owner has replied. Review their update before reminding again."
   if (sent.some(x => n.lastUpdate && n.lastUpdate > x.sentOn)) return "The task has a newer update. Review it before reminding again."
-  if (sent.length >= Math.min(3, state.org.settings.maxRemindersPerTask)) return "This task has reached its reminder limit."
+  if (sent.length + simulated >= Math.min(3, state.org.settings.maxRemindersPerTask)) return "This task has reached its reminder limit."
+  const weeklySimulated = state.protocolLog.filter(e => e.kind === "reminder" && e.recipientIds.includes(n.ownerId!) && daysBetween(e.scheduledOn, state.today) >= 0 && daysBetween(e.scheduledOn, state.today) < 7).length
+  const weeklySent = state.nudges.filter(x => state.nodes.find(t => t.id === x.nodeId)?.ownerId === n.ownerId && daysBetween(x.sentOn, state.today) >= 0 && daysBetween(x.sentOn, state.today) < 7).length
+  if (weeklySent + weeklySimulated >= 6) return "This owner has reached the weekly reminder limit."
   return null
 }
 
@@ -54,8 +60,9 @@ export function buildNudge(state: NudgeContext, n: Node, aiMeaning?: unknown): N
 export function taskReplyUrl(origin: string, nodeId: string, action?: string): string {
   return `${origin}/#/tasks?node=${encodeURIComponent(nodeId)}${action ? `&reply=${encodeURIComponent(action)}` : ""}`
 }
-export function messageText(draft: NudgeDraft, origin: string, nodeId: string): string {
-  return `${draft.subject}\n\n${draft.body}\n\nTask: ${taskReplyUrl(origin, nodeId)}\n${STATUS_ACTIONS.map(a => `${a.label}: ${taskReplyUrl(origin, nodeId, a.key)}`).join("\n")}`
+export function messageText(draft: NudgeDraft, origin: string, nodeId: string, grant?: OfficerGrant): string {
+  const url = (action?: string) => grant ? officerUrl(origin, grant, action) : taskReplyUrl(origin, nodeId, action)
+  return `${draft.subject}\n\n${draft.body}\n\nTask: ${url()}\n${STATUS_ACTIONS.map(a => `${a.label}: ${url(a.key)}`).join("\n")}`
 }
 /** Demo recipients are intentionally blank: the sender chooses a fictional/demo destination. */
 export function composeUrl(channel: Channel, message: string, subject: string): string {

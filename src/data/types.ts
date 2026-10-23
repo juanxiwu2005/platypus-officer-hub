@@ -102,6 +102,7 @@ export type Anchor =
   | { kind: "rule"; ruleId: string; days: number; unit: "calendar" | "business" }
   | { kind: "target"; days: number; unit: "calendar" | "business"; label: string }
   | { kind: "fixed"; official: string | null; club: string }
+  | { kind: "followup"; from: string; days: number; label: string }
 
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
@@ -139,6 +140,10 @@ export interface Node {
   /** Where the step comes from, e.g. "OA101 step 20" or "SEO T-14 checklist". */
   source: string
   lastUpdate: string | null
+  assignedOn?: string
+  completedOn?: string
+  recoveryFrom?: string
+  ownerVersion?: number
 }
 
 export interface Nudge {
@@ -156,6 +161,60 @@ export interface Contribution {
   nodeId: string
   points: number
   onTime: boolean
+  completedOn?: string
+}
+
+export interface ExtensionRequest {
+  id: string
+  nodeId: string
+  ownerId: string
+  requestedOn: string
+  requestedDate: string
+  previousDeadline: string | null
+  draftLink: string
+  reason: string
+  status: "pending" | "approved" | "rejected" | "cancelled"
+  reviewedBy?: string
+  reviewedOn?: string
+}
+export interface Notice {
+  id: string
+  recipientId: string
+  nodeId: string
+  kind: "ready" | "delay" | "approval" | "info" | "help" | "protocol" | "claim"
+  text: string
+  createdOn: string
+  read: boolean
+}
+export interface SilenceCase {
+  id: string
+  nodeId: string
+  ownerId: string
+  startedOn: string
+  closedOn: string | null
+  temporaryOwnerId?: string
+}
+export interface ProtocolEntry {
+  id: string
+  caseId: string
+  nodeId: string
+  day: number
+  scheduledOn: string
+  recipientIds: string[]
+  kind: "reminder" | "private_check" | "suggest_owner" | "recovery"
+  text: string
+  suggestedOwnerId?: string
+  retroNodeId?: string
+}
+export interface OfficerGrant {
+  id: string
+  nodeId: string
+  ownerId: string
+  ownerVersion: number
+  issuedOn: string
+  expiresOn: string
+  signature: string
+  usedOn: string | null
 }
 
 export interface Contact {
@@ -229,5 +288,12 @@ export interface DemoState {
   funding: Funding[]
   handoff: HandoffSeason | null
   changeSets: ChangeSet[]
+  extensionRequests: ExtensionRequest[]
+  notifications: Notice[]
+  silenceCases: SilenceCase[]
+  protocolLog: ProtocolEntry[]
+  officerGrants: OfficerGrant[]
+  /** Random per-browser demo signing key, generated at runtime; never an API/provider key. */
+  demoLinkKey: string
 }
 

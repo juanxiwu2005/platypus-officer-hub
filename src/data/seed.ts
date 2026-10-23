@@ -2,7 +2,7 @@ import type { DemoState, Event, Node, NodeStatus, Role } from "./types"
 import { buildEventNodes } from "../engine/playbooks"
 import { applySchedule } from "../engine/schedule"
 
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -50,11 +50,11 @@ export function seedDemo(today: string = DEMO_TODAY): DemoState {
 
   const night = buildEventNodes(events[0], roles, { fundingAmount: 2000 }).map(n => {
     const s = nightStatus[n.stepKey!] ?? { status: "accepted" as NodeStatus }
-    return { ...n, acceptedOn: s.status === "unclaimed" ? null : "2026-10-08", lastUpdate: "2026-10-20", ...s }
+    return { ...n, assignedOn: "2026-10-08", ownerVersion: 0, acceptedOn: s.status === "unclaimed" ? null : "2026-10-08", lastUpdate: "2026-10-20", ...s }
   })
   const speaker = buildEventNodes(events[1], roles).map(n => {
     const s = speakerStatus[n.stepKey!]
-    return s ? { ...n, acceptedOn: "2026-10-19", lastUpdate: "2026-10-20", ...s } : n
+    return s ? { ...n, assignedOn: "2026-10-19", ownerVersion: 0, acceptedOn: "2026-10-19", lastUpdate: "2026-10-20", ...s } : { ...n, assignedOn: today, ownerVersion: 0 }
   })
 
   const task = (n: Partial<Node> & Pick<Node, "id" | "title" | "fn" | "ownerId">, club: string, official: string | null = null): Node => ({
@@ -68,6 +68,7 @@ export function seedDemo(today: string = DEMO_TODAY): DemoState {
     task({ id: "t-room", title: "Book the spring weekly meeting room", fn: "programs", ownerId: "jordan", ruleIds: ["R03"], why: "Spring bookings open early in November." }, "2026-11-03"),
     task({ id: "t-sdc", title: "Check the officer list in Sun Devil Central", fn: "president", ownerId: "alex", ruleIds: ["R16"], why: "A new officer joined this month and must be listed." }, "2026-11-04"),
     task({ id: "t-recon", title: "Reconcile September receipts", fn: "finance", ownerId: "maya", status: "in_progress", ruleIds: ["R11"], estDays: 2, why: "Two receipts are missing invoice addresses." }, "2026-10-26"),
+    task({ id: "t-silence", title: "Confirm the workshop checklist", fn: "programs", ownerId: "jordan", lastUpdate: today, acceptedOn: today, assignedOn: today, why: "A fictional task for the ten-day follow-up walkthrough." }, "2026-10-27"),
   ]
 
   return applySchedule({
@@ -116,5 +117,7 @@ export function seedDemo(today: string = DEMO_TODAY): DemoState {
     funding: [{ eventId: "e-night", source: "usg", amount: 2000, stage: "budget_request", spendBy: "2026-12-19" }],
     handoff: null,
     changeSets: [],
+    extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [],
+    demoLinkKey: Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join(""),
   })
 }

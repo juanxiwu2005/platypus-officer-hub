@@ -22,7 +22,10 @@ export function weeklyStars(state: DemoState) {
   const monday = addDays(state.today, -(weekday === 0 ? 6 : weekday - 1))
   const scores = state.people.map(person => {
     const contributions = state.contributions.filter((c, i, all) => c.personId === person.id && all.findIndex(x => x.nodeId === c.nodeId && x.personId === c.personId) === i)
-    const valid = contributions.map(c => ({ c, n: state.nodes.find(n => n.id === c.nodeId) })).filter(x => x.n?.status === "done" && x.n.lastUpdate && x.n.lastUpdate >= monday && x.n.lastUpdate <= state.today)
+    const valid = contributions.map(c => ({ c, n: state.nodes.find(n => n.id === c.nodeId) })).filter(x => {
+      const when = x.c.completedOn ?? x.n?.completedOn ?? x.n?.lastUpdate
+      return x.n?.status === "done" && when && when >= monday && when <= state.today
+    })
     return { person, points: valid.reduce((sum, x) => sum + x.c.points, 0), nodes: valid.map(x => x.n!) }
   })
   const top = Math.max(0, ...scores.map(s => s.points))

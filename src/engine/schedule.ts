@@ -1,6 +1,6 @@
 import type { DemoState, Event, Node, Person } from "../data/types"
 import { RULES } from "../data/rules"
-import { addDays, fmtLong } from "../lib/dates"
+import { addDays, daysBetween, fmtLong } from "../lib/dates"
 import {
   BREAKS, FINALS, HOLIDAYS, TERMS, findPeriod, isWeekend, onOrAfter, onOrBefore,
   personalWorkDay, shiftWork, skippedReasons, type WorkDay,
@@ -227,6 +227,13 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
       sWhy = `The business day after “${u.title}” finishes`
     } else pushedBy = null
 
+    if (n.recoveryFrom && n.status !== "done" && start < n.recoveryFrom) {
+      start = onOrAfter(n.recoveryFrom, e.work)
+      club = shiftWork(start, e.days, e.work)
+      clubWhy = "Recovery plan approved by the president; ASU deadline stays unchanged"
+      sWhy = "First available working day in the approved recovery plan"
+    }
+
     out.nodes[n.id] = {
       id: n.id,
       official: r.official?.date ?? null,
@@ -245,10 +252,14 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
 function planStandalone(ctx: Ctx, n: Node, out: Schedule) {
   const a = n.anchor
   const e = effortOf(ctx, n)
-  const fixedClub = a?.kind === "fixed" ? a.club : n.clubDeadline ?? ctx.state.today
+  const fixedClub = a?.kind === "fixed" ? a.club : a?.kind === "followup" ? onOrBefore(addDays(a.from, a.days)) : n.clubDeadline ?? ctx.state.today
   const official = a?.kind === "fixed" ? a.official : null
-  const club = n.clubDeadlineOverride ?? fixedClub
-  const start = shiftWork(club, -e.days, e.work)
+  let club = n.clubDeadlineOverride ?? fixedClub
+  let start = shiftWork(club, -e.days, e.work)
+  if (n.recoveryFrom && n.status !== "done" && start < n.recoveryFrom) {
+    start = onOrAfter(n.recoveryFrom, e.work)
+    club = shiftWork(start, e.days, e.work)
+  }
   out.nodes[n.id] = {
     id: n.id,
     official,
@@ -257,7 +268,7 @@ function planStandalone(ctx: Ctx, n: Node, out: Schedule) {
     recommendedClub: fixedClub,
     explain: {
       official: official ? "Fixed deadline" : null,
-      club: n.clubDeadlineOverride ? `Set by a person (was ${fmtLong(fixedClub)})` : "Set when the task was created",
+      club: n.recoveryFrom ? "Recovery plan approved by the president" : n.clubDeadlineOverride ? `Set by a person (was ${fmtLong(fixedClub)})` : a?.kind === "followup" ? a.label : "Set when the task was created",
       latestStart: startWhy(club, n, e, start),
     },
     pushedBy: null,
@@ -295,6 +306,8 @@ function nodeIssues(
   else if (n.status === "unclaimed") {
     const p = ownerOf(ctx, n)
     out.push({ code: "not_claimed", severity: "info", text: `Waiting for ${p?.name.split(" ")[0] ?? "the owner"} to claim it.` })
+    if (daysBetween(n.assignedOn ?? n.lastUpdate ?? ctx.state.today, today) >= 2)
+      out.push({ code: "claim_overdue", severity: "warn", text: "Not claimed within 48 hours. Ask the president to check the handover privately." })
   }
   return out
 }

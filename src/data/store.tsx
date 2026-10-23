@@ -6,6 +6,10 @@ import { nudgeBlocked } from "../lib/nudges"
 import type { Channel } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
+import { advanceClock } from "../engine/followup"
+import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type ReplyInput, type TaskReply } from "./taskWorkflow"
+import { usableGrant } from "../lib/officerLinks"
+import type { OfficerGrant } from "./types"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -29,6 +33,15 @@ export type Action =
   | { type: "draftChanges"; changeSet: ChangeSet }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
   | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string }
+  | { type: "claimTask"; nodeId: string }
+  | { type: "replyTask"; nodeId: string; reply: TaskReply; input?: ReplyInput }
+  | { type: "reviewExtension"; id: string; approve: boolean }
+  | { type: "advanceClock"; days: number }
+  | { type: "markNoticeRead"; id: string }
+  | { type: "temporaryOwner"; entryId: string }
+  | { type: "approveRecovery"; entryId: string }
+  | { type: "issueOfficerGrant"; grant: OfficerGrant }
+  | { type: "officerAction"; token: string; reply: TaskReply | "claim"; input?: ReplyInput }
 
 const NODE_FIELDS: (keyof NodePatch)[] = ["ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
@@ -36,7 +49,7 @@ const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fr
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   const patch = pick(raw, NODE_FIELDS)
   if (patch.estDays !== undefined) patch.estDays = Math.max(0, Math.min(30, Math.round(Number(patch.estDays) || 0)))
-  return {
+  let next: DemoState = {
     ...state,
     nodes: state.nodes.map(n => {
       if (n.id !== id) return n
@@ -45,10 +58,19 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
       if ("ownerId" in patch && patch.ownerId !== n.ownerId && n.status !== "done") {
         next.status = "unclaimed"
         next.acceptedOn = null
+        next.assignedOn = state.today
+        next.ownerVersion = (n.ownerVersion ?? 0) + 1
       }
       return next
     }),
   }
+  const old = state.nodes.find(n => n.id === id)
+  if (old && "ownerId" in patch && patch.ownerId !== old.ownerId) {
+    next = closeSilence(next, id)
+    next.extensionRequests = next.extensionRequests.map(r => r.nodeId === id && r.status === "pending" ? { ...r, status: "cancelled" } : r)
+    if (patch.ownerId) next = addNotices(next, id, [patch.ownerId], "claim", `Please claim “${old.title}” to confirm the handover.`, `assigned:${id}:${state.today}:${next.notifications.length}`)
+  }
+  return next
 }
 
 export function reducer(state: DemoState, action: Action): DemoState {
@@ -62,7 +84,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
     case "replace":
       return applySchedule(action.state)
     case "updateNode":
-      return state.nodes.some(n => n.id === action.id) ? applySchedule(updateNode(state, action.id, action.patch)) : state
+      return canLead(state) && state.nodes.some(n => n.id === action.id) ? applySchedule(updateNode(state, action.id, action.patch)) : state
     case "updateEvent": {
       const patch = pick(action.patch, ["date", "name", "headcount"])
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
@@ -102,6 +124,40 @@ export function reducer(state: DemoState, action: Action): DemoState {
       const n = state.nodes.find(n => n.id === action.nodeId)
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
       return { ...state, nudges: [...state.nudges, { id: `nudge-${state.nudges.length}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null }] }
+    }
+    case "claimTask": return claimTask(state, action.nodeId, state.viewerId)
+    case "replyTask": return replyToTask(state, action.nodeId, state.viewerId, action.reply, action.input)
+    case "reviewExtension": return reviewExtension(state, action.id, action.approve)
+    case "advanceClock": return canLead(state) ? advanceClock(state, action.days) : state
+    case "markNoticeRead": return { ...state, notifications: state.notifications.map(n => n.id === action.id && n.recipientId === state.viewerId ? { ...n, read: true } : n) }
+    case "temporaryOwner": {
+      if (!canLead(state)) return state
+      const entry = state.protocolLog.find(e => e.id === action.entryId && e.kind === "suggest_owner")
+      const c = state.silenceCases.find(c => c.id === entry?.caseId && !c.closedOn)
+      if (!entry?.suggestedOwnerId || !c || c.temporaryOwnerId || !state.people.some(p => p.id === entry.suggestedOwnerId)) return state
+      const next = reducer(state, { type: "updateNode", id: entry.nodeId, patch: { ownerId: entry.suggestedOwnerId } })
+      return { ...next, silenceCases: next.silenceCases.map(x => x.id === c.id ? { ...c, temporaryOwnerId: entry.suggestedOwnerId } : x) }
+    }
+    case "approveRecovery": {
+      if (!canLead(state)) return state
+      const entry = state.protocolLog.find(e => e.id === action.entryId && e.kind === "recovery")
+      const c = state.silenceCases.find(c => c.id === entry?.caseId && !c.closedOn)
+      const n = state.nodes.find(n => n.id === entry?.nodeId)
+      if (!c || !n || n.status === "done" || n.recoveryFrom) return state
+      return applySchedule({ ...state, nodes: state.nodes.map(x => x.id === n.id ? { ...x, recoveryFrom: state.today } : x) })
+    }
+    case "issueOfficerGrant": {
+      const g = action.grant
+      const n = state.nodes.find(n => n.id === g.nodeId)
+      if (!canLead(state) || !n || !n.ownerId || n.status === "done" || g.ownerId !== n.ownerId || g.ownerVersion !== (n.ownerVersion ?? 0) || g.issuedOn !== state.today || g.usedOn || !/^[a-f0-9]{64}$/.test(g.signature) || state.officerGrants.some(x => x.id === g.id)) return state
+      return { ...state, officerGrants: [...state.officerGrants, g] }
+    }
+    case "officerAction": {
+      const grant = usableGrant(state, action.token)
+      if (!grant) return state
+      const next = action.reply === "claim" ? claimTask(state, grant.nodeId, grant.ownerId) : replyToTask(state, grant.nodeId, grant.ownerId, action.reply, action.input)
+      if (next === state) return state
+      return { ...next, officerGrants: next.officerGrants.map(g => g.id === grant.id ? { ...g, usedOn: state.today } : g) }
     }
   }
 }
