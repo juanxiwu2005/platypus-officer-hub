@@ -13,6 +13,10 @@ Front-end prototype for an ASU Barrett honors thesis on a low-cost, AI-assisted 
 
 **Backend plan:** static site on Netlify + Netlify Functions at `/api/*` that call ASU's AIR models (OpenAI-compatible). API keys live only in Netlify environment variables, never in this repository. See the "How it works" page in the app.
 
+## 给接手的 AI / For any AI picking this up
+
+Start with `AGENTS.md`, then `docs/PROGRESS.md`. The approved product plan is `docs/PRODUCT_PLAN.md` (Chinese). v1 work happens on the `v1` branch; `main` is the live site and only changes with the owner's approval.
+
 ---
 
 **中文说明：** 这是论文 Phase 3 原型的前端代码。以后改代码只需要告诉 Claude 改什么：Claude 修改 GitHub 上的代码后，Netlify 会自动重新部署。仓库里没有任何研究数据，也不存放 API key。
