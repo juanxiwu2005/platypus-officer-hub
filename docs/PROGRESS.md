@@ -1,9 +1,9 @@
 # Platypus v1.0 进度
 
 **最后更新：** 2026-10-22（ChatGPT）  
-**当前阶段：** WP3 待验收（ChatGPT）；WP2 已完成。
+**当前阶段：** WP3 已完成；WP4 进行中（ChatGPT）。
 
-**下一步：** Juanxi 用手机验收 WP3；通过后开始 WP4 设置与团队。
+**下一步：** 完成 WP4 首次设置、设置页与团队页，交 Juanxi 验收。
 
 ## 工作包
 
@@ -14,8 +14,8 @@
 | WP0 地基 | 10/23–10/24 | 已完成 | Claude（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | React + TS + Vite；演示数据与重置；10 个页面；帮助页；13 个单元测试 + 26 个页面测试；CI；draft PR #1 |
 | WP1 引擎与流程图 | 10/24–10/27 | 已完成 | Claude（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/events | 规则引擎（`src/engine/`）；ASU 日历；活动模板（OA101/102/201 + T-90/60/30/14 + R01–R16）；泳道流程图、甘特图、列表；侧栏编辑；68 个单元测试 + 38 个页面测试 |
 | WP2 今日页与提醒 | 10/27–10/30 | 已完成 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app | 逐条审核的 `/api/command` 变更单；前三项风险与渠道草稿；`/api/nudge/draft`；活动条、目标、本周之星；120 个单元测试 + 50 个页面测试；固定命令 20/20 |
-| WP3 任务与干部端 | 10/30–11/2 | 待验收 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/tasks | 任务列表/看板/甘特；认领握手；四个状态；带草稿延期与社长审批；同浏览器一次性签名手机页；3/5/7/8/10 天私下跟进、RACI 和模拟时钟；146 个单元测试 + 62 个页面测试 |
-| WP4 设置与团队 | 11/2–11/4 | 未开始 | — | — | 首次设置 ≤ 5 分钟、设置页、团队页 |
+| WP3 任务与干部端 | 10/30–11/2 | 已完成 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/tasks | 任务列表/看板/甘特；认领握手；四个状态；带草稿延期与社长审批；同浏览器一次性签名手机页；3/5/7/8/10 天私下跟进、RACI 和模拟时钟；146 个单元测试 + 62 个页面测试 |
+| WP4 设置与团队 | 11/2–11/4 | 进行中 | ChatGPT（2026-10-22） | https://deploy-preview-1--platypus-officer-hub.netlify.app/#/settings | 首次设置 ≤ 5 分钟、设置页、团队页 |
 | WP5 经费、规则、交接、关系、预测 | 11/4–11/7 | 未开始 | — | — | 提交前检查、规则卡片、换届季、联系人、预测 |
 | WP6 定版 | 11/7–11/8 | 未开始 | — | — | 切 AIR 跑测试集、合并到 `main`（需 Juanxi 批准） |
 
@@ -33,6 +33,8 @@
 | 2026-10-22 | ASU 假期表按官方页面更正：12/31 不是假期；春假学校照常开放（v0.1 两处都算错了） | Claude（有出处，见 `docs/RULES.md`） |
 | 2026-10-22 | WP1 验收通过；授权 ChatGPT 在 v1 接续 WP2 | Juanxi |
 | 2026-10-22 | WP2 验收通过（Juanxi：“继续WP3”）；授权 ChatGPT 在 v1 接续 WP3 | Juanxi |
+
+| 2026-10-22 | WP3 验收通过（Juanxi：“继续WP4”）；授权 ChatGPT 在 v1 接续 WP4 | Juanxi |
 
 ## 等待外部的事
 
