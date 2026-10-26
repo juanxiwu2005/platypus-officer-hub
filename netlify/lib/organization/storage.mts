@@ -272,6 +272,8 @@ export async function archiveEvent(
       : randomUUID();
   const serverAt = new Date().toISOString();
   const event = {
+    dataMode: "fictional-demo",
+    actorVerification: actor === "user" ? "anonymous-browser" : "application",
     schemaVersion: 1,
     id,
     workspaceId,

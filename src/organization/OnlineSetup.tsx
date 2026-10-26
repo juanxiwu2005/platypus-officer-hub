@@ -369,7 +369,10 @@ export default function OnlineSetup() {
       return;
     }
     if (draft.step === 2) {
-      patch({ approvals: { ...draft.approvals, responsibilities: true } });
+      patch({
+        assignments: draft.assignments.map((a) => ({ ...a, confirmed: true })),
+        approvals: { ...draft.approvals, responsibilities: true },
+      });
       await run("member_workflow");
       return;
     }
