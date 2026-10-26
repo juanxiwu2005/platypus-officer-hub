@@ -8,6 +8,7 @@ import {
   store,
 } from "../lib/organization/storage.mts";
 import { json, readJSON, BadRequest } from "../lib/http.mts";
+import { historicalVersions } from "../lib/organization/v3.mts";
 const CHUNK = 786432;
 const safeId = (v: unknown) =>
   typeof v === "string" && /^[a-zA-Z0-9_-]{1,180}$/.test(v)
@@ -57,6 +58,8 @@ export default async (req: Request) => {
       url = new URL(req.url);
     if (req.method === "GET") {
       const action = url.searchParams.get("action") || "index";
+      if (action === "history")
+        return json({ versions: await historicalVersions(entry.workspaceId) });
       if (action === "latest_ai") {
         const pointer = await blobs.getWithMetadata(
           `diagnostics/${entry.workspaceId}/latest-ai`,

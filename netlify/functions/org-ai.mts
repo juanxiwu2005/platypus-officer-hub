@@ -2,12 +2,18 @@ import {
   v3Request,
   validateV3,
   historicalContext,
+  historyRevision,
+  validateSelection,
 } from "../lib/organization/v3.mts";
 import { store } from "../lib/organization/storage.mts";
 import { flowResponseSchema } from "../../src/organization/flowResponseSchema.ts";
 import type { Config } from "@netlify/functions";
 import { ZodError } from "zod";
-import { chatJSON, AIError } from "../lib/ai.mts";
+import { chatJSON, AIError, getConfig } from "../lib/ai.mts";
+import {
+  routeTask, MODEL_POLICY_VERSION,
+} from "../../src/organization/modelPolicy.ts";
+import { stable } from "../../src/organization/setupLogic.ts";
 import { json, readJSON } from "../lib/http.mts";
 import {
   archiveEvent,
@@ -25,8 +31,35 @@ import {
   validateAiOutput,
 } from "../../src/organization/validation.ts";
 import { referenceMemberFlow } from "../../src/organization/presets.ts";
+const setting = (name: string) => {
+  const runtime = globalThis as {
+    Netlify?: { env: { get(name: string): string | undefined } };
+  };
+  return (runtime.Netlify?.env.get(name) ?? process.env[name] ?? "").trim();
+};
+/** Fingerprint effective execution settings, never credentials or other bindings. */
+export function setupCacheProfile(
+  stage: Stage, deep: boolean, responseSchema: unknown,
+) {
+  const config = getConfig();
+  const route = setting("AI_PRESET") === "asu_air" && setting("AI_MODEL_ROUTING") !== "off"
+    ? routeTask(`setup.${stage}`, deep ? "deep" : "fast")
+    : null;
+  return {
+    provider: config.provider,
+    baseUrl: config.baseUrl,
+    model: route?.model ?? config.model,
+    routeVersion: MODEL_POLICY_VERSION,
+    routingEnabled: !!route,
+    reasoningEffort: route?.reasoningEffort ?? (setting("AI_REASONING_EFFORT") ||
+      (setting("AI_PRESET") === "asu_air" ? "none" : "")),
+    jsonMode: config.jsonMode,
+    responseSchema,
+  };
+}
 export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
   let workspaceId = "";
+  let phase = "request";
   let release: (() => Promise<unknown>) | null = null;
   try {
     checkOrigin(req);
@@ -51,15 +84,29 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
         ? body.instruction.slice(0, 1500)
         : "";
     const v3 = entry.draft.uiVersion === 3;
-    const request = v3 ? v3Request(entry.draft, stage, instruction) : null;
+    let request;
+    try {
+      const selection = v3
+        ? validateSelection(entry.draft, body.selection)
+        : undefined;
+      request = v3 ? v3Request(entry.draft, stage, instruction, selection) : null;
+    } catch (e) {
+      throw new SetupError((e as Error).message);
+    }
     if (
       request &&
       stage === "edit" &&
       /histor|previous|restore|earlier|以前|历史|恢复/i.test(instruction)
     )
-      Object.assign(request.input, {
-        history: await historicalContext(workspaceId),
-      });
+      try {
+        Object.assign(request.input, {
+          history: await historicalContext(
+            workspaceId, historyRevision(instruction),
+          ),
+        });
+      } catch (e) {
+        throw new SetupError((e as Error).message, 404);
+      }
     const input = request
       ? JSON.stringify(request.input)
       : JSON.stringify({
@@ -78,7 +125,13 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
       request?.system ?? PROMPTS[stage as keyof typeof PROMPTS]?.system;
     if (!system) throw new SetupError("This step no longer requires AI.");
     const promptVersion = request?.version ?? PROMPT_VERSION;
-    const cacheKey = `ai-cache/${workspaceId}/${digest(JSON.stringify([promptVersion, system, JSON.parse(input), body.deep === true]))}`;
+    const cacheKey = `ai-cache/${workspaceId}/${digest(stable([
+      promptVersion,
+      system,
+      JSON.parse(input),
+      body.deep === true,
+      setupCacheProfile(stage, body.deep === true, request?.responseSchema),
+    ]))}`;
     const cache = v3
       ? await store().getWithMetadata(cacheKey, { type: "json" })
       : null;
@@ -99,6 +152,7 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
         data: unknown;
         run: Record<string, unknown>;
       };
+      phase = "semantic_validation";
       const data = validateV3(stage, prior.data, entry.draft);
       const run = {
         ...prior.run,
@@ -108,6 +162,7 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
         durationMs: 0,
         cached: true,
       } as Parameters<typeof recordRun>[2];
+      phase = "persistence";
       const saved = await recordRun(req, entry.revision, run);
       await archiveEvent(
         workspaceId,
@@ -122,6 +177,7 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
       });
     }
     release = await acquireAiLease(req, timeoutMs * 2 + 30000);
+    phase = "provider";
     const reply = await chatJSON({
       task: `setup.${stage}`,
       mode: body.deep === true ? "deep" : "fast",
@@ -165,6 +221,7 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
       { stage, reply },
       "ai",
     );
+    phase = "semantic_validation";
     const data = v3
       ? validateV3(stage, reply.data, entry.draft)
       : validateAiOutput(stage, reply.data, entry.draft, !!instruction);
@@ -197,6 +254,7 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
           : undefined,
       cached: false,
     };
+    phase = "persistence";
     if (v3) await store().setJSON(cacheKey, { data: reply.data, run });
     const saved = await recordRun(req, entry.revision, run);
     return json({
@@ -211,6 +269,7 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
         "ai.rejected",
         {
           message: (e as Error).message,
+          classification: e instanceof ZodError ? "schema" : phase,
           code: e instanceof AIError ? e.code : undefined,
           diagnostics: e instanceof AIError ? e.diagnostics : undefined,
         },

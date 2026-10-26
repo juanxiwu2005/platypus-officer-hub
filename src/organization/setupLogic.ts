@@ -112,13 +112,25 @@ export function scopeKey(d: SetupV3, stage: Stage): string {
   if (stage === "constitution")
     return stable({ source: d.source?.checksum ?? "none" });
   return stable({
-    organization: { name: d.name, mission: d.mission },
-    roles: roleContext(d),
-    departments: d.departments
-      .map(({ id, name }) => ({ id, name }))
-      .sort((a, b) => a.id.localeCompare(b.id)),
-    source: d.source?.checksum ?? "none",
+    // Labels, colors, layout and the source filename do not change ownership.
+    // Re-reading a document changes this key only when its reviewed meaning changes.
+    semanticsVersion: 2,
+    mission: semanticText(d.mission),
+    roles: [...d.roles]
+      .sort((a, b) => a.id.localeCompare(b.id))
+      .map((r) => ({ id: r.id, ...roleMeaning(r) })),
   });
+}
+function semanticText(value: string) {
+  return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");
+}
+function roleMeaning(role: OrgRole) {
+  return {
+    departmentId: role.departmentId,
+    parentRoleId: role.parentRoleId ?? null,
+    description: semanticText(role.description ?? ""),
+    responsibilities: [...new Set(role.responsibilities.map(semanticText))].sort(),
+  };
 }
 export function hierarchyError(roles: OrgRole[]): string | null {
   const by = new Map(roles.map((r) => [r.id, r]));
@@ -152,6 +164,11 @@ export function validateStructure(d: SetupV3) {
       )
     )
       throw new Error("Choose existing roles for each workflow step.");
+    if (
+      d.memberFlow.nodes.some((n) => n.accountableRoleId &&
+        !d.roles.some((r) => r.id === n.accountableRoleId))
+    )
+      throw new Error("Choose an existing accountable role for each workflow step.");
   }
   return d;
 }
@@ -161,53 +178,53 @@ export function reconcile(before: SetupV3, next: SetupV3): SetupV3 {
     before.roles
       .filter((r) => {
         const n = next.roles.find((x) => x.id === r.id);
-        return (
-          !n ||
-          stable([
-            r.departmentId,
-            r.parentRoleId,
-            r.description,
-            r.responsibilities,
-          ]) !==
-            stable([
-              n.departmentId,
-              n.parentRoleId,
-              n.description,
-              n.responsibilities,
-            ])
-        );
+        return !n || stable(roleMeaning(r)) !== stable(roleMeaning(n));
       })
       .map((r) => r.id),
   );
-  const cleanFlow = (flow: OrgFlow | null) =>
-    flow
-      ? {
-          ...flow,
-          nodes: flow.nodes.map((n) =>
-            n.roleIds.some((id) => changed.has(id)) ||
-            (n.accountableRoleId && !roleIds.has(n.accountableRoleId))
-              ? {
-                  ...n,
-                  roleIds: n.roleIds.filter((id) => roleIds.has(id)),
-                  ...(n.accountableRoleId && !roleIds.has(n.accountableRoleId)
-                    ? { accountableRoleId: null }
-                    : {}),
-                  needsReview: true,
-                }
-              : n,
-          ),
-          raci: flow.raci.map((row) => ({
-            ...row,
-            responsible: row.responsible.filter((id) => roleIds.has(id)),
-            accountable:
-              row.accountable && roleIds.has(row.accountable)
-                ? row.accountable
-                : null,
-            consulted: row.consulted.filter((id) => roleIds.has(id)),
-            informed: row.informed.filter((id) => roleIds.has(id)),
-          })),
-        }
-      : null;
+  const missionChanged =
+    semanticText(before.mission) !== semanticText(next.mission);
+  const cleanFlow = (flow: OrgFlow | null) => {
+    if (!flow) return null;
+    // Only a lost prerequisite owner requires its immediate consumers to review
+    // their handoff. A wording change does not invalidate every descendant.
+    const lostOwner = new Set(
+      flow.nodes
+        .filter((n) => n.roleIds.length > 0 &&
+          n.roleIds.every((id) => !roleIds.has(id)))
+        .map((n) => n.id),
+    );
+    return {
+      ...flow,
+      nodes: flow.nodes.map((n) =>
+        missionChanged ||
+        n.roleIds.some((id) => changed.has(id)) ||
+        (n.accountableRoleId && changed.has(n.accountableRoleId)) ||
+        (n.dependsOn.length > 0 && (n.dependencyMode === "all"
+          ? n.dependsOn.some((id) => lostOwner.has(id))
+          : n.dependsOn.every((id) => lostOwner.has(id))))
+          ? {
+              ...n,
+              roleIds: n.roleIds.filter((id) => roleIds.has(id)),
+              ...(n.accountableRoleId && !roleIds.has(n.accountableRoleId)
+                ? { accountableRoleId: null }
+                : {}),
+              needsReview: true,
+            }
+          : n,
+      ),
+      raci: flow.raci.map((row) => ({
+        ...row,
+        responsible: row.responsible.filter((id) => roleIds.has(id)),
+        accountable:
+          row.accountable && roleIds.has(row.accountable)
+            ? row.accountable
+            : null,
+        consulted: row.consulted.filter((id) => roleIds.has(id)),
+        informed: row.informed.filter((id) => roleIds.has(id)),
+      })),
+    };
+  };
   return {
     ...next,
     roles: next.roles.map((r) => ({
@@ -458,6 +475,12 @@ export function compileOrganization(draft: SetupDraft) {
     throw new Error(
       "Complete or explicitly skip the responsibility check first.",
     );
+  const pending = d.memberFlow.nodes.filter((n) => n.needsReview);
+  if (pending.length)
+    throw new Error(
+      `Review the affected activity steps before confirming: ${pending
+        .slice(0, 3).map((n) => n.title).join(", ")}. Mark each reviewed after deciding whether to keep or change it.`,
+    );
   const compiled = {
     format: "platypus.organization",
     schemaVersion: 1,
@@ -497,10 +520,12 @@ export function compileOrganization(draft: SetupDraft) {
         templates: ["social", "tabling"],
       },
     },
-    unresolved:
-      d.riskCheck.status === "skipped"
-        ? ["Responsibility check was skipped by the user."]
-        : [],
+    unresolved: [
+      ...(d.riskCheck.status === "skipped"
+        ? ["Responsibility check was skipped by the user."] : []),
+      ...d.memberFlow.nodes.filter((n) => n.roleIds.length === 0)
+        .map((n) => `No responsible role assigned to activity step ${n.id}: ${n.title}`),
+    ],
   };
   return compiled;
 }

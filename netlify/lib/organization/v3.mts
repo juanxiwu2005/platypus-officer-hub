@@ -15,13 +15,39 @@ import {
   mergeConstitution,
 } from "../../../src/organization/setupLogic.ts";
 import {
+  SetupSelectionSchema,
   type SetupDraft,
+  type SetupSelection,
   type Stage,
 } from "../../../src/organization/schema.ts";
 import { SETUP_PROMPTS, VERSION } from "./prompts.mts";
 import { stripDates } from "../../../src/lib/chatCards.ts";
 import { store } from "./storage.mts";
-export function v3Request(raw: SetupDraft, stage: Stage, instruction: string) {
+export function validateSelection(raw: SetupDraft, value?: unknown): SetupSelection | undefined {
+  if (value === undefined) return undefined;
+  const selection = SetupSelectionSchema.parse(value);
+  const screen = [null, "team", "responsibilities", "workflow", "review"][raw.step];
+  if (selection.screen !== screen)
+    throw new Error("The selected screen is no longer current. Reload the setup before asking AI.");
+  if ((selection.entityType === null) !== (selection.entityId === null))
+    throw new Error("Select an existing item, or clear both selection fields.");
+  if (selection.entityType) {
+    const allowed = selection.screen === "workflow"
+      ? ["node"] : selection.screen === "review"
+        ? ["role", "department", "node"] : ["role", "department"];
+    if (!allowed.includes(selection.entityType))
+      throw new Error("This item does not belong to the current setup screen.");
+    const d = upgrade(raw);
+    const exists = selection.entityType === "role"
+      ? d.roles.some((r) => r.id === selection.entityId)
+      : selection.entityType === "department"
+        ? d.departments.some((dep) => dep.id === selection.entityId)
+        : d.memberFlow?.nodes.some((n) => n.id === selection.entityId);
+    if (!exists) throw new Error("The selected item is not in this workspace configuration.");
+  }
+  return selection;
+}
+export function v3Request(raw: SetupDraft, stage: Stage, instruction: string, selection?: unknown) {
   if (!(stage in SETUP_PROMPTS))
     throw new Error("This setup step no longer requires AI.");
   const d = upgrade(raw);
@@ -57,6 +83,7 @@ export function v3Request(raw: SetupDraft, stage: Stage, instruction: string) {
     departments: d.departments.map(({ id, name }) => ({ id, name })),
     roles,
     instruction,
+    ...(selection !== undefined ? { selection: validateSelection(raw, selection) } : {}),
     ...(stage === "constitution"
       ? { constitution: d.source?.text ?? null }
       : {}),
@@ -235,9 +262,31 @@ export function validateV3(stage: Stage, raw: unknown, draft: SetupDraft) {
   }
   throw new Error("Unsupported AI step.");
 }
-export async function historicalContext(workspaceId: string) {
+export type HistoricalVersion = {
+  revision: number;
+  at: string;
+  organization: { name: string; mission: string };
+  departments: NonNullable<SetupDraft["departments"]>;
+  roles: ReturnType<typeof roleContext>;
+  workflow: { title: string; nodes: Pick<NonNullable<SetupDraft["memberFlow"]>["nodes"][number], "id" | "title" | "roleIds" | "dependsOn" | "dependencyMode">[] } | null;
+};
+export async function historicalVersions(workspaceId: string): Promise<HistoricalVersion[]> {
   const item = await store().getWithMetadata(`history/${workspaceId}`, {
     type: "json",
   });
-  return ((item?.data as unknown[] | undefined) ?? []).slice(-6);
+  return ((item?.data as HistoricalVersion[] | undefined) ?? []).slice(-20);
+}
+export async function historicalContext(workspaceId: string, revision?: number) {
+  const versions = await historicalVersions(workspaceId);
+  if (revision === undefined) return versions.slice(-6);
+  const selected = versions.find((v) => v.revision === revision);
+  if (!selected) throw new Error("That historical revision is not available in this workspace's recent history. Select another version.");
+  return [selected];
+}
+export function historyRevision(instruction: string): number | undefined {
+  const match = /\bUse history revision (\d+):/i.exec(instruction);
+  if (!match) return undefined;
+  const revision = Number(match[1]);
+  if (!Number.isSafeInteger(revision)) throw new Error("Invalid historical revision.");
+  return revision;
 }

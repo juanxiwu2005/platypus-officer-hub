@@ -221,21 +221,34 @@ export async function saveSession(
   };
   if (stable(compact(current.entry.draft)) !== stable(compact(draft))) {
     const historyKey = `history/${entry.workspaceId}`;
-    const previous = await store().getWithMetadata(historyKey, {
-      type: "json",
-    });
-    const items = (previous?.data as unknown[] | undefined) ?? [];
-    await store().setJSON(
-      historyKey,
-      [
-        ...items.slice(-19),
-        {
-          at: current.entry.updatedAt,
-          revision: current.entry.revision,
-          ...compact(current.entry.draft),
-        },
-      ],
-      previous ? { onlyIfMatch: previous.etag } : { onlyIfNew: true },
+    const version = {
+      at: current.entry.updatedAt,
+      revision: current.entry.revision,
+      ...compact(current.entry.draft),
+    };
+    // A later save may commit while this post-save index is still being written.
+    // Merge by revision and retry its CAS instead of silently losing a version.
+    let indexed = false;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const previous = await store().getWithMetadata(historyKey, {
+        type: "json",
+      });
+      const items = (previous?.data as typeof version[] | undefined) ?? [];
+      const result = await store().setJSON(
+        historyKey,
+        [...items.filter((item) => item.revision !== version.revision), version]
+          .sort((a, b) => a.revision - b.revision)
+          .slice(-20),
+        previous ? { onlyIfMatch: previous.etag } : { onlyIfNew: true },
+      );
+      if (result.modified) {
+        indexed = true;
+        break;
+      }
+    }
+    if (!indexed) throw new SetupError(
+      "Your settings were saved, but recent history could not be indexed. Reload to reconnect before continuing; the full archive is retained.",
+      503,
     );
   }
   if (confirm && draft.uiVersion === 3)
