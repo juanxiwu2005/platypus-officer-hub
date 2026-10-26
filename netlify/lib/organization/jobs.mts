@@ -18,6 +18,7 @@ export type AiJob = {
   revision: number;
   instruction: string;
   deep?: boolean;
+  clientPreparationMs?: number;
   status: "queued" | "running" | "done" | "error";
   startedAt: number;
   result?: unknown;
@@ -101,6 +102,10 @@ export async function startAiJob(req: Request) {
       revision: entry.revision,
       instruction,
       deep: body.deep === true,
+      clientPreparationMs:
+        typeof body.clientPreparationMs === "number"
+          ? Math.max(0, Math.min(body.clientPreparationMs, 600000))
+          : undefined,
       status: "queued",
       startedAt: Date.now(),
     };
@@ -176,7 +181,8 @@ export async function processAiJob(
           revision: job.revision,
           instruction: job.instruction,
           deep: job.deep === true,
-          queuedMs:Date.now()-job.startedAt,
+          queuedMs: Date.now() - job.startedAt,
+          clientPreparationMs: job.clientPreparationMs,
         }),
       }),
       180000,

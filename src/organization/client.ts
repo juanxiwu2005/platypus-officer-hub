@@ -51,12 +51,14 @@ export async function prepare(
   revision: number,
   instruction = "",
   deep = false,
+  clientPreparationMs = 0,
 ): Promise<Prepared> {
   const job = await api<Job | Prepared>("/api/org/ai", {
     stage,
     revision,
     instruction,
     deep,
+    clientPreparationMs,
   });
   if ("result" in job) return job;
   if (job.status === "done" && job.response) return job.response;

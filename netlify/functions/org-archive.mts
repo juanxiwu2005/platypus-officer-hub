@@ -57,6 +57,24 @@ export default async (req: Request) => {
       url = new URL(req.url);
     if (req.method === "GET") {
       const action = url.searchParams.get("action") || "index";
+      if (action === "latest_ai") {
+        const pointer = await blobs.getWithMetadata(
+          `diagnostics/${entry.workspaceId}/latest-ai`,
+          { type: "json" },
+        );
+        if (!pointer)
+          throw new SetupError(
+            "No new AI response diagnostics are available yet.",
+            404,
+          );
+        const id = safeId((pointer.data as { eventId: string }).eventId);
+        const event = await blobs.getWithMetadata(prefix + "events/" + id, {
+          type: "json",
+        });
+        if (!event)
+          throw new SetupError("AI diagnostic record not found.", 404);
+        return json(event.data);
+      }
       if (action === "event") {
         const id = safeId(url.searchParams.get("id")),
           item = await blobs.getWithMetadata(prefix + "events/" + id, {
@@ -114,23 +132,33 @@ export default async (req: Request) => {
     if (b.action === "events") {
       if (!Array.isArray(b.events) || b.events.length > 25)
         throw new SetupError("Send at most 25 activity records at a time.");
-      for (const raw of b.events) {
+      const records = b.events.map((raw: unknown) => {
         const e = raw as Record<string, unknown>,
           id = safeId(e.id);
         if (typeof e.kind !== "string" || e.kind.length > 100)
           throw new SetupError("Invalid activity type.");
-        await archiveEvent(
-          entry.workspaceId,
-          e.kind,
-          secretSafe({
+        return {
+          id,
+          kind: e.kind,
+          payload: secretSafe({
             clientAt: e.clientAt,
             sessionId: e.sessionId,
             sequence: e.sequence,
             details: e.details,
           }),
-          "user",
-          id,
+        };
+      });
+      // Independent append-only IDs can be written together; retries keep their IDs.
+      for (let i = 0; i < records.length; i += 5) {
+        const results = await Promise.allSettled(
+          records
+            .slice(i, i + 5)
+            .map((e: { id: string; kind: string; payload: unknown }) =>
+              archiveEvent(entry.workspaceId, e.kind, e.payload, "user", e.id),
+            ),
         );
+        const failure = results.find((r) => r.status === "rejected");
+        if (failure?.status === "rejected") throw failure.reason;
       }
       return json({ saved: true, at: new Date().toISOString() });
     }

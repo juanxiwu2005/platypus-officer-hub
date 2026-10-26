@@ -21,3 +21,11 @@ Review 展示实际配置。确认时服务器验证并编译 JSON，保存 alwa
 ## 边界
 
 新存储仅覆盖 Organization Setup。真实身份、跨设备组织账户、跨组织共享、效率分析和正式 Handoff 尚未实现。私有匿名工作区访问 7 天，归档不自动清除；仅虚构测试资料。模型仍可能给出错误建议，格式校验通过不等于内容正确。
+
+## 真实冒烟发现与修复（v3.1）
+
+79e352f 的一次隔离虚构章程请求：Muse 输入765 tokens、输出1846 tokens；headers3.872s、首内容16.715s、总50.396s，finish=stop。请求 reasoning none，网关返回 served low。接口接受 json_schema 但回复仍用 organization 包装、role.name/department_id/duties/quotes，说明不能把“请求 schema”当作“供应商保证 schema”。本次结果被校验拦截，配置未覆盖。
+
+v3.1 在系统 prompt 中增加精确 JSON 字段示例和禁止 wrapper/alias。对已观察到、无歧义的章程 wrapper/字段别名做确定性翻译，原始结果仍归档；缺失的职责不猜补，仍拒绝。Schema/Zod/引用/环路检查继续独立执行。新增一次读取 latest_ai 诊断，避免诊断时必须导出整个档案。
+
+路由v3选择三款：Gemma 4 31B 负责较长的结构化设置任务；Muse 负责短对话/编辑；GLM 5.3 只在用户主动 Deeper review。选型不是已证明的性能排名；新版实测另行追加。记录请求与实际推理级别差异，首字等待不能单独证明排队。操作归档改成每批25条、每组5条独立追加，保持事件ID/时间/顺序，降低保存前等待，不删除记录。

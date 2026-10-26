@@ -240,6 +240,7 @@ export const DraftSchema = z.object({
         finishReason: z.string().optional(),
         headersMs: z.number().optional(),
         firstTokenMs: z.number().optional(),
+        clientPreparationMs: z.number().optional(),
         queuedMs: z.number().optional(),
         cached: z.boolean().optional(),
       }),
@@ -277,6 +278,7 @@ export interface AiResult {
   finishReason?: string;
   headersMs?: number;
   firstTokenMs?: number;
+  clientPreparationMs?: number;
   queuedMs?: number;
   cached?: boolean;
   at: string;

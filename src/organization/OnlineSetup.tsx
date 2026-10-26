@@ -260,6 +260,7 @@ export default function OnlineSetup() {
   }, [busy]);
   const run = async (stage: Stage, instruction = "") => {
     if (busy) return null;
+    const preparationStarted = performance.now();
     setBusy(stage);
     setError("");
     try {
@@ -272,6 +273,7 @@ export default function OnlineSetup() {
         eref.current.revision,
         instruction,
         deep,
+        Math.round(performance.now() - preparationStarted),
       );
       eref.current = {
         ...eref.current,

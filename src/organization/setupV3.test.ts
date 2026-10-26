@@ -251,3 +251,47 @@ describe("combining risk decisions", () => {
     ).toEqual([...base, "Additional duty 0", "Additional duty 1"]);
   });
 });
+
+describe("observed AIR response compatibility", () => {
+  it("validates the observed organization wrapper and exact role aliases without another model call", () => {
+    const d = upgrade(fixtureDraft());
+    const raw = {
+      organization: {
+        name: d.name,
+        mission: d.mission,
+        departments: d.departments.map(({ id, name }) => ({
+          id,
+          name,
+          source: "inferred",
+        })),
+        roles: d.roles.map((r) => ({
+          id: r.id,
+          name: r.title,
+          department_id: r.departmentId,
+          description: r.description,
+          duties: r.responsibilities,
+          quotes: [r.quote],
+          source: r.source,
+        })),
+        uncertainties: [],
+      },
+    };
+    const out = validateV3("constitution", raw, d) as { roles: typeof d.roles };
+    expect(out.roles.map((r) => r.title)).toEqual(d.roles.map((r) => r.title));
+    expect(out.roles.map((r) => r.responsibilities)).toEqual(
+      d.roles.map((r) => r.responsibilities),
+    );
+    expect(out.roles.every((r) => r.parentRoleId === null)).toBe(true);
+  });
+  it("does not replace missing duties with guessed defaults", () => {
+    const d = upgrade(fixtureDraft());
+    const raw = {
+      name: d.name,
+      mission: d.mission,
+      departments: d.departments,
+      roles: d.roles.map(({ responsibilities: _, ...r }) => r),
+      uncertainties: [],
+    };
+    expect(() => validateV3("constitution", raw, d)).toThrow();
+  });
+});

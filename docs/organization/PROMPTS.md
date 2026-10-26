@@ -1,3 +1,5 @@
+> **v3.1 最新：** Gemma 4 31B 处理较长的章程/风险/活动结构，Muse 处理短对话编辑，GLM 5.3 仅用户主动深度检查。一次真实 Muse 结果证明：请求原生 schema 和 reasoning none 不代表网关实际遵守；现在 prompt 明确给出精确 JSON 字段，已观察字段别名做严格无歧义转换，缺失内容仍拒绝。详见 [v3 实测记录](V3_CHANGELOG.md)。新版速度尚待实测，不能把模型名称当速度保证。
+
 > **v3 正本：** `netlify/lib/organization/prompts.mts`。Prompt 隐藏在服务端，不展示于产品；由开发聊天直接交给 Juanxi 修改。旧文档与 `src/organization/prompts.ts` 的 v2 五阶段保留作历史兼容。
 > 新四任务：Constitution（部门/岗位/职责），Risk check（仅重大风险），Member workflow（精简图结构），Edit（白名单局部变更、明确批准）。坐标、最终机器配置和未改动导航由程序完成，不调用模型。
 > 默认 Muse Glimmer 30B + reasoning none；Deeper review 才调用 GLM 5.3 low。原生 JSON schema + Zod/图/ID/层级检查；记录输出上限与原始回复。允许少量虚构数据真实冒烟，其他回归用模拟。见 [v3 修改记录](V3_CHANGELOG.md)。

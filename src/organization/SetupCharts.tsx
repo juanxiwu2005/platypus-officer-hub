@@ -145,7 +145,7 @@ export function TeamChart({
       })),
     [roles, departments],
   );
-  const [view,setView]=useState<ReactFlowInstance<RoleNode>|null>(null);
+  const [view, setView] = useState<ReactFlowInstance<RoleNode> | null>(null);
   const [nodes, setNodes] = useState<RoleNode[]>(prepared);
   useEffect(() => setNodes(prepared), [prepared]);
   const edges = roles
@@ -163,62 +163,72 @@ export function TeamChart({
       edit(connection.target, { parentRoleId: connection.source });
   };
   return (
-    <><div className="v3-chart-toolbar"><button onClick={()=>void view?.fitView()}>Overview</button><button onClick={()=>void view?.setViewport({x:30,y:30,zoom:1})}>Read roles</button></div><div className="v3-canvas" aria-label="Editable organization chart">
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={roleTypes}
-        onInit={setView}
-        defaultViewport={{x:30,y:30,zoom:1}}
-        minZoom={0.2}
-        maxZoom={1.3}
-        nodesDraggable
-        nodesConnectable
-        deleteKeyCode={null}
-        onNodeClick={(_, n) => onSelect(n.id)}
-        onNodesChange={(changes: NodeChange<RoleNode>[]) =>
-          setNodes((ns) => applyNodeChanges(changes, ns))
-        }
-        onNodeDragStop={(_, node) => {
-          const target = roles.find(
-            (r) =>
-              r.id !== node.id &&
-              Math.abs((r.position?.x ?? 0) - node.position.x) < 120 &&
-              Math.abs((r.position?.y ?? 0) - node.position.y) < 100,
-          );
-          edit(node.id, {
-            position: node.position,
-            ...(target ? { parentRoleId: target.id } : {}),
-          });
-        }}
-        onConnect={attach}
-        onReconnect={(old, c) => {
-          if (old.target !== c.target) {
-            const next = roles.map((r) =>
-              r.id === old.target
-                ? { ...r, parentRoleId: null }
-                : r.id === c.target
-                  ? { ...r, parentRoleId: c.source }
-                  : r,
+    <>
+      <div className="v3-chart-toolbar">
+        <button onClick={() => void view?.fitView()}>Overview</button>
+        <button
+          onClick={() => void view?.setViewport({ x: 30, y: 30, zoom: 1 })}
+        >
+          Read roles
+        </button>
+      </div>
+      <div className="v3-canvas" aria-label="Editable organization chart">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={roleTypes}
+          onInit={setView}
+          defaultViewport={{ x: 30, y: 30, zoom: 1 }}
+          minZoom={0.2}
+          maxZoom={1.3}
+          nodesDraggable
+          nodesConnectable
+          deleteKeyCode={null}
+          onNodeClick={(_, n) => onSelect(n.id)}
+          onNodesChange={(changes: NodeChange<RoleNode>[]) =>
+            setNodes((ns) => applyNodeChanges(changes, ns))
+          }
+          onNodeDragStop={(_, node) => {
+            const target = roles.find(
+              (r) =>
+                r.id !== node.id &&
+                Math.abs((r.position?.x ?? 0) - node.position.x) < 120 &&
+                Math.abs((r.position?.y ?? 0) - node.position.y) < 100,
             );
-            const e = hierarchyError(next);
-            e ? onError(e) : onChange(next);
-          } else attach(c);
-        }}
-        onEdgesDelete={(es) =>
-          onChange(
-            roles.map((r) =>
-              es.some((e) => e.target === r.id)
-                ? { ...r, parentRoleId: null }
-                : r,
-            ),
-          )
-        }
-      >
-        <Background gap={24} color="#e2e6ed" />
-        <Controls showInteractive={false} />
-      </ReactFlow>
-    </div></>
+            edit(node.id, {
+              position: node.position,
+              ...(target ? { parentRoleId: target.id } : {}),
+            });
+          }}
+          onConnect={attach}
+          onReconnect={(old, c) => {
+            if (old.target !== c.target) {
+              const next = roles.map((r) =>
+                r.id === old.target
+                  ? { ...r, parentRoleId: null }
+                  : r.id === c.target
+                    ? { ...r, parentRoleId: c.source }
+                    : r,
+              );
+              const e = hierarchyError(next);
+              e ? onError(e) : onChange(next);
+            } else attach(c);
+          }}
+          onEdgesDelete={(es) =>
+            onChange(
+              roles.map((r) =>
+                es.some((e) => e.target === r.id)
+                  ? { ...r, parentRoleId: null }
+                  : r,
+              ),
+            )
+          }
+        >
+          <Background gap={24} color="#e2e6ed" />
+          <Controls showInteractive={false} />
+        </ReactFlow>
+      </div>
+    </>
   );
 }
 export function arrangeTeam(roles: OrgRole[]) {
@@ -427,7 +437,7 @@ export function ActivityChart({
       })),
     [flow, roles, departments],
   );
-  const [view,setView]=useState<ReactFlowInstance<StepNode>|null>(null);
+  const [view, setView] = useState<ReactFlowInstance<StepNode> | null>(null);
   const [nodes, setNodes] = useState<StepNode[]>(prepared);
   useEffect(() => setNodes(prepared), [prepared]);
   const edges: Edge[] = flow.nodes.flatMap((n) =>
@@ -455,7 +465,13 @@ export function ActivityChart({
           Connect dots to link steps. Select a line and press Delete to remove
           it.
         </span>
-        <button onClick={()=>void view?.fitView()}>Overview</button><button onClick={()=>void view?.setViewport({x:30,y:70,zoom:1})}>Read steps</button><button onClick={() => add("")}>+ Add step</button>
+        <button onClick={() => void view?.fitView()}>Overview</button>
+        <button
+          onClick={() => void view?.setViewport({ x: 30, y: 70, zoom: 1 })}
+        >
+          Read steps
+        </button>
+        <button onClick={() => add("")}>+ Add step</button>
         <button onClick={() => commit(layoutFlow(flow))}>Arrange</button>
       </div>
       <div
@@ -467,7 +483,7 @@ export function ActivityChart({
           edges={edges}
           nodeTypes={stepTypes}
           onInit={setView}
-          defaultViewport={{x:30,y:70,zoom:1}}
+          defaultViewport={{ x: 30, y: 70, zoom: 1 }}
           minZoom={0.15}
           maxZoom={1.4}
           deleteKeyCode={["Backspace", "Delete"]}

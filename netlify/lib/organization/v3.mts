@@ -90,6 +90,44 @@ function workflowEvidence(text: string) {
     .join("\n")
     .slice(0, 10000);
 }
+/** Translate only observed, unambiguous transport aliases; never invent absent duties or references. */
+export function normalizeExtraction(value: unknown) {
+  const object = (v: unknown): v is Record<string, unknown> =>
+    !!v && typeof v === "object" && !Array.isArray(v);
+  if (!object(value)) return value;
+  const nested =
+    Object.keys(value).length === 1 && object(value.organization)
+      ? value.organization
+      : value;
+  const quote = (r: Record<string, unknown>) =>
+    typeof r.quote === "string"
+      ? r.quote.slice(0, 140)
+      : Array.isArray(r.quotes) && typeof r.quotes[0] === "string"
+        ? r.quotes[0].slice(0, 140)
+        : "";
+  return {
+    ...nested,
+    departments: Array.isArray(nested.departments)
+      ? nested.departments.map((dep) =>
+          object(dep) ? { ...dep, quote: quote(dep) } : dep,
+        )
+      : nested.departments,
+    roles: Array.isArray(nested.roles)
+      ? nested.roles.map((role) =>
+          object(role)
+            ? {
+                ...role,
+                title: role.title ?? role.name,
+                departmentId: role.departmentId ?? role.department_id,
+                parentRoleId: role.parentRoleId ?? role.parent_role_id ?? null,
+                responsibilities: role.responsibilities ?? role.duties,
+                quote: quote(role),
+              }
+            : role,
+        )
+      : nested.roles,
+  };
+}
 export function validateV3(stage: Stage, raw: unknown, draft: SetupDraft) {
   const d = upgrade(draft);
   // Date-like free text never becomes an executable deadline. IDs/quotes remain exact.
@@ -116,7 +154,7 @@ export function validateV3(stage: Stage, raw: unknown, draft: SetupDraft) {
           : v;
   raw = clean(raw);
   if (stage === "constitution") {
-    const candidate = raw as Record<string, unknown>;
+    const candidate = normalizeExtraction(raw) as Record<string, unknown>;
     const out = ExtractionSchema.parse({
       ...candidate,
       departments: Array.isArray(candidate?.departments)

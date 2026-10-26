@@ -57,7 +57,7 @@ export function flushArchive() {
     .then(async () => {
       if (timer) clearTimeout(timer);
       while (pending.length) {
-        const batch = pending.slice(0, 10);
+        const batch = pending.slice(0, 25);
         await api("/api/org/archive", { action: "events", events: batch });
         const ids = new Set(batch.map((e) => e.id));
         pending = pending.filter((e) => !ids.has(e.id));

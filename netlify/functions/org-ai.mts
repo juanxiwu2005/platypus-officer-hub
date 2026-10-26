@@ -132,12 +132,15 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
           : undefined,
       system,
       onResponse: async (observation) => {
-        await archiveEvent(
+        const archived = await archiveEvent(
           workspaceId,
           "ai.provider.response",
           { stage, promptVersion, ...observation },
           "ai",
         );
+        await store().setJSON(`diagnostics/${workspaceId}/latest-ai`, {
+          eventId: archived.id,
+        });
       },
       user: input,
       maxTokens: v3
@@ -187,6 +190,10 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
       queuedMs:
         typeof body.queuedMs === "number"
           ? Math.max(0, Math.min(body.queuedMs, 600000))
+          : undefined,
+      clientPreparationMs:
+        typeof body.clientPreparationMs === "number"
+          ? body.clientPreparationMs
           : undefined,
       cached: false,
     };

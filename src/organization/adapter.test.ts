@@ -13,13 +13,14 @@ function configured(preset = "asu_air", model = "auto") {
   vi.stubEnv("AI_JSON_MODE", "");
   vi.stubEnv("AI_REASONING_EFFORT", "");
   vi.stubEnv("AI_MODEL_ROUTING", "");
-  const send = vi.fn().mockResolvedValue(
-    new Response(
-      JSON.stringify({
-        model: "actual-server-model",
-        choices: [{ message: { content: '{"ok":true}' } }],
-      }),
-    ),
+  const send = vi.fn().mockImplementation(
+    async () =>
+      new Response(
+        JSON.stringify({
+          model: "actual-server-model",
+          choices: [{ message: { content: '{"ok":true}' } }],
+        }),
+      ),
   );
   vi.stubGlobal("fetch", send);
   return send;
@@ -241,5 +242,21 @@ describe("AIR streaming telemetry", () => {
       code: "bad_json",
       diagnostics: { finishReason: "stream_incomplete" },
     });
+  });
+});
+
+describe("three task-specific AIR models", () => {
+  it("uses Gemma for structured setup and Muse for short interactive edits", async () => {
+    const send = configured();
+    await chatJSON({
+      system: "JSON",
+      user: "Fictional",
+      task: "setup.constitution",
+    });
+    await chatJSON({ system: "JSON", user: "Fictional", task: "setup.edit" });
+    expect(send.mock.calls.map((c) => JSON.parse(c[1].body).model)).toEqual([
+      "gemma4-31b-it",
+      "muse-glimmer-30b",
+    ]);
   });
 });

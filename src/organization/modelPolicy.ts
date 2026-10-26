@@ -1,7 +1,8 @@
 /** Server-selected AIR routing. Client text never chooses an arbitrary model. */
-export const MODEL_POLICY_VERSION = "air-task-routing-v2";
+export const MODEL_POLICY_VERSION = "air-task-routing-v3";
 export const AIR_MODELS = {
   fast: "muse-glimmer-30b",
+  structured: "gemma4-31b-it",
   reasoning: "glm-5-3",
 } as const;
 export type AiTask =
@@ -23,7 +24,11 @@ export type AiTask =
 export function routeTask(task?: AiTask, mode: "fast" | "deep" = "fast") {
   const deep = mode === "deep" && !!task?.startsWith("setup.");
   return {
-    model: deep ? AIR_MODELS.reasoning : AIR_MODELS.fast,
+    model: deep
+      ? AIR_MODELS.reasoning
+      : task?.startsWith("setup.") && task !== "setup.edit"
+        ? AIR_MODELS.structured
+        : AIR_MODELS.fast,
     reasoningEffort: deep ? ("low" as const) : ("none" as const),
     minOutputTokens: deep ? 7500 : 0,
     version: MODEL_POLICY_VERSION,
