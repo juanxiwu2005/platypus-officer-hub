@@ -83,7 +83,7 @@ function Dialog({
     ref.current?.showModal();
   }, []);
   return (
-    <dialog ref={ref} className="os-dialog" onCancel={onClose}>
+    <dialog ref={ref} className="os-dialog" aria-label={title} onCancel={onClose}>
       <div className="os-section-heading">
         <h2>{title}</h2>
         <button type="button" onClick={onClose}>
@@ -118,7 +118,8 @@ export default function OnlineSetup() {
     dirty = useRef(false),
     timer = useRef<ReturnType<typeof setTimeout>>(),
     queue = useRef<Promise<void>>(Promise.resolve()),
-    mounted = useRef(true);
+    mounted = useRef(true),
+    initialRequest = useRef<ReturnType<typeof start> | null>(null);
   const setCurrent = (d: SetupDraft) => {
     dref.current = d;
     setDraft(d);
@@ -168,7 +169,8 @@ export default function OnlineSetup() {
     setBooting(true);
     setError("");
     try {
-      const remote = await start();
+      const remote = await (initialRequest.current ??= start());
+      initialRequest.current = null;
       if (!mounted.current) return;
       eref.current = remote;
       setEntry(remote);
@@ -600,6 +602,7 @@ export default function OnlineSetup() {
                             onClick={() =>
                               patch({
                                 roles: draft.roles.filter((x) => x.id !== r.id),
+                                memberFlow: null, boardFlow: null, guide: null,
                                 assignments: draft.assignments.map((a) => ({
                                   ...a,
                                   roleIds: a.roleIds.filter(

@@ -6,6 +6,7 @@ import {
   type Envelope,
   type SetupDraft,
 } from "../../../src/organization/schema.ts";
+import { validateDraftIntegrity } from "../../../src/organization/validation.ts";
 const COOKIE = "platypus_org_setup_v2";
 const TTL = 7 * 24 * 60 * 60 * 1000;
 export const digest = (text: string) =>
@@ -92,6 +93,7 @@ export async function saveSession(
       409,
     );
   const draft = DraftSchema.parse(raw);
+  try { validateDraftIntegrity(draft); } catch (e) { throw new SetupError((e as Error).message); }
   draft.aiRuns = current.entry.draft.aiRuns;
   draft.contextVersion = current.entry.draft.contextVersion;
   if (confirm) {

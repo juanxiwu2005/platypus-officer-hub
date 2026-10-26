@@ -1,4 +1,7 @@
+.p1-body main:has(.os) { display: block; max-width: none; }
 .os {
+  width: 100%;
+  min-width: 0;
   max-width: 1100px;
   margin: auto;
   padding: 28px 36px 45px;
@@ -153,7 +156,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #6b7d8e;
+  color: #506174;
   font-size: 11px;
 }
 .os-progress i {
@@ -188,6 +191,9 @@
   max-width: 650px;
 }
 .os-content {
+  display: block;
+  width: 100%;
+  min-inline-size: 0;
   border: 1px solid #e2e7ef !important;
   border-radius: 14px;
   background: #fff;
@@ -458,6 +464,8 @@
   white-space: nowrap;
 }
 .os-matrix-scroll {
+  position: relative;
+  contain: inline-size;
   overflow: auto;
   max-height: 670px;
   border: 1px solid #dce5ef;
@@ -653,8 +661,8 @@
   display: block;
 }
 .os-flow-canvas .react-flow__controls button {
-  min-height: 36px;
-  min-width: 36px;
+  min-height: 44px;
+  min-width: 44px;
   border-radius: 0;
   padding: 8px;
 }
