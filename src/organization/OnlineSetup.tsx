@@ -1,3 +1,12 @@
+import {
+  archiveFile,
+  configureArchive,
+  track,
+  flushArchive,
+  hasPendingArchive,
+  exportRecords,
+  downloadOriginal,
+} from "./archive";
 import { routeTask, MODEL_POLICY_VERSION } from "./modelPolicy";
 import {
   useCallback,
@@ -124,6 +133,8 @@ export default function OnlineSetup() {
       flow: OrgFlow;
     } | null>(null),
     [showPrompts, setShowPrompts] = useState(false),
+    [deepReview, setDeepReview] = useState(false),
+    [exporting, setExporting] = useState(false),
     [finished, setFinished] = useState(false);
   const dref = useRef(draft),
     eref = useRef<Envelope | null>(null),
@@ -145,6 +156,7 @@ export default function OnlineSetup() {
         if (!eref.current)
           throw new Error("The online workspace is not connected.");
         setSaved("Saving online…");
+        await flushArchive();
         const next = await save(snapshot, eref.current.revision, confirm);
         eref.current = next;
         setEntry(next);
@@ -184,6 +196,11 @@ export default function OnlineSetup() {
       const remote = await (initialRequest.current ??= start());
       initialRequest.current = null;
       if (!mounted.current) return;
+      configureArchive(remote.workspaceId, setError);
+      track("workspace.opened", {
+        step: remote.draft.step,
+        revision: remote.revision,
+      });
       eref.current = remote;
       setEntry(remote);
       setCurrent(remote.draft);
@@ -206,7 +223,7 @@ export default function OnlineSetup() {
   }, [boot]);
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
-      if (dirty.current) {
+      if (dirty.current || hasPendingArchive()) {
         e.preventDefault();
         e.returnValue = "";
       }
@@ -214,7 +231,12 @@ export default function OnlineSetup() {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, []);
-  const run = async (stage: Stage, instruction = "", previewOnly = false) => {
+  const run = async (
+    stage: Stage,
+    instruction = "",
+    previewOnly = false,
+    deep = false,
+  ) => {
     setBusy(stage);
     setError("");
     try {
@@ -223,7 +245,13 @@ export default function OnlineSetup() {
       if (dirty.current) await persist();
       if (!eref.current)
         throw new Error("The online workspace is not connected.");
-      const reply = await prepare(stage, eref.current.revision, instruction);
+      await flushArchive();
+      const reply = await prepare(
+        stage,
+        eref.current.revision,
+        instruction,
+        deep,
+      );
       eref.current = {
         ...eref.current,
         revision: reply.revision,
@@ -365,13 +393,26 @@ export default function OnlineSetup() {
       setBusy(null);
     }
   };
-  async function source(text: string, name: string) {
+  async function source(
+    text: string,
+    name: string,
+    original?: File,
+    originalArchiveId?: string,
+  ) {
     setReading(true);
     setError("");
     try {
       const document = await documentSource(text, name);
+      const archiveId =
+        originalArchiveId ??
+        (
+          await archiveFile(
+            original ?? new File([text], name, { type: "text/plain" }),
+          )
+        ).id;
+      const material = { ...document, archiveId };
       patch({
-        source: document,
+        source: material,
         approvals: {},
         roles: [],
         assignments: [],
@@ -437,7 +478,52 @@ export default function OnlineSetup() {
       </div>
     );
   return (
-    <div className="os">
+    <div
+      className="os"
+      onClickCapture={(e) => {
+        const el = (e.target as HTMLElement).closest("button,a,summary");
+        if (el)
+          track("ui.clicked", {
+            step: dref.current.step,
+            revision: eref.current?.revision,
+            control:
+              el.getAttribute("aria-label") ||
+              el.textContent?.trim().slice(0, 200),
+          });
+      }}
+      onChangeCapture={(e) => {
+        const el = e.target as HTMLInputElement;
+        if (el.type !== "file")
+          track("ui.changed", {
+            step: dref.current.step,
+            control:
+              el.getAttribute("aria-label") ||
+              el.id ||
+              el.closest("label")?.textContent?.trim().slice(0, 180),
+            value:
+              el.type === "checkbox" ? el.checked : el.value?.slice(0, 60000),
+          });
+      }}
+      onFocusCapture={(e) => {
+        const el = e.target as HTMLElement;
+        track("ui.focused", {
+          step: dref.current.step,
+          control: el.getAttribute("aria-label") || el.id || el.tagName,
+        });
+      }}
+      onPointerUpCapture={(e) => {
+        if ((e.target as HTMLElement).closest(".os-flow-canvas"))
+          track("workflow.interacted", {
+            step: dref.current.step,
+            x: e.clientX,
+            y: e.clientY,
+            flow:
+              dref.current.step === 3
+                ? dref.current.memberFlow
+                : dref.current.boardFlow,
+          });
+      }}
+    >
       <div className="os-meta">
         <Link to="/phase1">← Home</Link>
         <span
@@ -446,6 +532,37 @@ export default function OnlineSetup() {
         >
           {saved}
         </span>
+      </div>
+      <div className="os-record-tools">
+        <span>
+          Changes, original files and AI activity are archived with timestamps.
+        </span>
+        <button
+          disabled={exporting}
+          onClick={async () => {
+            setExporting(true);
+            try {
+              await exportRecords();
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setExporting(false);
+            }
+          }}
+        >
+          {exporting ? "Preparing records…" : "Export records"}
+        </button>
+        {draft.source?.archiveId && (
+          <button
+            onClick={() =>
+              void downloadOriginal(draft.source!.archiveId!).catch((e) =>
+                setError(e.message),
+              )
+            }
+          >
+            Download original
+          </button>
+        )}
       </div>
       <div className="os-progress" aria-label="Organization setup progress">
         {STEPS.map((s, i) => (
@@ -515,9 +632,19 @@ export default function OnlineSetup() {
                     setReading(true);
                     setError("");
                     try {
+                      track("document.selected", {
+                        fileName: f.name,
+                        size: f.size,
+                        mime: f.type,
+                      });
+                      const original = await archiveFile(f);
                       const text = await readConstitution(f);
-                      await source(text, f.name);
+                      await source(text, f.name, f, original.id);
                     } catch (err) {
+                      track("document.read.failed", {
+                        fileName: f.name,
+                        message: (err as Error).message,
+                      });
                       setError((err as Error).message);
                     } finally {
                       setReading(false);
@@ -929,6 +1056,7 @@ export default function OnlineSetup() {
                     draft.step === 3 ? "member_workflow" : "board_workflow",
                     editInstruction,
                     true,
+                    deepReview,
                   );
               }}
             >
@@ -941,6 +1069,14 @@ export default function OnlineSetup() {
                   onChange={(e) => setEditInstruction(e.target.value)}
                   placeholder="e.g. Run venue booking and registration in parallel, and include the Marketing Intern."
                 />
+              </label>
+              <label className="os-deep-choice">
+                <input
+                  type="checkbox"
+                  checked={deepReview}
+                  onChange={(e) => setDeepReview(e.target.checked)}
+                />{" "}
+                Use deeper reasoning (slower)
               </label>
               <button disabled={!editInstruction.trim()}>
                 Suggest an update
@@ -1013,6 +1149,18 @@ export default function OnlineSetup() {
                 </ul>
               </div>
             )}
+            <button
+              onClick={() =>
+                void run(
+                  "guide",
+                  "Review the current organization guide and preserve confirmed decisions.",
+                  false,
+                  true,
+                )
+              }
+            >
+              Review with stronger model (slower)
+            </button>
             <details className="os-run-record">
               <summary>AI generation record</summary>
               <div>
@@ -1169,7 +1317,10 @@ export default function OnlineSetup() {
       {proposal && (
         <Dialog
           title="Review the suggested workflow"
-          onClose={() => setProposal(null)}
+          onClose={() => {
+            track("ai.proposal.closed", { stage: proposal.stage });
+            setProposal(null);
+          }}
         >
           <p>
             Your current workflow stays in place until you accept this update.
@@ -1180,12 +1331,24 @@ export default function OnlineSetup() {
             onChange={(f) => setProposal({ ...proposal, flow: f })}
           />
           <div className="os-bottom-actions">
-            <button onClick={() => setProposal(null)}>
+            <button
+              onClick={() => {
+                track("ai.proposal.discarded", {
+                  stage: proposal.stage,
+                  flow: proposal.flow,
+                });
+                setProposal(null);
+              }}
+            >
               Discard suggestion
             </button>
             <button
               className="os-primary"
               onClick={() => {
+                track("ai.proposal.accepted", {
+                  stage: proposal.stage,
+                  flow: proposal.flow,
+                });
                 patch(
                   proposal.stage === "member_workflow"
                     ? { memberFlow: proposal.flow }

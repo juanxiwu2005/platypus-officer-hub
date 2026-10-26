@@ -1,6 +1,7 @@
 import type { Config } from "@netlify/functions";
 import { ZodError } from "zod";
 import {
+  archiveEvent,
   checkOrigin,
   readSession,
   saveSession,
@@ -9,6 +10,7 @@ import {
 } from "../lib/organization/storage.mts";
 import { json, readJSON } from "../lib/http.mts";
 export default async (req: Request) => {
+  let workspaceId = "";
   try {
     checkOrigin(req);
     if (req.method === "GET")
@@ -27,6 +29,14 @@ export default async (req: Request) => {
       throw new SetupError("Unknown setup action.");
     if (!Number.isInteger(body.revision))
       throw new SetupError("A saved revision is required.");
+    const { entry } = await readSession(req);
+    workspaceId = entry.workspaceId;
+    await archiveEvent(
+      workspaceId,
+      "configuration.submitted",
+      { action: body.action, revision: body.revision, draft: body.draft },
+      "user",
+    );
     return json({
       ...(await saveSession(
         req,
@@ -37,6 +47,13 @@ export default async (req: Request) => {
       storage: "netlify-blobs",
     });
   } catch (e) {
+    if (workspaceId)
+      await archiveEvent(
+        workspaceId,
+        "configuration.failed",
+        { message: (e as Error).message },
+        "system",
+      ).catch(() => {});
     if (e instanceof SetupError) return json({ message: e.message }, e.status);
     if (e instanceof ZodError)
       return json(

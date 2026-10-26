@@ -1232,3 +1232,8 @@
 .os-run-record > div { overflow-x: auto; }
 .os-run-record table { width: 100%; border-collapse: collapse; font-size: 12px; }
 .os-run-record th, .os-run-record td { text-align: left; padding: 12px; border-bottom: 1px solid #dce5ef; color: #3b526c; }
+
+.os-record-tools {display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px;color:#536b84;font-size:12px;}
+.os-record-tools > span {flex:1;min-width:180px;}
+.os .os-record-tools button {font-size:12px;}
+.os-deep-choice {display:flex;align-items:center;gap:10px;min-height:44px;margin:10px 0;}

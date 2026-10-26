@@ -15,6 +15,34 @@ async function mockedOnline(page: Page) {
     updatedAt: "2026-10-25T12:00:00Z",
     expiresAt: "2026-11-01T12:00:00Z",
   };
+  const archivedFiles = new Map<string, unknown>();
+  await page.route("**/api/org/archive**", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ json: { eventIds: [], uploads: [] } });
+      return;
+    }
+    const b = route.request().postDataJSON();
+    if (b.action === "begin") {
+      const id = "b0507f2a-6514-4ae0-849a-446c7ba364b0";
+      const m = {
+        ...b,
+        id,
+        parts: Math.ceil(b.size / 786432),
+        createdAt: "2026-10-25T12:00:00Z",
+        complete: false,
+      };
+      archivedFiles.set(id, m);
+      await route.fulfill({ json: m });
+      return;
+    }
+    if (b.action === "finish") {
+      await route.fulfill({
+        json: { ...(archivedFiles.get(b.id) as object), complete: true },
+      });
+      return;
+    }
+    await route.fulfill({ json: { saved: true } });
+  });
   await page.route("**/api/org/setup", async (route) => {
     const req = route.request();
     if (req.method() === "GET") {

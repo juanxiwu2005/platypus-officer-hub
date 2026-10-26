@@ -51,20 +51,31 @@ export async function readSession(req: Request) {
       401,
     );
   const entry = item.data as Envelope;
-  if (Date.parse(entry.expiresAt) < Date.now()) {
-    await Promise.all([
-      store().delete(key(value)),
-      store().delete("ai-jobs/" + digest(value)),
-      store().delete("ai-leases/" + digest(value)),
-    ]);
-    throw new SetupError("This demo workspace expired after seven days.", 401);
-  }
+  // Access expiry and retention are separate: never purge history on session expiry.
+  if (Date.parse(entry.expiresAt) < Date.now())
+    throw new SetupError(
+      "This test session expired. Organization archives are retained.",
+      401,
+    );
   return { entry, etag: item.etag, key: key(value) };
 }
 export async function startSession(req: Request) {
   try {
     const { entry } = await readSession(req);
-    return { entry, cookie: null };
+    await archiveEvent(
+      entry.workspaceId,
+      "workspace.resumed",
+      {
+        revision: entry.revision,
+        draft: entry.draft,
+        approved: entry.approved,
+      },
+      "user",
+    );
+    return {
+      entry,
+      cookie: `${COOKIE}=${token(req)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=604800${new URL(req.url).protocol === "https:" ? "; Secure" : ""}`,
+    };
   } catch (e) {
     if (e instanceof SetupError && e.status !== 401) throw e;
     if (!(e instanceof SetupError)) throw e;
@@ -79,6 +90,10 @@ export async function startSession(req: Request) {
     expiresAt: new Date(Date.now() + TTL).toISOString(),
   };
   await store().setJSON(key(value), entry, { onlyIfNew: true });
+  await archiveEvent(entry.workspaceId, "workspace.created", {
+    workspaceId: entry.workspaceId,
+    configuration: entry.draft,
+  });
   return {
     entry,
     cookie: `${COOKIE}=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=604800${new URL(req.url).protocol === "https:" ? "; Secure" : ""}`,
@@ -144,6 +159,12 @@ export async function saveSession(
     updatedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + TTL).toISOString(),
   };
+  await archiveEvent(
+    entry.workspaceId,
+    "configuration.requested",
+    { revision: entry.revision, confirm, configuration: draft },
+    "user",
+  );
   const result = await store().setJSON(current.key, entry, {
     onlyIfMatch: current.etag,
   });
@@ -152,6 +173,15 @@ export async function saveSession(
       "Another save finished first. Reload before continuing.",
       409,
     );
+  await archiveEvent(
+    entry.workspaceId,
+    confirm ? "configuration.approved" : "configuration.saved",
+    {
+      revision: entry.revision,
+      confirmed: draft.confirmed,
+      configuration: draft,
+    },
+  );
   return entry;
 }
 export async function recordRun(
@@ -226,4 +256,42 @@ export async function acquireAiLease(req: Request, durationMs = 90000) {
       { onlyIfMatch: claim.etag! },
     );
   };
+}
+
+/** Append-only records. Original user material stays in this private workspace. */
+export async function archiveEvent(
+  workspaceId: string,
+  kind: string,
+  payload: unknown,
+  actor = "system",
+  suppliedId?: string,
+) {
+  const id =
+    suppliedId && /^[a-zA-Z0-9_-]{1,180}$/.test(suppliedId)
+      ? suppliedId
+      : randomUUID();
+  const serverAt = new Date().toISOString();
+  const event = {
+    schemaVersion: 1,
+    id,
+    workspaceId,
+    actor,
+    kind,
+    serverAt,
+    payload,
+  };
+  await store().setJSON(`archives/${workspaceId}/events/${id}`, event, {
+    onlyIfNew: true,
+  });
+  return event;
+}
+export async function archiveRequest(
+  req: Request,
+  kind: string,
+  payload: unknown,
+  actor = "system",
+  id?: string,
+) {
+  const { entry } = await readSession(req);
+  return archiveEvent(entry.workspaceId, kind, payload, actor, id);
 }

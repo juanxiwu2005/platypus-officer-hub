@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { ZodError } from "zod";
 import { STAGES, type Stage } from "../../../src/organization/schema.ts";
 import {
+  archiveEvent,
+  archiveRequest,
   checkOrigin,
   digest,
   readSession,
@@ -15,6 +17,7 @@ export type AiJob = {
   stage: Stage;
   revision: number;
   instruction: string;
+  deep?: boolean;
   status: "queued" | "running" | "done" | "error";
   startedAt: number;
   result?: unknown;
@@ -69,7 +72,10 @@ export async function startAiJob(req: Request) {
       old = await blobs.getWithMetadata(key, { type: "json" });
     if (old) {
       const job = old.data as AiJob;
-      const same = job.stage === body.stage && job.instruction === instruction;
+      const same =
+        job.stage === body.stage &&
+        job.instruction === instruction &&
+        !!job.deep === !!body.deep;
       const active =
         (job.status === "queued" || job.status === "running") &&
         Date.now() - job.startedAt < 10 * 60 * 1000;
@@ -94,6 +100,7 @@ export async function startAiJob(req: Request) {
       stage: body.stage as Stage,
       revision: entry.revision,
       instruction,
+      deep: body.deep === true,
       status: "queued",
       startedAt: Date.now(),
     };
@@ -107,6 +114,13 @@ export async function startAiJob(req: Request) {
         "Another AI request started first. Please retry.",
         409,
       );
+    await archiveEvent(
+      entry.workspaceId,
+      "ai.queued",
+      job,
+      "ai",
+      job.id + "-queued",
+    );
     return json(publicJob(job), 202);
   } catch (e) {
     if (e instanceof SetupError) return json({ message: e.message }, e.status);
@@ -146,6 +160,13 @@ export async function processAiJob(
       (await store().getWithMetadata(current.key, { type: "json" }))?.etag;
     if (!claimEtag) throw new Error("AI job claim was not saved.");
     claimed = { job, etag: claimEtag, key: current.key };
+    await archiveRequest(
+      req,
+      "ai.started",
+      { jobId: job.id, stage: job.stage },
+      "ai",
+      job.id + "-started",
+    );
     const response = await run(
       new Request(req.url, {
         method: "POST",
@@ -154,11 +175,19 @@ export async function processAiJob(
           stage: job.stage,
           revision: job.revision,
           instruction: job.instruction,
+          deep: job.deep === true,
         }),
       }),
       180000,
     );
     const result = await response.json();
+    await archiveRequest(
+      req,
+      response.ok ? "ai.completed" : "ai.failed",
+      { jobId: job.id, stage: job.stage, response: result },
+      "ai",
+      job.id + "-completed",
+    );
     await store().setJSON(
       current.key,
       response.ok

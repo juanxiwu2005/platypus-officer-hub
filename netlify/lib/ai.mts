@@ -101,13 +101,13 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
   }
 }
 
-export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number; timeoutMs?: number; task?: AiTask; responseSchema?: Record<string,unknown> }
+export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number; timeoutMs?: number; task?: AiTask; mode?: "fast" | "deep"; responseSchema?: Record<string,unknown> }
 export type ChatJSONResult = { data: unknown; model: string; provider: string; ms: number; requestedModel?: string; reasoningEffort?: string; servedReasoningEffort?: string; routingVersion?: string }
 
 /** Send one system + user message and get a parsed JSON object back. */
-export async function chatJSON({ system, user, maxTokens = 700, temperature = 0, timeoutMs, task, responseSchema }: ChatJSONArgs): Promise<ChatJSONResult> {
+export async function chatJSON({ system, user, maxTokens = 700, temperature = 0, timeoutMs, task, mode, responseSchema }: ChatJSONArgs): Promise<ChatJSONResult> {
   const configured = getConfig()
-  const route = env("AI_PRESET") === "asu_air" && env("AI_MODEL_ROUTING") !== "off" ? routeTask(task) : null
+  const route = env("AI_PRESET") === "asu_air" && env("AI_MODEL_ROUTING") !== "off" ? routeTask(task,mode) : null
   if (route) maxTokens = Math.max(maxTokens, route.minOutputTokens)
   const c = { ...configured, model: route?.model ?? configured.model, timeoutMs: timeoutMs ? Math.max(5000, Math.min(480000, timeoutMs)) : configured.timeoutMs }
   if (!isConfigured(c)) throw new AIError("not_configured", "AI is not configured on the server.", 503)

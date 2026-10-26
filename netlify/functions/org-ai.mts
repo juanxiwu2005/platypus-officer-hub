@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { chatJSON, AIError } from "../lib/ai.mts";
 import { json, readJSON } from "../lib/http.mts";
 import {
+  archiveEvent,
   checkOrigin,
   acquireAiLease,
   digest,
@@ -19,6 +20,7 @@ import {
 } from "../../src/organization/validation.ts";
 import { referenceMemberFlow } from "../../src/organization/presets.ts";
 export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
+  let workspaceId = "";
   let release: (() => Promise<unknown>) | null = null;
   try {
     checkOrigin(req);
@@ -27,6 +29,7 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
       throw new SetupError("Unknown AI setup step.");
     const stage = body.stage as Stage;
     const { entry } = await readSession(req);
+    workspaceId = entry.workspaceId;
     if (body.revision !== entry.revision)
       throw new SetupError("Save the latest settings before asking AI.", 409);
     const recent = entry.draft.aiRuns.filter(
@@ -53,9 +56,22 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
             ? entry.draft.boardFlow
             : undefined,
     });
+    await archiveEvent(
+      workspaceId,
+      "ai.requested",
+      {
+        stage,
+        promptVersion: PROMPT_VERSION,
+        system: PROMPTS[stage].system,
+        input: JSON.parse(input),
+        mode: body.deep === true ? "deep" : "fast",
+      },
+      "ai",
+    );
     release = await acquireAiLease(req, timeoutMs * 2 + 30000);
     const reply = await chatJSON({
       task: `setup.${stage}`,
+      mode: body.deep === true ? "deep" : "fast",
       responseSchema: stage.includes("workflow")
         ? flowResponseSchema(entry.draft)
         : undefined,
@@ -69,6 +85,12 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
       temperature: 0.1,
       timeoutMs,
     });
+    await archiveEvent(
+      workspaceId,
+      "ai.provider.returned",
+      { stage, reply },
+      "ai",
+    );
     const data = validateAiOutput(
       stage,
       reply.data,
@@ -95,6 +117,13 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
       updatedAt: saved.updatedAt,
     });
   } catch (e) {
+    if (workspaceId)
+      await archiveEvent(
+        workspaceId,
+        "ai.rejected",
+        { message: (e as Error).message },
+        "ai",
+      ).catch(() => {});
     if (e instanceof SetupError) return json({ message: e.message }, e.status);
     if (e instanceof AIError)
       return json({ message: e.message, code: e.code }, e.status);

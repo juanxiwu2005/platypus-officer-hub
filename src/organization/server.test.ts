@@ -23,6 +23,12 @@ vi.mock("@netlify/blobs", () => ({
       state.rows.set(key, { data: structuredClone(data), etag });
       return { modified: true, etag };
     },
+    list: async ({ prefix = "" }: { prefix?: string } = {}) => ({
+      blobs: [...state.rows.keys()]
+        .filter((key) => key.startsWith(prefix))
+        .map((key) => ({ key })),
+      directories: [],
+    }),
     delete: async (key: string) => {
       state.rows.delete(key);
     },
@@ -32,6 +38,8 @@ vi.mock("../../netlify/lib/ai.mts", async (original) => ({
   ...(await original<object>()),
   chatJSON: state.chat,
 }));
+import { createHash } from "node:crypto";
+import archive from "../../netlify/functions/org-archive.mts";
 import setup from "../../netlify/functions/org-setup.mts";
 import { runSetupAi as ai } from "../../netlify/functions/org-ai.mts";
 import startAiJob, { runSetupAi } from "../../netlify/functions/org-ai.mts";
@@ -312,5 +320,113 @@ describe("Online organization storage and model boundaries", () => {
         (r: { actionId: string }) => r.actionId === "promotion",
       ).responsible,
     ).toEqual(["marketing_intern"]);
+  });
+  it("archives original bytes immutably and checks their hash before completion", async () => {
+    const { cookie } = await session(),
+      bytes = Buffer.from("A fictional constitution archive.");
+    const begin = await archive(
+      request(
+        {
+          action: "begin",
+          fileName: "constitution.txt",
+          mime: "text/plain",
+          size: bytes.length,
+          sha256: createHash("sha256").update(bytes).digest("hex"),
+        },
+        cookie,
+      ),
+    );
+    const m = await begin.json();
+    expect(m.createdAt).toBeTruthy();
+    await archive(
+      request(
+        { action: "part", id: m.id, part: 0, base64: bytes.toString("base64") },
+        cookie,
+      ),
+    );
+    await archive(
+      request(
+        {
+          action: "part",
+          id: m.id,
+          part: 0,
+          base64: Buffer.from("tampered").toString("base64"),
+        },
+        cookie,
+      ),
+    );
+    const done = await (
+      await archive(request({ action: "finish", id: m.id }, cookie))
+    ).json();
+    expect(done.complete).toBe(true);
+    expect(done.completedAt).toBeTruthy();
+    const raw = await archive(
+      new Request(
+        `https://example.org/api/org/archive?action=part&id=${m.id}&part=0`,
+        { headers: { cookie } },
+      ),
+    );
+    expect((await raw.json()).base64).toBe(bytes.toString("base64"));
+  });
+  it("timestamps user records, deduplicates retries, redacts credential fields, and isolates export", async () => {
+    const { cookie, entry } = await session(),
+      id = "an-immutable-user-event";
+    const event = {
+      id,
+      kind: "ui.changed",
+      clientAt: "2026-10-25T12:00:00Z",
+      details: { value: "api_key: never-store-this", password: "sensitive" },
+    };
+    await archive(request({ action: "events", events: [event] }, cookie));
+    await archive(
+      request(
+        {
+          action: "events",
+          events: [{ ...event, details: { value: "overwritten" } }],
+        },
+        cookie,
+      ),
+    );
+    const r = await archive(
+      new Request("https://example.org/api/org/archive?action=event&id=" + id, {
+        headers: { cookie },
+      }),
+    );
+    const stored = await r.json();
+    expect(stored.serverAt).toBeTruthy();
+    expect(stored.workspaceId).toBe(entry.workspaceId);
+    expect(JSON.stringify(stored)).not.toContain("never-store-this");
+    expect(JSON.stringify(stored)).not.toContain("sensitive");
+    expect(JSON.stringify(stored)).not.toContain("overwritten");
+    const other = await session();
+    expect(
+      (
+        await archive(
+          new Request(
+            "https://example.org/api/org/archive?action=event&id=" + id,
+            { headers: { cookie: other.cookie } },
+          ),
+        )
+      ).status,
+    ).toBe(404);
+  });
+  it("keeps history when a test access session expires", async () => {
+    const { cookie } = await session();
+    const sessionKey = [...state.rows.keys()].find((k) =>
+      k.startsWith("sessions/"),
+    )!;
+    const row = state.rows.get(sessionKey)!;
+    (row.data as Envelope).expiresAt = "2000-01-01T00:00:00Z";
+    const before = state.rows.size;
+    expect(
+      (
+        await setup(
+          new Request("https://example.org/api/org/setup", {
+            headers: { cookie },
+          }),
+        )
+      ).status,
+    ).toBe(401);
+    expect(state.rows.size).toBe(before);
   });
 });

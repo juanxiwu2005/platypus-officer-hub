@@ -121,6 +121,7 @@ export const DraftSchema = z.object({
   source: z
     .object({
       fileName: z.string().max(180),
+      archiveId: z.string().uuid().optional(),
       text: z.string().max(60000),
       checksum: z.string().max(80),
       uploadedAt: z.string(),

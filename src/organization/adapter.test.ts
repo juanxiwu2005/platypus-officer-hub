@@ -35,7 +35,7 @@ describe("AIR provider routing", () => {
       "https://openai.rc.asu.edu/v1/chat/completions",
     );
     const body = JSON.parse(send.mock.calls[0][1].body);
-    expect(body.model).toBe("gemma4-31b-it");
+    expect(body.model).toBe("muse-glimmer-30b");
     expect(body.reasoning_effort).toBe("none");
     expect(out).toMatchObject({
       provider: "ASU AIR",
@@ -70,6 +70,7 @@ describe("AIR provider routing", () => {
       system: "Return JSON",
       user: "Fictional workflow",
       task: "setup.member_workflow",
+      mode: "deep",
       maxTokens: 4200,
     });
     const b = JSON.parse(send.mock.calls[0][1].body);
@@ -77,7 +78,7 @@ describe("AIR provider routing", () => {
     expect(b.reasoning_effort).toBe("low");
     expect(b.max_tokens).toBe(7500);
   });
-  it("routes synchronous planning to GLM without an extra thinking delay", async () => {
+  it("keeps routine planning on the fast model by default", async () => {
     const send = configured();
     await chatJSON({
       system: "JSON",
@@ -86,7 +87,7 @@ describe("AIR provider routing", () => {
       maxTokens: 600,
     });
     const b = JSON.parse(send.mock.calls[0][1].body);
-    expect(b.model).toBe("glm-5-3");
+    expect(b.model).toBe("muse-glimmer-30b");
     expect(b.reasoning_effort).toBe("none");
     expect(b.max_tokens).toBe(600);
   });
