@@ -507,7 +507,7 @@ test("review shows entered settings and confirmation compiles data without anoth
   await expect(
     page.getByRole("heading", { name: "Your organization, ready." }),
   ).toBeVisible();
-  await expect(page.getByText("Board work", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Organization setup progress" }).getByText("Board work", { exact: true })).toHaveCount(0);
   await expect(
     page.getByText("Vice President of Marketing", { exact: true }),
   ).toBeVisible();
@@ -607,7 +607,7 @@ test("real browser Back and Forward wait for pending edits", async ({
 }) => {
   const s = await mockedOnline(page);
   await page.goto("/#/phase1");
-  await page.getByRole("link", { name: /Continue organization setup/ }).click();
+  await page.getByRole("link", { name: "Organization setup", exact: true }).click();
   await expect(
     page.getByLabel("Organization name", { exact: true }),
   ).toBeVisible();
@@ -616,6 +616,7 @@ test("real browser Back and Forward wait for pending edits", async ({
     .fill("Saved before browser Back");
   await page.evaluate(() => window.history.back());
   await expect(page).toHaveURL(/#\/phase1$/);
+  await expect(page.getByRole("heading", { name: "Confirm your organization", exact: true })).toBeVisible();
   expect(s.read().draft.name).toBe("Saved before browser Back");
   await page.evaluate(() => window.history.forward());
   await expect(
@@ -626,7 +627,7 @@ test("real browser Back and Forward wait for pending edits", async ({
 test("real browser Back stays in setup when saving fails", async ({ page }) => {
   const s = await mockedOnline(page);
   await page.goto("/#/phase1");
-  await page.getByRole("link", { name: /Continue organization setup/ }).click();
+  await page.getByRole("link", { name: "Organization setup", exact: true }).click();
   await expect(
     page.getByLabel("Organization name", { exact: true }),
   ).toBeVisible();
@@ -654,7 +655,7 @@ test("consecutive browser Back gestures cannot bypass the pending save", async (
   const s = await mockedOnline(page);
   await page.goto("/#/phase1");
   await page
-    .getByRole("link", { name: "Founder Connections", exact: true })
+    .getByRole("link", { name: "Activity workflow", exact: true })
     .click();
   await page
     .getByRole("link", { name: "Organization setup", exact: true })
@@ -671,6 +672,7 @@ test("consecutive browser Back gestures cannot bypass the pending save", async (
     setTimeout(() => window.history.back(), 20);
   });
   await expect(page).toHaveURL(/#\/phase1\/activity\/member$/);
+  await expect(page.getByRole("heading", { name: "Confirm your organization", exact: true })).toBeVisible();
   expect(s.read().draft.name).toBe("Keep pending consecutive Back edits");
 });
 
