@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { ZodError } from "zod";
-import { STAGES, type Stage } from "../../../src/organization/schema.ts";
+import {
+  STAGES,
+  SetupSelectionSchema,
+  type SetupSelection,
+  type Stage,
+} from "../../../src/organization/schema.ts";
 import {
   archiveEvent,
   archiveRequest,
@@ -18,6 +23,8 @@ export type AiJob = {
   revision: number;
   instruction: string;
   deep?: boolean;
+  selection?: SetupSelection;
+  requestId?: string;
   clientPreparationMs?: number;
   status: "queued" | "running" | "done" | "error";
   startedAt: number;
@@ -25,6 +32,10 @@ export type AiJob = {
   message?: string;
 };
 const jobKey = (req: Request) => "ai-jobs/" + digest(token(req));
+const requestKey = (req: Request, requestId: string) =>
+  `ai-requests/${digest(token(req))}/${requestId}`;
+const selectionKey = (selection?: SetupSelection) =>
+  JSON.stringify(selection ?? null);
 const publicJob = (job: AiJob) => ({
   jobId: job.id,
   status: job.status,
@@ -62,26 +73,81 @@ export async function startAiJob(req: Request) {
     const body = await readJSON(req, 12000);
     if (!STAGES.includes(body.stage as Stage))
       throw new SetupError("Unknown AI setup step.");
-    if (body.revision !== entry.revision)
-      throw new SetupError("Save the latest settings before asking AI.", 409);
     const instruction =
       typeof body.instruction === "string"
         ? body.instruction.slice(0, 1500)
         : "";
+    const selectionResult =
+      body.selection === undefined
+        ? undefined
+        : SetupSelectionSchema.safeParse(body.selection);
+    if (selectionResult && !selectionResult.success)
+      throw new SetupError(
+        "Select a valid setup screen and item before asking AI.",
+      );
+    const selection = selectionResult?.success
+      ? selectionResult.data
+      : undefined;
+    const requestId =
+      typeof body.requestId === "string" ? body.requestId : undefined;
+    if (
+      body.requestId !== undefined &&
+      (!requestId ||
+        !/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(
+          requestId,
+        ))
+    )
+      throw new SetupError("The AI request identifier must be a UUID.");
+    const sameInput = (job: AiJob) =>
+      job.stage === body.stage &&
+      job.instruction === instruction &&
+      !!job.deep === (body.deep === true) &&
+      selectionKey(job.selection) === selectionKey(selection);
     const blobs = store(),
       key = jobKey(req),
       old = await blobs.getWithMetadata(key, { type: "json" });
+    // Durable per-action records survive later jobs. Network replays never buy a second generation.
+    if (requestId) {
+      const prior = await blobs.getWithMetadata(requestKey(req, requestId), {
+        type: "json",
+      });
+      const job = prior?.data as AiJob | undefined;
+      if (job) {
+        if (!sameInput(job) || job.revision !== body.revision)
+          throw new SetupError(
+            "This AI request identifier was already used for different input.",
+            409,
+          );
+        return json(
+          publicJob(job),
+          job.status === "queued" || job.status === "running" ? 202 : 200,
+        );
+      }
+    }
     if (old) {
       const job = old.data as AiJob;
-      const same =
-        job.stage === body.stage &&
-        job.instruction === instruction &&
-        !!job.deep === !!body.deep;
+      const same = sameInput(job);
+      if (requestId && job.requestId === requestId) {
+        if (!same || job.revision !== body.revision)
+          throw new SetupError(
+            "This AI request identifier was already used for different input.",
+            409,
+          );
+        await blobs.setJSON(requestKey(req, requestId), job);
+        return json(
+          publicJob(job),
+          job.status === "queued" || job.status === "running" ? 202 : 200,
+        );
+      }
       const active =
         (job.status === "queued" || job.status === "running") &&
         Date.now() - job.startedAt < 10 * 60 * 1000;
       if (active) {
-        if (!same)
+        if (
+          !same ||
+          job.revision !== body.revision ||
+          (requestId && job.requestId !== requestId)
+        )
           throw new SetupError(
             "AI is already preparing another suggestion for this workspace.",
             429,
@@ -90,17 +156,24 @@ export async function startAiJob(req: Request) {
       }
       const response = job.result as { revision?: number } | undefined;
       if (
+        !requestId &&
         job.status === "done" &&
         same &&
-        response?.revision === entry.revision
-      )
+        response?.revision === entry.revision &&
+        (body.revision === job.revision || body.revision === entry.revision)
+      ) {
         return json(publicJob(job));
+      }
     }
+    if (body.revision !== entry.revision)
+      throw new SetupError("Save the latest settings before asking AI.", 409);
     const job: AiJob = {
       id: randomUUID(),
       stage: body.stage as Stage,
       revision: entry.revision,
       instruction,
+      selection,
+      requestId,
       deep: body.deep === true,
       clientPreparationMs:
         typeof body.clientPreparationMs === "number"
@@ -119,6 +192,8 @@ export async function startAiJob(req: Request) {
         "Another AI request started first. Please retry.",
         409,
       );
+    if (requestId)
+      await blobs.setJSON(requestKey(req, requestId), job, { onlyIfNew: true });
     await archiveEvent(
       entry.workspaceId,
       "ai.queued",
@@ -155,6 +230,8 @@ export async function processAiJob(
       Date.now() - current.job.startedAt > 10 * 60 * 1000
     )
       return;
+    const claimedAt = Date.now();
+    const queuedMs = Math.max(0, claimedAt - current.job.startedAt);
     const job = { ...current.job, status: "running" as const };
     const claim = await store().setJSON(current.key, job, {
       onlyIfMatch: current.etag,
@@ -165,10 +242,17 @@ export async function processAiJob(
       (await store().getWithMetadata(current.key, { type: "json" }))?.etag;
     if (!claimEtag) throw new Error("AI job claim was not saved.");
     claimed = { job, etag: claimEtag, key: current.key };
+    if (job.requestId)
+      await store().setJSON(requestKey(req, job.requestId), job);
     await archiveRequest(
       req,
       "ai.started",
-      { jobId: job.id, stage: job.stage },
+      {
+        jobId: job.id,
+        stage: job.stage,
+        queuedMs,
+        queueScope: "workspace-background-job",
+      },
       "ai",
       job.id + "-started",
     );
@@ -181,7 +265,9 @@ export async function processAiJob(
           revision: job.revision,
           instruction: job.instruction,
           deep: job.deep === true,
-          queuedMs: Date.now() - job.startedAt,
+          queuedMs,
+          selection: job.selection,
+          requestId: job.requestId,
           clientPreparationMs: job.clientPreparationMs,
         }),
       }),
@@ -195,31 +281,37 @@ export async function processAiJob(
       "ai",
       job.id + "-completed",
     );
-    await store().setJSON(
-      current.key,
-      response.ok
-        ? { ...job, status: "done", result }
-        : {
-            ...job,
-            status: "error",
-            message: result.message || "AI could not prepare this suggestion.",
-          },
-      { onlyIfMatch: claimEtag },
-    );
-  } catch (e) {
-    if (claimed)
-      await store().setJSON(
-        claimed.key,
-        {
-          ...claimed.job,
+    const completed: AiJob = response.ok
+      ? { ...job, status: "done", result }
+      : {
+          ...job,
           status: "error",
-          message:
-            e instanceof SetupError
-              ? e.message
-              : "The AI suggestion could not be completed. Please retry.",
-        },
-        { onlyIfMatch: claimed.etag },
-      );
+          message: result.message || "AI could not prepare this suggestion.",
+        };
+    await store().setJSON(current.key, completed, { onlyIfMatch: claimEtag });
+    if (job.requestId)
+      await store().setJSON(requestKey(req, job.requestId), completed);
+  } catch (e) {
+    if (claimed) {
+      const failed: AiJob = {
+        ...claimed.job,
+        status: "error",
+        message:
+          e instanceof SetupError
+            ? e.message
+            : "The AI suggestion could not be completed. Please retry.",
+      };
+      await store().setJSON(claimed.key, failed, { onlyIfMatch: claimed.etag });
+      if (failed.requestId)
+        await store().setJSON(requestKey(req, failed.requestId), failed);
+      await archiveRequest(
+        req,
+        "ai.failed",
+        { jobId: failed.id, stage: failed.stage, message: failed.message },
+        "ai",
+        failed.id + "-failed",
+      ).catch(() => {});
+    }
     // Do not throw: Netlify's automatic retries must not duplicate a provider charge.
   }
 }

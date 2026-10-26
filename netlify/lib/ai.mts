@@ -87,11 +87,11 @@ export function isConfigured(c = getConfig()): boolean {
 }
 
 export class AIError extends Error {
-  code: "not_configured" | "timeout" | "upstream" | "bad_json";
+  code: "not_configured" | "timeout" | "upstream" | "bad_json" | "network";
   status: number;
   diagnostics?: ProviderObservation;
   constructor(
-    code: "not_configured" | "timeout" | "upstream" | "bad_json",
+    code: "not_configured" | "timeout" | "upstream" | "bad_json" | "network",
     message: string,
     status = 502,
   ) {
@@ -158,7 +158,22 @@ export function parseJSONReply(text: string): unknown {
     "AIR returned an unreadable response. Your saved settings are safe. Please retry this step.",
   );
 }
-export type ProviderObservation = {
+export type ProviderFailureKind =
+  | "timeout"
+  | "network"
+  | "stream_disconnected"
+  | "stream_incomplete"
+  | "stream_protocol"
+  | "provider_error"
+  | "http_error"
+  | "http_json"
+  | "output_limit"
+  | "empty_response"
+  | "json_syntax"
+  | "unfinished_reasoning";
+export type ProviderAttempt = {
+  attempt: number;
+  startedAfterMs: number;
   model: string;
   requestedModel: string;
   finishReason: string;
@@ -167,113 +182,155 @@ export type ProviderObservation = {
   inputTokens?: number;
   outputTokens?: number;
   headersMs: number;
+  headersReceived: boolean;
   firstTokenMs?: number;
   durationMs: number;
   rawReply: string;
+  /** The received HTTP/SSE body, including any malformed or unfinished frame. No request headers. */
+  rawResponse?: string;
+  httpStatus?: number;
   format: string;
   formatFallback: boolean;
+  servedReasoningEffort?: string;
+  outcome: "complete" | "failed";
+  failureKind?: ProviderFailureKind;
+  failureMessage?: string;
+};
+export type ProviderObservation = Omit<
+  ProviderAttempt,
+  "attempt" | "startedAfterMs" | "headersReceived" | "outcome"
+> & {
+  /** One callback per logical call; bounded format downgrades remain distinct attempts. */
+  attempts?: ProviderAttempt[];
+  attemptCount?: number;
+};
+type HttpResult = {
+  status?: number;
+  text: string;
+  reply: string;
+  model: string;
+  finishReason: string;
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  streaming: boolean;
+  headersMs: number;
+  headersReceived: boolean;
+  firstTokenMs?: number;
+  servedReasoningEffort?: string;
+  failureKind?: ProviderFailureKind;
+  failureMessage?: string;
 };
 
+/** Preserve bytes and content already received even if fetch/read/decoding later fails. */
 async function post(
   url: string,
   headers: Record<string, string>,
   body: unknown,
   timeoutMs: number,
-) {
+): Promise<HttpResult> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  const started = Date.now();
+  let timedOut = false;
+  const timer = setTimeout(() => {
+    timedOut = true;
+    ctrl.abort();
+  }, timeoutMs);
+  const result: HttpResult = {
+    text: "",
+    reply: "",
+    model: "",
+    finishReason: "unknown",
+    streaming: false,
+    headersMs: 0,
+    headersReceived: false,
+  };
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
-    const started = Date.now();
     const res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json", ...headers },
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
-    const headersMs = Date.now() - started;
-    let text: string, firstTokenMs: number | undefined;
-    if (
+    result.status = res.status;
+    result.headersReceived = true;
+    result.headersMs = Date.now() - started;
+    result.servedReasoningEffort =
+      res.headers.get("x-obleth-reasoning-effort") ?? undefined;
+    result.streaming =
       res.ok &&
-      res.headers.get("content-type")?.includes("text/event-stream")
-    ) {
-      const reader = res.body?.getReader();
-      if (!reader)
-        throw new AIError("upstream", "AIR returned an empty stream.");
-      const decoder = new TextDecoder();
-      let pending = "",
-        reply = "",
-        model = "",
-        finish = "stream_incomplete",
-        usage: unknown;
-      const consume = (frame: string) => {
-        for (const line of frame.split(/\r?\n/)) {
-          if (!line.startsWith("data:")) continue;
-          const value = line.slice(5).trim();
-          if (!value || value === "[DONE]") continue;
-          let chunk: any;
-          try {
-            chunk = JSON.parse(value);
-          } catch {
-            throw new AIError(
-              "upstream",
-              "AIR returned an unreadable response stream.",
-            );
-          }
-          if (chunk.error)
-            throw new AIError(
-              "upstream",
-              "AIR could not complete the response stream.",
-            );
-          model = chunk.model ?? model;
-          if (chunk.usage) usage = chunk.usage;
-          const delta = chunk.choices?.[0]?.delta?.content;
-          if (typeof delta === "string" && delta) {
-            if (firstTokenMs === undefined) firstTokenMs = Date.now() - started;
-            reply += delta;
-          }
-          if (chunk.choices?.[0]?.finish_reason)
-            finish = chunk.choices[0].finish_reason;
-        }
-      };
+      !!res.headers.get("content-type")?.includes("text/event-stream");
+    if (result.streaming) result.finishReason = "stream_incomplete";
+    reader = res.body?.getReader();
+    if (!reader) return result;
+    const decoder = new TextDecoder();
+    let pending = "";
+    const consume = (frame: string) => {
+      const value = frame
+        .split(/\r?\n/)
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trimStart())
+        .join("\n")
+        .trim();
+      if (!value || value === "[DONE]") return;
+      let chunk: any;
       try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          pending += decoder.decode(value, { stream: true });
-          const frames = pending.split(/\r?\n\r?\n/);
-          pending = frames.pop() ?? "";
-          for (const frame of frames) consume(frame);
-        }
-        pending += decoder.decode();
-        if (pending.trim()) consume(pending);
-      } finally {
-        reader.releaseLock();
+        chunk = JSON.parse(value);
+      } catch {
+        result.failureKind = "stream_protocol";
+        throw new Error("AIR returned an unreadable response stream.");
       }
-      text = JSON.stringify({
-        model: model || undefined,
-        usage,
-        choices: [{ finish_reason: finish, message: { content: reply } }],
-      });
-    } else text = await res.text();
-    return {
-      status: res.status,
-      text,
-      headersMs,
-      firstTokenMs,
-      servedReasoningEffort:
-        res.headers.get("x-obleth-reasoning-effort") ?? undefined,
+      if (chunk.error) {
+        result.failureKind = "provider_error";
+        throw new Error("AIR reported an error while generating the response.");
+      }
+      result.model = chunk.model ?? result.model;
+      if (chunk.usage) result.usage = chunk.usage;
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (typeof delta === "string" && delta) {
+        if (result.firstTokenMs === undefined)
+          result.firstTokenMs = Date.now() - started;
+        result.reply += delta;
+      }
+      if (chunk.choices?.[0]?.finish_reason)
+        result.finishReason = chunk.choices[0].finish_reason;
     };
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const decoded = decoder.decode(value, { stream: true });
+      result.text += decoded;
+      if (result.streaming) {
+        pending += decoded;
+        const frames = pending.split(/\r?\n\r?\n/);
+        pending = frames.pop() ?? "";
+        for (const frame of frames) consume(frame);
+      }
+    }
+    const tail = decoder.decode();
+    result.text += tail;
+    if (result.streaming && (pending + tail).trim()) consume(pending + tail);
   } catch (e) {
-    if ((e as Error).name === "AbortError")
-      throw new AIError(
-        "timeout",
-        "The AI provider took too long to answer.",
-        504,
-      );
-    throw new AIError("upstream", "Could not reach the AI provider.");
+    result.failureKind = timedOut
+      ? "timeout"
+      : (result.failureKind ??
+        (result.streaming ? "stream_disconnected" : "network"));
+    result.failureMessage =
+      result.failureKind === "timeout"
+        ? "The AI provider took too long to answer. Your saved settings are safe."
+        : result.failureKind === "stream_disconnected"
+          ? "The connection ended while AIR was streaming the response. Your saved settings are safe."
+          : result.failureKind === "network"
+            ? "Could not reach or read the AI provider response. Your saved settings are safe."
+            : (e as Error).message;
   } finally {
     clearTimeout(timer);
+    if (result.failureKind) {
+      ctrl.abort();
+      await reader?.cancel().catch(() => {});
+    }
+    reader?.releaseLock();
   }
+  return result;
 }
 
 export type ChatJSONArgs = {
@@ -337,189 +394,245 @@ export async function chatJSON({
       503,
     );
   const t0 = Date.now();
-
-  if (c.provider === "anthropic") {
-    const { status, text, headersMs } = await post(
-      `${c.baseUrl}/v1/messages`,
-      { "x-api-key": c.key, "anthropic-version": "2023-06-01" },
-      {
-        model: c.model,
-        max_tokens: maxTokens,
-        temperature,
-        system,
-        messages: [{ role: "user", content: user }],
-      },
+  const attempts: ProviderAttempt[] = [];
+  const inputChars = system.length + user.length;
+  const streaming =
+    c.provider !== "anthropic" &&
+    env("AI_PRESET") === "asu_air" &&
+    !!task?.startsWith("setup.");
+  const effort =
+    route?.reasoningEffort ??
+    (env("AI_REASONING_EFFORT") ||
+      (env("AI_PRESET") === "asu_air" ? "none" : ""));
+  const base =
+    c.provider === "anthropic"
+      ? {
+          model: c.model,
+          max_tokens: maxTokens,
+          temperature,
+          system,
+          messages: [{ role: "user", content: user }],
+        }
+      : {
+          ...(streaming
+            ? { stream: true, stream_options: { include_usage: true } }
+            : {}),
+          model: c.model,
+          temperature,
+          max_tokens: maxTokens,
+          messages: [
+            { role: "system", content: system },
+            { role: "user", content: user },
+          ],
+          ...(effort ? { reasoning_effort: effort } : {}),
+        };
+  const initialFormat =
+    c.provider === "anthropic" || c.jsonMode === "none"
+      ? "prompt"
+      : responseSchema && route
+        ? "json_schema"
+        : "json_object";
+  let format = initialFormat;
+  let observation: ProviderObservation | undefined;
+  let failure: AIError | undefined;
+  let data: unknown;
+  let servedReasoningEffort: string | undefined;
+  for (let number = 1; number <= 2; number++) {
+    const attemptStart = Date.now();
+    const request =
+      format === "prompt"
+        ? base
+        : {
+            ...base,
+            response_format:
+              format === "json_schema"
+                ? {
+                    type: "json_schema",
+                    json_schema: {
+                      name: "organization_workflow",
+                      strict: true,
+                      schema: responseSchema,
+                    },
+                  }
+                : { type: "json_object" },
+          };
+    const r = await post(
+      c.provider === "anthropic"
+        ? `${c.baseUrl}/v1/messages`
+        : `${c.baseUrl}/chat/completions`,
+      c.provider === "anthropic"
+        ? { "x-api-key": c.key, "anthropic-version": "2023-06-01" }
+        : { authorization: `Bearer ${c.key}` },
+      request,
       c.timeoutMs,
     );
-    if (status >= 400)
-      throw new AIError(
-        "upstream",
-        `AI provider error ${status}.`,
-        status === 429 ? 429 : 502,
-      );
-    const body = JSON.parse(text) as {
-      content?: { type: string; text?: string }[];
-      model?: string;
-      stop_reason?: string;
-      usage?: { input_tokens?: number; output_tokens?: number };
-    };
-    const reply = (body.content ?? [])
-      .filter((b) => b.type === "text")
-      .map((b) => b.text ?? "")
-      .join("");
-    const observation: ProviderObservation = {
-      model: body.model ?? c.model,
+    servedReasoningEffort = r.servedReasoningEffort;
+    const attempt: ProviderAttempt = {
+      attempt: number,
+      startedAfterMs: attemptStart - t0,
+      model: r.model || c.model,
       requestedModel: c.model,
-      finishReason: body.stop_reason ?? "unknown",
-      inputChars: system.length + user.length,
-      outputChars: reply.length,
-      inputTokens: body.usage?.input_tokens,
-      outputTokens: body.usage?.output_tokens,
-      headersMs,
-      durationMs: Date.now() - t0,
-      rawReply: reply,
-      format: "prompt",
-      formatFallback: false,
+      finishReason: r.finishReason,
+      inputChars,
+      outputChars: (r.streaming ? r.reply : r.failureKind ? r.text : "").length,
+      headersMs: r.headersMs,
+      headersReceived: r.headersReceived,
+      firstTokenMs: r.firstTokenMs,
+      durationMs: Date.now() - attemptStart,
+      rawReply: r.streaming ? r.reply : r.failureKind ? r.text : "",
+      rawResponse: r.text,
+      httpStatus: r.status,
+      format,
+      formatFallback: number > 1,
+      servedReasoningEffort,
+      outcome: "complete",
+      inputTokens: r.usage?.prompt_tokens,
+      outputTokens: r.usage?.completion_tokens,
     };
+    attempts.push(attempt);
+    failure = undefined;
+    try {
+      if (r.failureKind) {
+        attempt.failureKind = r.failureKind;
+        throw new AIError(
+          r.failureKind === "timeout"
+            ? "timeout"
+            : ["network", "stream_disconnected"].includes(r.failureKind)
+              ? "network"
+              : "upstream",
+          r.failureMessage!,
+          r.failureKind === "timeout" ? 504 : 502,
+        );
+      }
+      if ((r.status ?? 0) >= 400) {
+        attempt.failureKind = "http_error";
+        throw new AIError(
+          "upstream",
+          `AI provider error ${r.status}.`,
+          r.status === 429 ? 429 : 502,
+        );
+      }
+      if (!r.streaming) {
+        let body: any;
+        try {
+          body = JSON.parse(r.text);
+        } catch {
+          attempt.failureKind = "http_json";
+          attempt.rawReply = r.text;
+          attempt.outputChars = r.text.length;
+          throw new AIError(
+            "upstream",
+            "AIR returned an unreadable HTTP response. Your saved settings are safe.",
+          );
+        }
+        if (body?.error) {
+          attempt.failureKind = "provider_error";
+          attempt.rawReply = r.text;
+          attempt.outputChars = r.text.length;
+          throw new AIError(
+            "upstream",
+            "The AI provider reported an error. Your saved settings are safe.",
+          );
+        }
+        const content =
+          c.provider === "anthropic"
+            ? body?.content
+            : body?.choices?.[0]?.message?.content;
+        attempt.rawReply =
+          typeof content === "string"
+            ? content
+            : Array.isArray(content)
+              ? content
+                  .filter((x: any) => x?.type === "text")
+                  .map((x: any) => x.text ?? "")
+                  .join("")
+              : "";
+        attempt.outputChars = attempt.rawReply.length;
+        attempt.model = body?.model ?? c.model;
+        attempt.finishReason =
+          c.provider === "anthropic"
+            ? (body?.stop_reason ?? "unknown")
+            : (body?.choices?.[0]?.finish_reason ?? "unknown");
+        attempt.inputTokens =
+          c.provider === "anthropic"
+            ? body?.usage?.input_tokens
+            : body?.usage?.prompt_tokens;
+        attempt.outputTokens =
+          c.provider === "anthropic"
+            ? body?.usage?.output_tokens
+            : body?.usage?.completion_tokens;
+      }
+      checkCompletion(attempt.rawReply, attempt);
+    } catch (e) {
+      failure =
+        e instanceof AIError
+          ? e
+          : new AIError(
+              "bad_json",
+              "AI returned an unreadable response. Your saved settings are safe.",
+            );
+      attempt.outcome = "failed";
+      attempt.failureKind ??= "json_syntax";
+      attempt.failureMessage = failure.message;
+    }
+    // Only an explicit format rejection permits one transport retry. Never regenerate malformed output.
+    const rejectedFormat =
+      r.status === 400 &&
+      number === 1 &&
+      initialFormat !== "prompt" &&
+      /response_format|json_schema/i.test(r.text) &&
+      /not supported|unsupported|not available|not implemented|unrecognized|unknown parameter|not allowed|does not support/i.test(
+        r.text,
+      );
+    if (failure && rejectedFormat) {
+      format = initialFormat === "json_schema" ? "json_object" : "prompt";
+      continue;
+    }
+    observation = {
+      ...attempt,
+      durationMs: Date.now() - t0,
+      attempts,
+      attemptCount: attempts.length,
+    };
+    if (failure) failure.diagnostics = observation;
+    // Archive transport bytes once before interpreting the model's JSON. Subsequent syntax/schema
+    // rejection is a separate event with these same attempt diagnostics, never a second generation.
     await onResponse?.(observation);
-    const data = parsedReply(reply, observation);
+    if (failure) throw failure;
+    try {
+      data = parsedReply(attempt.rawReply, attempt);
+    } catch (e) {
+      const error =
+        e instanceof AIError
+          ? e
+          : new AIError(
+              "bad_json",
+              "AI returned an unreadable response. Your saved settings are safe.",
+            );
+      attempt.outcome = "failed";
+      attempt.failureMessage = error.message;
+      Object.assign(observation, {
+        ...attempt,
+        durationMs: observation.durationMs,
+      });
+      error.diagnostics = observation;
+      throw error;
+    }
     return {
       data,
       model: observation.model,
       provider: c.label,
       ms: observation.durationMs,
+      requestedModel: c.model,
+      reasoningEffort: effort || undefined,
+      servedReasoningEffort,
+      routingVersion: route?.version,
       ...publicMetrics(observation),
     };
   }
-
-  // OpenAI-compatible: DeepSeek, ASU AIR, OpenAI, and most other providers.
-  const streaming =
-    env("AI_PRESET") === "asu_air" && !!task?.startsWith("setup.");
-  const base = {
-    ...(streaming
-      ? { stream: true, stream_options: { include_usage: true } }
-      : {}),
-    model: c.model,
-    temperature,
-    max_tokens: maxTokens,
-    messages: [
-      { role: "system", content: system },
-      { role: "user", content: user },
-    ],
-  };
-  const headers = { authorization: `Bearer ${c.key}` };
-  // AIR's reasoning models may otherwise consume the short structured-output budget thinking.
-  const effort =
-    route?.reasoningEffort ??
-    (env("AI_REASONING_EFFORT") ||
-      (env("AI_PRESET") === "asu_air" ? "none" : ""));
-  const requestBase = effort ? { ...base, reasoning_effort: effort } : base;
-  const format =
-    responseSchema && route
-      ? {
-          type: "json_schema",
-          json_schema: {
-            name: "organization_workflow",
-            strict: true,
-            schema: responseSchema,
-          },
-        }
-      : { type: "json_object" };
-  let formatFallback = false;
-  let r = await post(
-    `${c.baseUrl}/chat/completions`,
-    headers,
-    c.jsonMode === "json_object"
-      ? { ...requestBase, response_format: format }
-      : requestBase,
-    c.timeoutMs,
-  );
-  if (
-    r.status === 400 &&
-    c.jsonMode === "json_object" &&
-    /response_format|json/i.test(r.text)
-  ) {
-    formatFallback = true;
-    r = await post(
-      `${c.baseUrl}/chat/completions`,
-      headers,
-      format.type === "json_schema"
-        ? { ...requestBase, response_format: { type: "json_object" } }
-        : requestBase,
-      c.timeoutMs,
-    ); // bounded downgrade; never silently remove the JSON requirement
-  }
-  if (r.status >= 400)
-    throw new AIError(
-      "upstream",
-      `AI provider error ${r.status}.`,
-      r.status === 429 ? 429 : 502,
-    );
-  let body: {
-    choices?: {
-      finish_reason?: string;
-      message?: {
-        content?: string | { type: string; text?: string }[];
-        refusal?: string;
-      };
-    }[];
-    model?: string;
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
-  };
-  try {
-    body = JSON.parse(r.text);
-  } catch {
-    throw new AIError(
-      "upstream",
-      "AIR returned an unreadable HTTP response. Your saved settings are safe.",
-    );
-  }
-  const content = body.choices?.[0]?.message?.content;
-  const reply =
-    typeof content === "string"
-      ? content
-      : Array.isArray(content)
-        ? content
-            .filter((x) => x.type === "text")
-            .map((x) => x.text ?? "")
-            .join("")
-        : "";
-  const observation: ProviderObservation = {
-    model: body.model ?? c.model,
-    requestedModel: c.model,
-    finishReason: body.choices?.[0]?.finish_reason ?? "unknown",
-    inputChars: system.length + user.length,
-    outputChars: reply.length,
-    inputTokens: body.usage?.prompt_tokens,
-    outputTokens: body.usage?.completion_tokens,
-    headersMs: r.headersMs,
-    firstTokenMs: r.firstTokenMs,
-    durationMs: Date.now() - t0,
-    rawReply: reply,
-    format:
-      c.jsonMode === "none"
-        ? "prompt"
-        : formatFallback
-          ? format.type === "json_schema"
-            ? "json_object"
-            : "prompt"
-          : format.type,
-    formatFallback,
-  };
-  await onResponse?.(observation);
-  const data = parsedReply(reply, observation);
-  return {
-    data,
-    model: observation.model,
-    provider: c.label,
-    ms: observation.durationMs,
-    requestedModel: c.model,
-    reasoningEffort: effort || undefined,
-    servedReasoningEffort: r.servedReasoningEffort,
-    routingVersion: route?.version,
-    ...publicMetrics(observation),
-  };
+  throw new Error("Unreachable AI attempt state.");
 }
+
 function publicMetrics(o: ProviderObservation) {
   return {
     inputChars: o.inputChars,
@@ -531,21 +644,37 @@ function publicMetrics(o: ProviderObservation) {
     firstTokenMs: o.firstTokenMs,
   };
 }
-function parsedReply(reply: string, o: ProviderObservation) {
+function checkCompletion(reply: string, o: ProviderAttempt) {
+  if (["length", "max_tokens"].includes(o.finishReason)) {
+    o.failureKind = "output_limit";
+    throw new AIError(
+      "bad_json",
+      "AIR stopped before finishing the response (output limit). Your saved settings are safe. Please retry this step.",
+    );
+  }
+  if (o.finishReason === "stream_incomplete") {
+    o.failureKind = "stream_incomplete";
+    throw new AIError(
+      "bad_json",
+      "AIR's stream ended without a finish event. This does not establish an output limit. Your saved settings are safe.",
+    );
+  }
+  if (!reply.trim()) {
+    o.failureKind = "empty_response";
+    throw new AIError(
+      "bad_json",
+      "AIR returned an empty response. Your saved settings are safe. Please retry this step.",
+    );
+  }
+}
+function parsedReply(reply: string, o: ProviderAttempt) {
   try {
-    if (["length", "max_tokens", "stream_incomplete"].includes(o.finishReason))
-      throw new AIError(
-        "bad_json",
-        "AIR stopped before finishing the response (output limit). Your saved settings are safe. Please retry this step.",
-      );
-    if (!reply.trim())
-      throw new AIError(
-        "bad_json",
-        "AIR returned an empty response. Your saved settings are safe. Please retry this step.",
-      );
     return parseJSONReply(reply);
   } catch (e) {
-    if (e instanceof AIError) e.diagnostics = o;
+    o.failureKind =
+      /<think>/i.test(reply) && !/<\/think>/i.test(reply)
+        ? "unfinished_reasoning"
+        : "json_syntax";
     throw e;
   }
 }
