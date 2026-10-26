@@ -1,8 +1,8 @@
-> **2026-10-25 · Organization Setup AI 改版：进行中（Codex，线上实测收尾）**
-> 章程优先、部门分组多岗位矩阵、隐藏 RACI、可编辑成员/干部流程、PDF/Word/粘贴/虚构示例、每步线上保存和 prompt 审核已实施。新站 [PR #3 在线设置](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup) 已部署；原站/main/旧数据保留，上一版设置在 setup-legacy。
-> Juanxi 已切换 ASU AIR；已补齐供应商参数，并用后台任务解决实际约 30 秒的同步请求上限。真实 AIR auto/north-mini-code 已跑通岗位、矩阵、成员流程、多岗位 AI 修改、Board social 和 tabling。
-> Juanxi 随后要求从推荐模型按任务选择：已固定 Gemma 4（提取/整理）+ GLM 5.3（流程/RACI/指导）；Gemma 章程 56s、职责矩阵 15s，GLM 指导成功（实际服务变体 glm-5-3-mxfp4）。指定模型完整链路继续复核。
-> 完整本机检查：构建、318 单元、167 页面通过，13 原有跳过。当前代码远端 CI/Netlify 结果以提交状态为准。[交接](organization/HANDOFF.md)、[实际 Prompt/模型配置与审核说明](organization/PROMPTS.md)。
+> **2026-10-26 · Organization Setup：待 Juanxi 实操验收（Codex）**
+> [在线设置](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup) / [PR #3](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3)。章程提取、分组多岗位矩阵、隐藏 RACI、可编辑成员/干部流程、PDF/Word/粘贴/示例与真实 AIR 已接入；main、原站、旧数据和前一版设置保留。
+> 最新原则：**数据记录/治理先于 AI**。本版新增带时间戳的操作/配置历史、原件、对话与 AI 输入输出/决定归档；支持导出与下载原件；访问过期不删除档案，当前不自动跨组织共享。[数据基础](organization/DATA_FOUNDATION.md)。
+> 用户要求速度与额度优先：默认改为 Muse Glimmer 30B，GLM 5.3 仅主动深度检查，路由 v2。停止新增真实 AI 测试，主要由 Juanxi 实操；不声称新模型已实测加速。更早真实流程已跑通，Gemma 15–56s / GLM 56–91s 的历史记录保留。
+> 最新必要检查：构建 + 43 离线检查通过，未消耗 AIR；较早完整检查 319 单元 / 167 页面通过、13 原有跳过。当前远端 CI/部署以提交状态为准。[交接](organization/HANDOFF.md)、[实际 Prompt/选模审核](organization/PROMPTS.md)。已同步 Plan 四份指定备份。
 
 > **2026-10-25 · AI-native Phase 1：待验收（Codex）**
 > Juanxi 已确认制作原型。架构方向改为 **AI-native、Activity-centered、Organization Context driven**。

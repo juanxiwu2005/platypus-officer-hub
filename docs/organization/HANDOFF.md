@@ -1,62 +1,46 @@
-# Organization Setup AI：实现与验收
+# Organization Setup：上线交接
 
-2026-10-25 · Codex · **线上部署与自动检查已完成；AIR 换供应商正在实测，待 Juanxi 验收。**
+2026-10-26 · Codex · **待 Juanxi 实操验收**。已停止新增真实 AI 测试。
 
-## 在线入口与保留版本
+## 在线入口
 
-- [新 Organization Setup](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup)
+- [最新 Organization Setup](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup)
 - [独立分支站](https://feat-organization-setup-ai--platypus-officer-hub.netlify.app/#/phase1/setup)
 - [前一版设置参考](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup-legacy)
-- [原网站](https://platypus-officer-hub.netlify.app/) 保留；`main` 不合并。
-- [草稿 PR #3，目标 v1](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3)，分支 `feat/organization-setup-ai`。前一版 Phase 1 的 PR #2/分支保留。
+- [原网站](https://platypus-officer-hub.netlify.app/) 保留，main 未合并。
+- [草稿 PR #3，目标 v1](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3)，分支 feat/organization-setup-ai。前一版 Phase 1 的分支和 PR #2 保留。
 
-旧 localStorage 数据键、旧页面和研究文件未改写。新域名不会自动携带原域名的浏览器数据；回原地址/浏览器仍可参考。新设置使用独立线上存储，不以重置旧数据实现。
+旧 localStorage 键和旧页面保留。新域名不自动带入原域名的浏览器数据；原地址仍可参考。没有改研究资料或 IRB 文件。
 
-## 已实施
+## 已落实的设置改版
 
-Constitution → Your team → Responsibilities → Member programs → Board work → Review。删除组织类别/“How should plans move forward”题；每个转换先让 AI 整理下一屏，社长审核调整。
+Constitution → Your team → Responsibilities → Member programs → Board work → Review。删除组织分类和流程偏好题；章程提取岗位/职责、直接显示自定义岗位、部门分组的多岗位复选矩阵；后台 RACI。每步 AI 准备下一屏，用户审核调整。
 
-章程支持有文本的 PDF、Word `.docx`、TXT/Markdown、粘贴文本与一键虚构示例。浏览器解析原文件，只保存提取文本与来源信息；上限 8 MB、50 页 PDF、60,000 字符。扫描 PDF 暂无 OCR，会明确报错；旧二进制 `.doc` 暂不支持，应另存 `.docx`。提供真实 PDF/DOCX/TXT 虚构样本。
+上传有文本的 PDF、Word .docx、TXT/MD，或用虚构示例/粘贴文本。8 MB / PDF 50 页 / 文本 60,000 字符。扫描 PDF 暂无 OCR，旧 .doc 需另存 .docx。**从本版起保存原件与历史**，并提供 Download original、Export records；以前未保存的二进制原件无法倒补。
 
-岗位从章程提取，附实际引文、来源和模型置信度；缺失信息才建议默认岗位。自定义岗位表单直接可见。职责用部门分组矩阵，多岗位复选框；后台生成 RACI，不要求用户填写 R/A/C/I。
+成员流程包含机会/邀请两种入口、Outreach + Professional Development 首次会面、策划、Marketing→Finance 审核、并行准备、执行、反馈。可拖节点、改依赖/并行、加节点（按钮/右键）、多人负责与 AI 修改提案。拖动位置不等于改变顺序，依赖线或顺序控件才改变逻辑；手机提供竖向节点和编辑。
 
-成员流程保留机会/邀请的二选一入口、Outreach + Professional Development 首次会面、计划、Marketing 审核、Finance 总成本审核，再并行安排场地/注册/推广/人员，执行和反馈。流程可拖动位置、连接依赖、设置前后/并行、右键或按钮加节点、修改多人负责。移动位置不等于修改先后，依赖线/顺序控件才改变流程逻辑。悬停展示职责和岗位；手机用竖向节点及点击编辑。
+Exec Board 按 social/tabling 等目标生成专属链路，支持保留草稿；换目标会使旧流程失效，避免拿旧 plan 进入 Review。最后生成两层组织指导、显示 prompt 审核提醒和模型生成记录。
 
-Exec Board 按一句话目标生成 social/tabling 等具体事务链，可保留草稿并继续修改。AI 修改先生成提案，Accept 后替换。Review 展示核心摘要、两层 AI 指导、prompt 审核入口。
+## 数据比 AI 更底层
 
-## 数据保存与 AI 上下文
+新设置的操作、原件、修改历史、对话请求、AI 输入输出/错误/采用或拒绝均进入带时间戳的私有工作区档案。访问会话到期不删除历史，当前不自动跨组织共享。详见 [数据基础](DATA_FOUNDATION.md)。这是当前设置的实际实现；旧业务页未全面迁移到新组织数据库，真实账号/多人权限/跨组织分享与能效分析仍需后续建设。
 
-Netlify Blobs 是实际服务端文档存储。每次更改经短暂自动保存写入，转换步骤和 AI 调用前强制等待保存；页面显示服务器修订号。HttpOnly 随机 cookie 隔离工作区；修订号+ETag 防止并发覆盖，AI 独占锁防重复请求，保存草稿与已批准快照分开。AIR 长请求使用后台函数，前端轮询结果；任务按工作区隔离并原子领取，同一个完成结果可在刷新后恢复，避免页面约 30 秒超时和重复供应商请求。新修改不会覆盖先前批准快照，直到再次确认。
+## 当前模型与速度
 
-这是匿名测试工作区，并非跨设备组织账户数据库。cookie/数据七天过期，过期数据在再次读取时删除，未配置定时物理清扫。请用虚构资料；清除 cookie 或换域名会打开不同工作区。旧平台其它业务状态仍用原存储；未宣称全站迁移。
+默认 `muse-glimmer-30b`，关闭额外思考；GLM 5.3 只在用户主动勾选 Use deeper reasoning 或点击 Review with stronger model 时调用。共用现有 AIR key，路由版本 v2。配置与取舍见 [Prompt/模型说明](PROMPTS.md)。
 
-后端使用已有供应商适配器，不把 key 发到浏览器。记录供应商、模型、prompt 版本、时间和输入哈希；未知角色/动作、循环依赖、无效结构和非原文引文有程序校验。生成日期继续过滤，正式日期归规则引擎。无真实 AI 失败时的模拟成功兜底。
+历史实测（更换默认模型之前）：AIR auto/north-mini-code 跑通岗位、矩阵、成员流程、多人负责 AI 修改、Board social 和带两班人员的 tabling。Gemma 章程 56s、矩阵 15s；GLM 指导 56–91s、成员流程 81s，实际模型名 glm-5-3-mxfp4。一次 GLM 流程结构失败后已加入原生 JSON schema + 简短说明约束并成功复测。
 
-[Prompt 正本与审核原因](PROMPTS.md)；最终 Review 明确提醒 Juanxi 审核全部 prompt。新设置的核心/按需配置已存储，旧 Ask/Today/完整 planner 尚未改用新组织模型。
+这些耗时含网关等待与生成，尚不能区分模型耗时和排队耗时。按 Juanxi 最新要求，**切换 Muse 后未继续请求真实模型作测试**，不声称已测出加速比例；由 Juanxi 实操感受。后台任务解决了托管环境实际约 30 秒的同步请求上限。
 
-## 验证记录
+## 检查与后续验收
 
-- 完整 `npm run check`：TypeScript/Vite 构建通过，**318 单元测试通过，167 桌面/手机页面通过，13 原有跳过**。
-- 包含 39 项组织契约/服务器/供应商路由验证；PDF/DOCX/TXT 真实解析；多选矩阵、来源、提案接受/丢弃、线上恢复模拟、来源页 axe/触控检查。
-- 旧测试保留，前一版设置断言改在 `setup-legacy` 运行，新设置独立新增 24 个页面测试。测试用模型明确标记 Automated test fixture，不作为供应商验收。
-- 线上实际保存服务已成功创建工作区并恢复职责矩阵。旧 DeepSeek 配置下角色提取和职责生成成功；成员流程有一次结构校验失败，因此不称整条旧供应商链路通过。
-- Juanxi 随后把 key 改为 ASU AIR。Netlify 原只有 key，缺少供应商/模型参数，导致请求仍去 DeepSeek 而 401。已按 [ASU 官方 API](https://docs.rc.asu.edu/ai/api/) / [Chat 文档](https://docs.rc.asu.edu/ai/api/chat/) 补齐供应商，先用 auto 诊断；AIR 首次同步请求运行约 30 秒后被托管环境截断，已改为后台生成/结果轮询。真实 AIR 全流程结果将在完成后补记。
+更早的完整检查通过构建、319 单元和 167 桌面/手机页面（13 原有跳过）。最新数据基础只做必要构建及 43 项离线组织/服务器/模型/档案检查，包括原件哈希、不可覆盖、事件时间戳、去重、工作区隔离、访问到期不删档案；**这些检查不调用 AIR、不消耗模型额度**。GitHub CI 独立运行；不再手动重复整套真实 AI 验收。
 
-## 分组设计的依据
+1. 在线用虚构示例或自己的虚构 PDF/Word，检查角色与矩阵。
+2. 修改流程/负责人，试一句话调整；普通模式先看等待时间，必要时才选深度检查。
+3. 试 Export records / Download original，确认记录与原件。
+4. Review 查看两层指导和全部 prompt；prompt 质量仍需 Juanxi 审核，开发完成不等于已获产品批准。
 
-参考 [CU Denver 干部职责](https://www.cudenver.edu/student-life/student-organizations/leaders) 和 [University of Dayton 岗位说明](https://1850.udayton.edu/csi/officer-roles/)，将经费/采购、活动策划、活动后勤、传播、对外关系、领导/记录分组。它们是本产品可改的默认导航，不是所有社团必须采用的结构。RACI 参考 [PMI 术语定义](https://www.pmi.org/-/media/pmi/documents/registered/pdf/pmbok-standards/pmi-lexicon-pm-terms.pdf?rev=447328d841c249af985d14177ddd5f95)，后台推断仍需实际组织校准。
-
-## Juanxi 验收
-
-1. 在线点 Use fictional example → Let AI prepare my team，核对岗位。
-2. 进入 Responsibilities，试让 VP of Marketing 与 Marketing Intern 同时负责。
-3. 检查成员链路，改两个环节为并行，再用一句话要求 AI 修改并接受提案。
-4. 输入 Board social 或 tabling 目标，保存草稿；刷新核对保留内容。
-5. Review 查看 AI instructions，审核五阶段 prompt 后确认设置。
-
-
-## 当前模型分工
-
-Juanxi 提供八个推荐候选后，固定两种模型，共用现有 AIR key。`gemma4-31b-it` 用于章程提取、职责预填和短结构化任务；`glm-5-3` 用于成员/干部工作流、后台 RACI、复杂修改、组织指导。详细路由及取舍见 [Prompt 与模型配置](PROMPTS.md#按任务选择模型)。请求模型、网关实际模型、请求/实际推理级别、耗时和路由版本存入线上记录；Review 可展开查看。实际 GLM 响应可能报告服务端变体 `glm-5-3-mxfp4`，页面保留原返回值。
-
-已有真实验证：Gemma 同一虚构章程成功提取岗位（56s，含网关等待与生成）；GLM 指导文档成功返回。切换前 AIR auto/north-mini-code 已跑通角色→矩阵→成员流程→多人负责的 AI 修改→Board social→带两班人员的 tabling。指定模型的完整新链路仍继续核对，不能把一次样例称为跨组织模型质量验证。
+最近活动区保留，按用户要求留待下一轮修改。

@@ -156,3 +156,6 @@ export async function exportRecords() {
   );
   track("archive.exported", { events: events.length });
 }
+
+export const listArchivedFiles = () =>
+  api<{ uploads: ArchivedFile[] }>("/api/org/archive?action=index");

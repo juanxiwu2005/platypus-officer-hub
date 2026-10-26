@@ -1237,3 +1237,8 @@
 .os-record-tools > span {flex:1;min-width:180px;}
 .os .os-record-tools button {font-size:12px;}
 .os-deep-choice {display:flex;align-items:center;gap:10px;min-height:44px;margin:10px 0;}
+
+.os-file-history {border:1px solid #dce5ef;border-radius:10px;padding:18px;margin-bottom:22px;}
+.os-file-history ul {list-style:none;padding:0;}
+.os-file-history li {display:flex;justify-content:space-between;align-items:center;gap:15px;border-bottom:1px solid #e2e8f0;padding:12px 0;}
+.os-file-history time {display:block;color:#536b84;font-size:12px;margin-top:5px;}

@@ -1,3 +1,5 @@
+> **2026-10-26 最新：** 已切换 ASU AIR；默认 `muse-glimmer-30b`，GLM 仅主动深度检查（路由 v2）。此前 Gemma/GLM 自动按阶段的 v1 已被用户的速度要求替代。新设置使用后台任务与数据归档，见 [交接](organization/HANDOFF.md)、[数据基础](organization/DATA_FOUNDATION.md)。不再发起额外真实 AI 测试。
+
 # AI setup — how Platypus talks to an AI provider
 
 **Short version:** the website never holds an API key. It calls its own server endpoints (`/api/*`, Netlify Functions), and only those talk to the AI provider. Which provider answers is decided by environment variables in Netlify. Changing provider = change the variables + redeploy. No code changes.
@@ -60,14 +62,14 @@ Prompts sent to DeepSeek, OpenAI or Anthropic leave ASU. Use only the fictional 
 
 
 
-## Organization Setup 与 AIR（2026-10-25）
+## Organization Setup 与 AIR（2026-10-26 当前）
 
-新 `/api/org/ai` 没有模拟回答兜底。换 key 时同时设置 `AI_PRESET=asu_air`、`AI_MODEL=<Voyager 模型 ID>`；地址默认 `https://openai.rc.asu.edu/v1`。只换 key 会继续请求旧供应商。初次排查可用 ASU 官方支持的 `auto`，可复现实验应固定模型。`AI_REASONING_EFFORT` 可配置，AIR 默认 `none` 避免短结构化输出预算被思考耗尽。修改环境变量后重新部署。
+Netlify 保留现有 AIR key（只在服务端）。`AI_PRESET=asu_air`，`AI_MODEL=muse-glimmer-30b`；默认网关 `https://openai.rc.asu.edu/v1`。只换 key、不换供应商参数会继续请求旧地址。
 
-官方依据：[LLM API](https://docs.rc.asu.edu/ai/api/) 与 [Chat completions](https://docs.rc.asu.edu/ai/api/chat/)。Netlify /api/health 的 configured 只表示参数齐全，不能证明认证成功；须实际调用并核对页面供应商/模型。未读或输出 key。
+当前 `air-task-routing-v2`：Muse 负责默认交互，GLM 仅用户主动深度检查；关闭自动慢推理。模型、请求/返回变体、耗时、prompt/路由版本与完整输入输出存入私有工作区档案。`AI_MODEL_ROUTING=off` 是运营方明确回退单模型的开关。候选/权衡及当前未经新一轮真实测试的边界见 [Prompt/模型说明](organization/PROMPTS.md)。
 
+后台 `/api/org/ai-run` 执行生成，`/api/org/ai` 排队/读取结果，避免托管环境实际约 30 秒的同步上限。新 `/api/org/archive` 保存原件、操作与对话/AI档案，不请求模型；数据基础先于 AI。没有失败时伪装成功的模拟兜底。原业务页仍保留其原行为。
 
-Organization Setup 的 AIR 请求由 `/api/org/ai` 建立隔离任务，浏览器触发 `/api/org/ai-run` 后台函数，再按工作区读取结果。使用 `-background.mts` 文件约定，避免旧托管环境约 30 秒的同步上限。服务端仍检查 revision、原子独占锁与输出；失败结果不应用设置，后台不抛出会触发平台重试的异常。依据：[Netlify Background Functions](https://docs.netlify.com/build/functions/background-functions/)。其它旧业务接口仍采用原同步适配器。
+官方依据：[ASU LLM API](https://docs.rc.asu.edu/ai/api/)、[Chat completions](https://docs.rc.asu.edu/ai/api/chat/)、[Netlify Background Functions](https://docs.netlify.com/build/functions/background-functions/)。/api/health 只报告配置与路由，不证明真实认证或模型质量。
 
-
-当前 AIR 已启用 `air-task-routing-v1`：两个模型固定在 `src/organization/modelPolicy.ts`。默认 Gemma 4，组织流程/RACI/指导使用 GLM 5.3（后台 low 推理）；原同步计划/变更使用 GLM none。AI_MODEL 是关闭路由后的单模型回退设置，不会覆盖已启用的任务路由。`auto` 仅用于之前的连接诊断，当前产品请求不再依赖自动选模。
+Juanxi 已要求停止新增真实 AI 测试；当前由他实操验收。必要离线检查及 GitHub CI 不使用模型额度。

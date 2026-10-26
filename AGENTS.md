@@ -113,7 +113,16 @@ Juanxi 在检查原型后明确要求继续实施并上线：章程/岗位/职�
 
 - 分支 `feat/organization-setup-ai`，草稿 PR #3（base v1）；main 与旧分支保留。
 - `/phase1/setup` 使用 `src/organization/` + `/api/org/setup`、`/api/org/ai`；`/phase1/setup-legacy` 保留前一版设置，旧数据键不迁移或重置。
-- Netlify Blobs 保存隔离的测试工作区；HttpOnly 随机 cookie、修订号与 ETag 防覆盖；草稿与已批准快照分开。仅虚构测试数据，七天过期，跨设备组织账户尚未实现。
+- Netlify Blobs 保存隔离的测试工作区；HttpOnly 随机 cookie、修订号与 ETag 防覆盖；草稿与已批准快照分开。仅虚构测试数据；访问会话有效期与归档保留分离，到期不删除历史，跨设备组织账户尚未实现。
 - 提示词正本 `src/organization/prompts.ts`，五阶段带版本；前端可查看精确 prompt，最终 Review 明确提醒 Juanxi 审阅。具体数据包/原因见 `docs/organization/PROMPTS.md`。
 - 旧测试完整保留；前一版 Phase 1 设置检查转到 setup-legacy，新行为单独测试。区分自动模拟、真实文件解析与线上真实模型结果。
 - 详细交接与已验证限制见 `docs/organization/HANDOFF.md`。不得把新 onboarding 的数据存储称为整个旧应用已经迁移数据库。
+
+
+## 10. 数据基础优先与测试节制（2026-10-26，Juanxi 最新要求）
+
+**数据记录/管理/治理是底层；组织配置在其上；AI 是读取、提出建议的上层。** 新功能必须先持久化输入与操作，再调用 AI；操作、原件、交互/对话、AI 请求与结果、采用或拒绝、错误、配置历史均应带服务器时间戳与来源并可归档。不要把最新快照等同于历史，不得因会话到期自动清除档案。共享应是受控功能，当前私有工作区不自动对外或跨组织共享。
+
+当前范围为新版 Organization Setup：`org-archive.mts`、`storage.mts` 的追加式事件、客户端 `archive.ts`、AI job/input/result 记录、分块原件与 SHA-256 校验、导出与原件下载。旧业务页为参考，尚未全面迁移成新组织数据库；真实账号、组织成员权限、跨组织共享/分析及正式交接仍需后续实施，不能谎称已上线。
+
+速度优先的新默认模型是 `muse-glimmer-30b`；`glm-5-3` 仅在用户主动选择 Deep review/stronger model 时调用，路由版本 v2。不要自动升级慢模型或启动额外 AI 评估。Juanxi 要求停止新增真实 AI 测试，主要由他实操验收；必要构建和小范围离线/模拟检查不消耗 AIR 额度。保留 GitHub CI，不重复无必要的全量测试。最新交接见 docs/organization/HANDOFF.md 与 DATA_FOUNDATION.md。

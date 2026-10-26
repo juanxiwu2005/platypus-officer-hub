@@ -6,6 +6,8 @@ import {
   hasPendingArchive,
   exportRecords,
   downloadOriginal,
+  listArchivedFiles,
+  type ArchivedFile,
 } from "./archive";
 import { routeTask, MODEL_POLICY_VERSION } from "./modelPolicy";
 import {
@@ -135,6 +137,7 @@ export default function OnlineSetup() {
     [showPrompts, setShowPrompts] = useState(false),
     [deepReview, setDeepReview] = useState(false),
     [exporting, setExporting] = useState(false),
+    [archivedFiles, setArchivedFiles] = useState<ArchivedFile[] | null>(null),
     [finished, setFinished] = useState(false);
   const dref = useRef(draft),
     eref = useRef<Envelope | null>(null),
@@ -200,6 +203,8 @@ export default function OnlineSetup() {
       track("workspace.opened", {
         step: remote.draft.step,
         revision: remote.revision,
+        promptVersion: PROMPT_VERSION,
+        routingVersion: MODEL_POLICY_VERSION,
       });
       eref.current = remote;
       setEntry(remote);
@@ -504,6 +509,13 @@ export default function OnlineSetup() {
               el.type === "checkbox" ? el.checked : el.value?.slice(0, 60000),
           });
       }}
+      onBlurCapture={(e) => {
+        const el = e.target as HTMLElement;
+        track("ui.blurred", {
+          step: dref.current.step,
+          control: el.getAttribute("aria-label") || el.id || el.tagName,
+        });
+      }}
       onFocusCapture={(e) => {
         const el = e.target as HTMLElement;
         track("ui.focused", {
@@ -552,6 +564,19 @@ export default function OnlineSetup() {
         >
           {exporting ? "Preparing records…" : "Export records"}
         </button>
+        <button
+          onClick={async () => {
+            try {
+              setArchivedFiles(
+                archivedFiles ? null : (await listArchivedFiles()).uploads,
+              );
+            } catch (e) {
+              setError((e as Error).message);
+            }
+          }}
+        >
+          View archived files
+        </button>
         {draft.source?.archiveId && (
           <button
             onClick={() =>
@@ -564,6 +589,40 @@ export default function OnlineSetup() {
           </button>
         )}
       </div>
+      {archivedFiles && (
+        <section className="os-file-history">
+          <h2>Archived originals</h2>
+          {archivedFiles.length ? (
+            <ul>
+              {[...archivedFiles]
+                .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+                .map((f) => (
+                  <li key={f.id}>
+                    <span>
+                      <b>{f.fileName}</b>
+                      <time dateTime={f.createdAt}>
+                        {new Date(f.createdAt).toLocaleString()}
+                      </time>
+                      {!f.complete && <small>Incomplete upload</small>}
+                    </span>
+                    <button
+                      disabled={!f.complete}
+                      onClick={() =>
+                        void downloadOriginal(f.id).catch((e) =>
+                          setError(e.message),
+                        )
+                      }
+                    >
+                      Download
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          ) : (
+            <p>No original files have been archived in this workspace yet.</p>
+          )}
+        </section>
+      )}
       <div className="os-progress" aria-label="Organization setup progress">
         {STEPS.map((s, i) => (
           <span
