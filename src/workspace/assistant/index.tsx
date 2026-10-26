@@ -36,7 +36,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const [portalTarget, setPortalTarget] = useState<HTMLElement|null>(null);
   const [setupMounted, setSetupMounted] = useState(false), [setupContext, setSetupContext] = useState<AssistantContext|null>(null);
   const [selection, setSelection] = useState<AssistantContext|null>(null);
-  const [open, setOpen] = useState(true), [mode, setMode] = useState<'setup'|'workspace'>('setup');
+  const [open, setOpen] = useState(()=>typeof window==='undefined'||(window.matchMedia?.('(min-width: 1001px)').matches??true)), [mode, setMode] = useState<'setup'|'workspace'>('setup');
   const [text, setText] = useState(''), [messages, setMessages] = useState<Message[]>([]);
   const [deep,setDeep]=useState(false),[savedSetupInput,setSavedSetupInput]=useState('');
   const setupFlush=useRef<(()=>Promise<void>)|null>(null), consumedSetupInput=useRef<(()=>void)|undefined>(), storageKey=useRef('');
@@ -44,11 +44,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const recoverSetupInput=useCallback((value:string,onConsumed?:()=>void)=>{if(value.trim()){setSavedSetupInput(value);consumedSetupInput.current=onConsumed;}},[]);
   const restoreSetupInput=useCallback(()=>{setText(v=>v? v+'\n'+savedSetupInput:savedSetupInput);setSavedSetupInput('');consumedSetupInput.current?.();},[savedSetupInput]);
   const [busy, setBusy] = useState(false), [error, setError] = useState(''), [applied, setApplied] = useState<Record<string,string>>({});
-  const active = useRef(true),inFlight=useRef(false);
+  const active = useRef(true),inFlight=useRef(false),storageHealthy=useRef(true);
   useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   useEffect(()=>{let live=true;void api<WorkspaceEnvelope>('/api/workspace').then(async e=>{if(!live)return;const key='platypus.workspace.assistant.draft:'+e.state.workspaceId;if(storageKey.current===key)return;storageKey.current=key;let pending:{jobId:string;prompt:string}|null=null;try{const saved=sessionStorage.getItem(key);if(saved)setText(v=>v||saved.slice(0,2000));const raw=sessionStorage.getItem(key+':pending');if(raw)pending=JSON.parse(raw);}catch{/* Current in-memory text remains visible. */}if(pending&&typeof pending.jobId==='string'&&typeof pending.prompt==='string'&&!inFlight.current){inFlight.current=true;setBusy(true);const previous=pending;setMessages(m=>[...m,{id:uid(),role:'user',text:previous.prompt}]);try{const job=await api<AssistantJob>('/api/workspace/assistant?jobId='+encodeURIComponent(previous.jobId));const answer=await finishJob(job);if(active.current){setMessages(m=>[...m,{id:uid(),role:'assistant',text:answer.message,answer}]);setText(v=>v===previous.prompt?'':v);}sessionStorage.removeItem(key+':pending');}catch(error){if(active.current)setError((error as Error).message);}finally{inFlight.current=false;if(active.current)setBusy(false);}}}).catch(()=>{});return()=>{live=false;};},[location.pathname]);
-  useEffect(()=>{if(!storageKey.current)return;try{if(text)sessionStorage.setItem(storageKey.current,text);else sessionStorage.removeItem(storageKey.current);}catch{if(text)setError('Your message is kept in this page, but browser draft recovery is unavailable. Copy it before refreshing.');}},[text]);
+  useEffect(()=>{if(!storageKey.current)return;try{if(text)sessionStorage.setItem(storageKey.current,text);else sessionStorage.removeItem(storageKey.current);storageHealthy.current=true;}catch{storageHealthy.current=false;if(text)setError('Your message is kept in this page, but browser draft recovery is unavailable. Copy it before refreshing.');}},[text]);
   useEffect(()=>{const protect=(event:BeforeUnloadEvent)=>{if(text.trim()||busy){event.preventDefault();event.returnValue='';}};window.addEventListener('beforeunload',protect);return()=>window.removeEventListener('beforeunload',protect);},[text,busy]);
+  useEffect(()=>{const beforeLeave=(event:Event)=>{if((text.trim()||busy)&&!storageHealthy.current){event.preventDefault();setError('Your message could not be saved in this browser. Copy it or finish the request before leaving this workspace.');}};window.addEventListener('platypus:before-workspace-leave',beforeLeave);return()=>window.removeEventListener('platypus:before-workspace-leave',beforeLeave);},[text,busy]);
   useEffect(() => {
     setSelection(null);
     if (!location.pathname.includes('/setup')) setMode('workspace');
@@ -68,8 +69,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     try {
       await setupFlush.current?.();
       const current = await api<WorkspaceEnvelope>('/api/workspace');
-      const draftKey='platypus.workspace.assistant.draft:'+current.state.workspaceId;storageKey.current=draftKey;try{sessionStorage.setItem(draftKey,prompt);sessionStorage.setItem(draftKey+':pending',JSON.stringify({jobId:requestId,prompt}));}catch{/* The visible error recovery keeps the message. */}
-      const job = await api<AssistantJob>('/api/workspace/assistant', { action:'ask', requestId, revision:current.state.revision, setupRevision:current.setupRevision, instruction:prompt, context, deep, conversation:messages.slice(-8).map(m => ({role:m.role,text:m.text})) });
+      const draftKey='platypus.workspace.assistant.draft:'+current.state.workspaceId;storageKey.current=draftKey;try{sessionStorage.setItem(draftKey,prompt);sessionStorage.setItem(draftKey+':pending',JSON.stringify({jobId:requestId,prompt}));}catch{storageHealthy.current=false;}
+      const job = await api<AssistantJob>('/api/workspace/assistant', { action:'ask', requestId, revision:current.state.revision, setupRevision:current.setupRevision, instruction:prompt, context:{...context,workspaceId:current.state.workspaceId,revision:current.setupRevision}, deep, conversation:messages.slice(-8).map(m => ({role:m.role,text:m.text})) });
       const answer=await finishJob(job);
       try{sessionStorage.removeItem(draftKey+':pending');sessionStorage.removeItem(draftKey);}catch{/* No credentials or runtime state are cached. */}
       if(active.current)setMessages(m=>[...m,{id:uid(),role:'assistant',text:answer.message,answer}]);
@@ -122,7 +123,7 @@ export function AssistantRail() {
   return <>
     {!a.open && <button className="wa-open" onClick={()=>a.setOpen(true)}>✦ Ask Platypus</button>}
     <aside className={`wa-rail ${a.open?'wa-visible':''}`} style={{width}} aria-label="Ask Platypus">
-      <header><div><strong>Ask Platypus</strong><small>{a.context.screen} · Connected to your workspace</small></div><button aria-label="Close assistant" onClick={()=>a.setOpen(false)}>×</button></header>
+      <header><div><strong>Ask Platypus</strong><small>{({constitution:'Constitution',team:'Your Team',responsibilities:'Responsibilities',workflow:'Activity Workflow',review:'Review',home:'Home',tasks:'My Tasks',activities:'Activities',board:'Executive Board',work:'Activity'} as Record<string,string>)[a.context.screen]??'Workspace'} · Connected to your workspace</small></div><button aria-label="Close assistant" onClick={()=>a.setOpen(false)}>×</button></header>
       <label className="wa-width">Panel width<input aria-label="Assistant panel width" type="range" min="290" max="480" value={width} onChange={e=>setWidth(Number(e.target.value))}/></label>
       <div className="wa-setup" hidden ref={a.setPortalTarget}/>
       <div className="wa-workspace">
