@@ -86,6 +86,7 @@ export type WorkspaceCommand =
   | { type: 'actor.select'; memberId: string }
   | { type: 'work.create'; input: CreateWorkInput }
   | { type: 'work.update'; workItemId: string; patch: Partial<Pick<WorkItem, 'name'|'description'|'date'|'ownerId'|'venue'>> }
+  | { type: 'work.stages'; workItemId: string; groups: { id: string; title: string; taskIds: string[] }[] }
   | { type: 'work.applyTiming'; workItemId: string; timingDefaults: TimingDefaults }
   | { type: 'work.applyTemplate'; workItemId: string; templateVersion: number }
   | { type: 'work.remove'; workItemId: string }
