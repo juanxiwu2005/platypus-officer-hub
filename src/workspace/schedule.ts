@@ -61,10 +61,24 @@ const during = (date: string, periods: { from: string; to: string }[]) =>
   periods.some((p) => date >= p.from && date <= p.to);
 const min = (dates: string[]) => dates.slice().sort()[0];
 const max = (dates: string[]) => dates.slice().sort().at(-1)!;
-const recordedDate = (task: WorkTask) =>
-  validDate(task.completedAt?.slice(0, 10))
-    ? task.completedAt!.slice(0, 10)
-    : null;
+export const SCHEDULE_TIMEZONE = "America/Phoenix";
+const recordedDate = (task: WorkTask): string | null => {
+  if (validDate(task.completedAt)) return task.completedAt;
+  if (
+    !task.completedAt ||
+    !/^\d{4}-\d{2}-\d{2}T/.test(task.completedAt) ||
+    !Number.isFinite(Date.parse(task.completedAt))
+  )
+    return null;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: SCHEDULE_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(task.completedAt));
+  const get = (type: string) => parts.find((part) => part.type === type)!.value;
+  return `${get("year")}-${get("month")}-${get("day")}`;
+};
 
 /** R01 covers school-funded off-campus events as well as in-person campus events. */
 export function registrationRequired(
@@ -188,6 +202,12 @@ export function scheduleWorkItem(
   const byId = new Map(item.tasks.map((t) => [t.id, t]));
   const activeIds = new Set(active.map((t) => t.id));
   const memberById = new Map(members.map((m) => [m.id, m]));
+  const complete = (task: WorkTask) =>
+    task.status === "done" &&
+    (task.kind !== "approval" ||
+      item.gates.some(
+        (gate) => gate.id === task.gateId && gate.status === "approved",
+      ));
   const work = (task: WorkTask) =>
     memberCalendar(memberById.get(task.ownerId ?? ""));
   const duration = (task: WorkTask) =>
@@ -270,7 +290,16 @@ export function scheduleWorkItem(
       });
       continue;
     }
-    if (task.status === "done") {
+    if (task.kind === "approval") {
+      basis.push(
+        "Approval timing is an estimate, not a promised or recorded school decision.",
+      );
+      if (task.status === "done" && !complete(task))
+        issues.push(
+          "approval_not_confirmed: A completed approval task has no approved gate; its timestamp cannot unlock dependencies as an actual approval.",
+        );
+    }
+    if (complete(task)) {
       const date = recordedDate(task);
       if (!date)
         issues.push(
@@ -393,9 +422,7 @@ export function scheduleWorkItem(
       const parents = task.dependsOn
         .filter((id) => activeIds.has(id))
         .map((id) => byId.get(id)!);
-      const dated = parents.filter(
-        (p) => p.status === "done" && recordedDate(p),
-      );
+      const dated = parents.filter((p) => complete(p) && recordedDate(p));
       const candidates = dated.length ? dated : parents;
       candidates.sort(
         (a, b) =>
@@ -414,7 +441,7 @@ export function scheduleWorkItem(
   for (const task of ordered.slice().reverse()) {
     const plan = rec.get(task.id)!;
     if (
-      task.status === "done" ||
+      complete(task) ||
       plan.issues.some((i) =>
         /^(calendar_uncovered|invalid_|dependency_missing|wrong_parent)/.test(
           i,
@@ -427,7 +454,7 @@ export function scheduleWorkItem(
       for (const childId of children.get(task.id)!) {
         const child = byId.get(childId)!;
         if (
-          child.status === "done" ||
+          complete(child) ||
           (child.dependencyMode === "any" && anyChoice.get(childId) !== task.id)
         )
           continue;
@@ -454,7 +481,7 @@ export function scheduleWorkItem(
           ? shift(due, -duration(task), work(task))
           : roll(due, -1, work(task));
       plan.basis.push(
-        `${Math.ceil(Math.max(0, task.estimatedDays))} estimated work days plus ${memberById.get(task.ownerId ?? "")?.bufferDays ?? DEFAULT_MEMBER_BUFFER_DAYS} personal buffer days; skips school closures, finals, semester gaps and assigned busy weeks.`,
+        `${task.estimatedDays} estimated work days plus ${memberById.get(task.ownerId ?? "")?.bufferDays ?? DEFAULT_MEMBER_BUFFER_DAYS} personal buffer days (${duration(task)} whole working days); skips school closures, finals, semester gaps and assigned busy weeks.`,
       );
     } catch (e) {
       reportCalendar(e, plan.issues);
@@ -465,7 +492,7 @@ export function scheduleWorkItem(
   }
   for (const task of item.tasks) {
     const plan = rec.get(task.id)!;
-    if (task.applicability === "inactive" || task.status === "done") {
+    if (task.applicability === "inactive" || complete(task)) {
       result.tasks[task.id] = {
         start: plan.start,
         due: plan.due,
@@ -482,7 +509,7 @@ export function scheduleWorkItem(
     // A separate topological forward pass below handles normal tasks, independent of input array order.
   }
   for (const task of ordered) {
-    if (task.status === "done") continue;
+    if (complete(task)) continue;
     const plan = rec.get(task.id)!;
     let due =
       task.dueOverride &&
@@ -494,9 +521,7 @@ export function scheduleWorkItem(
       .filter((id) => activeIds.has(id))
       .map((id) => ({ task: byId.get(id)!, schedule: result.tasks[id] }));
     const completions = parents
-      .map((p) =>
-        p.task.status === "done" ? recordedDate(p.task) : p.schedule?.due,
-      )
+      .map((p) => (complete(p.task) ? recordedDate(p.task) : p.schedule?.due))
       .filter((date): date is string => !!date);
     const unresolved =
       task.dependencyMode === "all"

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  GateSchema,
   FundingSchema,
   MemberSchema,
   TaskSchema,
@@ -308,6 +309,80 @@ describe("calendar coverage and personal work", () => {
 });
 
 describe("dependencies, absolute overrides and history", () => {
+  it("projects UTC completion timestamps to Phoenix days before dependency arithmetic", () => {
+    const event = item([
+      task("done", { status: "done", completedAt: "2026-11-02T02:00:00Z" }),
+      task("next", { dependsOn: ["done"], dueOverride: "2026-11-04" }),
+    ]);
+    const schedule = scheduleWorkItem(event, members);
+    expect(schedule.tasks.done.due).toBe("2026-11-01");
+    expect(schedule.tasks.next.start).toBe("2026-11-02");
+    expect(schedule.tasks.next.issues.join(" ")).not.toContain(
+      "fixed_date_dependency_conflict",
+    );
+  });
+  it("retains date-only completion records and does not require calendar prediction in old history", () => {
+    const schedule = scheduleWorkItem(
+      item([
+        task("done", { status: "done", completedAt: "2020-10-01" }),
+        task("next", { dependsOn: ["done"], relativeTarget: relative(20) }),
+      ]),
+      members,
+    );
+    expect(schedule.tasks.done.due).toBe("2020-10-01");
+    expect(schedule.tasks.next.due).toBe("2026-10-30");
+    expect(schedule.covered).toBe(true);
+  });
+  it("does not treat a done timestamp as approval when the separate gate is pending", () => {
+    const event = item(
+      [
+        task("approval", {
+          kind: "approval",
+          gateId: "gate",
+          status: "done",
+          completedAt: "2026-10-01T12:00:00Z",
+        }),
+        task("purchase", {
+          dependsOn: ["approval"],
+          relativeTarget: relative(20),
+        }),
+      ],
+      {
+        gates: [
+          GateSchema.parse({
+            id: "gate",
+            taskId: "approval",
+            kind: "budget",
+            status: "pending",
+          }),
+        ],
+      },
+    );
+    const pending = scheduleWorkItem(event, members);
+    expect(pending.tasks.approval.due).not.toBe("2026-10-01");
+    expect(pending.tasks.approval.issues.join(" ")).toContain(
+      "approval_not_confirmed",
+    );
+    const approved = scheduleWorkItem(
+      {
+        ...event,
+        gates: event.gates.map((gate) => ({ ...gate, status: "approved" })),
+      },
+      members,
+    );
+    expect(approved.tasks.approval.due).toBe("2026-10-01");
+  });
+  it("uses executive dates as completion targets and does not prohibit administrative work in finals", () => {
+    const executive = scheduleWorkItem(
+      item([task("one")], { kind: "executive_work", date: "2026-12-09" }),
+      members,
+    );
+    expect(executive.tasks.one.due).toBe("2026-12-09");
+    expect(executive.issues.join(" ")).not.toContain("finals: ASU R13");
+    expect(executive.tasks.one.basis).toContain(
+      "selected work completion date",
+    );
+  });
   it("all waits for the latest prerequisite; any can use the earliest and does not cancel other branches", () => {
     const tasks = [
       task("early", { dueOverride: "2026-10-20" }),
