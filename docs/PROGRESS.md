@@ -1,5 +1,6 @@
-> **2026-10-26 Activity Workspace：进行中（Codex，独立Worktree多Agent）**
+> **2026-10-26 Activity Workspace：待验收（Codex，独立Worktree多Agent）**
 > 用户批准A1/B1/C2执行方案，并要求首页重点事项直接从现有任务排序、AI接通组织与两类工作项创建/修改。Data/Schedule/Workspace UI/Assistant/Setup UI分工，主Agent维护契约/集成，独立Review。基于1815be0，开发分支feat/activity-workspace-v1；不改main、不真实AI测试。详见 [方案](organization/ACTIVITY_WORKSPACE_PLAN.md)。
+> 最终产品3e9c69a：构建、548单元、256桌面/手机浏览器场景通过，16条件跳过、0失败；实际本地HTTP7组34请求及CAS并发检查通过。独立Review无开放已知P0/P1。0次真实AI调用；私有演示身份不等于正式登录。详见[实施交接](organization/ACTIVITY_WORKSPACE_IMPLEMENTATION.md)与[Review](organization/REVIEW_ACTIVITY_WORKSPACE.md)。需要同步本地备份。
 
 > **2026-10-26 · F1–F7 审计修复：待验收（Codex，多 Agent 独立 Worktree）**
 > Juanxi 在本聊天批准执行审计方案。基于 `54e5823`，分工：Data 负责人工决定/增量影响/确认门槛与缓存；AI 负责中断诊断；UI 负责保存恢复、风险卡和图交互；主 Agent 负责共享契约、新批准配置消费与整合；独立 Review 逐批复核。不合并 main、不正式发布、不重复消耗 AIR 测试额度。执行记录与验收结果随后更新。
@@ -38,6 +39,7 @@
 
 | 工作包 | 计划日期 | 状态 | 负责的 AI | 预览网址 | 备注 |
 | --- | --- | --- | --- | --- | --- |
+| Activity Workspace A1/B1/C2 | 10/26 | 待验收 | Codex（Data/Schedule/UI/AI/Setup＋独立Review） | PR #3，待核对部署 | 548单元/256浏览器通过，16条件跳过；HTTP与CAS并发通过；0真实AI；main不变 |
 | F1–F7 审计修复 | 10/26 | 待验收 | Codex（Data/AI/UI/Integration + 独立 Review） | PR #3，待核对部署 | 构建/410单元/222页面通过，16条件跳过；本地真实接口联测通过；main 不变 |
 | 2026-10-23 | Claude | **合并上线 + 真 DeepSeek 实测。** v1 快进合并到 main（f868709），正式网站 `/api/health` 显示 DeepSeek 已接通。浏览器实测：①问 USG 表谁负责、何时截止，答对负责人、俱乐部截止日和 ASU 截止日；②“把传单标为进行中”立即生效，Undo 成功恢复；③“把预算改成 $450”时发现 bug：服务器核对改动只认活动/任务/人员 ID，不认经费/伙伴/角色/标签，改预算被丢掉而 AI 嘴上说“待批准”——已修，并且改动全部无效时会明确告诉用户。253 个单元测试 + 107 个页面测试通过。已同步本地备份。 | Juanxi 自己继续测（测试清单见对话）。v1.0 标签 11/8 再打。 |
 | 2026-10-23 | Claude | **AI 数据权限 v1.2。** ①`aiContext.ts`：每次提问把当前查看者能看到的全部数据（社团、角色、人员和工作量、活动、全部任务含状态/负责人/风险/准时概率/三个截止日、经费、伙伴、交接、本人通知、规则摘要）发给 `/api/chat`，约 25 KB；服务器再删一遍可疑字段（key/token/secret/password/signature/phone/文件）并限长。②`sharedPool.ts` + `/api/pool`：虚构共享池（4 个示例社团的审批用时、场地、供应商、经验），只读，AI 只能引用。③新白名单操作：小改动 set_status / rename_task / set_tags / set_tier / mark_contacted 按查看者权限立即生效，Ask 面板显示“Done · Undo”；大改动 assign_owner / add_node / link_dependency / update_event / add_contact / set_funding_amount / advance_funding / create_event 仍走审批卡。④日期：AI 文字中与数据一致的日期保留，其余遮掉。⑤提示词重写。⑥检查：252 个单元测试 + 107 个页面测试全部通过。⑦发现预览网站一直是模拟回答：Netlify 里 `AI_API_KEY` 只填了 Production，Deploy Previews / Branch deploys 为空，已请 Juanxi 补填。已同步本地备份。 | 真实 DeepSeek 试用要等 Juanxi 在 Deploy Previews 填好 key 并重新部署。共享池是虚构演示，v1.5 换成数据库时要做“社团选择共享哪些字段”的设置。 |
@@ -55,6 +57,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-10-26 | 批准 A1首页/B1活动列表/C2时间轴、个人三列任务Board、资金流程并入活动、8/7/6周默认时间、全局AI及Worktree多Agent实施；首页重点直接从任务排序，可展开；AI可调业务数据并调用两类活动创建表单。保持开发预览，不合并main | Juanxi（最后批注后授权修改代码） |
 | 2026-10-26 | 批准按 F1–F7 执行审计方案，使用独立 Worktree 多 Agent 和额外独立 Review；新批准配置接通新版工作区；不包含合并 main 或正式发布 | Juanxi（本聊天：“执行”） |
 | 2026-10-25 | 确认 AI-native Phase 1 实施顺序：Activity 为工作中心、Organization Context 驱动、岗位能力多对多；独立分支先做三个高保真画面，完成即停，正式模型/API 接入待画面验收 | Juanxi（“确认”） |
 | 2026-10-21 | 产品名定为 Platypus；Phase 3 用方案 C（Netlify + 服务器函数） | Juanxi |

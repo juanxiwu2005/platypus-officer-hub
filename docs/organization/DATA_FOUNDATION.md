@@ -1,3 +1,5 @@
+> **2026-10-26运行数据补充：** 新Activity Workspace已将任务、审批和资金接入同源服务端运行记录、CAS/幂等/审计outbox；AI与表单共用命令通道。详见[本轮实施](ACTIVITY_WORKSPACE_IMPLEMENTATION.md)。私有演示身份仍非正式账号，旧legacy业务和真实组织数据库迁移不自动包含。
+
 # 数据基础：先记录，再由 AI 理解
 
 2026-10-26 · Juanxi 的最新要求：**数据记录、管理、治理是最底层，AI 在它上面。** 本次将这一原则落实到最新 Organization Setup，不将其写成未来口号。
