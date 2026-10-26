@@ -276,6 +276,10 @@ test("AI setup completes board planning, two context tiers and exact prompt revi
   await page
     .getByRole("button", { name: "Tabling event", exact: true })
     .click();
+  await expect(page.locator(".os-content .os-flow-editor")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Let AI prepare this plan", exact: true }),
+  ).toBeVisible();
   await page
     .getByRole("button", { name: "Generate with AI", exact: true })
     .click();
@@ -319,6 +323,7 @@ test("AI setup completes board planning, two context tiers and exact prompt revi
   ).toBeVisible();
   expect(read().approved?.guide).toBeTruthy();
   expect(read().approved?.boardGoal).toContain("tabling");
+  expect(read().approved?.boardFlow?.title).toContain("tabling");
   await page.screenshot({
     path: `output/playwright/org-review-${info.project.name}.png`,
     fullPage: true,
@@ -377,4 +382,65 @@ test("AI setup has usable touch targets and accessible source screen", async ({
     path: `output/playwright/org-source-${info.project.name}.png`,
     fullPage: true,
   });
+});
+
+test("AI setup waits for a background AIR job and applies only its completed suggestion", async ({
+  page,
+}) => {
+  const read = await open(page);
+  let polls = 0,
+    started = 0;
+  await page.route("**/api/org/ai-run", async (route) => {
+    started++;
+    await route.fulfill({ status: 202, body: "" });
+  });
+  await page.route("**/api/org/ai?*", async (route) => {
+    polls++;
+    const record = read();
+    if (polls === 1) {
+      await route.fulfill({
+        json: { jobId: "fictional-job", status: "running" },
+      });
+      return;
+    }
+    await route.fulfill({
+      json: {
+        jobId: "fictional-job",
+        status: "done",
+        response: {
+          result: {
+            stage: "constitution",
+            data: fixtureResult("constitution"),
+            model: "AIR-test",
+            provider: "Automated test fixture",
+            promptVersion: "organization-setup-v2.1",
+            inputHash: "test",
+            at: "2026-10-25T12:00:00Z",
+          },
+          revision: record.revision,
+          updatedAt: record.updatedAt,
+        },
+      },
+    });
+  });
+  await page.route("**/api/org/ai", async (route) =>
+    route.fulfill({
+      status: 202,
+      json: { jobId: "fictional-job", status: "queued" },
+    }),
+  );
+  await page
+    .getByRole("button", { name: "Use fictional example", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Let AI prepare my team", exact: true })
+    .click();
+  await expect(
+    page.getByText("AIR may need extra time", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Does this look like your team?" }),
+  ).toBeVisible({ timeout: 10000 });
+  expect(started).toBe(1);
+  expect(polls).toBe(2);
 });

@@ -54,6 +54,7 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
     });
     release = await acquireAiLease(req, timeoutMs * 2 + 30000);
     const reply = await chatJSON({
+      task: `setup.${stage}`,
       system: PROMPTS[stage].system,
       user: input,
       maxTokens: stage.includes("workflow")
@@ -77,6 +78,11 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
       provider: reply.provider,
       at: new Date().toISOString(),
       inputHash: digest(input),
+      requestedModel: reply.requestedModel,
+      reasoningEffort: reply.reasoningEffort,
+      servedReasoningEffort: reply.servedReasoningEffort,
+      durationMs: reply.ms,
+      routingVersion: reply.routingVersion,
     };
     const saved = await recordRun(req, entry.revision, run);
     return json({

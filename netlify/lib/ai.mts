@@ -1,3 +1,4 @@
+import { routeTask, type AiTask } from "../../src/organization/modelPolicy.ts"
 /**
  * Provider-neutral AI adapter for Platypus.
  *
@@ -91,7 +92,7 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
   try {
     const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json", ...headers }, body: JSON.stringify(body), signal: ctrl.signal })
     const text = await res.text()
-    return { status: res.status, text }
+    return { status: res.status, text, servedReasoningEffort: res.headers.get("x-obleth-reasoning-effort") ?? undefined }
   } catch (e) {
     if ((e as Error).name === "AbortError") throw new AIError("timeout", "The AI provider took too long to answer.", 504)
     throw new AIError("upstream", "Could not reach the AI provider.")
@@ -100,13 +101,15 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
   }
 }
 
-export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number; timeoutMs?: number }
-export type ChatJSONResult = { data: unknown; model: string; provider: string; ms: number }
+export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number; timeoutMs?: number; task?: AiTask }
+export type ChatJSONResult = { data: unknown; model: string; provider: string; ms: number; requestedModel?: string; reasoningEffort?: string; servedReasoningEffort?: string; routingVersion?: string }
 
 /** Send one system + user message and get a parsed JSON object back. */
-export async function chatJSON({ system, user, maxTokens = 700, temperature = 0, timeoutMs }: ChatJSONArgs): Promise<ChatJSONResult> {
+export async function chatJSON({ system, user, maxTokens = 700, temperature = 0, timeoutMs, task }: ChatJSONArgs): Promise<ChatJSONResult> {
   const configured = getConfig()
-  const c = { ...configured, timeoutMs: timeoutMs ? Math.max(5000, Math.min(480000, timeoutMs)) : configured.timeoutMs }
+  const route = env("AI_PRESET") === "asu_air" && env("AI_MODEL_ROUTING") !== "off" ? routeTask(task) : null
+  if (route) maxTokens = Math.max(maxTokens, route.minOutputTokens)
+  const c = { ...configured, model: route?.model ?? configured.model, timeoutMs: timeoutMs ? Math.max(5000, Math.min(480000, timeoutMs)) : configured.timeoutMs }
   if (!isConfigured(c)) throw new AIError("not_configured", "AI is not configured on the server.", 503)
   const t0 = Date.now()
 
@@ -123,7 +126,7 @@ export async function chatJSON({ system, user, maxTokens = 700, temperature = 0,
   const base = { model: c.model, temperature, max_tokens: maxTokens, messages: [{ role: "system", content: system }, { role: "user", content: user }] }
   const headers = { authorization: `Bearer ${c.key}` }
   // AIR's reasoning models may otherwise consume the short structured-output budget thinking.
-  const effort = env("AI_REASONING_EFFORT") || (env("AI_PRESET") === "asu_air" ? "none" : "")
+  const effort = route?.reasoningEffort ?? (env("AI_REASONING_EFFORT") || (env("AI_PRESET") === "asu_air" ? "none" : ""))
   const requestBase = effort ? { ...base, reasoning_effort: effort } : base
   let r = await post(`${c.baseUrl}/chat/completions`, headers, c.jsonMode === "json_object" ? { ...requestBase, response_format: { type: "json_object" } } : requestBase, c.timeoutMs)
   if (r.status === 400 && c.jsonMode === "json_object" && /response_format|json/i.test(r.text)) {
@@ -132,5 +135,5 @@ export async function chatJSON({ system, user, maxTokens = 700, temperature = 0,
   if (r.status >= 400) throw new AIError("upstream", `AI provider error ${r.status}.`, r.status === 429 ? 429 : 502)
   const body = JSON.parse(r.text) as { choices?: { message?: { content?: string } }[]; model?: string }
   const reply = body.choices?.[0]?.message?.content ?? ""
-  return { data: parseJSONReply(reply), model: body.model ?? c.model, provider: c.label, ms: Date.now() - t0 }
+  return { data: parseJSONReply(reply), model: body.model ?? c.model, provider: c.label, ms: Date.now() - t0, requestedModel: c.model, reasoningEffort: effort || undefined, servedReasoningEffort:r.servedReasoningEffort, routingVersion:route?.version }
 }

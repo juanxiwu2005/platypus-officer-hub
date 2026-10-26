@@ -144,6 +144,11 @@ export const DraftSchema = z.object({
         provider: z.string().max(80),
         at: z.string(),
         inputHash: z.string().max(80),
+        requestedModel: z.string().max(100).optional(),
+        reasoningEffort: z.string().max(30).optional(),
+        servedReasoningEffort: z.string().max(30).optional(),
+        durationMs: z.number().min(0).max(1000000).optional(),
+        routingVersion: z.string().max(80).optional(),
       }),
     )
     .max(50),
@@ -167,5 +172,10 @@ export interface AiResult {
   provider: string;
   promptVersion: string;
   inputHash: string;
+  requestedModel?: string;
+  reasoningEffort?: string;
+  servedReasoningEffort?: string;
+  durationMs?: number;
+  routingVersion?: string;
   at: string;
 }

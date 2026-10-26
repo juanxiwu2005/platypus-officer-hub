@@ -295,4 +295,22 @@ describe("Online organization storage and model boundaries", () => {
     expect(result.status).toBe("error");
     expect(state.chat).toHaveBeenCalledTimes(1);
   });
+  it("synchronizes internal Responsible roles after a user edits a workflow node", async () => {
+    const { cookie } = await session();
+    const draft = fixtureDraft();
+    draft.memberFlow = fixtureFlow();
+    const node = draft.memberFlow.nodes.find((n) =>
+      n.actionIds.includes("promotion"),
+    )!;
+    node.roleIds = ["marketing_intern"];
+    const r = await setup(
+      request({ action: "save", revision: 0, draft }, cookie),
+    );
+    const saved = await r.json();
+    expect(
+      saved.draft.memberFlow.raci.find(
+        (r: { actionId: string }) => r.actionId === "promotion",
+      ).responsible,
+    ).toEqual(["marketing_intern"]);
+  });
 });

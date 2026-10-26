@@ -1,3 +1,4 @@
+import { routeTask, MODEL_POLICY_VERSION } from "./modelPolicy";
 import {
   useCallback,
   useEffect,
@@ -54,6 +55,9 @@ function PromptReview({ stage }: { stage: Stage }) {
       <span className="os-metadata">
         {PROMPT_VERSION} · {PROMPTS[stage].title}
       </span>
+      <p className="os-metadata">
+        ASU AIR · {routeTask(`setup.${stage}`).model} · {MODEL_POLICY_VERSION}
+      </p>
       <pre tabIndex={0}>{PROMPTS[stage].system}</pre>
     </details>
   );
@@ -342,6 +346,10 @@ export default function OnlineSetup() {
       return;
     }
     if (draft.step === 4) {
+      if (!draft.boardFlow) {
+        await run("board_workflow");
+        return;
+      }
       patch({ approvals: { ...draft.approvals, board: true } });
       await run("guide");
       return;
@@ -844,7 +852,13 @@ export default function OnlineSetup() {
                     rows={2}
                     value={draft.boardGoal}
                     maxLength={1000}
-                    onChange={(e) => patch({ boardGoal: e.target.value })}
+                    onChange={(e) =>
+                      patch({
+                        boardGoal: e.target.value,
+                        boardFlow: null,
+                        approvals: { ...draft.approvals, board: false },
+                      })
+                    }
                   />
                 </label>
                 <div className="os-chip-row">
@@ -853,6 +867,8 @@ export default function OnlineSetup() {
                       patch({
                         boardGoal:
                           "Plan a social gathering for our executive board.",
+                        boardFlow: null,
+                        approvals: { ...draft.approvals, board: false },
                       })
                     }
                   >
@@ -863,6 +879,8 @@ export default function OnlineSetup() {
                       patch({
                         boardGoal:
                           "Plan our Involvement Week tabling, with materials and two staffing shifts.",
+                        boardFlow: null,
+                        approvals: { ...draft.approvals, board: false },
                       })
                     }
                   >
@@ -1030,10 +1048,10 @@ export default function OnlineSetup() {
           <button
             onClick={() => {
               setError("");
-              void persist().catch(() => {});
+              if (saved.startsWith("Not")) void persist().catch(() => {});
             }}
           >
-            Retry save
+            {saved.startsWith("Not") ? "Retry save" : "Dismiss"}
           </button>
         </div>
       )}
@@ -1066,7 +1084,9 @@ export default function OnlineSetup() {
                 : draft.step === 3
                   ? "This matches our workflow"
                   : draft.step === 4
-                    ? "Keep this plan & continue"
+                    ? draft.boardFlow
+                      ? "Keep this plan & continue"
+                      : "Let AI prepare this plan"
                     : "Approve & continue"}{" "}
             <span aria-hidden="true">→</span>
           </button>
@@ -1091,7 +1111,7 @@ export default function OnlineSetup() {
       <div className="os-footer">
         <span>
           {draft.aiRuns.at(-1)
-            ? `Last AI response: ${draft.aiRuns.at(-1)!.provider} · ${draft.aiRuns.at(-1)!.model}`
+            ? `Last AI response: ${draft.aiRuns.at(-1)!.provider} · ${draft.aiRuns.at(-1)!.model}${draft.aiRuns.at(-1)!.durationMs !== undefined ? ` · ${Math.round(draft.aiRuns.at(-1)!.durationMs! / 1000)}s` : ""}`
             : "AI has not generated a response yet."}
         </span>
         <Link to="/phase1/setup-legacy">Previous setup reference</Link>

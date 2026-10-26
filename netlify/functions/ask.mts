@@ -14,7 +14,7 @@ export default async (req: Request) => {
     const question = str(body.question, 1000)
     if (!question) throw new BadRequest("Missing question.")
     // The client cannot replace the official rules or inject fake rule text.
-    const { data, model, provider } = await chatJSON({ system:RULE_SYSTEM, user:JSON.stringify({rules:RULES.map(({id,category,text,limit,note})=>({id,category,text,limit,note})),question}),maxTokens:300 })
+    const { data, model, provider } = await chatJSON({ task: "ask", system:RULE_SYSTEM, user:JSON.stringify({rules:RULES.map(({id,category,text,limit,note})=>({id,category,text,limit,note})),question}),maxTokens:300 })
     return json(groundedAnswer(data,model,provider))
   } catch(e) { return fail(e) }
 }

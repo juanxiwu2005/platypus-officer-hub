@@ -32,7 +32,7 @@ export default async (req: Request) => {
     const today = /^\d{4}-\d{2}-\d{2}$/.test(String(body.today)) ? String(body.today) : new Date().toISOString().slice(0, 10)
     if (!sentence) throw new BadRequest("Missing sentence.")
 
-    const { data, model } = await chatJSON({ system: SYSTEM, user: `today: ${today}\nsentence: ${sentence}`, maxTokens: 300 })
+    const { data, model } = await chatJSON({ task: "parse_brief", system: SYSTEM, user: `today: ${today}\nsentence: ${sentence}`, maxTokens: 300 })
     const d = (data ?? {}) as Record<string, unknown>
     const brief: Record<string, unknown> = {}
     if (typeof d.name === "string" && d.name.trim()) brief.name = d.name.trim().slice(0, 80)

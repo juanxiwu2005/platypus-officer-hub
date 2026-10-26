@@ -52,7 +52,11 @@ export async function readSession(req: Request) {
     );
   const entry = item.data as Envelope;
   if (Date.parse(entry.expiresAt) < Date.now()) {
-    await store().delete(key(value));
+    await Promise.all([
+      store().delete(key(value)),
+      store().delete("ai-jobs/" + digest(value)),
+      store().delete("ai-leases/" + digest(value)),
+    ]);
     throw new SetupError("This demo workspace expired after seven days.", 401);
   }
   return { entry, etag: item.etag, key: key(value) };

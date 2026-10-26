@@ -12,16 +12,15 @@ function configured(preset = "asu_air", model = "auto") {
   vi.stubEnv("AI_PROVIDER", "");
   vi.stubEnv("AI_JSON_MODE", "");
   vi.stubEnv("AI_REASONING_EFFORT", "");
-  const send = vi
-    .fn()
-    .mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          model: "actual-server-model",
-          choices: [{ message: { content: '{"ok":true}' } }],
-        }),
-      ),
-    );
+  vi.stubEnv("AI_MODEL_ROUTING", "");
+  const send = vi.fn().mockResolvedValue(
+    new Response(
+      JSON.stringify({
+        model: "actual-server-model",
+        choices: [{ message: { content: '{"ok":true}' } }],
+      }),
+    ),
+  );
   vi.stubGlobal("fetch", send);
   return send;
 }
@@ -36,7 +35,7 @@ describe("AIR provider routing", () => {
       "https://openai.rc.asu.edu/v1/chat/completions",
     );
     const body = JSON.parse(send.mock.calls[0][1].body);
-    expect(body.model).toBe("auto");
+    expect(body.model).toBe("gemma4-31b-it");
     expect(body.reasoning_effort).toBe("none");
     expect(out).toMatchObject({
       provider: "ASU AIR",
@@ -64,5 +63,41 @@ describe("AIR provider routing", () => {
     const body = JSON.parse(send.mock.calls[1][1].body);
     expect(body).not.toHaveProperty("response_format");
     expect(body.reasoning_effort).toBe("none");
+  });
+  it("routes complex workflows to GLM with a separate reasoning budget", async () => {
+    const send = configured();
+    await chatJSON({
+      system: "Return JSON",
+      user: "Fictional workflow",
+      task: "setup.member_workflow",
+      maxTokens: 4200,
+    });
+    const b = JSON.parse(send.mock.calls[0][1].body);
+    expect(b.model).toBe("glm-5-3");
+    expect(b.reasoning_effort).toBe("low");
+    expect(b.max_tokens).toBe(7500);
+  });
+  it("routes synchronous planning to GLM without an extra thinking delay", async () => {
+    const send = configured();
+    await chatJSON({
+      system: "JSON",
+      user: "Plan",
+      task: "plan_draft",
+      maxTokens: 600,
+    });
+    const b = JSON.parse(send.mock.calls[0][1].body);
+    expect(b.model).toBe("glm-5-3");
+    expect(b.reasoning_effort).toBe("none");
+    expect(b.max_tokens).toBe(600);
+  });
+  it("allows an explicit operator rollback to one configured model", async () => {
+    const send = configured();
+    vi.stubEnv("AI_MODEL_ROUTING", "off");
+    await chatJSON({
+      system: "JSON",
+      user: "Plan",
+      task: "setup.member_workflow",
+    });
+    expect(JSON.parse(send.mock.calls[0][1].body).model).toBe("auto");
   });
 });
