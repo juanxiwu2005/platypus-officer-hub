@@ -11,6 +11,7 @@
 .approved-team p, .approved-team li { line-height: 1.55; }
 .approved-team ul { padding-left: 18px; }
 .approved-graph { height: 480px; border: 1px solid #dce3ed; border-radius: 16px; background: #fafbfd; overflow: hidden; }
+.approved-graph .react-flow__attribution, .approved-graph .react-flow__attribution a { color: #34465f; background: white; }
 .approved-step { width: 230px; border: 1px solid #bdcadc; border-radius: 12px; background: white; padding: 15px; color: #172641; }
 .approved-step strong { display: block; margin-bottom: 10px; }
 .approved-step span { display: block; border-left: 4px solid; padding-left: 7px; font-size: 14px; margin-top: 6px; }

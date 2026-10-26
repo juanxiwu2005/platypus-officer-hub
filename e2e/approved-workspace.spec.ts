@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { compileOrganization, scopeKey, upgrade } from "../src/organization/setupLogic";
 import { fixtureDraft, fixtureFlow } from "../src/organization/testing/fixtures";
 
@@ -68,4 +69,16 @@ test("missing or unavailable approved settings give an explicit setup or retry s
   await page.getByRole("link", { name: "Open previous example preview", exact: true }).click();
   await expect(page.getByText(/Previous example preview · Changes here/)).toBeVisible();
   await expect(page.getByRole("heading", { name: /A little less coordinating/ })).toBeVisible();
+});
+
+test("approved Home and workflow support keyboard access and accessibility checks", async ({ page }) => {
+  await mock(page, () => confirmed());
+  for (const path of ["/#/phase1", "/#/phase1/activity/member"]) {
+    await page.goto(path);
+    await expect(page.getByTestId("approved-workspace")).toBeVisible();
+    const results = await new AxeBuilder({ page }).include(".approved-workspace").withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
+    expect(results.violations).toEqual([]);
+    await page.getByRole("link", { name: "Edit organization", exact: true }).focus();
+    await expect(page.getByRole("link", { name: "Edit organization", exact: true })).toBeFocused();
+  }
 });
