@@ -30,6 +30,15 @@ import { useSetupNavigationGuard } from "./useSetupNavigationGuard";
 import { documentSource, readConstitution } from "./documents";
 import { EXAMPLE_CONSTITUTION, blankDraft } from "./presets";
 import {
+  DEFAULT_TIMING,
+  type TimingDefaults,
+} from "../workspace/contracts/timing";
+import {
+  SetupAssistantPortal,
+  SetupContextBridge,
+} from "../workspace/assistant";
+import MembersPanel from "../workspace/members";
+import {
   type Envelope,
   type Stage,
   type Department,
@@ -170,7 +179,9 @@ export default function OnlineSetup() {
     [files, setFiles] = useState<ArchivedFile[] | null>(null),
     [exporting, setExporting] = useState(false),
     [finished, setFinished] = useState(false),
-    [reviewTab, setReviewTab] = useState("team");
+    [reviewTab, setReviewTab] = useState("team"),
+    [reviewAffected, setReviewAffected] = useState(false),
+    [reviewedAffected, setReviewedAffected] = useState<string[]>([]);
   const dref = useRef(draft),
     eref = useRef<Envelope | null>(null),
     dirty = useRef(false),
@@ -325,6 +336,16 @@ export default function OnlineSetup() {
     timer.current = setTimeout(() => void persist().catch(() => {}), 700);
   };
   const patch = (v: Partial<SetupV3>) => update({ ...dref.current, ...v });
+  const flushForAssistant = async () => {
+    if (busy || reading)
+      throw new Error("Wait for the current setup operation to finish.");
+    if (conflictRef.current || recoveryPending)
+      throw new Error(
+        "Resolve the newer online version before asking for another change.",
+      );
+    await persist();
+    await flushArchive();
+  };
   const mutate = (next: SetupV3) => {
     try {
       update(reconcile(dref.current, next));
@@ -394,6 +415,7 @@ export default function OnlineSetup() {
           : `Saved online · Revision ${remote.revision}`,
       );
       setFinished(upgraded.confirmed);
+      window.dispatchEvent(new Event("platypus:workspace-refresh"));
       setSelected(upgraded.roles[0]?.id ?? "");
       setGroup(upgraded.departments[0]?.id ?? "");
       if (upgraded.step === 2 && upgraded.roles.length)
@@ -432,6 +454,48 @@ export default function OnlineSetup() {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, []);
+  useEffect(() => {
+    const refresh = () => {
+      if (!eref.current) return;
+      if (dirty.current || busy || conflictRef.current) {
+        remember();
+        conflictRef.current = true;
+        setConflicted(true);
+        setError(
+          "The assistant saved a newer online change. Review it against your local edits before continuing.",
+        );
+        return;
+      }
+      void queue.current
+        .catch(() => {})
+        .then(async () => {
+          const remote = await start();
+          if (
+            !mounted.current ||
+            remote.workspaceId !== eref.current?.workspaceId
+          )
+            return;
+          const latest = upgrade(remote.draft);
+          eref.current = remote;
+          setEntry(remote);
+          current(latest);
+          lastSaved.current = stable(latest);
+          dirty.current = false;
+          setFinished(latest.confirmed);
+          clearLocalRecoveryDraft(
+            remote.workspaceId,
+            remote.revision,
+            inputsRef.current,
+            setError,
+          );
+          setSaved(`Saved online · Revision ${remote.revision}`);
+        })
+        .catch((e) => setError((e as Error).message));
+    };
+    window.addEventListener("platypus:organization-changed", refresh);
+    return () =>
+      window.removeEventListener("platypus:organization-changed", refresh);
+  }, [busy]);
   useEffect(() => {
     if (!busy) return;
     setSeconds(0);
@@ -552,6 +616,10 @@ export default function OnlineSetup() {
         return;
       }
       if (d.step === 2) {
+        if (!d.roles.length)
+          throw new Error(
+            "Prepare your team before continuing with responsibilities.",
+          );
         if (!hasReviewedCheck(d)) {
           setSelected("check");
           throw new Error(
@@ -581,7 +649,7 @@ export default function OnlineSetup() {
           throw new Error("Prepare your activity workflow first.");
         if (d.memberFlow.nodes.some((n) => n.needsReview))
           throw new Error(
-            "Review the highlighted workflow steps before continuing. Open each affected step and choose Mark reviewed.",
+            "Review the affected workflow changes before continuing.",
           );
         if (d.memberFlow.nodes.some((n) => !n.title.trim()))
           throw new Error("Give each workflow step a title.");
@@ -599,6 +667,79 @@ export default function OnlineSetup() {
       setError((e as Error).message);
     } finally {
       if (d.step === 4) setBusy(null);
+    }
+  };
+  const changeTiming = (values: TimingDefaults) => {
+    if (
+      Object.values(values).some((n) => !Number.isInteger(n) || n < 0 || n > 52)
+    )
+      return;
+    const offsets = {
+      items: values.itemsWeeks * 7,
+      quotes: values.quotesWeeks * 7,
+      budget_request: values.budgetWeeks * 7,
+    };
+    const flow = dref.current.memberFlow;
+    patch({
+      timingDefaults: values,
+      ...(flow
+        ? {
+            memberFlow: {
+              ...flow,
+              nodes: flow.nodes.map((node) =>
+                node.milestoneKey && node.timing?.source !== "manual"
+                  ? {
+                      ...node,
+                      timing: {
+                        offsetDays: offsets[node.milestoneKey],
+                        unit: "calendar" as const,
+                        source: "organization-default" as const,
+                      },
+                    }
+                  : node,
+              ),
+            },
+          }
+        : {}),
+    });
+    track("setup.timing-defaults.changed", { timingDefaults: values });
+  };
+  const goToChapter = async (step: number) => {
+    if (busy || reading || booting || conflictRef.current || recoveryPending)
+      return;
+    if (
+      !window.dispatchEvent(
+        new Event("platypus:before-workspace-leave", { cancelable: true }),
+      )
+    )
+      return;
+    setError("");
+    try {
+      await persist();
+      patch({ step });
+      setFinished(false);
+      const role = step === 2 ? dref.current.roles[0] : undefined;
+      const screen: SetupSelection["screen"] =
+        step === 1
+          ? "team"
+          : step === 2
+            ? "responsibilities"
+            : step === 3
+              ? "workflow"
+              : "review";
+      setSelection({
+        screen,
+        entityType: role ? "role" : null,
+        entityId: role?.id ?? null,
+      });
+      if (role) {
+        setSelected(role.id);
+        setGroup(role.departmentId);
+      } else setSelected("");
+      track("setup.chapter.changed", { step, source: "chapter-navigation" });
+      await persist();
+    } catch (e) {
+      setError((e as Error).message);
     }
   };
   const back = async () => {
@@ -812,6 +953,7 @@ export default function OnlineSetup() {
   };
   useEffect(() => {
     if (
+      !draft.roles.length ||
       draft.step !== 2 ||
       selected !== "check" ||
       busy ||
@@ -841,6 +983,15 @@ export default function OnlineSetup() {
   ]);
   const selectedRole = draft.roles.find((r) => r.id === selected);
   const other = riskInstructions[risk?.id ?? ""] ?? "";
+  const riskReply = risk
+    ? draft.messages
+        .filter(
+          (message, i) =>
+            message.role === "assistant" &&
+            draft.messages[i - 1]?.text.includes(`risk "${risk.title}"`),
+        )
+        .at(-1)?.text
+    : undefined;
   const roleEdit = (role: OrgRole, fields: Partial<OrgRole>) =>
     mutate({
       ...draft,
@@ -1012,6 +1163,23 @@ export default function OnlineSetup() {
         })
       }
     >
+      <SetupContextBridge
+        beforeRequest={flushForAssistant}
+        unsentInput={chat}
+        onInputConsumed={() => {
+          input({ chat: "" });
+          track("setup.unsent-message.restored", {
+            destination: "workspace-assistant",
+          });
+        }}
+        context={{
+          ...(draft.step === 0
+            ? { screen: "constitution", entityType: null, entityId: null }
+            : selectedContext()),
+          workspaceId: entry?.workspaceId,
+          revision: entry?.revision,
+        }}
+      />
       <div className="v3-top">
         <Link to="/phase1">← Home</Link>
         <span className="v3-save" role="status">
@@ -1019,15 +1187,6 @@ export default function OnlineSetup() {
         </span>
         <button disabled={exporting || !!busy} onClick={() => void exportAll()}>
           {exporting ? "Exporting…" : "Export records"}
-        </button>
-        <button
-          onClick={() =>
-            void listArchivedFiles()
-              .then((x) => setFiles(x.uploads))
-              .catch((e) => setError(e.message))
-          }
-        >
-          Files
         </button>
       </div>
       {(conflicted || recoveryPending) && (
@@ -1090,13 +1249,15 @@ export default function OnlineSetup() {
             aria-label="Organization setup progress"
           >
             {STEPS.map((s, i) => (
-              <span
+              <button
                 key={s}
                 aria-current={i === draft.step ? "step" : undefined}
+                disabled={disabled}
+                onClick={() => void goToChapter(i)}
               >
-                <b>{i < draft.step ? "✓" : i + 1}</b>
+                <b>{i === draft.step ? "•" : i + 1}</b>
                 {s}
-              </span>
+              </button>
             ))}
           </nav>
           <header className="v3-heading">
@@ -1111,6 +1272,25 @@ export default function OnlineSetup() {
               <fieldset disabled={disabled}>
                 {draft.step === 0 && (
                   <div className="v3-source-panel">
+                    <section
+                      className="v3-document-tools"
+                      aria-label="Organization documents"
+                    >
+                      <h2>Organization documents</h2>
+                      <p>
+                        Your constitution and original uploads are kept here.
+                        Pasted text is stored as a separate text source.
+                      </p>
+                      <button
+                        onClick={() =>
+                          void listArchivedFiles()
+                            .then((x) => setFiles(x.uploads))
+                            .catch((e) => setError(e.message))
+                        }
+                      >
+                        View organization documents
+                      </button>
+                    </section>
                     <label>
                       Organization name
                       <input
@@ -1180,6 +1360,17 @@ export default function OnlineSetup() {
                 )}
                 {draft.step === 1 && (
                   <>
+                    {!draft.roles.length && (
+                      <div className="v3-empty" role="status">
+                        <p>
+                          Prepare your team from Constitution, or add your
+                          departments and roles here.
+                        </p>
+                        <button onClick={() => void goToChapter(0)}>
+                          Go to Constitution
+                        </button>
+                      </div>
+                    )}
                     <div className="v3-toolbar">
                       <div
                         className="v3-tabs"
@@ -1318,10 +1509,25 @@ export default function OnlineSetup() {
                         />
                       </>
                     )}
+                    <MembersPanel
+                      roleOptions={draft.roles}
+                      beforeSave={flushForAssistant}
+                    />
                   </>
                 )}
                 {draft.step === 2 && (
                   <div className="v3-responsibility">
+                    {!draft.roles.length && (
+                      <div className="v3-empty" role="status">
+                        <p>
+                          Prepare your team before reviewing responsibilities.
+                          Your other settings stay saved.
+                        </p>
+                        <button onClick={() => void goToChapter(1)}>
+                          Go to Your team
+                        </button>
+                      </div>
+                    )}
                     <div
                       className="v3-tabs v3-dept-tabs"
                       role="tablist"
@@ -1542,6 +1748,11 @@ export default function OnlineSetup() {
                                   maxLength={1000}
                                 />
                               </label>
+                              {riskReply && (
+                                <p role="status" className="v3-note">
+                                  {riskReply}
+                                </p>
+                              )}
                               <button
                                 disabled={!other.trim()}
                                 onClick={() =>
@@ -1627,6 +1838,56 @@ export default function OnlineSetup() {
                 )}
                 {draft.step === 3 && (
                   <>
+                    <section
+                      className="v3-timing"
+                      aria-label="Activity timing defaults"
+                    >
+                      <div className="v3-toolbar">
+                        <h2>Timing</h2>
+                        <button
+                          onClick={() => changeTiming({ ...DEFAULT_TIMING })}
+                        >
+                          Restore timing defaults
+                        </button>
+                      </div>
+                      <p>
+                        Internal completion targets before an activity starts.
+                        These defaults apply to applicable purchasing steps;
+                        official deadlines still take precedence.
+                      </p>
+                      {(
+                        [
+                          ["itemsWeeks", "Confirm items"],
+                          ["quotesWeeks", "Confirm quotes"],
+                          ["budgetWeeks", "Submit budget request"],
+                        ] as const
+                      ).map(([key, label]) => (
+                        <label key={key} className="v3-timing-row">
+                          <span>{label}</span>
+                          <input
+                            aria-label={`${label} weeks before activity`}
+                            type="number"
+                            min={0}
+                            max={52}
+                            step={1}
+                            value={
+                              (draft.timingDefaults ?? DEFAULT_TIMING)[key]
+                            }
+                            onChange={(e) =>
+                              changeTiming({
+                                ...(draft.timingDefaults ?? DEFAULT_TIMING),
+                                [key]: e.target.valueAsNumber,
+                              })
+                            }
+                          />
+                          <span>weeks before</span>
+                        </label>
+                      ))}
+                      <p className="v3-note">
+                        Saved targets guide future activities. Existing activity
+                        dates and manual task overrides are preserved.
+                      </p>
+                    </section>
                     <div className="v3-legend">
                       {draft.departments.map((dep) => (
                         <span key={dep.id}>
@@ -1644,6 +1905,9 @@ export default function OnlineSetup() {
                           flow={draft.memberFlow}
                           roles={draft.roles}
                           departments={draft.departments}
+                          timingDefaults={
+                            draft.timingDefaults ?? DEFAULT_TIMING
+                          }
                           onChange={(memberFlow) => {
                             track("workflow.changed", { memberFlow });
                             patch({ memberFlow });
@@ -1652,27 +1916,38 @@ export default function OnlineSetup() {
                           onSelect={(id) => selectEntity("node", id)}
                         />
                         {draft.memberFlow.nodes.some((n) => n.needsReview) && (
-                          <p className="v3-review-note" role="status">
-                            Review the highlighted steps before continuing.
-                            Update affected owners or responsibilities, then
-                            choose Mark reviewed inside each step.
-                          </p>
+                          <div className="v3-review-note" role="status">
+                            <p>
+                              Some workflow steps use changed roles or
+                              responsibilities. Review those changes together
+                              before confirming.
+                            </p>
+                            <button
+                              onClick={() => {
+                                setReviewedAffected([]);
+                                setReviewAffected(true);
+                              }}
+                            >
+                              Review affected changes
+                            </button>
+                          </div>
                         )}
                         <p className="v3-note">
-                          Parallel branches can run together. “After either”
-                          joins alternative entry points; “After all” waits for
-                          every prerequisite. Open owners inside a node to
-                          adjust them.
+                          Independent branches can run together. Select a line
+                          to remove it, or ask the assistant to adjust the
+                          workflow. Your existing dependency rules stay intact.
                         </p>
                       </>
                     ) : (
                       <div className="v3-empty">
                         <p>
-                          Your saved roles and responsibilities are ready.
-                          Prepare the activity workflow when you are ready.
+                          {draft.roles.length
+                            ? "Your saved roles and responsibilities are ready. Prepare the activity workflow when you are ready."
+                            : "Prepare your team and responsibilities first. You can return here at any time."}
                         </p>
                         <button
                           className="v3-primary"
+                          disabled={!draft.roles.length}
                           onClick={() =>
                             void run("member_workflow").then((data) => {
                               if (data) {
@@ -1690,6 +1965,35 @@ export default function OnlineSetup() {
                 )}
                 {draft.step === 4 && (
                   <>
+                    {(!draft.roles.length || !draft.memberFlow) && (
+                      <div className="v3-empty" role="status">
+                        <p>
+                          Your setup is not complete yet. Prepare the team and
+                          activity workflow before confirming; you can visit any
+                          chapter.
+                        </p>
+                        <button
+                          onClick={() =>
+                            void goToChapter(!draft.roles.length ? 0 : 3)
+                          }
+                        >
+                          Continue setup
+                        </button>
+                      </div>
+                    )}
+                    {draft.memberFlow?.nodes.some((n) => n.needsReview) && (
+                      <div className="v3-review-note">
+                        <p>Review the steps affected by your recent changes.</p>
+                        <button
+                          onClick={() => {
+                            setReviewedAffected([]);
+                            setReviewAffected(true);
+                          }}
+                        >
+                          Review affected changes
+                        </button>
+                      </div>
+                    )}
                     <div
                       className="v3-tabs"
                       role="tablist"
@@ -1767,6 +2071,7 @@ export default function OnlineSetup() {
                         flow={draft.memberFlow}
                         roles={draft.roles}
                         departments={draft.departments}
+                        timingDefaults={draft.timingDefaults ?? DEFAULT_TIMING}
                         onChange={(memberFlow) => {
                           track("workflow.changed", { memberFlow });
                           patch({ memberFlow });
@@ -1862,7 +2167,11 @@ export default function OnlineSetup() {
                     disabled ||
                     (draft.step === 2 && !hasReviewedCheck(draft)) ||
                     (draft.step === 3 &&
-                      !!draft.memberFlow?.nodes.some((n) => n.needsReview))
+                      !!draft.memberFlow?.nodes.some((n) => n.needsReview)) ||
+                    (draft.step === 4 &&
+                      (!draft.roles.length ||
+                        !draft.memberFlow ||
+                        !!draft.memberFlow?.nodes.some((n) => n.needsReview)))
                   }
                   onClick={() => void next()}
                 >
@@ -1879,116 +2188,124 @@ export default function OnlineSetup() {
               </div>
             </section>
             {draft.step > 0 && (
-              <aside className="v3-assistant">
-                <div className="v3-assistant-title">
-                  <span>✦</span>
-                  <div>
-                    <b>Ask Platypus</b>
-                    <small>{STEPS[draft.step]} · Connected to your setup</small>
-                  </div>
-                </div>
-                <p className="v3-note">
-                  Tell me what to adjust. I’ll show you the proposed changes
-                  before applying them.
-                </p>
-                <div className="v3-messages" aria-live="polite">
-                  {draft.messages.length ? (
-                    draft.messages.slice(-12).map((m) => (
-                      <div key={m.id} className={`v3-message v3-${m.role}`}>
-                        <small>{m.role === "user" ? "You" : "Platypus"}</small>
-                        <p>{m.text}</p>
+              <SetupAssistantPortal>
+                <div className="v3-root v3-setup-assistant-root">
+                  <div className="v3-assistant">
+                    <div className="v3-assistant-title">
+                      <span>✦</span>
+                      <div>
+                        <b>Organization setup</b>
+                        <small>
+                          {STEPS[draft.step]} · Connected to your setup
+                        </small>
                       </div>
-                    ))
-                  ) : (
-                    <div className="v3-chat-examples">
-                      {(draft.step === 1
-                        ? [
-                            "Move Marketing Intern under VP of Marketing.",
-                            "Rename Outreach to Partnerships.",
-                          ]
-                        : draft.step === 2
-                          ? [
-                              "Check who owns our event budget.",
-                              "Help clarify these two roles.",
-                            ]
-                          : [
-                              "Run venue booking and promotion in parallel.",
-                              "Add a feedback step after the activity.",
-                            ]
-                      ).map((x) => (
-                        <button
-                          key={x}
-                          disabled={disabled}
-                          onClick={() => input({ chat: x })}
-                        >
-                          {x}
-                        </button>
-                      ))}
                     </div>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  disabled={disabled}
-                  onClick={() =>
-                    void api<{
-                      versions: {
-                        revision: number;
-                        at: string;
-                        organization: { name: string };
-                      }[];
-                    }>("/api/org/archive?action=history")
-                      .then((r) => setHistory(r.versions))
-                      .catch((e) => setError(e.message))
-                  }
-                >
-                  View configuration history
-                </button>
-                {historyRevision !== null && (
-                  <p className="v3-note">
-                    Using history revision {historyRevision}. Describe what to
-                    restore; changes still need approval.{" "}
+                    <p className="v3-note">
+                      Tell me what to adjust. I’ll show you the proposed changes
+                      before applying them.
+                    </p>
+                    <div className="v3-messages" aria-live="polite">
+                      {draft.messages.length ? (
+                        draft.messages.slice(-12).map((m) => (
+                          <div key={m.id} className={`v3-message v3-${m.role}`}>
+                            <small>
+                              {m.role === "user" ? "You" : "Platypus"}
+                            </small>
+                            <p>{m.text}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="v3-chat-examples">
+                          {(draft.step === 1
+                            ? [
+                                "Move Marketing Intern under VP of Marketing.",
+                                "Rename Outreach to Partnerships.",
+                              ]
+                            : draft.step === 2
+                              ? [
+                                  "Check who owns our event budget.",
+                                  "Help clarify these two roles.",
+                                ]
+                              : [
+                                  "Run venue booking and promotion in parallel.",
+                                  "Add a feedback step after the activity.",
+                                ]
+                          ).map((x) => (
+                            <button
+                              key={x}
+                              disabled={disabled}
+                              onClick={() => input({ chat: x })}
+                            >
+                              {x}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <button
                       type="button"
-                      onClick={() => input({ historyRevision: null })}
+                      disabled={disabled}
+                      onClick={() =>
+                        void api<{
+                          versions: {
+                            revision: number;
+                            at: string;
+                            organization: { name: string };
+                          }[];
+                        }>("/api/org/archive?action=history")
+                          .then((r) => setHistory(r.versions))
+                          .catch((e) => setError(e.message))
+                      }
                     >
-                      Clear
+                      View configuration history
                     </button>
-                  </p>
-                )}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    void send();
-                  }}
-                >
-                  <textarea
-                    aria-label="Ask Platypus about this setup"
-                    placeholder="Describe a change…"
-                    value={chat}
-                    onChange={(e) => input({ chat: e.target.value })}
-                    disabled={disabled}
-                    maxLength={1200}
-                  />
-                  <div className="v3-chat-controls">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={deep}
-                        onChange={(e) => setDeep(e.target.checked)}
+                    {historyRevision !== null && (
+                      <p className="v3-note">
+                        Using history revision {historyRevision}. Describe what
+                        to restore; changes still need approval.{" "}
+                        <button
+                          type="button"
+                          onClick={() => input({ historyRevision: null })}
+                        >
+                          Clear
+                        </button>
+                      </p>
+                    )}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        void send();
+                      }}
+                    >
+                      <textarea
+                        aria-label="Ask Platypus about this setup"
+                        placeholder="Describe a change…"
+                        value={chat}
+                        onChange={(e) => input({ chat: e.target.value })}
                         disabled={disabled}
+                        maxLength={1200}
                       />
-                      Deeper review (slower)
-                    </label>
-                    <button
-                      className="v3-primary"
-                      disabled={disabled || !chat.trim()}
-                    >
-                      Send →
-                    </button>
+                      <div className="v3-chat-controls">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={deep}
+                            onChange={(e) => setDeep(e.target.checked)}
+                            disabled={disabled}
+                          />
+                          Deeper review (slower)
+                        </label>
+                        <button
+                          className="v3-primary"
+                          disabled={disabled || !chat.trim()}
+                        >
+                          Send →
+                        </button>
+                      </div>
+                    </form>
                   </div>
-                </form>
-              </aside>
+                </div>
+              </SetupAssistantPortal>
             )}
           </div>
         </>
@@ -2201,8 +2518,71 @@ export default function OnlineSetup() {
           )}
         </Dialog>
       )}
+      {reviewAffected && (
+        <Dialog
+          title="Review affected changes"
+          close={() => setReviewAffected(false)}
+        >
+          <p>
+            Check the current owners and order for these steps. Unrelated steps
+            are unchanged.
+          </p>
+          {draft.memberFlow?.nodes
+            .filter((n) => n.needsReview)
+            .map((n) => (
+              <label className="v3-affected-row" key={n.id}>
+                <input
+                  type="checkbox"
+                  checked={reviewedAffected.includes(n.id)}
+                  onChange={(e) =>
+                    setReviewedAffected((ids) =>
+                      e.target.checked
+                        ? [...ids, n.id]
+                        : ids.filter((id) => id !== n.id),
+                    )
+                  }
+                />
+                <span>
+                  <b>{n.title}</b>
+                  <small>
+                    {n.roleIds
+                      .map((id) => draft.roles.find((r) => r.id === id)?.title)
+                      .filter(Boolean)
+                      .join(" · ") || "No owner assigned"}
+                  </small>
+                </span>
+              </label>
+            ))}
+          <button
+            className="v3-primary"
+            disabled={draft.memberFlow?.nodes.some(
+              (n) => n.needsReview && !reviewedAffected.includes(n.id),
+            )}
+            onClick={() => {
+              if (!draft.memberFlow) return;
+              track("workflow.affected-changes.reviewed", {
+                nodeIds: reviewedAffected,
+              });
+              patch({
+                memberFlow: {
+                  ...draft.memberFlow,
+                  nodes: draft.memberFlow.nodes.map((n) =>
+                    reviewedAffected.includes(n.id)
+                      ? { ...n, needsReview: false }
+                      : n,
+                  ),
+                },
+              });
+              setReviewAffected(false);
+              void persist().catch(() => {});
+            }}
+          >
+            Confirm reviewed changes
+          </button>
+        </Dialog>
+      )}
       {files && (
-        <Dialog title="Archived original files" close={() => setFiles(null)}>
+        <Dialog title="Organization documents" close={() => setFiles(null)}>
           {files.length ? (
             files.map((f) => (
               <div className="v3-file" key={f.id}>

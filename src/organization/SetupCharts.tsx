@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -24,7 +24,112 @@ import {
 } from "./schema";
 import { hierarchyError, layoutFlow } from "./setupLogic";
 import { track } from "./archive";
+import {
+  DEFAULT_TIMING,
+  type TimingDefaults,
+} from "../workspace/contracts/timing";
 import { connect, graphError, removeStep } from "./graph";
+type Link = { source: string; target: string };
+function LinkTools({
+  options,
+  links,
+  selected,
+  add,
+  remove,
+  undo,
+}: {
+  options: { id: string; title: string }[];
+  links: (Link & { id: string })[];
+  selected: string[];
+  add: (from: string, to: string) => void;
+  remove: (links: Link[]) => void;
+  undo?: () => void;
+}) {
+  const [from, setFrom] = useState(""),
+    [to, setTo] = useState("");
+  const selectedLinks = links.filter((link) => selected.includes(link.id));
+  const title = (id: string) =>
+    options.find((option) => option.id === id)?.title ?? id;
+  return (
+    <div className="v3-link-tools">
+      {selectedLinks.length > 0 && (
+        <div
+          className="v3-selected-link"
+          role="group"
+          aria-label="Selected workflow link"
+        >
+          <span>
+            {selectedLinks
+              .map((link) => `${title(link.source)} → ${title(link.target)}`)
+              .join("; ")}
+          </span>
+          <button onClick={() => remove(selectedLinks)}>
+            Delete selected link{selectedLinks.length > 1 ? "s" : ""}
+          </button>
+        </div>
+      )}
+      {undo && <button onClick={undo}>Undo link deletion</button>}
+      <details>
+        <summary>Edit links with keyboard or touch</summary>
+        <div className="v3-link-form">
+          <label>
+            From step
+            <select
+              aria-label="Link from"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+            >
+              <option value="">Choose a starting step</option>
+              {options.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            To step
+            <select
+              aria-label="Link to"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+            >
+              <option value="">Choose the next step</option>
+              {options
+                .filter((option) => option.id !== from)
+                .map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.title}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <button
+            disabled={!from || !to || from === to}
+            onClick={() => add(from, to)}
+          >
+            Add link
+          </button>
+        </div>
+        <ul>
+          {links.map((link) => (
+            <li key={link.id}>
+              <span>
+                {title(link.source)} → {title(link.target)}
+              </span>
+              <button
+                aria-label={`Delete link from ${title(link.source)} to ${title(link.target)}`}
+                onClick={() => remove([link])}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
+      </details>
+    </div>
+  );
+}
 type RoleData = {
   role: OrgRole;
   departments: Department[];
@@ -175,6 +280,66 @@ export function TeamChart({
       reconnectable: true,
       selected: selectedEdges.includes(`${r.parentRoleId}-${r.id}`),
     }));
+  const [deletedLinks, setDeletedLinks] = useState<Link[]>([]);
+  const removeLinks = (links: Link[]) => {
+    const currentLinks = links.filter((link) =>
+      roles.some(
+        (role) => role.id === link.target && role.parentRoleId === link.source,
+      ),
+    );
+    if (!currentLinks.length) return;
+    onChange(
+      roles.map((role) =>
+        currentLinks.some((link) => link.target === role.id)
+          ? {
+              ...role,
+              parentRoleId: null,
+              manualFields: [
+                ...new Set([...(role.manualFields ?? []), "parentRoleId"]),
+              ],
+            }
+          : role,
+      ),
+    );
+    setDeletedLinks(currentLinks);
+    setSelectedEdges([]);
+    track("team.links.removed", { links: currentLinks });
+  };
+  const undoLinks = () => {
+    if (
+      deletedLinks.some(
+        (link) =>
+          !roles.some((role) => role.id === link.source) ||
+          !roles.some((role) => role.id === link.target) ||
+          roles.some((role) => role.id === link.target && role.parentRoleId),
+      )
+    ) {
+      onError(
+        "A reporting line changed since deletion. Review the current team before restoring it.",
+      );
+      return;
+    }
+    const next = roles.map((role) => {
+      const prior = deletedLinks.find((link) => link.target === role.id);
+      return prior
+        ? {
+            ...role,
+            parentRoleId: prior.source,
+            manualFields: [
+              ...new Set([...(role.manualFields ?? []), "parentRoleId"]),
+            ],
+          }
+        : role;
+    });
+    const error = hierarchyError(next);
+    if (error) {
+      onError(error);
+      return;
+    }
+    onChange(next);
+    track("team.links.restored", { links: deletedLinks });
+    setDeletedLinks([]);
+  };
   const attach = (connection: Connection) => {
     if (connection.source && connection.target)
       edit(connection.target, { parentRoleId: connection.source });
@@ -189,6 +354,14 @@ export function TeamChart({
           Read roles
         </button>
       </div>
+      <LinkTools
+        options={roles.map((role) => ({ id: role.id, title: role.title }))}
+        links={edges}
+        selected={selectedEdges}
+        add={(from, to) => edit(to, { parentRoleId: from })}
+        remove={removeLinks}
+        undo={deletedLinks.length ? undoLinks : undefined}
+      />
       <div className="v3-canvas" aria-label="Editable organization chart">
         <ReactFlow
           nodes={nodes.map((n) => ({
@@ -256,21 +429,7 @@ export function TeamChart({
               e ? onError(e) : onChange(next);
             } else attach(c);
           }}
-          onEdgesDelete={(es) =>
-            onChange(
-              roles.map((r) =>
-                es.some((e) => e.target === r.id)
-                  ? {
-                      ...r,
-                      parentRoleId: null,
-                      manualFields: [
-                        ...new Set([...(r.manualFields ?? []), "parentRoleId"]),
-                      ],
-                    }
-                  : r,
-              ),
-            )
-          }
+          onEdgesDelete={removeLinks}
         >
           <Background gap={24} color="#e2e6ed" />
           <Controls showInteractive={false} />
@@ -317,7 +476,7 @@ export function nextRolePosition(roles: OrgRole[]) {
 }
 type StepData = {
   step: FlowNode;
-  steps: FlowNode[];
+  timingDefaults: TimingDefaults;
   roles: OrgRole[];
   departments: Department[];
   edit: (id: string, fields: Partial<FlowNode>) => void;
@@ -326,7 +485,15 @@ type StepData = {
 };
 type StepNode = Node<StepData, "step">;
 function StepCard({ data }: NodeProps<StepNode>) {
-  const { step: n, steps, roles, departments, edit, add, remove } = data;
+  const {
+    step: n,
+    timingDefaults,
+    roles,
+    departments,
+    edit,
+    add,
+    remove,
+  } = data;
   const owners = n.roleIds
     .map((id) => roles.find((r) => r.id === id))
     .filter(Boolean) as OrgRole[];
@@ -383,63 +550,33 @@ function StepCard({ data }: NodeProps<StepNode>) {
           ))}
         </div>
       </details>
-      <details className="nodrag v3-owner-select">
-        <summary>Connections</summary>
-        <div aria-label={`Connections for ${n.title}`}>
-          {steps
-            .filter((step) => step.id !== n.id)
-            .map((step) => (
-              <label key={step.id}>
-                <input
-                  type="checkbox"
-                  aria-label={`${n.title} follows ${step.title}`}
-                  checked={n.dependsOn.includes(step.id)}
-                  onChange={(e) =>
-                    edit(n.id, {
-                      dependsOn: e.target.checked
-                        ? [...n.dependsOn, step.id]
-                        : n.dependsOn.filter((id) => id !== step.id),
-                    })
-                  }
-                />
-                {step.title}
-              </label>
-            ))}
-        </div>
-      </details>
+      {(n.timing || n.milestoneKey) && (
+        <small className="v3-relative-target">
+          {(() => {
+            const fallback =
+              n.milestoneKey === "items"
+                ? timingDefaults.itemsWeeks * 7
+                : n.milestoneKey === "quotes"
+                  ? timingDefaults.quotesWeeks * 7
+                  : timingDefaults.budgetWeeks * 7;
+            const days = n.timing?.offsetDays ?? fallback;
+            const unit =
+              n.timing?.unit === "business" ? "working days" : "days";
+            return `${Math.abs(days)} ${unit} ${days >= 0 ? "before" : "after"} activity${n.timing?.source === "manual" ? " · custom" : ""}`;
+          })()}
+        </small>
+      )}
+      {n.needsReview && (
+        <small className="v3-relative-target">
+          Affected by a recent team change
+        </small>
+      )}
       {colors.length > 1 && (
         <div className="v3-color-stripe">
           {colors.map((color) => (
             <i key={color} style={{ background: color }} />
           ))}
         </div>
-      )}
-      {n.dependsOn.length > 1 && (
-        <select
-          className="nodrag v3-join"
-          aria-label={`Join rule ${n.id}`}
-          value={n.dependencyMode}
-          onChange={(e) =>
-            edit(n.id, { dependencyMode: e.target.value as "all" | "any" })
-          }
-        >
-          <option value="all">After all connected steps</option>
-          <option value="any">After either connected step</option>
-        </select>
-      )}
-      {n.needsReview && (
-        <button
-          className="nodrag v3-review"
-          onClick={() => {
-            track("workflow.node.reviewed", {
-              nodeId: n.id,
-              roleIds: n.roleIds,
-            });
-            edit(n.id, { needsReview: false });
-          }}
-        >
-          Owners changed · Mark reviewed
-        </button>
       )}
       <button
         className="nodrag v3-delete"
@@ -467,6 +604,7 @@ export function ActivityChart({
   onChange,
   onError,
   onSelect,
+  timingDefaults = DEFAULT_TIMING,
 }: {
   flow: OrgFlow;
   roles: OrgRole[];
@@ -474,14 +612,16 @@ export function ActivityChart({
   onChange: (flow: OrgFlow) => void;
   onError: (s: string) => void;
   onSelect?: (id: string) => void;
+  timingDefaults?: TimingDefaults;
 }) {
   const commit = (f: OrgFlow) => {
     const error = graphError(f.nodes);
     if (error) {
       onError(error);
-      return;
+      return false;
     }
     onChange(f);
+    return true;
   };
   const edit = (id: string, fields: Partial<FlowNode>) =>
     commit({
@@ -537,7 +677,7 @@ export function ActivityChart({
         position: n.position,
         data: {
           step: n,
-          steps: flow.nodes,
+          timingDefaults,
           roles,
           departments,
           edit,
@@ -545,9 +685,10 @@ export function ActivityChart({
           remove,
         },
       })),
-    [flow, roles, departments],
+    [flow, roles, departments, timingDefaults],
   );
   const [view, setView] = useState<ReactFlowInstance<StepNode> | null>(null);
+  const canvas = useRef<HTMLDivElement>(null);
   const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
   const selectEdges = (changes: EdgeChange[]) =>
     setSelectedEdges((ids) => {
@@ -571,6 +712,55 @@ export function ActivityChart({
       selected: selectedEdges.includes(parent + "-" + n.id),
     })),
   );
+  const [deletedLinks, setDeletedLinks] = useState<Link[]>([]);
+  const removeLinks = (links: Link[]) => {
+    const currentLinks = links.filter((link) =>
+      flow.nodes.some(
+        (node) =>
+          node.id === link.target && node.dependsOn.includes(link.source),
+      ),
+    );
+    if (!currentLinks.length) return;
+    if (
+      commit({
+        ...flow,
+        nodes: flow.nodes.map((node) => ({
+          ...node,
+          dependsOn: node.dependsOn.filter(
+            (id) =>
+              !currentLinks.some(
+                (link) => link.target === node.id && link.source === id,
+              ),
+          ),
+        })),
+      })
+    ) {
+      setDeletedLinks(currentLinks);
+      setSelectedEdges([]);
+      track("workflow.links.removed", { links: currentLinks });
+    }
+  };
+  const undoLinks = () => {
+    try {
+      let next = flow;
+      for (const link of deletedLinks) {
+        if (
+          !next.nodes.some((node) => node.id === link.source) ||
+          !next.nodes.some((node) => node.id === link.target)
+        )
+          throw new Error(
+            "A step was removed after that link. Review the current workflow before restoring it.",
+          );
+        next = connect(next, link.source, link.target);
+      }
+      if (commit(next)) {
+        track("workflow.links.restored", { links: deletedLinks });
+        setDeletedLinks([]);
+      }
+    } catch (e) {
+      onError((e as Error).message);
+    }
+  };
   const attach = (c: Connection) => {
     try {
       if (c.source && c.target) commit(connect(flow, c.source, c.target));
@@ -578,8 +768,109 @@ export function ActivityChart({
       onError((e as Error).message);
     }
   };
+  const timedSteps = flow.nodes
+    .filter((node) => node.timing || node.milestoneKey)
+    .map((node) => ({
+      id: node.id,
+      title: node.title,
+      node,
+      offset:
+        node.timing?.offsetDays ??
+        (node.milestoneKey === "items"
+          ? timingDefaults.itemsWeeks * 7
+          : node.milestoneKey === "quotes"
+            ? timingDefaults.quotesWeeks * 7
+            : timingDefaults.budgetWeeks * 7),
+      unit: node.timing?.unit === "business" ? "working days" : "days",
+    }));
+  const timingEntries = timedSteps.length
+    ? timedSteps
+    : [
+        {
+          id: "default-items",
+          title: "Confirm items",
+          node: null,
+          offset: timingDefaults.itemsWeeks * 7,
+          unit: "days",
+        },
+        {
+          id: "default-quotes",
+          title: "Confirm quotes",
+          node: null,
+          offset: timingDefaults.quotesWeeks * 7,
+          unit: "days",
+        },
+        {
+          id: "default-budget",
+          title: "Submit budget request",
+          node: null,
+          offset: timingDefaults.budgetWeeks * 7,
+          unit: "days",
+        },
+      ];
+  const timeline = [
+    ...timingEntries,
+    {
+      id: "activity-day",
+      title: "Activity day",
+      node: null,
+      offset: 0,
+      unit: "days",
+    },
+  ].sort(
+    (a, b) =>
+      b.offset - a.offset ||
+      (a.id === "activity-day" ? 1 : b.id === "activity-day" ? -1 : 0),
+  );
   return (
     <>
+      <section className="v3-timing-band" aria-label="Workflow relative timing">
+        <h3>Relative timing</h3>
+        {!flow.nodes.some((node) => node.milestoneKey === "budget_request") && (
+          <p>
+            Default funding timing · when funding is needed. Default targets do
+            not add purchasing steps to this workflow.
+          </p>
+        )}
+        <ol>
+          {timeline.map((entry) => (
+            <li key={entry.id}>
+              {entry.node ? (
+                <button
+                  onClick={() => {
+                    onSelect?.(entry.node!.id);
+                    canvas.current?.scrollIntoView({
+                      block: "center",
+                      behavior: "smooth",
+                    });
+                    void view?.fitView({
+                      nodes: [{ id: entry.node!.id }],
+                      minZoom: 0.8,
+                      maxZoom: 1,
+                      padding: 0.3,
+                    });
+                  }}
+                >
+                  <b>{entry.title}</b>
+                  <small>
+                    {Math.abs(entry.offset)} {entry.unit}{" "}
+                    {entry.offset >= 0 ? "before" : "after"}
+                  </small>
+                </button>
+              ) : (
+                <span>
+                  <b>{entry.title}</b>
+                  {entry.id !== "activity-day" && (
+                    <small>
+                      {Math.abs(entry.offset)} {entry.unit} before · default
+                    </small>
+                  )}
+                </span>
+              )}
+            </li>
+          ))}
+        </ol>
+      </section>
       <div className="v3-chart-toolbar">
         <span>
           Connect dots to link steps. Select a line and press Delete to remove
@@ -594,8 +885,19 @@ export function ActivityChart({
         <button onClick={() => add("")}>+ Add step</button>
         <button onClick={() => commit(layoutFlow(flow))}>Arrange</button>
       </div>
+      <LinkTools
+        options={flow.nodes.map((node) => ({ id: node.id, title: node.title }))}
+        links={edges}
+        selected={selectedEdges}
+        add={(source, target) =>
+          attach({ source, target, sourceHandle: null, targetHandle: null })
+        }
+        remove={removeLinks}
+        undo={deletedLinks.length ? undoLinks : undefined}
+      />
       <div
         className="v3-canvas v3-workflow"
+        ref={canvas}
         aria-label="Editable activity workflow"
       >
         <ReactFlow
@@ -603,7 +905,7 @@ export function ActivityChart({
             ...n,
             data: {
               step: flow.nodes.find((step) => step.id === n.id) ?? n.data.step,
-              steps: flow.nodes,
+              timingDefaults,
               roles,
               departments,
               edit,
@@ -645,17 +947,7 @@ export function ActivityChart({
               onError((e as Error).message);
             }
           }}
-          onEdgesDelete={(es) =>
-            commit({
-              ...flow,
-              nodes: flow.nodes.map((n) => ({
-                ...n,
-                dependsOn: n.dependsOn.filter(
-                  (id) => !es.some((e) => e.target === n.id && e.source === id),
-                ),
-              })),
-            })
-          }
+          onEdgesDelete={removeLinks}
         >
           <Background gap={24} color="#e2e6ed" />
           <Controls showInteractive={false} />

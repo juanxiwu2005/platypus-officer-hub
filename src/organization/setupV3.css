@@ -1215,3 +1215,242 @@
 .v3-root .v3-legend span {
   color: #52647b;
 }
+
+/* Chapters stay available without implying that skipped chapters are complete. */
+.v3-root .v3-progress {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.v3-root .v3-progress > button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #52647b;
+  font-size: 14px;
+  padding: 6px 8px;
+}
+.v3-root .v3-progress > button[aria-current="step"] {
+  color: #234d92;
+  background: #eef4ff;
+}
+.v3-root .v3-progress > button:focus-visible {
+  outline: 2px solid #315caa;
+  outline-offset: 2px;
+}
+.v3-root .v3-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+.v3-document-tools {
+  padding: 12px 0 20px;
+}
+.v3-document-tools h2,
+.v3-timing h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.v3-document-tools p,
+.v3-timing > p {
+  font-size: 14px;
+  color: #52647b;
+  line-height: 1.5;
+}
+.v3-timing {
+  border: 1px solid #dce4ee;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+.v3-timing-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 72px 110px;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 14px;
+}
+.v3-root .v3-timing-row input {
+  width: 72px;
+}
+.v3-relative-target {
+  display: block;
+  margin-top: 8px;
+  color: #52647b;
+  line-height: 1.4;
+  font-size: 12px;
+}
+.v3-link-tools {
+  margin: 8px 0 14px;
+  font-size: 14px;
+}
+.v3-link-tools > details > summary {
+  cursor: pointer;
+  color: #315caa;
+  margin-top: 8px;
+}
+.v3-link-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+  margin-top: 12px;
+}
+.v3-link-form label {
+  min-width: 150px;
+  flex: 1;
+}
+.v3-link-tools ul {
+  padding: 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.v3-link-tools li {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+}
+.v3-selected-link {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  background: #eef4ff;
+  color: #293c57;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.v3-selected-link span {
+  flex: 1;
+  min-width: 120px;
+}
+.v3-affected-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e5eaf2;
+}
+.v3-affected-row span {
+  display: grid;
+  gap: 5px;
+}
+.v3-affected-row small {
+  color: #52647b;
+  font-size: 13px;
+}
+@media (max-width: 800px) {
+  .v3-root .v3-progress {
+    gap: 5px;
+  }
+  .v3-root .v3-progress > button {
+    font-size: 13px;
+    padding: 6px;
+  }
+  .v3-timing-row {
+    grid-template-columns: minmax(0, 1fr) 62px 94px;
+    gap: 7px;
+  }
+  .v3-root .v3-timing-row input {
+    width: 62px;
+  }
+  .v3-link-form {
+    display: grid;
+  }
+}
+.v3-setup-assistant-root {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+.v3-setup-assistant-root .v3-assistant {
+  position: static;
+  border: 0;
+  border-radius: 0;
+}
+.v3-root .workspace-members {
+  border-top: 1px solid #dce4ee;
+  margin-top: 24px;
+  padding-top: 18px;
+}
+.v3-root .workspace-members h2 {
+  font-size: 18px;
+}
+.v3-root .workspace-members p {
+  color: #52647b;
+  line-height: 1.5;
+}
+.v3-root .workspace-member {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #e5eaf2;
+  padding: 10px 0;
+}
+.v3-root .workspace-members form > label {
+  margin: 12px 0;
+}
+.v3-root .workspace-members form fieldset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 1px solid #dce4ee;
+  border-radius: 8px;
+  padding: 12px;
+}
+.v3-root .workspace-members form fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.v3-timing-band {
+  margin: 16px 0;
+}
+.v3-timing-band h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.v3-timing-band > p {
+  color: #52647b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.v3-timing-band ol {
+  display: flex;
+  overflow-x: auto;
+  align-items: stretch;
+  gap: 12px;
+  padding: 8px 2px;
+  list-style: none;
+}
+.v3-timing-band li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 auto;
+}
+.v3-timing-band li:not(:last-child)::after {
+  content: "→";
+  color: #637186;
+}
+.v3-root .v3-timing-band button,
+.v3-timing-band li > span {
+  display: grid;
+  gap: 6px;
+  width: 165px;
+  padding: 12px;
+  border: 1px solid #dce4ee;
+  border-radius: 8px;
+  background: #f7faff;
+  text-align: left;
+  font-size: 14px;
+}
+.v3-timing-band small {
+  color: #52647b;
+  font-size: 12px;
+}

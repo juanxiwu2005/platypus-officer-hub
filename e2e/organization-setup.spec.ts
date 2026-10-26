@@ -5,7 +5,12 @@ import {
   fixtureDraft,
   fixtureFlow,
 } from "../src/organization/testing/fixtures";
-import { upgrade, compileOrganization } from "../src/organization/setupLogic";
+import {
+  upgrade,
+  compileOrganization,
+  applyChanges,
+} from "../src/organization/setupLogic";
+import type { OrgChange } from "../src/organization/schema";
 import type { Envelope, Stage } from "../src/organization/schema";
 async function mockedOnline(page: Page) {
   let record: Envelope = {
@@ -28,7 +33,119 @@ async function mockedOnline(page: Page) {
     instruction?: string;
     requestId?: string;
   }[] = [];
+  const assistantRequests: {
+    action: string;
+    context?: Record<string, unknown>;
+    instruction?: string;
+    requestId?: string;
+  }[] = [];
+  const proposals = new Map<
+    string,
+    { revision: number; changes: OrgChange[] }
+  >();
   const uploads = new Map<string, unknown>();
+  await page.route("**/api/workspace", async (route) => {
+    const d = upgrade(record.draft);
+    await route.fulfill({
+      json: {
+        demo: true,
+        setupRevision: record.revision,
+        state: {
+          schemaVersion: 1,
+          workspaceId: record.workspaceId,
+          revision: 1,
+          actorId: "demo-president",
+          members: [
+            {
+              id: "demo-president",
+              name: "Fictional President",
+              roleIds: ["president"],
+              access: "manager",
+            },
+          ],
+          workItems: [],
+          updatedAt: record.updatedAt,
+        },
+        organization: {
+          name: d.name,
+          mission: d.mission,
+          roles: d.roles,
+          departments: d.departments,
+          contextVersion: d.contextVersion,
+          timingDefaults: d.timingDefaults ?? {
+            itemsWeeks: 8,
+            quotesWeeks: 7,
+            budgetWeeks: 6,
+          },
+        },
+      },
+    });
+  });
+  await page.route("**/api/workspace/assistant**", async (route) => {
+    const b = route.request().postDataJSON();
+    assistantRequests.push(b);
+    if (b.action === "apply") {
+      const proposal = proposals.get(b.jobId);
+      if (!proposal || proposal.revision !== record.revision) {
+        await route.fulfill({
+          status: 409,
+          json: {
+            message:
+              "The organization changed after this proposal. Ask again before applying it.",
+          },
+        });
+        return;
+      }
+      record = {
+        ...record,
+        revision: record.revision + 1,
+        draft: applyChanges(upgrade(record.draft), proposal.changes),
+      };
+      await route.fulfill({ json: { applied: true } });
+      return;
+    }
+    if (requestError) {
+      await route.fulfill({ status: 502, json: { message: requestError } });
+      return;
+    }
+    const data = (responses.edit ?? {
+      message: "Rename the marketing position. Other settings stay the same.",
+      question: null,
+      changes: [
+        {
+          entity: "role",
+          id: "marketing",
+          operation: "set",
+          field: "title",
+          value: "VP of Communications",
+        },
+      ],
+    }) as { message: string; question: string | null; changes: OrgChange[] };
+    const id = crypto.randomUUID();
+    proposals.set(id, { revision: record.revision, changes: data.changes });
+    await route.fulfill({
+      json: {
+        jobId: id,
+        status: "done",
+        answer: {
+          proposalId: id,
+          message: data.message,
+          question: data.question,
+          workspaceRevision: 1,
+          setupRevision: record.revision,
+          actions: data.changes.length
+            ? [
+                {
+                  kind: "organization",
+                  title: "Review organization change",
+                  proposal: { changes: data.changes },
+                },
+              ]
+            : [],
+        },
+      },
+    });
+  });
   await page.route("**/api/org/archive**", async (route) => {
     if (route.request().method() === "GET") {
       await route.fulfill({
@@ -176,6 +293,7 @@ async function mockedOnline(page: Page) {
     read: () => record,
     calls,
     requests,
+    assistantRequests,
     saves,
     delaySave: (ms: number) => {
       saveDelay = ms;
@@ -250,6 +368,15 @@ async function workflow(page: Page) {
 }
 const overflow = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+async function assistantInput(page: Page) {
+  const toggle = page.getByRole("button", {
+    name: "✦ Ask Platypus",
+    exact: true,
+  });
+  if (await toggle.isVisible()) await toggle.click();
+  return page.getByLabel("Ask about your workspace", { exact: true });
+}
+
 test("source screen hides system prompts and supports source choices", async ({
   page,
 }) => {
@@ -292,7 +419,9 @@ test("paste text is saved before the AI request", async ({ page }) => {
   await expect(
     page.getByText("✓ pasted-constitution.txt", { exact: true }),
   ).toBeVisible();
-  await expect.poll(() => s.read().draft.source?.text).toContain("fictional constitution");
+  await expect
+    .poll(() => s.read().draft.source?.text)
+    .toContain("fictional constitution");
   expect(s.calls).toHaveLength(0);
 });
 test("departments come first, with editable colors and compact organization chart", async ({
@@ -375,23 +504,23 @@ test("AI proposes changes for approval, and no change is applied before approval
 }) => {
   const s = await open(page);
   await team(page);
-  await page
-    .getByLabel("Ask Platypus about this setup", { exact: true })
-    .fill("Rename the marketing position to VP of Communications");
+  await (
+    await assistantInput(page)
+  ).fill("Rename the marketing position to VP of Communications");
   await page.getByRole("button", { name: "Send →", exact: true }).click();
   await expect(
-    page.getByRole("dialog", { name: "Review proposed changes" }),
+    page.getByRole("button", { name: "Approve change", exact: true }),
   ).toBeVisible();
   expect(s.read().draft.roles.find((r) => r.id === "marketing")?.title).toBe(
     "Vice President of Marketing",
   );
   await page
-    .getByRole("button", { name: "Approve changes", exact: true })
+    .getByRole("button", { name: "Approve change", exact: true })
     .click();
   await expect
     .poll(() => s.read().draft.roles.find((r) => r.id === "marketing")?.title)
     .toBe("VP of Communications");
-  expect(s.read().draft.messages).toHaveLength(2);
+  expect(s.assistantRequests.filter((r) => r.action === "ask")).toHaveLength(1);
 });
 
 test("a manual graph edit preserves a preceding AI clarification conversation", async ({
@@ -407,9 +536,7 @@ test("a manual graph edit preserves a preceding AI clarification conversation", 
     question: "Which responsibilities should move?",
     changes: [],
   });
-  await page
-    .getByLabel("Ask Platypus about this setup", { exact: true })
-    .fill("Move these responsibilities");
+  await (await assistantInput(page)).fill("Move these responsibilities");
   await page.getByRole("button", { name: "Send →", exact: true }).click();
   await expect(
     page.getByText("Which responsibilities should move?", { exact: true }),
@@ -420,10 +547,7 @@ test("a manual graph edit preserves a preceding AI clarification conversation", 
   await expect
     .poll(() => s.read().draft.roles.find((r) => r.id === "president")!.title)
     .toBe("Club President");
-  expect(s.read().draft.messages).toHaveLength(2);
-  expect(s.read().draft.messages![1].text).toBe(
-    "Which responsibilities should move?",
-  );
+  expect(s.assistantRequests.filter((r) => r.action === "ask")).toHaveLength(1);
   await expect(
     page.getByText("Which responsibilities should move?", { exact: true }),
   ).toBeVisible();
@@ -449,16 +573,14 @@ test("Next position updates the assistant's selected role before a direct reques
     question: "Which duty needs a change?",
     changes: [],
   });
-  await page
-    .getByLabel("Ask Platypus about this setup", { exact: true })
-    .fill("Adjust this role's duties");
+  await (await assistantInput(page)).fill("Adjust this role's duties");
   await page.getByRole("button", { name: "Send →", exact: true }).click();
   await expect(
     page.getByText("Which duty needs a change?", { exact: true }),
   ).toBeVisible();
   expect(
-    s.requests.filter((r) => r.stage === "edit").at(-1)!.selection,
-  ).toEqual({
+    s.assistantRequests.filter((r) => r.action === "ask").at(-1)!.context,
+  ).toMatchObject({
     screen: "responsibilities",
     entityType: "role",
     entityId: "programs",
@@ -507,7 +629,11 @@ test("review shows entered settings and confirmation compiles data without anoth
   await expect(
     page.getByRole("heading", { name: "Your organization, ready." }),
   ).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Organization setup progress" }).getByText("Board work", { exact: true })).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("navigation", { name: "Organization setup progress" })
+      .getByText("Board work", { exact: true }),
+  ).toHaveCount(0);
   await expect(
     page.getByText("Vice President of Marketing", { exact: true }),
   ).toBeVisible();
@@ -607,7 +733,9 @@ test("real browser Back and Forward wait for pending edits", async ({
 }) => {
   const s = await mockedOnline(page);
   await page.goto("/#/phase1");
-  await page.getByRole("link", { name: "Organization setup", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Organization setup", exact: true })
+    .click();
   await expect(
     page.getByLabel("Organization name", { exact: true }),
   ).toBeVisible();
@@ -616,7 +744,12 @@ test("real browser Back and Forward wait for pending edits", async ({
     .fill("Saved before browser Back");
   await page.evaluate(() => window.history.back());
   await expect(page).toHaveURL(/#\/phase1$/);
-  await expect(page.getByRole("heading", { name: "Confirm your organization", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("heading", {
+      name: "Hello, Fictional",
+      exact: true,
+    }),
+  ).toBeVisible();
   expect(s.read().draft.name).toBe("Saved before browser Back");
   await page.evaluate(() => window.history.forward());
   await expect(
@@ -627,7 +760,9 @@ test("real browser Back and Forward wait for pending edits", async ({
 test("real browser Back stays in setup when saving fails", async ({ page }) => {
   const s = await mockedOnline(page);
   await page.goto("/#/phase1");
-  await page.getByRole("link", { name: "Organization setup", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Organization setup", exact: true })
+    .click();
   await expect(
     page.getByLabel("Organization name", { exact: true }),
   ).toBeVisible();
@@ -654,9 +789,7 @@ test("consecutive browser Back gestures cannot bypass the pending save", async (
   );
   const s = await mockedOnline(page);
   await page.goto("/#/phase1");
-  await page
-    .getByRole("link", { name: "Activity workflow", exact: true })
-    .click();
+  await page.getByRole("link", { name: "Activities", exact: true }).click();
   await page
     .getByRole("link", { name: "Organization setup", exact: true })
     .click();
@@ -671,8 +804,13 @@ test("consecutive browser Back gestures cannot bypass the pending save", async (
     window.history.back();
     setTimeout(() => window.history.back(), 20);
   });
-  await expect(page).toHaveURL(/#\/phase1\/activity\/member$/);
-  await expect(page.getByRole("heading", { name: "Confirm your organization", exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/#\/phase1\/activities$/);
+  await expect(
+    page.getByRole("heading", {
+      name: "Activities",
+      exact: true,
+    }),
+  ).toBeVisible();
   expect(s.read().draft.name).toBe("Keep pending consecutive Back edits");
 });
 
@@ -782,9 +920,7 @@ test("unsent assistant and new-role inputs survive a reload", async ({
 }) => {
   await open(page);
   await team(page);
-  await page
-    .getByLabel("Ask Platypus about this setup", { exact: true })
-    .fill("Please keep my unsent instruction");
+  await (await assistantInput(page)).fill("Please keep my unsent instruction");
   await page
     .getByRole("button", { name: "+ Add a custom role", exact: true })
     .click();
@@ -797,9 +933,9 @@ test("unsent assistant and new-role inputs survive a reload", async ({
     page.getByLabel("Custom role title", { exact: true }),
   ).toHaveValue("Unfinished Volunteer Director");
   await page.getByRole("button", { name: "Close", exact: true }).click();
-  await expect(
-    page.getByLabel("Ask Platypus about this setup", { exact: true }),
-  ).toHaveValue("Please keep my unsent instruction");
+  await expect(await assistantInput(page)).toHaveValue(
+    "Please keep my unsent instruction",
+  );
 });
 
 test("automatic healthy checks are cached when revisiting Check", async ({
@@ -981,15 +1117,20 @@ test("workflow selection and a chosen historical revision reach a reviewable AI 
   const s = await open(page);
   await workflow(page);
   await page.getByLabel("Step title plan", { exact: true }).click();
+  await assistantInput(page);
   await page
     .getByRole("button", { name: "View configuration history", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Use this version", exact: true })
+    .getByRole("button", { name: "Use revision 1", exact: true })
     .click();
-  await page
-    .getByLabel("Ask Platypus about this setup", { exact: true })
-    .fill("Restore the selected step title");
+  await expect(await assistantInput(page)).toHaveValue(
+    "Use history revision 1: ",
+  );
+  await (await assistantInput(page)).press("End");
+  await (
+    await assistantInput(page)
+  ).pressSequentially("Restore the selected step title");
   s.respond("edit", {
     message: "Proposed restoration only.",
     question: null,
@@ -1005,10 +1146,10 @@ test("workflow selection and a chosen historical revision reach a reviewable AI 
   });
   await page.getByRole("button", { name: "Send →", exact: true }).click();
   await expect(
-    page.getByRole("dialog", { name: "Review proposed changes", exact: true }),
+    page.getByRole("button", { name: "Approve change", exact: true }),
   ).toBeVisible();
-  const request = s.requests.filter((r) => r.stage === "edit").at(-1)!;
-  expect(request.selection).toEqual({
+  const request = s.assistantRequests.filter((r) => r.action === "ask").at(-1)!;
+  expect(request.context).toMatchObject({
     screen: "workflow",
     entityType: "node",
     entityId: "plan",
@@ -1021,7 +1162,7 @@ test("workflow selection and a chosen historical revision reach a reviewable AI 
     s.read().draft.memberFlow!.nodes.find((n) => n.id === "plan")!.title,
   ).not.toBe("Earlier reviewed title");
   await page
-    .getByRole("button", { name: "Approve changes", exact: true })
+    .getByRole("button", { name: "Approve change", exact: true })
     .click();
   await expect(page.getByLabel("Step title plan", { exact: true })).toHaveValue(
     "Earlier reviewed title",
@@ -1066,6 +1207,8 @@ async function dragBetween(
   from: ReturnType<Page["locator"]>,
   to: ReturnType<Page["locator"]>,
 ) {
+  await from.scrollIntoViewIfNeeded();
+  await to.scrollIntoViewIfNeeded();
   const a = await from.boundingBox(),
     b = await to.boundingBox();
   expect(a).not.toBeNull();
@@ -1164,13 +1307,12 @@ test("inline owners, accessible dependencies and node addition work at both size
     )
     .toEqual(["president", "marketing"]);
   await node.locator("summary").filter({ hasText: "President" }).click();
-  await node.getByText("Connections", { exact: true }).click();
-  await node
-    .getByRole("checkbox", {
-      name: "Plan activity follows Run activity",
-      exact: true,
-    })
-    .check();
+  await page
+    .getByText("Edit links with keyboard or touch", { exact: true })
+    .click();
+  await page.getByLabel("Link from", { exact: true }).selectOption("run");
+  await page.getByLabel("Link to", { exact: true }).selectOption("plan");
+  await page.getByRole("button", { name: "Add link", exact: true }).click();
   await expect
     .poll(
       () =>
@@ -1178,12 +1320,12 @@ test("inline owners, accessible dependencies and node addition work at both size
           .dependsOn,
     )
     .toEqual(["run"]);
-  await node
-    .getByRole("checkbox", {
-      name: "Plan activity follows Run activity",
+  await page
+    .getByRole("button", {
+      name: "Delete link from Run activity to Plan activity",
       exact: true,
     })
-    .uncheck();
+    .click();
   await expect
     .poll(
       () =>
@@ -1191,7 +1333,9 @@ test("inline owners, accessible dependencies and node addition work at both size
           .dependsOn,
     )
     .toEqual([]);
-  await node.getByText("Connections", { exact: true }).click();
+  await page
+    .getByText("Edit links with keyboard or touch", { exact: true })
+    .click();
   await page
     .getByRole("button", { name: "Add step after Plan activity", exact: true })
     .click();
@@ -1230,6 +1374,7 @@ test("organization reporting lines retain manual decisions after real drag, reco
   const graph = page.getByLabel("Editable organization chart", { exact: true });
   const node = (id: string) =>
     graph.locator(`.react-flow__node[data-id="${id}"]`);
+  await graph.scrollIntoViewIfNeeded();
   const from = await node("marketing_intern").boundingBox(),
     to = await node("marketing").boundingBox();
   await page.mouse.move(from!.x + 90, from!.y + 10);
@@ -1356,7 +1501,7 @@ test("unsent inputs cannot be lost through Home when local recovery storage is u
   await page.evaluate(() => {
     const original = Storage.prototype.setItem;
     Storage.prototype.setItem = function (key, value) {
-      if (key.startsWith("platypus_org_recovery_v1_"))
+      if (key.startsWith("platypus.workspace.assistant.draft:"))
         throw new DOMException(
           "Recovery storage quota exceeded",
           "QuotaExceededError",
@@ -1364,17 +1509,20 @@ test("unsent inputs cannot be lost through Home when local recovery storage is u
       return original.call(this, key, value);
     };
   });
-  await page
-    .getByLabel("Ask Platypus about this setup", { exact: true })
-    .fill("Keep this unsent instruction when storage is unavailable");
+  await (
+    await assistantInput(page)
+  ).fill("Keep this unsent instruction when storage is unavailable");
   await page.getByRole("link", { name: "← Home", exact: true }).click();
-  await expect(page.getByRole("alert")).toContainText(
-    "Your unsent form inputs could not be saved",
-  );
-  await expect(page).toHaveURL(/#\/phase1\/setup$/);
+  await expect(page).toHaveURL(/#\/phase1$/);
   await expect(
-    page.getByLabel("Ask Platypus about this setup", { exact: true }),
-  ).toHaveValue("Keep this unsent instruction when storage is unavailable");
+    page.getByText(
+      "Your message is kept in this page, but browser draft recovery is unavailable. Copy it before refreshing.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(await assistantInput(page)).toHaveValue(
+    "Keep this unsent instruction when storage is unavailable",
+  );
 });
 
 test("local recovery storage failure does not trap an online-saved draft with no unsent inputs", async ({
