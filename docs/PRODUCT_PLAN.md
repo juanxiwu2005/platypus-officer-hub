@@ -1,3 +1,5 @@
+> **2026-10-25 新方向（Juanxi 已确认）：** 当前增量工作为 AI-native Phase 1，Activity-centered、Organization Context driven。下文 v1.0/v1.1 为保留的历史基线；与本次提示冲突的导航、固定岗位与设置方式以新设计为准。先验收三个高保真画面，再决定正式接入。目标模型、复用与迁移边界见 [Phase 1 底层设计](phase1/ARCHITECTURE.md)，验收见 [交接](phase1/HANDOFF.md)。不改 main，不删除旧页。
+
 # Platypus 产品计划 v1.0
 
 2026-10-22 · Juanxi (Steve) Wu · 起草：Claude

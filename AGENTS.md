@@ -97,3 +97,11 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 4. **文字：** 页面标题 1–2 个词；一张卡最多“标题 1 行 + 信息 1 行 + 状态色块”；原因、假设、出处放进悬停或 Help；字号不小于 14px。
 5. **字数上限（主区，`scripts/word-count.mjs` 量）：** Today ≤ 160、Events ≤ 180、Rules ≤ 170、Tasks ≤ 130、Team ≤ 130、Settings 每块 ≤ 125。新增内容超了就先删别的。
 6. **6 种任务状态与颜色全站统一：** Not claimed 灰、To do 蓝、Working on it 橙、Waiting 紫、Stuck 红、Done 绿（名称和颜色可在 Settings → Board 改，含义不变）。
+
+## 8. AI-native Phase 1 设计检查点（2026-10-25，Juanxi 明确确认）
+
+本次新架构为 AI-native、Activity-centered、Organization Context driven。用户最新要求优先于第 7 节旧界面规则；例外仅用于 `/phase1/*`，旧页保留原行为。新壳允许中心 AI composer、内容块与渐进显示，主要视觉参考仅 Apple HIG / monday / Notion Projects。
+
+分支 `feat/ai-native-phase1` 从最新 v1 创建。只做三个可点击高保真画面、虚构 Constitution 建议审核、自定义岗位能力映射、两类流程预览与底层设计说明。`src/phase1/` 是隔离的前端演示，不是正式业务模型。保持确定性日期引擎与所有旧测试，不删除旧页、不改 main。
+
+**画面完成后必须停止等 Juanxi 验收；不得自动接正式 API/数据模型、完整 planner、生产数据库、真实账户、长期 Conversation storage 或正式 Handoff。** 详见 `docs/phase1/ARCHITECTURE.md` 和 `HANDOFF.md`。旧独立任务、固定 RoleFunction 及聊天存储仍有设计债，不能把新壳中的检查当作整个旧应用已改造。

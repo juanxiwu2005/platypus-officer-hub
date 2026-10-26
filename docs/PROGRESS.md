@@ -1,3 +1,12 @@
+> **2026-10-25 · AI-native Phase 1：待验收（Codex）**
+> Juanxi 已确认制作原型。架构方向改为 **AI-native、Activity-centered、Organization Context driven**。
+> 从最新 v1 `4dc55ba` 建立 `feat/ai-native-phase1`；三个可点击高保真画面、虚构 Constitution 审核、自定义岗位/能力映射、两类流程与底层设计说明已完成。
+> 完整检查通过：TypeScript/Vite；279 单元；141 页面通过、13 原有跳过。新增 26 单元与 34 桌面/手机页面检查均通过。
+> **到此停止，等待 Juanxi 画面验收；正式模型/API、完整 planners、真实账户/数据库/对话存储、Handoff 与 main 均未接续。**
+> 本机预览：http://127.0.0.1:4173/#/phase1 。[草稿 PR #2（目标 v1）](https://github.com/juanxiwu2005/platypus-officer-hub/pull/2) 已创建；GitHub CI 进行中，尚未收到 Netlify 部署状态，不声称远端预览已上线。验收与限制见 [Phase 1 交接](phase1/HANDOFF.md)，目标模型与迁移见 [底层设计](phase1/ARCHITECTURE.md)。
+> 新用户要求优先于旧版固定右栏/固定八职能/旧导航。旧数据和全部旧测试保留；本地 Git 是逐文件 SHA 校验重建的原始 v1 浅检出，远端提交沿原父提交创建，没有推送独立历史。
+
+
 # Platypus v1.0 进度
 
 **最后更新：** 2026-10-23 凌晨（Claude，第一部分收尾）
@@ -27,6 +36,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-10-25 | 确认 AI-native Phase 1 实施顺序：Activity 为工作中心、Organization Context 驱动、岗位能力多对多；独立分支先做三个高保真画面，完成即停，正式模型/API 接入待画面验收 | Juanxi（“确认”） |
 | 2026-10-21 | 产品名定为 Platypus；Phase 3 用方案 C（Netlify + 服务器函数） | Juanxi |
 | 2026-10-22 | 批准产品计划 v1.0 第 16 节全部 10 个决定 | Juanxi |
 | 2026-10-23 | 批准把 v1 合并到 main（正式网站），v1.0 标签等 11/8 定版再打 | Juanxi |
@@ -55,6 +65,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-10-25 | Codex | AI-native Phase 1：三画面、局部演示模型和 repository、虚构章程证据审核/冲突处理、多能力岗位与 A/B 范围分工、两类流程、设置恢复与独立批准快照；完整检查 279 单元+141 页面通过，13 原有跳过；原测试无删除 | 只验收新入口 `/#/phase1`，见 docs/phase1/HANDOFF.md。没有接真实 AI/正式模型/API/数据库/真实迁移，不得自动进入下一阶段。产品计划增加方向说明，需要同步本地备份。 |
 | 2026-10-23 | Claude | **第一部分收尾。** ①手机：发现隐藏的悬停卡和 Today 风险表把手机页面撑宽（页面被缩小、右下角按钮点不到），已修（`html, body { overflow-x: clip }`、悬停卡限宽、窄屏隐藏次要列）；手机上换页自动收起右栏；Demo 菜单在手机上改为整宽。②看板拖拽：找到并修了一个真问题——卡片标题是按钮，Chrome 不允许从按钮开始拖，抓标题拖不动；改成可点击的文字后，用真实鼠标拖拽的自动测试通过。③深色模式看过 Today / Events / 看板，无看不清的地方。④删掉不用的 `@xyflow/react`。⑤字数全部在上限内（同上一行）。⑥检查：244 个单元测试 + **95 个页面测试（电脑 48 + 手机 47，悬停测试只在电脑跑）全部通过**；已同步本地备份。 | 第二部分见文件开头“下一步”。看板在开着右栏的 1440 宽屏上 6 列需要横向滚动（有意保留，和 monday 一样）。 |
 | 2026-10-23 | Claude | **UX 简化改版 U1–U5 主体完成**（一次做完，未分包验收）。①三栏布局：左导航 / 中间内容 / 右栏（`src/components/rail/`：Ask 与 Details 两个标签，`useRail().show()` 打开详情）；演示条收进顶栏 “Demo” 小标（重置、时钟、重放设置），私下更新收进铃铛。②5 个通用组件 `src/components/ui/`：StatusPill（6 色状态）、Chain（物流链）、`.tbl` 表格、Hover/Info 悬停卡、右栏详情；页面标题改为 1–2 个词，问句移到导航悬停。③唯一 AI 入口 Ask 面板：`src/lib/assistant.ts`（本地先处理明确请求：策划活动→表单、前 N 个任务、谁需要提醒、规则关键词、命令语法）+ 新接口 `netlify/functions/chat.mts`；6 种卡片（文字、补信息表单、任务清单、变更单、提醒、规则答案），服务器和浏览器都用 `src/lib/chatCards.ts` 过滤，AI 写的日期全部丢弃；Today 和 Rules 的旧输入框已删。④流程图换成单主线（`src/components/flow/metro.ts` 布局 + `MetroChart.tsx`），泳道图、甘特图和 React Flow 依赖代码已删；手机竖排。⑤Tasks：表格（按活动分组、远期组折叠、负责人和截止日原地改）/ 可拖拽看板（`src/data/board.ts`：自己的随便拖，社长/副社长可拖所有人并给本人留私下记录，认领握手不变）/ Timeline；Customize 面板改状态名称颜色、标签、卡片字段。⑥Funding 物流链表；Partners 可搜索表格 + 新增；Handoff 接力卡 + 右栏分步手册；Rules 一行一条 + 直达出处按钮 + 问 AI 按钮（规则加 `short`/`timing`）；Settings 分 5 块、自动保存 + Undo；Team 工作量条、贡献表、一周空闲热力图；解释文字移到 Help。⑦字数（`scripts/word-count.mjs`）：Today 105、Events 95、Rules 134、Tasks 111、Team 108、Funding 45、Handoff 34、Partners 37、Settings 89，全部在上限内。⑧测试：244 个单元测试通过；页面测试已按新界面重写，**桌面版 48/48 通过**。 | **还没做 / 要接着做：** ① 手机版页面测试（Pixel 7）还没跑：`PW_CHROMIUM=<chromium 路径> npx playwright test --project=mobile`，预计有布局问题要修；② 看板**鼠标拖拽**只人工看过逻辑，自动测试改用卡片上的移动菜单（同一个动作），需要真人在预览里拖一次；③ Ask 面板只用模拟和本地回退测过，没连真实 DeepSeek；④ `@xyflow/react` 依赖已不用，可删；⑤ docs/PRODUCT_PLAN.md 未改（改版依据见《Platypus 简化改版方案》和 AGENTS.md §7）；⑥ 已同步本地备份。 |
 | 2026-10-22 | Codex | WP5 功能完成：固定种子 1,000 次依赖预测与今日风险；六类规则与带出处问答、报错队列、40 题评估脚本；经费阶段/提交检查/用款提醒/Plan B；带逐条来源的岗位手册、卸任确认→社长批准、SEO/R16 第一周清单、岗位与联系人交接；关系页与私有缓冲渐进调整/关闭/换届重置。本机 `npm run check` 全通过：233 个单元测试 + 90 个页面测试，原有测试保留；主体提交 b8a6986 的 CI 通过。已同步本地备份（仅指定 4 文件） | **验收：** [预览 Handoff](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/handoff) → Start handoff season → Treasurer handbook → Draft role handbook，点每条 Source；切 Maya 确认，再切 Alex 批准。Today 展开 Forecast details 才见比例；Rules 问校外餐饮应引 R06、税务题应拒答；Funding 在 11/4 未批时展示 Plan B；Partners 显示岗位与下一场活动。**还剩/已知：** 真实 DeepSeek 40 题、如已配 AIR 则另跑 AIR，以及 Juanxi 审真实 AI 手册，均未完成，不宣称达到 ≥90% / 拒答全对。用户要求停止登录，已停止；示例回退不能冒充真实 AI。**WP6：** 结构版本 5，规则仍待正式复核，保留访问保护与 main；完整说明见 `docs/WP5_ACCEPTANCE.md`、`docs/AI_TESTS.md`。 |
