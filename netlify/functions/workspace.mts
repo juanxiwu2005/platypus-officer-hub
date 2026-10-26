@@ -9,6 +9,12 @@ export default async (req: Request) => {
     checkOrigin(req);
     return json(req.method === "GET" ? await loadWorkspace(req) : await mutateWorkspace(req, await readJSON(req, 300000)));
   } catch (error) {
+    if (!(error instanceof ZodError) && !(error instanceof BadRequest) &&
+      (!(error instanceof WorkspaceError || error instanceof SetupError) || error.status >= 500))
+      console.error("Workspace persistence request failed", {
+        name: error instanceof Error ? error.name : "UnknownError",
+        message: error instanceof Error ? error.message.slice(0, 240).replace(/Bearer\s+\S+|(?:token|cookie|api[_-]?key)\s*[:=]\s*\S+/gi, "[redacted]") : "Unknown storage error",
+      });
     if (error instanceof WorkspaceError || error instanceof SetupError) return json({ message: error.message }, error.status);
     if (error instanceof ZodError) return json({ message: "The workspace command did not pass validation.", fields: error.issues.map((i) => i.path.join(".")) }, 400);
     if (error instanceof BadRequest) return json({ message: error.message }, 400);

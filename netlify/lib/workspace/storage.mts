@@ -40,7 +40,10 @@ async function readDocument(ctx: Awaited<ReturnType<typeof context>>) {
     await blobs().setJSON(ctx.key, document, { onlyIfNew: true });
     row = await blobs().getWithMetadata(ctx.key, { type: "json" });
   }
-  if (!row?.etag) throw new WorkspaceError("The workspace could not be opened. Retry without discarding your input.", 503);
+  if (!row?.etag) {
+    console.warn("Workspace storage metadata incomplete", { rowPresent: !!row, metadataFields: row ? Object.keys(row) : [], etagType: typeof row?.etag });
+    throw new WorkspaceError("The workspace could not be opened. Retry without discarding your input.", 503);
+  }
   const document = row.data as Document;
   WorkspaceStateSchema.parse(document.state);
   if (document.state.workspaceId !== ctx.entry.workspaceId) throw new WorkspaceError("Workspace identity is inconsistent.", 503);
