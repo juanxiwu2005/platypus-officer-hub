@@ -169,6 +169,7 @@ function createWork(state: WorkspaceState, org: WorkspaceOrganization, input: Ex
     : input.flow;
   const flow: OrgFlow = template ?? { title: "Executive work", explanation: "A simple editable work chain. Review the actual task before proceeding.", nodes: ["Plan work", "Carry out the work", "Record the outcome"].map((title, i) => ({ id: `work_${i}`, title, description: "", actionIds: [], roleIds: [], dependsOn: i ? [`work_${i - 1}`] : [], dependencyMode: "all", position: { x: i * 280, y: 0 }, basis: "Editable executive work template" })), raci: [] };
   const error = graphError(flow.nodes); if (error) throw new WorkspaceError(error);
+  if (flow.nodes.some((n) => n.approval && n.milestoneKey)) throw new WorkspaceError("Keep submission milestones and approval decisions in separate workflow steps.");
   if (flow.nodes.some((n) => n.roleIds.some((id) => !has(org.roles, id)))) throw new WorkspaceError("The work template refers to an unknown role.");
   const item = WorkItemSchema.parse({
     id: input.id, kind: input.kind, name: input.name, description: input.description,
@@ -265,6 +266,7 @@ export function applyWorkspaceCommand(original: WorkspaceState, org: WorkspaceOr
           const task = requireValue(item.tasks.find((t) => t.id === id), "A stage references an unknown task.");
           if (assigned.has(id)) throw new WorkspaceError("Each task may appear in only one stage group.");
           assigned.add(id); task.stageKey = group.id; task.stageTitle = group.title;
+          task.manualFields = unique([...task.manualFields, "stageKey", "stageTitle"]);
         }
       }
       if (item.tasks.some((t) => t.applicability === "required" && !assigned.has(t.id))) throw new WorkspaceError("Every active required task must be included in exactly one stage group.");
@@ -289,13 +291,19 @@ export function applyWorkspaceCommand(original: WorkspaceState, org: WorkspaceOr
       createWork(temporary, org, { id: item.id, kind: item.kind, name: item.name, description: item.description, venue: item.venue, date: item.date, ownerId: item.ownerId, fundingSource: "none", fundingCategory: "other", requestedAmount: 0 }, approved, at);
       const fresh = temporary.workItems.find((w) => w.id === item.id)!;
       const oldTemplateIds = new Set(item.templateFlow?.nodes.map((n) => n.id) ?? []);
-      const merged = fresh.tasks.map((candidate) => {
+      const fundingAliases = new Map<string, string>();
+      for (const candidate of fresh.tasks) if (candidate.milestoneKey && item.funding.length) {
+        const existing = item.tasks.find((t) => t.fundingRequestId === item.funding[0].id && t.milestoneKey === candidate.milestoneKey);
+        if (existing) fundingAliases.set(candidate.id, existing.id);
+      }
+      const candidates = fresh.tasks.filter((t) => !fundingAliases.has(t.id)).map((t) => ({ ...t, dependsOn: unique(t.dependsOn.map((id) => fundingAliases.get(id) ?? id)) }));
+      const merged = candidates.map((candidate) => {
         const old = item.tasks.find((t) => t.id === candidate.id);
         if (!old || old.status === "done") return old ?? candidate;
         const next = { ...candidate, status: old.status, blockers: old.blockers, progress: old.progress, manualFields: old.manualFields, dueOverride: old.dueOverride, completedAt: old.completedAt };
         for (const field of old.manualFields)
           if (field in old) (next as Record<string, unknown>)[field] = (old as Record<string, unknown>)[field];
-        next.needsReview = old.needsReview || JSON.stringify([old.title, old.roleIds, old.dependsOn]) !== JSON.stringify([next.title, next.roleIds, next.dependsOn]);
+        next.needsReview = old.needsReview || JSON.stringify([old.title, old.roleIds, old.dependsOn, old.kind, old.gateId]) !== JSON.stringify([next.title, next.roleIds, next.dependsOn, next.kind, next.gateId]);
         return next;
       });
       for (const old of item.tasks.filter((t) => !merged.some((n) => n.id === t.id)))
@@ -351,7 +359,10 @@ export function applyWorkspaceCommand(original: WorkspaceState, org: WorkspaceOr
         Object.assign(task, c.patch);
         task.manualFields = unique([...task.manualFields, ...Object.keys(c.patch)]);
         const title = c.patch.stageTitle ?? item.tasks.find((t) => t.id !== task.id && t.stageKey === task.stageKey)?.stageTitle ?? task.stageTitle;
-        for (const same of item.tasks.filter((t) => t.stageKey === task.stageKey)) same.stageTitle = title;
+        for (const same of item.tasks.filter((t) => t.stageKey === task.stageKey)) {
+          same.stageTitle = title;
+          if (c.patch.stageTitle) same.manualFields = unique([...same.manualFields, "stageTitle"]);
+        }
         if (c.patch.applicability) for (const down of item.tasks.filter((t) => t.dependsOn.includes(task.id))) down.needsReview = true;
       } else if (c.type === "task.unblock") {
         const blocker = requireValue(task.blockers.find((b) => b.id === c.blockerId), "Blocker not found.");
@@ -387,6 +398,7 @@ export function applyWorkspaceCommand(original: WorkspaceState, org: WorkspaceOr
       requireManager(state);
       const task = requireValue(item.tasks.find((t) => t.id === command.taskId), "Task not found.");
       if (task.kind === "approval" || task.status === "done" || has(item.gates, command.gateId)) throw new WorkspaceError("Choose an unfinished normal task and a new approval ID.");
+      if (task.fundingRequestId) throw new WorkspaceError("Keep funding submission and spending tasks separate from their approval gates. Add a separate approval step instead.");
       command.approverIds.forEach((id) => member(state, id));
       task.kind = "approval"; task.gateId = command.gateId;
       task.status = "to_do"; task.blockers = [];
@@ -396,6 +408,7 @@ export function applyWorkspaceCommand(original: WorkspaceState, org: WorkspaceOr
       if (gate.external || !state.actorId || !gate.approverIds.includes(state.actorId)) requireManager(state);
       if (gate.status !== "pending") throw new WorkspaceError("This approval already has a decision; revise and resubmit the request instead.", 409);
       const task = requireValue(item.tasks.find((t) => t.id === gate.taskId), "Approval task not found.");
+      if (task.gateId !== gate.id) throw new WorkspaceError("This approval belongs to an older workflow version. Use the task's current approval gate.", 409);
       if (!ready(item, task) || task.needsReview) throw new WorkspaceError("Complete the submission and prerequisite steps before recording approval.");
       const funding = gate.requestId ? requireValue(item.funding.find((f) => f.id === gate.requestId), "Funding request not found.") : null;
       if (funding && gate.requestVersion !== funding.version) throw new WorkspaceError("This approval belongs to an older request version.", 409);

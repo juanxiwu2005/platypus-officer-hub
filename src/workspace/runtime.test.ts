@@ -85,6 +85,24 @@ describe("work-item task and approval semantics", () => {
     state.actorId = "approver";
     expect(() => cmd(state, { type: "gate.decide", workItemId: item.id, gateId: "general_external", decision: "approved", evidence: "Unverified" })).toThrow("manager");
   });
+  it("keeps old general gates read-only after adopting a revised approval template", () => {
+    const d = approved(), state = initial();
+    d.memberFlow!.nodes[0].approval = { approverRoleIds: ["finance"], external: false, reason: "Initial approval scope" };
+    d.compiled = compileOrganization(d);
+    const input = { id: "approval_versions", kind: "member_event" as const, name: "Versioned approvals", description: "", date: null, venue: "offcampus" as const, ownerId: "leader", fundingSource: "none" as const, fundingCategory: "other" as const, requestedAmount: 0 };
+    let next = applyWorkspaceCommand(state, org(), { type: "work.create", input }, d, at);
+    const old = next.workItems[0].gates[0];
+    d.memberFlow!.nodes[0].approval!.reason = "Revised approval scope";
+    d.compiled = compileOrganization(d); d.contextVersion = 2;
+    next = applyWorkspaceCommand(next, { ...org(), contextVersion: 2 }, { type: "work.applyTemplate", workItemId: input.id, templateVersion: 2 }, d, at);
+    next = cmd(next, { type: "task.review", workItemId: input.id, taskIds: next.workItems[0].tasks.filter((t) => t.needsReview).map((t) => t.id) });
+    const current = next.workItems[0].tasks.find((t) => t.id === old.taskId)!.gateId!;
+    expect(current).not.toBe(old.id);
+    expect(() => cmd(next, { type: "gate.decide", workItemId: input.id, gateId: old.id, decision: "approved", evidence: "Old scope" })).toThrow("older workflow version");
+    next = cmd(next, { type: "gate.decide", workItemId: input.id, gateId: current, decision: "approved", evidence: "Current scope checked" });
+    expect(next.workItems[0].gates.find((g) => g.id === current)?.status).toBe("approved");
+    expect(next.workItems[0].gates.find((g) => g.id === old.id)?.status).toBe("pending");
+  });
   it("groups required task IDs exactly once without changing dependencies or concealing a group cycle", () => {
     const state = created(), item = state.workItems[0], ids = item.tasks.map((t) => t.id);
     expect(() => cmd(state, { type: "work.stages", workItemId: item.id, groups: [{ id: "phase", title: "Phase", taskIds: ids.slice(1) }] })).toThrow("Every active required");
@@ -193,6 +211,10 @@ describe("separate submission and approval with versioned source budgets", () =>
     expect(state.workItems[0].tasks.find((t) => t.fundingStep === "budget_submit")?.officialRules).toEqual([{ ruleId: "R10", days: 14, unit: "business" }]);
     state = cmd(state, { type: "funding.revise", workItemId: item.id, requestId, amount: 100, source: "college", purpose: "Unknown college program", category: "food_service" });
     expect(state.workItems[0].tasks.find((t) => t.fundingStep === "budget_submit")?.officialRules).toEqual([]);
+  });
+  it("cannot replace an ordering task with a general gate to bypass financial records", () => {
+    const state = created(true), item = state.workItems[0], order = item.tasks.find((t) => t.fundingStep === "order")!;
+    expect(() => cmd(state, { type: "gate.add", workItemId: item.id, taskId: order.id, gateId: "bypass", approverIds: ["leader"], external: false, reason: "Not a purchase record" })).toThrow("separate from their approval gates");
   });
   it("adopts a newly approved template without replacing completed or manually edited tasks", () => {
     const state = created(), item = state.workItems[0], first = item.tasks[0], second = item.tasks[1];
