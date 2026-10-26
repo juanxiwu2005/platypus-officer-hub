@@ -10,6 +10,7 @@ import TaskBoard from './TaskBoard';
 import WorkDetail from './WorkDetail';
 import { CompactChain, memberName, shortDate, TaskLink, workflowProgress, WorkStatus } from './shared';
 import '../workspace.css';
+import { creationRecoveryKey } from './formRecovery';
 
 function safePrefill(value: unknown): CreateWorkPrefill | null {
   if (!value || typeof value !== 'object') return null;
@@ -26,11 +27,16 @@ export default function WorkspacePages() {
   const navigate = useNavigate();
   const [creation, setCreation] = useState<CreateWorkPrefill|null>(null);
   const [createKey, setCreateKey] = useState(0);
+  const [unfinishedCreation,setUnfinishedCreation]=useState<CreateWorkPrefill|null>(null);
   const today = workspaceToday();
   const schedules = useMemo(() => Object.fromEntries((envelope?.state.workItems ?? []).map(item => [item.id,scheduleWorkItem(item,envelope?.state.members ?? [],today)])), [envelope,today]);
   const openCreate = (prefill: CreateWorkPrefill) => { setCreation(prefill); setCreateKey(value => value+1); };
+  useEffect(()=>{
+    if(!envelope){setUnfinishedCreation(null);return;}
+    try {const raw=localStorage.getItem(creationRecoveryKey(envelope.state.workspaceId));setUnfinishedCreation(raw?safePrefill(JSON.parse(raw)):null);}catch{setUnfinishedCreation(null);}
+  },[envelope?.state.workspaceId,creation]);
   useEffect(() => {
-    const listener = (event: Event) => { const input=safePrefill((event as CustomEvent).detail); if (input) { setCreation(input); setCreateKey(value=>value+1); } };
+    const listener = (event: Event) => { const input=safePrefill((event as CustomEvent).detail); if (input) {const leave=new Event('platypus:before-workspace-leave',{cancelable:true});window.dispatchEvent(leave);if(leave.defaultPrevented)return;setCreation(input); setCreateKey(value=>value+1); } };
     window.addEventListener('platypus:open-create',listener);
     return () => window.removeEventListener('platypus:open-create',listener);
   }, []);
@@ -47,6 +53,7 @@ export default function WorkspacePages() {
   const work=workId?envelope?.state.workItems.find(item=>item.id===workId):null;
   return <div className="aw-workspace" data-testid="activity-workspace">
     {error && <div className="aw-error" role="alert"><p>{error}</p>{conflict ? <button disabled={mutating} onClick={()=>void refresh()}>Load latest version</button> : canRetry ? <><button disabled={mutating} onClick={()=>void retryMutation().catch(()=>{})}>Retry this save</button><button disabled={mutating} onClick={()=>void refresh()}>Load saved workspace</button></> : <button disabled={mutating} onClick={()=>void refresh()}>Retry loading workspace</button>}</div>}
+    {unfinishedCreation&&!creation&&<p className="aw-note">An unfinished creation form is saved on this device. <button onClick={()=>openCreate(unfinishedCreation)}>Resume unfinished form</button></p>}
     {loading && !envelope ? <p role="status" className="aw-empty">Loading your workspace…</p> : !envelope ? <section className="aw-empty"><h1>Open your organization workspace</h1><p>Return to organization setup to start or reconnect to this private workspace.</p><Link to="/phase1/setup">Organization setup →</Link></section> : <>
       {mutating && <p className="aw-saving" role="status">Saving your change…</p>}
       {screen==='home' && <Home schedules={schedules} onCreate={openCreate} />}
@@ -72,7 +79,7 @@ function Home({schedules,onCreate}:{schedules:Record<string,WorkSchedule>;onCrea
   return <>
     <header className="aw-page-head"><div><span className="aw-eyebrow">{envelope.organization.name}</span><h1>{actor?`Hello, ${actor.name.split(' ')[0]}`:'Your workspace'}</h1><p>Move your work forward.</p></div><Link to="/phase1/tasks" className="aw-button">Open My tasks →</Link></header>
     <section className="aw-priorities" aria-label="Your priority tasks"><header><div><h2>Needs your attention</h2><p>From your assigned tasks, ordered by urgency.</p></div><span className="aw-count">{priorities.length} open</span></header>
-      {priorities.length ? <ol>{priorities.slice(0,showAll?Infinity:3).map(({task,workItem,reason,due})=><li key={task.id}><div><TaskLink item={workItem} task={task}/><span>{workItem.name}</span></div><span className="aw-priority-reason">{reason}</span><span>{due?shortDate(due):'No date set'}</span><TaskLink item={workItem} task={task}>Open →</TaskLink></li>)}</ol> : <p className="aw-empty-inline">{actor?'No open tasks assigned to you.':'Choose a demo member in Your team to see their assigned work.'}</p>}
+      {priorities.length ? <ol>{priorities.slice(0,showAll?Infinity:3).map(({task,workItem,reason,due})=><li key={task.id}><div><TaskLink item={workItem} task={task}/><span>{workItem.name}</span></div><span className="aw-priority-reason">{reason}</span><span>{due?shortDate(due):'No date set'}</span><TaskLink item={workItem} task={task}>Open →</TaskLink></li>)}</ol> : <p className="aw-empty-inline">{actor?'No tasks need your attention right now.':'Choose a demo member in Your team to see their assigned work.'}</p>}
       {priorities.length>3&&<button className="aw-text-button" onClick={()=>setShowAll(!showAll)}>{showAll?'Show top 3':`View all ${priorities.length} open tasks`}</button>}
     </section>
     {actor?.access==='manager'&&unassigned.length>0&&<details className="aw-unassigned"><summary>{unassigned.length} workflow tasks need an assignment</summary><p>Assign a responsible member so these tasks appear in their personal board.</p>{unassigned.map(({item,task})=><p key={task.id}><TaskLink item={item} task={task}/><span> · {item.name}</span></p>)}</details>}

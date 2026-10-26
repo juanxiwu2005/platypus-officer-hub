@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { RoleSchema, DepartmentSchema } from '../../organization/schema';
-import { TaskSchema, WorkItemSchema, type WorkspaceEnvelope, type WorkspaceMutation } from '../contracts';
+import { TaskSchema, WorkItemSchema, FundingSchema, GateSchema, type WorkspaceEnvelope, type WorkspaceMutation } from '../contracts';
 import { WorkspaceProvider } from '../client';
 import WorkspacePages from './WorkspacePages';
 
@@ -21,6 +21,7 @@ let posts:WorkspaceMutation[];
 let intercept:((mutation:WorkspaceMutation)=>Response|Promise<Response>)|null;
 beforeEach(()=>{
   current=fixture();posts=[];intercept=null;
+  localStorage.clear();
   vi.stubGlobal('fetch',vi.fn(async (_url:unknown,init?:RequestInit)=>{
     if(init?.method==='POST'){
       const mutation=JSON.parse(String(init.body)) as WorkspaceMutation;
@@ -30,7 +31,7 @@ beforeEach(()=>{
       if(command.type==='task.complete'||command.type==='task.move'){
         const item=current.state.workItems.find(item=>item.id===command.workItemId)!;
         const task=item.tasks.find(task=>task.id===command.taskId)!;
-        task.status=command.type==='task.complete'?'done':command.status;
+        task.status=command.type==='task.move'?command.status:'done';
         task.completedAt=task.status==='done'?now:null;
         if(command.type==='task.move'&&command.blocker)task.blockers=[command.blocker];
       } else if(command.type==='work.applyTiming'){
@@ -148,5 +149,77 @@ describe('workspace pages use existing server tasks',()=>{
     fireEvent.click(within(dialog).getByRole('button',{name:'Apply reviewed timing changes'}));
     await waitFor(()=>expect(posts).toHaveLength(1));
     expect(posts[0].command).toMatchObject({type:'work.applyTiming',timingDefaults:{itemsWeeks:8,quotesWeeks:7,budgetWeeks:6}});
+  });
+  it('recovers an unfinished creation form after a refresh without creating a second work item',async()=>{
+    open('/phase1/activities');
+    fireEvent.click(await screen.findByRole('button',{name:'+ Create activity'}));
+    const dialog=screen.getByRole('dialog',{name:'Create member activity'});
+    fireEvent.change(within(dialog).getByLabelText('Name'),{target:{value:'Unfinished workshop'}});
+    fireEvent.change(within(dialog).getByLabelText('Activity date'),{target:{value:'2026-12-01'}});
+    cleanup();
+    open('/phase1/activities');
+    fireEvent.click(await screen.findByRole('button',{name:'Resume unfinished form'}));
+    const restored=screen.getByRole('dialog',{name:'Create member activity'});
+    await waitFor(()=>expect((within(restored).getByLabelText('Name') as HTMLInputElement).value).toBe('Unfinished workshop'));
+    expect((within(restored).getByLabelText('Activity date') as HTMLInputElement).value).toBe('2026-12-01');
+    expect(posts).toHaveLength(0);
+  });
+  it('blocks rejected SPA navigation and restores unsaved task fields in the same workspace',async()=>{
+    vi.spyOn(window,'confirm').mockReturnValue(false);
+    open('/phase1/work/member_event?task=task_1');
+    const dialog=await screen.findByRole('dialog',{name:'Existing task 1'});
+    fireEvent.change(within(dialog).getByLabelText('Task title'),{target:{value:'Preserved unfinished edit'}});
+    const leave=new Event('platypus:before-workspace-leave',{cancelable:true});
+    window.dispatchEvent(leave);
+    expect(leave.defaultPrevented).toBe(true);
+    cleanup();
+    open('/phase1/work/member_event?task=task_1');
+    const recovered=await screen.findByRole('dialog',{name:'Existing task 1'});
+    await waitFor(()=>expect((within(recovered).getByLabelText('Task title') as HTMLInputElement).value).toBe('Preserved unfinished edit'));
+    expect(posts).toHaveLength(0);
+    vi.restoreAllMocks();
+  });
+  it('does not restore another workspace’s unfinished task input',async()=>{
+    open('/phase1/work/member_event?task=task_1');
+    const dialog=await screen.findByRole('dialog',{name:'Existing task 1'});
+    fireEvent.change(within(dialog).getByLabelText('Task title'),{target:{value:'Private unfinished title'}});
+    cleanup();current.state.workspaceId='different_workspace';
+    open('/phase1/work/member_event?task=task_1');
+    const other=await screen.findByRole('dialog',{name:'Existing task 1'});
+    expect((within(other).getByLabelText('Task title') as HTMLInputElement).value).toBe('Existing task 1');
+  });
+  it('submits an explicitly selected funding category instead of inferring it from the activity name',async()=>{
+    open('/phase1/activities');
+    fireEvent.click(await screen.findByRole('button',{name:'+ Create activity'}));
+    const dialog=screen.getByRole('dialog',{name:'Create member activity'});
+    fireEvent.change(within(dialog).getByLabelText('Name'),{target:{value:'A name without policy keywords'}});
+    fireEvent.change(within(dialog).getByLabelText('Funding source'),{target:{value:'usg'}});
+    fireEvent.change(within(dialog).getByLabelText('Funding category'),{target:{value:'speaker'}});
+    fireEvent.change(within(dialog).getByLabelText('Requested amount (USD)'),{target:{value:'400'}});
+    fireEvent.click(within(dialog).getByRole('button',{name:'Create and assign tasks'}));
+    await waitFor(()=>expect(posts).toHaveLength(1));
+    expect(posts[0].command).toMatchObject({type:'work.create',input:{fundingSource:'usg',fundingCategory:'speaker',requestedAmount:400}});
+  });
+  it('shows old funding approvals as versioned history rather than approval of the revised request',async()=>{
+    const item=current.state.workItems[0];
+    item.funding=[FundingSchema.parse({id:'funding_request',version:2,source:'college',purpose:'Revised scope',amount:500})];
+    item.gates=[GateSchema.parse({id:'old_gate',taskId:'task_1',kind:'budget',requestId:'funding_request',requestVersion:1,status:'approved',evidence:'Approved only the original request',decidedAt:now}),GateSchema.parse({id:'new_gate',taskId:'task_1',kind:'budget',requestId:'funding_request',requestVersion:2})];
+    open('/phase1/work/member_event');
+    const funding=await screen.findByRole('region',{name:'Activity funding'});
+    expect(within(funding).getByRole('link',{name:'Budget approval · pending · v2'})).toBeTruthy();
+    expect(within(funding).queryByRole('link',{name:/approved.*v1/})).toBeNull();
+    fireEvent.click(within(funding).getByText('Previous approval decisions'));
+    expect(within(funding).getByText(/Approved only the original request/)).toBeTruthy();
+  });
+  it('includes a designated internal approval in the reviewer’s personal board',async()=>{
+    current.state.members.push({id:'reviewer',name:'Riley Reviewer',roleIds:[],access:'member'});
+    current.state.actorId='reviewer';
+    const item=current.state.workItems[0];
+    item.tasks[1]={...item.tasks[1],kind:'approval',gateId:'general_gate'};
+    item.gates=[GateSchema.parse({id:'general_gate',taskId:'task_1',kind:'general',approverIds:['reviewer'],external:false})];
+    open('/phase1/tasks');
+    const board=await screen.findByTestId('workspace-task-board');
+    expect(within(board).getByRole('link',{name:'Existing task 1'})).toBeTruthy();
+    expect(within(board).getByRole('link',{name:'Review approval →'})).toBeTruthy();
   });
 });

@@ -1,9 +1,11 @@
-import { useMemo, useState, type DragEvent } from 'react';
+import { useMemo, useRef, useState, type DragEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useWorkspace, workspaceId } from '../client';
 import type { TaskStatus, WorkItem, WorkSchedule, WorkTask } from '../contracts';
 import { taskReady } from '../selectors';
 import { memberName, shortDate, STATUS_LABELS, TaskLink } from './shared';
+import { useUnsavedGuard } from './unsavedGuard';
+import { useDialogFocus } from './dialogFocus';
 
 interface TaskRow { item: WorkItem; task: WorkTask; }
 export default function TaskBoard({ schedules }: { schedules: Record<string, WorkSchedule> }) {
@@ -17,9 +19,13 @@ export default function TaskBoard({ schedules }: { schedules: Record<string, Wor
   const [kind, setKind] = useState<'waiting_approval'|'waiting_dependency'|'external_response'|'needs_help'>('needs_help');
   const [target, setTarget] = useState('');
   const [showFuture, setShowFuture] = useState(false);
+  const blockerDialog=useRef<HTMLDivElement>(null);
+  const blockerGuard=useUnsavedGuard(!!stuck&&!!reason.trim(),mutating,'Discard this unsaved blocker?');
+  const closeBlocker=()=>{if(blockerGuard.confirmDiscard())setStuck(null);};
+  useDialogFocus(blockerDialog,closeBlocker,mutating,!!stuck);
   const actor = envelope?.state.members.find(m => m.id === envelope.state.actorId);
   const rows = useMemo(() => envelope?.state.workItems.flatMap(item => item.tasks
-    .filter(task => task.applicability !== 'inactive' && (task.ownerId === actor?.id || (!!actor && task.collaboratorIds.includes(actor.id))) && (!filter || item.id === filter))
+    .filter(task => task.applicability !== 'inactive' && (task.ownerId === actor?.id || (!!actor && (task.collaboratorIds.includes(actor.id)||item.gates.some(gate=>gate.id===task.gateId&&gate.approverIds.includes(actor.id))))) && (!filter || item.id === filter))
     .map(task => ({ item, task }))) ?? [], [envelope, actor?.id, filter]);
   const allVisible = showFuture ? rows : rows.filter(row => row.task.status !== 'to_do' || taskReady(row.item, row.task));
   const future = rows.filter(row => row.task.status === 'to_do' && !taskReady(row.item, row.task)).length;
@@ -71,9 +77,9 @@ export default function TaskBoard({ schedules }: { schedules: Record<string, Wor
       })}
     </div>
     <details className="aw-completed"><summary>Completed · {complete.length}</summary>{complete.length ? complete.map(row => <div key={row.task.id}><TaskLink item={row.item} task={row.task} /><span>{row.item.name}</span><button disabled={mutating || actor?.access !== 'manager'} onClick={() => void mutate({ type: 'task.reopen', workItemId: row.item.id, taskId: row.task.id }).then(() => setNotice('Task reopened. Related activity steps have been checked.')).catch(e => setNotice(e.message))}>Reopen</button></div>) : <p>No completed tasks yet.</p>}</details>
-    {stuck && <div className="aw-modal-backdrop"><div className="aw-modal aw-small-modal" role="dialog" aria-modal="true" aria-labelledby="aw-stuck-title"><header><h2 id="aw-stuck-title">What is blocking this task?</h2><button aria-label="Close blocker form" disabled={mutating} onClick={() => setStuck(null)}>×</button></header><p>{stuck.task.title}</p><form onSubmit={e => {
+    {stuck && <div className="aw-modal-backdrop"><div ref={blockerDialog} tabIndex={-1} className="aw-modal aw-small-modal" role="dialog" aria-modal="true" aria-labelledby="aw-stuck-title"><header><h2 id="aw-stuck-title">What is blocking this task?</h2><button aria-label="Close blocker form" disabled={mutating} onClick={closeBlocker}>×</button></header><p>{stuck.task.title}</p><form onSubmit={e => {
       e.preventDefault();
-      void mutate({ type: 'task.move', workItemId: stuck.item.id, taskId: stuck.task.id, status: 'stuck', blocker: { id: workspaceId(), kind, targetId: target || null, reason, at: new Date().toISOString(), resumeStatus: stuck.task.status === 'working' ? 'working' : 'to_do' } }).then(() => { setStuck(null); setNotice('Blocker recorded. Independent work can continue.'); }).catch(e => setNotice(e.message));
-    }}><fieldset disabled={mutating}><label>Reason type<select value={kind} onChange={e => setKind(e.target.value as typeof kind)}><option value="needs_help">Need help</option><option value="waiting_approval">Waiting for approval</option><option value="waiting_dependency">Waiting for another step</option><option value="external_response">Waiting for an external reply</option></select></label><label>Related step or approval<select value={target} onChange={e => setTarget(e.target.value)}><option value="">No linked step</option>{stuck.item.tasks.filter(task => task.id !== stuck.task.id).map(task => <option key={task.id} value={task.gateId ?? task.id}>{task.title}</option>)}</select></label><label>What needs to happen?<textarea autoFocus required maxLength={400} value={reason} onChange={e => setReason(e.target.value)} /></label><footer><button type="button" onClick={() => setStuck(null)}>Cancel</button><button type="submit" className="aw-primary" disabled={!reason.trim()}>Save blocker</button></footer></fieldset></form></div></div>}
+      void mutate({ type: 'task.move', workItemId: stuck.item.id, taskId: stuck.task.id, status: 'stuck', blocker: { id: workspaceId(), kind, targetId: kind==='waiting_approval'||kind==='waiting_dependency'?target||null:null, reason, at: new Date().toISOString(), resumeStatus: stuck.task.status === 'working' ? 'working' : 'to_do' } }).then(() => { blockerGuard.markSaved();setStuck(null); setNotice('Blocker recorded. Independent work can continue.'); }).catch(e => setNotice(e.message));
+    }}><fieldset disabled={mutating}><label>Reason type<select value={kind} onChange={e => {setKind(e.target.value as typeof kind);setTarget('');}}><option value="needs_help">Need help</option><option value="waiting_approval" disabled={!stuck.item.gates.some(gate=>stuck.task.dependsOn.includes(gate.taskId)&&stuck.item.tasks.find(task=>task.id===gate.taskId)?.gateId===gate.id)}>Waiting for approval</option><option value="waiting_dependency" disabled={!stuck.task.dependsOn.length}>Waiting for another step</option><option value="external_response">Waiting for an external reply</option></select></label>{(kind==='waiting_approval'||kind==='waiting_dependency')&&<label>{kind==='waiting_approval'?'Related approval':'Related step'}<select required value={target} onChange={e => setTarget(e.target.value)}><option value="">Choose {kind==='waiting_approval'?'an approval':'a step'}</option>{kind==='waiting_approval'?stuck.item.gates.filter(gate=>stuck.task.dependsOn.includes(gate.taskId)&&stuck.item.tasks.find(task=>task.id===gate.taskId)?.gateId===gate.id).map(gate=><option key={gate.id} value={gate.id}>{stuck.item.tasks.find(task=>task.id===gate.taskId)?.title??'Approval'}</option>):stuck.item.tasks.filter(task=>stuck.task.dependsOn.includes(task.id)).map(task=><option key={task.id} value={task.id}>{task.title}</option>)}</select></label>}<label>What needs to happen?<textarea autoFocus required maxLength={400} value={reason} onChange={e => setReason(e.target.value)} /></label><footer><button type="button" onClick={closeBlocker}>Cancel</button><button type="submit" className="aw-primary" disabled={!reason.trim()||((kind==='waiting_approval'||kind==='waiting_dependency')&&!target)}>Save blocker</button></footer></fieldset></form></div></div>}
   </>;
 }
