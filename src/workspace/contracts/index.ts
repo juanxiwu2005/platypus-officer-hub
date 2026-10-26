@@ -50,7 +50,7 @@ export const GateSchema = z.object({
 export type ApprovalGate = z.infer<typeof GateSchema>;
 export const FundingSchema = z.object({
   id: IdSchema, version: z.number().int().min(1), source: z.enum(['usg', 'college', 'dues', 'sponsor']),
-  purpose: z.string().max(1000), currency: z.literal('USD').default('USD'), amount: z.number().min(0).max(1000000),
+  purpose: z.string().max(1000), category: z.enum(['food_service','speaker','other']).optional(), currency: z.literal('USD').default('USD'), amount: z.number().min(0).max(1000000),
   status: z.enum(['draft', 'submitted', 'approved', 'rejected']).default('draft'),
   approvedVersion: z.number().int().nullable().default(null), approvedAmount: z.number().min(0).nullable().default(null),
   committedAmount: z.number().min(0).default(0), spentAmount: z.number().min(0).default(0),
@@ -78,7 +78,7 @@ export interface WorkspaceEnvelope { state: WorkspaceState; organization: Worksp
 export const CreateWorkInputSchema = z.object({
   id: IdSchema, kind: z.enum(['member_event', 'executive_work']), name: z.string().trim().min(1).max(180),
   description: z.string().max(2000).default(''), venue: z.enum(['campus', 'offcampus', 'unspecified']).default('campus'), date: z.string().nullable().default(null), ownerId: IdSchema.nullable().default(null),
-  fundingSource: z.enum(['none', 'usg', 'college', 'dues', 'sponsor']).default('none'), requestedAmount: z.number().min(0).max(1000000).default(0),
+  fundingSource: z.enum(['none', 'usg', 'college', 'dues', 'sponsor']).default('none'), fundingCategory: z.enum(['food_service','speaker','other']).default('other'), requestedAmount: z.number().min(0).max(1000000).default(0),
   flow: FlowSchema.optional(),
 });
 export type CreateWorkInput = z.infer<typeof CreateWorkInputSchema>;
@@ -104,9 +104,9 @@ export type WorkspaceCommand =
   | { type: 'gate.add'; workItemId: string; taskId: string; gateId: string; approverIds: string[]; external: boolean; reason: string }
   | { type: 'gate.decide'; workItemId: string; gateId: string; decision: 'approved'|'rejected'; evidence: string }
   | { type: 'funding.setDeadline'; workItemId: string; requestId: string; spendBy: string|null }
-  | { type: 'funding.add'; workItemId: string; requestId: string; amount: number; source: FundingRequest['source']; purpose: string }
+  | { type: 'funding.add'; workItemId: string; requestId: string; amount: number; source: FundingRequest['source']; purpose: string; category?: 'food_service'|'speaker'|'other' }
   | { type: 'funding.spend'|'funding.release'; workItemId: string; requestId: string; commitmentId: string; evidence: string }
-  | { type: 'funding.revise'; workItemId: string; requestId: string; amount: number; source: FundingRequest['source']; purpose: string }
+  | { type: 'funding.revise'; workItemId: string; requestId: string; amount: number; source: FundingRequest['source']; purpose: string; category?: 'food_service'|'speaker'|'other' }
   | { type: 'funding.commit'; workItemId: string; requestId: string; commitmentId: string; amount: number; purpose: string };
 export interface WorkspaceMutation { requestId: string; revision: number; command: WorkspaceCommand; }
 export interface TaskSchedule { start: string|null; due: string|null; official: string|null; issues: string[]; basis: string; }
