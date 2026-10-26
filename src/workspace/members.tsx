@@ -7,7 +7,7 @@ import type { OrgRole } from '../organization/schema';
 export default function MembersPanel({roleOptions,beforeSave}:{roleOptions?:OrgRole[];beforeSave?:()=>Promise<void>}={}) {
   const workspace=useOptionalWorkspace();
   const [editing,setEditing]=useState<WorkspaceMember|null>(null),[name,setName]=useState(''),[roleIds,setRoleIds]=useState<string[]>([]),[manager,setManager]=useState(false),[notice,setNotice]=useState('');
-  const newId=useRef(crypto.randomUUID()),protectionFailed=useRef(false);
+  const newId=useRef<string>(crypto.randomUUID()),protectionFailed=useRef(false);
   const scope=workspace?.envelope?.state.workspaceId;
   const recoveryKey=scope?'platypus.member-input.'+scope:null;
   useEffect(()=>{

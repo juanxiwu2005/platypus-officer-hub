@@ -87,16 +87,20 @@ export interface PriorityTask { task: WorkTask; workItem: WorkItem; reason: stri
 /** Select the existing personal queue; never ask a model to invent a second task list. */
 export function selectPriorityTasks(state: WorkspaceState, today = workspaceToday(), limit=3, schedules: Record<string,WorkSchedule> = {}): PriorityTask[] {
   if(!state.actorId) return [];
+  const actor=state.members.find(m=>m.id===state.actorId);
   const rows:PriorityTask[]=[];
   for(const workItem of state.workItems) for(const task of workItem.tasks) {
-    if(task.status==='done'||task.applicability==='inactive'||(task.ownerId!==state.actorId&&!task.collaboratorIds.includes(state.actorId))) continue;
+    const gate=task.kind==='approval'?workItem.gates.find(g=>g.id===task.gateId):undefined;
+    const reviewer=!!gate&&(gate.approverIds.includes(state.actorId)||(actor?.access==='manager'&&(gate.external||!gate.approverIds.length)));
+    const unassigned=!task.ownerId&&actor?.access==='manager';
+    if(task.status==='done'||task.applicability==='inactive'||(!unassigned&&!reviewer&&task.ownerId!==state.actorId&&!task.collaboratorIds.includes(state.actorId))) continue;
     const due=schedules[workItem.id]?.tasks[task.id]?.due ?? task.dueOverride;
     const ready=taskReady(workItem,task);
     const approval=task.kind==='approval'&&ready;
     const overdue=!!due&&due<today;
     const soon=!!due&&due>=today&&(Date.parse(due)-Date.parse(today))/86400000<=2;
-    const priority=(task.needsReview?1100:0)+(approval?1000:0)+(task.status==='stuck'?900:0)+(overdue?800:soon?600:0)+(ready?200:0)+(task.status==='working'?100:0);
-    const reason=task.needsReview?'Changes need review':approval?'Approval needed':task.status==='stuck'?(task.blockers[0]?.reason??'Stuck'):overdue?'Overdue':soon?'Due soon':ready?'Ready to work':'Waiting for an earlier step';
+    const priority=(unassigned?1050:0)+(task.needsReview?1100:0)+(approval?1000:0)+(task.status==='stuck'?900:0)+(overdue?800:soon?600:0)+(ready?200:0)+(task.status==='working'?100:0);
+    const reason=unassigned?'Assign a primary owner':task.needsReview?'Changes need review':approval?'Approval needed':task.status==='stuck'?(task.blockers[0]?.reason??'Stuck'):overdue?'Overdue':soon?'Due soon':ready?'Ready to work':'Waiting for an earlier step';
     if(priority===0) continue; // Future work waiting on dependencies is not an urgent action.
     rows.push({task,workItem,reason,priority,due:due??null});
   }
