@@ -1,3 +1,7 @@
+> **2026-10-25 · Organization Setup AI 改版：进行中（Codex）**
+> Juanxi 已明确授权：移除组织分类/流程偏好题，Constitution 优先，部门分组的多选职责矩阵，后台 RACI，可编辑成员活动/干部事务流程图，真实 AI，PDF/Word/文本上传，每步线上保存，组织 AI 指导文档与 prompt 审核。
+> 新分支 `feat/organization-setup-ai` 基于已交付原型 `b955b3f`；旧分支/旧页面/旧数据键保留，不改 main。当前 Netlify 自动登录的 ASU 账户没有原站点，已询问站点所属账户，继续独立实施代码。
+
 > **2026-10-25 · AI-native Phase 1：待验收（Codex）**
 > Juanxi 已确认制作原型。架构方向改为 **AI-native、Activity-centered、Organization Context driven**。
 > 从最新 v1 `4dc55ba` 建立 `feat/ai-native-phase1`；三个可点击高保真画面、虚构 Constitution 审核、自定义岗位/能力映射、两类流程与底层设计说明已完成。
