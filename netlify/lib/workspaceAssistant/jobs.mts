@@ -88,7 +88,7 @@ export async function processAssistantJob(req:Request){
       if(reads!==undefined){const queries=z.array(ReadQuerySchema).max(5).parse(reads);if(queries.length){
         if(pass===2)throw new Error('Please identify the activity or task more precisely; this question needs more records than one bounded request can read.');
         const actions=(reply.data as {actions?:unknown}).actions;if(Array.isArray(actions)&&actions.length)throw new Error('Read the requested records before proposing changes.');
-        const results=queries.map(query=>readWorkspaceData(envelope,entry.draft,query));toolResults.push({queries,results});
+        const results=await Promise.all(queries.map(query=>query.entity==='history'?historicalContext(entry.workspaceId,query.revision):Promise.resolve(readWorkspaceData(envelope,entry.draft,query))));toolResults.push({queries,results});
         await archiveEvent(entry.workspaceId,'assistant.read',{jobId:job.id,pass,queries,results},'ai',job.id+'-read-'+pass);continue;
       }}
       finalData=reply.data;break;
