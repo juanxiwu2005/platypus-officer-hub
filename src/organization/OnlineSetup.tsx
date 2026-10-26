@@ -181,7 +181,18 @@ export default function OnlineSetup() {
     lastSaved = useRef(""),
     inputsRef = useRef<RecoveryInputs>(blankRecoveryInputs()),
     autoChecks = useRef(new Set<string>()),
-    conflictRef = useRef(false);
+    conflictRef = useRef(false),
+    inputRecoveryFailed = useRef(false);
+  const hasUnsentInputs = () => {
+    const inputs = inputsRef.current;
+    return !!(
+      inputs.chat.trim() ||
+      inputs.roleTitle.trim() ||
+      inputs.newRole ||
+      inputs.historyRevision !== null ||
+      Object.values(inputs.riskInstructions).some((text) => text.trim())
+    );
+  };
   const remember = (snapshot = dref.current) => {
     if (!eref.current) return false;
     return saveLocalRecovery(
@@ -204,7 +215,7 @@ export default function OnlineSetup() {
     if (fields.newRole !== undefined) setNewRole(fields.newRole);
     if (fields.historyRevision !== undefined)
       setHistoryRevision(fields.historyRevision);
-    remember();
+    inputRecoveryFailed.current = !remember();
   };
   const selectedContext = (): SetupSelection => {
     const screen =
@@ -409,7 +420,11 @@ export default function OnlineSetup() {
   }, [boot]);
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
-      if (dirty.current || hasPendingArchive()) {
+      if (
+        dirty.current ||
+        hasPendingArchive() ||
+        (inputRecoveryFailed.current && hasUnsentInputs())
+      ) {
         e.preventDefault();
         e.returnValue = "";
       }
@@ -919,6 +934,14 @@ export default function OnlineSetup() {
       }
       await persist();
       await flushArchive();
+      if (hasUnsentInputs() && !remember()) {
+        inputRecoveryFailed.current = true;
+        setError(
+          "Your unsent form inputs could not be saved on this device. Keep this page open; your online organization settings are saved.",
+        );
+        return false;
+      }
+      inputRecoveryFailed.current = false;
       return true;
     },
     { onError: (e) => setError(e instanceof Error ? e.message : String(e)) },

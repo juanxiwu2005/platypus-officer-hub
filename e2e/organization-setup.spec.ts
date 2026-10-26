@@ -1345,3 +1345,58 @@ test("failed direct hash navigation keeps the current setup and edits", async ({
     page.getByLabel("Organization name", { exact: true }),
   ).toHaveValue("Keep edits after a failed hash change");
 });
+
+test("unsent inputs cannot be lost through Home when local recovery storage is unavailable", async ({
+  page,
+}) => {
+  await open(page);
+  await team(page);
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.startsWith("platypus_org_recovery_v1_"))
+        throw new DOMException(
+          "Recovery storage quota exceeded",
+          "QuotaExceededError",
+        );
+      return original.call(this, key, value);
+    };
+  });
+  await page
+    .getByLabel("Ask Platypus about this setup", { exact: true })
+    .fill("Keep this unsent instruction when storage is unavailable");
+  await page.getByRole("link", { name: "← Home", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Your unsent form inputs could not be saved",
+  );
+  await expect(page).toHaveURL(/#\/phase1\/setup$/);
+  await expect(
+    page.getByLabel("Ask Platypus about this setup", { exact: true }),
+  ).toHaveValue("Keep this unsent instruction when storage is unavailable");
+});
+
+test("local recovery storage failure does not trap an online-saved draft with no unsent inputs", async ({
+  page,
+}) => {
+  const s = await open(page);
+  await page
+    .getByLabel("Organization name", { exact: true })
+    .fill("Saved online despite local quota");
+  await expect
+    .poll(() => s.read().draft.name)
+    .toBe("Saved online despite local quota");
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      if (key.startsWith("platypus_org_recovery_v1_"))
+        throw new DOMException(
+          "Recovery storage quota exceeded",
+          "QuotaExceededError",
+        );
+      return original.call(this, key, value);
+    };
+  });
+  await page.getByRole("link", { name: "← Home", exact: true }).click();
+  await expect(page).toHaveURL(/#\/phase1$/);
+  expect(s.read().draft.name).toBe("Saved online despite local quota");
+});
