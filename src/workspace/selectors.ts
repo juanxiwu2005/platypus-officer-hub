@@ -73,8 +73,10 @@ export function shortChain(item: WorkItem): StageProjection[] {
   return [...(latest?[latest]:[]),current,...stages.filter(s=>s.status==='upcoming').slice(0,2)];
 }
 export function workItemStatus(item: WorkItem): 'completed'|'stuck'|'working'|'to_do' {
-  const required=item.tasks.filter(t=>t.applicability==='required');
-  if(required.length && required.every(t=>taskSatisfied(item,t.id))) return 'completed';
+  const active=item.tasks.filter(t=>t.applicability!=='inactive');
+  const required=active.filter(t=>t.applicability==='required');
+  const counted=required.length?required:active;
+  if(counted.length && counted.every(t=>taskSatisfied(item,t.id))) return 'completed';
   if(item.tasks.some(t=>t.applicability!=='inactive'&&(t.status==='stuck'||t.needsReview))) return 'stuck';
   return item.tasks.some(t=>t.status==='working'||t.status==='done')?'working':'to_do';
 }

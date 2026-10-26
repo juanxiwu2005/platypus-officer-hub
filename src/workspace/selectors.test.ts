@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { TaskSchema, WorkItemSchema, WorkspaceStateSchema, GateSchema, type WorkTask } from './contracts';
-import { projectStages, selectPriorityTasks, shortChain, taskReady, workspaceToday } from './selectors';
+import { projectStages, selectPriorityTasks, shortChain, taskReady, workspaceToday, workItemStatus } from './selectors';
 const task=(id:string,patch:Partial<WorkTask>={})=>TaskSchema.parse({id,parentWorkItemId:'event',title:id,stageKey:id,stageTitle:id,roleIds:[],ownerId:'me',updatedAt:'2026-10-26T10:00:00Z',...patch});
 const item=(tasks:WorkTask[])=>WorkItemSchema.parse({id:'event',kind:'member_event',name:'Event',date:'2026-11-19',ownerId:'me',templateVersion:1,tasks,createdAt:'2026-10-26T10:00:00Z',updatedAt:'2026-10-26T10:00:00Z'});
 describe('Shared activity projections',()=>{
@@ -36,6 +36,10 @@ describe('Shared activity projections',()=>{
     const work=item([task('upstream',{ownerId:'someone_else'}),task('future',{dependsOn:['upstream']})]);
     const state=WorkspaceStateSchema.parse({schemaVersion:1,workspaceId:'workspace',revision:0,actorId:'me',members:[],workItems:[work],updatedAt:'2026-10-26T10:00:00Z'});
     expect(selectPriorityTasks(state,'2026-10-26')).toEqual([]);
+  });
+  it('finishes optional-only work after its actual tasks finish, without optional tasks blocking required completion',()=>{
+    expect(workItemStatus(item([task('optional',{applicability:'optional',status:'done'})]))).toBe('completed');
+    expect(workItemStatus(item([task('required',{status:'done'}),task('optional',{applicability:'optional'})]))).toBe('completed');
   });
   it('ties manager assignment notices and designated approvals to existing tasks',()=>{
     const work=item([task('vacant',{ownerId:null}),task('approval',{kind:'approval',gateId:'gate',ownerId:'someone_else'})]);
