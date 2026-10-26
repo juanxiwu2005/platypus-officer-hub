@@ -100,4 +100,20 @@ describe("AIR provider routing", () => {
     });
     expect(JSON.parse(send.mock.calls[0][1].body).model).toBe("auto");
   });
+  it("uses native JSON schema for AIR workflow fields when provided", async () => {
+    const send = configured();
+    await chatJSON({
+      system: "JSON",
+      user: "Workflow",
+      task: "setup.member_workflow",
+      responseSchema: {
+        type: "object",
+        properties: {},
+        additionalProperties: false,
+      },
+    });
+    const b = JSON.parse(send.mock.calls[0][1].body);
+    expect(b.response_format.type).toBe("json_schema");
+    expect(b.response_format.json_schema.strict).toBe(true);
+  });
 });

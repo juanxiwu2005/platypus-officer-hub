@@ -1,3 +1,4 @@
+import { flowResponseSchema } from "../../src/organization/flowResponseSchema.ts";
 import type { Config } from "@netlify/functions";
 import { ZodError } from "zod";
 import { chatJSON, AIError } from "../lib/ai.mts";
@@ -55,6 +56,9 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
     release = await acquireAiLease(req, timeoutMs * 2 + 30000);
     const reply = await chatJSON({
       task: `setup.${stage}`,
+      responseSchema: stage.includes("workflow")
+        ? flowResponseSchema(entry.draft)
+        : undefined,
       system: PROMPTS[stage].system,
       user: input,
       maxTokens: stage.includes("workflow")
@@ -105,8 +109,10 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
       );
       return json(
         {
-          message:
-            "AI returned an incomplete suggestion. Please retry; no settings were applied.",
+          message: `AI returned an incomplete suggestion (${e.issues
+            .slice(0, 4)
+            .map((i) => i.path.join(".") + ": " + i.code)
+            .join(", ")}). Please retry; no settings were applied.`,
         },
         502,
       );

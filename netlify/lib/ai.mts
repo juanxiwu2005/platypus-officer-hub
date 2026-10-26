@@ -101,11 +101,11 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
   }
 }
 
-export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number; timeoutMs?: number; task?: AiTask }
+export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number; timeoutMs?: number; task?: AiTask; responseSchema?: Record<string,unknown> }
 export type ChatJSONResult = { data: unknown; model: string; provider: string; ms: number; requestedModel?: string; reasoningEffort?: string; servedReasoningEffort?: string; routingVersion?: string }
 
 /** Send one system + user message and get a parsed JSON object back. */
-export async function chatJSON({ system, user, maxTokens = 700, temperature = 0, timeoutMs, task }: ChatJSONArgs): Promise<ChatJSONResult> {
+export async function chatJSON({ system, user, maxTokens = 700, temperature = 0, timeoutMs, task, responseSchema }: ChatJSONArgs): Promise<ChatJSONResult> {
   const configured = getConfig()
   const route = env("AI_PRESET") === "asu_air" && env("AI_MODEL_ROUTING") !== "off" ? routeTask(task) : null
   if (route) maxTokens = Math.max(maxTokens, route.minOutputTokens)
@@ -128,7 +128,8 @@ export async function chatJSON({ system, user, maxTokens = 700, temperature = 0,
   // AIR's reasoning models may otherwise consume the short structured-output budget thinking.
   const effort = route?.reasoningEffort ?? (env("AI_REASONING_EFFORT") || (env("AI_PRESET") === "asu_air" ? "none" : ""))
   const requestBase = effort ? { ...base, reasoning_effort: effort } : base
-  let r = await post(`${c.baseUrl}/chat/completions`, headers, c.jsonMode === "json_object" ? { ...requestBase, response_format: { type: "json_object" } } : requestBase, c.timeoutMs)
+  const format = responseSchema && route ? {type:"json_schema",json_schema:{name:"organization_workflow",strict:true,schema:responseSchema}} : {type:"json_object"}
+  let r = await post(`${c.baseUrl}/chat/completions`, headers, c.jsonMode === "json_object" ? { ...requestBase, response_format: format } : requestBase, c.timeoutMs)
   if (r.status === 400 && c.jsonMode === "json_object" && /response_format|json/i.test(r.text)) {
     r = await post(`${c.baseUrl}/chat/completions`, headers, requestBase, c.timeoutMs) // provider without JSON mode: retry once without it
   }

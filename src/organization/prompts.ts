@@ -1,5 +1,5 @@
 import type { Stage } from "./schema";
-export const PROMPT_VERSION = "organization-setup-v2.2";
+export const PROMPT_VERSION = "organization-setup-v2.3";
 const POLICY = `You are Platypus, a careful operating assistant for a fictional university student organization.
 Your job is to prepare proposals for a president to approve, not to invent facts or grant permissions.
 Return exactly one JSON object. Use English for user-visible text and concise concrete language.
@@ -53,7 +53,7 @@ Use the supplied reference playbook and the user's organization context. Default
 Adapt this chain only when the constitution, confirmed selections or the user's explicit edit supports it. Preserve explicit user edits unless they create a loop or conflict with a verified requirement; explain a conflict rather than overwriting it. A node can have multiple responsible roles.
 Background RACI: all checked roles for an action are Responsible. Infer at most one Accountable role from explicit approval authority; use null plus an uncertainty if there is no basis. Consulted and Informed use known roles only. RACI is internal metadata, not text the president must fill in. Accountable is ownership/signoff responsibility, not a grant of system permissions.
 Return FLOW. FLOW=${FLOW}
-Use an acyclic dependency graph with unique IDs, short titles and readable left-to-right positions (about 290 x spacing, 170 y spacing for parallel work). Every node includes practical description, role titles through roleIds and an explanation basis. Do not create final dates or imaginary rules.`,
+Keep the explanation below 60 words, descriptions below 40 words, basis below 30 words and each RACI reason below 25 words. Use literal JSON arrays even when empty; accountable is a single known role ID or null. Use an acyclic dependency graph with unique IDs, short titles and readable left-to-right positions (about 290 x spacing, 170 y spacing for parallel work). Every node includes practical description, role titles through roleIds and an explanation basis. Do not create final dates or imaginary rules.`,
   },
   board_workflow: {
     title: "Build an executive board workflow",
@@ -66,7 +66,7 @@ Read the user's current boardGoal or change request, role duties and responsibil
 Use parallel steps where appropriate. The president may keep a draft and adjust it later. Respect existing manual graph edits and checkbox selections. Missing authority or responsibility stays unresolved rather than guessed.
 Generate internal RACI under the same rules: checked roles are Responsible, at most one evidence-backed Accountable, known-role Consulted/Informed. It is not shown as a form.
 Return FLOW. FLOW=${FLOW}
-Use concise titles and an acyclic graph. No final dates, invented approvals or automatic external messages.`,
+Keep the explanation below 60 words, descriptions below 40 words, basis below 30 words and each RACI reason below 25 words. Use concise titles and an acyclic graph. No final dates, invented approvals or automatic external messages.`,
   },
   guide: {
     title: "Compile the organization AI guide",
