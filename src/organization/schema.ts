@@ -75,6 +75,7 @@ export const FlowNodeSchema = z.object({
   needsReview: z.boolean().optional(),
   timing: RelativeTargetSchema.optional(),
   milestoneKey: z.enum(["items", "quotes", "budget_request"]).optional(),
+  approval: z.object({ approverRoleIds: z.array(id).max(30), external: z.boolean().default(false), reason: z.string().max(400) }).optional(),
 });
 export type FlowNode = z.infer<typeof FlowNodeSchema>;
 export const FlowSchema = z.object({

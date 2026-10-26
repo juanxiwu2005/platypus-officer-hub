@@ -44,6 +44,7 @@ export const GateSchema = z.object({
   id: IdSchema, taskId: IdSchema, kind: z.enum(['budget', 'purchase', 'general']),
   requestId: IdSchema.nullable().default(null), requestVersion: z.number().int().min(1).default(1),
   status: z.enum(['pending', 'approved', 'rejected']).default('pending'), evidence: z.string().max(1000).default(''),
+  approverIds: z.array(IdSchema).max(50).default([]), external: z.boolean().default(false), reason: z.string().max(400).default(''),
   decidedBy: IdSchema.nullable().default(null), decidedAt: z.string().nullable().default(null),
 });
 export type ApprovalGate = z.infer<typeof GateSchema>;
@@ -100,6 +101,7 @@ export type WorkspaceCommand =
   | { type: 'task.add'; workItemId: string; task: WorkTask }
   | { type: 'task.remove'; workItemId: string; taskId: string }
   | { type: 'task.review'; workItemId: string; taskIds: string[] }
+  | { type: 'gate.add'; workItemId: string; taskId: string; gateId: string; approverIds: string[]; external: boolean; reason: string }
   | { type: 'gate.decide'; workItemId: string; gateId: string; decision: 'approved'|'rejected'; evidence: string }
   | { type: 'funding.setDeadline'; workItemId: string; requestId: string; spendBy: string|null }
   | { type: 'funding.add'; workItemId: string; requestId: string; amount: number; source: FundingRequest['source']; purpose: string }
