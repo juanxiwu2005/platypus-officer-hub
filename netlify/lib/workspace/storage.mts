@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 import { readSession, archiveEvent } from "../organization/storage.mts";
-import { DEFAULT_TIMING, TimingDefaultsSchema, WorkspaceStateSchema, type WorkspaceEnvelope, type WorkspaceState, type WorkspaceOrganization, type WorkspaceCommand } from "../../../src/workspace/contracts/index.ts";
+import { DEFAULT_TIMING, TimingDefaultsSchema, WorkspaceStateSchema, IdSchema, type WorkspaceEnvelope, type WorkspaceState, type WorkspaceOrganization, type WorkspaceCommand } from "../../../src/workspace/contracts/index.ts";
 import { upgrade, stable } from "../../../src/organization/setupLogic.ts";
 import { applyWorkspaceCommand, WorkspaceError, stableId } from "./runtime.mts";
 import { validateMutation, validateWorkspaceCommand } from "./commands.mts";
@@ -25,6 +25,12 @@ async function context(req: Request) {
 }
 function envelope(doc: Document, ctx: Awaited<ReturnType<typeof context>>): WorkspaceEnvelope {
   return { state: doc.state, organization: ctx.organization, setupRevision: ctx.entry.revision, demo: true };
+}
+function commandOrganization(ctx: Awaited<ReturnType<typeof context>>, command: WorkspaceCommand): WorkspaceOrganization {
+  if (command.type !== "member.upsert") return ctx.organization;
+  // Assigning a fictional officer during setup does not approve the template.
+  const roles = new Map([...ctx.organization.roles, ...ctx.entry.draft.roles].map((role) => [role.id, role]));
+  return { ...ctx.organization, roles: [...roles.values()] };
 }
 async function readDocument(ctx: Awaited<ReturnType<typeof context>>) {
   let row = await blobs().getWithMetadata(ctx.key, { type: "json" });
@@ -63,8 +69,18 @@ export async function loadWorkspace(req: Request): Promise<WorkspaceEnvelope> {
 export async function previewWorkspaceCommand(req: Request, value: unknown): Promise<WorkspaceEnvelope> {
   const ctx = await context(req), { document } = await readDocument(ctx);
   const command = validateWorkspaceCommand(value);
-  const state = applyWorkspaceCommand(document.state, ctx.organization, command, ctx.approved, new Date().toISOString());
+  const state = applyWorkspaceCommand(document.state, commandOrganization(ctx, command), command, ctx.approved, new Date().toISOString());
   return envelope({ ...document, state }, ctx);
+}
+/** Read-only recovery evidence for a fixed command ID after an uncertain response. */
+export async function readWorkspaceReceipt(req: Request, requestId: string, command?: unknown): Promise<{ revision: number } | null> {
+  IdSchema.parse(requestId);
+  const ctx = await context(req), { document } = await readDocument(ctx);
+  const receipt = document.receipts[requestId];
+  if (!receipt) return null;
+  if (command !== undefined && receipt.hash !== hash(validateWorkspaceCommand(command)))
+    throw new WorkspaceError("That request ID was already used for a different command.", 409);
+  return { revision: receipt.revision };
 }
 export async function mutateWorkspace(req: Request, value: unknown): Promise<WorkspaceEnvelope> {
   const mutation = validateMutation(value), ctx = await context(req);
@@ -77,7 +93,7 @@ export async function mutateWorkspace(req: Request, value: unknown): Promise<Wor
   }
   if (mutation.revision !== document.state.revision) throw new WorkspaceError("A newer workspace revision is available. Reload and compare before applying this change.", 409);
   const at = new Date().toISOString();
-  const state = applyWorkspaceCommand(document.state, ctx.organization, mutation.command, ctx.approved, at);
+  const state = applyWorkspaceCommand(document.state, commandOrganization(ctx, mutation.command), mutation.command, ctx.approved, at);
   state.revision = document.state.revision + 1;
   const itemId = "workItemId" in mutation.command ? mutation.command.workItemId : mutation.command.type === "work.create" ? mutation.command.input.id : null;
   const event: Event = { id: stableId(ctx.entry.workspaceId, mutation.requestId), at, actorId: document.state.actorId, revision: state.revision, command: mutation.command, snapshot: itemId ? state.workItems.find((w) => w.id === itemId) ?? { removedWorkItemId: itemId } : { members: state.members, actorId: state.actorId }, delivered: false };
