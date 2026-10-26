@@ -1,3 +1,17 @@
+# Organization Setup 当前交接
+
+2026-10-26 · Codex · Juanxi 已批准 F1–F7 审计修复。集成分支 `fix/setup-v3-completion`，基于 `feat/organization-setup-ai@54e5823`；不合并 main，不正式发布。
+
+当前有效流程为 **Constitution → Your team → Responsibilities → Activity workflow → Review**。Prompt 只在开发聊天审阅，服务端正本 `netlify/lib/organization/prompts.mts`，不是旧客户端文件。模型路由 v3：Gemma 长结构、Muse 短编辑、GLM 仅主动深度检查；没有最新提速百分比结论。
+
+本轮补保存/恢复与冲突处理、人工层级保护、精细增量复核、Check 自动复用、当前对象与近期历史提案、图操作验收及错误诊断。消费端只读取服务器 **approved** 编译产物；`/phase1` 的 Home/活动显示同一组织岗位、职责、流程和部门色，不复制为旧 localStorage 配置。旧示例入口 `/#/phase1?example=1` 和 `setup-legacy` 明确保留为参考；没有批准配置时不会伪装使用示例作为新组织。
+
+完整 Board planner、真实组织账号、旧业务数据库迁移和跨组织共享仍未实施。`/phase1/activity/executive` 对新组织明确显示尚未生成，不复用别的虚构组织链路。
+
+验收与执行证据统一记录在 [F1–F7 实施记录](F1_F7_IMPLEMENTATION.md)。以下保留旧记录，**其中六章、矩阵、网页 View prompt、v2 全 Muse 及旧测试数字均不是当前有效行为或本次验收结论**。
+
+## 历史交接（截至 54e5823，原文保留）
+
 > **v3.1 最新：** Gemma 4 31B 处理较长的章程/风险/活动结构，Muse 处理短对话编辑，GLM 5.3 仅用户主动深度检查。一次真实 Muse 结果证明：请求原生 schema 和 reasoning none 不代表网关实际遵守；现在 prompt 明确给出精确 JSON 字段，已观察字段别名做严格无歧义转换，缺失内容仍拒绝。详见 [v3 实测记录](V3_CHANGELOG.md)。新版速度尚待实测，不能把模型名称当速度保证。
 
 > **2026-10-26 v3 增量：进行中（Codex）**

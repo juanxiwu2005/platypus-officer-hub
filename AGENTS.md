@@ -138,3 +138,15 @@ Juanxi 在检查原型后明确要求继续实施并上线：章程/岗位/职�
 
 ### v3.1 实测补充
 AIR 接受 json_schema 仍可能不遵循形状；必须在 prompt 给精确字段，并在本地验证。Muse 请求 none 实际返回 low，不能把配置等同于执行。路由v3：Gemma 长结构任务、Muse 短编辑、GLM 主动深度。已观察到的 organization/name/department_id/duties/quotes 别名可严格翻译；不能补造缺失职责。详见 V3_CHANGELOG。
+
+## 12. F1–F7 审计修复（2026-10-26，Juanxi 已批准执行）
+
+用户批准独立 Worktree 多 Agent 实施审计方案；本次从 feat/organization-setup-ai@54e5823 在 fix/setup-v3-completion 集成，不改 main。数据/AI/UI 各有唯一文件负责人，主 Agent 维护共享契约、文档和批准配置的工作区消费；独立 Review 复核。当前事实以 docs/organization/F1_F7_IMPLEMENTATION.md 为准，旧六章、页面 prompt 与 v2 路由描述仅历史。
+
+- 未保存完整草稿按私有 workspace 本地保护；内部导航保存成功才离开。409 必须保留本地副本并由人决定，不能自动用新 revision 覆盖远端。不要把操作事件当成能直接恢复的完整草稿。
+- 层级重接/断开也属于人工决定。纯展示字段不使职责检查无谓失效；语义变化只复核实际相关节点。确认前必须明确处理 needsReview；允许保留未分配步骤，但必须记录未解决项。
+- Check 按语义输入复用，包括空风险；进入后自动一次，明确 Skip 不谎称取消已开始计费的请求。所有 AI 变更仍需批准。
+- selection 是服务器验证的 screen/entityType/entityId 数据；不能据它授予权限。requestId 标识一个显式用户动作，网络重放复用；新ID才代表主动重试。
+- 原文和失败 transport 指标先归档，再解析模型 JSON。区分本站任务等待和供应商等待，不能从首字直接断言排队。不得为本轮回归自动调用真实AI或做额外收费比较。
+- `/phase1` 消费服务器 approved.compiled，不读取未确认 draft，不把配置写入旧 localPreviewRepository。示例只能显式在 `?example=1` 或 setup-legacy 使用；旧 Today/Tasks 等仍是独立旧业务。
+- 完整 Board planner、真实账号、跨组织共享和旧业务数据库迁移仍超出本轮；不把模板名称称为已实现规划器。正式合并/发布仍需 Juanxi 批准。

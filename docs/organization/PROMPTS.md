@@ -1,3 +1,22 @@
+# 当前 Prompt 与模型契约
+
+2026-10-26。当前服务端正本为 [prompts.mts](../../netlify/lib/organization/prompts.mts)，版本 `organization-setup-v3.1`。产品页面不提供 View prompt 或 Review AI instructions。当前四组精确 Prompt 已在开发聊天附件交给 Juanxi；修改继续在聊天审阅，不在产品页面展示。
+
+| 任务 | 当前输入范围 | 输出及约束 |
+| --- | --- | --- |
+| constitution | 章程文本、现有组织/部门/岗位 | 有证据的部门/岗位/职责；推断有标记；人工字段保留 |
+| risk_check | 组织使命和已审岗位职责 | 最多4个重大风险，每题2–3方案；不把普通表单细节重复列为遗漏 |
+| member_workflow | 组织、岗位职责、相关章程片段 | 精简节点/依赖/负责人；不生成坐标和最终日期 |
+| edit | 当前组织配置、屏幕与有效选中实体、近期对话；明确选择的历史版本 | 澄清问题或白名单局部提案；批准前零应用 |
+
+导航无变化、Review 编译、图布局和普通手动修改不调用模型。职责与流程修改不能静默覆盖其他字段。历史是证据，选择某个版本也不会自动恢复。所有输入作为数据，不授予额外权限。
+
+路由正本 [modelPolicy.ts](../../src/organization/modelPolicy.ts)：`air-task-routing-v3`；Gemma `gemma4-31b-it` 长结构、Muse `muse-glimmer-30b` 短编辑、GLM `glm-5-3` 仅用户明确深度检查。请求 none 不能保证网关实际 none；保留实际推理级别与模型原返回名。JSON schema 仍须本地验证。
+
+历史 Muse 单次765输入/1846输出tokens、首内容16.715秒、总50.396秒且形状验证失败。不能把这个数字称为Gemma提速证据，也不能从首内容等待认定供应商排队。本轮离线检查不消耗AIR，不自动重生成或做多模型评估。诊断和验收见 [实施记录](F1_F7_IMPLEMENTATION.md)。
+
+## 历史说明（下文原文保留，不是当前 UI 或路由）
+
 > **v3.1 最新：** Gemma 4 31B 处理较长的章程/风险/活动结构，Muse 处理短对话编辑，GLM 5.3 仅用户主动深度检查。一次真实 Muse 结果证明：请求原生 schema 和 reasoning none 不代表网关实际遵守；现在 prompt 明确给出精确 JSON 字段，已观察字段别名做严格无歧义转换，缺失内容仍拒绝。详见 [v3 实测记录](V3_CHANGELOG.md)。新版速度尚待实测，不能把模型名称当速度保证。
 
 > **v3 正本：** `netlify/lib/organization/prompts.mts`。Prompt 隐藏在服务端，不展示于产品；由开发聊天直接交给 Juanxi 修改。旧文档与 `src/organization/prompts.ts` 的 v2 五阶段保留作历史兼容。

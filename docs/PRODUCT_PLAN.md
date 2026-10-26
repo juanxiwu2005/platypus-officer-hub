@@ -1,3 +1,5 @@
+> **2026-10-26 F1–F7（Juanxi 在审计方案后回复“执行”）：** 批准独立 Worktree 多 Agent 补保存恢复、增量复核、图与风险卡交互、性能诊断，并将服务器批准组织配置接通新版工作区。旧原型保留独立示例入口；不扩张完整 Board planner/真实账号/旧业务迁移，不合并 main 或正式发布。当前交接见 [实施记录](organization/F1_F7_IMPLEMENTATION.md)，以下更早记录保留为历史。
+
 > **2026-10-26 v3（Juanxi 明确要求）：** 五章替代旧六步矩阵/Board setup。先部门再组织图；职责按岗位条目审阅、Check 重大风险 flashcard，可跳过；活动图内编辑与多人负责人、部门色；右侧上下文 AI 先提变更后批准。Review 显示实际输入并由服务端编译 JSON。无修改返回不跑 AI，小改动尽量保留后续手动数据。Prompt 隐藏于产品，只在开发聊天审核；为修复 JSON 错误允许少量真实冒烟。见 [v3 修改记录](organization/V3_CHANGELOG.md)。
 
 > **2026-10-26 底层原则（Juanxi 明确要求）：数据记录、管理、治理与受控共享先于 AI。** 新版 Organization Setup 已建立操作/配置历史、原件、交互、AI 输入输出与决定的时间戳归档。当前以私有工作区保存，不自动跨组织共享；详见 [数据基础](organization/DATA_FOUNDATION.md)。默认 Muse 快速模型，GLM 仅主动深度检查；真实 AI 验收交给 Juanxi，停止额外额度消耗。

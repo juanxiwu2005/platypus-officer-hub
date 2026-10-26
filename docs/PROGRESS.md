@@ -34,6 +34,7 @@
 
 | 工作包 | 计划日期 | 状态 | 负责的 AI | 预览网址 | 备注 |
 | --- | --- | --- | --- | --- | --- |
+| F1–F7 审计修复 | 10/26 | 进行中 | Codex（Data/AI/UI/Integration + 独立 Review） | fix/setup-v3-completion，待核对部署 | 数据恢复、语义增量、风险/图交互、费用幂等与诊断、approved 工作区消费；main 不变 |
 | 2026-10-23 | Claude | **合并上线 + 真 DeepSeek 实测。** v1 快进合并到 main（f868709），正式网站 `/api/health` 显示 DeepSeek 已接通。浏览器实测：①问 USG 表谁负责、何时截止，答对负责人、俱乐部截止日和 ASU 截止日；②“把传单标为进行中”立即生效，Undo 成功恢复；③“把预算改成 $450”时发现 bug：服务器核对改动只认活动/任务/人员 ID，不认经费/伙伴/角色/标签，改预算被丢掉而 AI 嘴上说“待批准”——已修，并且改动全部无效时会明确告诉用户。253 个单元测试 + 107 个页面测试通过。已同步本地备份。 | Juanxi 自己继续测（测试清单见对话）。v1.0 标签 11/8 再打。 |
 | 2026-10-23 | Claude | **AI 数据权限 v1.2。** ①`aiContext.ts`：每次提问把当前查看者能看到的全部数据（社团、角色、人员和工作量、活动、全部任务含状态/负责人/风险/准时概率/三个截止日、经费、伙伴、交接、本人通知、规则摘要）发给 `/api/chat`，约 25 KB；服务器再删一遍可疑字段（key/token/secret/password/signature/phone/文件）并限长。②`sharedPool.ts` + `/api/pool`：虚构共享池（4 个示例社团的审批用时、场地、供应商、经验），只读，AI 只能引用。③新白名单操作：小改动 set_status / rename_task / set_tags / set_tier / mark_contacted 按查看者权限立即生效，Ask 面板显示“Done · Undo”；大改动 assign_owner / add_node / link_dependency / update_event / add_contact / set_funding_amount / advance_funding / create_event 仍走审批卡。④日期：AI 文字中与数据一致的日期保留，其余遮掉。⑤提示词重写。⑥检查：252 个单元测试 + 107 个页面测试全部通过。⑦发现预览网站一直是模拟回答：Netlify 里 `AI_API_KEY` 只填了 Production，Deploy Previews / Branch deploys 为空，已请 Juanxi 补填。已同步本地备份。 | 真实 DeepSeek 试用要等 Juanxi 在 Deploy Previews 填好 key 并重新部署。共享池是虚构演示，v1.5 换成数据库时要做“社团选择共享哪些字段”的设置。 |
 | 2026-10-23 | Claude | **第二部分。** ①逐条复核 R01–R16（来源核对日 2026-10-23），修正 R01/R03/R06/R07/R11/R16 措辞，记录在 RULES.md。②产品计划第 6 节改写为 v1.1 界面说明。③无障碍：6 个状态色对比度达到 AA；右栏标签结构修正；新增 axe 扫描 10 页 + 面板、键盘操作测试。④AI 面板提示词重写：更会追问（一次只问一个问题，办活动直接给表单）、更会推荐（先逾期/红色风险，再无人认领，再最早开始）；请求里新增一份精简状态摘要（任务状态、负责人、所属活动、风险色、是否逾期、每人工作量档），服务器逐项核对，只留真实 ID 和允许的值，不含档案、缓冲或文件。⑤检查：245 个单元测试 + 107 个页面测试（含无障碍）全部通过；已同步本地备份。 | **需要 Juanxi：** 真实 DeepSeek 试用 Ask 面板和 40 题规则评估（需要登录 Netlify 或关掉预览保护）；RTO 给出 AIR 的 key 和模型后再切换；说“批准合并”后才合并 main 并打 v1.0 标签。 |
@@ -50,6 +51,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-10-26 | 批准按 F1–F7 执行审计方案，使用独立 Worktree 多 Agent 和额外独立 Review；新批准配置接通新版工作区；不包含合并 main 或正式发布 | Juanxi（本聊天：“执行”） |
 | 2026-10-25 | 确认 AI-native Phase 1 实施顺序：Activity 为工作中心、Organization Context 驱动、岗位能力多对多；独立分支先做三个高保真画面，完成即停，正式模型/API 接入待画面验收 | Juanxi（“确认”） |
 | 2026-10-21 | 产品名定为 Platypus；Phase 3 用方案 C（Netlify + 服务器函数） | Juanxi |
 | 2026-10-22 | 批准产品计划 v1.0 第 16 节全部 10 个决定 | Juanxi |
