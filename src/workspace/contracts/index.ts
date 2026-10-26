@@ -23,6 +23,8 @@ export const OfficialRuleSchema = z.object({ruleId: z.string(), days: z.number()
 export const TaskSchema = z.object({
   id: IdSchema, parentWorkItemId: IdSchema, sourceNodeId: IdSchema.nullable().default(null),
   milestoneKey: z.enum(['items', 'quotes', 'budget_request']).optional(),
+  fundingRequestId: IdSchema.nullable().default(null),
+  fundingStep: z.enum(['items','quotes','budget_submit','budget_approval','purchase_submit','purchase_approval','order','reimbursement','closeout']).optional(),
   title: z.string().trim().min(1).max(180), description: z.string().max(1000).default(''),
   stageKey: IdSchema, stageTitle: z.string().min(1).max(180),
   roleIds: z.array(IdSchema).max(30), ownerId: IdSchema.nullable(), collaboratorIds: z.array(IdSchema).max(50).default([]),
@@ -99,6 +101,7 @@ export type WorkspaceCommand =
   | { type: 'task.remove'; workItemId: string; taskId: string }
   | { type: 'task.review'; workItemId: string; taskIds: string[] }
   | { type: 'gate.decide'; workItemId: string; gateId: string; decision: 'approved'|'rejected'; evidence: string }
+  | { type: 'funding.setDeadline'; workItemId: string; requestId: string; spendBy: string|null }
   | { type: 'funding.add'; workItemId: string; requestId: string; amount: number; source: FundingRequest['source']; purpose: string }
   | { type: 'funding.spend'|'funding.release'; workItemId: string; requestId: string; commitmentId: string; evidence: string }
   | { type: 'funding.revise'; workItemId: string; requestId: string; amount: number; source: FundingRequest['source']; purpose: string }
