@@ -195,4 +195,46 @@ describe("one HashRouter coordinator with shell and page checks", () => {
     await screen.findByRole("heading", { name: "Tasks" });
     expect(shellCheck).toHaveBeenCalledTimes(2);
   });
+  it.each([true, false])("waits for an extra Back rollback before resolving checks (allow=%s)", async (allow) => {
+    window.history.replaceState({ idx: 203 }, "", "#/setup");
+    let resolve!: (allow: boolean) => void;
+    const setupCheck = vi.fn(() => new Promise<boolean>((done) => { resolve = done; }));
+    const shellCheck = vi.fn(async () => true);
+    mount(shellCheck, setupCheck);
+    const go = vi.spyOn(window.history, "go").mockImplementation(() => {});
+    const arrive = (index: number, hash: string, type = "popstate") => {
+      window.history.replaceState({ idx: index }, "", hash);
+      window.dispatchEvent(new Event(type));
+    };
+    try {
+      act(() => arrive(202, "#/home"));
+      expect(go.mock.calls).toEqual([[1]]);
+      act(() => arrive(203, "#/setup"));
+      await act(async () => {});
+      // Do not start a fetch in the gap before the next gesture of the burst.
+      expect(setupCheck).not.toHaveBeenCalled();
+      await waitFor(() => expect(setupCheck).toHaveBeenCalledTimes(1));
+      act(() => arrive(202, "#/home"));
+      // Chrome emits both notifications for one traversal; it must not queue two compensations.
+      act(() => arrive(202, "#/home", "hashchange"));
+      expect(go.mock.calls).toEqual([[1], [1]]);
+      await act(async () => resolve(allow));
+      expect(go.mock.calls).toEqual([[1], [1]]);
+      expect(screen.getByTestId("setup-pending").textContent).toBe("true");
+      act(() => arrive(203, "#/setup"));
+      if (allow) {
+        await waitFor(() => expect(go.mock.calls).toEqual([[1], [1], [-1]]));
+        act(() => arrive(202, "#/home"));
+        await screen.findByRole("heading", { name: "Home" });
+        expect(shellCheck).toHaveBeenCalledTimes(1);
+      } else {
+        await waitFor(() => expect(screen.getByTestId("setup-pending").textContent).toBe("false"));
+        expect(window.location.hash).toBe("#/setup");
+        expect(shellCheck).not.toHaveBeenCalled();
+      }
+      expect(setupCheck).toHaveBeenCalledTimes(1);
+    } finally {
+      go.mockRestore();
+    }
+  });
 });

@@ -17,6 +17,7 @@ type Guard = {
   onError: (error: Error) => void;
   pending: (value: boolean) => void;
 };
+const NATIVE_NAVIGATION_SETTLE_MS = 50;
 const installed = new WeakSet<Window>();
 const coordinators = new WeakMap<RouterNavigator, NavigationCoordinator>();
 const windowCoordinators = new WeakMap<Window, Set<NavigationCoordinator>>();
@@ -24,15 +25,15 @@ const windowCoordinators = new WeakMap<Window, Set<NavigationCoordinator>>();
 /** Must be installed before HashRouter's pop listener, including its AT_TARGET order. */
 export function installSetupNavigationProtection(target: Window = window) {
   if (installed.has(target)) return;
-  target.addEventListener(
-    "popstate",
-    (event: PopStateEvent) => {
-      // A navigator has one coordinator regardless of the number of page/shell guards.
-      // The most recently active router owns its window's native navigation.
-      [...(windowCoordinators.get(target) ?? [])].at(-1)?.pop(event);
-    },
-    true,
-  );
+  const nativeNavigation = (event: Event) => {
+    // A navigator has one coordinator regardless of the number of page/shell guards.
+    // The most recently active router owns its window's native navigation.
+    [...(windowCoordinators.get(target) ?? [])].at(-1)?.pop(event);
+  };
+  target.addEventListener("popstate", nativeNavigation, true);
+  // HashRouter also handles hashchange when a blocked popstate did not update its location.
+  // Both notifications must pass the same coordinator before the router sees either one.
+  target.addEventListener("hashchange", nativeNavigation, true);
   installed.add(target);
 }
 function position(target: Window): Position {
@@ -50,9 +51,14 @@ const samePosition = (a: Position, b: Position) =>
 class NavigationCoordinator {
   readonly guards = new Map<symbol, Guard>();
   private checking = false;
+  private nativeVersion = 0;
   private disposed = false;
   private committed: Position;
-  private restoring: ((restored: boolean) => void) | null = null;
+  private restoring: {
+    promise: Promise<boolean>;
+    finish: (restored: boolean) => void;
+    requestedFrom: Position;
+  } | null = null;
   private restoreTimer: ReturnType<typeof setTimeout> | undefined;
   private replay: { target: Position; done: () => void } | null = null;
   private replayTimer: ReturnType<typeof setTimeout> | undefined;
@@ -105,7 +111,7 @@ class NavigationCoordinator {
     clearTimeout(this.replayTimer);
     const restoring = this.restoring;
     this.restoring = null;
-    restoring?.(false);
+    restoring?.finish(false);
     const replay = this.replay;
     this.replay = null;
     replay?.done();
@@ -118,7 +124,8 @@ class NavigationCoordinator {
     this.checking = true;
     this.notify(true);
     try {
-      if (returned && !(await returned)) return;
+      if (returned && (!(await returned) || !(await this.waitForNativeIdle())))
+        return;
       const checked = new Set<symbol>();
       // A new guard mounted while another check awaits must also approve this transition.
       while (!this.disposed) {
@@ -127,15 +134,22 @@ class NavigationCoordinator {
         const [id, guard] = next;
         checked.add(id);
         try {
-          if ((await guard.beforeLeave()) === false) return;
+          if ((await guard.beforeLeave()) === false) {
+            if (this.restoring) await this.restoring.promise;
+            return;
+          }
         } catch (error) {
           if (this.guards.has(id))
             guard.onError(
               error instanceof Error ? error : new Error(String(error)),
             );
+          if (this.restoring) await this.restoring.promise;
           return;
         }
       }
+      // Another native gesture may have begun a rollback while a save/check awaited.
+      // Replaying before that traversal lands can cancel it or land back on Setup.
+      if (this.restoring && !(await this.restoring.promise)) return;
       if (this.disposed || !this.guards.size) return;
       await commit();
       if (!this.disposed) this.committed = position(this.target);
@@ -155,8 +169,56 @@ class NavigationCoordinator {
       action();
     });
   }
-  readonly pop = (event: PopStateEvent) => {
+  private async waitForNativeIdle(): Promise<boolean> {
+    // Chromium can abort requests started during a history traversal when a second
+    // gesture arrives. Coalesce the burst before starting any save/network check.
+    while (!this.disposed) {
+      if (this.restoring && !(await this.restoring.promise)) return false;
+      const version = this.nativeVersion;
+      await new Promise((resolve) => setTimeout(resolve, NATIVE_NAVIGATION_SETTLE_MS));
+      if (version === this.nativeVersion && !this.restoring) return true;
+    }
+    return false;
+  }
+  private restoreCommitted(): Promise<boolean> {
+    if (this.restoring) return this.restoring.promise;
+    const from = position(this.target);
+    if (samePosition(from, this.committed)) return Promise.resolve(true);
+    if (
+      from.index === null ||
+      this.committed.index === null ||
+      from.index === this.committed.index
+    ) {
+      this.target.history.replaceState(
+        this.committed.state,
+        "",
+        this.committed.url,
+      );
+      return Promise.resolve(false);
+    }
+    let finish!: (restored: boolean) => void;
+    const promise = new Promise<boolean>((resolve) => {
+      finish = resolve;
+    });
+    this.restoring = { promise, finish, requestedFrom: from };
+    this.restoreTimer = setTimeout(() => {
+      const restoring = this.restoring;
+      if (!restoring) return;
+      this.restoring = null;
+      this.target.history.replaceState(
+        this.committed.state,
+        "",
+        this.committed.url,
+      );
+      // An unverified rollback must keep the page, not replay an unknown history entry.
+      restoring.finish(false);
+    }, 1500);
+    this.target.history.go(this.committed.index - from.index);
+    return promise;
+  }
+  readonly pop = (event: Event) => {
     if (this.disposed || !this.guards.size) return;
+    this.nativeVersion += 1;
     const destination = position(this.target);
     if (this.replay && samePosition(destination, this.replay.target)) {
       const replay = this.replay;
@@ -170,43 +232,37 @@ class NavigationCoordinator {
     event.stopImmediatePropagation();
     if (this.restoring) {
       if (samePosition(destination, this.committed)) {
-        const finish = this.restoring;
+        const restoring = this.restoring;
         this.restoring = null;
         clearTimeout(this.restoreTimer);
-        finish(true);
-      } else if (
-        destination.index !== null &&
-        this.committed.index !== null &&
-        destination.index !== this.committed.index
-      ) {
-        this.target.history.go(this.committed.index - destination.index);
-      } else {
-        this.target.history.replaceState(
-          this.committed.state,
-          "",
-          this.committed.url,
-        );
-        const finish = this.restoring;
-        this.restoring = null;
-        clearTimeout(this.restoreTimer);
-        finish(false);
+        restoring.finish(true);
+      } else if (!samePosition(destination, this.restoring.requestedFrom)) {
+        // popstate/hashchange describe the same traversal. Compensate only once,
+        // but recover again if an additional gesture has moved to a different entry.
+        this.restoring.requestedFrom = destination;
+        if (
+          destination.index !== null &&
+          this.committed.index !== null &&
+          destination.index !== this.committed.index
+        ) {
+          this.target.history.go(this.committed.index - destination.index);
+        } else {
+          const restoring = this.restoring;
+          this.restoring = null;
+          clearTimeout(this.restoreTimer);
+          this.target.history.replaceState(
+            this.committed.state,
+            "",
+            this.committed.url,
+          );
+          restoring.finish(false);
+        }
       }
       return;
     }
     if (this.checking) {
-      // Extra Back/Forward gestures do not start additional checks or skip the committed screen.
-      if (
-        destination.index !== null &&
-        this.committed.index !== null &&
-        destination.index !== this.committed.index
-      )
-        this.target.history.go(this.committed.index - destination.index);
-      else
-        this.target.history.replaceState(
-          this.committed.state,
-          "",
-          this.committed.url,
-        );
+      // Extra gestures do not start checks. Their rollback is awaited before replay.
+      void this.restoreCommitted();
       return;
     }
     const delta =
@@ -214,22 +270,7 @@ class NavigationCoordinator {
         ? destination.index - this.committed.index
         : null;
     if (delta !== null && delta !== 0) {
-      const returned = new Promise<boolean>((resolve) => {
-        this.restoring = resolve;
-        this.target.history.go(-delta);
-        this.restoreTimer = setTimeout(() => {
-          if (!this.restoring) return;
-          this.target.history.replaceState(
-            this.committed.state,
-            "",
-            this.committed.url,
-          );
-          const finish = this.restoring;
-          this.restoring = null;
-          // An unverified rollback must keep the page, not replay an unknown history entry.
-          finish(false);
-        }, 1500);
-      });
+      const returned = this.restoreCommitted();
       void this.approve(
         () => this.replayPop(destination, () => this.target.history.go(delta)),
         returned,
@@ -242,17 +283,19 @@ class NavigationCoordinator {
       "",
       this.committed.url,
     );
-    void this.approve(() =>
-      this.replayPop(destination, () => {
-        this.target.history.replaceState(
-          destination.state,
-          "",
-          destination.url,
-        );
-        this.target.dispatchEvent(
-          new PopStateEvent("popstate", { state: destination.state }),
-        );
-      }),
+    void this.approve(
+      () =>
+        this.replayPop(destination, () => {
+          this.target.history.replaceState(
+            destination.state,
+            "",
+            destination.url,
+          );
+          this.target.dispatchEvent(
+            new PopStateEvent("popstate", { state: destination.state }),
+          );
+        }),
+      Promise.resolve(true),
     );
   };
 }

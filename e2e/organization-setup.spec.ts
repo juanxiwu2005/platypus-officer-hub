@@ -814,6 +814,30 @@ test("consecutive browser Back gestures cannot bypass the pending save", async (
   expect(s.read().draft.name).toBe("Keep pending consecutive Back edits");
 });
 
+test("shell veto and setup save share navigation checks, then shell navigation survives setup unmount", async ({ page }) => {
+  const s = await mockedOnline(page);
+  await page.goto("/#/phase1");
+  await page.getByRole("link", { name: "Organization setup", exact: true }).click();
+  const name = page.getByLabel("Organization name", { exact: true });
+  await name.fill("Saved with both guards registered");
+  const vetoNextLeave = () => page.evaluate(() => {
+    window.addEventListener("platypus:before-workspace-leave", (event) => event.preventDefault(), { once: true });
+  });
+  await vetoNextLeave();
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(page).toHaveURL(/#\/phase1\/setup$/);
+  await expect(name).toHaveValue("Saved with both guards registered");
+  await page.getByRole("link", { name: "Home", exact: true }).click();
+  await expect(page).toHaveURL(/#\/phase1$/);
+  expect(s.read().draft.name).toBe("Saved with both guards registered");
+  // The shell check still owns navigation after the page guard has unmounted.
+  await vetoNextLeave();
+  await page.getByRole("link", { name: "My tasks", exact: true }).click();
+  await expect(page).toHaveURL(/#\/phase1$/);
+  await page.getByRole("link", { name: "My tasks", exact: true }).click();
+  await expect(page).toHaveURL(/#\/phase1\/tasks$/);
+});
+
 test("a failed navigation save stays in setup and restores the local copy after reload", async ({
   page,
 }) => {
