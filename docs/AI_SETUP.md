@@ -65,3 +65,9 @@ Prompts sent to DeepSeek, OpenAI or Anthropic leave ASU. Use only the fictional 
 新 `/api/org/ai` 没有模拟回答兜底。换 key 时同时设置 `AI_PRESET=asu_air`、`AI_MODEL=<Voyager 模型 ID>`；地址默认 `https://openai.rc.asu.edu/v1`。只换 key 会继续请求旧供应商。初次排查可用 ASU 官方支持的 `auto`，可复现实验应固定模型。`AI_REASONING_EFFORT` 可配置，AIR 默认 `none` 避免短结构化输出预算被思考耗尽。修改环境变量后重新部署。
 
 官方依据：[LLM API](https://docs.rc.asu.edu/ai/api/) 与 [Chat completions](https://docs.rc.asu.edu/ai/api/chat/)。Netlify /api/health 的 configured 只表示参数齐全，不能证明认证成功；须实际调用并核对页面供应商/模型。未读或输出 key。
+
+
+Organization Setup 的 AIR 请求由 `/api/org/ai` 建立隔离任务，浏览器触发 `/api/org/ai-run` 后台函数，再按工作区读取结果。使用 `-background.mts` 文件约定，避免旧托管环境约 30 秒的同步上限。服务端仍检查 revision、原子独占锁与输出；失败结果不应用设置，后台不抛出会触发平台重试的异常。依据：[Netlify Background Functions](https://docs.netlify.com/build/functions/background-functions/)。其它旧业务接口仍采用原同步适配器。
+
+
+当前 AIR 已启用 `air-task-routing-v1`：两个模型固定在 `src/organization/modelPolicy.ts`。默认 Gemma 4，组织流程/RACI/指导使用 GLM 5.3（后台 low 推理）；原同步计划/变更使用 GLM none。AI_MODEL 是关闭路由后的单模型回退设置，不会覆盖已启用的任务路由。`auto` 仅用于之前的连接诊断，当前产品请求不再依赖自动选模。

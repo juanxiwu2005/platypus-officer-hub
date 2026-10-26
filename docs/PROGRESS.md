@@ -1,6 +1,8 @@
-> **2026-10-25 · Organization Setup AI 改版：进行中（Codex）**
-> Juanxi 已明确授权：移除组织分类/流程偏好题，Constitution 优先，部门分组的多选职责矩阵，后台 RACI，可编辑成员活动/干部事务流程图，真实 AI，PDF/Word/文本上传，每步线上保存，组织 AI 指导文档与 prompt 审核。
-> 新分支 `feat/organization-setup-ai` 基于已交付原型 `b955b3f`；旧分支/旧页面/旧数据键保留，不改 main。当前 Netlify 自动登录的 ASU 账户没有原站点，已询问站点所属账户，继续独立实施代码。
+> **2026-10-25 · Organization Setup AI 改版：进行中（Codex，线上实测收尾）**
+> 章程优先、部门分组多岗位矩阵、隐藏 RACI、可编辑成员/干部流程、PDF/Word/粘贴/虚构示例、每步线上保存和 prompt 审核已实施。新站 [PR #3 在线设置](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup) 已部署；原站/main/旧数据保留，上一版设置在 setup-legacy。
+> Juanxi 已切换 ASU AIR；已补齐供应商参数，并用后台任务解决实际约 30 秒的同步请求上限。真实 AIR auto/north-mini-code 已跑通岗位、矩阵、成员流程、多岗位 AI 修改、Board social 和 tabling。
+> Juanxi 随后要求从推荐模型按任务选择：已固定 Gemma 4（提取/整理）+ GLM 5.3（流程/RACI/指导）；Gemma 章程 56s、职责矩阵 15s，GLM 指导成功（实际服务变体 glm-5-3-mxfp4）。指定模型完整链路继续复核。
+> 完整本机检查：构建、318 单元、167 页面通过，13 原有跳过。当前代码远端 CI/Netlify 结果以提交状态为准。[交接](organization/HANDOFF.md)、[实际 Prompt/模型配置与审核说明](organization/PROMPTS.md)。
 
 > **2026-10-25 · AI-native Phase 1：待验收（Codex）**
 > Juanxi 已确认制作原型。架构方向改为 **AI-native、Activity-centered、Organization Context driven**。

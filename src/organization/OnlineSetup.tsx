@@ -1013,6 +1013,41 @@ export default function OnlineSetup() {
                 </ul>
               </div>
             )}
+            <details className="os-run-record">
+              <summary>AI generation record</summary>
+              <div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Step</th>
+                      <th>Actual model</th>
+                      <th>Time</th>
+                      <th>Configuration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {draft.aiRuns.map((run, i) => (
+                      <tr key={i}>
+                        <td>{PROMPTS[run.stage].title}</td>
+                        <td>
+                          {run.provider} · {run.model}
+                        </td>
+                        <td>
+                          {run.durationMs !== undefined
+                            ? `${Math.round(run.durationMs / 1000)}s`
+                            : "Not recorded"}
+                        </td>
+                        <td>
+                          {run.promptVersion}
+                          <br />
+                          {run.routingVersion ?? "Earlier model setting"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
             <div className="os-prompt-reminder">
               <div>
                 <h3>One more review: the AI instructions</h3>

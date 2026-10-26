@@ -54,7 +54,7 @@ async function mockedOnline(page: Page) {
     }
     const meta = {
       stage: b.stage as Stage,
-      promptVersion: "organization-setup-v2.1",
+      promptVersion: "organization-setup-v2.2",
       model: "test-model",
       provider: "Automated test fixture",
       inputHash: "test-hash",
@@ -413,7 +413,7 @@ test("AI setup waits for a background AIR job and applies only its completed sug
             data: fixtureResult("constitution"),
             model: "AIR-test",
             provider: "Automated test fixture",
-            promptVersion: "organization-setup-v2.1",
+            promptVersion: "organization-setup-v2.2",
             inputHash: "test",
             at: "2026-10-25T12:00:00Z",
           },

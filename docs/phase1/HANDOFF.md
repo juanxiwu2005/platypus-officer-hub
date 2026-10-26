@@ -1,3 +1,5 @@
+> 此文件记录前一版 Phase 1 原型。Juanxi 已进一步授权 Organization Setup 真实 AI/线上保存增量；当前验收请看 [新设置交接](../organization/HANDOFF.md)。前一版设置在 `/phase1/setup-legacy` 保留，下述旧原型交互说明仅作为历史参考。
+
 # Phase 1 原型交接与验收
 
 2026-10-25 · Codex · **待 Juanxi 画面验收，到此停止。**

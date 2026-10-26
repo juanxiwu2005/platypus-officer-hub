@@ -1,6 +1,6 @@
 # Organization Setup：实际 Prompt 与审核
 
-**待 Juanxi 审核。** 质量审核是产品验收步骤；开发完成不等于 prompt 已获产品批准。最终 Review 有“Review AI instructions”入口和审核提醒，各步骤也可展开查看精确 system prompt。正式运行的唯一正本是 [`src/organization/prompts.ts`](../../src/organization/prompts.ts)，不是本说明中的概述；版本记录在每次服务器 AI 调用中。
+**待 Juanxi 审核。** 质量审核是产品验收步骤；开发完成不等于 prompt 已获产品批准。最终 Review 有“Review AI instructions”入口和审核提醒，各步骤也可展开查看精确 system prompt。正式运行的唯一正本是 [`src/organization/prompts.ts`](../../src/organization/prompts.ts)，不是本说明中的概述；版本记录在每次成功生成的服务器 AI 记录中。
 
 ## 每一步给模型什么、希望它做什么
 
@@ -42,3 +42,22 @@
 9. alwaysRead 是否足够短且涵盖核心工作习惯？onDemand 的调用条件是否明确？
 
 审核后再修改 prompt、增加对应评估样例并提升版本。自动测试只证明数据约束和交互，不证明所有组织上的 prompt 质量。
+
+
+## 按任务选择模型
+
+配置正本 [`modelPolicy.ts`](../../src/organization/modelPolicy.ts)，版本 `air-task-routing-v1`。仅用两个候选：快速整理 `gemma4-31b-it`，复杂组织推理 `glm-5-3`。它们共用 AIR 网关/key，不把 key 放在网页。客户端只发阶段，不能靠输入任意 model ID 改路由。
+
+| 环节 | 模型 | 推理级别 | 取舍 |
+| --- | --- | --- | --- |
+| 章程岗位提取、职责预填 | Gemma 4 | none | 优先低等待的结构化提取；原文、ID、人工选择由程序核对 |
+| 成员活动流程、干部 social/tabling、AI 修改建议 | GLM 5.3 | low | 将更多预算用于依赖、并行、多岗位与后台 RACI |
+| 组织指导文档 | GLM 5.3 | low | 交叉整理岗位、职责、两套已审核流程与决策边界 |
+| 原 Ask、规则引用、回复分类、一句话 brief、短提醒、手册来源挑选 | Gemma 4 | none | 范围短、输出受已有验证器约束 |
+| 原计划建议、自然语言变更单 | GLM 5.3 | none | 使用较强模型；旧接口为同步短请求，暂不增加思考等待 |
+
+GLM 的后台生成保留至少 7,500 输出 token，包含思考预算，避免短预算只返回思考而没有 JSON。`low` 是初始速度/质量取舍，实际网关可能映射到支持的级别；分别记录请求与网关报告的级别。页面记录实际模型与耗时，Review 可展开 AI generation record。API /api/health 报告模型路由版本与两个默认模型。
+
+本分工是基于 Juanxi 提供候选说明及任务结构的初始工程判断，不能把通用编码榜单分数当作 onboarding 的质量测量。以真实章程提取准确性、职责与依赖是否合理、修改是否被保留、结构通过率、耗时继续校准。失败时不自动降级到较弱模型并假装同样结果；运营方可明确设置 `AI_MODEL_ROUTING=off` 回退单模型。
+
+依据：[ASU Chat Completions](https://docs.rc.asu.edu/ai/api/chat/) 说明同一网关可选择 model，并可设置 reasoning_effort；Gemma 结构化输出也有官方示例。实际候选列表来自 Juanxi 的 AIR 页面。

@@ -1227,3 +1227,8 @@
     scroll-behavior: auto !important;
   }
 }
+
+.os-run-record { margin: 24px 0; }
+.os-run-record > div { overflow-x: auto; }
+.os-run-record table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.os-run-record th, .os-run-record td { text-align: left; padding: 12px; border-bottom: 1px solid #dce5ef; color: #3b526c; }
