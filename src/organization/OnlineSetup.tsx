@@ -17,7 +17,16 @@ import {
   listArchivedFiles,
   type ArchivedFile,
 } from "./archive";
-import { start, save, prepare } from "./client";
+import { start, save, prepare, api, ApiError } from "./client";
+import {
+  blankRecoveryInputs,
+  loadLocalRecovery,
+  saveLocalRecovery,
+  clearLocalRecoveryDraft,
+  type LocalRecovery,
+  type RecoveryInputs,
+} from "./localDraftRecovery";
+import { useSetupNavigationGuard } from "./useSetupNavigationGuard";
 import { documentSource, readConstitution } from "./documents";
 import { EXAMPLE_CONSTITUTION, blankDraft } from "./presets";
 import {
@@ -28,6 +37,7 @@ import {
   type OrgChange,
   type OrgFlow,
   type RiskIssue,
+  type SetupSelection,
 } from "./schema";
 import {
   upgrade,
@@ -40,9 +50,15 @@ import {
   now,
   COLORS,
   selectedRiskChanges,
+  migrateReviewedCheck,
   type SetupV3,
 } from "./setupLogic";
-import { TeamChart, ActivityChart, arrangeTeam } from "./SetupCharts";
+import {
+  TeamChart,
+  ActivityChart,
+  arrangeTeam,
+  nextRolePosition,
+} from "./SetupCharts";
 import "./organization.css";
 import "./setupV3.css";
 const STEPS = [
@@ -67,6 +83,17 @@ const PURPOSE = [
   "Review the settings you entered. On confirmation, Platypus saves a structured configuration for future AI requests.",
 ];
 const uid = (prefix: string) => prefix + "_" + crypto.randomUUID().slice(0, 8);
+// The local copy is validated for editing, allowing a temporarily empty title.
+const recoveredDraft = (local: NonNullable<LocalRecovery["draft"]>): SetupV3 =>
+  migrateReviewedCheck({
+    ...upgrade(blankDraft()),
+    ...local,
+    uiVersion: 3,
+    departments: local.departments ?? [],
+    messages: local.messages ?? [],
+    generated: local.generated ?? {},
+    riskCheck: local.riskCheck ?? upgrade(blankDraft()).riskCheck,
+  });
 function Dialog({
   title,
   children,
@@ -122,7 +149,23 @@ export default function OnlineSetup() {
     [chat, setChat] = useState(""),
     [proposal, setProposal] = useState<Proposal | null>(null),
     [riskIndex, setRiskIndex] = useState(0),
-    [other, setOther] = useState(""),
+    [riskInstructions, setRiskInstructions] = useState<Record<string, string>>(
+      {},
+    ),
+    [selection, setSelection] = useState<SetupSelection>({
+      screen: "team",
+      entityType: null,
+      entityId: null,
+    }),
+    [history, setHistory] = useState<
+      { revision: number; at: string; organization: { name: string } }[] | null
+    >(null),
+    [historyRevision, setHistoryRevision] = useState<number | null>(null),
+    [recoveryPending, setRecoveryPending] = useState<LocalRecovery | null>(
+      null,
+    ),
+    [recoveryNotice, setRecoveryNotice] = useState(""),
+    [conflicted, setConflicted] = useState(false),
     [deep, setDeep] = useState(false),
     [files, setFiles] = useState<ArchivedFile[] | null>(null),
     [exporting, setExporting] = useState(false),
@@ -135,7 +178,61 @@ export default function OnlineSetup() {
     queue = useRef<Promise<void>>(Promise.resolve()),
     mounted = useRef(true),
     initial = useRef<ReturnType<typeof start> | null>(null),
-    lastSaved = useRef("");
+    lastSaved = useRef(""),
+    inputsRef = useRef<RecoveryInputs>(blankRecoveryInputs()),
+    autoChecks = useRef(new Set<string>()),
+    conflictRef = useRef(false);
+  const remember = (snapshot = dref.current) => {
+    if (!eref.current) return false;
+    return saveLocalRecovery(
+      eref.current.workspaceId,
+      {
+        baseRevision: eref.current.revision,
+        draft: snapshot,
+        inputs: inputsRef.current,
+      },
+      setError,
+    );
+  };
+  const input = (fields: Partial<RecoveryInputs>) => {
+    inputsRef.current = { ...inputsRef.current, ...fields };
+    if (fields.chat !== undefined) setChat(fields.chat);
+    if (fields.riskInstructions !== undefined)
+      setRiskInstructions(fields.riskInstructions);
+    if (fields.roleTitle !== undefined) setRoleTitle(fields.roleTitle);
+    if (fields.roleDept !== undefined) setRoleDept(fields.roleDept);
+    if (fields.newRole !== undefined) setNewRole(fields.newRole);
+    if (fields.historyRevision !== undefined)
+      setHistoryRevision(fields.historyRevision);
+    remember();
+  };
+  const selectedContext = (): SetupSelection => {
+    const screen =
+      dref.current.step === 1
+        ? "team"
+        : dref.current.step === 2
+          ? "responsibilities"
+          : dref.current.step === 3
+            ? "workflow"
+            : "review";
+    const exists =
+      selection.entityType === "role"
+        ? dref.current.roles.some((r) => r.id === selection.entityId)
+        : selection.entityType === "department"
+          ? dref.current.departments.some((d) => d.id === selection.entityId)
+          : selection.entityType === "node"
+            ? dref.current.memberFlow?.nodes.some(
+                (n) => n.id === selection.entityId,
+              )
+            : selection.entityId === null;
+    return selection.screen === screen && exists
+      ? selection
+      : { screen, entityType: null, entityId: null };
+  };
+  const selectEntity = (
+    entityType: SetupSelection["entityType"],
+    entityId: string | null,
+  ) => setSelection({ ...selectedContext(), entityType, entityId });
   const current = (d: SetupV3) => {
     dref.current = d;
     setDraft(d);
@@ -147,10 +244,21 @@ export default function OnlineSetup() {
       .then(async () => {
         if (!eref.current)
           throw new Error("The online workspace is not connected.");
+        if (conflictRef.current)
+          throw new Error(
+            "Resolve the newer online version before saving. Your local copy is preserved.",
+          );
         const snapshot = structuredClone(dref.current);
+        remember(snapshot);
         await flushArchive();
         if (!confirm && stable(snapshot) === lastSaved.current) {
           dirty.current = false;
+          clearLocalRecoveryDraft(
+            eref.current.workspaceId,
+            eref.current.revision,
+            inputsRef.current,
+            setError,
+          );
           return;
         }
         setSaved(confirm ? "Compiling and saving…" : "Saving online…");
@@ -160,7 +268,17 @@ export default function OnlineSetup() {
         lastSaved.current = stable(snapshot);
         if (stable(dref.current) === stable(snapshot)) {
           dirty.current = false;
-          if (confirm) current(upgrade(remote.draft));
+          if (confirm) {
+            const confirmed = upgrade(remote.draft);
+            current(confirmed);
+            lastSaved.current = stable(confirmed);
+          }
+          clearLocalRecoveryDraft(
+            remote.workspaceId,
+            remote.revision,
+            inputsRef.current,
+            setError,
+          );
           setSaved(`Saved online · Revision ${remote.revision}`);
         }
       });
@@ -168,14 +286,29 @@ export default function OnlineSetup() {
     try {
       await work;
     } catch (e) {
-      setSaved("Not saved online");
-      setError((e as Error).message);
+      const localSaved = remember();
+      if (e instanceof ApiError && e.status === 409) {
+        conflictRef.current = true;
+        setConflicted(true);
+      }
+      setSaved(
+        localSaved
+          ? "Not saved online · Local copy kept"
+          : "Not saved online · Keep this page open",
+      );
+      setError(
+        (e as Error).message +
+          (localSaved
+            ? ""
+            : " A local copy could not be saved. Keep this page open."),
+      );
       throw e;
     }
   }, []);
   const update = (next: SetupV3) => {
     current({ ...next, confirmed: false, confirmedAt: null, compiled: null });
     dirty.current = true;
+    remember(dref.current);
     setSaved("Saving online…");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => void persist().catch(() => {}), 700);
@@ -214,6 +347,28 @@ export default function OnlineSetup() {
         )
           upgraded.generated.constitution = scopeKey(upgraded, "constitution");
       }
+      const local = loadLocalRecovery(remote.workspaceId, setError);
+      if (local) {
+        inputsRef.current = local.inputs;
+        setChat(local.inputs.chat);
+        setRiskInstructions(local.inputs.riskInstructions);
+        setRoleTitle(local.inputs.roleTitle);
+        setRoleDept(local.inputs.roleDept);
+        setNewRole(local.inputs.newRole);
+        setHistoryRevision(local.inputs.historyRevision);
+        if (local.draft && stable(local.draft) !== stable(remote.draft)) {
+          if (local.baseRevision === remote.revision) {
+            upgraded = recoveredDraft(local.draft);
+            setRecoveryNotice(
+              "Your unsaved local edits were recovered. Save them online when ready.",
+            );
+          } else {
+            setRecoveryPending(local);
+            conflictRef.current = true;
+            setConflicted(true);
+          }
+        }
+      }
       current(upgraded);
       lastSaved.current = stable(remote.draft);
       dirty.current = stable(upgraded) !== lastSaved.current;
@@ -222,10 +377,20 @@ export default function OnlineSetup() {
         revision: remote.revision,
         uiVersion: 3,
       });
-      setSaved(`Saved online · Revision ${remote.revision}`);
-      setFinished(remote.draft.confirmed);
+      setSaved(
+        dirty.current
+          ? "Recovered locally · Save online to continue"
+          : `Saved online · Revision ${remote.revision}`,
+      );
+      setFinished(upgraded.confirmed);
       setSelected(upgraded.roles[0]?.id ?? "");
       setGroup(upgraded.departments[0]?.id ?? "");
+      if (upgraded.step === 2 && upgraded.roles.length)
+        setSelection({
+          screen: "responsibilities",
+          entityType: "role",
+          entityId: upgraded.roles[0].id,
+        });
     } catch (e) {
       setError((e as Error).message);
       setSaved("Online workspace unavailable");
@@ -274,6 +439,7 @@ export default function OnlineSetup() {
         instruction,
         deep,
         Math.round(performance.now() - preparationStarted),
+        stage === "edit" ? selectedContext() : undefined,
       );
       eref.current = {
         ...eref.current,
@@ -288,9 +454,15 @@ export default function OnlineSetup() {
       });
       lastSaved.current = "";
       dirty.current = true;
+      remember();
       track("ai.suggestion.received", { stage, result: reply.result });
       return data;
     } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        conflictRef.current = true;
+        setConflicted(true);
+        remember();
+      }
       setError((e as Error).message);
       track("ai.error.shown", { stage, message: (e as Error).message });
       return null;
@@ -356,6 +528,11 @@ export default function OnlineSetup() {
         patch({ step: 2 });
         setSelected(d.roles[0].id);
         setGroup(d.roles[0].departmentId);
+        setSelection({
+          screen: "responsibilities",
+          entityType: "role",
+          entityId: d.roles[0].id,
+        });
         await persist();
         return;
       }
@@ -367,6 +544,7 @@ export default function OnlineSetup() {
           );
         }
         patch({ step: 3 });
+        setSelection({ screen: "workflow", entityType: null, entityId: null });
         await persist();
         if (!d.memberFlow) {
           const data = await run("member_workflow");
@@ -386,9 +564,14 @@ export default function OnlineSetup() {
       if (d.step === 3) {
         if (!d.memberFlow)
           throw new Error("Prepare your activity workflow first.");
+        if (d.memberFlow.nodes.some((n) => n.needsReview))
+          throw new Error(
+            "Review the highlighted workflow steps before continuing. Open each affected step and choose Mark reviewed.",
+          );
         if (d.memberFlow.nodes.some((n) => !n.title.trim()))
           throw new Error("Give each workflow step a title.");
         patch({ step: 4 });
+        setSelection({ screen: "review", entityType: null, entityId: null });
         await persist();
         return;
       }
@@ -461,10 +644,12 @@ export default function OnlineSetup() {
         { id: uid("message"), role: "user", text: text.trim(), at: now() },
       ],
     });
-    setChat("");
+    input({ chat: "" });
     const result = (await run(
       "edit",
-      `Current screen: ${STEPS[draft.step]}. Selected item: ${selected || "none"}. Request: ${text}`,
+      historyRevision === null
+        ? text
+        : `Use history revision ${historyRevision}: ${text}`,
     )) as {
       message: string;
       question: string | null;
@@ -500,15 +685,23 @@ export default function OnlineSetup() {
   };
   const check = async () => {
     const key = scopeKey(dref.current, "risk_check");
-    if (
-      dref.current.generated.risk_check === key &&
-      dref.current.riskCheck.risks.length
-    ) {
+    if (dref.current.generated.risk_check === key) {
       setRiskIndex(0);
       return;
     }
     const result = (await run("risk_check")) as { risks: RiskIssue[] } | null;
     if (!result) return;
+    if (
+      dref.current.riskCheck.status === "skipped" &&
+      dref.current.riskCheck.inputKey === key
+    ) {
+      track("responsibility.check.result.not-applied", {
+        inputKey: key,
+        reason: "User skipped the already-running check",
+      });
+      await persist().catch(() => {});
+      return;
+    }
     patch({
       riskCheck: {
         status: result.risks.length ? "unreviewed" : "complete",
@@ -531,7 +724,6 @@ export default function OnlineSetup() {
         answers: { ...answers, [risk.id]: option },
       },
     });
-    setOther("");
     if (riskIndex < draft.riskCheck.risks.length - 1)
       setRiskIndex(riskIndex + 1);
   };
@@ -603,7 +795,37 @@ export default function OnlineSetup() {
       setError((e as Error).message);
     }
   };
+  useEffect(() => {
+    if (
+      draft.step !== 2 ||
+      selected !== "check" ||
+      busy ||
+      recoveryPending ||
+      conflicted ||
+      hasReviewedCheck(draft)
+    )
+      return;
+    const key = scopeKey(draft, "risk_check");
+    if (draft.generated.risk_check === key || autoChecks.current.has(key))
+      return;
+    const timer = setTimeout(() => {
+      autoChecks.current.add(key);
+      void check();
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [
+    draft.step,
+    selected,
+    draft.riskCheck,
+    draft.generated,
+    draft.roles,
+    draft.departments,
+    busy,
+    recoveryPending,
+    conflicted,
+  ]);
   const selectedRole = draft.roles.find((r) => r.id === selected);
+  const other = riskInstructions[risk?.id ?? ""] ?? "";
   const roleEdit = (role: OrgRole, fields: Partial<OrgRole>) =>
     mutate({
       ...draft,
@@ -619,7 +841,96 @@ export default function OnlineSetup() {
           : r,
       ),
     });
-  const disabled = !!busy || reading || booting || !entry;
+  const resolveRecovery = async (restore: boolean) => {
+    const local = recoveryPending?.draft ?? dref.current;
+    try {
+      const remote = await start();
+      if (remote.workspaceId !== eref.current?.workspaceId)
+        throw new Error(
+          "Your workspace changed. The local copy is preserved for the original workspace.",
+        );
+      eref.current = remote;
+      setEntry(remote);
+      lastSaved.current = stable(remote.draft);
+      conflictRef.current = false;
+      setConflicted(false);
+      setRecoveryPending(null);
+      setError("");
+      if (restore) {
+        track("workspace.recovery.accepted", {
+          onlineRevision: remote.revision,
+        });
+        setFinished(false);
+        update(recoveredDraft(local));
+        await persist();
+        setRecoveryNotice(
+          "Your local copy was restored and saved as a new online revision.",
+        );
+      } else {
+        track("workspace.recovery.discarded", {
+          onlineRevision: remote.revision,
+        });
+        current(upgrade(remote.draft));
+        setFinished(remote.draft.confirmed);
+        dirty.current = false;
+        clearLocalRecoveryDraft(
+          remote.workspaceId,
+          remote.revision,
+          inputsRef.current,
+          setError,
+        );
+        setSaved(`Saved online · Revision ${remote.revision}`);
+        setRecoveryNotice(
+          "The latest online version is open. Unsent form inputs remain on this device.",
+        );
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const downloadRecovery = () => {
+    const copy =
+      recoveryPending ??
+      (eref.current && loadLocalRecovery(eref.current.workspaceId, setError));
+    if (!copy) return;
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(copy, null, 2)], { type: "application/json" }),
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "organization-local-recovery.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const { pending: leaving } = useSetupNavigationGuard(
+    async () => {
+      if (!eref.current && !dirty.current) return true;
+      if (busy || reading) {
+        setError(
+          "Wait for the current operation to finish before leaving. Your local edits are preserved.",
+        );
+        return false;
+      }
+      if (conflictRef.current || recoveryPending) {
+        setError(
+          "Resolve the newer online version before leaving, or download your local copy.",
+        );
+        return false;
+      }
+      await persist();
+      await flushArchive();
+      return true;
+    },
+    { onError: (e) => setError(e instanceof Error ? e.message : String(e)) },
+  );
+  const disabled =
+    !!busy ||
+    reading ||
+    booting ||
+    !entry ||
+    conflicted ||
+    !!recoveryPending ||
+    leaving;
   const exportAll = async () => {
     setExporting(true);
     try {
@@ -657,12 +968,20 @@ export default function OnlineSetup() {
           value: t.type === "checkbox" ? t.checked : t.value,
         });
       }}
-      onFocusCapture={(e) =>
+      onFocusCapture={(e) => {
+        const target = e.target as HTMLElement;
+        const role = target.closest<HTMLElement>("[data-role-id]");
+        const node = target.closest<HTMLElement>("[data-node-id]");
+        const department = target.closest<HTMLElement>("[data-department-id]");
+        if (role) selectEntity("role", role.dataset.roleId!);
+        else if (node) selectEntity("node", node.dataset.nodeId!);
+        else if (department)
+          selectEntity("department", department.dataset.departmentId!);
         track("ui.focused", {
           screen: STEPS[draft.step],
-          field: (e.target as HTMLElement).getAttribute("aria-label"),
-        })
-      }
+          field: target.getAttribute("aria-label"),
+        });
+      }}
       onBlurCapture={(e) =>
         track("ui.blurred", {
           screen: STEPS[draft.step],
@@ -688,6 +1007,31 @@ export default function OnlineSetup() {
           Files
         </button>
       </div>
+      {(conflicted || recoveryPending) && (
+        <section className="v3-recovery" aria-label="Resolve saved versions">
+          <h2>A newer online version needs your review.</h2>
+          <p>
+            Your complete local copy is preserved. Choose which version to
+            continue with; no changes will be merged automatically.
+          </p>
+          <div className="v3-toolbar">
+            <button onClick={() => void resolveRecovery(true)}>
+              Restore my local copy
+            </button>
+            <button onClick={() => void resolveRecovery(false)}>
+              Use latest online version
+            </button>
+            <button onClick={downloadRecovery}>Download local copy</button>
+          </div>
+        </section>
+      )}
+      {recoveryNotice && (
+        <div className="v3-recovery" role="status">
+          {recoveryNotice}
+          <button onClick={() => setRecoveryNotice("")}>Dismiss</button>
+        </div>
+      )}
+      {leaving && <p role="status">Saving your work before leaving…</p>}
       {error && (
         <div className="os-error" role="alert">
           {error}
@@ -837,8 +1181,10 @@ export default function OnlineSetup() {
                       <button
                         className="v3-accent"
                         onClick={() => {
-                          setRoleDept(draft.departments[0]?.id ?? "");
-                          setNewRole(true);
+                          input({
+                            roleDept: draft.departments[0]?.id ?? "",
+                            newRole: true,
+                          });
                         }}
                       >
                         + Add a custom role
@@ -848,7 +1194,11 @@ export default function OnlineSetup() {
                       <>
                         <div className="v3-departments">
                           {draft.departments.map((dep) => (
-                            <div className="v3-department" key={dep.id}>
+                            <div
+                              className="v3-department"
+                              key={dep.id}
+                              data-department-id={dep.id}
+                            >
                               <input
                                 type="color"
                                 aria-label={`Color for ${dep.name}`}
@@ -937,7 +1287,10 @@ export default function OnlineSetup() {
                             mutate({ ...draft, roles });
                           }}
                           onRemove={removeRole}
-                          onSelect={setSelected}
+                          onSelect={(id) => {
+                            setSelected(id);
+                            selectEntity("role", id);
+                          }}
                           onError={setError}
                         />
                       </>
@@ -961,6 +1314,7 @@ export default function OnlineSetup() {
                           style={{ borderBottomColor: dep.color }}
                           onClick={() => {
                             setGroup(dep.id);
+                            selectEntity("department", dep.id);
                             setSelected(
                               draft.roles.find((r) => r.departmentId === dep.id)
                                 ?.id ?? "",
@@ -973,7 +1327,10 @@ export default function OnlineSetup() {
                       <button
                         role="tab"
                         aria-selected={selected === "check"}
-                        onClick={() => setSelected("check")}
+                        onClick={() => {
+                          setSelected("check");
+                          selectEntity(null, null);
+                        }}
                       >
                         ✓ Check
                       </button>
@@ -992,14 +1349,20 @@ export default function OnlineSetup() {
                                 role="tab"
                                 aria-selected={selected === r.id}
                                 key={r.id}
-                                onClick={() => setSelected(r.id)}
+                                onClick={() => {
+                                  setSelected(r.id);
+                                  selectEntity("role", r.id);
+                                }}
                               >
                                 {r.title}
                               </button>
                             ))}
                         </div>
                         {selectedRole ? (
-                          <div className="v3-duties">
+                          <div
+                            className="v3-duties"
+                            data-role-id={selectedRole.id}
+                          >
                             <h2
                               style={{
                                 borderLeftColor: draft.departments.find(
@@ -1067,6 +1430,10 @@ export default function OnlineSetup() {
                                   );
                                   const nextRole = draft.roles[index + 1];
                                   setSelected(nextRole?.id ?? "check");
+                                  selectEntity(
+                                    nextRole ? "role" : null,
+                                    nextRole?.id ?? null,
+                                  );
                                   if (nextRole) setGroup(nextRole.departmentId);
                                 }}
                               >
@@ -1096,6 +1463,9 @@ export default function OnlineSetup() {
                             </b>
                             <button
                               onClick={() => {
+                                autoChecks.current.delete(
+                                  scopeKey(draft, "risk_check"),
+                                );
                                 patch({
                                   riskCheck: {
                                     ...draft.riskCheck,
@@ -1138,7 +1508,14 @@ export default function OnlineSetup() {
                                 <textarea
                                   aria-label="Custom risk instruction"
                                   value={other}
-                                  onChange={(e) => setOther(e.target.value)}
+                                  onChange={(e) =>
+                                    input({
+                                      riskInstructions: {
+                                        ...riskInstructions,
+                                        [risk.id]: e.target.value,
+                                      },
+                                    })
+                                  }
                                   maxLength={1000}
                                 />
                               </label>
@@ -1146,7 +1523,7 @@ export default function OnlineSetup() {
                                 disabled={!other.trim()}
                                 onClick={() =>
                                   void send(
-                                    `For risk "${risk.title}": ${other}. Propose a focused fix to these role duties.`,
+                                    `For responsibility risk "${risk.title}": ${risk.explanation} Affected role IDs: ${risk.roleIds.join(", ")}. User instructions: ${other}. Propose a focused fix to these role duties.`,
                                     risk.id,
                                   )
                                 }
@@ -1180,12 +1557,26 @@ export default function OnlineSetup() {
                             </div>
                           </>
                         ) : (
-                          <button
-                            className="v3-primary"
-                            onClick={() => void check()}
-                          >
-                            Check responsibilities with AI
-                          </button>
+                          <div>
+                            <p role="status">
+                              {autoChecks.current.has(
+                                scopeKey(draft, "risk_check"),
+                              )
+                                ? "The check could not finish. Retry when ready."
+                                : "The check starts shortly. You can skip before it begins."}
+                            </p>
+                            <button
+                              className="v3-primary"
+                              onClick={() => {
+                                autoChecks.current.add(
+                                  scopeKey(dref.current, "risk_check"),
+                                );
+                                void check();
+                              }}
+                            >
+                              Check responsibilities with AI
+                            </button>
+                          </div>
                         )}
                         {!hasReviewedCheck(draft) && (
                           <button
@@ -1235,7 +1626,15 @@ export default function OnlineSetup() {
                             patch({ memberFlow });
                           }}
                           onError={setError}
+                          onSelect={(id) => selectEntity("node", id)}
                         />
+                        {draft.memberFlow.nodes.some((n) => n.needsReview) && (
+                          <p className="v3-review-note" role="status">
+                            Review the highlighted steps before continuing.
+                            Update affected owners or responsibilities, then
+                            choose Mark reviewed inside each step.
+                          </p>
+                        )}
                         <p className="v3-note">
                           Parallel branches can run together. “After either”
                           joins alternative entry points; “After all” waits for
@@ -1350,11 +1749,38 @@ export default function OnlineSetup() {
                           patch({ memberFlow });
                         }}
                         onError={setError}
+                        onSelect={(id) => selectEntity("node", id)}
                       />
                     )}
                   </>
                 )}
               </fieldset>
+              {busy === "risk_check" && !hasReviewedCheck(draft) && (
+                <div className="v3-recovery">
+                  <p>
+                    The request already started. Skipping will not cancel that
+                    request or apply its suggestions.
+                  </p>
+                  <button
+                    onClick={() => {
+                      track("responsibility.check.skipped", {
+                        inputKey: scopeKey(draft, "risk_check"),
+                        requestAlreadyStarted: true,
+                      });
+                      patch({
+                        riskCheck: {
+                          ...draft.riskCheck,
+                          status: "skipped",
+                          inputKey: scopeKey(draft, "risk_check"),
+                          at: now(),
+                        },
+                      });
+                    }}
+                  >
+                    Skip the running check
+                  </button>
+                </div>
+              )}
               {busy && (
                 <div className="v3-busy" role="status">
                   <span className="os-spinner" />
@@ -1375,6 +1801,30 @@ export default function OnlineSetup() {
                   </div>
                 </div>
               )}
+              {draft.step === 2 &&
+                selected !== "check" &&
+                !hasReviewedCheck(draft) && (
+                  <button
+                    className="v3-skip"
+                    disabled={disabled}
+                    onClick={() => {
+                      track("responsibility.check.skipped", {
+                        inputKey: scopeKey(draft, "risk_check"),
+                      });
+                      patch({
+                        riskCheck: {
+                          ...draft.riskCheck,
+                          status: "skipped",
+                          inputKey: scopeKey(draft, "risk_check"),
+                          at: now(),
+                        },
+                      });
+                      setSelected("check");
+                    }}
+                  >
+                    Skip check for now
+                  </button>
+                )}
               <div className="v3-footer">
                 <button
                   disabled={disabled || draft.step === 0}
@@ -1386,7 +1836,10 @@ export default function OnlineSetup() {
                 <button
                   className="v3-primary"
                   disabled={
-                    disabled || (draft.step === 2 && !hasReviewedCheck(draft))
+                    disabled ||
+                    (draft.step === 2 && !hasReviewedCheck(draft)) ||
+                    (draft.step === 3 &&
+                      !!draft.memberFlow?.nodes.some((n) => n.needsReview))
                   }
                   onClick={() => void next()}
                 >
@@ -1443,7 +1896,7 @@ export default function OnlineSetup() {
                         <button
                           key={x}
                           disabled={disabled}
-                          onClick={() => setChat(x)}
+                          onClick={() => input({ chat: x })}
                         >
                           {x}
                         </button>
@@ -1451,6 +1904,35 @@ export default function OnlineSetup() {
                     </div>
                   )}
                 </div>
+                <button
+                  type="button"
+                  disabled={disabled}
+                  onClick={() =>
+                    void api<{
+                      versions: {
+                        revision: number;
+                        at: string;
+                        organization: { name: string };
+                      }[];
+                    }>("/api/org/archive?action=history")
+                      .then((r) => setHistory(r.versions))
+                      .catch((e) => setError(e.message))
+                  }
+                >
+                  View configuration history
+                </button>
+                {historyRevision !== null && (
+                  <p className="v3-note">
+                    Using history revision {historyRevision}. Describe what to
+                    restore; changes still need approval.{" "}
+                    <button
+                      type="button"
+                      onClick={() => input({ historyRevision: null })}
+                    >
+                      Clear
+                    </button>
+                  </p>
+                )}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -1461,7 +1943,7 @@ export default function OnlineSetup() {
                     aria-label="Ask Platypus about this setup"
                     placeholder="Describe a change…"
                     value={chat}
-                    onChange={(e) => setChat(e.target.value)}
+                    onChange={(e) => input({ chat: e.target.value })}
                     disabled={disabled}
                     maxLength={1200}
                   />
@@ -1524,14 +2006,17 @@ export default function OnlineSetup() {
         </Dialog>
       )}
       {newRole && (
-        <Dialog title="Add a custom role" close={() => setNewRole(false)}>
+        <Dialog
+          title="Add a custom role"
+          close={() => input({ newRole: false })}
+        >
           <label>
             Role title
             <input
               aria-label="Custom role title"
               value={roleTitle}
               maxLength={180}
-              onChange={(e) => setRoleTitle(e.target.value)}
+              onChange={(e) => input({ roleTitle: e.target.value })}
             />
           </label>
           <label>
@@ -1539,7 +2024,7 @@ export default function OnlineSetup() {
             <select
               aria-label="Custom role department"
               value={roleDept}
-              onChange={(e) => setRoleDept(e.target.value)}
+              onChange={(e) => input({ roleDept: e.target.value })}
             >
               {draft.departments.map((d) => (
                 <option key={d.id} value={d.id}>
@@ -1566,15 +2051,15 @@ export default function OnlineSetup() {
                     quote: "",
                     confidence: 1,
                     parentRoleId: null,
-                    position: { x: 0, y: 0 },
+                    position: nextRolePosition(draft.roles),
                     manualFields: ["title", "departmentId"],
                   },
                 ],
               });
-              setRoleTitle("");
-              setNewRole(false);
+              input({ roleTitle: "", newRole: false });
               setTeamTab("chart");
               setSelected(id);
+              selectEntity("role", id);
             }}
           >
             Add role
@@ -1662,6 +2147,35 @@ export default function OnlineSetup() {
               Approve changes
             </button>
           </div>
+        </Dialog>
+      )}
+      {history && (
+        <Dialog title="Configuration history" close={() => setHistory(null)}>
+          <p>
+            Choose a version, then tell the assistant which settings to restore.
+            Nothing changes until you approve a proposal.
+          </p>
+          {history.length ? (
+            [...history].reverse().map((v) => (
+              <div className="v3-file" key={v.revision}>
+                <b>
+                  Revision {v.revision} ·{" "}
+                  {v.organization.name || "Organization"}
+                </b>
+                <span>{new Date(v.at).toLocaleString()}</span>
+                <button
+                  onClick={() => {
+                    input({ historyRevision: v.revision });
+                    setHistory(null);
+                  }}
+                >
+                  Use this version
+                </button>
+              </div>
+            ))
+          ) : (
+            <p>No previous configuration versions yet.</p>
+          )}
         </Dialog>
       )}
       {files && (

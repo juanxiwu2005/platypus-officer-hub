@@ -1,4 +1,19 @@
-import type { AiResult, Envelope, SetupDraft, Stage } from "./schema";
+import type {
+  AiResult,
+  Envelope,
+  SetupDraft,
+  Stage,
+  SetupSelection,
+} from "./schema";
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
 export async function api<T>(path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
     method: body ? "POST" : "GET",
@@ -25,10 +40,11 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
     );
   }
   if (!response.ok)
-    throw new Error(
+    throw new ApiError(
       typeof value.message === "string"
         ? value.message
         : "The request could not be completed.",
+      response.status,
     );
   return value as T;
 }
@@ -52,15 +68,22 @@ export async function prepare(
   instruction = "",
   deep = false,
   clientPreparationMs = 0,
+  selection?: SetupSelection,
 ): Promise<Prepared> {
+  // One identifier per explicit user action, retained for this job's entire life.
+  const requestId = crypto.randomUUID();
   const job = await api<Job | Prepared>("/api/org/ai", {
     stage,
     revision,
     instruction,
     deep,
     clientPreparationMs,
+    selection,
+    requestId,
   });
   if ("result" in job) return job;
+  if (job.status === "error")
+    throw new Error(job.message || "AI could not finish. Please retry.");
   if (job.status === "done" && job.response) return job.response;
   if (job.status === "queued")
     await api<void>("/api/org/ai-run", { jobId: job.jobId });

@@ -10,6 +10,7 @@ import {
   type NodeProps,
   type NodeChange,
   type Edge,
+  type EdgeChange,
   type Connection,
   type ReactFlowInstance,
   MarkerType,
@@ -22,6 +23,7 @@ import {
   type FlowNode,
 } from "./schema";
 import { hierarchyError, layoutFlow } from "./setupLogic";
+import { track } from "./archive";
 import { connect, graphError, removeStep } from "./graph";
 type RoleData = {
   role: OrgRole;
@@ -35,7 +37,11 @@ function RoleCard({ data }: NodeProps<RoleNode>) {
   const { role: r, departments, edit, roles, remove } = data;
   const dep = departments.find((x) => x.id === r.departmentId);
   return (
-    <div className="v3-role" style={{ borderTopColor: dep?.color }}>
+    <div
+      className="v3-role"
+      data-role-id={r.id}
+      style={{ borderTopColor: dep?.color }}
+    >
       <Handle type="target" position={Position.Top} />
       <span className="v3-source">
         {r.source === "constitution"
@@ -140,12 +146,22 @@ export function TeamChart({
       roles.map((r) => ({
         id: r.id,
         type: "role" as const,
+        deletable: false,
         position: r.position ?? { x: 0, y: 0 },
         data: { role: r, departments, roles, edit, remove: onRemove },
       })),
     [roles, departments],
   );
   const [view, setView] = useState<ReactFlowInstance<RoleNode> | null>(null);
+  const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
+  const selectEdges = (changes: EdgeChange[]) =>
+    setSelectedEdges((ids) => {
+      const selected = new Set(ids);
+      for (const c of changes)
+        if (c.type === "select")
+          c.selected ? selected.add(c.id) : selected.delete(c.id);
+      return [...selected];
+    });
   const [nodes, setNodes] = useState<RoleNode[]>(prepared);
   useEffect(() => setNodes(prepared), [prepared]);
   const edges = roles
@@ -157,6 +173,7 @@ export function TeamChart({
       type: "default",
       style: { stroke: "#a7afbc", strokeWidth: 2 },
       reconnectable: true,
+      selected: selectedEdges.includes(`${r.parentRoleId}-${r.id}`),
     }));
   const attach = (connection: Connection) => {
     if (connection.source && connection.target)
@@ -174,8 +191,18 @@ export function TeamChart({
       </div>
       <div className="v3-canvas" aria-label="Editable organization chart">
         <ReactFlow
-          nodes={nodes}
+          nodes={nodes.map((n) => ({
+            ...n,
+            data: {
+              role: roles.find((r) => r.id === n.id) ?? n.data.role,
+              departments,
+              roles,
+              edit,
+              remove: onRemove,
+            },
+          }))}
           edges={edges}
+          onEdgesChange={selectEdges}
           nodeTypes={roleTypes}
           onInit={setView}
           defaultViewport={{ x: 30, y: 30, zoom: 1 }}
@@ -183,7 +210,7 @@ export function TeamChart({
           maxZoom={1.3}
           nodesDraggable
           nodesConnectable
-          deleteKeyCode={null}
+          deleteKeyCode={["Backspace", "Delete"]}
           onNodeClick={(_, n) => onSelect(n.id)}
           onNodesChange={(changes: NodeChange<RoleNode>[]) =>
             setNodes((ns) => applyNodeChanges(changes, ns))
@@ -205,9 +232,24 @@ export function TeamChart({
             if (old.target !== c.target) {
               const next = roles.map((r) =>
                 r.id === old.target
-                  ? { ...r, parentRoleId: null }
+                  ? {
+                      ...r,
+                      parentRoleId: null,
+                      manualFields: [
+                        ...new Set([...(r.manualFields ?? []), "parentRoleId"]),
+                      ],
+                    }
                   : r.id === c.target
-                    ? { ...r, parentRoleId: c.source }
+                    ? {
+                        ...r,
+                        parentRoleId: c.source,
+                        manualFields: [
+                          ...new Set([
+                            ...(r.manualFields ?? []),
+                            "parentRoleId",
+                          ]),
+                        ],
+                      }
                     : r,
               );
               const e = hierarchyError(next);
@@ -218,7 +260,13 @@ export function TeamChart({
             onChange(
               roles.map((r) =>
                 es.some((e) => e.target === r.id)
-                  ? { ...r, parentRoleId: null }
+                  ? {
+                      ...r,
+                      parentRoleId: null,
+                      manualFields: [
+                        ...new Set([...(r.manualFields ?? []), "parentRoleId"]),
+                      ],
+                    }
                   : r,
               ),
             )
@@ -249,8 +297,27 @@ export function arrangeTeam(roles: OrgRole[]) {
     return { ...r, position: { x: x * 300, y: y * 300 } };
   });
 }
+export function nextRolePosition(roles: OrgRole[]) {
+  for (let i = 0; i <= roles.length * 4 + 4; i++) {
+    const position = { x: (i % 4) * 300, y: Math.floor(i / 4) * 300 };
+    if (
+      roles.every(
+        (r) =>
+          !r.position ||
+          Math.abs(r.position.x - position.x) >= 260 ||
+          Math.abs(r.position.y - position.y) >= 280,
+      )
+    )
+      return position;
+  }
+  return {
+    x: 0,
+    y: Math.max(0, ...roles.map((r) => r.position?.y ?? 0)) + 300,
+  };
+}
 type StepData = {
   step: FlowNode;
+  steps: FlowNode[];
   roles: OrgRole[];
   departments: Department[];
   edit: (id: string, fields: Partial<FlowNode>) => void;
@@ -259,7 +326,7 @@ type StepData = {
 };
 type StepNode = Node<StepData, "step">;
 function StepCard({ data }: NodeProps<StepNode>) {
-  const { step: n, roles, departments, edit, add, remove } = data;
+  const { step: n, steps, roles, departments, edit, add, remove } = data;
   const owners = n.roleIds
     .map((id) => roles.find((r) => r.id === id))
     .filter(Boolean) as OrgRole[];
@@ -272,7 +339,11 @@ function StepCard({ data }: NodeProps<StepNode>) {
     ),
   ];
   return (
-    <div className="v3-step" style={{ borderTopColor: colors[0] ?? "#617486" }}>
+    <div
+      className="v3-step"
+      data-node-id={n.id}
+      style={{ borderTopColor: colors[0] ?? "#617486" }}
+    >
       <Handle type="target" position={Position.Left} />
       <input
         className="nodrag v3-node-title"
@@ -298,7 +369,6 @@ function StepCard({ data }: NodeProps<StepNode>) {
                     roleIds: e.target.checked
                       ? [...n.roleIds, r.id]
                       : n.roleIds.filter((id) => id !== r.id),
-                    needsReview: false,
                   })
                 }
               />
@@ -311,6 +381,30 @@ function StepCard({ data }: NodeProps<StepNode>) {
               {r.title}
             </label>
           ))}
+        </div>
+      </details>
+      <details className="nodrag v3-owner-select">
+        <summary>Connections</summary>
+        <div aria-label={`Connections for ${n.title}`}>
+          {steps
+            .filter((step) => step.id !== n.id)
+            .map((step) => (
+              <label key={step.id}>
+                <input
+                  type="checkbox"
+                  aria-label={`${n.title} follows ${step.title}`}
+                  checked={n.dependsOn.includes(step.id)}
+                  onChange={(e) =>
+                    edit(n.id, {
+                      dependsOn: e.target.checked
+                        ? [...n.dependsOn, step.id]
+                        : n.dependsOn.filter((id) => id !== step.id),
+                    })
+                  }
+                />
+                {step.title}
+              </label>
+            ))}
         </div>
       </details>
       {colors.length > 1 && (
@@ -336,7 +430,13 @@ function StepCard({ data }: NodeProps<StepNode>) {
       {n.needsReview && (
         <button
           className="nodrag v3-review"
-          onClick={() => edit(n.id, { needsReview: false })}
+          onClick={() => {
+            track("workflow.node.reviewed", {
+              nodeId: n.id,
+              roleIds: n.roleIds,
+            });
+            edit(n.id, { needsReview: false });
+          }}
         >
           Owners changed · Mark reviewed
         </button>
@@ -366,12 +466,14 @@ export function ActivityChart({
   departments,
   onChange,
   onError,
+  onSelect,
 }: {
   flow: OrgFlow;
   roles: OrgRole[];
   departments: Department[];
   onChange: (flow: OrgFlow) => void;
   onError: (s: string) => void;
+  onSelect?: (id: string) => void;
 }) {
   const commit = (f: OrgFlow) => {
     const error = graphError(f.nodes);
@@ -433,11 +535,28 @@ export function ActivityChart({
         type: "step" as const,
         deletable: false,
         position: n.position,
-        data: { step: n, roles, departments, edit, add, remove },
+        data: {
+          step: n,
+          steps: flow.nodes,
+          roles,
+          departments,
+          edit,
+          add,
+          remove,
+        },
       })),
     [flow, roles, departments],
   );
   const [view, setView] = useState<ReactFlowInstance<StepNode> | null>(null);
+  const [selectedEdges, setSelectedEdges] = useState<string[]>([]);
+  const selectEdges = (changes: EdgeChange[]) =>
+    setSelectedEdges((ids) => {
+      const selected = new Set(ids);
+      for (const c of changes)
+        if (c.type === "select")
+          c.selected ? selected.add(c.id) : selected.delete(c.id);
+      return [...selected];
+    });
   const [nodes, setNodes] = useState<StepNode[]>(prepared);
   useEffect(() => setNodes(prepared), [prepared]);
   const edges: Edge[] = flow.nodes.flatMap((n) =>
@@ -449,6 +568,7 @@ export function ActivityChart({
       style: { stroke: "#96a5b9", strokeWidth: 2 },
       markerEnd: { type: MarkerType.ArrowClosed, width: 16, height: 16 },
       reconnectable: true,
+      selected: selectedEdges.includes(parent + "-" + n.id),
     })),
   );
   const attach = (c: Connection) => {
@@ -479,8 +599,20 @@ export function ActivityChart({
         aria-label="Editable activity workflow"
       >
         <ReactFlow
-          nodes={nodes}
+          nodes={nodes.map((n) => ({
+            ...n,
+            data: {
+              step: flow.nodes.find((step) => step.id === n.id) ?? n.data.step,
+              steps: flow.nodes,
+              roles,
+              departments,
+              edit,
+              add,
+              remove,
+            },
+          }))}
           edges={edges}
+          onEdgesChange={selectEdges}
           nodeTypes={stepTypes}
           onInit={setView}
           defaultViewport={{ x: 30, y: 70, zoom: 1 }}
@@ -491,6 +623,7 @@ export function ActivityChart({
             setNodes((ns) => applyNodeChanges(cs, ns))
           }
           onNodeDragStop={(_, n) => edit(n.id, { position: n.position })}
+          onNodeClick={(_, n) => onSelect?.(n.id)}
           onConnect={attach}
           onReconnect={(old, c) => {
             try {

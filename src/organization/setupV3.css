@@ -1156,4 +1156,62 @@
 .v3-root .v3-assistant textarea {
   min-width: 0;
 }
-.v3-root fieldset:disabled .v3-canvas{pointer-events:none}
+.v3-root fieldset:disabled .v3-canvas {
+  pointer-events: none;
+}
+.v3-recovery {
+  padding: 16px;
+  margin: 12px 0;
+  border: 1px solid #9eb1cc;
+  border-radius: 8px;
+  background: #f1f6ff;
+  color: #293c57;
+}
+.v3-recovery h2 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+.v3-recovery p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.v3-recovery > button {
+  margin-left: 12px;
+}
+.v3-root .v3-assistant > button {
+  margin: 0 14px 10px;
+}
+.v3-step:focus-within,
+.v3-role:focus-within {
+  outline: 2px solid #315caa;
+  outline-offset: 2px;
+}
+.v3-root .v3-owner-select[open] > div {
+  top: calc(100% + 4px);
+  max-height: 280px;
+  overflow-y: auto;
+}
+.v3-root .react-flow__node:focus-within {
+  z-index: 1001 !important;
+}
+.v3-root .react-flow__attribution {
+  background: white;
+}
+.v3-root .react-flow__attribution a {
+  color: #52647b;
+  font-size: 12px;
+}
+.v3-review-note {
+  padding: 12px;
+  border-left: 3px solid #97682a;
+  color: #6f491b;
+  background: #fff7e9;
+  font-size: 14px;
+}
+
+.v3-root .v3-skip {
+  color: #52647b;
+}
+.v3-root .v3-legend span {
+  color: #52647b;
+}
