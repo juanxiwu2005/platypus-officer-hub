@@ -1,3 +1,8 @@
+> **2026-10-25 · AI-native Phase 1：进行中（Codex）**
+> Juanxi 已确认本次计划。架构方向改为 **AI-native、Activity-centered、Organization Context driven**。
+> 从最新 v1 `4dc55ba` 建立 `feat/ai-native-phase1`。本次只交付三个可点击高保真画面、虚构数据流程预览和底层设计说明。正式模型/API 接入等待画面验收；不修改 main，不删除旧页。
+> 当前用户要求优先于旧版固定右栏、固定八职能与旧导航要求。资料仅为虚构示例。
+
 # Platypus v1.0 进度
 
 **最后更新：** 2026-10-23 凌晨（Claude，第一部分收尾）
