@@ -921,6 +921,10 @@ test("unsent assistant and new-role inputs survive a reload", async ({
   await open(page);
   await team(page);
   await (await assistantInput(page)).fill("Please keep my unsent instruction");
+  if ((page.viewportSize()?.width ?? 1200) <= 1000)
+    await page
+      .getByRole("button", { name: "Close assistant", exact: true })
+      .click();
   await page
     .getByRole("button", { name: "+ Add a custom role", exact: true })
     .click();
@@ -1493,7 +1497,7 @@ test("failed direct hash navigation keeps the current setup and edits", async ({
   ).toHaveValue("Keep edits after a failed hash change");
 });
 
-test("unsent inputs cannot be lost through Home when local recovery storage is unavailable", async ({
+test("unsent inputs block Home when local recovery storage is unavailable", async ({
   page,
 }) => {
   await open(page);
@@ -1513,10 +1517,10 @@ test("unsent inputs cannot be lost through Home when local recovery storage is u
     await assistantInput(page)
   ).fill("Keep this unsent instruction when storage is unavailable");
   await page.getByRole("link", { name: "← Home", exact: true }).click();
-  await expect(page).toHaveURL(/#\/phase1$/);
+  await expect(page).toHaveURL(/#\/phase1\/setup$/);
   await expect(
     page.getByText(
-      "Your message is kept in this page, but browser draft recovery is unavailable. Copy it before refreshing.",
+      "Your message could not be saved in this browser. Copy it or finish the request before leaving this workspace.",
       { exact: true },
     ),
   ).toBeVisible();

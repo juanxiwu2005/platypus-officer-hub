@@ -832,7 +832,7 @@ export function ActivityChart({
             not add purchasing steps to this workflow.
           </p>
         )}
-        <ol>
+        <ol tabIndex={0} aria-label="Relative timing sequence">
           {timeline.map((entry) => (
             <li key={entry.id}>
               {entry.node ? (
