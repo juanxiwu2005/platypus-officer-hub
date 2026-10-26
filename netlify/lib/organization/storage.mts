@@ -106,13 +106,39 @@ export async function startSession(req: Request) {
     cookie: `${COOKIE}=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=604800${new URL(req.url).protocol === "https:" ? "; Secure" : ""}`,
   };
 }
+export interface SetupOperationReceipt { fingerprint: string; revision: number; requestedEventId: string; committedAt: string; confirm: boolean; }
+type ReceiptEnvelope = Envelope & { operationReceipts?: Record<string, SetupOperationReceipt> };
+const operationReceipt = (entry: Envelope, operationId: string) => (entry as ReceiptEnvelope).operationReceipts?.[operationId];
+/** Recover the acknowledgement and post-commit archive without committing the draft again. */
+export async function readSetupOperationReceipt(req: Request, operationId: string): Promise<SetupOperationReceipt | null> {
+  if (!/^[a-zA-Z0-9_-]{1,100}$/.test(operationId)) throw new SetupError("Invalid setup operation ID.");
+  const { entry } = await readSession(req), receipt = operationReceipt(entry, operationId);
+  if (!receipt) return null;
+  const requested = await store().getWithMetadata(`archives/${entry.workspaceId}/events/${receipt.requestedEventId}`, { type: "json" });
+  const payload = (requested?.data as { payload?: { configuration?: SetupDraft; before?: Envelope } } | undefined)?.payload;
+  if (!payload?.configuration || !payload.before) throw new SetupError("The saved change receipt could not be reconciled with its archive. Retry without applying it again.", 503);
+  const committed = { ...entry, revision: receipt.revision, draft: payload.configuration, updatedAt: receipt.committedAt };
+  await finishSetupCommit(committed, payload.before, receipt.confirm, operationId);
+  return receipt;
+}
 export async function saveSession(
   req: Request,
   raw: unknown,
   revision: number,
   confirm = false,
+  operationId?: string,
 ) {
   const current = await readSession(req);
+  const fingerprint = operationId ? digest(stable({ raw, confirm })) : "";
+  if (operationId) {
+    if (!/^[a-zA-Z0-9_-]{1,100}$/.test(operationId)) throw new SetupError("Invalid setup operation ID.");
+    const prior = operationReceipt(current.entry, operationId);
+    if (prior) {
+      if (prior.fingerprint !== fingerprint) throw new SetupError("This setup operation ID was already used for a different change.", 409);
+      await readSetupOperationReceipt(req, operationId);
+      return (await readSession(req)).entry;
+    }
+  }
   if (current.entry.revision !== revision)
     throw new SetupError(
       "A newer change was saved. Reload before continuing.",
@@ -165,20 +191,20 @@ export async function saveSession(
     draft.confirmed = false;
     draft.confirmedAt = null;
   }
-  const entry: Envelope = {
+  const committedAt = new Date().toISOString();
+  const requested = await archiveEvent(current.entry.workspaceId, "configuration.requested", {
+    revision: revision + 1, confirm, configuration: draft,
+    ...(operationId ? { before: current.entry, operationId } : {}),
+  }, "user");
+  const entry: ReceiptEnvelope = {
     ...current.entry,
     revision: revision + 1,
     draft,
     approved: confirm ? structuredClone(draft) : current.entry.approved,
-    updatedAt: new Date().toISOString(),
+    updatedAt: committedAt,
     expiresAt: new Date(Date.now() + TTL).toISOString(),
+    ...(operationId ? { operationReceipts: { ...(current.entry as ReceiptEnvelope).operationReceipts, [operationId]: { fingerprint, revision: revision + 1, requestedEventId: requested.id, committedAt, confirm } } } : {}),
   };
-  await archiveEvent(
-    entry.workspaceId,
-    "configuration.requested",
-    { revision: entry.revision, confirm, configuration: draft },
-    "user",
-  );
   const result = await store().setJSON(current.key, entry, {
     onlyIfMatch: current.etag,
   });
@@ -187,14 +213,20 @@ export async function saveSession(
       "Another save finished first. Reload before continuing.",
       409,
     );
+  await finishSetupCommit(entry, current.entry, confirm, operationId);
+  return entry;
+}
+async function finishSetupCommit(entry: Envelope, previous: Envelope, confirm: boolean, operationId?: string) {
   await archiveEvent(
     entry.workspaceId,
     confirm ? "configuration.approved" : "configuration.saved",
     {
       revision: entry.revision,
-      confirmed: draft.confirmed,
-      configuration: draft,
+      confirmed: entry.draft.confirmed,
+      configuration: entry.draft,
     },
+    "system",
+    operationId ? operationId + "-saved" : undefined,
   );
   // A small retrieval index points to prior configurations; immutable events remain the full archive.
   const compact = (raw: SetupDraft) => {
@@ -219,12 +251,12 @@ export async function saveSession(
         : null,
     };
   };
-  if (stable(compact(current.entry.draft)) !== stable(compact(draft))) {
+  if (stable(compact(previous.draft)) !== stable(compact(entry.draft))) {
     const historyKey = `history/${entry.workspaceId}`;
     const version = {
-      at: current.entry.updatedAt,
-      revision: current.entry.revision,
-      ...compact(current.entry.draft),
+      at: previous.updatedAt,
+      revision: previous.revision,
+      ...compact(previous.draft),
     };
     // A later save may commit while this post-save index is still being written.
     // Merge by revision and retry its CAS instead of silently losing a version.
@@ -251,11 +283,11 @@ export async function saveSession(
       503,
     );
   }
-  if (confirm && draft.uiVersion === 3)
+  if (confirm && entry.draft.uiVersion === 3)
     await archiveEvent(
       entry.workspaceId,
       "configuration.compiled",
-      { revision: entry.revision, artifact: draft.compiled },
+      { revision: entry.revision, artifact: entry.draft.compiled },
       "system",
     );
   return entry;
