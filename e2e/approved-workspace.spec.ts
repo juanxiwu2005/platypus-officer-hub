@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { compileOrganization, scopeKey, upgrade } from "../src/organization/setupLogic";
 import { fixtureDraft, fixtureFlow } from "../src/organization/testing/fixtures";
+import type { Envelope } from "../src/organization/schema";
 
 function confirmed(version = 1) {
   const draft = upgrade(fixtureDraft());
@@ -81,4 +82,41 @@ test("approved Home and workflow support keyboard access and accessibility check
     await page.getByRole("link", { name: "Edit organization", exact: true }).focus();
     await expect(page.getByRole("link", { name: "Edit organization", exact: true })).toBeFocused();
   }
+});
+
+test("confirming the edited setup opens the same approved workspace without an AI call or unconfirming it", async ({ page }) => {
+  const seed = confirmed();
+  let record: Envelope = { workspaceId: seed.workspaceId, revision: 0, draft: { ...seed.approved, step: 4, confirmed: false, confirmedAt: null, compiled: null, contextVersion: 0 }, approved: null, updatedAt: "2026-10-26T12:00:00Z", expiresAt: "2026-11-02T12:00:00Z" };
+  let aiCalls = 0;
+  await page.route("**/api/org/archive**", route => route.fulfill({ json: { saved: true } }));
+  await page.route("**/api/org/ai**", route => { aiCalls++; return route.fulfill({ status: 500, json: { message: "No AI expected" } }); });
+  await page.route("**/api/org/setup", async route => {
+    const body = route.request().method() === "POST" ? route.request().postDataJSON() : { action: "start" };
+    if (body.action !== "start") {
+      if (body.revision !== record.revision) { await route.fulfill({ status: 409, json: { message: "Newer revision" } }); return; }
+      const draft = { ...body.draft, contextVersion: record.draft.contextVersion };
+      if (body.action === "confirm") {
+        draft.compiled = compileOrganization(draft);
+        draft.contextVersion++;
+        draft.confirmed = true;
+        draft.confirmedAt = "2026-10-26T12:00:00Z";
+      } else { draft.confirmed = false; draft.confirmedAt = null; }
+      record = { ...record, revision: record.revision + 1, draft, approved: body.action === "confirm" ? structuredClone(draft) : record.approved };
+    }
+    await route.fulfill({ json: record });
+  });
+  await page.goto("/#/phase1/setup");
+  await page.getByRole("tab", { name: "Activity workflow", exact: true }).click();
+  await page.getByLabel("Step title plan", { exact: true }).fill("Collect approved project ideas");
+  await page.getByRole("button", { name: "Confirm organization", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Your organization is ready.", exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Go to workspace →", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Fictional River Builders", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Community Captain", exact: true })).toBeVisible();
+  await expect(page.locator('[data-department-id="leadership"]')).toHaveCSS("border-color", "rgb(179, 69, 103)");
+  expect(record.draft.confirmed).toBe(true);
+  expect(record.approved?.contextVersion).toBe(1);
+  await page.getByRole("link", { name: /MEMBER ACTIVITY/ }).click();
+  await expect(page.getByRole("region", { name: "Workflow steps" })).toContainText("Collect approved project ideas");
+  expect(aiCalls).toBe(0);
 });
