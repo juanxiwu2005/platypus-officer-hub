@@ -3,7 +3,7 @@ import type { WorkItem, WorkTask, WorkspaceState, WorkSchedule } from './contrac
 export interface StageProjection {
   id: string; key: string; title: string; tasks: WorkTask[]; taskIds: string[];
   completed: number; total: number; blocked: number; activeBranches: number;
-  status: 'completed'|'current'|'upcoming';
+  status: 'completed'|'current'|'upcoming'; invalidGrouping?: boolean;
 }
 export function taskSatisfied(item: WorkItem, id: string): boolean {
   const task = item.tasks.find(t => t.id === id);
@@ -36,7 +36,10 @@ export function projectStages(item: WorkItem): StageProjection[] {
   const remaining=new Set(by.keys());
   while(remaining.size) {
     const ready=[...remaining].filter(key=>[...(parents.get(key)??[])].every(p=>!remaining.has(p)));
-    if(!ready.length) { ordered.push(...[...remaining].sort()); break; }
+    if(!ready.length) {
+      const tasks=item.tasks.filter(t=>t.applicability!=='inactive');
+      return [{id:'invalid_grouping',key:'invalid_grouping',title:'Workflow grouping needs review',tasks,taskIds:tasks.map(t=>t.id),completed:tasks.filter(t=>taskSatisfied(item,t.id)).length,total:tasks.length,blocked:tasks.filter(t=>t.status==='stuck').length+1,activeBranches:0,status:'current',invalidGrouping:true}];
+    }
     for(const key of ready) { ordered.push(key); remaining.delete(key); }
   }
   let foundCurrent = false;

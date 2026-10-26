@@ -33,6 +33,7 @@ export const TaskSchema = z.object({
   blockers: z.array(BlockerSchema).max(20).default([]), needsReview: z.boolean().default(false),
   relativeTarget: RelativeTargetSchema.nullable().default(null), officialRules: z.array(OfficialRuleSchema).max(16).default([]),
   dueOverride: z.string().nullable().default(null), estimatedDays: z.number().min(0).max(60).default(1),
+  manualFields: z.array(z.string()).max(30).default([]),
   progress: z.array(z.object({memberId: IdSchema, text: z.string().max(1000), at: z.string()})).default([]),
   rank: z.number().default(0), completedAt: z.string().nullable().default(null), updatedAt: z.string(),
 });
@@ -85,6 +86,8 @@ export type WorkspaceCommand =
   | { type: 'actor.select'; memberId: string }
   | { type: 'work.create'; input: CreateWorkInput }
   | { type: 'work.update'; workItemId: string; patch: Partial<Pick<WorkItem, 'name'|'description'|'date'|'ownerId'|'venue'>> }
+  | { type: 'work.applyTiming'; workItemId: string; timingDefaults: TimingDefaults }
+  | { type: 'work.applyTemplate'; workItemId: string; templateVersion: number }
   | { type: 'work.remove'; workItemId: string }
   | { type: 'task.move'; workItemId: string; taskId: string; status: TaskStatus; blocker?: TaskBlocker; beforeId?: string|null }
   | { type: 'task.progress'; workItemId: string; taskId: string; text: string }

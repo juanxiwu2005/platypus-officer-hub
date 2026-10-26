@@ -7,7 +7,7 @@ describe('Shared activity projections',()=>{
   it('does not treat an inapplicable branch as a completed alternative',()=>{
     const a=task('a',{applicability:'inactive',applicabilityReason:'Not needed for this event'}),b=task('b'),c=task('c',{dependsOn:['a','b'],dependencyMode:'any'});
     const work=item([a,b,c]); expect(taskReady(work,c)).toBe(false);
-    b.status='done'; expect(taskReady(work,c)).toBe(true);
+    work.tasks.find(t=>t.id==='b')!.status='done'; expect(taskReady(work,c)).toBe(true);
     c.dependencyMode='all'; expect(taskReady(work,c)).toBe(true);
   });
   it('keeps workflow order stable when cards are reordered on the personal board',()=>{
@@ -19,6 +19,10 @@ describe('Shared activity projections',()=>{
     const work=item([previous,task('money',{dependsOn:['previous'],status:'stuck'}),task('venue',{dependsOn:['previous']}),task('run',{dependsOn:['money','venue']}),task('close',{dependsOn:['run']})]);
     const chain=shortChain(work); expect(chain).toHaveLength(4);
     expect(chain[1].taskIds).toEqual(['money','venue']); expect(chain[1].blocked).toBe(1); expect(chain[1].completed).toBe(0);
+  });
+  it('does not invent a stage order for cyclic collapsed groups',()=>{
+    const work=item([task('a0',{stageKey:'a'}),task('b0',{stageKey:'b',dependsOn:['a0']}),task('a1',{stageKey:'a',dependsOn:['b0']})]);
+    expect(shortChain(work)[0].invalidGrouping).toBe(true);
   });
   it('selects existing personal tasks and can expose every important task',()=>{
     const tasks=Array.from({length:5},(_,i)=>task(`task_${i}`,{status:'stuck'}));
