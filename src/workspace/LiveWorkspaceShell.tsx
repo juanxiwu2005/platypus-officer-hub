@@ -27,7 +27,7 @@ function ShellBody() {
         <NavLink to="/phase1/tasks">{UI_LABELS.tasks}</NavLink>
         <NavLink to="/phase1/activities">{UI_LABELS.activities}</NavLink>
         <NavLink to="/phase1/setup">{UI_LABELS.setup}</NavLink>
-        {recent.length>0&&<><div className="p1-nav-label">RECENT ACTIVITIES</div>{recent.map(item=><NavLink key={item.id} to={'/phase1/work/'+encodeURIComponent(item.id)}>{item.name}</NavLink>)}
+        {recent.length>0&&<><div className="p1-nav-label">RECENT ACTIVITIES</div>{recent.map(item=><NavLink key={item.id} to={'/phase1/work/'+encodeURIComponent(item.id)}>{item.name}</NavLink>)}</>}
       </nav>
       <div className="p1-sidebar-bottom">
         {envelope&&envelope.state.members.length>0&&<label className="live-viewer">Demo viewer<select aria-label="Workspace demo viewer" value={envelope.state.actorId??''} disabled={mutating} onChange={e=>void mutate({type:'actor.select',memberId:e.target.value}).catch(()=>{})}><option value="" disabled>Select demo identity</option>{envelope.state.members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label>}

@@ -32,6 +32,11 @@ describe('Shared activity projections',()=>{
     const all=selectPriorityTasks(state,'2026-10-26',Infinity);
     expect(all).toHaveLength(5); expect(all[0].task).toBe(state.workItems[0].tasks[0]);
   });
+  it('does not fill the attention area with tasks that cannot yet start',()=>{
+    const work=item([task('upstream',{ownerId:'someone_else'}),task('future',{dependsOn:['upstream']})]);
+    const state=WorkspaceStateSchema.parse({schemaVersion:1,workspaceId:'workspace',revision:0,actorId:'me',members:[],workItems:[work],updatedAt:'2026-10-26T10:00:00Z'});
+    expect(selectPriorityTasks(state,'2026-10-26')).toEqual([]);
+  });
   it('uses the shared schedule deadline and the Phoenix day boundary',()=>{
     expect(workspaceToday(new Date('2026-10-27T01:00:00Z'))).toBe('2026-10-26');
     const work=item([task('late'),task('later')]);

@@ -97,6 +97,7 @@ export function selectPriorityTasks(state: WorkspaceState, today = workspaceToda
     const soon=!!due&&due>=today&&(Date.parse(due)-Date.parse(today))/86400000<=2;
     const priority=(task.needsReview?1100:0)+(approval?1000:0)+(task.status==='stuck'?900:0)+(overdue?800:soon?600:0)+(ready?200:0)+(task.status==='working'?100:0);
     const reason=task.needsReview?'Changes need review':approval?'Approval needed':task.status==='stuck'?(task.blockers[0]?.reason??'Stuck'):overdue?'Overdue':soon?'Due soon':ready?'Ready to work':'Waiting for an earlier step';
+    if(priority===0) continue; // Future work waiting on dependencies is not an urgent action.
     rows.push({task,workItem,reason,priority,due:due??null});
   }
   rows.sort((a,b)=>b.priority-a.priority||(a.due??'9999').localeCompare(b.due??'9999')||a.task.rank-b.task.rank||a.task.id.localeCompare(b.task.id));
