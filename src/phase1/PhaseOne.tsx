@@ -39,8 +39,11 @@ import {
   workflow,
 } from "./logic";
 import { localPreviewRepository } from "./repository";
+import type { ApprovedContext } from "./approvedContext";
 import "./phase1.css";
+import "./approvedWorkspace.css";
 const OnlineSetup = lazy(() => import("../organization/OnlineSetup"));
+const ApprovedWorkspace = lazy(() => import("./ApprovedWorkspace"));
 
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
@@ -146,6 +149,40 @@ export default function PhaseOne() {
     }
   });
   const location = useLocation();
+  const [exampleMode, setExampleMode] = useState(() => new URLSearchParams(location.search).get("example") === "1");
+  const [remote, setRemote] = useState<{ status: "loading" | "ready" | "absent" | "error"; context: ApprovedContext | null; message?: string }>({ status: "loading", context: null });
+  const [contextAttempt, setContextAttempt] = useState(0);
+  useEffect(() => {
+    if (location.pathname.endsWith("/setup-legacy") || new URLSearchParams(location.search).get("example") === "1") {
+      setExampleMode(true);
+      return;
+    }
+    if (location.pathname.endsWith("/setup")) {
+      setExampleMode(false);
+      return;
+    }
+    if (exampleMode) return;
+    const controller = new AbortController();
+    setRemote({ status: "loading", context: null });
+    void import("./approvedContext").then(({ readApprovedContext }) => readApprovedContext(controller.signal)).then(context => {
+      if (!controller.signal.aborted) setRemote({ status: context ? "ready" : "absent", context });
+    }).catch(error => {
+      if (!controller.signal.aborted) setRemote({ status: "error", context: null, message: (error as Error).message });
+    });
+    return () => controller.abort();
+  }, [location.pathname, location.search, exampleMode, contextAttempt]);
+  const approved = !exampleMode && remote.status === "ready" ? remote.context : null;
+  const workspace = (example: ReactNode) => {
+    if (exampleMode) return <><p className="approved-context-notice" role="note">Previous example preview · Changes here do not replace your confirmed online organization.</p>{example}</>;
+    if (remote.status === "loading") return <p role="status">Loading your confirmed organization…</p>;
+    if (approved) return <Suspense fallback={<p role="status">Opening your workspace…</p>}><ApprovedWorkspace context={approved} /></Suspense>;
+    return <section className="approved-context-notice">
+      <h1>{remote.status === "absent" ? "Confirm your organization" : "Workspace unavailable"}</h1>
+      <p>{remote.status === "absent" ? "Complete organization setup to use your team's confirmed roles and activity workflow." : remote.message}</p>
+      <Link to="/phase1/setup">Open organization setup</Link>{" · "}<Link to="/phase1?example=1">Open previous example preview</Link>
+      {remote.status === "error" && <button className="approved-context-retry" onClick={() => setContextAttempt(n => n + 1)}>Retry</button>}
+    </section>;
+  };
   const main = useRef<HTMLElement>(null);
   useEffect(() => {
     try {
@@ -159,6 +196,7 @@ export default function PhaseOne() {
     main.current?.focus();
   }, [location.pathname]);
   const chooseScenario = (s: "A" | "B") => {
+    setExampleMode(true);
     setScenario(s);
     const fresh = makeDraft(s);
     let saved: Draft | null = null;
@@ -197,10 +235,10 @@ export default function PhaseOne() {
           platypus<span className="p1-beta">preview</span>
         </Link>
         <div className="p1-org">
-          <span className="p1-avatar">DF</span>
+          <span className="p1-avatar">{approved ? approved.alwaysRead.organization.name.slice(0, 2).toUpperCase() : "DF"}</span>
           <div>
-            <b>Desert Founders</b>
-            <span>Fictional organization</span>
+            <b>{approved?.alwaysRead.organization.name ?? (exampleMode ? "Desert Founders" : "Your organization")}</b>
+            <span>{approved ? `Confirmed · v${approved.contextVersion}` : exampleMode ? "Fictional example" : "Organization workspace"}</span>
           </div>
         </div>
         <nav aria-label="Preview navigation">
@@ -216,15 +254,15 @@ export default function PhaseOne() {
           <div className="p1-nav-label">RECENT ACTIVITIES</div>
           <NavLink to="/phase1/activity/member">
             <Icon name="activity" />
-            Founder Connections
+            {approved?.onDemand.memberWorkflow.title ?? (exampleMode ? "Founder Connections" : "Activity workflow")}
           </NavLink>
           <NavLink to="/phase1/activity/executive">
             <Icon name="activity" />
-            Board Representatives
+            {approved || !exampleMode ? "Board work" : "Board Representatives"}
           </NavLink>
         </nav>
         <div className="p1-sidebar-bottom">
-          <div className="p1-scenario">
+          {exampleMode && <div className="p1-scenario">
             <label htmlFor="p1-scenario">Demo organization</label>
             <select
               id="p1-scenario"
@@ -234,7 +272,7 @@ export default function PhaseOne() {
               <option value="A">A · Marketing owns outreach</option>
               <option value="B">B · Split external relationships</option>
             </select>
-          </div>
+          </div>}
           <Link to="/" className="p1-legacy">
             <Icon name="external" size={16} />
             Open legacy workspace
@@ -242,8 +280,8 @@ export default function PhaseOne() {
           <div className="p1-user">
             <span className="p1-avatar p1-person">JP</span>
             <div>
-              <b>Jordan Parker</b>
-              <span>President · fictional</span>
+              <b>{exampleMode ? "Jordan Parker" : "Your workspace"}</b>
+              <span>{exampleMode ? "President · fictional" : "Private test session"}</span>
             </div>
           </div>
         </div>
@@ -258,7 +296,7 @@ export default function PhaseOne() {
                 ? "Activities"
                 : "Home"}
           </span>
-          <span className="p1-prototype">Phase 1 · Interactive prototype</span>
+          <span className="p1-prototype">{approved ? `Confirmed organization · v${approved.contextVersion}` : "Phase 1 · Interactive prototype"}</span>
         </header>
         <main id="p1-main" tabIndex={-1} ref={main}>
           <Routes>
@@ -272,7 +310,7 @@ export default function PhaseOne() {
                 </Suspense>
               }
             />
-            <Route index element={<Home draft={draft} active={active} />} />
+            <Route index element={workspace(<Home draft={draft} active={active} />)} />
             <Route
               path="setup-legacy"
               element={
@@ -300,10 +338,10 @@ export default function PhaseOne() {
             <Route
               path="activity/:kind"
               element={
-                <Workspace
+                workspace(<Workspace
                   draft={active ?? makeDraft(scenario)}
                   active={!!active}
-                />
+                />)
               }
             />
           </Routes>
@@ -313,7 +351,7 @@ export default function PhaseOne() {
           <span>
             {location.pathname.endsWith("/setup")
               ? "AI suggestions · Reviewed by you"
-              : "Local demo responses · No AI provider connected"}
+              : approved ? "Your confirmed team and workflow" : "Example previews do not change online settings"}
           </span>
         </footer>
       </div>

@@ -17,7 +17,7 @@ async function skipToMap(page: Page) {
   await next(page);
 }
 test.beforeEach(async ({ page }) => {
-  await page.goto("/#/phase1");
+  await page.goto("/#/phase1?example=1");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 });
