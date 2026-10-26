@@ -3,7 +3,7 @@
 > 从最新 v1 `4dc55ba` 建立 `feat/ai-native-phase1`；三个可点击高保真画面、虚构 Constitution 审核、自定义岗位/能力映射、两类流程与底层设计说明已完成。
 > 完整检查通过：TypeScript/Vite；279 单元；141 页面通过、13 原有跳过。新增 26 单元与 34 桌面/手机页面检查均通过。
 > **到此停止，等待 Juanxi 画面验收；正式模型/API、完整 planners、真实账户/数据库/对话存储、Handoff 与 main 均未接续。**
-> 本机预览：http://127.0.0.1:4173/#/phase1 。远端 PR/部署链接发布后补记。验收与限制见 [Phase 1 交接](phase1/HANDOFF.md)，目标模型与迁移见 [底层设计](phase1/ARCHITECTURE.md)。
+> 本机预览：http://127.0.0.1:4173/#/phase1 。[草稿 PR #2（目标 v1）](https://github.com/juanxiwu2005/platypus-officer-hub/pull/2) 已创建；GitHub CI 进行中，尚未收到 Netlify 部署状态，不声称远端预览已上线。验收与限制见 [Phase 1 交接](phase1/HANDOFF.md)，目标模型与迁移见 [底层设计](phase1/ARCHITECTURE.md)。
 > 新用户要求优先于旧版固定右栏/固定八职能/旧导航。旧数据和全部旧测试保留；本地 Git 是逐文件 SHA 校验重建的原始 v1 浅检出，远端提交沿原父提交创建，没有推送独立历史。
 
 

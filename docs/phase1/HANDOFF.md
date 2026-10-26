@@ -6,7 +6,7 @@
 
 - 新原型入口：`/#/phase1`。
 - 本机可点击预览：http://127.0.0.1:4173/#/phase1 （预览服务运行期间可用）。
-- 远端预览与 draft PR：发布后补记在 `docs/PROGRESS.md`，不使用旧 PR #1 作为本次预览。
+- [草稿 PR #2](https://github.com/juanxiwu2005/platypus-officer-hub/pull/2)（目标 v1）已创建。当前未收到 Netlify 部署状态；远端链接未确认，不使用旧 PR #1 作为本次预览。GitHub CI 状态以 PR 页面为准，本机完整检查已通过。
 - 旧版入口 `/` 原样保留，可从 Open legacy workspace 返回。
 
 ## 五步验收
