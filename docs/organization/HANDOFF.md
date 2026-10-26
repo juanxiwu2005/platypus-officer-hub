@@ -44,3 +44,8 @@ Exec Board 按 social/tabling 等目标生成专属链路，支持保留草稿�
 4. Review 查看两层指导和全部 prompt；prompt 质量仍需 Juanxi 审核，开发完成不等于已获产品批准。
 
 最近活动区保留，按用户要求留待下一轮修改。
+
+
+## 环境变量重新载入
+
+Juanxi 后续误改变量后，核对当前 AI_PRESET=asu_air、AI_MODEL=muse-glimmer-30b，以及 Production/Deploy Previews/Branch deploys 的 Functions key 范围，重新部署。预览和分支站 `/api/health?check=1` 的 AIR 模型目录检查均返回 200，Muse/GLM 均可用，generationPerformed=false。此检查只读取目录、不生成内容；不代表新模型生成质量已验收。未读取或输出完整 key。
