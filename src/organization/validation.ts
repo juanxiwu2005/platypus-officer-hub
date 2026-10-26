@@ -168,24 +168,28 @@ export function contextPacket(d: SetupDraft, stage: Stage) {
     contextVersion: d.contextVersion,
     organizationGuide: d.guide?.alwaysRead ?? null,
   };
-  const documents =
-    stage === "constitution" || stage === "responsibilities"
-      ? {
-          constitution: d.source
-            ? {
-                fileName: d.source.fileName,
-                checksum: d.source.checksum,
-                text: d.source.text,
-              }
-            : null,
-        }
-      : undefined;
+  // Every setup stage needs source-backed authority; later business commands can
+  // retrieve only the relevant onDemand topic from the compiled guide.
   return {
     alwaysRead: always,
-    onDemand: documents ?? {
-      memberFlow: d.memberFlow,
-      boardGoal: d.boardGoal,
+    onDemand: {
+      constitution: d.source
+        ? {
+            fileName: d.source.fileName,
+            checksum: d.source.checksum,
+            text: d.source.text,
+          }
+        : null,
+      memberFlow:
+        stage === "constitution" || stage === "responsibilities"
+          ? undefined
+          : d.memberFlow,
+      boardGoal:
+        stage === "board_workflow" || stage === "guide"
+          ? d.boardGoal
+          : undefined,
       boardFlow: stage === "guide" ? d.boardFlow : undefined,
+      supportingGuide: stage === "guide" ? d.guide?.onDemand : undefined,
     },
     actions: d.actions,
   };

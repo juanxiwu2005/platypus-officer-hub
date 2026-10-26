@@ -17,7 +17,7 @@ import {
   validateAiOutput,
 } from "../../src/organization/validation.ts";
 import { referenceMemberFlow } from "../../src/organization/presets.ts";
-export default async (req: Request) => {
+export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
   let release: (() => Promise<unknown>) | null = null;
   try {
     checkOrigin(req);
@@ -52,7 +52,7 @@ export default async (req: Request) => {
             ? entry.draft.boardFlow
             : undefined,
     });
-    release = await acquireAiLease(req);
+    release = await acquireAiLease(req, timeoutMs * 2 + 30000);
     const reply = await chatJSON({
       system: PROMPTS[stage].system,
       user: input,
@@ -62,7 +62,7 @@ export default async (req: Request) => {
           ? 3400
           : 2400,
       temperature: 0.1,
-      timeoutMs: 45000,
+      timeoutMs,
     });
     const data = validateAiOutput(
       stage,
@@ -116,4 +116,5 @@ export default async (req: Request) => {
     if (release) await release().catch(() => {});
   }
 };
-export const config: Config = { path: "/api/org/ai", method: "POST" };
+export { startAiJob as default } from "../lib/organization/jobs.mts";
+export const config: Config = { path: "/api/org/ai", method: ["GET", "POST"] };

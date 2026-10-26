@@ -98,6 +98,26 @@ export async function saveSession(
   } catch (e) {
     throw new SetupError((e as Error).message);
   }
+  // Keep internal Responsible membership synchronized after manual node edits.
+  for (const flow of [draft.memberFlow, draft.boardFlow])
+    if (flow) {
+      flow.raci = flow.raci.map((row) => {
+        const nodes = flow.nodes.filter((n) =>
+          n.actionIds.includes(row.actionId),
+        );
+        return {
+          ...row,
+          responsible: [
+            ...new Set(
+              nodes.length
+                ? nodes.flatMap((n) => n.roleIds)
+                : (draft.assignments.find((a) => a.actionId === row.actionId)
+                    ?.roleIds ?? []),
+            ),
+          ],
+        };
+      });
+    }
   draft.aiRuns = current.entry.draft.aiRuns;
   draft.contextVersion = current.entry.draft.contextVersion;
   if (confirm) {
@@ -162,7 +182,7 @@ export async function recordRun(
 }
 
 /** One model request at a time per anonymous workspace, with an atomic, short-lived lease. */
-export async function acquireAiLease(req: Request) {
+export async function acquireAiLease(req: Request, durationMs = 90000) {
   const leaseKey = "ai-leases/" + digest(token(req));
   const blobs = store();
   const old = await blobs.getWithMetadata(leaseKey, { type: "json" });
@@ -185,7 +205,7 @@ export async function acquireAiLease(req: Request) {
     );
   const lease = {
     id: randomUUID(),
-    expiresAt: now + 90000,
+    expiresAt: now + durationMs,
     attempts: [...attempts, now],
   };
   const claim = await blobs.setJSON(

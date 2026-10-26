@@ -155,7 +155,8 @@ describe("Organization Setup AI contracts", () => {
     expect(c.alwaysRead).toHaveProperty("roles");
     expect(c.onDemand).toHaveProperty("constitution");
     const f = contextPacket(d, "member_workflow");
-    expect(f.onDemand).not.toHaveProperty("constitution");
+    expect(f.onDemand.constitution?.text).toBe(d.source!.text);
+    expect(f.onDemand).toHaveProperty("memberFlow");
   });
   it("has explicit versioned prompts for every generation stage", () => {
     expect(Object.keys(PROMPTS)).toHaveLength(5);

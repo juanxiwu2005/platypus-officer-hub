@@ -36,8 +36,8 @@ Netlify Blobs 是实际服务端文档存储。每次更改经短暂自动保存
 
 ## 验证记录
 
-- 完整 `npm run check`：TypeScript/Vite 构建通过，**309 单元测试通过，165 桌面/手机页面通过，13 原有跳过**。
-- 包含 30 项组织契约/服务器验证；PDF/DOCX/TXT 真实解析；多选矩阵、来源、提案接受/丢弃、线上恢复模拟、来源页 axe/触控检查。
+- 完整 `npm run check`：TypeScript/Vite 构建通过，**312 单元测试通过，165 桌面/手机页面通过，13 原有跳过**。
+- 包含 33 项组织契约/服务器/供应商路由验证；PDF/DOCX/TXT 真实解析；多选矩阵、来源、提案接受/丢弃、线上恢复模拟、来源页 axe/触控检查。
 - 旧测试保留，前一版设置断言改在 `setup-legacy` 运行，新设置独立新增 24 个页面测试。测试用模型明确标记 Automated test fixture，不作为供应商验收。
 - 线上实际保存服务已成功创建工作区并恢复职责矩阵。旧 DeepSeek 配置下角色提取和职责生成成功；成员流程有一次结构校验失败，因此不称整条旧供应商链路通过。
 - Juanxi 随后把 key 改为 ASU AIR。Netlify 原只有 key，缺少供应商/模型参数，导致请求仍去 DeepSeek 而 401。已按 [ASU 官方 API](https://docs.rc.asu.edu/ai/api/) / [Chat 文档](https://docs.rc.asu.edu/ai/api/chat/) 补齐供应商，先用 auto 诊断；真实 AIR 全流程结果将在完成后补记。

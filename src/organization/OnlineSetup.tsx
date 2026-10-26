@@ -64,7 +64,10 @@ function Spinner({ label }: { label: string }) {
       <span className="os-spinner" />
       <div>
         <b>{label}</b>
-        <p>Preparing a suggestion for you to review.</p>
+        <p>
+          Preparing a suggestion for you to review. AIR may need extra time
+          while a model is busy.
+        </p>
       </div>
     </div>
   );

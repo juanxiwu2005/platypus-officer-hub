@@ -11,6 +11,11 @@ export async function api<T>(path: string, body?: unknown): Promise<T> {
       : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (
+    response.status === 202 &&
+    !response.headers.get("content-type")?.includes("json")
+  )
+    return undefined as T;
   let value: Record<string, unknown>;
   try {
     value = await response.json();
@@ -34,8 +39,38 @@ export const save = (draft: SetupDraft, revision: number, confirm = false) =>
     draft,
     revision,
   });
-export const prepare = (stage: Stage, revision: number, instruction = "") =>
-  api<{ result: AiResult; revision: number; updatedAt: string }>(
-    "/api/org/ai",
-    { stage, revision, instruction },
+type Prepared = { result: AiResult; revision: number; updatedAt: string };
+type Job = {
+  jobId: string;
+  status: "queued" | "running" | "done" | "error";
+  response?: Prepared;
+  message?: string;
+};
+export async function prepare(
+  stage: Stage,
+  revision: number,
+  instruction = "",
+): Promise<Prepared> {
+  const job = await api<Job | Prepared>("/api/org/ai", {
+    stage,
+    revision,
+    instruction,
+  });
+  if ("result" in job) return job;
+  if (job.status === "done" && job.response) return job.response;
+  if (job.status === "queued")
+    await api<void>("/api/org/ai-run", { jobId: job.jobId });
+  const deadline = Date.now() + 10 * 60 * 1000;
+  while (Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const current = await api<Job>(
+      "/api/org/ai?jobId=" + encodeURIComponent(job.jobId),
+    );
+    if (current.status === "done" && current.response) return current.response;
+    if (current.status === "error")
+      throw new Error(current.message || "AI could not finish. Please retry.");
+  }
+  throw new Error(
+    "AIR is taking longer than expected. Your saved settings are safe; please retry later.",
   );
+}

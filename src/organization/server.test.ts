@@ -33,7 +33,9 @@ vi.mock("../../netlify/lib/ai.mts", async (original) => ({
   chatJSON: state.chat,
 }));
 import setup from "../../netlify/functions/org-setup.mts";
-import ai from "../../netlify/functions/org-ai.mts";
+import { runSetupAi as ai } from "../../netlify/functions/org-ai.mts";
+import startAiJob, { runSetupAi } from "../../netlify/functions/org-ai.mts";
+import { processAiJob } from "../../netlify/lib/organization/jobs.mts";
 import { acquireAiLease } from "../../netlify/lib/organization/storage.mts";
 import { blankDraft } from "./presets";
 import { fixtureDraft, fixtureFlow, fixtureResult } from "./testing/fixtures";
@@ -243,5 +245,54 @@ describe("Online organization storage and model boundaries", () => {
       request({ action: "save", revision: 0, draft }, cookie),
     );
     expect(r.status).toBe(400);
+  });
+  it("queues AIR work, claims it once, and serves only the owner's completed result", async () => {
+    const { cookie } = await session();
+    const queued = await startAiJob(
+      request({ stage: "constitution", revision: 0 }, cookie),
+    );
+    expect(queued.status).toBe(202);
+    const job = await queued.json();
+    state.chat.mockResolvedValue({
+      data: fixtureResult("constitution"),
+      model: "AIR-test",
+      provider: "ASU AIR",
+      ms: 30001,
+    });
+    await Promise.all([
+      processAiJob(request({ jobId: job.jobId }, cookie), runSetupAi),
+      processAiJob(request({ jobId: job.jobId }, cookie), runSetupAi),
+    ]);
+    expect(state.chat).toHaveBeenCalledTimes(1);
+    const poll = new Request(
+      "https://example.org/api/org/ai?jobId=" + job.jobId,
+      { headers: { cookie } },
+    );
+    const result = await (await startAiJob(poll)).json();
+    expect(result.status).toBe("done");
+    expect(result.response.result.model).toBe("AIR-test");
+    expect((await startAiJob(new Request(poll.url))).status).toBe(401);
+    const recovered = await (
+      await startAiJob(request({ stage: "constitution", revision: 1 }, cookie))
+    ).json();
+    expect(recovered.jobId).toBe(job.jobId);
+  });
+  it("records a failed background suggestion without applying settings or retrying charges", async () => {
+    const { cookie } = await session();
+    const job = await (
+      await startAiJob(request({ stage: "constitution", revision: 0 }, cookie))
+    ).json();
+    state.chat.mockRejectedValue(new Error("Network unavailable"));
+    await processAiJob(request({ jobId: job.jobId }, cookie), runSetupAi);
+    await processAiJob(request({ jobId: job.jobId }, cookie), runSetupAi);
+    const result = await (
+      await startAiJob(
+        new Request("https://example.org/api/org/ai?jobId=" + job.jobId, {
+          headers: { cookie },
+        }),
+      )
+    ).json();
+    expect(result.status).toBe("error");
+    expect(state.chat).toHaveBeenCalledTimes(1);
   });
 });
