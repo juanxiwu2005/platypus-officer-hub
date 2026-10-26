@@ -5,6 +5,7 @@ import { api } from '../../organization/client';
 import type { WorkspaceEnvelope } from '../contracts';
 import type { AssistantAction, AssistantAnswer, AssistantContext, AssistantJob } from './protocol';
 import './assistant.css';
+import { routeAssistantContext } from './routeContext';
 
 type Message = { id: string; role: 'user'|'assistant'; text: string; answer?: AssistantAnswer };
 interface AssistantValue {
@@ -26,10 +27,6 @@ async function finishJob(job:AssistantJob):Promise<AssistantAnswer>{
   const deadline=Date.now()+10*60*1000;
   while(result.status==='queued'||result.status==='running'){if(Date.now()>deadline)throw new Error('AI has not finished. Your data is unchanged. Reload to check this same request.');await new Promise(resolve=>setTimeout(resolve,1500));result=await api<AssistantJob>('/api/workspace/assistant?jobId='+encodeURIComponent(job.jobId));}
   if(result.status==='error'||!result.answer)throw new Error(result.message||'The assistant could not finish. No changes were applied.');return result.answer;
-}
-function pageContext(path: string): AssistantContext {
-  const id = path.match(/\/work\/([^/]+)/)?.[1];
-  return { screen: path.includes('/setup') ? 'constitution' : path.includes('/tasks') ? 'tasks' : path.includes('/activities') ? 'activities' : path.includes('/board') ? 'board' : id ? 'work' : 'home', ...(id ? { workItemId: decodeURIComponent(id) } : {}) };
 }
 export function AssistantProvider({ children }: { children: ReactNode }) {
   const location = useLocation(), navigate = useNavigate();
@@ -60,7 +57,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     window.addEventListener('platypus:assistant-context', select); window.addEventListener('platypus:ask', ask);
     return () => { window.removeEventListener('platypus:assistant-context', select); window.removeEventListener('platypus:ask', ask); };
   }, []);
-  const context = useMemo(() => location.pathname.includes('/setup') && setupContext ? setupContext : { ...pageContext(location.pathname), ...selection }, [location.pathname, selection, setupContext]);
+  const context = useMemo(() => {
+    if(location.pathname.includes('/setup')&&setupContext)return setupContext;
+    const route=routeAssistantContext(location.pathname,location.search);
+    const selected=selection?.screen===route.screen&&(!selection.workItemId||selection.workItemId===route.workItemId)?selection:null;
+    return {...selected,...route,...(route.screen==='work'?{taskId:route.taskId}:{})};
+  },[location.pathname,location.search,selection,setupContext]);
   const send = useCallback(async () => {
     if (!text.trim() || busy) return;
     const prompt = text.trim(); inFlight.current=true; setBusy(true); setError(''); setText('');
@@ -92,6 +94,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     setBusy(true); setError('');
     try {
       if(action.kind==='organization')await setupFlush.current?.();
+      else if(action.kind==='command'&&!window.dispatchEvent(new Event('platypus:before-workspace-leave',{cancelable:true})))return;
       await api('/api/workspace/assistant',{action:'apply',requestId:uid(),jobId:message.answer.proposalId,actionIndex:index});
       setApplied(v=>({...v,[key]:action.kind==='organization'?'Draft saved · confirm in Organization setup':'Applied'}));
       window.dispatchEvent(new Event('platypus:workspace-changed'));

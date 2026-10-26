@@ -3,3 +3,5 @@
 @media(max-width:760px){.live-workspace .p1-sidebar nav>a:nth-child(-n+4){display:flex!important;flex:0 0 auto}.live-workspace .p1-sidebar nav{overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}}
 
 .live-workspace .live-body main{display:block;max-width:none;width:100%}.live-workspace .aw-workspace{width:100%}
+
+.live-workspace .aw-task-detail-shell{margin-top:20px;border:1px solid #dce2eb;background:#fff;border-radius:12px;padding:20px}.live-workspace .aw-task-detail-shell .aw-task-dialog{width:100%;max-width:none;max-height:none;padding:0;border:0;box-shadow:none;overflow:visible}

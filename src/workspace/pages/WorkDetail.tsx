@@ -120,6 +120,20 @@ function TaskDetail({ task, item, schedule, close }: { task: WorkTask; item: Wor
   const [error, setError] = useState('');
   const [evidence, setEvidence] = useState('');
   const [depends, setDepends] = useState(task.dependsOn);
+  const previous=useRef(task);
+  const [versionNotice,setVersionNotice]=useState(false);
+  useEffect(()=>{
+    const old=previous.current;
+    const sync=(local:string,before:string,after:string,set:(value:string)=>void)=>{
+      if(local===before)set(after);
+      else if(before!==after&&local!==after)setVersionNotice(true);
+    };
+    sync(title,old.title,task.title,setTitle);sync(description,old.description,task.description,setDescription);
+    sync(ownerId,old.ownerId??'',task.ownerId??'',setOwnerId);sync(due,old.dueOverride??'',task.dueOverride??'',setDue);
+    if(JSON.stringify(depends)===JSON.stringify(old.dependsOn))setDepends(task.dependsOn);
+    else if(JSON.stringify(old.dependsOn)!==JSON.stringify(task.dependsOn))setVersionNotice(true);
+    previous.current=task;
+  },[task]);
   const dialog = useRef<HTMLDivElement>(null);
   const plan = schedule.tasks[task.id];
   const gate = item.gates.find(entry => entry.id === task.gateId);
@@ -131,14 +145,17 @@ function TaskDetail({ task, item, schedule, close }: { task: WorkTask; item: Wor
   const dismiss=()=>{if(unsaved.confirmDiscard())close();};
   const update = async (e: FormEvent) => {
     e.preventDefault(); setError('');
+    if(versionNotice&&!window.confirm('This task changed while you were editing. Save your reviewed edits over the latest saved fields?'))return;
     try { await mutate({ type: 'task.update', workItemId: item.id, taskId: task.id, patch: { title, description, ...(manager ? { ownerId: ownerId || null, dueOverride: due || null, dependsOn: depends } : {}) } }); unsaved.markSaved(); recovery.clear();close(); }
     catch (e) { setError((e as Error).message); }
   };
-  useDialogFocus(dialog,dismiss,mutating);
-  return <div className="aw-modal-backdrop"><div className="aw-modal aw-task-dialog" role="dialog" aria-modal="true" aria-labelledby="aw-task-title" tabIndex={-1} ref={dialog}>
+  useDialogFocus(dialog,dismiss,mutating,false);
+  useEffect(()=>{dialog.current?.focus();dialog.current?.scrollIntoView?.({block:"nearest"});},[task.id]);
+  return <div className="aw-task-detail-shell"><div className="aw-modal aw-task-dialog" role="dialog" aria-modal="false" aria-labelledby="aw-task-title" tabIndex={-1} ref={dialog} onKeyDown={e=>{if(e.key==="Escape"){e.preventDefault();dismiss();}}}>
     <header><div><span className="aw-eyebrow">{item.name}</span><h2 id="aw-task-title">{task.title}</h2></div><button aria-label="Close task details" disabled={mutating} onClick={dismiss}>×</button></header>
     <div className="aw-inline"><Status status={task.status} /><span>{memberName(members, task.ownerId)}</span></div>
     {recovery.notice&&<p className="aw-note" role="status">{recovery.notice}</p>}
+    {versionNotice&&<p className="aw-note" role="status">The saved task changed. Your unfinished edits are preserved; review them before saving.</p>}
     <dl className="aw-date-facts"><div><dt>Start</dt><dd>{plan?.start ? shortDate(plan.start) : 'Not scheduled'}</dd></div><div><dt>Team target</dt><dd>{plan?.due ? shortDate(plan.due) : 'Not scheduled'}</dd></div><div><dt>Official deadline</dt><dd>{plan?.official ? shortDate(plan.official) : 'Not applicable'}</dd></div></dl>
     {plan?.basis && <p className="aw-muted">{plan.basis}</p>}
     {plan?.issues.length ? <ul className="aw-note">{plan.issues.map((issue,i) => <li key={i}>{issue.replace(/^[a-z_]+:\s*/, "")}</li>)}</ul> : null}

@@ -81,7 +81,8 @@ test('unfinished creation survives refresh and cancelling Back retains its input
   let dialog=page.getByRole('dialog',{name:'Create member activity'});
   await dialog.getByLabel('Name',{exact:true}).fill('Unfinished member workshop');
   await dialog.getByLabel('Activity date',{exact:true}).fill('2026-11-25');
-  page.once('dialog',prompt=>prompt.dismiss());await page.goBack();
+  const cancelled=page.waitForEvent('dialog').then(prompt=>prompt.dismiss());await page.goBack();await cancelled;
+  await expect(page.locator('.p1-topbar').getByRole('status')).toHaveCount(0);
   await expect(dialog.getByLabel('Name',{exact:true})).toHaveValue('Unfinished member workshop');
   await expect(page).toHaveURL(/phase1\/activities/);
   page.once('dialog',prompt=>prompt.accept());await page.reload();
@@ -110,4 +111,34 @@ test('personal board and creation modal retain keyboard access and accessible la
   const dialog=page.getByRole('dialog',{name:'Create member activity'});
   await dialog.getByRole('button',{name:'Create and assign tasks',exact:true}).focus();await page.keyboard.press('Tab');
   await expect(dialog.getByRole('button',{name:'Close creation form'})).toBeFocused();
+});
+
+
+test('the persistent assistant knows the selected task and protects unfinished edits before applying',async({page,isMobile})=>{
+  const state=await runtime(page);let selected:Record<string,unknown>|null=null;let applied=0;
+  await page.route('**/api/workspace/assistant',async route=>{
+    const body=route.request().postDataJSON();
+    if(body.action==='apply'){
+      applied++;const task=state.envelope.state.workItems[0].tasks[0];task.title='Renamed existing task';task.updatedAt='2026-10-26T23:00:00Z';state.envelope.state.revision++;
+      await route.fulfill({json:{applied:true}});return;
+    }
+    selected=body.context;
+    await route.fulfill({json:{jobId:body.requestId,status:'done',answer:{proposalId:body.requestId,message:'Offline selected-task check.',question:null,actions:[{kind:'command',title:'Rename existing task',command:{type:'task.update',workItemId:'river_event',taskId:'plan',patch:{title:'Renamed existing task'}}}],workspaceRevision:1,setupRevision:1}}});
+  });
+  await page.goto('/#/phase1/work/river_event?task=plan');
+  await expect(page.getByRole('dialog',{name:'Collect approved project ideas',exact:true})).toBeVisible();
+  await page.locator('.aw-task-dialog').getByRole('textbox',{name:'Description',exact:true}).fill('Keep this unfinished task note.');
+  if(isMobile)await page.getByRole('button',{name:'✦ Ask Platypus',exact:true}).click();
+  await page.getByLabel('Ask about your workspace',{exact:true}).fill('Rename this selected task to Renamed existing task.');
+  await page.getByRole('button',{name:'Send →',exact:true}).click();
+  await expect(page.getByText('Offline selected-task check.',{exact:true})).toBeVisible();
+  expect(selected).toMatchObject({screen:'work',workItemId:'river_event',taskId:'plan'});
+  const refused=page.waitForEvent('dialog').then(prompt=>prompt.dismiss());
+  await page.getByRole('button',{name:'Approve change',exact:true}).click();await refused;
+  await expect(page.getByRole('button',{name:'Approve change',exact:true})).toBeEnabled();expect(applied).toBe(0);
+  await expect(page.locator('.aw-task-dialog').getByRole('textbox',{name:'Description',exact:true})).toHaveValue('Keep this unfinished task note.');
+  const accepted=page.waitForEvent('dialog').then(prompt=>prompt.accept());
+  await page.getByRole('button',{name:'Approve change',exact:true}).click();await accepted;
+  await expect(page.locator('.aw-task-dialog h2')).toHaveText('Renamed existing task');expect(applied).toBe(1);
+  await expect(page.locator('.aw-task-dialog').getByRole('textbox',{name:'Description',exact:true})).toHaveValue('Keep this unfinished task note.');
 });

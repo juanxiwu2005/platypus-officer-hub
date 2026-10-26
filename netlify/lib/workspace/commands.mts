@@ -62,4 +62,3 @@ export function validateMutation(value: unknown) {
   const body = z.object({ requestId: id, revision: z.number().int().min(0), command: z.unknown() }).strict().parse(value);
   return { ...body, command: validateWorkspaceCommand(body.command) };
 }
-

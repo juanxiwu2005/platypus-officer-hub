@@ -10,7 +10,7 @@ async function mockRuntime(page:Page,read:()=>WorkspaceEnvelope) {
 }
 test('current organization reaches Home and real activities without displaying setup duties',async({page})=>{
   await mockRuntime(page,()=>workspaceFixture());await page.goto('/#/phase1');
-  await expect(page.getByText('Fictional River Builders',{exact:true}).first()).toBeVisible();
+  await expect(page.locator('.p1-org b')).toHaveText('Fictional River Builders');
   await expect(page.getByRole('heading',{name:'Member Programs',exact:true})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Executive Board',exact:true})).toBeVisible();
   await expect(page.getByRole('heading',{name:'Your team',exact:true})).toHaveCount(0);
@@ -25,10 +25,10 @@ test('current organization reaches Home and real activities without displaying s
 });
 test('navigation refreshes organization data without writing the legacy preview repository',async({page})=>{
   let envelope=workspaceFixture();await mockRuntime(page,()=>envelope);await page.goto('/#/phase1');
-  await expect(page.getByText('Fictional River Builders',{exact:true}).first()).toBeVisible();
+  await expect(page.locator('.p1-org b')).toHaveText('Fictional River Builders');
   envelope=workspaceFixture('Updated River Builders',2);
   await page.getByRole('navigation',{name:'Workspace navigation'}).getByRole('link',{name:'Activities',exact:true}).click();
-  await expect(page.getByText('Updated River Builders',{exact:true}).first()).toBeVisible();
+  await expect(page.locator('.p1-org b')).toHaveText('Updated River Builders');
   await expect(page.getByText('Fictional River Builders',{exact:true})).toHaveCount(0);
   expect(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.includes('confirmed-private-workspace')))).toBe(false);
 });
@@ -42,7 +42,7 @@ test('unavailable runtime offers setup and retry rather than substituting fictio
 test('Home and activity details retain keyboard access and accessibility',async({page})=>{
   await mockRuntime(page,()=>workspaceFixture());
   for(const path of ['/#/phase1','/#/phase1/work/river_event']) {
-    await page.goto(path);await expect(page.getByText('Fictional River Builders',{exact:true}).first()).toBeVisible();
+    await page.goto(path);await expect(page.locator('.p1-org b')).toHaveText('Fictional River Builders');
     const results=await new AxeBuilder({page}).include('#live-main').withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();expect(results.violations).toEqual([]);
     const setup=page.getByRole('navigation',{name:'Workspace navigation'}).getByRole('link',{name:'Organization setup',exact:true});await setup.focus();await expect(setup).toBeFocused();
   }

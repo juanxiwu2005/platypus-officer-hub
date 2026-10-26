@@ -20,7 +20,7 @@ let current:WorkspaceEnvelope;
 let posts:WorkspaceMutation[];
 let intercept:((mutation:WorkspaceMutation)=>Response|Promise<Response>)|null;
 beforeEach(()=>{
-  current=fixture();posts=[];intercept=null;
+  localStorage.clear();current=fixture();posts=[];intercept=null;
   localStorage.clear();
   vi.stubGlobal('fetch',vi.fn(async (_url:unknown,init?:RequestInit)=>{
     if(init?.method==='POST'){
@@ -34,6 +34,9 @@ beforeEach(()=>{
         task.status=command.type==='task.move'?command.status:'done';
         task.completedAt=task.status==='done'?now:null;
         if(command.type==='task.move'&&command.blocker)task.blockers=[command.blocker];
+      } else if(command.type==='task.progress'){
+        const task=current.state.workItems.find(item=>item.id===command.workItemId)!.tasks.find(task=>task.id===command.taskId)!;
+        task.progress.push({memberId:current.state.actorId!,text:command.text,at:'2026-10-26T16:00:00Z'});task.updatedAt='2026-10-26T16:00:00Z';
       } else if(command.type==='work.applyTiming'){
         current.state.workItems.find(item=>item.id===command.workItemId)!.timingDefaults=command.timingDefaults;
       } else if(command.type==='work.create'){
@@ -222,4 +225,16 @@ describe('workspace pages use existing server tasks',()=>{
     expect(within(board).getByRole('link',{name:'Existing task 1'})).toBeTruthy();
     expect(within(board).getByRole('link',{name:'Review approval →'})).toBeTruthy();
   });
+});
+
+
+it('does not restore an already-submitted task progress update after refreshing the panel',async()=>{
+  const mounted=open('/phase1/work/member_event?task=task_1');
+  const progress=await screen.findByLabelText('Progress update');
+  fireEvent.change(progress,{target:{value:'Checked the fictional quote.'}});
+  fireEvent.click(screen.getByRole('button',{name:'Add update'}));
+  await waitFor(()=>expect(current.state.workItems[0].tasks[1].progress).toHaveLength(1));
+  await waitFor(()=>expect((screen.getByLabelText('Progress update') as HTMLTextAreaElement).value).toBe(''));
+  mounted.unmount();open('/phase1/work/member_event?task=task_1');
+  await waitFor(()=>expect((screen.getByLabelText('Progress update') as HTMLTextAreaElement).value).toBe(''));
 });
