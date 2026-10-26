@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { TaskSchema, WorkItemSchema, WorkspaceStateSchema, type WorkTask } from './contracts';
+import { TaskSchema, WorkItemSchema, WorkspaceStateSchema, GateSchema, type WorkTask } from './contracts';
 import { projectStages, selectPriorityTasks, shortChain, taskReady, workspaceToday } from './selectors';
 const task=(id:string,patch:Partial<WorkTask>={})=>TaskSchema.parse({id,parentWorkItemId:'event',title:id,stageKey:id,stageTitle:id,roleIds:[],ownerId:'me',updatedAt:'2026-10-26T10:00:00Z',...patch});
 const item=(tasks:WorkTask[])=>WorkItemSchema.parse({id:'event',kind:'member_event',name:'Event',date:'2026-11-19',ownerId:'me',templateVersion:1,tasks,createdAt:'2026-10-26T10:00:00Z',updatedAt:'2026-10-26T10:00:00Z'});
@@ -36,6 +36,16 @@ describe('Shared activity projections',()=>{
     const work=item([task('upstream',{ownerId:'someone_else'}),task('future',{dependsOn:['upstream']})]);
     const state=WorkspaceStateSchema.parse({schemaVersion:1,workspaceId:'workspace',revision:0,actorId:'me',members:[],workItems:[work],updatedAt:'2026-10-26T10:00:00Z'});
     expect(selectPriorityTasks(state,'2026-10-26')).toEqual([]);
+  });
+  it('ties manager assignment notices and designated approvals to existing tasks',()=>{
+    const work=item([task('vacant',{ownerId:null}),task('approval',{kind:'approval',gateId:'gate',ownerId:'someone_else'})]);
+    work.gates.push(GateSchema.parse({id:'gate',taskId:'approval',kind:'general',approverIds:['me']}));
+    const state=WorkspaceStateSchema.parse({schemaVersion:1,workspaceId:'workspace',revision:0,actorId:'me',members:[{id:'me',name:'Demo Me',roleIds:[],access:'manager'}],workItems:[work],updatedAt:'2026-10-26T10:00:00Z'});
+    const rows=selectPriorityTasks(state,'2026-10-26',Infinity);
+    expect(rows.find(r=>r.task.id==='vacant')?.reason).toBe('Assign a primary owner');
+    expect(rows.find(r=>r.task.id==='approval')?.reason).toBe('Approval needed');
+    state.members[0].access='member';
+    expect(selectPriorityTasks(state,'2026-10-26',Infinity).map(r=>r.task.id)).toEqual(['approval']);
   });
   it('uses the shared schedule deadline and the Phoenix day boundary',()=>{
     expect(workspaceToday(new Date('2026-10-27T01:00:00Z'))).toBe('2026-10-26');

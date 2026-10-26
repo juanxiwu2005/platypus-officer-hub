@@ -96,11 +96,11 @@ export function selectPriorityTasks(state: WorkspaceState, today = workspaceToda
     if(task.status==='done'||task.applicability==='inactive'||(!unassigned&&!reviewer&&task.ownerId!==state.actorId&&!task.collaboratorIds.includes(state.actorId))) continue;
     const due=schedules[workItem.id]?.tasks[task.id]?.due ?? task.dueOverride;
     const ready=taskReady(workItem,task);
-    const approval=task.kind==='approval'&&ready;
+    const approval=task.kind==='approval'&&ready&&reviewer;
     const overdue=!!due&&due<today;
     const soon=!!due&&due>=today&&(Date.parse(due)-Date.parse(today))/86400000<=2;
     const priority=(unassigned?1050:0)+(task.needsReview?1100:0)+(approval?1000:0)+(task.status==='stuck'?900:0)+(overdue?800:soon?600:0)+(ready?200:0)+(task.status==='working'?100:0);
-    const reason=unassigned?'Assign a primary owner':task.needsReview?'Changes need review':approval?'Approval needed':task.status==='stuck'?(task.blockers[0]?.reason??'Stuck'):overdue?'Overdue':soon?'Due soon':ready?'Ready to work':'Waiting for an earlier step';
+    const reason=approval?'Approval needed':unassigned?'Assign a primary owner':task.needsReview?'Changes need review':approval?'Approval needed':task.status==='stuck'?(task.blockers[0]?.reason??'Stuck'):overdue?'Overdue':soon?'Due soon':ready?'Ready to work':'Waiting for an earlier step';
     if(priority===0) continue; // Future work waiting on dependencies is not an urgent action.
     rows.push({task,workItem,reason,priority,due:due??null});
   }
