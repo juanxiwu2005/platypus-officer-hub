@@ -79,7 +79,7 @@ export function upgrade(raw: SetupDraft = blankDraft()): SetupV3 {
     position: r.position ?? { x: (i % 3) * 280, y: Math.floor(i / 3) * 220 },
     manualFields: r.manualFields ?? [],
   }));
-  return {
+  return migrateReviewedCheck({
     ...d,
     uiVersion: 3,
     departments,
@@ -94,7 +94,7 @@ export function upgrade(raw: SetupDraft = blankDraft()): SetupV3 {
       at: null,
     },
     generated: d.generated ?? {},
-  };
+  });
 }
 export function roleContext(d: SetupV3) {
   return [...d.roles]
@@ -120,6 +120,30 @@ export function scopeKey(d: SetupV3, stage: Stage): string {
       .sort((a, b) => a.id.localeCompare(b.id))
       .map((r) => ({ id: r.id, ...roleMeaning(r) })),
   });
+}
+/** Carry forward only a review proven to match the exact pre-v2 scope format.
+ * This helper does not parse form fields, so it can also handle local drafts
+ * containing a temporary empty title without discarding the user's input.
+ */
+export function migrateReviewedCheck(d: SetupV3): SetupV3 {
+  if (!["complete", "skipped"].includes(d.riskCheck.status)) return d;
+  const legacyKey = stable({
+    organization: { name: d.name, mission: d.mission },
+    roles: roleContext(d),
+    departments: d.departments
+      .map(({ id, name }) => ({ id, name }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    source: d.source?.checksum ?? "none",
+  });
+  if (d.riskCheck.inputKey !== legacyKey) return d;
+  const inputKey = scopeKey(d, "risk_check");
+  return {
+    ...d,
+    riskCheck: { ...d.riskCheck, inputKey },
+    generated: d.generated.risk_check === legacyKey
+      ? { ...d.generated, risk_check: inputKey }
+      : d.generated,
+  };
 }
 function semanticText(value: string) {
   return value.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-US");

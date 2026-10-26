@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyChanges, compileOrganization, reconcile, scopeKey, upgrade,
+  migrateReviewedCheck, roleContext, stable, hasReviewedCheck,
 } from "./setupLogic";
 import { fixtureDraft, fixtureFlow } from "./testing/fixtures";
 import { MODEL_POLICY_VERSION } from "./modelPolicy";
@@ -63,6 +64,66 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("semantic configuration dependencies", () => {
+  const legacyScope = (d: ReturnType<typeof draft>) => stable({
+    organization: { name: d.name, mission: d.mission },
+    roles: roleContext(d),
+    departments: d.departments.map(({ id, name }) => ({ id, name }))
+      .sort((a, b) => a.id.localeCompare(b.id)),
+    source: d.source?.checksum ?? "none",
+  });
+  for (const status of ["complete", "skipped"] as const)
+    it(`preserves an exactly matching legacy ${status} check without another model request`, () => {
+      const d = draft();
+      const oldKey = legacyScope(d);
+      d.riskCheck = { status, inputKey: oldKey, risks: [], answers: {}, at: "2026-10-26T12:00:00Z" };
+      d.generated.risk_check = oldKey;
+      const before = structuredClone(d);
+      const next = upgrade(d);
+      expect(hasReviewedCheck(next)).toBe(true);
+      expect(next.riskCheck).toEqual({ ...d.riskCheck, inputKey: scopeKey(next, "risk_check") });
+      expect(next.generated.risk_check).toBe(scopeKey(next, "risk_check"));
+      expect(d).toEqual(before);
+      expect(state.chat).not.toHaveBeenCalled();
+    });
+  it("does not bless stale legacy reviews after any old-scope evidence changes", () => {
+    for (const change of [
+      (d: ReturnType<typeof draft>) => { d.mission = "New organization purpose"; },
+      (d: ReturnType<typeof draft>) => { d.roles[0].responsibilities = ["A changed duty"]; },
+      (d: ReturnType<typeof draft>) => { d.departments[0].name = "Changed since review"; },
+      (d: ReturnType<typeof draft>) => { d.source!.checksum = "new-source"; },
+    ]) {
+      const d = draft();
+      d.riskCheck = { status: "complete", inputKey: legacyScope(d), risks: [], answers: {}, at: null };
+      d.generated.risk_check = d.riskCheck.inputKey;
+      change(d);
+      const next = upgrade(d);
+      expect(hasReviewedCheck(next)).toBe(false);
+      expect(next.riskCheck.inputKey).toBe(d.riskCheck.inputKey);
+      expect(next.generated.risk_check).toBe(d.generated.risk_check);
+    }
+  });
+  it("does not migrate unreviewed, arbitrary, or already-current keys", () => {
+    const d = draft();
+    d.riskCheck.inputKey = legacyScope(d);
+    expect(migrateReviewedCheck(d)).toBe(d);
+    d.riskCheck.status = "complete";
+    d.riskCheck.inputKey = "arbitrary-unverified-key";
+    expect(migrateReviewedCheck(d)).toBe(d);
+    d.riskCheck.inputKey = scopeKey(d, "risk_check");
+    expect(migrateReviewedCheck(d)).toBe(d);
+  });
+  it("supports local recovery with temporary invalid text while keeping the migration strict and immutable", () => {
+    const d = draft();
+    d.roles[0].title = "";
+    d.riskCheck = { status: "skipped", inputKey: legacyScope(d), risks: [], answers: {}, at: null };
+    d.generated.risk_check = "unrelated-proposal-key";
+    const before = structuredClone(d);
+    const next = migrateReviewedCheck(d);
+    expect(next.roles[0].title).toBe("");
+    expect(hasReviewedCheck(next)).toBe(true);
+    expect(next.generated.risk_check).toBe("unrelated-proposal-key");
+    expect(d).toEqual(before);
+  });
   it("reuses checks for labels, colors, layout, duty ordering and harmless whitespace", () => {
     const original = draft(), next = structuredClone(original);
     next.name = "A new public label";
