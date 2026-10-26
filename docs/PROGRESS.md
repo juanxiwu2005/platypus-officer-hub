@@ -1,3 +1,6 @@
+> **2026-10-26 Activity Workspace：进行中（Codex，独立Worktree多Agent）**
+> 用户批准A1/B1/C2执行方案，并要求首页重点事项直接从现有任务排序、AI接通组织与两类工作项创建/修改。Data/Schedule/Workspace UI/Assistant/Setup UI分工，主Agent维护契约/集成，独立Review。基于1815be0，开发分支feat/activity-workspace-v1；不改main、不真实AI测试。详见 [方案](organization/ACTIVITY_WORKSPACE_PLAN.md)。
+
 > **2026-10-26 · F1–F7 审计修复：待验收（Codex，多 Agent 独立 Worktree）**
 > Juanxi 在本聊天批准执行审计方案。基于 `54e5823`，分工：Data 负责人工决定/增量影响/确认门槛与缓存；AI 负责中断诊断；UI 负责保存恢复、风险卡和图交互；主 Agent 负责共享契约、新批准配置消费与整合；独立 Review 逐批复核。不合并 main、不正式发布、不重复消耗 AIR 测试额度。执行记录与验收结果随后更新。
 > 最终构建、410单元、222电脑/手机浏览器场景通过，16项按条件跳过；本地真实函数/Blobs仿真与Chromium批准配置消费联测通过，0次真实AI生成。独立Review开放代码阻塞0。开发分支接续PR #3，远端CI/部署尚未核验；真实AI提速未新测。详见 [实施](organization/F1_F7_IMPLEMENTATION.md) 与 [Review](organization/REVIEW_F1_F7.md)。需要同步本地备份。

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { TimingDefaultsSchema, RelativeTargetSchema } from "../workspace/contracts/timing";
+export { TimingDefaultsSchema } from "../workspace/contracts/timing";
 export const DEPARTMENTS = [
   { id: "planning", name: "Programs & Planning" },
   { id: "logistics", name: "Event Logistics" },
@@ -71,6 +73,8 @@ export const FlowNodeSchema = z.object({
   basis: z.string().max(500),
   accountableRoleId: id.nullable().optional(),
   needsReview: z.boolean().optional(),
+  timing: RelativeTargetSchema.optional(),
+  milestoneKey: z.enum(["items", "quotes", "budget_request"]).optional(),
 });
 export type FlowNode = z.infer<typeof FlowNodeSchema>;
 export const FlowSchema = z.object({
@@ -181,6 +185,7 @@ export type RiskIssue = z.infer<typeof RiskSchema>;
 export const DraftSchema = z.object({
   schemaVersion: z.literal(2),
   uiVersion: z.literal(3).optional(),
+  timingDefaults: TimingDefaultsSchema.optional(),
   departments: z.array(DepartmentSchema).max(30).optional(),
   messages: z
     .array(

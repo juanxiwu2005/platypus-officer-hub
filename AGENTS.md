@@ -150,3 +150,8 @@ AIR 接受 json_schema 仍可能不遵循形状；必须在 prompt 给精确字�
 - 原文和失败 transport 指标先归档，再解析模型 JSON。区分本站任务等待和供应商等待，不能从首字直接断言排队。不得为本轮回归自动调用真实AI或做额外收费比较。
 - `/phase1` 消费服务器 approved.compiled，不读取未确认 draft，不把配置写入旧 localPreviewRepository。示例只能显式在 `?example=1` 或 setup-legacy 使用；旧 Today/Tasks 等仍是独立旧业务。
 - 完整 Board planner、真实账号、跨组织共享和旧业务数据库迁移仍超出本轮；不把模板名称称为已实现规划器。正式合并/发布仍需 Juanxi 批准。
+
+
+## 13. Activity Workspace（2026-10-26，用户已授权实施）
+
+用户选A1首页/B1活动列表/C2时间轴，批准独立Worktree多Agent全方案，见docs/organization/ACTIVITY_WORKSPACE_PLAN.md。共享schema和路由由主Agent拥有，Data/Schedule/UI/AI/Setup分别维护唯一文件，独立Review；先契约后并行。首页重点事项必须从现有任务确定性排序、默认3项可展开，不做AI摘要。AI通过同一受验证命令操作业务数据/调表单/创建Member和Executive工作项；不能直写数据库。私有测试actor不等于真实登录。保留旧演示；不改main，不自动真实AI评测。
