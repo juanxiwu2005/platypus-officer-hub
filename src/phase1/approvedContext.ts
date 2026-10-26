@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TimingDefaultsSchema, DEFAULT_TIMING } from "../workspace/contracts/timing";
 import { DepartmentSchema, DraftSchema, FlowSchema, RoleSchema } from "../organization/schema";
 import { graphError } from "../organization/graph";
 
@@ -13,6 +14,7 @@ const ConfigSchema = z.object({
     roles: z.array(RoleSchema.pick({ id: true, title: true, departmentId: true, parentRoleId: true, description: true, responsibilities: true })).min(1).max(30),
   }),
   onDemand: z.object({
+    timingDefaults: TimingDefaultsSchema.default(DEFAULT_TIMING),
     memberWorkflow: FlowSchema.omit({ raci: true }).extend({
       raci: z.array(z.object({
         nodeId: z.string(), responsible: z.array(z.string()), accountable: z.string().nullable(),

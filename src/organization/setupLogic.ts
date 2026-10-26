@@ -525,6 +525,7 @@ export function compileOrganization(draft: SetupDraft) {
       },
     },
     onDemand: {
+      timingDefaults: d.timingDefaults ?? { itemsWeeks: 8, quotesWeeks: 7, budgetWeeks: 6 },
       constitution: {
         archiveId: d.source?.archiveId ?? null,
         checksum: d.source?.checksum ?? null,

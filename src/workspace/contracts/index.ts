@@ -22,6 +22,7 @@ export type TaskStatus = z.infer<typeof TaskStatusSchema>;
 export const OfficialRuleSchema = z.object({ruleId: z.string(), days: z.number().int().min(0).max(365), unit: z.enum(['calendar', 'business'])});
 export const TaskSchema = z.object({
   id: IdSchema, parentWorkItemId: IdSchema, sourceNodeId: IdSchema.nullable().default(null),
+  milestoneKey: z.enum(['items', 'quotes', 'budget_request']).optional(),
   title: z.string().trim().min(1).max(180), description: z.string().max(1000).default(''),
   stageKey: IdSchema, stageTitle: z.string().min(1).max(180),
   roleIds: z.array(IdSchema).max(30), ownerId: IdSchema.nullable(), collaboratorIds: z.array(IdSchema).max(50).default([]),
@@ -32,6 +33,7 @@ export const TaskSchema = z.object({
   blockers: z.array(BlockerSchema).max(20).default([]), needsReview: z.boolean().default(false),
   relativeTarget: RelativeTargetSchema.nullable().default(null), officialRules: z.array(OfficialRuleSchema).max(16).default([]),
   dueOverride: z.string().nullable().default(null), estimatedDays: z.number().min(0).max(60).default(1),
+  progress: z.array(z.object({memberId: IdSchema, text: z.string().max(1000), at: z.string()})).default([]),
   rank: z.number().default(0), completedAt: z.string().nullable().default(null), updatedAt: z.string(),
 });
 export type WorkTask = z.infer<typeof TaskSchema>;
@@ -48,7 +50,7 @@ export const FundingSchema = z.object({
   status: z.enum(['draft', 'submitted', 'approved', 'rejected']).default('draft'),
   approvedVersion: z.number().int().nullable().default(null), approvedAmount: z.number().min(0).nullable().default(null),
   committedAmount: z.number().min(0).default(0), spentAmount: z.number().min(0).default(0),
-  commitments: z.array(z.object({id: IdSchema, amount: z.number().positive(), purpose: z.string().max(400), at: z.string(), status: z.enum(['reserved', 'spent', 'released']).default('reserved'), evidence: z.string().max(1000).default('')})).default([]),
+  commitments: z.array(z.object({id: IdSchema, amount: z.number().positive(), purpose: z.string().max(400), at: z.string(), status: z.enum(['reserved', 'spent', 'released']).default('reserved'), requestVersion: z.number().int().min(1).default(1), evidence: z.string().max(1000).default('')})).default([]),
   evidence: z.string().max(1000).default(''), spendBy: z.string().nullable().default(null),
 });
 export type FundingRequest = z.infer<typeof FundingSchema>;
@@ -85,6 +87,7 @@ export type WorkspaceCommand =
   | { type: 'work.update'; workItemId: string; patch: Partial<Pick<WorkItem, 'name'|'description'|'date'|'ownerId'|'venue'>> }
   | { type: 'work.remove'; workItemId: string }
   | { type: 'task.move'; workItemId: string; taskId: string; status: TaskStatus; blocker?: TaskBlocker; beforeId?: string|null }
+  | { type: 'task.progress'; workItemId: string; taskId: string; text: string }
   | { type: 'task.unblock'; workItemId: string; taskId: string; blockerId: string; evidence: string }
   | { type: 'task.complete'|'task.reopen'; workItemId: string; taskId: string }
   | { type: 'task.update'; workItemId: string; taskId: string; patch: Partial<Pick<WorkTask, 'title'|'description'|'ownerId'|'collaboratorIds'|'roleIds'|'dependsOn'|'dependencyMode'|'relativeTarget'|'dueOverride'|'estimatedDays'|'applicability'|'applicabilityReason'|'stageKey'|'stageTitle'>> }
