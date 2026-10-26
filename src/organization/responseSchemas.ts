@@ -25,6 +25,7 @@ export const CompactFlowSchema = z.object({
         dependsOn: z.array(z.string()).max(12),
         dependencyMode: z.enum(["all", "any"]),
         accountableRoleId: z.string().nullable(),
+        milestoneKey: z.enum(["items", "quotes", "budget_request"]).nullable().optional(),
       }),
     )
     .min(1)
@@ -123,6 +124,7 @@ export function responseSchema(
             dependsOn: arr(id, 12),
             dependencyMode: { type: "string", enum: ["all", "any"] },
             accountableRoleId: { anyOf: [roleId, { type: "null" }] },
+            milestoneKey: { anyOf: [{ type: "string", enum: ["items", "quotes", "budget_request"] }, { type: "null" }] },
           }),
           20,
         ),

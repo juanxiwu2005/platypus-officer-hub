@@ -242,6 +242,8 @@ export function validateV3(stage: Stage, raw: unknown, draft: SetupDraft) {
       explanation: "",
       nodes: out.nodes.map((n) => ({
         ...n,
+        milestoneKey: n.milestoneKey ?? undefined,
+        ...(n.milestoneKey ? { timing: { offsetDays: (n.milestoneKey === "items" ? (d.timingDefaults?.itemsWeeks ?? 8) : n.milestoneKey === "quotes" ? (d.timingDefaults?.quotesWeeks ?? 7) : (d.timingDefaults?.budgetWeeks ?? 6)) * 7, unit: "calendar" as const, source: "organization-default" as const } } : {}),
         description: "",
         actionIds: [],
         basis: "AI proposal based on organization duties",
