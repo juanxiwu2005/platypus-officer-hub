@@ -15,25 +15,39 @@ export function taskSatisfied(item: WorkItem, id: string): boolean {
 export function taskReady(item: WorkItem, task: WorkTask): boolean {
   if (task.applicability === 'inactive' || task.needsReview || task.blockers.length) return false;
   if (!task.dependsOn.length) return true;
+  const applicable=task.dependsOn.filter(id=>item.tasks.find(t=>t.id===id)?.applicability!=='inactive');
   return task.dependencyMode === 'any'
-    ? task.dependsOn.some(id => taskSatisfied(item, id))
+    ? applicable.length>0 && applicable.some(id => taskSatisfied(item, id))
     : task.dependsOn.every(id => taskSatisfied(item, id));
 }
 /** Presentation projection only. An OR gate does not cancel its other branches. */
 export function projectStages(item: WorkItem): StageProjection[] {
   const by = new Map<string, WorkTask[]>();
-  [...item.tasks].sort((a,b) => a.rank-b.rank || a.id.localeCompare(b.id)).forEach(task => {
+  item.tasks.forEach(task => {
     if (task.applicability === 'inactive') return;
     by.set(task.stageKey, [...(by.get(task.stageKey) ?? []), task]);
   });
+  const parents=new Map([...by.keys()].map(key=>[key,new Set<string>()]));
+  for(const task of item.tasks) for(const id of task.dependsOn) {
+    const parent=item.tasks.find(t=>t.id===id);
+    if(parent&&parent.stageKey!==task.stageKey&&parents.has(parent.stageKey)) parents.get(task.stageKey)?.add(parent.stageKey);
+  }
+  const ordered:string[]=[];
+  const remaining=new Set(by.keys());
+  while(remaining.size) {
+    const ready=[...remaining].filter(key=>[...(parents.get(key)??[])].every(p=>!remaining.has(p)));
+    if(!ready.length) { ordered.push(...[...remaining].sort()); break; }
+    for(const key of ready) { ordered.push(key); remaining.delete(key); }
+  }
   let foundCurrent = false;
-  return [...by].map(([key,tasks]) => {
+  return ordered.map(key => {
+    const tasks=by.get(key)!;
     const required = tasks.filter(t => t.applicability === 'required');
     // Optional-only stages use their visible tasks for display, but do not block work elsewhere.
     const counted = required.length ? required : tasks;
     const completed = counted.filter(t => taskSatisfied(item,t.id)).length;
     const done = completed === counted.length;
-    const current = !done && (!foundCurrent || tasks.some(t => t.status === 'working' || t.status === 'stuck'));
+    const current = !done && (!foundCurrent || tasks.some(t => taskReady(item,t) || t.status === 'working' || t.status === 'stuck'));
     if (current) foundCurrent = true;
     return {id:key,key,title:tasks[0].stageTitle,tasks,taskIds:tasks.map(t=>t.id),completed,total:counted.length,
       blocked:tasks.filter(t=>t.status==='stuck'||t.needsReview).length,
@@ -43,10 +57,17 @@ export function projectStages(item: WorkItem): StageProjection[] {
 }
 export function shortChain(item: WorkItem): StageProjection[] {
   const stages=projectStages(item);
-  const at=stages.findIndex(s=>s.status==='current');
-  if (at<0) return stages.slice(-4);
-  const previous=stages.slice(0,at).filter(s=>s.status==='completed').at(-1);
-  return [...(previous?[previous]:[]),...stages.slice(at,at+3)];
+  const currents=stages.filter(s=>s.status==='current');
+  if(!currents.length) return stages.slice(-4);
+  const completed=stages.filter(s=>s.status==='completed');
+  const latest=completed.sort((a,b)=>Math.max(...a.tasks.map(t=>Date.parse(t.completedAt??'')||0))-Math.max(...b.tasks.map(t=>Date.parse(t.completedAt??'')||0))).at(-1);
+  const current:StageProjection=currents.length===1?currents[0]:{
+    id:'parallel_current',key:'parallel_current',title:'Parallel preparation',
+    tasks:currents.flatMap(s=>s.tasks),taskIds:currents.flatMap(s=>s.taskIds),
+    completed:currents.reduce((n,s)=>n+s.completed,0),total:currents.reduce((n,s)=>n+s.total,0),
+    blocked:currents.reduce((n,s)=>n+s.blocked,0),activeBranches:currents.length,status:'current',
+  };
+  return [...(latest?[latest]:[]),current,...stages.filter(s=>s.status==='upcoming').slice(0,2)];
 }
 export function workItemStatus(item: WorkItem): 'completed'|'stuck'|'working'|'to_do' {
   const required=item.tasks.filter(t=>t.applicability==='required');
@@ -54,9 +75,14 @@ export function workItemStatus(item: WorkItem): 'completed'|'stuck'|'working'|'t
   if(item.tasks.some(t=>t.applicability!=='inactive'&&(t.status==='stuck'||t.needsReview))) return 'stuck';
   return item.tasks.some(t=>t.status==='working'||t.status==='done')?'working':'to_do';
 }
+export function workspaceToday(now=new Date()): string {
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:'America/Phoenix',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+  const part=(type:string)=>parts.find(p=>p.type===type)!.value;
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
 export interface PriorityTask { task: WorkTask; workItem: WorkItem; reason: string; priority: number; due: string|null; }
 /** Select the existing personal queue; never ask a model to invent a second task list. */
-export function selectPriorityTasks(state: WorkspaceState, today = new Date().toISOString().slice(0,10), limit=3, schedules: Record<string,WorkSchedule> = {}): PriorityTask[] {
+export function selectPriorityTasks(state: WorkspaceState, today = workspaceToday(), limit=3, schedules: Record<string,WorkSchedule> = {}): PriorityTask[] {
   if(!state.actorId) return [];
   const rows:PriorityTask[]=[];
   for(const workItem of state.workItems) for(const task of workItem.tasks) {
