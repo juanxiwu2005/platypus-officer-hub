@@ -292,7 +292,7 @@ test("paste text is saved before the AI request", async ({ page }) => {
   await expect(
     page.getByText("✓ pasted-constitution.txt", { exact: true }),
   ).toBeVisible();
-  expect(s.read().draft.source?.text).toContain("fictional constitution");
+  await expect.poll(() => s.read().draft.source?.text).toContain("fictional constitution");
   expect(s.calls).toHaveLength(0);
 });
 test("departments come first, with editable colors and compact organization chart", async ({
