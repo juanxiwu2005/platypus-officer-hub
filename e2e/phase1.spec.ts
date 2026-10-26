@@ -1,8 +1,9 @@
+// The previous setup is retained as a reference route after the user-requested AI setup replacement.
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { noOverflow } from "./helpers";
 async function setup(page: Page) {
-  await page.goto("/#/phase1/setup");
+  await page.goto("/#/phase1/setup-legacy");
 }
 async function next(page: Page) {
   await page.getByRole("button", { name: "Continue", exact: true }).click();
@@ -273,7 +274,7 @@ test("Phase1 touch targets and screenshots on home, setup and workspace", async 
 }, info) => {
   for (const [name, route] of [
     ["home", "/phase1"],
-    ["setup", "/phase1/setup"],
+    ["setup", "/phase1/setup-legacy"],
     ["workspace", "/phase1/activity/member"],
   ]) {
     await page.goto("/#" + route);
@@ -294,7 +295,7 @@ test("Phase1 touch targets and screenshots on home, setup and workspace", async 
 });
 for (const [label, route] of [
   ["home", "/phase1"],
-  ["onboarding", "/phase1/setup"],
+  ["onboarding", "/phase1/setup-legacy"],
   ["workspace", "/phase1/activity/member"],
 ])
   test(`Phase1 accessibility ${label}`, async ({ page }) => {

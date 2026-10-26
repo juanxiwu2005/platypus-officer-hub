@@ -1,5 +1,7 @@
 import {
   useEffect,
+  lazy,
+  Suspense,
   useMemo,
   useRef,
   useState,
@@ -38,6 +40,7 @@ import {
 } from "./logic";
 import { localPreviewRepository } from "./repository";
 import "./phase1.css";
+const OnlineSetup = lazy(() => import("../organization/OnlineSetup"));
 
 function Icon({ name, size = 20 }: { name: string; size?: number }) {
   const paths: Record<string, ReactNode> = {
@@ -259,9 +262,19 @@ export default function PhaseOne() {
         </header>
         <main id="p1-main" tabIndex={-1} ref={main}>
           <Routes>
-            <Route index element={<Home draft={draft} active={active} />} />
             <Route
               path="setup"
+              element={
+                <Suspense
+                  fallback={<p role="status">Preparing organization setup…</p>}
+                >
+                  <OnlineSetup />
+                </Suspense>
+              }
+            />
+            <Route index element={<Home draft={draft} active={active} />} />
+            <Route
+              path="setup-legacy"
               element={
                 <Onboarding
                   draft={draft}
@@ -297,7 +310,11 @@ export default function PhaseOne() {
         </main>
         <footer className="p1-footer">
           <span>Fictional data only</span>
-          <span>Local demo responses · No AI provider connected</span>
+          <span>
+            {location.pathname.endsWith("/setup")
+              ? "AI suggestions · Reviewed by you"
+              : "Local demo responses · No AI provider connected"}
+          </span>
         </footer>
       </div>
     </div>

@@ -100,12 +100,13 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
   }
 }
 
-export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number }
+export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number; timeoutMs?: number }
 export type ChatJSONResult = { data: unknown; model: string; provider: string; ms: number }
 
 /** Send one system + user message and get a parsed JSON object back. */
-export async function chatJSON({ system, user, maxTokens = 700, temperature = 0 }: ChatJSONArgs): Promise<ChatJSONResult> {
-  const c = getConfig()
+export async function chatJSON({ system, user, maxTokens = 700, temperature = 0, timeoutMs }: ChatJSONArgs): Promise<ChatJSONResult> {
+  const configured = getConfig()
+  const c = { ...configured, timeoutMs: timeoutMs ? Math.max(5000, Math.min(55000, timeoutMs)) : configured.timeoutMs }
   if (!isConfigured(c)) throw new AIError("not_configured", "AI is not configured on the server.", 503)
   const t0 = Date.now()
 
