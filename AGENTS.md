@@ -126,3 +126,12 @@ Juanxi 在检查原型后明确要求继续实施并上线：章程/岗位/职�
 当前范围为新版 Organization Setup：`org-archive.mts`、`storage.mts` 的追加式事件、客户端 `archive.ts`、AI job/input/result 记录、分块原件与 SHA-256 校验、导出与原件下载。旧业务页为参考，尚未全面迁移成新组织数据库；真实账号、组织成员权限、跨组织共享/分析及正式交接仍需后续实施，不能谎称已上线。
 
 速度优先的新默认模型是 `muse-glimmer-30b`；`glm-5-3` 仅在用户主动选择 Deep review/stronger model 时调用，路由版本 v2。不要自动升级慢模型或启动额外 AI 评估。Juanxi 要求停止新增真实 AI 测试，主要由他实操验收；必要构建和小范围离线/模拟检查不消耗 AIR 额度。保留 GitHub CI，不重复无必要的全量测试。最新交接见 docs/organization/HANDOFF.md 与 DATA_FOUNDATION.md。
+
+## 11. Organization Setup v3（2026-10-26，Juanxi 最新反馈优先）
+
+- 五章：Constitution → Your team（部门、组织架构图）→ Responsibilities（部门/岗位职责、Check）→ Activity workflow → Review。移除 Board work 设置章，原字段和历史保留。右侧 AI 必须先提出白名单变更，用户批准后才应用。
+- Prompt 不属于产品 UI：服务端正本 `netlify/lib/organization/prompts.mts`；在开发聊天中交给 Juanxi 审核。`src/organization/prompts.ts` 仅用于旧客户端兼容，不得重新导入网页。
+- `setupLogic.ts` 负责稳定 ID、手动字段保护、局部引用修复和确定性 JSON 编译。JSON 是机器可读配置，可由 Python 读取；不执行模型生成的 Python。确认时服务器重新编译，不能信任客户端提交的 compiled。
+- 返回/前进无修改应为零 AI 调用；已有职责/流程不得整段清空。上游职责变化只标记相关节点；删除岗位须提示、只移除失效引用。所有变更、请求、错误、批准与原件继续归档。
+- JSON 失败必须区分输出上限、空内容、流未完成和语法错误。服务端先归档原始回复及 finish reason/字数/token/首字/总耗时，再解析和验证；不得静默补全缺失语义，不自动重复收费请求。原生 schema 被明确拒绝时最多降级一次。
+- Juanxi 最新恢复授权：允许少量虚构数据的真实 AI 冒烟测试，以诊断格式错误；不恢复整套真实评估。默认 Muse，只有明确 Deeper review 使用 GLM。测试与排队推断必须区分，不能把首字等待直接称为供应商排队。

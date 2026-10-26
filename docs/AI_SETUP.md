@@ -1,3 +1,5 @@
+> **2026-10-26 v3：** 允许少量虚构数据真实冒烟以排查 JSON 错误；不用完整真实评估。新设置使用服务端四任务 prompt、原生 schema 和流式指标，前端不展示系统 prompt。JSON 原始输出先归档再解析，截断/空输出不应用变更。详见 [v3 记录](organization/V3_CHANGELOG.md)。
+
 > **2026-10-26 最新：** 已切换 ASU AIR；默认 `muse-glimmer-30b`，GLM 仅主动深度检查（路由 v2）。此前 Gemma/GLM 自动按阶段的 v1 已被用户的速度要求替代。新设置使用后台任务与数据归档，见 [交接](organization/HANDOFF.md)、[数据基础](organization/DATA_FOUNDATION.md)。不再发起额外真实 AI 测试。
 
 # AI setup — how Platypus talks to an AI provider

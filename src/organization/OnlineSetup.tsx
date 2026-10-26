@@ -1,4 +1,12 @@
 import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { Link } from "react-router-dom";
+import {
   archiveFile,
   configureArchive,
   track,
@@ -9,92 +17,64 @@ import {
   listArchivedFiles,
   type ArchivedFile,
 } from "./archive";
-import { routeTask, MODEL_POLICY_VERSION } from "./modelPolicy";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import { Link } from "react-router-dom";
-import {
-  DEPARTMENTS,
-  type Envelope,
-  type OrgFlow,
-  type OrgRole,
-  type SetupDraft,
-  type Stage,
-} from "./schema";
-import { blankDraft, EXAMPLE_CONSTITUTION, presetAssignments } from "./presets";
 import { start, save, prepare } from "./client";
 import { documentSource, readConstitution } from "./documents";
-import { PROMPTS, PROMPT_VERSION } from "./prompts";
-import FlowEditor from "./FlowEditor";
+import { EXAMPLE_CONSTITUTION, blankDraft } from "./presets";
+import {
+  type Envelope,
+  type Stage,
+  type Department,
+  type OrgRole,
+  type OrgChange,
+  type OrgFlow,
+  type RiskIssue,
+} from "./schema";
+import {
+  upgrade,
+  reconcile,
+  scopeKey,
+  mergeConstitution,
+  applyChanges,
+  hasReviewedCheck,
+  stable,
+  now,
+  COLORS,
+  selectedRiskChanges,
+  type SetupV3,
+} from "./setupLogic";
+import { TeamChart, ActivityChart, arrangeTeam } from "./SetupCharts";
 import "./organization.css";
+import "./setupV3.css";
 const STEPS = [
   "Constitution",
   "Your team",
   "Responsibilities",
-  "Member programs",
-  "Board work",
+  "Activity workflow",
   "Review",
 ];
-const STAGE_TITLES: Record<Stage, string> = {
-  constitution: "Reading the constitution and finding roles",
-  responsibilities: "Preparing responsibilities for your team",
-  member_workflow: "Building your member program workflow",
-  board_workflow: "Organizing your executive board workflow",
-  guide: "Preparing the organization guide for future AI calls",
-};
-const purpose = [
-  "Platypus reads what you already have so it can propose how your team works. You review the result.",
-  "Confirm the roles Platypus found. These titles guide the next responsibility suggestions.",
-  "AI has prepared a starting point. Check every role that does each piece of work.",
-  "Review how an opportunity becomes a member program. Adjust the chain to match your team’s habits.",
-  "Your board also has its own work. Describe a goal and let Platypus organize the moving parts.",
-  "Confirm the organization understanding that will guide future requests.",
+const HEADINGS = [
+  "Start with your constitution.",
+  "A team that looks like yours.",
+  "Give every role a clear purpose.",
+  "How your activities come together.",
+  "Your organization, ready.",
 ];
-function PromptReview({ stage }: { stage: Stage }) {
-  return (
-    <details className="os-prompt">
-      <summary>How this AI step works · View prompt</summary>
-      <p>
-        Reads your current organization context, preserves your choices, and
-        returns a structured suggestion for review.
-      </p>
-      <span className="os-metadata">
-        {PROMPT_VERSION} · {PROMPTS[stage].title}
-      </span>
-      <p className="os-metadata">
-        ASU AIR · {routeTask(`setup.${stage}`).model} · {MODEL_POLICY_VERSION}
-      </p>
-      <pre tabIndex={0}>{PROMPTS[stage].system}</pre>
-    </details>
-  );
-}
-function Spinner({ label }: { label: string }) {
-  return (
-    <div className="os-loading" role="status" aria-live="polite">
-      <span className="os-spinner" />
-      <div>
-        <b>{label}</b>
-        <p>
-          Preparing a suggestion for you to review. AIR may need extra time
-          while a model is busy.
-        </p>
-      </div>
-    </div>
-  );
-}
+const PURPOSE = [
+  "Platypus uses your existing documents to prepare your team and its responsibilities. You review and approve the suggestions.",
+  "Review departments first, then adjust positions and reporting lines. These guide how AI assigns future work.",
+  "Review each role’s duties, then check for major gaps or conflicts. Your edits are saved as you go.",
+  "Member-facing activities often repeat a familiar process. Review that process here; ad hoc board tasks will get their own workflow when you describe a task later.",
+  "Review the settings you entered. On confirmation, Platypus saves a structured configuration for future AI requests.",
+];
+const uid = (prefix: string) => prefix + "_" + crypto.randomUUID().slice(0, 8);
 function Dialog({
   title,
   children,
-  onClose,
+  close,
 }: {
   title: string;
   children: ReactNode;
-  onClose: () => void;
+  close: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -103,71 +83,86 @@ function Dialog({
   return (
     <dialog
       ref={ref}
-      className="os-dialog"
+      className="os-dialog v3-dialog"
       aria-label={title}
-      onCancel={onClose}
+      onCancel={close}
     >
-      <div className="os-section-heading">
+      <div className="v3-toolbar">
         <h2>{title}</h2>
-        <button type="button" onClick={onClose}>
-          Close
-        </button>
+        <button onClick={close}>Close</button>
       </div>
       {children}
     </dialog>
   );
 }
+type Proposal = {
+  changes: OrgChange[];
+  message: string;
+  after: SetupV3;
+  check?: boolean;
+  riskId?: string;
+};
 export default function OnlineSetup() {
-  const [draft, setDraft] = useState<SetupDraft>(blankDraft),
+  const [draft, setDraft] = useState<SetupV3>(() => upgrade(blankDraft())),
     [entry, setEntry] = useState<Envelope | null>(null),
     [booting, setBooting] = useState(true),
     [error, setError] = useState(""),
-    [saved, setSaved] = useState("Connecting to online workspace…"),
+    [saved, setSaved] = useState("Connecting…"),
     [busy, setBusy] = useState<Stage | null>(null),
+    [seconds, setSeconds] = useState(0),
     [reading, setReading] = useState(false),
     [pasteOpen, setPasteOpen] = useState(false),
     [paste, setPaste] = useState(""),
-    [newRole, setNewRole] = useState(""),
-    [department, setDepartment] = useState("planning"),
-    [editInstruction, setEditInstruction] = useState(""),
-    [proposal, setProposal] = useState<{
-      stage: "member_workflow" | "board_workflow";
-      flow: OrgFlow;
-    } | null>(null),
-    [showPrompts, setShowPrompts] = useState(false),
-    [deepReview, setDeepReview] = useState(false),
+    [teamTab, setTeamTab] = useState<"departments" | "chart">("departments"),
+    [selected, setSelected] = useState(""),
+    [group, setGroup] = useState(""),
+    [newRole, setNewRole] = useState(false),
+    [roleTitle, setRoleTitle] = useState(""),
+    [roleDept, setRoleDept] = useState(""),
+    [chat, setChat] = useState(""),
+    [proposal, setProposal] = useState<Proposal | null>(null),
+    [riskIndex, setRiskIndex] = useState(0),
+    [other, setOther] = useState(""),
+    [deep, setDeep] = useState(false),
+    [files, setFiles] = useState<ArchivedFile[] | null>(null),
     [exporting, setExporting] = useState(false),
-    [archivedFiles, setArchivedFiles] = useState<ArchivedFile[] | null>(null),
-    [finished, setFinished] = useState(false);
+    [finished, setFinished] = useState(false),
+    [reviewTab, setReviewTab] = useState("team");
   const dref = useRef(draft),
     eref = useRef<Envelope | null>(null),
     dirty = useRef(false),
     timer = useRef<ReturnType<typeof setTimeout>>(),
     queue = useRef<Promise<void>>(Promise.resolve()),
     mounted = useRef(true),
-    initialRequest = useRef<ReturnType<typeof start> | null>(null);
-  const setCurrent = (d: SetupDraft) => {
+    initial = useRef<ReturnType<typeof start> | null>(null),
+    lastSaved = useRef("");
+  const current = (d: SetupV3) => {
     dref.current = d;
     setDraft(d);
   };
   const persist = useCallback(async (confirm = false) => {
     if (timer.current) clearTimeout(timer.current);
-    const snapshot = structuredClone(dref.current);
     const work = queue.current
       .catch(() => {})
       .then(async () => {
         if (!eref.current)
           throw new Error("The online workspace is not connected.");
-        setSaved("Saving online…");
+        const snapshot = structuredClone(dref.current);
         await flushArchive();
-        const next = await save(snapshot, eref.current.revision, confirm);
-        eref.current = next;
-        setEntry(next);
-        if (JSON.stringify(dref.current) === JSON.stringify(snapshot)) {
+        if (!confirm && stable(snapshot) === lastSaved.current) {
           dirty.current = false;
-          if (confirm) setCurrent(next.draft);
-          setSaved(`Saved online · Revision ${next.revision}`);
-        } else setSaved("Saving latest changes…");
+          return;
+        }
+        setSaved(confirm ? "Compiling and saving…" : "Saving online…");
+        const remote = await save(snapshot, eref.current.revision, confirm);
+        eref.current = remote;
+        setEntry(remote);
+        lastSaved.current = stable(snapshot);
+        if (stable(dref.current) === stable(snapshot)) {
+          dirty.current = false;
+          if (confirm) current(upgrade(remote.draft));
+          setSaved(`Saved online · Revision ${remote.revision}`);
+        }
       });
     queue.current = work;
     try {
@@ -178,39 +173,59 @@ export default function OnlineSetup() {
       throw e;
     }
   }, []);
-  const update = (next: SetupDraft) => {
-    setCurrent({
-      ...next,
-      confirmed: false,
-      guide: next.step < 5 ? null : next.guide,
-    });
+  const update = (next: SetupV3) => {
+    current({ ...next, confirmed: false, confirmedAt: null, compiled: null });
     dirty.current = true;
     setSaved("Saving online…");
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      void persist().catch(() => {});
-    }, 700);
+    timer.current = setTimeout(() => void persist().catch(() => {}), 700);
   };
-  const patch = (v: Partial<SetupDraft>) => update({ ...dref.current, ...v });
+  const patch = (v: Partial<SetupV3>) => update({ ...dref.current, ...v });
+  const mutate = (next: SetupV3) => {
+    try {
+      update(reconcile(dref.current, next));
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
   const boot = useCallback(async () => {
     setBooting(true);
     setError("");
     try {
-      const remote = await (initialRequest.current ??= start());
-      initialRequest.current = null;
+      const remote = await (initial.current ??= start());
+      initial.current = null;
       if (!mounted.current) return;
       configureArchive(remote.workspaceId, setError);
-      track("workspace.opened", {
-        step: remote.draft.step,
-        revision: remote.revision,
-        promptVersion: PROMPT_VERSION,
-        routingVersion: MODEL_POLICY_VERSION,
-      });
       eref.current = remote;
       setEntry(remote);
-      setCurrent(remote.draft);
+      let upgraded = upgrade(remote.draft);
+      if (remote.draft.uiVersion !== 3) {
+        upgraded.step =
+          remote.draft.step >= 4
+            ? remote.draft.step === 5
+              ? 4
+              : 3
+            : remote.draft.step;
+        if (
+          upgraded.roles.length &&
+          upgraded.roles.some(
+            (r) => r.quote && upgraded.source?.text.includes(r.quote),
+          )
+        )
+          upgraded.generated.constitution = scopeKey(upgraded, "constitution");
+      }
+      current(upgraded);
+      lastSaved.current = stable(remote.draft);
+      dirty.current = stable(upgraded) !== lastSaved.current;
+      track("workspace.opened", {
+        step: upgraded.step,
+        revision: remote.revision,
+        uiVersion: 3,
+      });
       setSaved(`Saved online · Revision ${remote.revision}`);
       setFinished(remote.draft.confirmed);
+      setSelected(upgraded.roles[0]?.id ?? "");
+      setGroup(upgraded.departments[0]?.id ?? "");
     } catch (e) {
       setError((e as Error).message);
       setSaved("Online workspace unavailable");
@@ -224,6 +239,7 @@ export default function OnlineSetup() {
     return () => {
       mounted.current = false;
       if (timer.current) clearTimeout(timer.current);
+      void flushArchive().catch(() => {});
     };
   }, [boot]);
   useEffect(() => {
@@ -236,21 +252,21 @@ export default function OnlineSetup() {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, []);
-  const run = async (
-    stage: Stage,
-    instruction = "",
-    previewOnly = false,
-    deep = false,
-  ) => {
+  useEffect(() => {
+    if (!busy) return;
+    setSeconds(0);
+    const interval = setInterval(() => setSeconds((s) => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, [busy]);
+  const run = async (stage: Stage, instruction = "") => {
+    if (busy) return null;
     setBusy(stage);
     setError("");
     try {
-      if (timer.current) clearTimeout(timer.current);
       await queue.current.catch(() => {});
       if (dirty.current) await persist();
-      if (!eref.current)
-        throw new Error("The online workspace is not connected.");
       await flushArchive();
+      if (!eref.current) throw new Error("Connect your workspace first.");
       const reply = await prepare(
         stage,
         eref.current.revision,
@@ -263,1221 +279,1412 @@ export default function OnlineSetup() {
         updatedAt: reply.updatedAt,
       };
       setEntry(eref.current);
-      const result = reply.result;
-      const { data: _data, ...runMeta } = result;
-      let next = {
+      const { data, ...metadata } = reply.result;
+      current({
         ...dref.current,
-        aiRuns: [...dref.current.aiRuns.slice(-49), runMeta],
-      };
-      const data = result.data as Record<string, unknown>;
-      if (stage === "constitution") {
-        const roles = data.roles as OrgRole[];
-        next = {
-          ...next,
-          name:
-            typeof data.name === "string" && data.name ? data.name : next.name,
-          mission: String(data.mission ?? ""),
-          summary: String(data.summary ?? ""),
-          roles,
-          assignments: (data.assignments as SetupDraft["assignments"])?.length
-            ? (data.assignments as SetupDraft["assignments"])
-            : presetAssignments(roles),
-          uncertainties: (data.uncertainties as string[]) ?? [],
-          step: 1,
-          approvals: { constitution: true },
-          memberFlow: null,
-          boardFlow: null,
-          guide: null,
-        };
-      } else if (stage === "responsibilities") {
-        const aiRows = data.assignments as SetupDraft["assignments"];
-        next = {
-          ...next,
-          assignments: next.actions.map(
-            (a) =>
-              next.assignments.find(
-                (r) => r.actionId === a.id && r.origin === "manual",
-              ) ??
-              aiRows.find((r) => r.actionId === a.id) ?? {
-                actionId: a.id,
-                roleIds: [],
-                origin: "ai",
-                confirmed: false,
-              },
-          ),
-          summary: String(data.summary ?? next.summary),
-          uncertainties: (data.uncertainties as string[]) ?? [],
-          step: 2,
-          approvals: { ...next.approvals, roles: true },
-          memberFlow: null,
-          boardFlow: null,
-        };
-      } else if (stage === "member_workflow" || stage === "board_workflow") {
-        if (previewOnly) {
-          setProposal({ stage, flow: result.data as OrgFlow });
-          setCurrent(next);
-          dirty.current = true;
-          await persist();
-          return;
-        }
-        next = {
-          ...next,
-          [stage === "member_workflow" ? "memberFlow" : "boardFlow"]:
-            result.data as OrgFlow,
-          step: stage === "member_workflow" ? 3 : 4,
-          approvals: {
-            ...next.approvals,
-            [stage === "member_workflow" ? "responsibilities" : "member"]: true,
-          },
-        };
-      } else
-        next = {
-          ...next,
-          guide: result.data as SetupDraft["guide"],
-          step: 5,
-          approvals: { ...next.approvals, board: true },
-        };
-      setCurrent(next);
+        aiRuns: [...dref.current.aiRuns.slice(-49), metadata],
+      });
+      lastSaved.current = "";
       dirty.current = true;
-      await persist();
+      track("ai.suggestion.received", { stage, result: reply.result });
+      return data;
     } catch (e) {
       setError((e as Error).message);
+      track("ai.error.shown", { stage, message: (e as Error).message });
+      return null;
     } finally {
       setBusy(null);
     }
   };
-  const advance = async () => {
-    if (draft.step === 0) {
-      if (!draft.name.trim()) {
-        setError("Give your organization a name.");
-        return;
-      }
-      await run("constitution");
-      return;
-    }
-    if (draft.step === 1) {
-      if (
-        draft.roles.some((r) => !r.title.trim()) ||
-        new Set(draft.roles.map((r) => r.title.trim().toLowerCase())).size !==
-          draft.roles.length
-      ) {
-        setError("Give every role a distinct title.");
-        return;
-      }
-      patch({ approvals: { ...draft.approvals, roles: true } });
-      await run("responsibilities");
-      return;
-    }
-    if (draft.step === 2) {
-      patch({
-        assignments: draft.assignments.map((a) => ({ ...a, confirmed: true })),
-        approvals: { ...draft.approvals, responsibilities: true },
-      });
-      await run("member_workflow");
-      return;
-    }
-    if (draft.step === 3) {
-      patch({ approvals: { ...draft.approvals, member: true } });
-      await run("board_workflow");
-      return;
-    }
-    if (draft.step === 4) {
-      if (!draft.boardFlow) {
-        await run("board_workflow");
-        return;
-      }
-      patch({ approvals: { ...draft.approvals, board: true } });
-      await run("guide");
-      return;
-    }
-    try {
-      setBusy("guide");
-      setError("");
-      await persist(true);
-      setFinished(true);
-    } catch {
-      /* error already displayed */
-    } finally {
-      setBusy(null);
-    }
-  };
-  async function source(
-    text: string,
-    name: string,
-    original?: File,
-    originalArchiveId?: string,
-  ) {
+  const source = async (file: File, text?: string) => {
     setReading(true);
     setError("");
     try {
-      const document = await documentSource(text, name);
-      const archiveId =
-        originalArchiveId ??
-        (
-          await archiveFile(
-            original ?? new File([text], name, { type: "text/plain" }),
-          )
-        ).id;
-      const material = { ...document, archiveId };
-      patch({
-        source: material,
-        approvals: {},
-        roles: [],
-        assignments: [],
-        memberFlow: null,
-        boardFlow: null,
-        guide: null,
+      const content = text ?? (await readConstitution(file)),
+        s = await documentSource(content, file.name);
+      const manifest = await archiveFile(file);
+      patch({ source: { ...s, archiveId: manifest.id } });
+      track("document.selected", {
+        fileName: file.name,
+        chars: s.text.length,
+        checksum: s.checksum,
       });
       await persist();
+      setPasteOpen(false);
     } catch (e) {
       setError((e as Error).message);
+      track("document.read.failed", { message: (e as Error).message });
     } finally {
       setReading(false);
     }
-  }
-  const toggle = (actionId: string, roleId: string, checked: boolean) => {
-    const old = draft.assignments.find((r) => r.actionId === actionId);
-    const ids = new Set(old?.roleIds ?? []);
-    checked ? ids.add(roleId) : ids.delete(roleId);
+  };
+  const next = async () => {
+    setError("");
+    const d = dref.current;
+    try {
+      if (d.step === 0) {
+        if (
+          d.roles.length &&
+          d.generated.constitution === scopeKey(d, "constitution")
+        ) {
+          patch({ step: 1 });
+          await persist();
+          return;
+        }
+        const data = await run("constitution");
+        if (!data) return;
+        const merged = mergeConstitution(
+          dref.current,
+          data as Parameters<typeof mergeConstitution>[1],
+        );
+        merged.name = merged.name || (data as { name: string }).name;
+        merged.generated.constitution = scopeKey(merged, "constitution");
+        merged.roles = arrangeTeam(merged.roles);
+        merged.step = 1;
+        update(merged);
+        setSelected(merged.roles[0]?.id ?? "");
+        setGroup(merged.departments[0]?.id ?? "");
+        setTeamTab("departments");
+        await persist();
+        return;
+      }
+      if (d.step === 1) {
+        if (!d.departments.length || !d.roles.length)
+          throw new Error("Add at least one department and role.");
+        patch({ step: 2 });
+        setSelected(d.roles[0].id);
+        setGroup(d.roles[0].departmentId);
+        await persist();
+        return;
+      }
+      if (d.step === 2) {
+        if (!hasReviewedCheck(d)) {
+          setSelected("check");
+          throw new Error(
+            "Complete the Check tab or choose Skip check before continuing.",
+          );
+        }
+        patch({ step: 3 });
+        await persist();
+        if (!d.memberFlow) {
+          const data = await run("member_workflow");
+          if (data) {
+            patch({
+              memberFlow: data as OrgFlow,
+              generated: {
+                ...dref.current.generated,
+                member_workflow: scopeKey(dref.current, "member_workflow"),
+              },
+            });
+            await persist();
+          }
+        }
+        return;
+      }
+      if (d.step === 3) {
+        if (!d.memberFlow)
+          throw new Error("Prepare your activity workflow first.");
+        if (d.memberFlow.nodes.some((n) => !n.title.trim()))
+          throw new Error("Give each workflow step a title.");
+        patch({ step: 4 });
+        await persist();
+        return;
+      }
+      if (d.step === 4) {
+        setBusy("guide");
+        await persist(true);
+        setFinished(true);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      if (d.step === 4) setBusy(null);
+    }
+  };
+  const back = async () => {
+    patch({ step: Math.max(0, dref.current.step - 1) });
+    await persist().catch(() => {});
+  };
+  const addDepartment = () => {
+    const id = uid("department");
     patch({
-      assignments: [
-        ...draft.assignments.filter((r) => r.actionId !== actionId),
-        { actionId, roleIds: [...ids], origin: "manual", confirmed: true },
+      departments: [
+        ...draft.departments,
+        {
+          id,
+          name: "New department",
+          color: COLORS[draft.departments.length % COLORS.length],
+          source: "manual",
+          quote: "",
+        },
       ],
-      approvals: {
-        ...draft.approvals,
-        responsibilities: false,
-        member: false,
-        board: false,
-      },
     });
   };
-  const stage: Stage = (
-    [
-      "constitution",
-      "constitution",
-      "responsibilities",
-      "member_workflow",
-      "board_workflow",
-      "guide",
-    ] as Stage[]
-  )[draft.step];
+  const editDepartment = (id: string, fields: Partial<Department>) =>
+    mutate({
+      ...draft,
+      departments: draft.departments.map((d) =>
+        d.id === id ? { ...d, ...fields, source: "manual" } : d,
+      ),
+    });
+  const removeRole = (id: string) => {
+    const role = draft.roles.find((r) => r.id === id);
+    if (
+      !window.confirm(
+        `Remove ${role?.title}? Affected workflow owners will need review. Prior versions remain archived.`,
+      )
+    )
+      return;
+    try {
+      update(
+        applyChanges(draft, [
+          {
+            entity: "role",
+            id,
+            operation: "remove",
+            field: "title",
+            value: null,
+          },
+        ]),
+      );
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const send = async (text = chat, riskId?: string) => {
+    if (!text.trim() || busy) return;
+    patch({
+      messages: [
+        ...draft.messages.slice(-198),
+        { id: uid("message"), role: "user", text: text.trim(), at: now() },
+      ],
+    });
+    setChat("");
+    const result = (await run(
+      "edit",
+      `Current screen: ${STEPS[draft.step]}. Selected item: ${selected || "none"}. Request: ${text}`,
+    )) as {
+      message: string;
+      question: string | null;
+      changes: OrgChange[];
+    } | null;
+    if (!result) return;
+    patch({
+      messages: [
+        ...dref.current.messages.slice(-198),
+        {
+          id: uid("message"),
+          role: "assistant",
+          text: result.question ?? result.message,
+          at: now(),
+        },
+      ],
+    });
+    if (result.changes.length) {
+      try {
+        const after = applyChanges(dref.current, result.changes);
+        setProposal({
+          changes: result.changes,
+          message: result.message,
+          after,
+          riskId,
+        });
+        track("ai.proposal.previewed", { changes: result.changes });
+      } catch (e) {
+        setError((e as Error).message);
+      }
+    }
+    await persist().catch(() => {});
+  };
+  const check = async () => {
+    const key = scopeKey(dref.current, "risk_check");
+    if (
+      dref.current.generated.risk_check === key &&
+      dref.current.riskCheck.risks.length
+    ) {
+      setRiskIndex(0);
+      return;
+    }
+    const result = (await run("risk_check")) as { risks: RiskIssue[] } | null;
+    if (!result) return;
+    patch({
+      riskCheck: {
+        status: result.risks.length ? "unreviewed" : "complete",
+        inputKey: key,
+        risks: result.risks,
+        answers: {},
+        at: now(),
+      },
+      generated: { ...dref.current.generated, risk_check: key },
+    });
+    setRiskIndex(0);
+    await persist().catch(() => {});
+  };
+  const risk = draft.riskCheck.risks[riskIndex],
+    answers = draft.riskCheck.answers;
+  const choose = (option: string) => {
+    patch({
+      riskCheck: {
+        ...draft.riskCheck,
+        answers: { ...answers, [risk.id]: option },
+      },
+    });
+    setOther("");
+    if (riskIndex < draft.riskCheck.risks.length - 1)
+      setRiskIndex(riskIndex + 1);
+  };
+  const reviewFixes = () => {
+    try {
+      const changes = selectedRiskChanges(draft);
+      const after = applyChanges(draft, changes);
+      setProposal({
+        changes,
+        message: "Apply the fixes you selected to the affected role duties.",
+        after,
+        check: true,
+      });
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const accept = async () => {
+    if (!proposal) return;
+    try {
+      if (proposal.riskId) {
+        const optionId = uid("custom_fix");
+        patch({
+          riskCheck: {
+            ...draft.riskCheck,
+            risks: draft.riskCheck.risks.map((r) =>
+              r.id === proposal.riskId
+                ? {
+                    ...r,
+                    options: [
+                      ...r.options.slice(0, 2),
+                      {
+                        id: optionId,
+                        label: "Your custom instructions",
+                        changes: proposal.changes,
+                      },
+                    ],
+                  }
+                : r,
+            ),
+            answers: {
+              ...draft.riskCheck.answers,
+              [proposal.riskId]: optionId,
+            },
+          },
+        });
+        setProposal(null);
+        if (riskIndex < draft.riskCheck.risks.length - 1)
+          setRiskIndex(riskIndex + 1);
+        await persist();
+        return;
+      }
+      let nextDraft = applyChanges(dref.current, proposal.changes);
+      if (proposal.check)
+        nextDraft = {
+          ...nextDraft,
+          riskCheck: {
+            ...nextDraft.riskCheck,
+            status: "complete",
+            inputKey: scopeKey(nextDraft, "risk_check"),
+            at: now(),
+          },
+        };
+      track("ai.proposal.accepted", { changes: proposal.changes });
+      update(nextDraft);
+      setProposal(null);
+      await persist();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+  const selectedRole = draft.roles.find((r) => r.id === selected);
+  const roleEdit = (role: OrgRole, fields: Partial<OrgRole>) =>
+    mutate({
+      ...draft,
+      roles: draft.roles.map((r) =>
+        r.id === role.id
+          ? {
+              ...r,
+              ...fields,
+              manualFields: [
+                ...new Set([...(r.manualFields ?? []), ...Object.keys(fields)]),
+              ],
+            }
+          : r,
+      ),
+    });
+  const disabled = !!busy || reading || booting || !entry;
+  const exportAll = async () => {
+    setExporting(true);
+    try {
+      await persist();
+      await exportRecords();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  };
   if (booting)
     return (
-      <div className="os">
-        <Spinner label="Opening your online organization workspace" />
-      </div>
-    );
-  if (!entry)
-    return (
-      <div className="os">
-        <h1>Organization setup</h1>
-        <p>
-          Platypus needs an online workspace to save each change and prepare AI
-          suggestions.
-        </p>
-        <p className="os-error" role="alert">
-          {error}
-        </p>
-        <button className="os-primary" onClick={() => void boot()}>
-          Reconnect online workspace
-        </button>
-        <Link to="/phase1/setup-legacy">Open the previous prototype</Link>
+      <div className="os-loading" role="status">
+        <span className="os-spinner" />
+        Opening your saved workspace…
       </div>
     );
   return (
     <div
-      className="os"
+      className="os-root v3-root"
       onClickCapture={(e) => {
         const el = (e.target as HTMLElement).closest("button,a,summary");
         if (el)
           track("ui.clicked", {
-            step: dref.current.step,
-            revision: eref.current?.revision,
-            control:
-              el.getAttribute("aria-label") ||
-              el.textContent?.trim().slice(0, 200),
+            screen: STEPS[draft.step],
+            text: el.textContent?.slice(0, 160),
           });
       }}
       onChangeCapture={(e) => {
-        const el = e.target as HTMLInputElement;
-        if (el.type !== "file")
-          track("ui.changed", {
-            step: dref.current.step,
-            control:
-              el.getAttribute("aria-label") ||
-              el.id ||
-              el.closest("label")?.textContent?.trim().slice(0, 180),
-            value:
-              el.type === "checkbox" ? el.checked : el.value?.slice(0, 60000),
-          });
-      }}
-      onBlurCapture={(e) => {
-        const el = e.target as HTMLElement;
-        track("ui.blurred", {
-          step: dref.current.step,
-          control: el.getAttribute("aria-label") || el.id || el.tagName,
+        const t = e.target as HTMLInputElement;
+        track("ui.changed", {
+          screen: STEPS[draft.step],
+          field: t.getAttribute("aria-label") ?? t.name,
+          value: t.type === "checkbox" ? t.checked : t.value,
         });
       }}
-      onFocusCapture={(e) => {
-        const el = e.target as HTMLElement;
+      onFocusCapture={(e) =>
         track("ui.focused", {
-          step: dref.current.step,
-          control: el.getAttribute("aria-label") || el.id || el.tagName,
-        });
-      }}
-      onPointerUpCapture={(e) => {
-        if ((e.target as HTMLElement).closest(".os-flow-canvas"))
-          track("workflow.interacted", {
-            step: dref.current.step,
-            x: e.clientX,
-            y: e.clientY,
-            flow:
-              dref.current.step === 3
-                ? dref.current.memberFlow
-                : dref.current.boardFlow,
-          });
-      }}
+          screen: STEPS[draft.step],
+          field: (e.target as HTMLElement).getAttribute("aria-label"),
+        })
+      }
+      onBlurCapture={(e) =>
+        track("ui.blurred", {
+          screen: STEPS[draft.step],
+          field: (e.target as HTMLElement).getAttribute("aria-label"),
+        })
+      }
     >
-      <div className="os-meta">
+      <div className="v3-top">
         <Link to="/phase1">← Home</Link>
-        <span
-          role="status"
-          className={saved.startsWith("Not") ? "os-unsaved" : ""}
-        >
-          {saved}
+        <span className="v3-save" role="status">
+          ● {saved}
         </span>
-      </div>
-      <div className="os-record-tools">
-        <span>
-          Changes, original files and AI activity are archived with timestamps.
-        </span>
-        <button
-          disabled={exporting}
-          onClick={async () => {
-            setExporting(true);
-            try {
-              await exportRecords();
-            } catch (e) {
-              setError((e as Error).message);
-            } finally {
-              setExporting(false);
-            }
-          }}
-        >
-          {exporting ? "Preparing records…" : "Export records"}
+        <button disabled={exporting || !!busy} onClick={() => void exportAll()}>
+          {exporting ? "Exporting…" : "Export records"}
         </button>
         <button
-          onClick={async () => {
-            try {
-              setArchivedFiles(
-                archivedFiles ? null : (await listArchivedFiles()).uploads,
-              );
-            } catch (e) {
-              setError((e as Error).message);
-            }
-          }}
+          onClick={() =>
+            void listArchivedFiles()
+              .then((x) => setFiles(x.uploads))
+              .catch((e) => setError(e.message))
+          }
         >
-          View archived files
+          Files
         </button>
-        {draft.source?.archiveId && (
-          <button
-            onClick={() =>
-              void downloadOriginal(draft.source!.archiveId!).catch((e) =>
-                setError(e.message),
-              )
-            }
-          >
-            Download original
-          </button>
-        )}
       </div>
-      {archivedFiles && (
-        <section className="os-file-history">
-          <h2>Archived originals</h2>
-          {archivedFiles.length ? (
-            <ul>
-              {[...archivedFiles]
-                .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-                .map((f) => (
-                  <li key={f.id}>
-                    <span>
-                      <b>{f.fileName}</b>
-                      <time dateTime={f.createdAt}>
-                        {new Date(f.createdAt).toLocaleString()}
-                      </time>
-                      {!f.complete && <small>Incomplete upload</small>}
-                    </span>
-                    <button
-                      disabled={!f.complete}
-                      onClick={() =>
-                        void downloadOriginal(f.id).catch((e) =>
-                          setError(e.message),
-                        )
-                      }
-                    >
-                      Download
-                    </button>
-                  </li>
-                ))}
-            </ul>
-          ) : (
-            <p>No original files have been archived in this workspace yet.</p>
-          )}
-        </section>
-      )}
-      <div className="os-progress" aria-label="Organization setup progress">
-        {STEPS.map((s, i) => (
-          <span
-            key={s}
-            className={i <= draft.step ? "current" : ""}
-            aria-current={i === draft.step ? "step" : undefined}
-          >
-            <i>{i < draft.step ? "✓" : i + 1}</i>
-            <b>{s}</b>
-          </span>
-        ))}
-      </div>
-      <header className="os-heading">
-        <span className="os-eyebrow">YOUR ORGANIZATION, UNDERSTOOD</span>
-        <h1>
-          {finished
-            ? "Your organization is ready."
-            : [
-                "Start with your constitution.",
-                "Does this look like your team?",
-                "A shared picture of who does what.",
-                "From opportunity to a great program.",
-                "A little structure for board work.",
-                "Ready to work together.",
-              ][draft.step]}
-        </h1>
-        <p>
-          {finished
-            ? "Your confirmed organization guide is saved online. You can return to refine it."
-            : purpose[draft.step]}
-        </p>
-      </header>
-      {busy && <Spinner label={STAGE_TITLES[busy]} />}
-      <fieldset
-        className="os-content"
-        disabled={!!busy || reading}
-        aria-busy={!!busy || reading}
-      >
-        {draft.step === 0 && (
-          <>
-            <label className="os-field">
-              Organization name
-              <input
-                value={draft.name}
-                maxLength={100}
-                onChange={(e) => patch({ name: e.target.value })}
-              />
-            </label>
-            <div className="os-source-choice">
-              <span className="os-document-icon">▤</span>
-              <h2>A head start from what you already have</h2>
-              <p>
-                Upload a fictional constitution. Platypus will suggest your team
-                and responsibilities.
-              </p>
-              <label className="os-upload-button">
-                Upload PDF or Word
-                <input
-                  type="file"
-                  aria-label="Upload constitution"
-                  accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!f) return;
-                    setReading(true);
-                    setError("");
-                    try {
-                      track("document.selected", {
-                        fileName: f.name,
-                        size: f.size,
-                        mime: f.type,
-                      });
-                      const original = await archiveFile(f);
-                      const text = await readConstitution(f);
-                      await source(text, f.name, f, original.id);
-                    } catch (err) {
-                      track("document.read.failed", {
-                        fileName: f.name,
-                        message: (err as Error).message,
-                      });
-                      setError((err as Error).message);
-                    } finally {
-                      setReading(false);
-                    }
-                  }}
-                />
-              </label>
-              <div className="os-source-alternatives">
-                <button
-                  onClick={() =>
-                    void source(
-                      EXAMPLE_CONSTITUTION,
-                      "fictional-constitution.txt",
-                    )
-                  }
-                >
-                  Use fictional example
-                </button>
-                <button onClick={() => setPasteOpen(!pasteOpen)}>
-                  Paste text
-                </button>
-              </div>
-              <span className="os-hint">
-                PDF · Word (.docx) · text · Up to 8 MB
-              </span>
-            </div>
-            {reading && <Spinner label="Reading the document" />}
-            {pasteOpen && (
-              <div className="os-paste">
-                <label>
-                  Constitution text
-                  <textarea
-                    value={paste}
-                    maxLength={60000}
-                    rows={7}
-                    onChange={(e) => setPaste(e.target.value)}
-                    placeholder="Paste the constitution text here…"
-                  />
-                </label>
-                <button
-                  disabled={paste.trim().length < 20}
-                  onClick={() =>
-                    void source(paste.trim(), "pasted-constitution.txt")
-                  }
-                >
-                  Use this text
-                </button>
-              </div>
-            )}
-            {draft.source && (
-              <div className="os-source-ready">
-                <span>✓</span>
-                <div>
-                  <b>{draft.source.fileName}</b>
-                  <p>
-                    {draft.source.text.length.toLocaleString()} characters ready
-                    for AI review
-                  </p>
-                </div>
-                <button onClick={() => patch({ source: null })}>Remove</button>
-              </div>
-            )}
-            <p className="os-hint">
-              No constitution yet? Continue and review suggested starting roles
-              instead.
-            </p>
-          </>
-        )}
-        {draft.step === 1 && (
-          <>
-            <div className="os-ai-note">
-              <span>✦</span>
-              <p>
-                {draft.summary ||
-                  "Review these role suggestions before Platypus prepares the responsibility matrix."}
-              </p>
-            </div>
-            {DEPARTMENTS.filter((dep) =>
-              draft.roles.some((r) => r.departmentId === dep.id),
-            ).map((dep) => (
-              <section className="os-department" key={dep.id}>
-                <h2>{dep.name}</h2>
-                <div className="os-role-grid">
-                  {draft.roles
-                    .filter((r) => r.departmentId === dep.id)
-                    .map((r) => (
-                      <article className="os-role-card" key={r.id}>
-                        <div className="os-section-heading">
-                          <span className="os-role-origin">
-                            {r.source === "constitution"
-                              ? "From your constitution"
-                              : r.source === "manual"
-                                ? "Your edit"
-                                : "Suggested starting role"}
-                          </span>
-                          <button
-                            aria-label={`Remove ${r.title}`}
-                            onClick={() =>
-                              patch({
-                                roles: draft.roles.filter((x) => x.id !== r.id),
-                                memberFlow: null,
-                                boardFlow: null,
-                                guide: null,
-                                assignments: draft.assignments.map((a) => ({
-                                  ...a,
-                                  roleIds: a.roleIds.filter(
-                                    (id) => id !== r.id,
-                                  ),
-                                })),
-                              })
-                            }
-                          >
-                            Remove
-                          </button>
-                        </div>
-                        <label className="os-sr" htmlFor={`org-role-${r.id}`}>
-                          Role title {r.id}
-                        </label>
-                        <input
-                          id={`org-role-${r.id}`}
-                          value={r.title}
-                          maxLength={180}
-                          onChange={(e) =>
-                            patch({
-                              roles: draft.roles.map((x) =>
-                                x.id === r.id
-                                  ? {
-                                      ...x,
-                                      title: e.target.value,
-                                      source: "manual",
-                                    }
-                                  : x,
-                              ),
-                            })
-                          }
-                        />
-                        <ul>
-                          {r.responsibilities.slice(0, 3).map((text, i) => (
-                            <li key={i}>{text}</li>
-                          ))}
-                        </ul>
-                        {r.quote && (
-                          <details>
-                            <summary>
-                              Source evidence · {Math.round(r.confidence * 100)}
-                              % confidence
-                            </summary>
-                            <blockquote>{r.quote}</blockquote>
-                          </details>
-                        )}
-                        <label className="os-field os-compact-field">
-                          Department
-                          <select
-                            value={r.departmentId}
-                            onChange={(e) =>
-                              patch({
-                                roles: draft.roles.map((x) =>
-                                  x.id === r.id
-                                    ? {
-                                        ...x,
-                                        departmentId: e.target
-                                          .value as OrgRole["departmentId"],
-                                        source: "manual",
-                                      }
-                                    : x,
-                                ),
-                              })
-                            }
-                          >
-                            {DEPARTMENTS.map((dep) => (
-                              <option key={dep.id} value={dep.id}>
-                                {dep.name}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      </article>
-                    ))}
-                </div>
-              </section>
-            ))}
-            <section className="os-add-role">
-              <h2>Add a custom role</h2>
-              <form
-                className="os-inline"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (!newRole.trim()) return;
-                  if (
-                    draft.roles.some(
-                      (r) =>
-                        r.title.toLowerCase() === newRole.trim().toLowerCase(),
-                    )
-                  ) {
-                    setError("That role already exists.");
-                    return;
-                  }
-                  patch({
-                    roles: [
-                      ...draft.roles,
-                      {
-                        id: crypto.randomUUID(),
-                        title: newRole.trim(),
-                        departmentId: department as OrgRole["departmentId"],
-                        responsibilities: [],
-                        source: "manual",
-                        quote: "",
-                        confidence: 1,
-                      },
-                    ],
-                  });
-                  setNewRole("");
-                }}
-              >
-                <label>
-                  Role title
-                  <input
-                    value={newRole}
-                    maxLength={180}
-                    placeholder="e.g. Marketing Intern"
-                    onChange={(e) => setNewRole(e.target.value)}
-                  />
-                </label>
-                <label>
-                  Department
-                  <select
-                    value={department}
-                    onChange={(e) => setDepartment(e.target.value)}
-                  >
-                    {DEPARTMENTS.map((dep) => (
-                      <option key={dep.id} value={dep.id}>
-                        {dep.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button type="submit" disabled={!newRole.trim()}>
-                  Add role
-                </button>
-              </form>
-            </section>
-          </>
-        )}
-        {draft.step === 2 && (
-          <>
-            <div className="os-section-heading">
-              <div>
-                <h2>Your responsibility matrix</h2>
-                <p>
-                  Check all roles that do the work. Shared responsibilities are
-                  welcome.
-                </p>
-              </div>
-              <span className="os-ai-badge">AI prepared · You can adjust</span>
-            </div>
-            <div
-              className="os-matrix-scroll"
-              role="region"
-              aria-label="Department responsibility matrix"
-              tabIndex={0}
-            >
-              <table className="os-matrix">
-                <thead>
-                  <tr>
-                    <th rowSpan={2} scope="col">
-                      Action items
-                    </th>
-                    {DEPARTMENTS.filter((dep) =>
-                      draft.roles.some((r) => r.departmentId === dep.id),
-                    ).map((dep) => (
-                      <th
-                        key={dep.id}
-                        colSpan={
-                          draft.roles.filter((r) => r.departmentId === dep.id)
-                            .length
-                        }
-                        scope="colgroup"
-                      >
-                        {dep.name}
-                      </th>
-                    ))}
-                  </tr>
-                  <tr>
-                    {DEPARTMENTS.flatMap((dep) =>
-                      draft.roles.filter((r) => r.departmentId === dep.id),
-                    ).map((r) => (
-                      <th key={r.id} scope="col">
-                        {r.title}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {DEPARTMENTS.map((dep) => (
-                    <MatrixGroup
-                      key={dep.id}
-                      title={dep.name}
-                      actions={draft.actions.filter(
-                        (a) => a.departmentId === dep.id,
-                      )}
-                      roles={DEPARTMENTS.flatMap((dep) =>
-                        draft.roles.filter((r) => r.departmentId === dep.id),
-                      )}
-                      draft={draft}
-                      onToggle={toggle}
-                    />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <p className="os-hint">
-              Approval and communication routing are prepared in the background.
-              You review the visible workflow next.
-            </p>
-          </>
-        )}
-        {(draft.step === 3 || draft.step === 4) && (
-          <>
-            {draft.step === 4 && (
-              <>
-                <div className="os-ai-note">
-                  <span>✦</span>
-                  <p>
-                    Your board has work beyond member programs. Platypus uses
-                    these same roles to plan socials, tabling and other one-off
-                    needs.
-                  </p>
-                </div>
-                <label className="os-field">
-                  What does your board need to do?
-                  <textarea
-                    rows={2}
-                    value={draft.boardGoal}
-                    maxLength={1000}
-                    onChange={(e) =>
-                      patch({
-                        boardGoal: e.target.value,
-                        boardFlow: null,
-                        approvals: { ...draft.approvals, board: false },
-                      })
-                    }
-                  />
-                </label>
-                <div className="os-chip-row">
-                  <button
-                    onClick={() =>
-                      patch({
-                        boardGoal:
-                          "Plan a social gathering for our executive board.",
-                        boardFlow: null,
-                        approvals: { ...draft.approvals, board: false },
-                      })
-                    }
-                  >
-                    Board social
-                  </button>
-                  <button
-                    onClick={() =>
-                      patch({
-                        boardGoal:
-                          "Plan our Involvement Week tabling, with materials and two staffing shifts.",
-                        boardFlow: null,
-                        approvals: { ...draft.approvals, board: false },
-                      })
-                    }
-                  >
-                    Tabling event
-                  </button>
-                  <button
-                    onClick={() =>
-                      void run(
-                        "board_workflow",
-                        "Generate a workflow for the current boardGoal.",
-                        true,
-                      )
-                    }
-                  >
-                    Generate with AI
-                  </button>
-                </div>
-              </>
-            )}
-            {(draft.step === 3 ? draft.memberFlow : draft.boardFlow) && (
-              <FlowEditor
-                flow={(draft.step === 3 ? draft.memberFlow : draft.boardFlow)!}
-                roles={draft.roles}
-                disabled={!!busy}
-                onChange={(f) =>
-                  patch(
-                    draft.step === 3
-                      ? {
-                          memberFlow: f,
-                          approvals: { ...draft.approvals, member: false },
-                        }
-                      : {
-                          boardFlow: f,
-                          approvals: { ...draft.approvals, board: false },
-                        },
-                  )
-                }
-              />
-            )}
-            <form
-              className="os-workflow-chat"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (editInstruction.trim())
-                  void run(
-                    draft.step === 3 ? "member_workflow" : "board_workflow",
-                    editInstruction,
-                    true,
-                    deepReview,
-                  );
-              }}
-            >
-              <label>
-                Tell Platypus what to change
-                <textarea
-                  value={editInstruction}
-                  maxLength={1500}
-                  rows={2}
-                  onChange={(e) => setEditInstruction(e.target.value)}
-                  placeholder="e.g. Run venue booking and registration in parallel, and include the Marketing Intern."
-                />
-              </label>
-              <label className="os-deep-choice">
-                <input
-                  type="checkbox"
-                  checked={deepReview}
-                  onChange={(e) => setDeepReview(e.target.checked)}
-                />{" "}
-                Use deeper reasoning (slower)
-              </label>
-              <button disabled={!editInstruction.trim()}>
-                Suggest an update
-              </button>
-            </form>
-            <p className="os-hint">
-              You can keep a working draft and return later. Suggested changes
-              require your approval.
-            </p>
-          </>
-        )}
-        {draft.step === 5 && (
-          <>
-            <div className="os-review-tiles">
-              <div>
-                <span>✓</span>
-                <b>{draft.roles.length} roles understood</b>
-                <p>Custom titles, grouped by department</p>
-              </div>
-              <div>
-                <span>✓</span>
-                <b>
-                  {draft.assignments.filter((r) => r.roleIds.length).length}{" "}
-                  responsibilities mapped
-                </b>
-                <p>Including shared work across roles</p>
-              </div>
-              <div>
-                <span>✓</span>
-                <b>2 workflows reviewed</b>
-                <p>Member programs and board work</p>
-              </div>
-            </div>
-            <div className="os-guide-cards">
-              <section>
-                <span className="os-eyebrow">READ WITH EVERY REQUEST</span>
-                <h2>Your organization’s essentials</h2>
-                <p>
-                  Mission, roles, responsibilities, decision boundaries and
-                  unresolved questions.
-                </p>
-                <details>
-                  <summary>Read the generated AI guide</summary>
-                  <pre tabIndex={0}>{draft.guide?.alwaysRead}</pre>
-                </details>
-              </section>
-              <section>
-                <span className="os-eyebrow">READ WHEN NEEDED</span>
-                <h2>The supporting details</h2>
-                <ul>
-                  {draft.guide?.onDemand.map((part, i) => (
-                    <li key={i}>
-                      <details>
-                        <summary>{part.topic}</summary>
-                        <p>{part.when}</p>
-                        <pre tabIndex={0}>{part.content}</pre>
-                      </details>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            </div>
-            {!!draft.guide?.uncertainties.length && (
-              <div className="os-uncertainty">
-                <h3>Still to confirm</h3>
-                <ul>
-                  {draft.guide.uncertainties.map((u, i) => (
-                    <li key={i}>{u}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <button
-              onClick={() =>
-                void run(
-                  "guide",
-                  "Review the current organization guide and preserve confirmed decisions.",
-                  false,
-                  true,
-                )
-              }
-            >
-              Review with stronger model (slower)
-            </button>
-            <details className="os-run-record">
-              <summary>AI generation record</summary>
-              <div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Step</th>
-                      <th>Actual model</th>
-                      <th>Time</th>
-                      <th>Configuration</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {draft.aiRuns.map((run, i) => (
-                      <tr key={i}>
-                        <td>{PROMPTS[run.stage].title}</td>
-                        <td>
-                          {run.provider} · {run.model}
-                        </td>
-                        <td>
-                          {run.durationMs !== undefined
-                            ? `${Math.round(run.durationMs / 1000)}s`
-                            : "Not recorded"}
-                        </td>
-                        <td>
-                          {run.promptVersion}
-                          <br />
-                          {run.routingVersion ?? "Earlier model setting"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </details>
-            <div className="os-prompt-reminder">
-              <div>
-                <h3>One more review: the AI instructions</h3>
-                <p>
-                  Review what Platypus tells the model at each step, and why.
-                </p>
-              </div>
-              <button onClick={() => setShowPrompts(true)}>
-                Review all prompts
-              </button>
-            </div>
-            <label className="os-checkline">
-              <input
-                type="checkbox"
-                checked={!!draft.approvals.promptReview}
-                onChange={(e) =>
-                  patch({
-                    approvals: {
-                      ...draft.approvals,
-                      promptReview: e.target.checked,
-                    },
-                  })
-                }
-              />
-              I have reviewed the AI instructions.
-            </label>
-          </>
-        )}
-      </fieldset>
       {error && (
         <div className="os-error" role="alert">
           {error}
-          <button
-            onClick={() => {
-              setError("");
-              if (saved.startsWith("Not")) void persist().catch(() => {});
-            }}
-          >
-            {saved.startsWith("Not") ? "Retry save" : "Dismiss"}
+          <button aria-label="Dismiss error" onClick={() => setError("")}>
+            ×
           </button>
+          {!entry && <button onClick={() => void boot()}>Reconnect</button>}
         </div>
       )}
-      {!finished && (
-        <div className="os-bottom-actions">
-          <div>
-            {draft.step > 0 && (
-              <button
-                disabled={!!busy || reading}
-                onClick={() => {
-                  setError("");
-                  patch({ step: draft.step - 1 });
-                }}
-              >
-                ← Back
-              </button>
-            )}
-          </div>
-          <button
-            className="os-primary"
-            disabled={
-              !!busy || reading || (draft.step === 1 && !draft.roles.length)
-            }
-            onClick={() => void advance()}
-          >
-            {draft.step === 0
-              ? "Let AI prepare my team"
-              : draft.step === 5
-                ? "Confirm organization"
-                : draft.step === 3
-                  ? "This matches our workflow"
-                  : draft.step === 4
-                    ? draft.boardFlow
-                      ? "Keep this plan & continue"
-                      : "Let AI prepare this plan"
-                    : "Approve & continue"}{" "}
-            <span aria-hidden="true">→</span>
-          </button>
-        </div>
-      )}
-      {finished && (
-        <div className="os-complete">
-          <span>
-            ✓ Confirmed and saved online · Context v{draft.contextVersion}
-          </span>
+      {finished ? (
+        <div className="v3-complete">
+          <span>✓</span>
+          <h1>Your organization is ready.</h1>
+          <p>
+            Your confirmed settings and structured AI configuration are saved
+            online. Previous versions remain in your records.
+          </p>
           <button
             onClick={() => {
               setFinished(false);
-              patch({ step: 0 });
+              setReviewTab("team");
             }}
           >
-            Review organization settings
+            Review settings
           </button>
+          <Link to="/phase1">Go to workspace →</Link>
         </div>
+      ) : (
+        <>
+          <nav
+            tabIndex={0}
+            className="v3-progress"
+            aria-label="Organization setup progress"
+          >
+            {STEPS.map((s, i) => (
+              <span
+                key={s}
+                aria-current={i === draft.step ? "step" : undefined}
+              >
+                <b>{i < draft.step ? "✓" : i + 1}</b>
+                {s}
+              </span>
+            ))}
+          </nav>
+          <header className="v3-heading">
+            <p>YOUR ORGANIZATION, UNDERSTOOD</p>
+            <h1>{HEADINGS[draft.step]}</h1>
+            <p>{PURPOSE[draft.step]}</p>
+          </header>
+          <div
+            className={`v3-layout ${draft.step === 0 ? "v3-source-layout" : ""}`}
+          >
+            <section className="v3-main">
+              <fieldset disabled={disabled}>
+                {draft.step === 0 && (
+                  <div className="v3-source-panel">
+                    <label>
+                      Organization name
+                      <input
+                        aria-label="Organization name"
+                        maxLength={100}
+                        value={draft.name}
+                        onChange={(e) => patch({ name: e.target.value })}
+                      />
+                    </label>
+                    <div className="v3-upload">
+                      <span>▤</span>
+                      <h2>Your existing constitution is the starting point.</h2>
+                      <p>PDF, Word (.docx), or text · Up to 8 MB</p>
+                      <label className="v3-upload-button">
+                        Upload constitution
+                        <input
+                          aria-label="Upload constitution"
+                          type="file"
+                          accept=".pdf,.docx,.txt,.md"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) void source(file);
+                            e.target.value = "";
+                          }}
+                        />
+                      </label>
+                      <div className="v3-source-options">
+                        <button
+                          onClick={() =>
+                            void source(
+                              new File(
+                                [EXAMPLE_CONSTITUTION],
+                                "fictional-constitution.txt",
+                                { type: "text/plain" },
+                              ),
+                              EXAMPLE_CONSTITUTION,
+                            )
+                          }
+                        >
+                          Use fictional example
+                        </button>
+                        <button onClick={() => setPasteOpen(true)}>
+                          Paste text
+                        </button>
+                      </div>
+                    </div>
+                    {reading && (
+                      <p role="status">Reading and archiving your document…</p>
+                    )}
+                    {draft.source && (
+                      <div className="v3-file">
+                        <b>✓ {draft.source.fileName}</b>
+                        <span>
+                          {draft.source.text.length.toLocaleString()} characters
+                          · Original archived
+                        </span>
+                        <button onClick={() => patch({ source: null })}>
+                          Remove source
+                        </button>
+                      </div>
+                    )}
+                    <p className="v3-note">
+                      No constitution? AI can suggest a starting team for you to
+                      review. Only use fictional data in this prototype.
+                    </p>
+                  </div>
+                )}
+                {draft.step === 1 && (
+                  <>
+                    <div className="v3-toolbar">
+                      <div
+                        className="v3-tabs"
+                        role="tablist"
+                        aria-label="Team setup"
+                      >
+                        <button
+                          role="tab"
+                          aria-selected={teamTab === "departments"}
+                          onClick={() => setTeamTab("departments")}
+                        >
+                          Departments
+                        </button>
+                        <button
+                          role="tab"
+                          aria-selected={teamTab === "chart"}
+                          onClick={() => setTeamTab("chart")}
+                        >
+                          Organization chart
+                        </button>
+                      </div>
+                      <button
+                        className="v3-accent"
+                        onClick={() => {
+                          setRoleDept(draft.departments[0]?.id ?? "");
+                          setNewRole(true);
+                        }}
+                      >
+                        + Add a custom role
+                      </button>
+                    </div>
+                    {teamTab === "departments" ? (
+                      <>
+                        <div className="v3-departments">
+                          {draft.departments.map((dep) => (
+                            <div className="v3-department" key={dep.id}>
+                              <input
+                                type="color"
+                                aria-label={`Color for ${dep.name}`}
+                                value={dep.color}
+                                onChange={(e) =>
+                                  editDepartment(dep.id, {
+                                    color: e.target.value,
+                                  })
+                                }
+                              />
+                              <input
+                                aria-label={`Department name ${dep.id}`}
+                                value={dep.name}
+                                maxLength={180}
+                                onChange={(e) =>
+                                  editDepartment(dep.id, {
+                                    name: e.target.value,
+                                  })
+                                }
+                              />
+                              <span>
+                                {dep.source === "constitution"
+                                  ? "From constitution"
+                                  : dep.source === "manual"
+                                    ? "Edited by you"
+                                    : "Suggested from duties"}{" "}
+                                ·{" "}
+                                {
+                                  draft.roles.filter(
+                                    (r) => r.departmentId === dep.id,
+                                  ).length
+                                }{" "}
+                                roles
+                              </span>
+                              <button
+                                aria-label={`Remove department ${dep.name}`}
+                                disabled={draft.roles.some(
+                                  (r) => r.departmentId === dep.id,
+                                )}
+                                title="Move its roles before removing this department"
+                                onClick={() =>
+                                  patch({
+                                    departments: draft.departments.filter(
+                                      (d) => d.id !== dep.id,
+                                    ),
+                                  })
+                                }
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="v3-toolbar">
+                          <button onClick={addDepartment}>
+                            + Add department
+                          </button>
+                          <button
+                            className="v3-primary"
+                            onClick={() => setTeamTab("chart")}
+                          >
+                            Review organization chart →
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="v3-chart-toolbar">
+                          <span>
+                            Drag a role onto another to change its reporting
+                            line, or connect their dots.
+                          </span>
+                          <button
+                            onClick={() =>
+                              patch({ roles: arrangeTeam(draft.roles) })
+                            }
+                          >
+                            Arrange
+                          </button>
+                        </div>
+                        <TeamChart
+                          roles={draft.roles}
+                          departments={draft.departments}
+                          onChange={(roles) => {
+                            track("team.chart.changed", { roles });
+                            mutate({ ...draft, roles });
+                          }}
+                          onRemove={removeRole}
+                          onSelect={setSelected}
+                          onError={setError}
+                        />
+                      </>
+                    )}
+                  </>
+                )}
+                {draft.step === 2 && (
+                  <div className="v3-responsibility">
+                    <div
+                      className="v3-tabs v3-dept-tabs"
+                      role="tablist"
+                      aria-label="Responsibility departments"
+                    >
+                      {draft.departments.map((dep) => (
+                        <button
+                          key={dep.id}
+                          role="tab"
+                          aria-selected={
+                            group === dep.id && selected !== "check"
+                          }
+                          style={{ borderBottomColor: dep.color }}
+                          onClick={() => {
+                            setGroup(dep.id);
+                            setSelected(
+                              draft.roles.find((r) => r.departmentId === dep.id)
+                                ?.id ?? "",
+                            );
+                          }}
+                        >
+                          {dep.name}
+                        </button>
+                      ))}
+                      <button
+                        role="tab"
+                        aria-selected={selected === "check"}
+                        onClick={() => setSelected("check")}
+                      >
+                        ✓ Check
+                      </button>
+                    </div>
+                    {selected !== "check" ? (
+                      <>
+                        <div
+                          className="v3-tabs v3-role-tabs"
+                          role="tablist"
+                          aria-label="Positions"
+                        >
+                          {draft.roles
+                            .filter((r) => r.departmentId === group)
+                            .map((r) => (
+                              <button
+                                role="tab"
+                                aria-selected={selected === r.id}
+                                key={r.id}
+                                onClick={() => setSelected(r.id)}
+                              >
+                                {r.title}
+                              </button>
+                            ))}
+                        </div>
+                        {selectedRole ? (
+                          <div className="v3-duties">
+                            <h2
+                              style={{
+                                borderLeftColor: draft.departments.find(
+                                  (d) => d.id === selectedRole.departmentId,
+                                )?.color,
+                              }}
+                            >
+                              {selectedRole.title}
+                            </h2>
+                            <ul>
+                              {selectedRole.responsibilities.map((duty, i) => (
+                                <li key={i}>
+                                  <span>•</span>
+                                  <input
+                                    aria-label={`Duty ${i + 1} for ${selectedRole.title}`}
+                                    value={duty}
+                                    maxLength={240}
+                                    onChange={(e) =>
+                                      roleEdit(selectedRole, {
+                                        responsibilities:
+                                          selectedRole.responsibilities.map(
+                                            (x, n) =>
+                                              n === i ? e.target.value : x,
+                                          ),
+                                      })
+                                    }
+                                  />
+                                  <button
+                                    aria-label={`Remove duty ${i + 1}`}
+                                    onClick={() =>
+                                      roleEdit(selectedRole, {
+                                        responsibilities:
+                                          selectedRole.responsibilities.filter(
+                                            (_, n) => n !== i,
+                                          ),
+                                      })
+                                    }
+                                  >
+                                    ×
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                            <button
+                              disabled={
+                                selectedRole.responsibilities.length >= 12
+                              }
+                              onClick={() =>
+                                roleEdit(selectedRole, {
+                                  responsibilities: [
+                                    ...selectedRole.responsibilities,
+                                    "",
+                                  ],
+                                })
+                              }
+                            >
+                              + Add responsibility
+                            </button>
+                            <div className="v3-duty-next">
+                              <button
+                                className="v3-primary"
+                                onClick={() => {
+                                  const index = draft.roles.findIndex(
+                                    (r) => r.id === selected,
+                                  );
+                                  const nextRole = draft.roles[index + 1];
+                                  setSelected(nextRole?.id ?? "check");
+                                  if (nextRole) setGroup(nextRole.departmentId);
+                                }}
+                              >
+                                Next position →
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p>No roles in this department yet.</p>
+                        )}
+                      </>
+                    ) : (
+                      <div className="v3-check">
+                        <h2>Check the important gaps.</h2>
+                        <p>
+                          AI checks for major missing responsibilities, unclear
+                          ownership, or conflicting authority. Ordinary shared
+                          work is fine.
+                        </p>
+                        {hasReviewedCheck(draft) ? (
+                          <div className="v3-check-done">
+                            <b>
+                              ✓{" "}
+                              {draft.riskCheck.status === "skipped"
+                                ? "Check skipped by you."
+                                : "Responsibility review complete."}
+                            </b>
+                            <button
+                              onClick={() => {
+                                patch({
+                                  riskCheck: {
+                                    ...draft.riskCheck,
+                                    status: "unreviewed",
+                                  },
+                                  generated: {
+                                    ...draft.generated,
+                                    risk_check: "",
+                                  },
+                                });
+                              }}
+                            >
+                              Review again
+                            </button>
+                          </div>
+                        ) : draft.generated.risk_check ===
+                            scopeKey(draft, "risk_check") &&
+                          draft.riskCheck.risks.length ? (
+                          <>
+                            <div className="v3-flashcard">
+                              <small>
+                                QUESTION {riskIndex + 1} OF{" "}
+                                {draft.riskCheck.risks.length}
+                              </small>
+                              <h3>{risk?.title}</h3>
+                              <p>{risk?.explanation}</p>
+                              <div className="v3-risk-options">
+                                {risk?.options.map((o) => (
+                                  <button
+                                    key={o.id}
+                                    aria-pressed={answers[risk.id] === o.id}
+                                    onClick={() => choose(o.id)}
+                                  >
+                                    {o.label}
+                                  </button>
+                                ))}
+                              </div>
+                              <label>
+                                Other / Give specific instructions
+                                <textarea
+                                  aria-label="Custom risk instruction"
+                                  value={other}
+                                  onChange={(e) => setOther(e.target.value)}
+                                  maxLength={1000}
+                                />
+                              </label>
+                              <button
+                                disabled={!other.trim()}
+                                onClick={() =>
+                                  void send(
+                                    `For risk "${risk.title}": ${other}. Propose a focused fix to these role duties.`,
+                                    risk.id,
+                                  )
+                                }
+                              >
+                                Ask AI for this fix
+                              </button>
+                            </div>
+                            <div className="v3-toolbar">
+                              <button
+                                disabled={riskIndex === 0}
+                                onClick={() => setRiskIndex(riskIndex - 1)}
+                              >
+                                Previous question
+                              </button>
+                              {riskIndex < draft.riskCheck.risks.length - 1 && (
+                                <button
+                                  onClick={() => setRiskIndex(riskIndex + 1)}
+                                >
+                                  Next question
+                                </button>
+                              )}
+                              <button
+                                className="v3-primary"
+                                disabled={draft.riskCheck.risks.some(
+                                  (r) => !answers[r.id],
+                                )}
+                                onClick={reviewFixes}
+                              >
+                                Review selected fixes
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          <button
+                            className="v3-primary"
+                            onClick={() => void check()}
+                          >
+                            Check responsibilities with AI
+                          </button>
+                        )}
+                        {!hasReviewedCheck(draft) && (
+                          <button
+                            className="v3-skip"
+                            onClick={() => {
+                              track("responsibility.check.skipped", {
+                                inputKey: scopeKey(draft, "risk_check"),
+                              });
+                              patch({
+                                riskCheck: {
+                                  ...draft.riskCheck,
+                                  status: "skipped",
+                                  inputKey: scopeKey(draft, "risk_check"),
+                                  at: now(),
+                                },
+                              });
+                            }}
+                          >
+                            Skip check for now
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {draft.step === 3 && (
+                  <>
+                    <div className="v3-legend">
+                      {draft.departments.map((dep) => (
+                        <span key={dep.id}>
+                          <i style={{ background: dep.color }} />
+                          {dep.name}
+                        </span>
+                      ))}
+                    </div>
+                    {draft.memberFlow ? (
+                      <>
+                        <h2 className="v3-flow-title">
+                          {draft.memberFlow.title}
+                        </h2>
+                        <ActivityChart
+                          flow={draft.memberFlow}
+                          roles={draft.roles}
+                          departments={draft.departments}
+                          onChange={(memberFlow) => {
+                            track("workflow.changed", { memberFlow });
+                            patch({ memberFlow });
+                          }}
+                          onError={setError}
+                        />
+                        <p className="v3-note">
+                          Parallel branches can run together. “After either”
+                          joins alternative entry points; “After all” waits for
+                          every prerequisite. Open owners inside a node to
+                          adjust them.
+                        </p>
+                      </>
+                    ) : (
+                      <div className="v3-empty">
+                        <p>
+                          Your saved roles and responsibilities are ready.
+                          Prepare the activity workflow when you are ready.
+                        </p>
+                        <button
+                          className="v3-primary"
+                          onClick={() =>
+                            void run("member_workflow").then((data) => {
+                              if (data) {
+                                patch({ memberFlow: data as OrgFlow });
+                                void persist();
+                              }
+                            })
+                          }
+                        >
+                          Prepare activity workflow
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+                {draft.step === 4 && (
+                  <>
+                    <div
+                      className="v3-tabs"
+                      role="tablist"
+                      aria-label="Review settings"
+                    >
+                      {[
+                        ["team", "Team"],
+                        ["duties", "Responsibilities"],
+                        ["workflow", "Activity workflow"],
+                      ].map(([id, label]) => (
+                        <button
+                          key={id}
+                          role="tab"
+                          aria-selected={reviewTab === id}
+                          onClick={() => setReviewTab(id)}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {reviewTab === "team" && (
+                      <>
+                        <h2>{draft.name}</h2>
+                        {draft.mission && <p>{draft.mission}</p>}
+                        <table className="v3-table">
+                          <thead>
+                            <tr>
+                              <th>Department</th>
+                              <th>Position</th>
+                              <th>Reports to</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {draft.roles.map((r) => (
+                              <tr key={r.id}>
+                                <td>
+                                  <i
+                                    style={{
+                                      background: draft.departments.find(
+                                        (d) => d.id === r.departmentId,
+                                      )?.color,
+                                    }}
+                                  />
+                                  {
+                                    draft.departments.find(
+                                      (d) => d.id === r.departmentId,
+                                    )?.name
+                                  }
+                                </td>
+                                <td>{r.title}</td>
+                                <td>
+                                  {draft.roles.find(
+                                    (x) => x.id === r.parentRoleId,
+                                  )?.title ?? "—"}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </>
+                    )}
+                    {reviewTab === "duties" &&
+                      draft.roles.map((r) => (
+                        <div key={r.id} className="v3-review-duties">
+                          <h3>{r.title}</h3>
+                          <ul>
+                            {r.responsibilities.map((x, i) => (
+                              <li key={i}>{x}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    {reviewTab === "workflow" && draft.memberFlow && (
+                      <ActivityChart
+                        flow={draft.memberFlow}
+                        roles={draft.roles}
+                        departments={draft.departments}
+                        onChange={(memberFlow) => {
+                          track("workflow.changed", { memberFlow });
+                          patch({ memberFlow });
+                        }}
+                        onError={setError}
+                      />
+                    )}
+                  </>
+                )}
+              </fieldset>
+              {busy && (
+                <div className="v3-busy" role="status">
+                  <span className="os-spinner" />
+                  <div>
+                    <b>
+                      {busy === "constitution"
+                        ? "Reading your constitution"
+                        : busy === "risk_check"
+                          ? "Checking major responsibility risks"
+                          : busy === "edit"
+                            ? "Preparing a change for your approval"
+                            : busy === "guide"
+                              ? "Compiling and saving your organization"
+                              : "Preparing your activity workflow"}
+                      …
+                    </b>
+                    <p>{seconds}s · Your saved settings stay safe.</p>
+                  </div>
+                </div>
+              )}
+              <div className="v3-footer">
+                <button
+                  disabled={disabled || draft.step === 0}
+                  onClick={() => void back()}
+                >
+                  ← Back
+                </button>
+                <span>Saved as you review</span>
+                <button
+                  className="v3-primary"
+                  disabled={
+                    disabled || (draft.step === 2 && !hasReviewedCheck(draft))
+                  }
+                  onClick={() => void next()}
+                >
+                  {draft.step === 0
+                    ? draft.roles.length &&
+                      draft.generated.constitution ===
+                        scopeKey(draft, "constitution")
+                      ? "Continue to your team"
+                      : "Let AI prepare my team"
+                    : draft.step === 4
+                      ? "Confirm organization"
+                      : "Approve & continue"}
+                </button>
+              </div>
+            </section>
+            {draft.step > 0 && (
+              <aside className="v3-assistant">
+                <div className="v3-assistant-title">
+                  <span>✦</span>
+                  <div>
+                    <b>Ask Platypus</b>
+                    <small>{STEPS[draft.step]} · Connected to your setup</small>
+                  </div>
+                </div>
+                <p className="v3-note">
+                  Tell me what to adjust. I’ll show you the proposed changes
+                  before applying them.
+                </p>
+                <div className="v3-messages" aria-live="polite">
+                  {draft.messages.length ? (
+                    draft.messages.slice(-12).map((m) => (
+                      <div key={m.id} className={`v3-message v3-${m.role}`}>
+                        <small>{m.role === "user" ? "You" : "Platypus"}</small>
+                        <p>{m.text}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="v3-chat-examples">
+                      {(draft.step === 1
+                        ? [
+                            "Move Marketing Intern under VP of Marketing.",
+                            "Rename Outreach to Partnerships.",
+                          ]
+                        : draft.step === 2
+                          ? [
+                              "Check who owns our event budget.",
+                              "Help clarify these two roles.",
+                            ]
+                          : [
+                              "Run venue booking and promotion in parallel.",
+                              "Add a feedback step after the activity.",
+                            ]
+                      ).map((x) => (
+                        <button
+                          key={x}
+                          disabled={disabled}
+                          onClick={() => setChat(x)}
+                        >
+                          {x}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void send();
+                  }}
+                >
+                  <textarea
+                    aria-label="Ask Platypus about this setup"
+                    placeholder="Describe a change…"
+                    value={chat}
+                    onChange={(e) => setChat(e.target.value)}
+                    disabled={disabled}
+                    maxLength={1200}
+                  />
+                  <div className="v3-chat-controls">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={deep}
+                        onChange={(e) => setDeep(e.target.checked)}
+                        disabled={disabled}
+                      />
+                      Deeper review (slower)
+                    </label>
+                    <button
+                      className="v3-primary"
+                      disabled={disabled || !chat.trim()}
+                    >
+                      Send →
+                    </button>
+                  </div>
+                </form>
+              </aside>
+            )}
+          </div>
+        </>
       )}
-      <PromptReview stage={stage} />
-      <div className="os-footer">
-        <span>
-          {draft.aiRuns.at(-1)
-            ? `Last AI response: ${draft.aiRuns.at(-1)!.provider} · ${draft.aiRuns.at(-1)!.model}${draft.aiRuns.at(-1)!.durationMs !== undefined ? ` · ${Math.round(draft.aiRuns.at(-1)!.durationMs! / 1000)}s` : ""}`
-            : "AI has not generated a response yet."}
-        </span>
+      <div className="v3-bottom">
+        <span>Timestamped records · Private test workspace</span>
         <Link to="/phase1/setup-legacy">Previous setup reference</Link>
       </div>
-      {showPrompts && (
+      {pasteOpen && (
         <Dialog
-          title="The instructions behind your setup"
-          onClose={() => setShowPrompts(false)}
+          title="Paste constitution text"
+          close={() => setPasteOpen(false)}
         >
-          <p>
-            These are the exact versioned system prompts used by the setup
-            service. Your organization information is supplied separately as
-            context.
-          </p>
-          {(Object.keys(PROMPTS) as Stage[]).map((s) => (
-            <PromptReview key={s} stage={s} />
-          ))}
+          <label>
+            Constitution text
+            <textarea
+              aria-label="Constitution text"
+              rows={12}
+              maxLength={60000}
+              value={paste}
+              onChange={(e) => setPaste(e.target.value)}
+            />
+          </label>
+          <button
+            className="v3-primary"
+            disabled={reading || paste.trim().length < 20}
+            onClick={() =>
+              void source(
+                new File([paste], "pasted-constitution.txt", {
+                  type: "text/plain",
+                }),
+                paste,
+              )
+            }
+          >
+            Use this text
+          </button>
+        </Dialog>
+      )}
+      {newRole && (
+        <Dialog title="Add a custom role" close={() => setNewRole(false)}>
+          <label>
+            Role title
+            <input
+              aria-label="Custom role title"
+              value={roleTitle}
+              maxLength={180}
+              onChange={(e) => setRoleTitle(e.target.value)}
+            />
+          </label>
+          <label>
+            Department
+            <select
+              aria-label="Custom role department"
+              value={roleDept}
+              onChange={(e) => setRoleDept(e.target.value)}
+            >
+              {draft.departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="v3-primary"
+            disabled={!roleTitle.trim() || !roleDept}
+            onClick={() => {
+              const id = uid("role");
+              patch({
+                roles: [
+                  ...draft.roles,
+                  {
+                    id,
+                    title: roleTitle.trim(),
+                    departmentId: roleDept,
+                    description: "",
+                    responsibilities: [],
+                    source: "manual",
+                    quote: "",
+                    confidence: 1,
+                    parentRoleId: null,
+                    position: { x: 0, y: 0 },
+                    manualFields: ["title", "departmentId"],
+                  },
+                ],
+              });
+              setRoleTitle("");
+              setNewRole(false);
+              setTeamTab("chart");
+              setSelected(id);
+            }}
+          >
+            Add role
+          </button>
         </Dialog>
       )}
       {proposal && (
         <Dialog
-          title="Review the suggested workflow"
-          onClose={() => {
-            track("ai.proposal.closed", { stage: proposal.stage });
+          title="Review proposed changes"
+          close={() => {
+            track("ai.proposal.closed", { changes: proposal.changes });
             setProposal(null);
           }}
         >
-          <p>
-            Your current workflow stays in place until you accept this update.
-          </p>
-          <FlowEditor
-            flow={proposal.flow}
-            roles={draft.roles}
-            onChange={(f) => setProposal({ ...proposal, flow: f })}
-          />
-          <div className="os-bottom-actions">
+          <p>{proposal.message}</p>
+          <div className="v3-change-list">
+            {proposal.changes.map((c, i) => {
+              const before =
+                c.entity === "role"
+                  ? draft.roles.find((x) => x.id === c.id)
+                  : c.entity === "department"
+                    ? draft.departments.find((x) => x.id === c.id)
+                    : draft.memberFlow?.nodes.find((x) => x.id === c.id);
+              const after =
+                c.entity === "role"
+                  ? proposal.after.roles.find((x) => x.id === c.id)
+                  : c.entity === "department"
+                    ? proposal.after.departments.find((x) => x.id === c.id)
+                    : proposal.after.memberFlow?.nodes.find(
+                        (x) => x.id === c.id,
+                      );
+              const old = before
+                ? (before as unknown as Record<string, unknown>)[c.field]
+                : undefined;
+              const nextValue = after
+                ? (after as unknown as Record<string, unknown>)[c.field]
+                : undefined;
+              return (
+                <div key={i}>
+                  <b>
+                    {c.entity} ·{" "}
+                    {"title" in (before ?? {})
+                      ? (before as OrgRole).title
+                      : c.id}{" "}
+                    · {c.field}
+                  </b>
+                  <div className="v3-before-after">
+                    <div>
+                      <small>Current</small>
+                      <p>
+                        {Array.isArray(old)
+                          ? old.join(" • ")
+                          : String(old ?? "—")}
+                      </p>
+                    </div>
+                    <div>
+                      <small>Proposed</small>
+                      <p>
+                        {c.operation === "remove"
+                          ? "Remove"
+                          : Array.isArray(nextValue)
+                            ? nextValue.join(" • ")
+                            : String(nextValue ?? "—")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="v3-toolbar">
             <button
               onClick={() => {
-                track("ai.proposal.discarded", {
-                  stage: proposal.stage,
-                  flow: proposal.flow,
-                });
+                track("ai.proposal.discarded", { changes: proposal.changes });
                 setProposal(null);
               }}
             >
-              Discard suggestion
+              Keep current settings
             </button>
             <button
-              className="os-primary"
-              onClick={() => {
-                track("ai.proposal.accepted", {
-                  stage: proposal.stage,
-                  flow: proposal.flow,
-                });
-                patch(
-                  proposal.stage === "member_workflow"
-                    ? { memberFlow: proposal.flow }
-                    : { boardFlow: proposal.flow },
-                );
-                setProposal(null);
-                setEditInstruction("");
-              }}
+              className="v3-primary"
+              disabled={!!busy}
+              onClick={() => void accept()}
             >
-              Accept update
+              Approve changes
             </button>
           </div>
         </Dialog>
       )}
-    </div>
-  );
-}
-function MatrixGroup({
-  title,
-  actions,
-  roles,
-  draft,
-  onToggle,
-}: {
-  title: string;
-  actions: SetupDraft["actions"];
-  roles: OrgRole[];
-  draft: SetupDraft;
-  onToggle: (a: string, r: string, c: boolean) => void;
-}) {
-  return (
-    <>
-      <tr className="os-matrix-group">
-        <th colSpan={roles.length + 1} scope="rowgroup">
-          {title}
-        </th>
-      </tr>
-      {actions.map((a) => (
-        <tr key={a.id}>
-          <th scope="row">
-            <b>
-              {a.title}
-              {a.optional ? " · If applicable" : ""}
-            </b>
-            <span>{a.description}</span>
-          </th>
-          {roles.map((r) => (
-            <td key={r.id}>
-              <label className="os-matrix-check">
-                <input
-                  type="checkbox"
-                  aria-label={`${r.title}: ${a.title}`}
-                  checked={
-                    draft.assignments
-                      .find((x) => x.actionId === a.id)
-                      ?.roleIds.includes(r.id) ?? false
+      {files && (
+        <Dialog title="Archived original files" close={() => setFiles(null)}>
+          {files.length ? (
+            files.map((f) => (
+              <div className="v3-file" key={f.id}>
+                <b>{f.fileName}</b>
+                <span>{f.createdAt}</span>
+                <button
+                  onClick={() =>
+                    void downloadOriginal(f.id).catch((e) =>
+                      setError(e.message),
+                    )
                   }
-                  onChange={(e) => onToggle(a.id, r.id, e.target.checked)}
-                />
-                <span className="os-sr">
-                  {r.title}: {a.title}
-                </span>
-              </label>
-            </td>
-          ))}
-        </tr>
-      ))}
-    </>
+                >
+                  Download original
+                </button>
+              </div>
+            ))
+          ) : (
+            <p>No original files yet.</p>
+          )}
+        </Dialog>
+      )}
+    </div>
   );
 }

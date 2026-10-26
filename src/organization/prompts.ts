@@ -12,7 +12,7 @@ const ROLE = `{id:string,title:string,departmentId:"planning"|"logistics"|"finan
 const MAPPING = `{actionId:string,roleIds:string[],origin:"ai",confirmed:false}`;
 const FLOW = `{title:string,explanation:string,nodes:[{id:string,title:string,description:string,actionIds:string[],roleIds:string[],dependsOn:string[],dependencyMode:"all"|"any",position:{x:number,y:number},basis:string}],raci:[{actionId:string,responsible:string[],accountable:string|null,consulted:string[],informed:string[],reason:string}]}`;
 export const PROMPTS: Record<
-  Stage,
+  Exclude<Stage,"risk_check"|"edit">,
   { title: string; why: string; system: string }
 > = {
   constitution: {

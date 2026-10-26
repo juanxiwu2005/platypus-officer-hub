@@ -1,3 +1,10 @@
+import {
+  compileOrganization,
+  upgrade,
+  validateStructure,
+  roleContext,
+  stable,
+} from "../../../src/organization/setupLogic.ts";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { getStore } from "@netlify/blobs";
 import { blankDraft } from "../../../src/organization/presets.ts";
@@ -114,6 +121,7 @@ export async function saveSession(
   const draft = DraftSchema.parse(raw);
   try {
     validateDraftIntegrity(draft);
+    if (draft.uiVersion === 3) validateStructure(upgrade(draft));
   } catch (e) {
     throw new SetupError((e as Error).message);
   }
@@ -140,7 +148,13 @@ export async function saveSession(
   draft.aiRuns = current.entry.draft.aiRuns;
   draft.contextVersion = current.entry.draft.contextVersion;
   if (confirm) {
-    if (!draft.guide || !draft.memberFlow || !draft.boardFlow)
+    if (draft.uiVersion === 3) {
+      try {
+        draft.compiled = compileOrganization(draft);
+      } catch (e) {
+        throw new SetupError((e as Error).message);
+      }
+    } else if (!draft.guide || !draft.memberFlow || !draft.boardFlow)
       throw new SetupError(
         "Review the generated workflows and organization guide first.",
       );
@@ -182,6 +196,55 @@ export async function saveSession(
       configuration: draft,
     },
   );
+  // A small retrieval index points to prior configurations; immutable events remain the full archive.
+  const compact = (raw: SetupDraft) => {
+    const u = upgrade(raw);
+    return {
+      organization: { name: u.name, mission: u.mission },
+      departments: u.departments,
+      roles: roleContext(u),
+      workflow: u.memberFlow
+        ? {
+            title: u.memberFlow.title,
+            nodes: u.memberFlow.nodes.map(
+              ({ id, title, roleIds, dependsOn, dependencyMode }) => ({
+                id,
+                title,
+                roleIds,
+                dependsOn,
+                dependencyMode,
+              }),
+            ),
+          }
+        : null,
+    };
+  };
+  if (stable(compact(current.entry.draft)) !== stable(compact(draft))) {
+    const historyKey = `history/${entry.workspaceId}`;
+    const previous = await store().getWithMetadata(historyKey, {
+      type: "json",
+    });
+    const items = (previous?.data as unknown[] | undefined) ?? [];
+    await store().setJSON(
+      historyKey,
+      [
+        ...items.slice(-19),
+        {
+          at: current.entry.updatedAt,
+          revision: current.entry.revision,
+          ...compact(current.entry.draft),
+        },
+      ],
+      previous ? { onlyIfMatch: previous.etag } : { onlyIfNew: true },
+    );
+  }
+  if (confirm && draft.uiVersion === 3)
+    await archiveEvent(
+      entry.workspaceId,
+      "configuration.compiled",
+      { revision: entry.revision, artifact: draft.compiled },
+      "system",
+    );
   return entry;
 }
 export async function recordRun(

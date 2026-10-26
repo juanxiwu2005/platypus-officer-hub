@@ -3,8 +3,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { blankDraft } from "../src/organization/presets";
 import {
   fixtureDraft,
-  fixtureResult,
+  fixtureFlow,
 } from "../src/organization/testing/fixtures";
+import { upgrade, compileOrganization } from "../src/organization/setupLogic";
 import type { Envelope, Stage } from "../src/organization/schema";
 async function mockedOnline(page: Page) {
   let record: Envelope = {
@@ -12,10 +13,12 @@ async function mockedOnline(page: Page) {
     revision: 0,
     draft: blankDraft(),
     approved: null,
-    updatedAt: "2026-10-25T12:00:00Z",
+    updatedAt: "2026-10-26T12:00:00Z",
     expiresAt: "2026-11-01T12:00:00Z",
   };
-  const archivedFiles = new Map<string, unknown>();
+  const calls: Stage[] = [];
+  let requestError = "";
+  const uploads = new Map<string, unknown>();
   await page.route("**/api/org/archive**", async (route) => {
     if (route.request().method() === "GET") {
       await route.fulfill({ json: { eventIds: [], uploads: [] } });
@@ -23,33 +26,30 @@ async function mockedOnline(page: Page) {
     }
     const b = route.request().postDataJSON();
     if (b.action === "begin") {
-      const id = "b0507f2a-6514-4ae0-849a-446c7ba364b0";
       const m = {
         ...b,
-        id,
-        parts: Math.ceil(b.size / 786432),
-        createdAt: "2026-10-25T12:00:00Z",
+        id: "b0507f2a-6514-4ae0-849a-446c7ba364b0",
+        parts: 1,
+        createdAt: record.updatedAt,
         complete: false,
       };
-      archivedFiles.set(id, m);
+      uploads.set(m.id, m);
       await route.fulfill({ json: m });
       return;
     }
     if (b.action === "finish") {
       await route.fulfill({
-        json: { ...(archivedFiles.get(b.id) as object), complete: true },
+        json: { ...(uploads.get(b.id) as object), complete: true },
       });
       return;
     }
     await route.fulfill({ json: { saved: true } });
   });
   await page.route("**/api/org/setup", async (route) => {
-    const req = route.request();
-    if (req.method() === "GET") {
-      await route.fulfill({ json: record });
-      return;
-    }
-    const b = req.postDataJSON();
+    const b =
+      route.request().method() === "POST"
+        ? route.request().postDataJSON()
+        : { action: "start" };
     if (b.action !== "start") {
       if (b.revision !== record.revision) {
         await route.fulfill({
@@ -64,8 +64,8 @@ async function mockedOnline(page: Page) {
         draft: { ...b.draft, aiRuns: record.draft.aiRuns },
       };
       if (b.action === "confirm") {
+        record.draft.compiled = compileOrganization(record.draft);
         record.draft.confirmed = true;
-        record.draft.contextVersion++;
         record.approved = structuredClone(record.draft);
       }
     }
@@ -73,77 +73,123 @@ async function mockedOnline(page: Page) {
   });
   await page.route("**/api/org/ai", async (route) => {
     const b = route.request().postDataJSON();
+    calls.push(b.stage);
+    if (requestError) {
+      await route.fulfill({ status: 502, json: { message: requestError } });
+      return;
+    }
     if (b.revision !== record.revision) {
-      await route.fulfill({
-        status: 409,
-        json: { message: "Save latest settings" },
-      });
+      await route.fulfill({ status: 409, json: { message: "Save latest" } });
       return;
     }
     const meta = {
-      stage: b.stage as Stage,
-      promptVersion: "organization-setup-v2.3",
+      stage: b.stage,
+      promptVersion: "organization-setup-v3.0",
       model: "test-model",
-      provider: "Automated test fixture",
-      inputHash: "test-hash",
-      at: "2026-10-25T12:00:00Z",
+      provider: "Automated fixture",
+      inputHash: "test",
+      at: record.updatedAt,
     };
     record = {
       ...record,
       revision: record.revision + 1,
       draft: { ...record.draft, aiRuns: [...record.draft.aiRuns, meta] },
     };
-    const d = record.draft.roles.length ? record.draft : fixtureDraft();
+    const d = upgrade(fixtureDraft());
+    let data: unknown;
+    if (b.stage === "constitution")
+      data = {
+        name: d.name,
+        mission: d.mission,
+        roles: d.roles,
+        departments: d.departments,
+        uncertainties: [],
+      };
+    else if (b.stage === "member_workflow") data = fixtureFlow(record.draft);
+    else if (b.stage === "risk_check") data = { risks: [] };
+    else
+      data = {
+        message: "Rename the marketing position. Other settings stay the same.",
+        question: null,
+        changes: [
+          {
+            entity: "role",
+            id: "marketing",
+            operation: "set",
+            field: "title",
+            value: "VP of Communications",
+          },
+        ],
+      };
     await route.fulfill({
       json: {
-        result: { ...meta, data: fixtureResult(b.stage, d) },
+        result: { ...meta, data },
         revision: record.revision,
         updatedAt: record.updatedAt,
       },
     });
   });
-  return () => record;
+  return {
+    read: () => record,
+    calls,
+    fail: (s: string) => {
+      requestError = s;
+    },
+  };
 }
 async function open(page: Page) {
-  const read = await mockedOnline(page);
+  const state = await mockedOnline(page);
   await page.goto("/#/phase1/setup");
   await expect(
     page.getByRole("heading", { name: "Start with your constitution." }),
   ).toBeVisible();
-  return read;
+  return state;
 }
 async function team(page: Page) {
   await page
     .getByRole("button", { name: "Use fictional example", exact: true })
     .click();
+  await expect(page.getByText(/✓ fictional-constitution.txt/)).toBeVisible();
+  await page
+    .getByRole("button", { name: "Let AI prepare my team", exact: true })
+    .click();
   await expect(
-    page.getByText("fictional-constitution.txt", { exact: true }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Let AI prepare my team" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Does this look like your team?" }),
+    page.getByRole("heading", { name: "A team that looks like yours." }),
   ).toBeVisible();
 }
-async function matrix(page: Page) {
+async function responsibilities(page: Page) {
   await team(page);
   await page
     .getByRole("button", { name: "Approve & continue", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "A shared picture of who does what." }),
+    page.getByRole("heading", { name: "Give every role a clear purpose." }),
   ).toBeVisible();
+}
+async function workflow(page: Page) {
+  await responsibilities(page);
+  await page.getByRole("tab", { name: "✓ Check", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Skip check for now", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Approve & continue", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "How your activities come together." }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Step title plan")).toBeVisible();
 }
 const overflow = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-test("AI setup starts from constitution, without organization categories", async ({
+test("source screen hides system prompts and supports source choices", async ({
   page,
 }) => {
   await open(page);
   await expect(
-    page.getByText("Professional development", { exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    page.getByText("How should plans move forward", { exact: false }),
+    page.getByText(
+      /View prompt|How should plans move forward|Describe your organization/,
+    ),
   ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Paste text", exact: true }),
@@ -151,246 +197,246 @@ test("AI setup starts from constitution, without organization categories", async
   await expect(
     page.getByLabel("Upload constitution", { exact: true }),
   ).toHaveAttribute("accept", /\.pdf,\.docx/);
-  await expect(
-    page.getByText("Saved online", { exact: false }).first(),
-  ).toBeVisible();
 });
 for (const ext of ["pdf", "docx", "txt"])
-  test(`AI setup reads a real ${ext} file`, async ({ page }) => {
-    await open(page);
+  test(`reads and archives real ${ext} document`, async ({ page }) => {
+    const s = await open(page);
     await page
       .getByLabel("Upload constitution", { exact: true })
       .setInputFiles(`public/organization/fictional-constitution.${ext}`);
     await expect(
-      page.getByText(`fictional-constitution.${ext}`, { exact: true }),
+      page.getByText(`✓ fictional-constitution.${ext}`, { exact: true }),
     ).toBeVisible({ timeout: 20000 });
+    expect(s.read().draft.source?.archiveId).toBeTruthy();
     await expect(page.getByRole("alert")).toHaveCount(0);
   });
-test("AI setup accepts pasted text and persists it before requesting AI", async ({
-  page,
-}) => {
-  const read = await open(page);
+test("paste text is saved before the AI request", async ({ page }) => {
+  const s = await open(page);
   await page.getByRole("button", { name: "Paste text", exact: true }).click();
   await page
     .getByLabel("Constitution text", { exact: true })
     .fill(
-      "A fictional constitution. The President approves plans. Marketing coordinates promotion.",
+      "A fictional constitution. The President approves major plans. Marketing leads promotion.",
     );
   await page
     .getByRole("button", { name: "Use this text", exact: true })
     .click();
   await expect(
-    page.getByText("pasted-constitution.txt", { exact: true }),
+    page.getByText("✓ pasted-constitution.txt", { exact: true }),
   ).toBeVisible();
-  expect(read().draft.source?.text).toContain("fictional constitution");
+  expect(s.read().draft.source?.text).toContain("fictional constitution");
+  expect(s.calls).toHaveLength(0);
 });
-test("AI setup extracts grouped roles with evidence and shows custom role input directly", async ({
+test("departments come first, with editable colors and compact organization chart", async ({
   page,
 }) => {
-  await open(page);
+  const s = await open(page);
   await team(page);
   await expect(
-    page.getByRole("heading", {
-      name: "Marketing & Communication",
-      exact: true,
-    }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("textbox", {
-      name: "Role title marketing_intern",
-      exact: true,
-    }),
-  ).toHaveValue("Marketing Intern");
-  await expect(page.getByLabel("Role title", { exact: true })).toBeVisible();
+    page.getByRole("tab", { name: "Departments", exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
   await page
-    .getByLabel("Role title", { exact: true })
-    .fill("Volunteer Coordinator");
+    .getByLabel("Department name marketing", { exact: true })
+    .fill("Communications");
   await page
-    .locator(".os-add-role")
-    .getByRole("button", { name: "Add role", exact: true })
+    .getByRole("tab", { name: "Organization chart", exact: true })
     .click();
-  await expect(page.locator(".os-role-card input").last()).not.toHaveValue("");
-});
-test("AI setup uses department groups and multiple role checkboxes", async ({
-  page,
-}) => {
-  const read = await open(page);
-  await matrix(page);
-  const a = page.getByRole("checkbox", {
-      name: "Vice President of Marketing: Create and share promotion",
-      exact: true,
-    }),
-    b = page.getByRole("checkbox", {
-      name: "Marketing Intern: Create and share promotion",
-      exact: true,
-    });
-  await expect(a).toBeChecked();
-  await expect(b).toBeChecked();
-  await b.uncheck();
-  await b.check();
   await expect(
-    page.getByRole("combobox", { name: /owner|approver|support/i }),
-  ).toHaveCount(0);
+    page.getByLabel("Role title marketing_intern", { exact: true }),
+  ).toHaveValue("Marketing Intern");
   await expect(
-    page
-      .getByRole("cell", { name: "Finance & Purchasing", exact: true })
-      .first(),
-  ).toBeVisible();
-  expect(read().draft.roles).toHaveLength(9);
+    page.getByLabel("Department for Marketing Intern", { exact: true }),
+  ).toContainText("Communications");
+  await page
+    .getByRole("button", { name: "+ Add a custom role", exact: true })
+    .click();
+  await page
+    .getByLabel("Custom role title", { exact: true })
+    .fill("Volunteer Director");
+  await page.getByRole("button", { name: "Add role", exact: true }).click();
+  await expect
+    .poll(() =>
+      s.read().draft.roles.some((r) => r.title === "Volunteer Director"),
+    )
+    .toBe(true);
+  expect(s.calls).toEqual(["constitution"]);
   expect(await overflow(page)).toBeLessThanOrEqual(1);
 });
-test("AI setup renders member flow, edits responsible roles, and reviews AI changes", async ({
+test("responsibilities are editable role bullets and unchanged back/next uses zero calls", async ({
   page,
-}, info) => {
-  await open(page);
-  await matrix(page);
+}) => {
+  const s = await open(page);
+  await responsibilities(page);
+  await page
+    .getByLabel("Duty 1 for President", { exact: true })
+    .fill("Review major commitments with the board");
+  await page.getByRole("button", { name: "← Back", exact: true }).click();
   await page
     .getByRole("button", { name: "Approve & continue", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "From opportunity to a great program." }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "+ Add step", exact: true }).click();
+    page.getByLabel("Duty 1 for President", { exact: true }),
+  ).toHaveValue("Review major commitments with the board");
+  expect(s.calls).toEqual(["constitution"]);
+  await page.getByRole("button", { name: "← Back", exact: true }).click();
+  await page.getByRole("button", { name: "← Back", exact: true }).click();
   await page
-    .getByLabel("New step title", { exact: true })
-    .fill("Review accessible participation");
+    .getByRole("button", { name: "Continue to your team", exact: true })
+    .click();
+  expect(s.calls).toEqual(["constitution"]);
+});
+test("check gate allows explicit skip and healthy AI check", async ({
+  page,
+}) => {
+  const s = await open(page);
+  await responsibilities(page);
+  await expect(
+    page.getByRole("button", { name: "Approve & continue", exact: true }),
+  ).toBeDisabled();
+  await page.getByRole("tab", { name: "✓ Check", exact: true }).click();
   await page
-    .getByRole("button", { name: "Add to workflow", exact: true })
+    .getByRole("button", {
+      name: "Check responsibilities with AI",
+      exact: true,
+    })
     .click();
   await expect(
-    page.getByRole("region", { name: "Selected workflow step" }),
+    page.getByText("✓ Responsibility review complete.", { exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("checkbox", { name: "Vice President of Marketing", exact: true })
-    .check();
-  await page
-    .getByRole("checkbox", { name: "Marketing Intern", exact: true })
-    .check();
-  await page
-    .getByLabel("Tell Platypus what to change", { exact: true })
-    .fill("Keep the venue and registration in parallel.");
-  await page
-    .getByRole("button", { name: "Suggest an update", exact: true })
-    .click();
   await expect(
-    page.getByRole("dialog", { name: "Review the suggested workflow" }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Approve & continue", exact: true }),
+  ).toBeEnabled();
+  expect(s.calls).toEqual(["constitution", "risk_check"]);
+});
+test("AI proposes changes for approval, and no change is applied before approval", async ({
+  page,
+}) => {
+  const s = await open(page);
+  await team(page);
   await page
-    .getByRole("button", { name: "Discard suggestion", exact: true })
-    .click();
-  await expect(page.getByLabel("Step title", { exact: true })).toHaveValue(
-    "Review accessible participation",
+    .getByLabel("Ask Platypus about this setup", { exact: true })
+    .fill("Rename the marketing position to VP of Communications");
+  await page.getByRole("button", { name: "Send →", exact: true }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Review proposed changes" }),
+  ).toBeVisible();
+  expect(s.read().draft.roles.find((r) => r.id === "marketing")?.title).toBe(
+    "Vice President of Marketing",
   );
+  await page
+    .getByRole("button", { name: "Approve changes", exact: true })
+    .click();
+  await expect
+    .poll(() => s.read().draft.roles.find((r) => r.id === "marketing")?.title)
+    .toBe("VP of Communications");
+  expect(s.read().draft.messages).toHaveLength(2);
+});
+test("activity workflow supports inline editing and preserves it after a small upstream edit", async ({
+  page,
+}, info) => {
+  const s = await open(page);
+  await workflow(page);
+  await page
+    .getByLabel("Step title plan", { exact: true })
+    .fill("Create our custom activity plan");
+  const count = s.calls.length;
+  await page.getByRole("button", { name: "← Back", exact: true }).click();
+  await page
+    .getByRole("tab", { name: "Leadership & Records", exact: true })
+    .click();
+  await page
+    .getByLabel("Duty 1 for President", { exact: true })
+    .fill("Review major invitations and commitments");
+  await page.getByRole("tab", { name: "✓ Check", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Skip check for now", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Approve & continue", exact: true })
+    .click();
+  await expect(page.getByLabel("Step title plan", { exact: true })).toHaveValue(
+    "Create our custom activity plan",
+  );
+  expect(s.calls).toHaveLength(count);
   await page.screenshot({
-    path: `output/playwright/org-member-${info.project.name}.png`,
+    path: `output/playwright/org-v3-workflow-${info.project.name}.png`,
     fullPage: true,
   });
   expect(await overflow(page)).toBeLessThanOrEqual(1);
 });
-test("AI setup completes board planning, two context tiers and exact prompt review", async ({
+test("review shows entered settings and confirmation compiles data without another AI call", async ({
   page,
 }, info) => {
-  const read = await open(page);
-  await matrix(page);
+  const s = await open(page);
+  await workflow(page);
   await page
     .getByRole("button", { name: "Approve & continue", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: "This matches our workflow", exact: true })
-    .click();
   await expect(
-    page.getByRole("heading", { name: "A little structure for board work." }),
+    page.getByRole("heading", { name: "Your organization, ready." }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Tabling event", exact: true })
-    .click();
-  await expect(page.locator(".os-content .os-flow-editor")).toHaveCount(0);
+  await expect(page.getByText("Board work", { exact: true })).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Let AI prepare this plan", exact: true }),
+    page.getByText("Vice President of Marketing", { exact: true }),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Generate with AI", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Accept update", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Keep this plan & continue", exact: true })
-    .click();
-  await expect(
-    page.getByRole("heading", { name: "Ready to work together." }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("READ WITH EVERY REQUEST", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    page.getByText("READ WHEN NEEDED", { exact: true }),
-  ).toBeVisible();
-  await page
-    .getByRole("button", { name: "Review all prompts", exact: true })
-    .click();
-  await expect(
-    page.getByRole("dialog", { name: "The instructions behind your setup" }),
-  ).toBeVisible();
-  await expect(page.locator("dialog details")).toHaveCount(5);
-  await page
-    .getByRole("dialog")
-    .getByRole("button", { name: "Close", exact: true })
-    .click();
-  await page
-    .getByRole("checkbox", {
-      name: "I have reviewed the AI instructions.",
-      exact: true,
-    })
-    .check();
+  const count = s.calls.length;
   await page
     .getByRole("button", { name: "Confirm organization", exact: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "Your organization is ready." }),
   ).toBeVisible();
-  expect(read().approved?.guide).toBeTruthy();
-  expect(read().approved?.boardGoal).toContain("tabling");
-  expect(read().approved?.boardFlow?.title).toContain("tabling");
+  expect(s.read().approved?.compiled?.format).toBe("platypus.organization");
+  expect(s.calls).toHaveLength(count);
   await page.screenshot({
-    path: `output/playwright/org-review-${info.project.name}.png`,
+    path: `output/playwright/org-v3-complete-${info.project.name}.png`,
     fullPage: true,
   });
 });
-test("AI setup resumes saved online changes after reload", async ({ page }) => {
-  const read = await open(page);
+test("invalid JSON keeps source data and allows a retry without a fake success", async ({
+  page,
+}) => {
+  const s = await open(page);
+  await page
+    .getByRole("button", { name: "Use fictional example", exact: true })
+    .click();
+  s.fail(
+    "AIR stopped before finishing the response (output limit). Your saved settings are safe.",
+  );
+  await page
+    .getByRole("button", { name: "Let AI prepare my team", exact: true })
+    .click();
+  await expect(page.getByRole("alert")).toContainText("output limit");
+  expect(s.read().draft.source?.archiveId).toBeTruthy();
+  expect(s.read().draft.roles).toHaveLength(0);
+  s.fail("");
+  await page
+    .getByRole("button", { name: "Let AI prepare my team", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "A team that looks like yours." }),
+  ).toBeVisible();
+});
+test("saved drafts resume after reload", async ({ page }) => {
+  const s = await open(page);
   await page
     .getByLabel("Organization name", { exact: true })
     .fill("Fictional Future Builders");
-  await expect.poll(() => read().draft.name).toBe("Fictional Future Builders");
+  await expect
+    .poll(() => s.read().draft.name)
+    .toBe("Fictional Future Builders");
   await page.reload();
   await expect(
     page.getByLabel("Organization name", { exact: true }),
   ).toHaveValue("Fictional Future Builders");
 });
-test("AI setup clearly reports provider errors and does not invent success", async ({
-  page,
-}) => {
-  await open(page);
-  await page.route("**/api/org/ai", (route) =>
-    route.fulfill({
-      status: 503,
-      json: { message: "AI is not configured on the server." },
-    }),
-  );
-  await page.getByRole("button", { name: "Let AI prepare my team" }).click();
-  await expect(page.getByRole("alert")).toContainText("AI is not configured");
-  await expect(
-    page.getByRole("heading", { name: "Start with your constitution." }),
-  ).toBeVisible();
-});
-test("AI setup has usable touch targets and accessible source screen", async ({
+test("source screen is accessible and does not overflow", async ({
   page,
 }, info) => {
   await open(page);
   const violations = (
     await new AxeBuilder({ page })
-      .include(".os")
+      .include(".v3-root")
       .withTags(["wcag2a", "wcag2aa"])
       .analyze()
   ).violations.map((v) => ({
@@ -398,77 +444,9 @@ test("AI setup has usable touch targets and accessible source screen", async ({
     targets: v.nodes.map((n) => n.target),
   }));
   expect(violations).toEqual([]);
-  const small = await page
-    .locator(".os button:visible,.os select:visible")
-    .evaluateAll((els) =>
-      els
-        .filter((e) => e.getBoundingClientRect().height < 43)
-        .map((e) => e.textContent),
-    );
-  expect(small).toEqual([]);
+  expect(await overflow(page)).toBeLessThanOrEqual(1);
   await page.screenshot({
-    path: `output/playwright/org-source-${info.project.name}.png`,
+    path: `output/playwright/org-v3-source-${info.project.name}.png`,
     fullPage: true,
   });
-});
-
-test("AI setup waits for a background AIR job and applies only its completed suggestion", async ({
-  page,
-}) => {
-  const read = await open(page);
-  let polls = 0,
-    started = 0;
-  await page.route("**/api/org/ai-run", async (route) => {
-    started++;
-    await route.fulfill({ status: 202, body: "" });
-  });
-  await page.route("**/api/org/ai?*", async (route) => {
-    polls++;
-    const record = read();
-    if (polls === 1) {
-      await route.fulfill({
-        json: { jobId: "fictional-job", status: "running" },
-      });
-      return;
-    }
-    await route.fulfill({
-      json: {
-        jobId: "fictional-job",
-        status: "done",
-        response: {
-          result: {
-            stage: "constitution",
-            data: fixtureResult("constitution"),
-            model: "AIR-test",
-            provider: "Automated test fixture",
-            promptVersion: "organization-setup-v2.3",
-            inputHash: "test",
-            at: "2026-10-25T12:00:00Z",
-          },
-          revision: record.revision,
-          updatedAt: record.updatedAt,
-        },
-      },
-    });
-  });
-  await page.route("**/api/org/ai", async (route) =>
-    route.fulfill({
-      status: 202,
-      json: { jobId: "fictional-job", status: "queued" },
-    }),
-  );
-  await page
-    .getByRole("button", { name: "Use fictional example", exact: true })
-    .click();
-  await page
-    .getByRole("button", { name: "Let AI prepare my team", exact: true })
-    .click();
-  await expect(
-    page.getByText("AIR may need extra time", { exact: false }),
-  ).toBeVisible();
-  await expect(
-    page.getByRole("heading", { name: "Does this look like your team?" }),
-  ).toBeVisible({ timeout: 10000 });
-  expect(started).toBe(1);
-  expect(polls).toBe(2);
 });

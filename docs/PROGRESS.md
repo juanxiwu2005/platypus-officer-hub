@@ -1,3 +1,8 @@
+> **2026-10-26 · Organization Setup v3：进行中（Codex）**
+> Juanxi 要求五步、部门与组织图、岗位职责/重大风险卡片、图内编辑、右侧 AI 审批和服务器机器配置；prompt 只在开发聊天审阅。已实现并进入发布检查，详见 [v3 记录](organization/V3_CHANGELOG.md)。
+> JSON 失败新增截断/空输出/格式污染诊断，原始回复先归档；原生 schema、有限格式降级、流式首字/完成耗时、内容缓存。无改动返回零 AI；局部修改保留后续数据。改版前一次真实 Muse 章程提取成功但约65秒，未能证明用户旧报错具体原因。
+> 最新允许少量真实 AI 冒烟，其他回归不用 AIR。当前发布、CI 和实测结果在最终交接中追加；不改 main。
+
 > **2026-10-26 · Organization Setup：待 Juanxi 实操验收（Codex）**
 > [在线设置](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup) / [PR #3](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3)。章程提取、分组多岗位矩阵、隐藏 RACI、可编辑成员/干部流程、PDF/Word/粘贴/示例与真实 AIR 已接入；main、原站、旧数据和前一版设置保留。
 > 最新原则：**数据记录/治理先于 AI**。本版新增带时间戳的操作/配置历史、原件、对话与 AI 输入输出/决定归档；支持导出与下载原件；访问过期不删除档案，当前不自动跨组织共享。[数据基础](organization/DATA_FOUNDATION.md)。

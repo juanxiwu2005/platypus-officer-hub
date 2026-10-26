@@ -1,3 +1,6 @@
+> **2026-10-26 v3 增量：进行中（Codex）**
+> 五章组织图/职责条目与 Check/图内编辑/右侧 AI 审批/服务器 JSON 编译已实现；prompt 已从网页移除。重点修复 JSON 格式错误和下游数据保留。详细变更、指标含义和边界见 [V3_CHANGELOG](V3_CHANGELOG.md)。main 与旧数据保留。当前真实冒烟、发布和 CI 结果以下方最终追加为准。
+
 # Organization Setup：上线交接
 
 2026-10-26 · Codex · **待 Juanxi 实操验收**。已停止新增真实 AI 测试。

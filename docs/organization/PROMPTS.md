@@ -1,3 +1,7 @@
+> **v3 正本：** `netlify/lib/organization/prompts.mts`。Prompt 隐藏在服务端，不展示于产品；由开发聊天直接交给 Juanxi 修改。旧文档与 `src/organization/prompts.ts` 的 v2 五阶段保留作历史兼容。
+> 新四任务：Constitution（部门/岗位/职责），Risk check（仅重大风险），Member workflow（精简图结构），Edit（白名单局部变更、明确批准）。坐标、最终机器配置和未改动导航由程序完成，不调用模型。
+> 默认 Muse Glimmer 30B + reasoning none；Deeper review 才调用 GLM 5.3 low。原生 JSON schema + Zod/图/ID/层级检查；记录输出上限与原始回复。允许少量虚构数据真实冒烟，其他回归用模拟。见 [v3 修改记录](V3_CHANGELOG.md)。
+
 # Organization Setup：实际 Prompt 与审核
 
 **待 Juanxi 审核。** 质量审核是产品验收步骤；开发完成不等于 prompt 已获产品批准。最终 Review 有“Review AI instructions”入口和审核提醒，各步骤也可展开查看精确 system prompt。正式运行的唯一正本是 [`src/organization/prompts.ts`](../../src/organization/prompts.ts)，不是本说明中的概述；版本记录在每次成功生成的服务器 AI 记录中。

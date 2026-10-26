@@ -176,6 +176,7 @@ export async function processAiJob(
           revision: job.revision,
           instruction: job.instruction,
           deep: job.deep === true,
+          queuedMs:Date.now()-job.startedAt,
         }),
       }),
       180000,

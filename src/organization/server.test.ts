@@ -430,3 +430,57 @@ describe("Online organization storage and model boundaries", () => {
     expect(state.rows.size).toBe(before);
   });
 });
+
+describe("v3 server compiler and scoped cache", () => {
+  it("compiles confirmed configuration on the server and ignores a forged artifact", async () => {
+    const { cookie } = await session();
+    const { upgrade, scopeKey } = await import("./setupLogic");
+    const d = upgrade(fixtureDraft());
+    d.memberFlow = fixtureFlow(d);
+    d.compiled = { format: "forged" };
+    d.riskCheck = {
+      status: "skipped",
+      inputKey: scopeKey(d, "risk_check"),
+      risks: [],
+      answers: {},
+      at: new Date().toISOString(),
+    };
+    const response = await setup(
+      request({ action: "confirm", revision: 0, draft: d }, cookie),
+    );
+    expect(response.status).toBe(200);
+    const e = await response.json();
+    expect(e.approved.compiled.format).toBe("platypus.organization");
+    expect(e.approved.compiled.contextVersion).toBe(e.approved.contextVersion);
+    expect(e.approved.boardFlow).toBeNull();
+    expect(state.chat).not.toHaveBeenCalled();
+    expect(
+      [...state.rows.values()].some(
+        (row) => (row.data as any).kind === "configuration.compiled",
+      ),
+    ).toBe(true);
+  });
+  it("reuses matching semantic inputs after saves without another provider call", async () => {
+    const { cookie } = await session();
+    const { upgrade } = await import("./setupLogic");
+    const d = upgrade(fixtureDraft());
+    await setup(request({ action: "save", revision: 0, draft: d }, cookie));
+    state.chat.mockResolvedValue({
+      data: { risks: [] },
+      model: "fixture",
+      provider: "Test",
+      ms: 12,
+    });
+    const first = await (
+      await ai(request({ stage: "risk_check", revision: 1 }, cookie))
+    ).json();
+    expect(first.result.cached).toBe(false);
+    const second = await (
+      await ai(
+        request({ stage: "risk_check", revision: first.revision }, cookie),
+      )
+    ).json();
+    expect(second.result.cached).toBe(true);
+    expect(state.chat).toHaveBeenCalledTimes(1);
+  });
+});

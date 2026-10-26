@@ -7,14 +7,11 @@ export const DEPARTMENTS = [
   { id: "outreach", name: "Outreach & Partnerships" },
   { id: "leadership", name: "Leadership & Records" },
 ] as const;
-export const DepartmentId = z.enum([
-  "planning",
-  "logistics",
-  "finance",
-  "marketing",
-  "outreach",
-  "leadership",
-]);
+export const DepartmentId = z
+  .string()
+  .min(1)
+  .max(80)
+  .regex(/^[a-zA-Z0-9_-]+$/);
 const id = z
   .string()
   .min(1)
@@ -29,6 +26,10 @@ export const RoleSchema = z.object({
   source: z.enum(["constitution", "suggested", "manual"]),
   quote: z.string().max(1500).default(""),
   confidence: z.number().min(0).max(1).default(0.5),
+  description: z.string().max(400).optional(),
+  parentRoleId: id.nullable().optional(),
+  position: z.object({ x: z.number(), y: z.number() }).optional(),
+  manualFields: z.array(z.string()).optional(),
 });
 export type OrgRole = z.infer<typeof RoleSchema>;
 export const ActionSchema = z.object({
@@ -68,6 +69,8 @@ export const FlowNodeSchema = z.object({
     y: z.number().min(-10000).max(20000),
   }),
   basis: z.string().max(500),
+  accountableRoleId: id.nullable().optional(),
+  needsReview: z.boolean().optional(),
 });
 export type FlowNode = z.infer<typeof FlowNodeSchema>;
 export const FlowSchema = z.object({
@@ -110,10 +113,90 @@ export const STAGES = [
   "member_workflow",
   "board_workflow",
   "guide",
+  "risk_check",
+  "edit",
 ] as const;
 export type Stage = (typeof STAGES)[number];
+export const DepartmentSchema = z.object({
+  id,
+  name: label,
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  source: z.enum(["constitution", "inferred", "manual"]),
+  quote: z.string().max(500).default(""),
+});
+export type Department = z.infer<typeof DepartmentSchema>;
+export const ChangeSchema = z.object({
+  entity: z.enum(["role", "department", "node"]),
+  id,
+  operation: z.enum(["set", "add", "remove"]),
+  field: z.enum([
+    "title",
+    "description",
+    "departmentId",
+    "parentRoleId",
+    "responsibilities",
+    "name",
+    "color",
+    "roleIds",
+    "dependsOn",
+    "dependencyMode",
+  ]),
+  value: z.union([
+    z.string().max(600),
+    z.array(z.string().max(240)).max(30),
+    z.null(),
+  ]),
+});
+export type OrgChange = z.infer<typeof ChangeSchema>;
+export const EditSchema = z.object({
+  message: z.string().max(600),
+  question: z.string().max(400).nullable(),
+  changes: z.array(ChangeSchema).max(40),
+});
+export const RiskSchema = z.object({
+  id,
+  title: label,
+  explanation: z.string().max(400),
+  roleIds: z.array(id).max(10),
+  options: z
+    .array(
+      z.object({
+        id,
+        label: z.string().max(140),
+        changes: z.array(ChangeSchema).max(10),
+      }),
+    )
+    .min(2)
+    .max(3),
+});
+export const RiskResultSchema = z.object({ risks: z.array(RiskSchema).max(4) });
+export type RiskIssue = z.infer<typeof RiskSchema>;
 export const DraftSchema = z.object({
   schemaVersion: z.literal(2),
+  uiVersion: z.literal(3).optional(),
+  departments: z.array(DepartmentSchema).max(30).optional(),
+  messages: z
+    .array(
+      z.object({
+        id,
+        role: z.enum(["user", "assistant"]),
+        text: z.string().max(2000),
+        at: z.string(),
+      }),
+    )
+    .max(200)
+    .optional(),
+  riskCheck: z
+    .object({
+      status: z.enum(["unreviewed", "complete", "skipped"]),
+      inputKey: z.string().max(100000),
+      risks: z.array(RiskSchema).max(4),
+      answers: z.record(z.string()),
+      at: z.string().nullable(),
+    })
+    .optional(),
+  generated: z.record(z.string().max(100000)).optional(),
+  compiled: z.record(z.unknown()).nullable().optional(),
   name: z.string().max(100),
   mission: z.string().max(1000),
   summary: z.string().max(1500),
@@ -150,6 +233,15 @@ export const DraftSchema = z.object({
         servedReasoningEffort: z.string().max(30).optional(),
         durationMs: z.number().min(0).max(1000000).optional(),
         routingVersion: z.string().max(80).optional(),
+        inputChars: z.number().optional(),
+        outputChars: z.number().optional(),
+        inputTokens: z.number().optional(),
+        outputTokens: z.number().optional(),
+        finishReason: z.string().optional(),
+        headersMs: z.number().optional(),
+        firstTokenMs: z.number().optional(),
+        queuedMs: z.number().optional(),
+        cached: z.boolean().optional(),
       }),
     )
     .max(50),
@@ -178,5 +270,14 @@ export interface AiResult {
   servedReasoningEffort?: string;
   durationMs?: number;
   routingVersion?: string;
+  inputChars?: number;
+  outputChars?: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  finishReason?: string;
+  headersMs?: number;
+  firstTokenMs?: number;
+  queuedMs?: number;
+  cached?: boolean;
   at: string;
 }

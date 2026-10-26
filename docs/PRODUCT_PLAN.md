@@ -1,3 +1,5 @@
+> **2026-10-26 v3（Juanxi 明确要求）：** 五章替代旧六步矩阵/Board setup。先部门再组织图；职责按岗位条目审阅、Check 重大风险 flashcard，可跳过；活动图内编辑与多人负责人、部门色；右侧上下文 AI 先提变更后批准。Review 显示实际输入并由服务端编译 JSON。无修改返回不跑 AI，小改动尽量保留后续手动数据。Prompt 隐藏于产品，只在开发聊天审核；为修复 JSON 错误允许少量真实冒烟。见 [v3 修改记录](organization/V3_CHANGELOG.md)。
+
 > **2026-10-26 底层原则（Juanxi 明确要求）：数据记录、管理、治理与受控共享先于 AI。** 新版 Organization Setup 已建立操作/配置历史、原件、交互、AI 输入输出与决定的时间戳归档。当前以私有工作区保存，不自动跨组织共享；详见 [数据基础](organization/DATA_FOUNDATION.md)。默认 Muse 快速模型，GLM 仅主动深度检查；真实 AI 验收交给 Juanxi，停止额外额度消耗。
 
 > **Organization Setup 增量（2026-10-25，Juanxi 已授权）：** 原型验收反馈后继续接入真实 AI 与线上保存；以 constitution 提取、分组多岗位职责矩阵、可编辑活动流程、后台 RACI 和组织 AI 指导文档为准。每步 AI 预填，社长审阅调整；最终增加 prompt 审核提醒。旧页面与数据保留，独立分支上线，不改 main。详见 [实现交接](organization/HANDOFF.md) 与 [Prompt 说明](organization/PROMPTS.md)。

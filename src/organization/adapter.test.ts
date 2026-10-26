@@ -118,3 +118,128 @@ describe("AIR provider routing", () => {
     expect(b.response_format.json_schema.strict).toBe(true);
   });
 });
+
+describe("structured response failures", () => {
+  it("archives a truncated response before reporting a useful error, without a second charge", async () => {
+    const send = configured();
+    send.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          model: "muse-glimmer-30b",
+          usage: { prompt_tokens: 300, completion_tokens: 100 },
+          choices: [
+            { finish_reason: "length", message: { content: '{"roles":[' } },
+          ],
+        }),
+      ),
+    );
+    const observed = vi.fn();
+    await expect(
+      chatJSON({ system: "JSON", user: "Fictional", onResponse: observed }),
+    ).rejects.toMatchObject({
+      code: "bad_json",
+      message: expect.stringContaining("output limit"),
+      diagnostics: { finishReason: "length", outputTokens: 100 },
+    });
+    expect(observed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        rawReply: '{"roles":[',
+        inputTokens: 300,
+        outputChars: 10,
+      }),
+    );
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+  it("distinguishes empty content from malformed JSON", async () => {
+    const send = configured();
+    send.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          choices: [{ finish_reason: "stop", message: { content: "" } }],
+        }),
+      ),
+    );
+    await expect(
+      chatJSON({ system: "JSON", user: "Fictional" }),
+    ).rejects.toThrow("empty response");
+  });
+  it("downgrades unsupported native schema only once, retaining json_object", async () => {
+    const send = configured();
+    send.mockResolvedValueOnce(
+      new Response("response_format json_schema not supported", {
+        status: 400,
+      }),
+    );
+    await chatJSON({
+      system: "JSON",
+      user: "Fictional",
+      responseSchema: { type: "object" },
+      task: "setup.constitution",
+    });
+    expect(JSON.parse(send.mock.calls[1][1].body).response_format).toEqual({
+      type: "json_object",
+    });
+    expect(send).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("AIR streaming telemetry", () => {
+  it("reassembles split JSON token events and records first content separately from total time", async () => {
+    const send = configured();
+    const frames =
+      [
+        { model: "served-muse", choices: [{ delta: { content: '{"ok":' } }] },
+        { choices: [{ delta: { content: "true}" } }] },
+        {
+          choices: [{ finish_reason: "stop", delta: {} }],
+          usage: { prompt_tokens: 50, completion_tokens: 4 },
+        },
+      ]
+        .map((x) => "data: " + JSON.stringify(x) + "\n\n")
+        .join("") + "data: [DONE]\n\n";
+    const bytes = new TextEncoder().encode(frames);
+    const stream = new ReadableStream({
+      start(c) {
+        c.enqueue(bytes.slice(0, 37));
+        c.enqueue(bytes.slice(37, 107));
+        c.enqueue(bytes.slice(107));
+        c.close();
+      },
+    });
+    send.mockResolvedValue(
+      new Response(stream, {
+        headers: { "content-type": "text/event-stream" },
+      }),
+    );
+    const observation = vi.fn();
+    const out = await chatJSON({
+      system: "JSON",
+      user: "Fictional",
+      task: "setup.edit",
+      onResponse: observation,
+    });
+    expect(out.data).toEqual({ ok: true });
+    expect(out.model).toBe("served-muse");
+    expect(out.firstTokenMs).toBeTypeOf("number");
+    expect(out.outputTokens).toBe(4);
+    expect(JSON.parse(send.mock.calls[0][1].body).stream).toBe(true);
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+  it("rejects streams that end before the provider finish event", async () => {
+    const send = configured();
+    send.mockResolvedValue(
+      new Response(
+        "data: " +
+          JSON.stringify({ choices: [{ delta: { content: '{"ok":true}' } }] }) +
+          "\n\n",
+        { headers: { "content-type": "text/event-stream" } },
+      ),
+    );
+    await expect(
+      chatJSON({ system: "JSON", user: "Fictional", task: "setup.edit" }),
+    ).rejects.toMatchObject({
+      code: "bad_json",
+      diagnostics: { finishReason: "stream_incomplete" },
+    });
+  });
+});

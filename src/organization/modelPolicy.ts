@@ -5,6 +5,8 @@ export const AIR_MODELS = {
   reasoning: "glm-5-3",
 } as const;
 export type AiTask =
+  | "setup.risk_check"
+  | "setup.edit"
   | "setup.constitution"
   | "setup.responsibilities"
   | "setup.member_workflow"
