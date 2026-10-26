@@ -18,7 +18,13 @@ function safePrefill(value: unknown): CreateWorkPrefill | null {
   if (input.kind !== 'member_event' && input.kind !== 'executive_work') return null;
   const prefill = input.prefill && typeof input.prefill === 'object' ? input.prefill as Record<string,unknown> : input;
   const flow=FlowSchema.safeParse(prefill.flow);
-  return { kind: input.kind, ...(typeof prefill.name === 'string' ? {name:prefill.name.slice(0,180)} : {}), ...(typeof prefill.description === 'string' ? {description:prefill.description.slice(0,2000)} : {}), ...(flow.success ? {flow:flow.data} : {}) };
+  return { kind: input.kind, ...(typeof prefill.name === 'string' ? {name:prefill.name.slice(0,180)} : {}), ...(typeof prefill.description === 'string' ? {description:prefill.description.slice(0,2000)} : {}), ...(flow.success ? {flow:flow.data} : {}),
+    ...(['none','usg','college','dues','sponsor'].includes(String(prefill.fundingSource))?{fundingSource:prefill.fundingSource as CreateWorkPrefill['fundingSource']}:{}),
+    ...(['food_service','speaker','other'].includes(String(prefill.fundingCategory))?{fundingCategory:prefill.fundingCategory as CreateWorkPrefill['fundingCategory']}:{}),
+    ...(typeof prefill.requestedAmount==='number'&&Number.isFinite(prefill.requestedAmount)&&prefill.requestedAmount>=0&&prefill.requestedAmount<=1000000?{requestedAmount:prefill.requestedAmount}:{}),
+    ...(prefill.ownerId===null||typeof prefill.ownerId==='string'?{ownerId:prefill.ownerId as string|null}:{}),
+    ...(['campus','offcampus','unspecified'].includes(String(prefill.venue))?{venue:prefill.venue as CreateWorkPrefill['venue']}:{}),
+  };
 }
 
 export default function WorkspacePages() {
