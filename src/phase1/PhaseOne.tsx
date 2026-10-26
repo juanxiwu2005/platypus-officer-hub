@@ -42,6 +42,7 @@ import { localPreviewRepository } from "./repository";
 import type { ApprovedContext } from "./approvedContext";
 import "./phase1.css";
 import "./approvedWorkspace.css";
+const LiveWorkspaceShell = lazy(() => import("../workspace/LiveWorkspaceShell"));
 const OnlineSetup = lazy(() => import("../organization/OnlineSetup"));
 const ApprovedWorkspace = lazy(() => import("./ApprovedWorkspace"));
 
@@ -127,6 +128,16 @@ const principal = (d: Draft) => ({
 });
 
 export default function PhaseOne() {
+  const location=useLocation();
+  const [example,setExample]=useState(()=>new URLSearchParams(location.search).get('example')==='1'||location.pathname.endsWith('/setup-legacy'));
+  useEffect(()=>{
+    if(new URLSearchParams(location.search).get('example')==='1'||location.pathname.endsWith('/setup-legacy')) setExample(true);
+    else if(location.pathname.endsWith('/setup')) setExample(false);
+  },[location.pathname,location.search]);
+  if(example) return <PreviousPhaseOne/>;
+  return <Suspense fallback={<p role="status">Opening your workspace…</p>}><LiveWorkspaceShell/></Suspense>;
+}
+function PreviousPhaseOne() {
   const [scenario, setScenario] = useState<"A" | "B">("A");
   const [draft, setDraft] = useState<Draft>(() => {
     try {
