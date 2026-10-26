@@ -431,6 +431,9 @@ export function applyWorkspaceCommand(original: WorkspaceState, org: WorkspaceOr
     } else if (command.type === "funding.revise") {
       requireManager(state);
       const funding = requireValue(item.funding.find((f) => f.id === command.requestId), "Funding request not found.");
+      if (command.source !== funding.source &&
+        (funding.spentAmount > 0 || funding.committedAmount > 0 || funding.commitments.some((c) => c.amount > 0)))
+        throw new WorkspaceError("This request already has spending or commitment history. Add a separate funding request for the new source; the original source and ledger must remain unchanged.");
       if (Math.round(command.amount * 100) < Math.round(funding.spentAmount * 100) + Math.round(funding.committedAmount * 100)) throw new WorkspaceError("The revised amount cannot erase funds already spent or committed.");
       funding.version++; funding.amount = command.amount; funding.source = command.source; funding.purpose = command.purpose;
       funding.category = command.category ?? funding.category ?? "other";

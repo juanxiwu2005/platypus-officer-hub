@@ -251,10 +251,25 @@ describe("separate submission and approval with versioned source budgets", () =>
     state = cmd(state, { type: "funding.spend", workItemId: item.id, requestId: funding.id, commitmentId: "one", evidence: "Fictional receipt" });
     expect(state.workItems[0].funding[0]).toMatchObject({ committedAmount: 0, spentAmount: 60 });
     expect(() => cmd(state, { type: "funding.release", workItemId: item.id, requestId: funding.id, commitmentId: "one", evidence: "Cannot erase spending" })).toThrow("pending reservation");
-    const revised = cmd(state, { type: "funding.revise", workItemId: item.id, requestId: funding.id, amount: 120, source: "college", purpose: "Revised scope" });
+    const revised = cmd(state, { type: "funding.revise", workItemId: item.id, requestId: funding.id, amount: 120, source: "usg", purpose: "Revised scope" });
     expect(revised.workItems[0].funding[0]).toMatchObject({ version: 2, status: "draft", approvedVersion: null, spentAmount: 60 });
     expect(revised.workItems[0].gates.some((g) => g.requestVersion === 1 && g.status === "approved")).toBe(true);
     expect(() => cmd(revised, { type: "funding.commit", workItemId: item.id, requestId: funding.id, commitmentId: "new", amount: 1, purpose: "Needs new approval" })).toThrow("both current");
+  });
+  it("keeps spent and historical commitments bound to their original funding source", () => {
+    for (const ledger of [
+      { spentAmount: 20, committedAmount: 0, commitments: [] },
+      { spentAmount: 0, committedAmount: 20, commitments: [] },
+      { spentAmount: 0, committedAmount: 0, commitments: [{ id: "released", amount: 20, purpose: "Original USG reservation", at, status: "released" as const, requestVersion: 1, evidence: "Released before purchase" }] },
+    ]) {
+      const state = created(true), item = state.workItems[0], funding = item.funding[0];
+      Object.assign(funding, ledger);
+      const before = structuredClone(state);
+      expect(() => cmd(state, { type: "funding.revise", workItemId: item.id, requestId: funding.id, source: "college", amount: 120, purpose: "Different source" })).toThrow("separate funding request");
+      expect(state).toEqual(before);
+      const revised = cmd(state, { type: "funding.revise", workItemId: item.id, requestId: funding.id, source: "usg", amount: 120, purpose: "Same-source revised scope" });
+      expect(revised.workItems[0].funding[0]).toMatchObject({ source: "usg", version: 2, ...ledger });
+    }
   });
   it("rejects invalid dates, cents precision and unknown command fields", () => {
     expect(() => validateWorkspaceCommand({ type: "work.update", workItemId: "x", patch: { date: "2026-02-30" } })).toThrow();
