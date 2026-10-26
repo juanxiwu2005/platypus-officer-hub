@@ -309,6 +309,143 @@ describe("calendar coverage and personal work", () => {
 });
 
 describe("dependencies, absolute overrides and history", () => {
+  it("caps spending at its own absolute funding deadline across event-date changes", () => {
+    const funding = FundingSchema.parse({
+      id: "fund",
+      version: 1,
+      source: "dues",
+      purpose: "Fictional event",
+      amount: 200,
+      spendBy: "2026-10-30",
+    });
+    const original = item(
+      [task("order", { fundingRequestId: "fund", fundingStep: "order" })],
+      { funding: [funding] },
+    );
+    const before = scheduleWorkItem(original, members);
+    const after = scheduleWorkItem(
+      { ...original, date: "2026-12-03" },
+      members,
+    );
+    expect(before.tasks.order.due).toBe("2026-10-30");
+    expect(after.tasks.order.due).toBe("2026-10-30");
+    expect(after.tasks.order.official).toBeNull();
+    expect(after.tasks.order.basis).toContain("request fund version 1");
+    expect(original.funding[0].spendBy).toBe("2026-10-30");
+  });
+  it("preserves fixed spending overrides while detecting expired funds and dependency risk", () => {
+    const funding = FundingSchema.parse({
+      id: "fund",
+      version: 1,
+      source: "dues",
+      purpose: "Fictional event",
+      amount: 200,
+      spendBy: "2026-10-30",
+    });
+    const schedule = scheduleWorkItem(
+      item(
+        [
+          task("pay", {
+            fundingRequestId: "fund",
+            fundingStep: "reimbursement",
+            dueOverride: "2026-11-05",
+          }),
+        ],
+        { funding: [funding] },
+      ),
+      members,
+      "2026-11-02",
+    );
+    expect(schedule.tasks.pay.due).toBe("2026-11-05");
+    expect(schedule.tasks.pay.issues.join(" ")).toContain("spend_by_missed");
+    expect(schedule.tasks.pay.issues.join(" ")).toContain("spend_by_passed");
+  });
+  it("does not borrow another source's deadline or impose spending timing on closeout", () => {
+    const funding = ["one", "two"].map((id, i) =>
+      FundingSchema.parse({
+        id,
+        version: 1,
+        source: "dues",
+        purpose: "Fictional event",
+        amount: 200,
+        spendBy: i ? "2026-11-05" : "2026-10-30",
+      }),
+    );
+    const schedule = scheduleWorkItem(
+      item(
+        [
+          task("one", { fundingRequestId: "one", fundingStep: "order" }),
+          task("two", {
+            fundingRequestId: "two",
+            fundingStep: "reimbursement",
+          }),
+          task("close", {
+            fundingRequestId: "one",
+            fundingStep: "closeout",
+            relativeTarget: relative(-5, "business"),
+          }),
+          task("missing", { fundingRequestId: "absent", fundingStep: "order" }),
+        ],
+        { funding },
+      ),
+      members,
+    );
+    expect(schedule.tasks.one.due).toBe("2026-10-30");
+    expect(schedule.tasks.two.due).toBe("2026-11-05");
+    expect(schedule.tasks.close.due).toBe("2026-11-30");
+    expect(schedule.tasks.close.issues.join(" ")).not.toContain(
+      "spend_by_missed",
+    );
+    expect(schedule.tasks.missing.issues.join(" ")).toContain(
+      "funding_request_missing",
+    );
+    expect(schedule.tasks.missing.due).not.toBe("2026-10-30");
+  });
+  it("flags historical late spending without rewriting the actual completion", () => {
+    const funding = FundingSchema.parse({
+      id: "fund",
+      version: 1,
+      source: "dues",
+      purpose: "Fictional event",
+      amount: 200,
+      spendBy: "2026-10-30",
+    });
+    const schedule = scheduleWorkItem(
+      item(
+        [
+          task("paid", {
+            fundingRequestId: "fund",
+            fundingStep: "order",
+            status: "done",
+            completedAt: "2026-11-02T12:00:00Z",
+          }),
+        ],
+        { funding: [funding] },
+      ),
+      members,
+    );
+    expect(schedule.tasks.paid.due).toBe("2026-11-02");
+    expect(schedule.tasks.paid.issues.join(" ")).toContain("spend_by_missed");
+  });
+  it("does not lose a known schedule just because a later use-by deadline is in an unsupported future term", () => {
+    const funding = FundingSchema.parse({
+      id: "fund",
+      version: 1,
+      source: "dues",
+      purpose: "Fictional event",
+      amount: 200,
+      spendBy: "2027-12-31",
+    });
+    const schedule = scheduleWorkItem(
+      item(
+        [task("order", { fundingRequestId: "fund", fundingStep: "order" })],
+        { funding: [funding] },
+      ),
+      members,
+    );
+    expect(schedule.covered).toBe(true);
+    expect(schedule.tasks.order.due).toBe("2026-11-18");
+  });
   it("projects UTC completion timestamps to Phoenix days before dependency arithmetic", () => {
     const event = item([
       task("done", { status: "done", completedAt: "2026-11-02T02:00:00Z" }),

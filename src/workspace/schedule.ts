@@ -220,6 +220,7 @@ export function scheduleWorkItem(
         ),
     );
   const rec = new Map<string, Recommendation>();
+  const spendBy = new Map<string, string>();
   const reportCalendar = (error: unknown, issues: string[]) => {
     if (error instanceof CalendarError) {
       result.covered = false;
@@ -290,7 +291,28 @@ export function scheduleWorkItem(
       });
       continue;
     }
-    if (task.kind === "approval") {
+    if (task.fundingStep === "order" || task.fundingStep === "reimbursement") {
+      const request = item.funding.find(
+        (funding) => funding.id === task.fundingRequestId,
+      );
+      if (!request)
+        issues.push(
+          "funding_request_missing: This spending task has no matching funding request; another funding source was not substituted.",
+        );
+      else if (request.spendBy) {
+        if (!validDate(request.spendBy))
+          issues.push(
+            "invalid_spend_by: The confirmed funding use-by date is not a real date.",
+          );
+        else {
+          spendBy.set(task.id, request.spendBy);
+          basis.push(
+            `Absolute funding use-by deadline ${request.spendBy} for request ${request.id} version ${request.version}; activity rescheduling does not move this confirmed limit.`,
+          );
+        }
+      }
+    }
+    if (task.kind === "approval" && !complete(task)) {
       basis.push(
         "Approval timing is an estimate, not a promised or recorded school decision.",
       );
@@ -305,11 +327,16 @@ export function scheduleWorkItem(
         issues.push(
           "completion_date_missing: This completed task has no valid recorded completion date; its historical date was not invented.",
         );
+      if (date && spendBy.has(task.id) && date > spendBy.get(task.id)!)
+        issues.push(
+          `spend_by_missed: Recorded spending ${date} was after the unchanged funding deadline ${spendBy.get(task.id)}. Completion history was preserved.`,
+        );
       rec.set(task.id, {
         due: date,
         start: date,
         official: null,
         basis: [
+          ...basis,
           "Recorded completion history; event changes do not reschedule completed work.",
         ],
         issues,
@@ -339,6 +366,13 @@ export function scheduleWorkItem(
           `No reliable schedule is available for event date ${eventDate}.`,
         );
       const candidates: string[] = [];
+      const spendingLimit = spendBy.get(task.id);
+      // A farther future fiscal deadline does not require predicting unknown academic days.
+      if (
+        spendingLimit &&
+        (spendingLimit <= SCHEDULE_CALENDAR.to || !eventDate)
+      )
+        candidates.push(roll(spendingLimit, -1));
       if (task.relativeTarget) {
         if (eventDate) {
           const { offsetDays, unit, source } = task.relativeTarget;
@@ -572,6 +606,15 @@ export function scheduleWorkItem(
         due = null;
       }
     }
+    const spendingLimit = spendBy.get(task.id);
+    if (spendingLimit && due && due > spendingLimit)
+      plan.issues.push(
+        `spend_by_missed: Planned spending ${due} is after the unchanged funding deadline ${spendingLimit}.`,
+      );
+    if (spendingLimit && reference && reference > spendingLimit)
+      plan.issues.push(
+        `spend_by_passed: The confirmed funding deadline ${spendingLimit} has passed; no deadline was moved automatically.`,
+      );
     if (due && plan.official && due > plan.official)
       plan.issues.push(
         `official_missed: Planned finish ${due} is after the unchanged official deadline ${plan.official}.`,
