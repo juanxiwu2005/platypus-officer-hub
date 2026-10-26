@@ -3,6 +3,7 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-route
 import { WorkspaceProvider, useWorkspace } from './client';
 import { AssistantProvider, AssistantRail } from './assistant';
 import { UI_LABELS } from './contracts';
+import { useSetupNavigationGuard } from '../organization/useSetupNavigationGuard';
 import './shell.css';
 const OnlineSetup=lazy(()=>import('../organization/OnlineSetup'));
 const WorkspacePages=lazy(()=>import('./pages/WorkspacePages'));
@@ -10,6 +11,7 @@ const WorkspacePages=lazy(()=>import('./pages/WorkspacePages'));
 function ShellBody() {
   const {envelope,loading,error,refresh,mutating,mutate}=useWorkspace();
   const location=useLocation(), main=useRef<HTMLElement>(null);
+  const {pending}=useSetupNavigationGuard(async()=>window.dispatchEvent(new Event("platypus:before-workspace-leave",{cancelable:true})));
   useEffect(()=>{ main.current?.focus();void refresh(); },[location.pathname,refresh]);
   useEffect(()=>{
     const update=()=>void refresh();
@@ -27,7 +29,7 @@ function ShellBody() {
         <NavLink to="/phase1/tasks">{UI_LABELS.tasks}</NavLink>
         <NavLink to="/phase1/activities">{UI_LABELS.activities}</NavLink>
         <NavLink to="/phase1/setup">{UI_LABELS.setup}</NavLink>
-        {recent.length>0&&<><div className="p1-nav-label">RECENT ACTIVITIES</div>{recent.map(item=><NavLink key={item.id} to={'/phase1/work/'+encodeURIComponent(item.id)}>{item.name}</NavLink>)}</>}
+        {recent.length>0&&<><div className="p1-nav-label">RECENT ACTIVITIES</div>{recent.map(item=><NavLink key={item.id} to={'/phase1/work/'+encodeURIComponent(item.id)}>{item.name}</NavLink>)}<Link to="/phase1/activities">View all activities →</Link></>}
       </nav>
       <div className="p1-sidebar-bottom">
         {envelope&&envelope.state.members.length>0&&<label className="live-viewer">Demo viewer<select aria-label="Workspace demo viewer" value={envelope.state.actorId??''} disabled={mutating} onChange={e=>void mutate({type:'actor.select',memberId:e.target.value}).catch(()=>{})}><option value="" disabled>Select demo identity</option>{envelope.state.members.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label>}
@@ -35,7 +37,7 @@ function ShellBody() {
       </div>
     </aside>
     <div className="p1-body live-body">
-      <header className="p1-topbar"><span>Workspace / {location.pathname.includes('setup')?UI_LABELS.setup:location.pathname.includes('tasks')?UI_LABELS.tasks:location.pathname.includes('activities')?UI_LABELS.activities:location.pathname.includes('board')?UI_LABELS.executiveBoard:location.pathname.includes('/work/')?'Activity':UI_LABELS.home}</span>{mutating&&<span role="status">Saving…</span>}</header>
+      <header className="p1-topbar"><span>Workspace / {location.pathname.includes('setup')?UI_LABELS.setup:location.pathname.includes('tasks')?UI_LABELS.tasks:location.pathname.includes('activities')?UI_LABELS.activities:location.pathname.includes('board')?UI_LABELS.executiveBoard:location.pathname.includes('/work/')?'Activity':UI_LABELS.home}</span>{(mutating||pending)&&<span role="status">Saving…</span>}</header>
       <main id="live-main" ref={main} tabIndex={-1}>
         {error&&!location.pathname.endsWith('/setup')&&!envelope&&<section className="live-error" role="alert"><p>{error}</p><Link to="/phase1/setup">Open organization setup</Link><button onClick={()=>void refresh()}>Retry connection</button></section>}
         <Suspense fallback={<p role="status">Opening your workspace…</p>}>

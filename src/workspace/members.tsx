@@ -7,7 +7,7 @@ import type { OrgRole } from '../organization/schema';
 export default function MembersPanel({roleOptions,beforeSave}:{roleOptions?:OrgRole[];beforeSave?:()=>Promise<void>}={}) {
   const workspace=useOptionalWorkspace();
   const [editing,setEditing]=useState<WorkspaceMember|null>(null),[name,setName]=useState(''),[roleIds,setRoleIds]=useState<string[]>([]),[manager,setManager]=useState(false),[notice,setNotice]=useState('');
-  const newId=useRef(crypto.randomUUID());
+  const newId=useRef(crypto.randomUUID()),protectionFailed=useRef(false);
   const scope=workspace?.envelope?.state.workspaceId;
   const recoveryKey=scope?'platypus.member-input.'+scope:null;
   useEffect(()=>{
@@ -22,12 +22,23 @@ export default function MembersPanel({roleOptions,beforeSave}:{roleOptions?:OrgR
       if(typeof saved.newId==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(saved.newId))newId.current=saved.newId;
     }catch{setNotice('Your member input could not be restored. Saved members are unchanged.');}
   },[recoveryKey]);
+  useEffect(()=>{
+    const protect=(event:Event)=>{
+      if(!protectionFailed.current||(!name&&!roleIds.length))return;
+      try{if(recoveryKey)localStorage.setItem(recoveryKey,JSON.stringify({editing,name,roleIds,manager,newId:newId.current}));protectionFailed.current=false;}
+      catch{event.preventDefault();setNotice('Save or copy this member input before leaving; this device could not protect it.');}
+    };
+    window.addEventListener('platypus:before-workspace-leave',protect);
+    const unload=(event:BeforeUnloadEvent)=>{if(protectionFailed.current&&(name||roleIds.length)){event.preventDefault();event.returnValue='';}};
+    window.addEventListener('beforeunload',unload);
+    return()=>{window.removeEventListener('platypus:before-workspace-leave',protect);window.removeEventListener('beforeunload',unload);};
+  },[editing,name,roleIds,manager,recoveryKey]);
   const update=(patch:Partial<{editing:WorkspaceMember|null;name:string;roleIds:string[];manager:boolean}>)=>{
     const next={editing,name,roleIds,manager,...patch,newId:newId.current};
     setEditing(next.editing);setName(next.name);setRoleIds(next.roleIds);setManager(next.manager);
-    if(recoveryKey)try{localStorage.setItem(recoveryKey,JSON.stringify(next));}catch{setNotice('This member input could not be protected on this device. Save the member before leaving this chapter.');}
+    if(recoveryKey)try{localStorage.setItem(recoveryKey,JSON.stringify(next));protectionFailed.current=false;}catch{protectionFailed.current=true;setNotice('This member input could not be protected on this device. Save the member before leaving this chapter.');}
   };
-  const clear=()=>{newId.current=crypto.randomUUID();setEditing(null);setName('');setRoleIds([]);setManager(false);if(recoveryKey)try{localStorage.removeItem(recoveryKey);}catch{/* Input stays in memory until a successful save. */}};
+  const clear=()=>{protectionFailed.current=false;newId.current=crypto.randomUUID();setEditing(null);setName('');setRoleIds([]);setManager(false);if(recoveryKey)try{localStorage.removeItem(recoveryKey);}catch{/* Input stays in memory until a successful save. */}};
 
   if(!workspace) return <p>Open this setup from your organization workspace to assign demo members.</p>;
   const {envelope,loading,mutating,mutate,refresh}=workspace;
