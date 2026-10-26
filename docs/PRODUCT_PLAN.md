@@ -1,3 +1,15 @@
+> **2026-10-26 Activity Workspace已批准实施：** A1/B1/C2、个人三列Board、活动短链、Funding并入活动、8/7/6周组织时间默认、全局AI及稳定ID。首页重点事项直接从个人任务排序，不另生成摘要。详见 [本轮唯一实施范围](organization/ACTIVITY_WORKSPACE_PLAN.md)。不含main合并/正式发布/正式多人账号。
+
+> **2026-10-26 F1–F7（Juanxi 在审计方案后回复“执行”）：** 批准独立 Worktree 多 Agent 补保存恢复、增量复核、图与风险卡交互、性能诊断，并将服务器批准组织配置接通新版工作区。旧原型保留独立示例入口；不扩张完整 Board planner/真实账号/旧业务迁移，不合并 main 或正式发布。当前交接见 [实施记录](organization/F1_F7_IMPLEMENTATION.md)，以下更早记录保留为历史。
+
+> **2026-10-26 v3（Juanxi 明确要求）：** 五章替代旧六步矩阵/Board setup。先部门再组织图；职责按岗位条目审阅、Check 重大风险 flashcard，可跳过；活动图内编辑与多人负责人、部门色；右侧上下文 AI 先提变更后批准。Review 显示实际输入并由服务端编译 JSON。无修改返回不跑 AI，小改动尽量保留后续手动数据。Prompt 隐藏于产品，只在开发聊天审核；为修复 JSON 错误允许少量真实冒烟。见 [v3 修改记录](organization/V3_CHANGELOG.md)。
+
+> **2026-10-26 底层原则（Juanxi 明确要求）：数据记录、管理、治理与受控共享先于 AI。** 新版 Organization Setup 已建立操作/配置历史、原件、交互、AI 输入输出与决定的时间戳归档。当前以私有工作区保存，不自动跨组织共享；详见 [数据基础](organization/DATA_FOUNDATION.md)。默认 Muse 快速模型，GLM 仅主动深度检查；真实 AI 验收交给 Juanxi，停止额外额度消耗。
+
+> **Organization Setup 增量（2026-10-25，Juanxi 已授权）：** 原型验收反馈后继续接入真实 AI 与线上保存；以 constitution 提取、分组多岗位职责矩阵、可编辑活动流程、后台 RACI 和组织 AI 指导文档为准。每步 AI 预填，社长审阅调整；最终增加 prompt 审核提醒。旧页面与数据保留，独立分支上线，不改 main。详见 [实现交接](organization/HANDOFF.md) 与 [Prompt 说明](organization/PROMPTS.md)。
+
+> **2026-10-25 新方向（Juanxi 已确认）：** 当前增量工作为 AI-native Phase 1，Activity-centered、Organization Context driven。下文 v1.0/v1.1 为保留的历史基线；与本次提示冲突的导航、固定岗位与设置方式以新设计为准。先验收三个高保真画面，再决定正式接入。目标模型、复用与迁移边界见 [Phase 1 底层设计](phase1/ARCHITECTURE.md)，验收见 [交接](phase1/HANDOFF.md)。不改 main，不删除旧页。
+
 # Platypus 产品计划 v1.0
 
 2026-10-22 · Juanxi (Steve) Wu · 起草：Claude

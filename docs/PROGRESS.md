@@ -1,3 +1,31 @@
+> **2026-10-26 Activity Workspace：待验收（Codex，独立Worktree多Agent）**
+> 用户批准A1/B1/C2执行方案，并要求首页重点事项直接从现有任务排序、AI接通组织与两类工作项创建/修改。Data/Schedule/Workspace UI/Assistant/Setup UI分工，主Agent维护契约/集成，独立Review。基于1815be0，开发分支feat/activity-workspace-v1；不改main、不真实AI测试。详见 [方案](organization/ACTIVITY_WORKSPACE_PLAN.md)。
+> 最终产品3e9c69a：构建、548单元、256桌面/手机浏览器场景通过，16条件跳过、0失败；实际本地HTTP7组34请求及CAS并发检查通过。独立Review无开放已知P0/P1。0次真实AI调用；私有演示身份不等于正式登录。详见[实施交接](organization/ACTIVITY_WORKSPACE_IMPLEMENTATION.md)与[Review](organization/REVIEW_ACTIVITY_WORKSPACE.md)。需要同步本地备份。
+
+> **2026-10-26 · F1–F7 审计修复：待验收（Codex，多 Agent 独立 Worktree）**
+> Juanxi 在本聊天批准执行审计方案。基于 `54e5823`，分工：Data 负责人工决定/增量影响/确认门槛与缓存；AI 负责中断诊断；UI 负责保存恢复、风险卡和图交互；主 Agent 负责共享契约、新批准配置消费与整合；独立 Review 逐批复核。不合并 main、不正式发布、不重复消耗 AIR 测试额度。执行记录与验收结果随后更新。
+> 最终构建、410单元、222电脑/手机浏览器场景通过，16项按条件跳过；本地真实函数/Blobs仿真与Chromium批准配置消费联测通过，0次真实AI生成。独立Review开放代码阻塞0。开发分支接续PR #3，远端CI/部署尚未核验；真实AI提速未新测。详见 [实施](organization/F1_F7_IMPLEMENTATION.md) 与 [Review](organization/REVIEW_F1_F7.md)。需要同步本地备份。
+
+> **2026-10-26 · Organization Setup v3：历史进度（保留）**
+> Juanxi 要求五步、部门与组织图、岗位职责/重大风险卡片、图内编辑、右侧 AI 审批和服务器机器配置；prompt 只在开发聊天审阅。已实现并进入发布检查，详见 [v3 记录](organization/V3_CHANGELOG.md)。
+> JSON 失败新增截断/空输出/格式污染诊断，原始回复先归档；原生 schema、有限格式降级、流式首字/完成耗时、内容缓存。无改动返回零 AI；局部修改保留后续数据。改版前一次真实 Muse 章程提取成功但约65秒，未能证明用户旧报错具体原因。
+> 最新允许少量真实 AI 冒烟，其他回归不用 AIR。当前发布、CI 和实测结果在最终交接中追加；不改 main。
+
+> **2026-10-26 · Organization Setup：待 Juanxi 实操验收（Codex）**
+> [在线设置](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup) / [PR #3](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3)。章程提取、分组多岗位矩阵、隐藏 RACI、可编辑成员/干部流程、PDF/Word/粘贴/示例与真实 AIR 已接入；main、原站、旧数据和前一版设置保留。
+> 最新原则：**数据记录/治理先于 AI**。本版新增带时间戳的操作/配置历史、原件、对话与 AI 输入输出/决定归档；支持导出与下载原件；访问过期不删除档案，当前不自动跨组织共享。[数据基础](organization/DATA_FOUNDATION.md)。
+> 用户要求速度与额度优先：默认改为 Muse Glimmer 30B，GLM 5.3 仅主动深度检查，路由 v2。停止新增真实 AI 测试，主要由 Juanxi 实操；不声称新模型已实测加速。更早真实流程已跑通，Gemma 15–56s / GLM 56–91s 的历史记录保留。
+> 最新必要检查：构建 + 43 离线检查通过，未消耗 AIR；较早完整检查 319 单元 / 167 页面通过、13 原有跳过。当前远端 CI/部署以提交状态为准。变量重新载入后，预览与分支站 AIR 模型目录鉴权均返回 200，Muse/GLM 可用，未生成内容。[交接](organization/HANDOFF.md)、[实际 Prompt/选模审核](organization/PROMPTS.md)。已同步 Plan 四份指定备份。
+
+> **2026-10-25 · AI-native Phase 1：待验收（Codex）**
+> Juanxi 已确认制作原型。架构方向改为 **AI-native、Activity-centered、Organization Context driven**。
+> 从最新 v1 `4dc55ba` 建立 `feat/ai-native-phase1`；三个可点击高保真画面、虚构 Constitution 审核、自定义岗位/能力映射、两类流程与底层设计说明已完成。
+> 完整检查通过：TypeScript/Vite；279 单元；141 页面通过、13 原有跳过。新增 26 单元与 34 桌面/手机页面检查均通过。
+> **到此停止，等待 Juanxi 画面验收；正式模型/API、完整 planners、真实账户/数据库/对话存储、Handoff 与 main 均未接续。**
+> 本机预览：http://127.0.0.1:4173/#/phase1 。[草稿 PR #2（目标 v1）](https://github.com/juanxiwu2005/platypus-officer-hub/pull/2) 已创建；GitHub CI 进行中，尚未收到 Netlify 部署状态，不声称远端预览已上线。验收与限制见 [Phase 1 交接](phase1/HANDOFF.md)，目标模型与迁移见 [底层设计](phase1/ARCHITECTURE.md)。
+> 新用户要求优先于旧版固定右栏/固定八职能/旧导航。旧数据和全部旧测试保留；本地 Git 是逐文件 SHA 校验重建的原始 v1 浅检出，远端提交沿原父提交创建，没有推送独立历史。
+
+
 # Platypus v1.0 进度
 
 **最后更新：** 2026-10-23 凌晨（Claude，第一部分收尾）
@@ -11,6 +39,8 @@
 
 | 工作包 | 计划日期 | 状态 | 负责的 AI | 预览网址 | 备注 |
 | --- | --- | --- | --- | --- | --- |
+| Activity Workspace A1/B1/C2 | 10/26 | 待验收 | Codex（Data/Schedule/UI/AI/Setup＋独立Review） | PR #3，待核对部署 | 548单元/256浏览器通过，16条件跳过；HTTP与CAS并发通过；0真实AI；main不变 |
+| F1–F7 审计修复 | 10/26 | 待验收 | Codex（Data/AI/UI/Integration + 独立 Review） | PR #3，待核对部署 | 构建/410单元/222页面通过，16条件跳过；本地真实接口联测通过；main 不变 |
 | 2026-10-23 | Claude | **合并上线 + 真 DeepSeek 实测。** v1 快进合并到 main（f868709），正式网站 `/api/health` 显示 DeepSeek 已接通。浏览器实测：①问 USG 表谁负责、何时截止，答对负责人、俱乐部截止日和 ASU 截止日；②“把传单标为进行中”立即生效，Undo 成功恢复；③“把预算改成 $450”时发现 bug：服务器核对改动只认活动/任务/人员 ID，不认经费/伙伴/角色/标签，改预算被丢掉而 AI 嘴上说“待批准”——已修，并且改动全部无效时会明确告诉用户。253 个单元测试 + 107 个页面测试通过。已同步本地备份。 | Juanxi 自己继续测（测试清单见对话）。v1.0 标签 11/8 再打。 |
 | 2026-10-23 | Claude | **AI 数据权限 v1.2。** ①`aiContext.ts`：每次提问把当前查看者能看到的全部数据（社团、角色、人员和工作量、活动、全部任务含状态/负责人/风险/准时概率/三个截止日、经费、伙伴、交接、本人通知、规则摘要）发给 `/api/chat`，约 25 KB；服务器再删一遍可疑字段（key/token/secret/password/signature/phone/文件）并限长。②`sharedPool.ts` + `/api/pool`：虚构共享池（4 个示例社团的审批用时、场地、供应商、经验），只读，AI 只能引用。③新白名单操作：小改动 set_status / rename_task / set_tags / set_tier / mark_contacted 按查看者权限立即生效，Ask 面板显示“Done · Undo”；大改动 assign_owner / add_node / link_dependency / update_event / add_contact / set_funding_amount / advance_funding / create_event 仍走审批卡。④日期：AI 文字中与数据一致的日期保留，其余遮掉。⑤提示词重写。⑥检查：252 个单元测试 + 107 个页面测试全部通过。⑦发现预览网站一直是模拟回答：Netlify 里 `AI_API_KEY` 只填了 Production，Deploy Previews / Branch deploys 为空，已请 Juanxi 补填。已同步本地备份。 | 真实 DeepSeek 试用要等 Juanxi 在 Deploy Previews 填好 key 并重新部署。共享池是虚构演示，v1.5 换成数据库时要做“社团选择共享哪些字段”的设置。 |
 | 2026-10-23 | Claude | **第二部分。** ①逐条复核 R01–R16（来源核对日 2026-10-23），修正 R01/R03/R06/R07/R11/R16 措辞，记录在 RULES.md。②产品计划第 6 节改写为 v1.1 界面说明。③无障碍：6 个状态色对比度达到 AA；右栏标签结构修正；新增 axe 扫描 10 页 + 面板、键盘操作测试。④AI 面板提示词重写：更会追问（一次只问一个问题，办活动直接给表单）、更会推荐（先逾期/红色风险，再无人认领，再最早开始）；请求里新增一份精简状态摘要（任务状态、负责人、所属活动、风险色、是否逾期、每人工作量档），服务器逐项核对，只留真实 ID 和允许的值，不含档案、缓冲或文件。⑤检查：245 个单元测试 + 107 个页面测试（含无障碍）全部通过；已同步本地备份。 | **需要 Juanxi：** 真实 DeepSeek 试用 Ask 面板和 40 题规则评估（需要登录 Netlify 或关掉预览保护）；RTO 给出 AIR 的 key 和模型后再切换；说“批准合并”后才合并 main 并打 v1.0 标签。 |
@@ -27,6 +57,9 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-10-26 | 批准 A1首页/B1活动列表/C2时间轴、个人三列任务Board、资金流程并入活动、8/7/6周默认时间、全局AI及Worktree多Agent实施；首页重点直接从任务排序，可展开；AI可调业务数据并调用两类活动创建表单。保持开发预览，不合并main | Juanxi（最后批注后授权修改代码） |
+| 2026-10-26 | 批准按 F1–F7 执行审计方案，使用独立 Worktree 多 Agent 和额外独立 Review；新批准配置接通新版工作区；不包含合并 main 或正式发布 | Juanxi（本聊天：“执行”） |
+| 2026-10-25 | 确认 AI-native Phase 1 实施顺序：Activity 为工作中心、Organization Context 驱动、岗位能力多对多；独立分支先做三个高保真画面，完成即停，正式模型/API 接入待画面验收 | Juanxi（“确认”） |
 | 2026-10-21 | 产品名定为 Platypus；Phase 3 用方案 C（Netlify + 服务器函数） | Juanxi |
 | 2026-10-22 | 批准产品计划 v1.0 第 16 节全部 10 个决定 | Juanxi |
 | 2026-10-23 | 批准把 v1 合并到 main（正式网站），v1.0 标签等 11/8 定版再打 | Juanxi |
@@ -55,6 +88,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-10-25 | Codex | AI-native Phase 1：三画面、局部演示模型和 repository、虚构章程证据审核/冲突处理、多能力岗位与 A/B 范围分工、两类流程、设置恢复与独立批准快照；完整检查 279 单元+141 页面通过，13 原有跳过；原测试无删除 | 只验收新入口 `/#/phase1`，见 docs/phase1/HANDOFF.md。没有接真实 AI/正式模型/API/数据库/真实迁移，不得自动进入下一阶段。产品计划增加方向说明，需要同步本地备份。 |
 | 2026-10-23 | Claude | **第一部分收尾。** ①手机：发现隐藏的悬停卡和 Today 风险表把手机页面撑宽（页面被缩小、右下角按钮点不到），已修（`html, body { overflow-x: clip }`、悬停卡限宽、窄屏隐藏次要列）；手机上换页自动收起右栏；Demo 菜单在手机上改为整宽。②看板拖拽：找到并修了一个真问题——卡片标题是按钮，Chrome 不允许从按钮开始拖，抓标题拖不动；改成可点击的文字后，用真实鼠标拖拽的自动测试通过。③深色模式看过 Today / Events / 看板，无看不清的地方。④删掉不用的 `@xyflow/react`。⑤字数全部在上限内（同上一行）。⑥检查：244 个单元测试 + **95 个页面测试（电脑 48 + 手机 47，悬停测试只在电脑跑）全部通过**；已同步本地备份。 | 第二部分见文件开头“下一步”。看板在开着右栏的 1440 宽屏上 6 列需要横向滚动（有意保留，和 monday 一样）。 |
 | 2026-10-23 | Claude | **UX 简化改版 U1–U5 主体完成**（一次做完，未分包验收）。①三栏布局：左导航 / 中间内容 / 右栏（`src/components/rail/`：Ask 与 Details 两个标签，`useRail().show()` 打开详情）；演示条收进顶栏 “Demo” 小标（重置、时钟、重放设置），私下更新收进铃铛。②5 个通用组件 `src/components/ui/`：StatusPill（6 色状态）、Chain（物流链）、`.tbl` 表格、Hover/Info 悬停卡、右栏详情；页面标题改为 1–2 个词，问句移到导航悬停。③唯一 AI 入口 Ask 面板：`src/lib/assistant.ts`（本地先处理明确请求：策划活动→表单、前 N 个任务、谁需要提醒、规则关键词、命令语法）+ 新接口 `netlify/functions/chat.mts`；6 种卡片（文字、补信息表单、任务清单、变更单、提醒、规则答案），服务器和浏览器都用 `src/lib/chatCards.ts` 过滤，AI 写的日期全部丢弃；Today 和 Rules 的旧输入框已删。④流程图换成单主线（`src/components/flow/metro.ts` 布局 + `MetroChart.tsx`），泳道图、甘特图和 React Flow 依赖代码已删；手机竖排。⑤Tasks：表格（按活动分组、远期组折叠、负责人和截止日原地改）/ 可拖拽看板（`src/data/board.ts`：自己的随便拖，社长/副社长可拖所有人并给本人留私下记录，认领握手不变）/ Timeline；Customize 面板改状态名称颜色、标签、卡片字段。⑥Funding 物流链表；Partners 可搜索表格 + 新增；Handoff 接力卡 + 右栏分步手册；Rules 一行一条 + 直达出处按钮 + 问 AI 按钮（规则加 `short`/`timing`）；Settings 分 5 块、自动保存 + Undo；Team 工作量条、贡献表、一周空闲热力图；解释文字移到 Help。⑦字数（`scripts/word-count.mjs`）：Today 105、Events 95、Rules 134、Tasks 111、Team 108、Funding 45、Handoff 34、Partners 37、Settings 89，全部在上限内。⑧测试：244 个单元测试通过；页面测试已按新界面重写，**桌面版 48/48 通过**。 | **还没做 / 要接着做：** ① 手机版页面测试（Pixel 7）还没跑：`PW_CHROMIUM=<chromium 路径> npx playwright test --project=mobile`，预计有布局问题要修；② 看板**鼠标拖拽**只人工看过逻辑，自动测试改用卡片上的移动菜单（同一个动作），需要真人在预览里拖一次；③ Ask 面板只用模拟和本地回退测过，没连真实 DeepSeek；④ `@xyflow/react` 依赖已不用，可删；⑤ docs/PRODUCT_PLAN.md 未改（改版依据见《Platypus 简化改版方案》和 AGENTS.md §7）；⑥ 已同步本地备份。 |
 | 2026-10-22 | Codex | WP5 功能完成：固定种子 1,000 次依赖预测与今日风险；六类规则与带出处问答、报错队列、40 题评估脚本；经费阶段/提交检查/用款提醒/Plan B；带逐条来源的岗位手册、卸任确认→社长批准、SEO/R16 第一周清单、岗位与联系人交接；关系页与私有缓冲渐进调整/关闭/换届重置。本机 `npm run check` 全通过：233 个单元测试 + 90 个页面测试，原有测试保留；主体提交 b8a6986 的 CI 通过。已同步本地备份（仅指定 4 文件） | **验收：** [预览 Handoff](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/handoff) → Start handoff season → Treasurer handbook → Draft role handbook，点每条 Source；切 Maya 确认，再切 Alex 批准。Today 展开 Forecast details 才见比例；Rules 问校外餐饮应引 R06、税务题应拒答；Funding 在 11/4 未批时展示 Plan B；Partners 显示岗位与下一场活动。**还剩/已知：** 真实 DeepSeek 40 题、如已配 AIR 则另跑 AIR，以及 Juanxi 审真实 AI 手册，均未完成，不宣称达到 ≥90% / 拒答全对。用户要求停止登录，已停止；示例回退不能冒充真实 AI。**WP6：** 结构版本 5，规则仍待正式复核，保留访问保护与 main；完整说明见 `docs/WP5_ACCEPTANCE.md`、`docs/AI_TESTS.md`。 |

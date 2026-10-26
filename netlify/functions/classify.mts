@@ -21,7 +21,7 @@ export default async (req: Request) => {
     const body = await readJSON(req)
     const text = str(body.text, 400)
     if (!text) throw new BadRequest("Missing text.")
-    const { data, model } = await chatJSON({ system: SYSTEM, user: `Reply: ${text}`, maxTokens: 60 })
+    const { data, model } = await chatJSON({ task: "classify", system: SYSTEM, user: `Reply: ${text}`, maxTokens: 60 })
     const d = (data ?? {}) as Record<string, unknown>
     const label = LABELS.includes(String(d.label)) ? String(d.label) : "other"
     const confidence = Math.max(0, Math.min(1, Number(d.confidence) || 0))

@@ -32,7 +32,7 @@ Roles: ${roles.join(", ")}
 Already scheduled:
 ${ruleSteps || "(none)"}`
 
-    const { data, model } = await chatJSON({ system: SYSTEM, user, maxTokens: 600, temperature: 0.3 })
+    const { data, model } = await chatJSON({ task: "plan_draft", system: SYSTEM, user, maxTokens: 600, temperature: 0.3 })
     const raw = ((data ?? {}) as { suggestions?: unknown[] }).suggestions ?? []
     const suggestions = raw.slice(0, 3).map(s => s as Record<string, unknown>)
       .filter(s => roles.includes(String(s.role)) && str(s.title, 70))
