@@ -117,6 +117,13 @@ export const STAGES = [
   "edit",
 ] as const;
 export type Stage = (typeof STAGES)[number];
+/** Current setup selection is data, never an instruction or authority. */
+export const SetupSelectionSchema = z.object({
+  screen: z.enum(["team", "responsibilities", "workflow", "review"]),
+  entityType: z.enum(["role", "department", "node"]).nullable(),
+  entityId: id.nullable(),
+});
+export type SetupSelection = z.infer<typeof SetupSelectionSchema>;
 export const DepartmentSchema = z.object({
   id,
   name: label,
