@@ -3,7 +3,7 @@ import { FlowSchema, type OrgFlow, type OrgRole, type Department } from '../../o
 
 /** Immutable IDs identify objects; names are labels, never identifiers or authority. */
 export const IdSchema = z.string().min(1).max(100).regex(/^[a-zA-Z0-9_-]+$/);
-import { TimingDefaultsSchema, DEFAULT_TIMING, RelativeTargetSchema } from './timing';
+import { TimingDefaultsSchema, DEFAULT_TIMING, RelativeTargetSchema, type TimingDefaults } from './timing';
 export * from './timing';
 export const MemberSchema = z.object({
   id: IdSchema, name: z.string().trim().min(1).max(100), roleIds: z.array(IdSchema).max(30),
@@ -48,7 +48,7 @@ export const FundingSchema = z.object({
   status: z.enum(['draft', 'submitted', 'approved', 'rejected']).default('draft'),
   approvedVersion: z.number().int().nullable().default(null), approvedAmount: z.number().min(0).nullable().default(null),
   committedAmount: z.number().min(0).default(0), spentAmount: z.number().min(0).default(0),
-  commitments: z.array(z.object({id: IdSchema, amount: z.number().positive(), purpose: z.string().max(400), at: z.string()})).default([]),
+  commitments: z.array(z.object({id: IdSchema, amount: z.number().positive(), purpose: z.string().max(400), at: z.string(), status: z.enum(['reserved', 'spent', 'released']).default('reserved'), evidence: z.string().max(1000).default('')})).default([]),
   evidence: z.string().max(1000).default(''), spendBy: z.string().nullable().default(null),
 });
 export type FundingRequest = z.infer<typeof FundingSchema>;
@@ -85,12 +85,15 @@ export type WorkspaceCommand =
   | { type: 'work.update'; workItemId: string; patch: Partial<Pick<WorkItem, 'name'|'description'|'date'|'ownerId'|'venue'>> }
   | { type: 'work.remove'; workItemId: string }
   | { type: 'task.move'; workItemId: string; taskId: string; status: TaskStatus; blocker?: TaskBlocker; beforeId?: string|null }
+  | { type: 'task.unblock'; workItemId: string; taskId: string; blockerId: string; evidence: string }
   | { type: 'task.complete'|'task.reopen'; workItemId: string; taskId: string }
   | { type: 'task.update'; workItemId: string; taskId: string; patch: Partial<Pick<WorkTask, 'title'|'description'|'ownerId'|'collaboratorIds'|'roleIds'|'dependsOn'|'dependencyMode'|'relativeTarget'|'dueOverride'|'estimatedDays'|'applicability'|'applicabilityReason'|'stageKey'|'stageTitle'>> }
   | { type: 'task.add'; workItemId: string; task: WorkTask }
   | { type: 'task.remove'; workItemId: string; taskId: string }
   | { type: 'task.review'; workItemId: string; taskIds: string[] }
   | { type: 'gate.decide'; workItemId: string; gateId: string; decision: 'approved'|'rejected'; evidence: string }
+  | { type: 'funding.add'; workItemId: string; requestId: string; amount: number; source: FundingRequest['source']; purpose: string }
+  | { type: 'funding.spend'|'funding.release'; workItemId: string; requestId: string; commitmentId: string; evidence: string }
   | { type: 'funding.revise'; workItemId: string; requestId: string; amount: number; source: FundingRequest['source']; purpose: string }
   | { type: 'funding.commit'; workItemId: string; requestId: string; commitmentId: string; amount: number; purpose: string };
 export interface WorkspaceMutation { requestId: string; revision: number; command: WorkspaceCommand; }
