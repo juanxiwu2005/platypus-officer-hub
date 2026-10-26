@@ -89,7 +89,14 @@ export default async (req: Request) => {
     if (e instanceof AIError)
       return json({ message: e.message, code: e.code }, e.status);
     if (e instanceof ZodError) {
-      console.warn("Organization AI schema mismatch", e.issues.map(i => ({path:i.path.join("."),code:i.code,message:i.message})));
+      console.warn(
+        "Organization AI schema mismatch",
+        e.issues.map((i) => ({
+          path: i.path.join("."),
+          code: i.code,
+          message: i.message,
+        })),
+      );
       return json(
         {
           message:

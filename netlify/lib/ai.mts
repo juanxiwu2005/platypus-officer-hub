@@ -122,9 +122,12 @@ export async function chatJSON({ system, user, maxTokens = 700, temperature = 0,
   // OpenAI-compatible: DeepSeek, ASU AIR, OpenAI, and most other providers.
   const base = { model: c.model, temperature, max_tokens: maxTokens, messages: [{ role: "system", content: system }, { role: "user", content: user }] }
   const headers = { authorization: `Bearer ${c.key}` }
-  let r = await post(`${c.baseUrl}/chat/completions`, headers, c.jsonMode === "json_object" ? { ...base, response_format: { type: "json_object" } } : base, c.timeoutMs)
+  // AIR's reasoning models may otherwise consume the short structured-output budget thinking.
+  const effort = env("AI_REASONING_EFFORT") || (env("AI_PRESET") === "asu_air" ? "none" : "")
+  const requestBase = effort ? { ...base, reasoning_effort: effort } : base
+  let r = await post(`${c.baseUrl}/chat/completions`, headers, c.jsonMode === "json_object" ? { ...requestBase, response_format: { type: "json_object" } } : requestBase, c.timeoutMs)
   if (r.status === 400 && c.jsonMode === "json_object" && /response_format|json/i.test(r.text)) {
-    r = await post(`${c.baseUrl}/chat/completions`, headers, base, c.timeoutMs) // provider without JSON mode: retry once without it
+    r = await post(`${c.baseUrl}/chat/completions`, headers, requestBase, c.timeoutMs) // provider without JSON mode: retry once without it
   }
   if (r.status >= 400) throw new AIError("upstream", `AI provider error ${r.status}.`, r.status === 429 ? 429 : 502)
   const body = JSON.parse(r.text) as { choices?: { message?: { content?: string } }[]; model?: string }

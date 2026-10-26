@@ -105,3 +105,15 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 分支 `feat/ai-native-phase1` 从最新 v1 创建。只做三个可点击高保真画面、虚构 Constitution 建议审核、自定义岗位能力映射、两类流程预览与底层设计说明。`src/phase1/` 是隔离的前端演示，不是正式业务模型。保持确定性日期引擎与所有旧测试，不删除旧页、不改 main。
 
 **画面完成后必须停止等 Juanxi 验收；不得自动接正式 API/数据模型、完整 planner、生产数据库、真实账户、长期 Conversation storage 或正式 Handoff。** 详见 `docs/phase1/ARCHITECTURE.md` 和 `HANDOFF.md`。旧独立任务、固定 RoleFunction 及聊天存储仍有设计债，不能把新壳中的检查当作整个旧应用已改造。
+
+
+## 9. Organization Setup AI 增量（2026-10-25，覆盖第 8 节本次范围的停止条件）
+
+Juanxi 在检查原型后明确要求继续实施并上线：章程/岗位/职责驱动的 AI onboarding，PDF/Word/粘贴/虚构示例，部门分组多岗位矩阵，隐藏 RACI，可编辑成员与 Exec Board 流程，真实 AI、每步线上保存、组织指导文档和 prompt 审核。该授权覆盖此增量所需的 API 与线上存储，不代表批准合并 main、真实身份系统、完整 planner、长期对话存储或 Handoff。
+
+- 分支 `feat/organization-setup-ai`，草稿 PR #3（base v1）；main 与旧分支保留。
+- `/phase1/setup` 使用 `src/organization/` + `/api/org/setup`、`/api/org/ai`；`/phase1/setup-legacy` 保留前一版设置，旧数据键不迁移或重置。
+- Netlify Blobs 保存隔离的测试工作区；HttpOnly 随机 cookie、修订号与 ETag 防覆盖；草稿与已批准快照分开。仅虚构测试数据，七天过期，跨设备组织账户尚未实现。
+- 提示词正本 `src/organization/prompts.ts`，五阶段带版本；前端可查看精确 prompt，最终 Review 明确提醒 Juanxi 审阅。具体数据包/原因见 `docs/organization/PROMPTS.md`。
+- 旧测试完整保留；前一版 Phase 1 设置检查转到 setup-legacy，新行为单独测试。区分自动模拟、真实文件解析与线上真实模型结果。
+- 详细交接与已验证限制见 `docs/organization/HANDOFF.md`。不得把新 onboarding 的数据存储称为整个旧应用已经迁移数据库。

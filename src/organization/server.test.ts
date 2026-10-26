@@ -235,4 +235,13 @@ describe("Online organization storage and model boundaries", () => {
     );
     expect((await r.json()).draft.aiRuns).toEqual([]);
   });
+  it("rejects invalid manual assignment references at the save boundary", async () => {
+    const { cookie } = await session();
+    const draft = fixtureDraft();
+    draft.assignments[0].roleIds = ["unknown"];
+    const r = await setup(
+      request({ action: "save", revision: 0, draft }, cookie),
+    );
+    expect(r.status).toBe(400);
+  });
 });

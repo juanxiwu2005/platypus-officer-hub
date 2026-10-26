@@ -93,7 +93,11 @@ export async function saveSession(
       409,
     );
   const draft = DraftSchema.parse(raw);
-  try { validateDraftIntegrity(draft); } catch (e) { throw new SetupError((e as Error).message); }
+  try {
+    validateDraftIntegrity(draft);
+  } catch (e) {
+    throw new SetupError((e as Error).message);
+  }
   draft.aiRuns = current.entry.draft.aiRuns;
   draft.contextVersion = current.entry.draft.contextVersion;
   if (confirm) {

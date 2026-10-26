@@ -1,4 +1,7 @@
-.p1-body main:has(.os) { display: block; max-width: none; }
+.p1-body main:has(.os) {
+  display: block;
+  max-width: none;
+}
 .os {
   width: 100%;
   min-width: 0;

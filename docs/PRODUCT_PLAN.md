@@ -1,3 +1,5 @@
+> **Organization Setup 增量（2026-10-25，Juanxi 已授权）：** 原型验收反馈后继续接入真实 AI 与线上保存；以 constitution 提取、分组多岗位职责矩阵、可编辑活动流程、后台 RACI 和组织 AI 指导文档为准。每步 AI 预填，社长审阅调整；最终增加 prompt 审核提醒。旧页面与数据保留，独立分支上线，不改 main。详见 [实现交接](organization/HANDOFF.md) 与 [Prompt 说明](organization/PROMPTS.md)。
+
 > **2026-10-25 新方向（Juanxi 已确认）：** 当前增量工作为 AI-native Phase 1，Activity-centered、Organization Context driven。下文 v1.0/v1.1 为保留的历史基线；与本次提示冲突的导航、固定岗位与设置方式以新设计为准。先验收三个高保真画面，再决定正式接入。目标模型、复用与迁移边界见 [Phase 1 底层设计](phase1/ARCHITECTURE.md)，验收见 [交接](phase1/HANDOFF.md)。不改 main，不删除旧页。
 
 # Platypus 产品计划 v1.0

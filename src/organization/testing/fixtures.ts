@@ -46,7 +46,7 @@ export function fixtureDraft(): SetupDraft {
       checksum: "fixture-checksum",
       uploadedAt: "2026-10-25T12:00:00.000Z",
     },
-    roles: FIXTURE_ROLES,
+    roles: structuredClone(FIXTURE_ROLES),
     assignments: presetAssignments(FIXTURE_ROLES),
   };
 }
@@ -140,7 +140,7 @@ export function fixtureResult(stage: Stage, d = fixtureDraft()): unknown {
       mission: "Connect students with founders through practical programs.",
       summary:
         "Your constitution describes planning, logistics, finance, marketing, outreach and leadership roles.",
-      roles: FIXTURE_ROLES,
+      roles: structuredClone(FIXTURE_ROLES),
       assignments: presetAssignments(FIXTURE_ROLES),
       uncertainties: [],
     };

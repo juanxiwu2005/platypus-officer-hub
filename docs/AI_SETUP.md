@@ -58,3 +58,10 @@ Prompts sent to DeepSeek, OpenAI or Anthropic leave ASU. Use only the fictional 
 - `parse-brief` 保留兼容接口，但现在也丢弃 AI 日期；`public/legacy/` 文件没有改动。
 - 固定命令测试和供应商模拟测试已通过，真实 DeepSeek/AIR 自由表达质量仍需在部署环境分别验证。详情见 `WP2_ACCEPTANCE.md`。
 
+
+
+## Organization Setup 与 AIR（2026-10-25）
+
+新 `/api/org/ai` 没有模拟回答兜底。换 key 时同时设置 `AI_PRESET=asu_air`、`AI_MODEL=<Voyager 模型 ID>`；地址默认 `https://openai.rc.asu.edu/v1`。只换 key 会继续请求旧供应商。初次排查可用 ASU 官方支持的 `auto`，可复现实验应固定模型。`AI_REASONING_EFFORT` 可配置，AIR 默认 `none` 避免短结构化输出预算被思考耗尽。修改环境变量后重新部署。
+
+官方依据：[LLM API](https://docs.rc.asu.edu/ai/api/) 与 [Chat completions](https://docs.rc.asu.edu/ai/api/chat/)。Netlify /api/health 的 configured 只表示参数齐全，不能证明认证成功；须实际调用并核对页面供应商/模型。未读或输出 key。

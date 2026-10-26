@@ -83,7 +83,12 @@ function Dialog({
     ref.current?.showModal();
   }, []);
   return (
-    <dialog ref={ref} className="os-dialog" aria-label={title} onCancel={onClose}>
+    <dialog
+      ref={ref}
+      className="os-dialog"
+      aria-label={title}
+      onCancel={onClose}
+    >
       <div className="os-section-heading">
         <h2>{title}</h2>
         <button type="button" onClick={onClose}>
@@ -602,7 +607,9 @@ export default function OnlineSetup() {
                             onClick={() =>
                               patch({
                                 roles: draft.roles.filter((x) => x.id !== r.id),
-                                memberFlow: null, boardFlow: null, guide: null,
+                                memberFlow: null,
+                                boardFlow: null,
+                                guide: null,
                                 assignments: draft.assignments.map((a) => ({
                                   ...a,
                                   roleIds: a.roleIds.filter(

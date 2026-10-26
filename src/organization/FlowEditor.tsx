@@ -179,7 +179,12 @@ export default function FlowEditor({
             }
           }}
           fitView
-          fitViewOptions={{ padding: 0.15 }}
+          fitViewOptions={{
+            padding: 0.15,
+            nodes: flow.nodes.slice(0, 3).map((n) => ({ id: n.id })),
+            minZoom: 0.75,
+            maxZoom: 1,
+          }}
           minZoom={0.1}
           maxZoom={1.6}
           nodesDraggable={!disabled}
@@ -219,8 +224,8 @@ export default function FlowEditor({
         ))}
       </div>
       <p className="os-hint">
-        Drag steps to arrange the view. Connect dots to change the sequence, or
-        select a step to edit it.
+        Drag empty space to follow the chain. Drag steps to arrange the view.
+        Connect dots to change the sequence, or select a step to edit it.
       </p>
       {error && (
         <p className="os-error" role="alert">
