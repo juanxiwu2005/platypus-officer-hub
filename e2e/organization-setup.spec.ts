@@ -275,7 +275,7 @@ for (const ext of ["pdf", "docx", "txt"])
     await expect(
       page.getByText(`✓ fictional-constitution.${ext}`, { exact: true }),
     ).toBeVisible({ timeout: 20000 });
-    expect(s.read().draft.source?.archiveId).toBeTruthy();
+    await expect.poll(() => s.read().draft.source?.archiveId).toBeTruthy();
     await expect(page.getByRole("alert")).toHaveCount(0);
   });
 test("paste text is saved before the AI request", async ({ page }) => {
