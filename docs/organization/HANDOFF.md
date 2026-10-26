@@ -1,3 +1,5 @@
+> **2026-10-26 Activity Workspace当前实施交接：** 用户批准A1/B1/C2与全局AI/个人任务/资金联动，详见[实施记录](ACTIVITY_WORKSPACE_IMPLEMENTATION.md)。以下F1–F7交接是本次的保留基线，Homepage只读组织职责/Recent模板入口已被本轮实际活动工作区替代。
+
 # Organization Setup 当前交接
 
 2026-10-26 · Codex · Juanxi 已批准 F1–F7 审计修复。集成分支 `fix/setup-v3-completion`，基于 `feat/organization-setup-ai@54e5823`；不合并 main，不正式发布。
