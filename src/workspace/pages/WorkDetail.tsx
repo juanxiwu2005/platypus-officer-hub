@@ -4,6 +4,7 @@ import { useWorkspace, workspaceId } from '../client';
 import { TaskSchema, type ApprovalGate, type FundingRequest, type WorkItem, type WorkSchedule, type WorkTask } from '../contracts';
 import { projectStages, taskReady, type StageProjection } from '../selectors';
 import { memberName, shortDate, Status, STATUS_LABELS, todayInArizona, WorkStatus } from './shared';
+import { readApprovedContext, type ApprovedContext } from '../../phase1/approvedContext';
 
 const oneDay = 86400000;
 const dateValue = (date: string) => Date.parse(`${date}T12:00:00Z`);
@@ -23,6 +24,7 @@ export default function WorkDetail({ item, schedule }: { item: WorkItem; schedul
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newOwner, setNewOwner] = useState(item.ownerId ?? '');
+  const [adoption, setAdoption] = useState<'timing'|'template'|null>(null);
   const actor = envelope?.state.members.find(member => member.id === envelope.state.actorId);
   const manager = actor?.access === 'manager';
   const stages = projectStages(item);
@@ -53,9 +55,10 @@ export default function WorkDetail({ item, schedule }: { item: WorkItem; schedul
     {view === 'timeline' ? <Timeline item={item} stages={visibleStages} schedule={schedule} onSelect={choose} /> : <div className="aw-workflow" aria-label="Activity workflow">{visibleStages.map(stage => <section key={stage.id}><header><h2>{stage.title}</h2><span>{stage.completed}/{stage.total} complete</span></header><div>{stage.tasks.map(task => <button className={`aw-workflow-step aw-task-${task.status}`} key={task.id} onClick={() => choose(task)}><strong>{task.title}</strong><span>{memberName(members, task.ownerId)}</span><span>{STATUS_LABELS[task.status]}</span>{task.dependsOn.length > 0 && <small>After {task.dependsOn.map(id => item.tasks.find(t => t.id === id)?.title ?? 'Missing step').join(' · ')}</small>}</button>)}</div></section>)}</div>}
     {manager && (adding ? <form className="aw-inline-add" onSubmit={e => void addTask(e)}><label>New task<input required maxLength={180} value={newTitle} onChange={e => setNewTitle(e.target.value)} /></label><label>Responsible member<select value={newOwner} onChange={e => setNewOwner(e.target.value)}><option value="">Needs assignment</option>{members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label><button className="aw-primary" disabled={mutating}>Add to this workflow</button><button type="button" onClick={() => setAdding(false)}>Cancel</button></form> : <button className="aw-add-task" onClick={() => setAdding(true)}>+ Add task to this {item.kind === 'member_event' ? 'activity' : 'work'}</button>)}
     <FundingPanel item={item} onNotice={setNotice} />
-    <footer className="aw-work-meta">Created from organization version {item.templateVersion}. Existing task edits and completed records are retained when defaults change.</footer>
+    <footer className="aw-work-meta"><p>Created from organization version {item.templateVersion}. Existing task edits and completed records are retained when defaults change.</p>{manager&&<div className="aw-inline"><button onClick={()=>setAdoption('timing')}>Review latest timing defaults</button>{item.kind==='member_event'&&<button onClick={()=>setAdoption('template')}>Review latest workflow template</button>}</div>}</footer>
     {selected && <TaskDetail key={selected.id} task={selected} item={item} schedule={schedule} close={() => navigate(`/phase1/work/${item.id}`)} />}
     {edit && <EditWork item={item} close={() => setEdit(false)} />}
+    {adoption&&<AdoptDefaults item={item} kind={adoption} close={()=>setAdoption(null)}/>}
   </>;
 }
 
@@ -169,6 +172,8 @@ function FundingCard({ item, request, manager, onNotice }: { item: WorkItem; req
   const [editing, setEditing] = useState(false);
   const [amount, setAmount] = useState(String(request.amount));
   const [purpose, setPurpose] = useState(request.purpose);
+  const [source, setSource] = useState(request.source);
+  const [spendBy, setSpendBy] = useState(request.spendBy ?? '');
   const [commitAmount, setCommitAmount] = useState('');
   const [commitPurpose, setCommitPurpose] = useState('');
   const [evidence, setEvidence] = useState('');
@@ -176,7 +181,8 @@ function FundingCard({ item, request, manager, onNotice }: { item: WorkItem; req
   return <article className="aw-funding-card"><div className="aw-inline"><h3>{request.source.toUpperCase()} · {money(request.amount)}</h3><span className="aw-funding-state">{request.status} · version {request.version}</span></div><p>{request.purpose}</p><dl className="aw-date-facts"><div><dt>Approved</dt><dd>{request.approvedAmount === null ? 'Not approved' : money(request.approvedAmount)}</dd></div><div><dt>Reserved / spent</dt><dd>{money(request.committedAmount)} / {money(request.spentAmount)}</dd></div><div><dt>Available</dt><dd>{left === null ? 'Waiting for approval' : money(left)}</dd></div></dl>
     <div className="aw-funding-steps">{item.gates.filter(gate => gate.requestId === request.id).map(gate => <Link key={gate.id} to={`/phase1/work/${item.id}?task=${gate.taskId}`}>{gate.kind === 'budget' ? 'Budget approval' : 'Purchase approval'} · {gate.status}</Link>)}</div>
     {manager && <button onClick={() => setEditing(!editing)}>Revise request</button>}
-    {editing && <form onSubmit={e => { e.preventDefault(); void mutate({ type: 'funding.revise', workItemId: item.id, requestId: request.id, amount: Number(amount), source: request.source, purpose }).then(() => { setEditing(false); onNotice('Request revised. Previous approval does not approve the new request version.'); }).catch(e => onNotice(e.message)); }}><label>Requested amount (USD)<input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required /></label><label>Purpose<input value={purpose} maxLength={1000} onChange={e => setPurpose(e.target.value)} required /></label><p className="aw-muted">A material change requires a new approval. Completed spending remains recorded.</p><button disabled={mutating}>Save new request version</button></form>}
+    {editing && <form onSubmit={e => { e.preventDefault(); void mutate({ type: 'funding.revise', workItemId: item.id, requestId: request.id, amount: Number(amount), source, purpose }).then(() => { setEditing(false); onNotice('Request revised. Previous approval does not approve the new request version.'); }).catch(e => onNotice(e.message)); }}><div className="aw-form-pair"><label>Requested amount (USD)<input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} required /></label><label>Funding source<select value={source} onChange={e=>setSource(e.target.value as FundingRequest['source'])}><option value="college">College</option><option value="usg">USG</option><option value="dues">Club funds</option><option value="sponsor">Sponsor</option></select></label></div><label>Purpose<input value={purpose} maxLength={1000} onChange={e => setPurpose(e.target.value)} required /></label><p className="aw-muted">A material change requires a new approval. Completed spending remains recorded.</p><button disabled={mutating}>Save new request version</button></form>}
+    {manager&&<form className="aw-funding-deadline" onSubmit={e=>{e.preventDefault();void mutate({type:'funding.setDeadline',workItemId:item.id,requestId:request.id,spendBy:spendBy||null}).then(()=>onNotice('Funding use-by date saved. Activity date changes will not move this date.')).catch(e=>onNotice(e.message));}}><label>Funds must be used by<input type="date" value={spendBy} onChange={e=>setSpendBy(e.target.value)}/></label><button disabled={mutating||spendBy===(request.spendBy??'')}>Save use-by date</button></form>}
     {manager && request.status === 'approved' && <details><summary>Reserve a purchase</summary><form onSubmit={e => { e.preventDefault(); void mutate({ type: 'funding.commit', workItemId: item.id, requestId: request.id, commitmentId: workspaceId(), amount: Number(commitAmount), purpose: commitPurpose }).then(() => { setCommitAmount(''); setCommitPurpose(''); }).catch(e => onNotice(e.message)); }}><div className="aw-form-pair"><label>Amount (USD)<input required type="number" min="0.01" step="0.01" value={commitAmount} onChange={e => setCommitAmount(e.target.value)} /></label><label>Purchase purpose<input required maxLength={400} value={commitPurpose} onChange={e => setCommitPurpose(e.target.value)} /></label></div><button disabled={mutating}>Reserve against approved funding</button></form></details>}
     {request.commitments.length > 0 && <details><summary>Purchases · {request.commitments.length}</summary>{manager && <label>Spending or release evidence<input value={evidence} onChange={e => setEvidence(e.target.value)} maxLength={1000} /></label>}{request.commitments.map(commitment => <div className="aw-commitment" key={commitment.id}><span>{commitment.purpose} · {money(commitment.amount)} · {commitment.status}</span>{manager && commitment.status === 'reserved' && <div className="aw-inline"><button disabled={mutating || !evidence.trim()} onClick={() => void mutate({ type: 'funding.spend', workItemId: item.id, requestId: request.id, commitmentId: commitment.id, evidence }).catch(e => onNotice(e.message))}>Record spent</button><button disabled={mutating || !evidence.trim()} onClick={() => void mutate({ type: 'funding.release', workItemId: item.id, requestId: request.id, commitmentId: commitment.id, evidence }).catch(e => onNotice(e.message))}>Release reservation</button></div>}</div>)}</details>}
   </article>;
@@ -191,4 +197,36 @@ function EditWork({ item, close }: { item: WorkItem; close: () => void }) {
   const [error,setError] = useState('');
   const impact = useMemo(() => item.tasks.filter(task => task.status !== 'done' && task.applicability !== 'inactive').length, [item.tasks]);
   return <div className="aw-modal-backdrop"><div className="aw-modal aw-small-modal" role="dialog" aria-modal="true" aria-labelledby="aw-edit-work-title"><header><h2 id="aw-edit-work-title">Edit {item.kind === 'member_event' ? 'activity' : 'board work'}</h2><button aria-label="Close work settings" disabled={mutating} onClick={close}>×</button></header><form onSubmit={e => { e.preventDefault(); void mutate({ type: 'work.update', workItemId: item.id, patch: { name,description,date:date || null,ownerId:ownerId || null } }).then(close).catch(e => setError(e.message)); }}><fieldset disabled={mutating}><label>Name<input autoFocus required maxLength={180} value={name} onChange={e => setName(e.target.value)} /></label><label>Description<textarea maxLength={2000} value={description} onChange={e => setDescription(e.target.value)} /></label><div className="aw-form-pair"><label>Date<input type="date" value={date} onChange={e => setDate(e.target.value)} /></label><label>Work lead<select value={ownerId} onChange={e => setOwnerId(e.target.value)}><option value="">Needs assignment</option>{envelope?.state.members.map(member => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label></div>{date !== (item.date ?? '') && <p className="aw-note">Changing the date recalculates {impact} unfinished steps. Completed records and fixed date overrides remain; schedule conflicts will be highlighted.</p>}{error && <p className="aw-error" role="alert">{error}</p>}<footer><button type="button" onClick={close}>Cancel</button><button className="aw-primary">Save changes</button></footer></fieldset></form></div></div>;
+}
+
+function AdoptDefaults({item,kind,close}:{item:WorkItem;kind:'timing'|'template';close:()=>void}) {
+  const {envelope,mutate,mutating}=useWorkspace();
+  const [latest,setLatest]=useState<ApprovedContext|null>(null);
+  const [loading,setLoading]=useState(kind==='template');
+  const [error,setError]=useState('');
+  useEffect(()=>{
+    if(kind!=='template')return;
+    const controller=new AbortController();
+    void readApprovedContext(controller.signal).then(context=>{if(!controller.signal.aborted){setLatest(context);setLoading(false);if(!context)setError('Confirm an organization workflow before applying a template.');}}).catch(e=>{if(!controller.signal.aborted){setError(e.message);setLoading(false);}});
+    return ()=>controller.abort();
+  },[kind]);
+  const oldNodes=item.templateFlow?.nodes??[];
+  const newNodes=latest?.onDemand.memberWorkflow.nodes??[];
+  const additions=newNodes.filter(node=>!oldNodes.some(old=>old.id===node.id));
+  const removals=oldNodes.filter(node=>!newNodes.some(next=>next.id===node.id));
+  const changes=newNodes.filter(node=>{const old=oldNodes.find(old=>old.id===node.id);return old&&JSON.stringify([node.title,node.description,node.roleIds,node.dependsOn,node.dependencyMode,node.timing])!==JSON.stringify([old.title,old.description,old.roleIds,old.dependsOn,old.dependencyMode,old.timing]);});
+  const protectedCount=item.tasks.filter(task=>task.status==='done'||task.manualFields.length>0||task.dueOverride).length;
+  const timing=envelope?.organization.timingDefaults;
+  const timingChanged=!!timing&&JSON.stringify(timing)!==JSON.stringify(item.timingDefaults);
+  const templateChanged=!!latest&&latest.contextVersion!==item.templateVersion;
+  const apply=async()=>{
+    try {
+      if(kind==='timing'&&timing)await mutate({type:'work.applyTiming',workItemId:item.id,timingDefaults:timing});
+      else if(kind==='template'&&latest)await mutate({type:'work.applyTemplate',workItemId:item.id,templateVersion:latest.contextVersion});
+      else return;
+      close();
+    }catch(e){setError((e as Error).message);}
+  };
+  return <div className="aw-modal-backdrop"><div className="aw-modal" role="dialog" aria-modal="true" aria-labelledby="aw-adopt-title"><header><h2 id="aw-adopt-title">Review {kind==='timing'?'timing defaults':'workflow changes'}</h2><button aria-label="Close adoption review" disabled={mutating} onClick={close}>×</button></header><p>{item.name}</p>{loading?<p role="status">Loading the latest confirmed workflow…</p>:kind==='timing'?<><table className="aw-adoption-table"><thead><tr><th>Milestone</th><th>This work</th><th>Latest default</th></tr></thead><tbody>{([['Confirm items','itemsWeeks'],['Confirm quotes','quotesWeeks'],['Submit budget request','budgetWeeks']] as const).map(([label,key])=><tr key={key}><td>{label}</td><td>{item.timingDefaults[key]} weeks before</td><td>{timing?.[key]??item.timingDefaults[key]} weeks before</td></tr>)}</tbody></table>{!timingChanged&&<p className="aw-note">This work already uses these timing defaults.</p>}</>:latest&&<><p>Organization version {item.templateVersion} → {latest.contextVersion}</p>{!templateChanged?<p className="aw-note">This work already uses the latest confirmed template.</p>:<><p>{additions.length} added · {changes.length} changed · {removals.length} no longer in the template</p>{additions.length>0&&<div><h3>New steps</h3><ul>{additions.map(node=><li key={node.id}>{node.title}</li>)}</ul></div>}{changes.length>0&&<div><h3>Changed steps</h3><ul>{changes.map(node=><li key={node.id}>{node.title}</li>)}</ul></div>}{removals.length>0&&<div><h3>Removed from the latest template</h3><ul>{removals.map(node=><li key={node.id}>{node.title}</li>)}</ul></div>}</>}</>}
+    <p className="aw-note">{protectedCount} completed or manually adjusted tasks remain protected. Fixed dates and funding records are retained. Related unfinished steps may require a review after applying changes.</p>{error&&<p className="aw-error" role="alert">{error}</p>}<footer><button disabled={mutating} onClick={close}>Cancel</button><button className="aw-primary" disabled={mutating||loading||(kind==='timing'?!timingChanged:!templateChanged)} onClick={()=>void apply()}>Apply reviewed {kind==='timing'?'timing':'workflow'} changes</button></footer></div></div>;
 }
