@@ -156,6 +156,8 @@ gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
 | `feat/organization-setup-ai` | **Deploy Preview 3**（PR #3）= v1 + `src/phase1/` + `src/organization/` + `src/workspace/` | ❌ 改名会毁掉 DP3 |
 | `feat/ai-native-phase1` | Deploy Preview 2（PR #2）| ❌ 改名会毁掉 DP2 |
 | `integration/dp3-dp4-merge` | **Deploy Preview 5**（PR #5）= DP4 + DP3 合并版（M1）：AI 走 AIR、服务器存储隐藏 | ❌ 改名会毁掉 DP5 |
+| `docs/m2a-prompt-strategy` | M2a 提示词策略文档（只有文档），已包含在下一行的分支里 | 可以删（没有 PR 用它）|
+| `feat/m2b-ai-intake` | **Deploy Preview 6**（PR #6，base `main`）= DP5 + M2a + M2b：Ask 分清任务与活动、AI 预填表单、活动 Plan check | ❌ 改名会毁掉 DP6 |
 
 **Juanxi 重点关注的是 DP3 和 DP4，合并方案见 `docs/EXECUTION_PLAN_2026-10-27.md`。**
 
