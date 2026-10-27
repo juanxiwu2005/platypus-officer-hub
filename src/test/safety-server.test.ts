@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import chatFn from "../../netlify/functions/chat.mts"
-import { chatJSON } from "../../netlify/lib/ai.mts"
+import { chatJSON, getConfig, isConfigured } from "../../netlify/lib/ai.mts"
 import { RATE_LIMITS, clientIp, rateLimit, resetRateLimit, TooManyRequests } from "../../netlify/lib/http.mts"
 import { seedDemo } from "../data/seed"
 import { commandContext } from "../lib/commands"
@@ -9,7 +9,7 @@ const state = seedDemo()
 const post = (body: unknown, ip?: string) => new Request("https://example.org/api/chat", { method: "POST", headers: { "content-type": "application/json", ...(ip ? { "x-nf-client-connection-ip": ip } : {}) }, body: typeof body === "string" ? body : JSON.stringify(body) })
 
 beforeEach(() => resetRateLimit())
-afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); for (const k of ["AI_API_KEY", "AI_MODEL", "AI_PRESET"]) delete process.env[k] })
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); for (const k of ["AI_API_KEY", "AI_MODEL", "AI_PRESET", "AI_MODEL_ROUTING"]) delete process.env[k] })
 
 describe("A8(a) · request size", () => {
   const ask = { message: "Assign Send the October newsletter to Priya", context: commandContext(state) }
@@ -61,47 +61,82 @@ describe("A8(d) · per-visitor rate limit", () => {
 
 describe("A8(e) · AI usage log", () => {
   const KEY = "sk-SECRET-KEY-do-not-log"
-  const configure = () => { process.env.AI_PRESET = "deepseek"; process.env.AI_API_KEY = KEY; process.env.AI_MODEL = "deepseek-chat" }
+  // M1: ASU AIR is the default, so no AI_PRESET is set here.
+  const configure = () => { process.env.AI_API_KEY = KEY }
   const lines = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.map(c => String(c[0])).filter(t => t.includes("ai_usage"))
 
-  it("writes one line per call with provider, model, tokens, time and endpoint, and nothing private", async () => {
+  it("writes one line per call with task, provider, models, tokens, finish reason and time, and nothing private", async () => {
     configure()
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ model: "deepseek-chat", choices: [{ message: { content: '{"ok":true}' } }], usage: { prompt_tokens: 111, completion_tokens: 22 } }), { status: 200 })))
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ model: "muse-glimmer-30b", choices: [{ message: { content: '{"ok":true}' }, finish_reason: "stop" }], usage: { prompt_tokens: 111, completion_tokens: 22 } }), { status: 200 })))
     const log = vi.spyOn(console, "log").mockImplementation(() => {})
-    await chatJSON({ system: "SYSTEM PROMPT TEXT", user: "PRIVATE USER MESSAGE about Maya", endpoint: "chat" })
+    await chatJSON({ system: "SYSTEM PROMPT TEXT", user: "PRIVATE USER MESSAGE about Maya", task: "chat" })
     const out = lines(log)
     expect(out).toHaveLength(1)
     const row = JSON.parse(out[0])
-    expect(row).toMatchObject({ evt: "ai_usage", endpoint: "chat", provider: "DeepSeek", model: "deepseek-chat", inputTokens: 111, outputTokens: 22, ok: true })
+    expect(row).toMatchObject({ evt: "ai_usage", task: "chat", provider: "ASU AIR", model: "muse-glimmer-30b", requestedModel: "muse-glimmer-30b", routingVersion: "air-task-routing-v3", inputTokens: 111, outputTokens: 22, finishReason: "stop", ok: true })
     expect(typeof row.ms).toBe("number")
+    expect(typeof row.headersMs).toBe("number")
     for (const secret of [KEY, "Bearer", "SYSTEM PROMPT", "PRIVATE USER", "Maya", '{"ok"']) expect(out[0]).not.toContain(secret)
   })
 
   it("reads Anthropic-style token counts too", async () => {
     configure(); process.env.AI_PRESET = "anthropic"; process.env.AI_MODEL = "m"
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ model: "m", content: [{ type: "text", text: '{"a":1}' }], usage: { input_tokens: 5, output_tokens: 6 } }), { status: 200 })))
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ model: "m", content: [{ type: "text", text: '{"a":1}' }], stop_reason: "end_turn", usage: { input_tokens: 5, output_tokens: 6 } }), { status: 200 })))
     const log = vi.spyOn(console, "log").mockImplementation(() => {})
-    await chatJSON({ system: "s", user: "u", endpoint: "ask" })
-    expect(JSON.parse(lines(log)[0])).toMatchObject({ endpoint: "ask", provider: "Anthropic", inputTokens: 5, outputTokens: 6, ok: true })
+    await chatJSON({ system: "s", user: "u", task: "ask" })
+    expect(JSON.parse(lines(log)[0])).toMatchObject({ task: "ask", provider: "Anthropic", inputTokens: 5, outputTokens: 6, finishReason: "end_turn", routingVersion: null, ok: true })
   })
 
   it("logs failures too (no tokens), still without private text", async () => {
     configure()
     vi.stubGlobal("fetch", vi.fn(async () => new Response("provider says: PRIVATE USER MESSAGE and " + KEY, { status: 500 })))
     const log = vi.spyOn(console, "log").mockImplementation(() => {})
-    await expect(chatJSON({ system: "s", user: "PRIVATE USER MESSAGE", endpoint: "command" })).rejects.toThrow()
+    await expect(chatJSON({ system: "s", user: "PRIVATE USER MESSAGE", task: "command" })).rejects.toThrow()
     const out = lines(log)
     expect(out).toHaveLength(1)
-    expect(JSON.parse(out[0])).toMatchObject({ endpoint: "command", ok: false, error: "upstream", inputTokens: null, outputTokens: null })
+    expect(JSON.parse(out[0])).toMatchObject({ task: "command", ok: false, error: "upstream", requestedModel: "muse-glimmer-30b", inputTokens: null, outputTokens: null })
     expect(out[0]).not.toContain(KEY)
     expect(out[0]).not.toContain("PRIVATE")
   })
 
-  it("cannot be used to smuggle text into the log through the endpoint name", async () => {
+  it("cannot be used to smuggle text into the log through the task name", async () => {
     configure()
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "{}" } }] }), { status: 200 })))
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "{}" }, finish_reason: 'stop"}, {"evt":"fake' }] }), { status: 200 })))
     const log = vi.spyOn(console, "log").mockImplementation(() => {})
-    await chatJSON({ system: "s", user: "u", endpoint: 'x"}, {"evt":"fake' })
+    await chatJSON({ system: "s", user: "u", task: 'x"}, {"evt":"fake' as never })
     expect(JSON.parse(lines(log)[0]).evt).toBe("ai_usage")
+  })
+})
+
+describe("M1 · every AI call goes to ASU AIR by default, with the model chosen per task", () => {
+  const sent = () => (vi.mocked(fetch).mock.calls as unknown as [string, RequestInit][]).map(([url, init]) => ({ url, body: JSON.parse(String(init.body)) }))
+  const ok = () => vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ choices: [{ message: { content: "{}" }, finish_reason: "stop" }] }), { status: 200 })))
+  beforeEach(() => { process.env.AI_API_KEY = "test-key"; vi.spyOn(console, "log").mockImplementation(() => {}) })
+
+  it("needs only the AIR key: no preset or model to set", () => {
+    expect(getConfig()).toMatchObject({ label: "ASU AIR", baseUrl: "https://openai.rc.asu.edu/v1", model: "muse-glimmer-30b" })
+    expect(isConfigured()).toBe(true)
+  })
+
+  it("routes the main app's tasks to Muse and long setup work to Gemma, through AIR", async () => {
+    ok()
+    for (const task of ["chat", "ask", "command", "nudge_draft", "handbook_draft", "setup.constitution"] as const) await chatJSON({ system: "s", user: "u", task })
+    const calls = sent()
+    expect(calls.every(c => c.url === "https://openai.rc.asu.edu/v1/chat/completions")).toBe(true)
+    expect(calls.map(c => c.body.model)).toEqual(["muse-glimmer-30b", "muse-glimmer-30b", "muse-glimmer-30b", "muse-glimmer-30b", "muse-glimmer-30b", "gemma4-31b-it"])
+  })
+
+  it("uses GLM only when a setup step asks for a Deeper review", async () => {
+    ok()
+    await chatJSON({ system: "s", user: "u", task: "setup.responsibilities", mode: "deep" })
+    await chatJSON({ system: "s", user: "u", task: "chat", mode: "deep" })
+    expect(sent().map(c => c.body.model)).toEqual(["glm-5-3", "muse-glimmer-30b"])
+  })
+
+  it("keeps DeepSeek only as an explicit emergency fallback, without AIR routing", async () => {
+    process.env.AI_PRESET = "deepseek"
+    ok()
+    await chatJSON({ system: "s", user: "u", task: "chat" })
+    expect(sent()[0]).toMatchObject({ url: "https://api.deepseek.com/chat/completions", body: { model: "deepseek-chat" } })
   })
 })

@@ -56,3 +56,8 @@ Rules 页每条只显示一句短句（`src/data/rules.ts` 的 `short`）和时�
 - R07：FAQ 没有日期；申请交给 ASU Food Safety & Health Manager，费用通常由供应商付；时限是 “7 working days”。
 - R11：$999 那句紧跟在 Amazon 句后，可能只适用于 Amazon；Platypus 继续按 $999 提醒（偏保守）。
 - R16：手册第 12 页还要求联系 Campus Liaisons 让换届生效。
+
+
+## 新版工作区的组织时间默认（2026-10-26）
+
+8周确定采购项目、7周确定报价、6周提交预算申请是用户指定的社团内部完成目标，不是新增的ASU规则。管理层可在Organization Setup调整，未调整使用默认；周按7自然日保存，实际排程考虑工作日、依赖与用时。官方截止与内部目标分别保存。USG仅明确餐饮/服务挂R09，嘉宾挂R10，College及其它类别不冒用这些公式；用款期限是申请关联的绝对限制，不随活动改期移动。相关实现为src/workspace/schedule.ts与服务端runtime；旧演示规则保留。新学生日历未覆盖时明确无法可靠排程，不伪造未来年份日期。

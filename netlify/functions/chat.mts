@@ -44,7 +44,7 @@ export default async (req: Request) => {
     const data = cleanData(body.data)
     const allowedDates = knownDates(data)
     const history = (Array.isArray(body.history) ? body.history : []).slice(-6).map(h => ({ role: h?.role === "assistant" ? "assistant" : "user", text: str(h?.text, 400) })).filter(h => h.text)
-    const { data: reply, model, provider } = await chatJSON({ endpoint: "chat", 
+    const { data: reply, model, provider } = await chatJSON({ task: "chat",
       system: CHAT_SYSTEM,
       user: JSON.stringify({ message, page: str(body.page, 40), focus, history, clubData: data, sharedPool: SHARED_POOL, rules: RULES.map(({ id, short, text }) => ({ id, short, text })) }),
       maxTokens: 1200,

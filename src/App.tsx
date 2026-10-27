@@ -13,10 +13,12 @@ import Help from "./pages/Help"
 import Officer from "./pages/Officer"
 import Setup from "./pages/Setup"
 import Join from "./pages/Join"
+import PhaseOne from "./phase1/PhaseOne"
 
 export default function App() {
   return (
     <Routes>
+      <Route path="phase1/*" element={<PhaseOne />} />
       <Route path="officer" element={<Officer />} />
       <Route path="join" element={<Join />} />
       <Route element={<Layout />}>

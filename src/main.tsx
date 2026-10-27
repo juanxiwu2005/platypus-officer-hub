@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client"
 import { HashRouter } from "react-router-dom"
 import App from "./App"
 import { StoreProvider } from "./data/store"
+import { installSetupNavigationProtection } from "./organization/useSetupNavigationGuard"
 import "./styles.css"
 
 /**
@@ -49,15 +50,19 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
 }
 
 // Guarded so a unit test can import ErrorBoundary from here without mounting the whole app.
+// ErrorBoundary wraps App, so the main pages and /#/phase1/ are both covered.
 const root = document.getElementById("root")
-if (root) createRoot(root).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <StoreProvider>
-        <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <App />
-        </HashRouter>
-      </StoreProvider>
-    </ErrorBoundary>
-  </StrictMode>,
-)
+if (root) {
+  installSetupNavigationProtection()
+  createRoot(root).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <StoreProvider>
+          <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <App />
+          </HashRouter>
+        </StoreProvider>
+      </ErrorBoundary>
+    </StrictMode>,
+  )
+}

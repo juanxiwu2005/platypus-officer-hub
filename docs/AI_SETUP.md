@@ -1,3 +1,7 @@
+> **2026-10-26 v3：** 允许少量虚构数据真实冒烟以排查 JSON 错误；不用完整真实评估。新设置使用服务端四任务 prompt、原生 schema 和流式指标，前端不展示系统 prompt。JSON 原始输出先归档再解析，截断/空输出不应用变更。详见 [v3 记录](organization/V3_CHANGELOG.md)。
+
+> **2026-10-26 最新：** 已切换 ASU AIR；默认 `muse-glimmer-30b`，GLM 仅主动深度检查（路由 v2）。此前 Gemma/GLM 自动按阶段的 v1 已被用户的速度要求替代。新设置使用后台任务与数据归档，见 [交接](organization/HANDOFF.md)、[数据基础](organization/DATA_FOUNDATION.md)。不再发起额外真实 AI 测试。
+
 # AI setup — how Platypus talks to an AI provider
 
 **Short version:** the website never holds an API key. It calls its own server endpoints (`/api/*`, Netlify Functions), and only those talk to the AI provider. Which provider answers is decided by environment variables in Netlify. Changing provider = change the variables + redeploy. No code changes.
@@ -58,3 +62,16 @@ Prompts sent to DeepSeek, OpenAI or Anthropic leave ASU. Use only the fictional 
 - `parse-brief` 保留兼容接口，但现在也丢弃 AI 日期；`public/legacy/` 文件没有改动。
 - 固定命令测试和供应商模拟测试已通过，真实 DeepSeek/AIR 自由表达质量仍需在部署环境分别验证。详情见 `WP2_ACCEPTANCE.md`。
 
+
+
+## Organization Setup 与 AIR（2026-10-26 当前）
+
+Netlify 保留现有 AIR key（只在服务端）。`AI_PRESET=asu_air`，`AI_MODEL=muse-glimmer-30b`；默认网关 `https://openai.rc.asu.edu/v1`。只换 key、不换供应商参数会继续请求旧地址。
+
+当前 `air-task-routing-v2`：Muse 负责默认交互，GLM 仅用户主动深度检查；关闭自动慢推理。模型、请求/返回变体、耗时、prompt/路由版本与完整输入输出存入私有工作区档案。`AI_MODEL_ROUTING=off` 是运营方明确回退单模型的开关。候选/权衡及当前未经新一轮真实测试的边界见 [Prompt/模型说明](organization/PROMPTS.md)。
+
+后台 `/api/org/ai-run` 执行生成，`/api/org/ai` 排队/读取结果，避免托管环境实际约 30 秒的同步上限。新 `/api/org/archive` 保存原件、操作与对话/AI档案，不请求模型；数据基础先于 AI。没有失败时伪装成功的模拟兜底。原业务页仍保留其原行为。
+
+官方依据：[ASU LLM API](https://docs.rc.asu.edu/ai/api/)、[Chat completions](https://docs.rc.asu.edu/ai/api/chat/)、[Netlify Background Functions](https://docs.netlify.com/build/functions/background-functions/)。/api/health 只报告配置与路由，不证明真实认证或模型质量。
+
+Juanxi 已要求停止新增真实 AI 测试；当前由他实操验收。必要离线检查及 GitHub CI 不使用模型额度。
