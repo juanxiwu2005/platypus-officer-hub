@@ -358,3 +358,25 @@ export interface HandbookSource { id:string; kind:"task"|"interview"; text:strin
 export interface HandbookEntry { sourceId:string; text:string }
 export interface RoleHandoff { roleId:string; outgoingId:string|null; interview:string[]; entries:HandbookEntry[]; sources:HandbookSource[]; startDate?:string; fingerprint:string; source:string; model:string|null; confirmed:boolean; approved:boolean; checks:string[]; completed:boolean; reviewed:boolean; incomingId:string|null }
 export interface OutputReport { id:string; outputId:string; text:string; reportedBy:string; on:string; resolved:boolean }
+
+/**
+ * One line of the interaction log (A7b): what a person did, in the order they did it.
+ * This is the only place in the app that uses the real clock (`at`); every date shown in the interface
+ * still comes from `DemoState.today`, the fixed demo clock.
+ */
+export interface LogEntry {
+  /** 1, 2, 3 … never reused; gaps at the start mean the oldest entries were dropped at the 2,000-entry cap. */
+  seq: number
+  /** Real time the action was dispatched, milliseconds since 1970 (Date.now()). */
+  at: number
+  /** Id of the person the app was set to "View as" when the action ran. */
+  actor: string
+  /** The action type, e.g. "updateNode", "moveTask". */
+  type: string
+  /** The action's arguments, shortened (long text cut, secrets and bulky objects left out). */
+  payload: unknown
+  /** The fields' values before the action, only for actions that change something that already existed. */
+  before?: unknown
+  /** false = the app ignored the action (not allowed, invalid, or nothing to change). */
+  applied: boolean
+}

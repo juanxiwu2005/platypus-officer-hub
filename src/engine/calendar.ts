@@ -4,13 +4,16 @@ import { addDays, fromISO } from "../lib/dates"
  * ASU calendar used for business-day math (rule engine, plan §4 mechanism 1).
  * Holidays: official ASU holiday schedule (university closed). Spring break and fall break are NOT
  * closures (the university stays open), so they count as business days but are flagged for events.
- * Re-check every term. Checked 2026-10-22.
+ * Re-check every term. Checked 2026-10-22; Fall 2027 and Spring 2028 added 2026-10-27.
+ * The data covers only CALENDAR_START..CALENDAR_END (derived from TERMS below). Any date the engine
+ * computes outside that range raises the red "calendar_range" issue instead of being guessed.
  */
 export const CALENDAR_SOURCES = [
-  { label: "ASU holiday schedule", url: "https://cfo.asu.edu/holiday-schedule" },
-  { label: "ASU academic calendar (Registrar)", url: "https://registrar.asu.edu/academic-calendar" },
+  { label: "ASU holiday schedule (2027 and 2028 columns)", url: "https://cfo.asu.edu/holiday-schedule" },
+  { label: "ASU academic calendar (Registrar): Fall 2026 to Fall 2027", url: "https://registrar.asu.edu/academic-calendar" },
+  { label: "ASU Registrar projected dates: Spring 2028 (not final)", url: "https://registrar.asu.edu/projected-dates-future-semesters" },
 ]
-export const CALENDAR_CHECKED_ON = "2026-10-22"
+export const CALENDAR_CHECKED_ON = "2026-10-27"
 
 export const HOLIDAYS: Record<string, string> = {
   "2026-01-01": "New Year's Day",
@@ -33,6 +36,16 @@ export const HOLIDAYS: Record<string, string> = {
   "2027-11-26": "Thanksgiving",
   "2027-12-24": "Winter break (university closed)",
   "2027-12-27": "Winter break (university closed)",
+  "2027-12-31": "New Year's Day (observed)",
+  "2028-01-17": "Martin Luther King Jr. Day",
+  "2028-05-29": "Memorial Day",
+  "2028-07-04": "Independence Day",
+  "2028-09-04": "Labor Day",
+  "2028-11-10": "Veterans Day (observed)",
+  "2028-11-23": "Thanksgiving",
+  "2028-11-24": "Thanksgiving",
+  "2028-12-25": "Winter break (university closed)",
+  "2028-12-26": "Winter break (university closed)",
 }
 
 export interface Period {
@@ -45,19 +58,30 @@ export interface Period {
 export const FINALS: Period[] = [
   { from: "2026-12-07", to: "2026-12-12", label: "Fall 2026 final exams" },
   { from: "2027-05-03", to: "2027-05-08", label: "Spring 2027 final exams" },
+  { from: "2027-12-06", to: "2027-12-11", label: "Fall 2027 final exams" },
+  { from: "2028-05-01", to: "2028-05-06", label: "Spring 2028 final exams (projected)" },
 ]
 
 /** Classes in session (Session C). Outside these, most members are away. */
 export const TERMS: Period[] = [
   { from: "2026-08-20", to: "2026-12-12", label: "Fall 2026" },
   { from: "2027-01-11", to: "2027-05-08", label: "Spring 2027" },
+  { from: "2027-08-19", to: "2027-12-11", label: "Fall 2027" },
+  { from: "2028-01-10", to: "2028-05-06", label: "Spring 2028 (projected)" },
 ]
 
 /** Breaks when the university is open but classes are excused. */
 export const BREAKS: Period[] = [
   { from: "2026-10-10", to: "2026-10-13", label: "Fall break" },
   { from: "2027-03-07", to: "2027-03-14", label: "Spring break" },
+  { from: "2027-10-09", to: "2027-10-12", label: "Fall break" },
+  { from: "2028-03-05", to: "2028-03-12", label: "Spring break (projected)" },
 ]
+
+/** First and last day the calendar data above covers. Outside this range the engine cannot know term, finals or break dates. */
+export const CALENDAR_START = TERMS.reduce((a, t) => (t.from < a ? t.from : a), TERMS[0].from)
+export const CALENDAR_END = TERMS.reduce((a, t) => (t.to > a ? t.to : a), TERMS[0].to)
+export const outsideCalendar = (d: string) => d < CALENDAR_START || d > CALENDAR_END
 
 export const inPeriod = (d: string, p: Period) => d >= p.from && d <= p.to
 export const findPeriod = (d: string, ps: Period[]) => ps.find(p => inPeriod(d, p)) ?? null
