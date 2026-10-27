@@ -57,39 +57,62 @@ src/lib/assistant.ts:82    computeForecast(s)        ← 又一次
 
 ### 1.2 「蓝框太引导性了，像引导式访问，先去掉」
 
-**→ 这条需要先澄清一件事，否则会改错东西，而且会弄坏一个你需要的能力。**
+**→ 2026-10-27 Juanxi 提供截图后已确认：那不是我们画的，是浏览器的原生焦点环。**
 
-已验证：**v0.1（你喜欢的那版）和今天用的是一模一样的焦点样式。**
+截图内容：Settings 页 `Submit budget request` 的数字输入框，获得焦点时外面有一圈亮蓝。
+
+关键证据 —— **那个蓝不是本项目的颜色**：
 
 ```css
-/* 今天 src/styles.css:53 */
+/* src/styles.css:53 —— 本项目唯一的焦点样式 */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
-
-/* v0.1 public/legacy/index.html —— 完全相同 */
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
-:focus { outline: none; }
+/* --accent = #0f766e，青绿色，不是蓝色 */
 ```
 
-所以**你讨厌的那个蓝框不是这一条**——因为第二版也有它，而你喜欢第二版。
+而且已核实：**全仓库没有任何针对 input / select / textarea 的焦点样式，也没有任何处理
+浏览器原生焦点环的代码**（`grep -n "webkit|focus-ring|outline: *none" src/styles.css`
+只命中 `.task-detail h2:focus`、`.panel h2:focus` 和两条无关的 `-webkit-` 属性）。
 
-而且这一条**不能删**，原因有三个：
-1. `:focus-visible` **只对键盘用户显示**，鼠标点击时根本不出现。所以它不可能是你用鼠标时看到的那个框。
-2. 它是 WCAG 2.4.7「焦点可见」的硬要求。删掉之后你自己的 `e2e/a11y.spec.ts` 会直接失败。
-3. ASU 的无障碍政策对校内发布的工具有要求，论文里也不会想写"我们删掉了键盘可见性"。
+→ 结论：那是浏览器自己给表单控件画的原生焦点环。Juanxi 说它是「苹果的」，很可能字面
+  意义上就是 —— macOS / Safari 对表单控件有自己的蓝色焦点环，作者的 `outline` 盖不住它。
 
-**真正的嫌疑犯是 v1.1 新加的"选中态"**，它们才是鼠标点完会留在屏幕上的框：
+⚠️ **待确认：Juanxi 用的是 Safari 还是 Chrome。** 两者修法略有不同，S3 开工前要问。
 
-| 位置 | 代码 | 实际效果 |
+### 这一条不能简单删掉
+
+v0.1（含 `:focus-visible` 的写法）和今天完全相同，而 Juanxi 喜欢两者。而且：
+- `:focus-visible` **只对键盘用户显示**，鼠标点击不触发（文本/数字输入框是例外，
+  按规范它们点击时也匹配 —— 这正是截图里那一下）
+- 它是 WCAG 2.4.7「焦点可见」的硬要求，删了 `e2e/a11y.spec.ts` 直接失败
+- ASU 有无障碍政策，论文里不能写「我们删掉了键盘可见性」
+
+### 正确改法
+
+```css
+/* 1. 关掉表单控件的原生环 */
+input:focus, select:focus, textarea:focus { outline: none; }
+
+/* 2. 换成我们自己的、低调的环（只对键盘和文本输入显示） */
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--accent);   /* 青绿，不是蓝 */
+  outline-offset: 1px;
+}
+```
+
+Safari 还可能需要额外处理 `-webkit-appearance` / 数字输入框的 spinner。以 Juanxi 的
+浏览器实测为准。
+
+### 顺带要处理的「选中态」
+
+v1.1 新增的这两条也偏重，和 Juanxi 要的「简洁、高级」相反：
+
+| 位置 | 代码 | 问题 |
 |---|---|---|
-| `styles.css:560` | `.m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px }` | **一个 20px 的圆点外面套 3px 粗、离 3px 远的环** —— 环几乎和圆点一样大。这个最像"引导式访问的选择框" |
-| `styles.css:686` | `.heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px }` | Team 热力图单元格 |
-| `styles.css:240` | `.flow-step.is-selected { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 4px var(--accent) }` | **死代码**（泳道图已删），但 CSS 还在 |
+| `styles.css:560` | `.m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px }` | 20px 的圆点外面套 3px 粗、离 3px 远的环，环几乎和圆点一样大 |
+| `styles.css:686` | `.heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px }` | Team 热力图 |
+| `styles.css:240` | `.flow-step.is-selected { box-shadow: ... }` | **死代码**（泳道图已删），直接删 |
 
-**→ 需要你做一件事：截一张能看到那个蓝框的图发我**（点一下流程图上的节点，或者点看板上的卡片，截全屏）。确认是哪一个之后，正确的改法是：
-
-- **保留** `:focus-visible`（键盘用户），但调细：2px → 1.5px，offset 2px → 1px，颜色用更低调的品牌色
-- **改掉"选中态"**：粗环 → 换成淡背景 + 1px 边框（这就是你说的"简洁、高级"的做法，monday / Linear / Notion 都是这么做的）
-- **删掉** `styles.css:240` 那条死代码
+→ 粗外环换成淡背景 + 1px 边框（Linear / Notion / monday 的做法）。
 
 ### 1.3 「用假数据，先不上 Supabase」
 
@@ -108,6 +131,54 @@ src/lib/assistant.ts:82    computeForecast(s)        ← 又一次
 你就拿到了：谁、在第几秒、做了什么、改之前是什么值。**零服务器、零 Supabase、零数据库，但论文里"data governance 作为最底层"这个主张有了真实证据。**
 
 ⚠️ **这件事必须写进周四提交的 IRB 材料里。** 导出文件里不含真实姓名（参与者用你给的假信息），但"收集参与者的交互日志"本身就是在收集数据，protocol 里要有。**现在写进去是免费的；批准之后再加要走修改，会卡掉你 11/9 开始测试的计划。**
+
+### 1.4【2026-10-27 更正】Juanxi 喜欢的是**现在这一版**，不是旧版
+
+Juanxi 发来一张他说「我喜欢的就是这个版本」的截图。逐项核对，那是 **v1.2（main 上现在
+跑的版本）的深色模式**：
+
+| 截图里的元素 | 代码位置 | 引入版本 |
+|---|---|---|
+| 右栏 `Ask \| Details` 两标签、"Looking at: Today ×" | `src/components/rail/AskPanel.tsx` | v1.1 |
+| Plan/Prep/Money/Promo/Run/Wrap 圆点链 | `Chain`（`ui/index.tsx`）| v1.1 |
+| "Waiting" 紫 / "Not claimed" 灰 | `ui/statusDefaults.ts` 的 6 色 | v1.1 |
+| "Demo · Thu, Oct 22" 药丸 | `DemoMenu` | v1.1 |
+| Rules 与 Settings 之间那条横线 | `Layout.tsx:79` 的空分组 div | v1.1 |
+| Semester goals 圆环 | `Ring`（`ui/index.tsx`）| v1.1 |
+
+v0.1 和 WP0–WP5 那两代都**没有**右栏、Chain、StatusPill，所以可以排除。
+
+**→ 审计报告第 7.4 节的推断（「他怀念的是第二版有标题有解释文字的卡片布局」）被否定了。**
+那一条在报告里标的是「推断」，现在有反证，按反证走。
+
+### 这改变了什么
+
+| 原计划 | 改成 | 理由 |
+|---|---|---|
+| C4 导航改回动作导向 | ❌ **删除** | 他喜欢现在的导航 |
+| C5 恢复甘特图 | ❌ **删除** | 他从未要求过 |
+| C1 Behind-the-scenes 开关 | ✅ 保留，**换理由** | 不再是「找回怀念的东西」，而是①论文可解释性论证 ②触屏用户看不到悬停卡内容 |
+| C2 问题变可见副标题 | ⚠️ **降级为先问 Juanxi** | 他没抱怨过看不懂，这是改进不是修 bug |
+| S5 的定位 | ⚠️ **从「建立设计系统」改为「把现在的样子固定下来」** | 见下 |
+
+### S5 定位的改变（重要）
+
+Juanxi 可以**喜欢这个深绿色的样子**，同时代码底下**确实是乱的** —— 这两件事不冲突。
+
+23 种字号、4 套配色、19.7% 死 CSS 不是「看起来丑」的问题，是「没人能安全地改它」的问题。
+
+**所以 S5 要做的不是重新设计，是把现在这个样子用一套规则重新表达一遍。做完之后界面应该
+看起来几乎一模一样**，只是从「23 种随机字号」变成「6 个档位」。S5 的提示词里必须写死
+这一条，否则 Opus 会忍不住「改进」视觉。
+
+### 因此升级的优先级：深色模式
+
+Juanxi 用的是**深色模式**。而审计第 8.2 节发现 **6 个状态色没有深色变体**，在深色背景上
+对 surface 只有 2.96–3.65:1；`--line` 对 surface 只有 1.30:1。
+
+→ S5 必须把深色模式当第一现场，不是「顺带也看一下」。
+
+---
 
 ---
 
@@ -531,32 +602,59 @@ computeForecast 有 5 个互不共享缓存的调用点：
   src/test/forecast.test.ts 的确定性断言必须继续通过。不要改算法，只改调用方式。
 → 加一个测试证明一次 state 变化只触发一次 computeForecast（可以用 spy 计数）。
 
-## P3 · 蓝框【需要先确认，不要擅自动手】
+## P3 · 蓝框【Juanxi 已提供截图，已定位】
+
+截图内容：Settings 页 `Submit budget request` 的数字输入框，获得焦点时外面一圈亮蓝。
 
 ⚠️ 已核实的事实，必须读懂再动手：
 
-v0.1（Juanxi 喜欢的那版）和今天的焦点样式完全相同：
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
-所以他讨厌的那个框不是 :focus-visible。而且这一条不能删：
-  - :focus-visible 只对键盘用户显示，鼠标点击根本不触发
-  - 它是 WCAG 2.4.7 的硬要求，删了 e2e/a11y.spec.ts 会失败
-  - ASU 有无障碍政策，论文里不能写"我们删掉了键盘可见性"
+**那个蓝不是本项目的颜色。**
+  src/styles.css:53 是本项目唯一的焦点样式：
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  --accent = #0f766e，青绿色，不是蓝色。
+  而且全仓库没有任何针对 input / select / textarea 的焦点样式，也没有任何处理
+  浏览器原生焦点环的代码（grep webkit|focus-ring|outline: *none 只命中两处 h2:focus）。
 
-真正的嫌疑犯是 v1.1 新加的「选中态」：
+→ 所以那是**浏览器自己给表单控件画的原生焦点环**。Juanxi 说它是「苹果的」，很可能
+  字面意义上就是 —— macOS / Safari 对表单控件有自己的蓝色焦点环，作者的 outline
+  盖不住它。
+
+**第一件事：问 Juanxi 用的是 Safari 还是 Chrome。** 两者修法不同。
+
+### 不能简单删掉焦点样式
+
+- :focus-visible 只对键盘用户显示，鼠标点击不触发（文本/数字输入框是规范里的例外，
+  它们点击时也匹配 —— 这正是截图里那一下）
+- 它是 WCAG 2.4.7 的硬要求，删了 e2e/a11y.spec.ts 直接失败
+- ASU 有无障碍政策，论文里不能写「我们删掉了键盘可见性」
+
+### 改法
+
+  /* 1. 关掉表单控件的原生环 */
+  input:focus, select:focus, textarea:focus { outline: none; }
+
+  /* 2. 换成我们自己的、低调的环 */
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+
+Safari 可能还需要处理 -webkit-appearance / 数字输入框 spinner。以 Juanxi 的浏览器
+实测为准 —— 改完请他在自己的浏览器里再点一次那个输入框确认。
+
+### 顺带处理偏重的「选中态」
+
   styles.css:560  .m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px }
-                  ← 20px 的圆点外面套 3px 粗、离 3px 远的环，最像「引导式访问」
+                  ← 20px 的圆点套 3px 粗、离 3px 远的环，环几乎和圆点一样大
   styles.css:686  .heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px }
-  styles.css:240  .flow-step.is-selected { box-shadow: 0 0 0 3px ..., 0 0 0 4px ... }  ← 死代码
+  styles.css:240  .flow-step.is-selected { box-shadow: ... }   ← 死代码（泳道图已删），直接删
 
-→ 第一步：请 Juanxi 截一张能看到那个蓝框的图（让他点一下流程图节点或看板卡片，
-  截全屏）。在拿到截图之前不要改任何焦点或选中样式。
-→ 确认之后按这个方向改：
-  - 保留 :focus-visible，但调细（2px→1.5px，offset 2px→1px，颜色更低调）
-  - 选中态：粗外环 → 换成淡背景 + 1px 边框。参考 Linear / Notion / monday 的做法，
-    这才是他说的「简洁、高级」
-  - 删掉 styles.css:240 那条死代码
-→ 改完必须重跑 e2e/a11y.spec.ts，并且人工确认：只用键盘 Tab 走一遍 Today / Tasks /
-  Events，每一步都要能看出焦点在哪。看不出来就是改坏了。
+→ 粗外环换成淡背景 + 1px 边框（Linear / Notion / monday 的做法）。
+
+### 验证（必做）
+
+改完只用键盘 Tab 走一遍 Today / Tasks / Events / Settings，每一步都要能看出焦点在哪。
+看不出来就是改坏了。然后重跑 e2e/a11y.spec.ts。
 
 ## P4 · 顺手的质感问题（在上面三条做完之后，有余力再做）
 
@@ -594,6 +692,7 @@ styles.css 的需求（比如 S1 的 A1 pointer-events），你负责接手。
 - forecast 的确定性测试必须逐位通过
 - 新增一个测试证明 forecast 每次 state 变化只算一次
 - 人工：桌面和手机各走一遍 Today / Events / Tasks，悬停要立刻有反应
+- ⚠️ Juanxi 日常用的是**深色模式**，所有人工检查都要在深色模式下做一遍
 - 键盘 Tab 全程焦点可见
 
 ## 结束时
@@ -746,6 +845,27 @@ Juanxi 对视觉的唯一明确要求：**简洁、高级、不出错。** 不�
   git log origin/integration/v1.1-fix --oneline | head -20   # 确认有 [S4] 的提交
   git checkout -b design/s5-tokens origin/integration/v1.1-fix
   npm ci
+
+## ⚠️ 最重要的一条约束：不要改变现在的样子
+
+2026-10-27 Juanxi 发来截图确认：**他喜欢现在这一版的外观**（v1.2 深色模式）。
+见本方案第 1.4 节。
+
+所以你的任务**不是重新设计，是把现在这个样子用一套规则重新表达一遍**。
+做完之后界面应该看起来**几乎一模一样**，只是从「23 种随机字号」变成「6 个档位」。
+
+- 不要"改进"配色、不要调整布局密度、不要换字体、不要改圆角风格
+- 每一次映射都应该是「最接近的那一档」，不是「我觉得更好的那一档」
+- 唯一允许明显改变视觉的地方：对比度不合格的那几处（第 3 条），以及
+  10px / 10.5px 这种过小的字号（AGENTS.md §7.4 要求不小于 14px，现在被违反得很厉害）
+- 如果某个映射会让界面明显变样，**先截图问 Juanxi**，不要自己决定
+
+## ⚠️ 第二条：深色模式是第一现场
+
+Juanxi 日常用深色模式。而审计第 8.2 节发现 6 个状态色**没有深色变体**，在深色背景上
+对 surface 只有 2.96–3.65:1；--line 对 surface 只有 1.30:1。
+
+→ 每一组改动都要在深色模式下先看，再看浅色。不是「顺带也看一下」。
 
 ## 你要做的
 
@@ -1047,6 +1167,14 @@ v0.1 原型（Juanxi 最喜欢的那版）有一个全局开关叫 **"Behind the
 
 **对一篇要论证 AI 可解释性的荣誉论文来说，丢掉的正是最有论文价值的那个交互。**
 
+⚠️【2026-10-27 更正，必读】审计报告原本推断「Juanxi 怀念的是旧版的布局」。他后来
+发来截图确认 **他喜欢的就是现在这一版**（见本方案第 1.4 节），所以那个推断被否定了。
+
+→ 你做 C1 的理由因此改变：**不是「找回他怀念的东西」**，而是：
+   ① 论文需要可解释性的证据
+   ② 触屏用户看不到悬停卡里的内容（审计第 8.4 节，4 处 hover-only）
+→ 所以 C1 是**增量添加**，不是回退。不要改动现有布局的任何视觉。
+
 ⚠️ public/legacy/ 可能已被 S2 删除。用 git 取回参考：
     git show 49b0b89:public/index.html > /tmp/v01-reference.html
   （先核实这个 commit 和路径是对的；如果不对，用 git log --all --oneline -- public/
@@ -1086,7 +1214,14 @@ v0.1 原型（Juanxi 最喜欢的那版）有一个全局开关叫 **"Behind the
 2. Juanxi 说「看不懂每一块是什么」
 3. 论文的可解释性论点
 
-## C2 · 把 10 个「问题」变成可见文字
+## C2 · 把 10 个「问题」变成可见文字【降级：先问 Juanxi】
+
+⚠️ Juanxi 从未抱怨过「看不懂页面」—— 这一条是审计员的改进建议，不是在修 bug。
+而且他已确认喜欢现在的外观。
+
+→ **做之前先问他**：给他看一张加了副标题的效果图（可以是手绘或改一页做示范），
+  问他要不要。他说要再做，说不要就跳过，只做 C1。
+→ 不要默认开工。
 
 src/routes.ts:13-24 给每个页面定义了「这一页回答的那一个问题」，这是项目 IA 的骨架。
 但 src/components/Page.tsx:4 的注释说「The page's question is the nav tooltip」，
@@ -1178,33 +1313,26 @@ AGENTS.md §7.3 的「三级交互」是：看（颜色）→ 停（悬停卡）
   调度冲突、等待对象）在右栏里被埋进了一个 details 折叠。
   → 手机用户要多点 2 次才能看到桌面用户悬停就能看到的东西。一起处理。
 
-## C4 · 导航改回动作导向 + 真分组
+## C4 · 导航【2026-10-27 已取消，只保留一小项】
 
-v0.1 的导航（Juanxi 喜欢的那版）：
-  Dashboard / Plan an event / Tasks / Ready to send / Action card / Ask Platypus /
-  Handoff / Budget ‖ Reference: Rule book / How it works
-—— 动词 + 对象，有**带标题的分组**，导航项还带未读计数。
+⚠️ **原计划的「导航改回动作导向」已取消。** Juanxi 2026-10-27 发来截图确认他喜欢
+现在这一版，包括现在的导航（见本方案第 1.4 节）。**不要改任何导航标签。**
 
-今天（src/components/Layout.tsx:73-85）：
-  Today / Events / Tasks / Team / Funding / Handoff / Partners / Rules
-—— 名词化的实体表。8 项平铺，然后 :79 是一个
-  <div className="group" aria-hidden="true" /> —— **一个空的、无标题的分组分隔线**。
-  styles.css 里 .sidenav .group 还保留着大写标签文字的样式，但现在永远是空的。
-  ≤860px 时分组直接 display:none，导航变成 10 个 pill 的横向滚动条。
+只保留两件无争议的小事：
 
-从「我要做什么」变成了「数据库里有哪些表」。这是 monday.com 的 IA，而 monday 的
-用户是每天上班打开它的人，不是一学期开 5 次会的学生干部。
+→ (a) src/components/Layout.tsx:79 有一个空的、无标题的分组分隔线：
+     <div className="group" aria-hidden="true" />
+     而 styles.css 里 .sidenav .group 还保留着大写标签文字的样式，只是永远没内容。
+     → 给它一个标题（比如 "Reference"，界面文字用英文）。这是把一个半成品补完，
+       不是改设计。
+     → ≤860px 时现在是 display:none，导航变成横向滚动的 pill 条 —— 保持现状，
+       窄屏不显示分组标题是合理的。
 
-→ (a) 把那个空分组恢复成有标题的分组（样式还在，只是没内容）。
-     至少分成「日常」和「参考」两组。
-→ (b) ⚠️ 改导航标签（Today → 动词短语）会影响很多东西：e2e 测试选择器、
-     routes.ts、S7 刚加的副标题、用户已经熟悉的位置。
-     **而且 Juanxi 从来没说过他想改导航名字 —— 这是审计员的建议。**
-     → 不要擅自改。先做 (a)，然后给 Juanxi 列一个具体的新旧对照表
-       （8 个标签，每个给 1-2 个候选），让他选。他选了再改。
-→ (c) 顺手恢复导航项的未读计数（v0.1 有，styles.css 里 .sidenav .count 的样式
-     在 legacy 中有、今天没有）。数据源：当前角色的未读通知
-     （src/components/Layout.tsx:132 已经在算了）。
+→ (b) 恢复导航项的未读计数。v0.1 有，今天没有（styles.css 里连 .sidenav .count
+     的样式都没有了）。数据源：当前角色的未读通知，Layout.tsx:132 已经在算了。
+     → ⚠️ 这个会增加视觉元素。先做一个，截图问 Juanxi 要不要铺开到其他项。
+
+**不要做**：改导航标签、改导航顺序、改导航图标、加二级导航。
 
 ## 硬性要求
 
