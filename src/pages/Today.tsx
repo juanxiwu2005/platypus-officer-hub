@@ -1,11 +1,10 @@
-import { useMemo } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
 import { useRail } from "../components/rail/RailContext"
 import { nudgeBlocked } from "../lib/nudges"
 import { weeklyStars } from "../lib/today"
-import { computeForecast, forecastQueue } from "../engine/forecast"
+import { forecastFor, forecastQueue } from "../engine/forecast"
 import { daysBetween, fmtShort } from "../lib/dates"
 import { Avatar, Chain, Info, NodePill, RiskDot, Ring } from "../components/ui"
 import { phaseChain } from "../lib/phases"
@@ -16,7 +15,7 @@ export default function Today() {
   const { canNudge } = useViewer()
   const rail = useRail()
   const navigate = useNavigate()
-  const forecast = useMemo(() => computeForecast(state), [state])
+  const forecast = forecastFor(state)
   const stars = weeklyStars(state)
   const risks = forecastQueue(state, forecast)
 

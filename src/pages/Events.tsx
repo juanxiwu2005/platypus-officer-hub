@@ -4,7 +4,7 @@ import { useStore, useSchedule } from "../data/store"
 import { PageHead } from "../components/Page"
 import { MetroChart } from "../components/flow/MetroChart"
 import { useRail } from "../components/rail/RailContext"
-import { computeForecast } from "../engine/forecast"
+import { forecastFor } from "../engine/forecast"
 import { daysBetween, fmtShort } from "../lib/dates"
 import { topoOrder } from "../engine/schedule"
 import { Avatar, Info, NodePill } from "../components/ui"
@@ -25,7 +25,7 @@ export default function Events() {
   const rail = useRail()
   const [params, setParams] = useSearchParams()
   const [view, setViewState] = useState<View>(initialView)
-  const forecast = useMemo(() => computeForecast(state), [state])
+  const forecast = forecastFor(state)
   const ev = state.events.find(e => e.id === params.get("event")) ?? state.events[0]
   const selected = rail.detail?.kind === "node" ? rail.detail.id : null
   const setView = (v: View) => { setViewState(v); try { window.localStorage.setItem(VIEW_KEY, v) } catch { /* storage unavailable */ } }
