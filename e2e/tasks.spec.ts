@@ -152,3 +152,44 @@ test("board customization renames a status everywhere without changing its meani
   await expect(page.getByTestId("task-board").getByRole("heading", { name: "Ready" })).toBeVisible()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-sdc").status)).toBe("accepted")
 })
+
+test("+ New task is on the page head in every view, for an officer as well as the president", async ({ page }) => {
+  await page.goto("/#/tasks")
+  await page.getByTestId("view-as").selectOption("maya")
+  await closeRail(page)
+  // Audit §6.1: the table is the default view, and it had no create entry at all.
+  for (const view of ["Table", "Timeline", "Board"]) {
+    await page.getByRole("button", { name: view, exact: true }).click()
+    await expect(page.getByTestId("new-task")).toBeVisible()
+  }
+  await page.getByRole("button", { name: "Table", exact: true }).click()
+  await page.getByTestId("new-task").click()
+  await page.getByTestId("new-task-form").getByLabel("New task name").fill("Order name tags")
+  await page.getByTestId("new-task-form").getByRole("button", { name: "Add", exact: true }).click()
+  await expect(page.getByTestId("my-tasks")).toContainText("Order name tags")
+  const added = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.at(-1))
+  expect([added.status, added.ownerId]).toEqual(["accepted", "maya"])
+  await expect(page.getByTestId("new-task")).toBeVisible()
+})
+
+test("a new task never starts finished, and the board says where the card went", async ({ page }) => {
+  await page.goto("/#/tasks")
+  await page.getByTestId("view-as").selectOption("maya")
+  await closeRail(page)
+  await page.getByRole("button", { name: "Board", exact: true }).click()
+  const board = page.getByTestId("task-board")
+  // Audit §6.4b: this used to create status=done with today's completion date, round the reopen rule.
+  await board.getByRole("region", { name: "Done" }).getByRole("button", { name: "+ Add task" }).click()
+  await board.getByLabel("New task name").fill("Pretend this is finished")
+  await board.getByRole("button", { name: "Add", exact: true }).click()
+  await expect(page.locator(".board-notice")).toContainText("cannot start as Done")
+  await expect(board.getByRole("region", { name: "To do" })).toContainText("Pretend this is finished")
+  const made = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.at(-1))
+  expect([made.status, made.completedOn ?? null]).toEqual(["accepted", null])
+  // Audit §6.4a: an officer adding in Not claimed got a card in To do with no word about it.
+  await board.getByRole("region", { name: "Not claimed" }).getByRole("button", { name: "+ Add task" }).click()
+  await board.getByLabel("New task name").fill("Book the room")
+  await board.getByRole("button", { name: "Add", exact: true }).click()
+  await expect(page.locator(".board-notice")).toContainText("is yours, so it is in To do")
+  await expect(board.getByRole("region", { name: "To do" })).toContainText("Book the room")
+})

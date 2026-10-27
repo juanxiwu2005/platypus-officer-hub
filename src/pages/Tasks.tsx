@@ -6,35 +6,59 @@ import { PageHead } from "../components/Page"
 import { useRail } from "../components/rail/RailContext"
 import { FollowupPanel } from "../components/FollowupPanel"
 import { daysBetween, fmtShort } from "../lib/dates"
-import { canMoveTask, byRank } from "../data/board"
+import { canMoveTask, byRank, addTaskNotice } from "../data/board"
 import { Avatar, NodePill, STATUS_ORDER, useStatusStyles } from "../components/ui"
 import { canLead } from "../data/changeReview"
 
 type View = "table" | "board" | "timeline"
 
 export default function Tasks() {
-  const { state } = useStore()
+  const { state, dispatch } = useStore()
   const { person } = useViewer()
   const rail = useRail()
   const [params] = useSearchParams()
   const [view, setView] = useState<View>("table")
   const [scope, setScope] = useState("mine")
+  const [notice, setNotice] = useState("")
   const lead = canLead(state)
   const linked = params.get("node")
   useEffect(() => { if (linked && state.nodes.some(n => n.id === linked)) rail.show({ kind: "task", id: linked, reply: params.get("reply") }) }, [linked, params.get("reply")])
+  useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(""), 3200); return () => clearTimeout(t) }, [notice])
 
+  // Every create path goes through here, so the card never lands somewhere without saying why (audit §6.4).
+  const addTask = (title: string, status: NodeStatus) => {
+    if (!title.trim()) return
+    setNotice(addTaskNotice(state, status) ?? "")
+    dispatch({ type: "addTask", title, status })
+  }
   const visible = state.nodes.filter(n => scope === "team" || n.ownerId === person.id || (n.status === "unclaimed" && !n.ownerId))
   return <>
     <PageHead path="/tasks" actions={<>
       <div className="seg" role="group" aria-label="Task view">{(["table", "board", "timeline"] as View[]).map(v => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>{v === "table" ? "Table" : v === "board" ? "Board" : "Timeline"}</button>)}</div>
       <select className="select" aria-label="Task scope" value={scope} onChange={e => setScope(e.target.value)}><option value="mine">My tasks</option><option value="team">Team tasks</option></select>
       {lead && view === "board" && <button type="button" className="btn" onClick={() => rail.show({ kind: "board" })}>Customize</button>}
+      {/* The only create entry used to sit at the foot of one board column, so the page looked read-only (audit §6.1). */}
+      <NewTask onAdd={addTask} />
     </>} />
+    {notice && <p className="board-notice" role="status">{notice}</p>}
     {view === "table" && <TaskTable nodes={visible} editable={lead} showOwner={scope === "team"} />}
-    {view === "board" && <Board nodes={visible} />}
+    {view === "board" && <Board nodes={visible} onAdd={addTask} onNotice={setNotice} />}
     {view === "timeline" && <TaskTimeline nodes={visible.filter(n => n.status !== "done")} onSelect={n => rail.show({ kind: "task", id: n.id })} />}
     <FollowupPanel />
   </>
+}
+
+/** "+ New task" in the page head: visible in all three views, open to every role (addBoardTask checks none). */
+function NewTask({ onAdd }: { onAdd: (title: string, status: NodeStatus) => void }) {
+  const [open, setOpen] = useState(false)
+  const [title, setTitle] = useState("")
+  const close = () => { setTitle(""); setOpen(false) }
+  if (!open) return <button type="button" className="btn btn-primary" data-testid="new-task" onClick={() => { setTitle(""); setOpen(true) }}>+ New task</button>
+  return <form className="board-add" data-testid="new-task-form" onSubmit={e => { e.preventDefault(); onAdd(title, "accepted"); close() }}>
+    <input autoFocus value={title} maxLength={100} placeholder="Task name" aria-label="New task name" onChange={e => setTitle(e.target.value)} />
+    <button className="btn small btn-primary" type="submit">Add</button>
+    <button className="btn small" type="button" onClick={close}>Cancel</button>
+  </form>
 }
 
 /** monday-style table grouped by event; owner and due date are edited right in the row. */
@@ -72,27 +96,24 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
 }
 
 /** Board: drag a card to change its status or order. Keyboard users use the status menu on the card. */
-function Board({ nodes }: { nodes: Node[] }) {
+function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: string, status: NodeStatus) => void; onNotice: (text: string) => void }) {
   const { state, dispatch } = useStore()
   const rail = useRail()
   const styles = useStatusStyles()
   const [drag, setDrag] = useState<string | null>(null)
   const [over, setOver] = useState<{ status: NodeStatus; before: string | null } | null>(null)
-  const [notice, setNotice] = useState("")
   const [adding, setAdding] = useState<NodeStatus | null>(null)
   const [title, setTitle] = useState("")
   const fields = state.org.board?.fields ?? ["owner", "due", "event", "tags"]
   const tags = state.org.board?.tags ?? []
-  useEffect(() => { if (!notice) return; const t = setTimeout(() => setNotice(""), 3200); return () => clearTimeout(t) }, [notice])
   const move = (id: string, status: NodeStatus, before: string | null) => {
     const n = state.nodes.find(x => x.id === id)
     if (!n) return
     const why = canMoveTask(state, n, status)
-    if (why) { setNotice(why); return }
+    if (why) { onNotice(why); return }
     dispatch({ type: "moveTask", nodeId: id, status, beforeId: before })
   }
   return <>
-    {notice && <p className="board-notice" role="status">{notice}</p>}
     <div className="board" data-testid="task-board">
       {STATUS_ORDER.map(st => {
         const cards = nodes.filter(n => n.status === st).sort(byRank)
@@ -121,7 +142,7 @@ function Board({ nodes }: { nodes: Node[] }) {
             </article>
           })}
           {adding === st
-            ? <form className="board-add" onSubmit={e => { e.preventDefault(); if (title.trim()) dispatch({ type: "addTask", title, status: st }); setTitle(""); setAdding(null) }}><input autoFocus value={title} maxLength={100} placeholder="Task name" aria-label="New task name" onChange={e => setTitle(e.target.value)} onBlur={() => { if (!title.trim()) setAdding(null) }} /><button className="btn small btn-primary" type="submit">Add</button></form>
+            ? <form className="board-add" onSubmit={e => { e.preventDefault(); onAdd(title, st); setTitle(""); setAdding(null) }}><input autoFocus value={title} maxLength={100} placeholder="Task name" aria-label="New task name" onChange={e => setTitle(e.target.value)} onBlur={() => { if (!title.trim()) setAdding(null) }} /><button className="btn small btn-primary" type="submit">Add</button></form>
             : <button type="button" className="board-add-btn" onClick={() => { setAdding(st); setTitle("") }}>+ Add task</button>}
         </section>
       })}
