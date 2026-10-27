@@ -1,10 +1,11 @@
-import type { DemoState, Event, NodeStatus, Tier } from "../data/types"
+import type { DemoState, Event, NodeStatus, Phase, Tier } from "../data/types"
 import { RULES } from "../data/rules"
 
 /** Only these shapes may cross the AI boundary. Unknown keys (including all dates) disappear. */
 export type CommandOp =
-  | { op: "create_event"; name: string; type: Event["type"]; headcount: number; venue: Event["venue"]; food: Event["food"]; funding: Event["funding"]; speaker: boolean }
-  | { op: "add_node"; title: string; eventId: string | null; ownerId: string | null; tier: Tier }
+  | { op: "create_event"; name: string; type: Event["type"]; headcount: number; venue: Event["venue"]; food: Event["food"]; funding: Event["funding"]; speaker: boolean; details?: string }
+  // phase and why are optional: the event review uses them to place a suggested step and say why it matters.
+  | { op: "add_node"; title: string; eventId: string | null; ownerId: string | null; tier: Tier; phase?: Phase; why?: string }
   | { op: "assign_owner"; nodeId: string; ownerId: string | null }
   | { op: "set_tier"; nodeId: string; tier: Tier }
   | { op: "link_dependency"; nodeId: string; dependsOnId: string }
@@ -46,6 +47,8 @@ export const commandContext = (s: DemoState): CommandContext => ({
 const text = (v: unknown, max = 100) => typeof v === "string" ? v.trim().slice(0, max) : ""
 const choose = <T extends string>(v: unknown, choices: readonly T[], fallback: T): T => choices.includes(v as T) ? v as T : fallback
 export const TIERS = ["light", "medium", "heavy"] as const
+export const PHASES: Phase[] = ["plan", "prepare", "money", "marketing", "run", "close"]
+export const FOODS: Event["food"][] = ["none", "offsite", "dining", "onsite", "tbd"]
 export const REFUSAL = "I couldn't find this in the rule book. Please ask the Tempe Student Organizations office at tempeclubs@asu.edu, or USG for club funding."
 
 export function sanitizeOps(raw: unknown, ctx: CommandContext): CommandOp[] {
@@ -60,10 +63,10 @@ export function sanitizeOps(raw: unknown, ctx: CommandContext): CommandOp[] {
     const d = value as Record<string, unknown>
     switch (d.op) {
       case "create_event":
-        if (text(d.name)) ops.push({ op: d.op, name: text(d.name, 80), type: choose(d.type, ["social", "speaker", "workshop", "meeting", "fundraiser", "offcampus"], "social"), headcount: Math.max(1, Math.min(5000, Math.round(Number(d.headcount) || 30))), venue: choose(d.venue, ["campus", "offcampus"], "campus"), food: choose(d.food, ["none", "offsite", "dining", "onsite"], "none"), funding: choose(d.funding, ["none", "usg", "college", "dues", "sponsor"], "none"), speaker: d.speaker === true })
+        if (text(d.name)) ops.push({ op: d.op, name: text(d.name, 80), type: choose(d.type, ["social", "speaker", "workshop", "meeting", "fundraiser", "offcampus"], "social"), headcount: Math.max(1, Math.min(5000, Math.round(Number(d.headcount) || 30))), venue: choose(d.venue, ["campus", "offcampus"], "campus"), food: choose(d.food, FOODS, "none"), funding: choose(d.funding, ["none", "usg", "college", "dues", "sponsor"], "none"), speaker: d.speaker === true, ...(text(d.details, 500) ? { details: text(d.details, 500) } : {}) })
         break
       case "add_node":
-        if (text(d.title) && (d.eventId === null || ctx.events.some(e => e.id === d.eventId)) && owner(d.ownerId)) ops.push({ op: d.op, title: text(d.title), eventId: d.eventId as string | null, ownerId: d.ownerId as string | null, tier: choose(d.tier, TIERS, "medium") })
+        if (text(d.title) && (d.eventId === null || ctx.events.some(e => e.id === d.eventId)) && owner(d.ownerId)) ops.push({ op: d.op, title: text(d.title), eventId: d.eventId as string | null, ownerId: d.ownerId as string | null, tier: choose(d.tier, TIERS, "medium"), ...(PHASES.includes(d.phase as Phase) ? { phase: d.phase as Phase } : {}), ...(text(d.why, 160) ? { why: text(d.why, 160) } : {}) })
         break
       case "assign_owner":
         if (node(d.nodeId) && owner(d.ownerId)) ops.push({ op: d.op, nodeId: d.nodeId as string, ownerId: d.ownerId as string | null })
@@ -140,22 +143,74 @@ export function parseCommand(sentence: string, ctx: CommandContext): CommandOp[]
     const ordered = [...namedNodes].sort((a, b) => lower.indexOf(a.title.toLowerCase()) - lower.indexOf(b.title.toLowerCase()))
     return [{ op: "link_dependency", nodeId: ordered[0].id, dependsOnId: ordered[1].id }]
   }
-  const added = s.match(/^(?:add|create) (?:a )?(?:task|node|step)\s*[:：]?\s*(.+)/i)
-  if (added) {
-    const events = ctx.events.filter(e => lower.includes(e.name.toLowerCase()))
-    if (events.length > 1 || people.length > 1) return []
-    const title = added[1].split(/\s+(?:for|to|assigned to)\s+/i)[0].trim().replace(/^["']|["']$/g, "")
-    return sanitizeOps([{ op: "add_node", title, eventId: events[0]?.id ?? null, ownerId: people[0]?.id ?? null, tier: tier ?? "medium" }], ctx)
+  const task = parseTaskIntent(s, ctx)
+  if (task) {
+    if (!task.title || task.ownerIds.length > 1 || task.roleIds.length) return []
+    return sanitizeOps([{ op: "add_node", title: task.title, eventId: task.eventId, ownerId: task.ownerIds[0] ?? null, tier: tier ?? "medium" }], ctx)
   }
+  // A new event only when the sentence names a gathering and gives its date or size; anything vaguer goes to
+  // the assistant (M2b: "Create an executable task…" or "Organize the drive folder" used to become events here).
   const event = s.match(/^(?:plan|create|schedule|organize)\s+(?:an?\s+)?(?:event\s*[:：]?\s*)?(.+?)(?:\s+on\s+|,|$)/i)
-  if (event && !/^(task|node|step)\b/i.test(event[1])) {
-    return sanitizeOps([{ op: "create_event", name: event[1], type: /speaker|panel/i.test(s) ? "speaker" : /workshop/i.test(s) ? "workshop" : /meeting/i.test(s) ? "meeting" : /fundraiser/i.test(s) ? "fundraiser" : "social", headcount: Number(s.match(/(\d+)\s*(?:people|attendees|students|guests)/i)?.[1] ?? 30), venue: /off[- ]campus/i.test(s) ? "offcampus" : "campus", food: /outside cater|external cater/i.test(s) ? "offsite" : /sun devil dining|aramark/i.test(s) ? "dining" : /prepared on site/i.test(s) ? "onsite" : "none", funding: /\busg\b|student government/i.test(s) ? "usg" : /college funding/i.test(s) ? "college" : /dues/i.test(s) ? "dues" : /sponsor/i.test(s) ? "sponsor" : "none", speaker: /speaker|panel/i.test(s) }], ctx)
+  if (event && GATHERING.test(event[1]) && !TASK_WORD.test(s) && !namesEvent(lower, ctx) && (/\s+on\s+\S|\d/.test(s))) {
+    return sanitizeOps([{ op: "create_event", ...eventFields(s), name: event[1] }], ctx)
   }
   if (/^(what|when|how|can|do|does|is|are)\b/i.test(s) || s.endsWith("?")) {
     const ids = /homemade/i.test(s) ? ["R08"] : /outside cater|food exception/i.test(s) ? ["R06"] : /raffle/i.test(s) ? ["R15"] : /final exam/i.test(s) ? ["R13"] : /usg.*(?:food|service)|(?:food|service).*usg/i.test(s) ? ["R09"] : /book.*(?:room|space)|reserve.*(?:room|space)/i.test(s) ? ["R03", "R04"] : null
     if (ids) return sanitizeOps([{ op: "answer_question", citations: ids }], ctx)
   }
   return []
+}
+
+/** Words that name a gathering people attend. Only these can make a sentence an event. */
+export const GATHERING = /\b(?:events?|night|dinner|workshop|mixer|panel|talk|social|meetup|meeting|party|fundraiser|lunch|breakfast|showcase|hackathon|session|conference|competition|trip|tour|visit|gala|banquet|festival|fair|tournament)\b|活动|聚会|晚会|讲座|工作坊/i
+/** "Task" words: whatever else the sentence says, it is a task, never an event (strategy §3, step 1). */
+export const TASK_WORD = /\b(?:tasks?|to-?dos?|steps?|nodes?|reminders?)\b|任务|待办/i
+export const namesEvent = (lower: string, ctx: CommandContext) => ctx.events.some(e => lower.includes(e.name.toLowerCase()))
+
+/** Event fields a person stated in a sentence. Only words they wrote; anything missing keeps its default. */
+export function eventFields(s: string): Omit<Extract<CommandOp, { op: "create_event" }>, "op" | "name"> {
+  const specific = /outside cater|external cater|caterer/i.test(s) ? "offsite" : /sun devil dining|aramark/i.test(s) ? "dining" : /prepared on site|cook on site|made on site/i.test(s) ? "onsite" : null
+  const food = /\bno food\b|without food|不提供(?:食物|餐)/i.test(s) ? "none" : specific ?? (/\b(?:food|snacks?|pizza|catering|meal|drinks|refreshments)\b|吃|餐/i.test(s) ? "tbd" : "none")
+  return {
+    type: /speaker|panel/i.test(s) ? "speaker" : /workshop/i.test(s) ? "workshop" : /meeting/i.test(s) ? "meeting" : /fundraiser/i.test(s) ? "fundraiser" : "social",
+    headcount: Math.max(1, Math.min(5000, Number(s.match(/(\d+)\s*(?:people|attendees|students|guests|members|人)/i)?.[1] ?? 30))),
+    venue: /off[- ]campus/i.test(s) ? "offcampus" : "campus",
+    food,
+    funding: /\busg\b|student government/i.test(s) ? "usg" : /college funding/i.test(s) ? "college" : /dues/i.test(s) ? "dues" : /sponsor/i.test(s) ? "sponsor" : "none",
+    speaker: /speaker|panel|performer|嘉宾|表演/i.test(s),
+  }
+}
+
+/**
+ * "Add an executable task: order name tags for Maya", "Set up a task to book the room", "帮我加个任务：订名牌，给 Jordan".
+ * Recognized only when the sentence says task/to-do/step (strategy §6). Returns null otherwise; title may be "".
+ * Owners come from the words after the title, so "Ask Maya for receipts" keeps Maya in the title.
+ */
+export function parseTaskIntent(sentence: string, ctx: CommandContext): { title: string; eventId: string | null; ownerIds: string[]; roleIds: string[] } | null {
+  const s = sentence.trim()
+  const en = s.match(/^(?:(?:please|pls|can you|could you|i want to|i'd like to|i would like to|i need to|let's|lets|help me)\s+)?(?:add|create|make|set up|start|open)\s+(?:(?:a|an|one|another)\s+)?(?:(?:new|executable|standalone|separate|quick|small|single)\s+)*(?:task|to-?do|step|node)\b\s*(?:[:：]\s*|to\s+|called\s+)?(.*)$/i)
+    ?? s.match(/^(?:new\s+)?(?:task|to-?do)\s*[:：]\s*(.*)$/i)
+  const zh = en ? null : s.match(/^(?:请|帮我|我想|我要)?\s*(?:加|添加|建|新建|创建|开)(?:一)?(?:个)?(?:新的?)?(?:任务|待办)\s*[:：]?\s*(.*)$/)
+  const raw = (en ?? zh)?.[1]?.trim()
+  if (raw === undefined) return null
+  // "a task for the workshop: print handouts" reads as "print handouts for the workshop".
+  const lead = raw.match(/^((?:for|to)\s+.+?)\s*[:：]\s*(.+)$/i)
+  const body = lead ? `${lead[2]} ${lead[1]}` : raw
+  const lowerBody = body.toLowerCase()
+  const startsWithName = (rest: string) => ctx.people.some(p => rest.startsWith(p.name.toLowerCase()) || new RegExp(`^${p.name.split(" ")[0].toLowerCase()}\\b`).test(rest))
+    || (ctx.roles ?? []).some(r => rest.startsWith(r.displayName.toLowerCase())) || ctx.events.some(e => rest.startsWith(e.name.toLowerCase()))
+  // Cut the title where "for/to/assigned to/给" introduces a person, a role or an event.
+  let cut = body.length
+  for (const m of lowerBody.matchAll(/\s+(?:for|to|assigned to)\s+(?:the\s+)?|[,，、]?\s*(?:give it to|assign(?:ed)? to|给|交给)\s*/g)) {
+    const rest = lowerBody.slice(m.index! + m[0].length)
+    if (startsWithName(rest)) { cut = m.index!; break }
+  }
+  const title = body.slice(0, cut).trim().replace(/^["'“”]|["'“”]$/g, "").replace(/[,，。.]$/, "").trim()
+  const tail = lowerBody.slice(cut)
+  const ownerIds = ctx.people.filter(p => tail.includes(p.name.toLowerCase()) || new RegExp(`\\b${p.name.split(" ")[0].toLowerCase()}\\b`).test(tail)).map(p => p.id)
+  const roleIds = (ctx.roles ?? []).filter(r => tail.includes(r.displayName.toLowerCase())).map(r => r.id)
+  const events = ctx.events.filter(e => lowerBody.includes(e.name.toLowerCase()))
+  return { title: title ? title[0].toUpperCase() + title.slice(1) : "", eventId: events.length === 1 ? events[0].id : null, ownerIds, roleIds }
 }
 
 /** Human date input only. This is never called on model output. Missing/relative dates need review. */

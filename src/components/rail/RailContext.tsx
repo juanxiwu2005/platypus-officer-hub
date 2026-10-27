@@ -29,6 +29,10 @@ interface RailValue {
   ask: (text: string, send?: boolean) => void
   pending: { text: string; send: boolean; n: number } | null
   takePending: () => void
+  /** A new event waiting for its plan check (M2b). Kept here so it survives the Ask panel closing on a phone. */
+  reviewEventId: string | null
+  requestReview: (eventId: string) => void
+  takeReview: () => void
 }
 
 const RailCtx = createContext<RailValue | null>(null)
@@ -75,6 +79,9 @@ export function RailProvider({ children }: { children: ReactNode }) {
     setOpenState(true)
   }, [])
   const takePending = useCallback(() => setPending(null), [])
+  const [reviewEventId, setReviewEventId] = useState<string | null>(null)
+  const requestReview = useCallback((eventId: string) => { setReviewEventId(eventId); setTab("ask"); setOpenState(true) }, [])
+  const takeReview = useCallback(() => setReviewEventId(null), [])
 
   // "/" focuses the Ask box from anywhere (unless typing in a field).
   useEffect(() => {
@@ -89,7 +96,7 @@ export function RailProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
-  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, ask, pending, takePending }), [open, setOpen, tab, detail, show, closeDetail, ask, pending, takePending])
+  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview }), [open, setOpen, tab, detail, show, closeDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview])
   return <RailCtx.Provider value={value}>{children}</RailCtx.Provider>
 }
 

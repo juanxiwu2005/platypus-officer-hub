@@ -1,3 +1,4 @@
+import { TASK_DUE_CHOICES } from "../engine/taskDates"
 import type { DemoState, Event, Goal, OrgSettings, Person, Role, RoleFunction, WorkspaceConfig } from "./types"
 import type { CommandOp } from "../lib/commands"
 import { sanitizeOps, validDate } from "../lib/commands"
@@ -61,6 +62,9 @@ export function validateDefaults(d: OrgSettings): string | null {
   if (!Array.isArray(p?.nudgeDays) || p.nudgeDays.length !== 2 || ![...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay].every(n => Number.isInteger(n) && n >= 1 && n <= 30) || !(p.nudgeDays[0] < p.nudgeDays[1] && p.nudgeDays[1] < p.presidentDay && p.presidentDay < p.reassignDay && p.reassignDay < p.retroDay)) return "Follow-up days must increase: reminder 1, reminder 2, private check, temporary owner, recovery."
   if (!Number.isInteger(d.maxRemindersPerTask) || d.maxRemindersPerTask < 1 || d.maxRemindersPerTask > 3) return "Keep the reminder limit between one and three."
   if (d.sendMode !== "review" || d.quietHours.from !== "22:00" || d.quietHours.to !== "08:00") return "This demo keeps review-before-send and quiet hours from 10 pm to 8 am."
+  if (d.taskDueDays !== undefined && !(TASK_DUE_CHOICES as readonly number[]).includes(d.taskDueDays)) return "Choose 3, 5 or 7 days for a usual task."
+  if (d.eventCreators !== undefined && !["leads", "everyone", "chosen"].includes(d.eventCreators)) return "Choose who can create events."
+  if (d.eventCreatorIds !== undefined && (!Array.isArray(d.eventCreatorIds) || d.eventCreatorIds.length > 20 || d.eventCreatorIds.some(id => typeof id !== "string"))) return "Choose officers from the list."
   return null
 }
 
@@ -74,7 +78,8 @@ export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettin
     const nextRole = roles.find(r => r.id === oldRole?.id)
     return nextRole && n.fn === oldRole?.fn ? { ...n, fn: nextRole.fn } : n
   })
-  return applySchedule({ ...s, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals, workspace: d.workspace, settings: defaults }, roles, nodes })
+  const settings = { ...defaults, ...(defaults.eventCreatorIds ? { eventCreatorIds: defaults.eventCreatorIds.filter(id => s.people.some(p => p.id === id)) } : {}) }
+  return applySchedule({ ...s, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals, workspace: d.workspace, settings }, roles, nodes })
 }
 
 export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch, invite?: string): DemoState {
@@ -83,8 +88,9 @@ export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch,
   return applySchedule({ ...s, people: s.people.map(p => p.id === personId ? { ...p, ...clean, setupCompletedOn: s.today } : p) })
 }
 
-export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string): DemoState {
+export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number): DemoState {
   if (!canLead(s) || validateClub(d) || !validDate(eventDate) || eventDate < s.today || !/^[a-f0-9-]{36}$/i.test(inviteCode)) return s
+  if (taskDueDays !== undefined && !(TASK_DUE_CHOICES as readonly number[]).includes(taskDueDays)) return s
   const op = sanitizeOps([rawEvent], s)[0]
   if (op?.op !== "create_event") return s
   const { op: _kind, ...fields } = op
@@ -92,7 +98,7 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   const event: Event = { ...fields, id, date: eventDate, goalId: d.goals[0].id, playbookId: "seo-event" }
   const people = d.people.map(p => ({ ...p, name: p.name.trim() }))
   const president = d.roles.find(r => r.fn === "president")!
-  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode }, roles: d.roles, people, events: [event], nodes: buildEventNodes(event, d.roles).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), nudges: [], contributions: [], contacts: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, settings: { ...s.org.settings, ...(taskDueDays ? { taskDueDays } : {}) } }, roles: d.roles, people, events: [event], nodes: buildEventNodes(event, d.roles).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), nudges: [], contributions: [], contacts: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
 
 export const clubDraft = (s: DemoState): ClubDraft => structuredClone({ name: s.org.name, mission: s.org.mission, goals: s.org.goals, roles: s.roles, people: s.people, workspace: s.org.workspace })

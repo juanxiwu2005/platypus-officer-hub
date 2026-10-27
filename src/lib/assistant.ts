@@ -1,9 +1,11 @@
 import type { ChangeSet, DemoState, Node } from "../data/types"
 import { callApi } from "./api"
-import { commandContext, humanEventDate, isSmallOp, parseCommand, type CommandOp } from "./commands"
+import { commandContext, eventFields, GATHERING, humanEventDate, isSmallOp, namesEvent, parseCommand, parseTaskIntent, TASK_WORD, type CommandOp } from "./commands"
 import { groundedAnswer, RULE_REFUSAL, type RuleAnswer } from "./ruleAnswers"
 import { aiSnapshot, knownDates } from "./aiContext"
 import { sanitizeCards, type PlanPrefill, type TaskScope, type WireCard } from "./chatCards"
+import { defaultTaskDue } from "../engine/taskDates"
+import { checkReview, localReview, reviewPayload, type EventReview, type ReviewRisk } from "./eventReview"
 import { forecastFor, forecastQueue } from "../engine/forecast"
 import { computeSchedule } from "../engine/schedule"
 import { workload } from "../engine/team"
@@ -17,11 +19,15 @@ import { RULES } from "../data/rules"
 export type ChatCard =
   | { kind: "text"; text: string }
   | { kind: "form"; id: string; prefill: Partial<PlanPrefill>; date: string; done?: boolean }
+  /** The new-task form (M2b). owners are person or role IDs; one task is made per person. */
+  | { kind: "taskform"; id: string; title: string; owners: string[]; eventId: string | null; due: string; done?: boolean; changeSetId?: string }
   | { kind: "tasks"; title: string; nodeIds: string[]; remind?: boolean }
   | { kind: "changes"; changeSetId: string }
   | { kind: "applied"; changeSetId: string }
   | { kind: "nudge"; nodeId: string }
   | { kind: "rule"; question: string; answer: string; citations: string[]; inScope: boolean; label: string }
+  /** The event review (M2b): risks for one new event; its suggested steps follow as a changes card. */
+  | { kind: "review"; eventId: string; risks: ReviewRisk[]; label: string }
 export interface ChatMsg { id: string; role: "user" | "assistant"; text?: string; cards?: ChatCard[]; source?: string }
 export interface Focus { kind: "node" | "event" | "page"; id: string; title: string }
 export interface Reply { cards: ChatCard[]; source: string; changeSet?: ChangeSet; autoSet?: ChangeSet }
@@ -32,7 +38,23 @@ const canLeadAs = (s: DemoState, id: string) => {
   return r?.holderId === id && (r.fn === "president" || r.fn === "vice_president")
 }
 
-export const PLAN_RE = /\b(plan|organi[sz]e|host|throw|set up|put on)\b.*\b(event|night|dinner|workshop|mixer|panel|talk|social|meetup|party|fundraiser|lunch|breakfast|showcase|hackathon|session)\b|^plan (a |an )?(new )?event|策划|办.*活动/i
+/**
+ * A NEW gathering: a planning verb followed closely (at most three words) by a gathering word. Task words and
+ * existing event names are checked separately (createIntent), so "Set up a task for the workshop" is a task and
+ * "Plan the budget for Spring Speaker Night" is about an event that already exists.
+ */
+export const PLAN_RE = /\b(?:plan|organi[sz]e|host|throw|set up|put on|create|schedule|hold|run|arrange)\s+(?:(?:a|an|our|the|another|new|next|big|small|first)\s+)*(?:[\w'&-]+\s+){0,3}?(?:events?|night|dinner|workshop|mixer|panel|talk|social|meetup|meeting|party|fundraiser|lunch|breakfast|showcase|hackathon|session|conference|competition|trip|tour|visit|gala|banquet|festival|fair|tournament)\b|^plan (a |an )?(new )?event|策划|办.*活动/i
+const BARE_EVENT = /^(?:plan|create|organi[sz]e|host|start)\s+(?:a\s+|an\s+)?(?:new\s+)?event[.!]?$/i
+const BARE_TASK = /^(?:add|create|make|new|start)\s+(?:a\s+)?(?:new\s+)?task[.!]?$/i
+
+/** Is the person making something new, and which kind? Task words win (strategy §3, step 1). */
+export function createIntent(t: string, s: DemoState): "task" | "event" | null {
+  if (parseTaskIntent(t, commandContext(s))) return "task"
+  if (TASK_WORD.test(t) || namesEvent(t.toLowerCase(), commandContext(s))) return null
+  // Repeating things and meeting one person are not one-time events; the assistant asks or makes a task.
+  if (/\b(?:weekly|biweekly|monthly|every (?:week|month|day)|recurring)\b|每周|每月/i.test(t) || /\bmeet(?:ing)? with (?:our |the |my )?(?:advisor|adviser|sponsor|dean|professor|partner)\b/i.test(t)) return null
+  return PLAN_RE.test(t) ? "event" : null
+}
 const TOP_RE = /\btop\s*\d*\s*(tasks?|things|priorit)|\bmost important\b|\bfocus on\b|\bpriorit|what should i (do|work)|my tasks|最需要|专注|优先/i
 const NUDGE_RE = /\bneeds? a nudge\b|\bwho (needs|should).*(nudge|remind|push)|\bat risk\b|\bbehind\b|风险|催/i
 const STUCK_RE = /\bstuck\b|\bblocked\b|\bneed(s)? help\b|卡住/i
@@ -60,12 +82,20 @@ export function keywordRules(q: string): string[] {
   return [...new Set(hits)].slice(0, 3)
 }
 
+/** The event form from the person's own words, without AI: name, size, food, speaker. Dates only from their text. */
 function planDefaults(text: string, s: DemoState): { prefill: Partial<PlanPrefill>; date: string } {
-  const op = parseCommand(/^plan|^create|^schedule|^organize/i.test(text.trim()) ? text : `Plan ${text}`, commandContext(s)).find(o => o.op === "create_event") as Extract<CommandOp, { op: "create_event" }> | undefined
-  const generic = !op || /^(a |an )?(new )?event$/i.test(op.name.trim()) || op.name.length > 60
-  const prefill: Partial<PlanPrefill> = op ? { ...op, name: generic ? "" : op.name } : { name: "" }
-  delete (prefill as { op?: string }).op
-  return { prefill, date: humanEventDate(text, s.today) }
+  const m = text.trim().match(/^(?:(?:i want to|i'd like to|we want to|let's|lets|please)\s+)?(?:plan|organi[sz]e|host|throw|set up|put on|create|schedule|hold|run|arrange)\s+(?:(?:a|an|our|the|new)\s+)*(?:event\s*[:：]?\s*)?(.+?)(?:\s+(?:on|for|with|at|in|next|this|by)\s+|[,.;]|$)/i)
+  const raw = m?.[1]?.trim() ?? ""
+  const generic = !raw || /^(?:a |an )?(?:new )?event$/i.test(raw) || raw.length > 60 || !GATHERING.test(raw)
+  return { prefill: { ...eventFields(text), name: generic ? "" : raw[0].toUpperCase() + raw.slice(1) }, date: humanEventDate(text, s.today) }
+}
+
+/** The task form from the person's own words, without AI. */
+function taskDefaults(text: string, s: DemoState, focus: Focus | null): Extract<ChatCard, { kind: "taskform" }> {
+  const t = parseTaskIntent(text, commandContext(s))
+  // A "step" with no event named belongs to the event the person is looking at.
+  const focusEvent = focus?.kind === "event" && /\bstep\b|this event/i.test(text) ? focus.id : null
+  return { kind: "taskform", id: uid(), title: t?.title ?? "", owners: [...(t?.ownerIds ?? []), ...(t?.roleIds ?? [])], eventId: t?.eventId ?? focusEvent, due: humanEventDate(text, s.today) || defaultTaskDue(s) }
 }
 
 function rankMine(s: DemoState, personId: string, limit: number): Node[] {
@@ -129,7 +159,8 @@ function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: strin
   let changeSet: ChangeSet | undefined, autoSet: ChangeSet | undefined
   for (const c of cards) {
     if (c.kind === "text") out.push(textCard(c.text))
-    if (c.kind === "form") out.push({ kind: "form", id: uid(), prefill: c.prefill, date: humanEventDate(text, s.today) })
+    if (c.kind === "form" && c.intent === "plan_event") out.push({ kind: "form", id: uid(), prefill: c.prefill, date: humanEventDate(text, s.today) })
+    if (c.kind === "form" && c.intent === "add_task") out.push({ kind: "taskform", id: uid(), title: c.prefill.title, owners: c.prefill.owners, eventId: c.prefill.eventId, due: humanEventDate(text, s.today) || defaultTaskDue(s) })
     if (c.kind === "tasks") out.push(tasksCard(s, viewerId, c.scope, c.limit, focus?.kind === "event" ? focus.id : undefined))
     if (c.kind === "nudge") out.push({ kind: "nudge", nodeId: c.nodeId })
     if (c.kind === "rule") { const a = groundedAnswer({ inScope: c.inScope, confidence: 1, citations: c.citations }, null); out.push({ kind: "rule", question: text, answer: a.answer, citations: a.citations, inScope: a.inScope, label: source }) }
@@ -138,7 +169,24 @@ function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: strin
   return { cards: out, source, changeSet, autoSet }
 }
 
-const HELP = "I can rank your top tasks, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
+const HELP = "I can rank your top tasks, add a task, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
+
+/** One /api/chat round. Returns null when the reply had no usable card; throws only when `rethrow` is set. */
+async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus | null, page: string, history: ChatMsg[], rethrow = false): Promise<Reply | null> {
+  const snap = aiSnapshot(s)
+  try {
+    const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
+      message: t, page, focus, context: commandContext(s), data: snap,
+      history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
+    })
+    const cards = sanitizeCards(r.cards, commandContext(s), knownDates(snap))
+    const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Checked command grammar"
+    return cards.length ? fromWire(cards, t, s, viewerId, label, focus ?? null) : null
+  } catch (e) {
+    if (rethrow) throw e
+    return null
+  }
+}
 
 /**
  * Answer one message. Clear requests are answered by the app itself (no AI needed); anything else goes to
@@ -150,9 +198,21 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   const focusEvent = focus?.kind === "event" ? s.events.find(e => e.id === focus.id) : focusNode?.eventId ? s.events.find(e => e.id === focusNode.eventId) : undefined
   const limit = Math.max(1, Math.min(10, Number(t.match(/\b(\d{1,2})\b/)?.[1] ?? 5)))
 
-  if (PLAN_RE.test(t)) {
+  // Making something new (M2b): the assistant reads the whole message and fills the form; the app's own
+  // grammar answers only a bare "new event"/"new task", or when AI is off or unavailable.
+  const intent = createIntent(t, s)
+  if (intent) {
+    if (s.aiEnabled && !BARE_EVENT.test(t) && !BARE_TASK.test(t)) {
+      const ai = await aiReply(t, s, viewerId, focus, page, history)
+      if (ai && ai.cards.length) return ai
+    }
+    const source = s.aiEnabled ? "Platypus" : "Local demo grammar · AI off"
+    if (intent === "task") {
+      const card = taskDefaults(t, s, focus)
+      return { cards: [textCard(card.title ? "Here's the task. Check who owns it and when it's due." : "What's the task? Fill in the name and who owns it."), card], source }
+    }
     const { prefill, date } = planDefaults(t, s)
-    return { cards: [textCard("Happy to help. Check these five details and I'll draft the plan from the club playbook."), { kind: "form", id: uid(), prefill, date }], source: "Platypus" }
+    return { cards: [textCard("Happy to help. Fill in what's missing and I'll draft the plan from the club playbook."), { kind: "form", id: uid(), prefill, date }], source }
   }
   if (STEP_RE.test(t) && focusNode) {
     const p = computeSchedule(s).nodes[focusNode.id]
@@ -198,15 +258,9 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
     return { ...splitChanges(t, ops, source), source }
   }
   if (s.aiEnabled) {
-    const snap = aiSnapshot(s)
     try {
-      const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
-        message: t, page, focus, context: commandContext(s), data: snap,
-        history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
-      })
-      const cards = sanitizeCards(r.cards, commandContext(s), knownDates(snap))
-      const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Checked command grammar"
-      if (cards.length) return fromWire(cards, t, s, viewerId, label, focus ?? null)
+      const ai = await aiReply(t, s, viewerId, focus, page, history, true)
+      if (ai?.cards.length) return ai
     } catch {
       if (RULE_Q_RE.test(t)) return ruleReply(t, s)
       return { cards: [textCard(`The AI service is unavailable right now. ${HELP}`)], source: "Local fallback · server unavailable" }
@@ -216,10 +270,34 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   return { cards: [textCard(s.aiEnabled ? `I couldn't safely match that. ${HELP}` : `AI is off, so I can only handle set requests. ${HELP}`)], source: "Platypus" }
 }
 
+/**
+ * Review a newly approved event (M2b): the assistant reads the playbook's steps plus everything the organizer
+ * wrote and suggests risks and extra steps. Without AI, the rule engine's own warnings are shown instead.
+ */
+export async function reviewEvent(s: DemoState, eventId: string): Promise<Reply> {
+  const p = reviewPayload(s, eventId)
+  if (!p) return { cards: [textCard("That event is no longer in the plan.")], source: "Platypus" }
+  let review: EventReview, label: string
+  if (s.aiEnabled) {
+    try {
+      const r = await callApi<{ risks: unknown; tasks: unknown; model?: string }>("/event/review", { eventId, data: p, context: commandContext(s) })
+      review = checkReview(r, s, eventId)
+      label = `AI review${r.model ? ` · ${r.model}` : ""}`
+    } catch { review = localReview(s, eventId); label = "Rule engine check · AI unavailable" }
+  } else { review = localReview(s, eventId); label = "Rule engine check · AI off" }
+  const cards: ChatCard[] = [{ kind: "review", eventId, risks: review.risks, label }]
+  let changeSet: ChangeSet | undefined
+  if (review.tasks.length) {
+    changeSet = draftSet(`Suggested steps for ${p.event.name}`, review.tasks, label)
+    cards.push(textCard(`${review.tasks.length === 1 ? "One step" : `${review.tasks.length} steps`} the playbook didn't include. Add the ones you want:`), { kind: "changes", changeSetId: changeSet.id })
+  }
+  return { cards, source: label, changeSet }
+}
+
 export const SUGGESTIONS: Record<string, string[]> = {
   "/": ["What are my top 5 tasks?", "Plan a new event", "Who needs a nudge?"],
   "/events": ["What is at risk in this event?", "Who is up next?", "Plan a new event"],
-  "/tasks": ["What are my top 5 tasks?", "What is stuck?", "Who needs a nudge?"],
+  "/tasks": ["Add a task", "What are my top 5 tasks?", "What is stuck?"],
   "/team": ["Who is overloaded?", "Who needs a nudge?", "What are my top 5 tasks?"],
   "/funding": ["What's missing in this request?", "When is the USG food request due?", "Plan a new event"],
   "/handoff": ["What does a new officer need in week one?", "What are my top 5 tasks?", "Who needs a nudge?"],

@@ -1,8 +1,8 @@
+import { defaultTaskDue } from "../engine/taskDates"
 import type { BoardSettings, DemoState, Node, NodeStatus } from "./types"
 import { canLead } from "./changeReview"
 import { addNotices, claimTask, closeSilence, replyToTask } from "./taskWorkflow"
 import { applySchedule } from "../engine/schedule"
-import { addDays } from "../lib/dates"
 import { STATUS_DEFAULTS } from "../components/ui/statusDefaults"
 
 /**
@@ -87,7 +87,7 @@ export function addBoardTask(s: DemoState, title: string, status: NodeStatus): D
   const st = startStatus(s, status)
   const ownerId = st === "unclaimed" ? null : s.viewerId
   const id = `task-${s.nodes.length}-${Date.now().toString(36)}`
-  const node: Node = { id, title: t, eventId: null, stepKey: null, phase: null, fn, ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: "light", estDays: 1, anchor: { kind: "fixed", official: null, club: addDays(s.today, 7) }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: st, acceptedOn: ownerId ? s.today : null, waitingOn: null, draftLink: null, why: "", source: "Added on the task board", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
+  const node: Node = { id, title: t, eventId: null, stepKey: null, phase: null, fn, ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: "light", estDays: 1, anchor: { kind: "fixed", official: null, club: defaultTaskDue(s) }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: st, acceptedOn: ownerId ? s.today : null, waitingOn: null, draftLink: null, why: "", source: "Added on the task board", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
   return applySchedule(reorder({ ...s, nodes: [...s.nodes, node] }, id, st, null))
 }
 

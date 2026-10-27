@@ -716,3 +716,18 @@ html, body { overflow-x: clip; }
 .change-set.applied header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .applied-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; font-size: .95rem; }
 .applied-list li.muted { color: var(--muted, #5f6763); }
+
+/* Ask task form: owners as tags (M2b) */
+.owner-field { display: grid; gap: 3px; position: relative; }
+.owner-label { font-size: 13px; color: var(--muted); }
+.owner-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 36px; padding: 3px 4px 3px 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: text; }
+.owner-picker:focus-within { border-color: var(--accent); }
+.owner-picker input { flex: 1; min-width: 90px; border: 0 !important; padding: 4px 2px !important; background: transparent; color: var(--ink); outline: none; }
+.owner-chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-ink); font-size: 13px; }
+.owner-chip button { border: 0; background: none; color: inherit; cursor: pointer; font-size: 15px; line-height: 1; min-width: 24px; min-height: 24px; }
+.owner-toggle { border: 0; background: none; color: var(--muted); cursor: pointer; min-width: 28px; min-height: 28px; }
+.owner-suggest { position: absolute; z-index: 5; top: 100%; left: 0; right: 0; margin: 2px 0 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 18px rgb(0 0 0 / .12); max-height: 240px; overflow: auto; }
+.owner-suggest button { display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: none; color: var(--ink); text-align: left; cursor: pointer; }
+.owner-suggest button:hover, .owner-suggest button:focus-visible { background: var(--surface-2); }
+.plan-form textarea { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); resize: vertical; font: inherit; }
+.review-risks { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }

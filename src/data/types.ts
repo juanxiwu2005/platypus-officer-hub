@@ -35,6 +35,11 @@ export interface OrgSettings {
   /** "review": AI drafts, a person sends. "auto": v1.5+, email only, internal only. */
   sendMode: "review" | "auto"
   quietHours: { from: string; to: string }
+  /** M2b (Juanxi, 2026-10-27): a new task is due this many days from today unless someone picks a date. Default 5. */
+  taskDueDays?: number
+  /** Who may create events: the president and VP (default), everyone, or the leads plus chosen officers. */
+  eventCreators?: "leads" | "everyone" | "chosen"
+  eventCreatorIds?: string[]
 }
 
 export interface Org {
@@ -115,11 +120,14 @@ export interface Event {
   type: EventType
   headcount: number
   venue: "campus" | "offcampus"
-  food: "none" | "dining" | "offsite" | "onsite"
+  /** "tbd": there will be food, but how it is provided is decided later (Juanxi, 2026-10-27: the form only asks yes/no). */
+  food: "none" | "dining" | "offsite" | "onsite" | "tbd"
   funding: "usg" | "college" | "dues" | "sponsor" | "none"
   speaker: boolean
   goalId: string | null
   playbookId: string
+  /** What the organizer wrote about the event in their own words (form "Details"); the event review reads it. */
+  details?: string
 }
 
 export type NodeStatus = "unclaimed" | "accepted" | "in_progress" | "waiting" | "blocked" | "done"
@@ -323,6 +331,8 @@ export interface ChangeSet {
   before?: { nodes: Node[]; contacts: Contact[] }
   notes?: string[]
   undone?: boolean
+  /** Tasks this change created; Undo removes them. */
+  createdIds?: string[]
 }
 
 export interface DemoState {
