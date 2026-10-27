@@ -51,6 +51,11 @@ body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); -w
 a { color: var(--accent-ink); }
 button, select, input, textarea { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+/* Text fields, selects and text areas: no thick ring (browsers, Safari especially, also show one on a
+   mouse click). Focus stays visible (WCAG 2.4.7) as a teal border and a soft halo. :focus, not
+   :focus-visible, because date fields never match :focus-visible in Chrome. The transparent outline
+   still appears in Windows high-contrast mode, where shadows are removed. */
+:is(input:not([type="checkbox"], [type="radio"]), select, textarea):focus { outline: 2px solid transparent; outline-offset: 0; border-color: var(--accent) !important; box-shadow: 0 0 0 3px var(--accent-soft); }
 h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em; line-height: 1.2; text-wrap: balance; margin: 0; }
 h1 { font-size: clamp(26px, 3.2vw, 34px); }
 h2 { font-size: 19px; }
@@ -237,7 +242,6 @@ progress { accent-color: var(--accent); height: 8px; }
 .flow-step.st-done { opacity: .62; }
 .flow-step.st-proposed { border-left-style: dashed; }
 .flow-step.has-error { background: var(--late-soft); border-color: var(--late); border-left-color: var(--late); }
-.flow-step.is-selected { box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 4px var(--accent); }
 .flow-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 600; }
 .flow-meta { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11.5px; }
 .flow-flag { margin-left: auto; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 11px; color: #fff; }
@@ -336,11 +340,7 @@ progress { accent-color: var(--accent); height: 8px; }
 .notice { padding: 12px 14px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-ink); font-size: 13px; }
 @media (max-width: 600px) { .slot-row { grid-template-columns: 1fr 1fr; } .setup-steps li { flex: 1 1 40%; } .form-stack fieldset { padding: 12px; } .join-page { margin-block: 0; } }
 
-/* WP5: compact forecast, responsive funding and handoff stages. */
-.forecast { margin: .5rem 0; max-width: 100%; }
-.forecast ul { display: block; padding-left: 1.2rem; margin: .4rem 0; }
-.forecast li { display: list-item; border: 0; padding: .1rem 0; }
-.forecast details { max-width: 100%; }
+/* WP5: responsive funding and handoff stages. */
 .funding-pipeline { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); list-style: none; padding: 0; gap: .5rem; }
 .funding-pipeline li { display: flex; flex-direction: column; gap: .3rem; padding: .75rem; border: 1px solid var(--line); border-radius: .7rem; font-size: .8rem; overflow-wrap: anywhere; }
 .funding-pipeline .active { border-color: var(--accent); background: var(--accent-soft); }
@@ -468,8 +468,12 @@ main { gap: 16px; max-width: 1180px; width: 100%; justify-self: center; }
 /* Hover card and info */
 .hover { position: relative; display: inline-flex; }
 div.hover { display: block; }
-.hover-card { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); z-index: 70; width: max-content; max-width: 280px; display: grid; gap: 3px; padding: 9px 11px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 13px; line-height: 1.4; font-weight: 400; text-align: left; white-space: normal; box-shadow: 0 8px 24px rgba(0,0,0,.2); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s ease .3s, visibility 0s linear .42s; }
-.hover:hover > .hover-card, .hover:focus-within > .hover-card { opacity: 1; visibility: visible; transition-delay: .3s, 0s; }
+.hover-card { position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); z-index: 70; width: max-content; max-width: 280px; display: grid; gap: 3px; padding: 9px 11px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 13px; line-height: 1.4; font-weight: 400; text-align: left; white-space: normal; box-shadow: 0 8px 24px rgba(0,0,0,.2); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .1s ease, visibility 0s linear .1s; }
+.hover:hover > .hover-card, .hover:focus-within > .hover-card { opacity: 1; visibility: visible; transition: opacity .15s ease, visibility 0s; }
+/* A card with buttons (Team contributions) takes the pointer while shown; the strip below it bridges
+   the 8px gap so moving onto the card does not close it. */
+.hover:hover > .hover-card:has(button, a), .hover:focus-within > .hover-card:has(button, a) { pointer-events: auto; }
+.hover-card:has(button, a)::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 8px; }
 .hover-card .hc-line { display: block; }
 .hover-card .muted { color: inherit; opacity: .72; }
 .hover-card b { font-weight: 600; }
@@ -557,7 +561,7 @@ div.hover { display: block; }
 .m-dot.station { width: 30px; height: 30px; cursor: default; }
 .m-dot.station.event { border: 4px solid var(--accent); background: var(--accent-soft); }
 .m-dot.station.done { background: var(--good); border-color: var(--good); }
-.m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px; }
+.m-node.is-selected .m-dot { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 5px var(--accent); }
 .m-label { position: absolute; display: grid; text-align: center; width: var(--label-w, 96px); line-height: 1.2; pointer-events: none; }
 .m-label b { font-size: 13px; font-weight: 600; }
 .m-label span { font-size: 12px; color: var(--muted); }
@@ -569,8 +573,8 @@ div.hover { display: block; }
 .m-tag.up { margin-top: 5px; }
 .m-tag.down { margin-top: -19px; }
 .m-tag.v { transform: translate(-50%, 0); }
-.m-card { position: absolute; left: 0; bottom: 18px; transform: translateX(-50%); width: 250px; display: grid; gap: 3px; padding: 9px 11px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 13px; line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.2); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .12s ease .3s, visibility 0s linear .42s; }
-.m-node:hover .m-card, .m-node:focus-within .m-card { opacity: 1; visibility: visible; transition-delay: .3s, 0s; }
+.m-card { position: absolute; left: 0; bottom: 18px; transform: translateX(-50%); width: 250px; display: grid; gap: 3px; padding: 9px 11px; border-radius: 10px; background: var(--ink); color: var(--bg); font-size: 13px; line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.2); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .1s ease, visibility 0s linear .1s; }
+.m-node:hover .m-card, .m-node:focus-within .m-card { opacity: 1; visibility: visible; transition: opacity .15s ease, visibility 0s; }
 .m-card-warn { color: #ffb4ab; }
 .vertical .m-card { left: 16px; transform: none; }
 .m-legend { display: flex; gap: 16px; flex-wrap: wrap; padding: 8px 14px 12px; color: var(--muted); position: sticky; left: 0; }
@@ -683,7 +687,7 @@ tr.clickable { cursor: pointer; }
 .heat-row.head span.on { color: var(--accent-ink); font-weight: 700; }
 .heat-h { font-size: 11px; color: var(--muted); }
 .heat-cell { height: 14px; border: 0; border-radius: 3px; cursor: pointer; padding: 0; background: color-mix(in srgb, var(--accent) calc(var(--a) * 100%), var(--surface-2)); }
-.heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px; }
+.heat-cell.all { box-shadow: inset 0 0 0 1px var(--accent-ink); }
 .who-picks { border: 0; padding: 0; margin: 0; display: flex; gap: 6px 14px; flex-wrap: wrap; }
 .wl-row td { height: 40px; }
 .form-stack .who-picks { border: 0; padding: 0; }
