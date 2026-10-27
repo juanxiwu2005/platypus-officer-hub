@@ -1,3 +1,4 @@
+import { hiddenUnlessEnabled } from "../lib/serverStorage.mts";
 import type { Config } from "@netlify/functions";
 import { ZodError } from "zod";
 import {
@@ -9,7 +10,7 @@ import {
   startSession,
 } from "../lib/organization/storage.mts";
 import { json, readJSON } from "../lib/http.mts";
-export default async (req: Request) => {
+export default hiddenUnlessEnabled(async (req: Request) => {
   let workspaceId = "";
   try {
     checkOrigin(req);
@@ -68,7 +69,7 @@ export default async (req: Request) => {
       503,
     );
   }
-};
+});
 export const config: Config = {
   path: "/api/org/setup",
   method: ["GET", "POST"],

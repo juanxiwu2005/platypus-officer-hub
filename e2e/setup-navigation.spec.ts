@@ -407,7 +407,7 @@ test("selected curve deletion has an undo that retains unrelated node edits, wit
 }, info) => {
   const s = await mockSetup(page, preparedDraft());
   await chapter(page, "Activity workflow");
-  if (info.project.name === "desktop") {
+  if (info.project.name.startsWith("desktop")) {
     await page
       .locator('.react-flow__edge[data-id="items-quotes"]')
       .click({ force: true });

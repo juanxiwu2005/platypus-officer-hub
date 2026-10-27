@@ -55,7 +55,9 @@ async function session() {
   const entry = await saveSession(request({}, cookie), draft(), 0);
   return { cookie, entry };
 }
+// Server storage is hidden unless ORG_SETUP_ENABLED=true (M1, 2026-10-27); these tests cover it switched on.
 beforeEach(() => {
+  vi.stubEnv("ORG_SETUP_ENABLED", "true");
   state.rows.clear(); state.counter = 0; state.historyConflicts = 0; state.chat.mockReset();
   vi.stubEnv("AI_PRESET", "openai");
   vi.stubEnv("AI_MODEL", "test-model-a");

@@ -66,7 +66,9 @@ async function session() {
     cookie: r.headers.get("set-cookie")!.split(";")[0],
   };
 }
+// Server storage is hidden unless ORG_SETUP_ENABLED=true (M1, 2026-10-27); these tests cover it switched on.
 beforeEach(() => {
+  vi.stubEnv("ORG_SETUP_ENABLED", "true");
   state.rows.clear();
   state.counter = 0;
   state.chat.mockReset();

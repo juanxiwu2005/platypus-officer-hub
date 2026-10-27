@@ -1,3 +1,4 @@
+import { hiddenUnlessEnabled } from "../lib/serverStorage.mts";
 import { createHash, randomUUID } from "node:crypto";
 import type { Config } from "@netlify/functions";
 import {
@@ -49,7 +50,7 @@ type Upload = {
   completedAt?: string;
   complete: boolean;
 };
-export default async (req: Request) => {
+export default hiddenUnlessEnabled(async (req: Request) => {
   try {
     checkOrigin(req);
     const { entry } = await readSession(req),
@@ -282,7 +283,7 @@ export default async (req: Request) => {
       503,
     );
   }
-};
+});
 export const config: Config = {
   path: "/api/org/archive",
   method: ["GET", "POST"],

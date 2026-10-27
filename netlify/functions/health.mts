@@ -5,6 +5,7 @@ import {
 import type { Config } from "@netlify/functions";
 import { getConfig, isConfigured } from "../lib/ai.mts";
 import { json } from "../lib/http.mts";
+import { serverStorageEnabled } from "../lib/serverStorage.mts";
 import { readSession, archiveEvent } from "../lib/organization/storage.mts";
 /** Optional catalog check validates credentials/models without generating tokens. */
 export default async (req: Request) => {
@@ -19,6 +20,9 @@ export default async (req: Request) => {
         : {}),
     };
   if (new URL(req.url).searchParams.get("check") !== "1") return json(base);
+  // The check is tied to an Organization Setup session and archives its result there.
+  if (!serverStorageEnabled())
+    return json({ ...base, connection: { ok: false, message: "The connection check is off while server storage is hidden." } });
   let workspaceId = "";
   try {
     const { entry } = await readSession(req);

@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   Link,
+  Navigate,
   NavLink,
   Route,
   Routes,
@@ -39,6 +40,7 @@ import {
   workflow,
 } from "./logic";
 import { localPreviewRepository } from "./repository";
+import { SERVER_STORAGE } from "./serverStorage";
 import type { ApprovedContext } from "./approvedContext";
 import "./phase1.css";
 import "./approvedWorkspace.css";
@@ -134,7 +136,8 @@ export default function PhaseOne() {
     if(new URLSearchParams(location.search).get('example')==='1'||location.pathname.endsWith('/setup-legacy')) setExample(true);
     else if(location.pathname.endsWith('/setup')) setExample(false);
   },[location.pathname,location.search]);
-  if(example) return <PreviousPhaseOne/>;
+  // Server storage hidden: only the local example, never the live workspace (it calls /api/workspace).
+  if(example || !SERVER_STORAGE) return <PreviousPhaseOne/>;
   return <Suspense fallback={<p role="status">Opening your workspace…</p>}><LiveWorkspaceShell/></Suspense>;
 }
 function PreviousPhaseOne() {
@@ -160,10 +163,11 @@ function PreviousPhaseOne() {
     }
   });
   const location = useLocation();
-  const [exampleMode, setExampleMode] = useState(() => new URLSearchParams(location.search).get("example") === "1");
+  const [exampleMode, setExampleMode] = useState(() => !SERVER_STORAGE || new URLSearchParams(location.search).get("example") === "1");
   const [remote, setRemote] = useState<{ status: "loading" | "ready" | "absent" | "error"; context: ApprovedContext | null; message?: string }>({ status: "loading", context: null });
   const [contextAttempt, setContextAttempt] = useState(0);
   useEffect(() => {
+    if (!SERVER_STORAGE) return; // no confirmed online organization to load
     if (location.pathname.endsWith("/setup-legacy") || new URLSearchParams(location.search).get("example") === "1") {
       setExampleMode(true);
       return;
@@ -314,11 +318,15 @@ function PreviousPhaseOne() {
             <Route
               path="setup"
               element={
-                <Suspense
-                  fallback={<p role="status">Preparing organization setup…</p>}
-                >
-                  <OnlineSetup />
-                </Suspense>
+                SERVER_STORAGE ? (
+                  <Suspense
+                    fallback={<p role="status">Preparing organization setup…</p>}
+                  >
+                    <OnlineSetup />
+                  </Suspense>
+                ) : (
+                  <Navigate to="/phase1/setup-legacy" replace />
+                )
               }
             />
             <Route index element={workspace(<Home draft={draft} active={active} />)} />

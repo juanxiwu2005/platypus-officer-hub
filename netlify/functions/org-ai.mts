@@ -1,3 +1,4 @@
+import { hiddenUnlessEnabled } from "../lib/serverStorage.mts";
 import {
   v3Request,
   validateV3,
@@ -308,5 +309,6 @@ export const runSetupAi = async (req: Request, timeoutMs = 45000) => {
     if (release) await release().catch(() => {});
   }
 };
-export { startAiJob as default } from "../lib/organization/jobs.mts";
+import { startAiJob } from "../lib/organization/jobs.mts";
+export default hiddenUnlessEnabled(startAiJob);
 export const config: Config = { path: "/api/org/ai", method: ["GET", "POST"] };

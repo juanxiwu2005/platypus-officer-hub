@@ -39,7 +39,8 @@ function created(funding = false) {
   return cmd(initial(), { type: "work.create", input: { id: "event_one", kind: "member_event", name: "Fictional event", date: "2026-11-20", description: "", venue: "campus", ownerId: "leader", fundingSource: funding ? "usg" : "none", fundingCategory: "other", requestedAmount: funding ? 100 : 0 } });
 }
 const post = (body: unknown, cookie = "") => new Request("https://example.org/api/workspace", { method: "POST", headers: { origin: "https://example.org", cookie, "content-type": "application/json", "x-platypus-request": "organization-setup" }, body: JSON.stringify(body) });
-beforeEach(() => { fake.rows.clear(); fake.n = 0; fake.archiveFails = false; fake.race = false; });
+// Server storage is hidden unless ORG_SETUP_ENABLED=true (M1, 2026-10-27); these tests cover it switched on.
+beforeEach(() => { vi.stubEnv("ORG_SETUP_ENABLED", "true"); fake.rows.clear(); fake.n = 0; fake.archiveFails = false; fake.race = false; });
 
 describe("work-item task and approval semantics", () => {
   it("keeps an explicit ANY-target blocker until that target, not another alternative, resolves", () => {

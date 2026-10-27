@@ -784,7 +784,7 @@ test("consecutive browser Back gestures cannot bypass the pending save", async (
   page,
 }, info) => {
   test.skip(
-    info.project.name !== "desktop",
+    !info.project.name.startsWith("desktop"),
     "Extra desktop history entries use the sidebar; Back/Forward is tested on both sizes.",
   );
   const s = await mockedOnline(page);
@@ -1253,7 +1253,7 @@ test("actual curve connections can be added, deleted, reconnected and reject loo
   page,
 }, info) => {
   test.skip(
-    info.project.name !== "desktop",
+    !info.project.name.startsWith("desktop"),
     "Mouse connection gestures are checked on desktop; accessible connections are checked on both sizes.",
   );
   const s = await open(page);
@@ -1381,7 +1381,7 @@ test("organization reporting lines retain manual decisions after real drag, reco
   page,
 }, info) => {
   test.skip(
-    info.project.name !== "desktop",
+    !info.project.name.startsWith("desktop"),
     "Desktop pointer gestures; selects remain available on phones.",
   );
   const s = await open(page);
