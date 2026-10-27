@@ -97,3 +97,74 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 4. **文字：** 页面标题 1–2 个词；一张卡最多“标题 1 行 + 信息 1 行 + 状态色块”；原因、假设、出处放进悬停或 Help；字号不小于 14px。
 5. **字数上限（主区，`scripts/word-count.mjs` 量）：** Today ≤ 160、Events ≤ 180、Rules ≤ 170、Tasks ≤ 130、Team ≤ 130、Settings 每块 ≤ 125。新增内容超了就先删别的。
 6. **6 种任务状态与颜色全站统一：** Not claimed 灰、To do 蓝、Working on it 橙、Waiting 紫、Stuck 红、Done 绿（名称和颜色可在 Settings → Board 改，含义不变）。
+
+## 8. 分支命名与 Deploy Preview（2026-10-27 定，Juanxi 批准）
+
+改分支之前**必读这一节**。之前分支名字五花八门（`claude/platypus-perf-ui-polish-74k1ul`、`fix/setup-v3-completion`、`feat/activity-workspace-v1` 和 `feat/organization-setup-ai` 还是同一个提交的两个名字），导致没人说得清哪个分支是哪个预览。
+
+### 8.1 命名格式
+
+```
+<类型>/<短横线英文描述>
+```
+
+| 类型 | 用途 | 例子 |
+| --- | --- | --- |
+| `feat/` | 新功能 | `feat/organization-setup-ai` |
+| `fix/` | 修 bug | `fix/task-create-entry` |
+| `design/` | 视觉、设计系统、token | `design/token-scale` |
+| `docs/` | 只改文档 | `docs/audit-report` |
+| `chore/` | 依赖、CI、脚本 | `chore/stylelint` |
+| `integration/` | 集结分支，会开 PR 做预览 | `integration/v1.1-fix` |
+| `release/` | 定版候选 | `release/v1.0` |
+| `archive/` | 冻结留档，不再改 | `archive/v0.1-2026-10-21` |
+
+**硬性要求：**
+
+1. 全小写，单词之间用 `-`。不用下划线、不用中文、不用大写字母。
+2. **不准带 AI 的名字，不准带随机串。** `claude/xxx-74k1ul` 这种是反面教材。
+3. 一个分支只做一件事。做完就合并、然后删掉。
+4. 描述用名词或动词短语，三到五个词，让人一眼看出在做什么。
+
+### 8.2 ⚠️ 开着 PR 的分支不准改名，也不准删
+
+**Deploy Preview 的编号就是 PR 的编号**（`deploy-preview-3` ↔ PR #3）。
+
+在 GitHub 上，**改名 = 新建 + 删除**。而删掉一个分支会连带关闭用到它的 PR：
+
+- 删掉 PR 的 **head 分支** → 那个 PR 被关闭
+- 删掉 PR 的 **base 分支** → 那个 PR 也被关闭
+
+PR 一关，它的 Deploy Preview 网址就作废，而且**重开会拿到一个新编号，旧网址回不来**。
+
+**所以：先合并或关闭 PR，再改名或删除。** 顺序反了就救不回来。
+
+每次动分支前先跑一遍，确认它没有被任何 PR 用到：
+
+```
+gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
+  --jq '.[] | "PR #\(.number): head=\(.head.ref)  base=\(.base.ref)"'
+```
+
+### 8.3 当前的分支（2026-10-27）
+
+| 分支 | 是什么 | 能不能动 |
+| --- | --- | --- |
+| `main` | 正式网站。推上去就上线 | 只有 Juanxi 批准才能合并（见第 3 节规则 4）|
+| `v1` | 内容和 `main` 相同 | ❌ **不能删不能改名** —— 它是 PR #2 和 #3 的 base，删了会关掉 Deploy Preview 3 |
+| `integration/v1.1-fix` | **Deploy Preview 4**（PR #4）= main + S1/S2/S3 修复 | ❌ 改名会毁掉 DP4 |
+| `feat/organization-setup-ai` | **Deploy Preview 3**（PR #3）= v1 + `src/phase1/` + `src/organization/` + `src/workspace/` | ❌ 改名会毁掉 DP3 |
+| `feat/ai-native-phase1` | Deploy Preview 2（PR #2）| ❌ 改名会毁掉 DP2 |
+
+**Juanxi 重点关注的是 DP3 和 DP4，合并方案见 `docs/EXECUTION_PLAN_2026-10-27.md`。**
+
+### 8.4 以后新开分支
+
+从 `integration/v1.1-fix` 开，不要从 `main` 开：
+
+```
+git fetch origin
+git checkout -b fix/<描述> origin/integration/v1.1-fix
+```
+
+做完推自己的分支，**不要自己合并**。Juanxi 在 GitHub 上看过再合。

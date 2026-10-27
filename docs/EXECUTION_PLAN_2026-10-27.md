@@ -1576,3 +1576,162 @@ AGENTS.md 第 3 节规则 4：main 就是正式网站，只有 Juanxi 批准才�
 如果 Phase 3 会话里 AI 要真的回答学生的问题，**这件事必须在 11/9 之前实测，而且不能用模拟结果冒充**（`AI_TESTS.md` 自己定了这条规矩）。我把它放在 S9 里，但**它可能需要单独一个会话**，因为它依赖你在 Netlify 上补填 key 并重新部署，而且可能会发现新问题。
 
 → 建议：**在 11/4 关掉访问保护之后立刻做真实 AI 实测**，不要留到 11/8。如果那时发现 AI 回答质量有问题，你还有 4 天可以调提示词。
+
+---
+
+# 第 8 节 · DP3 × DP4 合并（2026-10-27 新增，Juanxi 指定的当前重点）
+
+## 8.1 两个预览分别是什么
+
+**Deploy Preview 的编号 = PR 的编号。**
+
+| | PR | 分支 | 内容 | 相对 `main` |
+| --- | --- | --- | --- | --- |
+| **DP4** | #4 | `integration/v1.1-fix` | main + S1/S2/S3 修复（权限入口、安全数据、性能质感）| +2,446 行 |
+| **DP3** | #3 | `feat/organization-setup-ai` | v1 + `src/phase1/` + `src/organization/`（Setup v3）+ `src/workspace/` | +29,773 行 |
+
+DP3 是"纯白色"的，因为它那 4,567 行独立 CSS（`phase1.css` / `organization.css` / `setupV3.css`）**没有实现深色模式**。Juanxi 说他更喜欢浅色（第 1.5 节），所以这一点是巧合的加分项，不是设计。
+
+`v1` 的内容和 `main` 相同，所以 **DP3 和 DP4 的共同祖先就是 main**。
+
+## 8.2 试合并的真实结果（2026-10-27 实跑）
+
+把 DP3 合进 DP4：
+
+```
+130 个文件自动合并成功
+ 11 个文件冲突
+```
+
+**冲突全部是小冲突。** 逐个核对：
+
+| 文件 | 冲突块 | 性质 | 代价 |
+| --- | --- | --- | --- |
+| `netlify/functions/{ask,chat,command,handbook-draft,nudge-draft}.mts` | 各 1 处 | **同一个参数两个名字**：S2 加的 `endpoint: "ask"`（用量日志）vs DP3 的 `task: "ask"`（模型路由）| 每个一行 |
+| `netlify/functions/{classify,parse-brief,plan-draft}.mts` | 0 | **删除/修改冲突**：S2 删了它们，DP3 只是改了上面那一行。已核实 DP3 的 `src/` 和 `public/` **完全不引用**这三个端点 | 直接接受删除 |
+| `netlify/lib/ai.mts` | 2 处 | DP3 的 `ChatJSONArgs` / `ChatJSONResult` 是 S2 版本的**严格超集** | 取 DP3 的类型，把 S2 的日志调用重新挂上去 |
+| `src/main.tsx` | 1 处 | S1 的 ErrorBoundary + 主题切换 vs DP3 的 `phase1` 路由 import。**两个都要，交错即可** | 10 分钟 |
+| `docs/PROGRESS.md` | 1 处 | 两边各自追加了交接记录 | 两条都留 |
+
+## 8.3 一个"取长补短"的发现
+
+S2 做 A8(e) 用量日志时，只能记到 provider / model / 耗时 —— 因为当时的 `ChatJSONResult` 没有 token 数。
+
+**DP3 的 `ChatJSONResult` 已经带了 S2 想要而拿不到的全部字段：**
+
+```ts
+inputTokens, outputTokens, finishReason, headersMs,
+requestedModel, reasoningEffort, servedReasoningEffort, routingVersion,
+inputChars, outputChars
+```
+
+→ **合并之后，S2 的成本监控会直接变完整**，不用额外做事。这是 DP3 补 DP4 的一处。
+
+反过来 DP4 补 DP3 的：ErrorBoundary、数据导出与交互日志、限流、主题切换、零延迟悬停、预测只算一次、表单焦点样式 —— DP3 一样都没有。
+
+## 8.4 结论：这是一次会话能做完的合并，不是几天的工程
+
+11 个冲突里，**8 个是一行或零行**，真正要动脑的只有 `ai.mts`（两处类型定义）和 `main.tsx`（交错两段代码）。
+
+**预计 2–4 小时，一个会话。**
+
+⚠️ 但合并只解决**代码**。合并之后 DP3 的界面仍然是它自己那 4,567 行 CSS，和主应用不是一套视觉。视觉统一是另一件事，见 8.6。
+
+## 8.5 合并会话的提示词（M1）
+
+```
+你负责把 Platypus 的两个 Deploy Preview 合并成一个版本。项目负责人 Juanxi 不写代码。
+
+先读（必读）：
+1. AGENTS.md —— 全文，特别是第 3 节硬性规则和**第 8 节分支规范**
+2. docs/EXECUTION_PLAN_2026-10-27.md 第 8 节 —— 试合并的完整结果，你的工作说明书
+3. docs/AUDIT_2026-10-27.md —— 背景
+4. docs/organization/V3_CHANGELOG.md（在 DP3 分支上）—— DP3 做了什么
+
+## 背景
+
+DP4 = integration/v1.1-fix（PR #4）= main + S1/S2/S3 修复
+DP3 = feat/organization-setup-ai（PR #3）= v1 + src/phase1/ + src/organization/ + src/workspace/
+
+已实跑试合并：130 个文件自动合并成功，11 个冲突，全部是小冲突。
+
+⚠️ 第 8.2 节有每一个冲突的性质和解决方向，照着做，不要自己重新判断。
+
+开始前：
+  git fetch origin
+  git checkout -b integration/dp3-dp4-merge origin/integration/v1.1-fix
+  npm ci
+  git merge --no-ff origin/feat/organization-setup-ai
+
+⚠️ 绝对不要改名或删除 integration/v1.1-fix、feat/organization-setup-ai、
+  feat/ai-native-phase1、v1 这四个分支。它们带着 PR #2/#3/#4，
+  动了会关闭 PR 并永久毁掉 Deploy Preview 网址（AGENTS.md 第 8.2 节）。
+
+## 逐个解决冲突
+
+1. 5 个 netlify 函数的 `endpoint:` vs `task:` ——
+   **统一用 DP3 的 `task`**（它是 AiTask 类型，参与模型路由，信息更多），
+   然后把 S2 的用量日志改成读 `task`。
+
+2. classify.mts / parse-brief.mts / plan-draft.mts 的删除/修改冲突 ——
+   **接受 S2 的删除**。已核实 DP3 的 src/ 和 public/ 完全不引用这三个端点。
+   删完后全仓库再 grep 一次确认没有引用残留。
+
+3. netlify/lib/ai.mts ——
+   **取 DP3 的 ChatJSONArgs / ChatJSONResult**（是 S2 版本的严格超集），
+   再把 S2 的用量日志调用挂回去。
+   → 顺带把日志补全：DP3 的返回值带了 inputTokens / outputTokens /
+     finishReason / headersMs，S2 当初拿不到。现在记上。
+   → ⚠️ 日志里绝对不能出现 key、token 字符串、用户内容。
+
+4. src/main.tsx ——
+   S1 的 ErrorBoundary + clearSavedDemo + 主题切换（A11）和 DP3 的 phase1 路由
+   **两个都要**。交错写，不要二选一。
+   → ErrorBoundary 必须包住 phase1 路由（DP3 自己没有 ErrorBoundary）。
+
+5. docs/PROGRESS.md —— 两边的交接记录都保留，按日期倒序排。
+
+## 合并之后必做
+
+- npm run check 全绿。⚠️ DP3 带了自己的测试（organization.test.ts、setupV3.test.ts、
+  phase1.test.ts、server.test.ts 等），它们现在也要全过。
+- 人工走一遍 **两条线**：
+  (a) 主应用：Today / Events / Tasks / Team / Funding / Handoff / Partners / Rules / Settings
+  (b) DP3 的线：/#/phase1/ 的五章 onboarding（章程 → 团队 → 职责 → 活动流程 → Review）
+- ⚠️ Juanxi 更喜欢**浅色模式**。两条线都要在浅色下检查。
+- 确认 S1 的主题切换对 /#/phase1/ 也生效；如果不生效（DP3 有自己的 CSS，
+  可能没接 data-theme 钩子），**记进交接记录**，不要现在改 —— 那是视觉统一的工作。
+
+## 要向 Juanxi 报告的三件事
+
+1. **服务器存储**：DP3 有 netlify/lib/organization/storage.mts（服务器端存组织配置，
+   私有工作区保留 7 天）。这和主应用「数据只在浏览器」的前提不同。
+   → 明确告诉 Juanxi：**这件事有 IRB 含义，他周四交材料前必须知道。**
+2. **两套 onboarding 并存**：主应用有 src/pages/Setup.tsx（五步设置），
+   DP3 有五章 onboarding，功能重叠。**不能两个都给 Phase 3 参与者看。**
+   列出两者的差别，让 Juanxi 选一个。
+3. **AI 供应商**：DP3 的 modelPolicy 用 Gemma 4 31B / Muse / GLM 5.3 三款路由，
+   而主应用用 DeepSeek。合并后实际会用哪个？环境变量怎么配？
+   → 查清楚并写进 docs/AI_SETUP.md。
+
+## 结束时
+
+1. docs/PROGRESS.md 交接记录加一行
+2. 提交信息：[M1][Claude] 简短说明
+3. git push -u origin integration/dp3-dp4-merge
+4. **开一个新的 draft PR**（base 用 main），这样 Juanxi 能拿到一个新的 Deploy Preview
+   同时看到合并后的效果。**不要关闭或修改 PR #2 / #3 / #4。**
+5. 不要合并到 main。
+6. 用简单中文向 Juanxi 汇报，告诉他新预览的网址，以及上面那三件要他决定的事。
+```
+
+## 8.6 合并之后还剩什么（视觉统一）
+
+合并只解决代码共存。DP3 的界面仍然是它自己那 4,567 行 CSS。
+
+**便宜的做法（建议）：** 等 S5 的 token 表做完，让 DP3 的三个 CSS 文件改成消费同一套 token
+（字号、间距、圆角、状态色、浅深色）。不碰那 5,200 行 TSX。结果不会像素级一致，但会
+明显是同一个产品。这应该排成 **S5b**，在 S5 之后。
+
+**贵的做法（Phase 3 之后再说）：** 写 DP3 组织配置 → 主应用 `DemoState` 的适配器，
+把五章 onboarding 用主应用的 5 个组件重做。这是 v1.5 的工作量。
