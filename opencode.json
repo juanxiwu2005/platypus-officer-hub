@@ -1,0 +1,158 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "external_directory": "deny",
+    "read": {
+      "*": "allow",
+      ".env": "deny",
+      ".env.*": "deny",
+      "*/.env": "deny",
+      "*/.env.*": "deny"
+    },
+    "edit": {
+      "*": "allow",
+      ".env": "deny",
+      ".env.*": "deny",
+      "*/.env": "deny",
+      "*/.env.*": "deny",
+      ".git/**": "deny",
+      "AGENTS.md": "deny",
+      "package.json": "deny",
+      "package-lock.json": "deny",
+      "opencode.json": "deny",
+      ".github/**": "deny",
+      "netlify.toml": "deny"
+    },
+    "bash": {
+      "*": "deny",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "git branch --show-current*": "allow",
+      "npm test*": "allow",
+      "npm run build*": "allow",
+      "npm run e2e*": "allow",
+      "npm run check*": "allow",
+      "npx playwright test*": "allow"
+    }
+  },
+  "agent": {
+    "backend-coder": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          "AGENTS.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        },
+        "bash": {
+          "*": "deny",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git branch --show-current*": "allow",
+          "npm test*": "allow",
+          "npm run build*": "allow",
+          "npm run e2e*": "allow",
+          "npm run check*": "allow",
+          "npx playwright test*": "allow"
+        }
+      }
+    },
+    "frontend-coder": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          "AGENTS.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        }
+      }
+    },
+    "api-designer": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          "AGENTS.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        }
+      }
+    },
+    "quick-draft": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          "AGENTS.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        },
+        "bash": {
+          "*": "deny",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git branch --show-current*": "allow",
+          "npm test*": "allow",
+          "npm run build*": "allow",
+          "npm run e2e*": "allow",
+          "npm run check*": "allow",
+          "npx playwright test*": "allow"
+        }
+      }
+    },
+    "docs-writer": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          "AGENTS.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        }
+      }
+    }
+  }
+}
