@@ -12,9 +12,13 @@ export async function openDemoMenu(page: Page) {
   const reset = page.getByTestId("reset-demo")
   if (!(await reset.isVisible())) await page.getByTestId("demo-menu").click()
 }
+/** Reset asks once (Layout.tsx): the first click arms the button, the second one wipes the demo. */
 export async function resetDemo(page: Page) {
   await openDemoMenu(page)
-  await page.getByTestId("reset-demo").click()
+  const reset = page.getByTestId("reset-demo")
+  await reset.click()
+  await expect(reset).toHaveText("Click again to reset")
+  await reset.click()
 }
 export async function demoClock(page: Page, days: 1 | 3 | 10) {
   await openDemoMenu(page)
