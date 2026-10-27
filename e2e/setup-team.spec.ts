@@ -152,15 +152,8 @@ test("task dates remain visible while another officer's buffer explanation stays
   await expect(panel).toContainText("Maya's personal buffer")
 })
 
-/**
- * Audit §5.1 — PINNED, NOT FIXED. `.hover-card` sets `pointer-events: none` and the show rule
- * (styles.css:472) never restores it, so the buttons inside the contribution board's hover card
- * cannot be clicked at all. The fix is one CSS declaration, but styles.css belongs to S3, and the
- * only other places to patch it (components/ui/index.tsx, pages/Team.tsx) are outside S1's files.
- * S3: add `pointer-events: auto` to the `.hover:hover > .hover-card, .hover:focus-within > ...`
- * rule, then delete this line to turn the test on.
- */
-test.fixme("the contribution board drills down from its hover card", async ({ page }) => {
+/** Audit §5.1: buttons inside a hover card can be clicked (fixed in S3: styles.css restores pointer-events). */
+test("the contribution board drills down from its hover card", async ({ page }) => {
   await page.goto("/#/team")
   const row = page.getByTestId("contribution-board").locator("tr").filter({ hasText: "done" }).first()
   await row.getByText("done").hover()
