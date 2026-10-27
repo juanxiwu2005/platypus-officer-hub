@@ -1735,3 +1735,173 @@ DP3 = feat/organization-setup-ai（PR #3）= v1 + src/phase1/ + src/organization
 
 **贵的做法（Phase 3 之后再说）：** 写 DP3 组织配置 → 主应用 `DemoState` 的适配器，
 把五章 onboarding 用主应用的 5 个组件重做。这是 v1.5 的工作量。
+
+---
+
+# 第 9 节 · Juanxi 的四个决定与 DP3→DP4 整合（2026-10-27 晚）
+
+## 9.1 四个决定
+
+| # | 决定 | 影响 |
+| --- | --- | --- |
+| 1 | **DP3 的服务器存储不删，隐藏起来** | `netlify/lib/organization/storage.mts` 和 `org-*` 函数保留，但参与者路径不可达。**见 9.2 的 IRB 要求** |
+| 2 | **两套 onboarding 合一**：把 DP3 的 onboarding 整合进 DP4 | 最大的一块，见 9.4 |
+| 3 | **AI 不用 DeepSeek，改用 DP3 的路由**（Gemma 4 31B / Muse / GLM 5.3）。Juanxi：已测过，返回最快 | 见 9.3 |
+| 4 | **保留 DP4 的地铁线路图**，不要 DP3 的流程图。Juanxi：「很整洁，像地铁线路图一样，比 DP3 的更好」 | 直接决定了 9.4 的一处冲突怎么解 |
+
+Juanxi 的未来计划（**不是现在做**）：让 setting 和 onboarding 也用同一套地铁线路图样式，并且让用户能自己改。
+
+## 9.2 ⚠️「隐藏」必须定义清楚，否则 IRB 会出问题
+
+「隐藏」不能只是「界面上不放入口」。只要 `org-setup.mts` / `org-archive.mts` 这些端点还在公网上活着，它就仍然是一个**能接收并存储数据的服务器**。
+
+**隐藏 = 三件事同时做到：**
+
+1. **界面上没有任何路径能走到它**（参与者点不到）
+2. **端点在生产环境直接拒绝**：读一个环境变量（例如 `ORG_SETUP_ENABLED`），没开就返回 404 或 403，不执行任何存储逻辑
+3. **代码和测试全部保留**，随时能开回来
+
+做到这三条，Juanxi 的 IRB 材料里就**不需要**写「服务器存储组织配置」—— 因为参与者的数据确实不会到服务器上。
+
+❌ 只做第 1 条是不够的。那种情况下 protocol 必须写上服务器存储，否则就是 protocol 和实际不符。
+
+**这一条必须在周四交 IRB 之前确认做到。**
+
+## 9.3 AI 供应商切到 DP3 路由
+
+DP3 的 `src/organization/modelPolicy.ts` 定义三档路由：
+- **Gemma 4 31B** —— 较长的结构化设置任务
+- **Muse** —— 短对话和编辑
+- **GLM 5.3** —— 只在用户主动要求 Deeper review 时
+
+⚠️ DP3 自己的文档（`docs/organization/V3_CHANGELOG.md`）写着：「选型不是已证明的性能排名」。Juanxi 说实测返回最快，**以他的实测为准**，但不要在论文里把它写成「已验证的性能排名」。
+
+**要做的：**
+- 主应用的 `/api/chat`、`/api/ask`、`/api/nudge/draft`、`/api/handbook/draft` 全部改走 DP3 的路由
+- 把 `task` 参数（`AiTask`）接到这四个端点上，让路由能选对模型
+- 更新 `docs/AI_SETUP.md`：环境变量怎么配、怎么换回 DeepSeek
+- ⚠️ `AGENTS.md` 第 3 节规则 5 写着「开发时用 DeepSeek，有真实参与者的 Phase 3 必须用 ASU AIR（或 IRB 批准的供应商）」。
+  **换供应商要确认新模型是否在 IRB 批准范围内。这是 Juanxi 要和 Marcie 确认的事，不是 AI 能决定的。**
+
+## 9.4 ⭐ 核心问题：两套数据模型到底能不能对上
+
+Juanxi 问的「最关键的是合并时的那些变量、组件究竟能不能做好适配」。逐字段核对结果：
+
+### ✅ 能干净对上的（直接映射）
+
+| DP3 | 主应用 | 说明 |
+| --- | --- | --- |
+| `OrgRole.id` | `Role.id` | DP3 专门做了稳定岗位 ID，正好 |
+| `OrgRole.title` | `Role.displayName` | ✅ |
+| `OrgRole.description` | （新增字段）| 低风险 |
+| `RaciRow.responsible` | `Node.ownerId` | ✅ |
+| `RaciRow.accountable` | `Node.approverRoleId` | ✅ |
+| `RaciRow.consulted` | `Node.consultedRoleIds` | ✅ |
+| `RaciRow.informed` | `Node.informedRoleIds` | ✅ |
+| `FlowNode.dependsOn` | `Node.dependsOn` | ✅ |
+| `FlowNode.title` | `Node.title` | ✅ |
+
+**RACI 这一组是近乎一比一的，这是最大的好消息。**
+
+### ⚠️ 五处真冲突，每一处都要一个决定
+
+**① `departmentId` vs `RoleFunction` —— 两条不同的分类轴**
+
+DP3 按**部门**分（Programs & Planning / Event Logistics / Finance / Marketing & Communication / Outreach & Partnerships / Leadership & Records，6 个）。
+主应用按**职能枚举**分（`RoleFunction`：president / vice_president / treasurer / …）。
+
+主应用的**流程模板、流程图泳道、岗位手册目录**全都挂在 `RoleFunction` 上。
+
+→ **不是一一对应**，需要一张映射表，而且会有多对一。
+→ 决定：**保留 `RoleFunction` 作为主键**（引擎依赖它），把 `departmentId` 作为附加标签存下来，用于分组显示和颜色。两个都留，不要二选一。
+
+**② `FlowNode.position{x,y}` 手动坐标 vs 地铁图自动布局 —— Juanxi 已经选了**
+
+主应用的地铁图 `src/components/flow/metro.ts` 是**纯布局算法**（有单元测试），不存坐标。
+DP3 的 `FlowEditor.tsx`（397 行）让用户拖节点，把 x/y 存进数据。
+
+**Juanxi 明确说喜欢地铁图、不要 DP3 的流程图。**
+
+→ 决定：**导入时丢弃 `position`，用 `metro.ts` 自动布局**。DP3 的 `FlowEditor.tsx` 不迁移。
+→ 他说的"未来让用户能自己改"，正确做法不是回到手动坐标，而是**让用户改顺序和依赖，布局仍然自动算**。记进未来计划，现在不做。
+
+**③ `dependencyMode: "all" | "any"` —— 引擎不认识 "any"**
+
+主应用的 `topoOrder()` 和 `computeSchedule()` 只支持「全部上游完成才能开始」。
+
+→ 决定：**导入时只接受 `all`**。遇到 `any` 就拒绝并明确告诉用户，不要悄悄当成 `all`。
+→ ⚠️ **不要为此改引擎。** `src/engine/` 是全项目测试最密、最有论文价值的代码，改它的风险远大于收益。
+
+**④ 日期：`FlowNode.timing` vs「只有引擎能算日期」的铁律**
+
+`AGENTS.md` 第 3 节规则 3 是整个项目的核心原则。DP3 的 `timing: RelativeTargetSchema` 是相对目标。
+
+→ 决定：DP3 的 `timing` 只能翻译成主应用的 **`Node.anchor`（rule/target/fixed/followup）+ 流程模板里的提前量**，然后交给 `schedule.ts` 算。
+→ **任何情况下都不能把 DP3 的 timing 直接写成三个日期字段。**
+
+**⑤ DP3 没有「人」的概念**
+
+DP3 的 onboarding 产出的是**岗位**（`OrgRole`），不是人。
+而主应用的权限（`canLead`）、通知、工作量、提醒、贡献榜**全部挂在 `Person` 上**。
+
+→ 决定：整合后的 onboarding 必须**多一步「谁担任每个岗位」**。可以沿用主应用现有的 `Join.tsx` 五问，或者在 DP3 的「团队」那一章后面加一屏。
+→ 这一步不能省，省了之后整个 Tasks / Team / Today 都没数据。
+
+### ❌ 不迁移的
+
+| DP3 的东西 | 为什么不迁 |
+| --- | --- |
+| `FlowEditor.tsx`（手动拖拽流程图）| Juanxi 选了地铁图 |
+| `phase1.css` / `organization.css` / `setupV3.css`（4,567 行）| 第三套设计系统。UI 要用主应用的 5 个组件重做 |
+| `src/workspace/`（Activity workspace）| Juanxi 没要求过，和 Events/Tasks 页职责重叠。**先不动，留在分支上** |
+| `OrgAction` → `Node` | 概念不同：Action 是没有日期的职责条目，Node 是有三个截止日的任务。Action 更适合变成**流程模板**，不是任务 |
+
+## 9.5 AI「很笨」的确切原因（已定位）
+
+Juanxi：「我想设置一个 executable task，它不能理解，就帮我完全套用了 event workflow。」
+
+**原因有三层，全部在提示词和正则里，不是模型不行。**
+
+**① 系统提示词严重偏向活动**（`src/lib/chatCards.ts`）
+
+```
+{"kind":"form","intent":"plan_event", ...} whenever the user wants to
+   plan, host or organize a NEW event.
+```
+「organize」这个词太宽。而 `add_node`（建单个任务）被埋在「Shown for approval first」的列表里，**完全没有说明什么时候该用它、什么时候该用活动表单**。
+
+**② 四个示例里，零个是建单个任务**
+
+第一个示例就是「I want to plan a mixer」→ 活动表单。模型看到的全部示例都在教它「用户想做事 = 办活动」。
+
+**③ 本地正则接不住**（`src/lib/commands.ts:143`）
+
+```js
+/^(?:add|create) (?:a )?(?:task|node|step)\s*[:：]?\s*(.+)/i
+```
+必须以 `add` 或 `create` 开头，且紧跟 task/node/step。
+所以 `I want to set up an executable task…` **不匹配**，直接落给 AI，而 AI 的先验是活动。
+
+**④ 还有一道隐藏的坎**：`src/data/changeReview.ts:18` 规定没有 `eventId` 的 `add_node` **必须先确认一个日期**，而默认日期是空的。所以就算 AI 想对了，用户点 Apply 还是会报错。
+
+### 修法（都很便宜）
+
+1. 提示词里加一段**明确的二选一判断**：
+   - 用户要办一场**有日期、有场地、有预算的活动** → `plan_event` 表单
+   - 用户要的是**一件独立的事**（不属于任何活动）→ `add_node`，`eventId: null`
+   - 不确定 → 按第 2 条规则问一个问题，不要猜
+2. **补两个 `add_node` 的示例**进提示词，其中一个明确是独立任务
+3. **放宽本地正则**：接住 `set up a task` / `I want to create a task` / `new task` / `make a task` / `add an executable task`
+4. **给独立任务一个默认日期**（例如 `addDays(today, 7)`），不要让用户面对一个空白必填框
+
+## 9.6 分三个会话做，不要一次做完
+
+| 会话 | 做什么 | 模型 | 什么时候 |
+| --- | --- | --- | --- |
+| **M1** | 机械合并 + 切 AI 路由 + 隐藏服务器存储 | **Opus 5.5** | 现在，周四前 |
+| **M2** | 修 AI 的理解力（独立任务 vs 活动）| **Opus 5.5** | M1 之后，周四前 |
+| **M3** | onboarding 合一（写适配器 + 用主应用组件重做 UI）| **Opus 5.5** | **周四之后**，IRB 等待期 |
+
+**为什么 M3 排在周四之后：** 它要写一个跨两套数据模型的适配器，还要处理 9.4 里那五处冲突，再把五章 onboarding 用主应用的组件重做。这不是两天的活，赶出来会比现在两边都差。
+
+而 IRB 材料描述的是**研究怎么做**，不是每一个像素。M1 + M2 做完，原型就是功能完整、不出丑、响应快的，足够交材料。
