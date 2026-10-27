@@ -26,7 +26,9 @@ function cleanData(value: unknown, depth = 0): unknown {
  */
 export default async (req: Request) => {
   try {
-    const body = await readJSON(req, 40_000)
+    // Room for a busy club's full snapshot (the demo club is about 30 KB). Over this, Ask falls back to
+    // local keyword answers. Juanxi 2026-10-27: 128 KB, not 40 KB.
+    const body = await readJSON(req, 128_000)
     const message = str(body.message, 1000)
     if (!message) throw new BadRequest("Please type a message.")
     const c = body.context as Record<string, unknown> | undefined

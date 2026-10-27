@@ -16,8 +16,11 @@ describe("A8(a) · request size", () => {
   it("/api/chat answers a normal request", async () => {
     expect((await chatFn(post(ask))).status).toBe(200)
   })
-  it("/api/chat refuses anything over 40,000 characters", async () => {
-    const r = await chatFn(post({ ...ask, padding: "x".repeat(40_000) }))
+  it("/api/chat accepts a large club's snapshot (about 100 KB)", async () => {
+    expect((await chatFn(post({ ...ask, padding: "x".repeat(100_000) }))).status).toBe(200)
+  })
+  it("/api/chat refuses anything over 128,000 characters", async () => {
+    const r = await chatFn(post({ ...ask, padding: "x".repeat(128_000) }))
     expect(r.status).toBe(400)
     expect((await r.json()).message).toBe("Request is too large.")
   })
