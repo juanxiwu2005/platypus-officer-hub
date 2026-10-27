@@ -100,12 +100,40 @@ async function post(url: string, headers: Record<string, string>, body: unknown,
   }
 }
 
-export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number }
+export type ChatJSONArgs = { system: string; user: string; maxTokens?: number; temperature?: number; endpoint?: string }
 export type ChatJSONResult = { data: unknown; model: string; provider: string; ms: number }
 
+type Usage = { inputTokens?: number; outputTokens?: number }
+const count = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : undefined)
+
+/**
+ * One usage line per AI call, written to the function log (Netlify → Logs). Only fixed fields go in:
+ * which endpoint, which provider/model, token counts if the provider reported them, time taken, and whether it worked.
+ * Never the key, the request, the prompt or the reply: this is a bill-and-abuse record, not a transcript.
+ */
+export function logUsage(line: { endpoint?: string; provider: string; model: string; ok: boolean; ms: number; error?: string } & Usage) {
+  const safe = (v: string | undefined, max: number) => String(v ?? "").replace(/[^\w.:/ -]/g, "").slice(0, max)
+  console.log(JSON.stringify({
+    evt: "ai_usage", endpoint: safe(line.endpoint, 40) || "unknown", provider: safe(line.provider, 40), model: safe(line.model, 80),
+    inputTokens: count(line.inputTokens) ?? null, outputTokens: count(line.outputTokens) ?? null, ms: count(line.ms) ?? null, ok: line.ok, ...(line.error ? { error: safe(line.error, 40) } : {}),
+  }))
+}
+
 /** Send one system + user message and get a parsed JSON object back. */
-export async function chatJSON({ system, user, maxTokens = 700, temperature = 0 }: ChatJSONArgs): Promise<ChatJSONResult> {
+export async function chatJSON(args: ChatJSONArgs): Promise<ChatJSONResult> {
   const c = getConfig()
+  const t0 = Date.now()
+  try {
+    const { result, usage } = await callProvider(args, c)
+    logUsage({ endpoint: args.endpoint, provider: result.provider, model: result.model, ok: true, ms: result.ms, ...usage })
+    return result
+  } catch (e) {
+    logUsage({ endpoint: args.endpoint, provider: c.label, model: c.model, ok: false, ms: Date.now() - t0, error: e instanceof AIError ? e.code : "error" })
+    throw e
+  }
+}
+
+async function callProvider({ system, user, maxTokens = 700, temperature = 0 }: ChatJSONArgs, c: AIConfig): Promise<{ result: ChatJSONResult; usage: Usage }> {
   if (!isConfigured(c)) throw new AIError("not_configured", "AI is not configured on the server.", 503)
   const t0 = Date.now()
 
@@ -113,9 +141,9 @@ export async function chatJSON({ system, user, maxTokens = 700, temperature = 0 
     const { status, text } = await post(`${c.baseUrl}/v1/messages`, { "x-api-key": c.key, "anthropic-version": "2023-06-01" },
       { model: c.model, max_tokens: maxTokens, temperature, system, messages: [{ role: "user", content: user }] }, c.timeoutMs)
     if (status >= 400) throw new AIError("upstream", `AI provider error ${status}.`, status === 429 ? 429 : 502)
-    const body = JSON.parse(text) as { content?: { type: string; text?: string }[]; model?: string }
+    const body = JSON.parse(text) as { content?: { type: string; text?: string }[]; model?: string; usage?: { input_tokens?: number; output_tokens?: number } }
     const reply = (body.content ?? []).filter(b => b.type === "text").map(b => b.text ?? "").join("")
-    return { data: parseJSONReply(reply), model: body.model ?? c.model, provider: c.label, ms: Date.now() - t0 }
+    return { result: { data: parseJSONReply(reply), model: body.model ?? c.model, provider: c.label, ms: Date.now() - t0 }, usage: { inputTokens: body.usage?.input_tokens, outputTokens: body.usage?.output_tokens } }
   }
 
   // OpenAI-compatible: DeepSeek, ASU AIR, OpenAI, and most other providers.
@@ -126,7 +154,7 @@ export async function chatJSON({ system, user, maxTokens = 700, temperature = 0 
     r = await post(`${c.baseUrl}/chat/completions`, headers, base, c.timeoutMs) // provider without JSON mode: retry once without it
   }
   if (r.status >= 400) throw new AIError("upstream", `AI provider error ${r.status}.`, r.status === 429 ? 429 : 502)
-  const body = JSON.parse(r.text) as { choices?: { message?: { content?: string } }[]; model?: string }
+  const body = JSON.parse(r.text) as { choices?: { message?: { content?: string } }[]; model?: string; usage?: { prompt_tokens?: number; completion_tokens?: number } }
   const reply = body.choices?.[0]?.message?.content ?? ""
-  return { data: parseJSONReply(reply), model: body.model ?? c.model, provider: c.label, ms: Date.now() - t0 }
+  return { result: { data: parseJSONReply(reply), model: body.model ?? c.model, provider: c.label, ms: Date.now() - t0 }, usage: { inputTokens: body.usage?.prompt_tokens, outputTokens: body.usage?.completion_tokens } }
 }

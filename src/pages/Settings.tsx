@@ -1,7 +1,7 @@
 import { personalBuffer } from "../engine/schedule"
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
-import { useStore, useViewer } from "../data/store"
+import { downloadExport, useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
 import { useRail } from "../components/rail/RailContext"
 import { GoalsEditor, ProfileForm, WorkspaceEditor } from "../components/SettingsForms"
@@ -99,13 +99,14 @@ function RolesTable({ roles, onChange }: { roles: Role[]; onChange: (r: Role[]) 
 }
 
 function MySettings() {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, log } = useStore()
   const { person, role } = useViewer()
   return <section className="card form-stack" data-testid="my-settings"><MyForm key={person.id} />
     <details className="more"><summary>My planning buffer</summary>
       <p className="small">{personalBuffer(state, person).days} scheduling day(s) · only you see this. {personalBuffer(state, person).explanation}</p>
       <label className="check-label"><input type="checkbox" checked={person.retainBufferAtHandoff ?? false} onChange={e => dispatch({ type: "handoffAction", action: { kind: "retainBuffer", keep: e.target.checked } })} />Keep my personal buffer when I hand off ({role?.displayName})</label>
     </details>
+    <div className="action-row"><button type="button" className="btn" data-testid="export-data" onClick={() => downloadExport(state, log)}>Export my data</button><Info>Downloads a JSON file with your club data and a record of what you did, in order.</Info></div>
   </section>
 }
 function MyForm() {

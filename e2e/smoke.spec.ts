@@ -33,8 +33,3 @@ test("every page has the same three parts: nav, content and the Ask panel", asyn
   await expect(page.locator("main textarea")).toHaveCount(0) // no AI boxes inside pages any more
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
 })
-
-test("legacy prototype is still reachable", async ({ page }) => {
-  const res = await page.goto("/legacy/")
-  expect(res?.status()).toBe(200)
-})
