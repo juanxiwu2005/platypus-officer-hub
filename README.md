@@ -8,7 +8,7 @@ Platypus 是一个面向学生社团的 AI 运营工作台，也是 Juanxi (Stev
 
 **Night Mode Preview:** https://deploy-preview-7--platypus-officer-hub.netlify.app
 
-> 2026-10-27 状态快照：`main` 停在 `4dc55ba`；Night Mode 位于 `feat/ai-night-mode`，PR #7 是 Draft。CI 和 Deploy Preview 当时通过。后续 AI 必须重新检查 Git、PR 和 CI，不能把这条快照当成永久状态。
+> 2026-10-28 状态快照：`main` 仍停在 `4dc55ba`。`feat/ai-night-mode`（PR #7，Draft）已并入 DP5（`integration/dp3-dp4-merge`，PR #5），因此包含 S1/S2/S3 与 M1 的全部成果。2026-10-28 Night Mode 首次完整端到端跑通（编码 → 测试 → 独立 Critic → 提交 → CI → Deploy Preview → `READY_FOR_CLAUDE`）。后续 AI 必须重新检查 Git、PR 和 CI，不能把这条快照当成永久状态。
 
 ## 给人类：现在已经有什么
 
@@ -42,6 +42,15 @@ nano .nightmode/TASK.md
 node scripts/night-mode.mjs --doctor
 node scripts/night-mode.mjs --task-file .nightmode/TASK.md
 ```
+
+多个任务排队过夜（一个失败不拖垮整晚，详见 `docs/NIGHT_MODE.md` 7d）：
+
+```bash
+mkdir -p .nightmode/queue      # 把任务文件放进去，按文件名排序执行
+caffeinate -dimsu bash scripts/night-queue.sh
+```
+
+⚠️ **写任务文件之前先读 `docs/NIGHT_MODE.md` 的 7b（运行环境预算卡）和 7c（任务怎么写）。**
 
 详细的角色分工、网络权限、三轮返工、停止条件和输出文件见 [`docs/NIGHT_MODE.md`](docs/NIGHT_MODE.md)。
 

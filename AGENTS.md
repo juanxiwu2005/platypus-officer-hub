@@ -2,23 +2,53 @@
 
 这个仓库是 **Platypus** 的代码和计划：一个给学生社团用的“团队型 AI 幕僚长”网站，也是 Juanxi (Steve) Wu 的 ASU Barrett 荣誉论文（STUDY00024727）第 3 阶段的原型。几个 AI 会轮流在这里工作，所以**每次开始前先读这份文件，结束时按第 4 节交接**。
 
-## 0. 当前仓库与 Agent 工作流事实（2026-10-27 验证）
+## 0. 当前仓库与 Agent 工作流事实（2026-10-28 验证）
 
 - GitHub 正本：`juanxiwu2005/platypus-officer-hub`。
-- `main` 是 Production，当前基线提交为 `4dc55ba`。任何 AI 都不得直接修改、推送或合并 `main`。
-- 自动开发分支是 `feat/ai-night-mode`，对应从该分支到 `main` 的 Draft PR #7。Night Mode 相关改动在 PR 内，尚未进入 `main`。
-- `scripts/night-mode.mjs` 是唯一可以代表 Night Mode 做 commit、push、读取 CI 和写 PR 评论的控制器；OpenCode Agent 自己不能做这些动作。
-- 当前 Agent 映射由用户级 OpenCode 配置提供，项目级 `opencode.json` 只收紧权限。2026-10-27 验证的主要角色是：`orchestrator`（ASU `beam-1-0`）、`backend-coder`（ASU `glm-5-3`）、`frontend-coder`（ASU `glm-5-3-flash`）、`code-critic`（ASU `muse-spark-open`）、`docs-writer`（ASU `gpt-oss-120b`）、`quick-draft`（ASU `north-mini-code`）、`api-designer`（ASU `deepseek-v4-1-flash`）、`visual-critic`（ASU `qwen38-27b`）。模型配置可能变化，每次运行以 `opencode debug agents` 为准。
-- Night Mode Agent 可通过 OpenCode 调用 ASU AIR；这不等于拥有任意网页访问。项目权限默认拒绝未知 shell 命令，只允许测试和只读 Git 命令。控制器单独使用 GitHub CLI 完成 GitHub 操作。
-- 本地 `ASU_AIR_API_KEY` 只存在终端环境中；产品网站使用 Netlify 的 `AI_*` 环境变量。两者不能混为一谈，也都不能写进仓库。
-- 2026-10-27，`node scripts/night-mode.mjs --doctor` 已在 Node 22、Draft PR #7 和当前权限配置下返回 `DOCTOR PASS`；PR #7 的 GitHub CI 与 Deploy Preview 当时通过。未来 AI 必须重新验证，不能假设状态仍然相同。
-- Night Mode 的完整说明、停止条件和人工闸门见 `docs/NIGHT_MODE.md`。任何状态冲突时，先检查 Git/PR/CI，再更新文档；不要用聊天记忆覆盖仓库事实。
+- `main` 是 Production，当前基线提交仍为 `4dc55ba`。任何 AI 都不得直接修改、推送或合并 `main`。
+  **下面提到的所有改动都还没有进入 `main`。**
+- 当前有 4 个开着的 Draft PR，每个对应一个 Deploy Preview（**预览编号 = PR 编号**）：
+
+  | PR | 分支 | 是什么 | CI |
+  | --- | --- | --- | --- |
+  | #2 | `feat/ai-native-phase1` | AI-native 三画面原型 | — |
+  | #3 | `feat/organization-setup-ai` | DP3：Organization Setup v3 + workspace | 通过 |
+  | #5 | `integration/dp3-dp4-merge` | **DP5：DP3 + DP4 合并版**，AI 走 ASU AIR，服务器存储已隐藏 | 通过 |
+  | #7 | `feat/ai-night-mode` | 自动开发分支，**已并入 DP5** | 通过 |
+
+  ⚠️ 这些分支**不能改名也不能删**：删 head 或 base 分支都会关闭 PR，重开会拿到新编号，
+  旧预览网址永远回不来。`v1` 是 PR #2/#3 的 base，同样不能动。命名规则见第 8 节。
+- `scripts/night-mode.mjs` 是唯一可以代表 Night Mode 做 commit、push、读取 CI 和写 PR 评论的控制器；
+  OpenCode Agent 自己不能做这些动作。`scripts/night-queue.sh` 是多任务队列（见 `docs/NIGHT_MODE.md` 7d）。
+- **编码主力是 `backend-coder`（ASU `glm-5-3`），不是 `orchestrator`。** orchestrator 被配置为
+  禁止编辑文件和跑命令，只能派活，而派活在当前环境里会报 `Subagent session not found`。
+  原因与取舍记在 `docs/NIGHT_MODE.md` 第 2 节的变更记录里。
+- 当前预算：**300 步 / 单条命令 45 分钟 / 5 轮返工**。Agent 能跑的 shell 命令是一份白名单
+  （只读命令 + 项目自己的测试），`node`、`curl`、`python` 和复合命令一律拒绝。
+  完整清单见 `docs/NIGHT_MODE.md` **7b 运行环境预算卡 —— 写任务文件之前必须先看它**。
+- Agent 不能编辑的保护文件：`.env*`、`.git/**`、`.gitignore`、`AGENTS.md`、`docs/NIGHT_MODE.md`、
+  `package.json`、`package-lock.json`、`opencode.json`、`scripts/night-mode.mjs`、
+  `.nightmode/**`、`.github/**`、`netlify.toml`。
+  → **需要装依赖或改 CI 的任务不能走 Night Mode**，必须走普通会话。
+- Agent 的模型映射来自用户级 OpenCode 配置，项目级 `opencode.json` 收紧权限并设置 `steps`。
+  每次运行以 `opencode debug agents` 为准，不要假设某个模型永远存在。
+- Night Mode Agent 通过 OpenCode 调用 ASU AIR；这不等于拥有任意网页访问。控制器单独使用
+  GitHub CLI 完成 GitHub 操作。
+- 本地 `ASU_AIR_API_KEY` 只存在终端环境中；产品网站使用 Netlify 的 `AI_*` 环境变量。
+  两者不能混为一谈，也都不能写进仓库。
+- **2026-10-28，Night Mode 首次完整端到端跑通**：编码 → `npm run check` → 独立 Critic
+  `APPROVED` → 提交推送 → GitHub CI 通过 → Deploy Preview → `READY_FOR_CLAUDE`。
+  在此之前连续五次停在编码阶段，根因与修法全部记在 `docs/NIGHT_MODE.md`。
+  未来 AI 必须重新验证，不能假设状态仍然相同。
+- 状态冲突时，先检查 Git/PR/CI，再更新文档；不要用聊天记忆覆盖仓库事实。
 
 ## 1. 先读什么（按顺序）
 
 1. `docs/PROGRESS.md` —— 现在做到哪了、谁在做、下一步是什么。
 2. `docs/PRODUCT_PLAN.md` —— 已批准的产品计划 v1.0（唯一正本）。工作包和验收标准在第 13 节，范围和砍单顺序在第 12 节。
 3. 若任务使用自动开发，读 `docs/NIGHT_MODE.md` 和任务文件 `.nightmode/TASK.md`。
+   **写任务文件之前必须先读 `docs/NIGHT_MODE.md` 的 7b（运行环境预算卡）和 7c（任务怎么写）** ——
+   2026-10-27 晚五次失败里有四次，根因都是给没量过的运行环境写指令。
 4. 按任务再读：`docs/RULES.md`（ASU 规则库）、`docs/SEO_PLAYBOOK_REFERENCE.md`（流程模板来源）、`docs/AI_SETUP.md`（产品 AI 供应商怎么切换）。
 
 ## 2. 关于项目负责人
@@ -163,7 +193,7 @@ gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
   --jq '.[] | "PR #\(.number): head=\(.head.ref)  base=\(.base.ref)"'
 ```
 
-### 8.3 当前的分支（2026-10-27）
+### 8.3 当前的分支（2026-10-28）
 
 | 分支 | 是什么 | 能不能动 |
 | --- | --- | --- |
@@ -172,9 +202,16 @@ gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
 | `integration/v1.1-fix` | **Deploy Preview 4**（PR #4）= main + S1/S2/S3 修复 | ❌ 改名会毁掉 DP4 |
 | `feat/organization-setup-ai` | **Deploy Preview 3**（PR #3）= v1 + `src/phase1/` + `src/organization/` + `src/workspace/` | ❌ 改名会毁掉 DP3 |
 | `feat/ai-native-phase1` | Deploy Preview 2（PR #2）| ❌ 改名会毁掉 DP2 |
+| `feat/ai-night-mode` | **Deploy Preview 7**（PR #7）= DP5 + Night Mode 工具链 | ❌ 改名会毁掉 DP7 |
 | `integration/dp3-dp4-merge` | **Deploy Preview 5**（PR #5）= DP4 + DP3 合并版（M1）：AI 走 AIR、服务器存储隐藏 | ❌ 改名会毁掉 DP5 |
 
-**Juanxi 重点关注的是 DP3 和 DP4，合并方案见 `docs/EXECUTION_PLAN_2026-10-27.md`。**
+**Juanxi 重点关注 DP3 和 DP4，合并方案见 `docs/EXECUTION_PLAN_2026-10-27.md` 第 8–10 节。**
+DP5（PR #5）是两者的合并版，CI 已通过，是最接近「下一个上线版本」的分支。
+
+⚠️ 另有 6 个内容已被完全包含、且没有 PR 的冗余分支待删：
+`fix/s1-ux-bugs`、`fix/s2-safety`、`fix/s3-perf`、`claude/platypus-perf-ui-polish-74k1ul`、
+`fix/setup-v3-completion`、`feat/activity-workspace-v1`。
+删除要由 Juanxi 在 GitHub 的 Branches 页面操作（云端会话的删除接口被代理禁止）。
 
 ### 8.4 以后新开分支
 
