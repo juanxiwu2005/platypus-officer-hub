@@ -24,11 +24,41 @@ Night Mode 让一组 ASU AIR Agent 在受保护的功能分支完成一个**已�
 | --- | --- | --- |
 | Juanxi | 批准任务范围；最后验收；决定是否合并 | 不需要写代码 |
 | Claude / 人工 Reviewer | 在 `READY_FOR_CLAUDE` 后检查 diff、预览和风险 | 不能把自动通过等同于合并批准 |
-| `orchestrator` | 读取任务，选择合适的编码 Agent，组织最小实现与返工 | 不能 commit、push、merge、改保护文件 |
-| 编码 Agent | 按分工改源代码和测试 | 不能访问项目外目录、密钥、部署或依赖配置 |
+| 编码 Agent（`CODING_AGENT`，当前 `backend-coder`） | 读取任务，自己改源代码和测试，跑白名单内的测试 | 不能 commit、push、merge、改保护文件，不能访问项目外目录、密钥、部署或依赖配置 |
 | `code-critic` | 独立只读 Review，输出 `APPROVED` 或 `REJECTED` | 不能修改文件 |
 | Night Mode 控制器 | 自检、完整测试、生成 review patch、最多三轮返工、commit、push、等待 CI、写 PR 评论 | 不能 merge 或部署 Production |
 | GitHub CI | 在 Ubuntu 24.04 / Node 22 上重新安装依赖并运行构建、单元和 Playwright 测试 | 不调用真实收费/ASU 模型，不证明模型回答质量 |
+
+### 2026-10-28 变更：编码主力从 `orchestrator` 换成 `backend-coder`
+
+**原因（实测，不是推测）：** 2026-10-27 晚两次运行都停在编码阶段，报错一致：
+
+```
+✗ Dead CSS cleanup + Empty swap failed
+Error: Subagent session not found: ses
+```
+
+`opencode debug agents` 显示 `orchestrator` 的权限里 `edit: * → deny`、`shell: * → deny`，
+它的系统提示词也写明「you never write code, edit files or run commands yourself」。
+也就是说**它在设计上只能派活**，而在这台机器上派活必定失败（子 Agent 会话建不起来，
+错误里的 `ses` 是被截断的会话 ID）。改任务文件绕不过去。
+
+**改了什么：** `scripts/night-mode.mjs` 新增常量 `CODING_AGENT`，初次编码和返工两处
+（原 298、353 行）改用它；默认值 `backend-coder`（mode `all`，可作主 Agent，
+模型 ASU `glm-5-3`）。两处提示词里的「delegate」改成「自己做，不要委派」。
+
+**没有改什么：** `code-critic` 仍由控制器在第 341 行单独调用，**独立审查这道闸门完整保留**。
+保护文件禁改、九条命令的 shell 白名单、完整 `npm run check`、三轮上限、GitHub CI、
+永不 merge/部署 —— 全部不变。
+
+**代价：** 失去多 Agent 分工（但它在这个环境里本来就不工作）；`backend-coder` 的系统
+提示词偏后端，做前端/CSS 任务属于用错工种，靠任务文件写具体来弥补。这是权宜之计。
+长期应修复 OpenCode 的委派问题，或在用户级配置里加一个通用的 primary 编码 Agent，
+届时只需改 `CODING_AGENT` 一个常量。
+
+**谁批准的：** Juanxi，2026-10-28，按本文件第 10 节要求由人明确提出。
+
+---
 
 当前 Agent/模型映射来自用户级 OpenCode 配置，未来可能更换。项目只依赖角色名称，不应依赖某个模型永远存在。运行时用下面的命令查看实际映射：
 
@@ -45,13 +75,13 @@ Juanxi 批准 TASK.md
         ↓
 doctor 检查仓库 / 分支 / Draft PR / Node / 权限 / 依赖
         ↓
-Orchestrator → 选择编码 Agent → 产生未提交改动
+编码 Agent（backend-coder）→ 直接改代码和测试 → 产生未提交改动
         ↓
 npm run check（build + unit + desktop/mobile Playwright）
         ↓
 独立 code-critic 只读审查 diff
         ↓
-失败：把真实错误交回 Orchestrator，最多共 3 轮
+失败：把真实错误交回编码 Agent，最多共 3 轮
         ↓
 通过：控制器 commit + push
         ↓

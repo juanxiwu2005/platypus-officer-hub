@@ -7,6 +7,13 @@ import process from "node:process"
 
 const EXPECTED_REPOSITORY = "juanxiwu2005/platypus-officer-hub"
 const NIGHT_BRANCH = "feat/ai-night-mode"
+// The agent that writes the code. It was `orchestrator`, but that agent is denied edit and
+// shell by design ("you never write code, edit files or run commands yourself"), so it can
+// only delegate — and delegation fails in this environment with "Subagent session not found".
+// `backend-coder` is mode "all", so it runs as a primary agent, and it keeps the same
+// protected-file denials and the same nine-command shell allowlist. The independent
+// `code-critic` review below is unchanged: the controller still calls it separately.
+const CODING_AGENT = "backend-coder"
 const MAX_CYCLES = 3
 const COMMAND_TIMEOUT_MS = 20 * 60 * 1000
 const MAX_CAPTURE_CHARS = 300_000
@@ -286,7 +293,7 @@ You are running Platypus Night Mode on the protected branch ${NIGHT_BRANCH}.
 
 Read AGENTS.md, docs/PROGRESS.md, docs/PRODUCT_PLAN.md, docs/RULES.md, docs/NIGHT_MODE.md, and .nightmode/TASK.md before changing code.
 
-Delegate implementation to the appropriate coding agents. Use fictional data only. Never touch secrets, external directories, main, deployment settings, dependency files, GitHub Actions, or the Night Mode safety files. Do not commit or push.
+Implement the task yourself; do not delegate to subagents. Use fictional data only. Never touch secrets, external directories, main, deployment settings, dependency files, GitHub Actions, or the Night Mode safety files. Do not commit or push.
 
 Implement only this approved task:
 
@@ -295,7 +302,7 @@ ${task}
 Run the allowed focused tests as work proceeds. Finish with a concise list of changed files and remaining risks. The controller will run the authoritative full test suite and independent review afterward.
 `.trim()
 
-  const result = await runOpenCode("orchestrator", `Night Mode: ${taskTitle(task)}`, prompt)
+  const result = await runOpenCode(CODING_AGENT, `Night Mode: ${taskTitle(task)}`, prompt)
   if (result.code !== 0) throw new Error("The ASU coding phase failed.")
 }
 
@@ -344,13 +351,13 @@ async function askForRepair(task, cycle, failureSummary) {
   const prompt = `
 Night Mode repair cycle ${cycle} of ${MAX_CYCLES}.
 
-Read AGENTS.md, docs/NIGHT_MODE.md, .nightmode/TASK.md, .nightmode/last-failure.log, and .nightmode/review.txt if it exists. Diagnose the actual failure, delegate the smallest safe fix, and run focused allowed tests. Do not commit, push, change dependencies, weaken tests, or touch protected files.
+Read AGENTS.md, docs/NIGHT_MODE.md, .nightmode/TASK.md, .nightmode/last-failure.log, and .nightmode/review.txt if it exists. Diagnose the actual failure, apply the smallest safe fix yourself without delegating, and run focused allowed tests. Do not commit, push, change dependencies, weaken tests, or touch protected files.
 
 Original task:
 ${task}
 `.trim()
 
-  const result = await runOpenCode("orchestrator", `Night Mode repair ${cycle}`, prompt)
+  const result = await runOpenCode(CODING_AGENT, `Night Mode repair ${cycle}`, prompt)
   if (result.code !== 0) throw new Error(`Repair cycle ${cycle} failed.`)
 }
 
