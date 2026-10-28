@@ -8,7 +8,7 @@ import { PLAN_B } from "../engine/playbooks"
 import { fundingDecisionDate } from "../engine/schedule"
 import { checkPreflight, EMPTY_PACKAGE, type ApplicationPackage } from "../lib/preflight"
 import { callApi } from "../lib/api"
-import { Chain, Info, type Stop } from "../components/ui"
+import { Chain, Empty, Info, type Stop } from "../components/ui"
 
 export const FUNDING_STAGES = ["Budget request", "Budget approved", "Purchase request", "Purchase approved", "Ordered or reimbursed", "Attendance submitted"]
 export const STAGE_IDS = ["budget_request", "budget_approved", "purchase_request", "purchase_approved", "ordered_or_reimbursed", "attendance_submitted"] as const
@@ -64,7 +64,7 @@ export default function FundingPage() {
           </tr>
         })}</tbody>
       </table>
-      {!rows.length && <p className="empty">Nothing needs action.</p>}
+      {!rows.length && <Empty>Nothing needs action.</Empty>}
     </section>
   </>
 }
@@ -73,7 +73,7 @@ export default function FundingPage() {
 export function FundingDetail({ eventId }: { eventId: string }) {
   const { state } = useStore()
   const f = state.funding.find(x => x.eventId === eventId)
-  return f ? <FundingCard key={eventId} funding={f} /> : <p className="empty">No funding request yet.</p>
+  return f ? <FundingCard key={eventId} funding={f} /> : <Empty>No funding request yet.</Empty>
 }
 
 function FundingCard({ funding: f }: { funding: Funding }) {

@@ -2,7 +2,7 @@ import { useState, type CSSProperties } from "react"
 import { useStore } from "../data/store"
 import type { BoardSettings, BoardTag } from "../data/types"
 import { canLead } from "../data/changeReview"
-import { PALETTE, STATUS_DEFAULTS, STATUS_ORDER, useStatusStyles } from "./ui"
+import { Empty, PALETTE, STATUS_DEFAULTS, STATUS_ORDER, useStatusStyles } from "./ui"
 
 const FIELDS: { id: NonNullable<BoardSettings["fields"]>[number]; label: string }[] = [
   { id: "owner", label: "Owner" }, { id: "due", label: "Due date" }, { id: "event", label: "Event" }, { id: "tags", label: "Tags" },
@@ -15,7 +15,7 @@ export function BoardSettingsPanel() {
   const board = state.org.board ?? {}
   const [tagName, setTagName] = useState("")
   const [tagColor, setTagColor] = useState(PALETTE[6])
-  if (!canLead(state)) return <p className="empty">The president or VP customizes the board.</p>
+  if (!canLead(state)) return <Empty>The president or VP customizes the board.</Empty>
   const save = (patch: Partial<BoardSettings>) => dispatch({ type: "saveBoard", board: { ...board, fields: board.fields ?? FIELDS.map(f => f.id), ...patch } })
   const tags = board.tags ?? []
   const fields = board.fields ?? FIELDS.map(f => f.id)

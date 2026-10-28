@@ -7,7 +7,7 @@ import { handoffDates } from "../engine/schedule"
 import { handbookSources, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
 import { callApi } from "../lib/api"
 import { Feedback } from "../components/Feedback"
-import { Avatar, Chain, Hover, Info, Ring, type Stop } from "../components/ui"
+import { Avatar, Chain, Empty, Hover, Info, Ring, type Stop } from "../components/ui"
 import { fmtShort } from "../lib/dates"
 import type { RoleHandoff } from "../data/types"
 
@@ -70,7 +70,7 @@ export function HandoffRoleDetail({ roleId }: { roleId: string }) {
   const { state } = useStore()
   const role = state.roles.find(r => r.id === roleId)
   const record = state.handoffRoles.find(r => r.roleId === roleId)
-  if (!role) return <p className="empty">This role no longer exists.</p>
+  if (!role) return <Empty>This role no longer exists.</Empty>
   if (!record) return <section className="form-stack"><h2>{role.displayName} handbook</h2><p className="small muted">Start the handoff season to draft this handbook. It will draw on these records:</p><ul className="small">{handbookSources(state, role.id).slice(0, 8).map(s => <li key={s.id}>{s.text}</li>)}</ul></section>
   return <RolePanel record={record} title={`${role.displayName} handbook`} />
 }

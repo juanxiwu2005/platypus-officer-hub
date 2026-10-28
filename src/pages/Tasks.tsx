@@ -7,7 +7,7 @@ import { useRail } from "../components/rail/RailContext"
 import { FollowupPanel } from "../components/FollowupPanel"
 import { daysBetween, fmtShort } from "../lib/dates"
 import { canMoveTask, byRank, addTaskNotice } from "../data/board"
-import { Avatar, NodePill, STATUS_ORDER, useStatusStyles } from "../components/ui"
+import { Avatar, Empty, NodePill, STATUS_ORDER, useStatusStyles } from "../components/ui"
 import { canLead } from "../data/changeReview"
 
 type View = "table" | "board" | "timeline"
@@ -91,7 +91,7 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
         }),
       ])}</tbody>
     </table>
-    {!open.length && <p className="empty">Nothing open.</p>}
+    {!open.length && <Empty>Nothing open.</Empty>}
   </section>
 }
 
@@ -154,7 +154,7 @@ function TaskTimeline({ nodes, onSelect }: { nodes: Node[]; onSelect: (n: Node) 
   const starts = nodes.map(n => n.latestStart).filter((d): d is string => !!d).sort()
   const ends = nodes.map(n => n.clubDeadline).filter((d): d is string => !!d).sort()
   const from = starts[0], to = ends.at(-1)
-  if (!from || !to) return <section className="card"><p className="empty">No dated tasks in this view.</p></section>
+  if (!from || !to) return <section className="card"><Empty>No dated tasks in this view.</Empty></section>
   const span = Math.max(1, daysBetween(from, to) + 1)
   return <section className="card task-gantt" data-testid="task-gantt"><header><h2>Timeline</h2><span className="small muted">{fmtShort(from)} → {fmtShort(to)}</span></header>{nodes.sort((a, b) => (a.latestStart ?? "").localeCompare(b.latestStart ?? "")).map(n => <div key={n.id} className="task-gantt-row"><button className="row-btn small" onClick={() => onSelect(n)}>{n.title}</button><div className="task-gantt-track">{n.latestStart && n.clubDeadline && <button className="task-gantt-bar" style={{ left: `${daysBetween(from, n.latestStart) / span * 100}%`, width: `${Math.max(1, (daysBetween(n.latestStart, n.clubDeadline) + 1) / span * 100)}%` }} aria-label={`${n.title}: ${fmtShort(n.latestStart)} to ${fmtShort(n.clubDeadline)}`} onClick={() => onSelect(n)} />}</div><span className="small muted">{n.clubDeadline ? fmtShort(n.clubDeadline) : "—"}</span></div>)}</section>
 }

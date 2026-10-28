@@ -11,6 +11,7 @@ import { FundingDetail } from "../../pages/Funding"
 import { PartnerDetail } from "../../pages/Partners"
 import { HandoffRoleDetail } from "../../pages/Handoff"
 import { BoardSettingsPanel } from "../BoardSettings"
+import { Empty } from "../ui"
 
 /** Right rail: Ask (the only AI box) and Details (whatever was clicked). */
 export function Rail() {
@@ -58,7 +59,7 @@ function DetailView() {
     case "nudge": return <div ref={box} className="detail-scroll"><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
     case "task": {
       const node = state.nodes.find(n => n.id === d.id)
-      body = node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <p className="empty">This task no longer exists.</p>
+      body = node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
       break
     }
     case "funding": body = <FundingDetail eventId={d.eventId} />; break

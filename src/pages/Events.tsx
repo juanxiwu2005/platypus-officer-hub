@@ -7,7 +7,7 @@ import { useRail } from "../components/rail/RailContext"
 import { forecastFor } from "../engine/forecast"
 import { daysBetween, fmtShort } from "../lib/dates"
 import { topoOrder } from "../engine/schedule"
-import { Avatar, Info, NodePill } from "../components/ui"
+import { Avatar, Empty, Info, NodePill } from "../components/ui"
 import { SEVERITY_TONE, firstName, worstIssue } from "./helpers"
 
 type View = "flow" | "list"
@@ -31,7 +31,7 @@ export default function Events() {
   const setView = (v: View) => { setViewState(v); try { window.localStorage.setItem(VIEW_KEY, v) } catch { /* storage unavailable */ } }
   const nodes = useMemo(() => state.nodes.filter(n => n.eventId === ev?.id), [state.nodes, ev?.id])
   useEffect(() => { if (ev && params.get("event") && !state.events.some(e => e.id === params.get("event"))) setParams({}, { replace: true }) }, [ev?.id])
-  if (!ev) return <><PageHead path="/events" /><p className="empty">No events yet. Ask Platypus to plan one.</p></>
+  if (!ev) return <><PageHead path="/events" /><Empty>No events yet. Ask Platypus to plan one.</Empty></>
 
   const evIssues = sched.events[ev.id]?.issues ?? []
   const done = nodes.filter(n => n.status === "done").length

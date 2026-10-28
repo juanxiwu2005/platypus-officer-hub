@@ -7,7 +7,7 @@ import { useRail } from "../components/rail/RailContext"
 import { GoalsEditor, ProfileForm, WorkspaceEditor } from "../components/SettingsForms"
 import { clubDraft, profilePatch, validateClub, validateDefaults, validateProfile, ROLE_FUNCTIONS, type ClubDraft } from "../data/settings"
 import type { OrgSettings, Role } from "../data/types"
-import { Info } from "../components/ui"
+import { Empty, Info } from "../components/ui"
 
 export function InviteLink({ code }: { code: string }) {
   const url = `${window.location.origin}${window.location.pathname}#/join?invite=${encodeURIComponent(code)}`
@@ -124,6 +124,6 @@ function Admin() {
     <h2>Admin</h2>
     <div className="action-row"><button type="button" className="btn" onClick={() => rail.show({ kind: "board" })}>Customize the task board</button></div>
     <h3>Reported answers</h3>
-    {state.feedback.length ? <ul className="inbox-list">{state.feedback.map(f => <li key={f.id}><span className="small">{f.text.slice(0, 160)}</span><span className="action-row"><span className="tag">{f.resolved ? "Reviewed" : "Needs review"}</span>{!f.resolved && <button className="btn small" onClick={() => dispatch({ type: "resolveReport", id: f.id })}>Mark reviewed</button>}</span></li>)}</ul> : <p className="empty">No reports yet.</p>}
+    {state.feedback.length ? <ul className="inbox-list">{state.feedback.map(f => <li key={f.id}><span className="small">{f.text.slice(0, 160)}</span><span className="action-row"><span className="tag">{f.resolved ? "Reviewed" : "Needs review"}</span>{!f.resolved && <button className="btn small" onClick={() => dispatch({ type: "resolveReport", id: f.id })}>Mark reviewed</button>}</span></li>)}</ul> : <Empty>No reports yet.</Empty>}
   </section>
 }
