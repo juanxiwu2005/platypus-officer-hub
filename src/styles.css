@@ -565,6 +565,12 @@ tr.clickable { cursor: pointer; }
 @media (max-width: 700px) { .settings { grid-template-columns: 1fr; } .settings-nav { position: static; display: flex; overflow-x: auto; } .settings-nav button { white-space: nowrap; } }
 .band { display: inline-flex; gap: 3px; padding: 4px 0; }
 .band i { width: 18px; height: 8px; border-radius: 3px; background: var(--line); }
+/* Built at runtime in Team.tsx: `band b${BAND[...]}` with BAND = { Light: 1, Balanced: 2,
+   Heavy: 3 }. The strings "b1"/"b2"/"b3" never appear in the source, so a text search for
+   them finds nothing and they look dead. They are not. */
+.band.b1 i:nth-child(-n+1) { background: var(--good); }
+.band.b2 i:nth-child(-n+2) { background: #e3a008; }
+.band.b3 i { background: var(--late); }
 .heat { display: grid; gap: 2px; max-width: 560px; }
 .heat-row { display: grid; grid-template-columns: 32px repeat(7, minmax(0, 1fr)); gap: 2px; align-items: center; }
 .heat-row.head span { font-size: 12px; color: var(--muted); text-align: center; display: grid; line-height: 1.1; }
@@ -601,7 +607,11 @@ html, body { overflow-x: clip; }
 .applied-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; font-size: .95rem; }
 .applied-list li.muted { color: var(--muted, #5f6763); }
 
-/* ---- 保留：甘特图样式，组件已删除，等 Juanxi 决定是否恢复 ---- */
+/* ---- 保留：甘特图样式，组件已删除，等 Juanxi 决定是否恢复 ----
+   恢复时注意：下面的 .gantt-bar 依赖 --st 变量，而定义它的那组
+   .st-done / .st-in_progress / .st-waiting / .st-proposed / .st-blocked /
+   .st-unclaimed / .st-accepted 规则已在本次清理中删除（见 git history，
+   提交 bb50d2f 之前）。只恢复这一段，色条会全部落回 var(--edge)。 */
 /* Gantt */
 .gantt { overflow: auto; max-height: 620px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); position: relative; }
 .gantt-row { display: flex; min-height: 30px; border-bottom: 1px solid var(--line); width: max-content; min-width: 100%; }
