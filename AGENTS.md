@@ -40,6 +40,14 @@
   `APPROVED` → 提交推送 → GitHub CI 通过 → Deploy Preview → `READY_FOR_CLAUDE`。
   在此之前连续五次停在编码阶段，根因与修法全部记在 `docs/NIGHT_MODE.md`。
   未来 AI 必须重新验证，不能假设状态仍然相同。
+- ⚠️ **队列运行期间，任何人都不要推送 `feat/ai-night-mode`，包括只改文档的提交。**
+  2026-10-27 那一晚 7 个任务全军覆没，唯一原因就是 Claude 在队列运行期间推了一个
+  文档提交，本地落后于远端，推送被拒，之后每个任务撞同一面墙。
+  云端会话看不到本地在跑什么 —— **开跑前要告诉它一声**。详见 `docs/NIGHT_MODE.md` 7b-2。
+- `feat/ai-night-mode` 当前顶端 `55949b8`。那一晚的完整提交栈备份在 `backup/2026-10-28-queue`，
+  未验证的半成品在 `wip/T2-radius` 和 `wip/T3-fontscale`。待办任务库见 `docs/night-tasks/`。
+- 写 Night Mode 任务文件之前，除了 7b 预算卡，还必须看 **`docs/NIGHT_MODE.md` 7c 第 7–9 条**：
+  任务的事实对不对不等于它在语义上做得到；一个任务只装一件事；纯重命名要写明不需要新增测试。
 - 状态冲突时，先检查 Git/PR/CI，再更新文档；不要用聊天记忆覆盖仓库事实。
 
 ## 1. 先读什么（按顺序）

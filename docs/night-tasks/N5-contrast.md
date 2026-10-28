@@ -1,5 +1,3 @@
-# Depends on: T4-statuscolor.md
-
 # Goal
 
 修 src/styles.css 里对比度不达标的几处，让颜色在弱视和色弱条件下也能读。

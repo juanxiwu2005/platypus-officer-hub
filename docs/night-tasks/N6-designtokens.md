@@ -1,7 +1,6 @@
-# Depends on: T1-zindex.md
-# Depends on: T2-radius.md
-# Depends on: T3-fontscale.md
-# Depends on: T4-statuscolor.md
+# Depends on: N2-radius.md
+# Depends on: N3-fontscale.md
+# Depends on: N4-infotoken.md
 
 # Goal
 
