@@ -1,7 +1,9 @@
 # Platypus v1.0 进度
 
-**最后更新：** 2026-10-23 凌晨（Claude，第一部分收尾）
-**当前阶段：** UX 简化改版完成并通过全部自动测试（电脑 + 手机）；Juanxi 已试用并回复“可以用，非常好”。剩下的是第二部分（真实 AI、规则复核、计划文档、无障碍、AIR、定版）。
+**最后更新：** 2026-10-27（Codex，Night Mode 工作流与跨 AI 交接文档）
+**当前阶段：** Production 产品仍以 `main` 的 `4dc55ba` 为基线。独立的 Night Mode 自动开发工作流已在 `feat/ai-night-mode` 完成，位于 Draft PR #7，尚未合并 `main`。产品本身的历史状态和真实 AI 验收缺口继续按下文记录。
+
+**Night Mode 当前事实：** Node 22、OpenCode、ASU AIR、GitHub CLI、项目级权限、受保护控制器、独立 Critic、三轮返工和 GitHub CI 已串接。2026-10-27 的 `--doctor`、PR CI 与 Deploy Preview 已通过。详细运行方法见 `docs/NIGHT_MODE.md`；未来每次运行仍须重新验证，不能把这次通过当成永久状态。
 
 **下一步（第二部分）：** ① 用真实 DeepSeek 试 Ask 面板并补跑 WP5 的 40 道规则题（需要 Juanxi 登录 Netlify 或关掉预览保护）；② 精写 `/api/chat` 提示词；③ 对照官网复核 R01–R16；④ 更新 PRODUCT_PLAN 第 6 节；⑤ 键盘与无障碍检查；⑥ 换 ASU AIR；⑦ 定版合并 main（需批准）。
 
@@ -11,6 +13,7 @@
 
 | 工作包 | 计划日期 | 状态 | 负责的 AI | 预览网址 | 备注 |
 | --- | --- | --- | --- | --- | --- |
+| Night Mode 自动开发 | 10/27 | 已完成（Draft PR） | Codex + OpenCode ASU Agents | https://deploy-preview-7--platypus-officer-hub.netlify.app | PR #7；Agent 编码 → 本地完整检查 → 独立 Critic → 控制器 commit/push → GitHub CI → `READY_FOR_CLAUDE`。永不自动 merge/Production；README、AGENTS、Claude/Gemini/Copilot 入口和任务模板已补齐。 |
 | 2026-10-23 | Claude | **合并上线 + 真 DeepSeek 实测。** v1 快进合并到 main（f868709），正式网站 `/api/health` 显示 DeepSeek 已接通。浏览器实测：①问 USG 表谁负责、何时截止，答对负责人、俱乐部截止日和 ASU 截止日；②“把传单标为进行中”立即生效，Undo 成功恢复；③“把预算改成 $450”时发现 bug：服务器核对改动只认活动/任务/人员 ID，不认经费/伙伴/角色/标签，改预算被丢掉而 AI 嘴上说“待批准”——已修，并且改动全部无效时会明确告诉用户。253 个单元测试 + 107 个页面测试通过。已同步本地备份。 | Juanxi 自己继续测（测试清单见对话）。v1.0 标签 11/8 再打。 |
 | 2026-10-23 | Claude | **AI 数据权限 v1.2。** ①`aiContext.ts`：每次提问把当前查看者能看到的全部数据（社团、角色、人员和工作量、活动、全部任务含状态/负责人/风险/准时概率/三个截止日、经费、伙伴、交接、本人通知、规则摘要）发给 `/api/chat`，约 25 KB；服务器再删一遍可疑字段（key/token/secret/password/signature/phone/文件）并限长。②`sharedPool.ts` + `/api/pool`：虚构共享池（4 个示例社团的审批用时、场地、供应商、经验），只读，AI 只能引用。③新白名单操作：小改动 set_status / rename_task / set_tags / set_tier / mark_contacted 按查看者权限立即生效，Ask 面板显示“Done · Undo”；大改动 assign_owner / add_node / link_dependency / update_event / add_contact / set_funding_amount / advance_funding / create_event 仍走审批卡。④日期：AI 文字中与数据一致的日期保留，其余遮掉。⑤提示词重写。⑥检查：252 个单元测试 + 107 个页面测试全部通过。⑦发现预览网站一直是模拟回答：Netlify 里 `AI_API_KEY` 只填了 Production，Deploy Previews / Branch deploys 为空，已请 Juanxi 补填。已同步本地备份。 | 真实 DeepSeek 试用要等 Juanxi 在 Deploy Previews 填好 key 并重新部署。共享池是虚构演示，v1.5 换成数据库时要做“社团选择共享哪些字段”的设置。 |
 | 2026-10-23 | Claude | **第二部分。** ①逐条复核 R01–R16（来源核对日 2026-10-23），修正 R01/R03/R06/R07/R11/R16 措辞，记录在 RULES.md。②产品计划第 6 节改写为 v1.1 界面说明。③无障碍：6 个状态色对比度达到 AA；右栏标签结构修正；新增 axe 扫描 10 页 + 面板、键盘操作测试。④AI 面板提示词重写：更会追问（一次只问一个问题，办活动直接给表单）、更会推荐（先逾期/红色风险，再无人认领，再最早开始）；请求里新增一份精简状态摘要（任务状态、负责人、所属活动、风险色、是否逾期、每人工作量档），服务器逐项核对，只留真实 ID 和允许的值，不含档案、缓冲或文件。⑤检查：245 个单元测试 + 107 个页面测试（含无障碍）全部通过；已同步本地备份。 | **需要 Juanxi：** 真实 DeepSeek 试用 Ask 面板和 40 题规则评估（需要登录 Netlify 或关掉预览保护）；RTO 给出 AIR 的 key 和模型后再切换；说“批准合并”后才合并 main 并打 v1.0 标签。 |
@@ -27,6 +30,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-10-27 | Night Mode 只在 `feat/ai-night-mode` 和 Draft PR #7 工作；Agent 不提交、不推送、不碰保护文件；控制器负责本地检查、独立 Review、commit/push 和 CI；最终仍由 Claude 与 Juanxi 人工检查，绝不自动合并 `main` 或部署 Production | Juanxi（要求建立低成本、尽量无人值守但保留人工闸门的多模型工作流） |
 | 2026-10-21 | 产品名定为 Platypus；Phase 3 用方案 C（Netlify + 服务器函数） | Juanxi |
 | 2026-10-22 | 批准产品计划 v1.0 第 16 节全部 10 个决定 | Juanxi |
 | 2026-10-23 | 批准把 v1 合并到 main（正式网站），v1.0 标签等 11/8 定版再打 | Juanxi |
@@ -55,6 +59,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-10-27 | Codex | 完成 Night Mode 跨 AI 交接：README 加入人类入口和自动开发入口；AGENTS 记录仓库、分支、PR、Agent/模型、网络和密钥边界；扩写 `docs/NIGHT_MODE.md`；新增任务模板、`CLAUDE.md`、`GEMINI.md` 和 Copilot 指令。重新运行 `--doctor` 得到 PASS；提交前基线 PR #7 CI 与预览通过。 | 未来先重验 `git status`、`--doctor`、PR 与 CI。模型映射以 `opencode debug agents` 为准。`READY_FOR_CLAUDE` 不是合并许可；不要把 CI mock 当成真实模型质量验收。 |
 | 2026-10-23 | Claude | **第一部分收尾。** ①手机：发现隐藏的悬停卡和 Today 风险表把手机页面撑宽（页面被缩小、右下角按钮点不到），已修（`html, body { overflow-x: clip }`、悬停卡限宽、窄屏隐藏次要列）；手机上换页自动收起右栏；Demo 菜单在手机上改为整宽。②看板拖拽：找到并修了一个真问题——卡片标题是按钮，Chrome 不允许从按钮开始拖，抓标题拖不动；改成可点击的文字后，用真实鼠标拖拽的自动测试通过。③深色模式看过 Today / Events / 看板，无看不清的地方。④删掉不用的 `@xyflow/react`。⑤字数全部在上限内（同上一行）。⑥检查：244 个单元测试 + **95 个页面测试（电脑 48 + 手机 47，悬停测试只在电脑跑）全部通过**；已同步本地备份。 | 第二部分见文件开头“下一步”。看板在开着右栏的 1440 宽屏上 6 列需要横向滚动（有意保留，和 monday 一样）。 |
 | 2026-10-23 | Claude | **UX 简化改版 U1–U5 主体完成**（一次做完，未分包验收）。①三栏布局：左导航 / 中间内容 / 右栏（`src/components/rail/`：Ask 与 Details 两个标签，`useRail().show()` 打开详情）；演示条收进顶栏 “Demo” 小标（重置、时钟、重放设置），私下更新收进铃铛。②5 个通用组件 `src/components/ui/`：StatusPill（6 色状态）、Chain（物流链）、`.tbl` 表格、Hover/Info 悬停卡、右栏详情；页面标题改为 1–2 个词，问句移到导航悬停。③唯一 AI 入口 Ask 面板：`src/lib/assistant.ts`（本地先处理明确请求：策划活动→表单、前 N 个任务、谁需要提醒、规则关键词、命令语法）+ 新接口 `netlify/functions/chat.mts`；6 种卡片（文字、补信息表单、任务清单、变更单、提醒、规则答案），服务器和浏览器都用 `src/lib/chatCards.ts` 过滤，AI 写的日期全部丢弃；Today 和 Rules 的旧输入框已删。④流程图换成单主线（`src/components/flow/metro.ts` 布局 + `MetroChart.tsx`），泳道图、甘特图和 React Flow 依赖代码已删；手机竖排。⑤Tasks：表格（按活动分组、远期组折叠、负责人和截止日原地改）/ 可拖拽看板（`src/data/board.ts`：自己的随便拖，社长/副社长可拖所有人并给本人留私下记录，认领握手不变）/ Timeline；Customize 面板改状态名称颜色、标签、卡片字段。⑥Funding 物流链表；Partners 可搜索表格 + 新增；Handoff 接力卡 + 右栏分步手册；Rules 一行一条 + 直达出处按钮 + 问 AI 按钮（规则加 `short`/`timing`）；Settings 分 5 块、自动保存 + Undo；Team 工作量条、贡献表、一周空闲热力图；解释文字移到 Help。⑦字数（`scripts/word-count.mjs`）：Today 105、Events 95、Rules 134、Tasks 111、Team 108、Funding 45、Handoff 34、Partners 37、Settings 89，全部在上限内。⑧测试：244 个单元测试通过；页面测试已按新界面重写，**桌面版 48/48 通过**。 | **还没做 / 要接着做：** ① 手机版页面测试（Pixel 7）还没跑：`PW_CHROMIUM=<chromium 路径> npx playwright test --project=mobile`，预计有布局问题要修；② 看板**鼠标拖拽**只人工看过逻辑，自动测试改用卡片上的移动菜单（同一个动作），需要真人在预览里拖一次；③ Ask 面板只用模拟和本地回退测过，没连真实 DeepSeek；④ `@xyflow/react` 依赖已不用，可删；⑤ docs/PRODUCT_PLAN.md 未改（改版依据见《Platypus 简化改版方案》和 AGENTS.md §7）；⑥ 已同步本地备份。 |
 | 2026-10-22 | Codex | WP5 功能完成：固定种子 1,000 次依赖预测与今日风险；六类规则与带出处问答、报错队列、40 题评估脚本；经费阶段/提交检查/用款提醒/Plan B；带逐条来源的岗位手册、卸任确认→社长批准、SEO/R16 第一周清单、岗位与联系人交接；关系页与私有缓冲渐进调整/关闭/换届重置。本机 `npm run check` 全通过：233 个单元测试 + 90 个页面测试，原有测试保留；主体提交 b8a6986 的 CI 通过。已同步本地备份（仅指定 4 文件） | **验收：** [预览 Handoff](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/handoff) → Start handoff season → Treasurer handbook → Draft role handbook，点每条 Source；切 Maya 确认，再切 Alex 批准。Today 展开 Forecast details 才见比例；Rules 问校外餐饮应引 R06、税务题应拒答；Funding 在 11/4 未批时展示 Plan B；Partners 显示岗位与下一场活动。**还剩/已知：** 真实 DeepSeek 40 题、如已配 AIR 则另跑 AIR，以及 Juanxi 审真实 AI 手册，均未完成，不宣称达到 ≥90% / 拒答全对。用户要求停止登录，已停止；示例回退不能冒充真实 AI。**WP6：** 结构版本 5，规则仍待正式复核，保留访问保护与 main；完整说明见 `docs/WP5_ACCEPTANCE.md`、`docs/AI_TESTS.md`。 |

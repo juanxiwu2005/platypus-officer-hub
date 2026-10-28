@@ -2,11 +2,24 @@
 
 这个仓库是 **Platypus** 的代码和计划：一个给学生社团用的“团队型 AI 幕僚长”网站，也是 Juanxi (Steve) Wu 的 ASU Barrett 荣誉论文（STUDY00024727）第 3 阶段的原型。几个 AI 会轮流在这里工作，所以**每次开始前先读这份文件，结束时按第 4 节交接**。
 
+## 0. 当前仓库与 Agent 工作流事实（2026-10-27 验证）
+
+- GitHub 正本：`juanxiwu2005/platypus-officer-hub`。
+- `main` 是 Production，当前基线提交为 `4dc55ba`。任何 AI 都不得直接修改、推送或合并 `main`。
+- 自动开发分支是 `feat/ai-night-mode`，对应从该分支到 `main` 的 Draft PR #7。Night Mode 相关改动在 PR 内，尚未进入 `main`。
+- `scripts/night-mode.mjs` 是唯一可以代表 Night Mode 做 commit、push、读取 CI 和写 PR 评论的控制器；OpenCode Agent 自己不能做这些动作。
+- 当前 Agent 映射由用户级 OpenCode 配置提供，项目级 `opencode.json` 只收紧权限。2026-10-27 验证的主要角色是：`orchestrator`（ASU `beam-1-0`）、`backend-coder`（ASU `glm-5-3`）、`frontend-coder`（ASU `glm-5-3-flash`）、`code-critic`（ASU `muse-spark-open`）、`docs-writer`（ASU `gpt-oss-120b`）、`quick-draft`（ASU `north-mini-code`）、`api-designer`（ASU `deepseek-v4-1-flash`）、`visual-critic`（ASU `qwen38-27b`）。模型配置可能变化，每次运行以 `opencode debug agents` 为准。
+- Night Mode Agent 可通过 OpenCode 调用 ASU AIR；这不等于拥有任意网页访问。项目权限默认拒绝未知 shell 命令，只允许测试和只读 Git 命令。控制器单独使用 GitHub CLI 完成 GitHub 操作。
+- 本地 `ASU_AIR_API_KEY` 只存在终端环境中；产品网站使用 Netlify 的 `AI_*` 环境变量。两者不能混为一谈，也都不能写进仓库。
+- 2026-10-27，`node scripts/night-mode.mjs --doctor` 已在 Node 22、Draft PR #7 和当前权限配置下返回 `DOCTOR PASS`；PR #7 的 GitHub CI 与 Deploy Preview 当时通过。未来 AI 必须重新验证，不能假设状态仍然相同。
+- Night Mode 的完整说明、停止条件和人工闸门见 `docs/NIGHT_MODE.md`。任何状态冲突时，先检查 Git/PR/CI，再更新文档；不要用聊天记忆覆盖仓库事实。
+
 ## 1. 先读什么（按顺序）
 
 1. `docs/PROGRESS.md` —— 现在做到哪了、谁在做、下一步是什么。
 2. `docs/PRODUCT_PLAN.md` —— 已批准的产品计划 v1.0（唯一正本）。工作包和验收标准在第 13 节，范围和砍单顺序在第 12 节。
-3. 按任务再读：`docs/RULES.md`（ASU 规则库）、`docs/SEO_PLAYBOOK_REFERENCE.md`（流程模板来源）、`docs/AI_SETUP.md`（AI 供应商怎么切换）。
+3. 若任务使用自动开发，读 `docs/NIGHT_MODE.md` 和任务文件 `.nightmode/TASK.md`。
+4. 按任务再读：`docs/RULES.md`（ASU 规则库）、`docs/SEO_PLAYBOOK_REFERENCE.md`（流程模板来源）、`docs/AI_SETUP.md`（产品 AI 供应商怎么切换）。
 
 ## 2. 关于项目负责人
 
@@ -17,10 +30,10 @@
 ## 3. 硬性规则（不能破）
 
 1. **不放研究数据。** 不提交问卷原始回答、访谈转写、录音、参与者姓名或引语。仓库里只有虚构的演示社团数据。也不要把这些资料贴给任何 AI。
-2. **不放密钥。** API key 只放在 Netlify 的环境变量里（见 `docs/AI_SETUP.md`），绝不写进代码、文档或提交记录。
+2. **不放密钥。** 产品网站的 API key 只放在 Netlify 环境变量里（见 `docs/AI_SETUP.md`）；Night Mode 的 `ASU_AIR_API_KEY` 只放在本地终端环境里。任何密钥都绝不写进代码、文档、任务文件、提示词或提交记录。
 3. **日期只由规则引擎计算。** AI 只能通过白名单操作改数据（见计划第 11 节）、起草提醒、答案和手册；AI 输出里的日期字段一律丢弃。v1.2 起（Juanxi 2026-10-23 批准）：AI 文字里只保留和社团数据里已有日期完全一致的日期，其余遮掉；小改动（改状态、改名、标签、难度、记录联系）以当前查看者的权限立即生效并可撤销，其余改动仍要社长或副社长批准。
-4. **`main` 分支就是正式网站。** 每次推送到 `main`，Netlify 都会自动上线。11/8 之前，所有 v1 的工作都在 `v1` 分支上做，**只有 Juanxi 批准后才能合并到 `main`**。
-5. **AI 供应商：** 开发时用 DeepSeek，只处理虚构数据；有真实参与者的 Phase 3 会话必须用 ASU AIR（或 IRB 批准的供应商）。
+4. **`main` 分支就是正式网站。** 每次推送到 `main`，Netlify 都会自动上线。当前 Night Mode 工作只在 `feat/ai-night-mode`；其他工作也必须使用 Juanxi 批准的功能分支。**只有 Juanxi 明确批准后才能合并到 `main`。**
+5. **AI 供应商：** 产品网站早期开发/验证使用 DeepSeek，只处理虚构数据；Night Mode 开发 Agent 使用 ASU AIR。任何有真实参与者的 Phase 3 会话必须使用 ASU AIR（或 IRB 批准的供应商）。
 6. **界面文字用英文**（用户是美国学生）；文档用中文。
 7. 不做计划第 12 节标为“不做”的功能（例如库存、成员名单）。
 
@@ -28,9 +41,10 @@
 
 **开始前：**
 
-1. 拉取最新代码：`git fetch origin && git checkout v1 && git pull`。
-2. 读 `docs/PROGRESS.md`。如果某个工作包写着“进行中”且标了别的 AI，就不要碰它，避免冲突。
-3. 在 `docs/PROGRESS.md` 里把你要做的工作包标为“进行中”，写上你的名字（例如 ChatGPT、Claude、DeepSeek）和日期，然后提交并推送。
+1. 先运行只读检查：`git status --short --branch`、`git remote -v`，再确认用户批准的目标分支。不要自动切换到 `main`。
+2. 如果是 Night Mode：保持在 `feat/ai-night-mode`，读 `docs/NIGHT_MODE.md`，由控制器执行；Agent 不提交、不推送。
+3. 如果是普通人工开发：拉取用户批准的功能分支，读 `docs/PROGRESS.md`。若某项写着“进行中”且标了别的 AI，就不要碰它。
+4. 普通人工开发开始时，在 `docs/PROGRESS.md` 把任务标为“进行中”，写上 AI 名称和日期，然后在获准分支提交并推送。
 
 **工作中：**
 
@@ -78,7 +92,7 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
   - 结构版本 **5**，本机完整检查通过 **233 个单元测试 + 90 个页面测试**。原有测试保留；`evals/rules.json` 为 40 题，`scripts/eval-rules.mjs` 支持真实接口评估，CI 用模拟供应商。**真实 AI 验收未完成**：Netlify 访问受阻，Juanxi 要求停止登录尝试，已停止。不要把模拟 40/40 或本地示例手册称为 DeepSeek/AIR 验收；详见 `docs/AI_TESTS.md` / `docs/WP5_ACCEPTANCE.md`。
 - **服务器：** `netlify/functions/*.mts`：`/api/health`、`/api/ask`、`/api/parse-brief`、`/api/plan/draft`、`/api/replies/classify`；`netlify/lib/ai.mts` 是 AI 供应商适配器，换供应商只改环境变量。
 - **部署：** `netlify.toml` 构建命令 `npm run build`，发布目录 `dist`，Node 22。
-- 正式网址：https://platypus-officer-hub.netlify.app （`main`，仍是 v0.1）。`v1` 的预览：draft PR #（见 `docs/PROGRESS.md`）里 Netlify 给出的 Deploy Preview 网址。
+- 正式网址：https://platypus-officer-hub.netlify.app （`main`，截至 2026-10-27 为提交 `4dc55ba`）。Night Mode 的 Draft PR #7 预览是 https://deploy-preview-7--platypus-officer-hub.netlify.app；每次使用前重新检查 PR 和预览状态。
 
 ## 6b. v1.1 改版后的代码地图（2026-10-23，覆盖上面关于页面的旧描述）
 
