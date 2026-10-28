@@ -177,7 +177,7 @@ export function eventFields(s: string): Omit<Extract<CommandOp, { op: "create_ev
     venue: /off[- ]campus/i.test(s) ? "offcampus" : "campus",
     food,
     funding: /\busg\b|student government/i.test(s) ? "usg" : /college funding/i.test(s) ? "college" : /dues/i.test(s) ? "dues" : /sponsor/i.test(s) ? "sponsor" : "none",
-    speaker: /speaker|panel|performer|嘉宾|表演/i.test(s),
+    speaker: /speaker|panel|performer|fireside|keynote|guest|嘉宾|表演/i.test(s),
   }
 }
 
@@ -220,7 +220,10 @@ export function humanEventDate(sentence: string, today: string): string {
   const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
   const m = sentence.match(/\b(Jan\w*|Feb\w*|Mar\w*|Apr\w*|May|Jun\w*|Jul\w*|Aug\w*|Sep\w*|Oct\w*|Nov\w*|Dec\w*)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(20\d{2}))?\b/i)
   if (!m) return ""
-  const date = `${m[3] ?? today.slice(0, 4)}-${String(months.indexOf(m[1].slice(0, 3).toLowerCase()) + 1).padStart(2, "0")}-${m[2].padStart(2, "0")}`
+  const md = `${String(months.indexOf(m[1].slice(0, 3).toLowerCase()) + 1).padStart(2, "0")}-${m[2].padStart(2, "0")}`
+  // Without a year, a month and day already past this year mean next year ("Apr 3" said in October).
+  const year = m[3] ?? (`${today.slice(0, 4)}-${md}` < today ? String(Number(today.slice(0, 4)) + 1) : today.slice(0, 4))
+  const date = `${year}-${md}`
   return validDate(date) ? date : ""
 }
 export function validDate(date: string): boolean {

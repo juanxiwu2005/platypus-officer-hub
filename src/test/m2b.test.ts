@@ -106,14 +106,17 @@ describe("the assistant fills the form (AI on)", () => {
   it("sends a task sentence to the assistant and turns its add_task form into the task form", async () => {
     replyWith({ source: "ai", model: "mock", cards: [{ kind: "form", intent: "add_task", prefill: { title: "Order name tags by 2099-01-01", owners: ["maya", "ghost"], eventId: "e-night", date: "2099-01-01" } }] })
     const r = await respond("I want to set up an executable task: order name tags for Maya", base, "alex", null, "/", [])
+    // The form shows at once from the person's words; the assistant's reading follows.
+    expect(r.cards.find(c => c.kind === "taskform")).toMatchObject({ title: "Order name tags", owners: ["maya"], thinking: true })
+    const refined = (await r.refine)!
     expect(fetch).toHaveBeenCalledOnce()
-    const t = r.cards.find(c => c.kind === "taskform") as Extract<ChatCard, { kind: "taskform" }>
+    const t = refined.cards.find(c => c.kind === "taskform") as Extract<ChatCard, { kind: "taskform" }>
     expect(t).toMatchObject({ title: "Order name tags by [date in plan]", owners: ["maya"], eventId: "e-night", due: defaultTaskDue(base) })
   })
   it("prefills the event form from a long message; the date only comes from the person's words", async () => {
     replyWith({ source: "ai", cards: [{ kind: "form", intent: "plan_event", prefill: { name: "Spring Hackathon", headcount: 120, food: "tbd", speaker: true, details: "A 24-hour build at SkySong with sponsor judges; finals on 2099-01-01.", date: "2099-01-01" } }] })
     const r = await respond("We want to host a 24-hour hackathon on Nov 20 at SkySong, about 120 people, food, sponsor judges", base, "alex", null, "/", [])
-    const f = r.cards.find(c => c.kind === "form") as Extract<ChatCard, { kind: "form" }>
+    const f = (await r.refine)!.cards.find(c => c.kind === "form") as Extract<ChatCard, { kind: "form" }>
     expect(f.prefill).toMatchObject({ name: "Spring Hackathon", headcount: 120, food: "tbd", speaker: true })
     expect(f.prefill.details).toContain("[date in plan]")
     expect(f.date).toBe("2026-11-20")
@@ -122,6 +125,7 @@ describe("the assistant fills the form (AI on)", () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("offline") }))
     const r = await respond("Create an executable task: order name tags", base, "alex", null, "/", [])
     expect(kinds(r.cards)).toEqual(["taskform"])
+    expect(await r.refine).toBeNull()
   })
   it("answers a bare 'Add a task' at once, without AI", async () => {
     vi.stubGlobal("fetch", vi.fn())
@@ -234,5 +238,27 @@ describe("the plan check after a new event", () => {
     const r = await reviewEvent(base, "e-night")
     expect(r.changeSet?.ops).toEqual([{ op: "add_node", title: "Book the bus", eventId: "e-night", ownerId: null, tier: "medium" }])
     expect(kinds(r.cards)).toEqual(["review", "changes"])
+  })
+})
+
+describe("Juanxi's preview round (2026-10-28)", () => {
+  it("takes the event name, date, size and start time from one sentence", async () => {
+    const r = await respond("I need to plan an event, name Jared Byrne Fireside Chat, December 12 6:00 PM, 50 people", off(), "alex", null, "/", [])
+    const f = r.cards.find(c => c.kind === "form") as Extract<ChatCard, { kind: "form" }>
+    expect(f.prefill).toMatchObject({ name: "Jared Byrne Fireside Chat", headcount: 50, speaker: true, details: "Starts at 6:00 PM." })
+    expect(f.date).toBe("2026-12-12")
+  })
+  it("a month and day already past this year mean next year", async () => {
+    const r = await respond('Plan an event called "Spring Gala" on Apr 3, 200 people', off(), "alex", null, "/", [])
+    expect((r.cards.find(c => c.kind === "form") as Extract<ChatCard, { kind: "form" }>).date).toBe("2027-04-03")
+  })
+  it("'change the event date to …' offers to move the event being looked at, with the person's date", async () => {
+    const r = await respond("change the event date to Jan 30 2027", off(), "alex", { kind: "node", id: "e-speaker:advisor", title: "Confirm the advisor will attend" }, "/", [])
+    expect(r.cards).toEqual([{ kind: "eventdate", eventId: "e-speaker", date: "2027-01-30" }])
+    const named = await respond("move Networking Night to Nov 20", off(), "alex", null, "/", [])
+    expect(named.cards[0]).toMatchObject({ kind: "eventdate", eventId: "e-night", date: "2026-11-20" })
+  })
+  it("the plan check without AI names the step each warning is about", () => {
+    expect(localReview(base, "e-night").risks.every(r => /^[^:]+: /.test(r.text) || /ASU|semester|calendar/.test(r.text))).toBe(true)
   })
 })

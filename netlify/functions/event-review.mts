@@ -19,7 +19,7 @@ export default async (req: Request) => {
     if (!ctx.events.some(e => e.id === eventId)) throw new BadRequest("Unknown event.")
     const data = cleanData(body.data) as { steps?: { title?: unknown }[] } | null
     const titles = (Array.isArray(data?.steps) ? data.steps : []).map(s => str(s?.title, 120)).filter(Boolean)
-    const { data: reply, model, provider } = await chatJSON({ task: "event_review", system: EVENT_REVIEW_SYSTEM, user: JSON.stringify(data), maxTokens: 900, temperature: 0.2 })
+    const { data: reply, model, provider } = await chatJSON({ task: "event_review", system: EVENT_REVIEW_SYSTEM, user: JSON.stringify(data), maxTokens: 900, temperature: 0.2, timeoutMs: 55_000 })
     return json({ ...sanitizeReview(reply, ctx, eventId, titles, knownDates(data)), source: "ai", model, provider })
   } catch (e) { return fail(e) }
 }

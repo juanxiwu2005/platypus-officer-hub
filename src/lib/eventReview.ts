@@ -78,10 +78,27 @@ export function sanitizeReview(raw: unknown, ctx: CommandContext, eventId: strin
   return { risks, tasks }
 }
 
-/** Without AI: the rule engine's own warnings for this event, and no new steps. */
+/**
+ * Without AI: the rule engine's own warnings for this event, each saying which step it is about, errors first,
+ * and no new steps.
+ */
 export function localReview(s: DemoState, eventId: string): EventReview {
-  const p = reviewPayload(s, eventId)
-  return { risks: (p?.issues ?? []).slice(0, 3).map(i => ({ text: i.text, rules: i.rule ? [i.rule] : [] })), tasks: [] }
+  const plan = computeSchedule(s)
+  const nodes = s.nodes.filter(n => n.eventId === eventId)
+  const rank = (sev: string) => sev === "error" ? 0 : 1
+  const items = [
+    ...(plan.events[eventId]?.issues ?? []).map(i => ({ ...i, title: "" })),
+    ...nodes.flatMap(n => (plan.nodes[n.id]?.issues ?? []).map(i => ({ ...i, title: n.title }))),
+  ].filter(i => i.severity !== "info").sort((a, b) => rank(a.severity) - rank(b.severity))
+  const seen = new Set<string>()
+  const risks: ReviewRisk[] = []
+  for (const i of items) {
+    const text = i.title ? `${i.title}: ${i.text}` : i.text
+    if (seen.has(text) || risks.length >= 4) continue
+    seen.add(text)
+    risks.push({ text, rules: i.ruleId ? [i.ruleId] : [] })
+  }
+  return { risks, tasks: [] }
 }
 
 /** Re-check a reply in the browser with the current data. */

@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useStore, useViewer } from "../../data/store"
 import type { Event } from "../../data/types"
-import { respond, reviewEvent, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus } from "../../lib/assistant"
+import { respond, reviewEvent, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
 import { PAGES } from "../../routes"
-import { fmtShort } from "../../lib/dates"
+import { fmtLong, fmtShort } from "../../lib/dates"
+import { FINALS, findPeriod } from "../../engine/calendar"
 import { sanitizeOps } from "../../lib/commands"
 import { NodePill } from "../ui"
 import { Feedback } from "../Feedback"
@@ -27,6 +28,8 @@ export function AskPanel() {
   const rail = useRail()
   const location = useLocation()
   const [messages, setMessages] = useState<ChatMsg[]>(load)
+  const messagesRef = useRef(messages)
+  messagesRef.current = messages
   const [text, setText] = useState("")
   const [busy, setBusy] = useState(false)
   const [focusOff, setFocusOff] = useState<string | null>(null)
@@ -81,7 +84,9 @@ export function AskPanel() {
       const reply = await respond(t, state, person.id, activeFocus, location.pathname, messages)
       if (reply.autoSet) dispatch({ type: "aiAutoApply", changeSet: reply.autoSet })
       if (reply.changeSet) dispatch({ type: "draftChanges", changeSet: reply.changeSet })
-      setMessages(m => [...m, { id: uid(), role: "assistant", cards: reply.cards, source: reply.source }])
+      const msgId = uid()
+      setMessages(m => [...m, { id: msgId, role: "assistant", cards: reply.cards, source: reply.source }])
+      if (reply.refine) void reply.refine.then(r => applyRefine(msgId, r), () => applyRefine(msgId, null))
     } catch {
       setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Something went wrong. Please try again." }], source: "Platypus" }])
     } finally { setBusy(false) }
@@ -96,6 +101,36 @@ export function AskPanel() {
     else { setText(p.text); setTimeout(() => input.current?.focus(), 30) }
   }, [rail.pending?.n])
 
+  /**
+   * The assistant's answer to a message whose form is already showing (M2b): it fills the form's untouched fields.
+   * If it read the message as something else (a task, not an event, or a question), its reply follows as a new
+   * message, unless the person already used the form.
+   */
+  function applyRefine(msgId: string, refined: Reply | null) {
+    const isForm = (c: ChatCard) => c.kind === "form" || c.kind === "taskform"
+    const msg = messagesRef.current.find(x => x.id === msgId)
+    const local = msg?.cards?.find(isForm) as { kind: string; done?: boolean } | undefined
+    const aiCard = refined?.cards.find(isForm)
+    const aiText = refined?.cards.find(c => c.kind === "text")
+    const same = !!local && !!aiCard && local.kind === aiCard.kind
+    const update = (fn: (x: ChatMsg) => ChatMsg) => setMessages(m => m.map(x => x.id === msgId ? fn(x) : x))
+    const settle = (x: ChatMsg, source = x.source) => ({ ...x, source, cards: x.cards?.map(c => isForm(c) ? { ...c, thinking: false } as ChatCard : c) })
+    if (!refined) return update(x => settle(x, "Platypus · AI didn't answer in time, filled from your words"))
+    if (same) return update(x => ({
+      ...x, source: refined.source,
+      cards: x.cards?.map(c => {
+        if (c.kind === "text" && aiText?.kind === "text") return aiText
+        if (c.kind === "form" && aiCard!.kind === "form") return { ...c, thinking: false, ...(c.done ? {} : { ai: aiCard!.prefill }) }
+        if (c.kind === "taskform" && aiCard!.kind === "taskform") return { ...c, thinking: false, ...(c.done ? {} : { ai: { title: aiCard!.title, owners: aiCard!.owners, eventId: aiCard!.eventId } }) }
+        return c
+      }),
+    }))
+    update(x => settle(x))
+    if (!local || local.done) return
+    if (refined.autoSet) dispatch({ type: "aiAutoApply", changeSet: refined.autoSet })
+    if (refined.changeSet) dispatch({ type: "draftChanges", changeSet: refined.changeSet })
+    setMessages(m => [...m, { id: uid(), role: "assistant", cards: refined.cards, source: `${refined.source} · second look` }])
+  }
   const patchCard = (msgId: string, cardIndex: number, card: ChatCard) => setMessages(m => m.map(x => x.id === msgId ? { ...x, cards: x.cards?.map((c, i) => i === cardIndex ? card : c) } : x))
   /** The filled form becomes a change set straight away; the date is the one the person picked. */
   function submitPlan(msgId: string, index: number, c: Extract<ChatCard, { kind: "form" }>) {
@@ -130,10 +165,10 @@ export function AskPanel() {
       {messages.map(m => m.role === "user"
         ? <div key={m.id} className="bubble user">{m.text}</div>
         : <div key={m.id} className="bubble bot" data-testid="bot-reply">
-          {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={card => submitPlan(m.id, i, card)} onTask={(card, buffered) => submitTask(m.id, i, card, buffered)} />)}
+          {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={card => submitPlan(m.id, i, card)} onTask={(card, buffered) => submitTask(m.id, i, card, buffered)} onMoved={card => patchCard(m.id, i, card)} />)}
           {m.source && <span className="ask-source">{m.source}</span>}
         </div>)}
-      {busy && <div className="bubble bot typing" aria-label="Thinking"><i /><i /><i /></div>}
+      {busy && <Typing />}
     </div>
     <div className="chips" aria-label="Suggestions">{suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s)} disabled={busy}>{s}</button>)}</div>
     <form className="ask-form" onSubmit={e => { e.preventDefault(); void send(text) }}>
@@ -144,7 +179,7 @@ export function AskPanel() {
   </section>
 }
 
-function CardView({ card, onPlan, onTask }: { card: ChatCard; onPlan: (c: Extract<ChatCard, { kind: "form" }>) => void; onTask: (c: Extract<ChatCard, { kind: "taskform" }>, buffered: boolean) => void }) {
+function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (c: Extract<ChatCard, { kind: "form" }>) => void; onTask: (c: Extract<ChatCard, { kind: "taskform" }>, buffered: boolean) => void; onMoved: (c: Extract<ChatCard, { kind: "eventdate" }>) => void }) {
   const { state } = useStore()
   const rail = useRail()
   switch (card.kind) {
@@ -182,9 +217,9 @@ function CardView({ card, onPlan, onTask }: { card: ChatCard; onPlan: (c: Extrac
       return <div className="mini-card" data-testid="event-review">
         <b>Plan check{ev ? `: ${ev.name}` : ""}</b>
         {card.risks.length ? <ul className="review-risks">{card.risks.map((r, i) => <li key={i}>{r.text}{r.rules.map(id => { const rule = ruleById(id); return rule && <a key={id} className="small" href={rule.sources[0].url} target="_blank" rel="noreferrer"> {id} ↗</a> })}</li>)}</ul> : <p className="small">Nothing stands out beyond the playbook's steps.</p>}
-        <span className="ask-source">{card.label}</span>
       </div>
     }
+    case "eventdate": return <EventDateCard card={card} onDone={onMoved} />
     case "taskform": return card.done && card.changeSetId ? <AppliedCard id={card.changeSetId} /> : <TaskForm card={card} onDone={onTask} />
   }
 }
@@ -202,9 +237,28 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
   const [f, setF] = useState({ name: card.prefill.name ?? "", type: card.prefill.type ?? (card.prefill.speaker ? "speaker" : "social"), headcount: card.prefill.headcount ?? 30, venue: card.prefill.venue ?? "campus", food: card.prefill.food ?? "none", funding: card.prefill.funding ?? "none", speaker: card.prefill.speaker ?? false, details: card.prefill.details ?? "" })
   const [date, setDate] = useState(card.date)
   const [error, setError] = useState("")
+  // Fields the person changed are theirs; the assistant's later reading only fills the others.
+  const touched = useRef(new Set<string>())
+  const edit = (patch: Partial<typeof f>) => { Object.keys(patch).forEach(k => touched.current.add(k)); setF(prev => ({ ...prev, ...patch })) }
+  const [filled, setFilled] = useState(false)
+  useEffect(() => {
+    const ai = card.ai
+    if (!ai) return
+    setF(prev => {
+      const next = { ...prev }
+      for (const k of ["name", "headcount", "food", "speaker", "venue", "funding", "type"] as const) {
+        const v = ai[k]
+        if (v !== undefined && v !== "" && !touched.current.has(k)) (next as Record<string, unknown>)[k] = v
+      }
+      if (ai.details && !touched.current.has("details")) next.details = prev.details && !ai.details.includes(prev.details) ? `${ai.details} ${prev.details}` : ai.details
+      return next
+    })
+    setFilled(true)
+  }, [card.ai])
   if (card.done) return <div className="mini-card done"><b>{card.prefill.name}</b><span className="small muted">Details sent · {card.date}</span></div>
   const hasFood = f.food !== "none"
-  return <form className="mini-card plan-form" data-testid="plan-form" onSubmit={e => {
+  const finals = /^\d{4}-\d{2}-\d{2}$/.test(date) ? findPeriod(date, FINALS) : null
+  return <form className="mini-card plan-form" data-testid="plan-form" autoComplete="off" onSubmit={e => {
     e.preventDefault()
     if (!allowed) return setError("The president chooses who can create events (Settings).")
     if (!f.name.trim()) return setError("Give the event a name.")
@@ -213,14 +267,17 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
     onDone({ ...card, done: true, date, prefill: { ...f, name: f.name.trim(), details: details || undefined } })
   }}>
     <b>I need these details</b>
-    <label>Event name<input value={f.name} maxLength={80} onChange={e => setF({ ...f, name: e.target.value })} placeholder="e.g. Founder Dinner" /></label>
+    {card.thinking && <p className="small muted" data-testid="ai-reading">AI is reading your message and will fill in what it can…</p>}
+    {filled && <p className="small muted" data-testid="ai-filled">AI filled in what you told it. Check and change anything.</p>}
+    <label>Event name<input name="platypus-event-title" autoComplete="off" value={f.name} maxLength={80} onChange={e => edit({ name: e.target.value })} placeholder="e.g. Founder Dinner" /></label>
     <div className="form-2">
       <label>Date<input type="date" aria-label="Date" value={date} min={state.today} onChange={e => setDate(e.target.value)} /></label>
-      <label>People<input type="number" min={1} max={5000} value={f.headcount} onChange={e => setF({ ...f, headcount: Number(e.target.value) })} /></label>
-      <label>Food<select aria-label="Food" value={hasFood ? "yes" : "no"} onChange={e => setF({ ...f, food: e.target.value === "yes" ? (card.prefill.food && card.prefill.food !== "none" ? card.prefill.food : "tbd") : "none" })}><option value="no">No</option><option value="yes">Yes</option></select></label>
+      <label>People<input type="number" min={1} max={5000} value={f.headcount} onChange={e => edit({ headcount: Number(e.target.value) })} /></label>
+      <label>Food<select aria-label="Food" value={hasFood ? "yes" : "no"} onChange={e => edit({ food: e.target.value === "yes" ? (card.prefill.food && card.prefill.food !== "none" ? card.prefill.food : "tbd") : "none" })}><option value="no">No</option><option value="yes">Yes</option></select></label>
     </div>
-    <label className="check-label"><input type="checkbox" checked={f.speaker} onChange={e => setF({ ...f, speaker: e.target.checked })} />Guest speaker or performer</label>
-    <label>Details<textarea rows={3} maxLength={500} value={f.details} onChange={e => setF({ ...f, details: e.target.value })} placeholder="Anything unusual: a stage build, a company visit, flying out of state, a competition…" /></label>
+    {finals && <p className="small late-text" role="alert" data-testid="finals-warning">{fmtLong(date)} is during {finals.label}. ASU does not allow events then (R13).</p>}
+    <label className="check-label"><input type="checkbox" checked={f.speaker} onChange={e => edit({ speaker: e.target.checked })} />Guest speaker or performer</label>
+    <label>Details<textarea rows={3} maxLength={500} autoComplete="off" value={f.details} onChange={e => edit({ details: e.target.value })} placeholder="Anything unusual: a stage build, a company visit, flying out of state, a competition…" /></label>
     {!allowed && <p className="small muted">The president chooses who can create events.</p>}
     {error && <p className="small late-text" role="alert">{error}</p>}
     <button className="btn btn-primary" type="submit" disabled={!allowed}>Continue</button>
@@ -233,21 +290,78 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
   const [c, setC] = useState(card)
   const [buffered, setBuffered] = useState(true)
   const [error, setError] = useState("")
+  const touched = useRef(new Set<string>())
+  const edit = (patch: Partial<typeof c>) => { Object.keys(patch).forEach(k => touched.current.add(k)); setC(prev => ({ ...prev, ...patch })) }
+  const [filled, setFilled] = useState(false)
+  useEffect(() => {
+    const ai = card.ai
+    if (!ai) return
+    setC(prev => ({
+      ...prev,
+      ...(ai.title && !touched.current.has("title") ? { title: ai.title } : {}),
+      ...(ai.owners.length && !touched.current.has("owners") ? { owners: ai.owners } : {}),
+      ...(ai.eventId && !touched.current.has("eventId") ? { eventId: ai.eventId } : {}),
+    }))
+    setFilled(true)
+  }, [card.ai])
   const people = ownersToPeople(c.owners, state.people, state.roles).filter(Boolean).length
-  return <form className="mini-card plan-form" data-testid="task-form" onSubmit={e => {
+  return <form className="mini-card plan-form" data-testid="task-form" autoComplete="off" onSubmit={e => {
     e.preventDefault()
     if (!c.title.trim()) return setError("Give the task a name.")
     if (!c.eventId && (!/^\d{4}-\d{2}-\d{2}$/.test(c.due) || c.due < state.today)) return setError("Pick a due date from today on.")
-    onDone({ ...c, title: c.title.trim() }, buffered)
+    onDone({ ...c, title: c.title.trim(), thinking: false }, buffered)
   }}>
     <b>New task</b>
-    <label>Task name<input aria-label="Task name" value={c.title} maxLength={100} onChange={e => setC({ ...c, title: e.target.value })} placeholder="e.g. Order name tags" /></label>
-    <OwnerPicker value={c.owners} onChange={owners => setC({ ...c, owners })} />
+    {card.thinking && <p className="small muted" data-testid="ai-reading">AI is reading your message and will fill in what it can…</p>}
+    {filled && <p className="small muted" data-testid="ai-filled">AI filled in what you told it. Check and change anything.</p>}
+    <label>Task name<input aria-label="Task name" name="platypus-task-title" autoComplete="off" value={c.title} maxLength={100} onChange={e => edit({ title: e.target.value })} placeholder="e.g. Order name tags" /></label>
+    <OwnerPicker value={c.owners} onChange={owners => edit({ owners })} />
     {people > 1 && <p className="small muted">Makes {people} tasks, one for each person, so everyone has their own deadline.</p>}
     {!c.owners.length && <p className="small muted">{canLead(state) ? "No owner yet: anyone can claim it." : "No owner: it will be yours."}</p>}
-    <label>Event<select aria-label="Event" value={c.eventId ?? ""} onChange={e => setC({ ...c, eventId: e.target.value || null })}><option value="">Standalone task</option>{state.events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}</select></label>
-    {c.eventId ? <p className="small muted">Its dates come from the event plan.</p> : <TaskDueFields due={c.due} buffered={buffered} onDue={due => setC({ ...c, due })} onBuffered={setBuffered} />}
+    <label>Event<select aria-label="Event" value={c.eventId ?? ""} onChange={e => edit({ eventId: e.target.value || null })}><option value="">Standalone task</option>{state.events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}</select></label>
+    {c.eventId ? <p className="small muted">Its dates come from the event plan.</p> : <TaskDueFields due={c.due} buffered={buffered} onDue={due => edit({ due })} onBuffered={setBuffered} />}
     {error && <p className="small late-text" role="alert">{error}</p>}
     <button className="btn btn-primary" type="submit">{people > 1 ? `Create ${people} tasks` : "Create task"}</button>
   </form>
+}
+
+/**
+ * Move an event to the date the person typed (M2b). The assistant never supplies this date; the rule engine
+ * recomputes every step, and the plan is checked again.
+ */
+function EventDateCard({ card, onDone }: { card: Extract<ChatCard, { kind: "eventdate" }>; onDone: (c: Extract<ChatCard, { kind: "eventdate" }>) => void }) {
+  const { state, dispatch } = useStore()
+  const rail = useRail()
+  const [eventId, setEventId] = useState(card.eventId)
+  const [date, setDate] = useState(card.date)
+  const [error, setError] = useState("")
+  const ev = state.events.find(e => e.id === eventId)
+  const allowed = canCreateEvent(state)
+  if (card.done) return <div className="mini-card done"><b>{ev?.name ?? "Event"}</b><span className="small muted">Moved to {fmtLong(card.date)} · steps rescheduled</span></div>
+  const finals = /^\d{4}-\d{2}-\d{2}$/.test(date) ? findPeriod(date, FINALS) : null
+  return <form className="mini-card plan-form" data-testid="event-date" onSubmit={e => {
+    e.preventDefault()
+    if (!ev) return setError("Choose an event.")
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < state.today) return setError("Pick a date from today on.")
+    dispatch({ type: "updateEvent", id: ev.id, patch: { date } })
+    onDone({ ...card, eventId: ev.id, date, done: true })
+    rail.requestReview(ev.id)
+  }}>
+    <b>Move an event</b>
+    <label>Event<select aria-label="Event" value={eventId} onChange={e => setEventId(e.target.value)}>{state.events.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+    {ev && <p className="small muted">Now {fmtLong(ev.date)}.</p>}
+    <label>New date<input type="date" aria-label="New date" value={date} min={state.today} onChange={e => setDate(e.target.value)} /></label>
+    {finals && <p className="small late-text" role="alert">{fmtLong(date)} is during {finals.label}. ASU does not allow events then (R13).</p>}
+    <p className="small muted">The rule engine reschedules every step, then I check the plan again.</p>
+    {!allowed && <p className="small muted">The president chooses who can change events.</p>}
+    {error && <p className="small late-text" role="alert">{error}</p>}
+    <button className="btn btn-primary" type="submit" disabled={!allowed}>Move event</button>
+  </form>
+}
+
+/** Typing dots; after a few seconds, say why it is taking a while (ASU AIR can take most of a minute). */
+function Typing() {
+  const [slow, setSlow] = useState(false)
+  useEffect(() => { const t = setTimeout(() => setSlow(true), 6000); return () => clearTimeout(t) }, [])
+  return <div className="bubble bot typing" aria-label="Thinking"><i /><i /><i />{slow && <span className="small muted"> Still thinking. The ASU AI can take up to a minute.</span>}</div>
 }

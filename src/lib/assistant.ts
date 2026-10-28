@@ -18,9 +18,12 @@ import { RULES } from "../data/rules"
 /** What the Ask panel shows. Cards are the "foundation" of the AI interaction (v1.1 plan, decision 1). */
 export type ChatCard =
   | { kind: "text"; text: string }
-  | { kind: "form"; id: string; prefill: Partial<PlanPrefill>; date: string; done?: boolean }
+  // `thinking`: the assistant is still reading the message; `ai`: what it filled in (only empty, untouched fields take it).
+  | { kind: "form"; id: string; prefill: Partial<PlanPrefill>; date: string; done?: boolean; thinking?: boolean; ai?: Partial<PlanPrefill> }
   /** The new-task form (M2b). owners are person or role IDs; one task is made per person. */
-  | { kind: "taskform"; id: string; title: string; owners: string[]; eventId: string | null; due: string; done?: boolean; changeSetId?: string }
+  | { kind: "taskform"; id: string; title: string; owners: string[]; eventId: string | null; due: string; done?: boolean; changeSetId?: string; thinking?: boolean; ai?: { title: string; owners: string[]; eventId: string | null } }
+  /** Move an event to a date the person typed. The rule engine recomputes every step after it. */
+  | { kind: "eventdate"; eventId: string; date: string; done?: boolean }
   | { kind: "tasks"; title: string; nodeIds: string[]; remind?: boolean }
   | { kind: "changes"; changeSetId: string }
   | { kind: "applied"; changeSetId: string }
@@ -30,7 +33,11 @@ export type ChatCard =
   | { kind: "review"; eventId: string; risks: ReviewRisk[]; label: string }
 export interface ChatMsg { id: string; role: "user" | "assistant"; text?: string; cards?: ChatCard[]; source?: string }
 export interface Focus { kind: "node" | "event" | "page"; id: string; title: string }
-export interface Reply { cards: ChatCard[]; source: string; changeSet?: ChangeSet; autoSet?: ChangeSet }
+/**
+ * `refine`: the assistant's reading of the same message, still on its way. The panel shows the reply at once and
+ * lets the assistant fill in the form when it answers (ASU AIR can take tens of seconds; Juanxi wants speed).
+ */
+export interface Reply { cards: ChatCard[]; source: string; changeSet?: ChangeSet; autoSet?: ChangeSet; refine?: Promise<Reply | null> }
 
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
 const canLeadAs = (s: DemoState, id: string) => {
@@ -66,6 +73,7 @@ const MISSING_RE = /\bwhat'?s missing\b|\bready to submit\b|\bmissing in (this|t
 const WEEKONE_RE = /\bweek one\b|\bfirst week\b|\bnew officer\b|新干部|交接/i
 const DATES_RE = /\bhow (are|do) (deadlines|dates).*(calculat|work|set)|\bwhy (this|that) date\b/i
 const STEP_RE = /\babout this step\b|\bexplain this (step|task)\b|\bwhat should happen next\b/i
+const EVENT_DATE_RE = /\b(?:change|move|reschedule|push|shift|set|update)\b.*\b(?:date|event|it|to)\b|改.*(?:日期|时间)|推迟|延期到/i
 export const RULE_Q_RE = /\?\s*$|^(can|may|do|does|is|are|what|when|how|which|should|must)\b/i
 
 const SYNONYMS: [RegExp, string[]][] = [
@@ -87,7 +95,12 @@ function planDefaults(text: string, s: DemoState): { prefill: Partial<PlanPrefil
   const m = text.trim().match(/^(?:(?:i want to|i'd like to|we want to|let's|lets|please)\s+)?(?:plan|organi[sz]e|host|throw|set up|put on|create|schedule|hold|run|arrange)\s+(?:(?:a|an|our|the|new)\s+)*(?:event\s*[:：]?\s*)?(.+?)(?:\s+(?:on|for|with|at|in|next|this|by)\s+|[,.;]|$)/i)
   const raw = m?.[1]?.trim() ?? ""
   const generic = !raw || /^(?:a |an )?(?:new )?event$/i.test(raw) || raw.length > 60 || !GATHERING.test(raw)
-  return { prefill: { ...eventFields(text), name: generic ? "" : raw[0].toUpperCase() + raw.slice(1) }, date: humanEventDate(text, s.today) }
+  // "…an event, name Jared Byrne Fireside Chat, December 12…", "called X", "titled X", or a quoted name.
+  const said = text.match(/\b(?:name(?:d)?|called|titled|title)\s*(?:is\s*)?[:：]?\s*["“]?([^,;."”\n]{3,80}?)["”]?\s*(?:[,;.\n]|\s+on\s+|$)/i)?.[1] ?? text.match(/["“]([^"”]{3,80})["”]/)?.[1]
+  const name = said?.trim() || (generic ? "" : raw[0].toUpperCase() + raw.slice(1))
+  // A start time is not a date the engine uses; it goes into Details so it is not lost.
+  const time = text.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.))/i)?.[1]
+  return { prefill: { ...eventFields(text), name, ...(time ? { details: `Starts at ${time.toUpperCase().replace(/\s+/, " ")}.` } : {}) }, date: humanEventDate(text, s.today) }
 }
 
 /** The task form from the person's own words, without AI. */
@@ -171,6 +184,9 @@ function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: strin
 
 const HELP = "I can rank your top tasks, add a task, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
 
+/** ASU AIR can take most of a minute; the server stops at 55 s (Netlify allows 60 s), the browser just after. */
+export const AI_WAIT_MS = 58_000
+
 /** One /api/chat round. Returns null when the reply had no usable card; throws only when `rethrow` is set. */
 async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus | null, page: string, history: ChatMsg[], rethrow = false): Promise<Reply | null> {
   const snap = aiSnapshot(s)
@@ -178,7 +194,7 @@ async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus |
     const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
       message: t, page, focus, context: commandContext(s), data: snap,
       history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
-    })
+    }, AI_WAIT_MS)
     const cards = sanitizeCards(r.cards, commandContext(s), knownDates(snap))
     const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Checked command grammar"
     return cards.length ? fromWire(cards, t, s, viewerId, label, focus ?? null) : null
@@ -200,19 +216,25 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
 
   // Making something new (M2b): the assistant reads the whole message and fills the form; the app's own
   // grammar answers only a bare "new event"/"new task", or when AI is off or unavailable.
+  // The form appears at once from the person's own words; the assistant then reads the whole message and fills in
+  // what is still empty (or, if it reads the message differently, says so in a new message).
   const intent = createIntent(t, s)
   if (intent) {
-    if (s.aiEnabled && !BARE_EVENT.test(t) && !BARE_TASK.test(t)) {
-      const ai = await aiReply(t, s, viewerId, focus, page, history)
-      if (ai && ai.cards.length) return ai
-    }
-    const source = s.aiEnabled ? "Platypus" : "Local demo grammar · AI off"
+    const refine = s.aiEnabled && !BARE_EVENT.test(t) && !BARE_TASK.test(t) ? aiReply(t, s, viewerId, focus, page, history) : undefined
+    const source = !s.aiEnabled ? "Local demo grammar · AI off" : refine ? "Platypus · AI is reading your message" : "Platypus"
     if (intent === "task") {
-      const card = taskDefaults(t, s, focus)
-      return { cards: [textCard(card.title ? "Here's the task. Check who owns it and when it's due." : "What's the task? Fill in the name and who owns it."), card], source }
+      const card = { ...taskDefaults(t, s, focus), thinking: !!refine }
+      return { cards: [textCard(card.title ? "Here's the task. Check who owns it and when it's due." : "What's the task? Fill in the name and who owns it."), card], source, refine }
     }
     const { prefill, date } = planDefaults(t, s)
-    return { cards: [textCard("Happy to help. Fill in what's missing and I'll draft the plan from the club playbook."), { kind: "form", id: uid(), prefill, date }], source }
+    return { cards: [textCard("Happy to help. Fill in what's missing and I'll draft the plan from the club playbook."), { kind: "form", id: uid(), prefill, date, thinking: !!refine }], source, refine }
+  }
+  // "Move the event to Jan 30 2027": a date the person typed, applied by a person, recomputed by the rule engine.
+  const moved = EVENT_DATE_RE.test(t) ? humanEventDate(t, s.today) : ""
+  if (moved) {
+    const named = s.events.find(e => t.toLowerCase().includes(e.name.toLowerCase()))
+    const ev = named ?? focusEvent ?? s.events.at(-1)
+    if (ev) return { cards: [{ kind: "eventdate", eventId: ev.id, date: moved }], source: "Your date · the rule engine redoes the plan" }
   }
   if (STEP_RE.test(t) && focusNode) {
     const p = computeSchedule(s).nodes[focusNode.id]
@@ -280,7 +302,7 @@ export async function reviewEvent(s: DemoState, eventId: string): Promise<Reply>
   let review: EventReview, label: string
   if (s.aiEnabled) {
     try {
-      const r = await callApi<{ risks: unknown; tasks: unknown; model?: string }>("/event/review", { eventId, data: p, context: commandContext(s) })
+      const r = await callApi<{ risks: unknown; tasks: unknown; model?: string }>("/event/review", { eventId, data: p, context: commandContext(s) }, AI_WAIT_MS)
       review = checkReview(r, s, eventId)
       label = `AI review${r.model ? ` · ${r.model}` : ""}`
     } catch { review = localReview(s, eventId); label = "Rule engine check · AI unavailable" }

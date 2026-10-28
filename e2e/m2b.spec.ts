@@ -79,3 +79,35 @@ test("Settings: the usual task length sets the new task's due date, and the pres
   await ask(page, "Plan a new event")
   await expect(page.getByTestId("plan-form").last().getByRole("button", { name: "Continue" })).toBeEnabled()
 })
+
+test("the form appears at once; the AI's later reading fills only what the person has not changed", async ({ page }) => {
+  let release!: () => void
+  const gate = new Promise<void>(r => { release = r })
+  await page.route("**/api/chat", async route => {
+    await gate
+    await route.fulfill({ json: { source: "ai", model: "mock", cards: [{ kind: "text", text: "Filled in what you said." }, { kind: "form", intent: "plan_event", prefill: { name: "Jared Byrne Fireside Chat", headcount: 50, food: "none", speaker: true, details: "Fireside chat with founder Jared Byrne." } }] } })
+  })
+  await page.goto("/#/")
+  await ask(page, "I need to plan an event with Jared, December 12 6:00 PM, 50 people")
+  const form = page.getByTestId("plan-form")
+  await expect(form.getByTestId("ai-reading")).toBeVisible()
+  await expect(form.getByLabel("Date")).toHaveValue("2026-12-12")
+  await expect(form.getByTestId("finals-warning")).toContainText("R13")
+  await form.getByLabel("People").fill("60")
+  release()
+  await expect(form.getByTestId("ai-filled")).toBeVisible()
+  await expect(form.getByLabel("Event name")).toHaveValue("Jared Byrne Fireside Chat")
+  await expect(form.getByLabel("People")).toHaveValue("60")
+  await expect(form.getByLabel("Guest speaker or performer")).toBeChecked()
+  await expect(form.getByLabel("Details")).toHaveValue(/Fireside chat with founder Jared Byrne\. Starts at 6:00 PM\./)
+})
+
+test("'move … to <date>' moves the event and checks the plan again", async ({ page }) => {
+  await page.goto("/#/")
+  await ask(page, "move Networking Night to Nov 20")
+  const card = page.getByTestId("event-date")
+  await expect(card.getByLabel("New date")).toHaveValue("2026-11-20")
+  await card.getByRole("button", { name: "Move event" }).click()
+  await expect(page.getByTestId("event-review").last()).toContainText("Plan check: Networking Night")
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).events.find((e: { id: string }) => e.id === "e-night").date)).toBe("2026-11-20")
+})

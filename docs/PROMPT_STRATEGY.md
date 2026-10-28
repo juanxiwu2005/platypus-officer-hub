@@ -102,6 +102,30 @@
 3. **默认 5 天 + 3 个工作日缓冲会挤到明天**：见 0.2 第 5 条。
 4. **Setup 的首场活动表单**还是旧的字段（类型、地点、经费），只加了「Food: Yes, decide how later」。要不要也改成新表单，等 M3 合并 onboarding 时一起做。
 
+### 0.8 第一次预览后的修正（2026-10-28）
+
+Juanxi 在 DP6 上试了两句话，界面一直显示「AI unavailable」。查 Netlify 日志（Logs → Functions）：
+
+- **过去 24 小时里，每一次 AI 调用都在 25 秒时超时**（`ai_usage` 一行：`ms≈25000`、`headersMs:0`、`error:"timeout"`）。DP4 也一样，所以不是这次改动弄坏的。`headersMs:0` 表示 AIR 在 25 秒里连回应的开头都没给。
+- 仓库里以前的实测：Muse 首字约 17 秒，整段 50–65 秒（`docs/organization/V3_CHANGELOG.md`、`F1_F7_IMPLEMENTATION.md`）。主应用的 Ask 一次要发约 25 KB 社团数据，只会更慢。
+- 25 秒是我们自己设的上限（`AI_TIMEOUT_MS` 默认值），不是 Netlify 的。Netlify 现在允许普通请求跑 60 秒。
+
+**改法：**
+
+1. Ask 和活动检查的上限改成 **55 秒**（Netlify 60 秒之内），浏览器等 58 秒。
+2. **表单立刻出现，不等 AI**：先用你自己的话填好能填的；AI 读完后再填**你还没动过的空**，表单上会写「AI filled in what you told it」。如果 AI 判断和本地不一样（例如本地以为是活动、AI 认为是任务），它的回答作为新的一条出现。AI 55 秒内没回来，就写明「AI didn't answer in time, filled from your words」。
+3. 等 AI 超过 6 秒时，转圈旁边会写「The ASU AI can take up to a minute」。
+
+**同时修了截图里的问题（不靠 AI 也成立）：**
+
+- 「…, name Jared Byrne Fireside Chat, December 12 6:00 PM, 50 people」：现在能取出名字（name / named / called / titled / 引号）。6:00 PM 写进 Details（规则引擎不用时间）。fireside / guest / keynote 会勾上嘉宾。没写年份且日期已过的，算明年。
+- 日期落在期末周，表单上**立刻**用红字提示 R13，不用等到建完才在 Plan check 里看到。
+- 「change the event date to Jan 30 2027」：出现一张「Move an event」小卡片。活动默认是你正在看的那场，可以改；日期取你自己写的。点 Move event 以后，规则引擎重排全部步骤，并**重新做一次 Plan check**。AI 依然碰不到日期。谁能挪活动 = 谁能建活动。
+- 没有 AI 时的 Plan check：每条都写明是哪一步（「Finish the event flyer: Past the club deadline…」），错误排在前面，最多 4 条；「Rule engine check · AI unavailable」只显示一次。
+- 表单关掉了浏览器的自动填充（截图里活动名称框右边那个联系人图标）。
+
+**还不确定的：** AIR 在 55 秒内能不能答完，要等你再试一次后看 Netlify 日志才知道。如果还是超时，下一步是把 Ask 改成后台任务（DP3 的设置流程就是这样做的，最长 15 分钟），但那要在服务器上暂存结果，和 M1「服务器存储默认隐藏」的决定有关，需要你同意。
+
 ---
 
 ## 先说结论（一分钟版）

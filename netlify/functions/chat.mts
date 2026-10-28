@@ -34,6 +34,8 @@ export default async (req: Request) => {
       user: JSON.stringify({ message, page: str(body.page, 40), focus, history, clubData: data, sharedPool: SHARED_POOL, rules: RULES.map(({ id, short, text }) => ({ id, short, text })) }),
       maxTokens: 1200,
       temperature: 0.2,
+      // ASU AIR often needs most of a minute; Netlify allows 60 s for a request (M2b, 2026-10-28).
+      timeoutMs: 55_000,
     })
     return json({ cards: sanitizeCards(reply, ctx, allowedDates), source: "ai", model, provider })
   } catch (e) { return fail(e) }
