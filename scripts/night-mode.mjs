@@ -385,7 +385,47 @@ async function commitAndPush(task, cycle) {
 
   const suffix = cycle > 1 ? ` (repair ${cycle - 1})` : ""
   await runRequired("git", ["commit", "-m", `[Night Mode] ${taskTitle(task)}${suffix}`])
-  await runRequired("git", ["push", "origin", NIGHT_BRANCH])
+  await pushWithRebase()
+}
+
+/**
+ * A push can be rejected simply because someone pushed to the same branch while this run was
+ * working. 2026-10-28 that threw away five finished tasks: each had passed the full suite and
+ * the independent review, and was committed, and then the run died on "fetch first". The
+ * commit survived locally but the queue counted the task as failed and moved on.
+ *
+ * So: on rejection, fetch, rebase this commit onto the new tip, and re-run the authoritative
+ * check before pushing again. The re-run matters — the tests passed against the old base, not
+ * this one. If the rebase conflicts or the re-check fails, stop and leave the commit in place
+ * for a human; never force-push, and never push code that has not passed on the tree it lands on.
+ */
+async function pushWithRebase() {
+  const first = await run("git", ["push", "origin", NIGHT_BRANCH])
+  if (first.code === 0) return
+
+  console.log("\nPush rejected. Fetching and rebasing onto the current remote tip...")
+  await runRequired("git", ["fetch", "origin", NIGHT_BRANCH])
+  const rebase = await run("git", ["rebase", `origin/${NIGHT_BRANCH}`])
+  if (rebase.code !== 0) {
+    await run("git", ["rebase", "--abort"])
+    throw new Error(
+      `Push was rejected and the rebase onto origin/${NIGHT_BRANCH} conflicts. The commit is ` +
+      `still here; resolve it by hand. Nothing was force-pushed.`,
+    )
+  }
+
+  console.log("Rebased. Re-running the full check against the new base before pushing...")
+  const recheck = await runLocalCheck()
+  if (recheck.code !== 0) {
+    writeFileSync(resolve(NIGHT_DIR, "last-failure.log"), recheck.output)
+    throw new Error(
+      "The work passed on its original base but fails after rebasing onto the current remote " +
+      "tip. The commit is still here; see .nightmode/last-failure.log. Nothing was force-pushed.",
+    )
+  }
+
+  const second = await run("git", ["push", "origin", NIGHT_BRANCH])
+  if (second.code !== 0) throw new Error("Push still rejected after rebase; stopping.")
 }
 
 async function latestCiFailure() {
@@ -459,7 +499,7 @@ async function runNightMode(taskPath) {
     const review = await runIndependentReview(task)
 
     if (check.code !== 0 || !review.approved) {
-      if (cycle === MAX_CYCLES) throw new Error("Local validation did not pass within 3 cycles.")
+      if (cycle === MAX_CYCLES) throw new Error(`Local validation did not pass within ${MAX_CYCLES} cycles.`)
       await askForRepair(task, cycle + 1, `${check.output}\n\n${review.output}`)
       continue
     }

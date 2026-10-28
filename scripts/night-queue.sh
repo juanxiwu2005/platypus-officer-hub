@@ -6,21 +6,20 @@
 #   caffeinate -dimsu bash scripts/night-queue.sh   # 过夜跑（Mac 不睡）
 #
 # 任务文件放在 .nightmode/queue/，按文件名排序执行，例如：
-#   01-fontscale.md  02-spacing.md  03-radius-z.md
+#   T1-zindex.md  T2-radius.md  T3-fontscale.md
 #
 # 一个任务可以在正文任意位置声明依赖（可多行）：
-#   # Depends on: 01-fontscale.md
+#   # Depends on: T1-zindex.md
 # 被依赖的任务失败或被跳过时，这个任务也会被跳过，不会在坏地基上继续。
 # 没有声明依赖的任务一律照常执行 —— 这正是「一个走不通，换下一个」。
 #
-# 失败后的半成品怎么办：
-#   控制器只在全部闸门通过后才提交。失败时改动留在工作区，而下一个任务的
-#   doctor 要求工作区干净，所以队列会先把半成品存成一个 WIP 提交再继续。
-#   WIP 提交带 [WIP-UNVERIFIED] 前缀，没过测试、没过 Critic、没过 CI，
-#   只是「存着别丢」。第二天按 docs/NIGHT_MODE.md 的「中断后的进度分流」处理。
+# 失败后的半成品：存到单独的分支 wip/<任务名>，工作分支退回这个任务开跑前的位置。
+#   2026-10-28 的第一版把半成品直接提交在工作分支上，结果 T2 未经验证的改动成了
+#   T3 的地基，一个失败污染后面每一个任务。现在不会了。
+#   处理半成品见 docs/NIGHT_MODE.md「中断后的进度分流」。
 #
-# 安全：WIP 提交前会自己查一遍保护文件。控制器的保护文件检查只在它自己提交时跑，
-#   这里补上同一道检查，避免队列把本应被拒绝的改动偷偷存进分支。
+# 安全：存半成品前会自己查一遍保护文件。控制器的保护文件检查只在它自己提交时跑，
+#   这里补上同一道检查，避免队列把本应被拒绝的改动偷偷存进任何分支。
 
 set -uo pipefail
 
@@ -45,13 +44,16 @@ protected_changed() {
 }
 
 ts() { date '+%H:%M:%S'; }
+count_queue() { find "$QUEUE" -maxdepth 1 -name '*.md' | wc -l | tr -d ' '; }
+
 failed_names=""
 skipped_names=""
 done_count=0
+branch="$(git branch --show-current)"
 
 echo "════════════════════════════════════════════════"
 echo "Night Mode 队列  $(date '+%Y-%m-%d %H:%M:%S')"
-echo "分支 $(git branch --show-current)"
+echo "分支 $branch"
 echo "════════════════════════════════════════════════"
 
 shopt -s nullglob
@@ -64,6 +66,7 @@ echo "排队中：${#tasks[@]} 个任务"
 
 for task in "${tasks[@]}"; do
   name="$(basename "$task" .md)"
+  base="$(git rev-parse HEAD)"
 
   # 依赖检查：被依赖的任务失败或被跳过，这个任务就不跑
   blocked=""
@@ -87,32 +90,54 @@ for task in "${tasks[@]}"; do
     echo "════ $(ts)  完成  $name ════"
     mv "$task" "$DONE/$name.md"
     done_count=$((done_count + 1))
-  else
-    echo "════ $(ts)  失败  $name ════"
-    mv "$task" "$FAILED/$name.md"
-    failed_names="$failed_names $name"
+    continue
+  fi
 
-    # 半成品分流：存成 WIP 提交，让工作区变干净，下一个任务才能起跑
-    if [ -n "$(git status --porcelain)" ]; then
-      bad="$(protected_changed)"
-      if [ -n "$bad" ]; then
-        echo "⛔ 工作区里有保护文件被改动，拒绝存 WIP，队列停止："
-        echo "$bad" | sed 's/^/   /'
-        echo "   请人工检查后再继续。"
-        break
-      fi
-      git add -A
-      git commit -q -m "[WIP-UNVERIFIED][queue] $name 中断时的半成品
+  echo "════ $(ts)  失败  $name ════"
+  mv "$task" "$FAILED/$name.md"
+  failed_names="$failed_names $name"
+
+  # 控制器可能已经提交但推送失败（例如别人同时推了同一分支）。那种提交通过了
+  # 全部闸门，绝对不能丢。留在工作分支上，早上由人决定推还是改。
+  if [ "$(git rev-parse HEAD)" != "$base" ]; then
+    echo "   ⚠️ 工作分支上多了提交 —— 控制器提交过但没推成功，已保留："
+    git log --oneline "$base"..HEAD | sed 's/^/     /'
+    echo "   这些提交是过了测试和 Critic 的，早上先处理它们。"
+    continue
+  fi
+
+  # 未提交的半成品：存到单独分支，工作分支退回起跑点，不污染下一个任务
+  if [ -z "$(git status --porcelain)" ]; then
+    echo "   工作区干净，没有半成品要存。"
+    continue
+  fi
+
+  bad="$(protected_changed)"
+  if [ -n "$bad" ]; then
+    echo "⛔ 工作区里有保护文件被改动，拒绝保存，队列停止："
+    echo "$bad" | sed 's/^/   /'
+    echo "   请人工检查后再继续。"
+    break
+  fi
+
+  wip="wip/$name"
+  if git stash push -q -u -m "queue:$name" \
+     && git branch -f "$wip" "$base" \
+     && git checkout -q "$wip" \
+     && git stash pop -q \
+     && git add -A \
+     && git commit -q -m "[WIP-UNVERIFIED][queue] $name 中断时的半成品
 
 这个提交没有通过本地测试、独立 Critic 或 GitHub CI。
-它只是为了不丢进度，并让工作区干净以便队列继续下一个任务。
+它在单独的分支上，不会成为后面任务的地基。
 
 处理办法见 docs/NIGHT_MODE.md「中断后的进度分流」。
-失败日志：.nightmode/logs/$name.log"
-      echo "   半成品已存成 WIP 提交（未验证），工作区已清空，继续下一个任务。"
-    else
-      echo "   工作区干净，没有半成品要存。"
-    fi
+失败日志：.nightmode/logs/$name.log" \
+     && git checkout -q "$branch"; then
+    echo "   半成品已存到分支 $wip（未验证）；工作分支回到 ${base:0:8}，继续下一个任务。"
+  else
+    echo "⛔ 保存半成品失败，工作区状态不明，队列停止。请人工检查 git status。"
+    break
   fi
 done
 
@@ -122,8 +147,16 @@ echo "队列结束 $(date '+%Y-%m-%d %H:%M:%S')"
 echo "完成 $done_count 个"
 [ -n "$failed_names" ]  && echo "失败：$failed_names"
 [ -n "$skipped_names" ] && echo "跳过（依赖未成功）：$skipped_names"
-echo "剩余未跑： $(ls "$QUEUE"/*.md 2>/dev/null | wc -l | tr -d ' ') 个"
+echo "剩余未跑：$(count_queue) 个"
 echo ""
-echo "有 WIP 提交的话，按 docs/NIGHT_MODE.md「中断后的进度分流」处理："
-git log --oneline --grep='^\[WIP-UNVERIFIED\]' -5 | sed 's/^/   /'
+wips="$(git branch --list 'wip/*' | sed 's/^/   /')"
+if [ -n "$wips" ]; then
+  echo "有半成品分支，按 docs/NIGHT_MODE.md「中断后的进度分流」处理："
+  echo "$wips"
+fi
+ahead="$(git log --oneline "@{upstream}"..HEAD 2>/dev/null | sed 's/^/   /')"
+if [ -n "$ahead" ]; then
+  echo "工作分支上有还没推送的提交："
+  echo "$ahead"
+fi
 echo "════════════════════════════════════════════════"
