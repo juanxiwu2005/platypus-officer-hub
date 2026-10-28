@@ -10,3 +10,4 @@ playwright-report/
 .scratch/
 output/
 .nightmode/
+dist-storage/

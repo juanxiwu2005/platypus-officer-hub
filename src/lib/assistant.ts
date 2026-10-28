@@ -4,7 +4,7 @@ import { commandContext, humanEventDate, isSmallOp, parseCommand, type CommandOp
 import { groundedAnswer, RULE_REFUSAL, type RuleAnswer } from "./ruleAnswers"
 import { aiSnapshot, knownDates } from "./aiContext"
 import { sanitizeCards, type PlanPrefill, type TaskScope, type WireCard } from "./chatCards"
-import { computeForecast, forecastQueue } from "../engine/forecast"
+import { forecastFor, forecastQueue } from "../engine/forecast"
 import { computeSchedule } from "../engine/schedule"
 import { workload } from "../engine/team"
 import { eventStrip } from "./today"
@@ -69,7 +69,7 @@ function planDefaults(text: string, s: DemoState): { prefill: Partial<PlanPrefil
 }
 
 function rankMine(s: DemoState, personId: string, limit: number): Node[] {
-  const forecast = computeForecast(s)
+  const forecast = forecastFor(s)
   const mine = s.nodes.filter(n => n.ownerId === personId && n.status !== "done")
   const score = (n: Node) => [(n.clubDeadline ?? "9999") < s.today ? 0 : 1, forecast.nodes[n.id]?.probability ?? 1, n.latestStart ?? "9999"] as const
   return mine.sort((a, b) => {
@@ -79,7 +79,7 @@ function rankMine(s: DemoState, personId: string, limit: number): Node[] {
 }
 
 export function taskList(s: DemoState, viewerId: string, scope: TaskScope, limit: number, focusEventId?: string): { title: string; nodes: Node[]; remind?: boolean } {
-  const forecast = computeForecast(s)
+  const forecast = forecastFor(s)
   if (scope === "risk") {
     const pool = focusEventId ? s.nodes.filter(n => n.eventId === focusEventId && n.status !== "done" && (forecast.nodes[n.id]?.probability ?? 1) < .8).sort((a, b) => forecast.nodes[a.id].probability - forecast.nodes[b.id].probability).slice(0, limit) : forecastQueue(s, forecast)
     return { title: focusEventId ? "At risk in this event" : "Needs a nudge", nodes: pool, remind: true }

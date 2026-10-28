@@ -6,6 +6,7 @@ import { fmtLong } from "../lib/dates"
 import { SEVERITY_TONE } from "../pages/helpers"
 import { StatusPill } from "./ui"
 import { useOptionalRail } from "./rail/RailContext"
+import { canLead } from "../data/changeReview"
 
 const RULE_BY_ID = Object.fromEntries(RULES.map(r => [r.id, r]))
 const TIER_LABEL = { light: "Light", medium: "Medium", heavy: "Heavy" } as const
@@ -29,6 +30,9 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
   }, [onClose])
 
   if (!n || !p) return null
+  // store.updateNode drops the patch unless the viewer leads, so the controls say so instead of
+  // swallowing the edit. Same wording and shape as ChangeCard, the one place that already did this.
+  const lead = canLead(state)
   const update = (patch: NodePatch) => dispatch({ type: "updateNode", id: n.id, patch })
   const upstream = state.nodes.filter(x => n.dependsOn.includes(x.id))
   const downstream = state.nodes.filter(x => x.dependsOn.includes(n.id))
@@ -49,7 +53,7 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
       )}
       <div className="kv">
         <span>Owner</span>
-        <select value={n.ownerId ?? ""} onChange={e => update({ ownerId: e.target.value || null })} data-testid="owner-select" aria-label="Owner (R)">
+        <select value={n.ownerId ?? ""} disabled={!lead} onChange={e => update({ ownerId: e.target.value || null })} data-testid="owner-select" aria-label="Owner (R)">
           <option value="">No owner</option>
           {state.people.map(x => <option key={x.id} value={x.id}>{x.name} · {state.roles.find(r => r.id === x.roleId)?.displayName}</option>)}
         </select>
@@ -59,14 +63,15 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
         <b data-testid="dl-start">{fmtLong(p.latestStart)}</b>
         <label htmlFor="club-date">Club deadline</label>
         <span className="dl-date">
-          <input id="club-date" type="date" value={p.club} data-testid="club-input" onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && update({ clubDeadlineOverride: e.target.value })} />
-          {n.clubDeadlineOverride && <button type="button" className="btn btn-quiet small" onClick={() => update({ clubDeadlineOverride: null })}>Use recommended ({fmtLong(p.recommendedClub)})</button>}
+          <input id="club-date" type="date" value={p.club} disabled={!lead} data-testid="club-input" onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && update({ clubDeadlineOverride: e.target.value })} />
+          {n.clubDeadlineOverride && <button type="button" className="btn btn-quiet small" disabled={!lead} onClick={() => update({ clubDeadlineOverride: null })}>Use recommended ({fmtLong(p.recommendedClub)})</button>}
         </span>
         <span>ASU deadline</span>
         <b data-testid="dl-official">{p.official ? fmtLong(p.official) : "None"}</b>
         <span>Materials</span>
         <span>{n.draftLink && /^https?:\/\//.test(n.draftLink) ? <a href={n.draftLink} target="_blank" rel="noreferrer">Open link ↗</a> : <span className="muted small">None yet</span>}</span>
       </div>
+      {!lead && <p className="small muted">The president or VP approves changes.</p>}
       {owner && n.status === "unclaimed" && <p className="small muted">{owner.name.split(" ")[0]} confirms with “I've got it”.</p>}
       {rail && <button type="button" className="btn" onClick={() => rail.ask("Explain this step: what should happen next?", true)}>Ask AI about this step</button>}
 
@@ -82,28 +87,28 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
           <h3 id="who-h">Who else</h3>
           <label className="field">
             <span>Approver (A)</span>
-            <select value={n.approverRoleId ?? ""} onChange={e => update({ approverRoleId: e.target.value || null })}>
+            <select value={n.approverRoleId ?? ""} disabled={!lead} onChange={e => update({ approverRoleId: e.target.value || null })}>
               <option value="">Nobody</option>
               {state.roles.map(r => <option key={r.id} value={r.id}>{r.displayName}</option>)}
             </select>
           </label>
           <fieldset className="field">
             <legend>Consulted (C)</legend>
-            <div className="checks">{state.roles.map(r => <label key={r.id}><input type="checkbox" checked={n.consultedRoleIds.includes(r.id)} onChange={() => update({ consultedRoleIds: toggle(n.consultedRoleIds, r.id) })} /> {r.displayName}</label>)}</div>
+            <div className="checks">{state.roles.map(r => <label key={r.id}><input type="checkbox" checked={n.consultedRoleIds.includes(r.id)} disabled={!lead} onChange={() => update({ consultedRoleIds: toggle(n.consultedRoleIds, r.id) })} /> {r.displayName}</label>)}</div>
           </fieldset>
           <fieldset className="field">
             <legend>Informed (I)</legend>
-            <div className="checks">{state.roles.map(r => <label key={r.id}><input type="checkbox" checked={n.informedRoleIds.includes(r.id)} onChange={() => update({ informedRoleIds: toggle(n.informedRoleIds, r.id) })} /> {r.displayName}</label>)}</div>
+            <div className="checks">{state.roles.map(r => <label key={r.id}><input type="checkbox" checked={n.informedRoleIds.includes(r.id)} disabled={!lead} onChange={() => update({ informedRoleIds: toggle(n.informedRoleIds, r.id) })} /> {r.displayName}</label>)}</div>
           </fieldset>
         </section>
         <section className="panel-sec" aria-labelledby="work-h">
           <h3 id="work-h">Work</h3>
           <label className="field">
             <span>Effort (working days) · {TIER_LABEL[n.tier]}</span>
-            <input type="number" min={0} max={30} value={n.estDays} onChange={e => update({ estDays: Number(e.target.value) })} data-testid="effort-input" />
+            <input type="number" min={0} max={30} value={n.estDays} disabled={!lead} onChange={e => update({ estDays: Number(e.target.value) })} data-testid="effort-input" />
           </label>
-          <DeferredText label="Why it matters" value={n.why} multiline onCommit={v => update({ why: v })} />
-          <DeferredText label="Draft or materials link" value={n.draftLink ?? ""} type="url" placeholder="https://drive.google.com/…" onCommit={v => update({ draftLink: v.trim() || null })} />
+          <DeferredText label="Why it matters" value={n.why} multiline disabled={!lead} onCommit={v => update({ why: v })} />
+          <DeferredText label="Draft or materials link" value={n.draftLink ?? ""} type="url" placeholder="https://drive.google.com/…" disabled={!lead} onCommit={v => update({ draftLink: v.trim() || null })} />
           <p className="small muted">Source: {n.source}</p>
         </section>
         {(upstream.length > 0 || downstream.length > 0) && (
@@ -137,7 +142,7 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
 }
 
 /** A text field that saves when you leave it, so typing does not reschedule on every key. */
-function DeferredText({ label, value, onCommit, multiline, type = "text", placeholder }: { label: string; value: string; onCommit: (v: string) => void; multiline?: boolean; type?: string; placeholder?: string }) {
+function DeferredText({ label, value, onCommit, multiline, type = "text", placeholder, disabled }: { label: string; value: string; onCommit: (v: string) => void; multiline?: boolean; type?: string; placeholder?: string; disabled?: boolean }) {
   const [v, setV] = useState(value)
   useEffect(() => setV(value), [value])
   const commit = () => v !== value && onCommit(v)
@@ -145,8 +150,8 @@ function DeferredText({ label, value, onCommit, multiline, type = "text", placeh
     <label className="field">
       <span>{label}</span>
       {multiline
-        ? <textarea value={v} rows={3} onChange={e => setV(e.target.value)} onBlur={commit} />
-        : <input type={type} value={v} placeholder={placeholder} onChange={e => setV(e.target.value)} onBlur={commit} />}
+        ? <textarea value={v} rows={3} disabled={disabled} onChange={e => setV(e.target.value)} onBlur={commit} />
+        : <input type={type} value={v} placeholder={placeholder} disabled={disabled} onChange={e => setV(e.target.value)} onBlur={commit} />}
     </label>
   )
 }

@@ -32,8 +32,11 @@
 1. **不放研究数据。** 不提交问卷原始回答、访谈转写、录音、参与者姓名或引语。仓库里只有虚构的演示社团数据。也不要把这些资料贴给任何 AI。
 2. **不放密钥。** 产品网站的 API key 只放在 Netlify 环境变量里（见 `docs/AI_SETUP.md`）；Night Mode 的 `ASU_AIR_API_KEY` 只放在本地终端环境里。任何密钥都绝不写进代码、文档、任务文件、提示词或提交记录。
 3. **日期只由规则引擎计算。** AI 只能通过白名单操作改数据（见计划第 11 节）、起草提醒、答案和手册；AI 输出里的日期字段一律丢弃。v1.2 起（Juanxi 2026-10-23 批准）：AI 文字里只保留和社团数据里已有日期完全一致的日期，其余遮掉；小改动（改状态、改名、标签、难度、记录联系）以当前查看者的权限立即生效并可撤销，其余改动仍要社长或副社长批准。
-4. **`main` 分支就是正式网站。** 每次推送到 `main`，Netlify 都会自动上线。当前 Night Mode 工作只在 `feat/ai-night-mode`；其他工作也必须使用 Juanxi 批准的功能分支。**只有 Juanxi 明确批准后才能合并到 `main`。**
-5. **AI 供应商：** 产品网站早期开发/验证使用 DeepSeek，只处理虚构数据；Night Mode 开发 Agent 使用 ASU AIR。任何有真实参与者的 Phase 3 会话必须使用 ASU AIR（或 IRB 批准的供应商）。
+4. **`main` 分支就是正式网站。** 每次推送到 `main`，Netlify 都会自动上线。当前 Night Mode 工作只在 `feat/ai-night-mode`；其他工作也必须使用 Juanxi 批准的功能分支（命名规则见第 8 节）。**只有 Juanxi 明确批准后才能合并到 `main`。**
+5. **AI 供应商（2026-10-27 更新，Juanxi 批准）：**
+   - **产品网站**：所有 AI 调用都走 ASU AIR（只在服务器上调用，key 只在 Netlify 环境变量里），只在模型上做选择。路由 v3：Gemma 4 31B 负责较长的结构化设置任务；Muse 负责短对话和编辑（主应用的 Ask、规则、提醒、手册都用它）；GLM 5.3 只在用户主动要求 Deeper review 时使用。**不再使用 DeepSeek**；它只在 AIR 不可用时作紧急回退，需 Juanxi 同意，且只处理虚构数据。模型分工是设计选择，不是已验证的性能排名。详见 `docs/AI_SETUP.md`。
+   - **Night Mode 开发 Agent**：同样走 ASU AIR，用本地终端环境里的 `ASU_AIR_API_KEY`。这和产品网站的 Netlify `AI_*` 变量是两套，不能混为一谈。角色与模型映射见第 0 节，以 `opencode debug agents` 为准。
+   - 任何有真实参与者的 Phase 3 会话必须使用 ASU AIR（或 IRB 批准的供应商）。
 6. **界面文字用英文**（用户是美国学生）；文档用中文。
 7. 不做计划第 12 节标为“不做”的功能（例如库存、成员名单）。
 
@@ -111,3 +114,134 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 4. **文字：** 页面标题 1–2 个词；一张卡最多“标题 1 行 + 信息 1 行 + 状态色块”；原因、假设、出处放进悬停或 Help；字号不小于 14px。
 5. **字数上限（主区，`scripts/word-count.mjs` 量）：** Today ≤ 160、Events ≤ 180、Rules ≤ 170、Tasks ≤ 130、Team ≤ 130、Settings 每块 ≤ 125。新增内容超了就先删别的。
 6. **6 种任务状态与颜色全站统一：** Not claimed 灰、To do 蓝、Working on it 橙、Waiting 紫、Stuck 红、Done 绿（名称和颜色可在 Settings → Board 改，含义不变）。
+
+## 8. 分支命名与 Deploy Preview（2026-10-27 定，Juanxi 批准）
+
+改分支之前**必读这一节**。之前分支名字五花八门（`claude/platypus-perf-ui-polish-74k1ul`、`fix/setup-v3-completion`、`feat/activity-workspace-v1` 和 `feat/organization-setup-ai` 还是同一个提交的两个名字），导致没人说得清哪个分支是哪个预览。
+
+### 8.1 命名格式
+
+```
+<类型>/<短横线英文描述>
+```
+
+| 类型 | 用途 | 例子 |
+| --- | --- | --- |
+| `feat/` | 新功能 | `feat/organization-setup-ai` |
+| `fix/` | 修 bug | `fix/task-create-entry` |
+| `design/` | 视觉、设计系统、token | `design/token-scale` |
+| `docs/` | 只改文档 | `docs/audit-report` |
+| `chore/` | 依赖、CI、脚本 | `chore/stylelint` |
+| `integration/` | 集结分支，会开 PR 做预览 | `integration/v1.1-fix` |
+| `release/` | 定版候选 | `release/v1.0` |
+| `archive/` | 冻结留档，不再改 | `archive/v0.1-2026-10-21` |
+
+**硬性要求：**
+
+1. 全小写，单词之间用 `-`。不用下划线、不用中文、不用大写字母。
+2. **不准带 AI 的名字，不准带随机串。** `claude/xxx-74k1ul` 这种是反面教材。
+3. 一个分支只做一件事。做完就合并、然后删掉。
+4. 描述用名词或动词短语，三到五个词，让人一眼看出在做什么。
+
+### 8.2 ⚠️ 开着 PR 的分支不准改名，也不准删
+
+**Deploy Preview 的编号就是 PR 的编号**（`deploy-preview-3` ↔ PR #3）。
+
+在 GitHub 上，**改名 = 新建 + 删除**。而删掉一个分支会连带关闭用到它的 PR：
+
+- 删掉 PR 的 **head 分支** → 那个 PR 被关闭
+- 删掉 PR 的 **base 分支** → 那个 PR 也被关闭
+
+PR 一关，它的 Deploy Preview 网址就作废，而且**重开会拿到一个新编号，旧网址回不来**。
+
+**所以：先合并或关闭 PR，再改名或删除。** 顺序反了就救不回来。
+
+每次动分支前先跑一遍，确认它没有被任何 PR 用到：
+
+```
+gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
+  --jq '.[] | "PR #\(.number): head=\(.head.ref)  base=\(.base.ref)"'
+```
+
+### 8.3 当前的分支（2026-10-27）
+
+| 分支 | 是什么 | 能不能动 |
+| --- | --- | --- |
+| `main` | 正式网站。推上去就上线 | 只有 Juanxi 批准才能合并（见第 3 节规则 4）|
+| `v1` | 内容和 `main` 相同 | ❌ **不能删不能改名** —— 它是 PR #2 和 #3 的 base，删了会关掉 Deploy Preview 3 |
+| `integration/v1.1-fix` | **Deploy Preview 4**（PR #4）= main + S1/S2/S3 修复 | ❌ 改名会毁掉 DP4 |
+| `feat/organization-setup-ai` | **Deploy Preview 3**（PR #3）= v1 + `src/phase1/` + `src/organization/` + `src/workspace/` | ❌ 改名会毁掉 DP3 |
+| `feat/ai-native-phase1` | Deploy Preview 2（PR #2）| ❌ 改名会毁掉 DP2 |
+| `integration/dp3-dp4-merge` | **Deploy Preview 5**（PR #5）= DP4 + DP3 合并版（M1）：AI 走 AIR、服务器存储隐藏 | ❌ 改名会毁掉 DP5 |
+
+**Juanxi 重点关注的是 DP3 和 DP4，合并方案见 `docs/EXECUTION_PLAN_2026-10-27.md`。**
+
+### 8.4 以后新开分支
+
+从 `integration/v1.1-fix` 开，不要从 `main` 开：
+
+```
+git fetch origin
+git checkout -b fix/<描述> origin/integration/v1.1-fix
+```
+
+做完推自己的分支，**不要自己合并**。Juanxi 在 GitHub 上看过再合。
+
+## 9. AI-native Phase 1 设计检查点（2026-10-25，Juanxi 明确确认）
+
+本次新架构为 AI-native、Activity-centered、Organization Context driven。用户最新要求优先于第 7 节旧界面规则；例外仅用于 `/phase1/*`，旧页保留原行为。新壳允许中心 AI composer、内容块与渐进显示，主要视觉参考仅 Apple HIG / monday / Notion Projects。
+
+分支 `feat/ai-native-phase1` 从最新 v1 创建。只做三个可点击高保真画面、虚构 Constitution 建议审核、自定义岗位能力映射、两类流程预览与底层设计说明。`src/phase1/` 是隔离的前端演示，不是正式业务模型。保持确定性日期引擎与所有旧测试，不删除旧页、不改 main。
+
+**画面完成后必须停止等 Juanxi 验收；不得自动接正式 API/数据模型、完整 planner、生产数据库、真实账户、长期 Conversation storage 或正式 Handoff。** 详见 `docs/phase1/ARCHITECTURE.md` 和 `HANDOFF.md`。旧独立任务、固定 RoleFunction 及聊天存储仍有设计债，不能把新壳中的检查当作整个旧应用已改造。
+
+
+## 10. Organization Setup AI 增量（2026-10-25，覆盖第 9 节本次范围的停止条件）
+
+Juanxi 在检查原型后明确要求继续实施并上线：章程/岗位/职责驱动的 AI onboarding，PDF/Word/粘贴/虚构示例，部门分组多岗位矩阵，隐藏 RACI，可编辑成员与 Exec Board 流程，真实 AI、每步线上保存、组织指导文档和 prompt 审核。该授权覆盖此增量所需的 API 与线上存储，不代表批准合并 main、真实身份系统、完整 planner、长期对话存储或 Handoff。
+
+- 分支 `feat/organization-setup-ai`，草稿 PR #3（base v1）；main 与旧分支保留。
+- `/phase1/setup` 使用 `src/organization/` + `/api/org/setup`、`/api/org/ai`；`/phase1/setup-legacy` 保留前一版设置，旧数据键不迁移或重置。
+- Netlify Blobs 保存隔离的测试工作区；HttpOnly 随机 cookie、修订号与 ETag 防覆盖；草稿与已批准快照分开。仅虚构测试数据；访问会话有效期与归档保留分离，到期不删除历史，跨设备组织账户尚未实现。
+- 提示词正本 `src/organization/prompts.ts`，五阶段带版本；前端可查看精确 prompt，最终 Review 明确提醒 Juanxi 审阅。具体数据包/原因见 `docs/organization/PROMPTS.md`。
+- 旧测试完整保留；前一版 Phase 1 设置检查转到 setup-legacy，新行为单独测试。区分自动模拟、真实文件解析与线上真实模型结果。
+- 详细交接与已验证限制见 `docs/organization/HANDOFF.md`。不得把新 onboarding 的数据存储称为整个旧应用已经迁移数据库。
+- **2026-10-27 M1（Juanxi 决定）：这套服务器存储（含 Activity workspace）默认隐藏**，开关 `ORG_SETUP_ENABLED`（不设 = 关）：端点返回 404 且不执行存储代码，`/#/phase1/` 只剩本地示例。代码和测试保留，见 `docs/AI_SETUP.md` 第 4 节。
+
+
+## 11. 数据基础优先与测试节制（2026-10-26，Juanxi 最新要求）
+
+**数据记录/管理/治理是底层；组织配置在其上；AI 是读取、提出建议的上层。** 新功能必须先持久化输入与操作，再调用 AI；操作、原件、交互/对话、AI 请求与结果、采用或拒绝、错误、配置历史均应带服务器时间戳与来源并可归档。不要把最新快照等同于历史，不得因会话到期自动清除档案。共享应是受控功能，当前私有工作区不自动对外或跨组织共享。
+
+当前范围为新版 Organization Setup：`org-archive.mts`、`storage.mts` 的追加式事件、客户端 `archive.ts`、AI job/input/result 记录、分块原件与 SHA-256 校验、导出与原件下载。旧业务页为参考，尚未全面迁移成新组织数据库；真实账号、组织成员权限、跨组织共享/分析及正式交接仍需后续实施，不能谎称已上线。
+
+速度优先的新默认模型是 `muse-glimmer-30b`；`glm-5-3` 仅在用户主动选择 Deep review/stronger model 时调用，路由版本 v2。不要自动升级慢模型或启动额外 AI 评估。Juanxi 要求停止新增真实 AI 测试，主要由他实操验收；必要构建和小范围离线/模拟检查不消耗 AIR 额度。保留 GitHub CI，不重复无必要的全量测试。最新交接见 docs/organization/HANDOFF.md 与 DATA_FOUNDATION.md。
+
+## 12. Organization Setup v3（2026-10-26，Juanxi 最新反馈优先）
+
+- 五章：Constitution → Your team（部门、组织架构图）→ Responsibilities（部门/岗位职责、Check）→ Activity workflow → Review。移除 Board work 设置章，原字段和历史保留。右侧 AI 必须先提出白名单变更，用户批准后才应用。
+- Prompt 不属于产品 UI：服务端正本 `netlify/lib/organization/prompts.mts`；在开发聊天中交给 Juanxi 审核。`src/organization/prompts.ts` 仅用于旧客户端兼容，不得重新导入网页。
+- `setupLogic.ts` 负责稳定 ID、手动字段保护、局部引用修复和确定性 JSON 编译。JSON 是机器可读配置，可由 Python 读取；不执行模型生成的 Python。确认时服务器重新编译，不能信任客户端提交的 compiled。
+- 返回/前进无修改应为零 AI 调用；已有职责/流程不得整段清空。上游职责变化只标记相关节点；删除岗位须提示、只移除失效引用。所有变更、请求、错误、批准与原件继续归档。
+- JSON 失败必须区分输出上限、空内容、流未完成和语法错误。服务端先归档原始回复及 finish reason/字数/token/首字/总耗时，再解析和验证；不得静默补全缺失语义，不自动重复收费请求。原生 schema 被明确拒绝时最多降级一次。
+- Juanxi 最新恢复授权：允许少量虚构数据的真实 AI 冒烟测试，以诊断格式错误；不恢复整套真实评估。默认 Muse，只有明确 Deeper review 使用 GLM。测试与排队推断必须区分，不能把首字等待直接称为供应商排队。
+
+### v3.1 实测补充
+AIR 接受 json_schema 仍可能不遵循形状；必须在 prompt 给精确字段，并在本地验证。Muse 请求 none 实际返回 low，不能把配置等同于执行。路由v3：Gemma 长结构任务、Muse 短编辑、GLM 主动深度。已观察到的 organization/name/department_id/duties/quotes 别名可严格翻译；不能补造缺失职责。详见 V3_CHANGELOG。
+
+## 13. F1–F7 审计修复（2026-10-26，Juanxi 已批准执行）
+
+用户批准独立 Worktree 多 Agent 实施审计方案；本次从 feat/organization-setup-ai@54e5823 在 fix/setup-v3-completion 集成，不改 main。数据/AI/UI 各有唯一文件负责人，主 Agent 维护共享契约、文档和批准配置的工作区消费；独立 Review 复核。当前事实以 docs/organization/F1_F7_IMPLEMENTATION.md 为准，旧六章、页面 prompt 与 v2 路由描述仅历史。
+
+- 未保存完整草稿按私有 workspace 本地保护；内部导航保存成功才离开。409 必须保留本地副本并由人决定，不能自动用新 revision 覆盖远端。不要把操作事件当成能直接恢复的完整草稿。
+- 层级重接/断开也属于人工决定。纯展示字段不使职责检查无谓失效；语义变化只复核实际相关节点。确认前必须明确处理 needsReview；允许保留未分配步骤，但必须记录未解决项。
+- Check 按语义输入复用，包括空风险；进入后自动一次，明确 Skip 不谎称取消已开始计费的请求。所有 AI 变更仍需批准。
+- selection 是服务器验证的 screen/entityType/entityId 数据；不能据它授予权限。requestId 标识一个显式用户动作，网络重放复用；新ID才代表主动重试。
+- 原文和失败 transport 指标先归档，再解析模型 JSON。区分本站任务等待和供应商等待，不能从首字直接断言排队。不得为本轮回归自动调用真实AI或做额外收费比较。
+- `/phase1` 消费服务器 approved.compiled，不读取未确认 draft，不把配置写入旧 localPreviewRepository。示例只能显式在 `?example=1` 或 setup-legacy 使用；旧 Today/Tasks 等仍是独立旧业务。
+- 完整 Board planner、真实账号、跨组织共享和旧业务数据库迁移仍超出本轮；不把模板名称称为已实现规划器。正式合并/发布仍需 Juanxi 批准。
+
+
+## 14. Activity Workspace（2026-10-26，用户已授权实施）
+
+用户选A1首页/B1活动列表/C2时间轴，批准独立Worktree多Agent全方案，见docs/organization/ACTIVITY_WORKSPACE_PLAN.md。共享schema和路由由主Agent拥有，Data/Schedule/UI/AI/Setup分别维护唯一文件，独立Review；先契约后并行。首页重点事项必须从现有任务确定性排序、默认3项可展开，不做AI摘要。AI通过同一受验证命令操作业务数据/调表单/创建Member和Executive工作项；不能直写数据库。私有测试actor不等于真实登录。保留旧演示；不改main，不自动真实AI评测。

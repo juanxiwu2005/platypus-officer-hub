@@ -78,6 +78,17 @@ export function computeForecast(state: DemoState, seed = 20261022): Forecast {
   }
   return { nodes,events }
 }
+/**
+ * The app's single forecast source: one computeForecast per state object, shared by pages, the AI
+ * snapshot and the assistant. The store never mutates a state in place (every change makes a new
+ * object), so the object itself is a safe cache key, and old states are garbage-collected.
+ */
+const cache = new WeakMap<DemoState, Forecast>()
+export function forecastFor(state: DemoState): Forecast {
+  let f = cache.get(state)
+  if (!f) { f = computeForecast(state); cache.set(state, f) }
+  return f
+}
 export function forecastQueue(state: DemoState, forecast: Forecast) {
   return state.nodes.filter(n=>n.status!=="done" && forecast.nodes[n.id]?.probability < .8)
     .sort((a,b)=>forecast.nodes[a.id].probability-forecast.nodes[b.id].probability || Number(!["waiting","blocked"].includes(a.status))-Number(!["waiting","blocked"].includes(b.status)) || (a.clubDeadline??"9999").localeCompare(b.clubDeadline??"9999") || a.id.localeCompare(b.id)).slice(0,3)

@@ -1,6 +1,6 @@
 import type { DemoState } from "../data/types"
 import { canLead } from "../data/changeReview"
-import { computeForecast } from "../engine/forecast"
+import { forecastFor } from "../engine/forecast"
 import { workload } from "../engine/team"
 import { personalBuffer } from "../engine/schedule"
 import { RULES } from "../data/rules"
@@ -15,7 +15,7 @@ import { RULES } from "../data/rules"
 export function aiSnapshot(s: DemoState) {
   const me = s.people.find(p => p.id === s.viewerId)
   const lead = canLead(s)
-  const f = computeForecast(s)
+  const f = forecastFor(s)
   const name = (id: string | null | undefined) => s.people.find(p => p.id === id)?.name ?? null
   const role = (id: string | null | undefined) => s.roles.find(r => r.id === id)?.displayName ?? null
   return {

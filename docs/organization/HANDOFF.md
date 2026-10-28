@@ -1,0 +1,72 @@
+> **2026-10-26 Activity Workspace当前实施交接：** 用户批准A1/B1/C2与全局AI/个人任务/资金联动，详见[实施记录](ACTIVITY_WORKSPACE_IMPLEMENTATION.md)。以下F1–F7交接是本次的保留基线，Homepage只读组织职责/Recent模板入口已被本轮实际活动工作区替代。
+
+# Organization Setup 当前交接
+
+2026-10-26 · Codex · Juanxi 已批准 F1–F7 审计修复。集成分支 `fix/setup-v3-completion`，基于 `feat/organization-setup-ai@54e5823`；不合并 main，不正式发布。
+
+当前有效流程为 **Constitution → Your team → Responsibilities → Activity workflow → Review**。Prompt 只在开发聊天审阅，服务端正本 `netlify/lib/organization/prompts.mts`，不是旧客户端文件。模型路由 v3：Gemma 长结构、Muse 短编辑、GLM 仅主动深度检查；没有最新提速百分比结论。
+
+本轮补保存/恢复与冲突处理、人工层级保护、精细增量复核、Check 自动复用、当前对象与近期历史提案、图操作验收及错误诊断。消费端只读取服务器 **approved** 编译产物；`/phase1` 的 Home/活动显示同一组织岗位、职责、流程和部门色，不复制为旧 localStorage 配置。旧示例入口 `/#/phase1?example=1` 和 `setup-legacy` 明确保留为参考；没有批准配置时不会伪装使用示例作为新组织。
+
+完整 Board planner、真实组织账号、旧业务数据库迁移和跨组织共享仍未实施。`/phase1/activity/executive` 对新组织明确显示尚未生成，不复用别的虚构组织链路。
+
+验收与执行证据统一记录在 [F1–F7 实施记录](F1_F7_IMPLEMENTATION.md)。以下保留旧记录，**其中六章、矩阵、网页 View prompt、v2 全 Muse 及旧测试数字均不是当前有效行为或本次验收结论**。
+
+## 历史交接（截至 54e5823，原文保留）
+
+> **v3.1 最新：** Gemma 4 31B 处理较长的章程/风险/活动结构，Muse 处理短对话编辑，GLM 5.3 仅用户主动深度检查。一次真实 Muse 结果证明：请求原生 schema 和 reasoning none 不代表网关实际遵守；现在 prompt 明确给出精确 JSON 字段，已观察字段别名做严格无歧义转换，缺失内容仍拒绝。详见 [v3 实测记录](V3_CHANGELOG.md)。新版速度尚待实测，不能把模型名称当速度保证。
+
+> **2026-10-26 v3 增量：进行中（Codex）**
+> 五章组织图/职责条目与 Check/图内编辑/右侧 AI 审批/服务器 JSON 编译已实现；prompt 已从网页移除。重点修复 JSON 格式错误和下游数据保留。详细变更、指标含义和边界见 [V3_CHANGELOG](V3_CHANGELOG.md)。main 与旧数据保留。当前真实冒烟、发布和 CI 结果以下方最终追加为准。
+
+# Organization Setup：上线交接
+
+2026-10-26 · Codex · **待 Juanxi 实操验收**。已停止新增真实 AI 测试。
+
+## 在线入口
+
+- [最新 Organization Setup](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup)
+- [独立分支站](https://feat-organization-setup-ai--platypus-officer-hub.netlify.app/#/phase1/setup)
+- [前一版设置参考](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup-legacy)
+- [原网站](https://platypus-officer-hub.netlify.app/) 保留，main 未合并。
+- [草稿 PR #3，目标 v1](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3)，分支 feat/organization-setup-ai。前一版 Phase 1 的分支和 PR #2 保留。
+
+旧 localStorage 键和旧页面保留。新域名不自动带入原域名的浏览器数据；原地址仍可参考。没有改研究资料或 IRB 文件。
+
+## 已落实的设置改版
+
+Constitution → Your team → Responsibilities → Member programs → Board work → Review。删除组织分类和流程偏好题；章程提取岗位/职责、直接显示自定义岗位、部门分组的多岗位复选矩阵；后台 RACI。每步 AI 准备下一屏，用户审核调整。
+
+上传有文本的 PDF、Word .docx、TXT/MD，或用虚构示例/粘贴文本。8 MB / PDF 50 页 / 文本 60,000 字符。扫描 PDF 暂无 OCR，旧 .doc 需另存 .docx。**从本版起保存原件与历史**，并提供 Download original、Export records；以前未保存的二进制原件无法倒补。
+
+成员流程包含机会/邀请两种入口、Outreach + Professional Development 首次会面、策划、Marketing→Finance 审核、并行准备、执行、反馈。可拖节点、改依赖/并行、加节点（按钮/右键）、多人负责与 AI 修改提案。拖动位置不等于改变顺序，依赖线或顺序控件才改变逻辑；手机提供竖向节点和编辑。
+
+Exec Board 按 social/tabling 等目标生成专属链路，支持保留草稿；换目标会使旧流程失效，避免拿旧 plan 进入 Review。最后生成两层组织指导、显示 prompt 审核提醒和模型生成记录。
+
+## 数据比 AI 更底层
+
+新设置的操作、原件、修改历史、对话请求、AI 输入输出/错误/采用或拒绝均进入带时间戳的私有工作区档案。访问会话到期不删除历史，当前不自动跨组织共享。详见 [数据基础](DATA_FOUNDATION.md)。这是当前设置的实际实现；旧业务页未全面迁移到新组织数据库，真实账号/多人权限/跨组织分享与能效分析仍需后续建设。
+
+## 当前模型与速度
+
+默认 `muse-glimmer-30b`，关闭额外思考；GLM 5.3 只在用户主动勾选 Use deeper reasoning 或点击 Review with stronger model 时调用。共用现有 AIR key，路由版本 v2。配置与取舍见 [Prompt/模型说明](PROMPTS.md)。
+
+历史实测（更换默认模型之前）：AIR auto/north-mini-code 跑通岗位、矩阵、成员流程、多人负责 AI 修改、Board social 和带两班人员的 tabling。Gemma 章程 56s、矩阵 15s；GLM 指导 56–91s、成员流程 81s，实际模型名 glm-5-3-mxfp4。一次 GLM 流程结构失败后已加入原生 JSON schema + 简短说明约束并成功复测。
+
+这些耗时含网关等待与生成，尚不能区分模型耗时和排队耗时。按 Juanxi 最新要求，**切换 Muse 后未继续请求真实模型作测试**，不声称已测出加速比例；由 Juanxi 实操感受。后台任务解决了托管环境实际约 30 秒的同步请求上限。
+
+## 检查与后续验收
+
+更早的完整检查通过构建、319 单元和 167 桌面/手机页面（13 原有跳过）。最新数据基础只做必要构建及 43 项离线组织/服务器/模型/档案检查，包括原件哈希、不可覆盖、事件时间戳、去重、工作区隔离、访问到期不删档案；**这些检查不调用 AIR、不消耗模型额度**。GitHub CI 独立运行；不再手动重复整套真实 AI 验收。
+
+1. 在线用虚构示例或自己的虚构 PDF/Word，检查角色与矩阵。
+2. 修改流程/负责人，试一句话调整；普通模式先看等待时间，必要时才选深度检查。
+3. 试 Export records / Download original，确认记录与原件。
+4. Review 查看两层指导和全部 prompt；prompt 质量仍需 Juanxi 审核，开发完成不等于已获产品批准。
+
+最近活动区保留，按用户要求留待下一轮修改。
+
+
+## 环境变量重新载入
+
+Juanxi 后续误改变量后，核对当前 AI_PRESET=asu_air、AI_MODEL=muse-glimmer-30b，以及 Production/Deploy Previews/Branch deploys 的 Functions key 范围，重新部署。预览和分支站 `/api/health?check=1` 的 AIR 模型目录检查均返回 200，Muse/GLM 均可用，generationPerformed=false。此检查只读取目录、不生成内容；不代表新模型生成质量已验收。未读取或输出完整 key。

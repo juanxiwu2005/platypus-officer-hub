@@ -5,6 +5,10 @@ on:
   pull_request:
 jobs:
   check:
+    # Pinned, not ubuntu-latest: GitHub moved that label to Ubuntu 26.04 overnight on
+    # 2026-10-27 and Playwright 1.56.1 cannot install chromium there, so every run failed
+    # at the browser install step before a single test ran. Raise this deliberately once
+    # Playwright supports the newer image.
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
