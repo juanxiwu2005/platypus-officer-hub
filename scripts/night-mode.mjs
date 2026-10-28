@@ -14,8 +14,13 @@ const NIGHT_BRANCH = "feat/ai-night-mode"
 // protected-file denials and the same nine-command shell allowlist. The independent
 // `code-critic` review below is unchanged: the controller still calls it separately.
 const CODING_AGENT = "backend-coder"
-const MAX_CYCLES = 3
-const COMMAND_TIMEOUT_MS = 20 * 60 * 1000
+// Raised 2026-10-28 (Juanxi). Four runs died on budget, not on safety: the coding agent spent
+// its whole allowance reading the repository and never reached an edit. Steps are now 300
+// (opencode.json), so the old 20-minute ceiling would just move the wall. None of this touches
+// a safety boundary — protected files, the shell allowlist, the independent review, the full
+// test suite, CI, and the no-merge/no-deploy rules are unchanged.
+const MAX_CYCLES = 5
+const COMMAND_TIMEOUT_MS = 45 * 60 * 1000
 const MAX_CAPTURE_CHARS = 300_000
 
 const rootProbe = spawnSync("git", ["rev-parse", "--show-toplevel"], {

@@ -38,7 +38,20 @@
       "npm run build*": "allow",
       "npm run e2e*": "allow",
       "npm run check*": "allow",
-      "npx playwright test*": "allow"
+      "npx playwright test*": "allow",
+      "ls*": "allow",
+      "cat*": "allow",
+      "head*": "allow",
+      "tail*": "allow",
+      "wc*": "allow",
+      "grep*": "allow",
+      "rg*": "allow",
+      "find*": "allow",
+      "git grep*": "allow",
+      "git ls-files*": "allow",
+      "npx tsc*": "allow",
+      "npx vitest*": "allow",
+      "npm run lint*": "allow"
     }
   },
   "agent": {
@@ -73,9 +86,23 @@
           "npm run build*": "allow",
           "npm run e2e*": "allow",
           "npm run check*": "allow",
-          "npx playwright test*": "allow"
+          "npx playwright test*": "allow",
+          "ls*": "allow",
+          "cat*": "allow",
+          "head*": "allow",
+          "tail*": "allow",
+          "wc*": "allow",
+          "grep*": "allow",
+          "rg*": "allow",
+          "find*": "allow",
+          "git grep*": "allow",
+          "git ls-files*": "allow",
+          "npx tsc*": "allow",
+          "npx vitest*": "allow",
+          "npm run lint*": "allow"
         }
-      }
+      },
+      "steps": 300
     },
     "frontend-coder": {
       "permission": {
@@ -97,7 +124,8 @@
           ".github/**": "deny",
           "netlify.toml": "deny"
         }
-      }
+      },
+      "steps": 300
     },
     "api-designer": {
       "permission": {
@@ -119,7 +147,8 @@
           ".github/**": "deny",
           "netlify.toml": "deny"
         }
-      }
+      },
+      "steps": 300
     },
     "quick-draft": {
       "permission": {
@@ -152,9 +181,23 @@
           "npm run build*": "allow",
           "npm run e2e*": "allow",
           "npm run check*": "allow",
-          "npx playwright test*": "allow"
+          "npx playwright test*": "allow",
+          "ls*": "allow",
+          "cat*": "allow",
+          "head*": "allow",
+          "tail*": "allow",
+          "wc*": "allow",
+          "grep*": "allow",
+          "rg*": "allow",
+          "find*": "allow",
+          "git grep*": "allow",
+          "git ls-files*": "allow",
+          "npx tsc*": "allow",
+          "npx vitest*": "allow",
+          "npm run lint*": "allow"
         }
-      }
+      },
+      "steps": 300
     },
     "docs-writer": {
       "permission": {
@@ -176,7 +219,8 @@
           ".github/**": "deny",
           "netlify.toml": "deny"
         }
-      }
+      },
+      "steps": 300
     }
   }
 }

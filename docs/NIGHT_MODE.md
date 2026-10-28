@@ -58,6 +58,50 @@ Error: Subagent session not found: ses
 
 **谁批准的：** Juanxi，2026-10-28，按本文件第 10 节要求由人明确提出。
 
+### 2026-10-28 变更：放开预算，不放开安全边界
+
+**原因：** 换成 `backend-coder` 之后编码阶段确实跑起来了（自己读文件、自己跑 `git status`、
+自己 Grep），但连续两次仍然停在编码阶段，原因是**预算**不是安全：
+
+```
+"backend-coder": { "steps": 15 }
+```
+
+而控制器的提示词要求它开工前先读 `AGENTS.md`、`PROGRESS.md`、`PRODUCT_PLAN.md`、
+`RULES.md`、`NIGHT_MODE.md`、`TASK.md` —— 六步没了，只剩九步干活。而"把 14 处手写空状态
+换成 `<Empty>`"光是每个文件读一次改一次就要 20 步以上。**任务在 15 步里装不下。**
+
+**改了什么：**
+
+| 文件 | 改动 | 为什么不是安全问题 |
+| --- | --- | --- |
+| `opencode.json` | 五个编码 Agent 的 `steps`：15 → **300** | 步数只决定能干多少活，不决定能干什么 |
+| `opencode.json` | shell 白名单新增只读与测试命令：`ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `git grep` `git ls-files` `npx tsc` `npx vitest` `npm run lint` | 全是只读或跑项目自己的测试，不写文件、不联网、不改系统 |
+| `scripts/night-mode.mjs` | `COMMAND_TIMEOUT_MS`：20 → **45 分钟** | 300 步配 20 分钟会被时间掐死，等于没放开 |
+| `scripts/night-mode.mjs` | `MAX_CYCLES`：3 → **5** | 返工次数，不是权限 |
+
+**明确没有改的（安全边界，一条都没动）：**
+
+- 保护文件禁改：`.env*`、`.git/**`、`.gitignore`、`AGENTS.md`、`docs/NIGHT_MODE.md`、
+  `package.json`、`package-lock.json`、`opencode.json`、`scripts/night-mode.mjs`、
+  `.nightmode/**`、`.github/**`、`netlify.toml`
+- 禁止 `node` / `curl` / `wget` / `brew` 等任意命令（白名单仍然默认 deny）
+- `external_directory` 仍为 deny
+- Agent 不能 commit、push、merge、部署
+- 独立 `code-critic` 审查
+- 完整 `npm run check`
+- GitHub CI
+- 永不自动合并 `main`，永不部署 Production
+
+**保留了强制读文档的提示词。** 曾考虑砍掉它来省步数，被 Juanxi 否决，理由正确：
+每次 `opencode run` 都是全新会话，模型没有上一次的记忆，必须自己把规则读进来。
+病根是步数太低，不是读文档太多。
+
+**代价：** 300 步 + 45 分钟意味着单次运行可能消耗更多 ASU 额度，也可能跑更久。
+这是刻意的取舍——与其反复在半路被掐断、什么都没产出，不如让它一次做完。
+
+**谁批准的：** Juanxi，2026-10-28。
+
 ---
 
 当前 Agent/模型映射来自用户级 OpenCode 配置，未来可能更换。项目只依赖角色名称，不应依赖某个模型永远存在。运行时用下面的命令查看实际映射：
