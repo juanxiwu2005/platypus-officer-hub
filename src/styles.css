@@ -284,12 +284,20 @@ progress { accent-color: var(--accent); height: 8px; }
 .spin { width: 14px; height: 14px; border: 2px solid var(--accent); border-top-color: transparent; border-radius: var(--r-circle); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+.wf-changes, .wf-issues { display: grid; gap: var(--s4); padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.wf-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s4); }
+.wf-evidence { display: block; font-style: italic; }
+.wf-blocked { color: var(--late); }
+.wf-refused, .wf-conflict, .wf-warning { color: var(--ink); }
+.step-title-input { flex: 1 1 calc(100% - 6rem); min-width: 10rem; padding: var(--s3) var(--s4); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
+.step-owner { max-width: 11rem; min-height: 28px; padding: 0 var(--s3); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-sm); }
 .org-chart-wrap { display: grid; gap: var(--s4); }
 .org-h { margin: 0; font-size: var(--fs-md); color: var(--muted); font-weight: 600; }
 .org-scroll { overflow-x: auto; padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
 .org-canvas { position: relative; margin: 0 auto; }
 .org-lines { position: absolute; inset: 0; pointer-events: none; }
 .org-lines path { fill: none; stroke: var(--edge); stroke-width: 1.5; }
+.org-lines path.advisory { stroke-dasharray: 5 4; }
 .org-card { position: absolute; display: grid; place-items: center; padding: var(--s3) var(--s4); box-sizing: border-box; border: 1px solid var(--accent); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font-size: var(--fs-sm); line-height: 1.25; text-align: center; overflow: hidden; }
 .org-card span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .org-card.advisor { border-style: dashed; border-color: var(--edge); color: var(--muted); }

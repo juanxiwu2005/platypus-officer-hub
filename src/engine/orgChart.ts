@@ -6,7 +6,8 @@ import type { Role } from "../data/types"
  * officers' chain, stands beside it at the top. No dates, no duties: just titles and who reports to whom.
  */
 export interface ChartNode { id: string; title: string; level: number; col: number; advisor: boolean; vacant: boolean }
-export interface ChartEdge { from: string; to: string }
+/** "reports": a role reports to its boss (solid line). "advisory": the advisor stands beside the president (dashed line). */
+export interface ChartEdge { from: string; to: string; kind?: "advisory" }
 export interface OrgChart { nodes: ChartNode[]; edges: ChartEdge[]; levels: number; columns: number }
 
 export function orgChart(roles: Role[]): OrgChart {
@@ -30,5 +31,8 @@ export function orgChart(roles: Role[]): OrgChart {
   // Anything left is part of a loop in the links; show it at the top so nothing disappears.
   for (const r of roles) if (!placed.has(r.id)) place(r, 0, new Set())
   const nodes = roles.map(r => placed.get(r.id)!).filter(Boolean)
+  // The advisor advises the president: a dashed line beside the chain, not a reporting line.
+  const president = roles.find(r => r.fn === "president")
+  if (president) for (const a of roles.filter(r => r.fn === "advisor" && !bossOf(r))) edges.push({ from: president.id, to: a.id, kind: "advisory" })
   return { nodes, edges, levels: Math.max(0, ...nodes.map(n => n.level)) + 1, columns: Math.max(1, next) }
 }

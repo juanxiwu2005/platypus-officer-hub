@@ -1,11 +1,12 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
-import type { DemoState, Event, Goal, OrgSettings, Person, Role, RoleFunction, WorkspaceConfig } from "./types"
+import type { DemoState, Event, StepTemplate, Goal, OrgSettings, Person, Role, RoleFunction, WorkspaceConfig } from "./types"
 import { MAX_DUTIES, MAX_ROLES, hasReportingLoop, orderRoles } from "./structure"
 import type { CommandOp } from "../lib/commands"
 import { sanitizeOps, validDate } from "../lib/commands"
 import { canLead } from "./changeReview"
 import { applySchedule } from "../engine/schedule"
 import { buildEventNodes } from "../engine/playbooks"
+import { MAX_STEPS, PHASE_LIST, checkWorkflow, describeWorkflow, withOwners } from "../engine/workflow"
 
 export const ROLE_FUNCTIONS: { value: RoleFunction; label: string }[] = [
   { value: "president", label: "President" }, { value: "vice_president", label: "Vice president" },
@@ -27,9 +28,17 @@ export function validateWorkspace(w: WorkspaceConfig): string | null {
   if (!w || !webLink(w.calendarUrl) || (w.driveLink && !webLink(w.driveLink))) return "Use an http or https calendar/folder link."
   if (!["email", "whatsapp"].includes(w.messaging) || typeof w.planningNotes !== "string" || w.planningNotes.length > 2000) return "Choose a messaging channel and keep planning notes under 2,000 characters."
   if (!Array.isArray(w.files) || w.files.length > 3 || w.files.reduce((sum, f) => sum + f.size, 0) > 1_000_000) return "Keep up to three planning files, at most 1 MB in total."
-  if (w.files.some(f => !nonempty(f.id, 100) || !nonempty(f.name, 160) || !/\.(txt|md|csv|pdf|docx|xlsx)$/i.test(f.name) || !Number.isInteger(f.size) || f.size < 1 || f.size > 512_000 || typeof f.dataUrl !== "string" || !/^data:[^,]*;base64,[A-Za-z0-9+/=]+$/.test(f.dataUrl) || f.dataUrl.length > 700_000)) return "Use small .txt, .md, .csv, .pdf, .docx or .xlsx files (up to 512 KB each)."
+  if (w.files.some(f => !nonempty(f.id, 100) || !nonempty(f.name, 160) || !/\.(txt|md|csv|pdf|docx|xlsx)$/i.test(f.name) || !Number.isInteger(f.size) || f.size < 1 || f.size > 512_000 || (f.text !== undefined && (typeof f.text !== "string" || f.text.length > 60_000)) || typeof f.dataUrl !== "string" || !/^data:[^,]*;base64,[A-Za-z0-9+/=]+$/.test(f.dataUrl) || f.dataUrl.length > 700_000)) return "Use small .txt, .md, .csv, .pdf, .docx or .xlsx files (up to 512 KB each)."
   return null
 }
+/** A workflow is saved only if its steps are well formed and nothing in it breaks an ASU rule (the engine's check, not the AI's). */
+export function validateWorkflow(steps: StepTemplate[], roles: Role[]): string | null {
+  if (!Array.isArray(steps) || steps.length < 1 || steps.length > MAX_STEPS) return `A workflow needs 1 to ${MAX_STEPS} steps.`
+  if (new Set(steps.map(x => x.key)).size !== steps.length) return "Each step needs its own key."
+  if (steps.some(x => !nonempty(x.key, 40) || !nonempty(x.title, 120) || typeof x.why !== "string" || x.why.length > 400 || !(PHASE_LIST as string[]).includes(x.phase) || !Number.isInteger(x.estDays) || x.estDays < 0 || x.estDays > 30 || !["light", "medium", "heavy"].includes(x.tier) || (x.dependsOn !== undefined && (!Array.isArray(x.dependsOn) || x.dependsOn.some(d => typeof d !== "string"))))) return "Give each step a title, a phase and 0 to 30 days of work."
+  return checkWorkflow(steps, roles).find(i => i.level === "blocked")?.text ?? null
+}
+
 export function validateGoals(goals: Goal[]): string | null {
   if (!Array.isArray(goals) || goals.length < 2 || goals.length > 3 || new Set(goals.map(g => g.id)).size !== goals.length) return "Choose two or three semester goals."
   return goals.some(g => !nonempty(g.label, 100) || !nonempty(g.id, 80) || !nonempty(g.unit, 20) || !Number.isFinite(g.target) || g.target <= 0 || g.target > 1_000_000 || !Number.isFinite(g.current) || g.current < 0) ? "Give each goal a name, a positive target, and a nonnegative current value." : null
@@ -89,16 +98,30 @@ export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettin
   return applySchedule({ ...s, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals, workspace: d.workspace, settings }, roles, nodes })
 }
 
+/** The president edits the club's event workflow. It applies to events made from now on; events already made keep their steps. */
+export function saveWorkflow(s: DemoState, steps: StepTemplate[]): DemoState {
+  if (!canLead(s) || validateWorkflow(steps, s.roles)) return s
+  const owned = withOwners(steps, s.roles)
+  return { ...s, org: { ...s.org, eventWorkflow: { steps: owned, updatedOn: s.today, summary: describeWorkflow(owned) } } }
+}
+/** Back to the standard event workflow. */
+export function resetWorkflow(s: DemoState): DemoState {
+  if (!canLead(s)) return s
+  const { eventWorkflow: _gone, ...org } = s.org
+  return { ...s, org }
+}
+
 export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch, invite?: string): DemoState {
   if ((personId !== s.viewerId && invite !== s.org.inviteCode) || validateProfile(patch) || !s.people.some(p => p.id === personId) || s.people.some(p => p.id !== personId && p.name.toLowerCase() === patch.name.trim().toLowerCase())) return s
   const clean: ProfilePatch = { asuId: patch.asuId ?? "", name: patch.name.trim(), email: patch.email.trim(), phone: patch.phone.trim(), channels: patch.channels, remindAt: patch.remindAt, busyWeeks: [...new Set(patch.busyWeeks)], careerGoal: patch.careerGoal, interests: patch.interests, expectations: patch.expectations, personalBufferDays: patch.personalBufferDays, personalBufferEnabled: patch.personalBufferEnabled, freeSlots: patch.freeSlots }
   return applySchedule({ ...s, people: s.people.map(p => p.id === personId ? { ...p, ...clean, setupCompletedOn: s.today } : p) })
 }
 
-export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number): DemoState {
+export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[]): DemoState {
   if (!canLead(s) || validateClub(d) || !validDate(eventDate) || eventDate < s.today || !/^[a-f0-9-]{36}$/i.test(inviteCode)) return s
   if (taskDueDays !== undefined && !(TASK_DUE_CHOICES as readonly number[]).includes(taskDueDays)) return s
   if (clubBufferBusinessDays !== undefined && !(BUFFER_CHOICES as readonly number[]).includes(clubBufferBusinessDays)) return s
+  if (workflow && validateWorkflow(workflow, d.roles)) return s
   const op = sanitizeOps([rawEvent], s)[0]
   if (op?.op !== "create_event") return s
   const { op: _kind, ...fields } = op
@@ -107,7 +130,8 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   const people = d.people.map(p => ({ ...p, name: p.name.trim() }))
   const roles = orderRoles(d.roles.map(r => ({ ...r, displayName: r.displayName.trim() })))
   const president = roles.find(r => r.fn === "president")!
-  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, settings: { ...s.org.settings, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: [event], nodes: buildEventNodes(event, roles).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), nudges: [], contributions: [], contacts: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  const steps = workflow ? withOwners(workflow, roles) : undefined
+  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...s.org.settings, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: [event], nodes: buildEventNodes(event, roles, steps ? { steps } : {}).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), nudges: [], contributions: [], contacts: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
 
 export const clubDraft = (s: DemoState): ClubDraft => structuredClone({ name: s.org.name, mission: s.org.mission, goals: s.org.goals, roles: s.roles, people: s.people, workspace: s.org.workspace })

@@ -43,6 +43,43 @@ export interface OrgSettings {
   eventCreatorIds?: string[]
 }
 
+/** Which events a workflow step applies to. Names, not functions, so a workflow can be saved with the club. */
+export type StepCond = "campus" | "offcampus" | "speaker" | "usgFood" | "usgSpeaker" | "offsite" | "dining" | "onsite" | "tbd" | "food"
+
+/**
+ * One step of an event workflow. A step has no dates of its own: an anchor (an ASU rule or a club timing) and links to other
+ * steps; the rule engine (schedule.ts) turns those into deadlines. Both the standard workflow and a club's own are lists of these.
+ */
+export interface StepTemplate {
+  key: string
+  title: string
+  fn: RoleFunction
+  /** The specific role that does this step, once the club has chosen one. Otherwise the first role with the right function. */
+  ownerRoleId?: string | null
+  phase: Phase
+  anchor?: Anchor
+  estDays: number
+  tier: Tier
+  dependsOn?: string[]
+  ruleIds?: string[]
+  cond?: StepCond
+  why: string
+  source: string
+  consulted?: RoleFunction[]
+  informed?: RoleFunction[]
+  /** Added by the club (not from the standard workflow). */
+  custom?: boolean
+}
+
+/** The club's own event workflow, made in setup from its planning notes and files. New events are built from it. */
+export interface EventWorkflow {
+  steps: StepTemplate[]
+  phaseOrder?: Phase[]
+  updatedOn: string
+  /** One line about where it came from, e.g. "Adapted from your planning notes and 1 file". */
+  summary?: string
+}
+
 export interface Org {
   id: string
   name: string
@@ -53,6 +90,8 @@ export interface Org {
   workspace: WorkspaceConfig
   setupCompletedOn: string | null
   inviteCode: string
+  /** The club's own event workflow. Absent: the standard workflow is used. */
+  eventWorkflow?: EventWorkflow
   /** Task board look (v1.1): renamed statuses, colours, custom tags and which fields cards show. Meanings never change. */
   board?: BoardSettings
 }
@@ -73,6 +112,8 @@ export interface PlanningFile {
   size: number
   /** Local browser only; small fictional files, never sent to AI. */
   dataUrl: string
+  /** Text read from the file in this browser (PDF, Word, text) so the AI can compare it with the standard workflow. Empty for other types. */
+  text?: string
 }
 export interface WorkspaceConfig {
   calendarUrl: string

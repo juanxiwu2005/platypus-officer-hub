@@ -13,7 +13,7 @@ export function OrgChart({ roles }: { roles: Role[] }) {
   const y = (level: number) => level * (CARD_H + GAP_Y)
   const width = Math.max(CARD_W, chart.columns * (CARD_W + GAP_X) - GAP_X), height = chart.levels * (CARD_H + GAP_Y) - GAP_Y
   const at = new Map(chart.nodes.map(n => [n.id, n]))
-  const bossName = (id: string) => chart.edges.find(e => e.to === id) && at.get(chart.edges.find(e => e.to === id)!.from)?.title
+  const bossName = (id: string) => { const e = chart.edges.find(x => x.to === id && !x.kind); return e ? at.get(e.from)?.title : undefined }
   return <section className="org-chart-wrap" data-testid="org-chart" aria-label="Organization chart">
     <h3 className="org-h">Organization chart</h3>
     <div className="org-scroll" tabIndex={0} role="group" aria-label="Organization chart, scrolls sideways">
@@ -21,6 +21,10 @@ export function OrgChart({ roles }: { roles: Role[] }) {
         <svg className="org-lines" width={width} height={height} aria-hidden="true">
           {chart.edges.map(e => {
             const a = at.get(e.from)!, b = at.get(e.to)!
+            if (e.kind === "advisory") {
+              const [l, r] = a.col <= b.col ? [a, b] : [b, a], ym = y(a.level) + CARD_H / 2
+              return <path key={`${e.from}-${e.to}`} className="advisory" d={`M${x(l.col) + CARD_W} ${ym} H${x(r.col)}`} />
+            }
             const x1 = x(a.col) + CARD_W / 2, y1 = y(a.level) + CARD_H, x2 = x(b.col) + CARD_W / 2, y2 = y(b.level), mid = y1 + GAP_Y / 2
             return <path key={`${e.from}-${e.to}`} d={`M${x1} ${y1} V${mid} H${x2} V${y2}`} />
           })}
@@ -28,6 +32,6 @@ export function OrgChart({ roles }: { roles: Role[] }) {
         {chart.nodes.map(n => <div key={n.id} className={`org-card${n.advisor ? " advisor" : ""}`} style={{ left: x(n.col), top: y(n.level), width: CARD_W, height: CARD_H }} title={n.title}><span>{n.title}</span></div>)}
       </div>
     </div>
-    <ul className="sr-only">{chart.nodes.map(n => <li key={n.id}>{n.title}{bossName(n.id) ? `, reports to ${bossName(n.id)}` : n.advisor ? ", advisor" : ", top of the chart"}</li>)}</ul>
+    <ul className="sr-only">{chart.nodes.map(n => <li key={n.id}>{n.title}{bossName(n.id) ? `, reports to ${bossName(n.id)}` : n.advisor ? ", advisor, shown beside the president with a dashed line" : ", top of the chart"}</li>)}</ul>
   </section>
 }

@@ -31,7 +31,7 @@ test("constitution: upload, AI reads it in the background, departments and roles
   await expect(step.getByTestId("constitution-chip")).toContainText("constitution.txt")
   expect(sent).toBeNull()                                                  // nothing is sent until Continue
   await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 2 of 5 · Semester goals")
+  await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 2 of 6 · Semester goals")
   await expect(step.getByRole("status").first()).toContainText("Reading your constitution")
   await expect(step.getByRole("status").first()).toContainText("Suggested by AI from your constitution")
   expect(parts).toEqual(["structure", "duties"]);  /* structure first, then duties six positions at a time (six roles = one batch) */ expect(Object.keys(sent!).sort()).toEqual(["items", "part", "text"]); expect(String(sent!.text)).not.toContain("boss@example.org")
@@ -39,7 +39,7 @@ test("constitution: upload, AI reads it in the background, departments and roles
   await expect(step.getByRole("button", { name: /^Remove goal/ })).toHaveCount(3)
   await step.getByRole("button", { name: "Continue", exact: true }).click()
   await expect(step).not.toContainText("Department")
-  await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 3 of 5 · Officer roles")
+  await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 3 of 6 · Officer roles")
   await expect(step.getByLabel("Role title")).toHaveCount(6)
   const marketing = step.getByRole("group", { name: /Director of Marketing/ })
   await expect(marketing.getByLabel("Reports to").locator("option:checked")).toHaveText("Executive Vice President")
@@ -50,7 +50,7 @@ test("constitution: upload, AI reads it in the background, departments and roles
   // The organization chart sits under the last role and above the deadline question, with a card per role and a line to each boss.
   const chart = step.getByTestId("org-chart")
   await expect(chart).toBeVisible(); await expect(chart.locator(".org-card")).toHaveCount(6)
-  await expect(chart.locator(".org-lines path")).toHaveCount(4)           // every role but the president and the advisor reports to someone
+  await expect(chart.locator(".org-lines path:not(.advisory)")).toHaveCount(4); await expect(chart.locator(".org-lines path.advisory")).toHaveCount(1)           // every role but the president and the advisor reports to someone
   const box = (l: ReturnType<typeof step.locator>) => l.boundingBox().then(b => b!)
   expect((await box(step.getByRole("group", { name: /Club Advisor/ }))).y).toBeLessThan((await box(chart)).y)
   expect((await box(chart)).y).toBeLessThan((await box(step.getByLabel("Days before the real deadline"))).y)
@@ -65,6 +65,8 @@ test("constitution: upload, AI reads it in the background, departments and roles
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
   await step.getByRole("button", { name: "Continue", exact: true }).click()
   await expect(step.getByLabel("Club Google Drive folder (optional)")).toBeVisible()
+  await step.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 5 of 6 · Event workflow")
   await step.getByRole("button", { name: "Continue", exact: true }).click()
   await step.getByRole("button", { name: "Prepare first workflow", exact: true }).click()
   await step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." }).check()

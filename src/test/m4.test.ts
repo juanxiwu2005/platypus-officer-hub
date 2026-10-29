@@ -196,7 +196,9 @@ describe("M4 · the organization chart", () => {
     const kids = chart.edges.filter(e => e.from === s.roles.find(r => r.displayName === "Executive Vice President")!.id).map(e => chart.nodes.find(x => x.id === e.to)!.col)
     expect(n("Executive Vice President").col).toBeCloseTo((Math.min(...kids) + Math.max(...kids)) / 2)
     expect(chart.edges).toContainEqual({ from: s.roles.find(r => r.displayName === "President")!.id, to: s.roles.find(r => r.displayName === "Secretary")!.id })
-    expect(chart.edges).toHaveLength(s.roles.filter(r => r.reportsToId).length)
+    expect(chart.edges.filter(e => !e.kind)).toHaveLength(s.roles.filter(r => r.reportsToId).length)
+    // The advisor is joined to the president by a dashed (advisory) line, not by a reporting line.
+    expect(chart.edges.filter(e => e.kind === "advisory")).toEqual([{ from: s.roles.find(r => r.displayName === "President")!.id, to: s.roles.find(r => r.displayName === "Club Advisor")!.id, kind: "advisory" }])
     const adv = n("Club Advisor"); expect(adv.advisor).toBe(true); expect(adv.level).toBe(0); expect(adv.col).toBeGreaterThan(n("President").col)
     const cols = chart.nodes.filter(x => x.level === 3).map(x => x.col); expect(new Set(cols).size).toBe(cols.length)   // cards on a level never overlap
   })

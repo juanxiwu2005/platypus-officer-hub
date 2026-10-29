@@ -8,6 +8,12 @@ import { useRail } from "../components/rail/RailContext"
 import { GoalsEditor, ProfileForm, RoleCard, WorkspaceEditor } from "../components/SettingsForms"
 import { OrgChart } from "../components/setup/OrgChart"
 import { rederiveFn, withBelow } from "../data/structure"
+import { WorkflowEditor } from "../components/setup/WorkflowEditor"
+import { WorkflowIssues } from "../components/setup/WorkflowReview"
+import { orgSteps } from "../engine/playbooks"
+import { checkWorkflow, presetSteps, withOwners } from "../engine/workflow"
+import type { StepTemplate } from "../data/types"
+import { validateWorkflow } from "../data/settings"
 import { clubDraft, profilePatch, validateClub, validateDefaults, validateProfile, type ClubDraft } from "../data/settings"
 import type { OrgSettings, Role } from "../data/types"
 import { Empty, Info } from "../components/ui"
@@ -18,9 +24,9 @@ export function InviteLink({ code }: { code: string }) {
   return <div className="form-stack"><label>Officer setup link<input readOnly value={url} onFocus={e => e.target.select()} /></label><div className="action-row"><button type="button" className="btn" onClick={async () => { try { await navigator.clipboard.writeText(url); setCopied(true) } catch { setCopied(false) } }}>{copied ? "Copied" : "Copy invite link"}</button><a className="btn" href={url}>Try officer setup</a><Info>Same-browser demo invitation: choose a fictional officer to try their setup.</Info></div></div>
 }
 
-type Tab = "club" | "roles" | "links" | "me" | "admin"
+type Tab = "club" | "roles" | "workflow" | "links" | "me" | "admin"
 const TABS: { id: Tab; label: string; lead: boolean }[] = [
-  { id: "club", label: "Club", lead: true }, { id: "roles", label: "Roles", lead: true }, { id: "links", label: "Links & files", lead: true },
+  { id: "club", label: "Club", lead: true }, { id: "roles", label: "Roles", lead: true }, { id: "workflow", label: "Workflow", lead: true }, { id: "links", label: "Links & files", lead: true },
   { id: "me", label: "My preferences", lead: false }, { id: "admin", label: "Admin", lead: true },
 ]
 
@@ -35,7 +41,7 @@ export default function Settings() {
     <div className="settings">
       <nav className="settings-nav" aria-label="Settings sections">{tabs.map(t => <button key={t.id} type="button" aria-current={active === t.id ? "page" : undefined} onClick={() => setTab(t.id)}>{t.label}</button>)}</nav>
       <div className="settings-body">
-        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : <ClubSettings tab={active} />}
+        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <WorkflowSettings /> : <ClubSettings tab={active} />}
       </div>
     </div>
   </>
@@ -96,6 +102,23 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
 function SaveStatus<T>({ status, onUndo }: { status: { text: string; undo?: T } | null; onUndo: (v: T) => void }) {
   if (!status) return null
   return <p role="status" className={`save-status ${status.undo ? "ok" : "err"}`}>{status.text}{status.undo !== undefined && <button type="button" className="link" onClick={() => onUndo(status.undo as T)}>Undo</button>}</p>
+}
+
+/** The club's event workflow, after setup: the same edit module. New events start from it; events already made keep their steps. */
+function WorkflowSettings() {
+  const { state, dispatch } = useStore()
+  const saved = withOwners(orgSteps(state), state.roles)
+  const [steps, setSteps] = useState<StepTemplate[]>(saved)
+  const { status, clear } = useAutosave(steps, saved, v => validateWorkflow(v, state.roles), v => dispatch({ type: "saveWorkflow", steps: v }))
+  const issues = checkWorkflow(steps, state.roles, state)
+  return <section className="card form-stack" data-testid="workflow-settings">
+    <h2>Event workflow</h2>
+    <p className="small muted">New events start from this workflow. {state.org.eventWorkflow?.summary ?? "It is the standard workflow."} Events you already made keep their own steps.</p>
+    <WorkflowIssues issues={issues} />
+    <WorkflowEditor steps={steps} roles={state.roles} onChange={setSteps} />
+    <div className="action-row"><button type="button" className="btn small" onClick={() => { dispatch({ type: "resetWorkflow" }); setSteps(withOwners(presetSteps(), state.roles)); clear() }}>Go back to the standard workflow</button></div>
+    <SaveStatus status={status} onUndo={(prev: StepTemplate[]) => { dispatch({ type: "saveWorkflow", steps: prev }); setSteps(prev); clear() }} />
+  </section>
 }
 
 function RolesTable({ roles, onChange }: { roles: Role[]; onChange: (r: Role[]) => void }) {

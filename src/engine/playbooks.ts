@@ -1,4 +1,4 @@
-import type { Anchor, Event, Node, Phase, Role, RoleFunction, Tier } from "../data/types"
+import type { Anchor, Event, Node, Phase, Role, RoleFunction, StepCond, StepTemplate } from "../data/types"
 
 /**
  * Event playbook (plan §4, §11 "Playbook"). Built from SEO's own workflows:
@@ -10,32 +10,22 @@ import type { Anchor, Event, Node, Phase, Role, RoleFunction, Tier } from "../da
  * steps; the rule engine (schedule.ts) turns those into the three deadlines.
  */
 
-export interface StepTemplate {
-  key: string
-  title: string
-  fn: RoleFunction
-  phase: Phase
-  anchor?: Anchor
-  estDays: number
-  tier: Tier
-  dependsOn?: string[]
-  ruleIds?: string[]
-  when?: (e: Event) => boolean
-  why: string
-  source: string
-  consulted?: RoleFunction[]
-  informed?: RoleFunction[]
-}
+export type { StepTemplate }
 
 const rule = (ruleId: string, days: number, unit: "calendar" | "business"): Anchor => ({ kind: "rule", ruleId, days, unit })
 const target = (days: number, unit: "calendar" | "business", label: string): Anchor => ({ kind: "target", days, unit, label })
-const campus = (e: Event) => e.venue === "campus"
-const usgFood = (e: Event) => e.funding === "usg" && e.food !== "none"
-const usgSpeaker = (e: Event) => e.speaker && e.funding === "usg"
+export const CONDITIONS: Record<StepCond, (e: Event) => boolean> = {
+  campus: e => e.venue === "campus", offcampus: e => e.venue === "offcampus", speaker: e => e.speaker,
+  usgFood: e => e.funding === "usg" && e.food !== "none", usgSpeaker: e => e.speaker && e.funding === "usg",
+  offsite: e => e.food === "offsite", dining: e => e.food === "dining", onsite: e => e.food === "onsite", tbd: e => e.food === "tbd", food: e => e.food !== "none",
+}
+
+/** The steps new events are built from: the club's own workflow if setup made one, else the standard one. */
+export const orgSteps = (s: { org: { eventWorkflow?: { steps: StepTemplate[] } } }): StepTemplate[] => s.org.eventWorkflow?.steps ?? EVENT_STEPS
 
 export const EVENT_STEPS: StepTemplate[] = [
   // Plan (OA101)
-  { key: "partner", title: "Meet the speaker or partner: goals, audience, format", fn: "outreach", phase: "plan", estDays: 2, tier: "medium", when: e => e.speaker,
+  { key: "partner", title: "Meet the speaker or partner: goals, audience, format", fn: "outreach", phase: "plan", estDays: 2, tier: "medium", cond: "speaker",
     why: "Agree on what each side wants and what our members get before planning anything else.", source: "OA101 step 10; SEO T-90 checklist", consulted: ["programs"] },
   { key: "draft", title: "Draft the event plan: headcount, room, food, staffing", fn: "programs", phase: "plan", estDays: 2, tier: "medium", dependsOn: ["partner"],
     why: "Everyone else needs these numbers to start their part.", source: "OA101 step 20", consulted: ["finance", "marketing"] },
@@ -47,39 +37,39 @@ export const EVENT_STEPS: StepTemplate[] = [
     why: "Check mission fit, feasibility and value before anyone spends time or money.", source: "OA101 step 50", informed: ["programs", "finance", "marketing", "outreach"] },
 
   // Prepare (OA102 logistics + ASU rules)
-  { key: "registry", title: "Register the event in Event Registry", fn: "president", phase: "prepare", anchor: rule("R01", 30, "calendar"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R01"], when: campus,
+  { key: "registry", title: "Register the event in Event Registry", fn: "president", phase: "prepare", anchor: rule("R01", 30, "calendar"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R01"], cond: "campus",
     why: "The room booking needs the RITM number this gives.", source: "OA102 step 64; SEO T-90 checklist", informed: ["programs"] },
-  { key: "venue", title: "Reserve the room in Mazevo", fn: "programs", phase: "prepare", anchor: rule("R03", 16, "calendar"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R03"], when: campus,
+  { key: "venue", title: "Reserve the room in Mazevo", fn: "programs", phase: "prepare", anchor: rule("R03", 16, "calendar"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R03"], cond: "campus",
     why: "Only the top three officers can submit, and popular rooms go early.", source: "OA102 step 64; SEO T-90 checklist" },
-  { key: "offvenue", title: "Confirm the off-campus venue (officers do not sign contracts)", fn: "programs", phase: "prepare", anchor: target(30, "calendar", "SEO checklist: venue settled a month ahead"), estDays: 2, tier: "medium", dependsOn: ["approve"], ruleIds: ["R14"], when: e => e.venue === "offcampus",
+  { key: "offvenue", title: "Confirm the off-campus venue (officers do not sign contracts)", fn: "programs", phase: "prepare", anchor: target(30, "calendar", "SEO checklist: venue settled a month ahead"), estDays: 2, tier: "medium", dependsOn: ["approve"], ruleIds: ["R14"], cond: "offcampus",
     why: "Student officers should not sign binding contracts; ask the advisor first.", source: "OA102 step 64" },
-  { key: "ritm", title: "Add the RITM number to the room request", fn: "programs", phase: "prepare", anchor: rule("R04", 14, "calendar"), estDays: 1, tier: "light", dependsOn: ["registry", "venue"], ruleIds: ["R04"], when: campus,
+  { key: "ritm", title: "Add the RITM number to the room request", fn: "programs", phase: "prepare", anchor: rule("R04", 14, "calendar"), estDays: 1, tier: "light", dependsOn: ["registry", "venue"], ruleIds: ["R04"], cond: "campus",
     why: "Without it the room booking can be canceled with a fee.", source: "OA102 step 64" },
   { key: "advisor", title: "Confirm the advisor will attend", fn: "president", phase: "prepare", anchor: target(7, "calendar", "One week before the event"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R02"],
     why: "Student-organization events need the advisor present; over 250 people also needs a university representative.", source: "R02" },
-  { key: "quote", title: "Get the caterer quote and insurance certificate", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R06"], when: e => e.food === "offsite",
+  { key: "quote", title: "Get the caterer quote and insurance certificate", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R06"], cond: "offsite",
     why: "The Food Exception Request and the funding request both need the quote.", source: "OA201 purchase preparation" },
-  { key: "foodex", title: "Submit the Food Exception Request", fn: "finance", phase: "prepare", anchor: rule("R06", 14, "calendar"), estDays: 1, tier: "light", dependsOn: ["quote"], ruleIds: ["R06"], when: e => e.food === "offsite",
+  { key: "foodex", title: "Submit the Food Exception Request", fn: "finance", phase: "prepare", anchor: rule("R06", 14, "calendar"), estDays: 1, tier: "light", dependsOn: ["quote"], ruleIds: ["R06"], cond: "offsite",
     why: "An outside caterer is not allowed without it.", source: "R06" },
-  { key: "dining", title: "Order catering from Sun Devil Dining", fn: "programs", phase: "prepare", anchor: rule("R05", 14, "calendar"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R05"], when: e => e.food === "dining",
+  { key: "dining", title: "Order catering from Sun Devil Dining", fn: "programs", phase: "prepare", anchor: rule("R05", 14, "calendar"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R05"], cond: "dining",
     why: "Union venues use Sun Devil Dining only.", source: "R05" },
-  { key: "permit", title: "Apply for the temporary food permit ($85)", fn: "finance", phase: "prepare", anchor: rule("R07", 7, "business"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R07", "R08"], when: e => e.food === "onsite",
+  { key: "permit", title: "Apply for the temporary food permit ($85)", fn: "finance", phase: "prepare", anchor: rule("R07", 7, "business"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R07", "R08"], cond: "onsite",
     why: "Food made on site needs a permit. Homemade food is not allowed.", source: "R07, R08" },
-  { key: "foodplan", title: "Choose how the food is provided: Sun Devil Dining, a caterer or made on site", fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R05", "R06", "R07"], when: e => e.food === "tbd",
+  { key: "foodplan", title: "Choose how the food is provided: Sun Devil Dining, a caterer or made on site", fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R05", "R06", "R07"], cond: "tbd",
     why: "Each option has its own ASU steps and deadlines. Choose early so the right one still fits.", source: "R05, R06, R07" },
 
   // Money (OA201 + USG)
-  { key: "usg", title: "Submit the USG food request", fn: "finance", phase: "money", anchor: rule("R09", 10, "business"), estDays: 1, tier: "light", dependsOn: ["quote", "flyer", "budget"], ruleIds: ["R09", "R11"], when: usgFood,
+  { key: "usg", title: "Submit the USG food request", fn: "finance", phase: "money", anchor: rule("R09", 10, "business"), estDays: 1, tier: "light", dependsOn: ["quote", "flyer", "budget"], ruleIds: ["R09", "R11"], cond: "usgFood",
     why: "Everything about the food waits on this approval.", source: "OA201 request funds; R09, R11" },
-  { key: "sap", title: "Get the speaker's signed SAP agreement", fn: "president", phase: "money", estDays: 2, tier: "medium", dependsOn: ["partner"], ruleIds: ["R10"], when: usgSpeaker,
+  { key: "sap", title: "Get the speaker's signed SAP agreement", fn: "president", phase: "money", estDays: 2, tier: "medium", dependsOn: ["partner"], ruleIds: ["R10"], cond: "usgSpeaker",
     why: "USG pays a guest only with a signed agreement on file.", source: "R10" },
-  { key: "usgspeaker", title: "Submit the USG speaker request", fn: "finance", phase: "money", anchor: rule("R10", 14, "business"), estDays: 1, tier: "light", dependsOn: ["sap", "budget"], ruleIds: ["R10"], when: usgSpeaker,
+  { key: "usgspeaker", title: "Submit the USG speaker request", fn: "finance", phase: "money", anchor: rule("R10", 14, "business"), estDays: 1, tier: "light", dependsOn: ["sap", "budget"], ruleIds: ["R10"], cond: "usgSpeaker",
     why: "Speaker payments need 14 business days and the signed agreement.", source: "OA201 request funds; R10" },
 
   // Marketing (OA102)
   { key: "flyer", title: "Finish the event flyer", fn: "marketing", phase: "marketing", estDays: 2, tier: "medium", dependsOn: ["approve"], ruleIds: ["R11"],
     why: "USG requires the flyer with the funding request, and RSVPs open with it.", source: "OA102 step 62" },
-  { key: "partnerreview", title: "Partner reviews the marketing materials", fn: "outreach", phase: "marketing", estDays: 1, tier: "light", dependsOn: ["flyer"], when: e => e.speaker,
+  { key: "partnerreview", title: "Partner reviews the marketing materials", fn: "outreach", phase: "marketing", estDays: 1, tier: "light", dependsOn: ["flyer"], cond: "speaker",
     why: "The partner signs off on how they are presented.", source: "OA102 step 65" },
   { key: "rsvp", title: "Publish the event and open RSVPs in Sun Devil Central", fn: "marketing", phase: "marketing", anchor: target(21, "calendar", "SEO timing: RSVPs open three weeks ahead"), estDays: 1, tier: "light", dependsOn: ["flyer", "partnerreview"],
     why: "Catering needs an RSVP count; no RSVPs nearly cost one club its food order.", source: "OA102 step 67; SEO T-30 checklist" },
@@ -92,7 +82,7 @@ export const EVENT_STEPS: StepTemplate[] = [
     why: "The last moment to catch a gap while there is still time to fix it.", source: "SEO T-14 checklist (quality gate)", consulted: ["programs", "finance", "marketing"] },
   { key: "runshow", title: "Write the run-of-show and staffing plan", fn: "programs", phase: "run", anchor: target(7, "calendar", "SEO template: run-of-show a week ahead"), estDays: 1, tier: "light", dependsOn: ["review"],
     why: "Everyone knows their job on the night: check-in, host, photos, member welcome.", source: "SEO event template" },
-  { key: "headcount", title: "Send the final headcount to the caterer", fn: "programs", phase: "run", anchor: target(4, "calendar", "Caterers usually need the count 3–4 days ahead"), estDays: 1, tier: "light", dependsOn: ["rsvp", "review"], when: e => e.food !== "none",
+  { key: "headcount", title: "Send the final headcount to the caterer", fn: "programs", phase: "run", anchor: target(4, "calendar", "Caterers usually need the count 3–4 days ahead"), estDays: 1, tier: "light", dependsOn: ["rsvp", "review"], cond: "food",
     why: "Order for about 40–50% of RSVPs; free evening events rarely fill.", source: "Team practice" },
 
   // Close
@@ -151,7 +141,7 @@ export function roleFor(roles: Role[], fn: RoleFunction): Role | undefined {
 
 /** The steps that apply to this event, with links to skipped steps passed through to their own links. */
 export function stepsFor(e: Event, steps: StepTemplate[] = EVENT_STEPS): StepTemplate[] {
-  const included = new Map(steps.filter(s => !s.when || s.when(e)).map(s => [s.key, s]))
+  const included = new Map(steps.filter(s => !s.cond || CONDITIONS[s.cond](e)).map(s => [s.key, s]))
   const all = new Map(steps.map(s => [s.key, s]))
   const resolve = (key: string, seen = new Set<string>()): string[] => {
     if (included.has(key)) return [key]
@@ -181,11 +171,11 @@ export function stepsFor(e: Event, steps: StepTemplate[] = EVENT_STEPS): StepTem
 }
 
 /** Turn the playbook into nodes for one event. New nodes wait for their proposed owner to claim them. */
-export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number } = {}): Node[] {
+export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[] } = {}): Node[] {
   const president = roleFor(roles, "president")
   const perHead = opts.fundingAmount && e.headcount ? opts.fundingAmount / e.headcount : 0
-  return stepsFor(e).map(s => {
-    const role = roleFor(roles, s.fn)
+  return stepsFor(e, opts.steps ?? EVENT_STEPS).map(s => {
+    const role = (s.ownerRoleId ? roles.find(r => r.id === s.ownerRoleId) : undefined) ?? roleFor(roles, s.fn)
     const ruleIds = [...(s.ruleIds ?? [])]
     if (s.key === "closeout" && perHead >= 25) ruleIds.push("R12")
     return {

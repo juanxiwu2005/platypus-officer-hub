@@ -2,7 +2,7 @@ import type { DemoState, Event, Node } from "./types"
 import { commandContext, sanitizeOps, validDate, type CommandOp } from "../lib/commands"
 import type { ChangeSet, Tier } from "./types"
 import { applySchedule } from "../engine/schedule"
-import { buildEventNodes } from "../engine/playbooks"
+import { buildEventNodes, orgSteps } from "../engine/playbooks"
 import { topoOrder } from "../engine/schedule"
 import { taskAnchor } from "../engine/taskDates"
 import { addNotices } from "./taskWorkflow"
@@ -60,7 +60,7 @@ export function newObjects(s: DemoState, op: CommandOp, id: string, human: Human
   if (op.op === "create_event") {
     const { op: _kind, ...fields } = op
     const event: Event = { ...fields, id, date: human.date!, goalId: s.org.goals[0]?.id ?? null, playbookId: "seo-event" }
-    return { events: [...s.events, event], nodes: [...s.nodes, ...buildEventNodes(event, s.roles).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 }))] }
+    return { events: [...s.events, event], nodes: [...s.nodes, ...buildEventNodes(event, s.roles, { steps: orgSteps(s) }).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 }))] }
   }
   if (op.op === "add_node") {
     const person = s.people.find(p => p.id === op.ownerId)

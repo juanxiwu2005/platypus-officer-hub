@@ -1,6 +1,7 @@
 import { useState } from "react"
 import type { DemoState, Goal, Person, Role, WorkspaceConfig, Channel } from "../data/types"
 import { validateWorkspace, type ProfilePatch } from "../data/settings"
+import { documentSource, readDocumentFile } from "../lib/readDocument"
 import { MAX_DUTIES, MAX_ROLES, dropRole, dutiesOf, newRole, orderRoles, rederiveFn, setHolder, withBelow } from "../data/structure"
 import { mondayOf } from "../engine/team"
 
@@ -43,15 +44,21 @@ export function RolesEditor({ roles, people, onChange, editablePeople = false }:
 export function WorkspaceEditor({ value, onChange }: { value: WorkspaceConfig; onChange: (w: WorkspaceConfig) => void }) {
   const [error, setError] = useState("")
   const set = (patch: Partial<WorkspaceConfig>) => onChange({ ...value, ...patch })
-  return <div className="form-stack"><p className="notice">Demo configuration only. Links open when you choose. No Calendar, Gmail, WhatsApp or Drive account is connected or read.</p><div className="form-grid"><label>Calendar link<input type="url" value={value.calendarUrl} onChange={e => set({ calendarUrl: e.target.value })} /></label><label>Club messaging channel<select value={value.messaging} onChange={e => set({ messaging: e.target.value as WorkspaceConfig["messaging"] })}><option value="whatsapp">WhatsApp</option><option value="email">Gmail / email</option></select></label><label>Club Google Drive folder (optional)<input type="url" placeholder="https://drive.google.com/drive/folders/…" value={value.driveLink} onChange={e => set({ driveLink: e.target.value })} /></label></div><label>Planning notes<textarea maxLength={2000} rows={3} value={value.planningNotes} onChange={e => set({ planningNotes: e.target.value })} /></label><label>Fictional planning files<input type="file" multiple accept=".txt,.md,.csv,.pdf,.docx,.xlsx" onChange={async e => {
+  return <div className="form-stack"><p className="notice">Demo configuration only. Links open when you choose. No Calendar, Gmail, WhatsApp or Drive account is connected or read.</p><div className="form-grid"><label>Calendar link<input type="url" value={value.calendarUrl} onChange={e => set({ calendarUrl: e.target.value })} /></label><label>Club messaging channel<select value={value.messaging} onChange={e => set({ messaging: e.target.value as WorkspaceConfig["messaging"] })}><option value="whatsapp">WhatsApp</option><option value="email">Gmail / email</option></select></label><label>Club Google Drive folder (optional)<input type="url" placeholder="https://drive.google.com/drive/folders/…" value={value.driveLink} onChange={e => set({ driveLink: e.target.value })} /></label></div><label>Planning notes (how your club runs events)<textarea maxLength={2000} rows={3} value={value.planningNotes} onChange={e => set({ planningNotes: e.target.value })} /></label><label>Fictional planning files<input type="file" multiple accept=".txt,.md,.csv,.pdf,.docx,.xlsx" onChange={async e => {
     const files = Array.from(e.target.files ?? []); e.target.value = ""; setError("")
     if (files.some(f => !f.size || f.size > 512000) || files.length + value.files.length > 3 || files.reduce((n, f) => n + f.size, value.files.reduce((n, f) => n + f.size, 0)) > 1000000) { setError("Use up to three small files, 512 KB each and 1 MB total."); return }
     try {
-      const added = await Promise.all(files.map(file => new Promise<WorkspaceConfig["files"][number]>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve({ id: crypto.randomUUID(), name: file.name, type: file.type, size: file.size, dataUrl: String(reader.result) }); reader.onerror = reject; reader.readAsDataURL(file) })))
+      const added = await Promise.all(files.map(async file => {
+        const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = reject; reader.readAsDataURL(file) })
+        // The text is read here, in this browser, so the AI can compare it with the standard workflow in setup. Scanned or unsupported files stay unread.
+        let text = ""
+        try { text = (await documentSource(/\.csv$/i.test(file.name) ? await file.text() : await readDocumentFile(file), file.name)).text.slice(0, 40_000) } catch { text = "" }
+        return { id: crypto.randomUUID(), name: file.name, type: file.type, size: file.size, dataUrl, ...(text ? { text } : {}) }
+      }))
       const next = { ...value, files: [...value.files, ...added] }; const err = validateWorkspace(next)
       if (err) setError(err); else onChange(next)
     } catch { setError("This file could not be saved. Try a smaller file.") }
-  }} /></label><p className="small muted">Up to 3 files, 512 KB each, 1 MB total. Stored in this browser; reset removes them. Files are reference attachments and are not read by AI. Use fictional material only.</p>{value.files.map(f => <div className="action-row" key={f.id}><a href={f.dataUrl} download={f.name}>{f.name}</a><span className="small muted">{Math.ceil(f.size / 1000)} KB</span><button type="button" className="btn small" onClick={() => set({ files: value.files.filter(x => x.id !== f.id) })}>Remove {f.name}</button></div>)}{error && <p role="alert">{error}</p>}</div>
+  }} /></label><p className="small muted">Up to 3 files, 512 KB each, 1 MB total. Stored in this browser; reset removes them. In setup, AI compares the text of PDF, Word and text files, and your planning notes, with the standard event workflow. Use fictional material only.</p>{value.files.map(f => <div className="action-row" key={f.id}><a href={f.dataUrl} download={f.name}>{f.name}</a><span className="small muted">{Math.ceil(f.size / 1000)} KB{f.text ? ` · ${f.text.split(/\s+/).length.toLocaleString("en-US")} words read` : " · not read"}</span><button type="button" className="btn small" aria-label={`Remove ${f.name}`} onClick={() => set({ files: value.files.filter(x => x.id !== f.id) })}>Remove</button></div>)}{error && <p role="alert">{error}</p>}</div>
 }
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]

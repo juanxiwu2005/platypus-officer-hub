@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/chat", r => r.fulfill({ status: 503, json: {} }))
 })
 
-test("participant path: clean browser → five-step setup → task → event → rule question → export; nothing blank, every action logged in order", async ({ page }) => {
+test("participant path: clean browser → six-step setup → task → event → rule question → export; nothing blank, every action logged in order", async ({ page }) => {
   const errors: string[] = []
   page.on("pageerror", e => errors.push(String(e)))
   await page.goto("/#/")
@@ -17,7 +17,7 @@ test("participant path: clean browser → five-step setup → task → event →
   await page.goto("/#/setup")
   const step = page.getByTestId("setup-step")
   await step.getByLabel("Club name", { exact: true }).fill("Fictional Rehearsal Club")
-  for (let i = 0; i < 4; i++) await step.getByRole("button", { name: "Continue", exact: true }).click()
+  for (let i = 0; i < 5; i++) await step.getByRole("button", { name: "Continue", exact: true }).click()
   await step.getByRole("button", { name: "Prepare first workflow", exact: true }).click()
   await step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." }).check()
   await step.getByRole("button", { name: "Approve & start workspace", exact: true }).click()
