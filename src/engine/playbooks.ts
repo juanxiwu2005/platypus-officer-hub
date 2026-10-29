@@ -65,6 +65,8 @@ export const EVENT_STEPS: StepTemplate[] = [
     why: "Union venues use Sun Devil Dining only.", source: "R05" },
   { key: "permit", title: "Apply for the temporary food permit ($85)", fn: "finance", phase: "prepare", anchor: rule("R07", 7, "business"), estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R07", "R08"], when: e => e.food === "onsite",
     why: "Food made on site needs a permit. Homemade food is not allowed.", source: "R07, R08" },
+  { key: "foodplan", title: "Choose how the food is provided: Sun Devil Dining, a caterer or made on site", fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: ["approve"], ruleIds: ["R05", "R06", "R07"], when: e => e.food === "tbd",
+    why: "Each option has its own ASU steps and deadlines. Choose early so the right one still fits.", source: "R05, R06, R07" },
 
   // Money (OA201 + USG)
   { key: "usg", title: "Submit the USG food request", fn: "finance", phase: "money", anchor: rule("R09", 10, "business"), estDays: 1, tier: "light", dependsOn: ["quote", "flyer", "budget"], ruleIds: ["R09", "R11"], when: usgFood,
@@ -86,7 +88,7 @@ export const EVENT_STEPS: StepTemplate[] = [
 
   // Run
   { key: "review", title: "Full check: room, food, marketing, staffing", fn: "president", phase: "run", anchor: target(14, "calendar", "SEO T-14 checklist: full review"), estDays: 1, tier: "light",
-    dependsOn: ["ritm", "offvenue", "foodex", "dining", "permit", "usg", "usgspeaker", "rsvp"],
+    dependsOn: ["ritm", "offvenue", "foodex", "dining", "permit", "foodplan", "usg", "usgspeaker", "rsvp"],
     why: "The last moment to catch a gap while there is still time to fix it.", source: "SEO T-14 checklist (quality gate)", consulted: ["programs", "finance", "marketing"] },
   { key: "runshow", title: "Write the run-of-show and staffing plan", fn: "programs", phase: "run", anchor: target(7, "calendar", "SEO template: run-of-show a week ahead"), estDays: 1, tier: "light", dependsOn: ["review"],
     why: "Everyone knows their job on the night: check-in, host, photos, member welcome.", source: "SEO event template" },

@@ -1,14 +1,16 @@
 import { changeHandoff, type HandoffAction } from "./handoff"
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from "react"
-import type { ChangeSet, DemoState, Event, Node } from "./types"
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react"
+import type { ChangeSet, DemoState, Event, LogEntry, Node, Phase } from "./types"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
-import { canLead, newObjects, validateReview, type HumanInputs } from "./changeReview"
+import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
 import type { Channel } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
+import { nextCounter } from "../lib/ids"
+import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
 import { advanceClock } from "../engine/followup"
 import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type ReplyInput, type TaskReply } from "./taskWorkflow"
 import { usableGrant } from "../lib/officerLinks"
@@ -26,7 +28,7 @@ import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
 export const STORAGE_KEY = "platypus.v1.demo"
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
-export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn">>
+export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount">>
 
 export type Action =
@@ -50,10 +52,13 @@ export type Action =
   | { type: "setAi"; enabled: boolean }
   | { type: "replace"; state: DemoState }
   | { type: "updateNode"; id: string; patch: NodePatch }
+  /** The step editor (M3): a few steps' dependsOn / estDays / phase, and the display order of the phase groups. Never a date. */
+  | { type: "applyStepEdits"; eventId: string; edits: StepEdit[]; phaseOrder?: Phase[] }
   | { type: "updateEvent"; id: string; patch: EventPatch }
   | { type: "draftChanges"; changeSet: ChangeSet }
   | { type: "aiAutoApply"; changeSet: ChangeSet }
   | { type: "undoAuto"; id: string }
+  | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
   | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string }
   | { type: "claimTask"; nodeId: string }
@@ -67,16 +72,45 @@ export type Action =
   | { type: "officerAction"; token: string; reply: TaskReply | "claim"; input?: ReplyInput }
   | { type: "saveClubSettings"; draft: ClubDraft; defaults: OrgSettings }
   | { type: "saveProfile"; personId: string; patch: ProfilePatch; invite?: string }
-  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string }
+  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number }
 
-const NODE_FIELDS: (keyof NodePatch)[] = ["title", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn"]
+const NODE_FIELDS: (keyof NodePatch)[] = ["title", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
+
+/**
+ * The step editor's one action. Only dependsOn, estDays and phase are read from each edit (a date in an edit is
+ * ignored), a change that would make a step wait for itself is refused as a whole, and the rule engine re-dates
+ * everything afterwards. Unlike updateNode it does not touch lastUpdate, which is a date.
+ */
+function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], phaseOrder?: Phase[]): DemoState {
+  const ev = state.events.find(e => e.id === eventId)
+  if (!ev || !Array.isArray(edits)) return state
+  const inEvent = state.nodes.filter(n => n.eventId === eventId)
+  const ids = new Set(inEvent.map(n => n.id))
+  const clean: StepEdit[] = edits.filter(e => e && ids.has(e.id)).map(e => ({ id: e.id, patch: cleanPatch(e.patch, ids, e.id) })).filter(e => Object.keys(e.patch).length > 0)
+  if (createsLoop(inEvent, clean)) return state
+  const by = new Map(clean.map(e => [e.id, e.patch]))
+  let changed = false
+  const nodes = state.nodes.map(n => {
+    const p = by.get(n.id)
+    if (!p) return n
+    const next: Node = { ...n, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays } : {}), ...(p.phase ? { phase: p.phase } : {}) }
+    if (next.dependsOn.join() !== n.dependsOn.join() || next.estDays !== n.estDays || next.phase !== n.phase) changed = true
+    return next
+  })
+  const order = Array.isArray(phaseOrder) && phaseOrder.length === PHASES.length && PHASES.every(p => phaseOrder.includes(p)) ? phaseOrder : undefined
+  const orderChanged = !!order && phaseOrderOf(ev).join() !== order.join()
+  if (!changed && !orderChanged) return state
+  const events = orderChanged ? state.events.map(e => (e.id === eventId ? { ...e, phaseOrder: order } : e)) : state.events
+  return applySchedule({ ...state, nodes, events })
+}
 
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   const patch = pick(raw, NODE_FIELDS)
   if (patch.title !== undefined) { const t = String(patch.title).trim().slice(0, 100); if (t) patch.title = t; else delete patch.title }
   if (patch.tags !== undefined) patch.tags = Array.isArray(patch.tags) ? [...new Set(patch.tags.filter(t => (state.org.board?.tags ?? []).some(x => x.id === t)))] : []
   if (patch.estDays !== undefined) patch.estDays = Math.max(0, Math.min(30, Math.round(Number(patch.estDays) || 0)))
+  if (patch.phase !== undefined && !(PHASES as string[]).includes(patch.phase as string)) delete patch.phase
   let next: DemoState = {
     ...state,
     nodes: state.nodes.map(n => {
@@ -104,7 +138,7 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
 export function reducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
-    case "reportOutput": return state.feedback.some(f=>f.outputId===action.outputId&&f.reportedBy===state.viewerId)?state:{...state,feedback:[...state.feedback,{id:`report:${state.feedback.length}`,outputId:action.outputId.slice(0,20000),text:action.text.slice(0,10000),reportedBy:state.viewerId,on:state.today,resolved:false}]}
+    case "reportOutput": return state.feedback.some(f=>f.outputId===action.outputId&&f.reportedBy===state.viewerId)?state:{...state,feedback:[...state.feedback,{id:`report:${nextCounter(state.feedback.map(f=>f.id),/^report:(\d+)/)}`,outputId:action.outputId.slice(0,20000),text:action.text.slice(0,10000),reportedBy:state.viewerId,on:state.today,resolved:false}]}
     case "resolveReport":return canLead(state)?{...state,feedback:state.feedback.map(f=>f.id===action.id?{...f,resolved:true}:f)}:state
     case "contacted":
     case "contactCadence": {
@@ -153,6 +187,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
       return applySchedule(action.state)
     case "updateNode":
       return canLead(state) && state.nodes.some(n => n.id === action.id) ? applySchedule(updateNode(state, action.id, action.patch)) : state
+    case "applyStepEdits": return canLead(state) ? applyStepEdits(state, action.eventId, action.edits, action.phaseOrder) : state
     case "updateEvent": {
       const patch = pick(action.patch, ["date", "name", "headcount"])
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
@@ -169,11 +204,15 @@ export function reducer(state: DemoState, action: Action): DemoState {
       const change = state.changeSets.find(c => c.id === action.id)
       if (!change?.auto || change.undone || !change.before || (change.by !== state.viewerId && !canLead(state))) return state
       const nodes = new Map(change.before.nodes.map(n => [n.id, n])), contacts = new Map(change.before.contacts.map(c => [c.id, c]))
-      return applySchedule({ ...state, nodes: state.nodes.map(n => nodes.get(n.id) ?? n), contacts: state.contacts.map(c => contacts.get(c.id) ?? c), changeSets: state.changeSets.map(c => c.id === change.id ? { ...c, undone: true } : c) })
+      // Tasks this change created are removed, along with any links and notices that point at them.
+      const created = new Set(change.createdIds ?? [])
+      const kept = state.nodes.filter(n => !created.has(n.id)).map(n => nodes.get(n.id) ?? n).map(n => n.dependsOn.some(d => created.has(d)) ? { ...n, dependsOn: n.dependsOn.filter(d => !created.has(d)) } : n)
+      return applySchedule({ ...state, nodes: kept, notifications: state.notifications.filter(n => !created.has(n.nodeId ?? "")), contacts: state.contacts.map(c => contacts.get(c.id) ?? c), changeSets: state.changeSets.map(c => c.id === change.id ? { ...c, undone: true } : c) })
     }
+    case "createTasks": return createTasks(state, action)
     case "reviewChange": {
       const change = state.changeSets.find(c => c.id === action.id)
-      if (!change || !canLead(state) || change.status !== "pending" || !change.ops[action.index] || (change.reviews?.[action.index] ?? "pending") !== "pending") return state
+      if (!change || change.status !== "pending" || !change.ops[action.index] || !canApplyOp(state, change.ops[action.index]) || (change.reviews?.[action.index] ?? "pending") !== "pending") return state
       let next = state
       let op = change.ops[action.index]
       if (action.decision === "applied") {
@@ -187,7 +226,13 @@ export function reducer(state: DemoState, action: Action): DemoState {
           case "set_tier": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { tier: clean.tier } }); break
           case "link_dependency": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { dependsOn: [...new Set([...state.nodes.find(n => n.id === clean.nodeId)!.dependsOn, clean.dependsOnId])] } }); break
           case "create_event":
-          case "add_node": next = applySchedule({ ...state, ...newObjects(state, clean, `${change.id}:${action.index}`, action.human ?? {}) }); break
+          case "add_node": {
+            const id = `${change.id}:${action.index}`
+            next = { ...state, ...newObjects(state, clean, id, action.human ?? {}) }
+            if (clean.op === "add_node") next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
+            next = applySchedule(next)
+            break
+          }
           case "update_event": next = applySchedule({ ...state, events: state.events.map(e => e.id === clean.eventId ? { ...e, ...(clean.name ? { name: clean.name } : {}), ...(clean.headcount ? { headcount: clean.headcount } : {}) } : e) }); break
           case "add_contact": next = reducer(state, { type: "addContact", name: clean.name, organization: clean.organization, relation: clean.relation, ownerRoleId: clean.ownerRoleId, cadenceDays: clean.cadenceDays }); break
           case "set_funding_amount": next = reducer(state, { type: "fundingAmount", eventId: clean.eventId, amount: clean.amount }); break
@@ -202,7 +247,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
     case "confirmNudgeSent": {
       const n = state.nodes.find(n => n.id === action.nodeId)
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
-      return { ...state, nudges: [...state.nudges, { id: `nudge-${state.nudges.length}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null }] }
+      return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null }] }
     }
     case "claimTask": return claimTask(state, action.nodeId, state.viewerId)
     case "replyTask": return replyToTask(state, action.nodeId, state.viewerId, action.reply, action.input)
@@ -240,45 +285,261 @@ export function reducer(state: DemoState, action: Action): DemoState {
     }
     case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
     case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
-    case "completeSetup": return completeSetup(state, action.draft, action.event, action.date, action.inviteCode)
+    case "completeSetup": return completeSetup(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays)
   }
+}
+
+/* ───────────── Storage: load, back up, save ───────────── */
+
+/** Where the interaction log lives. A separate key, so "Reset demo" and version changes never touch it. */
+export const LOG_KEY = "platypus.v1.log"
+/** The log keeps the newest entries only (localStorage is small). */
+export const LOG_LIMIT = 2000
+const BACKUP_PREFIX = `${STORAGE_KEY}.backup.`
+
+export type StorageNotice =
+  /** The saved data could not be used (older version or damaged), so the demo was restored. The old data is kept in `backupKey`. */
+  | { kind: "restored_demo"; why: "version" | "unreadable"; fromVersion: number | null; backupKey: string | null; raw: string }
+  /** Saving to this browser failed (storage full or blocked). Work since the last good save exists only on screen. */
+  | { kind: "save_failed" }
+
+const store = () => window.localStorage
+
+/**
+ * Copy `raw` to a key of its own, named after what it is (e.g. `platypus.v1.demo.backup.v4`).
+ * The same text is never stored twice (React may call this twice in development); different text gets `.2`, `.3` …
+ * Returns the key, or null if the browser would not take it.
+ */
+function backUp(raw: string, tag: string): string | null {
+  const base = BACKUP_PREFIX + tag
+  try {
+    for (let i = 1; i <= 50; i++) {
+      const key = i === 1 ? base : `${base}.${i}`
+      const existing = store().getItem(key)
+      if (existing === raw) return key
+      if (existing === null) { store().setItem(key, raw); return key }
+    }
+  } catch { /* storage full or blocked */ }
+  return null
+}
+
+/**
+ * Load the saved demo. Nothing the person typed is ever thrown away silently: if the saved data is from another
+ * structure version, or cannot be read, it is first copied to a backup key, and the notice says where.
+ */
+export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {
+  let raw: string | null = null
+  try { raw = store().getItem(STORAGE_KEY) } catch { return { state: seedDemo(), notice: null } } // storage blocked: nothing to protect; a failed save will say so
+  if (!raw) return { state: seedDemo(), notice: null }
+  let parsed: DemoState | null = null
+  try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: parsed, notice: null }
+  const fromVersion = parsed && typeof parsed === "object" && typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : null
+  const backupKey = backUp(raw, fromVersion === null ? "unreadable" : `v${fromVersion}`)
+  return { state: seedDemo(), notice: { kind: "restored_demo", why: fromVersion === null ? "unreadable" : "version", fromVersion, backupKey, raw } }
 }
 
 export function loadState(): DemoState {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as DemoState
-      if (parsed && parsed.schemaVersion === SCHEMA_VERSION) return parsed
-    }
-  } catch {
-    /* storage unavailable or corrupt: fall back to the seed */
-  }
-  return seedDemo()
+  return loadStateWithNotice().state
 }
 
-export function saveState(state: DemoState): void {
+/** Returns false when the browser refused the write (storage full or blocked). */
+export function saveState(state: DemoState): boolean {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+    store().setItem(STORAGE_KEY, JSON.stringify(state))
+    return true
   } catch {
-    /* storage unavailable: keep working in memory */
+    return false
   }
 }
+
+export function loadLog(): LogEntry[] {
+  let raw: string | null = null
+  try { raw = store().getItem(LOG_KEY) } catch { return [] }
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (Array.isArray(parsed) && parsed.every(e => e && typeof e === "object" && Number.isInteger((e as LogEntry).seq) && typeof (e as LogEntry).type === "string")) return parsed.slice(-LOG_LIMIT) as LogEntry[]
+  } catch { /* fall through to the backup */ }
+  backUp(raw, "log-unreadable")
+  return []
+}
+
+export function saveLog(log: LogEntry[]): boolean {
+  try {
+    store().setItem(LOG_KEY, JSON.stringify(log))
+    return true
+  } catch {
+    return false
+  }
+}
+
+/* ───────────── Interaction log (A7b) ───────────── */
+
+const SECRET_KEY = /token|signature|secret|password|dataurl|invitecode/i
+
+/** Shorten a value for the log: long text cut, deep or long structures trimmed, secret-looking fields left out. */
+function slim(v: unknown, depth = 0): unknown {
+  if (typeof v === "string") return v.length > 200 ? `${v.slice(0, 200)}…` : v
+  if (v === null || typeof v === "number" || typeof v === "boolean") return v
+  if (depth >= 4) return "[…]"
+  if (Array.isArray(v)) {
+    const out = v.slice(0, 20).map(x => slim(x, depth + 1))
+    if (v.length > 20) out.push(`[+${v.length - 20} more]`)
+    return out
+  }
+  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).filter(([k, x]) => !SECRET_KEY.test(k) && x !== undefined).slice(0, 40).map(([k, x]) => [k, slim(x, depth + 1)]))
+  return undefined
+}
+
+/** The action's arguments as they go into the log. */
+function payloadOf(a: Action): unknown {
+  switch (a.type) {
+    case "replace": return { nodes: a.state.nodes.length, events: a.state.events.length }
+    case "officerAction": return { reply: a.reply, input: slim(a.input) }
+    case "issueOfficerGrant": return { nodeId: a.grant.nodeId, ownerId: a.grant.ownerId, issuedOn: a.grant.issuedOn }
+    case "fundingPackage": return { eventId: a.eventId, application: "[application package]" }
+    case "draftChanges":
+    case "aiAutoApply": return { changeSetId: a.changeSet.id, source: a.changeSet.source ?? null, sentence: slim(a.changeSet.sentence), ops: a.changeSet.ops.map(o => o.op) }
+    case "reviewChange": return { id: a.id, index: a.index, decision: a.decision, op: slim(a.op), human: slim(a.human) }
+    case "applyStepEdits": return { eventId: a.eventId, edits: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, dependsOn: e?.patch?.dependsOn, estDays: e?.patch?.estDays, phase: e?.patch?.phase })), phaseOrder: a.phaseOrder }
+    default: return slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
+  }
+}
+
+const hasValue = (o: object | undefined) => !!o && Object.keys(o).length > 0
+
+/** Values the action is about to overwrite, read from the state before it ran. Undefined for actions that only create something. */
+function beforeOf(s: DemoState, a: Action): unknown {
+  const fields = (o: object | undefined, keys: string[]) => o ? Object.fromEntries(keys.filter(k => k in o).map(k => [k, (o as Record<string, unknown>)[k]])) : undefined
+  const node = (id: string) => s.nodes.find(n => n.id === id)
+  let out: object | undefined
+  switch (a.type) {
+    case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
+    case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount"].includes(k))); break
+    case "moveTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
+    case "claimTask":
+    case "replyTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
+    case "officerAction": { const g = usableGrant(s, a.token); out = g ? fields(node(g.nodeId), ["status", "ownerId"]) : undefined; break }
+    case "contacted": out = fields(s.contacts.find(c => c.id === a.id), ["lastContact"]); break
+    case "contactCadence": out = fields(s.contacts.find(c => c.id === a.id), ["cadenceDays"]); break
+    case "advanceFunding":
+    case "fundingAmount":
+    case "fundingSpend":
+    case "fundingSpendBy":
+    case "fundingPackage": out = fields(s.funding.find(f => f.eventId === a.eventId), ["stage", "amount", "spent", "spendBy"]); break
+    case "setViewer": out = { viewerId: s.viewerId }; break
+    case "setAi": out = { aiEnabled: s.aiEnabled }; break
+    case "advanceClock": out = { today: s.today }; break
+    case "saveBoard": out = { board: s.org.board }; break
+    case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break
+    case "saveProfile": out = fields(s.people.find(p => p.id === a.personId), Object.keys(a.patch)); break
+    case "markNoticeRead": out = fields(s.notifications.find(n => n.id === a.id), ["read"]); break
+    case "resolveReport": out = fields(s.feedback.find(f => f.id === a.id), ["resolved"]); break
+    case "reviewExtension": out = fields(s.extensionRequests.find(r => r.id === a.id), ["status"]); break
+    case "undoAuto": out = fields(s.changeSets.find(c => c.id === a.id), ["undone"]); break
+    case "applyStepEdits": out = { steps: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, ...fields(node(e?.id), ["dependsOn", "estDays", "phase"]) })), ...(a.phaseOrder ? { phaseOrder: phaseOrderOf(s.events.find(e => e.id === a.eventId)) } : {}) }; break
+    case "reviewChange": { const c = s.changeSets.find(x => x.id === a.id); out = c ? { review: c.reviews?.[a.index] ?? "pending", status: c.status } : undefined; break }
+  }
+  return hasValue(out) ? slim(out) : undefined
+}
+
+/** Append one entry, dropping the oldest when the log is full. Pure: the caller supplies the real time. */
+export function appendLog(log: LogEntry[], before: DemoState, after: DemoState, action: Action, at: number): LogEntry[] {
+  const prior = beforeOf(before, action)
+  const entry: LogEntry = {
+    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: before.viewerId, type: action.type,
+    payload: payloadOf(action), ...(prior !== undefined ? { before: prior } : {}), applied: after !== before,
+  }
+  return log.length >= LOG_LIMIT ? [...log.slice(log.length - LOG_LIMIT + 1), entry] : [...log, entry]
+}
+
+interface Root { app: DemoState; log: LogEntry[] }
+type Msg = { action: Action; at: number }
+
+/** The app reducer plus the log: every action goes through here, so every action leaves a line. */
+export function loggedReducer(root: Root, msg: Msg): Root {
+  const app = reducer(root.app, msg.action)
+  return { app, log: appendLog(root.log, root.app, app, msg.action, msg.at) }
+}
+
+/* ───────────── Export (A7c) ───────────── */
+
+/** Everything the person has done and the state they ended up with, as one JSON-able object. */
+export function buildExport(state: DemoState, log: LogEntry[], exportedAt: number) {
+  const firstSeq = log[0]?.seq ?? null
+  return {
+    format: "platypus-export",
+    formatVersion: 1,
+    exportedAt: new Date(exportedAt).toISOString(),
+    schemaVersion: state.schemaVersion,
+    storageKey: STORAGE_KEY,
+    state: { ...state, demoLinkKey: "[omitted]" },
+    interactionLog: { limit: LOG_LIMIT, count: log.length, firstSeq, lastSeq: log[log.length - 1]?.seq ?? null, droppedEarlier: firstSeq === null ? 0 : firstSeq - 1, entries: log },
+  }
+}
+
+export function downloadText(filename: string, text: string) {
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }))
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+/** Download the person's current data and interaction log as a JSON file. */
+export function downloadExport(state: DemoState, log: LogEntry[]) {
+  const at = Date.now()
+  downloadText(`platypus-export-${new Date(at).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`, JSON.stringify(buildExport(state, log, at), null, 2))
+}
+
+/* ───────────── Provider ───────────── */
 
 interface StoreValue {
   state: DemoState
   dispatch: (a: Action) => void
   reset: () => void
+  /** The interaction log, oldest first. */
+  log: LogEntry[]
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
 
-export function StoreProvider({ children, initial }: { children: ReactNode; initial?: DemoState }) {
-  const [state, dispatch] = useReducer(reducer, initial ?? null, s => s ?? loadState())
-  useEffect(() => saveState(state), [state])
-  const reset = useCallback(() => dispatch({ type: "reset" }), [])
-  const value = useMemo(() => ({ state, dispatch, reset }), [state, reset])
-  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
+export function StoreProvider({ children, initial, initialLog }: { children: ReactNode; initial?: DemoState; initialLog?: LogEntry[] }) {
+  const [boot] = useState(() => (initial ? { state: initial, notice: null } : loadStateWithNotice()))
+  const [root, send] = useReducer(loggedReducer, null, (): Root => ({ app: boot.state, log: initialLog ?? (initial ? [] : loadLog()) }))
+  // If the old data could not be backed up, keep it in place (do not overwrite it) until the person has downloaded it.
+  const [held, setHeld] = useState(boot.notice?.kind === "restored_demo" && boot.notice.backupKey === null)
+  const [notice, setNotice] = useState<StorageNotice | null>(boot.notice)
+  const [saveFailed, setSaveFailed] = useState(false)
+  useEffect(() => {
+    if (held) return
+    setSaveFailed(!(saveState(root.app) && saveLog(root.log)))
+  }, [root, held])
+  // The real clock is read here, once per action, and travels with it into the log.
+  const dispatch = useCallback((action: Action) => send({ action, at: Date.now() }), [])
+  const reset = useCallback(() => dispatch({ type: "reset" }), [dispatch])
+  const value = useMemo(() => ({ state: root.app, dispatch, reset, log: root.log }), [root, dispatch, reset])
+  const shown: StorageNotice | null = saveFailed ? { kind: "save_failed" } : notice
+  return <StoreContext.Provider value={value}>
+    {shown && <StorageBanner notice={shown} onDownload={() => {
+      if (shown.kind === "save_failed") downloadExport(root.app, root.log)
+      else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); setHeld(false) }
+    }} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
+    {children}
+  </StoreContext.Provider>
+}
+
+/** Says out loud that data was restored or could not be saved. Uses existing classes only. */
+function StorageBanner({ notice, onDownload, onDismiss }: { notice: StorageNotice; onDownload: () => void; onDismiss?: () => void }) {
+  if (notice.kind === "save_failed")
+    return <div role="alert" className="save-status err" data-testid="storage-banner">Your latest changes could not be saved in this browser (storage is full or blocked). They will be lost if you close this tab. <button type="button" className="btn small" onClick={onDownload}>Download my data</button></div>
+  const what = notice.why === "version" ? `This demo was updated, so your earlier data (version ${notice.fromVersion}) could not be opened and the example club was restored.` : "Your saved data could not be read, so the example club was restored."
+  const kept = notice.backupKey ? `Your earlier data is kept in this browser as "${notice.backupKey}".` : "Your earlier data could NOT be backed up in this browser, and nothing new is saved until you download it."
+  return <div role="alert" className={notice.backupKey ? "notice" : "save-status err"} data-testid="storage-banner">{what} {kept} <button type="button" className="btn small" onClick={onDownload}>Download previous data</button>{onDismiss && <button type="button" className="btn small" onClick={onDismiss}>Dismiss</button>}</div>
 }
 
 export function useStore(): StoreValue {

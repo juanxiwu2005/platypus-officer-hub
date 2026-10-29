@@ -35,6 +35,11 @@ export interface OrgSettings {
   /** "review": AI drafts, a person sends. "auto": v1.5+, email only, internal only. */
   sendMode: "review" | "auto"
   quietHours: { from: string; to: string }
+  /** M2b (Juanxi, 2026-10-27): a new task is due this many days from today unless someone picks a date. Default 5. */
+  taskDueDays?: number
+  /** Who may create events: the president and VP (default), everyone, or the leads plus chosen officers. */
+  eventCreators?: "leads" | "everyone" | "chosen"
+  eventCreatorIds?: string[]
 }
 
 export interface Org {
@@ -115,11 +120,16 @@ export interface Event {
   type: EventType
   headcount: number
   venue: "campus" | "offcampus"
-  food: "none" | "dining" | "offsite" | "onsite"
+  /** "tbd": there will be food, but how it is provided is decided later (Juanxi, 2026-10-27: the form only asks yes/no). */
+  food: "none" | "dining" | "offsite" | "onsite" | "tbd"
   funding: "usg" | "college" | "dues" | "sponsor" | "none"
   speaker: boolean
   goalId: string | null
   playbookId: string
+  /** What the organizer wrote about the event in their own words (form "Details"); the event review reads it. */
+  details?: string
+  /** Order of the six phase groups in the step editor and in the progress dots (display only; no date depends on it). */
+  phaseOrder?: Phase[]
 }
 
 export type NodeStatus = "unclaimed" | "accepted" | "in_progress" | "waiting" | "blocked" | "done"
@@ -323,6 +333,8 @@ export interface ChangeSet {
   before?: { nodes: Node[]; contacts: Contact[] }
   notes?: string[]
   undone?: boolean
+  /** Tasks this change created; Undo removes them. */
+  createdIds?: string[]
 }
 
 export interface DemoState {
@@ -358,3 +370,25 @@ export interface HandbookSource { id:string; kind:"task"|"interview"; text:strin
 export interface HandbookEntry { sourceId:string; text:string }
 export interface RoleHandoff { roleId:string; outgoingId:string|null; interview:string[]; entries:HandbookEntry[]; sources:HandbookSource[]; startDate?:string; fingerprint:string; source:string; model:string|null; confirmed:boolean; approved:boolean; checks:string[]; completed:boolean; reviewed:boolean; incomingId:string|null }
 export interface OutputReport { id:string; outputId:string; text:string; reportedBy:string; on:string; resolved:boolean }
+
+/**
+ * One line of the interaction log (A7b): what a person did, in the order they did it.
+ * This is the only place in the app that uses the real clock (`at`); every date shown in the interface
+ * still comes from `DemoState.today`, the fixed demo clock.
+ */
+export interface LogEntry {
+  /** 1, 2, 3 … never reused; gaps at the start mean the oldest entries were dropped at the 2,000-entry cap. */
+  seq: number
+  /** Real time the action was dispatched, milliseconds since 1970 (Date.now()). */
+  at: number
+  /** Id of the person the app was set to "View as" when the action ran. */
+  actor: string
+  /** The action type, e.g. "updateNode", "moveTask". */
+  type: string
+  /** The action's arguments, shortened (long text cut, secrets and bulky objects left out). */
+  payload: unknown
+  /** The fields' values before the action, only for actions that change something that already existed. */
+  before?: unknown
+  /** false = the app ignored the action (not allowed, invalid, or nothing to change). */
+  applied: boolean
+}

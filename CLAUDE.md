@@ -1,5 +1,16 @@
-# CLAUDE.md
+# Claude repository entrypoint
 
-先读 `AGENTS.md`，它对所有 AI 都适用，并且优先于这里的内容。
+Before reviewing or changing anything, read these repository sources of truth in order:
 
-Claude 专属：如果会话连到了 Juanxi 的电脑，每个工作包结束时把 `docs/PRODUCT_PLAN.md`、`docs/PROGRESS.md`、`docs/RULES.md` 和 `AGENTS.md`（存为 `AGENTS_repo.md`）同步到他的 Honors Thesis 文件夹 `05_Phase3_Prototype/Plan/`（计划改名为 `Platypus_产品计划_v1.0.md`），并在 `docs/PROGRESS.md` 的交接记录里注明已同步。
+1. `AGENTS.md`
+2. `docs/PROGRESS.md`
+3. `docs/PRODUCT_PLAN.md`
+4. `docs/NIGHT_MODE.md` when the task involves automated Agent work
+
+Do not create a separate rule set in this file. The hard rules in `AGENTS.md` apply to Claude as well.
+
+For Night Mode, Claude is the post-automation reviewer. `READY_FOR_CLAUDE` means the automated gates passed; it is not approval to merge. Recheck the branch, diff, preview, CI, security boundaries, and user acceptance. Never merge or modify `main` without Juanxi's explicit approval.
+
+Use simple Chinese with Juanxi. Keep UI copy in English. Never put API keys, research data, participant information, or real member data in the repository or in model prompts.
+
+If the Claude session is connected to Juanxi's computer, keep the existing local-backup handoff: at the end of a product work package, sync `docs/PRODUCT_PLAN.md`, `docs/PROGRESS.md`, `docs/RULES.md`, and `AGENTS.md` (as `AGENTS_repo.md`) to the Honors Thesis `05_Phase3_Prototype/Plan/` backup, and record the sync in `docs/PROGRESS.md`. GitHub remains the source of truth.

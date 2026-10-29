@@ -2,6 +2,7 @@ import { useState } from "react"
 import { Link } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
+import { Empty } from "../components/ui"
 import { useRail } from "../components/rail/RailContext"
 import { daysBetween, fmtShort } from "../lib/dates"
 import type { Contact, DemoState } from "../data/types"
@@ -55,7 +56,7 @@ export default function Partners() {
           : <tr><td colSpan={6}><button type="button" className="board-add-btn" onClick={() => setAdding(true)}>+ Add partner</button></td></tr>)}
         </tbody>
       </table>
-      {!rows.length && <p className="empty">No partners match.</p>}
+      {!rows.length && <Empty>No partners match.</Empty>}
     </section>
   </>
 }
@@ -65,7 +66,7 @@ export function PartnerDetail({ id }: { id: string }) {
   const { state, dispatch } = useStore()
   const { canNudge } = useViewer()
   const c = state.contacts.find(x => x.id === id)
-  if (!c) return <p className="empty">This partner was removed.</p>
+  if (!c) return <Empty>This partner was removed.</Empty>
   const role = state.roles.find(r => r.id === c.ownerRoleId), person = state.people.find(p => p.id === role?.holderId), d = since(state, c), ev = nextEvent(state, c)
   const editable = canNudge || person?.id === state.viewerId
   return <section className="form-stack" aria-label={`Partner ${c.name}`}>

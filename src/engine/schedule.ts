@@ -2,7 +2,7 @@ import type { DemoState, Event, Node, Person } from "../data/types"
 import { RULES } from "../data/rules"
 import { addDays, daysBetween, fmtLong } from "../lib/dates"
 import {
-  BREAKS, FINALS, HOLIDAYS, TERMS, findPeriod, isWeekend, onOrAfter, onOrBefore,
+  BREAKS, CALENDAR_END, CALENDAR_START, FINALS, HOLIDAYS, TERMS, findPeriod, isWeekend, onOrAfter, onOrBefore, outsideCalendar,
   isBusinessDay, personalWorkDay, shiftWork, skippedReasons, type WorkDay,
 } from "./calendar"
 
@@ -58,6 +58,7 @@ export interface Schedule {
 
 const RULE_BY_ID = Object.fromEntries(RULES.map(r => [r.id, r]))
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`
+const calendarSpan = () => `${fmtLong(CALENDAR_START)} to ${fmtLong(CALENDAR_END)}`
 const closedReason = (d: string) => HOLIDAYS[d] ?? (isWeekend(d) ? "weekend" : "closed day")
 
 interface Ctx {
@@ -298,6 +299,9 @@ function nodeIssues(
   const out: Issue[] = []
   const ruleId = n.anchor?.kind === "rule" ? n.anchor.ruleId : undefined
   if (d.looped) out.push({ code: "loop", severity: "error", text: "This step and another step each wait for the other. Remove one of the links." })
+  // The calendar data has an end. Past it every day looks like "between semesters" and dates drift silently, so say so loudly.
+  const stray = [ev?.date, d.official, d.club, d.start].filter((x): x is string => !!x && outsideCalendar(x))
+  if (stray.length) out.push({ code: "calendar_range", severity: "error", text: `This step involves ${fmtLong(stray.sort()[0])}, outside the ASU calendar Platypus knows (${calendarSpan()}). Its dates cannot be trusted.` })
   if (d.official && d.club > d.official)
     out.push({ code: "official_missed", severity: "error", ruleId, text: `Planned finish ${fmtLong(d.club)} is after the ASU deadline ${fmtLong(d.official)}${ruleId ? ` (${ruleId})` : ""}.` })
   if (ev && n.phase !== "close" && d.club >= ev.date)
@@ -331,7 +335,9 @@ function eventIssues(ctx: Ctx, ev: Event, nodes: Node[], out: Schedule, looped: 
   if (ev.date in HOLIDAYS) issues.push({ code: "holiday", severity: "warn", text: `ASU is closed on ${fmtLong(ev.date)} (${HOLIDAYS[ev.date]}).` })
   const brk = findPeriod(ev.date, BREAKS)
   if (brk) issues.push({ code: "break", severity: "warn", text: `${fmtLong(ev.date)} is during ${brk.label}. Classes are excused, so many members may be away.` })
-  if (!finals && !findPeriod(ev.date, TERMS)) issues.push({ code: "no_term", severity: "warn", text: `${fmtLong(ev.date)} is between semesters. Most members are away.` })
+  const outside = outsideCalendar(ev.date) || nodes.some(n => out.nodes[n.id]?.issues.some(i => i.code === "calendar_range"))
+  if (outside) issues.push({ code: "calendar_range", severity: "error", text: `Some dates for this event fall outside the ASU calendar Platypus knows (${calendarSpan()}), so its deadlines cannot be trusted. Do not rely on them until the calendar is updated.` })
+  if (!outside && !finals && !findPeriod(ev.date, TERMS)) issues.push({ code: "no_term", severity: "warn", text: `${fmtLong(ev.date)} is between semesters. Most members are away.` })
   if (ev.date < today) issues.push({ code: "past", severity: "info", text: "This event has already happened." })
   const passed = nodes.filter(n => out.nodes[n.id]?.issues.some(i => i.code === "official_passed"))
   if (passed.length)

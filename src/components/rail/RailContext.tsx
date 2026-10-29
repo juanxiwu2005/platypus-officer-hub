@@ -29,6 +29,10 @@ interface RailValue {
   ask: (text: string, send?: boolean) => void
   pending: { text: string; send: boolean; n: number } | null
   takePending: () => void
+  /** A new event waiting for its plan check (M2b). Kept here so it survives the Ask panel closing on a phone. */
+  reviewEventId: string | null
+  requestReview: (eventId: string) => void
+  takeReview: () => void
 }
 
 const RailCtx = createContext<RailValue | null>(null)
@@ -51,6 +55,9 @@ export function RailProvider({ children }: { children: ReactNode }) {
   const openedForDetail = useRef(false)
   const openRef = useRef(open)
   openRef.current = open
+  // What had focus when Details opened, so closing Details can give focus back (keyboard users).
+  const returnFocus = useRef<HTMLElement | null>(null)
+  const detailOpen = useRef(false)
   const [pending, setPending] = useState<RailValue["pending"]>(null)
 
   const setOpen = useCallback((v: boolean) => {
@@ -58,12 +65,21 @@ export function RailProvider({ children }: { children: ReactNode }) {
     if (wide()) try { window.localStorage.setItem(OPEN_KEY, v ? "1" : "0") } catch { /* storage unavailable */ }
   }, [])
   const show = useCallback((d: Detail) => {
+    if (!detailOpen.current) {
+      const a = document.activeElement
+      returnFocus.current = a instanceof HTMLElement && a !== document.body && !a.closest(".rail") ? a : null
+    }
+    detailOpen.current = true
     setDetail(d)
     setTab("details")
     if (!openRef.current) openedForDetail.current = true
     setOpenState(true)
   }, [])
   const closeDetail = useCallback(() => {
+    detailOpen.current = false
+    const back = returnFocus.current
+    returnFocus.current = null
+    if (back) setTimeout(() => { if (back.isConnected) back.focus() }, 0)
     setDetail(null)
     setTab("ask")
     if (openedForDetail.current) setOpenState(false)
@@ -75,6 +91,9 @@ export function RailProvider({ children }: { children: ReactNode }) {
     setOpenState(true)
   }, [])
   const takePending = useCallback(() => setPending(null), [])
+  const [reviewEventId, setReviewEventId] = useState<string | null>(null)
+  const requestReview = useCallback((eventId: string) => { setReviewEventId(eventId); setTab("ask"); setOpenState(true) }, [])
+  const takeReview = useCallback(() => setReviewEventId(null), [])
 
   // "/" focuses the Ask box from anywhere (unless typing in a field).
   useEffect(() => {
@@ -89,7 +108,7 @@ export function RailProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
-  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, ask, pending, takePending }), [open, setOpen, tab, detail, show, closeDetail, ask, pending, takePending])
+  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview }), [open, setOpen, tab, detail, show, closeDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview])
   return <RailCtx.Provider value={value}>{children}</RailCtx.Provider>
 }
 

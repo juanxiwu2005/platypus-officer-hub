@@ -1,21 +1,44 @@
 import type { DemoState, Event, Node } from "./types"
 import { commandContext, sanitizeOps, validDate, type CommandOp } from "../lib/commands"
+import type { ChangeSet, Tier } from "./types"
+import { applySchedule } from "../engine/schedule"
 import { buildEventNodes } from "../engine/playbooks"
 import { topoOrder } from "../engine/schedule"
+import { taskAnchor } from "../engine/taskDates"
+import { addNotices } from "./taskWorkflow"
 
 export const canLead = (s: DemoState) => {
   const person = s.people.find(p => p.id === s.viewerId)
   const role = s.roles.find(r => r.id === person?.roleId)
   return role?.holderId === person?.id && (role?.fn === "president" || role?.fn === "vice_president")
 }
-export interface HumanInputs { date?: string }
+/**
+ * Who may create events (Juanxi, 2026-10-27): the president and VP by default; the president can open it to
+ * everyone or to chosen officers in Settings.
+ */
+export const canCreateEvent = (s: DemoState) => {
+  if (canLead(s)) return true
+  const mode = s.org.settings.eventCreators ?? "leads"
+  return mode === "everyone" || (mode === "chosen" && (s.org.settings.eventCreatorIds ?? []).includes(s.viewerId))
+}
+/** Tasks are open to everyone: for yourself, or for anyone else in the club (Juanxi, 2026-10-27). */
+export function canApplyOp(s: DemoState, op: { op: string }): boolean {
+  if (op.op === "add_node") return true
+  if (op.op === "create_event") return canCreateEvent(s)
+  return canLead(s)
+}
+export const notAllowedText = (op: { op: string }) => op.op === "create_event" ? "The president chooses who can create events (Settings)." : "The president or VP approves changes."
+
+/** `date` is the event date, or a standalone task's due date; `buffered` sets its club deadline earlier. */
+export interface HumanInputs { date?: string; buffered?: boolean }
 
 /** Validate against fresh state before any mutation. No arbitrary patch or AI date reaches store. */
 export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = {}): string | null {
-  if (!canLead(s)) return "Only the president or vice president can approve changes."
   const op = sanitizeOps([raw], commandContext(s))[0]
   if (!op) return "This change no longer matches the current demo. Please draft it again."
+  if (!canApplyOp(s, op)) return op.op === "create_event" ? "Only the president, VP or officers they choose can create events." : "Only the president or vice president can approve changes."
   if ((op.op === "create_event" || (op.op === "add_node" && !op.eventId)) && !validDate(human.date ?? "")) return "Choose and confirm a date before applying this change."
+  if ((op.op === "create_event" || (op.op === "add_node" && !op.eventId)) && human.date! < s.today) return "Pick a date from today on."
   if (op.op === "link_dependency") {
     const n = s.nodes.find(n => n.id === op.nodeId)!
     const upstream = s.nodes.find(n => n.id === op.dependsOnId)!
@@ -42,8 +65,43 @@ export function newObjects(s: DemoState, op: CommandOp, id: string, human: Human
   if (op.op === "add_node") {
     const person = s.people.find(p => p.id === op.ownerId)
     const fn = s.roles.find(r => r.id === person?.roleId)?.fn ?? "programs"
-    const node: Node = { id, title: op.title, eventId: op.eventId, stepKey: null, phase: op.eventId ? "prepare" : null, fn, ownerId: op.ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: op.tier, estDays: op.tier === "heavy" ? 3 : op.tier === "medium" ? 2 : 1, anchor: op.eventId ? { kind: "target", days: 14, unit: "calendar", label: "Club preparation target" } : { kind: "fixed", official: null, club: human.date! }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: "unclaimed", acceptedOn: null, waitingOn: null, draftLink: null, why: "Supports our club's plan.", source: "President-reviewed command", lastUpdate: s.today }
+    // Your own task is already yours (To do); a task for someone else waits for them to claim it (plan §4, mechanism 2).
+    const mine = op.ownerId === s.viewerId
+    const node: Node = { id, title: op.title, eventId: op.eventId, stepKey: null, phase: op.eventId ? op.phase ?? "prepare" : null, fn, ownerId: op.ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: op.tier, estDays: op.tier === "heavy" ? 3 : op.tier === "medium" ? 2 : 1, anchor: op.eventId ? { kind: "target", days: 14, unit: "calendar", label: "Club preparation target" } : taskAnchor(s, human.date!, human.buffered ?? false), clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: mine ? "accepted" : "unclaimed", acceptedOn: mine ? s.today : null, waitingOn: null, draftLink: null, why: op.why ?? "Supports our club's plan.", source: canLead(s) ? "President-reviewed command" : "Added by an officer", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
     return { nodes: [...s.nodes, node] }
   }
   return {}
+}
+
+/** The notice the new owner gets when someone else gives them a task. */
+export function assignedNotice(s: DemoState, node: Node): DemoState {
+  if (!node.ownerId || node.ownerId === s.viewerId) return s
+  const who = s.people.find(p => p.id === s.viewerId)?.name.split(" ")[0] ?? "A teammate"
+  return addNotices(s, node.id, [node.ownerId], "info", `${who} gave you a new task: “${node.title}”. Claim it when you're ready.`, `assigned:${node.id}`)
+}
+
+export interface NewTask { title: string; ownerId: string | null; eventId: string | null; tier?: Tier }
+/**
+ * The Ask task form (M2b): one task per owner, applied at once as the viewer, with Undo. Anyone may create
+ * tasks for themselves or for anyone else (Juanxi, 2026-10-27). Standalone tasks need a due date from today on;
+ * with `buffered` the club deadline comes earlier by the club buffer (engine/taskDates.ts).
+ */
+export function createTasks(s: DemoState, a: { id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }): DemoState {
+  if (s.changeSets.some(c => c.id === a.id) || !a.tasks.length || a.tasks.length > 10) return s
+  const lead = canLead(s)
+  // Only a lead can post a task nobody owns yet; anyone else's task without an owner is their own.
+  const raw = a.tasks.map(t => ({ op: "add_node", title: t.title, eventId: t.eventId, ownerId: t.ownerId ?? (lead ? null : s.viewerId), tier: t.tier ?? "light" }))
+  const ops = sanitizeOps(raw, commandContext(s)).filter((o): o is Extract<CommandOp, { op: "add_node" }> => o.op === "add_node")
+  if (ops.length !== raw.length) return s
+  if (ops.some(o => !o.eventId) && (!validDate(a.date) || a.date < s.today)) return s
+  let next = s
+  const createdIds: string[] = []
+  ops.forEach((op, i) => {
+    const id = `${a.id}:${i}`
+    next = { ...next, ...newObjects(next, op, id, { date: a.date, buffered: a.buffered }) }
+    next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
+    createdIds.push(id)
+  })
+  const record: ChangeSet = { id: a.id, sentence: a.sentence, ops, status: "applied", reviews: ops.map(() => "applied"), source: a.source, auto: true, by: s.viewerId, before: { nodes: [], contacts: [] }, createdIds }
+  return applySchedule({ ...next, changeSets: [...next.changeSets, record] })
 }

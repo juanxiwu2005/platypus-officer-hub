@@ -35,7 +35,7 @@ export default function Team() {
           <td className="small muted">#{r.rank}</td>
           <td><span className="who"><Avatar name={r.person.name} size="sm" />{r.person.name.split(" ")[0]}</span></td>
           <td className="num"><b>{r.points}</b> <span className="small muted">pts</span></td>
-          <td className="small muted"><Hover card={r.entries.length ? <>{r.entries.map(c => <button key={c.nodeId} type="button" className="hc-line link" style={{ color: "inherit" }} onClick={() => rail.show({ kind: "task", id: c.nodeId })}>{state.nodes.find(n => n.id === c.nodeId)?.title}</button>)}</> : "No finished steps yet."}><span tabIndex={0}>{r.completed} done</span></Hover></td>
+          <td className="small muted"><Hover card={r.entries.length ? <>{r.entries.map(c => <button key={c.nodeId} type="button" className="hc-line link" onClick={() => rail.show({ kind: "task", id: c.nodeId })}>{state.nodes.find(n => n.id === c.nodeId)?.title}</button>)}</> : "No finished steps yet."}><span tabIndex={0}>{r.completed} done</span></Hover></td>
         </tr>)}</tbody></table>
       </section>
     </div>

@@ -20,7 +20,7 @@ export default function Help() {
         <header><h2 id="how-h">How it works</h2></header>
         <ol className="list">
           {STEPS.map(([t, d], i) => (
-            <li key={t} style={{ justifyContent: "flex-start" }}>
+            <li key={t} className="start">
               <span className="avatar">{i + 1}</span>
               <div><b>{t}.</b> <span className="muted">{d}</span></div>
             </li>

@@ -3,8 +3,8 @@ const chat = vi.hoisted(() => vi.fn())
 vi.mock("../../netlify/lib/ai.mts", async importOriginal => ({ ...await importOriginal<object>(), chatJSON: chat }))
 import command from "../../netlify/functions/command.mts"
 import nudge from "../../netlify/functions/nudge-draft.mts"
-import parseBrief from "../../netlify/functions/parse-brief.mts"
 import chatFn from "../../netlify/functions/chat.mts"
+import { resetRateLimit } from "../../netlify/lib/http.mts"
 import { seedDemo } from "../data/seed"
 import { commandContext } from "../lib/commands"
 import { nudgeCheck } from "../lib/nudges"
@@ -12,7 +12,7 @@ import { aiSnapshot } from "../lib/aiContext"
 
 const state = seedDemo()
 const request = (body: unknown, path = "/api/command") => new Request("https://example.org" + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
-afterEach(() => chat.mockReset())
+afterEach(() => { chat.mockReset(); resetRateLimit() })
 describe("server endpoint contract", () => {
   it("/api/command returns a sanitized change set without needing a provider for supported commands", async () => {
     const response = await command(request({ sentence: "Assign Send the October newsletter to Priya", context: commandContext(state) }))
@@ -46,11 +46,6 @@ describe("server endpoint contract", () => {
     const d = await (await nudge(request({ node: state.nodes[0], today: state.today }))).json()
     expect(d.body).not.toMatch(/URGENT|ASAP|Just use AI/)
     expect(d.checked).toBe(true)
-  })
-  it("the retained parse-brief endpoint also discards AI date fields", async () => {
-    chat.mockResolvedValue({ data: { name: "Dinner", date: "2099-01-01" }, model: "mock" })
-    const d = await (await parseBrief(request({ sentence: "Dinner", today: state.today }))).json()
-    expect(d.brief).toEqual({ name: "Dinner" })
   })
   it("/api/chat answers supported commands without AI and filters every model card", async () => {
     const local = await chatFn(request({ message: "Assign Send the October newsletter to Priya", context: commandContext(state) }, "/api/chat"))

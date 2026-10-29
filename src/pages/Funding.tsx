@@ -8,7 +8,8 @@ import { PLAN_B } from "../engine/playbooks"
 import { fundingDecisionDate } from "../engine/schedule"
 import { checkPreflight, EMPTY_PACKAGE, type ApplicationPackage } from "../lib/preflight"
 import { callApi } from "../lib/api"
-import { Chain, Info, type Stop } from "../components/ui"
+import { Chain, Empty, Info, type Stop } from "../components/ui"
+import { Bts, BtsTr } from "../components/Bts"
 
 export const FUNDING_STAGES = ["Budget request", "Budget approved", "Purchase request", "Purchase approved", "Ordered or reimbursed", "Attendance submitted"]
 export const STAGE_IDS = ["budget_request", "budget_approved", "purchase_request", "purchase_approved", "ordered_or_reimbursed", "attendance_submitted"] as const
@@ -53,7 +54,7 @@ export default function FundingPage() {
         <tbody>{rows.map(({ e, f, at, decision, late }) => {
           const stops: Stop[] = STAGE_IDS.map((id, i) => ({ key: id, state: !f ? "todo" : i < at ? "done" : i === at ? (late ? "risk" : "now") : "todo", hint: <><b>{FUNDING_STAGES[i]}</b><span className="hc-line">{!f ? "Not started" : i < at ? "Done" : i === at ? `Current${decision ? ` · decide by ${fmtShort(decision)}` : ""}` : "Later"}</span></> }))
           const holder = state.people.find(p => p.id === state.roles.find(r => r.fn === "finance")?.holderId)?.name.split(" ")[0]
-          return <tr key={e.id} className="clickable" onClick={() => f && rail.show({ kind: "funding", eventId: e.id })}>
+          return [<tr key={e.id} className="clickable" onClick={() => f && rail.show({ kind: "funding", eventId: e.id })}>
             <td><button type="button" className="row-btn" onClick={ev => { ev.stopPropagation(); if (f) rail.show({ kind: "funding", eventId: e.id }) }}>{e.name}</button></td>
             <td className="small num">{fmtShort(e.date)}</td>
             <td className="num">{f ? `$${f.amount.toLocaleString()}` : "—"}</td>
@@ -61,10 +62,14 @@ export default function FundingPage() {
             <td className={`small ${late ? "late-text" : ""}`}>{!f
               ? (editable ? <button type="button" className="btn small" onClick={ev => { ev.stopPropagation(); dispatch({ type: "startFunding", eventId: e.id }) }}>Start</button> : "Not started")
               : at === 5 ? "Closed" : `${holder ?? "Finance"}${decision && at < 1 ? ` · ${fmtShort(decision)}` : ""}`}</td>
-          </tr>
+          </tr>,
+          <BtsTr key={`${e.id}-bts`} cols={10}>
+            <Bts label="Data">The six dots are the funding stages in order ({FUNDING_STAGES.join(" → ")}). The stage is the one saved on this event's funding record.</Bts>
+            <Bts label="Rule engine">{decision ? `Decide by ${fmtShort(decision)}: the earliest ASU deadline among the event's USG request steps. The dot turns red if that date has come and the request has not been approved, or if money is left to spend within 14 days of the spend-by date.` : "No USG request step sets a decide-by date for this event."}</Bts>
+          </BtsTr>]
         })}</tbody>
       </table>
-      {!rows.length && <p className="empty">Nothing needs action.</p>}
+      {!rows.length && <Empty>Nothing needs action.</Empty>}
     </section>
   </>
 }
@@ -73,7 +78,7 @@ export default function FundingPage() {
 export function FundingDetail({ eventId }: { eventId: string }) {
   const { state } = useStore()
   const f = state.funding.find(x => x.eventId === eventId)
-  return f ? <FundingCard key={eventId} funding={f} /> : <p className="empty">No funding request yet.</p>
+  return f ? <FundingCard key={eventId} funding={f} /> : <Empty>No funding request yet.</Empty>
 }
 
 function FundingCard({ funding: f }: { funding: Funding }) {

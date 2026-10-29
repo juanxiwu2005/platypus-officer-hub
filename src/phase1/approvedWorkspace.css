@@ -1,0 +1,25 @@
+.approved-workspace { max-width: 1200px; margin: 0 auto; padding: 32px; }
+.approved-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.approved-heading h1 { font-size: 32px; margin: 8px 0; }
+.approved-heading p { max-width: 65ch; }
+.approved-departments { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
+.approved-departments > span { border: 1px solid; border-radius: 18px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 7px; background: white; }
+.approved-departments i { width: 10px; height: 10px; border-radius: 50%; }
+.approved-team { display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: 16px; }
+.approved-team article { border: 1px solid #dce3ed; border-top: 4px solid; padding: 18px; border-radius: 12px; background: white; }
+.approved-team h3 { margin: 7px 0; }
+.approved-team p, .approved-team li { line-height: 1.55; }
+.approved-team ul { padding-left: 18px; }
+.approved-graph { height: 480px; border: 1px solid #dce3ed; border-radius: 16px; background: #fafbfd; overflow: hidden; }
+.approved-graph .react-flow__attribution, .approved-graph .react-flow__attribution a { color: #34465f; background: white; }
+.approved-step { width: 230px; border: 1px solid #bdcadc; border-radius: 12px; background: white; padding: 15px; color: #172641; }
+.approved-step strong { display: block; margin-bottom: 10px; }
+.approved-step span { display: block; border-left: 4px solid; padding-left: 7px; font-size: 14px; margin-top: 6px; }
+.approved-step-list ol { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit,minmax(230px,1fr)); gap: 12px; }
+.approved-step-list li { padding: 16px; background: white; border: 1px solid #dce3ed; border-radius: 10px; }
+.approved-step-list span,.approved-step-list small { display: block; margin-top: 8px; }
+.approved-notice,.approved-context-notice { padding: 12px 18px; background: #fff7e6; border: 1px solid #ddc69b; border-radius: 10px; margin-bottom: 18px; }
+.approved-context-notice { margin: 20px; }
+.approved-empty { background: white; padding: 24px; border: 1px solid #dce3ed; border-radius: 12px; }
+.approved-context-retry { margin-left: 12px; }
+@media(max-width:650px) { .approved-workspace { padding: 18px; } .approved-heading { align-items: flex-start; flex-direction: column; } .approved-heading h1 { font-size: 26px; } .approved-graph { height: 350px; } }

@@ -11,7 +11,7 @@ test("forecast shows colour first; reasons and percentages wait in the hover car
   await expect(dot).toHaveAttribute("aria-label", /At risk/)
   const card = risk.getByTestId("forecast").first().locator(".hover-card")
   await expect(card).not.toBeVisible()
-  if (info.project.name === "desktop") { await dot.hover(); await expect(card).toBeVisible() } else { await dot.focus(); await expect(card).toBeVisible() }
+  if (info.project.name === "desktop") { await dot.hover(); await expect(card).toBeVisible() } else { await dot.tap(); await expect(card).toBeVisible() } // a phone cannot hover: a tap opens the card
   await expect(card).toContainText("% of 1,000 simulated runs")
   await expect(risk).not.toContainText("personalBufferDays")
 })

@@ -1,8 +1,8 @@
+import { defaultTaskDue } from "../engine/taskDates"
 import type { BoardSettings, DemoState, Node, NodeStatus } from "./types"
 import { canLead } from "./changeReview"
 import { addNotices, claimTask, closeSilence, replyToTask } from "./taskWorkflow"
 import { applySchedule } from "../engine/schedule"
-import { addDays } from "../lib/dates"
 import { STATUS_DEFAULTS } from "../components/ui/statusDefaults"
 
 /**
@@ -57,16 +57,37 @@ export function moveTask(s: DemoState, nodeId: string, to: NodeStatus, beforeId:
   return reorder(next, n.id, next.nodes.find(x => x.id === n.id)!.status, beforeId)
 }
 
+/**
+ * A new task never lands in Done, and an officer's new task is their own, so the column a person
+ * adds from is not always the column the card appears in. `startStatus` is the one source of truth
+ * for where it lands, and `addTaskNotice` says so in the person's own words when it differs.
+ */
+export function startStatus(s: DemoState, asked: NodeStatus): NodeStatus {
+  // Creating cannot finish a task: reopening a done task needs the president or VP (canMoveTask),
+  // and the Done reply (contribution, notices) belongs to moveTask, not to the create path.
+  const wanted: NodeStatus = asked === "done" ? "accepted" : asked
+  // Only a lead can post a task for someone else to claim; anyone else's new task is their own.
+  if (wanted === "unclaimed") return canLead(s) ? "unclaimed" : "accepted"
+  return wanted
+}
+
+/** What to tell the person when the card will not land in the column they added from; null when it will. */
+export function addTaskNotice(s: DemoState, asked: NodeStatus): string | null {
+  const landed = startStatus(s, asked)
+  if (landed === asked) return null
+  if (asked === "done") return `A new task cannot start as ${label(s, "done")}. It is in ${label(s, landed)} — move it to ${label(s, "done")} once the work is finished.`
+  return `A task you add is yours, so it is in ${label(s, landed)}. Only the president or VP can post one for someone else to claim.`
+}
+
 export function addBoardTask(s: DemoState, title: string, status: NodeStatus): DemoState {
   const t = title.trim().slice(0, 100)
   if (!t) return s
-  const lead = canLead(s)
-  const ownerId = status === "unclaimed" && lead ? null : s.viewerId
   const person = s.people.find(p => p.id === s.viewerId)
   const fn = s.roles.find(r => r.id === person?.roleId)?.fn ?? "programs"
-  const st: NodeStatus = ownerId ? (status === "unclaimed" ? "accepted" : status) : "unclaimed"
+  const st = startStatus(s, status)
+  const ownerId = st === "unclaimed" ? null : s.viewerId
   const id = `task-${s.nodes.length}-${Date.now().toString(36)}`
-  const node: Node = { id, title: t, eventId: null, stepKey: null, phase: null, fn, ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: "light", estDays: 1, anchor: { kind: "fixed", official: null, club: addDays(s.today, 7) }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: st, acceptedOn: ownerId ? s.today : null, waitingOn: null, draftLink: null, why: "", source: "Added on the task board", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0, ...(st === "done" ? { completedOn: s.today } : {}) }
+  const node: Node = { id, title: t, eventId: null, stepKey: null, phase: null, fn, ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: "light", estDays: 1, anchor: { kind: "fixed", official: null, club: defaultTaskDue(s) }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: st, acceptedOn: ownerId ? s.today : null, waitingOn: null, draftLink: null, why: "", source: "Added on the task board", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
   return applySchedule(reorder({ ...s, nodes: [...s.nodes, node] }, id, st, null))
 }
 

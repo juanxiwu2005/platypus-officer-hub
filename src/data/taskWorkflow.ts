@@ -1,4 +1,5 @@
 import type { DemoState, Node, Notice } from "./types"
+import { nextCounter } from "../lib/ids"
 import { canLead } from "./changeReview"
 import { validDate } from "../lib/commands"
 import { applySchedule, computeSchedule } from "../engine/schedule"
@@ -76,7 +77,7 @@ export function replyToTask(s: DemoState, nodeId: string, actorId: string, reply
     next.extensionRequests = next.extensionRequests.map(r => r.nodeId === n.id && r.status === "pending" ? { ...r, status: "cancelled" } : r)
     if (!s.contributions.some(c => c.nodeId === n.id)) next.contributions = [...s.contributions, { personId: actorId, nodeId: n.id, points: ({ light: 1, medium: 2, heavy: 3 }[n.tier]) + (s.today <= (n.clubDeadline ?? s.today) ? 1 : 0), onTime: s.today <= (n.clubDeadline ?? s.today), completedOn: s.today }]
   }
-  if (reply === "extension") next.extensionRequests = [...s.extensionRequests, { id: `extension-${n.id}-${s.extensionRequests.length}`, nodeId: n.id, ownerId: actorId, requestedOn: s.today, requestedDate: input.requestedDate!, previousDeadline: n.clubDeadline, draftLink: input.draftLink!, reason: (input.reason ?? "").slice(0, 300), status: "pending" }]
+  if (reply === "extension") next.extensionRequests = [...s.extensionRequests, { id: `extension-${n.id}-${nextCounter(s.extensionRequests.map(r => r.id), /-(\d+)$/)}`, nodeId: n.id, ownerId: actorId, requestedOn: s.today, requestedDate: input.requestedDate!, previousDeadline: n.clubDeadline, draftLink: input.draftLink!, reason: (input.reason ?? "").slice(0, 300), status: "pending" }]
   return routeTaskChange(applySchedule(next), updated, reply)
 }
 

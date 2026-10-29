@@ -1,0 +1,226 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "external_directory": "deny",
+    "read": {
+      "*": "allow",
+      ".env": "deny",
+      ".env.*": "deny",
+      "*/.env": "deny",
+      "*/.env.*": "deny"
+    },
+    "edit": {
+      "*": "allow",
+      ".env": "deny",
+      ".env.*": "deny",
+      "*/.env": "deny",
+      "*/.env.*": "deny",
+      ".git/**": "deny",
+      ".gitignore": "deny",
+      "AGENTS.md": "deny",
+      "docs/NIGHT_MODE.md": "deny",
+      "package.json": "deny",
+      "package-lock.json": "deny",
+      "opencode.json": "deny",
+      "scripts/night-mode.mjs": "deny",
+      ".nightmode/**": "deny",
+      ".github/**": "deny",
+      "netlify.toml": "deny"
+    },
+    "bash": {
+      "*": "deny",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "git branch --show-current*": "allow",
+      "npm test*": "allow",
+      "npm run build*": "allow",
+      "npm run e2e*": "allow",
+      "npm run check*": "allow",
+      "npx playwright test*": "allow",
+      "ls*": "allow",
+      "cat*": "allow",
+      "head*": "allow",
+      "tail*": "allow",
+      "wc*": "allow",
+      "grep*": "allow",
+      "rg*": "allow",
+      "find*": "allow",
+      "git grep*": "allow",
+      "git ls-files*": "allow",
+      "npx tsc*": "allow",
+      "npx vitest*": "allow",
+      "npm run lint*": "allow"
+    }
+  },
+  "agent": {
+    "backend-coder": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          ".gitignore": "deny",
+          "AGENTS.md": "deny",
+          "docs/NIGHT_MODE.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          "scripts/night-mode.mjs": "deny",
+          ".nightmode/**": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        },
+        "bash": {
+          "*": "deny",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git branch --show-current*": "allow",
+          "npm test*": "allow",
+          "npm run build*": "allow",
+          "npm run e2e*": "allow",
+          "npm run check*": "allow",
+          "npx playwright test*": "allow",
+          "ls*": "allow",
+          "cat*": "allow",
+          "head*": "allow",
+          "tail*": "allow",
+          "wc*": "allow",
+          "grep*": "allow",
+          "rg*": "allow",
+          "find*": "allow",
+          "git grep*": "allow",
+          "git ls-files*": "allow",
+          "npx tsc*": "allow",
+          "npx vitest*": "allow",
+          "npm run lint*": "allow"
+        }
+      },
+      "steps": 300
+    },
+    "frontend-coder": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          ".gitignore": "deny",
+          "AGENTS.md": "deny",
+          "docs/NIGHT_MODE.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          "scripts/night-mode.mjs": "deny",
+          ".nightmode/**": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        }
+      },
+      "steps": 300
+    },
+    "api-designer": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          ".gitignore": "deny",
+          "AGENTS.md": "deny",
+          "docs/NIGHT_MODE.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          "scripts/night-mode.mjs": "deny",
+          ".nightmode/**": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        }
+      },
+      "steps": 300
+    },
+    "quick-draft": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          ".gitignore": "deny",
+          "AGENTS.md": "deny",
+          "docs/NIGHT_MODE.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          "scripts/night-mode.mjs": "deny",
+          ".nightmode/**": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        },
+        "bash": {
+          "*": "deny",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git branch --show-current*": "allow",
+          "npm test*": "allow",
+          "npm run build*": "allow",
+          "npm run e2e*": "allow",
+          "npm run check*": "allow",
+          "npx playwright test*": "allow",
+          "ls*": "allow",
+          "cat*": "allow",
+          "head*": "allow",
+          "tail*": "allow",
+          "wc*": "allow",
+          "grep*": "allow",
+          "rg*": "allow",
+          "find*": "allow",
+          "git grep*": "allow",
+          "git ls-files*": "allow",
+          "npx tsc*": "allow",
+          "npx vitest*": "allow",
+          "npm run lint*": "allow"
+        }
+      },
+      "steps": 300
+    },
+    "docs-writer": {
+      "permission": {
+        "edit": {
+          "*": "allow",
+          ".env": "deny",
+          ".env.*": "deny",
+          "*/.env": "deny",
+          "*/.env.*": "deny",
+          ".git/**": "deny",
+          ".gitignore": "deny",
+          "AGENTS.md": "deny",
+          "docs/NIGHT_MODE.md": "deny",
+          "package.json": "deny",
+          "package-lock.json": "deny",
+          "opencode.json": "deny",
+          "scripts/night-mode.mjs": "deny",
+          ".nightmode/**": "deny",
+          ".github/**": "deny",
+          "netlify.toml": "deny"
+        }
+      },
+      "steps": 300
+    }
+  }
+}

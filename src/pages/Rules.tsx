@@ -2,7 +2,7 @@ import { useState } from "react"
 import { RULES, RULE_CATEGORIES } from "../data/rules"
 import { PageHead } from "../components/Page"
 import { useRail } from "../components/rail/RailContext"
-import { Hover } from "../components/ui"
+import { Empty, Hover } from "../components/ui"
 import type { Rule } from "../data/types"
 
 const ICON: Record<Rule["category"], JSX.Element> = {
@@ -35,7 +35,7 @@ export default function Rules() {
             <button type="button" className="btn small icon-btn" aria-label={`Ask about ${r.id}`} title="Ask Platypus about this rule" onClick={() => rail.ask(`What does ${r.id} mean for us? (${r.short ?? r.text})`, true)}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 016.5 3h7A2.5 2.5 0 0116 5.5v5a2.5 2.5 0 01-2.5 2.5H9l-3.5 3v-3A2.5 2.5 0 014 10.5z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg></button>
           </span>
         </li>)}
-      </ul> : <p className="empty">No checked official rule here. Ask Student Organizations.</p>}
+      </ul> : <Empty>No checked official rule here. Ask Student Organizations.</Empty>}
     </section>
   </>
 }
