@@ -36,17 +36,22 @@ export interface EditPort {
   newId: () => string
   template?: { sublabel: (n: Node) => string; lines: (n: Node) => string[]; marks?: Record<string, "error" | "warn"> }
 }
-interface Props { state: DemoState; sched: Schedule; forecast: Forecast; eventId: string; selectedId: string | null; onSelect: (id: string) => void; canEdit?: boolean; alwaysEdit?: boolean; port?: EditPort }
+interface Props { state: DemoState; sched: Schedule; forecast: Forecast; eventId: string; selectedId: string | null; onSelect: (id: string) => void; canEdit?: boolean; alwaysEdit?: boolean; editing?: boolean; onEditingChange?: (editing: boolean) => void; port?: EditPort }
 type Menu = { kind: "node"; id: string; x: number; y: number } | { kind: "gap"; gap: Gap; x: number; y: number }
 const SNAP = 72
 
 /** One main line; parallel work forks off and merges back. Look → hover → click. */
-export function MetroChart({ state, sched, forecast, eventId, selectedId, onSelect, canEdit = false, alwaysEdit = false, port: given }: Props) {
+export function MetroChart({ state, sched, forecast, eventId, selectedId, onSelect, canEdit = false, alwaysEdit = false, editing: requestedEditing, onEditingChange, port: given }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const { dispatch } = useStore()
   const touch = useTouch()
-  const [editing, setEditing] = useState(false)
+  const [localEditing, setLocalEditing] = useState(false)
+  const editing = requestedEditing ?? localEditing
+  const setEditing = (next: boolean) => {
+    if (requestedEditing === undefined) setLocalEditing(next)
+    onEditingChange?.(next)
+  }
   const on = canEdit && (alwaysEdit || editing)
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; gap: Gap | null } | null>(null)
   const dragRef = useRef<typeof drag>(null)
@@ -254,7 +259,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   }, [eventId, vertical, L.cols])
   return <>
     {canEdit && <div className="m-edit-bar">
-      {!alwaysEdit && <button type="button" className="btn small" aria-pressed={editing} onClick={() => { setEditing(!editing); setMenu(null); setDragBoth(null) }} data-testid="flow-edit-toggle">{editing ? "Done editing" : "Edit flow"}</button>}
+      {!alwaysEdit && requestedEditing === undefined && <button type="button" className="btn small" aria-pressed={editing} onClick={() => { setEditing(!editing); setMenu(null); setDragBoth(null) }} data-testid="flow-edit-toggle">{editing ? "Done editing" : "Edit flow"}</button>}
       {on && <button type="button" className="btn small" onClick={undo} disabled={!history.current.length} data-testid="flow-undo">Undo{history.current.length ? `: ${history.current[history.current.length - 1].label}` : ""}</button>}
       {on && <span className="small muted">{touch ? "Tap a step for add, delete and details · Drag it onto a ◆ to move it · Double-tap a line to cut or add a link" : "Drag a step onto a ◆ between two steps · Double-click a step to add or delete · Double-click a line to cut or add a link"}</span>}
       <span role="status" aria-live="polite" className={`small ${msg?.error ? "late-text" : ""}`} data-testid="flow-edit-msg">{on ? msg?.text : ""}</span>
