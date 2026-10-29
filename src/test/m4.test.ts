@@ -86,7 +86,7 @@ describe("M4 · the model's reply is cut down", () => {
     chat.mockResolvedValue({ data: { roles: [{ title: "President", duties: "Leads." }, { title: "Treasurer", department: "Finance", reportsTo: "President" }], departments: [{ name: "Finance", duties: "Money." }], evil: true }, model: "mock", provider: "mock" })
     const res = await post({ text: "The President leads the club. Contact me at boss@example.org or 480-555-0100. The Treasurer keeps the budget.", context: { people: [{ id: "x" }] } })
     const body = await res.json()
-    expect(chat.mock.calls[0][0].task).toBe("setup.constitution")
+    expect(chat.mock.calls[0][0].task).toBe("constitution_read")
     const sent = JSON.parse(chat.mock.calls[0][0].user)
     expect(Object.keys(sent)).toEqual(["text"]); expect(sent.text).not.toMatch(/boss@|555-0100/)
     expect(body.roles.map((r: { title: string }) => r.title)).toEqual(["President", "Treasurer"]); expect(body.evil).toBeUndefined()

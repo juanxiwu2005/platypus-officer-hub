@@ -7,6 +7,7 @@ import { CONSTITUTION_SYSTEM, sanitizeRead } from "../../src/lib/constitution.ts
  * /api/setup/constitution — the president pressed Continue after choosing a constitution (M4). The browser has already read
  * the file and sends only its text. The model proposes departments, roles, who reports to whom, and duties; the reply is cut
  * down by `sanitizeRead` (unknown fields dropped, dates removed, sizes capped) and checked again in the browser.
+ * It uses the fast model (not the long-setup one): a real constitution took Gemma 56 seconds in earlier tests, longer than a page visit should wait.
  * Nothing is stored here: no database, no archive, no log of the text. Fictional documents only.
  */
 const MAX_TEXT = 60_000
@@ -17,7 +18,7 @@ export default async (req: Request) => {
     if (raw.trim().length < 20) throw new BadRequest("Add some constitution text first.")
     if (raw.length > MAX_TEXT) throw new BadRequest("This document is too long for the prototype.")
     const text = raw.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[email]").replace(/\b(?:\+?1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b/g, "[phone]")
-    const { data, model, provider } = await chatJSON({ task: "setup.constitution", system: CONSTITUTION_SYSTEM, user: JSON.stringify({ text }), maxTokens: 3000, temperature: 0.1, timeoutMs: 55_000 })
+    const { data, model, provider } = await chatJSON({ task: "constitution_read", system: CONSTITUTION_SYSTEM, user: JSON.stringify({ text }), maxTokens: 2600, temperature: 0.1, timeoutMs: 50_000 })
     return json({ ...sanitizeRead(data, "ai"), model, provider })
   } catch (e) { return fail(e) }
 }

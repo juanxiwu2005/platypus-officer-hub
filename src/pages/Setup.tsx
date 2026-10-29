@@ -47,7 +47,7 @@ export default function Setup() {
   function apply(read: ConstitutionRead) {
     setDraft(d => {
       const built = structureFromRead(read, { roles: d.roles, people: d.people })
-      return { ...d, departments: built.departments, roles: built.roles, people: built.people, mission: read.mission && !missionTouched.current ? read.mission : d.mission }
+      return { ...d, departments: built.departments, roles: built.roles, people: built.people, mission: read.source === "ai" && read.mission && !missionTouched.current ? read.mission : d.mission }
     })
     setApplied(true); touched.current = false
   }
@@ -59,7 +59,7 @@ export default function Setup() {
     let read: ConstitutionRead, note: string
     if (state.aiEnabled) {
       try { read = sanitizeRead(await callApi<unknown>("/setup/constitution", { text: d.text }, 60_000), "ai"); note = "Suggested by AI from your constitution. Check each line." }
-      catch { read = readLocally(d.text); note = "AI is unavailable, so this was read in your browser. Check each line." }
+      catch (e) { read = readLocally(d.text); note = `AI could not read it${e instanceof Error && e.message ? ` (${e.message.replace(/\.$/, "").slice(0, 120)})` : ""}, so this was read in your browser. Check each line.` }
     } else { read = readLocally(d.text); note = "AI is off, so this was read in your browser. Check each line." }
     if (read.source === "template") note = "No officer titles were found. These are standard departments and roles: edit them or add your own."
     if (readFor.current === d.checksum) setReading({ status: "ready", read, note })

@@ -21,7 +21,8 @@ export type AiTask =
   | "plan_draft"
   | "handbook_draft"
   | "nudge_draft"
-  | "event_review";
+  | "event_review"
+  | "constitution_read";
 export function routeTask(task?: AiTask, mode: "fast" | "deep" = "fast") {
   const deep = mode === "deep" && !!task?.startsWith("setup.");
   return {
