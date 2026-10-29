@@ -16,6 +16,7 @@ import type { OfficerGrant } from "./types"
 import { completeSetup, saveClubSettings, saveProfile, type ClubDraft, type ProfilePatch } from "./settings"
 import type { BoardSettings, NodeStatus, OrgSettings } from "./types"
 import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
+import { addContact, addOrganization, deleteContact, deleteOrganization, logInteraction, updateContact, updateInteraction, updateOrganization, type ContactInput, type ContactPatch, type InteractionInput, type OrgPatch } from "./crm"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -45,7 +46,14 @@ export type Action =
   | { type: "moveTask"; nodeId: string; status: NodeStatus; beforeId?: string | null }
   | { type: "addTask"; title: string; status: NodeStatus }
   | { type: "saveBoard"; board: BoardSettings }
-  | { type: "addContact"; name: string; organization: string; relation: string; ownerRoleId: string; cadenceDays: number }
+  | ({ type: "addContact" } & ContactInput)
+  | { type: "updateContact"; id: string; patch: ContactPatch }
+  | { type: "deleteContact"; id: string }
+  | { type: "addOrganization"; name: string; orgType: string }
+  | { type: "updateOrganization"; id: string; patch: OrgPatch }
+  | { type: "deleteOrganization"; id: string }
+  | { type: "logInteraction"; input: InteractionInput }
+  | { type: "updateInteraction"; id: string; nextDone?: boolean; delete?: boolean }
   | { type: "setViewer"; viewerId: string }
   | { type: "setAi"; enabled: boolean }
   | { type: "replace"; state: DemoState }
@@ -140,11 +148,14 @@ export function reducer(state: DemoState, action: Action): DemoState {
     case "moveTask": return moveTask(state, action.nodeId, action.status, action.beforeId ?? null)
     case "addTask": return addBoardTask(state, action.title, action.status)
     case "saveBoard": return saveBoard(state, action.board)
-    case "addContact": {
-      const name = action.name.trim().slice(0, 80)
-      if (!canLead(state) || !name || !state.roles.some(r => r.id === action.ownerRoleId) || !Number.isInteger(action.cadenceDays) || action.cadenceDays < 1 || action.cadenceDays > 365) return state
-      return { ...state, contacts: [...state.contacts, { id: `c-${state.contacts.length}-${Date.now().toString(36)}`, name, organization: action.organization.trim().slice(0, 80), relation: action.relation.trim().slice(0, 40) || "Partner", lastContact: null, cadenceDays: action.cadenceDays, ownerRoleId: action.ownerRoleId, eventIds: [] }] }
-    }
+    case "addContact": return addContact(state, action)
+    case "updateContact": return updateContact(state, action.id, action.patch)
+    case "deleteContact": return deleteContact(state, action.id)
+    case "addOrganization": return addOrganization(state, action.name, action.orgType)
+    case "updateOrganization": return updateOrganization(state, action.id, action.patch)
+    case "deleteOrganization": return deleteOrganization(state, action.id)
+    case "logInteraction": return logInteraction(state, action.input)
+    case "updateInteraction": return updateInteraction(state, action.id, { nextDone: action.nextDone, delete: action.delete })
     case "setViewer":
       return state.people.some(p => p.id === action.viewerId) ? { ...state, viewerId: action.viewerId } : state
     case "setAi":

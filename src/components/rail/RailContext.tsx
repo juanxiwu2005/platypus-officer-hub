@@ -10,6 +10,7 @@ export type Detail =
   | { kind: "nudge"; id: string }
   | { kind: "funding"; eventId: string }
   | { kind: "partner"; id: string }
+  | { kind: "org"; id: string }
   | { kind: "handoff"; roleId: string }
   | { kind: "board" }
 

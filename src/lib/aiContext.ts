@@ -4,6 +4,7 @@ import { computeForecast } from "../engine/forecast"
 import { workload } from "../engine/team"
 import { personalBuffer } from "../engine/schedule"
 import { RULES } from "../data/rules"
+import { nextStep, orgName, visibleContacts } from "../data/crm"
 
 /**
  * Everything the signed-in officer can see in the app, as one compact object for the assistant (v1.2,
@@ -37,7 +38,7 @@ export function aiSnapshot(s: DemoState) {
         waitsFor: n.dependsOn, waitingOn: n.waitingOn, rules: n.ruleIds, why: n.why.slice(0, 200),
       }),
     funding: s.funding.map(x => ({ eventId: x.eventId, event: s.events.find(e => e.id === x.eventId)?.name, source: x.source, amount: x.amount, spent: x.spent ?? 0, stage: x.stage, spendBy: x.spendBy })),
-    partners: s.contacts.map(c => ({ id: c.id, name: c.name, organization: c.organization, relation: c.relation, owner: role(c.ownerRoleId), lastContact: c.lastContact, cadenceDays: c.cadenceDays, events: c.eventIds })),
+    partners: visibleContacts(s).map(c => ({ id: c.id, name: c.name, title: c.title, organization: orgName(s, c.organizationId), relation: c.relation, stage: c.stage, tags: c.tags, owner: role(c.ownerRoleId), lastContact: c.lastContact, cadenceDays: c.cadenceDays, events: c.eventIds, nextStep: nextStep(s, c.id)?.nextStep ?? null })),
     handoff: s.handoff && { from: s.handoff.from, to: s.handoff.to, roles: s.handoffRoles.map(h => ({ role: role(h.roleId), outgoing: name(h.outgoingId), incoming: name(h.incomingId), confirmed: h.confirmed, approved: h.approved, completed: h.completed })) },
     yourUpdates: s.notifications.filter(n => n.recipientId === s.viewerId).slice(-15).map(n => ({ text: n.text, on: n.createdOn, read: n.read, taskId: n.nodeId })),
     extensionRequests: s.extensionRequests.filter(r => lead || r.ownerId === s.viewerId).map(r => ({ taskId: r.nodeId, owner: name(r.ownerId), requestedDate: r.requestedDate, reason: r.reason.slice(0, 200), status: r.status })),

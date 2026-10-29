@@ -8,6 +8,7 @@ import { computeForecast, forecastQueue } from "../engine/forecast"
 import { computeSchedule } from "../engine/schedule"
 import { workload } from "../engine/team"
 import { eventStrip } from "./today"
+import { visibleContacts } from "../data/crm"
 import { checkPreflight, EMPTY_PACKAGE } from "./preflight"
 import { WEEK_ONE } from "./handbook"
 import { daysBetween } from "./dates"
@@ -170,7 +171,7 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
     return { cards: [textCard(heavy.length ? `${heavy.map(r => `${r.p.name.split(" ")[0]} (${r.w.points} points)`).join(", ")} ${heavy.length > 1 ? "are" : "is"} heavy for the next two weeks. Lightest: ${rows.at(-1)!.p.name.split(" ")[0]}.` : `Nobody is heavy for the next two weeks. Busiest: ${rows[0].p.name.split(" ")[0]} (${rows[0].w.points} points).`)], source: "Workload bands" }
   }
   if (PARTNER_RE.test(t)) {
-    const due = s.contacts.filter(c => !c.lastContact || daysBetween(c.lastContact, s.today) >= c.cadenceDays)
+    const due = visibleContacts(s).filter(c => !c.lastContact || daysBetween(c.lastContact, s.today) >= c.cadenceDays)
     return { cards: [textCard(due.length ? `Due for a touch: ${due.map(c => c.name).join(", ")}.` : "Every partner is within their contact interval.")], source: "Partners" }
   }
   if (MISSING_RE.test(t)) {

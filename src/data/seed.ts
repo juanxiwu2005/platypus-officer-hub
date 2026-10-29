@@ -2,7 +2,7 @@ import type { DemoState, Event, Node, NodeStatus, Role } from "./types"
 import { buildEventNodes } from "../engine/playbooks"
 import { applySchedule } from "../engine/schedule"
 
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -113,9 +113,21 @@ export function seedDemo(today: string = DEMO_TODAY): DemoState {
       { personId: "alex", nodeId: "e-night:registry", points: 2, onTime: true },
       { personId: "maya", nodeId: "e-night:quote", points: 2, onTime: true },
     ],
+    organizations: [
+      { id: "o-caterer", name: "Desert Table Catering (fictional)", type: "Vendor", website: "desert-table.example.org", email: "orders@desert-table.example.org", phone: "", address: "Tempe, AZ (fictional)", tags: ["catering", "tempe"], notes: "Book at least 3 weeks ahead. Does not need a deposit under $500.", createdBy: "maya" },
+      { id: "o-saguaro", name: "Saguaro Labs (fictional)", type: "Guest speaker", website: "saguaro-labs.example.org", email: "", phone: "", address: "", tags: ["startup", "speaker"], notes: "", createdBy: "alex" },
+      { id: "o-osl", name: "Student Org Support (fictional)", type: "Campus office", website: "", email: "orgs@example.edu", phone: "", address: "Memorial Union (fictional)", tags: ["campus"], notes: "Ask about room bookings and the SAP form.", createdBy: "alex" },
+    ],
     contacts: [
-      { id: "c-caterer", name: "Desert Table Catering (fictional)", organization: "Local caterer", relation: "Vendor", lastContact: "2026-10-13", cadenceDays: 60, ownerRoleId: "r-fin", eventIds: ["e-night"] },
-      { id: "c-founder", name: "Riley Brooks (fictional)", organization: "Saguaro Labs (fictional)", relation: "Guest speaker", lastContact: "2026-07-19", cadenceDays: 90, ownerRoleId: "r-pres", eventIds: ["e-speaker"] },
+      { id: "c-caterer", name: "Jamie Ortiz (fictional)", title: "Catering manager", organizationId: "o-caterer", relation: "Vendor", email: "jamie@desert-table.example.org", phone: "", social: "", preferredChannel: "email", tags: ["catering"], stage: "active", source: "Previous officers", introducedById: null, visibility: "all", lastContact: "2026-10-13", cadenceDays: 60, ownerRoleId: "r-fin", eventIds: ["e-night"], createdBy: "maya" },
+      { id: "c-founder", name: "Riley Brooks (fictional)", title: "Founder", organizationId: "o-saguaro", relation: "Guest speaker", email: "riley@saguaro-labs.example.org", phone: "", social: "linkedin.com/in/riley-brooks-fictional", preferredChannel: "linkedin", tags: ["speaker", "startup"], stage: "warm", source: "Member referral", introducedById: "jordan", visibility: "all", lastContact: "2026-07-19", cadenceDays: 90, ownerRoleId: "r-pres", eventIds: ["e-speaker"], createdBy: "alex" },
+      { id: "c-osl", name: "Casey Lin (fictional)", title: "Student org advisor", organizationId: "o-osl", relation: "Campus office", email: "casey.lin@example.edu", phone: "", social: "", preferredChannel: "email", tags: ["campus"], stage: "active", source: "Campus event", introducedById: null, visibility: "all", lastContact: "2026-09-30", cadenceDays: 45, ownerRoleId: "r-pres", eventIds: [], createdBy: "alex" },
+      { id: "c-sponsor", name: "Morgan Hale (fictional)", title: "Community manager", organizationId: null, relation: "Sponsor", email: "", phone: "", social: "", preferredChannel: "", tags: ["sponsor-prospect"], stage: "cold", source: "Cold outreach", introducedById: null, visibility: "leads", lastContact: null, cadenceDays: 30, ownerRoleId: "r-pres", eventIds: [], createdBy: "alex" },
+    ],
+    interactions: [
+      { id: "i-1", contactId: "c-caterer", organizationId: null, date: "2026-10-13", kind: "email", byId: "maya", summary: "Asked for a quote for 40 people.", outcome: "Quote due next week", nextStep: "Compare the quote with the USG food rules", nextDue: "2026-10-27", nextDone: false, eventId: "e-night" },
+      { id: "i-2", contactId: "c-founder", organizationId: null, date: "2026-07-19", kind: "meeting", byId: "alex", summary: "Coffee chat about speaking in the spring.", outcome: "Interested, wants a date", nextStep: "", nextDue: null, nextDone: false, eventId: "e-speaker" },
+      { id: "i-3", contactId: "c-osl", organizationId: null, date: "2026-09-30", kind: "call", byId: "alex", summary: "Checked the room booking steps for November.", outcome: "", nextStep: "", nextDue: null, nextDone: false, eventId: null },
     ],
     funding: [{ eventId: "e-night", source: "usg", amount: 2000, stage: "budget_request", spendBy: "2026-12-19" }],
     handoff: null, handoffRoles: [], feedback: [],

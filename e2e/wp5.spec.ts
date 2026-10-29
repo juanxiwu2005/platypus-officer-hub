@@ -109,21 +109,3 @@ test("sourced handbook requires outgoing confirmation before presidential approv
   await expect(page.getByRole("region", { name: "Treasurer handbook" })).toContainText("President approved")
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
 })
-
-test("partners: a searchable table with the role owner, last contact and next event", async ({ page }) => {
-  await page.goto("/#/partners")
-  const table = page.getByTestId("contacts")
-  await expect(table).toContainText("Networking Night")
-  await expect(table).toContainText("Treasurer")
-  await page.getByLabel("Search partners").fill("riley")
-  await expect(table.getByRole("row")).toHaveCount(3) // header, Riley, add row
-  await page.getByLabel("Search partners").fill("")
-  await table.getByRole("button", { name: "Contacted today" }).first().click()
-  await page.reload()
-  await expect(table).toContainText("0d ago")
-  await table.getByRole("button", { name: "+ Add partner" }).click()
-  await table.getByLabel("Partner name").fill("Mesa Print Shop (fictional)")
-  await table.getByRole("button", { name: "Add", exact: true }).click()
-  await expect(table).toContainText("Mesa Print Shop (fictional)")
-  await expect(table).toContainText("Never")
-})

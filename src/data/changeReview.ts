@@ -1,13 +1,10 @@
 import type { DemoState, Event, Node } from "./types"
+import { canLead } from "./permissions"
 import { commandContext, sanitizeOps, validDate, type CommandOp } from "../lib/commands"
 import { buildEventNodes } from "../engine/playbooks"
 import { topoOrder } from "../engine/schedule"
 
-export const canLead = (s: DemoState) => {
-  const person = s.people.find(p => p.id === s.viewerId)
-  const role = s.roles.find(r => r.id === person?.roleId)
-  return role?.holderId === person?.id && (role?.fn === "president" || role?.fn === "vice_president")
-}
+export { canLead }
 export interface HumanInputs { date?: string }
 
 /** Validate against fresh state before any mutation. No arbitrary patch or AI date reaches store. */
