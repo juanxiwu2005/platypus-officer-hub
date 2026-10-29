@@ -8,6 +8,7 @@ import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateR
 import { nudgeBlocked } from "../lib/nudges"
 import type { Channel } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
+import { clearLocalDocs } from "../lib/localDocs"
 import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
 import { nextCounter } from "../lib/ids"
 import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
@@ -72,7 +73,7 @@ export type Action =
   | { type: "officerAction"; token: string; reply: TaskReply | "claim"; input?: ReplyInput }
   | { type: "saveClubSettings"; draft: ClubDraft; defaults: OrgSettings }
   | { type: "saveProfile"; personId: string; patch: ProfilePatch; invite?: string }
-  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number }
+  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number }
 
 const NODE_FIELDS: (keyof NodePatch)[] = ["title", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
@@ -285,7 +286,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
     }
     case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
     case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
-    case "completeSetup": return completeSetup(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays)
+    case "completeSetup": return completeSetup(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays)
   }
 }
 
@@ -521,7 +522,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }, [root, held])
   // The real clock is read here, once per action, and travels with it into the log.
   const dispatch = useCallback((action: Action) => send({ action, at: Date.now() }), [])
-  const reset = useCallback(() => dispatch({ type: "reset" }), [dispatch])
+  const reset = useCallback(() => { void clearLocalDocs(); dispatch({ type: "reset" }) }, [dispatch])
   const value = useMemo(() => ({ state: root.app, dispatch, reset, log: root.log }), [root, dispatch, reset])
   const shown: StorageNotice | null = saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>

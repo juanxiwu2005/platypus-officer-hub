@@ -26,6 +26,19 @@ test("no accessibility violations in the Ask panel, a task's details and the boa
   await page.getByRole("button", { name: "Board", exact: true }).click()
   expect(await scan(page)).toEqual([])
 })
+test("no accessibility violations on any setup step, with a constitution read", async ({ page }) => {
+  await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
+  await page.route("**/api/setup/constitution", r => r.fulfill({ status: 503, json: {} }))
+  await page.goto("/#/setup")
+  const step = page.getByTestId("setup-step")
+  await step.getByRole("button", { name: "Use the sample constitution", exact: true }).click()
+  expect(await scan(page)).toEqual([])
+  for (let i = 0; i < 5; i++) {
+    await step.getByRole("button", { name: "Continue", exact: true }).click()
+    await page.waitForTimeout(250)
+    expect(await scan(page)).toEqual([])
+  }
+})
 test("keyboard: / focuses Ask, Escape closes details, a flow step opens with Enter", async ({ page }) => {
   await page.goto("/#/events")
   await page.locator("main").click({ position: { x: 5, y: 5 } })

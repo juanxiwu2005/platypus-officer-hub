@@ -2,7 +2,7 @@ import type { CommandContext } from "../../src/lib/commands.ts"
 import { str } from "./http.mts"
 
 /** Club data the browser sends to an AI endpoint, re-checked: secret-looking keys dropped, sizes capped. */
-const SECRET = /key|token|secret|password|signature|dataurl|grant|phone/i
+const SECRET = /key|token|secret|password|signature|dataurl|grant|phone|asuid/i
 export function cleanData(value: unknown, depth = 0): unknown {
   if (depth > 6) return null
   if (typeof value === "string") return value.slice(0, 1500)

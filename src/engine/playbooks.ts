@@ -138,6 +138,7 @@ const FALLBACK: Record<RoleFunction, RoleFunction[]> = {
   outreach: ["vice_president", "president"],
   secretary: ["vice_president", "president"],
   membership: ["secretary", "president"],
+  advisor: ["president"],
 }
 
 export function roleFor(roles: Role[], fn: RoleFunction): Role | undefined {

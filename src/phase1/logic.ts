@@ -366,6 +366,7 @@ const LEGACY_CAP: Record<RoleFunction, string> = {
   marketing: "marketing",
   outreach: "relationships",
   secretary: "documentation",
+  advisor: "planning",
   membership: "staffing",
 };
 export function workflow(d: Draft, kind: ActivityKind): PreviewTask[] {

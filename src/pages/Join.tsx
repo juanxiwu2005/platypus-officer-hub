@@ -2,14 +2,14 @@ import { useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useStore } from "../data/store"
 import { profilePatch, validateProfile } from "../data/settings"
-import { ProfileForm } from "../components/SettingsForms"
+import { ProfileForm, RoleCard } from "../components/SettingsForms"
 
 export default function Join() {
   const { state } = useStore()
   const [params] = useSearchParams()
   const [selected, setSelected] = useState(state.people.some(p => p.id === params.get("person")) ? params.get("person")! : state.people.find(p => state.roles.find(r => r.id === p.roleId)?.fn !== "president")?.id ?? state.people[0].id)
   if (params.get("invite") !== state.org.inviteCode) return <main className="join-page"><section className="card form-stack"><h1>Check your setup invitation</h1><p>This local demo invitation has expired or belongs to a different browser. Open the current invitation from Settings.</p><Link to="/settings">Open Settings</Link></section></main>
-  return <main className="join-page"><section className="card form-stack"><h1>Welcome to {state.org.name}</h1><p>Five quick questions. This is a same-browser demo with fictional officers; choosing a name does not verify a real identity.</p><label>Try setup as<select value={selected} onChange={e => setSelected(e.target.value)}>{state.people.map(p => <option key={p.id} value={p.id}>{p.name} · {state.roles.find(r => r.id === p.roleId)?.displayName}</option>)}</select></label><JoinForm key={selected} personId={selected} invite={state.org.inviteCode} /></section></main>
+  return <main className="join-page"><section className="card form-stack"><h1>Welcome to {state.org.name}</h1><p>Five quick questions. This is a same-browser demo with fictional officers; choosing a name does not verify a real identity.</p><label>Try setup as<select value={selected} onChange={e => setSelected(e.target.value)}>{state.people.map(p => <option key={p.id} value={p.id}>{p.name} · {state.roles.find(r => r.id === p.roleId)?.displayName}</option>)}</select></label><RoleCard state={state} personId={selected} /><JoinForm key={selected} personId={selected} invite={state.org.inviteCode} /></section></main>
 }
 function JoinForm({ personId, invite }: { personId: string; invite: string }) {
   const { state, dispatch } = useStore()
