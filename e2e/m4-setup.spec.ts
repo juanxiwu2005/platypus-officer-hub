@@ -109,11 +109,11 @@ test("without AI the constitution is read in the browser, and roles can be added
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
-test("if the AI is slow the reason is shown, standard text fills in, and Try AI again works", async ({ page }) => {
+test("a failed piece is tried again, then the reason is shown, standard text fills in, and Try AI again works", async ({ page }) => {
   let calls = 0
   await page.route("**/api/setup/constitution", async r => {
     calls++
-    if (calls <= 1) return r.fulfill({ status: 504, json: { error: "timeout", message: "The AI took too long to answer." } })
+    if (calls <= 3) return r.fulfill({ status: 504, json: { error: "timeout", message: "The AI took too long to answer." } })
     return r.fulfill({ json: { ...(r.request().postDataJSON().part === "duties" ? DUTIES : REPLY), model: "mock", provider: "mock" } })
   })
   await page.goto("/#/setup")
@@ -124,4 +124,20 @@ test("if the AI is slow the reason is shown, standard text fills in, and Try AI 
   await step.getByRole("button", { name: "Try AI again", exact: true }).click()
   await expect(step.getByRole("status").first()).toContainText("Suggested by AI from your constitution")
   await expect(step.getByLabel("Club mission")).toHaveValue("Help students build real startups with real founders.")
+})
+
+test("one slow or failed request is tried again on its own and the reading still finishes", async ({ page }) => {
+  let calls = 0
+  await page.route("**/api/setup/constitution", async r => {
+    calls++
+    if (calls === 1 || calls === 3) return r.fulfill({ status: 504, json: { error: "timeout", message: "The AI took too long to answer." } })   // the structure and then the first duties request fail once
+    return r.fulfill({ json: { ...(r.request().postDataJSON().part === "duties" ? DUTIES : REPLY), model: "mock", provider: "mock" } })
+  })
+  await page.goto("/#/setup")
+  const step = page.getByTestId("setup-step")
+  await step.getByRole("button", { name: "Use the sample constitution", exact: true }).click()
+  await step.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(step.getByRole("status").first()).toContainText("Suggested by AI from your constitution", { timeout: 15000 })
+  await expect(step.getByRole("status").first()).not.toContainText("could not")
+  expect(calls).toBeGreaterThanOrEqual(5)
 })

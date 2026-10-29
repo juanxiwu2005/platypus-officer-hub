@@ -65,8 +65,16 @@ export default function Setup() {
     const done = (read: ConstitutionRead, note: string, retry: boolean) => current() && setReading({ status: "ready", read, note, retry, pending: 0 })
     if (!state.aiEnabled) { const r = readLocally(d.text); return done(r, r.source === "template" ? TEMPLATE_NOTE : "AI is off, so this was read in your browser. Check each line.", false) }
     const text = relevantExcerpt(d.text, 40_000)
+    // Each short request may fail on its own (the AI is slow, or busy with someone else's request). Try it again twice before giving up on that piece.
+    const call = async <T,>(body: Record<string, unknown>): Promise<T> => {
+      let last: unknown
+      for (let i = 0; i < 3 && current(); i++) {
+        try { return await callApi<T>("/setup/constitution", { text, ...body }, 45_000) } catch (e) { last = e; await new Promise(r => setTimeout(r, 800 * (i + 1))) }
+      }
+      throw last instanceof Error ? last : new Error("Cancelled")
+    }
     let read: ConstitutionRead
-    try { read = sanitizeRead(await callApi<unknown>("/setup/constitution", { text, part: "structure" }, 45_000), "ai"); if (!read.roles.length) throw new Error("No positions found") }
+    try { read = sanitizeRead(await call<unknown>({ part: "structure" }), "ai"); if (!read.roles.length) throw new Error("No positions found") }
     catch (e) {
       const why = e instanceof Error && e.message ? ` (${e.message.replace(/\.$/, "").slice(0, 120)})` : ""
       const r = readLocally(d.text)
@@ -78,11 +86,11 @@ export default function Setup() {
     let missed = 0
     for (let i = 0; i < batches.length && current(); i++) {
       try {
-        const reply = await callApi<{ items?: unknown }>("/setup/constitution", { text, part: "duties", items: batches[i] }, 45_000)
+        const reply = await call<{ items?: unknown }>({ part: "duties", items: batches[i] })
         const found = sanitizeDuties(reply, batches[i])
         if (found.size) setDraft(x => applyDuties(x, found))
       } catch { missed++ }
-      setReading(r => r.status === "ready" ? { ...r, pending: batches.length - i - 1 } : r)
+      setReading(r => r.status === "ready" ? { ...r, pending: batches.length - i - 1, note: batches.length - i - 1 > 0 ? `Suggested by AI. Reading duties: ${i + 1} of ${batches.length} parts done.` : r.note } : r)
     }
     done(read, missed ? "Suggested by AI. Some duties could not be read, so standard duties are filled in. Edit them." : "Suggested by AI from your constitution. Check each line.", missed > 0)
   }
