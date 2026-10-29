@@ -14,10 +14,7 @@ const REPLY = {
   ],
   notes: ["No Director of Outreach found."],
 }
-const DUTIES = {
-  departments: [{ name: "Leadership", duties: "Sets direction." }, { name: "Finance", duties: "AI finance duties." }, { name: "Marketing", duties: "Promotion and the newsletter." }],
-  roles: [{ title: "President", duties: "Leads the club." }, { title: "Executive Vice President", duties: "Supports the president." }, { title: "Vice President of Finance", duties: "Keeps the budget." }, { title: "Director of Marketing", duties: "Leads promotion." }, { title: "Marketing Associate", duties: "Helps with posting." }, { title: "Club Advisor", duties: "Advises the club." }],
-}
+const DUTIES = { items: [{ name: "Leadership", duties: "Sets direction." }, { name: "Finance", duties: "AI finance duties." }, { name: "Marketing", duties: "Promotion and the newsletter." }, { name: "President", duties: "Leads the club." }, { name: "Executive Vice President", duties: "Supports the president." }, { name: "Vice President of Finance", duties: "Keeps the budget." }, { name: "Director of Marketing", duties: "Leads promotion." }, { name: "Marketing Associate", duties: "Helps with posting." }, { name: "Club Advisor", duties: "Advises the club." }] }
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: true, provider: "mock", model: "mock" } }))
@@ -37,8 +34,8 @@ test("constitution: upload, AI reads it in the background, departments and roles
   await step.getByRole("button", { name: "Continue", exact: true }).click()
   await expect(step.getByRole("heading")).toHaveText("Step 2 of 6 · Semester goals")
   await expect(step.getByRole("status").first()).toContainText("Reading your constitution")
-  await expect(step.getByRole("status").first()).toContainText("Suggested by AI")
-  expect(Object.keys(sent!).sort()).toEqual(["part", "text"]); expect(parts.sort()).toEqual(["duties", "structure"]); expect(String(sent!.text)).not.toContain("boss@example.org")
+  await expect(step.getByRole("status").first()).toContainText("Suggested by AI from your constitution")
+  expect(parts).toEqual(["structure", "duties", "duties"]);  /* structure first, then duties six positions at a time */ expect(Object.keys(sent!).sort()).toEqual(["items", "part", "text"]); expect(String(sent!.text)).not.toContain("boss@example.org")
   await expect(step.getByLabel("Club mission")).toHaveValue("Help students build real startups with real founders.")
   await expect(step.getByRole("button", { name: /^Remove goal/ })).toHaveCount(3)
   await step.getByRole("button", { name: "Continue", exact: true }).click()
@@ -116,7 +113,7 @@ test("if the AI is slow the reason is shown, standard text fills in, and Try AI 
   let calls = 0
   await page.route("**/api/setup/constitution", async r => {
     calls++
-    if (calls <= 2) return r.fulfill({ status: 504, json: { error: "timeout", message: "The AI took too long to answer." } })
+    if (calls <= 1) return r.fulfill({ status: 504, json: { error: "timeout", message: "The AI took too long to answer." } })
     return r.fulfill({ json: { ...(r.request().postDataJSON().part === "duties" ? DUTIES : REPLY), model: "mock", provider: "mock" } })
   })
   await page.goto("/#/setup")

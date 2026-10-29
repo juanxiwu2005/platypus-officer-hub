@@ -16,8 +16,8 @@ const SHARED_RULES = `Hard rules:
 Remember: JSON only.`
 
 /**
- * Reading is split in two short requests that run side by side, because one long answer took more than the 30 seconds a
- * request may last here (and the AI itself needs 10+ seconds before it starts answering):
+ * Reading is split into short requests that run one after another, because one long answer took more than the 30 seconds a
+ * request may last here (the AI itself needs 10+ seconds before it starts answering, and answers one request at a time):
  *   structure: positions, departments, who reports to whom, mission (a short answer);
  *   duties: one or two sentences of duties for each position and department.
  * The browser merges them by title. If only duties fail, standard duties fill in.
@@ -37,14 +37,43 @@ Reply with JSON only: {"mission":null,"departments":[{"name":""}],"roles":[{"tit
 
 ${SHARED_RULES}`
 
-export const CONSTITUTION_DUTIES_SYSTEM = `You read the constitution of a student club for Platypus, the club's chief-of-staff assistant, and list what each position and department is responsible for.
-Input JSON: {"text": "<the constitution, plain text>"}.
+export const CONSTITUTION_DUTIES_SYSTEM = `You read the constitution of a student club for Platypus, the club's chief-of-staff assistant, and say what a few named positions and departments are responsible for.
+Input JSON: {"text": "<the constitution, plain text>", "items": [{"kind": "role" or "department", "name": "<exact name>"}]}.
 
-For every officer or advisor position the text names (use the exact title) give duties: one or two short sentences copied or condensed from the text, starting with a verb ("Plans the weekly events and books venues."). Leave duties as an empty string when the text says nothing about that position. Do the same for each department the text names.
+For each item give duties: one or two short sentences copied or condensed from the text, starting with a verb ("Plans the weekly events and books venues."). Leave duties as an empty string when the text says nothing about it. Return every item once, with its exact name.
 
-Reply with JSON only: {"departments":[{"name":"","duties":""}],"roles":[{"title":"","duties":""}]}
+Reply with JSON only: {"items":[{"name":"","duties":""}]}
 
 ${SHARED_RULES}`
+
+/** The duties request names at most this many positions and departments, so each answer is short enough to finish in time. */
+export const DUTY_BATCH = 6
+export interface DutyItem { kind: "role" | "department"; name: string }
+export function dutyItems(read: ConstitutionRead): DutyItem[] {
+  return [...read.roles.map(r => ({ kind: "role" as const, name: r.title })), ...read.departments.map(d => ({ kind: "department" as const, name: d.name }))]
+}
+export const chunk = <T,>(list: T[], size: number): T[][] => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, i * size + size))
+/** What a duties reply is allowed to say: only the names we asked about, as short plain sentences with no dates. */
+export function sanitizeDuties(raw: unknown, asked: DutyItem[]): Map<string, string> {
+  const o = raw && typeof raw === "object" ? raw as Record<string, unknown> : {}
+  const names = new Set(asked.map(a => a.name.toLowerCase()))
+  const out = new Map<string, string>()
+  for (const it of (Array.isArray(o.items) ? o.items : []).slice(0, asked.length * 2)) {
+    const x = it && typeof it === "object" ? it as Record<string, unknown> : {}
+    const name = text(x.name, 60).toLowerCase(), duties = text(x.duties, MAX_DUTIES)
+    if (names.has(name) && duties && !out.has(name)) out.set(name, duties)
+  }
+  return out
+}
+/** Put found duties onto the draft, replacing only standard or empty text, never something the president wrote. */
+export function applyDuties<T extends { departments: Department[]; roles: Role[] }>(draft: T, found: Map<string, string>): T {
+  const isStandard = (d: string | undefined, fn: Role["fn"]) => !d?.trim() || d === DUTY_TEMPLATES[fn] || DEFAULT_DEPARTMENTS.some(x => x.duties === d)
+  return {
+    ...draft,
+    roles: draft.roles.map(r => found.has(r.displayName.toLowerCase()) && isStandard(r.duties, r.fn) ? { ...r, duties: found.get(r.displayName.toLowerCase()) } : r),
+    departments: draft.departments.map(d => found.has(d.name.toLowerCase()) && isStandard(d.duties, d.fn) ? { ...d, duties: found.get(d.name.toLowerCase())! } : d),
+  }
+}
 
 /**
  * A long constitution is cut to the paragraphs that talk about officers, departments and duties, in their original order,
@@ -57,18 +86,6 @@ export function relevantExcerpt(text: string, max = 24_000): string {
   const keep = new Set<number>(); let size = 0
   for (const p of [...parts].sort((a, b) => b.score - a.score)) { if (p.score === 0 || size + p.t.length + 2 > max) continue; keep.add(p.i); size += p.t.length + 2 }
   return parts.filter(p => keep.has(p.i)).map(p => p.t).join("\n\n") || text.slice(0, max)
-}
-
-/** Put the duties reading onto the structure reading, matching by title (and department name). Missing duties stay empty for standard text to fill. */
-export function mergeReads(structure: ConstitutionRead, duties: ConstitutionRead | null): ConstitutionRead {
-  if (!duties) return structure
-  const role = new Map(duties.roles.map(r => [r.title.toLowerCase(), r.duties]))
-  const dept = new Map(duties.departments.map(d => [d.name.toLowerCase(), d.duties]))
-  return {
-    ...structure,
-    departments: structure.departments.map(d => ({ ...d, duties: d.duties || dept.get(d.name.toLowerCase()) || "" })),
-    roles: structure.roles.map(r => ({ ...r, duties: r.duties || role.get(r.title.toLowerCase()) || "" })),
-  }
 }
 
 export interface ReadRole { title: string; department: string | null; reportsTo: string | null; duties: string; isAdvisor: boolean }
@@ -118,6 +135,19 @@ export function sanitizeRead(raw: unknown, source: ConstitutionRead["source"] = 
 const PLACE = "[A-Z][A-Za-z&]+(?: (?:and|&) [A-Z][A-Za-z&]+| [A-Z][A-Za-z&]+)*"
 const TITLE_RE = new RegExp(`\\b(?:(?:Executive |Associate |Assistant )?Vice[- ]President(?: of ${PLACE})?|(?:EVP|VP)(?: of ${PLACE})?|President|Treasurer|Secretary|(?:Associate |Assistant )?Director(?: of ${PLACE})?|[A-Z][A-Za-z&]+ (?:Associate|Chair|Lead|Coordinator|Manager|Intern)|(?:Club |Faculty )?Advis[eo]r)\\b`, "g")
 
+/**
+ * Many constitutions list duties under a heading per position: "Section 4  Vice President of Marketing", then "A. Develop ...",
+ * "B. Create ...". Take the first three items, which are already phrased as duties.
+ */
+function letteredDuties(source: string, title: string): string {
+  const esc = title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const head = new RegExp(`^[ \\t\\f\\u200b]*(?:Section\\s+\\d+[\\s\\u200b.:-]*)?${esc}[ \\t\\f\\u200b]*$`, "im").exec(source)
+  if (!head) return ""
+  const body = source.slice(head.index + head[0].length).split(/\n[ \t\f\u200b]*(?:Section\s+\d+|Article\s+[IVXLC\d]+)\b/i)[0]
+  const items = [...body.matchAll(/^[ \t\f\u200b]*[A-H1-9][.)]\u200b?[ \t]+([^\n]+(?:\n(?![ \t\f\u200b]*[A-H1-9][.)])[ \t\f\u200b]+[^\n]+)*)/gm)].map(m => m[1].replace(/\s+/g, " ").trim().replace(/[.;]+$/, "")).filter(Boolean)
+  return items.length ? text(items.slice(0, 3).join(". ") + ".", MAX_DUTIES) : ""
+}
+
 /** "(EVP) supports the President." or "is a faculty member who advises us." become sentences that start with a verb. */
 const tidy = (t: string) => {
   const x = t.replace(/^\s*\([^)]*\)\s*/, "").replace(/^(?:is|shall be|will be)\s+(?:an?|the)\s+[^,]*?\bwho\s+/i, "").replace(/^(?:shall|will)\s+/i, "").trim()
@@ -135,8 +165,9 @@ export function readLocally(source: string): ConstitutionRead {
   }
   // Drop aliases: "EVP" next to "Executive Vice President", "Advisor" next to "Club Advisor".
   const initials = (t: string) => t.split(/\s+/).filter(w => /^[A-Z]/.test(w)).map(w => w[0]).join("")
+  const canon = (t: string) => t.toLowerCase().replace(/^vp\b/, "vice president").replace(/^evp\b/, "executive vice president")
   for (const t of [...titles]) {
-    const alias = titles.some(o => o !== t && (initials(o) === t.toUpperCase() || (o.toLowerCase().endsWith(" " + t.toLowerCase()) && /^(Club|Faculty)\b/.test(o))))
+    const alias = titles.some(o => o !== t && canon(o) === canon(t) && o.length > t.length) || titles.some(o => o !== t && (initials(o) === t.toUpperCase() || (o.toLowerCase().endsWith(" " + t.toLowerCase()) && /^(Club|Faculty)\b/.test(o))))
     if (alias) titles.splice(titles.indexOf(t), 1)
   }
   // The bare title "President" is a role only if some sentence uses it on its own, not just inside "Vice President of ...".
@@ -145,11 +176,18 @@ export function readLocally(source: string): ConstitutionRead {
     const lower = title.toLowerCase()
     const place = /\bof (.+)$/.exec(title)?.[1] ?? (/^(\w[\w&]*) (Associate|Chair|Lead|Coordinator|Manager|Intern)$/.exec(title)?.[1] ?? null)
     const own = sentences.find(s => s.toLowerCase().includes(lower) && /\b(shall|will|is responsible|oversees|manages|leads|plans|keeps|finds|helps|supports|advises|approves|chairs)\b/i.test(s) && !/^the .+ reports to /i.test(s.replace(title, "the role")))
-    const duties = text(own ? tidy(own.replace(new RegExp(`^(?:Section \\d+\\.\\s*)?(?:The )?${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+`, "i"), "").replace(/\s*(?:The )?.*? reports to .*$/i, "")) : "", MAX_DUTIES)
+    const lettered = letteredDuties(text0, title)
+    const duties = lettered || text(own ? tidy(own.replace(new RegExp(`^(?:Section \\d+\\.\\s*)?(?:The )?${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s+`, "i"), "").replace(/\s*(?:The )?.*? reports to .*$/i, "")) : "", MAX_DUTIES)
     const isAdvisor = /advis[eo]r/i.test(title)
     const department = isAdvisor ? "Advisory" : /^(President|(?:Executive |Associate |Assistant )?Vice[- ]President|EVP|VP)$/i.test(title) ? "Leadership" : /^Treasurer$/i.test(title) ? "Finance" : /^Secretary$/i.test(title) ? "Records" : place
     return { title, department, reportsTo: null, duties, isAdvisor }
   })
+  if (!roles.some(r => r.isAdvisor) && /\b(?:one|an?|the)\s+advis[eo]r\b|Article\s+[\w]+\s*[-:\u2013]\s*Advis[eo]rs?\b/i.test(text0)) {
+    const article = /Article\s+\w+\s*[-:\u2013]\s*Advis[eo]rs?\b([\s\S]*?)(?=\n\s*Article\s|$)/i.exec(text0)?.[1] ?? text0
+    const line = article.replace(/[\s\u200b]+/g, " ").split(/(?<=\.)\s+/).find(x => /\b(oversee|advise|guide|sign|support)\b/i.test(x))
+    const duties = line ? text(tidy(line.replace(/^.*?\bshall\s+(?:be\s+)?/i, "")), MAX_DUTIES) : ""
+    if (roles.length < MAX_ROLES) roles.push({ title: "Club Advisor", department: "Advisory", reportsTo: null, duties, isAdvisor: true })
+  }
   const find = (re: RegExp) => roles.find(r => re.test(r.title))
   for (const r of roles) {
     const sentence = sentences.find(s => s.toLowerCase().includes(r.title.toLowerCase()) && /reports? to/i.test(s))
@@ -168,7 +206,9 @@ export function readLocally(source: string): ConstitutionRead {
     const boss = roles.find(x => x.title === r.reportsTo)
     if (boss?.department && /Associate|Intern|Assistant/i.test(r.title) && boss.department !== "Leadership") r.department = boss.department
   }
-  const mission = text(/(?:mission|purpose)[^.\n]*?\b(?:is|shall be)\s+(?:to\s+)?([^.\n]{20,300})/i.exec(text0)?.[1] ? "To " + /(?:mission|purpose)[^.\n]*?\b(?:is|shall be)\s+(?:to\s+)?([^.\n]{20,300})/i.exec(text0)![1] + "." : "", 300) || null
+  const flat = text0.replace(/[\s\u200b]+/g, " ")
+  const said = /(?:mission|purpose)[^.]{0,60}?\b(?:is|shall be)\s+(?:to\s+)?(.{20,400}?[a-z0-9)])\.(?=\s+[A-Z]|\s*$)/i.exec(flat)?.[1]
+  const mission = said ? text(`To ${said}.`, 300) : null
   const real = roles.filter(r => !r.isAdvisor)
   if (real.length < 2) return { mission, departments: [], roles: [], notes: ["No officer titles found. Start from the standard structure below and edit it."], source: "template" }
   const names = [...new Set(roles.map(r => r.department).filter((d): d is string => !!d))]

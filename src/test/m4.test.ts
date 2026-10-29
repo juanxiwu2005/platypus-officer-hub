@@ -8,7 +8,7 @@ import { resetRateLimit } from "../../netlify/lib/http.mts"
 import { seedDemo } from "../data/seed"
 import { clubDraft, completeSetup, saveClubSettings, validateClub, validateProfile, validateRoles, profilePatch, saveProfile } from "../data/settings"
 import { DEFAULT_DEPARTMENTS, departmentsOf, fnForDepartment, fnForRole, hasReportingLoop, orderRoles, rederiveFn, setHolder } from "../data/structure"
-import { mergeReads, readLocally, relevantExcerpt, sanitizeRead, structureFromRead } from "../lib/constitution"
+import { DUTY_BATCH, applyDuties, chunk, dutyItems, readLocally, relevantExcerpt, sanitizeDuties, sanitizeRead, structureFromRead } from "../lib/constitution"
 import { SAMPLE_CONSTITUTION } from "../lib/sampleConstitution"
 import { aiSnapshot } from "../lib/aiContext"
 
@@ -82,22 +82,34 @@ describe("M4 · the model's reply is cut down", () => {
     expect(r.roles.length).toBeLessThanOrEqual(24); expect(r.notes).toHaveLength(4)
     expect(Object.keys(r).sort()).toEqual(["departments", "mission", "notes", "roles", "source"])
   })
-  it("the endpoint asks for the structure and the duties separately, sends only text, re-checks replies and never touches storage", async () => {
+  it("the endpoint answers the structure and then a few positions' duties per request, sends only text, re-checks replies and never touches storage", async () => {
     chat.mockResolvedValueOnce({ data: { roles: [{ title: "President" }, { title: "Treasurer", department: "Finance", reportsTo: "President" }], departments: [{ name: "Finance" }], evil: true }, model: "mock", provider: "mock" })
-    chat.mockResolvedValueOnce({ data: { roles: [{ title: "Treasurer", duties: "Keeps the budget." }], departments: [{ name: "Finance", duties: "Money." }] }, model: "mock", provider: "mock" })
+    chat.mockResolvedValueOnce({ data: { items: [{ name: "Treasurer", duties: "Keeps the budget by 2099-01-01." }, { name: "Ghost", duties: "Invented." }, { name: "Finance", duties: "Money." }] }, model: "mock", provider: "mock" })
     const text = "The President leads the club. Contact me at boss@example.org or 480-555-0100. The Treasurer keeps the budget."
     const a = await (await post({ text, part: "structure", context: { people: [{ id: "x" }] } })).json()
-    const b = await (await post({ text, part: "duties" })).json()
+    const items = [{ kind: "role", name: "Treasurer" }, { kind: "department", name: "Finance" }, ...Array.from({ length: 10 }, (_, i) => ({ kind: "role", name: `Extra ${i}` }))]
+    const b = await (await post({ text, part: "duties", items })).json()
     expect(chat.mock.calls.map(c => c[0].task)).toEqual(["constitution_read", "constitution_read"])
-    expect(chat.mock.calls[0][0].system).toMatch(/Do not write duties/); expect(chat.mock.calls[1][0].system).toMatch(/duties: one or two short sentences/)
-    expect(chat.mock.calls.every(c => c[0].timeoutMs <= 28_000 && c[0].maxTokens <= 2000)).toBe(true)   // answers (or fails clearly) before the 30-second platform limit
-    for (const c of chat.mock.calls) { const sent = JSON.parse(c[0].user); expect(Object.keys(sent)).toEqual(["text"]); expect(sent.text).not.toMatch(/boss@|555-0100/) }
+    expect(chat.mock.calls[0][0].system).toMatch(/Do not write duties/)
+    expect(JSON.parse(chat.mock.calls[1][0].user).items).toHaveLength(DUTY_BATCH)                  // at most six positions per request
+    expect(chat.mock.calls.every(c => c[0].timeoutMs <= 22_000 && c[0].maxTokens <= 1200)).toBe(true) // finishes, or fails clearly, before the platform's 30 seconds
+    for (const c of chat.mock.calls) { const sent = JSON.parse(c[0].user); expect(Object.keys(sent)).toEqual(expect.arrayContaining(["text"])); expect(sent.text).not.toMatch(/boss@|555-0100/); expect(Object.keys(sent).every(k => ["text", "items"].includes(k))).toBe(true) }
     expect(a.roles.map((r: { title: string }) => r.title)).toEqual(["President", "Treasurer"]); expect(a.evil).toBeUndefined()
-    const merged = mergeReads(sanitizeRead(a), sanitizeRead(b))
-    expect(merged.roles.find(r => r.title === "Treasurer")).toMatchObject({ reportsTo: "President", duties: "Keeps the budget." })
-    expect(merged.departments[0]).toEqual({ name: "Finance", duties: "Money." })
-    expect(mergeReads(sanitizeRead(a), null).roles[0].duties).toBe("")
+    expect(b.items).toEqual([{ name: "treasurer", duties: "Keeps the budget by." }, { name: "finance", duties: "Money." }])   // unknown names and dates are dropped
+    expect((await post({ text, part: "duties", items: [] })).status).toBe(400)
     expect(getStore).not.toHaveBeenCalled()
+  })
+  it("duties replace standard text only, in batches of six, and never overwrite what the president wrote", () => {
+    const read = readLocally(SAMPLE_CONSTITUTION)
+    const items = dutyItems(read); expect(items.length).toBe(read.roles.length + read.departments.length)
+    expect(chunk(items, DUTY_BATCH).every(c => c.length <= DUTY_BATCH)).toBe(true)
+    const built = structureFromRead(sanitizeRead({ roles: [{ title: "President" }, { title: "Treasurer", department: "Finance", reportsTo: "President" }], departments: [{ name: "Finance" }] }), { roles: [], people: [] })
+    built.roles.find(r => r.displayName === "President")!.duties = "Written by the president."
+    const found = sanitizeDuties({ items: [{ name: "President", duties: "AI text." }, { name: "Treasurer", duties: "Keeps the budget." }, { name: "Finance", duties: "All money matters." }] }, [{ kind: "role", name: "President" }, { kind: "role", name: "Treasurer" }, { kind: "department", name: "Finance" }])
+    const next = applyDuties({ departments: built.departments, roles: built.roles }, found)
+    expect(next.roles.find(r => r.displayName === "President")!.duties).toBe("Written by the president.")
+    expect(next.roles.find(r => r.displayName === "Treasurer")!.duties).toBe("Keeps the budget.")
+    expect(next.departments.find(d => d.name === "Finance")!.duties).toBe("All money matters.")
   })
   it("a long constitution is cut to the paragraphs about officers and departments", () => {
     const filler = "We hold a picnic every spring and everyone brings a snack to share with friends. ".repeat(20)

@@ -1,30 +1,42 @@
 import type { Config } from "@netlify/functions"
 import { chatJSON } from "../lib/ai.mts"
 import { BadRequest, fail, json, readJSON } from "../lib/http.mts"
-import { CONSTITUTION_DUTIES_SYSTEM, CONSTITUTION_STRUCTURE_SYSTEM, relevantExcerpt, sanitizeRead } from "../../src/lib/constitution.ts"
+import { CONSTITUTION_DUTIES_SYSTEM, CONSTITUTION_STRUCTURE_SYSTEM, DUTY_BATCH, relevantExcerpt, sanitizeDuties, sanitizeRead, type DutyItem } from "../../src/lib/constitution.ts"
 
 /**
  * /api/setup/constitution — the president pressed Continue after choosing a constitution (M4). The browser has already read
- * the file and sends only its text, in two requests that run side by side: part "structure" (positions, departments, who reports
- * to whom) and part "duties" (what each does). Two short answers finish inside the 30 seconds a request lasts here; one long
- * answer did not (Netlify log, 2026-10-29: 502 and 504 at 30 seconds). Each reply is cut down by `sanitizeRead` (unknown
- * fields dropped, dates removed, sizes capped) and checked again in the browser. A long text is cut to its most relevant paragraphs.
- * It uses the fast model; Gemma took 56 seconds on a real constitution.
+ * the file and sends only its text, in short requests one after another: part "structure" (positions, departments, who reports
+ * to whom), then part "duties" for a few named positions at a time. Each finishes inside the 30 seconds a request lasts here.
+ * One long answer did not, and two at once did not either, because ASU AIR answers one request at a time (Netlify log, 2026-10-29:
+ * structure 17 s, a second parallel request got no reply in 26 s). Replies are cut down by `sanitizeRead` / `sanitizeDuties`
+ * (unknown fields dropped, dates removed, sizes capped) and checked again in the browser. A long text is cut to its most relevant
+ * paragraphs. It uses the fast model; Gemma took 56 seconds on a real constitution.
  * Nothing is stored here: no database, no archive, no log of the text. Fictional documents only.
  */
 const MAX_TEXT = 60_000
-const PARTS = { structure: { system: CONSTITUTION_STRUCTURE_SYSTEM, maxTokens: 1200 }, duties: { system: CONSTITUTION_DUTIES_SYSTEM, maxTokens: 1800 } } as const
+// Under 30 seconds in total, counting a cold start: if the AI is slower than this, answer with a clear message
+// instead of letting the platform cut the request off with an empty 502/504.
+const TIMEOUT_MS = 21_000
 export default async (req: Request) => {
   try {
-    const body = await readJSON(req, MAX_TEXT + 2_000)
+    const body = await readJSON(req, MAX_TEXT + 4_000)
     const raw = typeof body.text === "string" ? body.text : ""
     const part = body.part === "duties" ? "duties" : "structure"
     if (raw.trim().length < 20) throw new BadRequest("Add some constitution text first.")
     if (raw.length > MAX_TEXT) throw new BadRequest("This text is too long to send. The browser sends the relevant parts only.")
     const text = relevantExcerpt(raw.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[email]").replace(/\b(?:\+?1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b/g, "[phone]"))
-    // 26 s: if the AI is slower than that, answer with a clear message before the platform cuts the request off with an empty 502.
-    const { data, model, provider } = await chatJSON({ task: "constitution_read", system: PARTS[part].system, user: JSON.stringify({ text }), maxTokens: PARTS[part].maxTokens, temperature: 0.1, timeoutMs: 26_000 })
-    return json({ ...sanitizeRead(data, "ai"), part, model, provider })
+    if (part === "structure") {
+      const { data, model, provider } = await chatJSON({ task: "constitution_read", system: CONSTITUTION_STRUCTURE_SYSTEM, user: JSON.stringify({ text }), maxTokens: 1200, temperature: 0.1, timeoutMs: TIMEOUT_MS })
+      return json({ ...sanitizeRead(data, "ai"), part, model, provider })
+    }
+    const items: DutyItem[] = (Array.isArray(body.items) ? body.items : []).slice(0, DUTY_BATCH).flatMap((i: unknown) => {
+      const x = i && typeof i === "object" ? i as Record<string, unknown> : {}
+      const name = typeof x.name === "string" ? x.name.replace(/\s+/g, " ").trim().slice(0, 60) : ""
+      return name ? [{ kind: x.kind === "department" ? "department" as const : "role" as const, name }] : []
+    })
+    if (!items.length) throw new BadRequest("Name the positions to read.")
+    const { data, model, provider } = await chatJSON({ task: "constitution_read", system: CONSTITUTION_DUTIES_SYSTEM, user: JSON.stringify({ text, items }), maxTokens: 900, temperature: 0.1, timeoutMs: TIMEOUT_MS })
+    return json({ part, items: [...sanitizeDuties(data, items)].map(([name, duties]) => ({ name, duties })), model, provider })
   } catch (e) { return fail(e) }
 }
 export const config: Config = { path: "/api/setup/constitution", method: "POST" }
