@@ -16,7 +16,10 @@
    - 存在且是 `deepseek` → **删掉**（Options → Delete）。代码里 DeepSeek 已移除，留着会让 AI 直接拒绝工作。
 6. 如果还有 DeepSeek 的旧 key（变量名带 `DEEPSEEK`），也删掉。
 7. 找 `ORG_SETUP_ENABLED`：**必须不存在，或者不是 `true`**。（IRB 要求服务器不存任何资料。）如果是 `true`，删掉。
-8. 改完后，**Deploys → Trigger deploy → Deploy site** 重新部署一次，环境变量才会生效。
+8. 改完后要重新部署，环境变量才会生效。**正式站和预览站要分开重来**：
+   - 正式站：**Deploys → Trigger deploy → Deploy site**。（这只会重建 `main`，不会改动正式站的内容。）
+   - 预览站（第 2 步要用）：还是在 **Deploys** 页，在列表里找最新一条 **Deploy Preview #8**，点进去，再点右上角的 **Retry**（选 *Retry with latest branch commit*）。
+     只点 Trigger deploy 的话，预览站还在用旧的变量。
 
 ## 2. 用虚构数据做一次小的 AI 冒烟测试（预览站）
 
@@ -38,7 +41,16 @@
 
 - 限流规则：每个 IP 每分钟 60 次、每小时 600 次；全站每小时 3000 次。
 - 它是**每个函数实例各算各的**（存在内存里），所以是"挡住滥用"，不是精确计数。
-- 确认方法：在预览站打开浏览器开发者工具（Chrome：F12 → Network），连续快速刷新触发 Ask 超过 60 次，应该出现状态码 **429**。如果你不想这样试，告诉我，我写成一个脚本给你。
+- 确认方法（**不花 AI 额度**）：用的是 `/api/preflight`，它只跑本地规则检查，不调用 AI，但和 Ask 共用同一个限流。
+  1. 用 Chrome 打开预览站 https://deploy-preview-8--platypus-officer-hub.netlify.app ，登录后停在 Today 页。
+  2. 按 **F12**（Mac 是 **Option + Command + J**），点上面的 **Console**。
+  3. 把下面这一行整行粘进去，按回车：
+
+     `for (let i = 1; i <= 70; i++) { const r = await fetch('/api/preflight', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); console.log(i, r.status) }`
+
+  4. 前面会一行行打出 `200`，**到第 61 次左右应该开始出现 `429`**。看到 `429` 就说明限流在工作。
+  5. 如果 70 次都没有 `429`：可能是请求被分到了不同的服务器实例（上面说的"各算各的"）。再粘一次同一行试试；还是没有，就把屏幕截图发给我，**先不要关访问保护**。
+  - 不要用连续刷新页面或连发 Ask 的办法测：刷新页面不经过限流，连发 Ask 会白花 AI 额度。
 - 看到 429 之后，再去 **Site configuration → Access & security → Visitor access**，把保护关掉（只在你确定要公开时）。
 
 ## 4. 合并后（只有你说「批准合并」才做）
@@ -62,8 +74,10 @@
 | #6（M2a/M2b） | 内容已在 v1.0 里，可以关闭 |
 | #5、#4、#3、#2 | 旧的预览/集结，可以关闭 |
 
+建议**等正式站稳定运行几天、确认没问题之后**再关 PR 和删分支：关掉的 PR 预览网址就没了，删掉的分支也不好找回。
+
 PR 全部关闭后，这些分支可以删：`feat/ai-night-mode`、`feat/m2b-ai-intake`、`feat/organization-setup-ai`、`feat/ai-native-phase1`、`integration/dp3-dp4-merge`、`integration/v1.1-fix`、`integration/v1.0`、`v1`。保留 `main`。
 
 ## 6. 之后要做的（v1.5）
 
-见 `docs/PROGRESS.md` 最上面的 S9 一行和 `docs/M4_ONBOARDING_PLAN.md`。
+见 `docs/PROGRESS.md` 交接记录里 S9 那一行和 `docs/M4_ONBOARDING_PLAN.md`。

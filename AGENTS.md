@@ -2,24 +2,31 @@
 
 这个仓库是 **Platypus** 的代码和计划：一个给学生社团用的“团队型 AI 幕僚长”网站，也是 Juanxi (Steve) Wu 的 ASU Barrett 荣誉论文（STUDY00024727）第 3 阶段的原型。几个 AI 会轮流在这里工作，所以**每次开始前先读这份文件，结束时按第 4 节交接**。
 
-## 0. 当前仓库与 Agent 工作流事实（2026-10-28 验证）
+## 0. 当前仓库与 Agent 工作流事实（2026-10-29 验证）
 
 - GitHub 正本：`juanxiwu2005/platypus-officer-hub`。
 - `main` 是 Production，当前基线提交仍为 `4dc55ba`。任何 AI 都不得直接修改、推送或合并 `main`。
   **下面提到的所有改动都还没有进入 `main`。**
-- 当前有 6 个开着的 Draft PR，每个对应一个 Deploy Preview（**预览编号 = PR 编号**）：
+- **下一个上线版本是 `integration/v1.0`（PR #8）**，它包含 PR #5、#6、#7 的全部内容，
+  再加上 S6–S9 和 M3 排序题。只有 Juanxi 说「批准合并」才合并到 `main`，步骤见 `docs/LAUNCH_STEPS.md`。
+  新的开发都在 `integration/v1.0` 上做（见第 8.4 节）。
+- 当前有 7 个开着的 Draft PR，每个对应一个 Deploy Preview（**预览编号 = PR 编号**）：
 
   | PR | 分支 | 是什么 | CI |
   | --- | --- | --- | --- |
   | #2 | `feat/ai-native-phase1` | AI-native 三画面原型 | — |
   | #3 | `feat/organization-setup-ai` | DP3：Organization Setup v3 + workspace | 通过 |
+  | #4 | `integration/v1.1-fix` | DP4：main + S1/S2/S3 修复（内容已在 PR #8 里）| 最后一次失败（10-27，跑了不到 1 分钟，很可能是当天的 runner 问题，`67345d7` 修好后 #4 没再跑过）|
   | #5 | `integration/dp3-dp4-merge` | **DP5：DP3 + DP4 合并版**，AI 走 ASU AIR，服务器存储已隐藏 | 通过 |
-  | #7 | `feat/ai-night-mode` | 自动开发分支，**已并入 DP5** | 通过 |
   | #6 | `feat/m2b-ai-intake` | DP6：DP5 + M2a/M2b（Ask 分清任务与活动、AI 预填表单、活动 Plan check）| 旧的 CI 因 `e2e/today.spec.ts:8` 过时而失败；修复在 PR #8 |
-  | #8 | `integration/v1.0` | **v1.0 集结预览：PR #7（设计 token）+ PR #6（M2b）合并版**，预览 https://deploy-preview-8--platypus-officer-hub.netlify.app ，标题「[预览·请勿合并]」 | 见 PROGRESS.md |
+  | #7 | `feat/ai-night-mode` | DP5 + Night Mode 工具链 + N1–N6 设计 token（全部已在 PR #8 里）| 通过 |
+  | #8 | `integration/v1.0` | **v1.0 集结预览**，预览 https://deploy-preview-8--platypus-officer-hub.netlify.app ，标题「[预览·请勿合并]」 | 通过（2026-10-29）|
 
   ⚠️ 这些分支**不能改名也不能删**：删 head 或 base 分支都会关闭 PR，重开会拿到新编号，
   旧预览网址永远回不来。`v1` 是 PR #2/#3 的 base，同样不能动。命名规则见第 8 节。
+- ⏸ **Night Mode 自 2026-10-28 起暂停**，开发改由人工会话完成。恢复之前先修
+  `docs/NIGHT_MODE.md` 第 1 节记下的脚本问题（推送后立刻查 CI 会误判失败、队列不处理残留改动、
+  macOS bash 3.2 的变量名问题）。下面关于 Night Mode 的条目保留作为恢复时的说明。
 - `scripts/night-mode.mjs` 是唯一可以代表 Night Mode 做 commit、push、读取 CI 和写 PR 评论的控制器；
   OpenCode Agent 自己不能做这些动作。`scripts/night-queue.sh` 是多任务队列（见 `docs/NIGHT_MODE.md` 7d）。
 - **编码主力是 `backend-coder`（ASU `glm-5-3`），不是 `orchestrator`。** orchestrator 被配置为
@@ -46,8 +53,8 @@
   2026-10-27 那一晚 7 个任务全军覆没，唯一原因就是 Claude 在队列运行期间推了一个
   文档提交，本地落后于远端，推送被拒，之后每个任务撞同一面墙。
   云端会话看不到本地在跑什么 —— **开跑前要告诉它一声**。详见 `docs/NIGHT_MODE.md` 7b-2。
-- `feat/ai-night-mode` 当前顶端 `55949b8`。那一晚的完整提交栈备份在 `backup/2026-10-28-queue`，
-  未验证的半成品在 `wip/T2-radius` 和 `wip/T3-fontscale`。待办任务库见 `docs/night-tasks/`。
+- `feat/ai-night-mode` 当前顶端 `94e2882`（N6）。`backup/2026-10-28-queue` 和 `wip/*` 分支
+  只存在于 Juanxi 的 Mac 本地，GitHub 上没有。任务库 `docs/night-tasks/` 的 N1–N6 已全部完成。
 - 写 Night Mode 任务文件之前，除了 7b 预算卡，还必须看 **`docs/NIGHT_MODE.md` 7c 第 7–9 条**：
   任务的事实对不对不等于它在语义上做得到；一个任务只装一件事；纯重命名要写明不需要新增测试。
 - 状态冲突时，先检查 Git/PR/CI，再更新文档；不要用聊天记忆覆盖仓库事实。
@@ -140,9 +147,18 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 ## 6b. v1.1 改版后的代码地图（2026-10-23，覆盖上面关于页面的旧描述）
 
 - 外框：`src/components/Layout.tsx`（顶栏、Demo 小标、铃铛、导航）+ `src/components/rail/`（`RailContext.tsx` 右栏状态；`Rail.tsx` 两个标签和详情分发；`AskPanel.tsx` 对话；`ChangeCard.tsx` 变更单审核）。
-- 组件：`src/components/ui/`。AI：`src/lib/assistant.ts`（浏览器）、`src/lib/chatCards.ts`（共用过滤）、`netlify/functions/chat.mts`（`/api/chat`）。v1.2：`src/lib/aiContext.ts` 把“当前查看者能看到的全部数据”整理给 AI（不含别人的个人缓冲、私信、文件、演示密钥）；`src/data/sharedPool.ts` 是服务器上的虚构共享池，只读，`/api/pool` 可取；小改动走 store 的 `aiAutoApply` / `undoAuto`，大改动走 `reviewChange`。旧的 `/api/command`、`/api/ask`、`/api/nudge/draft` 仍在用。
+- 组件：`src/components/ui/`。AI：`src/lib/assistant.ts`（浏览器）、`src/lib/chatCards.ts`（共用过滤）、`netlify/functions/chat.mts`（`/api/chat`）。v1.2：`src/lib/aiContext.ts` 把“当前查看者能看到的全部数据”整理给 AI（不含别人的个人缓冲、私信、文件、演示密钥）；`src/data/sharedPool.ts` 是虚构共享池，只读（`/api/pool` 端点已在 S2 删除）；小改动走 store 的 `aiAutoApply` / `undoAuto`，大改动走 `reviewChange`。旧的 `/api/command`、`/api/ask`、`/api/nudge/draft` 仍在用。
 - 流程图：`src/components/flow/metro.ts`（纯布局，有单元测试）+ `MetroChart.tsx`。看板：`src/data/board.ts`。
 - 页面测试：`e2e/helpers.ts` 有 `resetDemo`、`demoClock`、`ask`。本机没有下载浏览器时用 `PW_CHROMIUM=<chromium 路径>`。
+
+## 6c. v1.0 新增的部分（2026-10-29，`integration/v1.0`）
+
+- **设计 token 与护栏：** token 都在 `src/styles.css` 的 `:root`，说明见 `docs/DESIGN_TOKENS.md`。`.stylelintrc.json` 只管 `src/styles.css`；`eslint.config.js` 禁止行内 style（CSS 变量注入和数据驱动的 left/top/width/height 除外）；`src/organization/`、`src/phase1/`、`src/workspace/` 的 CSS 和行内样式暂时排除在外。`npm run check` = lint + build + 单元测试 + 页面测试 + `npm run words`（字数上限见第 7 节第 5 条）。
+- **Behind the scenes 开关：** `src/components/Bts.tsx`，开关在顶栏 Demo 小标的菜单里，状态存 localStorage；关闭时来源说明不进 DOM。测试 `e2e/bts.spec.ts`。
+- **触屏：** `src/components/ui/index.tsx` 的 `Hover` 在没有鼠标的设备上改为点一下展开。测试 `e2e/touch.spec.ts`。
+- **M2b（Ask 分清任务与活动）：** 表单在 `src/components/rail/AskPanel.tsx`、`TaskFields.tsx`；任务的社团截止日由 `src/engine/taskDates.ts` 算；活动 Plan check 是 `src/lib/eventReview.ts` + `netlify/functions/event-review.mts`（`/api/event/review`）；提示词 `src/lib/chatCards.ts`，策略 `docs/PROMPT_STRATEGY.md`。
+- **排序题 Edit steps（M3）：** `src/components/StepEditor.tsx` + `src/lib/stepOrder.ts`。界面只写步骤的 `dependsOn`、`estDays`（处理所需天数）、`phase`，以及活动的 `phaseOrder`（大排序），通过 store 的 `applyStepEdits` 一次写入（会进交互日志）；日期仍由 `schedule.ts` 算。方案 `docs/M3_RANKING_PLAN.md`，测试 `e2e/steps.spec.ts`。
+- **其他：** 新记录的 id 由 `src/lib/ids.ts` 生成（不再用数组长度）。AI 只走 ASU AIR，`AI_PRESET=deepseek` 会被拒绝（`netlify/lib/ai.mts`）。两套 onboarding 合一的方案 `docs/M4_ONBOARDING_PLAN.md` **还在等 Juanxi 审核，没有实施**。
 
 ## 7. 界面规则（2026-10-23 简化改版，Juanxi 批准）
 
@@ -203,7 +219,7 @@ gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
   --jq '.[] | "PR #\(.number): head=\(.head.ref)  base=\(.base.ref)"'
 ```
 
-### 8.3 当前的分支（2026-10-28）
+### 8.3 当前的分支（2026-10-29）
 
 | 分支 | 是什么 | 能不能动 |
 | --- | --- | --- |
@@ -212,28 +228,28 @@ gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
 | `integration/v1.1-fix` | **Deploy Preview 4**（PR #4）= main + S1/S2/S3 修复 | ❌ 改名会毁掉 DP4 |
 | `feat/organization-setup-ai` | **Deploy Preview 3**（PR #3）= v1 + `src/phase1/` + `src/organization/` + `src/workspace/` | ❌ 改名会毁掉 DP3 |
 | `feat/ai-native-phase1` | Deploy Preview 2（PR #2）| ❌ 改名会毁掉 DP2 |
-| `feat/ai-night-mode` | **Deploy Preview 7**（PR #7）= DP5 + Night Mode 工具链 | ❌ 改名会毁掉 DP7 |
+| `feat/ai-night-mode` | **Deploy Preview 7**（PR #7）= DP5 + Night Mode 工具链 + N1–N6 设计 token | ❌ 改名会毁掉 DP7 |
 | `integration/dp3-dp4-merge` | **Deploy Preview 5**（PR #5）= DP4 + DP3 合并版（M1）：AI 走 AIR、服务器存储隐藏 | ❌ 改名会毁掉 DP5 |
-| `docs/m2a-prompt-strategy` | M2a 提示词策略文档（只有文档），已包含在下一行的分支里 | 可以删（没有 PR 用它）|
 | `feat/m2b-ai-intake` | **Deploy Preview 6**（PR #6，base `main`）= DP5 + M2a + M2b：Ask 分清任务与活动、AI 预填表单、活动 Plan check | ❌ 改名会毁掉 DP6 |
-| `integration/v1.0` | **Deploy Preview 8**（PR #8，base `main`）= PR #7（N1–N6 设计 token）+ PR #6（M2b）合并版，已修 `e2e/today.spec.ts:8`。预览 https://deploy-preview-8--platypus-officer-hub.netlify.app | ❌ 改名会毁掉 DP8 |
+| `integration/v1.0` | **Deploy Preview 8**（PR #8，base `main`）= PR #7 + PR #6 合并版，再加 S6–S9、M3 排序题、删除 DeepSeek。预览 https://deploy-preview-8--platypus-officer-hub.netlify.app | ❌ 改名会毁掉 DP8 |
 
-**Juanxi 重点关注 DP3 和 DP4，合并方案见 `docs/EXECUTION_PLAN_2026-10-27.md` 第 8–10 节。**
-DP5（PR #5）是两者的合并版，CI 已通过，是最接近「下一个上线版本」的分支。
+**最接近「下一个上线版本」的是 `integration/v1.0`（DP8）**，它已经包含 DP3、DP4、DP5、DP6、DP7 的内容。
+上线后哪些 PR 可以关、关了之后哪些分支可以删，见 `docs/LAUNCH_STEPS.md` 第 5 节。
 
-⚠️ 另有 6 个内容已被完全包含、且没有 PR 的冗余分支待删：
-`fix/s1-ux-bugs`、`fix/s2-safety`、`fix/s3-perf`、`claude/platypus-perf-ui-polish-74k1ul`、
-`fix/setup-v3-completion`、`feat/activity-workspace-v1`。
-删除要由 Juanxi 在 GitHub 的 Branches 页面操作（云端会话的删除接口被代理禁止）。
+2026-10-29 核对：以前记的冗余分支（`fix/s1-ux-bugs`、`fix/s2-safety`、`fix/s3-perf`、
+`claude/platypus-perf-ui-polish-74k1ul`、`fix/setup-v3-completion`、`feat/activity-workspace-v1`、
+`docs/m2a-prompt-strategy`）在 GitHub 上都已经不存在了，不用再处理。
 
 ### 8.4 以后新开分支
 
-从 `integration/v1.1-fix` 开，不要从 `main` 开：
+上线之前，新的开发直接在 `integration/v1.0` 上做；要单独做一件事就从它开分支，不要从 `main` 开：
 
 ```
 git fetch origin
-git checkout -b fix/<描述> origin/integration/v1.1-fix
+git checkout -b fix/<描述> origin/integration/v1.0
 ```
+
+合并到 `main` 之后，改为从 `main` 开分支。
 
 做完推自己的分支，**不要自己合并**。Juanxi 在 GitHub 上看过再合。
 
