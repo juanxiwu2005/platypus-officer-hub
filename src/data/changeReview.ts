@@ -1,4 +1,5 @@
 import type { DemoState, Event, Node } from "./types"
+import { canLead } from "./permissions"
 import { commandContext, sanitizeOps, validDate, type CommandOp } from "../lib/commands"
 import type { ChangeSet, Tier } from "./types"
 import { applySchedule } from "../engine/schedule"
@@ -7,11 +8,7 @@ import { topoOrder } from "../engine/schedule"
 import { taskAnchor } from "../engine/taskDates"
 import { addNotices } from "./taskWorkflow"
 
-export const canLead = (s: DemoState) => {
-  const person = s.people.find(p => p.id === s.viewerId)
-  const role = s.roles.find(r => r.id === person?.roleId)
-  return role?.holderId === person?.id && (role?.fn === "president" || role?.fn === "vice_president")
-}
+export { canLead }
 /**
  * Who may create events (Juanxi, 2026-10-27): the president and VP by default; the president can open it to
  * everyone or to chosen officers in Settings.

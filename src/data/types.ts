@@ -316,15 +316,68 @@ export interface OfficerGrant {
   usedOn: string | null
 }
 
+/** Where a contact sits in the relationship (CRM board columns). */
+export type RelationStage = "cold" | "warm" | "active" | "dormant"
+/** "all" = every member; "leads" = president, vice president and the owning role only. */
+export type ContactVisibility = "all" | "leads"
+export type PreferredChannel = "" | "email" | "phone" | "text" | "instagram" | "linkedin" | "in_person"
+export type InteractionKind = "email" | "call" | "meeting" | "event" | "other"
+
+/** A company, campus office, club or agency. One organization can have many contacts. */
+export interface Organization {
+  id: string
+  name: string
+  type: string
+  website: string
+  email: string
+  phone: string
+  address: string
+  tags: string[]
+  notes: string
+  createdBy: string | null
+}
+
+/** A person the club works with. Owned by a role, so it stays with the role at handoff. */
 export interface Contact {
   id: string
   name: string
-  organization: string
+  title: string
+  organizationId: string | null
+  /** Type: Vendor, Guest speaker, Sponsor, Partner club, Campus office... */
   relation: string
+  email: string
+  phone: string
+  /** LinkedIn or Instagram handle or link. */
+  social: string
+  preferredChannel: PreferredChannel
+  tags: string[]
+  stage: RelationStage
+  /** How the club met them. */
+  source: string
+  /** The member who introduced them, if any. */
+  introducedById: string | null
+  visibility: ContactVisibility
   lastContact: string | null
   cadenceDays: number
   ownerRoleId: string
   eventIds: string[]
+  createdBy: string | null
+}
+
+/** One entry in the shared timeline: who talked to whom, what happened, what comes next. */
+export interface Interaction {
+  id: string
+  contactId: string | null
+  organizationId: string | null
+  date: string
+  kind: InteractionKind
+  byId: string
+  summary: string
+  outcome: string
+  nextStep: string
+  nextDue: string | null
+  nextDone: boolean
+  eventId: string | null
 }
 
 export type FundingStage =
@@ -398,6 +451,8 @@ export interface DemoState {
   nudges: Nudge[]
   contributions: Contribution[]
   contacts: Contact[]
+  organizations: Organization[]
+  interactions: Interaction[]
   funding: Funding[]
   handoff: HandoffSeason | null
   handoffRoles: RoleHandoff[]

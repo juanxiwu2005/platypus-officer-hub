@@ -8,7 +8,8 @@ import { NudgeComposer } from "../NudgeComposer"
 import { TaskDetail } from "../TaskDetail"
 import { useViewer } from "../../data/store"
 import { FundingDetail } from "../../pages/Funding"
-import { PartnerDetail } from "../../pages/Partners"
+import { PartnerDetail } from "../crm/ContactDetail"
+import { OrgDetail } from "../crm/OrgDetail"
 import { HandoffRoleDetail } from "../../pages/Handoff"
 import { BoardSettingsPanel } from "../BoardSettings"
 import { Empty } from "../ui"
@@ -110,6 +111,7 @@ function DetailView() {
     }
     case "funding": body = <FundingDetail eventId={d.eventId} />; break
     case "partner": body = <PartnerDetail id={d.id} />; break
+    case "org": body = <OrgDetail id={d.id} />; break
     case "handoff": body = <HandoffRoleDetail roleId={d.roleId} />; break
     case "board": body = <BoardSettingsPanel />; break
   }
