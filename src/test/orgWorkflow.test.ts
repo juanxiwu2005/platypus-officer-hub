@@ -200,20 +200,7 @@ describe("org workflow · every new event uses it", () => {
   })
 })
 
-describe("org workflow · the chart and readable role names", () => {
-  it("puts each step one column right of the latest step it waits for, with no two cards on top of each other", async () => {
-    const { workflowChart } = await import("../engine/workflow")
-    const chart = workflowChart(presetSteps(), base.roles)
-    const at = new Map(chart.nodes.map(n => [n.key, n]))
-    expect(chart.nodes).toHaveLength(EVENT_STEPS.length)
-    for (const e of chart.edges) expect(at.get(e.to)!.level).toBeGreaterThan(at.get(e.from)!.level)
-    for (const s of EVENT_STEPS.filter(x => x.dependsOn?.length)) expect(at.get(s.key)!.level).toBe(1 + Math.max(...s.dependsOn!.map(d => at.get(d)!.level)))
-    expect(at.get("partner")!.level).toBe(0); expect(at.get("approve")!.level).toBeGreaterThan(at.get("budget")!.level)
-    const spots = chart.nodes.map(n => `${n.level}:${n.row}`); expect(new Set(spots).size).toBe(spots.length)
-    expect(chart.nodes.find(n => n.key === "usg")).toMatchObject({ locked: true, ownerRoleId: roleId("Treasurer") })
-    const looped = presetSteps().map(s => s.key === "partner" ? { ...s, dependsOn: ["archive"] } : s)
-    expect(workflowChart(looped, base.roles).nodes).toHaveLength(EVENT_STEPS.length)             // a loop never hides a step or hangs the page
-  })
+describe("org workflow · readable role names", () => {
   it("short role names lead with the area, and identical ones keep their full title", async () => {
     const { roleShort, roleLabels } = await import("../data/structure")
     expect(roleShort("Vice President of Outreach")).toBe("Outreach (VP)")

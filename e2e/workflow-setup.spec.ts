@@ -10,6 +10,11 @@ const CHANGES = {
   ],
   conflicts: [{ text: "Running a raffle at events would break the ASU rule on raffles.", rules: ["R15"] }],
 }
+/** Open a step's details: a click on a computer; on a phone a tap opens the actions first, and "Open details" is in them. */
+const openStep = async (page: import("@playwright/test").Page, k: string) => {
+  await page.getByTestId(`flow-node-${k}`).click()
+  if (test.info().project.name === "mobile") await page.getByTestId("flow-menu").getByRole("button", { name: "Open details" }).click()
+}
 const OWNERS = { part: "owners", owners: [{ key: "budget", role: "Treasurer" }, { key: "permission", role: "Secretary" }, { key: "flyer", role: "Marketing lead" }] }
 
 test.beforeEach(async ({ page }) => {
@@ -49,39 +54,40 @@ test("planning notes and files adapt the standard workflow: changes shown, ASU r
   await expect(list.getByTestId("wf-refused")).toContainText("Submit the Food Exception Request")
   await expect(list.getByTestId("wf-refused")).toContainText("ASU rule R06")
   await expect(list.getByTestId("wf-conflict")).toContainText("raffle")
-  // The chart comes first: every step as a card with who does it; the list to edit is behind "Edit steps" and opens at the card you click.
-  const chart = step.getByTestId("workflow-chart")
-  await expect(chart.getByTestId("wf-card-permission")).toContainText("Collect permission forms"); await expect(chart.getByTestId("wf-card-permission")).toContainText("Secretary")
-  await expect(chart.getByTestId("wf-card-foodex")).toContainText("ASU")
-  await expect(step.getByTestId("workflow-edit")).not.toHaveAttribute("open", "")
-  const cardX = async (k: string) => (await chart.getByTestId(`wf-card-${k}`).boundingBox())!.x
-  expect(await cardX("approve")).toBeLessThan(await cardX("registry")); expect(await cardX("partner")).toBeLessThan(await cardX("draft"))   // left to right in the order the work happens
-  await chart.getByTestId("wf-card-flyer").click()
-  await expect(step.getByTestId("workflow-edit")).toHaveAttribute("open", "")
-  // The edit module shows the new step, the renamed one, and who does each step.
-  const editor = step.getByTestId("workflow-editor")
-  await expect(editor.getByLabel("Step title: permission")).toHaveValue("Collect permission forms")
-  await expect(editor.getByLabel("Owner: Collect permission forms")).toHaveValue("r-sec")
-  await expect(editor.getByLabel("Step title: flyer")).toHaveValue("Design the flyer in Canva")
-  await expect(editor.getByLabel("Days of work: Design the flyer in Canva")).toHaveValue("4")
-  await expect(editor.getByTestId("wf-step-foodex")).toContainText("ASU R06")
+  // The workflow is drawn on the same chart as an event's Flow tab, left to right. Each step says who does it; steps ASU rules need are marked.
+  const chart = step.getByTestId("flow-chart")
+  const node = (k: string) => step.getByTestId(`flow-node-${k}`)
+  await expect(chart).toBeVisible()
+  await expect(node("permission")).toHaveAttribute("aria-label", /Collect permission forms\. Done by Secretary/)
+  await expect(node("foodex")).toHaveAttribute("aria-label", /Needed by ASU rule R06/)
+  const at = async (k: string) => { const b = (await node(k).boundingBox())!; return test.info().project.name === "mobile" ? b.y : b.x }     // a phone draws it top to bottom
+  expect(await at("draft")).toBeLessThan(await at("budget")); expect(await at("approve")).toBeLessThan(await at("registry"))     // in the order the work happens
+  // A step's details open under the chart.
+  await openStep(step.page(), "flyer")
+  const panel = step.getByTestId("workflow-step-panel")
+  await expect(panel.getByLabel("Step name")).toHaveValue("Design the flyer in Canva")
+  await expect(panel.getByLabel("Days of work")).toHaveValue("4")
+  await expect(panel.getByLabel("Done by")).toHaveValue("r-mkt")
   // Undo one change: the flyer goes back to the standard step.
   await list.getByRole("button", { name: "Undo: Changed Design the flyer in Canva" }).click()
-  await expect(editor.getByLabel("Step title: flyer")).toHaveValue("Finish the event flyer")
+  await expect(node("flyer")).toHaveAttribute("aria-label", /Finish the event flyer/)
   await expect(list.getByTestId("wf-applied")).toHaveCount(1)
   // A change that breaks an ASU rule must be fixed before moving on: take away what the speaker request waits for.
-  await editor.getByTestId("wf-step-usgspeaker").getByRole("button", { name: /no longer waits for Get the speaker's signed SAP agreement/ }).click()
+  await openStep(step.page(), "usgspeaker")
+  await panel.getByRole("button", { name: /no longer waits for Get the speaker's signed SAP agreement/ }).click()
   await expect(step.getByTestId("wf-blocked")).toContainText("must wait for")
+  await expect(node("usgspeaker")).toHaveClass(/mark-error/)
   await step.getByRole("button", { name: "Continue", exact: true }).click()
   await expect(step.getByRole("alert")).toContainText("must wait for")
   await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 5 of 6 · Event workflow")
-  await editor.getByTestId("wf-step-usgspeaker").getByLabel("Add a step that Submit the USG speaker request waits for").selectOption({ label: "Get the speaker's signed SAP agreement" })
+  await panel.getByLabel("Add a step that Submit the USG speaker request waits for").selectOption({ label: "Get the speaker's signed SAP agreement" })
   await expect(step.getByTestId("wf-blocked")).toHaveCount(0)
-  // The club's own step, by hand.
-  await editor.getByText("Add a step of your own", { exact: true }).click()
-  await editor.getByLabel("Step", { exact: true }).fill("Photo release check")
-  await editor.getByRole("button", { name: "Add step", exact: true }).click()
-  await expect(editor.getByLabel("Step title: photo-release-check")).toHaveValue("Photo release check")
+  // The club's own step, right on the chart: double-click a step, add one after it, name it.
+  if (test.info().project.name === "mobile") await node("budget").click(); else await node("budget").dblclick()
+  await step.page().getByTestId("flow-menu").getByRole("button", { name: "Add a step after this one" }).click()
+  await expect(panel.getByLabel("Step name")).toHaveValue("New step")
+  await panel.getByLabel("Step name").fill("Photo release check")
+  await expect(node("new-step")).toHaveAttribute("aria-label", /Photo release check\. Done by Treasurer/)
   await step.getByRole("button", { name: "Continue", exact: true }).click()
   await step.getByRole("button", { name: "Prepare first workflow", exact: true }).click()
   await expect(page.getByTestId("setup-preview")).toBeVisible()
@@ -92,23 +98,23 @@ test("planning notes and files adapt the standard workflow: changes shown, ASU r
   const saved = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!); const roleName = (id: string) => s.roles.find((r: { id: string }) => r.id === id)?.displayName
     const steps = s.org.eventWorkflow.steps as { key: string; ownerRoleId: string; custom?: boolean; dependsOn: string[] }[]
     return { summary: s.org.eventWorkflow.summary, permission: steps.find(x => x.key === "permission"), owners: Object.fromEntries(steps.map(x => [x.key, roleName(x.ownerRoleId)])), foodex: steps.some(x => x.key === "foodex"), nodes: s.nodes.filter((n: { eventId: string }) => n.eventId === "setup-event-dfs").map((n: { stepKey: string; title: string; ownerId: string }) => [n.stepKey, n.ownerId]) } })
-  expect(saved.summary).toBe("Standard workflow, 2 added.")
+  expect(saved.summary).toBe("Standard workflow, 2 added, 1 changed.")
   expect(saved.foodex).toBe(true)                                                          // the rule step stayed
-  expect(saved.owners).toMatchObject({ permission: "Secretary", budget: "Treasurer", flyer: "Marketing lead", "photo-release-check": "Events lead" })
+  expect(saved.owners).toMatchObject({ permission: "Secretary", budget: "Treasurer", flyer: "Marketing lead", "new-step": "Treasurer" })
   expect(saved.nodes).toContainEqual(["permission", "priya"])                              // the first event was built from the club's workflow
 
   // After setup: the same editor in Settings → Workflow, and the saved steps are what new events start from.
   await page.goto("/#/settings")
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
   const settings = page.getByTestId("workflow-settings")
-  await expect(settings).toContainText("Standard workflow, 2 added.")
-  await expect(settings.getByLabel("Step title: permission")).toHaveValue("Collect permission forms")
-  await settings.getByText("Edit steps", { exact: true }).click()
-  await settings.getByLabel("Days of work: Collect permission forms").fill("3")
+  await expect(settings).toContainText("Standard workflow, 2 added, 1 changed.")
+  await openStep(page, "permission")
+  await expect(settings.getByLabel("Step name")).toHaveValue("Collect permission forms")
+  await settings.getByRole("spinbutton", { name: "Days of work" }).fill("3")
   await expect(settings.getByRole("status").last()).toContainText("Saved")
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).org.eventWorkflow.steps.find((x: { key: string }) => x.key === "permission").estDays)).toBe(3)
   await settings.getByRole("button", { name: "Go back to the standard workflow" }).click()
-  await expect(settings.getByLabel("Step title: permission")).toHaveCount(0)
+  await expect(settings.getByTestId("flow-node-permission")).toHaveCount(0)
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).org.eventWorkflow)).toBeUndefined()
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
@@ -124,8 +130,8 @@ test("with no planning notes or files, and with the AI down, the standard workfl
   await expect(step.getByRole("status").first()).toContainText("could not share the steps out")
   await expect(step.getByTestId("workflow-changes")).toHaveCount(0)
   await expect(step.getByTestId("workflow-ok")).toBeVisible()
-  await step.getByText("Edit steps", { exact: true }).click()
-  await expect(step.getByTestId("workflow-editor").getByLabel("Owner: Build the budget and choose the funding source")).toHaveValue(/fin/)
+  await openStep(page, "budget")
+  await expect(step.getByTestId("workflow-step-panel").getByLabel("Done by")).toHaveValue(/fin/)
   await step.getByRole("button", { name: "Try AI again" }).click()
   await expect(step.getByRole("status").first()).not.toContainText("could not", { timeout: 15000 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)

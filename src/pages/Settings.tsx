@@ -113,7 +113,7 @@ function WorkflowSettings() {
   return <section className="card form-stack" data-testid="workflow-settings">
     <h2>Event workflow</h2>
     <p className="small muted">New events start from this workflow. {state.org.eventWorkflow?.summary ?? "It is the standard workflow."} Events you already made keep their own steps.</p>
-    <WorkflowPanel steps={steps} roles={state.roles} issues={issues} onChange={setSteps} />
+    <WorkflowPanel state={state} steps={steps} roles={state.roles} issues={issues} onChange={setSteps} />
     <div className="action-row"><button type="button" className="btn small" onClick={() => { dispatch({ type: "resetWorkflow" }); setSteps(withOwners(presetSteps(), state.roles)); clear() }}>Go back to the standard workflow</button></div>
     <SaveStatus status={status} onUndo={(prev: StepTemplate[]) => { dispatch({ type: "saveWorkflow", steps: prev }); setSteps(prev); clear() }} />
   </section>

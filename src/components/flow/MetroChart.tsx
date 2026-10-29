@@ -10,7 +10,7 @@ import { EVENT_KEY, END_KEY, START_KEY, metroLayout } from "./metro"
 import { useStore } from "../../data/store"
 import { nextCounter } from "../../lib/ids"
 import { cannotDelete, flowGaps, flowTracks, moveBetween, unlinkSteps, type Gap } from "../../lib/flowEdit"
-import { ancestorsOf, doAfter, type EditResult } from "../../lib/stepOrder"
+import { ancestorsOf, doAfter, type EditResult, type StepEdit } from "../../lib/stepOrder"
 
 const SHORT: Record<string, string> = {
   partner: "Partner meeting", draft: "Event plan", mktneeds: "Marketing needs", budget: "Budget", approve: "Approve plan",
@@ -23,18 +23,31 @@ const SHORT: Record<string, string> = {
 /** Two to four words for the chart; the full title is in the hover card. */
 export const shortTitle = (n: Node) => (n.stepKey && SHORT[n.stepKey]) || n.title.split(/\s+/).slice(0, 3).join(" ").replace(/[,:;]$/, "")
 
-interface Props { state: DemoState; sched: Schedule; forecast: Forecast; eventId: string; selectedId: string | null; onSelect: (id: string) => void; canEdit?: boolean }
+/**
+ * What the chart changes when it is edited. For a real event the chart changes the event's steps in the store; for the club's own workflow
+ * (setup) the caller supplies the same few actions on its own list of steps, and `template` turns off everything that is about dates and progress.
+ */
+export interface EditPort {
+  snapshot: () => unknown
+  restore: (snap: unknown) => void
+  applyEdits: (edits: StepEdit[]) => void
+  addStep: (id: string, uId: string | null, vId: string | null) => void
+  removeStep: (id: string) => void
+  newId: () => string
+  template?: { sublabel: (n: Node) => string; lines: (n: Node) => string[]; marks?: Record<string, "error" | "warn"> }
+}
+interface Props { state: DemoState; sched: Schedule; forecast: Forecast; eventId: string; selectedId: string | null; onSelect: (id: string) => void; canEdit?: boolean; alwaysEdit?: boolean; port?: EditPort }
 type Menu = { kind: "node"; id: string; x: number; y: number } | { kind: "gap"; gap: Gap; x: number; y: number }
 const SNAP = 72
 
 /** One main line; parallel work forks off and merges back. Look → hover → click. */
-export function MetroChart({ state, sched, forecast, eventId, selectedId, onSelect, canEdit = false }: Props) {
+export function MetroChart({ state, sched, forecast, eventId, selectedId, onSelect, canEdit = false, alwaysEdit = false, port: given }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const { dispatch } = useStore()
   const touch = useTouch()
   const [editing, setEditing] = useState(false)
-  const on = canEdit && editing
+  const on = canEdit && (alwaysEdit || editing)
   const [drag, setDrag] = useState<{ id: string; x: number; y: number; gap: Gap | null } | null>(null)
   const dragRef = useRef<typeof drag>(null)
   const press = useRef<{ id: string; sx: number; sy: number; active: boolean } | null>(null)
@@ -42,7 +55,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const [menu, setMenu] = useState<Menu | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null)
-  const history = useRef<{ label: string; nodes: Node[] }[]>([])
+  const history = useRef<{ label: string; snap: unknown }[]>([])
   const [, bump] = useState(0)
   const [width, setWidth] = useState(1000)
   useEffect(() => {
@@ -52,7 +65,16 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     ro.observe(el); setWidth(el.clientWidth)
     return () => ro.disconnect()
   }, [])
-  const vertical = width < 640
+  // Vertical only on a phone. On a computer the time line always runs left to right and the chart scrolls sideways if it is wide.
+  const [phone, setPhone] = useState(() => typeof window !== "undefined" && !!window.matchMedia?.("(max-width: 700px)").matches)
+  useEffect(() => {
+    const mq = window.matchMedia?.("(max-width: 700px)")
+    if (!mq) return
+    const on2 = () => setPhone(mq.matches)
+    mq.addEventListener("change", on2)
+    return () => mq.removeEventListener("change", on2)
+  }, [])
+  const vertical = phone
   const styles = useStatusStyles()
   const ev = state.events.find(e => e.id === eventId)!
   const L = useMemo(() => metroLayout(state, sched, eventId, !vertical), [state, sched, eventId, vertical])
@@ -73,20 +95,29 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const name = (id: string | null, empty: string) => (id ? `“${byId.get(id)?.title ?? "step"}”` : empty)
 
   // ---- Editing the flow right on the chart (president and vice president) ----
-  const snapshot = (label: string) => { history.current = [...history.current.slice(-9), { label, nodes: structuredClone(eventNodes) }]; bump(x => x + 1) }
+  const port: EditPort = given ?? {
+    snapshot: () => structuredClone(eventNodes),
+    restore: snap => dispatch({ type: "restoreEventNodes", eventId, nodes: snap as Node[] }),
+    applyEdits: edits => dispatch({ type: "applyStepEdits", eventId, edits }),
+    addStep: (id, uId, vId) => dispatch({ type: "addEventStep", eventId, id, uId, vId }),
+    removeStep: id => dispatch({ type: "removeEventStep", eventId, nodeId: id }),
+    newId: () => `${eventId}:s${nextCounter(state.nodes.map(n => n.id), new RegExp(`^${eventId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:s(\\d+)$`))}`,
+  }
+  const tpl = port.template
+  const snapshot = (label: string) => { history.current = [...history.current.slice(-9), { label, snap: port.snapshot() }]; bump(x => x + 1) }
   const say = (text: string, error = false) => setMsg({ text, error })
   const applyResult = (r: EditResult, label: string) => {
     if (r.error) return say(r.error, true)
     if (!r.edits.length) return say(r.message)
     snapshot(label)
-    dispatch({ type: "applyStepEdits", eventId, edits: r.edits })
+    port.applyEdits(r.edits)
     say(`${r.message}${r.note ? ` ${r.note}` : ""}`)
   }
   const moveTo = (id: string, g: Gap) => applyResult(moveBetween(eventNodes, id, g.uId, g.vId), `Move ${byId.get(id)?.title ?? "step"}`)
   const addAt = (uId: string | null, vId: string | null) => {
-    const id = `${eventId}:s${nextCounter(state.nodes.map(n => n.id), new RegExp(`^${eventId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:s(\\d+)$`))}`
+    const id = port.newId()
     snapshot("Add a step")
-    dispatch({ type: "addEventStep", eventId, id, uId, vId })
+    port.addStep(id, uId, vId)
     say("Added a new step. Give it a name and an owner in the details panel.")
     setMenu(null); onSelect(id)
   }
@@ -94,13 +125,13 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const n = byId.get(id)
     if (!n || cannotDelete(n)) return
     snapshot(`Delete ${n.title}`)
-    dispatch({ type: "removeEventStep", eventId, nodeId: id })
+    port.removeStep(id)
     say(`Deleted “${n.title}”. Steps that waited for it now wait for what it waited for.`); setMenu(null)
   }
   const undo = () => {
     const last = history.current.pop()
     if (!last) return
-    dispatch({ type: "restoreEventNodes", eventId, nodes: last.nodes })
+    port.restore(last.snap)
     say(`Undone: ${last.label}`); bump(x => x + 1)
   }
   const local = (e: { clientX: number; clientY: number }) => { const r = canvasRef.current!.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top } }
@@ -162,6 +193,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   useEffect(() => { history.current = []; setMenu(null); setMsg(null) }, [eventId])
 
   const stateOf = (n: Node) => {
+    if (tpl) return "todo" as const
     const issue = worstIssue(sched.nodes[n.id]?.issues)
     const late = n.status !== "done" && (sched.nodes[n.id]?.club ?? "9999") < state.today
     return nodeStop(n, state.today, issue?.severity === "error" || late || forecast.nodes[n.id]?.color === "red" || n.status === "blocked")
@@ -192,18 +224,21 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const p = pos(col, row)
     const st = stateOf(n)
     const plan = sched.nodes[n.id]
-    const issue = worstIssue(plan?.issues)
+    const issue = tpl ? undefined : worstIssue(plan?.issues)    // a workflow has no dates, so the dates' problems are not its problems
     const owner = state.people.find(x => x.id === n.ownerId)?.name
-    const label = `${n.title}. ${styles[n.status].label}. Owner ${owner ?? "none"}. Club deadline ${plan ? fmtShort(plan.club) : "pending"}${plan?.official ? `, ASU deadline ${fmtShort(plan.official)}` : ""}.${issue ? ` ${issue.text}` : ""}`
+    const mark = tpl?.marks?.[n.id]
+    const label = tpl ? tpl.lines(n).join(". ") + "." : `${n.title}. ${styles[n.status].label}. Owner ${owner ?? "none"}. Club deadline ${plan ? fmtShort(plan.club) : "pending"}${plan?.official ? `, ASU deadline ${fmtShort(plan.official)}` : ""}.${issue ? ` ${issue.text}` : ""}`
     return <div key={n.id} className={`m-node ${labelSide} ${n.id === selectedId ? "is-selected" : ""}${drag?.id === n.id ? " is-dragging" : ""}`} style={{ left: p.x, top: p.y }}>
-      <button type="button" className={`m-dot ${st} ${issue ? `has-${issue.severity}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
+      <button type="button" className={`m-dot ${st} ${issue ? `has-${issue.severity}` : ""}${tpl && n.ruleIds.length ? " locked" : ""}${mark ? ` mark-${mark}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
         onPointerDown={e => onDown(e, n.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onDoubleClick={e => openNode(n.id, e)} onContextMenu={e => { if (on) { e.preventDefault(); openNode(n.id, e) } }} onKeyDown={e => onKey(e, n.id)} />
-      <span className="m-label" aria-hidden="true"><b>{shortTitle(n)}</b><span>{firstName(state, n.ownerId)}</span></span>
+      <span className="m-label" aria-hidden="true"><b>{tpl ? n.title : shortTitle(n)}</b><span>{tpl ? tpl.sublabel(n) : firstName(state, n.ownerId)}</span></span>
       <span className="m-card" role="tooltip">
         <b>{n.title}</b>
-        <span>{owner ?? "No owner"} · {styles[n.status].label}{plan ? ` · due ${fmtShort(plan.club)}` : ""}</span>
-        {plan?.official ? <span>ASU deadline {fmtShort(plan.official)}{n.ruleIds[0] ? ` (${n.ruleIds[0]})` : ""}</span> : null}
-        {issue ? <span className="m-card-warn">{issue.text}</span> : n.waitingOn ? <span>Waiting on: {n.waitingOn}</span> : null}
+        {tpl ? tpl.lines(n).slice(1).map((t, i) => <span key={i}>{t}</span>) : <>
+          <span>{owner ?? "No owner"} · {styles[n.status].label}{plan ? ` · due ${fmtShort(plan.club)}` : ""}</span>
+          {plan?.official ? <span>ASU deadline {fmtShort(plan.official)}{n.ruleIds[0] ? ` (${n.ruleIds[0]})` : ""}</span> : null}
+          {issue ? <span className="m-card-warn">{issue.text}</span> : n.waitingOn ? <span>Waiting on: {n.waitingOn}</span> : null}
+        </>}
       </span>
     </div>
   }
@@ -219,7 +254,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   }, [eventId, vertical, L.cols])
   return <>
     {canEdit && <div className="m-edit-bar">
-      <button type="button" className="btn small" aria-pressed={editing} onClick={() => { setEditing(!editing); setMenu(null); setDragBoth(null) }} data-testid="flow-edit-toggle">{editing ? "Done editing" : "Edit flow"}</button>
+      {!alwaysEdit && <button type="button" className="btn small" aria-pressed={editing} onClick={() => { setEditing(!editing); setMenu(null); setDragBoth(null) }} data-testid="flow-edit-toggle">{editing ? "Done editing" : "Edit flow"}</button>}
       {on && <button type="button" className="btn small" onClick={undo} disabled={!history.current.length} data-testid="flow-undo">Undo{history.current.length ? `: ${history.current[history.current.length - 1].label}` : ""}</button>}
       {on && <span className="small muted">{touch ? "Tap a step for add, delete and details · Drag it onto a ◆ to move it · Double-tap a line to cut or add a link" : "Drag a step onto a ◆ between two steps · Double-click a step to add or delete · Double-click a line to cut or add a link"}</span>}
       <span role="status" aria-live="polite" className={`small ${msg?.error ? "late-text" : ""}`} data-testid="flow-edit-msg">{on ? msg?.text : ""}</span>
@@ -227,13 +262,13 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   <div className={`metro ${vertical ? "vertical" : ""}${on ? " editing" : ""}${drag ? " dragging" : ""}`} ref={wrap} data-testid="flow-chart" style={{ "--label-w": `${vertical ? 140 : COL - 8}px` } as CSSProperties}>
     <div className="metro-canvas" ref={canvasRef} style={{ width: W, height: H }}>
       <svg width={W} height={H} aria-hidden="true">
-        {!vertical && ticks.map(t => <text key={t.label} x={pos(t.at, 0).x} y={18} className="m-tick" textAnchor="middle">{t.label}</text>)}
-        {!vertical && <text x={pos(evStation.col, 0).x} y={18} className="m-tick strong" textAnchor="middle">{fmtShort(ev.date)}</text>}
+        {!vertical && !tpl && ticks.map(t => <text key={t.label} x={pos(t.at, 0).x} y={18} className="m-tick" textAnchor="middle">{t.label}</text>)}
+        {!vertical && !tpl && <text x={pos(evStation.col, 0).x} y={18} className="m-tick strong" textAnchor="middle">{fmtShort(ev.date)}</text>}
         {L.branches.map(b => <path key={b.id} d={branchPath(b.from, b.to, b.row)} className={`m-line branch ${b.nodes.every(x => x.node.status === "done") ? "done" : ""}`} />)}
         <path d={mainPath} className="m-line main" />
         {donePath && <path d={donePath} className="m-line main done" />}
         {on && gaps.map(g => { const a = pos(g.u.col, g.u.row), b = pos(g.v.col, g.v.row); return <path key={g.id} d={`M${a.x} ${a.y}L${b.x} ${b.y}`} className="m-hit" data-testid={`flow-line-${g.u.key}-${g.v.key}`} onDoubleClick={e => openGap(g, e)} /> })}
-        {(() => { const p = pos(todayCol, 0); return vertical
+        {!tpl && (() => { const p = pos(todayCol, 0); return vertical
           ? <g className="m-today"><line x1={4} x2={W - 4} y1={p.y} y2={p.y} /><text x={W - 8} y={p.y - 6} textAnchor="end">Today</text></g>
           : <g className="m-today"><line x1={p.x} x2={p.x} y1={28} y2={H - 18} /><text x={p.x} y={H - 4} textAnchor="middle">Today</text></g> })()}
       </svg>
@@ -243,7 +278,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
         const p = pos(s.col, 0)
         return <div key={s.key} className={`m-node ${vertical ? "right" : "below"} m-${s.key.replaceAll("_", "")}`} style={{ left: p.x, top: p.y }}>
           <span className={`m-dot station ${s.key === EVENT_KEY ? (ev.date < state.today ? "done" : "event") : "todo"}`} />
-          <span className="m-label"><b>{s.key === EVENT_KEY ? "Event day" : s.key === START_KEY ? "Start" : "Done"}</b>{s.key === EVENT_KEY && vertical ? <span>{fmtShort(ev.date)}</span> : null}</span>
+          <span className="m-label"><b>{s.key === EVENT_KEY ? "Event day" : s.key === START_KEY ? "Start" : "Done"}</b>{s.key === EVENT_KEY && vertical && !tpl ? <span>{fmtShort(ev.date)}</span> : null}</span>
         </div>
       })}
       {on && drag && <>
@@ -283,9 +318,9 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
         </div>
       })()}
     </div>
-    <div className="m-legend small" aria-label="Legend">
+    {tpl ? <div className="m-legend small" aria-label="Legend"><span><i className="m-dot todo" />Step</span><span><i className="m-dot todo locked" />Needed by an ASU rule</span><span><i className="m-dot todo mark-error" />Needs fixing</span></div> : <div className="m-legend small" aria-label="Legend">
       <span><i className="m-dot done" />Done</span><span><i className="m-dot now" />In progress</span><span><i className="m-dot todo" />Not started</span><span><i className="m-dot risk" />At risk</span>
-    </div>
+    </div>}
   </div>
   </>
 }
