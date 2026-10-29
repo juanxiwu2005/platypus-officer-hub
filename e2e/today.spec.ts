@@ -13,8 +13,10 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   const form = page.getByTestId("plan-form")
   await expect(form.getByLabel("Event name")).toHaveValue("Founder Dinner")
   await expect(form.getByLabel("Date")).toHaveValue("2026-11-19")
-  await expect(form.getByLabel("Food")).toHaveValue("offsite")
+  // M2b: the form asks only Yes/No for food; the caterer type the person wrote travels with the request.
+  await expect(form.getByLabel("Food")).toHaveValue("yes")
   await form.getByRole("button", { name: "Continue" }).click()
+  await expect(page.getByText("food: outside caterer")).toBeVisible()
   const card = page.getByTestId("change-item")
   await expect(card.getByLabel("Event date", { exact: true })).toHaveValue("2026-11-19")
   await card.getByLabel("Event name").fill("Founder Dinner Preview")
@@ -23,7 +25,8 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   await expect(page.getByRole("heading", { name: "Founder Dinner Preview" })).toBeVisible()
   await expect(page.getByTestId("flow-chart")).toBeVisible()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).changeSets[0].status)).toBe("applied")
-  expect(chatCalls).toBe(0) // a clear request is handled by the app itself
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).changeSets[0].ops[0].food)).toBe("offsite")
+  expect(chatCalls).toBe(1) // M2b: the AI reads the sentence once; the form is already up from local rules and this 503 changes nothing
   await page.reload()
   await expect(page.getByRole("group", { name: "Choose an event" }).getByRole("button")).toHaveCount(3)
   await resetDemo(page)
