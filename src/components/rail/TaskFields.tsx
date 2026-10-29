@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react"
 import { useStore } from "../../data/store"
 import { bufferedClubDeadline } from "../../engine/taskDates"
 import { fmtLong } from "../../lib/dates"
+import { Bts, BtsRow } from "../Bts"
 
 /**
  * Due date + "club deadline N working days earlier" (M2b, Juanxi 2026-10-27). The due date starts at
@@ -15,6 +16,10 @@ export function TaskDueFields({ due, buffered, onDue, onBuffered }: { due: strin
     <label>Due date<input type="date" aria-label="Due date" value={due} min={state.today} onChange={e => onDue(e.target.value)} /></label>
     <label className="check-label"><input type="checkbox" checked={buffered} onChange={e => onBuffered(e.target.checked)} />Club deadline {club?.buffer ?? state.org.settings.clubBufferBusinessDays} working days earlier</label>
     {club && <p className="small muted" data-testid="club-deadline">Club deadline: <b>{fmtLong(buffered ? club.date : due)}</b>{buffered && club.shortened ? " · the full buffer doesn't fit, so this is the earliest working day" : ""}</p>}
+    {club && <BtsRow>
+      <Bts label="Rule engine">{buffered ? `Club deadline = due date minus ${club.buffer} working days (the club buffer in Settings), skipping ASU nonworking days, and never before the next working day.` : "Buffer off: the club deadline is the due date itself."}</Bts>
+      <Bts label="Data">The due date is what you pick; the default is today plus the number of days set in Settings. The assistant never supplies a date.</Bts>
+    </BtsRow>}
   </>
 }
 

@@ -1,8 +1,9 @@
 import { useEffect, useState, type CSSProperties } from "react"
 import { useSearchParams } from "react-router-dom"
-import { useStore, useViewer } from "../data/store"
+import { useSchedule, useStore, useViewer } from "../data/store"
 import type { Node, NodeStatus } from "../data/types"
 import { PageHead } from "../components/Page"
+import { Bts, BtsTr } from "../components/Bts"
 import { useRail } from "../components/rail/RailContext"
 import { FollowupPanel } from "../components/FollowupPanel"
 import { daysBetween, fmtShort } from "../lib/dates"
@@ -64,6 +65,7 @@ function NewTask({ onAdd }: { onAdd: (title: string, status: NodeStatus) => void
 /** monday-style table grouped by event; owner and due date are edited right in the row. */
 function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: boolean; showOwner: boolean }) {
   const { state, dispatch } = useStore()
+  const sched = useSchedule()
   const rail = useRail()
   const [toggled, setToggled] = useState<Record<string, boolean>>({})
   const open = nodes.filter(n => n.status !== "done").sort((a, b) => (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999"))
@@ -78,7 +80,7 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
         <tr key={`g-${g.id}`} className="group"><td colSpan={cols}><button type="button" className="group-btn" aria-expanded={!folded(g)} onClick={() => setToggled({ ...toggled, [g.id]: folded(g) ? false : true })}><span className="caret" aria-hidden="true">{folded(g) ? "▸" : "▾"}</span>{g.name}<span className="count">{g.rows.length}</span></button></td></tr>,
         ...(folded(g) ? [] : g.rows).map(n => {
           const late = n.clubDeadline && n.clubDeadline < state.today
-          return <tr key={n.id} data-testid="task-card">
+          return [<tr key={n.id} data-testid="task-card">
             <td><button type="button" className="row-btn" onClick={() => rail.show({ kind: "task", id: n.id })}>{n.title}</button></td>
             {showOwner && <td>{editable
               ? <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" /><select aria-label={`Owner of ${n.title}`} value={n.ownerId ?? ""} onChange={e => dispatch({ type: "updateNode", id: n.id, patch: { ownerId: e.target.value || null } })}><option value="">None</option>{state.people.map(p => <option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>)}</select></span>
@@ -87,7 +89,10 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
             <td className={late ? "late-text" : ""}>{editable && n.clubDeadline
               ? <input type="date" aria-label={`Due date of ${n.title}`} value={n.clubDeadline} onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && dispatch({ type: "updateNode", id: n.id, patch: { clubDeadlineOverride: e.target.value } })} />
               : <span className="small">{n.clubDeadline ? fmtShort(n.clubDeadline) : ""}</span>}</td>
-          </tr>
+          </tr>,
+          <BtsTr key={`${n.id}-bts`} cols={cols}>
+            <Bts label="Rule engine">{sched.nodes[n.id]?.explain.club}</Bts>
+          </BtsTr>]
         }),
       ])}</tbody>
     </table>

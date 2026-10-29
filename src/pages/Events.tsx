@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useStore, useSchedule } from "../data/store"
 import { PageHead } from "../components/Page"
+import { Bts, BtsRow, BtsTr } from "../components/Bts"
 import { MetroChart } from "../components/flow/MetroChart"
 import { useRail } from "../components/rail/RailContext"
 import { forecastFor } from "../engine/forecast"
@@ -59,6 +60,11 @@ export default function Events() {
           </div>
         </div>
         {evIssues.length > 0 && <ul className="issues" data-testid="event-issues">{evIssues.map(i => <li key={i.code} className={`issue ${SEVERITY_TONE[i.severity]}`}>{i.text}</li>)}</ul>}
+        <BtsRow>
+          <Bts label="Data">The event date is the one date a person sets. Every step date below is computed from it.</Bts>
+          <Bts label="Rule engine">Each step has an ASU deadline (where a rule sets one), a club deadline and a latest start day, worked out backwards from the event date. Warnings come from the same schedule.</Bts>
+          <Bts label="Computed">Days left = event date minus today (calendar days). At risk = steps with a schedule error or a red forecast.</Bts>
+        </BtsRow>
       </section>
 
       <div className="toolbar">
@@ -68,6 +74,7 @@ export default function Events() {
         </div>
       </div>
 
+      {view === "flow" && <BtsRow><Bts label="Computed">Each dot's place comes from its dates. Colour: done when finished; risk when its forecast is red; now when it has started or its start day is today or earlier; otherwise to do.</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
       {view === "flow" && <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} />}
       {view === "list" && <section className="card tbl-wrap" data-testid="event-list">
         <table className="tbl">
@@ -75,14 +82,19 @@ export default function Events() {
           <tbody>{ordered.map(n => {
             const p = sched.nodes[n.id]
             const issue = worstIssue(p.issues)
-            return <tr key={n.id}>
+            return [<tr key={n.id}>
               <td><button type="button" className={`row-btn ${issue?.severity === "error" ? "late-text" : ""}`} onClick={() => rail.show({ kind: "node", id: n.id })} title={issue?.text}>{n.title}</button></td>
               <td><span className="who"><Avatar name={state.people.find(x => x.id === n.ownerId)?.name} size="sm" />{firstName(state, n.ownerId)}</span></td>
               <td><NodePill node={n} small /></td>
               <td className="small num">{fmtShort(p.latestStart)}</td>
               <td className="small num">{fmtShort(p.club)}</td>
               <td className="small num">{p.official ? `ASU ${fmtShort(p.official)}` : ""}</td>
-            </tr>
+            </tr>,
+            <BtsTr key={`${n.id}-bts`} cols={6}>
+              <Bts label="Start">{n.ownerId === state.viewerId ? p.explain.latestStart : "Working days before the club deadline, allowing for effort and private planning preferences; skips ASU nonworking days."}</Bts>
+              <Bts label="Due">{p.explain.club}</Bts>
+              <Bts label="ASU">{p.explain.official ?? "No ASU rule sets a deadline for this step."}</Bts>
+            </BtsTr>]
           })}</tbody>
         </table>
       </section>}

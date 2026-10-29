@@ -667,3 +667,11 @@ tr.clickable { cursor: pointer; }
 .owner-suggest button:hover, .owner-suggest button:focus-visible { background: var(--surface-2); }
 .plan-form textarea { width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); resize: vertical; font: inherit; }
 .review-risks { margin: 0; padding-left: 16px; display: grid; gap: 4px; font-size: var(--fs-md); }
+
+/* Behind the scenes (S7): source notes, only in the page while the Demo-menu switch is on. */
+.bts { display: inline-flex; flex-wrap: wrap; gap: var(--s2); align-items: baseline; max-width: 100%; padding: var(--s1) var(--s4); border: 1px dashed var(--muted); border-radius: var(--r-sm); color: var(--muted); font-family: var(--mono); font-size: var(--fs-xs); font-weight: 600; line-height: 1.45; text-align: left; white-space: normal; }
+.bts b { color: var(--ink); font-weight: 700; }
+.bts.k-ai { border-color: var(--accent); color: var(--accent-ink); }
+.bts.k-ai b { color: var(--accent-ink); }
+.bts-row { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s4); }
+.tbl .bts-tr td { border-top: 0; padding-top: 0; white-space: normal; }
