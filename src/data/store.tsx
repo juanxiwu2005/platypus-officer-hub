@@ -12,6 +12,7 @@ import { clearLocalDocs } from "../lib/localDocs"
 import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
 import { nextCounter } from "../lib/ids"
 import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
+import { cannotDelete, moveBetween, newStepNode, removalEdits } from "../lib/flowEdit"
 import { advanceClock } from "../engine/followup"
 import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type ReplyInput, type TaskReply } from "./taskWorkflow"
 import { usableGrant } from "../lib/officerLinks"
@@ -55,6 +56,9 @@ export type Action =
   | { type: "updateNode"; id: string; patch: NodePatch }
   /** The step editor (M3): a few steps' dependsOn / estDays / phase, and the display order of the phase groups. Never a date. */
   | { type: "applyStepEdits"; eventId: string; edits: StepEdit[]; phaseOrder?: Phase[] }
+  | { type: "addEventStep"; eventId: string; id: string; uId: string | null; vId: string | null }
+  | { type: "removeEventStep"; eventId: string; nodeId: string }
+  | { type: "restoreEventNodes"; eventId: string; nodes: Node[] }
   | { type: "updateEvent"; id: string; patch: EventPatch }
   | { type: "draftChanges"; changeSet: ChangeSet }
   | { type: "aiAutoApply"; changeSet: ChangeSet }
@@ -106,6 +110,47 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
   if (!changed && !orderChanged) return state
   const events = orderChanged ? state.events.map(e => (e.id === eventId ? { ...e, phaseOrder: order } : e)) : state.events
   return applySchedule({ ...state, nodes, events })
+}
+
+/**
+ * Add a step in the event's flow chart, between two neighbours (either can be missing). It starts with one day of work and no owner; the details panel
+ * is where it gets a name, an owner and the rest. Its place comes from the same "waits for" links as every other step, so the rule engine dates it.
+ */
+function addEventStep(state: DemoState, eventId: string, id: string, uId: string | null, vId: string | null): DemoState {
+  const ev = state.events.find(e => e.id === eventId)
+  const inEvent = state.nodes.filter(n => n.eventId === eventId)
+  const ref = inEvent.find(n => n.id === (uId ?? vId))
+  if (!ev || typeof id !== "string" || !id.startsWith(`${eventId}:`) || state.nodes.some(n => n.id === id) || inEvent.length >= 80) return state
+  if ((uId && !inEvent.some(n => n.id === uId)) || (vId && !inEvent.some(n => n.id === vId))) return state
+  const withNode: DemoState = { ...state, nodes: [...state.nodes, newStepNode(ev, id, ref, state.today)] }
+  const r = moveBetween(withNode.nodes.filter(n => n.eventId === eventId), id, uId, vId)
+  if (r.error) return state
+  const next = applyStepEdits(withNode, eventId, r.edits)
+  return applySchedule(next === withNode || next === state ? withNode : next)
+}
+
+/** Delete a step the club added (or any step no ASU rule needs). Steps that waited for it wait for what it waited for. */
+function removeEventStep(state: DemoState, eventId: string, nodeId: string): DemoState {
+  const inEvent = state.nodes.filter(n => n.eventId === eventId)
+  const node = inEvent.find(n => n.id === nodeId)
+  if (!node || cannotDelete(node)) return state
+  const patches = new Map(removalEdits(inEvent, nodeId).map(e => [e.id, e.patch.dependsOn!]))
+  const gone = (x: { nodeId: string }) => x.nodeId !== nodeId
+  return applySchedule({
+    ...state,
+    nodes: state.nodes.filter(n => n.id !== nodeId).map(n => (patches.has(n.id) ? { ...n, dependsOn: patches.get(n.id)! } : n)),
+    nudges: state.nudges.filter(gone), extensionRequests: state.extensionRequests.filter(gone), notifications: state.notifications.filter(gone),
+    silenceCases: state.silenceCases.filter(gone), protocolLog: state.protocolLog.filter(gone), officerGrants: state.officerGrants.filter(gone),
+  })
+}
+
+/** Put the event's steps back as they were (the chart's Undo). Only this event's steps; nothing else changes. */
+function restoreEventNodes(state: DemoState, eventId: string, nodes: Node[]): DemoState {
+  if (!state.events.some(e => e.id === eventId) || !Array.isArray(nodes) || nodes.length > 80) return state
+  const ids = new Set<string>()
+  for (const n of nodes) { if (!n || typeof n.id !== "string" || n.eventId !== eventId || ids.has(n.id) || !Array.isArray(n.dependsOn)) return state; ids.add(n.id) }
+  if (nodes.some(n => n.dependsOn.some(d => !ids.has(d)))) return state
+  return applySchedule({ ...state, nodes: [...state.nodes.filter(n => n.eventId !== eventId), ...nodes.map(n => structuredClone(n))] })
 }
 
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
@@ -191,6 +236,9 @@ export function reducer(state: DemoState, action: Action): DemoState {
     case "updateNode":
       return canLead(state) && state.nodes.some(n => n.id === action.id) ? applySchedule(updateNode(state, action.id, action.patch)) : state
     case "applyStepEdits": return canLead(state) ? applyStepEdits(state, action.eventId, action.edits, action.phaseOrder) : state
+    case "addEventStep": return canLead(state) ? addEventStep(state, action.eventId, action.id, action.uId, action.vId) : state
+    case "removeEventStep": return canLead(state) ? removeEventStep(state, action.eventId, action.nodeId) : state
+    case "restoreEventNodes": return canLead(state) ? restoreEventNodes(state, action.eventId, action.nodes) : state
     case "updateEvent": {
       const patch = pick(action.patch, ["date", "name", "headcount"])
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
@@ -407,6 +455,9 @@ function payloadOf(a: Action): unknown {
     case "draftChanges":
     case "aiAutoApply": return { changeSetId: a.changeSet.id, source: a.changeSet.source ?? null, sentence: slim(a.changeSet.sentence), ops: a.changeSet.ops.map(o => o.op) }
     case "reviewChange": return { id: a.id, index: a.index, decision: a.decision, op: slim(a.op), human: slim(a.human) }
+    case "addEventStep": return { eventId: a.eventId, id: a.id, uId: a.uId, vId: a.vId }
+    case "removeEventStep": return { eventId: a.eventId, nodeId: a.nodeId }
+    case "restoreEventNodes": return { eventId: a.eventId, steps: Array.isArray(a.nodes) ? a.nodes.length : 0 }
     case "applyStepEdits": return { eventId: a.eventId, edits: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, dependsOn: e?.patch?.dependsOn, estDays: e?.patch?.estDays, phase: e?.patch?.phase })), phaseOrder: a.phaseOrder }
     default: return slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
   }
@@ -437,6 +488,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "setAi": out = { aiEnabled: s.aiEnabled }; break
     case "advanceClock": out = { today: s.today }; break
     case "saveBoard": out = { board: s.org.board }; break
+    case "removeEventStep": out = fields(node(a.nodeId), ["title", "dependsOn", "status", "estDays", "ownerId"]); break
     case "saveWorkflow": case "resetWorkflow": out = { eventWorkflow: s.org.eventWorkflow }; break
     case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break
     case "saveProfile": out = fields(s.people.find(p => p.id === a.personId), Object.keys(a.patch)); break

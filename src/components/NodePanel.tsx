@@ -55,6 +55,9 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
         </ul>
       )}
       <div className="kv">
+        {lead && <><span>Name</span><input type="text" key={`${n.id}:${n.title}`} defaultValue={n.title} maxLength={100} aria-label="Step name" data-testid="step-name"
+          onBlur={e => { const t = e.target.value.trim(); if (t && t !== n.title) update({ title: t }); else e.target.value = n.title }}
+          onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur() }} /></>}
         <span>Owner</span>
         <select value={n.ownerId ?? ""} disabled={!lead} onChange={e => update({ ownerId: e.target.value || null })} data-testid="owner-select" aria-label="Owner (R)">
           <option value="">No owner</option>

@@ -82,10 +82,10 @@ export default function Events() {
 
       {view === "edit" && <div className="edit-split">
         <StepEditor eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} />
-        <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} />
+        <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead} />
       </div>}
       {view === "flow" && <BtsRow><Bts label="Computed">Each dot's place comes from its dates. Colour: done when finished; risk when its forecast is red; now when it has started or its start day is today or earlier; otherwise to do.</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
-      {view === "flow" && <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} />}
+      {view === "flow" && <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead} />}
       {view === "list" && <section className="card tbl-wrap" data-testid="event-list">
         <table className="tbl">
           <thead><tr><th>Step</th><th>Owner</th><th>Status</th><th>Start</th><th>Due</th><th>ASU</th></tr></thead>
