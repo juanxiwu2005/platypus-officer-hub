@@ -146,13 +146,13 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 
 ## 7. 界面规则（2026-10-23 简化改版，Juanxi 批准）
 
-改任何页面前先读这一节。依据：《Platypus 简化改版方案》（https://claude.ai/artifact/QhCthf71crEC62bBua5zJD）。
+改任何页面前先读这一节，**再读 `docs/DESIGN_TOKENS.md`**（字号、圆角、层级、颜色都只能用 token）。写完先跑 `npm run lint`（Stylelint 管 `src/styles.css`，ESLint 管行内样式），CI 也会跑。依据：《Platypus 简化改版方案》（https://claude.ai/artifact/QhCthf71crEC62bBua5zJD）。
 
 1. **三栏布局：** 左导航、中间内容、右栏。右栏有两个标签：**Ask**（唯一的 AI 入口，`src/components/rail/`）和 **Details**（点任何东西打开的详情）。不要在页面里再放 AI 输入框。
 2. **只用 5 个组件拼页面**（`src/components/ui/`）：状态色块 `StatusPill`、进度链 `Chain`、表格 `.tbl`、悬停卡 `Hover`/`Info`、右栏详情（`useRail().open(...)`）。
 3. **三级交互：** 看（颜色）→ 停（悬停卡，最多 3 行）→ 点（右栏详情）。不再新增 ▶ 展开和选项卡。
 4. **文字：** 页面标题 1–2 个词；一张卡最多“标题 1 行 + 信息 1 行 + 状态色块”；原因、假设、出处放进悬停或 Help；字号不小于 14px。
-5. **字数上限（主区，`scripts/word-count.mjs` 量）：** Today ≤ 160、Events ≤ 180、Rules ≤ 170、Tasks ≤ 130、Team ≤ 130、Settings 每块 ≤ 125。新增内容超了就先删别的。
+5. **字数上限（主区，`npm run words` 量，Juanxi 2026-10-29 批准改为两个数，超任何一个 CI 就红）：** 每页两个上限——"一眼看到的"和"页面总字数（含悬停卡、折叠内容）"。Today 160 / 450、Events 180 / 420、Rules 170 / 560、Tasks 130 / 130、Team 130 / 290、Funding 160 / 160、Handoff 120 / 120、Partners 120 / 120、Settings 150 / 150。新增内容超了就先删别的，不要靠把文字藏起来过线。
 6. **6 种任务状态与颜色全站统一：** Not claimed 灰、To do 蓝、Working on it 橙、Waiting 紫、Stuck 红、Done 绿（名称和颜色可在 Settings → Board 改，含义不变）。
 
 ## 8. 分支命名与 Deploy Preview（2026-10-27 定，Juanxi 批准）

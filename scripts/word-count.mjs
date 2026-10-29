@@ -1,18 +1,18 @@
-// Word count per page (AGENTS.md §7.5). Usage: npm run build && npm run words [-- --enforce] [outDir]
+// Word count per page (AGENTS.md §7.5). Usage: npm run build && npm run words [-- --report-only] [outDir]
 // Counts the words in the page's main area (not the nav, top bar or side panel).
 // It prints two numbers per page:
 //   all     = every word in the page's HTML, including hover cards, closed <details> and other hidden text.
-//             This is the real amount of text the page carries, and it is the number compared with the limit.
+//             This is the real amount of text the page carries.
 //   visible = only what shows on screen at first glance (the old way of counting).
-// By default this only REPORTS: it never fails, and it never asks anyone to delete text.
-// Pass --enforce to exit 1 when any page is over its limit (switch that on once Juanxi has set the limits).
+// Each page has two limits (Juanxi 2026-10-29): [what shows at first glance, every word the page carries].
+// A page fails if it is over either. Pass --report-only to print without failing.
 import { chromium } from "@playwright/test"
 import { spawn } from "node:child_process"
 
 const args = process.argv.slice(2)
-const enforce = args.includes("--enforce")
+const enforce = !args.includes("--report-only")
 const out = args.find(a => !a.startsWith("--"))
-const LIMITS = { "/": 160, "/events": 180, "/rules": 170, "/tasks": 130, "/team": 130, "/funding": 160, "/handoff": 120, "/partners": 120, "/settings": 125, "/help": 9999 }
+const LIMITS = { "/": [160, 450], "/events": [180, 420], "/rules": [170, 560], "/tasks": [130, 130], "/team": [130, 290], "/funding": [160, 160], "/handoff": [120, 120], "/partners": [120, 120], "/settings": [150, 150], "/help": [9999, 9999] }
 const PORT = 4177
 const base = `http://localhost:${PORT}`
 
@@ -30,7 +30,7 @@ const exe = process.env.PW_CHROMIUM || process.env.CHROMIUM
 const browser = await chromium.launch(exe ? { executablePath: exe } : {})
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 let over = 0
-for (const [path, limit] of Object.entries(LIMITS)) {
+for (const [path, [vLimit, aLimit]] of Object.entries(LIMITS)) {
   await page.goto(`${base}/#${path}`)
   await page.waitForTimeout(900)
   const r = await page.evaluate(() => {
@@ -48,12 +48,12 @@ for (const [path, limit] of Object.entries(LIMITS)) {
     const count = parts => parts.join(" ").split(/\s+/).filter(w => /[A-Za-z0-9$]/.test(w)).length
     return { all: count(all), visible: count(visible), height: document.documentElement.scrollHeight }
   })
-  const isOver = r.all > limit
+  const isOver = r.visible > vLimit || r.all > aLimit
   if (isOver) over++
-  console.log(`${isOver ? "OVER" : "ok  "} ${path.padEnd(10)} all ${String(r.all).padStart(4)} · visible ${String(r.visible).padStart(4)} · limit ${String(limit).padStart(4)}${isOver ? ` · over by ${r.all - limit}` : ""} · ${(r.height / 900).toFixed(1)} screens`)
+  console.log(`${isOver ? "OVER" : "ok  "} ${path.padEnd(10)} visible ${String(r.visible).padStart(4)}/${String(vLimit).padStart(4)} · all ${String(r.all).padStart(4)}/${String(aLimit).padStart(4)} · ${(r.height / 900).toFixed(1)} screens`)
   if (out) await page.screenshot({ path: `${out}/${path === "/" ? "today" : path.slice(1)}.png`, fullPage: true })
 }
 await browser.close()
 stop()
-console.log(over ? `${over} page(s) over the limit. ${enforce ? "Failing (--enforce)." : "Report only: no text was removed and the check does not fail."}` : "All pages within their limits.")
+console.log(over ? `${over} page(s) over a limit.${enforce ? " Failing." : " Report only: the check does not fail."}` : "All pages within their limits.")
 process.exit(enforce && over ? 1 : 0)

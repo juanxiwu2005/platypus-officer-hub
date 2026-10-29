@@ -26,9 +26,19 @@ export function Rail() {
     const a = document.activeElement
     const opener = a instanceof HTMLElement && a !== document.body && !aside.current?.contains(a) ? a : null
     if (!aside.current?.contains(document.activeElement)) aside.current?.focus()
-    const covered = window.matchMedia("(max-width: 860px)").matches ? [...document.querySelectorAll<HTMLElement>("header.topbar, nav.sidenav, #main")] : []
+    // Phone (full screen): the whole page, top bar included, is covered. Tablet (861–1199px): the page is covered on the
+    // right, so it is switched off too, and a click or tap on it closes the panel instead of doing nothing (Juanxi 2026-10-29).
+    const phone = window.matchMedia("(max-width: 860px)").matches
+    const covered = [...document.querySelectorAll<HTMLElement>(phone ? "header.topbar, nav.sidenav, #main" : "nav.sidenav, #main")]
     covered.forEach(el => el.setAttribute("inert", ""))
+    const outside = (e: PointerEvent) => {
+      const t = e.target as Element | null
+      if (phone || !t || aside.current?.contains(t) || t.closest("header.topbar, .ask-fab")) return
+      rail.setOpen(false)
+    }
+    document.addEventListener("pointerdown", outside)
     return () => {
+      document.removeEventListener("pointerdown", outside)
       covered.forEach(el => el.removeAttribute("inert"))
       // The round Ask button is removed while the panel is open, so after closing, look for whichever opener is on screen.
       setTimeout(() => {

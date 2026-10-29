@@ -105,17 +105,28 @@ test("right rail on a phone: the page underneath cannot be reached with Tab whil
   await expect(page.getByRole("button", { name: "Ask Platypus" })).toBeFocused()
 })
 
-// Known gap, pinned on purpose: between 861px and 1199px the panel floats over the right side of the page but the
-// page stays live (people click it), so Tab can still walk into content that is partly hidden behind the panel.
-test.fixme("right rail on a tablet width: Tab stays inside the panel while it floats over the page", async ({ page }, info) => {
+// Tablet width (861–1199px): the panel floats over the right side of the page. The page behind it is switched off for
+// Tab, and a click or tap on the page closes the panel (Juanxi 2026-10-29).
+test("right rail on a tablet width: Tab stays out of the page behind the floating panel", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop", "tablet width is tested from the desktop project")
   await page.setViewportSize({ width: 1000, height: 800 })
   await page.goto("/#/tasks")
-  await page.getByRole("button", { name: "Ask Platypus" }).click()
+  await page.getByTestId("ask-toggle").click()
+  await expect(page.getByTestId("rail")).toBeVisible()
   for (let i = 0; i < 25; i++) {
     await page.keyboard.press("Tab")
     expect(await page.evaluate(() => !!document.activeElement?.closest("main, nav.sidenav"))).toBe(false)
   }
+})
+
+test("right rail on a tablet width: a click on the page closes the panel", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "tablet width is tested from the desktop project")
+  await page.setViewportSize({ width: 1000, height: 800 })
+  await page.goto("/#/tasks")
+  await page.getByTestId("ask-toggle").click()
+  await expect(page.getByTestId("rail")).toBeVisible()
+  await page.mouse.click(400, 400) // a real click on the page behind the panel (Playwright's locator.click refuses switched-off elements)
+  await expect(page.getByTestId("rail")).toHaveCount(0)
 })
 
 test("keyboard: a board card changes status from its menu without dragging", async ({ page }) => {
