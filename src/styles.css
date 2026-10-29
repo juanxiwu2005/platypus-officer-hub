@@ -26,6 +26,14 @@
   --r-pill: 999px;  --r-circle: 50%;
   --fs-xs: 12px;  --fs-sm: 13px;  --fs-md: 14px;  --fs-base: 15px;
   --fs-lg: 18px;  --fs-xl: 21px;  --fs-2xl: 26px;
+  /* Timeline/chart blue meaning "you are here". It is NOT a status colour:
+     the .now dot comes from nodeStop() (done / now / todo / risk), worked out
+     from the schedule and risk, and the 6 user statuses map many-to-one onto it,
+     so no matching status colour exists and it must not follow Settings > Board.
+     No dark-theme override on purpose: light and dark already share this blue,
+     and this change is a rename only. */
+  --info: #3a6fd8;
+  --info-glow: rgba(58,111,216,.18);
   --edge: #9aa39e;
   --lane: #f6f4ef;
   /* Stacking order: higher number wins. base → raised → sticky → sticky-hi → local → top bar → overlay → fab → toast → rail → menu → hover card. */
@@ -394,7 +402,7 @@ div.hover { display: block; }
 .chain button.chain-btn { cursor: pointer; }
 .chain .dot { width: 16px; height: 16px; border-radius: var(--r-circle); background: var(--surface); border: 2px solid var(--edge); }
 .chain .dot.done { background: var(--good); border-color: var(--good); }
-.chain .dot.now { background: var(--st-now, #3a6fd8); border-color: var(--st-now, #3a6fd8); box-shadow: 0 0 0 4px rgba(58,111,216,.18); transform: scale(1.15); }
+.chain .dot.now { background: var(--info); border-color: var(--info); box-shadow: 0 0 0 4px var(--info-glow); transform: scale(1.15); }
 .chain .dot.risk { border-color: var(--late); border-width: 3px; }
 .chain-label { font-size: var(--fs-sm); color: var(--muted); text-align: center; line-height: 1.2; max-width: 96px; }
 .chain li.now .chain-label { color: var(--ink); font-weight: 600; }
@@ -459,9 +467,9 @@ div.hover { display: block; }
 .m-node:hover, .m-node:focus-within { z-index: var(--z-topbar); }
 .m-dot { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); width: 20px; height: 20px; border-radius: var(--r-circle); border: 2.5px solid var(--edge); background: var(--surface); padding: 0; cursor: pointer; display: block; }
 .m-dot.done { background: var(--good); border-color: var(--good); }
-.m-dot.now { width: 24px; height: 24px; background: #3a6fd8; border-color: #3a6fd8; box-shadow: 0 0 0 5px rgba(58,111,216,.18); }
+.m-dot.now { width: 24px; height: 24px; background: var(--info); border-color: var(--info); box-shadow: 0 0 0 5px var(--info-glow); }
 .m-dot.risk { border-color: var(--late); border-width: 4px; }
-.m-dot.now.risk { background: #3a6fd8; border-color: var(--late); }
+.m-dot.now.risk { background: var(--info); border-color: var(--late); }
 .m-dot.station { width: 30px; height: 30px; cursor: default; }
 .m-dot.station.event { border: 4px solid var(--accent); background: var(--accent-soft); }
 .m-dot.station.done { background: var(--good); border-color: var(--good); }
