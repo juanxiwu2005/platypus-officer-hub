@@ -7,6 +7,7 @@ import { safeLink } from "../data/taskWorkflow"
 import { TaskActions } from "./TaskActions"
 import { StatusPill } from "./ui"
 import { canLead } from "../data/changeReview"
+import { officialLabel } from "../engine/taskDates"
 import type { CSSProperties } from "react"
 
 export function TaskDetail({ node, actorId, token, initialReply }: { node: Node; actorId: string; token?: string; initialReply?: string | null }) {
@@ -21,7 +22,7 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
     <h2 ref={heading} tabIndex={-1}>{node.title}</h2>
     <p>{node.why || "This step supports our club plan."}</p>
     <p className="small muted">Owner: {state.people.find(p => p.id === node.ownerId)?.name ?? "Not assigned"}</p>
-    <div className="task-dates"><div><span className="small muted">Start by</span><b>{node.latestStart ? fmtLong(node.latestStart) : "Not set"}</b></div><div><span className="small muted">Club deadline</span><b>{node.clubDeadline ? fmtLong(node.clubDeadline) : "Not set"}</b></div><div><span className="small muted">ASU deadline</span><b>{node.officialDeadline ? fmtLong(node.officialDeadline) : "Not applicable"}</b></div></div>
+    <div className="task-dates"><div><span className="small muted">Start by</span><b>{node.latestStart ? fmtLong(node.latestStart) : "Not set"}</b></div><div><span className="small muted">Club deadline</span><b>{node.clubDeadline ? fmtLong(node.clubDeadline) : "Not set"}</b></div><div><span className="small muted">{officialLabel(node)}</span><b>{node.officialDeadline ? fmtLong(node.officialDeadline) : "Not applicable"}</b></div></div>
     {node.waitingOn && <p className="small warn-text">Waiting on: {node.waitingOn}</p>}
     {!!upstream.length && <p className="small"><b>Before this:</b> {upstream.map(n => `${n.title} (${n.status === "done" ? "done" : "still open"})`).join("; ")}</p>}
     {!!downstream.length && <p className="small"><b>After this:</b> {downstream.map(n => n.title).join("; ")}</p>}

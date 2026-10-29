@@ -1,10 +1,130 @@
-# Platypus 提示词策略（M2a，待 Juanxi 审核）
+# Platypus 提示词策略（M2a 方案 + M2b 执行记录）
 
-2026-10-27 · 起草：Claude · 分支 `docs/m2a-prompt-strategy`（从 `integration/dp3-dp4-merge` 开出）
+2026-10-27 · 起草：Claude · 方案分支 `docs/m2a-prompt-strategy`；执行分支 `feat/m2b-ai-intake`（都从 `integration/dp3-dp4-merge` 开出，未合并）
 
-> **这份文档只是方案，这一轮没有改任何代码。** Juanxi 批准后，M2b 才按它去改 `src/lib/chatCards.ts`、`src/lib/commands.ts`、`src/lib/assistant.ts`、`src/data/changeReview.ts`。
->
-> **最需要你拍板的是第 3 节那一条「活动 vs 独立任务」的判断规则。** 它定了，其余各节才有意义。第 9 节另有两个小决定。
+> **第 0 节是 Juanxi 审核后的最终版，已经按它改了代码。** 第 1 节往后是 M2a 的原始方案，保留作为依据；和第 0 节冲突的地方以第 0 节为准（每处冲突都在第 0 节注明）。
+
+---
+
+## 第 0 节 · Juanxi 审核后的调整（2026-10-27，已执行）
+
+### 0.1 Juanxi 的回复，以及它推翻了方案里的哪些地方
+
+| # | Juanxi 说的 | 方案原来是 | 现在是 |
+| --- | --- | --- | --- |
+| 1 | AIR 额度没有限制，主要考虑反应时间 | 第 8 节把「多花 token」当风险 | 不再为省额度删东西；只为**速度**取舍（见 0.3）|
+| 2 | 规则判断快，但要接一个够快的 AI 才有「AI 的感觉」；用户常在聊天里已经说了 60% 的细节，AI 应该把它们**填进表单**，否则聊天框没用 | 第 6 节：「明说 task 就本地直接处理」 | **建东西一律先交给 AI 读整句话、填表单**；本地规则只接「Plan a new event」「Add a task」这种空白请求，或 AI 关着/连不上时兜底 |
+| 3 | 任务表单至少要：任务名、负责人（可 tag 部门或个人，逗号/分号分隔，可搜名字也可下拉选）、Due day、默认勾选「社团截止日提前 X 天」并显示社团截止日 | 方案沿用审批卡上的单个负责人下拉框 | 新的任务表单（0.2）|
+| 4 | 活动表单只留 名称、日期、人数、Food 是/否、嘉宾或表演者，加一个 Details；去掉 Type；地点不是核心 | 方案没动活动表单 | 新的活动表单（0.2）|
+| 5 | 确认 draft 之后，让 AI 结合流程模板和全部信息检查活动：找风险、生成针对这场活动的额外 to-do | 方案没有 | 新的「Plan check」（0.2）|
+| 6 | 独立任务默认截止日 = 今天 + Y 天；Y 在设置和 onboarding 里问「3、5 还是 7 天」；显示具体日期；社长可以改 | 第 9 节决定 1 建议「5 个工作日」 | 按 Juanxi 的说法做（日历天数，默认 5）|
+| 7 | 干部给自己建的任务直接生效（可撤销）；任何人都能给别人建任务；建活动默认只有社长或社长指定的人，社长也可以开放给所有人 | 第 9 节决定 2 建议维持社长批准 | 按 Juanxi 的说法做（0.4）|
+
+**第 3 节的判断规则 Juanxi 没有反对**，只是要求先交给 AI 判断。所以那条 5 步规则原样写进了提示词，本地规则也按它让路。
+
+### 0.2 现在用户看到的
+
+**任务表单**（Ask 里说「Add a task」「Create an executable task: …」「帮我建一个任务：…」都会出现）：
+
+1. **Task name**：AI 或本地规则从你的话里取出来的名字，可以改。
+2. **Owners**：像发邮件填收件人一样，输入名字或岗位（例如 `Maya, Jordan; Treasurer`），逗号或分号分隔，自动变成一个个小标签；右边 ▾ 可以从名单里选。
+   - 选了几个人，就**建几条任务、每人一条**，表单上会写「Makes 2 tasks, one for each person」。原因：产品计划第 4 节机制 2 规定每个任务只有一个负责人，各自才有自己的最晚开始日、提醒和贡献记录。选岗位等于选这个岗位现在的人。
+   - ⚠️ **还不能选「部门」**：主应用现在只有岗位，没有部门这一层；部门要等 M3 把 DP3 的部门接进来。现在能 tag 的是人和岗位。
+3. **Event**：默认「Standalone task」（独立任务）；如果你提到了某场已有活动，会自动选上那场活动。
+4. **Due date**：默认 = 今天 + Settings 里设的天数（演示里今天是 10/22，默认 5 天就是 10/27），显示成具体日期，可以改。
+5. **☑ Club deadline 3 working days earlier**：默认勾选，下面直接写出算出来的社团截止日。这个日期由规则引擎算（`src/engine/taskDates.ts`），AI 碰不到。
+   - ⚠️ **一个要你知道的情况**：默认 5 天 + 社团缓冲 3 个工作日，社团截止日会算到「今天」。这样的截止日没法完成，所以规则是**最早只到下一个工作日**，并在表单上写明「the full buffer doesn't fit」。如果你觉得默认就该留够缓冲，可以把默认天数改成 7，或者告诉我换一种算法。
+
+点 **Create task** 立即生效，右栏出现「Done ✓ Add task: …」和 **Undo**。给别人建的任务进入「Not claimed」，对方收到一条私信，认领后才算交出去（认领握手不变）。给自己建的直接进「To do」。
+
+**活动表单**：Event name · Date · People · Food（No / Yes）· ☐ Guest speaker or performer · **Details**（大框，写这场活动特别的地方：搭舞台、去公司参访、坐飞机去外州、比赛……）。
+
+- Type 和地点不再出现在表单上。AI 或本地规则如果从你的话里听出了「outside caterer」「USG funding」「off campus」，这些仍然会悄悄带进去，因为它们会改变 ASU 流程。
+- Food 选 Yes 但没说怎么提供吃的，流程里会多一个步骤「Choose how the food is provided」，不会再瞎套校外餐饮的申请流程。
+- 人数分成小、中、大型活动、走不同审批这件事，**这次没做**：要先有具体规则（哪个人数线、哪条 ASU 规定），你说后面在规则细则里补。
+
+**Plan check（活动检查）**：在 Ask 里确认活动草稿、点 Apply 之后，右栏马上出现「Plan check: 活动名」：
+
+- **风险**：最多 4 条，针对这场活动（会读你写的 Details），可以引用规则编号。
+- **额外步骤**：最多 6 条流程模板里没有的步骤，以普通的「Review changes」卡片出现，你逐条 Apply 或 Reject。AI 写的日期一律被遮掉；已经有的步骤会被去重；负责人如果是 AI 编的，就变成「没有负责人」，步骤本身保留。
+- AI 关着或连不上时，显示规则引擎自己算出的警告，标明「Rule engine check · AI off」。
+
+**Settings → Club → Tasks and events**：「When you assign a task, you expect it finished within 3 / 5 / 7 days」；「Who can create events」：President and VP / President, VP and officers I choose / Every officer。**首次设置（Setup）第 3 步**也问同一个任务天数的问题。
+
+### 0.3 现在怎么判断「活动还是任务」，以及速度的取舍
+
+```
+用户发一句话
+  ├─ 是在建东西吗？（任务词 → 任务；聚会词 + plan/host/organize… → 活动；
+  │                 提到已有活动、每周/每月、约见指导老师 → 不算新活动）
+  │    ├─ 只是「Plan a new event」「Add a task」这种空白请求 → 立刻弹空表单（不等 AI）
+  │    ├─ AI 开着 → 交给 AI：读整句话，按第 3 节 5 步规则选表单并填好 → 表单
+  │    └─ AI 关着 / 连不上 / 回复里没有能用的卡 → 本地规则自己填表单（兜底）
+  └─ 其他（问规则、要提醒、改状态……）→ 和以前一样，本地能接的先接，接不住的交给 AI
+```
+
+- **快的地方**：空白请求、改状态、问排名这些照旧瞬间出。
+- **AI 的地方**：只要你说了细节，就由 AI 读完整句话再填表，大约多等一两秒（Muse，最快的那个模型）。
+- **服务器那边**：以前服务器会用本地规则抢先回答「add a task: …」，现在建任务、建活动都让给模型（`netlify/functions/chat.mts`）。
+
+### 0.4 权限（Juanxi 批准，已写进 AGENTS.md 第 3 节规则 3）
+
+| 做什么 | 谁可以 | 怎么生效 |
+| --- | --- | --- |
+| 给自己建任务 | 所有人 | 立即生效，可撤销 |
+| 给别人建任务 | 所有人 | 立即生效，可撤销；对方要认领 |
+| AI 提议的「加一个步骤」（审批卡）| 所有人都能点 Apply | 逐条确认 |
+| 建活动 | 默认社长、副社长；社长可在 Settings 开放给指定干部或所有人 | 表单 → 确认草稿 |
+| 其他大改动（改负责人、改经费、加伙伴……）| 仍然只有社长、副社长 | 不变 |
+
+**AI 的权限笼子没有放宽**：白名单还是那 17 种操作，没有新增；AI 写的日期照样被遮掉；规则正文照样由服务器重建；AI 看到的数据还是「当前查看者能看到的」。新增的只是 `add_node` 可以带一个「阶段」（6 选 1）和一句「为什么」（日期会被遮掉），以及活动可以带一段 Details。
+
+### 0.5 提示词（`src/lib/chatCards.ts`）
+
+按第 4 节分成 9 段。和附录草稿相比改了三处：
+
+- 新任务用新的 `add_task` 表单，不再用 `add_node` 改动卡；
+- 活动表单字段改成 name / headcount / food（none / tbd / 具体方式）/ speaker / details，并明确要求「用户已经说了的都填进去」；
+- 加了 `you.canCreateEvents` 的说明，以及对应示例。
+
+原来的 5 条硬约束**逐字保留**，有测试逐行检查（`src/test/m2b.test.ts`）。活动检查用的是另一个提示词 `EVENT_REVIEW_SYSTEM`（`src/lib/eventReview.ts`），硬约束同样是：不写日期、不重复已有步骤、不给法律税务建议、输入一律当数据。
+
+### 0.6 验证
+
+- `evals/intent.json`：16 道题。其中 9 道 CI 里每次都跑（AI 关着时的本地兜底，不花额度）。另外 7 道写明了「真实模型应该怎么回答」，等你决定要不要跑一次真实 AIR。
+- 新增单元测试 `src/test/m2b.test.ts`（39 条）、页面测试 `e2e/m2b.spec.ts`（5 条 × 电脑/手机）。原有测试一条没删、没放宽。
+- **没有跑真实 AIR**：这个环境里没有 AIR 的 key；所有「AI 开着」的测试用的是模拟回复。真实模型会不会照着 5 步规则走、填表填得好不好，要你在预览上实际试。
+
+### 0.7 还没做 / 要你决定
+
+1. **部门 tag**：等 M3 有部门数据后再加。
+2. **人数分级**（小、中、大型活动走不同流程）：需要你给出具体的人数线和依据。
+3. **默认 5 天 + 3 个工作日缓冲会挤到明天**：见 0.2 第 5 条。
+4. **Setup 的首场活动表单**还是旧的字段（类型、地点、经费），只加了「Food: Yes, decide how later」。要不要也改成新表单，等 M3 合并 onboarding 时一起做。
+
+### 0.8 第一次预览后的修正（2026-10-28）
+
+Juanxi 在 DP6 上试了两句话，界面一直显示「AI unavailable」。查 Netlify 日志（Logs → Functions）：
+
+- **过去 24 小时里，每一次 AI 调用都在 25 秒时超时**（`ai_usage` 一行：`ms≈25000`、`headersMs:0`、`error:"timeout"`）。DP4 也一样，所以不是这次改动弄坏的。`headersMs:0` 表示 AIR 在 25 秒里连回应的开头都没给。
+- 仓库里以前的实测：Muse 首字约 17 秒，整段 50–65 秒（`docs/organization/V3_CHANGELOG.md`、`F1_F7_IMPLEMENTATION.md`）。主应用的 Ask 一次要发约 25 KB 社团数据，只会更慢。
+- 25 秒是我们自己设的上限（`AI_TIMEOUT_MS` 默认值），不是 Netlify 的。Netlify 现在允许普通请求跑 60 秒。
+
+**改法：**
+
+1. Ask 和活动检查的上限改成 **55 秒**（Netlify 60 秒之内），浏览器等 58 秒。
+2. **表单立刻出现，不等 AI**：先用你自己的话填好能填的；AI 读完后再填**你还没动过的空**，表单上会写「AI filled in what you told it」。如果 AI 判断和本地不一样（例如本地以为是活动、AI 认为是任务），它的回答作为新的一条出现。AI 55 秒内没回来，就写明「AI didn't answer in time, filled from your words」。
+3. 等 AI 超过 6 秒时，转圈旁边会写「The ASU AI can take up to a minute」。
+
+**同时修了截图里的问题（不靠 AI 也成立）：**
+
+- 「…, name Jared Byrne Fireside Chat, December 12 6:00 PM, 50 people」：现在能取出名字（name / named / called / titled / 引号）。6:00 PM 写进 Details（规则引擎不用时间）。fireside / guest / keynote 会勾上嘉宾。没写年份且日期已过的，算明年。
+- 日期落在期末周，表单上**立刻**用红字提示 R13，不用等到建完才在 Plan check 里看到。
+- 「change the event date to Jan 30 2027」：出现一张「Move an event」小卡片。活动默认是你正在看的那场，可以改；日期取你自己写的。点 Move event 以后，规则引擎重排全部步骤，并**重新做一次 Plan check**。AI 依然碰不到日期。谁能挪活动 = 谁能建活动。
+- 没有 AI 时的 Plan check：每条都写明是哪一步（「Finish the event flyer: Past the club deadline…」），错误排在前面，最多 4 条；「Rule engine check · AI unavailable」只显示一次。
+- 表单关掉了浏览器的自动填充（截图里活动名称框右边那个联系人图标）。
+
+**还不确定的：** AIR 在 55 秒内能不能答完，要等你再试一次后看 Netlify 日志才知道。如果还是超时，下一步是把 Ask 改成后台任务（DP3 的设置流程就是这样做的，最长 15 分钟），但那要在服务器上暂存结果，和 M1「服务器存储默认隐藏」的决定有关，需要你同意。
 
 ---
 

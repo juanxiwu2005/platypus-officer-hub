@@ -1,5 +1,5 @@
 import type { DemoState } from "../data/types"
-import { canLead } from "../data/changeReview"
+import { canCreateEvent, canLead } from "../data/changeReview"
 import { forecastFor } from "../engine/forecast"
 import { workload } from "../engine/team"
 import { personalBuffer } from "../engine/schedule"
@@ -20,14 +20,14 @@ export function aiSnapshot(s: DemoState) {
   const role = (id: string | null | undefined) => s.roles.find(r => r.id === id)?.displayName ?? null
   return {
     today: s.today,
-    you: me && { id: me.id, name: me.name, role: role(me.roleId), canApprove: lead, personalBufferDays: personalBuffer(s, me).days, busyWeeks: me.busyWeeks, remindAt: me.remindAt, channels: me.channels },
+    you: me && { id: me.id, name: me.name, role: role(me.roleId), canApprove: lead, canCreateEvents: canCreateEvent(s), personalBufferDays: personalBuffer(s, me).days, busyWeeks: me.busyWeeks, remindAt: me.remindAt, channels: me.channels },
     club: { name: s.org.name, school: s.org.school, mission: s.org.mission, goals: s.org.goals.map(({ label, target, current, unit }) => ({ label, target, current, unit })), clubBufferBusinessDays: s.org.settings.clubBufferBusinessDays, sendMode: s.org.settings.sendMode, tags: (s.org.board?.tags ?? []).map(({ id, label }) => ({ id, label })), planningNotes: s.org.workspace.planningNotes.slice(0, 1500) },
     roles: s.roles.map(r => ({ id: r.id, title: r.displayName, function: r.fn, holder: name(r.holderId), holderId: r.holderId })),
     people: s.people.map(p => {
       const w = workload(s, p.id)
       return { id: p.id, name: p.name, role: role(p.roleId), email: p.email, channels: p.channels, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, workload: w.band, workloadPoints: w.points }
     }),
-    events: s.events.map(e => ({ id: e.id, name: e.name, date: e.date, type: e.type, headcount: e.headcount, venue: e.venue, food: e.food, funding: e.funding, speaker: e.speaker, risk: f.events[e.id]?.color ?? null })),
+    events: s.events.map(e => ({ id: e.id, name: e.name, date: e.date, type: e.type, headcount: e.headcount, venue: e.venue, food: e.food, funding: e.funding, speaker: e.speaker, details: e.details ?? null, risk: f.events[e.id]?.color ?? null })),
     tasks: s.nodes.map(n => n.status === "done"
       ? { id: n.id, title: n.title, eventId: n.eventId, status: n.status, owner: name(n.ownerId), completedOn: n.completedOn ?? null }
       : {

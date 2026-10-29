@@ -19,7 +19,7 @@
 | `AI_PRESET` | 不填，或 `asu_air` | 不填就是 AIR（默认）。只有紧急回退时才改，见第 3 节 |
 | `AI_MODEL` | 不填 | AIR 下由路由按任务选模型；只有关掉路由时才用 |
 | `AI_MODEL_ROUTING` | 不填（= 开） | 设 `off` = 所有任务都用 `AI_MODEL` 一个模型（运营方回退开关） |
-| `AI_TIMEOUT_MS` | 不填（25000） | 单次请求超时 |
+| `AI_TIMEOUT_MS` | 不填（25000） | 单次请求超时。Ask（`/api/chat`）和活动检查（`/api/event/review`）不受它管，固定 55 秒：2026-10-28 的 Netlify 日志显示 AIR 在 25 秒内一次都没有回应，而 Netlify 现在允许同步函数跑 60 秒 |
 | `ORG_SETUP_ENABLED` | **不填** | 服务器存储开关，见第 4 节。不填 = 隐藏 |
 
 改完变量要 **Deploys → Trigger deploy → Deploy project**，新变量只对新部署生效。`/api/health` 会显示当前供应商（应为 `ASU AIR`）和路由版本，从不显示 key。

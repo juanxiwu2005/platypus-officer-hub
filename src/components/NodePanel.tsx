@@ -7,6 +7,7 @@ import { SEVERITY_TONE } from "../pages/helpers"
 import { StatusPill } from "./ui"
 import { useOptionalRail } from "./rail/RailContext"
 import { canLead } from "../data/changeReview"
+import { officialLabel } from "../engine/taskDates"
 
 const RULE_BY_ID = Object.fromEntries(RULES.map(r => [r.id, r]))
 const TIER_LABEL = { light: "Light", medium: "Medium", heavy: "Heavy" } as const
@@ -66,7 +67,7 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
           <input id="club-date" type="date" value={p.club} disabled={!lead} data-testid="club-input" onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && update({ clubDeadlineOverride: e.target.value })} />
           {n.clubDeadlineOverride && <button type="button" className="btn btn-quiet small" disabled={!lead} onClick={() => update({ clubDeadlineOverride: null })}>Use recommended ({fmtLong(p.recommendedClub)})</button>}
         </span>
-        <span>ASU deadline</span>
+        <span>{officialLabel(n)}</span>
         <b data-testid="dl-official">{p.official ? fmtLong(p.official) : "None"}</b>
         <span>Materials</span>
         <span>{n.draftLink && /^https?:\/\//.test(n.draftLink) ? <a href={n.draftLink} target="_blank" rel="noreferrer">Open link ↗</a> : <span className="muted small">None yet</span>}</span>

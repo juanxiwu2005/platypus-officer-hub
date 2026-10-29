@@ -69,7 +69,7 @@
 
 1. **不放研究数据。** 不提交问卷原始回答、访谈转写、录音、参与者姓名或引语。仓库里只有虚构的演示社团数据。也不要把这些资料贴给任何 AI。
 2. **不放密钥。** 产品网站的 API key 只放在 Netlify 环境变量里（见 `docs/AI_SETUP.md`）；Night Mode 的 `ASU_AIR_API_KEY` 只放在本地终端环境里。任何密钥都绝不写进代码、文档、任务文件、提示词或提交记录。
-3. **日期只由规则引擎计算。** AI 只能通过白名单操作改数据（见计划第 11 节）、起草提醒、答案和手册；AI 输出里的日期字段一律丢弃。v1.2 起（Juanxi 2026-10-23 批准）：AI 文字里只保留和社团数据里已有日期完全一致的日期，其余遮掉；小改动（改状态、改名、标签、难度、记录联系）以当前查看者的权限立即生效并可撤销，其余改动仍要社长或副社长批准。
+3. **日期只由规则引擎计算。** AI 只能通过白名单操作改数据（见计划第 11 节）、起草提醒、答案和手册；AI 输出里的日期字段一律丢弃。v1.2 起（Juanxi 2026-10-23 批准）：AI 文字里只保留和社团数据里已有日期完全一致的日期，其余遮掉；小改动（改状态、改名、标签、难度、记录联系）以当前查看者的权限立即生效并可撤销，其余改动仍要社长或副社长批准。2026-10-27 M2b（Juanxi 批准）：**任务对所有人开放**——给自己或给别人建任务立即生效、可撤销（给别人的要对方认领）；**建活动**默认只限社长、副社长，社长可在 Settings 开放给指定干部或所有人；新任务的截止日由规则引擎按「今天 + 设置的天数」和社团缓冲计算（`src/engine/taskDates.ts`），AI 仍然不能给任何日期。详见 `docs/PROMPT_STRATEGY.md` 第 0 节。
 4. **`main` 分支就是正式网站。** 每次推送到 `main`，Netlify 都会自动上线。当前 Night Mode 工作只在 `feat/ai-night-mode`；其他工作也必须使用 Juanxi 批准的功能分支（命名规则见第 8 节）。**只有 Juanxi 明确批准后才能合并到 `main`。**
 5. **AI 供应商（2026-10-27 更新，Juanxi 批准）：**
    - **产品网站**：所有 AI 调用都走 ASU AIR（只在服务器上调用，key 只在 Netlify 环境变量里），只在模型上做选择。路由 v3：Gemma 4 31B 负责较长的结构化设置任务；Muse 负责短对话和编辑（主应用的 Ask、规则、提醒、手册都用它）；GLM 5.3 只在用户主动要求 Deeper review 时使用。**不再使用 DeepSeek**；它只在 AIR 不可用时作紧急回退，需 Juanxi 同意，且只处理虚构数据。模型分工是设计选择，不是已验证的性能排名。详见 `docs/AI_SETUP.md`。
@@ -212,6 +212,8 @@ gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
 | `feat/ai-native-phase1` | Deploy Preview 2（PR #2）| ❌ 改名会毁掉 DP2 |
 | `feat/ai-night-mode` | **Deploy Preview 7**（PR #7）= DP5 + Night Mode 工具链 | ❌ 改名会毁掉 DP7 |
 | `integration/dp3-dp4-merge` | **Deploy Preview 5**（PR #5）= DP4 + DP3 合并版（M1）：AI 走 AIR、服务器存储隐藏 | ❌ 改名会毁掉 DP5 |
+| `docs/m2a-prompt-strategy` | M2a 提示词策略文档（只有文档），已包含在下一行的分支里 | 可以删（没有 PR 用它）|
+| `feat/m2b-ai-intake` | **Deploy Preview 6**（PR #6，base `main`）= DP5 + M2a + M2b：Ask 分清任务与活动、AI 预填表单、活动 Plan check | ❌ 改名会毁掉 DP6 |
 
 **Juanxi 重点关注 DP3 和 DP4，合并方案见 `docs/EXECUTION_PLAN_2026-10-27.md` 第 8–10 节。**
 DP5（PR #5）是两者的合并版，CI 已通过，是最接近「下一个上线版本」的分支。

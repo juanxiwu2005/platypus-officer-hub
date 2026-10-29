@@ -39,9 +39,9 @@
   --risk-yellow: #ba8306;
   --mline-main: #888e8b;
   --lane: #f6f4ef;
-  /* Stacking order: higher number wins. base → raised → sticky → sticky-hi → local → top bar → overlay → fab → toast → rail → menu → hover card. */
+  /* Stacking order: higher number wins. base → raised → sticky → sticky-hi → local → dropdown → top bar → overlay → fab → toast → rail → menu → hover card. */
   --z-base: 0;        --z-raised: 1;      --z-sticky: 2;      --z-sticky-hi: 3;
-  --z-local: 4;       --z-topbar: 20;     --z-overlay: 40;    --z-fab: 45;
+  --z-local: 4;       --z-dropdown: 5;    --z-topbar: 20;     --z-overlay: 40;    --z-fab: 45;
   --z-toast: 50;      --z-rail: 55;       --z-menu: 60;       --z-tip: 70;
   /* Spacing tokens: distilled from the px values this stylesheet already uses most often,
      not an ideal 4px grid — keeping the current look wins over grid purity.
@@ -655,3 +655,17 @@ html, body { overflow-x: clip; }
 .gantt-bar.has-error { outline: 2px solid var(--late); outline-offset: 1px; }
 .gantt-bar.st-done { opacity: .45; }
 .gantt-official { position: absolute; top: 4px; height: 22px; width: 0; border-left: 3px solid var(--late); }
+/* Ask task form: owners as tags (M2b) */
+.owner-field { display: grid; gap: 2px; position: relative; }
+.owner-label { font-size: var(--fs-sm); color: var(--muted); }
+.owner-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-height: 36px; padding: 2px 4px 2px 6px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); cursor: text; }
+.owner-picker:focus-within { border-color: var(--accent); }
+.owner-picker input { flex: 1; min-width: 90px; border: 0 !important; padding: 4px 2px !important; background: transparent; color: var(--ink); outline: none; }
+.owner-chip { display: inline-flex; align-items: center; gap: 2px; padding: 2px 4px 2px 8px; border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent-ink); font-size: var(--fs-sm); }
+.owner-chip button { border: 0; background: none; color: inherit; cursor: pointer; font-size: var(--fs-base); line-height: 1; min-width: 24px; min-height: 24px; }
+.owner-toggle { border: 0; background: none; color: var(--muted); cursor: pointer; min-width: 28px; min-height: 28px; }
+.owner-suggest { position: absolute; z-index: var(--z-dropdown); top: 100%; left: 0; right: 0; margin: 2px 0 0; padding: 4px; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sm); box-shadow: 0 6px 18px rgb(0 0 0 / .12); max-height: 240px; overflow: auto; }
+.owner-suggest button { display: flex; justify-content: space-between; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: var(--r-sm); background: none; color: var(--ink); text-align: left; cursor: pointer; }
+.owner-suggest button:hover, .owner-suggest button:focus-visible { background: var(--surface-2); }
+.plan-form textarea { width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); resize: vertical; font: inherit; }
+.review-risks { margin: 0; padding-left: 16px; display: grid; gap: 4px; font-size: var(--fs-md); }

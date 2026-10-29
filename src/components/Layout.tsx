@@ -28,8 +28,9 @@ function Frame() {
   useEffect(() => {
     if (lastPath.current !== location.pathname) {
       if (rail.detail && rail.detail.kind !== "task") rail.closeDetail()
-      // On a phone or tablet the panel covers the page, so a new page starts with it closed.
-      if (!window.matchMedia?.("(min-width: 1200px)").matches && !(rail.detail?.kind === "task" && location.search.includes("node="))) rail.setOpen(false)
+      // On a phone or tablet the panel covers the page, so a new page starts with it closed — except right after a
+      // new event, whose plan check is about to appear in Ask (M2b).
+      if (!window.matchMedia?.("(min-width: 1200px)").matches && !(rail.detail?.kind === "task" && location.search.includes("node=")) && !rail.reviewEventId) rail.setOpen(false)
     }
     lastPath.current = location.pathname
   }, [location.pathname])
