@@ -32,7 +32,7 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
     <TaskActions node={node} actorId={actorId} token={token} initialReply={initialReply} />
     {!token && canLead(state) && <details className="more"><summary>Edit</summary><div className="form-stack">
       <label className="field"><span>Task name</span><input defaultValue={node.title} maxLength={100} onBlur={e => e.target.value.trim() && e.target.value !== node.title && dispatch({ type: "updateNode", id: node.id, patch: { title: e.target.value } })} /></label>
-      {!!state.org.board?.tags?.length && <div className="field"><span>Tags</span><div className="tag-row">{state.org.board.tags.map(t => { const on = node.tags?.includes(t.id); return <button key={t.id} type="button" className="tag-chip" aria-pressed={on} style={{ "--tag": t.color, opacity: on ? 1 : .45, border: 0, cursor: "pointer" } as CSSProperties} onClick={() => dispatch({ type: "updateNode", id: node.id, patch: { tags: on ? (node.tags ?? []).filter(x => x !== t.id) : [...(node.tags ?? []), t.id] } })}>{t.label}</button> })}</div></div>}
+      {!!state.org.board?.tags?.length && <div className="field"><span>Tags</span><div className="tag-row">{state.org.board.tags.map(t => { const on = node.tags?.includes(t.id); return <button key={t.id} type="button" className="tag-chip tag-toggle" aria-pressed={on} style={{ "--tag": t.color } as CSSProperties} onClick={() => dispatch({ type: "updateNode", id: node.id, patch: { tags: on ? (node.tags ?? []).filter(x => x !== t.id) : [...(node.tags ?? []), t.id] } })}>{t.label}</button> })}</div></div>}
       <p className="small muted">Owner and due date can be changed in the task table; dates still come from the rule engine.</p>
     </div></details>}
   </section>

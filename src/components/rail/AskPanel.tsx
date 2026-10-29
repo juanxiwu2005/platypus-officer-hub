@@ -204,7 +204,7 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
       return <div className="mini-card"><b>Reminder for {owner.name.split(" ")[0]}</b><span className="small">{n.title}</span><button type="button" className="btn btn-primary small" onClick={() => rail.show({ kind: "nudge", id: n.id })}>Open the draft</button></div>
     }
     case "rule": return <div className="mini-card" data-testid="rule-answer">
-      <p style={{ whiteSpace: "pre-line" }}>{card.answer}</p>
+      <p className="pre-line">{card.answer}</p>
       {card.citations.length > 0 && <div className="action-row">{card.citations.map(id => { const r = ruleById(id); return r && <a key={id} className="btn small" href={r.sources[0].url} target="_blank" rel="noreferrer">{id} source ↗</a> })}</div>}
       <span className="ask-source">{card.label}{card.citations.length ? ` · checked ${ruleById(card.citations[0])?.checkedOn}` : ""}</span>
       <Feedback id={`ask:${card.question}:${card.answer}`} text={card.answer} />

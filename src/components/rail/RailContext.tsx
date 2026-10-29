@@ -55,6 +55,9 @@ export function RailProvider({ children }: { children: ReactNode }) {
   const openedForDetail = useRef(false)
   const openRef = useRef(open)
   openRef.current = open
+  // What had focus when Details opened, so closing Details can give focus back (keyboard users).
+  const returnFocus = useRef<HTMLElement | null>(null)
+  const detailOpen = useRef(false)
   const [pending, setPending] = useState<RailValue["pending"]>(null)
 
   const setOpen = useCallback((v: boolean) => {
@@ -62,12 +65,21 @@ export function RailProvider({ children }: { children: ReactNode }) {
     if (wide()) try { window.localStorage.setItem(OPEN_KEY, v ? "1" : "0") } catch { /* storage unavailable */ }
   }, [])
   const show = useCallback((d: Detail) => {
+    if (!detailOpen.current) {
+      const a = document.activeElement
+      returnFocus.current = a instanceof HTMLElement && a !== document.body && !a.closest(".rail") ? a : null
+    }
+    detailOpen.current = true
     setDetail(d)
     setTab("details")
     if (!openRef.current) openedForDetail.current = true
     setOpenState(true)
   }, [])
   const closeDetail = useCallback(() => {
+    detailOpen.current = false
+    const back = returnFocus.current
+    returnFocus.current = null
+    if (back) setTimeout(() => { if (back.isConnected) back.focus() }, 0)
     setDetail(null)
     setTab("ask")
     if (openedForDetail.current) setOpenState(false)

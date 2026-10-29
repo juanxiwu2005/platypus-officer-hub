@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "no-duplicate-selectors": true,
+    "color-no-hex": true,
+    "declaration-property-value-allowed-list": {
+      "font-size": ["/^var\\(--fs-[a-z0-9]+\\)$/", "/^clamp\\(26px, 3\\.2vw, 34px\\)$/", "inherit"],
+      "font": ["inherit", "/^15px\\/1\\.55 var\\(--sans\\)$/", "/^600 13\\.5px\\/1\\.3 var\\(--sans\\)$/"],
+      "/^border(-(top|bottom)-(left|right))?-radius$/": ["0", "inherit", "var(--radius)", "/^var\\(--r-[a-z]+\\)$/", "/^(var\\(--r-[a-z]+\\)|0)( (var\\(--r-[a-z]+\\)|0)){1,3}$/"],
+      "z-index": ["/^var\\(--z-[a-z-]+\\)$/"]
+    }
+  }
+}

@@ -17,7 +17,37 @@ import { Empty } from "../ui"
 export function Rail() {
   const rail = useRail()
   const { tab, setTab, detail } = rail
-  return <aside className="rail" aria-label="Assistant and details" data-testid="rail">
+  const aside = useRef<HTMLElement>(null)
+  // Below 1200px the rail floats over the page (full screen on a phone). Then focus must move into it, stay out of the
+  // page underneath (full screen only), come back to the button that opened it, and Escape must close it.
+  useEffect(() => {
+    const overlay = window.matchMedia?.("(max-width: 1199px)").matches
+    if (!overlay) return
+    const a = document.activeElement
+    const opener = a instanceof HTMLElement && a !== document.body && !aside.current?.contains(a) ? a : null
+    if (!aside.current?.contains(document.activeElement)) aside.current?.focus()
+    const covered = window.matchMedia("(max-width: 860px)").matches ? [...document.querySelectorAll<HTMLElement>("header.topbar, nav.sidenav, #main")] : []
+    covered.forEach(el => el.setAttribute("inert", ""))
+    return () => {
+      covered.forEach(el => el.removeAttribute("inert"))
+      // The round Ask button is removed while the panel is open, so after closing, look for whichever opener is on screen.
+      setTimeout(() => {
+        const shown = [...document.querySelectorAll<HTMLElement>(".ask-fab, [data-testid=ask-toggle]")].find(el => el.getClientRects().length)
+        // Only fall back when nothing else (for example the details' own focus return) has already taken focus.
+        const free = !document.activeElement || document.activeElement === document.body
+        if (opener?.isConnected && free) opener.focus()
+        else if (free) shown?.focus()
+      }, 0)
+    }
+  }, [])
+  const hasDetail = !!detail
+  useEffect(() => {
+    if (!window.matchMedia?.("(max-width: 1199px)").matches) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !hasDetail) rail.setOpen(false) }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [hasDetail, rail])
+  return <aside className="rail" aria-label="Assistant and details" data-testid="rail" ref={aside} tabIndex={-1}>
     <div className="rail-tabs">
       <div role="tablist" aria-label="Side panel" className="tab-group">
         <button type="button" role="tab" aria-selected={tab === "ask"} onClick={() => setTab("ask")} data-testid="tab-ask">Ask</button>
@@ -41,7 +71,12 @@ function DetailView() {
   const location = useLocation()
   const d = rail.detail!
   const box = useRef<HTMLDivElement>(null)
-  useEffect(() => { box.current?.scrollTo?.({ top: 0 }) }, [d])
+  // Every kind of detail takes focus when it opens or changes (unless it already put focus inside itself).
+  const key = d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" ? `funding:${d.eventId}` : "board"
+  useEffect(() => {
+    box.current?.scrollTo?.({ top: 0 })
+    if (box.current && !box.current.contains(document.activeElement)) box.current.focus()
+  }, [key])
   const close = () => {
     if (d.kind === "task" && location.pathname === "/tasks" && location.search.includes("node=")) navigate("/tasks", { replace: true })
     rail.closeDetail()
@@ -52,11 +87,12 @@ function DetailView() {
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   })
+  const region = { role: "region", "aria-label": "Details", tabIndex: -1 } as const
   const closer = <div className="detail-bar"><span className="spacer" /><button type="button" className="btn btn-quiet icon-btn" aria-label="Close details" onClick={close}>✕</button></div>
   let body: JSX.Element | null = null
   switch (d.kind) {
-    case "node": return <div ref={box} className="detail-scroll"><NodePanel nodeId={d.id} onClose={close} onSelect={id => rail.show({ kind: "node", id })} /></div>
-    case "nudge": return <div ref={box} className="detail-scroll"><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
+    case "node": return <div ref={box} className="detail-scroll" {...region}><NodePanel nodeId={d.id} onClose={close} onSelect={id => rail.show({ kind: "node", id })} /></div>
+    case "nudge": return <div ref={box} className="detail-scroll" {...region}><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
     case "task": {
       const node = state.nodes.find(n => n.id === d.id)
       body = node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
@@ -67,5 +103,5 @@ function DetailView() {
     case "handoff": body = <HandoffRoleDetail roleId={d.roleId} />; break
     case "board": body = <BoardSettingsPanel />; break
   }
-  return <div ref={box} className="detail-scroll">{closer}{body}</div>
+  return <div ref={box} className="detail-scroll" {...region}>{closer}{body}</div>
 }

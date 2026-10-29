@@ -128,7 +128,7 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
               {n.ruleIds.map(id => {
                 const r = RULE_BY_ID[id]
                 return r ? (
-                  <li key={id} style={{ display: "block" }}>
+                  <li key={id} className="block">
                     <span className="rule-id">{id}</span> <span className="small">{r.text}</span>
                     <div className="small muted">{r.sources.map((s, i) => <span key={s.url}>{i > 0 && " · "}<a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></span>)}</div>
                   </li>

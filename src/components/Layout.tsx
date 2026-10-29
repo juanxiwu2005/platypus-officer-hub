@@ -29,8 +29,9 @@ function Frame() {
     if (lastPath.current !== location.pathname) {
       if (rail.detail && rail.detail.kind !== "task") rail.closeDetail()
       // On a phone or tablet the panel covers the page, so a new page starts with it closed — except right after a
-      // new event, whose plan check is about to appear in Ask (M2b).
-      if (!window.matchMedia?.("(min-width: 1200px)").matches && !(rail.detail?.kind === "task" && location.search.includes("node=")) && !rail.reviewEventId) rail.setOpen(false)
+      // new event, whose plan check is about to appear in Ask (M2b), and a link straight to a task (?node=), whose details
+      // the Tasks page opens in this same render pass (rail.detail is still the old value here).
+      if (!window.matchMedia?.("(min-width: 1200px)").matches && !location.search.includes("node=") && !rail.reviewEventId) rail.setOpen(false)
     }
     lastPath.current = location.pathname
   }, [location.pathname])

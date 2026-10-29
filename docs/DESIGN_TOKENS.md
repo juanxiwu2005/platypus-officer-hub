@@ -87,6 +87,9 @@
 | `--edge` | #878f8b | #5f6965 | 空心点、虚线头像、甘特竖线的边 |
 | `--risk-yellow` | #ba8306 | #e3a008 | 风险黄点、Team 中档条 |
 | `--mline-main` | #888e8b | #b9c0bc | 流程图主线未完成段 |
+| `--warn-line` | #e8cf9c | 同浅色 | 琥珀色 Demo 小标的边框（S6 新增，原来写死）|
+| `--on-solid` | #ffffff | 同浅色 | 压在实心色块上的字：状态色块、角标、看板列头（S6 新增，原来写死 #fff）|
+| `--on-dark-warn` | #ffb4ab | 同浅色 | 永远是深色的悬停卡里的警告字（S6 新增）|
 | `--info` / `--info-glow` | #3a6fd8 / rgba(58,111,216,.18) | 同浅色 | 时间轴蓝，见 5.3 |
 
 对比度（文字配对，浅色 / 深色）：
@@ -156,3 +159,26 @@
 4. 不要加深 `--line`，不要合并 5.3 里那两套颜色，不要给 `--info` 加状态色含义。
 5. **深色模式：** 现在跟随系统（`prefers-color-scheme: dark`）。CSS 已经支持用 `data-theme="light"` / `data-theme="dark"` 强制覆盖，但**界面上还没有切换开关**。加新 token 时两段深色（`@media` 里那段和 `:root[data-theme="dark"]`）要同步改。
 6. 改完照 AGENTS.md 跑 `npm run check`。
+
+## 8. 自动护栏（S6，2026-10-29 起）
+
+从现在起这些规则由工具自动检查，`npm run check` 和 GitHub CI 都会跑，违反就红：
+
+| 检查 | 命令 | 拦什么 |
+| --- | --- | --- |
+| Stylelint | `npm run lint:css`（只管 `src/styles.css`）| `font-size` 只能是 `var(--fs-*)`（外加大标题的那个 `clamp`、`inherit`）；`border-radius` 只能是 `0`、`inherit`、`var(--radius)`、`var(--r-*)`；`z-index` 只能是 `var(--z-*)`；`:root` 三段主题之外**不准写 hex 颜色**；**不准出现重复选择器**；`font:` 简写只放行 3 种（见下）|
+| ESLint | `npm run lint:js`（`src/` 下的 ts/tsx）| 行内 `style={{...}}` 只能放 CSS 变量（`--xxx`）和数据算出来的 `left/top/width/height`，其余一律写成 `styles.css` 里的 class |
+| 字数 | `npm run words` | 只**报告**每页真实字数（含悬停卡、折叠内容），不会因超限失败，也不会要求删字；上限由 Juanxi 决定后再开 `--enforce` |
+| 无障碍 | `e2e/a11y.spec.ts`（桌面+手机）| WCAG 2.0/2.1/2.2 A/AA，含触摸目标 24×24；右栏焦点管理 |
+
+**有意放行的例外（逐条写理由）：**
+
+1. `border-radius: 0`：直角不是"圆角档位"，换成 token 没有意义。
+2. `font-size: clamp(26px, 3.2vw, 34px)`（`h1`）：响应式大标题，随屏幕宽度变，不能是固定档。
+3. `font-size: inherit`、`border-radius: inherit`：继承父级，不引入新数值。
+4. `font:` 简写只放行 `inherit`、`15px/1.55 var(--sans)`（`body`）、`600 13.5px/1.3 var(--sans)`（`.board-col > header h2`）：这两处简写里有意保留的字号，把它们拆开会改变行高，留待以后统一。
+5. `:root` 里的 hex：token 的定义本来就要写颜色值。
+6. 间距这次**不强制**用 token（旧规则里还有 10px、14px 等），所以没有间距规则。
+7. **不检查** `src/organization/`、`src/phase1/`、`src/workspace/` 的 CSS 和行内样式：它们是另一套较老的代码（CSS 约 4,500 行），以后统一再纳入。
+
+**加新样式时：** 先看 `npm run lint` 红在哪，改成 token 或 class，**不要**用 `stylelint-disable` / `eslint-disable` 绕过；确实要例外，在这里加一条并写理由。

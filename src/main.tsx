@@ -32,8 +32,8 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
   render() {
     if (!this.state.failed) return this.props.children
     return (
-      // One inline rule: .shell is a two-column grid for the nav, and there is no nav here.
-      <div className="shell" style={{ gridTemplateColumns: "minmax(0, 1fr)" }}>
+      // .shell.single: .shell is a two-column grid for the nav, and there is no nav here.
+      <div className="shell single">
         <main id="main">
           <section className="card" role="alert" data-testid="app-error">
             <header><h2>Platypus could not open this page</h2></header>
