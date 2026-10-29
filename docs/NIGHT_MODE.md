@@ -36,6 +36,19 @@ Night Mode 让一组 ASU AIR Agent 在受保护的功能分支完成一个**已�
    → 下次检查 `opencode debug agents` 输出里除 `shell` 之外有没有别的可执行 action
    （如 `execute`、`code`、`run`），有就一并 deny。
 
+### 2026-10-29 补记：N1 成功后发现的问题（只记录，没修；Juanxi 批准的维护者修改，不改 `scripts/`）
+
+1. **`scripts/night-mode.mjs` 的 `waitForCi` 会误判 CI 失败。** 推送后立刻运行
+   `gh pr checks --watch`，GitHub 还没注册检查时返回 "no checks reported"，被当成失败。
+   同时 `latestCiFailure` 会拿到**上一次的成功运行**当失败原因（日志里写出 "GitHub CI success."）。
+   N1 其实通过了 CI，就是这样被误判后白跑两轮返工。
+   → 修法方向：推送后先等检查出现（轮询到至少有一条）再 watch；失败原因只取 conclusion 为 failure 的运行。
+2. **`scripts/night-queue.sh`：失败任务如果已经留下提交，就不会处理剩下没提交的改动**，
+   工作区变脏，下一个任务的 doctor 因"工作区不干净"而失败。
+3. **`scripts/night-queue.sh` 第 137 行 `"$wip（"`：** macOS 自带的 bash 3.2 会把中文括号的字节当成变量名的一部分，
+   `set -u` 下报 `wip?: unbound variable`，整个队列退出。修法：写成 `${wip}`。
+4. **code-critic 的运行环境时常读不到文件**，这时它只能给 `REJECTED`（不是代码真有问题）。
+
 ## 2. 谁负责什么
 
 | 层 | 责任 | 不能做什么 |
