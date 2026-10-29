@@ -7,7 +7,7 @@
 - GitHub 正本：`juanxiwu2005/platypus-officer-hub`。
 - `main` 是 Production，当前基线提交仍为 `4dc55ba`。任何 AI 都不得直接修改、推送或合并 `main`。
   **下面提到的所有改动都还没有进入 `main`。**
-- 当前有 4 个开着的 Draft PR，每个对应一个 Deploy Preview（**预览编号 = PR 编号**）：
+- 当前有 6 个开着的 Draft PR，每个对应一个 Deploy Preview（**预览编号 = PR 编号**）：
 
   | PR | 分支 | 是什么 | CI |
   | --- | --- | --- | --- |
@@ -15,6 +15,8 @@
   | #3 | `feat/organization-setup-ai` | DP3：Organization Setup v3 + workspace | 通过 |
   | #5 | `integration/dp3-dp4-merge` | **DP5：DP3 + DP4 合并版**，AI 走 ASU AIR，服务器存储已隐藏 | 通过 |
   | #7 | `feat/ai-night-mode` | 自动开发分支，**已并入 DP5** | 通过 |
+  | #6 | `feat/m2b-ai-intake` | DP6：DP5 + M2a/M2b（Ask 分清任务与活动、AI 预填表单、活动 Plan check）| 旧的 CI 因 `e2e/today.spec.ts:8` 过时而失败；修复在 PR #8 |
+  | #8 | `integration/v1.0` | **v1.0 集结预览：PR #7（设计 token）+ PR #6（M2b）合并版**，预览 https://deploy-preview-8--platypus-officer-hub.netlify.app ，标题「[预览·请勿合并]」 | 见 PROGRESS.md |
 
   ⚠️ 这些分支**不能改名也不能删**：删 head 或 base 分支都会关闭 PR，重开会拿到新编号，
   旧预览网址永远回不来。`v1` 是 PR #2/#3 的 base，同样不能动。命名规则见第 8 节。
@@ -214,6 +216,7 @@ gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
 | `integration/dp3-dp4-merge` | **Deploy Preview 5**（PR #5）= DP4 + DP3 合并版（M1）：AI 走 AIR、服务器存储隐藏 | ❌ 改名会毁掉 DP5 |
 | `docs/m2a-prompt-strategy` | M2a 提示词策略文档（只有文档），已包含在下一行的分支里 | 可以删（没有 PR 用它）|
 | `feat/m2b-ai-intake` | **Deploy Preview 6**（PR #6，base `main`）= DP5 + M2a + M2b：Ask 分清任务与活动、AI 预填表单、活动 Plan check | ❌ 改名会毁掉 DP6 |
+| `integration/v1.0` | **Deploy Preview 8**（PR #8，base `main`）= PR #7（N1–N6 设计 token）+ PR #6（M2b）合并版，已修 `e2e/today.spec.ts:8`。预览 https://deploy-preview-8--platypus-officer-hub.netlify.app | ❌ 改名会毁掉 DP8 |
 
 **Juanxi 重点关注 DP3 和 DP4，合并方案见 `docs/EXECUTION_PLAN_2026-10-27.md` 第 8–10 节。**
 DP5（PR #5）是两者的合并版，CI 已通过，是最接近「下一个上线版本」的分支。
