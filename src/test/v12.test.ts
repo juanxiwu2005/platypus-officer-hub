@@ -20,7 +20,7 @@ describe("v1.2 AI data access", () => {
     const snap = aiSnapshot(s)
     expect(snap.tasks).toHaveLength(s.nodes.length)
     expect(snap.events).toHaveLength(s.events.length)
-    expect(snap.partners).toHaveLength(s.contacts.length)
+    expect(snap.partners).toHaveLength(s.contacts.filter(c => c.visibility === "all").length) // leads-only contacts are hidden from AI too
     const text = JSON.stringify(snap)
     expect(text).not.toMatch(/demoLinkKey|dataUrl|signature|personalBufferEnabled/)
     expect(snap.people.every(p => !("personalBufferDays" in p))).toBe(true)

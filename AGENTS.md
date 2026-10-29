@@ -163,6 +163,14 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 - **M2b（Ask 分清任务与活动）：** 表单在 `src/components/rail/AskPanel.tsx`、`TaskFields.tsx`；任务的社团截止日由 `src/engine/taskDates.ts` 算；活动 Plan check 是 `src/lib/eventReview.ts` + `netlify/functions/event-review.mts`（`/api/event/review`）；提示词 `src/lib/chatCards.ts`，策略 `docs/PROMPT_STRATEGY.md`。
 - **排序题 Edit steps（M3）：** `src/components/StepEditor.tsx` + `src/lib/stepOrder.ts`。界面只写步骤的 `dependsOn`、`estDays`（处理所需天数）、`phase`，以及活动的 `phaseOrder`（大排序），通过 store 的 `applyStepEdits` 一次写入（会进交互日志）；日期仍由 `schedule.ts` 算。方案 `docs/M3_RANKING_PLAN.md`，测试 `e2e/steps.spec.ts`。
 - **其他：** 新记录的 id 由 `src/lib/ids.ts` 生成（不再用数组长度）。AI 只走 ASU AIR，`AI_PRESET=deepseek` 会被拒绝（`netlify/lib/ai.mts`）。两套 onboarding 合一的方案 `docs/M4_ONBOARDING_PLAN.md` **还在等 Juanxi 审核，没有实施**。
+## 6c. v1.3 社团 CRM（Partners 页，2026-10-29，Juanxi 批准）
+
+- 借鉴开源 CRM Twenty 的数据设计（人和机构分开、时间线、标签、看板），**没有**引入它的代码（它是 AGPL 的完整后端系统）。
+- 数据（`src/data/types.ts`，结构版本 **6**）：`Organization`（机构）、`Contact`（联系人，含职位、联系方式、阶段 Cold/Warm/Active/Dormant、来源、引荐人、标签、可见范围）、`Interaction`（互动时间线：谁、何时、做了什么、结果、下一步和日期、关联活动）。联系人仍属于**岗位**（`ownerRoleId`），换届跟岗位走。**没有做 Deal（赞助进度）**，等核心稳了再加。
+- 逻辑全在 `src/data/crm.ts`（纯函数，有 `src/test/crm.test.ts`）；权限放 `src/data/permissions.ts`（`canLead` 从 `changeReview.ts` 移到这里，旧位置仍可导入）。
+- 权限：任何人能添加联系人/机构和写互动记录；负责人或社长/副社长改资料；只有社长/副社长能删除、改负责岗位。`visibility: "leads"` 的联系人只有社长/副社长、负责人和创建者能看到——**AI 看到的也一样**（`aiContext.ts`、`commandContext` 都用 `visibleContacts`）。演示里没有普通社员账号，所以“仅干部可见”实际是“社长/副社长 + 负责人”。
+- 界面：`src/pages/Partners.tsx`（People 表 / Board 看板 / Organizations 三个视图；All·Mine·Overdue 预设；类型、负责人、标签筛选；搜索含标签和邮箱）；右栏详情 `src/components/crm/ContactDetail.tsx`、`OrgDetail.tsx`（`useRail().show({ kind: "partner" | "org", id })`）；共用小部件 `crm/parts.tsx`（失焦自动保存的 Field、互动表单、时间线）。
+- AI 的 `add_contact` 和 `mark_contacted` 仍然可用（机构名按名字查找或新建）。
 
 ## 7. 界面规则（2026-10-23 简化改版，Juanxi 批准）
 
