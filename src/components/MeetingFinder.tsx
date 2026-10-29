@@ -85,7 +85,7 @@ export function MeetingFinder() {
   const choice = pick && fits ? whoIsFree(state, ids, pick.date, pick.from, pick.from + duration) : null
 
   return <section className="card form-stack" data-testid="meeting-finder" aria-labelledby="mf-h">
-    <header><h2 id="mf-h">Find a meeting time</h2><Info>Left: click or drag to paint your own free times; they repeat every week and save when you let go (use View as to edit someone else). Right: the darker the cell, the more chosen officers are free; hover to see who, click to pick a time. Busy weeks, ASU closures, finals and breaks count as not free. Arizona time. No calendar is read and no invite is sent.</Info></header>
+    <header><h2 id="mf-h">Find a meeting time</h2><Info>Paint your weekly free times. Darker means more people free. No calendar is read.</Info></header>
     <div className="action-row w2m-nav">
       <button type="button" className="btn small" disabled={week === 0} onClick={() => setWeek(week - 1)} aria-label="Previous week">‹</button>
       <span className="small">{fmtShort(dates[0])} – {fmtShort(dates[6])}</span>
