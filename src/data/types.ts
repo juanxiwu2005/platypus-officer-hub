@@ -128,6 +128,8 @@ export interface Event {
   playbookId: string
   /** What the organizer wrote about the event in their own words (form "Details"); the event review reads it. */
   details?: string
+  /** Order of the six phase groups in the step editor and in the progress dots (display only; no date depends on it). */
+  phaseOrder?: Phase[]
 }
 
 export type NodeStatus = "unclaimed" | "accepted" | "in_progress" | "waiting" | "blocked" | "done"

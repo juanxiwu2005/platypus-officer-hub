@@ -2,13 +2,14 @@ import { changeHandoff, type HandoffAction } from "./handoff"
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react"
-import type { ChangeSet, DemoState, Event, LogEntry, Node } from "./types"
+import type { ChangeSet, DemoState, Event, LogEntry, Node, Phase } from "./types"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
 import type { Channel } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
+import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
 import { advanceClock } from "../engine/followup"
 import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type ReplyInput, type TaskReply } from "./taskWorkflow"
 import { usableGrant } from "../lib/officerLinks"
@@ -26,7 +27,7 @@ import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
 export const STORAGE_KEY = "platypus.v1.demo"
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
-export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn">>
+export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount">>
 
 export type Action =
@@ -50,6 +51,8 @@ export type Action =
   | { type: "setAi"; enabled: boolean }
   | { type: "replace"; state: DemoState }
   | { type: "updateNode"; id: string; patch: NodePatch }
+  /** The step editor (M3): a few steps' dependsOn / estDays / phase, and the display order of the phase groups. Never a date. */
+  | { type: "applyStepEdits"; eventId: string; edits: StepEdit[]; phaseOrder?: Phase[] }
   | { type: "updateEvent"; id: string; patch: EventPatch }
   | { type: "draftChanges"; changeSet: ChangeSet }
   | { type: "aiAutoApply"; changeSet: ChangeSet }
@@ -70,14 +73,43 @@ export type Action =
   | { type: "saveProfile"; personId: string; patch: ProfilePatch; invite?: string }
   | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number }
 
-const NODE_FIELDS: (keyof NodePatch)[] = ["title", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn"]
+const NODE_FIELDS: (keyof NodePatch)[] = ["title", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
+
+/**
+ * The step editor's one action. Only dependsOn, estDays and phase are read from each edit (a date in an edit is
+ * ignored), a change that would make a step wait for itself is refused as a whole, and the rule engine re-dates
+ * everything afterwards. Unlike updateNode it does not touch lastUpdate, which is a date.
+ */
+function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], phaseOrder?: Phase[]): DemoState {
+  const ev = state.events.find(e => e.id === eventId)
+  if (!ev || !Array.isArray(edits)) return state
+  const inEvent = state.nodes.filter(n => n.eventId === eventId)
+  const ids = new Set(inEvent.map(n => n.id))
+  const clean: StepEdit[] = edits.filter(e => e && ids.has(e.id)).map(e => ({ id: e.id, patch: cleanPatch(e.patch, ids, e.id) })).filter(e => Object.keys(e.patch).length > 0)
+  if (createsLoop(inEvent, clean)) return state
+  const by = new Map(clean.map(e => [e.id, e.patch]))
+  let changed = false
+  const nodes = state.nodes.map(n => {
+    const p = by.get(n.id)
+    if (!p) return n
+    const next: Node = { ...n, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays } : {}), ...(p.phase ? { phase: p.phase } : {}) }
+    if (next.dependsOn.join() !== n.dependsOn.join() || next.estDays !== n.estDays || next.phase !== n.phase) changed = true
+    return next
+  })
+  const order = Array.isArray(phaseOrder) && phaseOrder.length === PHASES.length && PHASES.every(p => phaseOrder.includes(p)) ? phaseOrder : undefined
+  const orderChanged = !!order && phaseOrderOf(ev).join() !== order.join()
+  if (!changed && !orderChanged) return state
+  const events = orderChanged ? state.events.map(e => (e.id === eventId ? { ...e, phaseOrder: order } : e)) : state.events
+  return applySchedule({ ...state, nodes, events })
+}
 
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   const patch = pick(raw, NODE_FIELDS)
   if (patch.title !== undefined) { const t = String(patch.title).trim().slice(0, 100); if (t) patch.title = t; else delete patch.title }
   if (patch.tags !== undefined) patch.tags = Array.isArray(patch.tags) ? [...new Set(patch.tags.filter(t => (state.org.board?.tags ?? []).some(x => x.id === t)))] : []
   if (patch.estDays !== undefined) patch.estDays = Math.max(0, Math.min(30, Math.round(Number(patch.estDays) || 0)))
+  if (patch.phase !== undefined && !(PHASES as string[]).includes(patch.phase as string)) delete patch.phase
   let next: DemoState = {
     ...state,
     nodes: state.nodes.map(n => {
@@ -154,6 +186,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
       return applySchedule(action.state)
     case "updateNode":
       return canLead(state) && state.nodes.some(n => n.id === action.id) ? applySchedule(updateNode(state, action.id, action.patch)) : state
+    case "applyStepEdits": return canLead(state) ? applyStepEdits(state, action.eventId, action.edits, action.phaseOrder) : state
     case "updateEvent": {
       const patch = pick(action.patch, ["date", "name", "headcount"])
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
@@ -368,6 +401,7 @@ function payloadOf(a: Action): unknown {
     case "draftChanges":
     case "aiAutoApply": return { changeSetId: a.changeSet.id, source: a.changeSet.source ?? null, sentence: slim(a.changeSet.sentence), ops: a.changeSet.ops.map(o => o.op) }
     case "reviewChange": return { id: a.id, index: a.index, decision: a.decision, op: slim(a.op), human: slim(a.human) }
+    case "applyStepEdits": return { eventId: a.eventId, edits: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, dependsOn: e?.patch?.dependsOn, estDays: e?.patch?.estDays, phase: e?.patch?.phase })), phaseOrder: a.phaseOrder }
     default: return slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
   }
 }
@@ -403,6 +437,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "resolveReport": out = fields(s.feedback.find(f => f.id === a.id), ["resolved"]); break
     case "reviewExtension": out = fields(s.extensionRequests.find(r => r.id === a.id), ["status"]); break
     case "undoAuto": out = fields(s.changeSets.find(c => c.id === a.id), ["undone"]); break
+    case "applyStepEdits": out = { steps: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, ...fields(node(e?.id), ["dependsOn", "estDays", "phase"]) })), ...(a.phaseOrder ? { phaseOrder: phaseOrderOf(s.events.find(e => e.id === a.eventId)) } : {}) }; break
     case "reviewChange": { const c = s.changeSets.find(x => x.id === a.id); out = c ? { review: c.reviews?.[a.index] ?? "pending", status: c.status } : undefined; break }
   }
   return hasValue(out) ? slim(out) : undefined

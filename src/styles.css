@@ -690,3 +690,37 @@ tr.clickable { cursor: pointer; }
 /* Unread count on a navigation item (S8, shown on Tasks only for now). */
 .sidenav a .count { margin-left: auto; min-width: 20px; padding: 0 var(--s3); border-radius: var(--r-pill); background: var(--accent); color: var(--on-accent); font-size: var(--fs-xs); font-weight: 700; line-height: 20px; text-align: center; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Step editor (M3): a ranking-question list beside the metro chart. */
+.edit-split { display: grid; grid-template-columns: minmax(0, 30rem) minmax(0, 1fr); gap: var(--s6); align-items: start; }
+@media (max-width: 1199px) { .edit-split { grid-template-columns: minmax(0, 1fr); } }
+.step-editor { display: grid; gap: var(--s4); }
+.step-msg { min-height: 0; }
+.step-prompt { display: grid; gap: var(--s3); padding: var(--s5); border: 1px solid var(--accent); border-radius: var(--r-md); background: var(--accent-soft); }
+.step-group { display: grid; gap: var(--s3); }
+.step-group-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); border-bottom: 1px solid var(--line); }
+.step-group-head h3 { margin: 0; font-size: var(--fs-md); }
+.step-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
+.step-row { display: grid; gap: var(--s2); padding: var(--s4) var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.step-row.is-selected { border-color: var(--accent); }
+.step-row.is-dragging { opacity: .5; }
+.step-row.drop-before { box-shadow: 0 -3px 0 var(--accent); }
+.step-row.drop-after { box-shadow: 0 3px 0 var(--accent); }
+.step-main { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.step-handle { min-width: 28px; min-height: 28px; border: 0; border-radius: var(--r-sm); background: var(--surface-2); color: var(--muted); font-size: var(--fs-lg); line-height: 1; cursor: grab; }
+.step-move { display: inline-flex; gap: var(--s1); }
+.step-row .icon-btn, .step-group-head .icon-btn { min-width: 28px; min-height: 28px; padding: 0; line-height: 1; }
+.step-title { flex: 1 1 10rem; text-align: left; font-weight: 600; }
+.step-days { display: inline-flex; align-items: center; gap: var(--s2); }
+.step-days > * { flex: none; }
+.step-days input { width: 3.5rem; min-height: 28px; text-align: center; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
+.step-menu[open] { flex: 1 1 100%; }
+.step-menu summary { display: grid; place-items: center; min-width: 28px; min-height: 28px; border-radius: var(--r-sm); background: var(--surface-2); cursor: pointer; list-style: none; }
+.step-menu summary::-webkit-details-marker { display: none; }
+.step-menu-body { display: grid; gap: var(--s3); margin-top: var(--s2); padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.step-menu-body label { display: grid; gap: var(--s2); }
+.step-links { display: flex; align-items: center; flex-wrap: wrap; gap: var(--s2); }
+.step-chip { --tag: var(--accent-ink); }
+.step-chip button { min-width: 24px; min-height: 24px; }
+.step-add { max-width: 12rem; min-height: 28px; border: 1px dashed var(--muted); border-radius: var(--r-sm); background: transparent; color: var(--muted); font-size: var(--fs-sm); }
+.step-dates { font-variant-numeric: tabular-nums; }

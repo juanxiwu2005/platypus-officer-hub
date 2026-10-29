@@ -9,12 +9,14 @@ import { forecastFor } from "../engine/forecast"
 import { daysBetween, fmtShort } from "../lib/dates"
 import { topoOrder } from "../engine/schedule"
 import { Avatar, Empty, Info, NodePill } from "../components/ui"
+import { StepEditor } from "../components/StepEditor"
+import { canLead } from "../data/changeReview"
 import { SEVERITY_TONE, firstName, worstIssue } from "./helpers"
 
-type View = "flow" | "list"
+type View = "flow" | "list" | "edit"
 const VIEW_KEY = "platypus.v1.eventsView"
 function initialView(): View {
-  try { const v = window.localStorage.getItem(VIEW_KEY); if (v === "flow" || v === "list") return v } catch { /* storage unavailable */ }
+  try { const v = window.localStorage.getItem(VIEW_KEY); if (v === "flow" || v === "list" || v === "edit") return v } catch { /* storage unavailable */ }
   return "flow"
 }
 const FOOD = { none: "No food", dining: "Sun Devil Dining", offsite: "Outside caterer", onsite: "Food made on site", tbd: "Food (how to be decided)" }
@@ -25,7 +27,10 @@ export default function Events() {
   const sched = useSchedule()
   const rail = useRail()
   const [params, setParams] = useSearchParams()
-  const [view, setViewState] = useState<View>(initialView)
+  const [savedView, setViewState] = useState<View>(initialView)
+  const lead = canLead(state)
+  // Edit steps is for the president and vice president; anyone else sees the normal views.
+  const view: View = savedView === "edit" && !lead ? "flow" : savedView
   const forecast = forecastFor(state)
   const ev = state.events.find(e => e.id === params.get("event")) ?? state.events[0]
   const selected = rail.detail?.kind === "node" ? rail.detail.id : null
@@ -71,9 +76,14 @@ export default function Events() {
         <div className="seg" role="group" aria-label="View">
           <button type="button" aria-pressed={view === "flow"} onClick={() => setView("flow")} data-testid="view-flow">Flow</button>
           <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")} data-testid="view-list">List</button>
+          {lead && <button type="button" aria-pressed={view === "edit"} onClick={() => setView("edit")} data-testid="view-edit">Edit steps</button>}
         </div>
       </div>
 
+      {view === "edit" && <div className="edit-split">
+        <StepEditor eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} />
+        <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} />
+      </div>}
       {view === "flow" && <BtsRow><Bts label="Computed">Each dot's place comes from its dates. Colour: done when finished; risk when its forecast is red; now when it has started or its start day is today or earlier; otherwise to do.</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
       {view === "flow" && <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} />}
       {view === "list" && <section className="card tbl-wrap" data-testid="event-list">
