@@ -125,6 +125,34 @@ test("meeting finder uses shared slots and opens only an Arizona calendar draft"
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
+test("meeting finder: paint my week on the left, see the group on the right, pick a time", async ({ page }) => {
+  await page.goto("/#/team")
+  const finder = page.getByTestId("meeting-finder")
+  const mine = finder.getByTestId("my-grid"), group = finder.getByTestId("group-grid")
+  await expect(mine.getByRole("gridcell")).toHaveCount(196); await expect(group.getByRole("gridcell")).toHaveCount(196)
+  // Alex is free Thu 6–8 pm; paint Friday 6:00–7:00 pm by dragging two half-hour cells.
+  const cell = (grid: typeof mine, label: string) => grid.getByRole("gridcell", { name: label, exact: true })
+  await cell(mine, "Fri 6:30 pm · not free").scrollIntoViewIfNeeded()
+  const a = await cell(mine, "Fri 6:00 pm · not free").boundingBox(), b = await cell(mine, "Fri 6:30 pm · not free").boundingBox()
+  await page.mouse.move(a!.x + 3, a!.y + 3); await page.mouse.down(); await page.mouse.move(b!.x + 3, b!.y + 3); await page.mouse.up()
+  await expect(cell(mine, "Fri 6:00 pm · free")).toHaveCount(1); await expect(cell(mine, "Fri 6:30 pm · free")).toHaveCount(1)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).people.find((p: { id: string }) => p.id === "alex").freeSlots)).toContainEqual({ day: 5, from: "18:00", to: "19:00" })
+  await expect(group.getByRole("gridcell", { name: "Fri Oct 23 6:00 pm · 1 of 5 free", exact: true })).toHaveCount(1)
+  // Clicking a painted cell again turns it off.
+  await cell(mine, "Fri 6:00 pm · free").click(); await expect(cell(mine, "Fri 6:00 pm · not free")).toHaveCount(1)
+  // Hover names who is free; click picks a time and offers a Calendar draft.
+  await group.getByRole("gridcell", { name: "Thu Oct 22 6:00 pm · 4 of 5 free", exact: true }).hover()
+  await expect(finder.getByRole("status").first()).toContainText("Free: Alex, Maya, Jordan, Priya · Not free: Sam")
+  await group.getByRole("gridcell", { name: "Thu Oct 22 6:30 pm · 5 of 5 free", exact: true }).click()
+  await expect(finder.getByTestId("picked-time")).toContainText("Thu Oct 22, 6:30 pm–7:00 pm · 5 of 5 free")
+  const href = (await finder.getByRole("link", { name: "Open Calendar draft for picked time", exact: true }).getAttribute("href"))!
+  expect(new URL(href).searchParams.get("dates")).toBe("20261022T183000/20261022T190000")
+  // Keyboard: arrow keys move, Enter toggles my cell.
+  await cell(mine, "Sat 8:00 am · not free").focus(); await page.keyboard.press("Enter")
+  await expect(cell(mine, "Sat 8:00 am · free")).toHaveCount(1)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
+})
+
 test("invalid defaults and expired invitations cannot change the local demo", async ({ page }) => {
   await page.goto("/#/settings")
   const settings = page.getByTestId("club-settings")

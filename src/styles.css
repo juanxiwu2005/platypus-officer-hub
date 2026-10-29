@@ -677,13 +677,22 @@ tr.clickable { cursor: pointer; }
 .band.b1 i:nth-child(-n+1) { background: var(--good); }
 .band.b2 i:nth-child(-n+2) { background: #e3a008; }
 .band.b3 i { background: var(--late); }
-.heat { display: grid; gap: 2px; max-width: 560px; }
-.heat-row { display: grid; grid-template-columns: 32px repeat(7, minmax(0, 1fr)); gap: 2px; align-items: center; }
+.w2m { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px 28px; align-items: start; }
+.w2m-h { font-size: 14px; margin: 0 0 6px; color: var(--muted); font-weight: 600; }
+.w2m-nav { align-items: center; gap: 10px; }
+.w2m-who { min-height: 1.5em; margin: 0; }
+.w2m-legend { display: flex; align-items: center; gap: 3px; margin-top: 8px; }
+.w2m-legend i { width: 18px; height: 12px; border-radius: 3px; background: color-mix(in srgb, var(--accent) calc(var(--a) * 100%), var(--surface-2)); }
+.heat { display: grid; gap: 2px; max-width: 520px; user-select: none; -webkit-user-select: none; }
+.heat-row { display: grid; grid-template-columns: 28px repeat(7, minmax(0, 1fr)); gap: 2px; align-items: center; }
 .heat-row.head span { font-size: 12px; color: var(--muted); text-align: center; display: grid; line-height: 1.1; }
 .heat-row.head span.on { color: var(--accent-ink); font-weight: 700; }
 .heat-h { font-size: 11px; color: var(--muted); }
-.heat-cell { height: 14px; border: 0; border-radius: 3px; cursor: pointer; padding: 0; background: color-mix(in srgb, var(--accent) calc(var(--a) * 100%), var(--surface-2)); }
+.heat-h::before { content: attr(data-h); }
+.heat-cell { height: 14px; border: 0; border-radius: 3px; cursor: pointer; padding: 0; touch-action: pan-y; background: color-mix(in srgb, var(--accent) calc(var(--a) * 100%), var(--surface-2)); }
+.heat-cell.on { background: var(--accent); }
 .heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px; }
+.heat-cell.ring { outline: 2px solid var(--ink); outline-offset: -1px; }
 .who-picks { border: 0; padding: 0; margin: 0; display: flex; gap: 6px 14px; flex-wrap: wrap; }
 .wl-row td { height: 40px; }
 .form-stack .who-picks { border: 0; padding: 0; }

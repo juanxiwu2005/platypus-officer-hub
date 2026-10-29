@@ -45,7 +45,7 @@ export function validateProfile(p: ProfilePatch): string | null {
   if (!Array.isArray(p.busyWeeks) || p.busyWeeks.length > 20 || p.busyWeeks.some(d => !validDate(d) || new Date(d + "T12:00:00Z").getUTCDay() !== 1)) return "Choose valid busy weeks, beginning on Monday."
   if (![p.careerGoal, p.interests, p.expectations].every(v => typeof v === "string" && v.length <= 500)) return "Keep each profile note under 500 characters."
   if (!Number.isInteger(p.personalBufferDays) || p.personalBufferDays < 0 || p.personalBufferDays > 5 || typeof p.personalBufferEnabled !== "boolean") return "Personal buffer must be between zero and five working days."
-  if (!Array.isArray(p.freeSlots) || p.freeSlots.length > 14 || p.freeSlots.some(f => !Number.isInteger(f.day) || f.day < 0 || f.day > 6 || !Number.isFinite(minutes(f.from)) || !Number.isFinite(minutes(f.to)) || minutes(f.to) <= minutes(f.from))) return "Each free slot needs a weekday and an end time later than its start."
+  if (!Array.isArray(p.freeSlots) || p.freeSlots.length > 120 || p.freeSlots.some(f => !Number.isInteger(f.day) || f.day < 0 || f.day > 6 || !Number.isFinite(minutes(f.from)) || !Number.isFinite(minutes(f.to)) || minutes(f.to) <= minutes(f.from))) return "Each free slot needs a weekday and an end time later than its start."
   return null
 }
 export function validateClub(d: ClubDraft): string | null {
