@@ -1,0 +1,34 @@
+import type { Role } from "../data/types"
+
+/**
+ * The organization chart, worked out from the roles' "reports to" links. Pure layout: each role gets a level (how many steps
+ * below the top) and a column; a boss sits centered over the roles that report to them. The advisor, who is not part of the
+ * officers' chain, stands beside it at the top. No dates, no duties: just titles and who reports to whom.
+ */
+export interface ChartNode { id: string; title: string; level: number; col: number; advisor: boolean; vacant: boolean }
+export interface ChartEdge { from: string; to: string }
+export interface OrgChart { nodes: ChartNode[]; edges: ChartEdge[]; levels: number; columns: number }
+
+export function orgChart(roles: Role[]): OrgChart {
+  const ids = new Set(roles.map(r => r.id))
+  const bossOf = (r: Role) => r.reportsToId && r.reportsToId !== r.id && ids.has(r.reportsToId) ? r.reportsToId : null
+  const kids = new Map<string, Role[]>()
+  for (const r of roles) { const b = bossOf(r); if (b) kids.set(b, [...(kids.get(b) ?? []), r]) }
+  const placed = new Map<string, ChartNode>()
+  const edges: ChartEdge[] = []
+  let next = 0
+  const place = (r: Role, level: number, path: Set<string>): ChartNode => {
+    const mine = (kids.get(r.id) ?? []).filter(k => !path.has(k.id) && !placed.has(k.id))
+    const below = mine.map(k => { edges.push({ from: r.id, to: k.id }); return place(k, level + 1, new Set([...path, r.id])) })
+    const col = below.length ? (below[0].col + below[below.length - 1].col) / 2 : next++
+    const node: ChartNode = { id: r.id, title: r.displayName, level, col, advisor: r.fn === "advisor", vacant: !r.holderId }
+    placed.set(r.id, node)
+    return node
+  }
+  const roots = [...roles.filter(r => !bossOf(r) && r.fn !== "advisor"), ...roles.filter(r => !bossOf(r) && r.fn === "advisor")]
+  for (const r of roots) if (!placed.has(r.id)) place(r, 0, new Set())
+  // Anything left is part of a loop in the links; show it at the top so nothing disappears.
+  for (const r of roles) if (!placed.has(r.id)) place(r, 0, new Set())
+  const nodes = roles.map(r => placed.get(r.id)!).filter(Boolean)
+  return { nodes, edges, levels: Math.max(0, ...nodes.map(n => n.level)) + 1, columns: Math.max(1, next) }
+}

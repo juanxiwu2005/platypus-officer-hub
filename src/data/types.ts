@@ -53,8 +53,6 @@ export interface Org {
   workspace: WorkspaceConfig
   setupCompletedOn: string | null
   inviteCode: string
-  /** Departments and what each is responsible for, set by the president in setup. Absent in older saves: see `departmentsOf`. */
-  departments?: Department[]
   /** Task board look (v1.1): renamed statuses, colours, custom tags and which fields cards show. Meanings never change. */
   board?: BoardSettings
 }
@@ -85,22 +83,11 @@ export interface WorkspaceConfig {
 }
 export interface FreeSlot { day: number; from: string; to: string }
 
-/** A team inside the club. `fn` is the checklist work it covers, so event steps still find an owner. */
-export interface Department {
-  id: string
-  name: string
-  fn: RoleFunction
-  /** What the department is responsible for (plain text, written or confirmed by the president). */
-  duties: string
-}
-
 export interface Role {
   id: string
   displayName: string
   fn: RoleFunction
   holderId: string | null
-  /** Optional so saves made before departments existed still load; `departmentsOf` and `roleDepartment` fill the gap. */
-  departmentId?: string | null
   /** Who this role reports to (another role id). Null at the top. */
   reportsToId?: string | null
   duties?: string

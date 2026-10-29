@@ -33,7 +33,7 @@ test("no accessibility violations on any setup step, with a constitution read", 
   const step = page.getByTestId("setup-step")
   await step.getByRole("button", { name: "Use the sample constitution", exact: true }).click()
   expect(await scan(page)).toEqual([])
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 4; i++) {
     await step.getByRole("button", { name: "Continue", exact: true }).click()
     await page.waitForTimeout(250)
     expect(await scan(page)).toEqual([])

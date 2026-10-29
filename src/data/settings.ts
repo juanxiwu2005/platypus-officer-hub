@@ -1,6 +1,6 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
-import type { DemoState, Department, Event, Goal, OrgSettings, Person, Role, RoleFunction, WorkspaceConfig } from "./types"
-import { MAX_DEPARTMENTS, MAX_DUTIES, MAX_ROLES, departmentsOf, hasReportingLoop, orderRoles } from "./structure"
+import type { DemoState, Event, Goal, OrgSettings, Person, Role, RoleFunction, WorkspaceConfig } from "./types"
+import { MAX_DUTIES, MAX_ROLES, hasReportingLoop, orderRoles } from "./structure"
 import type { CommandOp } from "../lib/commands"
 import { sanitizeOps, validDate } from "../lib/commands"
 import { canLead } from "./changeReview"
@@ -14,7 +14,7 @@ export const ROLE_FUNCTIONS: { value: RoleFunction; label: string }[] = [
   { value: "secretary", label: "Secretary" }, { value: "membership", label: "Membership" },
   { value: "advisor", label: "Advisor" },
 ]
-export type ClubDraft = { name: string; mission: string; goals: Goal[]; departments: Department[]; roles: Role[]; people: Person[]; workspace: WorkspaceConfig }
+export type ClubDraft = { name: string; mission: string; goals: Goal[]; roles: Role[]; people: Person[]; workspace: WorkspaceConfig }
 export type ProfilePatch = Pick<Person, "name" | "email" | "phone" | "channels" | "remindAt" | "busyWeeks" | "careerGoal" | "interests" | "expectations" | "personalBufferDays" | "personalBufferEnabled" | "freeSlots" | "asuId">
 /** How early the club finishes before the real deadline, in working days (Setup question). */
 export const BUFFER_CHOICES = [1, 2, 3, 5, 7] as const
@@ -34,12 +34,7 @@ export function validateGoals(goals: Goal[]): string | null {
   if (!Array.isArray(goals) || goals.length < 2 || goals.length > 3 || new Set(goals.map(g => g.id)).size !== goals.length) return "Choose two or three semester goals."
   return goals.some(g => !nonempty(g.label, 100) || !nonempty(g.id, 80) || !nonempty(g.unit, 20) || !Number.isFinite(g.target) || g.target <= 0 || g.target > 1_000_000 || !Number.isFinite(g.current) || g.current < 0) ? "Give each goal a name, a positive target, and a nonnegative current value." : null
 }
-export function validateDepartments(depts: Department[]): string | null {
-  if (!Array.isArray(depts) || depts.length < 1 || depts.length > MAX_DEPARTMENTS || new Set(depts.map(d => d.id)).size !== depts.length || new Set(depts.map(d => d.name.trim().toLowerCase())).size !== depts.length) return `Use one to ${MAX_DEPARTMENTS} departments with different names.`
-  if (depts.some(d => !nonempty(d.id, 80) || !nonempty(d.name, 60) || !ROLE_FUNCTIONS.some(f => f.value === d.fn) || typeof d.duties !== "string" || d.duties.length > MAX_DUTIES)) return `Give each department a name and keep its duties under ${MAX_DUTIES} characters.`
-  return null
-}
-export function validateRoles(roles: Role[], people: Person[], departments?: Department[]): string | null {
+export function validateRoles(roles: Role[], people: Person[]): string | null {
   if (!Array.isArray(roles) || roles.length < 1 || roles.length > MAX_ROLES || new Set(roles.map(r => r.id)).size !== roles.length || new Set(roles.map(r => r.displayName.trim().toLowerCase())).size !== roles.length) return `Use up to ${MAX_ROLES} roles, each with a different title.`
   if (roles.filter(r => r.fn === "president").length !== 1 || roles.filter(r => r.fn === "president" && r.holderId).length !== 1) return "Keep one president with an assigned officer."
   if (roles.some(r => !nonempty(r.id, 80) || !nonempty(r.displayName, 60) || !ROLE_FUNCTIONS.some(f => f.value === r.fn) || (r.holderId && !people.some(p => p.id === r.holderId)))) return "Each role needs a title and a valid officer."
@@ -47,7 +42,6 @@ export function validateRoles(roles: Role[], people: Person[], departments?: Dep
   if (people.some(p => !roles.some(r => r.id === p.roleId && r.holderId === p.id))) return "Match every officer to their own role."
   if (roles.some(r => r.duties !== undefined && (typeof r.duties !== "string" || r.duties.length > MAX_DUTIES))) return `Keep each role's duties under ${MAX_DUTIES} characters.`
   if (roles.some(r => r.reportsToId && (r.reportsToId === r.id || !roles.some(x => x.id === r.reportsToId))) || hasReportingLoop(roles)) return "Each role reports to a different, existing role, with no loops."
-  if (departments && roles.some(r => r.departmentId && !departments.some(d => d.id === r.departmentId))) return "Each role belongs to an existing department."
   return null
 }
 export function validateProfile(p: ProfilePatch): string | null {
@@ -66,7 +60,7 @@ export function validateClub(d: ClubDraft): string | null {
   if (!nonempty(d.name, 80) || typeof d.mission !== "string" || d.mission.length > 300) return "Enter a club name and keep the mission under 300 characters."
   if (!Array.isArray(d.people) || !d.people.length || d.people.length > MAX_ROLES || new Set(d.people.map(p => p.id)).size !== d.people.length || new Set(d.people.map(p => p.name.toLowerCase().trim())).size !== d.people.length) return "Use distinct fictional officers (a name can be used once)."
   for (const p of d.people) { const error = validateProfile(p); if (error) return error }
-  return validateGoals(d.goals) ?? validateDepartments(d.departments) ?? validateRoles(d.roles, d.people, d.departments) ?? validateWorkspace(d.workspace)
+  return validateGoals(d.goals) ?? validateRoles(d.roles, d.people) ?? validateWorkspace(d.workspace)
 }
 
 export function validateDefaults(d: OrgSettings): string | null {
@@ -83,7 +77,7 @@ export function validateDefaults(d: OrgSettings): string | null {
 
 export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettings): DemoState {
   if (!canLead(s) || validateClub(d) || validateDefaults(defaults)) return s
-  // This form edits club, department and role settings; it cannot add or remove roles, move officers, or change another officer's private profile.
+  // This form edits club and role settings (titles, who reports to whom, duties); it cannot add or remove roles, move officers, or change another officer's private profile.
   if (d.roles.length !== s.roles.length || d.roles.some(r => !s.roles.some(old => old.id === r.id && old.holderId === r.holderId)) || d.people.some(p => !s.people.some(old => old.id === p.id && old.roleId === p.roleId))) return s
   const roles = orderRoles(d.roles.map(r => ({ ...r, displayName: r.displayName.trim() })))
   const nodes = s.nodes.map(n => {
@@ -92,8 +86,7 @@ export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettin
     return nextRole && n.fn === oldRole?.fn ? { ...n, fn: nextRole.fn } : n
   })
   const settings = { ...defaults, ...(defaults.eventCreatorIds ? { eventCreatorIds: defaults.eventCreatorIds.filter(id => s.people.some(p => p.id === id)) } : {}) }
-  const departments = d.departments.map(x => ({ ...x, name: x.name.trim(), duties: x.duties.trim() }))
-  return applySchedule({ ...s, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals, workspace: d.workspace, settings, departments }, roles, nodes })
+  return applySchedule({ ...s, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals, workspace: d.workspace, settings }, roles, nodes })
 }
 
 export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch, invite?: string): DemoState {
@@ -113,10 +106,9 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   const event: Event = { ...fields, id, date: eventDate, goalId: d.goals[0].id, playbookId: "seo-event" }
   const people = d.people.map(p => ({ ...p, name: p.name.trim() }))
   const roles = orderRoles(d.roles.map(r => ({ ...r, displayName: r.displayName.trim() })))
-  const departments = d.departments.map(x => ({ ...x, name: x.name.trim(), duties: x.duties.trim() }))
   const president = roles.find(r => r.fn === "president")!
-  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, settings: { ...s.org.settings, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) }, departments }, roles, people, events: [event], nodes: buildEventNodes(event, roles).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), nudges: [], contributions: [], contacts: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, settings: { ...s.org.settings, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: [event], nodes: buildEventNodes(event, roles).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), nudges: [], contributions: [], contacts: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
 
-export const clubDraft = (s: DemoState): ClubDraft => structuredClone({ name: s.org.name, mission: s.org.mission, goals: s.org.goals, departments: departmentsOf(s), roles: s.roles, people: s.people, workspace: s.org.workspace })
+export const clubDraft = (s: DemoState): ClubDraft => structuredClone({ name: s.org.name, mission: s.org.mission, goals: s.org.goals, roles: s.roles, people: s.people, workspace: s.org.workspace })
 export const profilePatch = (p: Person): ProfilePatch => ({ name: p.name, email: p.email, phone: p.phone, channels: p.channels, remindAt: p.remindAt, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, expectations: p.expectations, personalBufferDays: p.personalBufferDays, personalBufferEnabled: p.personalBufferEnabled, freeSlots: p.freeSlots, asuId: p.asuId ?? "" })

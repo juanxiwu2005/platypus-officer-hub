@@ -5,10 +5,11 @@ import { Link } from "react-router-dom"
 import { downloadExport, useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
 import { useRail } from "../components/rail/RailContext"
-import { DepartmentsEditor, GoalsEditor, ProfileForm, RoleCard, WorkspaceEditor } from "../components/SettingsForms"
+import { GoalsEditor, ProfileForm, RoleCard, WorkspaceEditor } from "../components/SettingsForms"
+import { OrgChart } from "../components/setup/OrgChart"
 import { rederiveFn, withBelow } from "../data/structure"
 import { clubDraft, profilePatch, validateClub, validateDefaults, validateProfile, type ClubDraft } from "../data/settings"
-import type { Department, OrgSettings, Role } from "../data/types"
+import type { OrgSettings, Role } from "../data/types"
 import { Empty, Info } from "../components/ui"
 
 export function InviteLink({ code }: { code: string }) {
@@ -84,7 +85,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
     </>}
     {tab === "roles" && <>
       <h2>Roles</h2>
-      <h3>Departments</h3><DepartmentsEditor departments={draft.departments} roles={draft.roles} onChange={(departments, roles) => setDraft({ ...draft, departments, roles })} /><h3>Officer roles</h3><RolesTable roles={draft.roles} departments={draft.departments} onChange={roles => setDraft({ ...draft, roles })} />
+      <RolesTable roles={draft.roles} onChange={roles => setDraft({ ...draft, roles })} /><OrgChart roles={draft.roles} />
       <details className="more"><summary>Invite officers</summary><InviteLink code={state.org.inviteCode} /></details>
     </>}
     {tab === "links" && <><h2>Links & files</h2><WorkspaceEditor value={draft.workspace} onChange={workspace => setDraft({ ...draft, workspace })} /></>}
@@ -97,13 +98,12 @@ function SaveStatus<T>({ status, onUndo }: { status: { text: string; undo?: T } 
   return <p role="status" className={`save-status ${status.undo ? "ok" : "err"}`}>{status.text}{status.undo !== undefined && <button type="button" className="link" onClick={() => onUndo(status.undo as T)}>Undo</button>}</p>
 }
 
-function RolesTable({ roles, departments, onChange }: { roles: Role[]; departments: Department[]; onChange: (r: Role[]) => void }) {
+function RolesTable({ roles, onChange }: { roles: Role[]; onChange: (r: Role[]) => void }) {
   const { state } = useStore()
-  const change = (i: number, patch: Partial<Role>, reFn = false) => onChange(roles.map((r, j) => i === j ? (reFn ? rederiveFn(roles, { ...r, ...patch }, departments) : { ...r, ...patch }) : r))
-  return <div className="tbl-wrap"><table className="tbl dept-tbl"><thead><tr><th>Title</th><th>Department</th><th>Reports to</th><th>Officer</th><th>Duties</th></tr></thead><tbody>
+  const change = (i: number, patch: Partial<Role>, reFn = false) => onChange(roles.map((r, j) => i === j ? (reFn ? rederiveFn(roles, { ...r, ...patch }) : { ...r, ...patch }) : r))
+  return <div className="tbl-wrap"><table className="tbl goal-tbl"><thead><tr><th>Title</th><th>Reports to</th><th>Officer</th><th>Duties</th></tr></thead><tbody>
     {roles.map((r, i) => <tr key={r.id}>
       <td><input type="text" aria-label="Role title" value={r.displayName} maxLength={60} onChange={e => change(i, { displayName: e.target.value }, true)} /></td>
-      <td><select aria-label="Department" value={r.departmentId ?? ""} onChange={e => change(i, { departmentId: e.target.value || null }, true)}><option value="">No department</option>{departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></td>
       <td><select aria-label="Reports to" value={r.reportsToId ?? ""} onChange={e => change(i, { reportsToId: e.target.value || null })}><option value="">Nobody (top)</option>{roles.filter(x => !withBelow(roles, r.id).has(x.id)).map(x => <option key={x.id} value={x.id}>{x.displayName}</option>)}</select></td>
       <td>{state.people.find(p => p.id === r.holderId)?.name ?? "Open position"}</td>
       <td><textarea aria-label="Role duties" rows={2} maxLength={400} value={r.duties ?? ""} onChange={e => change(i, { duties: e.target.value })} /></td>

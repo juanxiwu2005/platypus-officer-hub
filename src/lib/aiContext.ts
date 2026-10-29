@@ -4,7 +4,7 @@ import { forecastFor } from "../engine/forecast"
 import { workload } from "../engine/team"
 import { personalBuffer } from "../engine/schedule"
 import { RULES } from "../data/rules"
-import { departmentsOf, dutiesOf, roleDepartment } from "../data/structure"
+import { dutiesOf } from "../data/structure"
 
 /**
  * Everything the signed-in officer can see in the app, as one compact object for the assistant (v1.2,
@@ -23,8 +23,7 @@ export function aiSnapshot(s: DemoState) {
     today: s.today,
     you: me && { id: me.id, name: me.name, role: role(me.roleId), canApprove: lead, canCreateEvents: canCreateEvent(s), personalBufferDays: personalBuffer(s, me).days, busyWeeks: me.busyWeeks, remindAt: me.remindAt, channels: me.channels },
     club: { name: s.org.name, school: s.org.school, mission: s.org.mission, goals: s.org.goals.map(({ label, target, current, unit }) => ({ label, target, current, unit })), clubBufferBusinessDays: s.org.settings.clubBufferBusinessDays, sendMode: s.org.settings.sendMode, tags: (s.org.board?.tags ?? []).map(({ id, label }) => ({ id, label })), planningNotes: s.org.workspace.planningNotes.slice(0, 1500) },
-    roles: s.roles.map(r => ({ id: r.id, title: r.displayName, function: r.fn, holder: name(r.holderId), holderId: r.holderId, department: roleDepartment(departmentsOf(s), r)?.name ?? null, reportsTo: role(r.reportsToId), duties: dutiesOf(r) })),
-    departments: departmentsOf(s).map(d => ({ id: d.id, name: d.name, function: d.fn, duties: d.duties })),
+    roles: s.roles.map(r => ({ id: r.id, title: r.displayName, function: r.fn, holder: name(r.holderId), holderId: r.holderId, reportsTo: role(r.reportsToId), duties: dutiesOf(r) })),
     people: s.people.map(p => {
       const w = workload(s, p.id)
       return { id: p.id, name: p.name, role: role(p.roleId), email: p.email, channels: p.channels, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, workload: w.band, workloadPoints: w.points }

@@ -32,7 +32,7 @@ export default async (req: Request) => {
     const items: DutyItem[] = (Array.isArray(body.items) ? body.items : []).slice(0, DUTY_BATCH).flatMap((i: unknown) => {
       const x = i && typeof i === "object" ? i as Record<string, unknown> : {}
       const name = typeof x.name === "string" ? x.name.replace(/\s+/g, " ").trim().slice(0, 60) : ""
-      return name ? [{ kind: x.kind === "department" ? "department" as const : "role" as const, name }] : []
+      return name ? [{ name }] : []
     })
     if (!items.length) throw new BadRequest("Name the positions to read.")
     const { data, model, provider } = await chatJSON({ task: "constitution_read", system: CONSTITUTION_DUTIES_SYSTEM, user: JSON.stringify({ text, items }), maxTokens: 900, temperature: 0.1, timeoutMs: TIMEOUT_MS })

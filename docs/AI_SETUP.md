@@ -33,7 +33,7 @@
 | `POST /api/command` | 一句话改数据（变更单） | `command` | Muse |
 | `POST /api/nudge/draft` | 提醒草稿里的一句话 | `nudge_draft` | Muse |
 | `POST /api/handbook/draft` | Handoff 岗位手册选来源 | `handbook_draft` | Muse |
-| `/api/setup/constitution`（设置第 1 步 Continue 后读章程，不存储） | 把章程读成部门、岗位、汇报关系和职责 | `constitution_read` | Muse（快），分 structure 和 duties 两种请求，依次发（AIR 一次只处理一个，并行会排队），每个 21 秒内必须返回（站点实测 30 秒会被 Netlify 掐断，冷启动还占几秒），duties 每批最多 6 项。不用 Gemma：真实章程 Gemma 要 56 秒 |
+| `/api/setup/constitution`（设置第 1 步 Continue 后读章程，不存储） | 把章程读成岗位、汇报关系和每个岗位的职责 | `constitution_read` | Muse（快），分 structure 和 duties 两种请求，依次发（AIR 一次只处理一个，并行会排队），每个 21 秒内必须返回（站点实测 30 秒会被 Netlify 掐断，冷启动还占几秒），duties 每批最多 6 项。不用 Gemma：真实章程 Gemma 要 56 秒 |
 | `/api/org/ai`（Organization Setup，目前隐藏） | 章程、职责、流程等较长的结构化设置 | `setup.*` | Gemma（`gemma4-31b-it`） |
 | 同上，用户主动点 Deeper review | | `setup.*` + deep | GLM（`glm-5-3`） |
 
