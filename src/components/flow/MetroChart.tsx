@@ -153,12 +153,11 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const openGap = (g: Gap, e: { clientX: number; clientY: number }) => setMenu({ kind: "gap", gap: g, x: e.clientX, y: e.clientY + 12 })
   useEffect(() => {
     if (!menu) return
-    menuRef.current?.querySelector<HTMLElement>("button:not([disabled]), select")?.focus()
+    menuRef.current?.querySelector<HTMLElement>("button:not([disabled]), select")?.focus({ preventScroll: true })
     const away = (e: PointerEvent) => { if (!menuRef.current?.contains(e.target as globalThis.Node)) setMenu(null) }
     const esc = (e: globalThis.KeyboardEvent) => { if (e.key === "Escape") setMenu(null) }
-    const scrolled = () => setMenu(null)
-    document.addEventListener("pointerdown", away); document.addEventListener("keydown", esc); window.addEventListener("scroll", scrolled, true)
-    return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc); window.removeEventListener("scroll", scrolled, true) }
+    document.addEventListener("pointerdown", away); document.addEventListener("keydown", esc)
+    return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc) }
   }, [menu])
   useEffect(() => { history.current = []; setMenu(null); setMsg(null) }, [eventId])
 
