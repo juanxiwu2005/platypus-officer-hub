@@ -44,16 +44,6 @@ describe("AIR provider routing", () => {
       data: { ok: true },
     });
   });
-  it("keeps DeepSeek behavior unchanged when AIR is not selected", async () => {
-    const send = configured("deepseek", "deepseek-chat");
-    await chatJSON({ system: "Return JSON", user: "Fictional example" });
-    expect(send.mock.calls[0][0]).toBe(
-      "https://api.deepseek.com/chat/completions",
-    );
-    expect(JSON.parse(send.mock.calls[0][1].body)).not.toHaveProperty(
-      "reasoning_effort",
-    );
-  });
   it("retries a provider that explicitly rejects JSON mode without dropping AIR routing", async () => {
     const send = configured();
     send.mockResolvedValueOnce(

@@ -91,6 +91,8 @@ Protocol 里**不要**出现服务器保存组织配置这件事。它在 M1（2
 
 ## 3. AI 供应商（这一节容易写错）
 
+> **2026-10-29 更新（`[AI]` 提交）：DeepSeek 的代码路径已经删除。** 下面"不要写 DeepSeek has been removed"的警告和那条守着它的测试（`adapter.test.ts` 的 "keeps DeepSeek behavior unchanged…"）都已过时；DeepSeek 现在确实不在代码里，`AI_PRESET=deepseek` 会被拒绝（不发任何请求）。**下面那句英文表述仍然准确**，因为代码里还保留着 OpenAI、Anthropic 两个未启用的供应商预设（"an unselected legacy provider code path"）。要不要把它们也删掉、要不要改材料措辞，由 Juanxi 决定。
+
 **要写的：** 所有 AI 调用都走 **ASU AIR**（学校内部网关）。路由 v3：
 
 - Gemma 4 31B —— 较长的结构化设置任务

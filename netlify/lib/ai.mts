@@ -5,9 +5,9 @@ import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/model
  * Every AI call in the app goes through chatJSON(). Which company answers is decided
  * only by environment variables set in Netlify (Project configuration → Environment variables):
  *
- *   AI_PRESET     asu_air (default) | deepseek | openai | anthropic   — fills in sensible defaults
+ *   AI_PRESET     asu_air (default) | openai | anthropic   — fills in sensible defaults
  *   AI_API_KEY    the secret key (required; never sent to the browser)
- *   AI_MODEL      model id (optional for asu_air and deepseek, required for the others)
+ *   AI_MODEL      model id (optional for asu_air, required for the others)
  *   AI_MODEL_ROUTING  on (default) | off — asu_air only: pick the model per task (src/organization/modelPolicy.ts)
  *   AI_BASE_URL   override the API address (optional)
  *   AI_PROVIDER   openai-compatible | anthropic (optional; set by the preset)
@@ -16,8 +16,8 @@ import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/model
  *
  * Juanxi 2026-10-27: every call goes to ASU AIR, and the model is chosen per task by routing v3
  * (Gemma for long structured setup work, Muse for short chat and edits, GLM only for a requested
- * Deeper review). DeepSeek is no longer used; it stays only as an emergency fallback
- * (AI_PRESET=deepseek). See docs/AI_SETUP.md.
+ * Deeper review). DeepSeek has been removed: AI_PRESET=deepseek is refused (see getConfig), so an
+ * old DeepSeek key left in the environment can never be sent anywhere. See docs/AI_SETUP.md.
  */
 
 type Provider = "openai-compatible" | "anthropic";
@@ -36,12 +36,6 @@ const PRESETS: Record<
   string,
   { provider: Provider; baseUrl: string; model: string; label: string }
 > = {
-  deepseek: {
-    provider: "openai-compatible",
-    baseUrl: "https://api.deepseek.com",
-    model: "deepseek-chat",
-    label: "DeepSeek",
-  },
   asu_air: {
     provider: "openai-compatible",
     baseUrl: "https://openai.rc.asu.edu/v1",
@@ -74,15 +68,22 @@ const activePreset = () => (env("AI_PRESET") || "asu_air").toLowerCase();
 /** True when calls go to ASU AIR: the default, and the only preset that uses per-task model routing. */
 export const isAirPreset = () => activePreset() === "asu_air";
 
+/** Providers that used to be here and are now refused outright, with or without a base URL. */
+const REMOVED_PRESETS = ["deepseek"];
+
 export function getConfig(): AIConfig {
   const name = activePreset();
   const preset = PRESETS[name] ?? PRESETS.asu_air;
+  // Fail closed: an unknown preset (or a removed one such as deepseek) keeps its name as the label but gets no key,
+  // so the app answers with its built-in fallback and never sends a leftover key to a provider it was not meant for.
+  // The one exception is an unknown name with an explicit AI_BASE_URL, which says where the calls should go.
+  const refused = REMOVED_PRESETS.includes(name) || (!PRESETS[name] && !env("AI_BASE_URL"));
   const provider = (env("AI_PROVIDER") as Provider) || preset.provider;
   return {
     provider: provider === "anthropic" ? "anthropic" : "openai-compatible",
     baseUrl: (env("AI_BASE_URL") || preset.baseUrl).replace(/\/+$/, ""),
     model: env("AI_MODEL") || preset.model,
-    key: env("AI_API_KEY"),
+    key: refused ? "" : env("AI_API_KEY"),
     jsonMode: env("AI_JSON_MODE") === "none" ? "none" : "json_object",
     timeoutMs: Number(env("AI_TIMEOUT_MS")) || 25000,
     label: PRESETS[name] ? preset.label : name,

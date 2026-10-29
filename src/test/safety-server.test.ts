@@ -133,10 +133,12 @@ describe("M1 · every AI call goes to ASU AIR by default, with the model chosen 
     expect(sent().map(c => c.body.model)).toEqual(["glm-5-3", "muse-glimmer-30b"])
   })
 
-  it("keeps DeepSeek only as an explicit emergency fallback, without AIR routing", async () => {
+  it("refuses the removed DeepSeek preset: no key is sent anywhere and nothing is configured", async () => {
     process.env.AI_PRESET = "deepseek"
     ok()
-    await chatJSON({ system: "s", user: "u", task: "chat" })
-    expect(sent()[0]).toMatchObject({ url: "https://api.deepseek.com/chat/completions", body: { model: "deepseek-chat" } })
+    expect(isConfigured()).toBe(false)
+    expect(getConfig().key).toBe("")
+    await expect(chatJSON({ system: "s", user: "u", task: "chat" })).rejects.toMatchObject({ code: "not_configured" })
+    expect(vi.mocked(fetch)).not.toHaveBeenCalled()
   })
 })
