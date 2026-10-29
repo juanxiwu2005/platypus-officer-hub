@@ -17,6 +17,7 @@ export function Layout() {
 function Frame() {
   const { state, dispatch } = useStore()
   const rail = useRail()
+  const unread = state.notifications.filter(n => n.recipientId === state.viewerId && !n.read).length
   const location = useLocation()
   const [toast, setToast] = useState<string | null>(null)
   useEffect(() => {
@@ -77,9 +78,10 @@ function Frame() {
           {PAGES.filter(p => p.group === "main").map(p => (
             <NavLink key={p.path} to={p.path} end={p.path === "/"} title={p.question}>
               {Icons[p.icon]}<span>{p.label}</span>
+              {p.path === "/tasks" && unread > 0 && <span className="count" data-testid="nav-unread">{unread}<span className="sr-only"> unread private updates</span></span>}
             </NavLink>
           ))}
-          <div className="group" aria-hidden="true" />
+          <div className="group">Reference</div>
           {PAGES.filter(p => p.group === "footer").map(p => (
             <NavLink key={p.path} to={p.path} title={p.question}>
               {Icons[p.icon]}<span>{p.label}</span>

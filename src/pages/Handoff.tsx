@@ -7,7 +7,8 @@ import { handoffDates } from "../engine/schedule"
 import { handbookSources, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
 import { callApi } from "../lib/api"
 import { Feedback } from "../components/Feedback"
-import { Avatar, Chain, Empty, Hover, Info, Ring, useStatusStyles, type Stop } from "../components/ui"
+import { Avatar, Chain, Empty, Hover, Info, Ring, useStatusStyles, useTouch, type Stop } from "../components/ui"
+import { Bts, BtsRow } from "../components/Bts"
 import { fmtShort } from "../lib/dates"
 import type { RoleHandoff } from "../data/types"
 
@@ -45,6 +46,7 @@ export default function Handoff() {
     </form>} />
     <section className="card season">
       <Chain label="Handoff season" stops={stops} />
+      <BtsRow><Bts label="Rule engine">Five checkpoints from the season start date: the interview, handbook, first-week and day-30 dates are worked out from it (handoffDates). A checkpoint is done once the next one's date has come, now once its own date has come.</Bts></BtsRow>
     </section>
     <section className="relay-grid" data-testid="role-handbooks" aria-label="Role handbooks">
       {state.roles.map(role => {
@@ -77,6 +79,7 @@ export function HandoffRoleDetail({ roleId }: { roleId: string }) {
 }
 
 function RolePanel({ record: r, title }: { record: RoleHandoff; title: string }) {
+  const touch = useTouch()
   const { state, dispatch } = useStore(); const { canNudge } = useViewer(); const self = state.viewerId === r.outgoingId
   const [interview, setInterview] = useState(r.interview.join("\n")), [name, setName] = useState(`Incoming ${state.roles.find(x => x.id === r.roleId)?.displayName} (example)`), [busy, setBusy] = useState(false), [notice, setNotice] = useState("")
   const sources = r.completed ? r.sources : handbookSources(state, r.roleId), fresh = r.fingerprint === sourceFingerprint(sources)
@@ -114,7 +117,8 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
 
     <article className="step-card">
       <header><span className="step-n">4</span><b>First week</b><span className="small muted">{r.checks.length}/{WEEK_ONE.length}</span></header>
-      {WEEK_ONE.map(item => <label key={item.id} className="check-label"><input type="checkbox" disabled={r.completed || !r.approved || (!self && !canNudge && state.viewerId !== r.incomingId)} checked={r.checks.includes(item.id)} onChange={() => act({ kind: "check", roleId: r.roleId, itemId: item.id })} /><Hover card={item.source}><span className="small">{item.text}</span></Hover></label>)}
+      {WEEK_ONE.map(item => <label key={item.id} className="check-label"><input type="checkbox" disabled={r.completed || !r.approved || (!self && !canNudge && state.viewerId !== r.incomingId)} checked={r.checks.includes(item.id)} onChange={() => act({ kind: "check", roleId: r.roleId, itemId: item.id })} />{touch ? <><span className="small">{item.text}</span><Info label={`Where "${item.text}" comes from`}>{item.source}</Info></> : <Hover card={item.source}><span className="small">{item.text}</span></Hover>}</label>)}
+      <BtsRow><Bts label="Source">{[...new Set(WEEK_ONE.map(item => item.source))].join(" · ")}</Bts></BtsRow>
     </article>
 
     <article className="step-card">

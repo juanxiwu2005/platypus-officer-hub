@@ -65,6 +65,19 @@ test("when on: dates show where they come from on Today, Events and Tasks", asyn
   await expect(page.locator(NOTES)).toHaveCount(0)
 })
 
+test("when on: Funding and Handoff say where the dots and sources come from; off removes them", async ({ page }) => {
+  await page.goto("/#/funding")
+  await expect(page.locator(NOTES)).toHaveCount(0)
+  await switchOn(page)
+  await closeRail(page)
+  await expect(page.getByTestId("funding-table").locator(".bts").filter({ hasText: "Decide by" }).first()).toBeVisible()
+  await page.goto("/#/handoff")
+  await expect(page.locator(".season .bts")).toBeVisible()
+  await openDemoMenu(page)
+  await page.getByTestId("bts-toggle").uncheck()
+  await expect(page.locator(NOTES)).toHaveCount(0)
+})
+
 test("when on: the new-task form explains the club deadline and the plan check says whether AI wrote it", async ({ page }) => {
   await page.goto("/#/")
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()

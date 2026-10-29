@@ -29,7 +29,7 @@ test("a button inside a hover card can be clicked (Team contributions)", async (
   await page.goto("/#/team")
   const cell = page.getByTestId("contribution-board").locator(".hover").filter({ has: page.locator(".hover-card button") }).first()
   const trigger = cell.locator("[tabindex]")
-  if (info.project.name === "desktop") await trigger.hover(); else await trigger.focus()
+  if (info.project.name === "desktop") await trigger.hover(); else await trigger.tap() // a phone cannot hover: a tap opens the card
   const button = cell.locator(".hover-card button").first()
   const title = (await button.textContent())!
   await button.click()

@@ -4,7 +4,7 @@ import { RULES } from "../data/rules"
 import { PHASE_LABEL } from "../engine/playbooks"
 import { fmtLong } from "../lib/dates"
 import { SEVERITY_TONE } from "../pages/helpers"
-import { StatusPill } from "./ui"
+import { StatusPill, useTouch } from "./ui"
 import { useOptionalRail } from "./rail/RailContext"
 import { canLead } from "../data/changeReview"
 import { officialLabel } from "../engine/taskDates"
@@ -14,6 +14,8 @@ const TIER_LABEL = { light: "Light", medium: "Medium", heavy: "Heavy" } as const
 
 /** Side panel for one step: owner, three deadlines with their sources, effort, links, RACI, why. */
 export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClose: () => void; onSelect: (id: string) => void }) {
+  // On a phone the card with the ASU deadline and rule IDs does not exist, so the panel shows that part already open.
+  const touch = useTouch()
   const { state, dispatch } = useStore()
   const sched = useSchedule()
   const n = state.nodes.find(x => x.id === nodeId)
@@ -76,7 +78,7 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
       {owner && n.status === "unclaimed" && <p className="small muted">{owner.name.split(" ")[0]} confirms with “I've got it”.</p>}
       {rail && <button type="button" className="btn" onClick={() => rail.ask("Explain this step: what should happen next?", true)}>Ask AI about this step</button>}
 
-      <details className="more">
+      <details className="more" open={touch || undefined}>
         <summary>More</summary>
         <section className="panel-sec" aria-labelledby="dl-h">
           <h3 id="dl-h">Why these dates</h3>

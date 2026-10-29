@@ -675,3 +675,18 @@ tr.clickable { cursor: pointer; }
 .bts.k-ai b { color: var(--accent-ink); }
 .bts-row { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s4); }
 .tbl .bts-tr td { border-top: 0; padding-top: 0; white-space: normal; }
+
+/* Touch screens cannot hover: a tap opens the card as a sheet at the bottom of the screen (S8). Same card, same text. */
+@media (hover: none) {
+  .hover[tabindex] { cursor: pointer; }
+  .hover:hover > .hover-card, .hover:focus-within > .hover-card { opacity: 0; visibility: hidden; }
+  .hover[data-open="true"] > .hover-card { position: fixed; left: var(--s6); right: var(--s6); bottom: calc(var(--s6) + env(safe-area-inset-bottom)); top: auto; transform: none; width: auto; max-width: none; opacity: 1; visibility: visible; pointer-events: auto; font-size: var(--fs-md); padding: var(--s5) var(--s6); }
+  .hover[data-open="true"] > .hover-card::after { display: none; }
+  /* The funding and handoff dots are 12-16px; the tap area reaches 24px without changing how they look. */
+  .chain-btn { position: relative; }
+  .chain-btn::after { content: ""; position: absolute; inset: -6px; }
+}
+
+/* Unread count on a navigation item (S8, shown on Tasks only for now). */
+.sidenav a .count { margin-left: auto; min-width: 20px; padding: 0 var(--s3); border-radius: var(--r-pill); background: var(--accent); color: var(--on-accent); font-size: var(--fs-xs); font-weight: 700; line-height: 20px; text-align: center; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
