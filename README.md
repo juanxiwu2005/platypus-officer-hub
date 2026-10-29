@@ -2,18 +2,16 @@
 
 Platypus 是一个面向学生社团的 AI 运营工作台，也是 Juanxi (Steve) Wu 的 ASU Barrett 荣誉论文 Phase 3 原型。前端使用 React、TypeScript 和 Vite；确定性规则引擎负责日期与风险计算；AI 只在受控范围内起草、解释和提出变更。
 
-**Production:** https://platypus-officer-hub.netlify.app （由 `main` 部署）
+**Production:** https://platypus-officer-hub.netlify.app （由 `main` 部署；目前是 2026-10-23 合并的 v1）
 
-**Night Mode Draft PR:** https://github.com/juanxiwu2005/platypus-officer-hub/pull/7
+**v1.0 集结预览（Draft PR #8，`integration/v1.0`）：** https://deploy-preview-8--platypus-officer-hub.netlify.app
 
-**Night Mode Preview:** https://deploy-preview-7--platypus-officer-hub.netlify.app
-
-> 2026-10-28 状态快照：`main` 仍停在 `4dc55ba`。`feat/ai-night-mode`（PR #7，Draft）已并入 DP5（`integration/dp3-dp4-merge`，PR #5），因此包含 S1/S2/S3 与 M1 的全部成果。2026-10-28 Night Mode 首次完整端到端跑通（编码 → 测试 → 独立 Critic → 提交 → CI → Deploy Preview → `READY_FOR_CLAUDE`）。后续 AI 必须重新检查 Git、PR 和 CI，不能把这条快照当成永久状态。
+> **2026-10-29 状态：** `integration/v1.0` 把设计 token（N1–N6）、护栏（Stylelint / ESLint / 字数 / 无障碍，S6）、Behind the scenes 开关（S7）、触屏卡片（S8）、M2b 的 AI 预填表单、排序题编辑器 Edit steps（M3）和"DeepSeek 已移除"都集合在一起，等 Juanxi 说"批准合并"才会进入 `main`。**Night Mode 自动开发队列已暂停**（2026-10-28 起；原因和三个已知脚本问题见 `docs/NIGHT_MODE.md` 第 1 节），之后的开发由人工会话完成。真实 AI 的验收边界见 `docs/AI_TESTS.md`；上线步骤见 `docs/LAUNCH_STEPS.md`。
 
 ## 给人类：现在已经有什么
 
 - 产品代码、规则、测试和部署配置都在这个仓库；GitHub 是唯一正本。
-- 本地已经接通 ASU AIR，并通过 OpenCode 调用一组分工明确的 Agent。
+- （Night Mode 暂停中）本地曾接通 ASU AIR，并通过 OpenCode 调用一组分工明确的 Agent。
 - `scripts/night-mode.mjs` 是控制器：检查环境，调用 Agent 编码，运行完整本地测试，调用独立 Critic，提交并推送，再等待 GitHub CI。
 - 只有本地检查、独立 Review 和 GitHub CI 全部通过，控制器才会在 Draft PR 留下 `READY_FOR_CLAUDE`。
 - 它永远不会自动合并 `main`，也不会自动部署 Production；最后仍需 Claude 和 Juanxi 人工检查。
@@ -73,13 +71,13 @@ npm run e2e
 npm run check
 ```
 
-`npm run check` 会依次运行 TypeScript/Vite 构建、Vitest 单元测试和桌面/手机 Playwright 测试。GitHub Actions 也会在 PR 上运行同一套检查。
+`npm run check` 会依次运行 Stylelint 和 ESLint（`npm run lint`）、TypeScript/Vite 构建、Vitest 单元测试、桌面/手机 Playwright 测试（含无障碍扫描）和字数检查（`npm run words`）。GitHub Actions 在 PR 上运行同一套。改界面前先读 [`docs/DESIGN_TOKENS.md`](docs/DESIGN_TOKENS.md)：字号、圆角、层级、颜色只能用 token。
 
 ## 主要目录
 
 - `src/` — React 前端、数据模型、规则引擎和浏览器端 AI 护栏。
 - `netlify/functions/` — `/api/*` 服务器函数。
-- `netlify/lib/ai.mts` — 产品 AI 供应商适配器。
+- `netlify/lib/ai.mts` — 产品 AI 供应商适配器（默认 ASU AIR，路由 v3；DeepSeek 已移除）。
 - `e2e/`、`src/test/` — 页面测试与单元测试。
 - `docs/` — 产品计划、进度、规则、验收记录和 Night Mode 操作手册。
 - `scripts/night-mode.mjs` — Night Mode 控制器。
@@ -90,5 +88,5 @@ npm run check
 
 - CI 使用模拟 AI；CI 通过不等于真实供应商回答质量已验收。
 - `READY_FOR_CLAUDE` 只代表自动闸门通过，不代表可以合并或上线。
-- Draft PR #7 只增加 Night Mode 安全工作流，不代表它已经进入 `main`。
+- Draft PR #6、#7、#8 都还没有进入 `main`；#8 包含 #6 和 #7 的全部内容。
 - 最新的真实 AI 验证边界记录在 [`docs/AI_TESTS.md`](docs/AI_TESTS.md)。
