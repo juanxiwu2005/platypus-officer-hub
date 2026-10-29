@@ -9,7 +9,7 @@ export default defineConfig({
   // The functions read the variable at run time (netlify/lib/serverStorage.mts); the pages read it here,
   // at build time, so a hidden build has no screen that calls those endpoints.
   define: { __ORG_SETUP_ENABLED__: JSON.stringify(process.env.ORG_SETUP_ENABLED === "true") },
-  build: { outDir: "dist", sourcemap: true },
+  build: { outDir: "dist", sourcemap: false },
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
