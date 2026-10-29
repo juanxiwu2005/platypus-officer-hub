@@ -10,11 +10,11 @@ import { callApi } from "../lib/api"
 import { fmtShort } from "../lib/dates"
 import { Info } from "../components/ui"
 import { fillEmails, orderRoles } from "../data/structure"
-import { readLocally, sanitizeRead, structureFromRead, type ConstitutionRead } from "../lib/constitution"
+import { mergeReads, readLocally, relevantExcerpt, sanitizeRead, structureFromRead, type ConstitutionRead } from "../lib/constitution"
 import { saveLocalDoc } from "../lib/localDocs"
 
 const STEPS = ["Your club", "Semester goals", "Departments", "Officer roles", "Invite & workspace", "First event"]
-type Reading = { status: "idle" } | { status: "reading" } | { status: "ready"; read: ConstitutionRead; note: string }
+type Reading = { status: "idle" } | { status: "reading" } | { status: "ready"; read: ConstitutionRead; note: string; retry: boolean }
 
 export default function Setup() {
   const { state, dispatch } = useStore()
@@ -51,18 +51,31 @@ export default function Setup() {
     })
     setApplied(true); touched.current = false
   }
-  /** Started by Continue on step 1: save the text in this browser's database and let the AI read it while the president fills in the goals. */
-  async function startReading(d: ConstitutionDoc) {
-    if (readFor.current === d.checksum) return
+  /**
+   * Started by Continue on step 1: save the text in this browser's database and let the AI read it while the president fills in the goals.
+   * Two short requests run side by side (structure, duties) because one long answer does not fit in the 30 seconds a request may last.
+   */
+  async function startReading(d: ConstitutionDoc, again = false) {
+    if (!again && readFor.current === d.checksum) return
     readFor.current = d.checksum; setApplied(false); setReading({ status: "reading" })
     void saveLocalDoc({ id: "constitution", kind: "constitution", fileName: d.fileName, text: d.text, checksum: d.checksum, savedAt: new Date().toISOString() })
-    let read: ConstitutionRead, note: string
+    let read: ConstitutionRead, note: string, retry = false
     if (state.aiEnabled) {
-      try { read = sanitizeRead(await callApi<unknown>("/setup/constitution", { text: d.text }, 60_000), "ai"); note = "Suggested by AI from your constitution. Check each line." }
-      catch (e) { read = readLocally(d.text); note = `AI could not read it${e instanceof Error && e.message ? ` (${e.message.replace(/\.$/, "").slice(0, 120)})` : ""}, so this was read in your browser. Check each line.` }
+      const text = relevantExcerpt(d.text, 40_000)
+      const ask = (part: "structure" | "duties") => callApi<unknown>("/setup/constitution", { text, part }, 45_000).then(r => sanitizeRead(r, "ai"))
+      const [structure, duties] = await Promise.allSettled([ask("structure"), ask("duties")])
+      if (structure.status === "fulfilled" && structure.value.roles.length) {
+        read = mergeReads(structure.value, duties.status === "fulfilled" ? duties.value : null)
+        note = duties.status === "fulfilled" ? "Suggested by AI from your constitution. Check each line." : "Suggested by AI. Duties could not be read, so standard duties are filled in. Edit them."
+        retry = duties.status !== "fulfilled"
+      } else {
+        const why = structure.status === "rejected" && structure.reason instanceof Error && structure.reason.message ? ` (${structure.reason.message.replace(/\.$/, "").slice(0, 120)})` : ""
+        read = readLocally(d.text); retry = true
+        note = `AI could not read it${why}, so this was read in your browser. Check each line.`
+      }
     } else { read = readLocally(d.text); note = "AI is off, so this was read in your browser. Check each line." }
     if (read.source === "template") note = "No officer titles were found. These are standard departments and roles: edit them or add your own."
-    if (readFor.current === d.checksum) setReading({ status: "ready", read, note })
+    if (readFor.current === d.checksum) setReading({ status: "ready", read, note, retry })
   }
   async function changeDoc(next: ConstitutionDoc | null) {
     setDoc(next); setNotice("")
@@ -102,7 +115,7 @@ export default function Setup() {
   const banner = reading.status === "reading"
     ? <p className="notice ai-note" role="status"><span className="spin" aria-hidden="true" />Reading your constitution. You can keep editing while you wait.</p>
     : reading.status === "ready"
-      ? <p className="notice ai-note" role="status">{reading.note}{reading.read.notes.length > 0 && <Info>{reading.read.notes.join(" ")}</Info>}{!applied && <button type="button" className="btn small" onClick={() => apply(reading.read)}>Use these suggestions</button>}</p>
+      ? <p className="notice ai-note" role="status">{reading.note}{reading.read.notes.length > 0 && <Info>{reading.read.notes.join(" ")}</Info>}{!applied && <button type="button" className="btn small" onClick={() => apply(reading.read)}>Use these suggestions</button>}{reading.retry && doc && state.aiEnabled && <button type="button" className="btn small" onClick={() => void startReading(doc, true)}>Try AI again</button>}</p>
       : doc === null ? <p className="small muted">No constitution added. Standard departments are shown. Go back to step 1 to add one, or edit them yourself.</p> : null
   return <><div className="page-head"><h1>Set up your fictional club</h1><p className="muted">Six steps. Nothing is saved until you approve the first workflow.</p></div><ol className="setup-steps" aria-label="Setup progress">{STEPS.map((s, i) => <li key={s} aria-current={i === step ? "step" : undefined}>{i + 1} · {s}</li>)}</ol><section className="card form-stack" data-testid="setup-step"><header><h2>Step {step + 1} of 6 · {STEPS[step]}</h2><Link to="/settings">Cancel setup</Link></header>
     {step === 0 && <><div className="form-grid"><label>Club name<input value={draft.name} maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>School<input readOnly value={state.org.school} /></label></div><ConstitutionStep doc={doc} onChange={changeDoc} /></>}

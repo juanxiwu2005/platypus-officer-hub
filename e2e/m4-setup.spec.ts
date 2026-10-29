@@ -3,16 +3,20 @@ import { expect, test } from "@playwright/test"
 // M4: constitution upload → AI reads it while the president fills in goals → departments and roles with who reports to whom.
 const REPLY = {
   mission: "Help students build real startups with real founders.",
-  departments: [{ name: "Leadership", duties: "Sets direction." }, { name: "Finance", duties: "AI finance duties." }, { name: "Marketing", duties: "Promotion and the newsletter." }],
+  departments: [{ name: "Leadership" }, { name: "Finance" }, { name: "Marketing" }],
   roles: [
-    { title: "President", department: "Leadership", reportsTo: null, duties: "Leads the club.", isAdvisor: false },
-    { title: "Executive Vice President", department: "Leadership", reportsTo: "President", duties: "Supports the president.", isAdvisor: false },
-    { title: "Vice President of Finance", department: "Finance", reportsTo: "Executive Vice President", duties: "Keeps the budget.", isAdvisor: false },
-    { title: "Director of Marketing", department: "Marketing", reportsTo: "Executive Vice President", duties: "Leads promotion.", isAdvisor: false },
-    { title: "Marketing Associate", department: "Marketing", reportsTo: "Director of Marketing", duties: "Helps with posting.", isAdvisor: false },
-    { title: "Club Advisor", department: "Advisory", reportsTo: null, duties: "Advises the club.", isAdvisor: true },
+    { title: "President", department: "Leadership", reportsTo: null, isAdvisor: false },
+    { title: "Executive Vice President", department: "Leadership", reportsTo: "President", isAdvisor: false },
+    { title: "Vice President of Finance", department: "Finance", reportsTo: "Executive Vice President", isAdvisor: false },
+    { title: "Director of Marketing", department: "Marketing", reportsTo: "Executive Vice President", isAdvisor: false },
+    { title: "Marketing Associate", department: "Marketing", reportsTo: "Director of Marketing", isAdvisor: false },
+    { title: "Club Advisor", department: "Advisory", reportsTo: null, isAdvisor: true },
   ],
   notes: ["No Director of Outreach found."],
+}
+const DUTIES = {
+  departments: [{ name: "Leadership", duties: "Sets direction." }, { name: "Finance", duties: "AI finance duties." }, { name: "Marketing", duties: "Promotion and the newsletter." }],
+  roles: [{ title: "President", duties: "Leads the club." }, { title: "Executive Vice President", duties: "Supports the president." }, { title: "Vice President of Finance", duties: "Keeps the budget." }, { title: "Director of Marketing", duties: "Leads promotion." }, { title: "Marketing Associate", duties: "Helps with posting." }, { title: "Club Advisor", duties: "Advises the club." }],
 }
 
 test.beforeEach(async ({ page }) => {
@@ -21,9 +25,9 @@ test.beforeEach(async ({ page }) => {
 })
 
 test("constitution: upload, AI reads it in the background, departments and roles fill in, and it reaches every member", async ({ page }) => {
-  const storage: string[] = []; let sent: Record<string, unknown> | null = null
+  const storage: string[] = []; let sent: Record<string, unknown> | null = null; const parts: string[] = []
   page.on("request", r => { if (/\/api\/(org|workspace)/.test(r.url())) storage.push(r.url()) })
-  await page.route("**/api/setup/constitution", async r => { sent = r.request().postDataJSON(); await new Promise(res => setTimeout(res, 900)); await r.fulfill({ json: { ...REPLY, source: "ai", model: "mock", provider: "mock" } }) })
+  await page.route("**/api/setup/constitution", async r => { const body = r.request().postDataJSON(); sent = body; parts.push(String(body.part)); await new Promise(res => setTimeout(res, 900)); await r.fulfill({ json: { ...(body.part === "duties" ? DUTIES : REPLY), model: "mock", provider: "mock" } }) })
   await page.goto("/#/setup")
   const step = page.getByTestId("setup-step")
   await expect(step.getByLabel("Club mission")).toHaveCount(0)           // the mission moved to step 2
@@ -34,7 +38,7 @@ test("constitution: upload, AI reads it in the background, departments and roles
   await expect(step.getByRole("heading")).toHaveText("Step 2 of 6 · Semester goals")
   await expect(step.getByRole("status").first()).toContainText("Reading your constitution")
   await expect(step.getByRole("status").first()).toContainText("Suggested by AI")
-  expect(Object.keys(sent!)).toEqual(["text"]); expect(String(sent!.text)).not.toContain("boss@example.org")
+  expect(Object.keys(sent!).sort()).toEqual(["part", "text"]); expect(parts.sort()).toEqual(["duties", "structure"]); expect(String(sent!.text)).not.toContain("boss@example.org")
   await expect(step.getByLabel("Club mission")).toHaveValue("Help students build real startups with real founders.")
   await expect(step.getByRole("button", { name: /^Remove goal/ })).toHaveCount(3)
   await step.getByRole("button", { name: "Continue", exact: true }).click()
@@ -106,4 +110,21 @@ test("without AI the constitution is read in the browser, and roles can be added
   await step.getByRole("button", { name: "Continue", exact: true }).click()
   await expect(step.getByRole("alert")).toContainText("fictional")
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
+})
+
+test("if the AI is slow the reason is shown, standard text fills in, and Try AI again works", async ({ page }) => {
+  let calls = 0
+  await page.route("**/api/setup/constitution", async r => {
+    calls++
+    if (calls <= 2) return r.fulfill({ status: 504, json: { error: "timeout", message: "The AI took too long to answer." } })
+    return r.fulfill({ json: { ...(r.request().postDataJSON().part === "duties" ? DUTIES : REPLY), model: "mock", provider: "mock" } })
+  })
+  await page.goto("/#/setup")
+  const step = page.getByTestId("setup-step")
+  await step.getByRole("button", { name: "Use the sample constitution", exact: true }).click()
+  await step.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(step.getByRole("status").first()).toContainText("AI could not read it (The AI took too long to answer)")
+  await step.getByRole("button", { name: "Try AI again", exact: true }).click()
+  await expect(step.getByRole("status").first()).toContainText("Suggested by AI from your constitution")
+  await expect(step.getByLabel("Club mission")).toHaveValue("Help students build real startups with real founders.")
 })

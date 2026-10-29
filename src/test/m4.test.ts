@@ -8,7 +8,7 @@ import { resetRateLimit } from "../../netlify/lib/http.mts"
 import { seedDemo } from "../data/seed"
 import { clubDraft, completeSetup, saveClubSettings, validateClub, validateProfile, validateRoles, profilePatch, saveProfile } from "../data/settings"
 import { DEFAULT_DEPARTMENTS, departmentsOf, fnForDepartment, fnForRole, hasReportingLoop, orderRoles, rederiveFn, setHolder } from "../data/structure"
-import { readLocally, sanitizeRead, structureFromRead } from "../lib/constitution"
+import { mergeReads, readLocally, relevantExcerpt, sanitizeRead, structureFromRead } from "../lib/constitution"
 import { SAMPLE_CONSTITUTION } from "../lib/sampleConstitution"
 import { aiSnapshot } from "../lib/aiContext"
 
@@ -82,19 +82,33 @@ describe("M4 · the model's reply is cut down", () => {
     expect(r.roles.length).toBeLessThanOrEqual(24); expect(r.notes).toHaveLength(4)
     expect(Object.keys(r).sort()).toEqual(["departments", "mission", "notes", "roles", "source"])
   })
-  it("the endpoint sends only the text, re-checks the reply and never touches storage", async () => {
-    chat.mockResolvedValue({ data: { roles: [{ title: "President", duties: "Leads." }, { title: "Treasurer", department: "Finance", reportsTo: "President" }], departments: [{ name: "Finance", duties: "Money." }], evil: true }, model: "mock", provider: "mock" })
-    const res = await post({ text: "The President leads the club. Contact me at boss@example.org or 480-555-0100. The Treasurer keeps the budget.", context: { people: [{ id: "x" }] } })
-    const body = await res.json()
-    expect(chat.mock.calls[0][0].task).toBe("constitution_read")
-    const sent = JSON.parse(chat.mock.calls[0][0].user)
-    expect(Object.keys(sent)).toEqual(["text"]); expect(sent.text).not.toMatch(/boss@|555-0100/)
-    expect(body.roles.map((r: { title: string }) => r.title)).toEqual(["President", "Treasurer"]); expect(body.evil).toBeUndefined()
+  it("the endpoint asks for the structure and the duties separately, sends only text, re-checks replies and never touches storage", async () => {
+    chat.mockResolvedValueOnce({ data: { roles: [{ title: "President" }, { title: "Treasurer", department: "Finance", reportsTo: "President" }], departments: [{ name: "Finance" }], evil: true }, model: "mock", provider: "mock" })
+    chat.mockResolvedValueOnce({ data: { roles: [{ title: "Treasurer", duties: "Keeps the budget." }], departments: [{ name: "Finance", duties: "Money." }] }, model: "mock", provider: "mock" })
+    const text = "The President leads the club. Contact me at boss@example.org or 480-555-0100. The Treasurer keeps the budget."
+    const a = await (await post({ text, part: "structure", context: { people: [{ id: "x" }] } })).json()
+    const b = await (await post({ text, part: "duties" })).json()
+    expect(chat.mock.calls.map(c => c[0].task)).toEqual(["constitution_read", "constitution_read"])
+    expect(chat.mock.calls[0][0].system).toMatch(/Do not write duties/); expect(chat.mock.calls[1][0].system).toMatch(/duties: one or two short sentences/)
+    expect(chat.mock.calls.every(c => c[0].timeoutMs <= 28_000 && c[0].maxTokens <= 2000)).toBe(true)   // answers (or fails clearly) before the 30-second platform limit
+    for (const c of chat.mock.calls) { const sent = JSON.parse(c[0].user); expect(Object.keys(sent)).toEqual(["text"]); expect(sent.text).not.toMatch(/boss@|555-0100/) }
+    expect(a.roles.map((r: { title: string }) => r.title)).toEqual(["President", "Treasurer"]); expect(a.evil).toBeUndefined()
+    const merged = mergeReads(sanitizeRead(a), sanitizeRead(b))
+    expect(merged.roles.find(r => r.title === "Treasurer")).toMatchObject({ reportsTo: "President", duties: "Keeps the budget." })
+    expect(merged.departments[0]).toEqual({ name: "Finance", duties: "Money." })
+    expect(mergeReads(sanitizeRead(a), null).roles[0].duties).toBe("")
     expect(getStore).not.toHaveBeenCalled()
+  })
+  it("a long constitution is cut to the paragraphs about officers and departments", () => {
+    const filler = "We hold a picnic every spring and everyone brings a snack to share with friends. ".repeat(20)
+    const long = Array.from({ length: 60 }, (_, i) => i % 10 === 3 ? `Section ${i}. The Director of Outreach leads partnerships and reports to the President.` : filler).join("\n\n")
+    const cut = relevantExcerpt(long, 3000)
+    expect(cut.length).toBeLessThanOrEqual(3000); expect(cut).toContain("Director of Outreach")
+    expect(relevantExcerpt("short text", 3000)).toBe("short text")
   })
   it("refuses empty or oversized text without calling the model", async () => {
     expect((await post({ text: "short" })).status).toBe(400)
-    expect((await post({ text: "x".repeat(60_001) })).status).toBe(400)
+    expect((await post({ text: "x".repeat(60_001), part: "duties" })).status).toBe(400)
     expect(chat).not.toHaveBeenCalled()
   })
 })
