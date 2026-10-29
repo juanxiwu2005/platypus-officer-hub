@@ -1,6 +1,6 @@
 # AI 设置：Platypus 怎么调用 AI
 
-> **2026-10-27 起（M1，Juanxi 决定）：所有 AI 调用都走 ASU AIR，只在模型上做选择。本项目不再使用 DeepSeek。** 下面第 1–4 节是现在的做法；第 5 节以后是历史记录，和本节冲突时以本节为准。
+> **2026-10-27 起（M1，Juanxi 决定）：所有 AI 调用都走 ASU AIR，只在模型上做选择。本项目不再使用 DeepSeek，它的代码路径已于 2026-10-29 删除（Juanxi 批准）。** 下面第 1–4 节是现在的做法；第 5 节以后是历史记录，和本节冲突时以本节为准。
 
 **一句话：** 网页从来不拿 API key。网页只调用本站自己的 `/api/*`（Netlify Functions），只有这些服务器函数去调 AIR。key 和所有 AI 设置都只在 Netlify 的环境变量里。
 
@@ -16,7 +16,7 @@
 | 变量 | 现在应该是 | 说明 |
 | --- | --- | --- |
 | `AI_API_KEY` | AIR 的 key（勾选 “Contains secret values”） | **唯一必填。** 只在服务器上，不会发到浏览器 |
-| `AI_PRESET` | 不填，或 `asu_air` | 不填就是 AIR（默认）。只有紧急回退时才改，见第 3 节 |
+| `AI_PRESET` | 不填，或 `asu_air` | 不填就是 AIR（默认）。不要改成别的供应商，见第 3 节 |
 | `AI_MODEL` | 不填 | AIR 下由路由按任务选模型；只有关掉路由时才用 |
 | `AI_MODEL_ROUTING` | 不填（= 开） | 设 `off` = 所有任务都用 `AI_MODEL` 一个模型（运营方回退开关） |
 | `AI_TIMEOUT_MS` | 不填（25000） | 单次请求超时。Ask（`/api/chat`）和活动检查（`/api/event/review`）不受它管，固定 55 秒：2026-10-28 的 Netlify 日志显示 AIR 在 25 秒内一次都没有回应，而 Netlify 现在允许同步函数跑 60 秒 |
@@ -42,12 +42,12 @@
 
 AI 没配好或调用失败时，主应用会明确显示本地回退（关键词模式），不会把回退标成真实 AI。
 
-## 3. 紧急回退（只在 AIR 不可用时）
+## 3. 其他供应商（不使用）
 
 | 回退到 | 设置 | 说明 |
 | --- | --- | --- |
-| DeepSeek | `AI_PRESET=deepseek`，`AI_API_KEY`=DeepSeek key | **不再是默认，也不是计划内的选项。** 数据会离开 ASU，只能配虚构数据，且要先得到 Juanxi 同意。回退时不走 AIR 路由，固定 `deepseek-chat` |
-| OpenAI / Anthropic / 其他兼容接口 | `AI_PRESET=openai` 或 `anthropic`，并填 `AI_MODEL`（其他兼容接口再填 `AI_BASE_URL`） | 同上，需 Juanxi 同意 |
+| DeepSeek | （已移除） | **2026-10-29 起代码里没有 DeepSeek 路径。** `AI_PRESET=deepseek` 会被直接拒绝：不带 key、不发任何请求，应用显示本地回答。Netlify 里如果还留着 DeepSeek 的 key，请删掉 |
+| OpenAI / Anthropic / 其他兼容接口 | `AI_PRESET=openai` 或 `anthropic`，并填 `AI_MODEL`（其他兼容接口再填 `AI_BASE_URL`） | 代码里还保留着这两个未启用的预设；研究用构建不会选它们，数据会离开 ASU，使用前需 Juanxi 同意 |
 
 回退结束后把 `AI_PRESET` 删掉（或改回 `asu_air`）并重新部署。
 
@@ -67,7 +67,7 @@ DP3 带来的 Organization Setup 和 Activity workspace 会把数据存在服务
 
 ## 研究说明
 
-AIR 的数据处理已由 Juanxi 确认（2026-10-27），这里不再重复。DeepSeek 等外部供应商只在第 3 节的紧急回退里出现，且只能处理虚构数据。
+AIR 的数据处理已由 Juanxi 确认（2026-10-27），这里不再重复。OpenAI、Anthropic 等外部供应商预设只在第 3 节出现，研究用构建不选它们；DeepSeek 已删除。
 
 ---
 
@@ -84,7 +84,7 @@ AIR 的数据处理已由 Juanxi 确认（2026-10-27），这里不再重复。D
 - `POST /api/nudge/draft`：输入当前节点的标题、规则算好的三个日期、真实下游步骤和提醒时段。AI 只改写最多 10 词的意义句；程序生成完整五段草稿，检查禁用说法和 100 词上限。浏览器在打开草稿前按最新状态再生成一次，防止旧日期生效。
 - 不增加密钥或新供应商配置，继续使用上面的 `AI_*` 环境变量。AI 关闭或接口失败会明确显示本地演示回退；不会把回退标成实时 AI。
 - `parse-brief` 保留兼容接口，但现在也丢弃 AI 日期；`public/legacy/` 文件没有改动。
-- 固定命令测试和供应商模拟测试已通过，真实 DeepSeek/AIR 自由表达质量仍需在部署环境分别验证。详情见 `WP2_ACCEPTANCE.md`。
+- 固定命令测试和供应商模拟测试已通过，真实 AIR 自由表达质量仍需在部署环境验证（历史记录里写的 DeepSeek 已不再使用）。详情见 `WP2_ACCEPTANCE.md`。
 
 
 
