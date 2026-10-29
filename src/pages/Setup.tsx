@@ -4,8 +4,8 @@ import { useStore, useViewer } from "../data/store"
 import { BUFFER_CHOICES, clubDraft, completeSetup, validateClub, validateGoals, validateProfile, validateRoles, validateWorkflow, validateWorkspace, type ClubDraft, type FirstEvent } from "../data/settings"
 import { GoalsEditor, RolesEditor, WorkspaceEditor } from "../components/SettingsForms"
 import { OrgChart } from "../components/setup/OrgChart"
-import { WorkflowEditor } from "../components/setup/WorkflowEditor"
-import { WorkflowChanges, WorkflowIssues } from "../components/setup/WorkflowReview"
+import { WorkflowPanel } from "../components/setup/WorkflowPanel"
+import { WorkflowChanges } from "../components/setup/WorkflowReview"
 import type { StepTemplate } from "../data/types"
 import { orgSteps } from "../engine/playbooks"
 import { applyChanges, checkWorkflow, ownerOfStep, presetSteps, revertChange, withOwners, type Refusal, type WorkflowChange } from "../engine/workflow"
@@ -19,9 +19,11 @@ import { fmtShort } from "../lib/dates"
 import { Info } from "../components/ui"
 import { fillEmails, orderRoles } from "../data/structure"
 import { DUTY_BATCH, applyDuties, chunk, dutyItems, readLocally, relevantExcerpt, sanitizeDuties, sanitizeRead, structureFromRead, type ConstitutionRead } from "../lib/constitution"
-import { saveLocalDoc } from "../lib/localDocs"
+import { deleteJson, loadJson, saveJson, saveLocalDoc } from "../lib/localDocs"
 
 const STEPS = ["Your club", "Semester goals", "Officer roles", "Invite & workspace", "Event workflow", "First event"]
+const DRAFT_ID = "setup-draft"
+interface SavedDraft { v: 1; step: number; draft: ClubDraft; steps: StepTemplate[]; buffer: number; sentence: string; doc: ConstitutionDoc | null }
 type Wf = { status: "idle" | "reading" | "ready"; applied: WorkflowChange[]; refused: Refusal[]; conflicts: { text: string; rules: string[] }[]; summary: string; note: string; retry: boolean }
 const NO_WF: Wf = { status: "idle", applied: [], refused: [], conflicts: [], summary: "", note: "", retry: false }
 type Reading = { status: "idle" } | { status: "reading" } | { status: "ready"; read: ConstitutionRead; note: string; retry: boolean; pending: number }
@@ -51,6 +53,14 @@ export default function Setup() {
   const [steps, setSteps] = useState<StepTemplate[]>(() => withOwners(orgSteps(state), clubDraft(state).roles))
   const [wf, setWf] = useState<Wf>(NO_WF)
   const wfFor = useRef(""), wfTouched = useRef(false)
+  // An unfinished setup is kept in this browser's database, so reloading (or signing in to the preview again) does not lose it.
+  const [restorable, setRestorable] = useState<{ savedAt: string; value: SavedDraft } | null>(null)
+  useEffect(() => { let on = true; void loadJson<SavedDraft>(DRAFT_ID).then(r => { if (on && r?.value?.v === 1 && Date.now() - Date.parse(r.savedAt) < 7 * 86_400_000) setRestorable(r) }); return () => { on = false } }, [])
+  useEffect(() => {
+    if (restorable || (step === 0 && !doc)) return
+    const t = setTimeout(() => { void saveJson(DRAFT_ID, { v: 1, step, draft, steps, buffer, sentence, doc } satisfies SavedDraft) }, 700)
+    return () => clearTimeout(t)
+  }, [restorable, step, draft, steps, buffer, sentence, doc])
   const wfIssues = useMemo(() => checkWorkflow(steps, draft.roles, state), [steps, draft.roles, state])
   // The reading finishes while the president is on another step; apply it then, unless they already changed the structure.
   useEffect(() => {
@@ -79,20 +89,13 @@ export default function Setup() {
     const done = (read: ConstitutionRead, note: string, retry: boolean) => current() && setReading({ status: "ready", read, note, retry, pending: 0 })
     if (!state.aiEnabled) { const r = readLocally(d.text); return done(r, r.source === "template" ? TEMPLATE_NOTE : "AI is off, so this was read in your browser. Check each line.", false) }
     const text = relevantExcerpt(d.text, 40_000)
-    // Each short request may fail on its own (the AI is slow, or busy with someone else's request). Try it again twice before giving up on that piece.
-    const call = async <T,>(body: Record<string, unknown>): Promise<T> => {
-      let last: unknown
-      for (let i = 0; i < 3 && current(); i++) {
-        try { return await callApi<T>("/setup/constitution", { text, ...body }, 45_000) } catch (e) { last = e; await new Promise(r => setTimeout(r, 800 * (i + 1))) }
-      }
-      throw last instanceof Error ? last : new Error("Cancelled")
-    }
+    // Each short request may fail on its own (the AI is slow, or busy with someone else's request). It is tried again twice; a sign-in problem is not.
+    const call = <T,>(body: Record<string, unknown>) => callRetry<T>("/setup/constitution", { text, ...body }, current)
     let read: ConstitutionRead
     try { read = sanitizeRead(await call<unknown>({ part: "structure" }), "ai"); if (!read.roles.length) throw new Error("No positions found") }
     catch (e) {
-      const why = e instanceof Error && e.message ? ` (${e.message.replace(/\.$/, "").slice(0, 120)})` : ""
       const r = readLocally(d.text)
-      return done(r, r.source === "template" ? TEMPLATE_NOTE : `AI could not read it${why}, so this was read in your browser. Check each line.`, true)
+      return done(r, r.source === "template" ? TEMPLATE_NOTE : `AI could not read it${whyFailed(e)}, so this was read in your browser. Check each line.`, true)
     }
     const batches = chunk(dutyItems(read), DUTY_BATCH)
     if (!current()) return
@@ -146,6 +149,14 @@ export default function Setup() {
   }
   const editSteps = (next: StepTemplate[]) => { wfTouched.current = true; setSteps(next) }
 
+  const restore = () => {
+    if (!restorable) return
+    const v = restorable.value
+    setDraft(v.draft); setSteps(v.steps); setBuffer(v.buffer); setSentence(v.sentence); setDoc(v.doc); setStep(Math.max(0, Math.min(v.step, 4)))
+    touched.current = true; missionTouched.current = true; wfTouched.current = true; if (v.doc) readFor.current = v.doc.checksum
+    setApplied(true); setRestorable(null)
+  }
+  const startOver = () => { void deleteJson(DRAFT_ID); setRestorable(null) }
   async function changeDoc(next: ConstitutionDoc | null) {
     setDoc(next); setNotice("")
     if (!next) { readFor.current = ""; setReading({ status: "idle" }); setApplied(false) }
@@ -187,7 +198,7 @@ export default function Setup() {
     : reading.status === "ready"
       ? <p className="notice ai-note" role="status">{reading.pending > 0 && <span className="spin" aria-hidden="true" />}{reading.note}{reading.read.notes.length > 0 && <Info>{reading.read.notes.join(" ")}</Info>}{!applied && <button type="button" className="btn small" onClick={() => apply(reading.read)}>Use these suggestions</button>}{reading.retry && doc && state.aiEnabled && <button type="button" className="btn small" onClick={() => void startReading(doc, true)}>Try AI again</button>}</p>
       : doc === null ? <p className="small muted">No constitution added. Standard departments are shown. Go back to step 1 to add one, or edit them yourself.</p> : null
-  return <><div className="page-head"><h1>Set up your fictional club</h1><p className="muted">Six steps. Nothing is saved until you approve the first workflow.</p></div><ol className="setup-steps" aria-label="Setup progress">{STEPS.map((s, i) => <li key={s} aria-current={i === step ? "step" : undefined}>{i + 1} · {s}</li>)}</ol><section className="card form-stack" data-testid="setup-step"><header><h2>Step {step + 1} of 6 · {STEPS[step]}</h2><Link to="/settings">Cancel setup</Link></header>
+  return <><div className="page-head"><h1>Set up your fictional club</h1><p className="muted">Six steps. Nothing is saved until you approve the first workflow.</p></div>{restorable && <section className="notice ai-note" role="status" data-testid="setup-restore">You have an unfinished setup from {new Date(restorable.savedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}.<button type="button" className="btn small" onClick={restore}>Restore it</button><button type="button" className="btn small" onClick={startOver}>Start over</button></section>}<ol className="setup-steps" aria-label="Setup progress">{STEPS.map((s, i) => <li key={s} aria-current={i === step ? "step" : undefined}>{i + 1} · {s}</li>)}</ol><section className="card form-stack" data-testid="setup-step"><header><h2>Step {step + 1} of 6 · {STEPS[step]}</h2><Link to="/settings" onClick={() => void deleteJson(DRAFT_ID)}>Cancel setup</Link></header>
     {step === 0 && <><div className="form-grid"><label>Club name<input value={draft.name} maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>School<input readOnly value={state.org.school} /></label></div><ConstitutionStep doc={doc} onChange={changeDoc} /></>}
     {step === 1 && <>{banner}<label>Club mission<textarea rows={2} value={draft.mission} maxLength={300} onChange={e => { missionTouched.current = true; setDraft({ ...draft, mission: e.target.value }) }} /></label><p className="small muted">Choose two or three measurable goals. New workspace progress starts at zero.</p><GoalsEditor goals={draft.goals} onChange={goals => setDraft({ ...draft, goals })} /></>}
     {step === 2 && <>{banner}<p className="small muted">Fictional names only: example.org emails, 555-01xx phones and ASU IDs starting 9999. Leave a name empty for an open position.</p><RolesEditor roles={draft.roles} people={draft.people} editablePeople onChange={(roles, people) => setStructure({ roles: orderRoles(roles), people })} /><OrgChart roles={draft.roles} /><label>How many working days before the real deadline should your club finish?<select aria-label="Days before the real deadline" value={buffer} onChange={e => setBuffer(Number(e.target.value))}>{BUFFER_CHOICES.map(d => <option key={d} value={d}>{d} {d === 1 ? "day" : "days"} before</option>)}</select></label><p className="small muted">This becomes your club deadline. For example, with 3 days, a task that is officially due Friday is due Tuesday for your club.</p></>}
@@ -196,11 +207,10 @@ export default function Setup() {
       {wf.status === "reading" ? <p className="notice ai-note" role="status"><span className="spin" aria-hidden="true" />{wf.note || "Comparing your planning notes and files with the standard workflow. You can start editing."}</p> : wf.note ? <p className="notice ai-note" role="status">{wf.note}{wf.retry && state.aiEnabled && <button type="button" className="btn small" onClick={() => void startWorkflow(true)}>Try AI again</button>}</p> : null}
       <p className="small muted">Every new event starts from this workflow. It begins with the standard one and changes to match your planning notes and files, so this is where your club's own way of working goes.</p>
       <WorkflowChanges applied={wf.applied} refused={wf.refused} conflicts={wf.conflicts} summary={wf.summary} steps={steps} roles={draft.roles} onRevert={c => { wfTouched.current = true; setSteps(x => revertChange(x, c)); setWf(w => ({ ...w, applied: w.applied.filter(a => a.id !== c.id) })) }} />
-      <WorkflowIssues issues={wfIssues} />
-      <WorkflowEditor steps={steps} roles={draft.roles} onChange={editSteps} />
+      <WorkflowPanel steps={steps} roles={draft.roles} issues={wfIssues} onChange={editSteps} />
       <div className="action-row"><button type="button" className="btn small" onClick={() => { wfTouched.current = true; setSteps(withOwners(presetSteps(), draft.roles)); setWf(w => ({ ...w, applied: [], refused: [], conflicts: [], summary: "" })) }}>Go back to the standard workflow</button></div>
     </>}
-    {step === 5 && <><label>Your first event, in one sentence<textarea maxLength={1000} rows={3} value={sentence} onChange={e => { setSentence(e.target.value); setEvent(null); setConfirmed(false) }} /></label><button className="btn" disabled={busy || !sentence.trim()} onClick={prepare}>{busy ? "Preparing…" : "Prepare first workflow"}</button>{event && <><p className="small muted">{source}. Dates below come from your input and the rule book.</p><fieldset><legend>Review your event</legend><div className="form-grid"><label>Event name<input maxLength={80} value={event.name} onChange={e => eventPatch({ name: e.target.value })} /></label><label>Confirm event date<input type="date" min={state.today} value={date} onChange={e => { setDate(e.target.value); setConfirmed(false) }} /></label><label>Event type<select value={event.type} onChange={e => eventPatch({ type: e.target.value as FirstEvent["type"] })}>{["social", "speaker", "workshop", "meeting", "fundraiser", "offcampus"].map(t => <option key={t}>{t}</option>)}</select></label><label>Headcount<input type="number" min="1" max="5000" value={event.headcount} onChange={e => eventPatch({ headcount: Number(e.target.value) })} /></label><label>Venue<select value={event.venue} onChange={e => eventPatch({ venue: e.target.value as FirstEvent["venue"] })}><option value="campus">Campus</option><option value="offcampus">Off campus</option></select></label><label>Food<select value={event.food} onChange={e => eventPatch({ food: e.target.value as FirstEvent["food"] })}><option value="none">None</option><option value="dining">Sun Devil Dining</option><option value="offsite">Outside caterer</option><option value="onsite">Prepared on site</option><option value="tbd">Yes, decide how later</option></select></label><label>Funding<select value={event.funding} onChange={e => eventPatch({ funding: e.target.value as FirstEvent["funding"] })}>{["none", "usg", "college", "dues", "sponsor"].map(f => <option key={f}>{f}</option>)}</select></label><label className="check-label"><input type="checkbox" checked={event.speaker} onChange={e => eventPatch({ speaker: e.target.checked })} />Includes a guest speaker</label></div></fieldset>{preview && preview !== state && <details open data-testid="setup-preview"><summary>{preview.nodes.length} steps · workflow preview</summary><p className="small muted">ASU deadlines remain fixed by rules. Steps may need attention if this event is too soon.</p><ul className="list">{preview.nodes.slice(0, 6).map(n => <li key={n.id}><span>{n.title}</span><span className="small muted">{draft.roles.find(r => r.fn === n.fn)?.displayName ?? n.fn} · due {n.clubDeadline ? fmtShort(n.clubDeadline) : "unscheduled"}</span></li>)}</ul></details>}<p className="notice">Finishing starts a new local demo workspace with these roles, goals and this event. It replaces existing fictional tasks, history and invitations. Cancel keeps your current workspace.</p><label className="check-label"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />I reviewed this event and want to start this demo workspace.</label><button className="btn btn-primary" disabled={!confirmed || !preview || preview === state || !event.name.trim() || event.headcount < 1 || event.headcount > 5000} onClick={() => { const error = validateClub(draft); if (error) { setNotice(error); return }; dispatch({ type: "completeSetup", draft: { ...draft, people: fillEmails(draft.people) }, event, date, inviteCode, clubBufferBusinessDays: buffer, workflow: steps }); navigate("/events") }}>Approve & start workspace</button></>}</>}
+    {step === 5 && <><label>Your first event, in one sentence<textarea maxLength={1000} rows={3} value={sentence} onChange={e => { setSentence(e.target.value); setEvent(null); setConfirmed(false) }} /></label><button className="btn" disabled={busy || !sentence.trim()} onClick={prepare}>{busy ? "Preparing…" : "Prepare first workflow"}</button>{event && <><p className="small muted">{source}. Dates below come from your input and the rule book.</p><fieldset><legend>Review your event</legend><div className="form-grid"><label>Event name<input maxLength={80} value={event.name} onChange={e => eventPatch({ name: e.target.value })} /></label><label>Confirm event date<input type="date" min={state.today} value={date} onChange={e => { setDate(e.target.value); setConfirmed(false) }} /></label><label>Event type<select value={event.type} onChange={e => eventPatch({ type: e.target.value as FirstEvent["type"] })}>{["social", "speaker", "workshop", "meeting", "fundraiser", "offcampus"].map(t => <option key={t}>{t}</option>)}</select></label><label>Headcount<input type="number" min="1" max="5000" value={event.headcount} onChange={e => eventPatch({ headcount: Number(e.target.value) })} /></label><label>Venue<select value={event.venue} onChange={e => eventPatch({ venue: e.target.value as FirstEvent["venue"] })}><option value="campus">Campus</option><option value="offcampus">Off campus</option></select></label><label>Food<select value={event.food} onChange={e => eventPatch({ food: e.target.value as FirstEvent["food"] })}><option value="none">None</option><option value="dining">Sun Devil Dining</option><option value="offsite">Outside caterer</option><option value="onsite">Prepared on site</option><option value="tbd">Yes, decide how later</option></select></label><label>Funding<select value={event.funding} onChange={e => eventPatch({ funding: e.target.value as FirstEvent["funding"] })}>{["none", "usg", "college", "dues", "sponsor"].map(f => <option key={f}>{f}</option>)}</select></label><label className="check-label"><input type="checkbox" checked={event.speaker} onChange={e => eventPatch({ speaker: e.target.checked })} />Includes a guest speaker</label></div></fieldset>{preview && preview !== state && <details open data-testid="setup-preview"><summary>{preview.nodes.length} steps · workflow preview</summary><p className="small muted">ASU deadlines remain fixed by rules. Steps may need attention if this event is too soon.</p><ul className="list">{preview.nodes.slice(0, 6).map(n => <li key={n.id}><span>{n.title}</span><span className="small muted">{draft.roles.find(r => r.fn === n.fn)?.displayName ?? n.fn} · due {n.clubDeadline ? fmtShort(n.clubDeadline) : "unscheduled"}</span></li>)}</ul></details>}<p className="notice">Finishing starts a new local demo workspace with these roles, goals and this event. It replaces existing fictional tasks, history and invitations. Cancel keeps your current workspace.</p><label className="check-label"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />I reviewed this event and want to start this demo workspace.</label><button className="btn btn-primary" disabled={!confirmed || !preview || preview === state || !event.name.trim() || event.headcount < 1 || event.headcount > 5000} onClick={() => { const error = validateClub(draft); if (error) { setNotice(error); return }; void deleteJson(DRAFT_ID); dispatch({ type: "completeSetup", draft: { ...draft, people: fillEmails(draft.people) }, event, date, inviteCode, clubBufferBusinessDays: buffer, workflow: steps }); navigate("/events") }}>Approve & start workspace</button></>}</>}
     {notice && <p role="alert">{notice}</p>}<div className="action-row">{step > 0 && <button className="btn" onClick={() => { setStep(step - 1); setNotice(""); setConfirmed(false) }}>Back</button>}{step < 5 && <button className="btn btn-primary" onClick={next}>Continue</button>}</div>
   </section>{state.org.setupCompletedOn && <section className="card"><h2>Current workspace invitation</h2><InviteLink code={state.org.inviteCode} /></section>}</>
 }

@@ -233,3 +233,39 @@ export function describeWorkflow(steps: StepTemplate[]): string {
   const parts = [added && `${added} added`, changed && `${changed} changed`, removed && `${removed} removed`].filter(Boolean)
   return parts.length ? `Standard workflow, ${parts.join(", ")}.` : "The standard workflow."
 }
+
+export interface FlowNode { key: string; title: string; phase: Phase; level: number; row: number; locked: boolean; ownerRoleId: string | null }
+export interface FlowChart { nodes: FlowNode[]; edges: { from: string; to: string }[]; levels: number; rows: number }
+
+/**
+ * The workflow as a chart: each step sits one column to the right of the latest step it waits for, and steps that do not wait for each
+ * other stack in the same column. Nothing here is a date; the left-to-right order is the order the work must happen in. Steps in a
+ * column are ordered to keep the lines short, then by phase.
+ */
+export function workflowChart(steps: StepTemplate[], roles: Role[] = []): FlowChart {
+  const by = new Map(steps.map(s => [s.key, s]))
+  const level = new Map<string, number>()
+  const walk = (key: string, seen: Set<string>): number => {
+    if (level.has(key)) return level.get(key)!
+    if (seen.has(key)) return 0
+    seen.add(key)
+    const l = Math.max(-1, ...(by.get(key)?.dependsOn ?? []).filter(d => by.has(d)).map(d => walk(d, seen))) + 1
+    seen.delete(key); level.set(key, l)
+    return l
+  }
+  steps.forEach(s => walk(s.key, new Set()))
+  const levels = Math.max(0, ...level.values()) + 1
+  const rowOf = new Map<string, number>(), order: Record<string, number> = Object.fromEntries(PHASE_LIST.map((p, i) => [p, i]))
+  const cols: StepTemplate[][] = Array.from({ length: levels }, (_, l) => steps.filter(s => level.get(s.key) === l))
+  for (const col of cols) {
+    const score = (s: StepTemplate) => { const r = (s.dependsOn ?? []).map(d => rowOf.get(d)).filter((x): x is number => x !== undefined); return r.length ? r.reduce((a, b) => a + b, 0) / r.length : steps.indexOf(s) / 100 }
+    col.sort((a, b) => score(a) - score(b) || order[a.phase] - order[b.phase] || steps.indexOf(a) - steps.indexOf(b))
+    col.forEach((s, i) => rowOf.set(s.key, i))
+  }
+  const rows = Math.max(1, ...cols.map(c => c.length))
+  const nodes: FlowNode[] = steps.map(s => {
+    const n = cols[level.get(s.key)!].length
+    return { key: s.key, title: s.title, phase: s.phase, level: level.get(s.key)!, row: rowOf.get(s.key)! + (rows - n) / 2, locked: isLocked(s), ownerRoleId: ownerOfStep(s, roles)?.id ?? s.ownerRoleId ?? null }
+  })
+  return { nodes, edges: steps.flatMap(s => (s.dependsOn ?? []).filter(d => by.has(d)).map(d => ({ from: d, to: s.key }))), levels, rows }
+}

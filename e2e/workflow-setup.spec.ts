@@ -49,6 +49,15 @@ test("planning notes and files adapt the standard workflow: changes shown, ASU r
   await expect(list.getByTestId("wf-refused")).toContainText("Submit the Food Exception Request")
   await expect(list.getByTestId("wf-refused")).toContainText("ASU rule R06")
   await expect(list.getByTestId("wf-conflict")).toContainText("raffle")
+  // The chart comes first: every step as a card with who does it; the list to edit is behind "Edit steps" and opens at the card you click.
+  const chart = step.getByTestId("workflow-chart")
+  await expect(chart.getByTestId("wf-card-permission")).toContainText("Collect permission forms"); await expect(chart.getByTestId("wf-card-permission")).toContainText("Secretary")
+  await expect(chart.getByTestId("wf-card-foodex")).toContainText("ASU")
+  await expect(step.getByTestId("workflow-edit")).not.toHaveAttribute("open", "")
+  const cardX = async (k: string) => (await chart.getByTestId(`wf-card-${k}`).boundingBox())!.x
+  expect(await cardX("approve")).toBeLessThan(await cardX("registry")); expect(await cardX("partner")).toBeLessThan(await cardX("draft"))   // left to right in the order the work happens
+  await chart.getByTestId("wf-card-flyer").click()
+  await expect(step.getByTestId("workflow-edit")).toHaveAttribute("open", "")
   // The edit module shows the new step, the renamed one, and who does each step.
   const editor = step.getByTestId("workflow-editor")
   await expect(editor.getByLabel("Step title: permission")).toHaveValue("Collect permission forms")
@@ -94,6 +103,7 @@ test("planning notes and files adapt the standard workflow: changes shown, ASU r
   const settings = page.getByTestId("workflow-settings")
   await expect(settings).toContainText("Standard workflow, 2 added.")
   await expect(settings.getByLabel("Step title: permission")).toHaveValue("Collect permission forms")
+  await settings.getByText("Edit steps", { exact: true }).click()
   await settings.getByLabel("Days of work: Collect permission forms").fill("3")
   await expect(settings.getByRole("status").last()).toContainText("Saved")
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).org.eventWorkflow.steps.find((x: { key: string }) => x.key === "permission").estDays)).toBe(3)
@@ -114,8 +124,35 @@ test("with no planning notes or files, and with the AI down, the standard workfl
   await expect(step.getByRole("status").first()).toContainText("could not share the steps out")
   await expect(step.getByTestId("workflow-changes")).toHaveCount(0)
   await expect(step.getByTestId("workflow-ok")).toBeVisible()
+  await step.getByText("Edit steps", { exact: true }).click()
   await expect(step.getByTestId("workflow-editor").getByLabel("Owner: Build the budget and choose the funding source")).toHaveValue(/fin/)
   await step.getByRole("button", { name: "Try AI again" }).click()
   await expect(step.getByRole("status").first()).not.toContainText("could not", { timeout: 15000 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
+})
+
+test("a signed-out preview is explained once (no retries), and the unfinished setup is kept when the page is reloaded", async ({ page }) => {
+  let calls = 0
+  await page.route("**/api/setup/workflow", r => { calls++; return r.fulfill({ status: 401, contentType: "text/html", body: "<html><title>Login Redirect</title></html>" }) })
+  await page.goto("/#/setup")
+  const step = page.getByTestId("setup-step")
+  for (let i = 0; i < 3; i++) await step.getByRole("button", { name: "Continue", exact: true }).click()
+  await step.getByLabel("Planning notes (how your club runs events)").fill("We collect permission forms before every event.")
+  await step.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(step.getByRole("status").first()).toContainText("your Netlify sign-in for this preview has expired", { timeout: 15000 })
+  await expect(step.getByRole("status").first()).toContainText("setup is kept")
+  expect(calls).toBe(2)                                                                    // one request for the changes, one for the owners; neither is repeated
+  await page.waitForTimeout(1500)                                                          // the draft is saved a moment after the last edit
+  await page.reload()
+  const restore = page.getByTestId("setup-restore")
+  await expect(restore).toContainText("You have an unfinished setup")
+  await restore.getByRole("button", { name: "Restore it" }).click()
+  await expect(page.getByTestId("setup-restore")).toHaveCount(0)
+  await expect(page.getByTestId("setup-step").getByRole("heading", { level: 2 })).toHaveText("Step 5 of 6 · Event workflow")
+  await page.getByTestId("setup-step").getByRole("button", { name: "Back", exact: true }).click()
+  await expect(page.getByTestId("setup-step").getByLabel("Planning notes (how your club runs events)")).toHaveValue("We collect permission forms before every event.")
+  // Starting over forgets it.
+  await page.getByTestId("setup-step").getByRole("link", { name: "Cancel setup" }).click()
+  await page.goto("/#/setup"); await page.reload()
+  await expect(page.getByTestId("setup-restore")).toHaveCount(0)
 })

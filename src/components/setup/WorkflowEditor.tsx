@@ -1,6 +1,7 @@
 import { useState } from "react"
 import type { Phase, Role, StepTemplate } from "../../data/types"
 import { PHASE_LABEL } from "../../engine/playbooks"
+import { roleLabels } from "../../data/structure"
 import { MAX_STEPS, isLocked, newStepKey, ownerOfStep, removeStep, ruleList, stepsAsNodes } from "../../engine/workflow"
 import { MAX_DAYS, PHASES, descendantsOf, displayOrder, doAfter, doAlongside, movePhase, setDays, stepDown, stepUp, type EditResult, type StepEdit } from "../../lib/stepOrder"
 
@@ -15,13 +16,14 @@ const applyEdits = (steps: StepTemplate[], edits: StepEdit[]): StepTemplate[] =>
   return steps.map(s => { const p = by.get(s.key); return p ? { ...s, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays } : {}), ...(p.phase ? { phase: p.phase } : {}) } : s })
 }
 
-export function WorkflowEditor({ steps, roles, onChange }: { steps: StepTemplate[]; roles: Role[]; onChange: (steps: StepTemplate[]) => void }) {
+export function WorkflowEditor({ steps, roles, onChange, selected = null }: { steps: StepTemplate[]; roles: Role[]; onChange: (steps: StepTemplate[]) => void; selected?: string | null }) {
   const nodes = stepsAsNodes(steps)
   const groups = displayOrder(nodes, undefined, PHASES)
   const byKey = new Map(steps.map(s => [s.key, s]))
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null)
   const [draft, setDraft] = useState({ title: "", phase: "prepare" as Phase, after: "", owner: "" })
   const doers = roles.filter(r => r.fn !== "advisor")
+  const label = roleLabels(roles)
   const commit = (r: EditResult) => {
     if (r.error) return setMsg({ text: r.error, error: true })
     if (r.edits.length) onChange(applyEdits(steps, r.edits))
@@ -48,23 +50,13 @@ export function WorkflowEditor({ steps, roles, onChange }: { steps: StepTemplate
           const blocked = descendantsOf(nodes, n.id)
           const addable = steps.filter(x => x.key !== s.key && !(s.dependsOn ?? []).includes(x.key) && !blocked.has(x.key))
           const owner = ownerOfStep(s, roles)
-          return <li key={s.key} className="step-row" data-testid={`wf-step-${s.key}`}>
-            <div className="step-main">
+          return <li key={s.key} className={`step-row wf-row${selected === s.key ? " is-selected" : ""}`} data-testid={`wf-step-${s.key}`} id={`wf-row-${s.key}`}>
+            <div className="wf-top">
               <span className="step-move">
                 <button type="button" className="btn btn-quiet icon-btn" aria-label={`Move up: ${s.title}`} disabled={!prev} onClick={() => prev && commit(stepUp(nodes, n.id, prev.id))}>▲</button>
                 <button type="button" className="btn btn-quiet icon-btn" aria-label={`Move down: ${s.title}`} disabled={!next} onClick={() => next && commit(stepDown(nodes, n.id, next.id))}>▼</button>
               </span>
-              <input type="text" className="step-title step-title-input" aria-label={`Step title: ${s.key}`} value={s.title} maxLength={120} onChange={e => patch(s.key, { title: e.target.value })} />
-              {locked && <span className="tag-chip step-chip" title={`ASU rule ${ruleList(s)}`}>ASU {ruleList(s) || "deadline"}</span>}
-              <select className="step-owner" aria-label={`Owner: ${s.title}`} value={owner?.id ?? ""} onChange={e => setOwner(s.key, e.target.value)}>
-                {!owner && <option value="">No owner</option>}
-                {doers.map(r => <option key={r.id} value={r.id}>{r.displayName}</option>)}
-              </select>
-              <span className="step-days">
-                <button type="button" className="btn btn-quiet icon-btn" aria-label={`One day less: ${s.title}`} disabled={s.estDays <= 0} onClick={() => commit(setDays(nodes, n.id, s.estDays - 1))}>−</button>
-                <input type="number" inputMode="numeric" min={0} max={MAX_DAYS} aria-label={`Days of work: ${s.title}`} value={s.estDays} onChange={e => commit(setDays(nodes, n.id, Number(e.target.value)))} />
-                <button type="button" className="btn btn-quiet icon-btn" aria-label={`One day more: ${s.title}`} disabled={s.estDays >= MAX_DAYS} onClick={() => commit(setDays(nodes, n.id, s.estDays + 1))}>+</button>
-              </span>
+              <input type="text" className="step-title-input" aria-label={`Step title: ${s.key}`} value={s.title} maxLength={120} onChange={e => patch(s.key, { title: e.target.value })} />
               <details className="step-menu">
                 <summary aria-label={`More actions: ${s.title}`}>⋯</summary>
                 <div className="step-menu-body">
@@ -74,6 +66,22 @@ export function WorkflowEditor({ steps, roles, onChange }: { steps: StepTemplate
                   {locked ? <p className="small muted">This step comes from ASU rule {ruleList(s) || "deadlines"}: it stays, in this phase, with its deadline.</p> : <button type="button" className="btn small" aria-label={`Remove step: ${s.title}`} onClick={() => { onChange(removeStep(steps, s.key)); setMsg({ text: `Removed “${s.title}”.` }) }}>Remove this step</button>}
                 </div>
               </details>
+            </div>
+            <div className="wf-meta">
+              <label className="wf-field"><span className="cap">Done by</span>
+                <select className="step-owner" aria-label={`Owner: ${s.title}`} value={owner?.id ?? ""} onChange={e => setOwner(s.key, e.target.value)}>
+                  {!owner && <option value="">No owner</option>}
+                  {doers.map(r => <option key={r.id} value={r.id} title={r.displayName}>{label.get(r.id)}</option>)}
+                </select>
+              </label>
+              <span className="wf-field"><span className="cap">Days of work</span>
+                <span className="step-days">
+                  <button type="button" className="btn btn-quiet icon-btn" aria-label={`One day less: ${s.title}`} disabled={s.estDays <= 0} onClick={() => commit(setDays(nodes, n.id, s.estDays - 1))}>−</button>
+                  <input type="number" inputMode="numeric" min={0} max={MAX_DAYS} aria-label={`Days of work: ${s.title}`} value={s.estDays} onChange={e => commit(setDays(nodes, n.id, Number(e.target.value)))} />
+                  <button type="button" className="btn btn-quiet icon-btn" aria-label={`One day more: ${s.title}`} disabled={s.estDays >= MAX_DAYS} onClick={() => commit(setDays(nodes, n.id, s.estDays + 1))}>+</button>
+                </span>
+              </span>
+              {locked && <span className="tag-chip step-chip" title={`ASU rule ${ruleList(s)}`}>ASU {ruleList(s) || "deadline"}</span>}
             </div>
             <div className="step-links small">
               <span className="muted">Waits for:</span>{" "}

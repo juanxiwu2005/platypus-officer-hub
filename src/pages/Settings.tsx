@@ -8,8 +8,7 @@ import { useRail } from "../components/rail/RailContext"
 import { GoalsEditor, ProfileForm, RoleCard, WorkspaceEditor } from "../components/SettingsForms"
 import { OrgChart } from "../components/setup/OrgChart"
 import { rederiveFn, withBelow } from "../data/structure"
-import { WorkflowEditor } from "../components/setup/WorkflowEditor"
-import { WorkflowIssues } from "../components/setup/WorkflowReview"
+import { WorkflowPanel } from "../components/setup/WorkflowPanel"
 import { orgSteps } from "../engine/playbooks"
 import { checkWorkflow, presetSteps, withOwners } from "../engine/workflow"
 import type { StepTemplate } from "../data/types"
@@ -114,8 +113,7 @@ function WorkflowSettings() {
   return <section className="card form-stack" data-testid="workflow-settings">
     <h2>Event workflow</h2>
     <p className="small muted">New events start from this workflow. {state.org.eventWorkflow?.summary ?? "It is the standard workflow."} Events you already made keep their own steps.</p>
-    <WorkflowIssues issues={issues} />
-    <WorkflowEditor steps={steps} roles={state.roles} onChange={setSteps} />
+    <WorkflowPanel steps={steps} roles={state.roles} issues={issues} onChange={setSteps} />
     <div className="action-row"><button type="button" className="btn small" onClick={() => { dispatch({ type: "resetWorkflow" }); setSteps(withOwners(presetSteps(), state.roles)); clear() }}>Go back to the standard workflow</button></div>
     <SaveStatus status={status} onUndo={(prev: StepTemplate[]) => { dispatch({ type: "saveWorkflow", steps: prev }); setSteps(prev); clear() }} />
   </section>

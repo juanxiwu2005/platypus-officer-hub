@@ -121,3 +121,21 @@ export function withBelow(roles: Role[], id: string): Set<string> {
   while (grew) { grew = false; for (const r of roles) if (r.reportsToId && out.has(r.reportsToId) && !out.has(r.id)) { out.add(r.id); grew = true } }
   return out
 }
+
+/**
+ * A short label with the part that tells roles apart first: "Vice President of Outreach" → "Outreach (VP)". Long titles that
+ * all start with "Vice President of" are hard to tell apart in a small list; the area is what matters.
+ */
+const LEAD_RE = /^(executive vice president|evp|vice president|vp|associate director|assistant director|director|chair|head|lead|manager|coordinator|associate|assistant)\s+(?:of|for)\s+(.+)$/i
+const LEAD_ABBR: Record<string, string> = { "executive vice president": "EVP", evp: "EVP", "vice president": "VP", vp: "VP", "associate director": "Assoc. Dir.", "assistant director": "Asst. Dir.", director: "Dir.", chair: "Chair", head: "Head", lead: "Lead", manager: "Mgr.", coordinator: "Coord.", associate: "Assoc.", assistant: "Asst." }
+export function roleShort(title: string): string {
+  const m = LEAD_RE.exec(title.trim())
+  return m ? `${m[2].trim()} (${LEAD_ABBR[m[1].toLowerCase()]})` : title.trim()
+}
+/** Short labels for a list of roles; if two would look the same, both keep their full title. */
+export function roleLabels(roles: Role[]): Map<string, string> {
+  const short = roles.map(r => [r.id, roleShort(r.displayName), r.displayName] as const)
+  const count = new Map<string, number>()
+  for (const [, label] of short) count.set(label.toLowerCase(), (count.get(label.toLowerCase()) ?? 0) + 1)
+  return new Map(short.map(([id, label, full]) => [id, (count.get(label.toLowerCase()) ?? 0) > 1 ? full : label]))
+}
