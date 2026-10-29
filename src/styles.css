@@ -15,7 +15,7 @@
   --warn-soft: #fbf0dc;
   --late: #b42318;
   --late-soft: #fbe7e5;
-  --good: #1a7f37;
+  --good: #197d36;
   --good-soft: #e3f4e7;
   --shadow: 0 1px 2px rgba(20, 24, 22, .05), 0 8px 24px rgba(20, 24, 22, .06);
   --serif: ui-serif, "New York", "Iowan Old Style", Georgia, "Times New Roman", serif;
@@ -34,7 +34,10 @@
      and this change is a rename only. */
   --info: #3a6fd8;
   --info-glow: rgba(58,111,216,.18);
-  --edge: #9aa39e;
+  --edge: #878f8b;
+  /* graphics need 3:1 on --bg, --surface and --lane (WCAG 1.4.11); dark theme keeps the original lighter values */
+  --risk-yellow: #ba8306;
+  --mline-main: #888e8b;
   --lane: #f6f4ef;
   /* Stacking order: higher number wins. base → raised → sticky → sticky-hi → local → top bar → overlay → fab → toast → rail → menu → hover card. */
   --z-base: 0;        --z-raised: 1;      --z-sticky: 2;      --z-sticky-hi: 3;
@@ -53,7 +56,7 @@
     --accent: #3fb8a8; --accent-ink: #7fd6ca; --accent-soft: #14302c; --on-accent: #06201d;
     --warn: #e7a74a; --warn-soft: #33270f; --late: #f08a80; --late-soft: #3a1c19; --good: #6fcf8a; --good-soft: #15301d;
     --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
-    --edge: #5f6965; --lane: #141918;
+    --edge: #5f6965; --lane: #141918; --risk-yellow: #e3a008; --mline-main: #b9c0bc;
     color-scheme: dark;
   }
 }
@@ -62,7 +65,7 @@
   --accent: #3fb8a8; --accent-ink: #7fd6ca; --accent-soft: #14302c; --on-accent: #06201d;
   --warn: #e7a74a; --warn-soft: #33270f; --late: #f08a80; --late-soft: #3a1c19; --good: #6fcf8a; --good-soft: #15301d;
   --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.25);
-  --edge: #5f6965; --lane: #141918;
+  --edge: #5f6965; --lane: #141918; --risk-yellow: #e3a008; --mline-main: #b9c0bc;
   color-scheme: dark;
 }
 
@@ -432,7 +435,7 @@ div.hover { display: block; }
 .risk { display: inline-flex; gap: 6px; align-items: center; border: 0; background: none; padding: 2px; cursor: help; color: var(--ink); font: inherit; font-size: var(--fs-sm); }
 .risk i { width: 11px; height: 11px; border-radius: var(--r-circle); display: inline-block; }
 .risk.red i { background: var(--late); box-shadow: 0 0 0 3px var(--late-soft); }
-.risk.yellow i { background: #e3a008; box-shadow: 0 0 0 3px var(--warn-soft); }
+.risk.yellow i { background: var(--risk-yellow); box-shadow: 0 0 0 3px var(--warn-soft); }
 .risk.green i { background: var(--good); }
 .empty { color: var(--muted); font-size: var(--fs-md); padding: 6px 0; }
 .toolbar { display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
@@ -456,7 +459,7 @@ div.hover { display: block; }
 .metro-canvas { position: relative; }
 .metro svg { position: absolute; inset: 0; overflow: visible; }
 .m-line { fill: none; stroke: var(--edge); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
-.m-line.main { stroke-width: 5; stroke: #b9c0bc; }
+.m-line.main { stroke-width: 5; stroke: var(--mline-main); }
 .m-line.done { stroke: var(--good); }
 .m-line.branch { stroke-width: 2.5; }
 .m-tick { font-size: var(--fs-xs); fill: var(--muted); }
@@ -590,7 +593,7 @@ tr.clickable { cursor: pointer; }
    Heavy: 3 }. The strings "b1"/"b2"/"b3" never appear in the source, so a text search for
    them finds nothing and they look dead. They are not. */
 .band.b1 i:nth-child(-n+1) { background: var(--good); }
-.band.b2 i:nth-child(-n+2) { background: #e3a008; }
+.band.b2 i:nth-child(-n+2) { background: var(--risk-yellow); }
 .band.b3 i { background: var(--late); }
 .heat { display: grid; gap: 2px; max-width: 560px; }
 .heat-row { display: grid; grid-template-columns: 32px repeat(7, minmax(0, 1fr)); gap: 2px; align-items: center; }
@@ -619,9 +622,6 @@ html, body { overflow-x: clip; }
 }
 @media (max-width: 600px) { .menu, .menu.wide { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; } }
 .tab-group { display: flex; gap: 4px; }
-.days.good { color: #146c2e; }
-:root[data-theme="dark"] .days.good { color: var(--good); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .days.good { color: var(--good); } }
 
 /* v1.2: changes the assistant already made */
 .change-set.applied header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
