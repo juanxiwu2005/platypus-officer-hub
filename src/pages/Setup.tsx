@@ -8,8 +8,7 @@ import { WorkflowPanel } from "../components/setup/WorkflowPanel"
 import { WorkflowChanges } from "../components/setup/WorkflowReview"
 import type { StepTemplate } from "../data/types"
 import { orgSteps } from "../engine/playbooks"
-import { applyChanges, checkWorkflow, ownerOfStep, presetSteps, revertChange, withOwners, type Refusal, type WorkflowChange } from "../engine/workflow"
-import { rolesForPrompt, sanitizeChanges, sanitizeOwners } from "../lib/workflowAi"
+import { checkWorkflow, presetSteps, revertChange, withOwners, type Refusal, type WorkflowChange } from "../engine/workflow"
 import { callRetry, whyFailed } from "../lib/aiRetry"
 import { ConstitutionStep, type ConstitutionDoc } from "../components/setup/ConstitutionStep"
 import { InviteLink } from "./Settings"
@@ -52,7 +51,7 @@ export default function Setup() {
   const readFor = useRef("")
   const [steps, setSteps] = useState<StepTemplate[]>(() => withOwners(orgSteps(state), clubDraft(state).roles))
   const [wf, setWf] = useState<Wf>(NO_WF)
-  const wfFor = useRef(""), wfTouched = useRef(false)
+  const wfTouched = useRef(false)
   // An unfinished setup is kept in this browser's database, so reloading (or signing in to the preview again) does not lose it.
   const [restorable, setRestorable] = useState<{ savedAt: string; value: SavedDraft } | null>(null)
   useEffect(() => { let on = true; void loadJson<SavedDraft>(DRAFT_ID).then(r => { if (on && r?.value?.v === 1 && Date.now() - Date.parse(r.savedAt) < 7 * 86_400_000) setRestorable(r) }); return () => { on = false } }, [])
@@ -112,40 +111,13 @@ export default function Setup() {
     done(read, missed ? "Suggested by AI. Some duties could not be read, so standard duties are filled in. Edit them." : "Suggested by AI from your constitution. Check each line.", missed > 0)
   }
   /**
-   * Started by Continue on the workspace step: the AI compares the club's planning notes and files with the standard event workflow, then
-   * suggests who should do each step from the roles' duties. Two short requests, one after another. The engine applies or refuses each
-   * change (ASU rules are never changed) and the president sees every one.
+   * Started by Continue on the workspace step. Onboarding deliberately begins with the standard workflow: planning
+   * notes and fictional file uploads are not collected here, so setup never waits for an AI workflow-reading request.
    */
-  async function startWorkflow(again = false) {
-    const ws = draft.workspace, roles = draft.roles, notes = ws.planningNotes.trim()
-    const files = ws.files.filter(f => f.text?.trim()).map(f => ({ name: f.name, text: f.text! }))
-    const hasInput = files.length > 0 || (notes !== "" && notes !== state.org.workspace.planningNotes.trim())
-    const key = JSON.stringify([notes, files.map(f => [f.name, f.text.length]), roles.map(r => [r.id, r.displayName, r.duties])])
-    if (!again && wfFor.current === key) return
-    wfFor.current = key; wfTouched.current = false
-    const current = () => wfFor.current === key
-    const base = presetSteps()
-    setSteps(withOwners(base, roles))
-    if (!state.aiEnabled) return setWf({ ...NO_WF, status: "ready", note: "AI is off, so this is the standard workflow. Edit it below." })
-    setWf({ ...NO_WF, status: "reading" })
-    let working = base, applied: WorkflowChange[] = [], refused: Refusal[] = [], conflicts: { text: string; rules: string[] }[] = [], summary = "", note = "", retry = false
-    if (hasInput) {
-      try {
-        const reply = await callRetry<unknown>("/setup/workflow", { part: "changes", notes, files, roles: rolesForPrompt(roles) }, current)
-        const read = sanitizeChanges(reply, base, roles), res = applyChanges(base, read.changes, roles)
-        working = res.steps; applied = res.applied; refused = res.refused; conflicts = read.conflicts; summary = read.summary
-        note = read.changes.length ? "Adapted from your planning notes and files. Check each change." : "Your planning notes and files match the standard workflow, so nothing changed."
-      } catch (e) { retry = true; note = `AI could not read your notes and files${whyFailed(e)}, so this is the standard workflow.` }
-    } else note = "No planning notes or files were added, so this is the standard workflow."
-    if (!current()) return
-    if (!wfTouched.current) setSteps(withOwners(working, roles))
-    setWf({ status: "reading", applied, refused, conflicts, summary, note: `${note} Sharing the steps out to your officers…`, retry })
-    try {
-      const reply = await callRetry<unknown>("/setup/workflow", { part: "owners", steps: working.map(x => ({ key: x.key, title: x.title, standardOwner: ownerOfStep(x, roles)?.displayName ?? null })), roles: rolesForPrompt(roles) }, current)
-      const chosen = sanitizeOwners(reply, working, roles)
-      if (current() && !wfTouched.current) setSteps(withOwners(working, roles, chosen))
-    } catch (e) { retry = true; note += ` AI could not share the steps out${whyFailed(e)}: each step goes to the officer for that kind of work.` }
-    if (current()) setWf(w => ({ ...w, status: "ready", note, retry }))
+  function startWorkflow() {
+    wfTouched.current = false
+    setSteps(withOwners(presetSteps(), draft.roles))
+    setWf({ ...NO_WF, status: "ready", note: "This is the standard workflow. Adjust it here to fit how your club works." })
   }
   const editSteps = (next: StepTemplate[]) => { wfTouched.current = true; setSteps(next) }
 
@@ -202,10 +174,10 @@ export default function Setup() {
     {step === 0 && <><div className="form-grid"><label>Club name<input value={draft.name} maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>School<input readOnly value={state.org.school} /></label></div><ConstitutionStep doc={doc} onChange={changeDoc} /></>}
     {step === 1 && <>{banner}<label>Club mission<textarea rows={2} value={draft.mission} maxLength={300} onChange={e => { missionTouched.current = true; setDraft({ ...draft, mission: e.target.value }) }} /></label><p className="small muted">Choose two or three measurable goals. New workspace progress starts at zero.</p><GoalsEditor goals={draft.goals} onChange={goals => setDraft({ ...draft, goals })} /></>}
     {step === 2 && <>{banner}<p className="small muted">Fictional names only: example.org emails, 555-01xx phones and ASU IDs starting 9999. Leave a name empty for an open position.</p><RolesEditor roles={draft.roles} people={draft.people} editablePeople onChange={(roles, people) => setStructure({ roles: orderRoles(roles), people })} /><OrgChart roles={draft.roles} /><label>How many working days before the real deadline should your club finish?<select aria-label="Days before the real deadline" value={buffer} onChange={e => setBuffer(Number(e.target.value))}>{BUFFER_CHOICES.map(d => <option key={d} value={d}>{d} {d === 1 ? "day" : "days"} before</option>)}</select></label><p className="small muted">This becomes your club deadline. For example, with 3 days, a task that is officially due Friday is due Tuesday for your club.</p></>}
-    {step === 3 && <><WorkspaceEditor value={draft.workspace} onChange={workspace => setDraft({ ...draft, workspace })} /><details><summary>Your invitation after setup</summary><p className="small muted">This invitation becomes active after you finish step 6.</p><code className="wrap-link">{`${window.location.origin}${window.location.pathname}#/join?invite=${inviteCode}`}</code></details></>}
+    {step === 3 && <><WorkspaceEditor value={draft.workspace} onChange={workspace => setDraft({ ...draft, workspace })} showPlanningMaterials={false} /><details><summary>Your invitation after setup</summary><p className="small muted">This invitation becomes active after you finish step 6.</p><code className="wrap-link">{`${window.location.origin}${window.location.pathname}#/join?invite=${inviteCode}`}</code></details></>}
     {step === 4 && <>
-      {wf.status === "reading" ? <p className="notice ai-note" role="status"><span className="spin" aria-hidden="true" />{wf.note || "Comparing your planning notes and files with the standard workflow. You can start editing."}</p> : wf.note ? <p className="notice ai-note" role="status">{wf.note}{wf.retry && state.aiEnabled && <button type="button" className="btn small" onClick={() => void startWorkflow(true)}>Try AI again</button>}</p> : null}
-      <p className="small muted">Every new event starts from this workflow. It begins with the standard one and changes to match your planning notes and files, so this is where your club's own way of working goes.</p>
+      {wf.note && <p className="notice ai-note" role="status">{wf.note}</p>}
+      <p className="small muted">Every new event starts from this workflow. Start with the standard steps, then adjust the flow, owners and timing to match how your club works.</p>
       <WorkflowChanges applied={wf.applied} refused={wf.refused} conflicts={wf.conflicts} summary={wf.summary} steps={steps} roles={draft.roles} onRevert={c => { wfTouched.current = true; setSteps(x => revertChange(x, c)); setWf(w => ({ ...w, applied: w.applied.filter(a => a.id !== c.id) })) }} />
       <WorkflowPanel state={state} steps={steps} roles={draft.roles} issues={wfIssues} onChange={editSteps} />
       <div className="action-row"><button type="button" className="btn small" onClick={() => { wfTouched.current = true; setSteps(withOwners(presetSteps(), draft.roles)); setWf(w => ({ ...w, applied: [], refused: [], conflicts: [], summary: "" })) }}>Go back to the standard workflow</button></div>

@@ -22,7 +22,22 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/command", r => r.fulfill({ status: 503, json: { message: "Local demo" } }))
 })
 
-test("planning notes and files adapt the standard workflow: changes shown, ASU rules kept, conflicts caught, owners shared out, and new events use it", async ({ page }) => {
+test("onboarding starts with the standard workflow without planning notes, fictional files, or an AI workflow request", async ({ page }) => {
+  let workflowCalls = 0
+  await page.route("**/api/setup/workflow", r => { workflowCalls++; return r.fulfill({ status: 500, json: { message: "Should not be called" } }) })
+  await page.goto("/#/setup")
+  const step = page.getByTestId("setup-step")
+  for (let i = 0; i < 3; i++) await step.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(step.getByLabel("Planning notes (how your club runs events)")).toHaveCount(0)
+  await expect(step.getByLabel("Fictional planning files", { exact: true })).toHaveCount(0)
+  await step.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 5 of 6 · Event workflow")
+  await expect(step.getByRole("status")).toContainText("This is the standard workflow")
+  await expect(step.getByTestId("flow-chart")).toBeVisible()
+  expect(workflowCalls).toBe(0)
+})
+
+test.skip("planning notes and files adapt the standard workflow: changes shown, ASU rules kept, conflicts caught, owners shared out, and new events use it", async ({ page }) => {
   const bodies: Record<string, unknown>[] = []
   await page.route("**/api/setup/workflow", async r => {
     const body = r.request().postDataJSON(); bodies.push(body)
@@ -119,7 +134,7 @@ test("planning notes and files adapt the standard workflow: changes shown, ASU r
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
-test("with no planning notes or files, and with the AI down, the standard workflow is shown, owners follow the kind of work, and Try AI again works", async ({ page }) => {
+test.skip("with no planning notes or files, and with the AI down, the standard workflow is shown, owners follow the kind of work, and Try AI again works", async ({ page }) => {
   let owners = 0
   await page.route("**/api/setup/workflow", r => { const part = r.request().postDataJSON().part; if (part === "owners" && ++owners <= 3) return r.fulfill({ status: 504, json: { message: "The AI took too long to answer." } }); return r.fulfill({ json: { ...OWNERS, model: "mock", provider: "mock" } }) })
   await page.goto("/#/setup")
@@ -137,7 +152,7 @@ test("with no planning notes or files, and with the AI down, the standard workfl
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
-test("a signed-out preview is explained once (no retries), and the unfinished setup is kept when the page is reloaded", async ({ page }) => {
+test.skip("a signed-out preview is explained once (no retries), and the unfinished setup is kept when the page is reloaded", async ({ page }) => {
   let calls = 0
   await page.route("**/api/setup/workflow", r => { calls++; return r.fulfill({ status: 401, contentType: "text/html", body: "<html><title>Login Redirect</title></html>" }) })
   await page.goto("/#/setup")

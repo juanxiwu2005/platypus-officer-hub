@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/command", r => r.fulfill({ status: 503, json: { message: "Local demo" } }))
 })
 
-test("six steps create a first workflow only after approval and retain fictional planning files", async ({ page }) => {
+test("six steps create a first workflow only after approval without collecting planning files", async ({ page }) => {
   const started = Date.now()
   await page.goto("/#/setup")
   const before = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
@@ -21,8 +21,8 @@ test("six steps create a first workflow only after approval and retain fictional
   await step.getByRole("button", { name: "Continue", exact: true }).click()
   await expect(step).toContainText("No Calendar, Gmail, WhatsApp or Drive account is connected or read.")
   await step.getByLabel("Club Google Drive folder (optional)", { exact: true }).fill("https://example.org/fictional-planning")
-  await step.getByLabel("Fictional planning files", { exact: true }).setInputFiles({ name: "fictional-plan.txt", mimeType: "text/plain", buffer: Buffer.from("Fictional club plan. Programs prepares the event.") })
-  await expect(step.getByRole("link", { name: "fictional-plan.txt", exact: true })).toBeVisible()
+  await expect(step.getByLabel("Planning notes (how your club runs events)")).toHaveCount(0)
+  await expect(step.getByLabel("Fictional planning files", { exact: true })).toHaveCount(0)
   await step.getByRole("button", { name: "Continue", exact: true }).click()
   await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 5 of 6 · Event workflow")
   await step.getByRole("button", { name: "Continue", exact: true }).click()
@@ -36,8 +36,8 @@ test("six steps create a first workflow only after approval and retain fictional
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Events")
   await page.goto("/#/team")
   await expect(page.getByText("VP of Finance", { exact: true }).first()).toBeVisible()
-  const saved = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!); return { events: s.events.length, name: s.org.name, file: s.org.workspace.files[0].name, date: s.events[0].date, official: s.nodes.find((n: { stepKey: string }) => n.stepKey === "usg").officialDeadline } })
-  expect(saved).toEqual({ events: 1, name: "Fictional Launch Club", file: "fictional-plan.txt", date: "2026-11-19", official: "2026-11-04" })
+  const saved = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!); return { events: s.events.length, name: s.org.name, files: s.org.workspace.files.length, date: s.events[0].date, official: s.nodes.find((n: { stepKey: string }) => n.stepKey === "usg").officialDeadline } })
+  expect(saved).toEqual({ events: 1, name: "Fictional Launch Club", files: 0, date: "2026-11-19", official: "2026-11-04" })
   await page.reload()
   await expect(page.getByText("VP of Finance", { exact: true }).first()).toBeVisible()
   expect(Date.now() - started).toBeLessThan(300000)
