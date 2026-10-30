@@ -88,7 +88,9 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const COL = vertical ? 64 : Math.max(96, Math.min(132, (width - 112) / Math.max(1, L.cols)))
   const ROW = vertical ? 132 : 76
   const PAD = vertical ? 28 : 56
-  const top = vertical ? 40 : 52 + (-L.minRow) * ROW + 34
+  // A card for the highest rule-bound step opens above its dot. Keep real headroom for it instead of clipping it at
+  // the chart edge (the USG request is a common example).
+  const top = vertical ? 40 : 144 + (-L.minRow) * ROW
   const pos = (col: number, row: number) => vertical ? { x: 26 + row * ROW, y: top + col * COL } : { x: PAD + col * COL, y: top + row * ROW }
   const W = vertical ? Math.max(width, 26 + L.maxRow * ROW + 140) : PAD * 2 + L.cols * COL
   const H = vertical ? top + L.cols * COL + 60 : top + L.maxRow * ROW + 70
@@ -213,15 +215,24 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const xa = a.x + 34, xb = b.x - 34
     return `M${a.x} ${a.y} C${a.x + 22} ${a.y} ${xa - 22} ${ra.y} ${xa} ${ra.y} L${xb} ${rb.y} C${xb + 22} ${rb.y} ${b.x - 22} ${b.y} ${b.x} ${b.y}`
   }
-  // The edit target follows the same rounded geometry as the visible metro line. It must never turn into a broad,
-  // straight mint stripe merely because the pointer is over it.
-  const linkPath = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+  /** A hit target follows the exact painted rail segment, so its mint feedback overlays the grey line. */
+  const gapPath = (g: Gap) => {
+    if (g.track === "main") { const a = pos(g.u.col, 0), b = pos(g.v.col, 0); return `M${a.x} ${a.y}L${b.x} ${b.y}` }
+    const branch = L.branches.find(b => b.id === g.track)!
+    const a = pos(L.stations[branch.from].col, 0), b = pos(L.stations[branch.to].col, 0)
+    const points = branch.nodes.map(x => pos(x.col, branch.row))
+    const at = points.findIndex(p => p.x === pos(g.u.col, g.u.row).x && p.y === pos(g.u.col, g.u.row).y)
+    const next = points.findIndex(p => p.x === pos(g.v.col, g.v.row).x && p.y === pos(g.v.col, g.v.row).y)
     if (vertical) {
-      const dy = b.y - a.y
-      return `M${a.x} ${a.y} C${a.x} ${a.y + dy * .35} ${b.x} ${b.y - dy * .35} ${b.x} ${b.y}`
+      const ra = pos(L.stations[branch.from].col, branch.row), rb = pos(L.stations[branch.to].col, branch.row), ya = a.y + 30, yb = b.y - 30
+      if (at === -1) return `M${a.x} ${a.y} C${a.x} ${a.y + 20} ${ra.x} ${ya - 20} ${ra.x} ${ya} L${ra.x} ${points[0].y}`
+      if (next === -1) return `M${points.at(-1)!.x} ${points.at(-1)!.y} L${rb.x} ${yb} C${rb.x} ${yb + 20} ${b.x} ${b.y - 20} ${b.x} ${b.y}`
+      return `M${points[at].x} ${points[at].y}L${points[next].x} ${points[next].y}`
     }
-    const dx = b.x - a.x
-    return `M${a.x} ${a.y} C${a.x + dx * .35} ${a.y} ${b.x - dx * .35} ${b.y} ${b.x} ${b.y}`
+    const ra = pos(L.stations[branch.from].col, branch.row), rb = pos(L.stations[branch.to].col, branch.row), xa = a.x + 34, xb = b.x - 34
+    if (at === -1) return `M${a.x} ${a.y} C${a.x + 22} ${a.y} ${xa - 22} ${ra.y} ${xa} ${ra.y} L${points[0].x} ${ra.y}`
+    if (next === -1) return `M${points.at(-1)!.x} ${points.at(-1)!.y} L${xb} ${rb.y} C${xb + 22} ${rb.y} ${b.x - 22} ${b.y} ${b.x} ${b.y}`
+    return `M${points[at].x} ${points[at].y}L${points[next].x} ${points[next].y}`
   }
 
   // Soft time labels: weeks before the event, shown once each.
@@ -282,7 +293,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
         {L.branches.map(b => <path key={b.id} d={branchPath(b.from, b.to, b.row)} className={`m-line branch ${b.nodes.every(x => x.node.status === "done") ? "done" : ""}`} />)}
         <path d={mainPath} className="m-line main" />
         {donePath && <path d={donePath} className="m-line main done" />}
-        {on && gaps.map(g => { const a = pos(g.u.col, g.u.row), b = pos(g.v.col, g.v.row), d = linkPath(a, b); return <g key={g.id}><path d={d} className="m-hit" data-testid={`flow-line-${g.u.key}-${g.v.key}`} onDoubleClick={e => openGap(g, e)} /><path d={d} className="m-hit-line" /></g> })}
+        {on && gaps.map(g => { const d = gapPath(g); return <g key={g.id}><path d={d} className={`m-hit ${g.track === "main" ? "m-hit-main" : ""}`} data-testid={`flow-line-${g.u.key}-${g.v.key}`} onDoubleClick={e => openGap(g, e)} /><path d={d} className="m-hit-line" /></g> })}
         {!tpl && (() => { const p = pos(todayCol, 0); return vertical
           ? <g className="m-today"><line x1={4} x2={W - 4} y1={p.y} y2={p.y} /><text x={W - 8} y={p.y - 6} textAnchor="end">Today</text></g>
           : <g className="m-today"><line x1={p.x} x2={p.x} y1={28} y2={H - 18} /><text x={p.x} y={H - 4} textAnchor="middle">Today</text></g> })()}

@@ -14,7 +14,8 @@ import { WorkflowIssues } from "./WorkflowReview"
 
 /**
  * The club's event workflow on the same chart as a real event's Flow tab: one main line, parallel work on branches, left to right.
- * Drag a step onto a ◆, double-click a step or a line to add, delete or cut a link. A step's details are under the chart.
+ * Drag a step onto a ◆, double-click a step or a line to add, delete or cut a link. Selecting a step opens its details
+ * beside the chart, so workflow timing can be adjusted without losing the graph.
  * Everything is checked by the engine (engine/workflow.ts): steps and links ASU rules need cannot be removed, and a change that breaks one is
  * marked on the chart and has to be fixed before setup continues.
  */
@@ -59,8 +60,10 @@ export function WorkflowPanel({ state, steps, roles, issues, onChange }: { state
   return <>
     <WorkflowIssues issues={issues} />
     <p className="small muted">Look at the chart first: it reads left to right in the order the work happens. Drag a step onto a ◆ to move it, double-click a step to add or delete one, double-click a line to cut a link. Click a step for its details.</p>
-    <MetroChart key="wf" state={sample.s} sched={sample.sched} forecast={NO_FORECAST} eventId="wf" selectedId={selected} onSelect={setSelected} canEdit alwaysEdit port={port} />
-    {step && <StepPanel step={step} steps={steps} roles={roles} label={label} onChange={onChange} onClose={() => setSelected(null)} />}
+    <div className={`workflow-editor${step ? " has-detail" : ""}`}>
+      <div className="workflow-editor-flow"><MetroChart key="wf" state={sample.s} sched={sample.sched} forecast={NO_FORECAST} eventId="wf" selectedId={selected} onSelect={setSelected} canEdit alwaysEdit port={port} /></div>
+      {step && <StepPanel step={step} steps={steps} roles={roles} label={label} onChange={onChange} onClose={() => setSelected(null)} />}
+    </div>
   </>
 }
 
@@ -84,6 +87,7 @@ function StepPanel({ step, steps, roles, label, onChange, onClose }: { step: Ste
       </select></label>
       <label>Days of work<input type="number" inputMode="numeric" min={0} max={MAX_DAYS} value={step.estDays} onChange={e => set({ estDays: Math.max(0, Math.min(MAX_DAYS, Math.round(Number(e.target.value) || 0))) })} /></label>
       <label>Phase<select value={step.phase} disabled={locked} onChange={e => set({ phase: e.target.value as Phase })}>{PHASES.map(p => <option key={p} value={p}>{PHASE_LABEL[p]}</option>)}</select></label>
+      {!locked && step.phase !== "close" && <label>Target timing (days before event)<input type="number" inputMode="numeric" min={0} max={180} value={step.anchor?.kind === "target" ? step.anchor.days : ""} placeholder="From dependencies" onChange={e => { const days = e.target.value === "" ? null : Math.max(0, Math.min(180, Math.round(Number(e.target.value) || 0))); set({ anchor: days === null ? undefined : { kind: "target", days, unit: "calendar", label: "Club workflow timing" } }) }} /></label>}
     </div>
     {locked && <p className="small muted">This step comes from ASU rule {ruleList(step) || "deadlines"}: it stays, in this phase, with its deadline. You can rename it and change who does it and how long it takes.</p>}
     <div className="step-links small">
