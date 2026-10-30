@@ -20,7 +20,7 @@ test("rules: categories as tabs, sources one click away, sourced answers and ref
   await page.route("**/api/ask", r => { const q = r.request().postDataJSON().question; return r.fulfill({ json: { inScope: !q.includes("tax"), citations: q.includes("tax") ? [] : ["R06"], answer: "Invented 2099-01-01", model: "mock", provider: "mock" } }) })
   await page.goto("/#/rules")
   await expect(page.getByRole("button", { name: "Marketing", exact: true })).toBeVisible()
-  await expect(page.getByRole("link", { name: /Open source: Student Organization Handbook/ }).first()).toHaveAttribute("href", /eoss\.asu\.edu/)
+  await expect(page.getByRole("link", { name: "Open source: ASU Event Registry" })).toHaveAttribute("href", /eventreg\.asu\.edu/)
   await ask(page, "What do outside caterers need?")
   const answer = page.getByTestId("rule-answer").last()
   await expect(answer).toContainText("[R06]")
@@ -36,11 +36,11 @@ test("rules: categories as tabs, sources one click away, sourced answers and ref
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
 })
 
-test("the Ask button on a rule sends it through the same sourced interface", async ({ page }) => {
-  await page.route("**/api/ask", r => r.fulfill({ json: { inScope: true, citations: ["R08"], model: "mock", provider: "mock" } }))
+test("rules shows source records with the stable hidden archive key", async ({ page }) => {
   await page.goto("/#/rules")
-  await page.getByRole("button", { name: "Ask about R08" }).click()
-  await expect(page.getByTestId("rule-answer").last()).toContainText("[R08]")
+  const source = page.locator('[data-policy-id="ASU-R-010"]')
+  await expect(source).toHaveAttribute("data-source-file", "PLAN_E01_ASU_Event_Registry_2026-10-29.txt")
+  await expect(source).toContainText("ASU Event Registry")
 })
 
 test("funding: one row per event; the details check the application and keep manual progress", async ({ page }) => {

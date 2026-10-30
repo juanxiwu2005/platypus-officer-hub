@@ -1,41 +1,53 @@
 import { useState } from "react"
-import { RULES, RULE_CATEGORIES } from "../data/rules"
 import { PageHead } from "../components/Page"
-import { useRail } from "../components/rail/RailContext"
 import { Empty, Hover } from "../components/ui"
-import type { Rule } from "../data/types"
+import { POLICY_CATALOG, type PolicyCategory } from "../data/policyCatalog"
 
-const ICON: Record<Rule["category"], JSX.Element> = {
+const ICON: Record<PolicyCategory, JSX.Element> = {
+  governance: <path d="M4 20V9l8-5 8 5v11M9 20v-6h6v6" />,
   venue: <path d="M4 20V9l8-5 8 5v11M9 20v-6h6v6" />,
   food: <path d="M7 3v8M5 3v5a2 2 0 004 0V3M7 11v10M16 3c-2 0-3 3-3 6s1 4 3 4v8" />,
-  money: <><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /></>,
+  funding: <><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /></>,
   marketing: <path d="M4 10v4h3l6 4V6L7 10zM16 9a4 4 0 010 6" />,
-  compliance: <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z" />,
-  transition: <path d="M4 12h12M12 7l5 5-5 5M20 4v16" />,
+  safety: <path d="M12 3l7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6z" />,
+  accessibility: <path d="M12 3a2 2 0 110 4 2 2 0 010-4zM5 10h14M12 7v13M8 20l4-6 4 6" />,
+  college: <path d="M3 8l9-5 9 5-9 5-9-5zM6 10v5c3 2 9 2 12 0v-5M21 8v6" />,
+  history: <><path d="M4 5v6h6M4.5 11A8 8 0 1012 4" /><path d="M12 8v5l3 2" /></>,
 }
-const TABS: { id: "all" | Rule["category"]; label: string }[] = [{ id: "all", label: "All" }, ...RULE_CATEGORIES.map(c => ({ id: c.id, label: c.id === "venue" ? "Venue" : c.id === "compliance" ? "Safety" : c.id === "transition" ? "Handoff" : c.label }))]
 
-/** One line per rule, a timing chip, and a button that opens the official page directly (v1.1). */
+const CATEGORIES: { id: "all" | PolicyCategory; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "governance", label: "Governance" },
+  { id: "venue", label: "Venue" },
+  { id: "food", label: "Food" },
+  { id: "funding", label: "Funding" },
+  { id: "marketing", label: "Marketing" },
+  { id: "safety", label: "Safety" },
+  { id: "accessibility", label: "Access" },
+  { id: "college", label: "College" },
+  { id: "history", label: "History" },
+]
+
+const ExternalIcon = () => <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4H4v12h12v-4M11 3h6v6M17 3l-8 8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+
+/** Human browsing for the policy-source catalog. Detailed text stays server-side for policy search. */
 export default function Rules() {
-  const rail = useRail()
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("all")
-  const rules = RULES.filter(r => tab === "all" || r.category === tab)
+  const [tab, setTab] = useState<(typeof CATEGORIES)[number]["id"]>("all")
+  const sources = POLICY_CATALOG.filter(source => tab === "all" || source.category === tab)
   return <>
-    <PageHead path="/rules" actions={<div className="seg" role="group" aria-label="Rule category">{TABS.map(t => <button key={t.id} type="button" aria-pressed={tab === t.id} onClick={() => setTab(t.id)}>{t.label}</button>)}</div>} />
+    <PageHead path="/rules" actions={<div className="seg" role="group" aria-label="Policy category">{CATEGORIES.map(category => <button key={category.id} type="button" aria-pressed={tab === category.id} onClick={() => setTab(category.id)}>{category.label}</button>)}</div>} />
     <section className="card">
-      {rules.length ? <ul className="rule-list" data-testid={`rules-${tab}`}>
-        {rules.map(r => <li key={r.id} className="rule-row">
-          <svg className="rule-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{ICON[r.category]}</svg>
-          <Hover className="rule-text" card={<><b>{r.id}</b><span className="hc-line">{r.text}</span>{r.limit !== "—" && <span className="hc-line">Timing: {r.limit}</span>}{r.note && <span className="hc-line">{r.note}</span>}<span className="hc-line muted">Checked {r.checkedOn}</span></>}>
-            <span tabIndex={0}>{r.short ?? r.text}</span>
-          </Hover>
-          {r.timing ? <span className="timing">{r.timing}</span> : <span />}
+      {sources.length ? <ul className="rule-list" data-testid={`policy-sources-${tab}`}>
+        {sources.map(source => <li key={source.recordId} className="rule-row" data-policy-id={source.recordId} data-source-file={source.sourceFileCode}>
+          <svg className="rule-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{ICON[source.category]}</svg>
+          <Hover className="rule-text" card={<span>{source.whatItCovers}</span>}><span tabIndex={0}>{source.officialName}</span></Hover>
           <span className="rule-actions">
-            {r.sources.map(s => <a key={s.url} className="btn small icon-btn" href={s.url} target="_blank" rel="noreferrer" aria-label={`Open source: ${s.label}`} title={s.label}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4H4v12h12v-4M11 3h6v6M17 3l-8 8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></a>)}
-            <button type="button" className="btn small icon-btn" aria-label={`Ask about ${r.id}`} title="Ask Platypus about this rule" onClick={() => rail.ask(`What does ${r.id} mean for us? (${r.short ?? r.text})`, true)}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 016.5 3h7A2.5 2.5 0 0116 5.5v5a2.5 2.5 0 01-2.5 2.5H9l-3.5 3v-3A2.5 2.5 0 014 10.5z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg></button>
+            {source.sourceUrl
+              ? <a className="btn small icon-btn" href={source.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Open source: ${source.officialName}`} title={source.officialName}><ExternalIcon /></a>
+              : <span className="btn small icon-btn muted" aria-label={`No single official URL for ${source.officialName}`} title={source.sourceUrlNote ?? "No single official URL"}><ExternalIcon /></span>}
           </span>
         </li>)}
-      </ul> : <Empty>No checked official rule here. Ask Student Organizations.</Empty>}
+      </ul> : <Empty>No checked official source in this category.</Empty>}
     </section>
   </>
 }

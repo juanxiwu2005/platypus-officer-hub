@@ -148,7 +148,7 @@ async function ruleReply(question: string, s: DemoState): Promise<Reply> {
     if (!s.aiEnabled) throw new Error("AI off")
     // Legacy R01–R16 questions retain their deterministic renderer. Everything else is searched in the
     // 64-record policy archive on the server; detailed text never enters the browser bundle.
-    if (/\bR\d{2}\b/i.test(question)) {
+    if (/\bR\d{2}\b/i.test(question) || keywordRules(question).length) {
       const r = await callApi<RuleAnswer>("/ask", { question })
       answer = groundedAnswer({ ...r, confidence: 1 }, r.model, r.provider)
     } else {
