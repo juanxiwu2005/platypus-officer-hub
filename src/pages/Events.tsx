@@ -27,7 +27,6 @@ export default function Events() {
   const rail = useRail()
   const [params, setParams] = useSearchParams()
   const [savedView, setViewState] = useState<View>(initialView)
-  const [editingFlow, setEditingFlow] = useState(false)
   const lead = canLead(state)
   const view: View = savedView
   const forecast = forecastFor(state)
@@ -76,11 +75,10 @@ export default function Events() {
           <button type="button" aria-pressed={view === "flow"} onClick={() => setView("flow")} data-testid="view-flow">Flow</button>
           <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")} data-testid="view-list">List</button>
         </div>
-        {lead && view === "flow" && <button type="button" className="btn small" aria-pressed={editingFlow} onClick={() => setEditingFlow(editing => !editing)} data-testid="flow-edit-toggle">{editingFlow ? "Done editing" : "Edit flow"}</button>}
       </div>
 
       {view === "flow" && <BtsRow><Bts label="Computed">Each dot's place comes from its dates. Colour: done when finished; risk when its forecast is red; now when it has started or its start day is today or earlier; otherwise to do.</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
-      {view === "flow" && <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead} editing={editingFlow} onEditingChange={setEditingFlow} />}
+      {view === "flow" && <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead} />}
       {view === "list" && <section className="card tbl-wrap" data-testid="event-list">
         <table className="tbl">
           <thead><tr><th>Step</th><th>Owner</th><th>Status</th><th>Start</th><th>Due</th><th>ASU</th></tr></thead>
