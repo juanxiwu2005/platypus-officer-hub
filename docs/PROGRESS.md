@@ -37,6 +37,9 @@
 
 **下一步（都要 Juanxi 本人）：** ① 在 DP8 预览里验收：N5 颜色（浅色/深色）、Demo 菜单里的 Behind the scenes 开关、手机上点开悬停卡、Events 的 Edit steps；② 按 `docs/LAUNCH_STEPS.md` 第 1–3 步：Netlify 环境变量（含 `ORG_SETUP_ENABLED` 不能是 `true`）、3 次 AI 冒烟测试、不花额度的限流测试；③ 审核 `docs/M4_ONBOARDING_PLAN.md`（两套 onboarding 合一，未实施）；④ 决定要不要跑 40 道规则评估（花 AIR 额度）；⑤ 说「批准合并」后合并 `main` 并打 `v1.0` 标签；⑥ 关掉 Netlify 访问保护（限流确认之后）；⑦ 用连着 Mac 的 Claude 同步本地备份（10-27 以来一直没同步）。
 
+> **2026-10-30 · Team meeting availability（Codex，DP8）**
+> 会议时间现在有两层可用性：个人的 “Edit weekly schedule” 保存每周模板；正在查看的周直接点击/拖动只写入该日期例外，团队热力图与会议交集立即采用例外。快速拖动会补全鼠标经过的半小时格，个人和团队两张网格均按每小时显示刻度。定向 33 个单元测试与生产构建通过。
+
 ## 工作包
 
 计划详见 `docs/PRODUCT_PLAN.md` 第 13 节。状态只用：未开始 / 进行中 / 待验收 / 已完成。

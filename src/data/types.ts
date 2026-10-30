@@ -154,6 +154,8 @@ export interface Person {
   /** Fictional ASU ID (10 digits starting 9999). Kept in this browser; never sent to AI. */
   asuId?: string
   expectations: string
+  /** Date-specific half-hour availability overrides. The recurring weekly template remains in freeSlots. */
+  availabilityOverrides?: Record<string, boolean>
   freeSlots: FreeSlot[]
   setupCompletedOn: string | null
 }

@@ -84,6 +84,7 @@ describe("personal preferences and invitations", () => {
     expect(validateProfile({ ...p, phone: "480-123-4567" })).toBeTruthy(); expect(validateProfile({ ...p, phone: "+1 480-555-0100" })).toBeNull()
     expect(validateProfile({ ...p, busyWeeks: ["2026-10-22"] })).toBeTruthy()
     expect(validateProfile({ ...p, freeSlots: [{ day: 1, from: "20:00", to: "18:00" }] })).toBeTruthy()
+    expect(validateProfile({ ...p, availabilityOverrides: { "2026-10-22:20": "no" as unknown as boolean } })).toBeTruthy()
   })
 })
 describe("first workflow approval", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
-import { availabilityGrid, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, contributionBoard, mondayOf, slotsToCells, whoIsFree, workload } from "../engine/team"
+import { availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, contributionBoard, mondayOf, slotsToCells, whoIsFree, workload } from "../engine/team"
 import { validateProfile, profilePatch } from "../data/settings"
 const base = () => seedDemo("2026-10-22")
 describe("team workload and recognition", () => {
@@ -50,6 +50,14 @@ describe("self-reported meeting intersection", () => {
 })
 
 describe("When2meet-style meeting grid", () => {
+  it("keeps recurring availability as the default while a dated exception changes only that week", () => {
+    const s = base(), alex = s.people[0], thisThursday = s.today, nextThursday = "2026-10-29"
+    expect(availableAt(alex, thisThursday, 18 * 60)).toBe(true)
+    alex.availabilityOverrides = { [availabilityKey(thisThursday, 18 * 60)]: false }
+    expect(availableAt(alex, thisThursday, 18 * 60)).toBe(false)
+    expect(availableAt(alex, nextThursday, 18 * 60)).toBe(true)
+    expect(availabilityGrid(s, [alex.id], thisThursday)[0].slots.find(x => x.from === 18 * 60)?.free).toBe(0)
+  })
   it("counts how many chosen officers are free in each half hour", () => {
     const s = base(), g = availabilityGrid(s, s.people.map(p => p.id), s.today)
     const thu = g[0].slots, at = (h: number, m = 0) => thu.find(x => x.from === h * 60 + m)!.free

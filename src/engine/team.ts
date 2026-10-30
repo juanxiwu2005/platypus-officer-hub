@@ -69,7 +69,7 @@ export function commonMeetingSlots(s: DemoState, ids: string[], date: string, du
   if (missing.length) return { slots: [], reason: `${missing.map(p => p.name).join(", ")} has not shared a free slot for this weekday.` }
   const slots = []
   for (let start = 8 * 60; start + duration <= 22 * 60 && slots.length < 3; start += 15) {
-    if (people.every(p => covers(p, day, start, start + duration))) { slots.push({ from: hhmm(start), to: hhmm(start + duration) }); start += duration - 15 }
+    if (people.every(p => availableFor(p, date, start, start + duration))) { slots.push({ from: hhmm(start), to: hhmm(start + duration) }); start += duration - 15 }
   }
   return { slots, reason: slots.length ? null : "No shared time in the availability entered for this date. Try another date or fewer attendees." }
 }
@@ -82,12 +82,18 @@ export function calendarDraftUrl(date: string, from: string, to: string): string
 /** Meeting finder grid (When2meet style): half-hour cells from 8:00 to 22:00. */
 export const GRID_FROM = 8 * 60, GRID_TO = 22 * 60, GRID_STEP = 30
 export const GRID_ROWS = (GRID_TO - GRID_FROM) / GRID_STEP
+export const availabilityKey = (date: string, from: number) => `${date}:${Math.floor((from - GRID_FROM) / GRID_STEP)}`
+/** Recurring weekly slots are the default; an explicit date override wins for that half-hour. */
+export const availableAt = (p: Person, date: string, from: number) => p.availabilityOverrides?.[availabilityKey(date, from)] ?? covers(p, fromISO(date).getDay(), from, from + GRID_STEP)
+export const availableFor = (p: Person, date: string, from: number, to: number) => {
+  for (let at = from; at < to; at += GRID_STEP) if (!availableAt(p, date, at)) return false
+  return true
+}
 
 /** Who is free for the whole of [from, to) minutes on a real date. Busy weeks, closures, finals and breaks count as not free. */
 export function whoIsFree(s: DemoState, ids: string[], date: string, from: number, to: number) {
   const people = ids.map(id => s.people.find(p => p.id === id)).filter((p): p is Person => !!p)
-  const day = fromISO(date).getDay()
-  const free = people.filter(p => personalWorkDay(p.busyWeeks)(date) && covers(p, day, from, to))
+  const free = people.filter(p => personalWorkDay(p.busyWeeks)(date) && availableFor(p, date, from, to))
   return { free, busy: people.filter(p => !free.includes(p)) }
 }
 
