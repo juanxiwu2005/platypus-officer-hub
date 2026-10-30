@@ -1,13 +1,13 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
 import { personalBuffer } from "../engine/schedule"
-import { useEffect, useRef, useState } from "react"
+import { Fragment, useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { downloadExport, useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
 import { useRail } from "../components/rail/RailContext"
 import { GoalsEditor, ProfileForm, RoleCard, WorkspaceEditor } from "../components/SettingsForms"
 import { OrgChart } from "../components/setup/OrgChart"
-import { rederiveFn, withBelow } from "../data/structure"
+import { MAX_ROLES, newRole, rederiveFn, withBelow } from "../data/structure"
 import { WorkflowPanel } from "../components/setup/WorkflowPanel"
 import { orgSteps } from "../engine/playbooks"
 import { checkWorkflow, presetSteps, withOwners } from "../engine/workflow"
@@ -121,15 +121,25 @@ function WorkflowSettings() {
 
 function RolesTable({ roles, onChange }: { roles: Role[]; onChange: (r: Role[]) => void }) {
   const { state } = useStore()
+  const [editing, setEditing] = useState(false)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   const change = (i: number, patch: Partial<Role>, reFn = false) => onChange(roles.map((r, j) => i === j ? (reFn ? rederiveFn(roles, { ...r, ...patch }) : { ...r, ...patch }) : r))
-  return <div className="tbl-wrap"><table className="tbl goal-tbl"><thead><tr><th>Title</th><th>Reports to</th><th>Officer</th><th>Duties</th></tr></thead><tbody>
-    {roles.map((r, i) => <tr key={r.id}>
-      <td><input type="text" aria-label="Role title" value={r.displayName} maxLength={60} onChange={e => change(i, { displayName: e.target.value }, true)} /></td>
-      <td><select aria-label="Reports to" value={r.reportsToId ?? ""} onChange={e => change(i, { reportsToId: e.target.value || null })}><option value="">Nobody (top)</option>{roles.filter(x => !withBelow(roles, r.id).has(x.id)).map(x => <option key={x.id} value={x.id}>{x.displayName}</option>)}</select></td>
-      <td>{state.people.find(p => p.id === r.holderId)?.name ?? "Open position"}</td>
-      <td><textarea aria-label="Role duties" rows={2} maxLength={400} value={r.duties ?? ""} onChange={e => change(i, { duties: e.target.value })} /></td>
-    </tr>)}
-  </tbody></table></div>
+  const copyEmails = async () => { try { await navigator.clipboard.writeText(roles.map(r => state.people.find(p => p.id === r.holderId)?.email ?? "").filter(Boolean).join(", ")); setCopied(true) } catch { setCopied(false) } }
+  const addRole = () => { const role = newRole("New role", roles.find(r => r.fn === "president")?.id ?? null); onChange([...roles, role]); setExpanded(role.id) }
+  return <div className="roles-manager">
+    <div className="roles-actions"><p className="small muted">Select a role to view its full duties.</p><div className="action-row"><button type="button" className="btn small" onClick={copyEmails}>{copied ? "Emails copied" : "Copy all emails"}</button><button type="button" className={`btn small${editing ? " btn-primary" : ""}`} aria-pressed={editing} onClick={() => setEditing(value => !value)}>{editing ? "Done editing" : "Edit roles"}</button>{editing && roles.length < MAX_ROLES && <button type="button" className="btn small" onClick={addRole}>Add role</button>}</div></div>
+    <div className="roles-table-wrap"><table className="tbl roles-table"><thead><tr><th>Title</th><th>Reports to</th><th>Officer</th><th>Email</th><th>Phone</th><th>ASU ID</th></tr></thead><tbody>
+      {roles.map((r, i) => {
+        const person = state.people.find(p => p.id === r.holderId), open = expanded === r.id, boss = withBelow(roles, r.id)
+        return <Fragment key={r.id}><tr className={open ? "is-open" : ""}>
+          <td>{editing ? <span className="role-title-edit"><input type="text" aria-label="Role title" value={r.displayName} maxLength={60} onChange={e => change(i, { displayName: e.target.value }, true)} /><button type="button" className="btn small" aria-label={`Show duties for ${r.displayName}`} aria-expanded={open} onClick={() => setExpanded(open ? null : r.id)}>Duties</button></span> : <button type="button" className="role-name" aria-expanded={open} onClick={() => setExpanded(open ? null : r.id)}>{r.displayName}</button>}</td>
+          <td>{editing ? <select aria-label="Reports to" value={r.reportsToId ?? ""} onChange={e => change(i, { reportsToId: e.target.value || null })}><option value="">Nobody (top)</option>{roles.filter(x => !boss.has(x.id)).map(x => <option key={x.id} value={x.id}>{x.displayName}</option>)}</select> : roles.find(x => x.id === r.reportsToId)?.displayName ?? "Nobody (top)"}</td>
+          <td>{person?.name || "Open position"}</td><td>{person?.email || "—"}</td><td>{person?.phone || "—"}</td><td>{person?.asuId || "—"}</td>
+        </tr>{open && <tr className="role-detail"><td colSpan={6}><div><span className="cap">Duties</span>{editing ? <textarea aria-label="Role duties" rows={4} maxLength={400} value={r.duties ?? ""} onChange={e => change(i, { duties: e.target.value })} /> : <p>{r.duties?.trim() || "No duties written yet."}</p>}</div></td></tr>}</Fragment>
+      })}
+    </tbody></table></div>
+  </div>
 }
 
 function MySettings() {

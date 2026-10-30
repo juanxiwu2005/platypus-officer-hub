@@ -67,6 +67,7 @@ test("renaming a role saves itself, can be undone, and follows through team and 
   await page.goto("/#/settings")
   await page.getByRole("button", { name: "Roles", exact: true }).click()
   const settings = page.getByTestId("club-settings")
+  await settings.getByRole("button", { name: "Edit roles", exact: true }).click()
   await settings.getByLabel("Role title", { exact: true }).nth(1).fill("Finance Chair")
   await expect(settings.getByRole("status")).toContainText("Saved")
   await settings.getByRole("button", { name: "Undo" }).click()

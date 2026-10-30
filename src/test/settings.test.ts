@@ -4,6 +4,7 @@ import { reducer } from "../data/store"
 import { clubDraft, completeSetup, profilePatch, saveClubSettings, saveProfile, validateClub, validateDefaults, validateProfile, validateRoles, validateWorkspace } from "../data/settings"
 import { computeSchedule } from "../engine/schedule"
 import { parseCommand } from "../lib/commands"
+import { newRole } from "../data/structure"
 
 const base = () => seedDemo("2026-10-22")
 const code = "12345678-1234-1234-1234-123456789abc"
@@ -32,6 +33,13 @@ describe("club settings", () => {
     const s = base(), d = clubDraft(s); d.roles.find(r => r.id === "r-fin")!.fn = "vice_president"
     const next = saveClubSettings(s, d, s.org.settings)
     expect(next.nodes.find(n => n.id === "e-night:usg")?.fn).toBe("vice_president")
+  })
+  it("lets the president add a vacant role without changing current officers", () => {
+    const s = base(), d = clubDraft(s), added = newRole("Community Lead", d.roles[0].id)
+    d.roles.push(added)
+    const next = saveClubSettings(s, d, s.org.settings)
+    expect(next.roles.find(r => r.id === added.id)).toMatchObject({ displayName: "Community Lead", holderId: null })
+    expect(next.people).toEqual(s.people)
   })
   it("rejects reordered protocol, excessive nudges and automatic sending", () => {
     const s = base(); expect(validateDefaults({ ...s.org.settings, silenceProtocol: { ...s.org.settings.silenceProtocol, presidentDay: 4 } })).toBeTruthy()

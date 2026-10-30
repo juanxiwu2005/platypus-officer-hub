@@ -89,8 +89,8 @@ export function validateDefaults(d: OrgSettings): string | null {
 
 export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettings): DemoState {
   if (!canLead(s) || validateClub(d) || validateDefaults(defaults)) return s
-  // This form edits club and role settings (titles, who reports to whom, duties); it cannot add or remove roles, move officers, or change another officer's private profile.
-  if (d.roles.length !== s.roles.length || d.roles.some(r => !s.roles.some(old => old.id === r.id && old.holderId === r.holderId)) || d.people.some(p => !s.people.some(old => old.id === p.id && old.roleId === p.roleId))) return s
+  // Leads may add vacant roles here, but cannot remove existing roles, move officers, or change another officer's private profile.
+  if (!s.roles.every(old => d.roles.some(r => r.id === old.id && r.holderId === old.holderId)) || d.people.some(p => !s.people.some(old => old.id === p.id && old.roleId === p.roleId))) return s
   const roles = orderRoles(d.roles.map(r => ({ ...r, displayName: r.displayName.trim() })))
   const nodes = s.nodes.map(n => {
     const oldRole = s.roles.find(r => r.holderId === n.ownerId)

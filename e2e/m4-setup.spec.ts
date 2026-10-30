@@ -91,6 +91,7 @@ test("constitution: upload, AI reads it in the background, departments and roles
   await page.goto("/#/settings")
   await page.getByRole("button", { name: "Roles", exact: true }).click()
   await expect(page.getByTestId("club-settings").getByTestId("org-chart").locator(".org-card")).toHaveCount(6)
+  await page.getByTestId("club-settings").getByRole("button", { name: "Edit roles", exact: true }).click()
   await expect(page.getByTestId("club-settings").getByLabel("Role title")).toHaveCount(6)
 })
 
