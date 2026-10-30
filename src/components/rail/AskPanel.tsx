@@ -14,6 +14,7 @@ import { AppliedCard, ChangeCard } from "./ChangeCard"
 import { Bts, BtsRow } from "../Bts"
 import { OwnerPicker, ownersToPeople, TaskDueFields } from "./TaskFields"
 import { canCreateEvent, canLead } from "../../data/changeReview"
+import { policySourceById } from "../../data/policyCatalog"
 
 const CHAT_KEY = "platypus.v1.chat"
 const load = (): ChatMsg[] => {
@@ -206,8 +207,11 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
     }
     case "rule": return <div className="mini-card" data-testid="rule-answer">
       <p className="pre-line">{card.answer}</p>
-      {card.citations.length > 0 && <div className="action-row">{card.citations.map(id => { const r = ruleById(id); return r && <a key={id} className="btn small" href={r.sources[0].url} target="_blank" rel="noreferrer">{id} source ↗</a> })}</div>}
-      <span className="ask-source">{card.label}{card.citations.length ? ` · checked ${ruleById(card.citations[0])?.checkedOn}` : ""}</span>
+      {card.citations.length > 0 && <div className="action-row">{card.citations.map(id => {
+        const policy = policySourceById(id), rule = ruleById(id), url = policy?.sourceUrl ?? rule?.sources[0].url
+        return url ? <a key={id} className="btn small" href={url} target="_blank" rel="noreferrer">{id} source ↗</a> : <span key={id} className="small muted">{id} source saved</span>
+      })}</div>}
+      <span className="ask-source">{card.label}{card.citations.length ? ` · checked ${policySourceById(card.citations[0])?.extractedAt ?? ruleById(card.citations[0])?.checkedOn}` : ""}</span>
       <Feedback id={`ask:${card.question}:${card.answer}`} text={card.answer} />
     </div>
     case "changes": return <ChangeCard id={card.changeSetId} />

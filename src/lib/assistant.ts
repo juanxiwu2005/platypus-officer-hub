@@ -16,6 +16,8 @@ import { WEEK_ONE } from "./handbook"
 import { daysBetween } from "./dates"
 import { RULES } from "../data/rules"
 
+interface PolicyAnswer { inScope: boolean; answer: string; citations: string[]; model: string | null; provider?: string }
+
 /** What the Ask panel shows. Cards are the "foundation" of the AI interaction (v1.1 plan, decision 1). */
 export type ChatCard =
   | { kind: "text"; text: string }
@@ -141,12 +143,20 @@ const tasksCard = (s: DemoState, viewerId: string, scope: TaskScope, limit: numb
 }
 
 async function ruleReply(question: string, s: DemoState): Promise<Reply> {
-  let answer: RuleAnswer, label: string
+  let answer: Pick<RuleAnswer, "inScope" | "answer" | "citations" | "model" | "provider">, label: string
   try {
     if (!s.aiEnabled) throw new Error("AI off")
-    const r = await callApi<RuleAnswer>("/ask", { question })
-    answer = groundedAnswer({ ...r, confidence: 1 }, r.model, r.provider)
-    label = `AI picked the rules · ${r.provider ?? "provider"}`
+    // Legacy R01–R16 questions retain their deterministic renderer. Everything else is searched in the
+    // 64-record policy archive on the server; detailed text never enters the browser bundle.
+    if (/\bR\d{2}\b/i.test(question)) {
+      const r = await callApi<RuleAnswer>("/ask", { question })
+      answer = groundedAnswer({ ...r, confidence: 1 }, r.model, r.provider)
+    } else {
+      const r = await callApi<PolicyAnswer>("/policy-answer", { question })
+      if (!r.inScope || !r.answer || !r.citations.length) throw new Error("No grounded policy answer")
+      answer = r
+    }
+    label = `AI checked policy sources · ${answer.provider ?? "provider"}`
   } catch {
     const ids = keywordRules(question)
     answer = groundedAnswer({ inScope: ids.length > 0, confidence: 1, citations: ids }, null)
@@ -275,7 +285,7 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
     if (pick) return { cards: [{ kind: "nudge", nodeId: pick.id }], source: "Platypus" }
   }
   const ops = parseCommand(t, commandContext(s))
-  if (ops.length && ops.every(o => o.op === "answer_question") || (!ops.length && RULE_Q_RE.test(t) && keywordRules(t).length)) return ruleReply(t, s)
+  if (ops.length && ops.every(o => o.op === "answer_question") || RULE_Q_RE.test(t)) return ruleReply(t, s)
   if (ops.length && !ops.some(o => o.op === "answer_question")) {
     const source = s.aiEnabled ? "Checked command grammar" : "Local demo grammar · AI off"
     return { ...splitChanges(t, ops, source), source }
