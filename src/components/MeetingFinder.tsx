@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } f
 import { useStore } from "../data/store"
 import { profilePatch } from "../data/settings"
 import { Info } from "./ui"
-import { GRID_FROM, GRID_ROWS, GRID_STEP, GRID_TO, availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, hhmm, slotsToCells, weeklySlotsOn, whoIsFree } from "../engine/team"
+import { GRID_FROM, GRID_ROWS, GRID_STEP, GRID_TO, availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, hhmm, slotsToCells, sundayOf, weeklySlotsOn, whoIsFree } from "../engine/team"
 import { addDays, fmtShort, fromISO } from "../lib/dates"
 
 const clock = (m: number) => `${((Math.floor(m / 60) + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${m < 720 ? "am" : "pm"}`
@@ -14,10 +14,11 @@ const names = (list: { name: string }[]) => list.length ? list.map(p => p.name.s
 interface CellInfo { a: number; on?: boolean; all?: boolean; ring?: boolean; label: string }
 
 /** One week of half-hour cells. Used twice: the personal grid (left) and the group grid (right). */
-function SlotGrid({ label, testId, dates, marked, cell, onDown, onEnter, onActivate, onHover }: {
+function SlotGrid({ label, testId, dates, marked, cell, onDown, onEnter, onDrawEnd, onActivate, onHover }: {
   label: string; testId: string; dates: string[]; marked: string
   cell: (d: number, k: number) => CellInfo
   onDown?: (d: number, k: number) => void; onEnter?: (d: number, k: number) => void
+  onDrawEnd?: () => void
   onActivate: (d: number, k: number) => void; onHover?: (d: number, k: number) => void
 }) {
   const box = useRef<HTMLDivElement>(null)
@@ -41,7 +42,11 @@ function SlotGrid({ label, testId, dates, marked, cell, onDown, onEnter, onActiv
     for (let i = 1; i <= steps; i++) onEnter(Math.round(lastDay + (d - lastDay) * i / steps), Math.round(lastRow + (k - lastRow) * i / steps))
     lastPainted.current = [d, k]
   }
-  const stopDrawing = () => { drawing.current = false; lastPainted.current = null }
+  const stopDrawing = () => {
+    const wasDrawing = drawing.current
+    drawing.current = false; lastPainted.current = null
+    if (wasDrawing) onDrawEnd?.()
+  }
   return <div className="heat" role="grid" aria-label={label} data-testid={testId} ref={box} onPointerMove={e => {
     if (!drawing.current || !onEnter) return
     const target = document.elementFromPoint(e.clientX, e.clientY)?.closest<HTMLElement>("[data-pos]")
@@ -81,7 +86,9 @@ export function MeetingFinder() {
   const mode = useRef<"add" | "remove">("add")
   const draftRef = useRef<Set<string> | null>(null)
 
-  const start = addDays(state.today, week * 7)
+  // This week stays visible from Sunday through Saturday, including its earlier days.
+  // Future navigation advances in complete calendar weeks instead of splitting a week at today.
+  const start = addDays(sundayOf(state.today), week * 7)
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i))
   const grid = availabilityGrid(state, ids, start)
   const total = Math.max(1, ids.length)
@@ -109,9 +116,16 @@ export function MeetingFinder() {
     const existing = me.weeklyAvailabilityHistory?.filter(v => v.startsOn < state.today) ?? [{ startsOn: "0000-01-01", freeSlots: me.freeSlots }]
     dispatch({ type: "saveProfile", personId: me.id, patch: { ...profilePatch(me), freeSlots, weeklyAvailabilityHistory: [...existing, { startsOn: state.today, freeSlots }] } })
   }
+  const commitExceptions = () => {
+    if (!draftRef.current) return
+    saveExceptions(draftRef.current)
+    draftRef.current = null
+    setDraft(null)
+  }
   useEffect(() => {
     if (!draft) return
-    const up = () => { if (draftRef.current) saveExceptions(draftRef.current); draftRef.current = null; setDraft(null) }, cancel = () => { draftRef.current = null; setDraft(null) }
+    // The grid itself commits on pointer-up. This remains as a fallback if the pointer is released outside it.
+    const up = commitExceptions, cancel = () => { draftRef.current = null; setDraft(null) }
     window.addEventListener("pointerup", up); window.addEventListener("pointercancel", cancel)
     return () => { window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", cancel) }
   }, [draft, dates.join("|")])
@@ -136,6 +150,7 @@ export function MeetingFinder() {
           cell={(d, k) => { const on = cells.has(dateCell(d, k)); return { a: 0, on, label: `${dayName(dates[d])} ${clock(GRID_FROM + k * GRID_STEP)} · ${on ? "free" : "not free"}` } }}
           onDown={(d, k) => { mode.current = cells.has(dateCell(d, k)) ? "remove" : "add"; const next = paint(cells, dateCell(d, k)); draftRef.current = next; setDraft(next) }}
           onEnter={(d, k) => { if (draftRef.current) setDraft(prev => { const next = paint(prev ?? cells, dateCell(d, k)); draftRef.current = next; return next }) }}
+          onDrawEnd={commitExceptions}
           onActivate={(d, k) => { mode.current = cells.has(dateCell(d, k)) ? "remove" : "add"; saveExceptions(paint(cells, dateCell(d, k))) }} />
       </div>
       <div>

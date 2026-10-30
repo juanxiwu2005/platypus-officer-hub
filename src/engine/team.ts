@@ -51,6 +51,10 @@ export function mondayOf(date: string): string {
   const day = fromISO(date).getDay()
   return addDays(date, -(day === 0 ? 6 : day - 1))
 }
+/** Calendar-week start for the availability grid: Sunday is always the first column. */
+export function sundayOf(date: string): string {
+  return addDays(date, -fromISO(date).getDay())
+}
 export const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`
 /** True when one officer's entered free times for this weekday cover the whole of [from, to) minutes. */
 function covers(p: Person, day: number, from: number, to: number) {
@@ -94,10 +98,12 @@ export const availableFor = (p: Person, date: string, from: number, to: number) 
   return true
 }
 
-/** Who is free for the whole of [from, to) minutes on a real date. Busy weeks, closures, finals and breaks count as not free. */
+/** Who has explicitly shared availability for the whole of [from, to) on a real date.
+ * This powers the Group grid, so weekends must reflect an officer's own selected time too.
+ * Meeting suggestions apply their separate calendar safeguards in commonMeetingSlots(). */
 export function whoIsFree(s: DemoState, ids: string[], date: string, from: number, to: number) {
   const people = ids.map(id => s.people.find(p => p.id === id)).filter((p): p is Person => !!p)
-  const free = people.filter(p => personalWorkDay(p.busyWeeks)(date) && availableFor(p, date, from, to))
+  const free = people.filter(p => availableFor(p, date, from, to))
   return { free, busy: people.filter(p => !free.includes(p)) }
 }
 

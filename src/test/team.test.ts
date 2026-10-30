@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
-import { availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, contributionBoard, mondayOf, slotsToCells, weeklySlotsOn, whoIsFree, workload } from "../engine/team"
+import { availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, contributionBoard, mondayOf, slotsToCells, sundayOf, weeklySlotsOn, whoIsFree, workload } from "../engine/team"
 import { validateProfile, profilePatch } from "../data/settings"
 const base = () => seedDemo("2026-10-22")
 describe("team workload and recognition", () => {
@@ -46,6 +46,7 @@ describe("self-reported meeting intersection", () => {
   it("makes an Arizona Calendar draft with no guests and normalizes busy weeks to Mondays", () => {
     const u = new URL(calendarDraftUrl("2026-10-22", "18:30", "19:00")); expect(u.searchParams.get("ctz")).toBe("America/Phoenix"); expect(u.searchParams.get("dates")).toBe("20261022T183000/20261022T190000"); expect(u.searchParams.has("add")).toBe(false)
     expect(mondayOf("2026-10-22")).toBe("2026-10-19"); expect(mondayOf("2026-10-25")).toBe("2026-10-19")
+    expect(sundayOf("2026-10-22")).toBe("2026-10-18"); expect(sundayOf("2026-10-18")).toBe("2026-10-18")
   })
 })
 
@@ -72,12 +73,15 @@ describe("When2meet-style meeting grid", () => {
     expect(g).toHaveLength(7); expect(g[0].slots).toHaveLength(28)
     expect(at(17, 30)).toBe(0); expect(at(18)).toBe(4); expect(at(18, 30)).toBe(5); expect(at(19, 30)).toBe(5); expect(at(20)).toBe(0)
   })
-  it("names who is free and who is not, and treats busy weeks as not free", () => {
+  it("names who is free and who is not, including availability explicitly selected on a weekend", () => {
     const s = base(), ids = s.people.map(p => p.id)
     const r = whoIsFree(s, ids, s.today, 18 * 60, 18 * 60 + 30)
     expect(r.free).toHaveLength(4); expect(r.busy.map(p => p.id)).toEqual([s.people[3].id])
     expect(whoIsFree(s, ids, "2026-12-08", 18 * 60 + 30, 19 * 60).free).toHaveLength(0)
     expect(whoIsFree(s, ["alex"], s.today, 18 * 60, 20 * 60 + 30).free).toHaveLength(0)
+    s.people[0].freeSlots = [{ day: 0, from: "10:00", to: "11:00" }, { day: 6, from: "10:00", to: "11:00" }]
+    expect(whoIsFree(s, ["alex"], "2026-10-18", 10 * 60, 10 * 60 + 30).free).toHaveLength(1)
+    expect(availabilityGrid(s, ["alex"], "2026-10-18")[6].slots.find(x => x.from === 10 * 60)?.free).toBe(1)
   })
   it("turns painted cells into merged weekly slots and back, keeping times outside the grid", () => {
     const cells = new Set([cellKey(4, 20), cellKey(4, 21), cellKey(4, 22), cellKey(1, 0)])
