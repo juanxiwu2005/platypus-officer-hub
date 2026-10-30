@@ -107,23 +107,21 @@ test("officer five-question setup saves preferences and busy weeks while private
   await expect(page.getByLabel("My extra working days", { exact: true })).toHaveValue("1")
   await expect(page.getByTestId("my-settings")).not.toContainText("Week of 2026-10-19")
   await page.goto("/#/team")
-  await expect(page.getByTestId("meeting-finder")).toContainText("No club meeting on this date")
+  await expect(page.getByTestId("meeting-finder").getByRole("heading", { name: "Shared times", exact: true })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
 test("meeting finder uses shared slots and opens only an Arizona calendar draft", async ({ page }) => {
   await page.goto("/#/team")
   const finder = page.getByTestId("meeting-finder")
-  await expect(finder.getByRole("link", { name: "Open Calendar draft", exact: true })).toHaveCount(3)
-  await expect(finder).toContainText("18:30–19:00")
-  const href = (await finder.getByRole("link", { name: "Open Calendar draft", exact: true }).first().getAttribute("href"))!
+  await expect(finder.getByRole("heading", { name: "Shared times", exact: true })).toBeVisible()
+  await expect(finder.getByRole("button", { name: "18:30–19:00", exact: true }).first()).toBeVisible()
+  await finder.getByRole("button", { name: "18:30–19:00", exact: true }).first().click()
+  const href = (await finder.getByRole("link", { name: "Open Calendar draft for picked time", exact: true }).getAttribute("href"))!
   const params = new URL(href).searchParams
   expect(params.get("ctz")).toBe("America/Phoenix"); expect(params.has("add")).toBe(false)
-  await finder.getByLabel("Meeting date", { exact: true }).fill("2026-12-08")
-  await expect(finder).toContainText("No club meeting on this date")
-  await finder.getByLabel("Meeting date", { exact: true }).fill("2026-10-22")
   for (const checkbox of await finder.getByRole("checkbox").all()) await checkbox.uncheck()
-  await expect(finder).toContainText("at least one officer")
+  await expect(finder).toContainText("No shared time in the next two weeks")
   await expect(page.getByTestId("contribution-board")).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
@@ -139,10 +137,12 @@ test("meeting finder: paint my week on the left, see the group on the right, pic
   const a = await cell(mine, "Fri 6:00 pm · not free").boundingBox(), b = await cell(mine, "Fri 6:30 pm · not free").boundingBox()
   await page.mouse.move(a!.x + 3, a!.y + 3); await page.mouse.down(); await page.mouse.move(b!.x + 3, b!.y + 3); await page.mouse.up()
   await expect(cell(mine, "Fri 6:00 pm · free")).toHaveCount(1); await expect(cell(mine, "Fri 6:30 pm · free")).toHaveCount(1)
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).people.find((p: { id: string }) => p.id === "alex").freeSlots)).toContainEqual({ day: 5, from: "18:00", to: "19:00" })
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).people.find((p: { id: string }) => p.id === "alex").availabilityOverrides["2026-10-23:20"])).toBe(true)
   await expect(group.getByRole("gridcell", { name: "Fri Oct 23 6:00 pm · 1 of 5 free", exact: true })).toHaveCount(1)
-  // Clicking a painted cell again turns it off.
-  await cell(mine, "Fri 6:00 pm · free").click(); await expect(cell(mine, "Fri 6:00 pm · not free")).toHaveCount(1)
+  // A second press-and-drag over the cell removes it; hovering never changes it.
+  const remove = await cell(mine, "Fri 6:00 pm · free").boundingBox()
+  await page.mouse.move(remove!.x + 3, remove!.y + 3); await page.mouse.down(); await page.mouse.up()
+  await expect(cell(mine, "Fri 6:00 pm · not free")).toHaveCount(1)
   // Hover names who is free; click picks a time and offers a Calendar draft.
   await group.getByRole("gridcell", { name: "Thu Oct 22 6:00 pm · 4 of 5 free", exact: true }).hover()
   await expect(finder.getByRole("status").first()).toContainText("Free: Alex, Maya, Jordan, Priya · Not free: Sam")

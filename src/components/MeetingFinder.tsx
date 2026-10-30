@@ -6,6 +6,7 @@ import { GRID_FROM, GRID_ROWS, GRID_STEP, GRID_TO, availabilityGrid, availabilit
 import { addDays, fmtShort, fromISO } from "../lib/dates"
 
 const clock = (m: number) => `${((Math.floor(m / 60) + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${m < 720 ? "am" : "pm"}`
+const asMinutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3))
 const hourTag = (m: number) => m % 60 === 0 ? `${((Math.floor(m / 60) + 11) % 12) + 1}${m < 720 ? "a" : "p"}` : ""
 const dayName = (date: string) => fromISO(date).toLocaleDateString("en-US", { weekday: "short" })
 const names = (list: { name: string }[]) => list.length ? list.map(p => p.name.split(" ")[0]).join(", ") : "nobody"
@@ -56,9 +57,9 @@ function SlotGrid({ label, testId, dates, marked, cell, onDown, onEnter, onActiv
         return <button key={d} type="button" role="gridcell" data-pos={`${d}:${k}`} tabIndex={cur[0] === d && cur[1] === k ? 0 : -1}
           className={`heat-cell${c.on ? " on" : ""}${c.all ? " all" : ""}${c.ring ? " ring" : ""}`} style={{ "--a": c.a } as CSSProperties}
           aria-label={c.label} aria-selected={c.on ?? c.ring ?? false} title={c.label}
-          onFocus={() => { setCur([d, k]); onHover?.(d, k) }} onPointerEnter={() => { onEnter?.(d, k); onHover?.(d, k) }}
-          onPointerDown={e => { if (onDown && e.pointerType !== "touch") { e.preventDefault(); drawing.current = true; lastPainted.current = [d, k]; e.currentTarget.setPointerCapture(e.pointerId); onDown(d, k) } }}
-          onClick={e => { if (e.detail === 0 || (e.nativeEvent as PointerEvent).pointerType === "touch") onActivate(d, k) }}
+          onFocus={() => { setCur([d, k]); onHover?.(d, k) }} onPointerEnter={() => { if (drawing.current) paintThrough(d, k); onHover?.(d, k) }}
+          onPointerDown={e => { if (onDown && e.pointerType !== "touch" && e.button === 0) { e.preventDefault(); drawing.current = true; lastPainted.current = [d, k]; e.currentTarget.setPointerCapture(e.pointerId); onDown(d, k) } }}
+          onClick={e => { if (e.detail === 0 || (!onDown && (e.nativeEvent as PointerEvent).pointerType === "touch")) onActivate(d, k) }}
           onPointerUp={e => { if (!onDown && e.pointerType !== "touch" && e.button === 0) onActivate(d, k) }}
           onKeyDown={e => keys(e, d, k)} />
       })}
@@ -84,7 +85,10 @@ export function MeetingFinder() {
   const dates = Array.from({ length: 7 }, (_, i) => addDays(start, i))
   const grid = availabilityGrid(state, ids, start)
   const total = Math.max(1, ids.length)
-  const result = commonMeetingSlots(state, ids, date, duration)
+  const upcoming = Array.from({ length: 14 }, (_, offset) => {
+    const date = addDays(state.today, offset)
+    return { date, slots: commonMeetingSlots(state, ids, date, duration).slots }
+  }).filter(day => day.slots.length)
 
   // The weekly template and the dated view are separate. A dated change creates only an exception for that week.
   const weeklyCells = slotsToCells(weeklySlotsOn(me, state.today))
@@ -165,11 +169,15 @@ export function MeetingFinder() {
         : <span className="small">Ends after 10 pm. Pick an earlier time.</span>}
       <button type="button" className="btn small" onClick={() => setPick(null)}>Clear</button>
     </div>}
-    {!weeklyDraft && <div className="action-row">
-      <label className="field-inline">Meeting date<input type="date" min={state.today} value={date} onChange={e => { setDate(e.target.value); setPick(null) }} /></label>
-      <label className="field-inline">Length<select aria-label="Meeting length" value={duration} onChange={e => setDuration(Number(e.target.value))}>{[15, 30, 60, 90].map(m => <option key={m} value={m}>{m} min</option>)}</select></label>
+    {!weeklyDraft && <div className="meeting-planner">
+      <div className="meeting-filters">
+        <label className="field-inline">Length<select aria-label="Meeting length" value={duration} onChange={e => setDuration(Number(e.target.value))}>{[15, 30, 60, 90].map(m => <option key={m} value={m}>{m} min</option>)}</select></label>
+        <fieldset className="who-picks"><legend className="small muted">Attendees</legend>{state.people.map(p => <label className="check-label" key={p.id}><input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))} />{p.name}</label>)}</fieldset>
+      </div>
+      <section className="meeting-suggestions" aria-live="polite" aria-label="Shared times in the next two weeks">
+        <header><h3>Shared times</h3><span className="small muted">Next 2 weeks</span></header>
+        {upcoming.length ? upcoming.map(day => <div className="suggestion-day" key={day.date}><time dateTime={day.date}>{dayName(day.date)} {fmtShort(day.date)}</time><div>{day.slots.map(slot => <button type="button" className="btn small" key={slot.from} onClick={() => { const from = asMinutes(slot.from); setPick({ date: day.date, from }); setDate(day.date) }}>{slot.from}–{slot.to}</button>)}</div></div>) : <p className="small muted">No shared time in the next two weeks. Try a shorter meeting or fewer attendees.</p>}
+      </section>
     </div>}
-    {!weeklyDraft && <fieldset className="who-picks"><legend className="small muted">Attendees</legend>{state.people.map(p => <label className="check-label" key={p.id}><input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))} />{p.name}</label>)}</fieldset>}
-    {!weeklyDraft && (result.reason ? <p role="status" className="small">{result.reason}</p> : <div className="action-row">{result.slots.map(slot => <a key={slot.from} className="btn small" target="_blank" rel="noreferrer" href={calendarDraftUrl(date, slot.from, slot.to)} aria-label="Open Calendar draft">{slot.from}–{slot.to}</a>)}</div>)}
   </section>
 }
