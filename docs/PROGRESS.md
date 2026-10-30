@@ -28,6 +28,8 @@
 
 # Platypus v1.0 进度
 
+| 2026-10-30 | Codex | Ask 面板的任务快捷路由收紧：只有明确的“top tasks / my tasks / team priorities”才显示任务表。带 ASU、rules、policy、source 或 database 的提问优先进入带出处的政策检索，因而“top three rules”不再错误显示 “Your top 5”。政策端同时得到目录计数（当前 64 条索引来源），可区分“已索引来源数”与“全部 ASU 规则”。新增回归测试。 | Preview 8 / `integration/v1.0`；待部署后用截图中的问题复测：应返回政策分析与来源，不出现任务表。 |
+
 **最后更新：** 2026-10-29（Claude，v1.0 集结版复核）
 **当前阶段：** Production 仍是 `main` 的 `4dc55ba`。**下一个上线版本是 `integration/v1.0`（Draft PR #8，预览 https://deploy-preview-8--platypus-officer-hub.netlify.app ）**，包含设计 token（N1–N6）、M2b、S6 护栏、S7 Behind the scenes、S8 触屏、M3 排序题 Edit steps、删除 DeepSeek 和 S9 清理。2026-10-29 实跑完整 `npm run check`：lint + build + **668 个单元测试（47 个文件）+ 367 个页面测试通过，13 个按设备有意跳过**，字数全部在上限内；PR #8 的 GitHub CI 通过。等 Juanxi 说「批准合并」才进 `main`。
 **最后更新：** 2026-10-29（Claude，Partners 改成社团 CRM）

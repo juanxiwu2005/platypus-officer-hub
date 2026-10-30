@@ -104,6 +104,9 @@ describe("Ask panel cards", () => {
     const list = top.cards[0]
     expect(list.kind === "tasks" && list.nodeIds.length).toBeGreaterThan(0)
     expect(list.kind === "tasks" && list.nodeIds.every(id => base.nodes.find(n => n.id === id)!.ownerId === "alex")).toBe(true)
+    const policyPriority = await respond("Which are the top three ASU rules for our networking night?", off, "alex", null, "/", [])
+    expect(policyPriority.cards[0].kind).toBe("rule")
+    expect(policyPriority.cards[0].kind).not.toBe("tasks")
     const rule = await respond("Can we serve homemade food?", off, "alex", null, "/rules", [])
     expect(rule.cards[0].kind === "rule" && rule.cards[0].citations).toEqual(["R08"])
     expect(keywordRules("Which tax form should we file?")).toEqual([])

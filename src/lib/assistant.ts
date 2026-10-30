@@ -65,7 +65,13 @@ export function createIntent(t: string, s: DemoState): "task" | "event" | null {
   if (/\b(?:weekly|biweekly|monthly|every (?:week|month|day)|recurring)\b|每周|每月/i.test(t) || /\bmeet(?:ing)? with (?:our |the |my )?(?:advisor|adviser|sponsor|dean|professor|partner)\b/i.test(t)) return null
   return PLAN_RE.test(t) ? "event" : null
 }
-const TOP_RE = /\btop\s*\d*\s*(tasks?|things|priorit)|\bmost important\b|\bfocus on\b|\bpriorit|what should i (do|work)|my tasks|最需要|专注|优先/i
+/**
+ * The task list is deliberately an opt-in shortcut.  Do not infer it from broad phrases such as
+ * "most important": those phrases are also natural when someone is weighing policy requirements.
+ */
+const TOP_TASK_RE = /\btop\s*\d*\s*tasks?\b|\b(?:my|our|team)\s+(?:tasks?|priorities)\b|\b(?:show|list)\s+(?:my|our|team)?\s*(?:tasks?|priorities)\b|(?:我的|团队的)?(?:任务|待办).*(?:前\s*\d+|优先)/i
+/** A source or policy question must reach grounded policy retrieval before any UI shortcut. */
+const POLICY_REFERENCE_RE = /\b(?:asu|rules?|polic(?:y|ies)|regulation|compliance|official\s+source|source|database|event\s+registry)\b|(?:规则|政策|法规|数据库|来源)/i
 const NUDGE_RE = /\bneeds? a nudge\b|\bwho (needs|should).*(nudge|remind|push)|\bat risk\b|\bbehind\b|风险|催/i
 const STUCK_RE = /\bstuck\b|\bblocked\b|\bneed(s)? help\b|卡住/i
 const NEXT_RE = /\bup next\b|\bnext steps?\b|\bwhat'?s next\b|下一步/i
@@ -253,7 +259,10 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
     const lines = [focusNode.why || "This step supports the club plan.", up.length ? `It waits for: ${up.map(n => n.title).join("; ")}.` : "Nothing upstream is blocking it.", p?.issues.find(i => i.severity !== "info")?.text].filter(Boolean)
     return { cards: [textCard(lines.join(" ")), { kind: "tasks", title: "This step", nodeIds: [focusNode.id], remind: canLeadAs(s, viewerId) && focusNode.status !== "done" }], source: "Platypus" }
   }
-  if (TOP_RE.test(t)) return { cards: [tasksCard(s, viewerId, /team|club|everyone/i.test(t) ? "team" : "mine", limit)], source: "Ranked by risk, then start date" }
+  // A policy/source question has precedence over shortcuts. This prevents "top three rules" from
+  // incorrectly becoming the user's top-five task table.
+  if (POLICY_REFERENCE_RE.test(t)) return ruleReply(t, s)
+  if (TOP_TASK_RE.test(t)) return { cards: [tasksCard(s, viewerId, /team|club|everyone/i.test(t) ? "team" : "mine", limit)], source: "Ranked by risk, then start date" }
   if (STUCK_RE.test(t)) return { cards: [tasksCard(s, viewerId, "stuck", limit)], source: "Platypus" }
   if (NUDGE_RE.test(t)) return { cards: [tasksCard(s, viewerId, "risk", 3, focusEvent?.id)], source: "Forecast" }
   if (NEXT_RE.test(t) && focusEvent) return { cards: [{ kind: "tasks", title: `Next in ${focusEvent.name}`, nodeIds: eventStrip(s.nodes.filter(n => n.eventId === focusEvent.id)).map(n => n.id), remind: canLeadAs(s, viewerId) }], source: "Platypus" }
