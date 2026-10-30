@@ -248,9 +248,9 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   if (NUDGE_RE.test(t)) return { cards: [tasksCard(s, viewerId, "risk", 3, focusEvent?.id)], source: "Forecast" }
   if (NEXT_RE.test(t) && focusEvent) return { cards: [{ kind: "tasks", title: `Next in ${focusEvent.name}`, nodeIds: eventStrip(s.nodes.filter(n => n.eventId === focusEvent.id)).map(n => n.id), remind: canLeadAs(s, viewerId) }], source: "Platypus" }
   if (OVERLOAD_RE.test(t)) {
-    const rows = s.people.map(p => ({ p, w: workload(s, p.id) })).sort((a, b) => b.w.points - a.w.points)
-    const heavy = rows.filter(r => r.w.band === "Heavy")
-    return { cards: [textCard(heavy.length ? `${heavy.map(r => `${r.p.name.split(" ")[0]} (${r.w.points} points)`).join(", ")} ${heavy.length > 1 ? "are" : "is"} heavy for the next two weeks. Lightest: ${rows.at(-1)!.p.name.split(" ")[0]}.` : `Nobody is heavy for the next two weeks. Busiest: ${rows[0].p.name.split(" ")[0]} (${rows[0].w.points} points).`)], source: "Workload bands" }
+    const rows = s.people.map(p => ({ p, w: workload(s, p.id) })).sort((a, b) => b.w.load - a.w.load)
+    const needingSupport = rows.filter(r => r.w.band === "Needs support")
+    return { cards: [textCard(needingSupport.length ? `${needingSupport.map(r => r.p.name.split(" ")[0]).join(", ")} ${needingSupport.length > 1 ? "could use" : "could use"} help with the next two weeks. Consider moving a non-critical step, rather than filling anyone's time.` : `No one is flagged as needing support in the next two weeks. ${rows[0].p.name.split(" ")[0]} has the most weighted, time-sensitive work.`)], source: "Workload signals" }
   }
   if (PARTNER_RE.test(t)) {
     const due = visibleContacts(s).filter(c => !c.lastContact || daysBetween(c.lastContact, s.today) >= c.cadenceDays)

@@ -186,9 +186,10 @@ test("task dates remain visible while another officer's buffer explanation stays
 /** Audit §5.1: buttons inside a hover card can be clicked (fixed in S3: styles.css restores pointer-events). */
 test("the contribution board drills down from its hover card", async ({ page }, info) => {
   await page.goto("/#/team")
-  const row = page.getByTestId("contribution-board").locator("tr").filter({ hasText: "done" }).first()
-  if (info.project.name === "mobile") await row.getByText("done").tap() // a phone cannot hover: a tap opens the card
-  else await row.getByText("done").hover()
+  const row = page.getByTestId("contribution-board").locator("tbody tr").filter({ has: page.locator(".hover") }).first()
+  const trigger = row.locator("[tabindex]")
+  if (info.project.name === "mobile") await trigger.tap() // a phone cannot hover: a tap opens the card
+  else await trigger.hover()
   const card = row.locator(".hover-card")
   await expect(card).toBeVisible()
   await card.getByRole("button").first().click()

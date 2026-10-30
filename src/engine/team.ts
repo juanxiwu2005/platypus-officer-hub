@@ -4,19 +4,47 @@ import { minutes } from "../data/settings"
 import { validDate } from "../lib/commands"
 import { personalWorkDay } from "./calendar"
 
-export const tierWeight = (n: Node) => ({ light: 1, medium: 2, heavy: 3 }[n.tier])
+/** Relative effort is deliberately based on the step's own estimate first; the tier only calibrates that estimate. */
+export const tierWeight = (n: Node) => ({ light: 1, medium: 1.35, heavy: 1.75 }[n.tier])
+const effort = (n: Node) => Math.max(.25, n.estDays || 1) * tierWeight(n)
+const directFollowers = (s: DemoState, n: Node) => s.nodes.filter(x => x.dependsOn.includes(n.id))
+const impact = (s: DemoState, n: Node) => {
+  const followers = directFollowers(s, n)
+  return 1 + Math.min(.45, followers.length * .12) + (n.ruleIds.length ? .25 : 0)
+}
+const urgency = (s: DemoState, n: Node) => {
+  if (n.latestStart && n.latestStart <= s.today) return 1.6
+  if (n.latestStart && n.latestStart <= addDays(s.today, 3)) return 1.35
+  if (n.clubDeadline && n.clubDeadline <= addDays(s.today, 7)) return 1.16
+  return 1
+}
+
 export function workload(s: DemoState, personId: string) {
   const through = addDays(s.today, 13)
   const nodes = s.nodes.filter(n => n.ownerId === personId && n.status !== "done" && ((n.latestStart !== null && n.latestStart <= through) || (n.clubDeadline !== null && n.clubDeadline <= through)))
-  const points = nodes.reduce((sum, n) => sum + tierWeight(n), 0)
-  return { nodes, points, band: points <= 3 ? "Light" : points <= 7 ? "Balanced" : "Heavy", through }
+  const person = s.people.find(p => p.id === personId)
+  const busySoon = !!person?.busyWeeks.some(w => w <= through && addDays(w, 6) >= s.today)
+  const load = nodes.reduce((sum, n) => sum + effort(n) * impact(s, n) * urgency(s, n), 0) * (busySoon ? 1.2 : 1)
+  // These are signals, not a quota. We never show the internal score or an amount of "remaining capacity".
+  const band = load < 4.5 ? "Room to help" : load < 20 ? "Focused" : "Needs support"
+  return { nodes, load, band, through, busySoon }
 }
 export function contributionBoard(s: DemoState) {
   const rows = s.people.map(person => {
     const entries = s.contributions.filter((c, i, all) => c.personId === person.id && all.findIndex(x => x.nodeId === c.nodeId && x.personId === c.personId) === i && s.nodes.find(n => n.id === c.nodeId)?.status === "done" && (c.completedOn ?? s.nodes.find(n => n.id === c.nodeId)?.lastUpdate ?? s.today) <= s.today)
-    return { person, points: entries.reduce((sum, c) => sum + c.points, 0), completed: entries.length, onTime: entries.filter(c => c.onTime).length, entries }
-  }).sort((a, b) => b.points - a.points || a.person.name.localeCompare(b.person.name))
-  return rows.map((r, i) => ({ ...r, rank: rows.findIndex(x => x.points === r.points) + 1, index: i }))
+    const completedNodes = entries.map(c => s.nodes.find(n => n.id === c.nodeId)!).filter(Boolean)
+    const delivery = completedNodes.reduce((sum, n) => sum + effort(n) * impact(s, n), 0)
+    const unlocked = completedNodes.reduce((sum, n) => sum + directFollowers(s, n).reduce((v, child) => v + effort(child), 0), 0)
+    const timely = entries.length ? entries.filter(c => c.onTime).length / entries.length : 0
+    const score = Math.round((delivery + unlocked * .35) * 100)
+    return {
+      person, entries, delivery, unlocked, timely, score,
+      impactLabel: delivery >= 6 ? "High impact" : delivery > 0 ? "Meaningful" : "Getting started",
+      reliabilityLabel: !entries.length ? "No record yet" : timely >= .9 ? "Consistently on track" : timely >= .6 ? "Usually on track" : "Needs a reset",
+      unlockLabel: unlocked >= 5 ? "Opened major work" : unlocked > 0 ? "Moved work forward" : "Independent delivery",
+    }
+  }).sort((a, b) => b.score - a.score || a.person.name.localeCompare(b.person.name))
+  return rows.map((r, i) => ({ ...r, rank: rows.findIndex(x => x.score === r.score) + 1, index: i }))
 }
 
 export function mondayOf(date: string): string {

@@ -4,24 +4,24 @@ import { availabilityGrid, calendarDraftUrl, cellKey, cellsToSlots, commonMeetin
 import { validateProfile, profilePatch } from "../data/settings"
 const base = () => seedDemo("2026-10-22")
 describe("team workload and recognition", () => {
-  it("keeps seeded contribution records consistent with the visible point formula", () => {
+  it("keeps legacy contribution records while the board derives recognition from the completed steps", () => {
     const s = base(); for (const c of s.contributions) { const n = s.nodes.find(n => n.id === c.nodeId)!; expect(c.points).toBe(({ light: 1, medium: 2, heavy: 3 }[n.tier]) + (c.onTime ? 1 : 0)) }
   })
-  it("weights upcoming open tasks and excludes completed or far-future work", () => {
+  it("weights estimated effort, urgency and dependency impact while excluding completed or far-future work", () => {
     const s = base(), template = s.nodes[0]; s.nodes = [1, 2, 3, 4].map(i => ({ ...template, id: String(i), ownerId: "maya", tier: "medium", status: "accepted", latestStart: i === 4 ? "2027-01-01" : "2026-10-23", clubDeadline: i === 4 ? "2027-01-04" : "2026-10-30" }))
-    expect(workload(s, "maya")).toMatchObject({ points: 6, band: "Balanced", through: "2026-11-04" })
-    s.nodes[0].tier = "heavy"; s.nodes[1].tier = "heavy"; expect(workload(s, "maya").band).toBe("Heavy")
-    s.nodes[0].status = "done"; s.nodes[1].status = "done"; expect(workload(s, "maya").band).toBe("Light")
+    expect(workload(s, "maya")).toMatchObject({ band: "Focused", through: "2026-11-04" })
+    s.nodes[0].estDays = 10; s.nodes[1].estDays = 8; s.nodes[1].tier = "heavy"; expect(workload(s, "maya").band).toBe("Needs support")
+    s.nodes[0].status = "done"; s.nodes[1].status = "done"; s.nodes[2].status = "done"; expect(workload(s, "maya").band).toBe("Room to help")
   })
   it("deduplicates completed contributions, excludes future work and shares tied ranks", () => {
     const s = base(), n = s.nodes[0]; n.status = "done"
     const c = { personId: "alex", nodeId: n.id, points: 3, onTime: true, completedOn: s.today }
     s.contributions = [c, c, { ...c, personId: "maya" }, { ...c, personId: "jordan", completedOn: "2027-01-01" }, { ...c, nodeId: s.nodes.find(x => x.status !== "done")!.id, personId: "sam" }]
-    const board = contributionBoard(s); expect(board.find(r => r.person.id === "alex")).toMatchObject({ points: 3, completed: 1, rank: 1 }); expect(board.find(r => r.person.id === "maya")?.rank).toBe(1); expect(board.find(r => r.person.id === "jordan")?.points).toBe(0)
+    const board = contributionBoard(s); expect(board.find(r => r.person.id === "alex")).toMatchObject({ rank: 1, impactLabel: "Meaningful", reliabilityLabel: "Consistently on track" }); expect(board.find(r => r.person.id === "maya")?.rank).toBe(1); expect(board.find(r => r.person.id === "jordan")?.impactLabel).toBe("Getting started")
   })
   it("never uses personal planning buffers as workload or contribution inputs", () => {
     const s = base(), w = workload(s, "maya"), c = contributionBoard(s); s.people[1].personalBufferDays = 5
-    expect(workload(s, "maya")).toEqual(w); expect(contributionBoard(s).map(r => r.points)).toEqual(c.map(r => r.points))
+    expect(workload(s, "maya")).toEqual(w); expect(contributionBoard(s).map(r => r.score)).toEqual(c.map(r => r.score))
   })
 })
 describe("self-reported meeting intersection", () => {

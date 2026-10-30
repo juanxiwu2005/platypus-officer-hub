@@ -27,7 +27,7 @@ export function aiSnapshot(s: DemoState) {
     roles: s.roles.map(r => ({ id: r.id, title: r.displayName, function: r.fn, holder: name(r.holderId), holderId: r.holderId, reportsTo: role(r.reportsToId), duties: dutiesOf(r) })),
     people: s.people.map(p => {
       const w = workload(s, p.id)
-      return { id: p.id, name: p.name, role: role(p.roleId), email: p.email, channels: p.channels, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, workload: w.band, workloadPoints: w.points }
+      return { id: p.id, name: p.name, role: role(p.roleId), email: p.email, channels: p.channels, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, workload: w.band }
     }),
     events: s.events.map(e => ({ id: e.id, name: e.name, date: e.date, type: e.type, headcount: e.headcount, venue: e.venue, food: e.food, funding: e.funding, speaker: e.speaker, details: e.details ?? null, risk: f.events[e.id]?.color ?? null })),
     tasks: s.nodes.map(n => n.status === "done"
