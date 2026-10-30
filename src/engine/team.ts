@@ -34,17 +34,17 @@ export function contributionBoard(s: DemoState) {
     const entries = s.contributions.filter((c, i, all) => c.personId === person.id && all.findIndex(x => x.nodeId === c.nodeId && x.personId === c.personId) === i && s.nodes.find(n => n.id === c.nodeId)?.status === "done" && (c.completedOn ?? s.nodes.find(n => n.id === c.nodeId)?.lastUpdate ?? s.today) <= s.today)
     const completedNodes = entries.map(c => s.nodes.find(n => n.id === c.nodeId)!).filter(Boolean)
     const delivery = completedNodes.reduce((sum, n) => sum + effort(n) * impact(s, n), 0)
-    const unlocked = completedNodes.reduce((sum, n) => sum + directFollowers(s, n).reduce((v, child) => v + effort(child), 0), 0)
     const timely = entries.length ? entries.filter(c => c.onTime).length / entries.length : 0
-    const score = Math.round((delivery + unlocked * .35) * 100)
+    // Impact leads the ordering; reliability only settles otherwise similar delivery.
+    const score = Math.round(delivery * (.9 + timely * .1) * 100)
     return {
-      person, entries, delivery, unlocked, timely, score,
-      impactLabel: delivery >= 6 ? "High impact" : delivery > 0 ? "Meaningful" : "Getting started",
-      reliabilityLabel: !entries.length ? "No record yet" : timely >= .9 ? "Consistently on track" : timely >= .6 ? "Usually on track" : "Needs a reset",
-      unlockLabel: unlocked >= 5 ? "Opened major work" : unlocked > 0 ? "Moved work forward" : "Independent delivery",
+      person, entries, delivery, timely, score,
+      reliabilityLabel: !entries.length ? "New" : timely >= .9 ? "Excellent" : timely >= .6 ? "Good" : "Watch",
+      reliabilityTone: !entries.length ? "new" : timely >= .9 ? "excellent" : timely >= .6 ? "good" : "watch",
     }
   }).sort((a, b) => b.score - a.score || a.person.name.localeCompare(b.person.name))
-  return rows.map((r, i) => ({ ...r, rank: rows.findIndex(x => x.score === r.score) + 1, index: i }))
+  const maxDelivery = Math.max(1, ...rows.map(r => r.delivery))
+  return rows.map((r, i) => ({ ...r, rank: rows.findIndex(x => x.score === r.score) + 1, index: i, impactLevel: r.delivery ? Math.max(1, Math.ceil(r.delivery / maxDelivery * 4)) : 0 }))
 }
 
 export function mondayOf(date: string): string {

@@ -17,7 +17,7 @@ describe("team workload and recognition", () => {
     const s = base(), n = s.nodes[0]; n.status = "done"
     const c = { personId: "alex", nodeId: n.id, points: 3, onTime: true, completedOn: s.today }
     s.contributions = [c, c, { ...c, personId: "maya" }, { ...c, personId: "jordan", completedOn: "2027-01-01" }, { ...c, nodeId: s.nodes.find(x => x.status !== "done")!.id, personId: "sam" }]
-    const board = contributionBoard(s); expect(board.find(r => r.person.id === "alex")).toMatchObject({ rank: 1, impactLabel: "Meaningful", reliabilityLabel: "Consistently on track" }); expect(board.find(r => r.person.id === "maya")?.rank).toBe(1); expect(board.find(r => r.person.id === "jordan")?.impactLabel).toBe("Getting started")
+    const board = contributionBoard(s); expect(board.find(r => r.person.id === "alex")).toMatchObject({ rank: 1, impactLevel: 4, reliabilityLabel: "Excellent" }); expect(board.find(r => r.person.id === "maya")?.rank).toBe(1); expect(board.find(r => r.person.id === "jordan")?.reliabilityLabel).toBe("New")
   })
   it("never uses personal planning buffers as workload or contribution inputs", () => {
     const s = base(), w = workload(s, "maya"), c = contributionBoard(s); s.people[1].personalBufferDays = 5

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useStore } from "../data/store"
 import { PageHead } from "../components/Page"
 import { useRail } from "../components/rail/RailContext"
@@ -12,6 +13,8 @@ export default function Team() {
   const { state } = useStore()
   const rail = useRail()
   const board = contributionBoard(state)
+  const [showAll, setShowAll] = useState(false)
+  const visibleBoard = state.people.length > 10 && !showAll ? board.slice(0, 10) : board
   return <>
     <PageHead path="/team" />
     <div className="grid-2">
@@ -30,13 +33,12 @@ export default function Team() {
         })}</tbody></table>
       </section>
       <section className="card" aria-labelledby="cb-h">
-        <header><h2 id="cb-h">Contribution board</h2><Info>Recognition is based on estimated effort and impact, reliability against the club deadline, and the work a completed step unlocks. It is not a task-count leaderboard.</Info></header>
-        <table className="tbl" data-testid="contribution-board"><thead><tr><th>Rank</th><th>Officer</th><th>Impact</th><th>Reliability</th><th>Work unlocked</th></tr></thead><tbody>{board.map(r => <tr key={r.person.id}>
+        <header><h2 id="cb-h">Contribution board</h2><Info>Impact combines estimated effort and how central a completed step was. Reliability reflects delivery by the club deadline. This is not a task-count leaderboard.</Info>{state.people.length > 10 && <button type="button" className="btn small" onClick={() => setShowAll(all => !all)}>{showAll ? "Show top 10" : `Show all ${state.people.length} officers`}</button>}</header>
+        <table className="tbl" data-testid="contribution-board"><thead><tr><th>Rank</th><th>Officer</th><th>Impact</th><th>Reliability</th></tr></thead><tbody>{visibleBoard.map(r => <tr key={r.person.id}>
           <td className="small muted">#{r.rank}</td>
           <td><span className="who"><Avatar name={r.person.name} size="sm" />{r.person.name.split(" ")[0]}</span></td>
-          <td className="small"><Hover card={r.entries.length ? <>{r.entries.map(c => <button key={c.nodeId} type="button" className="hc-line link" onClick={() => rail.show({ kind: "task", id: c.nodeId })}>{state.nodes.find(n => n.id === c.nodeId)?.title}</button>)}</> : "No finished steps yet."}><span tabIndex={0}>{r.impactLabel}</span></Hover></td>
-          <td className="small muted">{r.reliabilityLabel}</td>
-          <td className="small muted">{r.unlockLabel}</td>
+          <td><Hover card={r.entries.length ? <>{r.entries.map(c => <button key={c.nodeId} type="button" className="hc-line link" onClick={() => rail.show({ kind: "task", id: c.nodeId })}>{state.nodes.find(n => n.id === c.nodeId)?.title}</button>)}</> : "No finished steps yet."}><span tabIndex={0} className={`impact-meter l${r.impactLevel}`} role="img" aria-label={`Impact: ${r.impactLevel} of 4`}><i /><i /><i /><i /></span></Hover></td>
+          <td><span className={`reliability ${r.reliabilityTone}`}><i aria-hidden="true" />{r.reliabilityLabel}</span></td>
         </tr>)}</tbody></table>
       </section>
     </div>

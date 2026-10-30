@@ -66,7 +66,8 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
-| 2026-10-29 | Team 的 Workload 不显示 capacity 百分比、内部评分或“剩余可用时间”，只给保护性的定性信号（Room to help / Focused / Needs support）。信号结合预计投入、临期程度、规则／依赖影响和本人忙碌周；Contribution board 不按任务数或 points 排名，改按交付影响、按时可靠性与解锁后续工作的效果。 | Juanxi |
+| 2026-10-29 | Contribution board 只保留 Impact 和 Reliability：Impact 用相对四色阶梯图形，Reliability 用单词＋状态色（Excellent / Good / Watch / New）；删除 Work unlocked 及其排名影响。人数超过 10 人时默认只展示前 10，提供显示全部的切换。 | Juanxi |
+| 2026-10-29 | Team 的 Workload 不显示 capacity 百分比、内部评分或“剩余可用时间”，只给保护性的定性信号（Room to help / Focused / Needs support）。信号结合预计投入、临期程度、规则／依赖影响和本人忙碌周；Contribution board 不按任务数或 points 排名，改按交付影响和按时可靠性。 | Juanxi |
 | 2026-10-29 | Onboarding 的 Invite & workspace 步骤不再收集 Planning notes 或 fictional planning files；进入 Event workflow 时不调用 AI 解析／分配，立即载入标准流程并由社长在图内调整步骤、负责人和时间。 | Juanxi |
 | 2026-10-30 | Event flow 的图形与编辑逻辑继续只有一个共享模块：Events 的实际活动、Setup 第 5 步和 Settings → Workflow 同步使用。主线表示关键依赖链；支线只表示共享前置／后续里程碑之间可并行完成的工作，不能按岗位拆线。上方放审批和规则门槛，下方放可并行交付；图内编辑命中线沿用圆角地铁曲线，避免粗直的浅绿色高亮。 | Juanxi |
 | 2026-10-27 | Night Mode 只在 `feat/ai-night-mode` 和 Draft PR #7 工作；Agent 不提交、不推送、不碰保护文件；控制器负责本地检查、独立 Review、commit/push 和 CI；最终仍由 Claude 与 Juanxi 人工检查，绝不自动合并 `main` 或部署 Production | Juanxi（要求建立低成本、尽量无人值守但保留人工闸门的多模型工作流） |
