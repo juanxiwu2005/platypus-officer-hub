@@ -274,13 +274,18 @@ progress { accent-color: var(--accent); height: 8px; }
 .roles-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--s5); }
 .roles-actions > p { margin: 0; }
 .roles-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
-.roles-table { min-width: 1040px; margin: 0; }
+.roles-table { width: max-content; min-width: 100%; margin: 0; table-layout: auto; }
 .roles-table th, .roles-table td { white-space: nowrap; }
-.roles-table th:first-child, .roles-table td:first-child { position: sticky; left: 0; z-index: var(--z-raised); min-width: 220px; background: var(--surface); box-shadow: 1px 0 0 var(--line); }
+.roles-table th:first-child, .roles-table td:first-child { position: sticky; left: 0; z-index: var(--z-raised); background: var(--surface); box-shadow: 1px 0 0 var(--line); }
 .roles-table th:first-child { z-index: var(--z-sticky); background: var(--surface-2); }
+.roles-table :is(input, select) { box-sizing: border-box; max-width: 30ch; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); padding: var(--s3) var(--s4); color: var(--ink); }
+.roles-table input[type="tel"] { max-width: 18ch; }
+.roles-table input[inputmode="numeric"] { max-width: 12ch; }
 .roles-table tr.is-open td { border-bottom-color: transparent; }
 .role-name { display: block; color: var(--ink); font-weight: 600; }
-.role-actions-cell { display: flex; align-items: center; gap: var(--s2); }
+.role-value { display: block; max-width: 30ch; overflow: hidden; text-overflow: ellipsis; }
+.role-actions-cell { white-space: nowrap; }
+.role-actions-cell .btn + .btn { margin-left: var(--s2); }
 .role-detail td { position: static !important; padding: 0 !important; white-space: normal; background: var(--surface-2) !important; box-shadow: none !important; }
 .role-detail > td > div { display: grid; gap: var(--s3); padding: var(--s5) var(--s6); border-top: 1px solid var(--line); }
 .role-detail p { margin: 0; max-width: 78ch; }
