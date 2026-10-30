@@ -62,10 +62,9 @@ function covers(p: Person, day: number, from: number, to: number) {
 export function commonMeetingSlots(s: DemoState, ids: string[], date: string, duration: number): { slots: { from: string; to: string }[]; reason: string | null } {
   if (!validDate(date) || date < s.today || ![15, 30, 60, 90].includes(duration) || !ids.length || new Set(ids).size !== ids.length || ids.some(id => !s.people.some(p => p.id === id))) return { slots: [], reason: "Choose a current/future date, a duration, and at least one officer." }
   const people = ids.map(id => s.people.find(p => p.id === id)!)
-  const day = fromISO(date).getDay()
   const unavailable = people.filter(p => !personalWorkDay(p.busyWeeks)(date))
   if (unavailable.length) return { slots: [], reason: "No club meeting on this date: a busy week, ASU closure, finals or semester break applies. Specific private busy dates stay in each officer's settings." }
-  const missing = people.filter(p => !p.freeSlots.some(f => f.day === day))
+  const missing = people.filter(p => !Array.from({ length: GRID_ROWS }, (_, k) => availableAt(p, date, GRID_FROM + k * GRID_STEP)).some(Boolean))
   if (missing.length) return { slots: [], reason: `${missing.map(p => p.name).join(", ")} has not shared a free slot for this weekday.` }
   const slots = []
   for (let start = 8 * 60; start + duration <= 22 * 60 && slots.length < 3; start += 15) {
@@ -83,8 +82,13 @@ export function calendarDraftUrl(date: string, from: string, to: string): string
 export const GRID_FROM = 8 * 60, GRID_TO = 22 * 60, GRID_STEP = 30
 export const GRID_ROWS = (GRID_TO - GRID_FROM) / GRID_STEP
 export const availabilityKey = (date: string, from: number) => `${date}:${Math.floor((from - GRID_FROM) / GRID_STEP)}`
-/** Recurring weekly slots are the default; an explicit date override wins for that half-hour. */
-export const availableAt = (p: Person, date: string, from: number) => p.availabilityOverrides?.[availabilityKey(date, from)] ?? covers(p, fromISO(date).getDay(), from, from + GRID_STEP)
+/** The latest template that was already effective on the requested date. */
+export const weeklySlotsOn = (p: Person, date: string) => {
+  const versions = p.weeklyAvailabilityHistory?.filter(v => v.startsOn <= date).sort((a, b) => a.startsOn.localeCompare(b.startsOn))
+  return versions?.at(-1)?.freeSlots ?? p.freeSlots
+}
+/** Recurring availability is versioned by effective date; an explicit date override wins for that half-hour. */
+export const availableAt = (p: Person, date: string, from: number) => p.availabilityOverrides?.[availabilityKey(date, from)] ?? covers({ freeSlots: weeklySlotsOn(p, date) } as Person, fromISO(date).getDay(), from, from + GRID_STEP)
 export const availableFor = (p: Person, date: string, from: number, to: number) => {
   for (let at = from; at < to; at += GRID_STEP) if (!availableAt(p, date, at)) return false
   return true

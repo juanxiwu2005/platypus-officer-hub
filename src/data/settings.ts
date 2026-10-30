@@ -16,13 +16,14 @@ export const ROLE_FUNCTIONS: { value: RoleFunction; label: string }[] = [
   { value: "advisor", label: "Advisor" },
 ]
 export type ClubDraft = { name: string; mission: string; goals: Goal[]; roles: Role[]; people: Person[]; workspace: WorkspaceConfig }
-export type ProfilePatch = Pick<Person, "name" | "email" | "phone" | "channels" | "remindAt" | "busyWeeks" | "careerGoal" | "interests" | "expectations" | "personalBufferDays" | "personalBufferEnabled" | "freeSlots" | "availabilityOverrides" | "asuId">
+export type ProfilePatch = Pick<Person, "name" | "email" | "phone" | "channels" | "remindAt" | "busyWeeks" | "careerGoal" | "interests" | "expectations" | "personalBufferDays" | "personalBufferEnabled" | "freeSlots" | "availabilityOverrides" | "weeklyAvailabilityHistory" | "asuId">
 /** How early the club finishes before the real deadline, in working days (Setup question). */
 export const BUFFER_CHOICES = [1, 2, 3, 5, 7] as const
 export type FirstEvent = Extract<CommandOp, { op: "create_event" }>
 const nonempty = (s: unknown, max: number) => typeof s === "string" && !!s.trim() && s.trim().length <= max
 export const webLink = (s: string) => { try { return ["http:", "https:"].includes(new URL(s).protocol) } catch { return false } }
 export const minutes = (s: string): number => /^([01]\d|2[0-3]):[0-5]\d$/.test(s) ? Number(s.slice(0, 2)) * 60 + Number(s.slice(3)) : NaN
+const validFreeSlots = (slots: unknown): slots is Person["freeSlots"] => Array.isArray(slots) && slots.length <= 120 && slots.every(f => !!f && Number.isInteger(f.day) && f.day >= 0 && f.day <= 6 && Number.isFinite(minutes(f.from)) && Number.isFinite(minutes(f.to)) && minutes(f.to) > minutes(f.from))
 
 export function validateWorkspace(w: WorkspaceConfig): string | null {
   if (!w || !webLink(w.calendarUrl) || (w.driveLink && !webLink(w.driveLink))) return "Use an http or https calendar/folder link."
@@ -62,8 +63,9 @@ export function validateProfile(p: ProfilePatch): string | null {
   if (!Array.isArray(p.busyWeeks) || p.busyWeeks.length > 20 || p.busyWeeks.some(d => !validDate(d) || new Date(d + "T12:00:00Z").getUTCDay() !== 1)) return "Choose valid busy weeks, beginning on Monday."
   if (![p.careerGoal, p.interests, p.expectations].every(v => typeof v === "string" && v.length <= 500)) return "Keep each profile note under 500 characters."
   if (!Number.isInteger(p.personalBufferDays) || p.personalBufferDays < 0 || p.personalBufferDays > 5 || typeof p.personalBufferEnabled !== "boolean") return "Personal buffer must be between zero and five working days."
-  if (!Array.isArray(p.freeSlots) || p.freeSlots.length > 120 || p.freeSlots.some(f => !Number.isInteger(f.day) || f.day < 0 || f.day > 6 || !Number.isFinite(minutes(f.from)) || !Number.isFinite(minutes(f.to)) || minutes(f.to) <= minutes(f.from))) return "Each free slot needs a weekday and an end time later than its start."
+  if (!validFreeSlots(p.freeSlots)) return "Each free slot needs a weekday and an end time later than its start."
   if (p.availabilityOverrides !== undefined && (typeof p.availabilityOverrides !== "object" || Object.keys(p.availabilityOverrides).length > 2_000 || Object.entries(p.availabilityOverrides).some(([key, value]) => !/^\d{4}-\d{2}-\d{2}:\d{1,2}$/.test(key) || typeof value !== "boolean"))) return "Weekly exceptions need valid dates and times."
+  if (p.weeklyAvailabilityHistory !== undefined && (!Array.isArray(p.weeklyAvailabilityHistory) || p.weeklyAvailabilityHistory.length > 200 || p.weeklyAvailabilityHistory.some(v => !v || !validDate(v.startsOn) || !validFreeSlots(v.freeSlots)))) return "Weekly schedule history needs valid effective dates and times."
   return null
 }
 export function validateClub(d: ClubDraft): string | null {
@@ -114,7 +116,7 @@ export function resetWorkflow(s: DemoState): DemoState {
 
 export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch, invite?: string): DemoState {
   if ((personId !== s.viewerId && invite !== s.org.inviteCode) || validateProfile(patch) || !s.people.some(p => p.id === personId) || s.people.some(p => p.id !== personId && p.name.toLowerCase() === patch.name.trim().toLowerCase())) return s
-  const clean: ProfilePatch = { asuId: patch.asuId ?? "", name: patch.name.trim(), email: patch.email.trim(), phone: patch.phone.trim(), channels: patch.channels, remindAt: patch.remindAt, busyWeeks: [...new Set(patch.busyWeeks)], careerGoal: patch.careerGoal, interests: patch.interests, expectations: patch.expectations, personalBufferDays: patch.personalBufferDays, personalBufferEnabled: patch.personalBufferEnabled, freeSlots: patch.freeSlots, availabilityOverrides: patch.availabilityOverrides ?? {} }
+  const clean: ProfilePatch = { asuId: patch.asuId ?? "", name: patch.name.trim(), email: patch.email.trim(), phone: patch.phone.trim(), channels: patch.channels, remindAt: patch.remindAt, busyWeeks: [...new Set(patch.busyWeeks)], careerGoal: patch.careerGoal, interests: patch.interests, expectations: patch.expectations, personalBufferDays: patch.personalBufferDays, personalBufferEnabled: patch.personalBufferEnabled, freeSlots: patch.freeSlots, availabilityOverrides: patch.availabilityOverrides ?? {}, weeklyAvailabilityHistory: patch.weeklyAvailabilityHistory ?? [] }
   return applySchedule({ ...s, people: s.people.map(p => p.id === personId ? { ...p, ...clean, setupCompletedOn: s.today } : p) })
 }
 
@@ -136,4 +138,4 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
 }
 
 export const clubDraft = (s: DemoState): ClubDraft => structuredClone({ name: s.org.name, mission: s.org.mission, goals: s.org.goals, roles: s.roles, people: s.people, workspace: s.org.workspace })
-export const profilePatch = (p: Person): ProfilePatch => ({ name: p.name, email: p.email, phone: p.phone, channels: p.channels, remindAt: p.remindAt, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, expectations: p.expectations, personalBufferDays: p.personalBufferDays, personalBufferEnabled: p.personalBufferEnabled, freeSlots: p.freeSlots, availabilityOverrides: p.availabilityOverrides ?? {}, asuId: p.asuId ?? "" })
+export const profilePatch = (p: Person): ProfilePatch => ({ name: p.name, email: p.email, phone: p.phone, channels: p.channels, remindAt: p.remindAt, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, expectations: p.expectations, personalBufferDays: p.personalBufferDays, personalBufferEnabled: p.personalBufferEnabled, freeSlots: p.freeSlots, availabilityOverrides: p.availabilityOverrides ?? {}, weeklyAvailabilityHistory: p.weeklyAvailabilityHistory ?? [], asuId: p.asuId ?? "" })

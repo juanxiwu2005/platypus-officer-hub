@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } f
 import { useStore } from "../data/store"
 import { profilePatch } from "../data/settings"
 import { Info } from "./ui"
-import { GRID_FROM, GRID_ROWS, GRID_STEP, GRID_TO, availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, hhmm, slotsToCells, whoIsFree } from "../engine/team"
+import { GRID_FROM, GRID_ROWS, GRID_STEP, GRID_TO, availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, hhmm, slotsToCells, weeklySlotsOn, whoIsFree } from "../engine/team"
 import { addDays, fmtShort, fromISO } from "../lib/dates"
 
 const clock = (m: number) => `${((Math.floor(m / 60) + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${m < 720 ? "am" : "pm"}`
@@ -87,7 +87,7 @@ export function MeetingFinder() {
   const result = commonMeetingSlots(state, ids, date, duration)
 
   // The weekly template and the dated view are separate. A dated change creates only an exception for that week.
-  const weeklyCells = slotsToCells(me.freeSlots)
+  const weeklyCells = slotsToCells(weeklySlotsOn(me, state.today))
   const dateCell = (d: number, k: number) => `${dates[d]}:${k}`
   const actualCells = new Set(dates.flatMap((date, d) => Array.from({ length: GRID_ROWS }, (_, k) => availableAt(me, date, GRID_FROM + k * GRID_STEP) ? dateCell(d, k) : null).filter((x): x is string => !!x)))
   const cells = draft ?? actualCells
@@ -100,7 +100,11 @@ export function MeetingFinder() {
     }))
     dispatch({ type: "saveProfile", personId: me.id, patch: { ...profilePatch(me), availabilityOverrides: overrides } })
   }
-  const saveWeekly = (set: Set<string>) => dispatch({ type: "saveProfile", personId: me.id, patch: { ...profilePatch(me), freeSlots: cellsToSlots(set, me.freeSlots) } })
+  const saveWeekly = (set: Set<string>) => {
+    const freeSlots = cellsToSlots(set, me.freeSlots)
+    const existing = me.weeklyAvailabilityHistory?.filter(v => v.startsOn < state.today) ?? [{ startsOn: "0000-01-01", freeSlots: me.freeSlots }]
+    dispatch({ type: "saveProfile", personId: me.id, patch: { ...profilePatch(me), freeSlots, weeklyAvailabilityHistory: [...existing, { startsOn: state.today, freeSlots }] } })
+  }
   useEffect(() => {
     if (!draft) return
     const up = () => { if (draftRef.current) saveExceptions(draftRef.current); draftRef.current = null; setDraft(null) }, cancel = () => { draftRef.current = null; setDraft(null) }
@@ -116,7 +120,7 @@ export function MeetingFinder() {
 
   return <section className="card form-stack" data-testid="meeting-finder" aria-labelledby="mf-h">
     <header><h2 id="mf-h">Find a meeting time</h2><Info>Use Edit weekly schedule for your recurring availability. Painting this week makes a one-week exception. Darker means more people free.</Info></header>
-    <div className="action-row w2m-nav">
+    {!weeklyDraft && <><div className="action-row w2m-nav">
       <button type="button" className="btn small" disabled={week === 0} onClick={() => setWeek(week - 1)} aria-label="Previous week">‹</button>
       <span className="small">{fmtShort(dates[0])} – {fmtShort(dates[6])}</span>
       <button type="button" className="btn small" disabled={week >= 20} onClick={() => setWeek(week + 1)} aria-label="Next week">›</button>
@@ -142,9 +146,9 @@ export function MeetingFinder() {
           onHover={(d, k) => setPeek({ date: dates[d], from: GRID_FROM + k * GRID_STEP })} />
         <div className="w2m-legend small muted" aria-hidden="true">0{Array.from({ length: Math.min(total, 5) + 1 }, (_, i) => <i key={i} style={{ "--a": i / Math.min(total, 5) } as CSSProperties} />)}{total}</div>
       </div>
-    </div>
+    </div></>}
     {weeklyDraft && <section className="weekly-editor" aria-label="Edit weekly schedule" data-testid="weekly-schedule-editor">
-      <header><h3>Weekly schedule</h3><span className="small muted">Sets the default for every future week. Date-specific changes stay separate.</span></header>
+      <header><h3>Weekly schedule</h3><span className="small muted">This becomes your default from today onward. Earlier weeks stay unchanged.</span></header>
       <SlotGrid label={`${me.name}: weekly schedule`} testId="weekly-grid" dates={dates} marked=""
         cell={(d, k) => { const on = weeklyDraft.has(cellKey(fromISO(dates[d]).getDay(), k)); return { a: 0, on, label: `${dayName(dates[d])} ${clock(GRID_FROM + k * GRID_STEP)} · ${on ? "free" : "not free"}` } }}
         onDown={(d, k) => { const key = cellKey(fromISO(dates[d]).getDay(), k); mode.current = weeklyDraft.has(key) ? "remove" : "add"; const next = paint(weeklyDraft, key); draftRef.current = next; setWeeklyDraft(next) }}
@@ -152,20 +156,20 @@ export function MeetingFinder() {
         onActivate={(d, k) => { const key = cellKey(fromISO(dates[d]).getDay(), k); mode.current = weeklyDraft.has(key) ? "remove" : "add"; setWeeklyDraft(paint(weeklyDraft, key)) }} />
       <div className="action-row"><button type="button" className="btn btn-primary" onClick={() => { saveWeekly(weeklyDraft); draftRef.current = null; setWeeklyDraft(null) }}>Done</button><button type="button" className="btn" onClick={() => { draftRef.current = null; setWeeklyDraft(null) }}>Cancel</button></div>
     </section>}
-    <p className="small w2m-who" role="status" aria-live="polite" onPointerLeave={() => setPeek(null)}>
+    {!weeklyDraft && <p className="small w2m-who" role="status" aria-live="polite" onPointerLeave={() => setPeek(null)}>
       {who && shown ? <><b>{dayName(shown.date)} {fmtShort(shown.date)}, {clock(shown.from)}–{clock(shown.from + span)}</b> · Free: {names(who.free)} · Not free: {names(who.busy)}</> : "Hover for names."}
-    </p>
-    {pick && <div className="action-row" data-testid="picked-time">
+    </p>}
+    {!weeklyDraft && pick && <div className="action-row" data-testid="picked-time">
       {choice
         ? <><span className="small"><b>{dayName(pick.date)} {fmtShort(pick.date)}, {clock(pick.from)}–{clock(pick.from + duration)}</b> · {choice.free.length} of {ids.length} free</span><a className="btn small" target="_blank" rel="noreferrer" href={calendarDraftUrl(pick.date, hhmm(pick.from), hhmm(pick.from + duration))} aria-label="Open Calendar draft for picked time">Draft</a></>
         : <span className="small">Ends after 10 pm. Pick an earlier time.</span>}
       <button type="button" className="btn small" onClick={() => setPick(null)}>Clear</button>
     </div>}
-    <div className="action-row">
+    {!weeklyDraft && <div className="action-row">
       <label className="field-inline">Meeting date<input type="date" min={state.today} value={date} onChange={e => { setDate(e.target.value); setPick(null) }} /></label>
       <label className="field-inline">Length<select aria-label="Meeting length" value={duration} onChange={e => setDuration(Number(e.target.value))}>{[15, 30, 60, 90].map(m => <option key={m} value={m}>{m} min</option>)}</select></label>
-    </div>
-    <fieldset className="who-picks"><legend className="small muted">Attendees</legend>{state.people.map(p => <label className="check-label" key={p.id}><input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))} />{p.name}</label>)}</fieldset>
-    {result.reason ? <p role="status" className="small">{result.reason}</p> : <div className="action-row">{result.slots.map(slot => <a key={slot.from} className="btn small" target="_blank" rel="noreferrer" href={calendarDraftUrl(date, slot.from, slot.to)} aria-label="Open Calendar draft">{slot.from}–{slot.to}</a>)}</div>}
+    </div>}
+    {!weeklyDraft && <fieldset className="who-picks"><legend className="small muted">Attendees</legend>{state.people.map(p => <label className="check-label" key={p.id}><input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))} />{p.name}</label>)}</fieldset>}
+    {!weeklyDraft && (result.reason ? <p role="status" className="small">{result.reason}</p> : <div className="action-row">{result.slots.map(slot => <a key={slot.from} className="btn small" target="_blank" rel="noreferrer" href={calendarDraftUrl(date, slot.from, slot.to)} aria-label="Open Calendar draft">{slot.from}–{slot.to}</a>)}</div>)}
   </section>
 }

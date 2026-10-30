@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
-import { availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, contributionBoard, mondayOf, slotsToCells, whoIsFree, workload } from "../engine/team"
+import { availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, contributionBoard, mondayOf, slotsToCells, weeklySlotsOn, whoIsFree, workload } from "../engine/team"
 import { validateProfile, profilePatch } from "../data/settings"
 const base = () => seedDemo("2026-10-22")
 describe("team workload and recognition", () => {
@@ -57,6 +57,14 @@ describe("When2meet-style meeting grid", () => {
     expect(availableAt(alex, thisThursday, 18 * 60)).toBe(false)
     expect(availableAt(alex, nextThursday, 18 * 60)).toBe(true)
     expect(availabilityGrid(s, [alex.id], thisThursday)[0].slots.find(x => x.from === 18 * 60)?.free).toBe(0)
+  })
+  it("applies a weekly edit from its effective date without rewriting earlier availability", () => {
+    const s = base(), alex = s.people[0], original = alex.freeSlots
+    alex.freeSlots = []
+    alex.weeklyAvailabilityHistory = [{ startsOn: "0000-01-01", freeSlots: original }, { startsOn: "2026-10-29", freeSlots: [] }]
+    expect(weeklySlotsOn(alex, s.today)).toEqual(original)
+    expect(availableAt(alex, s.today, 18 * 60)).toBe(true)
+    expect(availableAt(alex, "2026-10-29", 18 * 60)).toBe(false)
   })
   it("counts how many chosen officers are free in each half hour", () => {
     const s = base(), g = availabilityGrid(s, s.people.map(p => p.id), s.today)
