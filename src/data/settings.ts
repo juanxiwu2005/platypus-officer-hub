@@ -89,16 +89,20 @@ export function validateDefaults(d: OrgSettings): string | null {
 
 export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettings): DemoState {
   if (!canLead(s) || validateClub(d) || validateDefaults(defaults)) return s
-  // Leads may add vacant roles here, but cannot remove existing roles, move officers, or change another officer's private profile.
+  // Leads may add vacant roles and update the shared officer directory, but cannot remove existing roles, move officers, or change private profile fields.
   if (!s.roles.every(old => d.roles.some(r => r.id === old.id && r.holderId === old.holderId)) || d.people.some(p => !s.people.some(old => old.id === p.id && old.roleId === p.roleId))) return s
   const roles = orderRoles(d.roles.map(r => ({ ...r, displayName: r.displayName.trim() })))
+  const people = s.people.map(p => {
+    const edited = d.people.find(candidate => candidate.id === p.id)
+    return edited ? { ...p, name: edited.name.trim(), email: edited.email.trim(), phone: edited.phone.trim(), asuId: edited.asuId ?? "" } : p
+  })
   const nodes = s.nodes.map(n => {
     const oldRole = s.roles.find(r => r.holderId === n.ownerId)
     const nextRole = roles.find(r => r.id === oldRole?.id)
     return nextRole && n.fn === oldRole?.fn ? { ...n, fn: nextRole.fn } : n
   })
   const settings = { ...defaults, ...(defaults.eventCreatorIds ? { eventCreatorIds: defaults.eventCreatorIds.filter(id => s.people.some(p => p.id === id)) } : {}) }
-  return applySchedule({ ...s, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals, workspace: d.workspace, settings }, roles, nodes })
+  return applySchedule({ ...s, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals, workspace: d.workspace, settings }, people, roles, nodes })
 }
 
 /** The president edits the club's event workflow. It applies to events made from now on; events already made keep their steps. */

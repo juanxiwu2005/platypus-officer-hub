@@ -44,6 +44,7 @@
 
 > **2026-10-30 · Settings Roles（Codex，DP8）**
 > Roles 改为紧凑只读目录：固定 Title、可横向查看的汇报关系/Officer/Email/Phone/ASU ID，点 Title 才展开完整 Duties。只有点 “Edit roles” 后才显示字段；可新增空缺岗位、改名称/汇报关系/Duties，并自动同步组织图。一键 “Copy all emails” 复制已有 officer 邮件；Google Contacts 联系人组仍需未来的 Google OAuth/People API 授权，未假装实现。
+> 后续验收补充：编辑态也可改 Officer 姓名、Email、Phone、ASU ID（仅更新共享通讯录字段，私有偏好不受影响）；种子数据已补齐虚构电话，便于测试横向滚动。Title 列由最长标题决定，Duties 操作移至 ASU ID 后；新增且尚无人担任的岗位可 Remove，避免删除仍有任务的岗位导致负责人丢失。
 
 ## 工作包
 

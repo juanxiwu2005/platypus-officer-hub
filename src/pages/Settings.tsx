@@ -14,7 +14,7 @@ import { checkWorkflow, presetSteps, withOwners } from "../engine/workflow"
 import type { StepTemplate } from "../data/types"
 import { validateWorkflow } from "../data/settings"
 import { clubDraft, profilePatch, validateClub, validateDefaults, validateProfile, type ClubDraft } from "../data/settings"
-import type { OrgSettings, Role } from "../data/types"
+import type { OrgSettings, Person, Role } from "../data/types"
 import { Empty, Info } from "../components/ui"
 
 export function InviteLink({ code }: { code: string }) {
@@ -90,7 +90,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
     </>}
     {tab === "roles" && <>
       <h2>Roles</h2>
-      <RolesTable roles={draft.roles} onChange={roles => setDraft({ ...draft, roles })} /><OrgChart roles={draft.roles} />
+      <RolesTable roles={draft.roles} people={draft.people} onChange={(roles, people = draft.people) => setDraft({ ...draft, roles, people })} /><OrgChart roles={draft.roles} />
       <details className="more"><summary>Invite officers</summary><InviteLink code={state.org.inviteCode} /></details>
     </>}
     {tab === "links" && <><h2>Links & files</h2><WorkspaceEditor value={draft.workspace} onChange={workspace => setDraft({ ...draft, workspace })} /></>}
@@ -119,24 +119,28 @@ function WorkflowSettings() {
   </section>
 }
 
-function RolesTable({ roles, onChange }: { roles: Role[]; onChange: (r: Role[]) => void }) {
-  const { state } = useStore()
+function RolesTable({ roles, people, onChange }: { roles: Role[]; people: Person[]; onChange: (roles: Role[], people?: Person[]) => void }) {
   const [editing, setEditing] = useState(false)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const change = (i: number, patch: Partial<Role>, reFn = false) => onChange(roles.map((r, j) => i === j ? (reFn ? rederiveFn(roles, { ...r, ...patch }) : { ...r, ...patch }) : r))
-  const copyEmails = async () => { try { await navigator.clipboard.writeText(roles.map(r => state.people.find(p => p.id === r.holderId)?.email ?? "").filter(Boolean).join(", ")); setCopied(true) } catch { setCopied(false) } }
+  const changePerson = (id: string, patch: Partial<Pick<Person, "name" | "email" | "phone" | "asuId">>) => onChange(roles, people.map(p => p.id === id ? { ...p, ...patch } : p))
+  const copyEmails = async () => { try { await navigator.clipboard.writeText(roles.map(r => people.find(p => p.id === r.holderId)?.email ?? "").filter(Boolean).join(", ")); setCopied(true) } catch { setCopied(false) } }
   const addRole = () => { const role = newRole("New role", roles.find(r => r.fn === "president")?.id ?? null); onChange([...roles, role]); setExpanded(role.id) }
   return <div className="roles-manager">
     <div className="roles-actions"><p className="small muted">Select a role to view its full duties.</p><div className="action-row"><button type="button" className="btn small" onClick={copyEmails}>{copied ? "Emails copied" : "Copy all emails"}</button><button type="button" className={`btn small${editing ? " btn-primary" : ""}`} aria-pressed={editing} onClick={() => setEditing(value => !value)}>{editing ? "Done editing" : "Edit roles"}</button>{editing && roles.length < MAX_ROLES && <button type="button" className="btn small" onClick={addRole}>Add role</button>}</div></div>
-    <div className="roles-table-wrap"><table className="tbl roles-table"><thead><tr><th>Title</th><th>Reports to</th><th>Officer</th><th>Email</th><th>Phone</th><th>ASU ID</th></tr></thead><tbody>
+    <div className="roles-table-wrap"><table className="tbl roles-table"><thead><tr><th>Title</th><th>Reports to</th><th>Officer</th><th>Email</th><th>Phone</th><th>ASU ID</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>
       {roles.map((r, i) => {
-        const person = state.people.find(p => p.id === r.holderId), open = expanded === r.id, boss = withBelow(roles, r.id)
+        const person = people.find(p => p.id === r.holderId), open = expanded === r.id, boss = withBelow(roles, r.id)
         return <Fragment key={r.id}><tr className={open ? "is-open" : ""}>
-          <td>{editing ? <span className="role-title-edit"><input type="text" aria-label="Role title" value={r.displayName} maxLength={60} onChange={e => change(i, { displayName: e.target.value }, true)} /><button type="button" className="btn small" aria-label={`Show duties for ${r.displayName}`} aria-expanded={open} onClick={() => setExpanded(open ? null : r.id)}>Duties</button></span> : <button type="button" className="role-name" aria-expanded={open} onClick={() => setExpanded(open ? null : r.id)}>{r.displayName}</button>}</td>
+          <td>{editing ? <input type="text" aria-label="Role title" value={r.displayName} maxLength={60} onChange={e => change(i, { displayName: e.target.value }, true)} /> : <span className="role-name">{r.displayName}</span>}</td>
           <td>{editing ? <select aria-label="Reports to" value={r.reportsToId ?? ""} onChange={e => change(i, { reportsToId: e.target.value || null })}><option value="">Nobody (top)</option>{roles.filter(x => !boss.has(x.id)).map(x => <option key={x.id} value={x.id}>{x.displayName}</option>)}</select> : roles.find(x => x.id === r.reportsToId)?.displayName ?? "Nobody (top)"}</td>
-          <td>{person?.name || "Open position"}</td><td>{person?.email || "—"}</td><td>{person?.phone || "—"}</td><td>{person?.asuId || "—"}</td>
-        </tr>{open && <tr className="role-detail"><td colSpan={6}><div><span className="cap">Duties</span>{editing ? <textarea aria-label="Role duties" rows={4} maxLength={400} value={r.duties ?? ""} onChange={e => change(i, { duties: e.target.value })} /> : <p>{r.duties?.trim() || "No duties written yet."}</p>}</div></td></tr>}</Fragment>
+          <td>{editing && person ? <input type="text" aria-label="Officer name" value={person.name} maxLength={80} onChange={e => changePerson(person.id, { name: e.target.value })} /> : person?.name || "Open position"}</td>
+          <td>{editing && person ? <input type="email" aria-label="Officer email" value={person.email} onChange={e => changePerson(person.id, { email: e.target.value })} /> : person?.email || "—"}</td>
+          <td>{editing && person ? <input type="tel" aria-label="Officer phone" value={person.phone} onChange={e => changePerson(person.id, { phone: e.target.value })} /> : person?.phone || "—"}</td>
+          <td>{editing && person ? <input type="text" inputMode="numeric" aria-label="Officer ASU ID" maxLength={10} value={person.asuId ?? ""} onChange={e => changePerson(person.id, { asuId: e.target.value.replace(/\D/g, "") })} /> : person?.asuId || "—"}</td>
+          <td className="role-actions-cell"><button type="button" className="btn small" aria-label={`Show duties for ${r.displayName}`} aria-expanded={open} onClick={() => setExpanded(open ? null : r.id)}>Duties</button>{editing && !person && r.fn !== "president" && <button type="button" className="btn small btn-quiet" aria-label={`Remove ${r.displayName}`} onClick={() => onChange(roles.filter(x => x.id !== r.id))}>Remove</button>}</td>
+        </tr>{open && <tr className="role-detail"><td colSpan={7}><div><span className="cap">Duties</span>{editing ? <textarea aria-label="Role duties" rows={4} maxLength={400} value={r.duties ?? ""} onChange={e => change(i, { duties: e.target.value })} /> : <p>{r.duties?.trim() || "No duties written yet."}</p>}</div></td></tr>}</Fragment>
       })}
     </tbody></table></div>
   </div>

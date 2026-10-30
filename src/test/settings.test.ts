@@ -41,6 +41,12 @@ describe("club settings", () => {
     expect(next.roles.find(r => r.id === added.id)).toMatchObject({ displayName: "Community Lead", holderId: null })
     expect(next.people).toEqual(s.people)
   })
+  it("lets the president update fictional officer contact details without moving their role", () => {
+    const s = base(), d = clubDraft(s), maya = d.people.find(p => p.id === "maya")!
+    maya.name = "Maya C."; maya.email = "maya.c@example.org"; maya.phone = "480-555-0199"; maya.asuId = "9999000099"
+    const next = saveClubSettings(s, d, s.org.settings)
+    expect(next.people.find(p => p.id === "maya")).toMatchObject({ name: "Maya C.", email: "maya.c@example.org", phone: "480-555-0199", asuId: "9999000099", roleId: "r-fin" })
+  })
   it("rejects reordered protocol, excessive nudges and automatic sending", () => {
     const s = base(); expect(validateDefaults({ ...s.org.settings, silenceProtocol: { ...s.org.settings.silenceProtocol, presidentDay: 4 } })).toBeTruthy()
     expect(validateDefaults({ ...s.org.settings, maxRemindersPerTask: 4 })).toBeTruthy()
