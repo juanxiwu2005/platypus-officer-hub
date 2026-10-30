@@ -16,31 +16,21 @@ test("forecast shows colour first; reasons and percentages wait in the hover car
   await expect(risk).not.toContainText("personalBufferDays")
 })
 
-test("rules: categories as tabs, sources one click away, sourced answers and refusals in the Ask panel", async ({ page }) => {
-  await page.route("**/api/ask", r => { const q = r.request().postDataJSON().question; return r.fulfill({ json: { inScope: !q.includes("tax"), citations: q.includes("tax") ? [] : ["R06"], answer: "Invented 2099-01-01", model: "mock", provider: "mock" } }) })
+test("rules: compact policy phases and sources one click away", async ({ page }) => {
   await page.goto("/#/rules")
-  await expect(page.getByRole("button", { name: "Marketing", exact: true })).toBeVisible()
-  await expect(page.getByRole("link", { name: /Open source: Student Organization Handbook/ }).first()).toHaveAttribute("href", /eoss\.asu\.edu/)
-  await ask(page, "What do outside caterers need?")
-  const answer = page.getByTestId("rule-answer").last()
-  await expect(answer).toContainText("[R06]")
-  await expect(answer).not.toContainText("2099")
-  await expect(answer).toContainText("2026-10-23")
-  await answer.getByRole("button", { name: "This is wrong" }).click()
-  await ask(page, "Which tax form should we file?")
-  await expect(page.getByTestId("rule-answer").last()).toContainText("will not guess")
-  await page.goto("/#/settings")
-  await page.getByRole("button", { name: "Admin", exact: true }).click()
-  await expect(page.getByRole("heading", { name: "Reported answers" })).toBeVisible()
-  await expect(page.getByText("Needs review", { exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Special", exact: true })).toBeVisible()
+  await expect(page.getByTestId("policies-plan")).toContainText("Submit Event Registry")
+  await page.getByRole("button", { name: "Special", exact: true }).click()
+  await expect(page.getByTestId("policies-special")).toContainText("Obtain drone approval")
+  await expect(page.getByRole("link", { name: /Open source: Alcohol Permits/ })).toHaveAttribute("href", /cfo\.asu\.edu/)
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
 })
 
-test("the Ask button on a rule sends it through the same sourced interface", async ({ page }) => {
-  await page.route("**/api/ask", r => r.fulfill({ json: { inScope: true, citations: ["R08"], model: "mock", provider: "mock" } }))
+test("rules preserve compact policy-source detail on hover", async ({ page }, info) => {
   await page.goto("/#/rules")
-  await page.getByRole("button", { name: "Ask about R08" }).click()
-  await expect(page.getByTestId("rule-answer").last()).toContainText("[R08]")
+  const policy = page.getByText("Submit Event Registry", { exact: true })
+  if (info.project.name === "desktop") await policy.hover(); else await policy.tap()
+  await expect(policy.locator("xpath=..").locator(".hover-card")).toContainText("PLAN-02")
 })
 
 test("funding: one row per event; the details check the application and keep manual progress", async ({ page }) => {

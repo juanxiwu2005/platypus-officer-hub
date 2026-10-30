@@ -28,7 +28,7 @@
 
 # Platypus v1.0 进度
 
-> **待验收（2026-10-30，Codex）：** Preview 8 分支政策单一事实来源底座已完成：可审计政策目录、查询、AI 上下文和日期引擎入口；Rules 前端尚未改动。Preview 8 最新的流程图显示/编辑提交已用可追溯 revert 回退。
+> **待验收（2026-10-30，Codex）：** Preview 8 分支政策单一事实来源与 Rules 前端已完成：可审计政策目录、查询、AI/日期引擎入口，以及 6 个紧凑阶段的图标化政策页（24 条政策）。Preview 8 最新的流程图显示/编辑提交已用可追溯 revert 回退。
 
 **最后更新：** 2026-10-29（Claude，v1.0 集结版复核）
 **当前阶段：** Production 仍是 `main` 的 `4dc55ba`。**下一个上线版本是 `integration/v1.0`（Draft PR #8，预览 https://deploy-preview-8--platypus-officer-hub.netlify.app ）**，包含设计 token（N1–N6）、M2b、S6 护栏、S7 Behind the scenes、S8 触屏、M3 排序题 Edit steps、删除 DeepSeek 和 S9 清理。2026-10-29 实跑完整 `npm run check`：lint + build + **668 个单元测试（47 个文件）+ 367 个页面测试通过，13 个按设备有意跳过**，字数全部在上限内；PR #8 的 GitHub CI 通过。等 Juanxi 说「批准合并」才进 `main`。
