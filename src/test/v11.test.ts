@@ -69,6 +69,15 @@ describe("single-main-line flow chart", () => {
     const L = metroLayout(base, computeSchedule(base), "e-speaker", false)
     expect(L.branches.every(b => b.row > 0)).toBe(true)
   })
+  it("groups a shared dependency window once, not once per owner, and keeps desktop zones meaningful", () => {
+    const L = metroLayout(base, computeSchedule(base), "e-night")
+    const windows = L.branches.map(b => `${b.from}:${b.to}`)
+    expect(new Set(windows).size).toBe(windows.length)
+    for (const b of L.branches) {
+      const hasGate = b.nodes.some(x => x.node.ruleIds.length > 0 || x.node.phase === "plan" || x.node.phase === "money")
+      expect(hasGate ? -b.row : b.row).toBeGreaterThan(0)
+    }
+  })
 })
 
 describe("Ask panel cards", () => {

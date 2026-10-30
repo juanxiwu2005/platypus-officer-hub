@@ -86,7 +86,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
 
   // Pixel geometry. Horizontal: columns run left → right, rows above/below. Vertical (phone): top → bottom, branches to the right.
   const COL = vertical ? 64 : Math.max(96, Math.min(132, (width - 112) / Math.max(1, L.cols)))
-  const ROW = vertical ? 132 : 88
+  const ROW = vertical ? 132 : 76
   const PAD = vertical ? 28 : 56
   const top = vertical ? 40 : 52 + (-L.minRow) * ROW + 34
   const pos = (col: number, row: number) => vertical ? { x: 26 + row * ROW, y: top + col * COL } : { x: PAD + col * COL, y: top + row * ROW }
@@ -213,6 +213,16 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const xa = a.x + 34, xb = b.x - 34
     return `M${a.x} ${a.y} C${a.x + 22} ${a.y} ${xa - 22} ${ra.y} ${xa} ${ra.y} L${xb} ${rb.y} C${xb + 22} ${rb.y} ${b.x - 22} ${b.y} ${b.x} ${b.y}`
   }
+  // The edit target follows the same rounded geometry as the visible metro line. It must never turn into a broad,
+  // straight mint stripe merely because the pointer is over it.
+  const linkPath = (a: { x: number; y: number }, b: { x: number; y: number }) => {
+    if (vertical) {
+      const dy = b.y - a.y
+      return `M${a.x} ${a.y} C${a.x} ${a.y + dy * .35} ${b.x} ${b.y - dy * .35} ${b.x} ${b.y}`
+    }
+    const dx = b.x - a.x
+    return `M${a.x} ${a.y} C${a.x + dx * .35} ${a.y} ${b.x - dx * .35} ${b.y} ${b.x} ${b.y}`
+  }
 
   // Soft time labels: weeks before the event, shown once each.
   const ticks: { at: number; label: string }[] = []
@@ -236,7 +246,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     return <div key={n.id} className={`m-node ${labelSide} ${n.id === selectedId ? "is-selected" : ""}${drag?.id === n.id ? " is-dragging" : ""}`} style={{ left: p.x, top: p.y }}>
       <button type="button" className={`m-dot ${st} ${issue ? `has-${issue.severity}` : ""}${tpl && n.ruleIds.length ? " locked" : ""}${mark ? ` mark-${mark}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
         onPointerDown={e => onDown(e, n.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onDoubleClick={e => openNode(n.id, e)} onContextMenu={e => { if (on) { e.preventDefault(); openNode(n.id, e) } }} onKeyDown={e => onKey(e, n.id)} />
-      <span className="m-label" aria-hidden="true"><b>{tpl ? n.title : shortTitle(n)}</b><span>{tpl ? tpl.sublabel(n) : firstName(state, n.ownerId)}</span></span>
+      <span className="m-label" aria-hidden="true"><b>{shortTitle(n)}</b><span>{tpl ? tpl.sublabel(n) : firstName(state, n.ownerId)}</span></span>
       <span className="m-card" role="tooltip">
         <b>{n.title}</b>
         {tpl ? tpl.lines(n).slice(1).map((t, i) => <span key={i}>{t}</span>) : <>
@@ -272,7 +282,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
         {L.branches.map(b => <path key={b.id} d={branchPath(b.from, b.to, b.row)} className={`m-line branch ${b.nodes.every(x => x.node.status === "done") ? "done" : ""}`} />)}
         <path d={mainPath} className="m-line main" />
         {donePath && <path d={donePath} className="m-line main done" />}
-        {on && gaps.map(g => { const a = pos(g.u.col, g.u.row), b = pos(g.v.col, g.v.row); return <path key={g.id} d={`M${a.x} ${a.y}L${b.x} ${b.y}`} className="m-hit" data-testid={`flow-line-${g.u.key}-${g.v.key}`} onDoubleClick={e => openGap(g, e)} /> })}
+        {on && gaps.map(g => { const a = pos(g.u.col, g.u.row), b = pos(g.v.col, g.v.row), d = linkPath(a, b); return <g key={g.id}><path d={d} className="m-hit" data-testid={`flow-line-${g.u.key}-${g.v.key}`} onDoubleClick={e => openGap(g, e)} /><path d={d} className="m-hit-line" /></g> })}
         {!tpl && (() => { const p = pos(todayCol, 0); return vertical
           ? <g className="m-today"><line x1={4} x2={W - 4} y1={p.y} y2={p.y} /><text x={W - 8} y={p.y - 6} textAnchor="end">Today</text></g>
           : <g className="m-today"><line x1={p.x} x2={p.x} y1={28} y2={H - 18} /><text x={p.x} y={H - 4} textAnchor="middle">Today</text></g> })()}

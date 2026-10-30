@@ -7,7 +7,9 @@ import { daysBetween } from "../../lib/dates"
  * Single-main-line ("metro") layout for an event (v1.1, plan "流程图：一条主线").
  * Main line = the longest dependency chain before the event, then the event day, then the longest chain after it.
  * Every other step hangs on a branch that leaves the main line at its last main ancestor and rejoins at its first
- * main descendant. Branches are grouped by the function that owns the work (room, food and money, marketing…).
+ * main descendant. A branch is a single parallel-work window: its steps share the same prerequisite and downstream
+ * milestone. It is deliberately not grouped by owner, because a role is not a dependency and must not create a rail.
+ * Rule-bound decisions live above the spine; delivery work that can run alongside it lives below.
  * Pure function: no React, no dates written. Positions are in "columns" and "rows"; the chart turns them into pixels.
  */
 export const EVENT_KEY = "__event__"
@@ -83,7 +85,8 @@ export function metroLayout(state: DemoState, sched: Schedule, eventId: string, 
   const groups = new Map<string, { fn: RoleFunction; from: number; to: number; nodes: Node[] }>()
   for (const p of placed) {
     const from = p.from + shift, to = p.to + shift
-    const key = `${from}:${to}:${p.node.fn}`
+    // A shared window means the work can happen in parallel. Owner/function is intentionally not part of the key.
+    const key = `${from}:${to}`
     const g = groups.get(key) ?? { fn: p.node.fn, from, to, nodes: [] }
     g.nodes.push(p.node); groups.set(key, g)
   }
@@ -98,12 +101,17 @@ export function metroLayout(state: DemoState, sched: Schedule, eventId: string, 
     for (const b of raw) if (b.to === k && b.from >= 0) c = Math.max(c, col[b.from] + b.nodes.length + 1)
     col.push(c)
   })
-  // Rows: nearest free row, alternating above and below (or only one side on a phone).
+  // Rows: the two sides have a stable meaning, rather than being an arbitrary alternation.
+  // Above = approvals and rule-bound gates. Below = delivery work that can run in parallel.
   const taken: { row: number; a: number; b: number }[] = []
-  const candidates = bothSides ? [-1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-  // Short spans take the rows nearest the main line, so lines do not cross.
-  const branches: Branch[] = raw.sort((x, y) => (col[x.to] - col[x.from]) - (col[y.to] - col[y.from]) || col[x.from] - col[y.from] || y.nodes.length - x.nodes.length).map((b, i) => {
+  const above = Array.from({ length: raw.length + 1 }, (_, i) => -i - 1)
+  const below = Array.from({ length: raw.length + 1 }, (_, i) => i + 1)
+  // Long windows sit nearest the spine. This keeps the broadest curves calm and lets short work sit outside them.
+  const branches: Branch[] = raw.sort((x, y) => (col[y.to] - col[y.from]) - (col[x.to] - col[x.from]) || col[x.from] - col[y.from] || y.nodes.length - x.nodes.length).map((b, i) => {
     const a = col[b.from], z = col[b.to]
+    const isGate = b.nodes.some(n => n.ruleIds.length > 0 || n.phase === "plan" || n.phase === "money")
+    const preferred = !bothSides ? below : isGate ? above : below
+    const candidates = preferred
     const row = candidates.find(r => !taken.some(t => t.row === r && t.a < z && a < t.b)) ?? candidates.at(-1)!
     taken.push({ row, a, b: z })
     const L = b.nodes.length
