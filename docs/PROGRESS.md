@@ -28,6 +28,8 @@
 
 # Platypus v1.0 进度
 
+| 2026-10-30 | Codex | Rules 每条来源右侧恢复 Platypus 聊天图标；点击后打开 Ask 并直接以该来源名称发起有上下文的政策问题。官方外链仍独立保留。增加页面回归断言。 | Preview 8 / `integration/v1.0`。 |
+
 | 2026-10-30 | Codex | Ask 面板的任务快捷路由收紧：只有明确的“top tasks / my tasks / team priorities”才显示任务表。带 ASU、rules、policy、source 或 database 的提问优先进入带出处的政策检索，因而“top three rules”不再错误显示 “Your top 5”。政策端同时得到目录计数（当前 64 条索引来源），可区分“已索引来源数”与“全部 ASU 规则”。新增回归测试。 | Preview 8 / `integration/v1.0`；待部署后用截图中的问题复测：应返回政策分析与来源，不出现任务表。 |
 
 **最后更新：** 2026-10-29（Claude，v1.0 集结版复核）

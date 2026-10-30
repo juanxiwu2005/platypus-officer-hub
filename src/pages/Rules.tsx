@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { PageHead } from "../components/Page"
+import { useRail } from "../components/rail/RailContext"
 import { Empty, Hover } from "../components/ui"
 import { POLICY_CATALOG, type PolicyCategory } from "../data/policyCatalog"
 
@@ -29,10 +30,12 @@ const CATEGORIES: { id: "all" | PolicyCategory; label: string }[] = [
 ]
 
 const ExternalIcon = () => <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8 4H4v12h12v-4M11 3h6v6M17 3l-8 8" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+const ChatIcon = () => <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4.5h12v8H9l-4 3v-3H4z" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
 
 /** Human browsing for the policy-source catalog. Detailed text stays server-side for policy search. */
 export default function Rules() {
   const [tab, setTab] = useState<(typeof CATEGORIES)[number]["id"]>("all")
+  const rail = useRail()
   const sources = POLICY_CATALOG.filter(source => tab === "all" || source.category === tab)
   return <>
     <PageHead path="/rules" actions={<div className="seg" role="group" aria-label="Policy category">{CATEGORIES.map(category => <button key={category.id} type="button" aria-pressed={tab === category.id} onClick={() => setTab(category.id)}>{category.label}</button>)}</div>} />
@@ -45,6 +48,7 @@ export default function Rules() {
             {source.sourceUrl
               ? <a className="btn small icon-btn" href={source.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Open source: ${source.officialName}`} title={source.officialName}><ExternalIcon /></a>
               : <span className="btn small icon-btn muted" aria-label={`No single official URL for ${source.officialName}`} title={source.sourceUrlNote ?? "No single official URL"}><ExternalIcon /></span>}
+            <button type="button" className="btn small icon-btn" aria-label={`Ask Platypus about ${source.officialName}`} title="Ask Platypus" onClick={() => rail.ask(`What does ${source.officialName} cover, and how could it apply to our event?`, true)}><ChatIcon /></button>
           </span>
         </li>)}
       </ul> : <Empty>No checked official source in this category.</Empty>}

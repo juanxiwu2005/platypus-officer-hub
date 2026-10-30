@@ -21,6 +21,7 @@ test("rules: categories as tabs, sources one click away, sourced answers and ref
   await page.goto("/#/rules")
   await expect(page.getByRole("button", { name: "Marketing", exact: true })).toBeVisible()
   await expect(page.getByRole("link", { name: "Open source: ASU Event Registry" })).toHaveAttribute("href", /eventreg\.asu\.edu/)
+  await expect(page.getByRole("button", { name: "Ask Platypus about ASU Event Registry" })).toBeVisible()
   await ask(page, "What do outside caterers need?")
   const answer = page.getByTestId("rule-answer").last()
   await expect(answer).toContainText("[R06]")
