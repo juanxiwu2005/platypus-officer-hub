@@ -79,6 +79,14 @@ describe("five-route event flow chart", () => {
     expect(new Set(pre.map(b => b.row)).size).toBe(pre.length)
     expect(pre.every(b => b.from === 0 && ["finalcheck", "review"].includes(L.stations[b.to].node?.stepKey ?? ""))).toBe(true)
   })
+  it("packs active routes when a conditional route is absent", () => {
+    const v2 = seedDemo("2026-10-22", "v2")
+    const withoutPartnerRoute = { ...v2, nodes: v2.nodes.filter(n => n.eventId !== "e-night" || !["partner", "speakerPacket", "travel", "partnerReview", "parking"].includes(n.stepKey ?? "")) }
+    const L = metroLayout(withoutPartnerRoute, computeSchedule(withoutPartnerRoute), "e-night")
+    expect(L.branches.find(b => b.id === "event-lead")?.row).toBe(-3)
+    expect(L.branches.find(b => b.id === "marketing")?.row).toBe(-1)
+    expect(L.branches.find(b => b.id === "finance")?.row).toBe(1)
+  })
 })
 
 describe("Ask panel cards", () => {

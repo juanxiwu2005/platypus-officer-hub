@@ -35,6 +35,20 @@ const POST_ROUTES: Route[] = [
 
 const byRouteOrder = (route: Route, a: Node, b: Node) => route.keys.indexOf(a.stepKey ?? "") - route.keys.indexOf(b.stepKey ?? "")
 
+/**
+ * Empty conditional routes must not leave a visual hole. Keep the lowest active
+ * route where it belongs, then pack the active routes above it at the standard
+ * two-row rhythm. This moves an upper route down when a route beneath it is off.
+ */
+function packedRows(routes: Route[], groups: { route: Route; nodes: Node[] }[]) {
+  const active = routes.map(route => groups.find(group => group.route.id === route.id)!).filter(group => group.nodes.length > 0)
+  const out = new Map<string, number>()
+  if (!active.length) return out
+  const bottom = active.at(-1)!.route.row
+  active.forEach((group, index) => out.set(group.route.id, bottom - 2 * (active.length - index - 1)))
+  return out
+}
+
 /** Build stable swimlanes from the approved workflow routes. */
 export function metroLayout(state: DemoState, _sched: Schedule, eventId: string, bothSides = true): MetroLayout {
   const nodes = state.nodes.filter(n => n.eventId === eventId)
@@ -51,6 +65,8 @@ export function metroLayout(state: DemoState, _sched: Schedule, eventId: string,
   const extraPost = nodes.filter(n => !placed.has(n.stepKey ?? "") && n.phase === "close")
   if (extraPre.length) pre.push({ route: { id: "other-pre", keys: extraPre.map(n => n.stepKey ?? n.id), row: 6 }, nodes: extraPre })
   if (extraPost.length) post.push({ route: { id: "other-close", keys: extraPost.map(n => n.stepKey ?? n.id), row: 4 }, nodes: extraPost })
+  const preRows = packedRows(PRE_ROUTES, pre)
+  const postRows = packedRows(POST_ROUTES, post)
 
   const preWidth = Math.max(1, ...pre.map(x => x.nodes.length))
   // Keep one compact reading column per task. The named milestones do not need
@@ -73,11 +89,11 @@ export function metroLayout(state: DemoState, _sched: Schedule, eventId: string,
   const branches: Branch[] = []
   pre.forEach(({ route, nodes: routeNodes }, index) => {
     if (!routeNodes.length || !final) return
-    branches.push({ id: route.id, fn: routeNodes[0].fn, from: 0, to: finalIndex, row: branchRow(route.row, index), nodes: [...routeNodes].sort((a, b) => byRouteOrder(route, a, b)).map((node, i) => ({ node, col: i + 1 + (node.stepKey === "reminder" ? .35 : 0) })) })
+    branches.push({ id: route.id, fn: routeNodes[0].fn, from: 0, to: finalIndex, row: branchRow(preRows.get(route.id) ?? route.row, index), nodes: [...routeNodes].sort((a, b) => byRouteOrder(route, a, b)).map((node, i) => ({ node, col: i + 1 + (node.stepKey === "reminder" ? .35 : 0) })) })
   })
   post.forEach(({ route, nodes: routeNodes }, index) => {
     if (!routeNodes.length || headcountIndex < 0) return
-    branches.push({ id: route.id, fn: routeNodes[0].fn, from: headcountIndex, to: endIndex, row: branchRow(route.row, index + pre.length), nodes: [...routeNodes].sort((a, b) => byRouteOrder(route, a, b)).map((node, i) => ({ node, col: stations[headcountIndex].col + i + 1 })) })
+    branches.push({ id: route.id, fn: routeNodes[0].fn, from: headcountIndex, to: endIndex, row: branchRow(postRows.get(route.id) ?? route.row, index + pre.length), nodes: [...routeNodes].sort((a, b) => byRouteOrder(route, a, b)).map((node, i) => ({ node, col: stations[headcountIndex].col + i + 1 })) })
   })
   const rows = branches.map(branch => branch.row)
   return { stations, branches, cols: stations.at(-1)!.col, minRow: Math.min(0, ...rows), maxRow: Math.max(0, ...rows) }

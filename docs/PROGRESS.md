@@ -36,6 +36,7 @@
 | 2026-10-31 | Codex | **五路线图紧凑排版：待 Preview 验收。** 隐藏 Start 到 Full Check 的重复中心线；桌面泳道行距与顶部空白收紧；每个里程碑改为连续阅读列，移除仅为留白而存在的横向列，减少横向滚动。 | 定向流程测试、lint、生产构建通过；需要同步本地备份。 |
 | 2026-10-31 | Codex | **五路线图间距微调：待 Preview 验收。** 五条前置泳道及收尾 Marketing/Finance 改为等距；Full Check 向右留出汇线缓冲，连线不再贴住其标签。 | 定向流程测试、lint、生产构建通过；需要同步本地备份。 |
 | 2026-10-31 | Codex | **工作流颜色与条件修复：待 Preview 验收。** 顶部为悬停卡留白并保护 Start 标签不被连线穿过；校正 Partner Review、RSVP、Advisor、EAMS、Quote Gather、Content Distribution 的 Core/Situation 颜色。Partner 路线仅在 Partner 或 Speaker 被选中时生成；RSVP 为可选；删除重复的 Photo Upload，保留 Photo Backup。schema v11 将 v10 演示安全重建为此模板。 | 定向流程测试、lint、生产构建通过；需要同步本地备份。 |
+| 2026-10-31 | Codex | **流程图动态泳道：待 Preview 验收。** 条件路线未启用时，布局引擎不再保留空行；上方活跃路线自动下移，维持连续等距的泳道。桌面画布增加底部留白，避免最下方标签贴边。 | 定向流程测试、lint、生产构建通过；需要同步本地备份。 |
 
 | 2026-10-30 | Codex | Rules 每条来源右侧恢复 Platypus 聊天图标；点击后打开 Ask 并直接以该来源名称发起有上下文的政策问题。官方外链仍独立保留。增加页面回归断言。 | Preview 8 / `integration/v1.0`。 |
 

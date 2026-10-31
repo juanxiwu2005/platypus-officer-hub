@@ -94,7 +94,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const top = vertical ? 40 : 150 + (-L.minRow) * ROW
   const pos = (col: number, row: number) => vertical ? { x: 26 + row * ROW, y: top + col * COL } : { x: PAD + col * COL, y: top + row * ROW }
   const W = vertical ? Math.max(width, 26 + L.maxRow * ROW + 140) : PAD * 2 + L.cols * COL
-  const H = vertical ? top + L.cols * COL + 60 : top + L.maxRow * ROW + 70
+  const H = vertical ? top + L.cols * COL + 60 : top + L.maxRow * ROW + 130
 
   const eventNodes = state.nodes.filter(n => n.eventId === eventId)
   const byId = new Map(eventNodes.map(n => [n.id, n]))
