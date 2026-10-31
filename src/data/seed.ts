@@ -4,7 +4,9 @@ import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 
-export const SCHEMA_VERSION = 13
+// v14 refreshes the preview's fictional data so existing Preview sessions load
+// the current checklist-driven demonstration (their prior local snapshot is backed up).
+export const SCHEMA_VERSION = 14
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan

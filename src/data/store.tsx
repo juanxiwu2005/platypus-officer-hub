@@ -441,7 +441,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: parsed, notice: null }
-  // v13 makes assigned workflow work actionable immediately. Keep every saved
+  // v12 makes assigned workflow work actionable immediately. Keep every saved
   // event, budget line and history; only move owner-backed Not claimed cards to To do.
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 12 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
     const promoted = { ...parsed, schemaVersion: SCHEMA_VERSION, nodes: parsed.nodes.map(node => node.ownerId && node.status === "unclaimed" ? { ...node, status: "accepted" as const, acceptedOn: node.assignedOn ?? parsed.today } : node) }
