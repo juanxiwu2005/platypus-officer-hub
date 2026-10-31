@@ -48,7 +48,7 @@ export function moveTask(s: DemoState, nodeId: string, to: NodeStatus, beforeId:
     if (to === "done" && owner) next = replyToTask(next, n.id, owner, "done")
     else if (to === "blocked" && owner === actor) next = replyToTask(next, n.id, owner, "help")
     else if (to !== "accepted" || cur.status !== "accepted") {
-      next = closeSilence({ ...next, nodes: next.nodes.map(x => x.id === n.id ? { ...x, status: to, lastUpdate: s.today, ...(to === "unclaimed" ? { acceptedOn: null } : {}), ...(to !== "waiting" ? { waitingOn: null } : {}), ...(n.status === "done" ? { completedOn: undefined } : {}) } : x) }, n.id)
+      next = closeSilence({ ...next, nodes: next.nodes.map(x => x.id === n.id ? { ...x, status: to, lastUpdate: s.today, ...(to === "unclaimed" ? { acceptedOn: null } : {}), ...(to !== "waiting" ? { waitingOn: null, waitingOnPersonId: null } : {}), ...(n.status === "done" ? { completedOn: undefined } : {}) } : x) }, n.id)
       next = applySchedule(next)
     }
     if (owner && owner !== actor) {

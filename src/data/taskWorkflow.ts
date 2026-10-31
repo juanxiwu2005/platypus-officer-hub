@@ -6,7 +6,7 @@ import { applySchedule, computeSchedule } from "../engine/schedule"
 import { isBudgetControlledNode } from "../engine/eventBudget"
 
 export type TaskReply = "done" | "waiting" | "help" | "extension"
-export interface ReplyInput { waitingOn?: string; draftLink?: string; requestedDate?: string; reason?: string }
+export interface ReplyInput { waitingOn?: string; waitingOnPersonId?: string | null; draftLink?: string; requestedDate?: string; reason?: string }
 export const safeLink = (s: string) => { try { return ["https:", "http:"].includes(new URL(s).protocol) } catch { return false } }
 export const leaders = (s: DemoState) => s.people.filter(p => ["president", "vice_president"].includes(s.roles.find(r => r.id === p.roleId)?.fn ?? "")).map(p => p.id)
 const rolePeople = (s: DemoState, ids: string[]) => s.roles.filter(r => ids.includes(r.id) && r.holderId).map(r => r.holderId!)
@@ -72,8 +72,13 @@ export function replyToTask(s: DemoState, nodeId: string, actorId: string, reply
   const n = s.nodes.find(n => n.id === nodeId)
   if (!n || (reply === "done" && isBudgetControlledNode(n)) || validateReply(s, n, actorId, reply, input)) return s
   const status = reply === "done" ? "done" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : "in_progress"
-  const updated: Node = { ...n, status, lastUpdate: s.today, waitingOn: reply === "waiting" ? input.waitingOn!.trim().slice(0, 180) : null, ...(reply === "done" ? { completedOn: s.today } : {}), ...(reply === "extension" ? { draftLink: input.draftLink } : {}) }
+  const waitingOnPersonId = reply === "waiting" && input.waitingOnPersonId && input.waitingOnPersonId !== actorId && s.people.some(p => p.id === input.waitingOnPersonId) ? input.waitingOnPersonId : null
+  const updated: Node = { ...n, status, lastUpdate: s.today, waitingOn: reply === "waiting" ? input.waitingOn!.trim().slice(0, 180) : null, waitingOnPersonId, ...(reply === "done" ? { completedOn: s.today } : {}), ...(reply === "extension" ? { draftLink: input.draftLink } : {}) }
   let next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? updated : x), nudges: s.nudges.map(x => x.nodeId === n.id ? { ...x, response: status } : x) }, n.id)
+  if (reply === "waiting" && waitingOnPersonId) {
+    const who = s.people.find(p => p.id === actorId)?.name.split(" ")[0] ?? "A teammate"
+    next = addNotices(next, n.id, [waitingOnPersonId], "info", `${who} is waiting for you on “${n.title}”. It is now in your To do list.`, `waiting-on:${n.id}:${s.today}:${next.notifications.length}`)
+  }
   if (reply === "done") {
     next.extensionRequests = next.extensionRequests.map(r => r.nodeId === n.id && r.status === "pending" ? { ...r, status: "cancelled" } : r)
     if (!s.contributions.some(c => c.nodeId === n.id)) next.contributions = [...s.contributions, { personId: actorId, nodeId: n.id, points: ({ light: 1, medium: 2, heavy: 3 }[n.tier]) + (s.today <= (n.clubDeadline ?? s.today) ? 1 : 0), onTime: s.today <= (n.clubDeadline ?? s.today), completedOn: s.today }]

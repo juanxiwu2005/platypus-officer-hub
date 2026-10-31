@@ -54,6 +54,19 @@ describe("storage", () => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schemaVersion: 1 }))
     expect(loadState().schemaVersion).toBe(SCHEMA_VERSION)
   })
+
+  it("repairs a verifiable missing event link and named waiting teammate from v14", () => {
+    const base = seedDemo("2026-10-22", "v2")
+    const v14 = {
+      ...base,
+      schemaVersion: 14,
+      nodes: base.nodes.map(node => node.id === "e-night:quotes" ? { ...node, eventId: null } : node.id === "t-news" ? { ...node, waitingOn: "Priya Nair", waitingOnPersonId: undefined } : node),
+    }
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(v14))
+    const repaired = loadState()
+    expect(repaired.nodes.find(node => node.id === "e-night:quotes")?.eventId).toBe("e-night")
+    expect(repaired.nodes.find(node => node.id === "t-news")?.waitingOnPersonId).toBe("priya")
+  })
 })
 
 describe("app shell", () => {

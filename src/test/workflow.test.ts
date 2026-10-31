@@ -37,8 +37,9 @@ describe("claim handshake and status permissions", () => {
   it("records waiting and help; does not change any deadline", () => {
     const sam = personal("sam")
     expect(reducer(sam, { type: "replyTask", nodeId: "t-news", reply: "waiting" })).toBe(sam)
-    const waiting = reducer(sam, { type: "replyTask", nodeId: "t-news", reply: "waiting", input: { waitingOn: "Priya Nair" } })
-    expect(waiting.nodes.find(n => n.id === "t-news")).toMatchObject({ status: "waiting", waitingOn: "Priya Nair", clubDeadline: sam.nodes.find(n => n.id === "t-news")!.clubDeadline })
+    const waiting = reducer(sam, { type: "replyTask", nodeId: "t-news", reply: "waiting", input: { waitingOn: "Priya Nair", waitingOnPersonId: "priya" } })
+    expect(waiting.nodes.find(n => n.id === "t-news")).toMatchObject({ status: "waiting", waitingOn: "Priya Nair", waitingOnPersonId: "priya", clubDeadline: sam.nodes.find(n => n.id === "t-news")!.clubDeadline })
+    expect(waiting.notifications.some(n => n.recipientId === "priya" && /waiting for you/.test(n.text))).toBe(true)
     const help = reducer(waiting, { type: "replyTask", nodeId: "t-news", reply: "help" })
     expect(help.nodes.find(n => n.id === "t-news")!.status).toBe("blocked")
     expect(help.notifications.some(n => n.kind === "help" && n.recipientId === "alex")).toBe(true)

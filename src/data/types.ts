@@ -247,6 +247,8 @@ export interface Node {
   status: NodeStatus
   acceptedOn: string | null
   waitingOn: string | null
+  /** The teammate a waiting task needs; unlike waitingOn text, this drives their To do and Update notice. */
+  waitingOnPersonId?: string | null
   draftLink: string | null
   why: string
   /** Where the step comes from, e.g. "OA101 step 20" or "SEO T-14 checklist". */

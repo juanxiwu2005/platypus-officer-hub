@@ -32,6 +32,21 @@ import { syncBudgetFlow } from "../engine/eventBudget"
  */
 export const STORAGE_KEY = "platypus.v1.demo"
 
+/** Repair only relationships that the stored identifiers prove. Older snapshots could
+ * lose eventId while retaining a template node id such as `e-night:quotes`. */
+function repairTaskLinks(state: DemoState): DemoState {
+  const eventIds = new Set(state.events.map(event => event.id))
+  let changed = false
+  const nodes = state.nodes.map(node => {
+    const candidate = !node.eventId && node.stepKey && typeof node.id === "string" ? node.id.split(":")[0] : null
+    const eventId = candidate && eventIds.has(candidate) ? candidate : node.eventId
+    const waitingOnPersonId = !node.waitingOnPersonId && node.status === "waiting" && node.waitingOn ? state.people.find(person => person.name === node.waitingOn)?.id ?? null : node.waitingOnPersonId
+    if (eventId !== node.eventId || waitingOnPersonId !== node.waitingOnPersonId) { changed = true; return { ...node, eventId, waitingOnPersonId } }
+    return node
+  })
+  return changed ? applySchedule({ ...state, nodes }) : state
+}
+
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
 export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount">>
@@ -440,12 +455,15 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   if (!raw) return { state: seedDemo(undefined, "v2"), notice: null }
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: parsed, notice: null }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: repairTaskLinks(parsed), notice: null }
+  // v15 preserves the current demo while repairing verifiable event links and turns
+  // old exact-name waiting references into actionable teammate references.
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 14 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION }), notice: null }
   // v12 makes assigned workflow work actionable immediately. Keep every saved
   // event, budget line and history; only move owner-backed Not claimed cards to To do.
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 12 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
     const promoted = { ...parsed, schemaVersion: SCHEMA_VERSION, nodes: parsed.nodes.map(node => node.ownerId && node.status === "unclaimed" ? { ...node, status: "accepted" as const, acceptedOn: node.assignedOn ?? parsed.today } : node) }
-    const state = promoted.events.reduce((next, event) => syncBudgetFlow(next, event.id), applySchedule(promoted))
+    const state = promoted.events.reduce((next, event) => syncBudgetFlow(next, event.id), repairTaskLinks(applySchedule(promoted)))
     return { state, notice: null }
   }
   // v6 used the former fixed event graph. Preserve existing activities and their recognizable progress while

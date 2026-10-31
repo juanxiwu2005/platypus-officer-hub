@@ -45,7 +45,9 @@ export default function Tasks() {
     setNotice(addTaskNotice(state, status) ?? "")
     dispatch({ type: "addTask", title, status })
   }
-  const visible = state.nodes.filter(n => (scope === "team" || n.ownerId === person.id || (n.status === "unclaimed" && !n.ownerId)) && isInTaskHorizon(n, state.today))
+  // A teammate who is explicitly holding up a task sees it in To do as well as
+  // receiving an Update. Ownership stays with the original task owner.
+  const visible = state.nodes.filter(n => (scope === "team" || n.ownerId === person.id || n.waitingOnPersonId === person.id || (n.status === "unclaimed" && !n.ownerId)) && isInTaskHorizon(n, state.today))
   return <>
     <PageHead path="/tasks" actions={<>
       <div className="seg" role="group" aria-label="Task view">{(["board", "table", "timeline"] as View[]).map(v => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>{v === "table" ? "Table" : v === "board" ? "Board" : "Timeline"}</button>)}</div>
@@ -133,7 +135,8 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
   return <>
     <div className="board" data-testid="task-board">
       {BOARD_STATUSES.map(st => {
-        const cards = nodes.filter(n => n.status === st).sort(byRank)
+        const statusForViewer = (n: Node): NodeStatus => n.status === "waiting" && n.waitingOnPersonId === state.viewerId && n.ownerId !== state.viewerId ? "accepted" : n.status
+        const cards = nodes.filter(n => statusForViewer(n) === st).sort(byRank)
         return <section key={st} className={`board-col ${over?.status === st ? "over" : ""}`} aria-label={styles[st].label}
           onDragOver={e => { e.preventDefault(); if (!over || over.status !== st) setOver({ status: st, before: null }) }}
           onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node)) setOver(null) }}
@@ -153,7 +156,8 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
               <div className="board-meta">
                 {fields.includes("owner") && <Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />}
                 {fields.includes("due") && n.clubDeadline && <span className={`small ${late ? "late-text" : "muted"}`}>{fmtShort(n.clubDeadline)}</span>}
-                {fields.includes("event") && ev && <span className="small muted ev-name">{ev.name}</span>}
+                {ev && <span className="small muted ev-name">{ev.name}</span>}
+                {n.status === "waiting" && n.waitingOnPersonId === state.viewerId && n.ownerId !== state.viewerId && <span className="small wait-for-you">Waiting on you</span>}
               </div>
             </article>
           })}
