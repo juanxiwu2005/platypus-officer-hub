@@ -5,7 +5,7 @@ import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 
 // v15 repairs persisted task links while retaining the current checklist-driven demo.
-export const SCHEMA_VERSION = 15
+export const SCHEMA_VERSION = 16
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan

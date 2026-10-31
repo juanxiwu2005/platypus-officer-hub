@@ -10,7 +10,7 @@ import type { Channel } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { clearLocalDocs } from "../lib/localDocs"
 import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
-import { buildEventNodes, EVENT_STEPS } from "../engine/playbooks"
+import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "../engine/playbooks"
 import { nextCounter } from "../lib/ids"
 import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
 import { cannotDelete, moveBetween, newStepNode, removalEdits } from "../lib/flowEdit"
@@ -45,6 +45,19 @@ function repairTaskLinks(state: DemoState): DemoState {
     return node
   })
   return changed ? applySchedule({ ...state, nodes }) : state
+}
+
+/** Saved v2 events keep their existing history, then receive only the missing
+ * invariant template steps. This repairs a previously condition-hidden core link. */
+function repairCoreEventSteps(state: DemoState): DemoState {
+  const additions = state.events.flatMap(event => {
+    if (event.checks === undefined) return []
+    const existing = new Set(state.nodes.filter(node => node.eventId === event.id).map(node => node.stepKey))
+    return buildEventNodes(event, state.roles, { steps: orgSteps(state) })
+      .filter(node => CORE_EVENT_STEP_KEYS.includes(node.stepKey as typeof CORE_EVENT_STEP_KEYS[number]) && !existing.has(node.stepKey))
+      .map(node => ({ ...node, assignedOn: state.today, ownerVersion: 0 }))
+  })
+  return additions.length ? applySchedule({ ...state, nodes: [...state.nodes, ...additions] }) : state
 }
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
@@ -395,7 +408,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
     case "issueOfficerGrant": {
       const g = action.grant
       const n = state.nodes.find(n => n.id === g.nodeId)
-      if (!state.people.some(person => person.id === state.viewerId) || !n || !n.ownerId || n.status === "done" || g.ownerId !== n.ownerId || g.ownerVersion !== (n.ownerVersion ?? 0) || g.issuedOn !== state.today || g.usedOn || !/^[a-f0-9]{64}$/.test(g.signature) || state.officerGrants.some(x => x.id === g.id)) return state
+      if (!canLead(state) || !n || !n.ownerId || n.status === "done" || g.ownerId !== n.ownerId || g.ownerVersion !== (n.ownerVersion ?? 0) || g.issuedOn !== state.today || g.usedOn || !/^[a-f0-9]{64}$/.test(g.signature) || state.officerGrants.some(x => x.id === g.id)) return state
       return { ...state, officerGrants: [...state.officerGrants, g] }
     }
     case "officerAction": {
@@ -457,15 +470,16 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   if (!raw) return { state: seedDemo(undefined, "v2"), notice: null }
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: repairTaskLinks(parsed), notice: null }
-  // v15 preserves the current demo while repairing verifiable event links and turns
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: repairCoreEventSteps(repairTaskLinks(parsed)), notice: null }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 15 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })), notice: null }
+  // v14 preserves the current demo while repairing verifiable event links and turns
   // old exact-name waiting references into actionable teammate references.
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 14 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION }), notice: null }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 14 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })), notice: null }
   // v12 makes assigned workflow work actionable immediately. Keep every saved
   // event, budget line and history; only move owner-backed Not claimed cards to To do.
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 12 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
     const promoted = { ...parsed, schemaVersion: SCHEMA_VERSION, nodes: parsed.nodes.map(node => node.ownerId && node.status === "unclaimed" ? { ...node, status: "accepted" as const, acceptedOn: node.assignedOn ?? parsed.today } : node) }
-    const state = promoted.events.reduce((next, event) => syncBudgetFlow(next, event.id), repairTaskLinks(applySchedule(promoted)))
+    const state = promoted.events.reduce((next, event) => syncBudgetFlow(next, event.id), repairCoreEventSteps(repairTaskLinks(applySchedule(promoted))))
     return { state, notice: null }
   }
   // v6 used the former fixed event graph. Preserve existing activities and their recognizable progress while

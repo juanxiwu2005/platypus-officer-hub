@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
-import { buildEventNodes, stepsFor } from "../engine/playbooks"
+import { buildEventNodes, CORE_EVENT_STEP_KEYS, stepsFor } from "../engine/playbooks"
 import type { Event } from "../data/types"
 
 const event = (checks: Event["checks"], headcount = 80): Event => ({ id: "v2", name: "V2", date: "2027-03-20", type: "social", headcount, venue: "campus", food: "none", funding: "none", speaker: false, checks, goalId: null, playbookId: "asu-event-v2" })
@@ -15,6 +15,10 @@ describe("ASU event workflow v2", () => {
     expect(keys).not.toContain("rsvp")
     expect(keys).not.toContain("partnerReview")
     expect(keys).not.toContain("photos")
+  })
+  it("keeps every core step for every checklist combination", () => {
+    const cases: Event["checks"][] = [{}, { funding: true }, { food: true, externalFood: true }, { partner: true, rsvp: true, access: true }, { safety: true, alcohol: true, drone: true, schoolApproval: true }]
+    for (const checks of cases) expect(stepsFor(event(checks)).map(step => step.key)).toEqual(expect.arrayContaining([...CORE_EVENT_STEP_KEYS]))
   })
   it("shows the partner route only for a partner or speaker, and RSVPs only when requested", () => {
     expect(stepsFor(event({ partner: true })).map(s => s.key)).toEqual(expect.arrayContaining(["partner", "partnerReview", "parking"]))

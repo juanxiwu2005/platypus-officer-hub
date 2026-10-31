@@ -59,10 +59,10 @@ export const EVENT_STEPS: StepTemplate[] = [
   { key: "budget", title: "Budget", fn: "finance", phase: "money", estDays: 2, tier: "medium", why: "Build the budget and identify the funding source.", source: "FUND-02" },
   { key: "foodCompliance", title: "Food Exception Permit", fn: "finance", phase: "prepare", anchor: rule("R06", 14, "calendar"), estDays: 3, tier: "medium", dependsOn: ["budget"], ruleIds: ["R06"], cond: "externalFood", why: "Resolve the food exception, permit or evidence needed before submitting a food budget.", source: "R06" },
   { key: "quotes", title: "Quote Gather", fn: "finance", phase: "money", estDays: 3, tier: "medium", dependsOn: ["foodCompliance"], why: "Collect dated provider, speaker or vendor quotes for the budget route.", source: "FUND-04" },
-  { key: "budgetRequest", title: "Budget Request", fn: "finance", phase: "money", anchor: target(42, "calendar", "Funding planning floor"), estDays: 7, tier: "heavy", dependsOn: ["quotes", "foodCompliance"], cond: "funding", why: "Submit the budget, public purpose and supporting quote package.", source: "FUND-02 · FUND-04" },
-  { key: "budgetApproval", title: "Budget Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["budgetRequest"], cond: "funding", why: "Record the funding decision before any approval-dependent commitment.", source: "FUND-02" },
-  { key: "purchaseRequest", title: "Purchase Request", fn: "finance", phase: "money", anchor: rule("R09", 10, "business"), estDays: 1, tier: "light", dependsOn: ["budgetApproval"], ruleIds: ["R09"], cond: "funding", why: "Route the approved purchase through the applicable purchasing process.", source: "R09" },
-  { key: "purchaseApproval", title: "Purchase Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["purchaseRequest"], cond: "funding", why: "Record purchase approval before ordering or reimbursement.", source: "R09" },
+  { key: "budgetRequest", title: "Budget Request", fn: "finance", phase: "money", anchor: target(42, "calendar", "Funding planning floor"), estDays: 7, tier: "heavy", dependsOn: ["quotes", "foodCompliance"], why: "Submit the budget, public purpose and supporting quote package.", source: "FUND-02 · FUND-04" },
+  { key: "budgetApproval", title: "Budget Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["budgetRequest"], why: "Record the funding decision before any approval-dependent commitment.", source: "FUND-02" },
+  { key: "purchaseRequest", title: "Purchase Request", fn: "finance", phase: "money", anchor: rule("R09", 10, "business"), estDays: 1, tier: "light", dependsOn: ["budgetApproval"], ruleIds: ["R09"], why: "Route the approved purchase through the applicable purchasing process.", source: "R09" },
+  { key: "purchaseApproval", title: "Purchase Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["purchaseRequest"], ruleIds: ["R09"], why: "Record purchase approval before ordering or reimbursement.", source: "R09" },
   { key: "advisor", title: "Advisor Involved", fn: "programs", phase: "prepare", estDays: 1, tier: "light", cond: "advisor", why: "Bring in the advisor when the event needs their participation or signature.", source: "PLAN-03" },
   { key: "access", title: "Accessibility Check", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["advisor"], cond: "access", why: "Confirm disability accommodations, accessible route, seating and accessible communications.", source: "VENUE-03" },
   { key: "security", title: "Security", fn: "programs", phase: "prepare", estDays: 4, tier: "heavy", dependsOn: ["access"], cond: "safety", why: "Identify security and elevated-risk needs before preparing the event plan.", source: "RISK-01" },
@@ -77,7 +77,7 @@ export const EVENT_STEPS: StepTemplate[] = [
   { key: "rsvp", title: "Open RSVPs", fn: "marketing", phase: "marketing", anchor: target(21, "calendar", "RSVPs open three weeks ahead"), estDays: 1, tier: "light", dependsOn: ["promotionItems"], cond: "rsvp", why: "Open registration and collect attendance intent.", source: "Organization standard" },
   { key: "content", title: "Content Distribution", fn: "marketing", phase: "marketing", estDays: 2, tier: "medium", dependsOn: ["rsvp"], why: "Distribute approved campaign content through selected channels.", source: "Organization standard" },
   { key: "reminder", title: "Event Reminder", fn: "marketing", phase: "marketing", estDays: 1, tier: "light", dependsOn: ["content"], why: "Send the final reminder to registered and intended attendees.", source: "Organization standard" },
-  { key: "orderPlaced", title: "Order Placed", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["purchaseApproval"], cond: "funding", why: "Place approved orders and record vendor commitments.", source: "R09" },
+  { key: "orderPlaced", title: "Order Placed", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["purchaseApproval"], ruleIds: ["R09"], why: "Place approved orders and record vendor commitments.", source: "R09" },
   { key: "finalcheck", title: "Full Check Alert Changes", fn: "president", phase: "run", anchor: target(14, "calendar", "Final readiness review"), estDays: 1, tier: "light", dependsOn: ["materials", "parking", "reminder", "orderPlaced", "schoolApproval"], why: "Check every active route, alert stakeholders to changes, and confirm readiness.", source: "CLOSE-01" },
 ]
 
@@ -221,13 +221,29 @@ export function roleFor(roles: Role[], fn: RoleFunction): Role | undefined {
   return roles[0]
 }
 
+/** These are never situation-based. Checklist conditions may add routes but may never remove them. */
+export const CORE_EVENT_STEP_KEYS = [
+  "plan", "backup", "venuechoice", "registry", "venue", "moderator", "materials", "checkin", "headcount", "thankyou", "feedback", "postmarketing", "photoBackup", "invoice", "attendance", "spending", "financeRecord", "documentation",
+  "budget", "quotes", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "orderPlaced",
+  "marketingNeeds", "contentCreation", "promotionItems", "content", "reminder", "finalcheck",
+] as const
+
 /** The steps that apply to this event, with links to skipped steps passed through to their own links. */
 export function stepsFor(e: Event, steps?: StepTemplate[]): StepTemplate[] {
   // Records saved before the structured v2 intake retain their former graph until store migration adds checks.
   // New and migrated activities always carry `checks` (including an empty object) and use the approved standard.
   const selectedSteps = steps ?? (e.checks === undefined ? LEGACY_EVENT_STEPS : EVENT_STEPS)
-  const included = new Map(selectedSteps.filter(s => !s.cond || CONDITIONS[s.cond](e)).map(s => [s.key, s]))
-  const all = new Map(selectedSteps.map(s => [s.key, s]))
+  // A club may customize names and non-core situation routes, but it cannot make a
+  // lifecycle or purchasing step disappear through a condition or omission.
+  const standard = new Map(EVENT_STEPS.map(step => [step.key, step]))
+  const selected = new Map(selectedSteps.map(step => [step.key, step]))
+  if (selectedSteps === EVENT_STEPS || e.checks !== undefined) for (const key of CORE_EVENT_STEP_KEYS) {
+    const step = selected.get(key) ?? standard.get(key)
+    if (step) selected.set(key, { ...step, cond: undefined })
+  }
+  const normalizedSteps = [...selected.values()]
+  const included = new Map(normalizedSteps.filter(s => !s.cond || CONDITIONS[s.cond](e)).map(s => [s.key, s]))
+  const all = new Map(normalizedSteps.map(s => [s.key, s]))
   const resolve = (key: string, seen = new Set<string>()): string[] => {
     if (included.has(key)) return [key]
     if (seen.has(key)) return []
