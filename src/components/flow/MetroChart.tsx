@@ -13,12 +13,15 @@ import { cannotDelete, flowGaps, flowTracks, moveBetween, unlinkSteps, type Gap 
 import { ancestorsOf, doAfter, type EditResult, type StepEdit } from "../../lib/stepOrder"
 
 const SHORT: Record<string, string> = {
-  partner: "Partner meeting", draft: "Event plan", mktneeds: "Marketing needs", budget: "Budget", approve: "Approve plan",
-  registry: "Event Registry", venue: "Book room", offvenue: "Off-campus venue", ritm: "RITM number", advisor: "Advisor",
-  quote: "Caterer quote", foodex: "Food exception", dining: "Dining order", permit: "Food permit", usg: "USG request",
-  sap: "Speaker SAP", usgspeaker: "USG speaker", flyer: "Flyer", partnerreview: "Partner review", rsvp: "Open RSVPs",
-  promo: "Promotion", review: "Full check", runshow: "Run of show", headcount: "Headcount", feedback: "Feedback",
-  closeout: "Close out", archive: "Archive",
+  plan: "Event plan", backup: "Back-up plan", venuechoice: "Candidate venue", registry: "Event Registry", venue: "Book room",
+  moderator: "Moderator staffing", materials: "Event materials", checkin: "Check-in forms", headcount: "Headcount",
+  thankyou: "Thank you", feedback: "Feedback", postmarketing: "Post marketing", photoBackup: "Photo backup", invoice: "Invoice",
+  attendance: "Attendance submit", spending: "Paid reimbursed", financeRecord: "Finance record", documentation: "Documentation",
+  partner: "Partner meeting", speakerPacket: "Speaker packet", travel: "Travel plan", partnerReview: "Partner review", parking: "Parking validation",
+  budget: "Budget", foodCompliance: "Food exception", quotes: "Quote gather", budgetRequest: "Budget request", budgetApproval: "Budget approval",
+  purchaseRequest: "Purchase request", purchaseApproval: "Purchase approval", orderPlaced: "Order placed", advisor: "Advisor", access: "Accessibility",
+  security: "Security", eams: "EAMS plan", permit: "Permit insurance", alcohol: "Alcohol permit", drone: "Drone approval", schoolApproval: "School approval",
+  marketingNeeds: "Marketing needs", contentCreation: "Content creation", promotionItems: "Promotion items", rsvp: "Open RSVPs", content: "Content distribution", reminder: "Event reminder", finalcheck: "Full check",
 }
 const SITUATION_KEYS = new Set(["partner", "speakerPacket", "travel", "partnerReview", "parking", "foodCompliance", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "advisor", "access", "security", "eams", "permit", "alcohol", "drone", "schoolApproval", "rsvp"])
 /** Two to four words for the chart; the full title is in the hover card. */

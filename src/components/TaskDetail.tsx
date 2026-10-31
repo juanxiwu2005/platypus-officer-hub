@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react"
+import { useNavigate } from "react-router-dom"
 import { useStore } from "../data/store"
 import type { Node } from "../data/types"
 import { fmtLong } from "../lib/dates"
@@ -9,9 +10,11 @@ import { StatusPill } from "./ui"
 import { canLead } from "../data/changeReview"
 import { officialLabel } from "../engine/taskDates"
 import type { CSSProperties } from "react"
+import { isBudgetControlledNode } from "../engine/eventBudget"
 
 export function TaskDetail({ node, actorId, token, initialReply }: { node: Node; actorId: string; token?: string; initialReply?: string | null }) {
   const { state, dispatch } = useStore()
+  const navigate = useNavigate()
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [node.id])
   const upstream = state.nodes.filter(n => node.dependsOn.includes(n.id))
@@ -27,6 +30,7 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
     {!!upstream.length && <p className="small"><b>Before this:</b> {upstream.map(n => `${n.title} (${n.status === "done" ? "done" : "still open"})`).join("; ")}</p>}
     {!!downstream.length && <p className="small"><b>After this:</b> {downstream.map(n => n.title).join("; ")}</p>}
     {node.draftLink && safeLink(node.draftLink) && <a href={node.draftLink} target="_blank" rel="noreferrer">Open current draft</a>}
+    {node.eventId && isBudgetControlledNode(node) && <button type="button" className="btn" onClick={() => navigate(`/events?event=${encodeURIComponent(node.eventId!)}&view=budget`)}>Open Event Budget</button>}
     <details><summary className="small">Sources and responsibilities</summary><p className="small muted">{node.source}. Dates come from the rule engine. Responsible: {state.people.find(p => p.id === node.ownerId)?.name ?? "not assigned"}; accountable: {state.roles.find(r => r.id === node.approverRoleId)?.displayName ?? "owner"}.</p><div className="action-row">{node.ruleIds.map(id => { const r = RULES.find(r => r.id === id); return r && <a key={id} href={r.sources[0].url} target="_blank" rel="noreferrer">{id}</a> })}</div></details>
     {pending && <p className="small warn-text">Extension awaiting review: {pending.requestedDate}. The current deadline still applies.</p>}
     <TaskActions node={node} actorId={actorId} token={token} initialReply={initialReply} />

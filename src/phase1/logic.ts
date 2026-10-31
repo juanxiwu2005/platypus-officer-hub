@@ -369,6 +369,7 @@ const LEGACY_CAP: Record<RoleFunction, string> = {
   advisor: "planning",
   membership: "staffing",
 };
+const capabilityFor = (n: Node, executive: boolean) => executive ? n.stepKey! : n.stepKey === "staff" ? "staffing" : ["partner", "speakerPacket", "travel", "partnerReview"].includes(n.stepKey ?? "") ? "relationships" : LEGACY_CAP[n.fn];
 export function workflow(d: Draft, kind: ActivityKind): PreviewTask[] {
   const state = seedDemo(undefined, "v2");
   const event = {
@@ -404,12 +405,7 @@ export function workflow(d: Draft, kind: ActivityKind): PreviewTask[] {
     }));
   }
   nodes = nodes.map((n) => {
-    const cap =
-      kind === "executive_obligation"
-        ? n.stepKey!
-        : n.stepKey === "staff"
-          ? "staffing"
-          : LEGACY_CAP[n.fn];
+    const cap = capabilityFor(n, kind === "executive_obligation");
     const who = owners(d, cap, cap === "relationships" ? "companies" : "all");
     return { ...n, ownerId: who.length === 1 ? who[0].id : null };
   });
@@ -431,12 +427,7 @@ export function workflow(d: Draft, kind: ActivityKind): PreviewTask[] {
     nodes,
   });
   return nodes.map((n) => {
-    const cap =
-      kind === "executive_obligation"
-        ? n.stepKey!
-        : n.stepKey === "staff"
-          ? "staffing"
-          : LEGACY_CAP[n.fn];
+    const cap = capabilityFor(n, kind === "executive_obligation");
     const plan = schedule.nodes[n.id];
     return {
       id: n.id,

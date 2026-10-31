@@ -6,7 +6,8 @@ import { isBusinessDay, onOrBefore, personalWorkDay, shiftWork, studentOffReason
 import { buildEventNodes, stepsFor } from "../engine/playbooks"
 import { applySchedule, computeSchedule } from "../engine/schedule"
 
-const base = () => seedDemo("2026-10-22")
+// Legacy scheduling remains covered explicitly while v2 coverage lives in seed and Event Budget tests.
+const base = () => seedDemo("2026-10-22", "legacy")
 const plan = (s: DemoState, key: string, ev = "e-night") => computeSchedule(s).nodes[`${ev}:${key}`]
 const codes = (s: DemoState, key: string, ev = "e-night") => plan(s, key, ev).issues.map(i => i.code)
 const setClub = (s: DemoState, key: string, date: string | null) => reducer(s, { type: "updateNode", id: `e-night:${key}`, patch: { clubDeadlineOverride: date } })

@@ -4,6 +4,7 @@ import { canLead } from "./changeReview"
 import { addNotices, claimTask, closeSilence, replyToTask } from "./taskWorkflow"
 import { applySchedule } from "../engine/schedule"
 import { STATUS_DEFAULTS } from "../components/ui/statusDefaults"
+import { isBudgetControlledNode } from "../engine/eventBudget"
 
 /**
  * Task board actions (v1.1, decision 3): officers drag their own tasks; the president or VP can drag anyone's,
@@ -13,6 +14,7 @@ const label = (s: DemoState, st: NodeStatus) => s.org.board?.labels?.[st]?.trim(
 
 export function canMoveTask(s: DemoState, n: Node, to: NodeStatus): string | null {
   const lead = canLead(s), owner = n.ownerId === s.viewerId
+  if (to === "done" && isBudgetControlledNode(n)) return "Update the Event Budget line items to complete this finance step."
   if (!lead && !owner) return "You can move your own tasks. The president or VP can move anyone's."
   if (to === n.status) return null
   if (n.status === "unclaimed" && to !== "unclaimed") {

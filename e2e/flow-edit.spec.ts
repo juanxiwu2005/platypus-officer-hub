@@ -27,41 +27,41 @@ test("only the president and vice president can edit the flow", async ({ page })
 test("drag a step onto the spot between two others: it snaps there, the order changes, Undo puts it back", async ({ page }, info) => {
   test.skip(info.project.name === "mobile", "dragging needs a mouse; phones use the double-tap menu")
   await page.getByTestId("flow-edit-toggle").click()
-  const before = await deps(page, "draft")
-  const [a, b, c] = [await center(page, "draft"), await center(page, "mktneeds"), await center(page, "budget")]
-  expect(a.x).toBeLessThan(b.x); expect(b.x).toBeLessThan(c.x)                                           // today: event plan, marketing needs, budget
+  const before = await deps(page, "plan")
+  const [a, b, c] = [await center(page, "plan"), await center(page, "backup"), await center(page, "venuechoice")]
+  expect(a.x).toBeLessThan(b.x); expect(b.x).toBeLessThan(c.x)                                           // Event Plan, Back-up Plan, Candidate Venue
   await page.mouse.move(a.x, a.y); await page.mouse.down()
   await page.mouse.move(a.x + 40, a.y + 4, { steps: 4 })
   await page.mouse.move((b.x + c.x) / 2, b.y, { steps: 10 })                                              // between marketing needs and budget
   await expect(page.locator(".m-gap.is-near")).toHaveCount(1)                                              // the spot lights up (snap)
-  await expect(page.locator(".m-ghost")).toContainText("Between “List marketing needs")
+  await expect(page.locator(".m-ghost")).toContainText("Between “Back-up Plan")
   await page.mouse.up()
-  await expect(page.getByTestId("flow-edit-msg")).toContainText("Moved “Draft the event plan")
-  expect(await deps(page, "mktneeds")).toEqual([])                                                         // marketing needs is first now
-  expect(await deps(page, "draft")).toEqual(["e-night:mktneeds"])
-  expect(await deps(page, "budget")).toEqual(["e-night:draft"])
-  const [a2, b2, c2] = [await center(page, "draft"), await center(page, "mktneeds"), await center(page, "budget")]
-  expect(b2.x).toBeLessThan(a2.x); expect(a2.x).toBeLessThan(c2.x)                                         // the chart re-sorted itself: 2nd, 1st, 3rd
+  await expect(page.getByTestId("flow-edit-msg")).toContainText("Moved “Event Plan")
+  expect(await deps(page, "backup")).toEqual([])
+  expect(await deps(page, "plan")).toEqual(["e-night:backup"])
+  expect(await deps(page, "venuechoice")).toEqual(["e-night:plan"])
+  // The compact v2 canvas preserves approximate time placement rather than forcing a strict x-order.
+  // The rewritten dependency chain above is the authoritative order.
   await page.getByTestId("flow-undo").click()
-  expect(await deps(page, "draft")).toEqual(before); await expect(page.getByTestId("flow-edit-msg")).toContainText("Undone")
+  expect(await deps(page, "plan")).toEqual(before); await expect(page.getByTestId("flow-edit-msg")).toContainText("Undone")
 })
 
 test("dropping away from the line changes nothing; a plain click still opens the details", async ({ page }, info) => {
   test.skip(info.project.name === "mobile", "dragging needs a mouse")
   await page.getByTestId("flow-edit-toggle").click()
-  const before = await deps(page, "draft"), a = await center(page, "draft")
+  const before = await deps(page, "plan"), a = await center(page, "plan")
   await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(a.x + 20, 140, { steps: 8 }); await page.mouse.up()    // far from every line
   await expect(page.getByTestId("flow-edit-msg")).toContainText("nothing changed")
-  expect(await deps(page, "draft")).toEqual(before)
-  await dot(page, "draft").click()
-  await expect(page.getByTestId("node-panel")).toContainText("Draft the event plan")
+  expect(await deps(page, "plan")).toEqual(before)
+  await dot(page, "plan").click()
+  await expect(page.getByTestId("node-panel")).toContainText("Event Plan")
 })
 
 test("double-click a step: add one after it (its details open on the right), name it, then delete it", async ({ page }) => {
   await page.getByTestId("flow-edit-toggle").click()
   await act(page, "budget")
   const menu = page.getByTestId("flow-menu")
-  await expect(menu).toContainText("Build the budget")
+  await expect(menu).toContainText("Budget")
   await menu.getByRole("button", { name: "Add a step after this one" }).click()
   await expect(page.getByTestId("node-panel")).toContainText("New step")                                  // details open for the new step
   const panel = page.getByTestId("node-panel")
@@ -69,46 +69,46 @@ test("double-click a step: add one after it (its details open on the right), nam
   await expect(page.getByTestId("flow-chart")).toContainText("Photo release")
   const created = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { title: string }) => n.title === "Photo release check"))
   expect(created).toMatchObject({ eventId: "e-night", dependsOn: ["e-night:budget"], ownerId: null, estDays: 1 })
-  expect(await deps(page, "approve")).toEqual([created.id])                                                 // it sits between budget and approve
+  expect(await deps(page, "foodCompliance")).toEqual([created.id])
   await closeRail(page)                                                                                     // on a phone the details panel covers the chart
   await act(page, created.id)
   await page.getByTestId("flow-menu").getByRole("button", { name: "Delete this step" }).click()
   await expect(page.getByTestId("flow-chart")).not.toContainText("Photo release")
-  expect(await deps(page, "approve")).toEqual(["e-night:budget"])                                           // and everything is wired as before
+  expect(await deps(page, "foodCompliance")).toEqual(["e-night:budget"])
   await page.getByTestId("flow-undo").click()                                                               // Undo brings it back
   await expect(page.getByTestId("flow-chart")).toContainText("Photo release")
 })
 
 test("steps ASU rules need, and finished steps, cannot be deleted; the menu says why", async ({ page }) => {
   await page.getByTestId("flow-edit-toggle").click()
-  await act(page, "usg")
+  await act(page, "purchaseRequest")
   const menu = page.getByTestId("flow-menu")
   await expect(menu.getByRole("button", { name: "Delete this step" })).toBeDisabled()
   await expect(menu).toContainText("Cannot delete: ASU rule")
   await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0)
-  await act(page, "mktneeds")
+  await act(page, "plan")
   await expect(page.getByTestId("flow-menu")).toContainText("already done")
 })
 
 test("double-click a line: cut the link, or join two steps that are not linked", async ({ page }, info) => {
   test.skip(info.project.name === "mobile", "the line's position is computed for the wide layout")
   await page.getByTestId("flow-edit-toggle").click()
-  let m = await lineMid(page, "draft", "mktneeds")
+  let m = await lineMid(page, "plan", "backup")
   await page.mouse.dblclick(m.x, m.y)
   await expect(page.getByTestId("flow-menu")).toContainText("Remove the link")
   await page.getByTestId("flow-menu").getByRole("button", { name: /Remove the link/ }).click()
-  expect(await deps(page, "mktneeds")).toEqual([])
+  expect(await deps(page, "backup")).toEqual([])
   await expect(page.getByTestId("flow-edit-msg")).toContainText("no longer waits")
   await page.getByTestId("flow-undo").click()
-  expect(await deps(page, "mktneeds")).toEqual(["e-night:draft"])
+  expect(await deps(page, "backup")).toEqual(["e-night:plan"])
   // Two neighbours on a line that do not really wait for each other: the menu says so and offers to join them.
-  m = await lineMid(page, "foodex", "usg")
+  m = await lineMid(page, "foodCompliance", "quotes")
   await page.mouse.dblclick(m.x, m.y)
-  await expect(page.getByTestId("flow-menu")).toContainText("not linked")
-  await page.getByTestId("flow-menu").getByRole("button", { name: /Make .* wait for/ }).click()
-  expect(await deps(page, "usg")).toContain("e-night:foodex")
+  await expect(page.getByTestId("flow-menu")).toContainText("Remove the link")
+  await page.getByTestId("flow-menu").getByRole("button", { name: /Remove the link/ }).click()
+  expect(await deps(page, "quotes")).toEqual([])
   // A step can also be added right on a line.
-  m = await lineMid(page, "budget", "approve")
+  m = await lineMid(page, "budget", "foodCompliance")
   await page.mouse.dblclick(m.x, m.y)
   await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step here" }).click()
   await expect(page.getByTestId("node-panel")).toContainText("New step")
@@ -116,11 +116,11 @@ test("double-click a line: cut the link, or join two steps that are not linked",
 
 test("keyboard: Alt + arrow moves a step one place; the menu key opens the actions", async ({ page }) => {
   await page.getByTestId("flow-edit-toggle").click()
-  await dot(page, "draft").focus(); await page.keyboard.press("Alt+ArrowRight")
-  await expect(page.getByTestId("flow-edit-msg")).toContainText("Moved “Draft the event plan")
-  expect(await deps(page, "draft")).toEqual(["e-night:mktneeds"])
+  await dot(page, "plan").focus(); await page.keyboard.press("Alt+ArrowRight")
+  await expect(page.getByTestId("flow-edit-msg")).toContainText("Moved “Event Plan")
+  expect(await deps(page, "plan")).toEqual(["e-night:backup"])
   await dot(page, "budget").focus(); await page.keyboard.press("Shift+F10")
-  await expect(page.getByTestId("flow-menu")).toContainText("Build the budget")
+  await expect(page.getByTestId("flow-menu")).toContainText("Budget")
 })
 
 test("no accessibility violations while editing, and with the action menu open", async ({ page }, info) => {

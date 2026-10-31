@@ -21,44 +21,44 @@ const roleId = (t: string) => base.roles.find(r => r.displayName === t)!.id
 
 describe("org workflow · applying changes", () => {
   it("adds a step of the club's own after the steps it names, owned by a role, with club timing as days (never a date)", () => {
-    const r = applyChanges(presetSteps(), [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { phase: "prepare", estDays: 2, dependsOn: ["approve"], ownerRoleId: roleId("Secretary"), daysBefore: 10 }, beforeKeys: ["review"] })], base.roles)
+    const r = applyChanges(presetSteps(), [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { phase: "prepare", estDays: 2, dependsOn: ["plan"], ownerRoleId: roleId("Secretary"), daysBefore: 10 }, beforeKeys: ["finalcheck"] })], base.roles)
     const s = r.steps.find(x => x.key === "permission")!
     expect(r.applied).toHaveLength(1)
-    expect(s).toMatchObject({ custom: true, phase: "prepare", estDays: 2, dependsOn: ["approve"], ownerRoleId: roleId("Secretary"), fn: "secretary", anchor: { kind: "target", days: 10, unit: "calendar" } })
-    expect(r.steps.find(x => x.key === "review")!.dependsOn).toContain("permission")
+    expect(s).toMatchObject({ custom: true, phase: "prepare", estDays: 2, dependsOn: ["plan"], ownerRoleId: roleId("Secretary"), fn: "secretary", anchor: { kind: "target", days: 10, unit: "calendar" } })
+    expect(r.steps.find(x => x.key === "finalcheck")!.dependsOn).toContain("permission")
     expect(JSON.stringify(s)).not.toMatch(/\d{4}-\d{2}-\d{2}/)
   })
   it("changes a step's title, days, order and owner, and keeps ASU deadlines", () => {
-    const r = applyChanges(presetSteps(), [ch({ op: "update", key: "flyer", patch: { title: "Design the flyer in Canva", estDays: 4, dependsOn: ["approve", "budget"], ownerRoleId: roleId("Marketing lead") } }), ch({ op: "update", key: "registry", patch: { estDays: 3, ownerRoleId: roleId("Secretary") } })], base.roles)
+    const r = applyChanges(presetSteps(), [ch({ op: "update", key: "contentCreation", patch: { title: "Design the flyer in Canva", estDays: 4, dependsOn: ["marketingNeeds", "budget"], ownerRoleId: roleId("Marketing lead") } }), ch({ op: "update", key: "registry", patch: { estDays: 3, ownerRoleId: roleId("Secretary") } })], base.roles)
     expect(r.refused).toEqual([])
-    expect(r.steps.find(x => x.key === "flyer")).toMatchObject({ title: "Design the flyer in Canva", estDays: 4, dependsOn: ["approve", "budget"] })
+    expect(r.steps.find(x => x.key === "contentCreation")).toMatchObject({ title: "Design the flyer in Canva", estDays: 4, dependsOn: ["marketingNeeds", "budget"] })
     const reg = r.steps.find(x => x.key === "registry")!
     expect(reg).toMatchObject({ estDays: 3, ownerRoleId: roleId("Secretary") }); expect(reg.anchor).toEqual(EVENT_STEPS.find(x => x.key === "registry")!.anchor)
   })
   it("refuses what ASU rules do not allow, and says why", () => {
     const r = applyChanges(presetSteps(), [
-      ch({ op: "remove", key: "foodex" }), ch({ op: "update", key: "venue", patch: { phase: "run" } }), ch({ op: "update", key: "usg", patch: { daysBefore: 3 } }),
-      ch({ op: "update", key: "nope", patch: { estDays: 2 } }), ch({ op: "update", key: "approve", patch: { dependsOn: ["registry"] } }),
+      ch({ op: "remove", key: "foodCompliance" }), ch({ op: "update", key: "registry", patch: { phase: "run" } }), ch({ op: "update", key: "purchaseRequest", patch: { daysBefore: 3 } }),
+      ch({ op: "update", key: "nope", patch: { estDays: 2 } }), ch({ op: "update", key: "plan", patch: { dependsOn: ["backup"] } }),
     ], base.roles)
     expect(r.applied).toEqual([])
-    expect(r.refused.map(x => x.reason)).toEqual([expect.stringMatching(/ASU rule R06/), expect.stringMatching(/R03/), expect.stringMatching(/R09/), "That step is not in the workflow.", "That would make a step wait for itself."])
+    expect(r.refused.map(x => x.reason)).toEqual([expect.stringMatching(/ASU rule R06/), expect.stringMatching(/R01/), expect.stringMatching(/R09/), "That step is not in the workflow.", "That would make a step wait for itself."])
     expect(r.steps).toEqual(presetSteps())
   })
   it("removing a step the club does not use lets later steps wait for what it waited for; locked steps are never removed", () => {
-    const r = applyChanges(presetSteps(), [ch({ op: "remove", key: "mktneeds" })], base.roles)
-    expect(r.steps.some(x => x.key === "mktneeds")).toBe(false)
-    expect(r.steps.find(x => x.key === "budget")!.dependsOn).toEqual(expect.arrayContaining(["draft"])); expect(r.steps.find(x => x.key === "budget")!.dependsOn).not.toContain("mktneeds")
-    expect(isLocked(EVENT_STEPS.find(x => x.key === "usg")!)).toBe(true); expect(isLocked(EVENT_STEPS.find(x => x.key === "mktneeds")!)).toBe(false)
+    const r = applyChanges(presetSteps(), [ch({ op: "remove", key: "promotionItems" })], base.roles)
+    expect(r.steps.some(x => x.key === "promotionItems")).toBe(false)
+    expect(r.steps.find(x => x.key === "rsvp")!.dependsOn).toEqual(expect.arrayContaining(["contentCreation"])); expect(r.steps.find(x => x.key === "rsvp")!.dependsOn).not.toContain("promotionItems")
+    expect(isLocked(EVENT_STEPS.find(x => x.key === "purchaseRequest")!)).toBe(true); expect(isLocked(EVENT_STEPS.find(x => x.key === "promotionItems")!)).toBe(false)
   })
   it("each change can be undone on its own", () => {
-    const changes = [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { dependsOn: ["approve"] }, beforeKeys: ["review"] }), ch({ op: "update", key: "flyer", patch: { title: "Design the flyer", estDays: 5 } }), ch({ op: "remove", key: "mktneeds" })]
+    const changes = [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { dependsOn: ["plan"] }, beforeKeys: ["finalcheck"] }), ch({ op: "update", key: "contentCreation", patch: { title: "Design the flyer", estDays: 5 } }), ch({ op: "remove", key: "promotionItems" })]
     const r = applyChanges(presetSteps(), changes, base.roles)
     expect(r.applied).toHaveLength(3)
-    let steps = revertChange(r.steps, r.applied[2]); expect(steps.some(x => x.key === "mktneeds")).toBe(true); expect(steps.find(x => x.key === "budget")!.dependsOn).toContain("mktneeds")
-    steps = revertChange(steps, r.applied[1]); expect(steps.find(x => x.key === "flyer")).toMatchObject({ title: EVENT_STEPS.find(x => x.key === "flyer")!.title, estDays: 2 })
-    steps = revertChange(steps, r.applied[0]); expect(steps.some(x => x.key === "permission")).toBe(false); expect(steps.find(x => x.key === "review")!.dependsOn).not.toContain("permission")
+    let steps = revertChange(r.steps, r.applied[2]); expect(steps.some(x => x.key === "promotionItems")).toBe(true); expect(steps.find(x => x.key === "rsvp")!.dependsOn).toContain("promotionItems")
+    steps = revertChange(steps, r.applied[1]); expect(steps.find(x => x.key === "contentCreation")).toMatchObject({ title: EVENT_STEPS.find(x => x.key === "contentCreation")!.title, estDays: 2 })
+    steps = revertChange(steps, r.applied[0]); expect(steps.some(x => x.key === "permission")).toBe(false); expect(steps.find(x => x.key === "finalcheck")!.dependsOn).not.toContain("permission")
     expect(describeWorkflow(presetSteps())).toBe("The standard workflow.")
-    expect(describeWorkflow(r.steps)).toBe("Standard workflow, 1 added, 1 changed, 1 removed.")
+    expect(describeWorkflow(r.steps)).toBe("Standard workflow, 1 added, 2 changed, 1 removed.")
   })
 })
 
@@ -68,16 +68,16 @@ describe("org workflow · checks against ASU rules (the engine's, not the AI's)"
   })
   it("blocks a missing rule step, a changed rule deadline, a lost rule order, a loop and a dangling link", () => {
     const steps = presetSteps()
-    expect(checkWorkflow(steps.filter(s => s.key !== "foodex"), base.roles).map(i => i.text).join("\n")).toMatch(/Submit the Food Exception Request” is missing.*R06/)
-    expect(checkWorkflow(steps.map(s => s.key === "usg" ? { ...s, anchor: { kind: "target" as const, days: 3, unit: "calendar" as const, label: "x" } } : s), base.roles).some(i => i.level === "blocked" && /R09/.test(i.text))).toBe(true)
-    expect(checkWorkflow(steps.map(s => s.key === "usgspeaker" ? { ...s, dependsOn: ["budget"] } : s), base.roles).some(i => i.level === "blocked" && /signed SAP|SAP agreement/.test(i.text))).toBe(true)
-    expect(checkWorkflow(steps.map(s => s.key === "approve" ? { ...s, dependsOn: ["registry"] } : s), base.roles).some(i => i.level === "blocked" && /waits for itself/.test(i.text))).toBe(true)
-    expect(checkWorkflow(steps.map(s => s.key === "flyer" ? { ...s, dependsOn: ["ghost"] } : s), base.roles).some(i => i.level === "blocked" && /not in the workflow/.test(i.text))).toBe(true)
+    expect(checkWorkflow(steps.filter(s => s.key !== "foodCompliance"), base.roles).map(i => i.text).join("\n")).toMatch(/Food Exception Permit” is missing.*R06/)
+    expect(checkWorkflow(steps.map(s => s.key === "purchaseRequest" ? { ...s, anchor: { kind: "target" as const, days: 3, unit: "calendar" as const, label: "x" } } : s), base.roles).some(i => i.level === "blocked" && /R09/.test(i.text))).toBe(true)
+    expect(checkWorkflow(steps.map(s => s.key === "purchaseRequest" ? { ...s, dependsOn: ["budget"] } : s), base.roles).some(i => i.level === "blocked" && /Budget Approval/.test(i.text))).toBe(true)
+    expect(checkWorkflow(steps.map(s => s.key === "plan" ? { ...s, dependsOn: ["backup"] } : s), base.roles).some(i => i.level === "blocked" && /waits for itself/.test(i.text))).toBe(true)
+    expect(checkWorkflow(steps.map(s => s.key === "contentCreation" ? { ...s, dependsOn: ["ghost"] } : s), base.roles).some(i => i.level === "blocked" && /not in the workflow/.test(i.text))).toBe(true)
   })
   it("warns when a step goes to the advisor, and when the club's timing would make a sample event miss a deadline", () => {
     const advisorRole = { id: "r-adv", displayName: "Club Advisor", fn: "advisor" as const, holderId: null }
     const roles = [...base.roles, advisorRole]
-    expect(checkWorkflow(presetSteps().map(s => s.key === "flyer" ? { ...s, ownerRoleId: "r-adv" } : s), roles).some(i => i.level === "warning" && /advisor/.test(i.text))).toBe(true)
+    expect(checkWorkflow(presetSteps().map(s => s.key === "contentCreation" ? { ...s, ownerRoleId: "r-adv" } : s), roles).some(i => i.level === "warning" && /advisor/.test(i.text))).toBe(true)
     const slow = presetSteps().map(s => s.key === "budget" ? { ...s, estDays: 30 } : s)
     const issues = checkWorkflow(slow, base.roles, base)
     expect(issues.some(i => i.level === "warning" && /would miss a deadline/.test(i.text))).toBe(true)
@@ -86,8 +86,8 @@ describe("org workflow · checks against ASU rules (the engine's, not the AI's)"
   it("validateWorkflow refuses broken or blocked workflows", () => {
     expect(validateWorkflow(presetSteps(), base.roles)).toBeNull()
     expect(validateWorkflow([], base.roles)).toBeTruthy()
-    expect(validateWorkflow(presetSteps().filter(s => s.key !== "usg"), base.roles)).toMatch(/missing/)
-    expect(validateWorkflow(presetSteps().map(s => s.key === "flyer" ? { ...s, estDays: 99 } : s), base.roles)).toBeTruthy()
+    expect(validateWorkflow(presetSteps().filter(s => s.key !== "purchaseRequest"), base.roles)).toMatch(/missing/)
+    expect(validateWorkflow(presetSteps().map(s => s.key === "contentCreation" ? { ...s, estDays: 99 } : s), base.roles)).toBeTruthy()
   })
 })
 
@@ -96,10 +96,10 @@ describe("org workflow · cleaning the AI's reply", () => {
   const raw = {
     summary: "Your notes add a permission step. Due 2099-01-01.",
     changes: [
-      { op: "add", key: "Permission Forms!", title: "Collect permission forms", phase: "prepare", days: 2, waitsFor: ["approve", "ghost"], before: ["review"], owner: "secretary", daysBefore: 10, why: "Needed by Dec 5.", evidence: "We always collect permission forms" },
-      { op: "update", key: "flyer", title: "Design the flyer", days: 99, owner: "Nobody", phase: "weird", evil: "x" },
-      { op: "update", key: "ghost", days: 1 }, { op: "update", key: "flyer" }, { op: "delete", key: "flyer" },
-      { op: "remove", key: "mktneeds", why: "We skip it" },
+      { op: "add", key: "Permission Forms!", title: "Collect permission forms", phase: "prepare", days: 2, waitsFor: ["plan", "ghost"], before: ["finalcheck"], owner: "secretary", daysBefore: 10, why: "Needed by Dec 5.", evidence: "We always collect permission forms" },
+      { op: "update", key: "contentCreation", title: "Design the flyer", days: 99, owner: "Nobody", phase: "weird", evil: "x" },
+      { op: "update", key: "ghost", days: 1 }, { op: "update", key: "contentCreation" }, { op: "delete", key: "contentCreation" },
+      { op: "remove", key: "promotionItems", why: "We skip it" },
       ...Array.from({ length: 20 }, (_, i) => ({ op: "add", title: `Extra ${i}` })),
     ],
     conflicts: [{ text: "Raffles are not allowed.", rules: ["R15", "R99"] }, { text: "" }],
@@ -107,10 +107,10 @@ describe("org workflow · cleaning the AI's reply", () => {
   it("keeps only known steps, roles, phases and fields; clamps days; strips dates; caps the count", () => {
     const r = sanitizeChanges(raw, steps, base.roles)
     expect(r.changes.length).toBeLessThanOrEqual(10)
-    expect(r.changes[0]).toMatchObject({ op: "add", key: "permission-forms", title: "Collect permission forms", beforeKeys: ["review"], patch: { phase: "prepare", estDays: 2, dependsOn: ["approve"], ownerRoleId: roleId("Secretary"), daysBefore: 10 } })
+    expect(r.changes[0]).toMatchObject({ op: "add", key: "permission-forms", title: "Collect permission forms", beforeKeys: ["finalcheck"], patch: { phase: "prepare", estDays: 2, dependsOn: ["plan"], ownerRoleId: roleId("Secretary"), daysBefore: 10 } })
     expect(r.changes[0].patch.why).not.toMatch(/Dec/)
-    expect(r.changes[1]).toMatchObject({ op: "update", key: "flyer", patch: { title: "Design the flyer", estDays: 30 } }); expect(r.changes[1].patch.ownerRoleId).toBeUndefined(); expect(r.changes[1].patch.phase).toBeUndefined()
-    expect(r.changes.find(c => c.key === "mktneeds")).toMatchObject({ op: "remove" })
+    expect(r.changes[1]).toMatchObject({ op: "update", key: "contentCreation", patch: { title: "Design the flyer", estDays: 30 } }); expect(r.changes[1].patch.ownerRoleId).toBeUndefined(); expect(r.changes[1].patch.phase).toBeUndefined()
+    expect(r.changes.find(c => c.key === "promotionItems")).toMatchObject({ op: "remove" })
     expect(r.changes.some(c => c.key === "ghost")).toBe(false)
     expect(r.summary).not.toMatch(/2099/); expect(r.conflicts).toEqual([{ text: "Raffles are not allowed.", rules: ["R15"] }])
     expect(JSON.stringify(r)).not.toMatch(/evil/)
@@ -122,17 +122,17 @@ describe("org workflow · cleaning the AI's reply", () => {
   })
   it("owners: only known steps and roles, never the advisor", () => {
     const roles = [...base.roles, { id: "r-adv", displayName: "Club Advisor", fn: "advisor" as const, holderId: null }]
-    const o = sanitizeOwners({ owners: [{ key: "flyer", role: "marketing lead" }, { key: "budget", role: "Club Advisor" }, { key: "ghost", role: "Treasurer" }, { key: "flyer", role: "Treasurer" }] }, steps, roles)
-    expect(o).toEqual({ flyer: roleId("Marketing lead") })
+    const o = sanitizeOwners({ owners: [{ key: "contentCreation", role: "marketing lead" }, { key: "budget", role: "Club Advisor" }, { key: "ghost", role: "Treasurer" }, { key: "contentCreation", role: "Treasurer" }] }, steps, roles)
+    expect(o).toEqual({ contentCreation: roleId("Marketing lead") })
     const owned = withOwners(steps, roles, o)
-    expect(owned.find(s => s.key === "flyer")).toMatchObject({ ownerRoleId: roleId("Marketing lead"), fn: "marketing" })
-    expect(owned.find(s => s.key === "usg")!.ownerRoleId).toBe(roleId("Treasurer"))                   // everyone else follows the kind of work
+    expect(owned.find(s => s.key === "contentCreation")).toMatchObject({ ownerRoleId: roleId("Marketing lead"), fn: "marketing" })
+    expect(owned.find(s => s.key === "purchaseRequest")!.ownerRoleId).toBe(roleId("Treasurer"))
     expect(owned.every(s => ownerOfStep(s, roles)?.fn !== "advisor")).toBe(true)
   })
   it("what the AI is shown marks locked steps, leaves out the advisor and has no personal details", () => {
     const shown = stepsForPrompt(steps)
-    expect(shown.find(s => s.key === "foodex")).toMatchObject({ locked: true, rules: ["R06"] }); expect(shown.find(s => s.key === "flyer")!.locked).toBe(true)  // R11
-    expect(shown.find(s => s.key === "mktneeds")!.locked).toBe(false)
+    expect(shown.find(s => s.key === "foodCompliance")).toMatchObject({ locked: true, rules: ["R06"] }); expect(shown.find(s => s.key === "purchaseRequest")!.locked).toBe(true)
+    expect(shown.find(s => s.key === "marketingNeeds")!.locked).toBe(false)
     expect(rolesForPrompt([...base.roles, { id: "a", displayName: "Club Advisor", fn: "advisor", holderId: null }]).map(r => r.title)).not.toContain("Club Advisor")
     expect(JSON.stringify(rolesForPrompt(base.roles))).not.toMatch(/@|555|9999/)
   })
@@ -141,7 +141,7 @@ describe("org workflow · cleaning the AI's reply", () => {
 describe("org workflow · the endpoint", () => {
   const roles = [{ title: "Treasurer", duties: "Keeps the budget." }, { title: "Secretary", duties: "Keeps records." }]
   it("compares the notes and files with the server's own standard steps, sends no personal details, and re-checks the reply", async () => {
-    chat.mockResolvedValueOnce({ data: { summary: "One new step.", changes: [{ op: "add", key: "permission", title: "Collect permission forms", phase: "prepare", days: 2, waitsFor: ["approve"], owner: "Secretary", evidence: "permission forms" }, { op: "update", key: "ghost", days: 3 }], conflicts: [{ text: "Raffles are not allowed.", rules: ["R15"] }], evil: 1 }, model: "mock", provider: "mock" })
+    chat.mockResolvedValueOnce({ data: { summary: "One new step.", changes: [{ op: "add", key: "permission", title: "Collect permission forms", phase: "prepare", days: 2, waitsFor: ["plan"], owner: "Secretary", evidence: "permission forms" }, { op: "update", key: "ghost", days: 3 }], conflicts: [{ text: "Raffles are not allowed.", rules: ["R15"] }], evil: 1 }, model: "mock", provider: "mock" })
     const r = await (await post({ part: "changes", notes: "We collect permission forms. Call Sam at 480-555-0100 or sam@example.org", files: [{ name: "flow.pdf", text: "Step 1: Approve. Step 2: collect permission forms. " + "x ".repeat(30000) }], roles, steps: [{ key: "evil" }] })).json()
     const sent = JSON.parse(chat.mock.calls[0][0].user)
     expect(chat.mock.calls[0][0].task).toBe("workflow_read"); expect(chat.mock.calls[0][0].timeoutMs).toBeLessThanOrEqual(22_000)
@@ -152,8 +152,8 @@ describe("org workflow · the endpoint", () => {
     expect(getStore).not.toHaveBeenCalled()
   })
   it("shares steps out to the roles' duties", async () => {
-    chat.mockResolvedValueOnce({ data: { owners: [{ key: "budget", role: "Treasurer" }, { key: "ghost", role: "Treasurer" }, { key: "flyer", role: "Nobody" }] }, model: "mock", provider: "mock" })
-    const r = await (await post({ part: "owners", steps: [{ key: "budget", title: "Build the budget", standardOwner: "Treasurer" }, { key: "flyer", title: "Finish the flyer" }], roles })).json()
+    chat.mockResolvedValueOnce({ data: { owners: [{ key: "budget", role: "Treasurer" }, { key: "ghost", role: "Treasurer" }, { key: "contentCreation", role: "Nobody" }] }, model: "mock", provider: "mock" })
+    const r = await (await post({ part: "owners", steps: [{ key: "budget", title: "Build the budget", standardOwner: "Treasurer" }, { key: "contentCreation", title: "Create event content" }], roles })).json()
     expect(chat.mock.calls[0][0].system).toMatch(/Never choose the advisor/)
     expect(r.owners).toEqual([{ key: "budget", role: "Treasurer" }]); expect(getStore).not.toHaveBeenCalled()
   })
@@ -167,15 +167,15 @@ describe("org workflow · the endpoint", () => {
 
 describe("org workflow · every new event uses it", () => {
   const custom = () => {
-    const r = applyChanges(presetSteps(), [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { dependsOn: ["approve"], ownerRoleId: roleId("Secretary"), estDays: 2 }, beforeKeys: ["review"] }), ch({ op: "update", key: "flyer", patch: { ownerRoleId: roleId("Marketing lead") } })], base.roles)
+    const r = applyChanges(presetSteps(), [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { dependsOn: ["plan"], ownerRoleId: roleId("Secretary"), estDays: 2 }, beforeKeys: ["finalcheck"] }), ch({ op: "update", key: "contentCreation", patch: { ownerRoleId: roleId("Marketing lead") } })], base.roles)
     return withOwners(r.steps, base.roles)
   }
   const event = { id: "e-x", name: "X", date: "2026-12-03", type: "social" as const, headcount: 30, venue: "campus" as const, food: "offsite" as const, funding: "usg" as const, speaker: false, goalId: null, playbookId: "seo-event" }
   it("buildEventNodes gives each step to its chosen role's officer, including steps the club added", () => {
     const nodes = buildEventNodes(event, base.roles, { steps: custom() })
-    expect(nodes.find(n => n.stepKey === "permission")).toMatchObject({ title: "Collect permission forms", ownerId: "priya", fn: "secretary", dependsOn: ["e-x:approve"] })
-    expect(nodes.find(n => n.stepKey === "review")!.dependsOn).toContain("e-x:permission")
-    expect(nodes.find(n => n.stepKey === "flyer")!.ownerId).toBe("sam")
+    expect(nodes.find(n => n.stepKey === "permission")).toMatchObject({ title: "Collect permission forms", ownerId: "priya", fn: "secretary", dependsOn: ["e-x:plan"] })
+    expect(nodes.find(n => n.stepKey === "finalcheck")!.dependsOn).toContain("e-x:permission")
+    expect(nodes.find(n => n.stepKey === "contentCreation")!.ownerId).toBe("sam")
     expect(buildEventNodes(event, base.roles).some(n => n.stepKey === "permission")).toBe(false)           // the standard workflow is unchanged
   })
   it("setup saves the workflow, builds the first event from it, and refuses one that breaks an ASU rule", () => {
@@ -184,7 +184,7 @@ describe("org workflow · every new event uses it", () => {
     const next = completeSetup(base, d, ev, "2026-11-19", code, undefined, undefined, custom())
     expect(next.org.eventWorkflow?.summary).toBe("Standard workflow, 1 added.")
     expect(next.nodes.some(n => n.stepKey === "permission" && n.ownerId === "priya")).toBe(true)
-    expect(completeSetup(base, d, ev, "2026-11-19", code, undefined, undefined, presetSteps().filter(s => s.key !== "usg"))).toBe(base)
+    expect(completeSetup(base, d, ev, "2026-11-19", code, undefined, undefined, presetSteps().filter(s => s.key !== "purchaseRequest"))).toBe(base)
     expect(completeSetup(base, d, ev, "2026-11-19", code).org.eventWorkflow).toBeUndefined()
   })
   it("later events (made by the president or the assistant) are built from the saved workflow", () => {
@@ -195,7 +195,7 @@ describe("org workflow · every new event uses it", () => {
     expect(created.nodes!.some(n => n.stepKey === "permission" && n.eventId === "e-new")).toBe(true)
     expect(saved.nodes.filter(n => n.eventId === "e-night")).toEqual(base.nodes.filter(n => n.eventId === "e-night"))   // events already made keep their steps
     expect(saveWorkflow({ ...base, viewerId: "maya" }, custom())).toEqual({ ...base, viewerId: "maya" })               // only the president and vice president
-    expect(saveWorkflow(base, presetSteps().filter(s => s.key !== "usg"))).toBe(base)
+    expect(saveWorkflow(base, presetSteps().filter(s => s.key !== "purchaseRequest"))).toBe(base)
     expect(resetWorkflow(saved).org.eventWorkflow).toBeUndefined()
   })
 })

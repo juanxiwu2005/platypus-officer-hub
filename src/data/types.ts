@@ -187,7 +187,14 @@ export interface Event {
   details?: string
   /** Order of the six phase groups in the step editor and in the progress dots (display only; no date depends on it). */
   phaseOrder?: Phase[]
+  /** Event Budget is the sole user-facing source for line-item funding progress. */
+  budgetItems?: BudgetLineItem[]
 }
+
+export type BudgetCategory = "general" | "food" | "speaker" | "travel"
+export type BudgetSource = "usg" | "college" | "organization" | "sponsor" | "none"
+export type BudgetItemStatus = "not_started" | "food_exception_permit" | "quote_gather" | "budget_request" | "budget_approval" | "purchase_request" | "purchase_approval" | "order_placed" | "invoice" | "attendance_submit" | "paid_reimbursed" | "finance_record"
+export interface BudgetLineItem { id: string; item: string; quantity: number; pricePerUnit: number; source: BudgetSource; status: BudgetItemStatus; category: BudgetCategory }
 
 export type NodeStatus = "unclaimed" | "accepted" | "in_progress" | "waiting" | "blocked" | "done"
 export type Tier = "light" | "medium" | "heavy"
@@ -214,7 +221,7 @@ export interface Node {
   id: string
   title: string
   eventId: string | null
-  /** Playbook step this node came from, e.g. "usg". Null for standalone tasks. */
+  /** Playbook step this node came from, e.g. "budgetRequest". Null for standalone tasks. */
   stepKey: string | null
   phase: Phase | null
   /** The canonical function that owns this step (swimlane when nobody owns it yet). */

@@ -49,7 +49,13 @@ Hard rules:
 Remember: JSON only.`
 
 const clean = (v: unknown, max: number) => typeof v === "string" ? stripDates(v.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "").replace(/https?:\/\/\S+/g, "").replace(/\s+/g, " ").trim().slice(0, max)).replace(/\s*\[date in plan\]/g, "").trim() : ""
-const keys = (v: unknown, known: Set<string>) => (Array.isArray(v) ? v : []).filter((k): k is string => typeof k === "string" && known.has(k))
+const canonicalKey = (value: unknown, known: Set<string>) => {
+  if (typeof value !== "string") return null
+  if (known.has(value)) return value
+  const normalized = value.toLowerCase().replace(/[^a-z0-9]+/g, "")
+  return [...known].find(key => key.toLowerCase().replace(/[^a-z0-9]+/g, "") === normalized) ?? null
+}
+const keys = (v: unknown, known: Set<string>) => [...new Set((Array.isArray(v) ? v : []).map(key => canonicalKey(key, known)).filter((key): key is string => !!key))]
 
 /** What the AI is shown of the standard workflow: titles, order and which steps ASU rules lock. */
 export const stepsForPrompt = (steps: StepTemplate[]) => steps.map(s => ({ key: s.key, title: s.title, phase: s.phase, days: s.estDays, waitsFor: s.dependsOn ?? [], locked: isLocked(s), rules: s.ruleIds ?? [] }))
@@ -81,7 +87,7 @@ export function sanitizeChanges(raw: unknown, steps: StepTemplate[], roles: Role
     if (typeof x.daysBefore === "number" && Number.isFinite(x.daysBefore) && x.daysBefore >= 0) patch.daysBefore = Math.min(180, Math.round(x.daysBefore))
     const why = clean(x.why, 160); if (why) patch.why = why
     const evidence = clean(x.evidence, 140)
-    let key = typeof x.key === "string" ? x.key.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 28) : ""
+    let key = canonicalKey(x.key, known) ?? (typeof x.key === "string" ? x.key.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 28) : "")
     if (op === "add") {
       if (!title) continue
       key = key || title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 28) || "step"
@@ -113,7 +119,8 @@ export function sanitizeOwners(raw: unknown, steps: StepTemplate[], roles: Role[
   for (const it of (Array.isArray(o.owners) ? o.owners : []).slice(0, steps.length * 2)) {
     const x = it && typeof it === "object" ? it as Record<string, unknown> : {}
     const role = typeof x.role === "string" ? roleBy.get(x.role.toLowerCase().trim()) : undefined
-    if (typeof x.key === "string" && known.has(x.key) && role && !out[x.key]) out[x.key] = role
+    const key = canonicalKey(x.key, known)
+    if (key && role && !out[key]) out[key] = role
   }
   return out
 }

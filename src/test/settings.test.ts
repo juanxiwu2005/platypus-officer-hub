@@ -108,7 +108,7 @@ describe("first workflow approval", () => {
     const before = JSON.stringify(s)
     const next = completeSetup(s, d, { ...event, date: "2099-01-01", clubDeadline: "2098-01-01" }, "2026-11-19", code)
     expect(JSON.stringify(s)).toBe(before); expect(next.events).toHaveLength(1); expect(next.events[0].date).toBe("2026-11-19")
-    expect(next.nodes.some(n => n.stepKey === "usg" && n.officialDeadline === "2026-11-04")).toBe(true)
+    expect(next.nodes.some(n => n.stepKey === "purchaseRequest" && n.officialDeadline === "2026-11-04")).toBe(true)
     expect(next.nodes.filter(n => n.fn === "finance").every(n => n.ownerId === "maya")).toBe(true)
     expect(next.org.inviteCode).toBe(code); expect(next.org.goals.every(g => g.current === 0)).toBe(true)
     for (const key of ["nudges", "contributions", "contacts", "funding", "notifications", "extensionRequests", "officerGrants", "protocolLog"] as const) expect(next[key]).toHaveLength(0)

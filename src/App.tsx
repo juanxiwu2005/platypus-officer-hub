@@ -4,7 +4,6 @@ import Today from "./pages/Today"
 import Events from "./pages/Events"
 import Tasks from "./pages/Tasks"
 import Team from "./pages/Team"
-import Funding from "./pages/Funding"
 import Handoff from "./pages/Handoff"
 import Partners from "./pages/Partners"
 import Rules from "./pages/Rules"
@@ -26,7 +25,7 @@ export default function App() {
         <Route path="events" element={<Events />} />
         <Route path="tasks" element={<Tasks />} />
         <Route path="team" element={<Team />} />
-        <Route path="funding" element={<Funding />} />
+        <Route path="funding" element={<Navigate to="/events" replace />} />
         <Route path="handoff" element={<Handoff />} />
         <Route path="partners" element={<Partners />} />
         <Route path="rules" element={<Rules />} />

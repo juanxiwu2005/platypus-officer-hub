@@ -3,7 +3,7 @@ import { seedDemo, SCHEMA_VERSION } from "../data/seed"
 import { RULES } from "../data/rules"
 
 describe("demo seed", () => {
-  const s = seedDemo("2026-10-22")
+  const s = seedDemo("2026-10-22", "v2")
 
   it("uses the current schema version and a fixed today", () => {
     expect(s.schemaVersion).toBe(SCHEMA_VERSION)
@@ -27,11 +27,13 @@ describe("demo seed", () => {
   })
 
   it("every node has dates from the rule engine", () => {
+    const invalid: string[] = []
     for (const n of s.nodes) {
       expect(n.latestStart).toMatch(/^\d{4}-\d{2}-\d{2}$/)
       expect(n.clubDeadline).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-      expect(n.latestStart! <= n.clubDeadline!).toBe(true)
+      if (n.latestStart! > n.clubDeadline!) invalid.push(n.id)
     }
+    expect(invalid).toEqual([])
   })
 
   it("contributions point at real nodes", () => {

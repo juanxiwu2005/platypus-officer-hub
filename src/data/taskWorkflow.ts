@@ -3,6 +3,7 @@ import { nextCounter } from "../lib/ids"
 import { canLead } from "./changeReview"
 import { validDate } from "../lib/commands"
 import { applySchedule, computeSchedule } from "../engine/schedule"
+import { isBudgetControlledNode } from "../engine/eventBudget"
 
 export type TaskReply = "done" | "waiting" | "help" | "extension"
 export interface ReplyInput { waitingOn?: string; draftLink?: string; requestedDate?: string; reason?: string }
@@ -69,7 +70,7 @@ export function claimTask(s: DemoState, nodeId: string, actorId: string): DemoSt
 }
 export function replyToTask(s: DemoState, nodeId: string, actorId: string, reply: TaskReply, input: ReplyInput = {}): DemoState {
   const n = s.nodes.find(n => n.id === nodeId)
-  if (!n || validateReply(s, n, actorId, reply, input)) return s
+  if (!n || (reply === "done" && isBudgetControlledNode(n)) || validateReply(s, n, actorId, reply, input)) return s
   const status = reply === "done" ? "done" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : "in_progress"
   const updated: Node = { ...n, status, lastUpdate: s.today, waitingOn: reply === "waiting" ? input.waitingOn!.trim().slice(0, 180) : null, ...(reply === "done" ? { completedOn: s.today } : {}), ...(reply === "extension" ? { draftLink: input.draftLink } : {}) }
   let next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? updated : x), nudges: s.nudges.map(x => x.nodeId === n.id ? { ...x, response: status } : x) }, n.id)

@@ -19,7 +19,7 @@ test("no accessibility violations in the Ask panel, a task's details and the boa
   await ask(page, "What are my top 5 tasks?")
   expect(await scan(page)).toEqual([])
   await closeRail(page) // on a phone the panel covers the page
-  await page.goto("/#/tasks?node=e-night:usg")
+  await page.goto("/#/tasks?node=e-night:purchaseRequest")
   await expect(page.getByTestId("task-detail")).toBeVisible()
   expect(await scan(page)).toEqual([])
   await closeRail(page)
@@ -45,7 +45,7 @@ test("keyboard: / focuses Ask, Escape closes details, a flow step opens with Ent
   await page.keyboard.press("/")
   await expect(page.locator("#ask-input")).toBeFocused()
   await closeRail(page) // on a phone the Ask panel covers the page
-  await page.getByTestId("flow-node-usg").focus()
+  await page.getByTestId("flow-node-purchaseRequest").focus()
   await page.keyboard.press("Enter")
   await expect(page.getByTestId("node-panel")).toBeVisible()
   await page.keyboard.press("Escape")
@@ -80,7 +80,7 @@ test("keyboard: Tab follows reading order, top bar then side navigation then the
 
 type Pg = import("@playwright/test").Page
 const DETAIL_TRIGGERS: [string, string, (p: Pg) => import("@playwright/test").Locator][] = [
-  ["flow step", "/events", p => p.getByTestId("flow-node-usg")],
+  ["flow step", "/events", p => p.getByTestId("flow-node-purchaseRequest")],
   ["task", "/tasks", p => p.locator("main .tbl .row-btn").first()],
   ["funding", "/funding", p => p.locator("main .row-btn").first()],
   ["partner", "/partners", p => p.locator("main .row-btn").first()],

@@ -153,7 +153,7 @@ describe("M4 · roles, duties and reporting lines reach every member", () => {
     expect(next.roles.find(r => r.id === fin.id)).toMatchObject({ reportsToId: expect.any(String), duties: expect.stringMatching(/budget/i) })
     expect(next.people.find(p => p.id === fin.holderId)?.asuId).toBe("9999000042")
     expect(completeSetup(base, d, event, "2026-11-19", crypto.randomUUID(), undefined, 4)).toBe(base)
-    expect(next.nodes.find(n => n.stepKey === "usg")?.fn).toBe("finance")
+    expect(next.nodes.find(n => n.stepKey === "purchaseRequest")?.fn).toBe("finance")
   })
   it("the president can edit titles, reporting lines and duties in Settings; others cannot", () => {
     const d = clubDraft(base)

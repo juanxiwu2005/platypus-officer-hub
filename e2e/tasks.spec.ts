@@ -28,7 +28,7 @@ test("claims an unassigned handover, then updates waiting, help and done without
 })
 
 test("extension needs a draft and stays pending until the president approves", async ({ page }) => {
-  await page.goto("/#/tasks?node=e-night:usg")
+  await page.goto("/#/tasks?node=e-night:purchaseRequest")
   await page.getByTestId("view-as").selectOption("maya")
   const detail = page.getByTestId("task-detail")
   await detail.getByRole("button", { name: "Need more time", exact: true }).click()
@@ -38,12 +38,12 @@ test("extension needs a draft and stays pending until the president approves", a
   await detail.getByLabel("Current draft link", { exact: true }).fill("https://example.org/current-draft")
   await detail.getByRole("button", { name: "Request extension", exact: true }).click()
   await expect(detail).toContainText("Extension awaiting review")
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "e-night:usg").clubDeadline)).toBe("2026-10-30")
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "e-night:purchaseRequest").clubDeadline)).toBe("2026-10-30")
   await expect(page.getByTestId("president-review")).toHaveCount(0)
   await page.getByTestId("view-as").selectOption("alex")
   await closeRail(page)
   await page.getByRole("button", { name: "Approve extension", exact: true }).click()
-  const dates = await page.evaluate(() => { const n = JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "e-night:usg"); return [n.clubDeadline, n.officialDeadline] })
+  const dates = await page.evaluate(() => { const n = JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "e-night:purchaseRequest"); return [n.clubDeadline, n.officialDeadline] })
   expect(dates).toEqual(["2026-11-06", "2026-11-04"])
   await page.getByTestId("view-as").selectOption("maya")
   await expect(page.getByTestId("private-inbox")).toContainText("was approved")

@@ -11,8 +11,10 @@ import { topoOrder } from "../engine/schedule"
 import { Avatar, Empty, Info, NodePill } from "../components/ui"
 import { canLead } from "../data/changeReview"
 import { SEVERITY_TONE, firstName, worstIssue } from "./helpers"
+import { EventBudget } from "../components/EventBudget"
+import { budgetTotal } from "../engine/eventBudget"
 
-type View = "flow" | "list"
+type View = "flow" | "list" | "budget"
 const VIEW_KEY = "platypus.v1.eventsView"
 function initialView(): View {
   try { const v = window.localStorage.getItem(VIEW_KEY); if (v === "flow" || v === "list") return v } catch { /* storage unavailable */ }
@@ -29,11 +31,17 @@ export default function Events() {
   const [savedView, setViewState] = useState<View>(initialView)
   const [editingFlow, setEditingFlow] = useState(false)
   const lead = canLead(state)
-  const view: View = savedView
+  const view: View = params.get("view") === "budget" ? "budget" : savedView
   const forecast = forecastFor(state)
   const ev = state.events.find(e => e.id === params.get("event")) ?? state.events[0]
   const selected = rail.detail?.kind === "node" ? rail.detail.id : null
-  const setView = (v: View) => { setViewState(v); try { window.localStorage.setItem(VIEW_KEY, v) } catch { /* storage unavailable */ } }
+  const setView = (v: View) => {
+    setViewState(v)
+    const next = new URLSearchParams(params)
+    if (v === "budget") next.set("view", "budget"); else next.delete("view")
+    setParams(next, { replace: true })
+    if (v !== "budget") try { window.localStorage.setItem(VIEW_KEY, v) } catch { /* storage unavailable */ }
+  }
   const nodes = useMemo(() => state.nodes.filter(n => n.eventId === ev?.id), [state.nodes, ev?.id])
   useEffect(() => { if (ev && params.get("event") && !state.events.some(e => e.id === params.get("event"))) setParams({}, { replace: true }) }, [ev?.id])
   if (!ev) return <><PageHead path="/events" /><Empty>No events yet. Ask Platypus to plan one.</Empty></>
@@ -47,7 +55,7 @@ export default function Events() {
     <>
       <PageHead path="/events" actions={state.events.length > 1 && (
         <div className="seg" role="group" aria-label="Choose an event">
-          {state.events.map(e => <button key={e.id} type="button" aria-pressed={e.id === ev.id} onClick={() => { setParams({ event: e.id }); rail.closeDetail() }}>{e.name}</button>)}
+          {state.events.map(e => <button key={e.id} type="button" aria-pressed={e.id === ev.id} onClick={() => { const next = new URLSearchParams(params); next.set("event", e.id); setParams(next); rail.closeDetail() }}>{e.name}</button>)}
         </div>
       )} />
 
@@ -58,6 +66,7 @@ export default function Events() {
           <input type="date" aria-label="Event date" value={ev.date} data-testid="event-date" onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && dispatch({ type: "updateEvent", id: ev.id, patch: { date: e.target.value } })} />
           <span className="spacer" />
           <div className="stat-row">
+            <div><b className="num">${budgetTotal(ev.budgetItems).toLocaleString()}</b><span>requested</span></div>
             <div><b className="num">{daysBetween(state.today, ev.date)}</b><span>days left</span></div>
             <div><b className="num">{done}/{nodes.length}</b><span>done</span></div>
             <div className={red ? "late-text" : ""}><b className="num">{red}</b><span>at risk</span></div>
@@ -75,6 +84,7 @@ export default function Events() {
         <div className="seg" role="group" aria-label="View">
           <button type="button" aria-pressed={view === "flow"} onClick={() => setView("flow")} data-testid="view-flow">Flow</button>
           <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")} data-testid="view-list">List</button>
+          <button type="button" aria-pressed={view === "budget"} onClick={() => setView("budget")} data-testid="view-budget">Budget</button>
         </div>
         {lead && view === "flow" && <button type="button" className="btn small" aria-pressed={editingFlow} onClick={() => setEditingFlow(editing => !editing)} data-testid="flow-edit-toggle">{editingFlow ? "Done editing" : "Edit flow"}</button>}
       </div>
@@ -103,6 +113,7 @@ export default function Events() {
           })}</tbody>
         </table>
       </section>}
+      {view === "budget" && <EventBudget event={ev} />}
     </>
   )
 }

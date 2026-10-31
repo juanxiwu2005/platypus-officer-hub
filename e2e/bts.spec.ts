@@ -58,6 +58,7 @@ test("when on: dates show where they come from on Today, Events and Tasks", asyn
   await expect(list.locator(".bts").filter({ hasText: "Start" }).first()).toBeVisible()
   await expect(list.locator(".bts").filter({ hasText: "ASU" }).first()).toBeVisible()
   await page.goto("/#/tasks")
+  await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks").locator(".bts").first()).toBeVisible()
   // Turning it off again leaves the pages as they were.
   await openDemoMenu(page)
@@ -65,12 +66,13 @@ test("when on: dates show where they come from on Today, Events and Tasks", asyn
   await expect(page.locator(NOTES)).toHaveCount(0)
 })
 
-test("when on: Funding and Handoff say where the dots and sources come from; off removes them", async ({ page }) => {
-  await page.goto("/#/funding")
+test("when on: Event Budget and Handoff say where progress and sources come from; off removes them", async ({ page }) => {
+  await page.goto("/#/events")
   await expect(page.locator(NOTES)).toHaveCount(0)
   await switchOn(page)
   await closeRail(page)
-  await expect(page.getByTestId("funding-table").locator(".bts").filter({ hasText: "Decide by" }).first()).toBeVisible()
+  await page.getByTestId("view-budget").click()
+  await expect(page.getByTestId("event-budget").locator(".bts").filter({ hasText: "Line-item status" }).first()).toBeVisible()
   await page.goto("/#/handoff")
   await expect(page.locator(".season .bts")).toBeVisible()
   await openDemoMenu(page)
@@ -99,6 +101,7 @@ for (const path of ["/", "/events", "/tasks"]) test(`no accessibility violations
   await page.goto(`/#${path}`)
   await page.waitForTimeout(400)
   await closeRail(page)
+  if (path === "/tasks") await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.locator(".bts").first()).toBeVisible()
   const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()
   expect(res.violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).slice(0, 3).join(" ; ")}`)).toEqual([])

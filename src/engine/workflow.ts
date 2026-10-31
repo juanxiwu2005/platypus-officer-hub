@@ -9,7 +9,8 @@ import { computeSchedule } from "./schedule"
  * the AI, propose changes; this file applies them, refuses the ones ASU rules do not allow, and checks what is left against the rules.
  * Whatever the AI says, only these functions change the template.
  */
-export const MAX_STEPS = 45
+// The standard v2 workflow has its always-on route plus situation-based routes; clubs may add a few local steps.
+export const MAX_STEPS = 60
 export const MAX_DAYS = 30
 export const PHASE_LIST: Phase[] = ["plan", "prepare", "money", "marketing", "run", "close"]
 
@@ -194,7 +195,7 @@ export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: Demo
     if (JSON.stringify(s.anchor ?? null) !== JSON.stringify(p.anchor ?? null)) out.push({ level: "blocked", text: `“${s.title}” has a deadline set by ASU rule ${ruleList(p) || "R0x"}. The club cannot change it; use the club buffer instead.`, key: p.key, rules: p.ruleIds })
     if (s.cond !== p.cond) out.push({ level: "blocked", text: `“${s.title}” only applies to some events, as ASU rule ${ruleList(p) || "R0x"} says. That cannot change.`, key: p.key, rules: p.ruleIds })
     // A step ASU rules depend on must still come after the steps it needs (for example the speaker request waits for the signed agreement).
-    for (const d of (p.dependsOn ?? []).filter(k => EVENT_STEPS.find(x => x.key === k && isLocked(x)))) {
+    for (const d of p.dependsOn ?? []) {
       if (by.has(d) && !ancestors(steps, p.key).has(d)) out.push({ level: "blocked", text: `“${s.title}” must wait for “${by.get(d)!.title}” (ASU rule ${ruleList(p) || ruleList(by.get(d)!)}).`, key: p.key, rules: p.ruleIds })
     }
   }

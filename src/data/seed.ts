@@ -2,8 +2,9 @@ import type { DemoState, Event, Node, NodeStatus, Role } from "./types"
 import { buildEventNodes } from "../engine/playbooks"
 import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
+import { syncBudgetFlow } from "../engine/eventBudget"
 
-export const SCHEMA_VERSION = 11
+export const SCHEMA_VERSION = 12
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -27,27 +28,28 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
     { id: "r-sec", displayName: "Secretary", fn: "secretary", holderId: "priya", reportsToId: "r-pres", duties: DUTY_TEMPLATES.secretary },
   ]
   const events: Event[] = [
-    { id: "e-night", name: "Networking Night", date: "2026-11-19", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
-    { id: "e-speaker", name: "Spring Speaker Night", date: "2027-02-11", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, speaker: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
+    { id: "e-night", name: "Networking Night", date: "2026-11-19", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, budgetItems: [{ id: "e-night:budget:1", item: "Catering", quantity: 30, pricePerUnit: 40, source: "usg", status: "food_exception_permit", category: "food" }, { id: "e-night:budget:2", item: "Event supplies", quantity: 1, pricePerUnit: 800, source: "usg", status: "food_exception_permit", category: "general" }], ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
+    { id: "e-speaker", name: "Spring Speaker Night", date: "2027-02-11", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, budgetItems: [{ id: "e-speaker:budget:1", item: "Speaker travel", quantity: 1, pricePerUnit: 500, source: "usg", status: "not_started", category: "travel" }], ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, speaker: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
   ]
 
   // Where each Networking Night step stands on the demo date.
-  const nightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
-    draft: { status: "done" },
-    mktneeds: { status: "done" },
+  const v2NightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
+    plan: { status: "done" },
+    marketingNeeds: { status: "done" },
     budget: { status: "done" },
-    approve: { status: "done" },
     registry: { status: "done" },
     venue: { status: "done" },
-    quote: { status: "done" },
-    ritm: { status: "in_progress" },
-    foodex: { status: "waiting", waitingOn: "Approval from Student Unions" },
-    flyer: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" },
+    quotes: { status: "done" },
+    foodCompliance: { status: "waiting", waitingOn: "Approval from Student Unions" },
+    contentCreation: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" },
     rsvp: { status: "unclaimed", ownerId: null },
   }
   const speakerStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
     partner: { status: "in_progress" },
-    draft: { status: "accepted" },
+    plan: { status: "accepted" },
+  }
+  const nightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = workflow === "v2" ? v2NightStatus : {
+    draft: { status: "done" }, mktneeds: { status: "done" }, budget: { status: "done" }, approve: { status: "done" }, registry: { status: "done" }, venue: { status: "done" }, quote: { status: "done" }, ritm: { status: "in_progress" }, foodex: { status: "waiting", waitingOn: "Approval from Student Unions" }, flyer: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" }, rsvp: { status: "unclaimed", ownerId: null },
   }
 
   const night = buildEventNodes(events[0], roles, { fundingAmount: 2000 }).map(n => {
@@ -73,7 +75,7 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
     task({ id: "t-silence", title: "Confirm the workshop checklist", fn: "programs", ownerId: "jordan", lastUpdate: today, acceptedOn: today, assignedOn: today, why: "A fictional task for the ten-day follow-up walkthrough." }, "2026-10-27"),
   ]
 
-  return applySchedule({
+  const seeded = applySchedule({
     schemaVersion: SCHEMA_VERSION,
     today,
     viewerId: "alex",
@@ -113,7 +115,7 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
     contributions: [
       { personId: "jordan", nodeId: "e-night:venue", points: 2, onTime: true },
       { personId: "alex", nodeId: "e-night:registry", points: 2, onTime: true },
-      { personId: "maya", nodeId: "e-night:quote", points: 2, onTime: true },
+      { personId: "maya", nodeId: workflow === "v2" ? "e-night:quotes" : "e-night:quote", points: 2, onTime: true },
     ],
     organizations: [
       { id: "o-caterer", name: "Desert Table Catering (fictional)", type: "Vendor", website: "desert-table.example.org", email: "orders@desert-table.example.org", phone: "", address: "Tempe, AZ (fictional)", tags: ["catering", "tempe"], notes: "Book at least 3 weeks ahead. Does not need a deposit under $500.", createdBy: "maya" },
@@ -137,4 +139,5 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
     extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [],
     demoLinkKey: Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join(""),
   })
+  return events.reduce((state, event) => syncBudgetFlow(state, event.id), seeded)
 }

@@ -194,13 +194,17 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     }
     const best = cands.reduce((a, b) => (b.date < a.date ? b : a))
     const e = effortOf(ctx, n)
-    let start = shiftWork(best.date, -e.days, e.work)
-    let sWhy = startWhy(best.date, n, e, start)
+    let club = best.date
+    let clubWhy = best.why
+    let start = shiftWork(club, -e.days, e.work)
+    let sWhy = startWhy(club, n, e, start)
     if (n.phase === "close" && start < afterEvent) {
       start = onOrAfter(afterEvent, e.work)
       sWhy = "The first business day after the event"
+      club = shiftWork(start, e.days, e.work)
+      clubWhy = "Close-out work can only start after the event"
     }
-    rec.set(n.id, { official, club: best.date, clubWhy: best.why, start, startWhy: sWhy })
+    rec.set(n.id, { official, club, clubWhy, start, startWhy: sWhy })
   }
 
   // 2. Forward pass
@@ -390,6 +394,8 @@ export function handoffDates(start: string) {
   return { interview: addDays(start, 3), handbook: addDays(start, 7), weekOne: addDays(start, 7), weekTwo: addDays(start, 14), review: addDays(start, 30) }
 }
 export function fundingDecisionDate(state: DemoState, eventId: string): string | null {
-  const steps = state.nodes.filter(n => n.eventId === eventId && (n.stepKey === "usg" || n.stepKey === "usgspeaker"))
+  // This intentionally follows business meaning instead of playbook keys.  It works for the
+  // v2 budget route and for a saved legacy graph while those records are being migrated.
+  const steps = state.nodes.filter(n => n.eventId === eventId && n.phase === "money" && !!n.officialDeadline)
   return steps.map(n => n.officialDeadline).filter((d): d is string => !!d).sort()[0] ?? null
 }

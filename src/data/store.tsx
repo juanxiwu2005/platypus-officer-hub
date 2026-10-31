@@ -2,7 +2,7 @@ import { changeHandoff, type HandoffAction } from "./handoff"
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react"
-import type { ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate } from "./types"
+import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate } from "./types"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
@@ -22,6 +22,7 @@ import { completeSetup, resetWorkflow, saveClubSettings, saveProfile, saveWorkfl
 import type { BoardSettings, NodeStatus, OrgSettings } from "./types"
 import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
 import { addContact, addOrganization, deleteContact, deleteOrganization, logInteraction, updateContact, updateInteraction, updateOrganization, type ContactInput, type ContactPatch, type InteractionInput, type OrgPatch } from "./crm"
+import { syncBudgetFlow } from "../engine/eventBudget"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -45,6 +46,9 @@ export type Action =
   | { type: "fundingSpend"; eventId:string; spent:number }
   | { type: "fundingSpendBy"; eventId:string; date:string }
   | { type: "fundingPackage"; eventId:string; application:ApplicationPackage }
+  | { type: "budgetLineAdd"; eventId: string }
+  | { type: "budgetLineUpdate"; eventId: string; id: string; patch: Partial<Omit<BudgetLineItem, "id">> }
+  | { type: "budgetLineDelete"; eventId: string; id: string }
   | { type: "contacted"; id:string }
   | { type: "contactCadence"; id:string; days:number }
   | { type: "reset" }
@@ -192,6 +196,25 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   return next
 }
 
+function canEditBudget(state: DemoState) {
+  return canLead(state) || state.roles.find(role => role.holderId === state.viewerId)?.fn === "finance"
+}
+
+function withBudgetItems(state: DemoState, eventId: string, items: BudgetLineItem[]): DemoState {
+  return syncBudgetFlow(applySchedule({ ...state, events: state.events.map(event => event.id === eventId ? { ...event, budgetItems: items } : event) }), eventId)
+}
+
+function cleanBudgetPatch(raw: Partial<Omit<BudgetLineItem, "id">>): Partial<Omit<BudgetLineItem, "id">> {
+  const patch: Partial<Omit<BudgetLineItem, "id">> = {}
+  if (raw.item !== undefined) patch.item = String(raw.item).trim().slice(0, 120)
+  if (raw.quantity !== undefined && Number.isFinite(Number(raw.quantity))) patch.quantity = Math.max(0, Math.min(100000, Number(raw.quantity)))
+  if (raw.pricePerUnit !== undefined && Number.isFinite(Number(raw.pricePerUnit))) patch.pricePerUnit = Math.max(0, Math.min(1000000, Number(raw.pricePerUnit)))
+  if (raw.category && ["general", "food", "speaker", "travel"].includes(raw.category)) patch.category = raw.category
+  if (raw.source && ["usg", "college", "organization", "sponsor", "none"].includes(raw.source)) patch.source = raw.source
+  if (raw.status && ["not_started", "food_exception_permit", "quote_gather", "budget_request", "budget_approval", "purchase_request", "purchase_approval", "order_placed", "invoice", "attendance_submit", "paid_reimbursed", "finance_record"].includes(raw.status)) patch.status = raw.status
+  return patch
+}
+
 export function reducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
@@ -224,6 +247,24 @@ export function reducer(state: DemoState, action: Action): DemoState {
       if(action.type==="fundingSpendBy"){if(action.date&&!validDate(action.date))return state;patch={spendBy:action.date||null}}
       if(action.type==="fundingPackage")patch={application:{...action.application}}
       return {...state,funding:state.funding.map(f=>f===funding?{...f,...patch}:f)}
+    }
+    case "budgetLineAdd": {
+      const event = state.events.find(e => e.id === action.eventId)
+      if (!event || !canEditBudget(state)) return state
+      const number = nextCounter((event.budgetItems ?? []).map(item => item.id), /:budget:(\d+)$/)
+      return withBudgetItems(state, event.id, [...(event.budgetItems ?? []), { id: `${event.id}:budget:${number}`, item: "New line item", quantity: 1, pricePerUnit: 0, source: "none", status: "not_started", category: "general" }])
+    }
+    case "budgetLineUpdate": {
+      const event = state.events.find(e => e.id === action.eventId)
+      if (!event || !canEditBudget(state) || !(event.budgetItems ?? []).some(item => item.id === action.id)) return state
+      const patch = cleanBudgetPatch(action.patch)
+      if (!Object.keys(patch).length) return state
+      return withBudgetItems(state, event.id, (event.budgetItems ?? []).map(item => item.id === action.id ? { ...item, ...patch } : item))
+    }
+    case "budgetLineDelete": {
+      const event = state.events.find(e => e.id === action.eventId)
+      if (!event || !canEditBudget(state) || !(event.budgetItems ?? []).some(item => item.id === action.id)) return state
+      return withBudgetItems(state, event.id, (event.budgetItems ?? []).filter(item => item.id !== action.id))
     }
 
     case "reset":
@@ -401,10 +442,15 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: parsed, notice: null }
   // v6 used the former fixed event graph. Preserve existing activities and their recognizable progress while
   // rebuilding them from the approved baseline + selected situation routes.
-  if (parsed && typeof parsed === "object" && Array.isArray(parsed.events) && Array.isArray(parsed.nodes) && Array.isArray(parsed.roles) && (parsed.schemaVersion === 6 || parsed.schemaVersion === 7 || parsed.schemaVersion === 8 || parsed.schemaVersion === 9 || parsed.schemaVersion === 10)) {
+  if (parsed && typeof parsed === "object" && Array.isArray(parsed.events) && Array.isArray(parsed.nodes) && Array.isArray(parsed.roles) && (parsed.schemaVersion === 6 || parsed.schemaVersion === 7 || parsed.schemaVersion === 8 || parsed.schemaVersion === 9 || parsed.schemaVersion === 10 || parsed.schemaVersion === 11)) {
     const legacy = parsed
     const byNewKey: Record<string, string> = { plan: "draft", registry: "registry", venue: "venue", quotes: "quote", foodCompliance: "foodex", budgetRequest: "usg", budgetApproval: "usg", content: "flyer", finalcheck: "review", headcount: "headcount", feedback: "feedback", financeRecord: "closeout", documentation: "archive" }
-    const events = legacy.events.map(event => ({ ...event, checks: event.checks ?? { food: event.food !== "none", externalFood: event.food === "offsite", onsiteFood: event.food === "onsite", funding: event.funding !== "none", speaker: event.speaker, partner: event.speaker } }))
+    const stageToStatus = { budget_request: "budget_request", budget_approved: "budget_approval", purchase_request: "purchase_request", purchase_approved: "purchase_approval", ordered_or_reimbursed: "paid_reimbursed", attendance_submitted: "attendance_submit" } as const
+    const events = legacy.events.map(event => {
+      const funding = legacy.funding.find(entry => entry.eventId === event.id)
+      const budgetItems = event.budgetItems ?? (funding ? [{ id: `${event.id}:budget:1`, item: "Migrated funding request", quantity: 1, pricePerUnit: funding.amount, source: funding.source === "dues" ? "organization" : funding.source, status: stageToStatus[funding.stage], category: "general" }] : [])
+      return { ...event, budgetItems, checks: event.checks ?? { food: event.food !== "none", externalFood: event.food === "offsite", onsiteFood: event.food === "onsite", funding: event.funding !== "none", speaker: event.speaker, partner: event.speaker } }
+    })
     const rebuilt = events.flatMap(event => {
       const old = new Map(legacy.nodes.filter(n => n.eventId === event.id).map(n => [n.stepKey, n]))
       const generated = buildEventNodes(event, legacy.roles, { steps: EVENT_STEPS }).map(node => {
@@ -413,7 +459,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
       })
       return [...generated, ...legacy.nodes.filter(n => n.eventId === event.id && n.stepKey === null)]
     })
-    const state = applySchedule({ ...legacy, schemaVersion: SCHEMA_VERSION, org: { ...legacy.org, eventWorkflow: undefined }, events, nodes: [...legacy.nodes.filter(n => n.eventId === null), ...rebuilt] })
+    const state = events.reduce((next, event) => syncBudgetFlow(next, event.id), applySchedule({ ...legacy, schemaVersion: SCHEMA_VERSION, org: { ...legacy.org, eventWorkflow: undefined }, events, nodes: [...legacy.nodes.filter(n => n.eventId === null), ...rebuilt] }))
     return { state, notice: null }
   }
   const fromVersion = parsed && typeof parsed === "object" && typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : null
