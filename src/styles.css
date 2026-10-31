@@ -532,7 +532,7 @@ div.hover { display: block; }
 /* Metro flow chart (single main line) */
 .metro { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; overflow-y: hidden; }
 .metro-canvas { position: relative; }
-.metro svg { position: absolute; inset: 0; overflow: visible; }
+.metro svg { position: absolute; inset: 0; overflow: visible; z-index: var(--z-base); }
 .m-edit-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s5); margin-bottom: var(--s4); }
 .m-edit-bar [role="status"] { flex: 1 1 100%; min-height: 1.2em; margin: 0; }
 .metro .m-node { transition: left .3s ease, top .3s ease; }
@@ -563,8 +563,9 @@ div.hover { display: block; }
 .m-tick.strong { fill: var(--ink); font-weight: 600; }
 .m-today line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 4; }
 .m-today text { font-size: var(--fs-xs); fill: var(--accent-ink); font-weight: 600; }
-.m-node { position: absolute; width: 0; height: 0; z-index: var(--z-sticky); }
-.m-node:hover, .m-node:focus-within { z-index: var(--z-topbar); }
+.m-node { position: absolute; width: 0; height: 0; z-index: var(--z-raised); }
+/* Explicit local stack: rail lines < labels < the active node's black tooltip. */
+.m-node:hover, .m-node:focus-within { z-index: var(--z-tip); }
 .m-dot { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); width: 20px; height: 20px; border-radius: var(--r-circle); border: 2.5px solid var(--edge); background: var(--surface); padding: 0; cursor: pointer; display: block; }
 .m-dot.baseline:not(.done):not(.now):not(.risk):not(.locked) { border-color: var(--info); }
 .m-dot.situation:not(.done):not(.now):not(.risk):not(.locked) { border-color: var(--risk-yellow); }
@@ -587,7 +588,7 @@ div.hover { display: block; }
 .above .m-label { left: calc(var(--label-w, 96px) / -2); bottom: 17px; }
 .right .m-label { left: 20px; top: -9px; text-align: left; width: 140px; }
 .m-node.m-event .m-label { top: 22px; }
-.m-card { position: absolute; left: 0; bottom: 18px; transform: translateX(-50%); width: 250px; display: grid; gap: 2px; padding: 8px 12px; border-radius: var(--r-md); background: var(--ink); color: var(--bg); font-size: var(--fs-sm); line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.2); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .1s ease, visibility 0s linear .1s; }
+.m-card { position: absolute; z-index: var(--z-sticky-hi); left: 0; bottom: 18px; transform: translateX(-50%); width: 250px; display: grid; gap: 2px; padding: 8px 12px; border-radius: var(--r-md); background: var(--ink); color: var(--bg); font-size: var(--fs-sm); line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.2); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .1s ease, visibility 0s linear .1s; }
 .m-node:hover .m-card, .m-node:focus-within .m-card { opacity: 1; visibility: visible; transition: opacity .15s ease, visibility 0s; }
 .m-card-warn { color: var(--on-dark-warn); }
 .vertical .m-card { left: 16px; transform: none; }

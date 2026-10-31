@@ -13,6 +13,7 @@ import { canLead } from "../data/changeReview"
 import { SEVERITY_TONE, firstName, worstIssue } from "./helpers"
 import { EventBudget } from "../components/EventBudget"
 import { budgetTotal } from "../engine/eventBudget"
+import { TaskTypeIcon } from "../components/TaskTypeIcon"
 
 type View = "flow" | "list" | "budget"
 const VIEW_KEY = "platypus.v1.eventsView"
@@ -98,7 +99,7 @@ export default function Events() {
             const p = sched.nodes[n.id]
             const issue = worstIssue(p.issues)
             return [<tr key={n.id}>
-              <td><button type="button" className={`row-btn ${issue?.severity === "error" ? "late-text" : ""}`} onClick={() => rail.show({ kind: "node", id: n.id })} title={issue?.text}>{n.title}</button></td>
+              <td><button type="button" className={`row-btn task-title ${issue?.severity === "error" ? "late-text" : ""}`} onClick={() => rail.show({ kind: "node", id: n.id })} title={issue?.text}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
               <td><span className="who"><Avatar name={state.people.find(x => x.id === n.ownerId)?.name} size="sm" />{firstName(state, n.ownerId)}</span></td>
               <td><NodePill node={n} small /></td>
               <td className="small num">{fmtShort(p.latestStart)}</td>

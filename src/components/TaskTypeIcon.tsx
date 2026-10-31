@@ -15,7 +15,7 @@ const FUNCTION_ICONS: Record<RoleFunction, Icon> = {
   president: { glyph: "⭐", label: "Leadership task" }, vice_president: { glyph: "📌", label: "Coordination task" }, programs: { glyph: "📍", label: "Event task" }, finance: { glyph: "💼", label: "Finance task" }, marketing: { glyph: "📣", label: "Marketing task" }, secretary: { glyph: "🗂️", label: "Records task" }, outreach: { glyph: "🤝", label: "Outreach task" }, membership: { glyph: "👋", label: "Member task" }, advisor: { glyph: "🧑‍🏫", label: "Advisor task" },
 }
 
-/** A compact visual category for Tasks views only; Flow keeps its clean status dots. */
+/** A compact visual category shared by task surfaces; Flow keeps its clean status dots. */
 export function TaskTypeIcon({ node }: { node: Node }) {
   const icon = (node.stepKey ? STEP_ICONS[node.stepKey] : undefined) ?? FUNCTION_ICONS[node.fn] ?? { glyph: "📌", label: "Task" }
   return <span className="task-type-icon" role="img" aria-label={icon.label} title={icon.label}>{icon.glyph}</span>
