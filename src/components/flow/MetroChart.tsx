@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type Keyboard
 import type { DemoState, Node } from "../../data/types"
 import type { Schedule } from "../../engine/schedule"
 import type { Forecast } from "../../engine/forecast"
-import { daysBetween, fmtShort } from "../../lib/dates"
+import { fmtShort } from "../../lib/dates"
 import { firstName, worstIssue } from "../../pages/helpers"
 import { nodeStop } from "../../lib/phases"
 import { useStatusStyles, useTouch } from "../ui"
@@ -242,16 +242,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     return `M${points[at].x} ${points[at].y}L${points[next].x} ${points[next].y}`
   }
 
-  // Soft time labels: weeks before the event, shown once each.
-  const ticks: { at: number; label: string }[] = []
-  for (const w of [8, 6, 4, 2]) {
-    const st = L.stations.find(s => s.node && daysBetween(sched.nodes[s.node.id]?.club ?? ev.date, ev.date) <= w * 7 && !ticks.some(t => t.at === s.col))
-    if (st && !ticks.some(t => t.label.startsWith(`${w} `)) && !ticks.some(t => Math.abs(t.at - st.col) < 1.5)) ticks.push({ at: st.col, label: `${w} weeks out` })
-  }
   const evStation = L.stations.find(s => s.key === EVENT_KEY)!
-  // Today marker sits after the last main station that is already behind us.
-  const pastIdx = L.stations.reduce((k, s, i) => (s.node && (sched.nodes[s.node.id]?.club ?? "9999") < state.today ? i : s.key === EVENT_KEY && ev.date < state.today ? i : k), -1)
-  const todayCol = pastIdx < 0 ? L.stations[0].col - 0.5 : pastIdx >= L.stations.length - 1 ? L.stations[pastIdx].col + 0.5 : (L.stations[pastIdx].col + L.stations[pastIdx + 1].col) / 2
 
   const dot = (n: Node, col: number, row: number, labelSide: "below" | "above" | "right") => {
     const p = pos(col, row)
@@ -277,14 +268,11 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     </div>
   }
 
-  // Open with "today" in view.
+  // Open every activity at its beginning so the always-active Start station is visible.
   useEffect(() => {
     const el = wrap.current
     if (!el || vertical || W <= el.clientWidth) return
-    // Start at a station a little before today, so no label is cut in half.
-    const target = pos(todayCol, 0).x - el.clientWidth * 0.35
-    const st = [...L.stations].reverse().find(s => pos(s.col, 0).x - 60 <= target)
-    el.scrollLeft = Math.max(0, st ? pos(st.col, 0).x - 60 : 0)
+    el.scrollLeft = 0
   }, [eventId, vertical, L.cols])
   return <>
     {canEdit && <div className="m-edit-bar">
@@ -296,22 +284,18 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   <div className={`metro ${vertical ? "vertical" : ""}${on ? " editing" : ""}${drag ? " dragging" : ""}`} ref={wrap} data-testid="flow-chart" style={{ "--label-w": `${vertical ? 140 : COL - 8}px` } as CSSProperties}>
     <div className="metro-canvas" ref={canvasRef} style={{ width: W, height: H }}>
       <svg width={W} height={H} aria-hidden="true">
-        {!vertical && !tpl && ticks.map(t => <text key={t.label} x={pos(t.at, 0).x} y={18} className="m-tick" textAnchor="middle">{t.label}</text>)}
         {!vertical && !tpl && <text x={pos(evStation.col, 0).x} y={18} className="m-tick strong" textAnchor="middle">{fmtShort(ev.date)}</text>}
         {L.branches.map(b => <path key={b.id} d={branchPath(b.from, b.to, b.row)} className={`m-line branch ${b.nodes.every(x => x.node.status === "done") ? "done" : ""}`} />)}
         <path d={mainPath} className="m-line main" />
         {donePath && <path d={donePath} className="m-line main done" />}
         {on && gaps.map(g => { const d = gapPath(g); return <g key={g.id}><path d={d} className={`m-hit ${g.track === "main" ? "m-hit-main" : ""}`} data-testid={`flow-line-${g.u.key}-${g.v.key}`} onDoubleClick={e => openGap(g, e)} /><path d={d} className="m-hit-line" /></g> })}
-        {!tpl && (() => { const p = pos(todayCol, 0); return vertical
-          ? <g className="m-today"><line x1={4} x2={W - 4} y1={p.y} y2={p.y} /><text x={W - 8} y={p.y - 6} textAnchor="end">Today</text></g>
-          : <g className="m-today"><line x1={p.x} x2={p.x} y1={28} y2={H - 18} /><text x={p.x} y={H - 4} textAnchor="middle">Today</text></g> })()}
       </svg>
       {L.stations.map(s => s.node ? dot(s.node, s.col, 0, vertical ? "right" : "below") : null)}
       {L.branches.flatMap(b => b.nodes.map(x => dot(x.node, x.col, b.row, vertical ? "right" : b.row < 0 ? "above" : "below")))}
       {L.stations.filter(s => s.key === EVENT_KEY || s.key === START_KEY || s.key === END_KEY).map(s => {
         const p = pos(s.col, 0)
         return <div key={s.key} className={`m-node ${vertical ? "right" : "below"} m-${s.key.replaceAll("_", "")}`} style={{ left: p.x, top: p.y }}>
-          <span className={`m-dot station ${s.key === EVENT_KEY ? (ev.date < state.today ? "done" : "event") : "todo"}`} />
+          <span className={`m-dot station ${s.key === START_KEY ? "done" : s.key === EVENT_KEY ? (ev.date < state.today ? "done" : "event") : "todo"}`} />
           <span className="m-label"><b>{s.key === EVENT_KEY ? "Event day" : s.key === START_KEY ? "Start" : "Done"}</b>{s.key === EVENT_KEY && vertical && !tpl ? <span>{fmtShort(ev.date)}</span> : null}</span>
         </div>
       })}
