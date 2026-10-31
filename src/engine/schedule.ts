@@ -308,8 +308,13 @@ function nodeIssues(
   if (stray.length) out.push({ code: "calendar_range", severity: "error", text: `This step involves ${fmtLong(stray.sort()[0])}, outside the ASU calendar Platypus knows (${calendarSpan()}). Its dates cannot be trusted.` })
   if (d.official && d.club > d.official)
     out.push({ code: "official_missed", severity: "error", ruleId, text: `Planned finish ${fmtLong(d.club)} is after the ASU deadline ${fmtLong(d.official)}${ruleId ? ` (${ruleId})` : ""}.` })
-  if (ev && n.phase !== "close" && d.club >= ev.date)
+  // Check-in materials are intentionally allowed to be completed up to the event day.
+  // They become an event-level warning only if they remain open on that day.
+  const isCheckin = n.stepKey === "checkin"
+  if (ev && n.phase !== "close" && !isCheckin && d.club >= ev.date)
     out.push({ code: "after_event", severity: "error", text: `Planned finish ${fmtLong(d.club)} is not before the event (${fmtLong(ev.date)}).` })
+  if (ev && isCheckin && today === ev.date)
+    out.push({ code: "checkin_due", severity: "error", text: "Check-in materials are still incomplete on event day." })
   if (d.official && today > d.official)
     out.push({ code: "official_passed", severity: "error", ruleId, text: `The ASU deadline (${fmtLong(d.official)}) has passed. Time for Plan B.` })
   else if (today > d.club) out.push({ code: "club_passed", severity: "warn", text: `Past the club deadline (${fmtLong(d.club)}).` })
@@ -346,7 +351,7 @@ function eventIssues(ctx: Ctx, ev: Event, nodes: Node[], out: Schedule, looped: 
   const passed = nodes.filter(n => out.nodes[n.id]?.issues.some(i => i.code === "official_passed"))
   if (passed.length)
     issues.push({ code: "official_passed", severity: "error", text: `${plural(passed.length, "ASU deadline")} already passed: ${passed.map(n => n.title).join("; ")}. Consider moving the event or a Plan B.` })
-  const missed = nodes.filter(n => out.nodes[n.id]?.issues.some(i => i.code === "official_missed" || i.code === "after_event"))
+  const missed = nodes.filter(n => out.nodes[n.id]?.issues.some(i => i.code === "official_missed" || i.code === "after_event" || i.code === "checkin_due"))
   if (missed.length) issues.push({ code: "plan_misses", severity: "error", text: `${plural(missed.length, "step")} cannot finish in time with the current plan.` })
   if (looped.length) issues.push({ code: "loop", severity: "error", text: `Steps wait for each other in a loop: ${looped.map(n => n.title).join("; ")}.` })
   return issues

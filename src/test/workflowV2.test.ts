@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import { buildEventNodes, CORE_EVENT_STEP_KEYS, stepsFor } from "../engine/playbooks"
+import { computeSchedule } from "../engine/schedule"
 import type { Event } from "../data/types"
 
 const event = (checks: Event["checks"], headcount = 80): Event => ({ id: "v2", name: "V2", date: "2027-03-20", type: "social", headcount, venue: "campus", food: "none", funding: "none", speaker: false, checks, goalId: null, playbookId: "asu-event-v2" })
@@ -37,5 +38,13 @@ describe("ASU event workflow v2", () => {
   it("requires check-in materials one business day before every event", () => {
     const checkin = buildEventNodes(event({}), seedDemo(undefined, "v2").roles).find(node => node.stepKey === "checkin")
     expect(checkin?.anchor).toEqual({ kind: "target", days: 1, unit: "business", label: "Check-in materials ready" })
+  })
+  it("warns about an incomplete check-in only on event day, not while the event is still ahead", () => {
+    const base = seedDemo(undefined, "v2")
+    const delayed = { ...base, nodes: base.nodes.map(node => node.id === "e-founder:checkin" ? { ...node, clubDeadlineOverride: "2026-12-03" } : node) }
+    expect(computeSchedule(delayed).events["e-founder"].issues.map(issue => issue.code)).not.toContain("plan_misses")
+
+    const eventDay = { ...delayed, today: "2026-12-03" }
+    expect(computeSchedule(eventDay).events["e-founder"].issues.map(issue => issue.code)).toContain("plan_misses")
   })
 })
