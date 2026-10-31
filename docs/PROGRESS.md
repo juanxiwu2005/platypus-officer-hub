@@ -28,6 +28,8 @@
 
 # Platypus v1.0 进度
 
+| 2026-10-31 | Codex | **Check-in 截止日：待 Preview 验收。** 活动流程模板的 Check-in 资料明确锚定为活动前一个工作日；保存的 v2 活动在 schema v18 载入时也会修复并重新排期，避免 Check-in 被后续 Headcount 反向排到活动当天。 | lint、生产构建与模板/迁移回归检查通过；需要同步本地备份。 |
+
 | 2026-10-31 | Codex | **演示活动状态：待 Preview 验收。** 演示日期更新为 2026-10-31；三个活动均在可控时间窗内，分别展示顺利推进（Founder Dinner）、有多个等待/阻塞事项但可处理（Networking Night）和仅分配尚未启动（Spring Speaker Night）。schema v17 会先备份旧浏览器数据，再载入这套可复现的演示数据。 | lint、生产构建与全量 762 个单元测试通过；需要同步本地备份。 |
 
 | 2026-10-31 | Codex | **任务快速入口：待 Preview 验收。** 所有 Tasks 与 Event Flow 节点共用的 Details 新增 “Where to submit” 区域；每个任务汇集其关联 ASU 规则的去重官方链接，未知入口明确标示而不编造网址。 | lint、生产构建与单元测试待本次提交后复跑；需要同步本地备份。 |

@@ -57,7 +57,17 @@ function repairCoreEventSteps(state: DemoState): DemoState {
       .filter(node => CORE_EVENT_STEP_KEYS.includes(node.stepKey as typeof CORE_EVENT_STEP_KEYS[number]) && !existing.has(node.stepKey))
       .map(node => ({ ...node, assignedOn: state.today, ownerVersion: 0 }))
   })
-  return additions.length ? applySchedule({ ...state, nodes: [...state.nodes, ...additions] }) : state
+  // Check-in materials must be ready before the event, not on event day. This corrects
+  // every saved v2 core node as well as the standard template used for future events.
+  const checkinAnchor = { kind: "target" as const, days: 1, unit: "business" as const, label: "Check-in materials ready" }
+  let repairedCheckin = false
+  const nodes = state.nodes.map(node => {
+    if (!node.eventId || node.stepKey !== "checkin") return node
+    if (node.anchor?.kind === "target" && node.anchor.days === 1 && node.anchor.unit === "business" && node.anchor.label === checkinAnchor.label) return node
+    repairedCheckin = true
+    return { ...node, anchor: checkinAnchor }
+  })
+  return additions.length || repairedCheckin ? applySchedule({ ...state, nodes: [...nodes, ...additions] }) : state
 }
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
@@ -471,6 +481,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: repairCoreEventSteps(repairTaskLinks(parsed)), notice: null }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 17 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })), notice: null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 15 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })), notice: null }
   // v14 preserves the current demo while repairing verifiable event links and turns
   // old exact-name waiting references into actionable teammate references.

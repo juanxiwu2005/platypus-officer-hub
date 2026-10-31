@@ -4,8 +4,8 @@ import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 
-// v17 refreshes the checklist-driven demo with three clearly different, still-controllable event states.
-export const SCHEMA_VERSION = 17
+// v18 also repairs the pre-event check-in deadline for every saved v2 event.
+export const SCHEMA_VERSION = 18
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan

@@ -34,4 +34,8 @@ describe("ASU event workflow v2", () => {
     const nodes = buildEventNodes(event({ drone: true, safety: true, alcohol: true }), state.roles)
     for (const key of ["registry", "permit", "drone", "alcohol"]) expect(nodes.find(n => n.stepKey === key)?.ownerId).toBe("jordan")
   })
+  it("requires check-in materials one business day before every event", () => {
+    const checkin = buildEventNodes(event({}), seedDemo(undefined, "v2").roles).find(node => node.stepKey === "checkin")
+    expect(checkin?.anchor).toEqual({ kind: "target", days: 1, unit: "business", label: "Check-in materials ready" })
+  })
 })

@@ -77,6 +77,17 @@ describe("storage", () => {
     expect(repaired.nodes.find(node => node.id === "e-night:orderPlaced")).toMatchObject({ eventId: "e-night", stepKey: "orderPlaced", status: "accepted" })
     expect(repaired.nodes.find(node => node.id === "e-night:plan")?.status).toBe("done")
   })
+
+  it("repairs every saved v17 check-in task to the pre-event business-day deadline", () => {
+    const base = seedDemo(undefined, "v2")
+    const v17 = { ...base, schemaVersion: 17, nodes: base.nodes.map(node => node.stepKey === "checkin" ? { ...node, anchor: null } : node) }
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(v17))
+    const repaired = loadState()
+    for (const node of repaired.nodes.filter(node => node.stepKey === "checkin")) {
+      expect(node.anchor).toEqual({ kind: "target", days: 1, unit: "business", label: "Check-in materials ready" })
+    }
+    expect(repaired.nodes.find(node => node.id === "e-founder:checkin")?.clubDeadline).toBe("2026-12-02")
+  })
 })
 
 describe("app shell", () => {
