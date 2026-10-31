@@ -28,7 +28,11 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).changeSets[0].ops[0].food)).toBe("offsite")
   expect(chatCalls).toBe(1) // M2b: the AI reads the sentence once; the form is already up from local rules and this 503 changes nothing
   await page.reload()
-  await expect(page.getByRole("group", { name: "Choose an event" }).getByRole("button")).toHaveCount(3)
+  const eventNav = page.getByRole("navigation", { name: "Events" })
+  await expect(eventNav.getByRole("button")).toHaveCount(3)
+  await expect(eventNav.getByRole("button")).toHaveText(["Networking Night", "Founder Dinner Preview", "Spring Speaker Night"])
+  await eventNav.getByRole("button", { name: "Spring Speaker Night" }).click()
+  await expect(page.getByRole("heading", { name: "Spring Speaker Night" })).toBeVisible()
   await resetDemo(page)
   await page.goto("/#/")
   await expect(page.getByTestId("event-strip")).toHaveCount(2)

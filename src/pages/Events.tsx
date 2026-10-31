@@ -35,7 +35,14 @@ export default function Events() {
   const view: View = params.get("view") === "budget" ? "budget" : savedView
   const forecast = forecastFor(state)
   const ev = state.events.find(e => e.id === params.get("event")) ?? state.events[0]
+  const eventsByDate = useMemo(() => [...state.events].sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)), [state.events])
   const selected = rail.detail?.kind === "node" ? rail.detail.id : null
+  const chooseEvent = (eventId: string) => {
+    const next = new URLSearchParams(params)
+    next.set("event", eventId)
+    setParams(next)
+    rail.closeDetail()
+  }
   const setView = (v: View) => {
     setViewState(v)
     const next = new URLSearchParams(params)
@@ -53,12 +60,19 @@ export default function Events() {
   const ordered = topoOrder(nodes).order
 
   return (
-    <>
-      <PageHead path="/events" actions={state.events.length > 1 && (
-        <div className="seg" role="group" aria-label="Choose an event">
-          {state.events.map(e => <button key={e.id} type="button" aria-pressed={e.id === ev.id} onClick={() => { const next = new URLSearchParams(params); next.set("event", e.id); setParams(next); rail.closeDetail() }}>{e.name}</button>)}
-        </div>
-      )} />
+    <div className="events-layout">
+      {state.events.length > 1 && <nav className="event-nav" aria-label="Events">
+        {eventsByDate.map(e => <button key={e.id} type="button" aria-current={e.id === ev.id ? "page" : undefined} onClick={() => chooseEvent(e.id)}>{e.name}</button>)}
+      </nav>}
+      <div className="events-content">
+        <PageHead path="/events" actions={state.events.length > 1 && (
+          <label className="event-picker">
+            <span className="sr-only">Choose an event</span>
+            <select aria-label="Choose an event" value={ev.id} onChange={e => chooseEvent(e.target.value)}>
+              {eventsByDate.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          </label>
+        )} />
 
       <section className="card event-head" aria-labelledby="ev-title">
         <div className="event-head-row">
@@ -114,7 +128,8 @@ export default function Events() {
           })}</tbody>
         </table>
       </section>}
-      {view === "budget" && <EventBudget event={ev} />}
-    </>
+        {view === "budget" && <EventBudget event={ev} />}
+      </div>
+    </div>
   )
 }
