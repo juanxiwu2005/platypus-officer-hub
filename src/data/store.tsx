@@ -213,7 +213,8 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
 }
 
 function canEditBudget(state: DemoState) {
-  return canLead(state) || state.roles.find(role => role.holderId === state.viewerId)?.fn === "finance"
+  // A budget is part of the event's shared operating record. Every current officer may maintain its line items.
+  return state.people.some(person => person.id === state.viewerId)
 }
 
 function withBudgetItems(state: DemoState, eventId: string, items: BudgetLineItem[]): DemoState {
