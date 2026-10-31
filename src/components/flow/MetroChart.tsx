@@ -86,12 +86,12 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const L = useMemo(() => metroLayout(state, sched, eventId, !vertical), [state, sched, eventId, vertical])
 
   // Pixel geometry. Horizontal: columns run left → right, rows above/below. Vertical (phone): top → bottom, branches to the right.
-  const COL = vertical ? 64 : Math.max(96, Math.min(132, (width - 112) / Math.max(1, L.cols)))
-  const ROW = vertical ? 132 : 76
+  const COL = vertical ? 64 : Math.max(72, Math.min(96, (width - 80) / Math.max(1, L.cols)))
+  const ROW = vertical ? 132 : 60
   const PAD = vertical ? 28 : 56
   // A card for the highest rule-bound step opens above its dot. Keep real headroom for it instead of clipping it at
   // the chart edge (the USG request is a common example).
-  const top = vertical ? 40 : 144 + (-L.minRow) * ROW
+  const top = vertical ? 40 : 80 + (-L.minRow) * ROW
   const pos = (col: number, row: number) => vertical ? { x: 26 + row * ROW, y: top + col * COL } : { x: PAD + col * COL, y: top + row * ROW }
   const W = vertical ? Math.max(width, 26 + L.maxRow * ROW + 140) : PAD * 2 + L.cols * COL
   const H = vertical ? top + L.cols * COL + 60 : top + L.maxRow * ROW + 70
@@ -208,8 +208,11 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   }
   const lastDoneMain = L.stations.reduce((k, s, i) => (s.node?.status === "done" ? i : k), -1)
   const mainPts = L.stations.map(s => pos(s.col, 0))
-  const mainPath = mainPts.map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`).join(" ")
-  const donePath = lastDoneMain > 0 ? mainPts.slice(0, lastDoneMain + 1).map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`).join(" ") : ""
+  // Start only fans out into the five routes. Do not paint a duplicate centre
+  // rail underneath them; the visible main spine begins at Full Check.
+  const visibleMainPts = mainPts.slice(1)
+  const mainPath = visibleMainPts.map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`).join(" ")
+  const donePath = lastDoneMain > 1 ? mainPts.slice(1, lastDoneMain + 1).map((p, i) => `${i ? "L" : "M"}${p.x} ${p.y}`).join(" ") : ""
   const branchPath = (from: number, to: number, row: number) => {
     const a = pos(L.stations[from].col, 0), b = pos(L.stations[to].col, 0), ra = pos(L.stations[from].col, row), rb = pos(L.stations[to].col, row)
     if (vertical) { const ya = a.y + 30, yb = b.y - 30; return `M${a.x} ${a.y} C${a.x} ${a.y + 20} ${ra.x} ${ya - 20} ${ra.x} ${ya} L${rb.x} ${yb} C${rb.x} ${yb + 20} ${b.x} ${b.y - 20} ${b.x} ${b.y}` }

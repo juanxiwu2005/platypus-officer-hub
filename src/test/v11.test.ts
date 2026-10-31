@@ -65,6 +65,8 @@ describe("five-route event flow chart", () => {
     // Every route leaves Start and meets at Full Check before the event-day spine.
     for (const b of L.branches) expect(b.to).toBeGreaterThan(b.from)
     for (let i = 1; i < L.stations.length; i++) expect(L.stations[i].col).toBeGreaterThan(L.stations[i - 1].col)
+    // Milestones are consecutive reading columns; no blank scroll-only space.
+    for (let i = 2; i < L.stations.length - 1; i++) expect(L.stations[i].col - L.stations[i - 1].col).toBe(1)
   })
   it("uses one side only on a phone", () => {
     const L = metroLayout(base, computeSchedule(base), "e-speaker", false)

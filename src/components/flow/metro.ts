@@ -53,14 +53,16 @@ export function metroLayout(state: DemoState, _sched: Schedule, eventId: string,
   if (extraPost.length) post.push({ route: { id: "other-close", keys: extraPost.map(n => n.stepKey ?? n.id), row: 4 }, nodes: extraPost })
 
   const preWidth = Math.max(1, ...pre.map(x => x.nodes.length))
-  const finalCol = preWidth + 2
+  // Keep one compact reading column per task. The named milestones do not need
+  // empty spacer columns between them: their labels sit above/below the line.
+  const finalCol = preWidth + 1
   const stations: Station[] = [
     { key: START_KEY, node: null, col: 0 },
     ...(final ? [{ key: final.id, node: final, col: finalCol }] : []),
-    ...(checkin ? [{ key: checkin.id, node: checkin, col: finalCol + 2 }] : []),
-    { key: EVENT_KEY, node: null, col: finalCol + 4 },
-    ...(headcount ? [{ key: headcount.id, node: headcount, col: finalCol + 6 }] : []),
-    { key: END_KEY, node: null, col: finalCol + 8 + Math.max(1, ...post.map(x => x.nodes.length)) },
+    ...(checkin ? [{ key: checkin.id, node: checkin, col: finalCol + 1 }] : []),
+    { key: EVENT_KEY, node: null, col: finalCol + 2 },
+    ...(headcount ? [{ key: headcount.id, node: headcount, col: finalCol + 3 }] : []),
+    { key: END_KEY, node: null, col: finalCol + 4 + Math.max(1, ...post.map(x => x.nodes.length)) },
   ]
   const finalIndex = final ? 1 : 0
   const headcountIndex = stations.findIndex(s => s.node?.id === headcount?.id)
