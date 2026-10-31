@@ -667,6 +667,8 @@ div.hover { display: block; }
 .event-budget-table tbody td:first-child { z-index: var(--z-raised); }
 .event-budget-table tbody tr:hover td:first-child { background: var(--surface-2); }
 .event-budget tfoot th, .event-budget tfoot td { border-top: 3px double var(--ink); }
+.task-quick-links { display: grid; gap: var(--s3); padding-top: var(--s4); border-top: 1px solid var(--line); }
+.task-quick-links b { font-size: var(--fs-md); }
 .funding-tbl .stage-h { width: 62px; text-align: center; font-weight: 600; font-size: var(--fs-xs); line-height: 1.2; padding: 6px 2px; }
 .funding-tbl td { white-space: nowrap; }
 .funding-tbl .stage-h span { display: block; }

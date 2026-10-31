@@ -28,6 +28,7 @@
 
 # Platypus v1.0 进度
 
+| 2026-10-31 | Codex | **任务快速入口：待 Preview 验收。** 所有 Tasks 与 Event Flow 节点共用的 Details 新增 “Where to submit” 区域；每个任务汇集其关联 ASU 规则的去重官方链接，未知入口明确标示而不编造网址。 | lint、生产构建与单元测试待本次提交后复跑；需要同步本地备份。 |
 | 2026-10-31 | Codex | **Event 节点任务更新：待 Preview 验收。** Event Flow 点击节点现在复用 Tasks 的详情与四种汇报操作（Done、Waiting on、Need help、Need more time），移除 Materials；负责人或 President 可更新状态，President 可代成员更新。每个已分配节点都提供 Remind，所有当前干部可启动提醒流程。 | lint、生产构建与全部单元测试通过；当前环境无法下载 Chromium，页面测试及字数检查无法启动（下载域名返回 403）；需要同步本地备份。 |
 | 2026-10-31 | Codex | **Budget 滚动与编辑修复：待 Preview 验收。** 保留整张 Budget 卡横向滚动（标题与说明不固定），但将 Item 固定列改为独立、无缝图层，避免滚动时露出底层内容或遮挡输入。所有当前干部现在都能新增、编辑和删除预算行。 | lint、生产构建、全部单元测试与字数检查通过；新增单元测试覆盖任意干部的增、改、删。当前环境无法下载 Chromium，故 Playwright 页面测试未能启动（下载域名返回 403）；需要同步本地备份。 |
 | 2026-10-31 | Codex | **Budget 表格可读性：待 Preview 验收。** Total requested 使用会计格式的双横线；Qty 和 Unit price 收紧为内容宽度；横向滚动时 Item 列固定在左侧。 | lint、生产构建、全部单元测试与字数检查通过；新增页面断言覆盖双横线与固定列。当前环境无法下载 Chromium，故 Playwright 页面测试未能启动（下载域名返回 403）；需要同步本地备份。 |

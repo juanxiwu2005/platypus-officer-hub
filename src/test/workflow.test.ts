@@ -24,7 +24,7 @@ describe("claim handshake and status permissions", () => {
     expect(reducer({ ...free, viewerId: "sam" }, { type: "claimTask", nodeId: "e-night:rsvp" })).toMatchObject({ nodes: free.nodes })
   })
   it("requires a claim before status updates and denies another officer", () => {
-    expect(reducer(s, { type: "replyTask", nodeId: "t-news", reply: "done" })).toBe(s)
+    expect(reducer({ ...s, viewerId: "maya" }, { type: "replyTask", nodeId: "t-news", reply: "done" })).toEqual({ ...s, viewerId: "maya" })
     const seed = personal("sam")
     const sam = { ...seed, nodes: seed.nodes.map(n => n.id === "e-speaker:flyer" ? { ...n, status: "unclaimed" as const, acceptedOn: null } : n) }
     expect(reducer(sam, { type: "replyTask", nodeId: "e-speaker:flyer", reply: "done" })).toBe(sam)
