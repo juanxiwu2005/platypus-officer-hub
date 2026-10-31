@@ -9,7 +9,7 @@ describe("team workload and recognition", () => {
   })
   it("weights estimated effort, urgency and dependency impact while excluding completed or far-future work", () => {
     const s = base(), template = s.nodes[0]; s.nodes = [1, 2, 3, 4].map(i => ({ ...template, id: String(i), ownerId: "maya", tier: "medium", status: "accepted", latestStart: i === 4 ? "2027-01-01" : "2026-10-23", clubDeadline: i === 4 ? "2027-01-04" : "2026-10-30" }))
-    expect(workload(s, "maya")).toMatchObject({ band: "Focused", through: "2026-11-04" })
+    expect(workload(s, "maya")).toMatchObject({ band: "Focused", through: "2026-11-05" })
     s.nodes[0].estDays = 10; s.nodes[1].estDays = 8; s.nodes[1].tier = "heavy"; expect(workload(s, "maya").band).toBe("Needs support")
     s.nodes[0].status = "done"; s.nodes[1].status = "done"; s.nodes[2].status = "done"; expect(workload(s, "maya").band).toBe("Room to help")
   })

@@ -318,7 +318,6 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
       ...prev,
       ...(ai.title && !touched.current.has("title") ? { title: ai.title } : {}),
       ...(ai.owners.length && !touched.current.has("owners") ? { owners: ai.owners } : {}),
-      ...(ai.eventId && !touched.current.has("eventId") ? { eventId: ai.eventId } : {}),
     }))
     setFilled(true)
   }, [card.ai])
@@ -326,7 +325,7 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
   return <form className="mini-card plan-form" data-testid="task-form" autoComplete="off" onSubmit={e => {
     e.preventDefault()
     if (!c.title.trim()) return setError("Give the task a name.")
-    if (!c.eventId && (!/^\d{4}-\d{2}-\d{2}$/.test(c.due) || c.due < state.today)) return setError("Pick a due date from today on.")
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(c.due) || c.due < state.today) return setError("Pick a due date from today on.")
     onDone({ ...c, title: c.title.trim(), thinking: false }, buffered)
   }}>
     <b>New task</b>
@@ -336,8 +335,7 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
     <OwnerPicker value={c.owners} onChange={owners => edit({ owners })} />
     {people > 1 && <p className="small muted">Makes {people} tasks, one for each person, so everyone has their own deadline.</p>}
     {!c.owners.length && <p className="small muted">{canLead(state) ? "No owner yet: anyone can claim it." : "No owner: it will be yours."}</p>}
-    <label>Event<select aria-label="Event" value={c.eventId ?? ""} onChange={e => edit({ eventId: e.target.value || null })}><option value="">Standalone task</option>{state.events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}</select></label>
-    {c.eventId ? <p className="small muted">Its dates come from the event plan.</p> : <TaskDueFields due={c.due} buffered={buffered} onDue={due => edit({ due })} onBuffered={setBuffered} />}
+    <TaskDueFields due={c.due} buffered={buffered} onDue={due => edit({ due })} onBuffered={setBuffered} />
     {error && <p className="small late-text" role="alert">{error}</p>}
     <button className="btn btn-primary" type="submit">{people > 1 ? `Create ${people} tasks` : "Create task"}</button>
   </form>

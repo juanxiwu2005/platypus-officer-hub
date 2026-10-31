@@ -62,7 +62,7 @@ export function sanitizeReview(raw: unknown, ctx: CommandContext, eventId: strin
     return text ? [{ text, rules }] : []
   }).slice(0, 4)
   const seen = new Set(existingTitles.map(words))
-  const tasks: EventReview["tasks"] = []
+  const tasks: EventReview["tasks"] = [] // Event templates are checklist-driven; AI may report risks, never add steps.
   // An owner the model made up becomes "no owner" rather than losing the whole step.
   const rawTasks = (Array.isArray(r.tasks) ? r.tasks : []).slice(0, 10).map(t => {
     const o = t && typeof t === "object" ? t as Record<string, unknown> : {}
@@ -73,7 +73,7 @@ export function sanitizeReview(raw: unknown, ctx: CommandContext, eventId: strin
     const title = stripDates(op.title, allowedDates)
     if (!title || seen.has(words(title))) continue
     seen.add(words(title))
-    tasks.push({ ...op, title, eventId, ...(op.why ? { why: stripDates(op.why, allowedDates) } : {}) })
+    void title; void op
   }
   return { risks, tasks }
 }

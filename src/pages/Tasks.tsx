@@ -6,7 +6,8 @@ import { PageHead } from "../components/Page"
 import { Bts, BtsTr } from "../components/Bts"
 import { useRail } from "../components/rail/RailContext"
 import { FollowupPanel } from "../components/FollowupPanel"
-import { addDays, daysBetween, fmtShort, fromISO, toISO } from "../lib/dates"
+import { daysBetween, fmtShort, fromISO, toISO } from "../lib/dates"
+import { isInActionHorizon } from "../engine/team"
 import { canMoveTask, byRank, addTaskNotice } from "../data/board"
 import { Avatar, Empty, NodePill, useStatusStyles } from "../components/ui"
 import { canLead } from "../data/changeReview"
@@ -22,9 +23,7 @@ export function isInTaskHorizon(node: Node, today: string): boolean {
     day.setDate(day.getDate() - ((day.getDay() + 6) % 7) - 7) // Monday of last week
     return (node.completedOn ?? node.lastUpdate ?? "") >= toISO(day)
   }
-  const end = addDays(today, 14)
-  const dates = [node.latestStart, node.clubDeadline].filter((date): date is string => !!date)
-  return !dates.length || dates.some(date => date <= end)
+  return isInActionHorizon(node, today)
 }
 
 export default function Tasks() {

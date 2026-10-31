@@ -156,9 +156,9 @@ describe("tasks are open to everyone (Juanxi, 2026-10-27)", () => {
     const undone = reducer(next, { type: "undoAuto", id: "t-test" })
     expect(undone.nodes.some(x => x.id === "t-test:0")).toBe(false)
   })
-  it("anyone can give a task to someone else; it waits for them to claim it and they are told", () => {
+  it("anyone can give a standalone task to someone else; it enters To do and they are told", () => {
     const next = make(as("sam"), [{ title: "Print badges", ownerId: "jordan" }])
-    expect(next.nodes.find(x => x.id === "t-test:0")).toMatchObject({ ownerId: "jordan", status: "unclaimed" })
+    expect(next.nodes.find(x => x.id === "t-test:0")).toMatchObject({ ownerId: "jordan", status: "accepted" })
     expect(next.notifications.some(n => n.recipientId === "jordan" && /Sam gave you a new task/.test(n.text))).toBe(true)
   })
   it("several owners make one task each; an officer's task with no owner is their own", () => {
@@ -177,12 +177,12 @@ describe("tasks are open to everyone (Juanxi, 2026-10-27)", () => {
     expect(bufferedClubDeadline(base, "2026-10-27")).toEqual({ date: "2026-10-23", shortened: true, buffer: 3 })
     expect(make(base, [{ title: "A", ownerId: "maya" }], "2026-11-06", false).nodes.find(n => n.id === "t-test:0")!.clubDeadline).toBe("2026-11-06")
   })
-  it("an officer can apply a reviewed add_node; other reviewed changes still need a lead", () => {
+  it("an officer can apply a reviewed standalone task; event templates cannot gain AI steps", () => {
     expect(canApplyOp(as("maya"), { op: "add_node" })).toBe(true)
     expect(canApplyOp(as("maya"), { op: "assign_owner" })).toBe(false)
-    const s = reducer(as("maya"), { type: "draftChanges", changeSet: { id: "c1", sentence: "x", status: "pending", ops: [{ op: "add_node", title: "Buy tape", eventId: "e-night", ownerId: null, tier: "light" }] } })
-    const next = reducer(s, { type: "reviewChange", id: "c1", index: 0, decision: "applied" })
-    expect(next.nodes.some(n => n.id === "c1:0" && n.eventId === "e-night")).toBe(true)
+    const s = reducer(as("maya"), { type: "draftChanges", changeSet: { id: "c1", sentence: "x", status: "pending", ops: [{ op: "add_node", title: "Buy tape", eventId: null, ownerId: null, tier: "light" }] } })
+    const next = reducer(s, { type: "reviewChange", id: "c1", index: 0, decision: "applied", human: { date: "2026-10-29", buffered: true } })
+    expect(next.nodes.some(n => n.id === "c1:0" && n.eventId === null)).toBe(true)
   })
 })
 
@@ -219,13 +219,13 @@ describe("the plan check after a new event", () => {
       tasks: [{ title: "Finish the event flyer", phase: "marketing" }, { title: "Book stage crew", phase: "prepare", ownerId: "ghost", tier: "heavy", why: "Done by Dec 1." }, { title: "Book stage crew", phase: "run" }],
     }, ctx, "e-night", base.nodes.filter(n => n.eventId === "e-night").map(n => n.title), new Set())
     expect(r.risks).toEqual([{ text: "Stage builds need facilities sign-off by [date in plan].", rules: ["R03"] }])
-    expect(r.tasks).toEqual([{ op: "add_node", title: "Book stage crew", eventId: "e-night", ownerId: null, tier: "heavy", phase: "prepare", why: "Done by [date in plan]." }])
+    expect(r.tasks).toEqual([])
   })
   it("the endpoint re-checks the model's reply", async () => {
     chat.mockResolvedValue({ data: { risks: [{ text: "Long travel.", rules: [] }], tasks: [{ title: "Book the bus", phase: "prepare", ownerId: "jordan", tier: "medium" }, { op: "delete_node" }] }, model: "mock", provider: "mock" })
     const r = await (await reviewFn(new Request("https://example.org/api/event/review", { method: "POST", body: JSON.stringify({ eventId: "e-night", context: ctx, data: reviewPayload(base, "e-night") }) }))).json()
     expect(chat.mock.calls[0][0].task).toBe("event_review")
-    expect(r.tasks).toEqual([{ op: "add_node", title: "Book the bus", eventId: "e-night", ownerId: "jordan", tier: "medium", phase: "prepare" }])
+    expect(r.tasks).toEqual([])
   })
   it("without AI shows the rule engine's own warnings and suggests no steps", async () => {
     const r = await reviewEvent(off(), "e-night")
@@ -233,11 +233,11 @@ describe("the plan check after a new event", () => {
     expect(r.changeSet).toBeUndefined()
     expect(localReview(base, "e-night").tasks).toEqual([])
   })
-  it("suggested steps become a change set to review", async () => {
+  it("AI suggested steps never become event changes", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ risks: [], tasks: [{ op: "add_node", title: "Book the bus", eventId: "e-night", ownerId: null, tier: "medium" }], model: "mock" }))))
     const r = await reviewEvent(base, "e-night")
-    expect(r.changeSet?.ops).toEqual([{ op: "add_node", title: "Book the bus", eventId: "e-night", ownerId: null, tier: "medium" }])
-    expect(kinds(r.cards)).toEqual(["review", "changes"])
+    expect(r.changeSet).toBeUndefined()
+    expect(kinds(r.cards)).toEqual(["review"])
   })
 })
 

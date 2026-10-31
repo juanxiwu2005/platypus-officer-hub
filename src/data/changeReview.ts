@@ -34,6 +34,7 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
   const op = sanitizeOps([raw], commandContext(s))[0]
   if (!op) return "This change no longer matches the current demo. Please draft it again."
   if (!canApplyOp(s, op)) return op.op === "create_event" ? "Only the president, VP or officers they choose can create events." : "Only the president or vice president can approve changes."
+  if (op.op === "add_node" && op.eventId) return "Event steps come from the checklist-selected workflow template; update the checklist instead of adding a task."
   if ((op.op === "create_event" || (op.op === "add_node" && !op.eventId)) && !validDate(human.date ?? "")) return "Choose and confirm a date before applying this change."
   if ((op.op === "create_event" || (op.op === "add_node" && !op.eventId)) && human.date! < s.today) return "Pick a date from today on."
   if (op.op === "link_dependency") {
@@ -60,11 +61,10 @@ export function newObjects(s: DemoState, op: CommandOp, id: string, human: Human
     return { events: [...s.events, event], nodes: [...s.nodes, ...buildEventNodes(event, s.roles, { steps: orgSteps(s) }).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 }))] }
   }
   if (op.op === "add_node") {
+    if (op.eventId) return {}
     const person = s.people.find(p => p.id === op.ownerId)
     const fn = s.roles.find(r => r.id === person?.roleId)?.fn ?? "programs"
-    // Your own task is already yours (To do); a task for someone else waits for them to claim it (plan §4, mechanism 2).
-    const mine = op.ownerId === s.viewerId
-    const node: Node = { id, title: op.title, eventId: op.eventId, stepKey: null, phase: op.eventId ? op.phase ?? "prepare" : null, fn, ownerId: op.ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: op.tier, estDays: op.tier === "heavy" ? 3 : op.tier === "medium" ? 2 : 1, anchor: op.eventId ? { kind: "target", days: 14, unit: "calendar", label: "Club preparation target" } : taskAnchor(s, human.date!, human.buffered ?? false), clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: mine ? "accepted" : "unclaimed", acceptedOn: mine ? s.today : null, waitingOn: null, draftLink: null, why: op.why ?? "Supports our club's plan.", source: canLead(s) ? "President-reviewed command" : "Added by an officer", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
+    const node: Node = { id, title: op.title, eventId: null, stepKey: null, phase: null, fn, ownerId: op.ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: op.tier, estDays: op.tier === "heavy" ? 3 : op.tier === "medium" ? 2 : 1, anchor: taskAnchor(s, human.date!, human.buffered ?? false), clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: op.ownerId ? "accepted" : "unclaimed", acceptedOn: op.ownerId ? s.today : null, waitingOn: null, draftLink: null, why: op.why ?? "Supports our club's plan.", source: canLead(s) ? "President-reviewed command" : "Added by an officer", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
     return { nodes: [...s.nodes, node] }
   }
   return {}
@@ -85,6 +85,7 @@ export interface NewTask { title: string; ownerId: string | null; eventId: strin
  */
 export function createTasks(s: DemoState, a: { id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }): DemoState {
   if (s.changeSets.some(c => c.id === a.id) || !a.tasks.length || a.tasks.length > 10) return s
+  if (a.tasks.some(task => task.eventId !== null)) return s
   const lead = canLead(s)
   // Only a lead can post a task nobody owns yet; anyone else's task without an owner is their own.
   const raw = a.tasks.map(t => ({ op: "add_node", title: t.title, eventId: t.eventId, ownerId: t.ownerId ?? (lead ? null : s.viewerId), tier: t.tier ?? "light" }))
