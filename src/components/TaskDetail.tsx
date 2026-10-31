@@ -17,18 +17,14 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
   const navigate = useNavigate()
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [node.id])
-  const upstream = state.nodes.filter(n => node.dependsOn.includes(n.id))
-  const downstream = state.nodes.filter(n => n.dependsOn.includes(node.id))
   const pending = state.extensionRequests.find(r => r.nodeId === node.id && r.status === "pending")
   return <section className="card task-detail" aria-label="Linked task" data-testid="task-detail">
     <div className="action-row"><StatusPill status={node.status} /><span className="small muted">{state.events.find(e => e.id === node.eventId)?.name ?? "Club task"}</span></div>
     <h2 ref={heading} tabIndex={-1}>{node.title}</h2>
     <p>{node.why || "This step supports our club plan."}</p>
     <p className="small muted">Owner: {state.people.find(p => p.id === node.ownerId)?.name ?? "Not assigned"}</p>
-    <div className="task-dates"><div><span className="small muted">Start by</span><b>{node.latestStart ? fmtLong(node.latestStart) : "Not set"}</b></div><div><span className="small muted">Club deadline</span><b>{node.clubDeadline ? fmtLong(node.clubDeadline) : "Not set"}</b></div><div><span className="small muted">{officialLabel(node)}</span><b>{node.officialDeadline ? fmtLong(node.officialDeadline) : "Not applicable"}</b></div></div>
+    <div className="task-dates"><div><span className="small muted">Start by</span><b>{node.latestStart ? fmtLong(node.latestStart) : "Not set"}</b></div><div><span className="small muted">Club deadline</span><b>{node.clubDeadline ? fmtLong(node.clubDeadline) : "Not set"}</b></div><div><span className="small muted">{officialLabel(node)}</span><b>{node.officialDeadline ? fmtLong(node.officialDeadline) : "N/A"}</b></div></div>
     {node.waitingOn && <p className="small warn-text">Waiting on: {node.waitingOn}</p>}
-    {!!upstream.length && <p className="small"><b>Before this:</b> {upstream.map(n => `${n.title} (${n.status === "done" ? "done" : "still open"})`).join("; ")}</p>}
-    {!!downstream.length && <p className="small"><b>After this:</b> {downstream.map(n => n.title).join("; ")}</p>}
     {node.draftLink && safeLink(node.draftLink) && <a href={node.draftLink} target="_blank" rel="noreferrer">Open current draft</a>}
     {node.eventId && isBudgetControlledNode(node) && <button type="button" className="btn" onClick={() => navigate(`/events?event=${encodeURIComponent(node.eventId!)}&view=budget`)}>Open Event Budget</button>}
     <details><summary className="small">Sources and responsibilities</summary><p className="small muted">{node.source}. Dates come from the rule engine. Responsible: {state.people.find(p => p.id === node.ownerId)?.name ?? "not assigned"}; accountable: {state.roles.find(r => r.id === node.approverRoleId)?.displayName ?? "owner"}.</p><div className="action-row">{node.ruleIds.map(id => { const r = RULES.find(r => r.id === id); return r && <a key={id} href={r.sources[0].url} target="_blank" rel="noreferrer">{id}</a> })}</div></details>
