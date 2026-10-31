@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { downloadExport, useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
-import { useRail } from "../components/rail/RailContext"
+import { BoardSettingsPanel } from "../components/BoardSettings"
 import { GoalsEditor, ProfileForm, RoleCard, WorkspaceEditor } from "../components/SettingsForms"
 import { OrgChart } from "../components/setup/OrgChart"
 import { MAX_ROLES, newRole, rederiveFn, withBelow } from "../data/structure"
@@ -23,9 +23,9 @@ export function InviteLink({ code }: { code: string }) {
   return <div className="form-stack"><label>Officer setup link<input readOnly value={url} onFocus={e => e.target.select()} /></label><div className="action-row"><button type="button" className="btn" onClick={async () => { try { await navigator.clipboard.writeText(url); setCopied(true) } catch { setCopied(false) } }}>{copied ? "Copied" : "Copy invite link"}</button><a className="btn" href={url}>Try officer setup</a><Info>Same-browser demo invitation: choose a fictional officer to try their setup.</Info></div></div>
 }
 
-type Tab = "club" | "roles" | "workflow" | "links" | "me" | "admin"
+type Tab = "club" | "roles" | "workflow" | "tasks" | "links" | "me" | "admin"
 const TABS: { id: Tab; label: string; lead: boolean }[] = [
-  { id: "club", label: "Club", lead: true }, { id: "roles", label: "Roles", lead: true }, { id: "workflow", label: "Workflow", lead: true }, { id: "links", label: "Links & files", lead: true },
+  { id: "club", label: "Club", lead: true }, { id: "roles", label: "Roles", lead: true }, { id: "workflow", label: "Workflow", lead: true }, { id: "tasks", label: "Tasks", lead: true }, { id: "links", label: "Links & files", lead: true },
   { id: "me", label: "My preferences", lead: false }, { id: "admin", label: "Admin", lead: true },
 ]
 
@@ -40,10 +40,14 @@ export default function Settings() {
     <div className="settings">
       <nav className="settings-nav" aria-label="Settings sections">{tabs.map(t => <button key={t.id} type="button" aria-current={active === t.id ? "page" : undefined} onClick={() => setTab(t.id)}>{t.label}</button>)}</nav>
       <div className="settings-body">
-        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <WorkflowSettings /> : <ClubSettings tab={active} />}
+        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <WorkflowSettings /> : active === "tasks" ? <TaskSettings /> : <ClubSettings tab={active} />}
       </div>
     </div>
   </>
+}
+
+function TaskSettings() {
+  return <section className="card form-stack" data-testid="task-settings"><BoardSettingsPanel /></section>
 }
 
 /** Debounced auto-save with a single Undo step. */
@@ -172,10 +176,8 @@ function MyForm() {
 
 function Admin() {
   const { state, dispatch } = useStore()
-  const rail = useRail()
   return <section className="card form-stack">
     <h2>Admin</h2>
-    <div className="action-row"><button type="button" className="btn" onClick={() => rail.show({ kind: "board" })}>Customize the task board</button></div>
     <h3>Reported answers</h3>
     {state.feedback.length ? <ul className="inbox-list">{state.feedback.map(f => <li key={f.id}><span className="small">{f.text.slice(0, 160)}</span><span className="action-row"><span className="tag">{f.resolved ? "Reviewed" : "Needs review"}</span>{!f.resolved && <button className="btn small" onClick={() => dispatch({ type: "resolveReport", id: f.id })}>Mark reviewed</button>}</span></li>)}</ul> : <Empty>No reports yet.</Empty>}
   </section>

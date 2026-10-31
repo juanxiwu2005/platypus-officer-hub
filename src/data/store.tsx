@@ -441,6 +441,13 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: parsed, notice: null }
+  // v13 makes assigned workflow work actionable immediately. Keep every saved
+  // event, budget line and history; only move owner-backed Not claimed cards to To do.
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 12 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
+    const promoted = { ...parsed, schemaVersion: SCHEMA_VERSION, nodes: parsed.nodes.map(node => node.ownerId && node.status === "unclaimed" ? { ...node, status: "accepted" as const, acceptedOn: node.assignedOn ?? parsed.today } : node) }
+    const state = promoted.events.reduce((next, event) => syncBudgetFlow(next, event.id), applySchedule(promoted))
+    return { state, notice: null }
+  }
   // v6 used the former fixed event graph. Preserve existing activities and their recognizable progress while
   // rebuilding them from the approved baseline + selected situation routes.
   if (parsed && typeof parsed === "object" && Array.isArray(parsed.events) && Array.isArray(parsed.nodes) && Array.isArray(parsed.roles) && (parsed.schemaVersion === 6 || parsed.schemaVersion === 7 || parsed.schemaVersion === 8 || parsed.schemaVersion === 9 || parsed.schemaVersion === 10 || parsed.schemaVersion === 11)) {

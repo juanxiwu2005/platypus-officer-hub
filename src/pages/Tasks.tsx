@@ -51,7 +51,6 @@ export default function Tasks() {
     <PageHead path="/tasks" actions={<>
       <div className="seg" role="group" aria-label="Task view">{(["board", "table", "timeline"] as View[]).map(v => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>{v === "table" ? "Table" : v === "board" ? "Board" : "Timeline"}</button>)}</div>
       <select className="select" aria-label="Task scope" value={scope} onChange={e => setScope(e.target.value)}><option value="mine">My tasks</option><option value="team">Team tasks</option></select>
-      {lead && view === "board" && <button type="button" className="btn" onClick={() => rail.show({ kind: "board" })}>Customize</button>}
       {/* The only create entry used to sit at the foot of one board column, so the page looked read-only (audit §6.1). */}
       <NewTask onAdd={addTask} />
     </>} />

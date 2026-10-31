@@ -4,7 +4,7 @@ import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 
-export const SCHEMA_VERSION = 12
+export const SCHEMA_VERSION = 13
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -34,12 +34,12 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
 
   // Where each Networking Night step stands on the demo date.
   const v2NightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
-    plan: { status: "done" },
-    marketingNeeds: { status: "done" },
-    budget: { status: "done" },
-    registry: { status: "done" },
-    venue: { status: "done" },
-    quotes: { status: "done" },
+    plan: { status: "done", completedOn: "2026-09-18" },
+    marketingNeeds: { status: "done", completedOn: "2026-10-08" },
+    budget: { status: "done", completedOn: "2026-09-11" },
+    registry: { status: "done", completedOn: "2026-10-14" },
+    venue: { status: "done", completedOn: "2026-10-20" },
+    quotes: { status: "done", completedOn: "2026-09-25" },
     foodCompliance: { status: "waiting", waitingOn: "Approval from Student Unions" },
     contentCreation: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" },
     rsvp: { status: "unclaimed", ownerId: null },
