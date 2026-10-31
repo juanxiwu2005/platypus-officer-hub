@@ -50,7 +50,7 @@ const choose = <T extends string>(v: unknown, choices: readonly T[], fallback: T
 export const TIERS = ["light", "medium", "heavy"] as const
 export const PHASES: Phase[] = ["plan", "prepare", "money", "marketing", "run", "close"]
 export const FOODS: Event["food"][] = ["none", "offsite", "dining", "onsite", "tbd"]
-export const EVENT_CHECKS: EventCheck[] = ["funding", "food", "externalFood", "onsiteFood", "speaker", "partner", "travel", "parking", "advisor", "access", "safety", "outdoor", "alcohol", "drone", "media", "prize", "schoolApproval", "content"]
+export const EVENT_CHECKS: EventCheck[] = ["funding", "food", "externalFood", "onsiteFood", "speaker", "partner", "travel", "parking", "advisor", "access", "safety", "outdoor", "alcohol", "drone", "media", "prize", "schoolApproval", "rsvp"]
 const cleanChecks = (value: unknown): EventChecks | undefined => {
   if (!value || typeof value !== "object") return undefined
   const out = Object.fromEntries(EVENT_CHECKS.filter(key => (value as Record<string, unknown>)[key] === true).map(key => [key, true])) as EventChecks

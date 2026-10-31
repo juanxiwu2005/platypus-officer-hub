@@ -44,10 +44,10 @@ export interface OrgSettings {
 }
 
 /** Which events a workflow step applies to. Names, not functions, so a workflow can be saved with the club. */
-export type EventCheck = "funding" | "food" | "externalFood" | "onsiteFood" | "speaker" | "partner" | "travel" | "parking" | "advisor" | "access" | "safety" | "outdoor" | "alcohol" | "drone" | "media" | "prize" | "schoolApproval" | "content"
+export type EventCheck = "funding" | "food" | "externalFood" | "onsiteFood" | "speaker" | "partner" | "travel" | "parking" | "advisor" | "access" | "safety" | "outdoor" | "alcohol" | "drone" | "media" | "prize" | "schoolApproval" | "content" | "rsvp"
 /** Confirmed intake facts. Absent means this is a pre-v1.0 workflow record; legacy facts are used as a safe fallback. */
 export type EventChecks = Partial<Record<EventCheck, boolean>>
-export type StepCond = "campus" | "offcampus" | "speaker" | "usgFood" | "usgSpeaker" | "offsite" | "dining" | "onsite" | "tbd" | "food" | EventCheck | "large"
+export type StepCond = "campus" | "offcampus" | "speaker" | "externalGuest" | "usgFood" | "usgSpeaker" | "offsite" | "dining" | "onsite" | "tbd" | "food" | EventCheck | "large"
 
 /**
  * One step of an event workflow. A step has no dates of its own: an anchor (an ASU rule or a club timing) and links to other

@@ -587,6 +587,7 @@ div.hover { display: block; }
 .above .m-label { left: calc(var(--label-w, 96px) / -2); bottom: 17px; }
 .right .m-label { left: 20px; top: -9px; text-align: left; width: 140px; }
 .m-node.m-event .m-label { top: 22px; }
+.m-node.m-start .m-label { padding: 2px 4px; margin-left: -4px; background: var(--surface); }
 .m-card { position: absolute; left: 0; bottom: 18px; transform: translateX(-50%); width: 250px; display: grid; gap: 2px; padding: 8px 12px; border-radius: var(--r-md); background: var(--ink); color: var(--bg); font-size: var(--fs-sm); line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.2); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .1s ease, visibility 0s linear .1s; }
 .m-node:hover .m-card, .m-node:focus-within .m-card { opacity: 1; visibility: visible; transition: opacity .15s ease, visibility 0s; }
 .m-card-warn { color: var(--on-dark-warn); }

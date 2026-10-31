@@ -20,7 +20,7 @@ const SHORT: Record<string, string> = {
   promo: "Promotion", review: "Full check", runshow: "Run of show", headcount: "Headcount", feedback: "Feedback",
   closeout: "Close out", archive: "Archive",
 }
-const SITUATION_KEYS = new Set(["partner", "speakerPacket", "travel", "parking", "quotes", "foodCompliance", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "access", "security", "permit", "alcohol", "drone", "schoolApproval", "content"])
+const SITUATION_KEYS = new Set(["partner", "speakerPacket", "travel", "partnerReview", "parking", "foodCompliance", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "advisor", "access", "security", "eams", "permit", "alcohol", "drone", "schoolApproval", "rsvp"])
 /** Two to four words for the chart; the full title is in the hover card. */
 export const shortTitle = (n: Node) => (n.stepKey && SHORT[n.stepKey]) || n.title.split(/\s+/).slice(0, 3).join(" ").replace(/[,:;]$/, "")
 
@@ -91,7 +91,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const PAD = vertical ? 28 : 56
   // A card for the highest rule-bound step opens above its dot. Keep real headroom for it instead of clipping it at
   // the chart edge (the USG request is a common example).
-  const top = vertical ? 40 : 80 + (-L.minRow) * ROW
+  const top = vertical ? 40 : 150 + (-L.minRow) * ROW
   const pos = (col: number, row: number) => vertical ? { x: 26 + row * ROW, y: top + col * COL } : { x: PAD + col * COL, y: top + row * ROW }
   const W = vertical ? Math.max(width, 26 + L.maxRow * ROW + 140) : PAD * 2 + L.cols * COL
   const H = vertical ? top + L.cols * COL + 60 : top + L.maxRow * ROW + 70

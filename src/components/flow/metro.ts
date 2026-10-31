@@ -29,7 +29,7 @@ const PRE_ROUTES: Route[] = [
 
 const POST_ROUTES: Route[] = [
   { id: "close-event", keys: ["thankyou", "feedback", "documentation", "archive"], row: -3 },
-  { id: "close-marketing", keys: ["postmarketing", "photos", "photoBackup"], row: -1 },
+  { id: "close-marketing", keys: ["postmarketing", "photoBackup"], row: -1 },
   { id: "close-finance", keys: ["invoice", "attendance", "spending", "financeRecord", "closeout"], row: 1 },
 ]
 
@@ -73,7 +73,7 @@ export function metroLayout(state: DemoState, _sched: Schedule, eventId: string,
   const branches: Branch[] = []
   pre.forEach(({ route, nodes: routeNodes }, index) => {
     if (!routeNodes.length || !final) return
-    branches.push({ id: route.id, fn: routeNodes[0].fn, from: 0, to: finalIndex, row: branchRow(route.row, index), nodes: [...routeNodes].sort((a, b) => byRouteOrder(route, a, b)).map((node, i) => ({ node, col: i + 1 })) })
+    branches.push({ id: route.id, fn: routeNodes[0].fn, from: 0, to: finalIndex, row: branchRow(route.row, index), nodes: [...routeNodes].sort((a, b) => byRouteOrder(route, a, b)).map((node, i) => ({ node, col: i + 1 + (node.stepKey === "reminder" ? .35 : 0) })) })
   })
   post.forEach(({ route, nodes: routeNodes }, index) => {
     if (!routeNodes.length || headcountIndex < 0) return

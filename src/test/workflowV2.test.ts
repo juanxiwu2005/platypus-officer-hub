@@ -4,7 +4,7 @@ import { buildEventNodes, stepsFor } from "../engine/playbooks"
 import type { Event } from "../data/types"
 
 const event = (checks: Event["checks"], headcount = 80): Event => ({ id: "v2", name: "V2", date: "2027-03-20", type: "social", headcount, venue: "campus", food: "none", funding: "none", speaker: false, checks, goalId: null, playbookId: "asu-event-v2" })
-const blue = ["plan", "venuechoice", "registry", "venue", "materials", "checkin", "headcount", "thankyou", "feedback", "postmarketing", "photos", "spending", "attendance", "financeRecord", "documentation", "finalcheck"]
+const blue = ["plan", "venuechoice", "registry", "venue", "materials", "checkin", "headcount", "thankyou", "feedback", "postmarketing", "photoBackup", "spending", "attendance", "financeRecord", "documentation", "finalcheck", "quotes", "content"]
 
 describe("ASU event workflow v2", () => {
   it("keeps every blue lifecycle node for a basic event", () => {
@@ -12,6 +12,13 @@ describe("ASU event workflow v2", () => {
     expect(keys).toEqual(expect.arrayContaining(blue))
     expect(keys).not.toContain("drone")
     expect(keys).not.toContain("alcohol")
+    expect(keys).not.toContain("rsvp")
+    expect(keys).not.toContain("partnerReview")
+    expect(keys).not.toContain("photos")
+  })
+  it("shows the partner route only for a partner or speaker, and RSVPs only when requested", () => {
+    expect(stepsFor(event({ partner: true })).map(s => s.key)).toEqual(expect.arrayContaining(["partner", "partnerReview", "parking"]))
+    expect(stepsFor(event({ rsvp: true })).map(s => s.key)).toContain("rsvp")
   })
   it("creates only the selected situation routes and makes 250+ a school approval route", () => {
     const keys = stepsFor(event({ drone: true, alcohol: true, funding: true, food: true, externalFood: true }, 250)).map(s => s.key)
