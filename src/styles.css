@@ -572,8 +572,6 @@ div.hover { display: block; }
 .m-line.branch { stroke-width: 2.25; }
 .m-tick { font-size: var(--fs-xs); fill: var(--muted); }
 .m-tick.strong { fill: var(--ink); font-weight: 600; }
-.m-today line { stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 4 4; }
-.m-today text { font-size: var(--fs-xs); fill: var(--accent-ink); font-weight: 600; }
 .m-node { position: absolute; width: 0; height: 0; z-index: var(--z-raised); }
 /* Explicit local stack: rail lines < labels < the active node's black tooltip. */
 .m-node:hover, .m-node:focus-within { z-index: var(--z-tip); }
