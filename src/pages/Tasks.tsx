@@ -6,13 +6,26 @@ import { PageHead } from "../components/Page"
 import { Bts, BtsTr } from "../components/Bts"
 import { useRail } from "../components/rail/RailContext"
 import { FollowupPanel } from "../components/FollowupPanel"
-import { daysBetween, fmtShort } from "../lib/dates"
+import { addDays, daysBetween, fmtShort, fromISO, toISO } from "../lib/dates"
 import { canMoveTask, byRank, addTaskNotice } from "../data/board"
-import { Avatar, Empty, NodePill, STATUS_ORDER, useStatusStyles } from "../components/ui"
+import { Avatar, Empty, NodePill, useStatusStyles } from "../components/ui"
 import { canLead } from "../data/changeReview"
 import { TaskTypeIcon } from "../components/TaskTypeIcon"
 
 type View = "table" | "board" | "timeline"
+const BOARD_STATUSES: NodeStatus[] = ["unclaimed", "accepted", "in_progress", "blocked", "done"]
+
+/** The Tasks page is an action horizon, not the whole semester's project plan. */
+export function isInTaskHorizon(node: Node, today: string): boolean {
+  if (node.status === "done") {
+    const day = fromISO(today)
+    day.setDate(day.getDate() - ((day.getDay() + 6) % 7) - 7) // Monday of last week
+    return (node.completedOn ?? node.lastUpdate ?? "") >= toISO(day)
+  }
+  const end = addDays(today, 14)
+  const dates = [node.latestStart, node.clubDeadline].filter((date): date is string => !!date)
+  return !dates.length || dates.some(date => date <= end)
+}
 
 export default function Tasks() {
   const { state, dispatch } = useStore()
@@ -33,7 +46,7 @@ export default function Tasks() {
     setNotice(addTaskNotice(state, status) ?? "")
     dispatch({ type: "addTask", title, status })
   }
-  const visible = state.nodes.filter(n => scope === "team" || n.ownerId === person.id || (n.status === "unclaimed" && !n.ownerId))
+  const visible = state.nodes.filter(n => (scope === "team" || n.ownerId === person.id || (n.status === "unclaimed" && !n.ownerId)) && isInTaskHorizon(n, state.today))
   return <>
     <PageHead path="/tasks" actions={<>
       <div className="seg" role="group" aria-label="Task view">{(["board", "table", "timeline"] as View[]).map(v => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>{v === "table" ? "Table" : v === "board" ? "Board" : "Timeline"}</button>)}</div>
@@ -121,8 +134,8 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
   }
   return <>
     <div className="board" data-testid="task-board">
-      {STATUS_ORDER.map(st => {
-        const cards = nodes.filter(n => n.status === st).sort(byRank)
+      {BOARD_STATUSES.map(st => {
+        const cards = nodes.filter(n => (st === "blocked" ? n.status === "blocked" || n.status === "waiting" : n.status === st)).sort(byRank)
         return <section key={st} className={`board-col ${over?.status === st ? "over" : ""}`} aria-label={styles[st].label}
           onDragOver={e => { e.preventDefault(); if (!over || over.status !== st) setOver({ status: st, before: null }) }}
           onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node)) setOver(null) }}
@@ -143,7 +156,7 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
                 {fields.includes("owner") && <Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />}
                 {fields.includes("due") && n.clubDeadline && <span className={`small ${late ? "late-text" : "muted"}`}>{fmtShort(n.clubDeadline)}</span>}
                 {fields.includes("event") && ev && <span className="small muted ev-name">{ev.name}</span>}
-                <select className="move-menu" aria-label={`Move ${n.title}`} value={st} onChange={e => move(n.id, e.target.value as NodeStatus, null)}>{STATUS_ORDER.map(s => <option key={s} value={s}>{styles[s].label}</option>)}</select>
+                <select className="move-menu" aria-label={`Move ${n.title}`} value={st} onChange={e => move(n.id, e.target.value as NodeStatus, null)}>{BOARD_STATUSES.map(s => <option key={s} value={s}>{styles[s].label}</option>)}</select>
               </div>
             </article>
           })}

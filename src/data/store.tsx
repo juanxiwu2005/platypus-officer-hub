@@ -177,10 +177,11 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
     nodes: state.nodes.map(n => {
       if (n.id !== id) return n
       const next: Node = { ...n, ...patch, lastUpdate: state.today }
-      // Claim handshake (plan §4 mechanism 2): a new owner has to accept the task again.
+      // A president's normal workflow assignment is ready to do. Only deliberately
+      // unassigned executive work stays in the Not claimed inbox.
       if ("ownerId" in patch && patch.ownerId !== n.ownerId && n.status !== "done") {
-        next.status = "unclaimed"
-        next.acceptedOn = null
+        next.status = patch.ownerId ? "accepted" : "unclaimed"
+        next.acceptedOn = patch.ownerId ? state.today : null
         next.assignedOn = state.today
         next.ownerVersion = (n.ownerVersion ?? 0) + 1
       }
@@ -191,7 +192,7 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   if (old && "ownerId" in patch && patch.ownerId !== old.ownerId) {
     next = closeSilence(next, id)
     next.extensionRequests = next.extensionRequests.map(r => r.nodeId === id && r.status === "pending" ? { ...r, status: "cancelled" } : r)
-    if (patch.ownerId) next = addNotices(next, id, [patch.ownerId], "claim", `Please claim “${old.title}” to confirm the handover.`, `assigned:${id}:${state.today}:${next.notifications.length}`)
+    if (patch.ownerId) next = addNotices(next, id, [patch.ownerId], "info", `“${old.title}” is ready in To do.`, `assigned:${id}:${state.today}:${next.notifications.length}`)
   }
   return next
 }

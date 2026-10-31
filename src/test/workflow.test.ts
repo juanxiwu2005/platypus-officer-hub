@@ -13,7 +13,8 @@ describe("claim handshake and status permissions", () => {
   it("only the proposed owner can claim; accepts a previously unassigned task atomically", () => {
     const id = "e-speaker:flyer"
     expect(reducer(s, { type: "claimTask", nodeId: id })).toBe(s)
-    const sam = personal("sam")
+    const seed = personal("sam")
+    const sam = { ...seed, nodes: seed.nodes.map(n => n.id === id ? { ...n, status: "unclaimed" as const, acceptedOn: null } : n) }
     const claimed = reducer(sam, { type: "claimTask", nodeId: id })
     expect(claimed.nodes.find(n => n.id === id)).toMatchObject({ status: "accepted", acceptedOn: s.today, ownerId: "sam" })
     expect(reducer(claimed, { type: "claimTask", nodeId: id })).toBe(claimed)
@@ -24,7 +25,8 @@ describe("claim handshake and status permissions", () => {
   })
   it("requires a claim before status updates and denies another officer", () => {
     expect(reducer(s, { type: "replyTask", nodeId: "t-news", reply: "done" })).toBe(s)
-    const sam = personal("sam")
+    const seed = personal("sam")
+    const sam = { ...seed, nodes: seed.nodes.map(n => n.id === "e-speaker:flyer" ? { ...n, status: "unclaimed" as const, acceptedOn: null } : n) }
     expect(reducer(sam, { type: "replyTask", nodeId: "e-speaker:flyer", reply: "done" })).toBe(sam)
     expect(validateReply(sam, sam.nodes.find(n => n.id === "t-news")!, "sam", "hack" as never, {})).toMatch(/four/)
   })
@@ -92,11 +94,11 @@ describe("extension with a current draft", () => {
     expect(reducer(changed, { type: "reviewExtension", id, approve: false }).extensionRequests[0].status).toBe("rejected")
     expect(reducer(pending, { type: "replyTask", nodeId: "e-night:usg", reply: "done" }).extensionRequests[0].status).toBe("cancelled")
   })
-  it("reassignment cancels pending approval and returns the task to a fresh handshake", () => {
+  it("reassignment cancels pending approval and places the newly assigned task in To do", () => {
     const pending = request()
     const reassigned = reducer({ ...pending, viewerId: "alex" }, { type: "updateNode", id: "e-night:usg", patch: { ownerId: "jordan" } })
     expect(reassigned.extensionRequests[0].status).toBe("cancelled")
-    expect(reassigned.nodes.find(n => n.id === "e-night:usg")).toMatchObject({ ownerId: "jordan", status: "unclaimed", assignedOn: s.today, ownerVersion: 1 })
+    expect(reassigned.nodes.find(n => n.id === "e-night:usg")).toMatchObject({ ownerId: "jordan", status: "accepted", acceptedOn: s.today, assignedOn: s.today, ownerVersion: 1 })
   })
 })
 
@@ -140,10 +142,10 @@ describe("private ten-day silence walkthrough", () => {
     const day10 = advanceClock(reply, 5)
     expect(day10.protocolLog.filter(e => e.caseId === day5.silenceCases[0].id).map(e => e.day)).toEqual([3, 5])
   })
-  it("temporary ownership needs approval and a new claim; day 10 still offers recovery", () => {
+  it("temporary executive ownership enters To do; day 10 still offers recovery", () => {
     const day8 = advanceClock(clockCase(), 8), entry = day8.protocolLog.find(e => e.kind === "suggest_owner")!
     const changed = reducer(day8, { type: "temporaryOwner", entryId: entry.id })
-    expect(changed.nodes[0]).toMatchObject({ ownerId: entry.suggestedOwnerId, status: "unclaimed" })
+    expect(changed.nodes[0]).toMatchObject({ ownerId: entry.suggestedOwnerId, status: "accepted" })
     expect(changed.silenceCases[0].startedOn).toBe(s.today)
     expect(reducer(changed, { type: "temporaryOwner", entryId: entry.id })).toBe(changed)
     const day10 = advanceClock(changed, 2)

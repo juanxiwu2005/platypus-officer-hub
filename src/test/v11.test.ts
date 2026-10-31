@@ -20,10 +20,11 @@ describe("task board (v1.1 decision 3)", () => {
     expect(moved.nodes.find(n => n.id === "t-news")!.status).toBe("in_progress")
     expect(moved.notifications.some(n => n.recipientId === "sam" && /moved/.test(n.text))).toBe(true)
   })
-  it("keeps the claim handshake: a lead cannot claim on someone else's behalf", () => {
-    const n = base.nodes.find(n => n.status === "unclaimed" && n.ownerId && n.ownerId !== "alex")!
-    expect(canMoveTask(base, n, "accepted")).toMatch(/can claim/)
-    expect(reducer(base, { type: "moveTask", nodeId: n.id, status: "accepted" })).toBe(base)
+  it("keeps Not claimed for unassigned executive work, while workflow work is already in To do", () => {
+    expect(base.nodes.some(n => n.eventId && n.ownerId && n.status === "unclaimed")).toBe(false)
+    const n = base.nodes.find(n => n.status === "unclaimed" && !n.ownerId)!
+    expect(canMoveTask(base, n, "accepted")).toBeNull()
+    expect(reducer(base, { type: "moveTask", nodeId: n.id, status: "accepted" }).nodes.find(x => x.id === n.id)).toMatchObject({ ownerId: "alex", status: "accepted" })
   })
   it("done by drag credits the owner once, through the normal workflow", () => {
     const s = reducer(as("maya"), { type: "moveTask", nodeId: "t-recon", status: "done" })

@@ -255,7 +255,8 @@ export function stepsFor(e: Event, steps?: StepTemplate[]): StepTemplate[] {
   })
 }
 
-/** Turn the playbook into nodes for one event. New nodes wait for their proposed owner to claim them. */
+/** Turn the playbook into nodes for one event. A normal workflow step is assigned
+ * straight to its accountable officer; only work with no owner is unclaimed. */
 export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[] } = {}): Node[] {
   const president = roleFor(roles, "president")
   const perHead = opts.fundingAmount && e.headcount ? opts.fundingAmount / e.headcount : 0
@@ -283,8 +284,8 @@ export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?:
       clubDeadline: null,
       latestStart: null,
       ruleIds: unique(ruleIds),
-      status: "unclaimed",
-      acceptedOn: null,
+      status: role?.holderId ? "accepted" : "unclaimed",
+      acceptedOn: role?.holderId ? e.date : null,
       waitingOn: null,
       draftLink: null,
       why: s.why,

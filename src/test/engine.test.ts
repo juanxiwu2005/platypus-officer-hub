@@ -178,10 +178,10 @@ describe("changing a date moves later steps and flags rule breaks", () => {
     expect(plan(s, "registry").official).toBe("2026-11-03")
   })
 
-  it("a new owner changes the personal buffer and has to claim the task again", () => {
+  it("a new owner changes the personal buffer and receives the task in To do", () => {
     const s = reducer(base(), { type: "updateNode", id: "e-night:usg", patch: { ownerId: "jordan" } })
     const n = s.nodes.find(x => x.id === "e-night:usg")!
-    expect(n.status).toBe("unclaimed")
+    expect(n.status).toBe("accepted")
     expect(plan(s, "usg").latestStart).toBe("2026-10-27") // Jordan keeps a 2-day buffer
   })
 
