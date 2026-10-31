@@ -40,6 +40,8 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
   const upstream = state.nodes.filter(x => n.dependsOn.includes(x.id))
   const downstream = state.nodes.filter(x => x.dependsOn.includes(n.id))
   const owner = state.people.find(x => x.id === n.ownerId)
+  const event = state.events.find(x => x.id === n.eventId)
+  const [copied, setCopied] = useState(false)
   const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter(x => x !== id) : [...list, id])
 
   return (
@@ -80,6 +82,7 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
       {!lead && <p className="small muted">The president or VP approves changes.</p>}
       {owner && n.status === "unclaimed" && <p className="small muted">{owner.name.split(" ")[0]} confirms with “I've got it”.</p>}
       {rail && <button type="button" className="btn" onClick={() => rail.ask("Explain this step: what should happen next?", true)}>Ask AI about this step</button>}
+      {event && <EventDetailsCopy text={event.details ?? ""} copied={copied} onCopied={setCopied} />}
 
       <details className="more" open={touch || undefined}>
         <summary>More</summary>
@@ -145,6 +148,11 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
       </details>
     </aside>
   )
+}
+
+function EventDetailsCopy({ text, copied, onCopied }: { text: string; copied: boolean; onCopied: (copied: boolean) => void }) {
+  const copy = async () => { try { await navigator.clipboard.writeText(text); onCopied(true) } catch { onCopied(false) } }
+  return <div className="event-copy"><button type="button" className="btn" disabled={!text.trim()} onClick={copy}>{copied ? "Event details copied" : "Copy All Event Details"}</button>{!text.trim() && <span className="small muted">Add Event Details first.</span>}</div>
 }
 
 /** A text field that saves when you leave it, so typing does not reschedule on every key. */

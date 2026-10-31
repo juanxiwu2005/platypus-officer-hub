@@ -41,7 +41,7 @@ export default function Events() {
     const next = new URLSearchParams(params)
     next.set("event", eventId)
     setParams(next)
-    rail.closeDetail()
+    rail.show({ kind: "event", eventId })
   }
   const setView = (v: View) => {
     setViewState(v)

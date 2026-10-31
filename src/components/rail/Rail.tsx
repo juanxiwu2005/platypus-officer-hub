@@ -12,6 +12,7 @@ import { PartnerDetail } from "../crm/ContactDetail"
 import { OrgDetail } from "../crm/OrgDetail"
 import { HandoffRoleDetail } from "../../pages/Handoff"
 import { BoardSettingsPanel } from "../BoardSettings"
+import { EventDetail } from "../EventDetail"
 import { Empty } from "../ui"
 
 /** Right rail: Ask (the only AI box) and Details (whatever was clicked). */
@@ -83,7 +84,7 @@ function DetailView() {
   const d = rail.detail!
   const box = useRef<HTMLDivElement>(null)
   // Every kind of detail takes focus when it opens or changes (unless it already put focus inside itself).
-  const key = d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" ? `funding:${d.eventId}` : d.kind
+  const key = d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" || d.kind === "event" ? `${d.kind}:${d.eventId}` : d.kind
   useEffect(() => {
     box.current?.scrollTo?.({ top: 0 })
     if (box.current && !box.current.contains(document.activeElement)) box.current.focus()
@@ -111,6 +112,7 @@ function DetailView() {
       break
     }
     case "funding": body = <FundingDetail eventId={d.eventId} />; break
+    case "event": body = <EventDetail eventId={d.eventId} />; break
     case "partner": body = <PartnerDetail id={d.id} />; break
     case "org": body = <OrgDetail id={d.id} />; break
     case "handoff": body = <HandoffRoleDetail roleId={d.roleId} />; break

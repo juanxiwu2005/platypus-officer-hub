@@ -9,6 +9,7 @@ export type Detail =
   | { kind: "task"; id: string; reply?: string | null }
   | { kind: "nudge"; id: string }
   | { kind: "funding"; eventId: string }
+  | { kind: "event"; eventId: string }
   | { kind: "partner"; id: string }
   | { kind: "org"; id: string }
   | { kind: "handoff"; roleId: string }

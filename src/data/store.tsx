@@ -49,7 +49,7 @@ function repairTaskLinks(state: DemoState): DemoState {
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
 export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
-export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount">>
+export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "details">>
 
 export type Action =
   | { type: "handoffAction"; action:HandoffAction }
@@ -309,8 +309,9 @@ export function reducer(state: DemoState, action: Action): DemoState {
     case "removeEventStep": return canLead(state) ? removeEventStep(state, action.eventId, action.nodeId) : state
     case "restoreEventNodes": return canLead(state) ? restoreEventNodes(state, action.eventId, action.nodes) : state
     case "updateEvent": {
-      const patch = pick(action.patch, ["date", "name", "headcount"])
+      const patch = pick(action.patch, ["date", "name", "headcount", "details"])
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
+      if (patch.details !== undefined) patch.details = String(patch.details).slice(0, 5000) || undefined
       return applySchedule({ ...state, events: state.events.map(e => (e.id === action.id ? { ...e, ...patch } : e)) })
     }
     case "draftChanges": {
@@ -573,7 +574,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
   let out: object | undefined
   switch (a.type) {
     case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
-    case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount"].includes(k))); break
+    case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount", "details"].includes(k))); break
     case "moveTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
     case "claimTask":
     case "replyTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break

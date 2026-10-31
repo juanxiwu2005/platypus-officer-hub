@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useStore } from "../data/store"
 import type { Node } from "../data/types"
@@ -18,6 +18,9 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [node.id])
   const pending = state.extensionRequests.find(r => r.nodeId === node.id && r.status === "pending")
+  const event = state.events.find(e => e.id === node.eventId)
+  const [copied, setCopied] = useState(false)
+  const copyEventDetails = async () => { try { await navigator.clipboard.writeText(event?.details ?? ""); setCopied(true) } catch { setCopied(false) } }
   return <section className="card task-detail" aria-label="Linked task" data-testid="task-detail">
     <div className="action-row"><StatusPill status={node.status} /><span className="small muted">{state.events.find(e => e.id === node.eventId)?.name ?? "Club task"}</span></div>
     <h2 ref={heading} tabIndex={-1}>{node.title}</h2>
@@ -27,6 +30,7 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
     {node.waitingOn && <p className="small warn-text">Waiting on: {node.waitingOn}</p>}
     {node.draftLink && safeLink(node.draftLink) && <a href={node.draftLink} target="_blank" rel="noreferrer">Open current draft</a>}
     {node.eventId && isBudgetControlledNode(node) && <button type="button" className="btn" onClick={() => navigate(`/events?event=${encodeURIComponent(node.eventId!)}&view=budget`)}>Open Event Budget</button>}
+    {event && <div className="event-copy"><button type="button" className="btn" disabled={!event.details?.trim()} onClick={copyEventDetails}>{copied ? "Event details copied" : "Copy All Event Details"}</button>{!event.details?.trim() && <span className="small muted">Add Event Details first.</span>}</div>}
     <details><summary className="small">Sources and responsibilities</summary><p className="small muted">{node.source}. Dates come from the rule engine. Responsible: {state.people.find(p => p.id === node.ownerId)?.name ?? "not assigned"}; accountable: {state.roles.find(r => r.id === node.approverRoleId)?.displayName ?? "owner"}.</p><div className="action-row">{node.ruleIds.map(id => { const r = RULES.find(r => r.id === id); return r && <a key={id} href={r.sources[0].url} target="_blank" rel="noreferrer">{id}</a> })}</div></details>
     {pending && <p className="small warn-text">Extension awaiting review: {pending.requestedDate}. The current deadline still applies.</p>}
     <TaskActions node={node} actorId={actorId} token={token} initialReply={initialReply} />
