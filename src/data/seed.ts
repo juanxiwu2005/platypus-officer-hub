@@ -4,15 +4,16 @@ import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 
-// v15 repairs persisted task links while retaining the current checklist-driven demo.
-export const SCHEMA_VERSION = 16
+// v17 refreshes the checklist-driven demo with three clearly different, still-controllable event states.
+export const SCHEMA_VERSION = 17
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
- * (Networking Night on Thu Nov 19, USG food request: start Wed Oct 28, club deadline Fri Oct 30,
- * ASU deadline Wed Nov 4, as in plan §4). The simulated clock (WP3) moves forward from here.
+ * (Sat Oct 31, 2026). The three upcoming events deliberately show a healthy plan, an attention-needed
+ * plan, and a just-starting plan — without presenting any of them as too late to recover.
+ * The simulated clock (WP3) moves forward from here.
  */
-export const DEMO_TODAY = "2026-10-22"
+export const DEMO_TODAY = "2026-10-31"
 
 /**
  * The fictional demo organization used for development and Phase 3 sessions.
@@ -20,7 +21,10 @@ export const DEMO_TODAY = "2026-10-22"
  * Dates are never written here: the rule engine computes them from the playbook (src/engine).
  */
 /** `legacy` exists only for historical unit-test fixtures; the application starts on v2. */
-export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" = "legacy"): DemoState {
+export function seedDemo(today: string | undefined = undefined, workflow: "legacy" | "v2" = "legacy"): DemoState {
+  // Legacy is retained only as a stable fixture for the historical workflow tests.
+  // The application explicitly asks for v2 and therefore always receives the current demo date.
+  today ??= workflow === "v2" ? DEMO_TODAY : "2026-10-22"
   const roles: Role[] = [
     { id: "r-pres", displayName: "President", fn: "president", holderId: "alex", reportsToId: null, duties: DUTY_TEMPLATES.president },
     { id: "r-fin", displayName: "Treasurer", fn: "finance", holderId: "maya", reportsToId: "r-pres", duties: DUTY_TEMPLATES.finance },
@@ -29,32 +33,33 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
     { id: "r-sec", displayName: "Secretary", fn: "secretary", holderId: "priya", reportsToId: "r-pres", duties: DUTY_TEMPLATES.secretary },
   ]
   const coreEvents: Event[] = [
-    { id: "e-night", name: "Networking Night", date: "2026-11-19", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, budgetItems: [{ id: "e-night:budget:1", item: "Catering", quantity: 30, pricePerUnit: 40, source: "usg", status: "food_exception_permit", category: "food" }, { id: "e-night:budget:2", item: "Event supplies", quantity: 1, pricePerUnit: 800, source: "usg", status: "food_exception_permit", category: "general" }], ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
-    { id: "e-speaker", name: "Spring Speaker Night", date: "2027-02-11", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, budgetItems: [{ id: "e-speaker:budget:1", item: "Speaker travel", quantity: 1, pricePerUnit: 500, source: "usg", status: "not_started", category: "travel" }], ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, speaker: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
+    { id: "e-night", name: "Networking Night", date: workflow === "v2" ? "2027-03-25" : "2026-11-19", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, budgetItems: [{ id: "e-night:budget:1", item: "Catering", quantity: 30, pricePerUnit: 40, source: "usg", status: "food_exception_permit", category: "food" }, { id: "e-night:budget:2", item: "Event supplies", quantity: 1, pricePerUnit: 800, source: "usg", status: "food_exception_permit", category: "general" }], ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
+    { id: "e-speaker", name: "Spring Speaker Night", date: workflow === "v2" ? "2027-03-18" : "2027-02-11", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, budgetItems: [{ id: "e-speaker:budget:1", item: "Speaker travel", quantity: 1, pricePerUnit: 500, source: "usg", status: "not_started", category: "travel" }], ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, speaker: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
   ]
   // The application uses v2. Its third event shows why checklist routes matter:
   // no food is selected, so no food-compliance branch exists in its workflow.
-  const founderDinner: Event = { id: "e-founder", name: "Founder Dinner", date: "2026-11-05", type: "social", headcount: 24, venue: "campus", food: "none", funding: "dues", speaker: false, budgetItems: [{ id: "e-founder:budget:1", item: "Table cards", quantity: 24, pricePerUnit: 3, source: "organization", status: "order_placed", category: "general" }], checks: { partner: true, rsvp: true }, goalId: "g-events", playbookId: "seo-event" }
+  const founderDinner: Event = { id: "e-founder", name: "Founder Dinner", date: "2026-12-03", type: "social", headcount: 24, venue: "campus", food: "none", funding: "dues", speaker: false, budgetItems: [{ id: "e-founder:budget:1", item: "Table cards", quantity: 24, pricePerUnit: 3, source: "organization", status: "order_placed", category: "general" }], checks: { partner: true, rsvp: true }, goalId: "g-events", playbookId: "seo-event" }
   const events: Event[] = workflow === "v2" ? [...coreEvents, founderDinner] : coreEvents
 
-  // Where each Networking Night step stands on the demo date.
+  // Networking Night needs attention in several places, but its March date leaves time to resolve them.
   const v2NightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
-    plan: { status: "done", completedOn: "2026-09-18" },
-    marketingNeeds: { status: "done", completedOn: "2026-10-08" },
-    budget: { status: "done", completedOn: "2026-09-11" },
-    registry: { status: "done", completedOn: "2026-10-14" },
-    venue: { status: "done", completedOn: "2026-10-20" },
-    quotes: { status: "done", completedOn: "2026-09-25" },
-    foodCompliance: { status: "waiting", waitingOn: "Approval from Student Unions" },
-    contentCreation: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" },
-    rsvp: { status: "unclaimed", ownerId: null },
+    plan: { status: "done", completedOn: "2026-10-06" },
+    backup: { status: "done", completedOn: "2026-10-08" },
+    venuechoice: { status: "done", completedOn: "2026-10-12" },
+    registry: { status: "done", completedOn: "2026-10-16" },
+    venue: { status: "done", completedOn: "2026-10-21" },
+    partner: { status: "done", completedOn: "2026-10-14" },
+    marketingNeeds: { status: "done", completedOn: "2026-10-18" },
+    budget: { status: "done", completedOn: "2026-10-20" },
+    speakerPacket: { status: "waiting", waitingOn: "Signed speaker agreement from the guest" },
+    foodCompliance: { status: "waiting", waitingOn: "Food Exception Permit confirmation from Student Unions" },
+    quotes: { status: "in_progress" },
+    contentCreation: { status: "blocked", waitingOn: "Brand photos needed for the campaign" },
   }
-  const speakerStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
-    partner: { status: "in_progress" },
-    plan: { status: "accepted" },
-  }
+  // Spring Speaker Night is intentionally only assigned: no planning work has started yet.
+  const speakerStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {}
   const founderStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
-    plan: { status: "done", completedOn: "2026-10-02" }, backup: { status: "done", completedOn: "2026-10-03" }, venuechoice: { status: "done", completedOn: "2026-10-06" }, registry: { status: "done", completedOn: "2026-10-12" }, venue: { status: "done", completedOn: "2026-10-14" }, partner: { status: "done", completedOn: "2026-10-15" }, speakerPacket: { status: "done", completedOn: "2026-10-16" }, travel: { status: "done", completedOn: "2026-10-16" }, partnerReview: { status: "done", completedOn: "2026-10-17" }, parking: { status: "done", completedOn: "2026-10-19" }, budget: { status: "done", completedOn: "2026-10-09" }, quotes: { status: "done", completedOn: "2026-10-12" }, marketingNeeds: { status: "done", completedOn: "2026-10-13" }, contentCreation: { status: "done", completedOn: "2026-10-18" }, promotionItems: { status: "in_progress" }, rsvp: { status: "accepted" }, content: { status: "accepted" }, reminder: { status: "accepted" }, moderator: { status: "accepted" }, materials: { status: "waiting", waitingOn: "Final logo from the partner" }, finalcheck: { status: "accepted" }, checkin: { status: "accepted" }, headcount: { status: "accepted" }, thankyou: { status: "accepted" }, feedback: { status: "accepted" }, postmarketing: { status: "accepted" }, photoBackup: { status: "accepted" }, invoice: { status: "accepted" }, attendance: { status: "accepted" }, spending: { status: "accepted" }, financeRecord: { status: "accepted" },
+    plan: { status: "done", completedOn: "2026-09-24" }, backup: { status: "done", completedOn: "2026-09-26" }, venuechoice: { status: "done", completedOn: "2026-09-30" }, registry: { status: "done", completedOn: "2026-10-03" }, venue: { status: "done", completedOn: "2026-10-06" }, partner: { status: "done", completedOn: "2026-10-07" }, speakerPacket: { status: "done", completedOn: "2026-10-09" }, travel: { status: "done", completedOn: "2026-10-11" }, partnerReview: { status: "done", completedOn: "2026-10-13" }, parking: { status: "done", completedOn: "2026-10-15" }, budget: { status: "done", completedOn: "2026-10-02" }, quotes: { status: "done", completedOn: "2026-10-08" }, marketingNeeds: { status: "done", completedOn: "2026-10-05" }, contentCreation: { status: "done", completedOn: "2026-10-12" }, promotionItems: { status: "done", completedOn: "2026-10-16" }, rsvp: { status: "done", completedOn: "2026-10-18" }, content: { status: "done", completedOn: "2026-10-20" }, reminder: { status: "done", completedOn: "2026-10-22" }, moderator: { status: "done", completedOn: "2026-10-14" }, materials: { status: "done", completedOn: "2026-10-21" }, finalcheck: { status: "done", completedOn: "2026-10-24" },
   }
   const nightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = workflow === "v2" ? v2NightStatus : {
     draft: { status: "done" }, mktneeds: { status: "done" }, budget: { status: "done" }, approve: { status: "done" }, registry: { status: "done" }, venue: { status: "done" }, quote: { status: "done" }, ritm: { status: "in_progress" }, foodex: { status: "waiting", waitingOn: "Approval from Student Unions" }, flyer: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" }, rsvp: { status: "unclaimed", ownerId: null },

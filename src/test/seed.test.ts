@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo, SCHEMA_VERSION } from "../data/seed"
 import { RULES } from "../data/rules"
+import { computeForecast } from "../engine/forecast"
 
 describe("demo seed", () => {
   const s = seedDemo("2026-10-22", "v2")
@@ -8,6 +9,19 @@ describe("demo seed", () => {
   it("uses the current schema version and a fixed today", () => {
     expect(s.schemaVersion).toBe(SCHEMA_VERSION)
     expect(s.today).toBe("2026-10-22")
+  })
+
+  it("shows three upcoming, controllable event states in the v2 demo", () => {
+    const demo = seedDemo(undefined, "v2")
+    const forecast = computeForecast(demo)
+    const byId = (id: string) => demo.nodes.filter(node => node.eventId === id)
+
+    expect(demo.events.map(event => event.date)).toEqual(["2027-03-25", "2027-03-18", "2026-12-03"])
+    expect(demo.events.every(event => event.date > demo.today)).toBe(true)
+    expect(Object.values(forecast.events).every(event => event.color === "green")).toBe(true)
+    expect(byId("e-founder").filter(node => node.status === "done")).toHaveLength(26)
+    expect(byId("e-night").filter(node => ["waiting", "blocked", "in_progress"].includes(node.status))).toHaveLength(3)
+    expect(byId("e-speaker").filter(node => ["waiting", "blocked", "in_progress"].includes(node.status))).toHaveLength(0)
   })
 
   it("every person holds a real role and every role holder exists", () => {

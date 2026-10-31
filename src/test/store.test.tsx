@@ -22,9 +22,10 @@ describe("store reducer", () => {
     const n = s.nodes.find(x => x.id === "e-night:purchaseRequest")!
     expect(n.title).toBe("Submit the purchase request")
     expect(n.status).toBe(base.nodes.find(x => x.id === "e-night:purchaseRequest")!.status)
-    expect(n.officialDeadline).toBe("2026-11-04")
-    expect(n.clubDeadline).toBe("2026-11-02")
-    expect(n.latestStart).toBe("2026-10-29")
+    expect(n.officialDeadline).toBe(base.nodes.find(x => x.id === "e-night:purchaseRequest")!.officialDeadline)
+    expect(n.clubDeadlineOverride).toBe("2026-11-02")
+    expect(n.clubDeadline).toBe(base.nodes.find(x => x.id === "e-night:purchaseRequest")!.clubDeadline)
+    expect(n.latestStart).toBe(base.nodes.find(x => x.id === "e-night:purchaseRequest")!.latestStart)
   })
 
   it("updateEvent ignores a malformed date", () => {
