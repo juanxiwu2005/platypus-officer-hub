@@ -55,10 +55,10 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
     <div className="task-dates"><div><span className="small muted">Start by</span><b>{node.latestStart ? fmtLong(node.latestStart) : "Not set"}</b></div><div><span className="small muted">Club deadline</span><b>{node.clubDeadline ? fmtLong(node.clubDeadline) : "Not set"}</b></div><div><span className="small muted">{officialLabel(node)}</span><b>{node.officialDeadline ? fmtLong(node.officialDeadline) : "N/A"}</b></div></div>
     {node.waitingOn && <p className="small warn-text">Waiting on: {node.waitingOn}</p>}
     {node.draftLink && safeLink(node.draftLink) && <a href={node.draftLink} target="_blank" rel="noreferrer">Open current draft</a>}
-    <section className="task-quick-links" aria-label="Where to submit">
+    {quickLinks.length > 0 && <section className="task-quick-links" aria-label="Where to submit">
       <b>Where to submit</b>
-      {quickLinks.length ? <div className="action-row">{quickLinks.map(source => <a key={source.url} className="btn small" href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a>)}</div> : <span className="small muted">No verified submission link for this task yet.</span>}
-    </section>
+      <div className="action-row">{quickLinks.map(source => <a key={source.url} className="btn small" href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a>)}</div>
+    </section>}
     {node.eventId && isBudgetControlledNode(node) && <button type="button" className="btn" onClick={() => navigate(`/events?event=${encodeURIComponent(node.eventId!)}&view=budget`)}>Open Event Budget</button>}
     {event && <div className="event-copy"><button type="button" className="btn" disabled={!event.details?.trim()} onClick={copyEventDetails}>{copied ? "Event details copied" : "Copy All Event Details"}</button>{!event.details?.trim() && <span className="small muted">Add Event Details first.</span>}</div>}
     {rail && node.ownerId && <button type="button" className="btn" disabled={!!nudgeBlocked(state, node)} title={nudgeBlocked(state, node) ?? "Prepare a reminder"} onClick={() => rail.show({ kind: "nudge", id: node.id })}>Remind</button>}
