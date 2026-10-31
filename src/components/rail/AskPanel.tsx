@@ -381,5 +381,5 @@ function EventDateCard({ card, onDone }: { card: Extract<ChatCard, { kind: "even
 function Typing() {
   const [slow, setSlow] = useState(false)
   useEffect(() => { const t = setTimeout(() => setSlow(true), 6000); return () => clearTimeout(t) }, [])
-  return <div className="bubble bot typing" aria-label="Thinking"><i /><i /><i />{slow && <span className="small muted"> Still thinking. The ASU AI can take up to a minute.</span>}</div>
+  return <div className="ai-wait" aria-label="Thinking"><span className="ai-wait-mark" aria-hidden="true"><i /><i /><i /></span><span><b>Platypus is working</b><small>{slow ? "The ASU AI is still preparing a careful answer." : "Reading your question and checking the relevant context…"}</small></span></div>
 }

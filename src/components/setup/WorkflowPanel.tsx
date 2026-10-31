@@ -1,16 +1,16 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { DemoState, Event, Role, StepTemplate } from "../../data/types"
 import { addDays } from "../../lib/dates"
 import { computeSchedule } from "../../engine/schedule"
 import type { Forecast } from "../../engine/forecast"
-import { PHASE_LABEL } from "../../engine/playbooks"
 import { MAX_STEPS, isLocked, newStepKey, ownerOfStep, removeStep, ruleList, stepsAsNodes, type WorkflowIssue } from "../../engine/workflow"
 import { roleLabels } from "../../data/structure"
 import { MetroChart, type EditPort } from "../flow/MetroChart"
 import { moveBetween } from "../../lib/flowEdit"
-import { MAX_DAYS, PHASES, descendantsOf, type StepEdit } from "../../lib/stepOrder"
-import type { Node, Phase } from "../../data/types"
+import { MAX_DAYS, descendantsOf, type StepEdit } from "../../lib/stepOrder"
+import type { Node } from "../../data/types"
 import { WorkflowIssues } from "./WorkflowReview"
+import { useRail } from "../rail/RailContext"
 
 /**
  * The club's event workflow on the same chart as a real event's Flow tab: one main line, parallel work on branches, left to right.
@@ -27,6 +27,7 @@ const NO_FORECAST: Forecast = { nodes: {}, events: {} }
 
 export function WorkflowPanel({ state, steps, roles, issues, onChange }: { state: DemoState; steps: StepTemplate[]; roles: Role[]; issues: WorkflowIssue[]; onChange: (steps: StepTemplate[]) => void }) {
   const [selected, setSelected] = useState<string | null>(null)
+  const rail = useRail()
   const label = useMemo(() => roleLabels(roles), [roles])
   // The workflow shown as a sample event, so the same chart (and the same layout) draws it. Its dates are never shown.
   const sample = useMemo(() => {
@@ -52,18 +53,22 @@ export function WorkflowPanel({ state, steps, roles, issues, onChange }: { state
     newId: () => newStepKey(steps, "new step"),
     template: {
       sublabel: n => ownerName(n.id),
-      lines: n => { const s = byKey.get(n.id); return [s?.title ?? n.title, `Done by ${ownerName(n.id)}`, `${s?.estDays ?? 0} day${s?.estDays === 1 ? "" : "s"} of work`] },
+      lines: n => { const s = byKey.get(n.id); return [s?.title ?? n.title, s?.why ?? n.why, `Done by ${ownerName(n.id)}`, `${s?.estDays ?? 0} day${s?.estDays === 1 ? "" : "s"} of work`] },
       marks,
     },
   }
   const step = selected ? byKey.get(selected) : undefined
+  const closeStep = () => { setSelected(null); rail.closeDetail() }
+  useEffect(() => {
+    if (!step) return
+    rail.setWorkflowDetail(<StepPanel step={step} steps={steps} roles={roles} label={label} onChange={onChange} onClose={closeStep} />)
+    return () => rail.setWorkflowDetail(null)
+  // The content deliberately refreshes whenever the editable template changes.
+  }, [step, steps, roles, label, onChange])
   return <>
     <WorkflowIssues issues={issues} />
     <p className="small muted">Look at the chart first: it reads left to right in the order the work happens. Drag a step onto a ◆ to move it, double-click a step to add or delete one, double-click a line to cut a link. Click a step for its details.</p>
-    <div className={`workflow-editor${step ? " has-detail" : ""}`}>
-      <div className="workflow-editor-flow"><MetroChart key="wf" state={sample.s} sched={sample.sched} forecast={NO_FORECAST} eventId="wf" selectedId={selected} onSelect={setSelected} canEdit alwaysEdit port={port} /></div>
-      {step && <StepPanel step={step} steps={steps} roles={roles} label={label} onChange={onChange} onClose={() => setSelected(null)} />}
-    </div>
+    <div className="workflow-editor"><div className="workflow-editor-flow"><MetroChart key="wf" state={sample.s} sched={sample.sched} forecast={NO_FORECAST} eventId="wf" selectedId={selected} onSelect={setSelected} canEdit alwaysEdit port={port} /></div></div>
   </>
 }
 
@@ -86,9 +91,9 @@ function StepPanel({ step, steps, roles, label, onChange, onClose }: { step: Ste
         {doers.map(r => <option key={r.id} value={r.id} title={r.displayName}>{label.get(r.id)}</option>)}
       </select></label>
       <label>Days of work<input type="number" inputMode="numeric" min={0} max={MAX_DAYS} value={step.estDays} onChange={e => set({ estDays: Math.max(0, Math.min(MAX_DAYS, Math.round(Number(e.target.value) || 0))) })} /></label>
-      <label>Phase<select value={step.phase} disabled={locked} onChange={e => set({ phase: e.target.value as Phase })}>{PHASES.map(p => <option key={p} value={p}>{PHASE_LABEL[p]}</option>)}</select></label>
       {!locked && step.phase !== "close" && <label>Target timing (days before event)<input type="number" inputMode="numeric" min={0} max={180} value={step.anchor?.kind === "target" ? step.anchor.days : ""} placeholder="From dependencies" onChange={e => { const days = e.target.value === "" ? null : Math.max(0, Math.min(180, Math.round(Number(e.target.value) || 0))); set({ anchor: days === null ? undefined : { kind: "target", days, unit: "calendar", label: "Club workflow timing" } }) }} /></label>}
     </div>
+    <label>Task description<textarea rows={3} maxLength={400} value={step.why} onChange={e => set({ why: e.target.value })} placeholder="Explain what this step accomplishes." /></label>
     {locked && <p className="small muted">This step comes from ASU rule {ruleList(step) || "deadlines"}: it stays, in this phase, with its deadline. You can rename it and change who does it and how long it takes.</p>}
     <div className="step-links small">
       <span className="muted">Waits for:</span>{" "}

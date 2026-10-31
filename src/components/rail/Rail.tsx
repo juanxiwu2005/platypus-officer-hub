@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, type ReactNode } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useStore } from "../../data/store"
 import { useRail } from "./RailContext"
@@ -83,7 +83,7 @@ function DetailView() {
   const d = rail.detail!
   const box = useRef<HTMLDivElement>(null)
   // Every kind of detail takes focus when it opens or changes (unless it already put focus inside itself).
-  const key = d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" ? `funding:${d.eventId}` : "board"
+  const key = d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" ? `funding:${d.eventId}` : d.kind
   useEffect(() => {
     box.current?.scrollTo?.({ top: 0 })
     if (box.current && !box.current.contains(document.activeElement)) box.current.focus()
@@ -100,9 +100,10 @@ function DetailView() {
   })
   const region = { role: "region", "aria-label": "Details", tabIndex: -1 } as const
   const closer = <div className="detail-bar"><span className="spacer" /><button type="button" className="btn btn-quiet icon-btn" aria-label="Close details" onClick={close}>✕</button></div>
-  let body: JSX.Element | null = null
+  let body: ReactNode = null
   switch (d.kind) {
     case "node": return <div ref={box} className="detail-scroll" {...region}><NodePanel nodeId={d.id} onClose={close} onSelect={id => rail.show({ kind: "node", id })} /></div>
+    case "workflow": body = rail.workflowDetail ?? <Empty>Select a workflow step.</Empty>; break
     case "nudge": return <div ref={box} className="detail-scroll" {...region}><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
     case "task": {
       const node = state.nodes.find(n => n.id === d.id)

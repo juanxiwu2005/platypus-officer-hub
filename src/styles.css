@@ -425,6 +425,11 @@ blockquote { margin: .75rem 0; padding: .6rem; border-left: 3px solid var(--acce
 .typing span { line-height: 1.4; margin-left: var(--s2); }
 .typing i { width: 7px; height: 7px; border-radius: var(--r-circle); background: var(--muted); animation: blink 1s infinite; }
 .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+.ai-wait { align-self: flex-start; display: flex; align-items: center; gap: 10px; max-width: 290px; padding: 11px 13px; border: 1px solid var(--line); border-radius: var(--r-lg); border-bottom-left-radius: var(--r-xs); background: linear-gradient(135deg, var(--accent-soft), var(--surface-2)); color: var(--ink); box-shadow: var(--shadow); }
+.ai-wait-mark { display: flex; align-items: center; gap: 3px; width: 25px; height: 28px; padding: 0 6px; border-radius: var(--r-sm); background: var(--accent-soft); }
+.ai-wait-mark i { display: block; width: 4px; height: 4px; border-radius: var(--r-circle); background: var(--accent); animation: blink 1s infinite; }
+.ai-wait-mark i:nth-child(2) { animation-delay: .16s; } .ai-wait-mark i:nth-child(3) { animation-delay: .32s; }
+.ai-wait b, .ai-wait small { display: block; }.ai-wait b { font-size: var(--fs-sm); }.ai-wait small { margin-top: 2px; color: var(--muted); font-size: var(--fs-xs); line-height: 1.35; }
 @keyframes blink { 0%, 100% { opacity: .25 } 50% { opacity: 1 } }
 .chip { border: 1px solid var(--line); background: var(--surface); border-radius: var(--r-pill); padding: 4px 10px; font-size: var(--fs-sm); cursor: pointer; color: var(--ink); }
 .chip:hover { border-color: var(--accent); }

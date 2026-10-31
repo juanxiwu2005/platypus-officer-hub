@@ -29,6 +29,7 @@
 # Platypus v1.0 进度
 
 | 2026-10-31 | Codex | **活动流程 v2：已推送待 Preview 验收。** 依据用户确认的 Large Event 图与 `ASU_Event_Workflow_Standard_Template.xlsx`，固定流程替换为蓝色 Core 生命周期节点和由新活动 checklist 触发的黄色 Situation-based 节点；250+ 自动创建 School Approval，Drone 只在勾选时创建。修复重复 Event Day；`Accessibility Check` 明确表示无障碍核查；流程按职责固定水平泳道、按依赖从左至右排布。岗位匹配现在同时读取岗位名称和职责文本。现有 v6/v7 本地活动迁移到新模板并保留可识别进度；Settings 模板及未来活动同用新模板。 | 新版活动流程与流程编辑兼容测试、lint、生产构建通过。完整历史套件仍有 7 个套件的旧流程模板断言（`usg`、`flyer` 等），需要随后迁移为 v2 行为断言；不影响 Preview 使用的 v2 模板。需要同步本地备份。 |
+| 2026-10-31 | Codex | **流程图/Details 修复：已推送待 Preview 验收。** Settings 中的节点编辑器移入全局右侧 `Details` 标签；点击流程节点即可打开，任务说明可编辑并保存到 workflow 模板，悬停卡也显示该说明。删除 Phase 字段。布局引擎改为“职责泳道＋重叠区间子轨道”：不同职责不再合并为同一分支，同职责的并行线路也不会重叠。Ask 等待状态改为紧凑的 Platypus 工作卡。 | lint、生产构建与新版流程/编辑测试通过。 |
 
 | 2026-10-30 | Codex | Rules 每条来源右侧恢复 Platypus 聊天图标；点击后打开 Ask 并直接以该来源名称发起有上下文的政策问题。官方外链仍独立保留。增加页面回归断言。 | Preview 8 / `integration/v1.0`。 |
 

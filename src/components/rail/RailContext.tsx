@@ -12,6 +12,7 @@ export type Detail =
   | { kind: "partner"; id: string }
   | { kind: "org"; id: string }
   | { kind: "handoff"; roleId: string }
+  | { kind: "workflow" }
   | { kind: "board" }
 
 export type RailTab = "ask" | "details"
@@ -26,6 +27,9 @@ interface RailValue {
   show: (d: Detail) => void
   /** Close Details and go back to Ask. */
   closeDetail: () => void
+  /** Settings supplies its selected workflow-step editor to the shared Details tab. */
+  setWorkflowDetail: (content: ReactNode | null) => void
+  workflowDetail: ReactNode | null
   /** Put a question into the Ask box (and send it if `send`). */
   ask: (text: string, send?: boolean) => void
   pending: { text: string; send: boolean; n: number } | null
@@ -53,6 +57,7 @@ export function RailProvider({ children }: { children: ReactNode }) {
   const [open, setOpenState] = useState(initialOpen)
   const [tab, setTab] = useState<RailTab>("ask")
   const [detail, setDetail] = useState<Detail | null>(null)
+  const [workflowDetail, setWorkflowDetailState] = useState<ReactNode | null>(null)
   const openedForDetail = useRef(false)
   const openRef = useRef(open)
   openRef.current = open
@@ -82,10 +87,15 @@ export function RailProvider({ children }: { children: ReactNode }) {
     returnFocus.current = null
     if (back) setTimeout(() => { if (back.isConnected) back.focus() }, 0)
     setDetail(null)
+    setWorkflowDetailState(null)
     setTab("ask")
     if (openedForDetail.current) setOpenState(false)
     openedForDetail.current = false
   }, [])
+  const setWorkflowDetail = useCallback((content: ReactNode | null) => {
+    setWorkflowDetailState(content)
+    if (content) show({ kind: "workflow" })
+  }, [show])
   const ask = useCallback((text: string, send = false) => {
     setPending(p => ({ text, send, n: (p?.n ?? 0) + 1 }))
     setTab("ask")
@@ -109,7 +119,7 @@ export function RailProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
-  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview }), [open, setOpen, tab, detail, show, closeDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview])
+  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview }), [open, setOpen, tab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview])
   return <RailCtx.Provider value={value}>{children}</RailCtx.Provider>
 }
 
