@@ -213,7 +213,8 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
 }
 
 function canEditBudget(state: DemoState) {
-  return canLead(state) || state.roles.find(role => role.holderId === state.viewerId)?.fn === "finance"
+  // A budget is part of the event's shared operating record. Every current officer may maintain its line items.
+  return state.people.some(person => person.id === state.viewerId)
 }
 
 function withBudgetItems(state: DemoState, eventId: string, items: BudgetLineItem[]): DemoState {
@@ -394,7 +395,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
     case "issueOfficerGrant": {
       const g = action.grant
       const n = state.nodes.find(n => n.id === g.nodeId)
-      if (!canLead(state) || !n || !n.ownerId || n.status === "done" || g.ownerId !== n.ownerId || g.ownerVersion !== (n.ownerVersion ?? 0) || g.issuedOn !== state.today || g.usedOn || !/^[a-f0-9]{64}$/.test(g.signature) || state.officerGrants.some(x => x.id === g.id)) return state
+      if (!state.people.some(person => person.id === state.viewerId) || !n || !n.ownerId || n.status === "done" || g.ownerId !== n.ownerId || g.ownerVersion !== (n.ownerVersion ?? 0) || g.issuedOn !== state.today || g.usedOn || !/^[a-f0-9]{64}$/.test(g.signature) || state.officerGrants.some(x => x.id === g.id)) return state
       return { ...state, officerGrants: [...state.officerGrants, g] }
     }
     case "officerAction": {

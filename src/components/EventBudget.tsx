@@ -1,6 +1,5 @@
 import type { BudgetCategory, BudgetItemStatus, BudgetLineItem, BudgetSource, Event } from "../data/types"
 import { useStore } from "../data/store"
-import { canLead } from "../data/changeReview"
 import { BUDGET_STATUSES, budgetTotal, lineTotal } from "../engine/eventBudget"
 import { Bts, BtsRow } from "./Bts"
 
@@ -11,7 +10,7 @@ const money = (value: number) => `$${value.toLocaleString(undefined, { minimumFr
 export function EventBudget({ event }: { event: Event }) {
   const { state, dispatch } = useStore()
   const lines = event.budgetItems ?? []
-  const editable = canLead(state) || state.roles.find(role => role.holderId === state.viewerId)?.fn === "finance"
+  const editable = state.people.some(person => person.id === state.viewerId)
   const change = (line: BudgetLineItem, patch: Partial<Omit<BudgetLineItem, "id">>) => dispatch({ type: "budgetLineUpdate", eventId: event.id, id: line.id, patch })
   return <section className="card tbl-wrap event-budget" data-testid="event-budget">
     <div className="toolbar"><div><h3>Line Items</h3><p className="small muted">Budget progress drives the finance steps in this event’s Flow.</p></div>{editable && <button type="button" className="btn btn-primary small" onClick={() => dispatch({ type: "budgetLineAdd", eventId: event.id })}>+ Add line item</button>}</div>

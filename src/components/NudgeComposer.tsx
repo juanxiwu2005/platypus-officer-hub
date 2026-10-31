@@ -1,7 +1,7 @@
 import { Feedback } from "./Feedback"
 import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
-import { useStore, useViewer } from "../data/store"
+import { useStore } from "../data/store"
 import type { Channel, OfficerGrant } from "../data/types"
 import { makeOfficerGrant, officerUrl, usableGrant, grantToken } from "../lib/officerLinks"
 import { callApi } from "../lib/api"
@@ -10,7 +10,7 @@ import { buildNudge, composeUrl, messageText, nudgeBlocked, STATUS_ACTIONS } fro
 const CHANNEL_LABEL = { whatsapp: "WhatsApp", sms: "Text message", email: "Gmail" }
 export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
   const { state, dispatch } = useStore()
-  const { canNudge } = useViewer()
+  const canNudge = state.people.some(person => person.id === state.viewerId)
   const node = state.nodes.find(n => n.id === nodeId)
   const person = state.people.find(p => p.id === node?.ownerId)
   const [channel, setChannel] = useState<Channel>(person?.channels[0] ?? "whatsapp")
@@ -49,7 +49,7 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
     // Rebuild on task changes, so an old response cannot overwrite a newer task.
   }, [node, state.aiEnabled, canNudge, state.today, person?.remindAt, state.org.mission])
   if (!node || !person) return null
-  const blocked = !canNudge ? "Only the president or vice president can prepare reminders." : nudgeBlocked(state, node)
+  const blocked = !canNudge ? "Choose a current officer before preparing a reminder." : nudgeBlocked(state, node)
   const draft = buildNudge(state, node, state.aiEnabled ? meaning : undefined)
   const message = messageText(draft, window.location.origin, node.id, grant ?? undefined)
   const url = composeUrl(channel, message, draft.subject)

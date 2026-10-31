@@ -22,6 +22,15 @@ describe("Event Budget", () => {
     expect(state.nodes.find(node => node.eventId === eventId && node.stepKey === "foodCompliance")!.status).toBe("done")
   })
 
+  it("allows every current officer to add, edit and remove a budget line", () => {
+    const state = { ...seedDemo(undefined, "v2"), viewerId: "sam" }
+    const added = reducer(state, { type: "budgetLineAdd", eventId: "e-speaker" })
+    const line = added.events.find(event => event.id === "e-speaker")!.budgetItems!.at(-1)!
+    const edited = reducer(added, { type: "budgetLineUpdate", eventId: "e-speaker", id: line.id, patch: { item: "Printing", quantity: 2 } })
+    expect(edited.events.find(event => event.id === "e-speaker")!.budgetItems!.at(-1)).toMatchObject({ item: "Printing", quantity: 2 })
+    expect(reducer(edited, { type: "budgetLineDelete", eventId: "e-speaker", id: line.id }).events.find(event => event.id === "e-speaker")!.budgetItems).toHaveLength(1)
+  })
+
   it("requires Food Exception Permit only for food lines", () => {
     const general = { id: "general", item: "Signs", quantity: 1, pricePerUnit: 20, source: "none" as const, category: "general" as const, status: "not_started" as const }
     const food = { ...general, id: "food", category: "food" as const }
