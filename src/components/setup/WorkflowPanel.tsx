@@ -30,7 +30,7 @@ export function WorkflowPanel({ state, steps, roles, issues, onChange }: { state
   const label = useMemo(() => roleLabels(roles), [roles])
   // The workflow shown as a sample event, so the same chart (and the same layout) draws it. Its dates are never shown.
   const sample = useMemo(() => {
-    const ev: Event = { id: "wf", name: "Sample event", date: addDays(state.today, 56), type: "social", headcount: 30, venue: "campus", food: "none", funding: "none", speaker: false, goalId: null, playbookId: "seo-event" }
+    const ev: Event = { id: "wf", name: "Sample event", date: addDays(state.today, 56), type: "social", headcount: 30, venue: "campus", food: "none", funding: "none", speaker: false, checks: {}, goalId: null, playbookId: "asu-event-v2" }
     const s: DemoState = { ...state, roles, people: [], events: [ev], nodes: stepsAsNodes(steps, "wf") }
     return { s, sched: computeSchedule(s) }
   }, [state.today, steps, roles])

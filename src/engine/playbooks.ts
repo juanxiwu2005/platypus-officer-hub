@@ -18,12 +18,58 @@ export const CONDITIONS: Record<StepCond, (e: Event) => boolean> = {
   campus: e => e.venue === "campus", offcampus: e => e.venue === "offcampus", speaker: e => e.speaker,
   usgFood: e => e.funding === "usg" && e.food !== "none", usgSpeaker: e => e.speaker && e.funding === "usg",
   offsite: e => e.food === "offsite", dining: e => e.food === "dining", onsite: e => e.food === "onsite", tbd: e => e.food === "tbd", food: e => e.food !== "none",
+  funding: e => e.checks?.funding === true || e.funding !== "none", externalFood: e => e.checks?.externalFood === true || e.food === "offsite", onsiteFood: e => e.checks?.onsiteFood === true || e.food === "onsite",
+  partner: e => e.checks?.partner === true, travel: e => e.checks?.travel === true, parking: e => e.checks?.parking === true, advisor: e => e.checks?.advisor === true,
+  access: e => e.checks?.access === true, safety: e => e.checks?.safety === true, outdoor: e => e.checks?.outdoor === true, alcohol: e => e.checks?.alcohol === true,
+  drone: e => e.checks?.drone === true, media: e => e.checks?.media === true, prize: e => e.checks?.prize === true, schoolApproval: e => e.checks?.schoolApproval === true || e.headcount >= 250,
+  content: e => e.checks?.content === true, large: e => e.headcount >= 250 || ["safety", "outdoor", "alcohol", "drone", "travel"].some(k => e.checks?.[k as keyof NonNullable<Event["checks"]>] === true),
 }
 
 /** The steps new events are built from: the club's own workflow if setup made one, else the standard one. */
 export const orgSteps = (s: { org: { eventWorkflow?: { steps: StepTemplate[] } } }): StepTemplate[] => s.org.eventWorkflow?.steps ?? EVENT_STEPS
 
 export const EVENT_STEPS: StepTemplate[] = [
+  // Blue: every event gets this complete lifecycle. Names are intentionally short for the flow canvas.
+  { key: "plan", title: "Plan Event", fn: "programs", phase: "plan", estDays: 1, tier: "light", anchor: target(60, "calendar", "Event scope target"), why: "Define the purpose, operating scope and backup plan before routing work.", source: "PLAN-01" },
+  { key: "venuechoice", title: "Choose Venue", fn: "programs", phase: "plan", estDays: 1, tier: "light", dependsOn: ["plan"], why: "Choose a candidate location with capacity, access and setup needs.", source: "VENUE-01" },
+  { key: "registry", title: "Event Registry", fn: "programs", phase: "prepare", anchor: rule("PLAN-02", 14, "calendar"), estDays: 3, tier: "medium", dependsOn: ["plan", "venuechoice"], ruleIds: ["PLAN-02"], why: "Events lead records the Event Registry submission and confirmation.", source: "PLAN-02 · ASU-R-010, ASU-R-011" },
+  { key: "venue", title: "Confirm Location", fn: "programs", phase: "prepare", anchor: target(30, "calendar", "Venue planning target"), estDays: 1, tier: "light", dependsOn: ["venuechoice", "registry"], why: "Request and confirm the permitted room, site, layout and capacity.", source: "VENUE-01" },
+  { key: "materials", title: "Event Materials", fn: "programs", phase: "prepare", estDays: 2, tier: "medium", dependsOn: ["venue"], why: "Prepare the run-of-show materials, signage, slides and event items.", source: "Organization standard" },
+  { key: "checkin", title: "Check-in Forms", fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: ["plan"], why: "Prepare RSVP, check-in, waiver or liability forms appropriate to the event.", source: "Organization standard" },
+  { key: "headcount", title: "Headcount", fn: "programs", phase: "run", anchor: target(4, "calendar", "Final count 3–4 days before the event"), estDays: 1, tier: "light", dependsOn: ["checkin"], why: "Confirm expected and actual attendance for healthy event operations.", source: "Organization standard" },
+  { key: "eventday", title: "Event Day", fn: "programs", phase: "run", anchor: target(0, "calendar", "Event date"), estDays: 1, tier: "heavy", dependsOn: ["finalcheck", "materials", "headcount"], why: "Run the activity within its confirmed location, capacity and conditions.", source: "Organization standard" },
+  { key: "thankyou", title: "Thank You", fn: "secretary", phase: "close", anchor: target(-1, "business", "Within one business day after the event"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Send a concise thank-you to attendees, partners and contributors.", source: "Organization standard" },
+  { key: "feedback", title: "Feedback", fn: "vice_president", phase: "close", anchor: target(-3, "business", "Within three business days after the event"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Collect feedback and record a short reusable retrospective.", source: "CLOSE-03" },
+  { key: "postmarketing", title: "Post Marketing", fn: "marketing", phase: "close", anchor: target(-3, "business", "Post-event update"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Publish an approved post-event recap or outcome update.", source: "Organization standard" },
+  { key: "photos", title: "Photo Upload", fn: "marketing", phase: "close", anchor: target(-3, "business", "Post-event media record"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Save approved event photos or media in the organization record.", source: "Organization standard" },
+  { key: "spending", title: "Record Spending", fn: "finance", phase: "close", anchor: target(-5, "business", "Closeout target"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Record spending, receipts and unresolved financial items.", source: "CLOSE-02" },
+  { key: "attendance", title: "Attendance Record", fn: "programs", phase: "close", anchor: target(-5, "business", "Closeout target"), estDays: 1, tier: "light", dependsOn: ["eventday", "headcount"], why: "Submit the final attendance record and required event metrics.", source: "CLOSE-02" },
+  { key: "financeRecord", title: "Finance Record", fn: "finance", phase: "close", anchor: target(-7, "business", "Financial closeout target"), estDays: 1, tier: "light", dependsOn: ["spending"], why: "Complete reimbursement, payment status and the final finance record.", source: "CLOSE-02" },
+  { key: "documentation", title: "Documentation", fn: "secretary", phase: "close", anchor: target(-14, "calendar", "Archive within two weeks"), estDays: 1, tier: "light", dependsOn: ["feedback", "financeRecord", "photos"], why: "Preserve approved materials, decisions and reusable event records.", source: "CLOSE-03" },
+
+  // Yellow: only selected situation-based routes create these tasks.
+  { key: "partner", title: "Partner Meeting", fn: "programs", phase: "plan", estDays: 1, tier: "light", dependsOn: ["plan"], cond: "partner", why: "Align scope, roles and commitments with the outside party.", source: "SPEND-02" },
+  { key: "speakerPacket", title: "Speaker Packet", fn: "programs", phase: "prepare", estDays: 2, tier: "medium", dependsOn: ["partner", "venuechoice"], cond: "speaker", why: "Collect the speaker scope, headshot, quote and required agreement information.", source: "SPECIAL-04" },
+  { key: "travel", title: "Travel Plan", fn: "programs", phase: "prepare", estDays: 2, tier: "medium", dependsOn: ["plan"], cond: "travel", why: "Document travel scope, participants, transport and emergency coverage.", source: "TRAVEL-01" },
+  { key: "parking", title: "Parking Review", fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: ["venue"], cond: "parking", why: "Confirm guest parking, loading, shuttle or transport needs.", source: "VENUE-02" },
+  { key: "quotes", title: "Quote Gather", fn: "finance", phase: "money", estDays: 3, tier: "medium", dependsOn: ["venue"], cond: "funding", why: "Collect dated provider, speaker or vendor quotes for the budget route.", source: "FUND-04" },
+  { key: "foodCompliance", title: "Food Exception", fn: "finance", phase: "prepare", anchor: rule("SPECIAL-02", 10, "business"), estDays: 3, tier: "medium", dependsOn: ["venue", "quotes"], ruleIds: ["SPECIAL-02"], cond: "externalFood", why: "Resolve the food exception, permit or evidence needed before submitting a food budget.", source: "SPECIAL-01 · SPECIAL-02" },
+  { key: "budgetRequest", title: "Budget Request", fn: "finance", phase: "money", anchor: target(42, "calendar", "Funding planning floor"), estDays: 7, tier: "heavy", dependsOn: ["quotes", "foodCompliance"], cond: "funding", why: "Submit the budget, public purpose and supporting quote package.", source: "FUND-02 · FUND-04" },
+  { key: "budgetApproval", title: "Budget Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["budgetRequest"], cond: "funding", why: "Record the funding decision before any approval-dependent commitment.", source: "FUND-02" },
+  { key: "purchaseRequest", title: "Purchase Request", fn: "finance", phase: "money", anchor: rule("FUND-05", 14, "calendar"), estDays: 1, tier: "light", dependsOn: ["budgetApproval"], ruleIds: ["FUND-05"], cond: "funding", why: "Route the approved purchase through the applicable purchasing process.", source: "FUND-05" },
+  { key: "purchaseApproval", title: "Purchase Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["purchaseRequest"], cond: "funding", why: "Record purchase approval before ordering or reimbursement.", source: "FUND-05" },
+  { key: "access", title: "Access Review", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["venue"], cond: "access", why: "Confirm accommodations, accessible route, seating and accessible communications.", source: "VENUE-03 · ASU-R-018, ASU-R-019" },
+  { key: "security", title: "Security Plan", fn: "programs", phase: "prepare", estDays: 7, tier: "heavy", dependsOn: ["venue", "registry"], cond: "safety", why: "Document security, EMS, crowd, protest or elevated-risk coverage.", source: "RISK-01" },
+  { key: "permit", title: "Permit Review", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["security"], cond: "safety", why: "Resolve permit, insurance or certificate requirements returned by risk review.", source: "RISK-01" },
+  { key: "alcohol", title: "Alcohol Permit", fn: "programs", phase: "prepare", anchor: rule("SPECIAL-03", 15, "calendar"), estDays: 15, tier: "heavy", dependsOn: ["venue", "registry"], ruleIds: ["SPECIAL-03"], cond: "alcohol", why: "Resolve alcohol permit, venue and insurance conditions before service.", source: "SPECIAL-03" },
+  { key: "drone", title: "Drone Approval", fn: "programs", phase: "prepare", anchor: rule("SPECIAL-06", 15, "calendar"), estDays: 7, tier: "medium", dependsOn: ["venue", "registry"], ruleIds: ["SPECIAL-06"], cond: "drone", why: "Obtain the required unmanned aircraft approval before operating a drone.", source: "SPECIAL-06" },
+  { key: "schoolApproval", title: "School Approval", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["registry"], cond: "schoolApproval", why: "Confirm the director, dean or college approval route for a 250+ event.", source: "PLAN-03 · needs verification" },
+  { key: "content", title: "Content Distribution", fn: "marketing", phase: "marketing", estDays: 2, tier: "medium", dependsOn: ["plan"], cond: "content", why: "Prepare approved materials, giveaways or digital distribution for attendees.", source: "Organization standard" },
+  { key: "finalcheck", title: "Final Check", fn: "president", phase: "run", anchor: target(14, "calendar", "Final readiness review"), estDays: 1, tier: "light", dependsOn: ["venue", "registry", "purchaseApproval", "permit", "alcohol", "drone", "schoolApproval", "access"], why: "Confirm every active approval and condition before the event proceeds.", source: "CLOSE-01" },
+]
+
+/* Legacy reference retained in Git history; this list is the active v1.0 standard. */
+const LEGACY_EVENT_STEPS: StepTemplate[] = [
   // Plan (OA101)
   { key: "partner", title: "Meet the speaker or partner: goals, audience, format", fn: "outreach", phase: "plan", estDays: 2, tier: "medium", cond: "speaker",
     why: "Agree on what each side wants and what our members get before planning anything else.", source: "OA101 step 10; SEO T-90 checklist", consulted: ["programs"] },
@@ -93,6 +139,7 @@ export const EVENT_STEPS: StepTemplate[] = [
   { key: "archive", title: "Archive the plan, materials, attendance and lessons", fn: "secretary", phase: "close", anchor: target(-14, "calendar", "OA101 step 80: archive within two weeks"), estDays: 1, tier: "light", dependsOn: ["feedback", "closeout"],
     why: "The next officer starts from this, not from zero.", source: "OA101 step 80" },
 ]
+void LEGACY_EVENT_STEPS
 
 /** SEO event template cadence, shown as guide marks on the timeline. */
 export const SEO_MILESTONES = [
@@ -140,9 +187,12 @@ export function roleFor(roles: Role[], fn: RoleFunction): Role | undefined {
 }
 
 /** The steps that apply to this event, with links to skipped steps passed through to their own links. */
-export function stepsFor(e: Event, steps: StepTemplate[] = EVENT_STEPS): StepTemplate[] {
-  const included = new Map(steps.filter(s => !s.cond || CONDITIONS[s.cond](e)).map(s => [s.key, s]))
-  const all = new Map(steps.map(s => [s.key, s]))
+export function stepsFor(e: Event, steps?: StepTemplate[]): StepTemplate[] {
+  // Records saved before the structured v2 intake retain their former graph until store migration adds checks.
+  // New and migrated activities always carry `checks` (including an empty object) and use the approved standard.
+  const selectedSteps = steps ?? (e.checks === undefined ? LEGACY_EVENT_STEPS : EVENT_STEPS)
+  const included = new Map(selectedSteps.filter(s => !s.cond || CONDITIONS[s.cond](e)).map(s => [s.key, s]))
+  const all = new Map(selectedSteps.map(s => [s.key, s]))
   const resolve = (key: string, seen = new Set<string>()): string[] => {
     if (included.has(key)) return [key]
     if (seen.has(key)) return []
@@ -174,7 +224,7 @@ export function stepsFor(e: Event, steps: StepTemplate[] = EVENT_STEPS): StepTem
 export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[] } = {}): Node[] {
   const president = roleFor(roles, "president")
   const perHead = opts.fundingAmount && e.headcount ? opts.fundingAmount / e.headcount : 0
-  return stepsFor(e, opts.steps ?? EVENT_STEPS).map(s => {
+  return stepsFor(e, opts.steps).map(s => {
     const role = (s.ownerRoleId ? roles.find(r => r.id === s.ownerRoleId) : undefined) ?? roleFor(roles, s.fn)
     const ruleIds = [...(s.ruleIds ?? [])]
     if (s.key === "closeout" && perHead >= 25) ruleIds.push("R12")

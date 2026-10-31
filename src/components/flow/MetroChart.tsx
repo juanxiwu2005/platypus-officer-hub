@@ -20,6 +20,7 @@ const SHORT: Record<string, string> = {
   promo: "Promotion", review: "Full check", runshow: "Run of show", headcount: "Headcount", feedback: "Feedback",
   closeout: "Close out", archive: "Archive",
 }
+const SITUATION_KEYS = new Set(["partner", "speakerPacket", "travel", "parking", "quotes", "foodCompliance", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "access", "security", "permit", "alcohol", "drone", "schoolApproval", "content"])
 /** Two to four words for the chart; the full title is in the hover card. */
 export const shortTitle = (n: Node) => (n.stepKey && SHORT[n.stepKey]) || n.title.split(/\s+/).slice(0, 3).join(" ").replace(/[,:;]$/, "")
 
@@ -254,8 +255,9 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const owner = state.people.find(x => x.id === n.ownerId)?.name
     const mark = tpl?.marks?.[n.id]
     const label = tpl ? tpl.lines(n).join(". ") + "." : `${n.title}. ${styles[n.status].label}. Owner ${owner ?? "none"}. Club deadline ${plan ? fmtShort(plan.club) : "pending"}${plan?.official ? `, ASU deadline ${fmtShort(plan.official)}` : ""}.${issue ? ` ${issue.text}` : ""}`
+    const kind = SITUATION_KEYS.has(n.stepKey ?? "") ? "situation" : "baseline"
     return <div key={n.id} className={`m-node ${labelSide} ${n.id === selectedId ? "is-selected" : ""}${drag?.id === n.id ? " is-dragging" : ""}`} style={{ left: p.x, top: p.y }}>
-      <button type="button" className={`m-dot ${st} ${issue ? `has-${issue.severity}` : ""}${tpl && n.ruleIds.length ? " locked" : ""}${mark ? ` mark-${mark}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
+      <button type="button" className={`m-dot ${kind} ${st} ${issue ? `has-${issue.severity}` : ""}${tpl && n.ruleIds.length ? " locked" : ""}${mark ? ` mark-${mark}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}. ${kind === "baseline" ? "Core event step." : "Situation-based step."}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
         onPointerDown={e => onDown(e, n.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onDoubleClick={e => openNode(n.id, e)} onContextMenu={e => { if (on) { e.preventDefault(); openNode(n.id, e) } }} onKeyDown={e => onKey(e, n.id)} />
       <span className="m-label" aria-hidden="true"><b>{shortTitle(n)}</b><span>{tpl ? tpl.sublabel(n) : firstName(state, n.ownerId)}</span></span>
       <span className="m-card" role="tooltip">

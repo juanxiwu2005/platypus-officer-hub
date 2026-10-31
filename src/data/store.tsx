@@ -10,6 +10,7 @@ import type { Channel } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { clearLocalDocs } from "../lib/localDocs"
 import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
+import { buildEventNodes, EVENT_STEPS } from "../engine/playbooks"
 import { nextCounter } from "../lib/ids"
 import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
 import { cannotDelete, moveBetween, newStepNode, removalEdits } from "../lib/flowEdit"
@@ -398,6 +399,23 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: parsed, notice: null }
+  // v6 used the former fixed event graph. Preserve existing activities and their recognizable progress while
+  // rebuilding them from the approved baseline + selected situation routes.
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 6) {
+    const legacy = parsed
+    const byNewKey: Record<string, string> = { plan: "draft", registry: "registry", venue: "venue", quotes: "quote", foodCompliance: "foodex", budgetRequest: "usg", budgetApproval: "usg", content: "flyer", finalcheck: "review", headcount: "headcount", feedback: "feedback", financeRecord: "closeout", documentation: "archive" }
+    const events = legacy.events.map(event => ({ ...event, checks: event.checks ?? { food: event.food !== "none", externalFood: event.food === "offsite", onsiteFood: event.food === "onsite", funding: event.funding !== "none", speaker: event.speaker, partner: event.speaker } }))
+    const rebuilt = events.flatMap(event => {
+      const old = new Map(legacy.nodes.filter(n => n.eventId === event.id).map(n => [n.stepKey, n]))
+      const generated = buildEventNodes(event, legacy.roles, { steps: EVENT_STEPS }).map(node => {
+        const prior = old.get(byNewKey[node.stepKey ?? ""])
+        return prior ? { ...node, status: prior.status, ownerId: prior.ownerId, acceptedOn: prior.acceptedOn, waitingOn: prior.waitingOn, lastUpdate: prior.lastUpdate, assignedOn: prior.assignedOn, ownerVersion: prior.ownerVersion } : node
+      })
+      return [...generated, ...legacy.nodes.filter(n => n.eventId === event.id && n.stepKey === null)]
+    })
+    const state = applySchedule({ ...legacy, schemaVersion: SCHEMA_VERSION, org: { ...legacy.org, eventWorkflow: undefined }, events, nodes: [...legacy.nodes.filter(n => n.eventId === null), ...rebuilt] })
+    return { state, notice: null }
+  }
   const fromVersion = parsed && typeof parsed === "object" && typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : null
   const backupKey = backUp(raw, fromVersion === null ? "unreadable" : `v${fromVersion}`)
   return { state: seedDemo(), notice: { kind: "restored_demo", why: fromVersion === null ? "unreadable" : "version", fromVersion, backupKey, raw } }

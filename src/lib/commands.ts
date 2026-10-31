@@ -1,10 +1,10 @@
-import type { DemoState, Event, NodeStatus, Phase, Tier } from "../data/types"
+import type { DemoState, Event, EventCheck, EventChecks, NodeStatus, Phase, Tier } from "../data/types"
 import { RULES } from "../data/rules"
 import { visibleContacts } from "../data/crm"
 
 /** Only these shapes may cross the AI boundary. Unknown keys (including all dates) disappear. */
 export type CommandOp =
-  | { op: "create_event"; name: string; type: Event["type"]; headcount: number; venue: Event["venue"]; food: Event["food"]; funding: Event["funding"]; speaker: boolean; details?: string }
+  | { op: "create_event"; name: string; type: Event["type"]; headcount: number; venue: Event["venue"]; food: Event["food"]; funding: Event["funding"]; speaker: boolean; checks?: EventChecks; details?: string }
   // phase and why are optional: the event review uses them to place a suggested step and say why it matters.
   | { op: "add_node"; title: string; eventId: string | null; ownerId: string | null; tier: Tier; phase?: Phase; why?: string }
   | { op: "assign_owner"; nodeId: string; ownerId: string | null }
@@ -50,6 +50,12 @@ const choose = <T extends string>(v: unknown, choices: readonly T[], fallback: T
 export const TIERS = ["light", "medium", "heavy"] as const
 export const PHASES: Phase[] = ["plan", "prepare", "money", "marketing", "run", "close"]
 export const FOODS: Event["food"][] = ["none", "offsite", "dining", "onsite", "tbd"]
+export const EVENT_CHECKS: EventCheck[] = ["funding", "food", "externalFood", "onsiteFood", "speaker", "partner", "travel", "parking", "advisor", "access", "safety", "outdoor", "alcohol", "drone", "media", "prize", "schoolApproval", "content"]
+const cleanChecks = (value: unknown): EventChecks | undefined => {
+  if (!value || typeof value !== "object") return undefined
+  const out = Object.fromEntries(EVENT_CHECKS.filter(key => (value as Record<string, unknown>)[key] === true).map(key => [key, true])) as EventChecks
+  return Object.keys(out).length ? out : undefined
+}
 export const REFUSAL = "I couldn't find this in the rule book. Please ask the Tempe Student Organizations office at tempeclubs@asu.edu, or USG for club funding."
 
 export function sanitizeOps(raw: unknown, ctx: CommandContext): CommandOp[] {
@@ -64,7 +70,7 @@ export function sanitizeOps(raw: unknown, ctx: CommandContext): CommandOp[] {
     const d = value as Record<string, unknown>
     switch (d.op) {
       case "create_event":
-        if (text(d.name)) ops.push({ op: d.op, name: text(d.name, 80), type: choose(d.type, ["social", "speaker", "workshop", "meeting", "fundraiser", "offcampus"], "social"), headcount: Math.max(1, Math.min(5000, Math.round(Number(d.headcount) || 30))), venue: choose(d.venue, ["campus", "offcampus"], "campus"), food: choose(d.food, FOODS, "none"), funding: choose(d.funding, ["none", "usg", "college", "dues", "sponsor"], "none"), speaker: d.speaker === true, ...(text(d.details, 500) ? { details: text(d.details, 500) } : {}) })
+        if (text(d.name)) ops.push({ op: d.op, name: text(d.name, 80), type: choose(d.type, ["social", "speaker", "workshop", "meeting", "fundraiser", "offcampus"], "social"), headcount: Math.max(1, Math.min(5000, Math.round(Number(d.headcount) || 30))), venue: choose(d.venue, ["campus", "offcampus"], "campus"), food: choose(d.food, FOODS, "none"), funding: choose(d.funding, ["none", "usg", "college", "dues", "sponsor"], "none"), speaker: d.speaker === true, checks: cleanChecks(d.checks) ?? {}, ...(text(d.details, 500) ? { details: text(d.details, 500) } : {}) })
         break
       case "add_node":
         if (text(d.title) && (d.eventId === null || ctx.events.some(e => e.id === d.eventId)) && owner(d.ownerId)) ops.push({ op: d.op, title: text(d.title), eventId: d.eventId as string | null, ownerId: d.ownerId as string | null, tier: choose(d.tier, TIERS, "medium"), ...(PHASES.includes(d.phase as Phase) ? { phase: d.phase as Phase } : {}), ...(text(d.why, 160) ? { why: text(d.why, 160) } : {}) })
@@ -179,6 +185,7 @@ export function eventFields(s: string): Omit<Extract<CommandOp, { op: "create_ev
     food,
     funding: /\busg\b|student government/i.test(s) ? "usg" : /college funding/i.test(s) ? "college" : /dues/i.test(s) ? "dues" : /sponsor/i.test(s) ? "sponsor" : "none",
     speaker: /speaker|panel|performer|fireside|keynote|guest|嘉宾|表演/i.test(s),
+    checks: cleanChecks({ food: food !== "none", externalFood: food === "offsite", onsiteFood: food === "onsite", funding: /\busg\b|student government|college funding|dues|sponsor/i.test(s), speaker: /speaker|panel|performer|fireside|keynote|guest|嘉宾|表演/i.test(s) }),
   }
 }
 

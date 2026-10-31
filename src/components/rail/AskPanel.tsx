@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useStore, useViewer } from "../../data/store"
-import type { Event } from "../../data/types"
+import type { Event, EventCheck, EventChecks } from "../../data/types"
 import { respond, reviewEvent, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
 import { PAGES } from "../../routes"
 import { fmtLong, fmtShort } from "../../lib/dates"
@@ -234,6 +234,13 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
 }
 
 const FOOD: Record<Event["food"], string> = { none: "none", dining: "Sun Devil Dining", offsite: "outside caterer", onsite: "made on site", tbd: "yes" }
+const EVENT_CHECKLIST: { key: EventCheck; label: string }[] = [
+  { key: "funding", label: "Need funding or reimbursement" }, { key: "food", label: "Food or beverage" }, { key: "externalFood", label: "External food provider" }, { key: "onsiteFood", label: "On-site food preparation or food truck" },
+  { key: "speaker", label: "External speaker, artist, or performer" }, { key: "partner", label: "Partner, sponsor, co-host, vendor, or contract" }, { key: "travel", label: "Travel or off-site participant trip" }, { key: "parking", label: "Parking, shuttle, loading, or transportation" },
+  { key: "advisor", label: "Advisor involvement required" }, { key: "access", label: "Accessibility accommodation or access support" }, { key: "safety", label: "Security, EMS, VIP, media, protest, or elevated safety risk" }, { key: "outdoor", label: "Outdoor special-use setup or equipment" },
+  { key: "alcohol", label: "Alcohol" }, { key: "drone", label: "Drone or model aircraft" }, { key: "media", label: "Music, livestream, recording, or media use" }, { key: "prize", label: "Prize, raffle, fundraising, ticket, or donation activity" },
+  { key: "schoolApproval", label: "School or college-specific approval" }, { key: "content", label: "Content or item distribution" },
+]
 
 /**
  * The event form (M2b, Juanxi 2026-10-27): only what changes the plan — name, date, people, food yes/no and a
@@ -243,7 +250,7 @@ const FOOD: Record<Event["food"], string> = { none: "none", dining: "Sun Devil D
 function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>; onDone: (c: Extract<ChatCard, { kind: "form" }>) => void }) {
   const { state } = useStore()
   const allowed = canCreateEvent(state)
-  const [f, setF] = useState({ name: card.prefill.name ?? "", type: card.prefill.type ?? (card.prefill.speaker ? "speaker" : "social"), headcount: card.prefill.headcount ?? 30, venue: card.prefill.venue ?? "campus", food: card.prefill.food ?? "none", funding: card.prefill.funding ?? "none", speaker: card.prefill.speaker ?? false, details: card.prefill.details ?? "" })
+  const [f, setF] = useState({ name: card.prefill.name ?? "", type: card.prefill.type ?? (card.prefill.speaker ? "speaker" : "social"), headcount: card.prefill.headcount ?? 30, venue: card.prefill.venue ?? "campus", food: card.prefill.food ?? "none", funding: card.prefill.funding ?? "none", speaker: card.prefill.speaker ?? false, checks: card.prefill.checks ?? {} as EventChecks, details: card.prefill.details ?? "" })
   const [date, setDate] = useState(card.date)
   const [error, setError] = useState("")
   // Fields the person changed are theirs; the assistant's later reading only fills the others.
@@ -255,7 +262,7 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
     if (!ai) return
     setF(prev => {
       const next = { ...prev }
-      for (const k of ["name", "headcount", "food", "speaker", "venue", "funding", "type"] as const) {
+      for (const k of ["name", "headcount", "food", "speaker", "venue", "funding", "type", "checks"] as const) {
         const v = ai[k]
         if (v !== undefined && v !== "" && !touched.current.has(k)) (next as Record<string, unknown>)[k] = v
       }
@@ -266,6 +273,7 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
   }, [card.ai])
   if (card.done) return <div className="mini-card done"><b>{card.prefill.name}</b><span className="small muted">Details sent · {card.date}</span></div>
   const hasFood = f.food !== "none"
+  const toggleCheck = (key: EventCheck, checked: boolean) => edit({ checks: { ...f.checks, [key]: checked } })
   const finals = /^\d{4}-\d{2}-\d{2}$/.test(date) ? findPeriod(date, FINALS) : null
   return <form className="mini-card plan-form" data-testid="plan-form" autoComplete="off" onSubmit={e => {
     e.preventDefault()
@@ -282,10 +290,11 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
     <div className="form-2">
       <label>Date<input type="date" aria-label="Date" value={date} min={state.today} onChange={e => setDate(e.target.value)} /></label>
       <label>People<input type="number" min={1} max={5000} value={f.headcount} onChange={e => edit({ headcount: Number(e.target.value) })} /></label>
-      <label>Food<select aria-label="Food" value={hasFood ? "yes" : "no"} onChange={e => edit({ food: e.target.value === "yes" ? (card.prefill.food && card.prefill.food !== "none" ? card.prefill.food : "tbd") : "none" })}><option value="no">No</option><option value="yes">Yes</option></select></label>
+      <label>Food<select aria-label="Food" value={hasFood ? "yes" : "no"} onChange={e => { const yes = e.target.value === "yes"; edit({ food: yes ? (card.prefill.food && card.prefill.food !== "none" ? card.prefill.food : "tbd") : "none", checks: { ...f.checks, food: yes } }) }}><option value="no">No</option><option value="yes">Yes</option></select></label>
     </div>
     {finals && <p className="small late-text" role="alert" data-testid="finals-warning">{fmtLong(date)} is during {finals.label}. ASU does not allow events then (R13).</p>}
-    <label className="check-label"><input type="checkbox" checked={f.speaker} onChange={e => edit({ speaker: e.target.checked })} />Guest speaker or performer</label>
+    <label className="check-label"><input type="checkbox" checked={f.speaker} onChange={e => edit({ speaker: e.target.checked, checks: { ...f.checks, speaker: e.target.checked } })} />Guest speaker or performer</label>
+    <fieldset className="checklist"><legend>Situation-based checklist</legend>{EVENT_CHECKLIST.filter(x => x.key !== "food" && x.key !== "speaker").map(item => <label key={item.key} className="check-label"><input type="checkbox" checked={f.checks[item.key] === true} onChange={e => toggleCheck(item.key, e.target.checked)} />{item.label}</label>)}</fieldset>
     <label>Details<textarea rows={3} maxLength={500} autoComplete="off" value={f.details} onChange={e => edit({ details: e.target.value })} placeholder="Anything unusual: a stage build, a company visit, flying out of state, a competition…" /></label>
     {!allowed && <p className="small muted">The president chooses who can create events.</p>}
     {error && <p className="small late-text" role="alert">{error}</p>}

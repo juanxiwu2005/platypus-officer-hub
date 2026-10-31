@@ -44,7 +44,10 @@ export interface OrgSettings {
 }
 
 /** Which events a workflow step applies to. Names, not functions, so a workflow can be saved with the club. */
-export type StepCond = "campus" | "offcampus" | "speaker" | "usgFood" | "usgSpeaker" | "offsite" | "dining" | "onsite" | "tbd" | "food"
+export type EventCheck = "funding" | "food" | "externalFood" | "onsiteFood" | "speaker" | "partner" | "travel" | "parking" | "advisor" | "access" | "safety" | "outdoor" | "alcohol" | "drone" | "media" | "prize" | "schoolApproval" | "content"
+/** Confirmed intake facts. Absent means this is a pre-v1.0 workflow record; legacy facts are used as a safe fallback. */
+export type EventChecks = Partial<Record<EventCheck, boolean>>
+export type StepCond = "campus" | "offcampus" | "speaker" | "usgFood" | "usgSpeaker" | "offsite" | "dining" | "onsite" | "tbd" | "food" | EventCheck | "large"
 
 /**
  * One step of an event workflow. A step has no dates of its own: an anchor (an ASU rule or a club timing) and links to other
@@ -176,6 +179,8 @@ export interface Event {
   food: "none" | "dining" | "offsite" | "onsite" | "tbd"
   funding: "usg" | "college" | "dues" | "sponsor" | "none"
   speaker: boolean
+  /** Situation-based answers from the event intake. They decide which yellow workflow nodes exist. */
+  checks?: EventChecks
   goalId: string | null
   playbookId: string
   /** What the organizer wrote about the event in their own words (form "Details"); the event review reads it. */

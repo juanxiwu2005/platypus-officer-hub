@@ -28,6 +28,8 @@
 
 # Platypus v1.0 进度
 
+| 2026-10-31 | Codex | **进行中：活动流程 v2。** 依据用户确认的 Large Event 图与 `ASU_Event_Workflow_Standard_Template.xlsx`，开始将固定流程替换为 16 个始终生成的蓝色生命周期节点和按活动 intake 触发的黄色 Situation-based 节点；新增活动表单加入结构化 checklist，250+ 自动创建 School Approval，Drone 只在勾选时创建。现有 v6 本地活动迁移为新模板并保留可识别进度，Settings 模板和未来活动同用新模板。 | 当前构建通过；旧工作流测试仍按已废弃节点键（`usg`、`flyer` 等）断言，需在本工作包内改写为 v2 行为测试后再作完整验收。需要同步本地备份。 |
+
 | 2026-10-30 | Codex | Rules 每条来源右侧恢复 Platypus 聊天图标；点击后打开 Ask 并直接以该来源名称发起有上下文的政策问题。官方外链仍独立保留。增加页面回归断言。 | Preview 8 / `integration/v1.0`。 |
 
 | 2026-10-30 | Codex | Ask 面板的任务快捷路由收紧：只有明确的“top tasks / my tasks / team priorities”才显示任务表。带 ASU、rules、policy、source 或 database 的提问优先进入带出处的政策检索，因而“top three rules”不再错误显示 “Your top 5”。政策端同时得到目录计数（当前 64 条索引来源），可区分“已索引来源数”与“全部 ASU 规则”。新增回归测试。 | Preview 8 / `integration/v1.0`；待部署后用截图中的问题复测：应返回政策分析与来源，不出现任务表。 |
