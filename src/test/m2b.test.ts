@@ -111,7 +111,7 @@ describe("the assistant fills the form (AI on)", () => {
     const refined = (await r.refine)!
     expect(fetch).toHaveBeenCalledOnce()
     const t = refined.cards.find(c => c.kind === "taskform") as Extract<ChatCard, { kind: "taskform" }>
-    expect(t).toMatchObject({ title: "Order name tags by [date in plan]", owners: ["maya"], eventId: "e-night", due: defaultTaskDue(base) })
+    expect(t).toMatchObject({ title: "Order name tags by [date in plan]", owners: ["maya"], eventId: null, due: defaultTaskDue(base) })
   })
   it("prefills the event form from a long message; the date only comes from the person's words", async () => {
     replyWith({ source: "ai", cards: [{ kind: "form", intent: "plan_event", prefill: { name: "Spring Hackathon", headcount: 120, food: "tbd", speaker: true, details: "A 24-hour build at SkySong with sponsor judges; finals on 2099-01-01.", date: "2099-01-01" } }] })
@@ -177,12 +177,15 @@ describe("tasks are open to everyone (Juanxi, 2026-10-27)", () => {
     expect(bufferedClubDeadline(base, "2026-10-27")).toEqual({ date: "2026-10-23", shortened: true, buffer: 3 })
     expect(make(base, [{ title: "A", ownerId: "maya" }], "2026-11-06", false).nodes.find(n => n.id === "t-test:0")!.clubDeadline).toBe("2026-11-06")
   })
-  it("an officer can apply a reviewed standalone task; event templates cannot gain AI steps", () => {
+  it("an officer can apply a reviewed standalone task; a president can also review an event adjustment", () => {
     expect(canApplyOp(as("maya"), { op: "add_node" })).toBe(true)
     expect(canApplyOp(as("maya"), { op: "assign_owner" })).toBe(false)
     const s = reducer(as("maya"), { type: "draftChanges", changeSet: { id: "c1", sentence: "x", status: "pending", ops: [{ op: "add_node", title: "Buy tape", eventId: null, ownerId: null, tier: "light" }] } })
     const next = reducer(s, { type: "reviewChange", id: "c1", index: 0, decision: "applied", human: { date: "2026-10-29", buffered: true } })
     expect(next.nodes.some(n => n.id === "c1:0" && n.eventId === null)).toBe(true)
+    const proposed = reducer(base, { type: "draftChanges", changeSet: { id: "c2", sentence: "x", status: "pending", ops: [{ op: "add_node", title: "Print name badges", eventId: "e-night", ownerId: "jordan", tier: "light", phase: "prepare" }] } })
+    const adjusted = reducer(proposed, { type: "reviewChange", id: "c2", index: 0, decision: "applied" })
+    expect(adjusted.nodes.find(n => n.id === "c2:0")).toMatchObject({ eventId: "e-night", ownerId: "jordan", status: "accepted", source: "President-reviewed event adjustment" })
   })
 })
 

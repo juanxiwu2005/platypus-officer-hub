@@ -27,10 +27,14 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
     { id: "r-mkt", displayName: "Marketing lead", fn: "marketing", holderId: "sam", reportsToId: "r-pres", duties: DUTY_TEMPLATES.marketing },
     { id: "r-sec", displayName: "Secretary", fn: "secretary", holderId: "priya", reportsToId: "r-pres", duties: DUTY_TEMPLATES.secretary },
   ]
-  const events: Event[] = [
+  const coreEvents: Event[] = [
     { id: "e-night", name: "Networking Night", date: "2026-11-19", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, budgetItems: [{ id: "e-night:budget:1", item: "Catering", quantity: 30, pricePerUnit: 40, source: "usg", status: "food_exception_permit", category: "food" }, { id: "e-night:budget:2", item: "Event supplies", quantity: 1, pricePerUnit: 800, source: "usg", status: "food_exception_permit", category: "general" }], ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
     { id: "e-speaker", name: "Spring Speaker Night", date: "2027-02-11", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, budgetItems: [{ id: "e-speaker:budget:1", item: "Speaker travel", quantity: 1, pricePerUnit: 500, source: "usg", status: "not_started", category: "travel" }], ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, speaker: true, partner: true, rsvp: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
   ]
+  // The application uses v2. Its third event shows why checklist routes matter:
+  // no food is selected, so no food-compliance branch exists in its workflow.
+  const founderDinner: Event = { id: "e-founder", name: "Founder Dinner", date: "2026-11-05", type: "social", headcount: 24, venue: "campus", food: "none", funding: "dues", speaker: false, budgetItems: [{ id: "e-founder:budget:1", item: "Table cards", quantity: 24, pricePerUnit: 3, source: "organization", status: "order_placed", category: "general" }], checks: { partner: true, rsvp: true }, goalId: "g-events", playbookId: "seo-event" }
+  const events: Event[] = workflow === "v2" ? [...coreEvents, founderDinner] : coreEvents
 
   // Where each Networking Night step stands on the demo date.
   const v2NightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
@@ -48,6 +52,9 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
     partner: { status: "in_progress" },
     plan: { status: "accepted" },
   }
+  const founderStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
+    plan: { status: "done", completedOn: "2026-10-02" }, backup: { status: "done", completedOn: "2026-10-03" }, venuechoice: { status: "done", completedOn: "2026-10-06" }, registry: { status: "done", completedOn: "2026-10-12" }, venue: { status: "done", completedOn: "2026-10-14" }, partner: { status: "done", completedOn: "2026-10-15" }, speakerPacket: { status: "done", completedOn: "2026-10-16" }, travel: { status: "done", completedOn: "2026-10-16" }, partnerReview: { status: "done", completedOn: "2026-10-17" }, parking: { status: "done", completedOn: "2026-10-19" }, budget: { status: "done", completedOn: "2026-10-09" }, quotes: { status: "done", completedOn: "2026-10-12" }, marketingNeeds: { status: "done", completedOn: "2026-10-13" }, contentCreation: { status: "done", completedOn: "2026-10-18" }, promotionItems: { status: "in_progress" }, rsvp: { status: "accepted" }, content: { status: "accepted" }, reminder: { status: "accepted" }, moderator: { status: "accepted" }, materials: { status: "waiting", waitingOn: "Final logo from the partner" }, finalcheck: { status: "accepted" }, checkin: { status: "accepted" }, headcount: { status: "accepted" }, thankyou: { status: "accepted" }, feedback: { status: "accepted" }, postmarketing: { status: "accepted" }, photoBackup: { status: "accepted" }, invoice: { status: "accepted" }, attendance: { status: "accepted" }, spending: { status: "accepted" }, financeRecord: { status: "accepted" },
+  }
   const nightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = workflow === "v2" ? v2NightStatus : {
     draft: { status: "done" }, mktneeds: { status: "done" }, budget: { status: "done" }, approve: { status: "done" }, registry: { status: "done" }, venue: { status: "done" }, quote: { status: "done" }, ritm: { status: "in_progress" }, foodex: { status: "waiting", waitingOn: "Approval from Student Unions" }, flyer: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" }, rsvp: { status: "unclaimed", ownerId: null },
   }
@@ -60,6 +67,10 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
     const s = speakerStatus[n.stepKey!]
     return s ? { ...n, assignedOn: "2026-10-19", ownerVersion: 0, acceptedOn: "2026-10-19", lastUpdate: "2026-10-20", ...s } : { ...n, assignedOn: today, ownerVersion: 0 }
   })
+  const founder = workflow === "v2" ? buildEventNodes(founderDinner, roles).map(n => {
+    const s = founderStatus[n.stepKey!] ?? { status: "accepted" as NodeStatus }
+    return { ...n, assignedOn: "2026-10-10", ownerVersion: 0, acceptedOn: s.status === "unclaimed" ? null : "2026-10-10", lastUpdate: "2026-10-21", ...s }
+  }) : []
 
   const task = (n: Partial<Node> & Pick<Node, "id" | "title" | "fn" | "ownerId">, club: string, official: string | null = null): Node => ({
     eventId: null, stepKey: null, phase: null, approverRoleId: "r-pres", consultedRoleIds: [], informedRoleIds: [], dependsOn: [],
@@ -110,7 +121,7 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
       { id: "priya", name: "Priya Nair", roleId: "r-sec", email: "priya.nair@example.org", channels: ["email"], remindAt: "morning", busyWeeks: [], careerGoal: "Consulting", interests: "Writing, research", personalBufferDays: 1 },
     ].map((p, i) => ({ ...p, channels: p.channels as import("./types").Channel[], remindAt: p.remindAt as "morning" | "evening", personalBufferEnabled: true, phone: `480-555-01${String(i + 1).padStart(2, "0")}`, asuId: `9999${String(i + 1).padStart(6, "0")}`, expectations: "Learn the role and help our club follow through.", freeSlots: [{ day: 4, from: i === 3 ? "18:30" : "18:00", to: "20:00" }, { day: 1, from: "18:00", to: "20:00" }], setupCompletedOn: null })),
     events,
-    nodes: [...night, ...speaker, ...standalone],
+    nodes: [...night, ...speaker, ...founder, ...standalone],
     nudges: [],
     contributions: [
       { personId: "jordan", nodeId: "e-night:venue", points: 2, onTime: true },
@@ -133,7 +144,7 @@ export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" =
       { id: "i-2", contactId: "c-founder", organizationId: null, date: "2026-07-19", kind: "meeting", byId: "alex", summary: "Coffee chat about speaking in the spring.", outcome: "Interested, wants a date", nextStep: "", nextDue: null, nextDone: false, eventId: "e-speaker" },
       { id: "i-3", contactId: "c-osl", organizationId: null, date: "2026-09-30", kind: "call", byId: "alex", summary: "Checked the room booking steps for November.", outcome: "", nextStep: "", nextDue: null, nextDone: false, eventId: null },
     ],
-    funding: [{ eventId: "e-night", source: "usg", amount: 2000, stage: "budget_request", spendBy: "2026-12-19" }],
+    funding: [{ eventId: "e-night", source: "usg", amount: 2000, stage: "budget_request", spendBy: "2026-12-19" }, ...(workflow === "v2" ? [{ eventId: "e-founder", source: "dues" as const, amount: 72, stage: "budget_approved" as const, spendBy: "2026-11-05" }] : [])],
     handoff: null, handoffRoles: [], feedback: [],
     changeSets: [],
     extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [],

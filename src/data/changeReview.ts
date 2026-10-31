@@ -19,8 +19,10 @@ export const canCreateEvent = (s: DemoState) => {
   return mode === "everyone" || (mode === "chosen" && (s.org.settings.eventCreatorIds ?? []).includes(s.viewerId))
 }
 /** Tasks are open to everyone: for yourself, or for anyone else in the club (Juanxi, 2026-10-27). */
-export function canApplyOp(s: DemoState, op: { op: string }): boolean {
-  if (op.op === "add_node") return true
+export function canApplyOp(s: DemoState, op: { op: string; eventId?: string | null }): boolean {
+  // Administrative tasks are open to all officers. Altering an event workflow is a
+  // president/VP decision, even when Platypus has drafted the proposed adjustment.
+  if (op.op === "add_node") return !op.eventId || canLead(s)
   if (op.op === "create_event") return canCreateEvent(s)
   return canLead(s)
 }
@@ -34,7 +36,8 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
   const op = sanitizeOps([raw], commandContext(s))[0]
   if (!op) return "This change no longer matches the current demo. Please draft it again."
   if (!canApplyOp(s, op)) return op.op === "create_event" ? "Only the president, VP or officers they choose can create events." : "Only the president or vice president can approve changes."
-  if (op.op === "add_node" && op.eventId) return "Event steps come from the checklist-selected workflow template; update the checklist instead of adding a task."
+  // A standalone task needs a due date. An event adjustment inherits the event's
+  // rule-engine schedule, so it must never ask the president to invent one.
   if ((op.op === "create_event" || (op.op === "add_node" && !op.eventId)) && !validDate(human.date ?? "")) return "Choose and confirm a date before applying this change."
   if ((op.op === "create_event" || (op.op === "add_node" && !op.eventId)) && human.date! < s.today) return "Pick a date from today on."
   if (op.op === "link_dependency") {
@@ -61,7 +64,14 @@ export function newObjects(s: DemoState, op: CommandOp, id: string, human: Human
     return { events: [...s.events, event], nodes: [...s.nodes, ...buildEventNodes(event, s.roles, { steps: orgSteps(s) }).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 }))] }
   }
   if (op.op === "add_node") {
-    if (op.eventId) return {}
+    if (op.eventId) {
+      const event = s.events.find(e => e.id === op.eventId)
+      if (!event) return {}
+      const person = s.people.find(p => p.id === op.ownerId)
+      const fn = s.roles.find(r => r.id === person?.roleId)?.fn ?? "programs"
+      const node: Node = { id, title: op.title, eventId: event.id, stepKey: null, phase: op.phase ?? "prepare", fn, ownerId: op.ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: op.tier, estDays: op.tier === "heavy" ? 3 : op.tier === "medium" ? 2 : 1, anchor: { kind: "target", days: 14, unit: "calendar", label: "President-added event adjustment" }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: op.ownerId ? "accepted" : "unclaimed", acceptedOn: op.ownerId ? s.today : null, waitingOn: null, draftLink: null, why: op.why ?? "President-requested adjustment to the event workflow.", source: "President-reviewed event adjustment", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
+      return { nodes: [...s.nodes, node] }
+    }
     const person = s.people.find(p => p.id === op.ownerId)
     const fn = s.roles.find(r => r.id === person?.roleId)?.fn ?? "programs"
     const node: Node = { id, title: op.title, eventId: null, stepKey: null, phase: null, fn, ownerId: op.ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: op.tier, estDays: op.tier === "heavy" ? 3 : op.tier === "medium" ? 2 : 1, anchor: taskAnchor(s, human.date!, human.buffered ?? false), clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: op.ownerId ? "accepted" : "unclaimed", acceptedOn: op.ownerId ? s.today : null, waitingOn: null, draftLink: null, why: op.why ?? "Supports our club's plan.", source: canLead(s) ? "President-reviewed command" : "Added by an officer", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }

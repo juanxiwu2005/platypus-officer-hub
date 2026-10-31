@@ -65,8 +65,9 @@ export function sanitizeCards(raw: unknown, ctx: CommandContext, allowedDates: S
         if (c.intent === "add_task") {
           const ids = new Set([...ctx.people.map(x => x.id), ...(ctx.roles ?? []).map(x => x.id)])
           const owners = [...new Set((Array.isArray(p.owners) ? p.owners : []).filter((id): id is string => typeof id === "string" && ids.has(id)))].slice(0, 8)
-          const eventId = typeof p.eventId === "string" && ctx.events.some(e => e.id === p.eventId) ? p.eventId : null
-          out.push({ kind: "form", intent: "add_task", prefill: { title: stripDates(str(p.title, 100), allowedDates), owners, eventId } })
+          // Task forms are deliberately administrative-only. A request to alter an
+          // existing event travels as a reviewed `add_node` change instead.
+          out.push({ kind: "form", intent: "add_task", prefill: { title: stripDates(str(p.title, 100), allowedDates), owners, eventId: null } })
           break
         }
         if (c.intent !== "plan_event") break
@@ -137,7 +138,7 @@ const CHAT_DECIDE = `Decide what the user wants first, then choose the card:
 - Changing something that already exists → a changes card.
 - Making something new: EVENT or TASK? Check in this order and stop at the first match.
   1. The user says task, to-do, step, 任务 or 待办 → TASK. Never open the event form, whatever else the sentence says.
-  2. The user names an event already in clubData.events, or focus is an event → a TASK in that event (add_task form with that eventId). To change the event itself, use update_event.
+  2. The user names an event already in clubData.events, or focus is an event → an existing EVENT WORKFLOW adjustment: use a reviewed changes card. Do not use an add_task form and do not calculate dates; the event rule engine schedules it.
   3. The user wants to host a NEW one-time gathering that people will attend (a mixer, social, night, workshop, panel, talk, fundraiser, members' meeting, trip, competition) → EVENT: the plan_event form.
   4. Anything else one person can do and finish (send, book, buy, email, renew, check, update, collect, reconcile, design, meet one person such as the advisor or a sponsor) → standalone TASK: the add_task form with eventId null.
   5. Still unsure (a weekly or repeating thing, a single word) → ask ONE question that offers both: "Is this a new event people will attend, or one task for someone?"
@@ -153,7 +154,7 @@ A changes card holds ops. Applied at once (the user can press Undo):
   set_tier {op,nodeId,tier:light|medium|heavy}
   mark_contacted {op,contactId}
 Shown for review first:
-  add_node {op,title,eventId or null,ownerId or null,tier}
+  add_node {op,title,eventId or null,ownerId or null,tier,phase?}
   assign_owner {op,nodeId,ownerId or null}
   link_dependency {op,nodeId,dependsOnId}
   update_event {op,eventId,name?,headcount?}
@@ -162,6 +163,7 @@ Shown for review first:
   advance_funding {op,eventId}
   propose_nudge {op,nodeId}
 - Anyone may create tasks, for themselves or for anyone else. Events: only if you.canCreateEvents; otherwise say the president chooses who can create events, and offer to add a task instead.
+- When creating a new event, its checklist selects its complete workflow template. Never add, remove or adjust event steps during creation or the post-create plan check. Once an event exists, a president or VP may request a specific workflow adjustment as a reviewed changes card; never create it automatically.
 - Other reviewed changes need the president or VP; if you.canApprove is false, still draft them and say the president or VP applies them.
 - Owners: only people or roles the user named; if you are not sure who, leave owners empty or ownerId null. Never guess an owner.
 - Pair a changes card with a short text card saying what you did or proposed.`
@@ -187,7 +189,7 @@ export const CHAT_HARD_RULES = `Hard rules:
 const CHAT_EXAMPLES = `Examples (<…> stands for a real ID or value from clubData):
 User: "Add a task to renew our club registration, give it to Alex" → [{"kind":"form","intent":"add_task","prefill":{"title":"Renew our club registration","owners":["<Alex's person id>"],"eventId":null}},{"kind":"text","text":"Here's the task for Alex. Check the due date, then create it."}]
 User: "I want to set up an executable task" → [{"kind":"text","text":"Sure! What's the task, and who should own it? I'll set it up as one task, not an event."}]
-User: "Networking Night needs someone to print name badges" → [{"kind":"form","intent":"add_task","prefill":{"title":"Print name badges","owners":[],"eventId":"<Networking Night's event id>"}},{"kind":"text","text":"I'll add this to Networking Night. Who should own it?"}]
+User: "Networking Night needs someone to print name badges" → [{"kind":"changes","ops":[{"op":"add_node","title":"Print name badges","eventId":"<Networking Night's event id>","ownerId":null,"tier":"light","phase":"prepare"}]},{"kind":"text","text":"I'll put this workflow adjustment up for your review; its timing will follow Networking Night's plan."}]
 User: "We want to host a mixer with the design club, maybe 40 people, with pizza" → [{"kind":"text","text":"Fun! I filled in what you told me. Add the date and anything missing."},{"kind":"form","intent":"plan_event","prefill":{"name":"Design Club Mixer","headcount":40,"food":"tbd","speaker":false,"details":"Joint mixer with the design club, with pizza."}}]
 User: "Set up a weekly meeting" → [{"kind":"text","text":"Is this a new event people will attend, or one task for someone, like booking the room?"}]
 User: "帮我加个任务：订名牌，给 Jordan" → [{"kind":"form","intent":"add_task","prefill":{"title":"订名牌","owners":["<Jordan's person id>"],"eventId":null}},{"kind":"text","text":"给 Jordan 的任务准备好了，确认截止日期后创建。"}]

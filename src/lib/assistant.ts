@@ -113,11 +113,11 @@ function planDefaults(text: string, s: DemoState): { prefill: Partial<PlanPrefil
 }
 
 /** The task form from the person's own words, without AI. */
-function taskDefaults(text: string, s: DemoState, focus: Focus | null): Extract<ChatCard, { kind: "taskform" }> {
+function taskDefaults(text: string, s: DemoState, _focus: Focus | null): Extract<ChatCard, { kind: "taskform" }> {
   const t = parseTaskIntent(text, commandContext(s))
-  // A "step" with no event named belongs to the event the person is looking at.
-  const focusEvent = focus?.kind === "event" && /\bstep\b|this event/i.test(text) ? focus.id : null
-  return { kind: "taskform", id: uid(), title: t?.title ?? "", owners: [...(t?.ownerIds ?? []), ...(t?.roleIds ?? [])], eventId: t?.eventId ?? focusEvent, due: humanEventDate(text, s.today) || defaultTaskDue(s) }
+  // Forms create administrative tasks only. Event work is adjusted through a reviewed
+  // change so its schedule continues to be owned by the event rule engine.
+  return { kind: "taskform", id: uid(), title: t?.title ?? "", owners: [...(t?.ownerIds ?? []), ...(t?.roleIds ?? [])], eventId: null, due: humanEventDate(text, s.today) || defaultTaskDue(s) }
 }
 
 function rankMine(s: DemoState, personId: string, limit: number): Node[] {
