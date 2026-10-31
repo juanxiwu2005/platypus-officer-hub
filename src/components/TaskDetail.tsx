@@ -14,6 +14,27 @@ import { isBudgetControlledNode } from "../engine/eventBudget"
 import { useOptionalRail } from "./rail/RailContext"
 import { nudgeBlocked } from "../lib/nudges"
 
+type QuickLink = { label: string; url: string }
+const SUBMIT_LINKS: Record<string, QuickLink[]> = {
+  venue: [
+    { label: "Submit a Space Request", url: "https://eoss.asu.edu/student-unions/submit-a-space-request" },
+    { label: "Mazevo", url: "https://mymazevo.com/" },
+    { label: "ASU Space Reservations", url: "https://azstateu.aaiscloud.com/AZStateU/Default.aspx?home" },
+  ],
+  purchaseRequest: [{ label: "Sun Devil Central", url: "https://sundevilcentral.eoss.asu.edu/" }],
+  budgetRequest: [{ label: "Sun Devil Central", url: "https://sundevilcentral.eoss.asu.edu/" }],
+  budgetApproval: [{ label: "Sun Devil Central", url: "https://sundevilcentral.eoss.asu.edu/" }],
+  purchaseApproval: [{ label: "Sun Devil Central", url: "https://sundevilcentral.eoss.asu.edu/" }],
+  sap: [{ label: "Speaker, Artist & Performer Agreements", url: "https://cfo.asu.edu/speaker-artist-performer-agreements" }],
+  speakerPacket: [{ label: "Speaker, Artist & Performer Agreements", url: "https://cfo.asu.edu/speaker-artist-performer-agreements" }],
+  usgspeaker: [{ label: "Speaker, Artist & Performer Agreements", url: "https://cfo.asu.edu/speaker-artist-performer-agreements" }],
+  foodCompliance: [{ label: "Sun Devil Hospitality Catering", url: "https://sundevilhospitality.asu.edu/catering" }],
+  quotes: [{ label: "Sun Devil Hospitality Catering", url: "https://sundevilhospitality.asu.edu/catering" }],
+  dining: [{ label: "Sun Devil Hospitality Catering", url: "https://sundevilhospitality.asu.edu/catering" }],
+  permit: [{ label: "Sun Devil Hospitality Catering", url: "https://sundevilhospitality.asu.edu/catering" }],
+  attendance: [{ label: "Business Meals Form", url: "https://eoss.asu.edu/sites/g/files/litvpz141/files/business-meals-form.pdf" }],
+}
+
 export function TaskDetail({ node, actorId, token, initialReply }: { node: Node; actorId: string; token?: string; initialReply?: string | null }) {
   const { state, dispatch } = useStore()
   const navigate = useNavigate()
@@ -24,7 +45,8 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
   const [copied, setCopied] = useState(false)
   const copyEventDetails = async () => { try { await navigator.clipboard.writeText(event?.details ?? ""); setCopied(true) } catch { setCopied(false) } }
   const rail = useOptionalRail()
-  const quickLinks = node.ruleIds.flatMap(id => RULES.find(rule => rule.id === id)?.sources ?? []).filter((source, index, all) => all.findIndex(other => other.url === source.url) === index)
+  const directLinks = node.stepKey ? SUBMIT_LINKS[node.stepKey] ?? [] : []
+  const quickLinks = (directLinks.length ? directLinks : node.ruleIds.flatMap(id => RULES.find(rule => rule.id === id)?.sources ?? [])).filter((source, index, all) => all.findIndex(other => other.url === source.url) === index)
   return <section className="card task-detail" aria-label="Linked task" data-testid="task-detail">
     <div className="action-row"><StatusPill status={node.status} /><span className="small muted">{state.events.find(e => e.id === node.eventId)?.name ?? "Club task"}</span></div>
     <h2 ref={heading} tabIndex={-1}>{node.title}</h2>
@@ -33,10 +55,10 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
     <div className="task-dates"><div><span className="small muted">Start by</span><b>{node.latestStart ? fmtLong(node.latestStart) : "Not set"}</b></div><div><span className="small muted">Club deadline</span><b>{node.clubDeadline ? fmtLong(node.clubDeadline) : "Not set"}</b></div><div><span className="small muted">{officialLabel(node)}</span><b>{node.officialDeadline ? fmtLong(node.officialDeadline) : "N/A"}</b></div></div>
     {node.waitingOn && <p className="small warn-text">Waiting on: {node.waitingOn}</p>}
     {node.draftLink && safeLink(node.draftLink) && <a href={node.draftLink} target="_blank" rel="noreferrer">Open current draft</a>}
-    <section className="task-quick-links" aria-label="Where to submit">
+    {quickLinks.length > 0 && <section className="task-quick-links" aria-label="Where to submit">
       <b>Where to submit</b>
-      {quickLinks.length ? <div className="action-row">{quickLinks.map(source => <a key={source.url} className="btn small" href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a>)}</div> : <span className="small muted">No verified submission link for this task yet.</span>}
-    </section>
+      <div className="action-row">{quickLinks.map(source => <a key={source.url} className="btn small" href={source.url} target="_blank" rel="noreferrer">{source.label} ↗</a>)}</div>
+    </section>}
     {node.eventId && isBudgetControlledNode(node) && <button type="button" className="btn" onClick={() => navigate(`/events?event=${encodeURIComponent(node.eventId!)}&view=budget`)}>Open Event Budget</button>}
     {event && <div className="event-copy"><button type="button" className="btn" disabled={!event.details?.trim()} onClick={copyEventDetails}>{copied ? "Event details copied" : "Copy All Event Details"}</button>{!event.details?.trim() && <span className="small muted">Add Event Details first.</span>}</div>}
     {rail && node.ownerId && <button type="button" className="btn" disabled={!!nudgeBlocked(state, node)} title={nudgeBlocked(state, node) ?? "Prepare a reminder"} onClick={() => rail.show({ kind: "nudge", id: node.id })}>Remind</button>}
