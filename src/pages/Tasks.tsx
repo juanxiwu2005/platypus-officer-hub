@@ -14,7 +14,7 @@ import { canLead } from "../data/changeReview"
 import { TaskTypeIcon } from "../components/TaskTypeIcon"
 
 type View = "table" | "board" | "timeline"
-const BOARD_STATUSES: NodeStatus[] = ["unclaimed", "accepted", "in_progress", "blocked", "done"]
+const BOARD_STATUSES: NodeStatus[] = ["unclaimed", "accepted", "in_progress", "waiting", "blocked", "done"]
 
 /** The Tasks page is an action horizon, not the whole semester's project plan. */
 export function isInTaskHorizon(node: Node, today: string): boolean {
@@ -112,7 +112,7 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
   </section>
 }
 
-/** Board: drag a card to change its status or order. Keyboard users use the status menu on the card. */
+/** Board: drag a card to change its status or order; details handle explicit status updates. */
 function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: string, status: NodeStatus) => void; onNotice: (text: string) => void }) {
   const { state, dispatch } = useStore()
   const rail = useRail()
@@ -133,7 +133,7 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
   return <>
     <div className="board" data-testid="task-board">
       {BOARD_STATUSES.map(st => {
-        const cards = nodes.filter(n => (st === "blocked" ? n.status === "blocked" || n.status === "waiting" : n.status === st)).sort(byRank)
+        const cards = nodes.filter(n => n.status === st).sort(byRank)
         return <section key={st} className={`board-col ${over?.status === st ? "over" : ""}`} aria-label={styles[st].label}
           onDragOver={e => { e.preventDefault(); if (!over || over.status !== st) setOver({ status: st, before: null }) }}
           onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node)) setOver(null) }}
@@ -154,7 +154,6 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
                 {fields.includes("owner") && <Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />}
                 {fields.includes("due") && n.clubDeadline && <span className={`small ${late ? "late-text" : "muted"}`}>{fmtShort(n.clubDeadline)}</span>}
                 {fields.includes("event") && ev && <span className="small muted ev-name">{ev.name}</span>}
-                <select className="move-menu" aria-label={`Move ${n.title}`} value={st} onChange={e => move(n.id, e.target.value as NodeStatus, null)}>{BOARD_STATUSES.map(s => <option key={s} value={s}>{styles[s].label}</option>)}</select>
               </div>
             </article>
           })}
