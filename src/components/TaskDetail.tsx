@@ -14,6 +14,27 @@ import { isBudgetControlledNode } from "../engine/eventBudget"
 import { useOptionalRail } from "./rail/RailContext"
 import { nudgeBlocked } from "../lib/nudges"
 
+type QuickLink = { label: string; url: string }
+const SUBMIT_LINKS: Record<string, QuickLink[]> = {
+  venue: [
+    { label: "Submit a Space Request", url: "https://eoss.asu.edu/student-unions/submit-a-space-request" },
+    { label: "Mazevo", url: "https://mymazevo.com/" },
+    { label: "ASU Space Reservations", url: "https://azstateu.aaiscloud.com/AZStateU/Default.aspx?home" },
+  ],
+  purchaseRequest: [{ label: "Sun Devil Central", url: "https://sundevilcentral.eoss.asu.edu/" }],
+  budgetRequest: [{ label: "Sun Devil Central", url: "https://sundevilcentral.eoss.asu.edu/" }],
+  budgetApproval: [{ label: "Sun Devil Central", url: "https://sundevilcentral.eoss.asu.edu/" }],
+  purchaseApproval: [{ label: "Sun Devil Central", url: "https://sundevilcentral.eoss.asu.edu/" }],
+  sap: [{ label: "Speaker, Artist & Performer Agreements", url: "https://cfo.asu.edu/speaker-artist-performer-agreements" }],
+  speakerPacket: [{ label: "Speaker, Artist & Performer Agreements", url: "https://cfo.asu.edu/speaker-artist-performer-agreements" }],
+  usgspeaker: [{ label: "Speaker, Artist & Performer Agreements", url: "https://cfo.asu.edu/speaker-artist-performer-agreements" }],
+  foodCompliance: [{ label: "Sun Devil Hospitality Catering", url: "https://sundevilhospitality.asu.edu/catering" }],
+  quotes: [{ label: "Sun Devil Hospitality Catering", url: "https://sundevilhospitality.asu.edu/catering" }],
+  dining: [{ label: "Sun Devil Hospitality Catering", url: "https://sundevilhospitality.asu.edu/catering" }],
+  permit: [{ label: "Sun Devil Hospitality Catering", url: "https://sundevilhospitality.asu.edu/catering" }],
+  attendance: [{ label: "Business Meals Form", url: "https://eoss.asu.edu/sites/g/files/litvpz141/files/business-meals-form.pdf" }],
+}
+
 export function TaskDetail({ node, actorId, token, initialReply }: { node: Node; actorId: string; token?: string; initialReply?: string | null }) {
   const { state, dispatch } = useStore()
   const navigate = useNavigate()
@@ -24,7 +45,8 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
   const [copied, setCopied] = useState(false)
   const copyEventDetails = async () => { try { await navigator.clipboard.writeText(event?.details ?? ""); setCopied(true) } catch { setCopied(false) } }
   const rail = useOptionalRail()
-  const quickLinks = node.ruleIds.flatMap(id => RULES.find(rule => rule.id === id)?.sources ?? []).filter((source, index, all) => all.findIndex(other => other.url === source.url) === index)
+  const directLinks = node.stepKey ? SUBMIT_LINKS[node.stepKey] ?? [] : []
+  const quickLinks = (directLinks.length ? directLinks : node.ruleIds.flatMap(id => RULES.find(rule => rule.id === id)?.sources ?? [])).filter((source, index, all) => all.findIndex(other => other.url === source.url) === index)
   return <section className="card task-detail" aria-label="Linked task" data-testid="task-detail">
     <div className="action-row"><StatusPill status={node.status} /><span className="small muted">{state.events.find(e => e.id === node.eventId)?.name ?? "Club task"}</span></div>
     <h2 ref={heading} tabIndex={-1}>{node.title}</h2>
