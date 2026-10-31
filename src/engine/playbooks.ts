@@ -37,13 +37,12 @@ export const EVENT_STEPS: StepTemplate[] = [
   { key: "materials", title: "Event Materials", fn: "programs", phase: "prepare", estDays: 2, tier: "medium", dependsOn: ["venue"], why: "Prepare the run-of-show materials, signage, slides and event items.", source: "Organization standard" },
   { key: "checkin", title: "Check-in Forms", fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: ["plan"], why: "Prepare RSVP, check-in, waiver or liability forms appropriate to the event.", source: "Organization standard" },
   { key: "headcount", title: "Headcount", fn: "programs", phase: "run", anchor: target(4, "calendar", "Final count 3–4 days before the event"), estDays: 1, tier: "light", dependsOn: ["checkin"], why: "Confirm expected and actual attendance for healthy event operations.", source: "Organization standard" },
-  { key: "eventday", title: "Event Day", fn: "programs", phase: "run", anchor: target(0, "calendar", "Event date"), estDays: 1, tier: "heavy", dependsOn: ["finalcheck", "materials", "headcount"], why: "Run the activity within its confirmed location, capacity and conditions.", source: "Organization standard" },
-  { key: "thankyou", title: "Thank You", fn: "secretary", phase: "close", anchor: target(-1, "business", "Within one business day after the event"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Send a concise thank-you to attendees, partners and contributors.", source: "Organization standard" },
-  { key: "feedback", title: "Feedback", fn: "vice_president", phase: "close", anchor: target(-3, "business", "Within three business days after the event"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Collect feedback and record a short reusable retrospective.", source: "CLOSE-03" },
-  { key: "postmarketing", title: "Post Marketing", fn: "marketing", phase: "close", anchor: target(-3, "business", "Post-event update"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Publish an approved post-event recap or outcome update.", source: "Organization standard" },
-  { key: "photos", title: "Photo Upload", fn: "marketing", phase: "close", anchor: target(-3, "business", "Post-event media record"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Save approved event photos or media in the organization record.", source: "Organization standard" },
-  { key: "spending", title: "Record Spending", fn: "finance", phase: "close", anchor: target(-5, "business", "Closeout target"), estDays: 1, tier: "light", dependsOn: ["eventday"], why: "Record spending, receipts and unresolved financial items.", source: "CLOSE-02" },
-  { key: "attendance", title: "Attendance Record", fn: "programs", phase: "close", anchor: target(-5, "business", "Closeout target"), estDays: 1, tier: "light", dependsOn: ["eventday", "headcount"], why: "Submit the final attendance record and required event metrics.", source: "CLOSE-02" },
+  { key: "thankyou", title: "Thank You", fn: "secretary", phase: "close", anchor: target(-1, "business", "Within one business day after the event"), estDays: 1, tier: "light", dependsOn: ["finalcheck"], why: "Send a concise thank-you to attendees, partners and contributors.", source: "Organization standard" },
+  { key: "feedback", title: "Feedback", fn: "vice_president", phase: "close", anchor: target(-3, "business", "Within three business days after the event"), estDays: 1, tier: "light", dependsOn: ["finalcheck"], why: "Collect feedback and record a short reusable retrospective.", source: "CLOSE-03" },
+  { key: "postmarketing", title: "Post Marketing", fn: "marketing", phase: "close", anchor: target(-3, "business", "Post-event update"), estDays: 1, tier: "light", dependsOn: ["finalcheck"], why: "Publish an approved post-event recap or outcome update.", source: "Organization standard" },
+  { key: "photos", title: "Photo Upload", fn: "marketing", phase: "close", anchor: target(-3, "business", "Post-event media record"), estDays: 1, tier: "light", dependsOn: ["finalcheck"], why: "Save approved event photos or media in the organization record.", source: "Organization standard" },
+  { key: "spending", title: "Record Spending", fn: "finance", phase: "close", anchor: target(-5, "business", "Closeout target"), estDays: 1, tier: "light", dependsOn: ["finalcheck"], why: "Record spending, receipts and unresolved financial items.", source: "CLOSE-02" },
+  { key: "attendance", title: "Attendance Record", fn: "programs", phase: "close", anchor: target(-5, "business", "Closeout target"), estDays: 1, tier: "light", dependsOn: ["finalcheck", "headcount"], why: "Submit the final attendance record and required event metrics.", source: "CLOSE-02" },
   { key: "financeRecord", title: "Finance Record", fn: "finance", phase: "close", anchor: target(-7, "business", "Financial closeout target"), estDays: 1, tier: "light", dependsOn: ["spending"], why: "Complete reimbursement, payment status and the final finance record.", source: "CLOSE-02" },
   { key: "documentation", title: "Documentation", fn: "secretary", phase: "close", anchor: target(-14, "calendar", "Archive within two weeks"), estDays: 1, tier: "light", dependsOn: ["feedback", "financeRecord", "photos"], why: "Preserve approved materials, decisions and reusable event records.", source: "CLOSE-03" },
 
@@ -58,14 +57,14 @@ export const EVENT_STEPS: StepTemplate[] = [
   { key: "budgetApproval", title: "Budget Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["budgetRequest"], cond: "funding", why: "Record the funding decision before any approval-dependent commitment.", source: "FUND-02" },
   { key: "purchaseRequest", title: "Purchase Request", fn: "finance", phase: "money", anchor: rule("FUND-05", 14, "calendar"), estDays: 1, tier: "light", dependsOn: ["budgetApproval"], ruleIds: ["FUND-05"], cond: "funding", why: "Route the approved purchase through the applicable purchasing process.", source: "FUND-05" },
   { key: "purchaseApproval", title: "Purchase Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["purchaseRequest"], cond: "funding", why: "Record purchase approval before ordering or reimbursement.", source: "FUND-05" },
-  { key: "access", title: "Access Review", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["venue"], cond: "access", why: "Confirm accommodations, accessible route, seating and accessible communications.", source: "VENUE-03 · ASU-R-018, ASU-R-019" },
+  { key: "access", title: "Accessibility Check", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["venue"], cond: "access", why: "Confirm disability accommodations, accessible route, seating and accessible communications.", source: "VENUE-03 · ASU-R-018, ASU-R-019" },
   { key: "security", title: "Security Plan", fn: "programs", phase: "prepare", estDays: 7, tier: "heavy", dependsOn: ["venue", "registry"], cond: "safety", why: "Document security, EMS, crowd, protest or elevated-risk coverage.", source: "RISK-01" },
   { key: "permit", title: "Permit Review", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["security"], cond: "safety", why: "Resolve permit, insurance or certificate requirements returned by risk review.", source: "RISK-01" },
   { key: "alcohol", title: "Alcohol Permit", fn: "programs", phase: "prepare", anchor: rule("SPECIAL-03", 15, "calendar"), estDays: 15, tier: "heavy", dependsOn: ["venue", "registry"], ruleIds: ["SPECIAL-03"], cond: "alcohol", why: "Resolve alcohol permit, venue and insurance conditions before service.", source: "SPECIAL-03" },
   { key: "drone", title: "Drone Approval", fn: "programs", phase: "prepare", anchor: rule("SPECIAL-06", 15, "calendar"), estDays: 7, tier: "medium", dependsOn: ["venue", "registry"], ruleIds: ["SPECIAL-06"], cond: "drone", why: "Obtain the required unmanned aircraft approval before operating a drone.", source: "SPECIAL-06" },
   { key: "schoolApproval", title: "School Approval", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["registry"], cond: "schoolApproval", why: "Confirm the director, dean or college approval route for a 250+ event.", source: "PLAN-03 · needs verification" },
   { key: "content", title: "Content Distribution", fn: "marketing", phase: "marketing", estDays: 2, tier: "medium", dependsOn: ["plan"], cond: "content", why: "Prepare approved materials, giveaways or digital distribution for attendees.", source: "Organization standard" },
-  { key: "finalcheck", title: "Final Check", fn: "president", phase: "run", anchor: target(14, "calendar", "Final readiness review"), estDays: 1, tier: "light", dependsOn: ["venue", "registry", "purchaseApproval", "permit", "alcohol", "drone", "schoolApproval", "access"], why: "Confirm every active approval and condition before the event proceeds.", source: "CLOSE-01" },
+  { key: "finalcheck", title: "Final Check", fn: "president", phase: "run", anchor: target(14, "calendar", "Final readiness review"), estDays: 1, tier: "light", dependsOn: ["venue", "registry", "materials", "checkin", "headcount", "purchaseApproval", "permit", "alcohol", "drone", "schoolApproval", "access"], why: "Confirm every active approval and condition before the event proceeds.", source: "CLOSE-01" },
 ]
 
 /* Legacy reference retained in Git history; this list is the active v1.0 standard. */
@@ -178,8 +177,30 @@ const FALLBACK: Record<RoleFunction, RoleFunction[]> = {
   advisor: ["president"],
 }
 
+// Titles are helpful, but a club may call its event officer "Operations Chair" or
+// describe a treasurer's work only in the duties field.  Match that organization
+// context before using a generic fallback, so a new workflow starts assigned to
+// the people the club actually defined.
+const DUTY_WORDS: Record<RoleFunction, RegExp> = {
+  president: /presiden|chair|leadership|approve/i,
+  vice_president: /vice president|deput|support.*president|coordinate/i,
+  finance: /treasur|financ|budget|fund|purchas|receipt|reimburse/i,
+  programs: /event|venue|speaker|logistic|schedule|program|operation/i,
+  marketing: /market|content|promotion|social|design|brand|media/i,
+  outreach: /outreach|partner|sponsor|relationship|external/i,
+  secretary: /secretar|record|minute|document|archive|compliance/i,
+  membership: /member|recruit|attendance|engagement/i,
+  advisor: /advisor|adviser/i,
+}
+
 export function roleFor(roles: Role[], fn: RoleFunction): Role | undefined {
-  for (const f of [fn, ...FALLBACK[fn]]) {
+  const words = DUTY_WORDS[fn]
+  const ranked = roles.map((r, index) => {
+    const context = `${r.displayName} ${r.duties ?? ""}`
+    return { r, index, score: (r.fn === fn ? 100 : 0) + (words.test(context) ? 20 : 0) }
+  }).filter(x => x.score > 0).sort((a, b) => b.score - a.score || a.index - b.index)
+  if (ranked[0]) return ranked[0].r
+  for (const f of FALLBACK[fn]) {
     const r = roles.find(x => x.fn === f)
     if (r) return r
   }

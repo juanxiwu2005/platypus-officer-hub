@@ -101,19 +101,12 @@ export function metroLayout(state: DemoState, sched: Schedule, eventId: string, 
     for (const b of raw) if (b.to === k && b.from >= 0) c = Math.max(c, col[b.from] + b.nodes.length + 1)
     col.push(c)
   })
-  // Rows: the two sides have a stable meaning, rather than being an arbitrary alternation.
-  // Above = approvals and rule-bound gates. Below = delivery work that can run in parallel.
-  const taken: { row: number; a: number; b: number }[] = []
-  const above = Array.from({ length: raw.length + 1 }, (_, i) => -i - 1)
-  const below = Array.from({ length: raw.length + 1 }, (_, i) => i + 1)
-  // Long windows sit nearest the spine. This keeps the broadest curves calm and lets short work sit outside them.
+  // Stable role lanes: unlike the former automatic stack, work owned by the same function stays on one height.
+  // Columns still follow dependency/time order, so this retains the user's drawn "same role, later column" model.
+  const roleRow: Record<RoleFunction, number> = { president: -1, outreach: -2, programs: -3, finance: 1, marketing: 2, vice_president: 3, secretary: 4, membership: 3, advisor: -4 }
   const branches: Branch[] = raw.sort((x, y) => (col[y.to] - col[y.from]) - (col[x.to] - col[x.from]) || col[x.from] - col[y.from] || y.nodes.length - x.nodes.length).map((b, i) => {
     const a = col[b.from], z = col[b.to]
-    const isGate = b.nodes.some(n => n.ruleIds.length > 0 || n.phase === "plan" || n.phase === "money")
-    const preferred = !bothSides ? below : isGate ? above : below
-    const candidates = preferred
-    const row = candidates.find(r => !taken.some(t => t.row === r && t.a < z && a < t.b)) ?? candidates.at(-1)!
-    taken.push({ row, a, b: z })
+    const row = bothSides ? roleRow[b.fn] : Math.max(1, roleRow[b.fn])
     const L = b.nodes.length
     return { id: `b${i}`, fn: b.fn, from: b.from, to: b.to, row, nodes: b.nodes.map((node, m) => ({ node, col: a + ((m + 1) * (z - a)) / (L + 1) })) }
   })

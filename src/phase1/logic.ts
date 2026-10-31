@@ -370,7 +370,7 @@ const LEGACY_CAP: Record<RoleFunction, string> = {
   membership: "staffing",
 };
 export function workflow(d: Draft, kind: ActivityKind): PreviewTask[] {
-  const state = seedDemo();
+  const state = seedDemo(undefined, "v2");
   const event = {
     ...state.events[1],
     id: `preview-${kind}`,

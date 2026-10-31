@@ -52,7 +52,7 @@ export function WorkflowPanel({ state, steps, roles, issues, onChange }: { state
     newId: () => newStepKey(steps, "new step"),
     template: {
       sublabel: n => ownerName(n.id),
-      lines: n => { const s = byKey.get(n.id); return [s?.title ?? n.title, `Done by ${ownerName(n.id)}`, `${s?.estDays ?? 0} day${s?.estDays === 1 ? "" : "s"} of work`, ...(s && isLocked(s) ? [`Needed by ASU rule ${ruleList(s) || "deadlines"}`] : [])] },
+      lines: n => { const s = byKey.get(n.id); return [s?.title ?? n.title, `Done by ${ownerName(n.id)}`, `${s?.estDays ?? 0} day${s?.estDays === 1 ? "" : "s"} of work`] },
       marks,
     },
   }

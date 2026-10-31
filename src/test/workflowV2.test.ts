@@ -4,7 +4,7 @@ import { buildEventNodes, stepsFor } from "../engine/playbooks"
 import type { Event } from "../data/types"
 
 const event = (checks: Event["checks"], headcount = 80): Event => ({ id: "v2", name: "V2", date: "2027-03-20", type: "social", headcount, venue: "campus", food: "none", funding: "none", speaker: false, checks, goalId: null, playbookId: "asu-event-v2" })
-const blue = ["plan", "venuechoice", "registry", "venue", "materials", "checkin", "headcount", "eventday", "thankyou", "feedback", "postmarketing", "photos", "spending", "attendance", "financeRecord", "documentation"]
+const blue = ["plan", "venuechoice", "registry", "venue", "materials", "checkin", "headcount", "thankyou", "feedback", "postmarketing", "photos", "spending", "attendance", "financeRecord", "documentation", "finalcheck"]
 
 describe("ASU event workflow v2", () => {
   it("keeps every blue lifecycle node for a basic event", () => {
@@ -19,7 +19,7 @@ describe("ASU event workflow v2", () => {
     expect(stepsFor(event({ funding: true })).map(s => s.key)).not.toContain("drone")
   })
   it("assigns Event Registry and all risk permits to the Events lead", () => {
-    const state = seedDemo()
+    const state = seedDemo(undefined, "v2")
     const nodes = buildEventNodes(event({ drone: true, safety: true, alcohol: true }), state.roles)
     for (const key of ["registry", "permit", "drone", "alcohol"]) expect(nodes.find(n => n.stepKey === key)?.ownerId).toBe("jordan")
   })

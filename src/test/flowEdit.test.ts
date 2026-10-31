@@ -1,13 +1,19 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
+import { buildEventNodes } from "../engine/playbooks"
 import { reducer } from "../data/store"
-import { computeSchedule } from "../engine/schedule"
+import { applySchedule, computeSchedule } from "../engine/schedule"
 import { metroLayout, EVENT_KEY } from "../components/flow/metro"
 import { cannotDelete, flowGaps, flowTracks, moveBetween, newStepNode, removalEdits, unlinkSteps } from "../lib/flowEdit"
 import { applyEdits, ancestorsOf } from "../lib/stepOrder"
 import type { Node } from "../data/types"
 
-const base = seedDemo()
+// These assertions deliberately exercise the retained legacy graph and its editing
+// affordances. New and migrated activities use the v2 standard graph.
+const seeded = seedDemo()
+const legacyEvent = { ...seeded.events[0], checks: undefined }
+const legacyNodes = buildEventNodes(legacyEvent, seeded.roles).map(n => n.stepKey === "mktneeds" ? { ...n, status: "done" as const } : n)
+const base = applySchedule({ ...seeded, events: [legacyEvent, ...seeded.events.slice(1)], nodes: [...legacyNodes, ...seeded.nodes.filter(n => n.eventId !== legacyEvent.id)] })
 const ev = base.events[0]                                              // Networking Night
 const nodes = () => base.nodes.filter(n => n.eventId === ev.id)
 const at = (ns: Node[], key: string) => ns.find(n => n.stepKey === key)!

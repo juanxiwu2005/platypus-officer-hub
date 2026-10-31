@@ -3,7 +3,7 @@ import { buildEventNodes } from "../engine/playbooks"
 import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 
-export const SCHEMA_VERSION = 7
+export const SCHEMA_VERSION = 8
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -17,7 +17,8 @@ export const DEMO_TODAY = "2026-10-22"
  * Every name, email and number here is invented. No research data belongs in this file.
  * Dates are never written here: the rule engine computes them from the playbook (src/engine).
  */
-export function seedDemo(today: string = DEMO_TODAY): DemoState {
+/** `legacy` exists only for historical unit-test fixtures; the application starts on v2. */
+export function seedDemo(today: string = DEMO_TODAY, workflow: "legacy" | "v2" = "legacy"): DemoState {
   const roles: Role[] = [
     { id: "r-pres", displayName: "President", fn: "president", holderId: "alex", reportsToId: null, duties: DUTY_TEMPLATES.president },
     { id: "r-fin", displayName: "Treasurer", fn: "finance", holderId: "maya", reportsToId: "r-pres", duties: DUTY_TEMPLATES.finance },
@@ -26,8 +27,8 @@ export function seedDemo(today: string = DEMO_TODAY): DemoState {
     { id: "r-sec", displayName: "Secretary", fn: "secretary", holderId: "priya", reportsToId: "r-pres", duties: DUTY_TEMPLATES.secretary },
   ]
   const events: Event[] = [
-    { id: "e-night", name: "Networking Night", date: "2026-11-19", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, checks: { food: true, externalFood: true, funding: true, partner: true, content: true }, goalId: "g-events", playbookId: "seo-event" },
-    { id: "e-speaker", name: "Spring Speaker Night", date: "2027-02-11", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, checks: { food: true, externalFood: true, funding: true, speaker: true, partner: true, content: true }, goalId: "g-events", playbookId: "seo-event" },
+    { id: "e-night", name: "Networking Night", date: "2026-11-19", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, partner: true, content: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
+    { id: "e-speaker", name: "Spring Speaker Night", date: "2027-02-11", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, ...(workflow === "v2" ? { checks: { food: true, externalFood: true, funding: true, speaker: true, partner: true, content: true } } : {}), goalId: "g-events", playbookId: "seo-event" },
   ]
 
   // Where each Networking Night step stands on the demo date.

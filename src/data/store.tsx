@@ -227,7 +227,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
     }
 
     case "reset":
-      return seedDemo()
+      return seedDemo(undefined, "v2")
     case "moveTask": return moveTask(state, action.nodeId, action.status, action.beforeId ?? null)
     case "addTask": return addBoardTask(state, action.title, action.status)
     case "saveBoard": return saveBoard(state, action.board)
@@ -394,14 +394,14 @@ function backUp(raw: string, tag: string): string | null {
  */
 export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {
   let raw: string | null = null
-  try { raw = store().getItem(STORAGE_KEY) } catch { return { state: seedDemo(), notice: null } } // storage blocked: nothing to protect; a failed save will say so
-  if (!raw) return { state: seedDemo(), notice: null }
+  try { raw = store().getItem(STORAGE_KEY) } catch { return { state: seedDemo(undefined, "v2"), notice: null } } // storage blocked: nothing to protect; a failed save will say so
+  if (!raw) return { state: seedDemo(undefined, "v2"), notice: null }
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: parsed, notice: null }
   // v6 used the former fixed event graph. Preserve existing activities and their recognizable progress while
   // rebuilding them from the approved baseline + selected situation routes.
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 6) {
+  if (parsed && typeof parsed === "object" && Array.isArray(parsed.events) && Array.isArray(parsed.nodes) && Array.isArray(parsed.roles) && (parsed.schemaVersion === 6 || parsed.schemaVersion === 7)) {
     const legacy = parsed
     const byNewKey: Record<string, string> = { plan: "draft", registry: "registry", venue: "venue", quotes: "quote", foodCompliance: "foodex", budgetRequest: "usg", budgetApproval: "usg", content: "flyer", finalcheck: "review", headcount: "headcount", feedback: "feedback", financeRecord: "closeout", documentation: "archive" }
     const events = legacy.events.map(event => ({ ...event, checks: event.checks ?? { food: event.food !== "none", externalFood: event.food === "offsite", onsiteFood: event.food === "onsite", funding: event.funding !== "none", speaker: event.speaker, partner: event.speaker } }))
@@ -418,7 +418,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   }
   const fromVersion = parsed && typeof parsed === "object" && typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : null
   const backupKey = backUp(raw, fromVersion === null ? "unreadable" : `v${fromVersion}`)
-  return { state: seedDemo(), notice: { kind: "restored_demo", why: fromVersion === null ? "unreadable" : "version", fromVersion, backupKey, raw } }
+  return { state: seedDemo(undefined, "v2"), notice: { kind: "restored_demo", why: fromVersion === null ? "unreadable" : "version", fromVersion, backupKey, raw } }
 }
 
 export function loadState(): DemoState {
