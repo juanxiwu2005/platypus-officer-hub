@@ -15,7 +15,7 @@ export function EventBudget({ event }: { event: Event }) {
   const change = (line: BudgetLineItem, patch: Partial<Omit<BudgetLineItem, "id">>) => dispatch({ type: "budgetLineUpdate", eventId: event.id, id: line.id, patch })
   return <section className="card tbl-wrap event-budget" data-testid="event-budget">
     <div className="toolbar"><div><h3>Line Items</h3><p className="small muted">Budget progress drives the finance steps in this event’s Flow.</p></div>{editable && <button type="button" className="btn btn-primary small" onClick={() => dispatch({ type: "budgetLineAdd", eventId: event.id })}>+ Add line item</button>}</div>
-    <table className="tbl">
+    <table className="tbl event-budget-table">
       <thead><tr><th>Item</th><th>Category</th><th>Qty</th><th>Unit price</th><th>Total Price</th><th>Source</th><th>Status</th>{editable && <th><span className="sr-only">Actions</span></th>}</tr></thead>
       <tbody>{lines.map(line => <tr key={line.id}>
         <td><input aria-label={`${line.item} item`} value={line.item} disabled={!editable} onChange={e => change(line, { item: e.target.value })} /></td>

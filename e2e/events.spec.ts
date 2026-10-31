@@ -70,6 +70,14 @@ test("the list view shows the same steps", async ({ page }) => {
   await expect(page.getByTestId("node-panel")).toBeVisible()
 })
 
+test("the budget summary uses an accounting double rule and keeps item visible while scrolling", async ({ page }) => {
+  await page.getByTestId("view-budget").click()
+  const table = page.getByTestId("event-budget").locator("table")
+  await expect(table).toHaveClass(/event-budget-table/)
+  await expect(table.locator("tbody td").first()).toHaveCSS("position", "sticky")
+  await expect(table.locator("tfoot th")).toHaveCSS("border-top-style", "double")
+})
+
 test("changes persist after reload and Reset demo restores the plan", async ({ page }) => {
   await page.getByTestId("flow-node-purchaseRequest").click()
   await page.getByTestId("club-input").fill("2026-11-02")
