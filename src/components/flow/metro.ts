@@ -35,6 +35,12 @@ const POST_ROUTES: Route[] = [
 
 const byRouteOrder = (route: Route, a: Node, b: Node) => route.keys.indexOf(a.stepKey ?? "") - route.keys.indexOf(b.stepKey ?? "")
 
+/** Place each route by its own progress, rather than forcing unrelated tasks into shared vertical columns. */
+function progressColumns(nodes: Node[], start: number, end: number) {
+  if (nodes.length === 1) return [start + (end - start) / 2]
+  return nodes.map((_, index) => start + (end - start) * index / (nodes.length - 1))
+}
+
 /**
  * Empty conditional routes must not leave a visual hole. Keep the lowest active
  * route where it belongs, then pack the active routes above it at the standard
@@ -68,19 +74,25 @@ export function metroLayout(state: DemoState, _sched: Schedule, eventId: string,
   const preRows = packedRows(PRE_ROUTES, pre)
   const postRows = packedRows(POST_ROUTES, post)
 
-  const preWidth = Math.max(1, ...pre.map(x => x.nodes.length))
-  // Keep one compact reading column per task. The named milestones do not need
-  // empty spacer columns between them: their labels sit above/below the line.
-  // Give the convergence enough room that incoming curves stop beside the
-  // Full Check label instead of visually crossing it.
-  const finalCol = preWidth + 1.75
+  // Every active pre-event route occupies the same compact work window. A
+  // shorter route therefore reaches its final step near Full Check instead of
+  // leaving a long, empty rail on the right.
+  const preSpan = Math.max(1, ...pre.map(group => Math.max(0, group.nodes.length - 1)))
+  const preStart = 1
+  const preEnd = preStart + preSpan
+  // Keep a small visible gap for the converging curves and Full Check label.
+  const finalCol = preEnd + .9
+  const postSpan = Math.max(1, ...post.map(group => Math.max(0, group.nodes.length - 1)))
+  const headcountCol = finalCol + 3
+  const postStart = headcountCol + 1
+  const postEnd = postStart + postSpan
   const stations: Station[] = [
     { key: START_KEY, node: null, col: 0 },
     ...(final ? [{ key: final.id, node: final, col: finalCol }] : []),
     ...(checkin ? [{ key: checkin.id, node: checkin, col: finalCol + 1 }] : []),
     { key: EVENT_KEY, node: null, col: finalCol + 2 },
-    ...(headcount ? [{ key: headcount.id, node: headcount, col: finalCol + 3 }] : []),
-    { key: END_KEY, node: null, col: finalCol + 4 + Math.max(1, ...post.map(x => x.nodes.length)) },
+    ...(headcount ? [{ key: headcount.id, node: headcount, col: headcountCol }] : []),
+    { key: END_KEY, node: null, col: postEnd + .9 },
   ]
   const finalIndex = final ? 1 : 0
   const headcountIndex = stations.findIndex(s => s.node?.id === headcount?.id)
@@ -89,11 +101,15 @@ export function metroLayout(state: DemoState, _sched: Schedule, eventId: string,
   const branches: Branch[] = []
   pre.forEach(({ route, nodes: routeNodes }, index) => {
     if (!routeNodes.length || !final) return
-    branches.push({ id: route.id, fn: routeNodes[0].fn, from: 0, to: finalIndex, row: branchRow(preRows.get(route.id) ?? route.row, index), nodes: [...routeNodes].sort((a, b) => byRouteOrder(route, a, b)).map((node, i) => ({ node, col: i + 1 + (node.stepKey === "reminder" ? .35 : 0) })) })
+    const ordered = [...routeNodes].sort((a, b) => byRouteOrder(route, a, b))
+    const columns = progressColumns(ordered, preStart, preEnd)
+    branches.push({ id: route.id, fn: ordered[0].fn, from: 0, to: finalIndex, row: branchRow(preRows.get(route.id) ?? route.row, index), nodes: ordered.map((node, i) => ({ node, col: columns[i] })) })
   })
   post.forEach(({ route, nodes: routeNodes }, index) => {
     if (!routeNodes.length || headcountIndex < 0) return
-    branches.push({ id: route.id, fn: routeNodes[0].fn, from: headcountIndex, to: endIndex, row: branchRow(postRows.get(route.id) ?? route.row, index + pre.length), nodes: [...routeNodes].sort((a, b) => byRouteOrder(route, a, b)).map((node, i) => ({ node, col: stations[headcountIndex].col + i + 1 })) })
+    const ordered = [...routeNodes].sort((a, b) => byRouteOrder(route, a, b))
+    const columns = progressColumns(ordered, postStart, postEnd)
+    branches.push({ id: route.id, fn: ordered[0].fn, from: headcountIndex, to: endIndex, row: branchRow(postRows.get(route.id) ?? route.row, index + pre.length), nodes: ordered.map((node, i) => ({ node, col: columns[i] })) })
   })
   const rows = branches.map(branch => branch.row)
   return { stations, branches, cols: stations.at(-1)!.col, minRow: Math.min(0, ...rows), maxRow: Math.max(0, ...rows) }

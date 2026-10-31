@@ -87,6 +87,15 @@ describe("five-route event flow chart", () => {
     expect(L.branches.find(b => b.id === "marketing")?.row).toBe(-1)
     expect(L.branches.find(b => b.id === "finance")?.row).toBe(1)
   })
+  it("uses each route's relative progress and leaves only a small merge gap", () => {
+    const v2 = seedDemo("2026-10-22", "v2")
+    const L = metroLayout(v2, computeSchedule(v2), "e-night")
+    const pre = L.branches.filter(b => ["event-lead", "speaker", "marketing", "finance", "special-event"].includes(b.id))
+    const ends = pre.map(branch => branch.nodes.at(-1)!.col)
+    expect(Math.max(...ends) - Math.min(...ends)).toBe(0)
+    expect(L.stations[pre[0].to].col - ends[0]).toBeCloseTo(.9)
+    expect(pre.find(branch => branch.id === "marketing")!.nodes.map(node => node.col)).not.toEqual(pre.find(branch => branch.id === "finance")!.nodes.map(node => node.col))
+  })
 })
 
 describe("Ask panel cards", () => {
