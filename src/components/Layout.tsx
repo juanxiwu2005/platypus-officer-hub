@@ -17,7 +17,7 @@ export function Layout() {
 function Frame() {
   const { state, dispatch } = useStore()
   const rail = useRail()
-  const unread = state.notifications.filter(n => n.recipientId === state.viewerId && !n.read).length
+  const openTaskCount = state.nodes.filter(n => n.status !== "done" && (n.ownerId === state.viewerId || (n.status === "unclaimed" && !n.ownerId))).length
   const location = useLocation()
   const [toast, setToast] = useState<string | null>(null)
   useEffect(() => {
@@ -78,7 +78,7 @@ function Frame() {
           {PAGES.filter(p => p.group === "main").map(p => (
             <NavLink key={p.path} to={p.path} end={p.path === "/"} title={p.question}>
               {Icons[p.icon]}<span>{p.label}</span>
-              {p.path === "/tasks" && unread > 0 && <span className="count" data-testid="nav-unread">{unread}<span className="sr-only"> unread private updates</span></span>}
+              {p.path === "/tasks" && openTaskCount > 0 && <span className="count" data-testid="nav-open-tasks">{openTaskCount}<span className="sr-only"> open tasks</span></span>}
             </NavLink>
           ))}
           <div className="group">Reference</div>

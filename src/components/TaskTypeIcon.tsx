@@ -1,0 +1,22 @@
+import type { Node, RoleFunction } from "../data/types"
+
+type Icon = { glyph: string; label: string }
+
+const STEP_ICONS: Record<string, Icon> = {
+  plan: { glyph: "🗓️", label: "Event planning" }, backup: { glyph: "🧭", label: "Contingency planning" }, venuechoice: { glyph: "🔎", label: "Venue research" }, registry: { glyph: "📝", label: "Event registration" }, venue: { glyph: "🏛️", label: "Venue booking" }, moderator: { glyph: "🎤", label: "Staffing" }, materials: { glyph: "🖥️", label: "Event materials" },
+  partner: { glyph: "🤝", label: "Partner coordination" }, speakerPacket: { glyph: "📄", label: "Speaker information" }, travel: { glyph: "✈️", label: "Travel planning" }, partnerReview: { glyph: "✅", label: "Partner review" }, parking: { glyph: "🅿️", label: "Parking validation" },
+  marketingNeeds: { glyph: "🎯", label: "Marketing planning" }, contentCreation: { glyph: "✍️", label: "Content creation" }, promotionItems: { glyph: "📣", label: "Promotion" }, rsvp: { glyph: "📋", label: "RSVP registration" }, content: { glyph: "📤", label: "Content distribution" }, reminder: { glyph: "🔔", label: "Event reminder" },
+  budget: { glyph: "💰", label: "Budget" }, foodCompliance: { glyph: "🍽️", label: "Food compliance" }, quotes: { glyph: "🧾", label: "Quote gathering" }, budgetRequest: { glyph: "📨", label: "Budget request" }, budgetApproval: { glyph: "👍", label: "Budget approval" }, purchaseRequest: { glyph: "🛒", label: "Purchase request" }, purchaseApproval: { glyph: "✅", label: "Purchase approval" }, orderPlaced: { glyph: "📦", label: "Order placement" },
+  advisor: { glyph: "🧑‍🏫", label: "Advisor involvement" }, access: { glyph: "♿", label: "Accessibility" }, security: { glyph: "🛡️", label: "Security" }, eams: { glyph: "🚑", label: "Emergency planning" }, permit: { glyph: "📜", label: "Permit or insurance" }, alcohol: { glyph: "🍷", label: "Alcohol permit" }, drone: { glyph: "🛸", label: "Drone approval" }, schoolApproval: { glyph: "🏫", label: "School approval" },
+  finalcheck: { glyph: "🔍", label: "Final readiness check" }, checkin: { glyph: "🪪", label: "Check-in" }, headcount: { glyph: "👥", label: "Headcount" }, thankyou: { glyph: "💌", label: "Thank you" }, feedback: { glyph: "💬", label: "Feedback" }, postmarketing: { glyph: "📣", label: "Post-event marketing" }, photoBackup: { glyph: "🖼️", label: "Photo backup" }, invoice: { glyph: "🧾", label: "Invoice" }, attendance: { glyph: "☑️", label: "Attendance" }, spending: { glyph: "💳", label: "Payment or reimbursement" }, financeRecord: { glyph: "📒", label: "Finance record" }, documentation: { glyph: "🗂️", label: "Documentation" },
+}
+
+const FUNCTION_ICONS: Record<RoleFunction, Icon> = {
+  president: { glyph: "⭐", label: "Leadership task" }, vice_president: { glyph: "📌", label: "Coordination task" }, programs: { glyph: "📍", label: "Event task" }, finance: { glyph: "💼", label: "Finance task" }, marketing: { glyph: "📣", label: "Marketing task" }, secretary: { glyph: "🗂️", label: "Records task" }, outreach: { glyph: "🤝", label: "Outreach task" }, membership: { glyph: "👋", label: "Member task" }, advisor: { glyph: "🧑‍🏫", label: "Advisor task" },
+}
+
+/** A compact visual category for Tasks views only; Flow keeps its clean status dots. */
+export function TaskTypeIcon({ node }: { node: Node }) {
+  const icon = (node.stepKey ? STEP_ICONS[node.stepKey] : undefined) ?? FUNCTION_ICONS[node.fn] ?? { glyph: "📌", label: "Task" }
+  return <span className="task-type-icon" role="img" aria-label={icon.label} title={icon.label}>{icon.glyph}</span>
+}

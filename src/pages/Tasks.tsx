@@ -10,6 +10,7 @@ import { daysBetween, fmtShort } from "../lib/dates"
 import { canMoveTask, byRank, addTaskNotice } from "../data/board"
 import { Avatar, Empty, NodePill, STATUS_ORDER, useStatusStyles } from "../components/ui"
 import { canLead } from "../data/changeReview"
+import { TaskTypeIcon } from "../components/TaskTypeIcon"
 
 type View = "table" | "board" | "timeline"
 
@@ -18,7 +19,7 @@ export default function Tasks() {
   const { person } = useViewer()
   const rail = useRail()
   const [params] = useSearchParams()
-  const [view, setView] = useState<View>("table")
+  const [view, setView] = useState<View>("board")
   const [scope, setScope] = useState("mine")
   const [notice, setNotice] = useState("")
   const lead = canLead(state)
@@ -35,7 +36,7 @@ export default function Tasks() {
   const visible = state.nodes.filter(n => scope === "team" || n.ownerId === person.id || (n.status === "unclaimed" && !n.ownerId))
   return <>
     <PageHead path="/tasks" actions={<>
-      <div className="seg" role="group" aria-label="Task view">{(["table", "board", "timeline"] as View[]).map(v => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>{v === "table" ? "Table" : v === "board" ? "Board" : "Timeline"}</button>)}</div>
+      <div className="seg" role="group" aria-label="Task view">{(["board", "table", "timeline"] as View[]).map(v => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>{v === "table" ? "Table" : v === "board" ? "Board" : "Timeline"}</button>)}</div>
       <select className="select" aria-label="Task scope" value={scope} onChange={e => setScope(e.target.value)}><option value="mine">My tasks</option><option value="team">Team tasks</option></select>
       {lead && view === "board" && <button type="button" className="btn" onClick={() => rail.show({ kind: "board" })}>Customize</button>}
       {/* The only create entry used to sit at the foot of one board column, so the page looked read-only (audit §6.1). */}
@@ -81,7 +82,7 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
         ...(folded(g) ? [] : g.rows).map(n => {
           const late = n.clubDeadline && n.clubDeadline < state.today
           return [<tr key={n.id} data-testid="task-card">
-            <td><button type="button" className="row-btn" onClick={() => rail.show({ kind: "task", id: n.id })}>{n.title}</button></td>
+            <td><button type="button" className="row-btn task-title" onClick={() => rail.show({ kind: "task", id: n.id })}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
             {showOwner && <td>{editable
               ? <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" /><select aria-label={`Owner of ${n.title}`} value={n.ownerId ?? ""} onChange={e => dispatch({ type: "updateNode", id: n.id, patch: { ownerId: e.target.value || null } })}><option value="">None</option>{state.people.map(p => <option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>)}</select></span>
               : <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />{state.people.find(p => p.id === n.ownerId)?.name.split(" ")[0] ?? ""}</span>}</td>}
@@ -136,7 +137,7 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
               onDragOver={e => { e.preventDefault(); e.stopPropagation(); setOver({ status: st, before: n.id }) }}
               onDrop={e => { e.preventDefault(); e.stopPropagation(); const id = e.dataTransfer.getData("text/plain") || drag; if (id && id !== n.id) move(id, st, n.id); setDrag(null); setOver(null) }}>
               {/* A span, not a <button>: Chrome will not start a drag from inside a button. */}
-              <span role="button" tabIndex={0} className="row-btn board-title" onClick={() => rail.show({ kind: "task", id: n.id })} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); rail.show({ kind: "task", id: n.id }) } }}>{n.title}</span>
+              <span role="button" tabIndex={0} className="row-btn board-title task-title" onClick={() => rail.show({ kind: "task", id: n.id })} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); rail.show({ kind: "task", id: n.id }) } }}><TaskTypeIcon node={n} /><span>{n.title}</span></span>
               {fields.includes("tags") && !!n.tags?.length && <div className="tag-row">{n.tags.map(id => { const t = tags.find(x => x.id === id); return t && <span key={id} className="tag-chip" style={{ "--tag": t.color } as CSSProperties}>{t.label}</span> })}</div>}
               <div className="board-meta">
                 {fields.includes("owner") && <Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />}
@@ -161,5 +162,5 @@ function TaskTimeline({ nodes, onSelect }: { nodes: Node[]; onSelect: (n: Node) 
   const from = starts[0], to = ends.at(-1)
   if (!from || !to) return <section className="card"><Empty>No dated tasks in this view.</Empty></section>
   const span = Math.max(1, daysBetween(from, to) + 1)
-  return <section className="card task-gantt" data-testid="task-gantt"><header><h2>Timeline</h2><span className="small muted">{fmtShort(from)} → {fmtShort(to)}</span></header>{nodes.sort((a, b) => (a.latestStart ?? "").localeCompare(b.latestStart ?? "")).map(n => <div key={n.id} className="task-gantt-row"><button className="row-btn small" onClick={() => onSelect(n)}>{n.title}</button><div className="task-gantt-track">{n.latestStart && n.clubDeadline && <button className="task-gantt-bar" style={{ left: `${daysBetween(from, n.latestStart) / span * 100}%`, width: `${Math.max(1, (daysBetween(n.latestStart, n.clubDeadline) + 1) / span * 100)}%` }} aria-label={`${n.title}: ${fmtShort(n.latestStart)} to ${fmtShort(n.clubDeadline)}`} onClick={() => onSelect(n)} />}</div><span className="small muted">{n.clubDeadline ? fmtShort(n.clubDeadline) : "—"}</span></div>)}</section>
+  return <section className="card task-gantt" data-testid="task-gantt"><header><h2>Timeline</h2><span className="small muted">{fmtShort(from)} → {fmtShort(to)}</span></header>{nodes.sort((a, b) => (a.latestStart ?? "").localeCompare(b.latestStart ?? "")).map(n => <div key={n.id} className="task-gantt-row"><button className="row-btn small task-title" onClick={() => onSelect(n)}><TaskTypeIcon node={n} /><span>{n.title}</span></button><div className="task-gantt-track">{n.latestStart && n.clubDeadline && <button className="task-gantt-bar" style={{ left: `${daysBetween(from, n.latestStart) / span * 100}%`, width: `${Math.max(1, (daysBetween(n.latestStart, n.clubDeadline) + 1) / span * 100)}%` }} aria-label={`${n.title}: ${fmtShort(n.latestStart)} to ${fmtShort(n.clubDeadline)}`} onClick={() => onSelect(n)} />}</div><span className="small muted">{n.clubDeadline ? fmtShort(n.clubDeadline) : "—"}</span></div>)}</section>
 }
