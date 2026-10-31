@@ -34,6 +34,7 @@
 | 2026-10-31 | Codex | **用户编辑版工作流：已替换待 Preview 验收。** 以用户上传的 `EVENT_WORKFLOW_EDIT_TEMPLATE.md` 为准：五条前置分支改为其指定的起点、名称与硬依赖；Budget 改为始终存在，Speaker 链只由 speaker checkbox 开启，Special Event 链依其条件穿透；Full Check 仅等待用户指定的五个末端节点；收尾三条线采用其指定的依赖。schema v10 会把 v6–v9 保存数据迁移到这一版。 | lint、生产构建与流程 v2 测试通过。 |
 | 2026-10-31 | Codex | **五路线流程图修复：待 Preview 验收。** 流程图不再按最长依赖链或日期挤压节点；固定显示 `Start → Event Lead / Speaker / Marketing / Finance / Special Event → Full Check`，每条活跃路线独立泳道、按模板顺序横向排列。Full Check 后保留 Check-in、Event Day、Headcount 和三条收尾路线。条件未启用的步骤不显示也不阻塞。 | 定向流程测试、lint、生产构建通过；需要同步本地备份。 |
 | 2026-10-31 | Codex | **五路线图紧凑排版：待 Preview 验收。** 隐藏 Start 到 Full Check 的重复中心线；桌面泳道行距与顶部空白收紧；每个里程碑改为连续阅读列，移除仅为留白而存在的横向列，减少横向滚动。 | 定向流程测试、lint、生产构建通过；需要同步本地备份。 |
+| 2026-10-31 | Codex | **五路线图间距微调：待 Preview 验收。** 五条前置泳道及收尾 Marketing/Finance 改为等距；Full Check 向右留出汇线缓冲，连线不再贴住其标签。 | 定向流程测试、lint、生产构建通过；需要同步本地备份。 |
 
 | 2026-10-30 | Codex | Rules 每条来源右侧恢复 Platypus 聊天图标；点击后打开 Ask 并直接以该来源名称发起有上下文的政策问题。官方外链仍独立保留。增加页面回归断言。 | Preview 8 / `integration/v1.0`。 |
 

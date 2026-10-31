@@ -23,14 +23,14 @@ const PRE_ROUTES: Route[] = [
   { id: "event-lead", keys: ["plan", "backup", "venuechoice", "registry", "venue", "moderator", "materials", "draft", "approve", "offvenue", "ritm"], row: -5 },
   { id: "speaker", keys: ["partner", "speakerPacket", "travel", "partnerReview", "parking", "sap"], row: -3 },
   { id: "marketing", keys: ["marketingNeeds", "contentCreation", "promotionItems", "rsvp", "content", "reminder", "mktneeds", "flyer", "partnerreview", "promo"], row: -1 },
-  { id: "finance", keys: ["budget", "foodCompliance", "quotes", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "orderPlaced", "quote", "foodex", "dining", "usg", "usgspeaker", "foodplan"], row: 2 },
-  { id: "special-event", keys: ["advisor", "access", "security", "eams", "permit", "alcohol", "drone", "schoolApproval"], row: 4 },
+  { id: "finance", keys: ["budget", "foodCompliance", "quotes", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "orderPlaced", "quote", "foodex", "dining", "usg", "usgspeaker", "foodplan"], row: 1 },
+  { id: "special-event", keys: ["advisor", "access", "security", "eams", "permit", "alcohol", "drone", "schoolApproval"], row: 3 },
 ]
 
 const POST_ROUTES: Route[] = [
   { id: "close-event", keys: ["thankyou", "feedback", "documentation", "archive"], row: -3 },
   { id: "close-marketing", keys: ["postmarketing", "photos", "photoBackup"], row: -1 },
-  { id: "close-finance", keys: ["invoice", "attendance", "spending", "financeRecord", "closeout"], row: 2 },
+  { id: "close-finance", keys: ["invoice", "attendance", "spending", "financeRecord", "closeout"], row: 1 },
 ]
 
 const byRouteOrder = (route: Route, a: Node, b: Node) => route.keys.indexOf(a.stepKey ?? "") - route.keys.indexOf(b.stepKey ?? "")
@@ -55,7 +55,9 @@ export function metroLayout(state: DemoState, _sched: Schedule, eventId: string,
   const preWidth = Math.max(1, ...pre.map(x => x.nodes.length))
   // Keep one compact reading column per task. The named milestones do not need
   // empty spacer columns between them: their labels sit above/below the line.
-  const finalCol = preWidth + 1
+  // Give the convergence enough room that incoming curves stop beside the
+  // Full Check label instead of visually crossing it.
+  const finalCol = preWidth + 1.75
   const stations: Station[] = [
     { key: START_KEY, node: null, col: 0 },
     ...(final ? [{ key: final.id, node: final, col: finalCol }] : []),
