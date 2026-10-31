@@ -3,7 +3,7 @@ import { buildEventNodes } from "../engine/playbooks"
 import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 
-export const SCHEMA_VERSION = 8
+export const SCHEMA_VERSION = 9
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan

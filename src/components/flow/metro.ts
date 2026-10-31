@@ -102,23 +102,41 @@ export function metroLayout(state: DemoState, sched: Schedule, eventId: string, 
     for (const b of raw) if (b.to === k && b.from >= 0) c = Math.max(c, col[b.from] + b.nodes.length + 1)
     col.push(c)
   })
+  // Calendar position, not equal-width graph position: a step's horizontal place is
+  // its engine-derived working start date. Five calendar days share one visual unit
+  // so a 60-day plan stays compact while meaningful timing differences remain visible.
+  const dateOf = (key: string) => key === EVENT_KEY ? ev.date : key.startsWith("__") ? ev.date : (sched.nodes[key]?.latestStart ?? sched.nodes[key]?.club ?? ev.date)
+  const first = keys.map(dateOf).sort()[0] ?? ev.date
+  const timedCol = keys.map(key => Math.max(0, Math.round(daysBetween(first, dateOf(key)) / 5)))
+  for (let i = 1; i < timedCol.length; i++) timedCol[i] = Math.max(timedCol[i], timedCol[i - 1] + 1)
+  const timedNodeCol = (node: Node, from: number, to: number) => {
+    const raw = Math.round(daysBetween(first, sched.nodes[node.id]?.latestStart ?? sched.nodes[node.id]?.club ?? ev.date) / 5)
+    return Math.max(timedCol[from] + .45, Math.min(timedCol[to] - .45, raw))
+  }
   // Stable responsibility lanes keep the user's intended same-role reading order. Branches
   // that overlap in the same lane get a nearby sub-track, so their rails never sit on top of
   // each other while still visibly belonging to the same role.
-  const roleRow: Record<RoleFunction, number> = { president: -1, outreach: -2, programs: -3, finance: 1, marketing: 2, vice_president: 3, secretary: 4, membership: 3, advisor: -4 }
+  const laneFor = (node: Node): number => {
+    const key = node.stepKey ?? ""
+    if (["plan", "backup", "venuechoice", "registry", "venue", "moderator", "materials"].includes(key)) return -4
+    if (["partner", "speakerPacket", "travel", "partnerReview", "parking"].includes(key)) return -2
+    if (["marketingNeeds", "contentCreation", "promotionItems", "rsvp", "content", "reminder", "postmarketing", "photos", "photoBackup"].includes(key)) return -1
+    if (["budget", "foodCompliance", "quotes", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "orderPlaced", "invoice", "attendance", "spending", "financeRecord"].includes(key)) return 1
+    if (["advisor", "access", "security", "eams", "permit", "alcohol", "drone", "schoolApproval"].includes(key)) return 3
+    if (["thankyou", "feedback", "documentation"].includes(key)) return -3
+    return 0
+  }
   const usedTracks = new Map<RoleFunction, number[]>()
   const branches: Branch[] = raw.sort((x, y) => col[x.from] - col[y.from] || col[x.to] - col[y.to] || x.fn.localeCompare(y.fn)).map((b, i) => {
-    const a = col[b.from], z = col[b.to]
     const ends = usedTracks.get(b.fn) ?? []
     let track = ends.findIndex(end => end <= b.from)
     if (track < 0) { track = ends.length; ends.push(b.to) } else ends[track] = b.to
     usedTracks.set(b.fn, ends)
-    const base = bothSides ? roleRow[b.fn] : Math.max(1, roleRow[b.fn])
-    const row = base * 4 + (base < 0 ? -track : track)
-    const L = b.nodes.length
-    return { id: `b${i}`, fn: b.fn, from: b.from, to: b.to, row, nodes: b.nodes.map((node, m) => ({ node, col: a + ((m + 1) * (z - a)) / (L + 1) })) }
+    const base = laneFor(b.nodes[0])
+    const row = bothSides ? base * 2 + (base < 0 ? -track : track) : Math.max(1, base * 2 + track)
+    return { id: `b${i}`, fn: b.fn, from: b.from, to: b.to, row, nodes: b.nodes.map(node => ({ node, col: timedNodeCol(node, b.from, b.to) })) }
   })
-  const stations: Station[] = keys.map((key, k) => ({ key, node: key.startsWith("__") ? null : byId.get(key)!, col: col[k] }))
+  const stations: Station[] = keys.map((key, k) => ({ key, node: key.startsWith("__") ? null : byId.get(key)!, col: timedCol[k] }))
   const rows = branches.map(b => b.row)
-  return { stations, branches, cols: col.at(-1) ?? 0, minRow: Math.min(0, ...rows), maxRow: Math.max(0, ...rows) }
+  return { stations, branches, cols: Math.max(...timedCol, ...branches.flatMap(b => b.nodes.map(n => n.col))), minRow: Math.min(0, ...rows), maxRow: Math.max(0, ...rows) }
 }
