@@ -13,7 +13,8 @@ import { WorkflowIssues } from "./WorkflowReview"
 import { useRail } from "../rail/RailContext"
 
 /**
- * The club's event workflow on the same chart as a real event's Flow tab: one main line, parallel work on branches, left to right.
+ * The club's event workflow on the same chart as a real event's Flow tab: five
+ * pre-event routes fan out from Start and meet at Full Check, left to right.
  * Drag a step onto a ◆, double-click a step or a line to add, delete or cut a link. Selecting a step opens its details
  * beside the chart, so workflow timing can be adjusted without losing the graph.
  * Everything is checked by the engine (engine/workflow.ts): steps and links ASU rules need cannot be removed, and a change that breaks one is

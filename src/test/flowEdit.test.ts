@@ -104,8 +104,8 @@ describe("flow chart · where a step can be dropped", () => {
     const main = gaps.filter(g => g.track === "main")
     expect(main.map(g => g.u.key)).toEqual(tracks[0].items.slice(0, -1).filter(x => x.key !== EVENT_KEY).map(x => x.key))
     expect(new Set(gaps.map(g => g.id)).size).toBe(gaps.length)
-    const draftToMk = gaps.find(g => g.uId === id("draft") && g.vId === id("mktneeds"))!
-    expect(draftToMk.row).toBe(0); expect(draftToMk.col).toBeCloseTo((draftToMk.u.col + draftToMk.v.col) / 2)
+    const draftToApprove = gaps.find(g => g.uId === id("draft") && g.vId === id("approve"))!
+    expect(draftToApprove.row).not.toBe(0); expect(draftToApprove.col).toBeCloseTo((draftToApprove.u.col + draftToApprove.v.col) / 2)
   })
   it("the gap before the event day has no step after it, and a branch ends on its main-line station", () => {
     const gaps = flowGaps(L)

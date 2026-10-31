@@ -51,8 +51,8 @@ describe("task board (v1.1 decision 3)", () => {
   })
 })
 
-describe("single-main-line flow chart", () => {
-  it("puts every step on the main line or exactly one branch, with the event day on the main line", () => {
+describe("five-route event flow chart", () => {
+  it("puts every step on the main line or exactly one route, with the event day on the main line", () => {
     const L = metroLayout(base, computeSchedule(base), "e-night")
     const onMain = L.stations.filter(s => s.node).map(s => s.node!.id)
     const onBranch = L.branches.flatMap(b => b.nodes.map(x => x.node.id))
@@ -60,8 +60,9 @@ describe("single-main-line flow chart", () => {
     expect([...onMain, ...onBranch].sort()).toEqual([...all].sort())
     expect(new Set([...onMain, ...onBranch]).size).toBe(all.length)
     expect(L.stations.some(s => s.key === EVENT_KEY)).toBe(true)
-    expect(onMain[0]).toBe("e-night:draft")
-    // Branches leave the line and come back later; columns increase along the line.
+    expect(L.stations[0].key).toBe("__start__")
+    expect(L.stations.some(s => ["finalcheck", "review"].includes(s.node?.stepKey ?? ""))).toBe(true)
+    // Every route leaves Start and meets at Full Check before the event-day spine.
     for (const b of L.branches) expect(b.to).toBeGreaterThan(b.from)
     for (let i = 1; i < L.stations.length; i++) expect(L.stations[i].col).toBeGreaterThan(L.stations[i - 1].col)
   })
@@ -69,14 +70,12 @@ describe("single-main-line flow chart", () => {
     const L = metroLayout(base, computeSchedule(base), "e-speaker", false)
     expect(L.branches.every(b => b.row > 0)).toBe(true)
   })
-  it("groups a shared dependency window once, not once per owner, and keeps desktop zones meaningful", () => {
+  it("keeps approved pre-event routes distinct while they share Start and Full Check", () => {
     const L = metroLayout(base, computeSchedule(base), "e-night")
-    const windows = L.branches.map(b => `${b.from}:${b.to}`)
-    expect(new Set(windows).size).toBe(windows.length)
-    for (const b of L.branches) {
-      const hasGate = b.nodes.some(x => x.node.ruleIds.length > 0 || x.node.phase === "plan" || x.node.phase === "money")
-      expect(hasGate ? -b.row : b.row).toBeGreaterThan(0)
-    }
+    const pre = L.branches.filter(b => ["event-lead", "speaker", "marketing", "finance", "special-event"].includes(b.id))
+    expect(pre.map(b => b.id)).toEqual(expect.arrayContaining(["event-lead", "marketing", "finance"]))
+    expect(new Set(pre.map(b => b.row)).size).toBe(pre.length)
+    expect(pre.every(b => b.from === 0 && ["finalcheck", "review"].includes(L.stations[b.to].node?.stepKey ?? ""))).toBe(true)
   })
 })
 

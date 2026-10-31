@@ -32,6 +32,7 @@
 | 2026-10-31 | Codex | **流程图/Details 修复：已推送待 Preview 验收。** Settings 中的节点编辑器移入全局右侧 `Details` 标签；点击流程节点即可打开，任务说明可编辑并保存到 workflow 模板，悬停卡也显示该说明。删除 Phase 字段。布局引擎改为“职责泳道＋重叠区间子轨道”：不同职责不再合并为同一分支，同职责的并行线路也不会重叠。Ask 等待状态改为紧凑的 Platypus 工作卡。 | lint、生产构建与新版流程/编辑测试通过。 |
 | 2026-10-31 | Codex | **活动流程顺序重整：已推送待 Preview 验收。** 按用户最后确认图重排为五条前置路线（Event Lead、Speaker、Marketing、Finance、Special Event）→ Full Check → Check-in / Event Day → Headcount → 三条收尾路线。Parking 改为 Parking Validation 且置于 Speaker Package 路线末端；新增 Backup Plan、Moderator Staffing、营销链、EAMS Plan、Order Placed、Photo Backup 等节点。横坐标从平均节点间距改为基于日期引擎 `latestStart` 的紧凑时间刻度。schema v9 会将已保存的 v6–v8 活动安全重建为这版标准图。 | lint、生产构建与流程 v2 测试通过。 |
 | 2026-10-31 | Codex | **用户编辑版工作流：已替换待 Preview 验收。** 以用户上传的 `EVENT_WORKFLOW_EDIT_TEMPLATE.md` 为准：五条前置分支改为其指定的起点、名称与硬依赖；Budget 改为始终存在，Speaker 链只由 speaker checkbox 开启，Special Event 链依其条件穿透；Full Check 仅等待用户指定的五个末端节点；收尾三条线采用其指定的依赖。schema v10 会把 v6–v9 保存数据迁移到这一版。 | lint、生产构建与流程 v2 测试通过。 |
+| 2026-10-31 | Codex | **五路线流程图修复：待 Preview 验收。** 流程图不再按最长依赖链或日期挤压节点；固定显示 `Start → Event Lead / Speaker / Marketing / Finance / Special Event → Full Check`，每条活跃路线独立泳道、按模板顺序横向排列。Full Check 后保留 Check-in、Event Day、Headcount 和三条收尾路线。条件未启用的步骤不显示也不阻塞。 | 定向流程测试、lint、生产构建通过；需要同步本地备份。 |
 
 | 2026-10-30 | Codex | Rules 每条来源右侧恢复 Platypus 聊天图标；点击后打开 Ask 并直接以该来源名称发起有上下文的政策问题。官方外链仍独立保留。增加页面回归断言。 | Preview 8 / `integration/v1.0`。 |
 
