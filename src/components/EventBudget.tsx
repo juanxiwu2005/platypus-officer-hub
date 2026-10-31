@@ -16,7 +16,7 @@ export function EventBudget({ event }: { event: Event }) {
   return <section className="card tbl-wrap event-budget" data-testid="event-budget">
     <div className="toolbar"><div><h3>Line Items</h3><p className="small muted">Budget progress drives the finance steps in this event’s Flow.</p></div>{editable && <button type="button" className="btn btn-primary small" onClick={() => dispatch({ type: "budgetLineAdd", eventId: event.id })}>+ Add line item</button>}</div>
     <table className="tbl">
-      <thead><tr><th>Item</th><th>Category</th><th>Quantity</th><th>Price per Unit</th><th>Total Price</th><th>Funding source</th><th>Status</th>{editable && <th><span className="sr-only">Actions</span></th>}</tr></thead>
+      <thead><tr><th>Item</th><th>Category</th><th>Qty</th><th>Unit price</th><th>Total Price</th><th>Source</th><th>Status</th>{editable && <th><span className="sr-only">Actions</span></th>}</tr></thead>
       <tbody>{lines.map(line => <tr key={line.id}>
         <td><input aria-label={`${line.item} item`} value={line.item} disabled={!editable} onChange={e => change(line, { item: e.target.value })} /></td>
         <td><select aria-label={`${line.item} category`} value={line.category} disabled={!editable} onChange={e => change(line, { category: e.target.value as BudgetCategory })}>{categories.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}</select></td>
