@@ -394,7 +394,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
     case "issueOfficerGrant": {
       const g = action.grant
       const n = state.nodes.find(n => n.id === g.nodeId)
-      if (!canLead(state) || !n || !n.ownerId || n.status === "done" || g.ownerId !== n.ownerId || g.ownerVersion !== (n.ownerVersion ?? 0) || g.issuedOn !== state.today || g.usedOn || !/^[a-f0-9]{64}$/.test(g.signature) || state.officerGrants.some(x => x.id === g.id)) return state
+      if (!state.people.some(person => person.id === state.viewerId) || !n || !n.ownerId || n.status === "done" || g.ownerId !== n.ownerId || g.ownerVersion !== (n.ownerVersion ?? 0) || g.issuedOn !== state.today || g.usedOn || !/^[a-f0-9]{64}$/.test(g.signature) || state.officerGrants.some(x => x.id === g.id)) return state
       return { ...state, officerGrants: [...state.officerGrants, g] }
     }
     case "officerAction": {

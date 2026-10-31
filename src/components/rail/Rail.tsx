@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom"
 import { useStore } from "../../data/store"
 import { useRail } from "./RailContext"
 import { AskPanel } from "./AskPanel"
-import { NodePanel } from "../NodePanel"
 import { NudgeComposer } from "../NudgeComposer"
 import { TaskDetail } from "../TaskDetail"
 import { useViewer } from "../../data/store"
@@ -102,7 +101,11 @@ function DetailView() {
   const closer = <div className="detail-bar"><span className="spacer" /><button type="button" className="btn btn-quiet icon-btn" aria-label="Close details" onClick={close}>✕</button></div>
   let body: ReactNode = null
   switch (d.kind) {
-    case "node": return <div ref={box} className="detail-scroll" {...region}><NodePanel nodeId={d.id} onClose={close} onSelect={id => rail.show({ kind: "node", id })} /></div>
+    case "node": {
+      const node = state.nodes.find(n => n.id === d.id)
+      body = node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} /> : <Empty>This task no longer exists.</Empty>
+      break
+    }
     case "workflow": body = rail.workflowDetail ?? <Empty>Select a workflow step.</Empty>; break
     case "nudge": return <div ref={box} className="detail-scroll" {...region}><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
     case "task": {

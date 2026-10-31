@@ -3,6 +3,7 @@ import type { Node } from "../data/types"
 import { useStore } from "../data/store"
 import { validateReply, type ReplyInput, type TaskReply } from "../data/taskWorkflow"
 import { STATUS_ACTIONS } from "../lib/nudges"
+import { isPresident } from "../data/permissions"
 
 export function TaskActions({ node, actorId, token, initialReply }: { node: Node; actorId: string; token?: string; initialReply?: string | null }) {
   const { state, dispatch } = useStore()
@@ -17,7 +18,8 @@ export function TaskActions({ node, actorId, token, initialReply }: { node: Node
     setForm(""); setNotice(reply === "extension" ? "Extension requested. The deadline stays unchanged until approval." : "Update saved. This round of follow-up has stopped.")
   }
   if (node.status === "done") return <p className="small good-text">Completed{node.completedOn ? ` on ${node.completedOn}` : ""}. Thank you.</p>
-  if (node.ownerId && node.ownerId !== actorId) return <p className="small muted">The owner sends task updates from their own view or task link.</p>
+  const canUpdate = node.ownerId === actorId || isPresident(state, actorId)
+  if (node.ownerId && !canUpdate) return <p className="small muted">Only the owner or president can update this task.</p>
   if (node.status === "unclaimed") return <div className="task-actions"><button className="btn btn-primary" onClick={() => {
     if (token) dispatch({ type: "officerAction", token, reply: "claim" })
     else dispatch({ type: "claimTask", nodeId: node.id })

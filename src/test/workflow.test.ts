@@ -30,6 +30,12 @@ describe("claim handshake and status permissions", () => {
     expect(reducer(sam, { type: "replyTask", nodeId: "e-speaker:flyer", reply: "done" })).toBe(sam)
     expect(validateReply(sam, sam.nodes.find(n => n.id === "t-news")!, "sam", "hack" as never, {})).toMatch(/four/)
   })
+
+  it("lets the president update any assigned task but not another officer", () => {
+    const node = s.nodes.find(n => n.id === "t-news")!
+    expect(validateReply({ ...s, viewerId: "alex" }, node, "alex", "help", {})).toBeNull()
+    expect(validateReply({ ...s, viewerId: "maya" }, node, "maya", "help", {})).toMatch(/owner or the president/)
+  })
   it("does not allow ordinary officers to rewrite assignments or club dates", () => {
     const sam = personal("sam")
     expect(reducer(sam, { type: "updateNode", id: "t-news", patch: { ownerId: "maya", clubDeadlineOverride: "2099-01-01" } })).toBe(sam)
