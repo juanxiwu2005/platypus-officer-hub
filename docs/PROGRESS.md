@@ -1,3 +1,8 @@
+> **2026-10-31 · DP8 发布准备第三阶段 WP10：完整本地发布门禁通过（Codex；America/Phoenix，执行日志为 11-01 UTC）**
+> 全新干净 worktree 从 `origin/integration/v1.0@1e19af560daaf9ca10ee40670877c5c1b41665d8` 开始，逐项确认 WP01–WP09 全部已集成。移除旧 storage 图测试五处 force click，改为真实曲线命中点击；保留全部业务断言并补节点移回后的关系不变检查。所有修正集中在一个认证 worktree；只读子 agent 复核无阻塞。
+> Node 22：npm ci、lint/build、strict 后端类型（33 文件）、**809 单元**、words、生产及完整 audit（均 0）通过；完整四项目 Playwright **451 通过 / 13 原有设备排除 / 0 失败 / 0 flaky / 0 重试**，28 文件、464 项。fsck/diff 检查通过；secret 当前及 267 个可达历史提交仅命中公开 localStorage 键误报，确认泄漏/私钥为 0，无忽略规则。入口 364,430 字节，首屏两份 JS 合计 506,960 字节，lazy loading 与 PDF 按需网络检查通过。
+> [完整认证报告、命令与排除原因](release-readiness/evidence/WP10-release-certification.md)；[DP8 真实 AI 人工清单（未执行）](release-readiness/evidence/WP10-ai-smoke-checklist.md)。0 次真实付费 AIR；物理设备/Safari、线上人工操作与真实 AI 未宣称通过。基线 GitHub Netlify success、CI #205 in_progress；推送后新 SHA 与 Checks 由本轮最终聊天回报，不沿用旧提交结果。仅在全部硬门禁通过且 fetch 确认远端未前进后普通快进推送 `integration/v1.0`；不修改/推送/合并 main。需要同步本地备份。
+
 > **2026-11-01 · DP8 发布准备第二阶段：已通过离线集成验收（Codex，多 agent / 独立 worktree）**
 > 基于最新 `origin/integration/v1.0@1975bc1`，先确认第一阶段六包均已集成，再并行完成 WP05/06/08，独立分支与 commit，主 agent 依次审查、集成和复验。修复 Owners/Escape、只读 Budget/平板/菜单焦点与触摸目标；Rules 真实分页/搜索、Events 按需卡片与 Team 文案恢复字数门禁；安全工具链升级，保留全部门槛。新版 Axe 的品牌/交接名称问题也已实际修复。
 > Node 22：lint、build、严格后端类型、**809 单元测试**、全部字数门禁通过；目标浏览器 **350 通过、10 原有设备排除、0 失败/重试**，其中 a11y **63 通过、3 原有设备排除、0 原始 Axe 违规**。完整及生产 audit 均为 0，入口 **364,430 字节**；实际首屏两份 JS 合计 506,960 字节，无提前 PhaseOne/PDF。
@@ -156,6 +161,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-10-31（Arizona） | Codex（DP8 第三阶段 WP10） | **完整本地发布认证通过。** Node 22 ci/lint/build/strict/words、809 单元、四项目 451 通过及 13 原有设备排除，0 失败/重试；生产及完整 audit 0、fsck、secret/私钥、入口和 lazy loading 均已复核。移除旧图测试五处 force，保留业务断言；[认证报告](release-readiness/evidence/WP10-release-certification.md)。 | [真实 AIR 手动清单](release-readiness/evidence/WP10-ai-smoke-checklist.md) 未执行，0 次付费调用；物理设备/线上人工未认证。远端最终 SHA/Checks 见本轮最终聊天；只允许安全快进 integration/v1.0，无权合并 main。需要同步本地备份。 |
 | 2026-11-01 | Codex（DP8 第二阶段，多 agent 独立 worktree） | **WP05/06/08 已逐包集成验收。** 集成提交 `76f3f2a` / `817582d` / `5540c66`；额外修复新版 Axe 品牌与交接卡名称。809 单元、350 目标浏览器通过，10 原有设备排除；a11y 63 通过/3 原有设备排除；words、lint/build、strict 后端类型、完整及生产 audit 0 均通过。[完整证据与源/集成 SHA](release-readiness/evidence/STAGE2-integration.md)。 | 可以开始 STAGE3 / WP10；未宣称完整 464 项与线上发布认证。保留三条已验证 minimatch 安全 override，待上游修复后解除；旧 storage force 操作须在 WP10 审查。未放宽 Axe/字数/包体/timeout/断言或审计，0 真实 AIR，不操作 main；需要同步本地备份。 |
 | 2026-10-31 | Codex（DP8 第一阶段，多 agent 独立 worktree） | **WP01/02/03/04/07/09 已逐包集成验收。** Demo 日期/路由测试迁移；Events 经费入口与 Reset；任务财务完成提示；手机 Roles/Budget 点击与保存失败；Router 7.18.5、Zod 4.6.7 和输入边界；路由/功能懒加载。最终 808 单元、281 浏览器通过，7 原有设备排除，生产 audit 0，入口 371.05 kB；[全部提交及复现证据](release-readiness/evidence/WP09-bundle-performance.md)。 | 可以开始 STAGE2（WP05/06/08）；已知 Escape、字数四路由和开发 audit 17 项保留门槛，未使用 skip/force click/timeout/audit ignore 制造通过。全站发布认证及真实 AIR 仍未完成；不操作 main，0 真实 AIR；需要同步本地备份。 |
 | 2026-10-31 | Codex（DP8，分支 `integration/v1.0`） | **发布准备修复计划入库。** 新增 `docs/release-readiness/`：机器可读 manifest、10 个独立工作包提示词和 3 个阶段调度入口。第一阶段并行 WP01/02/03/04/07/09，第二阶段并行 WP05/06/08，第三阶段 WP10 全量认证；每包都包含范围、禁用的捷径、验收命令和提交要求。 | 新会话不要逐个复制工作包；只需让它读取 `docs/release-readiness/stages/STAGE1.md`（之后依次 STAGE2、STAGE3）。所有阶段只推 `integration/v1.0`，绝不自动合并 `main` 或调用真实 AIR。需要同步本地备份。 |

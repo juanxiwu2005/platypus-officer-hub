@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { clickCurve } from "./graph";
 import { blankDraft } from "../src/organization/presets";
 import { fixtureDraft } from "../src/organization/testing/fixtures";
 import {
@@ -408,9 +409,9 @@ test("selected curve deletion has an undo that retains unrelated node edits, wit
   const s = await mockSetup(page, preparedDraft());
   await chapter(page, "Activity workflow");
   if (info.project.name.startsWith("desktop")) {
-    await page
-      .locator('.react-flow__edge[data-id="items-quotes"]')
-      .click({ force: true });
+    await clickCurve(
+      page.locator('.react-flow__edge[data-id="items-quotes"]'),
+    );
     await page
       .getByRole("button", { name: "Delete selected link", exact: true })
       .click();

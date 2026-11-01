@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { clickCurve } from "./graph";
 import { blankDraft } from "../src/organization/presets";
 import {
   fixtureDraft,
@@ -1278,7 +1279,7 @@ test("actual curve connections can be added, deleted, reconnected and reject loo
   expect(
     await edge.locator("path.react-flow__edge-path").getAttribute("d"),
   ).toContain("C");
-  await edge.click({ force: true });
+  await clickCurve(edge);
   await page.keyboard.press("Delete");
   await expect
     .poll(
@@ -1287,7 +1288,7 @@ test("actual curve connections can be added, deleted, reconnected and reject loo
     )
     .toEqual([]);
   const original = graph.locator('.react-flow__edge[data-id="plan-prepare"]');
-  await original.click({ force: true });
+  await clickCurve(original);
   await dragBetween(
     page,
     original.locator(".react-flow__edgeupdater-target"),
@@ -1419,10 +1420,21 @@ test("organization reporting lines retain manual decisions after real drag, reco
   expect(
     s.read().draft.roles.find((r) => r.id === "marketing_intern")!.manualFields,
   ).toContain("parentRoleId");
+  // The reporting gesture deliberately drops onto the parent. Move the child
+  // back into open space before exercising the now-visible curve controls.
+  const linked = await node("marketing_intern").boundingBox();
+  expect(linked).not.toBeNull();
+  await page.mouse.move(linked!.x + 90, linked!.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(from!.x + 90, from!.y + 10, { steps: 20 });
+  await page.mouse.up();
+  await expect
+    .poll(() => s.read().draft.roles.find((r) => r.id === "marketing_intern")!.parentRoleId)
+    .toBe("marketing");
   const edge = graph.locator(
     '.react-flow__edge[data-id="marketing-marketing_intern"]',
   );
-  await edge.click({ force: true });
+  await clickCurve(edge);
   await dragBetween(
     page,
     edge.locator(".react-flow__edgeupdater-source"),
@@ -1435,9 +1447,9 @@ test("organization reporting lines retain manual decisions after real drag, reco
           .parentRoleId,
     )
     .toBe("president");
-  await graph
-    .locator('.react-flow__edge[data-id="president-marketing_intern"]')
-    .click({ force: true });
+  await clickCurve(
+    graph.locator('.react-flow__edge[data-id="president-marketing_intern"]'),
+  );
   await page.keyboard.press("Delete");
   await expect
     .poll(
