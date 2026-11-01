@@ -32,6 +32,8 @@ export function AskPanel() {
   const [messages, setMessages] = useState<ChatMsg[]>(load)
   const messagesRef = useRef(messages)
   messagesRef.current = messages
+  // Messages that were already there when the panel opened do not animate; only ones added afterwards do (DX-17).
+  const alreadyThere = useRef<ReadonlySet<string>>(new Set(messages.map(m => m.id)))
   const [text, setText] = useState("")
   const [busy, setBusy] = useState(false)
   const [focusOff, setFocusOff] = useState<string | null>(null)
@@ -155,6 +157,8 @@ export function AskPanel() {
     patchCard(msgId, index, { ...c, done: true, changeSetId: id })
   }
   const suggestions = SUGGESTIONS[location.pathname] ?? SUGGESTIONS["/"]
+  // The same row sits with the greeting before the first message, and at the foot of the panel afterwards (never both).
+  const suggestionRow = <div className="chips" aria-label="Suggestions">{suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s)} disabled={busy}>{s}</button>)}</div>
 
   return <section className="ask" aria-label="Ask Platypus" data-testid="ask-panel">
     <header className="ask-head">
@@ -162,17 +166,20 @@ export function AskPanel() {
       {messages.length > 0 && <button type="button" className="btn btn-quiet small" onClick={() => setMessages([])}>New chat</button>}
     </header>
     {activeFocus && <div className="focus-chip" data-testid="focus-chip"><span>Looking at: {activeFocus.title}</span><button type="button" aria-label="Stop using this context" onClick={() => setFocusOff(`${activeFocus.kind}:${activeFocus.id}`)}>×</button></div>}
-    <div className="ask-list" ref={list} aria-live="polite">
-      {!messages.length && <p className="ask-hello">Hi {person.name.split(" ")[0]}. What do you need?</p>}
+    {!messages.length && <div className="ask-welcome" data-testid="ask-welcome">
+      <p className="ask-hello">Hi {person.name.split(" ")[0]}. What do you need?</p>
+      {suggestionRow}
+    </div>}
+    <div className={`ask-list${messages.length ? "" : " is-empty"}`} ref={list} aria-live="polite">
       {messages.map(m => m.role === "user"
-        ? <div key={m.id} className="bubble user">{m.text}</div>
-        : <div key={m.id} className="bubble bot" data-testid="bot-reply">
+        ? <div key={m.id} className={`bubble user${alreadyThere.current.has(m.id) ? "" : " is-new"}`}>{m.text}</div>
+        : <div key={m.id} className={`bubble bot${alreadyThere.current.has(m.id) ? "" : " is-new"}`} data-testid="bot-reply">
           {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={card => submitPlan(m.id, i, card)} onTask={(card, buffered) => submitTask(m.id, i, card, buffered)} onMoved={card => patchCard(m.id, i, card)} />)}
           {m.source && <span className="ask-source">{m.source}</span>}
         </div>)}
       {busy && <Typing />}
     </div>
-    <div className="chips" aria-label="Suggestions">{suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s)} disabled={busy}>{s}</button>)}</div>
+    {messages.length > 0 && suggestionRow}
     <form className="ask-form" onSubmit={e => { e.preventDefault(); void send(text) }}>
       <textarea id="ask-input" ref={input} rows={2} maxLength={1000} value={text} placeholder="Ask or tell Platypus…" aria-label="Message Platypus"
         onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(text) } }} />
