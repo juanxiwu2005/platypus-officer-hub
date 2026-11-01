@@ -1,3 +1,8 @@
+> **2026-11-01 · DP8 发布准备第二阶段：已通过离线集成验收（Codex，多 agent / 独立 worktree）**
+> 基于最新 `origin/integration/v1.0@1975bc1`，先确认第一阶段六包均已集成，再并行完成 WP05/06/08，独立分支与 commit，主 agent 依次审查、集成和复验。修复 Owners/Escape、只读 Budget/平板/菜单焦点与触摸目标；Rules 真实分页/搜索、Events 按需卡片与 Team 文案恢复字数门禁；安全工具链升级，保留全部门槛。新版 Axe 的品牌/交接名称问题也已实际修复。
+> Node 22：lint、build、严格后端类型、**809 单元测试**、全部字数门禁通过；目标浏览器 **350 通过、10 原有设备排除、0 失败/重试**，其中 a11y **63 通过、3 原有设备排除、0 原始 Axe 违规**。完整及生产 audit 均为 0，入口 **364,430 字节**；实际首屏两份 JS 合计 506,960 字节，无提前 PhaseOne/PDF。
+> **可以开始第三阶段 WP10**：完整 464 项四项目认证、fsck、secret 扫描、当前 GitHub Checks、线上/物理设备验收与真实 AIR 人工 checklist 尚待执行；旧 storage 图测试中的 force 操作须先审查，不能据此制造通过。三条 minimatch 安全 override 的解除条件已记录。详见 [提交、复现与剩余风险](release-readiness/evidence/STAGE2-integration.md)。仅允许 fast-forward 更新 `integration/v1.0`，不使用/修改/推送/合并 main，0 次真实 AIR；需要同步本地备份。
+
 > **2026-10-31 · DP8 发布准备第一阶段：已通过离线集成验收（Codex，多 agent / 独立 worktree）**
 > 从最新 `origin/integration/v1.0@5d00507` 并行完成 WP01/02/03/04/07/09，逐个审查、集成和目标复验。Node 22 下 lint、build、严格后端类型、808 单元测试、281 浏览器场景通过；另有 7 项原有设备适用性排除，0 失败/0 重试。生产 audit 为 0，入口 371.05 kB，首屏实际 JS 总计 514,197 字节，不加载 PhaseOne/PDF。
 > 可开始第二阶段 WP05/06/08：Owners 的 Escape 冒泡、4 条路由字数超限、含开发依赖审计 17 项均未宣称已解决；完整发布认证与真实 AIR 人工验收尚待后续。详见 [集成证据](release-readiness/evidence/WP09-bundle-performance.md)。仅用于 fast-forward 更新 `integration/v1.0`，不修改/推送/合并 main，0 次真实 AIR；需要同步本地备份。
@@ -151,6 +156,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-01 | Codex（DP8 第二阶段，多 agent 独立 worktree） | **WP05/06/08 已逐包集成验收。** 集成提交 `76f3f2a` / `817582d` / `5540c66`；额外修复新版 Axe 品牌与交接卡名称。809 单元、350 目标浏览器通过，10 原有设备排除；a11y 63 通过/3 原有设备排除；words、lint/build、strict 后端类型、完整及生产 audit 0 均通过。[完整证据与源/集成 SHA](release-readiness/evidence/STAGE2-integration.md)。 | 可以开始 STAGE3 / WP10；未宣称完整 464 项与线上发布认证。保留三条已验证 minimatch 安全 override，待上游修复后解除；旧 storage force 操作须在 WP10 审查。未放宽 Axe/字数/包体/timeout/断言或审计，0 真实 AIR，不操作 main；需要同步本地备份。 |
 | 2026-10-31 | Codex（DP8 第一阶段，多 agent 独立 worktree） | **WP01/02/03/04/07/09 已逐包集成验收。** Demo 日期/路由测试迁移；Events 经费入口与 Reset；任务财务完成提示；手机 Roles/Budget 点击与保存失败；Router 7.18.5、Zod 4.6.7 和输入边界；路由/功能懒加载。最终 808 单元、281 浏览器通过，7 原有设备排除，生产 audit 0，入口 371.05 kB；[全部提交及复现证据](release-readiness/evidence/WP09-bundle-performance.md)。 | 可以开始 STAGE2（WP05/06/08）；已知 Escape、字数四路由和开发 audit 17 项保留门槛，未使用 skip/force click/timeout/audit ignore 制造通过。全站发布认证及真实 AIR 仍未完成；不操作 main，0 真实 AIR；需要同步本地备份。 |
 | 2026-10-31 | Codex（DP8，分支 `integration/v1.0`） | **发布准备修复计划入库。** 新增 `docs/release-readiness/`：机器可读 manifest、10 个独立工作包提示词和 3 个阶段调度入口。第一阶段并行 WP01/02/03/04/07/09，第二阶段并行 WP05/06/08，第三阶段 WP10 全量认证；每包都包含范围、禁用的捷径、验收命令和提交要求。 | 新会话不要逐个复制工作包；只需让它读取 `docs/release-readiness/stages/STAGE1.md`（之后依次 STAGE2、STAGE3）。所有阶段只推 `integration/v1.0`，绝不自动合并 `main` 或调用真实 AIR。需要同步本地备份。 |
 | 2026-10-30 | Codex（DP8，分支 `integration/v1.0`） | **Rules 浏览界面，第 3 步。** Rules 现在直接显示政策来源目录的 64 条记录，不再显示旧的 16 条简化规则或日期标签。每行严格为：左侧分类图标、中间 official source 名称、右侧官方网址按钮；悬停／聚焦时只显示 `What it covers` 一句话。每行保留不显示的 `data-policy-id`（`ASU-R-xxx`）和 `data-source-file`（精确文件代码），供后续 AI 和维护者定位。没有一条单一网址的来源仍显示为不可点的来源图标，并保留原始注记，未伪造链接。 | 在 DP8 打开 Rules：应看到 64 行和新的分类（Governance、Venue、Food、Funding、Marketing、Safety、Access、College、History）；悬停名称看一句话说明，点右侧图标打开官方来源。需要同步本地备份。 |
