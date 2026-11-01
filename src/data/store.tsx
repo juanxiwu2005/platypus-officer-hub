@@ -70,6 +70,18 @@ function repairCoreEventSteps(state: DemoState): DemoState {
   return additions.length || repairedCheckin ? applySchedule({ ...state, nodes: [...nodes, ...additions] }) : state
 }
 
+/** Run once during older-version migrations, including snapshots that skipped v19. */
+function completeDemoSpeakerPlan(state: DemoState): DemoState {
+  if (state.org?.id !== "dfs" || !state.events.some(event => event.id === "e-speaker" && event.name === "Spring Speaker Night" && event.checks !== undefined)) return state
+  let changed = false
+  const nodes = state.nodes.map(node => {
+    if (node.id !== "e-speaker:plan" || node.eventId !== "e-speaker" || node.stepKey !== "plan" || node.status === "done") return node
+    changed = true
+    return { ...node, status: "done" as const, completedOn: state.today, lastUpdate: state.today, acceptedOn: node.acceptedOn ?? state.today, waitingOn: null, waitingOnPersonId: null }
+  })
+  return changed ? applySchedule({ ...state, nodes }) : state
+}
+
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
 export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "details">>
@@ -481,25 +493,16 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: repairCoreEventSteps(repairTaskLinks(parsed)), notice: null }
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 18 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
-    const isDemo = parsed.org?.id === "dfs" && parsed.events.some(event => event.id === "e-speaker" && event.name === "Spring Speaker Night" && event.checks !== undefined)
-    const today = parsed.today
-    const nodes = isDemo ? parsed.nodes.map(node => node.id === "e-speaker:plan" && node.eventId === "e-speaker" && node.stepKey === "plan" && node.status !== "done"
-      ? { ...node, status: "done" as const, completedOn: today, lastUpdate: today, acceptedOn: node.acceptedOn ?? today, waitingOn: null, waitingOnPersonId: null }
-      : node) : parsed.nodes
-    return { state: repairCoreEventSteps(repairTaskLinks(applySchedule({ ...parsed, schemaVersion: SCHEMA_VERSION, nodes }))), notice: null }
+  // Keep all supported saved versions on the same one-time demo-update path.
+  if (parsed && typeof parsed === "object" && [14, 15, 17, 18, 19].includes(parsed.schemaVersion) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
+    return { state: completeDemoSpeakerPlan(repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION }))), notice: null }
   }
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 17 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })), notice: null }
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 15 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })), notice: null }
-  // v14 preserves the current demo while repairing verifiable event links and turns
-  // old exact-name waiting references into actionable teammate references.
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 14 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })), notice: null }
   // v12 makes assigned workflow work actionable immediately. Keep every saved
   // event, budget line and history; only move owner-backed Not claimed cards to To do.
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 12 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
     const promoted = { ...parsed, schemaVersion: SCHEMA_VERSION, nodes: parsed.nodes.map(node => node.ownerId && node.status === "unclaimed" ? { ...node, status: "accepted" as const, acceptedOn: node.assignedOn ?? parsed.today } : node) }
     const state = promoted.events.reduce((next, event) => syncBudgetFlow(next, event.id), repairCoreEventSteps(repairTaskLinks(applySchedule(promoted))))
-    return { state, notice: null }
+    return { state: completeDemoSpeakerPlan(state), notice: null }
   }
   // v6 used the former fixed event graph. Preserve existing activities and their recognizable progress while
   // rebuilding them from the approved baseline + selected situation routes.
@@ -521,7 +524,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
       return [...generated, ...legacy.nodes.filter(n => n.eventId === event.id && n.stepKey === null)]
     })
     const state = events.reduce((next, event) => syncBudgetFlow(next, event.id), applySchedule({ ...legacy, schemaVersion: SCHEMA_VERSION, org: { ...legacy.org, eventWorkflow: undefined }, events, nodes: [...legacy.nodes.filter(n => n.eventId === null), ...rebuilt] }))
-    return { state, notice: null }
+    return { state: completeDemoSpeakerPlan(state), notice: null }
   }
   const fromVersion = parsed && typeof parsed === "object" && typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : null
   const backupKey = backUp(raw, fromVersion === null ? "unreadable" : `v${fromVersion}`)

@@ -89,9 +89,9 @@ describe("storage", () => {
     expect(repaired.nodes.find(node => node.id === "e-founder:checkin")?.clubDeadline).toBe("2026-12-02")
   })
 
-  it("completes only the saved v18 Spring Speaker Night plan and preserves other work", () => {
+  it.each([12, 14, 15, 17, 18, 19])("completes only the saved v%i Spring Speaker Night plan and preserves other work", (version) => {
     const current = seedDemo(undefined, "v2")
-    const saved = { ...current, schemaVersion: 18, viewerId: "maya", nodes: current.nodes.map(node => node.id === "e-speaker:plan" ? { ...node, status: "accepted" as const, completedOn: undefined } : node.id === "e-speaker:backup" ? { ...node, title: "Keep my backup notes", status: "in_progress" as const } : node) }
+    const saved = { ...current, schemaVersion: version, viewerId: "maya", nodes: current.nodes.map(node => node.id === "e-speaker:plan" ? { ...node, status: "accepted" as const, completedOn: undefined } : node.id === "e-speaker:backup" ? { ...node, title: "Keep my backup notes", status: "in_progress" as const } : node) }
     saveState(saved)
     const { state, notice } = loadStateWithNotice()
     expect(notice).toBeNull()
@@ -113,6 +113,17 @@ describe("storage", () => {
     expect(loadState().nodes.find(node => node.id === "e-speaker:plan")).toMatchObject({ status: "done", completedOn: "2026-10-30", lastUpdate: "2026-10-30" })
     saveState({ ...done, org: { ...done.org, id: "another-club" }, nodes: done.nodes.map(node => node.id === "e-speaker:plan" ? { ...node, status: "accepted" as const, completedOn: undefined } : node) })
     expect(loadState().nodes.find(node => node.id === "e-speaker:plan")?.status).toBe("accepted")
+  })
+
+  it("completes the plan after rebuilding a legacy event graph without resetting the club", () => {
+    const saved = { ...seedDemo(undefined, "legacy"), schemaVersion: 11, viewerId: "maya" }
+    saveState(saved)
+    const { state, notice } = loadStateWithNotice()
+    expect(notice).toBeNull()
+    expect(state.nodes.find(node => node.id === "e-speaker:plan")).toMatchObject({ status: "done", completedOn: saved.today })
+    expect(state.events.map(event => event.id)).toEqual(saved.events.map(event => event.id))
+    expect(state.people).toEqual(saved.people)
+    expect(state.viewerId).toBe("maya")
   })
 })
 

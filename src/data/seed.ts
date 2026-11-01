@@ -4,8 +4,8 @@ import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 
-// v19 marks the demo Spring Speaker Night event plan complete without resetting saved work.
-export const SCHEMA_VERSION = 19
+// v20 also completes the demo plan when saved data skipped the v18-to-v19 update.
+export const SCHEMA_VERSION = 20
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan

@@ -8,19 +8,19 @@ test.beforeEach(async ({ page }) => {
   await page.getByTestId("view-flow").click()
 })
 
-test("Spring Speaker Night's event plan is Done for fresh and existing saved demos", async ({ page }) => {
+for (const version of [17, 18, 19]) test(`Spring Speaker Night's event plan is Done for fresh and saved v${version} demos`, async ({ page }) => {
   await page.goto("/#/events?event=e-speaker")
   await expect(page.getByTestId("flow-node-plan")).toHaveClass(/done/)
   await expect(page.getByTestId("flow-node-backup")).not.toHaveClass(/done/)
-  await page.evaluate(() => {
+  await page.evaluate((savedVersion) => {
     const saved = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
-    saved.schemaVersion = 18
+    saved.schemaVersion = savedVersion
     saved.org.mission = "Keep my saved club notes"
     const plan = saved.nodes.find((node: { id: string }) => node.id === "e-speaker:plan")
     plan.status = "accepted"
     delete plan.completedOn
     localStorage.setItem("platypus.v1.demo", JSON.stringify(saved))
-  })
+  }, version)
   await page.reload()
   await expect(page.getByTestId("flow-node-plan")).toHaveClass(/done/)
   await expect(page.getByTestId("flow-node-backup")).not.toHaveClass(/done/)
