@@ -18,7 +18,7 @@
 | `--fs-xl` | 21px | 区块标题 |
 | `--fs-2xl` | 26px | 大数字、强调 |
 
-页面大标题 `h1` 用 `clamp(26px, 3.2vw, 34px)`（随屏幕大小变），故意不是 token。`font:` 简写里的字号（`body` 的 `15px/1.55`、`.board-col > header h2` 的 `600 13.5px/1.3`）没有换成 token，是已知的例外。
+页面大标题 `h1` 用固定的 `var(--fs-2xl)`（26px），手机上 `.page-head h1` 用 `var(--fs-xl)`；**不再随屏幕宽度连续变化**（文档以前写的 `clamp(26px, 3.2vw, 34px)` 早已不是代码里的样子，DX-27 按代码改正文档；想要 clamp 版本需要 Juanxi 另行决定）。`font:` 简写里的字号（`body` 的 `15px/1.55`、`.board-col > header h2` 的 `600 13.5px/1.3`）没有换成 token，是已知的例外。
 
 ## 2. 圆角 `--r-*`
 
@@ -166,7 +166,7 @@
 
 | 检查 | 命令 | 拦什么 |
 | --- | --- | --- |
-| Stylelint | `npm run lint:css`（只管 `src/styles.css`）| `font-size` 只能是 `var(--fs-*)`（外加大标题的那个 `clamp`、`inherit`）；`border-radius` 只能是 `0`、`inherit`、`var(--radius)`、`var(--r-*)`；`z-index` 只能是 `var(--z-*)`；`:root` 三段主题之外**不准写 hex 颜色**；**不准出现重复选择器**；`font:` 简写只放行 3 种（见下）|
+| Stylelint | `npm run lint:css`（管 `src/styles.css` 和 `src/styles/*.css`）| `font-size` 只能是 `var(--fs-*)`（外加 `inherit`）；`border-radius` 只能是 `0`、`inherit`、`var(--radius)`、`var(--r-*)`；`z-index` 只能是 `var(--z-*)`；`:root` 三段主题之外**不准写 hex 颜色**；**不准出现重复选择器**；`font:` 简写只放行 3 种（见下）|
 | ESLint | `npm run lint:js`（`src/` 下的 ts/tsx）| 行内 `style={{...}}` 只能放 CSS 变量（`--xxx`）和数据算出来的 `left/top/width/height`，其余一律写成 `styles.css` 里的 class |
 | 字数 | `npm run words` | 只**报告**每页真实字数（含悬停卡、折叠内容），不会因超限失败，也不会要求删字；上限由 Juanxi 决定后再开 `--enforce` |
 | 无障碍 | `e2e/a11y.spec.ts`（桌面+手机）| WCAG 2.0/2.1/2.2 A/AA，含触摸目标 24×24；右栏焦点管理 |
@@ -174,7 +174,7 @@
 **有意放行的例外（逐条写理由）：**
 
 1. `border-radius: 0`：直角不是"圆角档位"，换成 token 没有意义。
-2. `font-size: clamp(26px, 3.2vw, 34px)`（`h1`）：响应式大标题，随屏幕宽度变，不能是固定档。
+2. （已删除，DX-27）`h1` 的 `clamp` 例外：代码里已经没有这种写法，`.stylelintrc.json` 里的放行规则也一并去掉，以后再写会变红。
 3. `font-size: inherit`、`border-radius: inherit`：继承父级，不引入新数值。
 4. `font:` 简写只放行 `inherit`、`15px/1.55 var(--sans)`（`body`）、`600 13.5px/1.3 var(--sans)`（`.board-col > header h2`）：这两处简写里有意保留的字号，把它们拆开会改变行高，留待以后统一。
 5. `:root` 里的 hex：token 的定义本来就要写颜色值。
@@ -182,3 +182,43 @@
 7. **不检查** `src/organization/`、`src/phase1/`、`src/workspace/` 的 CSS 和行内样式：它们是另一套较老的代码（CSS 约 4,500 行），以后统一再纳入。
 
 **加新样式时：** 先看 `npm run lint` 红在哪，改成 token 或 class，**不要**用 `stylelint-disable` / `eslint-disable` 绕过；确实要例外，在这里加一条并写理由。
+
+## 9. 动效 token `--dur-*` `--ease-*` `--spring-*`（v1.6 界面与动效升级，DX-01 起）
+
+定义在 `src/styles/dx-00-tokens.css`（只有这个文件可以写具体时间）。**写动效只能引用 token，不准写 `150ms` 这样的数字。**
+
+| token | 值 | 用在哪 |
+| --- | --- | --- |
+| `--dur-press` | 100ms | 按下去的反馈，要"立刻" |
+| `--dur-fast` | 150ms | 悬停变色、小淡入淡出、菜单出现 |
+| `--dur-base` | 220ms | 面板、抽屉移入 |
+| `--dur-slow` | 320ms | 较大的东西落位 |
+| `--ease-out` | `cubic-bezier(.2, .8, .2, 1)` | 出现：开始快、结尾软 |
+| `--ease-in-out` | `cubic-bezier(.4, 0, .2, 1)` | 从一处移到另一处 |
+| `--spring-ui` + `--spring-ui-dur` | `linear(...)`，450ms | 拖拽卡片落位（`src/lib/dragSort.ts`）、流程图节点换位（DX-22）|
+| `--spring-pop` + `--spring-pop-dur` | `linear(...)`，480ms | 步骤变成 Done 时圆点"弹"一下（DX-25）|
+
+- 两条弹簧曲线由 `scripts/spring-linear.mjs` 生成（不要手改数值）。
+- **减少动效：** 系统设置里开了"减少动效"（`prefers-reduced-motion: reduce`）时，上面所有时间被改成 `1ms`、弹簧改成 `linear`，所以只引用 token 的动效自动变成"几乎瞬时"。脚本里需要时间的地方用 `src/lib/motion.ts` 的 `tokenMs()`（读 token）和 `prefersReducedMotion()`，不要自己写数字。
+- 只动 `transform` 和 `opacity`（DX-08 起，样式检查会拦：`transition: all`、写死的时间、给 `left/top/right/bottom/width/height/margin/padding` 加过渡）。
+
+## 10. 阴影层级 `--elev-1/2/3`（DX-23）
+
+定义在 `src/styles/dx-23-glass-topbar.css`，浅色/深色各一套（深色更重，两段深色同步）：
+
+| token | 浅色 | 用在哪 |
+| --- | --- | --- |
+| `--elev-1` | `0 1px 2px / .06` + `0 2px 6px / .05` | 最轻的一档。**目前还没有地方用**，先留着（查证：`grep -rn "var(--elev-1" src`）|
+| `--elev-2` | `0 4px 12px / .10` + `0 12px 28px / .08` | 菜单（`.menu`、`.m-menu`）、负责人建议框、`.panel`、被拖起的卡片（Tasks、Partners）|
+| `--elev-3` | `0 12px 40px / .18` | 吐司 `.toast`；宽度 1199px 以下浮在页面上的右栏 |
+
+新写阴影先选这三档，不够再来这里加，不要在组件里写 `box-shadow: 0 8px ...`。
+
+## 11. 小样式文件的结构和归属（DX-01 起）
+
+- `src/styles.css` 仍是正本；v1.6 的每个工作包把自己的样式写在**自己的小文件** `src/styles/dx-NN-<名字>.css`，由 `src/styles/index.css` 在 `styles.css` 之后按顺序 `@import`（`src/main.tsx` 引入的是 `index.css`）。
+- **一个文件只属于一个包**，别的包不能改它。想关掉某个包的样式（R1 快速关闭）：把 `index.css` 里它那行 `@import` 注释掉。
+- 小文件和 `styles.css` 一样要通过 `npm run lint:css`（`font-size`/圆角/层级/hex 规则），另外 `dx-01` 以后的文件还多几条：不准 `transition: all`、不准写死时间、不准给布局属性加过渡、**不准 `!important`**；桌面上的 `.hover-card` 不准有任何延迟（`src/test/dxStyleGuard.test.ts` 里有故意违规的样本，证明这些守卫真的会变红）。
+- `dx-00-tokens.css` 是例外：它是定义 token 的地方，允许写具体时间。
+- 哪个包做了什么、怎么撤销：`docs/design-upgrade/README.md` 和 `docs/design-upgrade/ROLLBACK_LOG.md`。
+- 把这些小文件合回 `styles.css` 是 DX-27 的第 3 步，**需要 Juanxi 明确同意**，目前**没有做**；合并之后 R1 快速关闭就不能用了。
