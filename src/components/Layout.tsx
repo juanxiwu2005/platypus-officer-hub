@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { Outlet, useLocation } from "react-router-dom"
 import { RailProvider, useRail } from "./rail/RailContext"
 import { BtsProvider } from "./Bts"
@@ -47,6 +47,18 @@ function Frame() {
   const location = useLocation()
   const [toastNode, setToast] = useToast()
   const railPresence = useRailPresence(rail.open)
+  // A new page fades in (opacity only, no slide, nothing leaves) so moving between pages is soft but never slower (DX-19).
+  // The class goes on before the new page is painted and comes off again once the fade is over, so things that appear
+  // inside a page later on (a card that opens, a list that loads) do not fade.
+  const [pageFade, setPageFade] = useState(false)
+  const fadedPath = useRef(location.pathname)
+  useLayoutEffect(() => {
+    if (fadedPath.current === location.pathname) return
+    fadedPath.current = location.pathname
+    setPageFade(true)
+    const t = setTimeout(() => setPageFade(false), tokenMs("--dur-fast", 150) + 60)
+    return () => clearTimeout(t)
+  }, [location.pathname])
   // A new page starts with Ask, not with the last page's details.
   const lastPath = useRef(location.pathname)
   useEffect(() => {
@@ -66,7 +78,7 @@ function Frame() {
 
       <div className={`shell${railPresence.mounted ? " with-rail" : ""}`}>
         <SideNav />
-        <main id="main" tabIndex={-1}>
+        <main id="main" tabIndex={-1} className={pageFade ? "route-enter" : undefined}>
           <Outlet />
         </main>
         {railPresence.mounted && <Rail closing={!rail.open} shown={railPresence.shown} />}
