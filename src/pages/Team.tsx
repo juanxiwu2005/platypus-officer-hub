@@ -33,7 +33,7 @@ export default function Team() {
         })}</tbody></table>
       </section>
       <section className="card" aria-labelledby="cb-h">
-        <header><h2 id="cb-h">Contribution board</h2><Info>Impact combines estimated effort and how central a completed step was. Reliability reflects delivery by the club deadline. This is not a task-count leaderboard.</Info>{state.people.length > 10 && <button type="button" className="btn small" onClick={() => setShowAll(all => !all)}>{showAll ? "Show top 10" : `Show all ${state.people.length} officers`}</button>}</header>
+        <header><h2 id="cb-h">Contributions</h2><Info>Impact combines estimated effort and how central a completed step was. Reliability reflects delivery by the club deadline. This is not a task-count leaderboard.</Info>{state.people.length > 10 && <button type="button" className="btn small" onClick={() => setShowAll(all => !all)}>{showAll ? "Show top 10" : `Show all ${state.people.length} officers`}</button>}</header>
         <table className="tbl" data-testid="contribution-board"><thead><tr><th>Rank</th><th>Officer</th><th>Impact</th><th>Reliability</th></tr></thead><tbody>{visibleBoard.map(r => <tr key={r.person.id}>
           <td className="small muted">#{r.rank}</td>
           <td><span className="who"><Avatar name={r.person.name} size="sm" />{r.person.name.split(" ")[0]}</span></td>

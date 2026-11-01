@@ -12,7 +12,8 @@ import { spawn } from "node:child_process"
 const args = process.argv.slice(2)
 const enforce = !args.includes("--report-only")
 const out = args.find(a => !a.startsWith("--"))
-const LIMITS = { "/": [160, 450], "/events": [180, 420], "/rules": [170, 560], "/tasks": [130, 130], "/team": [130, 290], "/funding": [160, 160], "/handoff": [120, 120], "/partners": [120, 120], "/settings": [150, 150], "/help": [9999, 9999] }
+// /funding redirects to /events; its content is counted once under /events.
+const LIMITS = { "/": [160, 450], "/events": [180, 420], "/rules": [170, 560], "/tasks": [130, 130], "/team": [130, 290], "/handoff": [120, 120], "/partners": [120, 120], "/settings": [150, 150], "/help": [9999, 9999] }
 const PORT = 4177
 const base = `http://localhost:${PORT}`
 

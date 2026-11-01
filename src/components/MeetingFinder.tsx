@@ -137,7 +137,7 @@ export function MeetingFinder() {
   const choice = pick && fits ? whoIsFree(state, ids, pick.date, pick.from, pick.from + duration) : null
 
   return <section className="card form-stack" data-testid="meeting-finder" aria-labelledby="mf-h">
-    <header><h2 id="mf-h">Find a meeting time</h2><Info>Use Edit weekly schedule for your recurring availability. Painting this week makes a one-week exception. Darker means more people free.</Info></header>
+    <header><h2 id="mf-h">Meeting time</h2><Info>Use Edit weekly schedule for your recurring availability. Painting this week makes a one-week exception. Darker means more people free.</Info></header>
     {!weeklyDraft && <><div className="action-row w2m-nav">
       <button type="button" className="btn small" disabled={week === 0} onClick={() => setWeek(week - 1)} aria-label="Previous week">‹</button>
       <span className="small">{fmtShort(dates[0])} – {fmtShort(dates[6])}</span>
@@ -190,8 +190,8 @@ export function MeetingFinder() {
         <fieldset className="who-picks"><legend className="small muted">Attendees</legend>{state.people.map(p => <label className="check-label" key={p.id}><input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))} />{p.name}</label>)}</fieldset>
       </div>
       <section className="meeting-suggestions" aria-live="polite" aria-label="Shared times in the next two weeks">
-        <header><h3>Shared times</h3><span className="small muted">Next 2 weeks</span></header>
-        {upcoming.length ? upcoming.map(day => <div className="suggestion-day" key={day.date}><time dateTime={day.date}>{dayName(day.date)} {fmtShort(day.date)}</time><div>{day.slots.map(slot => <button type="button" className="btn small" key={slot.from} onClick={() => { const from = asMinutes(slot.from); setPick({ date: day.date, from }); setDate(day.date) }}>{slot.from}–{slot.to}</button>)}</div></div>) : <p className="small muted">No shared time in the next two weeks. Try a shorter meeting or fewer attendees.</p>}
+        <header><h3>Shared times</h3></header>
+        {upcoming.length ? upcoming.map(day => <div className="suggestion-day" key={day.date}><time dateTime={day.date}>{dayName(day.date)} {fmtShort(day.date)}</time><div>{day.slots.map(slot => <button type="button" className="btn small" key={slot.from} onClick={() => { const from = asMinutes(slot.from); setPick({ date: day.date, from }); setDate(day.date) }}>{slot.from}–{slot.to}</button>)}</div></div>) : <p className="small muted">No shared time in the next two weeks. Adjust length or attendees.</p>}
       </section>
     </div>}
   </section>

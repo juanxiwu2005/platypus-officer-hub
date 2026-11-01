@@ -52,6 +52,8 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const { dispatch } = useStore()
   const touch = useTouch()
   const [localEditing, setLocalEditing] = useState(false)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [focusedId, setFocusedId] = useState<string | null>(null)
   const editing = requestedEditing ?? localEditing
   const setEditing = (next: boolean) => {
     if (requestedEditing === undefined) setLocalEditing(next)
@@ -274,18 +276,22 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const mark = tpl?.marks?.[n.id]
     const label = tpl ? tpl.lines(n).join(". ") + "." : `${n.title}. ${styles[n.status].label}. Owner ${owner ?? "none"}. Club deadline ${plan ? fmtShort(plan.club) : "pending"}${plan?.official ? `, ASU deadline ${fmtShort(plan.official)}` : ""}.${issue ? ` ${issue.text}` : ""}`
     const kind = SITUATION_KEYS.has(n.stepKey ?? "") ? "situation" : "baseline"
-    return <div key={n.id} className={`m-node ${labelSide} ${n.id === selectedId ? "is-selected" : ""}${drag?.id === n.id ? " is-dragging" : ""}`} style={{ left: p.x, top: p.y }}>
+    const showCard = hoveredId === n.id || focusedId === n.id
+    const cardId = `flow-card-${n.id}`
+    return <div key={n.id} className={`m-node ${labelSide} ${n.id === selectedId ? "is-selected" : ""}${drag?.id === n.id ? " is-dragging" : ""}`} style={{ left: p.x, top: p.y }}
+      onPointerEnter={e => { if (e.pointerType !== "touch") setHoveredId(n.id) }} onPointerLeave={() => setHoveredId(null)}
+      onFocus={() => setFocusedId(n.id)} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setFocusedId(null) }}>
       <button type="button" className={`m-dot ${kind} ${st} ${issue ? `has-${issue.severity}` : ""}${mark ? ` mark-${mark}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch && e.detail > 0) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}. ${kind === "baseline" ? "Core event step." : "Situation-based step."}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
-        onPointerDown={e => onDown(e, n.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onDoubleClick={e => openNode(n.id, e)} onContextMenu={e => { if (on) { e.preventDefault(); openNode(n.id, e) } }} onKeyDown={e => onKey(e, n.id)} />
+        aria-describedby={showCard ? cardId : undefined} onPointerDown={e => onDown(e, n.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onDoubleClick={e => openNode(n.id, e)} onContextMenu={e => { if (on) { e.preventDefault(); openNode(n.id, e) } }} onKeyDown={e => onKey(e, n.id)} />
       <span className="m-label" aria-hidden="true"><b>{shortTitle(n)}</b><span>{tpl ? tpl.sublabel(n) : firstName(state, n.ownerId)}</span></span>
-      <span className="m-card" role="tooltip">
+      {showCard && <span id={cardId} className="m-card" role="tooltip">
         <b>{n.title}</b>
         {tpl ? tpl.lines(n).slice(1).map((t, i) => <span key={i}>{t}</span>) : <>
           <span>{owner ?? "No owner"} · {styles[n.status].label}{plan ? ` · due ${fmtShort(plan.club)}` : ""}</span>
           {plan?.official ? <span>ASU deadline {fmtShort(plan.official)}{n.ruleIds[0] ? ` (${n.ruleIds[0]})` : ""}</span> : null}
           {issue ? <span className="m-card-warn">{issue.text}</span> : n.waitingOn ? <span>Waiting on: {n.waitingOn}</span> : null}
         </>}
-      </span>
+      </span>}
     </div>
   }
 

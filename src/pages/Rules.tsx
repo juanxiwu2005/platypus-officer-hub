@@ -35,11 +35,24 @@ const ChatIcon = () => <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 4
 /** Human browsing for the policy-source catalog. Detailed text stays server-side for policy search. */
 export default function Rules() {
   const [tab, setTab] = useState<(typeof CATEGORIES)[number]["id"]>("all")
+  const [query, setQuery] = useState("")
+  const [page, setPage] = useState(0)
   const rail = useRail()
-  const sources = POLICY_CATALOG.filter(source => tab === "all" || source.category === tab)
+  const matches = POLICY_CATALOG.filter(source => (tab === "all" || source.category === tab) && `${source.officialName} ${source.whatItCovers} ${source.recordId}`.toLowerCase().includes(query.trim().toLowerCase()))
+  // Browse the whole directory in small pages; unselected records are not mounted.
+  const pageSize = 6
+  const sources = matches.slice(page * pageSize, (page + 1) * pageSize)
   return <>
-    <PageHead path="/rules" actions={<div className="seg" role="group" aria-label="Policy category">{CATEGORIES.map(category => <button key={category.id} type="button" aria-pressed={tab === category.id} onClick={() => setTab(category.id)}>{category.label}</button>)}</div>} />
+    <PageHead path="/rules" actions={<div className="seg" role="group" aria-label="Policy category">{CATEGORIES.map(category => <button key={category.id} type="button" aria-pressed={tab === category.id} onClick={() => { setTab(category.id); setPage(0) }}>{category.label}</button>)}</div>} />
     <section className="card">
+      <div className="toolbar">
+        <label className="field-inline">Search sources<input type="search" value={query} onChange={e => { setQuery(e.target.value); setPage(0) }} /></label>
+        <nav className="action-row" aria-label="Source pages">
+          <button type="button" className="btn small" disabled={page === 0} onClick={() => setPage(p => p - 1)}>Previous</button>
+          <span className="small muted" role="status">{matches.length ? `${page * pageSize + 1}–${Math.min((page + 1) * pageSize, matches.length)} of ${matches.length}` : "0 sources"}</span>
+          <button type="button" className="btn small" disabled={(page + 1) * pageSize >= matches.length} onClick={() => setPage(p => p + 1)}>Next</button>
+        </nav>
+      </div>
       {sources.length ? <ul className="rule-list" data-testid={`policy-sources-${tab}`}>
         {sources.map(source => <li key={source.recordId} className="rule-row" data-policy-id={source.recordId} data-source-file={source.sourceFileCode}>
           <svg className="rule-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{ICON[source.category]}</svg>
@@ -51,7 +64,7 @@ export default function Rules() {
             <button type="button" className="btn small icon-btn" aria-label={`Ask Platypus about ${source.officialName} · ${source.recordId}`} title="Ask Platypus" onClick={() => rail.ask(`What does ${source.officialName} cover, and how could it apply to our event?`, true)}><ChatIcon /></button>
           </span>
         </li>)}
-      </ul> : <Empty>No checked official source in this category.</Empty>}
+      </ul> : <Empty>No matching source.</Empty>}
     </section>
   </>
 }

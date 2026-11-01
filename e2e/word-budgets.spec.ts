@@ -1,0 +1,93 @@
+import { expect, test, type Page } from "@playwright/test"
+import { POLICY_CATALOG } from "../src/data/policyCatalog"
+import { fmtLong, fmtShort } from "../src/lib/dates"
+import { savedDemo } from "./demo-contract"
+import { closeRail, noOverflow } from "./helpers"
+
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
+})
+
+async function sourcePages(page: Page) {
+  await expect(page.locator("[data-policy-id]").first()).toBeVisible()
+  const seen: string[] = []
+  const next = page.getByRole("navigation", { name: "Source pages", exact: true }).getByRole("button", { name: "Next", exact: true })
+  for (;;) {
+    const records = page.locator("[data-policy-id]")
+    expect(await records.count()).toBeLessThanOrEqual(6)
+    seen.push(...await records.evaluateAll(rows => rows.map(row => row.getAttribute("data-policy-id")!)))
+    if (await next.isDisabled()) break
+    await next.focus()
+    await page.keyboard.press("Enter")
+  }
+  expect(new Set(seen).size).toBe(seen.length)
+  return seen
+}
+
+test("Rules keyboard browsing reaches every source through All and each category", async ({ page }) => {
+  await page.goto("/#/rules")
+  await closeRail(page)
+  expect(await sourcePages(page)).toEqual(POLICY_CATALOG.map(source => source.recordId))
+  const categories = page.getByRole("group", { name: "Policy category", exact: true }).getByRole("button")
+  for (let index = 1; index < await categories.count(); index++) {
+    const category = categories.nth(index)
+    await category.focus()
+    await page.keyboard.press("Space")
+    await expect(category).toHaveAttribute("aria-pressed", "true")
+    const label = (await category.innerText()).toLowerCase()
+    const id = label === "access" ? "accessibility" : label
+    expect(await sourcePages(page)).toEqual(POLICY_CATALOG.filter(source => source.category === id).map(source => source.recordId))
+  }
+  expect(await noOverflow(page)).toBeLessThanOrEqual(1)
+})
+
+test("Rules search finds archived records and keyboard controls open sources and Ask", async ({ page, context }) => {
+  await page.route("**/api/policy-answer", r => r.fulfill({ json: { inScope: true, answer: "Registry requirements from the checked source.", citations: ["ASU-R-010"], model: "mock", provider: "mock" } }))
+  await context.route("https://eventreg.asu.edu/", r => r.fulfill({ contentType: "text/html", body: "<h1>Official Registry test destination</h1>" }))
+  await page.goto("/#/rules")
+  await closeRail(page)
+  const search = page.getByRole("searchbox", { name: "Search sources", exact: true })
+  const last = POLICY_CATALOG.at(-1)!
+  await search.fill(last.recordId)
+  await expect(page.locator("[data-policy-id]")).toHaveCount(1)
+  await expect(page.locator("[data-policy-id]")).toHaveAttribute("data-policy-id", last.recordId)
+  await search.fill("ASU-R-010")
+  const source = page.locator('[data-policy-id="ASU-R-010"]')
+  await expect(source).toHaveAttribute("data-source-file", "PLAN_E01_ASU_Event_Registry_2026-10-29.txt")
+  await source.getByRole("link", { name: "Open source: ASU Event Registry", exact: true }).focus()
+  const opened = page.waitForEvent("popup")
+  await page.keyboard.press("Enter")
+  const official = await opened
+  await expect(official).toHaveURL("https://eventreg.asu.edu/")
+  await expect(official.getByRole("heading")).toHaveText("Official Registry test destination")
+  await official.close()
+  await source.getByRole("button", { name: "Ask Platypus about ASU Event Registry · ASU-R-010", exact: true }).focus()
+  await page.keyboard.press("Space")
+  await expect(page.locator(".bubble.user").last()).toContainText("What does ASU Event Registry cover")
+  await expect(page.getByTestId("rule-answer").last()).toBeVisible()
+})
+
+test("Events mounts a node description on keyboard focus and retains its source deadlines", async ({ page }) => {
+  await page.goto("/#/events?event=e-night")
+  await closeRail(page)
+  await page.getByTestId("view-flow").click()
+  const demo = await savedDemo(page)
+  const purchaseRequest = demo.nodes.find(node => node.eventId === "e-night" && node.stepKey === "purchaseRequest")
+  expect(purchaseRequest).toBeDefined()
+  const officialDeadline = purchaseRequest!.officialDeadline
+  expect(officialDeadline).not.toBeNull()
+  expect(officialDeadline).toBeTruthy()
+  const chart = page.getByTestId("flow-chart")
+  await expect(chart.locator(".m-card")).toHaveCount(0)
+  const node = page.getByTestId("flow-node-purchaseRequest")
+  await node.focus()
+  const cardId = await node.getAttribute("aria-describedby")
+  expect(cardId).toBeTruthy()
+  await expect(page.locator(`[id="${cardId}"]`)).toContainText(`ASU deadline ${fmtShort(officialDeadline!)} (R09)`)
+  await expect(chart.locator(".m-card")).toHaveCount(1)
+  await page.keyboard.press("Enter")
+  const detail = page.getByTestId("task-detail")
+  await expect(detail.locator(".task-dates")).toContainText(fmtLong(officialDeadline!))
+  await detail.getByText("Sources and responsibilities", { exact: true }).click()
+  await expect(detail.getByRole("link", { name: "R09", exact: true })).toHaveAttribute("href", /^https:/)
+})
