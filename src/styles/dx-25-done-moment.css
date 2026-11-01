@@ -1,2 +1,30 @@
-/* DX-25 done-moment: empty until work package DX-25 fills it (docs/design-upgrade/work-packages/DX-25-done-moment.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-25 the moment a step is done (docs/design-upgrade/work-packages/DX-25-done-moment.md).
+   The one celebration in the design upgrade, kept small: when a stop in a progress chain becomes done while you are looking at it,
+   the line that leads to it grows from the left and its dot pops in with a tiny overshoot. Nothing loops, nothing makes a sound.
+   Also: a progress ring moves to its new value instead of jumping, the number on the Tasks link pops when it changes, and a chain dot
+   that is at risk carries an "!" so it no longer relies on a red ring alone. Reduce Motion: no animation, the colours still change. */
+@keyframes dx-line-grow { from { transform: scaleX(0); } }
+@keyframes dx-dot-pop { from { transform: scale(.6); } }
+@keyframes dx-count-pop { 50% { transform: scale(1.25); } }
+
+.chain li.just-done::before {
+  transform-origin: left center;
+  animation: dx-line-grow var(--dur-base) var(--ease-out) backwards;
+}
+.chain li.just-done .dot {
+  animation: dx-dot-pop var(--spring-pop-dur) var(--spring-pop) backwards;
+}
+.sidenav a .count.is-pop { animation: dx-count-pop var(--dur-fast) var(--ease-out); }
+.ring .ring-arc { transition: stroke-dasharray var(--dur-slow) var(--ease-out); }
+
+/* An exclamation mark inside the red ring (not on the small chains: the dot is too small there). */
+.chain:not(.compact) .dot.risk {
+  background:
+    linear-gradient(var(--late), var(--late)) 50% 1px / 2px 4px no-repeat,
+    radial-gradient(circle, var(--late) 0 1.1px, transparent 1.5px) 50% calc(100% - 1px) / 3px 3px no-repeat,
+    var(--surface);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chain li.just-done::before, .chain li.just-done .dot, .sidenav a .count.is-pop { animation: none; }
+}
