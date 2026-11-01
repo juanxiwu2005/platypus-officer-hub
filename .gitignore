@@ -11,3 +11,4 @@ playwright-report/
 output/
 .nightmode/
 dist-storage/
+dx-shots/
