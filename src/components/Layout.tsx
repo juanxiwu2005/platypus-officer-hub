@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Outlet, useLocation } from "react-router-dom"
 import { RailProvider, useRail } from "./rail/RailContext"
 import { BtsProvider } from "./Bts"
@@ -11,10 +11,42 @@ export function Layout() {
   return <BtsProvider><RailProvider><Frame /></RailProvider></BtsProvider>
 }
 
+/** How long a design-upgrade token lasts, in milliseconds (the CSS is the one place the time is written). */
+function tokenMs(name: string, fallback: number) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  const n = parseFloat(v)
+  return Number.isFinite(n) ? (v.endsWith("ms") ? n : n * 1000) : fallback
+}
+
+/**
+ * The side panel has to stay on the page while it slides away, and has to be painted once in its closed place before it
+ * slides in. With Reduce Motion on, none of that happens: it is there when `open` is true and gone when it is false.
+ * `mounted` = render the panel; `shown` = it sits in its open place (false on the first frame in and while leaving).
+ */
+function useRailPresence(open: boolean) {
+  const reduced = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  const [mounted, setMounted] = useState(open)
+  const [shown, setShown] = useState(open)
+  useEffect(() => {
+    if (reduced) { setMounted(open); setShown(open); return }
+    if (open) {
+      setMounted(true)
+      let second = 0
+      const first = requestAnimationFrame(() => { second = requestAnimationFrame(() => setShown(true)) })
+      return () => { cancelAnimationFrame(first); cancelAnimationFrame(second) }
+    }
+    setShown(false)
+    const t = setTimeout(() => setMounted(false), tokenMs("--dur-base", 220) + 40)
+    return () => clearTimeout(t)
+  }, [open, reduced])
+  return reduced ? { mounted: open, shown: open } : { mounted: open || mounted, shown: open && shown }
+}
+
 function Frame() {
   const rail = useRail()
   const location = useLocation()
   const [toastNode, setToast] = useToast()
+  const railPresence = useRailPresence(rail.open)
   // A new page starts with Ask, not with the last page's details.
   const lastPath = useRef(location.pathname)
   useEffect(() => {
@@ -32,12 +64,12 @@ function Frame() {
     <>
       <TopBar onReset={() => setToast("Demo data reset")} />
 
-      <div className={`shell${rail.open ? " with-rail" : ""}`}>
+      <div className={`shell${railPresence.mounted ? " with-rail" : ""}`}>
         <SideNav />
         <main id="main" tabIndex={-1}>
           <Outlet />
         </main>
-        {rail.open && <Rail />}
+        {railPresence.mounted && <Rail closing={!rail.open} shown={railPresence.shown} />}
       </div>
       {!rail.open && <button type="button" className="ask-fab" onClick={() => rail.setOpen(true)} aria-label="Ask Platypus">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 016.5 3h7A2.5 2.5 0 0116 5.5v5a2.5 2.5 0 01-2.5 2.5H9l-3.5 3v-3A2.5 2.5 0 014 10.5z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
