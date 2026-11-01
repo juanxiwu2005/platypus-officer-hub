@@ -87,6 +87,23 @@ test("keyboard: / stays in text inputs and Ask's textarea while typing", async (
   await expect(input).toBeFocused()
 })
 
+test("brand link includes the visible organization name after editing and opens Home by keyboard", async ({ page }) => {
+  await page.goto("/#/settings")
+  await closeRail(page)
+  const club = page.getByTestId("club-settings")
+  const name = "Fictional Access Club"
+  await club.getByLabel("Club name", { exact: true }).fill(name)
+  await expect(club.getByRole("status")).toContainText("Saved")
+  const home = page.getByRole("link", { name: `Platypus ${name}`, exact: true })
+  await expect(home.locator("span")).toHaveText(name)
+  await expect(home).toContainText("Platypus")
+  expect(await scan(page)).toEqual([])
+  await home.focus()
+  await page.keyboard.press("Enter")
+  await expect(page).toHaveURL(/#\/$/)
+  await expect(page.locator("main h1")).toHaveText("Today")
+})
+
 // ---- S6: keyboard and right-rail focus ----
 
 test("keyboard: Tab follows reading order, top bar then side navigation then the page", async ({ page }) => {
@@ -94,7 +111,8 @@ test("keyboard: Tab follows reading order, top bar then side navigation then the
   await page.waitForTimeout(300)
   const regions = ["topbar", "sidenav", "main", "rail"]
   const seen: number[] = []
-  const first = page.getByRole("link", { name: "Platypus home" })
+  const orgName = await page.locator(".brand span").textContent()
+  const first = page.getByRole("link", { name: `Platypus ${orgName}`, exact: true })
   await first.focus()
   for (let i = 0; i < 160; i++) {
     const r = await page.evaluate(() => {

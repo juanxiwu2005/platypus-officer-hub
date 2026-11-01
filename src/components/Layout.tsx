@@ -42,10 +42,10 @@ function Frame() {
     <>
       <header className="topbar">
         <div className="bar-in">
-          <NavLink to="/" className="brand" aria-label="Platypus home">
+          <NavLink to="/" className="brand">
             <Logo />
             <div>
-              <b>Platypus</b>
+              <b>Platypus</b>{" "}
               <span>{state.org.name}</span>
             </div>
           </NavLink>
