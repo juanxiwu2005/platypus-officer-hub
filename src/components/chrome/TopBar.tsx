@@ -12,6 +12,14 @@ export function TopBar({ onReset }: { onReset: () => void }) {
   // On a phone "View as" and "AI features" live behind a "⋯" button so the top bar is one line (DX-20). On a computer the
   // same two controls stay in the bar exactly where they were: `.controls-extra` is then `display: contents`.
   const [moreOpen, setMoreOpen] = useState(false)
+  // The line under the top bar only shows once the page has scrolled under it (DX-23).
+  const [scrolled, setScrolled] = useState(false)
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 0)
+    on()
+    window.addEventListener("scroll", on, { passive: true })
+    return () => window.removeEventListener("scroll", on)
+  }, [])
   const moreBox = useRef<HTMLDivElement>(null)
   const moreToggle = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -22,7 +30,7 @@ export function TopBar({ onReset }: { onReset: () => void }) {
     return () => { document.removeEventListener("pointerdown", away); window.removeEventListener("keydown", esc) }
   }, [moreOpen])
   return (
-    <header className="topbar">
+    <header className="topbar" data-scrolled={scrolled}>
       <div className="bar-in">
         <NavLink to="/" className="brand">
           <Logo />
