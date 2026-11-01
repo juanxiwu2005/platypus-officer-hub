@@ -27,9 +27,9 @@
 | DX-20 | **已合并**（阶段 4，仅 20a）| `cc6a3d6` | `dx/dx-20-merged` | 2026-11-01 | `git revert -m 1 dx/dx-20-merged` | |
 | DX-21 | **已合并**（阶段 4）| `f6bd79a` | `dx/dx-21-merged` | 2026-11-01 | `git revert -m 1 dx/dx-21-merged` | |
 | DX-22 | **已合并**（阶段 4）| `bfafc89` | `dx/dx-22-merged` | 2026-11-01 | `git revert -m 1 dx/dx-22-merged` | |
-| DX-23 | 未开始 | | `dx/dx-23-merged` | | `git revert -m 1 dx/dx-23-merged` | |
-| DX-24 | 未开始 | | `dx/dx-24-merged` | | `git revert -m 1 dx/dx-24-merged` | |
-| DX-25 | 未开始 | | `dx/dx-25-merged` | | `git revert -m 1 dx/dx-25-merged` | |
+| DX-23 | **已合并**（阶段 5）| `0e93cd6` | `dx/dx-23-merged` | 2026-11-01 | `git revert -m 1 dx/dx-23-merged` | |
+| DX-24 | **已合并**（阶段 5）| `8ac5b82` | `dx/dx-24-merged` | 2026-11-01 | `git revert -m 1 dx/dx-24-merged` | |
+| DX-25 | **已合并**（阶段 5）| `7ef5a87` | `dx/dx-25-merged` | 2026-11-01 | `git revert -m 1 dx/dx-25-merged` | |
 | DX-26 | 未开始 | | `dx/dx-26-merged` | | `git revert -m 1 dx/dx-26-merged` | |
 | DX-27 | 未开始 | | `dx/dx-27-merged` | | `git revert -m 1 dx/dx-27-merged` | |
 
@@ -43,7 +43,8 @@
 | `dx/phase-2-before` | 阶段 2 开始前（`17af284`）| 仅本地 |
 | `dx/phase-3-before` | 阶段 3 开始前（`a13f037`）| 仅本地 |
 | `dx/phase-4-before` | 阶段 4 开始前（`8e7cdf3`）| 仅本地 |
-| `dx/phase-5-before` … `dx/phase-6-before` | 每个阶段开始前集成分支的位置 | 未到 |
+| `dx/phase-5-before` | 阶段 5 开始前（`d4bcbda`）| 仅本地 |
+| `dx/phase-6-before` | 每个阶段开始前集成分支的位置 | 未到 |
 
 ## ⚠ 有"后续修复提交"的包：撤的时候要**先撤修复，再撤包**
 
@@ -66,6 +67,7 @@
 | 2026-11-01 | 阶段 2：在临时 worktree 里对合并后的历史从后往前执行 `git revert -m 1 dx/dx-14-merged` … `dx-09-merged`（六个）| 六步都干净；`tsc` 通过；撤完后 `src`、配置、`scripts`、`index.html`、`e2e` 与 `dx/phase-2-before` **逐字一致**。只撤 DX-09 也干净。**注意**：这次演练是在 DX-10 修复提交之前做的；修复提交只动 `dx-10-menu-motion.css` 和 `e2e/helpers.ts`，撤 DX-10 时要连它一起撤（否则 helpers 里的 `aria-expanded` 改动会留下，无害）|
 | 2026-11-01 | 阶段 3：对合并后的历史先撤两个修复提交，再从后往前撤 `dx-19-merged` … `dx-15-merged`（五个）| 全部干净；`tsc` 通过；撤完后与 `dx/phase-3-before` **逐字一致**。单撤 DX-17 也干净。**同时发现**：不先撤修复，直接撤 DX-16 会冲突；回头验证 DX-10 同样会冲突（上面的表）|
 | 2026-11-01 | 阶段 4：对合并后的历史从后往前撤 `dx-22-merged`、`dx-21-merged`、`dx-20-merged` | 三步都干净；`tsc` 通过；撤完后与 `dx/phase-4-before` **逐字一致**（含 `e2e/helpers.ts` 和被机械替换的 12 个测试文件）。单撤 DX-21 也干净。本阶段**没有**合并后的修复提交 |
+| 2026-11-01 | 阶段 5：对合并后的历史从后往前撤 `dx-25-merged`、`dx-24-merged`、`dx-23-merged` | 三步都干净；`tsc` 通过；撤完后与 `dx/phase-5-before` **逐字一致**。单撤 DX-24 也干净。**依赖发现**：单撤 DX-22 git 不冲突，但 `tsc` 报 3 处 "Cannot find module '../../lib/motion'"（DX-24、DX-25 用了它）——所以撤 DX-22 前必须先撤 DX-24、DX-25（已补进 `PHASES.md` 的依赖表）。本阶段没有合并后的修复提交 |
 
 ## 为什么这个会话推不了其他分支和标签（2026-11-01 调查）
 
@@ -112,7 +114,11 @@ git tag dx/phase-4-before 8e7cdf32e68eaf1c9f3239ee8b61a1ba2cf71c7d
 git tag dx/dx-20-merged cc6a3d687d70a8bc1850a1045f0cee65d2868028
 git tag dx/dx-21-merged f6bd79ab1939ba43083653cb113d4bc7433cd52e
 git tag dx/dx-22-merged bfafc89701446364fa67c2cf35b69bc58d645624
-git push origin dx/baseline dx/phase-0-before dx/phase-1-before dx/phase-2-before dx/phase-3-before dx/phase-4-before dx/dx-01-merged dx/dx-02-merged dx/dx-03-merged dx/dx-04-merged dx/dx-05-merged dx/dx-06-merged dx/dx-07-merged dx/dx-08-merged dx/dx-09-merged dx/dx-10-merged dx/dx-11-merged dx/dx-12-merged dx/dx-13-merged dx/dx-14-merged dx/dx-15-merged dx/dx-16-merged dx/dx-17-merged dx/dx-18-merged dx/dx-19-merged dx/dx-20-merged dx/dx-21-merged dx/dx-22-merged
+git tag dx/phase-5-before d4bcbda5e05478c8297b4f4c2d7ba9228355ccb0
+git tag dx/dx-23-merged 0e93cd644cfcf36a349c3d49aaa5e9f995064694
+git tag dx/dx-24-merged 8ac5b82bab9a4820b40ab757fcc3fa8cab2e50dc
+git tag dx/dx-25-merged 7ef5a877506835367ccbecbee0f3b593a15de30b
+git push origin dx/baseline dx/phase-0-before dx/phase-1-before dx/phase-2-before dx/phase-3-before dx/phase-4-before dx/phase-5-before dx/dx-01-merged dx/dx-02-merged dx/dx-03-merged dx/dx-04-merged dx/dx-05-merged dx/dx-06-merged dx/dx-07-merged dx/dx-08-merged dx/dx-09-merged dx/dx-10-merged dx/dx-11-merged dx/dx-12-merged dx/dx-13-merged dx/dx-14-merged dx/dx-15-merged dx/dx-16-merged dx/dx-17-merged dx/dx-18-merged dx/dx-19-merged dx/dx-20-merged dx/dx-21-merged dx/dx-22-merged dx/dx-23-merged dx/dx-24-merged dx/dx-25-merged
 # 2. 工作包分支（可选；这些提交已经在 claude/determined-johnson-yrdxwf 的历史里）
 git push origin 8a941e68f9039cd90230d88fa169e1ee26138ad7:refs/heads/design/dx-01-foundation
 git push origin 84f29c19f84c85363fcd08a36d5bd26b68106564:refs/heads/design/dx-02-split-layout
@@ -136,4 +142,7 @@ git push origin 22eb91f8207d19e9debcf5740af8b095ec3a2652:refs/heads/design/dx-19
 git push origin 5a3a8235afe4e3799add6af246e5aa2a2841bc68:refs/heads/design/dx-20-mobile-shell
 git push origin 01a2e73219660a8a03790c380c66a70169501e6f:refs/heads/design/dx-21-board-headers
 git push origin 012f54b7adda19f169fc3fa832f83c9a3ed6394c:refs/heads/design/dx-22-flow-motion
+git push origin c158b065f3fb3559ef52b070a433c621adc0d21d:refs/heads/design/dx-23-glass-topbar
+git push origin 248bdcb4aa8194fe4fd66e1c353bc965dd9ef9fd:refs/heads/design/dx-24-board-drag
+git push origin 37828546afc583f89bd3d70de6d5b6cc45e7bf24:refs/heads/design/dx-25-done-moment
 ```
