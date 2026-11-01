@@ -2,6 +2,7 @@
 > **做了什么：** 审阅预览 10 的代码，按 `apple-design-skill`（Apple HIG）和 Emil 的 `apple-design`（WWDC 动效）审了现有的两条 onboarding（社长 `/#/setup`、社员 `/#/join`），写成执行策略 [`ONBOARDING_REDESIGN_STRATEGY.md`](ONBOARDING_REDESIGN_STRATEGY.md)：现状诊断（A1–A8、B1–B6，无 Critical）、六条设计原则、两条流程逐屏设计、动效与文案、不做什么、8 个工作包 OB-00…OB-07、验收门、6 个待决问题。**只写了文档，没有改任何代码或界面。**
 > **同日更新（Juanxi 补充，已采纳）：** Phase 3 参与者首次打开网站时先看到一个欢迎页，可选 **Start walkthrough**（走社长流程，再看一遍社员视角）或 **Explore the sample club**；不需要账号，靠浏览器里的一个小标记判断是否首次；默认关闭，关着时全站和今天一样，现有测试不用改。方案新增第 2b 节，问题增至 8 个（新增 Q7 参与者扮演谁、Q8 要不要记录 onboarding 过程）。原"Phase 3 期间旧的不动"的建议作废，改为"入口 + 旧屏加外壳是最小版，新流程赶上多少换多少"；**完整版赶不上 11/9 冻结的风险很大，我不承诺**，需要 Juanxi 给 Phase 3 的真实日期。
 > **关键事实：** ①社长第 3 步约 70 个输入框、页面高约 3,768px，且电话和 ASU ID 社长和干部各问一遍；②见证时刻（第一张流程图）只以折叠的文字列表出现；③邀请链接只在同一浏览器有效，真实注册要等 v1.5，方案里"身份"屏只留空位；④Phase 3 参与者走的就是这两个入口，IRB 把 onboarding 当观察对象，所以建议新流程做成并排网址（`/#/welcome`、`/#/invite`），旧的 `/#/setup`、`/#/join` 不动；⑤新流程要用预览 10 的动效 token，应先决定预览 10。
+> **第二次更新（Juanxi 答复）：** 11/6 为参考日；参与者都是社长，默认走社长流程，社员只做预览；onboarding 过程记在浏览器里。已把工作拆成 11 个包 OB-01…OB-10（含 worktree 并行图、独占文件、回滚）：[`onboarding-redesign/WORK_PACKAGES.md`](onboarding-redesign/WORK_PACKAGES.md)。**等 Juanxi 说"开始"并确认 Q2–Q6，才开始实现。**
 > **需要 Juanxi 决定：** Q1 入口必须赶在冻结前、新流程赶上多少换多少，以及 Phase 3 的确切日期（11/9 来自 10-29 的 M4 方案，没有重新核对）；Q2 社长不再填电话和 ASU ID；Q3 日历/Drive 链接和流程定制移出必经路径；Q4 邀请放到最后并显示 Invited/Joined；Q5 社员的职业目标等问题可跳过；Q6 与 `M4_ONBOARDING_PLAN` 分开、先决定预览 10。批准前不开始任何实现。
 > **没验证的：** 真机手指、Safari；AI 读章程只在本机无服务器函数时看过；"5 分钟/2 分钟"是计划目标，现状没有量过。**需要同步本地备份**（本会话没有连到 Juanxi 的电脑；`PROGRESS.md` 有改动）。
 
@@ -207,6 +208,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-11-01 | **Onboarding 改版（策略 `docs/ONBOARDING_REDESIGN_STRATEGY.md`）：** ①Phase 3 参与者**首次进入网站先看到欢迎页**，可选 Start walkthrough（走社长流程，再预览社员视角）或 Explore the sample club，不需要账号，默认关闭的开关控制；②**参与者都是社长**，默认先走社长流程，不做"我是社员"入口；③**onboarding 过程要记录在浏览器里**（独立本机 key，只记行为不记内容，参与者自己导出）；④以 **11/6 为参考**尽量做完，Phase 3 和冻结的确切日期未定。**尚未答复：** 策略第 9 节 Q2–Q6（建议见文档）。 | Juanxi |
 | 2026-11-01 | **v1.6 预览直接用 `claude/determined-johnson-yrdxwf` 分支**（Juanxi：不必是 `integration/v1.6`）。预览改为 PR #10；PR #9 关闭。这个分支名带 AI 名字，违反 `AGENTS.md` 8.1，但仅限本次预览，合并到 `main` 之前不改名（改名会毁掉 PR #10 的预览，见 8.2）。 | Juanxi |
 | 2026-11-01 | **批准界面与动效升级计划**（`docs/design-upgrade/`，27 个工作包 DX-01…27）。批准范围：建集成分支 `integration/v1.6` 并推送；之后按阶段逐个发起。K 表 5 个默认选择全部采用（手机底部导航 20b 不做、看板空列收窄要做、Events 窄屏不自动收右栏、h1 只改文档、动效力度克制）。每个包可单独回滚（R0–R5）。**没有批准**：合并到 `main`、20b、合并小样式文件（DX-27 第 3 步）、改动画力度。 | Juanxi |
 | 2026-10-29 | Contribution board 只保留 Impact 和 Reliability：Impact 用相对四色阶梯图形，Reliability 用单词＋状态色（Excellent / Good / Watch / New）；删除 Work unlocked 及其排名影响。人数超过 10 人时默认只展示前 10，提供显示全部的切换。 | Juanxi |
