@@ -1,2 +1,34 @@
-/* DX-04 touch-targets: empty until work package DX-04 fills it (docs/design-upgrade/work-packages/DX-04-touch-targets.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-04 touch targets (docs/design-upgrade/work-packages/DX-04-touch-targets.md).
+   Only for a coarse pointer (a finger): main controls get a 44px target, small controls inside tables and cards at least 32px.
+   Tiny dots and swatches keep their look; an invisible area around them grows. A desktop with a mouse does not change at all.
+   Not here: .ask-fab and .rail (DX-09). */
+@media (pointer: coarse) {
+  /* Main controls: 44px. */
+  :is(.btn, .chip, .icon-btn, .demo-pill, .seg button, .crm-seg button, .rail-tabs [role="tab"], .settings-nav button, .event-nav button, .sidenav a) {
+    min-height: 44px;
+  }
+  .icon-btn { min-width: 44px; justify-content: center; }
+  :is(select, input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"])) {
+    min-height: 44px;
+  }
+
+  /* Dense places (table rows, cards, small buttons): at least 32px. */
+  :is(.tbl, .board-card, .mini-card, .crm-card, .task-card, .menu, .m-menu) :is(.btn, .chip, select) {
+    min-height: 32px;
+  }
+  :is(.owner-chip button, .step-chip button, .focus-chip button) { min-width: 32px; min-height: 32px; }
+  :is(.check-label, .checks label, .who-picks label) { min-height: 32px; }
+
+  /* Small marks keep their size; the area you can hit around them grows to about 32px. */
+  .swatch::after { inset: -6px; }
+  .info::after { inset: -8px; }
+  .chain-btn::after { inset: -10px; }
+  /* A flow-chart dot is 24px with a 2.5px ring, and the invisible area starts inside the ring: -6.5px makes it 32px. */
+  .m-dot::after { inset: -6.5px; }
+  .heat-cell { min-height: 32px; }
+  .risk { position: relative; }
+  .risk::after { content: ""; position: absolute; inset: -9px; }
+  /* A text link in a card header: taller to hit, but the line stays where it was. */
+  a.small { display: inline-block; padding-block: 5px; margin-block: -5px; }
+  .btn.small:not(.icon-btn) { min-width: 32px; }
+}
