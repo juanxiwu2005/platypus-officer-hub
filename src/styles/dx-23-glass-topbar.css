@@ -1,2 +1,50 @@
-/* DX-23 glass-topbar: empty until work package DX-23 fills it (docs/design-upgrade/work-packages/DX-23-glass-topbar.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-23 glass top bar and shadow levels (docs/design-upgrade/work-packages/DX-23-glass-topbar.md).
+   1. The top bar is a floating layer: the page scrolls under it and shows through, blurred. Its bottom line only appears once
+      the page has scrolled (data-scrolled).
+   2. Three shadow levels, bigger things cast bigger shadows (--elev-1/2/3), replacing six hand-written shadows.
+   Only the bar is translucent. Menus, hover cards, the details panel and cards stay solid: translucent on translucent loses the text.
+   Fallbacks to a solid bar: no backdrop-filter in the browser, "reduce transparency", "more contrast". No hex colours: shadows use rgb(0 0 0 / x). */
+:root {
+  --elev-1: 0 1px 2px rgb(0 0 0 / .06), 0 2px 6px rgb(0 0 0 / .05);
+  --elev-2: 0 4px 12px rgb(0 0 0 / .10), 0 12px 28px rgb(0 0 0 / .08);
+  --elev-3: 0 12px 40px rgb(0 0 0 / .18);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --elev-1: 0 1px 2px rgb(0 0 0 / .35), 0 2px 6px rgb(0 0 0 / .30);
+    --elev-2: 0 4px 12px rgb(0 0 0 / .45), 0 12px 28px rgb(0 0 0 / .35);
+    --elev-3: 0 12px 40px rgb(0 0 0 / .55);
+  }
+}
+:root[data-theme="dark"] {
+  --elev-1: 0 1px 2px rgb(0 0 0 / .35), 0 2px 6px rgb(0 0 0 / .30);
+  --elev-2: 0 4px 12px rgb(0 0 0 / .45), 0 12px 28px rgb(0 0 0 / .35);
+  --elev-3: 0 12px 40px rgb(0 0 0 / .55);
+}
+
+/* The top bar. */
+.topbar {
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom-color: transparent;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.topbar[data-scrolled="true"] { border-bottom-color: var(--line); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topbar { background: var(--surface); border-bottom-color: var(--line); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .topbar { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom-color: var(--line); }
+}
+@media (prefers-contrast: more) {
+  .topbar { background: var(--surface); -webkit-backdrop-filter: none; backdrop-filter: none; border-bottom-color: color-mix(in srgb, var(--ink) 40%, transparent); }
+}
+
+/* Shadow levels on the floating things. (.ask-fab belongs to DX-09, .hover-card stays as it is.) */
+.menu, .m-menu, .owner-suggest, .panel { box-shadow: var(--elev-2); }
+.toast { box-shadow: var(--elev-3); }
+@media (max-width: 1199px) {
+  .rail { box-shadow: var(--elev-3); }
+}
+.rail .panel { box-shadow: none; }
