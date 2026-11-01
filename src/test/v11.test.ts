@@ -7,6 +7,7 @@ import { computeSchedule } from "../engine/schedule"
 import { sanitizeCards, stripDates } from "../lib/chatCards"
 import { commandContext } from "../lib/commands"
 import { keywordRules, respond, taskList } from "../lib/assistant"
+import { presetSteps, stepsAsNodes } from "../engine/workflow"
 
 const base = seedDemo("2026-10-22")
 const as = (id: string) => ({ ...base, viewerId: id })
@@ -72,6 +73,14 @@ describe("five-route event flow chart", () => {
   it("uses one side only on a phone", () => {
     const L = metroLayout(base, computeSchedule(base), "e-speaker", false)
     expect(L.branches.every(b => b.row > 0)).toBe(true)
+  })
+  it("keeps all phone workflow routes in distinct lanes, including Event Lead and Special Event", () => {
+    const workflow = { ...base, nodes: stepsAsNodes(presetSteps(), "e-night") }
+    const layout = metroLayout(workflow, computeSchedule(workflow), "e-night", false)
+    const rows = layout.branches.map(branch => branch.row)
+    expect(layout.branches.map(branch => branch.id)).toEqual(expect.arrayContaining(["event-lead", "special-event"]))
+    expect(new Set(rows).size).toBe(rows.length)
+    expect(Math.min(...rows)).toBeGreaterThan(0)
   })
   it("keeps approved pre-event routes distinct while they share Start and Full Check", () => {
     const L = metroLayout(base, computeSchedule(base), "e-night")

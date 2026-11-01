@@ -145,13 +145,11 @@ test("keyboard: Alt + arrow moves a step one place; the menu key opens the actio
   await expect(page.getByTestId("flow-menu")).toContainText("Budget")
 })
 
-test("no accessibility violations while editing, and with the action menu open", async ({ page }, info) => {
+test("no accessibility violations while editing, and with the action menu open", async ({ page }) => {
   const scan = async () => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(x => `${x.id}: ${x.nodes.map(n => n.target.join(" ")).join(" | ")}`)
   await page.getByTestId("flow-edit-toggle").click()
   expect(await scan()).toEqual([])
   await act(page, "budget")
   await expect(page.getByTestId("flow-menu")).toBeVisible()
-  // On a phone the open menu floats over small dots that sit close together; axe's target-size rule reads that overlap as a violation. The menu itself is checked there too.
-  const found = await scan()
-  expect(info.project.name === "mobile" ? found.filter(v => !v.startsWith("target-size: button[data-testid=\"flow-node-")) : found).toEqual([])
+  expect(await scan()).toEqual([])
 })

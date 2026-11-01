@@ -11,6 +11,7 @@ import { useStore } from "../../data/store"
 import { nextCounter } from "../../lib/ids"
 import { cannotDelete, flowGaps, flowTracks, moveBetween, unlinkSteps, type Gap } from "../../lib/flowEdit"
 import { ancestorsOf, doAfter, type EditResult, type StepEdit } from "../../lib/stepOrder"
+import { isolateDialog, trapTabKey } from "../../lib/focus"
 
 const SHORT: Record<string, string> = {
   plan: "Event plan", backup: "Back-up plan", venuechoice: "Candidate venue", registry: "Event Registry", venue: "Book room",
@@ -195,11 +196,24 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const openGap = (g: Gap, e: { clientX: number; clientY: number }) => setMenu({ kind: "gap", gap: g, x: e.clientX, y: e.clientY + 12 })
   useEffect(() => {
     if (!menu) return
-    menuRef.current?.querySelector<HTMLElement>("button:not([disabled]), select")?.focus({ preventScroll: true })
+    const dialog = menuRef.current
+    if (!dialog) return
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    dialog.querySelector<HTMLElement>("button:not([disabled]), select")?.focus({ preventScroll: true })
+    const restoreBackground = isolateDialog(dialog)
     const away = (e: PointerEvent) => { if (!menuRef.current?.contains(e.target as globalThis.Node)) setMenu(null) }
-    const esc = (e: globalThis.KeyboardEvent) => { if (e.key === "Escape") setMenu(null) }
+    const esc = (e: globalThis.KeyboardEvent) => {
+      trapTabKey(e, dialog)
+      if (e.key === "Escape" && !e.defaultPrevented) { e.preventDefault(); e.stopPropagation(); setMenu(null) }
+    }
     document.addEventListener("pointerdown", away); document.addEventListener("keydown", esc)
-    return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc) }
+    return () => {
+      document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc)
+      restoreBackground()
+      setTimeout(() => {
+        if (opener?.isConnected && (document.activeElement === document.body || dialog.contains(document.activeElement))) opener.focus()
+      }, 0)
+    }
   }, [menu])
   useEffect(() => { history.current = []; setMenu(null); setMsg(null) }, [eventId])
   useEffect(() => {
@@ -261,7 +275,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const label = tpl ? tpl.lines(n).join(". ") + "." : `${n.title}. ${styles[n.status].label}. Owner ${owner ?? "none"}. Club deadline ${plan ? fmtShort(plan.club) : "pending"}${plan?.official ? `, ASU deadline ${fmtShort(plan.official)}` : ""}.${issue ? ` ${issue.text}` : ""}`
     const kind = SITUATION_KEYS.has(n.stepKey ?? "") ? "situation" : "baseline"
     return <div key={n.id} className={`m-node ${labelSide} ${n.id === selectedId ? "is-selected" : ""}${drag?.id === n.id ? " is-dragging" : ""}`} style={{ left: p.x, top: p.y }}>
-      <button type="button" className={`m-dot ${kind} ${st} ${issue ? `has-${issue.severity}` : ""}${mark ? ` mark-${mark}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}. ${kind === "baseline" ? "Core event step." : "Situation-based step."}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
+      <button type="button" className={`m-dot ${kind} ${st} ${issue ? `has-${issue.severity}` : ""}${mark ? ` mark-${mark}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch && e.detail > 0) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}. ${kind === "baseline" ? "Core event step." : "Situation-based step."}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
         onPointerDown={e => onDown(e, n.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onDoubleClick={e => openNode(n.id, e)} onContextMenu={e => { if (on) { e.preventDefault(); openNode(n.id, e) } }} onKeyDown={e => onKey(e, n.id)} />
       <span className="m-label" aria-hidden="true"><b>{shortTitle(n)}</b><span>{tpl ? tpl.sublabel(n) : firstName(state, n.ownerId)}</span></span>
       <span className="m-card" role="tooltip">
@@ -321,7 +335,12 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
           const upstream = n.dependsOn.map(d => byId.get(d)).filter((x): x is Node => !!x)
           return <div className="m-menu" ref={menuRef} role="dialog" aria-modal="true" aria-label={`Actions for ${n.title}`} style={{ left, top }} data-testid="flow-menu">
             <b>{n.title}</b>
-            {touch && <button type="button" className="btn small" onClick={() => { setMenu(null); onSelect(n.id) }}>Open details</button>}
+            {touch && <button type="button" className="btn small" onClick={() => {
+              const trigger = canvasRef.current?.querySelector<HTMLElement>(`[data-testid="flow-node-${CSS.escape(n.stepKey ?? n.id)}"]`)
+              setMenu(null)
+              // Let the modal release its inert background before opening the rail, so it can remember the step.
+              setTimeout(() => { trigger?.focus(); onSelect(n.id) }, 0)
+            }}>Open details</button>}
             <button type="button" className="btn small" onClick={() => addAt(n.id, next && next.key !== EVENT_KEY && next.key !== END_KEY ? next.node?.id ?? null : null)}>Add a step after this one</button>
             <button type="button" className="btn small" disabled={!prev || prev.key === EVENT_KEY} onClick={() => addAt(prev?.node?.id ?? null, n.id)}>Add a step before this one</button>
             <button type="button" className="btn small" disabled={!!block} onClick={() => removeStep(n.id)} aria-describedby={block ? "m-menu-why" : undefined}>Delete this step</button>

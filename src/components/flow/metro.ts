@@ -97,19 +97,21 @@ export function metroLayout(state: DemoState, _sched: Schedule, eventId: string,
   const finalIndex = final ? 1 : 0
   const headcountIndex = stations.findIndex(s => s.node?.id === headcount?.id)
   const endIndex = stations.length - 1
-  const branchRow = (row: number, offset: number) => bothSides ? row : Math.max(1, Math.abs(row) * 2 + offset)
   const branches: Branch[] = []
-  pre.forEach(({ route, nodes: routeNodes }, index) => {
+  // On a phone every active route needs its own column to the right of the main line.
+  // Folding signed desktop rows with abs() can put unrelated routes in the same lane.
+  const branchRow = (row: number) => bothSides ? row : branches.length + 1
+  pre.forEach(({ route, nodes: routeNodes }) => {
     if (!routeNodes.length || !final) return
     const ordered = [...routeNodes].sort((a, b) => byRouteOrder(route, a, b))
     const columns = progressColumns(ordered, preStart, preEnd)
-    branches.push({ id: route.id, fn: ordered[0].fn, from: 0, to: finalIndex, row: branchRow(preRows.get(route.id) ?? route.row, index), nodes: ordered.map((node, i) => ({ node, col: columns[i] })) })
+    branches.push({ id: route.id, fn: ordered[0].fn, from: 0, to: finalIndex, row: branchRow(preRows.get(route.id) ?? route.row), nodes: ordered.map((node, i) => ({ node, col: columns[i] })) })
   })
-  post.forEach(({ route, nodes: routeNodes }, index) => {
+  post.forEach(({ route, nodes: routeNodes }) => {
     if (!routeNodes.length || headcountIndex < 0) return
     const ordered = [...routeNodes].sort((a, b) => byRouteOrder(route, a, b))
     const columns = progressColumns(ordered, postStart, postEnd)
-    branches.push({ id: route.id, fn: ordered[0].fn, from: headcountIndex, to: endIndex, row: branchRow(postRows.get(route.id) ?? route.row, index + pre.length), nodes: ordered.map((node, i) => ({ node, col: columns[i] })) })
+    branches.push({ id: route.id, fn: ordered[0].fn, from: headcountIndex, to: endIndex, row: branchRow(postRows.get(route.id) ?? route.row), nodes: ordered.map((node, i) => ({ node, col: columns[i] })) })
   })
   const rows = branches.map(branch => branch.row)
   return { stations, branches, cols: stations.at(-1)!.col, minRow: Math.min(0, ...rows), maxRow: Math.max(0, ...rows) }

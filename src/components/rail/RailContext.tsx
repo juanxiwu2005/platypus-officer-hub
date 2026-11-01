@@ -72,10 +72,10 @@ export function RailProvider({ children }: { children: ReactNode }) {
     if (wide()) try { window.localStorage.setItem(OPEN_KEY, v ? "1" : "0") } catch { /* storage unavailable */ }
   }, [])
   const show = useCallback((d: Detail) => {
-    if (!detailOpen.current) {
-      const a = document.activeElement
-      returnFocus.current = a instanceof HTMLElement && a !== document.body && !a.closest(".rail") ? a : null
-    }
+    const a = document.activeElement
+    // A new page trigger replaces the previous one; nested editors inside the rail keep that page trigger.
+    if (a instanceof HTMLElement && a !== document.body && !a.closest(".rail")) returnFocus.current = a
+    else if (!detailOpen.current) returnFocus.current = null
     detailOpen.current = true
     setDetail(d)
     setTab("details")

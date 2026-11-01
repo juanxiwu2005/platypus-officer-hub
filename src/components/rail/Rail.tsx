@@ -8,6 +8,7 @@ import { TaskDetail } from "../TaskDetail"
 import { useViewer } from "../../data/store"
 import { Empty } from "../ui"
 import { RouteLoading } from "../RouteLoading"
+import { trapTabKey } from "../../lib/focus"
 
 // Ask, task details and reminders stay eager for Today. Auxiliary editors load when opened.
 const FundingDetail = lazy(() => import("../../pages/Funding").then(module => ({ default: module.FundingDetail })))
@@ -57,7 +58,11 @@ export function Rail() {
   const hasDetail = !!detail
   useEffect(() => {
     if (!window.matchMedia?.("(max-width: 1199px)").matches) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !hasDetail) rail.setOpen(false) }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return
+      if (aside.current) trapTabKey(e, aside.current)
+      if (e.key === "Escape" && !hasDetail) rail.setOpen(false)
+    }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [hasDetail, rail])
@@ -97,7 +102,7 @@ function DetailView() {
   }
   useEffect(() => {
     if (d.kind === "nudge") return // NudgeComposer handles Escape itself
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close()
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) close() }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   })

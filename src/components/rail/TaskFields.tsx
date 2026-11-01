@@ -72,7 +72,7 @@ export function OwnerPicker({ value, onChange }: { value: string[]; onChange: (i
         onKeyDown={e => {
           if (e.key === "Enter" || e.key === "Tab") { if (query.trim()) { e.preventDefault(); commit([query]); setQuery("") } }
           else if (e.key === "Backspace" && !query && value.length) onChange(value.slice(0, -1))
-          else if (e.key === "Escape") setOpen(false)
+          else if (e.key === "Escape" && open) { e.preventDefault(); e.stopPropagation(); setOpen(false) }
         }} />
       <button type="button" className="owner-toggle" aria-label="Show everyone" aria-expanded={open} onMouseDown={e => e.preventDefault()} onClick={e => { e.stopPropagation(); setOpen(!open); input.current?.focus() }}>▾</button>
     </div>
