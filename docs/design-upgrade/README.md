@@ -121,6 +121,8 @@ agent 照下面执行（Juanxi 不需要懂这些命令）。
 | **R4 整套回到改之前** | 对所有 `dx/dx-*-merged` 从后往前 R2；或者（需要 Juanxi 明确说"可以强制重置"）`git reset --hard dx/phase-1-before` 再 `git push --force-with-lease`。默认用 R2，不用重置 | 整合人 |
 | **R5 线上救急（已经上线 `main` 之后）** | 在 Netlify 网页的 Deploys 里选改之前的那个版本，点 Publish deploy（需要 Juanxi 本人在 Netlify 里点；之后要把自动发布重新打开）。然后再用 R2 在代码里正式撤销 | Juanxi |
 
+**有修复提交的包要先撤修复：** 合并后又补了修复提交的包（见 `ROLLBACK_LOG.md` 里的表），必须先撤修复提交再撤合并，否则会冲突。
+
 **依赖要先撤：** 撤一个工作包之前，先看 `PHASES.md` 的依赖表。如果别的工作包依赖它，要先撤那些（从后往前）。
 
 **再做一遍：** 撤销之后又想要回来，对那个"反向提交"再 `git revert` 一次即可。

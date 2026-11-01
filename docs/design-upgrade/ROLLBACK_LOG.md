@@ -19,11 +19,11 @@
 | DX-12 | **已合并**（阶段 2）| `e8ff3ec` | `dx/dx-12-merged` | 2026-11-01 | `git revert -m 1 dx/dx-12-merged` | |
 | DX-13 | **已合并**（阶段 2）| `4b118e7` | `dx/dx-13-merged` | 2026-11-01 | `git revert -m 1 dx/dx-13-merged` | |
 | DX-14 | **已合并**（阶段 2）| `d83af1f` | `dx/dx-14-merged` | 2026-11-01 | `git revert -m 1 dx/dx-14-merged` | |
-| DX-15 | 未开始 | | `dx/dx-15-merged` | | `git revert -m 1 dx/dx-15-merged` | |
-| DX-16 | 未开始 | | `dx/dx-16-merged` | | `git revert -m 1 dx/dx-16-merged` | |
-| DX-17 | 未开始 | | `dx/dx-17-merged` | | `git revert -m 1 dx/dx-17-merged` | |
-| DX-18 | 未开始 | | `dx/dx-18-merged` | | `git revert -m 1 dx/dx-18-merged` | |
-| DX-19 | 未开始 | | `dx/dx-19-merged` | | `git revert -m 1 dx/dx-19-merged` | |
+| DX-15 | **已合并**（阶段 3）| `d89d959` | `dx/dx-15-merged` | 2026-11-01 | `git revert -m 1 dx/dx-15-merged` | |
+| DX-16 | **已合并**（阶段 3）| `e6618b8` | `dx/dx-16-merged` | 2026-11-01 | `git revert -m 1 dx/dx-16-merged` | |
+| DX-17 | **已合并**（阶段 3）| `8613954` | `dx/dx-17-merged` | 2026-11-01 | `git revert -m 1 dx/dx-17-merged` | |
+| DX-18 | **已合并**（阶段 3）| `12f079e` | `dx/dx-18-merged` | 2026-11-01 | `git revert -m 1 dx/dx-18-merged` | |
+| DX-19 | **已合并**（阶段 3）| `a5fcff5` | `dx/dx-19-merged` | 2026-11-01 | `git revert -m 1 dx/dx-19-merged` | |
 | DX-20 | 未开始（20a / 20b 分两个提交，可单独撤）| | `dx/dx-20-merged` | | `git revert -m 1 dx/dx-20-merged` | |
 | DX-21 | 未开始 | | `dx/dx-21-merged` | | `git revert -m 1 dx/dx-21-merged` | |
 | DX-22 | 未开始 | | `dx/dx-22-merged` | | `git revert -m 1 dx/dx-22-merged` | |
@@ -41,7 +41,20 @@
 | `dx/phase-0-before` | 阶段 0 开始前（= baseline）| 仅本地 |
 | `dx/phase-1-before` | 阶段 1 开始前（`8c70057`）| 仅本地 |
 | `dx/phase-2-before` | 阶段 2 开始前（`17af284`）| 仅本地 |
-| `dx/phase-3-before` … `dx/phase-6-before` | 每个阶段开始前集成分支的位置 | 未到 |
+| `dx/phase-3-before` | 阶段 3 开始前（`a13f037`）| 仅本地 |
+| `dx/phase-4-before` … `dx/phase-6-before` | 每个阶段开始前集成分支的位置 | 未到 |
+
+## ⚠ 有"后续修复提交"的包：撤的时候要**先撤修复，再撤包**
+
+合并之后在整合检查或看截图时发现问题、又补了修复提交的包，修复提交改的是同一批行。直接撤包的合并提交会**冲突**（已实测：DX-10、DX-16 都冲突）。正确顺序是**先撤修复提交，再撤合并**：
+
+| 要撤的包 | 先撤这些修复提交（新的在前）| 再撤 |
+| --- | --- | --- |
+| DX-10 | `git revert --no-edit 6f62b17` | `git revert -m 1 dx/dx-10-merged` |
+| DX-15 | `git revert --no-edit a8775e6` | `git revert -m 1 dx/dx-15-merged` |
+| DX-16 | `git revert --no-edit 3972412`，再 `git revert --no-edit a8775e6`（它同时改了 DX-16 的样式）| `git revert -m 1 dx/dx-16-merged` |
+
+（`a8775e6` 同时修了 DX-15 和 DX-16，所以撤其中任何一个都要先撤它；撤 DX-15 但保留 DX-16 时，需要手工保留 DX-16 那部分，遇到这种情况请整合人单独处理。）
 
 ## 回滚演练记录
 
@@ -50,6 +63,7 @@
 | 2026-11-01 | 在临时 worktree 里对集成分支顶端先后执行 `git revert -m 1 dx/dx-02-merged`、`git revert -m 1 dx/dx-01-merged`，每步之后跑 `tsc` | 两步都干净、无冲突；撤 DX-02 后 `Layout.tsx` 回到 168 行；两个都撤后，`src`、`package.json`、`playwright.config.ts`、`.stylelintrc.json`、`scripts`、`.gitignore` 与 `77c94ee` **逐字一致**（`git diff` 为空）。临时 worktree 已丢弃，没有推送 |
 | 2026-11-01 | 阶段 1：在临时 worktree 里对合并后的历史从后往前执行 `git revert -m 1 dx/dx-08-merged` … `dx-03-merged`（六个）| 六步都干净、无冲突；`tsc` 通过；撤完后 `src`、`package.json`、`playwright.config.ts`、`.stylelintrc.json`、`scripts`、`index.html`、`.gitignore`、`e2e` 与 `dx/phase-1-before` **逐字一致**。另测只撤 DX-05：干净，`tsc` 通过，`RISK_SHAPE` 已消失。临时 worktree 已丢弃 |
 | 2026-11-01 | 阶段 2：在临时 worktree 里对合并后的历史从后往前执行 `git revert -m 1 dx/dx-14-merged` … `dx-09-merged`（六个）| 六步都干净；`tsc` 通过；撤完后 `src`、配置、`scripts`、`index.html`、`e2e` 与 `dx/phase-2-before` **逐字一致**。只撤 DX-09 也干净。**注意**：这次演练是在 DX-10 修复提交之前做的；修复提交只动 `dx-10-menu-motion.css` 和 `e2e/helpers.ts`，撤 DX-10 时要连它一起撤（否则 helpers 里的 `aria-expanded` 改动会留下，无害）|
+| 2026-11-01 | 阶段 3：对合并后的历史先撤两个修复提交，再从后往前撤 `dx-19-merged` … `dx-15-merged`（五个）| 全部干净；`tsc` 通过；撤完后与 `dx/phase-3-before` **逐字一致**。单撤 DX-17 也干净。**同时发现**：不先撤修复，直接撤 DX-16 会冲突；回头验证 DX-10 同样会冲突（上面的表）|
 
 ## 为什么这个会话推不了其他分支和标签（2026-11-01 调查）
 
@@ -86,7 +100,13 @@ git tag dx/dx-11-merged b54de9b817e5d3b19ea4eb6882d8b4757643df02
 git tag dx/dx-12-merged e8ff3ec1c24d20fa5c4fb764456f8e6102d4e802
 git tag dx/dx-13-merged 4b118e700c448aed1e624f326f3c106e64e47162
 git tag dx/dx-14-merged d83af1fbd7e2d85ea0a32eb4a39c9dc168138967
-git push origin dx/baseline dx/phase-0-before dx/phase-1-before dx/phase-2-before dx/dx-01-merged dx/dx-02-merged dx/dx-03-merged dx/dx-04-merged dx/dx-05-merged dx/dx-06-merged dx/dx-07-merged dx/dx-08-merged dx/dx-09-merged dx/dx-10-merged dx/dx-11-merged dx/dx-12-merged dx/dx-13-merged dx/dx-14-merged
+git tag dx/phase-3-before a13f037ca61a24f8731624d48b53d5d13f77b538
+git tag dx/dx-15-merged d89d95989e361f9f3f9ba9d0316c841850f8b28d
+git tag dx/dx-16-merged e6618b8058ae3b98cc4dca36834f511071ff23d1
+git tag dx/dx-17-merged 8613954992e0888674eb58fb4cc9c13d9965c880
+git tag dx/dx-18-merged 12f079e23cd52153e54ee40692f420a0ed205e0b
+git tag dx/dx-19-merged a5fcff5e436bfe4e0b5286603aeb084cac2c3faa
+git push origin dx/baseline dx/phase-0-before dx/phase-1-before dx/phase-2-before dx/phase-3-before dx/dx-01-merged dx/dx-02-merged dx/dx-03-merged dx/dx-04-merged dx/dx-05-merged dx/dx-06-merged dx/dx-07-merged dx/dx-08-merged dx/dx-09-merged dx/dx-10-merged dx/dx-11-merged dx/dx-12-merged dx/dx-13-merged dx/dx-14-merged dx/dx-15-merged dx/dx-16-merged dx/dx-17-merged dx/dx-18-merged dx/dx-19-merged
 # 2. 工作包分支（可选；这些提交已经在 claude/determined-johnson-yrdxwf 的历史里）
 git push origin 8a941e68f9039cd90230d88fa169e1ee26138ad7:refs/heads/design/dx-01-foundation
 git push origin 84f29c19f84c85363fcd08a36d5bd26b68106564:refs/heads/design/dx-02-split-layout
@@ -102,4 +122,9 @@ git push origin e6c5009a9af33c3faa3b6046541aab8d40bed4d8:refs/heads/design/dx-11
 git push origin 1eb3aea9852b3321b67604dd686c63fc064878b8:refs/heads/design/dx-12-touch-hover-sheet
 git push origin eb707ae248c3b6daea3b7d98eee595d22109c57f:refs/heads/design/dx-13-details-motion
 git push origin 3efe52c5a39b683637337ba92fbfc7e03e46f7f4:refs/heads/design/dx-14-loading-skeleton
+git push origin 5dbb0fad003d98e92394c964cf5a25673ea557a5:refs/heads/design/dx-15-events-layout
+git push origin 23a2ccf8c586b484eb262d42dff151e48d48468a:refs/heads/design/dx-16-board-layout
+git push origin 0372acdce350361b135ac7fb75460f070134491c:refs/heads/design/dx-17-ask-panel
+git push origin 7c58010e7b874867de82442113efda53b11c99ae:refs/heads/design/dx-18-empty-states
+git push origin 22eb91f8207d19e9debcf5740af8b095ec3a2652:refs/heads/design/dx-19-detail-swap
 ```
