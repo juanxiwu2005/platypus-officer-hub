@@ -1,3 +1,8 @@
+> **2026-11-01 · 修复（Juanxi 反馈）· Events 页左边一大块空白（Claude）**
+> **原因：** 所有页面的内容区 `main` 是"最宽 1180px、居中"。宽屏（≥1728px）且右栏关着时，内容区两边各留出很宽的空地，Events 的活动列表就离左边导航很远（实测右栏关着：1728px 宽时空 172px，1920px 时 268px，2560px 时 588px）。**修法：** 只对 Events 页（`main:has(> .events-layout)`）改成最宽 1600px、靠左对齐，列表紧贴导航；空地移到右边。其他页面没动（仍居中）。新测试 `e2e/events-gap.spec.ts`（1440/1728/1920/2560 宽 × 右栏开/关，8 个）：列表离导航不超过 32px；去掉修复后 4 个宽屏+右栏关的会变红。
+> **测试：** Events 相关的 8 个文件（含 a11y、dx-15/16/22、flow-edit、wp5、word-budgets）桌面+手机 127 通过 / 33 跳过 / 0 失败；`npm run lint` 通过。**这次没有再跑完整 `npm run check`**（只改了一条 CSS 和一个新测试）。
+> **没验证的：** 你看到的具体窗口宽度我不知道，按你截图的比例推断是 1700–1900px 且右栏关着。其他页面（Today、Tasks 等）在这种宽度下仍然居中、两边留白；如果你也想让它们靠左，告诉我。
+
 > **2026-11-01 · Onboarding 改版执行策略（两条流程）· 待 Juanxi 审批（Claude）**
 > **做了什么：** 审阅预览 10 的代码，按 `apple-design-skill`（Apple HIG）和 Emil 的 `apple-design`（WWDC 动效）审了现有的两条 onboarding（社长 `/#/setup`、社员 `/#/join`），写成执行策略 [`ONBOARDING_REDESIGN_STRATEGY.md`](ONBOARDING_REDESIGN_STRATEGY.md)：现状诊断（A1–A8、B1–B6，无 Critical）、六条设计原则、两条流程逐屏设计、动效与文案、不做什么、8 个工作包 OB-00…OB-07、验收门、6 个待决问题。**只写了文档，没有改任何代码或界面。**
 > **同日更新（Juanxi 补充，已采纳）：** Phase 3 参与者首次打开网站时先看到一个欢迎页，可选 **Start walkthrough**（走社长流程，再看一遍社员视角）或 **Explore the sample club**；不需要账号，靠浏览器里的一个小标记判断是否首次；默认关闭，关着时全站和今天一样，现有测试不用改。方案新增第 2b 节，问题增至 8 个（新增 Q7 参与者扮演谁、Q8 要不要记录 onboarding 过程）。原"Phase 3 期间旧的不动"的建议作废，改为"入口 + 旧屏加外壳是最小版，新流程赶上多少换多少"；**完整版赶不上 11/9 冻结的风险很大，我不承诺**，需要 Juanxi 给 Phase 3 的真实日期。
