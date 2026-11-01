@@ -64,7 +64,7 @@ export default function Rules() {
             <button type="button" className="btn small icon-btn" aria-label={`Ask Platypus about ${source.officialName} · ${source.recordId}`} title="Ask Platypus" onClick={() => rail.ask(`What does ${source.officialName} cover, and how could it apply to our event?`, true)}><ChatIcon /></button>
           </span>
         </li>)}
-      </ul> : <Empty>No matching source.</Empty>}
+      </ul> : <Empty>No matching source.{(query.trim() !== "" || tab !== "all") && <> <button type="button" className="link" onClick={() => { setQuery(""); setTab("all"); setPage(0) }}>Clear filters</button></>}</Empty>}
     </section>
   </>
 }
