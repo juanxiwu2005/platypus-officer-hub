@@ -1,2 +1,17 @@
-/* DX-11 toast-motion: empty until work package DX-11 fills it (docs/design-upgrade/work-packages/DX-11-toast-motion.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-11 toast motion (docs/design-upgrade/work-packages/DX-11-toast-motion.md).
+   Rises 8px while fading in, fades out when its 2.4 seconds are over. It leaves room for the home indicator and, on a phone,
+   stays narrow enough not to cover the round Ask button (52px + its 18px margin). */
+.toast {
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  max-width: calc(100vw - 96px);
+  transform: translate(-50%, 0);
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.toast[data-state="closed"] {
+  opacity: 0;
+  transform: translate(-50%, 8px);
+  pointer-events: none;
+}
+@starting-style {
+  .toast { opacity: 0; transform: translate(-50%, 8px); }
+}
