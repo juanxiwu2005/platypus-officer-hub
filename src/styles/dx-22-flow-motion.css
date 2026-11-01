@@ -1,2 +1,21 @@
-/* DX-22 flow-motion: empty until work package DX-22 fills it (docs/design-upgrade/work-packages/DX-22-flow-motion.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-22 flow chart motion (docs/design-upgrade/work-packages/DX-22-flow-motion.md).
+   Before: the steps were placed with left/top and moved with `transition: left .3s ease, top .3s ease`. Those two properties make
+   the browser lay the page out again every frame, and the lines (drawn from the same numbers) jumped to the new places at once
+   while the dots slid. Now the steps sit at left:0/top:0 and are placed with a transform, glide with the spring when a step has
+   been moved, and the lines dim while they do. A window resize or the first draw does not glide. The drag helpers keep following
+   the pointer exactly (they are not animated). This file owns .m-node, .m-gap, .m-ghost and .metro. */
+.metro .m-node {
+  left: 0;
+  top: 0;
+  transform: translate(var(--x, 0px), var(--y, 0px));
+  transition: none;
+}
+.metro.is-settling .m-node {
+  transition: transform var(--spring-ui-dur) var(--spring-ui);
+}
+.metro svg { transition: opacity var(--dur-fast) var(--ease-out); }
+.metro.is-settling svg { opacity: .35; }
+
+/* The diamond a step can be dropped on grows by scaling, not by changing its size. */
+.m-gap { transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-press) var(--ease-out); }
+.m-gap.is-near { width: 14px; height: 14px; transform: translate(-50%, -50%) rotate(45deg) scale(1.57); }
