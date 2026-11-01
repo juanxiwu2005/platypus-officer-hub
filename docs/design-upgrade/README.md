@@ -1,6 +1,6 @@
 # 界面与动效升级计划（design-upgrade）
 
-> **状态：待 Juanxi 批准。** 批准之前不开工、不改任何代码。这份计划只是文档，没有改动任何界面。
+> **状态：Juanxi 已于 2026-11-01 批准**（见 `docs/PROGRESS.md` 决定记录）。集成分支 `design/ux-upgrade` 已建。批准范围不含：合并到 `main`、DX-20 的 20b、DX-27 的"合并小样式文件"。
 > 来源：2026-11-01 对 `main@c3c9394` 的审阅（用 Apple Design 两个 Skill：`dickwu/apple-design-skill` 和 `emilkowalski/skills` 里的 `apple-design`）。
 > 依据：真实截图（桌面 1440、手机 390、深色）、浏览器里量到的计算样式、对 `src/styles.css` 和相关组件的逐行阅读。
 
