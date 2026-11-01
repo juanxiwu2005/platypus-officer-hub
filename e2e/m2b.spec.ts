@@ -1,24 +1,34 @@
 import { expect, test } from "@playwright/test"
 import { ask, openDemoMenu } from "./helpers"
+import { savedDemo } from "./demo-contract"
+import { addDays } from "../src/lib/dates"
 
 /**
- * M2b (Juanxi, 2026-10-27): a task sentence opens the task form, never the event workflow; tasks are open to every
- * officer; the event form asks only name, date, people, food yes/no, speaker and details; a new event gets a plan check.
+ * M2b (Juanxi): a task sentence opens the task form, never the event workflow; tasks are open to every
+ * officer; the event form asks for name, date, people, food, speaker, a situation checklist and details; a new event gets a plan check.
  * The AI service is not reachable here, so these run on the app's own grammar (the fallback).
  */
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
+  await page.route("**/api/chat", r => r.fulfill({ status: 503, json: {} }))
+})
+
 test("a task sentence opens the task form; owners are tags; it creates at once with Undo", async ({ page }) => {
   await page.goto("/#/")
+  const initial = await savedDemo(page)
   await ask(page, "Create an executable task: order name tags for Maya")
   const form = page.getByTestId("task-form")
   await expect(form).toBeVisible()
   await expect(page.getByTestId("plan-form")).toHaveCount(0)
   await expect(form.getByLabel("Task name")).toHaveValue("Order name tags")
   await expect(form.locator(".owner-chip")).toHaveText(["Maya Chen×"])
-  await expect(form.getByLabel("Due date")).toHaveValue("2026-10-27")
+  await expect(form.getByLabel("Due date")).toHaveValue(addDays(initial.today, initial.org.settings.taskDueDays ?? 5))
   await expect(form.getByTestId("club-deadline")).toContainText("Club deadline")
   const owners = form.getByRole("combobox", { name: "Owners" }).or(form.getByLabel("Owners"))
   await owners.fill("Jordan, Treas")
   await owners.press("Enter")
+  await owners.press("Tab")
+  await expect(form.getByRole("listbox", { name: "People and roles" })).toHaveCount(0)
   await expect(form.locator(".owner-chip")).toHaveCount(3)
   await expect(form.getByRole("button", { name: "Create 2 tasks" })).toBeVisible()
   await form.getByRole("button", { name: "Create 2 tasks" }).click()
@@ -44,10 +54,11 @@ test("the event form asks only what changes the plan, then the plan is checked",
   await ask(page, "Plan a new event")
   const form = page.getByTestId("plan-form")
   await expect(form.getByLabel("Type")).toHaveCount(0)
-  await expect(form.getByLabel("Funding")).toHaveCount(0)
+  await expect(form.getByRole("combobox", { name: "Funding", exact: true })).toHaveCount(0)
+  await expect(form.getByRole("checkbox", { name: "Need funding or reimbursement" })).toBeVisible()
   await form.getByLabel("Event name").fill("Stage Night")
   await form.getByLabel("Date").fill("2026-12-03")
-  await form.getByLabel("Food").selectOption("yes")
+  await form.getByLabel("Food", { exact: true }).selectOption("yes")
   await form.getByLabel("Details").fill("We build a small stage in the courtyard.")
   await form.getByRole("button", { name: "Continue" }).click()
   const change = page.getByTestId("change-item").last()
@@ -72,8 +83,9 @@ test("Settings: the usual task length sets the new task's due date, and the pres
   await settings.getByLabel("Every officer").check()
   await expect(settings.getByRole("status")).toContainText("Saved")
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).org.settings)).toMatchObject({ taskDueDays: 7, eventCreators: "everyone" })
+  const configured = await savedDemo(page)
   await ask(page, "Add a task")
-  await expect(page.getByTestId("task-form").getByLabel("Due date")).toHaveValue("2026-10-29")
+  await expect(page.getByTestId("task-form").getByLabel("Due date")).toHaveValue(addDays(configured.today, 7))
   await openDemoMenu(page)
   await page.getByTestId("view-as").selectOption("sam")
   await ask(page, "Plan a new event")

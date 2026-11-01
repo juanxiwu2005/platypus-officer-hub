@@ -1,15 +1,18 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { closeRail } from "./helpers"
+import { savedDemo } from "./demo-contract"
+import { addDays, fmtLong } from "../src/lib/dates"
 
 test("Settings has an Export my data button that downloads the data and the interaction log", async ({ page }) => {
-  await page.goto("/#/")
-  await page.evaluate(() => window.localStorage.clear())
   await page.goto("/#/settings")
   await closeRail(page)
+  const before = await savedDemo(page)
   // do something so the log has a line to show
   await page.getByTestId("demo-menu").click()
   await page.getByTestId("clock-1").click()
+  await expect(page.getByTestId("demo-date")).toHaveText(fmtLong(addDays(before.today, 1)))
+  const after = await savedDemo(page)
   await page.getByRole("button", { name: "My preferences" }).click()
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-data").click()])
   expect(download.suggestedFilename()).toMatch(/^platypus-export-.*\.json$/)
@@ -19,9 +22,10 @@ test("Settings has an Export my data button that downloads the data and the inte
   expect(file.interactionLog.entries.map((e: { type: string }) => e.type)).toContain("advanceClock")
   const entry = file.interactionLog.entries.find((e: { type: string }) => e.type === "advanceClock")
   expect(entry).toMatchObject({ actor: "alex", payload: { days: 1 }, applied: true })
-  expect(entry.before.today).toBe("2026-10-22")
+  expect(entry.before.today).toBe(before.today)
   expect(entry.at).toBeGreaterThan(1_700_000_000_000) // a real timestamp, not the demo date
-  expect(file.state.today).toBe("2026-10-23") // what the screen shows still follows the demo clock
+  expect(file.state.today).toBe(addDays(before.today, 1))
+  expect(file.state).toEqual({ ...after, demoLinkKey: "[omitted]" }) // export preserves the state while withholding the signing key
 })
 
 test("when the browser refuses to save, the page says so instead of staying silent", async ({ page }) => {

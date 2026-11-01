@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { ask, closeRail, noOverflow, resetDemo } from "./helpers"
+import { savedDemo } from "./demo-contract"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -9,12 +10,13 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   let chatCalls = 0
   await page.route("**/api/chat", r => { chatCalls++; return r.fulfill({ status: 503, json: {} }) })
   await page.goto("/#/")
-  await ask(page, "Plan Founder Dinner on Nov 19, 30 people, outside caterer, USG funding")
+  const initial = await savedDemo(page)
+  await ask(page, "Plan Founders Welcome Dinner on Nov 19, 30 people, outside caterer, USG funding")
   const form = page.getByTestId("plan-form")
-  await expect(form.getByLabel("Event name")).toHaveValue("Founder Dinner")
+  await expect(form.getByLabel("Event name")).toHaveValue("Founders Welcome Dinner")
   await expect(form.getByLabel("Date")).toHaveValue("2026-11-19")
   // M2b: the form asks only Yes/No for food; the caterer type the person wrote travels with the request.
-  await expect(form.getByLabel("Food")).toHaveValue("yes")
+  await expect(form.getByLabel("Food", { exact: true })).toHaveValue("yes")
   await form.getByRole("button", { name: "Continue" }).click()
   await expect(page.getByText("food: outside caterer")).toBeVisible()
   const card = page.getByTestId("change-item")
@@ -22,20 +24,34 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   await card.getByLabel("Event name").fill("Founder Dinner Preview")
   await card.getByLabel("Event date", { exact: true }).fill("2027-02-18")
   await card.getByRole("button", { name: "Apply this change" }).click()
-  await expect(page.getByRole("heading", { name: "Founder Dinner Preview" })).toBeVisible()
+  await expect(page.locator("main").getByRole("heading", { name: "Founder Dinner Preview" })).toBeVisible()
   await expect(page.getByTestId("flow-chart")).toBeVisible()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).changeSets[0].status)).toBe("applied")
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).changeSets[0].ops[0].food)).toBe("offsite")
   expect(chatCalls).toBe(1) // M2b: the AI reads the sentence once; the form is already up from local rules and this 503 changes nothing
   await page.reload()
   const eventNav = page.getByRole("navigation", { name: "Events" })
-  await expect(eventNav.getByRole("button")).toHaveCount(3)
-  await expect(eventNav.getByRole("button")).toHaveText(["Networking Night", "Founder Dinner Preview", "Spring Speaker Night"])
-  await eventNav.getByRole("button", { name: "Spring Speaker Night" }).click()
-  await expect(page.getByRole("heading", { name: "Spring Speaker Night" })).toBeVisible()
+  await closeRail(page)
+  const persisted = await savedDemo(page)
+  expect(persisted.events.filter(e => e.name === "Founder Dinner Preview")).toHaveLength(1)
+  expect(persisted.events.filter(e => initial.events.some(seed => seed.id === e.id))).toEqual(initial.events)
+  const orderedNames = [...persisted.events].sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)).map(e => e.name)
+  if (await eventNav.isVisible()) {
+    await expect(eventNav.getByRole("button")).toHaveCount(initial.events.length + 1)
+    await expect(eventNav.getByRole("button")).toHaveText(orderedNames)
+    await eventNav.getByRole("button", { name: "Spring Speaker Night" }).click()
+  } else {
+    const picker = page.getByRole("combobox", { name: "Choose an event" })
+    await expect(picker).toBeVisible()
+    await expect(picker.locator("option")).toHaveCount(initial.events.length + 1)
+    await expect(picker.locator("option")).toHaveText(orderedNames)
+    await picker.selectOption("e-speaker")
+  }
+  await expect(page.locator("main").getByRole("heading", { name: "Spring Speaker Night" })).toBeVisible()
   await resetDemo(page)
   await page.goto("/#/")
-  await expect(page.getByTestId("event-strip")).toHaveCount(2)
+  await expect(page.getByTestId("event-strip")).toHaveCount(initial.events.length)
+  expect((await savedDemo(page)).events).toEqual(initial.events)
   await expect(page.getByTestId("change-set")).toHaveCount(0)
 })
 

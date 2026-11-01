@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { ask, closeRail, openDemoMenu } from "./helpers"
+import { ask, closeRail, openAsk, openDemoMenu } from "./helpers"
 
 // "Behind the scenes" (S7): a switch in the Demo menu that shows where numbers, dates and AI output come from.
 // Off (the default) means the notes are not in the page at all.
@@ -89,9 +89,11 @@ test("when on: the new-task form explains the club deadline and the plan check s
   await expect(form.getByTestId("club-deadline")).toBeVisible()
   await expect(form.locator(".bts").filter({ hasText: "working days" }).first()).toBeVisible()
   await expect(form.locator(".bts").filter({ hasText: "never supplies a date" })).toBeVisible()
-  await ask(page, "Plan Founder Dinner on Nov 19, 30 people, outside caterer, USG funding")
+  await ask(page, "Plan Founders Welcome Dinner on Nov 19, 30 people, outside caterer, USG funding")
   await page.getByTestId("plan-form").getByRole("button", { name: "Continue" }).click()
   await page.getByTestId("change-item").getByRole("button", { name: "Apply this change" }).click()
+  await expect(page.getByTestId("flow-chart")).toBeVisible()
+  await openAsk(page) // Navigation closes the side panel on phones; reopen it to read the plan check.
   const review = page.getByTestId("event-review")
   await expect(review.locator(".bts.k-rule").first()).toContainText(/Rule engine check · AI off.*No AI wrote this list/)
 })
