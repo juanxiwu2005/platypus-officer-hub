@@ -14,6 +14,7 @@ export type RoleFunction =
   | "outreach"
   | "secretary"
   | "membership"
+  | "advisor"
 
 export type Channel = "whatsapp" | "sms" | "email"
 
@@ -35,6 +36,51 @@ export interface OrgSettings {
   /** "review": AI drafts, a person sends. "auto": v1.5+, email only, internal only. */
   sendMode: "review" | "auto"
   quietHours: { from: string; to: string }
+  /** M2b (Juanxi, 2026-10-27): a new task is due this many days from today unless someone picks a date. Default 5. */
+  taskDueDays?: number
+  /** Who may create events: the president and VP (default), everyone, or the leads plus chosen officers. */
+  eventCreators?: "leads" | "everyone" | "chosen"
+  eventCreatorIds?: string[]
+}
+
+/** Which events a workflow step applies to. Names, not functions, so a workflow can be saved with the club. */
+export type EventCheck = "funding" | "food" | "externalFood" | "onsiteFood" | "speaker" | "partner" | "travel" | "parking" | "advisor" | "access" | "safety" | "outdoor" | "alcohol" | "drone" | "media" | "prize" | "schoolApproval" | "content" | "rsvp"
+/** Confirmed intake facts. Absent means this is a pre-v1.0 workflow record; legacy facts are used as a safe fallback. */
+export type EventChecks = Partial<Record<EventCheck, boolean>>
+export type StepCond = "campus" | "offcampus" | "speaker" | "externalGuest" | "usgFood" | "usgSpeaker" | "offsite" | "dining" | "onsite" | "tbd" | "food" | EventCheck | "large"
+
+/**
+ * One step of an event workflow. A step has no dates of its own: an anchor (an ASU rule or a club timing) and links to other
+ * steps; the rule engine (schedule.ts) turns those into deadlines. Both the standard workflow and a club's own are lists of these.
+ */
+export interface StepTemplate {
+  key: string
+  title: string
+  fn: RoleFunction
+  /** The specific role that does this step, once the club has chosen one. Otherwise the first role with the right function. */
+  ownerRoleId?: string | null
+  phase: Phase
+  anchor?: Anchor
+  estDays: number
+  tier: Tier
+  dependsOn?: string[]
+  ruleIds?: string[]
+  cond?: StepCond
+  why: string
+  source: string
+  consulted?: RoleFunction[]
+  informed?: RoleFunction[]
+  /** Added by the club (not from the standard workflow). */
+  custom?: boolean
+}
+
+/** The club's own event workflow, made in setup from its planning notes and files. New events are built from it. */
+export interface EventWorkflow {
+  steps: StepTemplate[]
+  phaseOrder?: Phase[]
+  updatedOn: string
+  /** One line about where it came from, e.g. "Adapted from your planning notes and 1 file". */
+  summary?: string
 }
 
 export interface Org {
@@ -47,6 +93,8 @@ export interface Org {
   workspace: WorkspaceConfig
   setupCompletedOn: string | null
   inviteCode: string
+  /** The club's own event workflow. Absent: the standard workflow is used. */
+  eventWorkflow?: EventWorkflow
   /** Task board look (v1.1): renamed statuses, colours, custom tags and which fields cards show. Meanings never change. */
   board?: BoardSettings
 }
@@ -67,6 +115,8 @@ export interface PlanningFile {
   size: number
   /** Local browser only; small fictional files, never sent to AI. */
   dataUrl: string
+  /** Text read from the file in this browser (PDF, Word, text) so the AI can compare it with the standard workflow. Empty for other types. */
+  text?: string
 }
 export interface WorkspaceConfig {
   calendarUrl: string
@@ -82,6 +132,9 @@ export interface Role {
   displayName: string
   fn: RoleFunction
   holderId: string | null
+  /** Who this role reports to (another role id). Null at the top. */
+  reportsToId?: string | null
+  duties?: string
 }
 
 export interface Person {
@@ -101,7 +154,14 @@ export interface Person {
   retainBufferAtHandoff?: boolean
   bufferHistoryFrom?: string
   phone: string
+  /** Fictional ASU ID (10 digits starting 9999). Kept in this browser; never sent to AI. */
+  asuId?: string
   expectations: string
+  /** Date-specific half-hour availability overrides. */
+  availabilityOverrides?: Record<string, boolean>
+  /** Prior weekly templates stay available to the scheduling engine for dates before a later change. */
+  weeklyAvailabilityHistory?: { startsOn: string; freeSlots: FreeSlot[] }[]
+  /** The current weekly template, effective from the newest availability-history date onward. */
   freeSlots: FreeSlot[]
   setupCompletedOn: string | null
 }
@@ -115,12 +175,26 @@ export interface Event {
   type: EventType
   headcount: number
   venue: "campus" | "offcampus"
-  food: "none" | "dining" | "offsite" | "onsite"
+  /** "tbd": there will be food, but how it is provided is decided later (Juanxi, 2026-10-27: the form only asks yes/no). */
+  food: "none" | "dining" | "offsite" | "onsite" | "tbd"
   funding: "usg" | "college" | "dues" | "sponsor" | "none"
   speaker: boolean
+  /** Situation-based answers from the event intake. They decide which yellow workflow nodes exist. */
+  checks?: EventChecks
   goalId: string | null
   playbookId: string
+  /** What the organizer wrote about the event in their own words (form "Details"); the event review reads it. */
+  details?: string
+  /** Order of the six phase groups in the step editor and in the progress dots (display only; no date depends on it). */
+  phaseOrder?: Phase[]
+  /** Event Budget is the sole user-facing source for line-item funding progress. */
+  budgetItems?: BudgetLineItem[]
 }
+
+export type BudgetCategory = "general" | "food" | "speaker" | "travel"
+export type BudgetSource = "usg" | "college" | "organization" | "sponsor" | "none"
+export type BudgetItemStatus = "not_started" | "food_exception_permit" | "quote_gather" | "budget_request" | "budget_approval" | "purchase_request" | "purchase_approval" | "order_placed" | "invoice" | "attendance_submit" | "paid_reimbursed" | "finance_record"
+export interface BudgetLineItem { id: string; item: string; quantity: number; pricePerUnit: number; source: BudgetSource; status: BudgetItemStatus; category: BudgetCategory }
 
 export type NodeStatus = "unclaimed" | "accepted" | "in_progress" | "waiting" | "blocked" | "done"
 export type Tier = "light" | "medium" | "heavy"
@@ -147,7 +221,7 @@ export interface Node {
   id: string
   title: string
   eventId: string | null
-  /** Playbook step this node came from, e.g. "usg". Null for standalone tasks. */
+  /** Playbook step this node came from, e.g. "budgetRequest". Null for standalone tasks. */
   stepKey: string | null
   phase: Phase | null
   /** The canonical function that owns this step (swimlane when nobody owns it yet). */
@@ -173,6 +247,8 @@ export interface Node {
   status: NodeStatus
   acceptedOn: string | null
   waitingOn: string | null
+  /** The teammate a waiting task needs; unlike waitingOn text, this drives their To do and Update notice. */
+  waitingOnPersonId?: string | null
   draftLink: string | null
   why: string
   /** Where the step comes from, e.g. "OA101 step 20" or "SEO T-14 checklist". */
@@ -259,15 +335,68 @@ export interface OfficerGrant {
   usedOn: string | null
 }
 
+/** Where a contact sits in the relationship (CRM board columns). */
+export type RelationStage = "cold" | "warm" | "active" | "dormant"
+/** "all" = every member; "leads" = president, vice president and the owning role only. */
+export type ContactVisibility = "all" | "leads"
+export type PreferredChannel = "" | "email" | "phone" | "text" | "instagram" | "linkedin" | "in_person"
+export type InteractionKind = "email" | "call" | "meeting" | "event" | "other"
+
+/** A company, campus office, club or agency. One organization can have many contacts. */
+export interface Organization {
+  id: string
+  name: string
+  type: string
+  website: string
+  email: string
+  phone: string
+  address: string
+  tags: string[]
+  notes: string
+  createdBy: string | null
+}
+
+/** A person the club works with. Owned by a role, so it stays with the role at handoff. */
 export interface Contact {
   id: string
   name: string
-  organization: string
+  title: string
+  organizationId: string | null
+  /** Type: Vendor, Guest speaker, Sponsor, Partner club, Campus office... */
   relation: string
+  email: string
+  phone: string
+  /** LinkedIn or Instagram handle or link. */
+  social: string
+  preferredChannel: PreferredChannel
+  tags: string[]
+  stage: RelationStage
+  /** How the club met them. */
+  source: string
+  /** The member who introduced them, if any. */
+  introducedById: string | null
+  visibility: ContactVisibility
   lastContact: string | null
   cadenceDays: number
   ownerRoleId: string
   eventIds: string[]
+  createdBy: string | null
+}
+
+/** One entry in the shared timeline: who talked to whom, what happened, what comes next. */
+export interface Interaction {
+  id: string
+  contactId: string | null
+  organizationId: string | null
+  date: string
+  kind: InteractionKind
+  byId: string
+  summary: string
+  outcome: string
+  nextStep: string
+  nextDue: string | null
+  nextDone: boolean
+  eventId: string | null
 }
 
 export type FundingStage =
@@ -323,6 +452,8 @@ export interface ChangeSet {
   before?: { nodes: Node[]; contacts: Contact[] }
   notes?: string[]
   undone?: boolean
+  /** Tasks this change created; Undo removes them. */
+  createdIds?: string[]
 }
 
 export interface DemoState {
@@ -339,6 +470,8 @@ export interface DemoState {
   nudges: Nudge[]
   contributions: Contribution[]
   contacts: Contact[]
+  organizations: Organization[]
+  interactions: Interaction[]
   funding: Funding[]
   handoff: HandoffSeason | null
   handoffRoles: RoleHandoff[]
@@ -358,3 +491,25 @@ export interface HandbookSource { id:string; kind:"task"|"interview"; text:strin
 export interface HandbookEntry { sourceId:string; text:string }
 export interface RoleHandoff { roleId:string; outgoingId:string|null; interview:string[]; entries:HandbookEntry[]; sources:HandbookSource[]; startDate?:string; fingerprint:string; source:string; model:string|null; confirmed:boolean; approved:boolean; checks:string[]; completed:boolean; reviewed:boolean; incomingId:string|null }
 export interface OutputReport { id:string; outputId:string; text:string; reportedBy:string; on:string; resolved:boolean }
+
+/**
+ * One line of the interaction log (A7b): what a person did, in the order they did it.
+ * This is the only place in the app that uses the real clock (`at`); every date shown in the interface
+ * still comes from `DemoState.today`, the fixed demo clock.
+ */
+export interface LogEntry {
+  /** 1, 2, 3 … never reused; gaps at the start mean the oldest entries were dropped at the 2,000-entry cap. */
+  seq: number
+  /** Real time the action was dispatched, milliseconds since 1970 (Date.now()). */
+  at: number
+  /** Id of the person the app was set to "View as" when the action ran. */
+  actor: string
+  /** The action type, e.g. "updateNode", "moveTask". */
+  type: string
+  /** The action's arguments, shortened (long text cut, secrets and bulky objects left out). */
+  payload: unknown
+  /** The fields' values before the action, only for actions that change something that already existed. */
+  before?: unknown
+  /** false = the app ignored the action (not allowed, invalid, or nothing to change). */
+  applied: boolean
+}

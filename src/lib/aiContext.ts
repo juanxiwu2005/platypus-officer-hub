@@ -1,9 +1,11 @@
 import type { DemoState } from "../data/types"
-import { canLead } from "../data/changeReview"
-import { computeForecast } from "../engine/forecast"
+import { canCreateEvent, canLead } from "../data/changeReview"
+import { forecastFor } from "../engine/forecast"
 import { workload } from "../engine/team"
 import { personalBuffer } from "../engine/schedule"
 import { RULES } from "../data/rules"
+import { dutiesOf } from "../data/structure"
+import { nextStep, orgName, visibleContacts } from "../data/crm"
 
 /**
  * Everything the signed-in officer can see in the app, as one compact object for the assistant (v1.2,
@@ -15,19 +17,19 @@ import { RULES } from "../data/rules"
 export function aiSnapshot(s: DemoState) {
   const me = s.people.find(p => p.id === s.viewerId)
   const lead = canLead(s)
-  const f = computeForecast(s)
+  const f = forecastFor(s)
   const name = (id: string | null | undefined) => s.people.find(p => p.id === id)?.name ?? null
   const role = (id: string | null | undefined) => s.roles.find(r => r.id === id)?.displayName ?? null
   return {
     today: s.today,
-    you: me && { id: me.id, name: me.name, role: role(me.roleId), canApprove: lead, personalBufferDays: personalBuffer(s, me).days, busyWeeks: me.busyWeeks, remindAt: me.remindAt, channels: me.channels },
+    you: me && { id: me.id, name: me.name, role: role(me.roleId), canApprove: lead, canCreateEvents: canCreateEvent(s), personalBufferDays: personalBuffer(s, me).days, busyWeeks: me.busyWeeks, remindAt: me.remindAt, channels: me.channels },
     club: { name: s.org.name, school: s.org.school, mission: s.org.mission, goals: s.org.goals.map(({ label, target, current, unit }) => ({ label, target, current, unit })), clubBufferBusinessDays: s.org.settings.clubBufferBusinessDays, sendMode: s.org.settings.sendMode, tags: (s.org.board?.tags ?? []).map(({ id, label }) => ({ id, label })), planningNotes: s.org.workspace.planningNotes.slice(0, 1500) },
-    roles: s.roles.map(r => ({ id: r.id, title: r.displayName, function: r.fn, holder: name(r.holderId), holderId: r.holderId })),
+    roles: s.roles.map(r => ({ id: r.id, title: r.displayName, function: r.fn, holder: name(r.holderId), holderId: r.holderId, reportsTo: role(r.reportsToId), duties: dutiesOf(r) })),
     people: s.people.map(p => {
       const w = workload(s, p.id)
-      return { id: p.id, name: p.name, role: role(p.roleId), email: p.email, channels: p.channels, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, workload: w.band, workloadPoints: w.points }
+      return { id: p.id, name: p.name, role: role(p.roleId), email: p.email, channels: p.channels, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, workload: w.band }
     }),
-    events: s.events.map(e => ({ id: e.id, name: e.name, date: e.date, type: e.type, headcount: e.headcount, venue: e.venue, food: e.food, funding: e.funding, speaker: e.speaker, risk: f.events[e.id]?.color ?? null })),
+    events: s.events.map(e => ({ id: e.id, name: e.name, date: e.date, type: e.type, headcount: e.headcount, venue: e.venue, food: e.food, funding: e.funding, speaker: e.speaker, details: e.details ?? null, risk: f.events[e.id]?.color ?? null })),
     tasks: s.nodes.map(n => n.status === "done"
       ? { id: n.id, title: n.title, eventId: n.eventId, status: n.status, owner: name(n.ownerId), completedOn: n.completedOn ?? null }
       : {
@@ -37,7 +39,7 @@ export function aiSnapshot(s: DemoState) {
         waitsFor: n.dependsOn, waitingOn: n.waitingOn, rules: n.ruleIds, why: n.why.slice(0, 200),
       }),
     funding: s.funding.map(x => ({ eventId: x.eventId, event: s.events.find(e => e.id === x.eventId)?.name, source: x.source, amount: x.amount, spent: x.spent ?? 0, stage: x.stage, spendBy: x.spendBy })),
-    partners: s.contacts.map(c => ({ id: c.id, name: c.name, organization: c.organization, relation: c.relation, owner: role(c.ownerRoleId), lastContact: c.lastContact, cadenceDays: c.cadenceDays, events: c.eventIds })),
+    partners: visibleContacts(s).map(c => ({ id: c.id, name: c.name, title: c.title, organization: orgName(s, c.organizationId), relation: c.relation, stage: c.stage, tags: c.tags, owner: role(c.ownerRoleId), lastContact: c.lastContact, cadenceDays: c.cadenceDays, events: c.eventIds, nextStep: nextStep(s, c.id)?.nextStep ?? null })),
     handoff: s.handoff && { from: s.handoff.from, to: s.handoff.to, roles: s.handoffRoles.map(h => ({ role: role(h.roleId), outgoing: name(h.outgoingId), incoming: name(h.incomingId), confirmed: h.confirmed, approved: h.approved, completed: h.completed })) },
     yourUpdates: s.notifications.filter(n => n.recipientId === s.viewerId).slice(-15).map(n => ({ text: n.text, on: n.createdOn, read: n.read, taskId: n.nodeId })),
     extensionRequests: s.extensionRequests.filter(r => lead || r.ownerId === s.viewerId).map(r => ({ taskId: r.nodeId, owner: name(r.ownerId), requestedDate: r.requestedDate, reason: r.reason.slice(0, 200), status: r.status })),

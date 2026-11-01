@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "plan": "dp8-release-readiness",
+  "targetBranch": "integration/v1.0",
+  "forbiddenBranch": "main",
+  "auditBaseline": "7d84fa405e89ec62f4e5b712e0b08409c38caa7c",
+  "readme": "docs/release-readiness/README.md",
+  "stages": [
+    {
+      "id": 1,
+      "prompt": "docs/release-readiness/stages/STAGE1.md",
+      "workPackages": ["WP01", "WP02", "WP03", "WP04", "WP07", "WP09"]
+    },
+    {
+      "id": 2,
+      "prompt": "docs/release-readiness/stages/STAGE2.md",
+      "dependsOn": [1],
+      "workPackages": ["WP05", "WP06", "WP08"]
+    },
+    {
+      "id": 3,
+      "prompt": "docs/release-readiness/stages/STAGE3.md",
+      "dependsOn": [1, 2],
+      "workPackages": ["WP10"]
+    }
+  ],
+  "workPackages": {
+    "WP01": "docs/release-readiness/work-packages/WP01-demo-contract.md",
+    "WP02": "docs/release-readiness/work-packages/WP02-events-funding-rules.md",
+    "WP03": "docs/release-readiness/work-packages/WP03-tasks-board.md",
+    "WP04": "docs/release-readiness/work-packages/WP04-setup-team-settings.md",
+    "WP05": "docs/release-readiness/work-packages/WP05-accessibility-keyboard.md",
+    "WP06": "docs/release-readiness/work-packages/WP06-word-budgets.md",
+    "WP07": "docs/release-readiness/work-packages/WP07-production-security.md",
+    "WP08": "docs/release-readiness/work-packages/WP08-toolchain-security.md",
+    "WP09": "docs/release-readiness/work-packages/WP09-bundle-performance.md",
+    "WP10": "docs/release-readiness/work-packages/WP10-release-certification.md"
+  }
+}

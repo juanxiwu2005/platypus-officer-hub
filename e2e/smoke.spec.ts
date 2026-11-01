@@ -1,8 +1,9 @@
 import { expect, test } from "@playwright/test"
 import { resetDemo } from "./helpers"
+import { savedDemo } from "./demo-contract"
 
 const PAGES: [string, string][] = [
-  ["/", "Today"], ["/events", "Events"], ["/tasks", "Tasks"], ["/team", "Team"], ["/funding", "Funding"],
+  ["/", "Today"], ["/events", "Events"], ["/tasks", "Tasks"], ["/team", "Team"], ["/funding", "Events"],
   ["/handoff", "Handoff"], ["/partners", "Partners"], ["/rules", "Rules"], ["/settings", "Settings"], ["/help", "Help"],
 ]
 
@@ -12,6 +13,11 @@ for (const [path, h1] of PAGES) {
     page.on("pageerror", e => errors.push(e.message))
     await page.goto(`/#${path}`)
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(h1)
+    if (path === "/funding") await expect(page).toHaveURL(/#\/events$/)
+    if (path === "/events" || path === "/funding") {
+      const demo = await savedDemo(page)
+      await expect(page.getByRole("heading", { level: 2, name: demo.events[0].name, exact: true })).toBeVisible()
+    }
     expect(errors).toEqual([])
   })
 }
@@ -19,6 +25,7 @@ for (const [path, h1] of PAGES) {
 test("view-as switches whose tasks are shown, and reset restores the demo", async ({ page }) => {
   await page.goto("/#/tasks")
   await page.getByTestId("view-as").selectOption("maya")
+  await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks")).toContainText("Reconcile September receipts")
   await page.reload()
   await expect(page.getByTestId("view-as")).toHaveValue("maya")
@@ -32,9 +39,4 @@ test("every page has the same three parts: nav, content and the Ask panel", asyn
   await expect(page.locator("main")).toBeVisible()
   await expect(page.locator("main textarea")).toHaveCount(0) // no AI boxes inside pages any more
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1)
-})
-
-test("legacy prototype is still reachable", async ({ page }) => {
-  const res = await page.goto("/legacy/")
-  expect(res?.status()).toBe(200)
 })

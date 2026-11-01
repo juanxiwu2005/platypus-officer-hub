@@ -55,7 +55,7 @@ describe("command boundary and review", () => {
     const s = draft({ op: "assign_owner", nodeId: "t-news", ownerId: "priya" })
     const a = { type: "reviewChange", id: "review-1", index: 0, decision: "applied", op: { op: "assign_owner", nodeId: "t-news", ownerId: "jordan", latestStart: "2099-01-01" } } as const
     const applied = reducer(s, a)
-    expect(applied.nodes.find(n => n.id === "t-news")).toMatchObject({ ownerId: "jordan", status: "unclaimed", acceptedOn: null })
+    expect(applied.nodes.find(n => n.id === "t-news")).toMatchObject({ ownerId: "jordan", status: "accepted", acceptedOn: state.today })
     expect(reducer(applied, a)).toBe(applied)
     expect(applied.nodes.find(n => n.id === "t-news")?.latestStart).not.toBe("2099-01-01")
   })

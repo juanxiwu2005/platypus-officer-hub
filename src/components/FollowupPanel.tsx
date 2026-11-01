@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useStore, useViewer } from "../data/store"
 import { recoveryPreview } from "../engine/followup"
+import { Empty } from "./ui"
 
 export function FollowupPanel() {
   const { state, dispatch } = useStore()
@@ -15,7 +16,7 @@ export function FollowupPanel() {
       const node = state.nodes.find(n => n.id === r.nodeId)!
       const stale = node.ownerId !== r.ownerId || node.clubDeadline !== r.previousDeadline || r.requestedDate < state.today
       return <article className="change-item" key={r.id} data-testid="extension-review"><b>{node.title}</b><p className="small">Requested: {r.requestedDate} · current: {node.clubDeadline}</p><a href={r.draftLink} target="_blank" rel="noreferrer">Review current draft</a>{r.reason && <p>{r.reason}</p>}{stale && <p className="small warn-text">This request is out of date. Ask the owner for a fresh request.</p>}<div className="action-row"><button className="btn btn-primary" disabled={stale} onClick={() => dispatch({ type: "reviewExtension", id: r.id, approve: true })}>Approve extension</button><button className="btn" onClick={() => dispatch({ type: "reviewExtension", id: r.id, approve: false })}>Decline extension</button></div></article>
-    })}{!pending.length && <p className="empty">No requests waiting.</p>}</div>
+    })}{!pending.length && <Empty>No requests waiting.</Empty>}</div>
     <details className="followup-details" open={entries.length > 0}>
       <summary>Follow-up walkthrough</summary>
       <p className="small muted">Move the Demo clock to see each private step. Nothing is sent.</p>

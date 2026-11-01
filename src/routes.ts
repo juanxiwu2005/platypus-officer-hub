@@ -15,7 +15,6 @@ export const PAGES: PageDef[] = [
   { path: "/events", label: "Events", icon: "events", question: "Where is each event, and who is up next?", group: "main" },
   { path: "/tasks", label: "Tasks", icon: "tasks", question: "What should I do next?", group: "main" },
   { path: "/team", label: "Team", icon: "team", question: "Who is overloaded, who deserves credit, and when can we meet?", group: "main" },
-  { path: "/funding", label: "Funding", icon: "funding", question: "Where is each request, and will we spend what we asked for?", group: "main" },
   { path: "/handoff", label: "Handoff", icon: "handoff", question: "How do we hand over without starting from zero?", group: "main" },
   { path: "/partners", label: "Partners", icon: "partners", question: "Which relationships need a touch?", group: "main" },
   { path: "/rules", label: "Rules", icon: "rules", question: "What does ASU require?", group: "main" },

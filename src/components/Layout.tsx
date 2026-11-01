@@ -6,16 +6,18 @@ import { useStore, useViewer } from "../data/store"
 import { getHealth, type Health } from "../lib/api"
 import { fmtLong } from "../lib/dates"
 import { RailProvider, useRail } from "./rail/RailContext"
+import { BtsProvider, useBts } from "./Bts"
 import { Rail } from "./rail/Rail"
 import { PrivateInbox } from "./PrivateInbox"
 
 export function Layout() {
-  return <RailProvider><Frame /></RailProvider>
+  return <BtsProvider><RailProvider><Frame /></RailProvider></BtsProvider>
 }
 
 function Frame() {
   const { state, dispatch } = useStore()
   const rail = useRail()
+  const openTaskCount = state.nodes.filter(n => n.status !== "done" && (n.ownerId === state.viewerId || (n.status === "unclaimed" && !n.ownerId))).length
   const location = useLocation()
   const [toast, setToast] = useState<string | null>(null)
   useEffect(() => {
@@ -28,8 +30,10 @@ function Frame() {
   useEffect(() => {
     if (lastPath.current !== location.pathname) {
       if (rail.detail && rail.detail.kind !== "task") rail.closeDetail()
-      // On a phone or tablet the panel covers the page, so a new page starts with it closed.
-      if (!window.matchMedia?.("(min-width: 1200px)").matches && !(rail.detail?.kind === "task" && location.search.includes("node="))) rail.setOpen(false)
+      // On a phone or tablet the panel covers the page, so a new page starts with it closed — except right after a
+      // new event, whose plan check is about to appear in Ask (M2b), and a link straight to a task (?node=), whose details
+      // the Tasks page opens in this same render pass (rail.detail is still the old value here).
+      if (!window.matchMedia?.("(min-width: 1200px)").matches && !location.search.includes("node=") && !rail.reviewEventId) rail.setOpen(false)
     }
     lastPath.current = location.pathname
   }, [location.pathname])
@@ -38,10 +42,10 @@ function Frame() {
     <>
       <header className="topbar">
         <div className="bar-in">
-          <NavLink to="/" className="brand" aria-label="Platypus home">
+          <NavLink to="/" className="brand">
             <Logo />
             <div>
-              <b>Platypus</b>
+              <b>Platypus</b>{" "}
               <span>{state.org.name}</span>
             </div>
           </NavLink>
@@ -74,9 +78,10 @@ function Frame() {
           {PAGES.filter(p => p.group === "main").map(p => (
             <NavLink key={p.path} to={p.path} end={p.path === "/"} title={p.question}>
               {Icons[p.icon]}<span>{p.label}</span>
+              {p.path === "/tasks" && openTaskCount > 0 && <span className="count" data-testid="nav-open-tasks">{openTaskCount}<span className="sr-only"> open tasks</span></span>}
             </NavLink>
           ))}
-          <div className="group" aria-hidden="true" />
+          <div className="group">Reference</div>
           {PAGES.filter(p => p.group === "footer").map(p => (
             <NavLink key={p.path} to={p.path} title={p.question}>
               {Icons[p.icon]}<span>{p.label}</span>
@@ -102,8 +107,17 @@ function DemoMenu({ onReset }: { onReset: () => void }) {
   const { canNudge } = useViewer()
   const [open, setOpen] = useState(false)
   const [health, setHealth] = useState<Health | null>(null)
+  // Reset wipes everything and sits next to the clock buttons, so it asks once. Not confirm():
+  // a native dialog is blocked in Playwright and on some phone browsers.
+  const [armed, setArmed] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => { getHealth().then(setHealth) }, [])
+  useEffect(() => {
+    if (!armed) return
+    const t = setTimeout(() => setArmed(false), 3000)
+    return () => clearTimeout(t)
+  }, [armed])
+  useEffect(() => { if (!open) setArmed(false) }, [open])
   useEffect(() => {
     if (!open) return
     const off = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
@@ -111,6 +125,7 @@ function DemoMenu({ onReset }: { onReset: () => void }) {
     document.addEventListener("mousedown", off); window.addEventListener("keydown", esc)
     return () => { document.removeEventListener("mousedown", off); window.removeEventListener("keydown", esc) }
   }, [open])
+  const bts = useBts()
   const aiNote = health?.configured ? `AI answers come live from ${health.provider}${health.model ? ` (${health.model})` : ""}.` : "AI answers are simulated."
   return <div className="menu-wrap" ref={ref}>
     <button type="button" className="demo-pill" aria-expanded={open} onClick={() => setOpen(!open)} data-testid="demo-menu">
@@ -119,8 +134,15 @@ function DemoMenu({ onReset }: { onReset: () => void }) {
     <div className="menu" hidden={!open} role="group" aria-label="Demo controls">
       <p className="small muted" data-testid="ai-status">Fictional club and example data. {aiNote} Nothing is sent from this page.</p>
       {canNudge && <div className="menu-row"><span className="small">Demo clock</span>{[1, 3, 10].map(days => <button key={days} type="button" className="btn small" data-testid={`clock-${days}`} onClick={() => dispatch({ type: "advanceClock", days })}>+{days} day{days > 1 ? "s" : ""}</button>)}</div>}
-      {canNudge && <NavLink className="btn small" to="/setup" onClick={() => setOpen(false)}>Replay setup</NavLink>}
-      <button type="button" className="btn small" data-testid="reset-demo" onClick={() => { reset(); try { window.localStorage.removeItem("platypus.v1.chat") } catch { /* storage unavailable */ } window.dispatchEvent(new Event("platypus:reset")); setOpen(false); onReset() }}>Reset demo</button>
+      <div className="menu-row">
+        {canNudge && <NavLink className="btn small" to="/setup" onClick={() => setOpen(false)}>Replay setup</NavLink>}
+        <label className="switch"><input type="checkbox" checked={bts.on} onChange={e => bts.setOn(e.target.checked)} data-testid="bts-toggle" />Behind the scenes</label>
+      </div>
+      <button type="button" className={`btn small ${armed ? "btn-primary" : ""}`} data-testid="reset-demo" onClick={() => {
+        if (!armed) { setArmed(true); return }
+        setArmed(false); reset(); try { window.localStorage.removeItem("platypus.v1.chat") } catch { /* storage unavailable */ } window.dispatchEvent(new Event("platypus:reset")); setOpen(false); onReset()
+      }}>{armed ? "Click again to reset" : "Reset demo"}</button>
+      {armed && <p className="small muted" role="status">This clears every task, note and reminder in the demo.</p>}
     </div>
   </div>
 }

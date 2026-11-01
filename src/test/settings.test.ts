@@ -4,6 +4,7 @@ import { reducer } from "../data/store"
 import { clubDraft, completeSetup, profilePatch, saveClubSettings, saveProfile, validateClub, validateDefaults, validateProfile, validateRoles, validateWorkspace } from "../data/settings"
 import { computeSchedule } from "../engine/schedule"
 import { parseCommand } from "../lib/commands"
+import { newRole } from "../data/structure"
 
 const base = () => seedDemo("2026-10-22")
 const code = "12345678-1234-1234-1234-123456789abc"
@@ -32,6 +33,19 @@ describe("club settings", () => {
     const s = base(), d = clubDraft(s); d.roles.find(r => r.id === "r-fin")!.fn = "vice_president"
     const next = saveClubSettings(s, d, s.org.settings)
     expect(next.nodes.find(n => n.id === "e-night:usg")?.fn).toBe("vice_president")
+  })
+  it("lets the president add a vacant role without changing current officers", () => {
+    const s = base(), d = clubDraft(s), added = newRole("Community Lead", d.roles[0].id)
+    d.roles.push(added)
+    const next = saveClubSettings(s, d, s.org.settings)
+    expect(next.roles.find(r => r.id === added.id)).toMatchObject({ displayName: "Community Lead", holderId: null })
+    expect(next.people).toEqual(s.people)
+  })
+  it("lets the president update fictional officer contact details without moving their role", () => {
+    const s = base(), d = clubDraft(s), maya = d.people.find(p => p.id === "maya")!
+    maya.name = "Maya C."; maya.email = "maya.c@example.org"; maya.phone = "480-555-0199"; maya.asuId = "9999000099"
+    const next = saveClubSettings(s, d, s.org.settings)
+    expect(next.people.find(p => p.id === "maya")).toMatchObject({ name: "Maya C.", email: "maya.c@example.org", phone: "480-555-0199", asuId: "9999000099", roleId: "r-fin" })
   })
   it("rejects reordered protocol, excessive nudges and automatic sending", () => {
     const s = base(); expect(validateDefaults({ ...s.org.settings, silenceProtocol: { ...s.org.settings.silenceProtocol, presidentDay: 4 } })).toBeTruthy()
@@ -84,6 +98,7 @@ describe("personal preferences and invitations", () => {
     expect(validateProfile({ ...p, phone: "480-123-4567" })).toBeTruthy(); expect(validateProfile({ ...p, phone: "+1 480-555-0100" })).toBeNull()
     expect(validateProfile({ ...p, busyWeeks: ["2026-10-22"] })).toBeTruthy()
     expect(validateProfile({ ...p, freeSlots: [{ day: 1, from: "20:00", to: "18:00" }] })).toBeTruthy()
+    expect(validateProfile({ ...p, availabilityOverrides: { "2026-10-22:20": "no" as unknown as boolean } })).toBeTruthy()
   })
 })
 describe("first workflow approval", () => {
@@ -93,7 +108,7 @@ describe("first workflow approval", () => {
     const before = JSON.stringify(s)
     const next = completeSetup(s, d, { ...event, date: "2099-01-01", clubDeadline: "2098-01-01" }, "2026-11-19", code)
     expect(JSON.stringify(s)).toBe(before); expect(next.events).toHaveLength(1); expect(next.events[0].date).toBe("2026-11-19")
-    expect(next.nodes.some(n => n.stepKey === "usg" && n.officialDeadline === "2026-11-04")).toBe(true)
+    expect(next.nodes.some(n => n.stepKey === "purchaseRequest" && n.officialDeadline === "2026-11-04")).toBe(true)
     expect(next.nodes.filter(n => n.fn === "finance").every(n => n.ownerId === "maya")).toBe(true)
     expect(next.org.inviteCode).toBe(code); expect(next.org.goals.every(g => g.current === 0)).toBe(true)
     for (const key of ["nudges", "contributions", "contacts", "funding", "notifications", "extensionRequests", "officerGrants", "protocolLog"] as const) expect(next[key]).toHaveLength(0)

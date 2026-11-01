@@ -1,0 +1,111 @@
+import { useEffect, useMemo, useState } from "react"
+import type { DemoState, Event, Role, StepTemplate } from "../../data/types"
+import { addDays } from "../../lib/dates"
+import { computeSchedule } from "../../engine/schedule"
+import type { Forecast } from "../../engine/forecast"
+import { MAX_STEPS, isLocked, newStepKey, ownerOfStep, removeStep, ruleList, stepsAsNodes, type WorkflowIssue } from "../../engine/workflow"
+import { roleLabels } from "../../data/structure"
+import { MetroChart, type EditPort } from "../flow/MetroChart"
+import { moveBetween } from "../../lib/flowEdit"
+import { MAX_DAYS, descendantsOf, type StepEdit } from "../../lib/stepOrder"
+import type { Node } from "../../data/types"
+import { WorkflowIssues } from "./WorkflowReview"
+import { useRail } from "../rail/RailContext"
+
+/**
+ * The club's event workflow on the same chart as a real event's Flow tab: five
+ * pre-event routes fan out from Start and meet at Full Check, left to right.
+ * Drag a step onto a ◆, double-click a step or a line to add, delete or cut a link. Selecting a step opens its details
+ * beside the chart, so workflow timing can be adjusted without losing the graph.
+ * Everything is checked by the engine (engine/workflow.ts): steps and links ASU rules need cannot be removed, and a change that breaks one is
+ * marked on the chart and has to be fixed before setup continues.
+ */
+const withEdits = (steps: StepTemplate[], edits: StepEdit[]): StepTemplate[] => {
+  const by = new Map(edits.map(e => [e.id, e.patch]))
+  return steps.map(s => { const p = by.get(s.key); return p ? { ...s, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays } : {}), ...(p.phase ? { phase: p.phase } : {}) } : s })
+}
+const NO_FORECAST: Forecast = { nodes: {}, events: {} }
+
+export function WorkflowPanel({ state, steps, roles, issues, onChange }: { state: DemoState; steps: StepTemplate[]; roles: Role[]; issues: WorkflowIssue[]; onChange: (steps: StepTemplate[]) => void }) {
+  const [selected, setSelected] = useState<string | null>(null)
+  const rail = useRail()
+  const label = useMemo(() => roleLabels(roles), [roles])
+  // The workflow shown as a sample event, so the same chart (and the same layout) draws it. Its dates are never shown.
+  const sample = useMemo(() => {
+    const ev: Event = { id: "wf", name: "Sample event", date: addDays(state.today, 56), type: "social", headcount: 30, venue: "campus", food: "none", funding: "none", speaker: false, checks: {}, goalId: null, playbookId: "asu-event-v2" }
+    const s: DemoState = { ...state, roles, people: [], events: [ev], nodes: stepsAsNodes(steps, "wf") }
+    return { s, sched: computeSchedule(s) }
+  }, [state.today, steps, roles])
+  const marks = useMemo(() => Object.fromEntries(issues.filter(i => i.key).map(i => [i.key!, i.level === "blocked" ? "error" as const : "warn" as const])), [issues])
+  const byKey = new Map(steps.map(s => [s.key, s]))
+  const ownerName = (key: string) => { const r = byKey.get(key) && ownerOfStep(byKey.get(key)!, roles); return r ? label.get(r.id) ?? r.displayName : "No owner" }
+  const port: EditPort = {
+    snapshot: () => structuredClone(steps),
+    restore: snap => { onChange(snap as StepTemplate[]); setSelected(null) },
+    applyEdits: edits => onChange(withEdits(steps, edits)),
+    addStep: (key, uId, vId) => {
+      const ref = byKey.get(uId ?? vId ?? "")
+      const fresh: StepTemplate = { key, title: "New step", fn: ref?.fn ?? "programs", ownerRoleId: ref?.ownerRoleId ?? null, phase: ref?.phase ?? "prepare", estDays: 1, tier: "light", dependsOn: [], why: "Added by the club.", source: "Added in the workflow chart", custom: true }
+      const nodes = stepsAsNodes([...steps, fresh], "wf")
+      const r = moveBetween(nodes, key, uId, vId)
+      onChange(withEdits([...steps, fresh], r.edits))
+    },
+    removeStep: key => { onChange(removeStep(steps, key)); setSelected(null) },
+    newId: () => newStepKey(steps, "new step"),
+    template: {
+      sublabel: n => ownerName(n.id),
+      lines: n => { const s = byKey.get(n.id); return [s?.title ?? n.title, s?.why ?? n.why, `Done by ${ownerName(n.id)}`, `${s?.estDays ?? 0} day${s?.estDays === 1 ? "" : "s"} of work`] },
+      marks,
+    },
+  }
+  const step = selected ? byKey.get(selected) : undefined
+  const selectStep = (id: string) => { setSelected(id); rail.show({ kind: "workflow" }) }
+  const closeStep = () => { setSelected(null); rail.closeDetail() }
+  useEffect(() => {
+    if (!step) return
+    rail.setWorkflowDetail(<StepPanel step={step} steps={steps} roles={roles} label={label} onChange={onChange} onClose={closeStep} />)
+    return () => rail.setWorkflowDetail(null)
+  // The content deliberately refreshes whenever the editable template changes.
+  }, [step, steps, roles, label, onChange])
+  return <>
+    <WorkflowIssues issues={issues} />
+    <p className="small muted">Look at the chart first: it reads left to right in the order the work happens. Drag a step onto a ◆ to move it, double-click a step to add or delete one, double-click a line to cut a link. Click a step for its details.</p>
+    <div className="workflow-editor"><div className="workflow-editor-flow"><MetroChart key="wf" state={sample.s} sched={sample.sched} forecast={NO_FORECAST} eventId="wf" selectedId={selected} onSelect={selectStep} canEdit alwaysEdit port={port} /></div></div>
+  </>
+}
+
+/** One step's details: name, who does it, days of work, what it waits for. */
+function StepPanel({ step, steps, roles, label, onChange, onClose }: { step: StepTemplate; steps: StepTemplate[]; roles: Role[]; label: Map<string, string>; onChange: (s: StepTemplate[]) => void; onClose: () => void }) {
+  const nodes: Node[] = stepsAsNodes(steps, "wf")
+  const set = (p: Partial<StepTemplate>) => onChange(steps.map(s => s.key === step.key ? { ...s, ...p } : s))
+  const doers = roles.filter(r => r.fn !== "advisor")
+  const owner = ownerOfStep(step, roles)
+  const locked = isLocked(step)
+  const waits = (step.dependsOn ?? []).map(k => steps.find(s => s.key === k)).filter((x): x is StepTemplate => !!x)
+  const blocked = descendantsOf(nodes, step.key)
+  const addable = steps.filter(x => x.key !== step.key && !(step.dependsOn ?? []).includes(x.key) && !blocked.has(x.key))
+  return <section className="card form-stack wf-detail" data-testid="workflow-step-panel" aria-label={`Details: ${step.title}`}>
+    <header><h3 className="org-h">Step details</h3><button type="button" className="btn small btn-quiet" onClick={onClose}>Close</button></header>
+    <div className="form-grid">
+      <label>Step name<input type="text" value={step.title} maxLength={120} onChange={e => set({ title: e.target.value })} /></label>
+      <label>Done by<select value={owner?.id ?? ""} onChange={e => set({ ownerRoleId: e.target.value, fn: roles.find(r => r.id === e.target.value)?.fn ?? step.fn })}>
+        {!owner && <option value="">No owner</option>}
+        {doers.map(r => <option key={r.id} value={r.id} title={r.displayName}>{label.get(r.id)}</option>)}
+      </select></label>
+      <label>Days of work<input type="number" inputMode="numeric" min={0} max={MAX_DAYS} value={step.estDays} onChange={e => set({ estDays: Math.max(0, Math.min(MAX_DAYS, Math.round(Number(e.target.value) || 0))) })} /></label>
+      {!locked && step.phase !== "close" && <label>Target timing (days before event)<input type="number" inputMode="numeric" min={0} max={180} value={step.anchor?.kind === "target" ? step.anchor.days : ""} placeholder="From dependencies" onChange={e => { const days = e.target.value === "" ? null : Math.max(0, Math.min(180, Math.round(Number(e.target.value) || 0))); set({ anchor: days === null ? undefined : { kind: "target", days, unit: "calendar", label: "Club workflow timing" } }) }} /></label>}
+    </div>
+    <label>Task description<textarea rows={3} maxLength={400} value={step.why} onChange={e => set({ why: e.target.value })} placeholder="Explain what this step accomplishes." /></label>
+    {locked && <p className="small muted">This step comes from ASU rule {ruleList(step) || "deadlines"}: it stays, in this phase, with its deadline. You can rename it and change who does it and how long it takes.</p>}
+    <div className="step-links small">
+      <span className="muted">Waits for:</span>{" "}
+      {waits.length === 0 && <span className="muted">nothing</span>}
+      {waits.map(w => <span key={w.key} className="tag-chip step-chip">{w.title} <button type="button" className="link" aria-label={`Remove: ${step.title} no longer waits for ${w.title}`} onClick={() => set({ dependsOn: (step.dependsOn ?? []).filter(d => d !== w.key) })}>×</button></span>)}
+      <select className="step-add" aria-label={`Add a step that ${step.title} waits for`} value="" onChange={e => { if (e.target.value) set({ dependsOn: [...(step.dependsOn ?? []), e.target.value] }) }}>
+        <option value="">+ Waits for…</option>
+        {addable.map(x => <option key={x.key} value={x.key}>{x.title}</option>)}
+      </select>
+    </div>
+    {!locked && <div className="action-row"><button type="button" className="btn small" onClick={() => { onChange(removeStep(steps, step.key)); onClose() }} disabled={steps.length <= 1 || steps.length > MAX_STEPS + 1}>Delete this step</button></div>}
+  </section>
+}

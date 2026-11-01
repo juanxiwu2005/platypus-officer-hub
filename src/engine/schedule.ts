@@ -2,7 +2,7 @@ import type { DemoState, Event, Node, Person } from "../data/types"
 import { RULES } from "../data/rules"
 import { addDays, daysBetween, fmtLong } from "../lib/dates"
 import {
-  BREAKS, FINALS, HOLIDAYS, TERMS, findPeriod, isWeekend, onOrAfter, onOrBefore,
+  BREAKS, CALENDAR_END, CALENDAR_START, FINALS, HOLIDAYS, TERMS, findPeriod, isWeekend, onOrAfter, onOrBefore, outsideCalendar,
   isBusinessDay, personalWorkDay, shiftWork, skippedReasons, type WorkDay,
 } from "./calendar"
 
@@ -58,6 +58,7 @@ export interface Schedule {
 
 const RULE_BY_ID = Object.fromEntries(RULES.map(r => [r.id, r]))
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`
+const calendarSpan = () => `${fmtLong(CALENDAR_START)} to ${fmtLong(CALENDAR_END)}`
 const closedReason = (d: string) => HOLIDAYS[d] ?? (isWeekend(d) ? "weekend" : "closed day")
 
 interface Ctx {
@@ -193,13 +194,17 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     }
     const best = cands.reduce((a, b) => (b.date < a.date ? b : a))
     const e = effortOf(ctx, n)
-    let start = shiftWork(best.date, -e.days, e.work)
-    let sWhy = startWhy(best.date, n, e, start)
+    let club = best.date
+    let clubWhy = best.why
+    let start = shiftWork(club, -e.days, e.work)
+    let sWhy = startWhy(club, n, e, start)
     if (n.phase === "close" && start < afterEvent) {
       start = onOrAfter(afterEvent, e.work)
       sWhy = "The first business day after the event"
+      club = shiftWork(start, e.days, e.work)
+      clubWhy = "Close-out work can only start after the event"
     }
-    rec.set(n.id, { official, club: best.date, clubWhy: best.why, start, startWhy: sWhy })
+    rec.set(n.id, { official, club, clubWhy, start, startWhy: sWhy })
   }
 
   // 2. Forward pass
@@ -298,10 +303,18 @@ function nodeIssues(
   const out: Issue[] = []
   const ruleId = n.anchor?.kind === "rule" ? n.anchor.ruleId : undefined
   if (d.looped) out.push({ code: "loop", severity: "error", text: "This step and another step each wait for the other. Remove one of the links." })
+  // The calendar data has an end. Past it every day looks like "between semesters" and dates drift silently, so say so loudly.
+  const stray = [ev?.date, d.official, d.club, d.start].filter((x): x is string => !!x && outsideCalendar(x))
+  if (stray.length) out.push({ code: "calendar_range", severity: "error", text: `This step involves ${fmtLong(stray.sort()[0])}, outside the ASU calendar Platypus knows (${calendarSpan()}). Its dates cannot be trusted.` })
   if (d.official && d.club > d.official)
     out.push({ code: "official_missed", severity: "error", ruleId, text: `Planned finish ${fmtLong(d.club)} is after the ASU deadline ${fmtLong(d.official)}${ruleId ? ` (${ruleId})` : ""}.` })
-  if (ev && n.phase !== "close" && d.club >= ev.date)
+  // Check-in materials are intentionally allowed to be completed up to the event day.
+  // They become an event-level warning only if they remain open on that day.
+  const isCheckin = n.stepKey === "checkin"
+  if (ev && n.phase !== "close" && !isCheckin && d.club >= ev.date)
     out.push({ code: "after_event", severity: "error", text: `Planned finish ${fmtLong(d.club)} is not before the event (${fmtLong(ev.date)}).` })
+  if (ev && isCheckin && today === ev.date)
+    out.push({ code: "checkin_due", severity: "error", text: "Check-in materials are still incomplete on event day." })
   if (d.official && today > d.official)
     out.push({ code: "official_passed", severity: "error", ruleId, text: `The ASU deadline (${fmtLong(d.official)}) has passed. Time for Plan B.` })
   else if (today > d.club) out.push({ code: "club_passed", severity: "warn", text: `Past the club deadline (${fmtLong(d.club)}).` })
@@ -331,12 +344,14 @@ function eventIssues(ctx: Ctx, ev: Event, nodes: Node[], out: Schedule, looped: 
   if (ev.date in HOLIDAYS) issues.push({ code: "holiday", severity: "warn", text: `ASU is closed on ${fmtLong(ev.date)} (${HOLIDAYS[ev.date]}).` })
   const brk = findPeriod(ev.date, BREAKS)
   if (brk) issues.push({ code: "break", severity: "warn", text: `${fmtLong(ev.date)} is during ${brk.label}. Classes are excused, so many members may be away.` })
-  if (!finals && !findPeriod(ev.date, TERMS)) issues.push({ code: "no_term", severity: "warn", text: `${fmtLong(ev.date)} is between semesters. Most members are away.` })
+  const outside = outsideCalendar(ev.date) || nodes.some(n => out.nodes[n.id]?.issues.some(i => i.code === "calendar_range"))
+  if (outside) issues.push({ code: "calendar_range", severity: "error", text: `Some dates for this event fall outside the ASU calendar Platypus knows (${calendarSpan()}), so its deadlines cannot be trusted. Do not rely on them until the calendar is updated.` })
+  if (!outside && !finals && !findPeriod(ev.date, TERMS)) issues.push({ code: "no_term", severity: "warn", text: `${fmtLong(ev.date)} is between semesters. Most members are away.` })
   if (ev.date < today) issues.push({ code: "past", severity: "info", text: "This event has already happened." })
   const passed = nodes.filter(n => out.nodes[n.id]?.issues.some(i => i.code === "official_passed"))
   if (passed.length)
     issues.push({ code: "official_passed", severity: "error", text: `${plural(passed.length, "ASU deadline")} already passed: ${passed.map(n => n.title).join("; ")}. Consider moving the event or a Plan B.` })
-  const missed = nodes.filter(n => out.nodes[n.id]?.issues.some(i => i.code === "official_missed" || i.code === "after_event"))
+  const missed = nodes.filter(n => out.nodes[n.id]?.issues.some(i => i.code === "official_missed" || i.code === "after_event" || i.code === "checkin_due"))
   if (missed.length) issues.push({ code: "plan_misses", severity: "error", text: `${plural(missed.length, "step")} cannot finish in time with the current plan.` })
   if (looped.length) issues.push({ code: "loop", severity: "error", text: `Steps wait for each other in a loop: ${looped.map(n => n.title).join("; ")}.` })
   return issues
@@ -384,6 +399,8 @@ export function handoffDates(start: string) {
   return { interview: addDays(start, 3), handbook: addDays(start, 7), weekOne: addDays(start, 7), weekTwo: addDays(start, 14), review: addDays(start, 30) }
 }
 export function fundingDecisionDate(state: DemoState, eventId: string): string | null {
-  const steps = state.nodes.filter(n => n.eventId === eventId && (n.stepKey === "usg" || n.stepKey === "usgspeaker"))
+  // This intentionally follows business meaning instead of playbook keys.  It works for the
+  // v2 budget route and for a saved legacy graph while those records are being migrated.
+  const steps = state.nodes.filter(n => n.eventId === eventId && n.phase === "money" && !!n.officialDeadline)
   return steps.map(n => n.officialDeadline).filter((d): d is string => !!d).sort()[0] ?? null
 }

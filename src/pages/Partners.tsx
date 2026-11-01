@@ -3,81 +3,121 @@ import { Link } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
 import { useRail } from "../components/rail/RailContext"
-import { daysBetween, fmtShort } from "../lib/dates"
-import type { Contact, DemoState } from "../data/types"
+import { canEditContact, contactTone, CONTACT_TYPES, daysSince, nextEvent, nextStep, orgName, STAGES, visibleContacts } from "../data/crm"
+import { fmtShort } from "../lib/dates"
+import { Empty, Hover } from "../components/ui"
+import type { Contact, RelationStage } from "../data/types"
 
-const since = (s: DemoState, c: Contact) => c.lastContact ? daysBetween(c.lastContact, s.today) : null
-const tone = (s: DemoState, c: Contact) => { const d = since(s, c); return d === null || d >= c.cadenceDays ? "late" : d >= c.cadenceDays * .75 ? "warn" : "good" }
-const nextEvent = (s: DemoState, c: Contact) => s.events.filter(e => c.eventIds.includes(e.id) && e.date >= s.today).sort((a, b) => a.date.localeCompare(b.date))[0]
+export { PartnerDetail } from "../components/crm/ContactDetail"
 
-/** Partners as a searchable table (v1.1): built for 100+ contacts. */
+type View = "people" | "board" | "orgs"
+type Preset = "all" | "mine" | "overdue"
+const ORDER = { late: 0, warn: 1, good: 2 }
+const VIEWS: { id: View; label: string }[] = [{ id: "people", label: "People" }, { id: "board", label: "Board" }, { id: "orgs", label: "Organizations" }]
+const PRESETS: { id: Preset; label: string }[] = [{ id: "all", label: "All" }, { id: "mine", label: "Mine" }, { id: "overdue", label: "Overdue" }]
+
+/** Club CRM: everyone can look people up and log what happened; the owner or a lead edits the profile. */
 export default function Partners() {
   const { state, dispatch } = useStore()
-  const { canNudge } = useViewer()
+  const { person } = useViewer()
   const rail = useRail()
+  const [view, setView] = useState<View>("people")
+  const [preset, setPreset] = useState<Preset>("all")
   const [q, setQ] = useState("")
   const [type, setType] = useState("all")
-  const [adding, setAdding] = useState(false)
-  const [draft, setDraft] = useState({ name: "", organization: "", relation: "Vendor", ownerRoleId: state.roles[0]?.id ?? "", cadenceDays: 60 })
-  const types = [...new Set(state.contacts.map(c => c.relation))].sort()
-  const rows = state.contacts
-    .filter(c => (type === "all" || c.relation === type) && `${c.name} ${c.organization} ${c.relation}`.toLowerCase().includes(q.toLowerCase().trim()))
-    .sort((a, b) => ({ late: 0, warn: 1, good: 2 }[tone(state, a)] - { late: 0, warn: 1, good: 2 }[tone(state, b)]) || a.name.localeCompare(b.name))
+  const [owner, setOwner] = useState("all")
+  const [tag, setTag] = useState("all")
+  const [adding, setAdding] = useState<"person" | "org" | null>(null)
+  const [draft, setDraft] = useState({ name: "", organization: "", relation: "Vendor", ownerRoleId: person.roleId, orgType: "Vendor" })
+
+  const all = visibleContacts(state)
+  const types = [...new Set([...CONTACT_TYPES, ...all.map(c => c.relation)])].sort()
+  const tags = [...new Set([...all.flatMap(c => c.tags), ...state.organizations.flatMap(o => o.tags)])].sort()
+  const mine = (c: Contact) => state.roles.find(r => r.id === c.ownerRoleId)?.holderId === state.viewerId
+  const needle = q.toLowerCase().trim()
+  const rows = all
+    .filter(c => (type === "all" || c.relation === type) && (owner === "all" || c.ownerRoleId === owner) && (tag === "all" || c.tags.includes(tag))
+      && (preset === "all" || (preset === "mine" ? mine(c) : contactTone(state, c) === "late"))
+      && `${c.name} ${c.title} ${orgName(state, c.organizationId)} ${c.relation} ${c.email} ${c.tags.join(" ")}`.toLowerCase().includes(needle))
+    .sort((a, b) => ORDER[contactTone(state, a)] - ORDER[contactTone(state, b)] || a.name.localeCompare(b.name))
+  const orgs = state.organizations
+    .filter(o => (type === "all" || o.type === type) && (tag === "all" || o.tags.includes(tag)) && `${o.name} ${o.type} ${o.tags.join(" ")}`.toLowerCase().includes(needle))
+    .sort((a, b) => a.name.localeCompare(b.name))
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (adding === "org") dispatch({ type: "addOrganization", name: draft.name, orgType: draft.orgType })
+    else dispatch({ type: "addContact", name: draft.name, organization: draft.organization, relation: draft.relation, ownerRoleId: draft.ownerRoleId, cadenceDays: 60 })
+    setDraft({ ...draft, name: "", organization: "" }); setAdding(null)
+  }
+  const addLabel = view === "orgs" ? "+ Add organization" : "+ Add contact"
+
   return <>
     <PageHead path="/partners" actions={<>
       <input className="select" type="search" placeholder="Search" aria-label="Search partners" value={q} onChange={e => setQ(e.target.value)} />
       <select className="select" aria-label="Partner type" value={type} onChange={e => setType(e.target.value)}><option value="all">All types</option>{types.map(t => <option key={t}>{t}</option>)}</select>
     </>} />
-    <section className="card tbl-wrap">
-      <table className="tbl" data-testid="contacts">
-        <thead><tr><th>Name</th><th>Type</th><th>Owner</th><th>Last contact</th><th>Next event</th><th /></tr></thead>
-        <tbody>{rows.map(c => {
-          const role = state.roles.find(r => r.id === c.ownerRoleId), d = since(state, c), ev = nextEvent(state, c)
-          const person = state.people.find(p => p.id === role?.holderId)
-          const editable = canNudge || person?.id === state.viewerId
-          return <tr key={c.id}>
-            <td><button type="button" className="row-btn" onClick={() => rail.show({ kind: "partner", id: c.id })}>{c.name}</button></td>
-            <td className="small">{c.relation}</td>
-            <td className="small">{role?.displayName ?? "—"}</td>
-            <td><span className={`days ${tone(state, c)}`} title={`Every ${c.cadenceDays} days`}>{d === null ? "Never" : `${d}d ago`}</span></td>
-            <td className="small">{ev ? <Link to={`/events?event=${encodeURIComponent(ev.id)}`}>{ev.name}</Link> : "—"}</td>
-            <td className="num"><button type="button" className="btn small" disabled={!editable} onClick={() => dispatch({ type: "contacted", id: c.id })}>Contacted today</button></td>
-          </tr>
-        })}
-        {canNudge && (adding
-          ? <tr><td colSpan={6}><form className="add-row" onSubmit={e => { e.preventDefault(); dispatch({ type: "addContact", ...draft }); setDraft({ ...draft, name: "", organization: "" }); setAdding(false) }}>
-            <input required placeholder="Name" aria-label="Partner name" value={draft.name} maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} />
-            <input placeholder="Organization" aria-label="Organization" value={draft.organization} maxLength={80} onChange={e => setDraft({ ...draft, organization: e.target.value })} />
-            <select aria-label="Type" value={draft.relation} onChange={e => setDraft({ ...draft, relation: e.target.value })}>{["Vendor", "Guest speaker", "Sponsor", "Partner club", "Campus office"].map(t => <option key={t}>{t}</option>)}</select>
-            <select aria-label="Owner role" value={draft.ownerRoleId} onChange={e => setDraft({ ...draft, ownerRoleId: e.target.value })}>{state.roles.map(r => <option key={r.id} value={r.id}>{r.displayName}</option>)}</select>
-            <button className="btn btn-primary small" type="submit">Add</button><button type="button" className="btn btn-quiet small" onClick={() => setAdding(false)}>Cancel</button>
-          </form></td></tr>
-          : <tr><td colSpan={6}><button type="button" className="board-add-btn" onClick={() => setAdding(true)}>+ Add partner</button></td></tr>)}
-        </tbody>
-      </table>
-      {!rows.length && <p className="empty">No partners match.</p>}
-    </section>
-  </>
-}
-
-/** One partner in the right rail: cadence, linked events, and recording a contact. */
-export function PartnerDetail({ id }: { id: string }) {
-  const { state, dispatch } = useStore()
-  const { canNudge } = useViewer()
-  const c = state.contacts.find(x => x.id === id)
-  if (!c) return <p className="empty">This partner was removed.</p>
-  const role = state.roles.find(r => r.id === c.ownerRoleId), person = state.people.find(p => p.id === role?.holderId), d = since(state, c), ev = nextEvent(state, c)
-  const editable = canNudge || person?.id === state.viewerId
-  return <section className="form-stack" aria-label={`Partner ${c.name}`}>
-    <h2>{c.name}</h2>
-    <p className="small muted">{c.relation} · {c.organization}</p>
-    <div className="kv">
-      <span>Owner</span><span>{role?.displayName ?? "—"} · {person?.name ?? "Vacant"}</span>
-      <span>Last contact</span><span className={`days ${tone(state, c)}`}>{d === null ? "No contact recorded" : `${d} days since last contact`}</span>
-      <label htmlFor="cad">Contact every (days)</label><input id="cad" type="number" min="1" max="365" disabled={!editable} value={c.cadenceDays} onChange={e => dispatch({ type: "contactCadence", id: c.id, days: Number(e.target.value) })} />
-      <span>Next event</span><span>{ev ? `${ev.name} · ${fmtShort(ev.date)}` : "None linked"}</span>
+    <div className="crm-bar">
+      <div className="crm-seg" role="group" aria-label="View">{VIEWS.map(v => <button key={v.id} type="button" aria-pressed={view === v.id} onClick={() => setView(v.id)}>{v.label}</button>)}</div>
+      {view !== "orgs" && <div className="crm-seg" role="group" aria-label="Show">{PRESETS.map(p => <button key={p.id} type="button" aria-pressed={preset === p.id} onClick={() => setPreset(p.id)}>{p.label}</button>)}</div>}
+      {view !== "orgs" && <select className="select" aria-label="Owner" value={owner} onChange={e => setOwner(e.target.value)}><option value="all">Any owner</option>{state.roles.map(r => <option key={r.id} value={r.id}>{r.displayName}</option>)}</select>}
+      <select className="select" aria-label="Tag" value={tag} onChange={e => setTag(e.target.value)}><option value="all">Any tag</option>{tags.map(t => <option key={t}>{t}</option>)}</select>
     </div>
-    <button className="btn btn-primary" disabled={!editable} onClick={() => dispatch({ type: "contacted", id: c.id })}>Record contact today</button>
-    <p className="small muted">Records your confirmation only; sends nothing. Contacts stay with the role at handoff.</p>
-  </section>
+
+    {view === "people" && <section className="card tbl-wrap">
+      <table className="tbl" data-testid="contacts">
+        <thead><tr><th>Name</th><th>Stage</th><th>Owner</th><th>Last contact</th><th>Next</th><th /></tr></thead>
+        <tbody>{rows.map(c => {
+          const role = state.roles.find(r => r.id === c.ownerRoleId), d = daysSince(state, c), ev = nextEvent(state, c), step = nextStep(state, c.id)
+          return <tr key={c.id}>
+            <td><button type="button" className="row-btn" onClick={() => rail.show({ kind: "partner", id: c.id })}><span>{c.name}</span><span className="small muted">{[c.relation, orgName(state, c.organizationId)].filter(Boolean).join(" · ")}</span></button></td>
+            <td className="small">{STAGES.find(s => s.id === c.stage)?.label}</td>
+            <td className="small">{role?.displayName ?? "—"}</td>
+            <td><Hover card={`Every ${c.cadenceDays} days`}><span className={`days ${contactTone(state, c)}`}>{d === null ? "Never" : `${d}d ago`}</span></Hover></td>
+            <td className="small">{step ? <Hover card={step.nextStep}><span>{step.nextDue ? `Due ${fmtShort(step.nextDue)}` : "Next step"}</span></Hover> : ev ? <Link to={`/events?event=${encodeURIComponent(ev.id)}`}>{ev.name}</Link> : "—"}</td>
+            <td className="num"><button type="button" className="btn small" disabled={!canEditContact(state, c)} onClick={() => dispatch({ type: "contacted", id: c.id })}>Contacted today</button></td>
+          </tr>
+        })}</tbody>
+      </table>
+      {!rows.length && <Empty>No contacts match.</Empty>}
+    </section>}
+
+    {view === "board" && <div className="crm-board" data-testid="crm-board">{STAGES.map(col => {
+      const items = rows.filter(c => c.stage === col.id)
+      const move = (id: string | undefined, stage: RelationStage) => id && dispatch({ type: "updateContact", id, patch: { stage } })
+      return <section key={col.id} className="crm-col" aria-label={`${col.label} (${items.length})`} onDragOver={e => e.preventDefault()} onDrop={e => move(e.dataTransfer.getData("text/plain"), col.id)}>
+        <h3><Hover card={col.hint}>{col.label}</Hover> <span className="muted small">{items.length}</span></h3>
+        {items.map(c => <article key={c.id} className="crm-card" draggable={canEditContact(state, c)} onDragStart={e => e.dataTransfer.setData("text/plain", c.id)}>
+          <button type="button" className="row-btn" onClick={() => rail.show({ kind: "partner", id: c.id })}><span>{c.name}</span><span className="small muted">{orgName(state, c.organizationId) || c.relation}</span></button>
+          <div className="crm-card-foot"><span className={`days ${contactTone(state, c)}`}>{daysSince(state, c) === null ? "Never" : `${daysSince(state, c)}d ago`}</span>
+            <select aria-label={`Move ${c.name} to stage`} disabled={!canEditContact(state, c)} value={c.stage} onChange={e => move(c.id, e.target.value as RelationStage)}>{STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select></div>
+        </article>)}
+      </section>
+    })}</div>}
+
+    {view === "orgs" && <section className="card tbl-wrap">
+      <table className="tbl" data-testid="orgs">
+        <thead><tr><th>Name</th><th>People</th><th>Last contact</th><th>Tags</th></tr></thead>
+        <tbody>{orgs.map(o => {
+          const people = all.filter(c => c.organizationId === o.id), last = people.map(c => c.lastContact).filter(Boolean).sort().pop()
+          return <tr key={o.id}>
+            <td><button type="button" className="row-btn" onClick={() => rail.show({ kind: "org", id: o.id })}><span>{o.name}</span><span className="small muted">{o.type}</span></button></td>
+            <td className="small">{people.length}</td>
+            <td className="small">{last ? fmtShort(last) : "—"}</td>
+            <td>{o.tags.map(t => <span key={t} className="tag-chip">{t}</span>)}</td>
+          </tr>
+        })}</tbody>
+      </table>
+      {!orgs.length && <Empty>No organizations match.</Empty>}
+    </section>}
+
+    {adding
+      ? <form className="add-row crm-add" onSubmit={submit}>
+        <input required autoFocus placeholder={adding === "org" ? "Organization name" : "Name"} aria-label={adding === "org" ? "Organization name" : "Partner name"} value={draft.name} maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} />
+        {adding === "person" && <input placeholder="Organization" aria-label="Organization" value={draft.organization} maxLength={80} onChange={e => setDraft({ ...draft, organization: e.target.value })} />}
+        <select aria-label="Type" value={adding === "org" ? draft.orgType : draft.relation} onChange={e => setDraft(adding === "org" ? { ...draft, orgType: e.target.value } : { ...draft, relation: e.target.value })}>{CONTACT_TYPES.map(t => <option key={t}>{t}</option>)}</select>
+        {adding === "person" && <select aria-label="Owner role" value={draft.ownerRoleId} onChange={e => setDraft({ ...draft, ownerRoleId: e.target.value })}>{state.roles.map(r => <option key={r.id} value={r.id}>{r.displayName}</option>)}</select>}
+        <button className="btn btn-primary small" type="submit">Add</button><button type="button" className="btn btn-quiet small" onClick={() => setAdding(null)}>Cancel</button>
+      </form>
+      : <button type="button" className="board-add-btn crm-add-btn" onClick={() => setAdding(view === "orgs" ? "org" : "person")}>{addLabel}</button>}
+  </>
 }

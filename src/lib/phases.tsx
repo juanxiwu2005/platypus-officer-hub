@@ -3,12 +3,12 @@ import type { Forecast } from "../engine/forecast"
 import type { Stop, StopState } from "../components/ui"
 
 export const PHASE_SHORT: Record<Phase, string> = { plan: "Plan", prepare: "Prep", money: "Money", marketing: "Promo", run: "Run", close: "Wrap" }
-const ORDER: Phase[] = ["plan", "prepare", "money", "marketing", "run", "close"]
+import { phaseOrderOf } from "./stepOrder"
 
 /** One stop per phase of an event: the "parcel tracking" view used on Today. */
 export function phaseChain(s: DemoState, forecast: Forecast, eventId: string): Stop[] {
   const nodes = s.nodes.filter(n => n.eventId === eventId)
-  return ORDER.filter(p => nodes.some(n => n.phase === p)).map(p => {
+  return phaseOrderOf(s.events.find(e => e.id === eventId)).filter(p => nodes.some(n => n.phase === p)).map(p => {
     const mine = nodes.filter(n => n.phase === p)
     const done = mine.filter(n => n.status === "done").length
     const open = mine.filter(n => n.status !== "done")

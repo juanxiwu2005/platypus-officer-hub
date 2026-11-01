@@ -1,14 +1,13 @@
 import type { DemoState, Node, RoleFunction } from "../../data/types"
 import type { Schedule } from "../../engine/schedule"
-import { topoOrder } from "../../engine/schedule"
-import { daysBetween } from "../../lib/dates"
 
 /**
- * Single-main-line ("metro") layout for an event (v1.1, plan "流程图：一条主线").
- * Main line = the longest dependency chain before the event, then the event day, then the longest chain after it.
- * Every other step hangs on a branch that leaves the main line at its last main ancestor and rejoins at its first
- * main descendant. Branches are grouped by the function that owns the work (room, food and money, marketing…).
- * Pure function: no React, no dates written. Positions are in "columns" and "rows"; the chart turns them into pixels.
+ * Event workflow layout.
+ *
+ * The pre-event plan is deliberately a five-route diagram, not a critical-path
+ * chart: Start fans out to Event Lead, Speaker, Marketing, Finance and Special
+ * Event, then the active routes meet at Full Check. Dates still come solely
+ * from the scheduler; they must never decide where a node sits on this diagram.
  */
 export const EVENT_KEY = "__event__"
 export const START_KEY = "__start__"
@@ -18,98 +17,102 @@ export interface Station { key: string; node: Node | null; col: number }
 export interface Branch { id: string; fn: RoleFunction; from: number; to: number; row: number; nodes: { node: Node; col: number }[] }
 export interface MetroLayout { stations: Station[]; branches: Branch[]; cols: number; minRow: number; maxRow: number }
 
-function longestChain(nodes: Node[], sched: Schedule): Node[] {
-  if (!nodes.length) return []
-  const ids = new Set(nodes.map(n => n.id))
-  const { order } = topoOrder(nodes)
-  const best = new Map<string, number>(), prev = new Map<string, string | null>()
-  const club = (n: Node | undefined) => (n ? sched.nodes[n.id]?.club ?? n.clubDeadline ?? "" : "")
-  const byId = new Map(nodes.map(n => [n.id, n]))
-  for (const n of order) {
-    let b = 1, p: string | null = null
-    for (const d of n.dependsOn.filter(x => ids.has(x))) {
-      const v = (best.get(d) ?? 1) + 1
-      if (v > b || (v === b && p && club(byId.get(d)) > club(byId.get(p)))) { b = v; p = d }
-    }
-    best.set(n.id, b); prev.set(n.id, p)
-  }
-  let end = order[0]
-  for (const n of order) {
-    const v = best.get(n.id)!, e = best.get(end.id)!
-    if (v > e || (v === e && club(n) > club(end))) end = n
-  }
-  const chain: Node[] = []
-  for (let cur: string | null = end.id; cur; cur = prev.get(cur) ?? null) chain.unshift(byId.get(cur)!)
-  return chain
+type Route = { id: string; keys: string[]; row: number }
+
+const PRE_ROUTES: Route[] = [
+  { id: "event-lead", keys: ["plan", "backup", "venuechoice", "registry", "venue", "moderator", "materials", "draft", "approve", "offvenue", "ritm"], row: -5 },
+  { id: "speaker", keys: ["partner", "speakerPacket", "travel", "partnerReview", "parking", "sap"], row: -3 },
+  { id: "marketing", keys: ["marketingNeeds", "contentCreation", "promotionItems", "rsvp", "content", "reminder", "mktneeds", "flyer", "partnerreview", "promo"], row: -1 },
+  { id: "finance", keys: ["budget", "foodCompliance", "quotes", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "orderPlaced", "quote", "foodex", "dining", "usg", "usgspeaker", "foodplan"], row: 1 },
+  { id: "special-event", keys: ["advisor", "access", "security", "eams", "permit", "alcohol", "drone", "schoolApproval"], row: 3 },
+]
+
+const POST_ROUTES: Route[] = [
+  { id: "close-event", keys: ["thankyou", "feedback", "documentation", "archive"], row: -3 },
+  { id: "close-marketing", keys: ["postmarketing", "photoBackup"], row: -1 },
+  { id: "close-finance", keys: ["invoice", "attendance", "spending", "financeRecord", "closeout"], row: 1 },
+]
+
+const byRouteOrder = (route: Route, a: Node, b: Node) => route.keys.indexOf(a.stepKey ?? "") - route.keys.indexOf(b.stepKey ?? "")
+
+/** Place each route by its own progress, rather than forcing unrelated tasks into shared vertical columns. */
+function progressColumns(nodes: Node[], start: number, end: number) {
+  if (nodes.length === 1) return [start + (end - start) / 2]
+  return nodes.map((_, index) => start + (end - start) * index / (nodes.length - 1))
 }
 
-export function metroLayout(state: DemoState, sched: Schedule, eventId: string, bothSides = true): MetroLayout {
-  const ev = state.events.find(e => e.id === eventId)!
+/**
+ * Empty conditional routes must not leave a visual hole. Keep the lowest active
+ * route where it belongs, then pack the active routes above it at the standard
+ * two-row rhythm. This moves an upper route down when a route beneath it is off.
+ */
+function packedRows(routes: Route[], groups: { route: Route; nodes: Node[] }[]) {
+  const active = routes.map(route => groups.find(group => group.route.id === route.id)!).filter(group => group.nodes.length > 0)
+  const out = new Map<string, number>()
+  if (!active.length) return out
+  const bottom = active.at(-1)!.route.row
+  active.forEach((group, index) => out.set(group.route.id, bottom - 2 * (active.length - index - 1)))
+  return out
+}
+
+/** Build stable swimlanes from the approved workflow routes. */
+export function metroLayout(state: DemoState, _sched: Schedule, eventId: string, bothSides = true): MetroLayout {
   const nodes = state.nodes.filter(n => n.eventId === eventId)
-  const ids = new Set(nodes.map(n => n.id))
-  const local = nodes.map(n => ({ ...n, dependsOn: n.dependsOn.filter(d => ids.has(d)) }))
-  const isPost = (n: Node) => n.phase === "close" || (sched.nodes[n.id]?.club ?? "") > ev.date
-  const pre = local.filter(n => !isPost(n)), post = local.filter(isPost)
-  const preMain = longestChain(pre, sched), postMain = longestChain(post, sched)
-  const mainKeys = [...preMain.map(n => n.id), EVENT_KEY, ...postMain.map(n => n.id)]
-  const byId = new Map(local.map(n => [n.id, n]))
+  const byKey = new Map(nodes.filter(n => n.stepKey).map(n => [n.stepKey!, n]))
+  const final = byKey.get("finalcheck") ?? byKey.get("review")
+  const checkin = byKey.get("checkin") ?? byKey.get("runshow")
+  const headcount = byKey.get("headcount")
+  const pre = PRE_ROUTES.map(route => ({ route, nodes: route.keys.map(key => byKey.get(key)).filter((n): n is Node => !!n) }))
+  const post = POST_ROUTES.map(route => ({ route, nodes: route.keys.map(key => byKey.get(key)).filter((n): n is Node => !!n) }))
+  const placed = new Set(["finalcheck", "review", "checkin", "runshow", "headcount", ...PRE_ROUTES.flatMap(r => r.keys), ...POST_ROUTES.flatMap(r => r.keys)])
+  // Custom template steps remain visible rather than disappearing. Their phase
+  // chooses whether they join the pre-check or close-out side.
+  const extraPre = nodes.filter(n => !placed.has(n.stepKey ?? "") && n.phase !== "close")
+  const extraPost = nodes.filter(n => !placed.has(n.stepKey ?? "") && n.phase === "close")
+  if (extraPre.length) pre.push({ route: { id: "other-pre", keys: extraPre.map(n => n.stepKey ?? n.id), row: 6 }, nodes: extraPre })
+  if (extraPost.length) post.push({ route: { id: "other-close", keys: extraPost.map(n => n.stepKey ?? n.id), row: 4 }, nodes: extraPost })
+  const preRows = packedRows(PRE_ROUTES, pre)
+  const postRows = packedRows(POST_ROUTES, post)
 
-  const children = new Map<string, string[]>()
-  for (const n of local) for (const d of n.dependsOn) children.set(d, [...(children.get(d) ?? []), n.id])
-  const walk = (start: string, next: (id: string) => string[]) => {
-    const seen = new Set<string>(), stack = [...next(start)]
-    while (stack.length) { const id = stack.pop()!; if (seen.has(id)) continue; seen.add(id); stack.push(...next(id)) }
-    return seen
-  }
-  const idx = new Map(mainKeys.map((k, i) => [k, i]))
-  const eventIdx = idx.get(EVENT_KEY)!
-  let needStart = false, needEnd = false
-  const placed: { node: Node; from: number; to: number }[] = []
-  for (const n of local) {
-    if (idx.has(n.id)) continue
-    const anc = [...walk(n.id, id => byId.get(id)?.dependsOn ?? [])].map(id => idx.get(id)).filter((i): i is number => i !== undefined)
-    const desc = [...walk(n.id, id => children.get(id) ?? [])].map(id => idx.get(id)).filter((i): i is number => i !== undefined)
-    let from = anc.length ? Math.max(...anc) : isPost(n) ? eventIdx : -1
-    let to = desc.length ? Math.min(...desc) : isPost(n) ? mainKeys.length : eventIdx
-    if (!isPost(n) && from >= eventIdx) from = eventIdx - 1
-    if (to <= from) to = from + 1
-    if (from === -1) needStart = true
-    if (to === mainKeys.length) needEnd = true
-    placed.push({ node: n, from, to })
-  }
-  // Optional start/end stations keep branches that begin before or end after the main line attached to it.
-  const keys = [...(needStart ? [START_KEY] : []), ...mainKeys, ...(needEnd ? [END_KEY] : [])]
-  const shift = needStart ? 1 : 0
-  const groups = new Map<string, { fn: RoleFunction; from: number; to: number; nodes: Node[] }>()
-  for (const p of placed) {
-    const from = p.from + shift, to = p.to + shift
-    const key = `${from}:${to}:${p.node.fn}`
-    const g = groups.get(key) ?? { fn: p.node.fn, from, to, nodes: [] }
-    g.nodes.push(p.node); groups.set(key, g)
-  }
-  const order = topoOrder(local).order.map(n => n.id)
-  const rank = (n: Node) => order.indexOf(n.id) * 1000 + (sched.nodes[n.id]?.latestStart ? daysBetween("2000-01-01", sched.nodes[n.id].latestStart) / 100000 : 0)
-  const raw = [...groups.values()].map(g => ({ ...g, nodes: g.nodes.sort((a, b) => rank(a) - rank(b)) }))
-
-  // Columns: each main gap is wide enough for the longest branch that spans it.
-  const col: number[] = []
-  keys.forEach((_, k) => {
-    let c = k === 0 ? 0 : col[k - 1] + 1
-    for (const b of raw) if (b.to === k && b.from >= 0) c = Math.max(c, col[b.from] + b.nodes.length + 1)
-    col.push(c)
+  // Every active pre-event route occupies the same compact work window. A
+  // shorter route therefore reaches its final step near Full Check instead of
+  // leaving a long, empty rail on the right.
+  const preSpan = Math.max(1, ...pre.map(group => Math.max(0, group.nodes.length - 1)))
+  const preStart = 1
+  const preEnd = preStart + preSpan
+  // Keep a small visible gap for the converging curves and Full Check label.
+  const finalCol = preEnd + .9
+  const postSpan = Math.max(1, ...post.map(group => Math.max(0, group.nodes.length - 1)))
+  const headcountCol = finalCol + 3
+  const postStart = headcountCol + 1
+  const postEnd = postStart + postSpan
+  const stations: Station[] = [
+    { key: START_KEY, node: null, col: 0 },
+    ...(final ? [{ key: final.id, node: final, col: finalCol }] : []),
+    ...(checkin ? [{ key: checkin.id, node: checkin, col: finalCol + 1 }] : []),
+    { key: EVENT_KEY, node: null, col: finalCol + 2 },
+    ...(headcount ? [{ key: headcount.id, node: headcount, col: headcountCol }] : []),
+    { key: END_KEY, node: null, col: postEnd + .9 },
+  ]
+  const finalIndex = final ? 1 : 0
+  const headcountIndex = stations.findIndex(s => s.node?.id === headcount?.id)
+  const endIndex = stations.length - 1
+  const branches: Branch[] = []
+  // On a phone every active route needs its own column to the right of the main line.
+  // Folding signed desktop rows with abs() can put unrelated routes in the same lane.
+  const branchRow = (row: number) => bothSides ? row : branches.length + 1
+  pre.forEach(({ route, nodes: routeNodes }) => {
+    if (!routeNodes.length || !final) return
+    const ordered = [...routeNodes].sort((a, b) => byRouteOrder(route, a, b))
+    const columns = progressColumns(ordered, preStart, preEnd)
+    branches.push({ id: route.id, fn: ordered[0].fn, from: 0, to: finalIndex, row: branchRow(preRows.get(route.id) ?? route.row), nodes: ordered.map((node, i) => ({ node, col: columns[i] })) })
   })
-  // Rows: nearest free row, alternating above and below (or only one side on a phone).
-  const taken: { row: number; a: number; b: number }[] = []
-  const candidates = bothSides ? [-1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6] : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-  // Short spans take the rows nearest the main line, so lines do not cross.
-  const branches: Branch[] = raw.sort((x, y) => (col[x.to] - col[x.from]) - (col[y.to] - col[y.from]) || col[x.from] - col[y.from] || y.nodes.length - x.nodes.length).map((b, i) => {
-    const a = col[b.from], z = col[b.to]
-    const row = candidates.find(r => !taken.some(t => t.row === r && t.a < z && a < t.b)) ?? candidates.at(-1)!
-    taken.push({ row, a, b: z })
-    const L = b.nodes.length
-    return { id: `b${i}`, fn: b.fn, from: b.from, to: b.to, row, nodes: b.nodes.map((node, m) => ({ node, col: a + ((m + 1) * (z - a)) / (L + 1) })) }
+  post.forEach(({ route, nodes: routeNodes }) => {
+    if (!routeNodes.length || headcountIndex < 0) return
+    const ordered = [...routeNodes].sort((a, b) => byRouteOrder(route, a, b))
+    const columns = progressColumns(ordered, postStart, postEnd)
+    branches.push({ id: route.id, fn: ordered[0].fn, from: headcountIndex, to: endIndex, row: branchRow(postRows.get(route.id) ?? route.row), nodes: ordered.map((node, i) => ({ node, col: columns[i] })) })
   })
-  const stations: Station[] = keys.map((key, k) => ({ key, node: key.startsWith("__") ? null : byId.get(key)!, col: col[k] }))
-  const rows = branches.map(b => b.row)
-  return { stations, branches, cols: col.at(-1) ?? 0, minRow: Math.min(0, ...rows), maxRow: Math.max(0, ...rows) }
+  const rows = branches.map(branch => branch.row)
+  return { stations, branches, cols: stations.at(-1)!.col, minRow: Math.min(0, ...rows), maxRow: Math.max(0, ...rows) }
 }

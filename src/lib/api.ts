@@ -10,6 +10,12 @@ export interface Health {
   model: string | null
 }
 
+/** A failed request, with the HTTP status so callers can tell "try again" from "sign in again". */
+export class ApiError extends Error {
+  status: number
+  constructor(message: string, status: number) { super(message); this.status = status }
+}
+
 export async function callApi<T>(path: string, body?: unknown, timeoutMs = 30_000): Promise<T> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
@@ -21,7 +27,7 @@ export async function callApi<T>(path: string, body?: unknown, timeoutMs = 30_00
       signal: ctrl.signal,
     })
     const data = (await res.json().catch(() => ({}))) as T & { message?: string }
-    if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`)
+    if (!res.ok) throw new ApiError(data.message || `HTTP ${res.status}`, res.status)
     return data
   } finally {
     clearTimeout(timer)
