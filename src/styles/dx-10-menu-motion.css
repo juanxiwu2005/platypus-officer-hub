@@ -1,2 +1,21 @@
-/* DX-10 menu-motion: empty until work package DX-10 fills it (docs/design-upgrade/work-packages/DX-10-menu-motion.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-10 menu motion (docs/design-upgrade/work-packages/DX-10-menu-motion.md).
+   The Demo menu and the bell menu grow out of their button (fade + a small scale) and leave a little faster.
+   Done in CSS only: the `hidden` attribute stays the single switch, so focus, the screen reader and every existing test
+   behave as before. `display` is allowed to wait for the fade-out (transition-behavior: allow-discrete); a browser that
+   does not know it simply switches at once, as it did before. */
+.menu {
+  transform-origin: top right;
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), display var(--dur-fast) allow-discrete;
+}
+.menu[hidden] {
+  opacity: 0;
+  transform: scale(.96) translateY(-4px);
+  transition-duration: var(--dur-press);
+}
+@starting-style {
+  .menu:not([hidden]) { opacity: 0; transform: scale(.96) translateY(-4px); }
+}
+/* On a phone the menu is a full-width bar, so it grows from its middle. */
+@media (max-width: 600px) {
+  .menu { transform-origin: top center; }
+}
