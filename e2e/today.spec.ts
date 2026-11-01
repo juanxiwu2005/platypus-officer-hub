@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { ask, closeRail, noOverflow, resetDemo } from "./helpers"
+import { ask, closeRail, noOverflow, resetDemo, openMore, viewAs } from "./helpers"
 import { savedDemo } from "./demo-contract"
 
 test.beforeEach(async ({ page }) => {
@@ -57,6 +57,7 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
 
 test("AI off: a command becomes a labelled change set; owner edits apply and rejects stick", async ({ page }) => {
   await page.goto("/#/")
+  await openMore(page)
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
   await ask(page, "Assign Send the October newsletter to Priya")
   const card = page.getByTestId("change-item")
@@ -102,8 +103,9 @@ test("top tasks and the risk list come from the app; Remind opens a checked remi
 
 test("officers cannot prepare a reminder or approve a change", async ({ page }) => {
   await page.goto("/#/")
+  await openMore(page)
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await expect(page.getByRole("button", { name: "Remind" })).toHaveCount(0)
   await ask(page, "Assign Send the October newsletter to Priya")
   await expect(page.getByRole("button", { name: "Apply this change" })).toBeDisabled()

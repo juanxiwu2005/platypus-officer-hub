@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
-import { ask, closeRail } from "./helpers"
+import { ask, closeRail, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
 
 // S9 release rehearsals: what a participant does from a clean browser to an exported file, and the keyboard-only path.
@@ -41,6 +41,7 @@ test("participant path: clean browser → six-step setup → task → event → 
   await page.getByTestId("demo-menu").click()
   await page.getByTestId("clock-1").click()
   await page.getByTestId("clock-3").click()
+  await page.keyboard.press("Escape")   // the Demo menu floats over the page; on a phone the page now starts higher, under it
   await page.getByRole("button", { name: "My preferences" }).click()
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-data").click()])
   const file = JSON.parse(readFileSync((await download.path())!, "utf8"))
@@ -56,7 +57,7 @@ test("participant path: clean browser → six-step setup → task → event → 
 
 test("keyboard only: claim a task, change its status and finish it without a mouse", async ({ page }) => {
   const id = await createUnclaimedTask(page, "Prepare the keyboard rehearsal")
-  await page.getByTestId("view-as").selectOption("jordan")
+  await viewAs(page, "jordan")
   await closeRail(page)
   const card = page.getByTestId("task-board").getByRole("button", { name: "Prepare the keyboard rehearsal" })
   await card.focus()

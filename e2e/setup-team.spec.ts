@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { closeRail, openDemoMenu, resetDemo } from "./helpers"
+import { closeRail, openDemoMenu, resetDemo, viewAs } from "./helpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -104,7 +104,7 @@ test("officer five-question setup saves preferences and busy weeks while private
   await page.goto("/#/settings")
   await expect(page.getByTestId("club-settings")).toHaveCount(0)
   await expect(page.getByLabel("My extra working days", { exact: true })).toHaveValue("3")
-  await page.getByTestId("view-as").selectOption("alex")
+  await viewAs(page, "alex")
   await page.getByRole("button", { name: "My preferences", exact: true }).click()
   await expect(page.getByLabel("My extra working days", { exact: true })).toHaveValue("1")
   await expect(page.getByTestId("my-settings")).not.toContainText("Week of 2026-10-19")
@@ -195,7 +195,7 @@ test("task dates remain visible while another officer's buffer explanation stays
   const explanation = row.locator("xpath=following-sibling::tr[1]")
   await expect(explanation).toContainText("private planning preferences")
   await expect(explanation).not.toContainText("Maya's personal buffer")
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await expect(explanation).toContainText("Maya's personal buffer")
 })
 

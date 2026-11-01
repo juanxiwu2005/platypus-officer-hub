@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { ask, closeRail, openAsk, openDemoMenu } from "./helpers"
+import { ask, closeRail, openAsk, openDemoMenu, openMore } from "./helpers"
 
 // "Behind the scenes" (S7): a switch in the Demo menu that shows where numbers, dates and AI output come from.
 // Off (the default) means the notes are not in the page at all.
@@ -82,6 +82,7 @@ test("when on: Event Budget and Handoff say where progress and sources come from
 
 test("when on: the new-task form explains the club deadline and the plan check says whether AI wrote it", async ({ page }) => {
   await page.goto("/#/")
+  await openMore(page)
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
   await switchOn(page)
   await ask(page, "Add a task: order name tags")
