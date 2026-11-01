@@ -1,3 +1,9 @@
+> **2026-11-01 · 界面与动效升级：计划已写好，待 Juanxi 批准（Claude）**
+> 依据对 `main@c3c9394` 的审阅（真实截图、浏览器里量到的样式、两个 Apple Design Skill）。**只写了文档，没有改任何代码或界面。** 计划放在 [`docs/design-upgrade/`](design-upgrade/README.md)：58 条细节清单（[DETAIL_LIST](design-upgrade/DETAIL_LIST.md)）、27 个小工作包、7 个阶段（[PHASES](design-upgrade/PHASES.md)）。每个阶段里的包彼此不改同一个文件，可以各开一个 git worktree 同时做；阶段 0 先把样式分成"每包一个小文件"、拆开 `Layout.tsx`、让测试端口可配置。
+> **回滚：** 每个包用 `--no-ff` 合并并打 `dx/dx-NN-merged` 标签，随时可以 `git revert -m 1` 单独撤销；纯样式的包还能注释一行 `@import` 立刻关掉；所有包都不改数据结构，回滚不会弄坏浏览器里的旧数据。规则和登记表见 README 与 `ROLLBACK_LOG.md`。
+> **和已有决定对齐：** 悬停卡保持零延迟（S3）；Events 左侧活动列表保留（Juanxi 10-31）。更正：上一轮口头报告里"手机正文从约 370px 开始"是错的，实测为 271px（DETAIL_LIST D23）。
+> **下一步（Juanxi）：** 看一眼 DETAIL_LIST 最后的 K 表（5 个默认选择），说"批准"或"改哪里"；批准后按 README"第 0 步"建 `design/ux-upgrade`，再逐阶段发起。`AGENTS.md` 第 0 节写的 `main` 基线（`4dc55ba`）已过时，由 DX-27 核实后更新。分支：`claude/determined-johnson-yrdxwf`。**需要同步本地备份。**
+
 > **2026-10-31 · Spring Speaker Night：补齐旧数据迁移（Codex）**
 > Juanxi 反馈正式站仍显示 Event plan 未完成。已复现此前仅处理 v18 的遗漏：v12/14/15/17 以及已跨版本升级的 v19 会绕过该节点更新；新增回归测试在旧代码中 5 项失败。schema v20 统一所有受支持的旧版本路径，旧图重建后也定向完成该演示节点，保留其他内容、原有完成日期及升级后的人工修改。Node 22 lint/build、817 项单元和桌面/手机 28 项 Events/Recovery 检查通过，0 失败/重试，覆盖 v17/v18/v19 刷新及本地笔记保留。
 > 当前环境仍无 Netlify 管理连接，正式网址及 health 的外部读取工具也不可达；源码推送不代表已核实线上部署。需确认 Netlify Published 为本次 main 提交后刷新，无需清空浏览器数据或 Reset demo。需要同步本地备份。

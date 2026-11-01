@@ -67,6 +67,7 @@
    **写任务文件之前必须先读 `docs/NIGHT_MODE.md` 的 7b（运行环境预算卡）和 7c（任务怎么写）** ——
    2026-10-27 晚五次失败里有四次，根因都是给没量过的运行环境写指令。
 4. 按任务再读：`docs/RULES.md`（ASU 规则库）、`docs/SEO_PLAYBOOK_REFERENCE.md`（流程模板来源）、`docs/AI_SETUP.md`（产品 AI 供应商怎么切换）。
+5. 若任务是界面/动效升级（工作包名字以 `DX-` 开头），读 `docs/design-upgrade/README.md` 和你那个工作包的说明；计划状态以 `docs/PROGRESS.md` 最上面那条为准。
 
 ## 2. 关于项目负责人
 
