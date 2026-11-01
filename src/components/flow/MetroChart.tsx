@@ -202,6 +202,13 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     return () => { document.removeEventListener("pointerdown", away); document.removeEventListener("keydown", esc) }
   }, [menu])
   useEffect(() => { history.current = []; setMenu(null); setMsg(null) }, [eventId])
+  useEffect(() => {
+    const reset = () => {
+      history.current = []; setMenu(null); setMsg(null); setDragBoth(null); bump(x => x + 1)
+    }
+    window.addEventListener("platypus:reset", reset)
+    return () => window.removeEventListener("platypus:reset", reset)
+  }, [])
 
   const stateOf = (n: Node) => {
     if (tpl) return "todo" as const

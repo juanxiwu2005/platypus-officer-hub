@@ -1,12 +1,13 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { closeRail } from "./helpers"
+import { closeRail, resetDemo } from "./helpers"
 
 // Editing the event's flow right on the chart: drag a step onto a spot between two steps, double-click a step or a line.
 test.beforeEach(async ({ page }, info) => {
   if (info.project.name !== "mobile") await page.setViewportSize({ width: 1700, height: 1000 })   // wide enough for the horizontal chart next to the side panel
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
   await page.goto("/#/events")
+  await closeRail(page)
   await expect(page.getByTestId("flow-chart")).toBeVisible()
 })
 
@@ -54,7 +55,7 @@ test("dropping away from the line changes nothing; a plain click still opens the
   await expect(page.getByTestId("flow-edit-msg")).toContainText("nothing changed")
   expect(await deps(page, "plan")).toEqual(before)
   await dot(page, "plan").click()
-  await expect(page.getByTestId("node-panel")).toContainText("Event Plan")
+  await expect(page.getByTestId("task-detail")).toContainText("Event Plan")
 })
 
 test("double-click a step: add one after it (its details open on the right), name it, then delete it", async ({ page }) => {
@@ -63,9 +64,10 @@ test("double-click a step: add one after it (its details open on the right), nam
   const menu = page.getByTestId("flow-menu")
   await expect(menu).toContainText("Budget")
   await menu.getByRole("button", { name: "Add a step after this one" }).click()
-  await expect(page.getByTestId("node-panel")).toContainText("New step")                                  // details open for the new step
-  const panel = page.getByTestId("node-panel")
-  await panel.getByLabel("Step name").fill("Photo release check"); await panel.getByLabel("Step name").press("Enter")
+  await expect(page.getByTestId("task-detail")).toContainText("New step")                                  // details open for the new step
+  const panel = page.getByTestId("task-detail")
+  await panel.getByText("Edit", { exact: true }).click()
+  await panel.getByLabel("Task name").fill("Photo release check"); await panel.getByLabel("Task name").press("Tab")
   await expect(page.getByTestId("flow-chart")).toContainText("Photo release")
   const created = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { title: string }) => n.title === "Photo release check"))
   expect(created).toMatchObject({ eventId: "e-night", dependsOn: ["e-night:budget"], ownerId: null, estDays: 1 })
@@ -77,6 +79,26 @@ test("double-click a step: add one after it (its details open on the right), nam
   expect(await deps(page, "foodCompliance")).toEqual(["e-night:budget"])
   await page.getByTestId("flow-undo").click()                                                               // Undo brings it back
   await expect(page.getByTestId("flow-chart")).toContainText("Photo release")
+  await page.reload()
+  await closeRail(page)
+  await expect(page.getByTestId("flow-chart")).toContainText("Photo release")
+  expect(await deps(page, "foodCompliance")).toEqual([created.id])
+})
+
+test("Reset discards flow edits and their Undo history", async ({ page }) => {
+  await page.getByTestId("flow-edit-toggle").click()
+  await act(page, "budget")
+  await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step after this one" }).click()
+  await expect(page.getByTestId("task-detail").getByRole("heading", { name: "New step", exact: true })).toBeVisible()
+  await closeRail(page)
+  await expect(page.getByTestId("flow-undo")).toBeEnabled()
+  await resetDemo(page)
+  await expect(page.getByTestId("task-detail")).toHaveCount(0)
+  await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(38)
+  await expect(page.getByTestId("flow-undo")).toBeDisabled()
+  await page.reload()
+  await closeRail(page)
+  await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(38)
 })
 
 test("steps ASU rules need, and finished steps, cannot be deleted; the menu says why", async ({ page }) => {
@@ -111,7 +133,7 @@ test("double-click a line: cut the link, or join two steps that are not linked",
   m = await lineMid(page, "budget", "foodCompliance")
   await page.mouse.dblclick(m.x, m.y)
   await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step here" }).click()
-  await expect(page.getByTestId("node-panel")).toContainText("New step")
+  await expect(page.getByTestId("task-detail")).toContainText("New step")
 })
 
 test("keyboard: Alt + arrow moves a step one place; the menu key opens the actions", async ({ page }) => {

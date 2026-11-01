@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test"
+import { closeRail } from "./helpers"
 
 // S3 (2026-10-27): hover cards answer at once, cards with buttons can be used, and form fields get a
 // quiet focus style while keyboard focus stays visible everywhere.
@@ -17,8 +18,9 @@ test("hover cards and flow-chart cards start showing with no delay", async ({ pa
   expect(await card.evaluate(delay)).toBe("0s, 0s")
   await expect(card).toBeVisible()
   await page.goto("/#/events")
+  await closeRail(page)
   await page.getByTestId("view-flow").click()
-  const node = page.getByTestId("flow-node-usg")
+  const node = page.getByTestId("flow-node-purchaseRequest")
   await node.hover()
   const mCard = node.locator("xpath=..").locator(".m-card")
   expect(await mCard.evaluate(delay)).toBe("0s, 0s")

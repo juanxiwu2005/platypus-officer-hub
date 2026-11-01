@@ -10,26 +10,28 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
 })
 
-test("Funding on a phone: each of the six dots opens its stage when tapped, and a tap elsewhere closes it", async ({ page }, info) => {
+test("Events funding on a phone: each of the six stages opens when tapped, and a tap elsewhere closes it", async ({ page }, info) => {
   phoneOnly(info)
-  await page.goto("/#/funding")
+  await page.goto("/#/events?event=e-night&view=budget")
   await closeRail(page)
-  const dots = page.getByTestId("funding-stages").first().locator("button.chain-btn")
+  await page.getByRole("button", { name: "Funding application", exact: true }).tap()
+  const card = page.getByRole("region", { name: "Funding for Networking Night" })
+  const dots = card.getByRole("list", { name: "Networking Night funding stages" }).locator("button.chain-btn")
   await expect(dots).toHaveCount(6)
-  await dots.first().tap()
-  const sheet = page.getByTestId("funding-stages").first().locator(".hover-card").first()
-  await expect(sheet).toBeVisible()
-  await expect(sheet).toContainText("Budget request")
-  await expect(dots.first()).toHaveAttribute("aria-expanded", "true")
-  const box = await sheet.boundingBox()
-  const view = page.viewportSize()!
-  expect(box!.x).toBeGreaterThanOrEqual(0)
-  expect(box!.x + box!.width).toBeLessThanOrEqual(view.width) // a sheet, so it never runs off the edge
+  const stages = ["Budget request", "Budget approved", "Purchase request", "Purchase approved", "Ordered or reimbursed", "Attendance submitted"]
+  for (let index = 0; index < stages.length; index++) {
+    await dots.nth(index).tap()
+    const sheet = card.locator(".hover-card").nth(index)
+    await expect(sheet).toBeVisible()
+    await expect(sheet).toContainText(stages[index])
+    await expect(dots.nth(index)).toHaveAttribute("aria-expanded", "true")
+    const box = await sheet.boundingBox()
+    expect(box!.x).toBeGreaterThanOrEqual(0)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width)
+    await card.getByRole("heading", { name: "Networking Night", exact: true }).tap()
+    await expect(sheet).toBeHidden()
+  }
   expect(await scan(page)).toEqual([])
-  await page.getByRole("heading", { level: 1 }).tap() // a tap elsewhere closes the sheet
-  await expect(sheet).toBeHidden()
-  await dots.nth(3).tap()
-  await expect(page.getByTestId("funding-stages").first().locator(".hover-card").nth(3)).toContainText("Purchase approved")
 })
 
 test("Handoff on a phone: the season dots and each first-week item open their source when tapped", async ({ page }, info) => {
@@ -51,19 +53,19 @@ test("Handoff on a phone: the season dots and each first-week item open their so
   await expect(details.locator("label.check-label input[type=checkbox]").first()).not.toBeChecked()
 })
 
-test("Events on a phone: opening a flow step shows its ASU deadline and rule without another tap; on a computer the extra part stays folded", async ({ page }, info) => {
+test("Events flow steps open the shared task details with deadlines and rule sources", async ({ page }, info) => {
   await page.goto("/#/events")
   await closeRail(page)
-  await page.getByTestId("flow-node-usg").tap().catch(() => page.getByTestId("flow-node-usg").click())
-  const panel = page.getByTestId("node-panel")
+  const node = page.getByTestId("flow-node-purchaseRequest")
+  if (info.project.name === "mobile") await node.tap()
+  else await node.click()
+  const panel = page.getByTestId("task-detail")
   await expect(panel).toBeVisible()
-  const more = panel.locator("details.more")
-  if (info.project.name === "mobile") {
-    await expect(more).toHaveAttribute("open", "")
-    await expect(panel.getByText("ASU deadline:")).toBeVisible()
-  } else {
-    await expect(more).not.toHaveAttribute("open", "")
-  }
+  await expect(panel.getByRole("heading", { name: "Purchase Request" })).toBeVisible()
+  await expect(panel.locator(".task-dates")).toContainText("ASU deadline")
+  await expect(panel.locator(".task-dates")).toContainText("Thu, Mar 11")
+  await panel.getByText("Sources and responsibilities", { exact: true }).click()
+  await expect(panel.getByRole("link", { name: "R09", exact: true })).toBeVisible()
 })
 
 test("navigation: the second group has a title on wide screens and stays hidden on a phone", async ({ page }, info) => {
@@ -74,10 +76,12 @@ test("navigation: the second group has a title on wide screens and stays hidden 
   else await expect(label).toBeVisible()
 })
 
-test("navigation: Tasks shows how many private updates are unread, and nothing when there are none", async ({ page }) => {
+test("navigation: Tasks counts open work separately from unread private updates", async ({ page }) => {
   await page.goto("/#/")
   await closeRail(page)
-  await expect(page.getByTestId("nav-unread")).toHaveCount(0)
+  const count = page.getByTestId("nav-open-tasks")
+  const initial = await count.innerText()
+  await expect(page.getByTestId("bell")).toHaveAccessibleName("Private updates, 0 unread")
   await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
     const viewer = raw.viewerId
@@ -86,8 +90,8 @@ test("navigation: Tasks shows how many private updates are unread, and nothing w
   })
   await page.reload()
   await closeRail(page)
-  const count = page.getByTestId("nav-unread")
-  await expect(count).toContainText("2")
-  await expect(page.getByRole("link", { name: /Tasks/ })).toContainText("unread private updates")
+  await expect(count).toHaveText(initial)
+  await expect(page.getByRole("link", { name: /Tasks/ })).toContainText("open tasks")
+  await expect(page.getByTestId("bell")).toHaveAccessibleName("Private updates, 2 unread")
   expect(await scan(page)).toEqual([])
 })

@@ -94,7 +94,7 @@ function FundingCard({ funding: f }: { funding: Funding }) {
   return <section className="form-stack funding-detail" aria-label={`Funding for ${e.name}`}>
     <h2>{e.name}</h2>
     <p className="small muted">{f.source.toUpperCase()} · ${f.amount.toLocaleString()}</p>
-    <Chain label={`${e.name} funding stages`} stops={FUNDING_STAGES.map((s, i) => ({ key: s, label: s, state: i < at ? "done" : i === at ? "now" : "todo" }))} />
+    <Chain label={`${e.name} funding stages`} stops={FUNDING_STAGES.map((s, i) => ({ key: s, label: s, state: i < at ? "done" : i === at ? "now" : "todo", hint: <><b>{s}</b><span className="hc-line">{i < at ? "Done" : i === at ? "Current" : "Later"}</span></> }))} />
     <button className="btn btn-primary" disabled={!editable || at === 5} onClick={() => dispatch({ type: "advanceFunding", eventId: e.id })}>Confirm current step complete</button>
     <div className="kv">
       <label htmlFor="f-amt">Allocated amount ($)</label><input id="f-amt" type="number" min="0" value={f.amount} disabled={!editable} onChange={x => dispatch({ type: "fundingAmount", eventId: e.id, amount: Number(x.target.value) })} />

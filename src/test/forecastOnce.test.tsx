@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import { act, fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { HashRouter } from "react-router-dom"
 import * as schedule from "../engine/schedule"
 import { computeForecast, forecastFor } from "../engine/forecast"
@@ -46,9 +46,9 @@ describe("S3: one forecast per state change", () => {
     render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><App /></HashRouter></StoreProvider>)
     await screen.findByTestId("risk-list")
     expect(runs()).toBe(1)
-    await act(async () => { window.location.hash = "#/events" })
+    fireEvent.click(screen.getByRole("link", { name: "Events" }))
     await screen.findByRole("heading", { level: 1, name: "Events" })
-    await act(async () => { window.location.hash = "#/" })
+    fireEvent.click(screen.getByRole("link", { name: "Today" }))
     await screen.findByTestId("risk-list")
     expect(runs()).toBe(1)
     fireEvent.change(screen.getByLabelText("View as"), { target: { value: "maya" } })

@@ -93,11 +93,17 @@ function DetailView() {
     rail.closeDetail()
   }
   useEffect(() => {
-    if (d.kind === "node" || d.kind === "nudge") return // these handle Escape themselves
+    if (d.kind === "nudge") return // NudgeComposer handles Escape itself
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close()
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   })
+  // Reset discards the open editor too, including unsaved local form state.
+  useEffect(() => {
+    const reset = () => rail.closeDetail()
+    window.addEventListener("platypus:reset", reset)
+    return () => window.removeEventListener("platypus:reset", reset)
+  }, [rail.closeDetail])
   const region = { role: "region", "aria-label": "Details", tabIndex: -1 } as const
   const closer = <div className="detail-bar"><span className="spacer" /><button type="button" className="btn btn-quiet icon-btn" aria-label="Close details" onClick={close}>✕</button></div>
   let body: ReactNode = null

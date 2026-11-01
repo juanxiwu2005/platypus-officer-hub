@@ -2,6 +2,8 @@ import type { BudgetCategory, BudgetItemStatus, BudgetLineItem, BudgetSource, Ev
 import { useStore } from "../data/store"
 import { BUDGET_STATUSES, budgetTotal, lineTotal } from "../engine/eventBudget"
 import { Bts, BtsRow } from "./Bts"
+import { useRail } from "./rail/RailContext"
+import { canLead } from "../data/permissions"
 
 const categories: { id: BudgetCategory; label: string }[] = [{ id: "general", label: "General" }, { id: "food", label: "Food" }, { id: "speaker", label: "Speaker" }, { id: "travel", label: "Travel" }]
 const sources: { id: BudgetSource; label: string }[] = [{ id: "usg", label: "USG" }, { id: "college", label: "College Funding" }, { id: "organization", label: "Organization Funding" }, { id: "sponsor", label: "Sponsor" }, { id: "none", label: "None" }]
@@ -9,11 +11,20 @@ const money = (value: number) => `$${value.toLocaleString(undefined, { minimumFr
 
 export function EventBudget({ event }: { event: Event }) {
   const { state, dispatch } = useStore()
+  const rail = useRail()
+  const funding = state.funding.find(record => record.eventId === event.id)
+  const canStartFunding = canLead(state) || state.roles.some(role => role.fn === "finance" && role.holderId === state.viewerId)
   const lines = event.budgetItems ?? []
   const editable = state.people.some(person => person.id === state.viewerId)
   const change = (line: BudgetLineItem, patch: Partial<Omit<BudgetLineItem, "id">>) => dispatch({ type: "budgetLineUpdate", eventId: event.id, id: line.id, patch })
   return <section className="card tbl-wrap event-budget" data-testid="event-budget">
     <div className="toolbar"><div><h3>Line Items</h3><p className="small muted">Budget progress drives the finance steps in this event’s Flow.</p></div>{editable && <button type="button" className="btn btn-primary small" onClick={() => dispatch({ type: "budgetLineAdd", eventId: event.id })}>+ Add line item</button>}</div>
+    {event.funding !== "none" && <div className="action-row">
+      <button type="button" className="btn small" disabled={!funding && !canStartFunding} onClick={() => {
+        if (!funding) dispatch({ type: "startFunding", eventId: event.id })
+        rail.show({ kind: "funding", eventId: event.id })
+      }}>{funding ? "Funding application" : "Start funding application"}</button>
+    </div>}
     <table className="tbl event-budget-table">
       <thead><tr><th>Item</th><th>Category</th><th>Qty</th><th>Unit price</th><th>Total Price</th><th>Source</th><th>Status</th>{editable && <th><span className="sr-only">Actions</span></th>}</tr></thead>
       <tbody>{lines.map(line => <tr key={line.id}>
