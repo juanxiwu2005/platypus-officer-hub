@@ -123,6 +123,9 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
   const [over, setOver] = useState<{ status: NodeStatus; before: string | null } | null>(null)
   const [adding, setAdding] = useState<NodeStatus | null>(null)
   const [title, setTitle] = useState("")
+  // An empty column folds into a narrow strip so the others have room (DX-16). These are the empty ones the person opened by hand.
+  const [opened, setOpened] = useState<ReadonlySet<NodeStatus>>(new Set())
+  const toggleOpened = (st: NodeStatus) => setOpened(prev => { const next = new Set(prev); if (next.has(st)) next.delete(st); else next.add(st); return next })
   const fields = state.org.board?.fields ?? ["owner", "due", "event", "tags"]
   const tags = state.org.board?.tags ?? []
   const move = (id: string, status: NodeStatus, before: string | null) => {
@@ -137,11 +140,14 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
       {BOARD_STATUSES.map(st => {
         const statusForViewer = (n: Node): NodeStatus => n.status === "waiting" && n.waitingOnPersonId === state.viewerId && n.ownerId !== state.viewerId ? "accepted" : n.status
         const cards = nodes.filter(n => statusForViewer(n) === st).sort(byRank)
-        return <section key={st} className={`board-col ${over?.status === st ? "over" : ""}`} aria-label={styles[st].label}
+        // Folded: nothing in it, not opened by hand, nothing being dragged over it, and nobody typing a new task into it.
+        const folded = cards.length === 0 && !opened.has(st) && over?.status !== st && adding !== st
+        return <section key={st} className={`board-col ${over?.status === st ? "over" : ""} ${folded ? "is-folded" : ""}`} aria-label={styles[st].label}
           onDragOver={e => { e.preventDefault(); if (!over || over.status !== st) setOver({ status: st, before: null }) }}
           onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node)) setOver(null) }}
           onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain") || drag; if (id) move(id, st, over?.before ?? null); setDrag(null); setOver(null) }}>
           <header style={{ "--pill": styles[st].color } as CSSProperties}><h2>{styles[st].label}</h2><span className="count">{cards.length}</span></header>
+          {cards.length === 0 && <button type="button" className="board-col-toggle" aria-expanded={!folded} aria-label={`${styles[st].label}, no tasks. ${folded ? "Show" : "Hide"} column`} onClick={() => toggleOpened(st)} />}
           {cards.map(n => {
             const ev = state.events.find(e => e.id === n.eventId)
             const late = n.status !== "done" && n.clubDeadline && n.clubDeadline < state.today
@@ -163,7 +169,7 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
           })}
           {adding === st
             ? <form className="board-add" onSubmit={e => { e.preventDefault(); onAdd(title, st); setTitle(""); setAdding(null) }}><input autoFocus value={title} maxLength={100} placeholder="Task name" aria-label="New task name" onChange={e => setTitle(e.target.value)} onBlur={() => { if (!title.trim()) setAdding(null) }} /><button className="btn small btn-primary" type="submit">Add</button></form>
-            : <button type="button" className="board-add-btn" onClick={() => { setAdding(st); setTitle("") }}>+ Add task</button>}
+            : <button type="button" className="board-add-btn" aria-label="+ Add task" onClick={() => { setAdding(st); setTitle("") }}>+ Add task</button>}
         </section>
       })}
     </div>
