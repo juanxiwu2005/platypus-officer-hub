@@ -1,8 +1,15 @@
 # 界面与动效升级计划（design-upgrade）
 
-> **状态：Juanxi 已于 2026-11-01 批准**（见 `docs/PROGRESS.md` 决定记录）。集成分支 `integration/v1.6` 已建。批准范围不含：合并到 `main`、DX-20 的 20b、DX-27 的"合并小样式文件"。
+> **状态：Juanxi 已于 2026-11-01 批准**（见 `docs/PROGRESS.md` 决定记录）。集成分支 `claude/determined-johnson-yrdxwf` 已建。批准范围不含：合并到 `main`、DX-20 的 20b、DX-27 的"合并小样式文件"。
 > 来源：2026-11-01 对 `main@c3c9394` 的审阅（用 Apple Design 两个 Skill：`dickwu/apple-design-skill` 和 `emilkowalski/skills` 里的 `apple-design`）。
 > 依据：真实截图（桌面 1440、手机 390、深色）、浏览器里量到的计算样式、对 `src/styles.css` 和相关组件的逐行阅读。
+
+## 当前分支现状（2026-11-01，Juanxi 决定）
+
+- **集成分支 = `claude/determined-johnson-yrdxwf`**（不是 `integration/v1.6`）。原因：这个会话的 git 凭证只能推这个分支，推其他分支和所有标签都返回 403（见 `ROLLBACK_LOG.md` 的"为什么推不了"）。Juanxi 同意直接用它做 v1.6 预览。这违反 `AGENTS.md` 8.1 的"分支名不带 AI 名字"，已记入决定记录。
+- 预览是 **PR #10**（`claude/determined-johnson-yrdxwf` → `main`，Draft）。PR #9（`integration/v1.6`）已关闭，GitHub 不能删除 PR，也不能复用号码。
+- 因为只能推这一个分支，**工作包分支（`design/dx-NN-…`）只存在于做事的 worktree 里**。它们的提交通过 `--no-ff` 合并提交进入 `claude/determined-johnson-yrdxwf`，所以 GitHub 上有完整历史，随时可以 `git revert -m 1 <合并提交>`。想让 GitHub 上也出现这些分支名和 `dx/*` 标签，用有权限的账号执行 `ROLLBACK_LOG.md` 里的"补建命令"。
+- 下文凡是写"集成分支"，现在都指这个分支。
 
 ## 先看哪个文件
 
@@ -39,24 +46,24 @@
 
 ```bash
 git fetch origin
-git switch -c integration/v1.6 origin/claude/determined-johnson-yrdxwf
+git switch -c claude/determined-johnson-yrdxwf origin/claude/determined-johnson-yrdxwf
 git merge origin/main        # main 常有新提交（演示数据等），先合进来
 npm ci && npm run check      # 起点必须全绿
 git tag dx/baseline
-git push -u origin integration/v1.6 --tags
+git push -u origin claude/determined-johnson-yrdxwf --tags
 ```
 
-之后所有工作包都从 `origin/integration/v1.6` 开出。**不要**在 `claude/determined-johnson-yrdxwf` 上做执行工作。`main` 一直不动。
+之后所有工作包都从 `origin/claude/determined-johnson-yrdxwf` 开出。**不要**在 `claude/determined-johnson-yrdxwf` 上做执行工作。`main` 一直不动。
 
 ## 分支与 worktree 约定
 
-- 集成分支：`integration/v1.6`（从 `origin/main` 开出，**不是** `main`）。
+- 集成分支：`claude/determined-johnson-yrdxwf`（从 `origin/main` 开出，**不是** `main`）。
 - 每个工作包一个分支，从集成分支开出：`design/dx-NN-<英文短名>`。全小写，不带 AI 名字，不带随机串（`AGENTS.md` 第 8 节）。
 - 每个工作包一个 worktree，目录放在仓库旁边：
 
 ```bash
 git fetch origin
-git worktree add ../platypus-dx-03 -b design/dx-03-press-feedback origin/integration/v1.6
+git worktree add ../platypus-dx-03 -b design/dx-03-press-feedback origin/claude/determined-johnson-yrdxwf
 cd ../platypus-dx-03
 npm ci
 ```
@@ -88,11 +95,11 @@ npx vite --port 5103   # 手动看页面时
 整合人把工作包合进集成分支时，**必须**这样做：
 
 ```bash
-git switch integration/v1.6
+git switch claude/determined-johnson-yrdxwf
 git tag dx/phase-N-before            # 阶段开始前打一次，N 是阶段号
 git merge --no-ff design/dx-NN-xxx -m "[DX-NN][整合] 合并 xxx"
 git tag dx/dx-NN-merged              # 指向这次合并提交
-git push origin integration/v1.6 --tags
+git push origin claude/determined-johnson-yrdxwf --tags
 ```
 
 - `--no-ff` 会留下一个"合并提交"，回滚时撤掉它就等于撤掉整个工作包。
@@ -139,7 +146,7 @@ agent 照下面执行（Juanxi 不需要懂这些命令）。
 ```
 你是 Platypus 仓库的执行 agent。工作包：DX-NN（<名称>）。
 先读：AGENTS.md、docs/design-upgrade/README.md、docs/design-upgrade/work-packages/DX-NN-*.md。
-你在自己的 git worktree 里，分支 design/dx-NN-<短名>（从 origin/integration/v1.6 开出）。
+你在自己的 git worktree 里，分支 design/dx-NN-<短名>（从 origin/claude/determined-johnson-yrdxwf 开出）。
 只改工作包说明里"可以改的文件"。不碰 main，不改 docs/PROGRESS.md / AGENTS.md / src/styles.css。
 做完：跑工作包列出的检查，写 docs/design-upgrade/reports/DX-NN.md，提交（格式 [DX-NN][Claude] 一句话），
 推送你自己的分支，然后停下，把报告摘要和 R 级别回滚方式告诉整合人。不要合并，不要开 PR。

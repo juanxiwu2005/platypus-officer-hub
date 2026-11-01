@@ -102,11 +102,11 @@
 
 ```bash
 git fetch origin
-git switch integration/v1.6 && git pull
+git switch claude/determined-johnson-yrdxwf && git pull
 git merge origin/main               # main 经常有新提交，每个阶段开始前合一次（用 merge，不用 rebase）
 npm ci && npm run check             # 起点必须全绿；不绿就先停下来告诉 Juanxi
 git tag dx/phase-N-before
-git push origin integration/v1.6 --tags
+git push origin claude/determined-johnson-yrdxwf --tags
 node scripts/dx-shots.mjs before-pN http://localhost:<端口>   # 阶段 0 之后才有这个脚本
 ```
 
@@ -116,7 +116,7 @@ node scripts/dx-shots.mjs before-pN http://localhost:<端口>   # 阶段 0 之�
 
 ```
 你是整合人。阶段 N。读 AGENTS.md、docs/design-upgrade/README.md、docs/design-upgrade/PHASES.md。
-1. 确认 integration/v1.6 已合并 origin/main，npm run check 全绿，打好 dx/phase-N-before。
+1. 确认 claude/determined-johnson-yrdxwf 已合并 origin/main，npm run check 全绿，打好 dx/phase-N-before。
 2. 给本阶段每个工作包开 worktree（分支 design/dx-NN-<短名>，端口各不相同），
    并行启动执行 agent（口令模板在 README.md）。
 3. 等它们都推送了自己的分支和 reports/DX-NN.md。逐个审阅 diff：只动了"可以改的文件"吗？
@@ -125,10 +125,10 @@ node scripts/dx-shots.mjs before-pN http://localhost:<端口>   # 阶段 0 之�
 5. 阶段末跑一次完整 npm run check（Node 22），再跑 dx-shots（after）。有红的：用 dx/dx-NN-merged 标签二分，
    找出是哪个包，用 R2 撤掉它，告诉 Juanxi。不要修一个"顺手"的东西把红盖住。
 6. 在 docs/PROGRESS.md 写一条阶段交接：做了什么、预览网址和要点哪里、已知问题、每个包的回滚方式。
-   写"需要同步本地备份"。推送 integration/v1.6。不开 PR（Juanxi 要预览时会说）。不碰 main。
+   写"需要同步本地备份"。推送 claude/determined-johnson-yrdxwf。不开 PR（Juanxi 要预览时会说）。不碰 main。
 7. 停下，等 Juanxi 验收。
 ```
 
 ### 预览网址
 
-需要在 Netlify 上看效果时，Juanxi 对 session 说"开一个 Draft PR 做预览"。标题写「[预览·请勿合并]」，base 是 `main`（和 PR #8 一样的做法）。之后每次推送 `integration/v1.6`，同一个预览网址会自动更新。**不要删除或改名这个分支**，否则预览编号会作废（`AGENTS.md` 第 8.2 节）。
+需要在 Netlify 上看效果时，Juanxi 对 session 说"开一个 Draft PR 做预览"。标题写「[预览·请勿合并]」，base 是 `main`（和 PR #8 一样的做法）。之后每次推送 `claude/determined-johnson-yrdxwf`，同一个预览网址会自动更新。**不要删除或改名这个分支**，否则预览编号会作废（`AGENTS.md` 第 8.2 节）。

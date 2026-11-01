@@ -5,8 +5,8 @@
 
 | 工作包 | 状态 | 合并提交 | 标签 | 合并日期 | 回滚命令（R2）| 回滚日期 / 原因 |
 | --- | --- | --- | --- | --- | --- | --- |
-| DX-01 | 未开始 | | `dx/dx-01-merged` | | `git revert -m 1 dx/dx-01-merged` | |
-| DX-02 | 未开始 | | `dx/dx-02-merged` | | `git revert -m 1 dx/dx-02-merged` | |
+| DX-01 | **已合并**（阶段 0）| `9d5a9f0` | `dx/dx-01-merged` | 2026-11-01 | `git revert -m 1 dx/dx-01-merged` | |
+| DX-02 | **已合并**（阶段 0）| `f1dbd24` | `dx/dx-02-merged` | 2026-11-01 | `git revert -m 1 dx/dx-02-merged` | |
 | DX-03 | 未开始 | | `dx/dx-03-merged` | | `git revert -m 1 dx/dx-03-merged` | |
 | DX-04 | 未开始 | | `dx/dx-04-merged` | | `git revert -m 1 dx/dx-04-merged` | |
 | DX-05 | 未开始 | | `dx/dx-05-merged` | | `git revert -m 1 dx/dx-05-merged` | |
@@ -37,4 +37,39 @@
 
 | 标签 | 含义 | 已打 |
 | --- | --- | --- |
-| `dx/phase-0-before` … `dx/phase-6-before` | 每个阶段开始前集成分支的位置 | |
+| `dx/baseline` | 计划文档提交之后、任何代码改动之前（`77c94ee`）| 仅本地（推不上去）|
+| `dx/phase-0-before` | 阶段 0 开始前（= baseline）| 仅本地 |
+| `dx/phase-1-before` … `dx/phase-6-before` | 每个阶段开始前集成分支的位置 | 未到 |
+
+## 回滚演练记录
+
+| 日期 | 演练 | 结果 |
+| --- | --- | --- |
+| 2026-11-01 | 在临时 worktree 里对集成分支顶端先后执行 `git revert -m 1 dx/dx-02-merged`、`git revert -m 1 dx/dx-01-merged`，每步之后跑 `tsc` | 两步都干净、无冲突；撤 DX-02 后 `Layout.tsx` 回到 168 行；两个都撤后，`src`、`package.json`、`playwright.config.ts`、`.stylelintrc.json`、`scripts`、`.gitignore` 与 `77c94ee` **逐字一致**（`git diff` 为空）。临时 worktree 已丢弃，没有推送 |
+
+## 为什么这个会话推不了其他分支和标签（2026-11-01 调查）
+
+| 试了什么 | 结果 |
+| --- | --- |
+| `git push -u origin <新分支> --tags` | `HTTP 403`，远端挂断 |
+| 单独 `git push origin dx/baseline`（只有一个标签）| 同样失败。**所以不是"标签"特殊**，是任何不属于本会话的 ref 都被拒 |
+| 推本会话分支 `claude/determined-johnson-yrdxwf` | 一直成功 |
+| GitHub 工具（MCP）`create_branch` | 成功（用的是另一套凭证）。`integration/v1.6` 就是这样建出来的 |
+| 本机代理状态 `__agentproxy/status` 的失败记录 | 只有无关的 `mcp.uk.definely.com`，**没有 github.com**，说明不是出口代理拦的 |
+
+**结论（推断，不是 GitHub 官方说明）：** 这个会话的 git 推送凭证只被授权写它自己的分支。GitHub 工具有单独的凭证，能建分支、开 PR，但没有"更新已有分支"或"建标签"的工具，所以分支建出来之后我推不进去。
+
+### 补建命令（需要有权限的账号或会话，在仓库里执行）
+
+```bash
+git fetch origin claude/determined-johnson-yrdxwf
+# 1. 标签（让 git revert -m 1 dx/dx-NN-merged 在 GitHub 上也能用）
+git tag dx/baseline 77c94ee732cb07ab7ecda635d2814f6da37b6947
+git tag dx/phase-0-before 77c94ee732cb07ab7ecda635d2814f6da37b6947
+git tag dx/dx-01-merged 9d5a9f0a2f35ca88371a8b0204f866325a6adebb
+git tag dx/dx-02-merged f1dbd2401736b2630e7395807ae22083e94374b6
+git push origin dx/baseline dx/phase-0-before dx/dx-01-merged dx/dx-02-merged
+# 2. 工作包分支（可选；这些提交已经在 claude/determined-johnson-yrdxwf 的历史里）
+git push origin 8a941e68f9039cd90230d88fa169e1ee26138ad7:refs/heads/design/dx-01-foundation
+git push origin 84f29c19f84c85363fcd08a36d5bd26b68106564:refs/heads/design/dx-02-split-layout
+```

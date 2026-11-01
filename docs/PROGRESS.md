@@ -1,3 +1,12 @@
+> **2026-11-01 · 界面与动效升级 · 阶段 0 完成，待 Juanxi 验收（Claude）**
+> **做了什么：** DX-01（地基：样式拆成"每包一个小文件"、动效 token、测试端口可配置、截图脚本、样式守卫）和 DX-02（把 `Layout.tsx` 拆成 `chrome/` 下 5 个文件，纯搬家）。两个包各自在 worktree 里做，再用 `--no-ff` 合并进 `claude/determined-johnson-yrdxwf`（合并提交 `9d5a9f0`、`f1dbd24`）。报告：[DX-01](design-upgrade/reports/DX-01.md)、[DX-02](design-upgrade/reports/DX-02.md)。
+> **怎么验收：** 打开 PR #10 的预览（https://deploy-preview-10--platypus-officer-hub.netlify.app ），**画面应该和正式站完全一样**——这个阶段什么都没变，这是对的。我用同一套脚本拍了 64 张图（8 页 × 桌面/手机 × 浅/深 × 右栏开/关），改前和改后字节全部一致。
+> **测试：** 合并后完整 `npm run check`（Node 22）：lint、构建、**823 个单元测试**、**457 个页面测试通过 / 13 个按设计跳过 / 0 失败**、字数全部在上限内。两个 worktree 用不同端口同时跑测试，各测各的代码，互不干扰。
+> **回滚已演练：** 在临时 worktree 里先后撤销 DX-02、DX-01，每步 `tsc` 通过，撤完后代码与计划提交 `77c94ee` 逐字一致（`ROLLBACK_LOG.md`）。
+> **和计划不一样的地方（都已写进文档）：** ① 集成分支改成了 `claude/determined-johnson-yrdxwf`，预览是 **PR #10**（PR #9 已关闭；GitHub 不能删 PR、不能复用号码）。② 这个会话**推不了其他分支和所有标签**（git 推送返回 403，GitHub 工具能建分支但不能更新已有分支或建标签），所以 `dx/*` 标签和 `design/dx-NN-*` 分支只在本地；`ROLLBACK_LOG.md` 里有"补建命令"，另一个 AI 或你在终端执行即可。③ 弹簧实际走完要 450–480ms，说明书写的"约 0.35 秒"偏短。
+> **关于 `integration/v1.0` 能不能删：** PR #8 已合并，该分支的最新提交 `b7eb268` 已在 `main` 里（`git merge-base --is-ancestor` 验证），目前没有任何打开的 PR 以它为 head 或 base（打开的是 #2、#3、#9 已关、#10），所以**代码不会丢**。`docs/LAUNCH_STEPS.md` 第 5 节建议等正式站稳定几天再删，因为删掉后预览 8 可能打不开。**我不能替你删**（没有权限也没有工具）。
+> **下一步（Juanxi）：** 看一眼预览 10，没问题就说"开始阶段 1"（DX-03…08，六个包）。**需要同步本地备份。**
+
 > **2026-11-01 · 界面与动效升级：计划已批准，集成分支已建（Claude）**
 > 依据对 `main@c3c9394` 的审阅（真实截图、浏览器里量到的样式、两个 Apple Design Skill）。**只写了文档，没有改任何代码或界面。** 计划放在 [`docs/design-upgrade/`](design-upgrade/README.md)：58 条细节清单（[DETAIL_LIST](design-upgrade/DETAIL_LIST.md)）、27 个小工作包、7 个阶段（[PHASES](design-upgrade/PHASES.md)）。每个阶段里的包彼此不改同一个文件，可以各开一个 git worktree 同时做；阶段 0 先把样式分成"每包一个小文件"、拆开 `Layout.tsx`、让测试端口可配置。
 > **回滚：** 每个包用 `--no-ff` 合并并打 `dx/dx-NN-merged` 标签，随时可以 `git revert -m 1` 单独撤销；纯样式的包还能注释一行 `@import` 立刻关掉；所有包都不改数据结构，回滚不会弄坏浏览器里的旧数据。规则和登记表见 README 与 `ROLLBACK_LOG.md`。
@@ -132,6 +141,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-11-01 | **v1.6 预览直接用 `claude/determined-johnson-yrdxwf` 分支**（Juanxi：不必是 `integration/v1.6`）。预览改为 PR #10；PR #9 关闭。这个分支名带 AI 名字，违反 `AGENTS.md` 8.1，但仅限本次预览，合并到 `main` 之前不改名（改名会毁掉 PR #10 的预览，见 8.2）。 | Juanxi |
 | 2026-11-01 | **批准界面与动效升级计划**（`docs/design-upgrade/`，27 个工作包 DX-01…27）。批准范围：建集成分支 `integration/v1.6` 并推送；之后按阶段逐个发起。K 表 5 个默认选择全部采用（手机底部导航 20b 不做、看板空列收窄要做、Events 窄屏不自动收右栏、h1 只改文档、动效力度克制）。每个包可单独回滚（R0–R5）。**没有批准**：合并到 `main`、20b、合并小样式文件（DX-27 第 3 步）、改动画力度。 | Juanxi |
 | 2026-10-29 | Contribution board 只保留 Impact 和 Reliability：Impact 用相对四色阶梯图形，Reliability 用单词＋状态色（Excellent / Good / Watch / New）；删除 Work unlocked 及其排名影响。人数超过 10 人时默认只展示前 10，提供显示全部的切换。 | Juanxi |
 | 2026-10-29 | Team 的 Workload 不显示 capacity 百分比、内部评分或“剩余可用时间”，只给保护性的定性信号（Room to help / Focused / Needs support）。信号结合预计投入、临期程度、规则／依赖影响和本人忙碌周；Contribution board 不按任务数或 points 排名，改按交付影响和按时可靠性。 | Juanxi |
