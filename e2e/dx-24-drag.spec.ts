@@ -100,6 +100,43 @@ test.describe("with motion", () => {
   })
 })
 
+test.describe("letting go where the card ends up in the same place or the move is refused", () => {
+  test.use({ reducedMotion: "no-preference" })
+  const settledInPlace = async (page: Page, home: { x: number; y: number }) => {
+    await expect.poll(() => card(page).evaluate(el => el.style.transform), { message: "no leftover inline transform" }).toBe("")
+    await expect.poll(async () => { const b = (await card(page).boundingBox())!; return Math.abs(b.x - home.x) + Math.abs(b.y - home.y) }, { message: "the card is back in its own place" }).toBeLessThan(2)
+  }
+  test("dropped inside its own column (nothing changes position): it does not stay where it was let go", async ({ page }) => {
+    await openBoard(page)
+    const home = (await card(page).boundingBox())!
+    await page.mouse.move(home.x + 30, home.y + 20); await page.mouse.down()
+    await page.mouse.move(home.x + 30, home.y + 20 + 60, { steps: 8 })      // a little way down, still inside To do
+    await page.mouse.up()
+    await settledInPlace(page, home)
+  })
+  test("dropped where the rules refuse the move: it goes back and does not hover over the board", async ({ page }) => {
+    await openBoard(page)
+    const home = (await card(page).boundingBox())!
+    const done = (await col(page, "Done").boundingBox())!                    // a To do task cannot be dropped straight into Done by someone else's rules, or it moves: either way it must not hover
+    await page.mouse.move(home.x + 30, home.y + 20); await page.mouse.down()
+    await page.mouse.move(done.x + 40, done.y + 80, { steps: 10 })
+    await page.mouse.up()
+    await expect.poll(() => card(page).evaluate(el => el.style.transform)).toBe("")
+    await expect(card(page)).not.toHaveClass(/is-dragging/)
+  })
+  test("the mouse button let go outside the page (no pointerup arrives): the drag ends and the card does not stay held", async ({ page }) => {
+    await openBoard(page)
+    const home = (await card(page).boundingBox())!
+    await page.mouse.move(home.x + 30, home.y + 20); await page.mouse.down()
+    await page.mouse.move(home.x + 120, home.y + 80, { steps: 6 })
+    await expect(card(page)).toHaveClass(/is-dragging/)
+    // The button comes up where the page cannot see it; the next time the pointer moves over the page it reports no button held.
+    await page.evaluate(() => window.dispatchEvent(new PointerEvent("pointermove", { pointerId: 1, pointerType: "mouse", buttons: 0, clientX: 300, clientY: 300 })))
+    await expect(card(page)).not.toHaveClass(/is-dragging/)
+    await expect.poll(() => card(page).evaluate(el => el.style.transform)).toBe("")
+  })
+})
+
 test("keyboard: Alt + → moves the task to the next column and says so; the end of the row says it cannot", async ({ page }) => {
   await openBoard(page)
   await card(page).getByRole("button").first().focus()

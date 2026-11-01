@@ -91,6 +91,9 @@ export function useDragSort({ onDrop, onNudge }: Options) {
     setDraggingId(null)
     setOver(null)
     if (drop && target) {
+      // The card was moved with an inline transform. Take it off now: if the drop leaves this very element where it is (same place, or the move was
+      // refused) nothing else would, and it would stay hovering where it was let go. `from` was measured before, so the slide back to its place still starts there.
+      s.el.style.transform = ""
       settle.current = { id: s.id, from }
       handlers.current.onDrop(s.id, target)
       setSettleTick(n => n + 1)
@@ -155,6 +158,8 @@ export function useDragSort({ onDrop, onNudge }: Options) {
       session.current = s
       const move = (ev: PointerEvent) => {
         if (ev.pointerId !== s.pointerId || session.current !== s) return
+        // The button came up somewhere the page could not see (outside the window, over another app): no pointerup ever arrives, so end the drag here.
+        if (s.active && s.type === "mouse" && ev.buttons === 0) { finish(true); return }
         s.x = ev.clientX; s.y = ev.clientY
         const moved = Math.hypot(s.x - s.startX, s.y - s.startY)
         if (!s.active) {
@@ -167,8 +172,10 @@ export function useDragSort({ onDrop, onNudge }: Options) {
       const up = (ev: PointerEvent) => { if (ev.pointerId === s.pointerId) finish(true) }
       const cancel = (ev: PointerEvent) => { if (ev.pointerId === s.pointerId) finish(false) }
       const key = (ev: KeyboardEvent) => { if (ev.key === "Escape" && session.current?.active) { ev.preventDefault(); finish(false) } }
+      const blur = () => { if (session.current?.active) finish(false) }
+      window.addEventListener("blur", blur)
       window.addEventListener("pointermove", move); window.addEventListener("pointerup", up); window.addEventListener("pointercancel", cancel); window.addEventListener("keydown", key)
-      stopListening.current = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", cancel); window.removeEventListener("keydown", key); stopListening.current = () => {} }
+      stopListening.current = () => { window.removeEventListener("blur", blur); window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", cancel); window.removeEventListener("keydown", key); stopListening.current = () => {} }
       if (s.type === "touch") s.hold = window.setTimeout(() => { if (session.current === s) activate() }, HOLD_MS)
     },
     onClickCapture: (e: ReactMouseEvent) => { if (justDragged.current) { e.stopPropagation(); e.preventDefault() } },

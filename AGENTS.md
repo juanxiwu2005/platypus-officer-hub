@@ -180,7 +180,7 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 2. **只用 5 个组件拼页面**（`src/components/ui/`）：状态色块 `StatusPill`、进度链 `Chain`、表格 `.tbl`、悬停卡 `Hover`/`Info`、右栏详情（`useRail().open(...)`）。
 3. **三级交互：** 看（颜色）→ 停（悬停卡，最多 3 行）→ 点（右栏详情）。不再新增 ▶ 展开和选项卡。
 4. **文字：** 页面标题 1–2 个词；一张卡最多“标题 1 行 + 信息 1 行 + 状态色块”；原因、假设、出处放进悬停或 Help；字号不小于 14px。
-5. **字数上限（主区，`npm run words` 量，Juanxi 2026-10-29 批准改为两个数，超任何一个 CI 就红）：** 每页两个上限——"一眼看到的"和"页面总字数（含悬停卡、折叠内容）"。Today 160 / 450、Events 180 / 420、Rules 170 / 560、Tasks 130 / 130、Team 130 / 290、Funding 160 / 160、Handoff 120 / 120、Partners 120 / 120、Settings 150 / 150。新增内容超了就先删别的，不要靠把文字藏起来过线。
+5. **字数上限（主区，`npm run words` 量，Juanxi 2026-10-29 批准改为两个数，超任何一个 CI 就红）：** 每页两个上限——"一眼看到的"和"页面总字数（含悬停卡、折叠内容）"。Today 160 / 450、Events 180 / 420、Rules 340 / 1700（2026-11-01：电脑上一次列出全部 64 条来源、不分页，Juanxi 要求；手机仍分页，每页 6 条）、Tasks 130 / 130、Team 130 / 290、Funding 160 / 160、Handoff 120 / 120、Partners 120 / 120、Settings 150 / 150。新增内容超了就先删别的，不要靠把文字藏起来过线。
 6. **6 种任务状态与颜色全站统一：** Not claimed 灰、To do 蓝、Working on it 橙、Waiting 紫、Stuck 红、Done 绿（名称和颜色可在 Settings → Board 改，含义不变）。
 
 ### 7.1 动效规则（v1.6，Juanxi 2026-11-01 批准计划；细节见 `docs/DESIGN_TOKENS.md` 第 9–11 节）
