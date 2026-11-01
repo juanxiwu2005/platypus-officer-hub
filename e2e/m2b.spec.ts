@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { ask, openDemoMenu } from "./helpers"
+import { ask, openDemoMenu, viewAs } from "./helpers"
 import { savedDemo } from "./demo-contract"
 import { addDays } from "../src/lib/dates"
 
@@ -41,7 +41,7 @@ test("a task sentence opens the task form; owners are tags; it creates at once w
 test("an officer can add a task without the president", async ({ page }) => {
   await page.goto("/#/")
   await openDemoMenu(page)
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await ask(page, "Add a task: buy painter's tape")
   const form = page.getByTestId("task-form")
   await expect(form).toContainText("No owner: it will be yours.")
@@ -70,7 +70,7 @@ test("the event form asks only what changes the plan, then the plan is checked",
 test("an officer cannot start an event unless the president allows it", async ({ page }) => {
   await page.goto("/#/")
   await openDemoMenu(page)
-  await page.getByTestId("view-as").selectOption("sam")
+  await viewAs(page, "sam")
   await ask(page, "Plan a new event")
   await expect(page.getByTestId("plan-form").getByRole("button", { name: "Continue" })).toBeDisabled()
 })
@@ -87,7 +87,7 @@ test("Settings: the usual task length sets the new task's due date, and the pres
   await ask(page, "Add a task")
   await expect(page.getByTestId("task-form").getByLabel("Due date")).toHaveValue(addDays(configured.today, 7))
   await openDemoMenu(page)
-  await page.getByTestId("view-as").selectOption("sam")
+  await viewAs(page, "sam")
   await ask(page, "Plan a new event")
   await expect(page.getByTestId("plan-form").last().getByRole("button", { name: "Continue" })).toBeEnabled()
 })
