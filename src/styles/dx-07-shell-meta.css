@@ -1,2 +1,14 @@
-/* DX-07 shell-meta: empty until work package DX-07 fills it (docs/design-upgrade/work-packages/DX-07-shell-meta.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-07 page shell details (docs/design-upgrade/work-packages/DX-07-shell-meta.md).
+   Needs DX-03 (press feedback): the grey tap flash is only removed where a control now answers a press itself. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* No double-tap-to-zoom delay on anything you tap. */
+:is(button, a, [role="tab"], select, summary, label) { touch-action: manipulation; }
+
+/* The controls from DX-03 show their own pressed state, so the system's grey flash goes. */
+:is(.btn, .chip, .icon-btn, .demo-pill, .seg button, .crm-seg button, .rail-tabs [role="tab"], .settings-nav button, .event-nav button, .board-add-btn, .relay, .owner-chip button, .row-btn, .link, .group-btn, .sidenav a) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scrolling to the end of the side panel or a menu does not drag the page behind it along. */
+:is(.ask-list, .detail-scroll, .menu.wide, .m-menu) { overscroll-behavior: contain; }
