@@ -4,13 +4,13 @@
    dragged over it, when its strip is pressed, or when someone starts adding a task. On a phone nothing folds: the columns
    stay 78vw wide and snap (DX-16 does not touch that layout). Cards answer a mouse with a border. */
 
-/* A tall enough drop target even when the column has two cards in it. */
-.board-col { min-height: min(60vh, 520px); }
-
 /* The fold switch only exists where columns fold (a computer). On a phone it is not drawn at all. */
 .board-col-toggle { display: none; }
 
 @media (min-width: 861px) {
+  /* A tall enough drop target even when the column has two cards in it. Computer only: a phone has no dragging, and there
+     the same rule made every empty column a huge grey block. */
+  .board-col { min-height: min(60vh, 520px); }
   .board {
     display: flex;
     grid-template-columns: none;

@@ -1,14 +1,15 @@
 /* DX-15 Events page layout (docs/design-upgrade/work-packages/DX-15-events-layout.md).
    Kept on purpose: the list of event names on the left (Juanxi 2026-10-31), the space above the flow chart for hover cards
    (it is measured below, not guessed), and the right-hand Ask panel. Changed:
-   1. With the Ask panel docked on a screen narrower than 1500px, the event list is 168px instead of 220px, long names get "…" and a title.
+   1. With the Ask panel docked on a screen narrower than 1500px, the event list is 176px instead of 220px (the three demo names still fit in full), longer names get "…" and a title.
    2. The empty line under the Flow/List/Budget switch (a hidden status line for screen readers, 17px tall plus two page gaps)
       no longer holds space while there is nothing to say. It stays in the page: a live region must exist before it speaks.
    3. A soft fade on the right edge of the flow chart tells you there is more to scroll to; it goes away at the end. Browsers that
       cannot link a style to the scroll position show no fade, as before.
    4. The event list's height follows the visible window (dvh). */
 @media (min-width: 1200px) and (max-width: 1499px) {
-  .shell.with-rail .events-layout { grid-template-columns: 168px minmax(0, 1fr); }
+  .shell.with-rail .events-layout { grid-template-columns: 176px minmax(0, 1fr); }
+  .shell.with-rail .event-nav button { padding-inline: var(--s4); }
 }
 .event-nav button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .event-nav { max-height: calc(100dvh - var(--topbar-h) - var(--s7)); }

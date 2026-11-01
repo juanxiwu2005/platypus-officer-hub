@@ -28,6 +28,8 @@ test.describe("computer", () => {
     for (const c of folded) expect(c.w).toBe(56)
     const open = b.cols.filter(c => !c.folded)
     for (const c of open) expect(c.w).toBeGreaterThan(120)
+    const tall = await page.evaluate(() => Math.min(...[...document.querySelectorAll(".board-col")].map(c => Math.round(c.getBoundingClientRect().height))))
+    expect(tall).toBeGreaterThanOrEqual(Math.min(520, Math.round(900 * 0.6)))   // on a computer the columns are tall drop targets
     expect(b.cols.find(c => c.name === "Done")).toBeTruthy()
   })
   test("pressing a strip opens it, pressing again folds it; the keyboard can do it too", async ({ page }) => {
@@ -70,6 +72,9 @@ test.describe("phone", () => {
     const widths = await page.evaluate(() => [...document.querySelectorAll(".board-col")].map(c => Math.round(c.getBoundingClientRect().width)))
     expect(new Set(widths).size).toBe(1)
     expect(widths[0]).toBeGreaterThan(250)
+    // No dragging on a phone, so no tall drop targets: an empty column is short, not a huge grey block.
+    const heights = await page.evaluate(() => [...document.querySelectorAll(".board-col")].map(c => Math.round(c.getBoundingClientRect().height)))
+    expect(Math.min(...heights)).toBeLessThan(260)
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0)
   })
 })

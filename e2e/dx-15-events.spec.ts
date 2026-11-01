@@ -11,12 +11,13 @@ async function openEvents(page: Page, width: number) {
 }
 const rect = (page: Page, sel: string) => page.evaluate(s => { const b = document.querySelector(s)!.getBoundingClientRect(); return { top: Math.round(b.top), bottom: Math.round(b.bottom), w: Math.round(b.width) } }, sel)
 
-test("1440px with the Ask panel open: the event list is 168px and every name is still reachable", async ({ page }) => {
+test("1440px with the Ask panel open: the event list is 176px, the demo names fit in full, and longer names stay reachable", async ({ page }) => {
   await openEvents(page, 1440)
-  expect((await rect(page, ".event-nav")).w).toBe(168)
+  expect((await rect(page, ".event-nav")).w).toBe(176)
   const names = await page.locator(".event-nav button").evaluateAll(els => els.map(e => ({ text: e.textContent, title: e.getAttribute("title"), clipped: e.scrollWidth > e.clientWidth })))
   expect(names.length).toBeGreaterThan(1)
   for (const n of names) expect(n.title).toBe(n.text)        // a clipped name can always be read in full
+  for (const n of names) expect(n.clipped, `${n.text} is cut off`).toBe(false) // and none of the demo names needs it
   await expect(page.locator(".event-nav button")).toHaveCount(names.length)
 })
 test("a wider screen keeps the 220px list", async ({ page }) => {
