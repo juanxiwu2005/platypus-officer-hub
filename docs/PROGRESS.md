@@ -1,3 +1,6 @@
+> **2026-10-31 · Spring Speaker Night：Event plan 默认 Done（Codex）**
+> Juanxi 要求只把该活动的 Event plan 标为 Done，并直接推送 main。基于 `main@5b0eb96` 更新默认演示及 schema v19：已有 v18 浏览器数据只定向完成该演示节点，保留其他任务、活动、人员与设置；已完成日期不覆盖，后续人工修改不会被反复重置。Node 22 lint、build、811 项单元测试及桌面/手机 24 项 Events/Recovery 检查通过，0 失败/重试。部署完成后刷新页面即可，无需 Reset demo。需要同步本地备份。
+
 > **2026-10-31 · DP8 发布准备第三阶段 WP10：完整本地发布门禁通过（Codex；America/Phoenix，执行日志为 11-01 UTC）**
 > 全新干净 worktree 从 `origin/integration/v1.0@1e19af560daaf9ca10ee40670877c5c1b41665d8` 开始，逐项确认 WP01–WP09 全部已集成。移除旧 storage 图测试五处 force click，改为真实曲线命中点击；保留全部业务断言并补节点移回后的关系不变检查。所有修正集中在一个认证 worktree；只读子 agent 复核无阻塞。
 > Node 22：npm ci、lint/build、strict 后端类型（33 文件）、**809 单元**、words、生产及完整 audit（均 0）通过；完整四项目 Playwright **451 通过 / 13 原有设备排除 / 0 失败 / 0 flaky / 0 重试**，28 文件、464 项。fsck/diff 检查通过；secret 当前及 267 个可达历史提交仅命中公开 localStorage 键误报，确认泄漏/私钥为 0，无忽略规则。入口 364,430 字节，首屏两份 JS 合计 506,960 字节，lazy loading 与 PDF 按需网络检查通过。
@@ -161,6 +164,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-10-31（Arizona） | Codex | **Spring Speaker Night 的 Event plan 设为 Done。** 默认 seed 与 v18→v19 定向迁移同步更新；新增保存数据保留、已完成日期保护和后续人工修改不被覆盖的回归检查。lint/build、811 单元、24 桌面/手机页面检查通过。 | 用户明确授权直接推送 main；部署完成后刷新即可，其他进度保留，无需重置演示。需要同步本地备份。 |
 | 2026-10-31（Arizona） | Codex（DP8 第三阶段 WP10） | **完整本地发布认证通过。** Node 22 ci/lint/build/strict/words、809 单元、四项目 451 通过及 13 原有设备排除，0 失败/重试；生产及完整 audit 0、fsck、secret/私钥、入口和 lazy loading 均已复核。移除旧图测试五处 force，保留业务断言；[认证报告](release-readiness/evidence/WP10-release-certification.md)。 | [真实 AIR 手动清单](release-readiness/evidence/WP10-ai-smoke-checklist.md) 未执行，0 次付费调用；物理设备/线上人工未认证。远端最终 SHA/Checks 见本轮最终聊天；只允许安全快进 integration/v1.0，无权合并 main。需要同步本地备份。 |
 | 2026-11-01 | Codex（DP8 第二阶段，多 agent 独立 worktree） | **WP05/06/08 已逐包集成验收。** 集成提交 `76f3f2a` / `817582d` / `5540c66`；额外修复新版 Axe 品牌与交接卡名称。809 单元、350 目标浏览器通过，10 原有设备排除；a11y 63 通过/3 原有设备排除；words、lint/build、strict 后端类型、完整及生产 audit 0 均通过。[完整证据与源/集成 SHA](release-readiness/evidence/STAGE2-integration.md)。 | 可以开始 STAGE3 / WP10；未宣称完整 464 项与线上发布认证。保留三条已验证 minimatch 安全 override，待上游修复后解除；旧 storage force 操作须在 WP10 审查。未放宽 Axe/字数/包体/timeout/断言或审计，0 真实 AIR，不操作 main；需要同步本地备份。 |
 | 2026-10-31 | Codex（DP8 第一阶段，多 agent 独立 worktree） | **WP01/02/03/04/07/09 已逐包集成验收。** Demo 日期/路由测试迁移；Events 经费入口与 Reset；任务财务完成提示；手机 Roles/Budget 点击与保存失败；Router 7.18.5、Zod 4.6.7 和输入边界；路由/功能懒加载。最终 808 单元、281 浏览器通过，7 原有设备排除，生产 audit 0，入口 371.05 kB；[全部提交及复现证据](release-readiness/evidence/WP09-bundle-performance.md)。 | 可以开始 STAGE2（WP05/06/08）；已知 Escape、字数四路由和开发 audit 17 项保留门槛，未使用 skip/force click/timeout/audit ignore 制造通过。全站发布认证及真实 AIR 仍未完成；不操作 main，0 真实 AIR；需要同步本地备份。 |

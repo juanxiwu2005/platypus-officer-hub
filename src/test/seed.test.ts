@@ -22,6 +22,7 @@ describe("demo seed", () => {
     expect(byId("e-founder").filter(node => node.status === "done")).toHaveLength(26)
     expect(byId("e-night").filter(node => ["waiting", "blocked", "in_progress"].includes(node.status))).toHaveLength(3)
     expect(byId("e-speaker").filter(node => ["waiting", "blocked", "in_progress"].includes(node.status))).toHaveLength(0)
+    expect(byId("e-speaker").find(node => node.stepKey === "plan")).toMatchObject({ status: "done", completedOn: demo.today })
   })
 
   it("every person holds a real role and every role holder exists", () => {

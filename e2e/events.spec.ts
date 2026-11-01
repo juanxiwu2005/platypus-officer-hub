@@ -8,6 +8,27 @@ test.beforeEach(async ({ page }) => {
   await page.getByTestId("view-flow").click()
 })
 
+test("Spring Speaker Night's event plan is Done for fresh and existing saved demos", async ({ page }) => {
+  await page.goto("/#/events?event=e-speaker")
+  await expect(page.getByTestId("flow-node-plan")).toHaveClass(/done/)
+  await expect(page.getByTestId("flow-node-backup")).not.toHaveClass(/done/)
+  await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
+    saved.schemaVersion = 18
+    saved.org.mission = "Keep my saved club notes"
+    const plan = saved.nodes.find((node: { id: string }) => node.id === "e-speaker:plan")
+    plan.status = "accepted"
+    delete plan.completedOn
+    localStorage.setItem("platypus.v1.demo", JSON.stringify(saved))
+  })
+  await page.reload()
+  await expect(page.getByTestId("flow-node-plan")).toHaveClass(/done/)
+  await expect(page.getByTestId("flow-node-backup")).not.toHaveClass(/done/)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).org.mission)).toBe("Keep my saved club notes")
+  await page.reload()
+  await expect(page.getByTestId("flow-node-plan")).toHaveClass(/done/)
+})
+
 test("the flow chart has one main line through the event day, and a step opens with its three deadlines", async ({ page }) => {
   const chart = page.getByTestId("flow-chart")
   await expect(chart).toBeVisible()

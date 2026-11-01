@@ -481,6 +481,14 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: repairCoreEventSteps(repairTaskLinks(parsed)), notice: null }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 18 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
+    const isDemo = parsed.org?.id === "dfs" && parsed.events.some(event => event.id === "e-speaker" && event.name === "Spring Speaker Night" && event.checks !== undefined)
+    const today = parsed.today
+    const nodes = isDemo ? parsed.nodes.map(node => node.id === "e-speaker:plan" && node.eventId === "e-speaker" && node.stepKey === "plan" && node.status !== "done"
+      ? { ...node, status: "done" as const, completedOn: today, lastUpdate: today, acceptedOn: node.acceptedOn ?? today, waitingOn: null, waitingOnPersonId: null }
+      : node) : parsed.nodes
+    return { state: repairCoreEventSteps(repairTaskLinks(applySchedule({ ...parsed, schemaVersion: SCHEMA_VERSION, nodes }))), notice: null }
+  }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 17 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })), notice: null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 15 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })), notice: null }
   // v14 preserves the current demo while repairing verifiable event links and turns

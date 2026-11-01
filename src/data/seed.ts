@@ -4,8 +4,8 @@ import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 
-// v18 also repairs the pre-event check-in deadline for every saved v2 event.
-export const SCHEMA_VERSION = 18
+// v19 marks the demo Spring Speaker Night event plan complete without resetting saved work.
+export const SCHEMA_VERSION = 19
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -56,8 +56,10 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
     quotes: { status: "in_progress" },
     contentCreation: { status: "blocked", waitingOn: "Brand photos needed for the campaign" },
   }
-  // Spring Speaker Night is intentionally only assigned: no planning work has started yet.
-  const speakerStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {}
+  // Spring Speaker Night has its event plan ready; the remaining work is only assigned.
+  const speakerStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
+    plan: { status: "done", completedOn: today, lastUpdate: today },
+  }
   const founderStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
     plan: { status: "done", completedOn: "2026-09-24" }, backup: { status: "done", completedOn: "2026-09-26" }, venuechoice: { status: "done", completedOn: "2026-09-30" }, registry: { status: "done", completedOn: "2026-10-03" }, venue: { status: "done", completedOn: "2026-10-06" }, partner: { status: "done", completedOn: "2026-10-07" }, speakerPacket: { status: "done", completedOn: "2026-10-09" }, travel: { status: "done", completedOn: "2026-10-11" }, partnerReview: { status: "done", completedOn: "2026-10-13" }, parking: { status: "done", completedOn: "2026-10-15" }, budget: { status: "done", completedOn: "2026-10-02" }, quotes: { status: "done", completedOn: "2026-10-08" }, marketingNeeds: { status: "done", completedOn: "2026-10-05" }, contentCreation: { status: "done", completedOn: "2026-10-12" }, promotionItems: { status: "done", completedOn: "2026-10-16" }, rsvp: { status: "done", completedOn: "2026-10-18" }, content: { status: "done", completedOn: "2026-10-20" }, reminder: { status: "done", completedOn: "2026-10-22" }, moderator: { status: "done", completedOn: "2026-10-14" }, materials: { status: "done", completedOn: "2026-10-21" }, finalcheck: { status: "done", completedOn: "2026-10-24" },
   }

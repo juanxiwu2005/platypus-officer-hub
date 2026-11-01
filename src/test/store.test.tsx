@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { HashRouter } from "react-router-dom"
-import { reducer, loadState, saveState, STORAGE_KEY, StoreProvider } from "../data/store"
+import { reducer, loadState, loadStateWithNotice, saveState, STORAGE_KEY, StoreProvider } from "../data/store"
 import { SCHEMA_VERSION, seedDemo } from "../data/seed"
 import App from "../App"
 
@@ -87,6 +87,32 @@ describe("storage", () => {
       expect(node.anchor).toEqual({ kind: "target", days: 1, unit: "business", label: "Check-in materials ready" })
     }
     expect(repaired.nodes.find(node => node.id === "e-founder:checkin")?.clubDeadline).toBe("2026-12-02")
+  })
+
+  it("completes only the saved v18 Spring Speaker Night plan and preserves other work", () => {
+    const current = seedDemo(undefined, "v2")
+    const saved = { ...current, schemaVersion: 18, viewerId: "maya", nodes: current.nodes.map(node => node.id === "e-speaker:plan" ? { ...node, status: "accepted" as const, completedOn: undefined } : node.id === "e-speaker:backup" ? { ...node, title: "Keep my backup notes", status: "in_progress" as const } : node) }
+    saveState(saved)
+    const { state, notice } = loadStateWithNotice()
+    expect(notice).toBeNull()
+    expect(state.schemaVersion).toBe(SCHEMA_VERSION)
+    expect(state.nodes.find(node => node.id === "e-speaker:plan")).toMatchObject({ status: "done", completedOn: saved.today })
+    expect(state.nodes.map(node => ({ id: node.id, title: node.title, status: node.status }))).toEqual(saved.nodes.map(node => ({ id: node.id, title: node.title, status: node.id === "e-speaker:plan" ? "done" : node.status })))
+    expect(state.events).toEqual(saved.events)
+    expect(state.org).toEqual(saved.org)
+    expect(state.people).toEqual(saved.people)
+    expect(state.viewerId).toBe("maya")
+    saveState({ ...state, nodes: state.nodes.map(node => node.id === "e-speaker:plan" ? { ...node, status: "accepted" as const, completedOn: undefined } : node) })
+    expect(loadState().nodes.find(node => node.id === "e-speaker:plan")?.status).toBe("accepted")
+  })
+
+  it("does not change an already completed plan or a different organization's saved plan", () => {
+    const current = seedDemo(undefined, "v2")
+    const done = { ...current, schemaVersion: 18, nodes: current.nodes.map(node => node.id === "e-speaker:plan" ? { ...node, completedOn: "2026-10-30", lastUpdate: "2026-10-30" } : node) }
+    saveState(done)
+    expect(loadState().nodes.find(node => node.id === "e-speaker:plan")).toMatchObject({ status: "done", completedOn: "2026-10-30", lastUpdate: "2026-10-30" })
+    saveState({ ...done, org: { ...done.org, id: "another-club" }, nodes: done.nodes.map(node => node.id === "e-speaker:plan" ? { ...node, status: "accepted" as const, completedOn: undefined } : node) })
+    expect(loadState().nodes.find(node => node.id === "e-speaker:plan")?.status).toBe("accepted")
   })
 })
 
