@@ -4,6 +4,7 @@ import { useStore } from "../data/store"
 import { validateReply, type ReplyInput, type TaskReply } from "../data/taskWorkflow"
 import { STATUS_ACTIONS } from "../lib/nudges"
 import { isPresident } from "../data/permissions"
+import { isBudgetControlledNode } from "../engine/eventBudget"
 
 export function TaskActions({ node, actorId, token, initialReply }: { node: Node; actorId: string; token?: string; initialReply?: string | null }) {
   const { state, dispatch } = useStore()
@@ -18,6 +19,7 @@ export function TaskActions({ node, actorId, token, initialReply }: { node: Node
     setForm(""); setNotice(reply === "extension" ? "Extension requested. The deadline stays unchanged until approval." : "Update saved. This round of follow-up has stopped.")
   }
   if (node.status === "done") return <p className="small good-text">Completed{node.completedOn ? ` on ${node.completedOn}` : ""}. Thank you.</p>
+  const budgetControlled = isBudgetControlledNode(node)
   const canUpdate = node.ownerId === actorId || isPresident(state, actorId)
   if (node.ownerId && !canUpdate) return <p className="small muted">Only the owner or president can update this task.</p>
   if (node.status === "unclaimed") return <div className="task-actions"><button className="btn btn-primary" onClick={() => {
@@ -26,7 +28,8 @@ export function TaskActions({ node, actorId, token, initialReply }: { node: Node
     setNotice("Claimed. The handover is confirmed.")
   }}>I've got it</button><p className="small muted">Tap to confirm that you own this task.</p></div>
   return <div className="task-actions">
-    <div className="status-actions" aria-label="Update task status">{STATUS_ACTIONS.map(a => <button key={a.key} className={`btn ${initialReply === a.key ? "btn-primary" : ""}`} onClick={() => a.key === "waiting" || a.key === "extension" ? setForm(a.key) : send(a.key, {})}>{a.label}</button>)}</div>
+    <div className="status-actions" aria-label="Update task status">{STATUS_ACTIONS.map(a => <button key={a.key} disabled={a.key === "done" && budgetControlled} className={`btn ${initialReply === a.key ? "btn-primary" : ""}`} onClick={() => a.key === "waiting" || a.key === "extension" ? setForm(a.key) : send(a.key, {})}>{a.label}</button>)}</div>
+    {budgetControlled && <p className="small muted">Complete this step in Event Budget.</p>}
     {form === "waiting" && <form className="task-form" onSubmit={e => { e.preventDefault(); send("waiting") }}>
       <label>Waiting on<select aria-label="Waiting on" value={input.waitingOnPersonId ?? input.waitingOn} onChange={e => { const person = state.people.find(p => p.id === e.target.value); setInput({ ...input, waitingOn: person?.name ?? e.target.value, waitingOnPersonId: person?.id ?? null }) }}><option value="">Choose a person or dependency</option>{state.people.filter(p => p.id !== actorId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}<option value="School or vendor approval">School or vendor approval</option><option value="Materials from another task">Materials from another task</option></select></label>
       <button className="btn btn-primary" type="submit">Save waiting status</button>

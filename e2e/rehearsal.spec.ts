@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { ask, closeRail } from "./helpers"
+import { createUnclaimedTask, savedTask } from "./taskHelpers"
 
 // S9 release rehearsals: what a participant does from a clean browser to an exported file, and the keyboard-only path.
 test.beforeEach(async ({ page }) => {
@@ -54,16 +55,28 @@ test("participant path: clean browser → six-step setup → task → event → 
 })
 
 test("keyboard only: claim a task, change its status and finish it without a mouse", async ({ page }) => {
-  await page.goto("/#/tasks?node=e-night:rsvp")
+  const id = await createUnclaimedTask(page, "Prepare the keyboard rehearsal")
   await page.getByTestId("view-as").selectOption("jordan")
+  await closeRail(page)
+  const card = page.getByTestId("task-board").getByRole("button", { name: "Prepare the keyboard rehearsal" })
+  await card.focus()
+  await page.keyboard.press("Enter")
   const detail = page.getByTestId("task-detail")
   await detail.getByRole("button", { name: "I've got it", exact: true }).focus()
   await page.keyboard.press("Enter")
   await expect(detail).toContainText("To do")
+  expect(await savedTask(page, id)).toMatchObject({ status: "accepted", ownerId: "jordan" })
   await detail.getByRole("button", { name: "Need help", exact: true }).focus()
   await page.keyboard.press("Space")
   await expect(detail).toContainText("Stuck")
+  expect(await savedTask(page, id)).toMatchObject({ status: "blocked", ownerId: "jordan" })
   await detail.getByRole("button", { name: "Done", exact: true }).focus()
   await page.keyboard.press("Enter")
   await expect(detail).toContainText("Completed on")
+  expect(await savedTask(page, id)).toMatchObject({ status: "done", ownerId: "jordan" })
+  await page.reload()
+  // The task was opened from the board rather than a historic deep link.
+  expect(await savedTask(page, id)).toMatchObject({ status: "done", ownerId: "jordan" })
+  await closeRail(page)
+  await expect(page.getByRole("region", { name: "Done", exact: true })).toContainText("Prepare the keyboard rehearsal")
 })
