@@ -1,2 +1,45 @@
-/* DX-15 events-layout: empty until work package DX-15 fills it (docs/design-upgrade/work-packages/DX-15-events-layout.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-15 Events page layout (docs/design-upgrade/work-packages/DX-15-events-layout.md).
+   Kept on purpose: the list of event names on the left (Juanxi 2026-10-31), the space above the flow chart for hover cards
+   (it is measured below, not guessed), and the right-hand Ask panel. Changed:
+   1. With the Ask panel docked on a screen narrower than 1500px, the event list is 168px instead of 220px, long names get "…" and a title.
+   2. The empty line under the Flow/List/Budget switch (a hidden status line for screen readers, 17px tall plus two page gaps)
+      no longer holds space while there is nothing to say. It stays in the page: a live region must exist before it speaks.
+   3. A soft fade on the right edge of the flow chart tells you there is more to scroll to; it goes away at the end. Browsers that
+      cannot link a style to the scroll position show no fade, as before.
+   4. The event list's height follows the visible window (dvh). */
+@media (min-width: 1200px) and (max-width: 1499px) {
+  .shell.with-rail .events-layout { grid-template-columns: 168px minmax(0, 1fr); }
+}
+.event-nav button { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.event-nav { max-height: calc(100dvh - var(--topbar-h) - var(--s7)); }
+
+/* The status line is only given room when it has something to say or the edit buttons are in the bar. */
+.m-edit-bar:has(> [role="status"]:empty):not(:has(button)) { margin-top: calc(var(--s6) * -1 + var(--s4)); }
+.m-edit-bar > [role="status"]:empty { min-height: 0; }
+
+/* The fade is a separate layer beside the chart, never a mask on the chart: a mask would also cut off the chart's own right-click
+   menu, which is drawn outside the chart's box. The layer follows the chart's scroll position (a scroll timeline shared up to
+   the wrapper) and is only shown while there is something further right to scroll to. */
+.metro-fade { position: relative; min-width: 0; timeline-scope: --dx-metro; }
+@supports (animation-timeline: scroll()) {
+  .metro-fade > .metro { scroll-timeline: --dx-metro inline; }
+  .metro-fade::after {
+    content: "";
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    bottom: 1px;
+    width: 40px;
+    border-radius: 0 var(--r-lg) var(--r-lg) 0;
+    background: linear-gradient(to right, transparent, var(--surface));
+    pointer-events: none;
+    z-index: var(--z-raised);
+    opacity: 0;
+    animation: dx-edge linear both;
+    animation-timeline: --dx-metro;
+  }
+}
+@keyframes dx-edge {
+  0%, 85% { opacity: 1; }
+  100% { opacity: 0; }
+}
