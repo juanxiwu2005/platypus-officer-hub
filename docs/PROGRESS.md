@@ -1,3 +1,7 @@
+> **2026-10-31 · DP8 发布准备第一阶段：已通过离线集成验收（Codex，多 agent / 独立 worktree）**
+> 从最新 `origin/integration/v1.0@5d00507` 并行完成 WP01/02/03/04/07/09，逐个审查、集成和目标复验。Node 22 下 lint、build、严格后端类型、808 单元测试、281 浏览器场景通过；另有 7 项原有设备适用性排除，0 失败/0 重试。生产 audit 为 0，入口 371.05 kB，首屏实际 JS 总计 514,197 字节，不加载 PhaseOne/PDF。
+> 可开始第二阶段 WP05/06/08：Owners 的 Escape 冒泡、4 条路由字数超限、含开发依赖审计 17 项均未宣称已解决；完整发布认证与真实 AIR 人工验收尚待后续。详见 [集成证据](release-readiness/evidence/WP09-bundle-performance.md)。仅用于 fast-forward 更新 `integration/v1.0`，不修改/推送/合并 main，0 次真实 AIR；需要同步本地备份。
+
 > **2026-10-26 Activity Workspace：待验收（Codex，独立Worktree多Agent）**
 > 用户批准A1/B1/C2执行方案，并要求首页重点事项直接从现有任务排序、AI接通组织与两类工作项创建/修改。Data/Schedule/Workspace UI/Assistant/Setup UI分工，主Agent维护契约/集成，独立Review。基于1815be0，开发分支feat/activity-workspace-v1；不改main、不真实AI测试。详见 [方案](organization/ACTIVITY_WORKSPACE_PLAN.md)。
 > 最终产品3e9c69a：构建、548单元、256桌面/手机浏览器场景通过，16条件跳过、0失败；实际本地HTTP7组34请求及CAS并发检查通过。独立Review无开放已知P0/P1。0次真实AI调用；私有演示身份不等于正式登录。详见[实施交接](organization/ACTIVITY_WORKSPACE_IMPLEMENTATION.md)与[Review](organization/REVIEW_ACTIVITY_WORKSPACE.md)。需要同步本地备份。
@@ -147,6 +151,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-10-31 | Codex（DP8 第一阶段，多 agent 独立 worktree） | **WP01/02/03/04/07/09 已逐包集成验收。** Demo 日期/路由测试迁移；Events 经费入口与 Reset；任务财务完成提示；手机 Roles/Budget 点击与保存失败；Router 7.18.5、Zod 4.6.7 和输入边界；路由/功能懒加载。最终 808 单元、281 浏览器通过，7 原有设备排除，生产 audit 0，入口 371.05 kB；[全部提交及复现证据](release-readiness/evidence/WP09-bundle-performance.md)。 | 可以开始 STAGE2（WP05/06/08）；已知 Escape、字数四路由和开发 audit 17 项保留门槛，未使用 skip/force click/timeout/audit ignore 制造通过。全站发布认证及真实 AIR 仍未完成；不操作 main，0 真实 AIR；需要同步本地备份。 |
 | 2026-10-31 | Codex（DP8，分支 `integration/v1.0`） | **发布准备修复计划入库。** 新增 `docs/release-readiness/`：机器可读 manifest、10 个独立工作包提示词和 3 个阶段调度入口。第一阶段并行 WP01/02/03/04/07/09，第二阶段并行 WP05/06/08，第三阶段 WP10 全量认证；每包都包含范围、禁用的捷径、验收命令和提交要求。 | 新会话不要逐个复制工作包；只需让它读取 `docs/release-readiness/stages/STAGE1.md`（之后依次 STAGE2、STAGE3）。所有阶段只推 `integration/v1.0`，绝不自动合并 `main` 或调用真实 AIR。需要同步本地备份。 |
 | 2026-10-30 | Codex（DP8，分支 `integration/v1.0`） | **Rules 浏览界面，第 3 步。** Rules 现在直接显示政策来源目录的 64 条记录，不再显示旧的 16 条简化规则或日期标签。每行严格为：左侧分类图标、中间 official source 名称、右侧官方网址按钮；悬停／聚焦时只显示 `What it covers` 一句话。每行保留不显示的 `data-policy-id`（`ASU-R-xxx`）和 `data-source-file`（精确文件代码），供后续 AI 和维护者定位。没有一条单一网址的来源仍显示为不可点的来源图标，并保留原始注记，未伪造链接。 | 在 DP8 打开 Rules：应看到 64 行和新的分类（Governance、Venue、Food、Funding、Marketing、Safety、Access、College、History）；悬停名称看一句话说明，点右侧图标打开官方来源。需要同步本地备份。 |
 | 2026-10-30 | Codex（DP8，分支 `integration/v1.0`） | **Policy archive，第 2 步。** 已将用户上传的 `03_Full_Rules_Archive.txt`（64 条、878 KB）压缩后只保存在 Netlify 服务器模块；`policyArchive()` 启动时逐条核对 archive 的 `Rule Record ID + FILE` 是否与 64 条目录的 `recordId + sourceFileCode` 一致，任何漏条／错连都会失败。`/api/policy-answer` 先检索最多三条相关来源、截取有限原文给 AIR，并且只接受这些候选的 `ASU-R-xxx` 引用；无匹配不猜。Ask 的政策问答已改走此接口，引用按钮用目录里的官方网址；旧 R01–R16 的既有确定性规则问答仍保留。 | 全文不进入浏览器包；前端只带小型目录。已通过 64 条连接／无人机检索、原有 M2b 相关测试、lint 和生产构建。下一步才改 Rules 的浏览界面；不要重新复制或编号任何政策记录。需要同步本地备份。 |
