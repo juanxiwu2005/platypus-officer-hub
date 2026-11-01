@@ -19,3 +19,8 @@
 @media (max-width: 600px) {
   .menu { transform-origin: top center; }
 }
+
+/* Reduce Motion: no fade at all, so `hidden` hides the menu in the same frame (nothing waits for a transition to end). */
+@media (prefers-reduced-motion: reduce) {
+  .menu { transition: none; }
+}

@@ -9,8 +9,10 @@ export async function closeRail(page: Page) {
 }
 export async function openDemoMenu(page: Page) {
   await closeRail(page)
-  const reset = page.getByTestId("reset-demo")
-  if (!(await reset.isVisible())) await page.getByTestId("demo-menu").click()
+  // Ask the button, not the screen: a menu that is still fading out can look open for a moment but is already closed (DX-10).
+  const toggle = page.getByTestId("demo-menu")
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click()
+  await expect(page.getByTestId("reset-demo")).toBeVisible()
 }
 /** Reset asks once (Layout.tsx): the first click arms the button, the second one wipes the demo. */
 export async function resetDemo(page: Page) {
