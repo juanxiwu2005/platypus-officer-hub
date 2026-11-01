@@ -115,6 +115,9 @@ export default function Setup() {
    * notes and fictional file uploads are not collected here, so setup never waits for an AI workflow-reading request.
    */
   function startWorkflow() {
+    // Going back to the workspace links, or restoring a draft, must not discard
+    // the workflow the president has already edited and reviewed.
+    if (wfTouched.current || wf.status === "ready") return
     wfTouched.current = false
     setSteps(withOwners(presetSteps(), draft.roles))
     setWf({ ...NO_WF, status: "ready", note: "This is the standard workflow. Adjust it here to fit how your club works." })

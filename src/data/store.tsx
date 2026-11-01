@@ -686,6 +686,8 @@ export function downloadExport(state: DemoState, log: LogEntry[]) {
 
 interface StoreValue {
   state: DemoState
+  /** The current on-screen state has not been persisted to this browser. */
+  persistenceFailed: boolean
   dispatch: (a: Action) => void
   reset: () => void
   /** The interaction log, oldest first. */
@@ -708,7 +710,8 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   // The real clock is read here, once per action, and travels with it into the log.
   const dispatch = useCallback((action: Action) => send({ action, at: Date.now() }), [])
   const reset = useCallback(() => { void clearLocalDocs(); dispatch({ type: "reset" }) }, [dispatch])
-  const value = useMemo(() => ({ state: root.app, dispatch, reset, log: root.log }), [root, dispatch, reset])
+  const persistenceFailed = saveFailed || held
+  const value = useMemo(() => ({ state: root.app, persistenceFailed, dispatch, reset, log: root.log }), [root, persistenceFailed, dispatch, reset])
   const shown: StorageNotice | null = saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
     {shown && <StorageBanner notice={shown} onDownload={() => {

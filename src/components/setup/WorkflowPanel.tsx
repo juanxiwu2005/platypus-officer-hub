@@ -59,6 +59,7 @@ export function WorkflowPanel({ state, steps, roles, issues, onChange }: { state
     },
   }
   const step = selected ? byKey.get(selected) : undefined
+  const selectStep = (id: string) => { setSelected(id); rail.show({ kind: "workflow" }) }
   const closeStep = () => { setSelected(null); rail.closeDetail() }
   useEffect(() => {
     if (!step) return
@@ -69,7 +70,7 @@ export function WorkflowPanel({ state, steps, roles, issues, onChange }: { state
   return <>
     <WorkflowIssues issues={issues} />
     <p className="small muted">Look at the chart first: it reads left to right in the order the work happens. Drag a step onto a ◆ to move it, double-click a step to add or delete one, double-click a line to cut a link. Click a step for its details.</p>
-    <div className="workflow-editor"><div className="workflow-editor-flow"><MetroChart key="wf" state={sample.s} sched={sample.sched} forecast={NO_FORECAST} eventId="wf" selectedId={selected} onSelect={setSelected} canEdit alwaysEdit port={port} /></div></div>
+    <div className="workflow-editor"><div className="workflow-editor-flow"><MetroChart key="wf" state={sample.s} sched={sample.sched} forecast={NO_FORECAST} eventId="wf" selectedId={selected} onSelect={selectStep} canEdit alwaysEdit port={port} /></div></div>
   </>
 }
 

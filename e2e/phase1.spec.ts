@@ -216,9 +216,8 @@ test("Phase1 organization B routes company relationships to External Relations",
   await expect(
     page.getByText("Outreach", { exact: true }).first(),
   ).toBeVisible();
-  await page
-    .getByRole("button", { name: /Meet the speaker or partner/ })
-    .click();
+  await page.getByRole("button", { name: /Show all \d+ steps/ }).click();
+  await page.getByRole("button", { name: /Partner Meeting/ }).click();
   await expect(
     page.getByRole("region", { name: "Task details" }),
   ).toContainText("External Relations");

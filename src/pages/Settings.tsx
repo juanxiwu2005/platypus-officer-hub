@@ -52,6 +52,7 @@ function TaskSettings() {
 
 /** Debounced auto-save with a single Undo step. */
 function useAutosave<T>(value: T, saved: T, valid: (v: T) => string | null, commit: (v: T) => void) {
+  const { persistenceFailed } = useStore()
   const [status, setStatus] = useState<{ text: string; undo?: T } | null>(null)
   const first = useRef(true)
   useEffect(() => {
@@ -63,7 +64,7 @@ function useAutosave<T>(value: T, saved: T, valid: (v: T) => string | null, comm
     const t = setTimeout(() => { commit(value); setStatus({ text: "Saved.", undo: before }) }, 500)
     return () => clearTimeout(t)
   }, [JSON.stringify(value)])
-  return { status, clear: () => setStatus(null) }
+  return { status: status?.undo !== undefined && persistenceFailed ? { ...status, text: "Saving failed. Changes are only on screen.", failed: true } : status, clear: () => setStatus(null) }
 }
 
 function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
@@ -102,9 +103,9 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
   </section>
 }
 
-function SaveStatus<T>({ status, onUndo }: { status: { text: string; undo?: T } | null; onUndo: (v: T) => void }) {
+function SaveStatus<T>({ status, onUndo }: { status: { text: string; undo?: T; failed?: boolean } | null; onUndo: (v: T) => void }) {
   if (!status) return null
-  return <p role="status" className={`save-status ${status.undo ? "ok" : "err"}`}>{status.text}{status.undo !== undefined && <button type="button" className="link" onClick={() => onUndo(status.undo as T)}>Undo</button>}</p>
+  return <p role="status" className={`save-status ${status.undo && !status.failed ? "ok" : "err"}`}>{status.text}{status.undo !== undefined && <button type="button" className="link" onClick={() => onUndo(status.undo as T)}>Undo</button>}</p>
 }
 
 /** The club's event workflow, after setup: the same edit module. New events start from it; events already made keep their steps. */

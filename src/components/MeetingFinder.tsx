@@ -64,7 +64,7 @@ function SlotGrid({ label, testId, dates, marked, cell, onDown, onEnter, onDrawE
           aria-label={c.label} aria-selected={c.on ?? c.ring ?? false} title={c.label}
           onFocus={() => { setCur([d, k]); onHover?.(d, k) }} onPointerEnter={() => { if (drawing.current) paintThrough(d, k); onHover?.(d, k) }}
           onPointerDown={e => { if (onDown && e.pointerType !== "touch" && e.button === 0) { e.preventDefault(); drawing.current = true; lastPainted.current = [d, k]; e.currentTarget.setPointerCapture(e.pointerId); onDown(d, k) } }}
-          onClick={e => { if (e.detail === 0 || (!onDown && (e.nativeEvent as PointerEvent).pointerType === "touch")) onActivate(d, k) }}
+          onClick={e => { if (e.detail === 0 || (e.nativeEvent as PointerEvent).pointerType === "touch") onActivate(d, k) }}
           onPointerUp={e => { if (!onDown && e.pointerType !== "touch" && e.button === 0) onActivate(d, k) }}
           onKeyDown={e => keys(e, d, k)} />
       })}

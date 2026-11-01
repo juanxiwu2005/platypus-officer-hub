@@ -277,10 +277,12 @@ progress { accent-color: var(--accent); height: 8px; }
 .goal-tbl td:first-child { width: 55%; }
 .goal-tbl td:nth-child(2), .goal-tbl td:nth-child(3) { width: 18%; }
 .goal-tbl td:last-child { width: 44px; text-align: center; }
-.roles-manager { display: grid; gap: var(--s5); }
-.roles-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--s5); }
+.roles-manager { display: grid; gap: var(--s5); min-width: 0; }
+.roles-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s5); }
 .roles-actions > p { margin: 0; }
-.roles-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
+/* Contain the wide table's sticky cells inside its own scroller. Without this,
+   Chromium expands the mobile layout viewport to the table's off-screen width. */
+.roles-table-wrap { min-width: 0; max-width: 100%; overflow-x: auto; contain: paint; border: 1px solid var(--line); border-radius: var(--r-md); }
 .roles-table { width: max-content; min-width: 100%; margin: 0; table-layout: auto; }
 .roles-table th, .roles-table td { white-space: nowrap; }
 .roles-table th:first-child, .roles-table td:first-child { position: sticky; left: 0; z-index: var(--z-raised); background: var(--surface); box-shadow: 1px 0 0 var(--line); }
