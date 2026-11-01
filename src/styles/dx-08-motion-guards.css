@@ -1,2 +1,12 @@
-/* DX-08 motion-guards: empty until work package DX-08 fills it (docs/design-upgrade/work-packages/DX-08-motion-guards.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-08 Reduce Motion guards for animations that already existed (docs/design-upgrade/work-packages/DX-08-motion-guards.md).
+   The three dots in "Platypus is working" blinked forever with no Reduce Motion answer. They now hold still.
+   Old transitions that had their own times use the shared tokens (almost the same look). Not here: .hover-card and .m-card
+   (S3: zero delay on purpose) and .m-node (DX-22). */
+@media (prefers-reduced-motion: reduce) {
+  :is(.typing i, .ai-wait-mark i) { animation: none; opacity: .6; }
+}
+
+/* Same job, same look, one set of times. */
+.switch input { transition: background-color var(--dur-fast) var(--ease-out); }
+.switch input::after { transition: transform var(--dur-fast) var(--ease-out); }
+.board-col { transition: border-color var(--dur-fast) var(--ease-out); }
