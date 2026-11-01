@@ -1,2 +1,22 @@
-/* DX-26 crm-drag: empty until work package DX-26 fills it (docs/design-upgrade/work-packages/DX-26-crm-drag.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-26 dragging contacts between stages on the Partners board (docs/design-upgrade/work-packages/DX-26-crm-drag.md; the logic is
+   src/lib/dragSort.ts, shared with the task board). Same feel as DX-24: the held card follows the pointer and lifts with a shadow,
+   the stage under it is outlined. Contacts have no order inside a stage, so other cards do not slide aside. */
+.crm-card[data-editable="true"] {
+  cursor: grab;                /* the old rule matched draggable="true", which the card no longer has */
+  user-select: none;
+  -webkit-user-select: none;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.crm-card.is-dragging {
+  position: relative;
+  z-index: var(--z-local);
+  box-shadow: var(--elev-2, 0 8px 24px rgb(0 0 0 / .2));
+  border-color: var(--accent);
+  cursor: grabbing;
+  pointer-events: none;
+  transition: none;           /* it follows the pointer exactly */
+}
+.crm-col { transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out); }
+.crm-col.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface-2)); }
+body.is-dragging-card .crm-col { transition: none; }
+body.is-dragging-card .crm-card.is-dragging * { cursor: grabbing; }
