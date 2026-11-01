@@ -8,9 +8,6 @@
 .board-col-toggle { display: none; }
 
 @media (min-width: 861px) {
-  /* A tall enough drop target even when the column has two cards in it. Computer only: a phone has no dragging, and there
-     the same rule made every empty column a huge grey block. */
-  .board-col { min-height: min(60vh, 520px); }
   .board {
     display: flex;
     grid-template-columns: none;
@@ -19,6 +16,9 @@
   }
   .board-col {
     position: relative;
+    /* A tall enough drop target even when the column has two cards in it. Computer only: a phone has no dragging, and there
+       the same rule made every empty column a huge grey block. */
+    min-height: min(60vh, 520px);
     flex: 1 1 164px;
     min-width: 120px;
     /* The width of a column is the one layout property DX-16 animates; the strip must open and close smoothly. */
