@@ -54,8 +54,8 @@ export default function Handoff() {
         const out = state.people.find(p => p.id === (r?.outgoingId ?? role.holderId))
         const inc = state.people.find(p => p.id === r?.incomingId)
         const p = roleProgress(r)
-        return <button type="button" key={role.id} className="relay" aria-label={`${role.displayName} handbook: ${p.stage}`} onClick={() => rail.show({ kind: "handoff", roleId: role.id })}>
-          <span className="relay-role">{role.displayName}</span>
+        return <button type="button" key={role.id} className="relay" onClick={() => rail.show({ kind: "handoff", roleId: role.id })}>
+          <span className="relay-role">{role.displayName}</span><span className="sr-only"> handbook </span>
           <span className="relay-people">
             <Avatar name={out?.name} />
             <svg viewBox="0 0 40 12" aria-hidden="true"><path d="M2 6h32M28 1l6 5-6 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
