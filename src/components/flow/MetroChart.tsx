@@ -8,6 +8,7 @@ import { nodeStop } from "../../lib/phases"
 import { useStatusStyles, useTouch } from "../ui"
 import { EVENT_KEY, END_KEY, START_KEY, metroLayout } from "./metro"
 import { useStore } from "../../data/store"
+import { prefersReducedMotion, tokenMs } from "../../lib/motion"
 import { nextCounter } from "../../lib/ids"
 import { cannotDelete, flowGaps, flowTracks, moveBetween, unlinkSteps, type Gap } from "../../lib/flowEdit"
 import { ancestorsOf, doAfter, type EditResult, type StepEdit } from "../../lib/stepOrder"
@@ -90,6 +91,17 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const styles = useStatusStyles()
   const ev = state.events.find(e => e.id === eventId)!
   const L = useMemo(() => metroLayout(state, sched, eventId, !vertical), [state, sched, eventId, vertical])
+  // Where each step sits in the chart (not its colour or status): when this changes because someone moved a step, the steps glide to
+  // their new places and the lines dim while they do, so the dots and the lines never disagree about where things are (DX-22).
+  // A window resize or the first draw changes pixel positions but not this, so those snap.
+  const placeKey = useMemo(() => L.stations.map(s => `${s.key}:${s.col}`).join() + "|" + L.branches.map(b => `${b.id}:${b.row}:${b.nodes.map(x => `${x.node.id}@${x.col}`).join()}`).join(";"), [L])
+  const [restKey, setRestKey] = useState(placeKey)
+  const settling = restKey !== placeKey && !prefersReducedMotion()
+  useEffect(() => {
+    if (restKey === placeKey) return
+    const t = setTimeout(() => setRestKey(placeKey), tokenMs("--spring-ui-dur", 450) + 60)
+    return () => clearTimeout(t)
+  }, [placeKey, restKey])
 
   // Pixel geometry. Horizontal: columns run left → right, rows above/below. Vertical (phone): top → bottom, branches to the right.
   const COL = vertical ? 64 : Math.max(72, Math.min(96, (width - 80) / Math.max(1, L.cols)))
@@ -278,7 +290,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const kind = SITUATION_KEYS.has(n.stepKey ?? "") ? "situation" : "baseline"
     const showCard = hoveredId === n.id || focusedId === n.id
     const cardId = `flow-card-${n.id}`
-    return <div key={n.id} className={`m-node ${labelSide} ${n.id === selectedId ? "is-selected" : ""}${drag?.id === n.id ? " is-dragging" : ""}`} style={{ left: p.x, top: p.y }}
+    return <div key={n.id} className={`m-node ${labelSide} ${n.id === selectedId ? "is-selected" : ""}${drag?.id === n.id ? " is-dragging" : ""}`} style={{ "--x": `${p.x}px`, "--y": `${p.y}px` } as CSSProperties}
       onPointerEnter={e => { if (e.pointerType !== "touch") setHoveredId(n.id) }} onPointerLeave={() => setHoveredId(null)}
       onFocus={() => setFocusedId(n.id)} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setFocusedId(null) }}>
       <button type="button" className={`m-dot ${kind} ${st} ${issue ? `has-${issue.severity}` : ""}${mark ? ` mark-${mark}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch && e.detail > 0) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}. ${kind === "baseline" ? "Core event step." : "Situation-based step."}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
@@ -308,7 +320,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
       {on && <span className="small muted">{touch ? "Tap a step for add, delete and details · Drag it onto a ◆ to move it · Double-tap a line to cut or add a link" : "Drag a step onto a ◆ between two steps · Double-click a step to add or delete · Double-click a line to cut or add a link"}</span>}
       <span role="status" aria-live="polite" className={`small ${msg?.error ? "late-text" : ""}`} data-testid="flow-edit-msg">{on ? msg?.text : ""}</span>
     </div>}
-  <div className={`metro ${vertical ? "vertical" : ""}${on ? " editing" : ""}${drag ? " dragging" : ""}`} ref={wrap} data-testid="flow-chart" style={{ "--label-w": `${vertical ? 140 : COL - 8}px` } as CSSProperties}>
+  <div className={`metro ${vertical ? "vertical" : ""}${on ? " editing" : ""}${drag ? " dragging" : ""}${settling ? " is-settling" : ""}`} ref={wrap} data-testid="flow-chart" style={{ "--label-w": `${vertical ? 140 : COL - 8}px` } as CSSProperties}>
     <div className="metro-canvas" ref={canvasRef} style={{ width: W, height: H }}>
       <svg width={W} height={H} aria-hidden="true">
         {!vertical && !tpl && <text x={pos(evStation.col, 0).x} y={18} className="m-tick strong" textAnchor="middle">{fmtShort(ev.date)}</text>}
@@ -321,7 +333,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
       {L.branches.flatMap(b => b.nodes.map(x => dot(x.node, x.col, b.row, vertical ? "right" : b.row < 0 ? "above" : "below")))}
       {L.stations.filter(s => s.key === EVENT_KEY || s.key === START_KEY || s.key === END_KEY).map(s => {
         const p = pos(s.col, 0)
-        return <div key={s.key} className={`m-node ${vertical ? "right" : "below"} m-${s.key.replaceAll("_", "")}`} style={{ left: p.x, top: p.y }}>
+        return <div key={s.key} className={`m-node ${vertical ? "right" : "below"} m-${s.key.replaceAll("_", "")}`} style={{ "--x": `${p.x}px`, "--y": `${p.y}px` } as CSSProperties}>
           <span className={`m-dot station ${s.key === START_KEY ? "done" : s.key === EVENT_KEY ? (ev.date < state.today ? "done" : "event") : "todo"}`} />
           <span className="m-label"><b>{s.key === EVENT_KEY ? "Event day" : s.key === START_KEY ? "Start" : "Done"}</b>{s.key === EVENT_KEY && vertical && !tpl ? <span>{fmtShort(ev.date)}</span> : null}</span>
         </div>
