@@ -1,2 +1,19 @@
-/* DX-05 risk-shapes: empty until work package DX-05 fills it (docs/design-upgrade/work-packages/DX-05-risk-shapes.md).
-   Only this package may write here. Remove its @import line from index.css to switch it off (R1). */
+/* DX-05 risk dots with a shape (docs/design-upgrade/work-packages/DX-05-risk-shapes.md).
+   Green = circle with a check, yellow = triangle with an exclamation mark, red = rounded square with a cross.
+   The colour tokens are the same as before; the shape is what lets someone who cannot see the colour tell them apart. */
+/* The older rules (.risk.red i and friends) paint a coloured disc and a halo; this selector is as specific and comes later, so it wins. */
+.risk:is(.green, .yellow, .red) i {
+  width: 14px;
+  height: 14px;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  display: inline-block;
+  flex: none;
+}
+.risk:is(.green, .yellow, .red) i svg { display: block; width: 100%; height: 100%; }
+.risk.green i { color: var(--good); }
+.risk.yellow i { color: var(--risk-yellow); }
+.risk.red i { color: var(--late); }
+/* The mark inside the shape is drawn in the page colour, so it reads in both light and dark. */
+.risk .glyph { fill: none; stroke: var(--surface); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
