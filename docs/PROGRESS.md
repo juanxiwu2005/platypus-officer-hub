@@ -1,3 +1,9 @@
+> **2026-11-01 · Onboarding 改版执行策略（两条流程）· 待 Juanxi 审批（Claude）**
+> **做了什么：** 审阅预览 10 的代码，按 `apple-design-skill`（Apple HIG）和 Emil 的 `apple-design`（WWDC 动效）审了现有的两条 onboarding（社长 `/#/setup`、社员 `/#/join`），写成执行策略 [`ONBOARDING_REDESIGN_STRATEGY.md`](ONBOARDING_REDESIGN_STRATEGY.md)：现状诊断（A1–A8、B1–B6，无 Critical）、六条设计原则、两条流程逐屏设计、动效与文案、不做什么、8 个工作包 OB-00…OB-07、验收门、6 个待决问题。**只写了文档，没有改任何代码或界面。**
+> **关键事实：** ①社长第 3 步约 70 个输入框、页面高约 3,768px，且电话和 ASU ID 社长和干部各问一遍；②见证时刻（第一张流程图）只以折叠的文字列表出现；③邀请链接只在同一浏览器有效，真实注册要等 v1.5，方案里"身份"屏只留空位；④Phase 3 参与者走的就是这两个入口，IRB 把 onboarding 当观察对象，所以建议新流程做成并排网址（`/#/welcome`、`/#/invite`），旧的 `/#/setup`、`/#/join` 不动；⑤新流程要用预览 10 的动效 token，应先决定预览 10。
+> **需要 Juanxi 决定：** Q1 并排还是直接替换，以及 Phase 3 的确切日期（11/9 来自 10-29 的 M4 方案，没有重新核对）；Q2 社长不再填电话和 ASU ID；Q3 日历/Drive 链接和流程定制移出必经路径；Q4 邀请放到最后并显示 Invited/Joined；Q5 社员的职业目标等问题可跳过；Q6 与 `M4_ONBOARDING_PLAN` 分开、先决定预览 10。批准前不开始任何实现。
+> **没验证的：** 真机手指、Safari；AI 读章程只在本机无服务器函数时看过；"5 分钟/2 分钟"是计划目标，现状没有量过。**需要同步本地备份**（本会话没有连到 Juanxi 的电脑；`PROGRESS.md` 有改动）。
+
 > **2026-11-01 · 界面与动效升级 · 阶段 6（Partners 拖拽、文档收口）完成，全部 27 个包已处理，待 Juanxi 验收（Claude）**
 > **做了什么：** DX-26 Partners 看板（Board 视图）改成和 Tasks 看板一样的指针拖拽：按住联系人卡片拖到另一个阶段，卡片跟手、抬起带阴影，目标阶段列描边，松手后改阶段；Esc 取消；键盘 `Alt+←/→` 移到相邻阶段并播报；每张卡上的阶段下拉菜单保留（手机和键盘的备用路径）。权限没变（只有 `canEditContact` 为真的卡片能拖，仅 leads 可见的联系人对别人仍然看不到）。联系人在一个阶段里没有顺序，所以**不让位**，只描边目标列。DX-27 文档收口：`docs/DESIGN_TOKENS.md` 补动效 token、阴影层级、小样式文件的结构（h1 的说明改成和代码一致）；`AGENTS.md` 第 0 节的 `main` 事实用 git 和 GitHub 重新核对改写（**原来写的"`main` 基线仍是 `4dc55ba`、下一个上线版本是 `integration/v1.0`"已经过时**：v1.0 已在 2026-11-01 合并进 `main`，现在顶端是 `c3c9394`），并新增 7.1 "动效规则"；样式检查新增"小文件不准 `!important`"，删掉已无用的 h1 `clamp` 放行；新增"桌面 `.hover-card` 不准有延迟"的守卫测试，都带"故意违规会变红"的样本。另有 `docs/design-upgrade/reports/SUMMARY.md`（27 个包的状态、合并提交、回滚方式、已知问题）。
 > **怎么验收（预览 10）：** **电脑**：Partners → Board，按住一个联系人（比如 Morgan Hale）拖到 Warm 列，松手后它在 Warm 里；拖到一半按 Esc，它回原处；点名字仍然打开详情；用 Tab 聚焦卡片后按 `Alt+→` 移到下一阶段。切到 View as → Maya，Morgan Hale 不在看板里（仅 leads 可见）。**手机**：用卡片上的阶段下拉菜单（拖拽只测了桌面）。
