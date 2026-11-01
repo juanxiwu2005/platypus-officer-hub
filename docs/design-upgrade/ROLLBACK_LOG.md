@@ -30,8 +30,8 @@
 | DX-23 | **已合并**（阶段 5）| `0e93cd6` | `dx/dx-23-merged` | 2026-11-01 | `git revert -m 1 dx/dx-23-merged` | |
 | DX-24 | **已合并**（阶段 5）| `8ac5b82` | `dx/dx-24-merged` | 2026-11-01 | `git revert -m 1 dx/dx-24-merged` | |
 | DX-25 | **已合并**（阶段 5）| `7ef5a87` | `dx/dx-25-merged` | 2026-11-01 | `git revert -m 1 dx/dx-25-merged` | |
-| DX-26 | 未开始 | | `dx/dx-26-merged` | | `git revert -m 1 dx/dx-26-merged` | |
-| DX-27 | 未开始 | | `dx/dx-27-merged` | | `git revert -m 1 dx/dx-27-merged` | |
+| DX-26 | **已合并**（阶段 6）| `255c009` | `dx/dx-26-merged` | 2026-11-01 | `git revert -m 1 dx/dx-26-merged` | 用 DX-24 的 `dragSort.ts`：要撤 DX-24 必须先撤它 |
+| DX-27 | **已合并**（阶段 6，第 3 步未做）| `7c27bea` | `dx/dx-27-merged` | 2026-11-01 | `git revert -m 1 dx/dx-27-merged` | 只含文档、`.stylelintrc.json`、`dxStyleGuard.test.ts`；撤了以后 `AGENTS.md` 第 0 节回到过期的说法 |
 
 ## 阶段标签
 
@@ -44,7 +44,7 @@
 | `dx/phase-3-before` | 阶段 3 开始前（`a13f037`）| 仅本地 |
 | `dx/phase-4-before` | 阶段 4 开始前（`8e7cdf3`）| 仅本地 |
 | `dx/phase-5-before` | 阶段 5 开始前（`d4bcbda`）| 仅本地 |
-| `dx/phase-6-before` | 每个阶段开始前集成分支的位置 | 未到 |
+| `dx/phase-6-before` | 阶段 6 开始前（`d8b0cbb`）| 仅本地 |
 
 ## ⚠ 有"后续修复提交"的包：撤的时候要**先撤修复，再撤包**
 
@@ -68,6 +68,7 @@
 | 2026-11-01 | 阶段 3：对合并后的历史先撤两个修复提交，再从后往前撤 `dx-19-merged` … `dx-15-merged`（五个）| 全部干净；`tsc` 通过；撤完后与 `dx/phase-3-before` **逐字一致**。单撤 DX-17 也干净。**同时发现**：不先撤修复，直接撤 DX-16 会冲突；回头验证 DX-10 同样会冲突（上面的表）|
 | 2026-11-01 | 阶段 4：对合并后的历史从后往前撤 `dx-22-merged`、`dx-21-merged`、`dx-20-merged` | 三步都干净；`tsc` 通过；撤完后与 `dx/phase-4-before` **逐字一致**（含 `e2e/helpers.ts` 和被机械替换的 12 个测试文件）。单撤 DX-21 也干净。本阶段**没有**合并后的修复提交 |
 | 2026-11-01 | 阶段 5：对合并后的历史从后往前撤 `dx-25-merged`、`dx-24-merged`、`dx-23-merged` | 三步都干净；`tsc` 通过；撤完后与 `dx/phase-5-before` **逐字一致**。单撤 DX-24 也干净。**依赖发现**：单撤 DX-22 git 不冲突，但 `tsc` 报 3 处 "Cannot find module '../../lib/motion'"（DX-24、DX-25 用了它）——所以撤 DX-22 前必须先撤 DX-24、DX-25（已补进 `PHASES.md` 的依赖表）。本阶段没有合并后的修复提交 |
+| 2026-11-01 | 阶段 6：对合并后的历史先撤 `dx-27-merged`，再撤 `dx-26-merged`（临时 worktree）| 两步都干净；`tsc` 通过；撤完后与 `dx/phase-6-before` **逐字一致**（`git diff --name-only` 为 0 个文件）。单撤 DX-26（不撤 DX-27）也干净、`tsc` 通过。 |
 
 ## 为什么这个会话推不了其他分支和标签（2026-11-01 调查）
 
@@ -118,7 +119,10 @@ git tag dx/phase-5-before d4bcbda5e05478c8297b4f4c2d7ba9228355ccb0
 git tag dx/dx-23-merged 0e93cd644cfcf36a349c3d49aaa5e9f995064694
 git tag dx/dx-24-merged 8ac5b82bab9a4820b40ab757fcc3fa8cab2e50dc
 git tag dx/dx-25-merged 7ef5a877506835367ccbecbee0f3b593a15de30b
-git push origin dx/baseline dx/phase-0-before dx/phase-1-before dx/phase-2-before dx/phase-3-before dx/phase-4-before dx/phase-5-before dx/dx-01-merged dx/dx-02-merged dx/dx-03-merged dx/dx-04-merged dx/dx-05-merged dx/dx-06-merged dx/dx-07-merged dx/dx-08-merged dx/dx-09-merged dx/dx-10-merged dx/dx-11-merged dx/dx-12-merged dx/dx-13-merged dx/dx-14-merged dx/dx-15-merged dx/dx-16-merged dx/dx-17-merged dx/dx-18-merged dx/dx-19-merged dx/dx-20-merged dx/dx-21-merged dx/dx-22-merged dx/dx-23-merged dx/dx-24-merged dx/dx-25-merged
+git tag dx/phase-6-before d8b0cbb9c9d8405da93519dc3b43f9857c07ed73
+git tag dx/dx-26-merged 255c00964616ee604bb2bda0a0b831b5ec2e66aa
+git tag dx/dx-27-merged 7c27beac87c6baa48e960dcdade28dc4fc3dd91c
+git push origin dx/baseline dx/phase-0-before dx/phase-1-before dx/phase-2-before dx/phase-3-before dx/phase-4-before dx/phase-5-before dx/phase-6-before dx/dx-01-merged dx/dx-02-merged dx/dx-03-merged dx/dx-04-merged dx/dx-05-merged dx/dx-06-merged dx/dx-07-merged dx/dx-08-merged dx/dx-09-merged dx/dx-10-merged dx/dx-11-merged dx/dx-12-merged dx/dx-13-merged dx/dx-14-merged dx/dx-15-merged dx/dx-16-merged dx/dx-17-merged dx/dx-18-merged dx/dx-19-merged dx/dx-20-merged dx/dx-21-merged dx/dx-22-merged dx/dx-23-merged dx/dx-24-merged dx/dx-25-merged dx/dx-26-merged dx/dx-27-merged
 # 2. 工作包分支（可选；这些提交已经在 claude/determined-johnson-yrdxwf 的历史里）
 git push origin 8a941e68f9039cd90230d88fa169e1ee26138ad7:refs/heads/design/dx-01-foundation
 git push origin 84f29c19f84c85363fcd08a36d5bd26b68106564:refs/heads/design/dx-02-split-layout
@@ -145,4 +149,6 @@ git push origin 012f54b7adda19f169fc3fa832f83c9a3ed6394c:refs/heads/design/dx-22
 git push origin c158b065f3fb3559ef52b070a433c621adc0d21d:refs/heads/design/dx-23-glass-topbar
 git push origin 248bdcb4aa8194fe4fd66e1c353bc965dd9ef9fd:refs/heads/design/dx-24-board-drag
 git push origin 37828546afc583f89bd3d70de6d5b6cc45e7bf24:refs/heads/design/dx-25-done-moment
+git push origin 9cb8020c96887c25804af9bbfd414dd003ae23c6:refs/heads/design/dx-26-crm-drag
+git push origin 6f050b7234760cd2a51905ec4756862a83d26e52:refs/heads/design/dx-27-docs-closeout
 ```
