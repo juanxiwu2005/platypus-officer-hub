@@ -19,7 +19,11 @@ const BoardSettingsPanel = lazy(() => import("../BoardSettings").then(module => 
 const EventDetail = lazy(() => import("../EventDetail").then(module => ({ default: module.EventDetail })))
 
 /** Right rail: Ask (the only AI box) and Details (whatever was clicked). */
-export function Rail() {
+/**
+ * `closing` is true from the moment the panel starts to leave until it is removed: the page underneath is usable again at once.
+ * `shown` is false while the panel is arriving (its first painted frame) and while it leaves; the CSS slides between the two.
+ */
+export function Rail({ closing = false, shown = true }: { closing?: boolean; shown?: boolean }) {
   const rail = useRail()
   const { tab, setTab, detail } = rail
   const aside = useRef<HTMLElement>(null)
@@ -27,7 +31,7 @@ export function Rail() {
   // page underneath (full screen only), come back to the button that opened it, and Escape must close it.
   useEffect(() => {
     const overlay = window.matchMedia?.("(max-width: 1199px)").matches
-    if (!overlay) return
+    if (!overlay || closing) return
     const a = document.activeElement
     const opener = a instanceof HTMLElement && a !== document.body && !aside.current?.contains(a) ? a : null
     if (!aside.current?.contains(document.activeElement)) aside.current?.focus()
@@ -54,10 +58,10 @@ export function Rail() {
         else if (free) shown?.focus()
       }, 0)
     }
-  }, [])
+  }, [closing])
   const hasDetail = !!detail
   useEffect(() => {
-    if (!window.matchMedia?.("(max-width: 1199px)").matches) return
+    if (!window.matchMedia?.("(max-width: 1199px)").matches || closing) return
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return
       if (aside.current) trapTabKey(e, aside.current)
@@ -65,8 +69,8 @@ export function Rail() {
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [hasDetail, rail])
-  return <aside className="rail" aria-label="Assistant and details" data-testid="rail" ref={aside} tabIndex={-1}>
+  }, [hasDetail, rail, closing])
+  return <aside className="rail" aria-label="Assistant and details" data-testid="rail" data-state={shown && !closing ? "open" : "closed"} ref={aside} tabIndex={-1}>
     <div className="rail-tabs">
       <div role="tablist" aria-label="Side panel" className="tab-group">
         <button type="button" role="tab" aria-selected={tab === "ask"} onClick={() => setTab("ask")} data-testid="tab-ask">Ask</button>
