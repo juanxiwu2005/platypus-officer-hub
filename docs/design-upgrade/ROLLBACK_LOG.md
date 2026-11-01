@@ -13,12 +13,12 @@
 | DX-06 | **已合并**（阶段 1）| `0187d36` | `dx/dx-06-merged` | 2026-11-01 | `git revert -m 1 dx/dx-06-merged` | |
 | DX-07 | **已合并**（阶段 1）| `775264a` | `dx/dx-07-merged` | 2026-11-01 | `git revert -m 1 dx/dx-07-merged` | |
 | DX-08 | **已合并**（阶段 1）| `eb55e5a` | `dx/dx-08-merged` | 2026-11-01 | `git revert -m 1 dx/dx-08-merged` | |
-| DX-09 | 未开始 | | `dx/dx-09-merged` | | `git revert -m 1 dx/dx-09-merged` | |
-| DX-10 | 未开始 | | `dx/dx-10-merged` | | `git revert -m 1 dx/dx-10-merged` | |
-| DX-11 | 未开始 | | `dx/dx-11-merged` | | `git revert -m 1 dx/dx-11-merged` | |
-| DX-12 | 未开始 | | `dx/dx-12-merged` | | `git revert -m 1 dx/dx-12-merged` | |
-| DX-13 | 未开始 | | `dx/dx-13-merged` | | `git revert -m 1 dx/dx-13-merged` | |
-| DX-14 | 未开始 | | `dx/dx-14-merged` | | `git revert -m 1 dx/dx-14-merged` | |
+| DX-09 | **已合并**（阶段 2）| `d419447` | `dx/dx-09-merged` | 2026-11-01 | `git revert -m 1 dx/dx-09-merged` | |
+| DX-10 | **已合并**（阶段 2；合并后另有修复提交 `6f62b17`，撤 DX-10 时它也要一起撤）| `5a32bf7` | `dx/dx-10-merged` | 2026-11-01 | `git revert -m 1 dx/dx-10-merged` | |
+| DX-11 | **已合并**（阶段 2）| `b54de9b` | `dx/dx-11-merged` | 2026-11-01 | `git revert -m 1 dx/dx-11-merged` | |
+| DX-12 | **已合并**（阶段 2）| `e8ff3ec` | `dx/dx-12-merged` | 2026-11-01 | `git revert -m 1 dx/dx-12-merged` | |
+| DX-13 | **已合并**（阶段 2）| `4b118e7` | `dx/dx-13-merged` | 2026-11-01 | `git revert -m 1 dx/dx-13-merged` | |
+| DX-14 | **已合并**（阶段 2）| `d83af1f` | `dx/dx-14-merged` | 2026-11-01 | `git revert -m 1 dx/dx-14-merged` | |
 | DX-15 | 未开始 | | `dx/dx-15-merged` | | `git revert -m 1 dx/dx-15-merged` | |
 | DX-16 | 未开始 | | `dx/dx-16-merged` | | `git revert -m 1 dx/dx-16-merged` | |
 | DX-17 | 未开始 | | `dx/dx-17-merged` | | `git revert -m 1 dx/dx-17-merged` | |
@@ -40,7 +40,8 @@
 | `dx/baseline` | 计划文档提交之后、任何代码改动之前（`77c94ee`）| 仅本地（推不上去）|
 | `dx/phase-0-before` | 阶段 0 开始前（= baseline）| 仅本地 |
 | `dx/phase-1-before` | 阶段 1 开始前（`8c70057`）| 仅本地 |
-| `dx/phase-2-before` … `dx/phase-6-before` | 每个阶段开始前集成分支的位置 | 未到 |
+| `dx/phase-2-before` | 阶段 2 开始前（`17af284`）| 仅本地 |
+| `dx/phase-3-before` … `dx/phase-6-before` | 每个阶段开始前集成分支的位置 | 未到 |
 
 ## 回滚演练记录
 
@@ -48,6 +49,7 @@
 | --- | --- | --- |
 | 2026-11-01 | 在临时 worktree 里对集成分支顶端先后执行 `git revert -m 1 dx/dx-02-merged`、`git revert -m 1 dx/dx-01-merged`，每步之后跑 `tsc` | 两步都干净、无冲突；撤 DX-02 后 `Layout.tsx` 回到 168 行；两个都撤后，`src`、`package.json`、`playwright.config.ts`、`.stylelintrc.json`、`scripts`、`.gitignore` 与 `77c94ee` **逐字一致**（`git diff` 为空）。临时 worktree 已丢弃，没有推送 |
 | 2026-11-01 | 阶段 1：在临时 worktree 里对合并后的历史从后往前执行 `git revert -m 1 dx/dx-08-merged` … `dx-03-merged`（六个）| 六步都干净、无冲突；`tsc` 通过；撤完后 `src`、`package.json`、`playwright.config.ts`、`.stylelintrc.json`、`scripts`、`index.html`、`.gitignore`、`e2e` 与 `dx/phase-1-before` **逐字一致**。另测只撤 DX-05：干净，`tsc` 通过，`RISK_SHAPE` 已消失。临时 worktree 已丢弃 |
+| 2026-11-01 | 阶段 2：在临时 worktree 里对合并后的历史从后往前执行 `git revert -m 1 dx/dx-14-merged` … `dx-09-merged`（六个）| 六步都干净；`tsc` 通过；撤完后 `src`、配置、`scripts`、`index.html`、`e2e` 与 `dx/phase-2-before` **逐字一致**。只撤 DX-09 也干净。**注意**：这次演练是在 DX-10 修复提交之前做的；修复提交只动 `dx-10-menu-motion.css` 和 `e2e/helpers.ts`，撤 DX-10 时要连它一起撤（否则 helpers 里的 `aria-expanded` 改动会留下，无害）|
 
 ## 为什么这个会话推不了其他分支和标签（2026-11-01 调查）
 
@@ -77,7 +79,14 @@ git tag dx/dx-05-merged b5ee33311193819c10bb78ae1b13b6a74ef169cc
 git tag dx/dx-06-merged 0187d36dd0dacbe866494de54233b5f46a0b3e61
 git tag dx/dx-07-merged 775264a829b5b0c2108a303dcf811a399855d9e1
 git tag dx/dx-08-merged eb55e5a25cb3db86f969c823b8896b7595217237
-git push origin dx/baseline dx/phase-0-before dx/phase-1-before dx/dx-01-merged dx/dx-02-merged dx/dx-03-merged dx/dx-04-merged dx/dx-05-merged dx/dx-06-merged dx/dx-07-merged dx/dx-08-merged
+git tag dx/phase-2-before 17af284dde66fae2b10d27f805a9724496e10a53
+git tag dx/dx-09-merged d4194474f009914337a0a0d9e372c950265d1780
+git tag dx/dx-10-merged 5a32bf78e3645346c433afab7a151001aa816b6d
+git tag dx/dx-11-merged b54de9b817e5d3b19ea4eb6882d8b4757643df02
+git tag dx/dx-12-merged e8ff3ec1c24d20fa5c4fb764456f8e6102d4e802
+git tag dx/dx-13-merged 4b118e700c448aed1e624f326f3c106e64e47162
+git tag dx/dx-14-merged d83af1fbd7e2d85ea0a32eb4a39c9dc168138967
+git push origin dx/baseline dx/phase-0-before dx/phase-1-before dx/phase-2-before dx/dx-01-merged dx/dx-02-merged dx/dx-03-merged dx/dx-04-merged dx/dx-05-merged dx/dx-06-merged dx/dx-07-merged dx/dx-08-merged dx/dx-09-merged dx/dx-10-merged dx/dx-11-merged dx/dx-12-merged dx/dx-13-merged dx/dx-14-merged
 # 2. 工作包分支（可选；这些提交已经在 claude/determined-johnson-yrdxwf 的历史里）
 git push origin 8a941e68f9039cd90230d88fa169e1ee26138ad7:refs/heads/design/dx-01-foundation
 git push origin 84f29c19f84c85363fcd08a36d5bd26b68106564:refs/heads/design/dx-02-split-layout
@@ -87,4 +96,10 @@ git push origin 09e6c1d69a31d1eb097821a92ef0fba2ee9f31cd:refs/heads/design/dx-05
 git push origin cf21d37047bc989c0c30e720e6546f0b0c738882:refs/heads/design/dx-06-type-details
 git push origin aa4fc035aab7c423f51111391aac4944f4581f23:refs/heads/design/dx-07-shell-meta
 git push origin 1889e2c0f3053540d3d8c4b27edad31ebc57f445:refs/heads/design/dx-08-motion-guards
+git push origin fd37d68fca92e926946afe1f2d5562986d52d011:refs/heads/design/dx-09-rail-motion
+git push origin 8a10f35224157393e21cd38946420c9f447f2f39:refs/heads/design/dx-10-menu-motion
+git push origin e6c5009a9af33c3faa3b6046541aab8d40bed4d8:refs/heads/design/dx-11-toast-motion
+git push origin 1eb3aea9852b3321b67604dd686c63fc064878b8:refs/heads/design/dx-12-touch-hover-sheet
+git push origin eb707ae248c3b6daea3b7d98eee595d22109c57f:refs/heads/design/dx-13-details-motion
+git push origin 3efe52c5a39b683637337ba92fbfc7e03e46f7f4:refs/heads/design/dx-14-loading-skeleton
 ```
