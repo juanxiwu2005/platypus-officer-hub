@@ -1,5 +1,4 @@
-/// <reference types="vitest" />
-import { defineConfig } from "vite"
+import { defineConfig } from "vitest/config"
 import react from "@vitejs/plugin-react"
 
 // The app is a static site; Netlify serves dist/ and runs netlify/functions at /api/*.

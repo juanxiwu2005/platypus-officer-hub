@@ -117,7 +117,7 @@ export async function downloadOriginal(id: string) {
   const m = await api<ArchivedFile>(
       "/api/org/archive?action=manifest&id=" + encodeURIComponent(id),
     ),
-    chunks: Uint8Array[] = [];
+    chunks: Uint8Array<ArrayBuffer>[] = [];
   for (let n = 0; n < m.parts; n++) {
     const p = await api<{ base64: string }>(
       `/api/org/archive?action=part&id=${encodeURIComponent(id)}&part=${n}`,

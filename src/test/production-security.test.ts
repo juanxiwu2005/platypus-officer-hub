@@ -7,7 +7,7 @@ import { WorkspaceStateSchema } from "../workspace/contracts";
 
 beforeEach(resetRateLimit);
 afterEach(() => vi.restoreAllMocks());
-const post = (body: string | Uint8Array) => new Request("https://example.org/api/chat", { method: "POST", body });
+const post = (body: string | Uint8Array<ArrayBuffer>) => new Request("https://example.org/api/chat", { method: "POST", body });
 
 describe("bounded JSON before schema validation", () => {
   it("accepts a UTF-8 object exactly at the byte limit", async () => {
@@ -24,7 +24,7 @@ describe("bounded JSON before schema validation", () => {
       .mockResolvedValueOnce({ done: false, value: encoded.slice(split) })
       .mockResolvedValueOnce({ done: true }), releaseLock: vi.fn() };
     const req = post("{}");
-    vi.spyOn(req.body!, "getReader").mockReturnValue(reader as unknown as ReadableStreamDefaultReader<Uint8Array>);
+    vi.spyOn(req.body!, "getReader").mockReturnValue(reader as unknown as ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>>);
     expect(await readJSON(req, encoded.length)).toEqual({ text: "é" });
     expect(reader.releaseLock).toHaveBeenCalledOnce();
   });
@@ -38,7 +38,7 @@ describe("bounded JSON before schema validation", () => {
     const cancel = vi.fn();
     const reader = { read: vi.fn().mockResolvedValue({ done: false, value: new Uint8Array(101) }), cancel, releaseLock: vi.fn() };
     const req = post("{}");
-    vi.spyOn(req.body!, "getReader").mockReturnValue(reader as unknown as ReadableStreamDefaultReader<Uint8Array>);
+    vi.spyOn(req.body!, "getReader").mockReturnValue(reader as unknown as ReadableStreamDefaultReader<Uint8Array<ArrayBuffer>>);
     await expect(readJSON(req, 100)).rejects.toThrow("Request is too large.");
     expect(reader.read).toHaveBeenCalledOnce();
     expect(cancel).toHaveBeenCalledOnce();

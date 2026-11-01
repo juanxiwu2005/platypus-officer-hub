@@ -63,7 +63,7 @@ describe("A8(e) · AI usage log", () => {
   const KEY = "sk-SECRET-KEY-do-not-log"
   // M1: ASU AIR is the default, so no AI_PRESET is set here.
   const configure = () => { process.env.AI_API_KEY = KEY }
-  const lines = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.map(c => String(c[0])).filter(t => t.includes("ai_usage"))
+  const lines = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.map(c => String(c[0])).filter(t => t.includes("ai_usage"))
 
   it("writes one line per call with task, provider, models, tokens, finish reason and time, and nothing private", async () => {
     configure()
