@@ -1,7 +1,7 @@
 // Before/after screenshots for the design-upgrade packages (docs/design-upgrade/README.md).
 //   node scripts/dx-shots.mjs <label> <baseUrl>        e.g.  node scripts/dx-shots.mjs before http://localhost:5103
 //   node scripts/dx-shots.mjs --compare <labelA> <labelB>   tells you which images differ (byte for byte)
-// Writes dx-shots/<label>/<page>-<desktop|mobile>-<light|dark>-<rail-open|rail-closed>.png (the folder is git-ignored).
+// Desktop 1440x900, phone 390x844 at 2x. Writes dx-shots/<label>/<page>-<desktop|mobile>-<light|dark>-<rail-open|rail-closed>.png (the folder is git-ignored).
 // Animations are switched off and the demo starts from a clean browser, so two runs of the same code give identical files.
 // Set PW_CHROMIUM=<path> on a machine that already has a Chromium.
 import { chromium } from "@playwright/test"
@@ -27,7 +27,8 @@ if (args[0] === "--compare") {
 const [label, baseUrl] = args
 if (!label || !baseUrl) { console.error("usage: node scripts/dx-shots.mjs <label> <baseUrl>"); process.exit(2) }
 const PAGES = [["today", "/"], ["events", "/events"], ["tasks", "/tasks"], ["team", "/team"], ["rules", "/rules"], ["partners", "/partners"], ["handoff", "/handoff"], ["settings", "/settings"]]
-const VIEWPORTS = { desktop: { width: 1440, height: 900, deviceScaleFactor: 1 }, mobile: { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true } }
+// Playwright reads the page size from `viewport`, so it must be spelled out (the first version put width/height at the top level and got 1280x720).
+const VIEWPORTS = { desktop: { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 }, mobile: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } }
 mkdirSync(dir(label), { recursive: true })
 const browser = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {})
 let count = 0
@@ -46,8 +47,18 @@ for (const [vp, size] of Object.entries(VIEWPORTS)) {
         const open = await page.locator("[data-testid=rail]").count() > 0
         if (rail === "rail-closed" && open) await page.getByRole("button", { name: "Hide side panel" }).click()
         if (rail === "rail-open" && !open) await page.locator(".ask-fab, [data-testid=ask-toggle]").filter({ visible: true }).first().click()
-        await page.waitForTimeout(250)
-        await page.screenshot({ path: `${dir(label)}/${name}-${vp}-${scheme}-${rail}.png` })
+        // A shot counts only when two pictures taken 200ms apart are identical (late-loading text, fonts and carets would
+        // otherwise make two runs of the same code differ). Up to 12 tries, then it is saved anyway and reported.
+        let shot = await page.screenshot()
+        let stable = false
+        for (let i = 0; i < 12 && !stable; i++) {
+          await page.waitForTimeout(200)
+          const next = await page.screenshot()
+          stable = Buffer.compare(shot, next) === 0
+          shot = next
+        }
+        if (!stable) console.warn(`not stable: ${name}-${vp}-${scheme}-${rail}`)
+        writeFileSync(`${dir(label)}/${name}-${vp}-${scheme}-${rail}.png`, shot)
         count++
       }
     }
