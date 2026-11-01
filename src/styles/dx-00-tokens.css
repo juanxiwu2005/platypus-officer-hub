@@ -1,0 +1,26 @@
+/* DX-00 motion tokens (docs/design-upgrade/work-packages/DX-01-foundation.md).
+   Durations, easings and springs for everything under src/styles/dx-NN-*.css. Those files may not write a raw
+   millisecond value: the style check only allows these tokens. This is the only dx file where raw times are written.
+   No hex colours here either. Springs are made by scripts/spring-linear.mjs: change the numbers, run it, paste the output. */
+:root {
+  --dur-press: 100ms;   /* the moment a control is pressed: feedback must feel immediate */
+  --dur-fast: 150ms;    /* hover colour, small fades, menus appearing */
+  --dur-base: 220ms;    /* panels and sheets moving in */
+  --dur-slow: 320ms;    /* larger things settling */
+  --ease-out: cubic-bezier(.2, .8, .2, 1);        /* things arriving: fast start, soft stop */
+  --ease-in-out: cubic-bezier(.4, 0, .2, 1);      /* things moving from one place to another */
+  /* damping 1, response 0.3s, settles in 0.45s, overshoot 0.0% (made by scripts/spring-linear.mjs) */
+  --spring-ui: linear(0, 0.0238, 0.0816, 0.1582, 0.2431, 0.3294, 0.4129, 0.4909, 0.562, 0.6256, 0.6819, 0.731, 0.7736, 0.8101, 0.8412, 0.8677, 0.89, 0.9088, 0.9246, 0.9377, 0.9487, 0.9578, 0.9653, 0.9716, 0.9767, 0.9809, 0.9844, 0.9873, 0.9896, 0.9916, 0.9931, 0.9944, 0.9955, 0.9963, 0.997, 0.9976, 0.998, 0.9984, 0.9987, 0.999, 1);
+  --spring-ui-dur: 450ms;
+  /* damping 0.8, response 0.35s, settles in 0.48s, overshoot 1.5% (made by scripts/spring-linear.mjs) */
+  --spring-pop: linear(0, 0.0207, 0.0736, 0.1473, 0.2329, 0.3235, 0.4142, 0.5013, 0.5826, 0.6564, 0.7222, 0.7796, 0.829, 0.8706, 0.9051, 0.9333, 0.9559, 0.9736, 0.9872, 0.9973, 1.0046, 1.0096, 1.0127, 1.0145, 1.0151, 1.015, 1.0143, 1.0133, 1.012, 1.0107, 1.0093, 1.008, 1.0067, 1.0055, 1.0045, 1.0036, 1.0028, 1.0021, 1.0016, 1.0011, 1);
+  --spring-pop-dur: 480ms;
+}
+/* Reduce Motion: every duration collapses and springs become straight lines, so anything built on these tokens
+   changes state at once. Each package that moves things also writes its own fade-only version. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press: 1ms; --dur-fast: 1ms; --dur-base: 1ms; --dur-slow: 1ms;
+    --spring-ui: linear; --spring-ui-dur: 1ms; --spring-pop: linear; --spring-pop-dur: 1ms;
+  }
+}

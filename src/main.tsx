@@ -7,6 +7,7 @@ import App from "./App"
 import { StoreProvider } from "./data/store"
 import { installSetupNavigationProtection } from "./organization/useSetupNavigationGuard"
 import "./styles.css"
+import "./styles/index.css"
 
 /**
  * Clear the saved demo without going through the store: when the saved state is the thing that
