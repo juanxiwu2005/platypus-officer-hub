@@ -2,7 +2,7 @@
 > 依据对 `main@c3c9394` 的审阅（真实截图、浏览器里量到的样式、两个 Apple Design Skill）。**只写了文档，没有改任何代码或界面。** 计划放在 [`docs/design-upgrade/`](design-upgrade/README.md)：58 条细节清单（[DETAIL_LIST](design-upgrade/DETAIL_LIST.md)）、27 个小工作包、7 个阶段（[PHASES](design-upgrade/PHASES.md)）。每个阶段里的包彼此不改同一个文件，可以各开一个 git worktree 同时做；阶段 0 先把样式分成"每包一个小文件"、拆开 `Layout.tsx`、让测试端口可配置。
 > **回滚：** 每个包用 `--no-ff` 合并并打 `dx/dx-NN-merged` 标签，随时可以 `git revert -m 1` 单独撤销；纯样式的包还能注释一行 `@import` 立刻关掉；所有包都不改数据结构，回滚不会弄坏浏览器里的旧数据。规则和登记表见 README 与 `ROLLBACK_LOG.md`。
 > **和已有决定对齐：** 悬停卡保持零延迟（S3）；Events 左侧活动列表保留（Juanxi 10-31）。更正：上一轮口头报告里"手机正文从约 370px 开始"是错的，实测为 271px（DETAIL_LIST D23）。
-> **状态：Juanxi 2026-11-01 已批准**（决定记录已写）；已按 README"第 0 步"建 `design/ux-upgrade`。**下一步（Juanxi）：** 发起阶段 0（DX-01、DX-02 两个 worktree 同时做）。`AGENTS.md` 第 0 节写的 `main` 基线（`4dc55ba`）已过时，由 DX-27 核实后更新。分支：`claude/determined-johnson-yrdxwf`。**需要同步本地备份。**
+> **状态：Juanxi 2026-11-01 已批准**（决定记录已写）；已按 README"第 0 步"建 `integration/v1.6`。**下一步（Juanxi）：** 发起阶段 0（DX-01、DX-02 两个 worktree 同时做）。`AGENTS.md` 第 0 节写的 `main` 基线（`4dc55ba`）已过时，由 DX-27 核实后更新。分支：`claude/determined-johnson-yrdxwf`。**需要同步本地备份。**
 
 > **2026-10-31 · Spring Speaker Night：补齐旧数据迁移（Codex）**
 > Juanxi 反馈正式站仍显示 Event plan 未完成。已复现此前仅处理 v18 的遗漏：v12/14/15/17 以及已跨版本升级的 v19 会绕过该节点更新；新增回归测试在旧代码中 5 项失败。schema v20 统一所有受支持的旧版本路径，旧图重建后也定向完成该演示节点，保留其他内容、原有完成日期及升级后的人工修改。Node 22 lint/build、817 项单元和桌面/手机 28 项 Events/Recovery 检查通过，0 失败/重试，覆盖 v17/v18/v19 刷新及本地笔记保留。
@@ -132,7 +132,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
-| 2026-11-01 | **批准界面与动效升级计划**（`docs/design-upgrade/`，27 个工作包 DX-01…27）。批准范围：建集成分支 `design/ux-upgrade` 并推送；之后按阶段逐个发起。K 表 5 个默认选择全部采用（手机底部导航 20b 不做、看板空列收窄要做、Events 窄屏不自动收右栏、h1 只改文档、动效力度克制）。每个包可单独回滚（R0–R5）。**没有批准**：合并到 `main`、20b、合并小样式文件（DX-27 第 3 步）、改动画力度。 | Juanxi |
+| 2026-11-01 | **批准界面与动效升级计划**（`docs/design-upgrade/`，27 个工作包 DX-01…27）。批准范围：建集成分支 `integration/v1.6` 并推送；之后按阶段逐个发起。K 表 5 个默认选择全部采用（手机底部导航 20b 不做、看板空列收窄要做、Events 窄屏不自动收右栏、h1 只改文档、动效力度克制）。每个包可单独回滚（R0–R5）。**没有批准**：合并到 `main`、20b、合并小样式文件（DX-27 第 3 步）、改动画力度。 | Juanxi |
 | 2026-10-29 | Contribution board 只保留 Impact 和 Reliability：Impact 用相对四色阶梯图形，Reliability 用单词＋状态色（Excellent / Good / Watch / New）；删除 Work unlocked 及其排名影响。人数超过 10 人时默认只展示前 10，提供显示全部的切换。 | Juanxi |
 | 2026-10-29 | Team 的 Workload 不显示 capacity 百分比、内部评分或“剩余可用时间”，只给保护性的定性信号（Room to help / Focused / Needs support）。信号结合预计投入、临期程度、规则／依赖影响和本人忙碌周；Contribution board 不按任务数或 points 排名，改按交付影响和按时可靠性。 | Juanxi |
 | 2026-10-29 | Onboarding 的 Invite & workspace 步骤不再收集 Planning notes 或 fictional planning files；进入 Event workflow 时不调用 AI 解析／分配，立即载入标准流程并由社长在图内调整步骤、负责人和时间。 | Juanxi |

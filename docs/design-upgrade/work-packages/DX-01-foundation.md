@@ -25,7 +25,7 @@
    - `scripts/word-count.mjs` 的端口读 `WORDS_PORT`，默认 4177。
    - 不设环境变量时，行为和以前完全一样（CI 不受影响）。
 5. **截图脚本** `scripts/dx-shots.mjs`：用法 `node scripts/dx-shots.mjs <标签> <基础网址>`。1440×900 和 390×844（2 倍）× 浅色 / 深色 × `/`、`/events`、`/tasks`、`/team`、`/rules`、`/partners`、`/handoff`、`/settings`，另外加"右栏关着"和"右栏开着"。输出到 `dx-shots/<标签>/`。把 `dx-shots/` 加进 `.gitignore`。支持 `PW_CHROMIUM`。动画一律关闭（`reducedMotion: "reduce"`）。
-6. **回滚登记**：`ROLLBACK_LOG.md` 已有，不用建。打基线标签 `dx/baseline`（指向开始时 `design/ux-upgrade` 的位置）。
+6. **回滚登记**：`ROLLBACK_LOG.md` 已有，不用建。打基线标签 `dx/baseline`（指向开始时 `integration/v1.6` 的位置）。
 
 ## 可以改的文件
 `package.json`、`playwright.config.ts`、`.stylelintrc.json`、`.gitignore`、`scripts/word-count.mjs`、`scripts/dx-shots.mjs`（新）、`scripts/spring-linear.mjs`（新）、`src/main.tsx`（只加一行）、`src/styles/*`（新）、`src/test/` 里新增守卫测试。
