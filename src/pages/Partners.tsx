@@ -28,6 +28,10 @@ export default function Partners() {
   const [owner, setOwner] = useState("all")
   const [tag, setTag] = useState("all")
   const [adding, setAdding] = useState<"person" | "org" | null>(null)
+  // When a search or filter has hidden everything, the empty message offers the way back (DX-18).
+  const contactFilters = q.trim() !== "" || type !== "all" || owner !== "all" || tag !== "all" || preset !== "all"
+  const orgFilters = q.trim() !== "" || type !== "all" || tag !== "all"
+  const clearFilters = () => { setQ(""); setType("all"); setOwner("all"); setTag("all"); setPreset("all") }
   const [draft, setDraft] = useState({ name: "", organization: "", relation: "Vendor", ownerRoleId: person.roleId, orgType: "Vendor" })
 
   const all = visibleContacts(state)
@@ -78,7 +82,7 @@ export default function Partners() {
           </tr>
         })}</tbody>
       </table>
-      {!rows.length && <Empty>No contacts match.</Empty>}
+      {!rows.length && <Empty>{contactFilters ? <>No contacts match. <button type="button" className="link" onClick={clearFilters}>Clear filters</button></> : "No contacts yet."}</Empty>}
     </section>}
 
     {view === "board" && <div className="crm-board" data-testid="crm-board">{STAGES.map(col => {
@@ -107,7 +111,7 @@ export default function Partners() {
           </tr>
         })}</tbody>
       </table>
-      {!orgs.length && <Empty>No organizations match.</Empty>}
+      {!orgs.length && <Empty>{orgFilters ? <>No organizations match. <button type="button" className="link" onClick={clearFilters}>Clear filters</button></> : "No organizations yet."}</Empty>}
     </section>}
 
     {adding
