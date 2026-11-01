@@ -16,6 +16,17 @@ function fixture(){
   return {draft,envelope};
 }
 describe('workspace assistant proposal boundaries',()=>{
+  it.each(['/phase1','/phase1/setup','/phase1/tasks','/phase1/activities','/phase1/board','/phase1/work/event1'])('accepts only known internal navigation: %s',async path=>{
+    const {draft,envelope}=fixture();
+    const answer=await validateAnswer({message:'Open.',actions:[{kind:'navigate',path}]},{draft,envelope,instruction:'open',jobId:'job1',validateCommand:v=>v as WorkspaceCommand});
+    expect(answer.actions).toEqual([expect.objectContaining({kind:'navigate',path})]);
+  });
+  it.each(['https://outside.example','//outside.example','\\\\outside.example','/\\outside.example','javascript:alert(1)','data:text/html,test',' /phase1','/phase1\n','/phase1?redirect=//outside.example','/phase1#//outside.example','/phase1/work/missing','/phase1/work/event1/../../outside','/phase1/work/event1%2f..','/phase1/work/event1?next=//outside.example','/%2f%2foutside.example'])('rejects untrusted navigation without previewing a mutation: %s',async path=>{
+    const {draft,envelope}=fixture(),preview=vi.fn(),before=structuredClone(envelope);
+    await expect(validateAnswer({message:'Open.',actions:[{kind:'navigate',path}]},{draft,envelope,instruction:'open',jobId:'job1',validateCommand:v=>v as WorkspaceCommand,preview})).rejects.toThrow('destination');
+    expect(preview).not.toHaveBeenCalled();
+    expect(envelope).toEqual(before);
+  });
   it('keeps immutable IDs when a proposed organization name changes',()=>{
     const {draft}=fixture(),next=applyOrganizationProposal(draft,{name:'New Society'});
     expect(next.name).toBe('New Society');expect(next.roles.map(r=>r.id)).toEqual(['lead']);expect(next.memberFlow?.nodes[0].roleIds).toEqual(['lead']);expect(next.confirmed).toBe(false);expect(draft.name).toBe('Demo Society');

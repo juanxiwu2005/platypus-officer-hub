@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "typecheck:netlify": "tsc --noEmit -p tsconfig.netlify.json",
     "preview": "vite preview --port 4173 --strictPort",
     "test": "vitest run",
     "e2e": "playwright test",
@@ -25,8 +26,8 @@
     "pdfjs-dist": "^6.4.299",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.28.0",
-    "zod": "^3.25.76"
+    "react-router-dom": "7.18.5",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.2",

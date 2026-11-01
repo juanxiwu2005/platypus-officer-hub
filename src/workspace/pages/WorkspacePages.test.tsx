@@ -48,7 +48,7 @@ beforeEach(()=>{
   }));
 });
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
-function open(path='/phase1') {return render(<MemoryRouter initialEntries={[path]} future={{v7_startTransition:true,v7_relativeSplatPath:true}}><WorkspaceProvider><WorkspacePages/></WorkspaceProvider></MemoryRouter>);}
+function open(path='/phase1') {return render(<MemoryRouter initialEntries={[path]}><WorkspaceProvider><WorkspacePages/></WorkspaceProvider></MemoryRouter>);}
 
 describe('workspace pages use existing server tasks',()=>{
   it('shows the highest-priority existing tasks and expands the same personal queue',async()=>{

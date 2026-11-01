@@ -43,7 +43,7 @@ describe("S3: one forecast per state change", () => {
 
   it("does not recompute when switching pages, and recomputes once per change", async () => {
     window.location.hash = "#/"
-    render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><App /></HashRouter></StoreProvider>)
+    render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter><App /></HashRouter></StoreProvider>)
     await screen.findByTestId("risk-list")
     expect(runs()).toBe(1)
     fireEvent.click(screen.getByRole("link", { name: "Events" }))

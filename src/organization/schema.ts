@@ -204,12 +204,12 @@ export const DraftSchema = z.object({
       status: z.enum(["unreviewed", "complete", "skipped"]),
       inputKey: z.string().max(100000),
       risks: z.array(RiskSchema).max(4),
-      answers: z.record(z.string()),
+      answers: z.record(z.string(), z.string()),
       at: z.string().nullable(),
     })
     .optional(),
-  generated: z.record(z.string().max(100000)).optional(),
-  compiled: z.record(z.unknown()).nullable().optional(),
+  generated: z.record(z.string(), z.string().max(100000)).optional(),
+  compiled: z.record(z.string(), z.unknown()).nullable().optional(),
   name: z.string().max(100),
   mission: z.string().max(1000),
   summary: z.string().max(1500),
@@ -231,7 +231,7 @@ export const DraftSchema = z.object({
   boardGoal: z.string().max(1000),
   guide: GuideSchema.nullable(),
   uncertainties: z.array(z.string().max(400)).max(20),
-  approvals: z.record(z.boolean()),
+  approvals: z.record(z.string(), z.boolean()),
   aiRuns: z
     .array(
       z.object({

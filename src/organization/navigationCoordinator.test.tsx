@@ -69,9 +69,7 @@ function mount(
   }
   const tree = (enabled: boolean) => (
     <StrictMode>
-      <HashRouter
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
+      <HashRouter>
         <Shell enabled={enabled} />
       </HashRouter>
     </StrictMode>

@@ -7,7 +7,7 @@ import { workspaceFixture } from './testing/fixtures';
 let current=workspaceFixture();
 beforeEach(()=>{localStorage.clear();current=workspaceFixture();vi.stubGlobal('fetch',vi.fn(async()=>Response.json(current)));});
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
-const open=()=>render(<MemoryRouter future={{v7_startTransition:true,v7_relativeSplatPath:true}}><WorkspaceProvider><MembersPanel/></WorkspaceProvider></MemoryRouter>);
+const open=()=>render(<MemoryRouter><WorkspaceProvider><MembersPanel/></WorkspaceProvider></MemoryRouter>);
 describe('unfinished member appointments',()=>{
   it('restores unsent member input after changing chapters',async()=>{
     const first=open();const field=await screen.findByLabelText('Fictional member name');

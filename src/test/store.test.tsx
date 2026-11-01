@@ -92,7 +92,7 @@ describe("storage", () => {
 
 describe("app shell", () => {
   it("renders Today with its short page title", () => {
-    render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}><App /></HashRouter></StoreProvider>)
+    render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter><App /></HashRouter></StoreProvider>)
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Today")
   })
 })

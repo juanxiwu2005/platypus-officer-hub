@@ -74,6 +74,16 @@ beforeEach(() => {
   state.chat.mockReset();
 });
 describe("Online organization storage and model boundaries", () => {
+  it.each(['{"broken":', "null", "[]", JSON.stringify({ padding: "x".repeat(500_000) })])("rejects malformed or oversized setup input before persistence %#", async body => {
+    const response = await setup(new Request("https://example.org/api/org/setup", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-platypus-request": "organization-setup", origin: "https://example.org" },
+      body,
+    }));
+    expect(response.status).toBe(400);
+    expect(state.rows.size).toBe(0);
+    expect(state.chat).not.toHaveBeenCalled();
+  });
   it("creates an HttpOnly same-site workspace and resumes it", async () => {
     const r = await setup(request({ action: "start" }));
     expect(r.headers.get("set-cookie")).toContain("HttpOnly");

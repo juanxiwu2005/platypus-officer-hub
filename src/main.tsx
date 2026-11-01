@@ -58,7 +58,7 @@ if (root) {
     <StrictMode>
       <ErrorBoundary>
         <StoreProvider>
-          <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <HashRouter>
             <App />
           </HashRouter>
         </StoreProvider>

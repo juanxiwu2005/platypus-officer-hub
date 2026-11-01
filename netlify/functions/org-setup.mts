@@ -9,7 +9,7 @@ import {
   SetupError,
   startSession,
 } from "../lib/organization/storage.mts";
-import { json, readJSON } from "../lib/http.mts";
+import { BadRequest, json, readJSON } from "../lib/http.mts";
 export default hiddenUnlessEnabled(async (req: Request) => {
   let workspaceId = "";
   try {
@@ -55,6 +55,7 @@ export default hiddenUnlessEnabled(async (req: Request) => {
         { message: (e as Error).message },
         "system",
       ).catch(() => {});
+    if (e instanceof BadRequest) return json({ message: e.message }, 400);
     if (e instanceof SetupError) return json({ message: e.message }, e.status);
     if (e instanceof ZodError)
       return json(

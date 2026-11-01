@@ -42,7 +42,7 @@ const localDraft = DraftSchema.extend({
 });
 const inputsSchema = z.object({
   chat: z.string().max(2000),
-  riskInstructions: z.record(z.string().max(1000)),
+  riskInstructions: z.record(z.string(), z.string().max(1000)),
   roleTitle: z.string().max(180),
   roleDept: z.string().max(80),
   newRole: z.boolean(),

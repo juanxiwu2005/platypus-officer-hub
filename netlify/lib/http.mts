@@ -54,12 +54,39 @@ export function rateLimit(req: Request, now = Date.now()) {
 export async function readJSON<T = Record<string, unknown>>(req: Request, maxBytes = 24_000): Promise<T> {
   if (req.method !== "POST") throw new BadRequest("Use POST.")
   rateLimit(req)
-  const text = await req.text()
-  if (text.length > maxBytes) throw new BadRequest("Request is too large.")
+  const declaredBytes = req.headers.get("content-length")
+  if (declaredBytes && Number(declaredBytes) > maxBytes) {
+    await req.body?.cancel()
+    throw new BadRequest("Request is too large.")
+  }
+  const reader = req.body?.getReader()
+  const decoder = new TextDecoder("utf-8", { fatal: true })
+  let text = "", bytes = 0
   try {
-    return JSON.parse(text || "{}") as T
+    if (reader) while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      bytes += value.byteLength
+      if (bytes > maxBytes) {
+        await reader.cancel()
+        throw new BadRequest("Request is too large.")
+      }
+      text += decoder.decode(value, { stream: true })
+    }
+    text += decoder.decode()
+  } catch (e) {
+    if (e instanceof BadRequest) throw e
+    throw new BadRequest("Body must be valid UTF-8 JSON.")
+  } finally {
+    reader?.releaseLock()
+  }
+  try {
+    const value: unknown = JSON.parse(text || "{}")
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new BadRequest("Body must be a JSON object.")
+    return value as T
   } catch {
-    throw new BadRequest("Body must be JSON.")
+    throw new BadRequest("Body must be a JSON object.")
   }
 }
 

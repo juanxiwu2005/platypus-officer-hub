@@ -143,7 +143,7 @@ function setupGuard(beforeLeave: () => Promise<boolean | void>) {
       null,
       createElement(
         HashRouter,
-        { future: { v7_startTransition: true, v7_relativeSplatPath: true } },
+        null,
         createElement(
           Routes,
           null,
