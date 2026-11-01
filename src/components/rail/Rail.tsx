@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react"
+import { lazy, Suspense, useEffect, useRef, type ReactNode } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useStore } from "../../data/store"
 import { useRail } from "./RailContext"
@@ -6,13 +6,16 @@ import { AskPanel } from "./AskPanel"
 import { NudgeComposer } from "../NudgeComposer"
 import { TaskDetail } from "../TaskDetail"
 import { useViewer } from "../../data/store"
-import { FundingDetail } from "../../pages/Funding"
-import { PartnerDetail } from "../crm/ContactDetail"
-import { OrgDetail } from "../crm/OrgDetail"
-import { HandoffRoleDetail } from "../../pages/Handoff"
-import { BoardSettingsPanel } from "../BoardSettings"
-import { EventDetail } from "../EventDetail"
 import { Empty } from "../ui"
+import { RouteLoading } from "../RouteLoading"
+
+// Ask, task details and reminders stay eager for Today. Auxiliary editors load when opened.
+const FundingDetail = lazy(() => import("../../pages/Funding").then(module => ({ default: module.FundingDetail })))
+const PartnerDetail = lazy(() => import("../crm/ContactDetail").then(module => ({ default: module.PartnerDetail })))
+const OrgDetail = lazy(() => import("../crm/OrgDetail").then(module => ({ default: module.OrgDetail })))
+const HandoffRoleDetail = lazy(() => import("../../pages/Handoff").then(module => ({ default: module.HandoffRoleDetail })))
+const BoardSettingsPanel = lazy(() => import("../BoardSettings").then(module => ({ default: module.BoardSettingsPanel })))
+const EventDetail = lazy(() => import("../EventDetail").then(module => ({ default: module.EventDetail })))
 
 /** Right rail: Ask (the only AI box) and Details (whatever was clicked). */
 export function Rail() {
@@ -127,5 +130,5 @@ function DetailView() {
     case "handoff": body = <HandoffRoleDetail roleId={d.roleId} />; break
     case "board": body = <BoardSettingsPanel />; break
   }
-  return <div ref={box} className="detail-scroll" {...region}>{closer}{body}</div>
+  return <div ref={box} className="detail-scroll" {...region}>{closer}<Suspense fallback={<RouteLoading label="Loading details…" />}>{body}</Suspense></div>
 }

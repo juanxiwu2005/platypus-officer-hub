@@ -76,6 +76,14 @@
 /* stylelint-enable color-no-hex */
 
 * { box-sizing: border-box; }
+.route-loading {
+  display: grid;
+  align-content: start;
+  min-height: 320px;
+  padding: var(--s7);
+  color: var(--muted);
+}
+.route-loading-page { min-height: 100dvh; }
 html, body { margin: 0; overflow-x: clip; }
 body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; font-size: var(--fs-base); }
 a { color: var(--accent-ink); }

@@ -3,6 +3,7 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-route
 import { WorkspaceProvider, useWorkspace } from './client';
 import { AssistantProvider, AssistantRail } from './assistant';
 import { UI_LABELS } from './contracts';
+import { RouteLoading } from '../components/RouteLoading';
 import { useSetupNavigationGuard } from '../organization/useSetupNavigationGuard';
 import './shell.css';
 const OnlineSetup=lazy(()=>import('../organization/OnlineSetup'));
@@ -40,12 +41,12 @@ function ShellBody() {
       <header className="p1-topbar"><span>Workspace / {location.pathname.includes('setup')?UI_LABELS.setup:location.pathname.includes('tasks')?UI_LABELS.tasks:location.pathname.includes('activities')?UI_LABELS.activities:location.pathname.includes('board')?UI_LABELS.executiveBoard:location.pathname.includes('/work/')?'Activity':UI_LABELS.home}</span>{(mutating||pending)&&<span role="status">Saving…</span>}</header>
       <main id="live-main" ref={main} tabIndex={-1}>
         {error&&!location.pathname.endsWith('/setup')&&!envelope&&<section className="live-error" role="alert"><p>{error}</p><Link to="/phase1/setup">Open organization setup</Link><button onClick={()=>void refresh()}>Retry connection</button></section>}
-        <Suspense fallback={<p role="status">Opening your workspace…</p>}>
+        <Suspense fallback={<RouteLoading label="Opening your workspace…" />}>
           <Routes>
             <Route path="setup" element={<OnlineSetup/>}/>
             <Route path="activity/member" element={<Navigate to="/phase1/activities" replace/>}/>
             <Route path="activity/executive" element={<Navigate to="/phase1/board" replace/>}/>
-            <Route path="*" element={loading&&!envelope?<p role="status">Loading your workspace…</p>:<WorkspacePages/>}/>
+            <Route path="*" element={loading&&!envelope?<RouteLoading label="Loading your workspace…" />:<WorkspacePages/>}/>
           </Routes>
         </Suspense>
       </main>

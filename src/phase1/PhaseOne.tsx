@@ -41,6 +41,7 @@ import {
 } from "./logic";
 import { localPreviewRepository } from "./repository";
 import { SERVER_STORAGE } from "./serverStorage";
+import { RouteLoading } from "../components/RouteLoading";
 import type { ApprovedContext } from "./approvedContext";
 import "./phase1.css";
 import "./approvedWorkspace.css";
@@ -138,7 +139,7 @@ export default function PhaseOne() {
   },[location.pathname,location.search]);
   // Server storage hidden: only the local example, never the live workspace (it calls /api/workspace).
   if(example || !SERVER_STORAGE) return <PreviousPhaseOne/>;
-  return <Suspense fallback={<p role="status">Opening your workspace…</p>}><LiveWorkspaceShell/></Suspense>;
+  return <Suspense fallback={<RouteLoading label="Opening your workspace…" fullPage />}><LiveWorkspaceShell/></Suspense>;
 }
 function PreviousPhaseOne() {
   const [scenario, setScenario] = useState<"A" | "B">("A");
@@ -189,8 +190,8 @@ function PreviousPhaseOne() {
   const approved = !exampleMode && remote.status === "ready" ? remote.context : null;
   const workspace = (example: ReactNode) => {
     if (exampleMode) return <><p className="approved-context-notice" role="note">Previous example preview · Changes here do not replace your confirmed online organization.</p>{example}</>;
-    if (remote.status === "loading") return <p role="status">Loading your confirmed organization…</p>;
-    if (approved) return <Suspense fallback={<p role="status">Opening your workspace…</p>}><ApprovedWorkspace context={approved} /></Suspense>;
+    if (remote.status === "loading") return <RouteLoading label="Loading your confirmed organization…" />;
+    if (approved) return <Suspense fallback={<RouteLoading label="Opening your workspace…" />}><ApprovedWorkspace context={approved} /></Suspense>;
     return <section className="approved-context-notice">
       <h1>{remote.status === "absent" ? "Confirm your organization" : "Workspace unavailable"}</h1>
       <p>{remote.status === "absent" ? "Complete organization setup to use your team's confirmed roles and activity workflow." : remote.message}</p>
@@ -320,7 +321,7 @@ function PreviousPhaseOne() {
               element={
                 SERVER_STORAGE ? (
                   <Suspense
-                    fallback={<p role="status">Preparing organization setup…</p>}
+                    fallback={<RouteLoading label="Preparing organization setup…" />}
                   >
                     <OnlineSetup />
                   </Suspense>
