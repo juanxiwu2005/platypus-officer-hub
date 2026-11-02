@@ -17,6 +17,8 @@ import { Reminders } from "./onboarding/member/Reminders"
 import { BusyWeeks } from "./onboarding/member/BusyWeeks"
 import { About } from "./onboarding/member/About"
 import { Done } from "./onboarding/member/Done"
+import { Welcome } from "./onboarding/gate/Welcome"
+import { WelcomeGate } from "./onboarding/gate/WelcomeGate"
 import { RouteLoading } from "./components/RouteLoading"
 import Today from "./pages/Today"
 
@@ -42,7 +44,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="welcome" element={<OnboardingDraftProvider><OnboardingShell /></OnboardingDraftProvider>}>
-        <Route index element={<ComingSoon />} /><Route path="classic" element={screen(<Setup />, "Preparing organization setup…", true)} /><Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
+        <Route index element={<Welcome />} /><Route path="classic" element={screen(<Setup />, "Preparing organization setup…", true)} /><Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
         <Route path="founder/name" element={<Name />} /><Route path="founder/constitution" element={<Constitution />} /><Route path="founder/goals" element={<Goals />} /><Route path="founder/team" element={<OnboardingTeam />} /><Route path="founder/first-event" element={<FirstEvent />} /><Route path="founder/confirm" element={<Confirm />} /><Route path="founder/invite" element={<Invite />} />
         <Route path="member/invitation" element={<Invitation />} /><Route path="member/you" element={<You />} /><Route path="member/reminders" element={<Reminders />} /><Route path="member/busy-weeks" element={<BusyWeeks />} /><Route path="member/about" element={<About />} /><Route path="member/done" element={<Done />} />
         <Route path="*" element={<ComingSoon />} />
@@ -51,7 +53,7 @@ export default function App() {
       <Route path="officer" element={screen(<Officer />, "Opening your task…", true)} />
       <Route path="join" element={screen(<Join />, "Preparing your invitation…", true)} />
       <Route element={<Layout />}>
-        <Route index element={<Today />} />
+        <Route index element={<WelcomeGate><Today /></WelcomeGate>} />
         <Route path="events" element={screen(<Events />, "Loading events…")} />
         <Route path="tasks" element={screen(<Tasks />, "Loading tasks…")} />
         <Route path="team" element={screen(<Team />, "Loading your team…")} />
