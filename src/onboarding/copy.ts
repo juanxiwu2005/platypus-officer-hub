@@ -15,8 +15,16 @@ export const onboardingCopy = {
   founder: {
     name: { title: "Name your club", field: "Club name", school: "ASU Tempe" },
     constitution: { title: "Start from your constitution", sample: "Use sample", upload: "Upload a file", paste: "Paste text", skip: "Skip — use standard roles", reading: "Reading officer titles…", aiFailed: "We couldn't use AI just now, so we read it here in your browser instead. Check each line." },
-    goals: { title: "Choose two or three goals", mission: "Add a mission (optional)" },
-    team: { title: "Who's on your team?", role: "Role", person: "Person", open: "Open position", invited: "Officers add their own phone and details when they join." },
+    goals: {
+      title: "Choose two or three goals", lead: "Progress starts at zero.", mission: "Add a mission (optional)", missionField: "Mission",
+      decrease: "Decrease", increase: "Increase", target: "target", needTwo: "Choose two or three goals.", missionLong: "Keep the mission under 300 characters.",
+      items: { events: { label: "Weekly events", unit: "per week" }, members: { label: "Active members", unit: "members" }, income: { label: "External income", unit: "USD" } },
+    },
+    team: {
+      title: "Who's on your team?", role: "Role", person: "Person", open: "Open position", invited: "Officers add their own phone and details when they join.",
+      add: "Add role", remove: "Remove", newRole: "New role", top: "Top", reportsTo: "Reports to", duties: "Duties", nobody: "Nobody (top)", more: "Reports to and duties",
+      suggested: "AI suggested roles.", use: "Use these suggestions", sameName: "Each officer needs a different name.",
+    },
     firstEvent: { title: "Plan your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", details: "Event details" },
     confirm: { title: "Ready to start?", start: "Start workspace", keep: "Keep current demo", replaceWarning: "This replaces the current demo workspace." },
     invite: { title: "Your club is ready.", lead: "Invite your officers.", copy: "Copy link", whatsapp: "WhatsApp", email: "Email", permission: "Only people with this link can join as an officer.", notSent: "Nothing is sent automatically. We open a message you can send.", preview: "See what your officers will see", today: "Go to Today", invited: "Invited", joined: "Joined" },

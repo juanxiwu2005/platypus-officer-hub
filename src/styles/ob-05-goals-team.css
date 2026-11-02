@@ -1,1 +1,65 @@
-/* OB-05: this file belongs to one work package only (docs/onboarding-redesign/WORK_PACKAGES.md). Tokens only. */
+/* OB-05: the Goals and Team screens of the founder flow. Tokens only (docs/DESIGN_TOKENS.md). Adding, removing and changing rows is frequent, so nothing here moves
+   except the small switch thumb (transform, token time). */
+.ob-goals, .ob-team { width: 100%; box-sizing: border-box; }
+.ob-gt-head { display: grid; gap: var(--s3); }
+.ob-gt-head h1 { font-size: var(--fs-xl); }
+.ob-gt-head .ob-lead { font-size: var(--fs-md); }
+.ob-gt-error { margin: 0; padding: var(--s5); border-radius: var(--r-md); background: var(--late-soft); color: var(--late); font-size: var(--fs-md); }
+.ob-gt-hint { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+.ob-gt-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+.ob-gt-nav .btn { min-height: 44px; justify-content: center; }
+.ob-gt-skip { display: grid; gap: var(--s2); margin-inline-start: auto; justify-items: end; text-align: end; }
+
+:is(.ob-goals, .ob-team) :is(input:not([type="checkbox"]), select, textarea) { box-sizing: border-box; width: 100%; min-width: 0; padding: var(--s4) var(--s5); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
+:is(.ob-goals, .ob-team) ::placeholder { color: var(--muted); opacity: 1; }
+:is(.ob-goals, .ob-team) textarea { resize: vertical; }
+
+/* Goals: a switch and a name on the left, a number with - and + on the right. */
+.ob-goal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s4); }
+.ob-goal { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s4); padding: var(--s4) var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.ob-goal.is-on { border-color: var(--accent); background: var(--accent-soft); }
+.ob-goal-name { display: flex; align-items: center; gap: var(--s5); min-height: 44px; flex: 1 1 8rem; cursor: pointer; font-weight: 600; }
+.ob-switch { appearance: none; flex: none; position: relative; width: 44px; height: 26px; margin: 0; border-radius: var(--r-pill); border: 1px solid var(--edge); background: var(--surface-2); cursor: pointer; }
+.ob-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: var(--r-circle); background: var(--edge); transition: transform var(--dur-fast) var(--ease-out); }
+.ob-switch:checked { background: var(--accent); border-color: var(--accent); }
+.ob-switch:checked::after { background: var(--on-accent); transform: translateX(18px); }
+.ob-goal-set { display: flex; align-items: center; gap: var(--s4); }
+.ob-stepper { display: flex; align-items: center; gap: var(--s2); }
+.ob-step-btn { min-width: 44px; min-height: 44px; padding: 0; justify-content: center; font-size: var(--fs-lg); }
+.ob-stepper input[type="number"] { width: 6.5rem; min-height: 44px; text-align: center; font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield; }
+.ob-stepper input[type="number"]::-webkit-outer-spin-button, .ob-stepper input[type="number"]::-webkit-inner-spin-button { appearance: none; margin: 0; }
+.ob-gt-unit { min-width: 5ch; color: var(--muted); font-size: var(--fs-md); }
+.ob-goal:not(.is-on) .ob-stepper { opacity: .6; }
+.ob-mission summary { display: flex; align-items: center; min-height: 44px; cursor: pointer; color: var(--accent-ink); }
+.ob-mission textarea { margin-top: var(--s4); }
+
+/* Team: a header, then one line per role: Role, Person, a short "reports to" summary that opens the rest, and Remove. */
+.ob-team { max-width: 720px; }
+.ob-team-head, .ob-role { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 9rem 44px; column-gap: var(--s4); }
+.ob-team-head { margin-bottom: calc(-1 * var(--s3)); color: var(--muted); font-size: var(--fs-sm); }
+.ob-team-head span { padding-inline: var(--s5); }
+.ob-role-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
+.ob-role { align-items: center; row-gap: var(--s3); }
+.ob-role-title { grid-column: 1; grid-row: 1; }
+.ob-role-person { grid-column: 2; grid-row: 1; }
+.ob-role-x { grid-column: 4; grid-row: 1; padding: 0; min-width: 44px; min-height: 44px; justify-content: center; }
+.ob-role-more { grid-column: 3; grid-row: 1; min-width: 0; }
+.ob-role-more[open] { grid-column: 1 / -1; grid-row: 2; }
+.ob-role-more summary { display: flex; align-items: center; min-height: 44px; gap: var(--s2); cursor: pointer; color: var(--muted); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; }
+.ob-role-more summary .ob-gt-user { overflow: hidden; text-overflow: ellipsis; }
+.ob-role-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: var(--s4); padding: var(--s4) 0 var(--s5); }
+.ob-role-fields label { display: grid; gap: var(--s2); align-content: start; }
+.ob-role-fields label:only-child { grid-column: 1 / -1; }
+.ob-role-fields .cap { font-size: var(--fs-sm); color: var(--muted); }
+
+/* A phone: Role and Person stay side by side, Remove on the right, and the summary takes its own line under them. */
+@media (max-width: 640px) {
+  .ob-team-head, .ob-role { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; }
+  .ob-role { padding-bottom: var(--s3); border-bottom: 1px solid var(--line); row-gap: 0; }
+  .ob-role-x { grid-column: 3; }
+  .ob-role-more, .ob-role-more[open] { grid-column: 1 / -1; grid-row: 2; }
+  .ob-role-more summary { min-height: 32px; }
+  .ob-role-fields { grid-template-columns: minmax(0, 1fr); }
+  .ob-gt-skip { margin-inline-start: 0; justify-items: start; text-align: start; }
+  .ob-goal-set { width: 100%; justify-content: space-between; }
+}
