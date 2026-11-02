@@ -46,3 +46,16 @@ test("Save & exit on a flow screen records the step it left from", async ({ page
   const rec = await onboardingRecord(page)
   expect(rec.attempts[0].steps).toContainEqual(expect.objectContaining({ step: "founder.goals", event: "exit" }))
 })
+
+test("the progress chain looks like what it says: done and current dots are filled, skipped ones are hollow and dashed, upcoming ones are hollow", async ({ page }) => {
+  await page.goto("/#/welcome/start")
+  await page.getByRole("button", { name: "Continue", exact: true }).click()      // Name done
+  await page.getByRole("button", { name: /Skip/ }).first().click()               // Constitution skipped
+  await expect(page).toHaveURL(/#\/welcome\/founder\/goals$/)
+  const mark = (state: string) => page.locator(`.ob-dot.is-${state} .ob-dot-mark`).first().evaluate(e => { const s = getComputedStyle(e); return { bg: s.backgroundColor, border: s.borderStyle } })
+  const done = await mark("done"), now = await mark("now"), skipped = await mark("skipped"), todo = await mark("todo")
+  expect(done.bg).not.toBe("rgba(0, 0, 0, 0)"); expect(done.border).toBe("solid")
+  expect(now.bg).toBe(done.bg)
+  expect(skipped.bg).toBe("rgba(0, 0, 0, 0)"); expect(skipped.border).toBe("dashed")
+  expect(todo.border).toBe("solid"); expect(todo.bg).not.toBe(done.bg)
+})
