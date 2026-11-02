@@ -30,8 +30,16 @@ export const onboardingCopy = {
       sampleName: "Sample constitution (fictional).txt", pastedName: "Pasted constitution.txt", tooShort: "Add a little more text: at least a sentence or two.",
       tooLong: "This document is very long. Paste the sections about officers and departments.", unreadable: "This file could not be read.",
     },
-    goals: { title: "Choose two or three goals", mission: "Add a mission (optional)" },
-    team: { title: "Who's on your team?", role: "Role", person: "Person", open: "Open position", invited: "Officers add their own phone and details when they join." },
+    goals: {
+      title: "Choose two or three goals", lead: "Progress starts at zero.", mission: "Add a mission (optional)", missionField: "Mission",
+      decrease: "Decrease", increase: "Increase", target: "target", needTwo: "Choose two or three goals.", missionLong: "Keep the mission under 300 characters.",
+      items: { events: { label: "Weekly events", unit: "per week" }, members: { label: "Active members", unit: "members" }, income: { label: "External income", unit: "USD" } },
+    },
+    team: {
+      title: "Who's on your team?", role: "Role", person: "Person", open: "Open position", invited: "Officers add their own phone and details when they join.",
+      add: "Add role", remove: "Remove", newRole: "New role", top: "Top", reportsTo: "Reports to", duties: "Duties", nobody: "Nobody (top)", more: "Reports to and duties",
+      suggested: "AI suggested roles.", use: "Use these suggestions", sameName: "Each officer needs a different name.",
+    },
     firstEvent: {
       title: "Plan your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", details: "Event details",
       sentenceLabel: "Your first event, in one sentence", examplesLabel: "Examples", planning: "Planning…", chainLabel: "First steps and dates",
