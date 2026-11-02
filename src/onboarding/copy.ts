@@ -35,7 +35,7 @@ export const onboardingCopy = {
       title: "Where should reminders go?", whatsapp: "WhatsApp", sms: "SMS", email: "Email", morning: "Morning", evening: "Evening", timeLabel: "Reminder time",
       quiet: "Quiet hours: 10 pm–8 am.", phone: "Phone (optional)", phoneWhy: "So your president can open a prewritten message. Nothing is sent automatically.",
       example: "Example", whenMorning: "this morning", whenEvening: "this evening",
-      bubble: "Hi {name} — {when}: book the Founder Dinner venue by Tue. Reply “got it” when done.",
+      bubble: "Hi {name} — {when}: book the Founder Dinner venue. Reply “got it” when done.",
     },
     busyWeeks: { title: "Which weeks are busy?", skip: "Skip — nothing busy yet", effect: "Platypus will plan around these weeks." },
     about: { title: "What would make this role worthwhile?", why: "Helps match you with tasks you'll care about." },
