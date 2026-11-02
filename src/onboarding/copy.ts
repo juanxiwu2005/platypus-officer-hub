@@ -13,8 +13,23 @@ export const onboardingCopy = {
   start: "Start walkthrough", explore: "Explore the sample club",
   // founder flow (OB-04 … OB-06, OB-09)
   founder: {
-    name: { title: "Name your club", field: "Club name", school: "ASU Tempe" },
-    constitution: { title: "Start from your constitution", sample: "Use sample", upload: "Upload a file", paste: "Paste text", skip: "Skip — use standard roles", reading: "Reading officer titles…", aiFailed: "We couldn't use AI just now, so we read it here in your browser instead. Check each line." },
+    name: {
+      title: "Name your club", field: "Club name", school: "ASU Tempe", preview: "Preview", placeholder: "Your club",
+      schoolWhy: "Platypus is set up for ASU clubs in this version, so the school is fixed.", schoolLabel: "School",
+    },
+    constitution: {
+      title: "Start from your constitution", sample: "Use sample", upload: "Upload a file", paste: "Paste text", skip: "Skip — use standard roles",
+      reading: "Reading officer titles…", aiFailed: "We couldn't use AI just now, so we read it here in your browser instead. Check each line.",
+      lead: "Read in your browser. AI finds roles; the text is not stored.",
+      leadMore: "The text is read in your browser, then sent to AI to find roles and duties. AI does not store it. A copy stays in this browser so you can come back. PDF, Word (.docx), .txt or .md.",
+      recommended: "Recommended", fictional: "Fictional example only",
+      pasteLabel: "Constitution text", pasteUse: "Use this text", pasteFictional: "Fictional text only. Never paste a real constitution or member details.",
+      words: "words ready", remove: "Remove", fileLabel: "Constitution file", reading2: "Reading duties…", retry: "Try AI again",
+      suggested: "Suggested by AI. Check each line.", suggestedGaps: "Suggested by AI. Some duties use standard text. Edit them.", aiOff: "AI is off, so this was read in your browser. Check each line.",
+      noTitles: "No officer titles were found. These are standard roles: edit them or add your own.",
+      sampleName: "Sample constitution (fictional).txt", pastedName: "Pasted constitution.txt", tooShort: "Add a little more text: at least a sentence or two.",
+      tooLong: "This document is very long. Paste the sections about officers and departments.", unreadable: "This file could not be read.",
+    },
     goals: { title: "Choose two or three goals", mission: "Add a mission (optional)" },
     team: { title: "Who's on your team?", role: "Role", person: "Person", open: "Open position", invited: "Officers add their own phone and details when they join." },
     firstEvent: { title: "Plan your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", details: "Event details" },
