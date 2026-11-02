@@ -6,6 +6,8 @@
 > **测试：** Events 相关的 8 个文件（含 a11y、dx-15/16/22、flow-edit、wp5、word-budgets）桌面+手机 127 通过 / 33 跳过 / 0 失败；`npm run lint` 通过。**这次没有再跑完整 `npm run check`**（只改了一条 CSS 和一个新测试）。
 > **没验证的：** 你看到的具体窗口宽度我不知道，按你截图的比例推断是 1700–1900px 且右栏关着。其他页面（Today、Tasks 等）在这种宽度下仍然居中、两边留白；如果你也想让它们靠左，告诉我。
 
+> **2026-11-02 · Onboarding 阶段 2（OB-04…OB-08）· 进行中（Claude，整合人；执行包用 worktree 子 agent）**
+
 > **2026-11-02 · Onboarding 阶段 0 补齐（Claude，复核 Codex 的 OB-01/02/03）· 待 Juanxi 验收**
 > **结论：阶段 0 之前只是骨架，没有达到验收门，我已补齐。** 最严重的两个问题：①给你的预览网址 `/?walkthrough=1#/` 触发不了欢迎页（应用用 `#` 路由，只有 `/#/?walkthrough=1` 才行）；②点 Reset demo 后欢迎页不再出现。另有：草稿上下文只有 3 个字段、没有进度链和 Demo 条、没有任何页面测试。详见 [`reports/OB-04-prep-stage0-gap-fix.md`](onboarding-redesign/reports/OB-04-prep-stage0-gap-fix.md)。
 > **怎么验收：** 用隐身窗口打开预览 10 的网址，在后面加 `?walkthrough=1`（写成 `https://deploy-preview-10--platypus-officer-hub.netlify.app/?walkthrough=1`）；应看到欢迎页；点 Explore 进 Today，刷新不再弹；Demo 菜单 → Reset demo（点两次）后再开同一网址，欢迎页重新出现；Start walkthrough 进入没有侧栏的设立页。不加参数时全站和以前一样。
@@ -228,6 +230,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-11-02 | **Onboarding 策略第 9 节 Q2–Q6 按建议：** 社长不再填电话和 ASU ID；日历/Drive 链接和流程定制移出必经路径；邀请放到最后一屏并显示 Invited/Joined；社员的职业目标等问题可跳过；本方案与 M4 数据地基分开。**批准开始阶段 2（OB-04…OB-08）。** | Juanxi |
 | 2026-11-01 | **Onboarding 改版（策略 `docs/ONBOARDING_REDESIGN_STRATEGY.md`）：** ①Phase 3 参与者**首次进入网站先看到欢迎页**，可选 Start walkthrough（走社长流程，再预览社员视角）或 Explore the sample club，不需要账号，默认关闭的开关控制；②**参与者都是社长**，默认先走社长流程，不做"我是社员"入口；③**onboarding 过程要记录在浏览器里**（独立本机 key，只记行为不记内容，参与者自己导出）；④以 **11/6 为参考**尽量做完，Phase 3 和冻结的确切日期未定。**尚未答复：** 策略第 9 节 Q2–Q6（建议见文档）。 | Juanxi |
 | 2026-11-01 | **v1.6 预览直接用 `claude/determined-johnson-yrdxwf` 分支**（Juanxi：不必是 `integration/v1.6`）。预览改为 PR #10；PR #9 关闭。这个分支名带 AI 名字，违反 `AGENTS.md` 8.1，但仅限本次预览，合并到 `main` 之前不改名（改名会毁掉 PR #10 的预览，见 8.2）。 | Juanxi |
 | 2026-11-01 | **批准界面与动效升级计划**（`docs/design-upgrade/`，27 个工作包 DX-01…27）。批准范围：建集成分支 `integration/v1.6` 并推送；之后按阶段逐个发起。K 表 5 个默认选择全部采用（手机底部导航 20b 不做、看板空列收窄要做、Events 窄屏不自动收右栏、h1 只改文档、动效力度克制）。每个包可单独回滚（R0–R5）。**没有批准**：合并到 `main`、20b、合并小样式文件（DX-27 第 3 步）、改动画力度。 | Juanxi |
