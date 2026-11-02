@@ -6,6 +6,12 @@
 > **测试：** Events 相关的 8 个文件（含 a11y、dx-15/16/22、flow-edit、wp5、word-budgets）桌面+手机 127 通过 / 33 跳过 / 0 失败；`npm run lint` 通过。**这次没有再跑完整 `npm run check`**（只改了一条 CSS 和一个新测试）。
 > **没验证的：** 你看到的具体窗口宽度我不知道，按你截图的比例推断是 1700–1900px 且右栏关着。其他页面（Today、Tasks 等）在这种宽度下仍然居中、两边留白；如果你也想让它们靠左，告诉我。
 
+> **2026-11-02 · Onboarding 阶段 0 补齐（Claude，复核 Codex 的 OB-01/02/03）· 待 Juanxi 验收**
+> **结论：阶段 0 之前只是骨架，没有达到验收门，我已补齐。** 最严重的两个问题：①给你的预览网址 `/?walkthrough=1#/` 触发不了欢迎页（应用用 `#` 路由，只有 `/#/?walkthrough=1` 才行）；②点 Reset demo 后欢迎页不再出现。另有：草稿上下文只有 3 个字段、没有进度链和 Demo 条、没有任何页面测试。详见 [`reports/OB-04-prep-stage0-gap-fix.md`](onboarding-redesign/reports/OB-04-prep-stage0-gap-fix.md)。
+> **怎么验收：** 用隐身窗口打开预览 10 的网址，在后面加 `?walkthrough=1`（写成 `https://deploy-preview-10--platypus-officer-hub.netlify.app/?walkthrough=1`）；应看到欢迎页；点 Explore 进 Today，刷新不再弹；Demo 菜单 → Reset demo（点两次）后再开同一网址，欢迎页重新出现；Start walkthrough 进入没有侧栏的设立页。不加参数时全站和以前一样。
+> **测试：** lint、构建、单元（848 个，其中 1 个旧测试 `engine.test.ts` 在这台机器上超时，已知脆弱，加长超时后 51 个全过）、新增 28 个页面测试（桌面+手机）全绿；**完整回归（764 个页面测试 + 字数）在写这条时还在跑，结果见后续更新。** 没验证：真机、Safari、深色下的外壳。
+> **需要同步本地备份。**
+
 > **2026-11-01 · Onboarding 改版执行策略（两条流程）· 待 Juanxi 审批（Claude）**
 > **做了什么：** 审阅预览 10 的代码，按 `apple-design-skill`（Apple HIG）和 Emil 的 `apple-design`（WWDC 动效）审了现有的两条 onboarding（社长 `/#/setup`、社员 `/#/join`），写成执行策略 [`ONBOARDING_REDESIGN_STRATEGY.md`](ONBOARDING_REDESIGN_STRATEGY.md)：现状诊断（A1–A8、B1–B6，无 Critical）、六条设计原则、两条流程逐屏设计、动效与文案、不做什么、8 个工作包 OB-00…OB-07、验收门、6 个待决问题。**只写了文档，没有改任何代码或界面。**
 > **同日更新（Juanxi 补充，已采纳）：** Phase 3 参与者首次打开网站时先看到一个欢迎页，可选 **Start walkthrough**（走社长流程，再看一遍社员视角）或 **Explore the sample club**；不需要账号，靠浏览器里的一个小标记判断是否首次；默认关闭，关着时全站和今天一样，现有测试不用改。方案新增第 2b 节，问题增至 8 个（新增 Q7 参与者扮演谁、Q8 要不要记录 onboarding 过程）。原"Phase 3 期间旧的不动"的建议作废，改为"入口 + 旧屏加外壳是最小版，新流程赶上多少换多少"；**完整版赶不上 11/9 冻结的风险很大，我不承诺**，需要 Juanxi 给 Phase 3 的真实日期。

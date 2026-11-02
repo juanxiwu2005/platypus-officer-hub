@@ -39,7 +39,7 @@ export function DemoMenu({ onReset }: { onReset: () => void }) {
       <p className="small muted" data-testid="ai-status">Fictional club and example data. {aiNote} Nothing is sent from this page.</p>
       {canNudge && <div className="menu-row"><span className="small">Demo clock</span>{[1, 3, 10].map(days => <button key={days} type="button" className="btn small" data-testid={`clock-${days}`} onClick={() => dispatch({ type: "advanceClock", days })}>+{days} day{days > 1 ? "s" : ""}</button>)}</div>}
       <div className="menu-row">
-        {canNudge && <NavLink className="btn small" to="/welcome/classic" onClick={() => setOpen(false)}>Replay walkthrough</NavLink>}
+        {canNudge && <NavLink className="btn small" to="/welcome/start" onClick={() => setOpen(false)}>Replay walkthrough</NavLink>}
         <label className="switch"><input type="checkbox" checked={bts.on} onChange={e => bts.setOn(e.target.checked)} data-testid="bts-toggle" />Behind the scenes</label>
       </div>
       <button type="button" className={`btn small ${armed ? "btn-primary" : ""}`} data-testid="reset-demo" onClick={() => {

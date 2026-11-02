@@ -1,5 +1,26 @@
-.ob-shell { min-height: 100vh; padding: var(--space-4, 24px); }
-.ob-header { align-items: center; display: flex; gap: var(--space-3, 16px); justify-content: space-between; margin: 0 auto; max-width: 960px; }
-.ob-progress { background: var(--line); border-radius: var(--r-pill); flex: 1; height: 6px; }
-.ob-card { margin: 80px auto; max-width: 640px; }
-@media (prefers-reduced-motion: reduce) { .ob-shell { scroll-behavior: auto; } }
+/* OB-01: the focus shell for the walkthrough. Tokens only (docs/DESIGN_TOKENS.md); only transform and opacity move. */
+.ob-shell { min-height: 100vh; background: var(--bg); color: var(--ink); }
+.ob-header { align-items: center; display: flex; gap: var(--s6); justify-content: space-between; margin: 0 auto; max-width: 960px; padding: var(--s6) var(--s6) var(--s4); }
+.ob-brand { font-weight: 600; color: var(--ink); text-decoration: none; }
+.ob-main { padding: 0 var(--s6) var(--s7); }
+.ob-card { margin: var(--s7) auto; max-width: 640px; display: grid; gap: var(--s5); }
+.ob-welcome { margin-top: 12vh; }
+.ob-lead { font-size: var(--fs-lg); color: var(--muted); margin: 0; }
+.ob-actions { display: flex; flex-wrap: wrap; gap: var(--s4); align-items: center; }
+
+/* The progress chain: connected dots. The line to a finished step grows in from the left (transform only). */
+.ob-chain { list-style: none; display: flex; align-items: center; flex: 1; gap: 0; margin: 0; padding: 0; min-width: 0; }
+.ob-dot { position: relative; flex: 1 1 0; display: flex; align-items: center; justify-content: flex-end; min-width: 0; height: var(--s7); }
+.ob-dot::before { content: ""; position: absolute; inset-inline: 0 var(--s5); top: 50%; height: 2px; background: var(--line); transform-origin: left center; }
+.ob-dot:first-child::before { display: none; }
+.ob-dot-mark { position: relative; width: 12px; height: 12px; border-radius: var(--r-circle); border: 2px solid var(--edge); background: var(--bg); box-sizing: border-box; }
+.ob-dot.is-done .ob-dot-mark, .ob-dot.is-skipped .ob-dot-mark { border-style: dashed; background: transparent; }
+.ob-dot.is-done::before, .ob-dot.is-now::before { background: var(--accent); animation: ob-line-grow var(--dur-slow) var(--ease-out) both; }
+.ob-dot.is-now .ob-dot-mark { box-shadow: 0 0 0 4px var(--accent-soft); animation: ob-dot-pop var(--spring-pop-dur) var(--spring-pop) both; }
+@keyframes ob-line-grow { from { transform: scaleX(0); } }
+@keyframes ob-dot-pop { from { transform: scale(.6); } }
+
+/* The Demo strip: same amber as the Demo pill in the app. */
+.ob-demo-strip { margin: 0; padding: var(--s3) var(--s6); background: var(--warn-soft); color: var(--warn); border-bottom: 1px solid var(--warn-line); font-size: var(--fs-sm); text-align: center; }
+
+@media (max-width: 600px) { .ob-header { padding-inline: var(--s5); } .ob-main { padding-inline: var(--s5); } .ob-card { margin-top: var(--s6); } }

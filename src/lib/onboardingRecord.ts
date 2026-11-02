@@ -18,6 +18,7 @@ const KEY = "platypus.v1.onboarding"
 const LIMIT = 40
 const STEP_LIMIT = 200
 let memorySeen = false
+let memoryRearmed = false
 
 const storage = () => window.localStorage
 const empty = (): OnboardingRecord => ({ attempts: [] })
@@ -42,14 +43,20 @@ export function hasSeenWelcome(): boolean {
 }
 
 export function markWelcomeSeen(): void {
-  memorySeen = true
-  try { storage().setItem(`${KEY}.seen`, "1") } catch { /* session-only */ }
+  memorySeen = true; memoryRearmed = false
+  try { storage().setItem(`${KEY}.seen`, "1"); storage().removeItem(`${KEY}.rearmed`) } catch { /* session-only */ }
+}
+
+/** Reset demo was used since the welcome page was last seen. Reset writes the sample club straight back, so "no saved data" alone cannot tell a first visit. */
+export function isRearmed(): boolean {
+  if (memoryRearmed) return true
+  try { return storage().getItem(`${KEY}.rearmed`) === "1" } catch { return false }
 }
 
 /** Reset demo deliberately re-arms the invitation without deleting participant evidence. */
 export function rearm(): void {
-  memorySeen = false
-  try { storage().removeItem(`${KEY}.seen`) } catch { /* session-only */ }
+  memorySeen = false; memoryRearmed = true
+  try { storage().removeItem(`${KEY}.seen`); storage().setItem(`${KEY}.rearmed`, "1") } catch { /* session-only */ }
 }
 
 export function startAttempt(entry: "start" | "explore", flowVersion: string): string {

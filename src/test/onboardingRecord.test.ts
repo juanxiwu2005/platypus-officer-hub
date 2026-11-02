@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { finishAttempt, hasSeenWelcome, loadOnboardingRecord, markWelcomeSeen, rearm, recordStep, startAttempt } from "../lib/onboardingRecord"
+import { finishAttempt, hasSeenWelcome, isRearmed, loadOnboardingRecord, markWelcomeSeen, rearm, recordStep, startAttempt } from "../lib/onboardingRecord"
 
 describe("onboarding record", () => {
   beforeEach(() => { localStorage.clear(); rearm(); vi.spyOn(Date, "now").mockReturnValue(1000) })
@@ -17,6 +17,11 @@ describe("onboarding record", () => {
     markWelcomeSeen(); expect(hasSeenWelcome()).toBe(true)
     rearm(); expect(hasSeenWelcome()).toBe(false)
     expect(loadOnboardingRecord().attempts[0].id).toBe(id)
+  })
+  it("remembers that Reset demo was used until the welcome page is seen again", () => {
+    rearm(); expect(isRearmed()).toBe(true)
+    markWelcomeSeen(); expect(isRearmed()).toBe(false)
+    rearm(); expect(isRearmed()).toBe(true); expect(hasSeenWelcome()).toBe(false)
   })
   it("keeps only bounded attempts and step events", () => {
     for (let i = 0; i < 42; i++) startAttempt("start", "ob-1")

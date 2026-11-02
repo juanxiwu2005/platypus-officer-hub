@@ -1,12 +1,21 @@
 import { useNavigate } from "react-router-dom"
 import { finishAttempt, markWelcomeSeen, startAttempt } from "../../lib/onboardingRecord"
-import { onboardingCopy } from "../copy"
-
-const FLOW_VERSION = "ob-1"
+import { onboardingCopy as copy } from "../copy"
+import { FLOW_VERSION } from "../record"
 
 export function Welcome() {
   const navigate = useNavigate()
-  const start = () => { startAttempt("start", FLOW_VERSION); navigate("/welcome/classic") }
+  // "Start" goes through /welcome/start, the one place that begins (and records) a walkthrough; "Replay walkthrough" in the Demo menu uses it too.
+  const start = () => navigate("/welcome/start")
   const explore = () => { const id = startAttempt("explore", FLOW_VERSION); finishAttempt(id, "explored"); markWelcomeSeen(); navigate("/") }
-  return <section className="ob-card"><p className="eyebrow">Fictional sample club</p><h1>{onboardingCopy.welcomeTitle}</h1><p>Take a short walkthrough to see how your club can get organized.</p><div className="actions"><button type="button" className="btn btn-primary" onClick={start}>{onboardingCopy.start}</button><button type="button" className="btn" onClick={explore}>{onboardingCopy.explore}</button></div></section>
+  return <section className="ob-card ob-welcome" aria-labelledby="ob-welcome-h">
+    <h1 id="ob-welcome-h">{copy.welcomeTitle}</h1>
+    <p className="ob-lead">{copy.welcomeLead}</p>
+    <p>{copy.welcomeBody}</p>
+    <div className="ob-actions">
+      <button type="button" className="btn btn-primary" onClick={start}>{copy.start}</button>
+      <button type="button" className="btn btn-quiet" onClick={explore}>{copy.explore}</button>
+    </div>
+    <p className="small muted">{copy.welcomePrivacy}</p>
+  </section>
 }
