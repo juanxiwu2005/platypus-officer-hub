@@ -1,3 +1,7 @@
+> **2026-11-02 · Meeting Finder：预览与已选时间分离（Codex）**
+> Team 的 Meeting time 不再将鼠标悬停预览与已选时间以两条相似摘要混在一起。Group 网格悬停只在网格旁显示轻量的 Preview；点击后只有一张明确的 Selected time 卡片。参会人或时长改变而使选择失效时，卡片会列出不再有空的人，并隐藏 Calendar 草稿动作。Shared times 改为 Best times，Draft/Clear 改为 Create calendar draft / × Clear selection。保留原有可用性、时区与 Calendar 草稿计算。
+> lint、生产构建、809 项单元测试通过；本环境没有 Playwright Chromium，字数检查和 15 个 Team 页面场景均在浏览器启动前失败，无法执行。需要 Preview 验收：Team → Meeting time，任选时段、移动鼠标、勾选一位无空档成员、再清除选择。
+
 > **2026-10-31 · DP8 发布准备第三阶段 WP10：完整本地发布门禁通过（Codex；America/Phoenix，执行日志为 11-01 UTC）**
 > 全新干净 worktree 从 `origin/integration/v1.0@1e19af560daaf9ca10ee40670877c5c1b41665d8` 开始，逐项确认 WP01–WP09 全部已集成。移除旧 storage 图测试五处 force click，改为真实曲线命中点击；保留全部业务断言并补节点移回后的关系不变检查。所有修正集中在一个认证 worktree；只读子 agent 复核无阻塞。
 > Node 22：npm ci、lint/build、strict 后端类型（33 文件）、**809 单元**、words、生产及完整 audit（均 0）通过；完整四项目 Playwright **451 通过 / 13 原有设备排除 / 0 失败 / 0 flaky / 0 重试**，28 文件、464 项。fsck/diff 检查通过；secret 当前及 267 个可达历史提交仅命中公开 localStorage 键误报，确认泄漏/私钥为 0，无忽略规则。入口 364,430 字节，首屏两份 JS 合计 506,960 字节，lazy loading 与 PDF 按需网络检查通过。

@@ -130,11 +130,11 @@ export function MeetingFinder() {
     return () => { window.removeEventListener("pointerup", up); window.removeEventListener("pointercancel", cancel) }
   }, [draft, dates.join("|")])
 
-  const shown = peek ?? pick
-  const span = shown ? (peek ? GRID_STEP : duration) : 0
-  const who = shown ? whoIsFree(state, ids, shown.date, shown.from, shown.from + span) : null
+  // Hovering is an ephemeral preview. It must never replace or look like the person's chosen time.
+  const preview = peek ? whoIsFree(state, ids, peek.date, peek.from, peek.from + GRID_STEP) : null
   const fits = pick ? pick.from + duration <= GRID_TO : true
   const choice = pick && fits ? whoIsFree(state, ids, pick.date, pick.from, pick.from + duration) : null
+  const choiceWorks = !!choice && ids.length > 0 && choice.free.length === ids.length
 
   return <section className="card form-stack" data-testid="meeting-finder" aria-labelledby="mf-h">
     <header><h2 id="mf-h">Meeting time</h2><Info>Use Edit weekly schedule for your recurring availability. Painting this week makes a one-week exception. Darker means more people free.</Info></header>
@@ -153,7 +153,7 @@ export function MeetingFinder() {
           onDrawEnd={commitExceptions}
           onActivate={(d, k) => { mode.current = cells.has(dateCell(d, k)) ? "remove" : "add"; saveExceptions(paint(cells, dateCell(d, k))) }} />
       </div>
-      <div>
+      <div className="group-grid-panel" onPointerLeave={() => setPeek(null)}>
         <h3 className="w2m-h">Group</h3>
         <SlotGrid label="Who is free this week" testId="group-grid" dates={dates} marked={date}
           cell={(d, k) => {
@@ -164,6 +164,7 @@ export function MeetingFinder() {
           onActivate={(d, k) => { const from = GRID_FROM + k * GRID_STEP; setPick({ date: dates[d], from }); setDate(dates[d]) }}
           onHover={(d, k) => setPeek({ date: dates[d], from: GRID_FROM + k * GRID_STEP })} />
         <div className="w2m-legend small muted" aria-hidden="true">0{Array.from({ length: Math.min(total, 5) + 1 }, (_, i) => <i key={i} style={{ "--a": i / Math.min(total, 5) } as CSSProperties} />)}{total}</div>
+        {preview && peek && <p className="meeting-preview small" data-testid="meeting-preview" role="status" aria-live="polite"><b>Preview</b> · {dayName(peek.date)} {fmtShort(peek.date)} · {clock(peek.from)}–{clock(peek.from + GRID_STEP)} · {names(preview.free)} available</p>}
       </div>
     </div></>}
     {weeklyDraft && <section className="weekly-editor" aria-label="Edit weekly schedule" data-testid="weekly-schedule-editor">
@@ -175,22 +176,26 @@ export function MeetingFinder() {
         onActivate={(d, k) => { const key = cellKey(fromISO(dates[d]).getDay(), k); mode.current = weeklyDraft.has(key) ? "remove" : "add"; setWeeklyDraft(paint(weeklyDraft, key)) }} />
       <div className="action-row"><button type="button" className="btn btn-primary" onClick={() => { saveWeekly(weeklyDraft); draftRef.current = null; setWeeklyDraft(null) }}>Done</button><button type="button" className="btn" onClick={() => { draftRef.current = null; setWeeklyDraft(null) }}>Cancel</button></div>
     </section>}
-    {!weeklyDraft && <p className="small w2m-who" role="status" aria-live="polite" onPointerLeave={() => setPeek(null)}>
-      {who && shown ? <><b>{dayName(shown.date)} {fmtShort(shown.date)}, {clock(shown.from)}–{clock(shown.from + span)}</b> · Free: {names(who.free)} · Not free: {names(who.busy)}</> : "Hover for names."}
-    </p>}
-    {!weeklyDraft && pick && <div className="action-row" data-testid="picked-time">
-      {choice
-        ? <><span className="small"><b>{dayName(pick.date)} {fmtShort(pick.date)}, {clock(pick.from)}–{clock(pick.from + duration)}</b> · {choice.free.length} of {ids.length} free</span><a className="btn small" target="_blank" rel="noreferrer" href={calendarDraftUrl(pick.date, hhmm(pick.from), hhmm(pick.from + duration))} aria-label="Open Calendar draft for picked time">Draft</a></>
-        : <span className="small">Ends after 10 pm. Pick an earlier time.</span>}
-      <button type="button" className="btn small" onClick={() => setPick(null)}>Clear</button>
-    </div>}
+    {!weeklyDraft && pick && <section className="meeting-selection" data-testid="selected-time" aria-live="polite">
+      <div>
+        <span className="selected-time-label">Selected time</span>
+        <strong>{dayName(pick.date)} {fmtShort(pick.date)} · {clock(pick.from)}–{clock(pick.from + duration)}</strong>
+        {!fits ? <p className="small late-text">Ends after 10 pm. Pick an earlier time.</p>
+          : choiceWorks ? <p className="small good-text">All {ids.length} attendees are free.</p>
+            : <p className="small late-text">This time no longer works for {names(choice?.busy ?? [])}. Choose another time or change attendees.</p>}
+      </div>
+      <div className="action-row">
+        {choiceWorks && <a className="btn btn-primary small" target="_blank" rel="noreferrer" href={calendarDraftUrl(pick.date, hhmm(pick.from), hhmm(pick.from + duration))} aria-label="Create calendar draft for selected time">Create calendar draft</a>}
+        <button type="button" className="btn small" onClick={() => setPick(null)} aria-label="Clear selected time">× Clear selection</button>
+      </div>
+    </section>}
     {!weeklyDraft && <div className="meeting-planner">
       <div className="meeting-filters">
         <label className="field-inline">Length<select aria-label="Meeting length" value={duration} onChange={e => setDuration(Number(e.target.value))}>{[15, 30, 60, 90].map(m => <option key={m} value={m}>{m} min</option>)}</select></label>
         <fieldset className="who-picks"><legend className="small muted">Attendees</legend>{state.people.map(p => <label className="check-label" key={p.id}><input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))} />{p.name}</label>)}</fieldset>
       </div>
-      <section className="meeting-suggestions" aria-live="polite" aria-label="Shared times in the next two weeks">
-        <header><h3>Shared times</h3></header>
+      <section className="meeting-suggestions" aria-live="polite" aria-label="Best times in the next two weeks">
+        <header><h3>Best times</h3><span className="small muted">Everyone selected is free</span></header>
         {upcoming.length ? upcoming.map(day => <div className="suggestion-day" key={day.date}><time dateTime={day.date}>{dayName(day.date)} {fmtShort(day.date)}</time><div>{day.slots.map(slot => <button type="button" className="btn small" key={slot.from} onClick={() => { const from = asMinutes(slot.from); setPick({ date: day.date, from }); setDate(day.date) }}>{slot.from}–{slot.to}</button>)}</div></div>) : <p className="small muted">No shared time in the next two weeks. Adjust length or attendees.</p>}
       </section>
     </div>}

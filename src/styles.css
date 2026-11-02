@@ -761,7 +761,14 @@ tr.clickable { cursor: pointer; }
 .w2m-person-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
 .w2m-person-head .w2m-h { margin: 0; }
 .w2m-nav { align-items: center; gap: 10px; }
-.w2m-who { min-height: 1.5em; margin: 0; }
+.group-grid-panel { min-width: 0; }
+.meeting-preview { min-height: 1.5em; margin: var(--s3) 0 0; color: var(--muted); }
+.meeting-preview b { color: var(--accent-ink); }
+.meeting-selection { display: flex; align-items: center; justify-content: space-between; gap: var(--s5); padding: var(--s5); border: 1px solid var(--accent); border-radius: var(--r-md); background: var(--accent-soft); }
+.meeting-selection > div:first-child { display: grid; gap: var(--s1); }
+.meeting-selection strong { font-size: var(--fs-base); }
+.meeting-selection p { margin: 0; }
+.selected-time-label { color: var(--accent-ink); font-size: var(--fs-sm); font-weight: 700; }
 .w2m-legend { display: flex; align-items: center; gap: 3px; margin-top: 8px; }
 .w2m-legend i { width: 18px; height: 12px; border-radius: var(--r-xs); background: color-mix(in srgb, var(--accent) calc(var(--a) * 100%), var(--surface-2)); }
 .weekly-editor { display: grid; gap: var(--s6); padding: var(--s6); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
@@ -811,6 +818,8 @@ tr.clickable { cursor: pointer; }
   .meeting-planner { grid-template-columns: 1fr; gap: var(--s6); }
   .meeting-suggestions { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); padding-top: var(--s5); }
   .suggestion-day { grid-template-columns: 1fr; gap: var(--s2); }
+  .meeting-selection { align-items: stretch; flex-direction: column; }
+  .meeting-selection .action-row { width: 100%; }
 }
 @media (max-width: 600px) { .menu, .menu.wide { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; } }
 .tab-group { display: flex; gap: 4px; }

@@ -109,21 +109,25 @@ test("officer five-question setup saves preferences and busy weeks while private
   await expect(page.getByLabel("My extra working days", { exact: true })).toHaveValue("1")
   await expect(page.getByTestId("my-settings")).not.toContainText("Week of 2026-10-19")
   await page.goto("/#/team")
-  await expect(page.getByTestId("meeting-finder").getByRole("heading", { name: "Shared times", exact: true })).toBeVisible()
+  await expect(page.getByTestId("meeting-finder").getByRole("heading", { name: "Best times", exact: true })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
 test("meeting finder uses shared slots and opens only an Arizona calendar draft", async ({ page }) => {
   await page.goto("/#/team")
   const finder = page.getByTestId("meeting-finder")
-  await expect(finder.getByRole("heading", { name: "Shared times", exact: true })).toBeVisible()
+  await expect(finder.getByRole("heading", { name: "Best times", exact: true })).toBeVisible()
   await expect(finder).toContainText("No shared time in the next two weeks")
   await finder.getByRole("checkbox", { name: "Sam Okafor", exact: true }).uncheck()
   await expect(finder.getByRole("button", { name: "18:30–19:00", exact: true }).first()).toBeVisible()
   await finder.getByRole("button", { name: "18:30–19:00", exact: true }).first().click()
-  const href = (await finder.getByRole("link", { name: "Open Calendar draft for picked time", exact: true }).getAttribute("href"))!
+  const href = (await finder.getByRole("link", { name: "Create calendar draft for selected time", exact: true }).getAttribute("href"))!
   const params = new URL(href).searchParams
   expect(params.get("ctz")).toBe("America/Phoenix"); expect(params.has("add")).toBe(false)
+  // If the attendee filter changes, the one selected time is retained but clearly marked as no longer valid.
+  await finder.getByRole("checkbox", { name: "Sam Okafor", exact: true }).check()
+  await expect(finder.getByTestId("selected-time")).toContainText("This time no longer works for Sam")
+  await expect(finder.getByRole("link", { name: "Create calendar draft for selected time", exact: true })).toHaveCount(0)
   for (const checkbox of await finder.getByRole("checkbox").all()) await checkbox.uncheck()
   await expect(finder).toContainText("No shared time in the next two weeks")
   await expect(page.getByTestId("contribution-board")).toBeVisible()
@@ -147,12 +151,14 @@ test("meeting finder: paint my week on the left, see the group on the right, pic
   const remove = await cell(mine, "Fri 6:00 pm · free").boundingBox()
   await page.mouse.move(remove!.x + 3, remove!.y + 3); await page.mouse.down(); await page.mouse.up()
   await expect(cell(mine, "Fri 6:00 pm · not free")).toHaveCount(1)
-  // Hover names who is free; click picks a time and offers a Calendar draft.
+  // Hover shows a separate preview; clicking creates the one persistent selected-time card.
   await group.getByRole("gridcell", { name: "Thu Oct 29 6:00 pm · 4 of 5 free", exact: true }).hover()
-  await expect(finder.getByRole("status").first()).toContainText("Free: Alex, Maya, Jordan, Priya · Not free: Sam")
+  await expect(finder.getByTestId("meeting-preview")).toContainText("Preview · Thu Oct 29 · 6:00 pm–6:30 pm · Alex, Maya, Jordan, Priya available")
   await group.getByRole("gridcell", { name: "Thu Oct 29 6:30 pm · 5 of 5 free", exact: true }).click()
-  await expect(finder.getByTestId("picked-time")).toContainText("Thu Oct 29, 6:30 pm–7:00 pm · 5 of 5 free")
-  const href = (await finder.getByRole("link", { name: "Open Calendar draft for picked time", exact: true }).getAttribute("href"))!
+  await expect(finder.getByTestId("selected-time")).toContainText("Selected time")
+  await expect(finder.getByTestId("selected-time")).toContainText("Thu Oct 29 · 6:30 pm–7:00 pm")
+  await expect(finder.getByTestId("selected-time")).toContainText("All 5 attendees are free.")
+  const href = (await finder.getByRole("link", { name: "Create calendar draft for selected time", exact: true }).getAttribute("href"))!
   expect(new URL(href).searchParams.get("dates")).toBe("20261029T183000/20261029T190000")
   // Keyboard: arrow keys move, Enter toggles my cell.
   await cell(mine, "Sat 8:00 am · not free").focus(); await page.keyboard.press("Enter")
