@@ -9,7 +9,7 @@
 > **2026-11-02 · Onboarding 阶段 0 补齐（Claude，复核 Codex 的 OB-01/02/03）· 待 Juanxi 验收**
 > **结论：阶段 0 之前只是骨架，没有达到验收门，我已补齐。** 最严重的两个问题：①给你的预览网址 `/?walkthrough=1#/` 触发不了欢迎页（应用用 `#` 路由，只有 `/#/?walkthrough=1` 才行）；②点 Reset demo 后欢迎页不再出现。另有：草稿上下文只有 3 个字段、没有进度链和 Demo 条、没有任何页面测试。详见 [`reports/OB-04-prep-stage0-gap-fix.md`](onboarding-redesign/reports/OB-04-prep-stage0-gap-fix.md)。
 > **怎么验收：** 用隐身窗口打开预览 10 的网址，在后面加 `?walkthrough=1`（写成 `https://deploy-preview-10--platypus-officer-hub.netlify.app/?walkthrough=1`）；应看到欢迎页；点 Explore 进 Today，刷新不再弹；Demo 菜单 → Reset demo（点两次）后再开同一网址，欢迎页重新出现；Start walkthrough 进入没有侧栏的设立页。不加参数时全站和以前一样。
-> **测试：** lint、构建、单元（848 个，其中 1 个旧测试 `engine.test.ts` 在这台机器上超时，已知脆弱，加长超时后 51 个全过）、新增 28 个页面测试（桌面+手机）全绿；**完整回归（764 个页面测试 + 字数）在写这条时还在跑，结果见后续更新。** 没验证：真机、Safari、深色下的外壳。
+> **测试：** lint、构建、单元（848 个，其中 1 个旧测试 `engine.test.ts` 在这台机器上超时，已知脆弱，加长超时后 51 个全过）、新增 28 个页面测试（桌面+手机）全绿；**完整回归（Node 22，764 个页面测试 + 字数）：657 通过 / 104 按设计跳过 / 3 失败，字数全部在上限内。** 3 个失败都是帧采样类动效测试（`dx-10-menu.spec.ts` 的 Demo 菜单和铃铛菜单淡入淡出、`dx-18-empty.spec.ts` 的 Rules 清空搜索），单独重跑每次失败个数不同；**在阶段 0 补齐之前的提交 `a5b5553` 上跑同样的测试也失败（4 个、3 个），所以是这台机器上本来就不稳，不是这次改动引入的，但我没有修它。** 没验证：真机、Safari、深色下的外壳。
 > **需要同步本地备份。**
 
 > **2026-11-01 · Onboarding 改版执行策略（两条流程）· 待 Juanxi 审批（Claude）**
