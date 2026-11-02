@@ -172,6 +172,15 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 - 界面：`src/pages/Partners.tsx`（People 表 / Board 看板 / Organizations 三个视图；All·Mine·Overdue 预设；类型、负责人、标签筛选；搜索含标签和邮箱）；右栏详情 `src/components/crm/ContactDetail.tsx`、`OrgDetail.tsx`（`useRail().show({ kind: "partner" | "org", id })`）；共用小部件 `crm/parts.tsx`（失焦自动保存的 Field、互动表单、时间线）。
 - AI 的 `add_contact` 和 `mark_contacted` 仍然可用（机构名按名字查找或新建）。
 
+## 6d. Onboarding 入口与记录（2026-11-02，Juanxi 批准；设计依据 `docs/ONBOARDING_REDESIGN_STRATEGY.md`，工作包 `docs/onboarding-redesign/`）
+
+- **首次进入入口：** 没有保存过演示数据的浏览器（或用过 Reset demo 且还没看过欢迎页）打开 `/`，会先到 `/#/welcome`：Start walkthrough（走社长新流程，最后看一遍社员预览）或 Explore the sample club（直接看 Today）。**默认关闭**：构建环境变量 `VITE_ONBOARDING_WALKTHROUGH=true`，或网址带 `?walkthrough=1`（`?` 写在 `#` 前或后都认，见 `src/onboarding/gate/enabled.ts`；应用用 HashRouter，别只读 router 的 search）。开关关着时全站和以前完全一样。
+- **流程：** 社长 7 屏（`src/onboarding/founder/`：Name、Constitution、Goals、Team、FirstEvent、Confirm、Invite），社员预览 6 屏（`member/`）。步骤表和路由映射在 `engine/flows.ts`，步骤机在 `engine/useFlow.ts`（路由驱动，next/back/skip/exit，事件发给记录）；社长草稿的全部状态在 `draft.tsx`（单独的 IndexedDB 键 `onboarding-draft`，不是旧页面的 `setup-draft`）；文案都在 `copy.ts`。`/welcome/classic` 是旧设立页（包在专注外壳里），留作兜底。Start 去哪由 `src/onboarding/target.ts` 的 `FOUNDER_START` 一个常量决定。
+- **参与者都是社长**（Juanxi 2026-11-01）：社员流程只是社长流程之后的"预览"，看的是自己刚建的社团；预览不验证身份。**Done 屏才把预览资料存进数据**（`saveProfile`），之前的选择只暂存在 sessionStorage（`platypus.v1.onboarding.member` 与 `.extra`）。社员流程里不问 ASU ID；社长不填电话/ASU ID/邮箱（邮箱自动生成）。
+- **记录（只记行为，不记内容）：** `src/lib/onboardingRecord.ts`，浏览器本机的**新 key** `platypus.v1.onboarding`（另有 `.seen`、`.rearmed` 标记和 sessionStorage 里的当前尝试）；每次尝试一条：入口选择、流程版本（`FLOW_VERSION`，现为 `ob-2`，改流程就要改它）、每屏 进入/返回/跳过/完成/退出 的时间、结果。Reset demo **不清记录**，只重新亮起入口。Settings → Export my data 的 JSON 里有顶层字段 `onboarding`。没有任何自动上报。**不新增记录项之前先问 Juanxi（研究设计，要对照 IRB）。**
+- **边界：** 不调用 `/api/org/*`、`/api/workspace*`，不新增 AI 接口（只用 `/api/setup/constitution`、`/api/command`）；日期只来自规则引擎；不改 `SCHEMA_VERSION`/`DemoState`/已有存储键；新样式在 `src/styles/ob-NN-*.css`（样式守卫已覆盖它们：禁 `!important`、`transition: all`、裸毫秒）。
+- **已知限制：** 缓冲控件在标准流程里不会让进度链上的日期变（每一步的目标日都比"官方截止日减缓冲"早），所以旁边有一行由引擎现算的例子；章程阅读进行中 Save & exit/刷新会丢掉；Today 的一次性小提示没做（按砍单顺序砍掉）；身份不验证、邀请链接只在同一浏览器有效（真实账号留到 v1.5）。
+
 ## 7. 界面规则（2026-10-23 简化改版，Juanxi 批准）
 
 改任何页面前先读这一节，**再读 `docs/DESIGN_TOKENS.md`**（字号、圆角、层级、颜色都只能用 token）。写完先跑 `npm run lint`（Stylelint 管 `src/styles.css`，ESLint 管行内样式），CI 也会跑。依据：《Platypus 简化改版方案》（https://claude.ai/artifact/QhCthf71crEC62bBua5zJD）。
