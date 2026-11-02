@@ -1,0 +1,5 @@
+.ob-shell { min-height: 100vh; padding: var(--space-4, 24px); }
+.ob-header { align-items: center; display: flex; gap: var(--space-3, 16px); justify-content: space-between; margin: 0 auto; max-width: 960px; }
+.ob-progress { background: var(--line); border-radius: var(--r-pill); flex: 1; height: 6px; }
+.ob-card { margin: 80px auto; max-width: 640px; }
+@media (prefers-reduced-motion: reduce) { .ob-shell { scroll-behavior: auto; } }

@@ -1,6 +1,8 @@
 import { lazy, Suspense, type ReactNode } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 import { Layout } from "./components/Layout"
+import { OnboardingShell } from "./onboarding/shell/OnboardingShell"
+import { ComingSoon } from "./onboarding/gate/ComingSoon"
 import { RouteLoading } from "./components/RouteLoading"
 import Today from "./pages/Today"
 
@@ -25,6 +27,12 @@ function screen(children: ReactNode, label: string, fullPage = false) {
 export default function App() {
   return (
     <Routes>
+      <Route path="welcome" element={<OnboardingShell />}>
+        <Route index element={<ComingSoon />} />
+        <Route path="classic" element={screen(<Setup />, "Preparing organization setup…", true)} />
+        <Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
+        <Route path="*" element={<ComingSoon />} />
+      </Route>
       <Route path="phase1/*" element={screen(<PhaseOne />, "Opening your workspace…", true)} />
       <Route path="officer" element={screen(<Officer />, "Opening your task…", true)} />
       <Route path="join" element={screen(<Join />, "Preparing your invitation…", true)} />
