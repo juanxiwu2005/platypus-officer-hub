@@ -1,5 +1,5 @@
-> **2026-11-01 · Onboarding 改版 · 阶段 1 进行中（Codex）**
-> **范围：** 仅执行 OB-01（外壳与路由）、OB-02（浏览器本地行为记录）、OB-03（首次进入欢迎入口）。按 `docs/onboarding-redesign/HANDOFF_PROMPT.md` 的阶段 1 顺序和白名单执行；合并顺序为 OB-02、OB-01、OB-03。开始前先跑基线 `npm run check`；未通过则停止，不顺手修复。**需要同步本地备份。**
+> **2026-11-02 · Onboarding 改版 · 阶段 1 阻塞（Codex）**
+> **范围：** 尚未开始 OB-01 / OB-02 / OB-03，未创建工作包分支或标签，也没有改业务代码。按 `docs/onboarding-redesign/HANDOFF_PROMPT.md` 的规定，基线 `npm run check` 未通过后停止，不顺手修复。`npm ci`、lint、构建和 **839 个单元测试**通过；页面测试因 Playwright Chromium 缺失而全数无法启动：`browserType.launch: Executable doesn't exist at /home/agent/.cache/ms-playwright/chromium_headless_shell-1248/chrome-headless-shell-linux64/chrome-headless-shell`（完整 `npm run e2e`：650 失败 / 86 跳过；抽查 `e2e/smoke.spec.ts --project=desktop`：12 失败，均为同一原因）。本环境另为 Node **v24.19.0**，交接要求 Node 22。请先提供可用的 Chromium（或确认可运行 `npx playwright install`）并使用 Node 22；基线全绿后再开始阶段 1。**需要同步本地备份。**
 
 > **2026-11-01 · 修复（Juanxi 反馈）· Events 页左边一大块空白（Claude）**
 > **原因：** 所有页面的内容区 `main` 是"最宽 1180px、居中"。宽屏（≥1728px）且右栏关着时，内容区两边各留出很宽的空地，Events 的活动列表就离左边导航很远（实测右栏关着：1728px 宽时空 172px，1920px 时 268px，2560px 时 588px）。**修法：** 只对 Events 页（`main:has(> .events-layout)`）改成最宽 1600px、靠左对齐，列表紧贴导航；空地移到右边。其他页面没动（仍居中）。新测试 `e2e/events-gap.spec.ts`（1440/1728/1920/2560 宽 × 右栏开/关，8 个）：列表离导航不超过 32px；去掉修复后 4 个宽屏+右栏关的会变红。
