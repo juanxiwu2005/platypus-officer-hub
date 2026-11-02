@@ -18,16 +18,16 @@ describe("Goals suggestions", () => {
     expect(goals.every(g => g.current === 0)).toBe(true)
     expect(new Set(SUGGESTIONS.map(s => s.id)).size).toBe(SUGGESTIONS.length)
   })
-  it("keeps what was chosen when the screen is opened again", () => {
-    const rows = rowsFrom(club().goals).map(r => ({ ...r, on: true, target: r.target + 1 }))
+  it("keeps editable choices when the screen is opened again", () => {
+    const rows = rowsFrom(club().goals).map(r => ({ ...r, on: true, label: `${r.label} goal`, unit: `${r.unit} total`, target: r.target + 1 }))
     expect(rowsFrom(goalsFrom(rows))).toEqual(rows)
   })
-  it("stops at fewer than two goals, a target that is not positive, and a long mission", () => {
+  it("allows no goals, but requires a mission and valid selected goals", () => {
     const rows = rowsFrom(club().goals)
-    expect(goalsError(rows, "")).toBeNull()
-    expect(goalsError(rows.map(r => ({ ...r, on: false })), "")).not.toBeNull()
-    expect(goalsError(rows.map((r, i) => i === 0 ? { ...r, on: false } : { ...r, on: i === 1 }), "")).not.toBeNull()
-    expect(goalsError(rows.map(r => ({ ...r, target: 0 })), "")).not.toBeNull()
+    expect(goalsError(rows, "Build a welcoming club.")).toBeNull()
+    expect(goalsError(rows.map(r => ({ ...r, on: false })), "Build a welcoming club.")).toBeNull()
+    expect(goalsError(rows, "")).not.toBeNull()
+    expect(goalsError(rows.map(r => ({ ...r, target: 0 })), "Build a welcoming club.")).not.toBeNull()
     expect(goalsError(rows, "x".repeat(301))).not.toBeNull()
   })
 })

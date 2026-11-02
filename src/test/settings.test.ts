@@ -53,8 +53,9 @@ describe("club settings", () => {
     expect(validateDefaults({ ...s.org.settings, sendMode: "auto" })).toBeTruthy()
     expect(validateDefaults({ ...s.org.settings, quietHours: { from: "23:00", to: "08:00" } })).toBeTruthy()
   })
-  it("requires two or three positive numeric goals and safe workspace links", () => {
-    const s = base(), d = clubDraft(s); d.goals = d.goals.slice(0, 1); expect(validateClub(d)).toBeTruthy()
+  it("allows optional goals, requires a mission, and rejects invalid numeric goals and unsafe workspace links", () => {
+    const s = base(), d = clubDraft(s); d.goals = []; expect(validateClub(d)).toBeNull()
+    d.mission = ""; expect(validateClub(d)).toBeTruthy(); d.mission = s.org.mission
     d.goals = clubDraft(s).goals; d.goals[0].target = NaN; expect(validateClub(d)).toBeTruthy()
     expect(validateWorkspace({ ...s.org.workspace, calendarUrl: "javascript:alert(1)" })).toBeTruthy()
     expect(validateWorkspace({ ...s.org.workspace, driveLink: "file:///private" })).toBeTruthy()

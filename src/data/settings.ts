@@ -41,7 +41,7 @@ export function validateWorkflow(steps: StepTemplate[], roles: Role[]): string |
 }
 
 export function validateGoals(goals: Goal[]): string | null {
-  if (!Array.isArray(goals) || goals.length < 2 || goals.length > 3 || new Set(goals.map(g => g.id)).size !== goals.length) return "Choose two or three semester goals."
+  if (!Array.isArray(goals) || goals.length > 3 || new Set(goals.map(g => g.id)).size !== goals.length) return "Use up to three semester goals."
   return goals.some(g => !nonempty(g.label, 100) || !nonempty(g.id, 80) || !nonempty(g.unit, 20) || !Number.isFinite(g.target) || g.target <= 0 || g.target > 1_000_000 || !Number.isFinite(g.current) || g.current < 0) ? "Give each goal a name, a positive target, and a nonnegative current value." : null
 }
 export function validateRoles(roles: Role[], people: Person[]): string | null {
@@ -69,7 +69,7 @@ export function validateProfile(p: ProfilePatch): string | null {
   return null
 }
 export function validateClub(d: ClubDraft): string | null {
-  if (!nonempty(d.name, 80) || typeof d.mission !== "string" || d.mission.length > 300) return "Enter a club name and keep the mission under 300 characters."
+  if (!nonempty(d.name, 80) || !nonempty(d.mission, 300)) return "Enter a club name and mission (up to 300 characters)."
   if (!Array.isArray(d.people) || !d.people.length || d.people.length > MAX_ROLES || new Set(d.people.map(p => p.id)).size !== d.people.length || new Set(d.people.map(p => p.name.toLowerCase().trim())).size !== d.people.length) return "Use distinct fictional officers (a name can be used once)."
   for (const p of d.people) { const error = validateProfile(p); if (error) return error }
   return validateGoals(d.goals) ?? validateRoles(d.roles, d.people) ?? validateWorkspace(d.workspace)
@@ -133,7 +133,7 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   if (op?.op !== "create_event") return s
   const { op: _kind, ...fields } = op
   const id = `setup-event-${s.org.id}`
-  const event: Event = { ...fields, id, date: eventDate, goalId: d.goals[0].id, playbookId: "seo-event" }
+  const event: Event = { ...fields, id, date: eventDate, goalId: d.goals[0]?.id ?? null, playbookId: "seo-event" }
   const people = d.people.map(p => ({ ...p, name: p.name.trim() }))
   const roles = orderRoles(d.roles.map(r => ({ ...r, displayName: r.displayName.trim() })))
   const president = roles.find(r => r.fn === "president")!

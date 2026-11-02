@@ -37,7 +37,7 @@ const addRoles = async (page: Page, n: number) => { for (let i = 0; i < n; i++) 
 test.describe("Goals", () => {
   test("fastest path: three goals on, Continue, and the choices are still there on Back", async ({ page }) => {
     await page.goto(GOALS)
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Choose two or three goals")
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set goals for your club")
     await expect(page.getByRole("switch")).toHaveCount(3)
     await expect(page.getByRole("switch", { name: "Weekly events" })).toBeChecked()
     await expect(page.getByRole("switch", { name: "Active members" })).toBeChecked()
@@ -85,34 +85,45 @@ test.describe("Goals", () => {
     await expect(page.getByRole("spinbutton", { name: "Active members target" })).toHaveValue("60")
   })
 
-  test("a switched-off goal has a disabled number; fewer than two goals stops Continue, and a target of zero too", async ({ page }) => {
+  test("goals are optional, while selected goals still need a positive target", async ({ page }) => {
     await page.goto(GOALS)
     await page.getByRole("switch", { name: "Active members" }).uncheck()
     await expect(page.getByRole("spinbutton", { name: "Active members target" })).toBeDisabled()
+    await page.getByRole("switch", { name: "Weekly events" }).uncheck()
     await page.getByRole("button", { name: "Continue" }).click()
-    await expect(page.getByRole("alert")).toHaveText("Choose two or three goals.")
-    await expect(page).toHaveURL(/#\/welcome\/founder\/goals$/)
+    await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+    await page.getByRole("button", { name: "Back" }).click()
     await page.getByRole("switch", { name: "External income" }).check()
-    await expect(page.getByRole("alert")).toHaveCount(0)
     await page.getByRole("spinbutton", { name: "External income target" }).fill("0")
     await page.getByRole("button", { name: "Continue" }).click()
     await expect(page.getByRole("alert")).toContainText("positive target")
     await expect(page).toHaveURL(/#\/welcome\/founder\/goals$/)
   })
 
-  test("the mission is folded away, limited to 300 characters, and kept", async ({ page }) => {
+  test("the mission is required, limited to 300 characters, and kept", async ({ page }) => {
     await page.goto(GOALS)
     const mission = page.getByRole("textbox", { name: "Mission" })
-    await expect(mission).toBeHidden()
-    await page.getByText("Add a mission (optional)").click()
     await expect(mission).toBeVisible()
+    await mission.fill("")
+    await page.getByRole("button", { name: "Continue" }).click()
+    await expect(page.getByRole("alert")).toHaveText("Add a mission to continue.")
     await mission.fill("x".repeat(400))
     expect((await mission.inputValue()).length).toBe(300)
     await mission.fill("Help students build things.")
     await page.getByRole("button", { name: "Continue" }).click()
     await page.getByRole("button", { name: "Back" }).click()
-    await page.getByText("Add a mission (optional)").click()
     await expect(page.getByRole("textbox", { name: "Mission" })).toHaveValue("Help students build things.")
+  })
+
+  test("a selected goal name and unit are editable", async ({ page }) => {
+    await page.goto(GOALS)
+    await page.getByRole("textbox", { name: "Weekly events Unit" }).fill("sessions")
+    await page.getByRole("textbox", { name: "Weekly events Goal name" }).fill("Mentor sessions")
+    await expect(page.getByRole("spinbutton", { name: "Mentor sessions target" })).toBeVisible()
+    await page.getByRole("button", { name: "Continue" }).click()
+    await page.getByRole("button", { name: "Back" }).click()
+    await expect(page.getByRole("textbox", { name: "Mentor sessions Goal name" })).toHaveValue("Mentor sessions")
+    await expect(page.getByRole("textbox", { name: "Mentor sessions Unit" })).toHaveValue("sessions")
   })
 
   test("at a glance: 40 words or fewer, no sideways scroll, no accessibility problems, light and dark", async ({ page }) => {

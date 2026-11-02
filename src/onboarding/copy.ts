@@ -31,8 +31,8 @@ export const onboardingCopy = {
       tooLong: "This document is very long. Paste the sections about officers and departments.", unreadable: "This file could not be read.",
     },
     goals: {
-      title: "Choose two or three goals", lead: "Progress starts at zero.", mission: "Add a mission (optional)", missionField: "Mission",
-      decrease: "Decrease", increase: "Increase", target: "target", needTwo: "Choose two or three goals.", missionLong: "Keep the mission under 300 characters.",
+      title: "Set goals for your club", lead: "Goals are optional. Progress starts at zero.", mission: "Mission", missionField: "Mission", missionRequired: "Add a mission to continue.",
+      decrease: "Decrease", increase: "Increase", target: "target", goalName: "Goal name", unit: "Unit", missionLong: "Keep the mission under 300 characters.",
       items: { events: { label: "Weekly events", unit: "per week" }, members: { label: "Active members", unit: "members" }, income: { label: "External income", unit: "USD" } },
     },
     team: {

@@ -48,7 +48,7 @@
 @keyframes ob-m-fade { from { opacity: 0; } }
 
 /* Each screen is a column as tall as the window, so the bottom bar rests at the bottom even when the card is short. */
-.ob-m-page { display: flex; flex-direction: column; min-height: calc(100dvh - 96px); }
+.ob-m-page { display: flex; flex-direction: column; min-height: calc(100dvh - 96px); width: min(100%, 640px); }
 .ob-m-page > .ob-card { width: 100%; }
 .ob-m-page > .ob-m-foot { margin-top: auto; }
 

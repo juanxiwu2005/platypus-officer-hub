@@ -1,9 +1,9 @@
 /* OB-01: the focus shell for the walkthrough. Tokens only (docs/DESIGN_TOKENS.md); only transform and opacity move. */
 .ob-shell { min-height: 100vh; background: var(--bg); color: var(--ink); }
-.ob-header { align-items: center; display: flex; gap: var(--s6); justify-content: space-between; margin: 0 auto; max-width: 960px; padding: var(--s6) var(--s6) var(--s4); }
+.ob-header { align-items: center; box-sizing: border-box; display: flex; gap: var(--s6); justify-content: space-between; margin: 0 auto; max-width: 960px; padding: var(--s6) var(--s6) var(--s4); width: 100%; }
 .ob-brand { font-weight: 600; color: var(--ink); text-decoration: none; }
-.ob-main { padding: 0 var(--s6) var(--s7); }
-.ob-card { margin: var(--s7) auto; max-width: 640px; display: grid; gap: var(--s5); }
+.ob-main { display: grid; justify-items: center; padding: 0 var(--s6) var(--s7); }
+.ob-card { margin: var(--s7) 0; max-width: 640px; width: 100%; display: grid; gap: var(--s5); }
 .ob-welcome { margin-top: 12vh; }
 .ob-lead { font-size: var(--fs-lg); color: var(--muted); margin: 0; }
 .ob-actions { display: flex; flex-wrap: wrap; gap: var(--s4); align-items: center; }
