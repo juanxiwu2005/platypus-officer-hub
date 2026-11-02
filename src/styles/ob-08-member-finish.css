@@ -1,1 +1,37 @@
 /* OB-08: this file belongs to one work package only (docs/onboarding-redesign/WORK_PACKAGES.md). Tokens only. */
+
+/* Busy weeks, About you, Done (member screens 3-5). Tokens only. Choosing a week or a chip changes colour only, nothing moves.
+   The only staged moment in the whole member preview is the officer's box appearing in the chart on Done (opacity and scale). */
+
+/* Busy weeks: months side by side, each with its weeks as 44px squares. A week is a button; the tick and the colour show it is on. */
+.ob-m-weeks { display: flex; flex-wrap: wrap; gap: var(--s5) var(--s6); }
+.ob-m-month { display: grid; gap: var(--s3); }
+.ob-m-month-name { font-size: var(--fs-sm); color: var(--muted); }
+.ob-m-cells { display: flex; gap: var(--s3); }
+.ob-m-week { display: grid; place-items: center; width: 44px; min-width: 44px; height: 44px; padding: 0; border: 1px solid var(--edge); border-radius: var(--r-sm); background: var(--surface); color: var(--on-accent); font-size: var(--fs-md); font-weight: 700; cursor: pointer; transition: background-color var(--dur-press) var(--ease-out), border-color var(--dur-press) var(--ease-out); }
+.ob-m-week:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ob-m-week.is-finals { background: repeating-linear-gradient(135deg, var(--warn-soft) 0 4px, var(--surface) 4px 8px); border-color: var(--warn-line); }
+.ob-m-week.is-break, .ob-m-week.is-between, .ob-m-week.is-holiday { border-style: dashed; background: var(--surface-2); }
+.ob-m-week[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); border-style: solid; }
+.ob-m-week:disabled { opacity: .5; cursor: not-allowed; }
+.ob-m-legend, .ob-m-ask .field, .ob-m-skip { margin: 0; }
+
+/* About you. */
+.ob-m-ask { display: grid; gap: var(--s3); }
+.ob-m-ask textarea { width: 100%; min-height: 64px; box-sizing: border-box; font: inherit; font-size: var(--fs-base); }
+.ob-m-chips { display: flex; flex-wrap: wrap; gap: var(--s3); }
+.ob-m-chip { min-height: 44px; padding: var(--s3) var(--s6); border: 1px solid var(--line); border-radius: var(--r-circle); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-md); cursor: pointer; transition: background-color var(--dur-press) var(--ease-out), border-color var(--dur-press) var(--ease-out); }
+.ob-m-chip:hover { border-color: var(--accent); }
+.ob-m-chip:active { background: var(--accent-soft); }
+.ob-m-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ob-m-skip { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+
+/* Done: the chart, the officer's box, and the first task. */
+.ob-m-chart .org-chart-wrap { margin: 0; }
+.ob-m-chart .org-card.is-joined { border-width: 2px; border-color: var(--accent); background: var(--accent-soft); font-weight: 600; animation: ob-m-join var(--dur-slow) var(--ease-out) both; }
+@keyframes ob-m-join { from { opacity: 0; transform: scale(.94); } }
+.ob-m-first { display: grid; gap: var(--s4); }
+.ob-m-first-h { margin: 0; font-size: var(--fs-md); color: var(--muted); font-weight: 600; }
+.ob-m-task { display: grid; gap: var(--s2); padding: var(--s6); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); box-shadow: var(--elev-1); }
+.ob-m-task p { margin: 0; }
+.ob-m-task-title { font-weight: 600; }

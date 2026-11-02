@@ -71,9 +71,21 @@ export const onboardingCopy = {
       example: "Example", whenMorning: "this morning", whenEvening: "this evening",
       bubble: "Hi {name} — {when}: book the Founder Dinner venue. Reply “got it” when done.",
     },
-    busyWeeks: { title: "Which weeks are busy?", skip: "Skip — nothing busy yet", effect: "Platypus will plan around these weeks." },
-    about: { title: "What would make this role worthwhile?", why: "Helps match you with tasks you'll care about." },
-    done: { title: "You're in.", cta: "Open my tasks", empty: "You'll see tasks here when your president assigns one." },
+    busyWeeks: {
+      title: "Which weeks are busy?", skip: "Skip — nothing busy yet", effect: "Platypus will plan around these weeks.",
+      group: "Weeks, starting this week", legend: "Striped: finals · Dashed: break", count: "{n} busy", limit: "Up to 20 weeks.",
+      weekOf: "Week of {date}", finals: "finals week", brk: "break", between: "between semesters", holiday: "holiday", busy: "busy", autoAvoided: "already avoided",
+    },
+    about: {
+      title: "What would make this role worthwhile?", why: "Helps match you with tasks you'll care about.",
+      goal: "Career goal", interests: "Interests", expectations: "Expectations", tooLong: "Keep each answer under 500 characters.",
+      goalTags: ["Leadership", "Marketing", "Finance"], interestTags: ["Events", "Design", "Networking"], expectationTags: ["Mentoring", "Experience", "Friends"],
+    },
+    done: {
+      title: "You're in.", cta: "Open my tasks", empty: "You'll see tasks here when your president assigns one.",
+      emptyPreview: "Tasks lists what's yours, with the club date.", first: "Your first task", due: "Club date",
+      saveFailed: "We couldn't save your choices: {problem}", back: "Go back and fix it",
+    },
   },
   // errors
   invalidInvite: "This invitation link isn't working. Ask your president to send a new one.",
