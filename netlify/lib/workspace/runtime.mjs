@@ -1,0 +1,652 @@
+import { createHash } from "node:crypto";
+import { FlowSchema, } from "../../../src/organization/schema.ts";
+import { graphError } from "../../../src/organization/graph.ts";
+import { TaskSchema, WorkItemSchema, WorkspaceStateSchema, DEFAULT_TIMING, } from "../../../src/workspace/contracts/index.ts";
+export class WorkspaceError extends Error {
+    constructor(message, status = 400) {
+        super(message);
+        this.status = status;
+    }
+}
+export const stableId = (...parts) => "id_" + createHash("sha256").update(parts.join("/")).digest("hex").slice(0, 28);
+const unique = (values) => [...new Set(values)];
+const has = (values, id) => values.some((v) => v.id === id);
+const requireValue = (value, message) => {
+    if (!value)
+        throw new WorkspaceError(message, 404);
+    return value;
+};
+const manager = (state) => state.members.find((m) => m.id === state.actorId)?.access === "manager";
+function requireManager(state) {
+    if (!manager(state))
+        throw new WorkspaceError("The selected demo member does not have manager access.", 403);
+}
+function mayAct(state, task) {
+    if (!state.actorId || (!manager(state) && task.ownerId !== state.actorId))
+        throw new WorkspaceError("Only this task's primary owner or a demo manager may change its overall state.", 403);
+}
+function member(state, id) {
+    if (id && !has(state.members, id))
+        throw new WorkspaceError("Choose a current member of this private workspace.");
+}
+export function ready(item, task) {
+    const predecessors = task.dependsOn.map((id) => item.tasks.find((t) => t.id === id)).filter((t) => t?.applicability !== "inactive");
+    const done = (t) => !!t && t.status === "done" && !t.needsReview;
+    if (task.dependsOn.length && !predecessors.length && task.dependencyMode === "any")
+        return false;
+    return !predecessors.length || (task.dependencyMode === "any" ? predecessors.some(done) : predecessors.every(done));
+}
+function graph(tasks) {
+    const visiting = new Set(), seen = new Set(), ids = new Set(tasks.map((t) => t.id));
+    if (ids.size !== tasks.length)
+        throw new WorkspaceError("Task IDs must be unique within a work item.");
+    const visit = (id) => {
+        if (visiting.has(id))
+            throw new WorkspaceError("These task dependencies would create a cycle.");
+        if (seen.has(id))
+            return;
+        const task = tasks.find((t) => t.id === id);
+        if (!task)
+            throw new WorkspaceError("A dependency points outside this work item.");
+        visiting.add(id);
+        task.dependsOn.forEach(visit);
+        visiting.delete(id);
+        seen.add(id);
+    };
+    tasks.forEach((t) => visit(t.id));
+    const stages = new Map();
+    const titles = new Map();
+    for (const task of tasks) {
+        if (titles.has(task.stageKey) && titles.get(task.stageKey) !== task.stageTitle)
+            throw new WorkspaceError("A stage must have one consistent title.");
+        titles.set(task.stageKey, task.stageTitle);
+        const dependencies = stages.get(task.stageKey) ?? new Set();
+        for (const id of task.dependsOn) {
+            const other = tasks.find((t) => t.id === id);
+            if (other.stageKey !== task.stageKey)
+                dependencies.add(other.stageKey);
+        }
+        stages.set(task.stageKey, dependencies);
+    }
+    visiting.clear();
+    seen.clear();
+    const visitStage = (key) => {
+        if (visiting.has(key))
+            throw new WorkspaceError("These stage groups would hide a backward dependency. Keep the work in separate stages.");
+        if (seen.has(key))
+            return;
+        visiting.add(key);
+        stages.get(key)?.forEach(visitStage);
+        visiting.delete(key);
+        seen.add(key);
+    };
+    stages.forEach((_, key) => visitStage(key));
+}
+function cleanAutomaticBlockers(item, at) {
+    for (const task of item.tasks) {
+        const remaining = task.blockers.filter((b) => {
+            if (b.kind === "waiting_dependency")
+                return !dependencyResolved(item, task, b.targetId);
+            if (b.kind === "waiting_approval" && b.targetId)
+                return item.gates.find((g) => g.id === b.targetId)?.status !== "approved";
+            return true;
+        });
+        if (remaining.length !== task.blockers.length) {
+            const resume = task.blockers.find((b) => !remaining.includes(b))?.resumeStatus ?? "to_do";
+            task.blockers = remaining;
+            if (task.status === "stuck" && !remaining.length)
+                task.status = ready(item, task) ? resume : "to_do";
+            task.updatedAt = at;
+        }
+    }
+}
+function dependencyResolved(item, task, targetId) {
+    if (!targetId)
+        return ready(item, task);
+    const target = item.tasks.find((t) => t.id === targetId);
+    return !!target && (target.status === "done" && !target.needsReview || target.applicability === "inactive" && !!target.applicabilityReason.trim());
+}
+function ensureCompletable(item, task) {
+    if (task.kind === "approval")
+        throw new WorkspaceError("Record an explicit approval decision; approval steps cannot be dragged to Done.");
+    if (!task.ownerId)
+        throw new WorkspaceError("Assign a primary owner before completing this task.");
+    if (task.applicability === "inactive")
+        throw new WorkspaceError("This task is inactive; it cannot be completed as active work.");
+    if (!ready(item, task) || task.blockers.length || task.needsReview)
+        throw new WorkspaceError("Resolve this task's dependencies, blockers and pending review before completing it.");
+}
+function resolveOwners(state, roleIds, fallback) {
+    const candidates = unique(state.members.filter((m) => m.roleIds.some((id) => roleIds.includes(id))).map((m) => m.id));
+    const ownerId = candidates.length === 1 ? candidates[0] : !roleIds.length ? fallback : null;
+    return { ownerId, collaboratorIds: candidates.filter((id) => id !== ownerId) };
+}
+function newTask(item, input, at) {
+    return TaskSchema.parse({ parentWorkItemId: item.id, sourceNodeId: null, stageKey: "work", stageTitle: "Work", roleIds: [], ownerId: null, updatedAt: at, ...input });
+}
+function fundingRules(request) {
+    if (request.source !== "usg")
+        return [];
+    return request.category === "food_service" ? [{ ruleId: "R09", days: 10, unit: "business" }]
+        : request.category === "speaker" ? [{ ruleId: "R10", days: 14, unit: "business" }] : [];
+}
+function syncRegistration(item, at) {
+    const required = item.kind === "member_event" && (item.venue === "campus" || item.funding.some((f) => ["usg", "college"].includes(f.source)));
+    const existing = item.tasks.find((t) => t.sourceNodeId === "university_registration");
+    if (required && !existing)
+        item.tasks.push(newTask(item, { id: stableId(item.id, "university-registration"), sourceNodeId: "university_registration", title: "Register activity with ASU", stageKey: "registration", stageTitle: "School requirements", ownerId: item.ownerId, officialRules: [{ ruleId: "R01", days: 30, unit: "calendar" }] }, at));
+    else if (existing && required && existing.applicability === "inactive") {
+        existing.applicability = "required";
+        existing.applicabilityReason = "Venue or school funding makes R01 applicable.";
+        existing.needsReview = true;
+    }
+    else if (existing && !required && existing.status !== "done") {
+        existing.applicability = "inactive";
+        existing.applicabilityReason = "The current off-campus venue and funding do not require this R01 registration step.";
+    }
+}
+function addFunding(item, request, state, at) {
+    const first = item.funding.length === 0;
+    item.funding.push(request);
+    const keys = ["confirm_items", "confirm_quotes", "submit_budget_request", "budget_approval", "submit_purchase_request", "purchase_approval", "order_or_reimburse", "funding_closeout"];
+    const fundingSteps = ["items", "quotes", "budget_submit", "budget_approval", "purchase_submit", "purchase_approval", "order", "closeout"];
+    const titles = ["Confirm purchase items", "Confirm quotes", "Submit budget request", "Record budget approval", "Submit purchase request", "Record purchase approval", "Order or reimburse", "Record receipts and close out"];
+    const aliases = new Map();
+    const sourceReferences = new Map((item.templateFlow?.nodes ?? []).flatMap((node) => {
+        const index = node.milestoneKey === "items" ? 0 : node.milestoneKey === "quotes" ? 1 : node.milestoneKey === "budget_request" ? 2 : -1;
+        return index < 0 ? [] : [[stableId(item.id, node.id), stableId(item.id, request.id, keys[index])]];
+    }));
+    if (first) {
+        for (const task of item.tasks) {
+            if (task.status !== "to_do" || task.manualFields.length)
+                continue;
+            const index = task.milestoneKey === "items" ? 0 : task.milestoneKey === "quotes" ? 1 : task.milestoneKey === "budget_request" ? 2 : -1;
+            if (index >= 0)
+                aliases.set(task.id, stableId(item.id, request.id, keys[index]));
+        }
+        item.tasks = item.tasks.filter((t) => !aliases.has(t.id)).map((t) => ({ ...t, dependsOn: unique(t.dependsOn.map((id) => aliases.get(id) ?? id)) }));
+    }
+    let previous;
+    for (let i = 0; i < keys.length; i++) {
+        const id = stableId(item.id, request.id, keys[i]), gateKind = i === 3 ? "budget" : i === 5 ? "purchase" : null;
+        const gateId = gateKind ? stableId(item.id, request.id, gateKind, "gate", String(request.version)) : null;
+        const milestoneKey = i === 0 ? "items" : i === 1 ? "quotes" : "budget_request";
+        const source = item.templateFlow?.nodes.find((n) => n.milestoneKey === milestoneKey);
+        const roleIds = source?.roleIds ?? [];
+        const owners = roleIds.length ? resolveOwners(state, roleIds, null) : { ownerId: null, collaboratorIds: [] };
+        const weeks = i === 0 ? item.timingDefaults.itemsWeeks : i === 1 ? item.timingDefaults.quotesWeeks : i === 2 ? item.timingDefaults.budgetWeeks : null;
+        item.tasks.push(newTask(item, {
+            id, title: titles[i], sourceNodeId: i < 3 && source ? source.id : keys[i], stageKey: stableId(request.id, keys[i], "phase"), stageTitle: titles[i],
+            roleIds, ...owners, dependsOn: unique([...(previous ? [previous] : []), ...(i < 3 ? source?.dependsOn.map((nodeId) => sourceReferences.get(stableId(item.id, nodeId)) ?? stableId(item.id, nodeId)) ?? [] : [])]),
+            fundingRequestId: request.id, fundingStep: fundingSteps[i],
+            ...(i === 2 ? { officialRules: fundingRules(request), description: fundingRules(request).length ? "The applicable official deadline is separate from the internal six-week target." : "Check the funding office's applicable submission rules; this source/category does not establish a specific official deadline." } : {}),
+            kind: gateKind ? "approval" : "task", gateId,
+            relativeTarget: weeks === null ? null : { offsetDays: weeks * 7, unit: "calendar", source: "organization-default" },
+            ...(i === 0 ? { milestoneKey: "items" } : i === 1 ? { milestoneKey: "quotes" } : i === 2 ? { milestoneKey: "budget_request" } : {}),
+            ...(i === 7 ? { relativeTarget: { offsetDays: -5, unit: "business", source: "organization-default" } } : {}),
+            rank: item.tasks.length,
+        }, at));
+        if (gateKind)
+            item.gates.push({ id: gateId, taskId: id, kind: gateKind, requestId: request.id, requestVersion: request.version, status: "pending", evidence: "", decidedBy: null, decidedAt: null, approverIds: [], external: ["usg", "college"].includes(request.source), reason: `Explicit ${gateKind} approval for this funding request version` });
+        previous = id;
+    }
+}
+function createWork(state, org, input, approved, at) {
+    if (has(state.workItems, input.id))
+        throw new WorkspaceError("That work item already exists.", 409);
+    member(state, input.ownerId);
+    if (input.kind === "member_event" && !approved?.confirmed)
+        throw new WorkspaceError("Confirm organization setup before creating a member activity.", 409);
+    const compiled = approved?.compiled;
+    const template = input.kind === "member_event"
+        ? compiled?.onDemand?.memberWorkflow ? FlowSchema.parse({ ...compiled.onDemand.memberWorkflow, raci: [] }) : approved?.memberFlow
+        : input.flow;
+    const flow = template ?? { title: "Executive work", explanation: "A simple editable work chain. Review the actual task before proceeding.", nodes: ["Plan work", "Carry out the work", "Record the outcome"].map((title, i) => ({ id: `work_${i}`, title, description: "", actionIds: [], roleIds: [], dependsOn: i ? [`work_${i - 1}`] : [], dependencyMode: "all", position: { x: i * 280, y: 0 }, basis: "Editable executive work template" })), raci: [] };
+    const error = graphError(flow.nodes);
+    if (error)
+        throw new WorkspaceError(error);
+    if (flow.nodes.some((n) => n.approval && n.milestoneKey))
+        throw new WorkspaceError("Keep submission milestones and approval decisions in separate workflow steps.");
+    if (flow.nodes.some((n) => n.roleIds.some((id) => !has(org.roles, id))))
+        throw new WorkspaceError("The work template refers to an unknown role.");
+    const item = WorkItemSchema.parse({
+        id: input.id, kind: input.kind, name: input.name, description: input.description,
+        date: input.date, venue: input.venue, ownerId: input.ownerId,
+        templateVersion: org.contextVersion, templateFlow: flow, timingDefaults: org.timingDefaults ?? DEFAULT_TIMING,
+        tasks: [], createdAt: at, updatedAt: at,
+    });
+    const ids = new Map(flow.nodes.map((n) => [n.id, stableId(item.id, n.id)]));
+    const ranks = new Map();
+    const rank = (id) => {
+        if (ranks.has(id))
+            return ranks.get(id);
+        const n = flow.nodes.find((v) => v.id === id);
+        const r = n.dependsOn.length ? Math.max(...n.dependsOn.map(rank)) + 1 : 0;
+        ranks.set(id, r);
+        return r;
+    };
+    item.tasks = flow.nodes.map((n, i) => newTask(item, {
+        id: ids.get(n.id), title: n.title, description: n.description,
+        sourceNodeId: n.id, roleIds: unique(n.roleIds), ...resolveOwners(state, n.roleIds, item.ownerId),
+        ...("milestoneKey" in n ? { milestoneKey: n.milestoneKey } : {}),
+        dependsOn: n.dependsOn.map((id) => ids.get(id)), dependencyMode: n.dependencyMode,
+        stageKey: `stage_${rank(n.id)}`, stageTitle: rank(n.id) === 0 ? "Get started" : "Step " + (rank(n.id) + 1), rank: i,
+    }, at));
+    for (const node of flow.nodes.filter((n) => n.approval)) {
+        const task = item.tasks.find((t) => t.sourceNodeId === node.id);
+        const id = stableId(item.id, node.id, "general-gate", String(org.contextVersion));
+        const approverIds = state.members.filter((m) => m.roleIds.some((roleId) => node.approval.approverRoleIds.includes(roleId))).map((m) => m.id);
+        if (node.approval.approverRoleIds.some((roleId) => !has(org.roles, roleId)))
+            throw new WorkspaceError("The approval metadata refers to an unknown role.");
+        task.kind = "approval";
+        task.gateId = id;
+        item.gates.push({ id, taskId: task.id, kind: "general", requestId: null, requestVersion: org.contextVersion || 1, status: "pending", evidence: "", decidedBy: null, decidedAt: null, approverIds, external: node.approval.external, reason: node.approval.reason });
+    }
+    if (input.fundingSource !== "none")
+        addFunding(item, {
+            id: stableId(item.id, "funding"), version: 1, source: input.fundingSource,
+            purpose: input.name, currency: "USD", amount: input.requestedAmount, category: input.fundingCategory, status: "draft",
+            approvedVersion: null, approvedAmount: null, committedAmount: 0, spentAmount: 0, commitments: [], evidence: "", spendBy: null,
+        }, state, at);
+    syncRegistration(item, at);
+    graph(item.tasks);
+    state.workItems.push(item);
+}
+function complete(item, task, at) {
+    ensureCompletable(item, task);
+    const funding = task.fundingRequestId ? item.funding.find((f) => f.id === task.fundingRequestId) : null;
+    if (funding && task.fundingStep === "order" && funding.amount > 0 && !funding.commitments.some((c) => c.status === "reserved" || c.status === "spent"))
+        throw new WorkspaceError("Record the approved purchase reservation before completing the ordering step.");
+    if (funding && task.fundingStep === "closeout") {
+        if (funding.commitments.some((c) => c.status === "reserved"))
+            throw new WorkspaceError("Record receipts or release each remaining reservation before closing out funding.");
+        if (funding.amount > 0 && !funding.commitments.some((c) => c.status === "spent" || c.status === "released" && !!c.evidence.trim()))
+            throw new WorkspaceError("Record spending evidence or an explicit release decision before closing out funding.");
+    }
+    task.status = "done";
+    task.completedAt = at;
+    task.updatedAt = at;
+    const budget = item.gates.find((g) => g.kind === "budget" && item.tasks.find((t) => t.id === g.taskId)?.dependsOn.includes(task.id));
+    if (budget)
+        requireValue(item.funding.find((f) => f.id === budget.requestId), "Funding request not found.").status = "submitted";
+}
+function currentApproval(item, requestId, version, kind) {
+    const gate = item.gates.find((g) => g.requestId === requestId && g.kind === kind && g.requestVersion === version);
+    const task = gate ? item.tasks.find((t) => t.id === gate.taskId && t.gateId === gate.id) : null;
+    return gate?.status === "approved" && !!task && task.status === "done" && !task.needsReview && ready(item, task);
+}
+/** Pure, server-authorized command reducer. Its result is committed by one CAS. */
+export function applyWorkspaceCommand(original, org, command, approved, at) {
+    const state = structuredClone(original);
+    if (command.type === "actor.select") {
+        member(state, command.memberId);
+        state.actorId = command.memberId;
+    }
+    else if (command.type === "member.upsert") {
+        if (state.members.length)
+            requireManager(state);
+        if (command.member.roleIds.some((id) => !has(org.roles, id)))
+            throw new WorkspaceError("Bind the member only to existing organization roles.");
+        const first = !state.members.length;
+        const value = { ...command.member, roleIds: unique(command.member.roleIds), ...(first ? { access: "manager" } : {}) };
+        if (has(state.members, value.id))
+            state.members = state.members.map((m) => m.id === value.id ? value : m);
+        else
+            state.members.push(value);
+        if (first)
+            state.actorId = value.id;
+        if (!state.members.some((m) => m.access === "manager"))
+            throw new WorkspaceError("Keep at least one demo manager.");
+    }
+    else if (command.type === "member.remove") {
+        requireManager(state);
+        requireValue(state.members.find((m) => m.id === command.memberId), "Member not found.");
+        if (state.actorId === command.memberId)
+            throw new WorkspaceError("Switch demo actors before removing the selected member.");
+        if (state.workItems.some((w) => w.ownerId === command.memberId || w.tasks.some((t) => t.ownerId === command.memberId || t.collaboratorIds.includes(command.memberId))))
+            throw new WorkspaceError("Reassign this member's work items and tasks before removing the membership. Existing work and history will be retained.");
+        state.members = state.members.filter((m) => m.id !== command.memberId);
+        if (!state.members.some((m) => m.access === "manager"))
+            throw new WorkspaceError("Keep at least one demo manager.");
+    }
+    else if (command.type === "work.create") {
+        requireManager(state);
+        createWork(state, org, command.input, approved, at);
+    }
+    else {
+        const item = requireValue(state.workItems.find((w) => w.id === command.workItemId), "Work item not found in this workspace.");
+        item.updatedAt = at;
+        if (command.type === "work.update") {
+            requireManager(state);
+            member(state, command.patch.ownerId ?? null);
+            Object.assign(item, command.patch);
+        }
+        else if (command.type === "work.stages") {
+            requireManager(state);
+            const assigned = new Set(), groupIds = new Set();
+            for (const group of command.groups) {
+                if (groupIds.has(group.id))
+                    throw new WorkspaceError("Stage IDs must be unique.");
+                groupIds.add(group.id);
+                for (const id of group.taskIds) {
+                    const task = requireValue(item.tasks.find((t) => t.id === id), "A stage references an unknown task.");
+                    if (assigned.has(id))
+                        throw new WorkspaceError("Each task may appear in only one stage group.");
+                    assigned.add(id);
+                    task.stageKey = group.id;
+                    task.stageTitle = group.title;
+                    task.manualFields = unique([...task.manualFields, "stageKey", "stageTitle"]);
+                }
+            }
+            if (item.tasks.some((t) => t.applicability === "required" && !assigned.has(t.id)))
+                throw new WorkspaceError("Every active required task must be included in exactly one stage group.");
+            for (const task of item.tasks) {
+                const same = command.groups.find((g) => g.id === task.stageKey);
+                if (same)
+                    task.stageTitle = same.title;
+            }
+        }
+        else if (command.type === "work.applyTiming") {
+            requireManager(state);
+            item.timingDefaults = command.timingDefaults;
+            for (const task of item.tasks) {
+                if (task.status === "done" || task.manualFields.includes("relativeTarget"))
+                    continue;
+                const key = task.milestoneKey;
+                const weeks = key === "items" ? command.timingDefaults.itemsWeeks : key === "quotes" ? command.timingDefaults.quotesWeeks : key === "budget_request" ? command.timingDefaults.budgetWeeks : null;
+                if (weeks !== null)
+                    task.relativeTarget = { offsetDays: weeks * 7, unit: "calendar", source: "organization-default" };
+            }
+        }
+        else if (command.type === "work.applyTemplate") {
+            requireManager(state);
+            if (command.templateVersion !== org.contextVersion || !approved?.confirmed)
+                throw new WorkspaceError("Preview the currently approved template version before adopting it.", 409);
+            if (item.kind !== "member_event")
+                throw new WorkspaceError("Executive work uses its own approved work-specific flow, not the member activity template.");
+            const temporary = structuredClone(state);
+            temporary.workItems = temporary.workItems.filter((w) => w.id !== item.id);
+            createWork(temporary, org, { id: item.id, kind: item.kind, name: item.name, description: item.description, venue: item.venue, date: item.date, ownerId: item.ownerId, fundingSource: "none", fundingCategory: "other", requestedAmount: 0 }, approved, at);
+            const fresh = temporary.workItems.find((w) => w.id === item.id);
+            const oldTemplateIds = new Set(item.templateFlow?.nodes.map((n) => n.id) ?? []);
+            const fundingAliases = new Map();
+            for (const candidate of fresh.tasks)
+                if (candidate.milestoneKey && item.funding.length) {
+                    const existing = item.tasks.find((t) => t.fundingRequestId === item.funding[0].id && t.milestoneKey === candidate.milestoneKey);
+                    if (existing)
+                        fundingAliases.set(candidate.id, existing.id);
+                }
+            const candidates = fresh.tasks.filter((t) => !fundingAliases.has(t.id)).map((t) => ({ ...t, dependsOn: unique(t.dependsOn.map((id) => fundingAliases.get(id) ?? id)) }));
+            const merged = candidates.map((candidate) => {
+                const old = item.tasks.find((t) => t.id === candidate.id);
+                if (!old || old.status === "done")
+                    return old ?? candidate;
+                const next = { ...candidate, status: old.status, blockers: old.blockers, progress: old.progress, manualFields: old.manualFields, dueOverride: old.dueOverride, completedAt: old.completedAt };
+                for (const field of old.manualFields)
+                    if (field in old)
+                        next[field] = old[field];
+                next.needsReview = old.needsReview || JSON.stringify([old.title, old.roleIds, old.dependsOn, old.kind, old.gateId]) !== JSON.stringify([next.title, next.roleIds, next.dependsOn, next.kind, next.gateId]);
+                return next;
+            });
+            for (const old of item.tasks.filter((t) => !merged.some((n) => n.id === t.id)))
+                merged.push({ ...old, needsReview: old.needsReview || !!old.sourceNodeId && oldTemplateIds.has(old.sourceNodeId) });
+            item.tasks = merged;
+            item.templateFlow = fresh.templateFlow;
+            item.templateVersion = org.contextVersion;
+            item.gates.push(...fresh.gates.filter((g) => !has(item.gates, g.id)));
+        }
+        else if (command.type === "work.remove") {
+            requireManager(state);
+            if (item.funding.some((f) => f.spentAmount || f.committedAmount))
+                throw new WorkspaceError("Retain work items with committed or spent funds for their history.");
+            state.workItems = state.workItems.filter((w) => w.id !== item.id);
+        }
+        else if (command.type === "task.add") {
+            requireManager(state);
+            if (has(item.tasks, command.task.id))
+                throw new WorkspaceError("That task already exists.");
+            const { id, title, description, stageKey, stageTitle, roleIds, ownerId, collaboratorIds, dependsOn, dependencyMode, relativeTarget, dueOverride, estimatedDays, applicability, applicabilityReason } = command.task;
+            if (applicability === "inactive" && !applicabilityReason.trim())
+                throw new WorkspaceError("Record why this task is not applicable.");
+            if (roleIds.some((id) => !has(org.roles, id)))
+                throw new WorkspaceError("Choose current organization roles for the new task.");
+            item.tasks.push(newTask(item, { id, title, description, stageKey, stageTitle, roleIds, ownerId, collaboratorIds, dependsOn, dependencyMode, relativeTarget, dueOverride, estimatedDays, applicability, applicabilityReason }, at));
+        }
+        else if (command.type === "task.review") {
+            requireManager(state);
+            command.taskIds.forEach((id) => { requireValue(item.tasks.find((t) => t.id === id), "Task not found.").needsReview = false; });
+        }
+        else if (command.type.startsWith("task.")) {
+            const c = command;
+            const task = requireValue(item.tasks.find((t) => t.id === c.taskId), "Task not found in this work item.");
+            if (c.type === "task.progress") {
+                if (!state.actorId || (!manager(state) && task.ownerId !== state.actorId && !task.collaboratorIds.includes(state.actorId)))
+                    throw new WorkspaceError("Only a participant may submit progress on this task.", 403);
+                task.progress.push({ memberId: state.actorId, text: c.text, at });
+            }
+            else
+                mayAct(state, task);
+            if (c.type === "task.complete")
+                complete(item, task, at);
+            else if (c.type === "task.reopen") {
+                if (task.kind === "approval")
+                    throw new WorkspaceError("Approval history can only be changed through a new request version.");
+                if (task.status !== "done")
+                    throw new WorkspaceError("Only a completed task can be reopened.");
+                task.status = "to_do";
+                task.completedAt = null;
+                for (const down of item.tasks.filter((t) => t.dependsOn.includes(task.id))) {
+                    if (down.status !== "to_do")
+                        down.needsReview = true;
+                    if (down.status === "working" && !ready(item, down)) {
+                        down.status = "stuck";
+                        down.blockers.push({ id: stableId(down.id, task.id, "reopened"), kind: "waiting_dependency", targetId: task.id, reason: "An upstream task was reopened. Review the handoff.", at, resumeStatus: "working" });
+                    }
+                }
+            }
+            else if (c.type === "task.remove") {
+                requireManager(state);
+                if (task.kind === "approval" || task.status === "done" || task.officialRules.length || task.fundingRequestId)
+                    throw new WorkspaceError("Retain completed and funding-control tasks; use an explicit revision instead.");
+                item.tasks = item.tasks.filter((t) => t.id !== task.id);
+                for (const down of item.tasks)
+                    if (down.dependsOn.includes(task.id)) {
+                        down.dependsOn = down.dependsOn.filter((id) => id !== task.id);
+                        down.needsReview = true;
+                    }
+            }
+            else if (c.type === "task.update") {
+                if (!manager(state) && Object.keys(c.patch).some((key) => !["title", "description"].includes(key)))
+                    requireManager(state);
+                if (task.kind === "approval" && ["dependsOn", "applicability", "roleIds"].some((key) => key in c.patch))
+                    throw new WorkspaceError("Approval controls cannot be removed by editing a normal task.");
+                if ((task.officialRules.length || task.fundingRequestId) && ["dependsOn", "applicability"].some((key) => key in c.patch))
+                    throw new WorkspaceError("Keep official and funding-control dependencies; revise the work item or funding request instead.");
+                if (c.patch.applicability === "inactive" && !c.patch.applicabilityReason?.trim())
+                    throw new WorkspaceError("Record why a branch is not applicable before excluding it.");
+                if (c.patch.roleIds?.some((id) => !has(org.roles, id)))
+                    throw new WorkspaceError("Choose current organization roles for this assignment.");
+                Object.assign(task, c.patch);
+                task.manualFields = unique([...task.manualFields, ...Object.keys(c.patch)]);
+                const title = c.patch.stageTitle ?? item.tasks.find((t) => t.id !== task.id && t.stageKey === task.stageKey)?.stageTitle ?? task.stageTitle;
+                for (const same of item.tasks.filter((t) => t.stageKey === task.stageKey)) {
+                    same.stageTitle = title;
+                    if (c.patch.stageTitle)
+                        same.manualFields = unique([...same.manualFields, "stageTitle"]);
+                }
+                if (c.patch.applicability)
+                    for (const down of item.tasks.filter((t) => t.dependsOn.includes(task.id)))
+                        down.needsReview = true;
+            }
+            else if (c.type === "task.unblock") {
+                const blocker = requireValue(task.blockers.find((b) => b.id === c.blockerId), "Blocker not found.");
+                if (blocker.kind === "waiting_dependency" && !dependencyResolved(item, task, blocker.targetId))
+                    throw new WorkspaceError("The prerequisite work is still incomplete.");
+                if (blocker.kind === "waiting_approval" && item.gates.find((g) => g.id === blocker.targetId)?.status !== "approved")
+                    throw new WorkspaceError("The approval has not been recorded yet.");
+                task.blockers = task.blockers.filter((b) => b.id !== blocker.id);
+                if (!task.blockers.length && task.status === "stuck")
+                    task.status = ready(item, task) ? blocker.resumeStatus : "to_do";
+            }
+            else if (c.type === "task.move") {
+                if (c.status === "done")
+                    complete(item, task, at);
+                else {
+                    if (task.kind === "approval")
+                        throw new WorkspaceError("Use an approval decision for approval steps.");
+                    if (task.status === "done")
+                        throw new WorkspaceError("Use Reopen to preserve the completion history.");
+                    if (c.status === "working" && (!ready(item, task) || task.blockers.length || task.needsReview))
+                        throw new WorkspaceError("Resolve the task's dependencies and blockers before starting it.");
+                    if (c.status === "stuck") {
+                        if (!c.blocker)
+                            throw new WorkspaceError("Choose a specific blocker before moving to Stuck.");
+                        if (c.blocker.targetId && !has(item.tasks, c.blocker.targetId) && !has(item.gates, c.blocker.targetId))
+                            throw new WorkspaceError("The blocker refers to an unknown task or approval.");
+                        if (c.blocker.kind === "waiting_dependency" && (!task.dependsOn.length || c.blocker.targetId && !task.dependsOn.includes(c.blocker.targetId)))
+                            throw new WorkspaceError("Choose an actual prerequisite of this task, or first add the dependency explicitly.");
+                        if (c.blocker.kind === "waiting_approval") {
+                            const gate = item.gates.find((g) => g.id === c.blocker?.targetId);
+                            if (!gate || !task.dependsOn.includes(gate.taskId))
+                                throw new WorkspaceError("Choose an approval gate that is an actual prerequisite of this task.");
+                        }
+                        const blocker = { ...c.blocker, at, resumeStatus: task.status === "working" ? "working" : "to_do" };
+                        task.blockers = [...task.blockers.filter((b) => b.id !== blocker.id), blocker];
+                    }
+                    else if (task.blockers.length)
+                        throw new WorkspaceError("Resolve blockers explicitly before changing this task's status.");
+                    task.status = c.status;
+                }
+                const column = item.tasks.filter((t) => t.id !== task.id && t.status === task.status).sort((a, b) => a.rank - b.rank);
+                const before = c.beforeId ? column.findIndex((t) => t.id === c.beforeId) : -1;
+                column.splice(before < 0 ? column.length : before, 0, task);
+                column.forEach((t, i) => t.rank = i);
+            }
+            task.updatedAt = at;
+        }
+        else if (command.type === "gate.add") {
+            requireManager(state);
+            const task = requireValue(item.tasks.find((t) => t.id === command.taskId), "Task not found.");
+            if (task.kind === "approval" || task.status === "done" || has(item.gates, command.gateId))
+                throw new WorkspaceError("Choose an unfinished normal task and a new approval ID.");
+            if (task.fundingRequestId)
+                throw new WorkspaceError("Keep funding submission and spending tasks separate from their approval gates. Add a separate approval step instead.");
+            command.approverIds.forEach((id) => member(state, id));
+            task.kind = "approval";
+            task.gateId = command.gateId;
+            task.status = "to_do";
+            task.blockers = [];
+            item.gates.push({ id: command.gateId, taskId: task.id, kind: "general", requestId: null, requestVersion: 1, status: "pending", evidence: "", decidedBy: null, decidedAt: null, approverIds: unique(command.approverIds), external: command.external, reason: command.reason });
+        }
+        else if (command.type === "gate.decide") {
+            const gate = requireValue(item.gates.find((g) => g.id === command.gateId), "Approval not found.");
+            if (gate.external || !state.actorId || !gate.approverIds.includes(state.actorId))
+                requireManager(state);
+            if (gate.status !== "pending")
+                throw new WorkspaceError("This approval already has a decision; revise and resubmit the request instead.", 409);
+            const task = requireValue(item.tasks.find((t) => t.id === gate.taskId), "Approval task not found.");
+            if (task.gateId !== gate.id)
+                throw new WorkspaceError("This approval belongs to an older workflow version. Use the task's current approval gate.", 409);
+            if (!ready(item, task) || task.needsReview)
+                throw new WorkspaceError("Complete the submission and prerequisite steps before recording approval.");
+            const funding = gate.requestId ? requireValue(item.funding.find((f) => f.id === gate.requestId), "Funding request not found.") : null;
+            if (funding && gate.requestVersion !== funding.version)
+                throw new WorkspaceError("This approval belongs to an older request version.", 409);
+            if (funding && gate.kind === "budget") {
+                if (funding.status !== "submitted")
+                    throw new WorkspaceError("Submit the current budget version before approving it.");
+                funding.status = command.decision;
+                funding.evidence = command.evidence;
+                funding.approvedVersion = command.decision === "approved" ? funding.version : null;
+                funding.approvedAmount = command.decision === "approved" ? funding.amount : null;
+            }
+            if (funding && gate.kind === "purchase" && (funding.status !== "approved" || funding.approvedVersion !== funding.version))
+                throw new WorkspaceError("The current budget request has not been approved.");
+            gate.status = command.decision;
+            gate.evidence = command.evidence;
+            gate.decidedBy = state.actorId;
+            gate.decidedAt = at;
+            task.status = command.decision === "approved" ? "done" : "stuck";
+            task.completedAt = command.decision === "approved" ? at : null;
+            task.updatedAt = at;
+        }
+        else if (command.type === "funding.add") {
+            requireManager(state);
+            if (has(item.funding, command.requestId))
+                throw new WorkspaceError("That funding request already exists.", 409);
+            addFunding(item, { id: command.requestId, version: 1, source: command.source, category: command.category ?? "other", purpose: command.purpose, currency: "USD", amount: command.amount, status: "draft", approvedVersion: null, approvedAmount: null, committedAmount: 0, spentAmount: 0, commitments: [], evidence: "", spendBy: null }, state, at);
+        }
+        else if (command.type === "funding.setDeadline") {
+            requireManager(state);
+            requireValue(item.funding.find((f) => f.id === command.requestId), "Funding request not found.").spendBy = command.spendBy;
+        }
+        else if (command.type === "funding.revise") {
+            requireManager(state);
+            const funding = requireValue(item.funding.find((f) => f.id === command.requestId), "Funding request not found.");
+            if (command.source !== funding.source &&
+                (funding.spentAmount > 0 || funding.committedAmount > 0 || funding.commitments.some((c) => c.amount > 0)))
+                throw new WorkspaceError("This request already has spending or commitment history. Add a separate funding request for the new source; the original source and ledger must remain unchanged.");
+            if (Math.round(command.amount * 100) < Math.round(funding.spentAmount * 100) + Math.round(funding.committedAmount * 100))
+                throw new WorkspaceError("The revised amount cannot erase funds already spent or committed.");
+            funding.version++;
+            funding.amount = command.amount;
+            funding.source = command.source;
+            funding.purpose = command.purpose;
+            funding.category = command.category ?? funding.category ?? "other";
+            funding.status = "draft";
+            funding.approvedVersion = null;
+            funding.approvedAmount = null;
+            funding.evidence = "";
+            for (const gate of item.gates.filter((g) => g.requestId === funding.id && g.requestVersion === funding.version - 1)) {
+                const approvalTask = requireValue(item.tasks.find((t) => t.id === gate.taskId), "Approval task not found.");
+                const id = stableId(item.id, funding.id, gate.kind, "gate", String(funding.version));
+                item.gates.push({ ...gate, id, requestVersion: funding.version, status: "pending", evidence: "", decidedBy: null, decidedAt: null });
+                approvalTask.gateId = id;
+                approvalTask.status = "to_do";
+                approvalTask.completedAt = null;
+                for (const submit of item.tasks.filter((t) => approvalTask.dependsOn.includes(t.id))) {
+                    submit.status = "to_do";
+                    submit.completedAt = null;
+                    if (gate.kind === "budget")
+                        submit.officialRules = fundingRules(funding);
+                }
+            }
+        }
+        else if (command.type === "funding.commit") {
+            requireManager(state);
+            const funding = requireValue(item.funding.find((f) => f.id === command.requestId), "Funding request not found.");
+            if (has(funding.commitments, command.commitmentId))
+                throw new WorkspaceError("That funding commitment already exists.", 409);
+            if (funding.status !== "approved" || funding.approvedVersion !== funding.version || !currentApproval(item, funding.id, funding.version, "budget") || !currentApproval(item, funding.id, funding.version, "purchase"))
+                throw new WorkspaceError("Record both current budget and purchase approval before committing funds.");
+            const cents = (amount) => Math.round(amount * 100);
+            if (cents(funding.spentAmount) + cents(funding.committedAmount) + cents(command.amount) > cents(funding.approvedAmount ?? 0))
+                throw new WorkspaceError("The cumulative spent and committed amount would exceed this source's approved budget.");
+            funding.commitments.push({ id: command.commitmentId, amount: command.amount, purpose: command.purpose, at, status: "reserved", requestVersion: funding.version, evidence: "" });
+            funding.committedAmount = (cents(funding.committedAmount) + cents(command.amount)) / 100;
+        }
+        else if (command.type === "funding.spend" || command.type === "funding.release") {
+            requireManager(state);
+            const funding = requireValue(item.funding.find((f) => f.id === command.requestId), "Funding request not found.");
+            const commitment = requireValue(funding.commitments.find((c) => c.id === command.commitmentId), "Commitment not found.");
+            if (commitment.status !== "reserved")
+                throw new WorkspaceError("Only a pending reservation can be spent or released.", 409);
+            if (command.type === "funding.spend" && (commitment.requestVersion !== funding.version || funding.approvedVersion !== funding.version || funding.status !== "approved"))
+                throw new WorkspaceError("Approve the current request version and re-reserve funds before spending an outdated commitment.");
+            funding.committedAmount = Math.round((funding.committedAmount - commitment.amount) * 100) / 100;
+            if (command.type === "funding.spend")
+                funding.spentAmount = Math.round((funding.spentAmount + commitment.amount) * 100) / 100;
+            commitment.status = command.type === "funding.spend" ? "spent" : "released";
+            commitment.evidence = command.evidence;
+        }
+        cleanAutomaticBlockers(item, at);
+        syncRegistration(item, at);
+        graph(item.tasks);
+        for (const task of item.tasks) {
+            member(state, task.ownerId);
+            task.collaboratorIds.forEach((id) => member(state, id));
+        }
+    }
+    state.updatedAt = at;
+    return WorkspaceStateSchema.parse(state);
+}

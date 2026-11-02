@@ -1,0 +1,21 @@
+import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
+import { useState } from "react";
+import { useStore } from "../data/store";
+import { PageHead } from "../components/Page";
+import { useRail } from "../components/rail/RailContext";
+import { Avatar, Hover, Info } from "../components/ui";
+import { roleName } from "./helpers";
+import { contributionBoard, workload } from "../engine/team";
+import { MeetingFinder } from "../components/MeetingFinder";
+const BAND = { "Room to help": 1, Focused: 2, "Needs support": 3 };
+export default function Team() {
+    const { state } = useStore();
+    const rail = useRail();
+    const board = contributionBoard(state);
+    const [showAll, setShowAll] = useState(false);
+    const visibleBoard = state.people.length > 10 && !showAll ? board.slice(0, 10) : board;
+    return _jsxs(_Fragment, { children: [_jsx(PageHead, { path: "/team" }), _jsxs("div", { className: "grid-2", children: [_jsxs("section", { className: "card", "aria-labelledby": "off-h", children: [_jsxs("header", { children: [_jsx("h2", { id: "off-h", children: "Workload" }), _jsx(Info, { children: "A qualitative signal for the next two weeks\u2014not a capacity target. It weighs estimated work, urgency, rule and dependency impact, plus a self-reported busy week. It never shows a percentage or \u201Cunused\u201D time." })] }), _jsx("table", { className: "tbl", "data-testid": "officers", children: _jsx("tbody", { children: state.people.map(p => {
+                                        const w = workload(state, p.id);
+                                        return _jsxs("tr", { className: "wl-row", children: [_jsx("td", { children: _jsxs("span", { className: "who", children: [_jsx(Avatar, { name: p.name }), p.name.split(" ")[0]] }) }), _jsx("td", { className: "small muted", children: roleName(state, p.roleId) }), _jsx("td", { children: _jsx(Hover, { card: w.nodes.length ? _jsx(_Fragment, { children: w.nodes.slice(0, 5).map(n => _jsx("span", { className: "hc-line", children: n.title }, n.id)) }) : "No open work in the next two weeks.", children: _jsxs("span", { className: `band b${BAND[w.band]}`, tabIndex: 0, role: "img", "aria-label": `${w.band}: weighted work signal`, children: [_jsx("i", {}), _jsx("i", {}), _jsx("i", {})] }) }) }), _jsx("td", { className: "small", children: w.band })] }, p.id);
+                                    }) }) })] }), _jsxs("section", { className: "card", "aria-labelledby": "cb-h", children: [_jsxs("header", { children: [_jsx("h2", { id: "cb-h", children: "Contributions" }), _jsx(Info, { children: "Impact combines estimated effort and how central a completed step was. Reliability reflects delivery by the club deadline. This is not a task-count leaderboard." }), state.people.length > 10 && _jsx("button", { type: "button", className: "btn small", onClick: () => setShowAll(all => !all), children: showAll ? "Show top 10" : `Show all ${state.people.length} officers` })] }), _jsxs("table", { className: "tbl", "data-testid": "contribution-board", children: [_jsx("thead", { children: _jsxs("tr", { children: [_jsx("th", { children: "Rank" }), _jsx("th", { children: "Officer" }), _jsx("th", { children: "Impact" }), _jsx("th", { children: "Reliability" })] }) }), _jsx("tbody", { children: visibleBoard.map(r => _jsxs("tr", { children: [_jsxs("td", { className: "small muted", children: ["#", r.rank] }), _jsx("td", { children: _jsxs("span", { className: "who", children: [_jsx(Avatar, { name: r.person.name, size: "sm" }), r.person.name.split(" ")[0]] }) }), _jsx("td", { children: _jsx(Hover, { card: r.entries.length ? _jsx(_Fragment, { children: r.entries.map(c => _jsx("button", { type: "button", className: "hc-line link", onClick: () => rail.show({ kind: "task", id: c.nodeId }), children: state.nodes.find(n => n.id === c.nodeId)?.title }, c.nodeId)) }) : "No finished steps yet.", children: _jsxs("span", { tabIndex: 0, className: `impact-meter l${r.impactLevel}`, role: "img", "aria-label": `Impact: ${r.impactLevel} of 4`, children: [_jsx("i", {}), _jsx("i", {}), _jsx("i", {}), _jsx("i", {})] }) }) }), _jsx("td", { children: _jsxs("span", { className: `reliability ${r.reliabilityTone}`, children: [_jsx("i", { "aria-hidden": "true" }), r.reliabilityLabel] }) })] }, r.person.id)) })] })] })] }), _jsx(MeetingFinder, {})] });
+}
