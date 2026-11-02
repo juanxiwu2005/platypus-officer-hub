@@ -6,7 +6,14 @@
 > **测试：** Events 相关的 8 个文件（含 a11y、dx-15/16/22、flow-edit、wp5、word-budgets）桌面+手机 127 通过 / 33 跳过 / 0 失败；`npm run lint` 通过。**这次没有再跑完整 `npm run check`**（只改了一条 CSS 和一个新测试）。
 > **没验证的：** 你看到的具体窗口宽度我不知道，按你截图的比例推断是 1700–1900px 且右栏关着。其他页面（Today、Tasks 等）在这种宽度下仍然居中、两边留白；如果你也想让它们靠左，告诉我。
 
-> **2026-11-02 · Onboarding 阶段 2（OB-04…OB-08）· 进行中（Claude，整合人；执行包用 worktree 子 agent）**
+> **2026-11-02 · Onboarding 阶段 2（OB-04…OB-08）完成，待 Juanxi 验收（Claude 整合；5 个包由 worktree 子 agent 并行做）**
+> **做了什么：** 流程 A 的 5 个屏和流程 B 预览的 6 个屏都做好了，各自能单独打开：OB-04 Name + Constitution、OB-05 Goals + Team、OB-06 First event（一句话画出进度链）、OB-07 社员预览前半（Invitation、You、Reminders）、OB-08 社员预览后半（Busy weeks、About you、Done，Done 才把预览资料存进数据）。报告在 [`onboarding-redesign/reports/`](onboarding-redesign/reports/)，回滚登记在 `ROLLBACK_LOG.md`。**还不能从欢迎页一路点到底**：确认屏、邀请屏（OB-09）和把入口切到新流程（OB-10）是阶段 3。
+> **怎么验收（预览 10，先用隐身窗口）：** 逐个打开这些网址，看每一屏：`/#/welcome/founder/name` → `constitution` → `goals` → `team` → `first-event`（点示例句子再点 Plan it，看进度链画出来）；社员预览 `/#/welcome/member/invitation` → `you` → `reminders` → `busy-weeks` → `about` → `done`。Done 是最后一屏，走到那里才会保存。
+> **测试（Node 22）：** lint、类型检查、构建通过；**913 个单元测试**全过（`engine.test.ts` 那条要加 `--testTimeout=30000`，已知脆弱）；完整页面回归 **799 通过 / 105 按设计跳过 / 6 失败**，字数在上限内。6 个失败全是帧采样类动效测试（`dx-10-menu` ×3、`dx-11-toast` ×2、`dx-18-empty` ×1）；**在没有任何 onboarding 代码的提交 `433ccd2` 上跑同样的测试也失败（dx-11 单独跑 2 个、1 个失败；dx-10、dx-18 在阶段 0 前基线上也失败），所以是这台机器上本来就不稳，不是 onboarding 引入的，但我没有修它。**
+> **我定的几处（审查时）：** OB-07 示例气泡去掉写死的日期；默认第一场活动改成春季日期（原 11/19 太近，标准流程前几步全落在过去）；`.stylelintrc.json` 的动效守卫扩到 `ob-*.css`（原来只管 `dx-*`）。
+> **需要 Juanxi 决定：** ①**缓冲控件在标准流程里拨动不会让任何日期变**（实测 3 种事件 × 260 个日期无一变化，因为每一步的目标日都比"官方截止日减缓冲"更早）。选：接受并把"日期当场变"从验收里拿掉 / 加一行会随缓冲变化的真实计算例子（我倾向）/ 改引擎（不建议）。②OB-04：Save & exit 或刷新会丢掉进行中的章程阅读；AI 失败只显示一句话，不再显示原因。③OB-05：AI 建议的岗位要点 "Use these suggestions" 才套用。
+> **没验证的：** 真机手指、Safari/Firefox、真实 AI、真实 PDF/docx 上传、屏幕阅读器实际朗读。**需要同步本地备份。**
+
 
 > **2026-11-02 · Onboarding 阶段 0 补齐（Claude，复核 Codex 的 OB-01/02/03）· 待 Juanxi 验收**
 > **结论：阶段 0 之前只是骨架，没有达到验收门，我已补齐。** 最严重的两个问题：①给你的预览网址 `/?walkthrough=1#/` 触发不了欢迎页（应用用 `#` 路由，只有 `/#/?walkthrough=1` 才行）；②点 Reset demo 后欢迎页不再出现。另有：草稿上下文只有 3 个字段、没有进度链和 Demo 条、没有任何页面测试。详见 [`reports/OB-04-prep-stage0-gap-fix.md`](onboarding-redesign/reports/OB-04-prep-stage0-gap-fix.md)。
