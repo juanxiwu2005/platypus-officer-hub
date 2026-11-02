@@ -10,7 +10,6 @@ import { useFlow } from "../engine/useFlow"
 import { summaryLine } from "./confirm/summary"
 
 const c = onboardingCopy.founder.confirm
-const DRAFT_SAVE_DELAY = 700   // draft.tsx saves this long after a change
 
 /**
  * Screen 6 of the founder flow (required): one sentence says what will be created, then Start workspace creates it with exactly the arguments the
@@ -37,8 +36,6 @@ export function Confirm() {
     started.current = true
     dispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps })
     clear()
-    // The draft saves itself 700 ms after its last change. A save that was already waiting would bring the deleted draft back, so delete once more after it.
-    window.setTimeout(clear, DRAFT_SAVE_DELAY + 100)
     navigate("/welcome/founder/invite")
   }
 

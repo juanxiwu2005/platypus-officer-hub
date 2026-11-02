@@ -64,18 +64,20 @@ export function OnboardingDraftProvider({ children }: { children: ReactNode }) {
   })
   const [restorable, setRestorable] = useState<{ savedAt: string; value: Saved } | null>(null)
   const dirty = useRef(false)
+  const pending = useRef<ReturnType<typeof setTimeout> | null>(null)   // the save that is waiting; clear() must cancel it or it would bring the deleted draft back
   useEffect(() => { let on = true; void loadJson<Saved>(DRAFT_ID).then(r => { if (on && r?.value?.club && Date.now() - Date.parse(r.savedAt) < WEEK) setRestorable(r) }); return () => { on = false } }, [])
   useEffect(() => {
     if (!dirty.current || restorable) return
     const { reading: _reading, ...saved } = draft; void _reading
-    const t = setTimeout(() => { void saveJson(DRAFT_ID, saved satisfies Saved) }, 700)
+    const t = setTimeout(() => { pending.current = null; void saveJson(DRAFT_ID, saved satisfies Saved) }, 700)
+    pending.current = t
     return () => clearTimeout(t)
   }, [draft, restorable])
   const update = useCallback((fn: (d: OnboardingDraft) => OnboardingDraft) => { dirty.current = true; setDraft(fn) }, [])
   const patch = useCallback((next: Partial<OnboardingDraft>) => update(d => ({ ...d, ...next })), [update])
   const restore = useCallback(() => { setRestorable(r => { if (r) { dirty.current = true; setDraft(d => ({ ...d, ...r.value, reading: { status: "idle" } })) } return null }) }, [])
   const discard = useCallback(() => { void deleteJson(DRAFT_ID); setRestorable(null) }, [])
-  const clear = useCallback(() => { dirty.current = false; void deleteJson(DRAFT_ID) }, [])
+  const clear = useCallback(() => { dirty.current = false; if (pending.current) { clearTimeout(pending.current); pending.current = null } void deleteJson(DRAFT_ID) }, [])
   const value = useMemo(() => ({ draft, patch, update, restorable: restorable ? { savedAt: restorable.savedAt } : null, restore, discard, clear }), [draft, patch, update, restorable, restore, discard, clear])
   return <DraftContext.Provider value={value}>{children}</DraftContext.Provider>
 }

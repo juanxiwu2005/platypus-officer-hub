@@ -12,3 +12,4 @@
 
 | OB-05 | `39c033b` | `git revert -m 1 39c033b` |
 | OB-08 | `8c1e0b9` | `git revert -m 1 8c1e0b9` |
+| OB-09 | `d203f75`（另有修复提交：`draft.clear()` 取消待保存的定时器、去掉 Confirm 里的绕法，撤包前**先撤它**） | `git revert -m 1 d203f75` |
