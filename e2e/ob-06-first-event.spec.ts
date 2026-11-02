@@ -80,7 +80,7 @@ test("the buffer is a five-way control; turning it re-plans the dates (a club wh
   const group = page.getByRole("group", { name: /Club buffer/ })
   await expect(group.getByRole("button")).toHaveCount(5)
   await expect(group.getByRole("button", { name: "3 days" })).toHaveAttribute("aria-pressed", "true")   // the draft's buffer
-  await expect(page.getByText(c.bufferHint)).toBeVisible()
+  await expect(page.getByTestId("buffer-example")).toBeVisible()
   const before = await dotsText(page)
   await group.getByRole("button", { name: "7 days" }).click()
   await expect(group.getByRole("button", { name: "7 days" })).toHaveAttribute("aria-pressed", "true")
@@ -283,4 +283,17 @@ test.describe("with motion", () => {
     })
     expect(props).toEqual([])
   })
+})
+
+test("the buffer example is computed by the engine and changes with every choice", async ({ page }) => {
+  await plan(page)
+  const example = page.getByTestId("buffer-example")
+  const seen: string[] = []
+  for (const n of [1, 2, 3, 5, 7]) {
+    await page.getByRole("button", { name: `${n} ${n === 1 ? c.day : c.days}` }).click()
+    await expect(page.getByRole("button", { name: `${n} ${n === 1 ? c.day : c.days}` })).toHaveAttribute("aria-pressed", "true")
+    seen.push((await example.innerText()).trim())
+  }
+  expect(new Set(seen).size).toBe(5)                         // five buffers, five different club dates
+  expect(seen.every(t => /^ASU deadline \w{3}, \w{3} \d+ becomes \w{3}, \w{3} \d+ for your club\.$/.test(t))).toBe(true)
 })

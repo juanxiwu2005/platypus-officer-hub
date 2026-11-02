@@ -99,7 +99,7 @@ describe("words and copy", () => {
     const { event, date } = await eventOf(c.examples[0].sentence)
     const dots = chainDots(previewFor(state, club, event, date, CODE, steps, 3))
     const chain = dots.map(d => `${d.title} Nov 20`).join(" ")
-    const glance = [c.title, ...c.examples.map(x => x.label), c.cta, chain, `${c.buffer} · ${c.days}`, "1 2 3 5 7", c.bufferHint, c.details, onboardingCopy.back, onboardingCopy.next].join(" ")
+    const glance = [c.title, ...c.examples.map(x => x.label), c.cta, chain, `${c.buffer} · ${c.days}`, "1 2 3 5 7", c.bufferExample, c.details, onboardingCopy.back, onboardingCopy.next].join(" ")
     expect(wordCount(glance)).toBeLessThanOrEqual(60)
   })
 })

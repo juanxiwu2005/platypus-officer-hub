@@ -41,7 +41,7 @@ export const onboardingCopy = {
       suggested: "AI suggested roles.", use: "Use these suggestions", sameName: "Each officer needs a different name.",
     },
     firstEvent: {
-      title: "Plan your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", details: "Event details",
+      title: "Plan your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "ASU deadline {official} becomes {club} for your club.", details: "Event details",
       sentenceLabel: "Your first event, in one sentence", examplesLabel: "Examples", planning: "Planning…", chainLabel: "First steps and dates",
       stale: "Press Plan it to update the steps.", notEvent: "Describe one event starting with Plan, then review its details.",
       dateError: "Choose a date that is today or later in Event details.", day: "day", days: "days",

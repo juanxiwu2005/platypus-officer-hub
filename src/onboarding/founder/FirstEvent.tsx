@@ -5,6 +5,8 @@ import { prefersReducedMotion } from "../../lib/motion"
 import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
+import { bufferExample } from "./firstEvent/bufferExample"
+import { fmtLong } from "../../lib/dates"
 import { EventChain } from "./firstEvent/EventChain"
 import { chainDots, prepareEvent, previewFor } from "./firstEvent/plan"
 
@@ -34,6 +36,7 @@ export function FirstEvent() {
   useEffect(() => () => { request.current = -1 }, [])   // an answer that arrives after leaving the screen is dropped
 
   const { event, date, buffer } = draft
+  const example = useMemo(() => bufferExample(state.today, buffer), [state.today, buffer])
   const preview = useMemo(() => previewFor(state, draft.club, event, date, draft.inviteCode, draft.steps, buffer), [state, draft.club, event, date, draft.inviteCode, draft.steps, buffer])
   const dots = useMemo(() => chainDots(preview), [preview])
   const needsDate = !!event && !preview
@@ -75,7 +78,7 @@ export function FirstEvent() {
         <div className="seg ob6-seg" role="group" aria-labelledby="ob6-buffer-label">
           {BUFFER_CHOICES.map(n => <button key={n} type="button" aria-pressed={buffer === n} aria-label={`${n} ${n === 1 ? c.day : c.days}`} onClick={() => patch({ buffer: n })}>{n}</button>)}
         </div>
-        <p className="small muted ob6-hint">{c.bufferHint}</p>
+        <p className="small ob6-example" data-testid="buffer-example">{c.bufferExample.replace("{official}", fmtLong(example.official)).replace("{club}", fmtLong(example.club))}</p>
       </div>
     </>}
 
