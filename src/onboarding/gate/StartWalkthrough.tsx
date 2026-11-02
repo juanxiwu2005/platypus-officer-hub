@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react"
 import { useNavigate } from "react-router-dom"
-import { beginWalkthrough } from "../record"
+import { beginWalkthrough, recordEvent } from "../record"
 import { FOUNDER_START } from "../target"
 
 /** Begins a recorded walkthrough, then moves on. Used by Start walkthrough and by Demo menu → Replay walkthrough. */
@@ -11,6 +11,7 @@ export function StartWalkthrough() {
     if (began.current) return   // React runs effects twice in development; one visit is one attempt
     began.current = true
     beginWalkthrough()
+    if (FOUNDER_START.includes("/founder/")) recordEvent("founder.name", "enter")   // the first screen of the founder flow
     navigate(FOUNDER_START, { replace: true })
   }, [navigate])
   return null

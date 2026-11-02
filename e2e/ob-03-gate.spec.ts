@@ -26,13 +26,13 @@ test("Explore the sample club: Today opens, it is remembered, and it is recorded
   await expect(page.locator("main h1")).toHaveText("Today")   // not asked again
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "explore", outcome: "explored", flowVersion: "ob-1" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "explore", outcome: "explored", flowVersion: "ob-2" })
 })
-test("Start walkthrough opens the setup inside the focus shell and is recorded once", async ({ page }) => {
+test("Start walkthrough opens the new founder flow inside the focus shell and is recorded once", async ({ page }) => {
   await page.goto(WELCOME_ON)
   await page.getByRole("button", { name: "Start walkthrough" }).click()
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set up your fictional club")
-  await expect(page).toHaveURL(/#\/welcome\/classic$/)
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Name your club")
+  await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
   await expect(page.getByRole("link", { name: "Tasks" })).toHaveCount(0)    // no sidebar
   await expect(page.getByRole("button", { name: "Ask Platypus" })).toHaveCount(0)
   const rec = await onboardingRecord(page)
@@ -43,7 +43,7 @@ test("Start walkthrough opens the setup inside the focus shell and is recorded o
 })
 test("Save & exit records the exit and returns to Today", async ({ page }) => {
   await page.goto("/#/welcome/start")
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set up your fictional club")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Name your club")
   await page.getByRole("button", { name: "Save & exit" }).click()
   await expect(page.locator("main h1")).toHaveText("Today")
   expect((await onboardingRecord(page)).attempts[0].outcome).toBe("exited")
@@ -59,7 +59,7 @@ test("Reset demo brings the welcome page back and keeps what was recorded; Repla
   await page.getByRole("button", { name: "Explore the sample club" }).click()
   await openDemoMenu(page)
   await page.getByRole("link", { name: "Replay walkthrough" }).click()
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set up your fictional club")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Name your club")
   const attempts = (await onboardingRecord(page)).attempts
   expect(attempts.map(a => a.entry)).toEqual(["explore", "explore", "start"])
 })
