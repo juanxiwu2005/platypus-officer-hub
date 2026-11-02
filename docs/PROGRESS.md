@@ -1,5 +1,5 @@
-> **2026-11-02 · Onboarding 改版 · 阶段 1 进行中（Codex）**
-> **范围：** 仅执行 OB-01（外壳与路由）、OB-02（浏览器本地行为记录）、OB-03（首次进入欢迎入口）。环境已修复但未改应用代码：使用 Node **v22.23.4** 与现有 `/usr/bin/chromium`（通过 `PW_CHROMIUM` 指定）；`npm ci && npm run check` 全绿——lint、构建、**839 个单元测试**、**632 个页面测试通过 / 104 个按设计跳过**、字数检查通过。接下来按 `docs/onboarding-redesign/HANDOFF_PROMPT.md` 的阶段 1 顺序和白名单执行；合并顺序为 OB-02、OB-01、OB-03。**需要同步本地备份。**
+> **2026-11-02 · Onboarding 改版 · 阶段 1 待验收（Codex）**
+> **范围：** 已合并 OB-02（本机行为记录）、OB-01（外壳与路由）、OB-03（首次进入欢迎入口）；回滚 SHA 见 `docs/onboarding-redesign/ROLLBACK_LOG.md`。环境使用 Node **v22.23.4** 与 `/usr/bin/chromium`。本阶段新增路由默认关闭；预览可用 `?walkthrough=1` 打开欢迎页，选择 Start walkthrough 或 Explore the sample club。完整阶段回归正在执行；真机和 Safari 尚未验证。**需要同步本地备份。**
 
 > **2026-11-01 · 修复（Juanxi 反馈）· Events 页左边一大块空白（Claude）**
 > **原因：** 所有页面的内容区 `main` 是"最宽 1180px、居中"。宽屏（≥1728px）且右栏关着时，内容区两边各留出很宽的空地，Events 的活动列表就离左边导航很远（实测右栏关着：1728px 宽时空 172px，1920px 时 268px，2560px 时 588px）。**修法：** 只对 Events 页（`main:has(> .events-layout)`）改成最宽 1600px、靠左对齐，列表紧贴导航；空地移到右边。其他页面没动（仍居中）。新测试 `e2e/events-gap.spec.ts`（1440/1728/1920/2560 宽 × 右栏开/关，8 个）：列表离导航不超过 32px；去掉修复后 4 个宽屏+右栏关的会变红。
