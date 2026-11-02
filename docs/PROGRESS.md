@@ -1,5 +1,5 @@
 > **2026-11-02 · Meeting Finder：预览与已选时间分离（Codex）**
-> Team 的 Meeting time 不再将鼠标悬停预览与已选时间以两条相似摘要混在一起。Group 网格悬停只在网格旁显示轻量的 Preview；点击后只有一张明确的 Selected time 卡片。参会人或时长改变而使选择失效时，卡片会列出不再有空的人，并隐藏 Calendar 草稿动作。Shared times 改为 Best times，Draft/Clear 改为 Create calendar draft / × Clear selection。保留原有可用性、时区与 Calendar 草稿计算。
+> Team 的 Meeting time 不再将鼠标悬停预览与已选时间以两条相似摘要混在一起。Group 网格悬停只在网格旁显示轻量的 Preview；点击后仅在同一区域显示“几人有空”和醒目的 Draft in Calendar，不再重复时间或提供没有语义的 Clear。参会人或时长改变而使选择失效时，卡片会列出不再有空的人，并隐藏 Calendar 草稿动作。Shared times 改为 Best times；每个 Best times 时段本身就是醒目的 Calendar 草稿链接，不要求第二次点击。保留原有可用性、时区与 Calendar 草稿计算。
 > lint、生产构建、809 项单元测试通过；本环境没有 Playwright Chromium，字数检查和 15 个 Team 页面场景均在浏览器启动前失败，无法执行。需要 Preview 验收：Team → Meeting time，任选时段、移动鼠标、勾选一位无空档成员、再清除选择。
 
 > **2026-10-31 · DP8 发布准备第三阶段 WP10：完整本地发布门禁通过（Codex；America/Phoenix，执行日志为 11-01 UTC）**

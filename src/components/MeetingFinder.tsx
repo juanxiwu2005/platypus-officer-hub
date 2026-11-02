@@ -6,7 +6,6 @@ import { GRID_FROM, GRID_ROWS, GRID_STEP, GRID_TO, availabilityGrid, availabilit
 import { addDays, fmtShort, fromISO } from "../lib/dates"
 
 const clock = (m: number) => `${((Math.floor(m / 60) + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${m < 720 ? "am" : "pm"}`
-const asMinutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3))
 const hourTag = (m: number) => m % 60 === 0 ? `${((Math.floor(m / 60) + 11) % 12) + 1}${m < 720 ? "a" : "p"}` : ""
 const dayName = (date: string) => fromISO(date).toLocaleDateString("en-US", { weekday: "short" })
 const names = (list: { name: string }[]) => list.length ? list.map(p => p.name.split(" ")[0]).join(", ") : "nobody"
@@ -165,6 +164,12 @@ export function MeetingFinder() {
           onHover={(d, k) => setPeek({ date: dates[d], from: GRID_FROM + k * GRID_STEP })} />
         <div className="w2m-legend small muted" aria-hidden="true">0{Array.from({ length: Math.min(total, 5) + 1 }, (_, i) => <i key={i} style={{ "--a": i / Math.min(total, 5) } as CSSProperties} />)}{total}</div>
         {preview && peek && <p className="meeting-preview small" data-testid="meeting-preview" role="status" aria-live="polite"><b>Preview</b> · {dayName(peek.date)} {fmtShort(peek.date)} · {clock(peek.from)}–{clock(peek.from + GRID_STEP)} · {names(preview.free)} available</p>}
+        {pick && <div className="meeting-selection" data-testid="selected-time" aria-live="polite">
+          {!fits ? <span className="small late-text">Ends after 10 pm. Pick an earlier time.</span>
+            : choiceWorks ? <span className="small"><b>{choice!.free.length} of {ids.length} free</b></span>
+              : <span className="small late-text">This time no longer works for {names(choice?.busy ?? [])}.</span>}
+          {choiceWorks && <a className="btn btn-primary small" target="_blank" rel="noreferrer" href={calendarDraftUrl(pick.date, hhmm(pick.from), hhmm(pick.from + duration))} aria-label="Draft in Calendar for selected time">Draft in Calendar</a>}
+        </div>}
       </div>
     </div></>}
     {weeklyDraft && <section className="weekly-editor" aria-label="Edit weekly schedule" data-testid="weekly-schedule-editor">
@@ -176,19 +181,6 @@ export function MeetingFinder() {
         onActivate={(d, k) => { const key = cellKey(fromISO(dates[d]).getDay(), k); mode.current = weeklyDraft.has(key) ? "remove" : "add"; setWeeklyDraft(paint(weeklyDraft, key)) }} />
       <div className="action-row"><button type="button" className="btn btn-primary" onClick={() => { saveWeekly(weeklyDraft); draftRef.current = null; setWeeklyDraft(null) }}>Done</button><button type="button" className="btn" onClick={() => { draftRef.current = null; setWeeklyDraft(null) }}>Cancel</button></div>
     </section>}
-    {!weeklyDraft && pick && <section className="meeting-selection" data-testid="selected-time" aria-live="polite">
-      <div>
-        <span className="selected-time-label">Selected time</span>
-        <strong>{dayName(pick.date)} {fmtShort(pick.date)} · {clock(pick.from)}–{clock(pick.from + duration)}</strong>
-        {!fits ? <p className="small late-text">Ends after 10 pm. Pick an earlier time.</p>
-          : choiceWorks ? <p className="small good-text">All {ids.length} attendees are free.</p>
-            : <p className="small late-text">This time no longer works for {names(choice?.busy ?? [])}. Choose another time or change attendees.</p>}
-      </div>
-      <div className="action-row">
-        {choiceWorks && <a className="btn btn-primary small" target="_blank" rel="noreferrer" href={calendarDraftUrl(pick.date, hhmm(pick.from), hhmm(pick.from + duration))} aria-label="Create calendar draft for selected time">Create calendar draft</a>}
-        <button type="button" className="btn small" onClick={() => setPick(null)} aria-label="Clear selected time">× Clear selection</button>
-      </div>
-    </section>}
     {!weeklyDraft && <div className="meeting-planner">
       <div className="meeting-filters">
         <label className="field-inline">Length<select aria-label="Meeting length" value={duration} onChange={e => setDuration(Number(e.target.value))}>{[15, 30, 60, 90].map(m => <option key={m} value={m}>{m} min</option>)}</select></label>
@@ -196,7 +188,7 @@ export function MeetingFinder() {
       </div>
       <section className="meeting-suggestions" aria-live="polite" aria-label="Best times in the next two weeks">
         <header><h3>Best times</h3><span className="small muted">Everyone selected is free</span></header>
-        {upcoming.length ? upcoming.map(day => <div className="suggestion-day" key={day.date}><time dateTime={day.date}>{dayName(day.date)} {fmtShort(day.date)}</time><div>{day.slots.map(slot => <button type="button" className="btn small" key={slot.from} onClick={() => { const from = asMinutes(slot.from); setPick({ date: day.date, from }); setDate(day.date) }}>{slot.from}–{slot.to}</button>)}</div></div>) : <p className="small muted">No shared time in the next two weeks. Adjust length or attendees.</p>}
+        {upcoming.length ? upcoming.map(day => <div className="suggestion-day" key={day.date}><time dateTime={day.date}>{dayName(day.date)} {fmtShort(day.date)}</time><div>{day.slots.map(slot => <a className="btn btn-primary small" key={slot.from} target="_blank" rel="noreferrer" href={calendarDraftUrl(day.date, slot.from, slot.to)} aria-label={`Draft ${dayName(day.date)} ${fmtShort(day.date)} ${slot.from}–${slot.to} in Calendar`}>{slot.from}–{slot.to}</a>)}</div></div>) : <p className="small muted">No shared time in the next two weeks. Adjust length or attendees.</p>}
       </section>
     </div>}
   </section>
