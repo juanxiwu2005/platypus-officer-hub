@@ -23,6 +23,7 @@ import type { BoardSettings, NodeStatus, OrgSettings } from "./types"
 import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
 import { addContact, addOrganization, deleteContact, deleteOrganization, logInteraction, updateContact, updateInteraction, updateOrganization, type ContactInput, type ContactPatch, type InteractionInput, type OrgPatch } from "./crm"
 import { syncBudgetFlow } from "../engine/eventBudget"
+import { loadOnboardingRecord, rearm } from "../lib/onboardingRecord"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -672,6 +673,7 @@ export function buildExport(state: DemoState, log: LogEntry[], exportedAt: numbe
     schemaVersion: state.schemaVersion,
     storageKey: STORAGE_KEY,
     state: { ...state, demoLinkKey: "[omitted]" },
+    onboarding: loadOnboardingRecord(),
     interactionLog: { limit: LOG_LIMIT, count: log.length, firstSeq, lastSeq: log[log.length - 1]?.seq ?? null, droppedEarlier: firstSeq === null ? 0 : firstSeq - 1, entries: log },
   }
 }
@@ -720,7 +722,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }, [root, held])
   // The real clock is read here, once per action, and travels with it into the log.
   const dispatch = useCallback((action: Action) => send({ action, at: Date.now() }), [])
-  const reset = useCallback(() => { void clearLocalDocs(); dispatch({ type: "reset" }) }, [dispatch])
+  const reset = useCallback(() => { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) }, [dispatch])
   const persistenceFailed = saveFailed || held
   const value = useMemo(() => ({ state: root.app, persistenceFailed, dispatch, reset, log: root.log }), [root, persistenceFailed, dispatch, reset])
   const shown: StorageNotice | null = saveFailed ? { kind: "save_failed" } : notice
