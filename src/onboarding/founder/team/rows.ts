@@ -24,10 +24,31 @@ export function setPersonName(roles: Role[], people: Person[], roleId: string, n
   return setHolder(roles, people, roleId, { name, email: "" })
 }
 
-/** Change who a role reports to. Heads come first in the list, so the list is put in order again. */
+/** A depth-first display order: every role appears immediately after its parent and that parent's existing descendants. */
+export function treeOrderRoles(roles: Role[]): Role[] {
+  const source = orderRoles(roles)
+  const known = new Set(source.map(r => r.id))
+  const children = new Map<string, Role[]>()
+  const roots: Role[] = []
+  for (const role of source) {
+    if (!role.reportsToId || !known.has(role.reportsToId)) roots.push(role)
+    else children.set(role.reportsToId, [...(children.get(role.reportsToId) ?? []), role])
+  }
+  const out: Role[] = [], seen = new Set<string>()
+  const visit = (role: Role) => {
+    if (seen.has(role.id)) return
+    seen.add(role.id); out.push(role)
+    for (const child of children.get(role.id) ?? []) visit(child)
+  }
+  for (const root of roots) visit(root)
+  for (const role of source) visit(role)
+  return out
+}
+
+/** Change who a role reports to, then place its full subtree immediately after the new parent. */
 export function setReportsTo(roles: Role[], id: string, bossId: string | null): Role[] {
   if (bossId && withBelow(roles, id).has(bossId)) return roles
-  return orderRoles(roles.map(r => r.id === id ? { ...r, reportsToId: bossId } : r))
+  return treeOrderRoles(roles.map(r => r.id === id ? { ...r, reportsToId: bossId } : r))
 }
 
 export const setDuties = (roles: Role[], id: string, duties: string): Role[] => roles.map(r => r.id === id ? { ...r, duties: duties.slice(0, MAX_DUTIES) } : r)
@@ -58,7 +79,7 @@ export function addRole(roles: Role[]): { roles: Role[]; id: string } | null {
   let title: string = c.newRole, n = 2
   while (taken.has(title.toLowerCase())) title = `${c.newRole} ${n++}`
   const role = newRole(title, presidentRole(roles)?.id ?? null)
-  return { roles: orderRoles([...roles, role]), id: role.id }
+  return { roles: treeOrderRoles([...roles, role]), id: role.id }
 }
 
 /** The president cannot be removed: the rest of the app needs one. */

@@ -365,3 +365,6 @@
 > **根因与修复：** 上一次居中样式已经推到 PR #10，但没有清掉旧的全局 `main { max-width: 1180px }`；它让 onboarding 的主区从左侧开始，造成截图中的偏左。`.ob-main` 现在明确覆盖为全宽，并由内部 grid 居中。新增 1600px 宽度回归：Goals 列中心与 viewport 中心误差不得超过 1px。
 > **Team（方案 A）：** 每个 Role 输入框按 Reports to 的实际深度缩进并带 `↳` 提示；Reports to 现在是每行始终可见的下拉框，改变后文本树与 Organization chart 同步重排；Duties 改为独立、明确的 `Edit duties` 按钮，不再因点击层级信息而突然展开。
 > **测试：** lint、build、29 个相关单元测试通过；Goals/Team Playwright 桌面 20 项（含居中与树深度）及移动端 20/20 通过。未做真机、Safari/Firefox 验证。
+> **2026-11-02 · Onboarding Team 树顺序与字段对齐（Codex）· 待验收**
+> **修复：** Reports to 改动后，角色列表不再只按深度分组，而是以深度优先的树顺序显示：一个角色紧接在其父角色和该父角色已有子树之后。因此 Marketing lead 选择 Treasurer 后会直接排在 Treasurer 下方，不会视觉上归到 Secretary。每级缩进从 16px 提升到 24px（两级 48px），并保留 `↳` 标记。Role、Person 与 Reports to 控件统一固定为 44px 高。
+> **测试：** lint、build、相关 29 个单元测试和 Goals/Team 桌面 Playwright 20/20 通过。

@@ -44,8 +44,9 @@
 .ob-team-head span { padding-inline: var(--s5); }
 .ob-role-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
 .ob-role { align-items: center; row-gap: var(--s3); }
-.ob-role-title-wrap { grid-column: 1; grid-row: 1; position: relative; min-width: 0; padding-inline-start: calc(var(--ob-depth) * var(--s6)); }
-.ob-role-branch { position: absolute; inset-inline-start: calc((var(--ob-depth) - 1) * var(--s6)); top: 50%; color: var(--muted); transform: translateY(-50%); }
+.ob-role-title-wrap { grid-column: 1; grid-row: 1; position: relative; min-width: 0; padding-inline-start: calc(var(--ob-depth) * var(--s7)); }
+.ob-role-branch { position: absolute; inset-inline-start: calc((var(--ob-depth) - 1) * var(--s7)); top: 50%; color: var(--muted); transform: translateY(-50%); }
+.ob-role :is(.ob-role-title, .ob-role-person, .ob-role-boss) { height: 44px; min-height: 44px; }
 .ob-role-title { width: 100%; }
 .ob-role-person { grid-column: 2; grid-row: 1; }
 .ob-role-boss, .ob-role-top { grid-column: 3; grid-row: 1; }

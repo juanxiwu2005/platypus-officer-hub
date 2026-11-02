@@ -206,7 +206,7 @@ test.describe("Team", () => {
     await expect(row.getByRole("combobox", { name: "Reports to 5" })).toHaveValue("r-pres")
     await row.getByRole("combobox", { name: "Reports to 5" }).selectOption({ label: "Treasurer" })
     await expect(page.getByTestId("org-chart")).toContainText("Secretary, reports to Treasurer")
-    await expect(roleRow(page, "Secretary").locator(".ob-role-title-wrap")).toHaveCSS("padding-left", "32px")
+    await expect(roleRow(page, "Secretary").locator(".ob-role-title-wrap")).toHaveCSS("padding-left", "48px")
     // heads come first: when the Treasurer reports to the Marketing lead, the Treasurer moves below it
     await roleRow(page, "Treasurer").getByRole("combobox", { name: "Reports to 2" }).selectOption({ label: "Marketing lead" })
     await expect(page.getByRole("textbox", { name: "Role 2" })).toHaveValue("Events lead")

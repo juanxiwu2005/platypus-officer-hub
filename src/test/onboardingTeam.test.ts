@@ -4,7 +4,7 @@ import { clubDraft, validateGoals } from "../data/settings"
 import { MAX_ROLES } from "../data/structure"
 import type { ConstitutionRead } from "../lib/constitution"
 import { DEFAULT_ON, SUGGESTIONS, goalsError, goalsFrom, rowsFrom } from "../onboarding/founder/goals/suggestions"
-import { addRole, applyReading, bossChoices, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, validateTeam } from "../onboarding/founder/team/rows"
+import { addRole, applyReading, bossChoices, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, treeOrderRoles, validateTeam } from "../onboarding/founder/team/rows"
 
 // OB-05: the pure parts of the Goals and Team screens. The screens themselves are in e2e/ob-05-goals-team.spec.ts.
 const club = () => clubDraft(seedDemo("2026-10-22"))
@@ -68,6 +68,9 @@ describe("Team rows", () => {
     expect(bossChoices(withBoss, "r-fin").some(r => r.id === "r-sec")).toBe(false)
     expect(roleDepth(withBoss, "r-fin")).toBe(1)
     expect(roleDepth(withBoss, "r-sec")).toBe(2)
+    const nested = setReportsTo(c.roles, "r-mkt", "r-fin")
+    expect(nested.map(r => r.id)).toEqual(["r-pres", "r-fin", "r-mkt", "r-events", "r-sec"])
+    expect(treeOrderRoles(nested)).toEqual(nested)
   })
   it("adds roles with different titles up to the limit, and never removes the president", () => {
     let c = club()
