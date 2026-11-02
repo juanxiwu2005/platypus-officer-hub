@@ -1,1 +1,65 @@
-/* OB-07: this file belongs to one work package only (docs/onboarding-redesign/WORK_PACKAGES.md). Tokens only. */
+/* OB-07: this file belongs to one work package only (docs/onboarding-redesign/WORK_PACKAGES.md). Tokens only.
+   Member preview, screens 0-2 (Invitation, You, Reminders). Nothing moves when a choice is made; the example bubble only fades (opacity). */
+
+/* The Demo strip: the shell's amber strip, here as a rounded bar at the top of the card. */
+.ob-m-strip .ob-demo-strip { border: 1px solid var(--warn-line); border-radius: var(--r-md); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--s2) var(--s4); }
+.ob-m-strip .ob-demo-strip > span { display: contents; }
+.ob-m-note { flex-basis: 100%; }
+.ob-m-link { background: none; border: 0; padding: var(--s3) var(--s4); min-height: 32px; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.ob-m-pick { max-width: 100%; min-height: 32px; padding: var(--s3) var(--s4); border: 1px solid var(--warn-line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
+
+/* Invitation. */
+.ob-m-role { display: grid; gap: var(--s4); padding: var(--s7); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--elev-1); }
+.ob-m-role p { margin: 0; }
+.ob-m-role-name { font-family: var(--serif); font-size: var(--fs-xl); font-weight: 600; }
+.ob-m-duties { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+.ob-m-gets { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s4); }
+.ob-m-gets li { display: flex; align-items: center; gap: var(--s5); }
+.ob-m-gets li::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: var(--r-circle); background: var(--accent); }
+
+/* You. */
+.ob-m-fields { display: grid; gap: var(--s6); }
+.ob-m-fields .field { font-size: var(--fs-md); }
+.ob-m-fields .field input { min-height: 44px; }
+.ob-m-error { color: var(--late); font-size: var(--fs-md); }
+
+/* Reminders: option rows (a whole row is the target), a two-part time control, and the example bubble. */
+.ob-m-opts { display: grid; gap: var(--s4); }
+.ob-m-opt { display: flex; align-items: center; gap: var(--s5); min-height: 52px; padding: var(--s4) var(--s6); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); cursor: pointer; transition: background-color var(--dur-press) var(--ease-out), border-color var(--dur-press) var(--ease-out); }
+.ob-m-opt:active { background: var(--surface-2); }
+.ob-m-opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.ob-m-opt:has(input:focus-visible), .ob-m-seg label:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ob-m-opt input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--accent); }
+.ob-m-opt svg { flex: none; color: var(--muted); }
+.ob-m-opt span { flex: 1; }
+.ob-m-phone { display: grid; gap: var(--s3); }
+.ob-m-phone .field input { min-height: 44px; font-size: var(--fs-base); }
+.ob-m-seg { display: flex; gap: var(--s2); padding: var(--s2); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.ob-m-seg label { position: relative; flex: 1; display: grid; place-items: center; min-height: 44px; border-radius: var(--r-sm); color: var(--muted); cursor: pointer; transition: background-color var(--dur-press) var(--ease-out); }
+.ob-m-seg label:has(input:checked) { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--elev-1); }
+.ob-m-seg input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.ob-m-sample { display: grid; gap: var(--s3); }
+.ob-m-sample p { margin: 0; }
+.ob-m-bubble { display: flex; align-items: flex-start; gap: var(--s5); max-width: 100%; padding: var(--s5) var(--s6); color: var(--ink); animation: ob-m-fade var(--dur-fast) var(--ease-out) both; }
+.ob-m-bubble svg { flex: none; margin-top: var(--s2); }
+.ob-m-bubble.is-whatsapp { background: var(--good-soft); border: 1px solid var(--good); border-radius: var(--r-lg) var(--r-lg) var(--r-lg) var(--r-xs); }
+.ob-m-bubble.is-sms { background: var(--surface-2); border: 1px solid var(--edge); border-radius: var(--r-lg) var(--r-lg) var(--r-xs) var(--r-lg); margin-inline-start: var(--s7); }
+.ob-m-bubble.is-email { background: var(--surface); border: 1px solid var(--line); border-inline-start: 4px solid var(--info); border-radius: var(--r-sm); box-shadow: var(--elev-1); }
+@keyframes ob-m-fade { from { opacity: 0; } }
+
+/* Each screen is a column as tall as the window, so the bottom bar rests at the bottom even when the card is short. */
+.ob-m-page { display: flex; flex-direction: column; min-height: calc(100dvh - 96px); }
+.ob-m-page > .ob-card { width: 100%; }
+.ob-m-page > .ob-m-foot { margin-top: auto; }
+
+/* The bottom bar: it floats over the content, so it alone gets the blur; solid when transparency is off. */
+.ob-m-foot { position: sticky; bottom: 0; z-index: var(--z-sticky); background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.ob-m-foot-in { display: flex; justify-content: flex-end; gap: var(--s5); max-width: 640px; margin: 0 auto; padding: var(--s5) 0 max(var(--s5), env(safe-area-inset-bottom)); }
+.ob-m-foot .btn { min-height: 44px; padding-inline: var(--s7); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .ob-m-foot { background: var(--bg); } }
+@media (prefers-reduced-transparency: reduce) { .ob-m-foot { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+@media (max-width: 600px) {
+  .ob-m-role { padding: var(--s6); }
+  .ob-m-foot-in .btn-primary { flex: 1; }
+  .ob-m-bubble.is-sms { margin-inline-start: var(--s6); }
+}

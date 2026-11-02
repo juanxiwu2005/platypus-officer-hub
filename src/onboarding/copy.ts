@@ -23,9 +23,20 @@ export const onboardingCopy = {
   },
   // member preview (OB-07, OB-08)
   member: {
-    invitation: { cta: "Continue", trust: "We keep your name, your reminder choices and what you tell us here. Nothing is sent automatically." },
-    you: { title: "Is this you?", notYou: "Not you?" },
-    reminders: { title: "Where should reminders go?", whatsapp: "WhatsApp", sms: "SMS", email: "Email", morning: "Morning", evening: "Evening", quiet: "Quiet hours are 10 pm–8 am.", phoneWhy: "So your president can open a prewritten message to you. Nothing is sent automatically." },
+    invitation: {
+      cta: "Continue", lead: "{president} invited you to be {role}", boss: "Reports to {boss}", president: "Your president",
+      gets: ["One thing at a time.", "Reminders where you choose.", "Never called out in public."],
+      trust: "We keep your name and reminder choices. Nothing is sent automatically.",
+      previewing: "Previewing as", change: "Change", changeLabel: "Preview as", demoNote: "Fictional demo. Choosing a name does not verify an identity.",
+      invalidTip: "Demo tip: open the link in the browser where the club was set up.", invalidRetry: "Use this browser's invitation", invalidHome: "Go to Today",
+    },
+    you: { title: "Is this you?", notYou: "Not you?", name: "Name", email: "Email", duplicate: "Choose a distinct fictional name." },
+    reminders: {
+      title: "Where should reminders go?", whatsapp: "WhatsApp", sms: "SMS", email: "Email", morning: "Morning", evening: "Evening", timeLabel: "Reminder time",
+      quiet: "Quiet hours: 10 pm–8 am.", phone: "Phone (optional)", phoneWhy: "So your president can open a prewritten message. Nothing is sent automatically.",
+      example: "Example", whenMorning: "this morning", whenEvening: "this evening",
+      bubble: "Hi {name} — {when}: book the Founder Dinner venue by Tue. Reply “got it” when done.",
+    },
     busyWeeks: { title: "Which weeks are busy?", skip: "Skip — nothing busy yet", effect: "Platypus will plan around these weeks." },
     about: { title: "What would make this role worthwhile?", why: "Helps match you with tasks you'll care about." },
     done: { title: "You're in.", cta: "Open my tasks", empty: "You'll see tasks here when your president assigns one." },
