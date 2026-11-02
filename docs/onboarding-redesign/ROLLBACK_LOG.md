@@ -11,3 +11,4 @@
 | OB-06 | `b7147a1`（另有修复提交：样式守卫覆盖 ob-*.css、默认第一场活动改春季日期，撤包前先撤它） | `git revert -m 1 b7147a1` |
 
 | OB-05 | `39c033b` | `git revert -m 1 39c033b` |
+| OB-08 | `8c1e0b9` | `git revert -m 1 8c1e0b9` |
