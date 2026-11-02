@@ -35,6 +35,22 @@ export const setDuties = (roles: Role[], id: string, duties: string): Role[] => 
 /** The roles a role may report to: not itself and not anything below it (no loops). */
 export const bossChoices = (roles: Role[], id: string): Role[] => { const below = withBelow(roles, id); return roles.filter(r => !below.has(r.id)) }
 
+/** Depth in the reporting tree. Invalid or cyclic links safely render at the top level until the user fixes them. */
+export function roleDepth(roles: Role[], id: string): number {
+  const seen = new Set<string>()
+  let depth = 0
+  let role = roles.find(r => r.id === id)
+  while (role?.reportsToId) {
+    if (seen.has(role.id) || depth >= roles.length) return 0
+    seen.add(role.id)
+    const boss = roles.find(r => r.id === role!.reportsToId)
+    if (!boss) return 0
+    depth += 1
+    role = boss
+  }
+  return depth
+}
+
 /** Add a role that reports to the president. Titles must differ, so "New role", "New role 2", ... */
 export function addRole(roles: Role[]): { roles: Role[]; id: string } | null {
   if (roles.length >= MAX_ROLES) return null

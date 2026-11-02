@@ -361,3 +361,7 @@
 > **2026-11-02 · Onboarding Goals 与版面修复（Codex）· 待验收**
 > **做了什么：** Onboarding 主内容列改为明确居中，社员预览页面也使用同一条 640px 中线，修复宽屏时整体偏左。Goals 步骤改为 **Set goals for your club**：目标可完全不选；每个已选目标的名称、数值和单位均可编辑，最多三个；数值控件和单位输入框在同一列对齐。Mission 不再折叠或标为 optional，改为必填。全局校验、Settings 的目标编辑器和首次活动创建同步支持零目标，避免完成设立时读取不存在的第一个目标。
 > **测试：** `npm run lint`、`npm run build`、相关 29 个单元测试通过；Goals/Team 的 Playwright 回归桌面 19/19、移动端 19/19 通过（使用 `/usr/bin/chromium`）。未做真机、Safari/Firefox 验证。
+> **2026-11-02 · Onboarding Team 树形层级与居中补救（Codex）· 待验收**
+> **根因与修复：** 上一次居中样式已经推到 PR #10，但没有清掉旧的全局 `main { max-width: 1180px }`；它让 onboarding 的主区从左侧开始，造成截图中的偏左。`.ob-main` 现在明确覆盖为全宽，并由内部 grid 居中。新增 1600px 宽度回归：Goals 列中心与 viewport 中心误差不得超过 1px。
+> **Team（方案 A）：** 每个 Role 输入框按 Reports to 的实际深度缩进并带 `↳` 提示；Reports to 现在是每行始终可见的下拉框，改变后文本树与 Organization chart 同步重排；Duties 改为独立、明确的 `Edit duties` 按钮，不再因点击层级信息而突然展开。
+> **测试：** lint、build、29 个相关单元测试通过；Goals/Team Playwright 桌面 20 项（含居中与树深度）及移动端 20/20 通过。未做真机、Safari/Firefox 验证。

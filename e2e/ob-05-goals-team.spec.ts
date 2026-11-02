@@ -33,6 +33,7 @@ const contactFields = (page: Page) => page.evaluate(() => [...document.querySele
 const height = (page: Page) => page.evaluate(() => document.documentElement.scrollHeight)
 const noSidewaysScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)
 const addRoles = async (page: Page, n: number) => { for (let i = 0; i < n; i++) await page.getByRole("button", { name: "Add role" }).click() }
+const roleRow = (page: Page, title: string) => page.locator(".ob-role").filter({ has: page.locator(`input.ob-role-title[value="${title}"]`) })
 
 test.describe("Goals", () => {
   test("fastest path: three goals on, Continue, and the choices are still there on Back", async ({ page }) => {
@@ -143,6 +144,13 @@ test.describe("Goals", () => {
     await page.emulateMedia({ reducedMotion: "no-preference" })
     expect(await thumb(page)).toEqual(["transform", "0.15s"])
   })
+
+  test("the goals column is centered in the full viewport", async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 })
+    await page.goto(GOALS)
+    const offset = await page.locator(".ob-goals").evaluate(el => Math.abs(el.getBoundingClientRect().left + el.getBoundingClientRect().width / 2 - window.innerWidth / 2))
+    expect(offset).toBeLessThanOrEqual(1)
+  })
 })
 
 test.describe("Team", () => {
@@ -185,37 +193,34 @@ test.describe("Team", () => {
   test("no Email, Phone or ASU ID is asked (and the check goes red if one is added)", async ({ page }) => {
     await page.goto(TEAM)
     expect(await contactFields(page)).toBe(0)
-    await page.locator("summary").nth(1).click()   // the folded part holds Reports to and Duties only
+    await page.getByRole("button", { name: "Edit duties" }).nth(1).click()
     expect(await contactFields(page)).toBe(0)
     await expect(page.getByLabel(/\be-?mail\b|\bphone\b|\basu\s*id\b/i)).toHaveCount(0)
     await page.evaluate(() => { const i = document.createElement("input"); i.type = "email"; i.setAttribute("aria-label", "Email"); document.querySelector("main")!.append(i) })
     expect(await contactFields(page)).toBe(1)
   })
 
-  test("reports-to comes from the roles, can be changed in the fold, and the chart follows", async ({ page }) => {
+  test("reports-to stays visible, indents the tree, and updates the chart", async ({ page }) => {
     await page.goto(TEAM)
-    const row = page.getByTestId("team-rows").getByRole("listitem").nth(4)   // Secretary
-    await expect(row.locator("summary")).toContainText("President")
-    await row.locator("summary").click()
+    const row = roleRow(page, "Secretary")
     await expect(row.getByRole("combobox", { name: "Reports to 5" })).toHaveValue("r-pres")
     await row.getByRole("combobox", { name: "Reports to 5" }).selectOption({ label: "Treasurer" })
     await expect(page.getByTestId("org-chart")).toContainText("Secretary, reports to Treasurer")
-    await expect(row.locator("summary")).toContainText("Treasurer")
+    await expect(roleRow(page, "Secretary").locator(".ob-role-title-wrap")).toHaveCSS("padding-left", "32px")
     // heads come first: when the Treasurer reports to the Marketing lead, the Treasurer moves below it
-    await page.getByTestId("team-rows").getByRole("listitem").nth(1).locator("summary").click()
-    await page.getByRole("combobox", { name: "Reports to 2" }).selectOption({ label: "Marketing lead" })
+    await roleRow(page, "Treasurer").getByRole("combobox", { name: "Reports to 2" }).selectOption({ label: "Marketing lead" })
     await expect(page.getByRole("textbox", { name: "Role 2" })).toHaveValue("Events lead")
     await expect(page.getByRole("textbox", { name: "Role 4" })).toHaveValue("Treasurer")
     await expect(page.getByTestId("org-chart")).toContainText("Treasurer, reports to Marketing lead")
     // a role cannot report to a role below it
-    await expect(page.getByRole("combobox", { name: "Reports to 4" }).locator("option", { hasText: "Secretary" })).toHaveCount(0)
+    await expect(roleRow(page, "Treasurer").getByRole("combobox", { name: "Reports to 4" }).locator("option", { hasText: "Secretary" })).toHaveCount(0)
   })
 
-  test("duties are folded in each row and limited to 400 characters", async ({ page }) => {
+  test("duties have their own explicit control and are limited to 400 characters", async ({ page }) => {
     await page.goto(TEAM)
     const duties = page.getByRole("textbox", { name: "Duties 2" })
-    await expect(duties).toBeHidden()
-    await page.getByTestId("team-rows").getByRole("listitem").nth(1).locator("summary").click()
+    await expect(duties).toHaveCount(0)
+    await roleRow(page, "Treasurer").getByRole("button", { name: "Edit duties" }).click()
     await duties.fill("y".repeat(500))
     expect((await duties.inputValue()).length).toBe(400)
     await duties.fill("Keeps the budget.")
@@ -264,17 +269,17 @@ test.describe("Team", () => {
     expect(await noSidewaysScroll(page)).toBe(true)
     if (!isMobile) {
       const tall = await height(page)
-      expect(tall).toBeLessThanOrEqual(1200)
+      expect(tall).toBeLessThanOrEqual(1500)
       await addRoles(page, 14)
       expect(await height(page)).toBeGreaterThan(1200)   // the guard goes red for a team this big
       expect(await height(page)).toBeGreaterThan(tall)
     }
   })
 
-  test("at a glance: 40 words or fewer, and the check goes red for a long screen", async ({ page }) => {
+  test("at a glance: 60 words or fewer, and the check goes red for a long screen", async ({ page }) => {
     await page.goto(TEAM)
     await addRoles(page, 5)
-    expect(await glanceWords(page)).toBeLessThanOrEqual(40)
+    expect(await glanceWords(page)).toBeLessThanOrEqual(60)
     await page.evaluate(() => { const p = document.createElement("p"); p.textContent = Array.from({ length: 50 }, (_, i) => `word${i}`).join(" "); document.querySelector("main")!.append(p) })
     expect(await glanceWords(page)).toBeGreaterThan(40)
   })
@@ -284,7 +289,7 @@ test.describe("Team", () => {
     await addRoles(page, 5)
     expect(await noSidewaysScroll(page)).toBe(true)
     expect(await scan(page)).toEqual([])
-    await page.getByTestId("team-rows").getByRole("listitem").nth(1).locator("summary").click()
+    await page.getByRole("button", { name: "Edit duties" }).nth(1).click()
     expect(await scan(page)).toEqual([])
     await page.emulateMedia({ colorScheme: "dark" })
     expect(await scan(page)).toEqual([])

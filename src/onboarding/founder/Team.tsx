@@ -1,16 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState, type CSSProperties } from "react"
 import { OrgChart } from "../../components/setup/OrgChart"
-import { MAX_DUTIES, MAX_ROLES, roleLabels } from "../../data/structure"
+import { MAX_DUTIES, MAX_ROLES } from "../../data/structure"
 import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
-import { addRole, applyReading, bossChoices, removeRole, renameRole, setDuties, setPersonName, setReportsTo, validateTeam } from "./team/rows"
+import { addRole, applyReading, bossChoices, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, validateTeam } from "./team/rows"
 
 const c = onboardingCopy.founder.team
 
 /**
- * Screen 4 of the founder flow (skippable): one row per role with two cells, Role and Person (empty = open position). Who a role reports to and
- * what it does are folded into each row. The organization chart under the list follows the rows. No email, phone or ASU ID is asked.
+ * Screen 4 of the founder flow (skippable): a visibly indented reporting tree with Role, Person and Reports to always in view. Duties expand
+ * independently, so changing hierarchy never unexpectedly opens a long text field. The organization chart under the list follows the rows.
  */
 export function Team() {
   const { draft, update } = useOnboardingDraft()
@@ -20,8 +20,8 @@ export function Team() {
   const start = useRef({ roles, people })
   const [error, setError] = useState("")
   const [focusId, setFocusId] = useState<string | null>(null)
+  const [dutiesId, setDutiesId] = useState<string | null>(null)
   const addButton = useRef<HTMLButtonElement>(null)
-  const labels = useMemo(() => roleLabels(roles), [roles])
   useEffect(() => {
     if (!focusId) return
     document.querySelector<HTMLInputElement>(`[data-role-input="${focusId}"]`)?.focus()
@@ -62,28 +62,27 @@ export function Team() {
     <div className="ob-gt-head"><h1 id="ob-team-h">{c.title}</h1><p className="ob-lead">{c.invited}</p></div>
     {reading.status === "reading" && <p className="notice ai-note" role="status"><span className="spin" aria-hidden="true" />{onboardingCopy.founder.constitution.reading}</p>}
     {reading.status === "ready" && !draft.applied && <p className="notice ai-note" role="status">{c.suggested}<button type="button" className="btn small" onClick={useSuggestions}>{c.use}</button></p>}
-    <div className="ob-team-head" aria-hidden="true"><span>{c.role}</span><span>{c.person}</span></div>
+    <div className="ob-team-head" aria-hidden="true"><span>{c.role}</span><span>{c.person}</span><span>{c.reportsTo}</span><span /></div>
     <ul className="ob-role-list" data-testid="team-rows">{roles.map((r, i) => {
       const president = r.fn === "president"
-      const bossLabel = r.reportsToId ? labels.get(r.reportsToId) ?? "" : ""
+      const depth = roleDepth(roles, r.id)
       return <li key={r.id} className="ob-role">
-        <input type="text" className="ob-role-title" data-role-input={r.id} aria-label={`${c.role} ${i + 1}`} value={r.displayName} maxLength={60}
-          onChange={e => edit(club => ({ ...club, roles: renameRole(club.roles, r.id, e.target.value) }))} />
+        <div className="ob-role-title-wrap" style={{ "--ob-depth": depth } as CSSProperties}>
+          {depth > 0 && <span className="ob-role-branch" aria-hidden="true">↳</span>}
+          <input type="text" className="ob-role-title" data-role-input={r.id} aria-label={`${c.role} ${i + 1}`} value={r.displayName} maxLength={60}
+            onChange={e => edit(club => ({ ...club, roles: renameRole(club.roles, r.id, e.target.value) }))} />
+        </div>
         <input type="text" className="ob-role-person" aria-label={`${c.person} ${i + 1}`} placeholder={c.open} value={holderName(r.holderId)} maxLength={80}
           onChange={e => edit(club => ({ ...club, ...setPersonName(club.roles, club.people, r.id, e.target.value) }))} />
+        {president ? <span className="ob-role-top">{c.top}</span> : <select className="ob-role-boss" aria-label={`${c.reportsTo} ${i + 1}`} value={r.reportsToId ?? ""} onChange={e => edit(club => ({ ...club, roles: setReportsTo(club.roles, r.id, e.target.value || null) }))}>
+          <option value="">{c.nobody}</option>
+          {bossChoices(roles, r.id).map(x => <option key={x.id} value={x.id}>{x.displayName}</option>)}
+        </select>}
         {!president && <button type="button" className="btn btn-quiet ob-role-x" aria-label={`${c.remove} ${r.displayName || c.role}`} onClick={() => remove(r.id)}>✕</button>}
-        <details className="ob-role-more">
-          <summary title={c.more}>{bossLabel ? <><span aria-hidden="true">↑ </span><span className="sr-only">{c.reportsTo} </span><span className="ob-gt-user">{bossLabel}</span></> : <span>{c.top}</span>}</summary>
-          <div className="ob-role-fields">
-            {!president && <label><span className="cap">{c.reportsTo}</span>
-              <select aria-label={`${c.reportsTo} ${i + 1}`} value={r.reportsToId ?? ""} onChange={e => edit(club => ({ ...club, roles: setReportsTo(club.roles, r.id, e.target.value || null) }))}>
-                <option value="">{c.nobody}</option>
-                {bossChoices(roles, r.id).map(x => <option key={x.id} value={x.id}>{x.displayName}</option>)}
-              </select></label>}
-            <label><span className="cap">{c.duties}</span>
-              <textarea aria-label={`${c.duties} ${i + 1}`} rows={3} maxLength={MAX_DUTIES} value={r.duties ?? ""} onChange={e => edit(club => ({ ...club, roles: setDuties(club.roles, r.id, e.target.value) }), false)} /></label>
-          </div>
-        </details>
+        <button type="button" className="btn btn-quiet ob-role-duties-toggle" aria-expanded={dutiesId === r.id} aria-controls={`ob-duties-${r.id}`} onClick={() => setDutiesId(current => current === r.id ? null : r.id)}>{c.editDuties}</button>
+        {dutiesId === r.id && <label id={`ob-duties-${r.id}`} className="ob-role-duties"><span className="cap">{c.duties}</span>
+          <textarea aria-label={`${c.duties} ${i + 1}`} rows={3} maxLength={MAX_DUTIES} value={r.duties ?? ""} onChange={e => edit(club => ({ ...club, roles: setDuties(club.roles, r.id, e.target.value) }), false)} />
+        </label>}
       </li>
     })}</ul>
     <div><button type="button" ref={addButton} className="btn small" disabled={roles.length >= MAX_ROLES} onClick={add}>{c.add}</button></div>

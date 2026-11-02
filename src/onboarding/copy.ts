@@ -37,7 +37,7 @@ export const onboardingCopy = {
     },
     team: {
       title: "Who's on your team?", role: "Role", person: "Person", open: "Open position", invited: "Officers add their own phone and details when they join.",
-      add: "Add role", remove: "Remove", newRole: "New role", top: "Top", reportsTo: "Reports to", duties: "Duties", nobody: "Nobody (top)", more: "Reports to and duties",
+      add: "Add role", remove: "Remove", newRole: "New role", top: "Top", reportsTo: "Reports to", duties: "Duties", editDuties: "Edit duties", nobody: "Nobody (top)",
       suggested: "AI suggested roles.", use: "Use these suggestions", sameName: "Each officer needs a different name.",
     },
     firstEvent: {
