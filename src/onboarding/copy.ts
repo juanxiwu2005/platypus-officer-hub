@@ -52,8 +52,8 @@ export const onboardingCopy = {
       ],
       fields: { name: "Event name", date: "Event date", type: "Event type", headcount: "Headcount", venue: "Venue", food: "Food", funding: "Funding", speaker: "Includes a guest speaker", source: "Planned with" },
     },
-    confirm: { title: "Ready to start?", start: "Start workspace", keep: "Keep current demo", replaceWarning: "This replaces the current demo workspace." },
-    invite: { title: "Your club is ready.", lead: "Invite your officers.", copy: "Copy link", whatsapp: "WhatsApp", email: "Email", permission: "Only people with this link can join as an officer.", notSent: "Nothing is sent automatically. We open a message you can send.", preview: "See what your officers will see", today: "Go to Today", invited: "Invited", joined: "Joined" },
+    confirm: { title: "Ready to start?", summary: "This creates {club} with {officers} and {event} on {date}.", officers: { one: "1 officer", many: "{n} officers" }, start: "Start workspace", keep: "Keep current demo", replaceWarning: "This replaces the current demo workspace.", missing: "Plan your first event before you start.", backToEvent: "Back to first event" },
+    invite: { title: "Your club is ready.", lead: "Invite your officers.", copy: "Copy link", copied: "Copied", copyFailed: "Press Ctrl+C to copy.", whatsapp: "WhatsApp", email: "Email", link: "Officer invitation link", permission: "Only people with this link can join.", notSent: "Nothing sends automatically. We open a message for you.", preview: "See what your officers will see", today: "Go to Today", invited: "Invited", joined: "Joined", open: "Open position", officers: "Officers", joinedNote: "Demo only: Joined appears when an officer finishes setup in this browser.", subject: "Join {club} on Platypus", message: "Join {club} on Platypus as an officer: {link}" },
   },
   // member preview (OB-07, OB-08)
   member: {
