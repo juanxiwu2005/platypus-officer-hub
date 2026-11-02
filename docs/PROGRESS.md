@@ -368,3 +368,6 @@
 > **2026-11-02 · Onboarding Team 树顺序与字段对齐（Codex）· 待验收**
 > **修复：** Reports to 改动后，角色列表不再只按深度分组，而是以深度优先的树顺序显示：一个角色紧接在其父角色和该父角色已有子树之后。因此 Marketing lead 选择 Treasurer 后会直接排在 Treasurer 下方，不会视觉上归到 Secretary。每级缩进从 16px 提升到 24px（两级 48px），并保留 `↳` 标记。Role、Person 与 Reports to 控件统一固定为 44px 高。
 > **测试：** lint、build、相关 29 个单元测试和 Goals/Team 桌面 Playwright 20/20 通过。
+
+> **2026-11-02 · First Event 时间线审计（Codex）· 待用户调整**
+> **发现：** 当前模板允许 `Budget`（2/8）先于 `Event Plan`（2/15），根因是 Budget 只作为 Food Exception Permit 的前置条件，未依赖 Event Plan；预览又按最早 club deadline 截取 6 点，不是依赖路径。没有伪改日期或改动引擎。已提供可在 Excel 打开的 TSV（每节点的起止日、依赖、官方截止日及可填写的提议列）和受影响早期分支的逐日泳道表；详情见 `docs/onboarding-redesign/reports/OB-06-timeline-review-2026-11-02.md`。另附 GitHub Primer 对齐的三段统一卡片式页面方案，待时序确认后实施。
