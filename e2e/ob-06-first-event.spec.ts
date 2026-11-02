@@ -60,7 +60,7 @@ test("fastest path: example, Plan it, a chain with rule-engine dates, Continue",
 
 test("before Plan it there is no chain, and Continue waits", async ({ page }) => {
   await page.goto(URL)
-  await expect(page.getByRole("textbox", { name: c.sentenceLabel })).toHaveValue(/Founder Dinner/)   // the draft's own sentence is the default
+  await expect(page.getByRole("textbox", { name: c.sentenceLabel })).toHaveValue(/Spring Kickoff Dinner on Apr 16/)   // the draft's own sentence is the default
   await expect(chain(page)).toHaveCount(0)
   await expect(page.getByRole("button", { name: onboardingCopy.next })).toBeDisabled()
   await expect(page.getByText(c.details, { exact: true })).toHaveCount(0)

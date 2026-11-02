@@ -58,7 +58,7 @@ export function OnboardingDraftProvider({ children }: { children: ReactNode }) {
       club, doc: null, reading: { status: "idle" }, applied: false, structureTouched: false, missionTouched: false,
       steps: withOwners(orgSteps(state), club.roles), workflowTouched: false,
       buffer: (BUFFER_CHOICES as readonly number[]).includes(state.org.settings.clubBufferBusinessDays) ? state.org.settings.clubBufferBusinessDays : 3,
-      sentence: "Plan Founder Dinner on Nov 19, 30 people, outside caterer, USG funding", event: null, date: "", source: "", confirmed: false,
+      sentence: "Plan Spring Kickoff Dinner on Apr 16, 60 people, outside caterer, USG funding", event: null, date: "", source: "", confirmed: false,
       inviteCode: crypto.randomUUID(), skipped: [],
     }
   })
