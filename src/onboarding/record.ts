@@ -14,3 +14,5 @@ export function beginWalkthrough(): string {
 }
 export function recordEvent(step: string, event: OnboardingEvent): void { const id = read(); if (id) recordStep(id, step, event) }
 export function endWalkthrough(outcome: "completed" | "exited"): void { const id = read(); if (id) { finishAttempt(id, outcome); write(null) } }
+/** Forget the current attempt without recording anything more: the "Test Onboarding Page" buttons use it, so testing never adds to the research record. */
+export function forgetWalkthrough(): void { write(null) }

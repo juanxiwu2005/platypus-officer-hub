@@ -38,8 +38,12 @@ export function DemoMenu({ onReset }: { onReset: () => void }) {
     <div className="menu" hidden={!open} role="group" aria-label="Demo controls">
       <p className="small muted" data-testid="ai-status">Fictional club and example data. {aiNote} Nothing is sent from this page.</p>
       {canNudge && <div className="menu-row"><span className="small">Demo clock</span>{[1, 3, 10].map(days => <button key={days} type="button" className="btn small" data-testid={`clock-${days}`} onClick={() => dispatch({ type: "advanceClock", days })}>+{days} day{days > 1 ? "s" : ""}</button>)}</div>}
+      {canNudge && <div className="menu-row" role="group" aria-label="Onboarding">
+        <NavLink className="btn small" to="/welcome/start" onClick={() => setOpen(false)}>Replay walkthrough</NavLink>
+        <NavLink className="btn small" to="/welcome/test/president" data-testid="test-onboarding-president" onClick={() => setOpen(false)}>Test Onboarding Page President</NavLink>
+        <NavLink className="btn small" to="/welcome/test/invite" data-testid="test-onboarding-invite" onClick={() => setOpen(false)}>Test Onboarding Page Invite</NavLink>
+      </div>}
       <div className="menu-row">
-        {canNudge && <NavLink className="btn small" to="/welcome/start" onClick={() => setOpen(false)}>Replay walkthrough</NavLink>}
         <label className="switch"><input type="checkbox" checked={bts.on} onChange={e => bts.setOn(e.target.checked)} data-testid="bts-toggle" />Behind the scenes</label>
       </div>
       <button type="button" className={`btn small ${armed ? "btn-primary" : ""}`} data-testid="reset-demo" onClick={() => {

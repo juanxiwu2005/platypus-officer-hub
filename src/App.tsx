@@ -20,6 +20,7 @@ import { Done } from "./onboarding/member/Done"
 import { Welcome } from "./onboarding/gate/Welcome"
 import { WelcomeGate } from "./onboarding/gate/WelcomeGate"
 import { StartWalkthrough } from "./onboarding/gate/StartWalkthrough"
+import { TestWalkthrough } from "./onboarding/gate/TestWalkthrough"
 import { RouteLoading } from "./components/RouteLoading"
 import Today from "./pages/Today"
 
@@ -45,7 +46,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="welcome" element={<OnboardingDraftProvider><OnboardingShell /></OnboardingDraftProvider>}>
-        <Route index element={<Welcome />} /><Route path="start" element={<StartWalkthrough />} /><Route path="classic" element={screen(<Setup />, "Preparing organization setup…", true)} /><Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
+        <Route index element={<Welcome />} /><Route path="start" element={<StartWalkthrough />} /><Route path="test/president" element={<TestWalkthrough to="/welcome/founder/name" />} /><Route path="test/invite" element={<TestWalkthrough to="/welcome/member/invitation" />} /><Route path="classic" element={screen(<Setup />, "Preparing organization setup…", true)} /><Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
         <Route path="founder/name" element={<Name />} /><Route path="founder/constitution" element={<Constitution />} /><Route path="founder/goals" element={<Goals />} /><Route path="founder/team" element={<OnboardingTeam />} /><Route path="founder/first-event" element={<FirstEvent />} /><Route path="founder/confirm" element={<Confirm />} /><Route path="founder/invite" element={<Invite />} />
         <Route path="member/invitation" element={<Invitation />} /><Route path="member/you" element={<You />} /><Route path="member/reminders" element={<Reminders />} /><Route path="member/busy-weeks" element={<BusyWeeks />} /><Route path="member/about" element={<About />} /><Route path="member/done" element={<Done />} />
         <Route path="*" element={<ComingSoon />} />
