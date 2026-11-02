@@ -1,6 +1,7 @@
 /* Design-upgrade styles (docs/design-upgrade/README.md). Loaded after src/styles.css, in package order, so these
    files can override older rules. To switch one package off (R1), wrap its @import line in a comment: a one-line change. */
 @import "./dx-00-tokens.css";
+@import "./ob-00-shell.css";
 @import "./dx-03-press-feedback.css";
 @import "./dx-04-touch-targets.css";
 @import "./dx-05-risk-shapes.css";

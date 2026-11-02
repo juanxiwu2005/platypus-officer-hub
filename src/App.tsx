@@ -1,6 +1,22 @@
 import { lazy, Suspense, type ReactNode } from "react"
 import { Navigate, Route, Routes } from "react-router-dom"
 import { Layout } from "./components/Layout"
+import { OnboardingShell } from "./onboarding/shell/OnboardingShell"
+import { ComingSoon } from "./onboarding/gate/ComingSoon"
+import { OnboardingDraftProvider } from "./onboarding/draft"
+import { Name } from "./onboarding/founder/Name"
+import { Constitution } from "./onboarding/founder/Constitution"
+import { Goals } from "./onboarding/founder/Goals"
+import { Team as OnboardingTeam } from "./onboarding/founder/Team"
+import { FirstEvent } from "./onboarding/founder/FirstEvent"
+import { Confirm } from "./onboarding/founder/Confirm"
+import { Invite } from "./onboarding/founder/Invite"
+import { Invitation } from "./onboarding/member/Invitation"
+import { You } from "./onboarding/member/You"
+import { Reminders } from "./onboarding/member/Reminders"
+import { BusyWeeks } from "./onboarding/member/BusyWeeks"
+import { About } from "./onboarding/member/About"
+import { Done } from "./onboarding/member/Done"
 import { RouteLoading } from "./components/RouteLoading"
 import Today from "./pages/Today"
 
@@ -25,6 +41,12 @@ function screen(children: ReactNode, label: string, fullPage = false) {
 export default function App() {
   return (
     <Routes>
+      <Route path="welcome" element={<OnboardingDraftProvider><OnboardingShell /></OnboardingDraftProvider>}>
+        <Route index element={<ComingSoon />} /><Route path="classic" element={screen(<Setup />, "Preparing organization setup…", true)} /><Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
+        <Route path="founder/name" element={<Name />} /><Route path="founder/constitution" element={<Constitution />} /><Route path="founder/goals" element={<Goals />} /><Route path="founder/team" element={<OnboardingTeam />} /><Route path="founder/first-event" element={<FirstEvent />} /><Route path="founder/confirm" element={<Confirm />} /><Route path="founder/invite" element={<Invite />} />
+        <Route path="member/invitation" element={<Invitation />} /><Route path="member/you" element={<You />} /><Route path="member/reminders" element={<Reminders />} /><Route path="member/busy-weeks" element={<BusyWeeks />} /><Route path="member/about" element={<About />} /><Route path="member/done" element={<Done />} />
+        <Route path="*" element={<ComingSoon />} />
+      </Route>
       <Route path="phase1/*" element={screen(<PhaseOne />, "Opening your workspace…", true)} />
       <Route path="officer" element={screen(<Officer />, "Opening your task…", true)} />
       <Route path="join" element={screen(<Join />, "Preparing your invitation…", true)} />
