@@ -1,3 +1,6 @@
+> **2026-11-07 · Phase 3 数据与 AI 修复 · 进行中（Claude 作 orchestrator；P3-E/F/G 由 worktree 子 agent 并行）**
+> **依据：** Juanxi 自测导出文件（177 条）与 Netlify 日志。**已确认：** 正式网站 AI 走 ASU AIR（`muse-glimmer-30b`，路由 v3）。**P3-E：** Ask 计划活动 `/api/chat` 超过 Netlify 30 秒被切断（504/502），交接手册 `/api/handbook/draft` 输出上限 700 被截断（bad_json）。**P3-F：** 每次 `/#/start` 开始新的记录会话（旧数据不混入）、单独记 setup 完成、CSV 加亚利桑那时间。**P3-G：** Juanxi 2026-11-07 批准新增 4 个只记行为的记录项：任务开始/结束标记、离开页面、开始编辑输入框（不记内容）、悬停卡打开 ≥0.5 秒。是否告知 IRB 由 Juanxi 决定。
+
 > **2026-11-07 · 修复（Juanxi 反馈）· Settings → Tasks and events 的 "Who can create events" 排版错乱（Claude）**
 > **原因：** `src/styles.css` 里 `.form-stack input:not([type=checkbox])` 把单选按钮也撑成整行宽，圆点占满一行，文字被挤到最右边，一个字母一行。**修法：** 这条规则也排除单选按钮（`:not([type=radio])`）。新测试 `e2e/settings-radios.spec.ts`（桌面+手机）：换回旧样式时变红，修好后通过。lint 通过；相关页面测试 112 通过，1 个动效测试（`ob-07:193`）整组跑时失败、单独重跑 3/3 通过。**待 Juanxi 批准合并到 `main` 才会出现在正式网站。**
 
