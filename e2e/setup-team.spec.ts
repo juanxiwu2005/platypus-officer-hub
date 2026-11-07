@@ -36,8 +36,9 @@ test("six steps create a first workflow only after approval without collecting p
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Events")
   await page.goto("/#/team")
   await expect(page.getByText("VP of Finance", { exact: true }).first()).toBeVisible()
-  const saved = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!); return { events: s.events.length, name: s.org.name, files: s.org.workspace.files.length, date: s.events[0].date, official: s.nodes.find((n: { stepKey: string }) => n.stepKey === "purchaseRequest").officialDeadline } })
-  expect(saved).toEqual({ events: 1, name: "Fictional Launch Club", files: 0, date: "2026-11-19", official: "2026-11-04" })
+  // The planned event comes first; the three sample event templates follow it (P3-A).
+  const saved = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!); return { events: s.events.length, first: s.events[0].id, name: s.org.name, files: s.org.workspace.files.length, date: s.events[0].date, official: s.nodes.find((n: { eventId: string; stepKey: string }) => n.eventId === s.events[0].id && n.stepKey === "purchaseRequest").officialDeadline } })
+  expect(saved).toEqual({ events: 4, first: "setup-event-dfs", name: "Fictional Launch Club", files: 0, date: "2026-11-19", official: "2026-11-04" })
   await page.reload()
   await expect(page.getByText("VP of Finance", { exact: true }).first()).toBeVisible()
   expect(Date.now() - started).toBeLessThan(300000)

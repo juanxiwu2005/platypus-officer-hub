@@ -57,7 +57,8 @@ test.describe("with motion", () => {
     await expect(badge).toBeVisible()
     expect(await badge.evaluate(el => el.classList.contains("is-pop"))).toBe(false)     // first draw: quiet
     const before = await badge.innerText()
-    await page.getByTestId("board-card").first().getByRole("button").first().click()
+    // The president's own To do card (the sample club's Not claimed cards come first and need claiming before Done, P3-A).
+    await page.getByRole("region", { name: "To do", exact: true }).getByTestId("board-card").first().getByRole("button").first().click()
     await page.getByTestId("task-detail").getByRole("button", { name: "Done", exact: true }).click()
     await expect.poll(async () => (await page.getByTestId("nav-open-tasks").innerText().catch(() => "")) !== before).toBe(true)
     await expect(page.getByTestId("nav-open-tasks").or(page.locator(".sidenav a .count"))).toBeVisible()
