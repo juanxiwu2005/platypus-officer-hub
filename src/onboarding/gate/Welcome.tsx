@@ -2,12 +2,13 @@ import { useNavigate } from "react-router-dom"
 import { finishAttempt, markWelcomeSeen, startAttempt } from "../../lib/onboardingRecord"
 import { onboardingCopy as copy } from "../copy"
 import { FLOW_VERSION } from "../record"
+import { currentSession } from "../../lib/studySession"
 
 export function Welcome() {
   const navigate = useNavigate()
   // "Start" goes through /welcome/start, the one place that begins (and records) a walkthrough; "Replay walkthrough" in the Demo menu uses it too.
   const start = () => navigate("/welcome/start")
-  const explore = () => { const id = startAttempt("explore", FLOW_VERSION); finishAttempt(id, "explored"); markWelcomeSeen(); navigate("/") }
+  const explore = () => { const id = startAttempt("explore", FLOW_VERSION, currentSession()?.id); finishAttempt(id, "explored"); markWelcomeSeen(); navigate("/") }
   return <section className="ob-card ob-welcome" aria-labelledby="ob-welcome-h">
     <h1 id="ob-welcome-h">{copy.welcomeTitle}</h1>
     <p className="ob-lead">{copy.welcomeLead}</p>

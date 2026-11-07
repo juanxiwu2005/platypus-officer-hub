@@ -6,12 +6,14 @@
 //   node scripts/export-to-csv.mjs in.json out.csv
 //   node scripts/export-to-csv.mjs in.json out.csv --no-bom                              (no Excel byte-order mark; for R's read.csv)
 //
-// It reads the file only and writes the CSV only. Nothing is sent anywhere. Works with formatVersion 1 files too
-// (they have no `timeline`; one is built here from the interaction log and the onboarding record).
+// It reads the file only and writes the CSV only. Nothing is sent anywhere. Works with formatVersion 1, 2 and 3 files
+// (version 1 has no `timeline`; one is built here from the interaction log and the onboarding record).
+// Times: `time_iso` is UTC; `time_az` is Arizona time (America/Phoenix, UTC-7 all year, no daylight saving).
+// `elapsed_s` counts from the study session's start (formatVersion 3), or from the first row when the file has no session.
 import { readFileSync, writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
-export const COLUMNS = ["row", "time_iso", "time_ms", "elapsed_s", "gap_s", "source", "seq", "attempt", "actor", "type", "route", "name", "target", "external", "applied", "description", "payload_json", "before_json"]
+export const COLUMNS = ["row", "time_iso", "time_az", "time_ms", "elapsed_s", "gap_s", "source", "seq", "attempt", "actor", "type", "route", "name", "target", "external", "applied", "description", "payload_json", "before_json"]
 
 /** One row per event, oldest first. */
 export function toRows(file) {
@@ -19,13 +21,15 @@ export function toRows(file) {
   const entries = file.interactionLog?.entries ?? []
   const bySeq = new Map(entries.map(e => [e.seq, e]))
   const timeline = Array.isArray(file.timeline) ? file.timeline : legacyTimeline(entries, file.onboarding)
-  const first = timeline.length ? timeline[0].at : 0
+  const startedAt = Number.isFinite(file.session?.startedAtMs) ? file.session.startedAtMs : null
+  const first = startedAt ?? (timeline.length ? timeline[0].at : 0)
   return timeline.map((r, i) => {
     const e = r.seq === null || r.seq === undefined ? undefined : bySeq.get(r.seq)
     const p = e && e.payload && typeof e.payload === "object" ? e.payload : {}
     return {
       row: i + 1,
       time_iso: r.time ?? new Date(r.at).toISOString(),
+      time_az: azTime(r.at),
       time_ms: r.at,
       elapsed_s: round((r.at - first) / 1000),
       gap_s: i === 0 ? 0 : round((r.at - timeline[i - 1].at) / 1000),
@@ -47,6 +51,12 @@ export function toRows(file) {
 }
 
 const round = n => Math.round(n * 1000) / 1000
+
+/** Arizona time, e.g. "2026-11-07 10:46:40.337". Arizona keeps UTC-7 all year, so a fixed offset is exact. Same as azTime in src/lib/studySession.ts. */
+export function azTime(ms) {
+  if (typeof ms !== "number" || !Number.isFinite(ms)) return ""
+  return new Date(ms - 7 * 3600_000).toISOString().replace("T", " ").replace("Z", "")
+}
 
 /** For formatVersion 1 files: the same merge the app now does, with the entry type as the description. */
 function legacyTimeline(entries, onboarding) {

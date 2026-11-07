@@ -2,6 +2,8 @@
 export type OnboardingEvent = "enter" | "leave" | "back" | "skip" | "complete" | "exit"
 
 export interface OnboardingStepRecord { step: string; event: OnboardingEvent; at: number }
+/** What the president chose on the Confirm screen. Either one ends setup; the attempt may still go on to the officer preview. */
+export type SetupChoice = "start-workspace" | "keep-demo"
 export interface OnboardingAttempt {
   id: string
   entry: "start" | "explore"
@@ -9,7 +11,13 @@ export interface OnboardingAttempt {
   replay: number
   startedAt: number
   finishedAt?: number
+  /** How the whole attempt ended. "exited" after setup means the person left later (e.g. Exit in the officer preview), not that setup was unfinished: see `setupCompletedAt`. */
   outcome?: "completed" | "exited" | "explored"
+  /** The study session (src/lib/studySession.ts) the attempt belongs to; missing for attempts recorded before sessions existed or outside one. */
+  sessionId?: string
+  /** Real time Start workspace or Keep current demo was pressed (the first time in this attempt), and which one. */
+  setupCompletedAt?: number
+  setupChoice?: SetupChoice
   steps: OnboardingStepRecord[]
 }
 export interface OnboardingRecord { attempts: OnboardingAttempt[] }
@@ -59,11 +67,11 @@ export function rearm(): void {
   try { storage().removeItem(`${KEY}.seen`); storage().setItem(`${KEY}.rearmed`, "1") } catch { /* session-only */ }
 }
 
-export function startAttempt(entry: "start" | "explore", flowVersion: string): string {
+export function startAttempt(entry: "start" | "explore", flowVersion: string, sessionId?: string | null): string {
   const record = loadOnboardingRecord()
   const replay = record.attempts.filter(a => a.entry === entry).length
   const id = `ob-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
-  record.attempts.push({ id, entry, flowVersion: String(flowVersion).slice(0, 40), replay, startedAt: Date.now(), steps: [] })
+  record.attempts.push({ id, entry, flowVersion: String(flowVersion).slice(0, 40), replay, startedAt: Date.now(), ...(sessionId ? { sessionId: String(sessionId).slice(0, 40) } : {}), steps: [] })
   save(record)
   return id
 }
@@ -84,4 +92,26 @@ export function finishAttempt(attemptId: string, outcome: "completed" | "exited"
   attempt.finishedAt = Date.now()
   attempt.outcome = outcome
   save(record)
+}
+
+/** Start workspace or Keep current demo was pressed. Only the first press counts (a double click, or Back and a second press, keeps the first). */
+export function markSetup(attemptId: string, choice: SetupChoice): void {
+  const record = loadOnboardingRecord()
+  const attempt = record.attempts.find(a => a.id === attemptId)
+  if (!attempt || attempt.setupCompletedAt !== undefined || (choice !== "start-workspace" && choice !== "keep-demo")) return
+  attempt.setupCompletedAt = Date.now()
+  attempt.setupChoice = choice
+  save(record)
+}
+
+/**
+ * Whether the president planned a first event or pressed Skip for now, read from the step events only (nothing typed):
+ * the last time the First event screen was left forward (before setup ended, when it did), was that a Skip? null when it never was.
+ */
+export function firstEventChoice(attempt: OnboardingAttempt | undefined, step = "founder.first-event"): "planned" | "skipped" | null {
+  if (!attempt) return null
+  const until = attempt.setupCompletedAt ?? Infinity
+  const own = attempt.steps.filter(s => s.step === step && s.at <= until)
+  for (let i = own.length - 1; i >= 0; i--) if (own[i].event === "leave") return own[i - 1]?.event === "skip" ? "skipped" : "planned"
+  return null
 }

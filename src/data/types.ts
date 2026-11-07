@@ -498,7 +498,7 @@ export interface OutputReport { id:string; outputId:string; text:string; reporte
  * still comes from `DemoState.today`, the fixed demo clock.
  */
 export interface LogEntry {
-  /** 1, 2, 3 … never reused; gaps at the start mean the oldest entries were dropped at the 2,000-entry cap. */
+  /** 1, 2, 3 … never reused within a study session (it starts again at 1 when a new session begins); gaps at the start mean the oldest entries were dropped at the 2,000-entry cap. */
   seq: number
   /** Real time the action was dispatched, milliseconds since 1970 (Date.now()). */
   at: number
@@ -512,4 +512,6 @@ export interface LogEntry {
   before?: unknown
   /** false = the app ignored the action (not allowed, invalid, or nothing to change). */
   applied: boolean
+  /** The study session it was written in (src/lib/studySession.ts); missing when no session had begun in this browser. */
+  session?: string
 }

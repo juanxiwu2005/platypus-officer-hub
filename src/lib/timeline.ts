@@ -1,5 +1,6 @@
 import type { LogEntry } from "../data/types"
 import type { OnboardingRecord } from "./onboardingRecord"
+import { azTime, type StudySession } from "./studySession"
 
 /**
  * One merged, time-ordered list for analysis (export field `timeline`, docs/PHASE3_DATA_DICTIONARY.md):
@@ -10,12 +11,15 @@ import type { OnboardingRecord } from "./onboardingRecord"
 export interface TimelineRow {
   /** Real time as an ISO string (UTC). */
   time: string
+  /** The same time in Arizona (UTC−7, no daylight saving), e.g. "2026-11-07 10:46:40.337". formatVersion 3. */
+  timeAz: string
   /** The same time in milliseconds since 1970. */
   at: number
-  source: "log" | "onboarding"
+  /** "session" = the study session began (one row, formatVersion 3). */
+  source: "log" | "onboarding" | "session"
   /** The log entry's number (log rows only). */
   seq: number | null
-  /** Log: the entry type ("ui.click", "updateNode" …). Onboarding: "onboarding.start", "onboarding.enter" … "onboarding.finish". */
+  /** Log: the entry type ("ui.click", "updateNode" …). Onboarding: "onboarding.start", "onboarding.enter" … "onboarding.setup", "onboarding.finish". Session: "session.start". */
   type: string
   /** "View as" person when it happened (log rows only). */
   actor: string | null
@@ -61,9 +65,12 @@ export function describeEntry(e: LogEntry): string {
   return `Data action ${e.type}${id ? ` ${s(id)}` : ""}${e.applied ? "" : " — not applied"}`
 }
 
-export function buildTimeline(log: LogEntry[], onboarding: OnboardingRecord): TimelineRow[] {
+const SETUP_CHOICE = { "start-workspace": "Start workspace", "keep-demo": "Keep current demo" } as const
+
+export function buildTimeline(log: LogEntry[], onboarding: OnboardingRecord, session?: StudySession | null): TimelineRow[] {
   const rows: TimelineRow[] = []
-  const row = (r: Omit<TimelineRow, "time">): TimelineRow => ({ time: Number.isFinite(r.at) ? new Date(r.at).toISOString() : "", ...r })
+  const row = (r: Omit<TimelineRow, "time" | "timeAz">): TimelineRow => ({ time: Number.isFinite(r.at) ? new Date(r.at).toISOString() : "", timeAz: azTime(r.at), ...r })
+  if (session) rows.push(row({ at: session.startedAt, source: "session", seq: null, type: "session.start", actor: null, route: null, applied: null, attempt: null, desc: `Study session started (${session.previousEntriesCleared} earlier log entries cleared from this browser)` }))
   for (const e of log) {
     const p = (e.payload && typeof e.payload === "object" ? e.payload : {}) as P
     const route = typeof p.route === "string" ? p.route : e.type === "ui.navigate" && typeof p.to === "string" ? p.to : null
@@ -72,9 +79,10 @@ export function buildTimeline(log: LogEntry[], onboarding: OnboardingRecord): Ti
   for (const a of onboarding.attempts) {
     rows.push(row({ at: a.startedAt, source: "onboarding", seq: null, type: "onboarding.start", actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough attempt started: ${a.entry} (flow ${a.flowVersion}, replay ${a.replay})` }))
     for (const st of a.steps) rows.push(row({ at: st.at, source: "onboarding", seq: null, type: `onboarding.${st.event}`, actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough screen ${st.step}: ${st.event}` }))
+    if (a.setupCompletedAt) rows.push(row({ at: a.setupCompletedAt, source: "onboarding", seq: null, type: "onboarding.setup", actor: null, route: null, applied: null, attempt: a.id, desc: `Setup finished: ${a.setupChoice ? SETUP_CHOICE[a.setupChoice] ?? a.setupChoice : "unknown"}` }))
     if (a.finishedAt) rows.push(row({ at: a.finishedAt, source: "onboarding", seq: null, type: "onboarding.finish", actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough attempt ended: ${a.outcome ?? "unknown"}` }))
   }
-  // Stable: within the same millisecond the log comes first (a press is written in its capture phase, before the
+  // Stable: the session row first; within the same millisecond the log comes first (a press is written in its capture phase, before the
   // screen's own handler records the walkthrough step it causes), and log rows keep their numbering.
   return rows.map((r, i) => ({ r, i })).sort((a, b) => a.r.at - b.r.at || a.i - b.i).map(x => x.r)
 }
