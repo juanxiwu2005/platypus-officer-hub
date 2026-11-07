@@ -26,10 +26,11 @@ export function Confirm() {
   const navigate = useNavigate()
   const started = useRef(false)
   const [problem, setProblem] = useState("")
-  const { event, date } = draft
-  const noEvent = !event && draft.skipped.includes(FIRST_EVENT)
-  const planned = !!event && validDate(date) && date >= state.today
+  const noEvent = !draft.event && draft.skipped.includes(FIRST_EVENT)
+  const planned = !!draft.event && validDate(draft.date) && draft.date >= state.today
   const ready = planned || noEvent
+  // What Start passes on: the planned event and its date, or (after Skip for now) no event and no date.
+  const event = noEvent ? null : draft.event, date = noEvent ? "" : draft.date
   const replaces = state.org.setupCompletedOn !== null
   if (!flow) return null
 
@@ -39,7 +40,7 @@ export function Confirm() {
     const error = validateClub(draft.club)
     if (error) { setProblem(error); return }
     started.current = true
-    dispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event: noEvent ? null : event, date: noEvent ? "" : date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps })
+    dispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps })
     clear()
     navigate("/welcome/founder/invite")
   }
