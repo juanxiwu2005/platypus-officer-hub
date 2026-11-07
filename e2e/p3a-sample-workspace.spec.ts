@@ -1,3 +1,4 @@
+import { fillMission } from "./ob-helpers"
 import { expect, test, type Page } from "@playwright/test"
 import { closeRail } from "./helpers"
 
@@ -16,6 +17,7 @@ async function startWorkspace(page: Page) {
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
   await page.getByLabel("Club name").fill("Maple Club"); await cont(page)
   await page.getByRole("button", { name: /^Skip/ }).click()                 // Constitution
+  await fillMission(page)                                                    // Goals needs a mission, even to skip
   await page.getByRole("button", { name: "Skip for now" }).click()          // Goals
   await page.getByRole("button", { name: "Skip for now" }).click()          // Team
   await page.getByRole("button", { name: "Welcome mixer" }).click()

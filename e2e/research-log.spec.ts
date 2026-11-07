@@ -1,3 +1,5 @@
+import { FLOW_VERSION } from "../src/onboarding/record"
+import { fillMission } from "./ob-helpers"
 import { expect, test, type Page } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { onboardingCopy as c } from "../src/onboarding/copy"
@@ -38,6 +40,7 @@ async function session(page: Page) {
   await page.getByLabel(c.founder.name.field).fill("Fictional Lantern Society")
   await next(page)
   await page.getByRole("button", { name: c.founder.constitution.skip }).click()
+  await fillMission(page)
   await page.getByRole("button", { name: c.skip }).click()            // goals
   await page.getByRole("button", { name: c.skip }).click()            // team
   await page.getByRole("button", { name: "Welcome mixer" }).click()
@@ -78,7 +81,7 @@ test("a short session is exported whole: walkthrough, clicks, a rule question, i
   if (process.env.SHOW_TIMELINE) console.info(timeline.map(r => `${r.time}  ${r.source.padEnd(10)} ${String(r.seq ?? "").padStart(3)}  ${r.type.padEnd(22)} ${r.desc}`).join("\n"))
 
   // shape, numbering and time
-  expect(file).toMatchObject({ format: "platypus-export", formatVersion: 2, onboardingFlowVersion: "ob-2", demoToday: file.state.today })
+  expect(file).toMatchObject({ format: "platypus-export", formatVersion: 2, onboardingFlowVersion: FLOW_VERSION, demoToday: file.state.today })
   expect(typeof file.build.commit).toBe("string")
   expect(log.map(e => e.seq)).toEqual(log.map((_, i) => log[0].seq + i))
   for (let i = 1; i < log.length; i++) expect(log[i].at).toBeGreaterThanOrEqual(log[i - 1].at)
