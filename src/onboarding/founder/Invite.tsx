@@ -47,7 +47,8 @@ export function Invite() {
     <p className="small muted">{c.permission} {c.notSent}</p>
     <ul className="ob-i9-list" aria-label={c.officers}>
       {rows.map(r => <li key={r.id} className="ob-i9-row" data-status={r.status}>
-        <span className="ob-i9-who">{r.name ? <b>{r.name}</b> : null}<span className="muted">{r.status === "open" ? c.open : r.role}</span></span>
+        {/* An open position still names its role (bold, where a name would be), so the president can tell which seat is empty. */}
+        <span className="ob-i9-who">{r.status === "open" ? <><b>{r.role}</b><span className="muted">{c.open}</span></> : <><b>{r.name}</b><span className="muted">{r.role}</span></>}</span>
         {r.status !== "open" && <span className={`ob-i9-status is-${r.status}`} data-testid="officer-status">{r.status === "joined" ? c.joined : c.invited}</span>}
       </li>)}
     </ul>
