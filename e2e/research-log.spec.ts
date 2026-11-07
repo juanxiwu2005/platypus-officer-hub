@@ -21,21 +21,14 @@ test.beforeEach(async ({ page, context }) => {
 const next = (page: Page) => page.getByRole("button", { name: c.next, exact: true }).click()
 
 async function session(page: Page) {
-  // 1. The sample club: prepare a reminder from Today (choose a channel, open the draft: the outside page is stopped)
+  // 0. Before the study link: someone looks around the sample club in this browser. A study session starts after this, so none of it is exported.
   await page.goto("/#/")
   await expect(page.locator("main h1")).toHaveText("Today")
   await closeRail(page)
-  await page.getByTestId("risk-list").getByRole("button", { name: "Remind" }).first().click()
-  const panel = page.getByTestId("nudge-panel")
-  await expect(panel).toBeVisible()
-  await panel.getByLabel("Preferred channel").selectOption("email")
-  const draft = panel.getByRole("link", { name: "Open Gmail draft" })
-  await expect(draft).toBeVisible()
-  const [mail] = await Promise.all([page.waitForEvent("popup"), draft.click()])
-  await mail.close()
-  await panel.getByRole("button", { name: "Close reminder" }).click()
-  // 2. Setup through the walkthrough
-  await page.goto("/#/welcome/start")
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Rules/ }).click()
+  await expect(page.locator("main h1")).toHaveText("Rules")
+  // 1. Setup through the walkthrough: the study link begins the session
+  await page.goto("/#/start")
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
   await page.getByLabel(c.founder.name.field).fill("Fictional Lantern Society")
   await next(page)
@@ -50,6 +43,17 @@ async function session(page: Page) {
   await expect(page.getByRole("heading", { level: 1, name: c.founder.invite.title })).toBeVisible()
   await page.getByRole("button", { name: c.founder.invite.today }).click()
   await expect(page.locator("main h1")).toHaveText("Today")
+  // 2. Prepare a reminder from Today (choose a channel, open the draft: the outside page is stopped)
+  await closeRail(page)
+  await page.getByTestId("risk-list").getByRole("button", { name: "Remind" }).first().click()
+  const panel = page.getByTestId("nudge-panel")
+  await expect(panel).toBeVisible()
+  await panel.getByLabel("Preferred channel").selectOption("email")
+  const draft = panel.getByRole("link", { name: "Open Gmail draft" })
+  await expect(draft).toBeVisible()
+  const [mail] = await Promise.all([page.waitForEvent("popup"), draft.click()])
+  await mail.close()
+  await panel.getByRole("button", { name: "Close reminder" }).click()
   // 3. Click a few things: a page link, a drop-down, the demo clock (a data change with its earlier value)
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Tasks/ }).click()
@@ -73,7 +77,7 @@ async function session(page: Page) {
   return JSON.parse(readFileSync((await download.path())!, "utf8"))
 }
 
-test("a short session is exported whole: walkthrough, clicks, a rule question, its source, a reminder, the export — in order", async ({ page }) => {
+test("a short session is exported whole: walkthrough, a reminder, clicks, a rule question, its source, the export — in order; earlier browsing only counted", async ({ page }) => {
   const started = Date.now()
   const file = await session(page)
   const log = file.interactionLog.entries as Entry[]
@@ -81,13 +85,22 @@ test("a short session is exported whole: walkthrough, clicks, a rule question, i
   if (process.env.SHOW_TIMELINE) console.info(timeline.map(r => `${r.time}  ${r.source.padEnd(10)} ${String(r.seq ?? "").padStart(3)}  ${r.type.padEnd(22)} ${r.desc}`).join("\n"))
 
   // shape, numbering and time
-  expect(file).toMatchObject({ format: "platypus-export", formatVersion: 2, onboardingFlowVersion: FLOW_VERSION, demoToday: file.state.today })
+  expect(file).toMatchObject({ format: "platypus-export", formatVersion: 3, onboardingFlowVersion: FLOW_VERSION, demoToday: file.state.today })
+  // the study session: begun by the study link; what was done before it is gone from the file, only counted
+  expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "planned", outcome: "completed" })
+  expect(file.session.previousEntriesCleared).toBeGreaterThan(0)
+  expect(file.session.olderEntriesLeftOut).toBe(file.session.previousEntriesCleared)
+  expect(log.every(e => (e as Entry & { session?: string }).session === file.session.id)).toBe(true)
+  expect(log[0]).toMatchObject({ seq: 1, type: "ui.navigate", payload: { to: "/welcome/founder/name" } })
+  expect(file.onboarding.attempts).toHaveLength(1)
+  expect(timeline[0]).toMatchObject({ source: "session", type: "session.start" })
   expect(typeof file.build.commit).toBe("string")
   expect(log.map(e => e.seq)).toEqual(log.map((_, i) => log[0].seq + i))
   for (let i = 1; i < log.length; i++) expect(log[i].at).toBeGreaterThanOrEqual(log[i - 1].at)
   expect(log[0].at).toBeGreaterThanOrEqual(started - 1000)
   for (let i = 1; i < timeline.length; i++) expect(timeline[i].at).toBeGreaterThanOrEqual(timeline[i - 1].at)
   expect(timeline.filter(r => r.source === "log")).toHaveLength(log.length)
+  expect(timeline.every(r => /^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d\.\d{3}$/.test((r as Row & { timeAz: string }).timeAz))).toBe(true)
   expect(timeline.some(r => r.source === "onboarding")).toBe(true)
 
   // the session's steps, in order
@@ -97,18 +110,17 @@ test("a short session is exported whole: walkthrough, clicks, a rule question, i
     return i
   }
   const p = (e: Entry) => e.payload
-  let i = find(0, e => e.type === "ui.navigate" && p(e).to === "/", "the app opened")
+  let i = find(0, e => e.type === "ui.navigate" && p(e).to === "/welcome/founder/name", "the walkthrough opened")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/constitution", "Continue on the Name screen")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Start workspace")
+  i = find(i, e => e.type === "completeSetup" && e.applied, "the club was created")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.today && p(e).to === "/", "Go to Today")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Remind" && p(e).route === "/", "Remind")
   i = find(i, e => e.type === "ui.details" && p(e).action === "open" && p(e).kind === "nudge", "the reminder opened in Details")
   i = find(i, e => e.type === "ui.reminder" && p(e).action === "open", "the reminder composer opened")
   i = find(i, e => e.type === "ui.change" && p(e).name === "Preferred channel" && p(e).value === "Gmail" && p(e).area === "reminder", "the channel chosen")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Open Gmail draft" && p(e).external === true && p(e).href === "mail.google.com/mail/", "the draft link")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Close reminder", "the composer closed")
-  i = find(i, e => e.type === "ui.navigate" && p(e).to === "/welcome/founder/name", "the walkthrough opened")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/constitution", "Continue on the Name screen")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Start workspace")
-  i = find(i, e => e.type === "completeSetup" && e.applied, "the club was created")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.today && p(e).to === "/", "Go to Today")
   i = find(i, e => e.type === "ui.click" && p(e).role === "link" && /^Tasks/.test(String(p(e).name)) && p(e).to === "/tasks" && p(e).area === "nav", "the Tasks link")
   i = find(i, e => e.type === "ui.change" && p(e).name === "Task scope" && p(e).value === "Team tasks", "the task scope chosen")
   i = find(i, e => e.type === "advanceClock" && e.applied && (e.before as { today?: string })?.today !== undefined, "the demo clock, with its earlier value")
