@@ -18,7 +18,7 @@ import { advanceClock } from "../engine/followup"
 import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type ReplyInput, type TaskReply } from "./taskWorkflow"
 import { usableGrant } from "../lib/officerLinks"
 import type { OfficerGrant } from "./types"
-import { completeSetup, resetWorkflow, saveClubSettings, saveProfile, saveWorkflow, type ClubDraft, type ProfilePatch } from "./settings"
+import { startWorkspace, resetWorkflow, saveClubSettings, saveProfile, saveWorkflow, type ClubDraft, type ProfilePatch } from "./settings"
 import type { BoardSettings, NodeStatus, OrgSettings } from "./types"
 import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
 import { addContact, addOrganization, deleteContact, deleteOrganization, logInteraction, updateContact, updateInteraction, updateOrganization, type ContactInput, type ContactPatch, type InteractionInput, type OrgPatch } from "./crm"
@@ -447,7 +447,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
     }
     case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
     case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
-    case "completeSetup": return completeSetup(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow)
+    case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow)
     case "saveWorkflow": return saveWorkflow(state, action.steps)
     case "resetWorkflow": return resetWorkflow(state)
   }

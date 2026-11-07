@@ -34,13 +34,14 @@ test.describe("computer", () => {
   })
   test("pressing a strip opens it, pressing again folds it; the keyboard can do it too", async ({ page }) => {
     await openBoard(page)
-    const strip = page.getByRole("button", { name: /Not claimed, no tasks\. Show column/ })
+    // The sample club has open Not claimed tasks (P3-A); Stuck is one of the president's empty columns.
+    const strip = page.getByRole("button", { name: /Stuck, no tasks\. Show column/ })
     await strip.click()
-    await expect(page.locator(".board-col", { has: page.getByRole("heading", { name: "Not claimed" }) })).not.toHaveClass(/is-folded/)
-    const hide = page.getByRole("button", { name: /Not claimed, no tasks\. Hide column/ })
+    await expect(page.locator(".board-col", { has: page.getByRole("heading", { name: "Stuck" }) })).not.toHaveClass(/is-folded/)
+    const hide = page.getByRole("button", { name: /Stuck, no tasks\. Hide column/ })
     await expect(hide).toHaveAttribute("aria-expanded", "true")
     await hide.focus(); await page.keyboard.press("Enter")
-    await expect(page.locator(".board-col", { has: page.getByRole("heading", { name: "Not claimed" }) })).toHaveClass(/is-folded/)
+    await expect(page.locator(".board-col", { has: page.getByRole("heading", { name: "Stuck" }) })).toHaveClass(/is-folded/)
   })
   test("dragging a card over a folded column opens it and the card can be dropped there", async ({ page }) => {
     await openBoard(page)
