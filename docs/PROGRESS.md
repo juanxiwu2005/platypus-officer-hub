@@ -1,3 +1,6 @@
+> **2026-11-07 · Phase 3 测试准备 · 进行中（Claude；三个 worktree 子 agent 并行）**
+> **已做：** Juanxi 批准后合并 PR #10（Create a merge commit，合并提交 `02996c3`），正式网站已部署该版本。依据 IRB 协议（HRP-503A，Part 3）复核后排定三个包：P3-A Start workspace 后保留三个示例活动 + 示例数据更真实；P3-B 短测试链接 + First event 可跳过；P3-C 交互记录补全（页面、按钮、Ask、来源点击）+ 导出与数据说明。**不做：** 隐藏发送按钮（Juanxi 决定保留，口头告诉参与者不要发）。**待验证：** 正式网站 AI 是否走 ASU AIR（Netlify 日志只保留 24 小时，需要一次真实提问后再查）。工作分支 `claude/keen-gauss-ye3gvr`。
+
 > **2026-11-02 · Onboarding 改版 · 阶段 1 待验收（Codex）**
 > **范围：** 已合并 OB-02（本机行为记录）、OB-01（外壳与路由）、OB-03（首次进入欢迎入口）；回滚 SHA 见 `docs/onboarding-redesign/ROLLBACK_LOG.md`。环境使用 Node **v22.23.4** 与 `/usr/bin/chromium`。本阶段新增路由默认关闭；预览可用 `?walkthrough=1` 打开欢迎页，选择 Start walkthrough 或 Explore the sample club。完整阶段回归正在执行；真机和 Safari 尚未验证。**需要同步本地备份。**
 
