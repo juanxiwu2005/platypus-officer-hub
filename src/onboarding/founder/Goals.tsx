@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { validateGoals } from "../../data/settings"
 import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
@@ -25,7 +26,13 @@ export function Goals() {
   const [rows, setRows] = useState<GoalRow[]>(() => rowsFrom(draft.club.goals))
   const [error, setError] = useState("")
   if (!flow) return null
-  const change = (id: string, patch: Partial<GoalRow>) => { setError(""); setRows(rs => rs.map(r => r.id === id ? { ...r, ...patch } : r)) }
+  // Valid choices go into the draft as they are made, so a reload on this screen keeps them; a half-typed goal waits until it is valid.
+  const change = (id: string, patch: Partial<GoalRow>) => {
+    setError("")
+    const next = rows.map(r => r.id === id ? { ...r, ...patch } : r)
+    setRows(next)
+    if (!validateGoals(goalsFrom(next))) update(d => ({ ...d, club: { ...d.club, goals: goalsFrom(next) } }))
+  }
   const commit = () => update(d => ({ ...d, club: { ...d.club, goals: goalsFrom(rows) } }))
   const next = () => {
     const problem = goalsError(rows, draft.club.mission)
@@ -55,7 +62,7 @@ export function Goals() {
         <div className="ob-goal-set"><Stepper name={name} value={r.target} step={r.step} disabled={!r.on} onChange={n => change(s.id, { target: n })} /><label className="ob-gt-unit"><span className="sr-only">{`${name} ${c.unit}`}</span><input type="text" maxLength={20} disabled={!r.on} value={r.unit} onChange={e => change(s.id, { unit: e.target.value })} /></label></div>
       </li>
     })}</ul>
-    <label className="ob-mission"><span>{c.mission} <span aria-hidden="true">*</span></span><textarea aria-label={c.missionField} aria-required="true" required rows={3} maxLength={300} value={draft.club.mission} onChange={e => update(d => ({ ...d, missionTouched: true, club: { ...d.club, mission: e.target.value } }))} /></label>
+    <label className="ob-mission"><span>{c.mission} <span aria-hidden="true">*</span></span><textarea aria-label={c.missionField} aria-required="true" required rows={3} placeholder={c.missionExample} maxLength={300} value={draft.club.mission} onChange={e => update(d => ({ ...d, missionTouched: true, club: { ...d.club, mission: e.target.value } }))} /></label>
     {error && <p role="alert" className="ob-gt-error">{error}</p>}
     <div className="ob-gt-nav">
       <button type="button" className="btn" onClick={back}>{onboardingCopy.back}</button>

@@ -4,7 +4,7 @@
  */
 export const onboardingCopy = {
   // shell
-  exit: "Save & exit", back: "Back", next: "Continue", skip: "Skip for now", skipHint: "You can add this later in Settings.", progress: "Walkthrough progress",
+  exit: "Exit", back: "Back", next: "Continue", skip: "Skip for now", skipHint: "You can add this later in Settings.", progress: "Walkthrough progress",
   demo: "Demo", demoNote: "Fictional data. It stays in this browser.",
   // welcome gate (OB-03)
   welcomeTitle: "Welcome to Platypus", welcomeLead: "Your club's chief of staff.",
@@ -14,7 +14,7 @@ export const onboardingCopy = {
   // founder flow (OB-04 … OB-06, OB-09)
   founder: {
     name: {
-      title: "Name your club", field: "Club name", school: "ASU Tempe", preview: "Preview", placeholder: "Your club",
+      title: "Name your club", field: "Club name", school: "ASU Tempe", preview: "Preview", placeholder: "Your club", example: "e.g. Sun Devil Robotics Club",
       schoolWhy: "Platypus is set up for ASU clubs in this version, so the school is fixed.", schoolLabel: "School",
     },
     constitution: {
@@ -31,7 +31,7 @@ export const onboardingCopy = {
       tooLong: "This document is very long. Paste the sections about officers and departments.", unreadable: "This file could not be read.",
     },
     goals: {
-      title: "Set goals for your club", lead: "Goals are optional. Progress starts at zero.", mission: "Mission", missionField: "Mission", missionRequired: "Add a mission to continue.",
+      title: "Set goals for your club", lead: "Goals are optional. Progress starts at zero.", mission: "Mission", missionField: "Mission", missionExample: "e.g. Build robots together and compete every spring.", missionRequired: "Add a mission to continue.",
       decrease: "Decrease", increase: "Increase", target: "target", goalName: "Goal name", unit: "Unit", missionLong: "Keep the mission under 300 characters.",
       items: { events: { label: "Weekly events", unit: "per week" }, members: { label: "Active members", unit: "members" }, income: { label: "External income", unit: "USD" } },
     },
@@ -41,10 +41,11 @@ export const onboardingCopy = {
       suggested: "AI suggested roles.", use: "Use these suggestions", sameName: "Each officer needs a different name.",
     },
     firstEvent: {
-      title: "Plan your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "ASU deadline {official} becomes {club} for your club.", details: "Event details",
+      title: "Your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "ASU deadline {official}, club deadline {club}.", details: "Event details",
       sentenceLabel: "Your first event, in one sentence", examplesLabel: "Examples", planning: "Planning…", chainLabel: "First steps and dates",
       stale: "Press Plan it to update the steps.", notEvent: "Describe one event starting with Plan, then review its details.",
       dateError: "Choose a date that is today or later in Event details.", day: "day", days: "days",
+      skipHint: "You can plan one later from Ask.", sentenceExample: "e.g. Plan Welcome Mixer on Mar 5, 40 people, on campus",
       examples: [
         { label: "Welcome mixer", sentence: "Plan Welcome Mixer on Mar 5, 40 people, on campus, no food" },
         { label: "Study workshop", sentence: "Plan Study Skills Workshop on Mar 26, 25 people, on campus" },
@@ -52,7 +53,8 @@ export const onboardingCopy = {
       ],
       fields: { name: "Event name", date: "Event date", type: "Event type", headcount: "Headcount", venue: "Venue", food: "Food", funding: "Funding", speaker: "Includes a guest speaker", source: "Planned with" },
     },
-    confirm: { title: "Ready to start?", summary: "This creates {club} with {officers} and {event} on {date}.", officers: { one: "1 officer", many: "{n} officers" }, start: "Start workspace", keep: "Keep current demo", replaceWarning: "This replaces the current demo workspace.", missing: "Plan your first event before you start.", backToEvent: "Back to first event" },
+    confirm: { title: "Ready to start?", summary: "This creates {club} with {officers} and {event} on {date}.", officers: { one: "1 officer", many: "{n} officers" }, start: "Start workspace", keep: "Keep current demo", replaceWarning: "This replaces the current demo workspace.", missing: "Plan your first event before you start.", backToEvent: "Back to first event",
+      summaryNoEvent: "This creates {club} with {officers}.", noEvent: "No first event yet. You can plan one later from Ask." },
     invite: { title: "Your club is ready.", lead: "Invite your officers.", copy: "Copy link", copied: "Copied", copyFailed: "Press Ctrl+C to copy.", whatsapp: "WhatsApp", email: "Email", link: "Officer invitation link", permission: "Only people with this link can join.", notSent: "Nothing sends automatically. We open a message for you.", preview: "See what your officers will see", today: "Go to Today", invited: "Invited", joined: "Joined", open: "Open position", officers: "Officers", joinedNote: "Demo only: Joined appears when an officer finishes setup in this browser.", subject: "Join {club} on Platypus", message: "Join {club} on Platypus as an officer: {link}" },
   },
   // member preview (OB-07, OB-08)

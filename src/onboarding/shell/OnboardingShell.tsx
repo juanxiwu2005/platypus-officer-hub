@@ -4,14 +4,16 @@ import { FLOWS, stepAt } from "../engine/flows"
 import { endWalkthrough, recordEvent } from "../record"
 import { useOnboardingDraft } from "../draft"
 import { ProgressChain } from "./ProgressChain"
+import { useResumeReading } from "../founder/constitution/useReading"
 
 /** The focus layout for the walkthrough: no navigation, no Ask panel, no View as. The progress chain follows the route. */
 export function OnboardingShell() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-  const { draft } = useOnboardingDraft()
+  const { draft, clear } = useOnboardingDraft()
+  useResumeReading()
   const at = stepAt(pathname)
-  const exit = () => { if (at) recordEvent(FLOWS[at.flow][at.index].id, "exit"); endWalkthrough("exited"); navigate("/") }
+  const exit = () => { if (at) recordEvent(FLOWS[at.flow][at.index].id, "exit"); endWalkthrough("exited"); clear(); navigate("/") }
   // The classic Join page brings its own <main>; two would break the page landmarks.
   const Main = pathname.endsWith("classic-join") ? "div" : "main"
   const onWelcome = /^\/welcome\/?$/.test(pathname)

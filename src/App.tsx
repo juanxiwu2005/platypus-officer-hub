@@ -51,6 +51,9 @@ export default function App() {
         <Route path="member/invitation" element={<Invitation />} /><Route path="member/you" element={<You />} /><Route path="member/reminders" element={<Reminders />} /><Route path="member/busy-weeks" element={<BusyWeeks />} /><Route path="member/about" element={<About />} /><Route path="member/done" element={<Done />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
+      {/* The short study link (Phase 3): /#/start does exactly what /welcome/start does: one recorded attempt, then the founder name screen.
+          Each hop replaces the history entry, so a reload on that screen or the browser's Back never starts a second attempt. */}
+      <Route path="start" element={<Navigate to="/welcome/start" replace />} />
       <Route path="phase1/*" element={screen(<PhaseOne />, "Opening your workspace…", true)} />
       <Route path="officer" element={screen(<Officer />, "Opening your task…", true)} />
       <Route path="join" element={screen(<Join />, "Preparing your invitation…", true)} />

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { act, cleanup, render } from "@testing-library/react"
 import { seedDemo } from "../data/seed"
+import { FLOW_VERSION } from "../onboarding/record"
 import type { LogEntry } from "../data/types"
 import { appendLog, appendUiLog, buildExport, LOG_KEY, LOG_LIMIT, loggedReducer, StoreProvider, UI_REPEAT_MS, useStore, type Action } from "../data/store"
 import { answerSummary, describeChange, describeClick, emitUi, installUiCapture, routeOf, type UiEvent } from "../lib/uiLog"
@@ -242,7 +243,7 @@ describe("export shape", () => {
     const s = seedDemo("2026-10-22")
     const out = buildExport(s, [], T, { attempts: [] })
     for (const key of ["format", "formatVersion", "exportedAt", "schemaVersion", "storageKey", "state", "onboarding", "interactionLog"]) expect(out).toHaveProperty(key)
-    expect(out).toMatchObject({ formatVersion: 2, demoToday: "2026-10-22", onboardingFlowVersion: "ob-2", timeline: [] })
+    expect(out).toMatchObject({ formatVersion: 2, demoToday: "2026-10-22", onboardingFlowVersion: FLOW_VERSION, timeline: [] })
     expect(typeof out.build.commit).toBe("string")
   })
 })

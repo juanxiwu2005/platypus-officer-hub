@@ -46,8 +46,9 @@
 .ob-role { align-items: center; row-gap: var(--s3); }
 .ob-role-title-wrap { grid-column: 1; grid-row: 1; position: relative; min-width: 0; padding-inline-start: calc(var(--ob-depth) * var(--s7)); }
 .ob-role-branch { position: absolute; inset-inline-start: calc((var(--ob-depth) - 1) * var(--s7)); top: 50%; color: var(--muted); transform: translateY(-50%); }
-.ob-role :is(.ob-role-title, .ob-role-person, .ob-role-boss) { height: 44px; min-height: 44px; }
-.ob-role-title { width: 100%; }
+.ob-role :is(.ob-role-person, .ob-role-boss) { height: 44px; min-height: 44px; }
+/* The title is a one-row text box that grows to fit (Team.tsx, RoleTitle): a long title wraps instead of being cut off. */
+.ob-team .ob-role-title { display: block; width: 100%; min-height: 44px; overflow: hidden; resize: none; line-height: 1.4; overflow-wrap: anywhere; padding-block: calc((44px - 1.4em - 2px) / 2); }   /* one line sits in the middle like the boxes beside it */
 .ob-role-person { grid-column: 2; grid-row: 1; }
 .ob-role-boss, .ob-role-top { grid-column: 3; grid-row: 1; }
 .ob-role-top { display: flex; align-items: center; min-height: 44px; color: var(--muted); padding-inline: var(--s5); }
@@ -56,12 +57,18 @@
 .ob-role-duties { grid-column: 1 / -1; grid-row: 3; display: grid; gap: var(--s2); padding-bottom: var(--s3); }
 .ob-role-duties .cap { font-size: var(--fs-sm); color: var(--muted); }
 
-/* A phone: Role and Person stay side by side, Remove on the right, and the summary takes its own line under them. */
+/* A phone: the role title has the whole first line (with Remove on the right), so a long title is read in full; Person and Reports to share
+   the second line, under the two column headings. Nothing is wider than the screen. */
 @media (max-width: 640px) {
-  .ob-team-head, .ob-role { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; }
-  .ob-role { padding-bottom: var(--s3); border-bottom: 1px solid var(--line); row-gap: 0; }
+  .ob-team-head { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .ob-team-head span:first-child, .ob-team-head span:last-child { display: none; }
+  .ob-team-head span { min-width: 0; overflow-wrap: anywhere; }
+  .ob-role { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; padding-bottom: var(--s3); border-bottom: 1px solid var(--line); row-gap: var(--s3); }
+  .ob-role-title-wrap { grid-column: 1 / 3; }
+  .ob-role:not(:has(.ob-role-x)) .ob-role-title-wrap { grid-column: 1 / -1; }
   .ob-role-x { grid-column: 3; }
-  .ob-role-boss, .ob-role-top { grid-column: 1 / -1; grid-row: 2; }
+  .ob-role-person { grid-column: 1; grid-row: 2; }
+  .ob-role-boss, .ob-role-top { grid-column: 2 / -1; grid-row: 2; min-width: 0; }
   .ob-role-duties-toggle { grid-column: 1 / -1; grid-row: 3; }
   .ob-role-duties { grid-row: 4; }
   .ob-gt-skip { margin-inline-start: 0; justify-items: start; text-align: start; }
@@ -69,3 +76,21 @@
   .ob-goal-set { grid-template-columns: minmax(0, 1fr); }
   .ob-stepper { justify-content: space-between; }
 }
+
+/* The organization chart (components/setup/OrgChart.tsx; on Team, the member Done screen, Settings and the classic setup) can be wider than a
+   phone. It opens with the top role in the middle, and a soft fade on a side says there is more to scroll to there. Like the Events flow chart,
+   the fade is a layer over the edge, never a mask on the chart; it follows the scroll position at once (no transition: it is a hint, not motion). */
+.org-fade { position: relative; min-width: 0; }
+.org-fade::before, .org-fade::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  width: 40px;
+  pointer-events: none;
+  z-index: var(--z-raised);
+  opacity: 0;
+}
+.org-fade::before { left: 1px; border-radius: var(--r-md) 0 0 var(--r-md); background: linear-gradient(to left, transparent, var(--surface-2)); }
+.org-fade::after { right: 1px; border-radius: 0 var(--r-md) var(--r-md) 0; background: linear-gradient(to right, transparent, var(--surface-2)); }
+.org-fade.more-left::before, .org-fade.more-right::after { opacity: 1; }

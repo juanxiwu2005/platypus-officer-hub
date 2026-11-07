@@ -19,7 +19,8 @@ const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
 /**
  * Screen 5, the witness moment: one sentence becomes the first event, and its progress chain draws itself with dates from the rule engine.
  * Everything lives in the shared draft (event, date, source, buffer), so Back/Continue and a reload keep it. The chain plays once per press of
- * Plan it; turning the buffer or editing a field only changes the dates and never replays it.
+ * Plan it; turning the buffer or editing a field only changes the dates and never replays it. The screen is optional (Phase 3): Skip for now clears
+ * the planned event and goes to Confirm, which then starts the club with no event. Plan it and Skip for now are equally one press; neither is chosen for the president.
  */
 export function FirstEvent() {
   const { state } = useStore()
@@ -58,10 +59,12 @@ export function FirstEvent() {
   }
   const edit = (sentence: string) => { patch({ sentence }); setStale(true) }
   const eventPatch = (next: Partial<FirstEventFields>) => { if (event) patch({ event: { ...event, ...next }, confirmed: false }) }
+  // Skip for now: no first event. The sentence stays, so Back from Confirm and Plan it brings the plan back in one press. A plan still on its way is dropped.
+  const skip = () => { request.current++; setBusy(false); patch({ event: null, date: "", source: "", confirmed: false }); flow?.skip() }
 
   return <section className="ob-card ob6" data-testid="first-event">
     <h1>{c.title}</h1>
-    <textarea className="ob6-sentence" aria-label={c.sentenceLabel} maxLength={1000} rows={3} value={draft.sentence} onChange={e => edit(e.target.value)} />
+    <textarea className="ob6-sentence" aria-label={c.sentenceLabel} placeholder={c.sentenceExample} maxLength={1000} rows={3} value={draft.sentence} onChange={e => edit(e.target.value)} />
     <div className="ob6-examples" role="group" aria-label={c.examplesLabel}>
       {c.examples.map(x => <button key={x.label} type="button" className="chip" onClick={() => edit(x.sentence)}>{x.label}</button>)}
     </div>
@@ -97,9 +100,12 @@ export function FirstEvent() {
       </div>
     </details>}
 
-    <div className="ob-actions ob6-foot">
+    {/* The same footer as Goals and Team: Back, Continue, and the optional step's Skip for now. Like Constitution, the "later" hint shows only
+        until something is chosen (here: a plan), which also keeps the planned screen within its 60-word budget. */}
+    <div className="ob-gt-nav">
       <button type="button" className="btn" onClick={() => flow?.back()}>{onboardingCopy.back}</button>
       <button type="button" className="btn btn-primary" disabled={!preview || stale || busy} onClick={() => flow?.next()}>{onboardingCopy.next}</button>
+      <div className="ob-gt-skip"><button type="button" className="btn btn-quiet" onClick={skip}>{onboardingCopy.skip}</button>{!event && <p className="ob-gt-hint">{c.skipHint}</p>}</div>
     </div>
   </section>
 }
