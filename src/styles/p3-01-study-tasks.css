@@ -1,0 +1,4 @@
+/* Phase 3 study task markers in the Demo menu (src/components/chrome/DemoMenu.tsx; docs/PHASE3_DATA_DICTIONARY.md section 11).
+   The running task's button looks pressed, the same way as the other pressed toggles. No motion. */
+.study-tasks .btn { min-width: 32px; justify-content: center; }
+.study-tasks .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
