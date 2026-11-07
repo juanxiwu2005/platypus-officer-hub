@@ -34,7 +34,7 @@ test("a first visit runs welcome → founder flow → invite → officer preview
 
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-2" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-3" })
   const steps = rec.attempts[0].steps.map(s => `${s.step}:${s.event}`)
   for (const expected of ["founder.name:enter", "founder.constitution:skip", "founder.goals:skip", "founder.team:skip", "founder.first-event:enter", "founder.confirm:enter", "member.invitation:enter", "member.done:enter"]) expect(steps).toContain(expected)
   expect(JSON.stringify(rec)).not.toContain("Moonlight")                                // behaviour only, never what was typed

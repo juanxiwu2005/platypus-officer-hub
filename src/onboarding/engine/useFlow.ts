@@ -32,7 +32,8 @@ export function useFlow(): FlowApi | null {
   const state = (): StepState => ({ current: steps[index].id, visited: ids.slice(0, index + 1), skipped: draft.skipped, complete: false })
   return {
     steps, index, current: steps[index], skipped: draft.skipped,
-    next: () => { const s = stepForward(state(), ids, onEvent); go(s, s.complete) },
+    // Continuing from a step that was skipped earlier (Skip, then Back, then Continue) means it is no longer skipped: the chain and Confirm follow.
+    next: () => { const id = steps[index].id; if (draft.skipped.includes(id)) patch({ skipped: draft.skipped.filter(x => x !== id) }); const s = stepForward(state(), ids, onEvent); go(s, s.complete) },
     back: () => go(stepBack(state(), ids, onEvent), false),
     skip: () => { if (!steps[index].optional) return; const s = stepSkip(state(), ids, onEvent); patch({ skipped: s.skipped }); go(s, s.complete) },
     exit: () => { recordEvent(steps[index].id, "exit"); endWalkthrough("exited"); navigate("/") },

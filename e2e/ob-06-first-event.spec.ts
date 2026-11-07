@@ -139,9 +139,10 @@ test("editing the sentence turns Continue off until Plan it is pressed again", a
   await expect(page.locator("details.ob6-details").getByLabel(c.fields.name)).toHaveValue("Spring Social")
 })
 
-test("Back goes to the previous screen; there is no Skip on this required screen", async ({ page }) => {
+test("Back goes to the previous screen; Skip for now is there from the start (Phase 3: First event is optional)", async ({ page }) => {
   await page.goto(URL)
-  await expect(page.getByRole("button", { name: onboardingCopy.skip })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: onboardingCopy.skip })).toBeVisible()
+  await expect(page.getByText(c.skipHint)).toBeVisible()
   await page.getByRole("button", { name: onboardingCopy.back }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
 })
@@ -295,5 +296,5 @@ test("the buffer example is computed by the engine and changes with every choice
     seen.push((await example.innerText()).trim())
   }
   expect(new Set(seen).size).toBe(5)                         // five buffers, five different club dates
-  expect(seen.every(t => /^ASU deadline \w{3}, \w{3} \d+ becomes \w{3}, \w{3} \d+ for your club\.$/.test(t))).toBe(true)
+  expect(seen.every(t => /^ASU deadline \w{3}, \w{3} \d+, club deadline \w{3}, \w{3} \d+\.$/.test(t))).toBe(true)
 })

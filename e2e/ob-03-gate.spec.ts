@@ -26,7 +26,7 @@ test("Explore the sample club: Today opens, it is remembered, and it is recorded
   await expect(page.locator("main h1")).toHaveText("Today")   // not asked again
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "explore", outcome: "explored", flowVersion: "ob-2" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "explore", outcome: "explored", flowVersion: "ob-3" })
 })
 test("Start walkthrough opens the new founder flow inside the focus shell and is recorded once", async ({ page }) => {
   await page.goto(WELCOME_ON)
