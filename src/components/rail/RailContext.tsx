@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { emitUi } from "../../lib/uiLog"
 
 /**
  * The right rail (v1.1, decision 1): one column on the right of every page with two tabs.
@@ -77,12 +78,15 @@ export function RailProvider({ children }: { children: ReactNode }) {
     if (a instanceof HTMLElement && a !== document.body && !a.closest(".rail")) returnFocus.current = a
     else if (!detailOpen.current) returnFocus.current = null
     detailOpen.current = true
+    // Research log: what was opened (kind and id of fictional data), not its content.
+    emitUi("ui.details", { action: "open", kind: d.kind, id: "id" in d ? d.id : "eventId" in d ? d.eventId : "roleId" in d ? d.roleId : null })
     setDetail(d)
     setTab("details")
     if (!openRef.current) openedForDetail.current = true
     setOpenState(true)
   }, [])
   const closeDetail = useCallback(() => {
+    if (detailOpen.current) emitUi("ui.details", { action: "close" })
     detailOpen.current = false
     const back = returnFocus.current
     returnFocus.current = null

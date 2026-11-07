@@ -6,6 +6,7 @@ import type { Channel, OfficerGrant } from "../data/types"
 import { makeOfficerGrant, officerUrl, usableGrant, grantToken } from "../lib/officerLinks"
 import { callApi } from "../lib/api"
 import { buildNudge, composeUrl, messageText, nudgeBlocked, STATUS_ACTIONS } from "../lib/nudges"
+import { emitUi } from "../lib/uiLog"
 
 const CHANNEL_LABEL = { whatsapp: "WhatsApp", sms: "Text message", email: "Gmail" }
 export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
@@ -23,6 +24,8 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
   const [linkError, setLinkError] = useState("")
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [])
+  // Research log: the composer opened for this task (its channel choice and the draft link are pressed controls, logged by the page listener).
+  useEffect(() => { emitUi("ui.reminder", { action: "open", nodeId, channel }) }, [nodeId])
   useEffect(() => {
     let current = true
     setGrant(null); setLinkError("")

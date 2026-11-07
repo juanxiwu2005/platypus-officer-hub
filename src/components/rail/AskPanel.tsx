@@ -15,6 +15,7 @@ import { Bts, BtsRow } from "../Bts"
 import { OwnerPicker, ownersToPeople, TaskDueFields } from "./TaskFields"
 import { canCreateEvent, canLead } from "../../data/changeReview"
 import { policySourceById } from "../../data/policyCatalog"
+import { answerSummary, emitUi } from "../../lib/uiLog"
 
 const CHAT_KEY = "platypus.v1.chat"
 const load = (): ChatMsg[] => {
@@ -58,12 +59,14 @@ export function AskPanel() {
     if (!toReview || reviewing.current === toReview || !state.events.some(e => e.id === toReview)) return
     reviewing.current = toReview
     setBusy(true)
+    const started = Date.now()
     reviewEvent(state, toReview).then(reply => {
+      emitUi("ui.answer", { ...answerSummary(reply, Date.now() - started), trigger: "plan-check" })
       if (!mounted.current) return
       if (reply.changeSet) dispatch({ type: "draftChanges", changeSet: reply.changeSet })
       setMessages(m => [...m, { id: uid(), role: "assistant", cards: reply.cards, source: reply.source }])
       rail.takeReview()
-    }).catch(() => { if (mounted.current) rail.takeReview() }).finally(() => { if (mounted.current) { setBusy(false); reviewing.current = null } })
+    }).catch(() => { emitUi("ui.answer", { answer: "error", trigger: "plan-check", ms: Date.now() - started }, false); if (mounted.current) rail.takeReview() }).finally(() => { if (mounted.current) { setBusy(false); reviewing.current = null } })
   }, [toReview, state])
 
   const focus: Focus | null = useMemo(() => {
@@ -79,19 +82,25 @@ export function AskPanel() {
   }, [rail.detail, location.pathname, location.search, state.nodes, state.events])
   const activeFocus = focus && focusOff !== `${focus.kind}:${focus.id}` ? focus : null
 
-  async function send(raw: string) {
+  /** `via`: typed in the box, a suggestion chip, or a question sent from elsewhere ("Ask about this rule"). */
+  async function send(raw: string, via: "typed" | "suggestion" | "handoff" = "typed") {
     const t = raw.trim()
     if (!t || busy) return
     const user: ChatMsg = { id: uid(), role: "user", text: t }
     setMessages(m => [...m, user]); setText(""); setBusy(true)
+    // Research log: the question (cut to 200 characters by the log) and, below, the KIND of answer — never the answer text.
+    emitUi("ui.ask", { question: t, via, route: location.pathname, focus: activeFocus ? activeFocus.kind : null })
+    const started = Date.now()
     try {
       const reply = await respond(t, state, person.id, activeFocus, location.pathname, messages)
+      emitUi("ui.answer", answerSummary(reply, Date.now() - started))
       if (reply.autoSet) dispatch({ type: "aiAutoApply", changeSet: reply.autoSet })
       if (reply.changeSet) dispatch({ type: "draftChanges", changeSet: reply.changeSet })
       const msgId = uid()
       setMessages(m => [...m, { id: msgId, role: "assistant", cards: reply.cards, source: reply.source }])
-      if (reply.refine) void reply.refine.then(r => applyRefine(msgId, r), () => applyRefine(msgId, null))
+      if (reply.refine) void reply.refine.then(r => { emitUi("ui.answer", r ? { ...answerSummary(r, Date.now() - started), refine: true } : { answer: "timeout", refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, r) }, () => { emitUi("ui.answer", { answer: "timeout", refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, null) })
     } catch {
+      emitUi("ui.answer", { answer: "error", ms: Date.now() - started }, false)
       setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Something went wrong. Please try again." }], source: "Platypus" }])
     } finally { setBusy(false) }
   }
@@ -101,7 +110,7 @@ export function AskPanel() {
     const p = rail.pending
     if (!p) return
     rail.takePending()
-    if (p.send) void send(p.text)
+    if (p.send) void send(p.text, "handoff")
     else { setText(p.text); setTimeout(() => input.current?.focus(), 30) }
   }, [rail.pending?.n])
 
@@ -158,7 +167,7 @@ export function AskPanel() {
   }
   const suggestions = SUGGESTIONS[location.pathname] ?? SUGGESTIONS["/"]
   // The same row sits with the greeting before the first message, and at the foot of the panel afterwards (never both).
-  const suggestionRow = <div className="chips" aria-label="Suggestions">{suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s)} disabled={busy}>{s}</button>)}</div>
+  const suggestionRow = <div className="chips" aria-label="Suggestions">{suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s, "suggestion")} disabled={busy}>{s}</button>)}</div>
 
   return <section className="ask" aria-label="Ask Platypus" data-testid="ask-panel">
     <header className="ask-head">
