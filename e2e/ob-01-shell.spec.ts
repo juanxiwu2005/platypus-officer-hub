@@ -40,7 +40,9 @@ test("an unknown /welcome path shows a placeholder and no accessibility problems
 })
 test("Save & exit on a flow screen records the step it left from", async ({ page }) => {
   await page.goto("/#/welcome/start")
+  await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)   // wait for the start to finish, or its redirect can land after the next address
   await page.goto("/#/welcome/founder/goals")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set goals for your club")
   await page.getByRole("button", { name: "Save & exit" }).click()
   await expect(page.locator("main h1")).toHaveText("Today")
   const rec = await onboardingRecord(page)
