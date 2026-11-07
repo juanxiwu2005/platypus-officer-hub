@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/functions"
-import { chatJSON } from "../lib/ai.mts"
+import { chatJSON, SYNC_AI_BUDGET_MS } from "../lib/ai.mts"
 import { BadRequest, fail, json, readJSON, str } from "../lib/http.mts"
 import { searchPolicyArchive } from "../lib/policy-archive.mts"
 import { POLICY_SOURCE_COUNT } from "../../src/data/policyCatalog.ts"
@@ -28,7 +28,8 @@ export default async (req: Request) => {
       user: JSON.stringify({ catalogSourceCount: POLICY_SOURCE_COUNT, question, sources: matches.map(record => ({ recordId: record.recordId, officialName: record.officialName, sourceUrl: record.sourceUrl, whatItCovers: record.whatItCovers, excerpt: excerpt(record.detail, question) })) }),
       maxTokens: 500,
       temperature: 0,
-      timeoutMs: 55_000,
+      // Netlify stops a request at about 30 s; 2026-11-07 this call took 11 s (2273 in / 350 out tokens).
+      timeoutMs: SYNC_AI_BUDGET_MS,
     })
     const raw = data && typeof data === "object" ? data as Record<string, unknown> : {}
     const citations = [...new Set((Array.isArray(raw.citations) ? raw.citations : []).filter((id): id is string => typeof id === "string" && allowed.has(id)))].slice(0, 3)

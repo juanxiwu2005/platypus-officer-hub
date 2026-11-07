@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/functions"
-import { chatJSON } from "../lib/ai.mts"
+import { chatJSON, SYNC_AI_BUDGET_MS } from "../lib/ai.mts"
 import { BadRequest, fail, json, readJSON, str } from "../lib/http.mts"
 import { parseCommand, sanitizeOps, type CommandContext } from "../../src/lib/commands.ts"
 import { RULES } from "../../src/data/rules.ts"
@@ -27,7 +27,7 @@ export default async (req: Request) => {
     const ctx = { events: rows(c?.events, "name", 40), nodes: rows(c?.nodes, "title", 400), people: rows(c?.people, "name", 50) } as CommandContext
     const local = parseCommand(sentence, ctx)
     if (local.length) return json({ ops: local, source: "rules", model: null })
-    const { data, model } = await chatJSON({ task: "command", system: SYSTEM, user: JSON.stringify({ sentence, context: ctx, rules: RULES.map(({ id, text, limit }) => ({ id, text, limit })) }), maxTokens: 1600 })
+    const { data, model } = await chatJSON({ task: "command", system: SYSTEM, user: JSON.stringify({ sentence, context: ctx, rules: RULES.map(({ id, text, limit }) => ({ id, text, limit })) }), maxTokens: 800, timeoutMs: SYNC_AI_BUDGET_MS })
     const ops = sanitizeOps((data as { ops?: unknown } | null)?.ops, ctx)
     return json({ ops, source: "ai", model })
   } catch (e) { return fail(e) }

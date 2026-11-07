@@ -126,6 +126,18 @@ Juanxi 在 DP6 上试了两句话，界面一直显示「AI unavailable」。查
 
 **还不确定的：** AIR 在 55 秒内能不能答完，要等你再试一次后看 Netlify 日志才知道。如果还是超时，下一步是把 Ask 改成后台任务（DP3 的设置流程就是这样做的，最长 15 分钟），但那要在服务器上暂存结果，和 M1「服务器存储默认隐藏」的决定有关，需要你同意。
 
+### 0.9 生产日志后的修正（2026-11-07，P3-E）
+
+0.8 的「Netlify 允许 60 秒」不成立：生产上 `/api/chat` 在 31.2 秒得到 504、再一次 30.3 秒 502，**没有 `ai_usage` 一行**，说明 Netlify 在约 30 秒把函数杀了。社长输入「Plan an event about March 3 for networking night with 50 people」，最后只看到一张「Local fallback · server unavailable」文字卡，没有表单。
+
+- **为什么没有立刻出表单：** 这句话提到了已有活动 Networking Night，按第 3 节规则被当成「在改已有活动」，整句交给了 AI。现在：说了「a / an / another …」，或者给的日期不是那场活动的日期，仍算**新活动**，表单立刻出现。「Plan the budget for Spring Speaker Night」照旧不算。
+- **时间：** 所有普通接口的 AI 总预算 **22 秒**（`SYNC_AI_BUDGET_MS`），超时回干净的 504 JSON；浏览器最多等 **25 秒**，不重试。
+- **更轻的提示词：** 表单已经出现时，AI 只需要社团、岗位、人、活动来填表（`purpose: "form"`）。样例社团整包约 42,000 字符（任务就占约 20,000），这样约 14,000。`maxTokens` 1200 → 600（填表 400）：日志里 AIR 约每秒 30 个 token，1200 本来就写不完。
+- **AI 没答上时：** 像在规划活动的话也给本地表单；标签分清「AI didn't answer in time」和「AI unavailable」，AI 回了但没有可用内容时写「AI had nothing to add」。日期仍只来自你自己写的字（例如 March 3），AI 写的日期照旧丢弃。
+- **角色手册草稿：** 生产上 700 token 被截断（`finish_reason: length`）。现在模型只回短编号 `{"ids":["s3","s1"]}`（12 条约 60 token），被截断时只留完整且确实存在的来源；还是失败就由应用自己用同样的来源建手册，标明「Built from your sources · …」，可以继续确认和批准。
+
+**还不确定的：** 真实 AIR 在 22 秒内能答完多少，这里测不了（没有 key，测试全部用假供应商）。上线后看 Netlify 日志里 `ai_usage` 的 `ms` 和 `ok`。
+
 ---
 
 ## 先说结论（一分钟版）

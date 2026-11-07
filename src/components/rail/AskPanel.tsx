@@ -98,7 +98,11 @@ export function AskPanel() {
       if (reply.changeSet) dispatch({ type: "draftChanges", changeSet: reply.changeSet })
       const msgId = uid()
       setMessages(m => [...m, { id: msgId, role: "assistant", cards: reply.cards, source: reply.source }])
-      if (reply.refine) void reply.refine.then(r => { emitUi("ui.answer", r ? { ...answerSummary(r, Date.now() - started), refine: true } : { answer: "timeout", refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, r) }, () => { emitUi("ui.answer", { answer: "timeout", refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, null) })
+      if (reply.refine) {
+        // Why the AI had nothing: ran out of time, unavailable, or answered without a usable card ("empty").
+        const miss = () => reply.refineMiss?.why ?? "empty"
+        void reply.refine.then(r => { emitUi("ui.answer", r ? { ...answerSummary(r, Date.now() - started), refine: true } : { answer: miss(), refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, r, miss()) }, () => { emitUi("ui.answer", { answer: "unavailable", refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, null, "unavailable") })
+      }
     } catch {
       emitUi("ui.answer", { answer: "error", ms: Date.now() - started }, false)
       setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Something went wrong. Please try again." }], source: "Platypus" }])
@@ -119,7 +123,7 @@ export function AskPanel() {
    * If it read the message as something else (a task, not an event, or a question), its reply follows as a new
    * message, unless the person already used the form.
    */
-  function applyRefine(msgId: string, refined: Reply | null) {
+  function applyRefine(msgId: string, refined: Reply | null, miss: "timeout" | "unavailable" | "empty" = "empty") {
     const isForm = (c: ChatCard) => c.kind === "form" || c.kind === "taskform"
     const msg = messagesRef.current.find(x => x.id === msgId)
     const local = msg?.cards?.find(isForm) as { kind: string; done?: boolean } | undefined
@@ -128,7 +132,7 @@ export function AskPanel() {
     const same = !!local && !!aiCard && local.kind === aiCard.kind
     const update = (fn: (x: ChatMsg) => ChatMsg) => setMessages(m => m.map(x => x.id === msgId ? fn(x) : x))
     const settle = (x: ChatMsg, source = x.source) => ({ ...x, source, cards: x.cards?.map(c => isForm(c) ? { ...c, thinking: false } as ChatCard : c) })
-    if (!refined) return update(x => settle(x, "Platypus · AI didn't answer in time, filled from your words"))
+    if (!refined) return update(x => settle(x, miss === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : miss === "unavailable" ? "Platypus · AI unavailable, filled from your words" : "Platypus · AI had nothing to add, filled from your words"))
     if (same) return update(x => ({
       ...x, source: refined.source,
       cards: x.cards?.map(c => {

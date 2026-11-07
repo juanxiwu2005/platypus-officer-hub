@@ -16,6 +16,17 @@ export class ApiError extends Error {
   constructor(message: string, status: number) { super(message); this.status = status }
 }
 
+/**
+ * How long the browser waits for an AI endpoint. The server gives up after 22 s (SYNC_AI_BUDGET_MS in
+ * netlify/lib/ai.mts) and Netlify cuts a request off at about 30 s, so waiting longer only makes a person wait for nothing.
+ */
+export const AI_WAIT_MS = 25_000
+
+/** Why an AI request produced nothing: it ran out of time, or the service refused or was not reachable. */
+export type AiMiss = "timeout" | "unavailable"
+export const aiMiss = (e: unknown): AiMiss =>
+  (e instanceof ApiError && (e.status === 504 || e.status === 408)) || (typeof e === "object" && e !== null && (e as { name?: unknown }).name === "AbortError") ? "timeout" : "unavailable"
+
 export async function callApi<T>(path: string, body?: unknown, timeoutMs = 30_000): Promise<T> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), timeoutMs)
