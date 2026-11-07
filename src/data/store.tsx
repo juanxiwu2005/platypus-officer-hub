@@ -1,7 +1,7 @@
 import { changeHandoff, type HandoffAction } from "./handoff"
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate } from "./types"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
@@ -23,7 +23,11 @@ import type { BoardSettings, NodeStatus, OrgSettings } from "./types"
 import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
 import { addContact, addOrganization, deleteContact, deleteOrganization, logInteraction, updateContact, updateInteraction, updateOrganization, type ContactInput, type ContactPatch, type InteractionInput, type OrgPatch } from "./crm"
 import { syncBudgetFlow } from "../engine/eventBudget"
-import { loadOnboardingRecord, rearm } from "../lib/onboardingRecord"
+import { loadOnboardingRecord, rearm, type OnboardingRecord } from "../lib/onboardingRecord"
+import { FLOW_VERSION } from "../onboarding/record"
+import { onUi, type UiEvent } from "../lib/uiLog"
+import { buildTimeline } from "../lib/timeline"
+import { BUILD_INFO } from "../lib/buildInfo"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -661,20 +665,59 @@ export function loggedReducer(root: Root, msg: Msg): Root {
   return { app, log: appendLog(root.log, root.app, app, msg.action, msg.at) }
 }
 
+/** The same press or event twice within this time is one thing (a double event, React's development double-run). */
+export const UI_REPEAT_MS = 600
+/** A link click already says where it went; the page change that follows within this time is not written again. */
+const LINK_NAV_MS = 2000
+
+/**
+ * Append one screen event (src/lib/uiLog.ts) to the same log, same entry shape and numbering.
+ * UI entries have no `before` (they change no data) and `applied` is true unless the control was switched off
+ * or the answer failed. Noise is folded: an identical event right after the last one is dropped, except a
+ * repeated click, which is counted in `payload.repeat` on the first entry. Pure: the caller supplies the time.
+ */
+export function appendUiLog(log: LogEntry[], actor: string, ev: UiEvent, at: number): LogEntry[] {
+  const payload = slim(ev.payload) as Record<string, unknown>
+  const last = log[log.length - 1]
+  if (last && last.type === ev.type && at - last.at <= UI_REPEAT_MS && last.applied === (ev.applied ?? true)) {
+    const { repeat, ...rest } = (last.payload ?? {}) as Record<string, unknown>
+    if (JSON.stringify(rest) === JSON.stringify(payload)) {
+      if (ev.type !== "ui.click") return log
+      return [...log.slice(0, -1), { ...last, payload: { ...rest, repeat: (typeof repeat === "number" ? repeat : 1) + 1 } }]
+    }
+  }
+  if (ev.type === "ui.navigate" && last?.type === "ui.click" && at - last.at <= LINK_NAV_MS) {
+    const pressed = (last.payload ?? {}) as Record<string, unknown>
+    if (pressed.to === payload.to) return log
+    // A button that changed the page ("Continue"): the click entry gets where it led, instead of a second entry.
+    if (pressed.to === undefined && !pressed.external) return [...log.slice(0, -1), { ...last, payload: { ...pressed, to: payload.to } }]
+  }
+  const entry: LogEntry = { seq: (last?.seq ?? 0) + 1, at, actor, type: ev.type, payload, applied: ev.applied ?? true }
+  return log.length >= LOG_LIMIT ? [...log.slice(log.length - LOG_LIMIT + 1), entry] : [...log, entry]
+}
+
 /* ───────────── Export (A7c) ───────────── */
 
-/** Everything the person has done and the state they ended up with, as one JSON-able object. */
-export function buildExport(state: DemoState, log: LogEntry[], exportedAt: number) {
+/**
+ * Everything the person has done and the state they ended up with, as one JSON-able object.
+ * formatVersion 2 (Phase 3 logging) keeps every version-1 field and adds `build`, `demoToday`,
+ * `onboardingFlowVersion` and the merged `timeline`. See docs/PHASE3_DATA_DICTIONARY.md.
+ */
+export function buildExport(state: DemoState, log: LogEntry[], exportedAt: number, onboarding: OnboardingRecord = loadOnboardingRecord()) {
   const firstSeq = log[0]?.seq ?? null
   return {
     format: "platypus-export",
-    formatVersion: 1,
+    formatVersion: 2,
     exportedAt: new Date(exportedAt).toISOString(),
     schemaVersion: state.schemaVersion,
     storageKey: STORAGE_KEY,
+    build: BUILD_INFO,
+    demoToday: state.today,
+    onboardingFlowVersion: FLOW_VERSION,
     state: { ...state, demoLinkKey: "[omitted]" },
-    onboarding: loadOnboardingRecord(),
+    onboarding,
     interactionLog: { limit: LOG_LIMIT, count: log.length, firstSeq, lastSeq: log[log.length - 1]?.seq ?? null, droppedEarlier: firstSeq === null ? 0 : firstSeq - 1, entries: log },
+    timeline: buildTimeline(log, onboarding),
   }
 }
 
@@ -703,32 +746,61 @@ interface StoreValue {
   persistenceFailed: boolean
   dispatch: (a: Action) => void
   reset: () => void
-  /** The interaction log, oldest first. */
-  log: LogEntry[]
+  /** The interaction log as it is right now, oldest first (read at call time, so it is never stale). */
+  getLog: () => LogEntry[]
+  /** Record one screen event into the log (the page listener and components use `emitUi`, which ends up here). */
+  logUi: (e: UiEvent) => void
+  /** "Export my data": record the export, then download the file with everything up to and including it. */
+  exportData: () => void
 }
 
 const StoreContext = createContext<StoreValue | null>(null)
 
 export function StoreProvider({ children, initial, initialLog }: { children: ReactNode; initial?: DemoState; initialLog?: LogEntry[] }) {
   const [boot] = useState(() => (initial ? { state: initial, notice: null } : loadStateWithNotice()))
-  const [root, send] = useReducer(loggedReducer, null, (): Root => ({ app: boot.state, log: initialLog ?? (initial ? [] : loadLog()) }))
+  // The data and the log advance together, synchronously, in a ref: a screen event written in the click's capture phase
+  // is already in the log when the button's own handler runs (Export reads it). React state follows for rendering.
+  const [root, setRoot] = useState<Root>(() => ({ app: boot.state, log: initialLog ?? (initial ? [] : loadLog()) }))
+  const rootRef = useRef<Root | null>(null)
+  if (rootRef.current === null) rootRef.current = root
+  const commit = useCallback((next: Root) => { if (next !== rootRef.current) { rootRef.current = next; setRoot(next) } }, [])
   // If the old data could not be backed up, keep it in place (do not overwrite it) until the person has downloaded it.
   const [held, setHeld] = useState(boot.notice?.kind === "restored_demo" && boot.notice.backupKey === null)
   const [notice, setNotice] = useState<StorageNotice | null>(boot.notice)
   const [saveFailed, setSaveFailed] = useState(false)
+  // Data and log are saved separately: a click changes only the log, so the (larger) demo data is not rewritten for it.
+  const saved = useRef({ app: true, log: true })
   useEffect(() => {
     if (held) return
-    setSaveFailed(!(saveState(root.app) && saveLog(root.log)))
-  }, [root, held])
+    saved.current.app = saveState(root.app)
+    setSaveFailed(!(saved.current.app && saved.current.log))
+  }, [root.app, held])
+  useEffect(() => {
+    if (held) return
+    saved.current.log = saveLog(root.log)
+    setSaveFailed(!(saved.current.app && saved.current.log))
+  }, [root.log, held])
   // The real clock is read here, once per action, and travels with it into the log.
-  const dispatch = useCallback((action: Action) => send({ action, at: Date.now() }), [])
+  const dispatch = useCallback((action: Action) => commit(loggedReducer(rootRef.current!, { action, at: Date.now() })), [commit])
+  const logUi = useCallback((e: UiEvent) => {
+    const r = rootRef.current!
+    const log = appendUiLog(r.log, r.app.viewerId, e, Date.now())
+    if (log !== r.log) commit({ app: r.app, log })
+  }, [commit])
+  useEffect(() => onUi(logUi), [logUi])
+  const getLog = useCallback(() => rootRef.current!.log, [])
+  const exportData = useCallback(() => {
+    logUi({ type: "ui.export", payload: { entries: rootRef.current!.log.length + 1 } })
+    downloadExport(rootRef.current!.app, rootRef.current!.log)
+  }, [logUi])
   const reset = useCallback(() => { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) }, [dispatch])
   const persistenceFailed = saveFailed || held
-  const value = useMemo(() => ({ state: root.app, persistenceFailed, dispatch, reset, log: root.log }), [root, persistenceFailed, dispatch, reset])
+  // The log is left out of the value on purpose: a click must not re-render every screen that reads the store.
+  const value = useMemo(() => ({ state: root.app, persistenceFailed, dispatch, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, dispatch, reset, getLog, logUi, exportData])
   const shown: StorageNotice | null = saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
     {shown && <StorageBanner notice={shown} onDownload={() => {
-      if (shown.kind === "save_failed") downloadExport(root.app, root.log)
+      if (shown.kind === "save_failed") downloadExport(rootRef.current!.app, rootRef.current!.log)
       else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); setHeld(false) }
     }} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
     {children}
