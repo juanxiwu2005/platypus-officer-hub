@@ -26,7 +26,7 @@ test("Explore the sample club: Today opens, it is remembered, and it is recorded
   await expect(page.locator("main h1")).toHaveText("Today")   // not asked again
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "explore", outcome: "explored", flowVersion: "ob-2" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "explore", outcome: "explored", flowVersion: "ob-3" })
 })
 test("Start walkthrough opens the new founder flow inside the focus shell and is recorded once", async ({ page }) => {
   await page.goto(WELCOME_ON)
@@ -41,10 +41,10 @@ test("Start walkthrough opens the new founder flow inside the focus shell and is
   await page.goto(WELCOME_ON)
   await expect(page.locator("main h1")).toHaveText("Today")
 })
-test("Save & exit records the exit and returns to Today", async ({ page }) => {
+test("Exit records the exit and returns to Today", async ({ page }) => {
   await page.goto("/#/welcome/start")
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Name your club")
-  await page.getByRole("button", { name: "Save & exit" }).click()
+  await page.getByRole("button", { name: "Exit" }).click()
   await expect(page.locator("main h1")).toHaveText("Today")
   expect((await onboardingRecord(page)).attempts[0].outcome).toBe("exited")
 })
@@ -67,7 +67,7 @@ test("Export my data carries the onboarding record, with no typed text in it", a
   await page.goto(WELCOME_ON)
   await page.getByRole("button", { name: "Start walkthrough" }).click()
   await page.getByLabel("Club name").fill("Moonlight Typing Society")
-  await page.getByRole("button", { name: "Save & exit" }).click()
+  await page.getByRole("button", { name: "Exit" }).click()
   await page.goto("/#/settings")
   await page.getByRole("button", { name: "My preferences" }).click().catch(() => undefined)
   const download = page.waitForEvent("download")

@@ -25,8 +25,12 @@ describe("walkthrough flows", () => {
     expect(stepAt("/welcome")).toBeNull()
     expect(stepAt("/welcome/classic")).toBeNull()
   })
-  it("never lets a required step be optional: Name, First event, Confirm, Invite and the member Invitation, You, Reminders, Done are required", () => {
-    const required = ["founder.name", "founder.first-event", "founder.confirm", "founder.invite", "member.invitation", "member.you", "member.reminders", "member.done"]
+  it("never lets a required step be optional: Name, Confirm, Invite and the member Invitation, You, Reminders, Done are required", () => {
+    const required = ["founder.name", "founder.confirm", "founder.invite", "member.invitation", "member.you", "member.reminders", "member.done"]
     for (const id of required) expect(Object.values(FLOWS).flat().find(s => s.id === id)?.optional).toBe(false)
+  })
+  it("lets the president skip the first event, like Constitution, Goals and Team (Phase 3: the study watches plan vs skip)", () => {
+    const optional = ["founder.constitution", "founder.goals", "founder.team", "founder.first-event"]
+    for (const id of optional) expect(Object.values(FLOWS).flat().find(s => s.id === id)?.optional).toBe(true)
   })
 })

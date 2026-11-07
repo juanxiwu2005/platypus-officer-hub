@@ -19,7 +19,7 @@ export function Name() {
     <form className="ob-name-main" onSubmit={event => { event.preventDefault(); if (ready) flow?.next() }}>
       <h1 id="ob-name-h">{text.title}</h1>
       <label className="field">{text.field}
-        <input value={name} maxLength={MAX_NAME} required autoComplete="off" onChange={event => update(d => ({ ...d, club: { ...d.club, name: event.target.value } }))} />
+        <input value={name} maxLength={MAX_NAME} required autoComplete="off" placeholder={text.example} onChange={event => update(d => ({ ...d, club: { ...d.club, name: event.target.value } }))} />
       </label>
       <p className="ob-name-school"><span className="sr-only">{text.schoolLabel}: </span><b>{school}</b><Info label={text.schoolLabel}>{text.schoolWhy}</Info></p>
       <div className="ob-actions"><button type="submit" className="btn btn-primary" disabled={!ready}>{onboardingCopy.next}</button></div>

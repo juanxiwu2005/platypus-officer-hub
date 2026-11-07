@@ -126,7 +126,7 @@ test("sourced handbook requires outgoing confirmation before presidential approv
     return r.fulfill({ json: { entries: [{ sourceId: "task:t-recon", text: "Hallucinated 2099-01-01" }, { sourceId: "interview:r-fin:1" }], model: "mock-live-contract", provider: "mock", source: "ai" } })
   })
   await page.goto("/#/handoff")
-  await page.getByRole("button", { name: "Start handoff season" }).click()
+  await expect(page.getByRole("button", { name: "Save dates" })).toBeVisible() // the sample club's handoff season is already open (P3-A)
   await page.getByRole("button", { name: /^Treasurer handbook/ }).click()
   const role = page.getByRole("region", { name: "Treasurer handbook" })
   await role.getByRole("button", { name: "Draft role handbook" }).click()

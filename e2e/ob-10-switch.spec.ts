@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { WELCOME_ON, onboardingRecord } from "./ob-helpers"
+import { WELCOME_ON, fillMission, onboardingRecord } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 import { openDemoMenu } from "./helpers"
 
@@ -15,6 +15,7 @@ test("a first visit runs welcome → founder flow → invite → officer preview
   await page.getByLabel(c.founder.name.field).fill("Moonlight Typing Society")
   await next(page).click()
   await page.getByRole("button", { name: c.founder.constitution.skip }).click()
+  await fillMission(page)
   await page.getByRole("button", { name: c.skip }).click()           // goals
   await page.getByRole("button", { name: c.skip }).click()           // team
   await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
@@ -34,7 +35,7 @@ test("a first visit runs welcome → founder flow → invite → officer preview
 
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-2" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-3" })
   const steps = rec.attempts[0].steps.map(s => `${s.step}:${s.event}`)
   for (const expected of ["founder.name:enter", "founder.constitution:skip", "founder.goals:skip", "founder.team:skip", "founder.first-event:enter", "founder.confirm:enter", "member.invitation:enter", "member.done:enter"]) expect(steps).toContain(expected)
   expect(JSON.stringify(rec)).not.toContain("Moonlight")                                // behaviour only, never what was typed

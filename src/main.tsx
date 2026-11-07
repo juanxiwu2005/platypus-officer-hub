@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client"
 import { HashRouter } from "react-router-dom"
 import App from "./App"
 import { StoreProvider } from "./data/store"
+import { UiLogger } from "./components/UiLogger"
 import { installSetupNavigationProtection } from "./organization/useSetupNavigationGuard"
 import "./styles.css"
 import "./styles/index.css"
@@ -60,6 +61,7 @@ if (root) {
       <ErrorBoundary>
         <StoreProvider>
           <HashRouter>
+            <UiLogger />
             <App />
           </HashRouter>
         </StoreProvider>

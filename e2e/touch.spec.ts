@@ -42,7 +42,7 @@ test("Handoff on a phone: the season dots and each first-week item open their so
   await dot.tap()
   await expect(page.locator(".season .hover-card").first()).toBeVisible()
   await page.getByRole("heading", { level: 1 }).tap()
-  await page.getByRole("button", { name: "Start handoff season" }).tap() // the role handbooks only open once a season has started
+  await expect(page.getByRole("button", { name: "Save dates" })).toBeVisible() // the sample club's handoff season is already open, so the role handbooks open (P3-A)
   await page.locator("main button.relay").first().tap()
   const details = page.getByRole("region", { name: "Details" })
   await expect(details).toBeVisible()
@@ -81,17 +81,18 @@ test("navigation: Tasks counts open work separately from unread private updates"
   await closeRail(page)
   const count = page.getByTestId("nav-open-tasks")
   const initial = await count.innerText()
-  await expect(page.getByTestId("bell")).toHaveAccessibleName("Private updates, 0 unread")
+  // The sample club's week leaves the president two unread updates (a help request and an unclaimed task).
+  await expect(page.getByTestId("bell")).toHaveAccessibleName("Private updates, 2 unread")
   await page.evaluate(() => {
     const raw = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
     const viewer = raw.viewerId
-    raw.notifications = [0, 1].map(i => ({ id: `n-test-${i}`, recipientId: viewer, nodeId: raw.nodes[0].id, kind: "info", text: "Test update", createdOn: raw.today, read: false }))
+    raw.notifications = [0, 1, 2].map(i => ({ id: `n-test-${i}`, recipientId: viewer, nodeId: raw.nodes[0].id, kind: "info", text: "Test update", createdOn: raw.today, read: false }))
     localStorage.setItem("platypus.v1.demo", JSON.stringify(raw))
   })
   await page.reload()
   await closeRail(page)
   await expect(count).toHaveText(initial)
   await expect(page.getByRole("link", { name: /Tasks/ })).toContainText("open tasks")
-  await expect(page.getByTestId("bell")).toHaveAccessibleName("Private updates, 2 unread")
+  await expect(page.getByTestId("bell")).toHaveAccessibleName("Private updates, 3 unread")
   expect(await scan(page)).toEqual([])
 })

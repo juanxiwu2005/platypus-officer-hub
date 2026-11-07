@@ -1,3 +1,8 @@
+> **2026-11-07 · Phase 3 测试准备 · 待 Juanxi 验收（Claude 整合；P3-A/B/C/D 由 worktree 子 agent 做）**
+> **已做：** 合并 PR #10（`02996c3`，Juanxi 批准）。分支 `claude/keen-gauss-ye3gvr` 上新增：①测试链接 `https://platypus-officer-hub.netlify.app/#/start` 直接进社长流程（`/start` 不带 `#` 也会跳转）；②First event 可 Skip for now（流程版本 `ob-3`）；③Start workspace 后保留三个示例活动 + 18 个任务 + 风险 + 经费 + 联系人 + 交接季，按参与者的岗位重映射（`src/data/sampleScenario.ts`）；④刷新不丢草稿、新尝试从空白开始、Name 等不预填样例、手机 Team 排版、组织图居中；⑤交互日志补记界面操作（换页、点击、选择、Ask 问题、回答种类与引用、来源链接、导出），导出 `formatVersion: 2` 带 `timeline`；`docs/PHASE3_DATA_DICTIONARY.md`、`scripts/export-to-csv.mjs`、测试当天步骤 `docs/PHASE3_SESSION_RUNBOOK.md`。
+> **测试：** lint、类型检查、构建通过；966 个单元测试全过；完整页面回归（桌面+手机）877 通过 / 106 跳过 / 7 失败 → 修掉 4 个（两个新测试跟进合并后的流程），剩 3 个都在合并前的代码上同样失败：`workflow-setup:123`（桌面+手机）、`ob-04` 键盘打开文件选择框（时好时坏，基线 8 次失败 1 次）。按测试当天流程完整走了两遍（计划/跳过 First event），0 个页面错误，导出 ~48 条记录、每条有时间。
+> **需要 Juanxi 决定：** 合并到 `main`（参与者才能用）；新增的记录项是否需要告诉 IRB；示例社团的"交接季"是否保留；"Save & exit" 改成 "Exit"。**未验证：** 正式网站 AI 是否走 ASU AIR（需要一次真实提问后查 Netlify 日志）、真 iPhone Safari。
+
 > **2026-11-02 · Onboarding 改版 · 阶段 1 待验收（Codex）**
 > **范围：** 已合并 OB-02（本机行为记录）、OB-01（外壳与路由）、OB-03（首次进入欢迎入口）；回滚 SHA 见 `docs/onboarding-redesign/ROLLBACK_LOG.md`。环境使用 Node **v22.23.4** 与 `/usr/bin/chromium`。本阶段新增路由默认关闭；预览可用 `?walkthrough=1` 打开欢迎页，选择 Start walkthrough 或 Explore the sample club。完整阶段回归正在执行；真机和 Safari 尚未验证。**需要同步本地备份。**
 

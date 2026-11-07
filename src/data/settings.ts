@@ -7,6 +7,8 @@ import { canLead } from "./changeReview"
 import { applySchedule } from "../engine/schedule"
 import { buildEventNodes } from "../engine/playbooks"
 import { MAX_STEPS, PHASE_LIST, checkWorkflow, describeWorkflow, withOwners } from "../engine/workflow"
+import { seedDemo } from "./seed"
+import { withSampleScenario } from "./sampleScenario"
 
 export const ROLE_FUNCTIONS: { value: RoleFunction; label: string }[] = [
   { value: "president", label: "President" }, { value: "vice_president", label: "Vice president" },
@@ -124,21 +126,38 @@ export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch,
   return applySchedule({ ...s, people: s.people.map(p => p.id === personId ? { ...p, ...clean, setupCompletedOn: s.today } : p) })
 }
 
+/**
+ * The participant's own club from setup. `rawEvent` null (or undefined) means the first event was skipped: no setup event, and the
+ * event date is not checked; everything else in setup still applies. Previews (the first-event chain) use this on its own.
+ */
 export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[]): DemoState {
-  if (!canLead(s) || validateClub(d) || !validDate(eventDate) || eventDate < s.today || !/^[a-f0-9-]{36}$/i.test(inviteCode)) return s
+  const planned = rawEvent !== null && rawEvent !== undefined
+  if (!canLead(s) || validateClub(d) || (planned && (!validDate(eventDate) || eventDate < s.today)) || !/^[a-f0-9-]{36}$/i.test(inviteCode)) return s
   if (taskDueDays !== undefined && !(TASK_DUE_CHOICES as readonly number[]).includes(taskDueDays)) return s
   if (clubBufferBusinessDays !== undefined && !(BUFFER_CHOICES as readonly number[]).includes(clubBufferBusinessDays)) return s
   if (workflow && validateWorkflow(workflow, d.roles)) return s
-  const op = sanitizeOps([rawEvent], s)[0]
-  if (op?.op !== "create_event") return s
-  const { op: _kind, ...fields } = op
-  const id = `setup-event-${s.org.id}`
-  const event: Event = { ...fields, id, date: eventDate, goalId: d.goals[0]?.id ?? null, playbookId: "seo-event" }
+  let event: Event | null = null
+  if (planned) {
+    const op = sanitizeOps([rawEvent], s)[0]
+    if (op?.op !== "create_event") return s
+    const { op: _kind, ...fields } = op
+    event = { ...fields, id: `setup-event-${s.org.id}`, date: eventDate, goalId: d.goals[0]?.id ?? null, playbookId: "seo-event" }
+  }
   const people = d.people.map(p => ({ ...p, name: p.name.trim() }))
   const roles = orderRoles(d.roles.map(r => ({ ...r, displayName: r.displayName.trim() })))
   const president = roles.find(r => r.fn === "president")!
   const steps = workflow ? withOwners(workflow, roles) : undefined
-  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...s.org.settings, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: [event], nodes: buildEventNodes(event, roles, steps ? { steps } : {}).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  const nodes = event ? buildEventNodes(event, roles, steps ? { steps } : {}).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })) : []
+  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...s.org.settings, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+}
+
+/**
+ * Start workspace (P3-A): the participant's club from setup, plus the sample scenario (three event templates, board tasks, risks,
+ * funding, contacts, handoff season) moved onto the participant's roles and officers. A refused setup changes nothing.
+ */
+export function startWorkspace(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[]): DemoState {
+  const club = completeSetup(s, d, rawEvent, eventDate, inviteCode, taskDueDays, clubBufferBusinessDays, workflow)
+  return club === s ? s : withSampleScenario(club, seedDemo(club.today, "v2"))
 }
 
 export const clubDraft = (s: DemoState): ClubDraft => structuredClone({ name: s.org.name, mission: s.org.mission, goals: s.org.goals, roles: s.roles, people: s.people, workspace: s.org.workspace })

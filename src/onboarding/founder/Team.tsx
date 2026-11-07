@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react"
 import { OrgChart } from "../../components/setup/OrgChart"
 import { MAX_DUTIES, MAX_ROLES } from "../../data/structure"
 import { onboardingCopy } from "../copy"
@@ -7,6 +7,27 @@ import { useFlow } from "../engine/useFlow"
 import { addRole, applyReading, bossChoices, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, validateTeam } from "./team/rows"
 
 const c = onboardingCopy.founder.team
+
+/**
+ * A role title that wraps instead of being cut off ("Executive Vice Pr…" on a phone): a one-line text box that grows to fit its words, follows the
+ * width it is given, and never takes a line break (Enter does nothing, pasted line breaks become spaces).
+ */
+function RoleTitle({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (title: string) => void }) {
+  const box = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = box.current
+    if (!el) return
+    const fit = () => { el.style.height = "auto"; el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px` }
+    fit()
+    if (typeof ResizeObserver === "undefined" || !el.parentElement) return
+    let width = el.parentElement.clientWidth
+    const watch = new ResizeObserver(() => { const w = el.parentElement?.clientWidth ?? width; if (w !== width) { width = w; fit() } })
+    watch.observe(el.parentElement)
+    return () => watch.disconnect()
+  }, [value])
+  return <textarea ref={box} rows={1} className="ob-role-title" data-role-input={id} aria-label={label} value={value} maxLength={60}
+    onKeyDown={e => { if (e.key === "Enter") e.preventDefault() }} onChange={e => onChange(e.target.value.replace(/[\r\n]+/g, " "))} />
+}
 
 /**
  * Screen 4 of the founder flow (skippable): a visibly indented reporting tree with Role, Person and Reports to always in view. Duties expand
@@ -24,7 +45,7 @@ export function Team() {
   const addButton = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (!focusId) return
-    document.querySelector<HTMLInputElement>(`[data-role-input="${focusId}"]`)?.focus()
+    document.querySelector<HTMLElement>(`[data-role-input="${focusId}"]`)?.focus()
     setFocusId(null)
   }, [focusId])
   if (!flow) return null
@@ -69,8 +90,7 @@ export function Team() {
       return <li key={r.id} className="ob-role">
         <div className="ob-role-title-wrap" style={{ "--ob-depth": depth } as CSSProperties}>
           {depth > 0 && <span className="ob-role-branch" aria-hidden="true">↳</span>}
-          <input type="text" className="ob-role-title" data-role-input={r.id} aria-label={`${c.role} ${i + 1}`} value={r.displayName} maxLength={60}
-            onChange={e => edit(club => ({ ...club, roles: renameRole(club.roles, r.id, e.target.value) }))} />
+          <RoleTitle id={r.id} label={`${c.role} ${i + 1}`} value={r.displayName} onChange={title => edit(club => ({ ...club, roles: renameRole(club.roles, r.id, title) }))} />
         </div>
         <input type="text" className="ob-role-person" aria-label={`${c.person} ${i + 1}`} placeholder={c.open} value={holderName(r.holderId)} maxLength={80}
           onChange={e => edit(club => ({ ...club, ...setPersonName(club.roles, club.people, r.id, e.target.value) }))} />
