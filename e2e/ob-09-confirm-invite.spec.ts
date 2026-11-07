@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { onboardingRecord } from "./ob-helpers"
+import { fillMission, onboardingRecord } from "./ob-helpers"
 
 // OB-09: Confirm (screen 6) and Invite (screen 7), then the hand-over to the member preview. Run on desktop and phone.
 // The server is not there (404), so the first event is read by the local grammar. Nothing real is sent anywhere.
@@ -46,6 +46,7 @@ const toConfirm = async (page: Page, club = "Maple Club") => {
   await begin(page)
   await page.getByLabel("Club name").fill(club); await cont(page)
   await page.getByRole("button", { name: /^Skip/ }).click()                                   // Constitution
+  await fillMission(page)
   await page.getByRole("button", { name: "Skip for now" }).click()                            // Goals
   await page.getByRole("button", { name: "Skip for now" }).click()                            // Team
   await page.getByRole("button", { name: "Welcome mixer" }).click()
@@ -83,6 +84,7 @@ test("the replace warning shows only after a club was already set up", async ({ 
   await page.evaluate(() => { location.hash = "#/welcome/founder/name" })
   await page.getByLabel("Club name").fill("Second Club"); await cont(page)
   await page.getByRole("button", { name: /^Skip/ }).click()
+  await fillMission(page)
   await page.getByRole("button", { name: "Skip for now" }).click()
   await page.getByRole("button", { name: "Skip for now" }).click()
   await page.getByRole("button", { name: "Welcome mixer" }).click()

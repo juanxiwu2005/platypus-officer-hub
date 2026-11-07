@@ -4,7 +4,7 @@
  */
 export const onboardingCopy = {
   // shell
-  exit: "Save & exit", back: "Back", next: "Continue", skip: "Skip for now", skipHint: "You can add this later in Settings.", progress: "Walkthrough progress",
+  exit: "Exit", back: "Back", next: "Continue", skip: "Skip for now", skipHint: "You can add this later in Settings.", progress: "Walkthrough progress",
   demo: "Demo", demoNote: "Fictional data. It stays in this browser.",
   // welcome gate (OB-03)
   welcomeTitle: "Welcome to Platypus", welcomeLead: "Your club's chief of staff.",
@@ -14,7 +14,7 @@ export const onboardingCopy = {
   // founder flow (OB-04 … OB-06, OB-09)
   founder: {
     name: {
-      title: "Name your club", field: "Club name", school: "ASU Tempe", preview: "Preview", placeholder: "Your club",
+      title: "Name your club", field: "Club name", school: "ASU Tempe", preview: "Preview", placeholder: "Your club", example: "e.g. Sun Devil Robotics Club",
       schoolWhy: "Platypus is set up for ASU clubs in this version, so the school is fixed.", schoolLabel: "School",
     },
     constitution: {
@@ -31,7 +31,7 @@ export const onboardingCopy = {
       tooLong: "This document is very long. Paste the sections about officers and departments.", unreadable: "This file could not be read.",
     },
     goals: {
-      title: "Set goals for your club", lead: "Goals are optional. Progress starts at zero.", mission: "Mission", missionField: "Mission", missionRequired: "Add a mission to continue.",
+      title: "Set goals for your club", lead: "Goals are optional. Progress starts at zero.", mission: "Mission", missionField: "Mission", missionExample: "e.g. Build robots together and compete every spring.", missionRequired: "Add a mission to continue.",
       decrease: "Decrease", increase: "Increase", target: "target", goalName: "Goal name", unit: "Unit", missionLong: "Keep the mission under 300 characters.",
       items: { events: { label: "Weekly events", unit: "per week" }, members: { label: "Active members", unit: "members" }, income: { label: "External income", unit: "USD" } },
     },
@@ -45,7 +45,7 @@ export const onboardingCopy = {
       sentenceLabel: "Your first event, in one sentence", examplesLabel: "Examples", planning: "Planning…", chainLabel: "First steps and dates",
       stale: "Press Plan it to update the steps.", notEvent: "Describe one event starting with Plan, then review its details.",
       dateError: "Choose a date that is today or later in Event details.", day: "day", days: "days",
-      skipHint: "You can plan one later from Ask.",
+      skipHint: "You can plan one later from Ask.", sentenceExample: "e.g. Plan Welcome Mixer on Mar 5, 40 people, on campus",
       examples: [
         { label: "Welcome mixer", sentence: "Plan Welcome Mixer on Mar 5, 40 people, on campus, no food" },
         { label: "Study workshop", sentence: "Plan Study Skills Workshop on Mar 26, 25 people, on campus" },

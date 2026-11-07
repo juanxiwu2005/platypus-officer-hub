@@ -64,7 +64,7 @@ export function FirstEvent() {
 
   return <section className="ob-card ob6" data-testid="first-event">
     <h1>{c.title}</h1>
-    <textarea className="ob6-sentence" aria-label={c.sentenceLabel} maxLength={1000} rows={3} value={draft.sentence} onChange={e => edit(e.target.value)} />
+    <textarea className="ob6-sentence" aria-label={c.sentenceLabel} placeholder={c.sentenceExample} maxLength={1000} rows={3} value={draft.sentence} onChange={e => edit(e.target.value)} />
     <div className="ob6-examples" role="group" aria-label={c.examplesLabel}>
       {c.examples.map(x => <button key={x.label} type="button" className="chip" onClick={() => edit(x.sentence)}>{x.label}</button>)}
     </div>

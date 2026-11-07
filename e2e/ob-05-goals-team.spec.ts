@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
+import { fillMission } from "./ob-helpers"
 
 // OB-05: the Goals and Team screens of the founder flow (/#/welcome/founder/goals and /#/welcome/founder/team). Both are skippable.
 const GOALS = "/#/welcome/founder/goals"
@@ -33,11 +34,16 @@ const contactFields = (page: Page) => page.evaluate(() => [...document.querySele
 const height = (page: Page) => page.evaluate(() => document.documentElement.scrollHeight)
 const noSidewaysScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)
 const addRoles = async (page: Page, n: number) => { for (let i = 0; i < n; i++) await page.getByRole("button", { name: "Add role" }).click() }
-const roleRow = (page: Page, title: string) => page.locator(".ob-role").filter({ has: page.locator(`input.ob-role-title[value="${title}"]`) })
+/** The row whose role title (a growing text box) says `title`, as the rows are ordered now. */
+const ROW_AT = (page: Page, title: string) => page.locator(".ob-role-title").evaluateAll((els, t) => els.findIndex(e => (e as HTMLTextAreaElement).value === t), title)
+const roleRow = async (page: Page, title: string) => page.locator(".ob-role").nth(await ROW_AT(page, title))
+
+/** Goals opened on its own: a new draft has no mission yet, so type one (the mission is required, even to skip). */
+const openGoals = async (page: Page) => { await page.goto(GOALS); await fillMission(page) }
 
 test.describe("Goals", () => {
   test("fastest path: three goals on, Continue, and the choices are still there on Back", async ({ page }) => {
-    await page.goto(GOALS)
+    await openGoals(page)
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set goals for your club")
     await expect(page.getByRole("switch")).toHaveCount(3)
     await expect(page.getByRole("switch", { name: "Weekly events" })).toBeChecked()
@@ -54,7 +60,7 @@ test.describe("Goals", () => {
   })
 
   test("Skip for now leaves a hollow dashed dot in the progress chain and a hint about Settings", async ({ page }) => {
-    await page.goto(GOALS)
+    await openGoals(page)
     await expect(page.getByText("You can add this later in Settings.")).toBeVisible()
     await page.getByRole("button", { name: "Skip for now" }).click()
     await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
@@ -65,7 +71,7 @@ test.describe("Goals", () => {
   })
 
   test("the +/- buttons and the number box change a target; the buttons and rows are at least 44px", async ({ page }) => {
-    await page.goto(GOALS)
+    await openGoals(page)
     const events = page.getByRole("spinbutton", { name: "Weekly events target" }), members = page.getByRole("spinbutton", { name: "Active members target" })
     await expect(events).toHaveValue("1"); await expect(members).toHaveValue("40")
     await page.getByRole("button", { name: "Increase Weekly events" }).click()
@@ -87,7 +93,7 @@ test.describe("Goals", () => {
   })
 
   test("goals are optional, while selected goals still need a positive target", async ({ page }) => {
-    await page.goto(GOALS)
+    await openGoals(page)
     await page.getByRole("switch", { name: "Active members" }).uncheck()
     await expect(page.getByRole("spinbutton", { name: "Active members target" })).toBeDisabled()
     await page.getByRole("switch", { name: "Weekly events" }).uncheck()
@@ -102,7 +108,7 @@ test.describe("Goals", () => {
   })
 
   test("the mission is required, limited to 300 characters, and kept", async ({ page }) => {
-    await page.goto(GOALS)
+    await openGoals(page)
     const mission = page.getByRole("textbox", { name: "Mission" })
     await expect(mission).toBeVisible()
     await mission.fill("")
@@ -117,7 +123,7 @@ test.describe("Goals", () => {
   })
 
   test("a selected goal name and unit are editable", async ({ page }) => {
-    await page.goto(GOALS)
+    await openGoals(page)
     await page.getByRole("textbox", { name: "Weekly events Unit" }).fill("sessions")
     await page.getByRole("textbox", { name: "Weekly events Goal name" }).fill("Mentor sessions")
     await expect(page.getByRole("spinbutton", { name: "Mentor sessions target" })).toBeVisible()
@@ -128,7 +134,7 @@ test.describe("Goals", () => {
   })
 
   test("at a glance: 40 words or fewer, no sideways scroll, no accessibility problems, light and dark", async ({ page }) => {
-    await page.goto(GOALS)
+    await openGoals(page)
     expect(await glanceWords(page)).toBeLessThanOrEqual(40)
     expect(await noSidewaysScroll(page)).toBe(true)
     expect(await scan(page)).toEqual([])
@@ -137,7 +143,7 @@ test.describe("Goals", () => {
   })
 
   test("reduced motion: the switch does not slide; with motion allowed it does, and only by transform", async ({ page }) => {
-    await page.goto(GOALS)
+    await openGoals(page)
     const thumb = (p: Page) => p.getByRole("switch", { name: "Weekly events" }).evaluate(el => { const cs = getComputedStyle(el, "::after"); return [cs.transitionProperty, cs.transitionDuration] })
     expect(await page.evaluate(() => matchMedia("(prefers-reduced-motion: reduce)").matches)).toBe(true)
     expect(await thumb(page)).toEqual(["transform", "0.001s"])
@@ -147,7 +153,7 @@ test.describe("Goals", () => {
 
   test("the goals column is centered in the full viewport", async ({ page }) => {
     await page.setViewportSize({ width: 1600, height: 900 })
-    await page.goto(GOALS)
+    await openGoals(page)
     const offset = await page.locator(".ob-goals").evaluate(el => Math.abs(el.getBoundingClientRect().left + el.getBoundingClientRect().width / 2 - window.innerWidth / 2))
     expect(offset).toBeLessThanOrEqual(1)
   })
@@ -202,25 +208,25 @@ test.describe("Team", () => {
 
   test("reports-to stays visible, indents the tree, and updates the chart", async ({ page }) => {
     await page.goto(TEAM)
-    const row = roleRow(page, "Secretary")
+    const row = (await roleRow(page, "Secretary"))
     await expect(row.getByRole("combobox", { name: "Reports to 5" })).toHaveValue("r-pres")
     await row.getByRole("combobox", { name: "Reports to 5" }).selectOption({ label: "Treasurer" })
     await expect(page.getByTestId("org-chart")).toContainText("Secretary, reports to Treasurer")
-    await expect(roleRow(page, "Secretary").locator(".ob-role-title-wrap")).toHaveCSS("padding-left", "48px")
+    await expect((await roleRow(page, "Secretary")).locator(".ob-role-title-wrap")).toHaveCSS("padding-left", "48px")
     // heads come first: when the Treasurer reports to the Marketing lead, the Treasurer moves below it
-    await roleRow(page, "Treasurer").getByRole("combobox", { name: "Reports to 2" }).selectOption({ label: "Marketing lead" })
+    await (await roleRow(page, "Treasurer")).getByRole("combobox", { name: "Reports to 2" }).selectOption({ label: "Marketing lead" })
     await expect(page.getByRole("textbox", { name: "Role 2" })).toHaveValue("Events lead")
     await expect(page.getByRole("textbox", { name: "Role 4" })).toHaveValue("Treasurer")
     await expect(page.getByTestId("org-chart")).toContainText("Treasurer, reports to Marketing lead")
     // a role cannot report to a role below it
-    await expect(roleRow(page, "Treasurer").getByRole("combobox", { name: "Reports to 4" }).locator("option", { hasText: "Secretary" })).toHaveCount(0)
+    await expect((await roleRow(page, "Treasurer")).getByRole("combobox", { name: "Reports to 4" }).locator("option", { hasText: "Secretary" })).toHaveCount(0)
   })
 
   test("duties have their own explicit control and are limited to 400 characters", async ({ page }) => {
     await page.goto(TEAM)
     const duties = page.getByRole("textbox", { name: "Duties 2" })
     await expect(duties).toHaveCount(0)
-    await roleRow(page, "Treasurer").getByRole("button", { name: "Edit duties" }).click()
+    await (await roleRow(page, "Treasurer")).getByRole("button", { name: "Edit duties" }).click()
     await duties.fill("y".repeat(500))
     expect((await duties.inputValue()).length).toBe(400)
     await duties.fill("Keeps the budget.")

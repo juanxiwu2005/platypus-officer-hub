@@ -27,8 +27,10 @@ export async function prepareEvent(state: DemoState, club: ClubDraft, sentence: 
 
 /** The workspace this event would create, or null while anything is missing or refused. The buffer is passed in, so changing it re-plans every date. */
 export function previewFor(state: DemoState, club: ClubDraft, event: FirstEvent | null, date: string, inviteCode: string, steps: StepTemplate[], buffer: number): DemoState | null {
-  if (!event || !validDate(date) || date < state.today || validateClub(club)) return null
-  const next = completeSetup(state, club, event, date, inviteCode, undefined, buffer, steps)
+  // The name and mission change no date. The screen opened on its own (before they were typed) still shows the plan; Confirm checks them for real.
+  const dated = { ...club, name: club.name.trim() || "Your club", mission: club.mission.trim() || "Your mission" }
+  if (!event || !validDate(date) || date < state.today || validateClub(dated)) return null
+  const next = completeSetup(state, dated, event, date, inviteCode, undefined, buffer, steps)
   return next === state ? null : next
 }
 

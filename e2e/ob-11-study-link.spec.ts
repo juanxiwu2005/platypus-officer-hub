@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
-import { WELCOME_ON, onboardingRecord } from "./ob-helpers"
+import { WELCOME_ON, fillMission, onboardingRecord } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 
 // Phase 3 study link and the skippable First event. Runs on desktop and phone (Pixel 7).
@@ -69,6 +69,7 @@ const toFirstEvent = async (page: Page, club = "Maple Club") => {
   await page.goto("/#/start")
   await page.getByLabel(c.founder.name.field).fill(club); await cont(page)
   await page.getByRole("button", { name: c.founder.constitution.skip }).click()
+  await fillMission(page)
   await page.getByRole("button", { name: c.skip }).click()                              // Goals
   await page.getByRole("button", { name: c.skip }).click()                              // Team
   await expect(page.getByRole("heading", { level: 1, name: c.founder.firstEvent.title })).toBeVisible()
@@ -83,8 +84,9 @@ test("First event shows as optional in the progress chain, like the other option
 
 test("Skip for now on First event: both choices are there, Confirm works with no event, Back returns, and Start creates the club without an event", async ({ page }) => {
   await toFirstEvent(page)
-  // Plan and Skip are both one press away; nothing is planned until the president asks.
-  await expect(page.getByRole("button", { name: c.founder.firstEvent.cta })).toBeEnabled()
+  // Skip is one press away; Plan it waits for a sentence (an example chip writes one). Nothing is planned until the president asks.
+  await expect(page.getByRole("textbox", { name: c.founder.firstEvent.sentenceLabel })).toHaveValue("")
+  await expect(page.getByRole("button", { name: c.founder.firstEvent.cta })).toBeDisabled()
   await expect(page.getByRole("button", { name: c.skip })).toBeEnabled()
   await expect(page.getByRole("region", { name: c.founder.firstEvent.chainLabel })).toHaveCount(0)
   await noSideScroll(page)

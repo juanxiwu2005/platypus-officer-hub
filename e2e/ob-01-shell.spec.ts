@@ -38,12 +38,12 @@ test("an unknown /welcome path shows a placeholder and no accessibility problems
   await page.goto("/#/welcome/founder/goals")
   expect(await scan(page)).toEqual([])
 })
-test("Save & exit on a flow screen records the step it left from", async ({ page }) => {
+test("Exit on a flow screen records the step it left from", async ({ page }) => {
   await page.goto("/#/welcome/start")
   await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)   // wait for the start to finish, or its redirect can land after the next address
   await page.goto("/#/welcome/founder/goals")
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set goals for your club")
-  await page.getByRole("button", { name: "Save & exit" }).click()
+  await page.getByRole("button", { name: "Exit" }).click()
   await expect(page.locator("main h1")).toHaveText("Today")
   const rec = await onboardingRecord(page)
   expect(rec.attempts[0].steps).toContainEqual(expect.objectContaining({ step: "founder.goals", event: "exit" }))
@@ -51,6 +51,7 @@ test("Save & exit on a flow screen records the step it left from", async ({ page
 
 test("the progress chain looks like what it says: done and current dots are filled, skipped ones are hollow and dashed, upcoming ones are hollow", async ({ page }) => {
   await page.goto("/#/welcome/start")
+  await page.getByLabel("Club name").fill("Maple Club")                          // the name starts empty
   await page.getByRole("button", { name: "Continue", exact: true }).click()      // Name done
   await page.getByRole("button", { name: /Skip/ }).first().click()               // Constitution skipped
   await expect(page).toHaveURL(/#\/welcome\/founder\/goals$/)

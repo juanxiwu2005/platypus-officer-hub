@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { useStore } from "../../../data/store"
 import type { ConstitutionDoc } from "../../../components/setup/ConstitutionStep"
 import { callRetry } from "../../../lib/aiRetry"
@@ -21,7 +21,7 @@ type Update = (fn: (d: OnboardingDraft) => OnboardingDraft) => void
  *  - The sink is the provider of the last Constitution screen that was shown. The job only ever runs inside a walkthrough that has shown that screen.
  *  - If the walkthrough is left (Save & exit) the provider is gone: the writes are ignored by React and the job simply ends. Nothing is kept.
  *  - Every write checks that the draft still holds the same document (by checksum), so a job can never write into another document's draft.
- *  - Reloading the page loses a job in progress (the draft keeps the document and roles but the reading is not saved, as in the classic page).
+ *  - Reloading the page loses a job in progress; the draft keeps the document and the shell starts the job again (useResumeReading).
  */
 let sink: Update | null = null
 let active = ""   // checksum of the document being read now; "" = nothing wanted
@@ -71,6 +71,23 @@ export async function runReading(doc: ConstitutionDoc, { aiEnabled, again = fals
     if (current()) write(sum, d => d.reading.status === "ready" ? { ...d, reading: { ...d.reading, pending: left } } : d)
   }
   if (current()) done(read, missed ? text.suggestedGaps : text.suggested, missed > 0)
+}
+
+/**
+ * For the walkthrough shell: a reload in the middle of a reading keeps the document but not the job, so the job starts again once, when the shell
+ * first shows the restored draft. A finished reading is restored as it was and is not read again.
+ */
+export function useResumeReading() {
+  const { update, draft } = useOnboardingDraft()
+  const { state } = useStore()
+  const tried = useRef(false)
+  useEffect(() => {
+    if (tried.current) return
+    tried.current = true
+    if (!draft.doc || draft.reading.status !== "idle" || draft.applied) return
+    bindDraft(update)
+    void runReading(draft.doc, { aiEnabled: state.aiEnabled })
+  }, [draft.doc, draft.reading.status, draft.applied, update, state.aiEnabled])
 }
 
 /** For the Constitution screen: hands the draft's update function to the job, and gives the screen start and stop. */

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { WELCOME_ON, onboardingRecord } from "./ob-helpers"
+import { WELCOME_ON, fillMission, onboardingRecord } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 import { openDemoMenu } from "./helpers"
 
@@ -15,6 +15,7 @@ test("a first visit runs welcome → founder flow → invite → officer preview
   await page.getByLabel(c.founder.name.field).fill("Moonlight Typing Society")
   await next(page).click()
   await page.getByRole("button", { name: c.founder.constitution.skip }).click()
+  await fillMission(page)
   await page.getByRole("button", { name: c.skip }).click()           // goals
   await page.getByRole("button", { name: c.skip }).click()           // team
   await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
