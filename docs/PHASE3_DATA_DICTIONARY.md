@@ -2,7 +2,7 @@
 
 给研究者（Juanxi）看的说明：参与者在 Settings 页按 **Export my data** 下载的那个 JSON 文件里有什么、每个字段是什么意思、怎么从里面算出任务用时、错误次数和"有没有点开引用来源"，以及它**做不到**什么。
 
-- 适用版本：`formatVersion: 2`（2026-11-07 起，分支 `wt/c-logging`）。旧的 `formatVersion: 1` 文件也能用下面的 CSV 脚本读，只是没有界面操作记录。
+- 适用版本：`formatVersion: 2`（2026-11-07 起）。旧的 `formatVersion: 1` 文件也能用下面的 CSV 脚本读，只是没有界面操作记录。
 - 文件里只有虚构社团的数据和参与者在原型里的操作记录。**没有任何东西会自动上传**：文件只在参与者自己按按钮时下载到他自己的电脑，再由他（Zoom 上）发邮件给研究者。
 - 本文件和代码对应：日志结构 `src/data/types.ts` 的 `LogEntry`；界面事件 `src/lib/uiLog.ts`；写入与去噪 `src/data/store.tsx` 的 `appendUiLog`；时间线 `src/lib/timeline.ts`；导出 `buildExport`；CSV 脚本 `scripts/export-to-csv.mjs`。
 
@@ -37,7 +37,7 @@
 | `storageKey` | 数据在浏览器里存的名字（开发用） |
 | ★ `build` | 这是哪一版网站：`version`（应用版本号）、`commit`（代码提交号）、`branch`、`context`（Netlify 的 production / deploy-preview）。本地构建没有这些信息时写 `"unknown"`。用来确认每位参与者用的是同一版 |
 | ★ `demoToday` | 原型里的"演示日期"（导出那一刻）。原型的日期是假的、可以用 Demo 菜单往前拨；它和真实时间无关 |
-| ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（现在 `ob-2`）。每次引导尝试里也各自记了版本 |
+| ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（现在 `ob-3`）。每次引导尝试里也各自记了版本 |
 | `state` | 导出那一刻整个虚构社团的数据（活动、任务、成员、设置……）。签名密钥被替换成 `"[omitted]"` |
 | `onboarding` | 新手引导（`/#/welcome/…`）的单独记录，见第 6 节 |
 | `interactionLog` | 交互日志本体，见第 4、5 节。外层还有：`limit`（2000）、`count`（现有条数）、`firstSeq` / `lastSeq`（第一条和最后一条的编号）、`droppedEarlier`（因为超过 2000 被丢掉的最早条数；0 表示一条没丢） |
