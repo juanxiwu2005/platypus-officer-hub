@@ -93,7 +93,7 @@ export default function Today() {
 
         <section className="card" aria-labelledby="star-h">
           <header><h2 id="star-h">Superstar of the week</h2><Info>Points for steps finished this week: light 1, medium 2, heavy 3, plus 1 if on time. Ties share the spotlight.</Info></header>
-          {stars.length ? <div className="stars">{stars.map(star => <span key={star.person.id} className="star"><Avatar name={star.person.name} /> <b>{star.person.name.split(" ")[0]}</b> <span className="small muted">{star.points} pts</span></span>)}</div> : <Empty>No finished steps yet this week.</Empty>}
+          {stars.length ? <div className="stars">{stars.map(star => <span key={star.person.id} className="star"><Avatar name={star.person.name} /> <b>{star.person.name.split(" ")[0]}</b> <span className="small muted">{star.points} pts</span></span>)}</div> : <Empty>No stars yet. Finish a step.</Empty>}
           <BtsRow><Bts label="Computed">Points for steps finished this week (Monday to today): light 1, medium 2, heavy 3, plus 1 if on time. The top score wins; ties share the spotlight.</Bts></BtsRow>
         </section>
       </div>

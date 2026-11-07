@@ -1,0 +1,13 @@
+/* DX-13 disclosure motion (docs/design-upgrade/work-packages/DX-13-details-motion.md).
+   Every <details> ("More", follow-up panels, settings groups) opens and closes with a height change instead of a jump.
+   Progressive: a browser without ::details-content keeps the instant open it had. The height of the content box is the one
+   layout property this design upgrade animates: there is no other way to open a disclosure smoothly. */
+@supports (selector(details::details-content)) {
+  details { interpolate-size: allow-keywords; }
+  details::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition: block-size var(--dur-base) var(--ease-out), content-visibility var(--dur-base) allow-discrete;
+  }
+  details[open]::details-content { block-size: auto; }
+}

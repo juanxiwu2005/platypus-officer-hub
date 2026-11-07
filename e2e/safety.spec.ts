@@ -12,6 +12,7 @@ test("Settings has an Export my data button that downloads the data and the inte
   await page.getByTestId("demo-menu").click()
   await page.getByTestId("clock-1").click()
   await expect(page.getByTestId("demo-date")).toHaveText(fmtLong(addDays(before.today, 1)))
+  await page.keyboard.press("Escape")   // the Demo menu floats over the page; on a phone the page now starts higher, under it
   const after = await savedDemo(page)
   await page.getByRole("button", { name: "My preferences" }).click()
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-data").click()])

@@ -1,0 +1,17 @@
+/* DX-19 detail swap and page fade (docs/design-upgrade/work-packages/DX-19-detail-swap.md).
+   1. Showing a different task, step or contact in the right-hand Details fades the new content in (120ms-ish, opacity only).
+      Layout, scroll position and focus are untouched: the new content simply starts see-through.
+   2. A new page fades in. Opacity only: no slide, no exit, so moving between pages is never slower.
+   Both are off with Reduce Motion. */
+@keyframes dx-fade-in {
+  from { opacity: 0; }
+}
+.detail-scroll > :not(.detail-bar) {
+  animation: dx-fade-in var(--dur-fast) var(--ease-out) backwards;
+}
+main.route-enter > * {
+  animation: dx-fade-in var(--dur-fast) var(--ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .detail-scroll > :not(.detail-bar), main.route-enter > * { animation: none; }
+}

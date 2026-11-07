@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { ask, closeRail, demoClock, noOverflow, resetDemo } from "./helpers"
+import { ask, closeRail, demoClock, noOverflow, resetDemo, viewAs } from "./helpers"
 
 test.beforeEach(async ({ page }) => { await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: true, provider: "mock", model: "mock" } })) })
 
@@ -137,9 +137,9 @@ test("sourced handbook requires outgoing confirmation before presidential approv
   await expect(role.getByRole("button", { name: "Confirm as outgoing officer", exact: true })).toBeDisabled()
   await draft.getByText("Source 1:", { exact: false }).click()
   await expect(draft.getByRole("link", { name: "Open task record" })).toBeVisible()
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await role.getByRole("button", { name: "Confirm as outgoing officer", exact: true }).click()
-  await page.getByTestId("view-as").selectOption("alex")
+  await viewAs(page, "alex")
   await role.getByRole("button", { name: "Approve as president", exact: true }).click()
   await expect(role).toContainText("President approved")
   await page.reload()

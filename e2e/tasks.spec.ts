@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { ask, closeRail, demoClock, noOverflow, resetDemo } from "./helpers"
+import { ask, closeRail, demoClock, noOverflow, resetDemo, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
 
 test.beforeEach(async ({ page }) => {
@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 
 test("claims an unassigned handover, then updates waiting, help and done without duplicates", async ({ page }) => {
   const id = await createUnclaimedTask(page, "Prepare the volunteer briefing")
-  await page.getByTestId("view-as").selectOption("jordan")
+  await viewAs(page, "jordan")
   await page.goto(`/#/tasks?node=${encodeURIComponent(id)}`)
   const detail = page.getByTestId("task-detail")
   await detail.getByRole("button", { name: "I've got it", exact: true }).click()
@@ -36,7 +36,7 @@ test("claims an unassigned handover, then updates waiting, help and done without
 
 test("extension needs a draft and stays pending until the president approves", async ({ page }) => {
   await page.goto("/#/tasks?node=e-night:purchaseRequest")
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   const before = await savedTask(page, "e-night:purchaseRequest")
   expect(before.officialDeadline).not.toBeNull()
   const requestedDate = "2027-04-01"
@@ -52,14 +52,14 @@ test("extension needs a draft and stays pending until the president approves", a
   await page.reload()
   await expect(page.getByTestId("task-detail")).toContainText("Extension awaiting review")
   await expect(page.getByTestId("president-review")).toHaveCount(0)
-  await page.getByTestId("view-as").selectOption("alex")
+  await viewAs(page, "alex")
   await closeRail(page)
   await page.getByRole("button", { name: "Approve extension", exact: true }).click()
   const dates = await page.evaluate(() => { const n = JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "e-night:purchaseRequest"); return [n.clubDeadline, n.officialDeadline] })
   expect(dates).toEqual([requestedDate, before.officialDeadline])
   await page.reload()
   expect(await savedTask(page, before.id)).toMatchObject({ clubDeadline: requestedDate, officialDeadline: before.officialDeadline })
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await closeRail(page)
   await page.getByRole("button", { name: /^Private updates/ }).click()
   await expect(page.getByRole("region", { name: "Private inbox" })).toContainText("was approved")
@@ -67,7 +67,7 @@ test("extension needs a draft and stays pending until the president approves", a
 
 test("finance completion stays in Event Budget instead of reporting an unsaved Done update", async ({ page }) => {
   await page.goto("/#/tasks?node=e-night:purchaseRequest")
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   const before = await savedTask(page, "e-night:purchaseRequest")
   const detail = page.getByTestId("task-detail")
   await expect(detail.getByRole("button", { name: "Done", exact: true })).toBeDisabled()
@@ -100,7 +100,7 @@ test("a ten-day jump creates the five private stages and a recovery task, with h
   await log.getByRole("button", { name: "Approve recovery timeline", exact: true }).click()
   await expect(log.getByRole("button", { name: "Recovery plan applied" })).toBeDisabled()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.some((n: { id: string }) => n.id.startsWith("retro:")))).toBe(true)
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await expect(page.getByTestId("president-review")).toHaveCount(0)
   await expect(page.getByText("Demo clock", { exact: true })).toHaveCount(0)
   await page.getByRole("button", { name: /^Private updates/ }).click()
@@ -143,7 +143,7 @@ test("tampered and reset officer links cannot update any task", async ({ page })
 
 test("table, board and timeline use the same tasks and remain usable on a phone", async ({ page }) => {
   await page.goto("/#/tasks")
-  await page.getByTestId("view-as").selectOption("jordan")
+  await viewAs(page, "jordan")
   await closeRail(page)
   await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByRole("table")).toContainText("Confirm the workshop checklist")
@@ -188,7 +188,7 @@ test("board: drag a card to another column, add a task, and an officer cannot mo
   await board.getByLabel("New task name").fill("Order name tags")
   await board.getByRole("button", { name: "Add", exact: true }).click()
   await expect(board.getByRole("region", { name: "To do" })).toContainText("Order name tags")
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await page.getByLabel("Task scope").selectOption("team")
   const other = board.getByTestId("board-card").filter({ hasText: "Send the October newsletter" })
   const beforeOther = await savedTask(page, "t-news")
@@ -226,7 +226,7 @@ test("board customization renames a status everywhere without changing its meani
 
 test("+ New task is on the page head in every view, for an officer as well as the president", async ({ page }) => {
   await page.goto("/#/tasks")
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await closeRail(page)
   // Every view keeps a create entry, including the table.
   for (const view of ["Table", "Timeline", "Board"]) {
@@ -245,7 +245,7 @@ test("+ New task is on the page head in every view, for an officer as well as th
 
 test("a new task never starts finished, and the board says where the card went", async ({ page }) => {
   await page.goto("/#/tasks")
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await closeRail(page)
   await page.getByRole("button", { name: "Board", exact: true }).click()
   const board = page.getByTestId("task-board")

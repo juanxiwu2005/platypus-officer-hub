@@ -1,0 +1,45 @@
+/* DX-09 side panel motion (docs/design-upgrade/work-packages/DX-09-rail-motion.md).
+   Wide screen (docked): the panel fades in with a small move; the page column changes width at once (no per-frame re-layout).
+   Below 1200px (floating over the page): it slides in from the right and leaves along the same path.
+   data-state="closed" is both "on its way in" and "on its way out", so a change of mind mid-motion reverses from where it is.
+   This file owns .rail and .ask-fab; no other package styles them. */
+.rail {
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+.rail[data-state="closed"] {
+  opacity: 0;
+  transform: translateX(8px);
+  pointer-events: none;
+}
+
+/* Docked panel: height follows the visible viewport on a phone-sized browser too (the address bar grows and shrinks). */
+@media (min-width: 1200px) {
+  .rail { height: calc(100dvh - var(--topbar-h) - 28px); }
+}
+
+/* Floating panel: a slide, same road in and out. */
+@media (max-width: 1199px) {
+  .rail {
+    transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+  }
+  .rail[data-state="closed"] {
+    opacity: 1;
+    transform: translateX(100%);
+    box-shadow: none;
+  }
+}
+
+/* The round Ask button: appears with a soft pop, answers a press at once, keeps clear of the home indicator. */
+.ask-fab {
+  right: calc(18px + env(safe-area-inset-right));
+  bottom: calc(18px + env(safe-area-inset-bottom));
+  transition: transform var(--dur-press) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+@starting-style {
+  .ask-fab { opacity: 0; transform: scale(.8); }
+}
+.ask-fab:active { transform: scale(.94); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ask-fab:active { transform: none; }
+}

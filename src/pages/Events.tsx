@@ -62,7 +62,7 @@ export default function Events() {
   return (
     <div className="events-layout">
       {state.events.length > 1 && <nav className="event-nav" aria-label="Events">
-        {eventsByDate.map(e => <button key={e.id} type="button" aria-current={e.id === ev.id ? "page" : undefined} onClick={() => chooseEvent(e.id)}>{e.name}</button>)}
+        {eventsByDate.map(e => <button key={e.id} type="button" title={e.name} aria-current={e.id === ev.id ? "page" : undefined} onClick={() => chooseEvent(e.id)}>{e.name}</button>)}
       </nav>}
       <div className="events-content">
         <PageHead path="/events" actions={state.events.length > 1 && (
@@ -105,7 +105,7 @@ export default function Events() {
       </div>
 
       {view === "flow" && <BtsRow><Bts label="Computed">Each dot's place comes from its dates. Colour: done when finished; risk when its forecast is red; now when it has started or its start day is today or earlier; otherwise to do.</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
-      {view === "flow" && <MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead} editing={editingFlow} onEditingChange={setEditingFlow} />}
+      {view === "flow" && <div className="metro-fade"><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
       {view === "list" && <section className="card tbl-wrap" data-testid="event-list">
         <table className="tbl">
           <thead><tr><th>Step</th><th>Owner</th><th>Status</th><th>Start</th><th>Due</th><th>ASU</th></tr></thead>

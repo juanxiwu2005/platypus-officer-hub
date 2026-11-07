@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { resetDemo } from "./helpers"
+import { resetDemo, viewAs } from "./helpers"
 import { savedDemo } from "./demo-contract"
 
 const PAGES: [string, string][] = [
@@ -24,7 +24,7 @@ for (const [path, h1] of PAGES) {
 
 test("view-as switches whose tasks are shown, and reset restores the demo", async ({ page }) => {
   await page.goto("/#/tasks")
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks")).toContainText("Reconcile September receipts")
   await page.reload()

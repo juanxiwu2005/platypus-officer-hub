@@ -12,8 +12,8 @@ export function GoalsEditor({ goals, onChange, progress = false }: { goals: Goal
     <td><input type="number" aria-label="Target" min="1" max="1000000" value={g.target} onChange={e => change(i, { target: Number(e.target.value) })} /></td>
     <td><input type="text" aria-label="Unit" value={g.unit} maxLength={20} onChange={e => change(i, { unit: e.target.value })} /></td>
     {progress && <td><input type="number" aria-label="Current progress" min="0" value={g.current} onChange={e => change(i, { current: Number(e.target.value) })} /></td>}
-    <td>{goals.length > 2 && <button type="button" className="btn small btn-quiet" aria-label={`Remove goal ${i + 1}`} title={`Remove goal ${i + 1}`} onClick={() => onChange(goals.filter((_, j) => j !== i))}>✕</button>}</td>
-  </tr>)}</tbody></table></div>{goals.length < 3 && <div><button type="button" className="btn small" onClick={() => onChange([...goals, { id: crypto.randomUUID(), label: "New semester goal", unit: "completed", target: 3, current: 0 }])}>Add third goal</button></div>}</div>
+    <td><button type="button" className="btn small btn-quiet" aria-label={`Remove goal ${i + 1}`} title={`Remove goal ${i + 1}`} onClick={() => onChange(goals.filter((_, j) => j !== i))}>✕</button></td>
+  </tr>)}</tbody></table></div>{goals.length < 3 && <div><button type="button" className="btn small" onClick={() => onChange([...goals, { id: crypto.randomUUID(), label: "New semester goal", unit: "completed", target: 3, current: 0 }])}>Add goal</button></div>}</div>
 }
 
 /** Every officer role: title, who it reports to, duties, and the fictional person in it (name, email, phone, ASU ID). */

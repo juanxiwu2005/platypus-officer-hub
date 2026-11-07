@@ -1,0 +1,34 @@
+/* Design-upgrade styles (docs/design-upgrade/README.md). Loaded after src/styles.css, in package order, so these
+   files can override older rules. To switch one package off (R1), wrap its @import line in a comment: a one-line change. */
+@import "./dx-00-tokens.css";
+@import "./ob-00-shell.css";
+@import "./dx-03-press-feedback.css";
+@import "./dx-04-touch-targets.css";
+@import "./dx-05-risk-shapes.css";
+@import "./dx-06-type-details.css";
+@import "./dx-07-shell-meta.css";
+@import "./dx-08-motion-guards.css";
+@import "./dx-09-rail-motion.css";
+@import "./dx-10-menu-motion.css";
+@import "./dx-11-toast-motion.css";
+@import "./dx-12-touch-hover-sheet.css";
+@import "./dx-13-details-motion.css";
+@import "./dx-14-loading-skeleton.css";
+@import "./dx-15-events-layout.css";
+@import "./dx-16-board-layout.css";
+@import "./dx-17-ask-panel.css";
+@import "./dx-18-empty-states.css";
+@import "./dx-19-detail-swap.css";
+@import "./dx-20-mobile-shell.css";
+@import "./dx-21-board-headers.css";
+@import "./dx-22-flow-motion.css";
+@import "./dx-23-glass-topbar.css";
+@import "./dx-24-board-drag.css";
+@import "./dx-25-done-moment.css";
+@import "./dx-26-crm-drag.css";
+@import "./ob-04-name-constitution.css";
+@import "./ob-05-goals-team.css";
+@import "./ob-06-first-event.css";
+@import "./ob-07-member-invitation.css";
+@import "./ob-08-member-finish.css";
+@import "./ob-09-confirm-invite.css";

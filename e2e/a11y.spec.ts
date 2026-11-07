@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { ask, closeRail } from "./helpers"
+import { ask, closeRail, viewAs } from "./helpers"
 
 // WCAG 2.0, 2.1 and 2.2 A/AA scan of every page and the main panels, on desktop and phone (S6).
 // wcag22aa is what switches on axe's target-size rule (WCAG 2.5.8, touch targets of at least 24x24).
@@ -206,7 +206,7 @@ test("right rail on a phone: the page underneath cannot be reached with Tab whil
 for (const viewer of ["sam", "jordan"]) test(`right rail: ${viewer}'s read-only funding checklist keeps Tab and Shift+Tab inside`, async ({ page }) => {
   await page.setViewportSize({ width: 412, height: 915 })
   await page.goto("/#/events?event=e-night&view=budget")
-  await page.getByTestId("view-as").selectOption(viewer)
+  await viewAs(page, viewer)
   const opener = page.getByRole("button", { name: "Funding application", exact: true })
   await opener.click()
   const rail = page.getByTestId("rail")

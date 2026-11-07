@@ -1,0 +1,27 @@
+/* DX-12 phone hover-card sheet motion (docs/design-upgrade/work-packages/DX-12-touch-hover-sheet.md).
+   Only where nothing can hover: the explanation card is a sheet at the bottom of the screen, and now it slides up and fades in,
+   then slides down when closed. No dark scrim: it is an explanation, not a task. On a computer with a mouse nothing changes:
+   .hover-card still answers at once (S3, e2e/feel.spec.ts). The card stays in the page, only hidden, so it can animate out too. */
+@media (hover: none) {
+  .hover > .hover-card {
+    position: fixed;
+    left: var(--s6);
+    right: var(--s6);
+    bottom: calc(var(--s6) + env(safe-area-inset-bottom));
+    top: auto;
+    width: auto;
+    max-width: none;
+    transform: translateY(12px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), visibility 0s linear var(--dur-fast);
+  }
+  .hover[data-open="true"] > .hover-card {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition-delay: 0s;
+  }
+}

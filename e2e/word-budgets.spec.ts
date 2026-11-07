@@ -8,21 +8,49 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
 })
 
+/** Every source the page lists for the current tab, in order. A computer lists them all at once; a phone has Previous / Next, six at a time. */
 async function sourcePages(page: Page) {
   await expect(page.locator("[data-policy-id]").first()).toBeVisible()
   const seen: string[] = []
-  const next = page.getByRole("navigation", { name: "Source pages", exact: true }).getByRole("button", { name: "Next", exact: true })
+  const nav = page.getByRole("navigation", { name: "Source pages", exact: true })
+  const paged = await nav.count() > 0
+  const next = nav.getByRole("button", { name: "Next", exact: true })
   for (;;) {
     const records = page.locator("[data-policy-id]")
-    expect(await records.count()).toBeLessThanOrEqual(6)
+    if (paged) expect(await records.count()).toBeLessThanOrEqual(6)
     seen.push(...await records.evaluateAll(rows => rows.map(row => row.getAttribute("data-policy-id")!)))
-    if (await next.isDisabled()) break
+    if (!paged || await next.isDisabled()) break
     await next.focus()
     await page.keyboard.press("Enter")
   }
   expect(new Set(seen).size).toBe(seen.length)
   return seen
 }
+
+test("Rules: a computer lists all 64 sources with no pages; a phone keeps Previous and Next", async ({ page, isMobile }) => {
+  await page.goto("/#/rules")
+  await closeRail(page)
+  await expect(page.locator("[data-policy-id]").first()).toBeVisible()
+  const nav = page.getByRole("navigation", { name: "Source pages", exact: true })
+  if (isMobile) {
+    await expect(nav).toBeVisible()
+    expect(await page.locator("[data-policy-id]").count()).toBe(6)
+    // The link and the Ask button are the same size with the icon in the middle (the link used to be taller, with its icon in the corner).
+    const boxes = await page.locator("[data-policy-id]").first().locator(".rule-actions .icon-btn").evaluateAll(els => els.map(el => {
+      const b = el.getBoundingClientRect(), v = el.querySelector("svg")!.getBoundingClientRect()
+      return { w: Math.round(b.width), h: Math.round(b.height), dx: Math.round((v.x + v.width / 2) - (b.x + b.width / 2)), dy: Math.round((v.y + v.height / 2) - (b.y + b.height / 2)) }
+    }))
+    expect(boxes).toHaveLength(2)
+    expect(boxes[0].w).toBe(boxes[1].w)
+    expect(boxes[0].h).toBe(boxes[1].h)
+    for (const b of boxes) { expect(Math.abs(b.dx)).toBeLessThanOrEqual(1); expect(Math.abs(b.dy)).toBeLessThanOrEqual(1) }
+  } else {
+    await expect(nav).toHaveCount(0)
+    await expect(page.getByRole("button", { name: /^(Previous|Next)$/ })).toHaveCount(0)
+    await expect(page.locator("[data-policy-id]")).toHaveCount(POLICY_CATALOG.length)
+    await expect(page.getByRole("status").filter({ hasText: `${POLICY_CATALOG.length} sources` })).toBeVisible()
+  }
+})
 
 test("Rules keyboard browsing reaches every source through All and each category", async ({ page }) => {
   await page.goto("/#/rules")

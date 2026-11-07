@@ -1,0 +1,23 @@
+/* DX-06 type details (docs/design-upgrade/work-packages/DX-06-type-details.md).
+   Tracking depends on size: the bigger the type, the tighter it sits; small type stays at 0. Numbers that sit in columns
+   (dates, money, counts) use equal-width digits so they line up. Phone labels grow to the --fs-md step.
+   No font family, weight or line-height changes. The h1 size is not touched (DX-27 decides that). */
+h1 { letter-spacing: -.02em; }
+h2 { letter-spacing: -.015em; }
+h3 { letter-spacing: 0; }
+.brand b { letter-spacing: -.01em; }
+.panel h2, .funding-detail h2 { letter-spacing: -.015em; }
+.stat-row b, .dl-date { letter-spacing: -.01em; }
+
+/* Equal-width digits wherever numbers are compared or stacked. */
+:is(.num, .tbl td.nowrap, .stat-row b, .days, .timing, .count, .badge, .dl-date, .suggestion-day time, .event-row .small, .small.nowrap, .m-tick, .gantt-tick, .heat-row.head span) {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Less lonely last lines in running text. */
+:is(p, .small, .muted, .empty, .hover-card, .nudge-body) { text-wrap: pretty; }
+
+/* Phone: the small labels on charts and progress chains go up one step so they can be read. */
+@media (max-width: 600px) {
+  :is(.chain-label, .m-tick, .m-label span, .gantt-tick) { font-size: var(--fs-md); }
+}

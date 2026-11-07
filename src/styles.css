@@ -136,6 +136,8 @@ p { margin: 0; }
 .sidenav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
 .sidenav a[aria-current="page"] svg { color: var(--accent-ink); }
 main { min-width: 0; display: grid; gap: 16px; max-width: 1180px; width: 100%; justify-self: center; }
+/* Events has the list of events on the left and a wide flow chart, so it sits against the navigation and may use more room; a centered 1180px column left a wide empty strip beside the navigation when the side panel was closed. */
+main:has(> .events-layout) { max-width: 1600px; justify-self: start; }
 
 /* Page parts */
 .page-head { display: flex; gap: 12px; max-width: none; align-items: center; justify-content: space-between; flex-wrap: wrap; min-height: 40px; }
@@ -723,7 +725,9 @@ tr.clickable { cursor: pointer; }
 .rule-text > span[tabindex] { outline-offset: 2px; }
 .rule-text .hover-card { left: 0; transform: none; }
 .timing { font-size: var(--fs-sm); font-weight: 600; color: var(--accent-ink); background: var(--accent-soft); border-radius: var(--r-sm); padding: 2px 8px; white-space: nowrap; }
-.rule-actions { display: inline-flex; gap: 4px; }
+.rule-actions { display: inline-flex; align-items: center; gap: 4px; }
+/* The link is an <a>, the other a <button>: make both the same box with the icon in the middle (on a phone the link used to be taller than the button, with its icon in the top-left corner). */
+.rule-actions .icon-btn { display: inline-flex; align-items: center; justify-content: center; }
 .rule-actions .icon-btn svg { width: 16px; height: 16px; }
 @media (max-width: 600px) { .rule-row { grid-template-columns: 22px minmax(0, 1fr) auto; } .rule-actions { grid-column: 3; } }
 .settings { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 16px; align-items: start; }

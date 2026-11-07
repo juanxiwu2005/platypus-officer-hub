@@ -1,0 +1,81 @@
+/* DX-16 task board layout (docs/design-upgrade/work-packages/DX-16-board-layout.md).
+   On a computer the six columns share the row. A column with no tasks folds into a 56px strip (title written sideways, a "+"
+   to add a task) so the others get the room, and all six stay on screen, Done included. A folded column opens when a card is
+   dragged over it, when its strip is pressed, or when someone starts adding a task. On a phone nothing folds: the columns
+   stay 78vw wide and snap (DX-16 does not touch that layout). Cards answer a mouse with a border. */
+
+/* The fold switch only exists where columns fold (a computer). On a phone it is not drawn at all. */
+.board-col-toggle { display: none; }
+
+@media (min-width: 861px) {
+  .board {
+    display: flex;
+    grid-template-columns: none;
+    gap: 10px;
+    align-items: stretch;
+  }
+  .board-col {
+    position: relative;
+    /* A tall enough drop target even when the column has two cards in it. Computer only: a phone has no dragging, and there
+       the same rule made every empty column a huge grey block. */
+    min-height: min(60vh, 520px);
+    flex: 1 1 164px;
+    min-width: 120px;
+    /* The width of a column is the one layout property DX-16 animates; the strip must open and close smoothly. */
+    transition: flex-basis var(--dur-base) var(--ease-out), min-width var(--dur-base) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  }
+  .board-col.is-folded {
+    flex: 0 0 56px;
+    min-width: 56px;
+    padding-inline: 6px;
+  }
+  .board-col.is-folded > header {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 4px;
+  }
+  .board-col.is-folded > header h2 {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    white-space: nowrap;
+  }
+  /* The strip is one big button; it sits over the header and is only there for a column with no cards. */
+  .board-col-toggle {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    z-index: var(--z-raised);
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    border-radius: var(--r-md);
+  }
+  .board-col.is-folded > .board-col-toggle { height: 160px; }
+  /* The add button always sits above the strip, so a click on "+ Add task" is never taken by the toggle. */
+  .board-col > .board-add-btn { position: relative; z-index: var(--z-sticky); }
+  .board-col-toggle:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .board-col.is-folded > .board-add-btn {
+    height: 36px;
+    padding: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-indent: 200%;
+  }
+  .board-col.is-folded > .board-add-btn::before {
+    content: "+";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    text-indent: 0;
+  }
+}
+
+@media (hover: hover) {
+  .board-card:hover { border-color: var(--accent); }
+}
+.board-card { transition: border-color var(--dur-fast) var(--ease-out); }

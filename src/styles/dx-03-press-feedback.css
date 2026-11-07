@@ -1,0 +1,38 @@
+/* DX-03 press feedback and hover transitions (docs/design-upgrade/work-packages/DX-03-press-feedback.md).
+   Pressing anything with a background shrinks it slightly at once; text-style buttons dim instead. Hover colours ease
+   in on devices that really hover. Not here: .ask-fab (DX-09), .board-card (DX-16/24), .hover-card (S3: zero delay). */
+
+/* Things with a background: press = a small shrink, back on release. */
+:is(.btn, .chip, .icon-btn, .demo-pill, .seg button, .crm-seg button, .rail-tabs [role="tab"], .settings-nav button, .event-nav button, .board-add-btn, .relay, .owner-chip button) {
+  transition: transform var(--dur-press) var(--ease-out);
+}
+:is(.btn, .chip, .icon-btn, .demo-pill, .seg button, .crm-seg button, .rail-tabs [role="tab"], .settings-nav button, .event-nav button, .board-add-btn, .relay, .owner-chip button):not(:disabled, [aria-disabled="true"]):active {
+  transform: scale(.97);
+}
+
+/* Text-style buttons: scaling a line of text looks odd, so dim it. */
+:is(.row-btn, .link, .group-btn):not(:disabled, [aria-disabled="true"]):active {
+  opacity: .7;
+}
+
+/* The side navigation is used all day: only the background reacts, nothing moves. */
+.sidenav a:active {
+  background: color-mix(in srgb, var(--surface-2) 80%, var(--ink));
+}
+
+/* Hover colours ease in, but only where there is a pointer to hover with. */
+@media (hover: hover) {
+  :is(.btn, .chip, .icon-btn, .demo-pill, .seg button, .crm-seg button, .rail-tabs [role="tab"], .settings-nav button, .event-nav button, .board-add-btn, .relay, .owner-chip button) {
+    transition: transform var(--dur-press) var(--ease-out), background-color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+  :is(.sidenav a, .tbl .row-btn) {
+    transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+  }
+}
+
+/* Reduce Motion: the colour change stays, the shrink goes. */
+@media (prefers-reduced-motion: reduce) {
+  :is(.btn, .chip, .icon-btn, .demo-pill, .seg button, .crm-seg button, .rail-tabs [role="tab"], .settings-nav button, .event-nav button, .board-add-btn, .relay, .owner-chip button):not(:disabled, [aria-disabled="true"]):active {
+    transform: none;
+  }
+}

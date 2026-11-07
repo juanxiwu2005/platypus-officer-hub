@@ -1,0 +1,29 @@
+/* DX-14 loading placeholder (docs/design-upgrade/work-packages/DX-14-loading-skeleton.md).
+   While a page or the side-panel details load: nothing for the first 150ms (a fast load never flashes), then grey blocks shaped like
+   a page (a title and three cards) fade in. They are still, not shimmering. The words "Loading…" stay in the page for a screen
+   reader and are only hidden from the eye. Pure CSS: RouteLoading.tsx is not touched. */
+.route-loading { position: relative; }
+.route-loading > p {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.route-loading::before {
+  content: "";
+  display: block;
+  max-width: 760px;
+  height: 360px;
+  background:
+    linear-gradient(var(--surface-2), var(--surface-2)) 0 0 / 30% 28px no-repeat,
+    linear-gradient(var(--surface-2), var(--surface-2)) 0 52px / 100% 88px no-repeat,
+    linear-gradient(var(--surface-2), var(--surface-2)) 0 156px / 100% 88px no-repeat,
+    linear-gradient(var(--surface-2), var(--surface-2)) 0 260px / 62% 88px no-repeat;
+  animation: dx-skeleton-in var(--dur-base) var(--ease-out) var(--dur-fast) backwards;
+}
+@keyframes dx-skeleton-in {
+  from { opacity: 0; }
+}

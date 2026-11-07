@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { closeRail, noOverflow } from "./helpers"
+import { closeRail, noOverflow, viewAs } from "./helpers"
 
 test.beforeEach(async ({ page }) => { await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: true, provider: "mock", model: "mock" } })) })
 
@@ -94,7 +94,7 @@ test("leads-only contacts stay hidden from other officers", async ({ page }) => 
   await page.goto("/#/partners")
   await expect(page.getByTestId("contacts")).toContainText("Morgan Hale")
   await closeRail(page)
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await expect(page.getByTestId("contacts")).not.toContainText("Morgan Hale")
   await expect(page.getByTestId("contacts")).toContainText("Jamie Ortiz")
   await page.getByLabel("Search partners").fill("morgan")

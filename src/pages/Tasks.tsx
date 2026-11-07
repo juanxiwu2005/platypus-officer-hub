@@ -9,6 +9,7 @@ import { FollowupPanel } from "../components/FollowupPanel"
 import { daysBetween, fmtShort, fromISO, toISO } from "../lib/dates"
 import { isInActionHorizon } from "../engine/team"
 import { canMoveTask, byRank, addTaskNotice } from "../data/board"
+import { useDragSort } from "../lib/dragSort"
 import { Avatar, Empty, NodePill, useStatusStyles } from "../components/ui"
 import { canLead } from "../data/changeReview"
 import { TaskTypeIcon } from "../components/TaskTypeIcon"
@@ -119,37 +120,53 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
   const { state, dispatch } = useStore()
   const rail = useRail()
   const styles = useStatusStyles()
-  const [drag, setDrag] = useState<string | null>(null)
-  const [over, setOver] = useState<{ status: NodeStatus; before: string | null } | null>(null)
   const [adding, setAdding] = useState<NodeStatus | null>(null)
   const [title, setTitle] = useState("")
+  // An empty column folds into a narrow strip so the others have room (DX-16). These are the empty ones the person opened by hand.
+  const [opened, setOpened] = useState<ReadonlySet<NodeStatus>>(new Set())
+  const toggleOpened = (st: NodeStatus) => setOpened(prev => { const next = new Set(prev); if (next.has(st)) next.delete(st); else next.add(st); return next })
   const fields = state.org.board?.fields ?? ["owner", "due", "event", "tags"]
   const tags = state.org.board?.tags ?? []
-  const move = (id: string, status: NodeStatus, before: string | null) => {
+  /** Move a card, if the rules allow it (they say why if not). Returns whether it moved. */
+  const move = (id: string, status: NodeStatus, before: string | null): boolean => {
     const n = state.nodes.find(x => x.id === id)
-    if (!n) return
+    if (!n) return false
     const why = canMoveTask(state, n, status)
-    if (why) { onNotice(why); return }
+    if (why) { onNotice(why); return false }
     dispatch({ type: "moveTask", nodeId: id, status, beforeId: before })
+    return true
   }
+  const columnOf = (n: Node): NodeStatus => n.status === "waiting" && n.waitingOnPersonId === state.viewerId && n.ownerId !== state.viewerId ? "accepted" : n.status
+  // Dragging with a pointer (and Alt + ← / → from the keyboard): see src/lib/dragSort.ts. Moving a card still goes through `move` above.
+  const dnd = useDragSort({
+    onDrop: (id, t) => { move(id, t.dest as NodeStatus, t.before) },
+    onNudge: (id, direction) => {
+      const n = state.nodes.find(x => x.id === id)
+      if (!n) return null
+      const to = BOARD_STATUSES[BOARD_STATUSES.indexOf(columnOf(n)) + direction]
+      if (!to) return null
+      return move(id, to, null) ? `Moved “${n.title}” to ${styles[to].label}.` : null
+    },
+  })
+  const drag = dnd.draggingId
+  const over = dnd.over ? { status: dnd.over.dest as NodeStatus, before: dnd.over.before } : null
   return <>
-    <div className="board" data-testid="task-board">
+    <div className="board" data-testid="task-board" data-drag-scroll style={{ "--drag-h": `${dnd.dragHeight}px` } as CSSProperties}>
       {BOARD_STATUSES.map(st => {
         const statusForViewer = (n: Node): NodeStatus => n.status === "waiting" && n.waitingOnPersonId === state.viewerId && n.ownerId !== state.viewerId ? "accepted" : n.status
         const cards = nodes.filter(n => statusForViewer(n) === st).sort(byRank)
-        return <section key={st} className={`board-col ${over?.status === st ? "over" : ""}`} aria-label={styles[st].label}
-          onDragOver={e => { e.preventDefault(); if (!over || over.status !== st) setOver({ status: st, before: null }) }}
-          onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node)) setOver(null) }}
-          onDrop={e => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain") || drag; if (id) move(id, st, over?.before ?? null); setDrag(null); setOver(null) }}>
+        // Folded: nothing in it, not opened by hand, no card resting over it, and nobody typing a new task into it.
+        const folded = cards.length === 0 && !opened.has(st) && dnd.dwell !== st && adding !== st
+        // Where a dragged card would go in this column: the cards from there on move down to make room.
+        const insertAt = over?.status === st ? (over.before ? cards.findIndex(c => c.id === over.before) : cards.length) : -1
+        return <section key={st} className={`board-col ${over?.status === st ? "over" : ""} ${folded ? "is-folded" : ""}`} aria-label={styles[st].label} data-drop-col={st}>
           <header style={{ "--pill": styles[st].color } as CSSProperties}><h2>{styles[st].label}</h2><span className="count">{cards.length}</span></header>
-          {cards.map(n => {
+          {cards.length === 0 && <button type="button" className="board-col-toggle" aria-expanded={!folded} aria-label={`${styles[st].label}, no tasks. ${folded ? "Show" : "Hide"} column`} onClick={() => toggleOpened(st)} />}
+          {cards.map((n, index) => {
             const ev = state.events.find(e => e.id === n.eventId)
             const late = n.status !== "done" && n.clubDeadline && n.clubDeadline < state.today
-            return <article key={n.id} className={`board-card ${drag === n.id ? "dragging" : ""} ${over?.before === n.id ? "drop-before" : ""}`} draggable data-testid="board-card"
-              onDragStart={e => { e.dataTransfer.setData("text/plain", n.id); e.dataTransfer.effectAllowed = "move"; setDrag(n.id) }}
-              onDragEnd={() => { setDrag(null); setOver(null) }}
-              onDragOver={e => { e.preventDefault(); e.stopPropagation(); setOver({ status: st, before: n.id }) }}
-              onDrop={e => { e.preventDefault(); e.stopPropagation(); const id = e.dataTransfer.getData("text/plain") || drag; if (id && id !== n.id) move(id, st, n.id); setDrag(null); setOver(null) }}>
+            const shifted = drag !== null && drag !== n.id && insertAt >= 0 && index >= insertAt
+            return <article key={n.id} className={`board-card ${drag === n.id ? "is-dragging" : ""} ${shifted ? "is-shifted" : ""}`} data-testid="board-card" {...dnd.cardProps(n.id)}>
               {/* A span, not a <button>: Chrome will not start a drag from inside a button. */}
               <span role="button" tabIndex={0} className="row-btn board-title task-title" onClick={() => rail.show({ kind: "task", id: n.id })} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); rail.show({ kind: "task", id: n.id }) } }}><TaskTypeIcon node={n} /><span>{n.title}</span></span>
               {fields.includes("tags") && !!n.tags?.length && <div className="tag-row">{n.tags.map(id => { const t = tags.find(x => x.id === id); return t && <span key={id} className="tag-chip" style={{ "--tag": t.color } as CSSProperties}>{t.label}</span> })}</div>}
@@ -163,10 +180,11 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
           })}
           {adding === st
             ? <form className="board-add" onSubmit={e => { e.preventDefault(); onAdd(title, st); setTitle(""); setAdding(null) }}><input autoFocus value={title} maxLength={100} placeholder="Task name" aria-label="New task name" onChange={e => setTitle(e.target.value)} onBlur={() => { if (!title.trim()) setAdding(null) }} /><button className="btn small btn-primary" type="submit">Add</button></form>
-            : <button type="button" className="board-add-btn" onClick={() => { setAdding(st); setTitle("") }}>+ Add task</button>}
+            : <button type="button" className="board-add-btn" aria-label="+ Add task" onClick={() => { setAdding(st); setTitle("") }}>+ Add task</button>}
         </section>
       })}
     </div>
+    <div className="sr-only" aria-live="polite" data-testid="board-announce">{dnd.announce}</div>
   </>
 }
 

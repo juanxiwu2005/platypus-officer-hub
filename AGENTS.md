@@ -2,31 +2,30 @@
 
 这个仓库是 **Platypus** 的代码和计划：一个给学生社团用的“团队型 AI 幕僚长”网站，也是 Juanxi (Steve) Wu 的 ASU Barrett 荣誉论文（STUDY00024727）第 3 阶段的原型。几个 AI 会轮流在这里工作，所以**每次开始前先读这份文件，结束时按第 4 节交接**。
 
-## 0. 当前仓库与 Agent 工作流事实（2026-10-29 验证）
+## 0. 当前仓库与 Agent 工作流事实（`main` 与 PR 部分 2026-11-01 重新核对；Night Mode 部分仍是 2026-10-29）
 
 - GitHub 正本：`juanxiwu2005/platypus-officer-hub`。
-- `main` 是 Production，当前基线提交仍为 `4dc55ba`。任何 AI 都不得直接修改、推送或合并 `main`。
-  **下面提到的所有改动都还没有进入 `main`。**
-- **下一个上线版本是 `integration/v1.0`（PR #8）**，它包含 PR #5、#6、#7 的全部内容，
-  再加上 S6–S9 和 M3 排序题。只有 Juanxi 说「批准合并」才合并到 `main`，步骤见 `docs/LAUNCH_STEPS.md`。
-  新的开发都在 `integration/v1.0` 上做（见第 8.4 节）。
-- 当前有 7 个开着的 Draft PR，每个对应一个 Deploy Preview（**预览编号 = PR 编号**）：
+- `main` 是 Production。任何 AI 都不得直接修改、推送或合并 `main`；只有 Juanxi 说「批准合并」才合并。
+- **`main` 的事实（2026-11-01 用 git 和 GitHub 核对）：** 顶端是 `c3c9394`（2026-11-01，共 107 个提交）。
+  v1.0 已经上线：PR #8（`integration/v1.0`）于 2026-11-01 02:10 UTC 合并，合并提交 `5b0eb96`（父提交 `4dc55ba` 和 `b7eb268`）。
+  `4dc55ba` 是 `main` 的祖先，**不再是当前基线**。PR #4–#7 的内容随 PR #8 一起进入了 `main`，GitHub 上这四个 PR 已关闭。
+  这条每次开工前要重新核对，不要沿用：`git fetch origin main && git log origin/main -3 --format='%h %ad %s' --date=short`。
+- **当前开着的 PR（2026-11-01）：**
 
-  | PR | 分支 | 是什么 | CI |
-  | --- | --- | --- | --- |
-  | #2 | `feat/ai-native-phase1` | AI-native 三画面原型 | — |
-  | #3 | `feat/organization-setup-ai` | DP3：Organization Setup v3 + workspace | 通过 |
-  | #4 | `integration/v1.1-fix` | DP4：main + S1/S2/S3 修复（内容已在 PR #8 里）| 最后一次失败（10-27，跑了不到 1 分钟，很可能是当天的 runner 问题，`67345d7` 修好后 #4 没再跑过）|
-  | #5 | `integration/dp3-dp4-merge` | **DP5：DP3 + DP4 合并版**，AI 走 ASU AIR，服务器存储已隐藏 | 通过 |
-  | #6 | `feat/m2b-ai-intake` | DP6：DP5 + M2a/M2b（Ask 分清任务与活动、AI 预填表单、活动 Plan check）| 旧的 CI 因 `e2e/today.spec.ts:8` 过时而失败；修复在 PR #8 |
-  | #7 | `feat/ai-night-mode` | DP5 + Night Mode 工具链 + N1–N6 设计 token（全部已在 PR #8 里）| 通过 |
-  | #8 | `integration/v1.0` | **v1.0 集结预览**，预览 https://deploy-preview-8--platypus-officer-hub.netlify.app ，标题「[预览·请勿合并]」 | 通过（2026-10-29）|
+  | PR | 分支 | 是什么 |
+  | --- | --- | --- |
+  | #2 | `feat/ai-native-phase1` | AI-native 三画面原型（Draft，base `v1`）|
+  | #3 | `feat/organization-setup-ai` | DP3：Organization Setup v3 + workspace（Draft，base `v1`）|
+  | #10 | `claude/determined-johnson-yrdxwf` | **v1.6 界面与动效升级预览**，base `main`，标题「[预览·请勿合并]」，预览 https://deploy-preview-10--platypus-officer-hub.netlify.app 。取代已关闭的 PR #9（`integration/v1.6`）。合并时选 **Create a merge commit**，不要 Squash，否则不能按工作包回滚（`docs/design-upgrade/`）|
+
+  PR #1（`v1` → `main`）已在 2026-10-23 合并并关闭。
 
   ⚠️ 这些分支**不能改名也不能删**：删 head 或 base 分支都会关闭 PR，重开会拿到新编号，
   旧预览网址永远回不来。`v1` 是 PR #2/#3 的 base，同样不能动。命名规则见第 8 节。
+  已合并 PR 的分支（`integration/v1.0` 等）还在 GitHub 上；能不能删，见 `docs/LAUNCH_STEPS.md` 第 5 节，由 Juanxi 决定。
 - ⏸ **Night Mode 自 2026-10-28 起暂停**，开发改由人工会话完成。恢复之前先修
   `docs/NIGHT_MODE.md` 第 1 节记下的脚本问题（推送后立刻查 CI 会误判失败、队列不处理残留改动、
-  macOS bash 3.2 的变量名问题）。下面关于 Night Mode 的条目保留作为恢复时的说明。
+  macOS bash 3.2 的变量名问题）。下面关于 Night Mode 的条目保留作为恢复时的说明；它们是 2026-10-29 写的，**2026-11-01 没有逐条重新核对**，恢复之前先核对。
 - `scripts/night-mode.mjs` 是唯一可以代表 Night Mode 做 commit、push、读取 CI 和写 PR 评论的控制器；
   OpenCode Agent 自己不能做这些动作。`scripts/night-queue.sh` 是多任务队列（见 `docs/NIGHT_MODE.md` 7d）。
 - **编码主力是 `backend-coder`（ASU `glm-5-3`），不是 `orchestrator`。** orchestrator 被配置为
@@ -67,6 +66,7 @@
    **写任务文件之前必须先读 `docs/NIGHT_MODE.md` 的 7b（运行环境预算卡）和 7c（任务怎么写）** ——
    2026-10-27 晚五次失败里有四次，根因都是给没量过的运行环境写指令。
 4. 按任务再读：`docs/RULES.md`（ASU 规则库）、`docs/SEO_PLAYBOOK_REFERENCE.md`（流程模板来源）、`docs/AI_SETUP.md`（产品 AI 供应商怎么切换）。
+5. 若任务是界面/动效升级（工作包名字以 `DX-` 开头），读 `docs/design-upgrade/README.md` 和你那个工作包的说明；计划状态以 `docs/PROGRESS.md` 最上面那条为准。
 
 ## 2. 关于项目负责人
 
@@ -142,7 +142,7 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
   - 结构版本 **5**，本机完整检查通过 **233 个单元测试 + 90 个页面测试**。原有测试保留；`evals/rules.json` 为 40 题，`scripts/eval-rules.mjs` 支持真实接口评估，CI 用模拟供应商。**真实 AI 验收未完成**：Netlify 访问受阻，Juanxi 要求停止登录尝试，已停止。不要把模拟 40/40 或本地示例手册称为 DeepSeek/AIR 验收；详见 `docs/AI_TESTS.md` / `docs/WP5_ACCEPTANCE.md`。
 - **服务器：** `netlify/functions/*.mts`：`/api/health`、`/api/ask`、`/api/parse-brief`、`/api/plan/draft`、`/api/replies/classify`；`netlify/lib/ai.mts` 是 AI 供应商适配器，换供应商只改环境变量。
 - **部署：** `netlify.toml` 构建命令 `npm run build`，发布目录 `dist`，Node 22。
-- 正式网址：https://platypus-officer-hub.netlify.app （`main`，截至 2026-10-27 为提交 `4dc55ba`）。Night Mode 的 Draft PR #7 预览是 https://deploy-preview-7--platypus-officer-hub.netlify.app；每次使用前重新检查 PR 和预览状态。
+- 正式网址：https://platypus-officer-hub.netlify.app （`main`，核对时的顶端提交见第 0 节）。Night Mode 的 Draft PR #7 预览是 https://deploy-preview-7--platypus-officer-hub.netlify.app；每次使用前重新检查 PR 和预览状态。
 
 ## 6b. v1.1 改版后的代码地图（2026-10-23，覆盖上面关于页面的旧描述）
 
@@ -172,6 +172,16 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 - 界面：`src/pages/Partners.tsx`（People 表 / Board 看板 / Organizations 三个视图；All·Mine·Overdue 预设；类型、负责人、标签筛选；搜索含标签和邮箱）；右栏详情 `src/components/crm/ContactDetail.tsx`、`OrgDetail.tsx`（`useRail().show({ kind: "partner" | "org", id })`）；共用小部件 `crm/parts.tsx`（失焦自动保存的 Field、互动表单、时间线）。
 - AI 的 `add_contact` 和 `mark_contacted` 仍然可用（机构名按名字查找或新建）。
 
+## 6d. Onboarding 入口与记录（2026-11-02，Juanxi 批准；设计依据 `docs/ONBOARDING_REDESIGN_STRATEGY.md`，工作包 `docs/onboarding-redesign/`）
+
+- **首次进入入口：** 没有保存过演示数据的浏览器（或用过 Reset demo 且还没看过欢迎页）打开 `/`，会先到 `/#/welcome`：Start walkthrough（走社长新流程，最后看一遍社员预览）或 Explore the sample club（直接看 Today）。**默认关闭**：构建环境变量 `VITE_ONBOARDING_WALKTHROUGH=true`，或网址带 `?walkthrough=1`（`?` 写在 `#` 前或后都认，见 `src/onboarding/gate/enabled.ts`；应用用 HashRouter，别只读 router 的 search）。开关关着时全站和以前完全一样。
+- **测试按钮：** Demo 菜单里有 Replay walkthrough（会记录）、Test Onboarding Page President、Test Onboarding Page Invite（后两个**不写记录**，也不需要 `?walkthrough=1`；路由 `/welcome/test/president`、`/welcome/test/invite`，见 `src/onboarding/gate/TestWalkthrough.tsx`）。验收和调试用它们，不要用会污染研究记录的入口。
+- **流程：** 社长 7 屏（`src/onboarding/founder/`：Name、Constitution、Goals、Team、FirstEvent、Confirm、Invite），社员预览 6 屏（`member/`）。步骤表和路由映射在 `engine/flows.ts`，步骤机在 `engine/useFlow.ts`（路由驱动，next/back/skip/exit，事件发给记录）；社长草稿的全部状态在 `draft.tsx`（单独的 IndexedDB 键 `onboarding-draft`，不是旧页面的 `setup-draft`）；文案都在 `copy.ts`。`/welcome/classic` 是旧设立页（包在专注外壳里），留作兜底。Start 去哪由 `src/onboarding/target.ts` 的 `FOUNDER_START` 一个常量决定。
+- **参与者都是社长**（Juanxi 2026-11-01）：社员流程只是社长流程之后的"预览"，看的是自己刚建的社团；预览不验证身份。**Done 屏才把预览资料存进数据**（`saveProfile`），之前的选择只暂存在 sessionStorage（`platypus.v1.onboarding.member` 与 `.extra`）。社员流程里不问 ASU ID；社长不填电话/ASU ID/邮箱（邮箱自动生成）。
+- **记录（只记行为，不记内容）：** `src/lib/onboardingRecord.ts`，浏览器本机的**新 key** `platypus.v1.onboarding`（另有 `.seen`、`.rearmed` 标记和 sessionStorage 里的当前尝试）；每次尝试一条：入口选择、流程版本（`FLOW_VERSION`，现为 `ob-2`，改流程就要改它）、每屏 进入/返回/跳过/完成/退出 的时间、结果。Reset demo **不清记录**，只重新亮起入口。Settings → Export my data 的 JSON 里有顶层字段 `onboarding`。没有任何自动上报。**不新增记录项之前先问 Juanxi（研究设计，要对照 IRB）。**
+- **边界：** 不调用 `/api/org/*`、`/api/workspace*`，不新增 AI 接口（只用 `/api/setup/constitution`、`/api/command`）；日期只来自规则引擎；不改 `SCHEMA_VERSION`/`DemoState`/已有存储键；新样式在 `src/styles/ob-NN-*.css`（样式守卫已覆盖它们：禁 `!important`、`transition: all`、裸毫秒）。
+- **已知限制：** 缓冲控件在标准流程里不会让进度链上的日期变（每一步的目标日都比"官方截止日减缓冲"早），所以旁边有一行由引擎现算的例子；章程阅读进行中 Save & exit/刷新会丢掉；Today 的一次性小提示没做（按砍单顺序砍掉）；身份不验证、邀请链接只在同一浏览器有效（真实账号留到 v1.5）。
+
 ## 7. 界面规则（2026-10-23 简化改版，Juanxi 批准）
 
 改任何页面前先读这一节，**再读 `docs/DESIGN_TOKENS.md`**（字号、圆角、层级、颜色都只能用 token）。写完先跑 `npm run lint`（Stylelint 管 `src/styles.css`，ESLint 管行内样式），CI 也会跑。依据：《Platypus 简化改版方案》（https://claude.ai/artifact/QhCthf71crEC62bBua5zJD）。
@@ -180,8 +190,18 @@ GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_
 2. **只用 5 个组件拼页面**（`src/components/ui/`）：状态色块 `StatusPill`、进度链 `Chain`、表格 `.tbl`、悬停卡 `Hover`/`Info`、右栏详情（`useRail().open(...)`）。
 3. **三级交互：** 看（颜色）→ 停（悬停卡，最多 3 行）→ 点（右栏详情）。不再新增 ▶ 展开和选项卡。
 4. **文字：** 页面标题 1–2 个词；一张卡最多“标题 1 行 + 信息 1 行 + 状态色块”；原因、假设、出处放进悬停或 Help；字号不小于 14px。
-5. **字数上限（主区，`npm run words` 量，Juanxi 2026-10-29 批准改为两个数，超任何一个 CI 就红）：** 每页两个上限——"一眼看到的"和"页面总字数（含悬停卡、折叠内容）"。Today 160 / 450、Events 180 / 420、Rules 170 / 560、Tasks 130 / 130、Team 130 / 290、Funding 160 / 160、Handoff 120 / 120、Partners 120 / 120、Settings 150 / 150。新增内容超了就先删别的，不要靠把文字藏起来过线。
+5. **字数上限（主区，`npm run words` 量，Juanxi 2026-10-29 批准改为两个数，超任何一个 CI 就红）：** 每页两个上限——"一眼看到的"和"页面总字数（含悬停卡、折叠内容）"。Today 160 / 450、Events 180 / 420、Rules 340 / 1700（2026-11-01：电脑上一次列出全部 64 条来源、不分页，Juanxi 要求；手机仍分页，每页 6 条）、Tasks 130 / 130、Team 130 / 290、Funding 160 / 160、Handoff 120 / 120、Partners 120 / 120、Settings 150 / 150。新增内容超了就先删别的，不要靠把文字藏起来过线。
 6. **6 种任务状态与颜色全站统一：** Not claimed 灰、To do 蓝、Working on it 橙、Waiting 紫、Stuck 红、Done 绿（名称和颜色可在 Settings → Board 改，含义不变）。
+
+### 7.1 动效规则（v1.6，Juanxi 2026-11-01 批准计划；细节见 `docs/DESIGN_TOKENS.md` 第 9–11 节）
+
+1. **时长和曲线只用 token**（`--dur-press/fast/base/slow`、`--ease-*`、`--spring-*`），不写 `150ms` 这样的数字；样式检查会拦。
+2. **每个动效都要有"减少动效"版本**：token 在 `prefers-reduced-motion: reduce` 下会变成 1ms，只引用 token 就自动满足；用脚本做的动画先看 `prefersReducedMotion()`，再用 `tokenMs()` 读时间（`src/lib/motion.ts`）。
+3. **只动 `transform` 和 `opacity`。** 不给 `left/top/width/height/margin/padding` 加过渡，不写 `transition: all`，不写 `!important`。
+4. **可以被打断。** 动画进行时再点一下要立刻响应，不能排队、不能锁住界面。
+5. **常用操作不加动画。** 每天点很多次的（切页面、展开一行、点按钮）最多只有 `--dur-press` 的按下反馈或纯淡入，不加位移。
+6. **桌面悬停卡零延迟**（S3，`e2e/feel.spec.ts`）。手机上的底部卡片（`@media (hover: none)`）可以有自己的出入动画，但开始前也不等。
+7. **新写的东西放进自己的小文件** `src/styles/dx-NN-*.css`，不要改别的包的文件；新守卫都要附一个"故意违规会变红"的测试。
 
 ## 8. 分支命名与 Deploy Preview（2026-10-27 定，Juanxi 批准）
 
@@ -245,7 +265,7 @@ gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
 | `feat/m2b-ai-intake` | **Deploy Preview 6**（PR #6，base `main`）= DP5 + M2a + M2b：Ask 分清任务与活动、AI 预填表单、活动 Plan check | ❌ 改名会毁掉 DP6 |
 | `integration/v1.0` | **Deploy Preview 8**（PR #8，base `main`）= PR #7 + PR #6 合并版，再加 S6–S9、M3 排序题、删除 DeepSeek。预览 https://deploy-preview-8--platypus-officer-hub.netlify.app | ❌ 改名会毁掉 DP8 |
 
-**最接近「下一个上线版本」的是 `integration/v1.0`（DP8）**，它已经包含 DP3、DP4、DP5、DP6、DP7 的内容。
+**v1.0（DP8）已经合并进 `main`（2026-11-01，见第 0 节）；** 上表里 DP4–DP8 的分支内容现在都在 `main` 里，只剩 PR 的历史意义。
 上线后哪些 PR 可以关、关了之后哪些分支可以删，见 `docs/LAUNCH_STEPS.md` 第 5 节。
 
 2026-10-29 核对：以前记的冗余分支（`fix/s1-ux-bugs`、`fix/s2-safety`、`fix/s3-perf`、
@@ -254,14 +274,14 @@ gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
 
 ### 8.4 以后新开分支
 
-上线之前，新的开发直接在 `integration/v1.0` 上做；要单独做一件事就从它开分支，不要从 `main` 开：
+v1.0 已经合并，新的开发从 `main` 开分支（开之前先 `git fetch origin main`，不要用本地过期的 `main`）：
 
 ```
-git fetch origin
-git checkout -b fix/<描述> origin/integration/v1.0
+git fetch origin main
+git checkout -b fix/<描述> origin/main
 ```
 
-合并到 `main` 之后，改为从 `main` 开分支。
+v1.6 界面与动效升级是例外：它的工作包都合并进 `claude/determined-johnson-yrdxwf`（PR #10），分支和回滚规则见 `docs/design-upgrade/README.md`。
 
 做完推自己的分支，**不要自己合并**。Juanxi 在 GitHub 上看过再合。
 

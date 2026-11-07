@@ -1,6 +1,7 @@
 import { expect, test, type TestInfo } from "@playwright/test"
 import { writeFile } from "node:fs/promises"
 import AxeBuilder from "@axe-core/playwright"
+import { viewAs } from "./helpers"
 
 async function attachJson(info: TestInfo, name: string, value: unknown) {
   const path = info.outputPath(name)
@@ -27,7 +28,7 @@ test("Today ships a small entry and requests no PhaseOne, organization setup or 
   const initialScripts = await Promise.all([...new Set(scripts)].map(async url => ({ url, bytes: (await (await page.request.get(url)).body()).byteLength })))
   const totalInitialJsBytes = initialScripts.reduce((total, script) => total + script.bytes, 0)
   // Home interactions remain immediately available without a route download.
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await expect(page.getByTestId("view-as")).toHaveValue("maya")
   await attachJson(info, "initial-network.json", { entryUrl, entryBytes: bytes, totalInitialJsBytes, initialScripts })
 })

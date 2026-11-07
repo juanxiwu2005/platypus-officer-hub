@@ -1,0 +1,27 @@
+/* DX-17 Ask panel (docs/design-upgrade/work-packages/DX-17-ask-panel.md).
+   1. Before the first message, the greeting and the suggested questions sit together in the middle of the panel instead of the
+      greeting hanging at the bottom with a big empty space above. After the first message the usual layout returns.
+   2. A message added while the panel is open rises 6px and fades in; the "Platypus is working" card does the same. Messages that
+      were already there when the panel opened (reopened panel, saved chat) do not animate. No new words anywhere. */
+.ask-welcome {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  align-content: center;
+  justify-items: start;
+  gap: var(--s5);
+  padding: var(--s6);
+}
+.ask-welcome .ask-hello { margin: 0; }
+.ask-welcome .chips { padding: 0; border: 0; }
+.ask-list.is-empty { flex: 0 0 auto; }
+
+@keyframes dx-bubble-in {
+  from { opacity: 0; transform: translateY(6px); }
+}
+.bubble.is-new, .ai-wait {
+  animation: dx-bubble-in var(--dur-fast) var(--ease-out) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bubble.is-new, .ai-wait { animation: none; }
+}

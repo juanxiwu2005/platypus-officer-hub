@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { closeRail, resetDemo } from "./helpers"
+import { closeRail, resetDemo, viewAs } from "./helpers"
 
 // Editing the event's flow right on the chart: drag a step onto a spot between two steps, double-click a step or a line.
 test.beforeEach(async ({ page }, info) => {
@@ -21,7 +21,7 @@ const center = async (page: Page, key: string) => { const b = (await dot(page, k
 
 test("only the president and vice president can edit the flow", async ({ page }) => {
   await expect(page.getByTestId("flow-edit-toggle")).toBeVisible()
-  await page.getByTestId("view-as").selectOption("maya")
+  await viewAs(page, "maya")
   await expect(page.getByTestId("flow-edit-toggle")).toHaveCount(0)
 })
 

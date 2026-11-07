@@ -6,6 +6,7 @@ import { useRail } from "../components/rail/RailContext"
 import { canEditContact, contactTone, CONTACT_TYPES, daysSince, nextEvent, nextStep, orgName, STAGES, visibleContacts } from "../data/crm"
 import { fmtShort } from "../lib/dates"
 import { Empty, Hover } from "../components/ui"
+import { useDragSort } from "../lib/dragSort"
 import type { Contact, RelationStage } from "../data/types"
 
 export { PartnerDetail } from "../components/crm/ContactDetail"
@@ -19,6 +20,23 @@ const PRESETS: { id: Preset; label: string }[] = [{ id: "all", label: "All" }, {
 /** Club CRM: everyone can look people up and log what happened; the owner or a lead edits the profile. */
 export default function Partners() {
   const { state, dispatch } = useStore()
+  // Board: drag a card to another stage with a pointer (src/lib/dragSort.ts, same feel as the task board), or Alt + ← / → from the keyboard.
+  // The stage menu on each card stays as the other way to do the same. Who may move a card is still canEditContact.
+  const moveStage = (id: string, stage: RelationStage) => dispatch({ type: "updateContact", id, patch: { stage } })
+  const dnd = useDragSort({
+    onDrop: (id, t) => {
+      const c = state.contacts.find(x => x.id === id)
+      if (c && canEditContact(state, c) && c.stage !== t.dest) moveStage(id, t.dest as RelationStage)
+    },
+    onNudge: (id, direction) => {
+      const c = state.contacts.find(x => x.id === id)
+      if (!c || !canEditContact(state, c)) return null
+      const to = STAGES[STAGES.findIndex(s => s.id === c.stage) + direction]
+      if (!to) return null
+      moveStage(id, to.id)
+      return `Moved ${c.name} to ${to.label}.`
+    },
+  })
   const { person } = useViewer()
   const rail = useRail()
   const [view, setView] = useState<View>("people")
@@ -28,6 +46,10 @@ export default function Partners() {
   const [owner, setOwner] = useState("all")
   const [tag, setTag] = useState("all")
   const [adding, setAdding] = useState<"person" | "org" | null>(null)
+  // When a search or filter has hidden everything, the empty message offers the way back (DX-18).
+  const contactFilters = q.trim() !== "" || type !== "all" || owner !== "all" || tag !== "all" || preset !== "all"
+  const orgFilters = q.trim() !== "" || type !== "all" || tag !== "all"
+  const clearFilters = () => { setQ(""); setType("all"); setOwner("all"); setTag("all"); setPreset("all") }
   const [draft, setDraft] = useState({ name: "", organization: "", relation: "Vendor", ownerRoleId: person.roleId, orgType: "Vendor" })
 
   const all = visibleContacts(state)
@@ -78,21 +100,24 @@ export default function Partners() {
           </tr>
         })}</tbody>
       </table>
-      {!rows.length && <Empty>No contacts match.</Empty>}
+      {!rows.length && <Empty>{contactFilters ? <>No contacts match. <button type="button" className="link" onClick={clearFilters}>Clear filters</button></> : "No contacts yet."}</Empty>}
     </section>}
 
-    {view === "board" && <div className="crm-board" data-testid="crm-board">{STAGES.map(col => {
+    {view === "board" && <><div className="crm-board" data-testid="crm-board" data-drag-scroll>{STAGES.map(col => {
       const items = rows.filter(c => c.stage === col.id)
-      const move = (id: string | undefined, stage: RelationStage) => id && dispatch({ type: "updateContact", id, patch: { stage } })
-      return <section key={col.id} className="crm-col" aria-label={`${col.label} (${items.length})`} onDragOver={e => e.preventDefault()} onDrop={e => move(e.dataTransfer.getData("text/plain"), col.id)}>
+      return <section key={col.id} className={`crm-col${dnd.over?.dest === col.id && dnd.draggingId ? " over" : ""}`} aria-label={`${col.label} (${items.length})`} data-drop-col={col.id}>
         <h3><Hover card={col.hint}>{col.label}</Hover> <span className="muted small">{items.length}</span></h3>
-        {items.map(c => <article key={c.id} className="crm-card" draggable={canEditContact(state, c)} onDragStart={e => e.dataTransfer.setData("text/plain", c.id)}>
-          <button type="button" className="row-btn" onClick={() => rail.show({ kind: "partner", id: c.id })}><span>{c.name}</span><span className="small muted">{orgName(state, c.organizationId) || c.relation}</span></button>
-          <div className="crm-card-foot"><span className={`days ${contactTone(state, c)}`}>{daysSince(state, c) === null ? "Never" : `${daysSince(state, c)}d ago`}</span>
-            <select aria-label={`Move ${c.name} to stage`} disabled={!canEditContact(state, c)} value={c.stage} onChange={e => move(c.id, e.target.value as RelationStage)}>{STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select></div>
-        </article>)}
+        {items.map(c => {
+          const editable = canEditContact(state, c)
+          return <article key={c.id} className={`crm-card${dnd.draggingId === c.id ? " is-dragging" : ""}`} data-testid="crm-card" data-editable={editable} {...(editable ? dnd.cardProps(c.id) : {})}>
+            {/* A span, not a <button>: a press that starts on a button never starts a drag. */}
+            <span role="button" tabIndex={0} className="row-btn" onClick={() => rail.show({ kind: "partner", id: c.id })} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); rail.show({ kind: "partner", id: c.id }) } }}><span>{c.name}</span><span className="small muted">{orgName(state, c.organizationId) || c.relation}</span></span>
+            <div className="crm-card-foot"><span className={`days ${contactTone(state, c)}`}>{daysSince(state, c) === null ? "Never" : `${daysSince(state, c)}d ago`}</span>
+              <select aria-label={`Move ${c.name} to stage`} disabled={!editable} value={c.stage} onChange={e => moveStage(c.id, e.target.value as RelationStage)}>{STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}</select></div>
+          </article>
+        })}
       </section>
-    })}</div>}
+    })}</div><div className="sr-only" aria-live="polite" data-testid="crm-announce">{dnd.announce}</div></>}
 
     {view === "orgs" && <section className="card tbl-wrap">
       <table className="tbl" data-testid="orgs">
@@ -107,7 +132,7 @@ export default function Partners() {
           </tr>
         })}</tbody>
       </table>
-      {!orgs.length && <Empty>No organizations match.</Empty>}
+      {!orgs.length && <Empty>{orgFilters ? <>No organizations match. <button type="button" className="link" onClick={clearFilters}>Clear filters</button></> : "No organizations yet."}</Empty>}
     </section>}
 
     {adding

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from "react"
 import { useStore } from "../../data/store"
 import type { DemoState, Node, NodeStatus } from "../../data/types"
 import type { ForecastResult } from "../../engine/forecast"
@@ -9,6 +9,7 @@ import type { ForecastResult } from "../../engine/forecast"
  * Look → hover → click. Words live in hover cards, not on the page.
  */
 
+import { prefersReducedMotion, tokenMs } from "../../lib/motion"
 import { PALETTE, STATUS_DEFAULTS, STATUS_ORDER } from "./statusDefaults"
 export { PALETTE, STATUS_DEFAULTS, STATUS_ORDER }
 
@@ -95,6 +96,22 @@ export interface Stop { key: string; label?: string; state: StopState; hint?: Re
 /** Parcel-tracking style chain: filled = done, large = now, hollow = later, red ring = at risk. */
 export function Chain({ stops, label, showLabels = true, compact }: { stops: Stop[]; label: string; showLabels?: boolean; compact?: boolean }) {
   const lastDone = stops.reduce((i, s, k) => (s.state === "done" ? k : i), -1)
+  // A stop that becomes done while this chain is on screen gets a moment (the line to it grows, the dot pops) — DX-25. A chain that is
+  // drawn for the first time, or one whose stops were already done, shows nothing: only a real change in front of the person counts.
+  const seen = useRef<Record<string, StopState> | null>(null)
+  const timers = useRef<number[]>([])
+  const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set())
+  useEffect(() => () => timers.current.forEach(t => window.clearTimeout(t)), [])
+  useLayoutEffect(() => {
+    const now = Object.fromEntries(stops.map(s => [s.key, s.state])) as Record<string, StopState>
+    const was = seen.current
+    seen.current = now
+    if (!was || prefersReducedMotion()) return
+    const newly = stops.filter(s => s.state === "done" && was[s.key] !== undefined && was[s.key] !== "done").map(s => s.key)
+    if (!newly.length) return
+    setFresh(f => new Set([...f, ...newly]))
+    timers.current.push(window.setTimeout(() => setFresh(f => { const n = new Set(f); newly.forEach(k => n.delete(k)); return n }), tokenMs("--spring-pop-dur", 480) + 80))
+  })
   return <ol className={`chain${compact ? " compact" : ""}${showLabels ? "" : " no-labels"}`} aria-label={label}>
     {stops.map((s, i) => {
       const dot = <span className={`dot ${s.state}`} aria-hidden="true" />
@@ -105,7 +122,7 @@ export function Chain({ stops, label, showLabels = true, compact }: { stops: Sto
         : s.hint
           ? <button type="button" className="chain-btn" aria-label={name} data-testid={s.testId}>{dot}{text}</button>
           : <span className="chain-btn" aria-label={name} role="img" data-testid={s.testId}>{dot}{text}</span>
-      return <li key={s.key} className={`${i <= lastDone ? "past" : ""} ${s.state}`}>
+      return <li key={s.key} className={`${i <= lastDone ? "past" : ""} ${s.state}${fresh.has(s.key) ? " just-done" : ""}`}>
         {s.hint ? <Hover card={s.hint}>{body}</Hover> : body}
       </li>
     })}
@@ -122,16 +139,22 @@ export function Ring({ value, max, size = 44, label, color }: { value: number; m
   const r = size / 2 - 4, c = 2 * Math.PI * r, p = max > 0 ? Math.min(1, Math.max(0, value / max)) : 0
   return <svg className="ring" width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label={label}>
     <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth="5" />
-    <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color ?? "var(--accent)"} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${c * p} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
+    <circle className="ring-arc" cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color ?? "var(--accent)"} strokeWidth="5" strokeLinecap="round" strokeDasharray={`${c * p} ${c}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
   </svg>
 }
 
 const RISK_WORD = { red: "At risk", yellow: "Watch", green: "On track" } as const
+/** A different shape for each state, so the dots can be told apart without colour (DX-05). The colour comes from the CSS class. */
+const RISK_SHAPE = {
+  green: <><circle cx="7" cy="7" r="7" fill="currentColor" /><path className="glyph" d="M4 7.3l2 2 4-4.3" /></>,
+  yellow: <><path d="M7 .9L13.4 12.6H.6z" fill="currentColor" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /><path className="glyph" d="M7 5.2v3.1M7 10.3v.1" /></>,
+  red: <><rect x=".5" y=".5" width="13" height="13" rx="3.5" fill="currentColor" /><path className="glyph" d="M4.7 4.7l4.6 4.6M9.3 4.7l-4.6 4.6" /></>,
+} as const
 /** Forecast colour as a dot; reasons and the percentage sit in the hover card. */
 export function RiskDot({ result, withWord }: { result: ForecastResult; withWord?: boolean }) {
   return <span className="forecast" data-testid="forecast">
     <Hover card={<>{result.reasons.map(r => <span key={r} className="hc-line">{r}</span>)}<span className="hc-line muted">{Math.round(result.probability * 100)}% of {result.runs.toLocaleString()} simulated runs finish on time.</span></>}>
-      <button type="button" className={`risk ${result.color}`} aria-label={`${RISK_WORD[result.color]}: ${result.reasons.join(" ")}`}><i />{withWord && <span>{RISK_WORD[result.color]}</span>}</button>
+      <button type="button" className={`risk ${result.color}`} aria-label={`${RISK_WORD[result.color]}: ${result.reasons.join(" ")}`}><i aria-hidden="true"><svg viewBox="0 0 14 14" focusable="false">{RISK_SHAPE[result.color]}</svg></i>{withWord && <span>{RISK_WORD[result.color]}</span>}</button>
     </Hover>
   </span>
 }

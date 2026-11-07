@@ -7,10 +7,29 @@ export async function closeRail(page: Page) {
   const hide = page.getByRole("button", { name: "Hide side panel" })
   if (await hide.isVisible()) await hide.click()
 }
+/**
+ * On a phone "View as" and "AI features" are behind the "⋯" button (DX-20). Open that panel if the button is there and the panel is closed.
+ * The side panel is NOT closed: several tests open a task's details first and then change viewer. With the side panel full screen the top
+ * bar is switched off for a person (inert), so the button is pressed with a click event instead of a mouse click, the same way the old
+ * `selectOption` reached the select underneath it.
+ */
+export async function openMore(page: Page) {
+  const toggle = page.getByTestId("more-toggle")
+  if (!(await toggle.isVisible()) || (await toggle.getAttribute("aria-expanded")) === "true") return
+  if (await page.getByTestId("rail").count()) await toggle.dispatchEvent("click")
+  else await toggle.click()
+}
+/** Switch the viewer. Picking one closes the "⋯" panel again, as it does for a person. */
+export async function viewAs(page: Page, person: string) {
+  await openMore(page)
+  await page.getByTestId("view-as").selectOption(person)
+}
 export async function openDemoMenu(page: Page) {
   await closeRail(page)
-  const reset = page.getByTestId("reset-demo")
-  if (!(await reset.isVisible())) await page.getByTestId("demo-menu").click()
+  // Ask the button, not the screen: a menu that is still fading out can look open for a moment but is already closed (DX-10).
+  const toggle = page.getByTestId("demo-menu")
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click()
+  await expect(page.getByTestId("reset-demo")).toBeVisible()
 }
 /** Reset asks once (Layout.tsx): the first click arms the button, the second one wipes the demo. */
 export async function resetDemo(page: Page) {
