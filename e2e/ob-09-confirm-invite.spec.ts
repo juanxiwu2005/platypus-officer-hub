@@ -67,8 +67,8 @@ test("Name to Invite: the summary is right, Start creates the club, a double cli
   await expect(page.getByRole("heading", { level: 1, name: "Your club is ready." })).toBeVisible()
   await expect.poll(async () => (await demo(page)).org.name).toBe("Maple Club")
   const s = await demo(page)
-  expect(s.events).toHaveLength(1)
-  expect(s.events[0].name).toBe("Welcome Mixer")
+  // The planned event once (the double click made one club), then the three sample event templates the workspace keeps (P3-A).
+  expect(s.events.map(e => e.name)).toEqual(["Welcome Mixer", "Networking Night", "Spring Speaker Night", "Founder Dinner"])
   expect(s.org.setupCompletedOn).toBe(s.today)
   expect(s.org.inviteCode).toMatch(/^[0-9a-f-]{36}$/)
   await expect(page.locator(".ob-i9-link")).toHaveValue(new RegExp(`#/join\\?invite=${s.org.inviteCode}$`))
