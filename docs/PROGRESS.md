@@ -1,3 +1,6 @@
+> **2026-11-07 · 修复（Juanxi 反馈）· Settings → Tasks and events 的 "Who can create events" 排版错乱（Claude）**
+> **原因：** `src/styles.css` 里 `.form-stack input:not([type=checkbox])` 把单选按钮也撑成整行宽，圆点占满一行，文字被挤到最右边，一个字母一行。**修法：** 这条规则也排除单选按钮（`:not([type=radio])`）。新测试 `e2e/settings-radios.spec.ts`（桌面+手机）：换回旧样式时变红，修好后通过。lint 通过；相关页面测试 112 通过，1 个动效测试（`ob-07:193`）整组跑时失败、单独重跑 3/3 通过。**待 Juanxi 批准合并到 `main` 才会出现在正式网站。**
+
 > **2026-11-07 · Phase 3 测试准备 · 已上线（PR #11，合并提交 `7b94f98`，Juanxi 批准合并）（Claude 整合；P3-A/B/C/D 由 worktree 子 agent 做）**
 > **已做：** 合并 PR #10（`02996c3`，Juanxi 批准）。分支 `claude/keen-gauss-ye3gvr` 上新增：①测试链接 `https://platypus-officer-hub.netlify.app/#/start` 直接进社长流程（`/start` 不带 `#` 也会跳转）；②First event 可 Skip for now（流程版本 `ob-3`）；③Start workspace 后保留三个示例活动 + 18 个任务 + 风险 + 经费 + 联系人 + 交接季，按参与者的岗位重映射（`src/data/sampleScenario.ts`）；④刷新不丢草稿、新尝试从空白开始、Name 等不预填样例、手机 Team 排版、组织图居中；⑤交互日志补记界面操作（换页、点击、选择、Ask 问题、回答种类与引用、来源链接、导出），导出 `formatVersion: 2` 带 `timeline`；`docs/PHASE3_DATA_DICTIONARY.md`、`scripts/export-to-csv.mjs`、测试当天步骤 `docs/PHASE3_SESSION_RUNBOOK.md`。
 > **测试：** lint、类型检查、构建通过；966 个单元测试全过；完整页面回归（桌面+手机）877 通过 / 106 跳过 / 7 失败 → 修掉 4 个（两个新测试跟进合并后的流程），剩 3 个都在合并前的代码上同样失败：`workflow-setup:123`（桌面+手机）、`ob-04` 键盘打开文件选择框（时好时坏，基线 8 次失败 1 次）。按测试当天流程完整走了两遍（计划/跳过 First event），0 个页面错误，导出 ~48 条记录、每条有时间。

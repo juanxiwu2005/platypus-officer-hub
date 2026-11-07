@@ -264,7 +264,7 @@ progress { accent-color: var(--accent); height: 8px; }
 .form-stack { display: grid; gap: 16px; min-width: 0; }
 .form-stack.tight { gap: var(--s3); }
 .form-stack label:not(.check-label) { display: grid; gap: 4px; font-size: var(--fs-sm); color: var(--muted); min-width: 0; }
-.form-stack input:not([type=checkbox]), .form-stack select, .form-stack textarea { width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
+.form-stack input:not([type=checkbox]):not([type=radio]), .form-stack select, .form-stack textarea { width: 100%; min-width: 0; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
 .form-stack textarea { resize: vertical; }
 .form-stack fieldset { min-width: 0; margin: 0; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-md); display: grid; gap: 12px; }
 .form-stack legend { font-weight: 600; padding: 0 6px; }
