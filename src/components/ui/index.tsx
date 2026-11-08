@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type ReactNode } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject } from "react"
 import { useStore } from "../../data/store"
+import { describeHover, publishUi, routeOf } from "../../lib/uiLog"
 import type { DemoState, Node, NodeStatus } from "../../data/types"
 import type { ForecastResult } from "../../engine/forecast"
 
@@ -60,6 +61,7 @@ export function Hover({ children, card, className = "", block }: { children: Rea
   const touch = useTouch()
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLElement>(null)
+  const seen = useHoverLog(box, touch, open)
   useEffect(() => {
     const el = box.current
     if (!touch || !el) return
@@ -82,7 +84,40 @@ export function Hover({ children, card, className = "", block }: { children: Rea
     onClick: (e: MouseEvent) => { e.stopPropagation(); setOpen(o => !o) }, // a tap on the trigger is for the card, not for the row or card around it
     onKeyDown: (e: KeyboardEvent) => { if ((e.key === "Enter" || e.key === " ") && e.target === box.current) { e.preventDefault(); setOpen(o => !o) } },
   } : {}
-  return <Tag ref={box as never} className={`hover ${className}`} {...touchProps}>{children}<span className="hover-card" role="tooltip">{card}</span></Tag>
+  return <Tag ref={box as never} className={`hover ${className}`} {...touchProps} {...seen}>{children}<span className="hover-card" role="tooltip">{card}</span></Tag>
+}
+
+/**
+ * Research log (`ui.hover`, docs/PHASE3_DATA_DICTIONARY.md section 11): how long a hover card was on screen, written
+ * once when it closes, and only if it stayed at least HOVER_MIN_MS (a mouse passing over writes nothing).
+ * On a computer the card shows while the pointer rests on it or focus is inside it (the CSS :hover / :focus-within);
+ * on a touch screen it shows while `open`. Never the card's text. Returns the handlers to spread on the box.
+ */
+function useHoverLog(box: RefObject<HTMLElement | null>, touch: boolean, open: boolean) {
+  // `el` is kept from the moment the card opened: when the box is removed, the ref is already empty.
+  const s = useRef({ mouse: false, focus: false, since: null as number | null, via: "mouse" as "mouse" | "focus" | "tap", el: null as HTMLElement | null, route: "/" })
+  const sync = (via: "mouse" | "focus" | "tap", on: boolean) => {
+    const st = s.current
+    if (on && st.since === null) { st.since = Date.now(); st.via = via; st.el = box.current; st.route = routeOf(window.location.hash).path }
+    else if (!on && st.since !== null) {
+      const ms = Date.now() - st.since
+      st.since = null
+      const ev = st.el ? describeHover(st.el, ms, st.via, st.route) : null
+      if (ev) publishUi(ev)
+    }
+  }
+  const syncRef = useRef(sync)
+  syncRef.current = sync
+  useEffect(() => { if (touch) syncRef.current("tap", open) }, [touch, open])
+  useEffect(() => () => syncRef.current(s.current.via, false), [])   // removed while open (the page changed): the card closed too
+  if (touch) return {}
+  const desk = () => sync(s.current.mouse ? "mouse" : "focus", s.current.mouse || s.current.focus)
+  return {
+    onMouseEnter: () => { s.current.mouse = true; desk() },
+    onMouseLeave: () => { s.current.mouse = false; desk() },
+    onFocus: () => { s.current.focus = true; desk() },
+    onBlur: (e: FocusEvent<HTMLElement>) => { if (!e.currentTarget.contains(e.relatedTarget as globalThis.Node | null)) { s.current.focus = false; desk() } },
+  }
 }
 
 /** An ⓘ icon whose explanation shows on hover or focus. */

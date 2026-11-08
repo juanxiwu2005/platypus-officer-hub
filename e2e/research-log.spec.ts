@@ -105,6 +105,8 @@ test("a short session is exported whole: walkthrough, clicks, a rule question, i
   i = find(i, e => e.type === "ui.click" && p(e).name === "Open Gmail draft" && p(e).external === true && p(e).href === "mail.google.com/mail/", "the draft link")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Close reminder", "the composer closed")
   i = find(i, e => e.type === "ui.navigate" && p(e).to === "/welcome/founder/name", "the walkthrough opened")
+  // 2026-11-07: typing in a field is recorded as "started / stopped typing", with the field's label and never its text
+  i = find(i, e => e.type === "ui.edit" && p(e).event === "start" && String(p(e).field).includes(c.founder.name.field) && p(e).kind === "text", "typing began in the club name")
   i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/constitution", "Continue on the Name screen")
   i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Start workspace")
   i = find(i, e => e.type === "completeSetup" && e.applied, "the club was created")
@@ -132,6 +134,6 @@ test("a short session is exported whole: walkthrough, clicks, a rule question, i
   // the two outside pages were stopped, and nothing else left the browser
   expect(outside.some(u => u.includes("mail.google.com"))).toBe(true)
   expect(outside.length).toBe(2)
-  // a sensible size for this session
+  // a sensible size for this session (measured 2026-11-07 with the typing entries: 42 on a computer, 40 on a phone)
   expect(log.length).toBeLessThan(80)
 })
