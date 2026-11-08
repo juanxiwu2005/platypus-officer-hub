@@ -1,3 +1,9 @@
+> **2026-11-08 · Handoff 改版第 3 阶段（人和岗位任期分开）· 待 Juanxi 验收（Claude）· 不合并到 `main`，等 Phase 3 收完数据**
+> **做了什么（B3，以及后面阶段的底座）：** 新增岗位任期（`RoleTerm`：候任 / 在任 / 前任，带起止日期和哪次交接），结构版本升到 **21**；任期由 `normalizeTerms` 在每个动作之后、每次读取存档时自动对齐，旧存档（v14–v20）读取时自动补上，没丢任何人或任务。社长可以在交接完成前先**指定接任人**：新的人当场建出来（不是干部，不能改任务，但出现在 View as、能读手册和未完成任务，D-3a），已在社团的人只多一个候任任期；Finish 用指定的人。**第一周清单改到移交之后**，由新任干部或社长勾，移交本身不再要求勾完。步骤顺序变成：…→ 4 Hand over → 5 First week（含第 30 天回看）。
+> **测试：** lint、类型检查、构建通过；单元 1095 全过（新增 15 个）；新页面测试 `e2e/handoff-stage3.spec.ts` 桌面+手机 8 个通过；相关已有页面测试 794 个：735 通过 / 52 跳过 / 5 偶发（重跑通过，含读存档的 `recovery` 重复 40 次全过）/ 2 失败（`workflow-setup:123` 桌面+手机，在没改过的 `main` 上同样失败）。**注意：** 第 1–3 阶段的页面测试里"先勾第一周再 Finish"的步骤已删（现在不可能）。
+> **怎么验收：** ① Handoff → Treasurer，走到 Approve；② 第 4 步 "Who takes over?" 选 A new person，填名字，点 **Name as next officer**，会显示 "Next officer: …"；③ 顶栏"⋯"→ View as，多了 "… · incoming Treasurer"，选它：能看手册，但 Finish role handoff 是灰的，Tasks 里不能改 Maya 的任务；④ 第 5 步 First week 全灰，写着 "Opens for the new officer once the role is handed over."；⑤ 切回 Alex，点 Finish role handoff，再 View as 新人：第一周清单可以勾了；⑥ 另试 Change next officer（那个没用过的新人会消失）；⑦ Settings 改社团名，仍能保存。
+> **需要 Juanxi 决定：** 第 4 阶段开始前没有新的待决问题。**需要同步本地备份。**
+
 > **2026-11-08 · Handoff 改版第 2 阶段（现有社员接任、空缺岗位、单岗位交接）· 待 Juanxi 验收（Claude）**
 > **做了什么（B2、B5、D7）：** 交接最后一步可选接手人：新的人 / 已在社团里的人（原岗位变空缺，不会复制出第二个人；总统岗位不能被拿走）/ 暂时空着。转给新人的未完成任务变成 Not claimed，新人点 "I've got it" 才接手，并收到一条通知（D-2a，Juanxi 同意）；空着时任务没有负责人。没人担任的岗位由社长代替卸任人写访谈、确认手册（D-2b，Juanxi 同意）；空着的岗位可点 "Hand over to someone" 重新打开，已有的访谈和手册保留。不开整季也能只为一个岗位开交接。顺手修了：没人担任的岗位的手册会把所有"无负责人"的任务都拉进来。结构版本没升。
 > **测试：** lint、类型检查、构建通过；单元 1080 全过（新增 20 个）；新页面测试 `e2e/handoff-stage2.spec.ts` 桌面+手机 6 个通过；相关已有页面测试 700 个：663 通过 / 52 跳过 / 1 偶发 / 4 失败，其中 3 个在没改过的 `main` 上同样失败，1 个是已知偶发的 `ob-04` 文件选择框（`main` 16 次失败 3 次，本分支 16 次失败 4 次）。有一个旧测试（`wp5.test.ts`）的期望按 D-2a 改了：转过去的任务现在是 Not claimed，不再是直接 accepted。

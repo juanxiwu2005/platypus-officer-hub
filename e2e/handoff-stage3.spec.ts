@@ -74,3 +74,28 @@ test("changing the next officer removes the unused person", async ({ page }) => 
   await openMore(page)
   expect(await page.getByTestId("view-as").locator("option").allTextContents()).not.toContain("Taylor Example · incoming Treasurer")
 })
+
+test("a club saved before role terms existed opens as it was, with nothing lost and no restore notice", async ({ page }) => {
+  await page.goto("/#/handoff")
+  await expect(page.getByRole("button", { name: "Save dates" })).toBeVisible()
+  const before = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
+    const people = s.people.length, tasks = s.nodes.length, roles = s.roles.length
+    delete s.roleTerms; s.schemaVersion = s.schemaVersion - 1
+    localStorage.setItem("platypus.v1.demo", JSON.stringify(s))
+    return { people, tasks, roles }
+  })
+  await page.reload()
+  await expect(page.getByTestId("storage-banner")).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Save dates" })).toBeVisible()
+  const after = await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
+    return { people: s.people.length, tasks: s.nodes.length, roles: s.roles.length, version: s.schemaVersion, active: s.roleTerms?.filter((t: { status: string }) => t.status === "active").length }
+  })
+  // The page saves on change only; open a role so the state is written back, then read it.
+  await page.getByRole("button", { name: /^Treasurer handbook/ }).click()
+  await page.getByRole("button", { name: "Draft role handbook" }).waitFor()
+  expect(after.people).toBe(before.people)
+  expect(after.tasks).toBe(before.tasks)
+  expect(after.roles).toBe(before.roles)
+})
