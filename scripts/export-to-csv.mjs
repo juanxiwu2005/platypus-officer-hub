@@ -9,11 +9,12 @@
 // It reads the file only and writes the CSV only. Nothing is sent anywhere. Works with formatVersion 1, 2 and 3 files
 // (version 1 has no `timeline`; one is built here from the interaction log and the onboarding record).
 // Times: `time_iso` is UTC; `time_az` is Arizona time (America/Phoenix, UTC-7 all year, no daylight saving).
-// `elapsed_s` counts from the study session's start (formatVersion 3), or from the first row when the file has no session.
+// `session` is the study session a row belongs to (formatVersion 3; a file can hold more than one). `elapsed_s` counts from the start of the
+// row's session; rows outside any session leave it empty. Files without sessions (formatVersion 1, 2, or no session begun) count from the first row.
 import { readFileSync, writeFileSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 
-export const COLUMNS = ["row", "time_iso", "time_az", "time_ms", "elapsed_s", "gap_s", "source", "seq", "attempt", "actor", "type", "route", "name", "target", "external", "applied", "description", "payload_json", "before_json"]
+export const COLUMNS = ["row", "time_iso", "time_az", "time_ms", "elapsed_s", "gap_s", "source", "session", "seq", "attempt", "actor", "type", "route", "name", "target", "external", "applied", "description", "payload_json", "before_json"]
 
 /** One row per event, oldest first. */
 export function toRows(file) {
@@ -21,8 +22,15 @@ export function toRows(file) {
   const entries = file.interactionLog?.entries ?? []
   const bySeq = new Map(entries.map(e => [e.seq, e]))
   const timeline = Array.isArray(file.timeline) ? file.timeline : legacyTimeline(entries, file.onboarding)
-  const startedAt = Number.isFinite(file.session?.startedAtMs) ? file.session.startedAtMs : null
-  const first = startedAt ?? (timeline.length ? timeline[0].at : 0)
+  const sessions = Array.isArray(file.sessions) ? file.sessions : file.session ? [file.session] : []
+  const starts = new Map(sessions.filter(s => s && Number.isFinite(s.startedAtMs)).map(s => [s.id, s.startedAtMs]))
+  const first = timeline.length ? timeline[0].at : 0
+  /** Seconds since the row's session began; without sessions in the file, since the first row; a row outside every session: empty. */
+  const elapsed = r => {
+    if (!starts.size) return round((r.at - first) / 1000)
+    const start = r.session ? starts.get(r.session) : undefined
+    return start === undefined ? "" : round((r.at - start) / 1000)
+  }
   return timeline.map((r, i) => {
     const e = r.seq === null || r.seq === undefined ? undefined : bySeq.get(r.seq)
     const p = e && e.payload && typeof e.payload === "object" ? e.payload : {}
@@ -31,15 +39,16 @@ export function toRows(file) {
       time_iso: r.time ?? new Date(r.at).toISOString(),
       time_az: azTime(r.at),
       time_ms: r.at,
-      elapsed_s: round((r.at - first) / 1000),
+      elapsed_s: elapsed(r),
       gap_s: i === 0 ? 0 : round((r.at - timeline[i - 1].at) / 1000),
       source: r.source,
+      session: r.session ?? "",
       seq: r.seq ?? "",
       attempt: r.attempt ?? "",
       actor: r.actor ?? "",
       type: r.type,
       route: r.route ?? "",
-      name: typeof p.name === "string" ? p.name : typeof p.question === "string" ? p.question : "",
+      name: typeof p.name === "string" ? p.name : typeof p.question === "string" ? p.question : typeof p.field === "string" ? p.field : "",   // ui.edit keeps its label in `field`
       target: typeof p.href === "string" ? p.href : typeof p.to === "string" ? p.to : typeof p.value === "string" ? p.value : "",
       external: p.external === true ? "TRUE" : "",
       applied: r.applied === null || r.applied === undefined ? "" : r.applied ? "TRUE" : "FALSE",

@@ -115,3 +115,16 @@ export function firstEventChoice(attempt: OnboardingAttempt | undefined, step = 
   for (let i = own.length - 1; i >= 0; i--) if (own[i].event === "leave") return own[i - 1]?.event === "skip" ? "skipped" : "planned"
   return null
 }
+
+/** The attempt's latest moment (its start, a step, or its end): what the 6-hour session clean-up compares. */
+export function attemptLastAt(a: OnboardingAttempt): number {
+  return Math.max(a.startedAt, a.finishedAt ?? 0, a.setupCompletedAt ?? 0, ...a.steps.map(s => s.at))
+}
+
+/** Remove the attempts `keep` rejects (a new study session removes those from an earlier sitting). Returns how many went. */
+export function pruneAttempts(keep: (a: OnboardingAttempt) => boolean): number {
+  const record = loadOnboardingRecord()
+  const kept = record.attempts.filter(keep)
+  if (kept.length !== record.attempts.length) save({ attempts: kept })
+  return record.attempts.length - kept.length
+}

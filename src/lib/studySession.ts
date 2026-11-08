@@ -1,27 +1,43 @@
+import { attemptLastAt, pruneAttempts } from "./onboardingRecord"
+
 /**
- * The study session (Phase 3, docs/PHASE3_DATA_DICTIONARY.md): one recorded walkthrough attempt and everything done after it, until the
- * next one begins. A session begins only where a recorded walkthrough begins (`beginWalkthrough`: the study link /#/start, /welcome/start,
- * Demo → Replay walkthrough), never from the Demo menu's Test buttons.
+ * Study sessions (Phase 3, docs/PHASE3_DATA_DICTIONARY.md §1.1). A session begins where a recorded walkthrough begins (`beginWalkthrough`:
+ * the study link /#/start, /welcome/start, Demo → Replay walkthrough), never from the Demo menu's Test buttons.
  *
- * Design: the header below lives in this browser only (its own localStorage key). When a session begins, the interaction log drops every
- * earlier entry (they belong to an earlier session, or an earlier person on this computer) and the header keeps only how many there were
- * (`previousEntriesCleared`), never their content. Every log entry written afterwards carries the session id, and the export keeps only
- * this session's entries and walkthrough attempts, so a stray older entry (another tab still open) can never slip into the file.
- * The id is random and says nothing about a person or a time.
+ * Design: when a session begins, only data from an earlier sitting is removed from this browser: log entries and walkthrough attempts that are
+ * more than 6 hours old (unless they belong to a session that began within those 6 hours). Anything from the last 6 hours stays, so opening the
+ * study link again in the middle of a sitting loses nothing: the export then simply holds two sessions. Only counts of what was removed are kept.
+ * Every log entry written during a session carries its id. The ids are random and say nothing about a person or a time.
+ * The list of sessions (the "book") lives in this browser only, under its own localStorage key.
  */
 export interface StudySession {
   id: string
   /** Real time the session began, milliseconds since 1970. */
   startedAt: number
-  /** Log entries deleted from this browser when the session began (count only). */
+  /** Log entries removed from this browser when the session began, because they were older than 6 hours (count only). */
   previousEntriesCleared: number
+  /** Walkthrough attempts removed at the same moment, for the same reason (count only). */
+  previousAttemptsCleared: number
+}
+export interface Book {
+  /** Oldest first; the last one is the current session. */
+  sessions: StudySession[]
+  /** How many entries of the log's current numbering were removed by the 6-hour clean-up, so the export can tell them apart from the 2,000-entry cap. */
+  seqCleared: number
 }
 
 export const SESSION_KEY = "platypus.v1.session"
-let memory: StudySession | null = null
-/** Saving failed (storage full or blocked): this tab keeps the session in memory. */
+/** Data older than this, outside a session that began within it, belongs to an earlier sitting. */
+export const SITTING_MS = 6 * 3600_000
+const SESSION_LIMIT = 20
+const emptyBook = (): Book => ({ sessions: [], seqCleared: 0 })
+let memory: Book = emptyBook()
+/** Saving failed (storage full or blocked): this tab keeps the book in memory. */
 let memoryOnly = false
-type Listener = (session: StudySession) => number | void
+
+/** What a session start keeps: (time, session id) → true when it is from the last 6 hours or from a session that began within them. */
+export type Keep = (at: number, sessionId?: string | null) => boolean
+type Listener = (session: StudySession, keep: Keep) => { cleared: number; kept: number } | void
 const listeners = new Set<Listener>()
 
 function newId(): string {
@@ -30,43 +46,59 @@ function newId(): string {
   return `s-${Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("")}`
 }
 
-function valid(v: unknown): v is StudySession {
+const count = (n: unknown) => (Number.isInteger(n) && (n as number) >= 0 ? (n as number) : 0)
+function validSession(v: unknown): v is StudySession {
   const s = v as StudySession
-  return !!s && typeof s === "object" && typeof s.id === "string" && /^s-[0-9a-f]{4,32}$/.test(s.id) && Number.isFinite(s.startedAt) && Number.isInteger(s.previousEntriesCleared) && s.previousEntriesCleared >= 0
+  return !!s && typeof s === "object" && typeof s.id === "string" && /^s-[0-9a-f]{4,32}$/.test(s.id) && Number.isFinite(s.startedAt)
 }
 
-function save(session: StudySession) {
-  memory = session
-  try { window.localStorage.setItem(SESSION_KEY, JSON.stringify(session)); memoryOnly = false } catch { memoryOnly = true /* the session lives in memory for this tab */ }
-}
-
-/** The session this browser is in, or null when no recorded walkthrough has begun here. */
-export function currentSession(): StudySession | null {
+export function loadBook(): Book {
   if (memoryOnly) return memory
   try {
     const raw = window.localStorage.getItem(SESSION_KEY)
-    const parsed = raw ? JSON.parse(raw) as unknown : null
-    return (memory = valid(parsed) ? parsed : null)
+    const parsed = raw ? JSON.parse(raw) as Partial<Book> : null
+    if (!parsed || !Array.isArray(parsed.sessions)) return (memory = emptyBook())
+    const sessions = parsed.sessions.filter(validSession).map(s => ({ id: s.id, startedAt: s.startedAt, previousEntriesCleared: count(s.previousEntriesCleared), previousAttemptsCleared: count(s.previousAttemptsCleared) }))
+    return (memory = { sessions: sessions.slice(-SESSION_LIMIT), seqCleared: count(parsed.seqCleared) })
   } catch { return memory }
 }
 
-/**
- * Begin a new session. Listeners (the store) clear what belongs to earlier sessions and return how many log entries they removed;
- * the header records the total. Synchronous: when this returns, the log already belongs to the new session.
- */
-export function beginSession(now = Date.now()): StudySession {
-  const session: StudySession = { id: newId(), startedAt: now, previousEntriesCleared: 0 }
-  memory = session
-  for (const listener of listeners) { const n = listener(session); if (typeof n === "number" && n > 0) session.previousEntriesCleared += n }
-  save(session)
-  return session
+function save(book: Book) {
+  memory = book
+  try { window.localStorage.setItem(SESSION_KEY, JSON.stringify(book)); memoryOnly = false } catch { memoryOnly = true }
 }
 
-/** More earlier entries were removed for this session after it began (a log loaded later still held some). */
-export function noteCleared(id: string, n: number): void {
-  const s = currentSession()
-  if (!s || s.id !== id || !(n > 0)) return
-  save({ ...s, previousEntriesCleared: s.previousEntriesCleared + n })
+/** The session this browser is in (the latest one), or null when no recorded walkthrough has begun here. */
+export function currentSession(): StudySession | null {
+  const { sessions } = loadBook()
+  return sessions[sessions.length - 1] ?? null
+}
+
+/** The keep rule as it stands at time `now`, given the sessions known then. */
+export function keeper(sessions: StudySession[], now: number): Keep {
+  const cutoff = now - SITTING_MS
+  const recent = new Set(sessions.filter(s => s.startedAt >= cutoff).map(s => s.id))
+  return (at, sessionId) => at >= cutoff || (!!sessionId && recent.has(sessionId))
+}
+
+/**
+ * Begin a new session. Listeners (the store) remove log entries from an earlier sitting and say how many they removed and kept;
+ * walkthrough attempts from an earlier sitting go too. Synchronous: when this returns, new entries belong to the new session.
+ */
+export function beginSession(now = Date.now()): StudySession {
+  const book = loadBook()
+  const keep = keeper(book.sessions, now)
+  const session: StudySession = { id: newId(), startedAt: now, previousEntriesCleared: 0, previousAttemptsCleared: 0 }
+  let heard = false, kept = 0
+  for (const listener of listeners) {
+    const r = listener(session, keep)
+    if (r) { heard = true; session.previousEntriesCleared += r.cleared; kept += r.kept }
+  }
+  session.previousAttemptsCleared = pruneAttempts(a => keep(attemptLastAt(a), a.sessionId))
+  // An emptied log starts numbering again at 1; otherwise the removed entries were the oldest numbers of the same numbering.
+  const seqCleared = !heard ? book.seqCleared : kept > 0 ? book.seqCleared + session.previousEntriesCleared : 0
+  save({ sessions: [...book.sessions, session].slice(-SESSION_LIMIT), seqCleared })
+  return session
 }
 
 export function onSessionStart(listener: Listener): () => void {
@@ -74,9 +106,9 @@ export function onSessionStart(listener: Listener): () => void {
   return () => { listeners.delete(listener) }
 }
 
-/** Forget the session (tests only). */
+/** Forget every session (tests only). */
 export function resetSessionForTests(): void {
-  memory = null; memoryOnly = false
+  memory = emptyBook(); memoryOnly = false
   try { window.localStorage.removeItem(SESSION_KEY) } catch { /* nothing */ }
 }
 

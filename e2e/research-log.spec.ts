@@ -21,7 +21,7 @@ test.beforeEach(async ({ page, context }) => {
 const next = (page: Page) => page.getByRole("button", { name: c.next, exact: true }).click()
 
 async function session(page: Page) {
-  // 0. Before the study link: someone looks around the sample club in this browser. A study session starts after this, so none of it is exported.
+  // 0. Before the study link: a look around the sample club in this browser, minutes before. It is the same sitting, so it stays (outside any session).
   await page.goto("/#/")
   await expect(page.locator("main h1")).toHaveText("Today")
   await closeRail(page)
@@ -77,7 +77,7 @@ async function session(page: Page) {
   return JSON.parse(readFileSync((await download.path())!, "utf8"))
 }
 
-test("a short session is exported whole: walkthrough, a reminder, clicks, a rule question, its source, the export — in order; earlier browsing only counted", async ({ page }) => {
+test("a short session is exported whole: walkthrough, a reminder, clicks, a rule question, its source, the export — in order; browsing just before it stays", async ({ page }) => {
   const started = Date.now()
   const file = await session(page)
   const log = file.interactionLog.entries as Entry[]
@@ -86,14 +86,18 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
 
   // shape, numbering and time
   expect(file).toMatchObject({ format: "platypus-export", formatVersion: 3, onboardingFlowVersion: FLOW_VERSION, demoToday: file.state.today })
-  // the study session: begun by the study link; what was done before it is gone from the file, only counted
-  expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "planned", outcome: "completed" })
-  expect(file.session.previousEntriesCleared).toBeGreaterThan(0)
-  expect(file.session.olderEntriesLeftOut).toBe(file.session.previousEntriesCleared)
-  expect(log.every(e => (e as Entry & { session?: string }).session === file.session.id)).toBe(true)
-  expect(log[0]).toMatchObject({ seq: 1, type: "ui.navigate", payload: { to: "/welcome/founder/name" } })
+  // the study session: begun by the study link. The browsing minutes before it is the same sitting: kept, with no session; nothing was cleared.
+  expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "planned", outcome: "completed", previousEntriesCleared: 0, olderEntriesLeftOut: 0 })
+  expect(file.sessions).toHaveLength(1)
+  const start = log.findIndex(e => e.type === "ui.navigate" && e.payload.to === "/welcome/founder/name")
+  expect(start).toBeGreaterThan(0)
+  expect(log.slice(0, start).some(e => e.type === "ui.click" && /^Rules/.test(String(e.payload.name)))).toBe(true)
+  const tagged = (e: Entry) => (e as Entry & { session?: string }).session
+  expect(log.slice(0, start).every(e => tagged(e) === undefined)).toBe(true)
+  expect(log.slice(start).every(e => tagged(e) === file.session.id)).toBe(true)
+  expect(file.session.entries).toBe(log.length - start)
   expect(file.onboarding.attempts).toHaveLength(1)
-  expect(timeline[0]).toMatchObject({ source: "session", type: "session.start" })
+  expect(timeline.filter(r => r.source === "session")).toHaveLength(1)
   expect(typeof file.build.commit).toBe("string")
   expect(log.map(e => e.seq)).toEqual(log.map((_, i) => log[0].seq + i))
   for (let i = 1; i < log.length; i++) expect(log[i].at).toBeGreaterThanOrEqual(log[i - 1].at)

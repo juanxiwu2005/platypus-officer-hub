@@ -29,6 +29,8 @@ export interface TimelineRow {
   applied: boolean | null
   /** The onboarding attempt id (onboarding rows only). */
   attempt: string | null
+  /** The study session the row belongs to (formatVersion 3); null outside any session. */
+  session: string | null
   desc: string
 }
 
@@ -67,22 +69,22 @@ export function describeEntry(e: LogEntry): string {
 
 const SETUP_CHOICE = { "start-workspace": "Start workspace", "keep-demo": "Keep current demo" } as const
 
-export function buildTimeline(log: LogEntry[], onboarding: OnboardingRecord, session?: StudySession | null): TimelineRow[] {
+export function buildTimeline(log: LogEntry[], onboarding: OnboardingRecord, sessions: StudySession[] = []): TimelineRow[] {
   const rows: TimelineRow[] = []
-  const row = (r: Omit<TimelineRow, "time" | "timeAz">): TimelineRow => ({ time: Number.isFinite(r.at) ? new Date(r.at).toISOString() : "", timeAz: azTime(r.at), ...r })
-  if (session) rows.push(row({ at: session.startedAt, source: "session", seq: null, type: "session.start", actor: null, route: null, applied: null, attempt: null, desc: `Study session started (${session.previousEntriesCleared} earlier log entries cleared from this browser)` }))
+  const row = (r: Omit<TimelineRow, "time" | "timeAz" | "session">, session?: string | null): TimelineRow => ({ time: Number.isFinite(r.at) ? new Date(r.at).toISOString() : "", timeAz: azTime(r.at), ...r, session: session ?? null })
+  for (const s of sessions) rows.push(row({ at: s.startedAt, source: "session", seq: null, type: "session.start", actor: null, route: null, applied: null, attempt: null, desc: `Study session started (${s.previousEntriesCleared} log entries older than 6 hours cleared from this browser)` }, s.id))
   for (const e of log) {
     const p = (e.payload && typeof e.payload === "object" ? e.payload : {}) as P
     const route = typeof p.route === "string" ? p.route : e.type === "ui.navigate" && typeof p.to === "string" ? p.to : null
-    rows.push(row({ at: e.at, source: "log", seq: e.seq, type: e.type, actor: e.actor, route, applied: e.applied, attempt: null, desc: cut(describeEntry(e)) }))
+    rows.push(row({ at: e.at, source: "log", seq: e.seq, type: e.type, actor: e.actor, route, applied: e.applied, attempt: null, desc: cut(describeEntry(e)) }, e.session))
   }
   for (const a of onboarding.attempts) {
-    rows.push(row({ at: a.startedAt, source: "onboarding", seq: null, type: "onboarding.start", actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough attempt started: ${a.entry} (flow ${a.flowVersion}, replay ${a.replay})` }))
-    for (const st of a.steps) rows.push(row({ at: st.at, source: "onboarding", seq: null, type: `onboarding.${st.event}`, actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough screen ${st.step}: ${st.event}` }))
-    if (a.setupCompletedAt) rows.push(row({ at: a.setupCompletedAt, source: "onboarding", seq: null, type: "onboarding.setup", actor: null, route: null, applied: null, attempt: a.id, desc: `Setup finished: ${a.setupChoice ? SETUP_CHOICE[a.setupChoice] ?? a.setupChoice : "unknown"}` }))
-    if (a.finishedAt) rows.push(row({ at: a.finishedAt, source: "onboarding", seq: null, type: "onboarding.finish", actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough attempt ended: ${a.outcome ?? "unknown"}` }))
+    rows.push(row({ at: a.startedAt, source: "onboarding", seq: null, type: "onboarding.start", actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough attempt started: ${a.entry} (flow ${a.flowVersion}, replay ${a.replay})` }, a.sessionId))
+    for (const st of a.steps) rows.push(row({ at: st.at, source: "onboarding", seq: null, type: `onboarding.${st.event}`, actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough screen ${st.step}: ${st.event}` }, a.sessionId))
+    if (a.setupCompletedAt) rows.push(row({ at: a.setupCompletedAt, source: "onboarding", seq: null, type: "onboarding.setup", actor: null, route: null, applied: null, attempt: a.id, desc: `Setup finished: ${a.setupChoice ? SETUP_CHOICE[a.setupChoice] ?? a.setupChoice : "unknown"}` }, a.sessionId))
+    if (a.finishedAt) rows.push(row({ at: a.finishedAt, source: "onboarding", seq: null, type: "onboarding.finish", actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough attempt ended: ${a.outcome ?? "unknown"}` }, a.sessionId))
   }
-  // Stable: the session row first; within the same millisecond the log comes first (a press is written in its capture phase, before the
+  // Stable: a session row first; within the same millisecond the log comes first (a press is written in its capture phase, before the
   // screen's own handler records the walkthrough step it causes), and log rows keep their numbering.
   return rows.map((r, i) => ({ r, i })).sort((a, b) => a.r.at - b.r.at || a.i - b.i).map(x => x.r)
 }

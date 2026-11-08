@@ -9,15 +9,16 @@ const write = (id: string | null) => { try { id ? window.sessionStorage.setItem(
 
 /**
  * One place that begins a walkthrough: used by the study link (/#/start), the welcome page and "Replay walkthrough". Marks the welcome page as seen.
- * It also begins a new study session (src/lib/studySession.ts): the interaction log drops the entries of earlier sessions (count kept) and the
- * export holds only this session. The Demo menu's Test buttons never come here, so they never start a session or record anything.
+ * It also begins a new study session (src/lib/studySession.ts): data from an earlier sitting (older than 6 hours) is removed, counted;
+ * the last 6 hours stay, so opening the link again mid-session loses nothing. The Demo menu's Test buttons never come here, so they never start a session or record anything.
  */
 export function beginWalkthrough(): string {
+  // The new session first: it removes an open attempt from an earlier sitting (older than 6 hours) instead of closing it now.
+  const session = beginSession()
   // The study link opened again in the same tab while an attempt is still open: that attempt is over. The record has no "abandoned" outcome, so it
   // ends as "exited"; unlike Exit, it has no "exit" step, which is how the two can be told apart.
   const open = read()
   if (open && loadOnboardingRecord().attempts.some(a => a.id === open && !a.outcome)) finishAttempt(open, "exited")
-  const session = beginSession()
   const id = startAttempt("start", FLOW_VERSION, session.id)
   write(id); markWelcomeSeen()
   return id
