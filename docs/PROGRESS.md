@@ -1,3 +1,8 @@
+> **2026-11-08 · Handoff 改版第 2 阶段（现有社员接任、空缺岗位、单岗位交接）· 待 Juanxi 验收（Claude）**
+> **做了什么（B2、B5、D7）：** 交接最后一步可选接手人：新的人 / 已在社团里的人（原岗位变空缺，不会复制出第二个人；总统岗位不能被拿走）/ 暂时空着。转给新人的未完成任务变成 Not claimed，新人点 "I've got it" 才接手，并收到一条通知（D-2a，Juanxi 同意）；空着时任务没有负责人。没人担任的岗位由社长代替卸任人写访谈、确认手册（D-2b，Juanxi 同意）；空着的岗位可点 "Hand over to someone" 重新打开，已有的访谈和手册保留。不开整季也能只为一个岗位开交接。顺手修了：没人担任的岗位的手册会把所有"无负责人"的任务都拉进来。结构版本没升。
+> **测试：** lint、类型检查、构建通过；单元 1080 全过（新增 20 个）；新页面测试 `e2e/handoff-stage2.spec.ts` 桌面+手机 6 个通过；相关已有页面测试 700 个：663 通过 / 52 跳过 / 1 偶发 / 4 失败，其中 3 个在没改过的 `main` 上同样失败，1 个是已知偶发的 `ob-04` 文件选择框（`main` 16 次失败 3 次，本分支 16 次失败 4 次）。有一个旧测试（`wp5.test.ts`）的期望按 D-2a 改了：转过去的任务现在是 Not claimed，不再是直接 accepted。
+> **怎么验收：** ① Handoff → Treasurer → 走到第 4 步（Maya 确认，Alex 批准，勾完第一周）；② 最后一步 "Who takes over?" 选 Sam Okafor，会看到 "Marketing lead will be open until someone takes it."，点 Finish；③ View as 选 Sam，Tasks 里原来 Maya 的任务是 Not claimed，点 "I've got it" 才变 To do；④ 另做一次选 "Nobody yet (leave it open)"，完成后点 "Hand over to someone"；⑤ Demo 菜单 Reset demo 后，在没有换届季的状态下点 Treasurer → Hand over this role（页面顶上的按钮是 Start handoff season，不是 Save dates）。**需要同步本地备份。**
+
 > **2026-11-08 · Handoff 改版第 1 阶段（修 bug）· 待 Juanxi 验收（Claude）**
 > **依据：** 分步执行方案 [`HANDOFF_EXECUTION_PLAN.md`](HANDOFF_EXECUTION_PLAN.md)（8 个阶段，一次一个，每个阶段等 Juanxi 验收）。**做了什么（B1、B4、B6）：** 交接完成后 Settings 仍能保存（新人自动得到 example.org 邮箱；卸任人标 `leftOn` 变成前任，留在记录里，但不再出现在 View as、Team、指派、AI 上下文和校验里）；换届季开着时新增的岗位自动加入；新开的季访谈为空（提示文字代替预填示例），进度第 1 步不再虚高。示例社团的换届季和示例访谈没动；结构版本没升。
 > **测试：** lint、类型检查、构建通过；单元 1060 全过（新增 12 个，旧代码上 9 个失败）；新页面测试 `e2e/handoff-stage1.spec.ts` 桌面+手机 6 个通过（旧代码上全失败）；相关已有页面测试 714 个：656 通过 / 52 跳过 / 3 偶发 / 3 失败，这 3 个在没改过的 `main` 上同样失败。
