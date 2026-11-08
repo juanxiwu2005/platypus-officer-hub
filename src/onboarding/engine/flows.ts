@@ -8,6 +8,7 @@ export const FOUNDER_STEPS: FlowStep[] = [
   { id: "founder.goals", path: "founder/goals", label: "Goals", optional: true },
   { id: "founder.team", path: "founder/team", label: "Team", optional: true },
   { id: "founder.first-event", path: "founder/first-event", label: "First event", optional: true },
+  { id: "founder.reminders", path: "founder/reminders", label: "Reminders", optional: true },
   { id: "founder.confirm", path: "founder/confirm", label: "Confirm", optional: false },
   { id: "founder.invite", path: "founder/invite", label: "Invite", optional: false },
 ]

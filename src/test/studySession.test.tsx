@@ -3,7 +3,8 @@ import { act, cleanup, render } from "@testing-library/react"
 import { seedDemo } from "../data/seed"
 import type { LogEntry } from "../data/types"
 import { appendUiLog, buildExport, keepSitting, LOG_KEY, LOG_LIMIT, StoreProvider, useStore } from "../data/store"
-import { firstEventChoice, loadOnboardingRecord, recordStep, startAttempt, type OnboardingAttempt } from "../lib/onboardingRecord"
+import { firstEventChoice, loadOnboardingRecord, recordStep, reminderModeChoice, startAttempt, type OnboardingAttempt } from "../lib/onboardingRecord"
+import { buildTimeline } from "../lib/timeline"
 import { azTime, currentSession, keeper, loadBook, resetSessionForTests, SESSION_KEY, SITTING_MS } from "../lib/studySession"
 import { beginWalkthrough, endWalkthrough, forgetWalkthrough, recordEvent, recordSetup } from "../onboarding/record"
 import { emitUi } from "../lib/uiLog"
@@ -139,6 +140,34 @@ describe("setup is recorded on its own, apart from how the attempt ends", () => 
     expect(firstEventChoice(at([[FE, "enter"], [FE, "back"]]))).toBeNull()
     expect(firstEventChoice(undefined)).toBeNull()
   })
+
+  it("reminderModeChoice (P3-H): skip from the step events; a choice from the last tick on the screen before it was left; the saved value only as a fallback", () => {
+    type Ev = OnboardingAttempt["steps"][number]["event"]
+    const R = "founder.reminders", C = "founder.confirm"
+    const at = (steps: [string, Ev, number][], extra: Partial<OnboardingAttempt> = {}): OnboardingAttempt => ({ id: "ob-r", entry: "start", flowVersion: "ob-4", replay: 0, startedAt: T, sessionId: "s-1", steps: steps.map(([step, event, ms]) => ({ step, event, at: T + ms })), ...extra })
+    const tick = (seq: number, ms: number, testid: string, extra: Record<string, unknown> = {}, session = "s-1"): LogEntry => ({ seq, at: T + ms, actor: "alex", type: "ui.change", payload: { route: "/welcome/founder/reminders", role: "radio", name: "x", testid, checked: true, group: "How should reminders go out?", ...extra }, applied: true, session })
+    const log = [tick(1, 10, "reminder-mode-auto_email"), tick(2, 20, "reminder-mode-review_then_auto"), tick(3, 90, "reminder-mode-review_then_self")]
+    // Continue after two ticks: the last tick before leaving counts (the third came after, from a later visit).
+    expect(reminderModeChoice(at([[R, "enter", 0], [R, "leave", 30], [C, "enter", 30]]), log)).toBe("review_then_auto")
+    // Back from Confirm, change of mind, Continue again: the later tick wins.
+    expect(reminderModeChoice(at([[R, "enter", 0], [R, "leave", 30], [C, "back", 50], [R, "enter", 50], [R, "leave", 95]]), log)).toBe("review_then_self")
+    // Skip for now, even after a tick.
+    expect(reminderModeChoice(at([[R, "enter", 0], [R, "skip", 30], [R, "leave", 30]]), log)).toBe("skipped")
+    // Never left forward: null.
+    expect(reminderModeChoice(at([[R, "enter", 0], [R, "back", 30]]), log)).toBeNull()
+    expect(reminderModeChoice(undefined, log)).toBeNull()
+    // Ticks from another session, another page, or an untick do not count; then the saved value is the fallback, and nothing else is.
+    const others = [tick(1, 10, "reminder-mode-auto_email", {}, "s-2"), tick(2, 12, "reminder-mode-auto_email", { route: "/settings" }), tick(3, 14, "reminder-mode-auto_email", { checked: false })]
+    const left = at([[R, "enter", 0], [R, "leave", 30]])
+    expect(reminderModeChoice(left, others)).toBeNull()
+    expect(reminderModeChoice(left, others, "review_then_self")).toBe("review_then_self")
+    expect(reminderModeChoice(left, others, "anything")).toBeNull()
+    // Leaving after setup ended does not count (setup is what the answer was for).
+    expect(reminderModeChoice(at([[R, "enter", 0], [R, "leave", 30]], { setupCompletedAt: T + 5 }), log)).toBeNull()
+    // The timeline's setup row says it in plain words.
+    const done = at([[R, "enter", 0], [R, "leave", 30]], { setupCompletedAt: T + 40, setupChoice: "start-workspace" })
+    expect(buildTimeline(log, { attempts: [done] }).find(r => r.type === "onboarding.setup")?.desc).toBe("Setup finished: Start workspace; reminders: review_then_auto")
+  })
 })
 
 describe("the export", () => {
@@ -166,7 +195,7 @@ describe("the export", () => {
       id: session.id, startedAt: "2026-11-07T17:46:40.337Z", startedAtMs: T, startedAtAz: "2026-11-07 10:46:40.337",
       attempt: attempt.id, outcome: "exited",
       setupCompletedAt: new Date(T + 2000).toISOString(), setupCompletedAtMs: T + 2000, setupCompletedAtAz: "2026-11-07 10:46:42.337", setupChoice: "start-workspace",
-      firstEventChoice: "skipped", entries: 1, previousEntriesCleared: 49, previousAttemptsCleared: 1,
+      firstEventChoice: "skipped", reminderModeChoice: null, entries: 1, previousEntriesCleared: 49, previousAttemptsCleared: 1,
     }
     expect(out.sessions).toEqual([item])
     expect(out.session).toEqual({ ...item, olderEntriesLeftOut: 50, olderAttemptsLeftOut: 1 })

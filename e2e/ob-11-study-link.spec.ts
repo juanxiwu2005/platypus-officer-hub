@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
-import { WELCOME_ON, fillMission, onboardingRecord } from "./ob-helpers"
+import { WELCOME_ON, fillMission, onboardingRecord, passReminders } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 
 // Phase 3 study link and the skippable First event. Runs on desktop and phone (Pixel 7).
@@ -23,7 +23,7 @@ for (const url of ["/#/start", "/?walkthrough=1#/start", "/#/start?walkthrough=1
   await noSideScroll(page)
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "start", replay: 0, flowVersion: "ob-3" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "start", replay: 0, flowVersion: "ob-4" })
   expect(rec.attempts[0].steps.map(s => `${s.step}:${s.event}`)).toEqual(["founder.name:enter"])
 })
 
@@ -78,7 +78,7 @@ const toFirstEvent = async (page: Page, club = "Maple Club") => {
 test("First event shows as optional in the progress chain, like the other optional steps", async ({ page }) => {
   await page.goto("/#/start")
   await nameScreen(page)
-  for (const label of ["Constitution", "Goals", "Team", "First event"]) await expect(chainDot(page, label)).toContainText(`${label}, optional`)
+  for (const label of ["Constitution", "Goals", "Team", "First event", "Reminders"]) await expect(chainDot(page, label)).toContainText(`${label}, optional`)
   for (const label of ["Confirm", "Invite"]) await expect(chainDot(page, label)).not.toContainText("optional")
 })
 
@@ -91,6 +91,7 @@ test("Skip for now on First event: both choices are there, Confirm works with no
   await expect(page.getByRole("region", { name: c.founder.firstEvent.chainLabel })).toHaveCount(0)
   await noSideScroll(page)
   await page.getByRole("button", { name: c.skip }).click()
+  await passReminders(page)                                                              // P3-H: Reminders comes next (skipped here)
 
   await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
   await expect(page.getByTestId("confirm-summary")).toHaveText(/^This creates Maple Club with \d+ officers?\.$/)
@@ -98,11 +99,14 @@ test("Skip for now on First event: both choices are there, Confirm works with no
   await expect(chainDot(page, "First event")).toContainText("First event, skipped")
   await noSideScroll(page)
 
-  // Back from Confirm returns to First event; nothing is planned, and Skip is still there.
+  // Back from Confirm returns (through Reminders) to First event; nothing is planned, and Skip is still there.
+  await page.getByRole("button", { name: c.back, exact: true }).click()
+  await expect(page).toHaveURL(/#\/welcome\/founder\/reminders$/)
   await page.getByRole("button", { name: c.back, exact: true }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
   await expect(page.getByRole("button", { name: c.next, exact: true })).toBeDisabled()
   await page.getByRole("button", { name: c.skip }).click()
+  await passReminders(page)
   await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
 
   await page.getByRole("button", { name: c.founder.confirm.start }).click()
@@ -123,12 +127,15 @@ test("Skip for now on First event: both choices are there, Confirm works with no
 test("Skip, Back, then plan after all: the event comes back and First event is no longer marked skipped", async ({ page }) => {
   await toFirstEvent(page)
   await page.getByRole("button", { name: c.skip }).click()
+  await passReminders(page)
   await expect(page.getByTestId("confirm-no-event")).toBeVisible()
-  await page.getByRole("button", { name: c.back, exact: true }).click()
+  await page.getByRole("button", { name: c.back, exact: true }).click()           // Confirm → Reminders
+  await page.getByRole("button", { name: c.back, exact: true }).click()           // Reminders → First event
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
   await expect(page.getByRole("region", { name: c.founder.firstEvent.chainLabel })).toBeVisible()
   await cont(page)
+  await passReminders(page)
   await expect(page.getByTestId("confirm-summary")).toContainText("Welcome Mixer")
   await expect(page.getByTestId("confirm-no-event")).toHaveCount(0)
   await expect(chainDot(page, "First event")).toContainText("First event, done")

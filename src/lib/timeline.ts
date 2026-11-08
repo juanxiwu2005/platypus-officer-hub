@@ -1,5 +1,5 @@
 import type { LogEntry } from "../data/types"
-import type { OnboardingRecord } from "./onboardingRecord"
+import { reminderModeChoice, type OnboardingRecord } from "./onboardingRecord"
 import { azTime, type StudySession } from "./studySession"
 
 /**
@@ -98,7 +98,9 @@ export function buildTimeline(log: LogEntry[], onboarding: OnboardingRecord, ses
   for (const a of onboarding.attempts) {
     rows.push(row({ at: a.startedAt, source: "onboarding", seq: null, type: "onboarding.start", actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough attempt started: ${a.entry} (flow ${a.flowVersion}, replay ${a.replay})` }, a.sessionId))
     for (const st of a.steps) rows.push(row({ at: st.at, source: "onboarding", seq: null, type: `onboarding.${st.event}`, actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough screen ${st.step}: ${st.event}` }, a.sessionId))
-    if (a.setupCompletedAt) rows.push(row({ at: a.setupCompletedAt, source: "onboarding", seq: null, type: "onboarding.setup", actor: null, route: null, applied: null, attempt: a.id, desc: `Setup finished: ${a.setupChoice ? SETUP_CHOICE[a.setupChoice] ?? a.setupChoice : "unknown"}` }, a.sessionId))
+    // P3-H: the setup row also says what the Reminders screen got (read from the log and the step events, as in the export's session summary).
+    const reminders = a.setupCompletedAt ? reminderModeChoice(a, log) : null
+    if (a.setupCompletedAt) rows.push(row({ at: a.setupCompletedAt, source: "onboarding", seq: null, type: "onboarding.setup", actor: null, route: null, applied: null, attempt: a.id, desc: `Setup finished: ${a.setupChoice ? SETUP_CHOICE[a.setupChoice] ?? a.setupChoice : "unknown"}${reminders ? `; reminders: ${reminders}` : ""}` }, a.sessionId))
     if (a.finishedAt) rows.push(row({ at: a.finishedAt, source: "onboarding", seq: null, type: "onboarding.finish", actor: null, route: null, applied: null, attempt: a.id, desc: `Walkthrough attempt ended: ${a.outcome ?? "unknown"}` }, a.sessionId))
   }
   // Stable: a session row first; within the same millisecond the log comes first (a press is written in its capture phase, before the

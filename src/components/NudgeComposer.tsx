@@ -7,6 +7,7 @@ import { makeOfficerGrant, officerUrl, usableGrant, grantToken } from "../lib/of
 import { callApi } from "../lib/api"
 import { buildNudge, composeUrl, messageText, nudgeBlocked, STATUS_ACTIONS } from "../lib/nudges"
 import { emitUi } from "../lib/uiLog"
+import { onboardingCopy } from "../onboarding/copy"
 
 const CHANNEL_LABEL = { whatsapp: "WhatsApp", sms: "Text message", email: "Gmail" }
 export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
@@ -63,6 +64,8 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
     <p className="small muted">{state.aiEnabled ? source : "Checked template · AI off"} · {draft.wordCount}/100 words · {draft.checked ? "Wording checked" : "Needs review"}</p>
     <label className="composer-channel">Preferred channel<select value={channel} onChange={e => { setChannel(e.target.value as Channel); setOpenedText(null) }}>{[...new Set([...person.channels, "whatsapp", "sms", "email"] as Channel[])].map(c => <option key={c} value={c}>{CHANNEL_LABEL[c]}{c === person.channels[0] ? " · preferred" : ""}</option>)}</select></label>
     <p className="small muted">Preferred time: {person.remindAt === "evening" ? "evening, around 7 pm" : "morning, around 9 am"}. Keep messages between 8 am and 10 pm.</p>
+    {/* P3-H: the walkthrough's Reminders answer, read-only. It changes nothing here: this composer only opens a draft that a person sends. */}
+    {state.org.settings.reminderMode && <p className="small muted" data-testid="reminder-mode-note">Your club chose: {onboardingCopy.founder.reminders.options[state.org.settings.reminderMode].title} (demo: nothing is sent).</p>}
     <b>{draft.subject}</b>
     <div className="nudge-body" data-testid="nudge-body">{draft.body}</div><Feedback id={`nudge:${nodeId}:${draft.body}`} text={draft.body}/>
     <div className="status-actions" aria-label="Recipient status choices">{STATUS_ACTIONS.map(a => grant ? <Link className="btn small" key={a.key} to={officerUrl("", grant, a.key).slice(2)} onClick={onClose}>{a.label}</Link> : <button className="btn small" key={a.key} disabled>{a.label}</button>)}</div>

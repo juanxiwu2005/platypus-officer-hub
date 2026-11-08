@@ -6,6 +6,7 @@
 - 文件里只有虚构社团的数据和参与者在原型里的操作记录。**没有任何东西会自动上传**：文件只在参与者自己按按钮时下载到他自己的电脑，再由他（Zoom 上）发邮件给研究者。
 - 本文件和代码对应：日志结构 `src/data/types.ts` 的 `LogEntry`；界面事件 `src/lib/uiLog.ts`；写入与去噪 `src/data/store.tsx` 的 `appendUiLog`；研究会话 `src/lib/studySession.ts`；时间线 `src/lib/timeline.ts`；导出 `buildExport`；CSV 脚本 `scripts/export-to-csv.mjs`。
 - 2026-11-07 新增四项**只记行为**的记录（任务标记、离开页面、开始编辑字段、悬停卡），见第 11 节。
+- 2026-11-08（P3-H）社长流程多了一屏 **Reminders**（问提醒怎么发给干部），流程版本变成 `ob-4`；导出的会话摘要多了 `reminderModeChoice`。**没有新增记录项**：选择本身原来就会记成 `ui.change`，见第 12 节。
 
 ---
 
@@ -50,7 +51,7 @@
 | `storageKey` | 数据在浏览器里存的名字（开发用） |
 | ★ `build` | 这是哪一版网站：`version`（应用版本号）、`commit`（代码提交号）、`branch`、`context`（Netlify 的 production / deploy-preview）。本地构建没有这些信息时写 `"unknown"`。用来确认每位参与者用的是同一版 |
 | ★ `demoToday` | 原型里的"演示日期"（导出那一刻）。原型的日期是假的、可以用 Demo 菜单往前拨；它和真实时间无关 |
-| ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（现在 `ob-3`）。每次引导尝试里也各自记了版本 |
+| ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（现在 `ob-4`：First event 之后、Confirm 之前多了 Reminders 屏；`ob-3` 没有这一屏）。每次引导尝试里也各自记了版本 |
 | ◆ `sessions` | 文件里的每个研究会话一行，按开始时间排，见 3.1；没有会话时为空 `[]` |
 | ◆ `session` | 最新的那个会话（和 `sessions` 最后一行一样），外加没放进文件的条数，见 3.1；没有会话时为 `null` |
 | `state` | 导出那一刻整个虚构社团的数据（活动、任务、成员、设置……）。签名密钥被替换成 `"[omitted]"` |
@@ -71,6 +72,7 @@
 | `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | 在 Confirm 屏按 **Start workspace** 或 **Keep current demo** 的时间（第一次按的）。有值 = 建社团这一步已经做完；没按过为 `null` |
 | `setupChoice` | 按的是哪个：`start-workspace`（Start workspace，建了自己的社团）或 `keep-demo`（Keep current demo，保留示例社团） |
 | `firstEventChoice` | First event 屏最后一次往前走时：`planned`（计划了一个活动）或 `skipped`（按了 Skip for now）；没走过这一屏为 `null`。只从屏幕步骤记录推出来，不看填了什么 |
+| `reminderModeChoice` | Reminders 屏（2026-11-08）最后一次往前走时的答案：`auto_email`（Send automatically）、`review_then_self`（I review, then I send）、`review_then_auto`（I review, Platypus sends），或 `skipped`（按了 Skip for now）；没往前走过这一屏为 `null`（`ob-3` 的旧文件也是 `null`）。怎么推出来的见第 12 节 |
 | `entries` | 文件里属于这个会话的日志条数 |
 | `previousEntriesCleared` | 这个会话开始时，因为超过 6 小时而从这个浏览器里删掉的旧日志条数（只有数字） |
 | `previousAttemptsCleared` | 同一时刻、同样原因删掉的旧引导尝试次数 |
@@ -196,7 +198,7 @@
 | `seq` | `seq` | 交互日志编号（引导记录行为空） |
 | `attempt` | `attempt` | 引导尝试 id（只有引导记录行有） |
 | `actor` | `actor` | "View as" 身份 |
-| `type` | `type` | 事件类型；引导记录行是 `onboarding.start` / `onboarding.enter` … / `onboarding.setup`（按了 Start workspace 或 Keep current demo）/ `onboarding.finish`；会话行是 `session.start` |
+| `type` | `type` | 事件类型；引导记录行是 `onboarding.start` / `onboarding.enter` … / `onboarding.setup`（按了 Start workspace 或 Keep current demo；描述后面带 Reminders 的答案，例如 `Setup finished: Start workspace; reminders: review_then_auto`，没走过那一屏就不带）/ `onboarding.finish`；会话行是 `session.start` |
 | `route` | `route` | 页面路径 |
 | — | `name` | 控件名字；`ui.ask` 行是问题本身；没有这两样时用 `payload.field`（`ui.edit` 行的输入框标签，不是打的字） |
 | — | `target` | 链接去处（站外是网站+路径，站内是页面）或下拉框选中项 |
@@ -362,3 +364,24 @@ Finished study task 2 after 3 min 5 s
 ### 11.7 条数
 
 见第 5.5 节：一般节奏约 650 条、非常忙约 1560 条（上限 2000）。e2e `e2e/research-events.spec.ts` 那段（开始任务 1、在 Rules 搜索框打字、读一张悬停卡、离开 2 秒、开始任务 2、键盘按 Done、导出）是 19–20 条，其中这四项共 9 条。
+
+## 12. 2026-11-08 新增：Reminders 屏（P3-H，观察社长怎么选）
+
+社长流程在 First event 之后、Confirm 之前多了一屏 "How should reminders go out?"（`founder.reminders`，路径 `/welcome/founder/reminders`，可跳过）。三个选项，**顺序固定**（每个参与者看到的都一样，所以文件里不另记顺序）：
+
+| 顺序 | 屏幕上的标题 | 下面一行说明 | 存的值 |
+| --- | --- | --- | --- |
+| 1 | Send automatically | Platypus emails the officer on that date. | `auto_email` |
+| 2 | I review, then I send | Platypus drafts it. You check and send it. | `review_then_self` |
+| 3 | I review, Platypus sends | You check the draft. Platypus sends it. | `review_then_auto` |
+
+- 屏幕上方一句 "Platypus knows each task's latest start date."，下方一句 "Demo: no email is ever sent."（IRB：测试中不会发出任何提醒）。**一开始一个都没选**，选了才能按 Continue；不想选就按 Skip for now。
+- **不会改变网站的任何行为。** 不管选哪个，网站都不发邮件，提醒仍然是"打开一个草稿、由人自己发"。选了以后，提醒编辑器（Private reminder）里多一行只读的小字，例如 "Your club chose: I review, Platypus sends (demo: nothing is sent)."，跳过就没有这一行。
+- **存在哪：** 按 Start workspace 时存进 `state.org.settings.reminderMode`；跳过（或用旧的 classic 设立页）时这个字段**不存在**。按 Keep current demo 不改社团数据，所以答案只在记录里。
+- **没有新增记录项**，下面这些原来就会记：
+  1. **选了哪个（按标签）、每一次改主意：** 每点一个选项记一条 `ui.change`：`role: "radio"`、`name` = 选项标题（例如 `I review, Platypus sends`）、`checked: true`、`group: "How should reminders go out?"`、`testid` = `reminder-mode-<值>`、`route: "/welcome/founder/reminders"`。改主意就是同一屏上连续几条 `ui.change`；时间线描述例如 `Ticked radio "Send automatically" in "How should reminders go out?" on /welcome/founder/reminders`。
+  2. **在这一屏停了多久：** `onboarding.attempts[].steps` 里 `founder.reminders` 的 `enter` 到 `leave`（或 `back`）的时间差；中途回来再进是新的一对。
+  3. **跳过：** 同一屏的 `skip` 紧接着 `leave`。
+  4. 按 Continue 那一下是 `ui.click`（`name: "Continue"`，`to: "/welcome/founder/confirm"`）。
+- **`reminderModeChoice` 怎么算（会话摘要，第 3.1 节）：** 只看 Start workspace / Keep current demo 之前的步骤。找这一屏最后一次 `leave`：前一步是 `skip` → `skipped`；否则取**离开之前、这个会话里、这一屏上最后一条勾上的 `ui.change`**，按 `testid` 换成值。日志里找不到（例如被 2000 条上限丢了）时，最新的会话再看 `state.org.settings.reminderMode`（只在按了 Start workspace 时）；都没有就是 `null`。刷新这一屏会保留草稿里的选择，刷新前那条 `ui.change` 仍在日志里，所以不影响。
+- 代码：屏幕 `src/onboarding/founder/ReminderMode.tsx`，文案 `src/onboarding/copy.ts`（`founder.reminders`），值和顺序 `src/data/reminderMode.ts`，推算 `src/lib/onboardingRecord.ts` 的 `reminderModeChoice`，时间线 `src/lib/timeline.ts`，测试 `src/test/onboardingReminderMode.test.ts`、`e2e/p3h-reminder-mode.spec.ts`。
