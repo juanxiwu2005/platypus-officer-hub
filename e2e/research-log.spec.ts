@@ -1,5 +1,5 @@
 import { FLOW_VERSION } from "../src/onboarding/record"
-import { fillMission } from "./ob-helpers"
+import { fillMission, passReminders } from "./ob-helpers"
 import { expect, test, type Page } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { onboardingCopy as c } from "../src/onboarding/copy"
@@ -39,6 +39,7 @@ async function session(page: Page) {
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
   await next(page)
+  await passReminders(page, "review_then_auto")                       // P3-H: the Reminders question
   await page.getByRole("button", { name: c.founder.confirm.start }).click()
   await expect(page.getByRole("heading", { level: 1, name: c.founder.invite.title })).toBeVisible()
   await page.getByRole("button", { name: c.founder.invite.today }).click()
@@ -48,6 +49,7 @@ async function session(page: Page) {
   await page.getByTestId("risk-list").getByRole("button", { name: "Remind" }).first().click()
   const panel = page.getByTestId("nudge-panel")
   await expect(panel).toBeVisible()
+  await expect(panel.getByTestId("reminder-mode-note")).toHaveText("Your club chose: I review, Platypus sends (demo: nothing is sent).")
   await panel.getByLabel("Preferred channel").selectOption("email")
   const draft = panel.getByRole("link", { name: "Open Gmail draft" })
   await expect(draft).toBeVisible()
@@ -87,7 +89,7 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   // shape, numbering and time
   expect(file).toMatchObject({ format: "platypus-export", formatVersion: 3, onboardingFlowVersion: FLOW_VERSION, demoToday: file.state.today })
   // the study session: begun by the study link. The browsing minutes before it is the same sitting: kept, with no session; nothing was cleared.
-  expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "planned", outcome: "completed", previousEntriesCleared: 0, olderEntriesLeftOut: 0 })
+  expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "planned", reminderModeChoice: "review_then_auto", outcome: "completed", previousEntriesCleared: 0, olderEntriesLeftOut: 0 })
   expect(file.sessions).toHaveLength(1)
   const start = log.findIndex(e => e.type === "ui.navigate" && e.payload.to === "/welcome/founder/name")
   expect(start).toBeGreaterThan(0)
@@ -118,6 +120,7 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   // 2026-11-07: typing in a field is recorded as "started / stopped typing", with the field's label and never its text
   i = find(i, e => e.type === "ui.edit" && p(e).event === "start" && String(p(e).field).includes(c.founder.name.field) && p(e).kind === "text", "typing began in the club name")
   i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/constitution", "Continue on the Name screen")
+  i = find(i, e => e.type === "ui.change" && p(e).route === "/welcome/founder/reminders" && p(e).role === "radio" && p(e).name === "I review, Platypus sends" && p(e).checked === true && p(e).testid === "reminder-mode-review_then_auto", "the Reminders answer")
   i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Start workspace")
   i = find(i, e => e.type === "completeSetup" && e.applied, "the club was created")
   i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.today && p(e).to === "/", "Go to Today")

@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom"
 import { useStore } from "../data/store"
 import { stepAt } from "./engine/flows"
 import { BUFFER_CHOICES, clubDraft, type ClubDraft, type FirstEvent } from "../data/settings"
-import type { DemoState, StepTemplate } from "../data/types"
+import type { DemoState, ReminderMode, StepTemplate } from "../data/types"
 import { orgSteps } from "../engine/playbooks"
 import { withOwners } from "../engine/workflow"
 import type { ConstitutionDoc } from "../components/setup/ConstitutionStep"
@@ -32,6 +32,7 @@ export interface OnboardingDraft {
   date: string                    // the confirmed event date
   source: string                  // where the prepared event came from (shown to the president)
   confirmed: boolean
+  reminderMode: ReminderMode | null   // the Reminders screen's answer (P3-H); null until one is chosen, and after Skip for now
   inviteCode: string
   skipped: string[]               // optional steps the president skipped (shown as hollow dots, never nagged)
 }
@@ -68,7 +69,7 @@ export function freshDraft(state: DemoState): OnboardingDraft {
     club, doc: null, reading: { status: "idle" }, applied: false, structureTouched: false, missionTouched: false,
     steps: withOwners(orgSteps(state), club.roles), workflowTouched: false,
     buffer: (BUFFER_CHOICES as readonly number[]).includes(state.org.settings.clubBufferBusinessDays) ? state.org.settings.clubBufferBusinessDays : 3,
-    sentence: "", event: null, date: "", source: "", confirmed: false,
+    sentence: "", event: null, date: "", source: "", confirmed: false, reminderMode: null,
     inviteCode: crypto.randomUUID(), skipped: [],
   }
 }

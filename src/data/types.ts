@@ -41,7 +41,15 @@ export interface OrgSettings {
   /** Who may create events: the president and VP (default), everyone, or the leads plus chosen officers. */
   eventCreators?: "leads" | "everyone" | "chosen"
   eventCreatorIds?: string[]
+  /**
+   * Phase 3 (P3-H, Juanxi 2026-11-08): how the president said reminders should reach officers, asked on the walkthrough's Reminders screen.
+   * Recorded for the study only: it changes no behaviour, and nothing in the app ever sends email (sendMode stays "review").
+   * Absent when the screen was skipped (or setup ran on the classic page). Old saved data without it stays valid.
+   */
+  reminderMode?: ReminderMode
 }
+/** The three answers on the walkthrough's Reminders screen, in the order shown (fixed). */
+export type ReminderMode = "auto_email" | "review_then_self" | "review_then_auto"
 
 /** Which events a workflow step applies to. Names, not functions, so a workflow can be saved with the club. */
 export type EventCheck = "funding" | "food" | "externalFood" | "onsiteFood" | "speaker" | "partner" | "travel" | "parking" | "advisor" | "access" | "safety" | "outdoor" | "alcohol" | "drone" | "media" | "prize" | "schoolApproval" | "content" | "rsvp"
