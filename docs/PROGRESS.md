@@ -273,6 +273,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-11-08 | **Handoff 改版 D-2a / D-2b：** ①交接时转给新人的未完成任务变成 Not claimed 并指给新人，新人点 "I've got it" 才算接手；②没有人担任的岗位，由社长代替卸任人写访谈、确认手册。执行方案 `docs/HANDOFF_EXECUTION_PLAN.md`。 | Juanxi |
 | 2026-11-02 | **Onboarding 策略第 9 节 Q2–Q6 按建议：** 社长不再填电话和 ASU ID；日历/Drive 链接和流程定制移出必经路径；邀请放到最后一屏并显示 Invited/Joined；社员的职业目标等问题可跳过；本方案与 M4 数据地基分开。**批准开始阶段 2（OB-04…OB-08）。** | Juanxi |
 | 2026-11-01 | **Onboarding 改版（策略 `docs/ONBOARDING_REDESIGN_STRATEGY.md`）：** ①Phase 3 参与者**首次进入网站先看到欢迎页**，可选 Start walkthrough（走社长流程，再预览社员视角）或 Explore the sample club，不需要账号，默认关闭的开关控制；②**参与者都是社长**，默认先走社长流程，不做"我是社员"入口；③**onboarding 过程要记录在浏览器里**（独立本机 key，只记行为不记内容，参与者自己导出）；④以 **11/6 为参考**尽量做完，Phase 3 和冻结的确切日期未定。**尚未答复：** 策略第 9 节 Q2–Q6（建议见文档）。 | Juanxi |
 | 2026-11-01 | **v1.6 预览直接用 `claude/determined-johnson-yrdxwf` 分支**（Juanxi：不必是 `integration/v1.6`）。预览改为 PR #10；PR #9 关闭。这个分支名带 AI 名字，违反 `AGENTS.md` 8.1，但仅限本次预览，合并到 `main` 之前不改名（改名会毁掉 PR #10 的预览，见 8.2）。 | Juanxi |
