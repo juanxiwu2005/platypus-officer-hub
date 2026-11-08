@@ -6,15 +6,24 @@ import { PageHead } from "../components/Page"
 import { useStore, useViewer } from "../data/store"
 import { useRail } from "../components/rail/RailContext"
 import { handoffDates } from "../engine/schedule"
-import { HANDBOOK_SECTIONS, handbookSources, localHandbook, sectionOf, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
-import { DOSSIER_BLOCKS, handoffRisk, roleDossier, type DossierRow } from "../lib/roleDossier"
+import { handbookSources, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
+import { HANDBOOK_SECTIONS, localHandbook, sectionOf } from "../lib/handbookDraft"
+import { roleDossier, type DossierBlock, type DossierRow } from "../lib/roleDossier"
+import { handoffRisk } from "../lib/handoffRisk"
 import { AI_WAIT_MS, aiMiss, callApi } from "../lib/api"
 import { Feedback } from "../components/Feedback"
-import { Avatar, Chain, Empty, Hover, Info, Ring, RiskMark, useStatusStyles, useTouch, type Stop } from "../components/ui"
+import { Avatar, Chain, Empty, Hover, Info, Ring, RISK_SHAPE, useStatusStyles, useTouch, type Stop } from "../components/ui"
 import { Bts, BtsRow } from "../components/Bts"
 import { fmtShort } from "../lib/dates"
 import type { HandbookSource, RoleHandoff } from "../data/types"
 
+const DOSSIER_BLOCKS: { key: DossierBlock; label: string }[] = [
+  { key: "calendar", label: "Calendar" }, { key: "inFlight", label: "In flight" }, { key: "people", label: "People" }, { key: "lessons", label: "Lessons" },
+]
+/** The same dot as the forecast's, with no hover card and no button of its own: it sits inside a Handoff card, which is already a button. The label is for screen readers. */
+function RiskMark({ color, label }: { color: "green" | "yellow" | "red"; label: string }) {
+  return <span className={`risk ${color}`} role="img" aria-label={label}><i aria-hidden="true"><svg viewBox="0 0 14 14" focusable="false">{RISK_SHAPE[color]}</svg></i></span>
+}
 const RISK_COLOR = { high: "red", medium: "yellow", low: "green" } as const
 const STEPS = ["Interview", "Handbook", "Confirmed", "Approved", "Handed over", "First week", "Day 30"]
 /** Seven checkpoints per role; the ring shows how many are done. */

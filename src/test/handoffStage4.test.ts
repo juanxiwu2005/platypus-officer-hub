@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import { reducer } from "../data/store"
-import { HANDBOOK_MAX, HANDBOOK_SECTIONS, handbookSources, localHandbook, sanitizeHandbook, sectionOf, sourceFingerprint } from "../lib/handbook"
-import { handoffRisk, roleDossier } from "../lib/roleDossier"
+import { handbookSources, sanitizeHandbook, sourceFingerprint } from "../lib/handbook"
+import { HANDBOOK_MAX, HANDBOOK_SECTIONS, localHandbook, sectionOf } from "../lib/handbookDraft"
+import { roleDossier } from "../lib/roleDossier"
+import { handoffRisk } from "../lib/handoffRisk"
 import type { Contact, DemoState } from "../data/types"
 import type { HandoffAction } from "../data/handoff"
 

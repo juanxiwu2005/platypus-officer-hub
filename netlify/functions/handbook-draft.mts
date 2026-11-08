@@ -1,7 +1,8 @@
 import type { Config } from "@netlify/functions"
 import { chatJSON, SYNC_AI_BUDGET_MS } from "../lib/ai.mts"
 import { BadRequest,fail,json,readJSON,str } from "../lib/http.mts"
-import { HANDBOOK_SYSTEM, handbookPicks, handbookRefs, salvageHandbookPicks, sanitizeHandbook } from "../../src/lib/handbook.ts"
+import { sanitizeHandbook } from "../../src/lib/handbook.ts"
+import { HANDBOOK_SYSTEM, handbookPicks, handbookRefs, salvageHandbookPicks } from "../../src/lib/handbookDraft.ts"
 import type { HandbookSource } from "../../src/data/types.ts"
 /**
  * /api/handbook/draft — the model picks and orders source records by short ref; every word shown is a record's own text.

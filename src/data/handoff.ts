@@ -114,12 +114,8 @@ function completeHandoff(s:DemoState,record:RoleHandoff,given:Successor|undefine
  if(succ.kind==="vacant"){
   if(role.fn==="president"||!holder)return s
  }else if(succ.kind==="new"){
-  const name=succ.name.trim()
-  if(!name||name.length>80||s.people.some(p=>p.name.toLowerCase()===name.toLowerCase()))return s
-  let id=`incoming:${s.handoff.id}:${role.id}`
-  for(let n=2;s.people.some(p=>p.id===id);n++)id=`incoming:${s.handoff.id}:${role.id}:${n}`
-  const {leftOn:_formerMark,incomingFor:_waiting,...profile}=holder??{...blankPerson(role.id),id,name,email:""}
-  incoming={...profile,id,name,email:uniqueDemoEmail(s,name),phone:"",roleId:role.id,personalBufferDays:1,retainBufferAtHandoff:false,bufferHistoryFrom:s.today,busyWeeks:[],careerGoal:"",interests:"",expectations:"",freeSlots:[],setupCompletedOn:null}
+  incoming=newPerson(s,role,succ.name)
+  if(!incoming)return s
  }else{
   const p=s.people.find(x=>x.id===succ.personId)
   if(!p||p.id===role.holderId||p.id===record.outgoingId)return s
@@ -160,10 +156,17 @@ function nameSuccessor(s:DemoState,record:RoleHandoff,succ:{kind:"new";name:stri
   if(!p||p.incomingFor||p.id===role.holderId||p.id===record.outgoingId||s.roles.some(r=>r.holderId===p.id&&r.fn==="president"))return s
   return set(p.id)
  }
- const name=succ.name.trim()
- if(!name||name.length>80||s.people.some(p=>p.name.toLowerCase()===name.toLowerCase()))return s
- let id=`incoming:${s.handoff.id}:${role.id}`
- for(let n=2;s.people.some(p=>p.id===id);n++)id=`incoming:${s.handoff.id}:${role.id}:${n}`
- const person:Person={...blankPerson(role.id),id,name,email:uniqueDemoEmail(s,name),incomingFor:role.id,bufferHistoryFrom:s.today}
- return set(id,[...s.people,person])
+ const person=newPerson(s,role,succ.name)
+ if(!person)return s
+ person.incomingFor=role.id
+ return set(person.id,[...s.people,person])
+}
+
+/** A new fictional person for a role, with a free id, name and example.org email; null when the name is empty, too long or already in the club. */
+function newPerson(s:DemoState,role:Role,rawName:string):Person|null{
+ const name=rawName.trim()
+ if(!name||name.length>80||s.people.some(p=>p.name.toLowerCase()===name.toLowerCase()))return null
+ let id=`incoming:${s.handoff!.id}:${role.id}`
+ for(let n=2;s.people.some(p=>p.id===id);n++)id=`incoming:${s.handoff!.id}:${role.id}:${n}`
+ return {...blankPerson(role.id),id,name,email:uniqueDemoEmail(s,name),bufferHistoryFrom:s.today}
 }

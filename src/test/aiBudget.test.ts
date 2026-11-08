@@ -15,7 +15,7 @@ import type { HandbookSource } from "../data/types"
 import { commandContext } from "../lib/commands"
 import { aiSnapshot } from "../lib/aiContext"
 import { reviewPayload } from "../lib/eventReview"
-import { handbookPicks, localHandbook, salvageHandbookPicks } from "../lib/handbook"
+import { handbookPicks, localHandbook, salvageHandbookPicks } from "../lib/handbookDraft"
 import { createIntent, respond, type ChatCard } from "../lib/assistant"
 import { AI_WAIT_MS, aiMiss, ApiError } from "../lib/api"
 
