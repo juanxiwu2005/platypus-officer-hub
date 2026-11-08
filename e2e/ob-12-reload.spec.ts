@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
-import { MISSION, onboardingRecord } from "./ob-helpers"
+import { MISSION, onboardingRecord, passReminders } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 
 // P3-D: a reload in the middle of the founder flow (or a phone reloading the tab after switching apps) keeps everything the president typed and
@@ -101,6 +101,7 @@ test("a reload on Team keeps edited roles and people; a reload on First event ke
   await expect(page.getByRole("button", { name: "5 days" })).toHaveAttribute("aria-pressed", "true")
   await expect(page.getByRole("button", { name: c.next, exact: true })).toBeEnabled()
   await cont(page)
+  await passReminders(page, "auto_email")                                  // P3-H (its own reload is in e2e/p3h-reminder-mode.spec.ts)
 
   await h1(page, c.founder.confirm.title)
   await page.reload()
@@ -124,8 +125,9 @@ test("a reload after Skip for now on First event keeps the skip, and Confirm sta
   await page.getByRole("button", { name: c.skip }).click()
   await page.getByRole("button", { name: c.skip }).click()
   await page.getByRole("button", { name: c.skip }).click()                 // First event
+  await passReminders(page)                                                // Reminders
   await h1(page, c.founder.confirm.title)
-  await reloadAfterSave(page, d => d.skipped.includes("founder.first-event"))
+  await reloadAfterSave(page, d => d.skipped.includes("founder.first-event") && d.skipped.includes("founder.reminders"))
   await expect(page.getByTestId("confirm-no-event")).toBeVisible()
   await expect(page.getByTestId("confirm-summary")).toContainText("Maple Club")
 })
@@ -140,6 +142,7 @@ test("after a finished attempt, the study link starts a fresh draft", async ({ p
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
   await cont(page)
+  await passReminders(page)
   await page.getByRole("button", { name: c.founder.confirm.start }).click()
   await page.getByRole("button", { name: c.founder.invite.today }).click()
   await expect(page.locator("main h1")).toHaveText("Today")

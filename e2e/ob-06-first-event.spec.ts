@@ -55,7 +55,7 @@ test("fastest path: example, Plan it, a chain with rule-engine dates, Continue",
   expect(items).toEqual(expected)
   await expect(page.getByRole("button", { name: onboardingCopy.next })).toBeEnabled()
   await page.getByRole("button", { name: onboardingCopy.next }).click()
-  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
+  await expect(page).toHaveURL(/#\/welcome\/founder\/reminders$/)          // P3-H: Reminders comes before Confirm
 })
 
 test("before Plan it there is no chain, and Continue waits", async ({ page }) => {
@@ -95,8 +95,8 @@ test("the buffer is a five-way control; turning it re-plans the dates (a club wh
   // The choice is kept in the draft: Continue and Back bring the same value.
   await group.getByRole("button", { name: "5 days" }).click()
   await page.getByRole("button", { name: onboardingCopy.next }).click()
-  await expect(page).toHaveURL(/confirm$/)
-  await page.goBack()      // the Confirm screen is still a placeholder with no Back button of its own
+  await expect(page).toHaveURL(/reminders$/)
+  await page.goBack()
   await expect(page).toHaveURL(/first-event$/)
   await expect(page.getByRole("group", { name: /Club buffer/ }).getByRole("button", { name: "5 days" })).toHaveAttribute("aria-pressed", "true")
   await expect(chain(page)).toBeVisible()      // the planned event survives the round trip
