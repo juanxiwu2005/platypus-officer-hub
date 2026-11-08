@@ -1,4 +1,4 @@
-> **2026-11-08 · Onboarding 新增 Reminders 屏 · Juanxi 批准合并（Claude 整合；P3-H 由 worktree 子 agent 做）**
+> **2026-11-08 · Onboarding 新增 Reminders 屏 · 已上线（PR #13，合并提交 `2a043f6`）· Juanxi 批准合并（Claude 整合；P3-H 由 worktree 子 agent 做）**
 > **做了什么：** 社长流程在 First event 之后、Confirm 之前新增一屏 "How should reminders go out?"：三个选项按 Juanxi 给的顺序固定显示（Send automatically / I review, then I send / I review, Platypus sends），不预选，选了才能 Continue，可 Skip for now；底部保留 "Demo: no email is ever sent."（Juanxi 确认）。选择存进 `org.settings.reminderMode`，Confirm 和提醒编辑器各显示一行，**网站不发任何邮件**。导出的 `session` 新增 `reminderModeChoice`（三种之一 / `skipped` / null），每次改选都在 `ui.change` 里。流程版本 `ob-4`；数据字典第 12 节；runbook 第 4 步加了观察点说明；AGENTS 6d 已更新。
 > **测试：** lint、类型检查、构建通过；1048 个单元测试全过；相关页面测试 126 通过 / 1 跳过 / 1 失败（`ob-12:208` 组织图，单独重跑 3/3 通过，负载偶发）。新 spec `p3h-reminder-mode`（桌面+手机 10/10）覆盖三个选项、跳过、刷新保留、不预选、无障碍、手机排版、导出。**未验证：** Safari/iOS。
 
