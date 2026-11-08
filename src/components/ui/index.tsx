@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type 
 import { useStore } from "../../data/store"
 import { describeHover, publishUi, routeOf } from "../../lib/uiLog"
 import type { DemoState, Node, NodeStatus } from "../../data/types"
-import type { ForecastResult } from "../../engine/forecast"
+import type { ForecastColor, ForecastResult } from "../../engine/forecast"
 
 /**
  * The five building blocks of the v1.1 interface (AGENTS.md §7):
@@ -192,6 +192,11 @@ export function RiskDot({ result, withWord }: { result: ForecastResult; withWord
       <button type="button" className={`risk ${result.color}`} aria-label={`${RISK_WORD[result.color]}: ${result.reasons.join(" ")}`}><i aria-hidden="true"><svg viewBox="0 0 14 14" focusable="false">{RISK_SHAPE[result.color]}</svg></i>{withWord && <span>{RISK_WORD[result.color]}</span>}</button>
     </Hover>
   </span>
+}
+
+/** The same dot as RiskDot, with no hover card and no button of its own: for a place that is already inside a button (a Handoff card). The label is for screen readers. */
+export function RiskMark({ color, label }: { color: ForecastColor; label: string }) {
+  return <span className={`risk ${color}`} role="img" aria-label={label}><i aria-hidden="true"><svg viewBox="0 0 14 14" focusable="false">{RISK_SHAPE[color]}</svg></i></span>
 }
 
 export function Empty({ children }: { children: ReactNode }) {

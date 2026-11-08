@@ -6,14 +6,16 @@ import { PageHead } from "../components/Page"
 import { useStore, useViewer } from "../data/store"
 import { useRail } from "../components/rail/RailContext"
 import { handoffDates } from "../engine/schedule"
-import { handbookSources, localHandbook, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
+import { HANDBOOK_SECTIONS, handbookSources, localHandbook, sectionOf, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
+import { DOSSIER_BLOCKS, handoffRisk, roleDossier, type DossierRow } from "../lib/roleDossier"
 import { AI_WAIT_MS, aiMiss, callApi } from "../lib/api"
 import { Feedback } from "../components/Feedback"
-import { Avatar, Chain, Empty, Hover, Info, Ring, useStatusStyles, useTouch, type Stop } from "../components/ui"
+import { Avatar, Chain, Empty, Hover, Info, Ring, RiskMark, useStatusStyles, useTouch, type Stop } from "../components/ui"
 import { Bts, BtsRow } from "../components/Bts"
 import { fmtShort } from "../lib/dates"
-import type { RoleHandoff } from "../data/types"
+import type { HandbookSource, RoleHandoff } from "../data/types"
 
+const RISK_COLOR = { high: "red", medium: "yellow", low: "green" } as const
 const STEPS = ["Interview", "Handbook", "Confirmed", "Approved", "Handed over", "First week", "Day 30"]
 /** Seven checkpoints per role; the ring shows how many are done. */
 export function roleProgress(r: RoleHandoff | undefined): { done: number; stage: string } {
@@ -39,6 +41,9 @@ export default function Handoff() {
     const state_ = !state.handoff ? "todo" : next && state.today >= next ? "done" : state.today >= date ? "now" : "todo"
     return { key: label, label, state: state_, hint: <><b>{label}</b><span className="hc-line">{state.handoff ? fmtShort(date) : "Starts when the season starts"}</span></> }
   })
+  // The president looks at the riskiest role first; roles already handed over go last.
+  const rolesByRisk = state.roles.map((role, i) => ({ role, i, risk: handoffRisk(state, role.id), done: !!state.handoffRoles.find(h => h.roleId === role.id)?.completed }))
+    .sort((a, b) => Number(a.done) - Number(b.done) || b.risk.score - a.risk.score || a.i - b.i)
   return <>
     <PageHead path="/handoff" actions={canNudge && <form className="add-row" onSubmit={e => { e.preventDefault(); dispatch({ type: "handoffAction", action: { kind: "start", from, to } }) }}>
       <input type="date" aria-label="Season starts" value={from} onChange={e => setFrom(e.target.value)} />
@@ -51,7 +56,7 @@ export default function Handoff() {
       <BtsRow><Bts label="Rule engine">Five checkpoints from the season start date: the interview, handbook, first-week and day-30 dates are worked out from it (handoffDates). A checkpoint is done once the next one's date has come, now once its own date has come.</Bts></BtsRow>
     </section>
     <section className="relay-grid" data-testid="role-handbooks" aria-label="Role handbooks">
-      {state.roles.map(role => {
+      {rolesByRisk.map(({ role, risk }) => {
         const r = state.handoffRoles.find(x => x.roleId === role.id)
         const out = state.people.find(p => p.id === (r?.outgoingId ?? role.holderId))
         const inc = state.people.find(p => p.id === r?.incomingId)
@@ -63,7 +68,7 @@ export default function Handoff() {
             <svg viewBox="0 0 40 12" aria-hidden="true"><path d="M2 6h32M28 1l6 5-6 5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
             <Avatar name={inc?.name} title={inc?.name ?? "Incoming officer not named yet"} />
           </span>
-          <span className="relay-foot"><Ring value={p.done} max={7} size={34} label={`${p.done} of 7 steps`} /><span className={`pill sm ${p.stage === "Complete" ? "" : "quiet"}`} style={{ "--pill": (p.stage === "Complete" ? statusStyles.done : p.done ? statusStyles.accepted : statusStyles.unclaimed).color } as CSSProperties}>{p.stage}</span></span>
+          <span className="relay-foot">{!r?.completed && <RiskMark color={RISK_COLOR[risk.level]} label={`Handover risk ${risk.level}: ${risk.reasons.join(", ")}`} />}<Ring value={p.done} max={7} size={34} label={`${p.done} of 7 steps`} /><span className={`pill sm ${p.stage === "Complete" ? "" : "quiet"}`} style={{ "--pill": (p.stage === "Complete" ? statusStyles.done : p.done ? statusStyles.accepted : statusStyles.unclaimed).color } as CSSProperties}>{p.stage}</span></span>
         </button>
       })}
     </section>
@@ -76,8 +81,30 @@ export function HandoffRoleDetail({ roleId }: { roleId: string }) {
   const role = state.roles.find(r => r.id === roleId)
   const record = state.handoffRoles.find(r => r.roleId === roleId)
   if (!role) return <Empty>This role no longer exists.</Empty>
-  if (!record) return <section className="form-stack"><h2>{role.displayName} handbook</h2><p className="small muted">Hand this role over to draft its handbook. It will draw on these records:</p><ul className="small">{handbookSources(state, role.id).slice(0, 8).map(s => <li key={s.id}>{s.text}</li>)}</ul><StartRole roleId={role.id} /></section>
+  if (!record) return <section className="form-stack"><h2>{role.displayName} handbook</h2><p className="small muted">Hand this role over to draft its handbook. It will draw on this dossier:</p><Dossier roleId={role.id} open /><StartRole roleId={role.id} /></section>
   return <RolePanel record={record} title={`${role.displayName} handbook`} />
+}
+
+/**
+ * The role dossier (stage 4): four blocks worked out from the club's own records, any time, not only in handoff season. Every row says
+ * what it comes from and opens the record. Leads-only contacts show only to people allowed to see them.
+ */
+function Dossier({ roleId, open = false }: { roleId: string; open?: boolean }) {
+  const { state } = useStore()
+  const rail = useRail()
+  const d = roleDossier(state, roleId)
+  const total = Object.values(d.blocks).flat().length
+  const openRow = (row: DossierRow) => row.contactId ? <button type="button" className="row-btn" onClick={() => rail.show({ kind: "partner", id: row.contactId! })}>{row.text}</button>
+    : row.nodeId ? <Link to={`/tasks?node=${encodeURIComponent(row.nodeId)}`}>{row.text}</Link> : <span>{row.text}</span>
+  return <details className="step-card dossier" open={open} data-testid="role-dossier">
+    <summary><b>Role dossier</b> <span className="small muted">{total} records{d.gaps ? ` · ${d.gaps} gap${d.gaps === 1 ? "" : "s"}` : ""}</span></summary>
+    {DOSSIER_BLOCKS.map(({ key, label }) => <div key={key} data-testid={`dossier-${key}`}>
+      <p className="small"><b>{label}</b> <span className="muted">{d.blocks[key].length}</span></p>
+      {d.blocks[key].length ? <ul className="small">{d.blocks[key].slice(0, 6).map(row => <li key={row.id}>{openRow(row)}{row.gap && <span className="warn-text"> · gap</span>}</li>)}</ul>
+        : <p className="small muted">{key === "lessons" ? "Nothing recorded yet." : key === "people" ? "No contacts owned by this role." : "None."}</p>}
+      {d.blocks[key].length > 6 && <p className="small muted">and {d.blocks[key].length - 6} more</p>}
+    </div>)}
+  </details>
 }
 
 /** Starts the handoff for one role, without a club-wide season (a president action). */
@@ -97,6 +124,8 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
   const sources = r.completed ? r.sources : handbookSources(state, r.roleId), fresh = r.fingerprint === sourceFingerprint(sources)
   const act = (action: import("../data/handoff").HandoffAction) => dispatch({ type: "handoffAction", action })
   const p = roleProgress(r)
+  const risk = handoffRisk(state, r.roleId)
+  const upcoming = roleDossier(state, r.roleId).blocks.calendar.filter(row => row.id.startsWith("deadline:"))
   const successor: Successor = who === "new" ? { kind: "new", name } : who === "open" ? { kind: "vacant" } : { kind: "existing", personId: who }
   const named = !r.completed && r.incomingId ? state.people.find(p => p.id === r.incomingId) : undefined
   const takesOver = who !== "new" && who !== "open"
@@ -125,6 +154,8 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
     <h2>{title}</h2>
     <div className="progress-line"><div style={{ width: `${(p.done / 7) * 100}%` }} /></div>
     <p className="small muted">{p.done} of 7 · next: {p.stage} · outgoing {state.people.find(x => x.id === r.outgoingId)?.name ?? "—"}</p>
+    {!r.completed && <p className="small" data-testid="handoff-risk"><RiskMark color={RISK_COLOR[risk.level]} label={`Handover risk ${risk.level}`} /> Handover risk: <b>{risk.level}</b> · {risk.reasons.join(" · ")}</p>}
+    <Dossier roleId={r.roleId} />
 
     <article className="step-card">
       <header><span className="step-n">1</span><b>Outgoing interview</b><Info>Fictional example only. One point per line. Never paste research transcripts or real participant details.</Info></header>
@@ -139,7 +170,16 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
       {!!r.entries.length && <div data-testid="handbook-draft" className="form-stack">
         <p className="small muted">{r.source}{r.model ? ` · ${r.model}` : ""}</p>
         {!fresh && !r.completed && <p className="warn-text small">Sources changed. Draft again before confirming.</p>}
-        <ol className="entries">{r.entries.map((entry, i) => { const source = sources.find(s => s.id === entry.sourceId); return <li key={entry.sourceId}><span>{entry.text}</span> <details className="src"><summary>Source {i + 1}: {entry.sourceId}</summary><blockquote>{source?.text ?? entry.text}</blockquote>{source?.nodeId && <Link to={`/tasks?node=${encodeURIComponent(source.nodeId)}`}>Open task record</Link>}</details></li> })}</ol>
+        {(() => {
+          // The handbook reads in sections (interview, calendar, open work, people, lessons); the AI's order holds within each.
+          const sourceOf = (id: string, text: string): HandbookSource => sources.find(s => s.id === id) ?? { id, kind: id.split(":")[0] as HandbookSource["kind"], text }
+          let n = 0
+          return HANDBOOK_SECTIONS.map(name => {
+            const rows = r.entries.filter(e => sectionOf(sourceOf(e.sourceId, e.text)) === name)
+            if (!rows.length) return null
+            return <div key={name}><p className="small"><b>{name}</b></p><ol className="entries" start={n + 1}>{rows.map(entry => { n++; const source = sources.find(s => s.id === entry.sourceId); return <li key={entry.sourceId}><span>{entry.text}</span> <details className="src"><summary>Source {n}: {entry.sourceId}</summary><blockquote>{source?.text ?? entry.text}</blockquote>{source?.nodeId && <Link to={`/tasks?node=${encodeURIComponent(source.nodeId)}`}>Open task record</Link>}</details></li> })}</ol></div>
+          })
+        })()}
         <Feedback id={`handbook:${r.roleId}:${r.fingerprint}`} text={r.entries.map(e => e.text).join("\n")} />
       </div>}
     </article>
@@ -175,6 +215,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
       <header><span className="step-n">5</span><b>First week</b><span className="small muted">{r.checks.length}/{WEEK_ONE.length}</span></header>
       {WEEK_ONE.map(item => <label key={item.id} className="check-label"><input type="checkbox" disabled={!r.completed || (!canNudge && state.viewerId !== r.incomingId)} checked={r.checks.includes(item.id)} onChange={() => act({ kind: "check", roleId: r.roleId, itemId: item.id })} />{touch ? <><span className="small">{item.text}</span><Info label={`Where "${item.text}" comes from`}>{item.source}</Info></> : <Hover card={item.source}><span className="small">{item.text}</span></Hover>}</label>)}
       {!r.completed && <p className="small muted">Opens for the new officer once the role is handed over.</p>}
+      {upcoming.length > 0 && <div data-testid="first-30-days"><p className="small"><b>Next 30 days</b></p><ul className="small">{upcoming.slice(0, 5).map(row => <li key={row.id}><Link to={`/tasks?node=${encodeURIComponent(row.nodeId!)}`}>{row.text}</Link></li>)}</ul></div>}
       <BtsRow><Bts label="Source">{[...new Set(WEEK_ONE.map(item => item.source))].join(" · ")}</Bts></BtsRow>
       <button className="btn" disabled={!r.completed || r.reviewed || state.today < handoffDates(start).review || (!canNudge && state.viewerId !== r.incomingId)} onClick={() => act({ kind: "review", roleId: r.roleId })}>{r.reviewed ? "Day-30 review recorded" : `Record day-30 review (${fmtShort(handoffDates(start).review)})`}</button>
     </article>

@@ -529,7 +529,7 @@ export interface DemoState {
 }
 
 
-export interface HandbookSource { id:string; kind:"task"|"interview"; text:string; nodeId?:string }
+export interface HandbookSource { id:string; kind:"task"|"interview"|"deadline"|"step"|"contact"|"lesson"; text:string; nodeId?:string }
 export interface HandbookEntry { sourceId:string; text:string }
 export interface RoleHandoff { roleId:string; outgoingId:string|null; interview:string[]; entries:HandbookEntry[]; sources:HandbookSource[]; startDate?:string; fingerprint:string; source:string; model:string|null; confirmed:boolean; approved:boolean; checks:string[]; completed:boolean; reviewed:boolean; incomingId:string|null }
 export interface OutputReport { id:string; outputId:string; text:string; reportedBy:string; on:string; resolved:boolean }
