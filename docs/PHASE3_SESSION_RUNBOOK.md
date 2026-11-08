@@ -13,7 +13,7 @@
 2. **让参与者打开一个无痕窗口**（Chrome：Incognito；Safari：Private）。在线测试时，请他只共享这个浏览器窗口。
 3. **发测试链接：** `https://platypus-officer-hub.netlify.app/#/start`
    - 打开后直接进 setup，不经过欢迎页。
-   - 同一个窗口里**不要再打开一次这个链接**，否则会开始新的一次记录、重新从空白开始。
+   - 测试中途不要重新打开链接（会开始新的一次记录、setup 重新从空白开始）；如果打开了，数据不会丢，导出文件里会有两个 session。
    - 不小心刷新没关系，填的内容会留着。
 4. **任务 (f)：setup。** 让他按组织卡片填一个虚构社团。First event 那一屏可以计划一场，也可以按 "Skip for now" 跳过；这是观察点，不要提示他选哪个。
 5. Start workspace 之后，社团里会有他计划的活动（如果有）加上三个示例活动（Networking Night、Spring Speaker Night、Founder Dinner）和示例任务。接着做任务卡片 (a)–(e)。
