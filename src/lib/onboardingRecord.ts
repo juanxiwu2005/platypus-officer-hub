@@ -1,3 +1,6 @@
+import type { LogEntry, ReminderMode } from "../data/types"
+import { isReminderMode, REMINDER_MODES, reminderModeTestId } from "../data/reminderMode"
+
 /** Browser-only evidence for the optional onboarding walkthrough. It never stores form values. */
 export type OnboardingEvent = "enter" | "leave" | "back" | "skip" | "complete" | "exit"
 
@@ -114,6 +117,36 @@ export function firstEventChoice(attempt: OnboardingAttempt | undefined, step = 
   const own = attempt.steps.filter(s => s.step === step && s.at <= until)
   for (let i = own.length - 1; i >= 0; i--) if (own[i].event === "leave") return own[i - 1]?.event === "skip" ? "skipped" : "planned"
   return null
+}
+
+export type ReminderModeChoice = ReminderMode | "skipped"
+export const REMINDERS_STEP = "founder.reminders"
+export const REMINDERS_ROUTE = "/welcome/founder/reminders"
+
+/**
+ * The Reminders screen's answer (P3-H), from what is already recorded, nothing new: the step events say whether the screen was last left
+ * forward with Skip for now ("skipped") or Continue; for Continue, the last option ticked on that screen before leaving it is read from the
+ * interaction log (`ui.change` with the radio's data-testid, in the attempt's session). `stored` (org.settings.reminderMode, when this attempt
+ * pressed Start workspace) is used only if the log no longer has that tick. null: the screen was never left forward (or the answer cannot be read).
+ */
+export function reminderModeChoice(attempt: OnboardingAttempt | undefined, log: readonly LogEntry[], stored?: unknown): ReminderModeChoice | null {
+  if (!attempt) return null
+  const until = attempt.setupCompletedAt ?? Infinity
+  const own = attempt.steps.filter(s => s.step === REMINDERS_STEP && s.at <= until)
+  let i = own.length - 1
+  while (i >= 0 && own[i].event !== "leave") i--
+  if (i < 0) return null
+  if (own[i - 1]?.event === "skip") return "skipped"
+  const leftAt = own[i].at
+  for (let j = log.length - 1; j >= 0; j--) {
+    const e = log[j]
+    if (e.type !== "ui.change" || e.at > leftAt || e.at < attempt.startedAt || (attempt.sessionId && e.session !== attempt.sessionId)) continue
+    const p = (e.payload ?? {}) as Record<string, unknown>
+    if (p.route !== REMINDERS_ROUTE || p.checked !== true) continue
+    const mode = REMINDER_MODES.find(m => reminderModeTestId(m) === p.testid)
+    if (mode) return mode
+  }
+  return isReminderMode(stored) ? stored : null
 }
 
 /** The attempt's latest moment (its start, a step, or its end): what the 6-hour session clean-up compares. */

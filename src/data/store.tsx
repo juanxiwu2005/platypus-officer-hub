@@ -19,11 +19,11 @@ import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type
 import { usableGrant } from "../lib/officerLinks"
 import type { OfficerGrant } from "./types"
 import { startWorkspace, resetWorkflow, saveClubSettings, saveProfile, saveWorkflow, type ClubDraft, type ProfilePatch } from "./settings"
-import type { BoardSettings, NodeStatus, OrgSettings } from "./types"
+import type { BoardSettings, NodeStatus, OrgSettings, ReminderMode } from "./types"
 import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
 import { addContact, addOrganization, deleteContact, deleteOrganization, logInteraction, updateContact, updateInteraction, updateOrganization, type ContactInput, type ContactPatch, type InteractionInput, type OrgPatch } from "./crm"
 import { syncBudgetFlow } from "../engine/eventBudget"
-import { attemptLastAt, firstEventChoice, loadOnboardingRecord, rearm, type OnboardingAttempt, type OnboardingRecord } from "../lib/onboardingRecord"
+import { attemptLastAt, firstEventChoice, loadOnboardingRecord, rearm, reminderModeChoice, type OnboardingAttempt, type OnboardingRecord } from "../lib/onboardingRecord"
 import { azTime, currentSession, keeper, loadBook, onSessionStart, SITTING_MS, type Book, type Keep, type StudySession } from "../lib/studySession"
 import { FLOW_VERSION } from "../onboarding/record"
 import { onUi, type UiEvent } from "../lib/uiLog"
@@ -146,7 +146,7 @@ export type Action =
   | { type: "officerAction"; token: string; reply: TaskReply | "claim"; input?: ReplyInput }
   | { type: "saveClubSettings"; draft: ClubDraft; defaults: OrgSettings }
   | { type: "saveProfile"; personId: string; patch: ProfilePatch; invite?: string }
-  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number; workflow?: StepTemplate[] }
+  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number; workflow?: StepTemplate[]; reminderMode?: ReminderMode | null }
   | { type: "saveWorkflow"; steps: StepTemplate[] }
   | { type: "resetWorkflow" }
 
@@ -448,7 +448,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
     }
     case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
     case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
-    case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow)
+    case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode)
     case "saveWorkflow": return saveWorkflow(state, action.steps)
     case "resetWorkflow": return resetWorkflow(state)
   }
@@ -708,8 +708,11 @@ export function appendUiLog(log: LogEntry[], actor: string, ev: UiEvent, at: num
 
 const iso = (ms: number | undefined) => (typeof ms === "number" && Number.isFinite(ms) ? new Date(ms).toISOString() : null)
 
-/** One session in the export: when it began, when setup ended and how, how many of the file's entries are from it, and what its start removed (counts only). */
-function sessionItem(session: StudySession, walk: OnboardingAttempt | undefined, entries: number) {
+/**
+ * One session in the export: when it began, when setup ended and how, how many of the file's entries are from it, and what its start removed (counts only).
+ * `log` is the file's entries (the Reminders answer is read from them); `stored` is the saved org.settings.reminderMode, passed only for the latest session.
+ */
+function sessionItem(session: StudySession, walk: OnboardingAttempt | undefined, entries: number, log: LogEntry[], stored?: unknown) {
   return {
     id: session.id,
     startedAt: iso(session.startedAt),
@@ -722,6 +725,8 @@ function sessionItem(session: StudySession, walk: OnboardingAttempt | undefined,
     setupCompletedAtAz: azTime(walk?.setupCompletedAt) || null,
     setupChoice: walk?.setupChoice ?? null,
     firstEventChoice: firstEventChoice(walk),
+    // P3-H: the Reminders screen's answer ("auto_email" | "review_then_self" | "review_then_auto" | "skipped"), or null. Start workspace's saved value is a fallback only.
+    reminderModeChoice: reminderModeChoice(walk, log, walk?.setupChoice === "start-workspace" ? stored : undefined),
     entries,
     previousEntriesCleared: session.previousEntriesCleared,
     previousAttemptsCleared: session.previousAttemptsCleared,
@@ -743,7 +748,7 @@ export function buildExport(state: DemoState, log: LogEntry[], exportedAt: numbe
   const attempts = onboarding.attempts.filter(a => keep(attemptLastAt(a), a.sessionId))
   const record: OnboardingRecord = attempts.length === onboarding.attempts.length ? onboarding : { attempts }
   const listed = book.sessions.filter(s => s === latest || entries.some(e => e.session === s.id) || attempts.some(a => a.sessionId === s.id))
-  const sessions = listed.map(s => sessionItem(s, attempts.find(a => a.sessionId === s.id && a.entry === "start"), entries.filter(e => e.session === s.id).length))
+  const sessions = listed.map(s => sessionItem(s, attempts.find(a => a.sessionId === s.id && a.entry === "start"), entries.filter(e => e.session === s.id).length, entries, s === latest ? state.org.settings.reminderMode : undefined))
   const sum = (k: "previousEntriesCleared" | "previousAttemptsCleared") => listed.reduce((n, s) => n + s[k], 0)
   const firstSeq = entries[0]?.seq ?? null
   // Numbers missing before the first entry, minus those the 6-hour clean-up removed: what the 2,000-entry cap dropped.
