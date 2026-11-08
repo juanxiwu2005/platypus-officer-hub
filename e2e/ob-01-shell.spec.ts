@@ -9,7 +9,7 @@ const scan = async (page: import("@playwright/test").Page) => (await new AxeBuil
 test("the founder flow shows a progress chain that follows the route", async ({ page }) => {
   await page.goto("/#/welcome/founder/name")
   const chain = page.getByRole("list", { name: "Walkthrough progress" })
-  await expect(chain.getByRole("listitem")).toHaveCount(7)
+  await expect(chain.getByRole("listitem")).toHaveCount(8)
   await expect(chain.locator("[aria-current=step]")).toHaveText(/Name/)
   await page.goto("/#/welcome/founder/team")
   await expect(chain.locator("[aria-current=step]")).toHaveText(/Team/)

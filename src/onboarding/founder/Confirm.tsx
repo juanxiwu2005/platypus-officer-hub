@@ -8,10 +8,11 @@ import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
 import { recordSetup } from "../record"
-import { summaryLine } from "./confirm/summary"
+import { reminderLine, summaryLine } from "./confirm/summary"
 
 const c = onboardingCopy.founder.confirm
 const FIRST_EVENT = "founder.first-event"
+const REMINDERS = "founder.reminders"
 
 /**
  * Screen 6 of the founder flow (required): one sentence says what will be created, then Start workspace creates it with exactly the arguments the
@@ -32,6 +33,8 @@ export function Confirm() {
   const ready = planned || noEvent
   // What Start passes on: the planned event and its date, or (after Skip for now) no event and no date.
   const event = noEvent ? null : draft.event, date = noEvent ? "" : draft.date
+  // The Reminders answer (P3-H), or none after Skip for now. It is only stored for the study; nothing is ever sent.
+  const reminderMode = draft.skipped.includes(REMINDERS) ? null : draft.reminderMode
   const replaces = state.org.setupCompletedOn !== null
   if (!flow) return null
 
@@ -42,7 +45,7 @@ export function Confirm() {
     if (error) { setProblem(error); return }
     started.current = true
     recordSetup("start-workspace")
-    dispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps })
+    dispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, reminderMode })
     clear()
     navigate("/welcome/founder/invite")
   }
@@ -53,6 +56,7 @@ export function Confirm() {
       ? <p className="ob-lead" data-testid="confirm-summary">{summaryLine(draft.club, planned && event ? event.name : null, date)}</p>
       : <p className="ob-lead">{c.missing}</p>}
     {noEvent && <p className="small muted" data-testid="confirm-no-event">{c.noEvent}</p>}
+    {ready && reminderMode && <p className="small muted" data-testid="confirm-reminders">{reminderLine(reminderMode)}</p>}
     {ready && replaces && <p className="ob-c9-warn" data-testid="replace-warning">{c.replaceWarning}</p>}
     {problem && <p role="alert" className="ob-c9-error">{problem}</p>}
     <div className="ob-actions">
