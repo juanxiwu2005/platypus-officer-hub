@@ -2,16 +2,28 @@
 
 给研究者（Juanxi）看的说明：参与者在 Settings 页按 **Export my data** 下载的那个 JSON 文件里有什么、每个字段是什么意思、怎么从里面算出任务用时、错误次数和"有没有点开引用来源"，以及它**做不到**什么。
 
-- 适用版本：`formatVersion: 2`（2026-11-07 起）。旧的 `formatVersion: 1` 文件也能用下面的 CSV 脚本读，只是没有界面操作记录。
+- 适用版本：`formatVersion: 3`（2026-11-07 起，加了"研究会话"，见第 1.1 节）。旧的 `formatVersion: 1`、`2` 文件也能用下面的 CSV 脚本读：1 没有界面操作记录；1 和 2 没有会话，文件里是这个浏览器里的全部记录。
 - 文件里只有虚构社团的数据和参与者在原型里的操作记录。**没有任何东西会自动上传**：文件只在参与者自己按按钮时下载到他自己的电脑，再由他（Zoom 上）发邮件给研究者。
-- 本文件和代码对应：日志结构 `src/data/types.ts` 的 `LogEntry`；界面事件 `src/lib/uiLog.ts`；写入与去噪 `src/data/store.tsx` 的 `appendUiLog`；时间线 `src/lib/timeline.ts`；导出 `buildExport`；CSV 脚本 `scripts/export-to-csv.mjs`。
+- 本文件和代码对应：日志结构 `src/data/types.ts` 的 `LogEntry`；界面事件 `src/lib/uiLog.ts`；写入与去噪 `src/data/store.tsx` 的 `appendUiLog`；研究会话 `src/lib/studySession.ts`；时间线 `src/lib/timeline.ts`；导出 `buildExport`；CSV 脚本 `scripts/export-to-csv.mjs`。
 - 2026-11-07 新增四项**只记行为**的记录（任务标记、离开页面、开始编辑字段、悬停卡），见第 11 节。
 
 ---
 
 ## 1. 一句话说清楚
 
-参与者在原型里做的事，按发生顺序记成一条一条（最多保留最新的 2000 条）。每一条都有：编号、真实时间、当时"以谁的身份查看"、做了什么、做的对象（长文字截断）、改数据时改之前的值、以及原型接受了没有。导出时再附上一份把所有记录按时间排好的"时间线"，方便直接看或转成 Excel。
+参与者在原型里做的事，按发生顺序记成一条一条（每次研究会话最多保留最新的 2000 条）。每一条都有：编号、真实时间、当时"以谁的身份查看"、做了什么、做的对象（长文字截断）、改数据时改之前的值、以及原型接受了没有。导出时再附上一份把所有记录按时间排好的"时间线"，方便直接看或转成 Excel。
+
+### 1.1 研究会话（formatVersion 3 起）
+
+**为什么要有：** 研究者自己在线上网站试做时发现，导出的 177 条里前 49 条是另一天（同一个浏览器之前）留下的。为了让每次测试的文件只装这一次坐下来做的东西（下面叫"这一次 sitting"），又不会因为误操作丢数据，现在有了"研究会话"。
+
+- **什么时候开始一个新会话：** 只要开始一次"会记录的引导"：打开研究链接 `/#/start`、欢迎页的 Start walkthrough（`/welcome/start`），或 Demo 菜单的 Replay walkthrough。Demo 菜单里的两个 Test 按钮**不会**开始会话，也不写任何记录。
+- **开始时做什么：** 生成一个会话编号（例如 `s-3f9a0c71d2e4b856`，随机的，不包含任何人名、时间或设备信息），记下开始时间。然后**只删掉更早一次 sitting 的东西**：超过 6 小时的交互日志条目和引导尝试（除非它属于 6 小时内开始的会话）。删了多少只记条数（`previousEntriesCleared`、`previousAttemptsCleared`），不留内容。**最近 6 小时内的都保留**，包括点研究链接之前那几分钟的浏览（这些条目不带会话编号）。
+- **之后：** 每一条日志都带这个会话编号（`session` 字段）。编号 `seq` 接着往下数，不重来。一个会话只管一次 sitting：开始 6 小时以后再写的条目就不带会话编号了，直到下一次打开研究链接。
+- **中途又打开了研究链接（或按了 Replay walkthrough）：** 会开始第二个会话，但前一个会话的记录**一条都不会丢**（都在 6 小时内）。导出文件里就会有两个会话，`sessions` 里各一行，每条日志用 `session` 字段分得清是哪个会话的。
+- **为什么 6 小时：** 一次测试最多 75 分钟；6 小时以前的东西基本可以肯定是另一天、另一次（可能是另一个人用了这台电脑）。删掉它们既不占 2000 条上限，也不会被误导出；条数仍在文件里，研究者能看出"之前有过东西"。
+- **2000 条上限：** 算的是浏览器里保留下来的整份日志（可能包括同一次 sitting 的几个会话），满了从最早的丢起，丢了几条见 `interactionLog.droppedEarlier`（只算上限丢的，不算 6 小时清理删的）。
+- **导出时：** 放保留下来的全部日志条目和引导尝试（再按同样的 6 小时规则过一遍，防止另一个旧标签页把旧条目写回来）；顶层有 `sessions`（每个会话一行）和 `session`（最新的那个，外加没放进文件的条数），见第 3.1 节。如果这个浏览器从来没开始过会话（例如只用 Test 按钮或直接看样例），`session` 为 `null`、`sessions` 为空，文件和以前一样放全部记录。
 
 ## 2. 怎么拿到、怎么打开
 
@@ -32,29 +44,53 @@
 | 字段 | 意思 |
 | --- | --- |
 | `format` | 固定是 `"platypus-export"`，用来认出这是本原型的导出文件 |
-| `formatVersion` | 文件结构版本。现在是 `2`（比 1 多了下面标 ★ 的字段，原有字段一个都没删） |
+| `formatVersion` | 文件结构版本。现在是 `3`。2 比 1 多了下面标 ★ 的字段；3 又多了标 ◆ 的字段，而且 `interactionLog`、`onboarding`、`timeline` 只含这一次 sitting（最近 6 小时，见 1.1；原有字段一个都没删） |
 | `exportedAt` | 按下导出的真实时间（ISO 格式，UTC） |
 | `schemaVersion` | 社团数据结构的版本号（开发用） |
 | `storageKey` | 数据在浏览器里存的名字（开发用） |
 | ★ `build` | 这是哪一版网站：`version`（应用版本号）、`commit`（代码提交号）、`branch`、`context`（Netlify 的 production / deploy-preview）。本地构建没有这些信息时写 `"unknown"`。用来确认每位参与者用的是同一版 |
 | ★ `demoToday` | 原型里的"演示日期"（导出那一刻）。原型的日期是假的、可以用 Demo 菜单往前拨；它和真实时间无关 |
 | ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（现在 `ob-3`）。每次引导尝试里也各自记了版本 |
+| ◆ `sessions` | 文件里的每个研究会话一行，按开始时间排，见 3.1；没有会话时为空 `[]` |
+| ◆ `session` | 最新的那个会话（和 `sessions` 最后一行一样），外加没放进文件的条数，见 3.1；没有会话时为 `null` |
 | `state` | 导出那一刻整个虚构社团的数据（活动、任务、成员、设置……）。签名密钥被替换成 `"[omitted]"` |
-| `onboarding` | 新手引导（`/#/welcome/…`）的单独记录，见第 6 节 |
-| `interactionLog` | 交互日志本体，见第 4、5 节。外层还有：`limit`（2000）、`count`（现有条数）、`firstSeq` / `lastSeq`（第一条和最后一条的编号）、`droppedEarlier`（因为超过 2000 被丢掉的最早条数；0 表示一条没丢） |
+| `onboarding` | 新手引导（`/#/welcome/…`）的单独记录，见第 6 节（有会话时只含这一次 sitting 的尝试） |
+| `interactionLog` | 交互日志本体，见第 4、5 节（有会话时只含这一次 sitting）。外层还有：`limit`（2000）、`count`（现有条数）、`firstSeq` / `lastSeq`（第一条和最后一条的编号）、`droppedEarlier`（因为超过 2000 被丢掉的最早条数；0 表示一条没丢。6 小时清理删掉的不算在这里，见 `previousEntriesCleared`） |
 | ★ `timeline` | 把交互日志和新手引导记录合在一起、按时间排好的清单，每行一句英文短描述，见第 7 节 |
+
+### 3.1 会话（`sessions` 和 `session`，formatVersion 3）
+
+`sessions[]` 每个会话一行（文件里有它的条目或尝试，或者它是最新的）；`session` 就是最后一行，另加 `olderEntriesLeftOut`、`olderAttemptsLeftOut` 两个总数。时间都给三种写法：`…At` 是 UTC 的 ISO 时间，`…AtMs` 是毫秒数，`…AtAz` 是**亚利桑那时间**（America/Phoenix，UTC−7，全年不变，没有夏令时），例如 `2026-11-07 10:46:40.337`，可以直接对评分表。
+
+| 字段 | 意思 |
+| --- | --- |
+| `id` | 会话编号（随机） |
+| `startedAt` / `startedAtMs` / `startedAtAz` | 会话开始的时间（打开研究链接那一刻） |
+| `attempt` | 这个会话的引导尝试编号（对应 `onboarding.attempts[].id`） |
+| `outcome` | 这次引导尝试**整体**怎么结束的：`completed` / `exited` / 还没结束为 `null`。注意：`exited` 不等于"没建好社团"，见下一行 |
+| `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | 在 Confirm 屏按 **Start workspace** 或 **Keep current demo** 的时间（第一次按的）。有值 = 建社团这一步已经做完；没按过为 `null` |
+| `setupChoice` | 按的是哪个：`start-workspace`（Start workspace，建了自己的社团）或 `keep-demo`（Keep current demo，保留示例社团） |
+| `firstEventChoice` | First event 屏最后一次往前走时：`planned`（计划了一个活动）或 `skipped`（按了 Skip for now）；没走过这一屏为 `null`。只从屏幕步骤记录推出来，不看填了什么 |
+| `entries` | 文件里属于这个会话的日志条数 |
+| `previousEntriesCleared` | 这个会话开始时，因为超过 6 小时而从这个浏览器里删掉的旧日志条数（只有数字） |
+| `previousAttemptsCleared` | 同一时刻、同样原因删掉的旧引导尝试次数 |
+| `olderEntriesLeftOut`（只在 `session`） | 不在这个文件里的更早条目总数 = 文件里各会话的 `previousEntriesCleared` 加起来 + 导出时又过滤掉的旧条目（例如另一个还开着的旧标签页写回来的；通常是 0） |
+| `olderAttemptsLeftOut`（只在 `session`） | 同样算法的引导尝试次数 |
+
+**例子（研究者 2026-11-07 的试做）：** 按了 Start workspace，接着去看社员预览，在那里按了 Exit。现在文件里是 `setupCompletedAt` 有值、`setupChoice: "start-workspace"`、`outcome: "exited"`。分析"有没有完成建社团"时请看 `setupCompletedAt`，不要看 `outcome`。
 
 ## 4. 交互日志里每一条（`interactionLog.entries[]`）
 
 | 字段 | 意思 |
 | --- | --- |
-| `seq` | 编号 1, 2, 3 …，不重复、不复用。开头不是 1，说明最早的几条因 2000 上限被丢了 |
+| `seq` | 编号 1, 2, 3 …，不重复、不复用；新会话不重新编号（只有 6 小时清理把日志全删光时才从 1 开始）。开头不是 1：最早的几条被删了，是 2000 上限（`droppedEarlier`）还是 6 小时清理（`previousEntriesCleared`），文件里分开写 |
 | `at` | 真实时间，1970 年以来的毫秒数（参与者电脑的时钟） |
 | `actor` | 当时原型"View as"设成了谁（虚构人物的 id，例如 `alex`） |
 | `type` | 发生了什么。以 `ui.` 开头的是**界面操作**（第 5 节）；其余是**数据动作**（改了社团数据的操作，例如 `completeSetup`、`updateNode`） |
 | `payload` | 这件事的细节（长文字截到 200 个字符；看起来像密钥的字段不收） |
 | `before` | 只有"改已有数据"的数据动作才有：改之前那些字段的值。界面操作**没有** `before` |
 | `applied` | `true` = 原型接受了；`false` = 没接受（没权限、无效、没东西可改；界面操作里见下） |
+| `session` | 这一条属于哪次研究会话（formatVersion 3）。不在任何会话里写下的条目（研究链接之前，或会话开始 6 小时以后）没有这个字段 |
 
 **两种条目在同一个编号序列里**，所以"点了哪个按钮 → 数据怎么变了"可以按顺序直接读出来。
 
@@ -140,6 +176,8 @@
 这是 v1.5 起就有的单独记录（`src/lib/onboardingRecord.ts`），只记行为、不记填写内容：
 
 - `attempts[]`：每次走引导（或在欢迎页选"Explore the sample club"）一条：`id`、`entry`（`start` 走引导 / `explore` 直接看样例）、`flowVersion`、`replay`（第几次重走）、`startedAt`、`finishedAt`、`outcome`（`completed` 走完 / `exited` 中途退出 / `explored`）。
+  - formatVersion 3 起还有：`sessionId`（属于哪次会话）、`setupCompletedAt`（按 Start workspace 或 Keep current demo 的时间，毫秒）、`setupChoice`（`start-workspace` / `keep-demo`）。
+  - `outcome` 的意思没变，指**整个尝试**（包括建好以后的社员预览）怎么结束。`exited` 可能是建社团前就退出了，也可能是建好以后在社员预览里按了 Exit；两者用 `setupCompletedAt` 区分。
 - `steps[]`：每屏的 `enter`（进入）、`leave`（离开）、`back`（返回）、`skip`（跳过）、`complete`（完成）、`exit`（Save & exit 退出），各带时间 `at`。
 - 引导页面上的点击和换页，现在**也**会同时出现在交互日志里（`route` 以 `/welcome/` 开头），两边可以在时间线上对照。
 
@@ -148,17 +186,19 @@
 | 字段 | CSV 列 | 意思 |
 | --- | --- | --- |
 | （行号） | `row` | 1, 2, 3 … |
-| `time` | `time_iso` | 真实时间，ISO 格式，**UTC**（亚利桑那时间 = UTC − 7 小时，全年不变） |
+| `time` | `time_iso` | 真实时间，ISO 格式，**UTC** |
+| `timeAz` | `time_az` | 同一时间的**亚利桑那时间**（UTC − 7 小时，全年不变），例如 `2026-11-07 10:46:40.337`。旧文件没有 `timeAz`，CSV 脚本照样算出这一列 |
 | `at` | `time_ms` | 同一时间的毫秒数 |
-| — | `elapsed_s` | 距第一行过了多少秒 |
+| `session` | `session` | 这一行属于哪个会话；不在任何会话里为空 |
+| — | `elapsed_s` | 距**这一行所属会话的开始**过了多少秒；不在任何会话里的行为空。旧文件（没有会话）：距第一行 |
 | — | `gap_s` | 距上一行过了多少秒（看停顿、犹豫） |
-| `source` | `source` | `log`（交互日志）或 `onboarding`（引导记录） |
+| `source` | `source` | `log`（交互日志）、`onboarding`（引导记录）或 `session`（会话开始，每个会话一行） |
 | `seq` | `seq` | 交互日志编号（引导记录行为空） |
 | `attempt` | `attempt` | 引导尝试 id（只有引导记录行有） |
 | `actor` | `actor` | "View as" 身份 |
-| `type` | `type` | 事件类型；引导记录行是 `onboarding.start` / `onboarding.enter` … / `onboarding.finish` |
+| `type` | `type` | 事件类型；引导记录行是 `onboarding.start` / `onboarding.enter` … / `onboarding.setup`（按了 Start workspace 或 Keep current demo）/ `onboarding.finish`；会话行是 `session.start` |
 | `route` | `route` | 页面路径 |
-| — | `name` | 控件名字；`ui.ask` 行是问题本身 |
+| — | `name` | 控件名字；`ui.ask` 行是问题本身；没有这两样时用 `payload.field`（`ui.edit` 行的输入框标签，不是打的字） |
 | — | `target` | 链接去处（站外是网站+路径，站内是页面）或下拉框选中项 |
 | — | `external` | 站外链接为 `TRUE` |
 | `applied` | `applied` | `TRUE` / `FALSE`；引导记录行为空 |
@@ -175,9 +215,9 @@ CSV 里以 `=`、`+`、`-`、`@` 开头的文字会在前面加一个 `'`，防�
 
 ### 8.1 任务用时
 
-- **方法 A（推荐）**：研究者在 Zoom 上按"任务开始/结束"时记下时钟时间（记到秒，注明时区）。换成 UTC 后，在 CSV 的 `time_iso` 里找这一段；用时 = 结束 − 开始。这段里的行就是这个任务的全部操作。
+- **方法 A（推荐）**：研究者在 Zoom 上按"任务开始/结束"时记下时钟时间（记到秒，亚利桑那时间）。直接在 CSV 的 `time_az` 列里找这一段（不用再换算 UTC）；用时 = 结束 − 开始。这段里的行就是这个任务的全部操作。
 - **方法 B（没有手记时间时）**：取这个任务"第一条相关事件"到"最后一条相关事件"的时间差。例如：
-  - 建社团：`route` 为 `/welcome/founder/name` 的 `ui.navigate`（或 `onboarding.start`）→ `completeSetup`（或 `onboarding.finish`）。
+  - 建社团：`session.start`（或 `route` 为 `/welcome/founder/name` 的 `ui.navigate`、`onboarding.start`）→ `onboarding.setup`（即 `session.setupCompletedAt`；选了 Start workspace 时紧挨着还有 `completeSetup`）。**不要用 `onboarding.finish`**：它是整个尝试（包括社员预览）结束的时间。
   - 规则问题：该问题的 `ui.ask` → 参与者给出答案前的最后一个操作（通常是打开来源或下一条 `ui.ask`）。
   - 计划一个活动：第一条提到活动的 `ui.ask` → `reviewChange`（`decision` 为批准）。
   - 准备提醒：`ui.reminder`（open）→ 点 `Open … draft`（`external` 为 TRUE、`area` 为 `reminder`）或 `confirmNudgeSent`。
@@ -211,7 +251,8 @@ CSV 里以 `=`、`+`、`-`、`@` 开头的文字会在前面加一个 `'`，防�
 ## 9. 做不到的事（写方法和局限时要说明）
 
 1. **只记这一个浏览器。** 换浏览器、换电脑、用隐私窗口后关掉，记录都不在了；清除网站数据也会清掉。
-2. **最多 2000 条**，超了丢最早的（看 `droppedEarlier`）。
+2. **浏览器里最多保留 2000 条**（这一次 sitting 的所有会话合起来），超了丢最早的（看 `droppedEarlier`）。
+   - **开始新会话时，超过 6 小时的旧日志和旧引导尝试会被删掉**（只留条数）。最近 6 小时的不删，所以测试中途误开研究链接不会丢数据，只是文件里多一个会话。但如果同一台电脑上两次测试相隔不到 6 小时又没清浏览器数据，前一位参与者的记录会留在后一位的文件里（每条有 `session`，分得开）：请照 runbook 每位参与者用新的无痕窗口。
 3. **不记按键、不记输入框里打的字**（文本、数字、日期、密码、文件框都不读，也不记长度）。2026-11-07 起只记"在哪个框开始打字、打了多久"（`ui.edit`，第 11.5 节），密码框连这个也不记。表单真正保存时，保存结果会作为数据动作记下（例如 `completeSetup` 里有社团名），这是原来就有的。
 4. **不记 AI 回答的文字**，只记回答种类、引用编号和标签；参与者问的问题文字会记（截断到 200 字符）。
 5. **不记滚动、鼠标移动、停留在页面某处看了多久**；看了多久只能从相邻两行的时间差推测。例外（2026-11-07）：悬停卡开着 ≥ 0.5 秒会记一条（`ui.hover`，只有时长和触发它的控件名）。
@@ -231,6 +272,7 @@ IRB 文字说日志记"参与者在网站上的每个操作"，每条有编号�
   2. 控件名字（`name`）可能含有屏幕上显示的文字：虚构数据，或参与者之前自己输入的内容（例如他起的任务名），截断到 80 字符。IRB 文字已允许"参与者打的字可能以截断形式出现"。
   3. Ask 的问题原文会进日志（截断到 200 字符）。IRB 文字已举了这个例子。
   4. 导出文件多了 `build`（网站版本号）、`demoToday`、`onboardingFlowVersion`、`timeline`。这些是关于网站版本或由已有记录整理出来的，不是关于参与者的新信息。
+     - formatVersion 3 多了 `sessions` / `session`：随机会话编号、开始时间、建社团结束的时间和选择、First event 计划还是跳过、更早记录的**条数**。会话编号不关联任何人；"Start workspace / Keep current demo 的时间"和"First event 跳过还是计划"都是已有的行为记录（按钮点击、屏幕步骤）整理出来的，不是新的个人信息。超过 6 小时的旧记录在会话开始时被删除，比以前保存得更少。
   5. 没有记录：设备型号、浏览器型号、屏幕大小、IP、地理位置、按键、AI 回答文字。
 - AGENTS.md 第 6d 节要求"新增记录项前先问 Juanxi（研究设计，要对照 IRB）"。这一版新增了界面操作记录，**合并前需要 Juanxi 确认**，并决定是否需要告知 IRB（例如通过 Marcie）。
 - **2026-11-07 追加的四项（第 11 节）：Juanxi 于 2026-11-07 批准，作为"只记行为"的记录项**：任务开始/结束标记（`ui.task`）、离开页面的时间（`ui.visibility`）、开始编辑某个输入框及编辑时长（`ui.edit`）、悬停卡打开时长（`ui.hover`）。和 IRB 文字对照：

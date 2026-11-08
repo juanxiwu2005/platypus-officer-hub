@@ -187,8 +187,9 @@ describe("A7c · export", () => {
     const s = { ...base(), demoLinkKey: "secret-demo-key" }
     const log: LogEntry[] = [{ seq: 41, at: 5, actor: "alex", type: "setAi", payload: { enabled: false }, before: { aiEnabled: true }, applied: true }, { seq: 42, at: 6, actor: "alex", type: "reset", payload: {}, applied: true }]
     const out = buildExport(s, log, Date.UTC(2026, 10, 9, 12, 0, 0))
-    // formatVersion 2 (Phase 3 logging) keeps every version-1 field and adds build info, the demo date, the flow version and a merged timeline.
-    expect(out).toMatchObject({ format: "platypus-export", formatVersion: 2, exportedAt: "2026-11-09T12:00:00.000Z", schemaVersion: SCHEMA_VERSION, demoToday: s.today, onboardingFlowVersion: FLOW_VERSION })
+    // formatVersion 2 (Phase 3 logging) kept every version-1 field and added build info, the demo date, the flow version and a merged timeline;
+    // formatVersion 3 adds the study session summary (null here: no session has begun, so the whole log is exported, as before).
+    expect(out).toMatchObject({ format: "platypus-export", formatVersion: 3, session: null, exportedAt: "2026-11-09T12:00:00.000Z", schemaVersion: SCHEMA_VERSION, demoToday: s.today, onboardingFlowVersion: FLOW_VERSION })
     expect(Object.keys(out.build).sort()).toEqual(["branch", "commit", "context", "version"])
     expect(out.timeline.map(r => [r.source, r.seq, r.type])).toEqual([["log", 41, "setAi"], ["log", 42, "reset"]])
     expect(out.interactionLog).toMatchObject({ limit: LOG_LIMIT, count: 2, firstSeq: 41, lastSeq: 42, droppedEarlier: 40 })

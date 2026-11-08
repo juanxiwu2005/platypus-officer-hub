@@ -177,7 +177,8 @@ describe("the store records screen events, and the export includes the export it
     expect(api.getLog().map(e => e.type)).toEqual(["ui.navigate", "ui.click", "setAi", "ui.click", "ui.export"])
     expect(JSON.parse(window.localStorage.getItem(LOG_KEY)!).map((e: LogEntry) => e.seq)).toEqual([1, 2, 3, 4, 5])
     const file = JSON.parse(await blobs[0].text())
-    expect(file.formatVersion).toBe(2)
+    expect(file.formatVersion).toBe(3)
+    expect(file.session).toBeNull()   // no study walkthrough began in this browser: everything is exported, as before
     expect(file.interactionLog.entries.map((e: LogEntry) => e.type)).toEqual(["ui.navigate", "ui.click", "setAi", "ui.click", "ui.export"])
     expect(file.timeline.map((r: { desc: string }) => r.desc)).toEqual([
       "Opened the app at /", 'Clicked button "Show side panel" on /', "Data action setAi", 'Clicked button "Export my data" on /settings', "Exported data (5 log entries)",
@@ -263,7 +264,7 @@ describe("export shape", () => {
     const s = seedDemo("2026-10-22")
     const out = buildExport(s, [], T, { attempts: [] })
     for (const key of ["format", "formatVersion", "exportedAt", "schemaVersion", "storageKey", "state", "onboarding", "interactionLog"]) expect(out).toHaveProperty(key)
-    expect(out).toMatchObject({ formatVersion: 2, demoToday: "2026-10-22", onboardingFlowVersion: FLOW_VERSION, timeline: [] })
+    expect(out).toMatchObject({ formatVersion: 3, demoToday: "2026-10-22", onboardingFlowVersion: FLOW_VERSION, session: null, timeline: [] })
     expect(typeof out.build.commit).toBe("string")
   })
 })
