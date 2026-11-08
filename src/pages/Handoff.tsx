@@ -14,11 +14,11 @@ import { Bts, BtsRow } from "../components/Bts"
 import { fmtShort } from "../lib/dates"
 import type { RoleHandoff } from "../data/types"
 
-const STEPS = ["Interview", "Handbook", "Confirmed", "Approved", "First week", "Handed over", "Day 30"]
+const STEPS = ["Interview", "Handbook", "Confirmed", "Approved", "Handed over", "First week", "Day 30"]
 /** Seven checkpoints per role; the ring shows how many are done. */
 export function roleProgress(r: RoleHandoff | undefined): { done: number; stage: string } {
   if (!r) return { done: 0, stage: "Not started" }
-  const flags = [r.interview.length > 0, r.entries.length > 0, r.confirmed, r.approved, r.checks.length === WEEK_ONE.length, r.completed, r.reviewed]
+  const flags = [r.interview.length > 0, r.entries.length > 0, r.confirmed, r.approved, r.completed, r.checks.length === WEEK_ONE.length, r.reviewed]
   const done = flags.filter(Boolean).length
   const next = flags.findIndex(f => !f)
   return { done, stage: next < 0 ? "Complete" : STEPS[next] }
@@ -98,6 +98,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
   const act = (action: import("../data/handoff").HandoffAction) => dispatch({ type: "handoffAction", action })
   const p = roleProgress(r)
   const successor: Successor = who === "new" ? { kind: "new", name } : who === "open" ? { kind: "vacant" } : { kind: "existing", personId: who }
+  const named = !r.completed && r.incomingId ? state.people.find(p => p.id === r.incomingId) : undefined
   const takesOver = who !== "new" && who !== "open"
   const vacated = takesOver ? state.roles.find(x => x.holderId === who && x.id !== r.roleId) : undefined
   const start = r.startDate ?? state.handoff!.from
@@ -149,26 +150,34 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
     </article>
 
     <article className="step-card">
-      <header><span className="step-n">4</span><b>First week</b><span className="small muted">{r.checks.length}/{WEEK_ONE.length}</span></header>
-      {WEEK_ONE.map(item => <label key={item.id} className="check-label"><input type="checkbox" disabled={r.completed || !r.approved || (!self && !canNudge && state.viewerId !== r.incomingId)} checked={r.checks.includes(item.id)} onChange={() => act({ kind: "check", roleId: r.roleId, itemId: item.id })} />{touch ? <><span className="small">{item.text}</span><Info label={`Where "${item.text}" comes from`}>{item.source}</Info></> : <Hover card={item.source}><span className="small">{item.text}</span></Hover>}</label>)}
-      <BtsRow><Bts label="Source">{[...new Set(WEEK_ONE.map(item => item.source))].join(" · ")}</Bts></BtsRow>
-    </article>
-
-    <article className="step-card">
-      <header><span className="step-n">5</span><b>Hand over</b></header>
+      <header><span className="step-n">4</span><b>Hand over</b></header>
       {!r.completed ? <>
-        <label className="field"><span>Who takes over?</span><select value={who} onChange={e => setWho(e.target.value)}>
-          <option value="new">A new person</option>
-          {state.people.filter(p => p.id !== r.outgoingId && p.id !== role?.holderId).map(p => <option key={p.id} value={p.id}>{p.name} · {isOfficer(p) ? state.roles.find(x => x.id === p.roleId)?.displayName : "former officer"}</option>)}
-          {role?.fn !== "president" && !open && <option value="open">Nobody yet (leave it open)</option>}
-        </select></label>
-        {who === "new" && <label className="field"><span>Incoming fictional officer name</span><input maxLength={80} value={name} onChange={e => setName(e.target.value)} /></label>}
-        {takesOver && vacated && <p className="small warn-text">{vacated.displayName} will be open until someone takes it.</p>}
-        <button className="btn btn-primary" disabled={!canNudge || !r.approved || (who !== "open" && r.checks.length !== WEEK_ONE.length) || (who === "new" && !name.trim())} onClick={() => act({ kind: "complete", roleId: r.roleId, successor })}>Finish role handoff</button>
+        {named ? <>
+          <p className="small">Next officer: <b>{named.name}</b>. They can read this handbook and the open tasks now; the tasks stay with {state.people.find(p => p.id === r.outgoingId)?.name ?? "the role"} until you finish.</p>
+          {canNudge && <button type="button" className="btn small" onClick={() => act({ kind: "clearIncoming", roleId: r.roleId })}>Change next officer</button>}
+        </> : <>
+          <label className="field"><span>Who takes over?</span><select value={who} onChange={e => setWho(e.target.value)}>
+            <option value="new">A new person</option>
+            {state.people.filter(p => p.id !== r.outgoingId && p.id !== role?.holderId && !p.incomingFor).map(p => <option key={p.id} value={p.id}>{p.name} · {isOfficer(p) ? state.roles.find(x => x.id === p.roleId)?.displayName : "former officer"}</option>)}
+            {role?.fn !== "president" && !open && <option value="open">Nobody yet (leave it open)</option>}
+          </select></label>
+          {who === "new" && <label className="field"><span>Incoming fictional officer name</span><input maxLength={80} value={name} onChange={e => setName(e.target.value)} /></label>}
+          {takesOver && vacated && <p className="small warn-text">{vacated.displayName} will be open until someone takes it.</p>}
+          {who !== "open" && <button type="button" className="btn small" disabled={!canNudge || (who === "new" && !name.trim())} onClick={() => act({ kind: "setIncoming", roleId: r.roleId, successor: who === "new" ? { kind: "new", name } : { kind: "existing", personId: who } })}>Name as next officer</button>}
+        </>}
+        <button className="btn btn-primary" disabled={!canNudge || !r.approved || (!named && who === "new" && !name.trim())} onClick={() => act(named ? { kind: "complete", roleId: r.roleId } : { kind: "complete", roleId: r.roleId, successor })}>Finish role handoff</button>
         <p className="small muted">Moves the role and its open tasks, which wait for the new officer to tap “I've got it”. Contacts stay with the role. Nothing is sent.</p>
       </> : r.incomingId ? <p className="good-text small">Handed to {state.people.find(p => p.id === r.incomingId)?.name}.</p> : <><p className="small">Left open: {role?.displayName} has no officer yet.</p><StartRole roleId={r.roleId} label="Hand over to someone" /></>}
       <label className="field"><span>Role handoff starts</span><input type="date" disabled={!canNudge || r.completed} value={start} onChange={e => act({ kind: "roleDate", roleId: r.roleId, date: e.target.value })} /></label>
+    </article>
+
+    <article className="step-card">
+      <header><span className="step-n">5</span><b>First week</b><span className="small muted">{r.checks.length}/{WEEK_ONE.length}</span></header>
+      {WEEK_ONE.map(item => <label key={item.id} className="check-label"><input type="checkbox" disabled={!r.completed || (!canNudge && state.viewerId !== r.incomingId)} checked={r.checks.includes(item.id)} onChange={() => act({ kind: "check", roleId: r.roleId, itemId: item.id })} />{touch ? <><span className="small">{item.text}</span><Info label={`Where "${item.text}" comes from`}>{item.source}</Info></> : <Hover card={item.source}><span className="small">{item.text}</span></Hover>}</label>)}
+      {!r.completed && <p className="small muted">Opens for the new officer once the role is handed over.</p>}
+      <BtsRow><Bts label="Source">{[...new Set(WEEK_ONE.map(item => item.source))].join(" · ")}</Bts></BtsRow>
       <button className="btn" disabled={!r.completed || r.reviewed || state.today < handoffDates(start).review || (!canNudge && state.viewerId !== r.incomingId)} onClick={() => act({ kind: "review", roleId: r.roleId })}>{r.reviewed ? "Day-30 review recorded" : `Record day-30 review (${fmtShort(handoffDates(start).review)})`}</button>
     </article>
+
   </section>
 }

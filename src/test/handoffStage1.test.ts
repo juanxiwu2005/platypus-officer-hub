@@ -5,7 +5,7 @@ import { clubDraft, validateClub } from "../data/settings"
 import { officers } from "../data/permissions"
 import { aiSnapshot } from "../lib/aiContext"
 import { commandContext } from "../lib/commands"
-import { handbookSources, sourceFingerprint, WEEK_ONE } from "../lib/handbook"
+import { handbookSources, sourceFingerprint } from "../lib/handbook"
 import { roleProgress } from "../pages/Handoff"
 import type { DemoState } from "../data/types"
 import type { HandoffAction } from "../data/handoff"
@@ -20,14 +20,13 @@ function season(): DemoState {
   return act({ ...s, handoff: null, handoffRoles: [] }, { kind: "start", from: s.today, to: "2026-11-21" })
 }
 
-/** Treasurer (Maya) handed to a new fictional officer, all five steps done. */
+/** Treasurer (Maya) handed to a new fictional officer. */
 function handedOver(name = "Taylor Example", prep: (s: DemoState) => DemoState = s => s): DemoState {
   let s = prep(season())
   const sources = handbookSources(s, "r-fin")
   s = act(s, { kind: "draft", roleId: "r-fin", raw: { entries: sources.slice(0, 3).map(x => ({ sourceId: x.id })) }, fingerprint: sourceFingerprint(sources), model: null, source: "test" })
   s = act(as(s, "maya"), { kind: "confirm", roleId: "r-fin" })
   s = act(as(s, "alex"), { kind: "approve", roleId: "r-fin" })
-  for (const item of WEEK_ONE) s = act(s, { kind: "check", roleId: "r-fin", itemId: item.id })
   return act(s, { kind: "complete", roleId: "r-fin", incomingName: name })
 }
 

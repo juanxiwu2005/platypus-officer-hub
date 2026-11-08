@@ -47,9 +47,9 @@ export function TopBar({ onReset }: { onReset: () => void }) {
             <label className="field-inline view-as">
               <span>View as</span>
               <select value={state.viewerId} onChange={e => { dispatch({ type: "setViewer", viewerId: e.target.value }); setMoreOpen(false) }} data-testid="view-as">
-                {state.people.filter(p => isOfficer(p) || p.id === state.viewerId).map(p => {
+                {state.people.filter(p => isOfficer(p) || p.incomingFor || p.id === state.viewerId).map(p => {
                   const role = state.roles.find(r => r.id === p.roleId)
-                  return <option key={p.id} value={p.id}>{p.name} · {role?.displayName}</option>
+                  return <option key={p.id} value={p.id}>{p.name} · {p.incomingFor ? `incoming ${role?.displayName}` : role?.displayName}</option>
                 })}
               </select>
             </label>

@@ -17,6 +17,8 @@ export type HandoffAction =
  |{kind:"approve";roleId:string}
  |{kind:"check";roleId:string;itemId:string}
  |{kind:"retainBuffer";keep:boolean}
+ |{kind:"setIncoming";roleId:string;successor:{kind:"new";name:string}|{kind:"existing";personId:string}}
+ |{kind:"clearIncoming";roleId:string}
  |{kind:"complete";roleId:string;incomingName?:string;successor?:Successor}
  |{kind:"review";roleId:string}
 export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
@@ -60,10 +62,13 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
  if(a.kind==="confirm")return speaks&&record.entries.length&&record.fingerprint===sourceFingerprint(handbookSources(s,record.roleId))?update({confirmed:true}):s
  if(a.kind==="approve")return lead&&record.confirmed&&record.fingerprint===sourceFingerprint(handbookSources(s,record.roleId))?update({approved:true}):s
  if(a.kind==="check"){
-  if(record.completed||(!lead&&!self&&record.incomingId!==s.viewerId)||!record.approved||!WEEK_ONE.some(i=>i.id===a.itemId))return s
+  // The first-week list belongs to the new officer, after the handover (Handoff stage 3): nothing to tick while the role is still with its old holder.
+  if(!record.completed||!record.approved||(!lead&&record.incomingId!==s.viewerId)||!WEEK_ONE.some(i=>i.id===a.itemId))return s
   return update({checks:record.checks.includes(a.itemId)?record.checks.filter(i=>i!==a.itemId):[...record.checks,a.itemId]})
  }
- if(a.kind==="complete")return completeHandoff(s,record,a.successor??{kind:"new",name:a.incomingName??""})
+ if(a.kind==="setIncoming")return nameSuccessor(s,record,a.successor)
+ if(a.kind==="clearIncoming")return lead&&!record.completed&&record.incomingId?update({incomingId:null}):s
+ if(a.kind==="complete")return completeHandoff(s,record,a.successor??(a.incomingName!==undefined?{kind:"new",name:a.incomingName}:undefined))
  if(a.kind==="review")return (lead||record.incomingId===s.viewerId)&&record.completed&&s.today>=handoffDates(record.startDate??s.handoff.from).review?update({reviewed:true}):s
  return s
 }
@@ -95,11 +100,14 @@ const blankPerson=(roleId:string):Omit<Person,"id"|"name"|"email">=>({roleId,cha
  * must tap "I've got it"; with no successor they have no owner); the outgoing officer becomes a former officer.
  * A club member who takes a role leaves their old one open. The president role always keeps a holder.
  */
-function completeHandoff(s:DemoState,record:RoleHandoff,succ:Successor):DemoState{
+function completeHandoff(s:DemoState,record:RoleHandoff,given:Successor|undefined):DemoState{
  const role=s.roles.find(r=>r.id===record.roleId)
  if(!canLead(s)||!s.handoff||!role||record.completed||!record.approved||record.fingerprint!==sourceFingerprint(handbookSources(s,record.roleId)))return s
  if(role.holderId&&role.holderId!==record.outgoingId)return s
- if(succ.kind!=="vacant"&&record.checks.length!==WEEK_ONE.length)return s
+ // A successor already named (setIncoming) is the one who takes over; naming another one now would be a second, conflicting decision.
+ if(record.incomingId&&given)return s
+ const succ:Successor|undefined=record.incomingId?{kind:"existing",personId:record.incomingId}:given
+ if(!succ)return s
  const holder=s.people.find(p=>p.id===role.holderId)
  if(role.holderId&&!holder)return s
  let incoming:Person|null=null,vacated:Role|undefined
@@ -110,14 +118,14 @@ function completeHandoff(s:DemoState,record:RoleHandoff,succ:Successor):DemoStat
   if(!name||name.length>80||s.people.some(p=>p.name.toLowerCase()===name.toLowerCase()))return s
   let id=`incoming:${s.handoff.id}:${role.id}`
   for(let n=2;s.people.some(p=>p.id===id);n++)id=`incoming:${s.handoff.id}:${role.id}:${n}`
-  const {leftOn:_formerMark,...profile}=holder??{...blankPerson(role.id),id,name,email:""}
+  const {leftOn:_formerMark,incomingFor:_waiting,...profile}=holder??{...blankPerson(role.id),id,name,email:""}
   incoming={...profile,id,name,email:uniqueDemoEmail(s,name),phone:"",roleId:role.id,personalBufferDays:1,retainBufferAtHandoff:false,bufferHistoryFrom:s.today,busyWeeks:[],careerGoal:"",interests:"",expectations:"",freeSlots:[],setupCompletedOn:null}
  }else{
   const p=s.people.find(x=>x.id===succ.personId)
   if(!p||p.id===role.holderId||p.id===record.outgoingId)return s
   vacated=s.roles.find(r=>r.holderId===p.id&&r.id!==role.id)
   if(vacated?.fn==="president")return s
-  const {leftOn:_formerMark,...profile}=p
+  const {leftOn:_formerMark,incomingFor:_waiting,...profile}=p
   incoming={...profile,roleId:role.id}
  }
  // The outgoing officer's open tasks. If they already moved to another role, only the tasks of this role's function go.
@@ -136,4 +144,26 @@ function completeHandoff(s:DemoState,record:RoleHandoff,succ:Successor):DemoStat
  const first=[...moved][0]
  if(incoming&&first)next=addNotices(next,first,[incoming.id],"info",`${moved.size} open task${moved.size===1?"":"s"} from ${role.displayName} ${moved.size===1?"is":"are"} waiting for you. Tap “I've got it” on each one you take.`,`handoff:${s.handoff.id}:${role.id}:${incoming.id}`)
  return next
+}
+
+/**
+ * Name the next holder before the handoff is finished (the president only). A new person is created now, marked `incomingFor`
+ * (not an officer yet); someone already in the club just gets an incoming term. Either way they can read the handbook and the
+ * open tasks, but not change them, until Finish role handoff. Change the choice with clearIncoming first.
+ */
+function nameSuccessor(s:DemoState,record:RoleHandoff,succ:{kind:"new";name:string}|{kind:"existing";personId:string}):DemoState{
+ const role=s.roles.find(r=>r.id===record.roleId)
+ if(!canLead(s)||!s.handoff||!role||record.completed||record.incomingId)return s
+ const set=(personId:string,people=s.people)=>({...s,people,handoffRoles:s.handoffRoles.map(h=>h===record?{...h,incomingId:personId}:h)})
+ if(succ.kind==="existing"){
+  const p=s.people.find(x=>x.id===succ.personId)
+  if(!p||p.incomingFor||p.id===role.holderId||p.id===record.outgoingId||s.roles.some(r=>r.holderId===p.id&&r.fn==="president"))return s
+  return set(p.id)
+ }
+ const name=succ.name.trim()
+ if(!name||name.length>80||s.people.some(p=>p.name.toLowerCase()===name.toLowerCase()))return s
+ let id=`incoming:${s.handoff.id}:${role.id}`
+ for(let n=2;s.people.some(p=>p.id===id);n++)id=`incoming:${s.handoff.id}:${role.id}:${n}`
+ const person:Person={...blankPerson(role.id),id,name,email:uniqueDemoEmail(s,name),incomingFor:role.id,bufferHistoryFrom:s.today}
+ return set(id,[...s.people,person])
 }

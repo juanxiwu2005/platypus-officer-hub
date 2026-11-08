@@ -4,7 +4,7 @@ import { reducer } from "../data/store"
 import { clubDraft, validateClub } from "../data/settings"
 import { officers } from "../data/permissions"
 import { claimTask } from "../data/taskWorkflow"
-import { handbookSources, sourceFingerprint, WEEK_ONE } from "../lib/handbook"
+import { handbookSources, sourceFingerprint } from "../lib/handbook"
 import type { DemoState } from "../data/types"
 import type { HandoffAction, Successor } from "../data/handoff"
 
@@ -18,13 +18,12 @@ function seasonWithoutSample(): DemoState {
   const s = seedDemo()
   return act({ ...s, handoff: null, handoffRoles: [] }, { kind: "start", from: s.today, to: "2026-11-21" })
 }
-/** Draft, confirm (by `speaker`), approve (president Alex) and the first-week checks, ready for Finish. */
-function ready(s: DemoState, roleId: string, speaker: string, checks = true): DemoState {
+/** Draft, confirm (by `speaker`) and approve (president Alex): ready for Finish. */
+function ready(s: DemoState, roleId: string, speaker: string): DemoState {
   const src = handbookSources(s, roleId)
   s = act(s, { kind: "draft", roleId, raw: { entries: src.slice(0, 3).map(x => ({ sourceId: x.id })) }, fingerprint: sourceFingerprint(src), model: null, source: "test" })
   s = act(as(s, speaker), { kind: "confirm", roleId })
   s = act(as(s, "alex"), { kind: "approve", roleId })
-  if (checks) for (const item of WEEK_ONE) s = act(s, { kind: "check", roleId, itemId: item.id })
   return s
 }
 const finish = (s: DemoState, roleId: string, successor: Successor) => act(as(s, "alex"), { kind: "complete", roleId, successor })
@@ -83,8 +82,6 @@ describe("B2: someone already in the club can take a role over", () => {
     expect(finish(s, "r-fin", { kind: "existing", personId: "alex" })).toEqual(s)
     expect(finish(s, "r-fin", { kind: "existing", personId: "maya" })).toEqual(s)
     expect(finish(s, "r-fin", { kind: "existing", personId: "nobody" })).toEqual(s)
-    const unchecked = ready(seasonWithoutSample(), "r-fin", "maya", false)
-    expect(finish(unchecked, "r-fin", { kind: "existing", personId: "sam" })).toEqual(unchecked) // first-week checks not done
   })
 
   it("only the president or vice president can finish a handoff", () => {

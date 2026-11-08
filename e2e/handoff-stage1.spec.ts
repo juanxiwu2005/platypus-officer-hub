@@ -7,7 +7,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/handbook/draft", r => r.fulfill({ json: { entries: [{ sourceId: "interview:r-fin:1" }], model: "mock", provider: "mock", source: "ai" } }))
 })
 
-/** Treasurer: draft, Maya confirms, Alex approves, first week, finish. Leaves the viewer on Alex (the president). */
+/** Treasurer: draft, Maya confirms, Alex approves, finish. Leaves the viewer on Alex (the president). */
 async function handOverTreasurer(page: Page) {
   await page.goto("/#/handoff")
   await expect(page.getByRole("button", { name: "Save dates" })).toBeVisible()
@@ -19,8 +19,6 @@ async function handOverTreasurer(page: Page) {
   await role.getByRole("button", { name: "Confirm as outgoing officer", exact: true }).click()
   await viewAs(page, "alex")
   await role.getByRole("button", { name: "Approve as president", exact: true }).click()
-  const boxes = role.getByRole("checkbox")
-  for (let i = 0; i < await boxes.count(); i++) await boxes.nth(i).check()
   await role.getByRole("button", { name: "Finish role handoff" }).click()
   await expect(role).toContainText("Handed to Incoming Treasurer (example)")
 }

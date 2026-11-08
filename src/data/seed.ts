@@ -4,9 +4,10 @@ import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 import { sampleHandoff } from "./sampleScenario"
+import { normalizeTerms } from "./roleTerms"
 
 // v20 also completes the demo plan when saved data skipped the v18-to-v19 update.
-export const SCHEMA_VERSION = 20
+export const SCHEMA_VERSION = 21
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -188,6 +189,7 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
     // v2: officers write role handbooks before winter break (the season a president sets on Handoff). Some have given their outgoing
     // interview; the rest have not started. The legacy fixture has no season.
     ...(workflow === "v2" ? sampleHandoff(roles, { from: "2026-10-26", to: "2026-11-25" }) : { handoff: null, handoffRoles: [] }),
+    roleTerms: [],
     feedback: [],
     changeSets: [],
     extensionRequests: [],
@@ -201,5 +203,5 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
     silenceCases: [], protocolLog: [], officerGrants: [],
     demoLinkKey: Array.from(crypto.getRandomValues(new Uint8Array(32)), b => b.toString(16).padStart(2, "0")).join(""),
   })
-  return events.reduce((state, event) => syncBudgetFlow(state, event.id), seeded)
+  return normalizeTerms(events.reduce((state, event) => syncBudgetFlow(state, event.id), seeded))
 }

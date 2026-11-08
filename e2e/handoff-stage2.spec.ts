@@ -7,8 +7,8 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/handbook/draft", r => r.fulfill({ json: { entries: [{ sourceId: "interview:r-fin:1" }], model: "mock", provider: "mock", source: "ai" } }))
 })
 
-/** Draft, Maya confirms, Alex approves and ticks the first week. Leaves the viewer on Alex with the Treasurer panel open. */
-async function readyToFinish(page: Page, { ticks = true } = {}) {
+/** Draft, Maya confirms, Alex approves. Leaves the viewer on Alex with the Treasurer panel open. */
+async function readyToFinish(page: Page) {
   await page.goto("/#/handoff")
   await expect(page.getByRole("button", { name: "Save dates" })).toBeVisible()
   await page.getByRole("button", { name: /^Treasurer handbook/ }).click()
@@ -19,7 +19,6 @@ async function readyToFinish(page: Page, { ticks = true } = {}) {
   await role.getByRole("button", { name: "Confirm as outgoing officer", exact: true }).click()
   await viewAs(page, "alex")
   await role.getByRole("button", { name: "Approve as president", exact: true }).click()
-  if (ticks) { const boxes = role.getByRole("checkbox"); for (let i = 0; i < await boxes.count(); i++) await boxes.nth(i).check() }
   return role
 }
 

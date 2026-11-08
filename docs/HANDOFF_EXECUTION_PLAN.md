@@ -89,7 +89,7 @@
 
 **做什么：**
 
-1. 新数据 `RoleTerm { roleId, personId, status: incoming | active | former, from, to, handoffId }`（见方案 4.1）。`Role.holderId`、`Person.leftOn` 改由任期算出来，旧代码读法不变。
+1. 新数据 `RoleTerm { roleId, personId, status: incoming | active | former, from, to, handoffId }`（见方案 4.1）。**实际做法（比方案更稳）：** `Role.holderId`、`Person.leftOn`、`RoleHandoff.incomingId` 仍是动作直接写的数据，任期由 `normalizeTerms` 在每个动作之后自动对齐成历史记录，别的代码不用改。
 2. **结构版本 +1**，写迁移：现有 `holderId` → active 任期；有 `leftOn` 的人 → former 任期；进行中的换届季保留。
 3. 选定新人那一刻就建 incoming 任期（新人存在了），所以**第一周清单由新人自己勾**，并且改到移交之后（修 B3）。
 4. Hand over 时：incoming → active，旧 active → former。

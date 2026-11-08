@@ -167,6 +167,12 @@ export interface Person {
    * validation or what the AI may assign to. `roleId` keeps the role they last held. Absent: a current officer.
    */
   leftOn?: string | null
+  /**
+   * A new person named as the next holder of this role before the handoff is finished (Handoff stage 3). They exist, can be
+   * viewed as, and can read the handbook and the open tasks, but are not an officer yet: no role rights, not in officer lists.
+   * Finishing the handoff removes this field. Absent: not waiting for a role.
+   */
+  incomingFor?: string
   phone: string
   /** Fictional ASU ID (10 digits starting 9999). Kept in this browser; never sent to AI. */
   asuId?: string
@@ -445,6 +451,24 @@ export interface Rule {
   note?: string
 }
 
+/** incoming = named as the next holder, not in the role yet; active = holds the role now; former = held it before. */
+export type TermStatus = "incoming" | "active" | "former"
+/**
+ * One person's time in one role (Handoff stage 3). `Role.holderId` is still the quick answer to "who holds it now";
+ * the terms keep the history that answer loses, and `normalizeTerms` (src/data/roleTerms.ts) keeps both in step after every action.
+ * `from` is null for a term that began before records were kept.
+ */
+export interface RoleTerm {
+  id: string
+  roleId: string
+  personId: string
+  status: TermStatus
+  from: string | null
+  to: string | null
+  /** The handoff season that started or ended this term, when there was one. */
+  handoffId: string | null
+}
+
 export interface HandoffSeason {
   id: string
   from: string
@@ -491,6 +515,8 @@ export interface DemoState {
   funding: Funding[]
   handoff: HandoffSeason | null
   handoffRoles: RoleHandoff[]
+  /** Who held which role, and when (Handoff stage 3). Maintained by normalizeTerms. */
+  roleTerms: RoleTerm[]
   feedback: OutputReport[]
   changeSets: ChangeSet[]
   extensionRequests: ExtensionRequest[]
