@@ -1,3 +1,8 @@
+> **2026-11-08 · Handoff 模块调整方案 · 待 Juanxi 审核（Claude）**
+> **做了什么：** 审了 `main`（`fc9eccd`）上的 Handoff 代码，写成方案 [`HANDOFF_REDESIGN_PLAN.md`](HANDOFF_REDESIGN_PLAN.md)：现状、6 个 bug 和 9 个设计问题、交接研究（I-PASS、隐性知识、AAR、新人社会化、First 90 Days）、新设计（任期模型、岗位档案、产品问答记录；社长/卸任人/转岗/新人/岗位变动各自的流程）、6 个工作包 H1–H6、6 个待决问题。**只写了文档，没有改代码。**
+> **用临时测试确认的 bug：** 交接完成一次后 Settings 的社团设置存不了（新人邮箱为空、卸任人仍指着原岗位）；现有社员不能接任；第一周清单要在新人出现之前勾满；开季后新增的岗位不进换届。
+> **需要 Juanxi 决定：** 方案第 6 节 Q1–Q6（先做哪些包、AI 能否写导读句、产品问答记录与 IRB、前任可否被咨询、回看分数谁能看、Phase 3 任务卡是否用到 Handoff）。**需要同步本地备份**（本会话没有连到 Juanxi 的电脑）。
+
 > **2026-11-08 · Phase 3 数据与 AI 修复 · Juanxi 批准合并（任务编号：1 = setup、2–6 = (a)–(e)，已写进 runbook）（Claude 作 orchestrator；P3-E/F/G 由 worktree 子 agent 并行）**
 > **依据：** Juanxi 自测导出文件与 Netlify 日志。**已确认：** 正式网站 AI 走 ASU AIR（`muse-glimmer-30b`，路由 v3）。**做了什么：** P3-E 所有 AI 接口 22 秒时间预算（Netlify 30 秒会切断），Ask 规划活动立刻出表单、AI 失败也有表单；交接手册只回编号、截断可保留，失败时用来源本地生成。P3-F 研究会话：`/#/start` 开始新会话，清掉 6 小时以前的旧记录（只留条数），6 小时内重开链接不丢数据；单独记 setup 完成（`setupCompletedAt`、`setupChoice`、`firstEventChoice`）；导出 `formatVersion: 3`；CSV 加 `time_az`、`session`、`elapsed_s`。P3-G 四项只记行为的新记录（Juanxi 2026-11-07 批准）：`ui.task`（Demo 菜单 Study task 1–6 / Done）、`ui.visibility`、`ui.edit`（不记内容，密码框不记）、`ui.hover`（≥0.5 秒）。整合时修了两处冲突和一个测试写法（种子数据要在页面加载前写入）。
 > **测试：** lint、两套类型检查、构建通过；1036 个单元测试全过；完整页面回归 886 通过 / 106 跳过 / 12 失败，逐个单独重跑后只剩 `workflow-setup:123`（合并前就失败）和 `organization-setup:1381`（已知偶发）。按测试当天流程完整走一遍（AI 504 时仍出计划表格），导出、转 CSV 都正常。
