@@ -161,6 +161,12 @@ export interface Person {
   personalBufferEnabled: boolean
   retainBufferAtHandoff?: boolean
   bufferHistoryFrom?: string
+  /**
+   * The date this person handed their role over (Handoff → Finish role handoff). From then on they are a former officer:
+   * still in the club's records (tasks they did, contributions, interactions), but no longer in officer lists, pickers,
+   * validation or what the AI may assign to. `roleId` keeps the role they last held. Absent: a current officer.
+   */
+  leftOn?: string | null
   phone: string
   /** Fictional ASU ID (10 digits starting 9999). Kept in this browser; never sent to AI. */
   asuId?: string

@@ -5,6 +5,8 @@ import { MAX_DUTIES, MAX_ROLES, hasReportingLoop, orderRoles } from "./structure
 import type { CommandOp } from "../lib/commands"
 import { sanitizeOps, validDate } from "../lib/commands"
 import { canLead } from "./changeReview"
+import { isOfficer } from "./permissions"
+import { syncSeasonRoles } from "./handoff"
 import { applySchedule } from "../engine/schedule"
 import { buildEventNodes } from "../engine/playbooks"
 import { MAX_STEPS, PHASE_LIST, checkWorkflow, describeWorkflow, withOwners } from "../engine/workflow"
@@ -52,7 +54,7 @@ export function validateRoles(roles: Role[], people: Person[]): string | null {
   if (roles.filter(r => r.fn === "president").length !== 1 || roles.filter(r => r.fn === "president" && r.holderId).length !== 1) return "Keep one president with an assigned officer."
   if (roles.some(r => !nonempty(r.id, 80) || !nonempty(r.displayName, 60) || !ROLE_FUNCTIONS.some(f => f.value === r.fn) || (r.holderId && !people.some(p => p.id === r.holderId)))) return "Each role needs a title and a valid officer."
   if (new Set(roles.filter(r => r.holderId).map(r => r.holderId)).size !== roles.filter(r => r.holderId).length) return "Each officer holds one role in this demo."
-  if (people.some(p => !roles.some(r => r.id === p.roleId && r.holderId === p.id))) return "Match every officer to their own role."
+  if (people.some(p => isOfficer(p) && !roles.some(r => r.id === p.roleId && r.holderId === p.id))) return "Match every officer to their own role."
   if (roles.some(r => r.duties !== undefined && (typeof r.duties !== "string" || r.duties.length > MAX_DUTIES))) return `Keep each role's duties under ${MAX_DUTIES} characters.`
   if (roles.some(r => r.reportsToId && (r.reportsToId === r.id || !roles.some(x => x.id === r.reportsToId))) || hasReportingLoop(roles)) return "Each role reports to a different, existing role, with no loops."
   return null
@@ -73,7 +75,7 @@ export function validateProfile(p: ProfilePatch): string | null {
 }
 export function validateClub(d: ClubDraft): string | null {
   if (!nonempty(d.name, 80) || !nonempty(d.mission, 300)) return "Enter a club name and mission (up to 300 characters)."
-  if (!Array.isArray(d.people) || !d.people.length || d.people.length > MAX_ROLES || new Set(d.people.map(p => p.id)).size !== d.people.length || new Set(d.people.map(p => p.name.toLowerCase().trim())).size !== d.people.length) return "Use distinct fictional officers (a name can be used once)."
+  if (!Array.isArray(d.people) || !d.people.some(isOfficer) || d.people.filter(isOfficer).length > MAX_ROLES || new Set(d.people.map(p => p.id)).size !== d.people.length || new Set(d.people.map(p => p.name.toLowerCase().trim())).size !== d.people.length) return "Use distinct fictional officers (a name can be used once)."
   for (const p of d.people) { const error = validateProfile(p); if (error) return error }
   return validateGoals(d.goals) ?? validateRoles(d.roles, d.people) ?? validateWorkspace(d.workspace)
 }
@@ -105,7 +107,8 @@ export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettin
     return nextRole && n.fn === oldRole?.fn ? { ...n, fn: nextRole.fn } : n
   })
   const settings = { ...defaults, ...(defaults.eventCreatorIds ? { eventCreatorIds: defaults.eventCreatorIds.filter(id => s.people.some(p => p.id === id)) } : {}) }
-  return applySchedule({ ...s, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals, workspace: d.workspace, settings }, people, roles, nodes })
+  // A role added while a handoff season is open joins the season.
+  return syncSeasonRoles(applySchedule({ ...s, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals, workspace: d.workspace, settings }, people, roles, nodes }))
 }
 
 /** The president edits the club's event workflow. It applies to events made from now on; events already made keep their steps. */

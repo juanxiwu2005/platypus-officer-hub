@@ -112,7 +112,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
 
     <article className="step-card">
       <header><span className="step-n">1</span><b>Outgoing interview</b><Info>Fictional example only. One point per line. Never paste research transcripts or real participant details.</Info></header>
-      <textarea aria-label="Outgoing interview · fictional example only" maxLength={12000} rows={4} value={interview} disabled={!self || r.completed} onChange={e => setInterview(e.target.value)} />
+      <textarea aria-label="Outgoing interview · fictional example only" placeholder="One point per line. Fictional examples only." maxLength={12000} rows={4} value={interview} disabled={!self || r.completed} onChange={e => setInterview(e.target.value)} />
       <button className="btn small" disabled={!self || r.completed} onClick={() => act({ kind: "interview", roleId: r.roleId, lines: interview.split("\n") })}>Save example interview</button>
     </article>
 

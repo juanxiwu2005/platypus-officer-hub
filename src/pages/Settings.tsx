@@ -16,6 +16,7 @@ import { validateWorkflow } from "../data/settings"
 import { clubDraft, profilePatch, validateClub, validateDefaults, validateProfile, type ClubDraft } from "../data/settings"
 import type { OrgSettings, Person, Role } from "../data/types"
 import { Empty, Info } from "../components/ui"
+import { officers } from "../data/permissions"
 
 export function InviteLink({ code }: { code: string }) {
   const url = `${window.location.origin}${window.location.pathname}#/join?invite=${encodeURIComponent(code)}`
@@ -87,7 +88,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
         <p className="small muted">New tasks start with that due date, shown as a real date. Anyone can pick another.</p>
         <fieldset><legend className="small muted">Who can create events</legend>
           {([["leads", "President and VP"], ["chosen", "President, VP and officers I choose"], ["everyone", "Every officer"]] as const).map(([v, label]) => <label key={v} className="check-label"><input type="radio" name="event-creators" checked={(defaults.eventCreators ?? "leads") === v} onChange={() => setDefaults({ ...defaults, eventCreators: v })} />{label}</label>)}
-          {defaults.eventCreators === "chosen" && <div className="form-stack">{state.people.filter(p => !["president", "vice_president"].includes(state.roles.find(r => r.id === p.roleId)?.fn ?? "")).map(p => <label key={p.id} className="check-label"><input type="checkbox" checked={(defaults.eventCreatorIds ?? []).includes(p.id)} onChange={e => setDefaults({ ...defaults, eventCreatorIds: e.target.checked ? [...(defaults.eventCreatorIds ?? []), p.id] : (defaults.eventCreatorIds ?? []).filter(id => id !== p.id) })} />{p.name}</label>)}</div>}
+          {defaults.eventCreators === "chosen" && <div className="form-stack">{officers(state).filter(p => !["president", "vice_president"].includes(state.roles.find(r => r.id === p.roleId)?.fn ?? "")).map(p => <label key={p.id} className="check-label"><input type="checkbox" checked={(defaults.eventCreatorIds ?? []).includes(p.id)} onChange={e => setDefaults({ ...defaults, eventCreatorIds: e.target.checked ? [...(defaults.eventCreatorIds ?? []), p.id] : (defaults.eventCreatorIds ?? []).filter(id => id !== p.id) })} />{p.name}</label>)}</div>}
         </fieldset>
         <p className="small muted">Tasks are open to everyone: for yourself or for anyone else.</p>
       </div></details>
