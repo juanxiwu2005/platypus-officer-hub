@@ -319,7 +319,7 @@ Finished study task 2 after 3 min 5 s
 - "正在进行哪个任务"是从日志里读出来的，所以刷新页面后还在；Reset demo 不影响它。
 - 这几个按钮**不再另记 `ui.click`**（它们自己的 `ui.task` 就是记录）；打开 Demo 菜单那一下照常记 `ui.click`。
 - **引导里没有 Demo 菜单**（`/welcome/…` 的专注外壳不显示顶栏），所以 setup 任务 (f) 不能按按钮，也不需要：它的开始/结束用引导记录（第 8.1 节方法 B：`/welcome/founder/name` 的 `ui.navigate` 或 `onboarding.start` → `completeSetup` 或 `onboarding.finish`）。
-- **编号对应要 Juanxi 定**（写进评分表，测试中不改）。建议：1 = (f) setup（不按）、2–6 = 卡片 (a)–(e)；如果最后"用 Ask 新建活动"要单独计时，可以让 (e) 结束后按 Done，再用 Ask 那一段的 `ui.ask` → `reviewChange` 算。
+- **编号对应（Juanxi 2026-11-08 定，写进评分表，测试中不改）：**1 = (f) setup（不按）、2–6 = 卡片 (a)–(e)；如果最后"用 Ask 新建活动"要单独计时，可以让 (e) 结束后按 Done，再用 Ask 那一段的 `ui.ask` → `reviewChange` 算。
 
 ### 11.3 用任务标记算任务用时
 

@@ -1,7 +1,7 @@
-> **2026-11-08 · Phase 3 数据与 AI 修复 · 待 Juanxi 批准合并（Claude 作 orchestrator；P3-E/F/G 由 worktree 子 agent 并行）**
+> **2026-11-08 · Phase 3 数据与 AI 修复 · Juanxi 批准合并（任务编号：1 = setup、2–6 = (a)–(e)，已写进 runbook）（Claude 作 orchestrator；P3-E/F/G 由 worktree 子 agent 并行）**
 > **依据：** Juanxi 自测导出文件与 Netlify 日志。**已确认：** 正式网站 AI 走 ASU AIR（`muse-glimmer-30b`，路由 v3）。**做了什么：** P3-E 所有 AI 接口 22 秒时间预算（Netlify 30 秒会切断），Ask 规划活动立刻出表单、AI 失败也有表单；交接手册只回编号、截断可保留，失败时用来源本地生成。P3-F 研究会话：`/#/start` 开始新会话，清掉 6 小时以前的旧记录（只留条数），6 小时内重开链接不丢数据；单独记 setup 完成（`setupCompletedAt`、`setupChoice`、`firstEventChoice`）；导出 `formatVersion: 3`；CSV 加 `time_az`、`session`、`elapsed_s`。P3-G 四项只记行为的新记录（Juanxi 2026-11-07 批准）：`ui.task`（Demo 菜单 Study task 1–6 / Done）、`ui.visibility`、`ui.edit`（不记内容，密码框不记）、`ui.hover`（≥0.5 秒）。整合时修了两处冲突和一个测试写法（种子数据要在页面加载前写入）。
 > **测试：** lint、两套类型检查、构建通过；1036 个单元测试全过；完整页面回归 886 通过 / 106 跳过 / 12 失败，逐个单独重跑后只剩 `workflow-setup:123`（合并前就失败）和 `organization-setup:1381`（已知偶发）。按测试当天流程完整走一遍（AI 504 时仍出计划表格），导出、转 CSV 都正常。
-> **需要 Juanxi 决定：** 合并到 `main`；任务按钮编号对应（建议 1 = setup 自动记、2–6 = (a)–(e)）；新增记录项是否告知 IRB。
+> **需要 Juanxi 决定：** 新增记录项是否告知 IRB。
 
 > **2026-11-07 · 修复（Juanxi 反馈）· Settings → Tasks and events 的 "Who can create events" 排版错乱（Claude）**
 > **原因：** `src/styles.css` 里 `.form-stack input:not([type=checkbox])` 把单选按钮也撑成整行宽，圆点占满一行，文字被挤到最右边，一个字母一行。**修法：** 这条规则也排除单选按钮（`:not([type=radio])`）。新测试 `e2e/settings-radios.spec.ts`（桌面+手机）：换回旧样式时变红，修好后通过。lint 通过；相关页面测试 112 通过，1 个动效测试（`ob-07:193`）整组跑时失败、单独重跑 3/3 通过。**待 Juanxi 批准合并到 `main` 才会出现在正式网站。**
