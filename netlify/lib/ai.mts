@@ -12,13 +12,23 @@ import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/model
  *   AI_BASE_URL   override the API address (optional)
  *   AI_PROVIDER   openai-compatible | anthropic (optional; set by the preset)
  *   AI_JSON_MODE  json_object (default) | none   — turn off if a provider rejects response_format
- *   AI_TIMEOUT_MS request timeout in ms (default 25000)
+ *   AI_TIMEOUT_MS time budget in ms for a call that sets none itself (default 25000). Every synchronous
+ *                 /api/* function sets its own, at most SYNC_AI_BUDGET_MS (below), so this cannot push them past Netlify's limit.
  *
  * Juanxi 2026-10-27: every call goes to ASU AIR, and the model is chosen per task by routing v3
  * (Gemma for long structured setup work, Muse for short chat and edits, GLM only for a requested
  * Deeper review). DeepSeek has been removed: AI_PRESET=deepseek is refused (see getConfig), so an
  * old DeepSeek key left in the environment can never be sent anywhere. See docs/AI_SETUP.md.
  */
+
+/**
+ * Time budget for an AI call inside an ordinary (synchronous) /api/* function, in ms, counting every attempt.
+ * Netlify cuts a synchronous function off at about 30 s and the browser then gets an empty 502/504 with no
+ * `ai_usage` line (production log 2026-11-07: /api/chat 504 after 31.2 s, then 502 after 30.3 s). Stopping
+ * here leaves room for a cold start and the rest of the function, so the person gets a clean JSON error
+ * and the browser's own fallback instead. Background functions (15 minutes) pass their own longer budget.
+ */
+export const SYNC_AI_BUDGET_MS = 22_000;
 
 type Provider = "openai-compatible" | "anthropic";
 
@@ -351,6 +361,12 @@ export type ChatJSONArgs = {
   mode?: "fast" | "deep";
   responseSchema?: Record<string, unknown>;
   onResponse?: (observation: ProviderObservation) => Promise<void>;
+  /**
+   * Called only when the reply stopped at the output limit (finish reason "length"). It may return what can safely
+   * be kept from the cut-off text (for example only the complete list items); returning null or undefined keeps
+   * the normal "output limit" error. Without it a cut-off reply is always an error.
+   */
+  salvageTruncated?: (reply: string) => unknown;
 };
 export type ChatJSONResult = {
   data: unknown;
@@ -368,6 +384,8 @@ export type ChatJSONResult = {
   finishReason?: string;
   headersMs?: number;
   firstTokenMs?: number;
+  /** True when the reply hit the output limit and `salvageTruncated` kept part of it. */
+  truncated?: boolean;
 };
 
 type Usage = { inputTokens?: number; outputTokens?: number }
@@ -414,6 +432,7 @@ async function callProvider({
   mode,
   responseSchema,
   onResponse,
+  salvageTruncated,
 }: ChatJSONArgs): Promise<ChatJSONResult> {
   const configured = getConfig();
   const route =
@@ -435,6 +454,9 @@ async function callProvider({
       503,
     );
   const t0 = Date.now();
+  // c.timeoutMs is the budget for the whole call: the second (format-fallback) attempt gets only what is left, at
+  // least one second, so a call ends within its budget plus one second (SYNC_AI_BUDGET_MS 22 s → at most 23 s).
+  const deadline = t0 + c.timeoutMs;
   const attempts: ProviderAttempt[] = [];
   const inputChars = system.length + user.length;
   const streaming =
@@ -478,8 +500,13 @@ async function callProvider({
   let failure: AIError | undefined;
   let data: unknown;
   let servedReasoningEffort: string | undefined;
+  let salvaged: { value: unknown } | undefined;
   for (let number = 1; number <= 2; number++) {
     const attemptStart = Date.now();
+    const attemptTimeout =
+      number === 1
+        ? c.timeoutMs
+        : Math.max(Math.min(c.timeoutMs, 1000), deadline - attemptStart);
     const request =
       format === "prompt"
         ? base
@@ -505,7 +532,7 @@ async function callProvider({
         ? { "x-api-key": c.key, "anthropic-version": "2023-06-01" }
         : { authorization: `Bearer ${c.key}` },
       request,
-      c.timeoutMs,
+      attemptTimeout,
     );
     servedReasoningEffort = r.servedReasoningEffort;
     const attempt: ProviderAttempt = {
@@ -616,6 +643,20 @@ async function callProvider({
       attempt.failureKind ??= "json_syntax";
       attempt.failureMessage = failure.message;
     }
+    // A reply cut off at the output limit: the caller may keep its complete parts (never regenerate or invent).
+    if (failure && attempt.failureKind === "output_limit" && salvageTruncated) {
+      let kept: unknown;
+      try {
+        kept = salvageTruncated(attempt.rawReply);
+      } catch {
+        kept = undefined;
+      }
+      if (kept !== undefined && kept !== null) {
+        salvaged = { value: kept };
+        failure = undefined;
+        attempt.outcome = "complete";
+      }
+    }
     // Only an explicit format rejection permits one transport retry. Never regenerate malformed output.
     const rejectedFormat =
       r.status === 400 &&
@@ -641,7 +682,7 @@ async function callProvider({
     await onResponse?.(observation);
     if (failure) throw failure;
     try {
-      data = parsedReply(attempt.rawReply, attempt);
+      data = salvaged ? salvaged.value : parsedReply(attempt.rawReply, attempt);
     } catch (e) {
       const error =
         e instanceof AIError
@@ -669,6 +710,7 @@ async function callProvider({
       servedReasoningEffort,
       routingVersion: route?.version,
       ...publicMetrics(observation),
+      ...(salvaged ? { truncated: true } : {}),
     };
   }
   throw new Error("Unreachable AI attempt state.");

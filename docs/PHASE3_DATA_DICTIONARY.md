@@ -2,15 +2,28 @@
 
 给研究者（Juanxi）看的说明：参与者在 Settings 页按 **Export my data** 下载的那个 JSON 文件里有什么、每个字段是什么意思、怎么从里面算出任务用时、错误次数和"有没有点开引用来源"，以及它**做不到**什么。
 
-- 适用版本：`formatVersion: 2`（2026-11-07 起）。旧的 `formatVersion: 1` 文件也能用下面的 CSV 脚本读，只是没有界面操作记录。
+- 适用版本：`formatVersion: 3`（2026-11-07 起，加了"研究会话"，见第 1.1 节）。旧的 `formatVersion: 1`、`2` 文件也能用下面的 CSV 脚本读：1 没有界面操作记录；1 和 2 没有会话，文件里是这个浏览器里的全部记录。
 - 文件里只有虚构社团的数据和参与者在原型里的操作记录。**没有任何东西会自动上传**：文件只在参与者自己按按钮时下载到他自己的电脑，再由他（Zoom 上）发邮件给研究者。
-- 本文件和代码对应：日志结构 `src/data/types.ts` 的 `LogEntry`；界面事件 `src/lib/uiLog.ts`；写入与去噪 `src/data/store.tsx` 的 `appendUiLog`；时间线 `src/lib/timeline.ts`；导出 `buildExport`；CSV 脚本 `scripts/export-to-csv.mjs`。
+- 本文件和代码对应：日志结构 `src/data/types.ts` 的 `LogEntry`；界面事件 `src/lib/uiLog.ts`；写入与去噪 `src/data/store.tsx` 的 `appendUiLog`；研究会话 `src/lib/studySession.ts`；时间线 `src/lib/timeline.ts`；导出 `buildExport`；CSV 脚本 `scripts/export-to-csv.mjs`。
+- 2026-11-07 新增四项**只记行为**的记录（任务标记、离开页面、开始编辑字段、悬停卡），见第 11 节。
 
 ---
 
 ## 1. 一句话说清楚
 
-参与者在原型里做的事，按发生顺序记成一条一条（最多保留最新的 2000 条）。每一条都有：编号、真实时间、当时"以谁的身份查看"、做了什么、做的对象（长文字截断）、改数据时改之前的值、以及原型接受了没有。导出时再附上一份把所有记录按时间排好的"时间线"，方便直接看或转成 Excel。
+参与者在原型里做的事，按发生顺序记成一条一条（每次研究会话最多保留最新的 2000 条）。每一条都有：编号、真实时间、当时"以谁的身份查看"、做了什么、做的对象（长文字截断）、改数据时改之前的值、以及原型接受了没有。导出时再附上一份把所有记录按时间排好的"时间线"，方便直接看或转成 Excel。
+
+### 1.1 研究会话（formatVersion 3 起）
+
+**为什么要有：** 研究者自己在线上网站试做时发现，导出的 177 条里前 49 条是另一天（同一个浏览器之前）留下的。为了让每次测试的文件只装这一次坐下来做的东西（下面叫"这一次 sitting"），又不会因为误操作丢数据，现在有了"研究会话"。
+
+- **什么时候开始一个新会话：** 只要开始一次"会记录的引导"：打开研究链接 `/#/start`、欢迎页的 Start walkthrough（`/welcome/start`），或 Demo 菜单的 Replay walkthrough。Demo 菜单里的两个 Test 按钮**不会**开始会话，也不写任何记录。
+- **开始时做什么：** 生成一个会话编号（例如 `s-3f9a0c71d2e4b856`，随机的，不包含任何人名、时间或设备信息），记下开始时间。然后**只删掉更早一次 sitting 的东西**：超过 6 小时的交互日志条目和引导尝试（除非它属于 6 小时内开始的会话）。删了多少只记条数（`previousEntriesCleared`、`previousAttemptsCleared`），不留内容。**最近 6 小时内的都保留**，包括点研究链接之前那几分钟的浏览（这些条目不带会话编号）。
+- **之后：** 每一条日志都带这个会话编号（`session` 字段）。编号 `seq` 接着往下数，不重来。一个会话只管一次 sitting：开始 6 小时以后再写的条目就不带会话编号了，直到下一次打开研究链接。
+- **中途又打开了研究链接（或按了 Replay walkthrough）：** 会开始第二个会话，但前一个会话的记录**一条都不会丢**（都在 6 小时内）。导出文件里就会有两个会话，`sessions` 里各一行，每条日志用 `session` 字段分得清是哪个会话的。
+- **为什么 6 小时：** 一次测试最多 75 分钟；6 小时以前的东西基本可以肯定是另一天、另一次（可能是另一个人用了这台电脑）。删掉它们既不占 2000 条上限，也不会被误导出；条数仍在文件里，研究者能看出"之前有过东西"。
+- **2000 条上限：** 算的是浏览器里保留下来的整份日志（可能包括同一次 sitting 的几个会话），满了从最早的丢起，丢了几条见 `interactionLog.droppedEarlier`（只算上限丢的，不算 6 小时清理删的）。
+- **导出时：** 放保留下来的全部日志条目和引导尝试（再按同样的 6 小时规则过一遍，防止另一个旧标签页把旧条目写回来）；顶层有 `sessions`（每个会话一行）和 `session`（最新的那个，外加没放进文件的条数），见第 3.1 节。如果这个浏览器从来没开始过会话（例如只用 Test 按钮或直接看样例），`session` 为 `null`、`sessions` 为空，文件和以前一样放全部记录。
 
 ## 2. 怎么拿到、怎么打开
 
@@ -31,29 +44,53 @@
 | 字段 | 意思 |
 | --- | --- |
 | `format` | 固定是 `"platypus-export"`，用来认出这是本原型的导出文件 |
-| `formatVersion` | 文件结构版本。现在是 `2`（比 1 多了下面标 ★ 的字段，原有字段一个都没删） |
+| `formatVersion` | 文件结构版本。现在是 `3`。2 比 1 多了下面标 ★ 的字段；3 又多了标 ◆ 的字段，而且 `interactionLog`、`onboarding`、`timeline` 只含这一次 sitting（最近 6 小时，见 1.1；原有字段一个都没删） |
 | `exportedAt` | 按下导出的真实时间（ISO 格式，UTC） |
 | `schemaVersion` | 社团数据结构的版本号（开发用） |
 | `storageKey` | 数据在浏览器里存的名字（开发用） |
 | ★ `build` | 这是哪一版网站：`version`（应用版本号）、`commit`（代码提交号）、`branch`、`context`（Netlify 的 production / deploy-preview）。本地构建没有这些信息时写 `"unknown"`。用来确认每位参与者用的是同一版 |
 | ★ `demoToday` | 原型里的"演示日期"（导出那一刻）。原型的日期是假的、可以用 Demo 菜单往前拨；它和真实时间无关 |
 | ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（现在 `ob-3`）。每次引导尝试里也各自记了版本 |
+| ◆ `sessions` | 文件里的每个研究会话一行，按开始时间排，见 3.1；没有会话时为空 `[]` |
+| ◆ `session` | 最新的那个会话（和 `sessions` 最后一行一样），外加没放进文件的条数，见 3.1；没有会话时为 `null` |
 | `state` | 导出那一刻整个虚构社团的数据（活动、任务、成员、设置……）。签名密钥被替换成 `"[omitted]"` |
-| `onboarding` | 新手引导（`/#/welcome/…`）的单独记录，见第 6 节 |
-| `interactionLog` | 交互日志本体，见第 4、5 节。外层还有：`limit`（2000）、`count`（现有条数）、`firstSeq` / `lastSeq`（第一条和最后一条的编号）、`droppedEarlier`（因为超过 2000 被丢掉的最早条数；0 表示一条没丢） |
+| `onboarding` | 新手引导（`/#/welcome/…`）的单独记录，见第 6 节（有会话时只含这一次 sitting 的尝试） |
+| `interactionLog` | 交互日志本体，见第 4、5 节（有会话时只含这一次 sitting）。外层还有：`limit`（2000）、`count`（现有条数）、`firstSeq` / `lastSeq`（第一条和最后一条的编号）、`droppedEarlier`（因为超过 2000 被丢掉的最早条数；0 表示一条没丢。6 小时清理删掉的不算在这里，见 `previousEntriesCleared`） |
 | ★ `timeline` | 把交互日志和新手引导记录合在一起、按时间排好的清单，每行一句英文短描述，见第 7 节 |
+
+### 3.1 会话（`sessions` 和 `session`，formatVersion 3）
+
+`sessions[]` 每个会话一行（文件里有它的条目或尝试，或者它是最新的）；`session` 就是最后一行，另加 `olderEntriesLeftOut`、`olderAttemptsLeftOut` 两个总数。时间都给三种写法：`…At` 是 UTC 的 ISO 时间，`…AtMs` 是毫秒数，`…AtAz` 是**亚利桑那时间**（America/Phoenix，UTC−7，全年不变，没有夏令时），例如 `2026-11-07 10:46:40.337`，可以直接对评分表。
+
+| 字段 | 意思 |
+| --- | --- |
+| `id` | 会话编号（随机） |
+| `startedAt` / `startedAtMs` / `startedAtAz` | 会话开始的时间（打开研究链接那一刻） |
+| `attempt` | 这个会话的引导尝试编号（对应 `onboarding.attempts[].id`） |
+| `outcome` | 这次引导尝试**整体**怎么结束的：`completed` / `exited` / 还没结束为 `null`。注意：`exited` 不等于"没建好社团"，见下一行 |
+| `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | 在 Confirm 屏按 **Start workspace** 或 **Keep current demo** 的时间（第一次按的）。有值 = 建社团这一步已经做完；没按过为 `null` |
+| `setupChoice` | 按的是哪个：`start-workspace`（Start workspace，建了自己的社团）或 `keep-demo`（Keep current demo，保留示例社团） |
+| `firstEventChoice` | First event 屏最后一次往前走时：`planned`（计划了一个活动）或 `skipped`（按了 Skip for now）；没走过这一屏为 `null`。只从屏幕步骤记录推出来，不看填了什么 |
+| `entries` | 文件里属于这个会话的日志条数 |
+| `previousEntriesCleared` | 这个会话开始时，因为超过 6 小时而从这个浏览器里删掉的旧日志条数（只有数字） |
+| `previousAttemptsCleared` | 同一时刻、同样原因删掉的旧引导尝试次数 |
+| `olderEntriesLeftOut`（只在 `session`） | 不在这个文件里的更早条目总数 = 文件里各会话的 `previousEntriesCleared` 加起来 + 导出时又过滤掉的旧条目（例如另一个还开着的旧标签页写回来的；通常是 0） |
+| `olderAttemptsLeftOut`（只在 `session`） | 同样算法的引导尝试次数 |
+
+**例子（研究者 2026-11-07 的试做）：** 按了 Start workspace，接着去看社员预览，在那里按了 Exit。现在文件里是 `setupCompletedAt` 有值、`setupChoice: "start-workspace"`、`outcome: "exited"`。分析"有没有完成建社团"时请看 `setupCompletedAt`，不要看 `outcome`。
 
 ## 4. 交互日志里每一条（`interactionLog.entries[]`）
 
 | 字段 | 意思 |
 | --- | --- |
-| `seq` | 编号 1, 2, 3 …，不重复、不复用。开头不是 1，说明最早的几条因 2000 上限被丢了 |
+| `seq` | 编号 1, 2, 3 …，不重复、不复用；新会话不重新编号（只有 6 小时清理把日志全删光时才从 1 开始）。开头不是 1：最早的几条被删了，是 2000 上限（`droppedEarlier`）还是 6 小时清理（`previousEntriesCleared`），文件里分开写 |
 | `at` | 真实时间，1970 年以来的毫秒数（参与者电脑的时钟） |
 | `actor` | 当时原型"View as"设成了谁（虚构人物的 id，例如 `alex`） |
 | `type` | 发生了什么。以 `ui.` 开头的是**界面操作**（第 5 节）；其余是**数据动作**（改了社团数据的操作，例如 `completeSetup`、`updateNode`） |
 | `payload` | 这件事的细节（长文字截到 200 个字符；看起来像密钥的字段不收） |
 | `before` | 只有"改已有数据"的数据动作才有：改之前那些字段的值。界面操作**没有** `before` |
 | `applied` | `true` = 原型接受了；`false` = 没接受（没权限、无效、没东西可改；界面操作里见下） |
+| `session` | 这一条属于哪次研究会话（formatVersion 3）。不在任何会话里写下的条目（研究链接之前，或会话开始 6 小时以后）没有这个字段 |
 
 **两种条目在同一个编号序列里**，所以"点了哪个按钮 → 数据怎么变了"可以按顺序直接读出来。
 
@@ -84,6 +121,10 @@
 | `ui.details` | 右栏 Details 打开了某样东西，或关上 | `action`（`open` / `close`）、`kind`（`task`、`nudge`、`event`、`partner` …）、`id`（虚构数据的 id） |
 | `ui.reminder` | 提醒编辑器（"Private reminder"）打开 | `action: "open"`、`nodeId`（哪个任务）、`channel`（默认渠道） |
 | `ui.export` | 按了 Export my data（这一条会出现在导出的文件里，是最后一条） | `entries`（导出时日志条数） |
+| `ui.task` | 参与者在 Demo 菜单按了任务开始/完成（2026-11-07，第 11.2 节） | `task`（1–6）、`event`（`start` / `done`）、`implicit`、`ms`、`route` |
+| `ui.visibility` | 离开页面满 1 秒、以及回来（2026-11-07，第 11.4 节） | `state`（`hidden` / `visible`）、`via`（`tab` / `window` / `close`）、`awayMs`、`picker`、`route` |
+| `ui.edit` | 聚焦一个输入框后第一次改动它、以及离开它（2026-11-07，第 11.5 节；**不记内容**） | `field`、`kind`、`area`、`route`、`event`（`start` / `end`）、`ms` |
+| `ui.hover` | 悬停卡（`Hover` / `Info`）开着 ≥ 0.5 秒后关上（2026-11-07，第 11.6 节） | `name`、`near`、`ms`、`via`（`mouse` / `focus` / `tap`）、`area`、`route` |
 
 ### 5.2 点击和选择的通用字段
 
@@ -128,13 +169,15 @@
 3. 点了链接或按钮后 2 秒内换了页：不再单独记 `ui.navigate`，而是把新页面写进那次点击的 `to`。（换页去的地方和点击说的不一样时——例如被重定向——仍会另记一条 `ui.navigate`。）
 4. 点在空白处、点进文本框、点标签文字：不记（选择本身会记成 `ui.change`）。
 
-**条数估计**（`src/test/uiLog.test.tsx` 的模拟，上限 2000）：一般节奏（在原型里 60 分钟、平均每 8 秒操作一次）约 **600 条**；非常忙（75 分钟不停、每 4 秒一次）约 **1500 条**。端到端测试里那段脚本化流程（准备一个提醒 + 引导建社团 + 点几个页面 + 规则问题 + 打开来源 + 导出，真人做大约几分钟）是 **34 条**。如果某个文件 `droppedEarlier` 大于 0，说明真的超了上限，最早的部分没有了。
+**条数估计**（`src/test/uiLog.test.tsx` 的模拟，上限 2000；2026-11-07 起包含第 11 节的四项）：一般节奏（在原型里 60 分钟、平均每 8 秒操作一次）约 **650 条**；非常忙（75 分钟不停、每 4 秒一次，6 个任务标记、每 3 分钟离开一次页面、每 12 个操作里有一次打字和一次读悬停卡）约 **1560 条**（加这四项之前分别是 600 / 1500）。端到端测试里那段脚本化流程（准备一个提醒 + 引导建社团 + 点几个页面 + 规则问题 + 打开来源 + 导出，真人做大约几分钟）现在是 **40–42 条**（电脑 42、手机 40；以前 34 条，多出来的是"开始/停止打字"）。如果某个文件 `droppedEarlier` 大于 0，说明真的超了上限，最早的部分没有了。
 
 ## 6. 新手引导记录（`onboarding`）
 
 这是 v1.5 起就有的单独记录（`src/lib/onboardingRecord.ts`），只记行为、不记填写内容：
 
 - `attempts[]`：每次走引导（或在欢迎页选"Explore the sample club"）一条：`id`、`entry`（`start` 走引导 / `explore` 直接看样例）、`flowVersion`、`replay`（第几次重走）、`startedAt`、`finishedAt`、`outcome`（`completed` 走完 / `exited` 中途退出 / `explored`）。
+  - formatVersion 3 起还有：`sessionId`（属于哪次会话）、`setupCompletedAt`（按 Start workspace 或 Keep current demo 的时间，毫秒）、`setupChoice`（`start-workspace` / `keep-demo`）。
+  - `outcome` 的意思没变，指**整个尝试**（包括建好以后的社员预览）怎么结束。`exited` 可能是建社团前就退出了，也可能是建好以后在社员预览里按了 Exit；两者用 `setupCompletedAt` 区分。
 - `steps[]`：每屏的 `enter`（进入）、`leave`（离开）、`back`（返回）、`skip`（跳过）、`complete`（完成）、`exit`（Save & exit 退出），各带时间 `at`。
 - 引导页面上的点击和换页，现在**也**会同时出现在交互日志里（`route` 以 `/welcome/` 开头），两边可以在时间线上对照。
 
@@ -143,17 +186,19 @@
 | 字段 | CSV 列 | 意思 |
 | --- | --- | --- |
 | （行号） | `row` | 1, 2, 3 … |
-| `time` | `time_iso` | 真实时间，ISO 格式，**UTC**（亚利桑那时间 = UTC − 7 小时，全年不变） |
+| `time` | `time_iso` | 真实时间，ISO 格式，**UTC** |
+| `timeAz` | `time_az` | 同一时间的**亚利桑那时间**（UTC − 7 小时，全年不变），例如 `2026-11-07 10:46:40.337`。旧文件没有 `timeAz`，CSV 脚本照样算出这一列 |
 | `at` | `time_ms` | 同一时间的毫秒数 |
-| — | `elapsed_s` | 距第一行过了多少秒 |
+| `session` | `session` | 这一行属于哪个会话；不在任何会话里为空 |
+| — | `elapsed_s` | 距**这一行所属会话的开始**过了多少秒；不在任何会话里的行为空。旧文件（没有会话）：距第一行 |
 | — | `gap_s` | 距上一行过了多少秒（看停顿、犹豫） |
-| `source` | `source` | `log`（交互日志）或 `onboarding`（引导记录） |
+| `source` | `source` | `log`（交互日志）、`onboarding`（引导记录）或 `session`（会话开始，每个会话一行） |
 | `seq` | `seq` | 交互日志编号（引导记录行为空） |
 | `attempt` | `attempt` | 引导尝试 id（只有引导记录行有） |
 | `actor` | `actor` | "View as" 身份 |
-| `type` | `type` | 事件类型；引导记录行是 `onboarding.start` / `onboarding.enter` … / `onboarding.finish` |
+| `type` | `type` | 事件类型；引导记录行是 `onboarding.start` / `onboarding.enter` … / `onboarding.setup`（按了 Start workspace 或 Keep current demo）/ `onboarding.finish`；会话行是 `session.start` |
 | `route` | `route` | 页面路径 |
-| — | `name` | 控件名字；`ui.ask` 行是问题本身 |
+| — | `name` | 控件名字；`ui.ask` 行是问题本身；没有这两样时用 `payload.field`（`ui.edit` 行的输入框标签，不是打的字） |
 | — | `target` | 链接去处（站外是网站+路径，站内是页面）或下拉框选中项 |
 | — | `external` | 站外链接为 `TRUE` |
 | `applied` | `applied` | `TRUE` / `FALSE`；引导记录行为空 |
@@ -170,13 +215,14 @@ CSV 里以 `=`、`+`、`-`、`@` 开头的文字会在前面加一个 `'`，防�
 
 ### 8.1 任务用时
 
-- **方法 A（推荐）**：研究者在 Zoom 上按"任务开始/结束"时记下时钟时间（记到秒，注明时区）。换成 UTC 后，在 CSV 的 `time_iso` 里找这一段；用时 = 结束 − 开始。这段里的行就是这个任务的全部操作。
+- **方法 A（推荐）**：研究者在 Zoom 上按"任务开始/结束"时记下时钟时间（记到秒，亚利桑那时间）。直接在 CSV 的 `time_az` 列里找这一段（不用再换算 UTC）；用时 = 结束 − 开始。这段里的行就是这个任务的全部操作。
 - **方法 B（没有手记时间时）**：取这个任务"第一条相关事件"到"最后一条相关事件"的时间差。例如：
-  - 建社团：`route` 为 `/welcome/founder/name` 的 `ui.navigate`（或 `onboarding.start`）→ `completeSetup`（或 `onboarding.finish`）。
+  - 建社团：`session.start`（或 `route` 为 `/welcome/founder/name` 的 `ui.navigate`、`onboarding.start`）→ `onboarding.setup`（即 `session.setupCompletedAt`；选了 Start workspace 时紧挨着还有 `completeSetup`）。**不要用 `onboarding.finish`**：它是整个尝试（包括社员预览）结束的时间。
   - 规则问题：该问题的 `ui.ask` → 参与者给出答案前的最后一个操作（通常是打开来源或下一条 `ui.ask`）。
   - 计划一个活动：第一条提到活动的 `ui.ask` → `reviewChange`（`decision` 为批准）。
   - 准备提醒：`ui.reminder`（open）→ 点 `Open … draft`（`external` 为 TRUE、`area` 为 `reminder`）或 `confirmNudgeSent`。
-- `gap_s` 很大的行可以看出卡住、思考的地方。
+- **方法 C（2026-11-07 起）**：参与者自己在 Demo 菜单按的任务开始/完成标记（`ui.task`），`done` 行直接带用时；离开页面的时间可以减掉。见第 11.3 节。
+- `gap_s` 很大的行可以看出卡住、思考的地方；中间有 `ui.visibility` 的，是离开了页面。
 
 ### 8.2 错误
 
@@ -205,10 +251,11 @@ CSV 里以 `=`、`+`、`-`、`@` 开头的文字会在前面加一个 `'`，防�
 ## 9. 做不到的事（写方法和局限时要说明）
 
 1. **只记这一个浏览器。** 换浏览器、换电脑、用隐私窗口后关掉，记录都不在了；清除网站数据也会清掉。
-2. **最多 2000 条**，超了丢最早的（看 `droppedEarlier`）。
-3. **不记按键、不记输入框里打的字**（文本、数字、日期、密码、文件框都不读）。表单真正保存时，保存结果会作为数据动作记下（例如 `completeSetup` 里有社团名），这是原来就有的。
+2. **浏览器里最多保留 2000 条**（这一次 sitting 的所有会话合起来），超了丢最早的（看 `droppedEarlier`）。
+   - **开始新会话时，超过 6 小时的旧日志和旧引导尝试会被删掉**（只留条数）。最近 6 小时的不删，所以测试中途误开研究链接不会丢数据，只是文件里多一个会话。但如果同一台电脑上两次测试相隔不到 6 小时又没清浏览器数据，前一位参与者的记录会留在后一位的文件里（每条有 `session`，分得开）：请照 runbook 每位参与者用新的无痕窗口。
+3. **不记按键、不记输入框里打的字**（文本、数字、日期、密码、文件框都不读，也不记长度）。2026-11-07 起只记"在哪个框开始打字、打了多久"（`ui.edit`，第 11.5 节），密码框连这个也不记。表单真正保存时，保存结果会作为数据动作记下（例如 `completeSetup` 里有社团名），这是原来就有的。
 4. **不记 AI 回答的文字**，只记回答种类、引用编号和标签；参与者问的问题文字会记（截断到 200 字符）。
-5. **不记悬停、滚动、鼠标移动、停留在某处看了多久**；看了多久只能从相邻两行的时间差推测。
+5. **不记滚动、鼠标移动、停留在页面某处看了多久**；看了多久只能从相邻两行的时间差推测。例外（2026-11-07）：悬停卡开着 ≥ 0.5 秒会记一条（`ui.hover`，只有时长和触发它的控件名）。
 6. **不记站外发生的事**：只知道点开了某个来源或 Gmail/WhatsApp 草稿，不知道在那边做了什么、有没有真的发出。
 7. 键盘在任务卡片上按 Enter 打开详情时，没有"点击"那一条，但有 `ui.details`（open）。Esc 关菜单等按键不记。
 8. 时间来自参与者电脑的时钟；电脑时间不准，`at` 就不准（相对顺序仍以 `seq` 为准）。
@@ -225,5 +272,93 @@ IRB 文字说日志记"参与者在网站上的每个操作"，每条有编号�
   2. 控件名字（`name`）可能含有屏幕上显示的文字：虚构数据，或参与者之前自己输入的内容（例如他起的任务名），截断到 80 字符。IRB 文字已允许"参与者打的字可能以截断形式出现"。
   3. Ask 的问题原文会进日志（截断到 200 字符）。IRB 文字已举了这个例子。
   4. 导出文件多了 `build`（网站版本号）、`demoToday`、`onboardingFlowVersion`、`timeline`。这些是关于网站版本或由已有记录整理出来的，不是关于参与者的新信息。
+     - formatVersion 3 多了 `sessions` / `session`：随机会话编号、开始时间、建社团结束的时间和选择、First event 计划还是跳过、更早记录的**条数**。会话编号不关联任何人；"Start workspace / Keep current demo 的时间"和"First event 跳过还是计划"都是已有的行为记录（按钮点击、屏幕步骤）整理出来的，不是新的个人信息。超过 6 小时的旧记录在会话开始时被删除，比以前保存得更少。
   5. 没有记录：设备型号、浏览器型号、屏幕大小、IP、地理位置、按键、AI 回答文字。
 - AGENTS.md 第 6d 节要求"新增记录项前先问 Juanxi（研究设计，要对照 IRB）"。这一版新增了界面操作记录，**合并前需要 Juanxi 确认**，并决定是否需要告知 IRB（例如通过 Marcie）。
+- **2026-11-07 追加的四项（第 11 节）：Juanxi 于 2026-11-07 批准，作为"只记行为"的记录项**：任务开始/结束标记（`ui.task`）、离开页面的时间（`ui.visibility`）、开始编辑某个输入框及编辑时长（`ui.edit`）、悬停卡打开时长（`ui.hover`）。和 IRB 文字对照：
+  1. 仍是同一个日志、同一种条目、同一个编号；仍只存在参与者自己的浏览器里、上限 2000 条、不自动上传、由参与者自己导出。
+  2. 都不含新的个人信息：没有打的字（连长度都没有）、没有按键、没有 AI 回答、没有设备/浏览器/IP；密码框完全不记。
+  3. 新增的是**时间信息**：参与者离开了页面多久（`awayMs`）、在一个框里打了多久、一张悬停卡开了多久。"离开页面"只知道离开了、离开多久，以及是换了标签页/应用（`tab`）还是窗口失焦（`window`），**不知道去了哪里、做了什么**。
+  4. `ui.edit` 的 `field` 和 `ui.hover` 的 `name` / `near` 来自界面上的标签文字（和 `ui.click` 的 `name` 一样，可能含屏幕上显示的虚构数据，或参与者之前自己输入、后来显示在标签上的文字，截断到 80 / 60 字符）。
+  5. 是否需要告知 IRB（例如作为"日志更细"的小修改），由 Juanxi 决定；代码已按最保守的方式做（例如悬停不到 0.5 秒、离开不到 1 秒都不记）。
+
+## 11. 2026-11-07 新增：任务标记、离开页面、开始编辑、悬停卡（只记行为）
+
+Juanxi 2026-11-07 批准的四项。都写进同一个交互日志，条目结构不变（`seq`、`at`、`actor`、`type`、`payload`、`applied`，没有 `before`），`type` 以 `ui.` 开头，`applied` 都是 `true`。代码：`src/lib/uiLog.ts`（四个记录器）、`src/components/UiLogger.tsx`（装上离开页面和编辑的监听）、`src/components/chrome/DemoMenu.tsx`（任务按钮）、`src/components/ui/index.tsx` 的 `Hover`（悬停卡）、`src/lib/timeline.ts`（时间线里的英文短描述）。
+
+### 11.1 一览
+
+| `type` | 什么时候记 | `payload` |
+| --- | --- | --- |
+| `ui.task` | 在 Demo 菜单按 Start task N / Done | `task`（1–6）、`event`（`start` / `done`）、`route`（按的时候在哪一页）；`done` 还有 `ms`（这个任务从开始到结束的毫秒数），自动结束的还有 `implicit: true` |
+| `ui.visibility` | 离开页面满 1 秒时一条 `hidden`；回来时一条 `visible` | `state`、`via`（见 11.4）、`route`；`visible` 还有 `awayMs`（离开了多少毫秒）；离开时正在用选择器的有 `picker: true` |
+| `ui.edit` | 聚焦一个输入框后**第一次改动**它：`event: "start"`；离开这个框：`event: "end"` | `route`、`field`（框的标签）、`kind`（`text` / `textarea` / `number` / `date` / `search`）、`area`；`end` 还有 `ms` |
+| `ui.hover` | 悬停卡（`Hover` / `Info`）关上时，如果它开了 ≥ 500 毫秒 | `route`、`name`（触发它的控件名，≤ 80 字符）、`ms`、`via`（`mouse` / `focus` / `tap`）；名字太笼统（"More information"）时加 `near`（它所在的小标题）；`area` |
+
+时间线里的样子（`description` 列）：
+
+```
+Started study task 1 on /
+Started typing in search field "Search sources" on /rules
+Stopped typing in "Search sources" after 6.2 s on /rules
+Hover card "More information" (under "Needs a nudge") open 1.0 s on /
+Left the page: another tab or app on /rules
+Came back after 41.0 s away (another tab or app) on /rules
+Ended study task 1 after 4 min 12 s (next task started)
+Started study task 2 on /
+Finished study task 2 after 3 min 5 s
+```
+
+### 11.2 任务标记（`ui.task`）在哪、怎么用
+
+- **位置：** 顶栏的 Demo 小药丸（`Demo · 日期`）→ 菜单第一行 **Study task**：按钮 `1` … `6`（读屏名 "Start task 1" …）和 `Done`（读屏名 "Task done"）。别处界面里没有。
+- **手机：** 同一个 Demo 药丸，点开后菜单占满宽度，按钮一样。**键盘：** Tab 到 Demo 药丸 → Enter 打开 → Tab 到按钮 → Enter。
+- 按完菜单自动关上（方便读任务卡），焦点回到 Demo 药丸。药丸上显示 `· Task 3`，正在进行的那个按钮显示为按下状态；没有任务进行时 Done 是灰的。
+- 参与者开始读一张任务卡时按 Start task N，做完按 Done。**忘了按 Done 就按下一个 Start**：会先自动记一条上一个任务的 `done`，带 `implicit: true`，再记新任务的 `start`。
+- 再按正在进行的那个任务的按钮：什么都不记。
+- "正在进行哪个任务"是从日志里读出来的，所以刷新页面后还在；Reset demo 不影响它。
+- 这几个按钮**不再另记 `ui.click`**（它们自己的 `ui.task` 就是记录）；打开 Demo 菜单那一下照常记 `ui.click`。
+- **引导里没有 Demo 菜单**（`/welcome/…` 的专注外壳不显示顶栏），所以 setup 任务 (f) 不能按按钮，也不需要：它的开始/结束用引导记录（第 8.1 节方法 B：`/welcome/founder/name` 的 `ui.navigate` 或 `onboarding.start` → `completeSetup` 或 `onboarding.finish`）。
+- **编号对应（Juanxi 2026-11-08 定，写进评分表，测试中不改）：**1 = (f) setup（不按）、2–6 = 卡片 (a)–(e)；如果最后"用 Ask 新建活动"要单独计时，可以让 (e) 结束后按 Done，再用 Ask 那一段的 `ui.ask` → `reviewChange` 算。
+
+### 11.3 用任务标记算任务用时
+
+1. 在 CSV 里筛 `type` = `ui.task`。每个任务一对：`start` 行 → `done` 行。
+2. **用时 = `done` 行的 `ms`**（等于两行 `time_ms` 之差）。
+3. `implicit` 为 TRUE 的 `done`：参与者忘了按 Done，这个结束时间其实是他开始下一个任务的时间，偏长。可以改用这段里最后一条和任务有关的操作作为结束（方法 B），或用研究者的手记时间（方法 A）。在方法里写明用的是哪种。
+4. **任务里在原型外的时间**：把这段（`start` 到 `done` 之间）所有 `ui.visibility` `visible` 行的 `awayMs` 加起来。"在原型里的用时" = 用时 − 离开时间。
+5. 这段里的其他行（点击、提问、编辑、悬停）就是这个任务的全部操作，和第 8 节的错误、来源检查一起算。
+6. 按按钮的人是参与者，会忘、会按错。和 Zoom 录像或手记时间核对一次。
+
+### 11.4 离开页面（`ui.visibility`）
+
+- **`via: "tab"`**：页面被隐藏——换了标签页、最小化窗口、手机切到别的应用、锁屏。原型里点开的外部来源（ASU 页面、Gmail 草稿）在新标签页打开，所以是这一种。
+- **`via: "window"`**：页面还在屏幕上，但整个浏览器窗口失去了焦点——点到了 Zoom、另一个窗口里的 ASU 网页或 PDF、文件选择框。**决定记这一种**（Juanxi 要求"有价值且不吵才记"）：Zoom 只共享一个浏览器窗口时，参与者去看别的窗口不会让页面"隐藏"，只有窗口失焦能看出来。控制噪音的办法：同样的 1 秒门槛；只看整个窗口失焦，页面里在输入框之间换焦点不算；失焦时正在用下拉框、日期或文件选择器的，标 `picker: true`（那是在选东西，不是离开）。
+- **`via: "close"`**：页面被关掉、刷新或离开（`pagehide`），立刻写，并立刻存进浏览器（不等 1 秒，页面马上就没了）。刷新后会接着一条新的 `ui.navigate`（`from` 为空）。
+- **去噪：** 离开不到 1 秒（快速 Alt-Tab、窗口闪一下）两行都不记。`hidden` 行是在离开满 1 秒时写的，所以它的时间比真正离开**晚约 1 秒**；准确的离开时长看 `visible` 行的 `awayMs`。
+- 先窗口失焦、后来又换了标签页：算一次离开，`hidden` / `visible` 的 `via` 取"更离开"的那种（`tab`）。
+- 手机浏览器会冻结后台页面，这时 `hidden` 行可能没有写上；`visible` 行仍然有完整的 `awayMs`。只关掉没回来的（`close`）没有 `visible` 行。
+- **和官方 ASU 页面对照：** 找 `external` 为 TRUE 的 `ui.click`（打开来源），紧接着的 `hidden` → `visible` 那一对的 `awayMs`，就是他在外面（多半在看那个来源）的时间。这是上限：只知道离开了多久，不知道在外面看了什么、有没有干别的。参与者自己在另一个窗口打开 ASU 网站的，表现为 `window` 或 `tab` 离开，前面没有外部链接点击。
+
+### 11.5 开始编辑字段（`ui.edit`）
+
+- 聚焦一个文本、多行文本、数字、日期或搜索框之后，**第一次真的改动内容**时记 `start`；只点进去不打字不记。同一次聚焦只记一次 `start`，打多少字都一样。
+- 离开这个框（Tab、点别处、换页、关页，**也包括切到别的窗口**——浏览器会让框失去焦点）记 `end`，`ms` = 从第一次改动到离开。再回来接着打字是新的一对。
+- **不记：** 框里的内容、长度、按键、粘贴了什么。**密码框完全不记**（`type="password"`，或 `autocomplete` 里有 password）。复选框、单选、下拉框不算编辑（它们的选择照旧记成 `ui.change`）。
+- `kind`：`text`（也包括 email、网址、电话框）、`textarea`、`number`、`date`（也包括时间框；用日期选择器选一个日期也算改动）、`search`。
+- `field` 只从框的标签来（`aria-label`、`<label>`、提示文字 placeholder），**从不读框里的文字**。标签是界面文字；少数标签里可能有参与者之前起的名字（同 `ui.click` 的 `name`）。
+- **编辑用时：** 一个任务里所有 `end` 行的 `ms` 相加。注意 `ms` 包括框还聚焦着时的停顿和思考，不是"手在打字"的时间。
+- Ask 输入框也算：发出问题后框还聚焦着，接着问下一题不会再记 `start`，离开时的 `end` 包括这几题。
+- CSV：`name` 列现在只取 `name` 或 `question`，所以 `ui.edit` 行的 `name` 列是空的，字段名在 `description` 和 `payload_json` 的 `field` 里（如果要放进 `name` 列，改 `scripts/export-to-csv.mjs` 一行）。
+
+### 11.6 悬停卡（`ui.hover`）
+
+- 规则界面的"停"那一级（AGENTS.md 第 7 节）：彩色点、ⓘ 图标、进度链上的点等，鼠标停上去（或键盘焦点进去）就出现的小卡片；手机上是点一下从底部出来、点别处关上。
+- **关上时写一条**，`ms` 是开着的时间（选了"关时写"而不是"0.5 秒时先写、关时再改"：日志条目写下以后不改，和其他条目一致）。开着不到 500 毫秒（鼠标路过）不记。卡片开着时页面换了：照样写一条，`route` 是它打开时的页面。
+- `via`：`mouse`（电脑上鼠标停着）、`focus`（键盘 Tab 到它，或点了它里面的按钮后焦点留在那里——这时卡片会一直显示到焦点离开，`ms` 会偏长）、`tap`（手机）。
+- `name` 是触发它的控件名（按钮文字或读屏名），**不是卡片里的文字**。很多 ⓘ 的名字都叫 "More information"，所以加 `near` = 它所在的小标题（例如 "Needs a nudge"）。
+- **用法：** 每个任务里 `ui.hover` 的条数和 `ms` 总和 = 参与者看了多少"为什么"的解释；看具体是哪张（例如 Today 风险点的原因、Events 的经费阶段、规则来源）。只知道卡片开了多久，不知道他有没有在读。
+
+### 11.7 条数
+
+见第 5.5 节：一般节奏约 650 条、非常忙约 1560 条（上限 2000）。e2e `e2e/research-events.spec.ts` 那段（开始任务 1、在 Rules 搜索框打字、读一张悬停卡、离开 2 秒、开始任务 2、键盘按 Done、导出）是 19–20 条，其中这四项共 9 条。

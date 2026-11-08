@@ -50,6 +50,18 @@ export function aiSnapshot(s: DemoState) {
 }
 export type AiSnapshot = ReturnType<typeof aiSnapshot>
 
+/**
+ * The parts of the snapshot needed to fill a new event or task form from a message: who you are, the club, its
+ * roles, people and events. Measured on the sample club (2026-11-07): the full Ask payload is about 42,000
+ * characters (tasks alone about 20,000), this one about 14,000 with the prompt, so ASU AIR reads it much faster.
+ * The server applies the same cut, whatever the browser sends.
+ */
+export const FORM_KEYS = ["today", "you", "club", "roles", "people", "events"] as const
+export function formSnapshot(data: unknown): Record<string, unknown> {
+  const d = data && typeof data === "object" && !Array.isArray(data) ? data as Record<string, unknown> : {}
+  return Object.fromEntries(FORM_KEYS.filter(k => k in d).map(k => [k, d[k]]))
+}
+
 /** Every date the app itself knows. Only these may appear in the assistant's words. */
 export function knownDates(value: unknown, out = new Set<string>()): Set<string> {
   if (typeof value === "string") { for (const m of value.matchAll(/\b\d{4}-\d{2}-\d{2}\b/g)) out.add(m[0]) }

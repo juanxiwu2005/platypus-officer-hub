@@ -1,8 +1,8 @@
 import type { ChangeSet, DemoState, Node } from "../data/types"
-import { callApi } from "./api"
+import { AI_WAIT_MS, aiMiss, callApi, type AiMiss } from "./api"
 import { commandContext, eventFields, GATHERING, humanEventDate, isSmallOp, namesEvent, parseCommand, parseTaskIntent, TASK_WORD, type CommandOp } from "./commands"
 import { groundedAnswer, RULE_REFUSAL, type RuleAnswer } from "./ruleAnswers"
-import { aiSnapshot, knownDates } from "./aiContext"
+import { aiSnapshot, formSnapshot, knownDates } from "./aiContext"
 import { sanitizeCards, type PlanPrefill, type TaskScope, type WireCard } from "./chatCards"
 import { defaultTaskDue } from "../engine/taskDates"
 import { checkReview, localReview, reviewPayload, type EventReview, type ReviewRisk } from "./eventReview"
@@ -40,7 +40,11 @@ export interface Focus { kind: "node" | "event" | "page"; id: string; title: str
  * `refine`: the assistant's reading of the same message, still on its way. The panel shows the reply at once and
  * lets the assistant fill in the form when it answers (ASU AIR can take tens of seconds; Juanxi wants speed).
  */
-export interface Reply { cards: ChatCard[]; source: string; changeSet?: ChangeSet; autoSet?: ChangeSet; refine?: Promise<Reply | null> }
+export interface Reply {
+  cards: ChatCard[]; source: string; changeSet?: ChangeSet; autoSet?: ChangeSet; refine?: Promise<Reply | null>
+  /** Filled in when `refine` settles to null after a failed request: why the AI had nothing, so the label stays honest. */
+  refineMiss?: { why?: AiMiss }
+}
 
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
 const canLeadAs = (s: DemoState, id: string) => {
@@ -54,17 +58,41 @@ const canLeadAs = (s: DemoState, id: string) => {
  * "Plan the budget for Spring Speaker Night" is about an event that already exists.
  */
 export const PLAN_RE = /\b(?:plan|organi[sz]e|host|throw|set up|put on|create|schedule|hold|run|arrange)\s+(?:(?:a|an|our|the|another|new|next|big|small|first)\s+)*(?:[\w'&-]+\s+){0,3}?(?:events?|night|dinner|workshop|mixer|panel|talk|social|meetup|meeting|party|fundraiser|lunch|breakfast|showcase|hackathon|session|conference|competition|trip|tour|visit|gala|banquet|festival|fair|tournament)\b|^plan (a |an )?(new )?event|策划|办.*活动/i
+/**
+ * Asking for a NEW gathering even though an existing event is named: "Plan an event about March 3 for networking night",
+ * "Host another networking night". An indefinite article right after the verb, then a gathering word within two words.
+ * "Plan a budget for Networking Night" does not match (a budget is not a gathering).
+ */
+const NEW_EVENT_RE = /\b(?:plan|organi[sz]e|host|throw|set up|put on|create|hold|run|arrange)\s+(?:a|an|another|one more)\s+(?:new\s+)?(?:[\w'&-]+\s+){0,2}?(?:events?|night|dinner|workshop|mixer|panel|talk|social|meetup|party|fundraiser|lunch|breakfast|showcase|hackathon|conference|competition|trip|tour|visit|gala|banquet|festival|fair|tournament)\b/i
+/** Meeting one person is not an event (strategy §3). */
+const MEET_ONE_RE = /\bmeet(?:ing)? with (?:our |the |my )?(?:advisor|adviser|sponsor|dean|professor|partner)\b/i
 const BARE_EVENT = /^(?:plan|create|organi[sz]e|host|start)\s+(?:a\s+|an\s+)?(?:new\s+)?event[.!]?$/i
 const BARE_TASK = /^(?:add|create|make|new|start)\s+(?:a\s+)?(?:new\s+)?task[.!]?$/i
 
 /** Is the person making something new, and which kind? Task words win (strategy §3, step 1). */
 export function createIntent(t: string, s: DemoState): "task" | "event" | null {
   if (parseTaskIntent(t, commandContext(s))) return "task"
-  if (TASK_WORD.test(t) || namesEvent(t.toLowerCase(), commandContext(s))) return null
+  if (TASK_WORD.test(t)) return null
+  // Naming an existing event usually means working on it ("Plan the budget for Spring Speaker Night"). It is still a new
+  // event when the person says "a/an/another …", or gives a date that is not the named event's date ("Plan networking
+  // night on March 3" while Networking Night is in November). Production 2026-11-07: the first case went to the AI,
+  // which timed out, and the president got no form at all.
+  if (namesEvent(t.toLowerCase(), commandContext(s)) && !newDespiteName(t, s)) return null
   // Repeating things and meeting one person are not one-time events; the assistant asks or makes a task.
-  if (/\b(?:weekly|biweekly|monthly|every (?:week|month|day)|recurring)\b|每周|每月/i.test(t) || /\bmeet(?:ing)? with (?:our |the |my )?(?:advisor|adviser|sponsor|dean|professor|partner)\b/i.test(t)) return null
+  if (/\b(?:weekly|biweekly|monthly|every (?:week|month|day)|recurring)\b|每周|每月/i.test(t) || MEET_ONE_RE.test(t)) return null
   return PLAN_RE.test(t) ? "event" : null
 }
+function newDespiteName(t: string, s: DemoState): boolean {
+  if (!PLAN_RE.test(t) || EVENT_DATE_RE.test(t.replace(/\bset up\b/gi, ""))) return false
+  if (NEW_EVENT_RE.test(t)) return true
+  const date = humanEventDate(t, s.today), lower = t.toLowerCase()
+  return !!date && s.events.filter(e => lower.includes(e.name.toLowerCase())).every(e => e.date !== date)
+}
+/**
+ * Reads like planning a new gathering without being one of the clear cases above (for example a weekly one). Used only
+ * once the AI could not answer. A message about an existing event ("Plan the budget for Networking Night") is not one.
+ */
+const looksLikePlan = (t: string, s: DemoState) => PLAN_RE.test(t) && !TASK_WORD.test(t) && !MEET_ONE_RE.test(t) && !namesEvent(t.toLowerCase(), commandContext(s))
 /**
  * The task list is deliberately an opt-in shortcut.  Do not infer it from broad phrases such as
  * "most important": those phrases are also natural when someone is weighing policy requirements.
@@ -101,12 +129,15 @@ export function keywordRules(q: string): string[] {
 
 /** The event form from the person's own words, without AI: name, size, food, speaker. Dates only from their text. */
 function planDefaults(text: string, s: DemoState): { prefill: Partial<PlanPrefill>; date: string } {
-  const m = text.trim().match(/^(?:(?:i want to|i'd like to|we want to|let's|lets|please)\s+)?(?:plan|organi[sz]e|host|throw|set up|put on|create|schedule|hold|run|arrange)\s+(?:(?:a|an|our|the|new)\s+)*(?:event\s*[:：]?\s*)?(.+?)(?:\s+(?:on|for|with|at|in|next|this|by)\s+|[,.;]|$)/i)
+  const m = text.trim().match(/^(?:(?:i want to|i'd like to|we want to|let's|lets|please)\s+)?(?:plan|organi[sz]e|host|throw|set up|put on|create|schedule|hold|run|arrange)\s+(?:(?:a|an|our|the|new|another)\s+)*(?:event\s*[:：]?\s*)?(?:for\s+(?:(?:a|an|our|the|new)\s+)*)?(.+?)(?:\s+(?:on|for|with|at|in|next|this|by)\s+|[,.;]|$)/i)
   const raw = m?.[1]?.trim() ?? ""
   const generic = !raw || /^(?:a |an )?(?:new )?event$/i.test(raw) || raw.length > 60 || !GATHERING.test(raw)
   // "…an event, name Jared Byrne Fireside Chat, December 12…", "called X", "titled X", or a quoted name.
   const said = text.match(/\b(?:name(?:d)?|called|titled|title)\s*(?:is\s*)?[:：]?\s*["“]?([^,;."”\n]{3,80}?)["”]?\s*(?:[,;.\n]|\s+on\s+|$)/i)?.[1] ?? text.match(/["“]([^"”]{3,80})["”]/)?.[1]
-  const name = said?.trim() || (generic ? "" : raw[0].toUpperCase() + raw.slice(1))
+  // "Plan an event about March 3 for networking night with 50 people": the name follows "for".
+  const forName = text.match(/\bfor\s+(?:(?:a|an|our|the|another|new)\s+)*((?:[\w'&-]+\s+){0,3}?(?:night|dinner|workshop|mixer|panel|talk|social|meetup|party|fundraiser|lunch|breakfast|showcase|hackathon|conference|competition|trip|tour|gala|banquet|festival|fair|tournament))\b/i)?.[1]
+  const own = !generic ? raw : forName && !/^\d/.test(forName) ? forName : ""
+  const name = said?.trim() || (own ? own[0].toUpperCase() + own.slice(1) : "")
   // A start time is not a date the engine uses; it goes into Details so it is not lost.
   const time = text.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.))/i)?.[1]
   return { prefill: { ...eventFields(text), name, ...(time ? { details: `Starts at ${time.toUpperCase().replace(/\s+/, " ")}.` } : {}) }, date: humanEventDate(text, s.today) }
@@ -155,10 +186,10 @@ async function ruleReply(question: string, s: DemoState): Promise<Reply> {
     // Legacy R01–R16 questions retain their deterministic renderer. Everything else is searched in the
     // 64-record policy archive on the server; detailed text never enters the browser bundle.
     if (/\bR\d{2}\b/i.test(question) || keywordRules(question).length) {
-      const r = await callApi<RuleAnswer>("/ask", { question })
+      const r = await callApi<RuleAnswer>("/ask", { question }, AI_WAIT_MS)
       answer = groundedAnswer({ ...r, confidence: 1 }, r.model, r.provider)
     } else {
-      const r = await callApi<PolicyAnswer>("/policy-answer", { question })
+      const r = await callApi<PolicyAnswer>("/policy-answer", { question }, AI_WAIT_MS)
       if (!r.inScope || !r.answer || !r.citations.length) throw new Error("No grounded policy answer")
       answer = r
     }
@@ -201,23 +232,42 @@ function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: strin
 
 const HELP = "I can rank your top tasks, add a task, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
 
-/** ASU AIR can take most of a minute; the server stops at 55 s (Netlify allows 60 s), the browser just after. */
-export const AI_WAIT_MS = 58_000
+/**
+ * The browser waits at most AI_WAIT_MS (25 s) for an AI answer; the server stops at 22 s, inside Netlify's 30 s.
+ * There is no second try: a retry would make the person wait another half minute (production 2026-11-07).
+ */
+export { AI_WAIT_MS }
 
-/** One /api/chat round. Returns null when the reply had no usable card; throws only when `rethrow` is set. */
-async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus | null, page: string, history: ChatMsg[], rethrow = false): Promise<Reply | null> {
+/**
+ * One /api/chat round. Returns null when the reply had no usable card, or (unless `rethrow`) when the request failed;
+ * `miss.why` then says whether it ran out of time or the service was unavailable.
+ * `purpose: "form"`: the form is already showing, so only the club, roles, people and events are sent (formSnapshot).
+ */
+async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus | null, page: string, history: ChatMsg[], opts: { rethrow?: boolean; purpose?: "form"; miss?: { why?: AiMiss } } = {}): Promise<Reply | null> {
   const snap = aiSnapshot(s)
+  const data = opts.purpose === "form" ? formSnapshot(snap) : snap
   try {
     const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
-      message: t, page, focus, context: commandContext(s), data: snap,
+      message: t, page, focus, context: commandContext(s), data, ...(opts.purpose ? { purpose: opts.purpose } : {}),
       history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
     }, AI_WAIT_MS)
-    const cards = sanitizeCards(r.cards, commandContext(s), knownDates(snap))
+    const cards = sanitizeCards(r.cards, commandContext(s), knownDates(data))
     const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Checked command grammar"
     return cards.length ? fromWire(cards, t, s, viewerId, label, focus ?? null) : null
   } catch (e) {
-    if (rethrow) throw e
+    if (opts.miss) opts.miss.why = aiMiss(e)
+    if (opts.rethrow) throw e
     return null
+  }
+}
+
+/** The event form from the person's own words, for when the AI could not answer a message that reads like planning. */
+function localPlanReply(t: string, s: DemoState, why: AiMiss | "off"): Reply {
+  const { prefill, date } = planDefaults(t, s)
+  const lead = why === "off" ? "AI is off, so I filled in the event form from your words." : why === "timeout" ? "The AI didn't answer in time, so I filled in the event form from your words." : "The AI is unavailable right now, so I filled in the event form from your words."
+  return {
+    cards: [textCard(`${lead} If you meant a new event, check it and draft the plan.`), { kind: "form", id: uid(), prefill, date }],
+    source: why === "off" ? "Local demo grammar · AI off" : why === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : "Platypus · AI unavailable, filled from your words",
   }
 }
 
@@ -237,14 +287,16 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   // what is still empty (or, if it reads the message differently, says so in a new message).
   const intent = createIntent(t, s)
   if (intent) {
-    const refine = s.aiEnabled && !BARE_EVENT.test(t) && !BARE_TASK.test(t) ? aiReply(t, s, viewerId, focus, page, history) : undefined
+    const refineMiss: { why?: AiMiss } = {}
+    const refine = s.aiEnabled && !BARE_EVENT.test(t) && !BARE_TASK.test(t) ? aiReply(t, s, viewerId, focus, page, history, { purpose: "form", miss: refineMiss }) : undefined
     const source = !s.aiEnabled ? "Local demo grammar · AI off" : refine ? "Platypus · AI is reading your message" : "Platypus"
+    const extra = refine ? { refine, refineMiss } : {}
     if (intent === "task") {
       const card = { ...taskDefaults(t, s, focus), thinking: !!refine }
-      return { cards: [textCard(card.title ? "Here's the task. Check who owns it and when it's due." : "What's the task? Fill in the name and who owns it."), card], source, refine }
+      return { cards: [textCard(card.title ? "Here's the task. Check who owns it and when it's due." : "What's the task? Fill in the name and who owns it."), card], source, ...extra }
     }
     const { prefill, date } = planDefaults(t, s)
-    return { cards: [textCard("Happy to help. Fill in what's missing and I'll draft the plan from the club playbook."), { kind: "form", id: uid(), prefill, date, thinking: !!refine }], source, refine }
+    return { cards: [textCard("Happy to help. Fill in what's missing and I'll draft the plan from the club playbook."), { kind: "form", id: uid(), prefill, date, thinking: !!refine }], source, ...extra }
   }
   // "Move the event to Jan 30 2027": a date the person typed, applied by a person, recomputed by the rule engine.
   const moved = EVENT_DATE_RE.test(t) ? humanEventDate(t, s.today) : ""
@@ -301,13 +353,17 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   }
   if (s.aiEnabled) {
     try {
-      const ai = await aiReply(t, s, viewerId, focus, page, history, true)
+      const ai = await aiReply(t, s, viewerId, focus, page, history, { rethrow: true })
       if (ai?.cards.length) return ai
-    } catch {
+    } catch (e) {
       if (RULE_Q_RE.test(t)) return ruleReply(t, s)
-      return { cards: [textCard(`The AI service is unavailable right now. ${HELP}`)], source: "Local fallback · server unavailable" }
+      // Planning something must never end in a dead end: the form from the person's own words (dates from their text only).
+      if (looksLikePlan(t, s)) return localPlanReply(t, s, aiMiss(e))
+      return aiMiss(e) === "timeout"
+        ? { cards: [textCard(`The AI didn't answer in time. ${HELP}`)], source: "Local fallback · AI didn't answer in time" }
+        : { cards: [textCard(`The AI service is unavailable right now. ${HELP}`)], source: "Local fallback · server unavailable" }
     }
-  }
+  } else if (looksLikePlan(t, s)) return localPlanReply(t, s, "off")
   if (RULE_Q_RE.test(t)) return { cards: [{ kind: "rule", question: t, answer: RULE_REFUSAL, citations: [], inScope: false, label: "Matched by keywords · AI off" }], source: "Rule book" }
   return { cards: [textCard(s.aiEnabled ? `I couldn't safely match that. ${HELP}` : `AI is off, so I can only handle set requests. ${HELP}`)], source: "Platypus" }
 }
@@ -325,7 +381,7 @@ export async function reviewEvent(s: DemoState, eventId: string): Promise<Reply>
       const r = await callApi<{ risks: unknown; tasks: unknown; model?: string }>("/event/review", { eventId, data: p, context: commandContext(s) }, AI_WAIT_MS)
       review = checkReview(r, s, eventId)
       label = `AI review${r.model ? ` · ${r.model}` : ""}`
-    } catch { review = localReview(s, eventId); label = "Rule engine check · AI unavailable" }
+    } catch (e) { review = localReview(s, eventId); label = aiMiss(e) === "timeout" ? "Rule engine check · AI didn't answer in time" : "Rule engine check · AI unavailable" }
   } else { review = localReview(s, eventId); label = "Rule engine check · AI off" }
   const cards: ChatCard[] = [{ kind: "review", eventId, risks: review.risks, label }]
   let changeSet: ChangeSet | undefined

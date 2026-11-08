@@ -6,12 +6,19 @@
  * questions asked and what kind of answer came back — into the SAME log, with the same entry shape and one
  * numbering, so the export is one ordered record. UI entries are told apart by a `ui.` prefix on `type`.
  *
- * What is never read: keystrokes, the value of text, number, date, password or file fields, hover,
- * scrolling, mouse movement, and the AI's reply text. Query strings are dropped from every address.
+ * What is never read: keystrokes, the value of text, number, date, password or file fields (not even their
+ * length), scrolling, mouse movement, and the AI's reply text. Query strings are dropped from every address.
  * Nothing here sends anything anywhere; events only go to the in-browser log.
+ *
+ * Four behaviour-only items approved by Juanxi on 2026-11-07 (docs/PHASE3_DATA_DICTIONARY.md section 11):
+ * study task markers (`ui.task`), leaving the page (`ui.visibility`), starting to type in a field (`ui.edit`,
+ * never what was typed) and hover cards that stayed open for at least half a second (`ui.hover`).
  */
 
+import type { LogEntry } from "../data/types"
+
 export type UiType = "ui.navigate" | "ui.click" | "ui.change" | "ui.ask" | "ui.answer" | "ui.details" | "ui.reminder" | "ui.export"
+  | "ui.task" | "ui.visibility" | "ui.edit" | "ui.hover"
 export type UiPayload = Record<string, string | number | boolean | string[] | null>
 export interface UiEvent {
   type: UiType
@@ -77,7 +84,8 @@ function ownText(el: Element): string {
     if (node.nodeType === 3) out += node.textContent ?? ""
     else if (node.nodeType === 1) {
       const child = node as Element
-      if (child.matches("select, option, textarea, input, [aria-hidden='true'], svg")) return
+      // A hover card inside (role="tooltip") is not the control's name: its text only shows on hover.
+      if (child.matches("select, option, textarea, input, [aria-hidden='true'], svg, [role='tooltip']")) return
       out += ` ${ownText(child)} `
     }
   })
@@ -118,7 +126,7 @@ export function roleOf(el: Element): string {
   return tag
 }
 
-function areaOf(el: Element): string | null {
+export function areaOf(el: Element): string | null {
   for (const [selector, area] of AREAS) if (el.closest(selector)) return area
   return null
 }
@@ -158,6 +166,7 @@ export function describeClick(target: EventTarget | null, route: string, origin:
   const c = el.closest(PRESSABLE)
   if (!c) return null
   if (c.matches("a[download]")) return null                       // the export's own file link; "ui.export" records it
+  if (c.closest("[data-ui-log='skip']")) return null              // a control that writes its own entry (the study task buttons: "ui.task")
   const payload = common(c, route)
   if (c.matches("a[href]")) Object.assign(payload, linkTarget(c.getAttribute("href") ?? "", origin))
   if (c.matches("summary") && c.parentElement instanceof HTMLDetailsElement) payload.expanded = !c.parentElement.open
@@ -233,4 +242,216 @@ export function answerSummary(reply: { cards: CardLike[]; source: string; change
   if (reply.changeSet) payload.changeSetId = clip(reply.changeSet.id, 60)
   if (reply.autoSet) payload.autoSetId = clip(reply.autoSet.id, 60)
   return payload
+}
+
+/* ───────────── Study task markers (ui.task) ───────────── */
+
+/** The study's task cards are numbered 1 to 6 (docs/PHASE3_SESSION_RUNBOOK.md). */
+export const STUDY_TASKS = [1, 2, 3, 4, 5, 6] as const
+
+/** The task running now: the last task marker in the log, if it was a start. Read from the log, so it survives a reload. */
+export function currentTask(log: readonly LogEntry[]): { task: number; at: number } | null {
+  for (let i = log.length - 1; i >= 0; i--) {
+    const e = log[i]
+    if (e.type !== "ui.task") continue
+    const p = (e.payload ?? {}) as { task?: unknown; event?: unknown }
+    return p.event === "start" && typeof p.task === "number" ? { task: p.task, at: e.at } : null
+  }
+  return null
+}
+
+/**
+ * The entries one press of a task button writes. `start` is the task pressed, or null for "Task done".
+ * A new start ends the running task first (`implicit: true`); a done carries how long the task ran (`ms`).
+ * Pressing the running task's own button again, or Done with nothing running, writes nothing.
+ */
+export function taskMarks(log: readonly LogEntry[], start: number | null, now: number, route: string): UiEvent[] {
+  const running = currentTask(log)
+  if (start !== null && running?.task === start) return []
+  const out: UiEvent[] = []
+  if (running) out.push({ type: "ui.task", payload: { task: running.task, event: "done", ...(start !== null ? { implicit: true } : {}), ms: Math.max(0, now - running.at), route } })
+  if (start !== null) out.push({ type: "ui.task", payload: { task: start, event: "start", route } })
+  return out
+}
+
+/* ───────────── Leaving the page (ui.visibility) ───────────── */
+
+/** Away for less than this (a window flicker, a quick Alt-Tab and back) writes nothing. */
+export const AWAY_FLICKER_MS = 1000
+type AwayVia = "tab" | "window" | "close"
+interface AwaySpan { since: number; via: AwayVia; picker: boolean; logged: boolean; timer?: ReturnType<typeof setTimeout> }
+/** Focused when the window lost focus: these open the browser's own picker window, so "away" is really "choosing". */
+const PICKER = 'select, input[type="file"], input[type="date"], input[type="time"], input[type="datetime-local"], input[type="month"], input[type="week"], input[type="color"]'
+
+/**
+ * Records time away from the page as one pair: `hidden` when it starts, `visible` with `awayMs` when it ends.
+ * - `via: "tab"`: the page was hidden (another tab, the window minimised, another app on a phone, the screen locked).
+ * - `via: "window"`: the page stayed on screen but another window had the focus (Zoom, a PDF or ASU page in its own
+ *   window, a file chooser). Only the window's own blur/focus count, never a field's.
+ * - `via: "close"`: the page was closed, reloaded or left (pagehide). Written at once, with no flicker wait.
+ * Shorter than `flickerMs` writes nothing. The `hidden` entry is written when the absence has lasted `flickerMs`
+ * (so its time is about one second late); `awayMs` on `visible` is exact. A phone that freezes a hidden page may
+ * skip the `hidden` entry; `visible` still carries the whole `awayMs`.
+ */
+export function installAwayCapture(win: Window, doc: Document, emit: (e: UiEvent) => void, opts: { flickerMs?: number } = {}): () => void {
+  const flicker = opts.flickerMs ?? AWAY_FLICKER_MS
+  const route = () => routeOf(win.location.hash).path
+  let span: AwaySpan | null = null
+  const hidden = (s: AwaySpan) => {
+    s.logged = true
+    emit({ type: "ui.visibility", payload: { state: "hidden", via: s.via, route: route(), ...(s.picker ? { picker: true } : {}) } })
+  }
+  const begin = (via: AwayVia) => {
+    if (span) { if (via === "tab" && span.via === "window") { span.via = "tab"; span.picker = false } return }
+    const s: AwaySpan = { since: Date.now(), via, picker: via === "window" && !!doc.activeElement?.matches?.(PICKER), logged: false }
+    s.timer = setTimeout(() => { if (span === s && !s.logged) hidden(s) }, flicker)
+    span = s
+  }
+  const end = () => {
+    const s = span
+    if (!s) return
+    span = null
+    clearTimeout(s.timer)
+    const awayMs = Math.max(0, Date.now() - s.since)
+    if (!s.logged && awayMs < flicker) return                        // a flicker: nothing at all
+    emit({ type: "ui.visibility", payload: { state: "visible", via: s.via, awayMs, route: route(), ...(s.picker ? { picker: true } : {}) } })
+  }
+  const onVisibility = () => (doc.visibilityState === "hidden" ? begin("tab") : end())
+  // Only the window's own blur and focus: a field's are not "away" (they do not bubble here, but capture-phase ones could).
+  const isWindow = (t: EventTarget | null) => !t || (t as Node).nodeType === undefined
+  const onBlur = (e: FocusEvent) => { if (isWindow(e.target) && doc.visibilityState === "visible") begin("window") }
+  const onFocus = (e: FocusEvent) => { if (isWindow(e.target) && doc.visibilityState === "visible") end() }
+  const onPageHide = () => {
+    if (span?.logged) return
+    if (span) clearTimeout(span.timer)
+    const s: AwaySpan = { since: span?.since ?? Date.now(), via: "close", picker: false, logged: false }
+    span = s
+    hidden(s)
+  }
+  const onPageShow = (e: PageTransitionEvent) => { if (e.persisted) end() }
+  doc.addEventListener("visibilitychange", onVisibility)
+  win.addEventListener("blur", onBlur)
+  win.addEventListener("focus", onFocus)
+  win.addEventListener("pagehide", onPageHide)
+  win.addEventListener("pageshow", onPageShow)
+  return () => {
+    if (span) clearTimeout(span.timer)
+    doc.removeEventListener("visibilitychange", onVisibility)
+    win.removeEventListener("blur", onBlur)
+    win.removeEventListener("focus", onFocus)
+    win.removeEventListener("pagehide", onPageHide)
+    win.removeEventListener("pageshow", onPageShow)
+  }
+}
+
+/* ───────────── Starting to type in a field (ui.edit) ───────────── */
+
+export type EditKind = "text" | "textarea" | "number" | "date" | "search"
+const INPUT_KIND: Record<string, EditKind> = {
+  text: "text", email: "text", url: "text", tel: "text", search: "search", number: "number",
+  date: "date", "datetime-local": "date", time: "date", month: "date", week: "date",
+}
+
+/** What kind of typing field this is, or null when it is not one (buttons, boxes, drop-downs) or is a password field. */
+export function editKind(el: EventTarget | null): EditKind | null {
+  if (el instanceof HTMLTextAreaElement) return "textarea"
+  if (el instanceof HTMLInputElement) {
+    if (el.type === "password" || /password/i.test(el.autocomplete)) return null
+    return INPUT_KIND[el.type] ?? null
+  }
+  if (el instanceof HTMLElement && el.isContentEditable) return "textarea"
+  return null
+}
+
+/**
+ * A field's name from its label only: aria-label, aria-labelledby, its <label>, placeholder or title.
+ * Never its own text: a <textarea>'s text is what was typed into it.
+ */
+export function fieldNameOf(el: Element): string {
+  const aria = el.getAttribute("aria-label")
+  if (aria) return clip(aria)
+  const by = el.getAttribute("aria-labelledby")
+  if (by) {
+    const text = clip(by.split(/\s+/).map(id => el.ownerDocument.getElementById(id)).filter(x => x && x !== el && !x.contains(el)).map(x => ownText(x!)).join(" "))
+    if (text) return text
+  }
+  const labels = (el as HTMLInputElement).labels
+  if (labels && labels.length) { const text = clip([...labels].map(ownText).join(" ")); if (text) return text }
+  return clip(el.getAttribute("placeholder") ?? el.getAttribute("title") ?? "")
+}
+
+/**
+ * Records, for each focus on a typing field, the first time the participant changes it (`event: "start"`), and when
+ * focus leaves it, how long since that first change (`event: "end"`, `ms`). Only the field's name, kind, page and part
+ * of the screen are kept: never the value, its length or any key. Password fields write nothing at all. Focusing a
+ * field without typing writes nothing. Switching to another window takes the focus away too, so it ends the session.
+ */
+export function installEditCapture(doc: Document, emit: (e: UiEvent) => void, opts: { trustedOnly?: boolean } = {}): () => void {
+  const trustedOnly = opts.trustedOnly ?? true
+  const win = doc.defaultView
+  const route = () => routeOf(win?.location.hash ?? "").path
+  let active: { el: Element; startedAt: number | null; base: UiPayload | null } | null = null
+  const end = () => {
+    const a = active
+    active = null
+    if (a && a.startedAt !== null && a.base) emit({ type: "ui.edit", payload: { ...a.base, event: "end", ms: Math.max(0, Date.now() - a.startedAt) } })
+  }
+  const onFocusIn = (e: FocusEvent) => {
+    if (active && active.el !== e.target) end()
+    if (!active && editKind(e.target)) active = { el: e.target as Element, startedAt: null, base: null }
+  }
+  const onInput = (e: Event) => {
+    if (trustedOnly && !e.isTrusted) return
+    const kind = editKind(e.target)
+    if (!kind) return
+    const el = e.target as Element
+    if (!active || active.el !== el) { end(); active = { el, startedAt: null, base: null } }
+    if (active.startedAt !== null) return                              // once per focus
+    const area = areaOf(el)
+    active.base = { route: route(), field: fieldNameOf(el), kind, ...(area ? { area } : {}) }
+    active.startedAt = Date.now()
+    emit({ type: "ui.edit", payload: { ...active.base, event: "start" } })
+  }
+  const onFocusOut = (e: FocusEvent) => { if (active && active.el === e.target) end() }
+  // A field removed while focused (the screen changed) does not get a focusout in every browser: close it on the next page change.
+  const onHash = () => { if (active && (!active.el.isConnected || doc.activeElement !== active.el)) end() }
+  doc.addEventListener("focusin", onFocusIn, true)
+  doc.addEventListener("input", onInput, true)
+  doc.addEventListener("focusout", onFocusOut, true)
+  win?.addEventListener("hashchange", onHash)
+  win?.addEventListener("pagehide", end)
+  return () => {
+    doc.removeEventListener("focusin", onFocusIn, true)
+    doc.removeEventListener("input", onInput, true)
+    doc.removeEventListener("focusout", onFocusOut, true)
+    win?.removeEventListener("hashchange", onHash)
+    win?.removeEventListener("pagehide", end)
+  }
+}
+
+/* ───────────── Hover cards (ui.hover) ───────────── */
+
+/** A hover card shown for less than this is a mouse passing over, not reading: nothing is written. */
+export const HOVER_MIN_MS = 500
+const GENERIC_NAME = /^(more information|info|details)$/i
+
+/**
+ * One entry for a hover card (the Hover / Info components) that was open for `ms`, written when it closes.
+ * `name` is the trigger's accessible name (never the card's text); when that name is generic ("More information"),
+ * `near` adds the heading it sits under so the card can be told apart. `via`: mouse, focus (keyboard, or a click
+ * that left the focus on it) or tap (touch screens). Returns null under the threshold.
+ */
+export function describeHover(box: Element, ms: number, via: "mouse" | "focus" | "tap", route: string): UiEvent | null {
+  if (ms < HOVER_MIN_MS) return null
+  const trigger = [...box.querySelectorAll("button, a[href], input, select, textarea, [tabindex]")].find(el => !el.closest("[role='tooltip']")) ?? box
+  const name = nameOf(trigger)
+  const payload: UiPayload = { route, name, ms: Math.round(ms), via }
+  if (!name || GENERIC_NAME.test(name)) {
+    const heading = box.closest("h1, h2, h3, h4") ?? box.closest("header")?.querySelector("h1, h2, h3, h4, b")
+    const near = heading ? clip(ownText(heading), 60) : ""
+    if (near) payload.near = near
+  }
+  const area = areaOf(box)
+  if (area) payload.area = area
+  return { type: "ui.hover", payload }
 }

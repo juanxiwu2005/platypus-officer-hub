@@ -18,7 +18,7 @@ test("Settings has an Export my data button that downloads the data and the inte
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-data").click()])
   expect(download.suggestedFilename()).toMatch(/^platypus-export-.*\.json$/)
   const file = JSON.parse(readFileSync((await download.path())!, "utf8"))
-  expect(file).toMatchObject({ format: "platypus-export", formatVersion: 2 })   // 2: Phase 3 logging adds screen events and a timeline; every version-1 field is still there
+  expect(file).toMatchObject({ format: "platypus-export", formatVersion: 3, session: null })   // 2: Phase 3 logging added screen events and a timeline; 3: the study session (none here: no study link was opened, so the whole log is exported)
   expect(file.state.nodes.length).toBeGreaterThan(0)
   expect(file.interactionLog.entries.map((e: { type: string }) => e.type)).toContain("advanceClock")
   const entry = file.interactionLog.entries.find((e: { type: string }) => e.type === "advanceClock")

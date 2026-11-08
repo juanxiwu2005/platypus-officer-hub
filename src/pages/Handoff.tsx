@@ -4,8 +4,8 @@ import { PageHead } from "../components/Page"
 import { useStore, useViewer } from "../data/store"
 import { useRail } from "../components/rail/RailContext"
 import { handoffDates } from "../engine/schedule"
-import { handbookSources, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
-import { callApi } from "../lib/api"
+import { handbookSources, localHandbook, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
+import { AI_WAIT_MS, aiMiss, callApi } from "../lib/api"
 import { Feedback } from "../components/Feedback"
 import { Avatar, Chain, Empty, Hover, Info, Ring, useStatusStyles, useTouch, type Stop } from "../components/ui"
 import { Bts, BtsRow } from "../components/Bts"
@@ -86,7 +86,25 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
   const act = (action: import("../data/handoff").HandoffAction) => dispatch({ type: "handoffAction", action })
   const p = roleProgress(r)
   const start = r.startDate ?? state.handoff!.from
-  async function draft() { setBusy(true); setNotice(""); const fingerprint = sourceFingerprint(sources); try { if (!state.aiEnabled) throw new Error("AI off"); const result = await callApi<{ entries: unknown; model: string; provider: string }>("/handbook/draft", { sources: sources.map(({ id, kind, text }) => ({ id, kind, text })) }); const entries = sanitizeHandbook(result, sources); if (!entries.length) throw new Error("No sources"); act({ kind: "draft", roleId: r.roleId, raw: { entries }, fingerprint, model: result.model, source: `AI-selected source extracts · ${result.provider}` }) } catch { act({ kind: "draft", roleId: r.roleId, raw: { entries: sources.slice(0, 6).map(s => ({ sourceId: s.id })).concat(sources.filter(s => s.kind === "interview").map(s => ({ sourceId: s.id }))) }, fingerprint, model: null, source: "Example extract draft · live AI unavailable or off" }); setNotice("Live AI was unavailable or off. This is a labelled example draft.") } finally { setBusy(false) } }
+  /**
+   * The AI picks and orders source records; if it is off, too slow or fails, the app builds the handbook from the same
+   * records itself (interview points, then open tasks), so the step never ends in a dead end. Both are labelled.
+   */
+  async function draft() {
+    setBusy(true); setNotice("")
+    const fingerprint = sourceFingerprint(sources)
+    try {
+      if (!state.aiEnabled) throw new Error("AI off")
+      const result = await callApi<{ entries: unknown; model: string; provider: string; partial?: boolean }>("/handbook/draft", { sources: sources.map(({ id, kind, text }) => ({ id, kind, text })) }, AI_WAIT_MS)
+      const entries = sanitizeHandbook(result, sources)
+      if (!entries.length) throw new Error("No sources")
+      act({ kind: "draft", roleId: r.roleId, raw: { entries }, fingerprint, model: result.model, source: `AI-selected source extracts · ${result.provider}${result.partial ? " · reply was cut short, complete picks kept" : ""}` })
+    } catch (e) {
+      const why = !state.aiEnabled ? "off" : aiMiss(e)
+      act({ kind: "draft", roleId: r.roleId, raw: localHandbook(sources), fingerprint, model: null, source: `Built from your sources · ${why === "off" ? "AI off" : why === "timeout" ? "AI didn't answer in time" : "AI unavailable"}` })
+      setNotice(why === "off" ? "AI is off, so the app built this handbook from your sources." : `${why === "timeout" ? "The AI didn't answer in time" : "The AI couldn't draft it right now"}, so the app built this handbook from your sources. You can draft again later.`)
+    } finally { setBusy(false) }
+  }
   return <section className="form-stack handbook" aria-label={title}>
     <h2>{title}</h2>
     <div className="progress-line"><div style={{ width: `${(p.done / 7) * 100}%` }} /></div>

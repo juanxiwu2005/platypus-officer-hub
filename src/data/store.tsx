@@ -23,7 +23,8 @@ import type { BoardSettings, NodeStatus, OrgSettings } from "./types"
 import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
 import { addContact, addOrganization, deleteContact, deleteOrganization, logInteraction, updateContact, updateInteraction, updateOrganization, type ContactInput, type ContactPatch, type InteractionInput, type OrgPatch } from "./crm"
 import { syncBudgetFlow } from "../engine/eventBudget"
-import { loadOnboardingRecord, rearm, type OnboardingRecord } from "../lib/onboardingRecord"
+import { attemptLastAt, firstEventChoice, loadOnboardingRecord, rearm, type OnboardingAttempt, type OnboardingRecord } from "../lib/onboardingRecord"
+import { azTime, currentSession, keeper, loadBook, onSessionStart, SITTING_MS, type Book, type Keep, type StudySession } from "../lib/studySession"
 import { FLOW_VERSION } from "../onboarding/record"
 import { onUi, type UiEvent } from "../lib/uiLog"
 import { buildTimeline } from "../lib/timeline"
@@ -457,7 +458,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
 
 /** Where the interaction log lives. A separate key, so "Reset demo" and version changes never touch it. */
 export const LOG_KEY = "platypus.v1.log"
-/** The log keeps the newest entries only (localStorage is small). */
+/** The log keeps the newest entries only (localStorage is small). The cap covers the whole log kept in this browser (one sitting, possibly several study sessions). */
 export const LOG_LIMIT = 2000
 const BACKUP_PREFIX = `${STORAGE_KEY}.backup.`
 
@@ -646,23 +647,30 @@ function beforeOf(s: DemoState, a: Action): unknown {
   return hasValue(out) ? slim(out) : undefined
 }
 
-/** Append one entry, dropping the oldest when the log is full. Pure: the caller supplies the real time. */
-export function appendLog(log: LogEntry[], before: DemoState, after: DemoState, action: Action, at: number): LogEntry[] {
+/** Append one entry, dropping the oldest when the log is full. Pure: the caller supplies the real time and the study session (if any). */
+export function appendLog(log: LogEntry[], before: DemoState, after: DemoState, action: Action, at: number, session?: string | null): LogEntry[] {
   const prior = beforeOf(before, action)
   const entry: LogEntry = {
     seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: before.viewerId, type: action.type,
-    payload: payloadOf(action), ...(prior !== undefined ? { before: prior } : {}), applied: after !== before,
+    payload: payloadOf(action), ...(prior !== undefined ? { before: prior } : {}), applied: after !== before, ...(session ? { session } : {}),
   }
   return log.length >= LOG_LIMIT ? [...log.slice(log.length - LOG_LIMIT + 1), entry] : [...log, entry]
 }
 
+/** The entries a new study session keeps (src/lib/studySession.ts: the last 6 hours); `cleared` = how many others there were. */
+export function keepSitting(log: LogEntry[], keep: Keep): { log: LogEntry[]; cleared: number } {
+  const kept = log.filter(e => keep(e.at, e.session))
+  return { log: kept.length === log.length ? log : kept, cleared: log.length - kept.length }
+}
+
 interface Root { app: DemoState; log: LogEntry[] }
-type Msg = { action: Action; at: number }
+/** `session`: the study session the entry belongs to (none when no session is running). */
+type Msg = { action: Action; at: number; session?: string | null }
 
 /** The app reducer plus the log: every action goes through here, so every action leaves a line. */
 export function loggedReducer(root: Root, msg: Msg): Root {
   const app = reducer(root.app, msg.action)
-  return { app, log: appendLog(root.log, root.app, app, msg.action, msg.at) }
+  return { app, log: appendLog(root.log, root.app, app, msg.action, msg.at, msg.session) }
 }
 
 /** The same press or event twice within this time is one thing (a double event, React's development double-run). */
@@ -676,7 +684,7 @@ const LINK_NAV_MS = 2000
  * or the answer failed. Noise is folded: an identical event right after the last one is dropped, except a
  * repeated click, which is counted in `payload.repeat` on the first entry. Pure: the caller supplies the time.
  */
-export function appendUiLog(log: LogEntry[], actor: string, ev: UiEvent, at: number): LogEntry[] {
+export function appendUiLog(log: LogEntry[], actor: string, ev: UiEvent, at: number, session?: string | null): LogEntry[] {
   const payload = slim(ev.payload) as Record<string, unknown>
   const last = log[log.length - 1]
   if (last && last.type === ev.type && at - last.at <= UI_REPEAT_MS && last.applied === (ev.applied ?? true)) {
@@ -692,32 +700,69 @@ export function appendUiLog(log: LogEntry[], actor: string, ev: UiEvent, at: num
     // A button that changed the page ("Continue"): the click entry gets where it led, instead of a second entry.
     if (pressed.to === undefined && !pressed.external) return [...log.slice(0, -1), { ...last, payload: { ...pressed, to: payload.to } }]
   }
-  const entry: LogEntry = { seq: (last?.seq ?? 0) + 1, at, actor, type: ev.type, payload, applied: ev.applied ?? true }
+  const entry: LogEntry = { seq: (last?.seq ?? 0) + 1, at, actor, type: ev.type, payload, applied: ev.applied ?? true, ...(session ? { session } : {}) }
   return log.length >= LOG_LIMIT ? [...log.slice(log.length - LOG_LIMIT + 1), entry] : [...log, entry]
 }
 
 /* ───────────── Export (A7c) ───────────── */
 
+const iso = (ms: number | undefined) => (typeof ms === "number" && Number.isFinite(ms) ? new Date(ms).toISOString() : null)
+
+/** One session in the export: when it began, when setup ended and how, how many of the file's entries are from it, and what its start removed (counts only). */
+function sessionItem(session: StudySession, walk: OnboardingAttempt | undefined, entries: number) {
+  return {
+    id: session.id,
+    startedAt: iso(session.startedAt),
+    startedAtMs: session.startedAt,
+    startedAtAz: azTime(session.startedAt),
+    attempt: walk?.id ?? null,
+    outcome: walk?.outcome ?? null,
+    setupCompletedAt: iso(walk?.setupCompletedAt),
+    setupCompletedAtMs: walk?.setupCompletedAt ?? null,
+    setupCompletedAtAz: azTime(walk?.setupCompletedAt) || null,
+    setupChoice: walk?.setupChoice ?? null,
+    firstEventChoice: firstEventChoice(walk),
+    entries,
+    previousEntriesCleared: session.previousEntriesCleared,
+    previousAttemptsCleared: session.previousAttemptsCleared,
+  }
+}
+
 /**
  * Everything the person has done and the state they ended up with, as one JSON-able object.
- * formatVersion 2 (Phase 3 logging) keeps every version-1 field and adds `build`, `demoToday`,
- * `onboardingFlowVersion` and the merged `timeline`. See docs/PHASE3_DATA_DICTIONARY.md.
+ * formatVersion 2 (Phase 3 logging) kept every version-1 field and added `build`, `demoToday`, `onboardingFlowVersion` and the merged `timeline`.
+ * formatVersion 3 (study sessions) adds `sessions` (each study session in the file) and `session` (the latest, with counts of what is not in the
+ * file), tags entries with their session, and gives timeline rows `timeAz` and `session`. The log and attempts are those of the last sitting
+ * (src/lib/studySession.ts); everything, as before, when no session has begun in this browser. See docs/PHASE3_DATA_DICTIONARY.md.
  */
-export function buildExport(state: DemoState, log: LogEntry[], exportedAt: number, onboarding: OnboardingRecord = loadOnboardingRecord()) {
-  const firstSeq = log[0]?.seq ?? null
+export function buildExport(state: DemoState, log: LogEntry[], exportedAt: number, onboarding: OnboardingRecord = loadOnboardingRecord(), book: Book = loadBook()) {
+  const latest = book.sessions[book.sessions.length - 1] ?? null
+  // The same rule the latest session start applied, so a stale tab's older entries cannot slip in.
+  const keep = latest ? keeper(book.sessions, latest.startedAt) : () => true
+  const entries = keepSitting(log, keep).log
+  const attempts = onboarding.attempts.filter(a => keep(attemptLastAt(a), a.sessionId))
+  const record: OnboardingRecord = attempts.length === onboarding.attempts.length ? onboarding : { attempts }
+  const listed = book.sessions.filter(s => s === latest || entries.some(e => e.session === s.id) || attempts.some(a => a.sessionId === s.id))
+  const sessions = listed.map(s => sessionItem(s, attempts.find(a => a.sessionId === s.id && a.entry === "start"), entries.filter(e => e.session === s.id).length))
+  const sum = (k: "previousEntriesCleared" | "previousAttemptsCleared") => listed.reduce((n, s) => n + s[k], 0)
+  const firstSeq = entries[0]?.seq ?? null
+  // Numbers missing before the first entry, minus those the 6-hour clean-up removed: what the 2,000-entry cap dropped.
+  const capDropped = log.length ? Math.max(0, log[0].seq - 1 - (latest ? book.seqCleared : 0)) : 0
   return {
     format: "platypus-export",
-    formatVersion: 2,
+    formatVersion: 3,
     exportedAt: new Date(exportedAt).toISOString(),
     schemaVersion: state.schemaVersion,
     storageKey: STORAGE_KEY,
     build: BUILD_INFO,
     demoToday: state.today,
     onboardingFlowVersion: FLOW_VERSION,
+    session: latest ? { ...sessions[sessions.length - 1], olderEntriesLeftOut: sum("previousEntriesCleared") + log.length - entries.length, olderAttemptsLeftOut: sum("previousAttemptsCleared") + onboarding.attempts.length - attempts.length } : null,
+    sessions,
     state: { ...state, demoLinkKey: "[omitted]" },
-    onboarding,
-    interactionLog: { limit: LOG_LIMIT, count: log.length, firstSeq, lastSeq: log[log.length - 1]?.seq ?? null, droppedEarlier: firstSeq === null ? 0 : firstSeq - 1, entries: log },
-    timeline: buildTimeline(log, onboarding),
+    onboarding: record,
+    interactionLog: { limit: LOG_LIMIT, count: entries.length, firstSeq, lastSeq: entries[entries.length - 1]?.seq ?? null, droppedEarlier: capDropped, entries },
+    timeline: buildTimeline(entries, record, listed),
   }
 }
 
@@ -780,13 +825,26 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
     saved.current.log = saveLog(root.log)
     setSaveFailed(!(saved.current.app && saved.current.log))
   }, [root.log, held])
+  // The study session new entries belong to. A session runs for one sitting: after 6 hours new entries carry none, until a new one begins.
+  const [bootSession] = useState(currentSession)
+  const sessionRef = useRef<StudySession | null>(bootSession)
+  const sessionAt = useCallback((at: number) => { const s = sessionRef.current; return s && at - s.startedAt <= SITTING_MS ? s.id : null }, [])
+  // A new study session (a recorded walkthrough begins): entries from an earlier sitting go (counted); the last 6 hours stay.
+  useEffect(() => onSessionStart((s, keep) => {
+    sessionRef.current = s
+    const r = rootRef.current!
+    const { log, cleared } = keepSitting(r.log, keep)
+    if (log !== r.log) commit({ app: r.app, log })
+    return { cleared, kept: log.length }
+  }), [commit])
   // The real clock is read here, once per action, and travels with it into the log.
-  const dispatch = useCallback((action: Action) => commit(loggedReducer(rootRef.current!, { action, at: Date.now() })), [commit])
+  const dispatch = useCallback((action: Action) => { const at = Date.now(); commit(loggedReducer(rootRef.current!, { action, at, session: sessionAt(at) })) }, [commit, sessionAt])
   const logUi = useCallback((e: UiEvent) => {
     const r = rootRef.current!
-    const log = appendUiLog(r.log, r.app.viewerId, e, Date.now())
+    const at = Date.now()
+    const log = appendUiLog(r.log, r.app.viewerId, e, at, sessionAt(at))
     if (log !== r.log) commit({ app: r.app, log })
-  }, [commit])
+  }, [commit, sessionAt])
   useEffect(() => onUi(logUi), [logUi])
   const getLog = useCallback(() => rootRef.current!.log, [])
   const exportData = useCallback(() => {

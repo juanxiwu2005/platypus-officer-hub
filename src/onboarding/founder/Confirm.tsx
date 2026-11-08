@@ -7,6 +7,7 @@ import { validDate } from "../../lib/commands"
 import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
+import { recordSetup } from "../record"
 import { summaryLine } from "./confirm/summary"
 
 const c = onboardingCopy.founder.confirm
@@ -40,6 +41,7 @@ export function Confirm() {
     const error = validateClub(draft.club)
     if (error) { setProblem(error); return }
     started.current = true
+    recordSetup("start-workspace")
     dispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps })
     clear()
     navigate("/welcome/founder/invite")
@@ -57,7 +59,7 @@ export function Confirm() {
       {ready
         ? <button type="button" className="btn btn-primary" onClick={start}>{c.start}</button>
         : <button type="button" className="btn btn-primary" onClick={() => navigate("/welcome/founder/first-event")}>{c.backToEvent}</button>}
-      <button type="button" className="btn" onClick={() => flow.exit()}>{c.keep}</button>
+      <button type="button" className="btn" onClick={() => { recordSetup("keep-demo"); flow.exit() }}>{c.keep}</button>
     </div>
     <div className="ob-actions"><button type="button" className="btn small" onClick={() => flow.back()}>{onboardingCopy.back}</button></div>
   </section>

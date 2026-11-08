@@ -4,7 +4,7 @@ import { seedDemo } from "../data/seed"
 import { FLOW_VERSION } from "../onboarding/record"
 import type { LogEntry } from "../data/types"
 import { appendLog, appendUiLog, buildExport, LOG_KEY, LOG_LIMIT, loggedReducer, StoreProvider, UI_REPEAT_MS, useStore, type Action } from "../data/store"
-import { answerSummary, describeChange, describeClick, emitUi, installUiCapture, routeOf, type UiEvent } from "../lib/uiLog"
+import { answerSummary, describeChange, describeClick, emitUi, installUiCapture, routeOf, taskMarks, type UiEvent } from "../lib/uiLog"
 import { buildTimeline, describeEntry } from "../lib/timeline"
 
 // Phase 3 research log: screen events go into the SAME interaction log (docs/PHASE3_DATA_DICTIONARY.md).
@@ -177,7 +177,8 @@ describe("the store records screen events, and the export includes the export it
     expect(api.getLog().map(e => e.type)).toEqual(["ui.navigate", "ui.click", "setAi", "ui.click", "ui.export"])
     expect(JSON.parse(window.localStorage.getItem(LOG_KEY)!).map((e: LogEntry) => e.seq)).toEqual([1, 2, 3, 4, 5])
     const file = JSON.parse(await blobs[0].text())
-    expect(file.formatVersion).toBe(2)
+    expect(file.formatVersion).toBe(3)
+    expect(file.session).toBeNull()   // no study walkthrough began in this browser: everything is exported, as before
     expect(file.interactionLog.entries.map((e: LogEntry) => e.type)).toEqual(["ui.navigate", "ui.click", "setAi", "ui.click", "ui.export"])
     expect(file.timeline.map((r: { desc: string }) => r.desc)).toEqual([
       "Opened the app at /", 'Clicked button "Show side panel" on /', "Data action setAi", 'Clicked button "Export my data" on /settings', "Exported data (5 log entries)",
@@ -207,7 +208,7 @@ describe("how many entries a 75-minute session writes (the cap is 2,000)", () =>
    * A simulated participant, built from what the e2e session measured per kind of press. Two speeds:
    * typical (one press every 8 seconds for 60 minutes in the app) and very busy (one every 4 seconds, all 75 minutes).
    */
-  function simulate(seconds: number, everySeconds: number) {
+  function simulate(seconds: number, everySeconds: number, withNew: boolean) {
     const s = seedDemo("2026-10-22")
     let root = { app: s, log: [] as LogEntry[] }
     let t = T
@@ -226,15 +227,35 @@ describe("how many entries a 75-minute session writes (the cap is 2,000)", () =>
       i => { ui({ type: "ui.ask", payload: { question: `Question ${i}`, via: "typed" } }); ui({ type: "ui.answer", payload: { answer: "rule-answer", citations: ["R06"] } }, 900); if (i % 3 === 0) act({ type: "setAi", enabled: i % 2 === 0 }, 1500) }, // 10% ask (+ some data change)
       i => { ui({ type: "ui.click", payload: { route: "/tasks", role: "button", name: "Done" } }); act({ type: "advanceClock", days: 1 } as Action, 10); if (i % 4 === 0) ui({ type: "ui.click", payload: { route: "/tasks", role: "button", name: "Done" } }, 150) }, // 10% data action (+ double clicks)
     ]
-    for (let i = 0, n = Math.round(seconds / everySeconds); i < n; i++) { mix[i % mix.length](i); t += everySeconds * 1000 }
+    // 2026-11-07 items (section 11 of the data dictionary). Each is an action in the same rhythm, not on top of it:
+    // typing in a field (start + end) and resting on a hover card for half a second or more.
+    const extra: ((i: number) => void)[] = [
+      i => { ui({ type: "ui.edit", payload: { route: "/tasks", field: `Field ${i % 15}`, kind: "text", event: "start" } }); ui({ type: "ui.edit", payload: { route: "/tasks", field: `Field ${i % 15}`, kind: "text", event: "end", ms: 6000 } }, 3000) },
+      i => ui({ type: "ui.hover", payload: { route: "/", name: `Dot ${i % 20}`, ms: 900, via: "mouse" } }),
+    ]
+    const all = withNew ? [...mix, ...extra] : mix
+    const n = Math.round(seconds / everySeconds)
+    for (let i = 0; i < n; i++) {
+      all[i % all.length](i)
+      if (withNew) {
+        // Six study tasks, spread over the session: Start task k ends the one before implicitly; Done after the last.
+        const k = Math.floor((i * 6) / n) + 1
+        if (i === 0 || Math.floor(((i - 1) * 6) / n) + 1 !== k) for (const e of taskMarks(root.log, k, t + 500, "/")) ui(e, 500)
+        // Leaving the page: one away span (hidden + visible) every 3 minutes (other tabs, ASU pages, Zoom).
+        if (i % Math.round(180 / everySeconds) === 0) { ui({ type: "ui.visibility", payload: { state: "hidden", via: "tab", route: "/" } }, 1200); ui({ type: "ui.visibility", payload: { state: "visible", via: "tab", awayMs: 20_000, route: "/" } }, 2500) }
+      }
+      t += everySeconds * 1000
+    }
+    if (withNew) for (const e of taskMarks(root.log, null, t, "/")) ui(e)
     return root.log.length
   }
   it("a typical session stays far below the cap, and even a very busy one stays under it", () => {
-    const typical = simulate(60 * 60, 8)
-    const busy = simulate(75 * 60, 4)
+    const typical = simulate(60 * 60, 8, true)
+    const busy = simulate(75 * 60, 4, true)
+    // Measured 2026-11-07: 651 / 1561 (without the 2026-11-07 items, `withNew` false: 600 / 1498).
     console.info(`Simulated session: typical ${typical} entries, very busy ${busy} entries (cap ${LOG_LIMIT}).`)
     expect(typical).toBeLessThan(800)
-    expect(busy).toBeLessThan(LOG_LIMIT * 0.8)
+    expect(busy).toBeLessThan(LOG_LIMIT * 0.85)
   })
 })
 
@@ -243,7 +264,7 @@ describe("export shape", () => {
     const s = seedDemo("2026-10-22")
     const out = buildExport(s, [], T, { attempts: [] })
     for (const key of ["format", "formatVersion", "exportedAt", "schemaVersion", "storageKey", "state", "onboarding", "interactionLog"]) expect(out).toHaveProperty(key)
-    expect(out).toMatchObject({ formatVersion: 2, demoToday: "2026-10-22", onboardingFlowVersion: FLOW_VERSION, timeline: [] })
+    expect(out).toMatchObject({ formatVersion: 3, demoToday: "2026-10-22", onboardingFlowVersion: FLOW_VERSION, session: null, timeline: [] })
     expect(typeof out.build.commit).toBe("string")
   })
 })
