@@ -1,4 +1,6 @@
 import { useState, type CSSProperties } from "react"
+import { isOfficer } from "../data/permissions"
+import type { Successor } from "../data/handoff"
 import { Link } from "react-router-dom"
 import { PageHead } from "../components/Page"
 import { useStore, useViewer } from "../data/store"
@@ -42,7 +44,7 @@ export default function Handoff() {
       <input type="date" aria-label="Season starts" value={from} onChange={e => setFrom(e.target.value)} />
       <span className="small muted">to</span>
       <input type="date" aria-label="Season ends" value={to} onChange={e => setTo(e.target.value)} />
-      <button className="btn btn-primary small" disabled={!from || !to || from > to}>{state.handoff ? "Save dates" : "Start handoff season"}</button>
+      <button className="btn btn-primary small" disabled={!from || !to || from > to}>{state.handoff && !state.handoff.partial ? "Save dates" : "Start handoff season"}</button>
     </form>} />
     <section className="card season">
       <Chain label="Handoff season" stops={stops} />
@@ -74,17 +76,30 @@ export function HandoffRoleDetail({ roleId }: { roleId: string }) {
   const role = state.roles.find(r => r.id === roleId)
   const record = state.handoffRoles.find(r => r.roleId === roleId)
   if (!role) return <Empty>This role no longer exists.</Empty>
-  if (!record) return <section className="form-stack"><h2>{role.displayName} handbook</h2><p className="small muted">Start the handoff season to draft this handbook. It will draw on these records:</p><ul className="small">{handbookSources(state, role.id).slice(0, 8).map(s => <li key={s.id}>{s.text}</li>)}</ul></section>
+  if (!record) return <section className="form-stack"><h2>{role.displayName} handbook</h2><p className="small muted">Hand this role over to draft its handbook. It will draw on these records:</p><ul className="small">{handbookSources(state, role.id).slice(0, 8).map(s => <li key={s.id}>{s.text}</li>)}</ul><StartRole roleId={role.id} /></section>
   return <RolePanel record={record} title={`${role.displayName} handbook`} />
+}
+
+/** Starts the handoff for one role, without a club-wide season (a president action). */
+function StartRole({ roleId, label = "Hand over this role" }: { roleId: string; label?: string }) {
+  const { dispatch } = useStore(); const { canNudge } = useViewer()
+  if (!canNudge) return null
+  return <button type="button" className="btn btn-primary" onClick={() => dispatch({ type: "handoffAction", action: { kind: "startRole", roleId } })}>{label}</button>
 }
 
 function RolePanel({ record: r, title }: { record: RoleHandoff; title: string }) {
   const touch = useTouch()
-  const { state, dispatch } = useStore(); const { canNudge } = useViewer(); const self = state.viewerId === r.outgoingId
-  const [interview, setInterview] = useState(r.interview.join("\n")), [name, setName] = useState(`Incoming ${state.roles.find(x => x.id === r.roleId)?.displayName} (example)`), [busy, setBusy] = useState(false), [notice, setNotice] = useState("")
+  const { state, dispatch } = useStore(); const { canNudge } = useViewer(); const role = state.roles.find(x => x.id === r.roleId)
+  // A role nobody holds has nobody to interview, so the president answers for it.
+  const open = !role?.holderId
+  const self = state.viewerId === r.outgoingId || (canNudge && open)
+  const [interview, setInterview] = useState(r.interview.join("\n")), [name, setName] = useState(`Incoming ${state.roles.find(x => x.id === r.roleId)?.displayName} (example)`), [who, setWho] = useState("new"), [busy, setBusy] = useState(false), [notice, setNotice] = useState("")
   const sources = r.completed ? r.sources : handbookSources(state, r.roleId), fresh = r.fingerprint === sourceFingerprint(sources)
   const act = (action: import("../data/handoff").HandoffAction) => dispatch({ type: "handoffAction", action })
   const p = roleProgress(r)
+  const successor: Successor = who === "new" ? { kind: "new", name } : who === "open" ? { kind: "vacant" } : { kind: "existing", personId: who }
+  const takesOver = who !== "new" && who !== "open"
+  const vacated = takesOver ? state.roles.find(x => x.holderId === who && x.id !== r.roleId) : undefined
   const start = r.startDate ?? state.handoff!.from
   /**
    * The AI picks and orders source records; if it is off, too slow or fails, the app builds the handbook from the same
@@ -142,10 +157,16 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
     <article className="step-card">
       <header><span className="step-n">5</span><b>Hand over</b></header>
       {!r.completed ? <>
-        <label className="field"><span>Incoming fictional officer name</span><input maxLength={80} value={name} onChange={e => setName(e.target.value)} /></label>
-        <button className="btn btn-primary" disabled={!canNudge || !r.approved || r.checks.length !== WEEK_ONE.length || !name.trim()} onClick={() => act({ kind: "complete", roleId: r.roleId, incomingName: name })}>Finish role handoff</button>
-        <p className="small muted">Moves the role, open tasks and contacts to the new fictional officer. Nothing is sent.</p>
-      </> : <p className="good-text small">Handed to {state.people.find(p => p.id === r.incomingId)?.name}.</p>}
+        <label className="field"><span>Who takes over?</span><select value={who} onChange={e => setWho(e.target.value)}>
+          <option value="new">A new person</option>
+          {state.people.filter(p => p.id !== r.outgoingId && p.id !== role?.holderId).map(p => <option key={p.id} value={p.id}>{p.name} · {isOfficer(p) ? state.roles.find(x => x.id === p.roleId)?.displayName : "former officer"}</option>)}
+          {role?.fn !== "president" && !open && <option value="open">Nobody yet (leave it open)</option>}
+        </select></label>
+        {who === "new" && <label className="field"><span>Incoming fictional officer name</span><input maxLength={80} value={name} onChange={e => setName(e.target.value)} /></label>}
+        {takesOver && vacated && <p className="small warn-text">{vacated.displayName} will be open until someone takes it.</p>}
+        <button className="btn btn-primary" disabled={!canNudge || !r.approved || (who !== "open" && r.checks.length !== WEEK_ONE.length) || (who === "new" && !name.trim())} onClick={() => act({ kind: "complete", roleId: r.roleId, successor })}>Finish role handoff</button>
+        <p className="small muted">Moves the role and its open tasks, which wait for the new officer to tap “I've got it”. Contacts stay with the role. Nothing is sent.</p>
+      </> : r.incomingId ? <p className="good-text small">Handed to {state.people.find(p => p.id === r.incomingId)?.name}.</p> : <><p className="small">Left open: {role?.displayName} has no officer yet.</p><StartRole roleId={r.roleId} label="Hand over to someone" /></>}
       <label className="field"><span>Role handoff starts</span><input type="date" disabled={!canNudge || r.completed} value={start} onChange={e => act({ kind: "roleDate", roleId: r.roleId, date: e.target.value })} /></label>
       <button className="btn" disabled={!r.completed || r.reviewed || state.today < handoffDates(start).review || (!canNudge && state.viewerId !== r.incomingId)} onClick={() => act({ kind: "review", roleId: r.roleId })}>{r.reviewed ? "Day-30 review recorded" : `Record day-30 review (${fmtShort(handoffDates(start).review)})`}</button>
     </article>

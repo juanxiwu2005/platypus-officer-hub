@@ -2,7 +2,8 @@ import type { DemoState, HandbookSource, HandbookEntry } from "../data/types"
 export function handbookSources(s:DemoState,roleId:string):HandbookSource[]{
  const role=s.roles.find(r=>r.id===roleId), record=s.handoffRoles.find(r=>r.roleId===roleId)
  if(!role)return []
- const tasks=s.nodes.filter(n=>n.ownerId===(record?.outgoingId??role.holderId)||(!n.ownerId&&n.fn===role.fn))
+ const who=record?.outgoingId??role.holderId
+ const tasks=s.nodes.filter(n=>(!!who&&n.ownerId===who)||(!n.ownerId&&n.fn===role.fn))
  return [...tasks.map(n=>({id:`task:${n.id}`,kind:"task" as const,nodeId:n.id,text:`Task: ${n.title}. Purpose: ${n.why||"No purpose recorded"}. Recorded status: ${n.status}.`})),...(record?.interview??[]).map((text,i)=>({id:`interview:${roleId}:${i+1}`,kind:"interview" as const,text}))]
 }
 export const sourceFingerprint=(sources:HandbookSource[])=>JSON.stringify(sources)

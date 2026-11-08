@@ -450,6 +450,8 @@ export interface HandoffSeason {
   from: string
   to: string
   roleIds: string[]
+  /** Started for one role ("Hand over this role"), not for the whole club: roles added or missing later do not join it. Pressing "Start handoff season" makes it a full season. */
+  partial?: boolean
 }
 
 /** An AI-proposed change. Applied only after a person approves it (plan §8). */
