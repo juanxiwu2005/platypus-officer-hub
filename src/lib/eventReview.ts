@@ -4,6 +4,7 @@ import { stripDates } from "./chatCards"
 import { knownDates } from "./aiContext"
 import { computeSchedule } from "../engine/schedule"
 import { RULES } from "../data/rules"
+import { officers } from "../data/permissions"
 
 /**
  * The event review (M2b, Juanxi 2026-10-27): after a new event is approved, the assistant reads the playbook's
@@ -44,7 +45,7 @@ export function reviewPayload(s: DemoState, eventId: string) {
     event: { id: e.id, name: e.name, date: e.date, headcount: e.headcount, food: e.food, speaker: e.speaker, venue: e.venue, funding: e.funding, details: e.details ?? "" },
     steps: nodes.map(n => ({ title: n.title, phase: n.phase, owner: role(n.ownerId), rules: n.ruleIds })),
     issues: [...(plan.events[eventId]?.issues ?? []), ...nodes.flatMap(n => plan.nodes[n.id]?.issues ?? [])].filter(i => i.severity !== "info").slice(0, 12).map(i => ({ text: i.text, rule: i.ruleId ?? null })),
-    people: s.people.map(p => ({ id: p.id, name: p.name, role: s.roles.find(r => r.id === p.roleId)?.displayName ?? null })),
+    people: officers(s).map(p => ({ id: p.id, name: p.name, role: s.roles.find(r => r.id === p.roleId)?.displayName ?? null })),
     ruleBook: RULES.map(r => ({ id: r.id, short: r.short ?? r.text.slice(0, 80) })),
   }
 }

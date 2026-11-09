@@ -1,10 +1,11 @@
 import type { HandbookSource } from "../data/types"
+import { HANDBOOK_SECTIONS } from "./handbook"
 /**
  * Handbook drafting helpers used by the Handoff page and the /api/handbook/draft function only. They live apart from handbook.ts, which
  * the store (and so Today's first download) imports, so that this code is not part of every page's first load.
  */
 /** The handbook's sections, in reading order. A source belongs to exactly one. */
-export const HANDBOOK_SECTIONS=["From the outgoing officer","Calendar","In flight","People","Lessons","Finished work"] as const
+export { HANDBOOK_SECTIONS }
 export type HandbookSection=typeof HANDBOOK_SECTIONS[number]
 export function sectionOf(s:HandbookSource):HandbookSection{
  if(s.kind==="interview")return "From the outgoing officer"

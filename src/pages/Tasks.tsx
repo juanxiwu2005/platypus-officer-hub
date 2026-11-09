@@ -12,6 +12,7 @@ import { canMoveTask, byRank, addTaskNotice } from "../data/board"
 import { useDragSort } from "../lib/dragSort"
 import { Avatar, Empty, NodePill, useStatusStyles } from "../components/ui"
 import { canLead } from "../data/changeReview"
+import { isOfficer, officers } from "../data/permissions"
 import { TaskTypeIcon } from "../components/TaskTypeIcon"
 
 type View = "table" | "board" | "timeline"
@@ -98,7 +99,7 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
           return [<tr key={n.id} data-testid="task-card">
             <td><button type="button" className="row-btn task-title" onClick={() => rail.show({ kind: "task", id: n.id })}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
             {showOwner && <td>{editable
-              ? <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" /><select aria-label={`Owner of ${n.title}`} value={n.ownerId ?? ""} onChange={e => dispatch({ type: "updateNode", id: n.id, patch: { ownerId: e.target.value || null } })}><option value="">None</option>{state.people.map(p => <option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>)}</select></span>
+              ? <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" /><select aria-label={`Owner of ${n.title}`} value={n.ownerId ?? ""} onChange={e => dispatch({ type: "updateNode", id: n.id, patch: { ownerId: e.target.value || null } })}><option value="">None</option>{officers(state).map(p => <option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>)}{state.people.filter(p => p.id === n.ownerId && !isOfficer(p)).map(p => <option key={p.id} value={p.id} disabled>{p.name.split(" ")[0]} (former)</option>)}</select></span>
               : <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />{state.people.find(p => p.id === n.ownerId)?.name.split(" ")[0] ?? ""}</span>}</td>}
             <td><NodePill node={n} small /></td>
             <td className={late ? "late-text" : ""}>{editable && n.clubDeadline

@@ -103,8 +103,9 @@ export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettin
     const renamed = !!old && old.displayName !== name
     let formerNames = old?.formerNames ?? []
     // Autosave sees every pause while typing: only the first rename of a day records the title the role really had; going back to it removes the entry.
-    if (renamed && old!.renamedOn !== s.today) formerNames = [...formerNames, { name: old!.displayName, until: s.today }]
-    if (renamed || old?.renamedOn === s.today) formerNames = formerNames.filter(f => !(f.until === s.today && f.name === name))
+    // Today's entry, if any, already holds the title the role had this morning; without one, the title before this rename is it.
+    if (renamed && !formerNames.some(f => f.until === s.today)) formerNames = [...formerNames, { name: old!.displayName, until: s.today }]
+    if (renamed) formerNames = formerNames.filter(f => !(f.until === s.today && f.name === name))
     const renamedOn = renamed ? s.today : old?.renamedOn
     return { ...rest, displayName: name, ...(formerNames.length ? { formerNames } : {}), ...(renamedOn ? { renamedOn } : {}), ...(old?.startNotes ? { startNotes: old.startNotes } : {}) }
   }))

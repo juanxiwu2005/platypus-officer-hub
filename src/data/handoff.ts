@@ -3,7 +3,7 @@ import { demoEmail } from "./structure"
 import { canLead } from "./changeReview"
 import { validDate } from "../lib/commands"
 import { handoffDates, applySchedule } from "../engine/schedule"
-import { handbookSources, sanitizeHandbook, sourceFingerprint, WEEK_ONE } from "../lib/handbook"
+import { HANDBOOK_SECTIONS, handbookFresh, handbookSources, sanitizeHandbook, sourceFingerprint, WEEK_ONE } from "../lib/handbook"
 import { addNotices } from "./taskWorkflow"
 import { handoffQuestions, READBACK_PROMPTS, readBackFlags } from "../lib/handoffQuestions"
 /** Who takes the role over: a new person, someone already in the club (an officer or a former officer), or nobody yet (the role stays open). */
@@ -34,11 +34,13 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
  // A role nobody holds has no one to interview: the president answers for it (Handoff stage 2).
  const speaks=self||(lead&&!!record&&!s.roles.find(r=>r.id===record.roleId)?.holderId)
  const update=(patch:object)=>({...s,handoffRoles:s.handoffRoles.map(r=>r===record?{...r,...patch}:r)})
+ // A handbook is current while every line it quotes is still in the role's records, word for word (Juanxi 2026-11-09: new records alone do not make it stale).
+ const fresh=()=>!!record&&handbookFresh(record,handbookSources(s,record.roleId))
  if(a.kind==="start"){
   if(!lead||!validDate(a.from)||!validDate(a.to)||a.to<a.from)return s
   if(s.handoff){const {partial:_one,...season}=s.handoff;return syncSeasonRoles({...s,handoff:{...season,from:a.from,to:a.to}})}
   // The interview starts empty (the page shows a hint), so step 1 only counts once the outgoing officer has saved something.
-  return {...s,handoff:{id:`season:${s.today}`,from:a.from,to:a.to,roleIds:s.roles.map(r=>r.id)},handoffRoles:s.roles.map(seasonRecord)}
+  return {...keepHistory(s,s.handoffRoles),handoff:{id:`season:${s.today}`,from:a.from,to:a.to,roleIds:s.roles.map(r=>r.id)},handoffRoles:s.roles.map(seasonRecord)}
  }
  if(a.kind==="startRole"){
   const role=s.roles.find(r=>r.id===a.roleId)
@@ -46,12 +48,13 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
   const old0=s.handoffRoles.find(h=>h.roleId===role.id)
   // What earlier new officers said was missing (accepted by the president) stays with the role for the next round.
   const fresh={...seasonRecord(role),...(old0?.reviews?.some(x=>x.accepted)?{reviews:old0.reviews.filter(x=>x.accepted)}:{})}
-  if(!s.handoff)return {...s,handoff:{id:`season:${s.today}`,from:s.today,to:handoffDates(s.today).review,roleIds:[role.id],partial:true},handoffRoles:[fresh]}
+  if(!s.handoff)return {...keepHistory(s,s.handoffRoles),handoff:{id:`season:${s.today}`,from:s.today,to:handoffDates(s.today).review,roleIds:[role.id],partial:true},handoffRoles:[fresh]}
   const old=s.handoffRoles.find(h=>h.roleId===role.id)
   if(old&&!old.completed)return s
   // A role left open at its last handoff is reopened with the interview and handbook it already has; a role handed to someone starts a new round.
   const next=old&&!role.holderId&&old.incomingId===null?{...old,completed:false,reviewed:false,checks:[],outgoingId:old.outgoingId}:fresh
-  return {...s,handoff:{...s.handoff,roleIds:s.handoff.roleIds.includes(role.id)?s.handoff.roleIds:[...s.handoff.roleIds,role.id]},handoffRoles:old?s.handoffRoles.map(h=>h===old?next:h):[...s.handoffRoles,next]}
+  // The finished round is kept in handoffHistory, never overwritten (D-6a: keep history).
+  return {...(old&&next===fresh?keepHistory(s,[old]):s),handoff:{...s.handoff,roleIds:s.handoff.roleIds.includes(role.id)?s.handoff.roleIds:[...s.handoff.roleIds,role.id]},handoffRoles:old?s.handoffRoles.map(h=>h===old?next:h):[...s.handoffRoles,next]}
  }
  if(a.kind==="retainBuffer")return {...s,people:s.people.map(p=>p.id===s.viewerId?{...p,retainBufferAtHandoff:a.keep}:p)}
  if(!record||!s.handoff)return s
@@ -68,8 +71,8 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
   if(!entries.length)return s
   return update({entries,sources,fingerprint:a.fingerprint,source:a.source.slice(0,120),model:a.model?.slice(0,100)??null,confirmed:false,approved:false})
  }
- if(a.kind==="confirm")return speaks&&record.entries.length&&record.fingerprint===sourceFingerprint(handbookSources(s,record.roleId))?update({confirmed:true}):s
- if(a.kind==="approve")return lead&&record.confirmed&&record.fingerprint===sourceFingerprint(handbookSources(s,record.roleId))?update({approved:true}):s
+ if(a.kind==="confirm")return speaks&&record.entries.length&&fresh()?update({confirmed:true}):s
+ if(a.kind==="approve")return lead&&record.confirmed&&fresh()?update({approved:true}):s
  if(a.kind==="check"){
   // The first-week list belongs to the new officer, after the handover (Handoff stage 3): nothing to tick while the role is still with its old holder.
   if(!record.completed||!record.approved||(!lead&&record.incomingId!==s.viewerId)||!WEEK_ONE.some(i=>i.id===a.itemId))return s
@@ -86,7 +89,7 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
   return a.skip?update({questions}):addLine(`Q: ${q.text} A: ${text}`,{questions})
  }
  if(a.kind==="readSection"){
-  if(!incoming||a.section.length>40||(a.mark!=="got"&&a.mark!=="unclear")||Object.keys(record.reading??{}).length>8)return s
+  if(!incoming||!(HANDBOOK_SECTIONS as readonly string[]).includes(a.section)||(a.mark!=="got"&&a.mark!=="unclear"))return s
   const id=`q:unclear:${a.section}`,have=(record.questions??[]).find(x=>x.id===id)
   const questions=a.mark==="unclear"&&!have?[...(record.questions??[]),{id,text:`The new officer found “${a.section}” unclear. What would help?`,kind:"unclear" as const,status:"open" as const,answer:""}]:record.questions
   return update({reading:{...record.reading,[a.section]:a.mark},questions})
@@ -114,7 +117,8 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
   return lead&&r&&r.missing&&!r.accepted?update({reviews:record.reviews!.map(x=>x===r?{...x,accepted:true}:x)}):s
  }
  if(a.kind==="setIncoming")return nameSuccessor(s,record,a.successor)
- if(a.kind==="clearIncoming")return lead&&!record.completed&&record.incomingId?update({incomingId:null}):s
+ // The reading, read-back and shadow task belonged to the person no longer named; the next one starts clean. Questions they raised stay for the outgoing officer.
+ if(a.kind==="clearIncoming")return lead&&!record.completed&&record.incomingId?update({incomingId:null,reading:{},readBack:null,shadowNodeId:null}):s
  if(a.kind==="complete")return completeHandoff(s,record,a.successor??(a.incomingName!==undefined?{kind:"new",name:a.incomingName}:undefined))
  if(a.kind==="review"){
   const day=a.day??30,scored=a.clarity!==undefined||a.confidence!==undefined||a.welcome!==undefined||a.missing!==undefined
@@ -130,6 +134,11 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
  return s
 }
 
+/** Finished rounds (and any record a new season replaces) go to handoffHistory, so a second handoff of a role never erases the first one. */
+function keepHistory(s:DemoState,records:RoleHandoff[]):DemoState{
+ const done=records.filter(r=>r.completed||r.interview.length||r.entries.length)
+ return done.length?{...s,handoffHistory:[...(s.handoffHistory??[]),...done.map(r=>({...r,season:s.handoff?.id??null}))]}:s
+}
 /** A season record for one role: the role's current holder is the outgoing officer; nothing is filled in yet. */
 export const seasonRecord=(r:Role):RoleHandoff=>({roleId:r.id,outgoingId:r.holderId,interview:[],entries:[],sources:[],fingerprint:"",source:"",model:null,confirmed:false,approved:false,checks:[],completed:false,reviewed:false,incomingId:null})
 /** While a season is open, a role added later (Settings) joins it, so its card and handbook work like the others. No season: unchanged. */
@@ -142,6 +151,23 @@ export function syncSeasonRoles(s:DemoState):DemoState{
  const changed=missing.length>0||refreshed.some((h,i)=>h!==s.handoffRoles[i])
  if(!changed)return s
  return {...s,handoff:{...s.handoff,roleIds:[...s.handoff.roleIds,...missing.map(r=>r.id).filter(id=>!s.handoff!.roleIds.includes(id))]},handoffRoles:[...refreshed,...missing.map(seasonRecord)]}
+}
+/**
+ * Saves from before the Handoff redesign (v14–v21): a finished handoff there left the outgoing officer looking like a current officer
+ * without a role and gave the new one an empty email, so Settings could never be saved again (B1). Mark such people as former officers
+ * and give a new officer with no email a fictional example.org one. Nothing else changes; returns the same object when nothing is wrong.
+ */
+export function repairLegacyHandoff(s:DemoState):DemoState{
+ const holds=new Set(s.roles.map(r=>r.holderId).filter(Boolean))
+ const outgoing=new Set((s.handoffRoles??[]).filter(h=>h.completed).map(h=>h.outgoingId).filter(Boolean))
+ let changed=false
+ const people=s.people.map(p=>{
+  let q=p
+  if(!p.leftOn&&!p.incomingFor&&!holds.has(p.id)&&outgoing.has(p.id)){q={...q,leftOn:s.handoffRoles.find(h=>h.completed&&h.outgoingId===p.id)?.completedOn??s.today};changed=true}
+  if(!p.email.trim()&&p.id.startsWith("incoming:")){q={...q,email:uniqueDemoEmail(s,p.name)};changed=true}
+  return q
+ })
+ return changed?{...s,people}:s
 }
 /** A fictional example.org address for a new officer, distinct from everyone's (Settings requires one). */
 function uniqueDemoEmail(s:DemoState,name:string):string{
@@ -159,7 +185,7 @@ const blankPerson=(roleId:string):Omit<Person,"id"|"name"|"email">=>({roleId,cha
  */
 function completeHandoff(s:DemoState,record:RoleHandoff,given:Successor|undefined):DemoState{
  const role=s.roles.find(r=>r.id===record.roleId)
- if(!canLead(s)||!s.handoff||!role||record.completed||!record.approved||record.fingerprint!==sourceFingerprint(handbookSources(s,record.roleId)))return s
+ if(!canLead(s)||!s.handoff||!role||record.completed||!record.approved||!handbookFresh(record,handbookSources(s,record.roleId)))return s
  if(role.holderId&&role.holderId!==record.outgoingId)return s
  // A successor already named (setIncoming) is the one who takes over; naming another one now would be a second, conflicting decision.
  if(record.incomingId&&given)return s
@@ -223,7 +249,9 @@ function nameSuccessor(s:DemoState,record:RoleHandoff,succ:{kind:"new";name:stri
 function newPerson(s:DemoState,role:Role,rawName:string):Person|null{
  const name=rawName.trim()
  if(!name||name.length>80||s.people.some(p=>p.name.toLowerCase()===name.toLowerCase()))return null
+ // Never reuse the id of someone named and then dropped: old notices and history would point at the new person.
+ const used=new Set([...s.people.map(p=>p.id),...s.notifications.map(n=>n.recipientId),...(s.roleTerms??[]).map(t=>t.personId),...s.handoffRoles.flatMap(h=>[h.incomingId,h.outgoingId]),...(s.handoffHistory??[]).flatMap(h=>[h.incomingId,h.outgoingId])])
  let id=`incoming:${s.handoff!.id}:${role.id}`
- for(let n=2;s.people.some(p=>p.id===id);n++)id=`incoming:${s.handoff!.id}:${role.id}:${n}`
+ for(let n=2;used.has(id);n++)id=`incoming:${s.handoff!.id}:${role.id}:${n}`
  return {...blankPerson(role.id),id,name,email:uniqueDemoEmail(s,name),bufferHistoryFrom:s.today}
 }

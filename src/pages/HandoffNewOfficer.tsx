@@ -46,7 +46,8 @@ export function NewOfficerCard({ record, sections }: { record: RoleHandoff; sect
   if (!record.incomingId && !record.completed) return null
   return <article className="step-card" data-testid="new-officer">
     <header><span className="step-n">+</span><b>Next officer: read, read back, shadow</b></header>
-    {mine && predecessor && <p className="small muted">Your predecessor: {predecessor.name}. Ask them when something is unclear.</p>}
+    {/* Q4 (Juanxi 2026-11-09): the next officer sees who held the role and how to reach them. Shown on this page only; never sent to the AI. */}
+    {mine && predecessor && <p className="small muted" data-testid="predecessor">Your predecessor: {predecessor.name}{predecessor.email ? <> · <a href={`mailto:${predecessor.email}`}>{predecessor.email}</a></> : null}{predecessor.phone ? ` · ${predecessor.phone}` : ""}. Ask them when something is unclear.</p>}
     {record.entries.length > 0 && <>
       <p className="small"><b>Reading</b></p>
       {sections.map(name => <div key={name} className="action-row">

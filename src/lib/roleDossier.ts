@@ -32,9 +32,14 @@ export interface Dossier {
   gaps: number
 }
 
-/** The person whose work this dossier describes: the outgoing officer of the open handoff, else the role's current holder. */
-export const dossierOwner = (s: DemoState, roleId: string): string | null =>
-  s.handoffRoles.find(r => r.roleId === roleId)?.outgoingId ?? s.roles.find(r => r.id === roleId)?.holderId ?? null
+/**
+ * The person whose work this dossier describes: the outgoing officer while a handoff is open, else the role's current holder.
+ * Once the role is handed over, the work is the new holder's (their open tasks moved with the role), so the dossier follows them.
+ */
+export const dossierOwner = (s: DemoState, roleId: string): string | null => {
+  const record = s.handoffRoles.find(r => r.roleId === roleId), holder = s.roles.find(r => r.id === roleId)?.holderId ?? null
+  return record && !record.completed ? record.outgoingId ?? holder : holder
+}
 
 /** The role's own tasks: the person's, plus tasks nobody owns that belong to the role's function. */
 export function roleTasks(s: DemoState, role: Role, who: string | null): Node[] {
@@ -93,8 +98,12 @@ export function roleDossier(s: DemoState, roleId: string, { publicOnly = false }
     for (const r of s.extensionRequests.filter(x => x.ownerId === who)) {
       blocks.lessons.push({ id: `lesson:ext:${r.id}`, block: "lessons", nodeId: r.nodeId, text: `Extension asked on "${title(r.nodeId)}" (${r.status}): ${r.reason.trim() || "no reason recorded"}.`, gap: !r.reason.trim() })
     }
-    for (const c of s.silenceCases.filter(x => x.ownerId === who)) {
-      blocks.lessons.push({ id: `lesson:quiet:${c.id}`, block: "lessons", nodeId: c.nodeId, text: `"${title(c.nodeId)}" went quiet and ${c.closedOn ? `was closed on ${c.closedOn}` : "is still open"}.` })
+    // One row per task, not per quiet spell: the follow-up check can open a case every day, which would crowd out everything else.
+    const quiet = new Map<string, typeof s.silenceCases>()
+    for (const c of s.silenceCases.filter(x => x.ownerId === who)) quiet.set(c.nodeId, [...(quiet.get(c.nodeId) ?? []), c])
+    for (const [nodeId, cases] of quiet) {
+      const first = cases[0], last = cases[cases.length - 1], open = cases.some(c => !c.closedOn)
+      blocks.lessons.push({ id: `lesson:quiet:${first.id}`, block: "lessons", nodeId, text: `"${title(nodeId)}" went quiet${cases.length > 1 ? ` ${cases.length} times` : ""} and ${open ? "is still open" : `was closed on ${last.closedOn}`}.` })
     }
     for (const c of s.contributions.filter(x => x.personId === who && !x.onTime)) {
       blocks.lessons.push({ id: `lesson:late:${c.nodeId}`, block: "lessons", nodeId: c.nodeId, text: `"${title(c.nodeId)}" was finished late.` })

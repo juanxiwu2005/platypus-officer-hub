@@ -6,7 +6,7 @@ import { PageHead } from "../components/Page"
 import { useStore, useViewer } from "../data/store"
 import { useRail } from "../components/rail/RailContext"
 import { handoffDates } from "../engine/schedule"
-import { handbookSources, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
+import { handbookFresh, handbookSources, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "../lib/handbook"
 import { HANDBOOK_SECTIONS, localHandbook, sectionOf } from "../lib/handbookDraft"
 import { roleDossier, type DossierBlock, type DossierRow } from "../lib/roleDossier"
 import { handoffRisk } from "../lib/handoffRisk"
@@ -26,6 +26,11 @@ const DOSSIER_BLOCKS: { key: DossierBlock; label: string }[] = [
 function RiskMark({ color, label }: { color: "green" | "yellow" | "red"; label: string }) {
   return <span className={`risk ${color}`} role="img" aria-label={label}><i aria-hidden="true"><svg viewBox="0 0 14 14" focusable="false">{RISK_SHAPE[color]}</svg></i></span>
 }
+/**
+ * What goes to /api/handbook/draft: the outgoing officer's own words first, so the server's 100-record cap can never cut them off,
+ * then the other records in their usual order. The server maps refs back to these ids, so order does not change any wording.
+ */
+export const draftPayload = (sources: HandbookSource[]) => [...sources.filter(s => s.kind === "interview"), ...sources.filter(s => s.kind !== "interview")].slice(0, 100).map(({ id, kind, text }) => ({ id, kind, text }))
 const RISK_COLOR = { high: "red", medium: "yellow", low: "green" } as const
 const STEPS = ["Interview", "Handbook", "Confirmed", "Approved", "Handed over", "First week", "Day 30"]
 /** Seven checkpoints per role; the ring shows how many are done. */
@@ -140,7 +145,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
   // An answer to a question (or a read-back line) adds to the interview from outside this box; the box follows the record.
   const saved = r.interview.join("\n")
   useEffect(() => setInterview(saved), [saved])
-  const sources = r.completed ? r.sources : handbookSources(state, r.roleId), fresh = r.fingerprint === sourceFingerprint(sources)
+  const sources = r.completed ? r.sources : handbookSources(state, r.roleId), fresh = handbookFresh(r, sources)
   const act = (action: import("../data/handoff").HandoffAction) => dispatch({ type: "handoffAction", action })
   const p = roleProgress(r)
   const risk = handoffRisk(state, r.roleId)
@@ -160,7 +165,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
     const fingerprint = sourceFingerprint(sources)
     try {
       if (!state.aiEnabled) throw new Error("AI off")
-      const result = await callApi<{ entries: unknown; model: string; provider: string; partial?: boolean }>("/handbook/draft", { sources: sources.map(({ id, kind, text }) => ({ id, kind, text })) }, AI_WAIT_MS)
+      const result = await callApi<{ entries: unknown; model: string; provider: string; partial?: boolean }>("/handbook/draft", { sources: draftPayload(sources) }, AI_WAIT_MS)
       const entries = sanitizeHandbook(result, sources)
       if (!entries.length) throw new Error("No sources")
       act({ kind: "draft", roleId: r.roleId, raw: { entries }, fingerprint, model: result.model, source: `AI-selected source extracts · ${result.provider}${result.partial ? " · reply was cut short, complete picks kept" : ""}` })

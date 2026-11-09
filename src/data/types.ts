@@ -528,6 +528,8 @@ export interface DemoState {
   funding: Funding[]
   handoff: HandoffSeason | null
   handoffRoles: RoleHandoff[]
+  /** Earlier rounds of role handoffs, kept when a role is handed over again or a new season starts (never erased). Optional: absent in older saves. */
+  handoffHistory?: (RoleHandoff & { season: string | null })[]
   /** Who held which role, and when (Handoff stage 3). Maintained by normalizeTerms. */
   roleTerms: RoleTerm[]
   /** Roles the club closed (Handoff stage 6). */

@@ -8,6 +8,7 @@ import { defaultTaskDue } from "../../engine/taskDates"
 import { TaskDueFields } from "./TaskFields"
 import { Feedback } from "../Feedback"
 import { RULES } from "../../data/rules"
+import { officers } from "../../data/permissions"
 import { useRail } from "./RailContext"
 
 
@@ -55,7 +56,7 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
   const [error, setError] = useState("")
   const review = change.reviews?.[index] ?? "pending"
   const pending = review === "pending"
-  const ownerSelect = (ownerId: string | null, update: (value: string | null) => void) => <label>Owner<select aria-label="Owner" value={ownerId ?? ""} onChange={e => update(e.target.value || null)}><option value="">No owner</option>{state.people.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+  const ownerSelect = (ownerId: string | null, update: (value: string | null) => void) => <label>Owner<select aria-label="Owner" value={ownerId ?? ""} onChange={e => update(e.target.value || null)}><option value="">No owner</option>{officers(state).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
   const nodeSelect = (value: string, update: (value: string) => void, label = "Task") => <label>{label}<select aria-label={label} value={value} onChange={e => update(e.target.value)}>{state.nodes.map(n => <option key={n.id} value={n.id}>{n.title} · {state.events.find(ev => ev.id === n.eventId)?.name ?? "Standalone"}</option>)}</select></label>
   const tierSelect = (tier: Tier, update: (value: Tier) => void) => <label>Difficulty<select aria-label="Difficulty" value={tier} onChange={e => update(e.target.value as Tier)}>{TIERS.map(t => <option key={t}>{t}</option>)}</select></label>
   function apply() {

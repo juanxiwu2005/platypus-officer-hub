@@ -11,7 +11,14 @@ export function handbookSources(s:DemoState,roleId:string):HandbookSource[]{
  const tasks=roleTasks(s,role,dossierOwner(s,roleId))
  return [...tasks.map(n=>({id:`task:${n.id}`,kind:"task" as const,nodeId:n.id,text:taskText(n)})),...dossierSources(s,roleId),...(record?.interview??[]).map((text,i)=>({id:`interview:${roleId}:${i+1}`,kind:"interview" as const,text}))]
 }
+/** The handbook's sections, in reading order (see sectionOf in handbookDraft.ts). Here so the store can check a section name. */
+export const HANDBOOK_SECTIONS=["From the outgoing officer","Calendar","In flight","People","Lessons","Finished work"] as const
 export const sourceFingerprint=(sources:HandbookSource[])=>JSON.stringify(sources)
+/**
+ * Whether a drafted handbook is still current: every line it quotes is still among the role's records with the same text.
+ * New records (another quiet task, a new contact) do not make it stale; a changed or removed quoted record does (Juanxi 2026-11-09).
+ */
+export const handbookFresh=(record:{entries:HandbookEntry[]},sources:HandbookSource[])=>record.entries.length>0&&record.entries.every(e=>sources.some(s=>s.id===e.sourceId&&s.text===e.text))
 /** Extractive drafting: the model selects/order sources; every displayed word is from a cited record.
  * Free text, dates, unknown source IDs and all other output fields are discarded. */
 export function sanitizeHandbook(raw:unknown,sources:HandbookSource[]):HandbookEntry[]{
