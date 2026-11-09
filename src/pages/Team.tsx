@@ -6,6 +6,7 @@ import { Avatar, Hover, Info } from "../components/ui"
 import { roleName } from "./helpers"
 import { contributionBoard, workload } from "../engine/team"
 import { MeetingFinder } from "../components/MeetingFinder"
+import { officers } from "../data/permissions"
 
 const BAND = { "Room to help": 1, Focused: 2, "Needs support": 3 } as const
 
@@ -20,7 +21,7 @@ export default function Team() {
     <div className="grid-2">
       <section className="card" aria-labelledby="off-h">
         <header><h2 id="off-h">Workload</h2><Info>A qualitative signal for the next two weeks—not a capacity target. It weighs estimated work, urgency, rule and dependency impact, plus a self-reported busy week. It never shows a percentage or “unused” time.</Info></header>
-        <table className="tbl" data-testid="officers"><tbody>{state.people.map(p => {
+        <table className="tbl" data-testid="officers"><tbody>{officers(state).map(p => {
           const w = workload(state, p.id)
           return <tr key={p.id} className="wl-row">
             <td><span className="who"><Avatar name={p.name} />{p.name.split(" ")[0]}</span></td>

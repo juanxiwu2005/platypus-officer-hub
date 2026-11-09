@@ -1,6 +1,7 @@
 import type { DemoState, Event, EventCheck, EventChecks, NodeStatus, Phase, Tier } from "../data/types"
 import { RULES } from "../data/rules"
 import { visibleContacts } from "../data/crm"
+import { officers } from "../data/permissions"
 
 /** Only these shapes may cross the AI boundary. Unknown keys (including all dates) disappear. */
 export type CommandOp =
@@ -39,7 +40,7 @@ export type CommandContext = {
 export const commandContext = (s: DemoState): CommandContext => ({
   events: s.events.map(({ id, name }) => ({ id, name })),
   nodes: s.nodes.map(({ id, title }) => ({ id, title })),
-  people: s.people.map(({ id, name }) => ({ id, name })),
+  people: officers(s).map(({ id, name }) => ({ id, name })),
   contacts: visibleContacts(s).map(({ id, name }) => ({ id, name })),
   roles: s.roles.map(({ id, displayName }) => ({ id, displayName })),
   tags: (s.org.board?.tags ?? []).map(({ id, label }) => ({ id, label })),

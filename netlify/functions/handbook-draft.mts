@@ -1,7 +1,8 @@
 import type { Config } from "@netlify/functions"
 import { chatJSON, SYNC_AI_BUDGET_MS } from "../lib/ai.mts"
 import { BadRequest,fail,json,readJSON,str } from "../lib/http.mts"
-import { HANDBOOK_SYSTEM, handbookPicks, handbookRefs, salvageHandbookPicks, sanitizeHandbook } from "../../src/lib/handbook.ts"
+import { sanitizeHandbook } from "../../src/lib/handbook.ts"
+import { HANDBOOK_SYSTEM, handbookPicks, handbookRefs, salvageHandbookPicks } from "../../src/lib/handbookDraft.ts"
 import type { HandbookSource } from "../../src/data/types.ts"
 /**
  * /api/handbook/draft — the model picks and orders source records by short ref; every word shown is a record's own text.
@@ -11,7 +12,7 @@ import type { HandbookSource } from "../../src/data/types.ts"
  */
 export default async(req:Request)=>{try{
  const body=await readJSON(req,40_000)
- const sources:HandbookSource[]=(Array.isArray(body.sources)?body.sources:[]).slice(0,100).flatMap(s=>s&&typeof s==="object"&&["task","interview"].includes(s.kind)&&/^(task|interview):[\w:-]+$/.test(s.id)&&str(s.text,1500)?[{id:str(s.id,150),kind:s.kind,text:str(s.text,1500)}]:[])
+ const sources:HandbookSource[]=(Array.isArray(body.sources)?body.sources:[]).slice(0,100).flatMap(s=>s&&typeof s==="object"&&["task","interview","deadline","step","contact","lesson"].includes(s.kind)&&/^(task|interview|deadline|step|contact|lesson):[\w:-]+$/.test(s.id)&&str(s.text,1500)?[{id:str(s.id,150),kind:s.kind,text:str(s.text,1500)}]:[])
  if(!sources.length||new Set(sources.map(s=>s.id)).size!==sources.length)throw new BadRequest("Supply unique fictional task/interview source records.")
  const {data,model,provider,truncated}=await chatJSON({ task: "handbook_draft",system:HANDBOOK_SYSTEM,user:JSON.stringify({records:handbookRefs(sources)}),maxTokens:400,timeoutMs:SYNC_AI_BUDGET_MS,salvageTruncated:reply=>salvageHandbookPicks(reply,sources)})
  const entries=sanitizeHandbook(handbookPicks(data,sources),sources)

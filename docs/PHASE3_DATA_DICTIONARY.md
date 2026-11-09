@@ -54,7 +54,9 @@
 | ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（现在 `ob-4`：First event 之后、Confirm 之前多了 Reminders 屏；`ob-3` 没有这一屏）。每次引导尝试里也各自记了版本 |
 | ◆ `sessions` | 文件里的每个研究会话一行，按开始时间排，见 3.1；没有会话时为空 `[]` |
 | ◆ `session` | 最新的那个会话（和 `sessions` 最后一行一样），外加没放进文件的条数，见 3.1；没有会话时为 `null` |
-| `state` | 导出那一刻整个虚构社团的数据（活动、任务、成员、设置……）。签名密钥被替换成 `"[omitted]"` |
+| `state` | 导出那一刻整个虚构社团的数据（活动、任务、成员、设置……）。签名密钥被替换成 `"[omitted]"`。Handoff 改版起（结构版本 21）里面还有 `roleTerms`（谁在哪个岗位任职过：`status` 为 `incoming` / `active` / `former`，起止日期）、成员的 `leftOn`（交接后离任的日期）和 `incomingFor`（已被指定接任、还没正式接手）；结构版本 22 起还有 `archivedRoles`（被关闭的岗位，留作历史）、岗位的 `formerNames`（旧名）和 `startNotes`（新岗位的起步回答），都是虚构演示数据 |
+
+> **Handoff 页读取日志（2026-11-09，Juanxi 决定问答记录和研究日志不分开）：** Handoff 页的新人卡会在画出来的那一刻，从本文件说的 `interactionLog` 里读出新人（被指定接任之后）问 Ask 的问题（`ui.ask` 的 `question`），给社长和新人本人看。**不新增任何记录项**，不把这些问题另存，不放进手册或档案，不发给 AI。
 | `onboarding` | 新手引导（`/#/welcome/…`）的单独记录，见第 6 节（有会话时只含这一次 sitting 的尝试） |
 | `interactionLog` | 交互日志本体，见第 4、5 节（有会话时只含这一次 sitting）。外层还有：`limit`（2000）、`count`（现有条数）、`firstSeq` / `lastSeq`（第一条和最后一条的编号）、`droppedEarlier`（因为超过 2000 被丢掉的最早条数；0 表示一条没丢。6 小时清理删掉的不算在这里，见 `previousEntriesCleared`） |
 | ★ `timeline` | 把交互日志和新手引导记录合在一起、按时间排好的清单，每行一句英文短描述，见第 7 节 |

@@ -6,6 +6,7 @@ import { personalBuffer } from "../engine/schedule"
 import { RULES } from "../data/rules"
 import { dutiesOf } from "../data/structure"
 import { nextStep, orgName, visibleContacts } from "../data/crm"
+import { officers } from "../data/permissions"
 
 /**
  * Everything the signed-in officer can see in the app, as one compact object for the assistant (v1.2,
@@ -25,7 +26,7 @@ export function aiSnapshot(s: DemoState) {
     you: me && { id: me.id, name: me.name, role: role(me.roleId), canApprove: lead, canCreateEvents: canCreateEvent(s), personalBufferDays: personalBuffer(s, me).days, busyWeeks: me.busyWeeks, remindAt: me.remindAt, channels: me.channels },
     club: { name: s.org.name, school: s.org.school, mission: s.org.mission, goals: s.org.goals.map(({ label, target, current, unit }) => ({ label, target, current, unit })), clubBufferBusinessDays: s.org.settings.clubBufferBusinessDays, sendMode: s.org.settings.sendMode, tags: (s.org.board?.tags ?? []).map(({ id, label }) => ({ id, label })), planningNotes: s.org.workspace.planningNotes.slice(0, 1500) },
     roles: s.roles.map(r => ({ id: r.id, title: r.displayName, function: r.fn, holder: name(r.holderId), holderId: r.holderId, reportsTo: role(r.reportsToId), duties: dutiesOf(r) })),
-    people: s.people.map(p => {
+    people: officers(s).map(p => {
       const w = workload(s, p.id)
       return { id: p.id, name: p.name, role: role(p.roleId), email: p.email, channels: p.channels, busyWeeks: p.busyWeeks, careerGoal: p.careerGoal, interests: p.interests, workload: w.band }
     }),

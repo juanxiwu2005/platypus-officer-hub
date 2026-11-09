@@ -143,6 +143,19 @@ export interface Role {
   /** Who this role reports to (another role id). Null at the top. */
   reportsToId?: string | null
   duties?: string
+  /** Earlier titles and the date each stopped being used (Handoff stage 6); set when a role is renamed. */
+  formerNames?: { name: string; until: string }[]
+  /** The day of the latest rename: more renames that day (typing, Undo) do not add earlier titles. */
+  renamedOn?: string
+  /** The president's answers to the three starter questions of a new role (ROLE_START_PROMPTS), in order. */
+  startNotes?: string[]
+}
+
+/** A role the club closed: gone from every role list, but its name, history and where its work went are kept (Juanxi, D-6a: close, never delete). */
+export interface ArchivedRole extends Role {
+  archivedOn: string
+  /** The role that took over its work. */
+  closedInto: string | null
 }
 
 export interface Person {
@@ -161,6 +174,18 @@ export interface Person {
   personalBufferEnabled: boolean
   retainBufferAtHandoff?: boolean
   bufferHistoryFrom?: string
+  /**
+   * The date this person handed their role over (Handoff → Finish role handoff). From then on they are a former officer:
+   * still in the club's records (tasks they did, contributions, interactions), but no longer in officer lists, pickers,
+   * validation or what the AI may assign to. `roleId` keeps the role they last held. Absent: a current officer.
+   */
+  leftOn?: string | null
+  /**
+   * A new person named as the next holder of this role before the handoff is finished (Handoff stage 3). They exist, can be
+   * viewed as, and can read the handbook and the open tasks, but are not an officer yet: no role rights, not in officer lists.
+   * Finishing the handoff removes this field. Absent: not waiting for a role.
+   */
+  incomingFor?: string
   phone: string
   /** Fictional ASU ID (10 digits starting 9999). Kept in this browser; never sent to AI. */
   asuId?: string
@@ -439,11 +464,31 @@ export interface Rule {
   note?: string
 }
 
+/** incoming = named as the next holder, not in the role yet; active = holds the role now; former = held it before. */
+export type TermStatus = "incoming" | "active" | "former"
+/**
+ * One person's time in one role (Handoff stage 3). `Role.holderId` is still the quick answer to "who holds it now";
+ * the terms keep the history that answer loses, and `normalizeTerms` (src/data/roleTerms.ts) keeps both in step after every action.
+ * `from` is null for a term that began before records were kept.
+ */
+export interface RoleTerm {
+  id: string
+  roleId: string
+  personId: string
+  status: TermStatus
+  from: string | null
+  to: string | null
+  /** The handoff season that started or ended this term, when there was one. */
+  handoffId: string | null
+}
+
 export interface HandoffSeason {
   id: string
   from: string
   to: string
   roleIds: string[]
+  /** Started for one role ("Hand over this role"), not for the whole club: roles added or missing later do not join it. Pressing "Start handoff season" makes it a full season. */
+  partial?: boolean
 }
 
 /** An AI-proposed change. Applied only after a person approves it (plan §8). */
@@ -483,6 +528,10 @@ export interface DemoState {
   funding: Funding[]
   handoff: HandoffSeason | null
   handoffRoles: RoleHandoff[]
+  /** Who held which role, and when (Handoff stage 3). Maintained by normalizeTerms. */
+  roleTerms: RoleTerm[]
+  /** Roles the club closed (Handoff stage 6). */
+  archivedRoles: ArchivedRole[]
   feedback: OutputReport[]
   changeSets: ChangeSet[]
   extensionRequests: ExtensionRequest[]
@@ -495,9 +544,15 @@ export interface DemoState {
 }
 
 
-export interface HandbookSource { id:string; kind:"task"|"interview"; text:string; nodeId?:string }
+export interface HandbookSource { id:string; kind:"task"|"interview"|"deadline"|"step"|"contact"|"lesson"; text:string; nodeId?:string }
 export interface HandbookEntry { sourceId:string; text:string }
-export interface RoleHandoff { roleId:string; outgoingId:string|null; interview:string[]; entries:HandbookEntry[]; sources:HandbookSource[]; startDate?:string; fingerprint:string; source:string; model:string|null; confirmed:boolean; approved:boolean; checks:string[]; completed:boolean; reviewed:boolean; incomingId:string|null }
+export interface RoleHandoff { roleId:string; outgoingId:string|null; interview:string[]; entries:HandbookEntry[]; sources:HandbookSource[]; startDate?:string; fingerprint:string; source:string; model:string|null; confirmed:boolean; approved:boolean; checks:string[]; completed:boolean; reviewed:boolean; incomingId:string|null; completedOn?:string|null; questions?:HandoffQuestion[]; reading?:Record<string,"got"|"unclear">; readBack?:ReadBack|null; shadowNodeId?:string|null; reviews?:HandoffReview[] }
+/** A question for the outgoing officer (Handoff stage 5). "gap" questions come from holes in the role's records; "unclear" ones from the new officer's reading. Answers become interview lines. */
+export interface HandoffQuestion { id:string; text:string; kind:"gap"|"unclear"; status:"open"|"answered"|"skipped"; answer:string }
+/** The new officer's own words on three fixed questions, and which answers the handbook does not seem to cover. Nothing here is a score. */
+export interface ReadBack { answers:string[]; flags:{flagged:boolean;resolved:boolean}[] }
+/** The new officer's check-in at day 7 or day 30: three 1–5 answers and what the handbook lacked. Seen by the president and the new officer only. */
+export interface HandoffReview { day:7|30; on:string; clarity:number; confidence:number; welcome:number; missing:string; accepted:boolean }
 export interface OutputReport { id:string; outputId:string; text:string; reportedBy:string; on:string; resolved:boolean }
 
 /**
