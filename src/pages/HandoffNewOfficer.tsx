@@ -5,6 +5,7 @@ import type { HandoffAction } from "../data/handoff"
 import type { RoleHandoff } from "../data/types"
 import { handoffQuestions, READBACK_PROMPTS } from "../lib/handoffQuestions"
 import { handoffDates } from "../engine/schedule"
+import { firstQuestions } from "../lib/firstQuestions"
 import { fmtShort } from "../lib/dates"
 
 /** Handoff stage 5 screens: the outgoing officer's questions, the new officer's reading and read-back, the shadow task and the day 7 / day 30 check-ins. */
@@ -68,7 +69,22 @@ export function NewOfficerCard({ record, sections }: { record: RoleHandoff; sect
       : <p className="small muted">None yet. {canNudge && !record.completed ? "Pick a light task the outgoing officer is still doing." : ""}</p>}
     {canNudge && !record.completed && !shadow && <button type="button" className="btn small" onClick={() => act({ kind: "startShadow", roleId: record.roleId })}>Pick a task to shadow</button>}
     {role && <span className="sr-only">{role.displayName}</span>}
+    {(mine || canNudge) && <AskedQuestions record={record} />}
   </article>
+}
+
+/** What the next officer has asked Ask, read from the study log (the one record there is) when this is drawn. Not stored, not sent to the AI. */
+function AskedQuestions({ record }: { record: RoleHandoff }) {
+  const { getLog } = useStore()
+  const [tick, setTick] = useState(0)
+  void tick
+  const asked = firstQuestions(getLog(), record)
+  const gaps = asked.filter(q => !q.covered)
+  return <div data-testid="asked-questions">
+    <p className="small"><b>Questions asked in Ask</b> <span className="muted">{asked.length} asked · {gaps.length} not covered by the handbook</span> <button type="button" className="btn small" onClick={() => setTick(n => n + 1)}>Refresh</button></p>
+    {gaps.length > 0 && <ul className="small">{gaps.slice(-8).map(q => <li key={q.at}>{q.text}</li>)}</ul>}
+    <p className="small muted">Read from this browser's activity log each time you look. It is not saved anywhere else and is never sent to the AI.</p>
+  </div>
 }
 
 /** Day 7 and day 30 check-ins by the new officer. Only they and the president see the answers. */

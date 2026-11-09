@@ -48,7 +48,7 @@ export const READBACK_PROMPTS = [
 ] as const
 
 const STOP = new Set(["the", "and", "for", "that", "this", "with", "from", "have", "will", "your", "what", "when", "would", "first", "they", "them", "then", "there", "about", "into", "should", "could", "which", "their", "because", "role", "thing", "things", "make", "sure", "need", "needs"])
-const words = (t: string) => (t.toLowerCase().match(/[a-z][a-z'-]{3,}/g) ?? []).filter(w => !STOP.has(w))
+export const words = (t: string) => (t.toLowerCase().match(/[a-z][a-z'-]{3,}/g) ?? []).filter(w => !STOP.has(w))
 
 /**
  * Which read-back answers the handbook does not seem to cover: an answer is flagged when none of its meaningful words (four letters or more)
