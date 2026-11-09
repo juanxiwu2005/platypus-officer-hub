@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import { isOfficer } from "../data/permissions"
 import type { Successor } from "../data/handoff"
 import { Link } from "react-router-dom"
@@ -10,6 +10,7 @@ import { handbookSources, sourceFingerprint, sanitizeHandbook, WEEK_ONE } from "
 import { HANDBOOK_SECTIONS, localHandbook, sectionOf } from "../lib/handbookDraft"
 import { roleDossier, type DossierBlock, type DossierRow } from "../lib/roleDossier"
 import { handoffRisk } from "../lib/handoffRisk"
+import { NewOfficerCard, QuestionsList, ReviewsPanel } from "./HandoffNewOfficer"
 import { AI_WAIT_MS, aiMiss, callApi } from "../lib/api"
 import { Feedback } from "../components/Feedback"
 import { Avatar, Chain, Empty, Hover, Info, Ring, RISK_SHAPE, useStatusStyles, useTouch, type Stop } from "../components/ui"
@@ -130,11 +131,15 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
   const open = !role?.holderId
   const self = state.viewerId === r.outgoingId || (canNudge && open)
   const [interview, setInterview] = useState(r.interview.join("\n")), [name, setName] = useState(`Incoming ${state.roles.find(x => x.id === r.roleId)?.displayName} (example)`), [who, setWho] = useState("new"), [busy, setBusy] = useState(false), [notice, setNotice] = useState("")
+  // An answer to a question (or a read-back line) adds to the interview from outside this box; the box follows the record.
+  const saved = r.interview.join("\n")
+  useEffect(() => setInterview(saved), [saved])
   const sources = r.completed ? r.sources : handbookSources(state, r.roleId), fresh = r.fingerprint === sourceFingerprint(sources)
   const act = (action: import("../data/handoff").HandoffAction) => dispatch({ type: "handoffAction", action })
   const p = roleProgress(r)
   const risk = handoffRisk(state, r.roleId)
   const upcoming = roleDossier(state, r.roleId).blocks.calendar.filter(row => row.id.startsWith("deadline:"))
+  const sourceOf = (id: string, text: string): HandbookSource => sources.find(s => s.id === id) ?? { id, kind: id.split(":")[0] as HandbookSource["kind"], text }
   const successor: Successor = who === "new" ? { kind: "new", name } : who === "open" ? { kind: "vacant" } : { kind: "existing", personId: who }
   const named = !r.completed && r.incomingId ? state.people.find(p => p.id === r.incomingId) : undefined
   const takesOver = who !== "new" && who !== "open"
@@ -170,6 +175,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
       <header><span className="step-n">1</span><b>Outgoing interview</b><Info>Fictional example only. One point per line. Never paste research transcripts or real participant details.</Info></header>
       <textarea aria-label="Outgoing interview · fictional example only" placeholder="One point per line. Fictional examples only." maxLength={12000} rows={4} value={interview} disabled={!self || r.completed} onChange={e => setInterview(e.target.value)} />
       <button className="btn small" disabled={!self || r.completed} onClick={() => act({ kind: "interview", roleId: r.roleId, lines: interview.split("\n") })}>Save example interview</button>
+      <QuestionsList record={r} />
     </article>
 
     <article className="step-card">
@@ -181,7 +187,6 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
         {!fresh && !r.completed && <p className="warn-text small">Sources changed. Draft again before confirming.</p>}
         {(() => {
           // The handbook reads in sections (interview, calendar, open work, people, lessons); the AI's order holds within each.
-          const sourceOf = (id: string, text: string): HandbookSource => sources.find(s => s.id === id) ?? { id, kind: id.split(":")[0] as HandbookSource["kind"], text }
           let n = 0
           return HANDBOOK_SECTIONS.map(name => {
             const rows = r.entries.filter(e => sectionOf(sourceOf(e.sourceId, e.text)) === name)
@@ -197,6 +202,8 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
       <header><span className="step-n">3</span><b>Sign-off</b></header>
       <div className="action-row"><button className="btn" disabled={!self || !fresh || r.confirmed || !r.entries.length} onClick={() => act({ kind: "confirm", roleId: r.roleId })}>{r.confirmed ? "Outgoing officer confirmed" : "Confirm as outgoing officer"}</button><button className="btn" disabled={!canNudge || !r.confirmed || !fresh || r.approved} onClick={() => act({ kind: "approve", roleId: r.roleId })}>{r.approved ? "President approved" : "Approve as president"}</button></div>
     </article>
+
+    <NewOfficerCard record={r} sections={HANDBOOK_SECTIONS.filter(name => r.entries.some(e => sectionOf(sourceOf(e.sourceId, e.text)) === name))} />
 
     <article className="step-card">
       <header><span className="step-n">4</span><b>Hand over</b></header>
@@ -226,7 +233,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
       {!r.completed && <p className="small muted">Opens for the new officer once the role is handed over.</p>}
       {upcoming.length > 0 && <div data-testid="first-30-days"><p className="small"><b>Next 30 days</b></p><ul className="small">{upcoming.slice(0, 5).map(row => <li key={row.id}><Link to={`/tasks?node=${encodeURIComponent(row.nodeId!)}`}>{row.text}</Link></li>)}</ul></div>}
       <BtsRow><Bts label="Source">{[...new Set(WEEK_ONE.map(item => item.source))].join(" · ")}</Bts></BtsRow>
-      <button className="btn" disabled={!r.completed || r.reviewed || state.today < handoffDates(start).review || (!canNudge && state.viewerId !== r.incomingId)} onClick={() => act({ kind: "review", roleId: r.roleId })}>{r.reviewed ? "Day-30 review recorded" : `Record day-30 review (${fmtShort(handoffDates(start).review)})`}</button>
+      <ReviewsPanel record={r} start={start} />
     </article>
 
   </section>

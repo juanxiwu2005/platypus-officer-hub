@@ -5,6 +5,7 @@ import { validDate } from "../lib/commands"
 import { handoffDates, applySchedule } from "../engine/schedule"
 import { handbookSources, sanitizeHandbook, sourceFingerprint, WEEK_ONE } from "../lib/handbook"
 import { addNotices } from "./taskWorkflow"
+import { handoffQuestions, READBACK_PROMPTS, readBackFlags } from "../lib/handoffQuestions"
 /** Who takes the role over: a new person, someone already in the club (an officer or a former officer), or nobody yet (the role stays open). */
 export type Successor=|{kind:"new";name:string}|{kind:"existing";personId:string}|{kind:"vacant"}
 export type HandoffAction =
@@ -20,7 +21,13 @@ export type HandoffAction =
  |{kind:"setIncoming";roleId:string;successor:{kind:"new";name:string}|{kind:"existing";personId:string}}
  |{kind:"clearIncoming";roleId:string}
  |{kind:"complete";roleId:string;incomingName?:string;successor?:Successor}
- |{kind:"review";roleId:string}
+ |{kind:"review";roleId:string;day?:7|30;clarity?:number;confidence?:number;welcome?:number;missing?:string}
+ |{kind:"acceptReview";roleId:string;day:7|30}
+ |{kind:"answerQuestion";roleId:string;id:string;answer?:string;skip?:boolean}
+ |{kind:"readSection";roleId:string;section:string;mark:"got"|"unclear"}
+ |{kind:"readBack";roleId:string;answers:string[]}
+ |{kind:"resolveReadBack";roleId:string;index:number;add:boolean}
+ |{kind:"startShadow";roleId:string}
 export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
  const record="roleId" in a?s.handoffRoles.find(r=>r.roleId===a.roleId):undefined
  const lead=canLead(s), self=record?.outgoingId===s.viewerId
@@ -36,7 +43,9 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
  if(a.kind==="startRole"){
   const role=s.roles.find(r=>r.id===a.roleId)
   if(!lead||!role)return s
-  const fresh=seasonRecord(role)
+  const old0=s.handoffRoles.find(h=>h.roleId===role.id)
+  // What earlier new officers said was missing (accepted by the president) stays with the role for the next round.
+  const fresh={...seasonRecord(role),...(old0?.reviews?.some(x=>x.accepted)?{reviews:old0.reviews.filter(x=>x.accepted)}:{})}
   if(!s.handoff)return {...s,handoff:{id:`season:${s.today}`,from:s.today,to:handoffDates(s.today).review,roleIds:[role.id],partial:true},handoffRoles:[fresh]}
   const old=s.handoffRoles.find(h=>h.roleId===role.id)
   if(old&&!old.completed)return s
@@ -66,10 +75,58 @@ export function changeHandoff(s:DemoState,a:HandoffAction):DemoState{
   if(!record.completed||!record.approved||(!lead&&record.incomingId!==s.viewerId)||!WEEK_ONE.some(i=>i.id===a.itemId))return s
   return update({checks:record.checks.includes(a.itemId)?record.checks.filter(i=>i!==a.itemId):[...record.checks,a.itemId]})
  }
+ const addLine=(line:string,patch:object={})=>update({interview:[...record.interview,line.slice(0,1500)],entries:[],sources:[],fingerprint:"",confirmed:false,approved:false,source:"",model:null,...patch})
+ const incoming=!!record.incomingId&&record.incomingId===s.viewerId
+ if(a.kind==="answerQuestion"){
+  const q=handoffQuestions(s,record).find(x=>x.id===a.id)
+  const text=(a.answer??"").trim()
+  if(!speaks||record.completed||!q||q.status!=="open"||(!a.skip&&(!text||text.length>1000||record.interview.length>=20)))return s
+  const done={...q,status:a.skip?"skipped" as const:"answered" as const,answer:a.skip?"":text}
+  const questions=[...(record.questions??[]).filter(x=>x.id!==q.id),done]
+  return a.skip?update({questions}):addLine(`Q: ${q.text} A: ${text}`,{questions})
+ }
+ if(a.kind==="readSection"){
+  if(!incoming||a.section.length>40||(a.mark!=="got"&&a.mark!=="unclear")||Object.keys(record.reading??{}).length>8)return s
+  const id=`q:unclear:${a.section}`,have=(record.questions??[]).find(x=>x.id===id)
+  const questions=a.mark==="unclear"&&!have?[...(record.questions??[]),{id,text:`The new officer found “${a.section}” unclear. What would help?`,kind:"unclear" as const,status:"open" as const,answer:""}]:record.questions
+  return update({reading:{...record.reading,[a.section]:a.mark},questions})
+ }
+ if(a.kind==="readBack"){
+  if(!incoming||!record.entries.length||a.answers.length!==READBACK_PROMPTS.length||a.answers.some(x=>typeof x!=="string"||x.length>500))return s
+  const answers=a.answers.map(x=>x.trim()),flags=readBackFlags(answers,record.completed?record.sources:handbookSources(s,record.roleId),record.entries.map(e=>e.sourceId))
+  return update({readBack:{answers,flags:flags.map(flagged=>({flagged,resolved:false}))}})
+ }
+ if(a.kind==="resolveReadBack"){
+  const rb=record.readBack,f=rb?.flags[a.index]
+  if(!rb||!f||!f.flagged||f.resolved||!(speaks||lead)||record.completed&&!lead||(a.add&&(record.completed||record.interview.length>=20)))return s
+  const flags=rb.flags.map((x,i)=>i===a.index?{...x,resolved:true}:x)
+  const line=`Read-back: Q: ${READBACK_PROMPTS[a.index]} A: ${rb.answers[a.index]}`
+  return a.add?addLine(line,{readBack:{...rb,flags}}):update({readBack:{...rb,flags}})
+ }
+ if(a.kind==="startShadow"){
+  const who=record.outgoingId,open=s.nodes.filter(n=>!!who&&n.ownerId===who&&n.status!=="done"&&n.status!=="blocked")
+  const pick=[...open].sort((x,y)=>Number(y.tier==="light")-Number(x.tier==="light")||(x.clubDeadline??"9").localeCompare(y.clubDeadline??"9"))[0]
+  if(!lead||!record.incomingId||record.completed||record.shadowNodeId||!pick)return s
+  return addNotices(update({shadowNodeId:pick.id}),pick.id,[record.incomingId],"info",`You are shadowing “${pick.title}” with ${s.people.find(p=>p.id===who)?.name??"the outgoing officer"}. Watch how it is done; the task stays with them.`,`shadow:${record.roleId}:${pick.id}`)
+ }
+ if(a.kind==="acceptReview"){
+  const r=record.reviews?.find(x=>x.day===a.day)
+  return lead&&r&&r.missing&&!r.accepted?update({reviews:record.reviews!.map(x=>x===r?{...x,accepted:true}:x)}):s
+ }
  if(a.kind==="setIncoming")return nameSuccessor(s,record,a.successor)
  if(a.kind==="clearIncoming")return lead&&!record.completed&&record.incomingId?update({incomingId:null}):s
  if(a.kind==="complete")return completeHandoff(s,record,a.successor??(a.incomingName!==undefined?{kind:"new",name:a.incomingName}:undefined))
- if(a.kind==="review")return (lead||record.incomingId===s.viewerId)&&record.completed&&s.today>=handoffDates(record.startDate??s.handoff.from).review?update({reviewed:true}):s
+ if(a.kind==="review"){
+  const day=a.day??30,scored=a.clarity!==undefined||a.confidence!==undefined||a.welcome!==undefined||a.missing!==undefined
+  const dates=handoffDates(record.startDate??s.handoff.from)
+  if(!record.completed||s.today<(day===7?dates.weekOne:dates.review)||(record.reviews??[]).some(x=>x.day===day))return s
+  if(!scored)return day===30&&(lead||incoming)?update({reviewed:true}):s
+  // Scores come from the new officer only, and only the president and they read them (Q5).
+  const ok=(n:unknown)=>Number.isInteger(n)&&(n as number)>=1&&(n as number)<=5
+  if(!incoming||!ok(a.clarity)||!ok(a.confidence)||!ok(a.welcome)||typeof(a.missing??"")!=="string"||(a.missing??"").length>500)return s
+  const entry={day,on:s.today,clarity:a.clarity!,confidence:a.confidence!,welcome:a.welcome!,missing:(a.missing??"").trim(),accepted:false}
+  return update({reviews:[...(record.reviews??[]),entry],...(day===30?{reviewed:true}:{})})
+ }
  return s
 }
 
@@ -130,7 +187,7 @@ function completeHandoff(s:DemoState,record:RoleHandoff,given:Successor|undefine
  const owner=incoming?.id??null
  const president=s.roles.find(r=>r.fn==="president")?.holderId??s.viewerId
  let next:DemoState=applySchedule({...s,
-  handoffRoles:s.handoffRoles.map(h=>h===record?{...record,completed:true,incomingId:owner}:h),
+  handoffRoles:s.handoffRoles.map(h=>h===record?{...record,completed:true,incomingId:owner,completedOn:s.today}:h),
   viewerId:holder&&s.viewerId===holder.id?(owner??president):s.viewerId,
   roles:s.roles.map(r=>r.id===role.id?{...r,holderId:owner}:r.id===vacated?.id?{...r,holderId:null}:r),
   people:[...s.people.map(p=>p.id===incoming?.id?incoming:p.id===holder?.id?{...p,leftOn:s.today,...(p.retainBufferAtHandoff?{}:{personalBufferDays:1,bufferHistoryFrom:s.today})}:p),...(incoming&&!s.people.some(p=>p.id===incoming!.id)?[incoming]:[])],

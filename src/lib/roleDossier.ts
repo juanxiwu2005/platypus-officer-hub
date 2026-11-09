@@ -96,6 +96,9 @@ export function roleDossier(s: DemoState, roleId: string, { publicOnly = false }
       blocks.lessons.push({ id: `lesson:late:${c.nodeId}`, block: "lessons", nodeId: c.nodeId, text: `"${title(c.nodeId)}" was finished late.` })
     }
   }
+  for (const r of s.handoffRoles.find(h => h.roleId === roleId)?.reviews ?? []) {
+    if (r.accepted && r.missing) blocks.lessons.push({ id: `lesson:review:${roleId}:${r.day}`, block: "lessons", text: `A new officer's note after day ${r.day}: ${r.missing}` })
+  }
   const gaps = Object.values(blocks).flat().filter(r => r.gap).length
   return { roleId, blocks, gaps }
 }

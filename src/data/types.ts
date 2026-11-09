@@ -531,7 +531,13 @@ export interface DemoState {
 
 export interface HandbookSource { id:string; kind:"task"|"interview"|"deadline"|"step"|"contact"|"lesson"; text:string; nodeId?:string }
 export interface HandbookEntry { sourceId:string; text:string }
-export interface RoleHandoff { roleId:string; outgoingId:string|null; interview:string[]; entries:HandbookEntry[]; sources:HandbookSource[]; startDate?:string; fingerprint:string; source:string; model:string|null; confirmed:boolean; approved:boolean; checks:string[]; completed:boolean; reviewed:boolean; incomingId:string|null }
+export interface RoleHandoff { roleId:string; outgoingId:string|null; interview:string[]; entries:HandbookEntry[]; sources:HandbookSource[]; startDate?:string; fingerprint:string; source:string; model:string|null; confirmed:boolean; approved:boolean; checks:string[]; completed:boolean; reviewed:boolean; incomingId:string|null; completedOn?:string|null; questions?:HandoffQuestion[]; reading?:Record<string,"got"|"unclear">; readBack?:ReadBack|null; shadowNodeId?:string|null; reviews?:HandoffReview[] }
+/** A question for the outgoing officer (Handoff stage 5). "gap" questions come from holes in the role's records; "unclear" ones from the new officer's reading. Answers become interview lines. */
+export interface HandoffQuestion { id:string; text:string; kind:"gap"|"unclear"; status:"open"|"answered"|"skipped"; answer:string }
+/** The new officer's own words on three fixed questions, and which answers the handbook does not seem to cover. Nothing here is a score. */
+export interface ReadBack { answers:string[]; flags:{flagged:boolean;resolved:boolean}[] }
+/** The new officer's check-in at day 7 or day 30: three 1–5 answers and what the handbook lacked. Seen by the president and the new officer only. */
+export interface HandoffReview { day:7|30; on:string; clarity:number; confidence:number; welcome:number; missing:string; accepted:boolean }
 export interface OutputReport { id:string; outputId:string; text:string; reportedBy:string; on:string; resolved:boolean }
 
 /**
