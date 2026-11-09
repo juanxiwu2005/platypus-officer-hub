@@ -24,7 +24,8 @@ test("Today ships a small entry and requests no PhaseOne, organization setup or 
   expect(entryUrl).toBeTruthy()
   const entry = await page.request.get(entryUrl!)
   const bytes = (await entry.body()).byteLength
-  expect(bytes).toBeLessThan(500_000)
+  // 520,000 since 2026-11-09 (Juanxi): the Handoff rules (role terms, successors, dossier) have to run inside the store, so they ship in this file. Was 500,000; main was 491,606.
+  expect(bytes).toBeLessThan(520_000)
   const initialScripts = await Promise.all([...new Set(scripts)].map(async url => ({ url, bytes: (await (await page.request.get(url)).body()).byteLength })))
   const totalInitialJsBytes = initialScripts.reduce((total, script) => total + script.bytes, 0)
   // Home interactions remain immediately available without a route download.
