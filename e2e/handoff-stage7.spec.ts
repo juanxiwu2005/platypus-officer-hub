@@ -47,7 +47,11 @@ test("what the next officer asked in Ask shows to the president and to them, rea
   // Drafting again after the question was asked: the question is not in what goes to the AI, and not in the club's saved data.
   await viewAs(page, "alex")
   sentToAi = ""
-  await page.getByRole("region", { name: "Treasurer handbook" }).getByRole("button", { name: "Draft role handbook" }).click()
+  // (The first draft is still on screen, so wait for the new request itself rather than for the page text.)
+  await Promise.all([
+    page.waitForRequest("**/api/handbook/draft"),
+    page.getByRole("region", { name: "Treasurer handbook" }).getByRole("button", { name: "Draft role handbook" }).click(),
+  ])
   await expect(page.getByRole("region", { name: "Treasurer handbook" }).getByTestId("handbook-draft")).toContainText("Built from your sources")
   expect(sentToAi).toContain("\"sources\"") // the draft did go out, with the club's records
   expect(sentToAi).not.toContain("zeppelin")
