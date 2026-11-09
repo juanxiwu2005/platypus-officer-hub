@@ -12,6 +12,7 @@ import type { DemoState, RoleTerm } from "./types"
  */
 export function normalizeTerms(s: DemoState): DemoState {
   const first = s.roleTerms === undefined
+  const noArchive = s.archivedRoles === undefined
   const old: RoleTerm[] = s.roleTerms ?? []
   const stamp = first ? null : s.today
   const holder = new Map(s.roles.map(r => [r.id, r.holderId]))
@@ -20,7 +21,7 @@ export function normalizeTerms(s: DemoState): DemoState {
   const people = new Set(s.people.map(p => p.id))
   const seasonOf = (roleId: string, personId: string) => s.handoff && s.handoffRoles.some(h => h.roleId === roleId && h.incomingId === personId) ? s.handoff.id : null
 
-  let changed = first
+  let changed = first || noArchive
   const terms: RoleTerm[] = []
   const has = (status: RoleTerm["status"], roleId: string, personId: string) => terms.some(t => t.status === status && t.roleId === roleId && t.personId === personId)
   const nextId = (roleId: string, personId: string) => `term:${roleId}:${personId}:${old.length + terms.length + 1}`
@@ -58,5 +59,5 @@ export function normalizeTerms(s: DemoState): DemoState {
     if (p.leftOn && !terms.some(t => t.personId === p.id && t.status === "former")) { terms.push({ id: nextId(p.roleId, p.id), roleId: p.roleId, personId: p.id, status: "former", from: null, to: p.leftOn, handoffId: null }); changed = true }
   }
 
-  return changed ? { ...s, roleTerms: terms, people: people2 } : s
+  return changed ? { ...s, roleTerms: terms, people: people2, archivedRoles: s.archivedRoles ?? [] } : s
 }

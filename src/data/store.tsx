@@ -30,6 +30,7 @@ import { onUi, type UiEvent } from "../lib/uiLog"
 import { buildTimeline } from "../lib/timeline"
 import { BUILD_INFO } from "../lib/buildInfo"
 import { normalizeTerms } from "./roleTerms"
+import { changeRole, type RoleChange } from "./roleChanges"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -95,6 +96,7 @@ export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "de
 
 export type Action =
   | { type: "handoffAction"; action:HandoffAction }
+  | { type: "roleChange"; change: RoleChange }
   | { type: "reportOutput"; outputId:string; text:string }
   | { type: "resolveReport"; id:string }
   | { type: "startFunding"; eventId:string }
@@ -281,6 +283,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
+    case "roleChange": return changeRole(state,action.change)
     case "reportOutput": return state.feedback.some(f=>f.outputId===action.outputId&&f.reportedBy===state.viewerId)?state:{...state,feedback:[...state.feedback,{id:`report:${nextCounter(state.feedback.map(f=>f.id),/^report:(\d+)/)}`,outputId:action.outputId.slice(0,20000),text:action.text.slice(0,10000),reportedBy:state.viewerId,on:state.today,resolved:false}]}
     case "resolveReport":return canLead(state)?{...state,feedback:state.feedback.map(f=>f.id===action.id?{...f,resolved:true}:f)}:state
     case "contacted":
@@ -505,7 +508,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: normalizeTerms(repairCoreEventSteps(repairTaskLinks(parsed))), notice: null }
   // Keep all supported saved versions on the same one-time demo-update path.
-  if (parsed && typeof parsed === "object" && [14, 15, 17, 18, 19, 20].includes(parsed.schemaVersion) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
+  if (parsed && typeof parsed === "object" && [14, 15, 17, 18, 19, 20, 21].includes(parsed.schemaVersion) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
     return { state: normalizeTerms(completeDemoSpeakerPlan(repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })))), notice: null }
   }
   // v12 makes assigned workflow work actionable immediately. Keep every saved

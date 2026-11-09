@@ -143,6 +143,19 @@ export interface Role {
   /** Who this role reports to (another role id). Null at the top. */
   reportsToId?: string | null
   duties?: string
+  /** Earlier titles and the date each stopped being used (Handoff stage 6); set when a role is renamed. */
+  formerNames?: { name: string; until: string }[]
+  /** The day of the latest rename: more renames that day (typing, Undo) do not add earlier titles. */
+  renamedOn?: string
+  /** The president's answers to the three starter questions of a new role (ROLE_START_PROMPTS), in order. */
+  startNotes?: string[]
+}
+
+/** A role the club closed: gone from every role list, but its name, history and where its work went are kept (Juanxi, D-6a: close, never delete). */
+export interface ArchivedRole extends Role {
+  archivedOn: string
+  /** The role that took over its work. */
+  closedInto: string | null
 }
 
 export interface Person {
@@ -517,6 +530,8 @@ export interface DemoState {
   handoffRoles: RoleHandoff[]
   /** Who held which role, and when (Handoff stage 3). Maintained by normalizeTerms. */
   roleTerms: RoleTerm[]
+  /** Roles the club closed (Handoff stage 6). */
+  archivedRoles: ArchivedRole[]
   feedback: OutputReport[]
   changeSets: ChangeSet[]
   extensionRequests: ExtensionRequest[]

@@ -7,7 +7,7 @@ import { sampleHandoff } from "./sampleScenario"
 import { normalizeTerms } from "./roleTerms"
 
 // v20 also completes the demo plan when saved data skipped the v18-to-v19 update.
-export const SCHEMA_VERSION = 21
+export const SCHEMA_VERSION = 22
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -190,6 +190,7 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
     // interview; the rest have not started. The legacy fixture has no season.
     ...(workflow === "v2" ? sampleHandoff(roles, { from: "2026-10-26", to: "2026-11-25" }) : { handoff: null, handoffRoles: [] }),
     roleTerms: [],
+    archivedRoles: [],
     feedback: [],
     changeSets: [],
     extensionRequests: [],

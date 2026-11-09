@@ -96,7 +96,18 @@ export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettin
   if (!canLead(s) || validateClub(d) || validateDefaults(defaults)) return s
   // Leads may add vacant roles and update the shared officer directory, but cannot remove existing roles, move officers, or change private profile fields.
   if (!s.roles.every(old => d.roles.some(r => r.id === old.id && r.holderId === old.holderId)) || d.people.some(p => !s.people.some(old => old.id === p.id && old.roleId === p.roleId))) return s
-  const roles = orderRoles(d.roles.map(r => ({ ...r, displayName: r.displayName.trim() })))
+  // Roles keep their old titles (Handoff stage 6): a rename adds the old one with today's date. The history is the club's record, so it is never taken from the form.
+  const roles = orderRoles(d.roles.map(r => {
+    const old = s.roles.find(x => x.id === r.id), name = r.displayName.trim()
+    const { formerNames: _form, startNotes: _notes, renamedOn: _day, ...rest } = r
+    const renamed = !!old && old.displayName !== name
+    let formerNames = old?.formerNames ?? []
+    // Autosave sees every pause while typing: only the first rename of a day records the title the role really had; going back to it removes the entry.
+    if (renamed && old!.renamedOn !== s.today) formerNames = [...formerNames, { name: old!.displayName, until: s.today }]
+    if (renamed || old?.renamedOn === s.today) formerNames = formerNames.filter(f => !(f.until === s.today && f.name === name))
+    const renamedOn = renamed ? s.today : old?.renamedOn
+    return { ...rest, displayName: name, ...(formerNames.length ? { formerNames } : {}), ...(renamedOn ? { renamedOn } : {}), ...(old?.startNotes ? { startNotes: old.startNotes } : {}) }
+  }))
   const people = s.people.map(p => {
     const edited = d.people.find(candidate => candidate.id === p.id)
     return edited ? { ...p, name: edited.name.trim(), email: edited.email.trim(), phone: edited.phone.trim(), asuId: edited.asuId ?? "" } : p
@@ -156,7 +167,7 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   const steps = workflow ? withOwners(workflow, roles) : undefined
   const nodes = event ? buildEventNodes(event, roles, steps ? { steps } : {}).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })) : []
   const { reminderMode: _earlier, ...kept } = s.org.settings; void _earlier
-  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, ...(reminderMode ? { reminderMode } : {}), ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, ...(reminderMode ? { reminderMode } : {}), ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
 
 /**

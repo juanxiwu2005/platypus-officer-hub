@@ -11,6 +11,7 @@ import { HANDBOOK_SECTIONS, localHandbook, sectionOf } from "../lib/handbookDraf
 import { roleDossier, type DossierBlock, type DossierRow } from "../lib/roleDossier"
 import { handoffRisk } from "../lib/handoffRisk"
 import { NewOfficerCard, QuestionsList, ReviewsPanel } from "./HandoffNewOfficer"
+import { RoleChanges, StarterQuestions } from "./HandoffRoleChanges"
 import { AI_WAIT_MS, aiMiss, callApi } from "../lib/api"
 import { Feedback } from "../components/Feedback"
 import { Avatar, Chain, Empty, Hover, Info, Ring, RISK_SHAPE, useStatusStyles, useTouch, type Stop } from "../components/ui"
@@ -91,7 +92,7 @@ export function HandoffRoleDetail({ roleId }: { roleId: string }) {
   const role = state.roles.find(r => r.id === roleId)
   const record = state.handoffRoles.find(r => r.roleId === roleId)
   if (!role) return <Empty>This role no longer exists.</Empty>
-  if (!record) return <section className="form-stack"><h2>{role.displayName} handbook</h2><p className="small muted">Hand this role over to draft its handbook. It will draw on this dossier:</p><Dossier roleId={role.id} open /><StartRole roleId={role.id} /></section>
+  if (!record) return <section className="form-stack"><h2>{role.displayName} handbook</h2><p className="small muted">Hand this role over to draft its handbook. It will draw on this dossier:</p><Dossier roleId={role.id} open /><RoleChanges roleId={role.id} /><StartRole roleId={role.id} /></section>
   return <RolePanel record={record} title={`${role.displayName} handbook`} />
 }
 
@@ -103,11 +104,16 @@ function Dossier({ roleId, open = false }: { roleId: string; open?: boolean }) {
   const { state } = useStore()
   const rail = useRail()
   const d = roleDossier(state, roleId)
+  const role = state.roles.find(r => r.id === roleId)
   const total = Object.values(d.blocks).flat().length
   const openRow = (row: DossierRow) => row.contactId ? <button type="button" className="row-btn" onClick={() => rail.show({ kind: "partner", id: row.contactId! })}>{row.text}</button>
     : row.nodeId ? <Link to={`/tasks?node=${encodeURIComponent(row.nodeId)}`}>{row.text}</Link> : <span>{row.text}</span>
-  return <details className="step-card dossier" open={open} data-testid="role-dossier">
+  // A role with no history yet opens its dossier: the starter questions are the one thing to do there.
+  const fresh = !d.blocks.inFlight.length && !d.blocks.people.length
+  return <details className="step-card dossier" open={open || fresh} data-testid="role-dossier">
     <summary><b>Role dossier</b> <span className="small muted">{total} records{d.gaps ? ` · ${d.gaps} gap${d.gaps === 1 ? "" : "s"}` : ""}</span></summary>
+    {!!role?.formerNames?.length && <p className="small muted" data-testid="former-names">Formerly {role.formerNames.map(n => `${n.name} (until ${fmtShort(n.until)})`).join(", ")}</p>}
+    {fresh && <StarterQuestions roleId={roleId} />}
     {DOSSIER_BLOCKS.map(({ key, label }) => <div key={key} data-testid={`dossier-${key}`}>
       <p className="small"><b>{label}</b> <span className="muted">{d.blocks[key].length}</span></p>
       {d.blocks[key].length ? <ul className="small">{d.blocks[key].slice(0, 6).map(row => <li key={row.id}>{openRow(row)}{row.gap && <span className="warn-text"> · gap</span>}</li>)}</ul>
@@ -170,6 +176,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
     <p className="small muted">{p.done} of 7 · next: {p.stage} · outgoing {state.people.find(x => x.id === r.outgoingId)?.name ?? "—"}</p>
     {!r.completed && <p className="small" data-testid="handoff-risk"><RiskMark color={RISK_COLOR[risk.level]} label={`Handover risk ${risk.level}`} /> Handover risk: <b>{risk.level}</b> · {risk.reasons.join(" · ")}</p>}
     <Dossier roleId={r.roleId} />
+    <RoleChanges roleId={r.roleId} />
 
     <article className="step-card">
       <header><span className="step-n">1</span><b>Outgoing interview</b><Info>Fictional example only. One point per line. Never paste research transcripts or real participant details.</Info></header>

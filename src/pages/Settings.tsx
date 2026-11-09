@@ -17,6 +17,7 @@ import { clubDraft, profilePatch, validateClub, validateDefaults, validateProfil
 import type { OrgSettings, Person, Role } from "../data/types"
 import { Empty, Info } from "../components/ui"
 import { officers } from "../data/permissions"
+import { ClosedRoles } from "./HandoffRoleChanges"
 
 export function InviteLink({ code }: { code: string }) {
   const url = `${window.location.origin}${window.location.pathname}#/join?invite=${encodeURIComponent(code)}`
@@ -96,7 +97,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
     </>}
     {tab === "roles" && <>
       <h2>Roles</h2>
-      <RolesTable roles={draft.roles} people={draft.people} onChange={(roles, people = draft.people) => setDraft({ ...draft, roles, people })} /><OrgChart roles={draft.roles} />
+      <RolesTable roles={draft.roles} people={draft.people} onChange={(roles, people = draft.people) => setDraft({ ...draft, roles, people })} /><OrgChart roles={draft.roles} /><ClosedRoles />
       <details className="more"><summary>Invite officers</summary><InviteLink code={state.org.inviteCode} /></details>
     </>}
     {tab === "links" && <><h2>Links & files</h2><WorkspaceEditor value={draft.workspace} onChange={workspace => setDraft({ ...draft, workspace })} /></>}

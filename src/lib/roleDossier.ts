@@ -12,6 +12,9 @@ import { handoffDates } from "../engine/schedule"
  *  - lessons  : extension requests and their reasons, tasks that went quiet, work that finished late
  * Dates come from the rule engine and the club's records; nothing here writes a date.
  */
+/** The three questions the president answers when a role is new (Handoff stage 6), so a role with no history still has something to hand over. */
+export const ROLE_START_PROMPTS = ["Why does the club need this role?", "What does success look like by the end of the semester?", "Which officers does this role work with most?"] as const
+
 export type DossierBlock = "calendar" | "inFlight" | "people" | "lessons"
 export interface DossierRow {
   /** The handbook source id for this row (task:…, deadline:…, step:…, contact:…, lesson:…). */
@@ -76,6 +79,7 @@ export function roleDossier(s: DemoState, roleId: string, { publicOnly = false }
   for (const n of open.filter(x => earliest(x) && earliest(x)! <= end).sort((a, b) => earliest(a)!.localeCompare(earliest(b)!))) {
     blocks.calendar.push({ id: `deadline:${n.id}`, block: "calendar", nodeId: n.id, text: `Deadline: ${n.title}. Club deadline ${n.clubDeadline ?? "not set"}${n.officialDeadline ? `; official deadline ${n.officialDeadline}` : ""}${n.ruleIds.length ? ` (${n.ruleIds.join(", ")})` : ""}.` })
   }
+  if (role.duties?.trim()) blocks.calendar.push({ id: "step:duties", block: "calendar", text: `Role duties set up by the club: ${role.duties.trim().slice(0, 300)}` })
   const steps = orgSteps(s).filter(st => st.ownerRoleId ? st.ownerRoleId === roleId : st.fn === role.fn).slice(0, 8)
   for (const st of steps) blocks.calendar.push({ id: `step:${st.key}`, block: "calendar", text: `Standing step in every event: ${st.title}. ${anchorText(st)}Why: ${st.why.slice(0, 160)}` })
 
@@ -99,6 +103,7 @@ export function roleDossier(s: DemoState, roleId: string, { publicOnly = false }
   for (const r of s.handoffRoles.find(h => h.roleId === roleId)?.reviews ?? []) {
     if (r.accepted && r.missing) blocks.lessons.push({ id: `lesson:review:${roleId}:${r.day}`, block: "lessons", text: `A new officer's note after day ${r.day}: ${r.missing}` })
   }
+  ROLE_START_PROMPTS.forEach((q, i) => { const note = role.startNotes?.[i]?.trim(); if (note) blocks.lessons.push({ id: `lesson:start:${roleId}:${i}`, block: "lessons", text: `${q} ${note}` }) })
   const gaps = Object.values(blocks).flat().filter(r => r.gap).length
   return { roleId, blocks, gaps }
 }
