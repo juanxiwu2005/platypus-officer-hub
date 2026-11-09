@@ -94,6 +94,12 @@ export function roleDossier(s: DemoState, roleId: string, { publicOnly = false }
     blocks.people.push({ id: `contact:${c.id}`, block: "people", contactId: c.id, text: contactText(s, c), gap: !c.lastContact })
   }
 
+  // What people wrote about the role (a new officer's note the president accepted, the president's answers for a new role) comes first:
+  // it is the most useful lesson and must not drop below the rows generated from the records.
+  for (const r of s.handoffRoles.find(h => h.roleId === roleId)?.reviews ?? []) {
+    if (r.accepted && r.missing) blocks.lessons.push({ id: `lesson:review:${roleId}:${r.day}`, block: "lessons", text: `A new officer's note after day ${r.day}: ${r.missing}` })
+  }
+  ROLE_START_PROMPTS.forEach((q, i) => { const note = role.startNotes?.[i]?.trim(); if (note) blocks.lessons.push({ id: `lesson:start:${roleId}:${i}`, block: "lessons", text: `${q} ${note}` }) })
   if (who) {
     for (const r of s.extensionRequests.filter(x => x.ownerId === who)) {
       blocks.lessons.push({ id: `lesson:ext:${r.id}`, block: "lessons", nodeId: r.nodeId, text: `Extension asked on "${title(r.nodeId)}" (${r.status}): ${r.reason.trim() || "no reason recorded"}.`, gap: !r.reason.trim() })
@@ -109,10 +115,6 @@ export function roleDossier(s: DemoState, roleId: string, { publicOnly = false }
       blocks.lessons.push({ id: `lesson:late:${c.nodeId}`, block: "lessons", nodeId: c.nodeId, text: `"${title(c.nodeId)}" was finished late.` })
     }
   }
-  for (const r of s.handoffRoles.find(h => h.roleId === roleId)?.reviews ?? []) {
-    if (r.accepted && r.missing) blocks.lessons.push({ id: `lesson:review:${roleId}:${r.day}`, block: "lessons", text: `A new officer's note after day ${r.day}: ${r.missing}` })
-  }
-  ROLE_START_PROMPTS.forEach((q, i) => { const note = role.startNotes?.[i]?.trim(); if (note) blocks.lessons.push({ id: `lesson:start:${roleId}:${i}`, block: "lessons", text: `${q} ${note}` }) })
   const gaps = Object.values(blocks).flat().filter(r => r.gap).length
   return { roleId, blocks, gaps }
 }
