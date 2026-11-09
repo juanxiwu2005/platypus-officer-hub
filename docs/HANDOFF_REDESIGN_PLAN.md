@@ -1,4 +1,6 @@
-# Handoff 模块调整方案（待 Juanxi 审核）
+# Handoff 模块调整方案
+
+> **状态（2026-11-09）：已按 [`HANDOFF_EXECUTION_PLAN.md`](HANDOFF_EXECUTION_PLAN.md) 分 8 个阶段在分支 `claude/tender-gates-j8ztlr` 上做完，待 Juanxi 验收；Phase 3 收完数据之前不合并到 `main`。** 实际做法和这份方案的差别见执行方案第 10 节。下面是原方案，保留作依据。
 
 > 2026-11-08 · Claude · 只写方案，**没有改任何代码**。
 > 依据：`main` 顶端 `fc9eccd`（PR #12 合并后）。其他远端分支都没有改过 Handoff 代码（逐个核对过：`claude/keen-gauss-ye3gvr` 只多一个文档提交，`integration/v1.0`、`integration/v1.6`、`claude/quirky-noether-x8jtj3`、`feat/ai-native-phase1` 都和 Handoff 无关）。
