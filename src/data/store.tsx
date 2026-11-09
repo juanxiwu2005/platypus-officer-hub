@@ -1,4 +1,4 @@
-import { changeHandoff, type HandoffAction } from "./handoff"
+import { changeHandoff, repairLegacyHandoff, type HandoffAction } from "./handoff"
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
@@ -29,6 +29,9 @@ import { FLOW_VERSION } from "../onboarding/record"
 import { onUi, type UiEvent } from "../lib/uiLog"
 import { buildTimeline } from "../lib/timeline"
 import { BUILD_INFO } from "../lib/buildInfo"
+import { normalizeTerms } from "./roleTerms"
+import { isOfficer } from "./permissions"
+import { changeRole, type RoleChange } from "./roleChanges"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -94,6 +97,7 @@ export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "de
 
 export type Action =
   | { type: "handoffAction"; action:HandoffAction }
+  | { type: "roleChange"; change: RoleChange }
   | { type: "reportOutput"; outputId:string; text:string }
   | { type: "resolveReport"; id:string }
   | { type: "startFunding"; eventId:string }
@@ -273,9 +277,20 @@ function cleanBudgetPatch(raw: Partial<Omit<BudgetLineItem, "id">>): Partial<Omi
   return patch
 }
 
+/** Every action, then keep role terms in step with who holds what (src/data/roleTerms.ts). Returns the same object when nothing changed. */
 export function reducer(state: DemoState, action: Action): DemoState {
+  if (!READ_ONLY_OK.has(action.type) && state.people.some(p => p.id === state.viewerId && !isOfficer(p))) return state
+  return normalizeTerms(baseReducer(state, action))
+}
+/**
+ * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
+ * reads, works through their own handoff steps and switches view, but cannot claim, create or change tasks, contacts, events or settings.
+ */
+const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput"])
+function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
+    case "roleChange": return changeRole(state,action.change)
     case "reportOutput": return state.feedback.some(f=>f.outputId===action.outputId&&f.reportedBy===state.viewerId)?state:{...state,feedback:[...state.feedback,{id:`report:${nextCounter(state.feedback.map(f=>f.id),/^report:(\d+)/)}`,outputId:action.outputId.slice(0,20000),text:action.text.slice(0,10000),reportedBy:state.viewerId,on:state.today,resolved:false}]}
     case "resolveReport":return canLead(state)?{...state,feedback:state.feedback.map(f=>f.id===action.id?{...f,resolved:true}:f)}:state
     case "contacted":
@@ -498,17 +513,21 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   if (!raw) return { state: seedDemo(undefined, "v2"), notice: null }
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: repairCoreEventSteps(repairTaskLinks(parsed)), notice: null }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: normalizeTerms(repairCoreEventSteps(repairTaskLinks(parsed))), notice: null }
   // Keep all supported saved versions on the same one-time demo-update path.
+  // v20 and v21 (the live site during Phase 3) only gain the Handoff fields: no demo-plan update, so a participant's saved club is not changed.
+  if (parsed && typeof parsed === "object" && [20, 21].includes(parsed.schemaVersion) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
+    return { state: normalizeTerms(repairLegacyHandoff(repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION })))), notice: null }
+  }
   if (parsed && typeof parsed === "object" && [14, 15, 17, 18, 19].includes(parsed.schemaVersion) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
-    return { state: completeDemoSpeakerPlan(repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION }))), notice: null }
+    return { state: normalizeTerms(repairLegacyHandoff(completeDemoSpeakerPlan(repairCoreEventSteps(repairTaskLinks({ ...parsed, schemaVersion: SCHEMA_VERSION }))))), notice: null }
   }
   // v12 makes assigned workflow work actionable immediately. Keep every saved
   // event, budget line and history; only move owner-backed Not claimed cards to To do.
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 12 && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
     const promoted = { ...parsed, schemaVersion: SCHEMA_VERSION, nodes: parsed.nodes.map(node => node.ownerId && node.status === "unclaimed" ? { ...node, status: "accepted" as const, acceptedOn: node.assignedOn ?? parsed.today } : node) }
     const state = promoted.events.reduce((next, event) => syncBudgetFlow(next, event.id), repairCoreEventSteps(repairTaskLinks(applySchedule(promoted))))
-    return { state: completeDemoSpeakerPlan(state), notice: null }
+    return { state: normalizeTerms(repairLegacyHandoff(completeDemoSpeakerPlan(state))), notice: null }
   }
   // v6 used the former fixed event graph. Preserve existing activities and their recognizable progress while
   // rebuilding them from the approved baseline + selected situation routes.
@@ -530,7 +549,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
       return [...generated, ...legacy.nodes.filter(n => n.eventId === event.id && n.stepKey === null)]
     })
     const state = events.reduce((next, event) => syncBudgetFlow(next, event.id), applySchedule({ ...legacy, schemaVersion: SCHEMA_VERSION, org: { ...legacy.org, eventWorkflow: undefined }, events, nodes: [...legacy.nodes.filter(n => n.eventId === null), ...rebuilt] }))
-    return { state: completeDemoSpeakerPlan(state), notice: null }
+    return { state: normalizeTerms(repairLegacyHandoff(completeDemoSpeakerPlan(state))), notice: null }
   }
   const fromVersion = parsed && typeof parsed === "object" && typeof parsed.schemaVersion === "number" ? parsed.schemaVersion : null
   const backupKey = backUp(raw, fromVersion === null ? "unreadable" : `v${fromVersion}`)

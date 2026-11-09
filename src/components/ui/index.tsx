@@ -180,7 +180,7 @@ export function Ring({ value, max, size = 44, label, color }: { value: number; m
 
 const RISK_WORD = { red: "At risk", yellow: "Watch", green: "On track" } as const
 /** A different shape for each state, so the dots can be told apart without colour (DX-05). The colour comes from the CSS class. */
-const RISK_SHAPE = {
+export const RISK_SHAPE = {
   green: <><circle cx="7" cy="7" r="7" fill="currentColor" /><path className="glyph" d="M4 7.3l2 2 4-4.3" /></>,
   yellow: <><path d="M7 .9L13.4 12.6H.6z" fill="currentColor" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" /><path className="glyph" d="M7 5.2v3.1M7 10.3v.1" /></>,
   red: <><rect x=".5" y=".5" width="13" height="13" rx="3.5" fill="currentColor" /><path className="glyph" d="M4.7 4.7l4.6 4.6M9.3 4.7l-4.6 4.6" /></>,

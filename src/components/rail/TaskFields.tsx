@@ -3,6 +3,7 @@ import { useStore } from "../../data/store"
 import { bufferedClubDeadline } from "../../engine/taskDates"
 import { fmtLong } from "../../lib/dates"
 import { Bts, BtsRow } from "../Bts"
+import { officers } from "../../data/permissions"
 
 /**
  * Due date + "club deadline N working days earlier" (M2b, Juanxi 2026-10-27). The due date starts at
@@ -28,7 +29,7 @@ export interface OwnerOption { id: string; label: string; sub: string }
 export function useOwnerOptions(): OwnerOption[] {
   const { state } = useStore()
   return useMemo(() => [
-    ...state.people.map(p => ({ id: p.id, label: p.name, sub: state.roles.find(r => r.id === p.roleId)?.displayName ?? "Officer" })),
+    ...officers(state).map(p => ({ id: p.id, label: p.name, sub: state.roles.find(r => r.id === p.roleId)?.displayName ?? "Officer" })),
     ...state.roles.map(r => ({ id: r.id, label: r.displayName, sub: `role · ${state.people.find(p => p.id === r.holderId)?.name ?? "open"}` })),
   ], [state.people, state.roles])
 }

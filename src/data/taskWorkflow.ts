@@ -9,7 +9,8 @@ import { isBudgetControlledNode } from "../engine/eventBudget"
 export type TaskReply = "done" | "waiting" | "help" | "extension"
 export interface ReplyInput { waitingOn?: string; waitingOnPersonId?: string | null; draftLink?: string; requestedDate?: string; reason?: string }
 export const safeLink = (s: string) => { try { return ["https:", "http:"].includes(new URL(s).protocol) } catch { return false } }
-export const leaders = (s: DemoState) => s.people.filter(p => ["president", "vice_president"].includes(s.roles.find(r => r.id === p.roleId)?.fn ?? "")).map(p => p.id)
+/** Whoever holds the president or vice-president role now. A former president keeps that role id for history, so the role's holder decides. */
+export const leaders = (s: DemoState) => s.roles.filter(r => (r.fn === "president" || r.fn === "vice_president") && r.holderId && s.people.some(p => p.id === r.holderId)).map(r => r.holderId!)
 const rolePeople = (s: DemoState, ids: string[]) => s.roles.filter(r => ids.includes(r.id) && r.holderId).map(r => r.holderId!)
 
 export function addNotices(s: DemoState, nodeId: string, ids: string[], kind: Notice["kind"], text: string, key: string): DemoState {

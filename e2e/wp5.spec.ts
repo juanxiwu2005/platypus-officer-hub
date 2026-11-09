@@ -135,7 +135,8 @@ test("sourced handbook requires outgoing confirmation before presidential approv
   await expect(draft).not.toContainText("Hallucinated")
   await expect(role.getByRole("button", { name: "Approve as president", exact: true })).toBeDisabled()
   await expect(role.getByRole("button", { name: "Confirm as outgoing officer", exact: true })).toBeDisabled()
-  await draft.getByText("Source 1:", { exact: false }).click()
+  // The handbook reads in sections (stage 4): the interview note comes first, so the task record is Source 2.
+  await draft.getByText("Source 2:", { exact: false }).click()
   await expect(draft.getByRole("link", { name: "Open task record" })).toBeVisible()
   await viewAs(page, "maya")
   await role.getByRole("button", { name: "Confirm as outgoing officer", exact: true }).click()

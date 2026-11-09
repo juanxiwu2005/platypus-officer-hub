@@ -4,6 +4,7 @@ import { profilePatch } from "../data/settings"
 import { Info } from "./ui"
 import { GRID_FROM, GRID_ROWS, GRID_STEP, GRID_TO, availabilityGrid, availabilityKey, availableAt, calendarDraftUrl, cellKey, cellsToSlots, commonMeetingSlots, hhmm, slotsToCells, sundayOf, weeklySlotsOn, whoIsFree } from "../engine/team"
 import { addDays, fmtShort, fromISO } from "../lib/dates"
+import { officers } from "../data/permissions"
 
 const clock = (m: number) => `${((Math.floor(m / 60) + 11) % 12) + 1}:${String(m % 60).padStart(2, "0")} ${m < 720 ? "am" : "pm"}`
 const asMinutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3))
@@ -77,7 +78,7 @@ export function MeetingFinder() {
   const me = state.people.find(p => p.id === state.viewerId) ?? state.people[0]
   const [date, setDate] = useState(state.today)
   const [duration, setDuration] = useState(30)
-  const [ids, setIds] = useState(state.people.map(p => p.id))
+  const [ids, setIds] = useState(officers(state).map(p => p.id))
   const [week, setWeek] = useState(0)
   const [pick, setPick] = useState<{ date: string; from: number } | null>(null)
   const [peek, setPeek] = useState<{ date: string; from: number } | null>(null)
@@ -187,7 +188,7 @@ export function MeetingFinder() {
     {!weeklyDraft && <div className="meeting-planner">
       <div className="meeting-filters">
         <label className="field-inline">Length<select aria-label="Meeting length" value={duration} onChange={e => setDuration(Number(e.target.value))}>{[15, 30, 60, 90].map(m => <option key={m} value={m}>{m} min</option>)}</select></label>
-        <fieldset className="who-picks"><legend className="small muted">Attendees</legend>{state.people.map(p => <label className="check-label" key={p.id}><input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))} />{p.name}</label>)}</fieldset>
+        <fieldset className="who-picks"><legend className="small muted">Attendees</legend>{officers(state).map(p => <label className="check-label" key={p.id}><input type="checkbox" checked={ids.includes(p.id)} onChange={e => setIds(e.target.checked ? [...ids, p.id] : ids.filter(id => id !== p.id))} />{p.name}</label>)}</fieldset>
       </div>
       <section className="meeting-suggestions" aria-live="polite" aria-label="Shared times in the next two weeks">
         <header><h3>Shared times</h3></header>

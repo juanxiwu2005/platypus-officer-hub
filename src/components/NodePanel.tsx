@@ -8,6 +8,7 @@ import { StatusPill, useTouch } from "./ui"
 import { useOptionalRail } from "./rail/RailContext"
 import { canLead } from "../data/changeReview"
 import { officialLabel } from "../engine/taskDates"
+import { isOfficer, officers } from "../data/permissions"
 
 const RULE_BY_ID = Object.fromEntries(RULES.map(r => [r.id, r]))
 const TIER_LABEL = { light: "Light", medium: "Medium", heavy: "Heavy" } as const
@@ -63,7 +64,8 @@ export function NodePanel({ nodeId, onClose, onSelect }: { nodeId: string; onClo
         <span>Owner</span>
         <select value={n.ownerId ?? ""} disabled={!lead} onChange={e => update({ ownerId: e.target.value || null })} data-testid="owner-select" aria-label="Owner (R)">
           <option value="">No owner</option>
-          {state.people.map(x => <option key={x.id} value={x.id}>{x.name} · {state.roles.find(r => r.id === x.roleId)?.displayName}</option>)}
+          {officers(state).map(x => <option key={x.id} value={x.id}>{x.name} · {state.roles.find(r => r.id === x.roleId)?.displayName}</option>)}
+          {state.people.filter(x => x.id === n.ownerId && !isOfficer(x)).map(x => <option key={x.id} value={x.id} disabled>{x.name} · former officer</option>)}
         </select>
         <span>Status</span>
         <span><StatusPill status={n.status} />{n.waitingOn && <span className="small muted"> · {n.waitingOn}</span>}</span>

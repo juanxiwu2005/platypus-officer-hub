@@ -3,8 +3,10 @@ import { addDays, daysBetween } from "../lib/dates"
 import { applySchedule, computeSchedule } from "./schedule"
 import { addNotices, leaders } from "../data/taskWorkflow"
 import { buildNudge } from "../lib/nudges"
+import { officers } from "../data/permissions"
 
-const suggestedOwner = (s: DemoState, n: Node) => s.people.filter(p => p.id !== n.ownerId).sort((a, b) => {
+// Only current officers can stand in: never someone who handed their role over, nor a next officer who has not taken it yet.
+export const suggestedOwner = (s: DemoState, n: Node) => officers(s).filter(p => p.id !== n.ownerId).sort((a, b) => {
   const count = (id: string) => s.nodes.filter(n => n.ownerId === id && n.status !== "done").length
   const match = (id: string) => s.roles.find(r => r.id === s.people.find(p => p.id === id)?.roleId)?.fn === n.fn ? 0 : 1
   return match(a.id) - match(b.id) || count(a.id) - count(b.id) || a.id.localeCompare(b.id)
