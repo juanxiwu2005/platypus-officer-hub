@@ -1,3 +1,10 @@
+> **2026-11-12 · 测试反馈解决方案 · 待 Juanxi 选择（Claude）· 只写了文档，没有改代码**
+> **做了什么：** Juanxi 让其他社团团长测试后提了 11 个问题（Onboarding 6 个、其他模块 5 个），外加"任务算一天还是 15 分钟"和"产品要聚焦到两个核心（风险→自动提醒、24 小时到 3 天交接）"。读完相关代码后写成方案 [`FEEDBACK_PLAN_2026-11-12.md`](FEEDBACK_PLAN_2026-11-12.md)：每个问题 2–3 个方案、我的建议、粗估工作量、执行顺序、5 个要先回答的问题。分支 `claude/fervent-thompson-e2j5u2`。
+> **查出来的事实（用正式网站做了 2 次最小的虚构数据 AI 调用）：** AI 失败的主要原因**不是** Netlify 超时：提醒那一句（`/api/nudge/draft`）4 秒内就返回 `output limit`，两次都是。我们给的输出额度太小（120），模型没写完就被截断，代码把截断当失败，所以**提醒里的 AI 句子现在每次都失败**。另一类才是 AIR 慢（15–23 秒）撞上我们自己设的 22 秒上限。Netlify 文档现在写同步函数上限 60 秒，仓库里记的是约 30 秒，执行时要重新量。`/api/health` 正常（ASU AIR，`muse-glimmer-30b`）。
+> **Juanxi 上传了新的时间表**（`event-workflow-calibrated-2027-04-16-3.tsv`，没有放进仓库）：32 步和现有模板一一对应，改了预计天数、相对时点和几条依赖。落地前有 5 处要确认，见方案 1.3。
+> **没验证：** "输出额度被模型的思考用掉"是最可能的解释，没有直接证据（看不到 AIR 的原始回复），修复时要把它记进日志确认。Netlify 的真实时间上限没有重新量。
+> **需要 Juanxi 决定：** 每一项选哪个方案；方案第 6 节的 5 个问题（最要紧的是 Phase 3 现在的状态：正式收数据期间改 onboarding 和导航会让前后数据不可比）。**需要同步本地备份**（本会话没有连到 Juanxi 的电脑）。
+
 > **2026-11-09 · Handoff 改版审查修复 + 合并到 `main`（合并提交 `f564d45`）· Juanxi 批准"直接提交到 main"（Claude 审查并修复）· ✅ 已上线**
 > **上线（2026-11-09，Juanxi 要求 Claude 发布）：** 用 Netlify MCP 的 deploy-site 把仓库（`main` = `45a311a`，内容和分支 `3abde01` 完全相同）上传，**在 Netlify 的构建系统里用 Netlify 的环境变量构建**，部署 `6af1dd6a2e71ac81912bc418`，已是正式网站。核对：入口文件 510,703 字节（上限 520,000），含 Handoff 和 Reminders 屏的新代码；`/start/` 200、`/api/health` 正常（ASU AIR）、`/api/org/setup` 仍 404（服务器存储仍关）；Today / Handoff / Tasks / Settings 打开无页面错误，Handoff 详情的岗位档案能显示。**注意：** 这种上传方式没有 Git 提交号，所以这次部署后导出文件里的 `build.commit` 是 `"unknown"`（`branch: "main"`、`context: "production"` 正常）；2026-11-09 之后 `commit` 为 `unknown` 的导出就是这次部署 = `45a311a`。下面那段"还没更新"的说明保留作记录。
 > **⚠️ 上线状态（2026-11-09 14:30 UTC 核对）：** 正式网站仍是 PR #12 的 `fc9eccd`（Netlify 当前部署 `6af0982889fc67e1270ccd71`，2026-11-08 15:41 建，来源 "api"）。昨天 PR #13（`2a043f6`）和这次 `f564d45` 推到 `main` 后，Netlify 都**没有新建部署**，所以 Reminders 屏和 Handoff 改版都还没上线。GitHub CI 两次都是页面测试跑满 15 分钟上限被取消（lint、构建、单元测试都通过；`ci.yml` 的 `timeout-minutes: 15` 不够跑完 1054 个页面测试），CI 本身不负责部署。**需要 Juanxi 在 Netlify 后台 Deploys 页点 "Trigger deploy → Deploy site"（或检查是否停了自动构建）。** Claude 没有用本机构建直接发布，因为那样会漏掉 Netlify 里的构建环境变量。
