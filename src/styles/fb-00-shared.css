@@ -1,0 +1,4 @@
+/* Shared by the feedback-fix packages (docs/feedback-fix/PLAN.md). Tokens only: see docs/DESIGN_TOKENS.md and AGENTS.md 7.1. */
+/* The one-line "Why:" under an onboarding screen title (golden circle: why before how and what). */
+.ob-why { margin: 0; font-size: var(--fs-md); color: var(--muted); }
+.ob-why b { color: var(--ink); font-weight: 600; }

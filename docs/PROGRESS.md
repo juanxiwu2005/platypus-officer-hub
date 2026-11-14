@@ -1,3 +1,8 @@
+> **2026-11-14 · 测试反馈修复 · 进行中（Claude 主会话整合；每个阶段一个 worktree 子 agent）· 分支 `claude/fervent-thompson-e2j5u2`，不碰 `main`**
+> **Juanxi 的决定（2026-11-14）：** Goals 用 SMART 句子；Advisor 用虚线平行连到 President；日期引擎按上传的时间表更新；buffer 不移除、按交互逻辑重做；Reminders 加例子、三步图和类比；最后一步只留一个主按钮、去掉社员预览；界面只有一个 Due；Events 加 + New event；AI 修输出额度、尽量延长时间、给 Stop 按钮；Not claimed 先保留；Details 重排三段；建任务时能指定人。
+> **执行方案：** [`feedback-fix/PLAN.md`](feedback-fix/PLAN.md)（7 个阶段 FB-0…FB-7，每个阶段的细节、独占文件、验收标准，以及主会话替 Juanxi 定的 6 个默认值）。FB-0 脚手架已完成：空样式文件 `src/styles/fb-0N-*.css`、`.ob-why`、时间表入库 `docs/feedback-fix/event-workflow-calibrated-2027-04-16.tsv`。第一波并行：FB-1（AI）、FB-2（Onboarding 上半）、FB-3（Onboarding 下半）、FB-4（详情 + 一个 Due）、FB-6（日期引擎）；第二波 FB-5（新建入口）；最后 FB-7 集成。
+> **其他 AI 请勿在这条分支上同时改这些文件。**
+
 > **2026-11-12 · 测试反馈解决方案 · 待 Juanxi 选择（Claude）· 只写了文档，没有改代码**
 > **做了什么：** Juanxi 让其他社团团长测试后提了 11 个问题（Onboarding 6 个、其他模块 5 个），外加"任务算一天还是 15 分钟"和"产品要聚焦到两个核心（风险→自动提醒、24 小时到 3 天交接）"。读完相关代码后写成方案 [`FEEDBACK_PLAN_2026-11-12.md`](FEEDBACK_PLAN_2026-11-12.md)：每个问题 2–3 个方案、我的建议、粗估工作量、执行顺序、5 个要先回答的问题。分支 `claude/fervent-thompson-e2j5u2`。
 > **查出来的事实（用正式网站做了 2 次最小的虚构数据 AI 调用）：** AI 失败的主要原因**不是** Netlify 超时：提醒那一句（`/api/nudge/draft`）4 秒内就返回 `output limit`，两次都是。我们给的输出额度太小（120），模型没写完就被截断，代码把截断当失败，所以**提醒里的 AI 句子现在每次都失败**。另一类才是 AIR 慢（15–23 秒）撞上我们自己设的 22 秒上限。Netlify 文档现在写同步函数上限 60 秒，仓库里记的是约 30 秒，执行时要重新量。`/api/health` 正常（ASU AIR，`muse-glimmer-30b`）。
