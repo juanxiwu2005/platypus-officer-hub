@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useStore } from "../data/store"
+import { useSchedule, useStore } from "../data/store"
 import type { Node } from "../data/types"
-import { fmtLong } from "../lib/dates"
+import { fmtShort } from "../lib/dates"
 import { RULES } from "../data/rules"
 import { safeLink } from "../data/taskWorkflow"
 import { TaskActions } from "./TaskActions"
 import { StatusPill } from "./ui"
 import { canLead } from "../data/changeReview"
-import { officialLabel } from "../engine/taskDates"
+import { asuSentence, dueOf, isLate, reminderSentence } from "../lib/taskDue"
 import type { CSSProperties } from "react"
 import { isBudgetControlledNode } from "../engine/eventBudget"
 import { useOptionalRail } from "./rail/RailContext"
@@ -45,6 +45,9 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
   const [copied, setCopied] = useState(false)
   const copyEventDetails = async () => { try { await navigator.clipboard.writeText(event?.details ?? ""); setCopied(true) } catch { setCopied(false) } }
   const rail = useOptionalRail()
+  const plan = useSchedule().nodes[node.id]
+  const due = dueOf(node, plan)
+  const asu = asuSentence(node, plan)
   const directLinks = node.stepKey ? SUBMIT_LINKS[node.stepKey] ?? [] : []
   const quickLinks = (directLinks.length ? directLinks : node.ruleIds.flatMap(id => RULES.find(rule => rule.id === id)?.sources ?? [])).filter((source, index, all) => all.findIndex(other => other.url === source.url) === index)
   return <section className="card task-detail" aria-label="Linked task" data-testid="task-detail">
@@ -52,7 +55,12 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
     <h2 ref={heading} tabIndex={-1}>{node.title}</h2>
     <p>{node.why || "This step supports our club plan."}</p>
     <p className="small muted">Owner: {state.people.find(p => p.id === node.ownerId)?.name ?? "Not assigned"}</p>
-    <div className="task-dates"><div><span className="small muted">Start by</span><b>{node.latestStart ? fmtLong(node.latestStart) : "Not set"}</b></div><div><span className="small muted">Club deadline</span><b>{node.clubDeadline ? fmtLong(node.clubDeadline) : "Not set"}</b></div><div><span className="small muted">{officialLabel(node)}</span><b>{node.officialDeadline ? fmtLong(node.officialDeadline) : "N/A"}</b></div></div>
+    <p className={`task-due ${isLate(node, due, state.today) ? "late-text" : ""}`} data-testid="task-due">{due ? <>Due <b>{fmtShort(due)}</b>{isLate(node, due, state.today) ? " · overdue" : ""}</> : "No Due yet"}</p>
+    <details className="more" data-testid="why-date"><summary>Why this date</summary>
+      {due && plan && <p className="small">Due {fmtShort(due)}: {plan.explain.club}.</p>}
+      {asu && <p className="small" data-testid="asu-sentence">{asu}</p>}
+      <p className="small">{reminderSentence(node, plan, actorId)}{plan && node.ownerId === actorId ? ` ${plan.explain.latestStart}.` : ""}</p>
+    </details>
     {node.waitingOn && <p className="small warn-text">Waiting on: {node.waitingOn}</p>}
     {node.draftLink && safeLink(node.draftLink) && <a href={node.draftLink} target="_blank" rel="noreferrer">Open current draft</a>}
     {quickLinks.length > 0 && <section className="task-quick-links" aria-label="Where to submit">

@@ -286,7 +286,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const issue = tpl ? undefined : worstIssue(plan?.issues)    // a workflow has no dates, so the dates' problems are not its problems
     const owner = state.people.find(x => x.id === n.ownerId)?.name
     const mark = tpl?.marks?.[n.id]
-    const label = tpl ? tpl.lines(n).join(". ") + "." : `${n.title}. ${styles[n.status].label}. Owner ${owner ?? "none"}. Club deadline ${plan ? fmtShort(plan.club) : "pending"}${plan?.official ? `, ASU deadline ${fmtShort(plan.official)}` : ""}.${issue ? ` ${issue.text}` : ""}`
+    const label = tpl ? tpl.lines(n).join(". ") + "." : `${n.title}. ${styles[n.status].label}. Owner ${owner ?? "none"}. Due ${plan ? fmtShort(plan.club) : "pending"}.${issue ? ` ${issue.text}` : ""}`
     const kind = SITUATION_KEYS.has(n.stepKey ?? "") ? "situation" : "baseline"
     const showCard = hoveredId === n.id || focusedId === n.id
     const cardId = `flow-card-${n.id}`
@@ -299,8 +299,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
       {showCard && <span id={cardId} className="m-card" role="tooltip">
         <b>{n.title}</b>
         {tpl ? tpl.lines(n).slice(1).map((t, i) => <span key={i}>{t}</span>) : <>
-          <span>{owner ?? "No owner"} · {styles[n.status].label}{plan ? ` · due ${fmtShort(plan.club)}` : ""}</span>
-          {plan?.official ? <span>ASU deadline {fmtShort(plan.official)}{n.ruleIds[0] ? ` (${n.ruleIds[0]})` : ""}</span> : null}
+          <span>{owner ?? "No owner"} · {styles[n.status].label}{plan ? ` · Due ${fmtShort(plan.club)}` : ""}</span>
           {issue ? <span className="m-card-warn">{issue.text}</span> : n.waitingOn ? <span>Waiting on: {n.waitingOn}</span> : null}
         </>}
       </span>}

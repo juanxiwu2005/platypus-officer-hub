@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { closeRail } from "./helpers"
+import { fmtShort } from "../src/lib/dates"
 
 // S8: hover cards cannot be hovered on a phone, so a tap opens the same card as a sheet at the bottom of the screen.
 const phoneOnly = (info: { project: { name: string } }) => test.skip(info.project.name !== "mobile", "touch behaviour is tested on the phone project")
@@ -62,8 +63,11 @@ test("Events flow steps open the shared task details with deadlines and rule sou
   const panel = page.getByTestId("task-detail")
   await expect(panel).toBeVisible()
   await expect(panel.getByRole("heading", { name: "Purchase Request" })).toBeVisible()
-  await expect(panel.locator(".task-dates")).toContainText("ASU deadline")
-  await expect(panel.locator(".task-dates")).toContainText("Thu, Mar 11")
+  // FB-4: one Due on the panel; the ASU deadline is one sentence under "Why this date". Dates come from the saved engine output.
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { stepKey?: string; eventId?: string }) => n.stepKey === "purchaseRequest" && n.eventId === "e-night") as { clubDeadline: string; officialDeadline: string })
+  await expect(panel.getByTestId("task-due")).toContainText(`Due ${fmtShort(saved.clubDeadline)}`)
+  await panel.getByText("Why this date", { exact: true }).click()
+  await expect(panel.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(saved.officialDeadline)}.`)
   await panel.getByText("Sources and responsibilities", { exact: true }).click()
   await expect(panel.getByRole("link", { name: "R09", exact: true })).toBeVisible()
 })

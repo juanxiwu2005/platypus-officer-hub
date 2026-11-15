@@ -55,8 +55,10 @@ test("when on: dates show where they come from on Today, Events and Tasks", asyn
   await expect(page.locator("main .bts").first()).toBeVisible()
   await page.getByTestId("view-list").click()
   const list = page.getByTestId("event-list")
-  await expect(list.locator(".bts").filter({ hasText: "Start" }).first()).toBeVisible()
-  await expect(list.locator(".bts").filter({ hasText: "ASU" }).first()).toBeVisible()
+  // FB-4: the List view's notes explain the one Due (with the ASU sentence where a rule sets one) and when the reminder goes out.
+  await expect(list.locator(".bts").filter({ hasText: "Due" }).first()).toBeVisible()
+  await expect(list.locator(".bts").filter({ hasText: "ASU needs this by" }).first()).toBeVisible()
+  await expect(list.locator(".bts").filter({ hasText: "Reminder goes out" }).first()).toBeVisible()
   await page.goto("/#/tasks")
   await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks").locator(".bts").first()).toBeVisible()

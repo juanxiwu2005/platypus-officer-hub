@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import { POLICY_CATALOG } from "../src/data/policyCatalog"
-import { fmtLong, fmtShort } from "../src/lib/dates"
+import { fmtShort } from "../src/lib/dates"
 import { savedDemo } from "./demo-contract"
 import { closeRail, noOverflow } from "./helpers"
 
@@ -95,7 +95,7 @@ test("Rules search finds archived records and keyboard controls open sources and
   await expect(page.getByTestId("rule-answer").last()).toBeVisible()
 })
 
-test("Events mounts a node description on keyboard focus and retains its source deadlines", async ({ page }) => {
+test("Events mounts a node description on keyboard focus with one Due, and the ASU deadline stays under Why this date", async ({ page }) => {
   await page.goto("/#/events?event=e-night")
   await closeRail(page)
   await page.getByTestId("view-flow").click()
@@ -111,11 +111,14 @@ test("Events mounts a node description on keyboard focus and retains its source 
   await node.focus()
   const cardId = await node.getAttribute("aria-describedby")
   expect(cardId).toBeTruthy()
-  await expect(page.locator(`[id="${cardId}"]`)).toContainText(`ASU deadline ${fmtShort(officialDeadline!)} (R09)`)
+  // FB-4: the hover card shows one date, Due (the club deadline); the ASU deadline moved to the detail's "Why this date".
+  await expect(page.locator(`[id="${cardId}"]`)).toContainText(`Due ${fmtShort(purchaseRequest!.clubDeadline!)}`)
+  await expect(page.locator(`[id="${cardId}"]`)).not.toContainText("ASU deadline")
   await expect(chart.locator(".m-card")).toHaveCount(1)
   await page.keyboard.press("Enter")
   const detail = page.getByTestId("task-detail")
-  await expect(detail.locator(".task-dates")).toContainText(fmtLong(officialDeadline!))
+  await detail.getByText("Why this date", { exact: true }).click()
+  await expect(detail.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(officialDeadline!)}.`)
   await detail.getByText("Sources and responsibilities", { exact: true }).click()
   await expect(detail.getByRole("link", { name: "R09", exact: true })).toHaveAttribute("href", /^https:/)
 })

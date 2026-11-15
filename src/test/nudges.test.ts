@@ -3,6 +3,7 @@ import { seedDemo } from "../data/seed"
 import { reducer } from "../data/store"
 import { buildNudge, composeUrl, messageText, nudgeBlocked, nudgeCheck, STATUS_ACTIONS } from "../lib/nudges"
 import { eventStrip, weeklyStars } from "../lib/today"
+import { fmtShort } from "../lib/dates"
 
 const s = seedDemo()
 const n = s.nodes.find(n => n.id === "t-news")!
@@ -32,9 +33,9 @@ describe("reminder guardrails", () => {
   it("uses current engine dates and real downstream tasks", () => {
     const node = s.nodes.find(n => n.id === "e-night:usg")!
     const d = buildNudge(s, node)
-    expect(d.body).toContain("Oct 30")
-    expect(d.body).toContain("Nov 4")
-    expect(d.body).toContain("7 pm")
+    // FB-4: the When line carries one date (Due = club deadline) and when to start; no ASU date, no send time.
+    expect(d.body).toContain(`• When: Due ${fmtShort(node.clubDeadline!)}. Best started by ${fmtShort(node.latestStart!)}.`)
+    expect(d.body).not.toMatch(/ASU/)
     const changed = reducer(s, { type: "updateNode", id: node.id, patch: { clubDeadlineOverride: "2026-11-02" } })
     expect(buildNudge(changed, changed.nodes.find(n => n.id === node.id)!).body).toContain("Nov 2")
   })

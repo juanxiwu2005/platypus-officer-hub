@@ -103,7 +103,7 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
               : <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />{state.people.find(p => p.id === n.ownerId)?.name.split(" ")[0] ?? ""}</span>}</td>}
             <td><NodePill node={n} small /></td>
             <td className={late ? "late-text" : ""}>{editable && n.clubDeadline
-              ? <input type="date" aria-label={`Due date of ${n.title}`} value={n.clubDeadline} onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && dispatch({ type: "updateNode", id: n.id, patch: { clubDeadlineOverride: e.target.value } })} />
+              ? <input type="date" aria-label={`Due for ${n.title}`} value={n.clubDeadline} onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && dispatch({ type: "updateNode", id: n.id, patch: { clubDeadlineOverride: e.target.value } })} />
               : <span className="small">{n.clubDeadline ? fmtShort(n.clubDeadline) : ""}</span>}</td>
           </tr>,
           <BtsTr key={`${n.id}-bts`} cols={cols}>
