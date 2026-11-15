@@ -384,3 +384,111 @@ Juanxi：网站和研究只聚焦两件事 —— **①提醒社团成员工作�
 2. 第二波：FB-3、FB-2（不含 4.2 Goals）、FB-5。
 3. FB-7 集成。
 4. FB-8、FB-9：等 Juanxi 决定。
+
+## 12. 最终范围（2026-11-15，Juanxi 同意聚焦方案）—— 与前文冲突时以本节为准
+
+Juanxi 同意的五条：①首页就是提醒中心；②导航收到 Reminders、Plan、Handoff、Rules，Team 和 Partners 收进 More（不删代码）；③Handoff 变成三天交接包；④Onboarding 只留 Name → Team → First event → Reminders → Create；Goals 移出 onboarding，留在 Settings；⑤不再打磨：目标环、本周之星、预测百分比、看板改名改色、会议时间、预算明细、Partners 看板。
+
+### 12.1 各阶段范围的变化
+
+| 阶段 | 变化 |
+| --- | --- |
+| FB-1 | 不变 |
+| FB-6 | 不变 |
+| FB-4 | 不变 |
+| FB-2 | **改：** 4.2 Goals SMART **取消**（Goals 不在 onboarding；Settings 里的 Goals 编辑器不动）。新增流程调整（12.4）。不再改 `Today.tsx`。|
+| FB-3 | **改：** 不再改 `FLOW_VERSION`（FB-2 改）。5.3 的三步图下面补一句"在提醒中心里会怎样"（12.5）。|
+| FB-5 | **改：** 8.1 第 2 条（Today 的 Events 卡加按钮）取消，因为首页不再有 Events 卡。|
+| FB-8 | **新：** 提醒中心 + 导航（12.2）|
+| FB-9 | **新：** 三天交接包（12.3）|
+
+### 12.2 FB-8 提醒中心 + 导航
+
+**独占文件：** `src/routes.ts`、`src/components/chrome/SideNav.tsx`、`src/components/Layout.tsx`（只动导航）、`src/pages/Today.tsx`（重写成提醒中心）、新文件 `src/lib/reminderQueue.ts`、`src/components/NudgeComposer.tsx`（FB-1 合并之后）、`src/lib/nudges.ts`（只加函数，不改 FB-4 定下的措辞）、`src/data/types.ts`（只给 `Nudge` 加可选字段）、`src/data/store.tsx`（只动 `confirmNudgeSent`）、`src/pages/Settings.tsx`（只加提醒方式）、`src/pages/Events.tsx` 和 `src/pages/Tasks.tsx`（只在页头加 Events | Tasks 切换）、`scripts/word-count.mjs`（只改首页那一行）、`docs/PHASE3_SESSION_RUNBOOK.md`、`docs/PHASE3_DATA_DICTIONARY.md`、新样式 `src/styles/fb-08-reminders.css`、相关测试。
+
+**导航**
+
+1. 左边主导航：**Reminders**（`/`）、**Plan**（`/events`；在 `/tasks` 时也高亮）、**Handoff**、**Rules**。下面一个可折叠的 **More**：Team、Partners（默认收起；当前页在里面时自动展开）。底部 Settings、Help 不变。手机导航（DX-20）同步。
+2. 原来 Tasks 上的未完成数字移到 Plan 上。
+3. `/events` 和 `/tasks` 页头左边放同一个切换 **Events | Tasks**（链接，不是新页面）。
+4. 每页"要回答的一个问题"：Reminders = "Who needs a reminder, and who hasn't answered?"；Plan = "What has to happen, and who owns it?"。
+5. Funding 已经是重定向到 Events，不用动。
+
+**提醒中心（首页）**
+
+数据全部由一个纯函数 `reminderQueue(state)`（`src/lib/reminderQueue.ts`）算出，日期只用引擎写在节点上的 `latestStart`（发提醒的日子）和 `clubDeadline`（Due），不自己算日期。一项 = 一个有负责人、没完成的任务。
+
+| 栏 | 内容 |
+| --- | --- |
+| **Needs your OK** | 发提醒的日子 ≤ 今天、这个日子之后还没发过提醒的任务（只在两种"先审"方式下出现）|
+| **This week** | 发提醒的日子在明天到 7 天内的任务："Goes out Mon, Oct 26" |
+| **Sent** | 已发：`state.nudges`；自动方式下"到日子自动发"的（见下）；沉默协议的模拟提醒（`protocolLog` 里的 reminder），标 "Follow-up · demo" |
+| **Replies** | 发了以后任务有更新的（提醒的 `response` 不为空，或任务的 `lastUpdate` 晚于发送日）：显示回了什么（Done / Waiting on… / Need help / Need more time / Claimed）|
+| **No reply yet** | 发了 2 天以上还没有任何更新的：按钮 **Follow up**（打开编辑器；遵守现有的次数上限 `nudgeBlocked`）|
+
+- 预测为红色的任务在各栏里排最前，并有风险标记（不另设"Needs a nudge"卡）。
+- 首页去掉：Events 进度卡、Semester goals、Superstar of the week（目标在 Settings，本周之星在 Team）。
+- 不是社长、副社长的人看到的是只读的 "Your reminders"：自己的任务哪天会被提醒、收到过哪些提醒。
+
+**三种提醒方式真的走不同流程**（`org.settings.reminderMode`；网站仍然**不发任何真实消息**）
+
+| 方式 | 到了发提醒的日子 |
+| --- | --- |
+| Send automatically | 不进 Needs your OK，直接出现在 Sent，标 **Would be sent · demo**。这一项是推算出来的，不写数据 |
+| I review, then I send | 进 Needs your OK，按钮 **Review & open draft** → 现有编辑器 → 打开 Gmail/WhatsApp 草稿 → "I sent this reminder" → Sent |
+| I review, Platypus sends | 进 Needs your OK，按钮 **Review** → 编辑器里主按钮变成 **Approve · Platypus sends (demo)** → Sent，标 **Sent by Platypus · demo**；栏顶有 **Approve all (N)** |
+| 没选（跳过了）| 按 "I review, then I send"，栏顶一行 "Choose how reminders go out" 链到 Settings |
+
+- 数据：`Nudge` 加可选字段 `via?: "president" | "platypus"`；`confirmNudgeSent` 动作加可选参数 `via`。**不新增动作类型**（研究记录的种类不变）；在数据字典里给 `confirmNudgeSent` 补一句 `via` 的说明。
+- Settings → Tasks and events 加同样三选一的提醒方式（文字和 onboarding 一致）。
+- 字数上限：首页改为 **200 / 500**（原 Today 160 / 450；写进报告请 Juanxi 确认）。
+- 研究：Phase 3 的 Study task 卡和 runbook 里提到 Today、"Needs a nudge" 的地方改成新名字；不改记录格式。
+
+**测试：** `reminderQueue` 单元测试（四栏的归类、三种方式、没选方式、次数上限、只读视角、日期都来自节点）；页面测试：三种方式各走一遍、Approve all、Follow up、导航四项 + More、`/tasks` 时 Plan 高亮、手机导航、a11y、字数。受影响的已有 spec（`today`、`smoke`、`dx-09-rail`、`dx-20-mobile`、`word-budgets`、`a11y`、`p3h-reminder-mode` 等）要跑并跟进。
+
+### 12.3 FB-9 三天交接包
+
+**原则：** 点 "Hand over this role" 后立刻能用，不用 AI、不用等任何人。现有的访谈、手册、确认、批准、回述、第 7/30 天回看全部保留，但收进 **Go deeper (optional)**，**不再卡住交接**。
+
+**独占文件：** 新文件 `src/lib/handoffPack.ts`（纯函数）、新文件 `src/engine/handoffDays.ts`（三天的日期）、`src/pages/Handoff.tsx`、`src/pages/HandoffNewOfficer.tsx`、`src/data/handoff.ts`（只动"能不能 Finish"的条件）、`src/pages/Today.tsx` 和 `src/lib/reminderQueue.ts`（FB-8 合并之后，只加交接提醒那一类）、新样式 `src/styles/fb-09-handoff-pack.css`、相关测试。
+
+1. **清单**（`handoffPack(state, roleId)`，数据来自现有的 `roleDossier`、`handoffQuestions`）：
+   - **Day 1 · What's on fire**（新任读，约 30 分钟）：未完成任务和它们的 Due；接手后 30 天内的截止日；这个岗位的链接（任务里的草稿链接、社团的 Drive / 日历链接）。
+   - **Day 2 · Learn the role**：最多 5 条经验（Lessons）；最多 3 个联系人（"Meet"）；最多 3 个给前任的缺口问题（用现有的回答机制，前任答完自动打勾）。
+   - **Day 3 · Take over**：**Accept all (N)**：新任一次接下所有转给他的任务（对每个任务走现有的认领，不新增动作类型）；然后 **Finish role handoff**。
+2. 三天的日期：从开始交接那天起的三个工作日，由 `src/engine/handoffDays.ts` 用日历的工作日函数算，界面不自己算。
+3. 勾选：复用现有的 `check` 动作（`itemId` 用 `pack:` 前缀），不新增动作类型；顶上显示 "Handoff 60% · Day 2 of 3"。谁能勾：新任勾 Day 1、Day 3 和 Day 2 的阅读；前任答问题；社长都能勾。
+4. **Finish role handoff 的条件改为：** 已指定接任人（或选 "Nobody yet"）。不再要求手册已起草、确认、批准。清单没勾完也能 Finish，但按钮旁写 "3 items not done yet"。
+5. **提醒推动交接**（加进 FB-8 的提醒中心，作为一种单独的行）：前任有没答的缺口问题 → "Remind Maya to answer 2 handoff questions"；新任有没接的任务 → "Remind Sam to accept 4 tasks"；第 3 天过了还没 Finish → 提醒社长。按钮打开一段写好的消息（用现有的 `composeUrl` 打开 Gmail/WhatsApp 草稿，不真发）。
+6. 接力卡上的进度改成三天清单的进度；交接风险（`handoffRisk`）保留。
+7. 字数：Handoff 页上限 120 / 120 不变（清单在右栏详情里）。
+
+**测试：** `handoffPack` 和 `handoffDays` 单元测试；页面测试：开始交接 → 立刻看到三天清单 → 指定接任人 → 新任勾 Day 1 → 前任答一个问题自动打勾 → Accept all → Finish，全程不起草手册；Go deeper 里原来的流程仍然能走完；提醒中心出现交接提醒。已有的 `handoff-stage1–7`、`handoffReview` 测试里"必须先批准手册才能 Finish"的预期按新规则改，逐条写进报告。
+
+### 12.4 FB-2 的流程调整（替代 4.2）
+
+1. `FOUNDER_STEPS` 改为：Name → Team → First event → Reminders → Confirm → Invite（去掉 Constitution 和 Goals 两步）。`FLOW_VERSION` 升到 **`ob-5`**（注释写明：去掉 Constitution、Goals 两屏；Invite 后不再接社员预览；Confirm 只有一个主按钮 —— 后两条由 FB-3 完成，同一次发布）。
+2. **章程不丢：** Team 屏顶上一个折叠区 **Fill roles from your constitution (optional)**，里面就是现有的 Use sample / Upload a file / Paste text 和 "Use these suggestions"（复用 `Constitution.tsx` 的阅读逻辑和 `useReading`，不新增 AI 接口）。
+3. **Mission 移到 Name 屏**（`validateClub` 仍要求填）：一行输入框，Why："Used in every reminder: why the work matters."
+4. Goals：onboarding 不再问，草稿里目标为空；Settings 的 Goals 编辑器不变。
+5. Why 行只剩 Name 和 Team 两屏；Welcome 页的 Why / How / What 照 4.1。
+6. 依赖旧流程顺序的页面测试（`ob-04`、`ob-05`、`ob-12`、`ob-11`、`research-*`、`p3a` 等）跟进。
+
+### 12.5 FB-3 的补充
+
+Reminders 屏每个选项的类比下面再加一行"在 Platypus 里会怎样"：
+- Send automatically："On the send day it appears under Sent. You don't have to do anything."
+- I review, then I send："On the send day it waits under Needs your OK. You open the draft and send it yourself."
+- I review, Platypus sends："On the send day it waits under Needs your OK. One click approves it."
+
+### 12.6 执行顺序（一次最多 2 个子 agent；前两次三个、五个并行都撞上了用量上限）
+
+| 波次 | 阶段 |
+| --- | --- |
+| A | FB-1（接着上次）、FB-6（接着上次）|
+| B | FB-4、FB-2 |
+| C | FB-8、FB-3 |
+| D | FB-9、FB-5 |
+| 最后 | FB-7 集成 |
+
+每波合并进集成分支后再派下一波；下一波从合并后的提交开始。

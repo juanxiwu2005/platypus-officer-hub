@@ -2,6 +2,8 @@
 > **Juanxi 的决定（2026-11-14）：** Goals 用 SMART 句子；Advisor 用虚线平行连到 President；日期引擎按上传的时间表更新；buffer 不移除、按交互逻辑重做；Reminders 加例子、三步图和类比；最后一步只留一个主按钮、去掉社员预览；界面只有一个 Due；Events 加 + New event；AI 修输出额度、尽量延长时间、给 Stop 按钮；Not claimed 先保留；Details 重排三段；建任务时能指定人。
 > **执行方案：** [`feedback-fix/PLAN.md`](feedback-fix/PLAN.md)（7 个阶段 FB-0…FB-7，每个阶段的细节、独占文件、验收标准，以及主会话替 Juanxi 定的 6 个默认值）。FB-0 脚手架已完成：空样式文件 `src/styles/fb-0N-*.css`、`.ob-why`、时间表入库 `docs/feedback-fix/event-workflow-calibrated-2027-04-16.tsv`。第一波并行：FB-1（AI）、FB-2（Onboarding 上半）、FB-3（Onboarding 下半）、FB-4（详情 + 一个 Due）、FB-6（日期引擎）；第二波 FB-5（新建入口）；最后 FB-7 集成。
 > **其他 AI 请勿在这条分支上同时改这些文件。**
+> **2026-11-15 决定（Juanxi）：** 产品和研究只聚焦两件事：①提醒社团成员工作；②Organization succession。同意：首页变成提醒中心（Needs your OK / This week / Sent / Replies / No reply yet，三种提醒方式真的走不同流程，演示里不真发）；导航收到 Reminders、Plan、Handoff、Rules，Team 和 Partners 收进 More；Handoff 变成三天交接包（不用 AI、不用等人，原来的手册流程变成可选）；Onboarding 只留 Name → Team → First event → Reminders → Create，Goals 移到 Settings；目标环、本周之星、预测百分比、看板改名改色、会议时间、预算明细、Partners 看板不再打磨。Goals 的 SMART 句子因此取消。细则见 `feedback-fix/PLAN.md` 第 12 节（新增 FB-8 提醒中心、FB-9 三天交接包）。
+> **进度：** 两次派出的子 agent 都在刚开始时撞上用量上限，没有留下可用的改动；改为一次最多 2 个。
 
 > **2026-11-12 · 测试反馈解决方案 · 待 Juanxi 选择（Claude）· 只写了文档，没有改代码**
 > **做了什么：** Juanxi 让其他社团团长测试后提了 11 个问题（Onboarding 6 个、其他模块 5 个），外加"任务算一天还是 15 分钟"和"产品要聚焦到两个核心（风险→自动提醒、24 小时到 3 天交接）"。读完相关代码后写成方案 [`FEEDBACK_PLAN_2026-11-12.md`](FEEDBACK_PLAN_2026-11-12.md)：每个问题 2–3 个方案、我的建议、粗估工作量、执行顺序、5 个要先回答的问题。分支 `claude/fervent-thompson-e2j5u2`。
