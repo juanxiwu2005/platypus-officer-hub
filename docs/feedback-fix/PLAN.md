@@ -1,6 +1,7 @@
 # 测试反馈修复：执行方案（2026-11-14）
 
 > 背景和每个问题的备选方案见 [`../FEEDBACK_PLAN_2026-11-12.md`](../FEEDBACK_PLAN_2026-11-12.md)。本文件是 Juanxi 2026-11-14 选定方案后的**执行细则**。
+> **2026-11-15 更新：** Juanxi 明确产品和研究只聚焦两件事：①提醒社团成员工作，②Organization succession（交接）。第 11 节按这两点复核了每个阶段，并改了执行顺序；与本节冲突的旧内容以第 11 节为准。
 > 集成分支：`claude/fervent-thompson-e2j5u2`（不碰 `main`）。每个阶段由一个独立 worktree 里的子 agent 完成，Claude（主会话）负责合并、整体回归、`docs/PROGRESS.md` 和 `AGENTS.md`。
 
 ## 0. Juanxi 的决定（2026-11-14）
@@ -93,16 +94,16 @@
 
 - 标题正下方一行 `<p className="ob-why"><b>Why:</b> …</p>`（样式已在 `fb-00-shared.css`）。文字放进 `copy.ts` 各自块里的 `why`：
   - Name："Your club's name goes on every reminder and handoff note."
-  - Constitution："Your constitution already says who does what. Reading it saves you typing."
-  - Goals："A goal with a number and a date shows on Today, so every officer sees what the work is for."
-  - Team："Every task needs one owner. Reminders go to a person, not to the club."
+  - Constitution："Your constitution says who does what. Platypus uses it to know who to remind and what each role hands over."
+  - Goals：（4.2 暂缓，这一屏这次不加 Why）
+  - Team："Every task needs one owner. Reminders go to a person, and a role is what gets handed over."
 - Welcome 页把现在的一句 `welcomeBody` 换成三行（Why → How → What），每行前面一个小标签：
   - **Why** "Clubs miss deadlines when nobody sees the whole chain, and everything resets at handoff."
   - **How** "Platypus watches every deadline and writes the reminder for you."
   - **What** "Set up your team, your first event and your reminders. About 5 minutes."
 - 每屏字数上限从 60 提到 **90**（只改这几屏对应的测试断言；需要 Juanxi 确认，写进报告）。
 
-### 4.2 Goals：SMART 句子（方案 B）
+### 4.2 Goals：SMART 句子（方案 B）—— **暂缓（2026-11-15，见第 11 节），这次不做**
 
 1. 数据：`Goal` 加可选字段 `period?: "week" | "month" | "semester"`。没有它的旧目标照常显示。`validateGoals` 只接受这三个值或缺省。
 2. 截止日由引擎给：新文件 `src/engine/goalDates.ts`，纯函数 `termEnd(today)`：今天所在学期的最后一天；在两个学期之间就是下一个学期的最后一天；超出日历范围返回 null（界面此时不显示日期，只显示 "this semester"）。数据来自 `src/engine/calendar.ts` 的 `TERMS`，不要在别处写日期。
@@ -135,7 +136,7 @@
 
 ### 5.1 Why 行
 
-- First event："See every deadline for your event before any of them is close."
+- First event："Your event becomes the tasks Platypus reminds people about."
 - Reminders："So you never have to chase people yourself."
 - 写法同 4.1。字数上限：First event 110、Reminders 140、Confirm 和 Invite 仍 60。
 
@@ -344,3 +345,42 @@
 4. **AI 时间**：没有量过 Netlify 的真实上限之前默认 26 秒；量过之后改一个环境变量就能延长，不用再改代码。
 5. **流程版本 `ob-5`**：onboarding 改了，研究记录里的版本号跟着变。如果 Phase 3 正式数据已经在收，合并 `main` 的时间要 Juanxi 定。
 6. **Advisor**：不默认加一行，而是给 "Add advisor" 按钮（默认加会改变每个新社团的起始数据和所有相关测试）。
+
+## 11. 聚焦复核（2026-11-15）
+
+Juanxi：网站和研究只聚焦两件事 —— **①提醒社团成员工作；②Organization succession**。其他都是附加功能，不是重点。下面按这两点复核每一项。
+
+| 项目 | 服务哪个目标 | 结论 |
+| --- | --- | --- |
+| FB-1 提醒里的 AI 句子每次失败（输出额度） | ① 直接 | 做，最先 |
+| FB-1 时间上限、Stop / Skip AI line | ① 提醒编辑器直接受益；Ask 是辅助 | 做 |
+| FB-6 日期引擎按时间表校准 | ① 直接：决定每条提醒哪天发、截止日是哪天；② 间接：岗位档案里"接手后 30 天的截止日" | 做，最先 |
+| FB-4 界面只有一个 Due | ① 直接：提醒里和任务上只有一个日期 | 做，最先 |
+| FB-4 详情三段 | ① 直接：被提醒的人点开链接看到的就是这一屏，一个主按钮回状态 | 做 |
+| FB-5 建任务时指定人 | ① 直接：没有负责人就没人可提醒 | 做 |
+| FB-5 + New event | ① 支撑：活动是提醒的来源 | 做 |
+| FB-3 Reminders 屏的例子、三步图、类比 | ① 直接 | 做 |
+| FB-3 最后一步只留一个主按钮 | 支撑：少绕路，更快进入两个核心 | 做 |
+| FB-3 buffer 重做 | ① 间接：它是提醒时间的一个参数；校准后的模板里它很少真的移动日期 | 做，但按 5.2 的最小版本，不再加东西 |
+| FB-2 / FB-3 每屏 Why | 支撑：文字已改成每句都落到"提醒谁"或"交接什么" | 做 |
+| FB-2 Advisor 虚线连 President | ② 弱相关：顾问是换届时唯一不换的人 | 做（改动小）|
+| FB-2 Goals 的 SMART 句子 | **都不服务**：目标是手填的数字，不产生提醒，也不进交接 | **暂缓**，等 Juanxi 确认；建议改为把 Goals 屏移出 onboarding |
+
+**更重要的发现：** 这 11 条反馈修的都是外围。两个核心本身的缺口，这一轮一条都没碰：
+
+- **核心 ①** 发一条提醒要点 5 次、离开网站再回来确认；onboarding 选的提醒方式不起作用；没有地方能看到"这周会发哪些提醒、谁没回"。
+- **核心 ②** Handoff 有 8 个阶段，每步都要等人，走完要几周，离"24 小时到 3 天"很远。
+
+所以在 FB-1…FB-7 之后加两个阶段（**等 Juanxi 说"做"才开始**，因为会改首页和导航，影响 Phase 3 的任务卡）：
+
+| 阶段 | 内容 |
+| --- | --- |
+| FB-8 提醒中心 + 收导航 | 首页变成提醒中心（This week / Needs your OK / Sent / Replies / No reply yet）；onboarding 选的方式真的走不同流程（演示里"自动发"显示为 "Would be sent · demo"，不真发）；导航只留 Reminders、Plan、Handoff、Rules，其余收进 More |
+| FB-9 三天交接包 | "Hand over this role" 立刻从岗位档案生成 Day 1 / Day 2 / Day 3 清单，不用 AI、不用等人；访谈和手册变成之后再加深；提醒系统负责催前任和新人 |
+
+### 新的执行顺序（一次最多 3 个子 agent，避免再撞用量上限）
+
+1. 第一波：FB-1、FB-6、FB-4。
+2. 第二波：FB-3、FB-2（不含 4.2 Goals）、FB-5。
+3. FB-7 集成。
+4. FB-8、FB-9：等 Juanxi 决定。
