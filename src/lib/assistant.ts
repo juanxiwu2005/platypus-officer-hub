@@ -1,5 +1,5 @@
 import type { ChangeSet, DemoState, Node } from "../data/types"
-import { AI_WAIT_MS, aiMiss, callApi, type AiMiss } from "./api"
+import { AI_WAIT_MS, aiMiss, aiWaitMs, callApi, type AiMiss } from "./api"
 import { commandContext, eventFields, GATHERING, humanEventDate, isSmallOp, namesEvent, parseCommand, parseTaskIntent, TASK_WORD, type CommandOp } from "./commands"
 import { groundedAnswer, RULE_REFUSAL, type RuleAnswer } from "./ruleAnswers"
 import { aiSnapshot, formSnapshot, knownDates } from "./aiContext"
@@ -187,10 +187,10 @@ async function ruleReply(question: string, s: DemoState): Promise<Reply> {
     // Legacy R01–R16 questions retain their deterministic renderer. Everything else is searched in the
     // 64-record policy archive on the server; detailed text never enters the browser bundle.
     if (/\bR\d{2}\b/i.test(question) || keywordRules(question).length) {
-      const r = await callApi<RuleAnswer>("/ask", { question }, AI_WAIT_MS)
+      const r = await callApi<RuleAnswer>("/ask", { question }, aiWaitMs())
       answer = groundedAnswer({ ...r, confidence: 1 }, r.model, r.provider)
     } else {
-      const r = await callApi<PolicyAnswer>("/policy-answer", { question }, AI_WAIT_MS)
+      const r = await callApi<PolicyAnswer>("/policy-answer", { question }, aiWaitMs())
       if (!r.inScope || !r.answer || !r.citations.length) throw new Error("No grounded policy answer")
       answer = r
     }
@@ -234,10 +234,11 @@ function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: strin
 const HELP = "I can rank your top tasks, add a task, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
 
 /**
- * The browser waits at most AI_WAIT_MS (25 s) for an AI answer; the server stops at 22 s, inside Netlify's 30 s.
- * There is no second try: a retry would make the person wait another half minute (production 2026-11-07).
+ * The browser waits at most aiWaitMs() for an AI answer: the server's budget (26 s by default, /api/health) plus 4 s,
+ * or 30 s (AI_WAIT_MS) until the budget is known. There is no second try from the browser: a retry would make the person
+ * wait another half minute (production 2026-11-07). FB-1: the person can stop waiting at any time (Stop / `signal`).
  */
-export { AI_WAIT_MS }
+export { AI_WAIT_MS, aiWaitMs }
 
 /**
  * One /api/chat round. Returns null when the reply had no usable card, or (unless `rethrow`) when the request failed;
@@ -251,7 +252,7 @@ async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus |
     const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
       message: t, page, focus, context: commandContext(s), data, ...(opts.purpose ? { purpose: opts.purpose } : {}),
       history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
-    }, AI_WAIT_MS)
+    }, aiWaitMs())
     const cards = sanitizeCards(r.cards, commandContext(s), knownDates(data))
     const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Checked command grammar"
     return cards.length ? fromWire(cards, t, s, viewerId, label, focus ?? null) : null
@@ -379,7 +380,7 @@ export async function reviewEvent(s: DemoState, eventId: string): Promise<Reply>
   let review: EventReview, label: string
   if (s.aiEnabled) {
     try {
-      const r = await callApi<{ risks: unknown; tasks: unknown; model?: string }>("/event/review", { eventId, data: p, context: commandContext(s) }, AI_WAIT_MS)
+      const r = await callApi<{ risks: unknown; tasks: unknown; model?: string }>("/event/review", { eventId, data: p, context: commandContext(s) }, aiWaitMs())
       review = checkReview(r, s, eventId)
       label = `AI review${r.model ? ` · ${r.model}` : ""}`
     } catch (e) { review = localReview(s, eventId); label = aiMiss(e) === "timeout" ? "Rule engine check · AI didn't answer in time" : "Rule engine check · AI unavailable" }

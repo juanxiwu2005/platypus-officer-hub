@@ -107,7 +107,7 @@ describe("M4 · the model's reply is cut down", () => {
     expect(chat.mock.calls.map(c => c[0].task)).toEqual(["constitution_read", "constitution_read"])
     expect(chat.mock.calls[0][0].system).toMatch(/Do not write duties/); expect(chat.mock.calls[0][0].system).not.toMatch(/department/i)
     expect(JSON.parse(chat.mock.calls[1][0].user).items).toHaveLength(DUTY_BATCH)                  // at most six positions per request
-    expect(chat.mock.calls.every(c => c[0].timeoutMs <= 22_000 && c[0].maxTokens <= 1200)).toBe(true) // finishes, or fails clearly, before the platform's 30 seconds
+    expect(chat.mock.calls.every(c => c[0].timeoutMs <= 25_000 && c[0].maxTokens <= 1200)).toBe(true) // finishes, or fails clearly, before the platform's 30 seconds (FB-1: 26 s default budget minus 1 s)
     for (const c of chat.mock.calls) { const sent = JSON.parse(c[0].user); expect(sent.text).not.toMatch(/boss@|555-0100/); expect(Object.keys(sent).every(k => ["text", "items"].includes(k))).toBe(true) }
     expect(a.roles.map((r: { title: string }) => r.title)).toEqual(["President", "Treasurer"]); expect(a.evil).toBeUndefined()
     expect(b.items).toEqual([{ name: "treasurer", duties: "Keeps the budget by." }])   // unknown names and dates are dropped

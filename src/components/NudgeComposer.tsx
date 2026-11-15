@@ -4,7 +4,7 @@ import { Link } from "react-router-dom"
 import { useStore } from "../data/store"
 import type { Channel, OfficerGrant } from "../data/types"
 import { makeOfficerGrant, officerUrl, usableGrant, grantToken } from "../lib/officerLinks"
-import { callApi } from "../lib/api"
+import { aiWaitMs, callApi, readAiBudget } from "../lib/api"
 import { buildNudge, composeUrl, messageText, nudgeBlocked, STATUS_ACTIONS } from "../lib/nudges"
 import { emitUi } from "../lib/uiLog"
 import { onboardingCopy } from "../onboarding/copy"
@@ -25,6 +25,7 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
   const [linkError, setLinkError] = useState("")
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [])
+  useEffect(() => { void readAiBudget() }, [])
   // Research log: the composer opened for this task (its channel choice and the draft link are pressed controls, logged by the page listener).
   useEffect(() => { emitUi("ui.reminder", { action: "open", nodeId, channel }) }, [nodeId])
   useEffect(() => {
@@ -45,7 +46,7 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
     if (!state.aiEnabled || !canNudge || !node || nudgeBlocked(state, node)) return
     setBusy(true)
     const downstream = state.nodes.find(n => n.dependsOn.includes(node.id) && n.status !== "done")
-    callApi<{ whyItMatters?: unknown; source: string }>("/nudge/draft", { node: { id: node.id, title: node.title, tier: node.tier, estDays: node.estDays, lastUpdate: node.lastUpdate, latestStart: node.latestStart, clubDeadline: node.clubDeadline, officialDeadline: node.officialDeadline }, downstream: downstream ? { title: downstream.title, latestStart: downstream.latestStart } : null, today: state.today, remindAt: person?.remindAt, mission: state.org.mission })
+    callApi<{ whyItMatters?: unknown; source: string }>("/nudge/draft", { node: { id: node.id, title: node.title, tier: node.tier, estDays: node.estDays, lastUpdate: node.lastUpdate, latestStart: node.latestStart, clubDeadline: node.clubDeadline, officialDeadline: node.officialDeadline }, downstream: downstream ? { title: downstream.title, latestStart: downstream.latestStart } : null, today: state.today, remindAt: person?.remindAt, mission: state.org.mission }, aiWaitMs())
       .then(result => { if (current) { setMeaning(result.whyItMatters); setSource("AI + checked template") } })
       .catch(() => { if (current) setSource("Checked template · AI unavailable") })
       .finally(() => { if (current) setBusy(false) })

@@ -16,6 +16,7 @@ import { OwnerPicker, ownersToPeople, TaskDueFields } from "./TaskFields"
 import { canCreateEvent, canLead } from "../../data/changeReview"
 import { policySourceById } from "../../data/policyCatalog"
 import { answerSummary, emitUi } from "../../lib/uiLog"
+import { readAiBudget } from "../../lib/api"
 
 const CHAT_KEY = "platypus.v1.chat"
 const load = (): ChatMsg[] => {
@@ -42,6 +43,8 @@ export function AskPanel() {
   const input = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => save(messages), [messages])
+  // FB-1: learn the server's AI time budget once, so the wait (and "can take up to N s") follows it.
+  useEffect(() => { void readAiBudget() }, [])
   useEffect(() => {
     const clear = () => setMessages([])
     window.addEventListener("platypus:reset", clear)

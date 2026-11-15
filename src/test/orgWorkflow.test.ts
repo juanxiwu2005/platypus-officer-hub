@@ -144,7 +144,7 @@ describe("org workflow · the endpoint", () => {
     chat.mockResolvedValueOnce({ data: { summary: "One new step.", changes: [{ op: "add", key: "permission", title: "Collect permission forms", phase: "prepare", days: 2, waitsFor: ["plan"], owner: "Secretary", evidence: "permission forms" }, { op: "update", key: "ghost", days: 3 }], conflicts: [{ text: "Raffles are not allowed.", rules: ["R15"] }], evil: 1 }, model: "mock", provider: "mock" })
     const r = await (await post({ part: "changes", notes: "We collect permission forms. Call Sam at 480-555-0100 or sam@example.org", files: [{ name: "flow.pdf", text: "Step 1: Approve. Step 2: collect permission forms. " + "x ".repeat(30000) }], roles, steps: [{ key: "evil" }] })).json()
     const sent = JSON.parse(chat.mock.calls[0][0].user)
-    expect(chat.mock.calls[0][0].task).toBe("workflow_read"); expect(chat.mock.calls[0][0].timeoutMs).toBeLessThanOrEqual(22_000)
+    expect(chat.mock.calls[0][0].task).toBe("workflow_read"); expect(chat.mock.calls[0][0].timeoutMs).toBeLessThanOrEqual(25_000) // FB-1: the 26 s default budget minus 1 s (was a fixed 21 s)
     expect(sent.steps.map((s: { key: string }) => s.key)).toEqual(EVENT_STEPS.map(s => s.key))        // the server's copy, not the browser's
     expect(JSON.stringify(sent)).not.toMatch(/sam@example|555-0100/); expect(sent.files[0].text.length).toBeLessThanOrEqual(12_000)
     expect(sent.ruleBook.map((x: { id: string }) => x.id)).toContain("R15")

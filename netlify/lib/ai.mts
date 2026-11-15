@@ -13,7 +13,8 @@ import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/model
  *   AI_PROVIDER   openai-compatible | anthropic (optional; set by the preset)
  *   AI_JSON_MODE  json_object (default) | none   — turn off if a provider rejects response_format
  *   AI_TIMEOUT_MS time budget in ms for a call that sets none itself (default 25000). Every synchronous
- *                 /api/* function sets its own, at most SYNC_AI_BUDGET_MS (below), so this cannot push them past Netlify's limit.
+ *                 /api/* function sets its own, at most syncAiBudgetMs() (below), so this cannot push them past Netlify's limit.
+ *   AI_SYNC_BUDGET_MS  time budget in ms for every synchronous /api/* AI call (default 26000, kept within 10000–55000).
  *   AI_MIN_OUTPUT_TOKENS  asu_air only: the smallest output allowance a call is sent with (default 1024, kept within 256–4096).
  *
  * Juanxi 2026-10-27: every call goes to ASU AIR, and the model is chosen per task by routing v3
@@ -28,8 +29,19 @@ import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/model
  * `ai_usage` line (production log 2026-11-07: /api/chat 504 after 31.2 s, then 502 after 30.3 s). Stopping
  * here leaves room for a cold start and the rest of the function, so the person gets a clean JSON error
  * and the browser's own fallback instead. Background functions (15 minutes) pass their own longer budget.
+ *
+ * FB-1 (2026-11-15): the default is 26 s, still inside the ~30 s observed in production. Netlify's documentation now says
+ * 60 s for synchronous functions; the two disagree, so the real limit is measured once with /api/limit-probe
+ * (docs/AI_SETUP.md) and the budget is then raised with AI_SYNC_BUDGET_MS, without a code change. /api/health reports it,
+ * and the browser waits this long plus 4 s (src/lib/api.ts).
  */
-export const SYNC_AI_BUDGET_MS = 22_000;
+export const SYNC_AI_BUDGET_DEFAULT_MS = 26_000;
+export function syncAiBudgetMs(): number {
+  const v = Number(env("AI_SYNC_BUDGET_MS"));
+  return Number.isFinite(v) && v > 0
+    ? Math.round(Math.max(10_000, Math.min(55_000, v)))
+    : SYNC_AI_BUDGET_DEFAULT_MS;
+}
 
 /**
  * The smallest output allowance ("max_tokens") a call to ASU AIR is sent with. Production 2026-11-12: /api/nudge/draft

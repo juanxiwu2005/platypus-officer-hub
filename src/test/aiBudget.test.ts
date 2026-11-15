@@ -8,7 +8,7 @@ import handbookFn from "../../netlify/functions/handbook-draft.mts"
 import askFn from "../../netlify/functions/ask.mts"
 import constitutionFn from "../../netlify/functions/constitution.mts"
 import workflowFn from "../../netlify/functions/workflow.mts"
-import { chatJSON, SYNC_AI_BUDGET_MS } from "../../netlify/lib/ai.mts"
+import { chatJSON, SYNC_AI_BUDGET_DEFAULT_MS, syncAiBudgetMs } from "../../netlify/lib/ai.mts"
 import { resetRateLimit } from "../../netlify/lib/http.mts"
 import { seedDemo } from "../data/seed"
 import type { HandbookSource } from "../data/types"
@@ -17,7 +17,7 @@ import { aiSnapshot } from "../lib/aiContext"
 import { reviewPayload } from "../lib/eventReview"
 import { handbookPicks, localHandbook, salvageHandbookPicks } from "../lib/handbookDraft"
 import { createIntent, respond, type ChatCard } from "../lib/assistant"
-import { AI_WAIT_MS, aiMiss, ApiError } from "../lib/api"
+import { AI_WAIT_MS, aiMiss, aiWaitMs, ApiError, resetAiBudget } from "../lib/api"
 
 /**
  * Production 2026-11-07 (Netlify logs, live site):
@@ -27,6 +27,8 @@ import { AI_WAIT_MS, aiMiss, ApiError } from "../lib/api"
  * The real AI is never called here: every provider is a fake.
  */
 const state = seedDemo("2026-10-22")
+/** FB-1: the synchronous budget is now read from AI_SYNC_BUDGET_MS (default 26 s; it was a fixed 22 s). */
+const SYNC_AI_BUDGET_MS = SYNC_AI_BUDGET_DEFAULT_MS
 const post = (path: string, body: unknown) => new Request(`https://example.org/api/${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
 
 function configure() {
@@ -98,7 +100,7 @@ describe("server: every synchronous AI endpoint answers inside Netlify's 30 s", 
     const error = await pending
     expect(send).toHaveBeenCalledTimes(2)
     expect(error).toMatchObject({ code: "timeout", status: 504 })
-    expect(aborted[0] - start).toBe(SYNC_AI_BUDGET_MS) // 15 s + the 7 s left, not 15 s + another 22 s
+    expect(aborted[0] - start).toBe(SYNC_AI_BUDGET_MS) // 15 s + the 11 s left, not 15 s + another 26 s
   })
 
   it("/api/chat sends a lean prompt when the browser only wants the form filled", async () => {
@@ -180,8 +182,16 @@ describe("browser: asking to plan an event always ends in the planning form", ()
   const form = (cards: ChatCard[]) => cards.find(c => c.kind === "form") as Extract<ChatCard, { kind: "form" }> | undefined
   const slow504 = () => vi.fn(async () => new Response(JSON.stringify({ error: "timeout", message: "The AI provider took too long to answer." }), { status: 504 }))
   it("waits for the AI no longer than the server's budget plus a little", () => {
-    expect(AI_WAIT_MS).toBeGreaterThan(SYNC_AI_BUDGET_MS)
-    expect(AI_WAIT_MS).toBeLessThanOrEqual(25_000)
+    // FB-1: the server's budget plus 4 s once /api/health has said it; 30 s until then.
+    resetAiBudget()
+    expect(aiWaitMs()).toBe(AI_WAIT_MS)
+    expect(AI_WAIT_MS).toBe(30_000)
+    expect(AI_WAIT_MS).toBeGreaterThanOrEqual(syncAiBudgetMs() + 4_000)
+    resetAiBudget(26_000)
+    expect(aiWaitMs()).toBe(30_000)
+    resetAiBudget(50_000)
+    expect(aiWaitMs()).toBe(54_000)
+    resetAiBudget()
   })
   it("tells a timeout from an unavailable service", () => {
     expect(aiMiss(new ApiError("x", 504))).toBe("timeout")
