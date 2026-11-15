@@ -80,7 +80,8 @@ describe("AIR provider routing", () => {
     const b = JSON.parse(send.mock.calls[0][1].body);
     expect(b.model).toBe("muse-glimmer-30b");
     expect(b.reasoning_effort).toBe("none");
-    expect(b.max_tokens).toBe(600);
+    // FB-1: ASU AIR is always sent at least AIR_MIN_OUTPUT_TOKENS (1024), whatever smaller allowance the caller asks for.
+    expect(b.max_tokens).toBe(1024);
   });
   it("allows an explicit operator rollback to one configured model", async () => {
     const send = configured();
@@ -111,9 +112,12 @@ describe("AIR provider routing", () => {
 });
 
 describe("structured response failures", () => {
-  it("archives a truncated response before reporting a useful error, without a second charge", async () => {
+  // FB-1 (Juanxi 2026-11-14): a cut-off reply is asked for once more with twice the allowance (an approved exception to
+  // "no automatic second charge"); it stays at two requests in total and the result is archived once.
+  it("archives a truncated response before reporting a useful error, after at most one retry", async () => {
     const send = configured();
-    send.mockResolvedValue(
+    // A fresh Response per request: the retry reads its own body.
+    send.mockImplementation(async () =>
       new Response(
         JSON.stringify({
           model: "muse-glimmer-30b",
@@ -139,7 +143,11 @@ describe("structured response failures", () => {
         outputChars: 10,
       }),
     );
-    expect(send).toHaveBeenCalledTimes(1);
+    expect(observed).toHaveBeenCalledOnce();
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(
+      send.mock.calls.map((c) => JSON.parse(c[1].body).max_tokens),
+    ).toEqual([1024, 2048]);
   });
   it("distinguishes empty content from malformed JSON", async () => {
     const send = configured();

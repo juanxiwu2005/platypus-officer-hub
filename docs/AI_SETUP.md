@@ -20,6 +20,7 @@
 | `AI_MODEL` | 不填 | AIR 下由路由按任务选模型；只有关掉路由时才用 |
 | `AI_MODEL_ROUTING` | 不填（= 开） | 设 `off` = 所有任务都用 `AI_MODEL` 一个模型（运营方回退开关） |
 | `AI_TIMEOUT_MS` | 不填（25000） | 只给自己没设时间的调用用。**所有普通（同步）接口都自己设了 22 秒**（`SYNC_AI_BUDGET_MS`，`netlify/lib/ai.mts`；`/api/setup/constitution`、`/api/setup/workflow` 是 21 秒），改这个变量不会让它们变长。原因：2026-11-07 生产日志里 `/api/chat` 设了 55 秒，Netlify 在约 30 秒就把函数杀掉（504/502，连 `ai_usage` 一行都没有）。22 秒是整次调用（含格式回退的第二次）的总预算，超时就回一个干净的 504 JSON，浏览器（最多等 25 秒，不重试）改用本地表单或本地结果 |
+| `AI_MIN_OUTPUT_TOKENS` | 不填（1024） | FB-1（2026-11-15）：走 AIR 时每次请求的输出额度（`max_tokens`）至少这么多，可设 256–4096，超出范围自动夹回。原因：2026-11-12 线上 `/api/nudge/draft` 只给了 120，4 秒内两次都被截断（"output limit"），提醒里的 AI 句子每次都失败。额度是"最多能用多少"，不是"要写多少"：各接口自己的长度检查（提醒那句最多 10 个词）不变。回答仍被截断（`finish_reason` 为 `length`/`max_tokens`）且接口不能保留其中完整的部分时，**自动再试一次**，额度翻倍（最多 4096），只在剩余时间 ≥ 5 秒时才试；一次调用最多 2 个请求（格式回退和这次重试共用名额）。这是 `AGENTS.md` 第 12 节"不自动重复收费请求"的明确例外（Juanxi 2026-11-14 批准） |
 | `ORG_SETUP_ENABLED` | **不填** | 服务器存储开关，见第 4 节。不填 = 隐藏 |
 
 改完变量要 **Deploys → Trigger deploy → Deploy project**，新变量只对新部署生效。`/api/health` 会显示当前供应商（应为 `ASU AIR`）和路由版本，从不显示 key。
@@ -65,7 +66,7 @@ DP3 带来的 Organization Setup 和 Activity workspace 会把数据存在服务
 
 ## 用量日志（S2，M1 补全）
 
-每次 AI 调用在 Netlify → Logs 留一行 `ai_usage`：`task`、供应商、请求的模型和实际返回的模型、路由版本、输入/输出 token、结束原因（`finishReason`）、首包时间（`headersMs`）、总耗时、成功或失败代码。**不记 key、提示词、用户内容或 AI 回复。**
+每次 AI 调用在 Netlify → Logs 留一行 `ai_usage`：`task`、供应商、请求的模型和实际返回的模型、路由版本、输入/输出 token、结束原因（`finishReason`）、首包时间（`headersMs`）、总耗时、成功或失败代码。FB-1 起还有：`maxTokens`（最后一次请求的输出额度）、`reasoningTokens`（只有供应商在 `usage.completion_tokens_details.reasoning_tokens` 里给了才有，用来确认额度是不是被"思考"用掉了）、`retry`（只有被截断后自动重试过才出现，值是 `"output_limit"`）。**不记 key、提示词、用户内容或 AI 回复。**
 
 ## 研究说明
 

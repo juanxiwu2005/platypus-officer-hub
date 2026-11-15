@@ -1,3 +1,10 @@
+> **2026-11-15 · 修 AI 输出额度（只改服务器）· Juanxi 批准单独合并到 `main`（Phase 3 测试期间）（Claude）**
+> **为什么：** 2026-11-12 用虚构数据调了两次正式网站的 `/api/nudge/draft`，都在 4 秒内失败，错误是 `output limit`：我们只给了 120 个 token 的输出额度，模型没写完就被截断，代码把截断当失败，所以**提醒里的 AI 那一句每次都失败**（一直显示 "AI unavailable"）。不是 Netlify 超时。
+> **改了什么（只有 `netlify/lib/ai.mts`、测试和 `docs/AI_SETUP.md`）：** 走 ASU AIR 时每次请求的输出额度至少 1024（环境变量 `AI_MIN_OUTPUT_TOKENS` 可调，256–4096）；回答被截断且没有可保留的部分时，用两倍额度**自动再试一次**（最多一次，剩余时间不到 5 秒不试；这是"不自动重复收费请求"的一个明确例外，Juanxi 2026-11-14 批准）；用量日志 `ai_usage` 多记 `maxTokens`、`reasoningTokens`（供应商给了才记）、`retry`。**没有改任何页面、流程、记录格式和结构版本**；22 秒的时间上限没动。
+> **测试：** lint、两套类型检查、构建通过；单元 **1187 全过**（新增 12 个）。页面测试没跑：这次没有改浏览器里的代码，服务器接口在页面测试里是模拟的。
+> **对 Phase 3 的影响（写论文时要说明）：** 这次上线之前的参与者，提醒里的 AI 句子不可用、用的是模板；上线之后的参与者能看到 AI 写的那一句，其他 AI 回答（Ask、规则问答）成功的次数也可能变多。记录格式没有变。
+> **没验证：** "额度被模型的思考用掉"是最可能的原因，上线后看 Netlify 日志里的 `reasoningTokens` 才能确认。
+
 > **2026-11-09 · Handoff 改版审查修复 + 合并到 `main`（合并提交 `f564d45`）· Juanxi 批准"直接提交到 main"（Claude 审查并修复）· ✅ 已上线**
 > **上线（2026-11-09，Juanxi 要求 Claude 发布）：** 用 Netlify MCP 的 deploy-site 把仓库（`main` = `45a311a`，内容和分支 `3abde01` 完全相同）上传，**在 Netlify 的构建系统里用 Netlify 的环境变量构建**，部署 `6af1dd6a2e71ac81912bc418`，已是正式网站。核对：入口文件 510,703 字节（上限 520,000），含 Handoff 和 Reminders 屏的新代码；`/start/` 200、`/api/health` 正常（ASU AIR）、`/api/org/setup` 仍 404（服务器存储仍关）；Today / Handoff / Tasks / Settings 打开无页面错误，Handoff 详情的岗位档案能显示。**注意：** 这种上传方式没有 Git 提交号，所以这次部署后导出文件里的 `build.commit` 是 `"unknown"`（`branch: "main"`、`context: "production"` 正常）；2026-11-09 之后 `commit` 为 `unknown` 的导出就是这次部署 = `45a311a`。下面那段"还没更新"的说明保留作记录。
 > **⚠️ 上线状态（2026-11-09 14:30 UTC 核对）：** 正式网站仍是 PR #12 的 `fc9eccd`（Netlify 当前部署 `6af0982889fc67e1270ccd71`，2026-11-08 15:41 建，来源 "api"）。昨天 PR #13（`2a043f6`）和这次 `f564d45` 推到 `main` 后，Netlify 都**没有新建部署**，所以 Reminders 屏和 Handoff 改版都还没上线。GitHub CI 两次都是页面测试跑满 15 分钟上限被取消（lint、构建、单元测试都通过；`ci.yml` 的 `timeout-minutes: 15` 不够跑完 1054 个页面测试），CI 本身不负责部署。**需要 Juanxi 在 Netlify 后台 Deploys 页点 "Trigger deploy → Deploy site"（或检查是否停了自动构建）。** Claude 没有用本机构建直接发布，因为那样会漏掉 Netlify 里的构建环境变量。
