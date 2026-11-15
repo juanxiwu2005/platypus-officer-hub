@@ -117,8 +117,9 @@ describe("server: every synchronous AI endpoint answers inside Netlify's 30 s", 
     expect(leanUser).not.toHaveProperty("rules")
     expect(fullUser.clubData).toHaveProperty("tasks")
     expect(sent[1].messages[1].content.length).toBeLessThan(sent[0].messages[1].content.length / 3)
-    expect(sent[0].max_tokens).toBe(600)
-    expect(sent[1].max_tokens).toBe(400)
+    // FB-1: ASU AIR is always sent at least AIR_MIN_OUTPUT_TOKENS (1024); the function asks for 600 / 400.
+    expect(sent[0].max_tokens).toBe(1024)
+    expect(sent[1].max_tokens).toBe(1024)
     // The model's date never survives: the form's date comes from the person's words in the browser.
     const card = (await lean.json()).cards[0]
     expect(card).toMatchObject({ kind: "form", intent: "plan_event", prefill: { name: "Networking Night", headcount: 50 } })
@@ -150,7 +151,7 @@ describe("server: a handbook reply cut off at the output limit keeps its complet
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ entries: [{ sourceId: "interview:r-fin:1", text: "Keep receipts in the shared folder." }, { sourceId: "task:t-recon" }], partial: true, source: "ai" })
     const sent = JSON.parse((send.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
-    expect(sent.max_tokens).toBe(400)
+    expect(sent.max_tokens).toBe(1024) // FB-1: the AIR minimum, not the function's 400
     // The model sees short refs and never the real IDs it could echo back at length.
     expect(sent.messages[1].content).toContain('"ref":"s1"')
     expect(sent.messages[1].content).not.toContain("task:t-recon")
