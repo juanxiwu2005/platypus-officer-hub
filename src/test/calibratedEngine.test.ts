@@ -107,6 +107,44 @@ describe("calibrated steps: links mean finish order", () => {
     expect(plan(s, "down").pushedBy).toBe(null)
   })
 
+  it("a timing later than the next step's moves the next step's recommended deadline, never the earlier one; it is the plan, not a slip", () => {
+    const s = world(pair({ startDays: 65, dueDays: 60 }).map(n => n.stepKey === "up" ? { ...n, timing: { startDays: 65, dueDays: 20 } } : n))
+    expect(plan(s, "up").club).toBe("2027-03-26") // Sat Mar 27 → Fri Mar 26
+    const down = plan(s, "down")
+    expect([down.club, down.recommendedClub, down.pushedBy]).toEqual(["2027-03-26", "2027-03-26", null])
+    expect(down.explain.club).toContain("stay in order")
+    expect(codes(s, "down")).not.toContain("pushed")
+  })
+
+  it("an uncalibrated step on its recommended date between calibrated steps moves only the next step's start", () => {
+    // A conditional step placed by its own timing after a calibrated step, while the next calibrated window already opened.
+    const a = node("a", { startDays: 60, dueDays: 38 })
+    const mid = node("mid", undefined, { dependsOn: ["cal:a"], anchor: { kind: "target", days: 21, unit: "calendar", label: "Three weeks ahead" } })
+    const b = node("b", { startDays: 40, dueDays: 10 }, { dependsOn: ["cal:mid"], estDays: 7 })
+    const s = world([a, mid, b])
+    // "mid" should finish before "b" opens (Fri Mar 5), but cannot finish before "a" (Tue Mar 9): the order wins.
+    expect(plan(s, "mid").club).toBe("2027-03-09")
+    const p = plan(s, "b")
+    expect([p.latestStart, p.club, p.pushedBy]).toEqual(["2027-03-10", "2027-04-06", null])
+    expect(codes(s, "b")).not.toContain("pushed")
+  })
+
+  it("a later step's ASU deadline is a hard limit for the calibrated step before it", () => {
+    const R09 = { kind: "rule" as const, ruleId: "R09", days: 10, unit: "business" as const }
+    const steps = [node("approval", { startDays: 30, dueDays: 18 }), node("request", { startDays: 30, dueDays: 18 }, { anchor: R09, dependsOn: ["cal:approval"] })]
+    const tight = world(steps, s => ({ ...s, org: { ...s.org, settings: { ...s.org.settings, clubBufferBusinessDays: 10 } } }))
+    expect(plan(tight, "request").club).toBe("2027-03-19") // Apr 2 minus 10 business days
+    expect(plan(tight, "approval").club).toBe("2027-03-19") // finishes by then instead of Mar 29, so nothing is pushed
+    expect(plan(tight, "approval").explain.club).toContain("ASU deadline")
+    expect(codes(tight, "request")).not.toContain("pushed")
+  })
+
+  it("an early deadline set by a person that an unfinished step overrides does not start the work early", () => {
+    const s = world([node("approval", { startDays: 30, dueDays: 18 }), node("order", { startDays: 30, dueDays: 10 }, { dependsOn: ["cal:approval"], estDays: 2, clubDeadlineOverride: "2027-03-01" })])
+    const p = plan(s, "order")
+    expect([p.latestStart, p.club, p.pushedBy]).toEqual(["2027-03-17", "2027-03-29", "cal:approval"])
+  })
+
   it("an uncalibrated upstream step keeps the old rule: start the business day after it finishes", () => {
     const up = node("up", undefined, { anchor: { kind: "target", days: 70, unit: "calendar", label: "Earlier step" } })
     const down = node("down", { startDays: 65, dueDays: 60 }, { dependsOn: ["cal:up"], estDays: 5 })

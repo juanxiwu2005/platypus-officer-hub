@@ -29,7 +29,11 @@ import {
  *    buffer above the default one day moves it further;
  *  - the backward pass does not pull them earlier for a later step's start;
  *  - between two calibrated steps a link means finish order only: an unfinished upstream step moves this one later only
- *    when its deadline is later than this one's (the same day is fine). Links with an uncalibrated step keep the rule above.
+ *    when its deadline is later than this one's (the same day is fine). This also holds after a calibrated step for an
+ *    uncalibrated one. Before a calibrated step, an uncalibrated step keeps the rule above for the start; it moves the
+ *    deadline only when it has slipped past its own recommended date;
+ *  - a later calibrated step's ASU deadline is a hard limit for the calibrated steps before it (backward pass), and the
+ *    template's own finish order is part of the recommended deadline, so a fresh event shows no "Moved later" warning.
  * Steps without `timing` (hand-made tasks, conditional steps, events built before FB-6) are dated exactly as before.
  */
 
@@ -223,6 +227,8 @@ interface Rec {
   clubWhy: string
   start: string
   startWhy: string
+  /** Calibrated steps: the club deadline is set by an ASU deadline (this step's own, or a later step's). */
+  asu?: boolean
 }
 
 function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
@@ -245,9 +251,21 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
       const own = timingDue(n, ev, n.timing)
       const buffered = official ? { date: shiftWork(official.date, -buffer), why: `${plural(buffer, "business day")} before the ASU deadline (club buffer)` } : null
       let best = buffered && buffered.date < own.date ? buffered : own
+      let asu = best === buffered
+      // An ASU deadline is a hard limit for the steps before it too: when a calibrated step that waits for this one must finish
+      // earlier than this one's own timing because of its ASU deadline, this one finishes by then (the same day is fine). A club
+      // timing never pulls an earlier step; finish order then moves the later step instead (forward pass).
+      for (const c of children.get(n.id)!) {
+        const r = rec.get(c)
+        const child = ctx.byId.get(c)!
+        if (r?.asu && !loopedIds.has(c) && child.timing && r.club < best.date) {
+          best = { date: r.club, why: `Must be done by the time “${child.title}” is due (${fmtLong(r.club)}), which its ASU deadline sets` }
+          asu = true
+        }
+      }
       if (n.phase === "close" && best.date < closeFloor(n, ev)) best = { date: closeFloor(n, ev), why: "Close-out work can only start after the event" }
       const st = timingStart(ctx, n, ev, n.timing, best.date)
-      rec.set(n.id, { official, club: best.date, clubWhy: best.why, start: st.date, startWhy: st.why })
+      rec.set(n.id, { official, club: best.date, clubWhy: best.why, start: st.date, startWhy: st.why, asu })
       continue
     }
     const cands: { date: string; why: string }[] = []
@@ -277,10 +295,20 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
   }
 
   // 2. Forward pass
+  // A calibrated step's link means finish order (FB-6): the recommended deadline of a step is never before the recommended
+  // deadline of a calibrated step it waits for. This keeps the template's own order quietly; only a real slip warns (below).
+  const planned = new Map<string, { date: string; why: string }>()
   for (const n of order) {
-    const r = rec.get(n.id)!
+    const r0 = rec.get(n.id)!
+    let p = { date: r0.club, why: r0.clubWhy }
+    for (const u of n.dependsOn) {
+      const un = ctx.byId.get(u), pu = planned.get(u)
+      if (un?.timing && pu && !loopedIds.has(u) && !loopedIds.has(n.id) && pu.date > p.date) p = { date: pu.date, why: `Finishes after “${un.title}” (${fmtLong(pu.date)}), so the steps stay in order` }
+    }
+    planned.set(n.id, p)
+    const r = p.date === r0.club ? r0 : { ...r0, club: p.date, clubWhy: p.why }
     if (n.timing) {
-      planCalibrated(ctx, n, ev, r, out, loopedIds)
+      planCalibrated(ctx, n, ev, r, out, loopedIds, planned)
       continue
     }
     const e = effortOf(ctx, n)
@@ -301,7 +329,8 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     for (const u of n.dependsOn) {
       const up = out.nodes[u]
       const un = ctx.byId.get(u)
-      if (!up || !un || un.status === "done" || loopedIds.has(u)) continue
+      // A calibrated step before this one only sets the finish order (below), not when this one may start.
+      if (!up || !un || un.status === "done" || loopedIds.has(u) || un.timing) continue
       const e1 = shiftWork(up.club, 1)
       if (!earliest || e1 > earliest) {
         earliest = e1
@@ -315,6 +344,14 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
       clubWhy = `Moved later: “${u.title}” finishes ${fmtLong(out.nodes[u.id].club)}`
       sWhy = `The business day after “${u.title}” finishes`
     } else pushedBy = null
+    for (const u of n.dependsOn) {
+      const up = out.nodes[u]
+      const un = ctx.byId.get(u)
+      if (!up || !un?.timing || un.status === "done" || loopedIds.has(u) || up.club <= club) continue
+      club = up.club
+      clubWhy = `Moved later: “${un.title}” finishes ${fmtLong(up.club)}`
+      pushedBy = u
+    }
 
     if (n.recoveryFrom && n.status !== "done" && start < n.recoveryFrom) {
       start = onOrAfter(n.recoveryFrom, e.work)
@@ -339,29 +376,13 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
 }
 
 /** Forward pass for a calibrated step (see the header): a person's deadline, finish order between calibrated steps, recovery. */
-function planCalibrated(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule, loopedIds: Set<string>) {
+function planCalibrated(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule, loopedIds: Set<string>, planned: Map<string, { date: string }>) {
   const e = effortOf(ctx, n)
   const close = n.phase === "close"
   let club = n.clubDeadlineOverride ?? r.club
   let clubWhy = n.clubDeadlineOverride ? `Set by a person (Platypus recommends ${fmtLong(r.club)})` : r.clubWhy
   let start = r.start
   let sWhy = r.startWhy
-  if (n.clubDeadlineOverride) {
-    // A person's deadline: start no later than the calibrated start, and early enough for the work before the new deadline.
-    const byEffort = shiftWork(club, -e.days, e.work)
-    if (byEffort < start) {
-      start = byEffort
-      sWhy = startWhy(club, n, e, start)
-    }
-    if (close && start < closeFloor(n, ev)) {
-      start = closeFloor(n, ev)
-      sWhy = closeFloorWhy(n)
-    }
-    if (club < start) {
-      club = start
-      clubWhy = "Close-out work can only start after the event"
-    }
-  }
   let pushedBy: string | null = null
   let pushClub: string | null = null
   let earliest: string | null = null
@@ -388,17 +409,39 @@ function planCalibrated(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule, loo
     club = pushClub
     clubWhy = `Moved later: “${ctx.byId.get(pushedBy)!.title}” finishes ${fmtLong(pushClub)}`
   }
+  if (n.clubDeadlineOverride) {
+    // A person's deadline: start no later than the calibrated start, and early enough for the work before the deadline
+    // (the deadline after any finish-order move, so an early date that an unfinished step overrides does not start the work early).
+    const byEffort = shiftWork(club, -e.days, e.work)
+    if (byEffort < start) {
+      start = byEffort
+      sWhy = startWhy(club, n, e, start)
+    }
+    if (close && start < closeFloor(n, ev)) {
+      start = closeFloor(n, ev)
+      sWhy = closeFloorWhy(n)
+    }
+    if (club < start) {
+      club = start
+      clubWhy = "Close-out work can only start after the event"
+    }
+  }
   if (earliest && earliestBy && start < earliest) {
-    // An uncalibrated step before it: the existing rule (start the business day after it finishes).
+    // An uncalibrated step before it: the existing rule, start the business day after it finishes. When that step has slipped
+    // (it finishes later than recommended), the work then needs its effort days and the deadline moves with a warning. When it is
+    // on its recommended date (a conditional step placed between calibrated steps), only the start moves, never past the deadline.
     const u = ctx.byId.get(earliestBy)!
+    const slipped = out.nodes[u.id].club > (planned.get(u.id)?.date ?? out.nodes[u.id].club)
     start = onOrAfter(earliest, e.work)
+    // On plan, and the owner has no working day left before the deadline (finals, a semester break): the next business day.
+    if (!slipped && start > club) start = onOrAfter(earliest)
     sWhy = `The business day after “${u.title}” finishes`
-    const byEffort = shiftWork(start, e.days, e.work)
+    const byEffort = slipped ? shiftWork(start, e.days, e.work) : start
     if (byEffort > club) {
       club = byEffort
       clubWhy = `Moved later: “${u.title}” finishes ${fmtLong(out.nodes[u.id].club)}`
+      if (!pushedBy || out.nodes[earliestBy].club > out.nodes[pushedBy].club) pushedBy = earliestBy
     }
-    if (!pushedBy || out.nodes[earliestBy].club > out.nodes[pushedBy].club) pushedBy = earliestBy
   }
   if (n.recoveryFrom && n.status !== "done" && start < n.recoveryFrom) {
     start = onOrAfter(n.recoveryFrom, e.work)

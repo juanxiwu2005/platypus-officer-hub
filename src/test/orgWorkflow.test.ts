@@ -55,7 +55,7 @@ describe("org workflow · applying changes", () => {
     const r = applyChanges(presetSteps(), changes, base.roles)
     expect(r.applied).toHaveLength(3)
     let steps = revertChange(r.steps, r.applied[2]); expect(steps.some(x => x.key === "promotionItems")).toBe(true); expect(steps.find(x => x.key === "rsvp")!.dependsOn).toContain("promotionItems")
-    steps = revertChange(steps, r.applied[1]); expect(steps.find(x => x.key === "contentCreation")).toMatchObject({ title: EVENT_STEPS.find(x => x.key === "contentCreation")!.title, estDays: 2 })
+    steps = revertChange(steps, r.applied[1]); expect(steps.find(x => x.key === "contentCreation")).toMatchObject({ title: EVENT_STEPS.find(x => x.key === "contentCreation")!.title, estDays: EVENT_STEPS.find(x => x.key === "contentCreation")!.estDays })
     steps = revertChange(steps, r.applied[0]); expect(steps.some(x => x.key === "permission")).toBe(false); expect(steps.find(x => x.key === "finalcheck")!.dependsOn).not.toContain("permission")
     expect(describeWorkflow(presetSteps())).toBe("The standard workflow.")
     expect(describeWorkflow(r.steps)).toBe("Standard workflow, 1 added, 2 changed, 1 removed.")
@@ -78,7 +78,9 @@ describe("org workflow · checks against ASU rules (the engine's, not the AI's)"
     const advisorRole = { id: "r-adv", displayName: "Club Advisor", fn: "advisor" as const, holderId: null }
     const roles = [...base.roles, advisorRole]
     expect(checkWorkflow(presetSteps().map(s => s.key === "contentCreation" ? { ...s, ownerRoleId: "r-adv" } : s), roles).some(i => i.level === "warning" && /advisor/.test(i.text))).toBe(true)
-    const slow = presetSteps().map(s => s.key === "budget" ? { ...s, estDays: 30 } : s)
+    // FB-6: a calibrated step is dated from its own timing, so effort alone no longer moves the plan. A club timing one day
+    // before the event for Quote Gather does: the funding chain after it must finish later, past the R09 purchase deadline.
+    const slow = presetSteps().map(s => s.key === "quotes" ? { ...s, anchor: { kind: "target" as const, days: 1, unit: "calendar" as const, label: "Club timing from your planning notes" } } : s)
     const issues = checkWorkflow(slow, base.roles, base)
     expect(issues.some(i => i.level === "warning" && /would miss a deadline/.test(i.text))).toBe(true)
     expect(issues.some(i => i.level === "blocked")).toBe(false)
