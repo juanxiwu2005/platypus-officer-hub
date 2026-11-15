@@ -4,7 +4,8 @@ import { Link } from "react-router-dom"
 import { useStore } from "../data/store"
 import type { Channel, OfficerGrant } from "../data/types"
 import { makeOfficerGrant, officerUrl, usableGrant, grantToken } from "../lib/officerLinks"
-import { aiWaitMs, callApi, readAiBudget } from "../lib/api"
+import { aiWaitMs, callApi, readAiBudget, wasStopped } from "../lib/api"
+import { AiWait } from "./AiWait"
 import { buildNudge, composeUrl, messageText, nudgeBlocked, STATUS_ACTIONS } from "../lib/nudges"
 import { emitUi } from "../lib/uiLog"
 import { onboardingCopy } from "../onboarding/copy"
@@ -24,6 +25,8 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
   const [grant, setGrant] = useState<OfficerGrant | null>(null)
   const [linkError, setLinkError] = useState("")
   const heading = useRef<HTMLHeadingElement>(null)
+  // FB-1: the AI line's request, so "Skip AI line" can end it at once and fall back to the checked template.
+  const aiRequest = useRef<AbortController | null>(null)
   useEffect(() => { heading.current?.focus() }, [])
   useEffect(() => { void readAiBudget() }, [])
   // Research log: the composer opened for this task (its channel choice and the draft link are pressed controls, logged by the page listener).
@@ -45,15 +48,24 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
     setBusy(false); setMeaning(undefined)
     if (!state.aiEnabled || !canNudge || !node || nudgeBlocked(state, node)) return
     setBusy(true)
+    const ctrl = new AbortController()
+    aiRequest.current = ctrl
     const downstream = state.nodes.find(n => n.dependsOn.includes(node.id) && n.status !== "done")
-    callApi<{ whyItMatters?: unknown; source: string }>("/nudge/draft", { node: { id: node.id, title: node.title, tier: node.tier, estDays: node.estDays, lastUpdate: node.lastUpdate, latestStart: node.latestStart, clubDeadline: node.clubDeadline, officialDeadline: node.officialDeadline }, downstream: downstream ? { title: downstream.title, latestStart: downstream.latestStart } : null, today: state.today, remindAt: person?.remindAt, mission: state.org.mission }, aiWaitMs())
-      .then(result => { if (current) { setMeaning(result.whyItMatters); setSource("AI + checked template") } })
-      .catch(() => { if (current) setSource("Checked template · AI unavailable") })
-      .finally(() => { if (current) setBusy(false) })
-    return () => { current = false }
+    callApi<{ whyItMatters?: unknown; source: string }>("/nudge/draft", { node: { id: node.id, title: node.title, tier: node.tier, estDays: node.estDays, lastUpdate: node.lastUpdate, latestStart: node.latestStart, clubDeadline: node.clubDeadline, officialDeadline: node.officialDeadline }, downstream: downstream ? { title: downstream.title, latestStart: downstream.latestStart } : null, today: state.today, remindAt: person?.remindAt, mission: state.org.mission }, aiWaitMs(), ctrl.signal)
+      .then(result => { if (current && !ctrl.signal.aborted) { setMeaning(result.whyItMatters); setSource("AI + checked template") } })
+      .catch(e => { if (current && !wasStopped(e)) setSource("Checked template · AI unavailable") })
+      .finally(() => { if (current && aiRequest.current === ctrl) { aiRequest.current = null; setBusy(false) } })
+    return () => { current = false; ctrl.abort() }
     // Rebuild on task changes, so an old response cannot overwrite a newer task.
   }, [node, state.aiEnabled, canNudge, state.today, person?.remindAt, state.org.mission])
   if (!node || !person) return null
+  /** Skip AI line: stop waiting now and use the checked template; the draft button is ready at once (the line can no longer arrive). */
+  const skipAi = () => {
+    aiRequest.current?.abort()
+    aiRequest.current = null
+    setMeaning(undefined); setSource("Checked template · AI line skipped"); setBusy(false)
+    heading.current?.focus()
+  }
   const blocked = !canNudge ? "Choose a current officer before preparing a reminder." : nudgeBlocked(state, node)
   const draft = buildNudge(state, node, state.aiEnabled ? meaning : undefined)
   const message = messageText(draft, window.location.origin, node.id, grant ?? undefined)
@@ -74,6 +86,7 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
     {linkError && <p className="small late-text" role="alert">{linkError}</p>}
     <details><summary className="small">Sources & task details</summary><p className="small">Latest task update: {node.lastUpdate ?? "not recorded"}. Dates and waiting steps come from the rule engine. {node.ruleIds.join(", ") || node.source}.</p><Link to={`/tasks?node=${encodeURIComponent(node.id)}`} onClick={onClose}>Open this task</Link></details>
     {blocked && <p className="small warn-text" role="status">{blocked}</p>}
+    {busy && !confirmed && <AiWait onStop={skipAi} stopLabel="Skip AI line" stopTestId="nudge-skip-ai" />}
     {confirmed ? <p className="small good-text" role="status">Recorded as sent by you. The app cannot verify delivery.</p> : <>
       {ready ? <a className="btn btn-primary" href={url} target={channel === "sms" ? undefined : "_blank"} rel="noreferrer" onClick={() => setOpenedText(message)}>Open {CHANNEL_LABEL[channel]} draft</a> : <button className="btn" disabled>{busy ? "Checking draft…" : "Draft unavailable"}</button>}
       <p className="small muted">Demo: recipient is blank. Select a test destination yourself. Opening a draft does not record it as sent.</p>

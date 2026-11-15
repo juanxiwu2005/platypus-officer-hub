@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useStore, useViewer } from "../../data/store"
 import type { Event, EventCheck, EventChecks } from "../../data/types"
-import { respond, reviewEvent, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
+import { respond, reviewEvent, STOPPED_FORM_SOURCE, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
 import { PAGES } from "../../routes"
 import { fmtLong, fmtShort } from "../../lib/dates"
 import { FINALS, findPeriod } from "../../engine/calendar"
@@ -17,6 +17,7 @@ import { canCreateEvent, canLead } from "../../data/changeReview"
 import { policySourceById } from "../../data/policyCatalog"
 import { answerSummary, emitUi } from "../../lib/uiLog"
 import { readAiBudget } from "../../lib/api"
+import { AiWait } from "../AiWait"
 
 const CHAT_KEY = "platypus.v1.chat"
 const load = (): ChatMsg[] => {
@@ -41,6 +42,27 @@ export function AskPanel() {
   const [focusOff, setFocusOff] = useState<string | null>(null)
   const list = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
+  // FB-1: every AI request still on its way (a message, the form's second look, a plan check) has a controller here, so
+  // Stop can end them all at once. `waiting` drives the AiWait card; `owner` is the request that currently holds `busy`.
+  const controllers = useRef(new Set<AbortController>())
+  const [waiting, setWaiting] = useState(0)
+  const [waitKey, setWaitKey] = useState(0)
+  const owner = useRef<AbortController | null>(null)
+  const track = () => {
+    const c = new AbortController()
+    setWaitKey(k => k + 1) // the count starts again for the newest request
+    controllers.current.add(c); setWaiting(controllers.current.size)
+    return c
+  }
+  const untrack = (c: AbortController) => { if (controllers.current.delete(c)) setWaiting(controllers.current.size) }
+  /** Stop: end every request now and free the input. Each request then answers from this browser (assistant.ts). */
+  function stopAll() {
+    const all = [...controllers.current]
+    controllers.current.clear(); setWaiting(0)
+    owner.current = null; setBusy(false)
+    all.forEach(c => c.abort())
+    input.current?.focus()
+  }
 
   useEffect(() => save(messages), [messages])
   // FB-1: learn the server's AI time budget once, so the wait (and "can take up to N s") follows it.
@@ -50,7 +72,7 @@ export function AskPanel() {
     window.addEventListener("platypus:reset", clear)
     return () => window.removeEventListener("platypus:reset", clear)
   }, [])
-  useEffect(() => { list.current?.scrollTo?.({ top: list.current.scrollHeight, behavior: "smooth" }) }, [messages.length, busy])
+  useEffect(() => { list.current?.scrollTo?.({ top: list.current.scrollHeight, behavior: "smooth" }) }, [messages.length, busy, waiting > 0])
 
   // M2b: once a new event is approved, review its plan with the organizer's own details. The request stays in the
   // rail until the result is in this panel, so a panel that closes mid-review (on a phone) runs it again on reopen.
@@ -62,14 +84,22 @@ export function AskPanel() {
     if (!toReview || reviewing.current === toReview || !state.events.some(e => e.id === toReview)) return
     reviewing.current = toReview
     setBusy(true)
+    const ctrl = track()
+    owner.current = ctrl
     const started = Date.now()
-    reviewEvent(state, toReview).then(reply => {
-      emitUi("ui.answer", { ...answerSummary(reply, Date.now() - started), trigger: "plan-check" })
+    reviewEvent(state, toReview, ctrl.signal).then(reply => {
+      // After Stop the reply is the rule engine's own check (FB-1): logged as "stopped".
+      emitUi("ui.answer", { ...answerSummary(reply, Date.now() - started), trigger: "plan-check", ...(ctrl.signal.aborted ? { answer: "stopped", fallback: true } : {}) })
       if (!mounted.current) return
       if (reply.changeSet) dispatch({ type: "draftChanges", changeSet: reply.changeSet })
       setMessages(m => [...m, { id: uid(), role: "assistant", cards: reply.cards, source: reply.source }])
       rail.takeReview()
-    }).catch(() => { emitUi("ui.answer", { answer: "error", trigger: "plan-check", ms: Date.now() - started }, false); if (mounted.current) rail.takeReview() }).finally(() => { if (mounted.current) { setBusy(false); reviewing.current = null } })
+    }).catch(() => { emitUi("ui.answer", { answer: "error", trigger: "plan-check", ms: Date.now() - started }, false); if (mounted.current) rail.takeReview() }).finally(() => {
+      untrack(ctrl)
+      if (!mounted.current) return
+      reviewing.current = null
+      if (owner.current === ctrl) { owner.current = null; setBusy(false) }
+    })
   }, [toReview, state])
 
   const focus: Focus | null = useMemo(() => {
@@ -94,22 +124,34 @@ export function AskPanel() {
     // Research log: the question (cut to 200 characters by the log) and, below, the KIND of answer — never the answer text.
     emitUi("ui.ask", { question: t, via, route: location.pathname, focus: activeFocus ? activeFocus.kind : null })
     const started = Date.now()
+    const ctrl = track()
+    owner.current = ctrl
+    let refining = false
     try {
-      const reply = await respond(t, state, person.id, activeFocus, location.pathname, messages)
-      emitUi("ui.answer", answerSummary(reply, Date.now() - started))
+      const reply = await respond(t, state, person.id, activeFocus, location.pathname, messages, ctrl.signal)
+      // After Stop the reply is the local answer (FB-1). Same kind of record, with answer "stopped".
+      emitUi("ui.answer", ctrl.signal.aborted ? { ...answerSummary(reply, Date.now() - started), answer: "stopped", fallback: true } : answerSummary(reply, Date.now() - started))
       if (reply.autoSet) dispatch({ type: "aiAutoApply", changeSet: reply.autoSet })
       if (reply.changeSet) dispatch({ type: "draftChanges", changeSet: reply.changeSet })
       const msgId = uid()
       setMessages(m => [...m, { id: msgId, role: "assistant", cards: reply.cards, source: reply.source }])
       if (reply.refine) {
-        // Why the AI had nothing: ran out of time, unavailable, or answered without a usable card ("empty").
-        const miss = () => reply.refineMiss?.why ?? "empty"
-        void reply.refine.then(r => { emitUi("ui.answer", r ? { ...answerSummary(r, Date.now() - started), refine: true } : { answer: miss(), refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, r, miss()) }, () => { emitUi("ui.answer", { answer: "unavailable", refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, null, "unavailable") })
+        // The form is showing; the AI's second look is still on its way and Stop can end it (the form stays as it is).
+        refining = true
+        // Why the AI had nothing: ran out of time, unavailable, stopped, or answered without a usable card ("empty").
+        const miss = () => ctrl.signal.aborted ? "stopped" : reply.refineMiss?.why ?? "empty"
+        void reply.refine.then(r => {
+          if (ctrl.signal.aborted) r = null // never fill the form after Stop
+          emitUi("ui.answer", r ? { ...answerSummary(r, Date.now() - started), refine: true } : { answer: miss(), refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, r, miss())
+        }, () => { emitUi("ui.answer", { answer: ctrl.signal.aborted ? "stopped" : "unavailable", refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, null, ctrl.signal.aborted ? "stopped" : "unavailable") }).finally(() => untrack(ctrl))
       }
     } catch {
       emitUi("ui.answer", { answer: "error", ms: Date.now() - started }, false)
       setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Something went wrong. Please try again." }], source: "Platypus" }])
-    } finally { setBusy(false) }
+    } finally {
+      if (!refining) untrack(ctrl)
+      if (owner.current === ctrl) { owner.current = null; setBusy(false) }
+    }
   }
 
   // Questions sent from elsewhere ("Ask about this rule", "Ask AI about this step").
@@ -126,7 +168,7 @@ export function AskPanel() {
    * If it read the message as something else (a task, not an event, or a question), its reply follows as a new
    * message, unless the person already used the form.
    */
-  function applyRefine(msgId: string, refined: Reply | null, miss: "timeout" | "unavailable" | "empty" = "empty") {
+  function applyRefine(msgId: string, refined: Reply | null, miss: "timeout" | "unavailable" | "stopped" | "empty" = "empty") {
     const isForm = (c: ChatCard) => c.kind === "form" || c.kind === "taskform"
     const msg = messagesRef.current.find(x => x.id === msgId)
     const local = msg?.cards?.find(isForm) as { kind: string; done?: boolean } | undefined
@@ -135,7 +177,7 @@ export function AskPanel() {
     const same = !!local && !!aiCard && local.kind === aiCard.kind
     const update = (fn: (x: ChatMsg) => ChatMsg) => setMessages(m => m.map(x => x.id === msgId ? fn(x) : x))
     const settle = (x: ChatMsg, source = x.source) => ({ ...x, source, cards: x.cards?.map(c => isForm(c) ? { ...c, thinking: false } as ChatCard : c) })
-    if (!refined) return update(x => settle(x, miss === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : miss === "unavailable" ? "Platypus · AI unavailable, filled from your words" : "Platypus · AI had nothing to add, filled from your words"))
+    if (!refined) return update(x => settle(x, miss === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : miss === "unavailable" ? "Platypus · AI unavailable, filled from your words" : miss === "stopped" ? STOPPED_FORM_SOURCE : "Platypus · AI had nothing to add, filled from your words"))
     if (same) return update(x => ({
       ...x, source: refined.source,
       cards: x.cards?.map(c => {
@@ -193,7 +235,7 @@ export function AskPanel() {
           {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={card => submitPlan(m.id, i, card)} onTask={(card, buffered) => submitTask(m.id, i, card, buffered)} onMoved={card => patchCard(m.id, i, card)} />)}
           {m.source && <span className="ask-source">{m.source}</span>}
         </div>)}
-      {busy && <Typing />}
+      {waiting > 0 && <AiWait key={waitKey} onStop={stopAll} stopTestId="ask-stop" />}
     </div>
     {messages.length > 0 && suggestionRow}
     <form className="ask-form" onSubmit={e => { e.preventDefault(); void send(text) }}>
@@ -398,9 +440,3 @@ function EventDateCard({ card, onDone }: { card: Extract<ChatCard, { kind: "even
   </form>
 }
 
-/** Typing dots; after a few seconds, say why it is taking a while (ASU AIR can take most of a minute). */
-function Typing() {
-  const [slow, setSlow] = useState(false)
-  useEffect(() => { const t = setTimeout(() => setSlow(true), 6000); return () => clearTimeout(t) }, [])
-  return <div className="ai-wait" aria-label="Thinking"><span className="ai-wait-mark" aria-hidden="true"><i /><i /><i /></span><span><b>Platypus is working</b><small>{slow ? "The ASU AI is still preparing a careful answer." : "Reading your question and checking the relevant context…"}</small></span></div>
-}
