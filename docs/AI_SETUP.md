@@ -19,10 +19,23 @@
 | `AI_PRESET` | 不填，或 `asu_air` | 不填就是 AIR（默认）。不要改成别的供应商，见第 3 节 |
 | `AI_MODEL` | 不填 | AIR 下由路由按任务选模型；只有关掉路由时才用 |
 | `AI_MODEL_ROUTING` | 不填（= 开） | 设 `off` = 所有任务都用 `AI_MODEL` 一个模型（运营方回退开关） |
-| `AI_TIMEOUT_MS` | 不填（25000） | 只给自己没设时间的调用用。**所有普通（同步）接口都自己设了 22 秒**（`SYNC_AI_BUDGET_MS`，`netlify/lib/ai.mts`；`/api/setup/constitution`、`/api/setup/workflow` 是 21 秒），改这个变量不会让它们变长。原因：2026-11-07 生产日志里 `/api/chat` 设了 55 秒，Netlify 在约 30 秒就把函数杀掉（504/502，连 `ai_usage` 一行都没有）。22 秒是整次调用（含格式回退的第二次）的总预算，超时就回一个干净的 504 JSON，浏览器（最多等 25 秒，不重试）改用本地表单或本地结果 |
+| `AI_TIMEOUT_MS` | 不填（25000） | 只给自己没设时间的调用用（后台任务）。普通（同步）接口都用下一行的 `AI_SYNC_BUDGET_MS`，改这个变量不会让它们变长 |
+| `AI_SYNC_BUDGET_MS` | 不填（26000） | FB-1（2026-11-15）：所有普通（同步）AI 接口一次调用的总时间（含格式回退或截断重试的第二次请求），夹在 10000–55000 毫秒；`/api/setup/constitution`、`/api/setup/workflow` 用它减 1 秒。超时就回一个干净的 504 JSON，浏览器改用本地表单或本地结果。`/api/health` 会显示当前值（`syncBudgetMs`），浏览器等这个值 + 4 秒（读不到时等 30 秒），不自动重试；等待时用户可以按 **Stop**（Ask）或 **Skip AI line**（提醒）。**默认 26 秒的原因：** 2026-11-07 生产日志里 `/api/chat` 设了 55 秒，Netlify 在约 30 秒就把函数杀掉（504/502，连 `ai_usage` 一行都没有）；Netlify 现在的文档写同步函数 60 秒。两者不一致，量过之前不要调高，量法见下面"量 Netlify 的真实上限" |
+| `AI_LIMIT_PROBE` | **不填** | 只有设为 `on` 时 `/api/limit-probe` 才可用，否则 404。量完立刻删掉 |
+| `AI_MIN_OUTPUT_TOKENS` | 不填（1024） | FB-1（2026-11-15）：走 AIR 时每次请求的输出额度（`max_tokens`）至少这么多，可设 256–4096，超出范围自动夹回。原因：2026-11-12 线上 `/api/nudge/draft` 只给了 120，4 秒内两次都被截断（"output limit"），提醒里的 AI 句子每次都失败。额度是"最多能用多少"，不是"要写多少"：各接口自己的长度检查（提醒那句最多 10 个词）不变。回答仍被截断（`finish_reason` 为 `length`/`max_tokens`）且接口不能保留其中完整的部分时，**自动再试一次**，额度翻倍（最多 4096），只在剩余时间 ≥ 5 秒时才试；一次调用最多 2 个请求（格式回退和这次重试共用名额）。这是 `AGENTS.md` 第 12 节"不自动重复收费请求"的明确例外（Juanxi 2026-11-14 批准） |
 | `ORG_SETUP_ENABLED` | **不填** | 服务器存储开关，见第 4 节。不填 = 隐藏 |
 
 改完变量要 **Deploys → Trigger deploy → Deploy project**，新变量只对新部署生效。`/api/health` 会显示当前供应商（应为 `ASU AIR`）和路由版本，从不显示 key。
+
+### 量 Netlify 的真实上限（FB-1，上线后做一次）
+
+仓库里记的是约 30 秒（2026-11-07 线上日志：31.2 秒后 504），Netlify 现在的文档写 60 秒。用 `/api/limit-probe` 量一次，再决定 `AI_SYNC_BUDGET_MS`。这个接口只等待、返回 `{ "waited": NN }`，**不调 AI、不存任何东西**。
+
+1. Netlify 里加环境变量 `AI_LIMIT_PROBE=on`，重新部署（Deploys → Trigger deploy）。
+2. 浏览器依次打开（把域名换成正式站或 Deploy Preview）：`https://<站点>/api/limit-probe?s=25`、`?s=35`、`?s=45`、`?s=55`。看到 `{"waited":NN}` = 这么久没被掐断；看到 502/504 或空白错误页 = 超过上限了。上一个成功、下一个失败，真实上限就在两者之间（想更准就在中间再试一两个数，最大 58）。
+3. 把 `AI_SYNC_BUDGET_MS` 设成 **真实上限减 8–10 秒**（留给冷启动和函数其余部分），例如：真实上限 30 秒 → 保持默认 26000 或不填；真实上限 60 秒 → 设 50000。最多只能设 55000。
+4. **删掉 `AI_LIMIT_PROBE`**，重新部署；打开 `/api/health` 确认 `syncBudgetMs` 是新值、`/api/limit-probe` 回到 404。
+5. 把量到的数字和设的值记进 `docs/PROGRESS.md`（交给主会话）。
 
 ## 2. 每个接口用哪个模型（routing v3，`air-task-routing-v3`）
 
@@ -33,8 +46,8 @@
 | `POST /api/command` | 一句话改数据（变更单） | `command` | Muse |
 | `POST /api/nudge/draft` | 提醒草稿里的一句话 | `nudge_draft` | Muse |
 | `POST /api/handbook/draft` | Handoff 岗位手册选来源 | `handbook_draft` | Muse |
-| `/api/setup/constitution`（设置第 1 步 Continue 后读章程，不存储） | 把章程读成岗位、汇报关系和每个岗位的职责 | `constitution_read` | Muse（快），分 structure 和 duties 两种请求，依次发（AIR 一次只处理一个，并行会排队），每个 21 秒内必须返回（站点实测 30 秒会被 Netlify 掐断，冷启动还占几秒），duties 每批最多 6 项。不用 Gemma：真实章程 Gemma 要 56 秒 |
-| `/api/setup/workflow`（设置第 5 步，Planning notes + 文件 对比标准活动工作流；再按职责分配岗位，不存储） | 提出增改删和冲突；分配每一步的负责岗位 | `workflow_read` | Muse（快），`changes` 和 `owners` 两个请求依次发，各 21 秒内必须返回 |
+| `/api/setup/constitution`（设置第 1 步 Continue 后读章程，不存储） | 把章程读成岗位、汇报关系和每个岗位的职责 | `constitution_read` | Muse（快），分 structure 和 duties 两种请求，依次发（AIR 一次只处理一个，并行会排队），每个必须在 `AI_SYNC_BUDGET_MS` 减 1 秒内返回（默认 25 秒；站点实测 30 秒会被 Netlify 掐断，冷启动还占几秒），duties 每批最多 6 项。不用 Gemma：真实章程 Gemma 要 56 秒 |
+| `/api/setup/workflow`（设置第 5 步，Planning notes + 文件 对比标准活动工作流；再按职责分配岗位，不存储） | 提出增改删和冲突；分配每一步的负责岗位 | `workflow_read` | Muse（快），`changes` 和 `owners` 两个请求依次发，各在 `AI_SYNC_BUDGET_MS` 减 1 秒内必须返回（默认 25 秒） |
 | `/api/org/ai`（Organization Setup，目前隐藏） | 章程、职责、流程等较长的结构化设置 | `setup.*` | Gemma（`gemma4-31b-it`） |
 | 同上，用户主动点 Deeper review | | `setup.*` + deep | GLM（`glm-5-3`） |
 
@@ -65,7 +78,7 @@ DP3 带来的 Organization Setup 和 Activity workspace 会把数据存在服务
 
 ## 用量日志（S2，M1 补全）
 
-每次 AI 调用在 Netlify → Logs 留一行 `ai_usage`：`task`、供应商、请求的模型和实际返回的模型、路由版本、输入/输出 token、结束原因（`finishReason`）、首包时间（`headersMs`）、总耗时、成功或失败代码。**不记 key、提示词、用户内容或 AI 回复。**
+每次 AI 调用在 Netlify → Logs 留一行 `ai_usage`：`task`、供应商、请求的模型和实际返回的模型、路由版本、输入/输出 token、结束原因（`finishReason`）、首包时间（`headersMs`）、总耗时、成功或失败代码。FB-1 起还有：`maxTokens`（最后一次请求的输出额度）、`reasoningTokens`（只有供应商在 `usage.completion_tokens_details.reasoning_tokens` 里给了才有，用来确认额度是不是被"思考"用掉了）、`retry`（只有被截断后自动重试过才出现，值是 `"output_limit"`）。**不记 key、提示词、用户内容或 AI 回复。**
 
 ## 研究说明
 

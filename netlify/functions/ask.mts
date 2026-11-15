@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/functions"
-import { chatJSON, SYNC_AI_BUDGET_MS } from "../lib/ai.mts"
+import { chatJSON, syncAiBudgetMs } from "../lib/ai.mts"
 import { fail, json, readJSON, str, BadRequest } from "../lib/http.mts"
 import { RULES } from "../../src/data/rules.ts"
 import { groundedAnswer } from "../../src/lib/ruleAnswers.ts"
@@ -14,7 +14,7 @@ export default async (req: Request) => {
     const question = str(body.question, 1000)
     if (!question) throw new BadRequest("Missing question.")
     // The client cannot replace the official rules or inject fake rule text.
-    const { data, model, provider } = await chatJSON({ task: "ask", system:RULE_SYSTEM, user:JSON.stringify({rules:RULES.map(({id,category,text,limit,note})=>({id,category,text,limit,note})),question}),maxTokens:300, timeoutMs: SYNC_AI_BUDGET_MS })
+    const { data, model, provider } = await chatJSON({ task: "ask", system:RULE_SYSTEM, user:JSON.stringify({rules:RULES.map(({id,category,text,limit,note})=>({id,category,text,limit,note})),question}),maxTokens:300, timeoutMs: syncAiBudgetMs() })
     return json(groundedAnswer(data,model,provider))
   } catch(e) { return fail(e) }
 }

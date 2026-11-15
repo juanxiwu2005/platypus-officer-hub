@@ -12,7 +12,7 @@ import { roleDossier, type DossierBlock, type DossierRow } from "../lib/roleDoss
 import { handoffRisk } from "../lib/handoffRisk"
 import { NewOfficerCard, QuestionsList, ReviewsPanel } from "./HandoffNewOfficer"
 import { RoleChanges, StarterQuestions } from "./HandoffRoleChanges"
-import { AI_WAIT_MS, aiMiss, callApi } from "../lib/api"
+import { aiMiss, aiWaitMs, callApi } from "../lib/api"
 import { Feedback } from "../components/Feedback"
 import { Avatar, Chain, Empty, Hover, Info, Ring, RISK_SHAPE, useStatusStyles, useTouch, type Stop } from "../components/ui"
 import { Bts, BtsRow } from "../components/Bts"
@@ -165,7 +165,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
     const fingerprint = sourceFingerprint(sources)
     try {
       if (!state.aiEnabled) throw new Error("AI off")
-      const result = await callApi<{ entries: unknown; model: string; provider: string; partial?: boolean }>("/handbook/draft", { sources: draftPayload(sources) }, AI_WAIT_MS)
+      const result = await callApi<{ entries: unknown; model: string; provider: string; partial?: boolean }>("/handbook/draft", { sources: draftPayload(sources) }, aiWaitMs())
       const entries = sanitizeHandbook(result, sources)
       if (!entries.length) throw new Error("No sources")
       act({ kind: "draft", roleId: r.roleId, raw: { entries }, fingerprint, model: result.model, source: `AI-selected source extracts · ${result.provider}${result.partial ? " · reply was cut short, complete picks kept" : ""}` })

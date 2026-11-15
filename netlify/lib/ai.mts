@@ -13,7 +13,9 @@ import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/model
  *   AI_PROVIDER   openai-compatible | anthropic (optional; set by the preset)
  *   AI_JSON_MODE  json_object (default) | none   — turn off if a provider rejects response_format
  *   AI_TIMEOUT_MS time budget in ms for a call that sets none itself (default 25000). Every synchronous
- *                 /api/* function sets its own, at most SYNC_AI_BUDGET_MS (below), so this cannot push them past Netlify's limit.
+ *                 /api/* function sets its own, at most syncAiBudgetMs() (below), so this cannot push them past Netlify's limit.
+ *   AI_SYNC_BUDGET_MS  time budget in ms for every synchronous /api/* AI call (default 26000, kept within 10000–55000).
+ *   AI_MIN_OUTPUT_TOKENS  asu_air only: the smallest output allowance a call is sent with (default 1024, kept within 256–4096).
  *
  * Juanxi 2026-10-27: every call goes to ASU AIR, and the model is chosen per task by routing v3
  * (Gemma for long structured setup work, Muse for short chat and edits, GLM only for a requested
@@ -27,8 +29,31 @@ import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/model
  * `ai_usage` line (production log 2026-11-07: /api/chat 504 after 31.2 s, then 502 after 30.3 s). Stopping
  * here leaves room for a cold start and the rest of the function, so the person gets a clean JSON error
  * and the browser's own fallback instead. Background functions (15 minutes) pass their own longer budget.
+ *
+ * FB-1 (2026-11-15): the default is 26 s, still inside the ~30 s observed in production. Netlify's documentation now says
+ * 60 s for synchronous functions; the two disagree, so the real limit is measured once with /api/limit-probe
+ * (docs/AI_SETUP.md) and the budget is then raised with AI_SYNC_BUDGET_MS, without a code change. /api/health reports it,
+ * and the browser waits this long plus 4 s (src/lib/api.ts).
  */
-export const SYNC_AI_BUDGET_MS = 22_000;
+export const SYNC_AI_BUDGET_DEFAULT_MS = 26_000;
+export function syncAiBudgetMs(): number {
+  const v = Number(env("AI_SYNC_BUDGET_MS"));
+  return Number.isFinite(v) && v > 0
+    ? Math.round(Math.max(10_000, Math.min(55_000, v)))
+    : SYNC_AI_BUDGET_DEFAULT_MS;
+}
+
+/**
+ * The smallest output allowance ("max_tokens") a call to ASU AIR is sent with. Production 2026-11-12: /api/nudge/draft
+ * asked for 120 tokens and came back cut off ("length") in about 4 s, twice, so the reminder's AI line failed every
+ * time. The allowance is the most the model may use, not how much it should write: each endpoint still checks the
+ * length of what comes back (the reminder line stays at most 10 words). Override with AI_MIN_OUTPUT_TOKENS (256–4096).
+ */
+export const AIR_MIN_OUTPUT_TOKENS = 1024;
+/** A reply cut off at the output limit is asked for once more with twice the allowance, never more than this. */
+export const MAX_RETRY_OUTPUT_TOKENS = 4096;
+/** That second request is only sent when at least this much of the call's time budget is left. */
+export const OUTPUT_RETRY_MIN_MS = 5_000;
 
 type Provider = "openai-compatible" | "anthropic";
 
@@ -77,6 +102,14 @@ const env = (k: string): string => {
 const activePreset = () => (env("AI_PRESET") || "asu_air").toLowerCase();
 /** True when calls go to ASU AIR: the default, and the only preset that uses per-task model routing. */
 export const isAirPreset = () => activePreset() === "asu_air";
+
+/** AIR_MIN_OUTPUT_TOKENS, or the AI_MIN_OUTPUT_TOKENS override kept within 256–4096. Anything unreadable means the default. */
+export function airMinOutputTokens(): number {
+  const v = Number(env("AI_MIN_OUTPUT_TOKENS"));
+  return Number.isFinite(v) && v > 0
+    ? Math.round(Math.max(256, Math.min(MAX_RETRY_OUTPUT_TOKENS, v)))
+    : AIR_MIN_OUTPUT_TOKENS;
+}
 
 /** Providers that used to be here and are now refused outright, with or without a base URL. */
 const REMOVED_PRESETS = ["deepseek"];
@@ -199,6 +232,12 @@ export type ProviderAttempt = {
   outputChars: number;
   inputTokens?: number;
   outputTokens?: number;
+  /** Output tokens the provider says went to reasoning (usage.completion_tokens_details.reasoning_tokens), if it says. */
+  reasoningTokens?: number;
+  /** The output allowance ("max_tokens") this attempt was sent with. */
+  maxTokens?: number;
+  /** Set on a second attempt that was sent because the first reply was cut off at the output limit. */
+  retry?: "output_limit";
   headersMs: number;
   headersReceived: boolean;
   firstTokenMs?: number;
@@ -218,9 +257,14 @@ export type ProviderObservation = Omit<
   ProviderAttempt,
   "attempt" | "startedAfterMs" | "headersReceived" | "outcome"
 > & {
-  /** One callback per logical call; bounded format downgrades remain distinct attempts. */
+  /** One callback per logical call; a format downgrade or an output-limit retry remains a distinct attempt (two at most). */
   attempts?: ProviderAttempt[];
   attemptCount?: number;
+};
+type ProviderUsage = {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  completion_tokens_details?: { reasoning_tokens?: number };
 };
 type HttpResult = {
   status?: number;
@@ -228,7 +272,7 @@ type HttpResult = {
   reply: string;
   model: string;
   finishReason: string;
-  usage?: { prompt_tokens?: number; completion_tokens?: number };
+  usage?: ProviderUsage;
   streaming: boolean;
   headersMs: number;
   headersReceived: boolean;
@@ -386,9 +430,14 @@ export type ChatJSONResult = {
   firstTokenMs?: number;
   /** True when the reply hit the output limit and `salvageTruncated` kept part of it. */
   truncated?: boolean;
+  /** The output allowance of the request that produced this reply (after the AIR minimum and any retry). */
+  maxTokens?: number;
+  reasoningTokens?: number;
+  /** "output_limit": the first reply was cut off, and this one came from the single retry with twice the allowance. */
+  retry?: "output_limit";
 };
 
-type Usage = { inputTokens?: number; outputTokens?: number }
+type Usage = { inputTokens?: number; outputTokens?: number; reasoningTokens?: number; maxTokens?: number; retry?: "output_limit" }
 const count = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : undefined)
 
 /**
@@ -397,6 +446,9 @@ const count = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v 
  * token counts and finish reason if the provider reported them, time to headers and in total, and
  * whether it worked. Never the key, the request, the prompt or the reply: this is a bill-and-abuse
  * record, not a transcript.
+ * FB-1: `maxTokens` is the output allowance the (last) request was sent with; `reasoningTokens` appears only when the
+ * provider reports it, and shows whether the allowance went on thinking; `retry: "output_limit"` appears only when a
+ * cut-off reply was asked for a second time. Numbers and one fixed word, nothing else.
  */
 export function logUsage(line: { task?: string; provider: string; model: string; requestedModel?: string; routingVersion?: string; ok: boolean; ms: number; headersMs?: number; finishReason?: string; error?: string } & Usage) {
   const safe = (v: string | undefined, max: number) => String(v ?? "").replace(/[^\w.:/ -]/g, "").slice(0, max)
@@ -405,6 +457,9 @@ export function logUsage(line: { task?: string; provider: string; model: string;
     requestedModel: safe(line.requestedModel, 80) || null, routingVersion: safe(line.routingVersion, 40) || null,
     inputTokens: count(line.inputTokens) ?? null, outputTokens: count(line.outputTokens) ?? null, finishReason: safe(line.finishReason, 30) || null,
     headersMs: count(line.headersMs) ?? null, ms: count(line.ms) ?? null, ok: line.ok, ...(line.error ? { error: safe(line.error, 40) } : {}),
+    maxTokens: count(line.maxTokens) ?? null,
+    ...(count(line.reasoningTokens) !== undefined ? { reasoningTokens: count(line.reasoningTokens) } : {}),
+    ...(line.retry === "output_limit" ? { retry: "output_limit" } : {}),
   }))
 }
 
@@ -413,11 +468,11 @@ export async function chatJSON(args: ChatJSONArgs): Promise<ChatJSONResult> {
   const t0 = Date.now()
   try {
     const r = await callProvider(args)
-    logUsage({ task: args.task, provider: r.provider, model: r.model, requestedModel: r.requestedModel, routingVersion: r.routingVersion, ok: true, ms: r.ms, inputTokens: r.inputTokens, outputTokens: r.outputTokens, finishReason: r.finishReason, headersMs: r.headersMs })
+    logUsage({ task: args.task, provider: r.provider, model: r.model, requestedModel: r.requestedModel, routingVersion: r.routingVersion, ok: true, ms: r.ms, inputTokens: r.inputTokens, outputTokens: r.outputTokens, finishReason: r.finishReason, headersMs: r.headersMs, maxTokens: r.maxTokens, reasoningTokens: r.reasoningTokens, retry: r.retry })
     return r
   } catch (e) {
     const c = getConfig(), d = e instanceof AIError ? e.diagnostics : undefined
-    logUsage({ task: args.task, provider: c.label, model: d?.model ?? c.model, requestedModel: d?.requestedModel, ok: false, ms: Date.now() - t0, error: e instanceof AIError ? e.code : "error", inputTokens: d?.inputTokens, outputTokens: d?.outputTokens, finishReason: d?.finishReason, headersMs: d?.headersMs })
+    logUsage({ task: args.task, provider: c.label, model: d?.model ?? c.model, requestedModel: d?.requestedModel, ok: false, ms: Date.now() - t0, error: e instanceof AIError ? e.code : "error", inputTokens: d?.inputTokens, outputTokens: d?.outputTokens, finishReason: d?.finishReason, headersMs: d?.headersMs, maxTokens: d?.maxTokens, reasoningTokens: d?.reasoningTokens, retry: d?.retry })
     throw e
   }
 }
@@ -440,6 +495,8 @@ async function callProvider({
       ? routeTask(task, mode)
       : null;
   if (route) maxTokens = Math.max(maxTokens, route.minOutputTokens);
+  // ASU AIR can spend part of the allowance before the first visible word, so a small one ends in a cut-off reply.
+  if (isAirPreset()) maxTokens = Math.max(maxTokens, airMinOutputTokens());
   const c = {
     ...configured,
     model: route?.model ?? configured.model,
@@ -454,8 +511,8 @@ async function callProvider({
       503,
     );
   const t0 = Date.now();
-  // c.timeoutMs is the budget for the whole call: the second (format-fallback) attempt gets only what is left, at
-  // least one second, so a call ends within its budget plus one second (SYNC_AI_BUDGET_MS 22 s → at most 23 s).
+  // c.timeoutMs is the budget for the whole call: a second attempt (format fallback, or the output-limit retry) gets
+  // only what is left, at least one second, so a call ends within its budget plus one second.
   const deadline = t0 + c.timeoutMs;
   const attempts: ProviderAttempt[] = [];
   const inputChars = system.length + user.length;
@@ -471,7 +528,6 @@ async function callProvider({
     c.provider === "anthropic"
       ? {
           model: c.model,
-          max_tokens: maxTokens,
           temperature,
           system,
           messages: [{ role: "user", content: user }],
@@ -482,7 +538,6 @@ async function callProvider({
             : {}),
           model: c.model,
           temperature,
-          max_tokens: maxTokens,
           messages: [
             { role: "system", content: system },
             { role: "user", content: user },
@@ -501,17 +556,22 @@ async function callProvider({
   let data: unknown;
   let servedReasoningEffort: string | undefined;
   let salvaged: { value: unknown } | undefined;
+  // The output allowance of the next request; doubled once if the first reply is cut off (see the retry below).
+  let allowance = maxTokens;
+  let retry: "output_limit" | undefined;
+  // At most two provider requests per logical call: the format fallback and the output-limit retry share that allowance.
   for (let number = 1; number <= 2; number++) {
     const attemptStart = Date.now();
     const attemptTimeout =
       number === 1
         ? c.timeoutMs
         : Math.max(Math.min(c.timeoutMs, 1000), deadline - attemptStart);
+    const sized = { ...base, max_tokens: allowance };
     const request =
       format === "prompt"
-        ? base
+        ? sized
         : {
-            ...base,
+            ...sized,
             response_format:
               format === "json_schema"
                 ? {
@@ -551,11 +611,14 @@ async function callProvider({
       rawResponse: r.text,
       httpStatus: r.status,
       format,
-      formatFallback: number > 1,
+      formatFallback: number > 1 && !retry,
       servedReasoningEffort,
       outcome: "complete",
       inputTokens: r.usage?.prompt_tokens,
       outputTokens: r.usage?.completion_tokens,
+      reasoningTokens: r.usage?.completion_tokens_details?.reasoning_tokens,
+      maxTokens: allowance,
+      ...(retry ? { retry } : {}),
     };
     attempts.push(attempt);
     failure = undefined;
@@ -629,6 +692,8 @@ async function callProvider({
           c.provider === "anthropic"
             ? body?.usage?.output_tokens
             : body?.usage?.completion_tokens;
+        attempt.reasoningTokens =
+          body?.usage?.completion_tokens_details?.reasoning_tokens;
       }
       checkCompletion(attempt.rawReply, attempt);
     } catch (e) {
@@ -656,6 +721,21 @@ async function callProvider({
         failure = undefined;
         attempt.outcome = "complete";
       }
+    }
+    // FB-1 (Juanxi 2026-11-14, an approved exception to "never repeat a paid request automatically"): a reply cut off
+    // at the output limit, with nothing the caller could keep, is asked for once more with twice the allowance. Only
+    // after the first attempt, only if the allowance can still grow, and only with enough of the time budget left.
+    const bigger = Math.min(MAX_RETRY_OUTPUT_TOKENS, allowance * 2);
+    if (
+      failure &&
+      attempt.failureKind === "output_limit" &&
+      number === 1 &&
+      bigger > allowance &&
+      deadline - Date.now() >= OUTPUT_RETRY_MIN_MS
+    ) {
+      allowance = bigger;
+      retry = "output_limit";
+      continue;
     }
     // Only an explicit format rejection permits one transport retry. Never regenerate malformed output.
     const rejectedFormat =
@@ -711,6 +791,11 @@ async function callProvider({
       routingVersion: route?.version,
       ...publicMetrics(observation),
       ...(salvaged ? { truncated: true } : {}),
+      maxTokens: observation.maxTokens,
+      ...(count(observation.reasoningTokens) !== undefined
+        ? { reasoningTokens: count(observation.reasoningTokens) }
+        : {}),
+      ...(observation.retry ? { retry: observation.retry } : {}),
     };
   }
   throw new Error("Unreachable AI attempt state.");

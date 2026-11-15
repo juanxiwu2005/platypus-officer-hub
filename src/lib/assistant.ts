@@ -1,5 +1,5 @@
 import type { ChangeSet, DemoState, Node } from "../data/types"
-import { AI_WAIT_MS, aiMiss, callApi, type AiMiss } from "./api"
+import { AI_WAIT_MS, aiMiss, aiWaitMs, callApi, wasStopped, type AiMiss } from "./api"
 import { commandContext, eventFields, GATHERING, humanEventDate, isSmallOp, namesEvent, parseCommand, parseTaskIntent, TASK_WORD, type CommandOp } from "./commands"
 import { groundedAnswer, RULE_REFUSAL, type RuleAnswer } from "./ruleAnswers"
 import { aiSnapshot, formSnapshot, knownDates } from "./aiContext"
@@ -44,8 +44,13 @@ export interface Focus { kind: "node" | "event" | "page"; id: string; title: str
 export interface Reply {
   cards: ChatCard[]; source: string; changeSet?: ChangeSet; autoSet?: ChangeSet; refine?: Promise<Reply | null>
   /** Filled in when `refine` settles to null after a failed request: why the AI had nothing, so the label stays honest. */
-  refineMiss?: { why?: AiMiss }
+  refineMiss?: { why?: AiMiss | "stopped" }
 }
+
+/** FB-1: the label under a chat answer given from this browser because the person pressed Stop. */
+export const STOPPED_SOURCE = "Platypus · stopped, quick answer from this browser"
+/** FB-1: the label of a form left as it was filled from the person's words because they pressed Stop. */
+export const STOPPED_FORM_SOURCE = "Platypus · AI stopped, filled from your words"
 
 const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`
 const canLeadAs = (s: DemoState, id: string) => {
@@ -180,17 +185,17 @@ const tasksCard = (s: DemoState, viewerId: string, scope: TaskScope, limit: numb
   return { kind: "tasks", title: t.title, nodeIds: t.nodes.map(n => n.id), remind: t.remind && canLeadAs(s, viewerId) }
 }
 
-async function ruleReply(question: string, s: DemoState): Promise<Reply> {
+async function ruleReply(question: string, s: DemoState, signal?: AbortSignal): Promise<Reply> {
   let answer: Pick<RuleAnswer, "inScope" | "answer" | "citations" | "model" | "provider">, label: string
   try {
     if (!s.aiEnabled) throw new Error("AI off")
     // Legacy R01–R16 questions retain their deterministic renderer. Everything else is searched in the
     // 64-record policy archive on the server; detailed text never enters the browser bundle.
     if (/\bR\d{2}\b/i.test(question) || keywordRules(question).length) {
-      const r = await callApi<RuleAnswer>("/ask", { question }, AI_WAIT_MS)
+      const r = await callApi<RuleAnswer>("/ask", { question }, aiWaitMs(), signal)
       answer = groundedAnswer({ ...r, confidence: 1 }, r.model, r.provider)
     } else {
-      const r = await callApi<PolicyAnswer>("/policy-answer", { question }, AI_WAIT_MS)
+      const r = await callApi<PolicyAnswer>("/policy-answer", { question }, aiWaitMs(), signal)
       if (!r.inScope || !r.answer || !r.citations.length) throw new Error("No grounded policy answer")
       answer = r
     }
@@ -198,7 +203,7 @@ async function ruleReply(question: string, s: DemoState): Promise<Reply> {
   } catch {
     const ids = keywordRules(question)
     answer = groundedAnswer({ inScope: ids.length > 0, confidence: 1, citations: ids }, null)
-    label = s.aiEnabled ? "Matched by keywords · AI unavailable" : "Matched by keywords · AI off"
+    label = !s.aiEnabled ? "Matched by keywords · AI off" : signal?.aborted ? "Matched by keywords · AI stopped" : "Matched by keywords · AI unavailable"
   }
   return { cards: [{ kind: "rule", question, answer: answer.answer, citations: answer.citations, inScope: answer.inScope, label }], source: label }
 }
@@ -234,37 +239,39 @@ function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: strin
 const HELP = "I can rank your top tasks, add a task, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
 
 /**
- * The browser waits at most AI_WAIT_MS (25 s) for an AI answer; the server stops at 22 s, inside Netlify's 30 s.
- * There is no second try: a retry would make the person wait another half minute (production 2026-11-07).
+ * The browser waits at most aiWaitMs() for an AI answer: the server's budget (26 s by default, /api/health) plus 4 s,
+ * or 30 s (AI_WAIT_MS) until the budget is known. There is no second try from the browser: a retry would make the person
+ * wait another half minute (production 2026-11-07). FB-1: the person can stop waiting at any time (Stop / `signal`).
  */
-export { AI_WAIT_MS }
+export { AI_WAIT_MS, aiWaitMs }
 
 /**
  * One /api/chat round. Returns null when the reply had no usable card, or (unless `rethrow`) when the request failed;
  * `miss.why` then says whether it ran out of time or the service was unavailable.
  * `purpose: "form"`: the form is already showing, so only the club, roles, people and events are sent (formSnapshot).
  */
-async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus | null, page: string, history: ChatMsg[], opts: { rethrow?: boolean; purpose?: "form"; miss?: { why?: AiMiss } } = {}): Promise<Reply | null> {
+async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus | null, page: string, history: ChatMsg[], opts: { rethrow?: boolean; purpose?: "form"; miss?: { why?: AiMiss | "stopped" }; signal?: AbortSignal } = {}): Promise<Reply | null> {
   const snap = aiSnapshot(s)
   const data = opts.purpose === "form" ? formSnapshot(snap) : snap
   try {
     const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
       message: t, page, focus, context: commandContext(s), data, ...(opts.purpose ? { purpose: opts.purpose } : {}),
       history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
-    }, AI_WAIT_MS)
+    }, aiWaitMs(), opts.signal)
     const cards = sanitizeCards(r.cards, commandContext(s), knownDates(data))
     const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Checked command grammar"
     return cards.length ? fromWire(cards, t, s, viewerId, label, focus ?? null) : null
   } catch (e) {
-    if (opts.miss) opts.miss.why = aiMiss(e)
+    if (opts.miss) opts.miss.why = wasStopped(e) ? "stopped" : aiMiss(e)
     if (opts.rethrow) throw e
     return null
   }
 }
 
 /** The event form from the person's own words, for when the AI could not answer a message that reads like planning. */
-function localPlanReply(t: string, s: DemoState, why: AiMiss | "off"): Reply {
+function localPlanReply(t: string, s: DemoState, why: AiMiss | "off" | "stopped"): Reply {
   const { prefill, date } = planDefaults(t, s)
+  if (why === "stopped") return { cards: [textCard("You stopped the AI, so I filled in the event form from your words. If you meant a new event, check it and draft the plan."), { kind: "form", id: uid(), prefill, date }], source: STOPPED_FORM_SOURCE }
   const lead = why === "off" ? "AI is off, so I filled in the event form from your words." : why === "timeout" ? "The AI didn't answer in time, so I filled in the event form from your words." : "The AI is unavailable right now, so I filled in the event form from your words."
   return {
     cards: [textCard(`${lead} If you meant a new event, check it and draft the plan.`), { kind: "form", id: uid(), prefill, date }],
@@ -276,7 +283,7 @@ function localPlanReply(t: string, s: DemoState, why: AiMiss | "off"): Reply {
  * Answer one message. Clear requests are answered by the app itself (no AI needed); anything else goes to
  * /api/chat when AI is on. Every AI reply is re-checked by sanitizeCards() before it is shown.
  */
-export async function respond(text: string, s: DemoState, viewerId: string, focus: Focus | null, page: string, history: ChatMsg[]): Promise<Reply> {
+export async function respond(text: string, s: DemoState, viewerId: string, focus: Focus | null, page: string, history: ChatMsg[], signal?: AbortSignal): Promise<Reply> {
   const t = text.trim()
   const focusNode = focus?.kind === "node" ? s.nodes.find(n => n.id === focus.id) : undefined
   const focusEvent = focus?.kind === "event" ? s.events.find(e => e.id === focus.id) : focusNode?.eventId ? s.events.find(e => e.id === focusNode.eventId) : undefined
@@ -288,8 +295,8 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   // what is still empty (or, if it reads the message differently, says so in a new message).
   const intent = createIntent(t, s)
   if (intent) {
-    const refineMiss: { why?: AiMiss } = {}
-    const refine = s.aiEnabled && !BARE_EVENT.test(t) && !BARE_TASK.test(t) ? aiReply(t, s, viewerId, focus, page, history, { purpose: "form", miss: refineMiss }) : undefined
+    const refineMiss: { why?: AiMiss | "stopped" } = {}
+    const refine = s.aiEnabled && !BARE_EVENT.test(t) && !BARE_TASK.test(t) ? aiReply(t, s, viewerId, focus, page, history, { purpose: "form", miss: refineMiss, signal }) : undefined
     const source = !s.aiEnabled ? "Local demo grammar · AI off" : refine ? "Platypus · AI is reading your message" : "Platypus"
     const extra = refine ? { refine, refineMiss } : {}
     if (intent === "task") {
@@ -314,7 +321,7 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   }
   // A policy/source question has precedence over shortcuts. This prevents "top three rules" from
   // incorrectly becoming the user's top-five task table.
-  if (POLICY_REFERENCE_RE.test(t)) return ruleReply(t, s)
+  if (POLICY_REFERENCE_RE.test(t)) return ruleReply(t, s, signal)
   if (TOP_TASK_RE.test(t)) return { cards: [tasksCard(s, viewerId, /team|club|everyone/i.test(t) ? "team" : "mine", limit)], source: "Ranked by risk, then start date" }
   if (STUCK_RE.test(t)) return { cards: [tasksCard(s, viewerId, "stuck", limit)], source: "Platypus" }
   if (NUDGE_RE.test(t)) return { cards: [tasksCard(s, viewerId, "risk", 3, focusEvent?.id)], source: "Forecast" }
@@ -347,16 +354,18 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
     if (pick) return { cards: [{ kind: "nudge", nodeId: pick.id }], source: "Platypus" }
   }
   const ops = parseCommand(t, commandContext(s))
-  if (ops.length && ops.every(o => o.op === "answer_question") || RULE_Q_RE.test(t)) return ruleReply(t, s)
+  if (ops.length && ops.every(o => o.op === "answer_question") || RULE_Q_RE.test(t)) return ruleReply(t, s, signal)
   if (ops.length && !ops.some(o => o.op === "answer_question")) {
     const source = s.aiEnabled ? "Checked command grammar" : "Local demo grammar · AI off"
     return { ...splitChanges(t, ops, source), source }
   }
   if (s.aiEnabled) {
     try {
-      const ai = await aiReply(t, s, viewerId, focus, page, history, { rethrow: true })
+      const ai = await aiReply(t, s, viewerId, focus, page, history, { rethrow: true, signal })
       if (ai?.cards.length) return ai
     } catch (e) {
+      // FB-1: the person pressed Stop. Answer from this browser at once; the AI's answer can no longer arrive.
+      if (wasStopped(e)) return looksLikePlan(t, s) ? localPlanReply(t, s, "stopped") : { cards: [textCard(`Stopped. ${HELP}`)], source: STOPPED_SOURCE }
       if (RULE_Q_RE.test(t)) return ruleReply(t, s)
       // Planning something must never end in a dead end: the form from the person's own words (dates from their text only).
       if (looksLikePlan(t, s)) return localPlanReply(t, s, aiMiss(e))
@@ -373,16 +382,16 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
  * Review a newly approved event (M2b): the assistant reads the playbook's steps plus everything the organizer
  * wrote and suggests risks and extra steps. Without AI, the rule engine's own warnings are shown instead.
  */
-export async function reviewEvent(s: DemoState, eventId: string): Promise<Reply> {
+export async function reviewEvent(s: DemoState, eventId: string, signal?: AbortSignal): Promise<Reply> {
   const p = reviewPayload(s, eventId)
   if (!p) return { cards: [textCard("That event is no longer in the plan.")], source: "Platypus" }
   let review: EventReview, label: string
   if (s.aiEnabled) {
     try {
-      const r = await callApi<{ risks: unknown; tasks: unknown; model?: string }>("/event/review", { eventId, data: p, context: commandContext(s) }, AI_WAIT_MS)
+      const r = await callApi<{ risks: unknown; tasks: unknown; model?: string }>("/event/review", { eventId, data: p, context: commandContext(s) }, aiWaitMs(), signal)
       review = checkReview(r, s, eventId)
       label = `AI review${r.model ? ` · ${r.model}` : ""}`
-    } catch (e) { review = localReview(s, eventId); label = aiMiss(e) === "timeout" ? "Rule engine check · AI didn't answer in time" : "Rule engine check · AI unavailable" }
+    } catch (e) { review = localReview(s, eventId); label = wasStopped(e) ? "Rule engine check · AI stopped" : aiMiss(e) === "timeout" ? "Rule engine check · AI didn't answer in time" : "Rule engine check · AI unavailable" }
   } else { review = localReview(s, eventId); label = "Rule engine check · AI off" }
   const cards: ChatCard[] = [{ kind: "review", eventId, risks: review.risks, label }]
   let changeSet: ChangeSet | undefined

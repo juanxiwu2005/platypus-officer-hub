@@ -150,7 +150,7 @@
 
 | 字段 | 意思 |
 | --- | --- |
-| `answer` | 主要的回答形式：`rule-answer`（规则回答，带引用）、`plan-form`（建活动表单）、`task-form`（建任务表单）、`change-card`（待批准的改动卡）、`change-applied`（已生效的小改动）、`event-date-form`、`task-list`、`reminder-card`、`plan-check`（新活动的计划检查）、`text`（纯文字）、`error`（出错，`applied: false`）、`timeout`（AI 第二轮没按时回来） |
+| `answer` | 主要的回答形式：`rule-answer`（规则回答，带引用）、`plan-form`（建活动表单）、`task-form`（建任务表单）、`change-card`（待批准的改动卡）、`change-applied`（已生效的小改动）、`event-date-form`、`task-list`、`reminder-card`、`plan-check`（新活动的计划检查）、`text`（纯文字）、`error`（出错，`applied: false`）、`timeout`（AI 第二轮没按时回来）、`stopped`（FB-1，2026-11-15：参与者在等待时按了 Ask 的 **Stop**，回答来自浏览器本地——聊天是本地兜底回答、表单保留原样、Plan check 是规则引擎自己的检查；`fallback` 为 `true`，`source` 写明 "stopped"；补填时同时有 `refine: true`、Plan check 时有 `trigger: "plan-check"`。提醒编辑器里的 **Skip AI line** 不产生 `ui.answer`，只有通用点击记录） |
 | `cards` | 这条回答里所有卡片的种类，按顺序 |
 | `citations` | 回答引用的规则/政策编号，例如 `["R06"]`（规则回答和计划检查都有） |
 | `inScope` | 规则问题是否在规则库范围内 |

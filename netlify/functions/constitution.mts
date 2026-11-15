@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/functions"
-import { chatJSON } from "../lib/ai.mts"
+import { chatJSON, syncAiBudgetMs } from "../lib/ai.mts"
 import { BadRequest, fail, json, readJSON } from "../lib/http.mts"
 import { CONSTITUTION_DUTIES_SYSTEM, CONSTITUTION_STRUCTURE_SYSTEM, DUTY_BATCH, relevantExcerpt, sanitizeDuties, sanitizeRead, type DutyItem } from "../../src/lib/constitution.ts"
 
@@ -14,9 +14,9 @@ import { CONSTITUTION_DUTIES_SYSTEM, CONSTITUTION_STRUCTURE_SYSTEM, DUTY_BATCH, 
  * Nothing is stored here: no database, no archive, no log of the text. Fictional documents only.
  */
 const MAX_TEXT = 60_000
-// Under 30 seconds in total, counting a cold start: if the AI is slower than this, answer with a clear message
-// instead of letting the platform cut the request off with an empty 502/504.
-const TIMEOUT_MS = 21_000
+// The synchronous AI budget minus one second for reading and checking the text (FB-1: 25 s by default). If the AI is
+// slower, answer with a clear message instead of letting the platform cut the request off with an empty 502/504.
+const timeoutMs = () => syncAiBudgetMs() - 1_000
 export default async (req: Request) => {
   try {
     const body = await readJSON(req, MAX_TEXT + 4_000)
@@ -26,7 +26,7 @@ export default async (req: Request) => {
     if (raw.length > MAX_TEXT) throw new BadRequest("This text is too long to send. The browser sends the relevant parts only.")
     const text = relevantExcerpt(raw.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[email]").replace(/\b(?:\+?1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b/g, "[phone]"))
     if (part === "structure") {
-      const { data, model, provider } = await chatJSON({ task: "constitution_read", system: CONSTITUTION_STRUCTURE_SYSTEM, user: JSON.stringify({ text }), maxTokens: 1200, temperature: 0.1, timeoutMs: TIMEOUT_MS })
+      const { data, model, provider } = await chatJSON({ task: "constitution_read", system: CONSTITUTION_STRUCTURE_SYSTEM, user: JSON.stringify({ text }), maxTokens: 1200, temperature: 0.1, timeoutMs: timeoutMs() })
       return json({ ...sanitizeRead(data, "ai"), part, model, provider })
     }
     const items: DutyItem[] = (Array.isArray(body.items) ? body.items : []).slice(0, DUTY_BATCH).flatMap((i: unknown) => {
@@ -35,7 +35,7 @@ export default async (req: Request) => {
       return name ? [{ name }] : []
     })
     if (!items.length) throw new BadRequest("Name the positions to read.")
-    const { data, model, provider } = await chatJSON({ task: "constitution_read", system: CONSTITUTION_DUTIES_SYSTEM, user: JSON.stringify({ text, items }), maxTokens: 900, temperature: 0.1, timeoutMs: TIMEOUT_MS })
+    const { data, model, provider } = await chatJSON({ task: "constitution_read", system: CONSTITUTION_DUTIES_SYSTEM, user: JSON.stringify({ text, items }), maxTokens: 900, temperature: 0.1, timeoutMs: timeoutMs() })
     return json({ part, items: [...sanitizeDuties(data, items)].map(([name, duties]) => ({ name, duties })), model, provider })
   } catch (e) { return fail(e) }
 }
