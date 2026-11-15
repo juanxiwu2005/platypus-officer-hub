@@ -295,6 +295,7 @@ export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?:
       tier: s.tier,
       estDays: s.estDays,
       anchor: s.anchor ?? null,
+      ...(s.timing ? { timing: { ...s.timing } } : {}),
       clubDeadlineOverride: null,
       officialDeadline: null,
       clubDeadline: null,

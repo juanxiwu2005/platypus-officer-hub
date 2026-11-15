@@ -1,9 +1,9 @@
-import type { DemoState, Event, Node, Person } from "../data/types"
+import type { DemoState, Event, Node, Person, StepTiming } from "../data/types"
 import { RULES } from "../data/rules"
 import { addDays, daysBetween, fmtLong } from "../lib/dates"
 import {
   BREAKS, CALENDAR_END, CALENDAR_START, FINALS, HOLIDAYS, TERMS, findPeriod, isWeekend, onOrAfter, onOrBefore, outsideCalendar,
-  isBusinessDay, personalWorkDay, shiftWork, skippedReasons, type WorkDay,
+  busyDays, isBusinessDay, personalWorkDay, shiftWork, skippedReasons, studentOffReason, type WorkDay,
 } from "./calendar"
 
 /**
@@ -21,6 +21,16 @@ import {
  *     if an unfinished upstream step ends later than a step could start, that step moves later.
  *  3. Issues. Red (error) = an ASU deadline is missed or the plan runs past the event. Amber (warn) =
  *     club deadline or latest start passed, moved by an upstream step, no owner. Info = for context.
+ *
+ * Calibrated steps (FB-6: the node has `timing`, from the owner's timing table) are dated from their own window instead:
+ *  - club deadline = the earlier of (ASU deadline - club buffer) and (event day - dueDays), moved to the business day
+ *    before when it lands on a closed day (after-event steps: the business day after);
+ *  - latest start = event day - startDays, moved earlier to the owner's working day; only the part of the personal
+ *    buffer above the default one day moves it further;
+ *  - the backward pass does not pull them earlier for a later step's start;
+ *  - between two calibrated steps a link means finish order only: an unfinished upstream step moves this one later only
+ *    when its deadline is later than this one's (the same day is fine). Links with an uncalibrated step keep the rule above.
+ * Steps without `timing` (hand-made tasks, conditional steps, events built before FB-6) are dated exactly as before.
  */
 
 export const DEFAULT_PERSONAL_BUFFER = 1
@@ -127,6 +137,55 @@ function targetDate(n: Node, ev: Event): { date: string; why: string } | null {
   return { date, why: a.label }
 }
 
+const dayWord = (n: number, unit: StepTiming["unit"]) => plural(Math.abs(n), unit === "business" ? "business day" : "day")
+/** Event day shifted by a calibrated offset (positive = before the event). */
+const fromEvent = (ev: Event, days: number, unit: StepTiming["unit"]) => (unit === "business" ? shiftWork(ev.date, -days) : addDays(ev.date, -days))
+/** Words for a calibrated offset, e.g. "60 days before the event", "the event day", "5 business days after the event". */
+const offsetWords = (days: number, unit: StepTiming["unit"]) => (days === 0 ? "the event day" : `${dayWord(days, unit)} ${days > 0 ? "before" : "after"} the event`)
+
+/** The club deadline from a calibrated step's own timing (before the ASU buffer is compared). */
+function timingDue(n: Node, ev: Event, t: StepTiming): { date: string; why: string } {
+  const raw = fromEvent(ev, t.dueDays, t.unit)
+  // Before or on the event day: the business day before a closed day. After the event (and a close-out step due on the event day): the business day after.
+  const after = t.dueDays < 0 || (t.dueDays === 0 && n.phase === "close")
+  const date = after ? onOrAfter(raw) : onOrBefore(raw)
+  let why = `Club timing: due ${t.dueDays === 0 ? "on " : ""}${offsetWords(t.dueDays, t.unit)}`
+  if (date !== raw) why += `; ${fmtLong(raw)} is a ${closedReason(raw)}, so the business day ${after ? "after" : "before"}`
+  return { date, why }
+}
+
+/** First day a close-out step may start: the event day for a step due on the event day (Headcount), else the first business day after it. */
+const closeFloor = (n: Node, ev: Event) => (n.timing?.dueDays === 0 ? ev.date : shiftWork(ev.date, 1))
+const closeFloorWhy = (n: Node) => (n.timing?.dueDays === 0 ? "Starts on the event day" : "The first business day after the event")
+
+/** Latest start of a calibrated step: its window opens `startDays` before the event, on the owner's working day. */
+function timingStart(ctx: Ctx, n: Node, ev: Event, t: StepTiming, club: string): { date: string; why: string } {
+  const e = effortOf(ctx, n)
+  const first = e.person?.name.split(" ")[0]
+  const raw = fromEvent(ev, t.startDays, t.unit)
+  let date = onOrBefore(raw, e.work)
+  let why = `Club timing: starts ${t.startDays === 0 ? "on " : ""}${offsetWords(t.startDays, t.unit)}`
+  if (date !== raw) {
+    const off = isBusinessDay(raw) ? studentOffReason(raw, busyDays(e.person?.busyWeeks)) ?? "closed day" : closedReason(raw)
+    why += `; ${fmtLong(raw)} is ${off === "busy week" && first ? `in ${first}'s busy week` : `a ${off}`}, so the working day before`
+  }
+  // The default personal buffer (1 day) is already part of the owner's timing table; only a larger buffer starts earlier.
+  const extra = Math.max(0, e.buffer - DEFAULT_PERSONAL_BUFFER)
+  if (extra) {
+    date = shiftWork(date, -extra, e.work)
+    why += `, then ${plural(extra, "more working day")} of ${first ? `${first}'s` : "the"} personal buffer`
+  }
+  if (n.phase === "close" && date < closeFloor(n, ev)) {
+    date = closeFloor(n, ev)
+    why = closeFloorWhy(n)
+  }
+  if (date > club) {
+    date = club
+    why = "The same day as the club deadline"
+  }
+  return { date, why }
+}
+
 /** Kahn's algorithm. Nodes caught in a loop are appended at the end and reported. */
 export function topoOrder(nodes: Node[]): { order: Node[]; looped: Node[] } {
   const ids = new Set(nodes.map(n => n.id))
@@ -181,6 +240,16 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
   const rec = new Map<string, Rec>()
   for (const n of [...order].reverse()) {
     const official = officialDeadline(n, ev)
+    if (n.timing) {
+      // Calibrated: its own window, not squeezed earlier by the steps after it.
+      const own = timingDue(n, ev, n.timing)
+      const buffered = official ? { date: shiftWork(official.date, -buffer), why: `${plural(buffer, "business day")} before the ASU deadline (club buffer)` } : null
+      let best = buffered && buffered.date < own.date ? buffered : own
+      if (n.phase === "close" && best.date < closeFloor(n, ev)) best = { date: closeFloor(n, ev), why: "Close-out work can only start after the event" }
+      const st = timingStart(ctx, n, ev, n.timing, best.date)
+      rec.set(n.id, { official, club: best.date, clubWhy: best.why, start: st.date, startWhy: st.why })
+      continue
+    }
     const cands: { date: string; why: string }[] = []
     if (official) cands.push({ date: shiftWork(official.date, -buffer), why: `${plural(buffer, "business day")} before the ASU deadline (club buffer)` })
     const t = targetDate(n, ev)
@@ -210,6 +279,10 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
   // 2. Forward pass
   for (const n of order) {
     const r = rec.get(n.id)!
+    if (n.timing) {
+      planCalibrated(ctx, n, ev, r, out, loopedIds)
+      continue
+    }
     const e = effortOf(ctx, n)
     let club = n.clubDeadlineOverride ?? r.club
     let clubWhy = n.clubDeadlineOverride ? `Set by a person (Platypus recommends ${fmtLong(r.club)})` : r.clubWhy
@@ -263,6 +336,91 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
   }
 
   out.events[ev.id] = { eventId: ev.id, issues: eventIssues(ctx, ev, nodes, out, looped) }
+}
+
+/** Forward pass for a calibrated step (see the header): a person's deadline, finish order between calibrated steps, recovery. */
+function planCalibrated(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule, loopedIds: Set<string>) {
+  const e = effortOf(ctx, n)
+  const close = n.phase === "close"
+  let club = n.clubDeadlineOverride ?? r.club
+  let clubWhy = n.clubDeadlineOverride ? `Set by a person (Platypus recommends ${fmtLong(r.club)})` : r.clubWhy
+  let start = r.start
+  let sWhy = r.startWhy
+  if (n.clubDeadlineOverride) {
+    // A person's deadline: start no later than the calibrated start, and early enough for the work before the new deadline.
+    const byEffort = shiftWork(club, -e.days, e.work)
+    if (byEffort < start) {
+      start = byEffort
+      sWhy = startWhy(club, n, e, start)
+    }
+    if (close && start < closeFloor(n, ev)) {
+      start = closeFloor(n, ev)
+      sWhy = closeFloorWhy(n)
+    }
+    if (club < start) {
+      club = start
+      clubWhy = "Close-out work can only start after the event"
+    }
+  }
+  let pushedBy: string | null = null
+  let pushClub: string | null = null
+  let earliest: string | null = null
+  let earliestBy: string | null = null
+  for (const u of n.dependsOn) {
+    const up = out.nodes[u]
+    const un = ctx.byId.get(u)
+    if (!up || !un || un.status === "done" || loopedIds.has(u)) continue
+    if (un.timing) {
+      // Finish order: not before the upstream step finishes (the same day is fine).
+      if (up.club > club && (!pushClub || up.club > pushClub)) {
+        pushClub = up.club
+        pushedBy = u
+      }
+    } else {
+      const e1 = shiftWork(up.club, 1)
+      if (!earliest || e1 > earliest) {
+        earliest = e1
+        earliestBy = u
+      }
+    }
+  }
+  if (pushClub && pushedBy) {
+    club = pushClub
+    clubWhy = `Moved later: “${ctx.byId.get(pushedBy)!.title}” finishes ${fmtLong(pushClub)}`
+  }
+  if (earliest && earliestBy && start < earliest) {
+    // An uncalibrated step before it: the existing rule (start the business day after it finishes).
+    const u = ctx.byId.get(earliestBy)!
+    start = onOrAfter(earliest, e.work)
+    sWhy = `The business day after “${u.title}” finishes`
+    const byEffort = shiftWork(start, e.days, e.work)
+    if (byEffort > club) {
+      club = byEffort
+      clubWhy = `Moved later: “${u.title}” finishes ${fmtLong(out.nodes[u.id].club)}`
+    }
+    if (!pushedBy || out.nodes[earliestBy].club > out.nodes[pushedBy].club) pushedBy = earliestBy
+  }
+  if (n.recoveryFrom && n.status !== "done" && start < n.recoveryFrom) {
+    start = onOrAfter(n.recoveryFrom, e.work)
+    const byEffort = shiftWork(start, e.days, e.work)
+    if (byEffort > club) club = byEffort
+    clubWhy = "Recovery plan approved by the president; ASU deadline stays unchanged"
+    sWhy = "First available working day in the approved recovery plan"
+  }
+  if (start > club) {
+    start = club
+    sWhy = "The same day as the club deadline"
+  }
+  out.nodes[n.id] = {
+    id: n.id,
+    official: r.official?.date ?? null,
+    club,
+    latestStart: start,
+    recommendedClub: r.club,
+    explain: { official: r.official?.why ?? null, club: clubWhy, latestStart: sWhy },
+    pushedBy,
+    issues: nodeIssues(ctx, n, { official: r.official?.date ?? null, club, start, rec: r.club, pushedBy, looped: loopedIds.has(n.id) }, ev),
+  }
 }
 
 function planStandalone(ctx: Ctx, n: Node, out: Schedule) {

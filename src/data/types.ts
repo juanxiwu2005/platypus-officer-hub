@@ -80,6 +80,20 @@ export interface StepTemplate {
   informed?: RoleFunction[]
   /** Added by the club (not from the standard workflow). */
   custom?: boolean
+  /** Calibrated club timing (FB-6). Present: the step is "calibrated" and the rule engine dates it from these offsets. */
+  timing?: StepTiming
+}
+
+/**
+ * Calibrated timing of a step (FB-6, from the owner's event timing table): whole days counted from the event day,
+ * positive before the event and negative after it. `startDays` opens the step's window (the latest start, which is
+ * the day its reminder goes out); `dueDays` is its club deadline. Never a date: the rule engine turns these into dates.
+ */
+export interface StepTiming {
+  startDays: number
+  dueDays: number
+  /** Calendar days by default; business days skip weekends and ASU holidays. */
+  unit?: "calendar" | "business"
 }
 
 /** The club's own event workflow, made in setup from its planning notes and files. New events are built from it. */
@@ -295,6 +309,8 @@ export interface Node {
   rank?: number
   /** Custom board tag ids (v1.1). */
   tags?: string[]
+  /** Calibrated timing copied from the workflow step (FB-6). Absent on hand-made tasks and on steps built before FB-6. */
+  timing?: StepTiming
 }
 
 export interface Nudge {
