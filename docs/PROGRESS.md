@@ -4,7 +4,7 @@
 > **其他 AI 请勿在这条分支上同时改这些文件。**
 > **2026-11-15 决定（Juanxi）：** 产品和研究只聚焦两件事：①提醒社团成员工作；②Organization succession。同意：首页变成提醒中心（Needs your OK / This week / Sent / Replies / No reply yet，三种提醒方式真的走不同流程，演示里不真发）；导航收到 Reminders、Plan、Handoff、Rules，Team 和 Partners 收进 More；Handoff 变成三天交接包（不用 AI、不用等人，原来的手册流程变成可选）；Onboarding 只留 Name → Team → First event → Reminders → Create，Goals 移到 Settings；目标环、本周之星、预测百分比、看板改名改色、会议时间、预算明细、Partners 看板不再打磨。Goals 的 SMART 句子因此取消。细则见 `feedback-fix/PLAN.md` 第 12 节（新增 FB-8 提醒中心、FB-9 三天交接包）。
 > **进度：** 两次派出的子 agent 都在刚开始时撞上用量上限，没有留下可用的改动；改为一次最多 2 个。
-> **2026-11-15 Juanxi 确认：Phase 3 仍在测试中。** 所以这条分支上的所有改动**不合并 `main`、不上正式网站**，等 Juanxi 说可以（Phase 3 收完数据之后）。给 Juanxi 看的总纲：[`feedback-fix/FOCUS_STRATEGY.md`](feedback-fix/FOCUS_STRATEGY.md)。待决定：要不要在 Phase 3 期间单独上线"AI 输出额度"这一项服务器修复（总纲第 7 节）。
+> **2026-11-15 Juanxi 确认：Phase 3 仍在测试中。** 所以这条分支上的所有改动**不合并 `main`、不上正式网站**，等 Juanxi 说可以（Phase 3 收完数据之后）。给 Juanxi 看的总纲：[`feedback-fix/FOCUS_STRATEGY.md`](feedback-fix/FOCUS_STRATEGY.md)。**2026-11-15 Juanxi 批准单独合并"AI 输出额度"修复到 `main`：** 合并提交 `b9e7a02`（只含 FB-1 的 3.1：`netlify/lib/ai.mts`、测试、`docs/AI_SETUP.md`；`main` 上的 `PROGRESS.md` 有完整记录）。Netlify 自动部署（部署 `6af93fd314d27e658c7da8ad`）。**上线后验证：** 用虚构数据调了一次 `/api/nudge/draft`，7.0 秒返回 200，来源 "AI + checked template"（修复前两次都是 4 秒内 `output limit`）。只验证了这一个接口的一次调用。这条"已上线并验证"只记在本分支，没有再为它推一次 `main`（测试期间少动正式网站）。
 
 > **2026-11-12 · 测试反馈解决方案 · 待 Juanxi 选择（Claude）· 只写了文档，没有改代码**
 > **做了什么：** Juanxi 让其他社团团长测试后提了 11 个问题（Onboarding 6 个、其他模块 5 个），外加"任务算一天还是 15 分钟"和"产品要聚焦到两个核心（风险→自动提醒、24 小时到 3 天交接）"。读完相关代码后写成方案 [`FEEDBACK_PLAN_2026-11-12.md`](FEEDBACK_PLAN_2026-11-12.md)：每个问题 2–3 个方案、我的建议、粗估工作量、执行顺序、5 个要先回答的问题。分支 `claude/fervent-thompson-e2j5u2`。
