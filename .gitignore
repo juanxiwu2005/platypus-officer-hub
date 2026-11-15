@@ -12,3 +12,6 @@ output/
 .nightmode/
 dist-storage/
 dx-shots/
+
+# Worktrees of sub-agents (local only)
+.claude/worktrees/
