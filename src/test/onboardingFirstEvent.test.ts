@@ -100,12 +100,12 @@ describe("words and copy", () => {
     expect(wordCount("Nov 20 · 3 days")).toBe(4)
     expect(wordCount("")).toBe(0)
   })
-  it("the always-visible copy of this screen fits in 60 words together with a full chain", async () => {
+  it("the always-visible copy of this screen fits in 110 words together with a full chain (FB-3: was 60 before the Why line and the buffer rows)", async () => {
     const { event, date } = await eventOf(c.examples[0].sentence)
     const dots = chainDots(previewFor(state, club, event, date, CODE, steps, 3))
     const chain = dots.map(d => `${d.title} Nov 20`).join(" ")
-    const glance = [c.title, ...c.examples.map(x => x.label), c.cta, chain, `${c.buffer} · ${c.days}`, "1 2 3 5 7", c.bufferExample, c.details, onboardingCopy.back, onboardingCopy.next].join(" ")
-    expect(wordCount(glance)).toBeLessThanOrEqual(60)
+    const glance = [c.title, "Why:", c.why, ...c.examples.map(x => x.label), c.cta, chain, `${c.buffer} · ${c.days}`, "1 2 3 5 7", c.bufferExample, c.details, onboardingCopy.back, onboardingCopy.next].join(" ")
+    expect(wordCount(glance)).toBeLessThanOrEqual(110)
   })
 })
 

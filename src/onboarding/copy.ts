@@ -50,7 +50,7 @@ export const onboardingCopy = {
       addAdvisor: "Add advisor", advisor: "Advisor", advises: "Advises the president",
     },
     firstEvent: {
-      title: "Your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "ASU deadline {official}, club deadline {club}.", details: "Event details",
+      title: "Your first event", cta: "Plan it", why: "Your event becomes the tasks Platypus reminds people about.", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "ASU deadline {official}, club deadline {club}.", details: "Event details",
       sentenceLabel: "Your first event, in one sentence", examplesLabel: "Examples", planning: "Planning…", chainLabel: "First steps and dates",
       stale: "Press Plan it to update the steps.", notEvent: "Describe one event starting with Plan, then review its details.",
       dateError: "Choose a date that is today or later in Event details.", day: "day", days: "days",
@@ -65,6 +65,7 @@ export const onboardingCopy = {
     // P3-H: how reminders should reach officers. A study question only: nothing is ever sent (IRB). Keep the options in this order.
     reminders: {
       title: "How should reminders go out?", lead: "Platypus knows each task's latest start date.", demo: "Demo: no email is ever sent.",
+      why: "So you never have to chase people yourself.",
       options: {
         auto_email: { title: "Send automatically", body: "Platypus emails the officer on that date." },
         review_then_self: { title: "I review, then I send", body: "Platypus drafts it. You check and send it." },

@@ -152,13 +152,15 @@ test("Back goes to the previous screen; Skip for now is there from the start (Ph
   await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
 })
 
-test("a screen of at most 60 words at a glance, with no sideways page scroll", async ({ page }) => {
+// FB-3 (docs/feedback-fix/PLAN.md 5.1): the limit is 110 words (was 60): the screen now has a Why line and the buffer shows this event's own steps.
+test("a screen of at most 110 words at a glance, with a Why line, and no sideways page scroll", async ({ page }) => {
   await page.goto(URL)
+  await expect(page.locator(".ob-why")).toHaveText(`Why: ${c.why}`)
   const words = () => page.getByTestId("first-event").evaluate(el => (el as HTMLElement).innerText)
-  expect(wordCount(await words())).toBeLessThanOrEqual(60)
+  expect(wordCount(await words())).toBeLessThanOrEqual(110)
   await plan(page, "Spring dinner")
   const text = await words()
-  expect(wordCount(text), text).toBeLessThanOrEqual(60)
+  expect(wordCount(text), text).toBeLessThanOrEqual(110)
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0)
 })
 

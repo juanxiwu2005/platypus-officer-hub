@@ -117,12 +117,15 @@ test("a reload on the screen keeps the answer, and the step after it", async ({ 
   await expect.poll(async () => (await demo(page))?.org.settings.reminderMode).toBe("review_then_self")
 })
 
-test("no accessibility problems in light and dark, at most 60 words, no sideways scroll, and full-size targets on a phone", async ({ page, isMobile }) => {
+// FB-3 (docs/feedback-fix/PLAN.md 5.1): at most 140 words (was 60): the screen now has a Why line, an example reminder, and under each option
+// its three steps, an analogy and what happens in Platypus.
+test("no accessibility problems in light and dark, at most 140 words, no sideways scroll, and full-size targets on a phone", async ({ page, isMobile }) => {
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme })
     await toReminders(page)
+    await expect(screen(page).locator(".ob-why")).toHaveText(`Why: ${r.why}`)
     expect(await scan(page), `${scheme}, nothing ticked`).toEqual([])
-    expect(await words(page)).toBeLessThanOrEqual(60)
+    expect(await words(page)).toBeLessThanOrEqual(140)
     await noSideScroll(page)
     await screen(page).getByRole("radio", { name: TITLES[2] }).check()
     expect(await scan(page), `${scheme}, ticked`).toEqual([])

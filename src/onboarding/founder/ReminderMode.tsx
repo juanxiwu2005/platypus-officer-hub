@@ -22,6 +22,7 @@ export function ReminderMode() {
 
   return <section className="ob-card ob-rm" aria-labelledby="ob-rm-h" data-testid="reminder-mode">
     <h1 id="ob-rm-h">{c.title}</h1>
+    <p className="ob-why"><b>Why:</b> {c.why}</p>
     <p className="ob-lead">{c.lead}</p>
     <div className="ob-rm-opts" role="radiogroup" aria-label={c.title}>
       {REMINDER_MODES.map(mode => <label key={mode} className="ob-rm-opt">
