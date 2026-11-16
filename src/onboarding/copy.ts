@@ -69,12 +69,21 @@ export const onboardingCopy = {
     },
     // P3-H: how reminders should reach officers. A study question only: nothing is ever sent (IRB). Keep the options in this order.
     reminders: {
-      title: "How should reminders go out?", lead: "Platypus knows each task's latest start date.", demo: "Demo: no email is ever sent.",
+      title: "How should reminders go out?", demo: "Demo: no email is ever sent.",
       why: "So you never have to chase people yourself.",
+      // FB-3 (PLAN 5.3): an example reminder from the president's own draft. Dates only from the rule engine (the Due); none without a planned event.
+      exampleLabel: "Example reminder", yourOfficer: "your officer",
+      exampleDated: "Hi {name} — {step} for {event}. Due {date}. Reply: Done · Waiting on… · Need help.",
+      exampleGeneric: "Hi {name} — your next task is ready. Reply: Done · Waiting on… · Need help.",
+      stepsLabel: "How it works",
+      // title and body unchanged (study data); body is now the radio's screen-reader description. steps, like and inApp: PLAN 5.3 and 12.5.
       options: {
-        auto_email: { title: "Send automatically", body: "Platypus emails the officer on that date." },
-        review_then_self: { title: "I review, then I send", body: "Platypus drafts it. You check and send it." },
-        review_then_auto: { title: "I review, Platypus sends", body: "You check the draft. Platypus sends it." },
+        auto_email: { title: "Send automatically", body: "Platypus emails the officer on that date.", steps: ["Platypus writes", "Platypus sends"], like: "Like a calendar alert.",
+          inApp: "On the send day it appears under Sent. You don't have to do anything." },
+        review_then_self: { title: "I review, then I send", body: "Platypus drafts it. You check and send it.", steps: ["Platypus writes", "You check", "You send"], like: "Like a draft waiting in your outbox.",
+          inApp: "On the send day it waits under Needs your OK. You open the draft and send it yourself." },
+        review_then_auto: { title: "I review, Platypus sends", body: "You check the draft. Platypus sends it.", steps: ["Platypus writes", "You approve", "Platypus sends"], like: "Like approving a scheduled post.",
+          inApp: "On the send day it waits under Needs your OK. One click approves it." },
       },
     },
     confirm: { title: "Ready to start?", summary: "This creates {club} with {officers} and {event} on {date}.", officers: { one: "1 officer", many: "{n} officers" }, start: "Start workspace", keep: "Keep current demo", replaceWarning: "This replaces the current demo workspace.", missing: "Plan your first event before you start.", backToEvent: "Back to first event",

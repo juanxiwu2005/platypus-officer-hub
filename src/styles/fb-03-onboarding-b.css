@@ -21,6 +21,16 @@
 .fb3-moved.is-later { background: var(--warn-soft); color: var(--warn); }
 .fb3-buffer-effect { margin: 0; color: var(--ink); }
 
+/* Reminders: the example reminder is a message bubble; each option shows its three steps as small boxes joined by arrows (text and CSS only). */
+.fb3-rm-example { margin: 0; padding: var(--s5) var(--s6); border-radius: var(--r-lg); border-top-left-radius: var(--r-xs); background: var(--accent-soft); color: var(--ink); font-size: var(--fs-md); line-height: 1.45; max-width: 100%; overflow-wrap: anywhere; }
+.fb3-rm-example p { margin: 0; }
+.fb3-rm-steps { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-top: var(--s2); }
+.fb3-rm-step { padding: var(--s1) var(--s4); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); color: var(--ink); font-size: var(--fs-sm); white-space: nowrap; }
+.fb3-rm-pair { display: inline-flex; align-items: center; gap: var(--s2); }
+.fb3-rm-arrow { color: var(--muted); font-size: var(--fs-sm); }
+.fb3-rm-like { color: var(--ink); font-size: var(--fs-md); font-style: italic; }
+.fb3-rm-app { color: var(--muted); font-size: var(--fs-md); }
+
 @media (pointer: coarse), (max-width: 600px) {
   .fb3-buffer-opt { min-height: 44px; }
 }

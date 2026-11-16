@@ -71,9 +71,10 @@ test("nothing is ticked at first and Continue waits; each answer, in the fixed o
     for (const title of TITLES) await expect(screen(page).getByRole("radio", { name: title })).not.toBeChecked()
     await expect(cont(page)).toBeDisabled()
     await expect(screen(page).getByTestId("reminder-mode-demo")).toHaveText(r.demo)
-    // Each option is a title and one line; the line is its accessible description.
+    // Each option is a title; its old one line is its accessible description (FB-3: no longer shown, the steps, analogy and in-app line are).
     await expect(screen(page).getByRole("radio", { name: r.options[mode].title })).toHaveAccessibleDescription(r.options[mode].body)
-    await screen(page).getByText(r.options[mode].body).click()                       // the whole option is the target, not just the dot
+    await expect(screen(page).getByText(r.options[mode].body)).toBeHidden()
+    await screen(page).getByText(r.options[mode].like).click()                       // the whole option is the target, not just the dot
     await expect(screen(page).getByRole("radio", { name: r.options[mode].title })).toBeChecked()
     await expect(cont(page)).toBeEnabled()
     await cont(page).click()
