@@ -36,12 +36,11 @@ export function nudgeBlocked(state: DemoState, n: Node): string | null {
 
 /** All dates and dependency claims come from current, scheduled state, never AI text. */
 export function buildNudge(state: NudgeContext, n: Node, aiMeaning?: unknown): NudgeDraft {
-  const p = state.people.find(p => p.id === n.ownerId)
   const downstream = state.nodes.find(x => x.dependsOn.includes(n.id) && x.status !== "done")
   const stale = !n.lastUpdate || daysBetween(n.lastUpdate, state.today) > 3
   const why = downstream ? `We need this before “${short(downstream.title, 6)}”${downstream.latestStart ? ` starts ${fmtShort(downstream.latestStart)}` : " can start"}.` : "We can keep our club plan moving with this step."
-  const slot = p?.remindAt === "evening" ? "7 pm" : "9 am"
-  const timing = `Suggested: ${slot}; start by ${n.latestStart ? fmtShort(n.latestStart) : "the task's start date"}; club deadline ${n.clubDeadline ? fmtShort(n.clubDeadline) : "in task details"}${n.officialDeadline ? `; ASU ${fmtShort(n.officialDeadline)}` : ""}.`
+  // FB-4: one date in the message, the club deadline, called Due. The ASU deadline stays in the engine and the task's "Why this date".
+  const timing = `${n.clubDeadline ? `Due ${fmtShort(n.clubDeadline)}.` : "Due: see the task details."}${n.latestStart ? ` Best started by ${fmtShort(n.latestStart)}.` : ""}`
   const meaning = typeof aiMeaning === "string" && aiMeaning.trim() && !/\d|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec|monday|tuesday|wednesday|thursday|friday|saturday|sunday|today|tomorrow)\b/i.test(aiMeaning) ? short(aiMeaning, 10) : "Together, we make our club's plans happen."
   const body = `• Why now: ${stale ? "If already done, tell us here. " : ""}${why}\n• What: ${short(n.title, 10)}.\n• When: ${timing}\n• How:\n1. Open the task details.\n2. Check materials and share an update.\n• Why it matters: ${meaning}`
   const effort = `~${Math.max(1, n.estDays || 1)} workday${n.estDays > 1 ? "s" : ""}`

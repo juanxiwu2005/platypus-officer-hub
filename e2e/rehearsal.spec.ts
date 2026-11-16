@@ -71,7 +71,7 @@ test("keyboard only: claim a task, change its status and finish it without a mou
   await page.keyboard.press("Space")
   await expect(detail).toContainText("Stuck")
   expect(await savedTask(page, id)).toMatchObject({ status: "blocked", ownerId: "jordan" })
-  await detail.getByRole("button", { name: "Done", exact: true }).focus()
+  await detail.getByRole("button", { name: "Mark done", exact: true }).focus()
   await page.keyboard.press("Enter")
   await expect(detail).toContainText("Completed on")
   expect(await savedTask(page, id)).toMatchObject({ status: "done", ownerId: "jordan" })

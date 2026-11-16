@@ -14,6 +14,7 @@ import { SEVERITY_TONE, firstName, worstIssue } from "./helpers"
 import { EventBudget } from "../components/EventBudget"
 import { budgetTotal } from "../engine/eventBudget"
 import { TaskTypeIcon } from "../components/TaskTypeIcon"
+import { asuSentence, isLate, reminderSentence } from "../lib/taskDue"
 
 type View = "flow" | "list" | "budget"
 const VIEW_KEY = "platypus.v1.eventsView"
@@ -108,22 +109,20 @@ export default function Events() {
       {view === "flow" && <div className="metro-fade"><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
       {view === "list" && <section className="card tbl-wrap" data-testid="event-list">
         <table className="tbl">
-          <thead><tr><th>Step</th><th>Owner</th><th>Status</th><th>Start</th><th>Due</th><th>ASU</th></tr></thead>
+          <thead><tr><th>Step</th><th>Owner</th><th>Status</th><th>Due</th></tr></thead>
           <tbody>{ordered.map(n => {
             const p = sched.nodes[n.id]
             const issue = worstIssue(p.issues)
+            const asu = asuSentence(n, p)
             return [<tr key={n.id}>
               <td><button type="button" className={`row-btn task-title ${issue?.severity === "error" ? "late-text" : ""}`} onClick={() => rail.show({ kind: "node", id: n.id })} data-testid={`event-step-${n.id}`} title={issue?.text}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
               <td><span className="who"><Avatar name={state.people.find(x => x.id === n.ownerId)?.name} size="sm" />{firstName(state, n.ownerId)}</span></td>
               <td><NodePill node={n} small /></td>
-              <td className="small num">{fmtShort(p.latestStart)}</td>
-              <td className="small num">{fmtShort(p.club)}</td>
-              <td className="small num">{p.official ? `ASU ${fmtShort(p.official)}` : ""}</td>
+              <td className={`small num nowrap ${isLate(n, p.club, state.today) ? "late-text" : ""}`}>{fmtShort(p.club)}</td>
             </tr>,
-            <BtsTr key={`${n.id}-bts`} cols={6}>
-              <Bts label="Start">{n.ownerId === state.viewerId ? p.explain.latestStart : "Working days before the club deadline, allowing for effort and private planning preferences; skips ASU nonworking days."}</Bts>
-              <Bts label="Due">{p.explain.club}</Bts>
-              <Bts label="ASU">{p.explain.official ?? "No ASU rule sets a deadline for this step."}</Bts>
+            <BtsTr key={`${n.id}-bts`} cols={4}>
+              <Bts label="Due">{p.explain.club}.{asu ? ` ${asu}` : ""}</Bts>
+              <Bts label="Reminder">{reminderSentence(n, p, state.viewerId)}{n.ownerId === state.viewerId ? ` ${p.explain.latestStart}.` : ""}</Bts>
             </BtsTr>]
           })}</tbody>
         </table>

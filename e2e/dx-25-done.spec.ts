@@ -59,7 +59,7 @@ test.describe("with motion", () => {
     const before = await badge.innerText()
     // The president's own To do card (the sample club's Not claimed cards come first and need claiming before Done, P3-A).
     await page.getByRole("region", { name: "To do", exact: true }).getByTestId("board-card").first().getByRole("button").first().click()
-    await page.getByTestId("task-detail").getByRole("button", { name: "Done", exact: true }).click()
+    await page.getByTestId("task-detail").getByRole("button", { name: "Mark done", exact: true }).click()
     await expect.poll(async () => (await page.getByTestId("nav-open-tasks").innerText().catch(() => "")) !== before).toBe(true)
     await expect(page.getByTestId("nav-open-tasks").or(page.locator(".sidenav a .count"))).toBeVisible()
   })
