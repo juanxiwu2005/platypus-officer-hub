@@ -31,10 +31,8 @@ async function session(page: Page) {
   await page.goto("/#/start")
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
   await page.getByLabel(c.founder.name.field).fill("Fictional Lantern Society")
+  await fillMission(page)                                    // FB-2 (ob-5): the mission is on Name
   await next(page)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()            // goals
   await page.getByRole("button", { name: c.skip }).click()            // team
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
@@ -119,7 +117,7 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   let i = find(0, e => e.type === "ui.navigate" && p(e).to === "/welcome/founder/name", "the walkthrough opened")
   // 2026-11-07: typing in a field is recorded as "started / stopped typing", with the field's label and never its text
   i = find(i, e => e.type === "ui.edit" && p(e).event === "start" && String(p(e).field).includes(c.founder.name.field) && p(e).kind === "text", "typing began in the club name")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/constitution", "Continue on the Name screen")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/team", "Continue on the Name screen")
   i = find(i, e => e.type === "ui.change" && p(e).route === "/welcome/founder/reminders" && p(e).role === "radio" && p(e).name === "I review, Platypus sends" && p(e).checked === true && p(e).testid === "reminder-mode-review_then_auto", "the Reminders answer")
   i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Start workspace")
   i = find(i, e => e.type === "completeSetup" && e.applied, "the club was created")

@@ -41,13 +41,11 @@ const begin = async (page: Page) => {
   await page.evaluate(() => { location.hash = "#/welcome/founder/name" })
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
 }
-/** From Name to the Confirm screen: skip the three optional screens, plan the Welcome mixer, answer Reminders (P3-H) with "I review, Platypus sends". */
+/** From Name to the Confirm screen: skip Team, plan the Welcome mixer, answer Reminders (P3-H) with "I review, Platypus sends". */
 const toConfirm = async (page: Page, club = "Maple Club") => {
   await begin(page)
-  await page.getByLabel("Club name").fill(club); await cont(page)
-  await page.getByRole("button", { name: /^Skip/ }).click()                                   // Constitution
-  await fillMission(page)
-  await page.getByRole("button", { name: "Skip for now" }).click()                            // Goals
+  await page.getByLabel("Club name").fill(club)
+  await fillMission(page); await cont(page)                       // FB-2 (ob-5): the mission is on Name
   await page.getByRole("button", { name: "Skip for now" }).click()                            // Team
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: "Plan it" }).click()
@@ -84,10 +82,8 @@ test("the replace warning shows only after a club was already set up", async ({ 
   await page.reload()                                                   // a fresh draft; the club made above stays
   await page.goto("/?walkthrough=1#/welcome/start")                     // the same door Replay walkthrough uses
   await page.evaluate(() => { location.hash = "#/welcome/founder/name" })
-  await page.getByLabel("Club name").fill("Second Club"); await cont(page)
-  await page.getByRole("button", { name: /^Skip/ }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: "Skip for now" }).click()
+  await page.getByLabel("Club name").fill("Second Club")
+  await fillMission(page); await cont(page)                       // FB-2 (ob-5): the mission is on Name
   await page.getByRole("button", { name: "Skip for now" }).click()
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: "Plan it" }).click()

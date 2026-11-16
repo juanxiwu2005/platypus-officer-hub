@@ -13,10 +13,8 @@ test("a first visit runs welcome → founder flow → invite → officer preview
   await page.getByRole("button", { name: c.start }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
   await page.getByLabel(c.founder.name.field).fill("Moonlight Typing Society")
+  await fillMission(page)                                    // FB-2 (ob-5): the mission is on Name
   await next(page).click()
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()           // goals
   await page.getByRole("button", { name: c.skip }).click()           // team
   await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
   await page.getByRole("button", { name: "Welcome mixer" }).click()
@@ -36,9 +34,11 @@ test("a first visit runs welcome → founder flow → invite → officer preview
 
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-4" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-5" })
   const steps = rec.attempts[0].steps.map(s => `${s.step}:${s.event}`)
-  for (const expected of ["founder.name:enter", "founder.constitution:skip", "founder.goals:skip", "founder.team:skip", "founder.first-event:enter", "founder.reminders:enter", "founder.reminders:leave", "founder.confirm:enter", "member.invitation:enter", "member.done:enter"]) expect(steps).toContain(expected)
+  // ob-5 (FB-2): no Constitution or Goals step any more, so neither id is recorded.
+  expect(steps.filter(x => /founder\.(constitution|goals)/.test(x))).toEqual([])
+  for (const expected of ["founder.name:enter", "founder.team:skip", "founder.first-event:enter", "founder.reminders:enter", "founder.reminders:leave", "founder.confirm:enter", "member.invitation:enter", "member.done:enter"]) expect(steps).toContain(expected)
   expect(JSON.stringify(rec)).not.toContain("Moonlight")                                // behaviour only, never what was typed
   const stored = await page.evaluate(() => localStorage.getItem("platypus.v1.demo") ?? "")
   expect(stored).toContain("Moonlight Typing Society")                                  // …while the club itself was really created

@@ -23,7 +23,7 @@ for (const url of ["/#/start", "/?walkthrough=1#/start", "/#/start?walkthrough=1
   await noSideScroll(page)
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "start", replay: 0, flowVersion: "ob-4" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "start", replay: 0, flowVersion: "ob-5" })
   expect(rec.attempts[0].steps.map(s => `${s.step}:${s.event}`)).toEqual(["founder.name:enter"])
 })
 
@@ -39,9 +39,10 @@ test("a reload on the name screen stays in setup and does not start a second att
   expect(rec.attempts).toHaveLength(1)
   expect(rec.attempts[0].outcome).toBeUndefined()                                       // still open, not exited
   await page.getByLabel(c.founder.name.field).fill("Maple Club")
+  await fillMission(page)                                                               // FB-2 (ob-5): the mission is on Name; Team comes next
   await cont(page)
-  await expect(page).toHaveURL(/#\/welcome\/founder\/constitution$/)
-  expect((await onboardingRecord(page)).attempts[0].steps.map(s => `${s.step}:${s.event}`)).toEqual(["founder.name:enter", "founder.name:leave", "founder.constitution:enter"])
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  expect((await onboardingRecord(page)).attempts[0].steps.map(s => `${s.step}:${s.event}`)).toEqual(["founder.name:enter", "founder.name:leave", "founder.team:enter"])
 })
 
 test("the study link works in a browser that already has saved demo data and a finished welcome", async ({ page }) => {
@@ -64,13 +65,11 @@ test("the plain root address with no flag still opens Today and records nothing;
   expect((await onboardingRecord(page)).attempts).toHaveLength(1)
 })
 
-/** Name to First event: name the club, skip the three optional screens. */
+/** Name to First event: name the club (and its mission), skip Team. */
 const toFirstEvent = async (page: Page, club = "Maple Club") => {
   await page.goto("/#/start")
-  await page.getByLabel(c.founder.name.field).fill(club); await cont(page)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()                              // Goals
+  await page.getByLabel(c.founder.name.field).fill(club)
+  await fillMission(page); await cont(page)                       // FB-2 (ob-5): the mission is on Name
   await page.getByRole("button", { name: c.skip }).click()                              // Team
   await expect(page.getByRole("heading", { level: 1, name: c.founder.firstEvent.title })).toBeVisible()
 }
@@ -78,7 +77,8 @@ const toFirstEvent = async (page: Page, club = "Maple Club") => {
 test("First event shows as optional in the progress chain, like the other optional steps", async ({ page }) => {
   await page.goto("/#/start")
   await nameScreen(page)
-  for (const label of ["Constitution", "Goals", "Team", "First event", "Reminders"]) await expect(chainDot(page, label)).toContainText(`${label}, optional`)
+  for (const label of ["Team", "First event", "Reminders"]) await expect(chainDot(page, label)).toContainText(`${label}, optional`)
+  for (const label of ["Constitution", "Goals"]) await expect(chainDot(page, label)).toHaveCount(0)   // ob-5: no longer steps
   for (const label of ["Confirm", "Invite"]) await expect(chainDot(page, label)).not.toContainText("optional")
 })
 

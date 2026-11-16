@@ -8,7 +8,12 @@ export const onboardingCopy = {
   demo: "Demo", demoNote: "Fictional data. It stays in this browser.",
   // welcome gate (OB-03)
   welcomeTitle: "Welcome to Platypus", welcomeLead: "Your club's chief of staff.",
-  welcomeBody: "Set up a fictional club and see what your officers will see. About 5 minutes.",
+  // FB-2 (golden circle): why Platypus exists, how it helps, what this walkthrough sets up. Shown as three labelled lines, in this order.
+  welcomeLines: [
+    { label: "Why", text: "Clubs miss deadlines when nobody sees the whole chain, and everything resets at handoff." },
+    { label: "How", text: "Platypus watches every deadline and writes the reminder for you." },
+    { label: "What", text: "Set up your team, your first event and your reminders. About 5 minutes." },
+  ],
   welcomePrivacy: "Everything here is fictional and stays in this browser.",
   start: "Start walkthrough", explore: "Explore the sample club",
   // founder flow (OB-04 … OB-06, OB-09)
@@ -16,6 +21,10 @@ export const onboardingCopy = {
     name: {
       title: "Name your club", field: "Club name", school: "ASU Tempe", preview: "Preview", placeholder: "Your club", example: "e.g. Sun Devil Robotics Club",
       schoolWhy: "Platypus is set up for ASU clubs in this version, so the school is fixed.", schoolLabel: "School",
+      why: "Your club's name goes on every reminder and handoff note.",
+      // FB-2: the mission moved here from the old Goals screen. Still required (validateClub), still at most 300 characters.
+      mission: "Mission", missionExample: "e.g. Build robots together and compete every spring.", missionWhy: "Used in every reminder: why the work matters.",
+      missionRequired: "Add a mission to continue.", missionLong: "Keep the mission under 300 characters.",
     },
     constitution: {
       title: "Start from your constitution", sample: "Use sample", upload: "Upload a file", paste: "Paste text", skip: "Skip — use standard roles",
@@ -29,16 +38,16 @@ export const onboardingCopy = {
       noTitles: "No officer titles were found. These are standard roles: edit them or add your own.",
       sampleName: "Sample constitution (fictional).txt", pastedName: "Pasted constitution.txt", tooShort: "Add a little more text: at least a sentence or two.",
       tooLong: "This document is very long. Paste the sections about officers and departments.", unreadable: "This file could not be read.",
-    },
-    goals: {
-      title: "Set goals for your club", lead: "Goals are optional. Progress starts at zero.", mission: "Mission", missionField: "Mission", missionExample: "e.g. Build robots together and compete every spring.", missionRequired: "Add a mission to continue.",
-      decrease: "Decrease", increase: "Increase", target: "target", goalName: "Goal name", unit: "Unit", missionLong: "Keep the mission under 300 characters.",
-      items: { events: { label: "Weekly events", unit: "per week" }, members: { label: "Active members", unit: "members" }, income: { label: "External income", unit: "USD" } },
+      // FB-2: no longer a screen of its own; a folded section at the top of the Team screen.
+      section: "Fill roles from your constitution (optional)",
     },
     team: {
       title: "Who's on your team?", role: "Role", person: "Person", open: "Open position", invited: "Officers add their own phone and details when they join.",
       add: "Add role", remove: "Remove", newRole: "New role", top: "Top", reportsTo: "Reports to", duties: "Duties", editDuties: "Edit duties", nobody: "Nobody (top)",
       suggested: "AI suggested roles.", use: "Use these suggestions", sameName: "Each officer needs a different name.",
+      why: "Every task needs one owner. Reminders go to a person, and a role is what gets handed over.",
+      // FB-2: the advisor stands beside the president (dashed line in the chart), outside the reporting chain.
+      addAdvisor: "Add advisor", advisor: "Advisor", advises: "Advises the president",
     },
     firstEvent: {
       title: "Your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "ASU deadline {official}, club deadline {club}.", details: "Event details",

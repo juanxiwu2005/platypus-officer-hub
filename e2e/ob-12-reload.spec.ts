@@ -25,14 +25,13 @@ const cont = (page: Page) => page.getByRole("button", { name: c.next, exact: tru
 const h1 = (page: Page, name: string) => expect(page.getByRole("heading", { level: 1, name })).toBeVisible()
 const chain = (page: Page) => page.getByRole("region", { name: c.founder.firstEvent.chainLabel })
 
-/** Study link → Name → Constitution (sample, read in the browser) → Goals. */
-const toGoals = async (page: Page, club = "Sun Devil Robotics Club") => {
+/** Study link → Name (name and mission; FB-2 moved the mission here) → Team. */
+const toTeam = async (page: Page, club = "Sun Devil Robotics Club") => {
   await page.goto("/#/start")
-  await page.getByLabel(c.founder.name.field).fill(club); await cont(page)
-  await page.getByRole("button", { name: c.founder.constitution.sample }).click()
-  await expect(page.getByTestId("reading-note")).toBeVisible()
+  await page.getByLabel(c.founder.name.field).fill(club)
+  await page.getByRole("textbox", { name: c.founder.name.mission }).fill(MISSION)
   await cont(page)
-  await h1(page, c.founder.goals.title)
+  await h1(page, c.founder.team.title)
 }
 
 test("Name starts empty with an example, and Continue waits for a name", async ({ page }) => {
@@ -47,25 +46,37 @@ test("Name starts empty with an example, and Continue waits for a name", async (
   await expect(page.getByRole("button", { name: c.next, exact: true })).toBeEnabled()
 })
 
-test("a reload on Goals keeps the name, the constitution's roles, the mission and the goals, on the same screen", async ({ page }) => {
-  await toGoals(page)
-  const mission = page.getByRole("textbox", { name: c.founder.goals.missionField })
+// FB-2 (ob-5): the Goals screen is gone; the mission is on Name and the constitution is a section of Team. The reload checks moved with them.
+test("a reload on Name keeps the name and the mission; a new draft has no goals", async ({ page }) => {
+  await page.goto("/#/start")
+  const mission = page.getByRole("textbox", { name: c.founder.name.mission })
   await expect(mission).toHaveValue("")
+  await page.getByLabel(c.founder.name.field).fill("Sun Devil Robotics Club")
   await mission.fill(MISSION)
-  await page.getByRole("switch", { name: "External income" }).check()
-  await page.getByRole("button", { name: "Increase Active members" }).click()
-  await reloadAfterSave(page, d => d.club.mission === MISSION && d.club.goals.length === 3 && d.club.goals.some(g => g.target === 45))
-  await expect(page).toHaveURL(/#\/welcome\/founder\/goals$/)
-  await h1(page, c.founder.goals.title)
-  await expect(page.getByRole("textbox", { name: c.founder.goals.missionField })).toHaveValue(MISSION)
-  for (const g of ["Weekly events", "Active members", "External income"]) await expect(page.getByRole("switch", { name: g })).toBeChecked()
-  await expect(page.getByRole("spinbutton", { name: "Active members target" })).toHaveValue("45")
-  // Back on Constitution: the document is still chosen, and its reading (finished before the reload) is still there.
-  await page.getByRole("button", { name: c.back }).click()
+  await reloadAfterSave(page, d => d.club.name === "Sun Devil Robotics Club" && d.club.mission === MISSION)
+  await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
+  await expect(page.getByLabel(c.founder.name.field)).toHaveValue("Sun Devil Robotics Club")
+  await expect(page.getByRole("textbox", { name: c.founder.name.mission })).toHaveValue(MISSION)
+  expect((await saved(page))?.club.goals).toEqual([])
+})
+
+test("a reload on Team keeps the constitution's roles and its finished reading; Back keeps the name and mission", async ({ page }) => {
+  await toTeam(page)
+  await page.getByRole("button", { name: c.founder.constitution.section }).click()
+  await page.getByRole("button", { name: c.founder.constitution.sample }).click()
+  await expect(page.getByTestId("reading-note")).toBeVisible()
+  await reloadAfterSave(page, d => d.doc?.fileName === c.founder.constitution.sampleName && d.applied)
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  await h1(page, c.founder.team.title)
+  // The section opens by itself: the document is still chosen, and its reading (finished before the reload) is still there.
+  await expect(page.getByRole("button", { name: c.founder.constitution.section })).toHaveAttribute("aria-expanded", "true")
   await expect(page.getByTestId("constitution-chip")).toBeVisible()
   await expect(page.getByTestId("reading-note")).toBeVisible()
+  await expect(page.getByRole("textbox", { name: "Role 1", exact: true })).toHaveValue("President")
+  expect((await page.locator(".ob-role-title").evaluateAll(els => els.map(e => (e as HTMLTextAreaElement).value))).length).toBeGreaterThan(5)   // the sample's roles
   await page.getByRole("button", { name: c.back }).click()
   await expect(page.getByLabel(c.founder.name.field)).toHaveValue("Sun Devil Robotics Club")
+  await expect(page.getByRole("textbox", { name: c.founder.name.mission })).toHaveValue(MISSION)
   // Still one attempt, still open.
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
@@ -73,10 +84,7 @@ test("a reload on Goals keeps the name, the constitution's roles, the mission an
 })
 
 test("a reload on Team keeps edited roles and people; a reload on First event keeps the planned event and buffer; a reload on Confirm keeps it all", async ({ page }) => {
-  await toGoals(page)
-  await page.getByRole("textbox", { name: c.founder.goals.missionField }).fill(MISSION)
-  await cont(page)
-  await h1(page, c.founder.team.title)
+  await toTeam(page)
   const roles = await page.locator(".ob-role-title").count()
   await page.getByRole("textbox", { name: "Role 2" }).fill("Executive Vice President of Internal Affairs")
   await page.getByRole("textbox", { name: "Person 2" }).fill("Dana Cole")
@@ -119,11 +127,9 @@ test("a reload on Team keeps edited roles and people; a reload on First event ke
 
 test("a reload after Skip for now on First event keeps the skip, and Confirm starts without an event", async ({ page }) => {
   await page.goto("/#/start")
-  await page.getByLabel(c.founder.name.field).fill("Maple Club"); await cont(page)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await page.getByRole("textbox", { name: c.founder.goals.missionField }).fill(MISSION)
-  await page.getByRole("button", { name: c.skip }).click()
-  await page.getByRole("button", { name: c.skip }).click()
+  await page.getByLabel(c.founder.name.field).fill("Maple Club")
+  await page.getByRole("textbox", { name: c.founder.name.mission }).fill(MISSION); await cont(page)
+  await page.getByRole("button", { name: c.skip }).click()                 // Team
   await page.getByRole("button", { name: c.skip }).click()                 // First event
   await passReminders(page)                                                // Reminders
   await h1(page, c.founder.confirm.title)
@@ -134,11 +140,9 @@ test("a reload after Skip for now on First event keeps the skip, and Confirm sta
 
 test("after a finished attempt, the study link starts a fresh draft", async ({ page }) => {
   await page.goto("/#/start")
-  await page.getByLabel(c.founder.name.field).fill("First Club"); await cont(page)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await page.getByRole("textbox", { name: c.founder.goals.missionField }).fill(MISSION)
-  await page.getByRole("button", { name: c.skip }).click()
-  await page.getByRole("button", { name: c.skip }).click()
+  await page.getByLabel(c.founder.name.field).fill("First Club")
+  await page.getByRole("textbox", { name: c.founder.name.mission }).fill(MISSION); await cont(page)
+  await page.getByRole("button", { name: c.skip }).click()                 // Team
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
   await cont(page)
@@ -149,12 +153,10 @@ test("after a finished attempt, the study link starts a fresh draft", async ({ p
 
   await page.goto("/#/start")
   await expect(page.getByLabel(c.founder.name.field)).toHaveValue("")
-  await page.getByLabel(c.founder.name.field).fill("Second Club"); await cont(page)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await expect(page.getByRole("textbox", { name: c.founder.goals.missionField })).toHaveValue("")
-  await page.getByRole("textbox", { name: c.founder.goals.missionField }).fill(MISSION)
-  await page.getByRole("button", { name: c.skip }).click()
-  await page.getByRole("button", { name: c.skip }).click()
+  await page.getByLabel(c.founder.name.field).fill("Second Club")
+  await expect(page.getByRole("textbox", { name: c.founder.name.mission })).toHaveValue("")
+  await page.getByRole("textbox", { name: c.founder.name.mission }).fill(MISSION); await cont(page)
+  await page.getByRole("button", { name: c.skip }).click()                 // Team
   await expect(page.getByRole("textbox", { name: c.founder.firstEvent.sentenceLabel })).toHaveValue("")
   await expect(chain(page)).toHaveCount(0)                                // no event carried over from the first attempt
   const rec = await onboardingRecord(page)

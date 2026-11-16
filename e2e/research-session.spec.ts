@@ -43,10 +43,8 @@ test("an earlier day is cleared, the link opened twice keeps both sessions; Star
   await page.goto("/#/start")
   await h1(page, c.founder.name.title)
   await page.getByLabel(c.founder.name.field).fill("Fictional Heron Club")
+  await fillMission(page)                                    // FB-2 (ob-5): the mission is on Name
   await next(page)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()            // goals
   await page.getByRole("button", { name: c.skip }).click()            // team
   await page.getByTestId("first-event").getByRole("button", { name: c.skip }).click()
   await passReminders(page)                                            // Reminders (P3-H): skipped too

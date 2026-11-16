@@ -4,7 +4,8 @@ import { MAX_DUTIES, MAX_ROLES } from "../../data/structure"
 import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
-import { addRole, applyReading, bossChoices, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, validateTeam } from "./team/rows"
+import { ConstitutionPicker } from "./constitution/ConstitutionPicker"
+import { addAdvisor, addRole, applyReading, bossChoices, isAdvisor, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, validateTeam } from "./team/rows"
 
 const c = onboardingCopy.founder.team
 
@@ -30,8 +31,10 @@ function RoleTitle({ id, label, value, onChange }: { id: string; label: string; 
 }
 
 /**
- * Screen 4 of the founder flow (skippable): a visibly indented reporting tree with Role, Person and Reports to always in view. Duties expand
+ * Screen 2 of the founder flow (skippable): a visibly indented reporting tree with Role, Person and Reports to always in view. Duties expand
  * independently, so changing hierarchy never unexpectedly opens a long text field. The organization chart under the list follows the rows.
+ * FB-2: the constitution is an optional folded section at the top (it was a screen of its own); an advisor can be added, and stands beside the
+ * president instead of reporting to anyone.
  */
 export function Team() {
   const { draft, update } = useOnboardingDraft()
@@ -42,6 +45,11 @@ export function Team() {
   const [error, setError] = useState("")
   const [focusId, setFocusId] = useState<string | null>(null)
   const [dutiesId, setDutiesId] = useState<string | null>(null)
+  // The constitution section starts open when a document is already chosen (Back from a later screen, a reload, a reading still going).
+  const [constOpen, setConstOpen] = useState(() => draft.doc !== null)
+  // A reading that starts (a reload resumes one), or one that waits for "Use these suggestions", opens the section so its note can be seen.
+  const needsLook = draft.reading.status === "reading" || (draft.reading.status === "ready" && !draft.applied)
+  useEffect(() => { if (needsLook) setConstOpen(true) }, [needsLook])
   const addButton = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (!focusId) return
@@ -67,8 +75,8 @@ export function Team() {
     update(d => ({ ...d, club: checked.error ? { ...d.club, roles: start.current.roles, people: start.current.people } : { ...d.club, people: checked.people } }))
     flow.skip()
   }
-  const add = () => {
-    const made = addRole(roles)
+  const add = (make: typeof addRole) => {
+    const made = make(roles)
     if (!made) return
     edit(club => ({ ...club, roles: made.roles })); setFocusId(made.id)
   }
@@ -80,12 +88,17 @@ export function Team() {
   }
 
   return <section className="ob-card ob-team" aria-labelledby="ob-team-h">
-    <div className="ob-gt-head"><h1 id="ob-team-h">{c.title}</h1><p className="ob-lead">{c.invited}</p></div>
-    {reading.status === "reading" && <p className="notice ai-note" role="status"><span className="spin" aria-hidden="true" />{onboardingCopy.founder.constitution.reading}</p>}
-    {reading.status === "ready" && !draft.applied && <p className="notice ai-note" role="status">{c.suggested}<button type="button" className="btn small" onClick={useSuggestions}>{c.use}</button></p>}
+    <div className="ob-gt-head"><h1 id="ob-team-h">{c.title}</h1><p className="ob-why"><b>Why:</b> {c.why}</p><p className="ob-lead">{c.invited}</p></div>
+    <div className={`ob-const-section${constOpen ? " is-open" : ""}`} data-testid="constitution-section">
+      <button type="button" className="ob-const-toggle" aria-expanded={constOpen} aria-controls="ob-const-body" onClick={() => setConstOpen(o => !o)}>
+        <span>{onboardingCopy.founder.constitution.section}</span><span className="ob-const-chevron" aria-hidden="true" />
+      </button>
+      {constOpen && <div id="ob-const-body" className="ob-const-body"><ConstitutionPicker onUse={useSuggestions} /></div>}
+    </div>
     <div className="ob-team-head" aria-hidden="true"><span>{c.role}</span><span>{c.person}</span><span>{c.reportsTo}</span><span /></div>
     <ul className="ob-role-list" data-testid="team-rows">{roles.map((r, i) => {
       const president = r.fn === "president"
+      const advisor = isAdvisor(r) && !r.reportsToId
       const depth = roleDepth(roles, r.id)
       return <li key={r.id} className="ob-role">
         <div className="ob-role-title-wrap" style={{ "--ob-depth": depth } as CSSProperties}>
@@ -94,7 +107,7 @@ export function Team() {
         </div>
         <input type="text" className="ob-role-person" aria-label={`${c.person} ${i + 1}`} placeholder={c.open} value={holderName(r.holderId)} maxLength={80}
           onChange={e => edit(club => ({ ...club, ...setPersonName(club.roles, club.people, r.id, e.target.value) }))} />
-        {president ? <span className="ob-role-top">{c.top}</span> : <select className="ob-role-boss" aria-label={`${c.reportsTo} ${i + 1}`} value={r.reportsToId ?? ""} onChange={e => edit(club => ({ ...club, roles: setReportsTo(club.roles, r.id, e.target.value || null) }))}>
+        {president ? <span className="ob-role-top">{c.top}</span> : advisor ? <span className="ob-role-top ob-role-advises">{c.advises}</span> : <select className="ob-role-boss" aria-label={`${c.reportsTo} ${i + 1}`} value={r.reportsToId ?? ""} onChange={e => edit(club => ({ ...club, roles: setReportsTo(club.roles, r.id, e.target.value || null) }))}>
           <option value="">{c.nobody}</option>
           {bossChoices(roles, r.id).map(x => <option key={x.id} value={x.id}>{x.displayName}</option>)}
         </select>}
@@ -105,7 +118,10 @@ export function Team() {
         </label>}
       </li>
     })}</ul>
-    <div><button type="button" ref={addButton} className="btn small" disabled={roles.length >= MAX_ROLES} onClick={add}>{c.add}</button></div>
+    <div className="ob-team-add">
+      <button type="button" ref={addButton} className="btn small" disabled={roles.length >= MAX_ROLES} onClick={() => add(addRole)}>{c.add}</button>
+      <button type="button" className="btn small" disabled={roles.length >= MAX_ROLES} onClick={() => add(addAdvisor)}>{c.addAdvisor}</button>
+    </div>
     <OrgChart roles={roles} />
     {error && <p role="alert" className="ob-gt-error">{error}</p>}
     <div className="ob-gt-nav">

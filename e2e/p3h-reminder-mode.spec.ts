@@ -44,15 +44,13 @@ test.afterEach(async ({ page }) => {
   expect(seen.filter(u => u.pathname.startsWith("/api/") && u.pathname !== "/api/command" && u.pathname !== "/api/health").map(u => u.pathname)).toEqual([])
 })
 
-/** The study link, then Name → Constitution (skip) → Goals (skip) → Team (skip) → First event (skip) → Reminders. */
+/** The study link, then Name (with the mission) → Team (skip) → First event (skip) → Reminders. */
 async function toReminders(page: Page, club = "Fictional Heron Club") {
   await page.goto("/#/start")
   await h1(page, c.founder.name.title)
   await page.getByLabel(c.founder.name.field).fill(club)
+  await fillMission(page)                                    // FB-2 (ob-5): the mission is on Name
   await page.getByRole("button", { name: c.next, exact: true }).click()
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()            // goals
   await page.getByRole("button", { name: c.skip }).click()            // team
   await page.getByTestId("first-event").getByRole("button", { name: c.skip }).click()
   await h1(page, r.title)
@@ -154,7 +152,7 @@ test("the export holds the answer (reminderModeChoice), every tick by its label,
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-data").click()])
   const file = JSON.parse(readFileSync((await download.path())!, "utf8"))
 
-  expect(file.onboardingFlowVersion).toBe("ob-4")
+  expect(file.onboardingFlowVersion).toBe("ob-5")
   expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "skipped", reminderModeChoice: "review_then_auto" })
   expect(file.state.org.settings.reminderMode).toBe("review_then_auto")
   // Every tick, by the option's label, in its group, on this screen.

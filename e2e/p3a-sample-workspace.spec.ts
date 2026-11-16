@@ -15,10 +15,8 @@ async function startWorkspace(page: Page) {
   await page.goto("/?walkthrough=1#/welcome/start")
   await page.evaluate(() => { location.hash = "#/welcome/founder/name" })
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
-  await page.getByLabel("Club name").fill("Maple Club"); await cont(page)
-  await page.getByRole("button", { name: /^Skip/ }).click()                 // Constitution
-  await fillMission(page)                                                    // Goals needs a mission, even to skip
-  await page.getByRole("button", { name: "Skip for now" }).click()          // Goals
+  await page.getByLabel("Club name").fill("Maple Club")
+  await fillMission(page); await cont(page)                       // FB-2 (ob-5): the mission is on Name
   await page.getByRole("button", { name: "Skip for now" }).click()          // Team
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: "Plan it" }).click()

@@ -7,6 +7,7 @@
 - 本文件和代码对应：日志结构 `src/data/types.ts` 的 `LogEntry`；界面事件 `src/lib/uiLog.ts`；写入与去噪 `src/data/store.tsx` 的 `appendUiLog`；研究会话 `src/lib/studySession.ts`；时间线 `src/lib/timeline.ts`；导出 `buildExport`；CSV 脚本 `scripts/export-to-csv.mjs`。
 - 2026-11-07 新增四项**只记行为**的记录（任务标记、离开页面、开始编辑字段、悬停卡），见第 11 节。
 - 2026-11-08（P3-H）社长流程多了一屏 **Reminders**（问提醒怎么发给干部），流程版本变成 `ob-4`；导出的会话摘要多了 `reminderModeChoice`。**没有新增记录项**：选择本身原来就会记成 `ui.change`，见第 12 节。
+- （FB-2，分支 `fix/fb-2-onboarding`，**还没上线**；Phase 3 正式网站仍是 `ob-4`）社长流程变成 Name → Team → First event → Reminders → Confirm → Invite，流程版本 `ob-5`。**去掉了 Constitution、Goals 两屏**：章程变成 Team 屏顶上的折叠区 "Fill roles from your constitution (optional)"，Mission 移到 Name 屏，目标只在 Settings 里设。所以 `ob-5` 的尝试里**不再出现** `founder.constitution`、`founder.goals` 这两个步骤 id（也就没有它们的 enter/leave/skip），Name 之后直接是 `founder.team`；Name 屏的 Continue 在交互日志里是 `to: "/welcome/founder/team"`。打开章程折叠区、选样例/上传/粘贴，记成普通的 `ui.click`（`route` 是 `/welcome/founder/team`）。Invite 后不再接社员预览、Confirm 只有一个主按钮由 FB-3 在同一次发布里完成。**没有新增记录项。**比较新旧数据时按 `flowVersion` 分组。
 
 ---
 
@@ -51,7 +52,7 @@
 | `storageKey` | 数据在浏览器里存的名字（开发用） |
 | ★ `build` | 这是哪一版网站：`version`（应用版本号）、`commit`（代码提交号）、`branch`、`context`（Netlify 的 production / deploy-preview）。本地构建没有这些信息时写 `"unknown"`。用来确认每位参与者用的是同一版 |
 | ★ `demoToday` | 原型里的"演示日期"（导出那一刻）。原型的日期是假的、可以用 Demo 菜单往前拨；它和真实时间无关 |
-| ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（现在 `ob-4`：First event 之后、Confirm 之前多了 Reminders 屏；`ob-3` 没有这一屏）。每次引导尝试里也各自记了版本 |
+| ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（正式网站现在 `ob-4`：First event 之后、Confirm 之前多了 Reminders 屏；`ob-3` 没有这一屏。分支上的 `ob-5` 没有 Constitution、Goals 两屏，步骤 id `founder.constitution`、`founder.goals` 不再出现，见文件开头）。每次引导尝试里也各自记了版本 |
 | ◆ `sessions` | 文件里的每个研究会话一行，按开始时间排，见 3.1；没有会话时为空 `[]` |
 | ◆ `session` | 最新的那个会话（和 `sessions` 最后一行一样），外加没放进文件的条数，见 3.1；没有会话时为 `null` |
 | `state` | 导出那一刻整个虚构社团的数据（活动、任务、成员、设置……）。签名密钥被替换成 `"[omitted]"`。Handoff 改版起（结构版本 21）里面还有 `roleTerms`（谁在哪个岗位任职过：`status` 为 `incoming` / `active` / `former`，起止日期）、成员的 `leftOn`（交接后离任的日期）和 `incomingFor`（已被指定接任、还没正式接手）；结构版本 22 起还有 `archivedRoles`（被关闭的岗位，留作历史）、岗位的 `formerNames`（旧名）和 `startNotes`（新岗位的起步回答），都是虚构演示数据 |
@@ -182,7 +183,7 @@
 - `attempts[]`：每次走引导（或在欢迎页选"Explore the sample club"）一条：`id`、`entry`（`start` 走引导 / `explore` 直接看样例）、`flowVersion`、`replay`（第几次重走）、`startedAt`、`finishedAt`、`outcome`（`completed` 走完 / `exited` 中途退出 / `explored`）。
   - formatVersion 3 起还有：`sessionId`（属于哪次会话）、`setupCompletedAt`（按 Start workspace 或 Keep current demo 的时间，毫秒）、`setupChoice`（`start-workspace` / `keep-demo`）。
   - `outcome` 的意思没变，指**整个尝试**（包括建好以后的社员预览）怎么结束。`exited` 可能是建社团前就退出了，也可能是建好以后在社员预览里按了 Exit；两者用 `setupCompletedAt` 区分。
-- `steps[]`：每屏的 `enter`（进入）、`leave`（离开）、`back`（返回）、`skip`（跳过）、`complete`（完成）、`exit`（Save & exit 退出），各带时间 `at`。
+- `steps[]`：每屏的 `enter`（进入）、`leave`（离开）、`back`（返回）、`skip`（跳过）、`complete`（完成）、`exit`（Save & exit 退出），各带时间 `at`。步骤 id 跟着流程版本：`ob-4` 是 `founder.name`、`founder.constitution`、`founder.goals`、`founder.team`、`founder.first-event`、`founder.reminders`、`founder.confirm`、`founder.invite`；`ob-5` 没有 `founder.constitution` 和 `founder.goals`（章程在 Team 屏里，Mission 在 Name 屏里，目标不在引导里）。
 - 引导页面上的点击和换页，现在**也**会同时出现在交互日志里（`route` 以 `/welcome/` 开头），两边可以在时间线上对照。
 
 ## 7. 时间线（`timeline[]`，CSV 就是它）
