@@ -178,7 +178,7 @@ function timingStart(ctx: Ctx, n: Node, ev: Event, t: StepTiming, club: string):
   if (extra) {
     date = shiftWork(date, -extra, e.work)
     why += `, then ${plural(extra, "more working day")} of ${first ? `${first}'s` : "the"} personal buffer`
-  }
+  } else if (first) why += ` (${first}'s personal buffer of up to one day is already part of this timing)`
   if (n.phase === "close" && date < closeFloor(n, ev)) {
     date = closeFloor(n, ev)
     why = closeFloorWhy(n)

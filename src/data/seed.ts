@@ -40,7 +40,7 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
   ]
   // The application uses v2. Its third event shows why checklist routes matter:
   // no food is selected, so no food-compliance branch exists in its workflow.
-  const founderDinner: Event = { id: "e-founder", name: "Founder Dinner", date: "2026-12-03", type: "social", headcount: 24, venue: "campus", food: "none", funding: "dues", speaker: false, budgetItems: [{ id: "e-founder:budget:1", item: "Table cards", quantity: 24, pricePerUnit: 3, source: "organization", status: "purchase_request", category: "general" }], checks: { partner: true, rsvp: true }, goalId: "g-events", playbookId: "seo-event" }
+  const founderDinner: Event = { id: "e-founder", name: "Founder Dinner", date: "2026-12-03", type: "social", headcount: 24, venue: "campus", food: "none", funding: "dues", speaker: false, budgetItems: [{ id: "e-founder:budget:1", item: "Table cards", quantity: 24, pricePerUnit: 3, source: "organization", status: "order_placed", category: "general" }], checks: { partner: true, rsvp: true }, goalId: "g-events", playbookId: "seo-event" }
   const events: Event[] = workflow === "v2" ? [...coreEvents, founderDinner] : coreEvents
 
   // Networking Night needs attention in several places, but its March date leaves time to resolve them.
@@ -63,14 +63,16 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
     plan: { status: "done", completedOn: today, lastUpdate: today },
   }
   const founderStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
-    // Dated against the calibrated windows (FB-6, Dec 3 event): the planning and money steps finished inside their windows; this week
-    // the moderator is due and the purchase approval and order open; materials should have started; distribution and the final
-    // check come later in November.
+    // Dated against the calibrated windows (FB-6, Dec 3 event): the planning steps finished inside their windows and the money route
+    // is done (the table cards are ordered). This week the moderator is due and the partner review's
+    // reminder goes out on Friday; materials should have started; distribution and the reminder come later in November.
     plan: { status: "done", completedOn: "2026-09-29" }, backup: { status: "done", completedOn: "2026-09-30" }, venuechoice: { status: "done", completedOn: "2026-10-01" }, registry: { status: "done", completedOn: "2026-10-02" }, venue: { status: "done", completedOn: "2026-10-02" },
-    partner: { status: "done", completedOn: "2026-10-07" }, speakerPacket: { status: "done", completedOn: "2026-10-09" }, travel: { status: "done", completedOn: "2026-10-11" }, partnerReview: { status: "done", completedOn: "2026-10-13" }, parking: { status: "done", completedOn: "2026-10-15" },
+    partner: { status: "done", completedOn: "2026-10-07" }, speakerPacket: { status: "done", completedOn: "2026-10-09" }, travel: { status: "done", completedOn: "2026-10-23" },
     budget: { status: "done", completedOn: "2026-10-02" }, quotes: { status: "done", completedOn: "2026-10-08" },
     marketingNeeds: { status: "done", completedOn: "2026-10-05" }, contentCreation: { status: "done", completedOn: "2026-10-12" }, promotionItems: { status: "done", completedOn: "2026-10-16" }, rsvp: { status: "done", completedOn: "2026-10-18" },
     moderator: { status: "in_progress", lastUpdate: "2026-10-28" }, materials: { status: "accepted", lastUpdate: "2026-10-28" },
+    // Kept from the earlier sample: the president already ran a first readiness check, so his board has a recently finished card.
+    finalcheck: { status: "done", completedOn: "2026-10-24" },
   }
   const nightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = workflow === "v2" ? v2NightStatus : {
     draft: { status: "done" }, mktneeds: { status: "done" }, budget: { status: "done" }, approve: { status: "done" }, registry: { status: "done" }, venue: { status: "done" }, quote: { status: "done" }, ritm: { status: "in_progress" }, foodex: { status: "waiting", waitingOn: "Approval from Student Unions" }, flyer: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" }, rsvp: { status: "unclaimed", ownerId: null },

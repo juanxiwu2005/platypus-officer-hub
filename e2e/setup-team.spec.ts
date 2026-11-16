@@ -184,7 +184,7 @@ test("task dates remain visible while another officer's buffer explanation stays
   await page.getByTestId("view-flow").click()
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
-  await expect(panel.locator(".task-dates")).toContainText("Wed, Feb 24")
+  await expect(panel.locator(".task-dates")).toContainText("Tue, Feb 23") // FB-6: the calibrated window opens 30 days before the Mar 25 event
   await expect(panel).not.toContainText("Maya's personal buffer")
   await closeRail(page)
   await openDemoMenu(page)
