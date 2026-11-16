@@ -9,11 +9,11 @@ const scan = async (page: import("@playwright/test").Page) => (await new AxeBuil
 test("the founder flow shows a progress chain that follows the route", async ({ page }) => {
   await page.goto("/#/welcome/founder/name")
   const chain = page.getByRole("list", { name: "Walkthrough progress" })
-  await expect(chain.getByRole("listitem")).toHaveCount(8)
+  await expect(chain.getByRole("listitem")).toHaveCount(6)                     // ob-5 (FB-2): Name, Team, First event, Reminders, Confirm, Invite
   await expect(chain.locator("[aria-current=step]")).toHaveText(/Name/)
   await page.goto("/#/welcome/founder/team")
   await expect(chain.locator("[aria-current=step]")).toHaveText(/Team/)
-  await expect(chain.locator(".is-done")).toHaveCount(3)
+  await expect(chain.locator(".is-done")).toHaveCount(1)                        // only Name comes before Team now
 })
 test("the member flow has its own six steps", async ({ page }) => {
   await page.goto("/#/welcome/member/reminders")
