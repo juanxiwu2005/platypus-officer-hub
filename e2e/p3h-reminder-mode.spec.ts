@@ -148,7 +148,7 @@ test("the export holds the answer (reminderModeChoice), every tick by its label,
   await screen(page).getByRole("radio", { name: r.options.review_then_auto.title }).check()     // a change of mind
   await cont(page).click()
   await startWorkspace(page)
-  await page.getByRole("button", { name: c.founder.invite.today }).click()
+  await page.getByRole("button", { name: c.founder.invite.workspace }).click()
   await expect(page.locator("main h1")).toHaveText("Today")
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Settings" }).click()

@@ -31,6 +31,11 @@
 .fb3-rm-like { color: var(--ink); font-size: var(--fs-md); font-style: italic; }
 .fb3-rm-app { color: var(--muted); font-size: var(--fs-md); }
 
+/* Confirm: the only way to keep the current club is a quiet text link under the replace warning (one primary button per screen). */
+.fb3-cancel { margin: 0; }
+.fb3-cancel-link { font-size: var(--fs-md); }
+
 @media (pointer: coarse), (max-width: 600px) {
   .fb3-buffer-opt { min-height: 44px; }
+  .fb3-cancel-link { display: inline-flex; align-items: center; min-height: 44px; }
 }

@@ -148,7 +148,7 @@ test("after a finished attempt, the study link starts a fresh draft", async ({ p
   await cont(page)
   await passReminders(page)
   await page.getByRole("button", { name: c.founder.confirm.start }).click()
-  await page.getByRole("button", { name: c.founder.invite.today }).click()
+  await page.getByRole("button", { name: c.founder.invite.workspace }).click()
   await expect(page.locator("main h1")).toHaveText("Today")
 
   await page.goto("/#/start")

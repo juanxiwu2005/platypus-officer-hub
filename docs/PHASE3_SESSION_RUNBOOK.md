@@ -17,7 +17,8 @@
    - 不小心刷新没关系，填的内容会留着。
 4. **任务 (f)：setup。** 让他按组织卡片填一个虚构社团。First event 那一屏可以计划一场，也可以按 "Skip for now" 跳过；这是观察点，不要提示他选哪个。Reminders 那一屏是观察点，不要提示他选哪个；网站不会真的发邮件。
    - **流程 `ob-5`（FB-2，只在分支上，正式网站上线前不适用）：** 屏幕依次是 **Name**（社团名 + 一行 Mission，两个都必填）→ **Team**（干部名单；顶上有折叠的 "Fill roles from your constitution (optional)"，可以用样例章程、上传或粘贴；有 "Add advisor" 按钮）→ **First event** → **Reminders** → **Confirm** → **Invite**。没有单独的 Constitution 屏和 Goals 屏了：章程在 Team 屏里，目标以后在 Settings 里设。如果组织卡片上写了目标，告诉参与者引导里不用填。Name 和 Team 的标题下各有一行 "Why:"，欢迎页有 Why / How / What 三行。
-5. Start workspace 之后，社团里会有他计划的活动（如果有）加上三个示例活动（Networking Night、Spring Speaker Night、Founder Dinner）和示例任务。接着做任务卡片 (a)–(e)。
+   - **社长流程后半段（FB-3，只在分支上，还没上线；正式网站上线前不适用）：** First event 和 Reminders 也各有一行 "Why:"。First event 的缓冲改成三个选项 Tight · 1 day / Standard · 3 days（Recommended）/ Safe · 5 days，下面列出这场活动有 ASU 截止日的步骤和两个日期。Reminders 顶上有一张示例提醒卡，每个选项下有三步图、类比和"在 Platypus 里会怎样"一句。Confirm 只有一个主按钮 **Create my club**（原 Start workspace）；只有已经建过社团时才有文字链接 "Cancel and keep the current club"（原 Keep current demo）。Invite 只有一个主按钮 **Open my workspace**（原 Go to Today），**不再有 "See what your officers will see"**：参与者走完 Invite 就进主页，不经过社员预览。要自己看社员预览，用 Demo 菜单的 "Test Onboarding Page Invite"（不写记录）。
+5. Start workspace（`ob-5` 分支上叫 Create my club）之后，社团里会有他计划的活动（如果有）加上三个示例活动（Networking Night、Spring Speaker Night、Founder Dinner）和示例任务。接着做任务卡片 (a)–(e)。
    - **任务编号（Juanxi 2026-11-08 定）：** 任务 1 = (f) setup，不用按，系统自己记；任务 2–6 = (a)–(e)。
    - **请参与者每读完一张任务卡就按一下：** 点顶栏的 Demo 小标 → "Study task" 那一行按对应的数字（2–6）；做完最后一个任务按 "Done"。直接按下一个数字时，上一个任务会自动记为结束。顶栏小标上会显示当前是第几个任务，可以顺便核对。
    - 他忘了按也没关系：评分表上的时间是主要依据，这些按钮只是让导出文件里的分界更准。

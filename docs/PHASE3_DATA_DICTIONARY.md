@@ -8,6 +8,7 @@
 - 2026-11-07 新增四项**只记行为**的记录（任务标记、离开页面、开始编辑字段、悬停卡），见第 11 节。
 - 2026-11-08（P3-H）社长流程多了一屏 **Reminders**（问提醒怎么发给干部），流程版本变成 `ob-4`；导出的会话摘要多了 `reminderModeChoice`。**没有新增记录项**：选择本身原来就会记成 `ui.change`，见第 12 节。
 - （FB-2，分支 `fix/fb-2-onboarding`，**还没上线**；Phase 3 正式网站仍是 `ob-4`）社长流程变成 Name → Team → First event → Reminders → Confirm → Invite，流程版本 `ob-5`。**去掉了 Constitution、Goals 两屏**：章程变成 Team 屏顶上的折叠区 "Fill roles from your constitution (optional)"，Mission 移到 Name 屏，目标只在 Settings 里设。所以 `ob-5` 的尝试里**不再出现** `founder.constitution`、`founder.goals` 这两个步骤 id（也就没有它们的 enter/leave/skip），Name 之后直接是 `founder.team`；Name 屏的 Continue 在交互日志里是 `to: "/welcome/founder/team"`。打开章程折叠区、选样例/上传/粘贴，记成普通的 `ui.click`（`route` 是 `/welcome/founder/team`）。Invite 后不再接社员预览、Confirm 只有一个主按钮由 FB-3 在同一次发布里完成。**没有新增记录项。**比较新旧数据时按 `flowVersion` 分组。
+- （FB-3，分支 `fix/fb-3-onboarding-b`，**还没上线**；Phase 3 正式网站仍是 `ob-4`）`ob-5` 的后两屏：Confirm 的主按钮改名 **Create my club**（原 Start workspace；记录值不变，仍是 `setupChoice: "start-workspace"`，仍写 `completeSetup`）。去掉 Keep current demo 按钮；只有已经建过社团时，替换警告下面有文字链接 **Cancel and keep the current club**，行为同原 Keep current demo（`setupChoice: "keep-demo"`，`founder.confirm` 记 `exit`，尝试以 `exited` 结束）。Invite 只有一个主按钮 **Open my workspace**（原 Go to Today：`founder.invite` 记 `complete`，尝试以 `completed` 结束，去 `/`）；去掉了 "See what your officers will see"，所以 `ob-5` 的尝试里**不再出现** `member.*` 步骤，`outcome` 只说社长流程怎么结束（在 Invite 按 Exit 仍是 `exited`）。社员预览仍可从 Demo 菜单 Test Onboarding Page Invite 打开，不写记录。Reminders 屏新增示例提醒卡、每个选项下的三步图、类比和"在 Platypus 里会怎样"一句，原来每个选项的一句说明只作读屏描述；三个选项的标题、顺序、不预选、`data-testid`、存的值和 `ui.change` 记录都不变。First event 的缓冲改成 Tight 1 / Standard 3 / Safe 5 三个选项（草稿里是 2 或 7 时显示 Custom），存的 `clubBufferBusinessDays` 数值不变；点选项记成普通的 `ui.click`（按钮名如 "Safe · 5 days"）。导出时间线里 `onboarding.setup` 的描述文字仍写 `Start workspace` / `Keep current demo`（它们是记录值的标签，没改）。**没有新增记录项。**
 
 ---
 
@@ -73,7 +74,7 @@
 | `attempt` | 这个会话的引导尝试编号（对应 `onboarding.attempts[].id`） |
 | `outcome` | 这次引导尝试**整体**怎么结束的：`completed` / `exited` / 还没结束为 `null`。注意：`exited` 不等于"没建好社团"，见下一行 |
 | `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | 在 Confirm 屏按 **Start workspace** 或 **Keep current demo** 的时间（第一次按的）。有值 = 建社团这一步已经做完；没按过为 `null` |
-| `setupChoice` | 按的是哪个：`start-workspace`（Start workspace，建了自己的社团）或 `keep-demo`（Keep current demo，保留示例社团） |
+| `setupChoice` | 按的是哪个：`start-workspace`（Start workspace，建了自己的社团）或 `keep-demo`（Keep current demo，保留示例社团）。分支上的 `ob-5`（FB-3，未上线）取值不变：按钮叫 Create my club / Cancel and keep the current club |
 | `firstEventChoice` | First event 屏最后一次往前走时：`planned`（计划了一个活动）或 `skipped`（按了 Skip for now）；没走过这一屏为 `null`。只从屏幕步骤记录推出来，不看填了什么 |
 | `reminderModeChoice` | Reminders 屏（2026-11-08）最后一次往前走时的答案：`auto_email`（Send automatically）、`review_then_self`（I review, then I send）、`review_then_auto`（I review, Platypus sends），或 `skipped`（按了 Skip for now）；没往前走过这一屏为 `null`（`ob-3` 的旧文件也是 `null`）。怎么推出来的见第 12 节 |
 | `entries` | 文件里属于这个会话的日志条数 |
@@ -182,7 +183,7 @@
 
 - `attempts[]`：每次走引导（或在欢迎页选"Explore the sample club"）一条：`id`、`entry`（`start` 走引导 / `explore` 直接看样例）、`flowVersion`、`replay`（第几次重走）、`startedAt`、`finishedAt`、`outcome`（`completed` 走完 / `exited` 中途退出 / `explored`）。
   - formatVersion 3 起还有：`sessionId`（属于哪次会话）、`setupCompletedAt`（按 Start workspace 或 Keep current demo 的时间，毫秒）、`setupChoice`（`start-workspace` / `keep-demo`）。
-  - `outcome` 的意思没变，指**整个尝试**（包括建好以后的社员预览）怎么结束。`exited` 可能是建社团前就退出了，也可能是建好以后在社员预览里按了 Exit；两者用 `setupCompletedAt` 区分。
+  - `outcome` 的意思没变，指**整个尝试**（包括建好以后的社员预览）怎么结束。`exited` 可能是建社团前就退出了，也可能是建好以后在社员预览里按了 Exit；两者用 `setupCompletedAt` 区分。（分支上的 `ob-5`，FB-3，未上线：没有社员预览，建好以后的 `exited` 只能是在 Invite 屏按了 Exit。）
 - `steps[]`：每屏的 `enter`（进入）、`leave`（离开）、`back`（返回）、`skip`（跳过）、`complete`（完成）、`exit`（Save & exit 退出），各带时间 `at`。步骤 id 跟着流程版本：`ob-4` 是 `founder.name`、`founder.constitution`、`founder.goals`、`founder.team`、`founder.first-event`、`founder.reminders`、`founder.confirm`、`founder.invite`；`ob-5` 没有 `founder.constitution` 和 `founder.goals`（章程在 Team 屏里，Mission 在 Name 屏里，目标不在引导里）。
 - 引导页面上的点击和换页，现在**也**会同时出现在交互日志里（`route` 以 `/welcome/` 开头），两边可以在时间线上对照。
 

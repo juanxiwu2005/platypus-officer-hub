@@ -23,7 +23,7 @@ async function startWorkspace(page: Page) {
   await expect(page.getByRole("region", { name: "First steps and dates" })).toBeVisible()
   await cont(page)
   await passReminders(page)                                                  // Reminders (P3-H): skipped
-  await page.getByRole("button", { name: "Start workspace" }).click()
+  await page.getByRole("button", { name: "Create my club" }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").org?.name)).toBe("Maple Club")
 }
