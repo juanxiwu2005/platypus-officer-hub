@@ -3,7 +3,7 @@
 
 /* Welcome: three labelled lines, the label in a narrow column on the left. */
 .ob-welcome-why { display: grid; gap: var(--s4); margin: 0; }
-.ob-welcome-why > div { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: var(--s4); align-items: baseline; }
+.ob-welcome-why > div { display: grid; grid-template-columns: 3.75rem minmax(0, 1fr); gap: var(--s4); align-items: baseline; }
 .ob-welcome-why dt { justify-self: start; padding: var(--s1) var(--s3); border-radius: var(--r-pill); background: var(--accent-soft); color: var(--accent-ink); font-size: var(--fs-sm); font-weight: 600; }
 .ob-welcome-why dd { margin: 0; color: var(--ink); font-size: var(--fs-md); line-height: 1.5; }
 

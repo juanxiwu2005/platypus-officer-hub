@@ -5,6 +5,7 @@ import type { Role } from "../data/types"
  * below the top) and a column; a boss sits centered over the roles that report to them. No dates, no duties: just titles and who reports to whom.
  * The advisor is not part of the officers' chain (FB-2, PLAN 4.3): an advisor who reports to nobody stands on the president's level, right
  * beside the president (several advisors in turn to the right; on the left when a box on that level is in the way), joined by a dashed line.
+ * The first advisor stands a little further out than a neighbouring box (BESIDE), so the dashed line is long enough to see.
  * Without a president an advisor is simply shown at the top, after the other roles.
  */
 export interface ChartNode { id: string; title: string; level: number; col: number; advisor: boolean; vacant: boolean }
@@ -12,6 +13,9 @@ export interface ChartNode { id: string; title: string; level: number; col: numb
 export interface ChartEdge { from: string; to: string; kind?: "advisory" }
 /** `columns` is how many card widths the chart needs, counted from column 0 (it can end on a half column when a boss is centred). */
 export interface OrgChart { nodes: ChartNode[]; edges: ChartEdge[]; levels: number; columns: number }
+
+/** How far (in columns) the first advisor stands from the president. */
+export const BESIDE = 1.25
 
 export function orgChart(roles: Role[]): OrgChart {
   const ids = new Set(roles.map(r => r.id))
@@ -43,7 +47,8 @@ export function orgChart(roles: Role[]): OrgChart {
   const pres = president ? placed.get(president.id) : undefined
   if (pres) {
     const taken = (level: number, col: number) => [...placed.values()].some(n => n.level === level && Math.abs(n.col - col) < 1)
-    let right = pres.col, left = pres.col
+    // The first advisor is a quarter column further out than a neighbour would be, so the dashed line between the two boxes can be seen.
+    let right = pres.col + BESIDE - 1, left = pres.col - BESIDE + 1
     for (const a of beside) {
       let col: number
       if (!taken(pres.level, right + 1)) col = right = right + 1

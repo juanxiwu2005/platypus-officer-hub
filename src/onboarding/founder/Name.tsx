@@ -34,6 +34,7 @@ export function Name() {
       <label className="field">{text.field}
         <input value={name} maxLength={MAX_NAME} required autoComplete="off" placeholder={text.example} onChange={event => update(d => ({ ...d, club: { ...d.club, name: event.target.value } }))} />
       </label>
+      <p className="ob-name-school"><span className="sr-only">{text.schoolLabel}: </span><b>{school}</b><Info label={text.schoolLabel}>{text.schoolWhy}</Info></p>
       <div className="ob-name-mission">
         <label className="field">{text.mission}
           <input value={mission} maxLength={MAX_MISSION} required aria-required="true" autoComplete="off" placeholder={text.missionExample} aria-describedby="ob-mission-why"
@@ -41,7 +42,6 @@ export function Name() {
         </label>
         <p id="ob-mission-why" className="ob-why"><b>Why:</b> {text.missionWhy}</p>
       </div>
-      <p className="ob-name-school"><span className="sr-only">{text.schoolLabel}: </span><b>{school}</b><Info label={text.schoolLabel}>{text.schoolWhy}</Info></p>
       {error && <p role="alert" className="ob-name-error">{error}</p>}
       <div className="ob-actions"><button type="submit" className="btn btn-primary" disabled={!ready}>{onboardingCopy.next}</button></div>
     </form>
