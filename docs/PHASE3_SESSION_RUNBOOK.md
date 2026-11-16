@@ -22,7 +22,9 @@
    - **任务编号（Juanxi 2026-11-08 定）：** 任务 1 = (f) setup，不用按，系统自己记；任务 2–6 = (a)–(e)。
    - **请参与者每读完一张任务卡就按一下：** 点顶栏的 Demo 小标 → "Study task" 那一行按对应的数字（2–6）；做完最后一个任务按 "Done"。直接按下一个数字时，上一个任务会自动记为结束。顶栏小标上会显示当前是第几个任务，可以顺便核对。
    - 他忘了按也没关系：评分表上的时间是主要依据，这些按钮只是让导出文件里的分界更准。
+   - **首页和导航（FB-8，只在分支上，正式网站上线前不适用）：** 首页不再叫 Today，而是 **Reminders**（提醒中心），分五栏：**Needs your OK**、**This week**、**Sent**、**Replies**、**No reply yet**。原来首页的 "Needs a nudge"、Events 进度、Semester goals、Superstar of the week 都不在首页了。左边导航只有 **Reminders**、**Plan**（Events 和 Tasks，页头有 "Events | Tasks" 切换）、**Handoff**、**Rules**；Team 和 Partners 收在可展开的 **More** 里。**上线前要把任务卡片上的 "Today" 改成 "Reminders"、"Needs a nudge" 改成 "Needs your OK"，"Tasks" 改成 "Plan → Tasks"。**
 6. **提醒参与者：** 写提醒、邀请时可以点 Gmail / WhatsApp 看看草稿，**但不要真的发出去**。
+   - **FB-8（只在分支上）：** 发提醒的方式跟着 setup 里 Reminders 屏的答案走（也可以在 Settings → Club → Tasks and events 里改）。"I review, then I send" 或跳过：在 Needs your OK 点 **Review & open draft** → 打开草稿 → 回来点 "I sent this reminder"。"I review, Platypus sends"：点 **Review** → **Approve · Platypus sends (demo)**，或栏顶的 **Approve all (N)** 一次批准全部；不会打开任何草稿。"Send automatically"：Needs your OK 是空的，到日子的提醒直接显示在 Sent，标 "Would be sent · demo"。**任何一种方式都不真的发出去。** 跳过了 Reminders 屏的参与者会在 Needs your OK 顶上看到 "Choose how reminders go out"；不要提示他点不点。
 7. 最后引导他用右边 Ask 新建一个活动（例如点 "Plan a new event"）。
 
 ## 结束时

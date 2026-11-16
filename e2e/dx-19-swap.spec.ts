@@ -17,7 +17,7 @@ test.describe("with motion", () => {
     expect(await page.locator("main").evaluate(el => el.className)).toBe("")          // not on the first load
     const frames = await page.evaluate(async () => {
       const out: { o: number; y: number; cls: string }[] = []
-      ;(document.querySelector(".sidenav a[href$='/team']") as HTMLElement).click()
+      ;(document.querySelector(".sidenav a[href$='/handoff']") as HTMLElement).click()
       const t0 = performance.now()
       while (performance.now() - t0 < 500) {
         const first = document.querySelector("main > *") as HTMLElement | null
@@ -39,13 +39,13 @@ test.describe("with motion", () => {
   })
   test("a different task in Details fades in; the same one does not replay", async ({ page }) => {
     await fresh(page)
-    const rows = page.getByTestId("risk-list").locator("button.row-btn")
+    const rows = page.getByTestId("reminder-centre").locator("button.row-btn")
     await rows.nth(0).click()
     await expect(page.locator(".detail-scroll")).toBeVisible()
     await page.waitForTimeout(400)
     const swap = await page.evaluate(async () => {
       const out: number[] = []
-      ;(document.querySelectorAll("[data-testid=risk-list] button.row-btn")[1] as HTMLElement).click()
+      ;(document.querySelectorAll("[data-testid=reminder-centre] button.row-btn")[1] as HTMLElement).click()
       const t0 = performance.now()
       while (performance.now() - t0 < 400) {
         const el = document.querySelector(".detail-scroll > :not(.detail-bar)") as HTMLElement | null
@@ -59,7 +59,7 @@ test.describe("with motion", () => {
     // Pressing the same row again must not fade it again (the content is not rebuilt).
     const again = await page.evaluate(async () => {
       const out: number[] = []
-      ;(document.querySelectorAll("[data-testid=risk-list] button.row-btn")[1] as HTMLElement).click()
+      ;(document.querySelectorAll("[data-testid=reminder-centre] button.row-btn")[1] as HTMLElement).click()
       for (let i = 0; i < 12; i++) { const el = document.querySelector(".detail-scroll > :not(.detail-bar)") as HTMLElement | null; if (el) out.push(parseFloat(getComputedStyle(el).opacity)); await new Promise(requestAnimationFrame) }
       return out
     })
@@ -71,10 +71,10 @@ test.describe("Reduce Motion", () => {
   test.use({ reducedMotion: "reduce" })
   test("neither fades", async ({ page }) => {
     await fresh(page)
-    await page.locator(".sidenav a", { hasText: "Team" }).click()
+    await page.locator(".sidenav a", { hasText: "Handoff" }).click()
     expect(await page.locator("main > *").first().evaluate(el => getComputedStyle(el).animationName)).not.toContain("dx-fade-in")
     await page.goto("/#/")
-    await page.getByTestId("risk-list").locator("button.row-btn").first().click()
+    await page.getByTestId("reminder-centre").locator("button.row-btn").first().click()
     expect(await page.locator(".detail-scroll > :not(.detail-bar)").first().evaluate(el => getComputedStyle(el).animationName)).not.toContain("dx-fade-in")
   })
 })

@@ -103,7 +103,7 @@ test("brand link includes the visible organization name after editing and opens 
   await home.focus()
   await page.keyboard.press("Enter")
   await expect(page).toHaveURL(/#\/$/)
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
 })
 
 // ---- S6: keyboard and right-rail focus ----

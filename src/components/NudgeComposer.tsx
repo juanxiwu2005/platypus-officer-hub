@@ -70,6 +70,9 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
   const draft = buildNudge(state, node, state.aiEnabled ? meaning : undefined)
   const message = messageText(draft, window.location.origin, node.id, grant ?? undefined)
   const url = composeUrl(channel, message, draft.subject)
+  // FB-8: the club's reminder mode decides the last step. Platypus "sends" (demo) in the two modes where it sends; a person sends otherwise.
+  const mode = state.org.settings.reminderMode
+  const platypusSends = mode === "review_then_auto" || mode === "auto_email"
   const ready = !blocked && draft.checked && !busy && !confirmed && !!grant && !!usableGrant(state, grantToken(grant))
   return <aside className="panel nudge-panel" role="dialog" aria-labelledby="nudge-heading" data-testid="nudge-panel">
     <div className="panel-head"><span className="eyebrow">Private reminder · review first</span><button className="btn btn-quiet" aria-label="Close reminder" onClick={onClose}>✕</button></div>
@@ -87,10 +90,14 @@ export function NudgeComposer({ nodeId, onClose }: { nodeId: string; onClose: ()
     <details><summary className="small">Sources & task details</summary><p className="small">Latest task update: {node.lastUpdate ?? "not recorded"}. Dates and waiting steps come from the rule engine. {node.ruleIds.join(", ") || node.source}.</p><Link to={`/tasks?node=${encodeURIComponent(node.id)}`} onClick={onClose}>Open this task</Link></details>
     {blocked && <p className="small warn-text" role="status">{blocked}</p>}
     {busy && !confirmed && <AiWait onStop={skipAi} stopLabel="Skip AI line" stopTestId="nudge-skip-ai" />}
-    {confirmed ? <p className="small good-text" role="status">Recorded as sent by you. The app cannot verify delivery.</p> : <>
+    {confirmed ? <p className="small good-text" role="status">{platypusSends ? "Approved. Platypus would send it now. Demo: nothing is sent." : "Recorded as sent by you. The app cannot verify delivery."}</p> : platypusSends ? <>
+      {/* FB-8: "I review, Platypus sends" (and a follow-up when the club sends automatically): one click approves. Demo: nothing leaves the browser. */}
+      {ready ? <button type="button" className="btn btn-primary" data-testid="approve-send" onClick={() => { dispatch({ type: "confirmNudgeSent", nodeId: node.id, channel, text: message, via: "platypus" }); setConfirmed(true) }}>Approve · Platypus sends (demo)</button> : <button className="btn" disabled>{busy ? "Checking draft…" : "Draft unavailable"}</button>}
+      <p className="small muted">Demo: nothing is sent. It is recorded under Sent.</p>
+    </> : <>
       {ready ? <a className="btn btn-primary" href={url} target={channel === "sms" ? undefined : "_blank"} rel="noreferrer" onClick={() => setOpenedText(message)}>Open {CHANNEL_LABEL[channel]} draft</a> : <button className="btn" disabled>{busy ? "Checking draft…" : "Draft unavailable"}</button>}
       <p className="small muted">Demo: recipient is blank. Select a test destination yourself. Opening a draft does not record it as sent.</p>
-      {openedText === message && ready && <button className="btn" onClick={() => { dispatch({ type: "confirmNudgeSent", nodeId: node.id, channel, text: message }); setConfirmed(true) }}>I sent this reminder</button>}
+      {openedText === message && ready && <button className="btn" onClick={() => { dispatch({ type: "confirmNudgeSent", nodeId: node.id, channel, text: message, via: "president" }); setConfirmed(true) }}>I sent this reminder</button>}
     </>}
   </aside>
 }

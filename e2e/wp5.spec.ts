@@ -5,8 +5,8 @@ test.beforeEach(async ({ page }) => { await page.route("**/api/health", r => r.f
 
 test("forecast shows colour first; reasons and percentages wait in the hover card", async ({ page }, info) => {
   await page.goto("/#/")
-  const risk = page.getByTestId("risk-list")
-  expect(await risk.locator("tr").count()).toBeLessThanOrEqual(3)
+  // FB-8: the risk list is gone; the reminder centre marks forecast-red tasks first in each section.
+  const risk = page.getByTestId("rq-needs-ok")
   const dot = risk.getByTestId("forecast").first().getByRole("button")
   await expect(dot).toHaveAttribute("aria-label", /At risk/)
   const card = risk.getByTestId("forecast").first().locator(".hover-card")

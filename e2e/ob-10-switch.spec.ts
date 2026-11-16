@@ -63,7 +63,7 @@ test("the Demo menu has two test buttons that open the onboarding pages without 
   await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
   await expect(page.getByRole("heading", { level: 1, name: c.founder.name.title })).toBeVisible()
   await page.getByRole("button", { name: c.exit }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   await openDemoMenu(page)
   await page.getByTestId("test-onboarding-invite").click()
   await expect(page).toHaveURL(/#\/welcome\/member\/invitation$/)

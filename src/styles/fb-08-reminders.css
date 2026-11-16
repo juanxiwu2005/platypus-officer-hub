@@ -1,1 +1,70 @@
 /* FB-8: the reminder centre and the four-item navigation. Shared rules: docs/feedback-fix/PLAN.md. Tokens only: see docs/DESIGN_TOKENS.md and AGENTS.md 7.1. */
+
+/* ---- Navigation: "More" folds Team and Partners. It looks like a nav item; only colours change, nothing moves (AGENTS.md 7.1.5). ---- */
+.sidenav .nav-more {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 8px 10px; border: 0; border-radius: var(--r-md); background: transparent;
+  color: var(--muted); font: inherit; font-size: var(--fs-base); text-align: left; cursor: pointer;
+}
+.sidenav .nav-more svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
+@media (hover: hover) { .sidenav .nav-more:hover { background: var(--surface-2); color: var(--ink); } }
+.sidenav .nav-more:active { background: color-mix(in srgb, var(--surface-2) 80%, var(--ink)); }
+.sidenav .nav-more .caret { margin-left: auto; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); }
+.sidenav .nav-more[aria-expanded="true"] .caret { transform: rotate(-135deg) translateY(-2px); }
+/* The folded items join the list as if they were in it, so the desktop column and the phone strip both just carry on. */
+.sidenav .nav-more-items:not([hidden]) { display: contents; }
+.sidenav .nav-more-items a { padding-left: var(--s7); }
+@media (hover: hover) {
+  .sidenav .nav-more { transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+}
+@media (pointer: coarse) {
+  .sidenav .nav-more { min-height: 44px; }
+}
+@media (max-width: 860px) {
+  .sidenav .nav-more { width: auto; white-space: nowrap; background: var(--surface); border: 1px solid var(--line); flex: none; }
+  .sidenav .nav-more-items a { padding-left: 10px; }
+}
+
+/* ---- Plan's "Events | Tasks" switch, at the left of both page heads ---- */
+.page-title { display: flex; align-items: center; gap: var(--s5); flex-wrap: wrap; min-width: 0; }
+.plan-switch { display: inline-flex; gap: var(--s2); padding: var(--s1); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); }
+.plan-switch a { padding: var(--s3) var(--s5); border-radius: var(--r-sm); color: var(--muted); font-size: var(--fs-md); text-decoration: none; }
+.plan-switch a:hover { color: var(--ink); }
+.plan-switch a[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+@media (pointer: coarse) {
+  .plan-switch a { min-height: 44px; display: inline-flex; align-items: center; }
+}
+
+/* ---- The reminder centre (home page) ---- */
+.rq { display: grid; gap: var(--s6); }
+.rq-section > header { align-items: center; }
+.rq-section > header h2 { display: flex; align-items: center; gap: var(--s4); }
+.rq-n { font-size: var(--fs-md); font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rq-note { margin: 0 0 var(--s4); font-size: var(--fs-md); color: var(--muted); }
+.rq-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.rq-row {
+  display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: var(--s4) var(--s5);
+  padding: var(--s4) 0; border-top: 1px solid var(--line); min-height: 44px;
+}
+.rq-row:first-child { border-top: 0; }
+.rq-mark { display: inline-flex; justify-content: center; }
+.rq-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s1) var(--s4); min-width: 0; }
+.rq-main .row-btn { text-align: left; font-weight: 600; font-size: var(--fs-base); }
+.rq-meta { font-size: var(--fs-md); color: var(--muted); font-variant-numeric: tabular-nums; }
+.rq-meta b { color: var(--ink); font-weight: 600; }
+.rq-reply { font-size: var(--fs-md); font-weight: 600; color: var(--ink); }
+.rq-act { display: flex; gap: var(--s4); align-items: center; justify-content: flex-end; }
+.rq-tag { font-size: var(--fs-md); font-weight: 600; padding: var(--s1) var(--s4); border-radius: var(--r-pill); background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+.rq-tag.demo { background: var(--accent-soft); color: var(--accent-ink); }
+.rq-empty { margin: 0; font-size: var(--fs-md); color: var(--muted); }
+@media (max-width: 860px) {
+  /* A phone: the action drops under the task, full width, so it is easy to hit and the title is never squeezed. */
+  .rq-row { grid-template-columns: 20px minmax(0, 1fr); }
+  .rq-act { grid-column: 2; justify-content: flex-start; }
+}
+.rq-sub { margin: var(--s5) 0 var(--s2); font-size: var(--fs-md); font-weight: 600; color: var(--muted); }
+.rq-sub:first-of-type { margin-top: 0; }
+/* A finger (DX-04): the task names and the note's link reach 32px, like the dense rows elsewhere. */
+@media (pointer: coarse) {
+  .rq-main .row-btn, .rq-note a { display: inline-flex; align-items: center; min-height: 32px; }
+}

@@ -70,7 +70,7 @@ test("Reminder: Skip AI line uses the checked template at once and the draft is 
   await health(page)
   await page.route("**/api/nudge/draft", late(15_000, { whyItMatters: "LATE AI LINE" }))
   await page.goto("/#/")
-  await page.getByTestId("risk-list").getByRole("button", { name: "Remind" }).first().click()
+  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()   // FB-8: the reminder centre
   const panel = page.getByTestId("nudge-panel")
   const wait = panel.getByTestId("ai-wait")
   await expect(wait).toBeVisible()
@@ -89,7 +89,7 @@ test("Reminder: when the AI line arrives in time it is used", async ({ page }) =
   await health(page)
   await page.route("**/api/nudge/draft", late(1_500, { whyItMatters: "Together we welcome every new founder." }))
   await page.goto("/#/")
-  await page.getByTestId("risk-list").getByRole("button", { name: "Remind" }).first().click()
+  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()   // FB-8: the reminder centre
   const panel = page.getByTestId("nudge-panel")
   await expect(panel.getByTestId("ai-wait")).toBeVisible()
   await expect(panel.getByTestId("nudge-body")).toContainText("Together we welcome every new founder.")

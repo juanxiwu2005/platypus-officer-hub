@@ -110,7 +110,7 @@
 | `reviewChange` | 对一组改动按了批准或拒绝（`payload.decision`） |
 | `undoAuto` | 撤销一个 AI 小改动 |
 | `createTasks`、`addTask`、`claimTask`、`moveTask`、`replyTask`、`updateNode`、`updateEvent` | 任务和活动的增改 |
-| `issueOfficerGrant`、`confirmNudgeSent` | 准备提醒时生成一次性任务链接、参与者点"I sent this reminder" |
+| `issueOfficerGrant`、`confirmNudgeSent` | 准备提醒时生成一次性任务链接、参与者点"I sent this reminder"。**FB-8（只在分支上，正式网站上线前不适用）：** `confirmNudgeSent` 的 `payload` 可以多一个可选的 `via`：`"president"` = 社长/副社长自己打开草稿发的（"I sent this reminder"）；`"platypus"` = 选了 "I review, Platypus sends" 的社团里按了 "Approve · Platypus sends (demo)" 或提醒中心的 "Approve all (N)"（每条一个 `confirmNudgeSent`，一次批准 N 条就有 N 条）。同一个值也存进 `state.nudges[].via`。旧文件里没有这个字段，按 `president` 理解。网站仍然**不发任何东西**；"Send automatically" 在提醒中心里显示的 "Would be sent · demo" 是推算出来的，**不写任何记录**。没有新增记录类型 |
 | `advanceClock`、`setViewer`、`setAi`、`reset` | Demo 菜单：拨日期、切换查看身份、开关 AI、重置演示 |
 
 ## 5. 界面操作（`type` 以 `ui.` 开头）

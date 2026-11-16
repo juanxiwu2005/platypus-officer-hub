@@ -129,8 +129,9 @@ describe("storage", () => {
 })
 
 describe("app shell", () => {
-  it("renders Today with its short page title", () => {
+  // FB-8: the home page is the reminder centre, titled Reminders.
+  it("renders the home page (Reminders) with its short page title", () => {
     render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter><App /></HashRouter></StoreProvider>)
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Today")
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Reminders")
   })
 })

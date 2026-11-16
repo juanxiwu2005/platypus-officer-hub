@@ -31,7 +31,7 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
   expect(await setting(page)).toBe("1")
   await closeRail(page)
   await expect(page.locator(".bts").first()).toBeVisible()
-  await expect(page.getByTestId("risk-list")).toContainText("Club deadline")
+  await expect(page.getByTestId("reminder-centre")).toContainText("Send day = the rule engine's latest start") // FB-8: the reminder centre
   await page.reload()
   await page.waitForTimeout(300)
   await expect(page.locator(".bts").first()).toBeVisible()
@@ -45,12 +45,13 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
   await expect(page.locator(NOTES)).toHaveCount(0)
 })
 
-test("when on: dates show where they come from on Today, Events and Tasks", async ({ page }) => {
+test("when on: dates show where they come from on Reminders, Events and Tasks", async ({ page }) => {
   await page.goto("/#/")
   await switchOn(page)
   await closeRail(page)
-  await expect(page.getByTestId("risk-list").locator(".bts").first()).toContainText("Rule engine")
-  await expect(page.getByTestId("event-strip").first().locator("xpath=following-sibling::*[1]")).toContainText("Days left = event date minus today")
+  // FB-8: the home page is the reminder centre; its send days and Due come from the rule engine (the Events strip moved off home).
+  await expect(page.getByTestId("rq-needs-ok").locator(".bts").first()).toContainText("Rule engine")
+  await expect(page.getByTestId("rq-this-week").locator(".bts")).toContainText("Send days from tomorrow to 7 days ahead")
   await page.goto("/#/events")
   await expect(page.locator("main .bts").first()).toBeVisible()
   await page.getByTestId("view-list").click()

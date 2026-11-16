@@ -149,7 +149,7 @@ test("the export holds the answer (reminderModeChoice), every tick by its label,
   await cont(page).click()
   await startWorkspace(page)
   await page.getByRole("button", { name: c.founder.invite.workspace }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")             // FB-8: the home page is the reminder centre
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Settings" }).click()
   await page.getByRole("button", { name: "My preferences" }).click()

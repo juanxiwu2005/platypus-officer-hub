@@ -44,15 +44,16 @@ describe("S3: one forecast per state change", () => {
   it("does not recompute when switching pages, and recomputes once per change", async () => {
     window.location.hash = "#/"
     render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter><App /></HashRouter></StoreProvider>)
-    await screen.findByTestId("risk-list")
+    // FB-8: the home page is the reminder centre (its risk marks use the same forecast); Events is under Plan in the navigation.
+    await screen.findByTestId("reminder-centre")
     expect(runs()).toBe(1)
-    fireEvent.click(screen.getByRole("link", { name: "Events" }))
+    fireEvent.click(screen.getByRole("link", { name: /^Plan/ }))
     await screen.findByRole("heading", { level: 1, name: "Events" })
-    fireEvent.click(screen.getByRole("link", { name: "Today" }))
-    await screen.findByTestId("risk-list")
+    fireEvent.click(screen.getByRole("link", { name: "Reminders" }))
+    await screen.findByTestId("reminder-centre")
     expect(runs()).toBe(1)
     fireEvent.change(screen.getByLabelText("View as"), { target: { value: "maya" } })
-    await screen.findByTestId("risk-list")
+    await screen.findByTestId("your-reminders")
     expect(runs()).toBe(2)
   })
 })
