@@ -40,6 +40,10 @@ interface RailValue {
   reviewEventId: string | null
   requestReview: (eventId: string) => void
   takeReview: () => void
+  /** "+ New event" (FB-5): show the empty event form in Ask at once, without AI. Ask takes the request when it is mounted. */
+  newEvent: () => void
+  formRequest: { kind: "event"; n: number } | null
+  takeFormRequest: () => void
 }
 
 const RailCtx = createContext<RailValue | null>(null)
@@ -110,6 +114,13 @@ export function RailProvider({ children }: { children: ReactNode }) {
   const [reviewEventId, setReviewEventId] = useState<string | null>(null)
   const requestReview = useCallback((eventId: string) => { setReviewEventId(eventId); setTab("ask"); setOpenState(true) }, [])
   const takeReview = useCallback(() => setReviewEventId(null), [])
+  const [formRequest, setFormRequest] = useState<RailValue["formRequest"]>(null)
+  const newEvent = useCallback(() => {
+    setFormRequest(r => ({ kind: "event", n: (r?.n ?? 0) + 1 }))
+    setTab("ask")
+    setOpenState(true)
+  }, [])
+  const takeFormRequest = useCallback(() => setFormRequest(null), [])
 
   // "/" focuses the Ask box from anywhere (unless typing in a field).
   useEffect(() => {
@@ -124,7 +135,7 @@ export function RailProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
-  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview }), [open, setOpen, tab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview])
+  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview, newEvent, formRequest, takeFormRequest }), [open, setOpen, tab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview, newEvent, formRequest, takeFormRequest])
   return <RailCtx.Provider value={value}>{children}</RailCtx.Provider>
 }
 

@@ -9,7 +9,9 @@ import { forecastFor } from "../engine/forecast"
 import { daysBetween, fmtShort } from "../lib/dates"
 import { topoOrder } from "../engine/schedule"
 import { Avatar, Empty, Info, NodePill } from "../components/ui"
-import { canLead } from "../data/changeReview"
+import { canCreateEvent, canLead } from "../data/changeReview"
+import { isOfficer } from "../data/permissions"
+import type { DemoState } from "../data/types"
 import { SEVERITY_TONE, firstName, worstIssue } from "./helpers"
 import { EventBudget } from "../components/EventBudget"
 import { budgetTotal } from "../engine/eventBudget"
@@ -53,7 +55,7 @@ export default function Events() {
   }
   const nodes = useMemo(() => state.nodes.filter(n => n.eventId === ev?.id), [state.nodes, ev?.id])
   useEffect(() => { if (ev && params.get("event") && !state.events.some(e => e.id === params.get("event"))) setParams({}, { replace: true }) }, [ev?.id])
-  if (!ev) return <><PageHead path="/events" /><Empty>No events yet. Ask Platypus to plan one.</Empty></>
+  if (!ev) return <><PageHead path="/events" actions={<NewEvent />} /><div className="new-event-empty"><Empty>No events yet.</Empty><NewEvent testId="new-event-empty" /></div></>
 
   const evIssues = sched.events[ev.id]?.issues ?? []
   const done = nodes.filter(n => n.status === "done").length
@@ -66,14 +68,14 @@ export default function Events() {
         {eventsByDate.map(e => <button key={e.id} type="button" title={e.name} aria-current={e.id === ev.id ? "page" : undefined} onClick={() => chooseEvent(e.id)}>{e.name}</button>)}
       </nav>}
       <div className="events-content">
-        <PageHead path="/events" actions={state.events.length > 1 && (
+        <PageHead path="/events" actions={<>{state.events.length > 1 && (
           <label className="event-picker">
             <span className="sr-only">Choose an event</span>
             <select aria-label="Choose an event" value={ev.id} onChange={e => chooseEvent(e.target.value)}>
               {eventsByDate.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           </label>
-        )} />
+        )}<NewEvent /></>} />
 
       <section className="card event-head" aria-labelledby="ev-title">
         <div className="event-head-row">
@@ -131,4 +133,22 @@ export default function Events() {
       </div>
     </div>
   )
+}
+
+/** Why "+ New event" is off for this viewer, in the words of the Settings choice (FB-5); null when they may create events. */
+export function newEventBlocked(s: DemoState): string | null {
+  if (s.people.some(p => p.id === s.viewerId && !isOfficer(p))) return "Only current officers can create events."
+  if (canCreateEvent(s)) return null
+  return (s.org.settings.eventCreators ?? "leads") === "chosen" ? "Only the president, VP and officers they choose can create events." : "Only the president or VP can create events."
+}
+
+/** "+ New event" (FB-5): opens Ask with the empty event form. No AI box on the page itself (AGENTS.md 7.1). */
+function NewEvent({ testId = "new-event" }: { testId?: string }) {
+  const { state } = useStore()
+  const rail = useRail()
+  const why = newEventBlocked(state)
+  return <span className="new-event">
+    <button type="button" className="btn btn-primary" data-testid={testId} disabled={!!why} aria-describedby={why ? `${testId}-why` : undefined} onClick={() => rail.newEvent()}>+ New event</button>
+    {why && <span className="small muted new-event-why" id={`${testId}-why`} data-testid={`${testId}-why`}>{why}</span>}
+  </span>
 }

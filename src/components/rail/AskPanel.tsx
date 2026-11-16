@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useStore, useViewer } from "../../data/store"
 import type { Event, EventCheck, EventChecks } from "../../data/types"
-import { respond, reviewEvent, STOPPED_FORM_SOURCE, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
+import { newEventForm, respond, reviewEvent, STOPPED_FORM_SOURCE, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
 import { PAGES } from "../../routes"
 import { fmtLong, fmtShort } from "../../lib/dates"
 import { FINALS, findPeriod } from "../../engine/calendar"
@@ -163,6 +163,23 @@ export function AskPanel() {
     else { setText(p.text); setTimeout(() => input.current?.focus(), 30) }
   }, [rail.pending?.n])
 
+  // "+ New event" (FB-5): the empty event form, shown at once without AI, with focus on its first field. A second
+  // click while that form is still the last message and untouched only moves focus back to it.
+  const blankForm = useRef<string | null>(null)
+  const focusFirst = (formId: string) => setTimeout(() => list.current?.querySelector<HTMLElement>(`[data-form-id="${formId}"] input`)?.focus(), 30)
+  useEffect(() => {
+    const r = rail.formRequest
+    if (!r) return
+    rail.takeFormRequest()
+    const last = messagesRef.current.at(-1)
+    const open = last?.cards?.find(c => c.kind === "form" && c.id === blankForm.current && !c.done)
+    if (open && open.kind === "form") { focusFirst(open.id); return }
+    const card = newEventForm()
+    blankForm.current = card.id
+    setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Tell me about the event and I'll draft the plan from the club playbook." }, card], source: "Platypus" }])
+    focusFirst(card.id)
+  }, [rail.formRequest?.n])
+
   /**
    * The assistant's answer to a message whose form is already showing (M2b): it fills the form's untouched fields.
    * If it read the message as something else (a task, not an event, or a question), its reply follows as a new
@@ -206,12 +223,12 @@ export function AskPanel() {
       { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Here is the draft. Approve it and I'll check the plan and open its flow chart." }, { kind: "changes", changeSetId: id }], source: "Club playbook" },
     ])
   }
-  /** The task form creates at once, as the viewer, with Undo: one task per owner. */
-  function submitTask(msgId: string, index: number, c: Extract<ChatCard, { kind: "taskform" }>, buffered: boolean) {
+  /** The task form creates at once, as the viewer, with Undo: one task per owner. Its one date is Due (FB-5): no buffer. */
+  function submitTask(msgId: string, index: number, c: Extract<ChatCard, { kind: "taskform" }>) {
     const id = `tasks-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
     const people = ownersToPeople(c.owners, state.people, state.roles)
     const tasks = (people.length ? people : [null]).map(ownerId => ({ title: c.title, ownerId, eventId: c.eventId }))
-    dispatch({ type: "createTasks", id, sentence: c.title, tasks, date: c.due, buffered, source: "Your task form" })
+    dispatch({ type: "createTasks", id, sentence: c.title, tasks, date: c.due, buffered: false, source: "Your task form" })
     patchCard(msgId, index, { ...c, done: true, changeSetId: id })
   }
   const suggestions = SUGGESTIONS[location.pathname] ?? SUGGESTIONS["/"]
@@ -232,7 +249,7 @@ export function AskPanel() {
       {messages.map(m => m.role === "user"
         ? <div key={m.id} className={`bubble user${alreadyThere.current.has(m.id) ? "" : " is-new"}`}>{m.text}</div>
         : <div key={m.id} className={`bubble bot${alreadyThere.current.has(m.id) ? "" : " is-new"}`} data-testid="bot-reply">
-          {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={card => submitPlan(m.id, i, card)} onTask={(card, buffered) => submitTask(m.id, i, card, buffered)} onMoved={card => patchCard(m.id, i, card)} />)}
+          {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={card => submitPlan(m.id, i, card)} onTask={card => submitTask(m.id, i, card)} onMoved={card => patchCard(m.id, i, card)} />)}
           {m.source && <span className="ask-source">{m.source}</span>}
         </div>)}
       {waiting > 0 && <AiWait key={waitKey} onStop={stopAll} stopTestId="ask-stop" />}
@@ -246,7 +263,7 @@ export function AskPanel() {
   </section>
 }
 
-function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (c: Extract<ChatCard, { kind: "form" }>) => void; onTask: (c: Extract<ChatCard, { kind: "taskform" }>, buffered: boolean) => void; onMoved: (c: Extract<ChatCard, { kind: "eventdate" }>) => void }) {
+function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (c: Extract<ChatCard, { kind: "form" }>) => void; onTask: (c: Extract<ChatCard, { kind: "taskform" }>) => void; onMoved: (c: Extract<ChatCard, { kind: "eventdate" }>) => void }) {
   const { state } = useStore()
   const rail = useRail()
   switch (card.kind) {
@@ -340,7 +357,7 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
   const hasFood = f.food !== "none"
   const toggleCheck = (key: EventCheck, checked: boolean) => edit({ checks: { ...f.checks, [key]: checked } })
   const finals = /^\d{4}-\d{2}-\d{2}$/.test(date) ? findPeriod(date, FINALS) : null
-  return <form className="mini-card plan-form" data-testid="plan-form" autoComplete="off" onSubmit={e => {
+  return <form className="mini-card plan-form" data-testid="plan-form" data-form-id={card.id} autoComplete="off" onSubmit={e => {
     e.preventDefault()
     if (!allowed) return setError("The president chooses who can create events (Settings).")
     if (!f.name.trim()) return setError("Give the event a name.")
@@ -367,11 +384,10 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
   </form>
 }
 
-/** The task form (M2b): name, owners as tags, due date, and the club deadline before it. */
-function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform" }>; onDone: (c: Extract<ChatCard, { kind: "taskform" }>, buffered: boolean) => void }) {
+/** The task form (M2b): name, owners as tags, and one date, Due (FB-5). */
+function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform" }>; onDone: (c: Extract<ChatCard, { kind: "taskform" }>) => void }) {
   const { state } = useStore()
   const [c, setC] = useState(card)
-  const [buffered, setBuffered] = useState(true)
   const [error, setError] = useState("")
   const touched = useRef(new Set<string>())
   const edit = (patch: Partial<typeof c>) => { Object.keys(patch).forEach(k => touched.current.add(k)); setC(prev => ({ ...prev, ...patch })) }
@@ -391,7 +407,7 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
     e.preventDefault()
     if (!c.title.trim()) return setError("Give the task a name.")
     if (!/^\d{4}-\d{2}-\d{2}$/.test(c.due) || c.due < state.today) return setError("Pick a due date from today on.")
-    onDone({ ...c, title: c.title.trim(), thinking: false }, buffered)
+    onDone({ ...c, title: c.title.trim(), thinking: false })
   }}>
     <b>New task</b>
     {card.thinking && <p className="small muted" data-testid="ai-reading">AI is reading your message and will fill in what it can…</p>}
@@ -400,7 +416,7 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
     <OwnerPicker value={c.owners} onChange={owners => edit({ owners })} />
     {people > 1 && <p className="small muted">Makes {people} tasks, one for each person, so everyone has their own deadline.</p>}
     {!c.owners.length && <p className="small muted">{canLead(state) ? "No owner yet: anyone can claim it." : "No owner: it will be yours."}</p>}
-    <TaskDueFields due={c.due} buffered={buffered} onDue={due => edit({ due })} onBuffered={setBuffered} />
+    <TaskDueFields due={c.due} onDue={due => edit({ due })} />
     {error && <p className="small late-text" role="alert">{error}</p>}
     <button className="btn btn-primary" type="submit">{people > 1 ? `Create ${people} tasks` : "Create task"}</button>
   </form>
