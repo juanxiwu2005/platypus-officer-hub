@@ -47,6 +47,9 @@ export function Team() {
   const [dutiesId, setDutiesId] = useState<string | null>(null)
   // The constitution section starts open when a document is already chosen (Back from a later screen, a reload, a reading still going).
   const [constOpen, setConstOpen] = useState(() => draft.doc !== null)
+  // A reading that starts (a reload resumes one), or one that waits for "Use these suggestions", opens the section so its note can be seen.
+  const needsLook = draft.reading.status === "reading" || (draft.reading.status === "ready" && !draft.applied)
+  useEffect(() => { if (needsLook) setConstOpen(true) }, [needsLook])
   const addButton = useRef<HTMLButtonElement>(null)
   useEffect(() => {
     if (!focusId) return
