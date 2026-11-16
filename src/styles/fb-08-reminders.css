@@ -7,7 +7,7 @@
   color: var(--muted); font: inherit; font-size: var(--fs-base); text-align: left; cursor: pointer;
 }
 .sidenav .nav-more svg { width: 18px; height: 18px; flex: none; color: var(--muted); }
-.sidenav .nav-more:hover { background: var(--surface-2); color: var(--ink); }
+@media (hover: hover) { .sidenav .nav-more:hover { background: var(--surface-2); color: var(--ink); } }
 .sidenav .nav-more:active { background: color-mix(in srgb, var(--surface-2) 80%, var(--ink)); }
 .sidenav .nav-more .caret { margin-left: auto; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg) translateY(-2px); }
 .sidenav .nav-more[aria-expanded="true"] .caret { transform: rotate(-135deg) translateY(-2px); }
