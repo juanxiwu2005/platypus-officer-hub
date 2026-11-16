@@ -70,11 +70,16 @@ describe("the chain", () => {
     expect(big.some((d, i) => d < small[i])).toBe(true)
     for (const b of BUFFER_CHOICES) expect(previewFor(state, club, event, date, CODE, byRule, b)).not.toBeNull()
   })
-  it("known engine fact: with the standard workflow the buffer does not move any club deadline (targets bind first)", async () => {
+  // FB-6 changed this engine fact: with the calibrated workflow a larger buffer can move a club deadline earlier, but only where an
+  // ASU deadline binds (a step with one, or a step that must finish before it). It never moves a deadline later.
+  it("known engine fact: with the standard workflow a larger buffer only moves club deadlines earlier, and only through ASU deadlines", async () => {
     for (const x of c.examples) {
       const { event, date } = await eventOf(x.sentence)
-      const at = (b: number) => previewFor(state, club, event, date, CODE, steps, b)!.nodes.map(n => n.clubDeadline)
-      expect(at(7), x.label).toEqual(at(1))
+      const at = (b: number) => previewFor(state, club, event, date, CODE, steps, b)!.nodes
+      const one = at(1), seven = at(7)
+      seven.forEach((n, i) => expect(n.clubDeadline! <= one[i].clubDeadline!, `${x.label}: ${n.title}`).toBe(true))
+      const moved = seven.filter((n, i) => n.clubDeadline !== one[i].clubDeadline)
+      if (moved.length) expect(moved.some(n => !!n.officialDeadline), x.label).toBe(true)
     }
   })
   it("has no chain for a missing date, a past date, an invalid date or an event that is not there", async () => {

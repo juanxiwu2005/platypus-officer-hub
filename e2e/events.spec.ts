@@ -42,8 +42,10 @@ test("the flow chart has one main line through the event day, and a step opens w
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
   await expect(panel.getByRole("heading", { name: "Purchase Request", exact: true })).toBeVisible()
-  // FB-4: one date, Due (the club deadline); the ASU deadline is one sentence under "Why this date". Dates are read from the engine's saved output.
+  // FB-4: one date, Due (the club deadline); the ASU deadline is one sentence under "Why this date". FB-6: the calibrated window
+  // opens 30 days before the Mar 25 event and is due with Budget Approval, 18 days before (Sun Mar 7 → Fri Mar 5); ASU (R09) Thu Mar 11.
   const saved = await savedTask(page, "e-night:purchaseRequest")
+  expect([saved.latestStart, saved.clubDeadline, saved.officialDeadline]).toEqual(["2027-02-23", "2027-03-05", "2027-03-11"])
   await expect(panel.getByTestId("task-due")).toContainText(`Due ${fmtShort(saved.clubDeadline!)}`)
   await expect(panel.locator(".td-head")).not.toContainText(/Start by|Club deadline|ASU/)
   await panel.getByText("Why this date", { exact: true }).click()
@@ -75,12 +77,14 @@ test("moving an upstream due date later reschedules its dependants and flags the
   await page.goto("/#/tasks")
   await page.getByRole("button", { name: "Table", exact: true }).click()
   await page.getByLabel("Task scope").selectOption("team")
-  await page.getByLabel("Due for Budget Approval", { exact: true }).fill("2026-11-02")
+  // FB-6: a link between calibrated steps means finish order, so Purchase Request moves to Budget Approval's new date. Thu Nov 5 is
+  // after the R09 deadline (Wed Nov 4), so the rule break is red. FB-4: the label is "Due for …" and the one date shown is Due.
+  await page.getByLabel("Due for Budget Approval", { exact: true }).fill("2026-11-05")
   await page.goto("/#/events?event=e-night")
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
   const moved = await savedTask(page, "e-night:purchaseRequest")
-  expect(moved.clubDeadline! > "2026-11-02").toBe(true)
+  expect(moved.clubDeadline).toBe("2026-11-05")
   await expect(panel.getByTestId("task-due")).toContainText(`Due ${fmtShort(moved.clubDeadline!)}`)
   await closeRail(page)
   await expect(page.getByTestId("flow-node-purchaseRequest")).toHaveClass(/has-error/)

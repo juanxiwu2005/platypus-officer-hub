@@ -184,7 +184,7 @@ test("task dates remain visible while another officer's buffer explanation stays
   await page.getByTestId("view-flow").click()
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
-  // FB-4: the one visible date is Due; someone else's reminder timing stays general.
+  // FB-4: the one visible date is Due; someone else's reminder timing stays general. FB-6 moved the dates; they are not asserted here.
   await expect(panel.getByTestId("task-due")).toContainText(/^Due \w{3} \d+/)
   await panel.getByText("Why this date", { exact: true }).click()
   await expect(panel).toContainText("private planning preferences")

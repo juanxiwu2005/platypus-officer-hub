@@ -80,7 +80,8 @@ describe("storage", () => {
 
   it("repairs every saved v17 check-in task to the pre-event business-day deadline", () => {
     const base = seedDemo(undefined, "v2")
-    const v17 = { ...base, schemaVersion: 17, nodes: base.nodes.map(node => node.stepKey === "checkin" ? { ...node, anchor: null } : node) }
+    // A v17 save predates FB-6, so its nodes carry no calibrated timing: the check-in anchor still dates them.
+    const v17 = { ...base, schemaVersion: 17, nodes: base.nodes.map(({ timing: _timing, ...node }) => node.stepKey === "checkin" ? { ...node, anchor: null } : node) }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(v17))
     const repaired = loadState()
     for (const node of repaired.nodes.filter(node => node.stepKey === "checkin")) {
