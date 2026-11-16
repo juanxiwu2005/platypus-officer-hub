@@ -19,7 +19,7 @@
 .ob-const-toggle:hover { background: var(--surface-2); }
 .ob-const-chevron { flex: none; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-2px) rotate(45deg); }
 .ob-const-section.is-open .ob-const-chevron { transform: translateY(2px) rotate(-135deg); }
-.ob-const-body { padding: 0 var(--s5) var(--s5); }
+.ob-const-body { padding: var(--s3) var(--s5) var(--s5); }   /* room above the info button, so its touch area does not touch the toggle */
 .ob-const-picker { display: grid; gap: var(--s4); }
 .ob-const-picker .doc-chip { flex-wrap: wrap; }
 
