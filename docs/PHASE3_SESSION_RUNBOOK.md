@@ -16,6 +16,7 @@
    - 测试中途不要重新打开链接（会开始新的一次记录、setup 重新从空白开始）；如果打开了，数据不会丢，导出文件里会有两个 session。
    - 不小心刷新没关系，填的内容会留着。
 4. **任务 (f)：setup。** 让他按组织卡片填一个虚构社团。First event 那一屏可以计划一场，也可以按 "Skip for now" 跳过；这是观察点，不要提示他选哪个。Reminders 那一屏是观察点，不要提示他选哪个；网站不会真的发邮件。
+   - **流程 `ob-5`（FB-2，只在分支上，正式网站上线前不适用）：** 屏幕依次是 **Name**（社团名 + 一行 Mission，两个都必填）→ **Team**（干部名单；顶上有折叠的 "Fill roles from your constitution (optional)"，可以用样例章程、上传或粘贴；有 "Add advisor" 按钮）→ **First event** → **Reminders** → **Confirm** → **Invite**。没有单独的 Constitution 屏和 Goals 屏了：章程在 Team 屏里，目标以后在 Settings 里设。如果组织卡片上写了目标，告诉参与者引导里不用填。Name 和 Team 的标题下各有一行 "Why:"，欢迎页有 Why / How / What 三行。
 5. Start workspace 之后，社团里会有他计划的活动（如果有）加上三个示例活动（Networking Night、Spring Speaker Night、Founder Dinner）和示例任务。接着做任务卡片 (a)–(e)。
    - **任务编号（Juanxi 2026-11-08 定）：** 任务 1 = (f) setup，不用按，系统自己记；任务 2–6 = (a)–(e)。
    - **请参与者每读完一张任务卡就按一下：** 点顶栏的 Demo 小标 → "Study task" 那一行按对应的数字（2–6）；做完最后一个任务按 "Done"。直接按下一个数字时，上一个任务会自动记为结束。顶栏小标上会显示当前是第几个任务，可以顺便核对。
