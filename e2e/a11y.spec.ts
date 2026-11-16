@@ -263,7 +263,7 @@ test("keyboard: a board card changes status through Details without dragging", a
   await page.keyboard.press("Enter")
   const details = page.getByTestId("task-detail")
   await expect(details.getByRole("heading", { name: title, exact: true })).toBeFocused()
-  const done = details.getByRole("button", { name: "Done", exact: true })
+  const done = details.getByRole("button", { name: "Mark done", exact: true })
   for (let i = 0; i < 30 && !(await done.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press("Tab")
   await expect(done).toBeFocused()
   await page.keyboard.press("Enter")

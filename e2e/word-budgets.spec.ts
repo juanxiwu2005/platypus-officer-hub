@@ -119,6 +119,6 @@ test("Events mounts a node description on keyboard focus with one Due, and the A
   const detail = page.getByTestId("task-detail")
   await detail.getByText("Why this date", { exact: true }).click()
   await expect(detail.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(officialDeadline!)}.`)
-  await detail.getByText("Sources and responsibilities", { exact: true }).click()
+  await detail.getByText("Sources", { exact: true }).click()
   await expect(detail.getByRole("link", { name: "R09", exact: true })).toHaveAttribute("href", /^https:/)
 })

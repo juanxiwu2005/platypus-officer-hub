@@ -118,7 +118,7 @@ export default function Events() {
               <td><button type="button" className={`row-btn task-title ${issue?.severity === "error" ? "late-text" : ""}`} onClick={() => rail.show({ kind: "node", id: n.id })} data-testid={`event-step-${n.id}`} title={issue?.text}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
               <td><span className="who"><Avatar name={state.people.find(x => x.id === n.ownerId)?.name} size="sm" />{firstName(state, n.ownerId)}</span></td>
               <td><NodePill node={n} small /></td>
-              <td className={`small num ${isLate(n, p.club, state.today) ? "late-text" : ""}`}>{fmtShort(p.club)}</td>
+              <td className={`small num nowrap ${isLate(n, p.club, state.today) ? "late-text" : ""}`}>{fmtShort(p.club)}</td>
             </tr>,
             <BtsTr key={`${n.id}-bts`} cols={4}>
               <Bts label="Due">{p.explain.club}.{asu ? ` ${asu}` : ""}</Bts>

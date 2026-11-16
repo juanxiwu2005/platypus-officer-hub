@@ -68,7 +68,7 @@ test("Events flow steps open the shared task details with deadlines and rule sou
   await expect(panel.getByTestId("task-due")).toContainText(`Due ${fmtShort(saved.clubDeadline)}`)
   await panel.getByText("Why this date", { exact: true }).click()
   await expect(panel.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(saved.officialDeadline)}.`)
-  await panel.getByText("Sources and responsibilities", { exact: true }).click()
+  await panel.getByText("Sources", { exact: true }).click()
   await expect(panel.getByRole("link", { name: "R09", exact: true })).toBeVisible()
 })
 

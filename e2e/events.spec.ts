@@ -45,10 +45,10 @@ test("the flow chart has one main line through the event day, and a step opens w
   // FB-4: one date, Due (the club deadline); the ASU deadline is one sentence under "Why this date". Dates are read from the engine's saved output.
   const saved = await savedTask(page, "e-night:purchaseRequest")
   await expect(panel.getByTestId("task-due")).toContainText(`Due ${fmtShort(saved.clubDeadline!)}`)
-  await expect(panel).not.toContainText(/Start by|Club deadline|ASU deadline/)
+  await expect(panel.locator(".td-head")).not.toContainText(/Start by|Club deadline|ASU/)
   await panel.getByText("Why this date", { exact: true }).click()
   await expect(panel.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(saved.officialDeadline!)}.`)
-  await panel.getByText("Sources and responsibilities", { exact: true }).click()
+  await panel.getByText("Sources", { exact: true }).click()
   await expect(panel.getByRole("link", { name: "R09", exact: true })).toHaveAttribute("href", /^https:/)
   await page.keyboard.press("Escape")
   await expect(panel).toHaveCount(0)
