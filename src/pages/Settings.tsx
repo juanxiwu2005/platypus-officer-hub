@@ -1,7 +1,7 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
 import { personalBuffer } from "../engine/schedule"
 import { Fragment, useEffect, useRef, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
 import { BoardSettingsPanel } from "../components/BoardSettings"
@@ -18,6 +18,8 @@ import type { OrgSettings, Person, Role } from "../data/types"
 import { Empty, Info } from "../components/ui"
 import { officers } from "../data/permissions"
 import { ClosedRoles } from "./HandoffRoleChanges"
+import { REMINDER_MODES, reminderModeTestId } from "../data/reminderMode"
+import { onboardingCopy } from "../onboarding/copy"
 
 export function InviteLink({ code }: { code: string }) {
   const url = `${window.location.origin}${window.location.pathname}#/join?invite=${encodeURIComponent(code)}`
@@ -77,6 +79,11 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
   const { status, clear } = useAutosave({ draft, defaults }, saved, v => validateClub(v.draft) ?? validateDefaults(v.defaults), v => dispatch({ type: "saveClubSettings", draft: v.draft, defaults: v.defaults }))
   const undo = (prev: { draft: ClubDraft; defaults: OrgSettings }) => { dispatch({ type: "saveClubSettings", draft: prev.draft, defaults: prev.defaults }); setDraft(structuredClone(prev.draft)); setDefaults(structuredClone(prev.defaults)); clear() }
   const p = defaults.silenceProtocol
+  // "Choose how reminders go out" on the reminder centre links here with ?reminders=1: open Tasks and events at the choice.
+  const [params] = useSearchParams()
+  const openReminders = tab === "club" && params.has("reminders")
+  const reminderBox = useRef<HTMLFieldSetElement>(null)
+  useEffect(() => { if (openReminders) reminderBox.current?.scrollIntoView({ block: "center" }) }, [openReminders])
   return <section className="card form-stack" data-testid="club-settings">
     {tab === "club" && <>
       <h2>Club</h2>
@@ -84,7 +91,13 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
       <label>Club mission<textarea maxLength={300} rows={2} value={draft.mission} onChange={e => setDraft({ ...draft, mission: e.target.value })} /></label>
       <details className="more"><summary>Semester goals</summary><GoalsEditor goals={draft.goals} progress onChange={goals => setDraft({ ...draft, goals })} /></details>
       <details className="more"><summary>Deadline and follow-up defaults</summary><div className="form-grid"><label>Club buffer (working days)<input type="number" min="0" max="10" value={defaults.clubBufferBusinessDays} onChange={e => setDefaults({ ...defaults, clubBufferBusinessDays: Number(e.target.value) })} /></label><label>Reminder limit per task<input type="number" min="1" max="3" value={defaults.maxRemindersPerTask} onChange={e => setDefaults({ ...defaults, maxRemindersPerTask: Number(e.target.value) })} /></label>{["Reminder 1 day", "Reminder 2 day", "Private check day", "Temporary owner day", "Recovery day"].map((label, i) => <label key={label}>{label}<input type="number" min="1" max="30" value={[...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay][i]} onChange={e => { const value = Number(e.target.value); const protocol = i < 2 ? { ...p, nudgeDays: p.nudgeDays.map((n, j) => i === j ? value : n) } : { ...p, [i === 2 ? "presidentDay" : i === 3 ? "reassignDay" : "retroDay"]: value }; setDefaults({ ...defaults, silenceProtocol: protocol }) }} /></label>)}</div></details>
-      <details className="more" data-testid="tasks-events-settings"><summary>Tasks and events</summary><div className="form-stack">
+      <details className="more" data-testid="tasks-events-settings" open={openReminders || undefined}><summary>Tasks and events</summary><div className="form-stack">
+        {/* FB-8: the same three choices as the walkthrough's Reminders screen, same words. The demo never sends anything. */}
+        <fieldset ref={reminderBox} data-testid="settings-reminder-mode"><legend className="small muted">{onboardingCopy.founder.reminders.title}</legend>
+          {REMINDER_MODES.map(m => <label key={m} className="check-label"><input type="radio" name="reminder-mode" data-testid={`settings-${reminderModeTestId(m)}`} aria-describedby={defaults.reminderMode === m ? "settings-reminder-mode-body" : undefined} checked={defaults.reminderMode === m} onChange={() => setDefaults({ ...defaults, reminderMode: m })} />{onboardingCopy.founder.reminders.options[m].title}</label>)}
+          {/* Only the chosen option's line, to stay inside the page's word budget (150 / 150). */}
+          {defaults.reminderMode && <p id="settings-reminder-mode-body" className="small muted">{onboardingCopy.founder.reminders.options[defaults.reminderMode].body}</p>}
+        </fieldset>
         <label>When you assign a task, you expect it finished within<select aria-label="Usual task length" value={defaults.taskDueDays ?? 5} onChange={e => setDefaults({ ...defaults, taskDueDays: Number(e.target.value) })}>{TASK_DUE_CHOICES.map(d => <option key={d} value={d}>{d} days</option>)}</select></label>
         <p className="small muted">New tasks start with that due date, shown as a real date. Anyone can pick another.</p>
         <fieldset><legend className="small muted">Who can create events</legend>
