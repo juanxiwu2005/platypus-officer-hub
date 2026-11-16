@@ -129,7 +129,7 @@ test("the officer link opens only its task, does not change it on load, and can 
 
 test("tampered and reset officer links cannot update any task", async ({ page }) => {
   await page.goto("/#/")
-  await page.getByTestId("risk-list").getByRole("button", { name: "Remind", exact: true }).first().click()
+  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click() // FB-8: the reminder centre
   const link = page.getByTestId("nudge-panel").getByRole("link", { name: "Done", exact: true })
   await expect(link).toHaveAttribute("href", /token=/)
   const href = (await link.getAttribute("href"))!

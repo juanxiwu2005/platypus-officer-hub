@@ -50,7 +50,7 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   await expect(page.locator("main").getByRole("heading", { name: "Spring Speaker Night" })).toBeVisible()
   await resetDemo(page)
   await page.goto("/#/")
-  await expect(page.getByTestId("event-strip")).toHaveCount(initial.events.length)
+  await expect(page.locator("main h1")).toHaveText("Reminders")   // FB-8: home is the reminder centre; the Events strip left home
   expect((await savedDemo(page)).events).toEqual(initial.events)
   await expect(page.getByTestId("change-set")).toHaveCount(0)
 })
@@ -64,7 +64,7 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
   await expect(page.getByTestId("change-set")).toContainText("AI off")
   await card.getByLabel("Owner", { exact: true }).selectOption("jordan")
   await card.getByRole("button", { name: "Apply this change" }).click()
-  await expect(page.getByTestId("risk-list")).toContainText("Jordan")
+  await expect(page.getByTestId("rq-needs-ok").locator('[data-node="t-news"]')).toContainText("Jordan")   // FB-8: the reminder centre row
   await ask(page, "Unassign Send the October newsletter")
   await page.getByTestId("change-item").last().getByRole("button", { name: "Reject", exact: true }).click()
   await expect(page.getByTestId("change-item").last()).toContainText("Rejected")
@@ -75,16 +75,16 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
   await expect(page.getByTestId("applied-set").last()).toContainText("Undone")
 })
 
-test("top tasks and the risk list come from the app; Remind opens a checked reminder with four reply links", async ({ page }) => {
+// FB-8: the risk list is gone; forecast-red tasks lead each reminder-centre section with a risk mark, and "Review & open draft" opens the reminder.
+test("top tasks and the reminder centre's risk marks come from the app; Review & open draft opens a checked reminder with four reply links", async ({ page }) => {
   await page.route("**/api/nudge/draft", r => r.fulfill({ json: { whyItMatters: "We build a stronger club together.", source: "ai" } }))
   await page.goto("/#/")
-  const risk = page.getByTestId("risk-list")
-  expect(await risk.locator("tr").count()).toBeLessThanOrEqual(3)
-  await expect(risk.getByTestId("forecast").first().getByRole("button")).toHaveAttribute("aria-label", /At risk|Watch/)
+  const risk = page.getByTestId("rq-needs-ok")
+  await expect(risk.getByTestId("rq-row").first().getByTestId("forecast").getByRole("button")).toHaveAttribute("aria-label", /At risk/)
   await ask(page, "What are my top 5 tasks?")
   await expect(page.getByTestId("tasks-card")).toContainText("Your top")
   await closeRail(page)
-  await risk.getByRole("button", { name: "Remind" }).first().click()
+  await risk.getByRole("button", { name: "Review & open draft" }).first().click()
   const panel = page.getByTestId("nudge-panel")
   await expect(panel.getByTestId("nudge-body")).toContainText("Why now:")
   await expect(panel.getByTestId("nudge-body")).toContainText("Why it matters:")
@@ -107,21 +107,25 @@ test("officers cannot prepare a reminder or approve a change", async ({ page }) 
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
   await viewAs(page, "maya")
   await expect(page.getByRole("button", { name: "Remind" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Review & open draft" })).toHaveCount(0)   // FB-8: an officer's home is read-only
+  await expect(page.getByTestId("your-reminders")).toBeVisible()
   await ask(page, "Assign Send the October newsletter to Priya")
   await expect(page.getByRole("button", { name: "Apply this change" })).toBeDisabled()
   await ask(page, "Set Send the October newsletter to heavy")
   await expect(page.getByTestId("applied-set").last()).toContainText("Not changed")
 })
 
-test("Today fits one screen: risk rows, event chains, goals and the weekly star", async ({ page }) => {
+// FB-8 (PLAN.md §12.2): home is the reminder centre. The Events progress card, Semester goals and Superstar of the week left home
+// (goals are in Settings, the weekly star on Team); the events are one click away under Plan.
+test("Reminders: five sections in place of the risk rows, event chains, goals and the weekly star", async ({ page }) => {
   await page.goto("/#/")
-  const strip = page.getByTestId("event-strip").first()
-  await expect(strip).toContainText("Networking Night")
-  await expect(strip.getByRole("list", { name: "Networking Night progress" }).getByRole("button")).not.toHaveCount(0)
-  await expect(page.getByRole("heading", { name: "Semester goals" })).toBeVisible()
-  await expect(page.getByRole("heading", { name: "Superstar of the week" })).toBeVisible()
+  for (const name of ["Needs your OK", "This week", "Sent", "Replies", "No reply yet"]) await expect(page.getByRole("heading", { level: 2, name })).toBeVisible()
+  await expect(page.getByTestId("event-strip")).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: "Semester goals" })).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: "Superstar of the week" })).toHaveCount(0)
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
-  await strip.getByRole("button", { name: /Networking Night/ }).first().click()
+  await closeRail(page)
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Plan/ }).click()
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Events")
 })
 
