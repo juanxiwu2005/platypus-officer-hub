@@ -96,7 +96,7 @@ test("navigation: Tasks counts open work separately from unread private updates"
   await page.reload()
   await closeRail(page)
   await expect(count).toHaveText(initial)
-  await expect(page.getByRole("link", { name: /Tasks/ })).toContainText("open tasks")
+  await expect(page.getByRole("link", { name: /^Plan/ })).toContainText("open tasks")   // FB-8: the count moved from Tasks to Plan
   await expect(page.getByTestId("bell")).toHaveAccessibleName("Private updates, 3 unread")
   expect(await scan(page)).toEqual([])
 })

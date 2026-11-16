@@ -43,17 +43,10 @@ test("Rules: an empty search offers Clear filters", async ({ page }) => {
   expect(await count()).toBe(before)
 })
 
-test("Today: the empty stars card says what to do", async ({ page }) => {
+// FB-8: the stars card left the home page (the reminder centre). Its empty sections say what is (not) there instead.
+test("Reminders: an empty section says so instead of showing nothing", async ({ page }) => {
   await fresh(page, "/")
-  // The sample club already has a star this week (P3-A), so empty the week's finished-work records first.
-  await page.reload()                                                     // a fresh load saves the sample club
-  await expect(page.getByRole("heading", { name: "Superstar of the week" })).toBeVisible()
-  await expect.poll(() => page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).not.toBeNull()
-  await page.evaluate(() => {
-    const raw = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
-    raw.contributions = []
-    localStorage.setItem("platypus.v1.demo", JSON.stringify(raw))
-  })
-  await page.reload()
-  await expect(page.getByText("No stars yet. Finish a step.")).toBeVisible()
+  await expect(page.getByTestId("rq-sent")).toContainText("None yet.")
+  await expect(page.getByTestId("rq-replies")).toContainText("None yet.")
+  await expect(page.getByTestId("rq-no-reply")).toContainText("Nobody to follow up.")
 })

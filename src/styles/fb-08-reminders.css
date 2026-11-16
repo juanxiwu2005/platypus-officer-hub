@@ -50,7 +50,7 @@
 .rq-mark { display: inline-flex; justify-content: center; }
 .rq-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s1) var(--s4); min-width: 0; }
 .rq-main .row-btn { text-align: left; font-weight: 600; font-size: var(--fs-base); }
-.rq-meta { font-size: var(--fs-md); color: var(--muted); }
+.rq-meta { font-size: var(--fs-md); color: var(--muted); font-variant-numeric: tabular-nums; }
 .rq-meta b { color: var(--ink); font-weight: 600; }
 .rq-reply { font-size: var(--fs-md); font-weight: 600; color: var(--ink); }
 .rq-act { display: flex; gap: var(--s4); align-items: center; justify-content: flex-end; }
@@ -64,3 +64,7 @@
 }
 .rq-sub { margin: var(--s5) 0 var(--s2); font-size: var(--fs-md); font-weight: 600; color: var(--muted); }
 .rq-sub:first-of-type { margin-top: 0; }
+/* A finger (DX-04): the task names and the note's link reach 32px, like the dense rows elsewhere. */
+@media (pointer: coarse) {
+  .rq-main .row-btn, .rq-note a { display: inline-flex; align-items: center; min-height: 32px; }
+}

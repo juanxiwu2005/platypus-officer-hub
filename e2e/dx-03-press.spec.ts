@@ -7,7 +7,7 @@ async function pressedTransform(page: import("@playwright/test").Page) {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
-  const button = page.getByRole("button", { name: "Remind" }).first()
+  const button = page.getByRole("button", { name: "Review & open draft" }).first()   // FB-8: the reminder centre
   await expect(button).toBeVisible()
   await button.hover()
   const idle = await button.evaluate(el => getComputedStyle(el).transform)
@@ -30,7 +30,7 @@ test.describe("with motion", () => {
   })
   test("the side navigation changes background only, it does not move", async ({ page }) => {
     await page.goto("/#/")
-    const link = page.locator(".sidenav a", { hasText: "Team" })
+    const link = page.locator(".sidenav a", { hasText: "Handoff" })   // FB-8: Team is folded into More
     await link.hover()
     await page.mouse.down()
     await page.waitForTimeout(250)
