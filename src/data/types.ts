@@ -321,7 +321,10 @@ export interface Nudge {
   sentBy: string
   sentOn: string
   response: NodeStatus | null
+  /** FB-8: who sent it in the demo. "president" = a lead opened the draft and sent it; "platypus" = a lead approved and Platypus would send it (demo: nothing is sent). Absent on reminders recorded before FB-8. */
+  via?: NudgeVia
 }
+export type NudgeVia = "president" | "platypus"
 
 export interface Contribution {
   personId: string

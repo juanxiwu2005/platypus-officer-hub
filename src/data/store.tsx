@@ -6,7 +6,7 @@ import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
-import type { Channel } from "./types"
+import type { Channel, NudgeVia } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { clearLocalDocs } from "../lib/localDocs"
 import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
@@ -138,7 +138,7 @@ export type Action =
   | { type: "undoAuto"; id: string }
   | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
-  | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string }
+  | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia }
   | { type: "claimTask"; nodeId: string }
   | { type: "replyTask"; nodeId: string; reply: TaskReply; input?: ReplyInput }
   | { type: "reviewExtension"; id: string; approve: boolean }
@@ -425,7 +425,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "confirmNudgeSent": {
       const n = state.nodes.find(n => n.id === action.nodeId)
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
-      return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null }] }
+      return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null, ...(action.via === "president" || action.via === "platypus" ? { via: action.via } : {}) }] }
     }
     case "claimTask": return claimTask(state, action.nodeId, state.viewerId)
     case "replyTask": return replyToTask(state, action.nodeId, state.viewerId, action.reply, action.input)
