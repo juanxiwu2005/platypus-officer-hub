@@ -27,15 +27,16 @@ test("an earlier day is cleared, the link opened twice keeps both sessions; Star
     localStorage.setItem("platypus.v1.log", JSON.stringify(Array.from({ length: n }, (_, i) => ({ seq: i + 1, at: day + i, actor: "alex", type: "ui.click", payload: { route: "/", role: "button", name: `Yesterday ${i}` }, applied: true }))))
   }, OLD)
   await page.goto("/#/")
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
 
   // Today, session 1: the study link, left at once; some browsing.
   await page.goto("/#/start")
   await h1(page, c.founder.name.title)
   await page.getByRole("button", { name: c.exit, exact: true }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
-  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Tasks/ }).click()
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Plan/ }).click()     // FB-8: Tasks is under Plan
+  await page.getByRole("navigation", { name: "Plan" }).getByRole("link", { name: "Tasks" }).click()
   await expect(page.locator("main h1")).toHaveText("Tasks")
   await page.getByRole("combobox", { name: "Task scope" }).selectOption({ label: "Team tasks" })
 
@@ -54,7 +55,7 @@ test("an earlier day is cleared, the link opened twice keeps both sessions; Star
   await page.getByRole("button", { name: c.founder.invite.preview }).click()
   await expect(page).toHaveURL(/#\/welcome\/member\/invitation$/)
   await page.getByRole("button", { name: c.exit, exact: true }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
 
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Settings" }).click()

@@ -51,7 +51,7 @@ test("Exit on a flow screen records the step it left from", async ({ page }) => 
   await page.goto("/#/welcome/founder/team")
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Who's on your team?")
   await page.getByRole("button", { name: "Exit" }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   const rec = await onboardingRecord(page)
   expect(rec.attempts[0].steps).toContainEqual(expect.objectContaining({ step: "founder.team", event: "exit" }))
 })
