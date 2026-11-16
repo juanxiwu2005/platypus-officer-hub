@@ -38,7 +38,9 @@ const plan = async (page: Page, example = "Welcome mixer") => {
 /** A club whose workflow dates its steps by the ASU rules alone: the one case where the buffer changes dates (see the report). */
 const byRuleDemo = () => {
   const s = seedDemo(undefined, "v2")
-  const steps = orgSteps(s).map(x => x.anchor?.kind === "target" ? { ...x, anchor: undefined } : x)
+  // FB-6: standard steps are calibrated from the owner's timing table. Marking them as the club's own (and dropping their timing)
+  // keeps this fixture a club whose dates come from the ASU rules alone.
+  const steps = orgSteps(s).map(({ timing: _timing, ...x }) => ({ ...(x.anchor?.kind === "target" ? { ...x, anchor: undefined } : x), custom: true }))
   return { ...s, org: { ...s.org, eventWorkflow: { steps, updatedOn: s.today, summary: "Rules only (test)" } } }
 }
 

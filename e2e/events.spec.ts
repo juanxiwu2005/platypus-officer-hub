@@ -40,8 +40,9 @@ test("the flow chart has one main line through the event day, and a step opens w
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
   await expect(panel.getByRole("heading", { name: "Purchase Request", exact: true })).toBeVisible()
-  await expect(panel.locator(".task-dates")).toContainText("Wed, Feb 24")
-  await expect(panel.locator(".task-dates")).toContainText("Fri, Feb 26")
+  // FB-6 calibrated window: opens 30 days before the Mar 25 event (Tue Feb 23); due with Budget Approval, 18 days before (Sun Mar 7 → Fri Mar 5).
+  await expect(panel.locator(".task-dates")).toContainText("Tue, Feb 23")
+  await expect(panel.locator(".task-dates")).toContainText("Fri, Mar 5")
   await expect(panel.locator(".task-dates")).toContainText("Thu, Mar 11")
   await panel.getByText("Sources and responsibilities", { exact: true }).click()
   await expect(panel.getByRole("link", { name: "R09", exact: true })).toHaveAttribute("href", /^https:/)
@@ -68,11 +69,13 @@ test("moving an upstream due date later reschedules its dependants and flags the
   await page.goto("/#/tasks")
   await page.getByRole("button", { name: "Table", exact: true }).click()
   await page.getByLabel("Task scope").selectOption("team")
-  await page.getByLabel("Due date of Budget Approval", { exact: true }).fill("2026-11-02")
+  // FB-6: a link between calibrated steps means finish order, so Purchase Request moves to Budget Approval's new date. Thu Nov 5 is
+  // after the R09 deadline (Wed Nov 4), so the rule break is red.
+  await page.getByLabel("Due date of Budget Approval", { exact: true }).fill("2026-11-05")
   await page.goto("/#/events?event=e-night")
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
-  await expect(panel.locator(".task-dates")).toContainText("Tue, Nov 3")
+  await expect(panel.locator(".task-dates")).toContainText("Thu, Nov 5")
   await closeRail(page)
   await expect(page.getByTestId("flow-node-purchaseRequest")).toHaveClass(/has-error/)
   await expect(page.getByTestId("event-issues")).toContainText("cannot finish in time")

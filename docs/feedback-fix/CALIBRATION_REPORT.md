@@ -100,6 +100,15 @@
 - 非常旧的存档（结构版本 6–11）读取时本来就会按标准流程重建活动，所以它们会得到新的时间窗。
 - 结构版本 **没有** 升级（新字段是可选的）。
 
+## 5b. 示例社团（Desert Founders Society）怎么跟着变
+
+示例社团的三个活动是开网站时用模板现建的，所以日期全部跟着变。演示日（2026-10-31，周六）和活动日期都**没有改**。
+
+- **Networking Night（3/25）和 Spring Speaker Night（3/18）**：窗口都在 2027 年 1 月以后才打开，所以演示日那天它们没有到期或有风险的步骤（以前也一样）。以前每个收尾步骤都带一个黄色 “Moved later”，现在没有了。
+- **Founder Dinner（12/3）**：以前几乎所有步骤都已完成，有的完成日还在新截止日之后。现在按新窗口重新安排：规划步骤在 9/29–10/2 完成（都在窗口里）；**这周**：Moderator Lead Staffing 正在做、11/6（周五）截止；Purchase Approval 和 Order Placed 的提醒日是 11/3（经费表里那一行改成 “Purchase Request”，这两步就还没完成）；Event Materials 的窗口 10/1 就开了还没开始，显示黄色 “Should have started”；Content Distribution、Event Reminder、Full Check 排在 11 月下旬。
+- **Today 的 “Needs a nudge”** 仍是同样三条（Send the October newsletter、Chase the USG reimbursement、Reconcile September receipts），因为它们是手动任务，日期不变。
+- **预测（Forecast）跟着改了一点**（`src/engine/forecast.ts`）：已校准步骤的窗口两头都算工作日，默认 1 天个人缓冲已经包含在你的表里，收尾步骤从它自己的窗口开始模拟。不改的话，活动当天截止的 Headcount 这类步骤永远是 0%，三个活动的 Close 小圆点会一直是红的。改了之后，这类“当天或第二天就要交”的收尾步骤大约是 50%（黄或红的边上）；Founder Dinner 的报销和财务记录在 12 月期末周，学生不排工作，所以显示有风险——这是真实的提醒，但需要你看一眼是否合理。
+
 ## 6. 需要你确认 / 没解决的
 
 1. **收尾步骤的开始日**：方案 7.2 第 4 条说“除 Headcount 外，收尾步骤不早于活动后第一个工作日”，所以 Thank You Note、Feedback 等的提醒在活动后的周一发，而你的文件写活动当天。如果你希望活动当天就提醒，告诉我，改一行规则即可。
