@@ -3,6 +3,9 @@ const P = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLineca
 const svg = (d: JSX.Element) => <svg viewBox="0 0 24 24" aria-hidden="true" {...P}>{d}</svg>
 
 export const Icons = {
+  // FB-8: the reminder centre (an alarm clock, so it is not mistaken for the notification bell) and the "More" group.
+  reminders: svg(<><circle cx="12" cy="13" r="7" /><path d="M12 10v3l2 2M5 4L3 6M19 4l2 2" /></>),
+  more: svg(<><circle cx="5" cy="12" r="1.2" /><circle cx="12" cy="12" r="1.2" /><circle cx="19" cy="12" r="1.2" /></>),
   today: svg(<><path d="M3 11l9-7 9 7" /><path d="M5 10v10h14V10" /></>),
   events: svg(<><circle cx="5" cy="12" r="2" /><circle cx="19" cy="6" r="2" /><circle cx="19" cy="18" r="2" /><path d="M7 11l10-4M7 13l10 4" /></>),
   tasks: svg(<><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 12l3 3 5-6" /></>),
