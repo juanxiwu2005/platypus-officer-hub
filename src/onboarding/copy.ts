@@ -50,7 +50,12 @@ export const onboardingCopy = {
       addAdvisor: "Add advisor", advisor: "Advisor", advises: "Advises the president",
     },
     firstEvent: {
-      title: "Your first event", cta: "Plan it", why: "Your event becomes the tasks Platypus reminds people about.", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "ASU deadline {official}, club deadline {club}.", details: "Event details",
+      title: "Your first event", cta: "Plan it", why: "Your event becomes the tasks Platypus reminds people about.", buffer: "How early should your club finish?", bufferHint: "Your club finishes this many working days before each ASU deadline.", bufferExample: "ASU deadline {official}, club deadline {club}.", details: "Event details",
+      // FB-3 (PLAN 5.2): three named choices; a stored 2 or 7 shows as Custom. The rows are this event's steps with an ASU deadline, dated by the engine.
+      bufferOptions: { tight: "Tight", standard: "Standard", safe: "Safe", custom: "Custom" }, recommended: "Recommended",
+      step: "Step", asuDeadline: "ASU deadline", clubFinishes: "Your club finishes", movedEarlier: "moved earlier", movedLater: "moved later", bufferRowsLabel: "Steps with an ASU deadline",
+      bufferEffect: "If something slips by up to {days}, you still meet the ASU deadline.", workingDay: "working day", workingDays: "working days",
+      bufferNone: "Your plan already finishes earlier than this, so nothing moves.",
       sentenceLabel: "Your first event, in one sentence", examplesLabel: "Examples", planning: "Planning…", chainLabel: "First steps and dates",
       stale: "Press Plan it to update the steps.", notEvent: "Describe one event starting with Plan, then review its details.",
       dateError: "Choose a date that is today or later in Event details.", day: "day", days: "days",

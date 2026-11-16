@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react"
-import { BUFFER_CHOICES, type FirstEvent as FirstEventFields } from "../../data/settings"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import type { FirstEvent as FirstEventFields } from "../../data/settings"
 import { useStore } from "../../data/store"
 import { prefersReducedMotion } from "../../lib/motion"
 import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
-import { bufferExample } from "./firstEvent/bufferExample"
-import { fmtLong } from "../../lib/dates"
+import { BufferChoice } from "./firstEvent/BufferChoice"
 import { EventChain } from "./firstEvent/EventChain"
 import { chainDots, prepareEvent, previewFor } from "./firstEvent/plan"
 
@@ -37,8 +36,8 @@ export function FirstEvent() {
   useEffect(() => () => { request.current = -1 }, [])   // an answer that arrives after leaving the screen is dropped
 
   const { event, date, buffer } = draft
-  const example = useMemo(() => bufferExample(state.today, buffer), [state.today, buffer])
-  const preview = useMemo(() => previewFor(state, draft.club, event, date, draft.inviteCode, draft.steps, buffer), [state, draft.club, event, date, draft.inviteCode, draft.steps, buffer])
+  const previewAt = useCallback((b: number) => previewFor(state, draft.club, event, date, draft.inviteCode, draft.steps, b), [state, draft.club, event, date, draft.inviteCode, draft.steps])
+  const preview = useMemo(() => previewAt(buffer), [previewAt, buffer])
   const dots = useMemo(() => chainDots(preview), [preview])
   const needsDate = !!event && !preview
   useEffect(() => { if (needsDate) setOpen(true) }, [needsDate])
@@ -66,9 +65,10 @@ export function FirstEvent() {
     <h1>{c.title}</h1>
     <p className="ob-why"><b>Why:</b> {c.why}</p>
     <textarea className="ob6-sentence" aria-label={c.sentenceLabel} placeholder={c.sentenceExample} maxLength={1000} rows={3} value={draft.sentence} onChange={e => edit(e.target.value)} />
-    <div className="ob6-examples" role="group" aria-label={c.examplesLabel}>
+    {/* FB-3: the examples help write the first sentence; once a plan is shown they step aside, which keeps the screen within 110 words. */}
+    {!(preview && event) && <div className="ob6-examples" role="group" aria-label={c.examplesLabel}>
       {c.examples.map(x => <button key={x.label} type="button" className="chip" onClick={() => edit(x.sentence)}>{x.label}</button>)}
-    </div>
+    </div>}
     <div className="ob-actions">
       <button type="button" className="btn btn-primary" disabled={!draft.sentence.trim()} onClick={() => void plan()}>{busy ? c.planning : c.cta}</button>
     </div>
@@ -77,13 +77,7 @@ export function FirstEvent() {
     {needsDate && <p className="ob6-warn" role="alert">{c.dateError}</p>}
     {preview && event && <>
       <EventChain key={play} dots={dots} today={state.today} drawing={drawing === play && play > 0} stale={stale} onDrawn={() => setDrawing(null)} />
-      <div className="ob6-buffer">
-        <span id="ob6-buffer-label" className="ob6-buffer-label">{c.buffer} · {c.days}</span>
-        <div className="seg ob6-seg" role="group" aria-labelledby="ob6-buffer-label">
-          {BUFFER_CHOICES.map(n => <button key={n} type="button" aria-pressed={buffer === n} aria-label={`${n} ${n === 1 ? c.day : c.days}`} onClick={() => patch({ buffer: n })}>{n}</button>)}
-        </div>
-        <p className="small ob6-example" data-testid="buffer-example">{c.bufferExample.replace("{official}", fmtLong(example.official)).replace("{club}", fmtLong(example.club))}</p>
-      </div>
+      <BufferChoice key={`buffer-${play}`} buffer={buffer} preview={preview} previewAt={previewAt} today={state.today} onChoose={n => patch({ buffer: n })} />
     </>}
 
     {event && <details className="ob6-details" open={open} onToggle={e => setOpen(e.currentTarget.open)}>

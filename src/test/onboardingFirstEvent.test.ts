@@ -8,6 +8,8 @@ import { orgSteps } from "../engine/playbooks"
 import { withOwners } from "../engine/workflow"
 import { onboardingCopy } from "../onboarding/copy"
 import { MAX_DOTS, chainDots, prepareEvent, previewFor, wordCount } from "../onboarding/founder/firstEvent/plan"
+import { BUFFER_OPTIONS, MAX_BUFFER_ROWS, bufferBinds, bufferRows, isNamedBuffer } from "../onboarding/founder/firstEvent/bufferRows"
+import { shiftWork } from "../engine/calendar"
 
 // OB-06: the witness screen's logic (the sentence becomes an event, the rule engine dates the chain, the buffer re-plans it) and its style file.
 const c = onboardingCopy.founder.firstEvent
@@ -94,6 +96,56 @@ describe("the chain", () => {
   })
 })
 
+// FB-3 (docs/feedback-fix/PLAN.md 5.2): the buffer you can see working.
+describe("the buffer block", () => {
+  it("offers Tight 1 / Standard 3 (recommended) / Safe 5, all among the stored choices; 2 and 7 are Custom", () => {
+    expect(BUFFER_OPTIONS.map(o => [o.id, o.days, o.recommended])).toEqual([["tight", 1, false], ["standard", 3, true], ["safe", 5, false]])
+    for (const o of BUFFER_OPTIONS) expect(BUFFER_CHOICES as readonly number[]).toContain(o.days)
+    expect(BUFFER_CHOICES.filter(b => !isNamedBuffer(b))).toEqual([2, 7])
+  })
+  it("lists at most three steps of this event that have an ASU deadline, with exactly the engine's two dates", async () => {
+    for (const x of c.examples) {
+      const { event, date } = await eventOf(x.sentence)
+      const preview = previewFor(state, club, event, date, CODE, steps, 3)!
+      const rows = bufferRows(preview)
+      expect(rows.length, x.label).toBeGreaterThan(0)
+      expect(rows.length).toBeLessThanOrEqual(MAX_BUFFER_ROWS)
+      for (const r of rows) {
+        const n = preview.nodes.find(y => y.title === r.title && y.officialDeadline === r.official)!
+        expect(n.clubDeadline).toBe(r.club)
+        expect(r.moved).toBeNull()
+      }
+      expect(rows.map(r => r.official)).toEqual([...rows.map(r => r.official)].sort())
+    }
+  })
+  it("marks a row moved earlier or later only when the engine moved it between two choices", async () => {
+    const { event, date } = await eventOf(c.examples[2].sentence)
+    const at = (b: number) => previewFor(state, club, event, date, CODE, steps, b)
+    const safe = bufferRows(at(5), at(3)), back = bufferRows(at(3), at(5)), same = bufferRows(at(3), at(3))
+    expect(safe.some(r => r.moved === "earlier")).toBe(true)
+    expect(safe.every(r => r.moved !== "later")).toBe(true)
+    expect(back.filter(r => r.moved === "later").map(r => r.key)).toEqual(safe.filter(r => r.moved === "earlier").map(r => r.key))
+    expect(same.every(r => r.moved === null)).toBe(true)
+    safe.forEach((r, i) => expect(r.moved !== null).toBe(r.club !== back[i].club))
+  })
+  it("says the buffer works only when it sets a row's date (the engine's own rule), otherwise that nothing moves", async () => {
+    const { event, date } = await eventOf(c.examples[2].sentence)
+    const at = (b: number) => bufferRows(previewFor(state, club, event, date, CODE, steps, b))
+    expect(bufferBinds(at(5), 5)).toBe(true)
+    expect(at(5).some(r => r.club === shiftWork(r.official, -5))).toBe(true)
+    expect(bufferBinds(at(1), 1)).toBe(false)                    // Tight: the plan already finishes earlier, so nothing moves
+    expect(bufferBinds([], 3)).toBe(false)
+  })
+  it("has no rows for an event whose steps have no ASU deadline (the screen then shows the general example)", async () => {
+    // The engine keeps every ASU step in a workflow (checkWorkflow), so such an event is made here by removing the ASU dates from a real plan.
+    const { event, date } = await eventOf(c.examples[0].sentence)
+    const p = previewFor(state, club, event, date, CODE, steps, 3)!
+    expect(bufferRows(p).length).toBeGreaterThan(0)
+    expect(bufferRows({ ...p, nodes: p.nodes.map(n => ({ ...n, officialDeadline: null })) })).toEqual([])
+    expect(bufferRows(null)).toEqual([])
+  })
+})
+
 describe("words and copy", () => {
   it("counts words the way a person reads them", () => {
     expect(wordCount("Plan it")).toBe(2)
@@ -104,7 +156,8 @@ describe("words and copy", () => {
     const { event, date } = await eventOf(c.examples[0].sentence)
     const dots = chainDots(previewFor(state, club, event, date, CODE, steps, 3))
     const chain = dots.map(d => `${d.title} Nov 20`).join(" ")
-    const glance = [c.title, "Why:", c.why, ...c.examples.map(x => x.label), c.cta, chain, `${c.buffer} · ${c.days}`, "1 2 3 5 7", c.bufferExample, c.details, onboardingCopy.back, onboardingCopy.next].join(" ")
+    const rowsText = bufferRows(previewFor(state, club, event, date, CODE, steps, 3)).map(r => `${r.title} ${c.asuDeadline} · ${c.clubFinishes} ${c.movedEarlier}`).join(" ")
+    const glance = [c.title, "Why:", c.why, ...c.examples.map(x => x.label), c.cta, chain, c.buffer, c.bufferHint, `${c.bufferOptions.tight} · 1 day ${c.bufferOptions.standard} · 3 days ${c.recommended} ${c.bufferOptions.safe} · 5 days`, rowsText, c.bufferEffect, c.details, onboardingCopy.back, onboardingCopy.next].join(" ")
     expect(wordCount(glance)).toBeLessThanOrEqual(110)
   })
 })
