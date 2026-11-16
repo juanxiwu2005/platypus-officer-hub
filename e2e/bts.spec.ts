@@ -82,7 +82,7 @@ test("when on: Event Budget and Handoff say where progress and sources come from
   await expect(page.locator(NOTES)).toHaveCount(0)
 })
 
-test("when on: the new-task form explains the club deadline and the plan check says whether AI wrote it", async ({ page }) => {
+test("when on: the new-task form explains its one date and the plan check says whether AI wrote it", async ({ page }) => {
   await page.goto("/#/")
   await openMore(page)
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
@@ -90,7 +90,8 @@ test("when on: the new-task form explains the club deadline and the plan check s
   await ask(page, "Add a task: order name tags")
   const form = page.getByTestId("task-form")
   await expect(form.getByTestId("club-deadline")).toBeVisible()
-  await expect(form.locator(".bts").filter({ hasText: "working days" }).first()).toBeVisible()
+  // FB-5 (PLAN 8.3): a new task has one date, so the note explains that instead of the working-day buffer.
+  await expect(form.locator(".bts").filter({ hasText: "one date" }).first()).toBeVisible()
   await expect(form.locator(".bts").filter({ hasText: "never supplies a date" })).toBeVisible()
   await ask(page, "Plan Founders Welcome Dinner on Nov 19, 30 people, outside caterer, USG funding")
   await page.getByTestId("plan-form").getByRole("button", { name: "Continue" }).click()

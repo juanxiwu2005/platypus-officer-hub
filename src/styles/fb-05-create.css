@@ -38,5 +38,6 @@
 
 @media (max-width: 860px) {
   .new-task-form { grid-template-columns: minmax(0, 1fr); }
+  .new-event, .new-task { justify-content: flex-start; }
   .new-event-why, #new-task-why { text-align: left; }
 }

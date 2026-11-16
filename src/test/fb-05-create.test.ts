@@ -18,7 +18,7 @@ const create = (s: DemoState, ownerId: string | null, date = defaultTaskDue(s)) 
 const made = (s: DemoState) => s.nodes.find(n => n.id === "fb5:0")
 const withCreators = (mode: "leads" | "chosen" | "everyone", ids: string[] = []) => ({ ...base, org: { ...base.org, settings: { ...base.org.settings, eventCreators: mode, eventCreatorIds: ids } } })
 // A next officer named for a role who has not taken it yet (handoff): they may read, not create (store.tsx READ_ONLY_OK).
-const withIncoming = (s: DemoState): DemoState => ({ ...s, people: [...s.people, { ...s.people.find(p => p.id === "maya")!, id: "riley", name: "Riley Example", incomingFor: "r-fin" }] })
+const withIncoming = (s: DemoState): DemoState => ({ ...s, handoffRoles: s.handoffRoles.map(h => h.roleId === "r-fin" ? { ...h, incomingId: "riley" } : h), people: [...s.people, { ...s.people.find(p => p.id === "maya")!, id: "riley", name: "Riley Example", email: "riley.example@example.org", incomingFor: "r-fin" }] })
 
 describe("assigning a person when adding a task (PLAN 8.2)", () => {
   it("for yourself it is To do at once, with no notice", () => {
