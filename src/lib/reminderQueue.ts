@@ -98,7 +98,8 @@ export function reminderQueue(s: DemoState): ReminderQueue {
   const bySend = riskFirst<QueueItem>(x => x.sendDay ?? "9999-12-31")
   return {
     mode, review,
-    needsOk: needsOk.sort(bySend),
+    // Needs your OK shows each Due, so it reads in Due order; This week shows the send day, so it reads in that order.
+    needsOk: needsOk.sort(riskFirst<QueueItem>(x => x.node.clubDeadline ?? "9999-12-31")),
     thisWeek: thisWeek.sort(bySend),
     sent: sent.sort(riskFirst<SentItem>(x => x.on, true)),
     replies: replies.sort(riskFirst<ReplyItem>(x => x.sentOn, true)),
