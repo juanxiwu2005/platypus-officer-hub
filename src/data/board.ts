@@ -81,6 +81,17 @@ export function addTaskNotice(s: DemoState, asked: NodeStatus): string | null {
   return `A task you add is yours, so it is in ${label(s, landed)}. Only the president or VP can post one for someone else to claim.`
 }
 
+/**
+ * Where a task from the page-head form went (FB-5), said in the person's own words. It follows createTasks: your own
+ * task is in To do at once; someone else's waits in Not claimed until they accept it; no owner means anyone can claim it.
+ */
+export function newTaskNotice(s: DemoState, ownerId: string | null): string {
+  if (ownerId === s.viewerId) return `Added to your ${label(s, "accepted")}.`
+  const first = s.people.find(p => p.id === ownerId)?.name.split(" ")[0]
+  if (ownerId && first) return `Sent to ${first}. It stays in ${label(s, "unclaimed")} until ${first} accepts.`
+  return `Posted in ${label(s, "unclaimed")}. Anyone can claim it.`
+}
+
 export function addBoardTask(s: DemoState, title: string, status: NodeStatus): DemoState {
   const t = title.trim().slice(0, 100)
   if (!t) return s
