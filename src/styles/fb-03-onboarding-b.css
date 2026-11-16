@@ -1,1 +1,41 @@
 /* FB-3: First event buffer, Reminders examples, Confirm and Invite. Tokens only: see docs/DESIGN_TOKENS.md and AGENTS.md 7.1. */
+
+/* First event: "How early should your club finish?" Three named choices, then this event's steps with an ASU deadline. No motion here:
+   a choice changes the dates at once, and "moved earlier / later" is said in words, not only in colour. */
+.fb3-buffer { justify-items: stretch; }
+.fb3-buffer-h { margin: 0; font-family: inherit; font-size: var(--fs-md); font-weight: 600; }
+.fb3-buffer-hint { margin: 0; }
+.fb3-buffer-opts { display: flex; flex-wrap: wrap; gap: var(--s4); }
+.fb3-buffer-opt { display: inline-flex; align-items: center; gap: var(--s3); min-height: 40px; padding: var(--s3) var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-md); cursor: pointer; }
+.fb3-buffer-opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.fb3-buffer-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.fb3-buffer-rows { width: 100%; border-collapse: collapse; font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
+.fb3-buffer-rows :is(th, td) { padding: var(--s3) var(--s4); text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+.fb3-buffer-rows :is(th, td):first-child { padding-left: 0; }
+.fb3-buffer-rows thead th { font-size: var(--fs-sm); font-weight: 600; color: var(--muted); }
+.fb3-buffer-step { font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+.fb3-buffer-rows td { color: var(--muted); white-space: nowrap; }
+.fb3-buffer-rows td.fb3-buffer-club { color: var(--ink); white-space: normal; }
+.fb3-moved { margin-left: var(--s2); }
+.fb3-moved.is-earlier { background: var(--accent-soft); color: var(--accent-ink); }
+.fb3-moved.is-later { background: var(--warn-soft); color: var(--warn); }
+.fb3-buffer-effect { margin: 0; color: var(--ink); }
+
+/* Reminders: the example reminder is a message bubble; each option shows its three steps as small boxes joined by arrows (text and CSS only). */
+.fb3-rm-example { margin: 0; padding: var(--s5) var(--s6); border-radius: var(--r-lg); border-top-left-radius: var(--r-xs); background: var(--accent-soft); color: var(--ink); font-size: var(--fs-md); line-height: 1.45; max-width: 100%; overflow-wrap: anywhere; }
+.fb3-rm-example p { margin: 0; }
+.fb3-rm-steps { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-top: var(--s2); }
+.fb3-rm-step { padding: var(--s1) var(--s4); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); color: var(--ink); font-size: var(--fs-sm); white-space: nowrap; }
+.fb3-rm-pair { display: inline-flex; align-items: center; gap: var(--s2); }
+.fb3-rm-arrow { color: var(--muted); font-size: var(--fs-sm); }
+.fb3-rm-like { color: var(--ink); font-size: var(--fs-md); font-style: italic; }
+.fb3-rm-app { color: var(--muted); font-size: var(--fs-md); }
+
+/* Confirm: the only way to keep the current club is a quiet text link under the replace warning (one primary button per screen). */
+.fb3-cancel { margin: 0; }
+.fb3-cancel-link { font-size: var(--fs-md); }
+
+@media (pointer: coarse), (max-width: 600px) {
+  .fb3-buffer-opt { min-height: 44px; }
+  .fb3-cancel-link { display: inline-flex; align-items: center; min-height: 44px; }
+}

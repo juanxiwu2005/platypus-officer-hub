@@ -71,9 +71,10 @@ test("nothing is ticked at first and Continue waits; each answer, in the fixed o
     for (const title of TITLES) await expect(screen(page).getByRole("radio", { name: title })).not.toBeChecked()
     await expect(cont(page)).toBeDisabled()
     await expect(screen(page).getByTestId("reminder-mode-demo")).toHaveText(r.demo)
-    // Each option is a title and one line; the line is its accessible description.
+    // Each option is a title; its old one line is its accessible description (FB-3: no longer shown, the steps, analogy and in-app line are).
     await expect(screen(page).getByRole("radio", { name: r.options[mode].title })).toHaveAccessibleDescription(r.options[mode].body)
-    await screen(page).getByText(r.options[mode].body).click()                       // the whole option is the target, not just the dot
+    await expect(screen(page).getByText(r.options[mode].body)).toBeHidden()
+    await screen(page).getByText(r.options[mode].like).click()                       // the whole option is the target, not just the dot
     await expect(screen(page).getByRole("radio", { name: r.options[mode].title })).toBeChecked()
     await expect(cont(page)).toBeEnabled()
     await cont(page).click()
@@ -117,12 +118,15 @@ test("a reload on the screen keeps the answer, and the step after it", async ({ 
   await expect.poll(async () => (await demo(page))?.org.settings.reminderMode).toBe("review_then_self")
 })
 
-test("no accessibility problems in light and dark, at most 60 words, no sideways scroll, and full-size targets on a phone", async ({ page, isMobile }) => {
+// FB-3 (docs/feedback-fix/PLAN.md 5.1): at most 140 words (was 60): the screen now has a Why line, an example reminder, and under each option
+// its three steps, an analogy and what happens in Platypus.
+test("no accessibility problems in light and dark, at most 140 words, no sideways scroll, and full-size targets on a phone", async ({ page, isMobile }) => {
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme })
     await toReminders(page)
+    await expect(screen(page).locator(".ob-why")).toHaveText(`Why: ${r.why}`)
     expect(await scan(page), `${scheme}, nothing ticked`).toEqual([])
-    expect(await words(page)).toBeLessThanOrEqual(60)
+    expect(await words(page)).toBeLessThanOrEqual(140)
     await noSideScroll(page)
     await screen(page).getByRole("radio", { name: TITLES[2] }).check()
     expect(await scan(page), `${scheme}, ticked`).toEqual([])
@@ -144,7 +148,7 @@ test("the export holds the answer (reminderModeChoice), every tick by its label,
   await screen(page).getByRole("radio", { name: r.options.review_then_auto.title }).check()     // a change of mind
   await cont(page).click()
   await startWorkspace(page)
-  await page.getByRole("button", { name: c.founder.invite.today }).click()
+  await page.getByRole("button", { name: c.founder.invite.workspace }).click()
   await expect(page.locator("main h1")).toHaveText("Today")
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Settings" }).click()

@@ -3,10 +3,11 @@ import { WELCOME_ON, fillMission, onboardingRecord, passReminders } from "./ob-h
 import { onboardingCopy as c } from "../src/onboarding/copy"
 import { openDemoMenu } from "./helpers"
 
-// OB-10: Start walkthrough now runs the new founder flow end to end, then the officer preview, in ONE recorded attempt.
+// OB-10: Start walkthrough runs the founder flow end to end in ONE recorded attempt. FB-3 (ob-5): the attempt ends at Invite with Open my workspace;
+// the officer preview is no longer part of it (the Demo menu's Test Onboarding Page Invite still opens it, below, recording nothing).
 const next = (page: import("@playwright/test").Page) => page.getByRole("button", { name: c.next, exact: true })
 
-test("a first visit runs welcome → founder flow → invite → officer preview → tasks as one recorded attempt", async ({ page }) => {
+test("a first visit runs welcome → founder flow → invite → workspace as one recorded attempt, with no officer preview", async ({ page }) => {
   const forbidden: string[] = []
   page.on("request", r => { if (/\/api\/(org|workspace)/.test(r.url())) forbidden.push(r.url()) })
   await page.goto(WELCOME_ON)
@@ -23,22 +24,17 @@ test("a first visit runs welcome → founder flow → invite → officer preview
   await passReminders(page, "review_then_self")
   await page.getByRole("button", { name: c.founder.confirm.start }).click()
   await expect(page.getByRole("heading", { level: 1, name: c.founder.invite.title })).toBeVisible()
-  await page.getByRole("button", { name: c.founder.invite.preview }).click()
-  await expect(page).toHaveURL(/#\/welcome\/member\/invitation$/)
-  await next(page).click(); await next(page).click(); await next(page).click()   // invitation, you, reminders
-  await page.getByRole("button", { name: c.member.busyWeeks.skip }).click()
-  await page.getByRole("button", { name: c.skip }).click()           // about you
-  await expect(page).toHaveURL(/#\/welcome\/member\/done$/)
-  await page.getByRole("button", { name: c.member.done.cta }).click()
-  await expect(page).toHaveURL(/#\/tasks/)
+  await expect(page.getByRole("button", { name: "See what your officers will see" })).toHaveCount(0)
+  await page.getByRole("button", { name: c.founder.invite.workspace }).click()
+  await expect(page).toHaveURL(/#\/$/)
 
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
   expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-5" })
   const steps = rec.attempts[0].steps.map(s => `${s.step}:${s.event}`)
-  // ob-5 (FB-2): no Constitution or Goals step any more, so neither id is recorded.
-  expect(steps.filter(x => /founder\.(constitution|goals)/.test(x))).toEqual([])
-  for (const expected of ["founder.name:enter", "founder.team:skip", "founder.first-event:enter", "founder.reminders:enter", "founder.reminders:leave", "founder.confirm:enter", "member.invitation:enter", "member.done:enter"]) expect(steps).toContain(expected)
+  // ob-5 (FB-2): no Constitution or Goals step any more, so neither id is recorded; FB-3: no member step either.
+  expect(steps.filter(x => /founder\.(constitution|goals)|^member\./.test(x))).toEqual([])
+  for (const expected of ["founder.name:enter", "founder.team:skip", "founder.first-event:enter", "founder.reminders:enter", "founder.reminders:leave", "founder.confirm:enter", "founder.invite:complete"]) expect(steps).toContain(expected)
   expect(JSON.stringify(rec)).not.toContain("Moonlight")                                // behaviour only, never what was typed
   const stored = await page.evaluate(() => localStorage.getItem("platypus.v1.demo") ?? "")
   expect(stored).toContain("Moonlight Typing Society")                                  // …while the club itself was really created

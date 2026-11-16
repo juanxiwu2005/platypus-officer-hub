@@ -2,7 +2,8 @@ import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { fillMission, onboardingRecord, passReminders } from "./ob-helpers"
 
-// OB-09: Confirm (screen 6) and Invite (screen 7), then the hand-over to the member preview. Run on desktop and phone.
+// OB-09: Confirm (screen 6) and Invite (screen 7). Run on desktop and phone. FB-3 (ob-5): each has one primary button (Create my club,
+// Open my workspace); the member preview is no longer reached from Invite, only from the Demo menu's Test Onboarding Page Invite.
 // The server is not there (404), so the first event is read by the local grammar. Nothing real is sent anywhere.
 const scan = async (page: Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).join(" | ")}`)
 type Saved = { viewerId: string; today: string; org: { name: string; inviteCode: string; setupCompletedOn: string | null }; events: { name: string; date: string }[]; roles: { id: string; fn: string; holderId: string | null; displayName: string }[]; people: { id: string; name: string; email: string; phone: string; setupCompletedOn: string | null }[] }
@@ -54,7 +55,7 @@ const toConfirm = async (page: Page, club = "Maple Club") => {
   await passReminders(page, "review_then_auto")
   await expect(page.getByRole("heading", { level: 1, name: "Ready to start?" })).toBeVisible()
 }
-const toInvite = async (page: Page, club?: string) => { await toConfirm(page, club); await page.getByRole("button", { name: "Start workspace" }).click(); await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/) }
+const toInvite = async (page: Page, club?: string) => { await toConfirm(page, club); await page.getByRole("button", { name: "Create my club" }).click(); await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/) }
 
 test("Name to Invite: the summary is right, Start creates the club, a double click creates it once, the saved draft is gone", async ({ page }) => {
   await toConfirm(page)
@@ -63,7 +64,10 @@ test("Name to Invite: the summary is right, Start creates the club, a double cli
   await expect(line).toContainText("Welcome Mixer")
   await expect(page.getByTestId("confirm-reminders")).toHaveText("Reminders: I review, Platypus sends.")
   await expect(page.getByTestId("replace-warning")).toHaveCount(0)      // the first time, nothing is replaced
-  await page.getByRole("button", { name: "Start workspace" }).dblclick()
+  await expect(page.getByRole("button", { name: "Cancel and keep the current club" })).toHaveCount(0)   // …and there is nothing to keep
+  await expect(page.getByRole("button", { name: "Keep current demo" })).toHaveCount(0)                  // FB-3: one primary button
+  await expect(page.locator("main .btn-primary")).toHaveCount(1)
+  await page.getByRole("button", { name: "Create my club" }).dblclick()
   await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
   await expect(page.getByRole("heading", { level: 1, name: "Your club is ready." })).toBeVisible()
   await expect.poll(async () => (await demo(page)).org.name).toBe("Maple Club")
@@ -77,7 +81,7 @@ test("Name to Invite: the summary is right, Start creates the club, a double cli
   expect(await draftSaved(page), "the saved draft is deleted").toBe(false)
 })
 
-test("the replace warning shows only after a club was already set up", async ({ page }) => {
+test("the replace warning and the Cancel link show only after a club was already set up", async ({ page }) => {
   await toInvite(page)
   await page.reload()                                                   // a fresh draft; the club made above stays
   await page.goto("/?walkthrough=1#/welcome/start")                     // the same door Replay walkthrough uses
@@ -91,20 +95,23 @@ test("the replace warning shows only after a club was already set up", async ({ 
   await passReminders(page)
   await expect(page.getByTestId("replace-warning")).toHaveText("This replaces the current demo workspace.")
   await expect(page.getByTestId("confirm-reminders")).toHaveCount(0)    // Reminders was skipped: nothing to name
-  // Keep current demo changes nothing and ends the attempt as exited.
+  // FB-3: Cancel and keep the current club (was the Keep current demo button) changes nothing and ends the attempt as exited.
+  await expect(page.getByRole("button", { name: "Keep current demo" })).toHaveCount(0)
+  await expect(page.locator("main .btn-primary")).toHaveCount(1)
   const before = await demoRaw(page)
-  await page.getByRole("button", { name: "Keep current demo" }).click()
+  await page.getByRole("button", { name: "Cancel and keep the current club" }).click()
   await expect(page).toHaveURL(/#\/$/)
   expect(await demoRaw(page)).toBe(before)
   const attempts = (await onboardingRecord(page)).attempts
   expect(attempts[attempts.length - 1].outcome).toBe("exited")
+  expect(attempts[attempts.length - 1].steps.map(x => `${x.step}:${x.event}`)).toContain("founder.confirm:exit")
 })
 
 test("Start refuses a draft without a ready event, and Back goes to the first event", async ({ page }) => {
   await begin(page)
   await page.evaluate(() => { location.hash = "#/welcome/founder/confirm" })
   await expect(page.getByText("Plan your first event before you start.")).toBeVisible()
-  await expect(page.getByRole("button", { name: "Start workspace" })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Create my club" })).toHaveCount(0)
   await page.getByRole("button", { name: "Back to first event" }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
   await page.evaluate(() => { location.hash = "#/welcome/founder/confirm" })
@@ -169,13 +176,23 @@ test("Copy link without clipboard access selects the box and says what to do", a
   await expect(page.locator(".ob-i9-link")).toBeFocused()
 })
 
-test("See what your officers will see: the same attempt continues into the member preview, and Done marks that officer Joined", async ({ page }) => {
+test("Invite has one primary button and no way into the member preview; the note is a plain line of text", async ({ page }) => {
   await toInvite(page)
-  const before = (await onboardingRecord(page)).attempts.length
-  await page.getByRole("button", { name: "See what your officers will see" }).click()
+  await expect(page.getByRole("button", { name: "See what your officers will see" })).toHaveCount(0)
+  await expect(page.locator("main .btn-primary")).toHaveCount(1)
+  await expect(page.locator("main .btn-primary")).toHaveText("Open my workspace")
+  await expect(page.getByTestId("joined-note")).toHaveText("Demo only: Joined appears when an officer finishes setup in this browser.")
+  await expect(page.locator("main .info, main .hover-card")).toHaveCount(0)
+})
+
+test("the member preview still runs from the Demo menu's test address, records nothing, and Done marks that officer Joined", async ({ page }) => {
+  await toInvite(page)
+  await page.getByRole("button", { name: "Open my workspace" }).click()
+  await expect(page).toHaveURL(/#\/$/)
+  const record = await onboardingRecord(page)
+  await page.goto("/#/welcome/test/invite")                             // the Demo menu's Test Onboarding Page Invite
   await expect(page).toHaveURL(/#\/welcome\/member\/invitation$/)
   await expect(page.getByTestId("role-card")).toBeVisible()
-  expect((await onboardingRecord(page)).attempts.at(-1)!.outcome, "the attempt is still open").toBeUndefined()
   await cont(page); await cont(page); await cont(page)                                         // Invitation, You, Reminders
   await expect(page).toHaveURL(/member\/busy-weeks$/)
   await cont(page); await cont(page)                                                           // Busy weeks, About you
@@ -187,20 +204,12 @@ test("See what your officers will see: the same attempt continues into the membe
   await page.evaluate(() => { location.hash = "#/welcome/founder/invite" })
   await expect(page.getByTestId("officer-status").filter({ hasText: "Joined" })).toHaveCount(1)
   await expect(page.getByRole("list", { name: "Officers" })).toContainText(joined.name)
-  await page.evaluate(() => { location.hash = "#/welcome/member/done" })
-  await page.getByRole("button", { name: "Open my tasks" }).click()
-  await expect(page).toHaveURL(/#\/tasks$/)
-  const record = await onboardingRecord(page)
-  expect(record.attempts, "one attempt for the whole walkthrough").toHaveLength(before)
-  const attempt = record.attempts.at(-1)!
-  expect(attempt.outcome).toBe("completed")
-  const steps = attempt.steps.map(s => s.step)
-  for (const id of ["founder.name", "founder.first-event", "founder.reminders", "founder.confirm", "founder.invite", "member.invitation", "member.you", "member.reminders", "member.busy-weeks", "member.about", "member.done"]) expect(steps, id).toContain(id)
+  expect(await onboardingRecord(page), "testing adds nothing to the research record").toEqual(record)
 })
 
-test("Go to Today ends the walkthrough as completed", async ({ page }) => {
+test("Open my workspace ends the walkthrough as completed", async ({ page }) => {
   await toInvite(page)
-  await page.getByRole("button", { name: "Go to Today" }).click()
+  await page.getByRole("button", { name: "Open my workspace" }).click()
   await expect(page).toHaveURL(/#\/$/)
   expect((await onboardingRecord(page)).attempts.at(-1)!.outcome).toBe("completed")
 })
@@ -211,7 +220,7 @@ test("both screens have no accessibility problems, in light and dark, and stay i
     await toConfirm(page)
     expect(await scan(page), `confirm ${scheme}`).toEqual([])
     expect(await words(page), "confirm words").toBeLessThanOrEqual(40)
-    await page.getByRole("button", { name: "Start workspace" }).click()
+    await page.getByRole("button", { name: "Create my club" }).click()
     await expect(page).toHaveURL(/founder\/invite$/)
     expect(await scan(page), `invite ${scheme}`).toEqual([])
     expect(await words(page), "invite words").toBeLessThanOrEqual(60)
@@ -222,7 +231,8 @@ test("both screens have no accessibility problems, in light and dark, and stay i
 
 test("Invited changes to Joined with a fade only; with reduced motion it is simply there", async ({ page }) => {
   await toInvite(page)
-  await page.getByRole("button", { name: "See what your officers will see" }).click()
+  await page.goto("/#/welcome/test/invite")                             // FB-3: the member preview is reached from the Demo menu's test address
+  await expect(page).toHaveURL(/#\/welcome\/member\/invitation$/)
   for (let i = 0; i < 5; i++) await cont(page)
   await expect(page).toHaveURL(/member\/done$/)
   await expect(page.getByTestId("first-task")).toBeVisible()

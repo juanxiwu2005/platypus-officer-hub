@@ -50,7 +50,12 @@ export const onboardingCopy = {
       addAdvisor: "Add advisor", advisor: "Advisor", advises: "Advises the president",
     },
     firstEvent: {
-      title: "Your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "ASU deadline {official}, club deadline {club}.", details: "Event details",
+      title: "Your first event", cta: "Plan it", why: "Your event becomes the tasks Platypus reminds people about.", buffer: "How early should your club finish?", bufferHint: "Your club finishes this many working days before each ASU deadline.", bufferExample: "ASU deadline {official}, club deadline {club}.", details: "Event details",
+      // FB-3 (PLAN 5.2): three named choices; a stored 2 or 7 shows as Custom. The rows are this event's steps with an ASU deadline, dated by the engine.
+      bufferOptions: { tight: "Tight", standard: "Standard", safe: "Safe", custom: "Custom" }, recommended: "Recommended",
+      step: "Step", asuDeadline: "ASU deadline", clubFinishes: "Your club finishes", movedEarlier: "moved earlier", movedLater: "moved later", bufferRowsLabel: "Steps with an ASU deadline",
+      bufferEffect: "If something slips by up to {days}, you still meet the ASU deadline.", workingDay: "working day", workingDays: "working days",
+      bufferNone: "Your plan already finishes earlier than this, so nothing moves.",
       sentenceLabel: "Your first event, in one sentence", examplesLabel: "Examples", planning: "Planning…", chainLabel: "First steps and dates",
       stale: "Press Plan it to update the steps.", notEvent: "Describe one event starting with Plan, then review its details.",
       dateError: "Choose a date that is today or later in Event details.", day: "day", days: "days",
@@ -64,16 +69,27 @@ export const onboardingCopy = {
     },
     // P3-H: how reminders should reach officers. A study question only: nothing is ever sent (IRB). Keep the options in this order.
     reminders: {
-      title: "How should reminders go out?", lead: "Platypus knows each task's latest start date.", demo: "Demo: no email is ever sent.",
+      title: "How should reminders go out?", demo: "Demo: no email is ever sent.",
+      why: "So you never have to chase people yourself.",
+      // FB-3 (PLAN 5.3): an example reminder from the president's own draft. Dates only from the rule engine (the Due); none without a planned event.
+      exampleLabel: "Example reminder", yourOfficer: "your officer",
+      exampleDated: "Hi {name} — {step} for {event}. Due {date}. Reply: Done · Waiting on… · Need help.",
+      exampleGeneric: "Hi {name} — your next task is ready. Reply: Done · Waiting on… · Need help.",
+      stepsLabel: "How it works",
+      // title and body unchanged (study data); body is now the radio's screen-reader description. steps, like and inApp: PLAN 5.3 and 12.5.
       options: {
-        auto_email: { title: "Send automatically", body: "Platypus emails the officer on that date." },
-        review_then_self: { title: "I review, then I send", body: "Platypus drafts it. You check and send it." },
-        review_then_auto: { title: "I review, Platypus sends", body: "You check the draft. Platypus sends it." },
+        auto_email: { title: "Send automatically", body: "Platypus emails the officer on that date.", steps: ["Platypus writes", "Platypus sends"], like: "Like a calendar alert.",
+          inApp: "On the send day it appears under Sent. You don't have to do anything." },
+        review_then_self: { title: "I review, then I send", body: "Platypus drafts it. You check and send it.", steps: ["Platypus writes", "You check", "You send"], like: "Like a draft waiting in your outbox.",
+          inApp: "On the send day it waits under Needs your OK. You open the draft and send it yourself." },
+        review_then_auto: { title: "I review, Platypus sends", body: "You check the draft. Platypus sends it.", steps: ["Platypus writes", "You approve", "Platypus sends"], like: "Like approving a scheduled post.",
+          inApp: "On the send day it waits under Needs your OK. One click approves it." },
       },
     },
-    confirm: { title: "Ready to start?", summary: "This creates {club} with {officers} and {event} on {date}.", officers: { one: "1 officer", many: "{n} officers" }, start: "Start workspace", keep: "Keep current demo", replaceWarning: "This replaces the current demo workspace.", missing: "Plan your first event before you start.", backToEvent: "Back to first event",
+    // FB-3 (PLAN 5.4): one primary button on each of the last two screens. Invite no longer leads into the member preview (the Demo menu still does).
+    confirm: { title: "Ready to start?", summary: "This creates {club} with {officers} and {event} on {date}.", officers: { one: "1 officer", many: "{n} officers" }, start: "Create my club", cancel: "Cancel and keep the current club", replaceWarning: "This replaces the current demo workspace.", missing: "Plan your first event before you start.", backToEvent: "Back to first event",
       summaryNoEvent: "This creates {club} with {officers}.", noEvent: "No first event yet. You can plan one later from Ask.", reminders: "Reminders: {mode}." },
-    invite: { title: "Your club is ready.", lead: "Invite your officers.", copy: "Copy link", copied: "Copied", copyFailed: "Press Ctrl+C to copy.", whatsapp: "WhatsApp", email: "Email", link: "Officer invitation link", permission: "Only people with this link can join.", notSent: "Nothing sends automatically. We open a message for you.", preview: "See what your officers will see", today: "Go to Today", invited: "Invited", joined: "Joined", open: "Open position", officers: "Officers", joinedNote: "Demo only: Joined appears when an officer finishes setup in this browser.", subject: "Join {club} on Platypus", message: "Join {club} on Platypus as an officer: {link}" },
+    invite: { title: "Your club is ready.", lead: "Invite your officers.", copy: "Copy link", copied: "Copied", copyFailed: "Press Ctrl+C to copy.", whatsapp: "WhatsApp", email: "Email", link: "Officer invitation link", permission: "Only people with this link can join.", notSent: "Nothing sends automatically. We open a message for you.", workspace: "Open my workspace", invited: "Invited", joined: "Joined", open: "Open position", officers: "Officers", joinedNote: "Demo only: Joined appears when an officer finishes setup in this browser.", subject: "Join {club} on Platypus", message: "Join {club} on Platypus as an officer: {link}" },
   },
   // member preview (OB-07, OB-08)
   member: {
