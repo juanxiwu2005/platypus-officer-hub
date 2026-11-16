@@ -12,7 +12,7 @@ export function Welcome() {
   return <section className="ob-card ob-welcome" aria-labelledby="ob-welcome-h">
     <h1 id="ob-welcome-h">{copy.welcomeTitle}</h1>
     <p className="ob-lead">{copy.welcomeLead}</p>
-    <p>{copy.welcomeBody}</p>
+    <dl className="ob-welcome-why" data-testid="welcome-why">{copy.welcomeLines.map(line => <div key={line.label}><dt>{line.label}</dt><dd>{line.text}</dd></div>)}</dl>
     <div className="ob-actions">
       <button type="button" className="btn btn-primary" onClick={start}>{copy.start}</button>
       <button type="button" className="btn btn-quiet" onClick={explore}>{copy.explore}</button>

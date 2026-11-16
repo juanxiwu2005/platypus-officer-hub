@@ -23,7 +23,7 @@ for (const url of ["/#/start", "/?walkthrough=1#/start", "/#/start?walkthrough=1
   await noSideScroll(page)
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "start", replay: 0, flowVersion: "ob-4" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "start", replay: 0, flowVersion: "ob-5" })
   expect(rec.attempts[0].steps.map(s => `${s.step}:${s.event}`)).toEqual(["founder.name:enter"])
 })
 

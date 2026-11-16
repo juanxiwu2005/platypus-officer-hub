@@ -154,7 +154,7 @@ test("the export holds the answer (reminderModeChoice), every tick by its label,
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-data").click()])
   const file = JSON.parse(readFileSync((await download.path())!, "utf8"))
 
-  expect(file.onboardingFlowVersion).toBe("ob-4")
+  expect(file.onboardingFlowVersion).toBe("ob-5")
   expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "skipped", reminderModeChoice: "review_then_auto" })
   expect(file.state.org.settings.reminderMode).toBe("review_then_auto")
   // Every tick, by the option's label, in its group, on this screen.

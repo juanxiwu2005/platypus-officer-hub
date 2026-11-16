@@ -1,11 +1,13 @@
-/** The two walkthrough flows, in order. A step's `path` is its route under /welcome; `optional` steps can be skipped. */
+/**
+ * The two walkthrough flows, in order. A step's `path` is its route under /welcome; `optional` steps can be skipped.
+ * ob-5 (FB-2): the founder flow is Name → Team → First event → Reminders → Confirm → Invite. The constitution is an optional section on the Team
+ * screen and the mission is on the Name screen; goals are set in Settings only. The old ids "founder.constitution" and "founder.goals" no longer occur.
+ */
 export interface FlowStep { id: string; path: string; label: string; optional: boolean }
 export type FlowName = "founder" | "member"
 
 export const FOUNDER_STEPS: FlowStep[] = [
   { id: "founder.name", path: "founder/name", label: "Name", optional: false },
-  { id: "founder.constitution", path: "founder/constitution", label: "Constitution", optional: true },
-  { id: "founder.goals", path: "founder/goals", label: "Goals", optional: true },
   { id: "founder.team", path: "founder/team", label: "Team", optional: true },
   { id: "founder.first-event", path: "founder/first-event", label: "First event", optional: true },
   { id: "founder.reminders", path: "founder/reminders", label: "Reminders", optional: true },

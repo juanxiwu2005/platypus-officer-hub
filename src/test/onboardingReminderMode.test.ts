@@ -25,7 +25,7 @@ describe("the Reminders screen in the founder flow", () => {
     expect(ids.indexOf("founder.reminders")).toBe(ids.indexOf("founder.first-event") + 1)
     expect(ids.indexOf("founder.confirm")).toBe(ids.indexOf("founder.reminders") + 1)
     expect(FOUNDER_STEPS.find(s => s.id === "founder.reminders")).toMatchObject({ path: "founder/reminders", label: "Reminders", optional: true })
-    expect(FLOW_VERSION).toBe("ob-4")
+    expect(FLOW_VERSION).toBe("ob-5")
   })
   it("offers the three answers in a fixed order, each a short title and one line, within the 60-word screen", () => {
     expect(REMINDER_MODES).toEqual(["auto_email", "review_then_self", "review_then_auto"])

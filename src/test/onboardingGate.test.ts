@@ -29,8 +29,13 @@ describe("walkthrough flows", () => {
     const required = ["founder.name", "founder.confirm", "founder.invite", "member.invitation", "member.you", "member.reminders", "member.done"]
     for (const id of required) expect(Object.values(FLOWS).flat().find(s => s.id === id)?.optional).toBe(false)
   })
-  it("lets the president skip the first event and the Reminders question, like Constitution, Goals and Team (Phase 3: the study watches plan vs skip)", () => {
-    const optional = ["founder.constitution", "founder.goals", "founder.team", "founder.first-event", "founder.reminders"]
+  it("lets the president skip the first event and the Reminders question, like Team (Phase 3: the study watches plan vs skip)", () => {
+    const optional = ["founder.team", "founder.first-event", "founder.reminders"]
     for (const id of optional) expect(Object.values(FLOWS).flat().find(s => s.id === id)?.optional).toBe(true)
+  })
+  it("ob-5: the founder flow is Name, Team, First event, Reminders, Confirm, Invite; Constitution and Goals are no longer steps", () => {
+    expect(FLOWS.founder.map(s => s.id)).toEqual(["founder.name", "founder.team", "founder.first-event", "founder.reminders", "founder.confirm", "founder.invite"])
+    expect(stepAt("/welcome/founder/constitution")).toBeNull()
+    expect(stepAt("/welcome/founder/goals")).toBeNull()
   })
 })
