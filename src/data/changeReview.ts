@@ -89,9 +89,10 @@ export function assignedNotice(s: DemoState, node: Node): DemoState {
 
 export interface NewTask { title: string; ownerId: string | null; eventId: string | null; tier?: Tier }
 /**
- * The Ask task form (M2b): one task per owner, applied at once as the viewer, with Undo. Anyone may create
- * tasks for themselves or for anyone else (Juanxi, 2026-10-27). Standalone tasks need a due date from today on;
- * with `buffered` the club deadline comes earlier by the club buffer (engine/taskDates.ts).
+ * The Ask task form and the Tasks page form (M2b, FB-5): one task per owner, applied at once as the viewer, with Undo.
+ * Anyone may create tasks for themselves or for anyone else (Juanxi, 2026-10-27); someone else's waits in Not claimed
+ * until they accept it. Standalone tasks need a due date from today on. Both forms now send `buffered: false` (one
+ * date, Due); the parameter stays so older change records still read (engine/taskDates.ts).
  */
 export function createTasks(s: DemoState, a: { id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }): DemoState {
   if (s.changeSets.some(c => c.id === a.id) || !a.tasks.length || a.tasks.length > 10) return s
@@ -107,6 +108,9 @@ export function createTasks(s: DemoState, a: { id: string; sentence: string; tas
   ops.forEach((op, i) => {
     const id = `${a.id}:${i}`
     next = { ...next, ...newObjects(next, op, id, { date: a.date, buffered: a.buffered }) }
+    // M2b (AGENTS.md rule 3): a task given to someone else is theirs only once they accept it, so it waits in
+    // Not claimed with them as owner until they press "I've got it" (claimTask). Your own task is To do at once.
+    if (op.ownerId && op.ownerId !== s.viewerId) next = { ...next, nodes: next.nodes.map(n => n.id === id ? { ...n, status: "unclaimed", acceptedOn: null } : n) }
     next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
     createdIds.push(id)
   })

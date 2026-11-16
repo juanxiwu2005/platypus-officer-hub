@@ -1,24 +1,22 @@
 import { useMemo, useRef, useState } from "react"
 import { useStore } from "../../data/store"
-import { bufferedClubDeadline } from "../../engine/taskDates"
 import { fmtLong } from "../../lib/dates"
 import { Bts, BtsRow } from "../Bts"
 import { officers } from "../../data/permissions"
 
 /**
- * Due date + "club deadline N working days earlier" (M2b, Juanxi 2026-10-27). The due date starts at
- * today + the club's usual task length (Settings); the club deadline is computed by the engine, never typed.
+ * The one date a new task has: Due (FB-5, PLAN 8.3). It starts at today + the club's usual task length (Settings),
+ * computed by the engine; the person can pick another. The task's club deadline is this date itself: the club buffer
+ * only moves event steps that have an ASU deadline.
  */
-export function TaskDueFields({ due, buffered, onDue, onBuffered }: { due: string; buffered: boolean; onDue: (d: string) => void; onBuffered: (b: boolean) => void }) {
+export function TaskDueFields({ due, onDue }: { due: string; onDue: (d: string) => void }) {
   const { state } = useStore()
   const valid = /^\d{4}-\d{2}-\d{2}$/.test(due) && due >= state.today
-  const club = valid ? bufferedClubDeadline(state, due) : null
   return <>
-    <label>Due date<input type="date" aria-label="Due date" value={due} min={state.today} onChange={e => onDue(e.target.value)} /></label>
-    <label className="check-label"><input type="checkbox" checked={buffered} onChange={e => onBuffered(e.target.checked)} />Club deadline {club?.buffer ?? state.org.settings.clubBufferBusinessDays} working days earlier</label>
-    {club && <p className="small muted" data-testid="club-deadline">Club deadline: <b>{fmtLong(buffered ? club.date : due)}</b>{buffered && club.shortened ? " · the full buffer doesn't fit, so this is the earliest working day" : ""}</p>}
-    {club && <BtsRow>
-      <Bts label="Rule engine">{buffered ? `Club deadline = due date minus ${club.buffer} working days (the club buffer in Settings), skipping ASU nonworking days, and never before the next working day.` : "Buffer off: the club deadline is the due date itself."}</Bts>
+    <label>Due<input type="date" aria-label="Due" value={due} min={state.today} onChange={e => onDue(e.target.value)} /></label>
+    {valid && <p className="small muted" data-testid="club-deadline">Due <b>{fmtLong(due)}</b></p>}
+    {valid && <BtsRow>
+      <Bts label="Rule engine">A new task has one date, its due date. The club buffer in Settings applies only to event steps with an ASU deadline.</Bts>
       <Bts label="Data">The due date is what you pick; the default is today plus the number of days set in Settings. The assistant never supplies a date.</Bts>
     </BtsRow>}
   </>

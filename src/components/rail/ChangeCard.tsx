@@ -52,7 +52,6 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
   const canNudge = canApplyOp(state, initial)
   // Dates come only from the original human sentence, the club's task length setting, or this form — never the AI.
   const [date, setDate] = useState(humanEventDate(change.sentence, state.today) || (initial.op === "add_node" && !initial.eventId ? defaultTaskDue(state) : ""))
-  const [buffered, setBuffered] = useState(true)
   const [error, setError] = useState("")
   const review = change.reviews?.[index] ?? "pending"
   const pending = review === "pending"
@@ -60,9 +59,10 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
   const nodeSelect = (value: string, update: (value: string) => void, label = "Task") => <label>{label}<select aria-label={label} value={value} onChange={e => update(e.target.value)}>{state.nodes.map(n => <option key={n.id} value={n.id}>{n.title} · {state.events.find(ev => ev.id === n.eventId)?.name ?? "Standalone"}</option>)}</select></label>
   const tierSelect = (tier: Tier, update: (value: Tier) => void) => <label>Difficulty<select aria-label="Difficulty" value={tier} onChange={e => update(e.target.value as Tier)}>{TIERS.map(t => <option key={t}>{t}</option>)}</select></label>
   function apply() {
-    const problem = validateReview(state, op, { date, buffered })
+    // FB-5: a standalone task has one date, Due, so no club buffer is taken off it.
+    const problem = validateReview(state, op, { date, buffered: false })
     if (problem) { setError(problem); return }
-    dispatch({ type: "reviewChange", id: change.id, index, decision: "applied", op, human: { date, buffered } })
+    dispatch({ type: "reviewChange", id: change.id, index, decision: "applied", op, human: { date, buffered: false } })
     setError("")
     if (op.op === "propose_nudge") onNudge(op.nodeId)
     if (op.op === "create_event") setTimeout(() => {
@@ -90,7 +90,7 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
       {op.op === "add_node" && <>
         <label>Task title<input value={op.title} maxLength={100} onChange={e => setOp({ ...op, title: e.target.value })} /></label>
         <label>Event<select value={op.eventId ?? ""} onChange={e => setOp({ ...op, eventId: e.target.value || null })}><option value="">Standalone task</option>{state.events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}</select></label>
-        {!op.eventId && <TaskDueFields due={date} buffered={buffered} onDue={setDate} onBuffered={setBuffered} />}
+        {!op.eventId && <TaskDueFields due={date} onDue={setDate} />}
         {ownerSelect(op.ownerId, ownerId => setOp({ ...op, ownerId }))}{tierSelect(op.tier, tier => setOp({ ...op, tier }))}
       </>}
       {op.op === "assign_owner" && <>{nodeSelect(op.nodeId, nodeId => setOp({ ...op, nodeId }))}{ownerSelect(op.ownerId, ownerId => setOp({ ...op, ownerId }))}</>}

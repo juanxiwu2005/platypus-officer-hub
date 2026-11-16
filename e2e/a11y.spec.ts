@@ -78,7 +78,9 @@ test("keyboard: / stays in text inputs and Ask's textarea while typing", async (
   await name.press("/")
   await expect(name).toHaveValue("/")
   await expect(name).toBeFocused()
-  await name.press("Tab")
+  // FB-5: the form now has Assign to and Due after the name (a select and a date field, where "/" also stays), so
+  // leave the fields for the form's Add button before pressing "/".
+  await page.getByTestId("new-task-form").getByRole("button", { name: "Add", exact: true }).focus()
   await page.keyboard.press("/")
   const input = page.locator("#ask-input")
   await expect(input).toBeFocused()

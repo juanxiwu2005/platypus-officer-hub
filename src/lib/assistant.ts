@@ -149,6 +149,14 @@ function planDefaults(text: string, s: DemoState): { prefill: Partial<PlanPrefil
   return { prefill: { ...eventFields(text), name, ...(time ? { details: `Starts at ${time.toUpperCase().replace(/\s+/, " ")}.` } : {}) }, date: humanEventDate(text, s.today) }
 }
 
+/**
+ * "+ New event" (FB-5): the same event form a "Plan …" message gets, with every field empty. No AI reads anything;
+ * the person fills it in and the usual draft, approval and plan check follow.
+ */
+export function newEventForm(): Extract<ChatCard, { kind: "form" }> {
+  return { kind: "form", id: uid(), prefill: {}, date: "" }
+}
+
 /** The task form from the person's own words, without AI. */
 function taskDefaults(text: string, s: DemoState, _focus: Focus | null): Extract<ChatCard, { kind: "taskform" }> {
   const t = parseTaskIntent(text, commandContext(s))
