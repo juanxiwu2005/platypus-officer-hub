@@ -5,9 +5,9 @@ import { useStore } from "../data/store"
 const STEPS: [string, string][] = [
   ["Tell it", "Open Ask Platypus on the right and describe what you need. To plan an event, it asks for five details in a short form."],
   ["Check it", "You see a change set: every step, owner and deadline. Nothing changes until you approve it."],
-  ["Own it", "Each step has one owner, who claims it with “I've got it”. Every step has three dates: the ASU deadline, the club deadline and the latest start."],
-  ["Nudge it", "Today lists the few steps at risk. One tap opens a short, structured reminder in WhatsApp, text or Gmail. You send it."],
-  ["Hand it over", "At the end of the term, each role's handbook, contacts and history pass to the next officer."],
+  ["Own it", "Each step has one owner, who claims it with “I've got it”, and one date, Due. Your club's Due comes before any ASU deadline, so there is room to slip."],
+  ["Nudge it", "Reminders shows who should hear from you, who replied and who hasn't. Approve a written reminder in one click, or open it in WhatsApp, text or Gmail."],
+  ["Hand it over", "When a role changes hands, a three-day plan shows the next officer what's urgent, who to meet and which tasks to accept."],
 ]
 
 /** Everything the pages no longer explain in-line lives here (v1.1 text rule). */
