@@ -101,6 +101,9 @@ function Row({ x, meta, act }: { x: QueueItem; meta: ReactNode; act?: ReactNode 
   </li>
 }
 
+/** The soonest few: an officer with a whole semester of steps would otherwise get a list of every one. */
+const UPCOMING_SHOWN = 5
+
 /** An officer who is not the president or VP: read only. When their own reminders go out, and the ones they have had. */
 function YourReminders() {
   const { state } = useStore()
@@ -110,10 +113,11 @@ function YourReminders() {
   return <section className="card rq-section" aria-labelledby="rq-yours-h" data-testid="your-reminders">
     <header><h2 id="rq-yours-h">Your reminders</h2></header>
     <h3 className="rq-sub">Coming up</h3>
-    {mine.upcoming.length ? <ul className="rq-list">{mine.upcoming.map(x => <li key={x.node.id} className="rq-row" data-testid="rq-row" data-node={x.node.id}>
+    {mine.upcoming.length ? <ul className="rq-list">{mine.upcoming.slice(0, UPCOMING_SHOWN).map(x => <li key={x.node.id} className="rq-row" data-testid="rq-row" data-node={x.node.id}>
       <span className="rq-mark" />
       <span className="rq-main">{title(x.node.id, x.node.title)}<span className="rq-meta">{x.sendDay === state.today ? "Goes out today" : `Goes out ${fmtLong(x.sendDay!)}`} · Due {due(x)}</span></span>
     </li>)}</ul> : <p className="rq-empty">No reminders coming up for your tasks.</p>}
+    {mine.upcoming.length > UPCOMING_SHOWN && <p className="rq-note"><Link to="/tasks">{mine.upcoming.length - UPCOMING_SHOWN} more later</Link> in your tasks.</p>}
     <h3 className="rq-sub">Received</h3>
     {mine.received.length ? <ul className="rq-list">{mine.received.map(x => <li key={x.id} className="rq-row" data-testid="rq-row" data-node={x.node.id}>
       <span className="rq-mark" />
