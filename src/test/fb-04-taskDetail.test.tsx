@@ -36,14 +36,16 @@ const primary = () => nextStep().querySelectorAll(".btn-primary")
 afterEach(cleanup)
 
 describe("FB-4 task details: the header", () => {
-  it("shows the event, the title, the status, the owner and one Due from the engine; no other date labels", () => {
+  it("shows event, title, status and owner while emphasizing one Task due from the engine", () => {
     const n = ownedBy(officer, x => !!x.eventId && !!sched.nodes[x.id]?.official)
     show(officer, n.id)
     const detail = screen.getByTestId("task-detail")
     expect(screen.getByRole("heading", { level: 2, name: n.title })).toBeTruthy()
-    expect(screen.getByTestId("task-due").textContent).toContain(`Due ${fmtShort(sched.nodes[n.id].club)}`)
-    // The header and the next step carry one date; the ASU deadline only appears under the folded "Why this date".
-    expect(detail.querySelector(".td-head")!.textContent! + nextStep().textContent).not.toMatch(/Start by|Club deadline|ASU|Due date/)
+    expect(screen.getByTestId("task-due").textContent).toContain("Task due")
+    expect(screen.getByTestId("task-due").textContent).toContain(fmtShort(sched.nodes[n.id].club))
+    // The emphasized due has one purpose; school risks may separately require an ASU date.
+    expect(detail.querySelector(".td-head h2")!.textContent).not.toMatch(/Start by|Club deadline|ASU|Due date/)
+    expect(detail.querySelector(".td-focus-due")!.textContent).not.toMatch(/Start by|Club deadline|ASU|Due date/)
     expect(detail.textContent).toContain(base.events.find(e => e.id === n.eventId)!.name)
     expect(detail.textContent).toContain(base.people.find(p => p.id === officer)!.name)
   })
@@ -68,7 +70,8 @@ describe("FB-4 task details: Your next step has exactly one primary button", () 
     expect(primary()).toHaveLength(1)
     expect(primary()[0].textContent).toBe("Mark done")
     const row = within(nextStep()).getByRole("group", { name: "Update task status" })
-    expect(within(row).getAllByRole("button").map(b => b.textContent)).toEqual(["Waiting on…", "Need help", "Need more time"])
+    expect(within(row).getAllByRole("button").map(b => b.textContent)).toEqual(["Working on it", "Stuck", "Waiting on"])
+    expect(within(nextStep()).getByRole("button", { name: "Need more time" })).toBeTruthy()
   })
 
   it("the president on someone else's task: the same, plus Edit", () => {
@@ -108,7 +111,7 @@ describe("FB-4 task details: Why this date and Edit", () => {
     const ruled = ownedBy(officer, x => !!sched.nodes[x.id]?.official)
     show(officer, ruled.id)
     expect(screen.getByTestId("asu-sentence").textContent).toContain(`ASU needs this by ${fmtShort(sched.nodes[ruled.id].official!)}.`)
-    expect(screen.getByTestId("why-date").textContent).toContain(`Reminder goes out ${fmtShort(sched.nodes[ruled.id].latestStart)}.`)
+    expect(screen.getByTestId("why-date").textContent).toContain(`Personal planning start: ${fmtShort(sched.nodes[ruled.id].latestStart)}.`)
     cleanup()
     const plain = base.nodes.find(x => open(x) && x.ownerId && !sched.nodes[x.id]?.official)!
     show(plain.ownerId!, plain.id)
