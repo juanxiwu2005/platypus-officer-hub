@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { ask } from "./helpers"
+import { enableUpdatedReminders } from "./reminderHelpers"
 
 /**
  * FB-1 3.3 (docs/feedback-fix/PLAN.md): an AI wait you can see and stop. The AI endpoints are mocked to answer very late;
@@ -70,7 +71,7 @@ test("Reminder: a stalled AI endpoint does not delay the rule-written draft", as
   await health(page)
   let calls = 0
   await page.route("**/api/nudge/draft", route => { calls++; return route.abort() })
-  await page.goto("/#/")
+  await enableUpdatedReminders(page)
   await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()
   const panel = page.getByTestId("nudge-panel")
   await expect(panel.getByRole("link", { name: /^Open .+ draft$/ })).toBeVisible()
@@ -85,7 +86,7 @@ test("Reminder: available AI text is not requested or substituted into the rule 
   await health(page)
   let calls = 0
   await page.route("**/api/nudge/draft", route => { calls++; return route.fulfill({ json: { whyItMatters: "UNREQUESTED AI LINE" } }) })
-  await page.goto("/#/")
+  await enableUpdatedReminders(page)
   await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()
   const panel = page.getByTestId("nudge-panel")
   await expect(panel.getByRole("link", { name: "Open task", exact: true })).toBeVisible()

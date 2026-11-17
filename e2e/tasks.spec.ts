@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { ask, closeRail, demoClock, noOverflow, resetDemo, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
+import { enableUpdatedReminders } from "./reminderHelpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -17,12 +18,13 @@ test("claims an unassigned handover, then updates waiting, help and done without
   await detail.getByRole("button", { name: "I've got it", exact: true }).click()
   await expect(detail).toContainText("To do")
   expect(await savedTask(page, id)).toMatchObject({ status: "accepted", ownerId: "jordan" })
-  await detail.getByRole("button", { name: "Waiting on…", exact: true }).click()
-  await detail.getByLabel("Waiting on", { exact: true }).selectOption({ label: "Sam Okafor" })
+  await detail.getByRole("button", { name: "Waiting on", exact: true }).click()
+  await detail.getByRole("combobox", { name: "Waiting on", exact: true }).selectOption({ label: "Sam Okafor" })
+  await detail.getByRole("textbox", { name: "What help or input is needed?" }).fill("Please confirm the volunteer briefing room")
   await detail.getByRole("button", { name: "Save waiting status" }).click()
-  await expect(detail).toContainText("Waiting on: Sam Okafor")
+  await expect(detail).toContainText("Please confirm the volunteer briefing room")
   expect(await savedTask(page, id)).toMatchObject({ status: "waiting", waitingOnPersonId: "sam" })
-  await detail.getByRole("button", { name: "Need help", exact: true }).click()
+  await detail.getByRole("button", { name: "Stuck", exact: true }).click()
   await expect(detail).toContainText("Stuck")
   expect(await savedTask(page, id)).toMatchObject({ status: "blocked" })
   await detail.getByRole("button", { name: "Mark done", exact: true }).click()
@@ -108,6 +110,7 @@ test("a ten-day jump creates the five private stages and a recovery task, with h
 })
 
 test("the task entry opens only its task, does not update on load, and supports repeat updates", async ({ page }) => {
+  await enableUpdatedReminders(page)
   await page.goto("/#/tasks")
   await ask(page, "Remind Jordan about the workshop checklist")
   await page.getByRole("button", { name: "Open the draft" }).last().click()
@@ -130,7 +133,7 @@ test("the task entry opens only its task, does not update on load, and supports 
 })
 
 test("tampered and reset task entries cannot update any task", async ({ page }) => {
-  await page.goto("/#/")
+  await enableUpdatedReminders(page)
   await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()
   const link = page.getByTestId("nudge-panel").getByRole("link", { name: "Open task", exact: true })
   await expect(link).toHaveAttribute("href", /access=/)
@@ -177,7 +180,7 @@ test("board: drag a card to another column, add a task, and an officer cannot mo
   } else {
     // The same board card opens the status actions on touch devices.
     await card.getByRole("button", { name: "Check the officer list in Sun Devil Central" }).tap()
-    await page.getByTestId("task-detail").getByRole("button", { name: "Need help", exact: true }).tap()
+    await page.getByTestId("task-detail").getByRole("button", { name: "Stuck", exact: true }).tap()
     await closeRail(page)
   }
   await expect(board.getByRole("region", { name: targetLabel, exact: true })).toContainText("Check the officer list")

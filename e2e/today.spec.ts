@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { ask, closeRail, noOverflow, resetDemo, openMore, viewAs } from "./helpers"
 import { savedDemo } from "./demo-contract"
+import { enableUpdatedReminders } from "./reminderHelpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -78,7 +79,7 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
 // FB-8: the risk list is gone; forecast-red tasks lead each reminder-centre section with a risk mark, and "Review & open draft" opens the reminder.
 test("top tasks and the reminder centre's risk marks come from the app; Review & open draft opens a rule-written reminder with one task entry", async ({ page }) => {
   await page.route("**/api/nudge/draft", r => r.fulfill({ json: { whyItMatters: "We build a stronger club together.", source: "ai" } }))
-  await page.goto("/#/")
+  await enableUpdatedReminders(page)
   const risk = page.getByTestId("rq-needs-ok")
   await expect(risk.getByTestId("rq-row").first().getByTestId("forecast").getByRole("button")).toHaveAttribute("aria-label", /At risk/)
   await ask(page, "What are my top 5 tasks?")

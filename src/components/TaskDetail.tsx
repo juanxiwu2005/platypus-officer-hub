@@ -69,10 +69,10 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
     <section className="td-zone td-reminder-plan" aria-labelledby={`td-plan-${node.id}`}>
       <h3 id={`td-plan-${node.id}`}>Reminder plan</h3>
       {reminder.recipientName && <p className="small"><b>To: </b>{reminder.recipientName}</p>}
-      <p data-testid="task-reminder-explanation">{reminder.explanation}</p>
+      <p id={reminder.blockedReason === reminder.explanation ? `td-remind-why-${node.id}` : undefined} data-testid="task-reminder-explanation">{reminder.explanation}</p>
       {node.status === "waiting" && node.waitingOn && <p className="td-work-copy"><b>Waiting for: </b>{node.waitingOn}</p>}
       {reminder.runtimeState === "active" && <p className="small muted">{state.org.settings.reminderMode === "auto_email" ? "Automatic email (demo)." : state.org.settings.reminderMode === "review_then_auto" ? "Review before Platypus sends (demo)." : state.org.settings.reminderMode === "review_then_self" ? "Review, then send personally." : "Choose a reminder approach in Settings."}</p>}
-      {reminder.blockedReason && <p id={`td-remind-why-${node.id}`} className="small muted">{reminder.blockedReason}</p>}
+      {reminder.blockedReason && reminder.blockedReason !== reminder.explanation && <p id={`td-remind-why-${node.id}`} className="small muted">{reminder.blockedReason}</p>}
       {canRemind && <div className="td-remind"><button type="button" className="btn small" disabled={!reminder.canPrepare} aria-describedby={reminder.blockedReason ? `td-remind-why-${node.id}` : undefined} onClick={() => rail!.show({ kind: "nudge", id: node.id })}>Remind {reminder.recipientName?.split(" ")[0] ?? "teammate"}</button></div>}
       {!token && canLead(state) && <Link className="small" to="/">{reminder.runtimeState === "active" ? "Open reminder centre" : "Review reminder setup"}</Link>}
       {reminder.history.length > 0 && <details className="more td-history"><summary>Reminder history ({reminder.history.length})</summary><ol>{reminder.history.map(row => <li key={row.id}>

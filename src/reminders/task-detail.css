@@ -1,3 +1,4 @@
+.task-detail > .td-head { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--s3); }
 .task-detail .td-focus-due { display: grid; gap: var(--s2); margin-top: var(--s3); padding: var(--s5); border-left: 3px solid var(--accent); border-radius: 0 var(--r-sm) var(--r-sm) 0; background: var(--accent-soft); }
 .task-detail .td-focus-due strong { font-size: var(--fs-xl); }
 .task-detail .td-focus-due > span { font-size: var(--fs-md); }
