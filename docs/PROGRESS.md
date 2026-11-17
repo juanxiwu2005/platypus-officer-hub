@@ -1,3 +1,7 @@
+> **2026-11-16（America/Phoenix） · 职责匹配阶段 1 进行中（Codex 主 Agent；独立 worktree Data/Resolver Agent）**
+> **授权：** Juanxi 已批准“第一阶段”。本阶段建立共享契约、职责数据操作、配置验证与读写、确定性候选及默认/备份解析器，交付虚构演练、测试和阶段 3 旧存档接入设计。[实施计划](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md) · [冻结开发契约](feedback-fix/MATCHING_CONTRACT.md)。
+> **边界：** 当前不修改业务入口、旧 DemoState 或结构版本，不接新 AI/界面，不调用真实模型；阶段 2/3 继续待批准。主 Agent 维护公共契约与集成，两个开发 Agent 各有唯一文件范围，交付后做独立只读 Review。不合并 main、不正式发布。需要同步本地备份。
+
 > **2026-11-16（America/Phoenix） · A2/B2/C2 已选定，三阶段实施计划待批准（Codex）**
 > **Juanxi 的选择与执行要求：** A2 章程 AI 起草、人工确认；B2 任务绑定职责；C2 默认承接人与备份。要求 worktree Agent 分两到三个阶段推进，并明确“我批准后再开始阶段”。
 > **待批计划：** [职责匹配三阶段实施计划](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md)：①数据契约与匹配规则；②章程 AI 与职责设置；③接入实际任务创建、旧存档兼容和集成验收。每阶段列出唯一文件负责人、worktree Agent 包、检查与交付，按明确批准范围执行；仅批准单阶段不自动授权后续，明确批准全计划则不重复请求。三阶段完成才算实际业务接通，不以独立演练页代替。
