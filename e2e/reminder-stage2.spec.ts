@@ -2,44 +2,36 @@ import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { savedDemo } from "./demo-contract"
 import type { DemoState } from "../src/data/types"
+import { applySchedule } from "../src/engine/schedule"
+import { closeRail } from "./helpers"
 
 const demo = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!) as DemoState)
 const noOverflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth)
 
 async function openMail(page: Page, waiting = false) {
   await page.goto("/#/tasks")
-  await savedDemo(page)
-  const selected = await page.evaluate(waiting => {
-    const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
-    const n = s.nodes.find((n: { stepKey: string; ownerId: string; status: string; eventId: string }) => n.stepKey === "venue" && n.ownerId && n.status !== "done" && n.eventId)
-    const event = s.events.find((e: { id: string }) => e.id === n.eventId)
-    event.headcount = 40
-    n.title = "Reserve a room"
-    n.status = "accepted"
-    n.waitingOn = null
-    n.waitingOnPersonId = null
-    n.instructions = "Reserve a room for 40 attendees and record the booking confirmation."
-    n.completionCriteria = "The confirmed location and reservation reference are saved."
-    n.why = "The confirmed room lets us share the location with everyone."
-    s.viewerId = "alex"
-    s.aiEnabled = true
-    s.org.settings.reminderMode = "review_then_auto"
-    s.org.settings.matchingMode = "legacy"
-    s.nudges = []
-    s.protocolLog = []
-    s.taskAccessGrants = []
-    delete s.reminderRuntime
-    if (waiting) {
-      n.status = "waiting"
-      n.waitingOn = "Please confirm our room requirements"
-      n.waitingOnPersonId = "sam"
-      s.reminderRuntime = { version: 1, activatedOn: s.today, sequence: 1, updates: [], deliveries: [], waitingRequests: [{ id: "stage2-wait", nodeId: n.id, ownerId: n.ownerId, ownerVersion: n.ownerVersion ?? 0, recipientId: "sam", waitingOn: n.waitingOn, createdOn: s.today, sequence: 1, closedOn: null }] }
-    }
-    localStorage.setItem("platypus.v1.demo", JSON.stringify(s))
-    return { nodeId: n.id, eventName: event.name, ownerId: n.ownerId, title: n.title }
-  }, waiting)
-  await page.goto(`/#/tasks?node=${encodeURIComponent(selected.nodeId)}`)
+  const s = await savedDemo(page)
+  const original = s.nodes.find(n => n.stepKey === "venue" && n.ownerId && n.status !== "done" && n.eventId)!
+  const event = { ...s.events.find(e => e.id === original.eventId)!, headcount: 40 }
+  const node = { ...original, title: "Reserve a room", status: waiting ? "waiting" as const : "accepted" as const,
+    waitingOn: waiting ? "Please confirm our room requirements" : null, waitingOnPersonId: waiting ? "sam" : null,
+    instructions: "Reserve a room for 40 attendees and record the booking confirmation.",
+    completionCriteria: "The confirmed location and reservation reference are saved.",
+    why: "The confirmed room lets us share the location with everyone.",
+  }
+  const planned = applySchedule({ ...s, nodes: s.nodes.map(n => n.id === node.id ? node : n), events: s.events.map(e => e.id === event.id ? event : e),
+    viewerId: "alex", aiEnabled: true, org: { ...s.org, settings: { ...s.org.settings, reminderMode: "review_then_auto", matchingMode: "legacy" } },
+    nudges: [], protocolLog: [], silenceCases: [], extensionRequests: [], taskAccessGrants: [], reminderRuntime: undefined })
+  // Use an actual rule-engine date so the ordinary owner reminder is currently eligible.
+  const due = planned.nodes.find(n => n.id === node.id)!.clubDeadline!
+  const selected = { nodeId: node.id, eventName: event.name, ownerId: node.ownerId, title: node.title }
+  await page.evaluate(state => localStorage.setItem("platypus.v1.demo", JSON.stringify(state)), { ...planned, today: due })
+  await page.goto("/#/")
   await page.reload()
+  await closeRail(page)
+  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  await expect.poll(async () => (await demo(page)).reminderRuntime?.version).toBe(2)
+  await page.goto(`/#/tasks?node=${encodeURIComponent(selected.nodeId)}`)
   await page.getByTestId("task-detail").getByRole("button", { name: /^Remind / }).click()
   const panel = page.getByTestId("nudge-panel")
   await expect(panel.getByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeEnabled()
@@ -66,7 +58,8 @@ test("one rule-written mail opens a reusable task page: Working, reload, Done an
   await page.screenshot({ path: info.outputPath(`mail-${isMobile ? "phone" : "desktop"}.png`), fullPage: true })
   await panel.getByRole("button", { name: "Approve · Platypus sends (demo)" }).click()
   await expect(panel).toContainText("Approved. Platypus would send it now.")
-  const saved = (await demo(page)).nudges.find(n => n.nodeId === nodeId)!
+  const saved = (await demo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === nodeId)!
+  expect((await demo(page)).nudges).toEqual([])
   expect(saved.message?.recipientId).toBe(ownerId)
   expect(saved.message?.source).toBe("rules")
   expect(saved.message?.wordCount).toBeLessThanOrEqual(100)
@@ -156,5 +149,5 @@ test("a waiting follow-up goes to Sam and its task entry only responds to the he
   await expect(task).toContainText("Your update is recorded")
   const after = await demo(page)
   expect(after.nodes.find(n => n.id === nodeId)).toMatchObject({ status: "waiting", ownerId })
-  expect(after.reminderRuntime!.waitingRequests[0]).toMatchObject({ response: "provided", responseBy: "sam" })
+  expect(after.reminderRuntime!.waitingRequests.find(w => w.nodeId === nodeId)).toMatchObject({ response: "provided", responseBy: "sam" })
 })
