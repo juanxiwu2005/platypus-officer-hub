@@ -44,6 +44,7 @@ describe("stage 3: actual event creation uses confirmed responsibility decisions
   it("does not count one member twice or turn an unknown external qualification into eligibility", () => {
     const state = stage3Club(), candidates = getMatchingCandidates(state.matching!, organizationMatchingReferences(state), "fixture-space")
     expect(candidates.filter(c => c.memberId === "maya")).toHaveLength(1)
+    expect(candidates.find(c => c.memberId === "maya")).toMatchObject({ via: ["role", "direct"], roleIds: ["r-fin"] })
     expect(candidates.find(c => c.memberId === "sam")).toMatchObject({ eligibility: "unknown", reasons: ["qualification_unknown"] })
     const linked = stage3Requirement(state, "seo-event", "drone", "fixture-flight")
     const result = resolveMatchingAssignment(linked.matching!, organizationMatchingReferences(linked), { taskId: "fictional-flight-task", workflowId: "seo-event", stepId: "drone" })
@@ -118,6 +119,7 @@ describe("stage 3: actual standalone tasks and historical owners", () => {
     const added = next.nodes.filter(n => n.id.startsWith("qualified-task:"))
     expect(added).toHaveLength(1)
     expect(added[0]).toMatchObject({ ownerId: "maya", status: "unclaimed", matching: { workflowId: "standalone", responsibilityId: "fixture-space" } })
+    expect(added[0].clubDeadline).toBe(STAGE3_EVENT_DATE)
     const other = reducer({ ...next, viewerId: "sam" }, { type: "claimTask", nodeId: added[0].id })
     expect(other.nodes.find(n => n.id === added[0].id)!.status).toBe("unclaimed")
     const claimed = reducer({ ...next, viewerId: "maya" }, { type: "claimTask", nodeId: added[0].id })
