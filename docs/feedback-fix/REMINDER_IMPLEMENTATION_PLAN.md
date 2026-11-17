@@ -1,6 +1,6 @@
 # 提醒计划、邮件和独立任务页：分阶段实施
 
-2026-11-16（America/Phoenix）。起始基线 `claude/fervent-thompson-e2j5u2@dbfc47d`，期间合入原分支 `e370361` 的 v23 兼容读取基点及 `26af354` 的实际任务匹配接入，收尾同步至 `5e301d9`；开发分支 `feat/reminder-plan-v2`，PR #15。准备与阶段一已交付；Juanxi 随后明确要求“继续阶段2”，阶段二已完成检查与独立复核，交付待验收。阶段三仍待批准。见 [阶段一交付](REMINDER_STAGE1_HANDOFF.md)、[阶段二交付](REMINDER_STAGE2_HANDOFF.md) 与 [阶段二契约](REMINDER_STAGE2_CONTRACT.md)。
+2026-11-16（America/Phoenix）。起始基线 `claude/fervent-thompson-e2j5u2@dbfc47d`，已保留源分支至 `5e301d9` 的匹配与兼容交付；开发分支 `feat/reminder-plan-v2`，PR #15。Juanxi 已依次批准准备、阶段一、阶段二和阶段三。三阶段技术实现与独立审阅完成，交付待验收；真实后台另做。见 [阶段一交付](REMINDER_STAGE1_HANDOFF.md)、[阶段二交付](REMINDER_STAGE2_HANDOFF.md) 与 [阶段三交付](REMINDER_STAGE3_HANDOFF.md)。
 
 ## 最新决定
 
@@ -26,11 +26,11 @@
 | 准备 | 已完成；主 Agent | 独立分支、计划、冻结类型/接口、兼容与验收约定 |
 | 一 | 已完成技术检查，待验收；Data/Rules 两个独立 Worktree Agent，主 Agent 负责适配，独立 Review 通过 | 规则事实、具体要求/办理链接、追加式记录、候选计划和等待对象路由；以显式启用动作接入 reducer，旧页面默认流程保持兼容 |
 | 二 | 已完成检查，待验收；邮件/任务页独立 Worktree Agent，独立 Review通过 | 新邮件及校验器、可重复查看的独立任务入口、四个状态和明确外部办理按钮；见 [阶段二交付](REMINDER_STAGE2_HANDOFF.md) |
-| 三 | 待批准；Details UI、主 Agent 集成、独立 Review | Details 三段、单条/批量/自动演示统一链路、手机电脑验收与最终检查 |
+| 三 | 已批准并完成，待验收；Details/Centre独立Worktree、主Agent集成、独立Review通过 | Details三段、统一完整邮件通道、v2兼容升级/新组织默认启用、双端验收；见 [阶段三交付](REMINDER_STAGE3_HANDOFF.md) |
 
 主 Agent 独占共享 `src/data/types.ts`、`src/data/store.tsx`、冻结契约、适配器、集成测试和文档。Data Agent 独占 `src/reminders/facts.ts`、`src/reminders/actionLinks.ts` 及其测试；Rules Agent 独占 `src/reminders/engine.ts` 及其测试。两个开发包从冻结提交创建独立 worktree；不互改文件，主 Agent 合并后集成。Review 只读；发现问题交原负责人修复。
 
-## 阶段一的确切边界
+## 阶段一交付时的边界（历史，当前见阶段三交付）
 
 阶段一是底层和 reducer 可运行交付，不声称邮件样式、Details、新状态按钮或真实发送已经上线。可选 `reminderRuntime` 使用新版本运行时；旧 v22 存档没有它时原样保留，不自动重置、伪造发送、猜历史收件人或运行新旧双重催办。显式 `enableReminderPlan` 初始化以后才使用新路径。后续 UI 接入和统一激活在阶段三实施。
 

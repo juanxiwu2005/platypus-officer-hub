@@ -129,6 +129,17 @@
 
 新单条邮件编辑器不请求 AI；旧 `?token=` 入口保持兼容。阶段二没有默认启用新计划、统一旧批量记录、接通邮件后台或改变研究流程版本。完整权限与验收边界见 `feedback-fix/REMINDER_STAGE2_CONTRACT.md`。
 
+### 4.4 统一规则邮件与新计划（2026-11-16，功能分支阶段三）
+
+- 新建组织默认`reminderRuntime.version: 2`；旧无runtime/v1通过`upgradeReminderPlan`显式升级，保留原设置、更新、请求和发送历史。`mailRequiredAfter`为启用时0或升级时原sequence，之后新delivery必须有完整message；旧记录不补造。未知/损坏值保留并停用，不回退旧发送。外层schema/导出formatVersion未因本阶段改动。
+- `reviewLegacyReminder`记录领导核对当前任务分配，移除该任务对未来提醒的歧义阻拦，新增`ownerReply:false`的审计更新。旧nudge/protocol的收件人、正文和记录日期不改写；核对不是成员已回复。
+- `recordReminderBatch`沿用业务动作日志，payload仅via、candidateIds、count，不复制邮件、签名、链接或工作区密钥。via=automatic的actor为`system:reminders`，不冒充当前查看者或社长。准备失败不留grant；保存时逐条检查当前设置/对象/日期/归属和额度，只统计本次新delivery IDs。
+- 单条、批量、自动演示均保存同一完整规则邮件快照，自动不再由Today推算成已发送。自动失败信息和busy为当前页面状态，不是投递回执；刷新按持久记录去重，只处理仍有效的候选。
+- Replies由同任期实际ownerReply或同waitingRequest响应得出，同日按sequence；No reply从实际已存delivery起算。历史显示保存的收件人与任务快照，删任务/改派不把历史指给新负责人；旧未知收件人记录不计入新版无回复。人工记录仍是recorded_by_sender、平台记录是simulated，没有外部投递回执。
+- Retry browser saving只重试当前业务快照/日志保存，不提交尚在局部表单的草稿，也不生成发送记录；另一标签有新业务数据则暂停并保留两份副本，不提供覆盖重试。Settings、启用、批量或自动需各自明确提交/重试。
+
+旧的一次性`?token=`入口兼容保留；新邮件仍用可重复`?access=`。研究引导步骤和采集机制不变，新增业务动作使用既有日志机制；详见`feedback-fix/REMINDER_STAGE3_HANDOFF.md`。
+
 ## 5. 界面操作（`type` 以 `ui.` 开头）
 
 ### 5.1 类型一览

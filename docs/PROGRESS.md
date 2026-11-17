@@ -1,6 +1,9 @@
-> **2026-11-16（America/Phoenix） · 提醒阶段三进行中（Codex 主 Agent；Details/Centre 独立 Worktree Agent）**
+> **2026-11-16（America/Phoenix） · 提醒阶段三技术交付与独立复核完成，待验收（Codex 主 Agent；Details/Centre/Review独立Worktree Agent）**
 > **授权：** Juanxi 明确要求“继续阶段3”。按既定方案重排Details、统一提醒中心单条/批量/自动演示，提供新组织默认启用与旧存档显式兼容升级，保留实际历史和自定义设置。
-> **分工与边界：** [阶段三契约](feedback-fix/REMINDER_STAGE3_CONTRACT.md)。主Agent负责版本/权限/统一准备服务和Settings；Details与Centre分worktree开发，最终独立Review。沿用PR #15和匹配源5e301d9；无真实AI或外部投递，不合并main、不改交接。需要同步本地备份。
+> **交付：** [阶段三操作与结果](feedback-fix/REMINDER_STAGE3_HANDOFF.md) · [契约](feedback-fix/REMINDER_STAGE3_CONTRACT.md) · [PR #15](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15)。Details活动/任务/单Due、具体要求/办理、提醒对象/原因/历史三段清楚；三模式完整邮件实际保存后记数，Waiting独立协助和四状态、设置/保存重试、v2兼容升级、真实收件人/回复与旧历史保护接通。保留两类查看者的计算依据开关。
+> **验证：** 最终代码`8b591e1`独立Review通过，无开放产品阻塞。浏览器分批134通过/4原有限制跳过，最后Bts与预算6项、最终预算2项再过；最后规则/Provider/中心98项通过。lint、前后端类型、build、文字预算通过；入口539,919/550,000字节，Settings150/150，未提高门槛。
+> **全量门禁：** 本轮完整单元126文件1809项为1807通过/2个原5秒超时；MatchingSetupView单独18项已通过，calibration逐日枚举仍为既有超时，匹配交付已记录基线同问题。未改断言/超时，未称完整check全绿；后续Bts与邮箱修复另有目标验证，详见交付。
+> **边界：** 保留匹配源5e301d9，不改交接；自动仅浏览器打开时演示，0真实AI/外部投递，真实后台与跨设备另做，不合并main。线上预览被当前代理403拒绝，未核验部署；双端本地生产构建与截图已验。需要同步本地备份。
 
 > **2026-11-16（America/Phoenix） · 提醒阶段二已完成检查与独立复核，交付待验收（Codex 主 Agent；Mail/Page/Review 独立 Worktree Agent）**
 > **授权：** Juanxi 明确要求“继续阶段2”。实现规则生成的简短邮件和唯一入口、可重复使用的独立任务页、Done/Working on it/Stuck/Waiting on；等待对象入口只响应协助请求，不修改原任务。
@@ -380,6 +383,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | **批准提醒阶段三。** 继续Details重排、提醒中心单条/批量/自动演示统一、v2新组织默认与旧存档显式升级、历史与设置保留；按既定Worktree开发与独立Review实施。不代表真实后台投递、RACI或交接扩展、main合并。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准提醒阶段二。** 按既定Worktree方案继续规则邮件和唯一入口、可重复独立任务页与四种状态；等待对象仅响应独立协助请求。阶段三Details/提醒中心统一接通仍待批准，真实投递、跨设备身份另做。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准提醒准备与阶段一。** 新底层默认规则生成，不等AI；一个重点截止日、内置开始日及自然触发说明；Waiting on 自动为明确对象生成独立跟进，并沿用社团发送方式。独立Worktree实施，阶段二邮件/任务页与阶段三Details仍待批准，真实投递另接后台服务。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配阶段3。** 继续实际任务接入、旧存档兼容、认领和集成验收；使用既定Worktree分工，不代表合并main或启动提醒后续五项。 | Juanxi |
@@ -443,6 +447,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | Codex（提醒S3；Details/Centre分树开发、独立Review） | 交付Details三段、完整规则邮件批量/自动通道、v2默认与显式升级、真实历史/回复、等待对象独立响应和受CAS保护的保存重试。最终8b591e1审阅无产品阻塞；浏览器134通过/4既有限制跳过，末次98项目标、lint/类型/build/字数通过；入口539,919/550,000。 | 先打开PR #15首页，旧存档点Enable updated reminders。详见`feedback-fix/REMINDER_STAGE3_HANDOFF.md`。完整单元1807过/2超时，Matching18复验过、calibration既有超时保留，不能称full check全绿。自动仅本地开页演示，真实投递/跨设备后续，线上403未验。`PRODUCT_PLAN.md`已更新，需要同步本地备份；不合并main。 |
 | 2026-11-16（America/Phoenix） | Codex（提醒S2；Mail/Page/Review独立worktree） | 交付纯规则单条邮件、可重复任务入口、独立页四状态、等待对象响应、任务要求编辑与已批准消息快照。最终候选e913464独立复核通过；330项单元/组件、67项兼容浏览器与最新候选10项、lint/类型/build/字数通过，入口545,608/550,000。三项P2及损坏存档边界已修复。 | 见 `feedback-fix/REMINDER_STAGE2_HANDOFF.md`。已合入匹配源分支5e301d9，保留双方交付；普通旧存档不自动启用新计划，批量/自动统一仍在阶段三。新链接仅同浏览器演示；真实发送与跨设备未接通，预览403未验。无真实AI或投递，不合并main。`PRODUCT_PLAN.md`已更新，需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（提醒 S1；Data/Rules/Review 独立 worktree） | 完成规则优先底层、Waiting on 对象路由和真实reducer适配，旧存档显式启用；修复旧计时、自动邮箱与坏runtime三项复核问题。最终202项、lint、前后端类型和build通过，入口549,819/550,000。见 `feedback-fix/REMINDER_STAGE1_HANDOFF.md`。 | 新邮件/独立任务页与Details尚未接UI，旧编辑器仍可能调用旧AI。新底层0AI；waiting对象仅明确现任成员；真实邮件未投递。只更新独立提醒分支，不改源分支、不合并main。`PRODUCT_PLAN.md` 已更新，需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（职责匹配 S3；Workflow/Integration 分 worktree，独立 Review） | 按“继续阶段3”接入业务职责正本、46步目录、实际任务确认与认领、22→23保护迁移、单任务人工例外及跨标签页/写失败保护。相关104项、桌面/手机18项、静态检查通过；完整门禁的原有超时与全站失败复测见 `feedback-fix/MATCHING_STAGE3_HANDOFF.md`。代码候选 `8b9633d`。 | PR #14 `/#/matching` 可启用/显式导入预览；实际任务不再按固定职能选人，旧任务不自动改派。保留回滚基点e370361与旧原件；本地存储非真实多人服务。等待验收，不自动开始RACI等后五项，不合并main；真实AI 0次。需要同步本地备份。 |
