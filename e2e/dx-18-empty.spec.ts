@@ -3,8 +3,7 @@ import { closeRail } from "./helpers"
 
 // DX-18: an empty list that was emptied by a search or filter says how to get everything back; the Today stars say what to do.
 async function fresh(page: Page, path: string) {
-  await page.goto("/#/")
-  await page.evaluate(() => window.localStorage.clear())
+  await page.addInitScript(() => window.localStorage.clear())
   await page.goto(`/#${path}`)
   await closeRail(page)
 }
@@ -33,6 +32,7 @@ test("Partners organizations: the same way back", async ({ page }) => {
 
 test("Rules: an empty search offers Clear filters", async ({ page }) => {
   await fresh(page, "/rules")
+  await expect(page.locator(".rule-row").first()).toBeVisible()
   const count = () => page.locator(".rule-row").count()
   const before = await count()
   expect(before).toBeGreaterThan(0)
