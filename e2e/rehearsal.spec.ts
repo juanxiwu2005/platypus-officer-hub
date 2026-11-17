@@ -13,8 +13,14 @@ test.beforeEach(async ({ page }) => {
 test("participant path: clean browser → six-step setup → task → event → rule question → export; nothing blank, every action logged in order", async ({ page }) => {
   const errors: string[] = []
   page.on("pageerror", e => errors.push(String(e)))
-  await page.goto("/#/")
-  await page.evaluate(() => window.localStorage.clear())
+  // Establish the clean browser before the Provider reads its first snapshot; deleting a mounted tab's
+  // business key is now correctly treated as an external storage conflict, not a new empty workspace.
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem("rehearsal-clean-browser")) {
+      localStorage.clear()
+      sessionStorage.setItem("rehearsal-clean-browser", "1")
+    }
+  })
   await page.goto("/#/setup")
   const step = page.getByTestId("setup-step")
   await step.getByLabel("Club name", { exact: true }).fill("Fictional Rehearsal Club")
@@ -53,6 +59,44 @@ test("participant path: clean browser → six-step setup → task → event → 
   expect(log.map(e => e.type)).toEqual(expect.arrayContaining(["completeSetup", "advanceClock"]))
   expect(file.state.org.name).toBe("Fictional Rehearsal Club")
   expect(errors).toEqual([])
+})
+
+test("a refused classic setup save keeps the draft, original organization and confirmation page", async ({ page }) => {
+  await page.goto("/#/setup")
+  const step = page.getByTestId("setup-step")
+  await step.getByLabel("Club name", { exact: true }).fill("Fictional unsaved club")
+  for (let i = 0; i < 5; i++) await step.getByRole("button", { name: "Continue", exact: true }).click()
+  await step.getByRole("button", { name: "Prepare first workflow", exact: true }).click()
+  await step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." }).check()
+  await expect.poll(() => page.evaluate(() => new Promise<number | null>((resolve, reject) => {
+    const request = indexedDB.open("platypus.docs", 1)
+    request.onerror = () => reject(request.error)
+    request.onsuccess = () => {
+      const db = request.result, read = db.transaction("docs").objectStore("docs").get("setup-draft")
+      read.onsuccess = () => { db.close(); resolve(read.result?.value?.step ?? null) }
+      read.onerror = () => { db.close(); reject(read.error) }
+    }
+  }))).toBe(5)
+  const original = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
+  const name = await step.getByLabel("Event name", { exact: true }).inputValue()
+  await page.evaluate(() => {
+    const write = Storage.prototype.setItem
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "platypus.v1.demo") throw new Error("Fictional business save failure")
+      return write.call(this, key, value)
+    }
+  })
+  await step.getByRole("button", { name: "Approve & start workspace", exact: true }).click()
+  await expect(step.getByRole("alert")).toContainText("Your workspace could not be saved")
+  await expect(page).toHaveURL(/#\/setup$/)
+  await expect(step.getByLabel("Event name", { exact: true })).toHaveValue(name)
+  await expect(step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." })).toBeChecked()
+  expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(original)
+  await page.reload()
+  await page.getByTestId("setup-restore").getByRole("button", { name: "Restore it", exact: true }).click()
+  // Legacy restore intentionally returns to the workflow review before rebuilding the first event.
+  for (let i = 0; i < 4; i++) await step.getByRole("button", { name: "Back", exact: true }).click()
+  await expect(step.getByLabel("Club name", { exact: true })).toHaveValue("Fictional unsaved club")
 })
 
 test("keyboard only: claim a task, change its status and finish it without a mouse", async ({ page }) => {

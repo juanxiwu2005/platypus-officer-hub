@@ -8,9 +8,10 @@
 > **验证：** 最终相关 13 文件、202 项通过，lint、前后端类型检查和生产构建通过。独立 Review 三项 P2 均修复且原样反例复验通过；代码候选 `bbce88b`。带真实长度构建元数据的入口 549,819 字节，低于既定 550,000；没有提高上限。0 次真实 AI 调用。
 > **边界：** 当前只授权准备与底层阶段一，阶段二邮件/独立页和阶段三 Details 接通待批准。显式启用新版运行时才能运行新规则，旧存档不自动改写；本地待发/演示记录不等于真实邮件投递。真实后台仍为第六项，0 次真实 AI 调用；不改职责匹配文件，不合并 main、不正式发布。需要同步本地备份。
 
-> **2026-11-16（America/Phoenix） · 职责匹配阶段 3 进行中（Codex 主 Agent；Workflow Adapter / Integration Test 独立 Worktree Agent）**
-> **授权：** Juanxi 明确要求“继续阶段3”。接回活动/独立任务/首次设置建活动，统一业务内职责正本、分派记录与认领；实施22→23兼容迁移及旧数据保护，逐项处理46个标准步骤。先提交可读取23且保留未知匹配字段的兼容基点，再写新结构。
-> **边界：** 日期仍由现有引擎计算，旧组织未启用时维持兼容；启用后缺少职责或候选不回落旧职能。预览经明确确认和引用检查后导入，不长期双写；不合并main、不自动真实AI调用、不开始RACI或后续提醒包。沿用PR #14。需要同步本地备份。
+> **2026-11-16（America/Phoenix） · 职责匹配阶段 3 已完成接入和复核，交付待验收（Codex 主 Agent；Workflow / Integration / Review 独立 Worktree Agent）**
+> **交付：** 组织自定义职责库接入实际活动、独立任务和首次设置；一个任务确认一位执行人，默认人预选、备份明确选择，分给别人仍须本人认领。统一业务正本、不长期双写；46 步逐项审阅目录、22→23 原件备份升级、旧任务保护、旧链接失效、保存失败保留草稿及跨标签页覆盖保护已接通。[操作与交付](feedback-fix/MATCHING_STAGE3_HANDOFF.md) · [兼容和回退](feedback-fix/MATCHING_COMPATIBILITY.md)。预览：`https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching`，先点 **Enable responsibility matching**。
+> **验证：** 最终相关单元/组件104项通过，新业务桌面/手机18项通过且在全站再次通过；三屏双端严重无障碍/横向溢出检查通过，lint、build、前后端类型、文字预算通过。独立复核 `f5a0c4b` 及后续保存边界通过。完整浏览器1158项为1038通过/107跳过/13失败，13项已修复或定点复跑通过，未重新全站跑一遍。完整check单元1553通过/5超时，其中4项独立复跑通过，calibration逐日枚举在阶段2基线也超时，不能称完整门禁全绿。0次真实AI；Netlify预览部署状态已确认，当前环境代理阻止线上页面访问。
+> **边界：** 仍为本地原型，不是多账号/跨设备或原子并发服务；标准+单个自定义模板，不是任意工作流生成器，也未完成全部政策职责覆盖。兼容回退基点 `e370361` 必须保留。仅推原功能分支/PR #14，未合并main，RACI及后续提醒、新人上手不自动启动。需要同步本地备份。
 
 > **2026-11-16（America/Phoenix） · 职责匹配阶段 2 已完成检查，交付待验收（Codex 主 Agent；独立 AI/UI/Review Worktree Agent）**
 > **交付：** Team/Settings 新增 **Set up responsibilities** 入口 `/#/matching`；支持虚构文件或粘贴章程、显式 AI 职责草稿、精确引用核对、逐条采用/拒绝，人工职责编辑/确认/合并/归档，岗位泡泡和多人关系、成员例外与资格可用情况、默认人与备份、步骤职责关联及分派预览。旧 structure/duties 保持；新请求先保存输入，private Blob 在 parse 前保存 transport，同请求 ID 原子认领防重复收费。操作与验收见 [阶段 2 交付](feedback-fix/MATCHING_STAGE2_HANDOFF.md)，12 人示例 `https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching?example=1`。
@@ -436,6 +437,7 @@
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
 | 2026-11-16（America/Phoenix） | Codex（提醒 S1；Data/Rules/Review 独立 worktree） | 完成规则优先底层、Waiting on 对象路由和真实reducer适配，旧存档显式启用；修复旧计时、自动邮箱与坏runtime三项复核问题。最终202项、lint、前后端类型和build通过，入口549,819/550,000。见 `feedback-fix/REMINDER_STAGE1_HANDOFF.md`。 | 新邮件/独立任务页与Details尚未接UI，旧编辑器仍可能调用旧AI。新底层0AI；waiting对象仅明确现任成员；真实邮件未投递。只更新独立提醒分支，不改源分支、不合并main。`PRODUCT_PLAN.md` 已更新，需要同步本地备份。 |
+| 2026-11-16（America/Phoenix） | Codex（职责匹配 S3；Workflow/Integration 分 worktree，独立 Review） | 按“继续阶段3”接入业务职责正本、46步目录、实际任务确认与认领、22→23保护迁移、单任务人工例外及跨标签页/写失败保护。相关104项、桌面/手机18项、静态检查通过；完整门禁的原有超时与全站失败复测见 `feedback-fix/MATCHING_STAGE3_HANDOFF.md`。代码候选 `8b9633d`。 | PR #14 `/#/matching` 可启用/显式导入预览；实际任务不再按固定职能选人，旧任务不自动改派。保留回滚基点e370361与旧原件；本地存储非真实多人服务。等待验收，不自动开始RACI等后五项，不合并main；真实AI 0次。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（职责匹配 S2；AI/UI 分 worktree 开发、独立 Review） | 按“继续阶段2”交付职责设置预览、章程职责提取兼容扩展、来源审核、人工与多人配置、统一解析预览和安全保存控制器。最终相关276项单元/组件、18项桌面/手机检查、lint、build、Netlify类型检查通过；修复并复查3项P2，运行时代码候选 `ccea818`。详情见 `feedback-fix/MATCHING_STAGE2_HANDOFF.md`。 | 使用 PR #14 的 `/#/matching` 或 `?example=1` 验收。真实AIR/Blob未实测；保存为隔离预览、旧业务未迁移；阶段3待批准。仅功能分支，不合并main、不实际发邮件。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（职责匹配 S1；Data/Resolver 独立开发，Review 独立只读复核） | 依用户“批准第一阶段”实施 `src/matching/` 数据基础、职责操作、严格存档读写及确定性 C2 解析；主 Agent 集成 12 人两工作流演练与旧数据隔离检查。新旧相关测试合计 205 项、lint、构建、两套类型检查通过；最终代码候选 `3ad168d` 独立复核通过。详情见 `feedback-fix/MATCHING_STAGE1_HANDOFF.md`。 | 当前没有新网页，未接真实任务、未改变旧存档；阶段 2/3 仍待批准。后续按 `MATCHING_COMPATIBILITY.md` 做版本迁移与回滚，不用 reset 或长期双写。仅推指定功能分支，不合并 main；0 次真实 AI 调用。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex | **记录 A2/B2/C2 选择并准备三阶段 worktree Agent 计划。** [范围、分工、兼容、验收和回滚](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md)。仅文档变更。 | 用户明确要求批准后才开始阶段。阶段 1/2/3 全部未启动，不能把选定方案视作已批准任一阶段；等待明确启动批准并按授权范围推进。需要同步本地备份。 |
