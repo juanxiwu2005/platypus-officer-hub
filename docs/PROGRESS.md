@@ -1,3 +1,8 @@
+> **2026-11-16（America/Phoenix） · 提醒计划准备与阶段一进行中（Codex 主 Agent；独立 Data/Rules Worktree Agent）**
+> **授权：** Juanxi 要求按最新反馈更新执行方案并直接开始准备、阶段一。默认完整提醒依靠规则，不等待 AI；邮件突出一个 Task due，最晚开始日期内置且以自然语言解释触发；Waiting on 自动生成给明确等待对象的独立跟进。
+> **方案与分工：** [分阶段实施方案](feedback-fix/REMINDER_IMPLEMENTATION_PLAN.md) · [阶段一冻结契约](feedback-fix/REMINDER_STAGE1_CONTRACT.md)。从职责匹配已交付 `dbfc47d` 开独立分支 `feat/reminder-plan-v2`；Data/Rules 独立 worktree，主 Agent 独占共享类型、reducer 适配、兼容和交付，完成后独立复核。
+> **边界：** 当前只授权准备与底层阶段一，阶段二邮件/独立页和阶段三 Details 接通待批准。显式启用新版运行时才能运行新规则，旧存档不自动改写；本地待发/演示记录不等于真实邮件投递。真实后台仍为第六项，0 次真实 AI 调用；不改职责匹配文件，不合并 main、不正式发布。需要同步本地备份。
+
 > **2026-11-16（America/Phoenix） · 职责匹配阶段 2 已完成检查，交付待验收（Codex 主 Agent；独立 AI/UI/Review Worktree Agent）**
 > **交付：** Team/Settings 新增 **Set up responsibilities** 入口 `/#/matching`；支持虚构文件或粘贴章程、显式 AI 职责草稿、精确引用核对、逐条采用/拒绝，人工职责编辑/确认/合并/归档，岗位泡泡和多人关系、成员例外与资格可用情况、默认人与备份、步骤职责关联及分派预览。旧 structure/duties 保持；新请求先保存输入，private Blob 在 parse 前保存 transport，同请求 ID 原子认领防重复收费。操作与验收见 [阶段 2 交付](feedback-fix/MATCHING_STAGE2_HANDOFF.md)，12 人示例 `https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching?example=1`。
 > **验证：** 最终相关单元/组件 15 文件、276 项通过；本地生产构建桌面 9 + 手机 9 共 18 项浏览器检查通过，包含无障碍/溢出、刷新/Stop、失败保留和旧业务完整对象不变。lint、构建、前后端类型检查通过；独立 Review 对运行时代码 `ccea818` 通过，3 项 P2 已修复并复查。开发包 AI `4f31c58`、UI `805ef2a`，保留提交集成。真实 AI 0 次，真实 Blob/AIR 联通和 Safari/iOS 未实测，不将模拟结果称为已实测服务。
