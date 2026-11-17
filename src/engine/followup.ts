@@ -20,10 +20,11 @@ function retroNode(n: Node, c: SilenceCase, from: string): Node {
 export function runFollowupDay(input: DemoState, today: string): DemoState {
   let s = applySchedule({ ...input, today })
   for (const n of [...s.nodes]) {
-    if (n.status === "done" || !n.ownerId || n.source.startsWith("SEO Ghost Owner Protocol")) continue
+    if (n.status === "done" || !n.ownerId || n.source.startsWith("SEO Ghost Owner Protocol") || (s.reminderRuntime && (n.status === "waiting" || n.status === "blocked"))) continue
     let c = s.silenceCases.find(c => c.nodeId === n.id && !c.closedOn)
     if (!c) {
-      const updated = n.lastUpdate ?? n.assignedOn ?? n.acceptedOn ?? input.today
+      const ownerUpdate = s.reminderRuntime?.updates.filter(u => u.nodeId === n.id && u.ownerId === n.ownerId && u.ownerVersion === (n.ownerVersion ?? 0) && u.ownerReply).at(-1)
+      const updated = s.reminderRuntime ? ownerUpdate?.on ?? n.assignedOn ?? s.reminderRuntime.activatedOn : n.lastUpdate ?? n.assignedOn ?? n.acceptedOn ?? input.today
       // Future work is not overdue for updates before its latest start. The separate
       // 48-hour claim check still runs from assignment, even for a future task.
       const startedOn = (n.status === "accepted" || n.status === "unclaimed") && n.latestStart && n.latestStart > updated ? n.latestStart : updated
@@ -35,7 +36,7 @@ export function runFollowupDay(input: DemoState, today: string): DemoState {
     if (n.status === "unclaimed" && daysBetween(n.assignedOn ?? c.startedOn, today) >= 2)
       s = addNotices(s, n.id, lead, "claim", `“${n.title}” has not been claimed within 48 hours. Check the handover privately.`, `claim:${n.id}:${n.assignedOn ?? c.startedOn}`)
     const config = s.org.settings.silenceProtocol
-    const stages = [...config.nudgeDays.map(day => ({ day, kind: "reminder" as const })), { day: config.presidentDay, kind: "private_check" as const }, { day: config.reassignDay, kind: "suggest_owner" as const }, { day: config.retroDay, kind: "recovery" as const }].sort((a, b) => a.day - b.day)
+    const stages = [...(s.reminderRuntime ? [] : config.nudgeDays.map(day => ({ day, kind: "reminder" as const }))), { day: config.presidentDay, kind: "private_check" as const }, { day: config.reassignDay, kind: "suggest_owner" as const }, { day: config.retroDay, kind: "recovery" as const }].sort((a, b) => a.day - b.day)
     for (const stage of stages) {
       const id = `${c.id}:${stage.kind}:${stage.day}`
       if (age < stage.day || s.protocolLog.some(e => e.id === id)) continue

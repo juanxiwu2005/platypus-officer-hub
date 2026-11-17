@@ -5,6 +5,8 @@ test.beforeEach(async ({ page }) => { await page.route("**/api/health", r => r.f
 
 test("forecast shows colour first; reasons and percentages wait in the hover card", async ({ page }, info) => {
   await page.goto("/#/")
+  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   // FB-8: the risk list is gone; the reminder centre marks forecast-red tasks first in each section.
   const risk = page.getByTestId("rq-needs-ok")
   const dot = risk.getByTestId("forecast").first().getByRole("button")

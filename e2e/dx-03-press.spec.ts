@@ -7,6 +7,8 @@ async function pressedTransform(page: import("@playwright/test").Page) {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
+  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   const button = page.getByRole("button", { name: "Review & open draft" }).first()   // FB-8: the reminder centre
   await expect(button).toBeVisible()
   await button.hover()

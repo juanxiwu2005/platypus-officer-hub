@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { ask, closeRail, openAsk, openDemoMenu, openMore } from "./helpers"
+import { ask, closeRail, openAsk, openDemoMenu, openMore, viewAs } from "./helpers"
 
 // "Behind the scenes" (S7): a switch in the Demo menu that shows where numbers, dates and AI output come from.
 // Off (the default) means the notes are not in the page at all.
@@ -24,6 +24,18 @@ test("off by default: no note is in the page, on any page", async ({ page }) => 
   await expect(page.getByTestId("bts-toggle")).not.toBeChecked()
 })
 
+test("ordinary members retain calculation notes behind the same switch", async ({ page }) => {
+  await page.goto("/#/")
+  await viewAs(page, "jordan")
+  await expect(page.getByTestId("your-reminders")).toBeVisible()
+  await switchOn(page)
+  await closeRail(page)
+  await expect(page.getByTestId("your-reminders").locator(".bts")).toContainText("Rule engine")
+  await openDemoMenu(page)
+  await page.getByTestId("bts-toggle").uncheck()
+  await expect(page.locator(NOTES)).toHaveCount(0)
+})
+
 test("the switch turns on and off, keeps its state after a reload, and removes the notes from the page when off", async ({ page }) => {
   await page.goto("/#/")
   await page.waitForTimeout(300)
@@ -31,7 +43,7 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
   expect(await setting(page)).toBe("1")
   await closeRail(page)
   await expect(page.locator(".bts").first()).toBeVisible()
-  await expect(page.getByTestId("reminder-centre")).toContainText("Send day = the rule engine's latest start") // FB-8: the reminder centre
+  await expect(page.getByTestId("reminder-centre")).toContainText("Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. Sent lists saved records.")
   await page.reload()
   await page.waitForTimeout(300)
   await expect(page.locator(".bts").first()).toBeVisible()
@@ -51,7 +63,7 @@ test("when on: dates show where they come from on Reminders, Events and Tasks", 
   await closeRail(page)
   // FB-8: the home page is the reminder centre; its send days and Due come from the rule engine (the Events strip moved off home).
   await expect(page.getByTestId("rq-needs-ok").locator(".bts").first()).toContainText("Rule engine")
-  await expect(page.getByTestId("rq-this-week").locator(".bts")).toContainText("Send days from tomorrow to 7 days ahead")
+  await expect(page.getByTestId("rq-this-week").locator(".bts")).toContainText("Planned checks from tomorrow through the next 7 days.")
   await page.goto("/#/events")
   await expect(page.locator("main .bts").first()).toBeVisible()
   await page.getByTestId("view-list").click()

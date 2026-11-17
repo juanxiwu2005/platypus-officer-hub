@@ -1,68 +1,100 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import type { Node } from "../data/types"
 import { useStore } from "../data/store"
 import { validateReply, type ReplyInput, type TaskReply } from "../data/taskWorkflow"
-import { STATUS_ACTIONS } from "../lib/nudges"
-import { isPresident } from "../data/permissions"
+import { isPresident, officers } from "../data/permissions"
 import { isBudgetControlledNode } from "../engine/eventBudget"
 
-/** The reminder's reply links keep their keys; on the screen "done" is the one primary button, the rest sit in a row of small ones. */
-const SECONDARY = STATUS_ACTIONS.filter(a => a.key !== "done")
+const waitingTarget = (node: Node) => node.waitingOnPersonId ?? (node.waitingOn?.trim() ? "other" : "")
 
-/**
- * "Your next step" (FB-4, PLAN.md §6.2): exactly one primary button — "I've got it" for a Not claimed task, otherwise
- * "Mark done" — and the other status replies as small buttons with their existing forms. Who may do what is unchanged:
- * the owner or the president updates; anyone may claim an open task; validateReply and the store check again.
- */
+/** The store retains owner/president and finance authority; success requires a persisted update. */
 export function TaskActions({ node, actorId, token, initialReply }: { node: Node; actorId: string; token?: string; initialReply?: string | null }) {
-  const { state, dispatch } = useStore()
+  const { state, tryDispatch, getState } = useStore()
   const navigate = useNavigate()
+  const root = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState(initialReply === "waiting" || initialReply === "extension" ? initialReply : "")
-  const [input, setInput] = useState<ReplyInput>({ waitingOn: "", waitingOnPersonId: null, draftLink: node.draftLink ?? "", requestedDate: "", reason: "" })
+  const [waitingPerson, setWaitingPerson] = useState(waitingTarget(node))
+  const [input, setInput] = useState<ReplyInput>({ waitingOn: node.waitingOn ?? "", waitingOnPersonId: node.waitingOnPersonId ?? null, draftLink: node.draftLink ?? "", requestedDate: "", reason: "" })
   const [notice, setNotice] = useState("")
-  function send(reply: TaskReply, value = input) {
-    const error = validateReply(state, node, actorId, reply, value)
-    if (error) { setNotice(error); return }
-    if (token) dispatch({ type: "officerAction", token, reply, input: value })
-    else dispatch({ type: "replyTask", nodeId: node.id, reply, input: value })
-    setForm(""); setNotice(reply === "extension" ? "Extension requested. The deadline stays unchanged until approval." : "Update saved. This round of follow-up has stopped.")
+  const [error, setError] = useState("")
+  const failed = () => setError("Your update was not saved. Your entered details are kept here. Please try again, or reload if this page reports a conflict.")
+  function send(reply: TaskReply, value: ReplyInput = input) {
+    setNotice(""); setError("")
+    const before = getState(), current = before.nodes.find(n => n.id === node.id)
+    if (!current) { failed(); return }
+    const problem = validateReply(before, current, actorId, reply, value)
+    if (problem) { setError(problem); return }
+    const oldRequests = new Set(before.extensionRequests.map(r => r.id))
+    const accepted = token ? tryDispatch({ type: "officerAction", token, reply, input: value }) : tryDispatch({ type: "replyTask", nodeId: node.id, reply, input: value })
+    const after = getState(), savedNode = after.nodes.find(n => n.id === node.id)
+    const expected = reply === "done" ? "done" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : "in_progress"
+    const saved = accepted && savedNode?.status === expected
+      && (reply !== "waiting" || (savedNode.waitingOn === value.waitingOn?.trim().slice(0, 180) && (savedNode.waitingOnPersonId ?? null) === (value.waitingOnPersonId ?? null)))
+      && (reply !== "extension" || after.extensionRequests.some(r => !oldRequests.has(r.id) && r.nodeId === node.id && r.status === "pending" && r.requestedDate === value.requestedDate))
+    if (!saved) { failed(); return }
+    setForm("")
+    setNotice(reply === "extension" ? "Extension requested. The deadline stays unchanged until approval." : "Your update is saved. Thank you.")
+    root.current?.focus()
+  }
+  function claim() {
+    setNotice(""); setError("")
+    const accepted = token ? tryDispatch({ type: "officerAction", token, reply: "claim" }) : tryDispatch({ type: "claimTask", nodeId: node.id })
+    const saved = getState().nodes.find(n => n.id === node.id)
+    if (!accepted || saved?.status !== "accepted" || saved.ownerId !== actorId) { failed(); return }
+    setNotice("Claimed. Thank you for taking this task.")
+    root.current?.focus()
+  }
+  function toggleForm(next: "waiting" | "extension") {
+    if (form !== next && next === "waiting") {
+      const current = getState().nodes.find(n => n.id === node.id) ?? node
+      setWaitingPerson(waitingTarget(current))
+      setInput(value => ({ ...value, waitingOn: current.waitingOn ?? "", waitingOnPersonId: current.waitingOnPersonId ?? null }))
+    }
+    setForm(form === next ? "" : next)
+    setNotice(""); setError("")
+  }
+  function saveWaiting() {
+    const person = officers(getState()).find(p => p.id === waitingPerson && p.id !== actorId && p.id !== node.ownerId)
+    if (!waitingPerson || (waitingPerson !== "other" && !person)) { setError("Choose a current teammate or another dependency."); return }
+    if (!input.waitingOn?.trim()) { setError("Describe the help or input you are waiting for."); return }
+    send("waiting", { waitingOn: input.waitingOn, waitingOnPersonId: person?.id ?? null })
   }
   const budgetControlled = isBudgetControlledNode(node)
   const openBudget = node.eventId && budgetControlled
-    ? <button type="button" className="btn small" onClick={() => navigate(`/events?event=${encodeURIComponent(node.eventId!)}&view=budget`)}>Open Event Budget</button>
-    : null
+    ? <button type="button" className="btn small" onClick={() => navigate(`/events?event=${encodeURIComponent(node.eventId!)}&view=budget`)}>Open Event Budget</button> : null
   const canUpdate = node.ownerId === actorId || isPresident(state, actorId)
-
-  if (node.status === "done") return <div className="task-actions"><p className="small good-text">Completed{node.completedOn ? ` on ${node.completedOn}` : ""}. Thank you.</p>{openBudget}</div>
-  if (node.ownerId && !canUpdate) return <div className="task-actions"><p className="small muted">Only the owner or president can update this task.</p>{openBudget}</div>
-  if (node.status === "unclaimed") return <div className="task-actions">
-    <div className="td-primary"><button type="button" className="btn btn-primary" onClick={() => {
-      if (token) dispatch({ type: "officerAction", token, reply: "claim" })
-      else dispatch({ type: "claimTask", nodeId: node.id })
-      setNotice("Claimed. The handover is confirmed.")
-    }}>I've got it</button><span className="small muted">Tap to confirm that you own this task.</span></div>
-    {openBudget}
-    {notice && <p className="small" role="status">{notice}</p>}
-  </div>
-  return <div className="task-actions">
-    <div className="td-primary">
-      <button type="button" className="btn btn-primary" disabled={budgetControlled} onClick={() => send("done", {})}>Mark done</button>
-      {budgetControlled && <><span className="small muted">Complete this step in Event Budget.</span>{openBudget}</>}
-    </div>
-    <div className="td-secondary" role="group" aria-label="Update task status">{SECONDARY.map(a => <button key={a.key} type="button" className={`btn small${initialReply === a.key ? " is-suggested" : ""}`} aria-expanded={a.key === "waiting" || a.key === "extension" ? form === a.key : undefined} onClick={() => a.key === "waiting" || a.key === "extension" ? setForm(a.key) : send(a.key, {})}>{a.label}</button>)}</div>
-    {form === "waiting" && <form className="task-form" onSubmit={e => { e.preventDefault(); send("waiting") }}>
-      <label>Waiting on<select aria-label="Waiting on" value={input.waitingOnPersonId ?? input.waitingOn} onChange={e => { const person = state.people.find(p => p.id === e.target.value); setInput({ ...input, waitingOn: person?.name ?? e.target.value, waitingOnPersonId: person?.id ?? null }) }}><option value="">Choose a person or dependency</option>{state.people.filter(p => p.id !== actorId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}<option value="School or vendor approval">School or vendor approval</option><option value="Materials from another task">Materials from another task</option></select></label>
+  const editable = node.status !== "done" && (!node.ownerId || canUpdate)
+  return <div className="task-actions" ref={root} tabIndex={-1}>
+    {node.status === "done" ? <><p className="small good-text">Completed{node.completedOn ? ` on ${node.completedOn}` : ""}. Thank you.</p>{openBudget}</>
+      : node.ownerId && !canUpdate ? <><p className="small muted">Only the owner or president can update this task.</p>{openBudget}</>
+        : node.status === "unclaimed" ? <>
+          <div className="td-primary"><button type="button" className="btn btn-primary" onClick={claim}>I've got it</button><span className="small muted">Confirm that you are taking this task.</span></div>
+          {openBudget}
+        </> : <>
+          <div className="td-primary"><button type="button" className="btn btn-primary" disabled={budgetControlled} onClick={() => send("done", {})}>Mark done</button>{budgetControlled && <><span className="small muted">Complete this step in Event Budget.</span>{openBudget}</>}</div>
+          <div className="td-secondary" role="group" aria-label="Update task status">
+            <button type="button" className={`btn small${initialReply === "working" ? " is-suggested" : ""}`} onClick={() => send("working", {})}>Working on it</button>
+            <button type="button" className={`btn small${initialReply === "help" ? " is-suggested" : ""}`} onClick={() => send("help", {})}>Stuck</button>
+            <button type="button" className={`btn small${initialReply === "waiting" ? " is-suggested" : ""}`} aria-expanded={form === "waiting"} onClick={() => toggleForm("waiting")}>Waiting on</button>
+          </div>
+          <button type="button" className="btn btn-quiet small" aria-expanded={form === "extension"} onClick={() => toggleForm("extension")}>Need more time</button>
+        </>}
+    {editable && node.status !== "unclaimed" && form === "waiting" && <form className="task-form td-waiting-form" onSubmit={e => { e.preventDefault(); saveWaiting() }}>
+      <label>Waiting on<select value={waitingPerson} onChange={e => setWaitingPerson(e.target.value)}><option value="">Choose a person or dependency</option>{officers(state).filter(p => p.id !== actorId && p.id !== node.ownerId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}<option value="other">Someone outside the team or another dependency</option></select></label>
+      <label>What help or input is needed?<textarea value={input.waitingOn} onChange={e => setInput({ ...input, waitingOn: e.target.value })} maxLength={180} required /></label>
+      <p className="small muted">The reminder plan can follow up with a named teammate. Other dependencies are saved without guessing an email address. This task keeps its current owner.</p>
       <button className="btn btn-primary" type="submit">Save waiting status</button>
     </form>}
-    {form === "extension" && <form className="task-form" onSubmit={e => { e.preventDefault(); send("extension") }}>
+    {editable && node.status !== "unclaimed" && form === "extension" && <form className="task-form" onSubmit={e => { e.preventDefault(); send("extension") }}>
       <p className="small muted">Share your current draft so we can decide together.</p>
-      <label>Current draft link<input aria-label="Current draft link" type="url" value={input.draftLink} onChange={e => setInput({ ...input, draftLink: e.target.value })} placeholder="https://…" /></label>
-      <label>Requested club deadline<input aria-label="Requested club deadline" type="date" value={input.requestedDate} onChange={e => setInput({ ...input, requestedDate: e.target.value })} /></label>
+      <label>Current draft link<input type="url" value={input.draftLink} onChange={e => setInput({ ...input, draftLink: e.target.value })} placeholder="https://…" /></label>
+      <label>Requested club deadline<input type="date" value={input.requestedDate} onChange={e => setInput({ ...input, requestedDate: e.target.value })} /></label>
       <label>What would help? (optional)<textarea maxLength={300} value={input.reason} onChange={e => setInput({ ...input, reason: e.target.value })} /></label>
       <button className="btn btn-primary" type="submit">Request extension</button>
     </form>}
-    {form && <button type="button" className="btn btn-quiet small" onClick={() => setForm("")}>Cancel</button>}
-    {notice && <p className="small" role="status">{notice}</p>}
+    {editable && form && <button type="button" className="btn btn-quiet small" onClick={() => { setForm(""); setError("") }}>Cancel</button>}
+    {notice && <p className="small good-text" role="status">{notice}</p>}
+    {error && <p className="small late-text" role="alert">{error}</p>}
   </div>
 }

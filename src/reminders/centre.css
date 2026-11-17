@@ -1,0 +1,11 @@
+.rc-main { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); }
+.rc-event { color: var(--muted); font-size: var(--fs-md); }
+.rc-explanation { color: var(--ink); font-size: var(--fs-md); }
+.rc-plan p, .rc-save-error p { margin-bottom: var(--s4); }
+.rc-save-error { border-left: 3px solid var(--line); padding-left: var(--s5); }
+.rc-snapshot { width: 100%; font-size: var(--fs-md); }
+.rc-snapshot summary { cursor: pointer; color: var(--muted); }
+.rc-snapshot pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; color: var(--ink); }
+.rc-row .rq-act { max-width: 18rem; }
+.rc-row .rq-act .btn { white-space: normal; text-align: left; }
+@media (max-width: 860px) { .rc-row .rq-act { max-width: 100%; } }

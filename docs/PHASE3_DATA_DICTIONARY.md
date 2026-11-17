@@ -113,6 +113,33 @@
 | `issueOfficerGrant`、`confirmNudgeSent` | 准备提醒时生成一次性任务链接、参与者点"I sent this reminder"。**FB-8（只在分支上，正式网站上线前不适用）：** `confirmNudgeSent` 的 `payload` 可以多一个可选的 `via`：`"president"` = 社长/副社长自己打开草稿发的（"I sent this reminder"）；`"platypus"` = 选了 "I review, Platypus sends" 的社团里按了 "Approve · Platypus sends (demo)" 或提醒中心的 "Approve all (N)"（每条一个 `confirmNudgeSent`，一次批准 N 条就有 N 条）。同一个值也存进 `state.nudges[].via`。旧文件里没有这个字段，按 `president` 理解。网站仍然**不发任何东西**；"Send automatically" 在提醒中心里显示的 "Would be sent · demo" 是推算出来的，**不写任何记录**。没有新增记录类型 |
 | `advanceClock`、`setViewer`、`setAi`、`reset` | Demo 菜单：拨日期、切换查看身份、开关 AI、重置演示 |
 
+### 4.2 规则提醒运行时增量（2026-11-16，功能分支阶段一）
+
+仅显式 `enableReminderPlan` 后存在可选的 `state.reminderRuntime`，不改变 formatVersion 或旧存档外层版本。新运行时有 `updates`（同日顺序和真正操作人）、`waitingRequests`（明确等待对象及关闭原因）、`deliveries`（不可变收件人与任务快照），均用 `sequence` 保留先后；`activatedOn`/`sentOn` 使用演示日期。`enableReminderPlan` 是启用动作；`confirmPlannedReminder` 是审核记录动作。它们沿用现有数据动作日志格式，未给旧页面添加按钮。
+
+自动模式的新 `deliveries` 会持久记录 `outcome: simulated`；人工发送确认是 `recorded_by_sender`，不表示本站核实了外部投递。旧 `state.nudges`、旧 `protocolLog` 不转换成未知收件人的新发送。损坏或未来版本 runtime 保留但停用。旧页面默认尚未启用新运行时，上节 FB-8 推算记录的描述仍适用于旧路径；不能把两种版本混算为真实邮件数量。阶段二邮件与任务页增量见下节，Details/提醒中心整体接通的阶段三和真实发送服务尚未实施。
+
+### 4.3 规则邮件与可重复任务入口（2026-11-16，功能分支阶段二）
+
+- `state.taskAccessGrants?`：可重复访问的本地演示授权，独立于旧一次性 `officerGrants`。含任务、当前负责人及任期版本、实际收件人、`owner`/`waiting` 范围、可选等待请求、签发/到期日及本地签名。新 URL 为 `/#/officer?access=…`；查看不改状态，同一入口可先 Working 再 Done，改派、离任、失效或重置后不可沿用。它不是服务器登录或跨设备授权。损坏授权表保留且不再追加。
+- `issueTaskAccessGrant`：日志 payload 只含任务、收件人、范围及可选等待请求 ID；不记签名和完整链接。`taskAccessAction`：日志 actor 取有效授权的实际收件人，payload 为任务、收件人、范围、操作种类。URL token 不写入动作摘要。新增业务动作使用既有数据动作日志机制，旧页面的一般 `ui.*` 行为记录照旧；本轮未改变研究引导步骤和采集流程。
+- `Node.instructions?` / `completionCriteria?`：人工填写的具体要求和完成标准；重要性沿用 `why`。事实优先读人工要求，缺信息不让 AI 补造。
+- `Nudge.message?` / `ReminderDelivery.message?`：经当前事实、收件人、模式和授权重新校验的完整规则邮件快照，含主题、正文、唯一任务链接、计划邮箱、渠道、生成日、授权 ID、词数和 `source: rules`。快照在保存记录时生成；旧记录不回填。人工草稿的实际目的地仍由用户在外部选择，本站不核验。动作日志只记快照的收件人/来源/词数等摘要，不复制正文或链接。它记录的是已批准的演示内容，并非外部投递回执。
+- `waitingRequests[].response? / respondedOn? / responseBy?`：明确等待对象的 Acknowledge / Update provided；同时在 runtime.updates 追加实际操作人及顺序，`ownerReply: false`。等待对象不能更新原任务四种状态；原负责人/状态不因响应被改写。已响应请求不重新生成同一跟进，取消等待、换对象、改派和完成沿用原有撤销约束。
+
+新单条邮件编辑器不请求 AI；旧 `?token=` 入口保持兼容。阶段二没有默认启用新计划、统一旧批量记录、接通邮件后台或改变研究流程版本。完整权限与验收边界见 `feedback-fix/REMINDER_STAGE2_CONTRACT.md`。
+
+### 4.4 统一规则邮件与新计划（2026-11-16，功能分支阶段三）
+
+- 新建组织默认`reminderRuntime.version: 2`；旧无runtime/v1通过`upgradeReminderPlan`显式升级，保留原设置、更新、请求和发送历史。`mailRequiredAfter`为启用时0或升级时原sequence，之后新delivery必须有完整message；旧记录不补造。未知/损坏值保留并停用，不回退旧发送。外层schema/导出formatVersion未因本阶段改动。
+- `reviewLegacyReminder`记录领导核对当前任务分配，移除该任务对未来提醒的歧义阻拦，新增`ownerReply:false`的审计更新。旧nudge/protocol的收件人、正文和记录日期不改写；核对不是成员已回复。
+- `recordReminderBatch`沿用业务动作日志，payload仅via、candidateIds、count，不复制邮件、签名、链接或工作区密钥。via=automatic的actor为`system:reminders`，不冒充当前查看者或社长。准备失败不留grant；保存时逐条检查当前设置/对象/日期/归属和额度，只统计本次新delivery IDs。
+- 单条、批量、自动演示均保存同一完整规则邮件快照，自动不再由Today推算成已发送。自动失败信息和busy为当前页面状态，不是投递回执；刷新按持久记录去重，只处理仍有效的候选。
+- Replies由同任期实际ownerReply或同waitingRequest响应得出，同日按sequence；No reply从实际已存delivery起算。历史显示保存的收件人与任务快照，删任务/改派不把历史指给新负责人；旧未知收件人记录不计入新版无回复。人工记录仍是recorded_by_sender、平台记录是simulated，没有外部投递回执。
+- Retry browser saving只重试当前业务快照/日志保存，不提交尚在局部表单的草稿，也不生成发送记录；另一标签有新业务数据则暂停并保留两份副本，不提供覆盖重试。Settings、启用、批量或自动需各自明确提交/重试。
+
+旧的一次性`?token=`入口兼容保留；新邮件仍用可重复`?access=`。研究引导步骤和采集机制不变，新增业务动作使用既有日志机制；详见`feedback-fix/REMINDER_STAGE3_HANDOFF.md`。
+
 ## 5. 界面操作（`type` 以 `ui.` 开头）
 
 ### 5.1 类型一览

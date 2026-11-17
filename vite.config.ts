@@ -28,6 +28,7 @@ export default defineConfig({
         // Keep the shared React runtime cacheable across independently loaded screens.
         manualChunks(id) {
           if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react-runtime"
+          if (/\/node_modules\/zod\//.test(id)) return "validation"
         },
       },
     },

@@ -32,6 +32,14 @@ import { BUILD_INFO } from "../lib/buildInfo"
 import { normalizeTerms } from "./roleTerms"
 import { isOfficer } from "./permissions"
 import { changeRole, type RoleChange } from "./roleChanges"
+import { advancePlannedClock, afterReminderAction, confirmLegacyPlannedReminder, confirmPlannedReminder, enableReminderPlan, remindersEnabled, upgradeReminderPlan, reviewLegacyReminder } from "../reminders/adapter"
+import { recordReminderBatch } from "../reminders/batch"
+import type { ReminderBatch } from "../reminders/deliveryContracts"
+import { useAutomaticReminders } from "../reminders/useAutomaticReminders"
+import type { ReminderMailSnapshot, TaskAccessGrant, TaskAccessUpdate } from "../reminders/accessContracts"
+import { taskAccessIssueValid, usableTaskAccessGrant } from "../reminders/taskAccess"
+import { applyTaskAccessUpdate } from "../reminders/taskAccessActions"
+import { validatedReminderMessage } from "../reminders/message"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -92,7 +100,7 @@ function completeDemoSpeakerPlan(state: DemoState): DemoState {
 }
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
-export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
+export type NodePatch = Partial<Pick<Node, "title" | "instructions" | "completionCriteria" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "details">>
 
 export type Action =
@@ -138,7 +146,14 @@ export type Action =
   | { type: "undoAuto"; id: string }
   | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
-  | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia }
+  | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia; message?: ReminderMailSnapshot }
+  | { type: "enableReminderPlan" }
+  | { type: "upgradeReminderPlan" }
+  | { type: "reviewLegacyReminder"; nodeId: string }
+  | ({ type: "recordReminderBatch" } & ReminderBatch)
+  | { type: "confirmPlannedReminder"; candidateId: string; via: "manual" | "platypus"; message?: ReminderMailSnapshot }
+  | { type: "issueTaskAccessGrant"; grant: TaskAccessGrant }
+  | { type: "taskAccessAction"; token: string; update: TaskAccessUpdate }
   | { type: "claimTask"; nodeId: string }
   | { type: "replyTask"; nodeId: string; reply: TaskReply; input?: ReplyInput }
   | { type: "reviewExtension"; id: string; approve: boolean }
@@ -154,7 +169,7 @@ export type Action =
   | { type: "saveWorkflow"; steps: StepTemplate[] }
   | { type: "resetWorkflow" }
 
-const NODE_FIELDS: (keyof NodePatch)[] = ["title", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
+const NODE_FIELDS: (keyof NodePatch)[] = ["title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
 
 /**
@@ -228,6 +243,7 @@ function restoreEventNodes(state: DemoState, eventId: string, nodes: Node[]): De
 
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   const patch = pick(raw, NODE_FIELDS)
+  for (const field of ["instructions", "completionCriteria"] as const) if (patch[field] !== undefined) patch[field] = String(patch[field]).trim().slice(0, 1200)
   if (patch.title !== undefined) { const t = String(patch.title).trim().slice(0, 100); if (t) patch.title = t; else delete patch.title }
   if (patch.tags !== undefined) patch.tags = Array.isArray(patch.tags) ? [...new Set(patch.tags.filter(t => (state.org.board?.tags ?? []).some(x => x.id === t)))] : []
   if (patch.estDays !== undefined) patch.estDays = Math.max(0, Math.min(30, Math.round(Number(patch.estDays) || 0)))
@@ -280,13 +296,29 @@ function cleanBudgetPatch(raw: Partial<Omit<BudgetLineItem, "id">>): Partial<Omi
 /** Every action, then keep role terms in step with who holds what (src/data/roleTerms.ts). Returns the same object when nothing changed. */
 export function reducer(state: DemoState, action: Action): DemoState {
   if (!READ_ONLY_OK.has(action.type) && state.people.some(p => p.id === state.viewerId && !isOfficer(p))) return state
-  return normalizeTerms(baseReducer(state, action))
+  const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
+  const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
+  const actorId = action.type === "recordReminderBatch" && action.via === "automatic" ? "system:reminders" : access?.recipientId ?? grant?.ownerId ?? state.viewerId
+  let next = normalizeTerms(baseReducer(state, action))
+  if (next === state) return state
+  if (action.type === "completeSetup" && (next.reminderRuntime !== undefined || next.taskAccessGrants !== undefined)) {
+    const { reminderRuntime: _previousReminders, taskAccessGrants: _previousAccess, ...workspace } = next
+    void _previousReminders; void _previousAccess
+    next = workspace
+  }
+  if (action.type === "completeSetup") return enableReminderPlan(next)
+  if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "upgradeReminderPlan", "reviewLegacyReminder", "recordReminderBatch", "advanceClock"].includes(action.type)) return next
+  const updated = action.type === "claimTask" || action.type === "replyTask" ? [action.nodeId]
+    : action.type === "officerAction" && grant ? [grant.nodeId]
+    : action.type === "taskAccessAction" && access?.scope === "owner" ? [access.nodeId]
+    : action.type === "moveTask" && state.nodes.find(n => n.id === action.nodeId)?.status !== next.nodes.find(n => n.id === action.nodeId)?.status ? [action.nodeId] : []
+  return afterReminderAction(state, next, actorId, updated)
 }
 /**
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
  * reads, works through their own handoff steps and switches view, but cannot claim, create or change tasks, contacts, events or settings.
  */
-const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput"])
+const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch"])
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
@@ -423,15 +455,30 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       const status = reviews.includes("pending") ? "pending" : reviews.every(r => r === "rejected") ? "rejected" : "applied"
       return { ...next, changeSets: next.changeSets.map(c => c.id === change.id ? { ...c, ops, reviews, status } : c) }
     }
+    case "enableReminderPlan": return canLead(state) ? enableReminderPlan(state) : state
+    case "upgradeReminderPlan": return canLead(state) ? upgradeReminderPlan(state) : state
+    case "reviewLegacyReminder": return canLead(state) ? reviewLegacyReminder(state, action.nodeId) : state
+    case "recordReminderBatch": return recordReminderBatch(state, action)
+    case "issueTaskAccessGrant": {
+      const g = action.grant
+      if ((state.taskAccessGrants !== undefined && !Array.isArray(state.taskAccessGrants)) || !taskAccessIssueValid(state, g) || state.taskAccessGrants?.some(old => old?.id === g.id)) return state
+      return { ...state, taskAccessGrants: [...(state.taskAccessGrants ?? []), g] }
+    }
+    case "taskAccessAction": return applyTaskAccessUpdate(state, action.token, action.update)
+    case "confirmPlannedReminder": return canLead(state) ? confirmPlannedReminder(state, action.candidateId, action.via, action.message) : state
     case "confirmNudgeSent": {
+      if (state.reminderRuntime !== undefined) return canLead(state) ? confirmLegacyPlannedReminder(state, action.nodeId, action.via, action.message) : state
       const n = state.nodes.find(n => n.id === action.nodeId)
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
-      return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null, ...(action.via === "president" || action.via === "platypus" ? { via: action.via } : {}) }] }
+      const message = action.message ? validatedReminderMessage(state, action.message, n.id) : null
+      if (action.message && (!message || message.channel !== action.channel)) return state
+      if (message && (action.via ?? "president") !== (["auto_email", "review_then_auto"].includes(state.org.settings.reminderMode ?? "") ? "platypus" : "president")) return state
+      return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: message?.text ?? action.text, sentBy: state.viewerId, sentOn: state.today, response: null, ...(message ? { message } : {}), ...(action.via === "president" || action.via === "platypus" ? { via: action.via } : {}) }] }
     }
     case "claimTask": return claimTask(state, action.nodeId, state.viewerId)
     case "replyTask": return replyToTask(state, action.nodeId, state.viewerId, action.reply, action.input)
     case "reviewExtension": return reviewExtension(state, action.id, action.approve)
-    case "advanceClock": return canLead(state) ? advanceClock(state, action.days) : state
+    case "advanceClock": return canLead(state) ? state.reminderRuntime !== undefined ? advancePlannedClock(state, action.days) : advanceClock(state, action.days) : state
     case "markNoticeRead": return { ...state, notifications: state.notifications.map(n => n.id === action.id && n.recipientId === state.viewerId ? { ...n, read: true } : n) }
     case "temporaryOwner": {
       if (!canLead(state)) return state
@@ -622,6 +669,11 @@ function slim(v: unknown, depth = 0): unknown {
 /** The action's arguments as they go into the log. */
 function payloadOf(a: Action): unknown {
   switch (a.type) {
+    case "recordReminderBatch": return { via: a.via, candidateIds: a.entries.map(e => e.candidateId), count: a.entries.length }
+    case "issueTaskAccessGrant": return { nodeId: a.grant.nodeId, recipientId: a.grant.recipientId, scope: a.grant.scope, issuedOn: a.grant.issuedOn }
+    case "taskAccessAction": return { update: slim(a.update) }
+    case "confirmPlannedReminder": return { candidateId: a.candidateId, via: a.via, ...(a.message ? { message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : {}) }
+    case "confirmNudgeSent": return a.message ? { nodeId: a.nodeId, channel: a.channel, via: a.via, message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
     case "replace": return { nodes: a.state.nodes.length, events: a.state.events.length }
     case "officerAction": return { reply: a.reply, input: slim(a.input) }
     case "issueOfficerGrant": return { nodeId: a.grant.nodeId, ownerId: a.grant.ownerId, issuedOn: a.grant.issuedOn }
@@ -645,6 +697,9 @@ function beforeOf(s: DemoState, a: Action): unknown {
   const node = (id: string) => s.nodes.find(n => n.id === id)
   let out: object | undefined
   switch (a.type) {
+    case "taskAccessAction": { const g = usableTaskAccessGrant(s, a.token); out = g ? fields(node(g.nodeId), ["status", "ownerId"]) : undefined; break }
+    case "enableReminderPlan": out = { reminderVersion: s.reminderRuntime?.version }; break
+    case "confirmPlannedReminder": out = { reminderDeliveryCount: remindersEnabled(s) ? s.reminderRuntime!.deliveries.length : undefined }; break
     case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
     case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount", "details"].includes(k))); break
     case "moveTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
@@ -680,7 +735,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
 export function appendLog(log: LogEntry[], before: DemoState, after: DemoState, action: Action, at: number, session?: string | null): LogEntry[] {
   const prior = beforeOf(before, action)
   const entry: LogEntry = {
-    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: before.viewerId, type: action.type,
+    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: action.type === "recordReminderBatch" && action.via === "automatic" ? "system:reminders" : action.type === "taskAccessAction" ? usableTaskAccessGrant(before, action.token)?.recipientId ?? before.viewerId : before.viewerId, type: action.type,
     payload: payloadOf(action), ...(prior !== undefined ? { before: prior } : {}), applied: after !== before, ...(session ? { session } : {}),
   }
   return log.length >= LOG_LIMIT ? [...log.slice(log.length - LOG_LIMIT + 1), entry] : [...log, entry]
@@ -821,6 +876,7 @@ export function downloadExport(state: DemoState, log: LogEntry[]) {
 
 interface StoreValue {
   state: DemoState
+  automaticReminders: { busy: boolean; error: string | null; retry: () => void }
   /** The current on-screen state has not been persisted to this browser. */
   persistenceFailed: boolean
   dispatch: (a: Action) => void
@@ -937,24 +993,30 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }, [logUi])
   const reset = useCallback(() => { if (!held && storageUnchanged()) { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) } }, [dispatch, held, storageUnchanged])
   const persistenceFailed = saveFailed || held
+  const automaticReminders = useAutomaticReminders(root.app, held, getState, tryDispatch)
   // The log is left out of the value on purpose: a click must not re-render every screen that reads the store.
-  const value = useMemo(() => ({ state: root.app, persistenceFailed, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
+  const value = useMemo(() => ({ state: root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
   const shown: StorageNotice | null = notice?.kind === "storage_conflict" ? notice : saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
     {shown && <StorageBanner notice={shown} onDownload={() => {
       if (shown.kind === "save_failed" || shown.kind === "storage_conflict") downloadExport(rootRef.current!.app, rootRef.current!.log)
       else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); if (shown.kind !== "migration_blocked") setHeld(false) }
-    }} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
+    }} onRetry={shown.kind === "save_failed" && !held ? () => {
+      const current = rootRef.current!
+      saved.current.app = persistApp(current.app)
+      if (saved.current.app) { savedApp.current = current.app; saved.current.log = saveLog(current.log) }
+      setSaveFailed(!(saved.current.app && saved.current.log))
+    } : undefined} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
     {children}
   </StoreContext.Provider>
 }
 
 /** Says out loud that data was restored or could not be saved. Uses existing classes only. */
-function StorageBanner({ notice, onDownload, onDismiss }: { notice: StorageNotice; onDownload: () => void; onDismiss?: () => void }) {
+function StorageBanner({ notice, onDownload, onDismiss, onRetry }: { notice: StorageNotice; onDownload: () => void; onDismiss?: () => void; onRetry?: () => void }) {
   if (notice.kind === "storage_conflict") return <div role="alert" className="save-status err" data-testid="storage-banner">This organization changed in another tab. Changes here are paused to protect both copies. Download this tab's copy if needed, then reload to use the latest saved data. <button type="button" className="btn small" onClick={onDownload}>Download this tab's copy</button></div>
   if (notice.kind === "migration_blocked") return <div role="alert" className="save-status err" data-testid="storage-banner">Your saved organization is intact. Its upgrade could not be backed up, so changes are paused. Download the original data, then reload to retry the upgrade. <button type="button" className="btn small" onClick={onDownload}>Download original data</button></div>
   if (notice.kind === "save_failed")
-    return <div role="alert" className="save-status err" data-testid="storage-banner">Your latest changes could not be saved in this browser (storage is full or blocked). They will be lost if you close this tab. <button type="button" className="btn small" onClick={onDownload}>Download my data</button></div>
+    return <div role="alert" className="save-status err" data-testid="storage-banner">Your latest changes could not be saved in this browser (storage is full or blocked). They will be lost if you close this tab. {onRetry && <button type="button" className="btn small" onClick={onRetry}>Retry browser saving</button>}<button type="button" className="btn small" onClick={onDownload}>Download my data</button></div>
   const what = notice.why === "version" ? `This demo was updated, so your earlier data (version ${notice.fromVersion}) could not be opened and the example club was restored.` : "Your saved data could not be read, so the example club was restored."
   const kept = notice.backupKey ? `Your earlier data is kept in this browser as "${notice.backupKey}".` : "Your earlier data could NOT be backed up in this browser, and nothing new is saved until you download it."
   return <div role="alert" className={notice.backupKey ? "notice" : "save-status err"} data-testid="storage-banner">{what} {kept} <button type="button" className="btn small" onClick={onDownload}>Download previous data</button>{onDismiss && <button type="button" className="btn small" onClick={onDismiss}>Dismiss</button>}</div>

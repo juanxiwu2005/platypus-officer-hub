@@ -1,0 +1,28 @@
+.reminder-composer .rc-mail {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 1rem;
+  overflow-wrap: anywhere;
+}
+.reminder-composer .rc-mail h3 {
+  margin: 0 0 1rem;
+}
+.reminder-composer .rc-body {
+  white-space: pre-line;
+}
+.reminder-composer .rc-body p {
+  margin: 0 0 .9rem;
+}
+.reminder-composer .rc-due {
+  color: var(--ink);
+}
+.reminder-composer .rc-delivery {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: .65rem;
+  margin-top: 1rem;
+}
+.reminder-composer .rc-task-entry {
+  max-width: 100%;
+}

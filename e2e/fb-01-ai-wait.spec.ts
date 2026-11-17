@@ -1,10 +1,11 @@
 import { expect, test, type Page, type Route } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { ask } from "./helpers"
+import { enableUpdatedReminders } from "./reminderHelpers"
 
 /**
  * FB-1 3.3 (docs/feedback-fix/PLAN.md): an AI wait you can see and stop. The AI endpoints are mocked to answer very late;
- * no real AI is called. Stop (Ask) and Skip AI line (reminder) end the wait at once with a local answer, and the late
+ * no real AI is called. Stop (Ask) ends the wait at once; reminders use rules without an AI request. The late
  * answer never appears afterwards.
  */
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
@@ -66,33 +67,30 @@ test("Ask: Stop is reachable from the keyboard and keeps the form filled from th
   await expect.poll(async () => (await answers(page)).some(a => a.answer === "stopped" && a.refine === true)).toBe(true)
 })
 
-test("Reminder: Skip AI line uses the checked template at once and the draft is ready", async ({ page }) => {
+test("Reminder: a stalled AI endpoint does not delay the rule-written draft", async ({ page }) => {
   await health(page)
-  await page.route("**/api/nudge/draft", late(15_000, { whyItMatters: "LATE AI LINE" }))
-  await page.goto("/#/")
-  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()   // FB-8: the reminder centre
+  let calls = 0
+  await page.route("**/api/nudge/draft", route => { calls++; return route.abort() })
+  await enableUpdatedReminders(page)
+  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()
   const panel = page.getByTestId("nudge-panel")
-  const wait = panel.getByTestId("ai-wait")
-  await expect(wait).toBeVisible()
-  await expect(panel.getByRole("button", { name: "Checking draft…" })).toBeDisabled()
-  await expect(wait.getByTestId("ai-wait-seconds")).toHaveText(/^[1-9] s$/, { timeout: 4_000 })
-  expect(await scan(page)).toEqual([])
-  await panel.getByTestId("nudge-skip-ai").click()
-  await expect(wait).toHaveCount(0)
   await expect(panel.getByRole("link", { name: /^Open .+ draft$/ })).toBeVisible()
-  await expect(panel).toContainText("Checked template · AI line skipped")
-  await expect(panel.getByTestId("nudge-body")).toContainText("Why it matters:")
-  await expect(panel.getByTestId("nudge-body")).not.toContainText("LATE AI LINE")
+  await expect(panel.getByTestId("ai-wait")).toHaveCount(0)
+  await expect(panel.getByTestId("nudge-body")).toContainText("Task due:")
+  await expect(panel.getByTestId("nudge-body")).toContainText("Thank you")
+  expect(await scan(page)).toEqual([])
+  expect(calls).toBe(0)
 })
 
-test("Reminder: when the AI line arrives in time it is used", async ({ page }) => {
+test("Reminder: available AI text is not requested or substituted into the rule draft", async ({ page }) => {
   await health(page)
-  await page.route("**/api/nudge/draft", late(1_500, { whyItMatters: "Together we welcome every new founder." }))
-  await page.goto("/#/")
-  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()   // FB-8: the reminder centre
+  let calls = 0
+  await page.route("**/api/nudge/draft", route => { calls++; return route.fulfill({ json: { whyItMatters: "UNREQUESTED AI LINE" } }) })
+  await enableUpdatedReminders(page)
+  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()
   const panel = page.getByTestId("nudge-panel")
-  await expect(panel.getByTestId("ai-wait")).toBeVisible()
-  await expect(panel.getByTestId("nudge-body")).toContainText("Together we welcome every new founder.")
+  await expect(panel.getByRole("link", { name: "Open task", exact: true })).toBeVisible()
+  await expect(panel.getByTestId("nudge-body")).not.toContainText("UNREQUESTED AI LINE")
   await expect(panel.getByTestId("ai-wait")).toHaveCount(0)
-  await expect(panel).toContainText("AI + checked template")
+  expect(calls).toBe(0)
 })

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { ask, closeRail, demoClock, noOverflow, resetDemo, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
+import { enableUpdatedReminders } from "./reminderHelpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -17,12 +18,13 @@ test("claims an unassigned handover, then updates waiting, help and done without
   await detail.getByRole("button", { name: "I've got it", exact: true }).click()
   await expect(detail).toContainText("To do")
   expect(await savedTask(page, id)).toMatchObject({ status: "accepted", ownerId: "jordan" })
-  await detail.getByRole("button", { name: "Waiting on…", exact: true }).click()
-  await detail.getByLabel("Waiting on", { exact: true }).selectOption({ label: "Sam Okafor" })
+  await detail.getByRole("button", { name: "Waiting on", exact: true }).click()
+  await detail.getByRole("combobox", { name: "Waiting on", exact: true }).selectOption({ label: "Sam Okafor" })
+  await detail.getByRole("textbox", { name: "What help or input is needed?" }).fill("Please confirm the volunteer briefing room")
   await detail.getByRole("button", { name: "Save waiting status" }).click()
-  await expect(detail).toContainText("Waiting on: Sam Okafor")
+  await expect(detail).toContainText("Please confirm the volunteer briefing room")
   expect(await savedTask(page, id)).toMatchObject({ status: "waiting", waitingOnPersonId: "sam" })
-  await detail.getByRole("button", { name: "Need help", exact: true }).click()
+  await detail.getByRole("button", { name: "Stuck", exact: true }).click()
   await expect(detail).toContainText("Stuck")
   expect(await savedTask(page, id)).toMatchObject({ status: "blocked" })
   await detail.getByRole("button", { name: "Mark done", exact: true }).click()
@@ -44,7 +46,7 @@ test("extension needs a draft and stays pending until the president approves", a
   await detail.getByRole("button", { name: "Need more time", exact: true }).click()
   await detail.getByLabel("Requested club deadline", { exact: true }).fill(requestedDate)
   await detail.getByRole("button", { name: "Request extension", exact: true }).click()
-  await expect(detail.getByRole("status")).toContainText("current draft")
+  await expect(detail.getByRole("alert")).toContainText("current draft")
   await detail.getByLabel("Current draft link", { exact: true }).fill("https://example.org/current-draft")
   await detail.getByRole("button", { name: "Request extension", exact: true }).click()
   await expect(detail).toContainText("Extension awaiting review")
@@ -107,37 +109,40 @@ test("a ten-day jump creates the five private stages and a recovery task, with h
   await expect(page.getByRole("region", { name: "Private inbox" })).not.toContainText("Confirm the workshop checklist")
 })
 
-test("the officer link opens only its task, does not change it on load, and can be used once", async ({ page }) => {
+test("the task entry opens only its task, does not update on load, and supports repeat updates", async ({ page }) => {
+  await enableUpdatedReminders(page)
   await page.goto("/#/tasks")
   await ask(page, "Remind Jordan about the workshop checklist")
   await page.getByRole("button", { name: "Open the draft" }).last().click()
   const panel = page.getByTestId("nudge-panel")
-  const link = panel.getByRole("link", { name: "Need help", exact: true })
-  await expect(link).toHaveAttribute("href", /#\/officer\?token=/)
+  const link = panel.getByRole("link", { name: "Open task", exact: true })
+  await expect(link).toHaveAttribute("href", /#\/officer\?access=/)
   const href = (await link.getAttribute("href"))!
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-silence").status)
-  await link.click()
-  await expect(page.getByRole("heading", { name: "Hi Jordan" })).toBeVisible()
+  await page.goto(href)
+  const task = page.getByTestId("single-task-page")
+  await expect(task).toBeVisible()
   await expect(page.getByRole("navigation", { name: "Sections" })).toHaveCount(0)
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-silence").status)).toBe(before)
-  await page.getByRole("button", { name: "Need help", exact: true }).click()
-  await expect(page.getByRole("heading", { name: "Update saved" })).toBeVisible()
-  await page.goto("/" + href)
-  await expect(page.getByRole("heading", { name: "Update saved" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Need help", exact: true })).toHaveCount(0)
+  await task.getByRole("button", { name: "Stuck", exact: true }).click()
+  await expect(task.getByTestId("single-task-status")).toHaveText("Stuck")
+  await page.reload()
+  await expect(task.getByTestId("single-task-status")).toHaveText("Stuck")
+  await task.getByRole("button", { name: "Working on it", exact: true }).click()
+  await expect(task.getByTestId("single-task-status")).toHaveText("Working on it")
 })
 
-test("tampered and reset officer links cannot update any task", async ({ page }) => {
-  await page.goto("/#/")
-  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click() // FB-8: the reminder centre
-  const link = page.getByTestId("nudge-panel").getByRole("link", { name: "Done", exact: true })
-  await expect(link).toHaveAttribute("href", /token=/)
+test("tampered and reset task entries cannot update any task", async ({ page }) => {
+  await enableUpdatedReminders(page)
+  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()
+  const link = page.getByTestId("nudge-panel").getByRole("link", { name: "Open task", exact: true })
+  await expect(link).toHaveAttribute("href", /access=/)
   const href = (await link.getAttribute("href"))!
-  await page.goto("/" + href.replace("&reply=", "0&reply="))
+  await page.goto(`${href}0`)
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
   await page.goto("/#/")
   await resetDemo(page)
-  await page.goto("/" + href)
+  await page.goto(href)
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
 })
 
@@ -175,7 +180,7 @@ test("board: drag a card to another column, add a task, and an officer cannot mo
   } else {
     // The same board card opens the status actions on touch devices.
     await card.getByRole("button", { name: "Check the officer list in Sun Devil Central" }).tap()
-    await page.getByTestId("task-detail").getByRole("button", { name: "Need help", exact: true }).tap()
+    await page.getByTestId("task-detail").getByRole("button", { name: "Stuck", exact: true }).tap()
     await closeRail(page)
   }
   await expect(board.getByRole("region", { name: targetLabel, exact: true })).toContainText("Check the officer list")

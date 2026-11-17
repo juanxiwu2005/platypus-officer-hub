@@ -6,7 +6,7 @@ import { validDate } from "../lib/commands"
 import { applySchedule, computeSchedule } from "../engine/schedule"
 import { isBudgetControlledNode } from "../engine/eventBudget"
 
-export type TaskReply = "done" | "waiting" | "help" | "extension"
+export type TaskReply = "done" | "working" | "waiting" | "help" | "extension"
 export interface ReplyInput { waitingOn?: string; waitingOnPersonId?: string | null; draftLink?: string; requestedDate?: string; reason?: string }
 export const safeLink = (s: string) => { try { return ["https:", "http:"].includes(new URL(s).protocol) } catch { return false } }
 /** Whoever holds the president or vice-president role now. A former president keeps that role id for history, so the role's holder decides. */
@@ -23,7 +23,7 @@ export function addNotices(s: DemoState, nodeId: string, ids: string[], kind: No
 }
 
 /** Notifications stay in the intended person's local inbox; nothing is sent externally. */
-export function routeTaskChange(s: DemoState, n: Node, kind: "done" | "waiting" | "help" | "claim" | "extension" | "extended"): DemoState {
+export function routeTaskChange(s: DemoState, n: Node, kind: "done" | "working" | "waiting" | "help" | "claim" | "extension" | "extended"): DemoState {
   let next = s
   const key = `${n.id}:${kind}:${s.today}:${s.notifications.length}`
   const lead = leaders(s)
@@ -47,7 +47,7 @@ export function routeTaskChange(s: DemoState, n: Node, kind: "done" | "waiting" 
 }
 
 export function validateReply(s: DemoState, n: Node, actorId: string, reply: TaskReply, input: ReplyInput): string | null {
-  if (!["done", "waiting", "help", "extension"].includes(reply)) return "Choose one of the four status actions."
+  if (!["done", "working", "waiting", "help", "extension"].includes(reply)) return "Choose a supported task update."
   if (n.ownerId !== actorId && !isPresident(s, actorId)) return "Only this task's owner or the president can send an update."
   if (n.status === "done") return "This task is already complete."
   if (n.status === "unclaimed") return "Tap “I've got it” before updating this task."
@@ -67,7 +67,7 @@ export function claimTask(s: DemoState, nodeId: string, actorId: string): DemoSt
   const n = s.nodes.find(n => n.id === nodeId)
   if (!n || n.status !== "unclaimed" || (n.ownerId && n.ownerId !== actorId) || !s.people.some(p => p.id === actorId)) return s
   const claimed: Node = { ...n, ownerId: actorId, status: "accepted", acceptedOn: s.today, lastUpdate: s.today, assignedOn: n.assignedOn ?? s.today }
-  const next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? claimed : x), nudges: s.nudges.map(x => x.nodeId === n.id ? { ...x, response: "accepted" } : x) }, n.id)
+  const next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? claimed : x), nudges: s.reminderRuntime ? s.nudges : s.nudges.map(x => x.nodeId === n.id ? { ...x, response: "accepted" } : x) }, n.id)
   return routeTaskChange(applySchedule(next), claimed, "claim")
 }
 export function replyToTask(s: DemoState, nodeId: string, actorId: string, reply: TaskReply, input: ReplyInput = {}): DemoState {
@@ -76,7 +76,7 @@ export function replyToTask(s: DemoState, nodeId: string, actorId: string, reply
   const status = reply === "done" ? "done" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : "in_progress"
   const waitingOnPersonId = reply === "waiting" && input.waitingOnPersonId && input.waitingOnPersonId !== actorId && s.people.some(p => p.id === input.waitingOnPersonId) ? input.waitingOnPersonId : null
   const updated: Node = { ...n, status, lastUpdate: s.today, waitingOn: reply === "waiting" ? input.waitingOn!.trim().slice(0, 180) : null, waitingOnPersonId, ...(reply === "done" ? { completedOn: s.today } : {}), ...(reply === "extension" ? { draftLink: input.draftLink } : {}) }
-  let next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? updated : x), nudges: s.nudges.map(x => x.nodeId === n.id ? { ...x, response: status } : x) }, n.id)
+  let next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? updated : x), nudges: s.reminderRuntime ? s.nudges : s.nudges.map(x => x.nodeId === n.id ? { ...x, response: status } : x) }, n.id)
   if (reply === "waiting" && waitingOnPersonId) {
     const who = s.people.find(p => p.id === actorId)?.name.split(" ")[0] ?? "A teammate"
     next = addNotices(next, n.id, [waitingOnPersonId], "info", `${who} is waiting for you on “${n.title}”. It is now in your To do list.`, `waiting-on:${n.id}:${s.today}:${next.notifications.length}`)

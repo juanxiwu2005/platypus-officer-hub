@@ -4,6 +4,9 @@ import { nudgeBlocked } from "./nudges"
 import { addDays, daysBetween } from "./dates"
 
 /**
+ * Historical FB-8 projection retained for legacy callers/tests. Current product screens use
+ * src/reminders/centre.ts and persisted deliveries; this helper does not represent the updated plan.
+ *
  * FB-8 (docs/feedback-fix/PLAN.md §12.2): the reminder centre, as one pure function of the demo state.
  * Every date comes from the rule engine: a task's send day is the engine's `latestStart`, its Due is `clubDeadline`.
  * Nothing here works out a date of its own; it only compares the engine's ISO dates with the demo `today`
