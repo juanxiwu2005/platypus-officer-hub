@@ -1,6 +1,7 @@
-> **2026-11-16（America/Phoenix） · 职责匹配阶段 2 进行中（Codex 主 Agent；AI/UI 独立 Worktree Agent）**
-> **授权：** Juanxi 明确要求“继续阶段2”。保留原章程岗位读取，增加带原文核对的职责草稿；独立设置入口支持职责库、成员关联、默认人与备份，以及使用阶段 1 解析器的分派预览。AI 不自动覆盖人工内容；失败后可继续人工设置。
-> **分工与边界：** 主 Agent 先冻结 `src/matching/setupContracts.ts`，负责隔离预览文档、控制器、旧页面入口、集成与交付；AI Agent 只维护提取服务和客户端，UI Agent 只维护职责设置组件、样式及对应测试。完成后独立复核。阶段 3 实际任务接入与旧存档迁移仍待批准；不合并 main、不自动真实 AI 调用。沿用 PR #14 预览。需要同步本地备份。
+> **2026-11-16（America/Phoenix） · 职责匹配阶段 2 已完成检查，交付待验收（Codex 主 Agent；独立 AI/UI/Review Worktree Agent）**
+> **交付：** Team/Settings 新增 **Set up responsibilities** 入口 `/#/matching`；支持虚构文件或粘贴章程、显式 AI 职责草稿、精确引用核对、逐条采用/拒绝，人工职责编辑/确认/合并/归档，岗位泡泡和多人关系、成员例外与资格可用情况、默认人与备份、步骤职责关联及分派预览。旧 structure/duties 保持；新请求先保存输入，private Blob 在 parse 前保存 transport，同请求 ID 原子认领防重复收费。操作与验收见 [阶段 2 交付](feedback-fix/MATCHING_STAGE2_HANDOFF.md)，12 人示例 `https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching?example=1`。
+> **验证：** 最终相关单元/组件 15 文件、276 项通过；本地生产构建桌面 9 + 手机 9 共 18 项浏览器检查通过，包含无障碍/溢出、刷新/Stop、失败保留和旧业务完整对象不变。lint、构建、前后端类型检查通过；独立 Review 对运行时代码 `ccea818` 通过，3 项 P2 已修复并复查。开发包 AI `4f31c58`、UI `805ef2a`，保留提交集成。真实 AI 0 次，真实 Blob/AIR 联通和 Safari/iOS 未实测，不将模拟结果称为已实测服务。
+> **边界：** 当前是本地隔离设置预览，尚未改变实际任务创建、旧 DemoState、旧存档键或外层版本；团队为预览副本，并非新的业务正本。阶段 3 的统一接入与迁移仍待批准；后五项提醒工作及新人上手均未启动。只推指定功能分支与 PR #14 预览，未合并 main。需要同步本地备份。
 
 > **2026-11-16（America/Phoenix） · 职责匹配阶段 1 已完成技术检查，交付待验收（Codex 主 Agent；独立 worktree Data/Resolver/Review Agent）**
 > **交付：** `src/matching/` 建立自定义职责、岗位和成员关系、工作流步骤关联、默认人与备份、候选解释、只追加分派回执及隔离配置读写；职责可编辑、确认、合并和归档。12 人、两种工作流的实际演练及分配表见 [阶段 1 交付](feedback-fix/MATCHING_STAGE1_HANDOFF.md)；后续唯一正本、外层版本迁移和安全回滚见 [阶段 3 兼容设计](feedback-fix/MATCHING_COMPATIBILITY.md)。[实施计划](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md) · [冻结契约](feedback-fix/MATCHING_CONTRACT.md)。
@@ -418,6 +419,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | Codex（职责匹配 S2；AI/UI 分 worktree 开发、独立 Review） | 按“继续阶段2”交付职责设置预览、章程职责提取兼容扩展、来源审核、人工与多人配置、统一解析预览和安全保存控制器。最终相关276项单元/组件、18项桌面/手机检查、lint、build、Netlify类型检查通过；修复并复查3项P2，运行时代码候选 `ccea818`。详情见 `feedback-fix/MATCHING_STAGE2_HANDOFF.md`。 | 使用 PR #14 的 `/#/matching` 或 `?example=1` 验收。真实AIR/Blob未实测；保存为隔离预览、旧业务未迁移；阶段3待批准。仅功能分支，不合并main、不实际发邮件。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（职责匹配 S1；Data/Resolver 独立开发，Review 独立只读复核） | 依用户“批准第一阶段”实施 `src/matching/` 数据基础、职责操作、严格存档读写及确定性 C2 解析；主 Agent 集成 12 人两工作流演练与旧数据隔离检查。新旧相关测试合计 205 项、lint、构建、两套类型检查通过；最终代码候选 `3ad168d` 独立复核通过。详情见 `feedback-fix/MATCHING_STAGE1_HANDOFF.md`。 | 当前没有新网页，未接真实任务、未改变旧存档；阶段 2/3 仍待批准。后续按 `MATCHING_COMPATIBILITY.md` 做版本迁移与回滚，不用 reset 或长期双写。仅推指定功能分支，不合并 main；0 次真实 AI 调用。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex | **记录 A2/B2/C2 选择并准备三阶段 worktree Agent 计划。** [范围、分工、兼容、验收和回滚](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md)。仅文档变更。 | 用户明确要求批准后才开始阶段。阶段 1/2/3 全部未启动，不能把选定方案视作已批准任一阶段；等待明确启动批准并按授权范围推进。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex | **补充任务匹配方案比较。** 记录保留增强章程 AI、自定义职责和多工作流方向；[A/B/C 九个选项及 P1/P2 原型范围](feedback-fix/TASK_MATCHING_OPTIONS.md)，按五个角度比较。 | 仅方案讨论，建议组合未获选择；不实施功能或数据迁移，后五项和新人上手仍在后续。需要同步本地备份。 |
