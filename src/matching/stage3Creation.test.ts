@@ -126,6 +126,22 @@ describe("stage 3: actual standalone tasks and historical owners", () => {
     expect(claimed.nodes.find(n => n.id === added[0].id)).toMatchObject({ ownerId: "maya", status: "accepted" })
   })
 
+  it("relinks one standalone task with its existing requirement identity without changing another task's duty", () => {
+    let state = stage3Club()
+    for (const id of ["link-first", "link-second"]) state = reducer(state, { type: "createTasks", id, sentence: `Fictional ${id}.`, tasks: [{ title: `Fictional ${id}`, ownerId: null, eventId: null }], date: STAGE3_EVENT_DATE, buffered: false })
+    state = reducer(state, { type: "matchingLinkTask", nodeId: "link-first:0", responsibilityId: "fixture-space" })
+    const first = state.matching!.requirements.find(r => r.workflowId === "standalone" && r.stepId === "link-first:0")!
+    expect(first).toMatchObject({ responsibilityId: "fixture-space", status: "confirmed" })
+    state = reducer(state, { type: "matchingLinkTask", nodeId: "link-second:0", responsibilityId: "fixture-space" })
+    state = reducer(state, { type: "matchingLinkTask", nodeId: "link-first:0", responsibilityId: "fixture-firmware" })
+    const linked = state.matching!.requirements.filter(r => r.workflowId === "standalone" && ["link-first:0", "link-second:0"].includes(r.stepId))
+    expect(linked).toHaveLength(2)
+    expect(linked.find(r => r.stepId === "link-first:0")).toMatchObject({ id: first.id, responsibilityId: "fixture-firmware" })
+    expect(linked.find(r => r.stepId === "link-second:0")!.responsibilityId).toBe("fixture-space")
+    expect(state.nodes.find(n => n.id === "link-first:0")!.matching).toMatchObject({ workflowId: "standalone", stepId: "link-first:0", responsibilityId: "fixture-firmware" })
+    expect(state.nodes.find(n => n.id === "link-second:0")!.matching!.responsibilityId).toBe("fixture-space")
+  })
+
   it("does not turn a non-leader's missing duty and owner into an automatic self-assignment", () => {
     const state = { ...stage3Club(), viewerId: "sam" }
     const next = reducer(state, { type: "createTasks", id: "missing-duty", sentence: "Check an unclassified process.", tasks: [{ title: "Check an unclassified process", ownerId: null, eventId: null }], date: STAGE3_EVENT_DATE, buffered: false })
