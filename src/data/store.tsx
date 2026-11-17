@@ -513,6 +513,8 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   if (!raw) return { state: seedDemo(undefined, "v2"), notice: null }
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
+  // Matching S3 rollback checkpoint: retain v23 fields verbatim. Keep this reader when rolling back feature writes.
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 23 && Array.isArray(parsed.people) && Array.isArray(parsed.roles) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: normalizeTerms(parsed), notice: null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: normalizeTerms(repairCoreEventSteps(repairTaskLinks(parsed))), notice: null }
   // Keep all supported saved versions on the same one-time demo-update path.
   // v20 and v21 (the live site during Phase 3) only gain the Handoff fields: no demo-plan update, so a participant's saved club is not changed.
