@@ -21,7 +21,7 @@ function Controls() {
     <button type="button" onClick={() => dispatch({ type: "setViewer", viewerId: "sam" })}>View as Sam</button>
   </>
 }
-function fixture(mode: ReminderMode = "review_then_self", enable = false): DemoState {
+function fixture(mode: ReminderMode = "review_then_self", enable = true): DemoState {
   const s = seedDemo(undefined, "v2")
   const event = { ...s.events[0], id: "mail-speaker", name: "Speaker Night", date: "2026-11-19", headcount: 40, venue: "campus" as const, budgetItems: [] }
   const node = { ...s.nodes.find(n => n.id === "t-room")!, id: NODE, eventId: event.id, stepKey: "venue", title: "Reserve a room", ownerVersion: 0, dependsOn: [], status: "accepted" as const,
@@ -66,12 +66,13 @@ describe("real reminder composer state integration", () => {
     expect(latest.nudges).toEqual([])
     fireEvent.click(screen.getByRole("button", { name: "I sent this reminder" }))
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Recorded as sent by you"))
-    expect(latest.nudges).toHaveLength(1)
-    const recorded = latest.nudges[0].message!
+    expect(latest.nudges).toEqual([])
+    expect(latest.reminderRuntime!.deliveries).toHaveLength(1)
+    const recorded = latest.reminderRuntime!.deliveries[0].message!
     expect(recorded.source).toBe("rules")
     expect(recorded.recipientId).toBe("jordan")
     expect(recorded.channel).toBe("email")
-    expect(recorded.text).toBe(latest.nudges[0].text)
+    expect(recorded.text).toBe(`${recorded.subject}\n\n${recorded.body}`)
     expect(recorded.body.match(/https?:\/\/\S+/g)).toEqual([recorded.taskUrl])
     expect(latest.taskAccessGrants?.some(g => g.id === recorded.accessId)).toBe(true)
   })
@@ -205,7 +206,7 @@ describe("real reminder composer state integration", () => {
     } finally { write.mockRestore() }
   })
 
-  it.each([false, true])("an identical previous message cannot stand in for this confirmation (write fails: %s)", async fail => {
+  it.each([false, true])("a previous message is history rather than a new confirmation on reopening (saving fails: %s)", async fail => {
     const s = fixture("review_then_auto")
     const grant = await makeTaskAccessGrant(s, NODE)
     const issued = reducer(s, { type: "issueTaskAccessGrant", grant })
@@ -213,26 +214,29 @@ describe("real reminder composer state integration", () => {
     const mail = buildReminderMail({ today: issued.today, facts: buildReminderFacts(issued, NODE)!, recipient, taskUrl: taskAccessUrl(window.location.origin, grant) })
     const snapshot = { ...mail, channel: "email" as const, preparedOn: issued.today, accessId: grant.id }
     const first = reducer(issued, { type: "confirmNudgeSent", nodeId: NODE, text: mail.text, channel: "email", via: "platypus", message: snapshot })
-    expect(first.nudges).toHaveLength(1)
-    show(first)
-    const approve = await screen.findByRole("button", { name: "Approve · Platypus sends (demo)" })
+    expect(first.reminderRuntime!.deliveries).toHaveLength(1)
     const write = Storage.prototype.setItem
     const failed = fail ? vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
       if (key === STORAGE_KEY) throw new Error("Storage unavailable")
       return write.call(this, key, value)
     }) : null
     try {
-      fireEvent.click(approve)
-      if (fail) {
-        expect(latest.nudges).toHaveLength(1)
-        expect(screen.queryByText("Approved. Platypus would send it now. Demo: nothing is sent.")).toBeNull()
-        expect(latest.nudges[0]).toEqual(first.nudges[0])
-      } else {
-        await screen.findByText("Approved. Platypus would send it now. Demo: nothing is sent.")
-        expect(latest.nudges).toHaveLength(2)
-        expect(latest.nudges[1].id).not.toBe(first.nudges[0].id)
-        expect(latest.nudges[1].message).toEqual(first.nudges[0].message)
-      }
+      show(first)
+      await screen.findByRole("button", {name: "Reminder unavailable"})
+      expect(latest.reminderRuntime!.deliveries).toEqual(first.reminderRuntime!.deliveries)
+      expect(screen.queryByText("Approved. Platypus would send it now. Demo: nothing is sent.")).toBeNull()
+      expect(screen.queryByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeNull()
     } finally { failed?.mockRestore() }
+  })
+
+  it("requires an explicit upgrade for both absent and v1 plans", async () => {
+    const old = fixture("review_then_self", false)
+    for (const state of [old, {...fixture(), reminderRuntime: {...fixture().reminderRuntime!, version: 1 as const}}]) {
+      show(state)
+      await screen.findByRole("link", {name: "Set up reminders"})
+      expect(screen.queryByRole("link", {name: "Open task"})).toBeNull()
+      expect(latest.taskAccessGrants).toBeUndefined()
+      cleanup()
+    }
   })
 })

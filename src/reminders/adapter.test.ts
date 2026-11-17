@@ -4,7 +4,10 @@ import { loadState, reducer, saveState, STORAGE_KEY } from "../data/store"
 import type { DemoState, ReminderMode } from "../data/types"
 import { applySchedule } from "../engine/schedule"
 import { addDays } from "../lib/dates"
-import { buildReminderInput } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderMail } from "./mail"
+import { makeTaskAccessGrant, taskAccessUrl } from "./taskAccess"
+import { sendReminderBatch } from "./delivery"
 import { planReminders } from "./engine"
 import { remindersEnabled } from "./adapter"
 import { clubDraft } from "../data/settings"
@@ -21,8 +24,22 @@ function fixture(mode: ReminderMode = "review_then_self"): DemoState {
 const enable = (s = fixture()) => reducer(s, { type: "enableReminderPlan" })
 const plan = (s: DemoState) => planReminders(buildReminderInput(s, s.reminderRuntime!))
 const replyWaiting = (s: DemoState, recipient = "sam") => reducer({ ...s, viewerId: "jordan" }, { type: "replyTask", nodeId: NODE, reply: "waiting", input: { waitingOn: "Please confirm the room requirements", waitingOnPersonId: recipient } })
+async function record(s: DemoState) {
+  const candidate = plan(s).ready[0]
+  if (s.org.settings.reminderMode === "auto_email") {
+    let current = s
+    await sendReminderBatch({getState: () => current, tryDispatch: a => {const next = reducer(current, a); if (next === current) return false; current = next; return true}}, [candidate.id], "https://demo.example.org", "automatic")
+    return current
+  }
+  const grant = await makeTaskAccessGrant(s, candidate.nodeId, candidate.waitingRequestId)
+  const issued = reducer(s, {type: "issueTaskAccessGrant", grant})
+  const facts = buildReminderFacts(issued, candidate.nodeId)!
+  const people = reminderPeople(issued)
+  const mail = buildReminderMail({today: s.today, facts, candidate, recipient: people.find(p => p.id === candidate.recipientId)!, taskUrl: taskAccessUrl("https://demo.example.org", grant)})
+  return reducer(issued, {type: "confirmPlannedReminder", candidateId: candidate.id, via: "manual", message: {...mail, channel: "email", preparedOn: s.today, accessId: grant.id}})
+}
 
-beforeEach(() => localStorage.clear())
+beforeEach(() => { localStorage.clear(); vi.stubGlobal("crypto", webcrypto) })
 
 describe("stage one: actual reducer integration, without changing legacy activation", () => {
   it("does not silently activate an old saved club, and only leads can enable the new rules", () => {
@@ -33,7 +50,7 @@ describe("stage one: actual reducer integration, without changing legacy activat
     expect(loaded.nodes).toEqual(s.nodes)
     const officer = { ...s, viewerId: "jordan" }
     expect(reducer(officer, { type: "enableReminderPlan" }).reminderRuntime).toBeUndefined()
-    expect(enable(s).reminderRuntime?.version).toBe(1)
+    expect(enable(s).reminderRuntime?.version).toBe(2)
   })
 
   it("creates rule-only candidates without calling AI or sending a network request", () => {
@@ -47,10 +64,9 @@ describe("stage one: actual reducer integration, without changing legacy activat
     } finally { vi.unstubAllGlobals() }
   })
 
-  it("records a same-day owner board update but never mistakes a lead's title edit for an owner reply", () => {
+  it("records a same-day owner board update but never mistakes a lead's title edit for an owner reply", async () => {
     const s = enable()
-    const first = plan(s).ready[0]
-    const sent = reducer(s, { type: "confirmPlannedReminder", candidateId: first.id, via: "manual" })
+    const sent = await record(s)
     const edited = reducer({ ...sent, today: addDays(s.today, 1) }, { type: "updateNode", id: NODE, patch: { title: "Room booking (lead clarified title)" } })
     expect(edited.reminderRuntime!.updates.filter(u => u.ownerReply)).toEqual([])
     const moved = reducer({ ...sent, viewerId: "jordan" }, { type: "moveTask", nodeId: NODE, status: "in_progress" })
@@ -76,8 +92,10 @@ describe("stage one: actual reducer integration, without changing legacy activat
     expect(denied.reminderRuntime!.waitingRequests).toEqual(s.reminderRuntime!.waitingRequests)
   })
 
-  it("auto mode persists a simulated target mail once, with the original task still owned by the requester", () => {
-    const s = replyWaiting(enable(fixture("auto_email")))
+  it("auto mode persists a prepared target mail once, with the original task still owned by the requester", async () => {
+    const pending = replyWaiting(enable(fixture("auto_email")))
+    expect(pending.reminderRuntime!.deliveries).toEqual([])
+    const s = await record(pending)
     const mail = s.reminderRuntime!.deliveries.filter(d => d.reason === "waiting_on")
     expect(mail).toHaveLength(1)
     expect(mail[0]).toMatchObject({ recipientId: "sam", ownerId: "jordan", outcome: "simulated", sentOn: s.today })
@@ -114,10 +132,9 @@ describe("stage one: actual reducer integration, without changing legacy activat
     expect(replyWaiting(s, "jordan").reminderRuntime!.deliveries.some(d => d.reason === "waiting_on")).toBe(false)
   })
 
-  it("reassignment retains the real recipient snapshot, and a returning owner gets another assignment version", () => {
+  it("reassignment retains the real recipient snapshot, and a returning owner gets another assignment version", async () => {
     const s = enable()
-    const first = plan(s).ready[0]
-    const sent = reducer(s, { type: "confirmPlannedReminder", candidateId: first.id, via: "manual" })
+    const sent = await record(s)
     const reassigned = reducer(sent, { type: "updateNode", id: NODE, patch: { ownerId: "sam" } })
     expect(reassigned.reminderRuntime!.deliveries[0]).toEqual(sent.reminderRuntime!.deliveries[0])
     expect(reassigned.reminderRuntime!.deliveries[0].recipientId).toBe("jordan")
@@ -183,13 +200,16 @@ describe("stage one: actual reducer integration, without changing legacy activat
     const s = { ...replyWaiting(enable()), viewerId: "alex" }
     const created = reducer(s, { type: "completeSetup", draft: clubDraft(s), event: null, date: s.today, inviteCode: "00000000-0000-4000-8000-000000000001" })
     expect(created).not.toBe(s)
-    expect(created.reminderRuntime).toBeUndefined()
+    expect(created.reminderRuntime?.version).toBe(2)
+    expect(created.reminderRuntime!.deliveries).toEqual([])
+    expect(created.reminderRuntime!.waitingRequests.some(r => r.waitingOn === "Please confirm the room requirements")).toBe(false)
     expect(s.reminderRuntime!.waitingRequests).toHaveLength(1)
   })
 
-  it("reopening early completed work resumes the remaining due check while preserving the original send", () => {
+  it("reopening early completed work resumes the remaining due check while preserving the original send", async () => {
     const s = enable()
-    const sent = reducer(s, { type: "confirmPlannedReminder", candidateId: plan(s).ready[0].id, via: "manual" })
+    const sent = await record(s)
+    expect(sent.reminderRuntime!.deliveries).toHaveLength(1)
     const done = reducer({ ...sent, viewerId: "jordan" }, { type: "replyTask", nodeId: NODE, reply: "done" })
     expect(plan(done).ready).toEqual([])
     const reopened = reducer({ ...done, viewerId: "alex" }, { type: "moveTask", nodeId: NODE, status: "in_progress" })

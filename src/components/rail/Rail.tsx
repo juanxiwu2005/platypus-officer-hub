@@ -4,7 +4,6 @@ import { useStore } from "../../data/store"
 import { useRail } from "./RailContext"
 import { AskPanel } from "./AskPanel"
 import { NudgeComposer } from "../NudgeComposer"
-import { TaskDetail } from "../TaskDetail"
 import { useViewer } from "../../data/store"
 import { Empty } from "../ui"
 import { RouteLoading } from "../RouteLoading"
@@ -12,6 +11,7 @@ import { trapTabKey } from "../../lib/focus"
 
 // Ask, task details and reminders stay eager for Today. Auxiliary editors load when opened.
 const FundingDetail = lazy(() => import("../../pages/Funding").then(module => ({ default: module.FundingDetail })))
+const TaskDetail = lazy(() => import("../TaskDetail").then(module => ({ default: module.TaskDetail })))
 const PartnerDetail = lazy(() => import("../crm/ContactDetail").then(module => ({ default: module.PartnerDetail })))
 const OrgDetail = lazy(() => import("../crm/OrgDetail").then(module => ({ default: module.OrgDetail })))
 const HandoffRoleDetail = lazy(() => import("../../pages/Handoff").then(module => ({ default: module.HandoffRoleDetail })))

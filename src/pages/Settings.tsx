@@ -20,6 +20,7 @@ import { officers } from "../data/permissions"
 import { ClosedRoles } from "./HandoffRoleChanges"
 import { REMINDER_MODES, reminderModeTestId } from "../data/reminderMode"
 import { onboardingCopy } from "../onboarding/copy"
+import { isReminderRuntime } from "../reminders/runtime"
 
 export function InviteLink({ code }: { code: string }) {
   const url = `${window.location.origin}${window.location.pathname}#/join?invite=${encodeURIComponent(code)}`
@@ -55,9 +56,10 @@ function TaskSettings() {
 }
 
 /** Debounced auto-save with a single Undo step. */
-function useAutosave<T>(value: T, saved: T, valid: (v: T) => string | null, commit: (v: T) => void) {
+function useAutosave<T>(value: T, saved: T, valid: (v: T) => string | null, commit: (v: T) => void | boolean) {
   const { persistenceFailed } = useStore()
-  const [status, setStatus] = useState<{ text: string; undo?: T } | null>(null)
+  const [status, setStatus] = useState<{ text: string; undo?: T; failed?: boolean } | null>(null)
+  const [attempt, setAttempt] = useState(0)
   const first = useRef(true)
   useEffect(() => {
     if (first.current) { first.current = false; return }
@@ -65,19 +67,20 @@ function useAutosave<T>(value: T, saved: T, valid: (v: T) => string | null, comm
     const error = valid(value)
     if (error) { setStatus({ text: error }); return }
     const before = saved
-    const t = setTimeout(() => { commit(value); setStatus({ text: "Saved.", undo: before }) }, 500)
+    const t = setTimeout(() => { setStatus(commit(value) === false ? { text: "Saving failed. Your changes are kept here.", failed: true } : { text: "Saved.", undo: before }) }, 500)
     return () => clearTimeout(t)
-  }, [JSON.stringify(value)])
-  return { status: status?.undo !== undefined && persistenceFailed ? { ...status, text: "Saving failed. Changes are only on screen.", failed: true } : status, clear: () => setStatus(null) }
+  }, [JSON.stringify(value), attempt])
+  return { status: status?.undo !== undefined && persistenceFailed ? { ...status, text: "Saving failed. Changes are only on screen.", failed: true } : status, clear: () => setStatus(null), retry: () => setAttempt(n => n + 1) }
 }
 
 function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
-  const { state, dispatch } = useStore()
+  const { state, tryDispatch } = useStore()
   const [draft, setDraft] = useState(() => clubDraft(state))
   const [defaults, setDefaults] = useState(() => structuredClone(state.org.settings))
   const saved = { draft: clubDraft(state), defaults: state.org.settings }
-  const { status, clear } = useAutosave({ draft, defaults }, saved, v => validateClub(v.draft) ?? validateDefaults(v.defaults), v => dispatch({ type: "saveClubSettings", draft: v.draft, defaults: v.defaults }))
-  const undo = (prev: { draft: ClubDraft; defaults: OrgSettings }) => { dispatch({ type: "saveClubSettings", draft: prev.draft, defaults: prev.defaults }); setDraft(structuredClone(prev.draft)); setDefaults(structuredClone(prev.defaults)); clear() }
+  const { status, clear, retry } = useAutosave({ draft, defaults }, saved, v => validateClub(v.draft) ?? validateDefaults(v.defaults), v => tryDispatch({ type: "saveClubSettings", draft: v.draft, defaults: v.defaults }))
+  const undo = (prev: { draft: ClubDraft; defaults: OrgSettings }) => { if (!tryDispatch({ type: "saveClubSettings", draft: prev.draft, defaults: prev.defaults })) return; setDraft(structuredClone(prev.draft)); setDefaults(structuredClone(prev.defaults)); clear() }
+  const updatedPlan = isReminderRuntime(state.reminderRuntime) && state.reminderRuntime.version === 2
   const p = defaults.silenceProtocol
   // "Choose how reminders go out" on the reminder centre links here with ?reminders=1: open Tasks and events at the choice.
   const [params] = useSearchParams()
@@ -90,7 +93,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
       <div className="form-grid"><label>Club name<input value={draft.name} maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>School<input readOnly value={state.org.school} /></label></div>
       <label>Club mission<textarea maxLength={300} rows={2} value={draft.mission} onChange={e => setDraft({ ...draft, mission: e.target.value })} /></label>
       <details className="more"><summary>Semester goals</summary><GoalsEditor goals={draft.goals} progress onChange={goals => setDraft({ ...draft, goals })} /></details>
-      <details className="more"><summary>Deadline and follow-up defaults</summary><div className="form-grid"><label>Club buffer (working days)<input type="number" min="0" max="10" value={defaults.clubBufferBusinessDays} onChange={e => setDefaults({ ...defaults, clubBufferBusinessDays: Number(e.target.value) })} /></label><label>Reminder limit per task<input type="number" min="1" max="3" value={defaults.maxRemindersPerTask} onChange={e => setDefaults({ ...defaults, maxRemindersPerTask: Number(e.target.value) })} /></label>{["Reminder 1 day", "Reminder 2 day", "Private check day", "Temporary owner day", "Recovery day"].map((label, i) => <label key={label}>{label}<input type="number" min="1" max="30" value={[...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay][i]} onChange={e => { const value = Number(e.target.value); const protocol = i < 2 ? { ...p, nudgeDays: p.nudgeDays.map((n, j) => i === j ? value : n) } : { ...p, [i === 2 ? "presidentDay" : i === 3 ? "reassignDay" : "retroDay"]: value }; setDefaults({ ...defaults, silenceProtocol: protocol }) }} /></label>)}</div></details>
+      <details className="more"><summary>Deadline and follow-up defaults</summary><p className="small muted">Legacy reminder days are kept for reference. The updated plan uses the checks below; leadership follow-up days still apply.</p><div className="form-grid"><label>Club buffer (working days)<input type="number" min="0" max="10" value={defaults.clubBufferBusinessDays} onChange={e => setDefaults({ ...defaults, clubBufferBusinessDays: Number(e.target.value) })} /></label><label>Reminder limit per task<input type="number" min="1" max="3" value={defaults.maxRemindersPerTask} onChange={e => setDefaults({ ...defaults, maxRemindersPerTask: Number(e.target.value) })} /></label>{["Legacy reminder 1 day", "Legacy reminder 2 day", "Private check day", "Temporary owner day", "Recovery day"].map((label, i) => <label key={label}>{label}<input type="number" min="1" max="30" disabled={updatedPlan && i < 2} value={[...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay][i]} onChange={e => { const value = Number(e.target.value); const protocol = i < 2 ? { ...p, nudgeDays: p.nudgeDays.map((n, j) => i === j ? value : n) } : { ...p, [i === 2 ? "presidentDay" : i === 3 ? "reassignDay" : "retroDay"]: value }; setDefaults({ ...defaults, silenceProtocol: protocol }) }} /></label>)}</div></details>
       <details className="more" data-testid="tasks-events-settings" open={openReminders || undefined}><summary>Tasks and events</summary><div className="form-stack">
         {/* FB-8: the same three choices as the walkthrough's Reminders screen, same words. The demo never sends anything. */}
         <fieldset ref={reminderBox} data-testid="settings-reminder-mode"><legend className="small muted">{onboardingCopy.founder.reminders.title}</legend>
@@ -98,6 +101,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
           {/* Only the chosen option's line, to stay inside the page's word budget (150 / 150). */}
           {defaults.reminderMode && <p id="settings-reminder-mode-body" className="small muted">{onboardingCopy.founder.reminders.options[defaults.reminderMode].body}</p>}
         </fieldset>
+        <p className="small muted" data-testid="reminder-plan-settings">Checks: planned start, due, then 3 days overdue. Waiting on asks the selected person for help. Limit: {defaults.maxRemindersPerTask} per task and recipient; 6 per recipient in 7 days. <Link to="/">Review reminder plan</Link></p>
         <label>When you assign a task, you expect it finished within<select aria-label="Usual task length" value={defaults.taskDueDays ?? 5} onChange={e => setDefaults({ ...defaults, taskDueDays: Number(e.target.value) })}>{TASK_DUE_CHOICES.map(d => <option key={d} value={d}>{d} days</option>)}</select></label>
         <p className="small muted">Tasks have one date: Due. It starts that many days from today; anyone can choose another. The club buffer only moves event steps with an ASU deadline.</p>
         <fieldset><legend className="small muted">Who can create events</legend>
@@ -114,13 +118,13 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
       <details className="more"><summary>Invite officers</summary><InviteLink code={state.org.inviteCode} /></details>
     </>}
     {tab === "links" && <><h2>Links & files</h2><WorkspaceEditor value={draft.workspace} onChange={workspace => setDraft({ ...draft, workspace })} /></>}
-    <SaveStatus status={status} onUndo={undo} />
+    <SaveStatus status={status} onUndo={undo} onRetry={retry} />
   </section>
 }
 
-function SaveStatus<T>({ status, onUndo }: { status: { text: string; undo?: T; failed?: boolean } | null; onUndo: (v: T) => void }) {
+function SaveStatus<T>({ status, onUndo, onRetry }: { status: { text: string; undo?: T; failed?: boolean } | null; onUndo: (v: T) => void; onRetry?: () => void }) {
   if (!status) return null
-  return <p role="status" className={`save-status ${status.undo && !status.failed ? "ok" : "err"}`}>{status.text}{status.undo !== undefined && <button type="button" className="link" onClick={() => onUndo(status.undo as T)}>Undo</button>}</p>
+  return <p role="status" className={`save-status ${status.undo && !status.failed ? "ok" : "err"}`}>{status.text}{status.failed && onRetry && <button type="button" className="link" onClick={onRetry}>Retry saving</button>}{status.undo !== undefined && <button type="button" className="link" onClick={() => onUndo(status.undo as T)}>Undo</button>}</p>
 }
 
 /** The club's event workflow, after setup: the same edit module. New events start from it; events already made keep their steps. */

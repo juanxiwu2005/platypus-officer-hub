@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import { Link } from "react-router-dom"
 import { STORAGE_KEY, useStore } from "../data/store"
 import type { Channel, DemoState } from "../data/types"
 import { canLead } from "../data/permissions"
@@ -46,6 +47,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
   const [recordedEntry, setRecordedEntry] = useState<{ kind: "delivery" | "nudge"; id: string } | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   const enabled = remindersEnabled(state)
+  const needsUpgrade = state.reminderRuntime === undefined || (enabled && state.reminderRuntime!.version !== 2)
   const recordedDelivery = enabled && recordedEntry?.kind === "delivery"
     ? state.reminderRuntime!.deliveries.find(d => d.id === recordedEntry.id && sameMessage(d.message, attempted)) : undefined
   const recordedNudge = recordedEntry?.kind === "nudge"
@@ -66,6 +68,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
     : !node || !facts ? "This task is unavailable."
     : persistenceFailed ? "This browser could not save your changes. Restore saving before preparing a reminder."
     : !recipient?.active ? "Choose an available task owner before preparing a reminder."
+    : needsUpgrade ? "Enable updated reminders in the reminder centre before preparing a message."
     : state.reminderRuntime !== undefined && !enabled ? "Review the saved reminder plan before preparing another message."
     : enabled && !candidate ? queue?.blocked.find(b => b.nodeId === nodeId) ? BLOCKED[queue.blocked.find(b => b.nodeId === nodeId)!.reason] : node.status === "done" ? "This task is complete. No reminder is needed." : "No reminder is due yet for this task."
     : !enabled ? nudgeBlocked(state, node) : null
@@ -149,6 +152,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
         {mail && !mail.checked && !blocked && <p className="small warn-text" role="status">Review the task wording or details before preparing this message.</p>}
         {attempted && <p className="small warn-text" role="status">This reminder was not recorded. Review the latest task details before trying again.</p>}</>}
     <p className="small muted">Demo: the app does not send messages. Task links work in the browser where they were created.</p>
+    {needsUpgrade && allowed && <Link className="btn small" to="/">Set up reminders</Link>}
     {!platypusSends && <p className="small muted">The draft recipient is blank. Choose a fictional test destination yourself.</p>}
   </aside>
 }
