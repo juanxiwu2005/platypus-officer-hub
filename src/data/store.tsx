@@ -32,6 +32,7 @@ import { BUILD_INFO } from "../lib/buildInfo"
 import { normalizeTerms } from "./roleTerms"
 import { isOfficer } from "./permissions"
 import { changeRole, type RoleChange } from "./roleChanges"
+import { advancePlannedClock, afterReminderAction, confirmLegacyPlannedReminder, confirmPlannedReminder, enableReminderPlan, remindersEnabled } from "../reminders/adapter"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -139,6 +140,8 @@ export type Action =
   | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
   | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia }
+  | { type: "enableReminderPlan" }
+  | { type: "confirmPlannedReminder"; candidateId: string; via: "manual" | "platypus" }
   | { type: "claimTask"; nodeId: string }
   | { type: "replyTask"; nodeId: string; reply: TaskReply; input?: ReplyInput }
   | { type: "reviewExtension"; id: string; approve: boolean }
@@ -280,7 +283,20 @@ function cleanBudgetPatch(raw: Partial<Omit<BudgetLineItem, "id">>): Partial<Omi
 /** Every action, then keep role terms in step with who holds what (src/data/roleTerms.ts). Returns the same object when nothing changed. */
 export function reducer(state: DemoState, action: Action): DemoState {
   if (!READ_ONLY_OK.has(action.type) && state.people.some(p => p.id === state.viewerId && !isOfficer(p))) return state
-  return normalizeTerms(baseReducer(state, action))
+  let result = normalizeTerms(baseReducer(state, action))
+  if (action.type === "completeSetup" && result !== state && result.reminderRuntime) {
+    // A new club workspace never inherits the previous club's reminder recipients/history.
+    const { reminderRuntime: _previousReminders, ...workspace } = result
+    void _previousReminders
+    result = workspace
+  }
+  if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "advanceClock"].includes(action.type)) return result
+  const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
+  const actorId = grant?.ownerId ?? state.viewerId
+  const updated = action.type === "claimTask" || action.type === "replyTask" ? [action.nodeId]
+    : action.type === "officerAction" && grant ? [grant.nodeId]
+    : action.type === "moveTask" && state.nodes.find(n => n.id === action.nodeId)?.status !== result.nodes.find(n => n.id === action.nodeId)?.status ? [action.nodeId] : []
+  return afterReminderAction(state, result, actorId, updated)
 }
 /**
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
@@ -422,7 +438,10 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       const status = reviews.includes("pending") ? "pending" : reviews.every(r => r === "rejected") ? "rejected" : "applied"
       return { ...next, changeSets: next.changeSets.map(c => c.id === change.id ? { ...c, ops, reviews, status } : c) }
     }
+    case "enableReminderPlan": return canLead(state) ? enableReminderPlan(state) : state
+    case "confirmPlannedReminder": return canLead(state) ? confirmPlannedReminder(state, action.candidateId, action.via) : state
     case "confirmNudgeSent": {
+      if (state.reminderRuntime) return canLead(state) ? confirmLegacyPlannedReminder(state, action.nodeId, action.via) : state
       const n = state.nodes.find(n => n.id === action.nodeId)
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
       return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null, ...(action.via === "president" || action.via === "platypus" ? { via: action.via } : {}) }] }
@@ -430,7 +449,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "claimTask": return claimTask(state, action.nodeId, state.viewerId)
     case "replyTask": return replyToTask(state, action.nodeId, state.viewerId, action.reply, action.input)
     case "reviewExtension": return reviewExtension(state, action.id, action.approve)
-    case "advanceClock": return canLead(state) ? advanceClock(state, action.days) : state
+    case "advanceClock": return canLead(state) ? state.reminderRuntime ? advancePlannedClock(state, action.days) : advanceClock(state, action.days) : state
     case "markNoticeRead": return { ...state, notifications: state.notifications.map(n => n.id === action.id && n.recipientId === state.viewerId ? { ...n, read: true } : n) }
     case "temporaryOwner": {
       if (!canLead(state)) return state
@@ -635,6 +654,8 @@ function beforeOf(s: DemoState, a: Action): unknown {
   const node = (id: string) => s.nodes.find(n => n.id === id)
   let out: object | undefined
   switch (a.type) {
+    case "enableReminderPlan": out = { reminderVersion: s.reminderRuntime?.version }; break
+    case "confirmPlannedReminder": out = { reminderDeliveryCount: s.reminderRuntime?.deliveries.length }; break
     case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
     case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount", "details"].includes(k))); break
     case "moveTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break

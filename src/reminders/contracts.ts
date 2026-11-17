@@ -77,6 +77,8 @@ export interface ReminderRuntime {
   updates: ReminderUpdate[]
   deliveries: ReminderDelivery[]
   waitingRequests: WaitingRequest[]
+  /** Old sends without recipient/assignment snapshots need review; never guess their ownership. */
+  legacyUnresolvedNodeIds?: string[]
 }
 export interface ReminderInput {
   today: string
@@ -101,7 +103,7 @@ export interface ReminderCandidate {
   explanation: string
   waitingRequestId?: string
 }
-export interface BlockedReminder { nodeId: string; reason: "no_owner" | "unavailable_recipient" | "unresolved_waiting" | "task_limit" | "weekly_limit" | "already_sent_today" | "paused"; recipientId?: string }
+export interface BlockedReminder { nodeId: string; reason: "no_owner" | "unavailable_recipient" | "unresolved_waiting" | "task_limit" | "weekly_limit" | "already_sent_today" | "paused" | "legacy_history"; recipientId?: string }
 export interface ReminderPlan { ready: ReminderCandidate[]; upcoming: ReminderCandidate[]; blocked: BlockedReminder[] }
 export interface ReminderTransition {
   today: string

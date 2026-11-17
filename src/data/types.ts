@@ -529,6 +529,8 @@ export interface ChangeSet {
 }
 
 export interface DemoState {
+  /** Rule-only reminders v1; absent on legacy saves until explicitly enabled. */
+  reminderRuntime?: import("../reminders/contracts").ReminderRuntime
   schemaVersion: number
   /** The date the demo treats as "today" (simulated clock, WP3). */
   today: string

@@ -67,7 +67,7 @@ export function claimTask(s: DemoState, nodeId: string, actorId: string): DemoSt
   const n = s.nodes.find(n => n.id === nodeId)
   if (!n || n.status !== "unclaimed" || (n.ownerId && n.ownerId !== actorId) || !s.people.some(p => p.id === actorId)) return s
   const claimed: Node = { ...n, ownerId: actorId, status: "accepted", acceptedOn: s.today, lastUpdate: s.today, assignedOn: n.assignedOn ?? s.today }
-  const next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? claimed : x), nudges: s.nudges.map(x => x.nodeId === n.id ? { ...x, response: "accepted" } : x) }, n.id)
+  const next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? claimed : x), nudges: s.reminderRuntime ? s.nudges : s.nudges.map(x => x.nodeId === n.id ? { ...x, response: "accepted" } : x) }, n.id)
   return routeTaskChange(applySchedule(next), claimed, "claim")
 }
 export function replyToTask(s: DemoState, nodeId: string, actorId: string, reply: TaskReply, input: ReplyInput = {}): DemoState {
@@ -76,7 +76,7 @@ export function replyToTask(s: DemoState, nodeId: string, actorId: string, reply
   const status = reply === "done" ? "done" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : "in_progress"
   const waitingOnPersonId = reply === "waiting" && input.waitingOnPersonId && input.waitingOnPersonId !== actorId && s.people.some(p => p.id === input.waitingOnPersonId) ? input.waitingOnPersonId : null
   const updated: Node = { ...n, status, lastUpdate: s.today, waitingOn: reply === "waiting" ? input.waitingOn!.trim().slice(0, 180) : null, waitingOnPersonId, ...(reply === "done" ? { completedOn: s.today } : {}), ...(reply === "extension" ? { draftLink: input.draftLink } : {}) }
-  let next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? updated : x), nudges: s.nudges.map(x => x.nodeId === n.id ? { ...x, response: status } : x) }, n.id)
+  let next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? updated : x), nudges: s.reminderRuntime ? s.nudges : s.nudges.map(x => x.nodeId === n.id ? { ...x, response: status } : x) }, n.id)
   if (reply === "waiting" && waitingOnPersonId) {
     const who = s.people.find(p => p.id === actorId)?.name.split(" ")[0] ?? "A teammate"
     next = addNotices(next, n.id, [waitingOnPersonId], "info", `${who} is waiting for you on “${n.title}”. It is now in your To do list.`, `waiting-on:${n.id}:${s.today}:${next.notifications.length}`)

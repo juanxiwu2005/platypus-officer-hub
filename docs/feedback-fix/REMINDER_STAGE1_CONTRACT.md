@@ -18,7 +18,9 @@
 - `confirmReminderDelivery(input: ReminderInput, candidateId: string, via: ReminderDelivery['via']): ReminderRuntime`；重新检查当前 ready 和额度，追加不可变快照；无效返回原 runtime。via automatic 仅 auto_email 可用；两种 review 由有权限的 reducer 审核。支持按发送方式记录 outcome。允许自动处理同批次到达时逐次重算上限。
 - `runAutomaticReminders(input: ReminderInput): ReminderRuntime`；仅 auto_email，逐候选重新检查并追加演示历史，重复调用不重复。其他方式只生成候选。
 
-以上函数不得调用 AI、网络、存储或墙钟。未知旧记录不回填 recipientId，不把计划推算作为已发生事实。历史更新或新字段兼容由主 Agent 负责。
+以上函数不得调用 AI、网络、存储或墙钟。未知旧记录不回填 recipientId，不把计划推算作为已发生事实。启用时遇到没有任期/收件人快照的旧 nudge 或旧模拟发送，主 Agent 把 nodeId 放进可选 `legacyUnresolvedNodeIds`；引擎返回 `legacy_history`，不偷偷重发、归给新人或重置限额。阶段三提供明确处理入口。历史更新或新字段兼容由主 Agent 负责。
+
+显式启用后的明确新负责人/新 ownerVersion 代表可确定的新任期，可以解除该 node 的 legacy 标记；旧发送不回填、不归给新人。改期、改标题、改状态或暂时取消负责人均不解除标记。
 
 ## 主 Agent 适配与授权
 
