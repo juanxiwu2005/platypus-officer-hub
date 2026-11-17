@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { Link } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
+import { Bts, BtsRow } from "../components/Bts"
 import { useRail } from "../components/rail/RailContext"
 import { forecastFor } from "../engine/forecast"
 import { RiskDot } from "../components/ui"
@@ -14,7 +15,7 @@ export default function Today() {
   const { state } = useStore()
   const { canNudge } = useViewer()
   const q = useMemo(() => reminderCentre(state), [state])
-  return <><PageHead path="/" />{canNudge ? <ReminderCentre q={q} /> : <YourReminders q={q} />}</>
+  return <><PageHead path="/" /><BtsRow><Bts label="Rule engine">Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. Sent lists saved records.</Bts></BtsRow>{canNudge ? <ReminderCentre q={q} /> : <YourReminders q={q} />}</>
 }
 
 function ReminderCentre({ q }: { q: Centre }) {
@@ -61,6 +62,7 @@ function ReminderCentre({ q }: { q: Centre }) {
     {feedback && <p role="status" className="rq-note">{feedback}</p>}
     {persistenceFailed && <p role="alert" className="rq-note">This browser could not save changes. No new reminder can be recorded until saving is restored.</p>}
     <Section id="ok" title="Needs your OK" count={q.needsOk.length + q.blocked.length} testId="rq-needs-ok"
+      bts="Only eligible candidates wait for review. Automatic demo records are saved before appearing in Sent."
       action={q.approvableCandidateIds.length > 0 && <button type="button" className="btn btn-primary small" data-testid="approve-all" disabled={busy || persistenceFailed} onClick={approveAll}>{busy ? "Preparing…" : `Approve all (${q.approvableCandidateIds.length})`}</button>}
       note={q.mode === null ? <Link to="/settings?reminders=1" data-testid="choose-mode">Choose how reminders go out</Link> : q.mode === "auto_email" ? "Automatic reminders are recorded only after their task link and email are saved. Demo: nothing is sent." : null}
       empty={ready ? "Nothing waits for you." : "Enable the updated plan to see current reminders."}>
@@ -69,7 +71,7 @@ function ReminderCentre({ q }: { q: Centre }) {
       {q.blocked.map(x => row(x, x.blockedReason === "legacy_history" ? <button type="button" className="btn small" disabled={persistenceFailed} onClick={() => reviewLegacy(x.nodeId)}>I checked · allow future reminders</button>
         : x.taskAvailable ? <button type="button" className="btn small" onClick={() => rail.show({ kind: "node", id: x.nodeId })}>Review task</button> : undefined))}
     </Section>
-    <Section id="week" title="This week" count={q.thisWeek.length} testId="rq-this-week" empty="No reminders planned in the next 7 days.">
+    <Section id="week" title="This week" count={q.thisWeek.length} testId="rq-this-week" empty="No reminders planned in the next 7 days." bts="Planned checks from tomorrow through the next 7 days.">
       {q.thisWeek.map(x => row(x, undefined, <>Planned reminder {fmtLong(x.scheduledOn!)}</>))}
     </Section>
     <Section id="sent" title="Sent" count={q.sent.length} testId="rq-sent" empty="No recorded reminders yet." note="A saved demo record is not proof of email delivery.">
@@ -86,11 +88,12 @@ function ReminderCentre({ q }: { q: Centre }) {
 
 const sentLabel = (x: CentreRow) => x.legacy ? "Earlier record" : x.outcome === "recorded_by_sender" ? "Recorded by sender" : x.via === "automatic" ? "Automatic demo" : "Approved demo"
 
-function Section({ id, title, count, testId, action, note, empty, children }: { id: string; title: string; count: number; testId: string; action?: ReactNode; note?: ReactNode; empty: string; children: ReactNode }) {
+function Section({ id, title, count, testId, action, note, empty, children, bts }: { id: string; title: string; count: number; testId: string; action?: ReactNode; note?: ReactNode; empty: string; children: ReactNode; bts?: string }) {
   return <section className="card rq-section" aria-labelledby={`rq-${id}-h`} data-testid={testId}>
     <header><h2 id={`rq-${id}-h`}>{title}{count > 0 && <span className="rq-n">{count}</span>}</h2>{action}</header>
     {note && <p className="rq-note">{note}</p>}
     {count ? <ul className="rq-list">{children}</ul> : <p className="rq-empty">{empty}</p>}
+    {bts && <BtsRow><Bts label="Rule engine">{bts}</Bts></BtsRow>}
   </section>
 }
 
