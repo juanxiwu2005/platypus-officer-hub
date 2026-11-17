@@ -9,6 +9,8 @@ import { applySchedule, computeSchedule } from "../engine/schedule"
 import { addDays, fmtLong } from "../lib/dates"
 import { makeTaskAccessGrant, taskAccessToken, usableTaskAccessGrant, verifyTaskAccessGrant } from "./taskAccess"
 import type { ReminderRuntime } from "./contracts"
+import { buildReminderInput } from "./facts"
+import { planReminders } from "./engine"
 import SingleTaskPage from "./SingleTaskPage"
 
 vi.mock("./taskAccess", async original => {
@@ -46,10 +48,13 @@ async function show(state: DemoState, token: string) {
   await screen.findByTestId("single-task-page")
   return result
 }
-async function waitingFixture() {
+function waitingState(detail = "Please confirm the room requirements", personId: string | null = "sam") {
   const enabled = reducer(fixture(), { type: "enableReminderPlan" })
-  const waiting = reducer({ ...enabled, viewerId: "jordan" }, { type: "replyTask", nodeId: NODE, reply: "waiting", input: { waitingOn: "Please confirm the room requirements", waitingOnPersonId: "sam" } })
-  const state = { ...waiting, viewerId: "alex" }
+  const waiting = reducer({ ...enabled, viewerId: "jordan" }, { type: "replyTask", nodeId: NODE, reply: "waiting", input: { waitingOn: detail, waitingOnPersonId: personId } })
+  return { ...waiting, viewerId: "alex" }
+}
+async function waitingFixture() {
+  const state = waitingState()
   const request = state.reminderRuntime!.waitingRequests.find(r => !r.closedOn)!
   return { ...await issued(state, request.id), requestId: request.id }
 }
@@ -168,6 +173,56 @@ describe("the standalone owner task", () => {
     await waitFor(() => expect(latest.nodes[0].status).toBe("waiting"))
     expect(latest.nodes[0].waitingOnPersonId).toBeNull()
     expect(latest.reminderRuntime!.waitingRequests.find(r => !r.closedOn)?.recipientId).toBeNull()
+  })
+
+  it("prefills an existing waiting request and preserves its identity and delivered follow-up when saved unchanged", async () => {
+    const detail = "Please confirm the accessible room requirements"
+    const waiting = waitingState(detail)
+    const candidate = planReminders(buildReminderInput(waiting, waiting.reminderRuntime!)).ready.find(c => c.reason === "waiting_on")!
+    expect(candidate).toBeTruthy()
+    const delivered = reducer(waiting, { type: "confirmPlannedReminder", candidateId: candidate.id, via: "manual" })
+    expect(delivered.reminderRuntime!.deliveries).toHaveLength(1)
+    const { state, token } = await issued(delivered)
+    const originalRequest = state.reminderRuntime!.waitingRequests[0]
+    await show(state, token)
+    fireEvent.click(screen.getByRole("button", { name: "Waiting on" }))
+    expect((screen.getByRole("combobox", { name: "Waiting on" }) as HTMLSelectElement).value).toBe("sam")
+    expect((screen.getByRole("textbox", { name: /What would help/ }) as HTMLTextAreaElement).value).toBe(detail)
+    fireEvent.click(screen.getByRole("button", { name: "Save waiting status" }))
+    await screen.findByText("Your update is saved. Thank you.")
+    expect(latest.nodes[0].waitingOn).toBe(detail)
+    expect(latest.reminderRuntime!.waitingRequests).toEqual([originalRequest])
+    expect(latest.reminderRuntime!.deliveries).toEqual(state.reminderRuntime!.deliveries)
+    const tomorrow = { ...latest, today: addDays(latest.today, 1) }
+    expect(planReminders(buildReminderInput(tomorrow, tomorrow.reminderRuntime!)).ready.filter(c => c.reason === "waiting_on")).toEqual([])
+  })
+
+  it("reopens a cancelled waiting edit with the latest saved person and detail instead of the discarded draft", async () => {
+    const { state, token } = await issued(waitingState())
+    await show(state, token)
+    fireEvent.click(screen.getByRole("button", { name: "Waiting on" }))
+    fireEvent.change(screen.getByRole("textbox", { name: /What would help/ }), { target: { value: "Discard this draft" } })
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+    act(() => dispatch({ type: "replyTask", nodeId: NODE, reply: "waiting", input: { waitingOn: "Please confirm the projector connection", waitingOnPersonId: "maya" } }))
+    fireEvent.click(screen.getByRole("button", { name: "Waiting on" }))
+    expect((screen.getByRole("combobox", { name: "Waiting on" }) as HTMLSelectElement).value).toBe("maya")
+    expect((screen.getByRole("textbox", { name: /What would help/ }) as HTMLTextAreaElement).value).toBe("Please confirm the projector connection")
+    fireEvent.click(screen.getByRole("button", { name: "Save waiting status" }))
+    await screen.findByText("Your update is saved. Thank you.")
+    expect(latest.nodes[0]).toMatchObject({ waitingOn: "Please confirm the projector connection", waitingOnPersonId: "maya" })
+  })
+
+  it("prefills an existing external dependency without requiring a new person or replacing its saved detail", async () => {
+    const detail = "School room approval"
+    const { state, token } = await issued(waitingState(detail, null))
+    await show(state, token)
+    fireEvent.click(screen.getByRole("button", { name: "Waiting on" }))
+    expect((screen.getByRole("combobox", { name: "Waiting on" }) as HTMLSelectElement).value).toBe("other")
+    expect((screen.getByRole("textbox", { name: /What would help/ }) as HTMLTextAreaElement).value).toBe(detail)
+    fireEvent.click(screen.getByRole("button", { name: "Save waiting status" }))
+    await screen.findByText("Your update is saved. Thank you.")
+    expect(latest.nodes[0]).toMatchObject({ waitingOn: detail, waitingOnPersonId: null })
+    expect(latest.reminderRuntime!.waitingRequests).toEqual(state.reminderRuntime!.waitingRequests)
   })
 
   it("keeps the budget completion authority and does not dispatch a Done update for a finance step", async () => {

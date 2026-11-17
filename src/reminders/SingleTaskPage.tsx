@@ -14,6 +14,7 @@ import type { WaitingRequest } from "./contracts"
 import "./single-task.css"
 
 const STATUS: Record<NodeStatus, string> = { unclaimed: "Not claimed", accepted: "Ready to begin", in_progress: "Working on it", waiting: "Waiting on", blocked: "Stuck", done: "Done" }
+const waitingTarget = (node: Node) => node.waitingOnPersonId ?? (node.waitingOn?.trim() ? "other" : "")
 const optionalText = (value: object, key: string): string => {
   const text = (value as Record<string, unknown>)[key]
   return typeof text === "string" ? text.trim() : ""
@@ -62,8 +63,8 @@ function TaskContent({ node, grant, request, token }: { node: Node; grant: TaskA
   const heading = useRef<HTMLHeadingElement>(null)
   const updateHeading = useRef<HTMLHeadingElement>(null)
   const [waitingForm, setWaitingForm] = useState(false)
-  const [waitingPerson, setWaitingPerson] = useState(node.waitingOnPersonId ?? "")
-  const [waitingDetail, setWaitingDetail] = useState("")
+  const [waitingPerson, setWaitingPerson] = useState(waitingTarget(node))
+  const [waitingDetail, setWaitingDetail] = useState(node.waitingOn ?? "")
   const [notice, setNotice] = useState("")
   const [error, setError] = useState("")
   useEffect(() => { heading.current?.focus() }, [])
@@ -88,6 +89,16 @@ function TaskContent({ node, grant, request, token }: { node: Node; grant: TaskA
     const detail = waitingDetail.trim() || person?.name
     if (!waitingPerson || !detail || (waitingPerson !== "other" && !person)) { setError("Choose who or what you are waiting on."); return }
     send({ kind: "waiting", waitingOn: detail, waitingOnPersonId: person?.id ?? null })
+  }
+  function toggleWaiting() {
+    if (!waitingForm) {
+      // Reopening starts from the current saved task; an unsuccessful save leaves this draft open.
+      const currentNode = getState().nodes.find(n => n.id === node.id) ?? node
+      setWaitingPerson(waitingTarget(currentNode))
+      setWaitingDetail(currentNode.waitingOn ?? "")
+    }
+    setWaitingForm(!waitingForm)
+    setError(""); setNotice("")
   }
   const owner = state.people.find(p => p.id === node.ownerId)
   const ownerName = owner?.name ?? "Your teammate"
@@ -140,7 +151,7 @@ function TaskContent({ node, grant, request, token }: { node: Node; grant: TaskA
           <button type="button" className="btn" disabled={budget} aria-describedby={budget ? "single-task-budget" : undefined} onClick={() => send({ kind: "done" })}>Done</button>
           <button type="button" className="btn" onClick={() => send({ kind: "working" })}>Working on it</button>
           <button type="button" className="btn" onClick={() => send({ kind: "stuck" })}>Stuck</button>
-          <button type="button" className="btn" aria-expanded={waitingForm} aria-controls="single-task-waiting-form" onClick={() => { setWaitingForm(v => !v); setError(""); setNotice("") }}>Waiting on</button>
+          <button type="button" className="btn" aria-expanded={waitingForm} aria-controls="single-task-waiting-form" onClick={toggleWaiting}>Waiting on</button>
         </div>
       </>}
       {actionable && budget && <p id="single-task-budget" className="single-task-hint">Completion is managed in Event Budget. <Link to={budgetUrl}>Open Event Budget</Link></p>}
