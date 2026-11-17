@@ -1,0 +1,169 @@
+{
+  "scope": "Fictional offline stage-one scenarios using the actual reducer. No AI, external email, new mail UI or new task page is exercised.",
+  "facts": {
+    "nodeId": "room-booking",
+    "eventId": "speaker-demo",
+    "eventName": "Speaker Night",
+    "eventDate": "2026-11-19",
+    "title": "Reserve a room",
+    "requirement": "Reserve a room for 40 attendees for Speaker Night on Nov 19 and record the booking confirmation.",
+    "importance": "The confirmed room gives members a location for the invitation.",
+    "ownerId": "jordan",
+    "ownerVersion": 0,
+    "status": "accepted",
+    "due": "2026-11-18",
+    "startOn": "2026-11-13",
+    "waitingOn": null,
+    "waitingOnPersonId": null,
+    "actionLink": {
+      "label": "Open ASU space requests",
+      "url": "https://eoss.asu.edu/student-unions/submit-a-space-request",
+      "explanation": "For ASU Student Unions spaces. Use the published request entry to choose the applicable reservation process."
+    },
+    "source": "Standalone task",
+    "planKey": "[\"room-booking\",\"jordan\",0,\"2026-11-18\",\"2026-11-13\"]"
+  },
+  "plannedStart": {
+    "today": "2026-11-13",
+    "candidates": [
+      {
+        "id": "[\"reminder\",\"[\\\"room-booking\\\",\\\"jordan\\\",0,\\\"2026-11-18\\\",\\\"2026-11-13\\\"]\",\"start\"]",
+        "nodeId": "room-booking",
+        "ownerId": "jordan",
+        "ownerVersion": 0,
+        "recipientId": "jordan",
+        "planKey": "[\"room-booking\",\"jordan\",0,\"2026-11-18\",\"2026-11-13\"]",
+        "reason": "start",
+        "scheduledOn": "2026-11-13",
+        "due": "2026-11-18",
+        "overdueDays": 0,
+        "explanation": "Today is the planned start date for this task. Let us know if you need a hand."
+      }
+    ],
+    "deliveryCount": 0
+  },
+  "waitingReview": {
+    "ownerId": "jordan",
+    "candidates": [
+      {
+        "id": "[\"reminder\",\"waiting_on\",\"waiting-request:room-booking:2\"]",
+        "nodeId": "room-booking",
+        "ownerId": "jordan",
+        "ownerVersion": 0,
+        "recipientId": "sam",
+        "planKey": "[\"room-booking\",\"jordan\",0,\"2026-11-18\",\"2026-11-13\"]",
+        "reason": "waiting_on",
+        "scheduledOn": "2026-11-13",
+        "due": "2026-11-18",
+        "overdueDays": 0,
+        "explanation": "Jordan Patel is waiting on your help with “Reserve a room”. Open the task to see what is needed. Thank you for helping us move this forward.",
+        "waitingRequestId": "waiting-request:room-booking:2"
+      }
+    ],
+    "deliveryCount": 0
+  },
+  "waitingAutomatic": {
+    "ownerId": "jordan",
+    "deliveries": [
+      {
+        "id": "reminder-delivery:1",
+        "candidateId": "[\"reminder\",\"[\\\"room-booking\\\",\\\"jordan\\\",0,\\\"2026-11-18\\\",\\\"2026-11-13\\\"]\",\"start\"]",
+        "nodeId": "room-booking",
+        "recipientId": "jordan",
+        "ownerId": "jordan",
+        "ownerVersion": 0,
+        "planKey": "[\"room-booking\",\"jordan\",0,\"2026-11-18\",\"2026-11-13\"]",
+        "reason": "start",
+        "scheduledOn": "2026-11-13",
+        "sentOn": "2026-11-13",
+        "sequence": 1,
+        "via": "automatic",
+        "recipientName": "Jordan Patel",
+        "taskTitle": "Reserve a room",
+        "eventName": "Speaker Night",
+        "due": "2026-11-18",
+        "outcome": "simulated"
+      },
+      {
+        "id": "reminder-delivery:4",
+        "candidateId": "[\"reminder\",\"waiting_on\",\"waiting-request:room-booking:3\"]",
+        "nodeId": "room-booking",
+        "recipientId": "sam",
+        "ownerId": "jordan",
+        "ownerVersion": 0,
+        "planKey": "[\"room-booking\",\"jordan\",0,\"2026-11-18\",\"2026-11-13\"]",
+        "reason": "waiting_on",
+        "scheduledOn": "2026-11-13",
+        "sentOn": "2026-11-13",
+        "sequence": 4,
+        "via": "automatic",
+        "recipientName": "Sam Okafor",
+        "taskTitle": "Reserve a room",
+        "eventName": "Speaker Night",
+        "due": "2026-11-18",
+        "waitingRequestId": "waiting-request:room-booking:3",
+        "outcome": "simulated"
+      }
+    ]
+  },
+  "repeatedWaiting": {
+    "waitingRequestCount": 1,
+    "deliveryCount": 2
+  },
+  "changedWaiting": {
+    "requests": [
+      {
+        "id": "waiting-request:room-booking:2",
+        "nodeId": "room-booking",
+        "ownerId": "jordan",
+        "ownerVersion": 0,
+        "recipientId": "sam",
+        "waitingOn": "Please confirm the room requirements",
+        "createdOn": "2026-11-13",
+        "sequence": 2,
+        "closedOn": "2026-11-13",
+        "closeReason": "changed"
+      },
+      {
+        "id": "waiting-request:room-booking:5",
+        "nodeId": "room-booking",
+        "ownerId": "jordan",
+        "ownerVersion": 0,
+        "recipientId": "maya",
+        "waitingOn": "Please confirm the room requirements",
+        "createdOn": "2026-11-13",
+        "sequence": 5,
+        "closedOn": null
+      }
+    ],
+    "candidates": [
+      {
+        "id": "[\"reminder\",\"waiting_on\",\"waiting-request:room-booking:5\"]",
+        "nodeId": "room-booking",
+        "ownerId": "jordan",
+        "ownerVersion": 0,
+        "recipientId": "maya",
+        "planKey": "[\"room-booking\",\"jordan\",0,\"2026-11-18\",\"2026-11-13\"]",
+        "reason": "waiting_on",
+        "scheduledOn": "2026-11-13",
+        "due": "2026-11-18",
+        "overdueDays": 0,
+        "explanation": "Jordan Patel is waiting on your help with “Reserve a room”. Open the task to see what is needed. Thank you for helping us move this forward.",
+        "waitingRequestId": "waiting-request:room-booking:5"
+      }
+    ]
+  },
+  "unknownWaiting": {
+    "blocked": [
+      {
+        "nodeId": "room-booking",
+        "reason": "unresolved_waiting"
+      }
+    ],
+    "deliveryCount": 0
+  },
+  "completed": {
+    "candidates": [],
+    "historyRetained": true
+  }
+}

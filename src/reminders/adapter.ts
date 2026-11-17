@@ -4,12 +4,11 @@ import { buildReminderFacts, buildReminderInput } from "./facts"
 import { confirmReminderDelivery, createReminderRuntime, planReminders, runAutomaticReminders, transitionReminderRuntime } from "./engine"
 import { runFollowupDay } from "../engine/followup"
 import { addDays } from "../lib/dates"
+import { isReminderRuntime } from "./runtime"
 
 /** Opt-in only. Unknown saved runtime versions are preserved but never executed. */
 export function remindersEnabled(s: DemoState): boolean {
-  const r = s.reminderRuntime
-  return !!r && r.version === 1 && Number.isSafeInteger(r.sequence) && r.sequence >= 0
-    && Array.isArray(r.updates) && Array.isArray(r.deliveries) && Array.isArray(r.waitingRequests)
+  return isReminderRuntime(s.reminderRuntime)
 }
 
 const facts = (s: DemoState) => s.nodes.flatMap(n => {
@@ -23,7 +22,9 @@ export function enableReminderPlan(s: DemoState): DemoState {
   const legacyUnresolvedNodeIds = [...new Set([...s.nudges.map(n => n.nodeId), ...s.protocolLog.filter(e => e.kind === "reminder" && e.recipientIds.length).map(e => e.nodeId)])]
   const initial = { ...createReminderRuntime(s.today), ...(legacyUnresolvedNodeIds.length ? { legacyUnresolvedNodeIds } : {}) }
   const runtime = transitionReminderRuntime({ today: s.today, actorId: s.viewerId, before: [], after: facts(s), runtime: initial })
-  const next = { ...s, reminderRuntime: runtime }
+  // An old case has no plan/assignment snapshot proving it still applies. Close it on explicit activation;
+  // retain all past entries, then let the new schedule establish any future leader follow-up.
+  const next = { ...s, reminderRuntime: runtime, silenceCases: s.silenceCases.map(c => c.closedOn ? c : { ...c, closedOn: s.today }) }
   return withRuntime(next, runAutomaticReminders(buildReminderInput(next, runtime)))
 }
 

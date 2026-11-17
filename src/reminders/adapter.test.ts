@@ -138,6 +138,18 @@ describe("stage one: actual reducer integration, without changing legacy activat
     expect(plan(later).ready).toEqual([])
   })
 
+  it("activation closes an unproven old silence case before it can replay obsolete leader escalations", () => {
+    const s = fixture()
+    const future = applySchedule({ ...s, nodes: s.nodes.map(n => ({ ...n, clubDeadlineOverride: "2026-12-04" })), silenceCases: [{ id: "old-case", nodeId: NODE, ownerId: "jordan", startedOn: "2026-10-22", closedOn: null }] })
+    const past: DemoState["protocolLog"] = [{ id: "old-private", caseId: "old-case", nodeId: NODE, day: 7, scheduledOn: "2026-10-29", recipientIds: ["alex"], kind: "private_check", text: "A previously recorded fictional check" }]
+    const enabled = enable({ ...future, protocolLog: past })
+    expect(enabled.silenceCases[0].closedOn).toBe(future.today)
+    expect(enabled.protocolLog).toEqual(past)
+    const later = reducer(enabled, { type: "advanceClock", days: 1 })
+    expect(later.protocolLog).toEqual(past)
+    expect(later.nodes.some(n => n.id.startsWith("retro:"))).toBe(false)
+  })
+
   it("does not guess old recipients or reset their budget when enabling over an old send", () => {
     const s = fixture("auto_email")
     const old = { id: "legacy-mail", nodeId: NODE, channel: "email" as const, text: "An old fictional mail", sentBy: "alex", sentOn: s.today, response: null }
@@ -169,7 +181,7 @@ describe("stage one: actual reducer integration, without changing legacy activat
 
   it("starting a new club workspace does not inherit the previous club's reminder requests", () => {
     const s = { ...replyWaiting(enable()), viewerId: "alex" }
-    const created = reducer(s, { type: "completeSetup", draft: clubDraft(s), event: null, date: s.today, inviteCode: "fresh-club" })
+    const created = reducer(s, { type: "completeSetup", draft: clubDraft(s), event: null, date: s.today, inviteCode: "00000000-0000-4000-8000-000000000001" })
     expect(created).not.toBe(s)
     expect(created.reminderRuntime).toBeUndefined()
     expect(s.reminderRuntime!.waitingRequests).toHaveLength(1)
