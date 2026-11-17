@@ -7,7 +7,7 @@ import { applySchedule, computeSchedule } from "../engine/schedule"
 import { isBudgetControlledNode } from "../engine/eventBudget"
 import { canClaimMatchingTask } from "../matching/adapters"
 
-export type TaskReply = "done" | "waiting" | "help" | "extension"
+export type TaskReply = "done" | "working" | "waiting" | "help" | "extension"
 export interface ReplyInput { waitingOn?: string; waitingOnPersonId?: string | null; draftLink?: string; requestedDate?: string; reason?: string }
 export const safeLink = (s: string) => { try { return ["https:", "http:"].includes(new URL(s).protocol) } catch { return false } }
 /** Whoever holds the president or vice-president role now. A former president keeps that role id for history, so the role's holder decides. */
@@ -24,7 +24,7 @@ export function addNotices(s: DemoState, nodeId: string, ids: string[], kind: No
 }
 
 /** Notifications stay in the intended person's local inbox; nothing is sent externally. */
-export function routeTaskChange(s: DemoState, n: Node, kind: "done" | "waiting" | "help" | "claim" | "extension" | "extended"): DemoState {
+export function routeTaskChange(s: DemoState, n: Node, kind: "done" | "working" | "waiting" | "help" | "claim" | "extension" | "extended"): DemoState {
   let next = s
   const key = `${n.id}:${kind}:${s.today}:${s.notifications.length}`
   const lead = leaders(s)
@@ -48,7 +48,7 @@ export function routeTaskChange(s: DemoState, n: Node, kind: "done" | "waiting" 
 }
 
 export function validateReply(s: DemoState, n: Node, actorId: string, reply: TaskReply, input: ReplyInput): string | null {
-  if (!["done", "waiting", "help", "extension"].includes(reply)) return "Choose one of the four status actions."
+  if (!["done", "working", "waiting", "help", "extension"].includes(reply)) return "Choose a supported task update."
   if (n.ownerId !== actorId && !isPresident(s, actorId)) return "Only this task's owner or the president can send an update."
   if (n.status === "done") return "This task is already complete."
   if (n.status === "unclaimed") return "Tap “I've got it” before updating this task."

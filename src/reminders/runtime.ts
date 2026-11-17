@@ -9,6 +9,10 @@ const day = (v: unknown) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(
 const nullable = (v: unknown, check: (v: unknown) => boolean) => v === null || check(v)
 const fields = (v: Record<string, unknown>, keys: string, check: (v: unknown) => boolean) => keys.split(" ").every(key => check(v[key]))
 const status = (v: unknown) => oneOf(v, "unclaimed|accepted|in_progress|waiting|blocked|done")
+const message = (v: unknown) => object(v) && fields(v, "subject body text taskUrl recipientId accessId", string)
+  && v.source === "rules" && v.checked === true && integer(v.wordCount) && (v.wordCount as number) <= 100
+  && oneOf(v.channel, "email|sms|whatsapp") && day(v.preparedOn) && nullable(v.intendedEmail, string)
+  && v.text === `${v.subject}\n\n${v.body}`
 
 /** A corrupt or newer saved ledger is retained for recovery, never partially executed or reset. */
 export function isReminderRuntime(value: unknown): value is ReminderRuntime {
@@ -22,16 +26,20 @@ export function isReminderRuntime(value: unknown): value is ReminderRuntime {
     return integer(v.ownerVersion)
   }
   if (!Array.isArray(value.updates) || !value.updates.every(v => entry(v)
-    && nullable(v.ownerId, string) && string(v.actorId) && day(v.on) && status(v.status) && typeof v.ownerReply === "boolean")) return false
+    && nullable(v.ownerId, string) && string(v.actorId) && day(v.on) && status(v.status) && typeof v.ownerReply === "boolean"
+    && (v.waitingRequestId === undefined || string(v.waitingRequestId))
+    && (v.waitingResponse === undefined || oneOf(v.waitingResponse, "acknowledged|provided")))) return false
   if (!Array.isArray(value.deliveries) || !value.deliveries.every(v => entry(v)
     && fields(v, "candidateId recipientId ownerId planKey recipientName taskTitle", string)
     && fields(v, "scheduledOn sentOn", day) && nullable(v.eventName, v => typeof v === "string") && nullable(v.due, day)
     && oneOf(v.reason, "start|due|overdue|waiting_on") && oneOf(v.via, "manual|platypus|automatic")
     && v.outcome === (v.via === "manual" ? "recorded_by_sender" : "simulated")
-    && (v.waitingRequestId === undefined || string(v.waitingRequestId)))) return false
+    && (v.waitingRequestId === undefined || string(v.waitingRequestId))
+    && (v.message === undefined || message(v.message)))) return false
   if (!Array.isArray(value.waitingRequests) || !value.waitingRequests.every(v => entry(v)
     && string(v.ownerId) && nullable(v.recipientId, string) && typeof v.waitingOn === "string"
     && day(v.createdOn) && nullable(v.closedOn, day)
-    && (v.closeReason === undefined || oneOf(v.closeReason, "resolved|changed|reassigned|completed|unavailable")))) return false
+    && (v.closeReason === undefined || oneOf(v.closeReason, "resolved|changed|reassigned|completed|unavailable"))
+    && (v.response === undefined ? v.respondedOn === undefined && v.responseBy === undefined : oneOf(v.response, "acknowledged|provided") && day(v.respondedOn) && string(v.responseBy)))) return false
   return value.legacyUnresolvedNodeIds === undefined || (Array.isArray(value.legacyUnresolvedNodeIds) && value.legacyUnresolvedNodeIds.every(string))
 }

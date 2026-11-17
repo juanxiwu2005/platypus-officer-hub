@@ -131,6 +131,7 @@ export function planReminders(input: ReminderInput): ReminderPlan {
     let candidates: ReminderCandidate[]
     if (task.status === "waiting") {
       const request = input.runtime.waitingRequests.find(value => value.nodeId === task.nodeId && !value.closedOn && sameWaiting(value, task))
+      if (request?.respondedOn) continue
       if (!request?.recipientId || request.recipientId === task.ownerId) { blocked.push({ nodeId: task.nodeId, reason: "unresolved_waiting" }); continue }
       if (!canReceive(people.get(request.recipientId), true)) { blocked.push({ nodeId: task.nodeId, recipientId: request.recipientId, reason: "unavailable_recipient" }); continue }
       const ownerName = people.get(task.ownerId)!.name

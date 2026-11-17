@@ -127,6 +127,9 @@ function TaskEdit({ node, recommended, due }: { node: Node; recommended: string;
     <summary>Edit</summary>
     <div className="form-stack tight">
       <label className="field"><span>Task name</span><input key={`${node.id}:${node.title}`} defaultValue={node.title} maxLength={100} onBlur={e => { const t = e.target.value.trim(); if (t && t !== node.title) update({ title: t }); else e.target.value = node.title }} onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur() }} /></label>
+      <label className="field"><span>Task instructions</span><textarea key={`${node.id}:instructions:${node.instructions ?? ""}`} defaultValue={node.instructions ?? ""} maxLength={1200} onBlur={e => { if (e.target.value.trim() !== (node.instructions ?? "")) update({ instructions: e.target.value }) }} /></label>
+      <label className="field"><span>Completion criteria</span><textarea key={`${node.id}:criteria:${node.completionCriteria ?? ""}`} defaultValue={node.completionCriteria ?? ""} maxLength={1200} onBlur={e => { if (e.target.value.trim() !== (node.completionCriteria ?? "")) update({ completionCriteria: e.target.value }) }} /></label>
+      <label className="field"><span>Why it matters</span><textarea key={`${node.id}:why:${node.why}`} defaultValue={node.why} maxLength={400} onBlur={e => { if (e.target.value.trim() !== node.why) update({ why: e.target.value.trim() }) }} /></label>
       <label className="field"><span>Owner</span>
         <select value={node.ownerId ?? ""} onChange={e => update({ ownerId: e.target.value || null })} data-testid="owner-select">
           <option value="">No owner</option>

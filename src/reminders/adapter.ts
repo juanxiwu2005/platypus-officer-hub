@@ -5,6 +5,8 @@ import { confirmReminderDelivery, createReminderRuntime, planReminders, runAutom
 import { runFollowupDay } from "../engine/followup"
 import { addDays } from "../lib/dates"
 import { isReminderRuntime } from "./runtime"
+import type { ReminderMailSnapshot } from "./accessContracts"
+import { validatedReminderMessage } from "./message"
 
 /** Opt-in only. Unknown saved runtime versions are preserved but never executed. */
 export function remindersEnabled(s: DemoState): boolean {
@@ -55,17 +57,22 @@ export function afterReminderAction(before: DemoState, result: DemoState, actorI
   return withRuntime(next, runAutomaticReminders(buildReminderInput(next, runtime)))
 }
 
-export function confirmPlannedReminder(s: DemoState, candidateId: string, via: ReminderDelivery["via"]): DemoState {
+export function confirmPlannedReminder(s: DemoState, candidateId: string, via: ReminderDelivery["via"], message?: ReminderMailSnapshot): DemoState {
   if (!remindersEnabled(s)) return s
-  return withRuntime(s, confirmReminderDelivery(buildReminderInput(s, s.reminderRuntime!), candidateId, via))
+  const candidate = planReminders(buildReminderInput(s, s.reminderRuntime!)).ready.find(c => c.id === candidateId)
+  const snapshot = message && candidate ? validatedReminderMessage(s, message, candidate.nodeId, candidateId) : null
+  if (message && !snapshot) return s
+  const runtime = confirmReminderDelivery(buildReminderInput(s, s.reminderRuntime!), candidateId, via)
+  if (runtime === s.reminderRuntime) return s
+  return withRuntime(s, snapshot ? { ...runtime, deliveries: runtime.deliveries.map((d, i) => i === runtime.deliveries.length - 1 ? { ...d, message: snapshot } : d) } : runtime)
 }
 
 /** Compatibility for the old manual-confirm action: only a currently eligible owner candidate can be recorded. */
-export function confirmLegacyPlannedReminder(s: DemoState, nodeId: string, via: "president" | "platypus" | undefined): DemoState {
+export function confirmLegacyPlannedReminder(s: DemoState, nodeId: string, via: "president" | "platypus" | undefined, message?: ReminderMailSnapshot): DemoState {
   if (!remindersEnabled(s)) return s
   const q = planReminders(buildReminderInput(s, s.reminderRuntime!))
   const candidate = q.ready.find(c => c.nodeId === nodeId && c.reason !== "waiting_on")
-  return candidate ? confirmPlannedReminder(s, candidate.id, via === "platypus" ? "platypus" : "manual") : s
+  return candidate ? confirmPlannedReminder(s, candidate.id, via === "platypus" ? "platypus" : "manual", message) : s
 }
 
 export function advancePlannedClock(s: DemoState, days: number): DemoState {

@@ -10,6 +10,7 @@ export interface ReminderTaskFacts {
   eventDate: string | null
   title: string
   requirement: string
+  completionCriteria?: string | null
   importance: string
   ownerId: string | null
   ownerVersion: number
@@ -25,6 +26,8 @@ export interface ReminderTaskFacts {
 }
 export type ReminderReason = "start" | "due" | "overdue" | "waiting_on"
 export interface ReminderUpdate {
+  waitingRequestId?: string
+  waitingResponse?: "acknowledged" | "provided"
   id: string
   sequence: number
   nodeId: string
@@ -47,8 +50,12 @@ export interface WaitingRequest {
   sequence: number
   closedOn: string | null
   closeReason?: "resolved" | "changed" | "reassigned" | "completed" | "unavailable"
+  response?: "acknowledged" | "provided"
+  respondedOn?: string
+  responseBy?: string
 }
 export interface ReminderDelivery {
+  message?: import("./accessContracts").ReminderMailSnapshot
   id: string
   candidateId: string
   nodeId: string

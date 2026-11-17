@@ -267,6 +267,9 @@ export type Anchor =
 
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
+  /** Optional human-authored instructions; reminder facts never invent missing details. */
+  instructions?: string
+  completionCriteria?: string
   matching?: import("../matching/businessContracts").MatchingNodeLink
   id: string
   title: string
@@ -317,6 +320,7 @@ export interface Node {
 }
 
 export interface Nudge {
+  message?: import("../reminders/accessContracts").ReminderMailSnapshot
   id: string
   nodeId: string
   channel: Channel
@@ -532,6 +536,7 @@ export interface ChangeSet {
 }
 
 export interface DemoState {
+  taskAccessGrants?: import("../reminders/accessContracts").TaskAccessGrant[]
   /** Rule-only reminders v1; absent on legacy saves until explicitly enabled. */
   reminderRuntime?: import("../reminders/contracts").ReminderRuntime
   matching?: import("../matching/contracts").MatchingState

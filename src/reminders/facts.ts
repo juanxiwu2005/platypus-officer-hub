@@ -14,6 +14,7 @@ function eventDay(value: string): string | null {
 }
 
 function requirement(node: Node, event: Event | undefined): string {
+  if (node.instructions?.trim()) return text(node.instructions)
   const count = event && Number.isInteger(event.headcount) && event.headcount > 0 ? ` for ${event.headcount} attendees` : ""
   const name = event?.name.trim()
   const day = event && eventDay(event.date)
@@ -63,6 +64,7 @@ export function buildReminderFacts(state: DemoState, nodeId: string): ReminderTa
     eventDate: event?.date ?? null,
     title: node.title,
     requirement: requirement(node, event),
+    completionCriteria: node.completionCriteria?.trim() || null,
     importance: importance(state, node, event),
     ownerId: node.ownerId,
     ownerVersion: node.ownerVersion ?? 0,

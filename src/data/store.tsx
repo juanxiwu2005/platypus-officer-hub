@@ -38,6 +38,10 @@ import type { MatchingSetupDocument } from "../matching/setupContracts"
 import type { MatchingTaskChoice } from "../matching/businessContracts"
 import { commandOrganizationMatching, importOrganizationMatching, initializeOrganizationMatching, refreshOrganizationMatchingCatalog, saveOrganizationSetup } from "../matching/organizationMatching"
 import { canClaimMatchingTask, matchingModeEnabled, prepareMatchingNodes, recordChangedMatchingOwners, validOrganizationMatching } from "../matching/adapters"
+import type { ReminderMailSnapshot, TaskAccessGrant, TaskAccessUpdate } from "../reminders/accessContracts"
+import { taskAccessIssueValid, usableTaskAccessGrant } from "../reminders/taskAccess"
+import { applyTaskAccessUpdate } from "../reminders/taskAccessActions"
+import { validatedReminderMessage } from "../reminders/message"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -98,7 +102,7 @@ function completeDemoSpeakerPlan(state: DemoState): DemoState {
 }
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
-export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
+export type NodePatch = Partial<Pick<Node, "title" | "instructions" | "completionCriteria" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "details">>
 
 export type Action =
@@ -151,9 +155,11 @@ export type Action =
   | { type: "undoAuto"; id: string }
   | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string; matchingRevision?: number }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
-  | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia }
+  | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia; message?: ReminderMailSnapshot }
   | { type: "enableReminderPlan" }
-  | { type: "confirmPlannedReminder"; candidateId: string; via: "manual" | "platypus" }
+  | { type: "confirmPlannedReminder"; candidateId: string; via: "manual" | "platypus"; message?: ReminderMailSnapshot }
+  | { type: "issueTaskAccessGrant"; grant: TaskAccessGrant }
+  | { type: "taskAccessAction"; token: string; update: TaskAccessUpdate }
   | { type: "claimTask"; nodeId: string }
   | { type: "replyTask"; nodeId: string; reply: TaskReply; input?: ReplyInput }
   | { type: "reviewExtension"; id: string; approve: boolean }
@@ -169,7 +175,7 @@ export type Action =
   | { type: "saveWorkflow"; steps: StepTemplate[] }
   | { type: "resetWorkflow" }
 
-const NODE_FIELDS: (keyof NodePatch)[] = ["title", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
+const NODE_FIELDS: (keyof NodePatch)[] = ["title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
 
 /**
@@ -243,6 +249,7 @@ function restoreEventNodes(state: DemoState, eventId: string, nodes: Node[]): De
 
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   const patch = pick(raw, NODE_FIELDS)
+  for (const field of ["instructions", "completionCriteria"] as const) if (patch[field] !== undefined) patch[field] = String(patch[field]).trim().slice(0, 1200)
   if (patch.title !== undefined) { const t = String(patch.title).trim().slice(0, 100); if (t) patch.title = t; else delete patch.title }
   if (patch.tags !== undefined) patch.tags = Array.isArray(patch.tags) ? [...new Set(patch.tags.filter(t => (state.org.board?.tags ?? []).some(x => x.id === t)))] : []
   if (patch.estDays !== undefined) patch.estDays = Math.max(0, Math.min(30, Math.round(Number(patch.estDays) || 0)))
@@ -310,16 +317,18 @@ export function reducer(state: DemoState, action: Action): DemoState {
       }
     }
     next = action.type === "replace" ? next : recordChangedMatchingOwners(state, next, state.viewerId, new Date().toISOString())
-    if (action.type === "completeSetup" && next.reminderRuntime) {
-      const { reminderRuntime: _previousReminders, ...workspace } = next
-      void _previousReminders
+    if (action.type === "completeSetup" && (next.reminderRuntime || next.taskAccessGrants)) {
+      const { reminderRuntime: _previousReminders, taskAccessGrants: _previousAccess, ...workspace } = next
+      void _previousReminders; void _previousAccess
       next = workspace
     }
     if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "advanceClock"].includes(action.type)) return next
     const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
-    const actorId = grant?.ownerId ?? state.viewerId
+    const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
+    const actorId = access?.recipientId ?? grant?.ownerId ?? state.viewerId
     const updated = action.type === "claimTask" || action.type === "replyTask" ? [action.nodeId]
       : action.type === "officerAction" && grant ? [grant.nodeId]
+      : action.type === "taskAccessAction" && access?.scope === "owner" ? [access.nodeId]
       : action.type === "moveTask" && state.nodes.find(n => n.id === action.nodeId)?.status !== next.nodes.find(n => n.id === action.nodeId)?.status ? [action.nodeId] : []
     return afterReminderAction(state, next, actorId, updated)
   } catch (error) {
@@ -331,7 +340,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
  * reads, works through their own handoff steps and switches view, but cannot claim, create or change tasks, contacts, events or settings.
  */
-const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput"])
+const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction"])
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "matchingInitialize": return initializeOrganizationMatching(state)
@@ -500,12 +509,20 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       return { ...next, changeSets: next.changeSets.map(c => c.id === change.id ? { ...c, ops, reviews, status } : c) }
     }
     case "enableReminderPlan": return canLead(state) ? enableReminderPlan(state) : state
-    case "confirmPlannedReminder": return canLead(state) ? confirmPlannedReminder(state, action.candidateId, action.via) : state
+    case "issueTaskAccessGrant": {
+      const g = action.grant
+      if ((state.taskAccessGrants !== undefined && !Array.isArray(state.taskAccessGrants)) || !taskAccessIssueValid(state, g) || state.taskAccessGrants?.some(old => old?.id === g.id)) return state
+      return { ...state, taskAccessGrants: [...(state.taskAccessGrants ?? []), g] }
+    }
+    case "taskAccessAction": return applyTaskAccessUpdate(state, action.token, action.update)
+    case "confirmPlannedReminder": return canLead(state) ? confirmPlannedReminder(state, action.candidateId, action.via, action.message) : state
     case "confirmNudgeSent": {
-      if (state.reminderRuntime) return canLead(state) ? confirmLegacyPlannedReminder(state, action.nodeId, action.via) : state
+      if (state.reminderRuntime) return canLead(state) ? confirmLegacyPlannedReminder(state, action.nodeId, action.via, action.message) : state
       const n = state.nodes.find(n => n.id === action.nodeId)
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
-      return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null, ...(action.via === "president" || action.via === "platypus" ? { via: action.via } : {}) }] }
+      const message = action.message ? validatedReminderMessage(state, action.message, n.id) : null
+      if (action.message && (!message || message.channel !== action.channel)) return state
+      return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: message?.text ?? action.text, sentBy: state.viewerId, sentOn: state.today, response: null, ...(message ? { message } : {}), ...(action.via === "president" || action.via === "platypus" ? { via: action.via } : {}) }] }
     }
     case "claimTask": { const node = state.nodes.find(n => n.id === action.nodeId); return node && canClaimMatchingTask(state, node, state.viewerId) ? claimTask(state, action.nodeId, state.viewerId) : state }
     case "replyTask": return replyToTask(state, action.nodeId, state.viewerId, action.reply, action.input)
