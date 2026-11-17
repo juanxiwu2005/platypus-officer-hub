@@ -82,15 +82,15 @@ const candidateOrder = (a: ReminderCandidate, b: ReminderCandidate) => a.schedul
 
 function explanation(reason: ReminderReason, today: string, scheduledOn: string, overdueDays: number) {
   if (scheduledOn > today) {
-    if (reason === "start") return "We will check in when the planned start date arrives."
-    if (reason === "due") return "We will check for a completion update on this task's due date."
-    return "If this task is still incomplete, we will follow up after its due date."
+    if (reason === "start") return "We will check in at the planned start."
+    if (reason === "due") return "We will check for completion when due."
+    return "We will follow up if still incomplete."
   }
   if (reason === "start") return today === scheduledOn
-    ? "Today is the planned start date for this task. Let us know if you need a hand."
-    : "The planned start date has passed. Could you share where things stand so we can help?"
-  if (overdueDays > 0) return `This task is ${overdueDays} day${overdueDays === 1 ? "" : "s"} past its due date. Could you share an update so we can work out the next step together?`
-  return "This task is due today, and no completion is recorded yet. A quick update will help us stay in sync."
+    ? "Today is our planned start. Can we help?"
+    : "The planned start has passed. Can we help?"
+  if (overdueDays > 0) return `${overdueDays} day${overdueDays === 1 ? "" : "s"} overdue. Can we help?`
+  return "Due today; no completion update yet. Can we help?"
 }
 
 function taskCandidate(task: ReminderTaskFacts, reason: "start" | "due" | "overdue", scheduledOn: string, today: string): ReminderCandidate {
@@ -138,7 +138,7 @@ export function planReminders(input: ReminderInput): ReminderPlan {
         id: JSON.stringify(["reminder", "waiting_on", request.id]), nodeId: task.nodeId, ownerId: task.ownerId,
         ownerVersion: task.ownerVersion, recipientId: request.recipientId, planKey: task.planKey, reason: "waiting_on",
         scheduledOn: request.createdOn, due: task.due, overdueDays: task.due ? Math.max(0, daysBetween(task.due, input.today)) : 0,
-        explanation: `${ownerName} is waiting on your help with “${task.title}”. Open the task to see what is needed. Thank you for helping us move this forward.`,
+        explanation: `${ownerName} is waiting on your help with “${task.title}”. Thank you.`,
         waitingRequestId: request.id,
       }]
     } else {

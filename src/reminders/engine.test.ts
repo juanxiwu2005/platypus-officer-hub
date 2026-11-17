@@ -57,7 +57,7 @@ describe("rule-written reminder candidates", () => {
   it("uses the rule-engine start and due, keeps start dates out of the reason sentence", () => {
     const result = planReminders(input())
     expect(result.ready[0]).toMatchObject({ reason: "start", scheduledOn: TODAY, due: "2027-03-31", overdueDays: 0 })
-    expect(result.ready[0].explanation).toContain("planned start date")
+    expect(result.ready[0].explanation).toContain("planned start")
     expect(result.ready[0].explanation).not.toMatch(/2027|Mar 28|Time to start/)
     expect(result.upcoming.map(candidate => [candidate.reason, candidate.scheduledOn])).toEqual([["due", "2027-03-31"], ["overdue", "2027-04-03"]])
   })
@@ -81,7 +81,7 @@ describe("rule-written reminder candidates", () => {
     expect(result.ready).toHaveLength(1)
     expect(result.ready[0]).toMatchObject({ reason, overdueDays })
     if (overdueDays) expect(result.ready[0].explanation).toContain(`${overdueDays} day`)
-    else if (reason === "due") expect(result.ready[0].explanation).toContain("due today")
+    else if (reason === "due") expect(result.ready[0].explanation).toMatch(/due today/i)
     else expect(result.ready[0].explanation).not.toContain("Today is")
   })
   it("never backfills an earlier stage after a later one was delivered", () => {
