@@ -21,7 +21,7 @@
 
 ## 怎样验收
 
-预览发布后，从 [PR #15 预览的 Tasks](https://deploy-preview-15--platypus-officer-hub.netlify.app/#/tasks) 打开一项已有负责人、尚未完成的任务，在 Details 点 Remind。先核对主题的活动/任务顺序、Task due、具体要求和感谢，再点唯一 Open task 链接；在任务页选择 Working on it，刷新后再选择 Done。
+预览发布后，从 Tasks 打开一项已有负责人、尚未完成的任务，在 Details 点 Remind。先核对主题的活动/任务顺序、Task due、具体要求和感谢，再点唯一 Open task 链接；在任务页选择 Working on it，刷新后再选择 Done。预览状态更正（2026-11-16，America/Phoenix）：此前推测的 PR #15 地址实际显示 Site not found，当前无有效在线预览链接；最新交付入口及部署障碍见[阶段三交付](REMINDER_STAGE3_HANDOFF.md#如何验收)。
 
 如要对比具体要求，在原任务 Details 的 Edit 中修改 Task instructions / Completion criteria / Why it matters，保存后重新打开提醒，正文与任务页应读取最新事实。办理按钮可能是学校的申请入口；已知只有入口页时明确写适用范围，不冒充已登录后的具体申请表。
 

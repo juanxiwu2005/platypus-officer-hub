@@ -1,5 +1,6 @@
-> **2026-11-16（America/Phoenix） · 提醒预览地址排查进行中（Codex）**
-> Juanxi 反馈此前给出的预览地址显示 Site not found。该地址没有已确认的部署记录，不能作为可用验收入口。正在核查托管能力、撤下无效链接并准备已验证构建的静态预览包；不合并 main、不发布正式网站。
+> **2026-11-16（America/Phoenix） · 提醒预览地址排查完成，在线验收待恢复部署连接（Codex）**
+> Juanxi 反馈此前给出的预览地址显示 Site not found。该地址未经实际部署核验，不再作为验收入口。当前对话无可用 Netlify 部署工具或绑定凭据，插件检索未找到可连接的 Netlify；Sites 返回工作区未启用，云环境也无预览端口。未创建站点或变更正式网站。
+> **替代交付：** 已将代码`8b591e1`的已验证静态构建打包为工作区文件`/workspace/shared/platypus-reminders-preview.zip`，61文件、1,181,252字节，ZIP完整性、根目录index.html与入口资源引用已通过检查。可在 Netlify Drop 新建独立预览站点上传；仅静态演示，不含服务器AI功能。该文件是工作区产物，不提交构建文件到仓库；恢复部署连接并实际部署核验后再登记在线地址。当前无有效在线预览链接。
 
 > **2026-11-16（America/Phoenix） · 提醒阶段三技术交付与独立复核完成，待验收（Codex 主 Agent；Details/Centre/Review独立Worktree Agent）**
 > **授权：** Juanxi 明确要求“继续阶段3”。按既定方案重排Details、统一提醒中心单条/批量/自动演示，提供新组织默认启用与旧存档显式兼容升级，保留实际历史和自定义设置。
@@ -450,6 +451,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | Codex（提醒预览排查） | 更正先前未经部署确认的预览链接；用户实际访问为Site not found。无Netlify部署连接、Sites未启用且无云预览端口。准备代码8b591e1的61文件静态ZIP并检查完整性、根index及资源引用。 | 当前无有效在线预览链接；工作区包`/workspace/shared/platypus-reminders-preview.zip`可在Netlify Drop新建独立静态预览。服务器AI不包含；恢复部署连接并实际核验后再发在线地址。仅文档更正与构建打包，无产品代码变化、main合并或正式发布。 |
 | 2026-11-16（America/Phoenix） | Codex（提醒S3；Details/Centre分树开发、独立Review） | 交付Details三段、完整规则邮件批量/自动通道、v2默认与显式升级、真实历史/回复、等待对象独立响应和受CAS保护的保存重试。最终8b591e1审阅无产品阻塞；浏览器134通过/4既有限制跳过，末次98项目标、lint/类型/build/字数通过；入口539,919/550,000。 | 先打开PR #15首页，旧存档点Enable updated reminders。详见`feedback-fix/REMINDER_STAGE3_HANDOFF.md`。完整单元1807过/2超时，Matching18复验过、calibration既有超时保留，不能称full check全绿。自动仅本地开页演示，真实投递/跨设备后续，线上403未验。`PRODUCT_PLAN.md`已更新，需要同步本地备份；不合并main。 |
 | 2026-11-16（America/Phoenix） | Codex（提醒S2；Mail/Page/Review独立worktree） | 交付纯规则单条邮件、可重复任务入口、独立页四状态、等待对象响应、任务要求编辑与已批准消息快照。最终候选e913464独立复核通过；330项单元/组件、67项兼容浏览器与最新候选10项、lint/类型/build/字数通过，入口545,608/550,000。三项P2及损坏存档边界已修复。 | 见 `feedback-fix/REMINDER_STAGE2_HANDOFF.md`。已合入匹配源分支5e301d9，保留双方交付；普通旧存档不自动启用新计划，批量/自动统一仍在阶段三。新链接仅同浏览器演示；真实发送与跨设备未接通，预览403未验。无真实AI或投递，不合并main。`PRODUCT_PLAN.md`已更新，需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（提醒 S1；Data/Rules/Review 独立 worktree） | 完成规则优先底层、Waiting on 对象路由和真实reducer适配，旧存档显式启用；修复旧计时、自动邮箱与坏runtime三项复核问题。最终202项、lint、前后端类型和build通过，入口549,819/550,000。见 `feedback-fix/REMINDER_STAGE1_HANDOFF.md`。 | 新邮件/独立任务页与Details尚未接UI，旧编辑器仍可能调用旧AI。新底层0AI；waiting对象仅明确现任成员；真实邮件未投递。只更新独立提醒分支，不改源分支、不合并main。`PRODUCT_PLAN.md` 已更新，需要同步本地备份。 |
