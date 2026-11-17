@@ -9,6 +9,7 @@ import { isOfficer } from "./permissions"
 import { syncSeasonRoles } from "./handoff"
 import { applySchedule } from "../engine/schedule"
 import { buildEventNodes } from "../engine/playbooks"
+import { initializeOrganizationMatching } from "../matching/organizationMatching"
 import { MAX_STEPS, PHASE_LIST, checkWorkflow, describeWorkflow, withOwners } from "../engine/workflow"
 import { seedDemo } from "./seed"
 import { withSampleScenario } from "./sampleScenario"
@@ -148,7 +149,7 @@ export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch,
  * `reminderMode` is the walkthrough's Reminders answer (P3-H): stored as org.settings.reminderMode, or left out (null/undefined: skipped,
  * or the classic page), so a club set up again without an answer never keeps an older one. Any other value refuses the setup.
  */
-export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null): DemoState {
+export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null, responsibilityMatching = false): DemoState {
   const planned = rawEvent !== null && rawEvent !== undefined
   if (!canLead(s) || validateClub(d) || (planned && (!validDate(eventDate) || eventDate < s.today)) || !/^[a-f0-9-]{36}$/i.test(inviteCode)) return s
   if (reminderMode !== undefined && reminderMode !== null && !isReminderMode(reminderMode)) return s
@@ -168,15 +169,16 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   const steps = workflow ? withOwners(workflow, roles) : undefined
   const nodes = event ? buildEventNodes(event, roles, steps ? { steps } : {}).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })) : []
   const { reminderMode: _earlier, ...kept } = s.org.settings; void _earlier
-  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, ...(reminderMode ? { reminderMode } : {}), ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  const club = applySchedule({ ...s, matching: undefined, matchingContext: undefined, viewerId: president.holderId!, org: { ...s.org, matchingWorkspaceId: undefined, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, matchingMode: undefined, ...(reminderMode ? { reminderMode } : {}), ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  return responsibilityMatching ? initializeOrganizationMatching(club) : club
 }
 
 /**
  * Start workspace (P3-A): the participant's club from setup, plus the sample scenario (three event templates, board tasks, risks,
  * funding, contacts, handoff season) moved onto the participant's roles and officers. A refused setup changes nothing.
  */
-export function startWorkspace(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null): DemoState {
-  const club = completeSetup(s, d, rawEvent, eventDate, inviteCode, taskDueDays, clubBufferBusinessDays, workflow, reminderMode)
+export function startWorkspace(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null, responsibilityMatching = false): DemoState {
+  const club = completeSetup(s, d, rawEvent, eventDate, inviteCode, taskDueDays, clubBufferBusinessDays, workflow, reminderMode, responsibilityMatching)
   return club === s ? s : withSampleScenario(club, seedDemo(club.today, "v2"))
 }
 

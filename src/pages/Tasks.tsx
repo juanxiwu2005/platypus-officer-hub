@@ -14,6 +14,8 @@ import { Avatar, Empty, NodePill, useStatusStyles } from "../components/ui"
 import { canLead } from "../data/changeReview"
 import { isOfficer, officers } from "../data/permissions"
 import { TaskTypeIcon } from "../components/TaskTypeIcon"
+import { matchingModeEnabled, validOrganizationMatching } from "../matching/adapters"
+import { emptyTaskSelection, TaskMatchingFields, validateTaskSelection, type TaskMatchingSelection } from "../matching/TaskMatchingFields"
 import { defaultTaskDue } from "../engine/taskDates"
 import { TaskDueFields } from "../components/rail/TaskFields"
 
@@ -93,7 +95,9 @@ const ANYONE = "__anyone"
  * The one date is the task's due date, from the rule engine's default (AGENTS.md rule 3); it goes through createTasks.
  */
 function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (text: string, changeSetId: string) => void }) {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, tryDispatch, getState } = useStore()
+  const matched = matchingModeEnabled(state)
+  const [matchingChoice, setMatchingChoice] = useState<TaskMatchingSelection>(emptyTaskSelection)
   const lead = canLead(state)
   const [title, setTitle] = useState("")
   const [assignee, setAssignee] = useState(state.viewerId)
@@ -110,18 +114,22 @@ function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
       const name = title.trim()
       if (!name) return setError("Give the task a name.")
       if (!/^\d{4}-\d{2}-\d{2}$/.test(due) || due < state.today) return setError("Pick a due date from today on.")
-      const ownerId = assignee === ANYONE ? null : assignee
+      const issue = matched ? validateTaskSelection(state, matchingChoice) : null
+      if (issue) return setError(issue)
+      const ownerId = matched ? matchingChoice.memberId : assignee === ANYONE ? null : assignee
       const id = `tasks-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-      dispatch({ type: "createTasks", id, sentence: name, tasks: [{ title: name, ownerId, eventId: null }], date: due, buffered: false, source: "Added on the Tasks page" })
-      onCreated(newTaskNotice(state, ownerId), id)
+      const action = { type: "createTasks" as const, id, sentence: name, tasks: [{ title: name, ownerId, eventId: null, ...(matched ? { responsibilityId: matchingChoice.responsibilityId, manualOverride: matchingChoice.manualOverride } : {}) }], date: due, buffered: false, source: "Added on the Tasks page", ...(matched ? { matchingRevision: validOrganizationMatching(state)?.revision } : {}) }
+      if (matched) { if (!tryDispatch(action)) return setError("The task could not be saved. Check the current library and assignment.") } else dispatch(action)
+      if (!getState().nodes.some(n => n.id.startsWith(id + ":"))) return setError("The task could not be created. Your inputs have been kept.")
+      onCreated(matched && !ownerId ? "Task created without an assignee. Review its responsibility and candidates." : newTaskNotice(state, ownerId), id)
       close()
     }}>
     <label className="new-task-name">Task name<input id="new-task-name" autoFocus value={title} maxLength={100} placeholder="e.g. Order name tags" aria-label="New task name" onChange={e => { setTitle(e.target.value); setError("") }} /></label>
-    <label>Assign to<select aria-label="Assign to" value={assignee} onChange={e => setAssignee(e.target.value)}>
+    {matched ? <TaskMatchingFields state={state} value={matchingChoice} onChange={setMatchingChoice} /> : <label>Assign to<select aria-label="Assign to" value={assignee} onChange={e => setAssignee(e.target.value)}>
       <option value={state.viewerId}>Me</option>
       {others.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
       {lead && <option value={ANYONE}>Anyone (open)</option>}
-    </select></label>
+    </select></label>}
     <div className="new-task-due"><TaskDueFields due={due} onDue={d => { setDue(d); setError("") }} /></div>
     {error && <p className="small late-text" role="alert">{error}</p>}
     <div className="new-task-buttons">

@@ -23,12 +23,13 @@ const REMINDERS = "founder.reminders"
  * Arriving here without planning and without skipping (an address typed by hand) still asks for the first event.
  */
 export function Confirm() {
-  const { state, dispatch } = useStore()
+  const { state, tryDispatch } = useStore()
   const { draft, clear } = useOnboardingDraft()
   const flow = useFlow()
   const navigate = useNavigate()
   const started = useRef(false)
   const [problem, setProblem] = useState("")
+  const [responsibilityMatching, setResponsibilityMatching] = useState(false)
   const noEvent = !draft.event && draft.skipped.includes(FIRST_EVENT)
   const planned = !!draft.event && validDate(draft.date) && draft.date >= state.today
   const ready = planned || noEvent
@@ -45,8 +46,8 @@ export function Confirm() {
     const error = validateClub(draft.club)
     if (error) { setProblem(error); return }
     started.current = true
+    if (!tryDispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, reminderMode, responsibilityMatching })) { started.current = false; setProblem("Your club could not be saved. Export your current data and retry before leaving this page."); return }
     recordSetup("start-workspace")
-    dispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, reminderMode })
     clear()
     navigate("/welcome/founder/invite")
   }
@@ -58,6 +59,7 @@ export function Confirm() {
       : <p className="ob-lead">{c.missing}</p>}
     {noEvent && <p className="small muted" data-testid="confirm-no-event">{c.noEvent}</p>}
     {ready && reminderMode && <p className="small muted" data-testid="confirm-reminders">{reminderLine(reminderMode)}</p>}
+    {ready && <label className="check-label"><input type="checkbox" checked={responsibilityMatching} onChange={event => setResponsibilityMatching(event.target.checked)} />Use responsibility matching for this club. Tasks stay unassigned until its responsibility library is reviewed.</label>}
     {ready && replaces && <p className="ob-c9-warn" data-testid="replace-warning">{c.replaceWarning}</p>}
     {replaces && <p className="fb3-cancel"><button type="button" className="link fb3-cancel-link" data-testid="confirm-cancel" onClick={() => { recordSetup("keep-demo"); flow.exit() }}>{c.cancel}</button></p>}
     {problem && <p role="alert" className="ob-c9-error">{problem}</p>}

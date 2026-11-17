@@ -25,7 +25,7 @@ export type ChatCard =
   // `thinking`: the assistant is still reading the message; `ai`: what it filled in (only empty, untouched fields take it).
   | { kind: "form"; id: string; prefill: Partial<PlanPrefill>; date: string; done?: boolean; thinking?: boolean; ai?: Partial<PlanPrefill> }
   /** The new-task form (M2b). owners are person or role IDs; one task is made per person. */
-  | { kind: "taskform"; id: string; title: string; owners: string[]; eventId: string | null; due: string; done?: boolean; changeSetId?: string; thinking?: boolean; ai?: { title: string; owners: string[]; eventId: string | null } }
+  | { kind: "taskform"; id: string; title: string; owners: string[]; eventId: string | null; due: string; done?: boolean; changeSetId?: string; thinking?: boolean; matchingChoice?: import("../matching/TaskMatchingFields").TaskMatchingSelection; ai?: { title: string; owners: string[]; eventId: string | null } }
   /** Move an event to a date the person typed. The rule engine recomputes every step after it. */
   | { kind: "eventdate"; eventId: string; date: string; done?: boolean }
   | { kind: "tasks"; title: string; nodeIds: string[]; remind?: boolean }

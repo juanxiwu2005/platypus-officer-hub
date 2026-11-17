@@ -21,7 +21,7 @@ export function downloadSetup(raw: string, fileName = "responsibility-setup.json
 
 type SetupController = Omit<MatchingSetupViewProps, "document" | "onExample"> & { document: MatchingSetupDocument | null; recoveryRaw: string | null }
 
-export function useMatchingSetup(initial: MatchingSetupInitial, actorId: string, canEdit: boolean, storage: MatchingStorage = browserStorage, aiEnabled = true): SetupController {
+export function useMatchingSetup(initial: MatchingSetupInitial, actorId: string, canEdit: boolean, storage: MatchingStorage = browserStorage, aiEnabled = true, externalDocument?: MatchingSetupDocument): SetupController {
   const [loaded] = useState(() => loadSetupDocument(storage, initial))
   const [document, setDocument] = useState(loaded.document)
   const [error, setError] = useState(loaded.error)
@@ -96,6 +96,18 @@ export function useMatchingSetup(initial: MatchingSetupInitial, actorId: string,
       persist(finishSetupRead(current.current, read.id, actorId, { status: "interrupted", message: "This reading was interrupted. Start a new reading only when you choose to retry." }), true)
     }
   }, [canEdit])
+
+  useEffect(() => {
+    const previous = current.current
+    if (!externalDocument || !previous || unsaved.current || externalDocument.revision < previous.revision) return
+    if (externalDocument.revision === previous.revision && externalDocument.matching.revision === previous.matching.revision
+      && JSON.stringify(externalDocument.references) === JSON.stringify(previous.references)) return
+    current.current = externalDocument; expected.current = externalDocument.revision
+    setDocument(externalDocument)
+    if (active.current && externalDocument.reads.find(r => r.id === active.current!.id)?.status !== "pending") {
+      active.current.controller.abort(); active.current = null; setBusy(false)
+    }
+  }, [externalDocument])
 
   const onRead: MatchingSetupViewProps["onRead"] = (source, targetRoleIds) => {
     if (!authority.current || !current.current || active.current) return

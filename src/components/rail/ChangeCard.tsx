@@ -10,6 +10,10 @@ import { Feedback } from "../Feedback"
 import { RULES } from "../../data/rules"
 import { officers } from "../../data/permissions"
 import { useRail } from "./RailContext"
+import type { MatchingConfirmation } from "../../matching/businessContracts"
+import { matchingModeEnabled, validOrganizationMatching } from "../../matching/adapters"
+import { EventAssignmentReview } from "../../matching/EventAssignmentReview"
+import { emptyTaskSelection, TaskMatchingFields, validateTaskSelection, type TaskMatchingSelection } from "../../matching/TaskMatchingFields"
 
 
 /** A change set inside the Ask panel. Each item is checked, edited and approved one by one (plan §8). */
@@ -45,10 +49,12 @@ function ChangeReview({ change, onNudge }: { change: ChangeSet; onNudge: (id: st
 }
 
 function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; initial: CommandOp; index: number; onNudge: (id: string) => void }) {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, tryDispatch } = useStore()
   const navigate = useNavigate()
   const rail = useRail()
   const [op, setOp] = useState(initial)
+  const [matching, setMatching] = useState<MatchingConfirmation | undefined>()
+  const [taskChoice, setTaskChoice] = useState<TaskMatchingSelection>(emptyTaskSelection)
   const canNudge = canApplyOp(state, initial)
   // Dates come only from the original human sentence, the club's task length setting, or this form — never the AI.
   const [date, setDate] = useState(humanEventDate(change.sentence, state.today) || (initial.op === "add_node" && !initial.eventId ? defaultTaskDue(state) : ""))
@@ -60,9 +66,14 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
   const tierSelect = (tier: Tier, update: (value: Tier) => void) => <label>Difficulty<select aria-label="Difficulty" value={tier} onChange={e => update(e.target.value as Tier)}>{TIERS.map(t => <option key={t}>{t}</option>)}</select></label>
   function apply() {
     // FB-5: a standalone task has one date, Due, so no club buffer is taken off it.
-    const problem = validateReview(state, op, { date, buffered: false })
+    const singleIssue = matchingModeEnabled(state) && op.op === "add_node" ? validateTaskSelection(state, taskChoice) : null
+    if (singleIssue) { setError(singleIssue); return }
+    const actualMatching = matchingModeEnabled(state) && op.op === "add_node" && validOrganizationMatching(state)
+      ? { revision: state.matching!.revision, choices: { [`${change.id}:${index}`]: taskChoice } } : matching
+    const problem = validateReview(state, op, { date, buffered: false, matching: actualMatching })
     if (problem) { setError(problem); return }
-    dispatch({ type: "reviewChange", id: change.id, index, decision: "applied", op, human: { date, buffered: false } })
+    const action = { type: "reviewChange" as const, id: change.id, index, decision: "applied" as const, op, human: { date, buffered: false, matching: actualMatching } }
+    if (matchingModeEnabled(state)) { if (!tryDispatch(action)) { setError("The plan could not be saved. Review the current responsibility settings and try again."); return } } else dispatch(action)
     setError("")
     if (op.op === "propose_nudge") onNudge(op.nodeId)
     if (op.op === "create_event") setTimeout(() => {
@@ -86,14 +97,15 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
         <label className="check-label"><input type="checkbox" checked={op.speaker} onChange={e => setOp({ ...op, speaker: e.target.checked })} /> Guest speaker or performer</label>
         <label>Details<textarea rows={2} maxLength={500} value={op.details ?? ""} onChange={e => setOp({ ...op, details: e.target.value })} /></label>
         <p className="small muted">Steps and deadlines come from the club playbook after approval.</p>
+        {matchingModeEnabled(state) && <EventAssignmentReview state={state} op={op} eventId={`${change.id}:${index}`} date={date} onChange={setMatching} />}
       </>}
       {op.op === "add_node" && <>
         <label>Task title<input value={op.title} maxLength={100} onChange={e => setOp({ ...op, title: e.target.value })} /></label>
         <label>Event<select value={op.eventId ?? ""} onChange={e => setOp({ ...op, eventId: e.target.value || null })}><option value="">Standalone task</option>{state.events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}</select></label>
         {!op.eventId && <TaskDueFields due={date} onDue={setDate} />}
-        {ownerSelect(op.ownerId, ownerId => setOp({ ...op, ownerId }))}{tierSelect(op.tier, tier => setOp({ ...op, tier }))}
+        {matchingModeEnabled(state) ? <TaskMatchingFields state={state} value={taskChoice} onChange={setTaskChoice} /> : ownerSelect(op.ownerId, ownerId => setOp({ ...op, ownerId }))}{tierSelect(op.tier, tier => setOp({ ...op, tier }))}
       </>}
-      {op.op === "assign_owner" && <>{nodeSelect(op.nodeId, nodeId => setOp({ ...op, nodeId }))}{ownerSelect(op.ownerId, ownerId => setOp({ ...op, ownerId }))}</>}
+      {op.op === "assign_owner" && <>{nodeSelect(op.nodeId, nodeId => setOp({ ...op, nodeId }))}{ownerSelect(op.ownerId, ownerId => setOp({ ...op, ownerId }))}{matchingModeEnabled(state) && <p className="small muted">Applying this change explicitly reassigns this one task. Any responsibility gap is recorded as a one-task exception.</p>}</>}
       {op.op === "set_tier" && <>{nodeSelect(op.nodeId, nodeId => setOp({ ...op, nodeId }))}{tierSelect(op.tier, tier => setOp({ ...op, tier }))}</>}
       {op.op === "link_dependency" && <>{nodeSelect(op.nodeId, nodeId => setOp({ ...op, nodeId }))}{nodeSelect(op.dependsOnId, dependsOnId => setOp({ ...op, dependsOnId }), "Must wait for")}</>}
       {op.op === "propose_nudge" && nodeSelect(op.nodeId, nodeId => setOp({ ...op, nodeId }))}
