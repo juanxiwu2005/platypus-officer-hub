@@ -296,9 +296,9 @@ export function reducer(state: DemoState, action: Action): DemoState {
   try {
     let next = normalizeTerms(baseReducer(state, action))
     if (next === state) return state
-    if (matchingModeEnabled(next)) {
+    if (matchingModeEnabled(next) && !["matchingInitialize", "matchingImport", "replace"].includes(action.type)) {
       const sameWorkspace = next.org.matchingWorkspaceId === state.org.matchingWorkspaceId
-      const existing = new Set(sameWorkspace ? state.nodes.map(n => n.id) : [])
+      const existing = new Set(action.type === "completeSetup" && !sameWorkspace ? [] : state.nodes.map(n => n.id))
       const fresh = next.nodes.filter(n => !existing.has(n.id) && !n.matching && n.status !== "done")
       if (fresh.length) {
         const result = prepareMatchingNodes(next, fresh)
@@ -306,7 +306,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
         next = { ...next, ...result, nodes: next.nodes.map(n => byId.get(n.id) ?? n) }
       }
     }
-    return recordChangedMatchingOwners(state, next, state.viewerId, new Date().toISOString())
+    return action.type === "replace" ? next : recordChangedMatchingOwners(state, next, state.viewerId, new Date().toISOString())
   } catch (error) {
     if (action.type.startsWith("matching") || (error instanceof Error && error.name === "MatchingError")) return state
     throw error
@@ -340,11 +340,11 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     }
     case "matchingAssignTask": {
       const node = state.nodes.find(n => n.id === action.nodeId)
-      if (!canLead(state) || !node?.matching || node.status === "done") return state
+      if (!canLead(state) || !matchingModeEnabled(state) || !node?.matching || node.status === "done") return state
       const result = prepareMatchingNodes(state, [node], { workflowId: node.matching.workflowId, confirmation: { revision: action.revision, choices: { [node.id]: action.choice } } })
       const selected = result.nodes[0]
-      if (selected.ownerId === node.ownerId && node.status !== "unclaimed") { selected.status = node.status; selected.acceptedOn = node.acceptedOn }
-      return applySchedule({ ...state, ...result, nodes: state.nodes.map(n => n.id === node.id ? selected : n) })
+      const beforeTransfer = { ...state, ...result, nodes: state.nodes.map(n => n.id === node.id ? { ...n, matching: selected.matching } : n) }
+      return applySchedule(updateNode(beforeTransfer, node.id, { ownerId: selected.ownerId }))
     }
     case "handoffAction": return changeHandoff(state,action.action)
     case "roleChange": return changeRole(state,action.change)
@@ -546,6 +546,7 @@ export type StorageNotice =
   | { kind: "restored_demo"; why: "version" | "unreadable"; fromVersion: number | null; backupKey: string | null; raw: string }
   /** Saving to this browser failed (storage full or blocked). Work since the last good save exists only on screen. */
   | { kind: "save_failed" }
+  | { kind: "migration_blocked"; fromVersion: 22; backupKey: null; raw: string }
 
 const store = () => window.localStorage
 
@@ -580,7 +581,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   // Matching S3 rollback checkpoint: retain v23 fields verbatim. Keep this reader when rolling back feature writes.
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 23 && Array.isArray(parsed.people) && Array.isArray(parsed.roles) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: normalizeTerms(parsed), notice: null }
   if (parsed && typeof parsed === "object" && parsed.schemaVersion === 22 && Array.isArray(parsed.people) && Array.isArray(parsed.roles) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
-    if (!backUp(raw, "v22")) return { state: parsed, notice: { kind: "save_failed" } }
+    if (!backUp(raw, "v22")) return { state: parsed, notice: { kind: "migration_blocked", fromVersion: 22, backupKey: null, raw } }
     // S3 only adds optional matching fields; all existing tasks, people and history stay intact.
     return { state: normalizeTerms({ ...parsed, schemaVersion: SCHEMA_VERSION }), notice: null }
   }
@@ -908,7 +909,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   if (rootRef.current === null) rootRef.current = root
   const commit = useCallback((next: Root) => { if (next !== rootRef.current) { rootRef.current = next; setRoot(next) } }, [])
   // If the old data could not be backed up, keep it in place (do not overwrite it) until the person has downloaded it.
-  const [held, setHeld] = useState(boot.notice?.kind === "restored_demo" && boot.notice.backupKey === null)
+  const [held, setHeld] = useState(boot.notice?.kind === "migration_blocked" || (boot.notice?.kind === "restored_demo" && boot.notice.backupKey === null))
   const [notice, setNotice] = useState<StorageNotice | null>(boot.notice)
   const [saveFailed, setSaveFailed] = useState(false)
   // Data and log are saved separately: a click changes only the log, so the (larger) demo data is not rewritten for it.
@@ -940,10 +941,11 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }), [commit])
   // The real clock is read here, once per action, and travels with it into the log.
   const dispatch = useCallback((action: Action) => {
+    if (held && boot.notice?.kind === "migration_blocked") return
     const before = rootRef.current!
     if (["completeSetup", "replace"].includes(action.type) && before.app.matching && !backUp(JSON.stringify(before.app), `matching-${before.app.org.matchingWorkspaceId ?? "prior"}`)) { setSaveFailed(true); return }
     const at = Date.now(); commit(loggedReducer(before, { action, at, session: sessionAt(at) }))
-  }, [commit, sessionAt])
+  }, [commit, sessionAt, held, boot.notice])
   const tryDispatch = useCallback((action: Action) => {
     if (held) return false
     const before = rootRef.current!, at = Date.now(), next = loggedReducer(before, { action, at, session: sessionAt(at) })
@@ -975,7 +977,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   return <StoreContext.Provider value={value}>
     {shown && <StorageBanner notice={shown} onDownload={() => {
       if (shown.kind === "save_failed") downloadExport(rootRef.current!.app, rootRef.current!.log)
-      else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); setHeld(false) }
+      else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); if (shown.kind !== "migration_blocked") setHeld(false) }
     }} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
     {children}
   </StoreContext.Provider>
@@ -983,6 +985,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
 
 /** Says out loud that data was restored or could not be saved. Uses existing classes only. */
 function StorageBanner({ notice, onDownload, onDismiss }: { notice: StorageNotice; onDownload: () => void; onDismiss?: () => void }) {
+  if (notice.kind === "migration_blocked") return <div role="alert" className="save-status err" data-testid="storage-banner">Your saved organization is intact. Its upgrade could not be backed up, so changes are paused. Download the original data, then reload to retry the upgrade. <button type="button" className="btn small" onClick={onDownload}>Download original data</button></div>
   if (notice.kind === "save_failed")
     return <div role="alert" className="save-status err" data-testid="storage-banner">Your latest changes could not be saved in this browser (storage is full or blocked). They will be lost if you close this tab. <button type="button" className="btn small" onClick={onDownload}>Download my data</button></div>
   const what = notice.why === "version" ? `This demo was updated, so your earlier data (version ${notice.fromVersion}) could not be opened and the example club was restored.` : "Your saved data could not be read, so the example club was restored."

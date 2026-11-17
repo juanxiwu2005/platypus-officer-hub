@@ -5,6 +5,7 @@ import { isPresident } from "./permissions"
 import { validDate } from "../lib/commands"
 import { applySchedule, computeSchedule } from "../engine/schedule"
 import { isBudgetControlledNode } from "../engine/eventBudget"
+import { canClaimMatchingTask } from "../matching/adapters"
 
 export type TaskReply = "done" | "waiting" | "help" | "extension"
 export interface ReplyInput { waitingOn?: string; waitingOnPersonId?: string | null; draftLink?: string; requestedDate?: string; reason?: string }
@@ -65,7 +66,7 @@ export function closeSilence(s: DemoState, nodeId: string): DemoState {
 }
 export function claimTask(s: DemoState, nodeId: string, actorId: string): DemoState {
   const n = s.nodes.find(n => n.id === nodeId)
-  if (!n || n.status !== "unclaimed" || (n.ownerId && n.ownerId !== actorId) || !s.people.some(p => p.id === actorId)) return s
+  if (!n || n.status !== "unclaimed" || (n.ownerId && n.ownerId !== actorId) || !s.people.some(p => p.id === actorId) || !canClaimMatchingTask(s, n, actorId)) return s
   const claimed: Node = { ...n, ownerId: actorId, status: "accepted", acceptedOn: s.today, lastUpdate: s.today, assignedOn: n.assignedOn ?? s.today }
   const next = closeSilence({ ...s, nodes: s.nodes.map(x => x.id === n.id ? claimed : x), nudges: s.nudges.map(x => x.nodeId === n.id ? { ...x, response: "accepted" } : x) }, n.id)
   return routeTaskChange(applySchedule(next), claimed, "claim")
