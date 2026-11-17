@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { reducer } from "../data/store"
 import { newObjects } from "../data/changeReview"
 import { buildEventNodes } from "../engine/playbooks"
+import { seedDemo } from "../data/seed"
 import { getMatchingCandidates, resolveMatchingAssignment } from "./resolve"
 import { organizationMatchingReferences } from "./adapters"
 import { stage3Club, stage3Command, stage3CreateEvent, stage3References, stage3Requirement, STAGE3_EVENT_DATE, STAGE3_EVENT_OP, STAGE3_ROBOT_WORKFLOW } from "./stage3Fixtures"
@@ -58,6 +59,22 @@ describe("stage 3: actual event creation uses confirmed responsibility decisions
     expect(next.matching!.assignments).toEqual(changed.matching!.assignments)
   })
 
+  it("accepts two decisions from one preview revision as one group without mistaking the first receipt for an external conflict", () => {
+    const state = stage3Club()
+    const next = stage3CreateEvent(state, "two-decisions", { revision: state.matching!.revision, choices: { venue: { memberId: "maya" }, plan: { memberId: "jordan" } } })
+    expect(next.nodes.find(n => n.id === "two-decisions:0:venue")!.ownerId).toBe("maya")
+    expect(next.nodes.find(n => n.id === "two-decisions:0:plan")!.ownerId).toBe("jordan")
+    expect(next.matching!.assignments.filter(a => a.taskId.startsWith("two-decisions:0:"))).toHaveLength(2)
+  })
+
+  it("refuses confirmation of an unknown qualification unless a human explicitly chooses a one-task exception", () => {
+    const state = stage3Club()
+    const next = stage3CreateEvent(state, "unqualified-choice", { revision: state.matching!.revision, choices: { venue: { memberId: "sam" } } })
+    expect(next.events).toEqual(state.events)
+    expect(next.nodes).toEqual(state.nodes)
+    expect(next.matching!.assignments).toEqual([])
+  })
+
   it("reuses the same organization duty in a second actual custom template without taking its legacy ownerRoleId", () => {
     let state = stage3Club()
     state = reducer(state, { type: "saveWorkflow", steps: STAGE3_ROBOT_WORKFLOW })
@@ -81,6 +98,20 @@ describe("stage 3: actual event creation uses confirmed responsibility decisions
 })
 
 describe("stage 3: actual standalone tasks and historical owners", () => {
+  it("uses one task in a real 12-person organization even when many custom positions share a duty", () => {
+    const seed = seedDemo(undefined, "v2")
+    const extra = Array.from({ length: 7 }, (_, index) => ({ ...seed.people[1], id: `fictional-builder-${index + 1}`, roleId: `r-fictional-builder-${index + 1}`, name: `Fictional Builder ${index + 1}`, email: `builder-${index + 1}@example.org` }))
+    let state = stage3Club({ ...seed, people: [...seed.people, ...extra], roles: [...seed.roles, ...extra.map(person => ({ id: person.roleId, holderId: person.id, displayName: `Fabrication Specialist ${person.id.at(-1)}`, fn: "programs" as const, reportsToId: "r-pres" }))] })
+    state = stage3References(state, references => ({ ...references, members: references.members.map(member => ({ ...member, qualifications: { "campus-room-access": "confirmed" } })) }))
+    for (const person of extra) state = stage3Command(state, { type: "memberBinding.upsert", value: { id: `direct-${person.id}`, memberId: person.id, responsibilityId: "fixture-space", decision: "include", confirmed: true } })
+    expect(state.people).toHaveLength(12)
+    expect(getMatchingCandidates(state.matching!, organizationMatchingReferences(state), "fixture-space").filter(c => c.eligibility === "eligible").length).toBeGreaterThan(2)
+    const next = reducer(state, { type: "createTasks", id: "large-team-task", sentence: "Reserve the robot lab.", tasks: [{ title: "Reserve the robot lab", ownerId: "maya", responsibilityId: "fixture-space", eventId: null }], matchingRevision: state.matching!.revision, date: STAGE3_EVENT_DATE, buffered: false })
+    expect(next.nodes).toHaveLength(state.nodes.length + 1)
+    expect(next.nodes.find(n => n.id === "large-team-task:0")!.ownerId).toBe("maya")
+    expect(next.matching!.assignments.filter(a => a.taskId === "large-team-task:0")).toHaveLength(1)
+  })
+
   it("creates one qualified task, records the duty and requires the selected member to claim", () => {
     const state = stage3Club()
     const next = reducer(state, { type: "createTasks", id: "qualified-task", sentence: "Reserve the lab.", tasks: [{ title: "Reserve the lab", ownerId: "maya", eventId: null, responsibilityId: "fixture-space" }], date: STAGE3_EVENT_DATE, buffered: false, matchingRevision: state.matching!.revision })
@@ -121,8 +152,20 @@ describe("stage 3: actual standalone tasks and historical owners", () => {
     expect(state.matching!.assignments.find(a => a.id === receipt.id)).toEqual(receipt)
     const next = reducer(state, { type: "updateNode", id: "history-event:0:venue", patch: { ownerId: "jordan" } })
     expect(next.nodes.find(n => n.id === "history-event:0:venue")!.ownerId).toBe("jordan")
+    expect(next.nodes.find(n => n.id === "history-event:0:venue")!.status).toBe("unclaimed")
     expect(next.matching!.assignments.find(a => a.id === receipt.id)).toEqual(receipt)
     expect(next.matching!.assignments.filter(a => a.taskId === "history-event:0:venue")).toHaveLength(2)
+  })
+
+  it("retains prior receipts when a human clears an owner and does not restore them on a later default change", () => {
+    const original = stage3Club()
+    let state = stage3CreateEvent(original, "clear-owner", { revision: original.matching!.revision, choices: { venue: { memberId: "maya" } } })
+    const receipts = structuredClone(state.matching!.assignments)
+    state = reducer(state, { type: "updateNode", id: "clear-owner:0:venue", patch: { ownerId: null } })
+    expect(state.matching!.assignments).toEqual(receipts)
+    expect(state.matchingContext!.overrides.at(-1)).toMatchObject({ taskId: "clear-owner:0:venue", memberId: null })
+    state = stage3Command(state, { type: "policy.upsert", value: { id: "fixture-space-policy", responsibilityId: "fixture-space", primaryMemberId: "jordan", backupMemberId: "maya" } })
+    expect(state.nodes.find(n => n.id === "clear-owner:0:venue")!.ownerId).toBeNull()
   })
 
   it("keeps budget-controlled completion blocked even when a matching task has an owner", () => {

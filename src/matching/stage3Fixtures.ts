@@ -40,8 +40,8 @@ export function stage3Requirement(state: DemoState, workflowId: string, stepId: 
   } })
 }
 
-export function stage3Club(): DemoState {
-  let state = initializeOrganizationMatching(seedDemo(undefined, "v2"))
+export function stage3Club(initial: DemoState = seedDemo(undefined, "v2")): DemoState {
+  let state = initializeOrganizationMatching(initial)
   state = stage3References(state, references => ({ ...references, members: references.members.map((member): MatchingMember => {
     const qualifications: MatchingMember["qualifications"] = {}
     if (member.id === "maya" || member.id === "jordan") qualifications["campus-room-access"] = "confirmed"
