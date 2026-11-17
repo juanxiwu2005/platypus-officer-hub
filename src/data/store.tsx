@@ -32,11 +32,6 @@ import { BUILD_INFO } from "../lib/buildInfo"
 import { normalizeTerms } from "./roleTerms"
 import { isOfficer } from "./permissions"
 import { changeRole, type RoleChange } from "./roleChanges"
-import type { MatchingCommand } from "../matching/contracts"
-import type { MatchingSetupDocument } from "../matching/setupContracts"
-import type { MatchingTaskChoice } from "../matching/businessContracts"
-import { commandOrganizationMatching, importOrganizationMatching, initializeOrganizationMatching, refreshOrganizationMatchingCatalog, saveOrganizationSetup } from "../matching/organizationMatching"
-import { canClaimMatchingTask, matchingModeEnabled, prepareMatchingNodes, recordChangedMatchingOwners, validOrganizationMatching } from "../matching/adapters"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -101,13 +96,6 @@ export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubD
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "details">>
 
 export type Action =
-  | { type: "matchingInitialize" }
-  | { type: "matchingImport"; preview: MatchingSetupDocument }
-  | { type: "matchingMode"; enabled: boolean }
-  | { type: "matchingSave"; document: MatchingSetupDocument; expectedRevision: number }
-  | { type: "matchingCommand"; command: MatchingCommand }
-  | { type: "matchingLinkTask"; nodeId: string; responsibilityId: string | null }
-  | { type: "matchingAssignTask"; nodeId: string; choice: MatchingTaskChoice; revision: number }
   | { type: "handoffAction"; action:HandoffAction }
   | { type: "roleChange"; change: RoleChange }
   | { type: "reportOutput"; outputId:string; text:string }
@@ -148,7 +136,7 @@ export type Action =
   | { type: "draftChanges"; changeSet: ChangeSet }
   | { type: "aiAutoApply"; changeSet: ChangeSet }
   | { type: "undoAuto"; id: string }
-  | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string; matchingRevision?: number }
+  | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
   | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia }
   | { type: "claimTask"; nodeId: string }
@@ -162,7 +150,7 @@ export type Action =
   | { type: "officerAction"; token: string; reply: TaskReply | "claim"; input?: ReplyInput }
   | { type: "saveClubSettings"; draft: ClubDraft; defaults: OrgSettings }
   | { type: "saveProfile"; personId: string; patch: ProfilePatch; invite?: string }
-  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number; workflow?: StepTemplate[]; reminderMode?: ReminderMode | null; responsibilityMatching?: boolean }
+  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number; workflow?: StepTemplate[]; reminderMode?: ReminderMode | null }
   | { type: "saveWorkflow"; steps: StepTemplate[] }
   | { type: "resetWorkflow" }
 
@@ -252,9 +240,8 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
       // A president's normal workflow assignment is ready to do. Only deliberately
       // unassigned executive work stays in the Not claimed inbox.
       if ("ownerId" in patch && patch.ownerId !== n.ownerId && n.status !== "done") {
-        const accepted = !!patch.ownerId && ((!matchingModeEnabled(state) && !n.matching) || patch.ownerId === state.viewerId)
-        next.status = accepted ? "accepted" : "unclaimed"
-        next.acceptedOn = accepted ? state.today : null
+        next.status = patch.ownerId ? "accepted" : "unclaimed"
+        next.acceptedOn = patch.ownerId ? state.today : null
         next.assignedOn = state.today
         next.ownerVersion = (n.ownerVersion ?? 0) + 1
       }
@@ -293,24 +280,7 @@ function cleanBudgetPatch(raw: Partial<Omit<BudgetLineItem, "id">>): Partial<Omi
 /** Every action, then keep role terms in step with who holds what (src/data/roleTerms.ts). Returns the same object when nothing changed. */
 export function reducer(state: DemoState, action: Action): DemoState {
   if (!READ_ONLY_OK.has(action.type) && state.people.some(p => p.id === state.viewerId && !isOfficer(p))) return state
-  try {
-    let next = normalizeTerms(baseReducer(state, action))
-    if (next === state) return state
-    if (matchingModeEnabled(next) && !["matchingInitialize", "matchingImport", "replace"].includes(action.type)) {
-      const sameWorkspace = next.org.matchingWorkspaceId === state.org.matchingWorkspaceId
-      const existing = new Set(action.type === "completeSetup" && !sameWorkspace ? [] : state.nodes.map(n => n.id))
-      const fresh = next.nodes.filter(n => !existing.has(n.id) && !n.matching && n.status !== "done")
-      if (fresh.length) {
-        const result = prepareMatchingNodes(next, fresh)
-        const byId = new Map(result.nodes.map(n => [n.id, n]))
-        next = { ...next, ...result, nodes: next.nodes.map(n => byId.get(n.id) ?? n) }
-      }
-    }
-    return action.type === "replace" ? next : recordChangedMatchingOwners(state, next, state.viewerId, new Date().toISOString())
-  } catch (error) {
-    if (action.type.startsWith("matching") || (error instanceof Error && error.name === "MatchingError")) return state
-    throw error
-  }
+  return normalizeTerms(baseReducer(state, action))
 }
 /**
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
@@ -319,33 +289,6 @@ export function reducer(state: DemoState, action: Action): DemoState {
 const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput"])
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
-    case "matchingInitialize": return initializeOrganizationMatching(state)
-    case "matchingImport": return importOrganizationMatching(state, action.preview)
-    case "matchingSave": return saveOrganizationSetup(state, action.document, action.expectedRevision)
-    case "matchingCommand": return commandOrganizationMatching(state, action.command)
-    case "matchingMode": return canLead(state) && (!action.enabled || !!validOrganizationMatching(state)) ? { ...state, org: { ...state.org, settings: { ...state.org.settings, matchingMode: action.enabled ? "responsibilities" : "legacy" } } } : state
-    case "matchingLinkTask": {
-      if (!canLead(state) || !validOrganizationMatching(state)) return state
-      const node = state.nodes.find(n => n.id === action.nodeId)
-      if (!node) return state
-      const workflowId = node.eventId ? `task:${node.id}` : "standalone", stepId = node.eventId ? "work" : node.id
-      const existing = state.matching!.requirements.find(r => r.workflowId === workflowId && r.stepId === stepId)
-      let next = commandOrganizationMatching(state, { type: "requirement.upsert", value: {
-        id: existing?.id ?? crypto.randomUUID(), workflowId, stepId, title: node.title, responsibilityId: action.responsibilityId,
-        status: action.responsibilityId && state.matching!.responsibilities.some(r => r.id === action.responsibilityId && r.status === "confirmed") ? "confirmed" : "draft", origin: "manual",
-      } })
-      if (next === state) return state
-      next = { ...next, nodes: next.nodes.map(n => n.id === node.id ? { ...n, matching: { workflowId, stepId, responsibilityId: action.responsibilityId, reason: "assignment_needs_review" } } : n) }
-      return next
-    }
-    case "matchingAssignTask": {
-      const node = state.nodes.find(n => n.id === action.nodeId)
-      if (!canLead(state) || !matchingModeEnabled(state) || !node?.matching || node.status === "done") return state
-      const result = prepareMatchingNodes(state, [node], { workflowId: node.matching.workflowId, confirmation: { revision: action.revision, choices: { [node.id]: action.choice } } })
-      const selected = result.nodes[0]
-      const beforeTransfer = { ...state, ...result, nodes: state.nodes.map(n => n.id === node.id ? { ...n, matching: selected.matching } : n) }
-      return applySchedule(updateNode(beforeTransfer, node.id, { ownerId: selected.ownerId }))
-    }
     case "handoffAction": return changeHandoff(state,action.action)
     case "roleChange": return changeRole(state,action.change)
     case "reportOutput": return state.feedback.some(f=>f.outputId===action.outputId&&f.reportedBy===state.viewerId)?state:{...state,feedback:[...state.feedback,{id:`report:${nextCounter(state.feedback.map(f=>f.id),/^report:(\d+)/)}`,outputId:action.outputId.slice(0,20000),text:action.text.slice(0,10000),reportedBy:state.viewerId,on:state.today,resolved:false}]}
@@ -465,11 +408,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
           case "add_node": {
             const id = `${change.id}:${action.index}`
             next = { ...state, ...newObjects(state, clean, id, action.human ?? {}) }
-            if (clean.op === "add_node") {
-              const created = next.nodes.find(n => n.id === id)!
-              next = assignedNotice(next, created)
-              if (matchingModeEnabled(state)) op = { ...clean, ownerId: created.ownerId }
-            }
+            if (clean.op === "add_node") next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
             next = applySchedule(next)
             break
           }
@@ -489,7 +428,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
       return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null, ...(action.via === "president" || action.via === "platypus" ? { via: action.via } : {}) }] }
     }
-    case "claimTask": { const node = state.nodes.find(n => n.id === action.nodeId); return node && canClaimMatchingTask(state, node, state.viewerId) ? claimTask(state, action.nodeId, state.viewerId) : state }
+    case "claimTask": return claimTask(state, action.nodeId, state.viewerId)
     case "replyTask": return replyToTask(state, action.nodeId, state.viewerId, action.reply, action.input)
     case "reviewExtension": return reviewExtension(state, action.id, action.approve)
     case "advanceClock": return canLead(state) ? advanceClock(state, action.days) : state
@@ -519,16 +458,14 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "officerAction": {
       const grant = usableGrant(state, action.token)
       if (!grant) return state
-      const node = state.nodes.find(n => n.id === grant.nodeId)
-      if (action.reply === "claim" && (!node || !canClaimMatchingTask(state, node, grant.ownerId))) return state
       const next = action.reply === "claim" ? claimTask(state, grant.nodeId, grant.ownerId) : replyToTask(state, grant.nodeId, grant.ownerId, action.reply, action.input)
       if (next === state) return state
       return { ...next, officerGrants: next.officerGrants.map(g => g.id === grant.id ? { ...g, usedOn: state.today } : g) }
     }
     case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
     case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
-    case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode, action.responsibilityMatching)
-    case "saveWorkflow": { const next = saveWorkflow(state, action.steps); return next === state ? state : refreshOrganizationMatchingCatalog(next) }
+    case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode)
+    case "saveWorkflow": return saveWorkflow(state, action.steps)
     case "resetWorkflow": return resetWorkflow(state)
   }
 }

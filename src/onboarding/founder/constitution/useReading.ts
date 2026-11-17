@@ -14,12 +14,11 @@ type Update = (fn: (d: OnboardingDraft) => OnboardingDraft) => void
  * The AI reads the constitution in the background while the president keeps going: first part=structure (departments, roles, who reports to whom),
  * then part=duties, six positions at a time. It is the same job as `startReading` in pages/Setup.tsx, with the results written into the walkthrough draft.
  *
- * WHY THIS IS NOT A COMPONENT'S STATE: the job has to keep running after the president folds the constitution section or leaves the Team screen
- * (FB-2: the constitution is a section of the Team screen, constitution/ConstitutionPicker.tsx; it used to be a screen of its own). This package may not edit the
+ * WHY THIS IS NOT A COMPONENT'S STATE: the job has to keep running after the president leaves the Constitution screen. This package may not edit the
  * draft provider or the shell, so the job lives here at module level, keyed by the document checksum, and writes through `sink`, the provider's stable
  * `update` function that the screen hands over (`bindDraft`).
  * LIMITS (also in docs/onboarding-redesign/reports/OB-04.md):
- *  - The sink is the provider of the last constitution section that was shown. The job only ever runs inside a walkthrough that has shown it.
+ *  - The sink is the provider of the last Constitution screen that was shown. The job only ever runs inside a walkthrough that has shown that screen.
  *  - If the walkthrough is left (Save & exit) the provider is gone: the writes are ignored by React and the job simply ends. Nothing is kept.
  *  - Every write checks that the draft still holds the same document (by checksum), so a job can never write into another document's draft.
  *  - Reloading the page loses a job in progress; the draft keeps the document and the shell starts the job again (useResumeReading).
@@ -91,7 +90,7 @@ export function useResumeReading() {
   }, [draft.doc, draft.reading.status, draft.applied, update, state.aiEnabled])
 }
 
-/** For the constitution section on the Team screen: hands the draft's update function to the job, and gives the section start and stop. */
+/** For the Constitution screen: hands the draft's update function to the job, and gives the screen start and stop. */
 export function useReading() {
   const { update, draft } = useOnboardingDraft()
   const { state } = useStore()

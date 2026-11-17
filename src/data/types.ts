@@ -27,6 +27,7 @@ export interface Goal {
 }
 
 export interface OrgSettings {
+  /** Withdrawn prototype setting: retained for lossless export, ignored by runtime. */
   matchingMode?: "legacy" | "responsibilities"
   /** Club deadline = official deadline minus this many business days (plan §4, mechanism 1). */
   clubBufferBusinessDays: number
@@ -107,6 +108,7 @@ export interface EventWorkflow {
 }
 
 export interface Org {
+  /** Archived responsibility workspace identity; not an account or permission. */
   matchingWorkspaceId?: string
   id: string
   name: string
@@ -267,7 +269,8 @@ export type Anchor =
 
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
-  matching?: import("../matching/businessContracts").MatchingNodeLink
+  /** Archived responsibility metadata: preserve without interpreting or applying it. */
+  matching?: unknown
   id: string
   title: string
   eventId: string | null
@@ -532,8 +535,9 @@ export interface ChangeSet {
 }
 
 export interface DemoState {
-  matching?: import("../matching/contracts").MatchingState
-  matchingContext?: import("../matching/businessContracts").OrganizationMatchingContext
+  /** Archived prototype snapshots: retained verbatim for export and future explicit recovery. */
+  matching?: unknown
+  matchingContext?: unknown
   schemaVersion: number
   /** The date the demo treats as "today" (simulated clock, WP3). */
   today: string

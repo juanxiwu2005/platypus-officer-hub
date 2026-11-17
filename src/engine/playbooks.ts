@@ -315,15 +315,13 @@ export function calibratedStep(s: StepTemplate): StepTemplate {
 
 /** Turn the playbook into nodes for one event. A normal workflow step is assigned
  * straight to its accountable officer; only work with no owner is unclaimed. */
-export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[]; ownerMode?: "legacy" | "unassigned" } = {}): Node[] {
+export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[] } = {}): Node[] {
   const president = roleFor(roles, "president")
   const perHead = opts.fundingAmount && e.headcount ? opts.fundingAmount / e.headcount : 0
   // The legacy graph (pre-v1.0 records without checks) is never calibrated; the standard and club workflows are (FB-6).
   const calibrate = !!opts.steps || e.checks !== undefined
   return stepsFor(e, opts.steps).map(step => calibrate ? calibratedStep(step) : step).map(s => {
     const role = (s.ownerRoleId ? roles.find(r => r.id === s.ownerRoleId) : undefined) ?? roleFor(roles, s.fn)
-    // In responsibility mode this role lookup supplies existing RACI metadata only; it never selects an executor.
-    const ownerId = opts.ownerMode === "unassigned" ? null : role?.holderId ?? null
     const ruleIds = [...(s.ruleIds ?? [])]
     if (s.key === "closeout" && perHead >= 25) ruleIds.push("R12")
     return {
@@ -333,7 +331,7 @@ export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?:
       stepKey: s.key,
       phase: s.phase,
       fn: s.fn,
-      ownerId,
+      ownerId: role?.holderId ?? null,
       approverRoleId: role?.id === president?.id ? null : president?.id ?? null,
       consultedRoleIds: unique((s.consulted ?? []).map(f => roleFor(roles, f)?.id).filter(isStr).filter(id => id !== role?.id)),
       informedRoleIds: unique((s.informed ?? []).map(f => roleFor(roles, f)?.id).filter(isStr).filter(id => id !== role?.id)),
@@ -347,8 +345,8 @@ export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?:
       clubDeadline: null,
       latestStart: null,
       ruleIds: unique(ruleIds),
-      status: ownerId ? "accepted" : "unclaimed",
-      acceptedOn: ownerId ? e.date : null,
+      status: role?.holderId ? "accepted" : "unclaimed",
+      acceptedOn: role?.holderId ? e.date : null,
       waitingOn: null,
       draftLink: null,
       why: s.why,

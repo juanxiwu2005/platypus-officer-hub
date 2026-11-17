@@ -18,8 +18,6 @@ import { policySourceById } from "../../data/policyCatalog"
 import { answerSummary, emitUi } from "../../lib/uiLog"
 import { readAiBudget } from "../../lib/api"
 import { AiWait } from "../AiWait"
-import { matchingModeEnabled, validOrganizationMatching } from "../../matching/adapters"
-import { emptyTaskSelection, TaskMatchingFields, validateTaskSelection } from "../../matching/TaskMatchingFields"
 
 const CHAT_KEY = "platypus.v1.chat"
 const load = (): ChatMsg[] => {
@@ -30,7 +28,7 @@ const uid = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(
 
 /** The Ask tab: the one AI conversation, available from every page (v1.1 decision 1). */
 export function AskPanel() {
-  const { state, dispatch, tryDispatch, getState } = useStore()
+  const { state, dispatch } = useStore()
   const { person } = useViewer()
   const rail = useRail()
   const location = useLocation()
@@ -229,14 +227,9 @@ export function AskPanel() {
   function submitTask(msgId: string, index: number, c: Extract<ChatCard, { kind: "taskform" }>) {
     const id = `tasks-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
     const people = ownersToPeople(c.owners, state.people, state.roles)
-    const choice = c.matchingChoice ?? emptyTaskSelection, matched = matchingModeEnabled(state)
-    const tasks = matched ? [{ title: c.title, ownerId: choice.memberId, eventId: c.eventId, responsibilityId: choice.responsibilityId, manualOverride: choice.manualOverride }]
-      : (people.length ? people : [null]).map(ownerId => ({ title: c.title, ownerId, eventId: c.eventId }))
-    const action = { type: "createTasks" as const, id, sentence: c.title, tasks, date: c.due, buffered: false, source: "Your task form", ...(matched ? { matchingRevision: validOrganizationMatching(state)?.revision } : {}) }
-    if (matched) { if (!tryDispatch(action)) return false } else dispatch(action)
-    if (!getState().nodes.some(n => n.id.startsWith(id + ":"))) return false
+    const tasks = (people.length ? people : [null]).map(ownerId => ({ title: c.title, ownerId, eventId: c.eventId }))
+    dispatch({ type: "createTasks", id, sentence: c.title, tasks, date: c.due, buffered: false, source: "Your task form" })
     patchCard(msgId, index, { ...c, done: true, changeSetId: id })
-    return true
   }
   const suggestions = SUGGESTIONS[location.pathname] ?? SUGGESTIONS["/"]
   // The same row sits with the greeting before the first message, and at the foot of the panel afterwards (never both).
@@ -392,9 +385,8 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
 }
 
 /** The task form (M2b): name, owners as tags, and one date, Due (FB-5). */
-function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform" }>; onDone: (c: Extract<ChatCard, { kind: "taskform" }>) => boolean | void }) {
+function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform" }>; onDone: (c: Extract<ChatCard, { kind: "taskform" }>) => void }) {
   const { state } = useStore()
-  const matched = matchingModeEnabled(state)
   const [c, setC] = useState(card)
   const [error, setError] = useState("")
   const touched = useRef(new Set<string>())
@@ -415,19 +407,18 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
     e.preventDefault()
     if (!c.title.trim()) return setError("Give the task a name.")
     if (!/^\d{4}-\d{2}-\d{2}$/.test(c.due) || c.due < state.today) return setError("Pick a due date from today on.")
-    if (matched) { const issue = validateTaskSelection(state, c.matchingChoice ?? emptyTaskSelection); if (issue) return setError(issue) }
-    if (onDone({ ...c, title: c.title.trim(), thinking: false }) === false) setError("The task could not be saved. Review the current candidates; your inputs have been kept.")
+    onDone({ ...c, title: c.title.trim(), thinking: false })
   }}>
     <b>New task</b>
     {card.thinking && <p className="small muted" data-testid="ai-reading">AI is reading your message and will fill in what it can…</p>}
     {filled && <p className="small muted" data-testid="ai-filled">AI filled in what you told it. Check and change anything.</p>}
     <label>Task name<input aria-label="Task name" name="platypus-task-title" autoComplete="off" value={c.title} maxLength={100} onChange={e => edit({ title: e.target.value })} placeholder="e.g. Order name tags" /></label>
-    {matched ? <TaskMatchingFields state={state} value={c.matchingChoice ?? emptyTaskSelection} onChange={matchingChoice => edit({ matchingChoice })} /> : <OwnerPicker value={c.owners} onChange={owners => edit({ owners })} />}
-    {!matched && people > 1 && <p className="small muted">Makes {people} tasks, one for each person, so everyone has their own deadline.</p>}
-    {!matched && !c.owners.length && <p className="small muted">{canLead(state) ? "No owner yet: anyone can claim it." : "No owner: it will be yours."}</p>}
+    <OwnerPicker value={c.owners} onChange={owners => edit({ owners })} />
+    {people > 1 && <p className="small muted">Makes {people} tasks, one for each person, so everyone has their own deadline.</p>}
+    {!c.owners.length && <p className="small muted">{canLead(state) ? "No owner yet: anyone can claim it." : "No owner: it will be yours."}</p>}
     <TaskDueFields due={c.due} onDue={due => edit({ due })} />
     {error && <p className="small late-text" role="alert">{error}</p>}
-    <button className="btn btn-primary" type="submit">{!matched && people > 1 ? `Create ${people} tasks` : "Create task"}</button>
+    <button className="btn btn-primary" type="submit">{people > 1 ? `Create ${people} tasks` : "Create task"}</button>
   </form>
 }
 

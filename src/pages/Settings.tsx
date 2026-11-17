@@ -40,7 +40,7 @@ export default function Settings() {
   const [tab, setTab] = useState<Tab>(canNudge ? "club" : "me")
   const active = tabs.some(t => t.id === tab) ? tab : "me"
   return <>
-    <PageHead path="/settings" actions={canNudge ? <Link className="btn" to="/matching">Set up responsibilities</Link> : undefined} />
+    <PageHead path="/settings" />
     <div className="settings">
       <nav className="settings-nav" aria-label="Settings sections">{tabs.map(t => <button key={t.id} type="button" aria-current={active === t.id ? "page" : undefined} onClick={() => setTab(t.id)}>{t.label}</button>)}</nav>
       <div className="settings-body">
@@ -99,7 +99,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
           {defaults.reminderMode && <p id="settings-reminder-mode-body" className="small muted">{onboardingCopy.founder.reminders.options[defaults.reminderMode].body}</p>}
         </fieldset>
         <label>When you assign a task, you expect it finished within<select aria-label="Usual task length" value={defaults.taskDueDays ?? 5} onChange={e => setDefaults({ ...defaults, taskDueDays: Number(e.target.value) })}>{TASK_DUE_CHOICES.map(d => <option key={d} value={d}>{d} days</option>)}</select></label>
-        <p className="small muted">Tasks have one date: Due. It starts that many days from today; anyone can choose another. The club buffer only moves event steps with an ASU deadline.</p>
+        <p className="small muted">A new task has one date, Due. It starts that many days from today, and anyone can pick another. The club buffer only moves event steps with an ASU deadline.</p>
         <fieldset><legend className="small muted">Who can create events</legend>
           {([["leads", "President and VP"], ["chosen", "President, VP and officers I choose"], ["everyone", "Every officer"]] as const).map(([v, label]) => <label key={v} className="check-label"><input type="radio" name="event-creators" checked={(defaults.eventCreators ?? "leads") === v} onChange={() => setDefaults({ ...defaults, eventCreators: v })} />{label}</label>)}
           {defaults.eventCreators === "chosen" && <div className="form-stack">{officers(state).filter(p => !["president", "vice_president"].includes(state.roles.find(r => r.id === p.roleId)?.fn ?? "")).map(p => <label key={p.id} className="check-label"><input type="checkbox" checked={(defaults.eventCreatorIds ?? []).includes(p.id)} onChange={e => setDefaults({ ...defaults, eventCreatorIds: e.target.checked ? [...(defaults.eventCreatorIds ?? []), p.id] : (defaults.eventCreatorIds ?? []).filter(id => id !== p.id) })} />{p.name}</label>)}</div>}

@@ -5,6 +5,8 @@ import { OnboardingShell } from "./onboarding/shell/OnboardingShell"
 import { ComingSoon } from "./onboarding/gate/ComingSoon"
 import { OnboardingDraftProvider } from "./onboarding/draft"
 import { Name } from "./onboarding/founder/Name"
+import { Constitution } from "./onboarding/founder/Constitution"
+import { Goals } from "./onboarding/founder/Goals"
 import { Team as OnboardingTeam } from "./onboarding/founder/Team"
 import { FirstEvent } from "./onboarding/founder/FirstEvent"
 import { ReminderMode } from "./onboarding/founder/ReminderMode"
@@ -36,7 +38,6 @@ const Officer = lazy(() => import("./pages/Officer"))
 const Setup = lazy(() => import("./pages/Setup"))
 const Join = lazy(() => import("./pages/Join"))
 const PhaseOne = lazy(() => import("./phase1/PhaseOne"))
-const MatchingPage = lazy(() => import("./matching/MatchingPage"))
 
 function screen(children: ReactNode, label: string, fullPage = false) {
   return <Suspense fallback={<RouteLoading label={label} fullPage={fullPage} />}>{children}</Suspense>
@@ -47,9 +48,7 @@ export default function App() {
     <Routes>
       <Route path="welcome" element={<OnboardingDraftProvider><OnboardingShell /></OnboardingDraftProvider>}>
         <Route index element={<Welcome />} /><Route path="start" element={<StartWalkthrough />} /><Route path="test/president" element={<TestWalkthrough to="/welcome/founder/name" />} /><Route path="test/invite" element={<TestWalkthrough to="/welcome/member/invitation" />} /><Route path="classic" element={screen(<Setup />, "Preparing organization setup…", true)} /><Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
-        <Route path="founder/name" element={<Name />} /><Route path="founder/team" element={<OnboardingTeam />} /><Route path="founder/first-event" element={<FirstEvent />} /><Route path="founder/reminders" element={<ReminderMode />} /><Route path="founder/confirm" element={<Confirm />} /><Route path="founder/invite" element={<Invite />} />
-        {/* ob-5 (FB-2): the Constitution and Goals screens are gone; an old address opens the Team screen, which now holds the constitution (the mission is on Name). */}
-        <Route path="founder/constitution" element={<Navigate to="/welcome/founder/team" replace />} /><Route path="founder/goals" element={<Navigate to="/welcome/founder/team" replace />} />
+        <Route path="founder/name" element={<Name />} /><Route path="founder/constitution" element={<Constitution />} /><Route path="founder/goals" element={<Goals />} /><Route path="founder/team" element={<OnboardingTeam />} /><Route path="founder/first-event" element={<FirstEvent />} /><Route path="founder/reminders" element={<ReminderMode />} /><Route path="founder/confirm" element={<Confirm />} /><Route path="founder/invite" element={<Invite />} />
         <Route path="member/invitation" element={<Invitation />} /><Route path="member/you" element={<You />} /><Route path="member/reminders" element={<Reminders />} /><Route path="member/busy-weeks" element={<BusyWeeks />} /><Route path="member/about" element={<About />} /><Route path="member/done" element={<Done />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>
@@ -64,7 +63,7 @@ export default function App() {
         <Route path="events" element={screen(<Events />, "Loading events…")} />
         <Route path="tasks" element={screen(<Tasks />, "Loading tasks…")} />
         <Route path="team" element={screen(<Team />, "Loading your team…")} />
-        <Route path="matching" element={screen(<MatchingPage />, "Opening responsibility setup…")} />
+        <Route path="matching" element={<Navigate to="/settings" replace />} />
         <Route path="funding" element={<Navigate to="/events" replace />} />
         <Route path="handoff" element={screen(<Handoff />, "Loading handoff…")} />
         <Route path="partners" element={screen(<Partners />, "Loading partners…")} />

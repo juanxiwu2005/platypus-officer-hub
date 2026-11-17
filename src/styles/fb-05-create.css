@@ -36,16 +36,8 @@
 .new-task-buttons .btn { min-height: 40px; }
 .board-notice .link { margin-left: var(--s4); }
 
-/* Matching includes a candidate explanation: give it a full row rather than the legacy assignee column. */
-.new-task-form:has(> .task-matching-fields) { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
-.new-task-form > .task-matching-fields { grid-column: 1 / -1; grid-row: 2; }
-.new-task-form .task-matching-fields .check-label { justify-content: flex-start; }
-.new-task-form .task-matching-fields input[type="checkbox"] { width: var(--s6); height: var(--s6); min-height: 0; padding: 0; }
-
 @media (max-width: 860px) {
   .new-task-form { grid-template-columns: minmax(0, 1fr); }
-  .new-task-form:has(> .task-matching-fields) { grid-template-columns: minmax(0, 1fr); }
-  .new-task-form > .task-matching-fields { grid-row: auto; }
   .new-event, .new-task { justify-content: flex-start; }
   .new-event-why, #new-task-why { text-align: left; }
 }

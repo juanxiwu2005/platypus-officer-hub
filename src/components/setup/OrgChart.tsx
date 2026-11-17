@@ -7,7 +7,6 @@ const CARD_W = 148, CARD_H = 52, GAP_X = 16, GAP_Y = 36
 /**
  * A small organization chart worked out by the engine from each role's "reports to": the president at the top, a line from each
  * role up to the role it reports to. Titles only. It updates as the roles above are edited, so the president can check the setup.
- * An advisor stands beside the president, joined by a dashed line (FB-2); a one-line legend under the chart then says what the two lines mean.
  */
 export function OrgChart({ roles }: { roles: Role[] }) {
   const chart = orgChart(roles)
@@ -16,10 +15,8 @@ export function OrgChart({ roles }: { roles: Role[] }) {
   const width = Math.max(CARD_W, chart.columns * (CARD_W + GAP_X) - GAP_X), height = chart.levels * (CARD_H + GAP_Y) - GAP_Y
   const at = new Map(chart.nodes.map(n => [n.id, n]))
   const bossName = (id: string) => { const e = chart.edges.find(x => x.to === id && !x.kind); return e ? at.get(e.from)?.title : undefined }
-  // The president (else the first top role that is not an advisor) is where the chart is read from: on a narrow screen it opens with that box in the middle.
-  const presidentId = roles.find(r => r.fn === "president")?.id
-  const top = chart.nodes.find(n => n.id === presidentId) ?? chart.nodes.find(n => n.level === 0 && !n.advisor) ?? chart.nodes[0]
-  const advises = chart.edges.some(e => e.kind === "advisory")
+  // The top role (level 0, not an advisor) is where the chart is read from: on a narrow screen it opens with that box in the middle.
+  const top = chart.nodes.find(n => n.level === 0 && !n.advisor) ?? chart.nodes[0]
   const topCenter = top ? x(top.col) + CARD_W / 2 : 0
   const scroller = useRef<HTMLDivElement>(null)
   const touched = useRef(false)   // once the person scrolls the chart, editing the roles above never moves it again
@@ -67,7 +64,6 @@ export function OrgChart({ roles }: { roles: Role[] }) {
       </div>
     </div>
     </div>
-    {advises && <p className="org-legend" data-testid="org-legend"><span className="org-key org-key-solid" aria-hidden="true" />Solid line: reports to · <span className="org-key org-key-dashed" aria-hidden="true" />Dashed line: advises</p>}
-    <ul className="sr-only">{chart.nodes.map(n => <li key={n.id}>{n.title}{bossName(n.id) ? `, reports to ${bossName(n.id)}` : chart.edges.some(e => e.kind === "advisory" && e.to === n.id) ? ", advises the president" : n.advisor ? ", advisor" : ", top of the chart"}</li>)}</ul>
+    <ul className="sr-only">{chart.nodes.map(n => <li key={n.id}>{n.title}{bossName(n.id) ? `, reports to ${bossName(n.id)}` : n.advisor ? ", advisor, shown beside the president with a dashed line" : ", top of the chart"}</li>)}</ul>
   </section>
 }

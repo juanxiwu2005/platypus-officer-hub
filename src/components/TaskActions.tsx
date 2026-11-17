@@ -6,7 +6,6 @@ import { validateReply, type ReplyInput, type TaskReply } from "../data/taskWork
 import { STATUS_ACTIONS } from "../lib/nudges"
 import { isPresident } from "../data/permissions"
 import { isBudgetControlledNode } from "../engine/eventBudget"
-import { canClaimMatchingTask } from "../matching/adapters"
 
 /** The reminder's reply links keep their keys; on the screen "done" is the one primary button, the rest sit in a row of small ones. */
 const SECONDARY = STATUS_ACTIONS.filter(a => a.key !== "done")
@@ -38,12 +37,11 @@ export function TaskActions({ node, actorId, token, initialReply }: { node: Node
   if (node.status === "done") return <div className="task-actions"><p className="small good-text">Completed{node.completedOn ? ` on ${node.completedOn}` : ""}. Thank you.</p>{openBudget}</div>
   if (node.ownerId && !canUpdate) return <div className="task-actions"><p className="small muted">Only the owner or president can update this task.</p>{openBudget}</div>
   if (node.status === "unclaimed") return <div className="task-actions">
-    <div className="td-primary"><button type="button" className="btn btn-primary" disabled={!canClaimMatchingTask(state, node, actorId)} onClick={() => {
+    <div className="td-primary"><button type="button" className="btn btn-primary" onClick={() => {
       if (token) dispatch({ type: "officerAction", token, reply: "claim" })
       else dispatch({ type: "claimTask", nodeId: node.id })
       setNotice("Claimed. The handover is confirmed.")
     }}>I've got it</button><span className="small muted">Tap to confirm that you own this task.</span></div>
-    {!canClaimMatchingTask(state, node, actorId) && <p className="small muted">Review the responsibility, candidate qualifications and assignment before claiming this task.</p>}
     {openBudget}
     {notice && <p className="small" role="status">{notice}</p>}
   </div>

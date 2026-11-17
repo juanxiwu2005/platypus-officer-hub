@@ -5,7 +5,6 @@ import { addNotices, claimTask, closeSilence, replyToTask } from "./taskWorkflow
 import { applySchedule } from "../engine/schedule"
 import { STATUS_DEFAULTS } from "../components/ui/statusDefaults"
 import { isBudgetControlledNode } from "../engine/eventBudget"
-import { canClaimMatchingTask } from "../matching/adapters"
 
 /**
  * Task board actions (v1.1, decision 3): officers drag their own tasks; the president or VP can drag anyone's,
@@ -20,7 +19,6 @@ export function canMoveTask(s: DemoState, n: Node, to: NodeStatus): string | nul
   if (to === n.status) return null
   if (n.status === "unclaimed" && to !== "unclaimed") {
     if (n.ownerId && n.ownerId !== s.viewerId) return `Only ${s.people.find(p => p.id === n.ownerId)?.name.split(" ")[0] ?? "the owner"} can claim this task.`
-    if (!canClaimMatchingTask(s, n, s.viewerId)) return "Review the responsibility, qualifications and assignment before claiming this task."
   }
   if (to === "unclaimed" && !lead) return "Only the president or VP can send a task back to be claimed."
   if (n.status === "done" && !lead) return "Ask the president or VP to reopen a finished task."
@@ -44,7 +42,7 @@ export function moveTask(s: DemoState, nodeId: string, to: NodeStatus, beforeId:
   if (to !== n.status) {
     const actor = s.viewerId
     // Claim first when the owner (or anyone, for a task with no owner) picks it up.
-    if (n.status === "unclaimed" && to !== "unclaimed") { next = claimTask(next, n.id, actor); if (next === s) return s }
+    if (n.status === "unclaimed" && to !== "unclaimed") next = claimTask(next, n.id, actor)
     const cur = next.nodes.find(x => x.id === n.id)!
     const owner = cur.ownerId
     if (to === "done" && owner) next = replyToTask(next, n.id, owner, "done")

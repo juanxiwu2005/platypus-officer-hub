@@ -2,7 +2,6 @@ import type { Config } from "@netlify/functions"
 import { chatJSON, syncAiBudgetMs } from "../lib/ai.mts"
 import { BadRequest, fail, json, readJSON } from "../lib/http.mts"
 import { CONSTITUTION_DUTIES_SYSTEM, CONSTITUTION_STRUCTURE_SYSTEM, DUTY_BATCH, relevantExcerpt, sanitizeDuties, sanitizeRead, type DutyItem } from "../../src/lib/constitution.ts"
-import { readMatchingResponsibilities } from "../lib/matching/constitution.mts"
 
 /**
  * /api/setup/constitution — the president pressed Continue after choosing a constitution (M4). The browser has already read
@@ -12,8 +11,7 @@ import { readMatchingResponsibilities } from "../lib/matching/constitution.mts"
  * structure 17 s, a second parallel request got no reply in 26 s). Replies are cut down by `sanitizeRead` / `sanitizeDuties`
  * (unknown fields dropped, dates removed, sizes capped) and checked again in the browser. A long text is cut to its most relevant
  * paragraphs. It uses the fast model; Gemma took 56 seconds on a real constitution.
- * The legacy structure/duties paths store nothing. The stage-2 responsibilities path first archives its input and raw
- * provider response in a separate private prototype store. It creates suggestions only; fictional documents only.
+ * Nothing is stored here: no database, no archive, no log of the text. Fictional documents only.
  */
 const MAX_TEXT = 60_000
 // The synchronous AI budget minus one second for reading and checking the text (FB-1: 25 s by default). If the AI is
@@ -21,8 +19,7 @@ const MAX_TEXT = 60_000
 const timeoutMs = () => syncAiBudgetMs() - 1_000
 export default async (req: Request) => {
   try {
-    const body = await readJSON(req, 2_500_000)
-    if (body.part === "responsibilities") return await readMatchingResponsibilities(body)
+    const body = await readJSON(req, MAX_TEXT + 4_000)
     const raw = typeof body.text === "string" ? body.text : ""
     const part = body.part === "duties" ? "duties" : "structure"
     if (raw.trim().length < 20) throw new BadRequest("Add some constitution text first.")

@@ -7,7 +7,6 @@ import { withOwners } from "../src/engine/workflow"
 import { fmtShort } from "../src/lib/dates"
 import { onboardingCopy } from "../src/onboarding/copy"
 import { chainDots, prepareEvent, previewFor, wordCount } from "../src/onboarding/founder/firstEvent/plan"
-import { bufferBinds, bufferRows } from "../src/onboarding/founder/firstEvent/bufferRows"
 
 // OB-06: the first-event screen (the witness moment). The walkthrough's other screens are still placeholders, so this opens the screen's own address.
 const URL = "/#/welcome/founder/first-event"
@@ -80,91 +79,38 @@ test("a sentence that is not one event says what to do and draws nothing", async
   await expect(chain(page)).toHaveCount(0)
 })
 
-// FB-3 (docs/feedback-fix/PLAN.md 5.2): the five numbers became three named choices (the stored value is unchanged), titled as a question.
-const bufferGroup = (page: Page) => page.getByRole("group", { name: c.buffer })
-const choice = (page: Page, name: RegExp) => bufferGroup(page).getByRole("button", { name })
-const TIGHT = /^Tight · 1 day/, STANDARD = /^Standard · 3 days/, SAFE = /^Safe · 5 days/
-
-test("the buffer is three named choices; turning it re-plans the dates (a club whose steps follow the ASU rules)", async ({ page }) => {
+test("the buffer is a five-way control; turning it re-plans the dates (a club whose steps follow the ASU rules)", async ({ page }) => {
   await page.addInitScript(demo => { if (!localStorage.getItem("platypus.v1.demo")) localStorage.setItem("platypus.v1.demo", JSON.stringify(demo)) }, byRuleDemo())
   await plan(page, "Spring dinner")
-  await expect(page.getByRole("heading", { name: c.buffer })).toBeVisible()
-  await expect(page.getByText(c.bufferHint)).toBeVisible()
-  await expect(bufferGroup(page).getByRole("button")).toHaveCount(3)
-  await expect(choice(page, STANDARD)).toHaveAttribute("aria-pressed", "true")   // the draft's buffer
-  await expect(choice(page, STANDARD)).toContainText(c.recommended)
+  const group = page.getByRole("group", { name: /Club buffer/ })
+  await expect(group.getByRole("button")).toHaveCount(5)
+  await expect(group.getByRole("button", { name: "3 days" })).toHaveAttribute("aria-pressed", "true")   // the draft's buffer
+  await expect(page.getByTestId("buffer-example")).toBeVisible()
   const before = await dotsText(page)
-  await choice(page, SAFE).click()
-  await expect(choice(page, SAFE)).toHaveAttribute("aria-pressed", "true")
-  await expect(choice(page, STANDARD)).toHaveAttribute("aria-pressed", "false")
+  await group.getByRole("button", { name: "7 days" }).click()
+  await expect(group.getByRole("button", { name: "7 days" })).toHaveAttribute("aria-pressed", "true")
+  await expect(group.getByRole("button", { name: "3 days" })).toHaveAttribute("aria-pressed", "false")
   await expect.poll(() => dotsText(page)).not.toEqual(before)
-  const safe = await dotsText(page)
-  await choice(page, TIGHT).click()
-  await expect.poll(() => dotsText(page)).not.toEqual(safe)
+  const seven = await dotsText(page)
+  await group.getByRole("button", { name: "1 day" }).click()
+  await expect.poll(() => dotsText(page)).not.toEqual(seven)
   // The choice is kept in the draft: Continue and Back bring the same value.
-  await choice(page, SAFE).click()
+  await group.getByRole("button", { name: "5 days" }).click()
   await page.getByRole("button", { name: onboardingCopy.next }).click()
   await expect(page).toHaveURL(/reminders$/)
   await page.goBack()
   await expect(page).toHaveURL(/first-event$/)
-  await expect(choice(page, SAFE)).toHaveAttribute("aria-pressed", "true")
+  await expect(page.getByRole("group", { name: /Club buffer/ }).getByRole("button", { name: "5 days" })).toHaveAttribute("aria-pressed", "true")
   await expect(chain(page)).toBeVisible()      // the planned event survives the round trip
 })
 
-test("with the standard workflow the rows are this event's ASU steps, dated by the engine like the chain; Safe moves one earlier and says so", async ({ page }) => {
-  await plan(page, "Spring dinner")
-  const state = seedDemo(undefined, "v2"), club = clubDraft(state)
-  const r = await prepareEvent(state, club, c.examples[2].sentence)
-  if (!r.ok) throw new Error(r.notice)
-  const at = (b: number) => previewFor(state, club, r.event, r.date, "11111111-2222-3333-4444-555555555555", withOwners(orgSteps(state), club.roles), b)
-  const rowText = (b: number, from?: number) => bufferRows(at(b), from === undefined ? null : at(from)).map(x => `${x.title} ${fmtShort(x.official)} ${fmtShort(x.club)}${x.moved ? ` ${x.moved === "earlier" ? c.movedEarlier : c.movedLater}` : ""}`)
-  const shown = () => page.getByTestId("buffer-row").evaluateAll(els => els.map(e => (e as HTMLElement).innerText.replace(/\s+/g, " ").trim()))
-  expect(rowText(3).length).toBeGreaterThan(0)
-  expect(rowText(3).length).toBeLessThanOrEqual(3)
-  expect(await shown()).toEqual(rowText(3))
-  // Each row is read with both dates named: the table's column headers.
-  await expect(page.getByTestId("buffer-rows").locator("thead th")).toHaveText([c.step, c.asuDeadline, c.clubFinishes])
-  await expect(page.getByRole("button", { name: "Spring dinner" })).toHaveCount(0)    // the examples step aside once a plan is shown
-  // Standard: the plan already finishes earlier than three working days before every listed ASU deadline (an engine fact, checked here).
-  expect(bufferBinds(bufferRows(at(3)), 3)).toBe(false)
-  await expect(page.getByTestId("buffer-effect")).toHaveText(c.bufferNone)
-  await expect(page.getByTestId("buffer-moved")).toHaveCount(0)
-  // Safe: the engine moves the step the buffer now sets; that row says "moved earlier", and the sentence says what the buffer does.
-  await choice(page, SAFE).click()
-  const moved = bufferRows(at(5), at(3)).filter(x => x.moved === "earlier")
-  expect(moved.length).toBeGreaterThan(0)
-  await expect.poll(shown).toEqual(rowText(5, 3))
-  await expect(page.getByTestId("buffer-moved")).toHaveCount(moved.length)
-  await expect(page.getByTestId("buffer-effect")).toHaveText("If something slips by up to 5 working days, you still meet the ASU deadline.")
-  // The chain above shows exactly the engine's dates, the same as the rows for any step in both.
-  const dots = chainDots(at(5))
-  for (const x of bufferRows(at(5))) { const d = dots.find(y => y.title === x.title); if (d) expect(d.date).toBe(x.club) }
-  expect(await dotsText(page)).toEqual(dots.map(d => `${d.title} ${fmtShort(d.date)}`))
-  // Back to Standard: the same rows move later, in words.
-  await choice(page, STANDARD).click()
-  await expect.poll(shown).toEqual(rowText(3, 5))
-  await expect(page.getByTestId("buffer-moved")).toHaveText(Array(moved.length).fill(c.movedLater))
-  await expect(page.getByTestId("buffer-effect")).toHaveText(c.bufferNone)
+test("with the retained standard workflow the buffer choice is saved and its displayed first steps remain stable", async ({ page }) => {
+  await plan(page)
+  const before = await dotsText(page)
+  await page.getByRole("button", { name: "7 days" }).click()
+  await expect(page.getByRole("button", { name: "7 days" })).toHaveAttribute("aria-pressed", "true")
+  expect(await dotsText(page)).toEqual(before)
 })
-
-test("a stored 2 or 7 shows as a fourth, chosen Custom choice, and a reload keeps the choice", async ({ page }) => {
-  const s = seedDemo(undefined, "v2")
-  const seven = { ...s, org: { ...s.org, settings: { ...s.org.settings, clubBufferBusinessDays: 7 } } }
-  await page.addInitScript(demo => { if (!localStorage.getItem("platypus.v1.demo")) localStorage.setItem("platypus.v1.demo", JSON.stringify(demo)) }, seven)
-  await plan(page, "Spring dinner")
-  await expect(bufferGroup(page).getByRole("button")).toHaveCount(4)
-  await expect(choice(page, /^Custom · 7 days/)).toHaveAttribute("aria-pressed", "true")
-  await choice(page, TIGHT).click()
-  await expect(choice(page, /^Custom · 7 days/)).toHaveAttribute("aria-pressed", "false")      // still offered on this visit
-  await choice(page, SAFE).click()
-  await page.waitForTimeout(1200)                                                                // past the draft's own save delay
-  await page.reload()
-  await expect(choice(page, SAFE)).toHaveAttribute("aria-pressed", "true")
-  await expect(bufferGroup(page).getByRole("button")).toHaveCount(3)
-})
-
-// The fallback to the general worked example (an event with no ASU step) cannot be reached through the walkthrough: the engine keeps every
-// ASU step in the workflow (checkWorkflow), and every event type has one. It is tested on the component itself: src/test/fb03BufferChoice.test.tsx.
 
 test("Event details are folded; a past date turns Continue off and says why, a good date brings the chain back", async ({ page }) => {
   await plan(page)
@@ -206,22 +152,20 @@ test("Back goes to the previous screen; Skip for now is there from the start (Ph
   await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
 })
 
-// FB-3 (docs/feedback-fix/PLAN.md 5.1): the limit is 110 words (was 60): the screen now has a Why line and the buffer shows this event's own steps.
-test("a screen of at most 110 words at a glance, with a Why line, and no sideways page scroll", async ({ page }) => {
+test("a screen of at most 60 words at a glance, with no sideways page scroll", async ({ page }) => {
   await page.goto(URL)
-  await expect(page.locator(".ob-why")).toHaveText(`Why: ${c.why}`)
   const words = () => page.getByTestId("first-event").evaluate(el => (el as HTMLElement).innerText)
-  expect(wordCount(await words())).toBeLessThanOrEqual(110)
+  expect(wordCount(await words())).toBeLessThanOrEqual(60)
   await plan(page, "Spring dinner")
   const text = await words()
-  expect(wordCount(text), text).toBeLessThanOrEqual(110)
+  expect(wordCount(text), text).toBeLessThanOrEqual(60)
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0)
 })
 
 test("on a phone the buffer control, Plan it, Back and Continue are at least 44px", async ({ page, isMobile }) => {
   test.skip(!isMobile, "finger sizes")
   await plan(page)
-  const boxes = await Promise.all([...[TIGHT, STANDARD, SAFE].map(n => choice(page, n)), page.getByRole("button", { name: c.cta }), page.getByRole("button", { name: onboardingCopy.back }), page.getByRole("button", { name: onboardingCopy.next })].map(l => l.boundingBox()))
+  const boxes = await Promise.all([...[1, 2, 3, 5, 7].map(n => page.getByRole("button", { name: `${n} ${n === 1 ? "day" : "days"}` })), page.getByRole("button", { name: c.cta }), page.getByRole("button", { name: onboardingCopy.back }), page.getByRole("button", { name: onboardingCopy.next })].map(l => l.boundingBox()))
   for (const b of boxes) { expect(b!.height).toBeGreaterThanOrEqual(44); expect(b!.width).toBeGreaterThanOrEqual(44) }
   // A long chain scrolls inside its own box, not the page.
   const box = await chain(page).evaluate(el => ({ client: el.clientWidth, page: document.documentElement.scrollWidth, inner: window.innerWidth }))
@@ -325,8 +269,8 @@ test.describe("with motion", () => {
     await expect.poll(() => page.locator(".ob6-dot").last().evaluate(d => getComputedStyle(d).animationName)).toBe("none")
     // The buffer answers at once and leaves the chain alone: the same list element, no animation class.
     await page.locator(".ob6-chain").evaluate(el => { (el as HTMLElement & { mark?: boolean }).mark = true })
-    await choice(page, SAFE).click()
-    await expect(choice(page, SAFE)).toHaveAttribute("aria-pressed", "true")
+    await page.getByRole("button", { name: "5 days" }).click()
+    await expect(page.getByRole("button", { name: "5 days" })).toHaveAttribute("aria-pressed", "true")
     expect(await page.locator(".ob6-chain").evaluate(el => ({ same: (el as HTMLElement & { mark?: boolean }).mark === true, drawing: el.classList.contains("is-drawing") }))).toEqual({ same: true, drawing: false })
   })
 
@@ -345,4 +289,17 @@ test.describe("with motion", () => {
     })
     expect(props).toEqual([])
   })
+})
+
+test("the buffer example is computed by the engine and changes with every choice", async ({ page }) => {
+  await plan(page)
+  const example = page.getByTestId("buffer-example")
+  const seen: string[] = []
+  for (const n of [1, 2, 3, 5, 7]) {
+    await page.getByRole("button", { name: `${n} ${n === 1 ? c.day : c.days}` }).click()
+    await expect(page.getByRole("button", { name: `${n} ${n === 1 ? c.day : c.days}` })).toHaveAttribute("aria-pressed", "true")
+    seen.push((await example.innerText()).trim())
+  }
+  expect(new Set(seen).size).toBe(5)                         // five buffers, five different club dates
+  expect(seen.every(t => /^ASU deadline \w{3}, \w{3} \d+, club deadline \w{3}, \w{3} \d+\.$/.test(t))).toBe(true)
 })

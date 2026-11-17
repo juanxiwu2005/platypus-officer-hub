@@ -26,14 +26,14 @@ test("Explore the sample club: Today opens, it is remembered, and it is recorded
   await expect(page.locator("main h1")).toHaveText("Reminders")   // not asked again
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "explore", outcome: "explored", flowVersion: "ob-5" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "explore", outcome: "explored", flowVersion: "ob-4" })
 })
 test("Start walkthrough opens the new founder flow inside the focus shell and is recorded once", async ({ page }) => {
   await page.goto(WELCOME_ON)
   await page.getByRole("button", { name: "Start walkthrough" }).click()
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Name your club")
   await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
-  await expect(page.getByRole("link", { name: "Reminders" })).toHaveCount(0)    // no sidebar
+  await expect(page.getByRole("link", { name: "Tasks" })).toHaveCount(0)    // no sidebar
   await expect(page.getByRole("button", { name: "Ask Platypus" })).toHaveCount(0)
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1); expect(rec.attempts[0]).toMatchObject({ entry: "start", replay: 0 })

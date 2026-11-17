@@ -44,13 +44,15 @@ test.afterEach(async ({ page }) => {
   expect(seen.filter(u => u.pathname.startsWith("/api/") && u.pathname !== "/api/command" && u.pathname !== "/api/health").map(u => u.pathname)).toEqual([])
 })
 
-/** The study link, then Name (with the mission) → Team (skip) → First event (skip) → Reminders. */
+/** The study link, then Name → Constitution (skip) → Goals (skip) → Team (skip) → First event (skip) → Reminders. */
 async function toReminders(page: Page, club = "Fictional Heron Club") {
   await page.goto("/#/start")
   await h1(page, c.founder.name.title)
   await page.getByLabel(c.founder.name.field).fill(club)
-  await fillMission(page)                                    // FB-2 (ob-5): the mission is on Name
   await page.getByRole("button", { name: c.next, exact: true }).click()
+  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
+  await fillMission(page)
+  await page.getByRole("button", { name: c.skip }).click()            // goals
   await page.getByRole("button", { name: c.skip }).click()            // team
   await page.getByTestId("first-event").getByRole("button", { name: c.skip }).click()
   await h1(page, r.title)
@@ -71,10 +73,9 @@ test("nothing is ticked at first and Continue waits; each answer, in the fixed o
     for (const title of TITLES) await expect(screen(page).getByRole("radio", { name: title })).not.toBeChecked()
     await expect(cont(page)).toBeDisabled()
     await expect(screen(page).getByTestId("reminder-mode-demo")).toHaveText(r.demo)
-    // Each option is a title; its old one line is its accessible description (FB-3: no longer shown, the steps, analogy and in-app line are).
+    // Each option is a title and one line; the line is its accessible description.
     await expect(screen(page).getByRole("radio", { name: r.options[mode].title })).toHaveAccessibleDescription(r.options[mode].body)
-    await expect(screen(page).getByText(r.options[mode].body)).toBeHidden()
-    await screen(page).getByText(r.options[mode].like).click()                       // the whole option is the target, not just the dot
+    await screen(page).getByText(r.options[mode].body).click()                       // the whole option is the target, not just the dot
     await expect(screen(page).getByRole("radio", { name: r.options[mode].title })).toBeChecked()
     await expect(cont(page)).toBeEnabled()
     await cont(page).click()
@@ -118,15 +119,12 @@ test("a reload on the screen keeps the answer, and the step after it", async ({ 
   await expect.poll(async () => (await demo(page))?.org.settings.reminderMode).toBe("review_then_self")
 })
 
-// FB-3 (docs/feedback-fix/PLAN.md 5.1): at most 140 words (was 60): the screen now has a Why line, an example reminder, and under each option
-// its three steps, an analogy and what happens in Platypus.
-test("no accessibility problems in light and dark, at most 140 words, no sideways scroll, and full-size targets on a phone", async ({ page, isMobile }) => {
+test("no accessibility problems in light and dark, at most 60 words, no sideways scroll, and full-size targets on a phone", async ({ page, isMobile }) => {
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme })
     await toReminders(page)
-    await expect(screen(page).locator(".ob-why")).toHaveText(`Why: ${r.why}`)
     expect(await scan(page), `${scheme}, nothing ticked`).toEqual([])
-    expect(await words(page)).toBeLessThanOrEqual(140)
+    expect(await words(page)).toBeLessThanOrEqual(60)
     await noSideScroll(page)
     await screen(page).getByRole("radio", { name: TITLES[2] }).check()
     expect(await scan(page), `${scheme}, ticked`).toEqual([])
@@ -148,15 +146,15 @@ test("the export holds the answer (reminderModeChoice), every tick by its label,
   await screen(page).getByRole("radio", { name: r.options.review_then_auto.title }).check()     // a change of mind
   await cont(page).click()
   await startWorkspace(page)
-  await page.getByRole("button", { name: c.founder.invite.workspace }).click()
-  await expect(page.locator("main h1")).toHaveText("Reminders")             // FB-8: the home page is the reminder centre
+  await page.getByRole("button", { name: c.founder.invite.today }).click()
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Settings" }).click()
   await page.getByRole("button", { name: "My preferences" }).click()
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-data").click()])
   const file = JSON.parse(readFileSync((await download.path())!, "utf8"))
 
-  expect(file.onboardingFlowVersion).toBe("ob-5")
+  expect(file.onboardingFlowVersion).toBe("ob-4")
   expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "skipped", reminderModeChoice: "review_then_auto" })
   expect(file.state.org.settings.reminderMode).toBe("review_then_auto")
   // Every tick, by the option's label, in its group, on this screen.

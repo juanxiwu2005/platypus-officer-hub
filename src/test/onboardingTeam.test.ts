@@ -1,30 +1,34 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
-import { clubDraft, validateClub, validateGoals } from "../data/settings"
+import { clubDraft, validateGoals } from "../data/settings"
 import { MAX_ROLES } from "../data/structure"
 import type { ConstitutionRead } from "../lib/constitution"
-import { freshDraft } from "../onboarding/draft"
-import { MAX_MISSION, missionError } from "../onboarding/founder/name/mission"
-import { addAdvisor, addRole, applyReading, bossChoices, isAdvisor, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, treeOrderRoles, validateTeam } from "../onboarding/founder/team/rows"
+import { DEFAULT_ON, SUGGESTIONS, goalsError, goalsFrom, rowsFrom } from "../onboarding/founder/goals/suggestions"
+import { addRole, applyReading, bossChoices, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, treeOrderRoles, validateTeam } from "../onboarding/founder/team/rows"
 
-// OB-05: the pure parts of the Team screen (and, since FB-2, the Name screen's mission). The screens themselves are in e2e/ob-04-*, e2e/ob-05-* and e2e/fb-02-*.
+// OB-05: the pure parts of the Goals and Team screens. The screens themselves are in e2e/ob-05-goals-team.spec.ts.
 const club = () => clubDraft(seedDemo("2026-10-22"))
 
-// FB-2: the Goals screen left the walkthrough (goals are set in Settings only); its mission moved to the Name screen with the same rule.
-describe("Name screen mission", () => {
-  it("is required, at most 300 characters, and passes the rule the rest of the app uses", () => {
-    expect(missionError("Build a welcoming club.")).toBeNull()
-    expect(missionError("")).toBe("Add a mission to continue.")
-    expect(missionError("   ")).toBe("Add a mission to continue.")
-    expect(missionError("x".repeat(300))).toBeNull()
-    expect(missionError("x".repeat(301))).toBe("Keep the mission under 300 characters.")
-    expect(validateClub({ ...club(), mission: "x".repeat(MAX_MISSION) })).toBeNull()
-    expect(validateClub({ ...club(), mission: "" })).not.toBeNull()
+describe("Goals suggestions", () => {
+  it("start with the first two switched on, and the chosen goals pass the rule the rest of the app uses", () => {
+    const rows = rowsFrom(club().goals)   // the demo's own goals are not ours, so we start from the suggestions
+    expect(rows.filter(r => r.on)).toHaveLength(DEFAULT_ON)
+    const goals = goalsFrom(rows)
+    expect(validateGoals(goals)).toBeNull()
+    expect(goals.every(g => g.current === 0)).toBe(true)
+    expect(new Set(SUGGESTIONS.map(s => s.id)).size).toBe(SUGGESTIONS.length)
   })
-  it("a new walkthrough starts with no goals, and a club created with none is valid", () => {
-    const d = freshDraft(seedDemo("2026-10-22"))
-    expect(d.club.goals).toEqual([])
-    expect(validateGoals(d.club.goals)).toBeNull()
+  it("keeps editable choices when the screen is opened again", () => {
+    const rows = rowsFrom(club().goals).map(r => ({ ...r, on: true, label: `${r.label} goal`, unit: `${r.unit} total`, target: r.target + 1 }))
+    expect(rowsFrom(goalsFrom(rows))).toEqual(rows)
+  })
+  it("allows no goals, but requires a mission and valid selected goals", () => {
+    const rows = rowsFrom(club().goals)
+    expect(goalsError(rows, "Build a welcoming club.")).toBeNull()
+    expect(goalsError(rows.map(r => ({ ...r, on: false })), "Build a welcoming club.")).toBeNull()
+    expect(goalsError(rows, "")).not.toBeNull()
+    expect(goalsError(rows.map(r => ({ ...r, target: 0 })), "Build a welcoming club.")).not.toBeNull()
+    expect(goalsError(rows, "x".repeat(301))).not.toBeNull()
   })
 })
 
@@ -78,39 +82,6 @@ describe("Team rows", () => {
     expect(addRole(c.roles)).toBeNull()
     expect(removeRole(c.roles, c.people, "r-pres").roles).toBe(c.roles)
     expect(removeRole(c.roles, c.people, last).roles.some(r => r.id === last)).toBe(false)
-  })
-  it("FB-2: Add advisor makes an \"Advisor\" (then \"Advisor 2\") that reports to nobody, is listed last, and passes the checks", () => {
-    let c = club()
-    const made = addAdvisor(c.roles)!
-    c = { ...c, roles: made.roles }
-    const adv = c.roles.find(r => r.id === made.id)!
-    expect(adv).toMatchObject({ displayName: "Advisor", fn: "advisor", reportsToId: null, holderId: null })
-    expect(adv.duties).toMatch(/Advises the club/)
-    expect(c.roles.at(-1)!.id).toBe(made.id)
-    expect(roleDepth(c.roles, made.id)).toBe(0)
-    expect(validateTeam(c).error).toBeNull()
-    const second = addAdvisor(c.roles)!
-    expect(second.roles.find(r => r.id === second.id)?.displayName).toBe("Advisor 2")
-    // A new role added after the advisor still reports to the president and is listed before the advisor.
-    const role = addRole(c.roles)!
-    expect(role.roles.at(-1)!.id).toBe(made.id)
-    // Nobody can choose an advisor as their boss.
-    expect(bossChoices(c.roles, "r-fin").some(r => r.id === made.id)).toBe(false)
-    while (c.roles.length < MAX_ROLES) c = { ...c, roles: addRole(c.roles)!.roles }
-    expect(addAdvisor(c.roles)).toBeNull()
-  })
-  it("FB-2: a role renamed into an advisor leaves the chain (its reports move up); renamed back, it reports to the president", () => {
-    const c = club()
-    const nested = setReportsTo(c.roles, "r-sec", "r-fin")
-    const advised = renameRole(nested, "r-fin", "Faculty Advisor")
-    expect(advised.find(r => r.id === "r-fin")).toMatchObject({ fn: "advisor", reportsToId: null })
-    expect(advised.find(r => r.id === "r-sec")?.reportsToId).toBe("r-pres")
-    expect(isAdvisor(advised.find(r => r.id === "r-fin")!)).toBe(true)
-    expect(advised.map(r => r.id)).toEqual(nested.map(r => r.id))   // the row being typed in does not move
-    const back = renameRole(advised, "r-fin", "Treasurer")
-    expect(back.find(r => r.id === "r-fin")).toMatchObject({ fn: "finance", reportsToId: "r-pres" })
-    const added = addAdvisor(c.roles)!
-    expect(renameRole(added.roles, added.id, "Events chair").find(r => r.id === added.id)).toMatchObject({ fn: "programs", reportsToId: "r-pres" })
   })
   it("duties stop at the limit the rest of the app uses", () => {
     const c = club()

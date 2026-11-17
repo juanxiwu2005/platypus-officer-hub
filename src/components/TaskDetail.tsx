@@ -11,7 +11,6 @@ import { useOptionalRail } from "./rail/RailContext"
 import { nudgeBlocked } from "../lib/nudges"
 import { asuSentence, dueOf, isLate, reminderSentence } from "../lib/taskDue"
 import { SEVERITY_TONE } from "../pages/helpers"
-import { TaskMatchingPanel } from "../matching/TaskMatchingPanel"
 
 type QuickLink = { label: string; url: string }
 const SUBMIT_LINKS: Record<string, QuickLink[]> = {
@@ -73,7 +72,6 @@ export function TaskDetail({ node, actorId, token, initialReply }: { node: Node;
       {canRemind && <div className="td-remind"><button type="button" className="btn small" disabled={!!blocked} title={blocked ?? "Prepare a reminder"} aria-describedby={blocked ? "td-remind-why" : undefined} onClick={() => rail!.show({ kind: "nudge", id: node.id })}>Remind {owner!.name.split(" ")[0]}</button>{blocked && <span id="td-remind-why" className="small muted">{blocked}</span>}</div>}
     </header>
 
-    <TaskMatchingPanel node={node} />
     <section className="td-zone" aria-labelledby={`td-next-${node.id}`}>
       <h3 id={`td-next-${node.id}`}>Your next step</h3>
       <TaskActions node={node} actorId={actorId} token={token} initialReply={initialReply} />

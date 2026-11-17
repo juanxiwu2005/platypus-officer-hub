@@ -11,11 +11,6 @@ import { FOUNDER_STEPS } from "../onboarding/engine/flows"
 import { FLOW_VERSION } from "../onboarding/record"
 import { onboardingCopy } from "../onboarding/copy"
 import { reminderLine } from "../onboarding/founder/confirm/summary"
-import { exampleReminder } from "../onboarding/founder/reminderMode/example"
-import { prepareEvent, previewFor } from "../onboarding/founder/firstEvent/plan"
-import { orgSteps } from "../engine/playbooks"
-import { withOwners } from "../engine/workflow"
-import { fmtShort } from "../lib/dates"
 
 // P3-H (Juanxi 2026-11-08): the founder walkthrough asks how reminders should reach officers. The answer is only stored and exported:
 // org.settings.reminderMode, absent after Skip for now. Nothing in the app sends because of it.
@@ -30,18 +25,13 @@ describe("the Reminders screen in the founder flow", () => {
     expect(ids.indexOf("founder.reminders")).toBe(ids.indexOf("founder.first-event") + 1)
     expect(ids.indexOf("founder.confirm")).toBe(ids.indexOf("founder.reminders") + 1)
     expect(FOUNDER_STEPS.find(s => s.id === "founder.reminders")).toMatchObject({ path: "founder/reminders", label: "Reminders", optional: true })
-    expect(FLOW_VERSION).toBe("ob-5")
+    expect(FLOW_VERSION).toBe("ob-4")
   })
-  // FB-3 (PLAN 5.3, 12.5): each option also shows three steps, an analogy and what happens in Platypus, under a Why line and an example
-  // reminder; the old one line (body) is the screen-reader description. The screen's limit is 140 words (was 60).
-  it("offers the three answers in a fixed order, each a short title with its steps, analogy and in-app line, within the 140-word screen", () => {
+  it("offers the three answers in a fixed order, each a short title and one line, within the 60-word screen", () => {
     expect(REMINDER_MODES).toEqual(["auto_email", "review_then_self", "review_then_auto"])
     expect(REMINDER_MODES.map(m => c.options[m].title)).toEqual(["Send automatically", "I review, then I send", "I review, Platypus sends"])
-    expect(REMINDER_MODES.map(m => c.options[m].steps.join(" → "))).toEqual(["Platypus writes → Platypus sends", "Platypus writes → You check → You send", "Platypus writes → You approve → Platypus sends"])
-    expect(REMINDER_MODES.map(m => c.options[m].like)).toEqual(["Like a calendar alert.", "Like a draft waiting in your outbox.", "Like approving a scheduled post."])
-    const longExample = c.exampleDated.replace("{step}", "Event Registry (SDC & Special Event)").replace("{event}", "Spring Kickoff Dinner").replace("{date}", "Mar 30")
-    const text = [c.title, "Why:", c.why, longExample, ...REMINDER_MODES.flatMap(m => [c.options[m].title, ...c.options[m].steps, c.options[m].like, c.options[m].inApp]), c.demo, onboardingCopy.back, onboardingCopy.next, onboardingCopy.skip].join(" ")
-    expect(words(text)).toBeLessThanOrEqual(140)
+    const text = [c.title, c.lead, ...REMINDER_MODES.flatMap(m => [c.options[m].title, c.options[m].body]), c.demo, onboardingCopy.back, onboardingCopy.next, onboardingCopy.skip].join(" ")
+    expect(words(text)).toBeLessThanOrEqual(60)
     expect(c.demo).toMatch(/no email is ever sent/)
   })
   it("starts with nothing chosen: the draft default is null and no radio is checked by default in the screen", () => {
@@ -112,39 +102,5 @@ describe("the Reminders stylesheet", () => {
     expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
     expect(css).not.toMatch(/\b(transition|animation)\s*:/)
     expect(readFileSync(join(__dirname, "../styles/index.css"), "utf8")).toMatch(/@import "\.\/ob-10-reminder-mode\.css";/)
-  })
-})
-
-// FB-3 (PLAN 5.3): the example reminder is made from the president's own draft, with the rule engine's Due.
-describe("the example reminder", () => {
-  const s = seedDemo(undefined, "v2")
-  const club = clubDraft(s)
-  const steps = withOwners(orgSteps(s), club.roles)
-  const planned = async () => {
-    const r = await prepareEvent(s, club, "Plan Welcome Mixer on Mar 5, 40 people, on campus, no food")
-    if (!r.ok) throw new Error(r.notice)
-    return previewFor(s, club, r.event, r.date, code, steps, 3)!
-  }
-  it("greets the first named officer who is not the president, with that officer's first open step, the event and the engine's Due", async () => {
-    const preview = await planned()
-    const officer = club.roles.filter(r => r.fn !== "president" && r.holderId).map(r => club.people.find(p => p.id === r.holderId)!).find(p => p.name.trim())!
-    const ex = exampleReminder(club, preview)
-    expect(ex.name).toBe(officer.name.split(" ")[0])
-    const node = preview.nodes.filter(n => n.ownerId === officer.id && n.status !== "done").sort((a, b) => a.clubDeadline!.localeCompare(b.clubDeadline!))[0]
-    expect(ex.step).toBe(node.title)
-    expect(ex.event).toBe("Welcome Mixer")
-    expect(ex.due).toBe(node.clubDeadline)
-    expect(ex.text).toBe(`Hi ${ex.name} — ${node.title} for Welcome Mixer. Due ${fmtShort(node.clubDeadline!)}. Reply: Done · Waiting on… · Need help.`)
-  })
-  it("without a planned event it is the general sentence with no date", () => {
-    const ex = exampleReminder(club, null)
-    expect(ex.due).toBeNull()
-    expect(ex.text).toMatch(/^Hi \S+ — your next task is ready\. Reply: Done · Waiting on… · Need help\.$/)
-    expect(ex.text).not.toMatch(/\d/)
-  })
-  it("says \"your officer\" when no officer other than the president has a name", () => {
-    const president = club.roles.find(r => r.fn === "president")!.holderId
-    const alone = { ...club, people: club.people.map(p => p.id === president ? p : { ...p, name: "" }) }
-    expect(exampleReminder(alone, null).text).toBe("Hi your officer — your next task is ready. Reply: Done · Waiting on… · Need help.")
   })
 })

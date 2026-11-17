@@ -1,5 +1,6 @@
 import { useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { Info } from "../../components/ui"
 import { useStore } from "../../data/store"
 import { onboardingCopy } from "../copy"
 import { useFlow } from "../engine/useFlow"
@@ -11,8 +12,7 @@ const c = onboardingCopy.founder.invite
 /**
  * Screen 7 of the founder flow: the invitation moment. Nothing is sent from here: Copy link uses the clipboard, and WhatsApp and Email are plain
  * links that open a written message in a new tab. The list is local: Joined means that officer finished setup in this browser (the demo has no server).
- * FB-3 (PLAN 5.4): one primary button, Open my workspace, which ends the walkthrough as completed and opens the workspace. The member preview is
- * no longer part of this flow; it stays reachable from the Demo menu (Test Onboarding Page Invite), which records nothing.
+ * "See what your officers will see" continues the same walkthrough into the member preview; it does not end the attempt.
  */
 export function Invite() {
   const { state } = useStore()
@@ -29,7 +29,8 @@ export function Invite() {
     try { await navigator.clipboard.writeText(link); setCopied("yes") }
     catch { setCopied("failed"); input.current?.focus(); input.current?.select() }
   }
-  const open = () => { recordEvent(flow.current.id, "complete"); endWalkthrough("completed"); navigate("/") }
+  const preview = () => { recordEvent(flow.current.id, "leave"); recordEvent("member.invitation", "enter"); navigate("/welcome/member/invitation") }
+  const today = () => { recordEvent(flow.current.id, "complete"); endWalkthrough("completed"); navigate("/") }
 
   return <section className="ob-card ob-i9" aria-labelledby="ob-i9-h">
     <div>
@@ -51,9 +52,10 @@ export function Invite() {
         {r.status !== "open" && <span className={`ob-i9-status is-${r.status}`} data-testid="officer-status">{r.status === "joined" ? c.joined : c.invited}</span>}
       </li>)}
     </ul>
-    <p className="small muted" data-testid="joined-note">{c.joinedNote}</p>
+    <p className="small muted"><Info label={c.joinedNote}>{c.joinedNote}</Info></p>
     <div className="ob-actions">
-      <button type="button" className="btn btn-primary" onClick={open}>{c.workspace}</button>
+      <button type="button" className="btn btn-primary" onClick={preview}>{c.preview}</button>
+      <button type="button" className="btn" onClick={today}>{c.today}</button>
     </div>
   </section>
 }

@@ -7,8 +7,6 @@ import { buildEventNodes, orgSteps } from "../engine/playbooks"
 import { topoOrder } from "../engine/schedule"
 import { taskAnchor } from "../engine/taskDates"
 import { addNotices } from "./taskWorkflow"
-import type { MatchingConfirmation } from "../matching/businessContracts"
-import { eventMatchingWorkflowId, matchingModeEnabled, prepareMatchingNodes } from "../matching/adapters"
 
 export { canLead }
 /**
@@ -31,7 +29,7 @@ export function canApplyOp(s: DemoState, op: { op: string; eventId?: string | nu
 export const notAllowedText = (op: { op: string }) => op.op === "create_event" ? "The president chooses who can create events (Settings)." : "The president or VP approves changes."
 
 /** `date` is the event date, or a standalone task's due date; `buffered` sets its club deadline earlier. */
-export interface HumanInputs { date?: string; buffered?: boolean; matching?: MatchingConfirmation }
+export interface HumanInputs { date?: string; buffered?: boolean }
 
 /** Validate against fresh state before any mutation. No arbitrary patch or AI date reaches store. */
 export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = {}): string | null {
@@ -59,12 +57,11 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
 }
 
 /** New objects only; all edits to existing nodes are routed through store.updateNode. */
-export function newObjects(s: DemoState, op: CommandOp, id: string, human: HumanInputs): Partial<Pick<DemoState, "events" | "nodes" | "matching" | "matchingContext">> {
+export function newObjects(s: DemoState, op: CommandOp, id: string, human: HumanInputs): { events?: Event[]; nodes?: Node[] } {
   if (op.op === "create_event") {
     const { op: _kind, ...fields } = op
-    const event: Event = { ...fields, id, date: human.date!, goalId: s.org.goals[0]?.id ?? null, playbookId: matchingModeEnabled(s) ? eventMatchingWorkflowId(s) : "seo-event" }
-    const result = prepareMatchingNodes(s, buildEventNodes(event, s.roles, { steps: orgSteps(s), ...(matchingModeEnabled(s) ? { ownerMode: "unassigned" as const } : {}) }).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })), { workflowId: eventMatchingWorkflowId(s), confirmation: human.matching })
-    return { ...result, events: [...s.events, event], nodes: [...s.nodes, ...result.nodes] }
+    const event: Event = { ...fields, id, date: human.date!, goalId: s.org.goals[0]?.id ?? null, playbookId: "seo-event" }
+    return { events: [...s.events, event], nodes: [...s.nodes, ...buildEventNodes(event, s.roles, { steps: orgSteps(s) }).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 }))] }
   }
   if (op.op === "add_node") {
     if (op.eventId) {
@@ -73,14 +70,12 @@ export function newObjects(s: DemoState, op: CommandOp, id: string, human: Human
       const person = s.people.find(p => p.id === op.ownerId)
       const fn = s.roles.find(r => r.id === person?.roleId)?.fn ?? "programs"
       const node: Node = { id, title: op.title, eventId: event.id, stepKey: null, phase: op.phase ?? "prepare", fn, ownerId: op.ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: op.tier, estDays: op.tier === "heavy" ? 3 : op.tier === "medium" ? 2 : 1, anchor: { kind: "target", days: 14, unit: "calendar", label: "President-added event adjustment" }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: op.ownerId ? "accepted" : "unclaimed", acceptedOn: op.ownerId ? s.today : null, waitingOn: null, draftLink: null, why: op.why ?? "President-requested adjustment to the event workflow.", source: "President-reviewed event adjustment", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
-      const result = prepareMatchingNodes(s, [node], { confirmation: human.matching })
-      return { ...result, nodes: [...s.nodes, ...result.nodes] }
+      return { nodes: [...s.nodes, node] }
     }
     const person = s.people.find(p => p.id === op.ownerId)
     const fn = s.roles.find(r => r.id === person?.roleId)?.fn ?? "programs"
     const node: Node = { id, title: op.title, eventId: null, stepKey: null, phase: null, fn, ownerId: op.ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: op.tier, estDays: op.tier === "heavy" ? 3 : op.tier === "medium" ? 2 : 1, anchor: taskAnchor(s, human.date!, human.buffered ?? false), clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: op.ownerId ? "accepted" : "unclaimed", acceptedOn: op.ownerId ? s.today : null, waitingOn: null, draftLink: null, why: op.why ?? "Supports our club's plan.", source: canLead(s) ? "President-reviewed command" : "Added by an officer", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
-    const result = prepareMatchingNodes(s, [node], { confirmation: human.matching })
-    return { ...result, nodes: [...s.nodes, ...result.nodes] }
+    return { nodes: [...s.nodes, node] }
   }
   return {}
 }
@@ -92,22 +87,19 @@ export function assignedNotice(s: DemoState, node: Node): DemoState {
   return addNotices(s, node.id, [node.ownerId], "info", `${who} gave you a new task: “${node.title}”. Claim it when you're ready.`, `assigned:${node.id}`)
 }
 
-export interface NewTask { title: string; ownerId: string | null; eventId: string | null; tier?: Tier; responsibilityId?: string | null; manualOverride?: boolean }
+export interface NewTask { title: string; ownerId: string | null; eventId: string | null; tier?: Tier }
 /**
  * The Ask task form and the Tasks page form (M2b, FB-5): one task per owner, applied at once as the viewer, with Undo.
  * Anyone may create tasks for themselves or for anyone else (Juanxi, 2026-10-27); someone else's waits in Not claimed
  * until they accept it. Standalone tasks need a due date from today on. Both forms now send `buffered: false` (one
  * date, Due); the parameter stays so older change records still read (engine/taskDates.ts).
  */
-export function createTasks(s: DemoState, a: { id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string; matchingRevision?: number }): DemoState {
+export function createTasks(s: DemoState, a: { id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }): DemoState {
   if (s.changeSets.some(c => c.id === a.id) || !a.tasks.length || a.tasks.length > 10) return s
   if (a.tasks.some(task => task.eventId !== null)) return s
   const lead = canLead(s)
-  const matched = matchingModeEnabled(s)
-  if (matched && new Set(a.tasks.map(t => JSON.stringify([t.title, t.responsibilityId ?? null]))).size !== a.tasks.length) return s
-  if (matched && a.matchingRevision !== undefined && a.matchingRevision !== s.matching?.revision) return s
   // Only a lead can post a task nobody owns yet; anyone else's task without an owner is their own.
-  const raw = a.tasks.map(t => ({ op: "add_node", title: t.title, eventId: t.eventId, ownerId: t.ownerId ?? (lead || matched ? null : s.viewerId), tier: t.tier ?? "light" }))
+  const raw = a.tasks.map(t => ({ op: "add_node", title: t.title, eventId: t.eventId, ownerId: t.ownerId ?? (lead ? null : s.viewerId), tier: t.tier ?? "light" }))
   const ops = sanitizeOps(raw, commandContext(s)).filter((o): o is Extract<CommandOp, { op: "add_node" }> => o.op === "add_node")
   if (ops.length !== raw.length) return s
   if (ops.some(o => !o.eventId) && (!validDate(a.date) || a.date < s.today)) return s
@@ -115,16 +107,13 @@ export function createTasks(s: DemoState, a: { id: string; sentence: string; tas
   const createdIds: string[] = []
   ops.forEach((op, i) => {
     const id = `${a.id}:${i}`
-    const task = a.tasks[i]
-    const matching = matched && a.matchingRevision !== undefined ? { revision: next.matching!.revision, choices: { [id]: { memberId: task.ownerId, responsibilityId: task.responsibilityId ?? null, manualOverride: task.manualOverride } } } : undefined
-    next = { ...next, ...newObjects(next, op, id, { date: a.date, buffered: a.buffered, matching }) }
+    next = { ...next, ...newObjects(next, op, id, { date: a.date, buffered: a.buffered }) }
     // M2b (AGENTS.md rule 3): a task given to someone else is theirs only once they accept it, so it waits in
     // Not claimed with them as owner until they press "I've got it" (claimTask). Your own task is To do at once.
     if (op.ownerId && op.ownerId !== s.viewerId) next = { ...next, nodes: next.nodes.map(n => n.id === id ? { ...n, status: "unclaimed", acceptedOn: null } : n) }
     next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
     createdIds.push(id)
   })
-  const actualOps = matched ? ops.map((op, i) => ({ ...op, ownerId: next.nodes.find(n => n.id === createdIds[i])?.ownerId ?? null })) : ops
-  const record: ChangeSet = { id: a.id, sentence: a.sentence, ops: actualOps, status: "applied", reviews: ops.map(() => "applied"), source: a.source, auto: true, by: s.viewerId, before: { nodes: [], contacts: [] }, createdIds }
+  const record: ChangeSet = { id: a.id, sentence: a.sentence, ops, status: "applied", reviews: ops.map(() => "applied"), source: a.source, auto: true, by: s.viewerId, before: { nodes: [], contacts: [] }, createdIds }
   return applySchedule({ ...next, changeSets: [...next.changeSets, record] })
 }

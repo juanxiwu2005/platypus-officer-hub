@@ -4,11 +4,8 @@ import { callApi } from "../../../lib/api"
 import { commandContext, humanEventDate, parseCommand, sanitizeOps, validDate } from "../../../lib/commands"
 import { onboardingCopy } from "../../copy"
 
-/**
- * The most dots the witness chain ever draws (strategy section 5: at most 8; fewer keeps the screen within its word budget). FB-3: 3 (was 6),
- * because the buffer block under it now lists this event's ASU steps with their dates and the screen has 110 words in all (PLAN 5.1).
- */
-export const MAX_DOTS = 3
+/** The most dots the witness chain ever draws (strategy section 5: at most 8; fewer keeps the screen within its word budget). */
+export const MAX_DOTS = 6
 export interface ChainDot { id: string; title: string; date: string }
 export type Prepared = { ok: true; event: FirstEvent; date: string; source: string } | { ok: false; notice: string }
 

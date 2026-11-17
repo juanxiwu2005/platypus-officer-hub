@@ -10,25 +10,9 @@ import { onboardingCopy } from "../../copy"
  */
 const c = onboardingCopy.founder.team
 
-/** The advisor stands beside the president, outside the reporting chain: no "Reports to", nobody reports to it (FB-2, PLAN 4.3). */
-export const isAdvisor = (role: Pick<Role, "fn">) => role.fn === "advisor"
-
-/**
- * Rename a role. The president stays the president whatever the title says; other roles follow their title (it decides which event steps they get).
- * A role whose new title makes it an advisor leaves the reporting chain (the roles under it move up to its boss, as when a role is removed); an advisor
- * whose new title is an ordinary role becomes an ordinary role again and, like a new role, reports to the president. Rows keep their order, so the
- * text box being typed in never moves.
- */
+/** Rename a role. The president stays the president whatever the title says; other roles follow their title (it decides which event steps they get). */
 export function renameRole(roles: Role[], id: string, title: string): Role[] {
-  const old = roles.find(r => r.id === id)
-  if (!old) return roles
-  if (old.fn === "president") return roles.map(r => r.id === id ? { ...r, displayName: title } : r)
-  const next = rederiveFn(roles, { ...old, displayName: title })
-  if (isAdvisor(next) && !isAdvisor(old)) {
-    return roles.map(r => r.id === id ? { ...next, reportsToId: null } : r.reportsToId === id ? { ...r, reportsToId: old.reportsToId ?? null } : r)
-  }
-  if (!isAdvisor(next) && isAdvisor(old) && !old.reportsToId) return roles.map(r => r.id === id ? { ...next, reportsToId: presidentRole(roles)?.id ?? null } : r)
-  return roles.map(r => r.id === id ? next : r)
+  return roles.map(r => r.id !== id ? r : r.fn === "president" ? { ...r, displayName: title } : rederiveFn(roles, { ...r, displayName: title }))
 }
 
 /**
@@ -69,11 +53,8 @@ export function setReportsTo(roles: Role[], id: string, bossId: string | null): 
 
 export const setDuties = (roles: Role[], id: string, duties: string): Role[] => roles.map(r => r.id === id ? { ...r, duties: duties.slice(0, MAX_DUTIES) } : r)
 
-/** The roles a role may report to: not itself, not anything below it (no loops), and not an advisor (unless it already reports to one). */
-export const bossChoices = (roles: Role[], id: string): Role[] => {
-  const below = withBelow(roles, id), current = roles.find(r => r.id === id)?.reportsToId
-  return roles.filter(r => !below.has(r.id) && (!isAdvisor(r) || r.id === current))
-}
+/** The roles a role may report to: not itself and not anything below it (no loops). */
+export const bossChoices = (roles: Role[], id: string): Role[] => { const below = withBelow(roles, id); return roles.filter(r => !below.has(r.id)) }
 
 /** Depth in the reporting tree. Invalid or cyclic links safely render at the top level until the user fixes them. */
 export function roleDepth(roles: Role[], id: string): number {
@@ -98,16 +79,6 @@ export function addRole(roles: Role[]): { roles: Role[]; id: string } | null {
   let title: string = c.newRole, n = 2
   while (taken.has(title.toLowerCase())) title = `${c.newRole} ${n++}`
   const role = newRole(title, presidentRole(roles)?.id ?? null)
-  return { roles: treeOrderRoles([...roles, role]), id: role.id }
-}
-
-/** Add an advisor (FB-2): "Advisor", or "Advisor 2" when that title is taken; it reports to nobody and is listed last. */
-export function addAdvisor(roles: Role[]): { roles: Role[]; id: string } | null {
-  if (roles.length >= MAX_ROLES) return null
-  const taken = new Set(roles.map(r => r.displayName.trim().toLowerCase()))
-  let title: string = c.advisor, n = 2
-  while (taken.has(title.toLowerCase())) title = `${c.advisor} ${n++}`
-  const role = newRole(title, null)
   return { roles: treeOrderRoles([...roles, role]), id: role.id }
 }
 

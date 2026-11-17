@@ -1,5 +1,4 @@
 import { useState } from "react"
-import { Link } from "react-router-dom"
 import { useStore } from "../data/store"
 import { PageHead } from "../components/Page"
 import { useRail } from "../components/rail/RailContext"
@@ -18,7 +17,7 @@ export default function Team() {
   const [showAll, setShowAll] = useState(false)
   const visibleBoard = state.people.length > 10 && !showAll ? board.slice(0, 10) : board
   return <>
-    <PageHead path="/team" actions={<Link className="btn" to="/matching">Set up responsibilities</Link>} />
+    <PageHead path="/team" />
     <div className="grid-2">
       <section className="card" aria-labelledby="off-h">
         <header><h2 id="off-h">Workload</h2><Info>A qualitative signal for the next two weeks—not a capacity target. It weighs estimated work, urgency, rule and dependency impact, plus a self-reported busy week. It never shows a percentage or “unused” time.</Info></header>

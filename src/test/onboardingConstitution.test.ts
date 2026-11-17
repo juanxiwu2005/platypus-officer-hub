@@ -134,7 +134,7 @@ export function breaks(file: string, source: string): string[] {
 }
 const ownFiles = (): string[] => {
   const walk = (dir: string): string[] => readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${dir}/${e.name}`) : [`${dir}/${e.name}`])
-  return ["src/onboarding/founder/Name.tsx", "src/onboarding/founder/name/mission.ts", "src/styles/ob-04-name-constitution.css", ...walk("src/onboarding/founder/constitution")]
+  return ["src/onboarding/founder/Name.tsx", "src/onboarding/founder/Constitution.tsx", "src/styles/ob-04-name-constitution.css", ...walk("src/onboarding/founder/constitution")]
 }
 describe("OB-04 source guard", () => {
   it("passes on this package's own files", () => {
