@@ -18,7 +18,7 @@
     "actionLink": {
       "label": "Open ASU space requests",
       "url": "https://eoss.asu.edu/student-unions/submit-a-space-request",
-      "explanation": "For ASU Student Unions spaces. Use the published request entry to choose the applicable reservation process."
+      "explanation": "ASU Student Unions spaces; choose the applicable process at this request entry."
     },
     "source": "Standalone task",
     "planKey": "[\"room-booking\",\"jordan\",0,\"2026-11-18\",\"2026-11-13\"]"
@@ -37,7 +37,7 @@
         "scheduledOn": "2026-11-13",
         "due": "2026-11-18",
         "overdueDays": 0,
-        "explanation": "Today is the planned start date for this task. Let us know if you need a hand."
+        "explanation": "Today is our planned start. Can we help?"
       }
     ],
     "deliveryCount": 0
@@ -56,7 +56,7 @@
         "scheduledOn": "2026-11-13",
         "due": "2026-11-18",
         "overdueDays": 0,
-        "explanation": "Jordan Patel is waiting on your help with “Reserve a room”. Open the task to see what is needed. Thank you for helping us move this forward.",
+        "explanation": "Jordan Patel is waiting on your help with “Reserve a room”. Thank you.",
         "waitingRequestId": "waiting-request:room-booking:2"
       }
     ],
@@ -148,7 +148,7 @@
         "scheduledOn": "2026-11-13",
         "due": "2026-11-18",
         "overdueDays": 0,
-        "explanation": "Jordan Patel is waiting on your help with “Reserve a room”. Open the task to see what is needed. Thank you for helping us move this forward.",
+        "explanation": "Jordan Patel is waiting on your help with “Reserve a room”. Thank you.",
         "waitingRequestId": "waiting-request:room-booking:5"
       }
     ]

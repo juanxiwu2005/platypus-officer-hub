@@ -113,6 +113,12 @@
 | `issueOfficerGrant`、`confirmNudgeSent` | 准备提醒时生成一次性任务链接、参与者点"I sent this reminder"。**FB-8（只在分支上，正式网站上线前不适用）：** `confirmNudgeSent` 的 `payload` 可以多一个可选的 `via`：`"president"` = 社长/副社长自己打开草稿发的（"I sent this reminder"）；`"platypus"` = 选了 "I review, Platypus sends" 的社团里按了 "Approve · Platypus sends (demo)" 或提醒中心的 "Approve all (N)"（每条一个 `confirmNudgeSent`，一次批准 N 条就有 N 条）。同一个值也存进 `state.nudges[].via`。旧文件里没有这个字段，按 `president` 理解。网站仍然**不发任何东西**；"Send automatically" 在提醒中心里显示的 "Would be sent · demo" 是推算出来的，**不写任何记录**。没有新增记录类型 |
 | `advanceClock`、`setViewer`、`setAi`、`reset` | Demo 菜单：拨日期、切换查看身份、开关 AI、重置演示 |
 
+### 4.2 规则提醒运行时增量（2026-11-16，功能分支阶段一）
+
+仅显式 `enableReminderPlan` 后存在可选的 `state.reminderRuntime`，不改变 formatVersion 或旧存档外层版本。新运行时有 `updates`（同日顺序和真正操作人）、`waitingRequests`（明确等待对象及关闭原因）、`deliveries`（不可变收件人与任务快照），均用 `sequence` 保留先后；`activatedOn`/`sentOn` 使用演示日期。`enableReminderPlan` 是启用动作；`confirmPlannedReminder` 是审核记录动作。它们沿用现有数据动作日志格式，未给旧页面添加按钮。
+
+自动模式的新 `deliveries` 会持久记录 `outcome: simulated`；人工发送确认是 `recorded_by_sender`，不表示本站核实了外部投递。旧 `state.nudges`、旧 `protocolLog` 不转换成未知收件人的新发送。损坏或未来版本 runtime 保留但停用。旧页面默认尚未启用新运行时，上节 FB-8 推算记录的描述仍适用于旧路径；不能把两种版本混算为真实邮件数量。邮件/任务页的阶段二、Details 的阶段三以及真实发送服务尚未实施。
+
 ## 5. 界面操作（`type` 以 `ui.` 开头）
 
 ### 5.1 类型一览

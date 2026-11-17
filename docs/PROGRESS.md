@@ -1,6 +1,7 @@
-> **2026-11-16（America/Phoenix） · 提醒计划准备与阶段一进行中（Codex 主 Agent；独立 Data/Rules Worktree Agent）**
+> **2026-11-16（America/Phoenix） · 提醒计划准备与阶段一已完成技术检查，交付待验收（Codex 主 Agent；独立 Data/Rules/Review Worktree Agent）**
 > **授权：** Juanxi 要求按最新反馈更新执行方案并直接开始准备、阶段一。默认完整提醒依靠规则，不等待 AI；邮件突出一个 Task due，最晚开始日期内置且以自然语言解释触发；Waiting on 自动生成给明确等待对象的独立跟进。
-> **方案与分工：** [分阶段实施方案](feedback-fix/REMINDER_IMPLEMENTATION_PLAN.md) · [阶段一冻结契约](feedback-fix/REMINDER_STAGE1_CONTRACT.md)。从职责匹配已交付 `dbfc47d` 开独立分支 `feat/reminder-plan-v2`；Data/Rules 独立 worktree，主 Agent 独占共享类型、reducer 适配、兼容和交付，完成后独立复核。
+> **方案与交付：** [分阶段实施方案](feedback-fix/REMINDER_IMPLEMENTATION_PLAN.md) · [阶段一交付与验收](feedback-fix/REMINDER_STAGE1_HANDOFF.md) · [冻结契约](feedback-fix/REMINDER_STAGE1_CONTRACT.md)。独立分支 `feat/reminder-plan-v2`，Data/Rules 开发、主 Agent 适配、独立 Review 通过；保留源分支 `e370361` 的 v23 兼容读取基点。新底层包括规则事实、任务要求与办理入口、开始/到期/逾期候选、Waiting on 独立对象、去重取消、审核/自动演示与持久历史。
+> **验证：** 最终相关 13 文件、202 项通过，lint、前后端类型检查和生产构建通过。独立 Review 三项 P2 均修复且原样反例复验通过；代码候选 `bbce88b`。带真实长度构建元数据的入口 549,819 字节，低于既定 550,000；没有提高上限。0 次真实 AI 调用。
 > **边界：** 当前只授权准备与底层阶段一，阶段二邮件/独立页和阶段三 Details 接通待批准。显式启用新版运行时才能运行新规则，旧存档不自动改写；本地待发/演示记录不等于真实邮件投递。真实后台仍为第六项，0 次真实 AI 调用；不改职责匹配文件，不合并 main、不正式发布。需要同步本地备份。
 
 > **2026-11-16（America/Phoenix） · 职责匹配阶段 3 进行中（Codex 主 Agent；Workflow Adapter / Integration Test 独立 Worktree Agent）**
@@ -368,6 +369,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | **批准提醒准备与阶段一。** 新底层默认规则生成，不等AI；一个重点截止日、内置开始日及自然触发说明；Waiting on 自动为明确对象生成独立跟进，并沿用社团发送方式。独立Worktree实施，阶段二邮件/任务页与阶段三Details仍待批准，真实投递另接后台服务。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配阶段3。** 继续实际任务接入、旧存档兼容、认领和集成验收；使用既定Worktree分工，不代表合并main或启动提醒后续五项。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配阶段 2。** 继续章程 AI 增强与职责设置界面，按既定 Worktree Agent 计划实施；阶段 3 仍待批准。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配第一阶段。** 按 A2/B2/C2 三阶段计划，使用独立 worktree Data/Resolver Agent 建立数据契约、职责操作、确定性候选及默认/备份解析、隔离存储、虚构演练与阶段 3 兼容设计；阶段 2/3 仍待批准。 | Juanxi |
@@ -429,6 +431,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | Codex（提醒 S1；Data/Rules/Review 独立 worktree） | 完成规则优先底层、Waiting on 对象路由和真实reducer适配，旧存档显式启用；修复旧计时、自动邮箱与坏runtime三项复核问题。最终202项、lint、前后端类型和build通过，入口549,819/550,000。见 `feedback-fix/REMINDER_STAGE1_HANDOFF.md`。 | 新邮件/独立任务页与Details尚未接UI，旧编辑器仍可能调用旧AI。新底层0AI；waiting对象仅明确现任成员；真实邮件未投递。只更新独立提醒分支，不改源分支、不合并main。`PRODUCT_PLAN.md` 已更新，需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（职责匹配 S2；AI/UI 分 worktree 开发、独立 Review） | 按“继续阶段2”交付职责设置预览、章程职责提取兼容扩展、来源审核、人工与多人配置、统一解析预览和安全保存控制器。最终相关276项单元/组件、18项桌面/手机检查、lint、build、Netlify类型检查通过；修复并复查3项P2，运行时代码候选 `ccea818`。详情见 `feedback-fix/MATCHING_STAGE2_HANDOFF.md`。 | 使用 PR #14 的 `/#/matching` 或 `?example=1` 验收。真实AIR/Blob未实测；保存为隔离预览、旧业务未迁移；阶段3待批准。仅功能分支，不合并main、不实际发邮件。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（职责匹配 S1；Data/Resolver 独立开发，Review 独立只读复核） | 依用户“批准第一阶段”实施 `src/matching/` 数据基础、职责操作、严格存档读写及确定性 C2 解析；主 Agent 集成 12 人两工作流演练与旧数据隔离检查。新旧相关测试合计 205 项、lint、构建、两套类型检查通过；最终代码候选 `3ad168d` 独立复核通过。详情见 `feedback-fix/MATCHING_STAGE1_HANDOFF.md`。 | 当前没有新网页，未接真实任务、未改变旧存档；阶段 2/3 仍待批准。后续按 `MATCHING_COMPATIBILITY.md` 做版本迁移与回滚，不用 reset 或长期双写。仅推指定功能分支，不合并 main；0 次真实 AI 调用。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex | **记录 A2/B2/C2 选择并准备三阶段 worktree Agent 计划。** [范围、分工、兼容、验收和回滚](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md)。仅文档变更。 | 用户明确要求批准后才开始阶段。阶段 1/2/3 全部未启动，不能把选定方案视作已批准任一阶段；等待明确启动批准并按授权范围推进。需要同步本地备份。 |

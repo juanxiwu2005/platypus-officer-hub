@@ -1,6 +1,6 @@
 # 提醒计划、邮件和独立任务页：分阶段实施
 
-2026-11-16（America/Phoenix）。基线 `claude/fervent-thompson-e2j5u2@dbfc47d`；开发分支 `feat/reminder-plan-v2`。Juanxi 已批准准备阶段和阶段一；阶段二、三仍待批准。
+2026-11-16（America/Phoenix）。起始基线 `claude/fervent-thompson-e2j5u2@dbfc47d`，期间合入原分支 `e370361` 的 v23 兼容读取基点；开发分支 `feat/reminder-plan-v2`。Juanxi 已批准的准备阶段和阶段一已完成技术检查，交付待验收；阶段二、三仍待批准。见 [阶段一交付](REMINDER_STAGE1_HANDOFF.md)。
 
 ## 最新决定
 
@@ -23,8 +23,8 @@
 
 | 阶段 | 授权与分工 | 交付 |
 | --- | --- | --- |
-| 准备 | 已批准；主 Agent | 独立分支、计划、冻结类型/接口、兼容与验收约定 |
-| 一 | 已批准；Data/Rules 两个独立 Worktree Agent，主 Agent 负责适配，独立 Review | 规则事实、具体要求/办理链接、追加式记录、候选计划和等待对象路由；以显式启用动作接入 reducer，旧页面默认流程保持兼容 |
+| 准备 | 已完成；主 Agent | 独立分支、计划、冻结类型/接口、兼容与验收约定 |
+| 一 | 已完成技术检查，待验收；Data/Rules 两个独立 Worktree Agent，主 Agent 负责适配，独立 Review 通过 | 规则事实、具体要求/办理链接、追加式记录、候选计划和等待对象路由；以显式启用动作接入 reducer，旧页面默认流程保持兼容 |
 | 二 | 待批准；邮件 Agent、任务页 Agent | 新邮件及校验器、可重复查看的独立任务入口、四个状态和明确外部办理按钮 |
 | 三 | 待批准；Details UI、主 Agent 集成、独立 Review | Details 三段、单条/批量/自动演示统一链路、手机电脑验收与最终检查 |
 
