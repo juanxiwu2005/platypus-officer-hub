@@ -1,10 +1,17 @@
-import { useEffect, useState } from "react"
+import { lazy, useEffect, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useStore } from "../data/store"
 import { TaskDetail } from "../components/TaskDetail"
 import { usableGrant, verifyOfficerGrant } from "../lib/officerLinks"
 
+const SingleTaskPage = lazy(() => import("../reminders/SingleTaskPage"))
+
 export default function Officer() {
+  const [params] = useSearchParams()
+  return params.has("access") ? <SingleTaskPage token={params.get("access") ?? ""} /> : <LegacyOfficer />
+}
+
+function LegacyOfficer() {
   const { state } = useStore()
   const [params] = useSearchParams()
   const token = params.get("token") ?? ""

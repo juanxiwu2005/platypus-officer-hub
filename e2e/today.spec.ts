@@ -76,7 +76,7 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
 })
 
 // FB-8: the risk list is gone; forecast-red tasks lead each reminder-centre section with a risk mark, and "Review & open draft" opens the reminder.
-test("top tasks and the reminder centre's risk marks come from the app; Review & open draft opens a checked reminder with four reply links", async ({ page }) => {
+test("top tasks and the reminder centre's risk marks come from the app; Review & open draft opens a rule-written reminder with one task entry", async ({ page }) => {
   await page.route("**/api/nudge/draft", r => r.fulfill({ json: { whyItMatters: "We build a stronger club together.", source: "ai" } }))
   await page.goto("/#/")
   const risk = page.getByTestId("rq-needs-ok")
@@ -86,19 +86,21 @@ test("top tasks and the reminder centre's risk marks come from the app; Review &
   await closeRail(page)
   await risk.getByRole("button", { name: "Review & open draft" }).first().click()
   const panel = page.getByTestId("nudge-panel")
-  await expect(panel.getByTestId("nudge-body")).toContainText("Why now:")
-  await expect(panel.getByTestId("nudge-body")).toContainText("Why it matters:")
+  await expect(panel.getByTestId("nudge-body")).toContainText("Task due:")
+  await expect(panel.getByTestId("nudge-body")).toContainText("Thank you")
   const selected = await panel.getByLabel("Preferred channel").inputValue()
   expect(["whatsapp", "sms", "email"]).toContain(selected)
-  for (const label of ["Done", "Waiting on…", "Need help", "Need more time"]) await expect(panel.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", /reply=/)
+  await expect(panel.getByRole("link", { name: "Open task", exact: true })).toHaveCount(1)
+  await expect(panel.getByRole("link", { name: /^(Done|Waiting on…|Need help|Need more time)$/ })).toHaveCount(0)
   await panel.getByLabel("Preferred channel").selectOption("email")
   const draft = panel.getByRole("link", { name: "Open Gmail draft" })
   await expect(draft).toHaveAttribute("href", /^https:\/\/mail.google.com\/mail\/\?view=cm/)
-  expect(decodeURIComponent((await draft.getAttribute("href"))!)).toContain("Why now:")
+  expect(decodeURIComponent((await draft.getAttribute("href"))!)).toContain("Task due:")
   await expect(panel.getByRole("button", { name: "I sent this reminder" })).toHaveCount(0)
-  await panel.getByRole("link", { name: "Need help", exact: true }).click()
-  await expect(page.getByRole("region", { name: "Linked task" })).toBeVisible()
-  await expect(page.getByText("Opening this page does not change your task.", { exact: false })).toBeVisible()
+  const entry = (await panel.getByRole("link", { name: "Open task", exact: true }).getAttribute("href"))!
+  await page.goto(entry)
+  await expect(page.getByTestId("single-task-page")).toBeVisible()
+  await expect(page.getByRole("button", { name: "Stuck", exact: true })).toBeVisible()
 })
 
 test("officers cannot prepare a reminder or approve a change", async ({ page }) => {

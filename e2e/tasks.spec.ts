@@ -107,37 +107,39 @@ test("a ten-day jump creates the five private stages and a recovery task, with h
   await expect(page.getByRole("region", { name: "Private inbox" })).not.toContainText("Confirm the workshop checklist")
 })
 
-test("the officer link opens only its task, does not change it on load, and can be used once", async ({ page }) => {
+test("the task entry opens only its task, does not update on load, and supports repeat updates", async ({ page }) => {
   await page.goto("/#/tasks")
   await ask(page, "Remind Jordan about the workshop checklist")
   await page.getByRole("button", { name: "Open the draft" }).last().click()
   const panel = page.getByTestId("nudge-panel")
-  const link = panel.getByRole("link", { name: "Need help", exact: true })
-  await expect(link).toHaveAttribute("href", /#\/officer\?token=/)
+  const link = panel.getByRole("link", { name: "Open task", exact: true })
+  await expect(link).toHaveAttribute("href", /#\/officer\?access=/)
   const href = (await link.getAttribute("href"))!
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-silence").status)
-  await link.click()
-  await expect(page.getByRole("heading", { name: "Hi Jordan" })).toBeVisible()
+  await page.goto(href)
+  const task = page.getByTestId("single-task-page")
+  await expect(task).toBeVisible()
   await expect(page.getByRole("navigation", { name: "Sections" })).toHaveCount(0)
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-silence").status)).toBe(before)
-  await page.getByRole("button", { name: "Need help", exact: true }).click()
-  await expect(page.getByRole("heading", { name: "Update saved" })).toBeVisible()
-  await page.goto("/" + href)
-  await expect(page.getByRole("heading", { name: "Update saved" })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Need help", exact: true })).toHaveCount(0)
+  await task.getByRole("button", { name: "Stuck", exact: true }).click()
+  await expect(task.getByTestId("single-task-status")).toHaveText("Stuck")
+  await page.reload()
+  await expect(task.getByTestId("single-task-status")).toHaveText("Stuck")
+  await task.getByRole("button", { name: "Working on it", exact: true }).click()
+  await expect(task.getByTestId("single-task-status")).toHaveText("Working on it")
 })
 
-test("tampered and reset officer links cannot update any task", async ({ page }) => {
+test("tampered and reset task entries cannot update any task", async ({ page }) => {
   await page.goto("/#/")
-  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click() // FB-8: the reminder centre
-  const link = page.getByTestId("nudge-panel").getByRole("link", { name: "Done", exact: true })
-  await expect(link).toHaveAttribute("href", /token=/)
+  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()
+  const link = page.getByTestId("nudge-panel").getByRole("link", { name: "Open task", exact: true })
+  await expect(link).toHaveAttribute("href", /access=/)
   const href = (await link.getAttribute("href"))!
-  await page.goto("/" + href.replace("&reply=", "0&reply="))
+  await page.goto(`${href}0`)
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
   await page.goto("/#/")
   await resetDemo(page)
-  await page.goto("/" + href)
+  await page.goto(href)
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
 })
 

@@ -304,6 +304,9 @@ function cleanBudgetPatch(raw: Partial<Omit<BudgetLineItem, "id">>): Partial<Omi
 export function reducer(state: DemoState, action: Action): DemoState {
   if (!READ_ONLY_OK.has(action.type) && state.people.some(p => p.id === state.viewerId && !isOfficer(p))) return state
   try {
+    const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
+    const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
+    const actorId = access?.recipientId ?? grant?.ownerId ?? state.viewerId
     let next = normalizeTerms(baseReducer(state, action))
     if (next === state) return state
     if (matchingModeEnabled(next) && !["matchingInitialize", "matchingImport", "replace"].includes(action.type)) {
@@ -316,16 +319,13 @@ export function reducer(state: DemoState, action: Action): DemoState {
         next = { ...next, ...result, nodes: next.nodes.map(n => byId.get(n.id) ?? n) }
       }
     }
-    next = action.type === "replace" ? next : recordChangedMatchingOwners(state, next, state.viewerId, new Date().toISOString())
+    next = action.type === "replace" ? next : recordChangedMatchingOwners(state, next, actorId, new Date().toISOString())
     if (action.type === "completeSetup" && (next.reminderRuntime || next.taskAccessGrants)) {
       const { reminderRuntime: _previousReminders, taskAccessGrants: _previousAccess, ...workspace } = next
       void _previousReminders; void _previousAccess
       next = workspace
     }
     if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "advanceClock"].includes(action.type)) return next
-    const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
-    const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
-    const actorId = access?.recipientId ?? grant?.ownerId ?? state.viewerId
     const updated = action.type === "claimTask" || action.type === "replyTask" ? [action.nodeId]
       : action.type === "officerAction" && grant ? [grant.nodeId]
       : action.type === "taskAccessAction" && access?.scope === "owner" ? [access.nodeId]
@@ -720,6 +720,10 @@ function slim(v: unknown, depth = 0): unknown {
 /** The action's arguments as they go into the log. */
 function payloadOf(a: Action): unknown {
   switch (a.type) {
+    case "issueTaskAccessGrant": return { nodeId: a.grant.nodeId, recipientId: a.grant.recipientId, scope: a.grant.scope, issuedOn: a.grant.issuedOn }
+    case "taskAccessAction": return { update: slim(a.update) }
+    case "confirmPlannedReminder": return { candidateId: a.candidateId, via: a.via, ...(a.message ? { message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : {}) }
+    case "confirmNudgeSent": return a.message ? { nodeId: a.nodeId, channel: a.channel, via: a.via, message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
     case "replace": return { nodes: a.state.nodes.length, events: a.state.events.length }
     case "officerAction": return { reply: a.reply, input: slim(a.input) }
     case "issueOfficerGrant": return { nodeId: a.grant.nodeId, ownerId: a.grant.ownerId, issuedOn: a.grant.issuedOn }
@@ -743,6 +747,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
   const node = (id: string) => s.nodes.find(n => n.id === id)
   let out: object | undefined
   switch (a.type) {
+    case "taskAccessAction": { const g = usableTaskAccessGrant(s, a.token); out = g ? fields(node(g.nodeId), ["status", "ownerId"]) : undefined; break }
     case "enableReminderPlan": out = { reminderVersion: s.reminderRuntime?.version }; break
     case "confirmPlannedReminder": out = { reminderDeliveryCount: s.reminderRuntime?.deliveries.length }; break
     case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
@@ -780,7 +785,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
 export function appendLog(log: LogEntry[], before: DemoState, after: DemoState, action: Action, at: number, session?: string | null): LogEntry[] {
   const prior = beforeOf(before, action)
   const entry: LogEntry = {
-    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: before.viewerId, type: action.type,
+    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: action.type === "taskAccessAction" ? usableTaskAccessGrant(before, action.token)?.recipientId ?? before.viewerId : before.viewerId, type: action.type,
     payload: payloadOf(action), ...(prior !== undefined ? { before: prior } : {}), applied: after !== before, ...(session ? { session } : {}),
   }
   return log.length >= LOG_LIMIT ? [...log.slice(log.length - LOG_LIMIT + 1), entry] : [...log, entry]
