@@ -3,6 +3,10 @@
 > **方案与分工：** [分阶段实施方案](feedback-fix/REMINDER_IMPLEMENTATION_PLAN.md) · [阶段一冻结契约](feedback-fix/REMINDER_STAGE1_CONTRACT.md)。从职责匹配已交付 `dbfc47d` 开独立分支 `feat/reminder-plan-v2`；Data/Rules 独立 worktree，主 Agent 独占共享类型、reducer 适配、兼容和交付，完成后独立复核。
 > **边界：** 当前只授权准备与底层阶段一，阶段二邮件/独立页和阶段三 Details 接通待批准。显式启用新版运行时才能运行新规则，旧存档不自动改写；本地待发/演示记录不等于真实邮件投递。真实后台仍为第六项，0 次真实 AI 调用；不改职责匹配文件，不合并 main、不正式发布。需要同步本地备份。
 
+> **2026-11-16（America/Phoenix） · 职责匹配阶段 3 进行中（Codex 主 Agent；Workflow Adapter / Integration Test 独立 Worktree Agent）**
+> **授权：** Juanxi 明确要求“继续阶段3”。接回活动/独立任务/首次设置建活动，统一业务内职责正本、分派记录与认领；实施22→23兼容迁移及旧数据保护，逐项处理46个标准步骤。先提交可读取23且保留未知匹配字段的兼容基点，再写新结构。
+> **边界：** 日期仍由现有引擎计算，旧组织未启用时维持兼容；启用后缺少职责或候选不回落旧职能。预览经明确确认和引用检查后导入，不长期双写；不合并main、不自动真实AI调用、不开始RACI或后续提醒包。沿用PR #14。需要同步本地备份。
+
 > **2026-11-16（America/Phoenix） · 职责匹配阶段 2 已完成检查，交付待验收（Codex 主 Agent；独立 AI/UI/Review Worktree Agent）**
 > **交付：** Team/Settings 新增 **Set up responsibilities** 入口 `/#/matching`；支持虚构文件或粘贴章程、显式 AI 职责草稿、精确引用核对、逐条采用/拒绝，人工职责编辑/确认/合并/归档，岗位泡泡和多人关系、成员例外与资格可用情况、默认人与备份、步骤职责关联及分派预览。旧 structure/duties 保持；新请求先保存输入，private Blob 在 parse 前保存 transport，同请求 ID 原子认领防重复收费。操作与验收见 [阶段 2 交付](feedback-fix/MATCHING_STAGE2_HANDOFF.md)，12 人示例 `https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching?example=1`。
 > **验证：** 最终相关单元/组件 15 文件、276 项通过；本地生产构建桌面 9 + 手机 9 共 18 项浏览器检查通过，包含无障碍/溢出、刷新/Stop、失败保留和旧业务完整对象不变。lint、构建、前后端类型检查通过；独立 Review 对运行时代码 `ccea818` 通过，3 项 P2 已修复并复查。开发包 AI `4f31c58`、UI `805ef2a`，保留提交集成。真实 AI 0 次，真实 Blob/AIR 联通和 Safari/iOS 未实测，不将模拟结果称为已实测服务。
@@ -364,6 +368,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | **批准职责匹配阶段3。** 继续实际任务接入、旧存档兼容、认领和集成验收；使用既定Worktree分工，不代表合并main或启动提醒后续五项。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配阶段 2。** 继续章程 AI 增强与职责设置界面，按既定 Worktree Agent 计划实施；阶段 3 仍待批准。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配第一阶段。** 按 A2/B2/C2 三阶段计划，使用独立 worktree Data/Resolver Agent 建立数据契约、职责操作、确定性候选及默认/备份解析、隔离存储、虚构演练与阶段 3 兼容设计；阶段 2/3 仍待批准。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **选定 A2 + B2 + C2。** 使用 worktree Agent，分两到三个阶段推进职责匹配架构；Juanxi 明确要求“我批准后再开始阶段”，按实际批准范围执行。具体三阶段分工与接入范围是待批实施计划，当前未启动编码。 | Juanxi |
