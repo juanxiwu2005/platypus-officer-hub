@@ -522,6 +522,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
       const message = action.message ? validatedReminderMessage(state, action.message, n.id) : null
       if (action.message && (!message || message.channel !== action.channel)) return state
+      if (message && (action.via ?? "president") !== (["auto_email", "review_then_auto"].includes(state.org.settings.reminderMode ?? "") ? "platypus" : "president")) return state
       return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: message?.text ?? action.text, sentBy: state.viewerId, sentOn: state.today, response: null, ...(message ? { message } : {}), ...(action.via === "president" || action.via === "platypus" ? { via: action.via } : {}) }] }
     }
     case "claimTask": { const node = state.nodes.find(n => n.id === action.nodeId); return node && canClaimMatchingTask(state, node, state.viewerId) ? claimTask(state, action.nodeId, state.viewerId) : state }

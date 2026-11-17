@@ -156,6 +156,7 @@ describe("reviewed message snapshots", () => {
     const action = { type: "confirmNudgeSent", nodeId: id, channel: "email", text: mail.text, via: "president", message: mail } as const
     const saved = reducer(state, action)
     expect(saved.nudges[0].message).toEqual(mail)
+    expect(reducer(state, { ...action, via: "platypus" }).nudges).toEqual([])
     const edited = reducer(state, { type: "updateNode", id, patch: { instructions: "Reserve a room for 40 attendees and save its confirmation." } })
     expect(reducer(edited, action).nudges).toEqual([])
     const changedAddress = { ...state, people: state.people.map(p => p.id === "jordan" ? { ...p, email: "new-address@example.org" } : p) }

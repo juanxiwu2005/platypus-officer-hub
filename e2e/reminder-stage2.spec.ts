@@ -105,7 +105,7 @@ test("the same task entry can record Waiting on and Stuck without consuming it",
   const task = page.getByTestId("single-task-page")
   await expect(task).toBeVisible()
   await task.getByRole("button", { name: "Waiting on", exact: true }).click()
-  await task.getByLabel("Waiting on", { exact: true }).selectOption("sam")
+  await task.getByRole("combobox", { name: "Waiting on", exact: true }).selectOption("sam")
   await task.getByRole("button", { name: /Save waiting/ }).click()
   await expect(task.getByTestId("single-task-status")).toHaveText("Waiting on")
   expect((await demo(page)).nodes.find(n => n.id === nodeId)!.waitingOnPersonId).toBe("sam")

@@ -28,7 +28,7 @@ describe("claim handshake and status permissions", () => {
     const seed = personal("sam")
     const sam = { ...seed, nodes: seed.nodes.map(n => n.id === "e-speaker:flyer" ? { ...n, status: "unclaimed" as const, acceptedOn: null } : n) }
     expect(reducer(sam, { type: "replyTask", nodeId: "e-speaker:flyer", reply: "done" })).toBe(sam)
-    expect(validateReply(sam, sam.nodes.find(n => n.id === "t-news")!, "sam", "hack" as never, {})).toMatch(/four/)
+    expect(validateReply(sam, sam.nodes.find(n => n.id === "t-news")!, "sam", "hack" as never, {})).toMatch(/supported/)
   })
 
   it("lets the president update any assigned task but not another officer", () => {
