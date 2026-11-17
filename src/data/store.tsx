@@ -547,6 +547,7 @@ export type StorageNotice =
   /** Saving to this browser failed (storage full or blocked). Work since the last good save exists only on screen. */
   | { kind: "save_failed" }
   | { kind: "migration_blocked"; fromVersion: 22; backupKey: null; raw: string }
+  | { kind: "storage_conflict" }
 
 const store = () => window.localStorage
 
@@ -915,18 +916,46 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   // Data and log are saved separately: a click changes only the log, so the (larger) demo data is not rewritten for it.
   const saved = useRef({ app: true, log: true })
   const savedApp = useRef<DemoState | null>(null)
+  const persistedRaw = useRef<{ raw: string | null } | null>(null)
+  const conflict = useRef(false)
+  if (!persistedRaw.current) {
+    try { persistedRaw.current = { raw: store().getItem(STORAGE_KEY) } } catch { /* Saving will report unavailable storage. */ }
+  }
+  // A revision in memory cannot detect another tab's completed write. Check the actual business key before every write.
+  // This detects stale tabs; localStorage still provides no atomic cross-tab compare-and-swap.
+  const storageUnchanged = useCallback(() => {
+    if (conflict.current) return false
+    try {
+      const raw = store().getItem(STORAGE_KEY)
+      if (persistedRaw.current && raw !== persistedRaw.current.raw) {
+        conflict.current = true; setHeld(true); setNotice({ kind: "storage_conflict" }); return false
+      }
+      persistedRaw.current = { raw }
+      return true
+    } catch { saved.current.app = false; setSaveFailed(true); return false }
+  }, [])
+  const persistApp = useCallback((app: DemoState) => {
+    if (!storageUnchanged() || !saveState(app)) return false
+    persistedRaw.current = { raw: JSON.stringify(app) }
+    return true
+  }, [storageUnchanged])
+  useEffect(() => {
+    const changed = (event: StorageEvent) => { if (event.key === STORAGE_KEY || event.key === null) storageUnchanged() }
+    window.addEventListener("storage", changed)
+    return () => window.removeEventListener("storage", changed)
+  }, [storageUnchanged])
   useEffect(() => {
     if (held) return
     if (savedApp.current === root.app) return
-    saved.current.app = saveState(root.app)
+    saved.current.app = persistApp(root.app)
     if (saved.current.app) savedApp.current = root.app
     setSaveFailed(!(saved.current.app && saved.current.log))
-  }, [root.app, held])
+  }, [root.app, held, persistApp])
   useEffect(() => {
-    if (held) return
+    if (held || !storageUnchanged()) return
     saved.current.log = saveLog(root.log)
     setSaveFailed(!(saved.current.app && saved.current.log))
-  }, [root.log, held])
+  }, [root.log, held, storageUnchanged])
   // The study session new entries belong to. A session runs for one sitting: after 6 hours new entries carry none, until a new one begins.
   const [bootSession] = useState(currentSession)
   const sessionRef = useRef<StudySession | null>(bootSession)
@@ -941,21 +970,21 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }), [commit])
   // The real clock is read here, once per action, and travels with it into the log.
   const dispatch = useCallback((action: Action) => {
-    if (held && boot.notice?.kind === "migration_blocked") return
+    if ((held && boot.notice?.kind === "migration_blocked") || !storageUnchanged()) return
     const before = rootRef.current!
     if (["completeSetup", "replace"].includes(action.type) && before.app.matching && !backUp(JSON.stringify(before.app), `matching-${before.app.org.matchingWorkspaceId ?? "prior"}`)) { setSaveFailed(true); return }
     const at = Date.now(); commit(loggedReducer(before, { action, at, session: sessionAt(at) }))
-  }, [commit, sessionAt, held, boot.notice])
+  }, [commit, sessionAt, held, boot.notice, storageUnchanged])
   const tryDispatch = useCallback((action: Action) => {
-    if (held) return false
+    if (held || !storageUnchanged()) return false
     const before = rootRef.current!, at = Date.now(), next = loggedReducer(before, { action, at, session: sessionAt(at) })
     if (["completeSetup", "replace"].includes(action.type) && before.app.matching && !backUp(JSON.stringify(before.app), `matching-${before.app.org.matchingWorkspaceId ?? "prior"}`)) { setSaveFailed(true); return false }
     if (next.app === before.app) return false
-    if (!saveState(next.app)) { saved.current.app = false; setSaveFailed(true); return false }
+    if (!persistApp(next.app)) { saved.current.app = false; setSaveFailed(true); return false }
     savedApp.current = next.app; saved.current.app = true
     commit(next); setSaveFailed(!saved.current.log)
     return true
-  }, [held, commit, sessionAt])
+  }, [held, commit, sessionAt, storageUnchanged, persistApp])
   const getState = useCallback(() => rootRef.current!.app, [])
   const logUi = useCallback((e: UiEvent) => {
     const r = rootRef.current!
@@ -969,14 +998,14 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
     logUi({ type: "ui.export", payload: { entries: rootRef.current!.log.length + 1 } })
     downloadExport(rootRef.current!.app, rootRef.current!.log)
   }, [logUi])
-  const reset = useCallback(() => { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) }, [dispatch])
+  const reset = useCallback(() => { if (!held && storageUnchanged()) { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) } }, [dispatch, held, storageUnchanged])
   const persistenceFailed = saveFailed || held
   // The log is left out of the value on purpose: a click must not re-render every screen that reads the store.
   const value = useMemo(() => ({ state: root.app, persistenceFailed, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
-  const shown: StorageNotice | null = saveFailed ? { kind: "save_failed" } : notice
+  const shown: StorageNotice | null = notice?.kind === "storage_conflict" ? notice : saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
     {shown && <StorageBanner notice={shown} onDownload={() => {
-      if (shown.kind === "save_failed") downloadExport(rootRef.current!.app, rootRef.current!.log)
+      if (shown.kind === "save_failed" || shown.kind === "storage_conflict") downloadExport(rootRef.current!.app, rootRef.current!.log)
       else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); if (shown.kind !== "migration_blocked") setHeld(false) }
     }} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
     {children}
@@ -985,6 +1014,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
 
 /** Says out loud that data was restored or could not be saved. Uses existing classes only. */
 function StorageBanner({ notice, onDownload, onDismiss }: { notice: StorageNotice; onDownload: () => void; onDismiss?: () => void }) {
+  if (notice.kind === "storage_conflict") return <div role="alert" className="save-status err" data-testid="storage-banner">This organization changed in another tab. Changes here are paused to protect both copies. Download this tab's copy if needed, then reload to use the latest saved data. <button type="button" className="btn small" onClick={onDownload}>Download this tab's copy</button></div>
   if (notice.kind === "migration_blocked") return <div role="alert" className="save-status err" data-testid="storage-banner">Your saved organization is intact. Its upgrade could not be backed up, so changes are paused. Download the original data, then reload to retry the upgrade. <button type="button" className="btn small" onClick={onDownload}>Download original data</button></div>
   if (notice.kind === "save_failed")
     return <div role="alert" className="save-status err" data-testid="storage-banner">Your latest changes could not be saved in this browser (storage is full or blocked). They will be lost if you close this tab. <button type="button" className="btn small" onClick={onDownload}>Download my data</button></div>
