@@ -10,7 +10,7 @@ describe("task-page action links", () => {
   it("chooses one published ASU space-request entry and explains the routing limitation", () => {
     const link = taskActionLink(step("venue"))!
     expect(link.url).toBe("https://eoss.asu.edu/student-unions/submit-a-space-request")
-    expect(link.explanation).toContain("choose the applicable reservation process")
+    expect(link.explanation).toContain("choose the applicable process at this request entry")
     expect(Object.keys(link).sort()).toEqual(["explanation", "label", "url"])
   })
 
@@ -21,7 +21,7 @@ describe("task-page action links", () => {
   })
 
   it("does not present catering information as a food-exception application", () => {
-    expect(taskActionLink(step("quotes"))?.explanation).toContain("not a confirmed order or food-exception application")
+    expect(taskActionLink(step("quotes"))?.explanation).toContain("not an order or food-exception application")
     expect(taskActionLink(step("foodCompliance"))).toBeNull()
     expect(taskActionLink(step("permit"))).toBeNull()
   })

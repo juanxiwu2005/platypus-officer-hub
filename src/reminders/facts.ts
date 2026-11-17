@@ -7,11 +7,10 @@ import type { ReminderInput, ReminderPerson, ReminderRuntime, ReminderTaskFacts 
 const text = (value: string) => value.trim().replace(/\s+/g, " ")
 const sentence = (value: string) => /[.!?]$/.test(value) ? value : `${value}.`
 
-/** Format an existing event date only; no deadline is computed by this adapter. */
+/** Format only a valid supplied event date. */
 function eventDay(value: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
-  const date = fromISO(value)
-  return Number.isFinite(date.getTime()) && toISO(date) === value ? fmtShort(value) : null
+  return toISO(fromISO(value)) === value ? fmtShort(value) : null
 }
 
 function requirement(node: Node, event: Event | undefined): string {
@@ -19,23 +18,25 @@ function requirement(node: Node, event: Event | undefined): string {
   const name = event?.name.trim()
   const day = event && eventDay(event.date)
   const context = `${name ? ` for ${name}` : ""}${day ? ` on ${day}` : ""}`
+  const submit = (kind: string) => `Submit the ${kind} request${context} and record its confirmation or current status.`
   switch (node.stepKey) {
-    case "venue": return event?.venue === "offcampus"
-      ? `Confirm the venue${count}${context} and record its location and booking confirmation.`
-      : `Reserve a room${count}${context} and record the booking confirmation.`
-    case "registry": return `Register the event${context} and record the submission confirmation.`
+    case "venue": {
+      const outside = event?.venue === "offcampus"
+      return `${outside ? "Confirm the venue" : "Reserve a room"}${count}${context} and record ${outside ? "its location and" : "the"} booking confirmation.`
+    }
+    case "registry": return `Register the event${context}; record confirmation.`
     case "quotes":
-    case "quote": return `Collect the required vendor quotes${context} and save them with the task.`
-    case "budget": return `Prepare the budget${context}, including expected costs and the funding source.`
+    case "quote": return `Collect required vendor quotes${context}; attach them to the task.`
+    case "budget": return `Prepare the budget${context}: expected costs and funding source.`
     case "budgetRequest":
-    case "usg": return `Submit the budget request${context} and record its confirmation or current status.`
+    case "usg": return submit("budget")
     case "purchaseRequest":
-    case "ritm": return `Submit the purchase request${context} and record its confirmation or current status.`
+    case "ritm": return submit("purchase")
     case "sap":
     case "speakerPacket":
-    case "usgspeaker": return `Collect the speaker scope and required agreement information${context}, and record the submission status.`
+    case "usgspeaker": return `Collect speaker scope and agreement requirements${context}; record submission status.`
     case "headcount": return `Complete “${text(node.title)}”${context} using the confirmed attendance count.`
-    case "feedback": return `Collect feedback${context} and record the main lessons for the next event.`
+    case "feedback": return `Collect feedback${context}; save lessons for the next event.`
     default: return sentence(`${text(node.title)}${context}`)
   }
 }
@@ -44,16 +45,16 @@ function importance(state: DemoState, node: Node, event: Event | undefined): str
   const why = text(node.why)
   if (why) return sentence(why)
   const downstream = state.nodes.filter(n => n.dependsOn.includes(node.id)).sort((a, b) => a.id.localeCompare(b.id))[0]
-  if (downstream) return `This task is a prerequisite for “${text(downstream.title)}”.`
-  return event?.name.trim() ? `This task is part of the plan for ${event.name.trim()}.` : "This task is part of the club's work."
+  if (downstream) return `“${text(downstream.title)}” depends on this task.`
+  return `Part of ${event?.name.trim() ? `the plan for ${event.name.trim()}` : "the club's work"}.`
 }
 
-/** Rule-only facts shared by the schedule, mail preview and future single-task page. */
+/** Facts for rules, mail and task pages. */
 export function buildReminderFacts(state: DemoState, nodeId: string): ReminderTaskFacts | null {
   const node = state.nodes.find(n => n.id === nodeId)
   if (!node) return null
   const event = state.events.find(e => e.id === node.eventId)
-  // A known campus entry is unsuitable when this event explicitly uses an off-campus venue.
+  // Campus routing does not apply to off-campus venues.
   const actionLink = node.stepKey === "venue" && event?.venue === "offcampus" ? null : taskActionLink(node)
   return {
     nodeId: node.id,
@@ -76,7 +77,7 @@ export function buildReminderFacts(state: DemoState, nodeId: string): ReminderTa
   }
 }
 
-/** Former and incoming officers remain identifiable for history but cannot receive a new automatic request. */
+/** Keep identities for history; only current officers are active. */
 export function reminderPeople(state: DemoState): ReminderPerson[] {
   return state.people.map(person => {
     const active = isOfficer(person)
@@ -89,7 +90,7 @@ export function reminderPeople(state: DemoState): ReminderPerson[] {
   })
 }
 
-/** Adapt the current snapshot without running an engine, writing storage or changing the runtime. */
+/** Adapt facts without effects or runtime changes. */
 export function buildReminderInput(state: DemoState, runtime: ReminderRuntime): ReminderInput {
   return {
     today: state.today,

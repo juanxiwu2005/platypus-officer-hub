@@ -56,7 +56,7 @@ describe("rule-only reminder facts", () => {
     const s = { ...base, nodes: base.nodes.map(n => n.id === room.id ? { ...n, why: "" } : n) }
     const facts = buildReminderFacts(s, room.id)!
     const dependent = s.nodes.filter(n => n.dependsOn.includes(room.id)).sort((a, b) => a.id.localeCompare(b.id))[0]
-    expect(facts.importance).toBe(`This task is a prerequisite for “${dependent.title}”.`)
+    expect(facts.importance).toBe(`“${dependent.title}” depends on this task.`)
     expect(facts.importance).not.toContain("can start")
   })
 
@@ -76,7 +76,7 @@ describe("rule-only reminder facts", () => {
     const s = { ...base, nodes: [{ ...source, title: "Call the workshop host", why: "", ruleIds: [] }] }
     const facts = buildReminderFacts(s, source.id)!
     expect(facts.requirement).toBe("Call the workshop host.")
-    expect(facts.importance).toBe("This task is part of the club's work.")
+    expect(facts.importance).toBe("Part of the club's work.")
     expect(facts.actionLink).toBeNull()
   })
 
