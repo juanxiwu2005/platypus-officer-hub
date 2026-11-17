@@ -101,7 +101,7 @@ describe("matching setup: explicit source review", () => {
 
 describe("matching setup: manual responsibilities and people", () => {
   it("retains a manual form when the controller reports that saving failed", () => {
-    const options = props(); const view = render(<MatchingSetupView {...options} />)
+    const options = props(compactExample()); const view = render(<MatchingSetupView {...options} />)
     fireEvent.click(screen.getByRole("button", { name: "New responsibility" }))
     fireEvent.change(screen.getByLabelText("Responsibility name"), { target: { value: "Sensor calibration" } })
     fireEvent.change(screen.getByLabelText("What should be delivered?"), { target: { value: "A calibrated sensor log" } })
