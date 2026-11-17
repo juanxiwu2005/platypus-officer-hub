@@ -28,6 +28,11 @@ export default defineConfig({
         // Keep the shared React runtime cacheable across independently loaded screens.
         manualChunks(id) {
           if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react-runtime"
+          if (/\/node_modules\/zod\//.test(id)) return "validation"
+          // Synchronous store validation lives in a cacheable, store-independent module.
+          // Keep the existing entry-size budget while sharing one matching implementation across pages.
+          if (/\/src\/matching\/(contracts|errors|validation|library|repository|resolve|setupContracts|setupWorkspace|setupContext|businessContracts|organizationMatching)\.ts$/.test(id)
+            || /\/src\/matching\/adapters\/(organization|assignments|steps)\.ts$/.test(id)) return "matching-core"
         },
       },
     },
