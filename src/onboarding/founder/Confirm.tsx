@@ -59,7 +59,7 @@ export function Confirm() {
       : <p className="ob-lead">{c.missing}</p>}
     {noEvent && <p className="small muted" data-testid="confirm-no-event">{c.noEvent}</p>}
     {ready && reminderMode && <p className="small muted" data-testid="confirm-reminders">{reminderLine(reminderMode)}</p>}
-    {ready && <label className="check-label"><input type="checkbox" checked={responsibilityMatching} onChange={event => setResponsibilityMatching(event.target.checked)} />Use responsibility matching. Review responsibilities before assigning tasks.</label>}
+    {ready && <label className="check-label"><input type="checkbox" checked={responsibilityMatching} onChange={event => setResponsibilityMatching(event.target.checked)} />Responsibility matching</label>}
     {ready && replaces && <p className="ob-c9-warn" data-testid="replace-warning">{c.replaceWarning}</p>}
     {replaces && <p className="fb3-cancel"><button type="button" className="link fb3-cancel-link" data-testid="confirm-cancel" onClick={() => { recordSetup("keep-demo"); flow.exit() }}>{c.cancel}</button></p>}
     {problem && <p role="alert" className="ob-c9-error">{problem}</p>}
