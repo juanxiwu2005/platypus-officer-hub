@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
+import AxeBuilder from "@axe-core/playwright"
 import type { DemoState } from "../src/data/types"
 import type { MatchingState } from "../src/matching/contracts"
 import { seedDemo } from "../src/data/seed"
@@ -32,7 +33,13 @@ async function eventTask(page: Page, eventName: string, stepKey: string) {
   const state = await savedDemo(page), event = state.events.find(e => e.name === eventName)
   return state.nodes.find(n => n.eventId === event?.id && n.stepKey === stepKey)
 }
-async function newTask(page: Page, title: string, responsibilityId: string | null, memberId: string | null, manualOverride = false) {
+async function auditScreen(page: Page, project: string, screen: string) {
+  expect(await noOverflow(page)).toBeLessThanOrEqual(1)
+  const violations = (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.filter(v => v.impact === "critical" || v.impact === "serious")
+  expect(violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).join(" ; ")}`)).toEqual([])
+  await page.screenshot({ path: `/tmp/matching-s3-${project}-${screen}.png`, fullPage: true })
+}
+async function newTask(page: Page, title: string, responsibilityId: string | null, memberId: string | null, manualOverride = false, beforeAdd?: () => Promise<void>) {
   await open(page, "tasks")
   await page.getByTestId("new-task").click()
   const form = page.getByTestId("new-task-form")
@@ -40,6 +47,7 @@ async function newTask(page: Page, title: string, responsibilityId: string | nul
   await form.getByLabel("Responsibility", { exact: true }).selectOption(responsibilityId ?? "")
   if (manualOverride) await form.getByLabel("Assign manually for this task", { exact: true }).check()
   await form.getByLabel("Assign one person", { exact: true }).selectOption(memberId ?? "")
+  if (beforeAdd) await beforeAdd()
   await form.getByRole("button", { name: "Add", exact: true }).click()
   await expect.poll(async () => (await savedDemo(page)).nodes.filter(n => n.title === title).length).toBe(1)
   return (await savedDemo(page)).nodes.find(n => n.title === title)!
@@ -50,7 +58,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", route => route.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
 })
 
-test("the real organization can enable matching and save its own library without changing old work", async ({ page }) => {
+test("the real organization can enable matching and save its own library without changing old work", async ({ page }, info) => {
   await seed(page, seedDemo(undefined, "v2"))
   await open(page, "matching")
   // Existing legacy normalization is completed before the preservation checkpoint.
@@ -80,13 +88,20 @@ test("the real organization can enable matching and save its own library without
   expect(after.matching!.assignments).toEqual([])
   expect(after.matching!.policies[0].primaryMemberId).toBe("maya")
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
+  const workflowMap = page.getByTestId("workflow-responsibility-map")
+  await expect(workflowMap).toBeVisible()
+  await workflowMap.locator("details").first().locator("summary").click()
+  await auditScreen(page, info.project.name, "live-library")
 })
 
-test("a qualified standalone task is created once and still needs the selected member to claim it", async ({ page }) => {
+test("a qualified standalone task is created once and still needs the selected member to claim it", async ({ page }, info) => {
   await seed(page, stage3Club())
-  const node = await newTask(page, "Inspect the fictional room request", "fixture-space", "maya")
+  const node = await newTask(page, "Inspect the fictional room request", "fixture-space", "maya", false, () => auditScreen(page, info.project.name, "new-task"))
   expect(node).toMatchObject({ ownerId: "maya", status: "unclaimed", matching: { responsibilityId: "fixture-space" } })
   expect((await savedDemo(page)).matching!.assignments.filter(a => a.taskId === node.id)).toHaveLength(1)
+  await page.goto(`/#/tasks?node=${encodeURIComponent(node.id)}`)
+  await expect(page.getByTestId("task-matching")).toBeVisible()
+  await auditScreen(page, info.project.name, "task-detail")
   await viewAs(page, "maya")
   await page.goto(`/#/tasks?node=${encodeURIComponent(node.id)}`)
   await page.getByRole("button", { name: "I've got it", exact: true }).click()
