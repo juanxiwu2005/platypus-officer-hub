@@ -112,6 +112,18 @@ describe("rule-written reminder candidates", () => {
     value.people[0].active = false
     expect(planReminders(value).blocked[0].reason).toBe("unavailable_recipient")
   })
+  it("automatic email requires an email address even when the preferred channel is WhatsApp", () => {
+    const value = input({ mode: "auto_email" })
+    value.people[0].channel = "whatsapp"
+    expect(runAutomaticReminders(value).deliveries).toHaveLength(1)
+    value.people[0].email = ""
+    expect(planReminders(value).ready).toEqual([])
+    expect(planReminders(value).blocked).toEqual([{ nodeId: "room", recipientId: "jordan", reason: "unavailable_recipient" }])
+    expect(runAutomaticReminders(value)).toBe(value.runtime)
+    const manual = { ...value, mode: "review_then_self" as const }
+    expect(planReminders(manual).ready).toHaveLength(1)
+    expect(send(manual).deliveries).toHaveLength(1)
+  })
   it("holds ambiguous legacy history for both ordinary and waiting-object reminders", () => {
     for (const value of [input(), withWaiting()]) {
       const runtime = { ...value.runtime, legacyUnresolvedNodeIds: ["room"] }
@@ -253,6 +265,24 @@ describe("waiting-object follow-ups", () => {
     const transitioned = change(runtime, value.tasks, [nextTask])
     expect(transitioned.waitingRequests).toHaveLength(1)
     expect(planReminders({ ...value, tasks: [nextTask], runtime: transitioned, today: addDays(TODAY, 1) }).ready).toEqual([])
+  })
+  it("the waiting object has its own budget after the owner has received three reminders", () => {
+    const value = withWaiting()
+    const deliveries = Array.from({ length: 3 }, (_, i) => historical({ id: `owner-${i}`, nodeId: "room", sentOn: "2027-03-20" }))
+    const runtime = { ...value.runtime, deliveries }
+    const current = { ...value, runtime }
+    expect(planReminders(current).ready[0]).toMatchObject({ reason: "waiting_on", recipientId: "sam" })
+    expect(send(current).deliveries).toHaveLength(4)
+  })
+  it("waiting follow-ups do not consume the original owner's task budget", () => {
+    const value = input()
+    const deliveries = Array.from({ length: 3 }, (_, i) => historical({
+      id: `waiting-${i}`, nodeId: "room", recipientId: "sam", reason: "waiting_on", sentOn: "2027-03-20",
+    }))
+    const runtime = { ...value.runtime, deliveries }
+    expect(planReminders({ ...value, runtime }).ready[0].recipientId).toBe("jordan")
+    const pending = withWaiting()
+    expect(planReminders({ ...pending, runtime: { ...pending.runtime, deliveries } }).blocked[0]).toMatchObject({ reason: "task_limit", recipientId: "sam" })
   })
 })
 

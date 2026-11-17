@@ -107,7 +107,8 @@ function limitReason(input: ReminderInput, candidate: ReminderCandidate): Blocke
   if (deliveries.some(delivery => delivery.nodeId === candidate.nodeId && delivery.recipientId === candidate.recipientId && delivery.sentOn === input.today)) return "already_sent_today"
   const rawLimit = Number.isFinite(input.maxPerTask) ? Math.floor(input.maxPerTask) : 3
   const taskLimit = Math.max(1, Math.min(3, rawLimit))
-  if (deliveries.filter(delivery => delivery.nodeId === candidate.nodeId && sameOwner(delivery, candidate)).length >= taskLimit) return "task_limit"
+  if (deliveries.filter(delivery => delivery.nodeId === candidate.nodeId && sameOwner(delivery, candidate)
+    && delivery.recipientId === candidate.recipientId).length >= taskLimit) return "task_limit"
   const weekStart = addDays(input.today, -6)
   if (deliveries.filter(delivery => delivery.recipientId === candidate.recipientId && delivery.sentOn >= weekStart && delivery.sentOn <= input.today).length >= 6) return "weekly_limit"
   return null
@@ -141,7 +142,7 @@ export function planReminders(input: ReminderInput): ReminderPlan {
         waitingRequestId: request.id,
       }]
     } else {
-      if (!canReceive(people.get(task.ownerId))) { blocked.push({ nodeId: task.nodeId, recipientId: task.ownerId, reason: "unavailable_recipient" }); continue }
+      if (!canReceive(people.get(task.ownerId), input.mode === "auto_email")) { blocked.push({ nodeId: task.nodeId, recipientId: task.ownerId, reason: "unavailable_recipient" }); continue }
       candidates = []
       const hasStartReply = task.startOn && input.runtime.updates.some(update => update.nodeId === task.nodeId
         && sameOwner(update, task) && update.ownerReply && update.on >= task.startOn! && update.on <= input.today)
