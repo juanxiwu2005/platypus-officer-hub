@@ -43,10 +43,13 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
   const [linkError, setLinkError] = useState("")
   const [openedText, setOpenedText] = useState<string | null>(null)
   const [attempted, setAttempted] = useState<ReminderMailSnapshot | null>(null)
+  const [recordedEntry, setRecordedEntry] = useState<{ kind: "delivery" | "nudge"; id: string } | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
   const enabled = remindersEnabled(state)
-  const recordedDelivery = enabled ? state.reminderRuntime!.deliveries.find(d => sameMessage(d.message, attempted)) : undefined
-  const recordedNudge = state.nudges.find(n => sameMessage(n.message, attempted))
+  const recordedDelivery = enabled && recordedEntry?.kind === "delivery"
+    ? state.reminderRuntime!.deliveries.find(d => d.id === recordedEntry.id && sameMessage(d.message, attempted)) : undefined
+  const recordedNudge = recordedEntry?.kind === "nudge"
+    ? state.nudges.find(n => n.id === recordedEntry.id && sameMessage(n.message, attempted)) : undefined
   const recorded = !!recordedDelivery || !!recordedNudge
   const queue = enabled ? planReminders(buildReminderInput(state, state.reminderRuntime!)) : null
   const candidate = queue?.ready.find(c => c.nodeId === nodeId)
@@ -87,6 +90,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
     setChannel(fixedEmail ? "email" : recipient?.channel ?? "email")
     setOpenedText(null)
     setAttempted(null)
+    setRecordedEntry(null)
   }, [nodeId, node?.ownerId, node?.ownerVersion, recipient?.id, fixedEmail])
   useEffect(() => {
     if (recorded) return
@@ -105,8 +109,19 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
     if (!ready || !mail || !grant) return
     const snapshot: ReminderMailSnapshot = { ...mail, channel, preparedOn: state.today, accessId: grant.id }
     setAttempted(snapshot)
-    if (enabled && candidate) tryDispatch({ type: "confirmPlannedReminder", candidateId: candidate.id, via: platypusSends ? "platypus" : "manual", message: snapshot })
-    else tryDispatch({ type: "confirmNudgeSent", nodeId, channel, text: mail.text, via: platypusSends ? "platypus" : "president", message: snapshot })
+    setRecordedEntry(null)
+    const before = getState()
+    const oldNudges = new Set(before.nudges.map(n => n.id))
+    const oldDeliveries = new Set(remindersEnabled(before) ? before.reminderRuntime!.deliveries.map(d => d.id) : [])
+    const saved = enabled && candidate
+      ? tryDispatch({ type: "confirmPlannedReminder", candidateId: candidate.id, via: platypusSends ? "platypus" : "manual", message: snapshot })
+      : tryDispatch({ type: "confirmNudgeSent", nodeId, channel, text: mail.text, via: platypusSends ? "platypus" : "president", message: snapshot })
+    if (!saved) return
+    const after = getState()
+    const delivery = remindersEnabled(after) ? after.reminderRuntime!.deliveries.find(d => !oldDeliveries.has(d.id) && sameMessage(d.message, snapshot)) : undefined
+    const nudge = after.nudges.find(n => !oldNudges.has(n.id) && sameMessage(n.message, snapshot))
+    if (delivery) setRecordedEntry({ kind: "delivery", id: delivery.id })
+    else if (nudge) setRecordedEntry({ kind: "nudge", id: nudge.id })
   }
 
   const fullMessage = channel === "email" ? mail?.body ?? "" : mail?.text ?? ""

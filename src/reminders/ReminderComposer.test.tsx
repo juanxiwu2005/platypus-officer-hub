@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { webcrypto } from "node:crypto"
-import { StoreProvider, reducer, useStore } from "../data/store"
+import { StoreProvider, reducer, STORAGE_KEY, useStore } from "../data/store"
 import { seedDemo } from "../data/seed"
 import { applySchedule } from "../engine/schedule"
 import type { DemoState, ReminderMode } from "../data/types"
 import ReminderComposer from "./ReminderComposer"
-import { makeTaskAccessGrant } from "./taskAccess"
+import { makeTaskAccessGrant, taskAccessUrl } from "./taskAccess"
+import { buildReminderFacts, reminderPeople } from "./facts"
+import { buildReminderMail } from "./mail"
 
 const NODE = "mail-room"
 let latest: DemoState
@@ -188,5 +190,36 @@ describe("real reminder composer state integration", () => {
       expect(screen.queryByText(/Recorded as sent by you/)).toBeNull()
       expect(screen.queryByRole("button", { name: "I sent this reminder" })).toBeNull()
     } finally { write.mockRestore() }
+  })
+
+  it.each([false, true])("an identical previous message cannot stand in for this confirmation (write fails: %s)", async fail => {
+    const s = fixture("review_then_auto")
+    const grant = await makeTaskAccessGrant(s, NODE)
+    const issued = reducer(s, { type: "issueTaskAccessGrant", grant })
+    const recipient = reminderPeople(issued).find(p => p.id === "jordan")!
+    const mail = buildReminderMail({ today: issued.today, facts: buildReminderFacts(issued, NODE)!, recipient, taskUrl: taskAccessUrl(window.location.origin, grant) })
+    const snapshot = { ...mail, channel: "email" as const, preparedOn: issued.today, accessId: grant.id }
+    const first = reducer(issued, { type: "confirmNudgeSent", nodeId: NODE, text: mail.text, channel: "email", via: "platypus", message: snapshot })
+    expect(first.nudges).toHaveLength(1)
+    show(first)
+    const approve = await screen.findByRole("button", { name: "Approve · Platypus sends (demo)" })
+    const write = Storage.prototype.setItem
+    const failed = fail ? vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
+      if (key === STORAGE_KEY) throw new Error("Storage unavailable")
+      return write.call(this, key, value)
+    }) : null
+    try {
+      fireEvent.click(approve)
+      if (fail) {
+        expect(latest.nudges).toHaveLength(1)
+        expect(screen.queryByText("Approved. Platypus would send it now. Demo: nothing is sent.")).toBeNull()
+        expect(latest.nudges[0]).toEqual(first.nudges[0])
+      } else {
+        await screen.findByText("Approved. Platypus would send it now. Demo: nothing is sent.")
+        expect(latest.nudges).toHaveLength(2)
+        expect(latest.nudges[1].id).not.toBe(first.nudges[0].id)
+        expect(latest.nudges[1].message).toEqual(first.nudges[0].message)
+      }
+    } finally { failed?.mockRestore() }
   })
 })
