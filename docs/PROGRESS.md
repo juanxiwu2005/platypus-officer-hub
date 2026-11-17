@@ -1,3 +1,6 @@
+> **2026-11-16（America/Phoenix） · 提醒预览地址排查进行中（Codex）**
+> Juanxi 反馈此前给出的预览地址显示 Site not found。该地址没有已确认的部署记录，不能作为可用验收入口。正在核查托管能力、撤下无效链接并准备已验证构建的静态预览包；不合并 main、不发布正式网站。
+
 > **2026-11-16（America/Phoenix） · 提醒阶段三技术交付与独立复核完成，待验收（Codex 主 Agent；Details/Centre/Review独立Worktree Agent）**
 > **授权：** Juanxi 明确要求“继续阶段3”。按既定方案重排Details、统一提醒中心单条/批量/自动演示，提供新组织默认启用与旧存档显式兼容升级，保留实际历史和自定义设置。
 > **交付：** [阶段三操作与结果](feedback-fix/REMINDER_STAGE3_HANDOFF.md) · [契约](feedback-fix/REMINDER_STAGE3_CONTRACT.md) · [PR #15](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15)。Details活动/任务/单Due、具体要求/办理、提醒对象/原因/历史三段清楚；三模式完整邮件实际保存后记数，Waiting独立协助和四状态、设置/保存重试、v2兼容升级、真实收件人/回复与旧历史保护接通。保留两类查看者的计算依据开关。
