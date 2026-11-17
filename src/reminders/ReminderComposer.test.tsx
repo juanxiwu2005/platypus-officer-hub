@@ -1,0 +1,139 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { MemoryRouter } from "react-router-dom"
+import { webcrypto } from "node:crypto"
+import { StoreProvider, reducer, useStore } from "../data/store"
+import { seedDemo } from "../data/seed"
+import { applySchedule } from "../engine/schedule"
+import type { DemoState, ReminderMode } from "../data/types"
+import ReminderComposer from "./ReminderComposer"
+
+const NODE = "mail-room"
+let latest: DemoState
+function Controls() {
+  const { state, dispatch } = useStore()
+  latest = state
+  return <>
+    <button type="button" onClick={() => dispatch({ type: "updateNode", id: NODE, patch: { ownerId: "sam" } })}>Reassign to Sam</button>
+    <button type="button" onClick={() => dispatch({ type: "setViewer", viewerId: "sam" })}>View as Sam</button>
+  </>
+}
+function fixture(mode: ReminderMode = "review_then_self", enable = false): DemoState {
+  const s = seedDemo(undefined, "v2")
+  const event = { ...s.events[0], id: "mail-speaker", name: "Speaker Night", date: "2026-11-19", headcount: 40, venue: "campus" as const, budgetItems: [] }
+  const node = { ...s.nodes.find(n => n.id === "t-room")!, id: NODE, eventId: event.id, stepKey: "venue", title: "Reserve a room", ownerVersion: 0, dependsOn: [], status: "accepted" as const,
+    why: "Confirming the room lets us share the location with everyone.", anchor: { kind: "fixed" as const, official: null, club: "2026-11-05" } }
+  const scheduled = applySchedule({ ...s, nodes: [node], events: [event], funding: [], notifications: [], nudges: [], protocolLog: [], silenceCases: [], extensionRequests: [], org: { ...s.org, settings: { ...s.org.settings, reminderMode: mode } } })
+  const current = { ...scheduled, today: scheduled.nodes[0].latestStart! }
+  return enable ? reducer(current, { type: "enableReminderPlan" }) : current
+}
+const show = (state = fixture(), onClose = vi.fn()) => render(<MemoryRouter><StoreProvider initial={state}><Controls /><ReminderComposer nodeId={NODE} onClose={onClose} /></StoreProvider></MemoryRouter>)
+const preview = () => within(screen.getByRole("region", { name: "Reminder email" }))
+const emailDraft = () => screen.getByRole("link", { name: "Open Gmail draft" })
+
+beforeEach(() => { localStorage.clear(); vi.stubGlobal("crypto", webcrypto) })
+afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals() })
+
+describe("real reminder composer state integration", () => {
+  it("prepares an immediate rule-only mail with one reusable entry and no AI controls or requests", async () => {
+    const fetch = vi.fn()
+    vi.stubGlobal("fetch", fetch)
+    show({ ...fixture(), aiEnabled: true })
+    await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())
+    expect(preview().getByRole("heading", { name: "Speaker Night · Reserve a room" })).toBeTruthy()
+    expect(preview().getAllByRole("link")).toHaveLength(1)
+    expect(preview().getByRole("link").getAttribute("href")).toContain("/#/officer?access=")
+    expect(screen.getByTestId("nudge-body").textContent).toContain("40 attendees")
+    expect(screen.getByTestId("nudge-body").textContent).toContain("booking confirmation")
+    expect(screen.queryByRole("button", { name: /Skip AI|Done|Working on it/ })).toBeNull()
+    expect(screen.queryByRole("group", { name: "Recipient status choices" })).toBeNull()
+    expect(fetch).not.toHaveBeenCalled()
+    expect(latest.nudges).toEqual([])
+  })
+
+  it("opening the task or email draft does not record a send; explicit confirmation saves the exact checked snapshot", async () => {
+    show()
+    await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())
+    expect(screen.queryByRole("button", { name: "I sent this reminder" })).toBeNull()
+    fireEvent.click(preview().getByRole("link", { name: "Open task" }))
+    expect(latest.nudges).toEqual([])
+    fireEvent.change(screen.getByLabelText("Preferred channel"), { target: { value: "email" } })
+    fireEvent.click(emailDraft())
+    expect(latest.nudges).toEqual([])
+    fireEvent.click(screen.getByRole("button", { name: "I sent this reminder" }))
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Recorded as sent by you"))
+    expect(latest.nudges).toHaveLength(1)
+    const recorded = latest.nudges[0].message!
+    expect(recorded.source).toBe("rules")
+    expect(recorded.recipientId).toBe("jordan")
+    expect(recorded.channel).toBe("email")
+    expect(recorded.text).toBe(latest.nudges[0].text)
+    expect(recorded.body.match(/https?:\/\/\S+/g)).toEqual([recorded.taskUrl])
+    expect(latest.taskAccessGrants?.some(g => g.id === recorded.accessId)).toBe(true)
+  })
+
+  it("platform approval uses email and succeeds only once the new runtime records the message", async () => {
+    show(fixture("review_then_auto", true))
+    const approve = await screen.findByRole("button", { name: "Approve · Platypus sends (demo)" })
+    expect(screen.queryByLabelText("Preferred channel")).toBeNull()
+    expect(latest.reminderRuntime!.deliveries).toEqual([])
+    fireEvent.click(approve)
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Approved. Platypus would send"))
+    expect(latest.reminderRuntime!.deliveries).toHaveLength(1)
+    expect(latest.reminderRuntime!.deliveries[0]).toMatchObject({ via: "platypus", outcome: "simulated", message: { source: "rules", channel: "email", recipientId: "jordan" } })
+    expect(latest.nudges).toEqual([])
+  })
+
+  it("waiting follow-up goes to the helper with its own scope and keeps that recipient after recording", async () => {
+    const enabled = fixture("review_then_self", true)
+    const waiting = reducer({ ...enabled, viewerId: "jordan" }, { type: "replyTask", nodeId: NODE, reply: "waiting", input: { waitingOn: "Please confirm which room layout is needed", waitingOnPersonId: "sam" } })
+    show({ ...waiting, viewerId: "alex" })
+    await screen.findByRole("link", { name: "Open Gmail draft" })
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Sam Okafor")
+    expect(screen.getByTestId("nudge-body").textContent).toContain("Jordan Patel is waiting for your input")
+    expect(screen.getByTestId("nudge-body").textContent).not.toContain("Reserve a room for 40 attendees")
+    expect(latest.taskAccessGrants!.at(-1)).toMatchObject({ scope: "waiting", ownerId: "jordan", recipientId: "sam" })
+    fireEvent.click(emailDraft())
+    fireEvent.click(screen.getByRole("button", { name: "I sent this reminder" }))
+    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Recorded as sent by you"))
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Sam Okafor")
+    expect(latest.reminderRuntime!.deliveries[0].message).toMatchObject({ recipientId: "sam", channel: "email", intendedEmail: "sam.okafor@example.org" })
+    expect(latest.nodes[0].ownerId).toBe("jordan")
+  })
+
+  it("changing channels or assignment invalidates an opened draft before it can be confirmed", async () => {
+    show()
+    await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())
+    fireEvent.change(screen.getByLabelText("Preferred channel"), { target: { value: "email" } })
+    fireEvent.click(emailDraft())
+    expect(screen.getByRole("button", { name: "I sent this reminder" })).toBeTruthy()
+    fireEvent.change(screen.getByLabelText("Preferred channel"), { target: { value: "whatsapp" } })
+    expect(screen.queryByRole("button", { name: "I sent this reminder" })).toBeNull()
+    fireEvent.click(screen.getByRole("link", { name: "Open WhatsApp draft" }))
+    fireEvent.click(screen.getByRole("button", { name: "Reassign to Sam" }))
+    await waitFor(() => expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Sam Okafor"))
+    expect(screen.queryByRole("button", { name: "I sent this reminder" })).toBeNull()
+    expect(latest.nudges).toEqual([])
+  })
+
+  it("respects recipient limits, unavailable waiting targets and sender permissions", async () => {
+    const enabled = fixture("review_then_auto", true)
+    const waiting = reducer({ ...enabled, viewerId: "jordan" }, { type: "replyTask", nodeId: NODE, reply: "waiting", input: { waitingOn: "School approval" } })
+    show({ ...waiting, viewerId: "alex" })
+    expect(screen.getByRole("status").textContent).toContain("Choose who this task is waiting on")
+    expect(screen.queryByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeNull()
+    cleanup()
+    show({ ...fixture(), viewerId: "sam" })
+    expect(screen.getByRole("status").textContent).toContain("Only the president or vice president")
+    expect(latest.taskAccessGrants).toBeUndefined()
+  })
+
+  it("returns focus to its heading and closes on Escape", async () => {
+    const close = vi.fn()
+    show(fixture(), close)
+    expect(document.activeElement).toBe(screen.getByRole("heading", { level: 2 }))
+    await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())
+    fireEvent.keyDown(window, { key: "Escape" })
+    expect(close).toHaveBeenCalledTimes(1)
+  })
+})
