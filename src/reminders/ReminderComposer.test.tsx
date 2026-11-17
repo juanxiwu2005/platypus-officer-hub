@@ -49,6 +49,7 @@ describe("real reminder composer state integration", () => {
     expect(screen.queryByRole("button", { name: /Skip AI|Done|Working on it/ })).toBeNull()
     expect(screen.queryByRole("group", { name: "Recipient status choices" })).toBeNull()
     expect(fetch).not.toHaveBeenCalled()
+    expect(screen.getByTestId("reminder-mode-note").textContent).toBe("Your club chose: I review, then I send (demo: nothing is sent).")
     expect(latest.nudges).toEqual([])
   })
 
@@ -77,6 +78,7 @@ describe("real reminder composer state integration", () => {
     show(fixture("review_then_auto", true))
     const approve = await screen.findByRole("button", { name: "Approve · Platypus sends (demo)" })
     expect(screen.queryByLabelText("Preferred channel")).toBeNull()
+    expect(screen.getByTestId("reminder-mode-note").textContent).toBe("Your club chose: I review, Platypus sends (demo: nothing is sent).")
     expect(latest.reminderRuntime!.deliveries).toEqual([])
     fireEvent.click(approve)
     await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Approved. Platypus would send"))

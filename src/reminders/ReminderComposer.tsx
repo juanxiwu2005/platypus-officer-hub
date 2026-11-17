@@ -4,6 +4,7 @@ import type { Channel, DemoState } from "../data/types"
 import { canLead } from "../data/permissions"
 import { composeUrl, nudgeBlocked } from "../lib/nudges"
 import { emitUi } from "../lib/uiLog"
+import { onboardingCopy } from "../onboarding/copy"
 import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
 import { planReminders } from "./engine"
 import { remindersEnabled } from "./adapter"
@@ -53,6 +54,8 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
   const request = requestId ? state.reminderRuntime!.waitingRequests.find(w => w.id === requestId) : null
   const recipient = reminderPeople(state).find(p => p.id === (recorded ? attempted?.recipientId : candidate?.recipientId ?? node?.ownerId))
   const platypusSends = state.org.settings.reminderMode === "review_then_auto" || state.org.settings.reminderMode === "auto_email"
+  const mode = state.org.settings.reminderMode
+  const modeTitle = mode ? onboardingCopy.founder.reminders.options[mode]?.title : undefined
   const fixedEmail = platypusSends || candidate?.reason === "waiting_on" || recordedDelivery?.reason === "waiting_on"
   const allowed = canLead(state)
   const recordedByPerson = recordedDelivery ? recordedDelivery.via === "manual" : recordedNudge?.via !== "platypus"
@@ -119,6 +122,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
       {usable && <a className="btn rc-task-entry" href={mail.taskUrl} target="_blank" rel="noreferrer">Open task</a>}
     </section> : !blocked && !linkError ? <p className="small muted" role="status">Preparing your task link…</p> : null}
     {!recorded && <div className="rc-delivery">
+      {modeTitle && <p className="small muted" data-testid="reminder-mode-note">Your club chose: {modeTitle} (demo: nothing is sent).</p>}
       {fixedEmail ? <p className="small muted">Delivery: Email</p> : <label className="composer-channel">Preferred channel<select aria-label="Preferred channel" value={channel} onChange={event => { setChannel(event.target.value as Channel); setOpenedText(null) }}>{[...new Set([recipient?.channel ?? "email", "email", "whatsapp", "sms"] as Channel[])].map(c => <option key={c} value={c}>{CHANNEL_LABEL[c]}{c === recipient?.channel ? " · preferred" : ""}</option>)}</select></label>}
       {ready ? platypusSends ? <button type="button" className="btn btn-primary" data-testid="approve-send" onClick={confirm}>Approve · Platypus sends (demo)</button>
         : <><a className="btn btn-primary" href={draftUrl} target={channel === "sms" ? undefined : "_blank"} rel="noreferrer" onClick={() => setOpenedText(mail!.text)}>Open {CHANNEL_LABEL[channel]} draft</a>
