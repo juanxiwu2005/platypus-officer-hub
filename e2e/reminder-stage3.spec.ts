@@ -2,6 +2,8 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { savedDemo } from "./demo-contract"
 import { closeRail, noOverflow, viewAs } from "./helpers"
+import { applySchedule } from "../src/engine/schedule"
+import { fmtShort } from "../src/lib/dates"
 import type { DemoState, ReminderMode } from "../src/data/types"
 import type { ReminderDelivery } from "../src/reminders/contracts"
 
@@ -16,7 +18,7 @@ const node = (state: DemoState, id = ROOM) => state.nodes.find(n => n.id === id)
 async function openLegacy(page: Page, mode: ReminderMode, options: { history?: boolean; count?: number } = {}) {
   await page.goto("/#/tasks")
   await savedDemo(page)
-  await page.evaluate(({ key, mode, history, count, room, poster, today }) => {
+  const input = await page.evaluate(({ key, mode, history, count, room, poster, today }) => {
     const s: DemoState = JSON.parse(localStorage.getItem(key)!)
     const source = s.nodes.find(n => n.stepKey === "venue" && n.eventId)!
     const event = s.events.find(e => e.id === source.eventId)!
@@ -25,7 +27,7 @@ async function openLegacy(page: Page, mode: ReminderMode, options: { history?: b
     s.nodes = [
       { ...source, id: room, title: "Reserve a room", stepKey: "venue", ownerId: "jordan", instructions: "Reserve a room for 40 attendees and record the booking confirmation.", completionCriteria: "Save the confirmed room number and booking reference.", why: "A confirmed location lets everyone plan to attend." },
       { ...source, id: poster, title: "Prepare the event invitation", stepKey: "flyer", ownerId: "priya", instructions: "Prepare the invitation using the confirmed event details.", completionCriteria: "Save the invitation draft for review.", why: "Clear event details help members decide whether to join." },
-    ].slice(0, count).map(n => ({ ...n, status: "accepted", ownerVersion: 0, acceptedOn: today, assignedOn: today, lastUpdate: null, completedOn: undefined, dependsOn: [], waitingOn: null, waitingOnPersonId: null, anchor: { kind: "fixed", official: null, club: today }, clubDeadlineOverride: null, timing: undefined, matching: undefined, ruleIds: [] }))
+    ].slice(0, count).map(n => ({ ...n, status: "accepted", ownerVersion: 0, acceptedOn: today, assignedOn: today, lastUpdate: null, completedOn: undefined, dependsOn: [], waitingOn: null, waitingOnPersonId: null, anchor: { kind: "fixed", official: null, club: today }, clubDeadlineOverride: today, timing: undefined, matching: undefined, ruleIds: [] }))
     s.today = today; s.viewerId = "alex"; s.aiEnabled = true
     s.org.settings.reminderMode = mode
     s.org.settings.matchingMode = "legacy"
@@ -35,13 +37,17 @@ async function openLegacy(page: Page, mode: ReminderMode, options: { history?: b
     s.protocolLog = []; s.silenceCases = []; s.notifications = []; s.extensionRequests = []
     s.taskAccessGrants = []; s.officerGrants = []
     delete s.reminderRuntime
-    localStorage.setItem(key, JSON.stringify(s))
+    return s
   }, { key: KEY, mode, history: options.history ?? false, count: options.count ?? 2, room: ROOM, poster: POSTER, today: TODAY })
+  const scheduled = applySchedule(input)
+  await page.evaluate(({ key, state }) => localStorage.setItem(key, JSON.stringify(state)), { key: KEY, state: scheduled })
   await page.goto("/#/")
   await page.reload()
   await expect(page.getByTestId("reminder-plan-status")).toBeVisible()
   await closeRail(page)
-  return read(page)
+  const loaded = await read(page)
+  expect(node(loaded).clubDeadline).toBe(TODAY)
+  return loaded
 }
 
 async function activate(page: Page) {
@@ -69,6 +75,8 @@ function completeMail(delivery: ReminderDelivery, state: DemoState) {
   const mail = delivery.message!
   expect(mail.wordCount).toBeLessThanOrEqual(100)
   expect(mail.body).toContain("Task due:")
+  expect(delivery.due).toBe(node(state, delivery.nodeId).clubDeadline)
+  expect(mail.body).toContain(`Task due: ${fmtShort(delivery.due!)}`)
   expect(mail.body).toContain("Thank you")
   expect(mail.taskUrl).toMatch(/\/#\/officer\?access=/)
   expect(mail.body.match(/https?:\/\/\S+/g)).toEqual([mail.taskUrl])
@@ -108,6 +116,7 @@ test("an old save explicitly enables the plan without changing custom settings o
   await expect(panel.getByRole("heading", { level: 2, name: "Reserve a room", exact: true })).toBeFocused()
   await expect(panel.getByTestId("task-due")).toHaveCount(1)
   await expect(panel.getByTestId("task-due")).toContainText("Task due")
+  await expect(panel.getByTestId("task-due")).toContainText(fmtShort(TODAY))
   await expect(panel.getByTestId("task-due")).not.toContainText(/Start by|ASU|Event date/)
   const next = panel.getByRole("region", { name: "Your next step" })
   await expect(next).toContainText("40 attendees")
@@ -121,8 +130,12 @@ test("an old save explicitly enables the plan without changing custom settings o
   await expect(panel.getByTestId("why-date")).not.toHaveAttribute("open", "")
   await accessible(page, "[data-testid=task-detail]")
   await screenshot(page, info, "details-three-zones")
+  const plan = panel.getByRole("region", { name: "Reminder plan", exact: true })
+  await plan.scrollIntoViewIfNeeded()
+  await expect(plan).toBeInViewport({ ratio: 1 })
+  await screenshot(page, info, "details-plan-and-reference")
   await page.goto("/#/settings?reminders=1")
-  await closeRail(page)
+  await expect(page.getByRole("heading", { level: 1, name: "Settings", exact: true })).toBeVisible()
   await expect(page.getByTestId("reminder-plan-settings")).toContainText("3 days overdue")
   await page.getByText("Deadline and follow-up defaults", { exact: true }).click()
   await expect(page.getByRole("spinbutton", { name: "Legacy reminder 1 day", exact: true })).toHaveValue("4")
