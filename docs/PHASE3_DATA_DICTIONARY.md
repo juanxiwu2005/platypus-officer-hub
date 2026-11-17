@@ -122,9 +122,9 @@
 ### 4.3 规则邮件与可重复任务入口（2026-11-16，功能分支阶段二）
 
 - `state.taskAccessGrants?`：可重复访问的本地演示授权，独立于旧一次性 `officerGrants`。含任务、当前负责人及任期版本、实际收件人、`owner`/`waiting` 范围、可选等待请求、签发/到期日及本地签名。新 URL 为 `/#/officer?access=…`；查看不改状态，同一入口可先 Working 再 Done，改派、离任、失效或重置后不可沿用。它不是服务器登录或跨设备授权。损坏授权表保留且不再追加。
-- `issueTaskAccessGrant`：日志 payload 只含任务、收件人、范围及可选等待请求 ID；不记签名和完整链接。`taskAccessAction`：日志 actor 取有效授权的实际收件人，payload 为任务、收件人、范围、操作种类。URL token 不写入动作摘要。旧页面的一般 `ui.*` 行为记录仍按既有机制执行，本轮未新增研究记录类型。
+- `issueTaskAccessGrant`：日志 payload 只含任务、收件人、范围及可选等待请求 ID；不记签名和完整链接。`taskAccessAction`：日志 actor 取有效授权的实际收件人，payload 为任务、收件人、范围、操作种类。URL token 不写入动作摘要。新增业务动作使用既有数据动作日志机制，旧页面的一般 `ui.*` 行为记录照旧；本轮未改变研究引导步骤和采集流程。
 - `Node.instructions?` / `completionCriteria?`：人工填写的具体要求和完成标准；重要性沿用 `why`。事实优先读人工要求，缺信息不让 AI 补造。
-- `Nudge.message?` / `ReminderDelivery.message?`：经当前事实、收件人、模式和授权重新校验的完整规则邮件快照，含主题、正文、唯一任务链接、目标邮箱、渠道、生成日、授权 ID、词数和 `source: rules`。快照在保存记录时生成；旧记录不回填。动作日志只记快照的收件人/来源/词数等摘要，不复制正文或链接。它记录的是已批准的演示内容，并非外部投递回执。
+- `Nudge.message?` / `ReminderDelivery.message?`：经当前事实、收件人、模式和授权重新校验的完整规则邮件快照，含主题、正文、唯一任务链接、计划邮箱、渠道、生成日、授权 ID、词数和 `source: rules`。快照在保存记录时生成；旧记录不回填。人工草稿的实际目的地仍由用户在外部选择，本站不核验。动作日志只记快照的收件人/来源/词数等摘要，不复制正文或链接。它记录的是已批准的演示内容，并非外部投递回执。
 - `waitingRequests[].response? / respondedOn? / responseBy?`：明确等待对象的 Acknowledge / Update provided；同时在 runtime.updates 追加实际操作人及顺序，`ownerReply: false`。等待对象不能更新原任务四种状态；原负责人/状态不因响应被改写。已响应请求不重新生成同一跟进，取消等待、换对象、改派和完成沿用原有撤销约束。
 
 新单条邮件编辑器不请求 AI；旧 `?token=` 入口保持兼容。阶段二没有默认启用新计划、统一旧批量记录、接通邮件后台或改变研究流程版本。完整权限与验收边界见 `feedback-fix/REMINDER_STAGE2_CONTRACT.md`。

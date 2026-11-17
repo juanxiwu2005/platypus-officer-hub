@@ -1,6 +1,6 @@
 # 提醒阶段二：规则邮件与独立任务页交付
 
-2026-11-16（America/Phoenix）。Juanxi 明确要求“继续阶段2”。分支 `feat/reminder-plan-v2`，沿用 [PR #15](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15)，base 为 `claude/fervent-thompson-e2j5u2`；已合入其 `26af354`，保留实际任务匹配、认领规则与 v23 存档保护。
+2026-11-16（America/Phoenix）。Juanxi 明确要求“继续阶段2”。分支 `feat/reminder-plan-v2`，沿用 [PR #15](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15)，base 为 `claude/fervent-thompson-e2j5u2`；先合入其 `26af354`，收尾同步至 `5e301d9`，保留实际任务匹配、认领规则与 v23 存档保护。只解决 PROGRESS 的文档冲突，保留两项工作的交付记录。
 
 ## 本阶段的结果
 
@@ -35,9 +35,21 @@ Mail 与 Page 在各自 worktree 开发，主 Agent 独占共享类型、授权�
 2. 同日同内容旧邮件可能被误当作本次保存成功。保存确认必须核对本次动作及新增记录，不能只搜索相同正文。
 3. 重新打开已有 Waiting on 再保存可能用人名覆盖协助说明，造成关闭/重建请求。现在预填保存的说明；不改内容不会制造新跟进。
 
+另外补齐了损坏存档值为 null / 0 / false / 空字符串时的保护：不能覆盖启用或退回旧发送路径；普通负责人仍可更新任务，不清除原坏字段。焦点测试改为等待实际 useEffect 聚焦后核对，保留同一断言和原超时。
+
 ## 检查结果
 
-最终候选与检查数字在验收完成后补齐；不以开始运行检查等同通过。
+最终运行时代码候选 `e91346484c785f5667a59cb79effae37db3d70a9`，独立 Review 通过；之后只更新交付文档。
+
+- 相关单元/组件20文件、330项通过。命令：`npm test -- src/reminders src/matching/stage3Creation.test.ts src/matching/stage3Persistence.test.ts src/matching/stage3RecoveryUI.test.tsx src/test/workflow.test.ts src/test/nudges.test.ts src/test/reminderQueue.test.ts src/test/store.test.tsx src/test/officerLinks.test.ts src/test/handoffReview.test.ts src/test/fb-04-taskDue.test.ts src/test/fb-04-taskDetail.test.tsx --maxWorkers=1`。
+- 兼容浏览器6个spec，桌面/手机共67通过、1手机限定项在桌面跳过：tasks、today、fb-01-ai-wait、fb-08-reminder-centre、research-log、reminder-stage2。最新合并候选再跑新邮件/任务页8项及首页体积2项，共10项通过。
+- 新浏览器链路覆盖：邮件单链接/无AI请求；同一入口Working、刷新、Done、完成只读；Waiting和Stuck持久化；篡改与改派撤权；等待邮件的实际收件人与只响应协助范围。包含两端WCAG检查和横向溢出检查，桌面/手机截图已查看。
+- lint、前后端类型、生产构建、全站文字预算及新增CSS的目标stylelint通过。以40字符 `COMMIT_REF=e91346484c785f5667a59cb79effae37db3d70a9`、`BRANCH=feat/reminder-plan-v2`、`CONTEXT=deploy-preview` 构建，主入口 `/assets/index-DV95VBqu.js` 为 **545,608 / 550,000 字节**；没有提高门槛。
+- 独立审阅的三个原样反例均转绿；最终页面26项加3个独立反例共29项复验通过，临时测试与依赖链接已清理。
+
+收尾并行运行浏览器构建/文字检查时，一个原有reminderQueue测试触发原5秒超时；其它329项通过。等待浏览器结束后，以单worker完整复跑330项全部通过，未调超时或放宽断言。先前浏览器Waiting选择器改为按combobox角色查找，保留同一实际操作与状态断言；最后焦点用例等待useEffect，不删焦点检查。
+
+未运行全站Playwright、真实AIR、外部邮件投递、Safari/iOS真机检查。线上预览访问被当前环境代理403拒绝；本地生产构建和截图验收不等同线上部署已验证。人工发送的目的地在外部草稿中由用户选择，保存快照不代表核实了外部地址或投递。
 
 ## 后续范围
 
