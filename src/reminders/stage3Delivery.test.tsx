@@ -6,7 +6,7 @@ import { seedDemo } from "../data/seed"
 import { reducer, STORAGE_KEY, StoreProvider, useStore, type Action } from "../data/store"
 import type { DemoState, ReminderMode } from "../data/types"
 import { applySchedule } from "../engine/schedule"
-import { createReminderRuntime, planReminders } from "./engine"
+import { confirmReminderDelivery, createReminderRuntime, planReminders } from "./engine"
 import { buildReminderInput } from "./facts"
 import { isReminderRuntime } from "./runtime"
 import { sendReminderBatch } from "./delivery"
@@ -35,11 +35,14 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); localS
 
 describe("stage three complete-mail delivery", () => {
   it("upgrades existing history without changing settings or inventing messages", () => {
-    const s = fixture(), old = createReminderRuntime(s.today)
+    const s = fixture(), empty = {...s, reminderRuntime: createReminderRuntime(s.today)}
+    const old = confirmReminderDelivery(buildReminderInput(empty, empty.reminderRuntime), ids(empty)[0], "platypus")
     const v1 = { ...s, reminderRuntime: old }
     const upgraded = reducer(v1, {type: "upgradeReminderPlan"})
     expect(upgraded.org.settings).toEqual(s.org.settings)
-    expect(upgraded.reminderRuntime).toEqual({...old, version: 2, mailRequiredAfter: 0})
+    expect(old.deliveries).toHaveLength(1)
+    expect(old.deliveries[0].message).toBeUndefined()
+    expect(upgraded.reminderRuntime).toEqual({...old, version: 2, mailRequiredAfter: old.sequence})
     expect(isReminderRuntime(upgraded.reminderRuntime)).toBe(true)
     expect(reducer(upgraded, {type: "upgradeReminderPlan"})).toBe(upgraded)
     expect(reducer({...v1, viewerId: "jordan"}, {type: "upgradeReminderPlan"})).toMatchObject({reminderRuntime: old})
@@ -59,6 +62,7 @@ describe("stage three complete-mail delivery", () => {
     expect(delivery.message!.body.match(/https?:\/\/\S+/g)).toEqual([delivery.message!.taskUrl])
     expect(await verifyTaskAccessGrant(state, taskAccessToken(state.taskAccessGrants![0]))).toBe(true)
     expect(isReminderRuntime(state.reminderRuntime)).toBe(true)
+    expect(isReminderRuntime({...state.reminderRuntime, deliveries: state.reminderRuntime!.deliveries.map(d => ({...d, message: undefined}))})).toBe(false)
     expect((await sendReminderBatch(api, requested, "https://demo.example.org", "platypus")).recordedIds).toEqual([])
     expect(api.getState().reminderRuntime!.deliveries).toHaveLength(1)
   })
