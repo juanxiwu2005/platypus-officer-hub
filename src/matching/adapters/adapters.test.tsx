@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import { seedDemo } from "../../data/seed"
+import { saveWorkflow } from "../../data/settings"
 import type { DemoState, Node } from "../../data/types"
 import { buildEventNodes, EVENT_STEPS } from "../../engine/playbooks"
 import type { MatchingCommand, MatchingState } from "../contracts"
@@ -214,6 +215,52 @@ describe("one-task links, exceptions and ownership history", () => {
     const before = assigned()
     expect(() => recordChangedMatchingOwners(before, { ...before, nodes: before.nodes.map(n => ({ ...n, ownerId: "missing-person" })) }, "alex", at)).toThrow(/current/)
     expect(before.nodes[0].ownerId).toBe("maya")
+  })
+
+  it("does not borrow the newly selected custom workflow when reassigning an old unlinked standard-event node", () => {
+    let before = world()
+    const original = before.events[0]
+    expect(original.playbookId).toBe("seo-event")
+    const switched = saveWorkflow(before, [...EVENT_STEPS, { ...EVENT_STEPS[0], key: "robot-check", title: "Fictional robot check" }])
+    expect(switched).not.toBe(before)
+    expect(eventMatchingWorkflowId(switched)).toBe("club-event")
+    before = command(switched, { type: "requirement.upsert", value: { id: "custom-room", workflowId: "club-event", stepId: "venue", title: "Custom room", responsibilityId: "room", status: "confirmed", origin: "manual" } })
+    const legacy = { ...node(), id: `${original.id}:venue`, eventId: original.id }
+    before = { ...before, nodes: [legacy] }
+    const result = recordChangedMatchingOwners(before, { ...before, nodes: [{ ...legacy, ownerId: "sam" }] }, "alex", at)
+    expect(result.nodes[0]).toMatchObject({ ownerId: "sam", matching: { workflowId: "seo-event", stepId: "venue", responsibilityId: null, reason: "manual_override" } })
+    expect(result.matching!.assignments).toHaveLength(0)
+    expect(result.matchingContext!.overrides).toHaveLength(1)
+    expect(result.matchingContext!.overrides[0]).toMatchObject({ memberId: "sam", responsibilityId: null })
+    expect(result.matching!.requirements).toEqual(before.matching!.requirements)
+  })
+
+  it("uses a per-task namespace for unknown event provenance instead of the current workflow", () => {
+    const state = world(), legacy = { ...node(), eventId: "event-no-longer-present" }
+    const before = { ...state, nodes: [legacy] }
+    const result = recordChangedMatchingOwners(before, { ...before, nodes: [{ ...legacy, ownerId: "maya" }] }, "alex", at)
+    expect(result.nodes[0].matching).toEqual({ workflowId: `task:${legacy.id}`, stepId: "work", responsibilityId: null, reason: "manual_override" })
+    expect(result.matching!.assignments).toHaveLength(0)
+    expect(result.matchingContext!.overrides[0].responsibilityId).toBeNull()
+  })
+
+  it("retains an existing standard-workflow matching basis when the organization's current template switches", () => {
+    const original = assigned()
+    const before = saveWorkflow(original, [...EVENT_STEPS, { ...EVENT_STEPS[0], key: "robot-check", title: "Fictional robot check" }])
+    expect(eventMatchingWorkflowId(before)).toBe("club-event")
+    const result = recordChangedMatchingOwners(before, { ...before, nodes: before.nodes.map(row => ({ ...row, ownerId: "sam" })) }, "alex", at)
+    expect(result.nodes[0].matching).toMatchObject({ workflowId: "seo-event", stepId: "venue", responsibilityId: "room", reason: "manual_assignment_preserved" })
+    expect(result.matching!.assignments.at(-1)).toMatchObject({ workflowId: "seo-event", stepId: "venue", memberId: "sam", method: "manual" })
+    expect(result.matchingContext!.overrides).toHaveLength(0)
+  })
+
+  it("does not fill a previously explicit empty responsibility from a template that was later completed", () => {
+    const state = world(), entry = { ...node(), matching: { workflowId: "seo-event", stepId: "venue", responsibilityId: null, reason: "responsibility_missing" as const } }
+    const before = { ...state, nodes: [entry] }
+    const result = recordChangedMatchingOwners(before, { ...before, nodes: [{ ...entry, ownerId: "sam" }] }, "alex", at)
+    expect(result.nodes[0].matching!.responsibilityId).toBeNull()
+    expect(result.matching!.assignments).toHaveLength(0)
+    expect(result.matchingContext!.overrides[0].responsibilityId).toBeNull()
   })
 })
 
