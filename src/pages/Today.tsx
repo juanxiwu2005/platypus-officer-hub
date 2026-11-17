@@ -15,7 +15,7 @@ export default function Today() {
   const { state } = useStore()
   const { canNudge } = useViewer()
   const q = useMemo(() => reminderCentre(state), [state])
-  return <><PageHead path="/" /><BtsRow><Bts label="Rule engine">Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. Sent lists saved records.</Bts></BtsRow>{canNudge ? <ReminderCentre q={q} /> : <YourReminders q={q} />}</>
+  return <><PageHead path="/" />{canNudge ? <ReminderCentre q={q} /> : <YourReminders q={q} />}</>
 }
 
 function ReminderCentre({ q }: { q: Centre }) {
@@ -51,6 +51,7 @@ function ReminderCentre({ q }: { q: Centre }) {
   const row = (x: CentreRow, action?: ReactNode, note?: ReactNode) => <Row key={x.id} x={x} action={action} note={note} risk={x.risk ? forecast.nodes[x.nodeId] : undefined} />
   const ready = q.runtimeState === "active"
   return <div className="rq" data-testid="reminder-centre" data-mode={q.mode ?? "none"} aria-busy={busy || automaticReminders.busy}>
+    <BtsRow><Bts label="Rule engine">Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. Sent lists saved records.</Bts></BtsRow>
     {!ready && <section className="card rc-plan" data-testid="reminder-plan-status" aria-label="Reminder plan">
       <h2>{q.runtimeState === "invalid" ? "Reminder plan needs review" : "Enable updated reminders"}</h2>
       <p>{q.runtimeState === "invalid" ? "The saved reminder plan is unavailable. It has been kept for recovery; no reminders will run."
