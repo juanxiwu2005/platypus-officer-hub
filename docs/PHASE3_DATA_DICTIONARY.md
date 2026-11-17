@@ -117,7 +117,17 @@
 
 仅显式 `enableReminderPlan` 后存在可选的 `state.reminderRuntime`，不改变 formatVersion 或旧存档外层版本。新运行时有 `updates`（同日顺序和真正操作人）、`waitingRequests`（明确等待对象及关闭原因）、`deliveries`（不可变收件人与任务快照），均用 `sequence` 保留先后；`activatedOn`/`sentOn` 使用演示日期。`enableReminderPlan` 是启用动作；`confirmPlannedReminder` 是审核记录动作。它们沿用现有数据动作日志格式，未给旧页面添加按钮。
 
-自动模式的新 `deliveries` 会持久记录 `outcome: simulated`；人工发送确认是 `recorded_by_sender`，不表示本站核实了外部投递。旧 `state.nudges`、旧 `protocolLog` 不转换成未知收件人的新发送。损坏或未来版本 runtime 保留但停用。旧页面默认尚未启用新运行时，上节 FB-8 推算记录的描述仍适用于旧路径；不能把两种版本混算为真实邮件数量。邮件/任务页的阶段二、Details 的阶段三以及真实发送服务尚未实施。
+自动模式的新 `deliveries` 会持久记录 `outcome: simulated`；人工发送确认是 `recorded_by_sender`，不表示本站核实了外部投递。旧 `state.nudges`、旧 `protocolLog` 不转换成未知收件人的新发送。损坏或未来版本 runtime 保留但停用。旧页面默认尚未启用新运行时，上节 FB-8 推算记录的描述仍适用于旧路径；不能把两种版本混算为真实邮件数量。阶段二邮件与任务页增量见下节，Details/提醒中心整体接通的阶段三和真实发送服务尚未实施。
+
+### 4.3 规则邮件与可重复任务入口（2026-11-16，功能分支阶段二）
+
+- `state.taskAccessGrants?`：可重复访问的本地演示授权，独立于旧一次性 `officerGrants`。含任务、当前负责人及任期版本、实际收件人、`owner`/`waiting` 范围、可选等待请求、签发/到期日及本地签名。新 URL 为 `/#/officer?access=…`；查看不改状态，同一入口可先 Working 再 Done，改派、离任、失效或重置后不可沿用。它不是服务器登录或跨设备授权。损坏授权表保留且不再追加。
+- `issueTaskAccessGrant`：日志 payload 只含任务、收件人、范围及可选等待请求 ID；不记签名和完整链接。`taskAccessAction`：日志 actor 取有效授权的实际收件人，payload 为任务、收件人、范围、操作种类。URL token 不写入动作摘要。旧页面的一般 `ui.*` 行为记录仍按既有机制执行，本轮未新增研究记录类型。
+- `Node.instructions?` / `completionCriteria?`：人工填写的具体要求和完成标准；重要性沿用 `why`。事实优先读人工要求，缺信息不让 AI 补造。
+- `Nudge.message?` / `ReminderDelivery.message?`：经当前事实、收件人、模式和授权重新校验的完整规则邮件快照，含主题、正文、唯一任务链接、目标邮箱、渠道、生成日、授权 ID、词数和 `source: rules`。快照在保存记录时生成；旧记录不回填。动作日志只记快照的收件人/来源/词数等摘要，不复制正文或链接。它记录的是已批准的演示内容，并非外部投递回执。
+- `waitingRequests[].response? / respondedOn? / responseBy?`：明确等待对象的 Acknowledge / Update provided；同时在 runtime.updates 追加实际操作人及顺序，`ownerReply: false`。等待对象不能更新原任务四种状态；原负责人/状态不因响应被改写。已响应请求不重新生成同一跟进，取消等待、换对象、改派和完成沿用原有撤销约束。
+
+新单条邮件编辑器不请求 AI；旧 `?token=` 入口保持兼容。阶段二没有默认启用新计划、统一旧批量记录、接通邮件后台或改变研究流程版本。完整权限与验收边界见 `feedback-fix/REMINDER_STAGE2_CONTRACT.md`。
 
 ## 5. 界面操作（`type` 以 `ui.` 开头）
 
