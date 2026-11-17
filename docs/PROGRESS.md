@@ -1,3 +1,7 @@
+> **2026-11-16（America/Phoenix） · 提醒阶段二进行中（Codex 主 Agent；Mail/Page 独立 Worktree Agent）**
+> **授权：** Juanxi 明确要求“继续阶段2”。实现规则生成的简短邮件和唯一入口、可重复使用的独立任务页、Done/Working on it/Stuck/Waiting on；等待对象入口只响应协助请求，不修改原任务。
+> **契约与边界：** [阶段二契约](feedback-fix/REMINDER_STAGE2_CONTRACT.md)。主 Agent 负责共享授权、reducer、消息快照与路由桥；Mail/Page 分 worktree 开发，最后独立 Review。已合入职责匹配 `26af354` 的实际任务与v23保护，保留其认领和归属规则。Details/提醒中心整体接通仍在阶段三；无真实AI、实际邮件投递或main发布。需要同步本地备份。
+
 > **2026-11-16（America/Phoenix） · 提醒计划准备与阶段一已完成技术检查，交付待验收（Codex 主 Agent；独立 Data/Rules/Review Worktree Agent）**
 > **授权：** Juanxi 要求按最新反馈更新执行方案并直接开始准备、阶段一。默认完整提醒依靠规则，不等待 AI；邮件突出一个 Task due，最晚开始日期内置且以自然语言解释触发；Waiting on 自动生成给明确等待对象的独立跟进。
 > **方案与交付：** [分阶段实施方案](feedback-fix/REMINDER_IMPLEMENTATION_PLAN.md) · [阶段一交付与验收](feedback-fix/REMINDER_STAGE1_HANDOFF.md) · [冻结契约](feedback-fix/REMINDER_STAGE1_CONTRACT.md)。独立分支 `feat/reminder-plan-v2`，Data/Rules 开发、主 Agent 适配、独立 Review 通过；保留源分支 `e370361` 的 v23 兼容读取基点。新底层包括规则事实、任务要求与办理入口、开始/到期/逾期候选、Waiting on 独立对象、去重取消、审核/自动演示与持久历史。
