@@ -1,3 +1,7 @@
+> **2026-11-16（America/Phoenix） · 职责匹配阶段 2 进行中（Codex 主 Agent；AI/UI 独立 Worktree Agent）**
+> **授权：** Juanxi 明确要求“继续阶段2”。保留原章程岗位读取，增加带原文核对的职责草稿；独立设置入口支持职责库、成员关联、默认人与备份，以及使用阶段 1 解析器的分派预览。AI 不自动覆盖人工内容；失败后可继续人工设置。
+> **分工与边界：** 主 Agent 先冻结 `src/matching/setupContracts.ts`，负责隔离预览文档、控制器、旧页面入口、集成与交付；AI Agent 只维护提取服务和客户端，UI Agent 只维护职责设置组件、样式及对应测试。完成后独立复核。阶段 3 实际任务接入与旧存档迁移仍待批准；不合并 main、不自动真实 AI 调用。沿用 PR #14 预览。需要同步本地备份。
+
 > **2026-11-16（America/Phoenix） · 职责匹配阶段 1 已完成技术检查，交付待验收（Codex 主 Agent；独立 worktree Data/Resolver/Review Agent）**
 > **交付：** `src/matching/` 建立自定义职责、岗位和成员关系、工作流步骤关联、默认人与备份、候选解释、只追加分派回执及隔离配置读写；职责可编辑、确认、合并和归档。12 人、两种工作流的实际演练及分配表见 [阶段 1 交付](feedback-fix/MATCHING_STAGE1_HANDOFF.md)；后续唯一正本、外层版本迁移和安全回滚见 [阶段 3 兼容设计](feedback-fix/MATCHING_COMPATIBILITY.md)。[实施计划](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md) · [冻结契约](feedback-fix/MATCHING_CONTRACT.md)。
 > **验证：** 新模块 91 项 + 原有相关链路 114 项，共 205 项通过；lint、前后端类型检查、生产构建通过。独立 Review 对最终代码候选 `3ad168d` 复核通过，并核对编辑、合并、保存恢复后的回执保护。两个开发包为 Data `307b5d0`、Resolver `c5bb56c`，保留各自提交集成。未运行全站 Playwright 或完整发布门禁，未调用真实 AI。
@@ -354,6 +358,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | **批准职责匹配阶段 2。** 继续章程 AI 增强与职责设置界面，按既定 Worktree Agent 计划实施；阶段 3 仍待批准。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配第一阶段。** 按 A2/B2/C2 三阶段计划，使用独立 worktree Data/Resolver Agent 建立数据契约、职责操作、确定性候选及默认/备份解析、隔离存储、虚构演练与阶段 3 兼容设计；阶段 2/3 仍待批准。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **选定 A2 + B2 + C2。** 使用 worktree Agent，分两到三个阶段推进职责匹配架构；Juanxi 明确要求“我批准后再开始阶段”，按实际批准范围执行。具体三阶段分工与接入范围是待批实施计划，当前未启动编码。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **职责匹配框架方向：** 保留并增强章程 AI，人工补充和匹配；社团自定义岗位和职责，支持未来多工作流及一句话生成。要求按五个角度比较三个问题的不同方案，具体 A/B/C 选项与原型范围尚未选定。 | Juanxi |
