@@ -78,8 +78,9 @@ describe("OB-09 guard", () => {
   it("keeps the screens off the server and storage, and off next()", () => { for (const f of files) expect(scan(read(f), SCREEN_RULES), f).toEqual([]) })
   it("has Confirm create the workspace once, with the classic page's arguments, behind a ref", () => {
     const confirm = read("onboarding/founder/Confirm.tsx")
-    expect(confirm.match(/dispatch\(/g)).toHaveLength(1)
-    expect(confirm).toMatch(/dispatch\(\{ type: "completeSetup", draft: \{ \.\.\.draft\.club, people: fillEmails\(draft\.club\.people\) \}, event, date, inviteCode: draft\.inviteCode, clubBufferBusinessDays: draft\.buffer, workflow: draft\.steps, reminderMode \}\)/)
+    expect(confirm.match(/tryDispatch\(/g)).toHaveLength(1)
+    expect(confirm).toMatch(/tryDispatch\(\{ type: "completeSetup", draft: \{ \.\.\.draft\.club, people: fillEmails\(draft\.club\.people\) \}, event, date, inviteCode: draft\.inviteCode, clubBufferBusinessDays: draft\.buffer, workflow: draft\.steps, reminderMode, responsibilityMatching \}\)/)
+    expect(confirm).toMatch(/could not be saved/)
     expect(confirm).toMatch(/if \(started\.current\) return/)
     expect(confirm).toMatch(/started\.current = true/)
   })

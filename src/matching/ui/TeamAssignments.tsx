@@ -23,7 +23,8 @@ export function TeamAssignments(props: MatchingSetupViewProps) {
     <header><div><h2 id={`${id}-heading`}>3. Connect people & defaults</h2><p>Positions share responsibilities. Member exceptions and required qualifications refine who can take the work.</p></div></header>
     <div className="matching-role-list">
       {workspace.references.roles.map(role => <RoleSetup key={role.id} {...props} role={role} duties={duties} />)}
-      <form className="matching-inline-form" onSubmit={addRole}><label htmlFor={`${id}-new-role`}>New position in this preview</label><input id={`${id}-new-role`} value={newRole} maxLength={180} disabled={!canEdit} onChange={event => setNewRole(event.target.value)} /><button type="submit" className="btn" disabled={!canEdit || !newRole.trim()}>Add position</button></form>
+      {!props.live && <form className="matching-inline-form" onSubmit={addRole}><label htmlFor={`${id}-new-role`}>New position in this preview</label><input id={`${id}-new-role`} value={newRole} maxLength={180} disabled={!canEdit} onChange={event => setNewRole(event.target.value)} /><button type="submit" className="btn" disabled={!canEdit || !newRole.trim()}>Add position</button></form>}
+      {props.live && <p className="matching-muted">Manage positions and member names in Team settings. These responsibility links do not grant a management role.</p>}
     </div>
     {!duty ? <p className="matching-muted">Create a responsibility first to connect members and choose a default person.</p> : <>
       <label className="matching-select-label" htmlFor={`${id}-duty`}>Manage people for</label><select id={`${id}-duty`} value={duty.id} onChange={event => setSelectedId(event.target.value)}>{duties.map(row => <option key={row.id} value={row.id}>{row.title}{row.status === "draft" ? " · draft" : ""}</option>)}</select>
@@ -41,9 +42,9 @@ function RoleSetup(props: MatchingSetupViewProps & { role: MatchingRole; duties:
   useEffect(() => setTitle(role.title), [role.title])
   return <details className="matching-details matching-role">
     <summary>{role.title}<span className="matching-muted"> · {workspace.matching.roleResponsibilities.filter(row => row.roleId === role.id && row.confirmed).length} responsibilities</span></summary>
-    <form className="matching-inline-form" onSubmit={event => { event.preventDefault(); props.onReferencesChange({ ...workspace.references, roles: workspace.references.roles.map(row => row.id === role.id ? { ...row, title: title.trim() } : row) }) }}>
+    {!props.live && <form className="matching-inline-form" onSubmit={event => { event.preventDefault(); props.onReferencesChange({ ...workspace.references, roles: workspace.references.roles.map(row => row.id === role.id ? { ...row, title: title.trim() } : row) }) }}>
       <label htmlFor={`${id}-name`}>Position name</label><input id={`${id}-name`} value={title} maxLength={180} disabled={!canEdit} onChange={event => setTitle(event.target.value)} /><button type="submit" className="btn" disabled={!canEdit || !title.trim() || title.trim() === role.title}>Save position name</button>
-    </form>
+    </form>}
     <fieldset className="matching-choice-group"><legend>Responsibilities for {role.title}</legend><div className="matching-bubbles">
       {props.duties.map(duty => {
         const binding = workspace.matching.roleResponsibilities.find(row => row.roleId === role.id && row.responsibilityId === duty.id)
@@ -74,7 +75,7 @@ function MemberSetup(props: MatchingSetupViewProps & { member: MatchingMember; d
       <label htmlFor={`${id}-override`}>Direct responsibility exception<select id={`${id}-override`} value={binding?.confirmed ? binding.decision : "inherit"} disabled={!canEdit} onChange={event => props.onCommand({ type: "memberBinding.upsert", value: { id: binding?.id ?? setupId(), memberId: member.id, responsibilityId: duty.id, decision: event.target.value === "exclude" ? "exclude" : "include", confirmed: event.target.value !== "inherit" } })}><option value="inherit">Use position links only</option><option value="include">Include directly</option><option value="exclude">Exclude from this responsibility</option></select></label>
       <label htmlFor={`${id}-available`}>Availability<select id={`${id}-available`} value={member.availability} disabled={!canEdit} onChange={event => updateMember({ availability: event.target.value as MatchingMember["availability"] })}><option value="unknown">Unknown</option><option value="available">Available</option><option value="unavailable">Unavailable</option></select></label>
       {duty.requiredQualificationIds.map(qualification => <label key={qualification} htmlFor={`${id}-qualification-${qualification}`}>{qualification}<select id={`${id}-qualification-${qualification}`} value={member.qualifications[qualification] ?? "unknown"} disabled={!canEdit} onChange={event => updateMember({ qualifications: { ...member.qualifications, [qualification]: event.target.value as MatchingQualificationStatus } })}><option value="unknown">Unknown</option><option value="confirmed">Confirmed by a person</option><option value="missing">Not met</option></select></label>)}
-      <label className="matching-check"><input type="checkbox" checked={member.active} disabled={!canEdit} onChange={event => updateMember({ active: event.target.checked })} />Current member</label>
+      <label className="matching-check"><input type="checkbox" checked={member.active} disabled={!canEdit || (!!props.live && !props.currentMemberIds?.includes(member.id))} onChange={event => updateMember({ active: event.target.checked })} />Current member</label>
     </div>
     {!!duty.requiredQualificationIds.length && <p className="matching-muted">Confirm qualifications manually. Platypus has not verified access to an external system.</p>}
   </details>

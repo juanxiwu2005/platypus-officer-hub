@@ -27,6 +27,7 @@ export interface Goal {
 }
 
 export interface OrgSettings {
+  matchingMode?: "legacy" | "responsibilities"
   /** Club deadline = official deadline minus this many business days (plan §4, mechanism 1). */
   clubBufferBusinessDays: number
   /** Silence protocol days (SEO Ghost Owner Protocol defaults). */
@@ -106,6 +107,7 @@ export interface EventWorkflow {
 }
 
 export interface Org {
+  matchingWorkspaceId?: string
   id: string
   name: string
   school: string
@@ -265,6 +267,7 @@ export type Anchor =
 
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
+  matching?: import("../matching/businessContracts").MatchingNodeLink
   id: string
   title: string
   eventId: string | null
@@ -531,6 +534,8 @@ export interface ChangeSet {
 export interface DemoState {
   /** Rule-only reminders v1; absent on legacy saves until explicitly enabled. */
   reminderRuntime?: import("../reminders/contracts").ReminderRuntime
+  matching?: import("../matching/contracts").MatchingState
+  matchingContext?: import("../matching/businessContracts").OrganizationMatchingContext
   schemaVersion: number
   /** The date the demo treats as "today" (simulated clock, WP3). */
   today: string

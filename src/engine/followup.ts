@@ -13,7 +13,7 @@ export const suggestedOwner = (s: DemoState, n: Node) => officers(s).filter(p =>
 })[0]?.id
 
 function retroNode(n: Node, c: SilenceCase, from: string): Node {
-  return { ...n, id: `retro:${c.id}`, title: `Review the handover: ${n.title}`, eventId: null, stepKey: null, phase: null, ownerId: c.temporaryOwnerId ?? n.ownerId, dependsOn: [], tier: "light", estDays: 1, anchor: { kind: "followup", from, days: 7, label: "Silence protocol: retro within seven calendar days" }, recoveryFrom: undefined, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, status: "unclaimed", acceptedOn: null, assignedOn: from, completedOn: undefined, lastUpdate: null, draftLink: null, waitingOn: null, ruleIds: [], why: "Record what blocked the handover and what we can improve together.", source: "SEO Ghost Owner Protocol · day 10" }
+  return { ...n, matching: undefined, id: `retro:${c.id}`, title: `Review the handover: ${n.title}`, eventId: null, stepKey: null, phase: null, ownerId: c.temporaryOwnerId ?? n.ownerId, dependsOn: [], tier: "light", estDays: 1, anchor: { kind: "followup", from, days: 7, label: "Silence protocol: retro within seven calendar days" }, recoveryFrom: undefined, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, status: "unclaimed", acceptedOn: null, assignedOn: from, completedOn: undefined, lastUpdate: null, draftLink: null, waitingOn: null, ruleIds: [], why: "Record what blocked the handover and what we can improve together.", source: "SEO Ghost Owner Protocol · day 10" }
 }
 
 /** One deterministic day at a time, including a multi-day jump. Never sends a real message. */

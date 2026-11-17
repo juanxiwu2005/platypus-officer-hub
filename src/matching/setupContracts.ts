@@ -81,6 +81,8 @@ export interface MatchingSetupViewProps {
   document: MatchingSetupDocument
   canEdit: boolean
   aiEnabled?: boolean
+  live?: boolean
+  currentMemberIds?: string[]
   busy: boolean
   error: string | null
   /** Mutations are validated and persisted by the controller before its document changes. */

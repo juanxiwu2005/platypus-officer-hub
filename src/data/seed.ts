@@ -7,7 +7,7 @@ import { sampleHandoff } from "./sampleScenario"
 import { normalizeTerms } from "./roleTerms"
 
 // v20 also completes the demo plan when saved data skipped the v18-to-v19 update.
-export const SCHEMA_VERSION = 22
+export const SCHEMA_VERSION = 23
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
