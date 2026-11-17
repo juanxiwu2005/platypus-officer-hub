@@ -79,7 +79,7 @@ describe("the standalone owner task", () => {
     expect(screen.queryByRole("navigation")).toBeNull()
     expect(screen.queryByRole("button", { name: /Ask/ })).toBeNull()
     expect(latest).toBe(state)
-    expect(document.activeElement).toBe(within(page).getByRole("heading", { level: 1 }))
+    await waitFor(() => expect(document.activeElement).toBe(within(page).getByRole("heading", { level: 1 })))
   })
 
   it("saves Working on it then Done through the same reusable token and keeps the completed task readable", async () => {
