@@ -40,7 +40,7 @@ export default function Settings() {
   const [tab, setTab] = useState<Tab>(canNudge ? "club" : "me")
   const active = tabs.some(t => t.id === tab) ? tab : "me"
   return <>
-    <PageHead path="/settings" />
+    <PageHead path="/settings" actions={canNudge ? <Link className="btn" to="/matching">Set up responsibilities</Link> : undefined} />
     <div className="settings">
       <nav className="settings-nav" aria-label="Settings sections">{tabs.map(t => <button key={t.id} type="button" aria-current={active === t.id ? "page" : undefined} onClick={() => setTab(t.id)}>{t.label}</button>)}</nav>
       <div className="settings-body">

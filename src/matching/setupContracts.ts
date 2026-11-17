@@ -80,6 +80,7 @@ export interface MatchingSetupDocument {
 export interface MatchingSetupViewProps {
   document: MatchingSetupDocument
   canEdit: boolean
+  aiEnabled?: boolean
   busy: boolean
   error: string | null
   /** Mutations are validated and persisted by the controller before its document changes. */
@@ -97,4 +98,6 @@ export interface MatchingSetupInitial {
   references: MatchingReferences
   memberships: MatchingMembership[]
   contextKey: string
+  /** Supplied only for an explicitly opened fictional example. */
+  matching?: MatchingState
 }

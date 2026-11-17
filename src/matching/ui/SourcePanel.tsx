@@ -15,7 +15,7 @@ export function SourcePanel(props: MatchingSetupViewProps) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
   useEffect(() => setSource(workspace.source), [workspace.source.name, workspace.source.text])
   const tooLong = source.text.length > MATCHING_TEXT_LIMIT
-  const canRead = canEdit && !busy && !fileBusy && !tooLong && source.text.trim().length >= 20
+  const canRead = canEdit && props.aiEnabled !== false && !busy && !fileBusy && !tooLong && source.text.trim().length >= 20
   const upload = async (file: File) => {
     setFileBusy(true); setFileError("")
     const editVersion = sourceEdits.current
@@ -42,6 +42,7 @@ export function SourcePanel(props: MatchingSetupViewProps) {
         <label htmlFor={`${id}-text`}>Constitution text</label>
         <textarea id={`${id}-text`} rows={7} value={source.text} disabled={!canEdit} onChange={event => { sourceEdits.current++; setSource({ ...source, text: event.target.value }) }} onBlur={() => props.onSourceChange(source)} aria-describedby={`${id}-note`} />
         <p id={`${id}-note`} className="matching-muted">Use a fictional constitution for testing. Up to 60,000 characters. Text is saved before AI reads it; AI requests and replies are archived privately for this prototype.</p>
+        {props.aiEnabled === false && <p className="matching-muted">AI is turned off. You can create responsibilities manually below.</p>}
         {tooLong && <p role="alert" className="matching-error">This text exceeds 60,000 characters. Choose relevant sections before reading; nothing is cut automatically.</p>}
         <div className="matching-actions">
           <button type="button" className="btn" disabled={!canEdit || fileBusy} onClick={() => fileInput.current?.click()}>{fileBusy ? "Reading file…" : "Upload a document"}</button>

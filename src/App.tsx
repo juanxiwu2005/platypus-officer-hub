@@ -36,6 +36,7 @@ const Officer = lazy(() => import("./pages/Officer"))
 const Setup = lazy(() => import("./pages/Setup"))
 const Join = lazy(() => import("./pages/Join"))
 const PhaseOne = lazy(() => import("./phase1/PhaseOne"))
+const MatchingPage = lazy(() => import("./matching/MatchingPage"))
 
 function screen(children: ReactNode, label: string, fullPage = false) {
   return <Suspense fallback={<RouteLoading label={label} fullPage={fullPage} />}>{children}</Suspense>
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="events" element={screen(<Events />, "Loading events…")} />
         <Route path="tasks" element={screen(<Tasks />, "Loading tasks…")} />
         <Route path="team" element={screen(<Team />, "Loading your team…")} />
+        <Route path="matching" element={screen(<MatchingPage />, "Opening responsibility setup…")} />
         <Route path="funding" element={<Navigate to="/events" replace />} />
         <Route path="handoff" element={screen(<Handoff />, "Loading handoff…")} />
         <Route path="partners" element={screen(<Partners />, "Loading partners…")} />
