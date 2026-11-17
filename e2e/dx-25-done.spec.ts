@@ -5,8 +5,7 @@ import { expect, test, type Page } from "@playwright/test"
 test.skip(({ isMobile }) => isMobile, "uses the docked panel and the side navigation")
 async function fresh(page: Page, path = "/") {
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto("/#/")
-  await page.evaluate(() => window.localStorage.clear())
+  await page.addInitScript(() => window.localStorage.clear())
   await page.goto(`/#${path}`)
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
 }
