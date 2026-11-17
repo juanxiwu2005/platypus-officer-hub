@@ -69,7 +69,20 @@
 | Resolver Agent | `feat/matching-resolver` · `c5bb56c` | resolve 及 45 项测试 |
 | 主 Agent | 集成分支 | 契约、公共出口、12 人演练、旧数据隔离测试及文档 |
 
-集成演练与隔离测试另有 17 项，合计 91 项已通过。独立只读复核、构建与相关旧链路回归的最终结果在完成后补记。首次集成类型检查发现演练资格对象的联合类型推断问题，已补充明确的成员类型；未放宽数据契约。
+集成演练与隔离测试另有 17 项，合计 91 项。最终检查：
+
+| 检查 | 结果 |
+| --- | --- |
+| 新模块 91 项 + 原有相关链路 114 项 | 10 个文件、205 项全部通过 |
+| `npm run lint` | 通过，包含 CSS、ESLint 和项目 guardrails |
+| `npm run build` | 通过，包含前端 TypeScript 和生产构建 |
+| `npm run typecheck:netlify` | 通过 |
+| 虚构演练实际调用 | 上述 12 个场景与期望一致 |
+| 独立只读 Review | 对最终代码候选 `3ad168d` 复核通过，无需修复项；另验证编辑、重新确认、合并及保存恢复后的历史保护 |
+
+测试命令：`npm test -- src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts src/matching`。
+
+首次集成类型检查发现演练资格对象的联合类型推断问题，已补充明确的成员及资格对象类型，再次构建通过；未放宽数据契约。构建输出有依赖注释和大 chunk 提示，没有构建错误。此次无页面改动，没有重复全站 Playwright 或完整 `npm run check`；没有把这些检查记为已通过。
 
 ## 后续阶段
 

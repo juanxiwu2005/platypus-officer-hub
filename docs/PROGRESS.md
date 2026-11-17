@@ -1,6 +1,7 @@
-> **2026-11-16（America/Phoenix） · 职责匹配阶段 1 进行中（Codex 主 Agent；独立 worktree Data/Resolver Agent）**
-> **授权：** Juanxi 已批准“第一阶段”。本阶段建立共享契约、职责数据操作、配置验证与读写、确定性候选及默认/备份解析器，交付虚构演练、测试和阶段 3 旧存档接入设计。[实施计划](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md) · [冻结开发契约](feedback-fix/MATCHING_CONTRACT.md)。
-> **边界：** 当前不修改业务入口、旧 DemoState 或结构版本，不接新 AI/界面，不调用真实模型；阶段 2/3 继续待批准。主 Agent 维护公共契约与集成，两个开发 Agent 各有唯一文件范围，交付后做独立只读 Review。不合并 main、不正式发布。需要同步本地备份。
+> **2026-11-16（America/Phoenix） · 职责匹配阶段 1 已完成技术检查，交付待验收（Codex 主 Agent；独立 worktree Data/Resolver/Review Agent）**
+> **交付：** `src/matching/` 建立自定义职责、岗位和成员关系、工作流步骤关联、默认人与备份、候选解释、只追加分派回执及隔离配置读写；职责可编辑、确认、合并和归档。12 人、两种工作流的实际演练及分配表见 [阶段 1 交付](feedback-fix/MATCHING_STAGE1_HANDOFF.md)；后续唯一正本、外层版本迁移和安全回滚见 [阶段 3 兼容设计](feedback-fix/MATCHING_COMPATIBILITY.md)。[实施计划](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md) · [冻结契约](feedback-fix/MATCHING_CONTRACT.md)。
+> **验证：** 新模块 91 项 + 原有相关链路 114 项，共 205 项通过；lint、前后端类型检查、生产构建通过。独立 Review 对最终代码候选 `3ad168d` 复核通过，并核对编辑、合并、保存恢复后的回执保护。两个开发包为 Data `307b5d0`、Resolver `c5bb56c`，保留各自提交集成。未运行全站 Playwright 或完整发布门禁，未调用真实 AI。
+> **边界与验收：** 本阶段底层尚未接网页或实际任务创建，旧 DemoState、旧存档键和结构版本均未改；查看交付文档中的 12 行分配表验收。浏览器保存不是原子并发服务，来源原文验证和业务授权留给后续适配。阶段 2/3 继续待批准，不提前启动；未合并 main、未正式发布。需要同步本地备份。
 
 > **2026-11-16（America/Phoenix） · A2/B2/C2 已选定，三阶段实施计划待批准（Codex）**
 > **Juanxi 的选择与执行要求：** A2 章程 AI 起草、人工确认；B2 任务绑定职责；C2 默认承接人与备份。要求 worktree Agent 分两到三个阶段推进，并明确“我批准后再开始阶段”。
@@ -412,6 +413,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | Codex（职责匹配 S1；Data/Resolver 独立开发，Review 独立只读复核） | 依用户“批准第一阶段”实施 `src/matching/` 数据基础、职责操作、严格存档读写及确定性 C2 解析；主 Agent 集成 12 人两工作流演练与旧数据隔离检查。新旧相关测试合计 205 项、lint、构建、两套类型检查通过；最终代码候选 `3ad168d` 独立复核通过。详情见 `feedback-fix/MATCHING_STAGE1_HANDOFF.md`。 | 当前没有新网页，未接真实任务、未改变旧存档；阶段 2/3 仍待批准。后续按 `MATCHING_COMPATIBILITY.md` 做版本迁移与回滚，不用 reset 或长期双写。仅推指定功能分支，不合并 main；0 次真实 AI 调用。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex | **记录 A2/B2/C2 选择并准备三阶段 worktree Agent 计划。** [范围、分工、兼容、验收和回滚](feedback-fix/TASK_MATCHING_IMPLEMENTATION_PLAN.md)。仅文档变更。 | 用户明确要求批准后才开始阶段。阶段 1/2/3 全部未启动，不能把选定方案视作已批准任一阶段；等待明确启动批准并按授权范围推进。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex | **补充任务匹配方案比较。** 记录保留增强章程 AI、自定义职责和多工作流方向；[A/B/C 九个选项及 P1/P2 原型范围](feedback-fix/TASK_MATCHING_OPTIONS.md)，按五个角度比较。 | 仅方案讨论，建议组合未获选择；不实施功能或数据迁移，后五项和新人上手仍在后续。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex | **记录自动提醒六项顺序并完成任务匹配代码审阅。** [现状、46 个标准步骤清单与待讨论设计](feedback-fix/TASK_MATCHING_REVIEW.md)。相关测试 114 项通过；仅文档变更。 | 当前只处理任务匹配；职责标签和多人分配规则未定稿；政策覆盖尚需逐条核对。后五项与新人上手未实施；不合并 main、不正式发布。需要同步本地备份。 |
