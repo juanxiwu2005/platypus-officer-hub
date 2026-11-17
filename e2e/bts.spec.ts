@@ -31,7 +31,7 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
   expect(await setting(page)).toBe("1")
   await closeRail(page)
   await expect(page.locator(".bts").first()).toBeVisible()
-  await expect(page.getByTestId("reminder-centre")).toContainText("Send day = the rule engine's latest start") // FB-8: the reminder centre
+  await expect(page.getByTestId("reminder-centre")).toContainText("Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. Sent lists saved records.")
   await page.reload()
   await page.waitForTimeout(300)
   await expect(page.locator(".bts").first()).toBeVisible()
@@ -51,7 +51,7 @@ test("when on: dates show where they come from on Reminders, Events and Tasks", 
   await closeRail(page)
   // FB-8: the home page is the reminder centre; its send days and Due come from the rule engine (the Events strip moved off home).
   await expect(page.getByTestId("rq-needs-ok").locator(".bts").first()).toContainText("Rule engine")
-  await expect(page.getByTestId("rq-this-week").locator(".bts")).toContainText("Send days from tomorrow to 7 days ahead")
+  await expect(page.getByTestId("rq-this-week").locator(".bts")).toContainText("Planned checks from tomorrow through the next 7 days.")
   await page.goto("/#/events")
   await expect(page.locator("main .bts").first()).toBeVisible()
   await page.getByTestId("view-list").click()
