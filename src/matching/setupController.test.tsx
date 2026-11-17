@@ -62,6 +62,24 @@ describe("setup controller: explicit AI actions and saved drafts", () => {
     expect(JSON.parse(store.getItem(setupStorageKey(initial.contextKey))!).reads[0].request.text).toBe(source.text)
   })
 
+  it("recovers an orphaned request when a read-only viewer becomes an editor without interrupting a live retry", async () => {
+    const store = memory(), pending = beginSetupRead(createSetupDocument(initial), source, "fictional-president")
+    saveSetupDocument(store, pending, null)
+    const { result, rerender } = renderHook(({ canEdit }) => useMatchingSetup(initial, "fictional-president", canEdit, store), { initialProps: { canEdit: false } })
+    expect(result.current.document!.reads[0].status).toBe("pending")
+    rerender({ canEdit: true })
+    await waitFor(() => expect(result.current.document!.reads[0].status).toBe("interrupted"))
+    expect(extract).not.toHaveBeenCalled()
+    const waiting = deferred()
+    extract.mockReturnValue(waiting.promise)
+    act(() => result.current.onRead(source, ["robots"]))
+    rerender({ canEdit: false }); rerender({ canEdit: true })
+    expect(result.current.document!.reads[1].status).toBe("pending")
+    expect(result.current.busy).toBe(true)
+    act(() => result.current.onStop())
+    await act(async () => waiting.resolve(response(extract.mock.calls[0][0])))
+  })
+
   it("aborts stale waiting after a source edit and ignores a late provider response", async () => {
     const store = memory(), waiting = deferred()
     extract.mockReturnValue(waiting.promise)

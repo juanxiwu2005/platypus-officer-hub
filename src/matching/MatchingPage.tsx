@@ -7,6 +7,7 @@ import { createMatchingExample } from "./examples"
 import { setupId } from "./setupWorkspace"
 import { useMatchingSetup } from "./useMatchingSetup"
 import MatchingSetupView from "./ui/MatchingSetupView"
+import { matchingSetupContext } from "./setupContext"
 
 export default function MatchingPage() {
   const { state } = useStore(), [params] = useSearchParams()
@@ -19,9 +20,9 @@ export default function MatchingPage() {
     const roles = state.roles.map(r => ({ id: r.id, title: r.displayName }))
     const members = state.people.map(p => ({ id: p.id, name: p.name, active: isOfficer(p), availability: "unknown" as const, qualifications: {} }))
     // Team input is copied into a separate preview. A different legacy setup cannot inherit its receipts.
-    const contextKey = JSON.stringify([state.org.id, state.org.name, state.org.setupCompletedOn, [...roles.map(r => r.id)].sort(), state.people.map(p => [p.id, p.roleId, p.leftOn ?? null, p.incomingFor ?? null]).sort(), separate])
+    const contextKey = matchingSetupContext(state, separate)
     return { contextKey, references: { organizationId: state.org.id, roles, members }, memberships: state.people.filter(p => roles.some(r => r.id === p.roleId)).map(p => ({ id: `snapshot-${p.id}`, memberId: p.id, roleId: p.roleId, confirmed: true })) }
-  }, [state.org.id, state.org.name, state.org.setupCompletedOn, state.roles, state.people, example, separate])
+  }, [state.org.id, state.org.name, state.org.setupCompletedOn, state.org.inviteCode, state.roles, state.people, example, separate])
   return <MatchingSession key={initial.contextKey} initial={initial} actorId={state.viewerId} canEdit={canLead(state) && state.people.some(p => p.id === state.viewerId && isOfficer(p))} aiEnabled={state.aiEnabled} />
 }
 

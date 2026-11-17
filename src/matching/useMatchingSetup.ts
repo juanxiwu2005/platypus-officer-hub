@@ -31,8 +31,10 @@ export function useMatchingSetup(initial: MatchingSetupInitial, actorId: string,
   const unsaved = useRef<MatchingSetupDocument | null>(null)
   const mounted = useRef(false)
   const aiAuthority = useRef(aiEnabled)
+  const actor = useRef(actorId)
   authority.current = canEdit
   aiAuthority.current = aiEnabled
+  actor.current = actorId
 
   const persist = (next: MatchingSetupDocument, internal = false): boolean => {
     if (!internal && !authority.current) { setError("Only the current president or vice president can edit this setup preview."); return false }
@@ -62,11 +64,11 @@ export function useMatchingSetup(initial: MatchingSetupInitial, actorId: string,
 
   useEffect(() => {
     mounted.current = true
-    if (authority.current && current.current) {
-      for (const read of current.current.reads.filter(r => r.status === "pending")) {
-        // Refresh never starts another provider request. The original input remains in history.
-        persist(finishSetupRead(current.current, read.id, actorId, { status: "interrupted", message: "This reading was interrupted. Start a new reading only when you choose to retry." }), true)
-      }
+    const leaving = () => {
+      const request = active.current
+      if (!request || !current.current) return
+      request.controller.abort(); active.current = null
+      persist(finishSetupRead(current.current, request.id, actor.current, { status: "interrupted", message: "This reading was interrupted by leaving the page. Choose explicitly whether to retry." }), true)
     }
     const changed = (event: StorageEvent) => {
       if (event.key === setupStorageKey(initial.contextKey) && event.newValue !== JSON.stringify(current.current)) {
@@ -75,13 +77,25 @@ export function useMatchingSetup(initial: MatchingSetupInitial, actorId: string,
       }
     }
     window.addEventListener("storage", changed)
+    window.addEventListener("beforeunload", leaving)
+    window.addEventListener("pagehide", leaving)
     return () => {
       mounted.current = false
       active.current?.controller.abort(); active.current = null
       window.removeEventListener("storage", changed)
+      window.removeEventListener("beforeunload", leaving)
+      window.removeEventListener("pagehide", leaving)
     }
     // The containing page is keyed by the initial context. Callback state stays in refs.
   }, [])
+
+  useEffect(() => {
+    if (!canEdit || !current.current) return
+    for (const read of current.current.reads.filter(r => r.status === "pending" && r.id !== active.current?.id)) {
+      // Refresh or switching back to an editor never resends a paid request.
+      persist(finishSetupRead(current.current, read.id, actorId, { status: "interrupted", message: "This reading was interrupted. Start a new reading only when you choose to retry." }), true)
+    }
+  }, [canEdit])
 
   const onRead: MatchingSetupViewProps["onRead"] = (source, targetRoleIds) => {
     if (!authority.current || !current.current || active.current) return

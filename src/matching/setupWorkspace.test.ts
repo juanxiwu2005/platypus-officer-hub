@@ -66,6 +66,20 @@ describe("stage 2 setup keeps human decisions and source provenance", () => {
     expect(next.decisions[0]).toMatchObject({ decision: "rejected", responsibilityId: null, actorId: actor })
   })
 
+  it("lets confirmation preserve a batch but marks remaining proposals stale after an adopted sibling is edited or archived", () => {
+    let document = completed()
+    const readId = document.reads[0].id
+    document = decideSetupProposal(document, readId, "proposal-0", "accepted", actor)
+    const id = document.decisions[0].responsibilityId!
+    const confirmed = commandSetup(document, [{ type: "responsibility.confirm", id }], actor)
+    expect(confirmed.reads[0].status).toBe("completed")
+    expect(isSetupReadCurrent(confirmed, readId)).toBe(true)
+    for (const next of [commandSetup(confirmed, [{ type: "responsibility.update", id, patch: { description: "A different human-defined scope." } }], actor), commandSetup(confirmed, [{ type: "responsibility.archive", id }], actor)]) {
+      expect(next.reads[0].status).toBe("stale")
+      expect(() => decideSetupProposal(next, readId, "proposal-1", "accepted", actor)).toThrow(/outdated/)
+    }
+  })
+
   it("makes old suggestions stale after manual content or position changes, while preserving the response", () => {
     const document = completed()
     for (const next of [sourceSetup(document, { ...source, text: source.text + " Revised rules." }, actor), referenceSetup(document, { ...document.references, roles: [{ id: "robotics", title: "Embedded Builders" }] }, actor)]) {

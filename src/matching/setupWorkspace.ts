@@ -153,7 +153,16 @@ const orderedRoles = (roles: MatchingReferences["roles"]) => [...roles].sort((a,
 export function isSetupReadCurrent(document: MatchingSetupDocument, readId: string): boolean {
   const read = document.reads.find(r => r.id === readId)
   if (!read) return false
-  const adopted = document.decisions.filter(d => d.readId === readId && d.decision === "accepted" && d.responsibilityId).map(d => d.responsibilityId!)
+  const adopted = document.decisions.filter(d => {
+    if (d.readId !== readId || d.decision !== "accepted" || !d.responsibilityId) return false
+    const duty = document.matching.responsibilities.find(r => r.id === d.responsibilityId)
+    const proposal = read.response?.proposals.find(p => p.id === d.proposalId)
+    // Adopting and confirming a sibling is safe. A later edit, merge or archive is a real semantic change.
+    return duty && proposal && duty.revision === 1 && duty.status !== "archived" && duty.origin === "ai"
+      && canonical([duty.title, duty.description, duty.deliverable, duty.exclusions, duty.requiredQualificationIds])
+      === canonical([proposal.title, proposal.description, proposal.deliverable, proposal.exclusions, proposal.requiredQualificationIds])
+  }).map(d => d.responsibilityId!)
+  if (adopted.length !== document.decisions.filter(d => d.readId === readId && d.decision === "accepted").length) return false
   return read.request.text === document.source.text
     && canonical(orderedRoles(read.request.roles)) === canonical(orderedRoles(document.references.roles))
     && canonical([...read.request.existingResponsibilities].sort((a, b) => a.id.localeCompare(b.id))) === canonical(activeResponsibilities(document, adopted))

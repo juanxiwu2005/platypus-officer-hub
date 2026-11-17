@@ -15,6 +15,11 @@ async function open(page: Page, example = false) {
   await page.goto(`/#/matching${example ? "?example=1" : ""}`)
   await closeRail(page)
   await expect(page.getByRole("heading", { name: "Responsibilities", exact: true })).toBeVisible()
+  // The legacy reader normalizes its seed on first reopen (including waitingOnPersonId: null).
+  // Start each semantic preservation comparison after that existing normalization has run.
+  await page.reload()
+  await closeRail(page)
+  await expect(page.getByRole("heading", { name: "Responsibilities", exact: true })).toBeVisible()
 }
 async function manual(page: Page, name: string) {
   await library(page).getByRole("button", { name: "New responsibility", exact: true }).click()
@@ -31,6 +36,18 @@ test.beforeEach(async ({ page }) => {
   // Every API is mocked; these browser checks never reach an AI provider.
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { message: "Offline test. Continue manually." } }))
   await page.route("**/api/health", route => route.fulfill({ json: { ok: true, configured: true, provider: "mock", model: "mock" } }))
+})
+
+test("Team and Settings lead to the responsibility setup without an AI request", async ({ page }) => {
+  let calls = 0
+  await page.route("**/api/setup/constitution", route => { calls++; return route.fulfill({ status: 503, json: {} }) })
+  for (const path of ["team", "settings"]) {
+    await page.goto(`/#/${path}`)
+    await closeRail(page)
+    await page.getByRole("link", { name: "Set up responsibilities", exact: true }).click()
+    await expect(page.getByRole("heading", { name: "Responsibilities", exact: true })).toBeVisible()
+  }
+  expect(calls).toBe(0)
 })
 
 test("manual setup survives refresh and opening the example, while actual tasks and team stay unchanged", async ({ page }) => {
