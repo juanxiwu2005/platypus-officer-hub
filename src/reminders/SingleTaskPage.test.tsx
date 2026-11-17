@@ -7,9 +7,10 @@ import { reducer, StoreProvider, STORAGE_KEY, useStore, type Action } from "../d
 import type { DemoState, Node } from "../data/types"
 import { applySchedule, computeSchedule } from "../engine/schedule"
 import { addDays, fmtLong } from "../lib/dates"
-import { makeTaskAccessGrant, taskAccessToken, usableTaskAccessGrant, verifyTaskAccessGrant } from "./taskAccess"
+import { makeTaskAccessGrant, taskAccessToken, taskAccessUrl, usableTaskAccessGrant, verifyTaskAccessGrant } from "./taskAccess"
 import type { ReminderRuntime } from "./contracts"
-import { buildReminderInput } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderMail } from "./mail"
 import { planReminders } from "./engine"
 import SingleTaskPage from "./SingleTaskPage"
 
@@ -180,7 +181,11 @@ describe("the standalone owner task", () => {
     const waiting = waitingState(detail)
     const candidate = planReminders(buildReminderInput(waiting, waiting.reminderRuntime!)).ready.find(c => c.reason === "waiting_on")!
     expect(candidate).toBeTruthy()
-    const delivered = reducer(waiting, { type: "confirmPlannedReminder", candidateId: candidate.id, via: "manual" })
+    const helper = await makeTaskAccessGrant(waiting, NODE, candidate.waitingRequestId)
+    const prepared = reducer(waiting, {type: "issueTaskAccessGrant", grant: helper})
+    const facts = buildReminderFacts(prepared, NODE)!, people = reminderPeople(prepared)
+    const mail = buildReminderMail({today: waiting.today, facts, candidate, recipient: people.find(p => p.id === candidate.recipientId)!, request: prepared.reminderRuntime!.waitingRequests[0], requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskAccessUrl("https://demo.example.org", helper)})
+    const delivered = reducer(prepared, { type: "confirmPlannedReminder", candidateId: candidate.id, via: "manual", message: {...mail, channel: "email", preparedOn: waiting.today, accessId: helper.id} })
     expect(delivered.reminderRuntime!.deliveries).toHaveLength(1)
     const { state, token } = await issued(delivered)
     const originalRequest = state.reminderRuntime!.waitingRequests[0]

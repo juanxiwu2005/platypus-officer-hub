@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, render, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { webcrypto } from "node:crypto"
 import { seedDemo } from "../data/seed"
@@ -155,5 +155,29 @@ describe("stage three complete-mail delivery", () => {
     await waitFor(() => expect(store.state.reminderRuntime!.deliveries).toHaveLength(1))
     expect(store.automaticReminders.error).toBeNull()
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).reminderRuntime.deliveries).toHaveLength(1)
+  })
+
+  it.each([false, true])("browser saving can recover explicitly without overriding a newer tab (newer tab: %s)", async changed => {
+    const original = Storage.prototype.setItem
+    const failure = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key, value) {
+      if (key === STORAGE_KEY) throw new Error("Storage full")
+      original.call(this, key, value)
+    })
+    show(active())
+    await screen.findByRole("button", {name: "Retry browser saving"})
+    const before = store.getState()
+    failure.mockRestore()
+    const external = JSON.stringify({...before, today: "2026-12-01"})
+    if (changed) localStorage.setItem(STORAGE_KEY, external)
+    fireEvent.click(screen.getByRole("button", {name: "Retry browser saving"}))
+    if (changed) {
+      await screen.findByText(/This organization changed in another tab/)
+      expect(localStorage.getItem(STORAGE_KEY)).toBe(external)
+      expect(screen.queryByRole("button", {name: "Retry browser saving"})).toBeNull()
+    } else {
+      await waitFor(() => expect(store.persistenceFailed).toBe(false))
+      expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!)).toEqual(before)
+    }
+    expect(store.getState()).toBe(before)
   })
 })

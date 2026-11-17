@@ -1063,17 +1063,22 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
     {shown && <StorageBanner notice={shown} onDownload={() => {
       if (shown.kind === "save_failed" || shown.kind === "storage_conflict") downloadExport(rootRef.current!.app, rootRef.current!.log)
       else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); if (shown.kind !== "migration_blocked") setHeld(false) }
-    }} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
+    }} onRetry={shown.kind === "save_failed" && !held ? () => {
+      const current = rootRef.current!
+      saved.current.app = persistApp(current.app)
+      if (saved.current.app) { savedApp.current = current.app; saved.current.log = saveLog(current.log) }
+      setSaveFailed(!(saved.current.app && saved.current.log))
+    } : undefined} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
     {children}
   </StoreContext.Provider>
 }
 
 /** Says out loud that data was restored or could not be saved. Uses existing classes only. */
-function StorageBanner({ notice, onDownload, onDismiss }: { notice: StorageNotice; onDownload: () => void; onDismiss?: () => void }) {
+function StorageBanner({ notice, onDownload, onDismiss, onRetry }: { notice: StorageNotice; onDownload: () => void; onDismiss?: () => void; onRetry?: () => void }) {
   if (notice.kind === "storage_conflict") return <div role="alert" className="save-status err" data-testid="storage-banner">This organization changed in another tab. Changes here are paused to protect both copies. Download this tab's copy if needed, then reload to use the latest saved data. <button type="button" className="btn small" onClick={onDownload}>Download this tab's copy</button></div>
   if (notice.kind === "migration_blocked") return <div role="alert" className="save-status err" data-testid="storage-banner">Your saved organization is intact. Its upgrade could not be backed up, so changes are paused. Download the original data, then reload to retry the upgrade. <button type="button" className="btn small" onClick={onDownload}>Download original data</button></div>
   if (notice.kind === "save_failed")
-    return <div role="alert" className="save-status err" data-testid="storage-banner">Your latest changes could not be saved in this browser (storage is full or blocked). They will be lost if you close this tab. <button type="button" className="btn small" onClick={onDownload}>Download my data</button></div>
+    return <div role="alert" className="save-status err" data-testid="storage-banner">Your latest changes could not be saved in this browser (storage is full or blocked). They will be lost if you close this tab. {onRetry && <button type="button" className="btn small" onClick={onRetry}>Retry browser saving</button>}<button type="button" className="btn small" onClick={onDownload}>Download my data</button></div>
   const what = notice.why === "version" ? `This demo was updated, so your earlier data (version ${notice.fromVersion}) could not be opened and the example club was restored.` : "Your saved data could not be read, so the example club was restored."
   const kept = notice.backupKey ? `Your earlier data is kept in this browser as "${notice.backupKey}".` : "Your earlier data could NOT be backed up in this browser, and nothing new is saved until you download it."
   return <div role="alert" className={notice.backupKey ? "notice" : "save-status err"} data-testid="storage-banner">{what} {kept} <button type="button" className="btn small" onClick={onDownload}>Download previous data</button>{onDismiss && <button type="button" className="btn small" onClick={onDismiss}>Dismiss</button>}</div>
