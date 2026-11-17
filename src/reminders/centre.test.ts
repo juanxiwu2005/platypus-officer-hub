@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
+import { reducer } from "../data/store"
 import { addDays } from "../lib/dates"
 import { createReminderRuntime } from "./engine"
 import { reminderCentre, taskReminderSummary } from "./centre"
@@ -73,6 +74,9 @@ describe("shared reminder centre presentation", () => {
     expect(reminderCentre(withLedger(s, [{ ...d, id: "delivery:3", sequence: 3 }], [reply(s)])).replies).toEqual([])
     const leaderEdit = reply(s, { actorId: "alex", ownerReply: false })
     expect(reminderCentre(withLedger(s, [d], [leaderEdit])).replies).toEqual([])
+    const unordered = withLedger(s, [d], [reply(s, { id: "update:3", sequence: 3, status: "done" }), reply(s)])
+    expect(reminderCentre(unordered).replies[0].reply).toBe("Done")
+    expect(reminderCentre(withLedger(s, [{ ...d, id: "delivery:9" }, { ...d, id: "delivery:10", sequence: 2 }])).sent.map(x => x.deliveryId)).toEqual(["delivery:10", "delivery:9"])
   })
 
   it("starts no reply only after two actual recorded days and stops for reassignment or completion", () => {
@@ -91,5 +95,21 @@ describe("shared reminder centre presentation", () => {
     for (const patch of [{ actorId: "jordan" }, { waitingRequestId: "waiting:other" }]) {
       expect(reminderCentre(withLedger(s, [d], [{ ...helperReply, ...patch }])).replies).toEqual([])
     }
+  })
+
+  it("uses only v2 candidates and shows the nearest future stage once per task", () => {
+    const s = base()
+    const active = reducer({ ...s, nodes: s.nodes.map(n => ({ ...n, status: "accepted", clubDeadline: addDays(s.today, 3), latestStart: s.today })),
+      org: { ...s.org, settings: { ...s.org.settings, reminderMode: "review_then_auto" } } }, { type: "upgradeReminderPlan" })
+    const q = reminderCentre(active)
+    expect(q.runtimeState).toBe("active")
+    expect(q.needsOk).toHaveLength(1)
+    expect(q.approvableCandidateIds).toEqual([q.needsOk[0].candidateId])
+    expect(q.thisWeek).toHaveLength(1)
+    expect(q.thisWeek[0]).toMatchObject({ reason: "due", scheduledOn: addDays(s.today, 3), due: addDays(s.today, 3) })
+    expect(taskReminderSummary(active, NODE)).toMatchObject({ canPrepare: true, recipientId: "jordan", blockedReason: null })
+    const officer = { ...active, viewerId: "jordan" }
+    expect(reminderCentre(officer).approvableCandidateIds).toEqual([])
+    expect(taskReminderSummary(officer, NODE).canPrepare).toBe(false)
   })
 })

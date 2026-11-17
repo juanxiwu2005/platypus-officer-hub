@@ -17,7 +17,7 @@ export interface CentreRow {
   candidateId?: string; scheduledOn?: string; blockedReason?: string
   deliveryId?: string; sentOn?: string; via?: ReminderDelivery["via"] | "legacy"
   outcome?: ReminderDelivery["outcome"]; message?: ReminderMailSnapshot
-  reply?: string; days?: number; legacy?: boolean
+  reply?: string; days?: number; legacy?: boolean; sequence?: number
 }
 export interface ReminderCentre {
   runtimeState: CentreRuntimeState; mode: ReminderMode | null
@@ -48,7 +48,8 @@ const name = (s: DemoState, id: string | null) => s.people.find(p => p.id === id
 const currentVersion = (s: DemoState) => isReminderRuntime(s.reminderRuntime) && Number(s.reminderRuntime.version) === 2
 const runtimeState = (s: DemoState): CentreRuntimeState => currentVersion(s) ? "active"
   : s.reminderRuntime === undefined || isReminderRuntime(s.reminderRuntime) ? "legacy" : "invalid"
-const newest = (a: CentreRow, b: CentreRow) => (b.sentOn ?? "").localeCompare(a.sentOn ?? "") || b.id.localeCompare(a.id)
+const newest = (a: CentreRow, b: CentreRow) => (b.sentOn ?? "").localeCompare(a.sentOn ?? "")
+  || (b.sequence ?? 0) - (a.sequence ?? 0) || b.id.localeCompare(a.id)
 
 /** Presentation only: an upcoming plan never becomes a sent fact. */
 export function reminderCentre(state: DemoState): ReminderCentre {
@@ -70,7 +71,7 @@ export function reminderCentre(state: DemoState): ReminderCentre {
     eventName: d.eventName, taskTitle: d.taskTitle, recipientId: d.recipientId, recipientName: d.recipientName,
     ownerId: d.ownerId, ownerVersion: d.ownerVersion, due: d.due, reason: d.reason,
     explanation: d.reason === "waiting_on" ? "A request for help." : "Recorded reminder.",
-    sentOn: d.sentOn, scheduledOn: d.scheduledOn, via: d.via, outcome: d.outcome, message: d.message })
+    sentOn: d.sentOn, scheduledOn: d.scheduledOn, via: d.via, outcome: d.outcome, message: d.message, sequence: d.sequence })
   for (const n of state.nudges) sent.push({ ...base(n.nodeId), id: `legacy:${n.id}`, legacy: true,
     eventName: null, taskTitle: n.message?.subject ?? "Earlier reminder", recipientId: n.message?.recipientId ?? null,
     recipientName: name(state, n.message?.recipientId ?? null), ownerId: null, ownerVersion: null, due: null,
@@ -92,12 +93,12 @@ export function reminderCentre(state: DemoState): ReminderCentre {
     const row = sent.find(x => x.deliveryId === d.id)!
     const ownerReply = runtime!.updates.filter(u => u.nodeId === d.nodeId && u.ownerId === d.ownerId
       && u.ownerVersion === d.ownerVersion && u.ownerReply && u.actorId === d.ownerId
-      && u.sequence > d.sequence && u.on <= state.today).at(-1)
+      && u.sequence > d.sequence && u.on <= state.today).sort((a, b) => b.sequence - a.sequence)[0]
     const helperReply = d.waitingRequestId ? runtime!.updates.filter(u => u.waitingRequestId === d.waitingRequestId
-      && u.actorId === d.recipientId && u.waitingResponse && u.sequence > d.sequence && u.on <= state.today).at(-1) : null
+      && u.actorId === d.recipientId && u.waitingResponse && u.sequence > d.sequence && u.on <= state.today).sort((a, b) => b.sequence - a.sequence)[0] : null
     const reply = d.waitingRequestId ? helperReply : ownerReply
     if (reply) {
-      replies.push({ ...row, id: `reply:${reply.id}`, reply: reply.waitingResponse === "provided" ? "Input provided"
+      replies.push({ ...row, id: `reply:${reply.id}`, sequence: reply.sequence, reply: reply.waitingResponse === "provided" ? "Input provided"
         : reply.waitingResponse === "acknowledged" ? "I'll follow up" : STATUS[reply.status] })
       continue
     }
@@ -109,9 +110,12 @@ export function reminderCentre(state: DemoState): ReminderCentre {
     if (days >= 2) noReply.push({ ...row, id: `wait:${d.id}`, days })
   }
   const plan = status === "active" ? planReminders(buildReminderInput(state, runtime!)) : null
-  const blocked = (plan?.blocked ?? []).map(b => ({ ...base(b.nodeId), id: `blocked:${b.nodeId}`,
-    recipientId: b.recipientId ?? null, recipientName: name(state, b.recipientId ?? null),
-    explanation: BLOCKED[b.reason], blockedReason: b.reason }))
+  const blocked = (plan?.blocked ?? []).map(b => {
+    const row = base(b.nodeId)
+    const recipientId = b.recipientId ?? (b.reason === "legacy_history" ? row.ownerId : null)
+    return { ...row, id: `blocked:${b.nodeId}`, recipientId, recipientName: name(state, recipientId),
+      explanation: BLOCKED[b.reason], blockedReason: b.reason }
+  })
   const weekEnd = addDays(state.today, 7), future = new Map<string, CentreRow>()
   for (const c of plan?.upcoming ?? []) if (c.scheduledOn > state.today && c.scheduledOn <= weekEnd && !future.has(c.nodeId)) future.set(c.nodeId, candidateRow(c))
   const riskFirst = (a: CentreRow, b: CentreRow) => Number(b.risk) - Number(a.risk)
