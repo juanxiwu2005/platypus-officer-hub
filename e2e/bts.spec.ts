@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { ask, closeRail, openAsk, openDemoMenu, openMore } from "./helpers"
+import { ask, closeRail, openAsk, openDemoMenu, openMore, viewAs } from "./helpers"
 
 // "Behind the scenes" (S7): a switch in the Demo menu that shows where numbers, dates and AI output come from.
 // Off (the default) means the notes are not in the page at all.
@@ -22,6 +22,18 @@ test("off by default: no note is in the page, on any page", async ({ page }) => 
   }
   await openDemoMenu(page)
   await expect(page.getByTestId("bts-toggle")).not.toBeChecked()
+})
+
+test("ordinary members retain calculation notes behind the same switch", async ({ page }) => {
+  await page.goto("/#/")
+  await viewAs(page, "jordan")
+  await expect(page.getByTestId("your-reminders")).toBeVisible()
+  await switchOn(page)
+  await closeRail(page)
+  await expect(page.getByTestId("your-reminders").locator(".bts")).toContainText("Rule engine")
+  await openDemoMenu(page)
+  await page.getByTestId("bts-toggle").uncheck()
+  await expect(page.locator(NOTES)).toHaveCount(0)
 })
 
 test("the switch turns on and off, keeps its state after a reload, and removes the notes from the page when off", async ({ page }) => {

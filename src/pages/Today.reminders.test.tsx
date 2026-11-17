@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { MemoryRouter } from "react-router-dom"
 import { webcrypto } from "node:crypto"
 import { RailProvider } from "../components/rail/RailContext"
+import { BtsProvider, useBts } from "../components/Bts"
 import { StoreProvider, reducer, STORAGE_KEY, useStore } from "../data/store"
 import { seedDemo } from "../data/seed"
 import { applySchedule } from "../engine/schedule"
@@ -12,6 +13,7 @@ import Today from "./Today"
 
 let latest: DemoState
 function Observer() { latest = useStore().state; return null }
+function HideNotes() { const {setOn} = useBts(); return <button type="button" onClick={() => setOn(false)}>Hide calculation notes</button> }
 function fixture(mode: ReminderMode = "review_then_auto", active = true): DemoState {
   const s = seedDemo(undefined, "v2")
   const event = { ...s.events[0], id: "centre-event", name: "Speaker Night", date: "2026-11-19", headcount: 40, venue: "campus" as const, budgetItems: [] }
@@ -29,6 +31,14 @@ beforeEach(() => { localStorage.clear(); vi.stubGlobal("crypto", webcrypto); vi.
 afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe("reminder centre with the actual provider and preparation service", () => {
+  it.each(["alex", "jordan"])("keeps optional calculation notes for %s and removes them from the DOM when off", viewerId => {
+    localStorage.setItem("platypus.v1.bts", "1")
+    render(<MemoryRouter><StoreProvider initial={{...fixture(), viewerId}}><BtsProvider><RailProvider><Today /><HideNotes /></RailProvider></BtsProvider></StoreProvider></MemoryRouter>)
+    const area = screen.getByTestId(viewerId === "alex" ? "reminder-centre" : "your-reminders")
+    expect(area.querySelectorAll(".bts").length).toBeGreaterThan(0)
+    fireEvent.click(screen.getByRole("button", {name: "Hide calculation notes"}))
+    expect(document.querySelector(".bts, .bts-row")).toBeNull()
+  })
   it("batch approval saves complete checked mail and task entries before displaying demo history", async () => {
     show()
     fireEvent.click(screen.getByRole("button", { name: "Approve all (2)" }))

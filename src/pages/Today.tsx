@@ -120,6 +120,7 @@ function YourReminders({ q }: { q: Centre }) {
   const received = q.sent.filter(x => x.recipientId === state.viewerId)
   return <section className="card rq-section" aria-labelledby="rq-yours-h" data-testid="your-reminders">
     <header><h2 id="rq-yours-h">Your reminders</h2></header>
+    <BtsRow><Bts label="Rule engine">Planned checks use the stored task dates. Recorded reminders follow the saved recipient; this demo sends no email.</Bts></BtsRow>
     {q.runtimeState !== "active" && <p className="rq-note">{q.runtimeState === "legacy" ? "Ask your president or VP to enable updated reminders." : "The saved reminder plan needs review. No reminders will run."}</p>}
     {automaticReminders.error && <p role="alert" className="rq-note">Automatic reminders could not be saved. Please let your president or VP know.</p>}
     <h3 className="rq-sub">Coming up</h3>
