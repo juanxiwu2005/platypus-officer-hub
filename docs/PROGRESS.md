@@ -1,5 +1,7 @@
-> **2026-11-16（America/Phoenix） · 按用户反馈回退 onboarding 与职责匹配体验，进行中（Codex）**
-> **最新决定优先：** Juanxi 不接受当前职责设置的文字量和复杂度，要求先回到 main 的 onboarding，再阅读现有方案，之后通过参考界面或手绘重新设计。恢复 main@b9e7a02 的 onboarding 页面与步骤；撤下本次职责匹配设置页和业务接入，保留当前提醒中心、日期等无关改动。已保存数据和23版本兼容读取不能丢弃，方案与实现保存在历史提交5e301d9及文档。不合并main，不提前做新界面或继续RACI等后续工作。需要同步本地备份。
+> **2026-11-16（America/Phoenix） · 已恢复 main onboarding 并撤回职责匹配体验；原策略已整理，等待用户审阅（Codex）**
+> **最新决定优先：** Juanxi 不接受当前职责设置的文字量和复杂度，要求先回到 main 的 onboarding，再阅读现有方案，之后通过参考界面或手绘重新设计。代码 `4abc510` 恢复 main@b9e7a02 的页面、步骤和文案（仅保留保存失败不清草稿保护）；撤下职责设置页与业务匹配接入，旧 `/#/matching` 转 Settings。章程上传和原 AI 岗位/职责文本识别、提醒中心、日期校准等保留；已有任务不因回退改派，23存档与旧匹配记录按归档保留。原实现保存在祖先5e301d9，没有改写历史。
+> **阅读与验收：** [原策略供审阅](feedback-fix/MATCHING_STRATEGY_FOR_REVIEW.md) · [回退范围、数据保护与检查](feedback-fix/MATCHING_ROLLBACK_HANDOFF.md)。main 版 onboarding 预览：`https://deploy-preview-14--platypus-officer-hub.netlify.app/#/welcome/test/president`。117项相关单元/组件通过，回退核心桌面/手机6项通过，其他相关流程已回归；lint、build、前后端类型和全局9页文字预算通过。保留 First event 的main原文后，Spring dinner显示64词，旧60词检查两端仍失败，未调高门槛；未重复全站门禁。0次真实AI。
+> **下一步：** 等 Juanxi 看完原方案并提供参考界面或手绘，先确认交互再实施。原三阶段界面不自动恢复，不开始RACI等后续工作；不合并main。需要同步本地备份。
 
 > **2026-11-16（America/Phoenix） · 职责匹配阶段 3 原交付记录（已被上方回退决定取代）**
 > **交付：** 组织自定义职责库接入实际活动、独立任务和首次设置；一个任务确认一位执行人，默认人预选、备份明确选择，分给别人仍须本人认领。统一业务正本、不长期双写；46 步逐项审阅目录、22→23 原件备份升级、旧任务保护、旧链接失效、保存失败保留草稿及跨标签页覆盖保护已接通。[操作与交付](feedback-fix/MATCHING_STAGE3_HANDOFF.md) · [兼容和回退](feedback-fix/MATCHING_COMPATIBILITY.md)。预览：`https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching`，先点 **Enable responsibility matching**。
@@ -367,6 +369,7 @@
 
 | 日期 | 决定 | 谁定的 |
 | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | **撤回当前职责设置体验，onboarding恢复main。** 当前文字和职责配置过多、不直观；先回退，列出现有方案供阅读，之后通过参考界面或用户手绘讨论新交互。保留已存数据与实现历史，不提前设计或开发新界面，不代表合并main。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配阶段3。** 继续实际任务接入、旧存档兼容、认领和集成验收；使用既定Worktree分工，不代表合并main或启动提醒后续五项。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配阶段 2。** 继续章程 AI 增强与职责设置界面，按既定 Worktree Agent 计划实施；阶段 3 仍待批准。 | Juanxi |
 | 2026-11-16（America/Phoenix） | **批准职责匹配第一阶段。** 按 A2/B2/C2 三阶段计划，使用独立 worktree Data/Resolver Agent 建立数据契约、职责操作、确定性候选及默认/备份解析、隔离存储、虚构演练与阶段 3 兼容设计；阶段 2/3 仍待批准。 | Juanxi |
@@ -428,6 +431,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | Codex（回退） | 按用户反馈以追加提交4abc510恢复main onboarding和原任务分派，撤下新职责设置与接入；保留23读取、归档导出、备份失败保护和旧草稿。原A2/B2/C2策略整理在 `feedback-fix/MATCHING_STRATEGY_FOR_REVIEW.md`，检查及存档边界见 `MATCHING_ROLLBACK_HANDOFF.md`。 | 当前以main体验为基准，原实现5e301d9归档；保留一处64/60词预算差异，不称全部检查全绿。等用户参考/手绘再确认新交互，不恢复原界面、不扩展RACI等后续、不合并main。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（职责匹配 S3；Workflow/Integration 分 worktree，独立 Review） | 按“继续阶段3”接入业务职责正本、46步目录、实际任务确认与认领、22→23保护迁移、单任务人工例外及跨标签页/写失败保护。相关104项、桌面/手机18项、静态检查通过；完整门禁的原有超时与全站失败复测见 `feedback-fix/MATCHING_STAGE3_HANDOFF.md`。代码候选 `8b9633d`。 | PR #14 `/#/matching` 可启用/显式导入预览；实际任务不再按固定职能选人，旧任务不自动改派。保留回滚基点e370361与旧原件；本地存储非真实多人服务。等待验收，不自动开始RACI等后五项，不合并main；真实AI 0次。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（职责匹配 S2；AI/UI 分 worktree 开发、独立 Review） | 按“继续阶段2”交付职责设置预览、章程职责提取兼容扩展、来源审核、人工与多人配置、统一解析预览和安全保存控制器。最终相关276项单元/组件、18项桌面/手机检查、lint、build、Netlify类型检查通过；修复并复查3项P2，运行时代码候选 `ccea818`。详情见 `feedback-fix/MATCHING_STAGE2_HANDOFF.md`。 | 使用 PR #14 的 `/#/matching` 或 `?example=1` 验收。真实AIR/Blob未实测；保存为隔离预览、旧业务未迁移；阶段3待批准。仅功能分支，不合并main、不实际发邮件。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（职责匹配 S1；Data/Resolver 独立开发，Review 独立只读复核） | 依用户“批准第一阶段”实施 `src/matching/` 数据基础、职责操作、严格存档读写及确定性 C2 解析；主 Agent 集成 12 人两工作流演练与旧数据隔离检查。新旧相关测试合计 205 项、lint、构建、两套类型检查通过；最终代码候选 `3ad168d` 独立复核通过。详情见 `feedback-fix/MATCHING_STAGE1_HANDOFF.md`。 | 当前没有新网页，未接真实任务、未改变旧存档；阶段 2/3 仍待批准。后续按 `MATCHING_COMPATIBILITY.md` 做版本迁移与回滚，不用 reset 或长期双写。仅推指定功能分支，不合并 main；0 次真实 AI 调用。需要同步本地备份。 |

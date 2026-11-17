@@ -1,5 +1,7 @@
 # 职责匹配阶段 3 交付
 
+> **本交付已被用户要求回退。** 当前预览恢复 main onboarding，职责设置和业务接入撤下；本页为原提交 `5e301d9` 的历史记录。当前入口、数据保护及检查结果见 [回退交接](MATCHING_ROLLBACK_HANDOFF.md)，原策略供阅读见 [方案说明](MATCHING_STRATEGY_FOR_REVIEW.md)。不要再按下方 Enable responsibility matching 流程验收当前预览。
+
 2026-11-16（America/Phoenix） · Codex 主 Agent + 独立 Workflow / Integration / Review Worktree Agent。
 
 Juanxi 已明确授权“继续阶段3”。阶段 2 基线为 `dbfc47d`，目标仍是 `claude/fervent-thompson-e2j5u2`、草稿 PR #14；不合并 `main`。本轮完成“任务匹配”三个阶段的业务接入，等待用户验收；RACI、提醒计划、邮件、邮件跳转、后台发送和新人上手没有在本轮启动。

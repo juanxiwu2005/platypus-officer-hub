@@ -1,5 +1,7 @@
 # 职责匹配三阶段实施计划
 
+> **当前状态已变更：** Juanxi 在试用后要求先恢复 main onboarding，撤下当前职责匹配体验，阅读方案后再通过参考或手绘重新设计。三阶段实现已于本轮回退，历史实现 `5e301d9` 归档；以下保留原计划与验收记录。最新说明见 [现有策略供审阅](MATCHING_STRATEGY_FOR_REVIEW.md) 和 [回退交接](MATCHING_ROLLBACK_HANDOFF.md)。未经新的交互确认，不继续执行原界面方案。
+
 2026-11-16（America/Phoenix） · Codex · 计划基线 `claude/fervent-thompson-e2j5u2@3a9fa94`
 
 Juanxi 已选定 A2、B2、C2：AI 从章程起草职责并由人确认；任务关联职责；同职责多人以默认承接人与备份为基础。本计划将这一组合分为三个可独立验收的阶段，目标是快速建立可复用的匹配架构，并接入现有任务创建流程。
