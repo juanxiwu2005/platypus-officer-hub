@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
-import { useStore } from "../data/store"
-import type { Channel } from "../data/types"
+import { STORAGE_KEY, useStore } from "../data/store"
+import type { Channel, DemoState } from "../data/types"
 import { canLead } from "../data/permissions"
 import { composeUrl, nudgeBlocked } from "../lib/nudges"
 import { emitUi } from "../lib/uiLog"
@@ -27,10 +27,14 @@ const BLOCKED: Record<BlockedReminder["reason"], string> = {
 const sameMessage = (saved: ReminderMailSnapshot | undefined, attempted: ReminderMailSnapshot | null) => !!saved && !!attempted
   && saved.accessId === attempted.accessId && saved.text === attempted.text && saved.channel === attempted.channel
   && saved.preparedOn === attempted.preparedOn && saved.recipientId === attempted.recipientId
+const alreadySaved = (state: DemoState, token: string) => {
+  try { return !!usableTaskAccessGrant(state, token) && localStorage.getItem(STORAGE_KEY) === JSON.stringify(state) }
+  catch { return false }
+}
 
 /** Short mail and one reusable entry. No request to an AI service is made while preparing or recording it. */
 export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; onClose: () => void }) {
-  const { state, dispatch } = useStore()
+  const { state, tryDispatch, getState, persistenceFailed } = useStore()
   const node = state.nodes.find(n => n.id === nodeId)
   const facts = buildReminderFacts(state, nodeId)
   const [channel, setChannel] = useState<Channel>("email")
@@ -39,10 +43,10 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
   const [openedText, setOpenedText] = useState<string | null>(null)
   const [attempted, setAttempted] = useState<ReminderMailSnapshot | null>(null)
   const heading = useRef<HTMLHeadingElement>(null)
-  const recordedDelivery = state.reminderRuntime?.deliveries.find(d => sameMessage(d.message, attempted))
+  const enabled = remindersEnabled(state)
+  const recordedDelivery = enabled ? state.reminderRuntime!.deliveries.find(d => sameMessage(d.message, attempted)) : undefined
   const recordedNudge = state.nudges.find(n => sameMessage(n.message, attempted))
   const recorded = !!recordedDelivery || !!recordedNudge
-  const enabled = remindersEnabled(state)
   const queue = enabled ? planReminders(buildReminderInput(state, state.reminderRuntime!)) : null
   const candidate = queue?.ready.find(c => c.nodeId === nodeId)
   const requestId = candidate?.waitingRequestId ?? (recorded ? recordedDelivery?.waitingRequestId : undefined)
@@ -54,6 +58,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
   const recordedByPerson = recordedDelivery ? recordedDelivery.via === "manual" : recordedNudge?.via !== "platypus"
   const blocked = !allowed ? "Only the president or vice president can prepare reminders."
     : !node || !facts ? "This task is unavailable."
+    : persistenceFailed ? "This browser could not save your changes. Restore saving before preparing a reminder."
     : !recipient?.active ? "Choose an available task owner before preparing a reminder."
     : state.reminderRuntime && !enabled ? "Review the saved reminder plan before preparing another message."
     : enabled && !candidate ? queue?.blocked.find(b => b.nodeId === nodeId) ? BLOCKED[queue.blocked.find(b => b.nodeId === nodeId)!.reason] : node.status === "done" ? "This task is complete. No reminder is needed." : "No reminder is due yet for this task."
@@ -87,8 +92,8 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
     if (blocked || !node || !recipient) return
     makeTaskAccessGrant(state, nodeId, candidate?.waitingRequestId).then(value => {
       if (!current) return
-      dispatch({ type: "issueTaskAccessGrant", grant: value })
-      setGrant(value)
+      if (alreadySaved(getState(), taskAccessToken(value)) || tryDispatch({ type: "issueTaskAccessGrant", grant: value })) setGrant(value)
+      else setLinkError("Could not save this task link in this browser. Close and reopen the reminder after restoring saving.")
     }).catch(() => { if (current) setLinkError("Could not prepare this task link. Close and reopen the reminder.") })
     return () => { current = false }
   }, [nodeId, node?.ownerId, node?.ownerVersion, recipient?.id, candidate?.id, state.today, state.demoLinkKey, blocked, recorded])
@@ -97,8 +102,8 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
     if (!ready || !mail || !grant) return
     const snapshot: ReminderMailSnapshot = { ...mail, channel, preparedOn: state.today, accessId: grant.id }
     setAttempted(snapshot)
-    if (enabled && candidate) dispatch({ type: "confirmPlannedReminder", candidateId: candidate.id, via: platypusSends ? "platypus" : "manual", message: snapshot })
-    else dispatch({ type: "confirmNudgeSent", nodeId, channel, text: mail.text, via: platypusSends ? "platypus" : "president", message: snapshot })
+    if (enabled && candidate) tryDispatch({ type: "confirmPlannedReminder", candidateId: candidate.id, via: platypusSends ? "platypus" : "manual", message: snapshot })
+    else tryDispatch({ type: "confirmNudgeSent", nodeId, channel, text: mail.text, via: platypusSends ? "platypus" : "president", message: snapshot })
   }
 
   const fullMessage = channel === "email" ? mail?.body ?? "" : mail?.text ?? ""

@@ -7,6 +7,7 @@ import { seedDemo } from "../data/seed"
 import { applySchedule } from "../engine/schedule"
 import type { DemoState, ReminderMode } from "../data/types"
 import ReminderComposer from "./ReminderComposer"
+import { makeTaskAccessGrant } from "./taskAccess"
 
 const NODE = "mail-room"
 let latest: DemoState
@@ -135,5 +136,55 @@ describe("real reminder composer state integration", () => {
     await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())
     fireEvent.keyDown(window, { key: "Escape" })
     expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it("never exposes an unsaved task link when browser persistence fails", async () => {
+    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Storage unavailable") })
+    try {
+      show()
+      await screen.findByText(/This browser could not save your changes/)
+      expect(screen.queryByRole("link", { name: "Open task" })).toBeNull()
+      expect(screen.queryByRole("link", { name: "Open Gmail draft" })).toBeNull()
+      expect(latest.taskAccessGrants).toBeUndefined()
+      expect(latest.nudges).toEqual([])
+    } finally { write.mockRestore() }
+  })
+
+  it("does not assume an existing in-memory grant was saved", async () => {
+    const state = fixture()
+    const grant = await makeTaskAccessGrant(state, NODE)
+    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Storage unavailable") })
+    try {
+      show({ ...state, taskAccessGrants: [grant] })
+      await screen.findByText(/This browser could not save your changes/)
+      expect(screen.queryByRole("link", { name: "Open task" })).toBeNull()
+      expect(screen.queryByRole("link", { name: "Open Gmail draft" })).toBeNull()
+      expect(latest.nudges).toEqual([])
+    } finally { write.mockRestore() }
+  })
+
+  it("blocks a malformed reminder ledger without reading its invalid delivery entries", () => {
+    const state = fixture()
+    const invalid = { version: 1, activatedOn: state.today, sequence: 1, updates: [], waitingRequests: [], deliveries: [null] }
+    expect(() => show({ ...state, reminderRuntime: invalid as unknown as NonNullable<DemoState["reminderRuntime"]> })).not.toThrow()
+    expect(screen.getByRole("status").textContent).toContain("Review the saved reminder plan")
+    expect(screen.queryByRole("link", { name: "Open task" })).toBeNull()
+    expect(latest.reminderRuntime).toEqual(invalid)
+  })
+
+  it("a failed confirmation write cannot publish an in-memory send or display success", async () => {
+    show()
+    await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())
+    fireEvent.change(screen.getByLabelText("Preferred channel"), { target: { value: "email" } })
+    fireEvent.click(emailDraft())
+    const confirm = screen.getByRole("button", { name: "I sent this reminder" })
+    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("Storage unavailable") })
+    try {
+      fireEvent.click(confirm)
+      await screen.findByText(/This browser could not save your changes/)
+      expect(latest.nudges).toEqual([])
+      expect(screen.queryByText(/Recorded as sent by you/)).toBeNull()
+      expect(screen.queryByRole("button", { name: "I sent this reminder" })).toBeNull()
+    } finally { write.mockRestore() }
   })
 })
