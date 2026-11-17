@@ -13,8 +13,14 @@ test.beforeEach(async ({ page }) => {
 test("participant path: clean browser → six-step setup → task → event → rule question → export; nothing blank, every action logged in order", async ({ page }) => {
   const errors: string[] = []
   page.on("pageerror", e => errors.push(String(e)))
-  await page.goto("/#/")
-  await page.evaluate(() => window.localStorage.clear())
+  // Establish the clean browser before the Provider reads its first snapshot; deleting a mounted tab's
+  // business key is now correctly treated as an external storage conflict, not a new empty workspace.
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem("rehearsal-clean-browser")) {
+      localStorage.clear()
+      sessionStorage.setItem("rehearsal-clean-browser", "1")
+    }
+  })
   await page.goto("/#/setup")
   const step = page.getByTestId("setup-step")
   await step.getByLabel("Club name", { exact: true }).fill("Fictional Rehearsal Club")
