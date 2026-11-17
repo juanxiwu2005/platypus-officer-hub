@@ -247,6 +247,8 @@ test("an owner's same-day task reply appears against the recorded recipient and 
 
 test("navigation: Reminders, Plan, Handoff, Rules; More holds Team and Partners; Plan stays current on Tasks and carries the open-task count", async ({ page, isMobile }) => {
   await open(page)
+  await viewAs(page, "jordan")
+  await closeRail(page)
   const nav = page.getByRole("navigation", { name: "Sections" })
   await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Handoff/, /^Rules/, /^Settings/, /^Help/])
   const more = nav.getByRole("button", { name: "More" })
@@ -254,6 +256,7 @@ test("navigation: Reminders, Plan, Handoff, Rules; More holds Team and Partners;
   await expect(nav.getByRole("link", { name: "Team" })).toHaveCount(0)
   await expect(nav.getByRole("link", { name: "Reminders" })).toHaveAttribute("aria-current", "page")
   await expect(nav.getByRole("link", { name: /^Plan/ }).getByTestId("nav-open-tasks")).toBeVisible()
+  await expect(nav.getByTestId("nav-open-tasks")).toContainText("4")
   await shot(page, "nav-closed", isMobile)
   await more.click()
   await expect(more).toHaveAttribute("aria-expanded", "true")
