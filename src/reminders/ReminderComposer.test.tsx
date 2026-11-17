@@ -176,6 +176,19 @@ describe("real reminder composer state integration", () => {
     expect(latest.reminderRuntime).toEqual(invalid)
   })
 
+  it.each([null, 0, false, ""])("preserves and disables a saved falsy reminder ledger (%s)", async invalid => {
+    const state = { ...fixture(), reminderRuntime: invalid as unknown as NonNullable<DemoState["reminderRuntime"]> }
+    expect(() => show(state)).not.toThrow()
+    await screen.findByText("Review the saved reminder plan before preparing another message.")
+    expect(screen.queryByRole("link", { name: "Open task" })).toBeNull()
+    expect(screen.queryByRole("link", { name: /Open .* draft/ })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeNull()
+    expect(latest.taskAccessGrants).toBeUndefined()
+    expect(latest.nudges).toEqual([])
+    expect(latest.reminderRuntime).toBe(invalid)
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).reminderRuntime).toBe(invalid)
+  })
+
   it("a failed confirmation write cannot publish an in-memory send or display success", async () => {
     show()
     await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())

@@ -66,7 +66,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
     : !node || !facts ? "This task is unavailable."
     : persistenceFailed ? "This browser could not save your changes. Restore saving before preparing a reminder."
     : !recipient?.active ? "Choose an available task owner before preparing a reminder."
-    : state.reminderRuntime && !enabled ? "Review the saved reminder plan before preparing another message."
+    : state.reminderRuntime !== undefined && !enabled ? "Review the saved reminder plan before preparing another message."
     : enabled && !candidate ? queue?.blocked.find(b => b.nodeId === nodeId) ? BLOCKED[queue.blocked.find(b => b.nodeId === nodeId)!.reason] : node.status === "done" ? "This task is complete. No reminder is needed." : "No reminder is due yet for this task."
     : !enabled ? nudgeBlocked(state, node) : null
   const token = grant ? taskAccessToken(grant) : ""
