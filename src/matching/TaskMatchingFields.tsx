@@ -28,7 +28,7 @@ export function validateTaskSelection(state: DemoState, value: TaskMatchingSelec
 
 export function TaskMatchingFields({ state, value, onChange, disabled = false, hideResponsibility = false }: { state: DemoState; value: TaskMatchingSelection; onChange: (value: TaskMatchingSelection) => void; disabled?: boolean; hideResponsibility?: boolean }) {
   const id = useId(), matching = validOrganizationMatching(state), result = taskSelectionPreview(state, value.responsibilityId)
-  return <div className="form-stack" data-testid="task-matching-fields">
+  return <div className="form-stack task-matching-fields" data-testid="task-matching-fields">
     {!hideResponsibility && <><label htmlFor={`${id}-duty`}>Responsibility</label>
     <select id={`${id}-duty`} value={value.responsibilityId ?? ""} disabled={disabled} onChange={event => {
       const responsibilityId = event.target.value || null, next = taskSelectionPreview(state, responsibilityId)

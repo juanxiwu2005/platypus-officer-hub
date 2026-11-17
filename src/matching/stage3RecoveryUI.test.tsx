@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest"
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
-import { STORAGE_KEY, StoreProvider, useStore } from "../data/store"
+import { reducer, STORAGE_KEY, StoreProvider, useStore } from "../data/store"
 import { seedDemo } from "../data/seed"
 import type { OrganizationMatchingContext } from "./businessContracts"
 import { TaskMatchingPanel } from "./TaskMatchingPanel"
@@ -59,7 +59,8 @@ function twoTabs() {
 
 it.each(["tryDispatch", "dispatch", "logUi"] as const)("detects another tab's canonical save before a stale %s can overwrite it, even without a storage event", path => {
   const { stores, current } = twoTabs()
-  const staleEdit = { type: "matchingCommand" as const, command: { type: "policy.upsert" as const, value: { id: "fixture-firmware-policy", responsibilityId: "fixture-firmware", primaryMemberId: "maya" } } }
+  const staleEdit = { type: "matchingCommand" as const, command: { type: "policy.upsert" as const, value: { id: "fixture-space-policy", responsibilityId: "fixture-space", primaryMemberId: "jordan", backupMemberId: "maya" } } }
+  expect(reducer(stores.b.state, staleEdit)).not.toBe(stores.b.state)
   act(() => {
     if (path === "tryDispatch") expect(stores.b.tryDispatch(staleEdit)).toBe(false)
     else if (path === "dispatch") stores.b.dispatch(staleEdit)
