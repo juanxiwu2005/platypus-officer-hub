@@ -15,7 +15,7 @@ const preserved = (state: DemoState) => ({ orgName: state.org.name, people: stat
 function currentTeamPreview(state = seedDemo(undefined, "v2")) {
   let document = createSetupDocument({
     contextKey: matchingSetupContext(state),
-    references: { organizationId: state.org.id, roles: state.roles.map(r => ({ id: r.id, title: r.displayName })), members: state.people.map(p => ({ id: p.id, name: p.name, active: true, availability: "unknown", qualifications: {} })) },
+    references: { organizationId: state.org.id, roles: state.roles.map(r => ({ id: r.id, title: r.displayName })), members: state.people.map(p => ({ id: p.id, name: p.name, active: true, availability: "unknown" as const, qualifications: {} })) },
     memberships: state.people.map(p => ({ id: `preview-${p.id}`, roleId: p.roleId, memberId: p.id, confirmed: true })),
   })
   document = commandSetup(document, [{ type: "responsibility.create", value: { id: "preview-duty", title: "Custom laboratory inspection", description: "Inspect fictional laboratory equipment.", deliverable: "A signed inspection record.", exclusions: [], requiredQualificationIds: [], origin: "manual", sources: [{ kind: "manual", sourceId: "fictional-preview-discussion" }] } }, { type: "responsibility.confirm", id: "preview-duty" }], state.viewerId)

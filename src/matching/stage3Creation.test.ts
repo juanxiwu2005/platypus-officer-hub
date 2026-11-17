@@ -64,8 +64,8 @@ describe("stage 3: actual event creation uses confirmed responsibility decisions
     state = stage3Requirement(state, "club-event", "robot-demo", "fixture-space")
     const next = stage3CreateEvent(state, "robot-showcase", { revision: state.matching!.revision, choices: { "robot-demo": { memberId: "maya" } } })
     const added = next.nodes.filter(n => n.eventId === "robot-showcase:0")
-    expect(added).toHaveLength(1)
-    expect(added[0]).toMatchObject({ title: "Prepare the robot demonstration", ownerId: "maya", matching: { workflowId: "club-event", stepId: "robot-demo", responsibilityId: "fixture-space" } })
+    expect(added.filter(n => n.stepKey === "robot-demo")).toHaveLength(1)
+    expect(added.find(n => n.stepKey === "robot-demo")).toMatchObject({ title: "Prepare the robot demonstration", ownerId: "maya", matching: { workflowId: "club-event", stepId: "robot-demo", responsibilityId: "fixture-space" } })
     expect(next.matching!.requirements.find(r => r.workflowId === "seo-event" && r.stepId === "venue")!.responsibilityId).toBe("fixture-space")
   })
 

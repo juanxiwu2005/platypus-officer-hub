@@ -1,6 +1,7 @@
 import type { DemoState, StepTemplate } from "../data/types"
 import { seedDemo } from "../data/seed"
 import { reducer } from "../data/store"
+import { EVENT_STEPS } from "../engine/playbooks"
 import type { CommandOp } from "../lib/commands"
 import type { MatchingCommand, MatchingMember, MatchingReferences } from "./contracts"
 import type { MatchingConfirmation } from "./businessContracts"
@@ -13,7 +14,7 @@ export const STAGE3_EVENT_OP: Extract<CommandOp, { op: "create_event" }> = {
   op: "create_event", name: "Fictional robotics demonstration", type: "social", headcount: 30,
   venue: "campus", food: "none", funding: "none", speaker: false, checks: {},
 }
-export const STAGE3_ROBOT_WORKFLOW: StepTemplate[] = [{
+export const STAGE3_ROBOT_WORKFLOW: StepTemplate[] = [...structuredClone(EVENT_STEPS), {
   key: "robot-demo", title: "Prepare the robot demonstration", fn: "programs", phase: "prepare",
   estDays: 2, tier: "medium", dependsOn: [], anchor: { kind: "target", days: 7, unit: "calendar", label: "Fictional demonstration preparation" },
   why: "Prepare and inspect the demonstration robot.", source: "Fictional robot club process",
