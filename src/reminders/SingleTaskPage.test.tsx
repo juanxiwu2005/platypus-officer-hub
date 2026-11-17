@@ -8,6 +8,7 @@ import type { DemoState, Node } from "../data/types"
 import { applySchedule, computeSchedule } from "../engine/schedule"
 import { addDays, fmtLong } from "../lib/dates"
 import { makeTaskAccessGrant, taskAccessToken, usableTaskAccessGrant, verifyTaskAccessGrant } from "./taskAccess"
+import type { ReminderRuntime } from "./contracts"
 import SingleTaskPage from "./SingleTaskPage"
 
 vi.mock("./taskAccess", async original => {
@@ -103,6 +104,23 @@ describe("the standalone owner task", () => {
     await waitFor(() => expect(latest.nodes[0].status).toBe("blocked"))
     expect(latest.extensionRequests).toEqual([])
     expect(screen.getByTestId("single-task-status").textContent).toBe("Stuck")
+  })
+
+  it.each(["missing", "null"] as const)("retains a malformed reminder runtime with %s waitingRequests while saving an ordinary owner update", async shape => {
+    const enabled = reducer(fixture(), { type: "enableReminderPlan" })
+    const malformed: Record<string, unknown> = { ...enabled.reminderRuntime }
+    if (shape === "missing") delete malformed.waitingRequests
+    else malformed.waitingRequests = null
+    const { state, token } = await issued({ ...enabled, reminderRuntime: malformed as unknown as ReminderRuntime })
+    await show(state, token)
+    fireEvent.click(screen.getByRole("button", { name: "Working on it" }))
+    await waitFor(() => expect(latest.nodes[0].status).toBe("in_progress"))
+    expect(screen.getByText("Your update is saved. Thank you.")).toBeTruthy()
+    expect(within(screen.getByTestId("single-task-page")).queryByRole("alert")).toBeNull()
+    expect(latest.reminderRuntime).toEqual(malformed)
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as DemoState
+    expect(saved.nodes[0].status).toBe("in_progress")
+    expect(saved.reminderRuntime).toEqual(malformed)
   })
 
   it("requires the existing claim handshake before offering progress actions", async () => {

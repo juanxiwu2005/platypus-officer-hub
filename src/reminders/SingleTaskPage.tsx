@@ -8,6 +8,7 @@ import { canClaimMatchingTask } from "../matching/adapters"
 import { daysBetween, fmtLong } from "../lib/dates"
 import { buildReminderFacts } from "./facts"
 import { usableTaskAccessGrant, verifyTaskAccessGrant } from "./taskAccess"
+import { isReminderRuntime } from "./runtime"
 import type { TaskAccessGrant, TaskAccessUpdate } from "./accessContracts"
 import type { WaitingRequest } from "./contracts"
 import "./single-task.css"
@@ -33,7 +34,7 @@ export default function SingleTaskPage({ token }: { token: string }) {
   // The previous token's successful promise cannot expose controls while the next token is being checked.
   const checked = !!grant && verification?.token === token && verification.grant === grant && verification.key === state.demoLinkKey
   const node = state.nodes.find(n => n.id === grant?.nodeId)
-  const request = grant?.scope === "waiting" ? state.reminderRuntime?.waitingRequests.find(r => r.id === grant.waitingRequestId) : undefined
+  const request = grant?.scope === "waiting" && isReminderRuntime(state.reminderRuntime) ? state.reminderRuntime.waitingRequests.find(r => r.id === grant.waitingRequestId) : undefined
   const available = checked && verification?.valid && node && (grant?.scope !== "waiting" || !!request)
   return <main className="single-task" aria-labelledby="single-task-heading">
     <div className="single-task-shell">
@@ -72,7 +73,7 @@ function TaskContent({ node, grant, request, token }: { node: Node; grant: TaskA
     const accepted = tryDispatch({ type: "taskAccessAction", token, update })
     const stored = getState()
     const storedNode = stored.nodes.find(n => n.id === node.id)
-    const storedRequest = stored.reminderRuntime?.waitingRequests.find(r => r.id === request?.id)
+    const storedRequest = grant.scope === "waiting" && isReminderRuntime(stored.reminderRuntime) ? stored.reminderRuntime.waitingRequests.find(r => r.id === request?.id) : undefined
     const expected = update.kind === "done" ? "done" : update.kind === "working" ? "in_progress" : update.kind === "stuck" ? "blocked" : update.kind === "waiting" ? "waiting" : "accepted"
     const saved = accepted && (grant.scope === "waiting"
       ? storedRequest?.responseBy === grant.recipientId && storedRequest.response === (update.kind === "provided" ? "provided" : "acknowledged")
