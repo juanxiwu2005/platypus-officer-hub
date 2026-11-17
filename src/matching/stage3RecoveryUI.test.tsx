@@ -1,5 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { STORAGE_KEY, StoreProvider, useStore } from "../data/store"
 import { seedDemo } from "../data/seed"
 import type { OrganizationMatchingContext } from "./businessContracts"
@@ -35,4 +35,44 @@ it("holds automatic saves after migration backup failure so rendering and page i
   expect(localStorage.getItem(STORAGE_KEY)).toBe(raw)
   fireEvent.click(screen.getByRole("button", { name: "Change local preview" }))
   expect(localStorage.getItem(STORAGE_KEY)).toBe(raw)
+})
+
+type CapturedStores = Record<string, ReturnType<typeof useStore>>
+function TabProbe({ id, stores }: { id: string; stores: CapturedStores }) {
+  stores[id] = useStore()
+  return <output data-testid={`held-${id}`}>{String(stores[id].persistenceFailed)}</output>
+}
+
+function twoTabs() {
+  const state = stage3Club(), stores: CapturedStores = {}
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  render(<><StoreProvider initial={state}><TabProbe id="a" stores={stores} /></StoreProvider><StoreProvider initial={state}><TabProbe id="b" stores={stores} /></StoreProvider></>)
+  const before = localStorage.getItem(STORAGE_KEY)!
+  act(() => {
+    expect(stores.a.tryDispatch({ type: "matchingCommand", command: { type: "policy.upsert", value: { id: "fixture-space-policy", responsibilityId: "fixture-space", primaryMemberId: "jordan", backupMemberId: "maya" } } })).toBe(true)
+  })
+  const current = localStorage.getItem(STORAGE_KEY)!
+  expect(JSON.parse(current).matching.revision).toBeGreaterThan(state.matching!.revision)
+  expect(stores.b.persistenceFailed).toBe(false)
+  return { stores, before, current }
+}
+
+it.each(["tryDispatch", "dispatch", "logUi"] as const)("detects another tab's canonical save before a stale %s can overwrite it, even without a storage event", path => {
+  const { stores, current } = twoTabs()
+  const staleEdit = { type: "matchingCommand" as const, command: { type: "policy.upsert" as const, value: { id: "fixture-firmware-policy", responsibilityId: "fixture-firmware", primaryMemberId: "maya" } } }
+  act(() => {
+    if (path === "tryDispatch") expect(stores.b.tryDispatch(staleEdit)).toBe(false)
+    else if (path === "dispatch") stores.b.dispatch(staleEdit)
+    else stores.b.logUi({ type: "ui.click", payload: { label: "Fictional old-tab action" } })
+  })
+  expect(localStorage.getItem(STORAGE_KEY)).toBe(current)
+  expect(stores.b.persistenceFailed).toBe(true)
+  expect(stores.a.persistenceFailed).toBe(false)
+})
+
+it("holds a stale tab immediately when the canonical storage key changes in another tab", () => {
+  const { stores, before, current } = twoTabs()
+  fireEvent(window, new StorageEvent("storage", { key: STORAGE_KEY, oldValue: before, newValue: current, storageArea: localStorage }))
+  expect(stores.b.persistenceFailed).toBe(true)
+  expect(localStorage.getItem(STORAGE_KEY)).toBe(current)
 })
