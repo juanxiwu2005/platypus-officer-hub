@@ -2,6 +2,8 @@
 
 2026-11-16（America/Phoenix）。Juanxi 明确要求“继续阶段3”。从 `feat/reminder-plan-v2@17b3e3c` 继续，保留职责匹配源分支 `5e301d9`；沿用 [PR #15](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15)。当前范围技术实现与独立复核完成，交付待验收；完整门禁的既有超时单列如下。
 
+**当前交付以 [preview 14 整合交付](REMINDER_PREVIEW14_INTEGRATION.md) 为准。** 用户随后指定整合至既有 PR #14；保留 `57c7e55` 的职责匹配撤回和 main 版 onboarding，原职责匹配界面及业务链路不恢复。下面三阶段结果保留为原开发分支的检查记录。
+
 ## 实际结果
 
 | 范围 | 已实现行为 |
@@ -21,7 +23,7 @@
 
 ## 如何验收
 
-**预览状态更新（2026-11-16，America/Phoenix）：** Juanxi 实际访问此前推测的 PR #15 地址显示 Site not found；尚无有效的在线预览地址。当前对话无可用 Netlify 部署连接，Sites 未启用，云环境无预览端口，不能把推测的网址作为已发布交付。已准备工作区静态包`/workspace/shared/platypus-reminders-preview.zip`（代码`8b591e1`，61文件，ZIP完整性及入口资源检查通过）；可通过 [Netlify Drop](https://app.netlify.com/drop) 新建独立静态预览站点，不含服务器AI功能。恢复部署连接后须实际部署并核验，再登记网址。
+**预览入口更新（2026-11-16，America/Phoenix）：** 用户指定沿用 [preview 14](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/)。其 Netlify 自动部署连接已经由准备提交 `d47fb5f` 的成功状态和机器人部署记录确认；最终整合的提交与部署核验见 [preview 14 整合交付](REMINDER_PREVIEW14_INTEGRATION.md)。此前推测的 PR #15 地址显示 Site not found，不再交付该地址，也不要求用户另建站点。
 
 在可用预览中进入提醒中心后按下列步骤验收：
 

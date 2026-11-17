@@ -1,6 +1,7 @@
-> **2026-11-16（America/Phoenix） · 提醒阶段1–3整合至preview 14进行中（Codex）**
+> **2026-11-16（America/Phoenix） · 提醒阶段1–3已整合至preview 14，检查完成、交付待验收（Codex）**
 > **授权：** Juanxi 明确要求“不需要新增pull request，把代码整合到preview14里面”。沿用PR #14和`claude/fervent-thompson-e2j5u2`，以当前`57c7e55`为整合基点；不创建新PR、不改main。
-> **边界：** 保留刚完成的职责匹配撤回和main版onboarding，仅接回`feat/reminder-plan-v2`已批准的规则提醒、邮件、单任务页与Details/中心。合并冲突逐项处理并验证，线上部署与本地检查分开记录。
+> **结果：** 合并提交`0555fc4`保留两侧历史，最终运行时代码`6bb3e24`；保留职责匹配撤回、main版onboarding及23版归档，仅接回已批准的规则提醒、邮件、单任务页与Details/中心。381项单元/组件通过；浏览器首轮95通过/1跳过/2入口超限，修复打包后关键16项全过，按不重复计97通过/1跳过。lint、前后端类型、生产构建、CSS及9页文字预算通过；入口542,788/550,000，Settings147/150，未提高门槛。
+> **验收：** [preview 14提醒中心](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/) · [整合交付与验证](feedback-fix/REMINDER_PREVIEW14_INTEGRATION.md)。准备提交已获Netlify成功部署记录；整合提交推送后核对对应Netlify状态。已有存档先点Enable updated reminders。未重复完整全站门禁，旧First event文字预算差异及calibration超时仍见原记录；0真实AI/邮件，不合并main。需要同步本地备份。
 
 > **2026-11-16（America/Phoenix） · 已恢复 main onboarding 并撤回职责匹配体验；原策略已整理，等待用户审阅（Codex）**
 > **最新决定优先：** Juanxi 不接受当前职责设置的文字量和复杂度，要求先回到 main 的 onboarding，再阅读现有方案，之后通过参考界面或手绘重新设计。代码 `4abc510` 恢复 main@b9e7a02 的页面、步骤和文案（仅保留保存失败不清草稿保护）；撤下职责设置页与业务匹配接入，旧 `/#/matching` 转 Settings。章程上传和原 AI 岗位/职责文本识别、提醒中心、日期校准等保留；已有任务不因回退改派，23存档与旧匹配记录按归档保留。原实现保存在祖先5e301d9，没有改写历史。
@@ -461,6 +462,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-16（America/Phoenix） | Codex（提醒整合至preview 14） | 按用户要求将提醒1–3阶段合入既有PR #14；0555fc4合并、6bb3e24最终运行时代码。保留57c7e55职责撤回、main onboarding和匹配归档，补提醒入口下旧归档认领/改派撤权回归；纯规则缓存模块保持入口542,788/550,000。381项单元/组件及分批97浏览器用例通过，1设备限定跳过；lint/类型/build/CSS/字数通过。 | 沿用preview14，不再交付推测的preview15地址。详见`feedback-fix/REMINDER_PREVIEW14_INTEGRATION.md`；已有存档显式启用，不恢复撤回的职责界面。不新增PR、不合并main、0真实AI/邮件。保留原全量门禁差异；`PRODUCT_PLAN.md`含已批准提醒增量，需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（回退） | 按用户反馈以追加提交4abc510恢复main onboarding和原任务分派，撤下新职责设置与接入；保留23读取、归档导出、备份失败保护和旧草稿。原A2/B2/C2策略整理在 `feedback-fix/MATCHING_STRATEGY_FOR_REVIEW.md`，检查及存档边界见 `MATCHING_ROLLBACK_HANDOFF.md`。 | 当前以main体验为基准，原实现5e301d9归档；保留一处64/60词预算差异，不称全部检查全绿。等用户参考/手绘再确认新交互，不恢复原界面、不扩展RACI等后续、不合并main。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（提醒预览排查） | 更正先前未经部署确认的预览链接；用户实际访问为Site not found。无Netlify部署连接、Sites未启用且无云预览端口。准备代码8b591e1的61文件静态ZIP并检查完整性、根index及资源引用。 | 当前无有效在线预览链接；工作区包`/workspace/shared/platypus-reminders-preview.zip`可在Netlify Drop新建独立静态预览。服务器AI不包含；恢复部署连接并实际核验后再发在线地址。仅文档更正与构建打包，无产品代码变化、main合并或正式发布。 |
 | 2026-11-16（America/Phoenix） | Codex（提醒S3；Details/Centre分树开发、独立Review） | 交付Details三段、完整规则邮件批量/自动通道、v2默认与显式升级、真实历史/回复、等待对象独立响应和受CAS保护的保存重试。最终8b591e1审阅无产品阻塞；浏览器134通过/4既有限制跳过，末次98项目标、lint/类型/build/字数通过；入口539,919/550,000。 | 先打开PR #15首页，旧存档点Enable updated reminders。详见`feedback-fix/REMINDER_STAGE3_HANDOFF.md`。完整单元1807过/2超时，Matching18复验过、calibration既有超时保留，不能称full check全绿。自动仅本地开页演示，真实投递/跨设备后续，线上403未验。`PRODUCT_PLAN.md`已更新，需要同步本地备份；不合并main。 |
