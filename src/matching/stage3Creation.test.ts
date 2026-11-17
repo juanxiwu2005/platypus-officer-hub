@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+import { webcrypto } from "node:crypto"
 import { reducer } from "../data/store"
 import { newObjects } from "../data/changeReview"
 import { buildEventNodes } from "../engine/playbooks"
 import { seedDemo } from "../data/seed"
+import { grantToken, makeOfficerGrant, usableGrant } from "../lib/officerLinks"
 import { getMatchingCandidates, resolveMatchingAssignment } from "./resolve"
 import { organizationMatchingReferences } from "./adapters"
 import { stage3Club, stage3Command, stage3CreateEvent, stage3References, stage3Requirement, STAGE3_EVENT_DATE, STAGE3_EVENT_OP, STAGE3_ROBOT_WORKFLOW } from "./stage3Fixtures"
@@ -184,6 +186,23 @@ describe("stage 3: actual standalone tasks and historical owners", () => {
     expect(state.matchingContext!.overrides.at(-1)).toMatchObject({ taskId: "clear-owner:0:venue", memberId: null })
     state = stage3Command(state, { type: "policy.upsert", value: { id: "fixture-space-policy", responsibilityId: "fixture-space", primaryMemberId: "jordan", backupMemberId: "maya" } })
     expect(state.nodes.find(n => n.id === "clear-owner:0:venue")!.ownerId).toBeNull()
+  })
+
+  it("rotates ownership metadata on explicit matching reassignment so an old signed link cannot revive when its owner returns", async () => {
+    vi.stubGlobal("crypto", webcrypto)
+    try {
+      const original = stage3Club(), id = "signed-owner:0:venue"
+      let state = stage3CreateEvent(original, "signed-owner", { revision: original.matching!.revision, choices: { venue: { memberId: "maya" } } })
+      const first = state.nodes.find(n => n.id === id)!, grant = await makeOfficerGrant(state, id), token = grantToken(grant)
+      state = reducer(state, { type: "issueOfficerGrant", grant })
+      expect(usableGrant(state, token)).toBeDefined()
+      state = reducer(state, { type: "advanceClock", days: 1 })
+      for (const memberId of ["jordan", "maya"]) state = reducer(state, { type: "matchingAssignTask", nodeId: id, choice: { memberId, responsibilityId: "fixture-space" }, revision: state.matching!.revision })
+      const reassigned = state.nodes.find(n => n.id === id)!
+      expect(reassigned).toMatchObject({ ownerId: "maya", status: "unclaimed", acceptedOn: null, assignedOn: state.today, ownerVersion: (first.ownerVersion ?? 0) + 2 })
+      expect(usableGrant(state, token)).toBeUndefined()
+      expect(state.officerGrants.find(g => g.id === grant.id)!.usedOn).toBeNull()
+    } finally { vi.unstubAllGlobals() }
   })
 
   it("keeps budget-controlled completion blocked even when a matching task has an owner", () => {
