@@ -32,7 +32,10 @@ import { BUILD_INFO } from "../lib/buildInfo"
 import { normalizeTerms } from "./roleTerms"
 import { isOfficer } from "./permissions"
 import { changeRole, type RoleChange } from "./roleChanges"
-import { advancePlannedClock, afterReminderAction, confirmLegacyPlannedReminder, confirmPlannedReminder, enableReminderPlan, remindersEnabled } from "../reminders/adapter"
+import { advancePlannedClock, afterReminderAction, confirmLegacyPlannedReminder, confirmPlannedReminder, enableReminderPlan, remindersEnabled, upgradeReminderPlan, reviewLegacyReminder } from "../reminders/adapter"
+import { recordReminderBatch } from "../reminders/batch"
+import type { ReminderBatch } from "../reminders/deliveryContracts"
+import { useAutomaticReminders } from "../reminders/useAutomaticReminders"
 import type { MatchingCommand } from "../matching/contracts"
 import type { MatchingSetupDocument } from "../matching/setupContracts"
 import type { MatchingTaskChoice } from "../matching/businessContracts"
@@ -157,6 +160,9 @@ export type Action =
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
   | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia; message?: ReminderMailSnapshot }
   | { type: "enableReminderPlan" }
+  | { type: "upgradeReminderPlan" }
+  | { type: "reviewLegacyReminder"; nodeId: string }
+  | ({ type: "recordReminderBatch" } & ReminderBatch)
   | { type: "confirmPlannedReminder"; candidateId: string; via: "manual" | "platypus"; message?: ReminderMailSnapshot }
   | { type: "issueTaskAccessGrant"; grant: TaskAccessGrant }
   | { type: "taskAccessAction"; token: string; update: TaskAccessUpdate }
@@ -306,7 +312,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
   try {
     const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
     const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
-    const actorId = access?.recipientId ?? grant?.ownerId ?? state.viewerId
+    const actorId = action.type === "recordReminderBatch" && action.via === "automatic" ? "system:reminders" : access?.recipientId ?? grant?.ownerId ?? state.viewerId
     let next = normalizeTerms(baseReducer(state, action))
     if (next === state) return state
     if (matchingModeEnabled(next) && !["matchingInitialize", "matchingImport", "replace"].includes(action.type)) {
@@ -325,7 +331,8 @@ export function reducer(state: DemoState, action: Action): DemoState {
       void _previousReminders; void _previousAccess
       next = workspace
     }
-    if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "advanceClock"].includes(action.type)) return next
+    if (action.type === "completeSetup") return enableReminderPlan(next)
+    if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "upgradeReminderPlan", "reviewLegacyReminder", "recordReminderBatch", "advanceClock"].includes(action.type)) return next
     const updated = action.type === "claimTask" || action.type === "replyTask" ? [action.nodeId]
       : action.type === "officerAction" && grant ? [grant.nodeId]
       : action.type === "taskAccessAction" && access?.scope === "owner" ? [access.nodeId]
@@ -340,7 +347,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
  * reads, works through their own handoff steps and switches view, but cannot claim, create or change tasks, contacts, events or settings.
  */
-const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction"])
+const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch"])
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "matchingInitialize": return initializeOrganizationMatching(state)
@@ -509,6 +516,9 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       return { ...next, changeSets: next.changeSets.map(c => c.id === change.id ? { ...c, ops, reviews, status } : c) }
     }
     case "enableReminderPlan": return canLead(state) ? enableReminderPlan(state) : state
+    case "upgradeReminderPlan": return canLead(state) ? upgradeReminderPlan(state) : state
+    case "reviewLegacyReminder": return canLead(state) ? reviewLegacyReminder(state, action.nodeId) : state
+    case "recordReminderBatch": return recordReminderBatch(state, action)
     case "issueTaskAccessGrant": {
       const g = action.grant
       if ((state.taskAccessGrants !== undefined && !Array.isArray(state.taskAccessGrants)) || !taskAccessIssueValid(state, g) || state.taskAccessGrants?.some(old => old?.id === g.id)) return state
@@ -721,6 +731,7 @@ function slim(v: unknown, depth = 0): unknown {
 /** The action's arguments as they go into the log. */
 function payloadOf(a: Action): unknown {
   switch (a.type) {
+    case "recordReminderBatch": return { via: a.via, candidateIds: a.entries.map(e => e.candidateId), count: a.entries.length }
     case "issueTaskAccessGrant": return { nodeId: a.grant.nodeId, recipientId: a.grant.recipientId, scope: a.grant.scope, issuedOn: a.grant.issuedOn }
     case "taskAccessAction": return { update: slim(a.update) }
     case "confirmPlannedReminder": return { candidateId: a.candidateId, via: a.via, ...(a.message ? { message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : {}) }
@@ -786,7 +797,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
 export function appendLog(log: LogEntry[], before: DemoState, after: DemoState, action: Action, at: number, session?: string | null): LogEntry[] {
   const prior = beforeOf(before, action)
   const entry: LogEntry = {
-    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: action.type === "taskAccessAction" ? usableTaskAccessGrant(before, action.token)?.recipientId ?? before.viewerId : before.viewerId, type: action.type,
+    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: action.type === "recordReminderBatch" && action.via === "automatic" ? "system:reminders" : action.type === "taskAccessAction" ? usableTaskAccessGrant(before, action.token)?.recipientId ?? before.viewerId : before.viewerId, type: action.type,
     payload: payloadOf(action), ...(prior !== undefined ? { before: prior } : {}), applied: after !== before, ...(session ? { session } : {}),
   }
   return log.length >= LOG_LIMIT ? [...log.slice(log.length - LOG_LIMIT + 1), entry] : [...log, entry]
@@ -927,6 +938,7 @@ export function downloadExport(state: DemoState, log: LogEntry[]) {
 
 interface StoreValue {
   state: DemoState
+  automaticReminders: { busy: boolean; error: string | null; retry: () => void }
   /** The current on-screen state has not been persisted to this browser. */
   persistenceFailed: boolean
   dispatch: (a: Action) => void
@@ -1043,8 +1055,9 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }, [logUi])
   const reset = useCallback(() => { if (!held && storageUnchanged()) { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) } }, [dispatch, held, storageUnchanged])
   const persistenceFailed = saveFailed || held
+  const automaticReminders = useAutomaticReminders(root.app, held, getState, tryDispatch)
   // The log is left out of the value on purpose: a click must not re-render every screen that reads the store.
-  const value = useMemo(() => ({ state: root.app, persistenceFailed, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
+  const value = useMemo(() => ({ state: root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
   const shown: StorageNotice | null = notice?.kind === "storage_conflict" ? notice : saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
     {shown && <StorageBanner notice={shown} onDownload={() => {

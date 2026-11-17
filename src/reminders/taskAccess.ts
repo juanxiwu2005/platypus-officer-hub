@@ -3,6 +3,8 @@ import { canLead, isOfficer } from "../data/permissions"
 import { addDays } from "../lib/dates"
 import type { TaskAccessGrant } from "./accessContracts"
 import { isReminderRuntime } from "./runtime"
+import { buildReminderInput } from "./facts"
+import { planReminders } from "./engine"
 
 const payload = (g: TaskAccessGrant) => JSON.stringify(["task-access-v1", g.id, g.nodeId, g.ownerId, g.ownerVersion, g.recipientId, g.scope, g.waitingRequestId ?? null, g.issuedOn, g.expiresOn])
 async function signature(key: string, value: string): Promise<string> {
@@ -41,13 +43,17 @@ export async function verifyTaskAccessGrant(s: DemoState, token: string): Promis
   const grant = usableTaskAccessGrant(s, token)
   return !!grant && await signature(s.demoLinkKey, payload(grant)) === grant.signature
 }
-export function taskAccessIssueValid(s: DemoState, g: TaskAccessGrant): boolean {
-  return canLead(s) && current(s, g) && g.issuedOn === s.today && g.expiresOn === expiry(s, g.nodeId)
+export function taskAccessIssueValid(s: DemoState, g: TaskAccessGrant, automatic = false): boolean {
+  return (automatic ? automaticAllowed(s, g.nodeId, g.waitingRequestId) : canLead(s)) && current(s, g) && g.issuedOn === s.today && g.expiresOn === expiry(s, g.nodeId)
+}
+function automaticAllowed(s: DemoState, nodeId: string, waitingRequestId?: string) {
+  return s.org.settings.reminderMode === "auto_email" && isReminderRuntime(s.reminderRuntime) && s.reminderRuntime.version === 2
+    && planReminders(buildReminderInput(s, s.reminderRuntime)).ready.some(c => c.nodeId === nodeId && c.waitingRequestId === waitingRequestId)
 }
 /** Create or reuse an assignment-scoped entry. Viewing and legitimate repeat updates never consume it. */
-export async function makeTaskAccessGrant(s: DemoState, nodeId: string, waitingRequestId?: string): Promise<TaskAccessGrant> {
+export async function makeTaskAccessGrant(s: DemoState, nodeId: string, waitingRequestId?: string, automatic = false): Promise<TaskAccessGrant> {
   const n = s.nodes.find(n => n.id === nodeId)
-  if (!canLead(s) || !n?.ownerId || !active(s, n.ownerId)) throw new Error("Choose an assigned task and a current sender.")
+  if (!(automatic ? automaticAllowed(s, nodeId, waitingRequestId) : canLead(s)) || !n?.ownerId || !active(s, n.ownerId)) throw new Error("Choose an assigned task and a current sender.")
   const request = waitingRequestId && isReminderRuntime(s.reminderRuntime) ? s.reminderRuntime.waitingRequests.find(r => r.id === waitingRequestId && r.nodeId === nodeId && !r.closedOn) : undefined
   if (waitingRequestId && (!request?.recipientId || !active(s, request.recipientId) || request.recipientId === n.ownerId)) throw new Error("Choose a current person to follow up with.")
   if (s.taskAccessGrants !== undefined && !Array.isArray(s.taskAccessGrants)) throw new Error("The saved task links need review before creating another link.")

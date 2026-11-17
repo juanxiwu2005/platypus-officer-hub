@@ -78,7 +78,9 @@ export interface ReminderDelivery {
   outcome: "recorded_by_sender" | "simulated"
 }
 export interface ReminderRuntime {
-  version: 1
+  version: 1 | 2
+  /** Earlier deliveries are preserved on upgrade; all later deliveries require a complete mail snapshot. */
+  mailRequiredAfter?: number
   activatedOn: string
   sequence: number
   updates: ReminderUpdate[]

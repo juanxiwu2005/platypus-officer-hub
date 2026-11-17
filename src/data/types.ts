@@ -537,7 +537,7 @@ export interface ChangeSet {
 
 export interface DemoState {
   taskAccessGrants?: import("../reminders/accessContracts").TaskAccessGrant[]
-  /** Rule-only reminders v1; absent on legacy saves until explicitly enabled. */
+  /** Versioned rule reminders; legacy saves require an explicit upgrade to complete-mail delivery. */
   reminderRuntime?: import("../reminders/contracts").ReminderRuntime
   matching?: import("../matching/contracts").MatchingState
   matchingContext?: import("../matching/businessContracts").OrganizationMatchingContext

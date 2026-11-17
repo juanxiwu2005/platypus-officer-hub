@@ -16,8 +16,9 @@ const message = (v: unknown) => object(v) && fields(v, "subject body text taskUr
 
 /** A corrupt or newer saved ledger is retained for recovery, never partially executed or reset. */
 export function isReminderRuntime(value: unknown): value is ReminderRuntime {
-  if (!object(value) || value.version !== 1 || !integer(value.sequence) || !day(value.activatedOn)) return false
+  if (!object(value) || ![1, 2].includes(value.version as number) || !integer(value.sequence) || !day(value.activatedOn)) return false
   const sequence = value.sequence as number
+  if (value.version === 2 && (!integer(value.mailRequiredAfter) || (value.mailRequiredAfter as number) > sequence)) return false
   const ids = new Set<string>(), sequences = new Set<number>()
   const entry = (v: unknown): v is Record<string, unknown> => {
     if (!object(v) || !fields(v, "id nodeId", string) || !integer(v.sequence) || (v.sequence as number) < 1 || (v.sequence as number) > sequence) return false
@@ -35,7 +36,7 @@ export function isReminderRuntime(value: unknown): value is ReminderRuntime {
     && oneOf(v.reason, "start|due|overdue|waiting_on") && oneOf(v.via, "manual|platypus|automatic")
     && v.outcome === (v.via === "manual" ? "recorded_by_sender" : "simulated")
     && (v.waitingRequestId === undefined || string(v.waitingRequestId))
-    && (v.message === undefined || message(v.message)))) return false
+    && (v.message === undefined ? value.version !== 2 || (v.sequence as number) <= (value.mailRequiredAfter as number) : message(v.message)))) return false
   if (!Array.isArray(value.waitingRequests) || !value.waitingRequests.every(v => entry(v)
     && string(v.ownerId) && nullable(v.recipientId, string) && typeof v.waitingOn === "string"
     && day(v.createdOn) && nullable(v.closedOn, day)
