@@ -143,7 +143,7 @@ export function planReminders(input: ReminderInput): ReminderPlan {
         waitingRequestId: request.id,
       }]
     } else {
-      if (!canReceive(people.get(task.ownerId), input.mode === "auto_email")) { blocked.push({ nodeId: task.nodeId, recipientId: task.ownerId, reason: "unavailable_recipient" }); continue }
+      if (!canReceive(people.get(task.ownerId), input.mode === "auto_email" || input.mode === "review_then_auto")) { blocked.push({ nodeId: task.nodeId, recipientId: task.ownerId, reason: "unavailable_recipient" }); continue }
       candidates = []
       const hasStartReply = task.startOn && input.runtime.updates.some(update => update.nodeId === task.nodeId
         && sameOwner(update, task) && update.ownerReply && update.on >= task.startOn! && update.on <= input.today)

@@ -34,6 +34,14 @@ beforeEach(() => { localStorage.clear(); vi.stubGlobal("crypto", webcrypto) })
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals(); localStorage.clear() })
 
 describe("stage three complete-mail delivery", () => {
+  it.each(["auto_email", "review_then_auto", "review_then_self"] as const)("validates email for platform sending in %s even when the recipient prefers another channel", mode => {
+    const s = active(mode)
+    const missingEmail = {...s, people: s.people.map(p => p.id === "jordan" ? {...p, email: "", channels: ["whatsapp" as const]} : p)}
+    const plan = planReminders(buildReminderInput(missingEmail, missingEmail.reminderRuntime!))
+    expect(plan.ready.length).toBe(mode === "review_then_self" ? 1 : 0)
+    expect(plan.blocked.some(b => b.reason === "unavailable_recipient")).toBe(mode !== "review_then_self")
+    expect(missingEmail.reminderRuntime!.deliveries).toEqual([])
+  })
   it("upgrades existing history without changing settings or inventing messages", () => {
     const s = fixture(), empty = {...s, reminderRuntime: createReminderRuntime(s.today)}
     const old = confirmReminderDelivery(buildReminderInput(empty, empty.reminderRuntime), ids(empty)[0], "platypus")
