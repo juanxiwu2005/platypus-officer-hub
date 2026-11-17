@@ -163,6 +163,24 @@ describe("meaningful updates and ownership", () => {
     expect(planReminders({ ...value, tasks: [newOwner], runtime }).ready[0].recipientId).toBe("sam")
     expect(planReminders({ ...value, tasks: [task({ ownerVersion: 2 })], runtime }).ready[0].recipientId).toBe("jordan")
   })
+  it.each([{ ownerId: "sam" }, { ownerVersion: 1 }])("releases legacy blocking only for a known new owner tenure: %j", patch => {
+    const value = input()
+    const runtime = { ...value.runtime, legacyUnresolvedNodeIds: ["room", "another-node"], deliveries: [historical({ nodeId: "room", sentOn: "2027-03-20" })] }
+    const nextTask = task(patch)
+    const next = change(runtime, value.tasks, [nextTask], "maya")
+    expect(next).toHaveProperty("legacyUnresolvedNodeIds", ["another-node"])
+    expect(next.deliveries).toBe(runtime.deliveries)
+    expect(next.deliveries[0].recipientId).toBe("jordan")
+    expect(planReminders({ ...value, tasks: [nextTask], runtime: next }).ready[0].recipientId).toBe(nextTask.ownerId)
+  })
+  it.each([
+    { title: "Edited by the lead" }, { due: "2027-04-02" }, { status: "in_progress" as const }, { ownerId: null },
+  ])("preserves legacy blocking through edits, ordinary status changes and unassignment: %j", patch => {
+    const value = input(), runtime = { ...value.runtime, legacyUnresolvedNodeIds: ["room"] }
+    const nextTask = task(patch), next = change(runtime, value.tasks, [nextTask], "maya", ["room"])
+    expect(next).toHaveProperty("legacyUnresolvedNodeIds", ["room"])
+    expect(planReminders({ ...value, tasks: [nextTask], runtime: next }).blocked).toContainEqual({ nodeId: "room", reason: "legacy_history" })
+  })
   it("recomputes a postponed plan and rejects an old pending candidate", () => {
     const value = input(), oldId = planReminders(value).ready[0].id
     const next = { ...value, tasks: [task({ due: "2027-04-20", startOn: "2027-04-17" })] }

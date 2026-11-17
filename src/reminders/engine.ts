@@ -20,6 +20,14 @@ export function transitionReminderRuntime(input: ReminderTransition): ReminderRu
   const before = new Map(input.before.map(task => [task.nodeId, task]))
   const after = new Map(input.after.map(task => [task.nodeId, task]))
   const explicit = new Set(input.updatedNodeIds ?? [])
+  const oldLegacy = (runtime as ReminderRuntime & { legacyUnresolvedNodeIds?: string[] }).legacyUnresolvedNodeIds
+  // A known new assignment separates future reminders from ambiguous legacy history. Edits and
+  // status updates cannot do that; the old deliveries themselves are never assigned to the new owner.
+  const legacy = oldLegacy?.filter(nodeId => {
+    const old = before.get(nodeId), next = after.get(nodeId)
+    return !(old && next?.ownerId && !sameOwner(old, next))
+  })
+  const legacyChanged = !!oldLegacy && legacy!.length !== oldLegacy.length
   let sequence = runtime.sequence
   let updates = runtime.updates
   for (const task of input.after) {
@@ -61,8 +69,8 @@ export function transitionReminderRuntime(input: ReminderTransition): ReminderRu
     }]
     requestsChanged = true
   }
-  return sequence === runtime.sequence && updates === runtime.updates && !requestsChanged
-    ? runtime : { ...runtime, sequence, updates, waitingRequests }
+  return sequence === runtime.sequence && updates === runtime.updates && !requestsChanged && !legacyChanged
+    ? runtime : { ...runtime, sequence, updates, waitingRequests, ...(legacyChanged ? { legacyUnresolvedNodeIds: legacy } : {}) }
 }
 
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
