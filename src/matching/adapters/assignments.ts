@@ -52,6 +52,15 @@ function linked(node: Node, workflowId: string): MatchingNodeLink {
   return { workflowId: node.eventId ? workflowId : "standalone", stepId: node.stepKey ?? node.id, responsibilityId: null, reason: "requirement_missing" }
 }
 
+/** Old work has no responsibility basis to infer. Preserve known event provenance without borrowing today's template. */
+function unlinkedHistoricalTask(before: DemoState, after: DemoState, node: Node): MatchingNodeLink {
+  if (!node.eventId) return { workflowId: "standalone", stepId: node.id, responsibilityId: null, reason: "manual_override" }
+  const event = before.events.find(row => row.id === node.eventId) ?? after.events.find(row => row.id === node.eventId)
+  return identifier(event?.playbookId)
+    ? { workflowId: event.playbookId, stepId: node.stepKey ?? node.id, responsibilityId: null, reason: "manual_override" }
+    : { workflowId: `task:${node.id}`, stepId: "work", responsibilityId: null, reason: "manual_override" }
+}
+
 function qualified(matching: MatchingState, references: MatchingReferences, link: MatchingNodeLink, memberId: string): boolean {
   const requirement = matching.requirements.find(row => row.workflowId === link.workflowId && row.stepId === link.stepId)
   if (!requirement || requirement.status !== "confirmed" || requirement.responsibilityId !== link.responsibilityId || !link.responsibilityId) return false
@@ -135,11 +144,9 @@ export function recordChangedMatchingOwners(before: DemoState, after: DemoState,
     const previous = old.get(node.id)
     if (!previous || previous.ownerId === node.ownerId || (!node.matching && !previous.matching && !matchingModeEnabled(after))) return node
     if (node.ownerId && !memberIsCurrent(after, node.ownerId)) throw new MatchingError("not_found", "Choose a current organization member for this task.")
-    let link = linked(node.matching ? node : previous.matching ? { ...node, matching: previous.matching } : node, eventMatchingWorkflowId(after))
-    if (!link.responsibilityId) {
-      const requirement = matching.requirements.find(row => row.workflowId === link.workflowId && row.stepId === link.stepId)
-      link = { ...link, responsibilityId: requirement?.responsibilityId ?? null }
-    }
+    let link = node.matching || previous.matching
+      ? linked(node.matching ? node : { ...node, matching: previous.matching }, eventMatchingWorkflowId(after))
+      : unlinkedHistoricalTask(before, after, node)
     const recorded = matching.assignments.some(row => !oldReceipts.has(row.id) && row.status === "confirmed" && row.taskId === node.id && row.memberId === node.ownerId && row.workflowId === link.workflowId && row.stepId === link.stepId && row.responsibilityId === link.responsibilityId)
       || context.overrides.some(row => !oldOverrides.has(row.id) && row.taskId === node.id && row.memberId === node.ownerId && row.responsibilityId === link.responsibilityId)
     if (recorded) return node
