@@ -57,7 +57,7 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
 })
 
 test("AI off: a command becomes a labelled change set; owner edits apply and rejects stick", async ({ page }) => {
-  await page.goto("/#/")
+  await enableUpdatedReminders(page)
   await openMore(page)
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
   await ask(page, "Assign Send the October newsletter to Priya")

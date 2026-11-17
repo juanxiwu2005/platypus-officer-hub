@@ -46,7 +46,7 @@ test("extension needs a draft and stays pending until the president approves", a
   await detail.getByRole("button", { name: "Need more time", exact: true }).click()
   await detail.getByLabel("Requested club deadline", { exact: true }).fill(requestedDate)
   await detail.getByRole("button", { name: "Request extension", exact: true }).click()
-  await expect(detail.getByRole("status")).toContainText("current draft")
+  await expect(detail.getByRole("alert")).toContainText("current draft")
   await detail.getByLabel("Current draft link", { exact: true }).fill("https://example.org/current-draft")
   await detail.getByRole("button", { name: "Request extension", exact: true }).click()
   await expect(detail).toContainText("Extension awaiting review")
