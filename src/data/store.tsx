@@ -320,7 +320,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
       }
     }
     next = action.type === "replace" ? next : recordChangedMatchingOwners(state, next, actorId, new Date().toISOString())
-    if (action.type === "completeSetup" && (next.reminderRuntime || next.taskAccessGrants)) {
+    if (action.type === "completeSetup" && (next.reminderRuntime !== undefined || next.taskAccessGrants !== undefined)) {
       const { reminderRuntime: _previousReminders, taskAccessGrants: _previousAccess, ...workspace } = next
       void _previousReminders; void _previousAccess
       next = workspace
@@ -517,7 +517,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "taskAccessAction": return applyTaskAccessUpdate(state, action.token, action.update)
     case "confirmPlannedReminder": return canLead(state) ? confirmPlannedReminder(state, action.candidateId, action.via, action.message) : state
     case "confirmNudgeSent": {
-      if (state.reminderRuntime) return canLead(state) ? confirmLegacyPlannedReminder(state, action.nodeId, action.via, action.message) : state
+      if (state.reminderRuntime !== undefined) return canLead(state) ? confirmLegacyPlannedReminder(state, action.nodeId, action.via, action.message) : state
       const n = state.nodes.find(n => n.id === action.nodeId)
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
       const message = action.message ? validatedReminderMessage(state, action.message, n.id) : null
@@ -528,7 +528,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "claimTask": { const node = state.nodes.find(n => n.id === action.nodeId); return node && canClaimMatchingTask(state, node, state.viewerId) ? claimTask(state, action.nodeId, state.viewerId) : state }
     case "replyTask": return replyToTask(state, action.nodeId, state.viewerId, action.reply, action.input)
     case "reviewExtension": return reviewExtension(state, action.id, action.approve)
-    case "advanceClock": return canLead(state) ? state.reminderRuntime ? advancePlannedClock(state, action.days) : advanceClock(state, action.days) : state
+    case "advanceClock": return canLead(state) ? state.reminderRuntime !== undefined ? advancePlannedClock(state, action.days) : advanceClock(state, action.days) : state
     case "markNoticeRead": return { ...state, notifications: state.notifications.map(n => n.id === action.id && n.recipientId === state.viewerId ? { ...n, read: true } : n) }
     case "temporaryOwner": {
       if (!canLead(state)) return state
@@ -750,7 +750,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
   switch (a.type) {
     case "taskAccessAction": { const g = usableTaskAccessGrant(s, a.token); out = g ? fields(node(g.nodeId), ["status", "ownerId"]) : undefined; break }
     case "enableReminderPlan": out = { reminderVersion: s.reminderRuntime?.version }; break
-    case "confirmPlannedReminder": out = { reminderDeliveryCount: s.reminderRuntime?.deliveries.length }; break
+    case "confirmPlannedReminder": out = { reminderDeliveryCount: remindersEnabled(s) ? s.reminderRuntime!.deliveries.length : undefined }; break
     case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
     case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount", "details"].includes(k))); break
     case "moveTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break

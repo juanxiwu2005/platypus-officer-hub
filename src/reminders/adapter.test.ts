@@ -203,4 +203,14 @@ describe("stage one: actual reducer integration, without changing legacy activat
     expect(reducer(s, { type: "advanceClock", days: 3 }).today).toBe(s.today)
     expect(reducer(s, { type: "enableReminderPlan" }).reminderRuntime).toEqual(s.reminderRuntime)
   })
+
+  it.each([null, 0, false, ""])("preserves a malformed falsy runtime (%s) instead of activating or falling back to legacy sends", invalid => {
+    const s = { ...fixture(), reminderRuntime: invalid as unknown as NonNullable<DemoState["reminderRuntime"]> }
+    expect(remindersEnabled(s)).toBe(false)
+    for (const action of [
+      { type: "enableReminderPlan" } as const,
+      { type: "advanceClock", days: 3 } as const,
+      { type: "confirmNudgeSent", nodeId: NODE, channel: "email", text: "Should not be sent" } as const,
+    ]) expect(reducer(s, action)).toEqual(s)
+  })
 })

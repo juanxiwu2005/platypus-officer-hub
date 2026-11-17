@@ -20,7 +20,7 @@ const facts = (s: DemoState) => s.nodes.flatMap(n => {
 const withRuntime = (s: DemoState, r: ReminderRuntime): DemoState => r === s.reminderRuntime ? s : { ...s, reminderRuntime: r }
 
 export function enableReminderPlan(s: DemoState): DemoState {
-  if (s.reminderRuntime) return s
+  if (s.reminderRuntime !== undefined) return s
   const legacyUnresolvedNodeIds = [...new Set([...s.nudges.map(n => n.nodeId), ...s.protocolLog.filter(e => e.kind === "reminder" && e.recipientIds.length).map(e => e.nodeId)])]
   const initial = { ...createReminderRuntime(s.today), ...(legacyUnresolvedNodeIds.length ? { legacyUnresolvedNodeIds } : {}) }
   const runtime = transitionReminderRuntime({ today: s.today, actorId: s.viewerId, before: [], after: facts(s), runtime: initial })
