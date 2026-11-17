@@ -4,6 +4,7 @@ import { reducer } from "../data/store"
 import { newObjects } from "../data/changeReview"
 import { buildEventNodes } from "../engine/playbooks"
 import { seedDemo } from "../data/seed"
+import { canMoveTask } from "../data/board"
 import { grantToken, makeOfficerGrant, usableGrant } from "../lib/officerLinks"
 import { getMatchingCandidates, resolveMatchingAssignment } from "./resolve"
 import { organizationMatchingReferences } from "./adapters"
@@ -152,6 +153,44 @@ describe("stage 3: actual standalone tasks and historical owners", () => {
     expect(node.matching?.responsibilityId).toBeNull()
     const attemptedClaim = reducer(next, { type: "claimTask", nodeId: node.id })
     expect(attemptedClaim.nodes.find(n => n.id === node.id)!.ownerId).toBeNull()
+  })
+
+  it("cannot use a board move to claim a matching assignment after the owner's qualification becomes unknown", () => {
+    const original = stage3Club(), id = "qualification-revoked:0:venue"
+    let state = stage3CreateEvent(original, "qualification-revoked", { revision: original.matching!.revision, choices: { venue: { memberId: "maya" } } })
+    state = stage3References(state, references => ({ ...references, members: references.members.map(member => member.id === "maya" ? { ...member, qualifications: { ...member.qualifications, "campus-room-access": "unknown" } } : member) }))
+    state = { ...state, viewerId: "maya" }
+    const before = state.nodes.find(n => n.id === id)!
+    expect(canMoveTask(state, before, "accepted")).toBeTruthy()
+    const moved = reducer(state, { type: "moveTask", nodeId: id, status: "accepted" })
+    expect(moved.nodes.find(n => n.id === id)).toEqual(before)
+    expect(moved.matching!.assignments).toEqual(state.matching!.assignments)
+    expect(moved.matchingContext!.overrides).toEqual(state.matchingContext!.overrides)
+  })
+
+  it("cannot turn a leader's board drag of an unclassified unowned task into an implicit one-task override", () => {
+    let state = stage3Club()
+    state = reducer(state, { type: "createTasks", id: "drag-no-duty", sentence: "Check an unclassified process.", tasks: [{ title: "Check an unclassified process", ownerId: null, eventId: null }], date: STAGE3_EVENT_DATE, buffered: false })
+    const before = state.nodes.find(n => n.id === "drag-no-duty:0")!
+    expect(canMoveTask(state, before, "accepted")).toBeTruthy()
+    const moved = reducer(state, { type: "moveTask", nodeId: before.id, status: "accepted" })
+    expect(moved.nodes.find(n => n.id === before.id)).toEqual(before)
+    expect(moved.matchingContext!.overrides).toEqual(state.matchingContext!.overrides)
+    expect(moved.matching!.assignments).toEqual(state.matching!.assignments)
+  })
+
+  it("gives a Ghost Owner retro its own unassigned standalone identity instead of cloning the source task's duty and owner", () => {
+    const original = stage3Club(), id = "retro-source:0:venue"
+    const created = stage3CreateEvent(original, "retro-source", { revision: original.matching!.revision, choices: { venue: { memberId: "maya" } } })
+    const source = created.nodes.find(n => n.id === id)!
+    const state = { ...created, nodes: [source], silenceCases: [{ id: "fixture-silence-case", nodeId: id, ownerId: "maya", startedOn: created.today, closedOn: null }], protocolLog: [] }
+    const later = reducer(state, { type: "advanceClock", days: state.org.settings.silenceProtocol.retroDay })
+    const retroId = later.protocolLog.find(entry => entry.nodeId === id && entry.kind === "recovery")!.retroNodeId!
+    const retro = later.nodes.find(n => n.id === retroId)!
+    expect(retro).toMatchObject({ eventId: null, stepKey: null, ownerId: null, status: "unclaimed", acceptedOn: null, matching: { workflowId: "standalone", stepId: retroId, responsibilityId: null } })
+    expect(retro.matching).not.toEqual(source.matching)
+    expect(later.nodes.find(n => n.id === id)!.matching).toEqual(source.matching)
+    expect(later.matching!.assignments).toEqual(state.matching!.assignments)
   })
 
   it("records an explicit one-task manual exception without granting a global duty or concealing the gap", () => {

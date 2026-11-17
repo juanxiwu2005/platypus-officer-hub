@@ -141,6 +141,7 @@ describe("stage 3: migration, unreadable subconfiguration and recovery", () => {
     const restored = reducer(seedDemo(undefined, "v2"), { type: "replace", state: exported.state as DemoState })
     expect(restored.matching).toEqual(state.matching)
     expect(restored.matchingContext).toEqual(state.matchingContext)
+    expect(restored.nodes).toEqual(state.nodes)
     expect(restored.nodes.find(n => n.id === "export-event:0:venue")!.ownerId).toBe("maya")
     expect(saveState(restored)).toBe(true)
     const loaded = loadStateWithNotice()
