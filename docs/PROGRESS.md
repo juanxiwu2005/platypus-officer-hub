@@ -1,3 +1,7 @@
+> **2026-11-16（America/Phoenix） · 提醒阶段1–3整合至preview 14进行中（Codex）**
+> **授权：** Juanxi 明确要求“不需要新增pull request，把代码整合到preview14里面”。沿用PR #14和`claude/fervent-thompson-e2j5u2`，以当前`57c7e55`为整合基点；不创建新PR、不改main。
+> **边界：** 保留刚完成的职责匹配撤回和main版onboarding，仅接回`feat/reminder-plan-v2`已批准的规则提醒、邮件、单任务页与Details/中心。合并冲突逐项处理并验证，线上部署与本地检查分开记录。
+
 > **2026-11-16（America/Phoenix） · 已恢复 main onboarding 并撤回职责匹配体验；原策略已整理，等待用户审阅（Codex）**
 > **最新决定优先：** Juanxi 不接受当前职责设置的文字量和复杂度，要求先回到 main 的 onboarding，再阅读现有方案，之后通过参考界面或手绘重新设计。代码 `4abc510` 恢复 main@b9e7a02 的页面、步骤和文案（仅保留保存失败不清草稿保护）；撤下职责设置页与业务匹配接入，旧 `/#/matching` 转 Settings。章程上传和原 AI 岗位/职责文本识别、提醒中心、日期校准等保留；已有任务不因回退改派，23存档与旧匹配记录按归档保留。原实现保存在祖先5e301d9，没有改写历史。
 > **阅读与验收：** [原策略供审阅](feedback-fix/MATCHING_STRATEGY_FOR_REVIEW.md) · [回退范围、数据保护与检查](feedback-fix/MATCHING_ROLLBACK_HANDOFF.md)。main 版 onboarding 预览：`https://deploy-preview-14--platypus-officer-hub.netlify.app/#/welcome/test/president`。117项相关单元/组件通过，回退核心桌面/手机6项通过，其他相关流程已回归；lint、build、前后端类型和全局9页文字预算通过。保留 First event 的main原文后，Spring dinner显示64词，旧60词检查两端仍失败，未调高门槛；未重复全站门禁。0次真实AI。
