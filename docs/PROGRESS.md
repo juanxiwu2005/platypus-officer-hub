@@ -1,3 +1,7 @@
+> **2026-11-16（America/Phoenix） · 提醒阶段三进行中（Codex 主 Agent；Details/Centre 独立 Worktree Agent）**
+> **授权：** Juanxi 明确要求“继续阶段3”。按既定方案重排Details、统一提醒中心单条/批量/自动演示，提供新组织默认启用与旧存档显式兼容升级，保留实际历史和自定义设置。
+> **分工与边界：** [阶段三契约](feedback-fix/REMINDER_STAGE3_CONTRACT.md)。主Agent负责版本/权限/统一准备服务和Settings；Details与Centre分worktree开发，最终独立Review。沿用PR #15和匹配源5e301d9；无真实AI或外部投递，不合并main、不改交接。需要同步本地备份。
+
 > **2026-11-16（America/Phoenix） · 提醒阶段二已完成检查与独立复核，交付待验收（Codex 主 Agent；Mail/Page/Review 独立 Worktree Agent）**
 > **授权：** Juanxi 明确要求“继续阶段2”。实现规则生成的简短邮件和唯一入口、可重复使用的独立任务页、Done/Working on it/Stuck/Waiting on；等待对象入口只响应协助请求，不修改原任务。
 > **交付：** [阶段二操作与结果](feedback-fix/REMINDER_STAGE2_HANDOFF.md) · [冻结契约](feedback-fix/REMINDER_STAGE2_CONTRACT.md) · [PR #15](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15)。单条邮件突出 Task due，规则写要求/意义/协作/感谢，约100英文词且只有一个任务链接；独立页可刷新后继续更新，保留财务限制、真实办理入口和改派撤权。可编辑任务要求/完成标准，保存邮件快照并核对本次实际持久化。
