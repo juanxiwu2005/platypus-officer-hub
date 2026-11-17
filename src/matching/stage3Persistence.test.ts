@@ -4,7 +4,7 @@ import type { MatchingState } from "./contracts"
 import { seedDemo } from "../data/seed"
 import { buildExport, loadStateWithNotice, reducer, saveState, STORAGE_KEY } from "../data/store"
 import { clubDraft } from "../data/settings"
-import { initializeOrganizationMatching, importOrganizationMatching, organizationSetupDocument, saveOrganizationSetup } from "./organizationMatching"
+import { importOrganizationMatching, organizationSetupDocument, saveOrganizationSetup } from "./organizationMatching"
 import { commandSetup, createSetupDocument, sourceSetup } from "./setupWorkspace"
 import { matchingSetupContext } from "./setupContext"
 import { stage3Club, stage3CreateEvent, STAGE3_EVENT_DATE, STAGE3_EVENT_OP } from "./stage3Fixtures"
@@ -24,7 +24,7 @@ function currentTeamPreview(state = seedDemo(undefined, "v2")) {
 
 describe("stage 3: canonical organization configuration", () => {
   it("enables matching without creating old assignment receipts or modifying existing work", () => {
-    const old = seedDemo(undefined, "v2"), state = initializeOrganizationMatching(old)
+    const old = seedDemo(undefined, "v2"), state = reducer(old, { type: "matchingInitialize" })
     expect(state.org.settings.matchingMode).toBe("responsibilities")
     expect(state.org.matchingWorkspaceId).toBe(state.matching!.organizationId)
     expect(state.matching!.assignments).toEqual([])
@@ -35,7 +35,7 @@ describe("stage 3: canonical organization configuration", () => {
 
   it("imports a reviewed current-team preview without changing actual people, roles, tasks or historical owners", () => {
     const old = seedDemo(undefined, "v2"), preview = currentTeamPreview(old)
-    const state = importOrganizationMatching(old, preview)
+    const state = reducer(old, { type: "matchingImport", preview })
     expect(state.matching!.responsibilities.find(r => r.id === "preview-duty")).toMatchObject({ title: "Custom laboratory inspection", status: "confirmed" })
     expect(state.matchingContext!.importedPreviewId).toBe(preview.id)
     expect(preserved(state)).toEqual(preserved(old))
