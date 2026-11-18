@@ -59,11 +59,25 @@ export type EventCheck = "funding" | "food" | "externalFood" | "onsiteFood" | "s
 export type EventChecks = Partial<Record<EventCheck, boolean>>
 export type StepCond = "campus" | "offcampus" | "speaker" | "externalGuest" | "usgFood" | "usgSpeaker" | "offsite" | "dining" | "onsite" | "tbd" | "food" | EventCheck | "large"
 
+/** Saved graph membership; order only breaks ties between independent steps. */
+export interface WorkflowPlacement { branchId: string; order: number }
+export interface WorkflowBranch {
+  id: string
+  title: string
+  order: number
+  side: "before_event" | "after_event"
+  condition?: StepCond
+  defaultRoleId?: string | null
+}
+
 /**
  * One step of an event workflow. A step has no dates of its own: an anchor (an ASU rule or a club timing) and links to other
  * steps; the rule engine (schedule.ts) turns those into deadlines. Both the standard workflow and a club's own are lists of these.
  */
 export interface StepTemplate {
+  placement?: WorkflowPlacement
+  /** Missing preserves the calibrated defaults; an explicit effort edit opts in. */
+  startPolicy?: "window" | "effort"
   key: string
   title: string
   fn: RoleFunction
@@ -101,6 +115,7 @@ export interface StepTiming {
 /** The club's own event workflow, made in setup from its planning notes and files. New events are built from it. */
 export interface EventWorkflow {
   steps: StepTemplate[]
+  branches?: WorkflowBranch[]
   phaseOrder?: Phase[]
   updatedOn: string
   /** One line about where it came from, e.g. "Adapted from your planning notes and 1 file". */
@@ -220,6 +235,8 @@ export interface Person {
 export type EventType = "speaker" | "social" | "workshop" | "meeting" | "fundraiser" | "offcampus"
 
 export interface Event {
+  /** Snapshot for this event; later template edits must never change its graph. */
+  workflowBranches?: WorkflowBranch[]
   id: string
   name: string
   date: string
@@ -269,6 +286,10 @@ export type Anchor =
 
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
+  placement?: WorkflowPlacement
+  startPolicy?: "window" | "effort"
+  /** Creation scope, retained for graph editing; existing event tasks are never filtered on read. */
+  cond?: StepCond
   /** Optional human-authored instructions; reminder facts never invent missing details. */
   instructions?: string
   completionCriteria?: string
