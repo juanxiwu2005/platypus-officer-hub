@@ -171,7 +171,7 @@ test("Approve all persists complete unique-link snapshots, survives reload, and 
   await expect(page.getByTestId("rq-replies").locator(`[data-node="${ROOM}"]`)).toContainText("Working on it")
   await expect(page.getByTestId("rq-no-reply").locator(`[data-node="${ROOM}"]`)).toHaveCount(0)
   const panel = await detail(page)
-  await panel.getByText("Edit", { exact: true }).click()
+  await panel.getByRole("button", { name: "Edit", exact: true }).click()
   const editor = page.getByRole("dialog", { name: "Edit task" })
   await editor.getByTestId("owner-select").selectOption("sam")
   await editor.getByRole("button", { name: "Save changes", exact: true }).click()
