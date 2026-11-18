@@ -1,5 +1,6 @@
-> **2026-11-17（America/Phoenix） · 分支启用条件多选与说明进行中（Codex）**
-> **用户要求：** Add branch中的Applies to不直观，改为可勾选多个活动checklist条件；所有选中项都满足才启用分支，不选则适用所有活动。同步覆盖保存、活动生成、插入继承和范围提示，旧单条件配置继续可读；沿用PR14，不改main。
+> **2026-11-17（America/Phoenix） · 分支启用条件多选与说明完成检查，待验收（Codex/Data/UI/Review worktree）**
+> **结果：** Add branch的Applies to改为Include this branch when，复用创建活动的18项checklist，多选全部AND；不选则Every event，附规则说明、数量摘要与Clear selection。新conditions数组覆盖旧condition（含显式空数组）；旧配置/节点规则不变，新分支保存、活动生成、前插继承及完整Undo接通，v23不重置。运行时代码`3432f52`。
+> **检查与验收：** 171项相关单元/组件通过；生产构建双端72浏览器通过、8项设备限定跳过，包含暗色、多选/刷新/插入/Undo、键盘和axe。首轮鼠标拖动用例未将节点移入可见区域，补关闭Ask/滚动后该项复验通过；未改产品拖动逻辑。前后端类型、build、lint、独立CSS、9页字数通过，入口543,387/550,000字节，Settings147/150，门槛未改。独立Review发现并修复同名checklist与派生规则的范围混淆，学校步骤不会因移入新条件分支被隐藏。[交付与用法](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md) · [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow → Add branch。保留同期附件自动保存进行中记录；0真实AI/邮件，沿用PR14、不合并main。需要同步本地备份。
 
 > **2026-11-17（America/Phoenix） · Workflow 三阶段修复已完成检查，待用户验收（Codex主Agent与Data/Graph/Timing/UI/Review worktree）**
 > **授权与交付：** 链接和Details易用性暂缓；工作量/日期两者都查，方案后连续实施全部阶段。[详细方案](feedback-fix/WORKFLOW_STABILITY_PLAN.md)先保存后执行；运行时代码`18d7316`修移动不更新、插入跑分支、工时输入与开始提醒、Full Check保护及条件泄漏，接通明确before/after、汇合点选分支与Add branch。旧v23历史、完整Undo及后来保存的任务内容保留。

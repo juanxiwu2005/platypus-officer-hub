@@ -14,7 +14,7 @@ import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "..
 import { nextCounter } from "../lib/ids"
 import { PHASES, ancestorsOf, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
 import { cannotDelete, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, removalEdits, type FlowInsertionTarget } from "../lib/flowEdit"
-import { DEFAULT_WORKFLOW_BRANCHES, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
+import { DEFAULT_WORKFLOW_BRANCHES, conditionsOf, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
 import { isAsuStep, isCoreStep } from "../engine/workflowPolicy"
 import { parseEffortDays } from "../lib/workflowEffort"
 import { advanceClock } from "../engine/followup"
@@ -208,7 +208,7 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
     const branch = branches.find(b => b.id === n.placement?.branchId)
     const original = inEvent.find(item => item.id === n.id)!
     if (placementOf(original).branchId === "main" && placementOf(n).branchId !== "main") return true
-    if (ev.checks !== undefined && isCoreStep(n) && (n.cond || branch?.condition)) return true
+    if (ev.checks !== undefined && isCoreStep(n) && conditionsOf(n, branches).length) return true
     if (isAsuStep(original) && scopeKey(original, branches) !== scopeKey(n, branches)) return true
     return !!n.placement && n.placement.branchId !== "main" && (!branch || (n.phase === "close") !== (branch.side === "after_event"))
   })) return state

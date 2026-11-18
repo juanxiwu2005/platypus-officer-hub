@@ -1,5 +1,23 @@
 # 工作流模板修复交付
 
+## 追加：分支启用条件多选（2026-11-17，America/Phoenix）
+
+用户反馈Add branch的Applies to不易理解，并明确要求多个checklist全部成立才启用。运行时代码`3432f52`：
+
+- 改为 **Include this branch when**，原文说明：**This branch is included only when every selected item is checked for the event. Leave all unchecked for every event.** 下方显示Every event、单项或All N selected items must be checked.，可Clear selection。
+- 使用创建活动页同一份18项清单与标签，Speaker和Partner分别选择。例如Speaker＋Travel，仅在两项都成立的活动生成该分支任务；只满足一项不生成。无选中项则所有活动都包含。列表内部可滚动，键盘可操作。
+- 可选`WorkflowBranch.conditions: StepCond[]`为新配置；存在时优先，`[]`可清除旧单条件。缺少该字段才读取旧`condition`；现有节点`cond`继续与分支条件AND。Schema23及已有任务保持，模板只影响未来活动。新数组保存、活动独立快照、刷新、同分支前插与Undo均保留。
+- 新数组按实际表单事实判断：food/speaker取表单对应字段，其余checklist在checks存在时要求明确true；无checks的旧活动保留派生回退。旧单条件与节点cond原规则不变。坏数组或未知条件拒绝写入，读取时不会误启用分支。
+- 独立Review发现同名的显式checkbox与旧派生规则不能扁平去重。现scopeKey保留谓词来源，学校步骤移入会缩窄范围的分支时，模板、Graph及实际reducer均拒绝；真正同义条件仍可移动。独立7项原函数检查复验，无开放P1/P2。
+
+本轮定向171项单元/组件通过；生产构建桌面/手机按唯一用例计72通过、8设备限定跳过。覆盖多选、刷新、同分支插入、Undo、原单条件、全真/部分真、空选、坏数据、暗色、Tab/Shift+Tab/Space/Escape及axe。首轮鼠标拖动测试没有先关闭Ask并将源节点滚动到可见区域，该项失败；补足测试操作后复验通过，产品拖动代码未改。没有重复全站门禁。
+
+前后端类型、生产构建、lint及组件CSS通过；9页文字预算通过（Settings147/150），完整部署元数据构建入口543,387/550,000字节，未放宽上限。日志：`/tmp/workflow-conditions-unit.log`、`/tmp/workflow-conditions-browser.log`、`/tmp/workflow-conditions-pointer.log`、`/tmp/workflow-conditions-release-build.log`、`/tmp/workflow-conditions-words.log`。0真实AI/邮件，未修改实际任务Details或链接；同期附件自动保存工作仅保留其进度记录。
+
+验收：[preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow → Add branch，勾选Speaker和Travel，查看全部成立说明，填写名称/首项任务并保存；刷新后在新节点前插，仍属同一条件分支。以下为此前三阶段修复的交付记录，旧单选描述以上方追加为准。
+
+---
+
 2026-11-17（America/Phoenix）。Codex主Agent及Data、Graph、Timing、UI、独立Review五位worktree Agent。用户明确要求工作天数与排程都检查，并在方案后连续实施全部阶段；[详细方案](WORKFLOW_STABILITY_PLAN.md)先保存后执行，三个阶段均已完成。运行时代码`18d7316cd86c1e32b606afafdeb0a94064fe364e`，沿用原功能分支、PR #14及preview14，不合并main。
 
 ## 修复与使用

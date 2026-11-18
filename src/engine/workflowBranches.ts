@@ -1,4 +1,5 @@
 import type { Phase, StepCond, WorkflowBranch, WorkflowPlacement } from "../data/types"
+import { EVENT_CHECKLIST } from "../data/eventChecklist"
 
 export interface WorkflowBranchItem {
   key?: string
@@ -23,6 +24,27 @@ export const WORKFLOW_CONDITION_OPTIONS: { value: StepCond | ""; label: string }
 ]
 export const isWorkflowCondition = (value: unknown): value is StepCond => typeof value === "string" && Object.hasOwn(WORKFLOW_CONDITION_LABELS, value)
 export const isStepCondition = isWorkflowCondition
+const maxBranchConditions = Object.keys(WORKFLOW_CONDITION_LABELS).length
+// Kept outside the condition whitelist so an invalid stored requirement cannot enable a branch.
+const invalidBranchCondition = "__invalid_branch_requirements__" as StepCond
+
+/** Explicit [] clears the legacy condition; malformed requirements fail closed during generation. */
+export function branchConditions(branch?: WorkflowBranch): StepCond[] {
+  if (!branch) return []
+  if (branch.conditions !== undefined) {
+    const values = branch.conditions
+    if (!Array.isArray(values) || values.length > maxBranchConditions || !values.every(isWorkflowCondition)) return [invalidBranchCondition]
+    return [...new Set(values)]
+  }
+  if (branch.condition === undefined) return []
+  return isWorkflowCondition(branch.condition) ? [branch.condition] : [invalidBranchCondition]
+}
+
+export function branchConditionLabel(branch?: WorkflowBranch): string {
+  const conditions = branchConditions(branch)
+  if (conditions.some(condition => !isWorkflowCondition(condition))) return "Invalid requirements"
+  return conditions.length ? conditions.map(condition => conditionLabel(condition)).join(" and ") : "Every event"
+}
 
 /** Standard keys are only a compatibility fallback, never the order of an edited graph. */
 export const DEFAULT_BRANCH_STEP_KEYS: Readonly<Record<string, readonly string[]>> = {
@@ -66,8 +88,9 @@ export function placementOf(item: WorkflowBranchItem): WorkflowPlacement {
 
 /** Missing/broken old branch metadata stays visible; validation controls new writes. */
 export function resolveBranches(items: readonly WorkflowBranchItem[], savedBranches?: readonly WorkflowBranch[]): WorkflowBranch[] {
-  const branches = new Map(DEFAULT_WORKFLOW_BRANCHES.map(branch => [branch.id, { ...branch }]))
-  for (const branch of Array.isArray(savedBranches) ? savedBranches : []) if (branch && typeof branch.id === "string" && branch.id !== "main") branches.set(branch.id, { ...branch })
+  const clone = (branch: WorkflowBranch): WorkflowBranch => ({ ...branch, ...(Array.isArray(branch.conditions) ? { conditions: [...branch.conditions] } : {}) })
+  const branches = new Map(DEFAULT_WORKFLOW_BRANCHES.map(branch => [branch.id, clone(branch)]))
+  for (const branch of Array.isArray(savedBranches) ? savedBranches : []) if (branch && typeof branch.id === "string" && branch.id !== "main") branches.set(branch.id, clone(branch))
   for (const item of items) {
     const { branchId } = placementOf(item)
     if (branchId === "main" || branches.has(branchId)) continue
@@ -82,9 +105,22 @@ export function branchOf(item: WorkflowBranchItem, branches?: readonly WorkflowB
   return (branches ?? DEFAULT_WORKFLOW_BRANCHES).find(branch => branch?.id === id)
 }
 export function conditionsOf(item: WorkflowBranchItem, branches?: readonly WorkflowBranch[]): StepCond[] {
-  return [...new Set([branchOf(item, branches)?.condition, item.cond].filter((condition): condition is StepCond => condition !== undefined))]
+  return [...new Set([...branchConditions(branchOf(item, branches)), ...(item.cond === undefined ? [] : [item.cond])])]
 }
-export const scopeKey = (item: WorkflowBranchItem, branches?: readonly WorkflowBranch[]): string => conditionsOf(item, branches).sort().join("&") || "always"
+const checklistKeys = new Set<string>(EVENT_CHECKLIST.map(item => item.key))
+// Legacy rules for these checks also accept derived event facts; explicit selections require the checked box.
+const derivedRuleChecks = new Set<StepCond>(["funding", "externalFood", "onsiteFood", "schoolApproval"])
+const predicateKey = (condition: StepCond, explicit: boolean): string => {
+  const usesCheckbox = checklistKeys.has(condition) && condition !== "food" && condition !== "speaker" && (explicit || !derivedRuleChecks.has(condition))
+  return `${usesCheckbox ? "check" : "rule"}:${condition}`
+}
+/** Encode predicates before deduplication: a checked box and a derived rule can share a name but differ in scope. */
+export function scopeKey(item: WorkflowBranchItem, branches?: readonly WorkflowBranch[]): string {
+  const branch = branchOf(item, branches)
+  const predicates = branchConditions(branch).map(condition => predicateKey(condition, branch?.conditions !== undefined))
+  if (item.cond !== undefined) predicates.push(predicateKey(item.cond, false))
+  return [...new Set(predicates)].sort().join("&") || "always"
+}
 
 /** Validate authored definitions; compatibility rendering remains deliberately forgiving. */
 export function validateBranchDefinitions(branches: readonly WorkflowBranch[] | undefined): string | null {
@@ -95,7 +131,10 @@ export function validateBranchDefinitions(branches: readonly WorkflowBranch[] | 
     if (!branch || typeof branch.id !== "string" || !/^[a-z][a-z0-9-]{0,39}$/.test(branch.id) || branch.id === "main" || ids.has(branch.id)) return "Each branch needs a unique valid ID."
     ids.add(branch.id)
     if (typeof branch.title !== "string" || !branch.title.trim() || branch.title.length > 80 || !Number.isFinite(branch.order) || !["before_event", "after_event"].includes(branch.side)) return "Give each branch a name, a side and a finite order."
-    if (branch.condition !== undefined && !isWorkflowCondition(branch.condition)) return "Choose a supported branch condition."
+    if (branch.conditions !== undefined) {
+      if (!Array.isArray(branch.conditions) || branch.conditions.length > maxBranchConditions) return `Choose up to ${maxBranchConditions} supported branch requirements.`
+      if (!branch.conditions.every(isWorkflowCondition)) return "Choose supported branch requirements."
+    } else if (branch.condition !== undefined && !isWorkflowCondition(branch.condition)) return "Choose a supported branch condition."
     if (branch.defaultRoleId !== undefined && branch.defaultRoleId !== null && typeof branch.defaultRoleId !== "string") return "Choose a valid default role for the branch."
   }
   return null

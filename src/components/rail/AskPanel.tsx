@@ -18,6 +18,7 @@ import { policySourceById } from "../../data/policyCatalog"
 import { answerSummary, emitUi } from "../../lib/uiLog"
 import { readAiBudget } from "../../lib/api"
 import { AiWait } from "../AiWait"
+import { EVENT_CHECKLIST } from "../../data/eventChecklist"
 
 const CHAT_KEY = "platypus.v1.chat"
 const load = (): ChatMsg[] => {
@@ -316,13 +317,6 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
 }
 
 const FOOD: Record<Event["food"], string> = { none: "none", dining: "Sun Devil Dining", offsite: "outside caterer", onsite: "made on site", tbd: "yes" }
-const EVENT_CHECKLIST: { key: EventCheck; label: string }[] = [
-  { key: "funding", label: "Need funding or reimbursement" }, { key: "food", label: "Food or beverage" }, { key: "externalFood", label: "External food provider" }, { key: "onsiteFood", label: "On-site food preparation or food truck" },
-  { key: "speaker", label: "External speaker, artist, or performer" }, { key: "partner", label: "Partner, sponsor, co-host, vendor, or contract" }, { key: "travel", label: "Travel or off-site participant trip" }, { key: "parking", label: "Parking, shuttle, loading, or transportation" },
-  { key: "advisor", label: "Advisor involvement required" }, { key: "access", label: "Accessibility accommodation or access support" }, { key: "safety", label: "Security, EMS, VIP, media, protest, or elevated safety risk" }, { key: "outdoor", label: "Outdoor special-use setup or equipment" },
-  { key: "alcohol", label: "Alcohol" }, { key: "drone", label: "Drone or model aircraft" }, { key: "media", label: "Music, livestream, recording, or media use" }, { key: "prize", label: "Prize, raffle, fundraising, ticket, or donation activity" },
-  { key: "schoolApproval", label: "School or college-specific approval" }, { key: "rsvp", label: "RSVP registration needed" },
-]
 
 /**
  * The event form (M2b, Juanxi 2026-10-27): only what changes the plan — name, date, people, food yes/no and a

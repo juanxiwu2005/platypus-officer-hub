@@ -1,6 +1,7 @@
 import type { Anchor, Event, Node, Phase, Role, RoleFunction, StepCond, StepTemplate, WorkflowBranch } from "../data/types"
-import { conditionsOf, isWorkflowCondition, placementOf, resolveBranches } from "./workflowBranches"
+import { branchConditions, branchOf, isWorkflowCondition, placementOf, resolveBranches } from "./workflowBranches"
 import { CORE_EVENT_STEP_KEYS, isCoreStep } from "./workflowPolicy"
+import { EVENT_CHECKLIST } from "../data/eventChecklist"
 export { CORE_EVENT_STEP_KEYS } from "./workflowPolicy"
 
 /**
@@ -27,6 +28,20 @@ export const CONDITIONS: Record<StepCond, (e: Event) => boolean> = {
   access: e => e.checks?.access === true, safety: e => e.checks?.safety === true, outdoor: e => e.checks?.outdoor === true, alcohol: e => e.checks?.alcohol === true,
   drone: e => e.checks?.drone === true, media: e => e.checks?.media === true, prize: e => e.checks?.prize === true, schoolApproval: e => e.checks?.schoolApproval === true || e.headcount >= 250,
   content: e => e.checks?.content === true, rsvp: e => e.checks?.rsvp === true, large: e => e.headcount >= 250 || ["safety", "outdoor", "alcohol", "drone", "travel"].some(k => e.checks?.[k as keyof NonNullable<Event["checks"]>] === true),
+}
+
+const checklistConditions = new Set<StepCond>(EVENT_CHECKLIST.map(item => item.key))
+/** New selections mirror the event form; legacy branch and step conditions retain their rule semantics. */
+export function branchMatchesEvent(event: Event, branch?: WorkflowBranch): boolean {
+  const explicitSelections = branch?.conditions !== undefined
+  return branchConditions(branch).every(condition => {
+    if (!isWorkflowCondition(condition)) return false
+    if (!explicitSelections) return CONDITIONS[condition](event)
+    if (condition === "food") return event.food !== "none"
+    if (condition === "speaker") return event.speaker
+    if (event.checks !== undefined && checklistConditions.has(condition)) return event.checks[condition as keyof NonNullable<Event["checks"]>] === true
+    return CONDITIONS[condition](event)
+  })
 }
 
 /** The steps new events are built from: the club's own workflow if setup made one, else the standard one. */
@@ -241,7 +256,7 @@ export function stepsFor(e: Event, steps?: StepTemplate[], branches?: readonly W
   }
   const normalizedSteps = [...selected.values()]
   const definitions = resolveBranches(normalizedSteps, branches)
-  const included = new Map(normalizedSteps.filter(s => (requiresCore && isCoreStep(s)) || conditionsOf(s, definitions).every(condition => isWorkflowCondition(condition) && CONDITIONS[condition](e))).map(s => [s.key, s]))
+  const included = new Map(normalizedSteps.filter(s => (requiresCore && isCoreStep(s)) || (branchMatchesEvent(e, branchOf(s, definitions)) && (s.cond === undefined || (isWorkflowCondition(s.cond) && CONDITIONS[s.cond](e))))).map(s => [s.key, s]))
   const all = new Map(normalizedSteps.map(s => [s.key, s]))
   const resolve = (key: string, seen = new Set<string>()): string[] => {
     if (included.has(key)) return [key]

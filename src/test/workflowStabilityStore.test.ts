@@ -38,6 +38,26 @@ describe("workflow stability · business persistence", () => {
     expect(plain.nodes!.some(n => n.id === "created-plain:speaker-extra")).toBe(false)
   })
 
+  it("persists independent multi-condition snapshots and creates tasks only when all boxes match", () => {
+    const definition: WorkflowBranch = { ...branch, conditions: ["speaker", "travel"], condition: undefined }
+    const custom = { ...EVENT_STEPS.find(x => x.key === "speakerPacket")!, key: "guest-arrival", title: "Confirm arrival", custom: true, cond: undefined, placement: { branchId: definition.id, order: 0 } }
+    const saved = saveWorkflow(base(), [...EVENT_STEPS, custom], [definition])
+    definition.conditions!.push("parking")
+    expect(saved.org.eventWorkflow!.branches![0].conditions).toEqual(["speaker", "travel"])
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved))
+    const restored = loadStateWithNotice().state
+    expect(restored.org.eventWorkflow!.branches![0].conditions).toEqual(["speaker", "travel"])
+    for (const speaker of [false, true]) for (const travel of [false, true]) {
+      const op: CommandOp = { op: "create_event", name: "Fictional arrival", type: "speaker", headcount: 30, venue: "campus", food: "none", funding: "dues", speaker, checks: { travel } }
+      const result = newObjects(restored, op, "arrival", { date: "2027-04-16" })
+      const event = result.events!.find(e => e.id === "arrival")!
+      expect(result.nodes!.some(n => n.id === "arrival:guest-arrival")).toBe(speaker && travel)
+      expect(event.workflowBranches![0].conditions).toEqual(["speaker", "travel"])
+      event.workflowBranches![0].conditions!.push("access")
+      expect(restored.org.eventWorkflow!.branches![0].conditions).toEqual(["speaker", "travel"])
+    }
+  })
+
   it("creates and undoes an event branch atomically while retaining later task content", () => {
     const s = base(), eventId = "e-speaker"
     const snapshot = s.nodes.filter(n => n.eventId === eventId)
@@ -64,6 +84,13 @@ describe("workflow stability · business persistence", () => {
       const next = reducer(s, { type: "applyStepEdits", eventId: "e-speaker", edits: [{ id: `e-speaker:${key}`, patch: { placement: { branchId: "speaker", order: 2 } } }] })
       expect(next).toBe(s)
     }
+  })
+
+  it("protects Full Check from a branch with multiple requirements", () => {
+    const s = base(), eventId = "e-speaker"
+    s.events = s.events.map(event => event.id === eventId ? { ...event, workflowBranches: [{ ...branch, conditions: ["speaker", "travel"] }] } : event)
+    const result = reducer(s, { type: "applyStepEdits", eventId, edits: [{ id: `${eventId}:finalcheck`, patch: { placement: { branchId: branch.id, order: 0 } } }] })
+    expect(result).toBe(s)
   })
 
   it("retains a valid v23 event missing Full Check verbatim on read", () => {
