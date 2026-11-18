@@ -290,6 +290,9 @@ export interface Node {
   startPolicy?: "window" | "effort"
   /** Creation scope, retained for graph editing; existing event tasks are never filtered on read. */
   cond?: StepCond
+  /** Actual task overrides and work only; workflow templates remain independent. */
+  externalLinks?: import("../taskDetails/contracts").TaskExternalLink[]
+  taskWork?: import("../taskDetails/contracts").TaskWork
   /** Optional human-authored instructions; reminder facts never invent missing details. */
   instructions?: string
   completionCriteria?: string

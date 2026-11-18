@@ -416,3 +416,19 @@ Finished study task 2 after 3 min 5 s
   4. 按 Continue 那一下是 `ui.click`（`name: "Continue"`，`to: "/welcome/founder/confirm"`）。
 - **`reminderModeChoice` 怎么算（会话摘要，第 3.1 节）：** 只看 Start workspace / Keep current demo 之前的步骤。找这一屏最后一次 `leave`：前一步是 `skip` → `skipped`；否则取**离开之前、这个会话里、这一屏上最后一条勾上的 `ui.change`**，按 `testid` 换成值。日志里找不到（例如被 2000 条上限丢了）时，最新的会话再看 `state.org.settings.reminderMode`（只在按了 Start workspace 时）；都没有就是 `null`。刷新这一屏会保留草稿里的选择，刷新前那条 `ui.change` 仍在日志里，所以不影响。
 - 代码：屏幕 `src/onboarding/founder/ReminderMode.tsx`，文案 `src/onboarding/copy.ts`（`founder.reminders`），值和顺序 `src/data/reminderMode.ts`，推算 `src/lib/onboardingRecord.ts` 的 `reminderModeChoice`，时间线 `src/lib/timeline.ts`，测试 `src/test/onboardingReminderMode.test.ts`、`e2e/p3h-reminder-mode.spec.ts`。
+
+## 实际任务 Details 与通用提交（2026-11-17 增量）
+
+此增量仅作用于实际 Node，不改 Settings 的 StepTemplate/EventWorkflow；外层schema仍为23。
+
+| 字段/操作 | 含义与边界 |
+| --- | --- |
+| `Node.externalLinks[]` | 人工编辑的办理入口标签及http/https URL；未设置使用已知入口，显式空数组不补回；不写回模板 |
+| `Node.taskWork.version/revision` | 版本1的通用提交及递增内容版本；保存同时核对归属任期，未知/损坏版本不自动清空 |
+| `taskWork.drafts[]` | 按作者保留当前正文、附件ID和保存业务日；仅作者在提交编辑区看到自己的草稿，不据此标为完成或负责人回复 |
+| `taskWork.submissions[]` | 追加式已提交正文、作者、保存业务日、原负责人任期与附件ID；更正时保留旧提交，其他成员可在节点查看已发布结果 |
+| `taskWork.files[]` | 去重原文件字节与名称/大小；随业务快照和完整导出恢复，下载使用octet-stream；不自动送AI。最多5个当前附件、512KB/个、每任务含历史共2MB |
+| `saveTaskWork` | 同一次持久写入保存结果与完成；财务节点只保存材料，仍由Event Budget决定完成。业务日志仅记录正文长度和附件元数据；原UI输入日志沿用全站规则 |
+| Edit | 独立面板保存任务定义，带原定义指纹，保留成员提交；Cancel不写入。旧draftLink仍可打开，不冒充新的已提交内容 |
+
+所有日期仍由原规则引擎或演示业务时钟产生，操作时间使用原日志的`at`。当前浏览器存储不等于服务器跨设备同步；等待对象grant不能提交原任务。详情见`feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md`。

@@ -234,8 +234,8 @@ test("an owner's same-day task reply appears against the recorded recipient and 
   await expect(composer(page)).toContainText("Approved. Platypus would send it now.")
   const delivery = (await demo(page)).reminderRuntime!.deliveries[0]
   await page.goto(delivery.message!.taskUrl)
-  await page.getByTestId("single-task-page").getByRole("button", { name: "Working on it", exact: true }).click()
-  await expect(page.getByTestId("single-task-status")).toHaveText("Working on it")
+  await page.getByTestId("single-task-page").getByRole("combobox", { name: "Task status", exact: true }).selectOption("in_progress")
+  await expect(page.getByRole("combobox", { name: "Task status", exact: true })).toHaveValue("in_progress")
   await page.goto("/#/")
   await closeRail(page)
   const reply = section(page, "rq-replies").locator(`[data-node="${nodeId}"]`)

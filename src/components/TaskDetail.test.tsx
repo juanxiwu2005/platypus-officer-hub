@@ -1,130 +1,133 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { webcrypto } from "node:crypto"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { TaskDetail } from "./TaskDetail"
-import { RailProvider } from "./rail/RailContext"
 import { seedDemo } from "../data/seed"
-import { reducer, StoreProvider, useStore } from "../data/store"
+import { StoreProvider, useStore, STORAGE_KEY } from "../data/store"
 import type { DemoState, Node } from "../data/types"
-import { applySchedule, computeSchedule } from "../engine/schedule"
-import { addDays, fmtShort } from "../lib/dates"
-import { taskReminderSummary } from "../reminders/centre"
-import { createReminderRuntime } from "../reminders/engine"
-import type { ReminderDelivery } from "../reminders/contracts"
+import { applySchedule } from "../engine/schedule"
+import { fmtShort } from "../lib/dates"
 
-beforeEach(() => localStorage.clear())
-afterEach(cleanup)
-const ID = "details-test"
-function fixture(patch: Partial<Node> = {}): DemoState {
-  const base = seedDemo(undefined, "v2"), source = base.nodes.find(n => n.stepKey === "venue")!
-  const event = { ...base.events.find(e => e.id === source.eventId)!, name: "Speaker Night", date: "2027-04-16", headcount: 40, venue: "campus" as const }
-  return applySchedule({ ...base, viewerId: "alex", today: "2027-03-28", events: [event], nodes: [{ ...source, id: ID, ownerId: "jordan", status: "accepted", dependsOn: [], waitingOn: null, waitingOnPersonId: null, ...patch }], nudges: [], protocolLog: [], silenceCases: [], notifications: [], extensionRequests: [] })
+beforeEach(() => { localStorage.clear(); vi.stubGlobal("crypto", webcrypto) })
+afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
+let store: ReturnType<typeof useStore>
+function fixture(patch: Partial<Node> = {}, viewerId = "jordan"): DemoState {
+  const s = seedDemo(undefined, "v2"), source = s.nodes.find(n => n.stepKey === "venue")!
+  return applySchedule({ ...s, viewerId, today: "2027-03-28", events: s.events.map(e => e.id === source.eventId ? { ...e, name: "Speaker Night", headcount: 40, venue: "campus" } : e), nodes: [{ ...source, id: "details-task", ownerId: "jordan", status: "accepted", dependsOn: [], instructions: "Book an accessible room for 40 attendees.", ...patch }], nudges: [], protocolLog: [], silenceCases: [], notifications: [] })
 }
-let latest: DemoState
-function Live({ actorId, token }: { actorId: string; token?: string }) {
-  latest = useStore().state
-  return <TaskDetail node={latest.nodes[0]} actorId={actorId} token={token} />
-}
-function show(state = fixture(), actorId = state.viewerId, token?: string) {
-  return render(<MemoryRouter><StoreProvider initial={state}><RailProvider><Live actorId={actorId} token={token} /></RailProvider></StoreProvider></MemoryRouter>)
-}
-const nextStep = () => screen.getByRole("region", { name: "Your next step" })
-const reminderPlan = () => screen.getByRole("region", { name: "Reminder plan" })
+function Live({ token }: { token?: string }) { store = useStore(); return <TaskDetail node={store.state.nodes[0]} actorId={store.state.viewerId} token={token} /> }
+function show(state = fixture(), token?: string) { return render(<MemoryRouter><StoreProvider initial={state}><Live token={token} /></StoreProvider></MemoryRouter>) }
 
-describe("the three task detail zones", () => {
-  it("shows event/task, one prominent due and actual instructions, completion criteria and importance before folded references", async () => {
-    const state = fixture({ instructions: "Reserve an accessible room for 40 attendees and a projector.", completionCriteria: "Save the booking reference and room number.", why: "We need a confirmed location before inviting guests." })
-    show(state)
-    const detail = screen.getByTestId("task-detail"), header = detail.querySelector(".td-head")!
-    expect(header.querySelector(".td-event")!.textContent).toBe("Speaker Night")
-    expect(header.querySelectorAll(".td-focus-due")).toHaveLength(1)
-    expect(screen.getByTestId("task-due").textContent).toContain(fmtShort(computeSchedule(state).nodes[ID].club))
-    expect(screen.getByTestId("task-due").textContent).not.toMatch(/Start by|ASU|Event date/)
-    expect(nextStep().textContent).toContain("Reserve an accessible room for 40 attendees and a projector.")
-    expect(nextStep().textContent).toContain("Complete when: Save the booking reference and room number.")
-    expect(nextStep().textContent).toContain("We need a confirmed location before inviting guests.")
-    const action = within(nextStep()).getByRole("group", { name: "Where to submit" })
-    expect(within(action).getAllByRole("link")).toHaveLength(1)
-    expect(action.textContent).toContain("request entry")
+describe("the universal task page and edit drawer", () => {
+  it("shows task identity, one due, one requirement, the booking links and the universal form", () => {
+    const s = fixture(); show(s)
+    expect(screen.getByText("← Speaker Night")).toBeTruthy()
+    expect(screen.getByRole("heading", { name: s.nodes[0].title })).toBeTruthy()
+    expect(screen.getByTestId("task-due").textContent).toBe(`Due ${fmtShort(s.nodes[0].clubDeadline!)}`)
+    expect(screen.getAllByText("Book an accessible room for 40 attendees.")).toHaveLength(1)
+    expect(within(screen.getByRole("navigation", { name: "External task links" })).getAllByRole("link")).toHaveLength(3)
+    expect(screen.getByLabelText("Details").tagName).toBe("TEXTAREA")
+    expect(screen.queryByText("Reminder plan")).toBeNull()
+    expect(screen.queryByText("Why it matters:")).toBeNull()
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull()
+  })
+  it("uses the same text-and-files form for custom workflow nodes, without injecting room-specific links", () => {
+    show(fixture({ stepKey: "fictional-custom", title: "Prepare the demo", externalLinks: [{ label: "Custom platform", url: "https://example.org/work" }] }))
+    expect(screen.getByLabelText("Details")).toBeTruthy()
+    expect(screen.getByRole("link", { name: /Custom platform/ }).getAttribute("href")).toBe("https://example.org/work")
     expect(screen.queryByRole("link", { name: /Mazevo/ })).toBeNull()
-    await waitFor(() => expect(document.activeElement).toBe(within(header as HTMLElement).getByRole("heading", { level: 2 })))
   })
-
-  it("does not offer a campus room application for an off-campus venue", () => {
-    const state = fixture(); show({ ...state, events: state.events.map(e => ({ ...e, venue: "offcampus" })) })
-    expect(within(nextStep()).queryByRole("group", { name: "Where to submit" })).toBeNull()
-    expect(nextStep().textContent).toContain("Confirm the venue for 40 attendees")
+  it("does not inject campus booking links for an off-campus venue", () => {
+    const s = fixture(); show({ ...s, events: s.events.map(e => ({ ...e, venue: "offcampus" })) })
+    expect(screen.queryByRole("navigation", { name: "External task links" })).toBeNull()
   })
-
-  it.each(["absent", "v1", "invalid"] as const)("uses the shared %s reminder summary without enabling or overwriting its saved runtime", shape => {
-    const base = fixture(), enabled = reducer(base, { type: "upgradeReminderPlan" })
-    const runtime = shape === "absent" ? undefined : shape === "v1" ? { ...enabled.reminderRuntime!, version: 1 as const } : { broken: true } as unknown as DemoState["reminderRuntime"]
-    const state = { ...base, reminderRuntime: runtime }, expected = taskReminderSummary(state, ID)
-    show(state)
-    expect(screen.getByTestId("task-reminder-explanation").textContent).toBe(expected.explanation)
-    expect(within(reminderPlan()).getByRole("link", { name: "Review reminder setup" }).getAttribute("href")).toBe("/")
-    const remind = within(reminderPlan()).queryByRole("button", { name: /^Remind/ }) as HTMLButtonElement | null
-    expect(remind?.disabled ?? true).toBe(true)
-    expect(latest.reminderRuntime).toEqual(runtime)
-    expect(screen.queryByRole("button", { name: /Enable|Upgrade/ })).toBeNull()
+  it("retains existing draft materials without inventing a published submission", () => {
+    show(fixture({ draftLink: "https://example.org/existing-materials" }))
+    expect(screen.getByRole("link", { name: /Open current draft/ }).getAttribute("href")).toBe("https://example.org/existing-materials")
+    expect(store.state.nodes[0].taskWork).toBeUndefined()
   })
-
-  it("shows the actual waiting recipient and stored request detail instead of offering to remind the owner", () => {
-    const enabled = reducer(fixture(), { type: "upgradeReminderPlan" })
-    const waiting = reducer({ ...enabled, viewerId: "jordan" }, { type: "replyTask", nodeId: ID, reply: "waiting", input: { waitingOn: "Please confirm the accessible entrance", waitingOnPersonId: "sam" } })
-    show({ ...waiting, viewerId: "alex" })
-    expect(reminderPlan().textContent).toContain("Sam Okafor")
-    expect(reminderPlan().textContent).toContain("Please confirm the accessible entrance")
-    expect(within(reminderPlan()).getByRole("button", { name: "Remind Sam" })).toBeTruthy()
-    expect(within(reminderPlan()).queryByRole("button", { name: "Remind Jordan" })).toBeNull()
+  it("saves the draft without completion, restores it on refresh, and publishes files with completion", async () => {
+    show()
+    fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Student Union, Room 204" } })
+    fireEvent.change(screen.getByLabelText("Attach files"), { target: { files: [new File(["hello"], "booking.txt", { type: "text/plain" }), new File(["plan"], "room.txt", { type: "text/plain" })] } })
+    await screen.findByRole("button", { name: "Download booking.txt" })
+    fireEvent.click(screen.getByRole("button", { name: "Save draft" }))
+    expect(store.state.nodes[0].status).toBe("accepted")
+    expect(store.state.nodes[0].taskWork?.files).toHaveLength(2)
+    const draft = store.state; cleanup(); show(draft)
+    expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Student Union, Room 204")
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    expect(store.state.nodes[0].status).toBe("done")
+    expect(store.state.nodes[0].taskWork?.submissions[0].authorId).toBe("jordan")
+    expect(screen.getByText(/Submitted by Jordan/)).toBeTruthy()
   })
-
-  it("updates the displayed reminder state from real Working then Done actions", () => {
-    const enabled = reducer(fixture(), { type: "upgradeReminderPlan" })
-    show({ ...enabled, viewerId: "jordan" })
-    fireEvent.click(screen.getByRole("button", { name: "Working on it" }))
-    expect(latest.nodes[0].status).toBe("in_progress")
-    expect(screen.getByTestId("task-reminder-explanation").textContent).toBe(taskReminderSummary(latest, ID).explanation)
-    fireEvent.click(screen.getByRole("button", { name: "Mark done" }))
-    expect(screen.getByTestId("task-reminder-explanation").textContent).toContain("complete")
-    expect(screen.queryByRole("button", { name: /^Remind/ })).toBeNull()
+  it("lets a president read a member's submission while other members get a read-only result", () => {
+    show(); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204, east entrance" } }); fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    const saved = store.state; cleanup(); show({ ...saved, viewerId: "sam" })
+    expect(screen.getByText("Room 204, east entrance")).toBeTruthy()
+    expect(screen.queryByRole("textbox", { name: "Details" })).toBeNull()
+    expect(screen.queryByRole("button", { name: /Submit|Save draft|Edit/ })).toBeNull()
+    cleanup(); show({ ...saved, viewerId: "alex" })
+    expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Room 204, east entrance")
+    expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy()
   })
-
-  it("keeps ASU deadline risks visible while private planning dates remain folded and owner-only", () => {
-    const base = fixture({ anchor: { kind: "rule", ruleId: "R03", days: 16, unit: "calendar" }, timing: undefined, ruleIds: ["R03"] })
-    const official = computeSchedule(base).nodes[ID].official!
-    show(applySchedule({ ...base, today: addDays(official, 1), nodes: base.nodes.map(n => ({ ...n, clubDeadlineOverride: addDays(official, 2) })) }))
-    expect(screen.getByRole("list", { name: "Schedule risks" }).textContent).toContain("ASU deadline")
-    expect((screen.getByTestId("why-date") as HTMLDetailsElement).open).toBe(false)
-    expect(screen.getByTestId("why-date").textContent).toContain("private planning preferences")
-    expect(screen.getByTestId("why-date").textContent).not.toContain("Personal planning start")
+  it("keeps text and files after a refused storage write without claiming completion", async () => {
+    show(); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Keep this result" } })
+    fireEvent.change(screen.getByLabelText("Attach files"), { target: { files: [new File(["hello"], "booking.txt")] } })
+    await screen.findByRole("button", { name: "Download booking.txt" })
+    const write = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key, value) { if (key === STORAGE_KEY) throw new Error("Storage full"); write.call(this, key, value) })
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toContain("not saved")
+    expect(store.state.nodes[0].status).toBe("accepted")
+    expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Keep this result")
+    expect(screen.getByRole("button", { name: "Download booking.txt" })).toBeTruthy()
   })
-
-  it("lets a vice president edit while withholding status updates for another owner's task", () => {
-    const state = fixture(), roleId = state.people.find(p => p.id === "maya")!.roleId
-    show({ ...state, viewerId: "maya", roles: state.roles.map(r => r.id === roleId ? { ...r, fn: "vice_president" } : r) })
-    expect(screen.getByTestId("task-edit")).toBeTruthy()
-    expect(screen.queryByRole("button", { name: "Working on it" })).toBeNull()
+  it("rejects unsupported files while preserving the current draft", async () => {
+    show(); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Keep me" } })
+    fireEvent.change(screen.getByLabelText("Attach files"), { target: { files: [new File(["script"], "bad.html")] } })
+    expect((await screen.findByRole("alert")).textContent).toContain("Choose a PDF")
+    expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Keep me")
   })
-
-  it("keeps folded historical recipient/task/event snapshots and marks a simulated send as a demo after reassignment", () => {
-    const state = fixture({ ownerId: "maya", ownerVersion: 1 })
-    const sent: ReminderDelivery = { id: "delivery:1", sequence: 1, candidateId: "saved-candidate", nodeId: ID, recipientId: "jordan", recipientName: "Jordan when sent", ownerId: "jordan", ownerVersion: 0, planKey: "saved-plan", reason: "start", scheduledOn: state.today, sentOn: state.today, via: "platypus", outcome: "simulated", eventName: "Original event", taskTitle: "Original room task", due: "2027-03-31" }
-    show({ ...state, reminderRuntime: { ...createReminderRuntime(state.today), sequence: 1, deliveries: [sent] } })
-    const history = screen.getByText("Reminder history (1)").closest("details") as HTMLDetailsElement
-    expect(history.open).toBe(false)
-    expect(history.textContent).toContain("Jordan when sent")
-    expect(history.textContent).toContain("Original event · Original room task")
-    expect(history.textContent).toContain("Demo: no email was sent.")
-    expect(history.textContent).not.toContain("Maya")
-    expect(latest.reminderRuntime!.deliveries[0]).toEqual(sent)
+  it("edits a task in a separate drawer, saves once, and leaves its submission and template intact", () => {
+    show(fixture({}, "alex")); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Unsubmitted member result" } })
+    const template = store.state.org.eventWorkflow
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+    const editor = screen.getByRole("dialog", { name: "Edit task" })
+    fireEvent.change(within(editor).getByLabelText("Task name"), { target: { value: "Room confirmed" } })
+    fireEvent.change(within(editor).getByLabelText("Link 2 URL"), { target: { value: "https://example.org/rooms" } })
+    expect(store.state.nodes[0].title).not.toBe("Room confirmed")
+    fireEvent.click(within(editor).getByRole("button", { name: "Save changes" }))
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(store.state.nodes[0].title).toBe("Room confirmed")
+    expect(store.state.nodes[0].externalLinks?.[1].url).toBe("https://example.org/rooms")
+    expect(store.state.org.eventWorkflow).toBe(template)
+    expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Unsubmitted member result")
   })
-
-  it("does not offer lead tools through a legacy task token even when the browser viewer is a lead", () => {
-    show(fixture(), "jordan", "legacy-token")
-    expect(screen.queryByTestId("task-edit")).toBeNull()
-    expect(screen.queryByTestId("task-matching")).toBeNull()
-    expect(screen.queryByRole("button", { name: /^Remind/ })).toBeNull()
-    expect(within(reminderPlan()).queryByRole("link", { name: /centre|setup/ })).toBeNull()
+  it("cancels editing and refuses a stale drawer after another task edit", () => {
+    show(fixture({}, "alex")); const old = store.state.nodes[0].title
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+    fireEvent.change(screen.getByLabelText("Task name"), { target: { value: "Discard me" } })
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
+    expect(store.state.nodes[0].title).toBe(old)
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }))
+    act(() => store.dispatch({ type: "updateNode", id: "details-task", patch: { title: "Newer edit" } }))
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }))
+    expect(screen.getByRole("alert").textContent).toContain("not saved")
+    expect(store.state.nodes[0].title).toBe("Newer edit")
+  })
+  it("withholds lead editing through legacy links and requires claiming before a submission", () => {
+    show(fixture({ status: "unclaimed" }), "not-an-issued-token")
+    expect(screen.queryByRole("button", { name: "Edit" })).toBeNull()
+    expect(screen.queryByLabelText("Details")).toBeNull()
+    expect(screen.getByRole("button", { name: "I've got it" })).toBeTruthy()
+  })
+  it("retains an unknown reminder runtime during ordinary edits and updates", async () => {
+    const s = fixture(), runtime = { opaque: "preserve" } as unknown as DemoState["reminderRuntime"]
+    show({ ...s, reminderRuntime: runtime })
+    fireEvent.change(screen.getByRole("combobox", { name: "Task status" }), { target: { value: "in_progress" } })
+    await waitFor(() => expect(store.state.nodes[0].status).toBe("in_progress"))
+    expect(store.state.reminderRuntime).toEqual(runtime)
   })
 })
