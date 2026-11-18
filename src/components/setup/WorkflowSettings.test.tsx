@@ -25,7 +25,7 @@ vi.mock("../flow/MetroChart", async () => {
 })
 
 let latest: DemoState
-function Details() { latest = useStore().state; return <>{useRail().workflowDetail}</> }
+function Details() { latest = useStore().state; const rail = useRail(); return <><button onClick={() => rail.setOpen(false)}>Hide test details</button><output data-testid="rail-open">{String(rail.open)}</output>{rail.workflowDetail}</> }
 function show(initial = seedDemo(undefined, "v2")) {
   render(<MemoryRouter><StoreProvider initial={initial}><RailProvider><Settings /><Details /></RailProvider></StoreProvider></MemoryRouter>)
   fireEvent.click(screen.getByRole("button", { name: "Workflow" }))
@@ -97,6 +97,15 @@ describe("workflow settings editing", () => {
     expect(operation.edits).toBeGreaterThan(0)
     expect(operation.accepted).toBe(false)
     expect(latest.org.eventWorkflow).toBeUndefined()
-    expect(screen.queryByRole("status")).toBeNull()
+    expect(within(screen.getByTestId("workflow-settings")).queryByRole("status")).toBeNull()
+  })
+
+  it("does not reopen a dismissed details rail when autosave finishes", async () => {
+    show()
+    fireEvent.change(screen.getByLabelText("Days of work"), { target: { value: "10" } })
+    fireEvent.click(screen.getByRole("button", { name: "Hide test details" }))
+    expect(screen.getByTestId("rail-open").textContent).toBe("false")
+    await waitFor(() => expect(latest.org.eventWorkflow?.steps.find(step => step.key === "budget")?.estDays).toBe(10))
+    expect(screen.getByTestId("rail-open").textContent).toBe("false")
   })
 })

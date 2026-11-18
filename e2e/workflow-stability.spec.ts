@@ -70,8 +70,8 @@ test("workflow workdays reject empty and out of range drafts then persist an int
   expect((await savedStep(page, "budget"))?.startPolicy).toBe("effort")
   await page.reload()
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
-  await openStep(page, "budget")
-  await expect(page.getByLabel("Days of work")).toHaveValue("10")
+  const restoredPanel = await openStep(page, "budget")
+  await expect(restoredPanel.getByLabel("Days of work", { exact: true })).toHaveValue("10")
 })
 
 test("Full Check stays protected in its existing details panel", async ({ page }) => {

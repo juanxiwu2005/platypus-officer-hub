@@ -1,6 +1,6 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
 import { personalBuffer } from "../engine/schedule"
-import { Fragment, useEffect, useRef, useState } from "react"
+import { Fragment, useCallback, useEffect, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
@@ -131,12 +131,13 @@ function WorkflowSettings() {
   const { state, tryDispatch } = useStore()
   const saved = { steps: withOwners(orgSteps(state), state.roles), branches: state.org.eventWorkflow?.branches }
   const [draft, setDraft] = useState<{ steps: StepTemplate[]; branches?: WorkflowBranch[] }>(saved)
+  const changeWorkflow = useCallback((steps: StepTemplate[], branches?: WorkflowBranch[]) => setDraft(previous => ({ steps, branches: branches ?? previous.branches })), [])
   const { status, clear, retry } = useAutosave(draft, saved, v => validateWorkflow(v.steps, state.roles, v.branches), v => tryDispatch({ type: "saveWorkflow", steps: v.steps, branches: v.branches }))
   const issues = checkWorkflow(draft.steps, state.roles, state, draft.branches)
   return <section className="card form-stack" data-testid="workflow-settings">
     <h2>Event workflow</h2>
     <p className="small muted">New events start from this workflow. {state.org.eventWorkflow?.summary ?? "It is the standard workflow."} Events you already made keep their own steps.</p>
-    <WorkflowPanel state={state} steps={draft.steps} branches={draft.branches} roles={state.roles} issues={issues} onChange={(steps, branches = draft.branches) => setDraft({ steps, branches })} />
+    <WorkflowPanel state={state} steps={draft.steps} branches={draft.branches} roles={state.roles} issues={issues} onChange={changeWorkflow} />
     <div className="action-row"><button type="button" className="btn small" onClick={() => { if (!tryDispatch({ type: "resetWorkflow" })) return; setDraft({ steps: withOwners(presetSteps(), state.roles) }); clear() }}>Go back to the standard workflow</button></div>
     <SaveStatus status={status} onRetry={retry} onUndo={(prev: typeof draft) => { const previous = { ...prev, branches: prev.branches ?? [] }; if (!tryDispatch({ type: "saveWorkflow", steps: previous.steps, branches: previous.branches })) return; setDraft(structuredClone(previous)); clear() }} />
   </section>
