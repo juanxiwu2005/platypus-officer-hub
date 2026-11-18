@@ -432,5 +432,8 @@ Finished study task 2 after 3 min 5 s
 | `taskDrafts`（完整导出） | 自动保存的私有未提交草稿及其实际文件字节；downloadExport异步收集，缺文件/保存失败时不输出虚假的完整副本；restoreTaskWorkArchive先暂存文件再返回小业务快照，无新增导入界面 |
 | `saveTaskWork` | 同一次持久写入保存结果与完成；财务节点只保存材料，仍由Event Budget决定完成。业务日志仅记录正文长度和附件元数据；原UI输入日志沿用全站规则 |
 | Edit | 独立面板保存任务定义，带原定义指纹，保留成员提交；Cancel不写入。旧draftLink仍可打开，不冒充新的已提交内容 |
+| `ExtensionRequest.requestedBy?` | 新申请记录实际操作者，与原ownerId分开；旧申请无此字段则展示原owner。reason作为可选Message，draftLink新申请可为空，旧链接仍可读；通知收件人为现任审批人与现任领导，和请求一起保存 |
+| `reviewExtension` | 当前审批岗位持有人或社长/副社长可处理；离任、改派、过期和截止日版本继续核对；持久化成功才确认，批准只改clubDeadlineOverride，不改官方学校日 |
+| Done退回 / Undo mark done | `replyTask`或负责人grant更新到todo/working/help/waiting，清除completedOn与该任务当前contribution；不删除taskWork结果和历史。Undo核对工作区、作者权限、原归属任期和本次提交revision后恢复原状态，刷新后用状态菜单重新打开；财务Done保持由Event Budget控制 |
 
 所有日期仍由原规则引擎或演示业务时钟产生，操作时间使用原日志的`at`。当前浏览器存储不等于服务器跨设备同步；等待对象grant不能提交原任务。详情见`feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md`。

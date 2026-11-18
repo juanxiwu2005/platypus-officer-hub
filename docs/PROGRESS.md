@@ -1,5 +1,7 @@
-> **2026-11-17（America/Phoenix） · 延期申请简化、自动通知与完成退回进行中（Codex）**
-> **用户授权：** Need more time移除Current draft link，说明改Message以区别成果Details；Request extension保存后自动通知对应审批人/社长，截止日仍待审批后变更。Submit & mark done误点可撤回或改回其他状态，保留正文与附件、同步清理完成标记与积分；覆盖普通节点与负责人邮件入口，财务完成权仍归Event Budget。沿用PR14，不新建PR、不合并main；保留Settings工作流及原稿的同期工作，0真实AI/邮件投递。
+> **2026-11-17（America/Phoenix） · 延期申请、自动站内通知与完成退回完成检查，待验收（Codex）**
+> **结果：** Need more time去掉Current draft link，仅保留Requested club deadline和可选Message；Request extension将申请和给现任审批人/社长/副社长的通知一起保存，点通知直接在任务内审批，批准前保留原日期与状态。普通任务完成后Undo mark done紧邻提交操作，刷新后仍能从状态菜单改回To do/Working/Stuck/Waiting；保留正文/附件/版本，清除完成标记及积分，提醒下游重新核对依赖。财务Done仍由Event Budget管理，负责人邮件入口同权，协助grant不扩权。[交付与验收](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)。
+> **验证：** 本轮运行时代码3865ea5＋dd94d7f，合并保留同期工作流至c3cfda1与v3原稿0ad5c08。最终合并候选12文件211相关单元/组件通过，操作区摆放后14组件项再过；生产构建首轮双端30通过/2设备限定跳过，最终合并及摆放调整后的通知直达审批/邮件归属/Undo与状态恢复/入口预算8项复验通过（不重复累加）。lint、前后端类型、build、独立CSS、9页字数通过；最终入口545,969/550,000，Settings147/150，门槛不变。手机/桌面截图已查看，审批界面严重/关键axe及手机Undo无溢出通过；未重复全站门禁。
+> **验收与边界：** [preview14 Tasks](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/tasks) → Task status → Need more time；切换社长点铃铛通知审批。提交完成后Undo，或刷新后从Task status退回，检查结果与附件保留。当前为同浏览器站内通知，0真实AI/外部邮件；沿用PR14，不新建PR、不合并main。PRODUCT_PLAN/RULES/字典已同步，需要同步本地备份。
 
 > **2026-11-17（America/Phoenix） · Workflow连线简化、岗位分支与节点类型完成检查，待验收（Codex/Data/UI/Graph/Review worktree）**
 > **结果：** 双击／双击触摸连线完全无操作，删线菜单移除；原hover代码由ENABLE_LINK_HOVER=false关闭。模板Done by同时更新岗位与同侧同条件分支，无合适分支时新建岗位分支，保留全部依赖和日期配置，主干汇合点留main。右侧第一项Step type可选core/situation，前后新增继承被点击节点，刷新与Undo完整保留。分类与现有表单条件独立，未来team/role及event intake映射备注已写入源码；运行时代码`3f731a5`。
@@ -509,6 +511,8 @@
 - 要问 Marcie：论文题目里的 “cloud-Excel-based” 是否要改；深访作为设计依据的写法是否合适。
 
 ## 交接记录（最新的在最上面）
+
+- **2026-11-17（America/Phoenix） · Codex：** 完成Need more time的Message/无草稿链接申请、自动审批人/领导站内通知与任务内审批；Undo mark done邻近提交，Done可从状态菜单退回，结果/附件保留，积分及依赖同步。代码3865ea5＋dd94d7f，保留c3cfda1同期工作流和0ad5c08原稿。211相关单元/组件与生产双端30浏览器通过/2设备限定跳过，最终关键8项复验全过；类型/build/lint/字数通过，入口545,969/550,000。见[交付](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)；站内演示、不合并main。PRODUCT_PLAN/RULES/字典更新，需要同步本地备份。
 
 - **2026-11-17（America/Phoenix） · Codex：** 附件改3个、2MB/个、当前合计5MB；Details/附件自动保存，切换任务保留、失败重试和双标签防覆盖，完整导出补齐自动草稿与文件字节。8文件127单元/组件、生产双端分批26浏览器通过/2设备限定跳过，lint/前后端类型/build/9页字数通过，入口544,140/550,000。沿用preview14，在实际节点填写、上传后直接切换和刷新验收；Settings并行源码保留。见[交付增量](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)；仍单浏览器，不合并main。PRODUCT_PLAN更新，需要同步本地备份。
 
