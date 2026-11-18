@@ -30,6 +30,8 @@ export default defineConfig({
           if (/\/node_modules\/(react|react-dom|scheduler)\//.test(id)) return "react-runtime"
           // The shared deterministic reminders have no store or UI dependency.
           if (/\/src\/reminders\/(engine|runtime)\.ts$/.test(id)) return "reminder-rules"
+          // Graph commands and layout are pure, shared rules with no store or React dependency.
+          if (/\/src\/(?:engine\/workflow(?:Branches|Policy)|lib\/(?:flowEdit|flowOrder|stepOrder|workflowEffort)|components\/flow\/metro)\.ts$/.test(id)) return "workflow-rules"
         },
       },
     },
