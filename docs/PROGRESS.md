@@ -5,6 +5,10 @@
 > **授权与交付：** 链接和Details易用性暂缓；工作量/日期两者都查，方案后连续实施全部阶段。[详细方案](feedback-fix/WORKFLOW_STABILITY_PLAN.md)先保存后执行；运行时代码`18d7316`修移动不更新、插入跑分支、工时输入与开始提醒、Full Check保护及条件泄漏，接通明确before/after、汇合点选分支与Add branch。旧v23历史、完整Undo及后来保存的任务内容保留。
 > **验证与验收：** [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow；[交付记录](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)。分批1665单元/组件通过、1慢枚举未跑；最终生产构建双端76通过/2设备限定跳过。类型、build、lint、9页文字预算通过，Settings147/150，完整部署元数据入口544,207/550,000，上限未提高。代码`18d7316`的Netlify部署success已核对。保留`5758c2d`同期实际任务Details及设计原稿，未重做其界面或链接。0真实AI/邮件，不新建PR、不合并main。需要同步本地备份。
 
+> **2026-11-17（America/Phoenix） · 任务附件提额与草稿全自动保存进行中（Codex）**
+> **授权：** Juanxi要求每个附件2MB、总计4或5MB、最多3个，并要求选择附件和编辑Details后自动保存，切换task不丢失。本轮选总计5MB；沿用PR #14，不新增PR、不合并main，不触碰Settings模板的并行工作。
+> **实现边界：** 附件原始字节迁至浏览器文件存储，避免5MB附件转base64撑满localStorage；保留旧正文/附件读取和业务导出恢复。草稿自动保存独立于正式提交和完成，后台上传可跨任务切换继续，明确显示保存状态和失败重试；权限、归属变化、并发副本与邮件入口继续核对。
+
 > **2026-11-17（America/Phoenix） · 五屏原稿已保存，onboarding 4＋6图形方案待用户选择（Codex）**
 > **已保存：** `923a123`将用户喜欢的五屏完整源码按字节归档到`docs/prototypes/work-group-assignment/v1/`，原件SHA-256一致。第二至第五屏冻结；只有用户说“可以了，进行下一步”，才推进新建活动的下一轮讨论，不自动开发。
 > **本轮：** `v2-onboarding/`保存4种职位层级/姓名/email方案，以及6种完整模板分组方案。直接使用e87b19c的46项模板与43条依赖；46个短名恰好两个英文词且唯一，完整名称和要求保留。仅界面稿，未改src、public、schema或其他线程的任务Details/Workflow修复。
