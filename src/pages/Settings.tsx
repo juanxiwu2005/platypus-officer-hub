@@ -11,7 +11,7 @@ import { MAX_ROLES, newRole, rederiveFn, withBelow } from "../data/structure"
 import { WorkflowPanel } from "../components/setup/WorkflowPanel"
 import { orgSteps } from "../engine/playbooks"
 import { checkWorkflow, presetSteps, withOwners } from "../engine/workflow"
-import type { StepTemplate } from "../data/types"
+import type { StepTemplate, WorkflowBranch } from "../data/types"
 import { validateWorkflow } from "../data/settings"
 import { clubDraft, profilePatch, validateClub, validateDefaults, validateProfile, type ClubDraft } from "../data/settings"
 import type { OrgSettings, Person, Role } from "../data/types"
@@ -128,17 +128,17 @@ function SaveStatus<T>({ status, onUndo, onRetry }: { status: { text: string; un
 
 /** The club's event workflow, after setup: the same edit module. New events start from it; events already made keep their steps. */
 function WorkflowSettings() {
-  const { state, dispatch } = useStore()
-  const saved = withOwners(orgSteps(state), state.roles)
-  const [steps, setSteps] = useState<StepTemplate[]>(saved)
-  const { status, clear } = useAutosave(steps, saved, v => validateWorkflow(v, state.roles), v => dispatch({ type: "saveWorkflow", steps: v }))
-  const issues = checkWorkflow(steps, state.roles, state)
+  const { state, tryDispatch } = useStore()
+  const saved = { steps: withOwners(orgSteps(state), state.roles), branches: state.org.eventWorkflow?.branches }
+  const [draft, setDraft] = useState<{ steps: StepTemplate[]; branches?: WorkflowBranch[] }>(saved)
+  const { status, clear, retry } = useAutosave(draft, saved, v => validateWorkflow(v.steps, state.roles, v.branches), v => tryDispatch({ type: "saveWorkflow", steps: v.steps, branches: v.branches }))
+  const issues = checkWorkflow(draft.steps, state.roles, state, draft.branches)
   return <section className="card form-stack" data-testid="workflow-settings">
     <h2>Event workflow</h2>
     <p className="small muted">New events start from this workflow. {state.org.eventWorkflow?.summary ?? "It is the standard workflow."} Events you already made keep their own steps.</p>
-    <WorkflowPanel state={state} steps={steps} roles={state.roles} issues={issues} onChange={setSteps} />
-    <div className="action-row"><button type="button" className="btn small" onClick={() => { dispatch({ type: "resetWorkflow" }); setSteps(withOwners(presetSteps(), state.roles)); clear() }}>Go back to the standard workflow</button></div>
-    <SaveStatus status={status} onUndo={(prev: StepTemplate[]) => { dispatch({ type: "saveWorkflow", steps: prev }); setSteps(prev); clear() }} />
+    <WorkflowPanel state={state} steps={draft.steps} branches={draft.branches} roles={state.roles} issues={issues} onChange={(steps, branches = draft.branches) => setDraft({ steps, branches })} />
+    <div className="action-row"><button type="button" className="btn small" onClick={() => { if (!tryDispatch({ type: "resetWorkflow" })) return; setDraft({ steps: withOwners(presetSteps(), state.roles) }); clear() }}>Go back to the standard workflow</button></div>
+    <SaveStatus status={status} onRetry={retry} onUndo={(prev: typeof draft) => { const previous = { ...prev, branches: prev.branches ?? [] }; if (!tryDispatch({ type: "saveWorkflow", steps: previous.steps, branches: previous.branches })) return; setDraft(structuredClone(previous)); clear() }} />
   </section>
 }
 
