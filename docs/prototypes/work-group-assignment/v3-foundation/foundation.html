@@ -1,0 +1,1109 @@
+<div id="platypus-foundation-v3">
+<style>
+#platypus-foundation-v3{--pf-bg:light-dark(#fbfaf7,#0f1312);--pf-paper:light-dark(#fff,#171c1b);--pf-soft:light-dark(#f3f1ec,#1d2322);--pf-ink:light-dark(#1b1f1d,#eceeed);--pf-sub:light-dark(#5b625e,#a2aaa6);--pf-line:light-dark(#e5e2da,#2a312f);--pf-teal:light-dark(#0f766e,#3fb8a8);--pf-tealtext:light-dark(#0b5a54,#7fd6ca);--pf-tint:light-dark(#e4f1ef,#14302c);--pf-on:light-dark(#fff,#06201d);--pf-fin:light-dark(#986900,#e7bc65);--pf-market:light-dark(#7855a2,#c5a6ec);--pf-lead:light-dark(#4c709c,#9dbfe3);--pf-error:light-dark(#a43a32,#ffa59b);color:var(--pf-ink);background:var(--pf-bg);font:15px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;min-width:0;text-align:left;color-scheme:light dark}
+#platypus-foundation-v3 *{box-sizing:border-box}#platypus-foundation-v3 [hidden]{display:none!important}
+#platypus-foundation-v3 button,#platypus-foundation-v3 input,#platypus-foundation-v3 select{font:inherit;color:inherit}#platypus-foundation-v3 button{cursor:pointer}#platypus-foundation-v3 button:disabled{cursor:default;opacity:.45}
+#platypus-foundation-v3 h1,#platypus-foundation-v3 h2,#platypus-foundation-v3 h3,#platypus-foundation-v3 p{margin:0}#platypus-foundation-v3 h1,#platypus-foundation-v3 h2,#platypus-foundation-v3 h3{font-family:ui-serif,Georgia,'Times New Roman',serif;font-weight:600;line-height:1.15}
+#platypus-foundation-v3 h1{font-size:32px}#platypus-foundation-v3 h2{font-size:25px}#platypus-foundation-v3 h3{font-size:21px}
+#platypus-foundation-v3 .pf-chrome{padding:20px 28px;border-bottom:1px solid var(--pf-line);display:flex;gap:28px;align-items:center;padding-right:108px}#platypus-foundation-v3 .pf-brand{font:600 23px Georgia,serif;display:flex;align-items:center;gap:10px}#platypus-foundation-v3 .pf-mark{background:var(--pf-teal);width:17px;height:22px;border-radius:9px 9px 4px 4px;transform:rotate(-12deg)}
+#platypus-foundation-v3 .pf-progress{display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--pf-sub);font-size:12px}#platypus-foundation-v3 .pf-progress strong{color:var(--pf-tealtext);font-weight:600}
+#platypus-foundation-v3 .pf-main{padding:32px 28px 22px}#platypus-foundation-v3 .pf-eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--pf-tealtext);margin-bottom:10px}#platypus-foundation-v3 .pf-sub{color:var(--pf-sub)}#platypus-foundation-v3 .pf-intro{margin-top:10px;font-size:16px}
+#platypus-foundation-v3 .pf-tabs{display:flex;gap:28px;border-bottom:1px solid var(--pf-line);margin:24px 0}#platypus-foundation-v3 .pf-tab{background:transparent;border:0;padding:10px 0 13px;color:var(--pf-sub);border-bottom:3px solid transparent}#platypus-foundation-v3 .pf-tab[aria-selected=true]{color:var(--pf-tealtext);border-color:var(--pf-teal);font-weight:600}
+#platypus-foundation-v3 .pf-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px}#platypus-foundation-v3 .pf-spread{justify-content:space-between}#platypus-foundation-v3 .pf-actions{display:flex;flex-wrap:wrap;gap:8px}#platypus-foundation-v3 .pf-button{border:1px solid var(--pf-line);background:var(--pf-paper);border-radius:10px;padding:9px 13px;min-height:40px;font-size:13px}#platypus-foundation-v3 .pf-button:hover{border-color:var(--pf-teal)}#platypus-foundation-v3 .pf-button.pf-primary{background:var(--pf-teal);color:var(--pf-on);border-color:var(--pf-teal)}#platypus-foundation-v3 .pf-quiet{background:transparent;border:0;color:var(--pf-tealtext);padding:8px 0;font-size:13px;text-align:left}
+#platypus-foundation-v3 .pf-note{font-size:13px;color:var(--pf-sub)}#platypus-foundation-v3 .pf-count{font-size:12px;color:var(--pf-sub)}#platypus-foundation-v3 .pf-sectionbar{margin-bottom:20px}#platypus-foundation-v3 .pf-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 7px;border-radius:6px;background:var(--pf-tint);color:var(--pf-tealtext)}
+#platypus-foundation-v3 input,#platypus-foundation-v3 select{min-width:0;max-width:100%;width:100%;border:1px solid var(--pf-line);background:var(--pf-paper);border-radius:9px;padding:8px 10px;min-height:39px;font-size:14px}#platypus-foundation-v3 label{display:grid;gap:5px;font-size:12px;color:var(--pf-sub)}#platypus-foundation-v3 .pf-inline-input{border-color:transparent;background:transparent;padding:0;min-height:28px;border-radius:3px}#platypus-foundation-v3 .pf-inline-input:hover,#platypus-foundation-v3 .pf-inline-input:focus{border-color:var(--pf-line);background:var(--pf-paper)}
+#platypus-foundation-v3 .pf-leadership{max-width:600px;margin:0 auto 30px;display:grid;gap:18px;position:relative}#platypus-foundation-v3 .pf-leadership:before{content:'';position:absolute;top:40px;bottom:-30px;left:50%;width:2px;background:var(--pf-line)}
+#platypus-foundation-v3 .pf-role{position:relative;padding:16px;background:var(--pf-paper);border:1px solid var(--pf-line);border-radius:14px;box-shadow:0 2px 3px color-mix(in srgb,var(--pf-ink) 3%,transparent);min-width:0}#platypus-foundation-v3 .pf-role.pf-chief{background:var(--pf-tint);border-color:color-mix(in srgb,var(--pf-teal) 30%,var(--pf-line))}
+#platypus-foundation-v3 .pf-role-top{display:flex;gap:8px;align-items:flex-start}#platypus-foundation-v3 .pf-role-fields{flex:1;min-width:0;display:grid;gap:3px}#platypus-foundation-v3 .pf-role input[data-field=title]{font:600 20px/1.3 Georgia,serif}#platypus-foundation-v3 .pf-role input[data-field=name]{font-size:15px}#platypus-foundation-v3 .pf-role input[data-field=email]{font-size:12px;color:var(--pf-sub)}
+#platypus-foundation-v3 .pf-handle{background:transparent;border:0;color:var(--pf-sub);font-size:22px;line-height:1;padding:2px 5px;touch-action:none;cursor:grab}#platypus-foundation-v3 .pf-handle:active{cursor:grabbing}#platypus-foundation-v3 .pf-role-foot{display:flex;align-items:center;gap:6px;margin-top:13px;padding-top:10px;border-top:1px solid var(--pf-line)}#platypus-foundation-v3 .pf-role-foot select{font-size:12px;min-height:31px;padding:3px 6px;flex:1}#platypus-foundation-v3 .pf-report{font-size:11px;color:var(--pf-sub);margin-top:7px}
+#platypus-foundation-v3 .pf-departments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;position:relative}#platypus-foundation-v3 .pf-team{padding:16px;background:var(--pf-soft);border:2px solid transparent;border-radius:17px;display:flex;flex-direction:column;gap:12px;min-width:0}#platypus-foundation-v3 .pf-team.pf-over{border-color:var(--pf-teal);background:var(--pf-tint)}#platypus-foundation-v3 .pf-team-heading{display:flex;gap:6px;align-items:center}#platypus-foundation-v3 .pf-dot{width:8px;height:8px;border-radius:50%;background:var(--pf-category,var(--pf-teal));display:inline-block;flex-shrink:0}#platypus-foundation-v3 .pf-team-name{font-size:15px;font-weight:600;letter-spacing:.03em}#platypus-foundation-v3 .pf-team .pf-lead-select{font-size:12px;padding:5px 8px;min-height:32px}#platypus-foundation-v3 .pf-drop{min-height:104px;border:1px dashed var(--pf-line);border-radius:12px;display:grid;place-items:center;text-align:center;padding:18px;color:var(--pf-sub);font-size:13px}#platypus-foundation-v3 .pf-add-in-team{margin-top:auto;width:100%;border:1px dashed var(--pf-line);background:transparent;border-radius:10px;padding:10px;color:var(--pf-tealtext);font-size:13px}
+#platypus-foundation-v3 .pf-tray{margin-top:24px;padding-top:20px;border-top:1px solid var(--pf-line)}#platypus-foundation-v3 .pf-tray-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:12px}#platypus-foundation-v3 .pf-tray.pf-over{background:var(--pf-tint)}
+#platypus-foundation-v3 .pf-ghost{position:fixed;z-index:30;pointer-events:none;opacity:.9;width:250px;box-shadow:0 15px 35px color-mix(in srgb,var(--pf-ink) 16%,transparent)}#platypus-foundation-v3 .pf-drag-source{opacity:.25}
+#platypus-foundation-v3 .pf-team-pills{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}#platypus-foundation-v3 .pf-pill{border:1px solid var(--pf-line);background:var(--pf-paper);padding:7px 11px;border-radius:20px;display:flex;align-items:center;gap:7px;font-size:12px}#platypus-foundation-v3 .pf-pill[aria-pressed=true]{border-color:var(--pf-teal);background:var(--pf-tint)}
+#platypus-foundation-v3 .pf-canvas-shell{border:1px solid var(--pf-line);border-radius:16px;overflow:hidden;background:var(--pf-paper)}#platypus-foundation-v3 .pf-canvas-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;flex-wrap:wrap;border-bottom:1px solid var(--pf-line);background:var(--pf-paper)}#platypus-foundation-v3 .pf-canvas-toolbar .pf-button{padding:6px 10px;min-height:34px;font-size:12px}
+#platypus-foundation-v3 .pf-stage{height:430px;overflow:hidden;position:relative;touch-action:none;background-color:var(--pf-bg);background-image:radial-gradient(var(--pf-line) 1px,transparent 1px);background-size:20px 20px;cursor:grab;isolation:isolate}#platypus-foundation-v3 .pf-stage:active{cursor:grabbing}#platypus-foundation-v3 .pf-world{position:absolute;transform-origin:0 0;width:2900px;height:840px;will-change:transform}#platypus-foundation-v3 .pf-edges{position:absolute;inset:0;width:2900px;height:840px;overflow:visible;pointer-events:none;color:var(--pf-sub)}#platypus-foundation-v3 .pf-edge{fill:none;stroke:currentColor;stroke-width:1.3;stroke-linejoin:round;vector-effect:non-scaling-stroke}#platypus-foundation-v3 .pf-edge.pf-suggested,#platypus-foundation-v3 .pf-edge.pf-draft{stroke-dasharray:5 4}#platypus-foundation-v3 .pf-edge.pf-near{color:var(--pf-teal);stroke-width:2}#platypus-foundation-v3 .pf-node{position:absolute;width:280px;height:230px;background:var(--pf-paper);border:2px solid var(--pf-line);border-radius:16px;padding:calc(6px / var(--pf-z,1));display:flex;flex-direction:column;gap:calc(2px / var(--pf-z,1));cursor:default;box-shadow:0 4px 10px color-mix(in srgb,var(--pf-ink) 3%,transparent)}#platypus-foundation-v3 .pf-node.pf-selected{border-color:var(--pf-teal);background:var(--pf-tint)}#platypus-foundation-v3 .pf-node.pf-dim{opacity:.38}#platypus-foundation-v3 .pf-node-title{font-family:Georgia,serif;font-weight:600;font-size:max(23px,calc(12px / var(--pf-z,1)));line-height:1.16;text-align:left;padding:0;border:0;background:transparent;overflow-wrap:break-word}
+#platypus-foundation-v3 .pf-node-team{display:flex;gap:calc(3px / var(--pf-z,1));align-items:center;font-size:max(15px,calc(11px / var(--pf-z,1)));line-height:1.15;color:var(--pf-sub)}#platypus-foundation-v3 .pf-node-team .pf-dot{width:calc(5px / var(--pf-z,1));height:calc(5px / var(--pf-z,1))}#platypus-foundation-v3 .pf-node-team-label{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;min-width:0}#platypus-foundation-v3 .pf-node-preview{display:none;flex-wrap:wrap;gap:5px;margin-top:8px}#platypus-foundation-v3 .pf-stage.pf-detailed .pf-node-preview{display:flex}#platypus-foundation-v3 .pf-node-task{border:1px solid var(--pf-line);border-radius:6px;background:var(--pf-soft);padding:3px 6px;font-size:max(13px,calc(11px / var(--pf-z,1)));line-height:1.2}#platypus-foundation-v3 .pf-node-count{margin-top:auto;font-size:max(14px,calc(11px / var(--pf-z,1)));line-height:1.2;color:var(--pf-sub)}#platypus-foundation-v3 .pf-node-grip{position:absolute;inset:0 0 auto;height:calc(6px / var(--pf-z,1));touch-action:none;cursor:grab;border-radius:16px 16px 0 0;background:color-mix(in srgb,var(--pf-category,var(--pf-teal)) 25%,transparent)}
+#platypus-foundation-v3 .pf-port{position:absolute;top:50%;width:calc(13px / var(--pf-z,1));height:calc(20px / var(--pf-z,1));transform:translateY(-50%);border:1px solid var(--pf-line);background:var(--pf-paper);border-radius:5px;padding:0;color:var(--pf-tealtext);font-size:max(17px,calc(11px / var(--pf-z,1)));line-height:1}#platypus-foundation-v3 .pf-in{left:calc(-9px / var(--pf-z,1))}#platypus-foundation-v3 .pf-out{right:calc(-9px / var(--pf-z,1))}#platypus-foundation-v3 .pf-port.pf-connecting{background:var(--pf-teal);color:var(--pf-on)}
+#platypus-foundation-v3 .pf-legend{padding:10px 12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--pf-line);font-size:11px;color:var(--pf-sub)}#platypus-foundation-v3 .pf-linekey{display:inline-block;width:22px;border-top:1px solid var(--pf-sub);vertical-align:middle;margin-right:5px}#platypus-foundation-v3 .pf-linekey.pf-dashed{border-top-style:dashed}#platypus-foundation-v3 .pf-canvas-status{position:absolute;bottom:12px;left:12px;background:var(--pf-paper);border:1px solid var(--pf-line);border-radius:8px;padding:5px 9px;color:var(--pf-sub);font-size:11px;pointer-events:none}
+#platypus-foundation-v3 .pf-inspector{margin-top:20px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:25px;background:var(--pf-paper);padding:22px;border:1px solid var(--pf-line);border-radius:15px}#platypus-foundation-v3 .pf-task-grid{display:flex;gap:7px;flex-wrap:wrap;margin-top:13px}#platypus-foundation-v3 .pf-task{border:1px solid var(--pf-line);border-radius:8px;padding:8px 10px;background:var(--pf-soft);font-size:12px}#platypus-foundation-v3 .pf-task[aria-pressed=true]{border-color:var(--pf-teal);background:var(--pf-tint);color:var(--pf-tealtext)}#platypus-foundation-v3 .pf-task-detail{margin-top:12px;font-size:13px;line-height:1.55}#platypus-foundation-v3 .pf-roster{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}#platypus-foundation-v3 .pf-person-chip{font-size:12px;background:var(--pf-soft);border-radius:6px;padding:4px 7px}#platypus-foundation-v3 .pf-assignment{border-left:1px solid var(--pf-line);padding-left:24px}#platypus-foundation-v3 .pf-field{margin-top:13px}#platypus-foundation-v3 details{font-size:13px;margin-top:20px}#platypus-foundation-v3 summary{color:var(--pf-tealtext);cursor:pointer}#platypus-foundation-v3 .pf-connection{display:flex;gap:8px;align-items:end;margin-top:12px;flex-wrap:wrap}#platypus-foundation-v3 .pf-connection label{flex:1;min-width:120px}#platypus-foundation-v3 .pf-edge-list{display:grid;gap:8px;margin-top:14px}#platypus-foundation-v3 .pf-edge-row{display:flex;gap:12px;align-items:center;justify-content:space-between;font-size:12px;padding:5px 0;border-bottom:1px solid var(--pf-line)}
+#platypus-foundation-v3 .pf-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-top:28px;padding-top:18px;border-top:1px solid var(--pf-line)}#platypus-foundation-v3 .pf-status{font-size:12px;min-height:22px;color:var(--pf-tealtext);margin-top:12px}#platypus-foundation-v3 .pf-error{color:var(--pf-error)}
+#platypus-foundation-v3 .pf-editor{margin:16px 0 24px;padding:20px;border:1px solid var(--pf-teal);border-radius:14px;background:var(--pf-paper)}#platypus-foundation-v3 .pf-editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:15px 0}#platypus-foundation-v3 .pf-editor h3{font-size:22px}#platypus-foundation-v3 .pf-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:760px){#platypus-foundation-v3 .pf-chrome{padding:16px 20px;padding-right:100px;display:block}#platypus-foundation-v3 .pf-progress{margin-top:12px;gap:5px 11px}#platypus-foundation-v3 .pf-main{padding:24px 18px}#platypus-foundation-v3 h1{font-size:28px}#platypus-foundation-v3 .pf-departments,#platypus-foundation-v3 .pf-tray-cards{grid-template-columns:repeat(2,minmax(0,1fr))}#platypus-foundation-v3 .pf-inspector{grid-template-columns:1fr;padding:16px}#platypus-foundation-v3 .pf-assignment{padding-left:0;padding-top:16px;border-left:0;border-top:1px solid var(--pf-line)}#platypus-foundation-v3 .pf-stage{height:430px}}
+@media(max-width:500px){#platypus-foundation-v3 .pf-departments,#platypus-foundation-v3 .pf-tray-cards,#platypus-foundation-v3 .pf-editor-grid{grid-template-columns:1fr}#platypus-foundation-v3 .pf-role input[data-field=email]{font-size:14px}#platypus-foundation-v3 .pf-stage{height:400px}#platypus-foundation-v3 .pf-connection label{min-width:100%;flex-basis:100%}}
+@media(pointer:coarse){#platypus-foundation-v3 .pf-stage.pf-detailed .pf-node-preview{display:none}#platypus-foundation-v3 input,#platypus-foundation-v3 select{font-size:16px;min-height:44px}#platypus-foundation-v3 .pf-button,#platypus-foundation-v3 .pf-handle,#platypus-foundation-v3 .pf-tab,#platypus-foundation-v3 .pf-task,#platypus-foundation-v3 .pf-quiet{min-height:44px}#platypus-foundation-v3 .pf-role-foot select{min-height:44px}}
+</style>
+<div class="pf-chrome"><div class="pf-brand"><span class="pf-mark" aria-hidden="true"></span>Platypus</div><div class="pf-progress" aria-label="Setup progress"><span>Name</span><span>Constitution</span><span>Goals</span><strong>Team</strong><span>First event</span><span>Reminders</span><span>Confirm</span><span>Invite</span></div></div>
+<main class="pf-main">
+<div class="pf-eyebrow">Step 4 of 8 · Team</div><h1 id="pf-heading">Build your team.</h1><p class="pf-intro pf-sub" id="pf-intro">Create teams. Place roles. Keep everyone connected.</p>
+<div class="pf-tabs" role="tablist" aria-label="Team setup"><button type="button" class="pf-tab" id="pf-people-tab" role="tab" aria-selected="true" aria-controls="pf-people">People</button><button type="button" class="pf-tab" id="pf-work-tab" role="tab" aria-selected="false" aria-controls="pf-work">Work groups</button></div>
+<div id="pf-editor-host"></div>
+<section id="pf-people" role="tabpanel" aria-labelledby="pf-people-tab"></section>
+<section id="pf-work" role="tabpanel" aria-labelledby="pf-work-tab" hidden></section>
+<div class="pf-status" id="pf-status" role="status" aria-live="polite"></div>
+<div class="pf-footer"><span class="pf-note">Design draft · No invitations sent</span><div class="pf-actions"><button type="button" class="pf-button" data-action="undo" disabled>Undo</button><button type="button" class="pf-button pf-primary" data-action="save">Save draft</button></div></div>
+</main>
+<script type="application/json" id="pf-source">{
+  "version": 3,
+  "sourceCommit": "e87b19c95e6eece07a3a695fdc0438de3f92fb67",
+  "sourceFile": "src/engine/playbooks.ts",
+  "tasks": [
+    {
+      "key": "plan",
+      "title": "Event Plan",
+      "fn": "programs",
+      "phase": "plan",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Define the purpose, operating scope and backup plan before routing work.",
+      "source": "PLAN-01",
+      "index": 1,
+      "short": "Event Plan",
+      "group": "events"
+    },
+    {
+      "key": "backup",
+      "title": "Back-up Plan",
+      "fn": "programs",
+      "phase": "plan",
+      "dependsOn": [
+        "plan"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Document a workable fallback for venue, program, weather, or attendance changes.",
+      "source": "PLAN-01",
+      "index": 2,
+      "short": "Backup Plan",
+      "group": "events"
+    },
+    {
+      "key": "venuechoice",
+      "title": "Candidate Venue",
+      "fn": "programs",
+      "phase": "plan",
+      "dependsOn": [
+        "backup"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Choose a candidate venue with capacity, access and setup needs.",
+      "source": "VENUE-01",
+      "index": 3,
+      "short": "Venue Options",
+      "group": "events"
+    },
+    {
+      "key": "registry",
+      "title": "Event Registry (SDC & Special Event)",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "venuechoice"
+      ],
+      "cond": null,
+      "ruleIds": [
+        "R01"
+      ],
+      "why": "Events lead records the Event Registry submission and confirmation.",
+      "source": "R01",
+      "index": 4,
+      "short": "Event Registry",
+      "group": "events"
+    },
+    {
+      "key": "venue",
+      "title": "Book Room & Layout",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "registry"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Request and confirm the permitted room, site, layout and capacity.",
+      "source": "VENUE-01",
+      "index": 5,
+      "short": "Room Booking",
+      "group": "events"
+    },
+    {
+      "key": "moderator",
+      "title": "Moderator Lead Staffing",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "venue"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Confirm the moderator, host, and required event staffing.",
+      "source": "Organization standard",
+      "index": 6,
+      "short": "Moderator Staffing",
+      "group": "events"
+    },
+    {
+      "key": "materials",
+      "title": "Event Materials PPT Decorations",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "moderator"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Prepare the run-of-show materials, signage, slides and event items.",
+      "source": "Organization standard",
+      "index": 7,
+      "short": "Event Materials",
+      "group": "events"
+    },
+    {
+      "key": "checkin",
+      "title": "Check-in Forms Photo Release Liability",
+      "fn": "programs",
+      "phase": "run",
+      "dependsOn": [
+        "finalcheck"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Prepare photo release, liability, and check-in forms for event day.",
+      "source": "Organization standard",
+      "index": 8,
+      "short": "Check-in Forms",
+      "group": "events"
+    },
+    {
+      "key": "headcount",
+      "title": "Headcount",
+      "fn": "programs",
+      "phase": "close",
+      "dependsOn": [
+        "checkin"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Record the final attendance count after event day.",
+      "source": "Organization standard",
+      "index": 9,
+      "short": "Attendance Count",
+      "group": "events"
+    },
+    {
+      "key": "thankyou",
+      "title": "Thank You Note",
+      "fn": "secretary",
+      "phase": "close",
+      "dependsOn": [
+        "headcount"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Send a concise thank-you to attendees, partners and contributors.",
+      "source": "Organization standard",
+      "index": 10,
+      "short": "Thank-you Notes",
+      "group": "records"
+    },
+    {
+      "key": "feedback",
+      "title": "Feedback",
+      "fn": "vice_president",
+      "phase": "close",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Collect feedback and record a short reusable retrospective.",
+      "source": "CLOSE-03",
+      "index": 11,
+      "short": "Collect Feedback",
+      "group": "leadership"
+    },
+    {
+      "key": "postmarketing",
+      "title": "Post Marketing",
+      "fn": "marketing",
+      "phase": "close",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Publish an approved post-event recap or outcome update.",
+      "source": "Organization standard",
+      "index": 12,
+      "short": "Post-event Promotion",
+      "group": "marketing"
+    },
+    {
+      "key": "photoBackup",
+      "title": "Photo Backup",
+      "fn": "marketing",
+      "phase": "close",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Save and back up approved event photos or media in the organization record.",
+      "source": "Organization standard",
+      "index": 13,
+      "short": "Photo Backup",
+      "group": "marketing"
+    },
+    {
+      "key": "invoice",
+      "title": "Invoice",
+      "fn": "finance",
+      "phase": "close",
+      "dependsOn": [
+        "headcount"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Collect and verify invoices after the event.",
+      "source": "CLOSE-02",
+      "index": 14,
+      "short": "Collect Invoices",
+      "group": "finance"
+    },
+    {
+      "key": "attendance",
+      "title": "Attendance Submit",
+      "fn": "finance",
+      "phase": "close",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Submit attendance and the required business meal form.",
+      "source": "CLOSE-02",
+      "index": 15,
+      "short": "Submit Attendance",
+      "group": "finance"
+    },
+    {
+      "key": "spending",
+      "title": "Paid Reimbursed",
+      "fn": "finance",
+      "phase": "close",
+      "dependsOn": [
+        "attendance"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Confirm payment or reimbursement from the respective funding source.",
+      "source": "CLOSE-02",
+      "index": 16,
+      "short": "Settle Expenses",
+      "group": "finance"
+    },
+    {
+      "key": "financeRecord",
+      "title": "Finance Record",
+      "fn": "finance",
+      "phase": "close",
+      "dependsOn": [
+        "spending"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Record all event spending and income for tax-ready records.",
+      "source": "CLOSE-02",
+      "index": 17,
+      "short": "Finance Records",
+      "group": "finance"
+    },
+    {
+      "key": "documentation",
+      "title": "Documentation",
+      "fn": "secretary",
+      "phase": "close",
+      "dependsOn": [
+        "feedback"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Preserve approved materials, decisions and reusable event records.",
+      "source": "CLOSE-03",
+      "index": 18,
+      "short": "Archive Documents",
+      "group": "records"
+    },
+    {
+      "key": "partner",
+      "title": "Partner Meeting",
+      "fn": "programs",
+      "phase": "plan",
+      "dependsOn": [],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Align scope, roles and commitments with the outside party.",
+      "source": "SPEND-02",
+      "index": 19,
+      "short": "Partner Meeting",
+      "group": "events"
+    },
+    {
+      "key": "speakerPacket",
+      "title": "Speaker SAP Headshot",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "partner"
+      ],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Collect the speaker scope, headshot, quote and required agreement information.",
+      "source": "SPECIAL-04",
+      "index": 20,
+      "short": "Speaker Packet",
+      "group": "events"
+    },
+    {
+      "key": "travel",
+      "title": "Partner Travel Plan",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "speakerPacket"
+      ],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Document speaker or partner travel, transport and emergency coverage.",
+      "source": "TRAVEL-01",
+      "index": 21,
+      "short": "Partner Travel",
+      "group": "events"
+    },
+    {
+      "key": "partnerReview",
+      "title": "Partner Speaker Review",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "travel"
+      ],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Review partner or speaker requirements before final delivery.",
+      "source": "Organization standard",
+      "index": 22,
+      "short": "Partner Review",
+      "group": "events"
+    },
+    {
+      "key": "parking",
+      "title": "Parking Validation",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "partnerReview"
+      ],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Validate guest parking, loading, shuttle or transport needs.",
+      "source": "VENUE-02",
+      "index": 23,
+      "short": "Parking Validation",
+      "group": "events"
+    },
+    {
+      "key": "budget",
+      "title": "Budget",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "plan"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Build the budget and identify the funding source.",
+      "source": "FUND-02",
+      "index": 24,
+      "short": "Build Budget",
+      "group": "finance"
+    },
+    {
+      "key": "foodCompliance",
+      "title": "Food Exception Permit",
+      "fn": "finance",
+      "phase": "prepare",
+      "dependsOn": [
+        "budget"
+      ],
+      "cond": "externalFood",
+      "ruleIds": [
+        "R06"
+      ],
+      "why": "Resolve the food exception, permit or evidence needed before submitting a food budget.",
+      "source": "R06",
+      "index": 25,
+      "short": "Food Compliance",
+      "group": "finance"
+    },
+    {
+      "key": "quotes",
+      "title": "Quote Gather",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "foodCompliance"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Collect dated provider, speaker or vendor quotes for the budget route.",
+      "source": "FUND-04",
+      "index": 26,
+      "short": "Gather Quotes",
+      "group": "finance"
+    },
+    {
+      "key": "budgetRequest",
+      "title": "Budget Request",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "quotes",
+        "foodCompliance"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Submit the budget, public purpose and supporting quote package.",
+      "source": "FUND-02 \u00b7 FUND-04",
+      "index": 27,
+      "short": "Budget Request",
+      "group": "finance"
+    },
+    {
+      "key": "budgetApproval",
+      "title": "Budget Approval",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "budgetRequest"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Record the funding decision before any approval-dependent commitment.",
+      "source": "FUND-02",
+      "index": 28,
+      "short": "Budget Approval",
+      "group": "finance"
+    },
+    {
+      "key": "purchaseRequest",
+      "title": "Purchase Request",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "budgetApproval"
+      ],
+      "cond": null,
+      "ruleIds": [
+        "R09"
+      ],
+      "why": "Route the approved purchase through the applicable purchasing process.",
+      "source": "R09",
+      "index": 29,
+      "short": "Purchase Request",
+      "group": "finance"
+    },
+    {
+      "key": "purchaseApproval",
+      "title": "Purchase Approval",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "purchaseRequest"
+      ],
+      "cond": null,
+      "ruleIds": [
+        "R09"
+      ],
+      "why": "Record purchase approval before ordering or reimbursement.",
+      "source": "R09",
+      "index": 30,
+      "short": "Purchase Approval",
+      "group": "finance"
+    },
+    {
+      "key": "advisor",
+      "title": "Advisor Involved",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [],
+      "cond": "advisor",
+      "ruleIds": [],
+      "why": "Bring in the advisor when the event needs their participation or signature.",
+      "source": "PLAN-03",
+      "index": 31,
+      "short": "Advisor Involvement",
+      "group": "events"
+    },
+    {
+      "key": "access",
+      "title": "Accessibility Check",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "advisor"
+      ],
+      "cond": "access",
+      "ruleIds": [],
+      "why": "Confirm disability accommodations, accessible route, seating and accessible communications.",
+      "source": "VENUE-03",
+      "index": 32,
+      "short": "Accessibility Check",
+      "group": "events"
+    },
+    {
+      "key": "security",
+      "title": "Security",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "access"
+      ],
+      "cond": "safety",
+      "ruleIds": [],
+      "why": "Identify security and elevated-risk needs before preparing the event plan.",
+      "source": "RISK-01",
+      "index": 33,
+      "short": "Security Review",
+      "group": "events"
+    },
+    {
+      "key": "eams",
+      "title": "EAMS Plan",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "security"
+      ],
+      "cond": "safety",
+      "ruleIds": [],
+      "why": "Prepare the event and medical safety plan required by risk review.",
+      "source": "RISK-01",
+      "index": 34,
+      "short": "EAMS Plan",
+      "group": "events"
+    },
+    {
+      "key": "permit",
+      "title": "Permit Insurance",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "eams"
+      ],
+      "cond": "safety",
+      "ruleIds": [],
+      "why": "Resolve permit, insurance or certificate requirements returned by risk review.",
+      "source": "RISK-01",
+      "index": 35,
+      "short": "Insurance Permits",
+      "group": "events"
+    },
+    {
+      "key": "alcohol",
+      "title": "Alcohol Permit",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "permit"
+      ],
+      "cond": "alcohol",
+      "ruleIds": [
+        "SPECIAL-03"
+      ],
+      "why": "Resolve alcohol permit, venue and insurance conditions before service.",
+      "source": "SPECIAL-03",
+      "index": 36,
+      "short": "Alcohol Permit",
+      "group": "events"
+    },
+    {
+      "key": "drone",
+      "title": "Drone Approval",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "permit"
+      ],
+      "cond": "drone",
+      "ruleIds": [
+        "SPECIAL-06"
+      ],
+      "why": "Obtain the required unmanned aircraft approval before operating a drone.",
+      "source": "SPECIAL-06",
+      "index": 37,
+      "short": "Drone Approval",
+      "group": "events"
+    },
+    {
+      "key": "schoolApproval",
+      "title": "School Admin Approval",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "alcohol",
+        "drone"
+      ],
+      "cond": "schoolApproval",
+      "ruleIds": [],
+      "why": "Confirm the director, dean or college approval route for a 250+ event.",
+      "source": "PLAN-03",
+      "index": 38,
+      "short": "School Approval",
+      "group": "events"
+    },
+    {
+      "key": "marketingNeeds",
+      "title": "Marketing Needs",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Identify audience, channels, timeline, and promotion needs.",
+      "source": "Organization standard",
+      "index": 39,
+      "short": "Marketing Needs",
+      "group": "marketing"
+    },
+    {
+      "key": "contentCreation",
+      "title": "Content Creation",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "marketingNeeds"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Create approved copy, graphics, and campaign assets.",
+      "source": "Organization standard",
+      "index": 40,
+      "short": "Create Content",
+      "group": "marketing"
+    },
+    {
+      "key": "promotionItems",
+      "title": "Promotion Items",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "contentCreation"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Prepare promotional items, giveaways, or printed materials.",
+      "source": "Organization standard",
+      "index": 41,
+      "short": "Promo Items",
+      "group": "marketing"
+    },
+    {
+      "key": "rsvp",
+      "title": "Open RSVPs",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "promotionItems"
+      ],
+      "cond": "rsvp",
+      "ruleIds": [],
+      "why": "Open registration and collect attendance intent.",
+      "source": "Organization standard",
+      "index": 42,
+      "short": "Open RSVPs",
+      "group": "marketing"
+    },
+    {
+      "key": "content",
+      "title": "Content Distribution",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "rsvp"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Distribute approved campaign content through selected channels.",
+      "source": "Organization standard",
+      "index": 43,
+      "short": "Distribute Content",
+      "group": "marketing"
+    },
+    {
+      "key": "reminder",
+      "title": "Event Reminder",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "content"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Send the final reminder to registered and intended attendees.",
+      "source": "Organization standard",
+      "index": 44,
+      "short": "Event Reminder",
+      "group": "marketing"
+    },
+    {
+      "key": "orderPlaced",
+      "title": "Order Placed",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "purchaseApproval"
+      ],
+      "cond": null,
+      "ruleIds": [
+        "R09"
+      ],
+      "why": "Place approved orders and record vendor commitments.",
+      "source": "R09",
+      "index": 45,
+      "short": "Place Orders",
+      "group": "finance"
+    },
+    {
+      "key": "finalcheck",
+      "title": "Full Check Alert Changes",
+      "fn": "president",
+      "phase": "run",
+      "dependsOn": [
+        "materials",
+        "parking",
+        "orderPlaced",
+        "schoolApproval"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Check every active route, alert stakeholders to changes, and confirm readiness.",
+      "source": "CLOSE-01",
+      "index": 46,
+      "short": "Full Check",
+      "group": "leadership"
+    }
+  ],
+  "packs": [
+    {
+      "id": "planning",
+      "title": "Event Planning",
+      "taskIds": [
+        "plan",
+        "backup",
+        "venuechoice"
+      ],
+      "teamId": "operations",
+      "x": 40,
+      "y": 290
+    },
+    {
+      "id": "venue",
+      "title": "Venue Setup",
+      "taskIds": [
+        "registry",
+        "venue",
+        "moderator",
+        "materials"
+      ],
+      "teamId": "operations",
+      "x": 390,
+      "y": 30
+    },
+    {
+      "id": "partner",
+      "title": "Partner Logistics",
+      "taskIds": [
+        "partner",
+        "speakerPacket",
+        "travel",
+        "partnerReview",
+        "parking"
+      ],
+      "teamId": "operations",
+      "x": 390,
+      "y": 290
+    },
+    {
+      "id": "safety",
+      "title": "Safety Review",
+      "taskIds": [
+        "advisor",
+        "access",
+        "security",
+        "eams",
+        "permit",
+        "alcohol",
+        "drone",
+        "schoolApproval"
+      ],
+      "teamId": "operations",
+      "x": 390,
+      "y": 550
+    },
+    {
+      "id": "campaign",
+      "title": "Event Promotion",
+      "taskIds": [
+        "marketingNeeds",
+        "contentCreation",
+        "promotionItems",
+        "rsvp",
+        "content",
+        "reminder"
+      ],
+      "teamId": "marketing",
+      "x": 740,
+      "y": 30
+    },
+    {
+      "id": "funding",
+      "title": "Budget Funding",
+      "taskIds": [
+        "budget",
+        "foodCompliance",
+        "quotes",
+        "budgetRequest",
+        "budgetApproval"
+      ],
+      "teamId": "finance",
+      "x": 740,
+      "y": 550
+    },
+    {
+      "id": "purchasing",
+      "title": "Purchase Process",
+      "taskIds": [
+        "purchaseRequest",
+        "purchaseApproval",
+        "orderPlaced"
+      ],
+      "teamId": "finance",
+      "x": 1090,
+      "y": 550
+    },
+    {
+      "id": "ready",
+      "title": "Readiness Check",
+      "taskIds": [
+        "finalcheck"
+      ],
+      "teamId": "leadership",
+      "x": 1440,
+      "y": 290
+    },
+    {
+      "id": "eventday",
+      "title": "Event Delivery",
+      "taskIds": [
+        "checkin",
+        "headcount"
+      ],
+      "teamId": "operations",
+      "x": 1790,
+      "y": 290
+    },
+    {
+      "id": "financeclose",
+      "title": "Finance Closeout",
+      "taskIds": [
+        "invoice",
+        "attendance",
+        "spending",
+        "financeRecord"
+      ],
+      "teamId": "finance",
+      "x": 2140,
+      "y": 30
+    },
+    {
+      "id": "mediaclose",
+      "title": "Media Archive",
+      "taskIds": [
+        "postmarketing",
+        "photoBackup"
+      ],
+      "teamId": "marketing",
+      "x": 2140,
+      "y": 290
+    },
+    {
+      "id": "review",
+      "title": "Event Review",
+      "taskIds": [
+        "feedback"
+      ],
+      "teamId": "operations",
+      "x": 2140,
+      "y": 550
+    },
+    {
+      "id": "records",
+      "title": "Club Records",
+      "taskIds": [
+        "thankyou",
+        "documentation"
+      ],
+      "teamId": "operations",
+      "x": 2490,
+      "y": 290
+    }
+  ],
+  "edges": [
+    {
+      "from": "planning",
+      "to": "venue",
+      "origin": "template"
+    },
+    {
+      "from": "ready",
+      "to": "eventday",
+      "origin": "template"
+    },
+    {
+      "from": "eventday",
+      "to": "records",
+      "origin": "template"
+    },
+    {
+      "from": "eventday",
+      "to": "financeclose",
+      "origin": "template"
+    },
+    {
+      "from": "review",
+      "to": "records",
+      "origin": "template"
+    },
+    {
+      "from": "planning",
+      "to": "funding",
+      "origin": "template"
+    },
+    {
+      "from": "funding",
+      "to": "purchasing",
+      "origin": "template"
+    },
+    {
+      "from": "venue",
+      "to": "ready",
+      "origin": "template"
+    },
+    {
+      "from": "partner",
+      "to": "ready",
+      "origin": "template"
+    },
+    {
+      "from": "purchasing",
+      "to": "ready",
+      "origin": "template"
+    },
+    {
+      "from": "safety",
+      "to": "ready",
+      "origin": "template"
+    },
+    {
+      "from": "planning",
+      "to": "partner",
+      "origin": "suggested"
+    },
+    {
+      "from": "planning",
+      "to": "safety",
+      "origin": "suggested"
+    },
+    {
+      "from": "planning",
+      "to": "campaign",
+      "origin": "suggested"
+    },
+    {
+      "from": "campaign",
+      "to": "ready",
+      "origin": "suggested"
+    },
+    {
+      "from": "eventday",
+      "to": "mediaclose",
+      "origin": "suggested"
+    },
+    {
+      "from": "eventday",
+      "to": "review",
+      "origin": "suggested"
+    },
+    {
+      "from": "financeclose",
+      "to": "records",
+      "origin": "suggested"
+    },
+    {
+      "from": "mediaclose",
+      "to": "records",
+      "origin": "suggested"
+    }
+  ],
+  "note": "46-task frozen source snapshot. Feedback\u2192Operations carries the selected v2 mockup edit; 8 suggested links are review proposals only."
+}</script>
+<script>
+(()=>{
+const root=document.getElementById('platypus-foundation-v3');
+const data=JSON.parse(root.querySelector('#pf-source').textContent);
+const $=s=>root.querySelector(s);const $$=s=>Array.from(root.querySelectorAll(s));
+const clone=o=>JSON.parse(JSON.stringify(o));const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const people=[['alex','Alex Rivera','alex.rivera@example.org'],['jordan','Jordan Patel','jordan.patel@example.org'],['maya','Maya Chen','maya.chen@example.org'],['chris','Chris Lee','chris.lee@example.org'],['sam','Sam Okafor','sam.okafor@example.org'],['riley','Riley Brooks',''],['priya','Priya Nair','priya.nair@example.org'],['taylor','Taylor Morgan','taylor.morgan@example.org'],['jamie','Jamie Park','jamie.park@example.org']].map(([id,name,email])=>({id,name,email}));
+const roles=[['president','President','alex','leadership',null],['evp','Executive Vice President','jordan','leadership','president'],['treasurer','Treasurer','maya','finance','evp'],['fin-assoc','Finance Associate','chris','finance','treasurer'],['marketing-dir','Marketing Director','sam','marketing','evp'],['marketing-assoc','Marketing Associate','riley','marketing','marketing-dir'],['secretary','Secretary','priya','operations','evp'],['event-coord','Event Coordinator','taylor','operations','secretary'],['treasurer-2','Finance Treasurer 2','jamie',null,'evp']].map(([id,title,personId,teamId,reportsToRoleId])=>({id,title,personId,teamId,reportsToRoleId}));
+const teams=[{id:'leadership',name:'Club leadership',leadRoleId:'president',color:'lead',kind:'leadership'},{id:'finance',name:'Finance',leadRoleId:'treasurer',color:'fin',kind:'team'},{id:'marketing',name:'Marketing',leadRoleId:'marketing-dir',color:'market',kind:'team'},{id:'operations',name:'Operations',leadRoleId:'secretary',color:'teal',kind:'team'}];
+let st={version:3,people,roles,teams,packs:clone(data.packs),edges:clone(data.edges),tab:'people',selectedPack:'planning',selectedTask:null,filter:null,camera:null};
+let history=[],connectFrom=null,drag=null,editor=null,counter=0;
+function valid(s){return s&&s.version===3&&Array.isArray(s.teams)&&Array.isArray(s.roles)&&Array.isArray(s.people)&&Array.isArray(s.packs)&&Array.isArray(s.edges)}
+function incoming(s){const x=s?.privateContent?.foundationV3||s?.foundationV3;if(valid(x))st=clone(x)}
+incoming(window.openai?.widgetState);
+const team=id=>st.teams.find(t=>t.id===id);const role=id=>st.roles.find(r=>r.id===id);const person=id=>st.people.find(p=>p.id===id);const pack=id=>st.packs.find(p=>p.id===id);const tasks=id=>pack(id)?.taskIds.map(k=>data.tasks.find(t=>t.key===k)).filter(Boolean)||[];
+const members=id=>st.roles.filter(r=>r.teamId===id);const lead=id=>role(team(id)?.leadRoleId);const countTasks=id=>st.packs.filter(p=>p.teamId===id).reduce((n,p)=>n+p.taskIds.length,0);const color=id=>`var(--pf-${team(id)?.color||'teal'})`;
+function note(s,error=false){$('#pf-status').textContent=s;$('#pf-status').classList.toggle('pf-error',error)}
+function save(){const safe={version:3,view:st.tab,teamCount:st.teams.length,roleCount:st.roles.length,unplaced:members(null).length,selectedPack:st.selectedPack,packAssignments:st.packs.map(p=>({packId:p.id,teamId:p.teamId})),connections:st.edges.map(e=>({from:e.from,to:e.to,origin:e.origin}))};const snapshot={modelContent:safe,privateContent:{foundationV3:st}};if(new TextEncoder().encode(JSON.stringify(snapshot)).length>16384){note('This draft exceeds preview storage. Keep this preview open.',true);return false}try{if(!window.openai?.setWidgetState)return null;window.openai.setWidgetState(snapshot)?.catch(()=>note('Preview storage is unavailable. Keep this preview open.',true));return true}catch(e){return false}}
+function checkpoint(){history.push(clone(st));if(history.length>24)history.shift()}
+function done(message){render();const stored=save();note(stored===false?'Changes remain in this open preview; storage could not be updated.':message,stored===false)}
+function teamOptions(current,unplaced=true){return (unplaced?`<option value="" ${!current?'selected':''}>Assign later</option>`:'')+st.teams.map(t=>`<option value="${esc(t.id)}" ${t.id===current?'selected':''}>${esc(t.name)}</option>`).join('')}
+function card(r,chief=false){const p=person(r.personId)||{};return `<article class="pf-role ${chief?'pf-chief':''}" data-role="${esc(r.id)}"><div class="pf-role-top"><div class="pf-role-fields"><input class="pf-inline-input" aria-label="${esc(r.id)} role title" data-role-id="${esc(r.id)}" data-field="title" value="${esc(r.title)}" placeholder="Role title"><input class="pf-inline-input" aria-label="${esc(r.id)} person name" data-role-id="${esc(r.id)}" data-field="name" value="${esc(p.name)}" placeholder="Open position"><input class="pf-inline-input" type="email" aria-label="${esc(r.id)} invitation email" data-role-id="${esc(r.id)}" data-field="email" value="${esc(p.email)}" placeholder="+ Email for invitation"></div><button type="button" class="pf-handle" data-drag-role="${esc(r.id)}" aria-label="Drag ${esc(r.title)} to a team">⠿</button></div><div class="pf-report">Reports to ${esc(role(r.reportsToRoleId)?.title||'Nobody (top)')}</div><div class="pf-role-foot"><span class="pf-count">Team</span><select aria-label="Move ${esc(r.id)} to team" data-move-role="${esc(r.id)}">${teamOptions(r.teamId)}</select></div></article>`}
+function renderPeople(){const regular=st.teams.filter(t=>t.kind!=='leadership');$('#pf-people').innerHTML=`<div class="pf-row pf-spread pf-sectionbar"><div><h2>Teams & roles</h2><div class="pf-note">Drag the ⠿ handle into a team. Roles keep their reporting line.</div></div><div class="pf-actions"><button class="pf-button" type="button" data-action="add-team">+ Add team</button><button class="pf-button pf-primary" type="button" data-action="add-role">+ Add role</button></div></div><div class="pf-leadership" data-drop-team="leadership">${members('leadership').map(r=>card(r,r.id==='president')).join('')}${members('leadership').length?'':'<div class="pf-drop">Club leadership · Drop a role here</div>'}</div><div class="pf-departments">${regular.map(t=>`<section class="pf-team" data-team="${esc(t.id)}" data-drop-team="${esc(t.id)}" style="--pf-category:${color(t.id)}"><div><div class="pf-team-heading"><span class="pf-dot"></span><input class="pf-inline-input pf-team-name" aria-label="${esc(t.id)} team name" data-team-name="${esc(t.id)}" value="${esc(t.name)}"></div><div class="pf-row pf-spread"><span class="pf-count">${members(t.id).length} roles · ${members(t.id).filter(r=>person(r.personId)?.name).length} people</span><button class="pf-quiet" type="button" data-show-team="${esc(t.id)}">${countTasks(t.id)} tasks ↗</button></div><label><span class="pf-sr">${esc(t.name)} team lead</span><select class="pf-lead-select" aria-label="${esc(t.id)} team lead" data-team-lead="${esc(t.id)}"><option value="">Choose team lead</option>${members(t.id).map(r=>`<option value="${esc(r.id)}" ${t.leadRoleId===r.id?'selected':''}>Lead: ${esc(person(r.personId)?.name||r.title)}</option>`).join('')}</select></label></div>${members(t.id).map(r=>card(r)).join('')||'<div class="pf-drop">Drop a role here<br>or add one below</div>'}<button type="button" class="pf-add-in-team" data-add-role-team="${esc(t.id)}">+ Add role to ${esc(t.name)}</button></section>`).join('')}</div><section class="pf-tray" data-drop-team=""><div class="pf-row pf-spread"><h3>Not in a team <span class="pf-count">${members(null).length}</span></h3><span class="pf-note">Try moving Jamie into Finance</span></div><div class="pf-tray-cards">${members(null).map(r=>card(r)).join('')}</div></section>`}
+function renderWork(){const p=pack(st.selectedPack)||st.packs[0];st.selectedPack=p.id;const n=st.packs.reduce((v,x)=>v+x.taskIds.length,0);$('#pf-work').innerHTML=`<div class="pf-row pf-spread"><div><h2>Event workflow template</h2><p class="pf-note">${n} tasks · ${st.packs.length} task packs · Left to right</p></div><button type="button" class="pf-button" data-action="add-pack">+ Task pack</button></div><div class="pf-team-pills"><button type="button" class="pf-pill" data-filter="" aria-pressed="${!st.filter}">All teams</button>${st.teams.map(t=>`<button class="pf-pill" type="button" data-filter="${esc(t.id)}" aria-pressed="${st.filter===t.id}" style="--pf-category:${color(t.id)}"><span class="pf-dot"></span>${esc(t.name)} <span class="pf-count">${countTasks(t.id)}</span></button>`).join('')}</div><div class="pf-canvas-shell"><div class="pf-canvas-toolbar"><div class="pf-row"><span class="pf-note">Plan → Prepare → Deliver → Close</span></div><div class="pf-actions"><button type="button" class="pf-button" data-action="zoom-out" aria-label="Zoom out">−</button><span id="pf-zoom" class="pf-count"></span><button type="button" class="pf-button" data-action="zoom-in" aria-label="Zoom in">+</button><button type="button" class="pf-button" data-action="fit">${root.clientWidth<600?'Center pack':'Overview'}</button><button type="button" class="pf-button" data-action="readable">Detail view</button><button type="button" class="pf-button" data-action="arrange">Arrange</button></div></div><div class="pf-stage" aria-label="Workflow canvas. Drag background to pan. Use zoom controls; select any task pack below for keyboard navigation."><div class="pf-world"><svg class="pf-edges" role="img" aria-label="Workflow task pack dependencies with parallel paths and a readiness join"><defs><marker id="pf-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"></path></marker></defs><g id="pf-paths"></g></svg><div id="pf-nodes"></div></div><div class="pf-canvas-status">Drag canvas to pan · Drag card top to move</div></div><div class="pf-legend"><span><i class="pf-linekey"></i>Template dependency</span><span><i class="pf-linekey pf-dashed"></i>Suggested connection</span><span>○ In → Out ›</span></div></div><div class="pf-field"><label>Selected task pack<select aria-label="Selected task pack" data-select-pack>${st.packs.map(x=>`<option value="${esc(x.id)}" ${x.id===p.id?'selected':''}>${esc(x.title)} · ${x.taskIds.length} tasks</option>`).join('')}</select></label></div><div id="pf-inspector"></div>`;renderNodes();renderInspector();requestAnimationFrame(()=>{if(!st.camera)fit();else applyCamera()})}
+function renderNodes(){const el=$('#pf-nodes');if(!el)return;el.innerHTML=st.packs.map(p=>`<article class="pf-node ${p.id===st.selectedPack?'pf-selected':''} ${st.filter&&p.teamId!==st.filter?'pf-dim':''}" data-pack="${esc(p.id)}" style="left:${p.x}px;top:${p.y}px;--pf-category:${color(p.teamId)}"><div class="pf-node-grip" data-drag-pack="${esc(p.id)}" aria-hidden="true"></div><button type="button" class="pf-node-title" data-open-pack="${esc(p.id)}">${esc(p.title)}</button><div class="pf-node-team"><span class="pf-dot"></span><span class="pf-node-team-label" data-tooltip="${esc(team(p.teamId)?.name||'Unassigned')}">${esc(team(p.teamId)?.name||'Unassigned')}</span></div><div class="pf-node-preview">${tasks(p.id).map(t=>`<button type="button" class="pf-node-task" data-node-task="${esc(t.key)}" data-owner-pack="${esc(p.id)}">${esc(t.short)}</button>`).join('')}</div><div class="pf-node-count">${p.taskIds.length} ${p.taskIds.length===1?'task':'tasks'}</div><button class="pf-port pf-in" type="button" data-port-in="${esc(p.id)}" aria-label="Connect into ${esc(p.title)}">○</button><button class="pf-port pf-out ${connectFrom===p.id?'pf-connecting':''}" type="button" data-port-out="${esc(p.id)}" aria-label="Start connection from ${esc(p.title)}">›</button></article>`).join('');drawPaths();applyCamera()}
+function routePath(a,b){const x1=a.x+280,y1=a.y+115,x2=b.x,y2=b.y+115,gap=Math.max(3,(x2-x1)/3),exit=x1+Math.min(22,gap),entry=x2-Math.min(22,gap);const obstacles=st.packs.filter(p=>p.id!==a.id&&p.id!==b.id);const blocked=points=>points.slice(1).some((p,i)=>{const q=points[i];return obstacles.some(o=>{const left=o.x-4,right=o.x+284,top=o.y-4,bottom=o.y+234;return p[0]===q[0]?p[0]>left&&p[0]<right&&Math.max(p[1],q[1])>top&&Math.min(p[1],q[1])<bottom:p[1]>top&&p[1]<bottom&&Math.max(p[0],q[0])>left&&Math.min(p[0],q[0])<right})});const lanes=[y1,y2,...st.packs.flatMap(p=>[p.y-16,p.y+246])].sort((u,v)=>(Math.abs(y1-u)+Math.abs(y2-u))-(Math.abs(y1-v)+Math.abs(y2-v)));let points;for(const lane of lanes){const candidate=[[x1,y1],[exit,y1],[exit,lane],[entry,lane],[entry,y2],[x2,y2]];if(!blocked(candidate)){points=candidate;break}}points=points||[[x1,y1],[exit,y1],[exit,-24],[entry,-24],[entry,y2],[x2,y2]];return points.map((p,i)=>(i?'L':'M')+p[0]+','+p[1]).join(' ')}
+function drawPaths(){const g=$('#pf-paths');if(!g)return;g.innerHTML=st.edges.map(e=>{const a=pack(e.from),b=pack(e.to);if(!a||!b)return '';return `<path data-edge-from="${esc(e.from)}" data-edge-to="${esc(e.to)}" class="pf-edge pf-${e.origin} ${e.from===st.selectedPack||e.to===st.selectedPack?'pf-near':''}" d="${routePath(a,b)}" marker-end="url(#pf-arrow)"/>`}).join('')}
+function renderInspector(){const p=pack(st.selectedPack);if(!p||!$('#pf-inspector'))return;const t=team(p.teamId),l=lead(p.teamId),selected=tasks(p.id).find(t=>t.key===st.selectedTask);$('#pf-inspector').innerHTML=`<section class="pf-inspector"><div><div class="pf-row pf-spread"><h3>${esc(p.title)}</h3>${['safety','partner'].includes(p.id)?'<span class="pf-badge">Conditional tasks</span>':''}<span class="pf-count">${p.taskIds.length} tasks</span></div><div class="pf-task-grid">${tasks(p.id).map(t=>`<button type="button" class="pf-task" data-task="${esc(t.key)}" aria-pressed="${st.selectedTask===t.key}">${esc(t.short)}</button>`).join('')||'<span class="pf-note">New task pack · No tasks yet</span>'}</div>${selected?`<div class="pf-task-detail"><strong>${esc(selected.title)}</strong><p class="pf-sub">${esc(selected.why)}</p><div class="pf-count">Source: ${esc(selected.source)}${selected.dependsOn.length?' · After: '+selected.dependsOn.map(k=>esc(data.tasks.find(t=>t.key===k)?.short||k)).join(', '):''}</div></div>`:''}<details><summary>Connections & sequence</summary><form class="pf-connection" id="pf-connect-form"><label>From<select name="from" aria-label="Connection from">${st.packs.map(x=>`<option value="${esc(x.id)}" ${x.id===p.id?'selected':''}>${esc(x.title)}</option>`).join('')}</select></label><label>To<select name="to" aria-label="Connection to">${st.packs.map(x=>`<option value="${esc(x.id)}">${esc(x.title)}</option>`).join('')}</select></label><button type="submit" class="pf-button">Connect</button></form><div class="pf-edge-list">${st.edges.filter(e=>e.from===p.id||e.to===p.id).map(e=>`<div class="pf-edge-row"><span>${esc(pack(e.from).title)} → ${esc(pack(e.to).title)}<br><span class="pf-count">${e.origin==='template'?'Template · preserved':e.origin==='suggested'?'Suggested connection':'Draft connection'}</span></span>${e.origin==='template'?'':`<button type="button" class="pf-quiet" data-remove-edge="${esc(e.from)}|${esc(e.to)}" aria-label="Remove ${esc(pack(e.from).title)} to ${esc(pack(e.to).title)}">Remove</button>`}</div>`).join('')}</div></details></div><div class="pf-assignment"><label>Team responsible for this pack<select aria-label="Task pack team" data-pack-team>${teamOptions(p.teamId)}</select></label><div class="pf-roster">${members(p.teamId).filter(r=>person(r.personId)?.name).map(r=>`<span class="pf-person-chip">${esc(person(r.personId).name)}${r.id===l?.id?' · Lead':''}</span>`).join('')}</div><p class="pf-field pf-note">${l?`Team lead: <strong>${esc(person(l.personId)?.name||l.title)}</strong>`:'Choose a team lead in People.'}</p><p class="pf-note">${members(p.teamId).length} roles · One team owns the pack. Its lead delegates individual tasks for each event.</p><button type="button" class="pf-quiet" data-action="go-people">Edit team →</button></div></section>`}
+function camera(){return st.camera||{x:20,y:20,z:.5}}
+function applyCamera(){const w=$('.pf-world');if(!w)return;const c=camera();$('.pf-stage').classList.toggle('pf-detailed',c.z>=.72);w.style.transform=`translate(${c.x}px,${c.y}px) scale(${c.z})`;w.style.setProperty('--pf-z',c.z);if($('#pf-zoom'))$('#pf-zoom').textContent=Math.round(c.z*100)+'%'}
+function fit(){const s=$('.pf-stage');if(!s)return;if(s.clientWidth<600){const p=pack(st.selectedPack)||st.packs[0];st.camera={z:.85,x:s.clientWidth/2-(p.x+140)*.85,y:s.clientHeight/2-(p.y+115)*.85};applyCamera();return;}const minX=Math.min(...st.packs.map(p=>p.x))-45,minY=Math.min(...st.packs.map(p=>p.y))-40,maxX=Math.max(...st.packs.map(p=>p.x))+325,maxY=Math.max(...st.packs.map(p=>p.y))+265;const z=Math.max(.33,Math.min(.85,(s.clientWidth-28)/(maxX-minX),(s.clientHeight-40)/(maxY-minY)));st.camera={z,x:(s.clientWidth-(maxX-minX)*z)/2-minX*z,y:(s.clientHeight-(maxY-minY)*z)/2-minY*z};applyCamera()}
+function zoom(factor){const s=$('.pf-stage'),c=camera();if(!s)return;const z=Math.max(s.clientWidth<600?.6:.33,Math.min(1.4,c.z*factor)),mx=s.clientWidth/2,my=s.clientHeight/2;st.camera={z,x:mx-(mx-c.x)*z/c.z,y:my-(my-c.y)*z/c.z};applyCamera();save()}
+function focusPack(id){st.selectedPack=id;const p=pack(id);const s=$('.pf-stage');if(!p||!s)return;const z=s.clientWidth<500?.85:.9;st.camera={z,x:s.clientWidth/2-(p.x+140)*z,y:s.clientHeight/2-(p.y+115)*z};renderNodes();renderInspector();save()}
+function showTab(tab){st.tab=tab;editor=null;render();save()}
+function render(){const work=st.tab==='work';$('#pf-heading').textContent=work?'Give every task a home.':'Build your team.';$('#pf-intro').textContent=work?'One workflow. Parallel paths. Teams that own the work.':'Create teams. Place roles. Keep everyone connected.';$('#pf-people').hidden=work;$('#pf-work').hidden=!work;$('#pf-people-tab').setAttribute('aria-selected',!work);$('#pf-work-tab').setAttribute('aria-selected',work);$('#pf-editor-host').innerHTML='';if(work)renderWork();else renderPeople();$$('[data-action=undo]').forEach(b=>b.disabled=!history.length)}
+function moveRole(id,tid){const r=role(id);if(!r||r.teamId===(tid||null))return;checkpoint();const old=team(r.teamId);if(old?.leadRoleId===id)old.leadRoleId=null;r.teamId=tid||null;done(`${r.title} moved to ${team(tid)?.name||'Not in a team'}.${old&&!old.leadRoleId?' Choose a new lead for '+old.name+'.':''}`)}
+function openEditor(type,tid){editor={type,tid};$('#pf-editor-host').innerHTML=`<form class="pf-editor" id="pf-editor-form"><h3>${type==='team'?'Add a team':type==='pack'?'Add a task pack':'Add a role'}</h3><div class="pf-editor-grid">${type==='team'?'<label>Team name<input name="teamName" required maxlength="36" placeholder="e.g. Community Relations"></label>':type==='pack'?`<label>Task pack name<input name="packName" required maxlength="36" placeholder="e.g. Sponsor Outreach"></label><label>Responsible team<select name="teamId">${teamOptions(tid)}</select></label>`:`<label>Role title<input name="roleTitle" required maxlength="70" placeholder="e.g. Finance Treasurer 2"></label><label>Team<select name="teamId" aria-label="New role team">${teamOptions(tid)}</select></label><label>Person's name<input name="personName" maxlength="80" placeholder="Open position"></label><label>Email for invitation<input type="email" name="personEmail" placeholder="name@example.org"></label><label>Reports to<select name="reportsTo"><option value="">Nobody (top)</option>${st.roles.map(r=>`<option value="${esc(r.id)}" ${(lead(tid)?.id||'evp')===r.id?'selected':''}>${esc(r.title)}</option>`).join('')}</select></label>`}</div><div class="pf-actions"><button type="submit" class="pf-button pf-primary">${type==='team'?'Create team':type==='pack'?'Create task pack':'Create role'}</button><button type="button" class="pf-button" data-action="cancel-editor">Cancel</button></div></form>`;$('#pf-editor-form input')?.focus()}
+function createsCycle(a,b){if(a===b)return true;const seen=new Set();function visit(x){if(x===a)return true;if(seen.has(x))return false;seen.add(x);return st.edges.filter(e=>e.from===x).some(e=>visit(e.to))}return visit(b)}
+function arrange(){const ranks=new Map(st.packs.map(p=>[p.id,0]));for(let i=0;i<st.packs.length;i++)for(const e of st.edges)ranks.set(e.to,Math.max(ranks.get(e.to),ranks.get(e.from)+1));const buckets={};for(const p of st.packs)(buckets[ranks.get(p.id)]??=[]).push(p);Object.values(buckets).forEach(ps=>ps.sort((a,b)=>a.y-b.y).forEach((p,i)=>{p.x=40+ranks.get(p.id)*350;p.y=30+i*260}));st.camera=null}
+function connect(a,b){if(!pack(a)||!pack(b))return;if(st.edges.some(e=>e.from===a&&e.to===b)){note('These task packs are already connected.',true);return}if(createsCycle(a,b)){note('That connection would create a loop. Choose a later task pack.',true);return}checkpoint();st.edges.push({from:a,to:b,origin:'draft'});connectFrom=null;arrange();done('Connection added. The canvas now follows the new order.')}
+root.addEventListener('input',e=>{const el=e.target;if(el.dataset.field){const r=role(el.dataset.roleId);if(!r)return;if(!el.dataset.editStarted){checkpoint();el.dataset.editStarted='yes'}if(el.dataset.field==='title')r.title=el.value;else person(r.personId)[el.dataset.field]=el.value;save()}if(el.dataset.teamName){if(!el.dataset.editStarted){checkpoint();el.dataset.editStarted='yes'}team(el.dataset.teamName).name=el.value;save()}});
+root.addEventListener('change',e=>{const el=e.target;if(el.dataset.moveRole)moveRole(el.dataset.moveRole,el.value);else if(el.dataset.teamLead){checkpoint();team(el.dataset.teamLead).leadRoleId=el.value||null;done('Team lead updated.')}else if(el.matches('[data-pack-team]')){checkpoint();pack(st.selectedPack).teamId=el.value||null;done('All tasks in this pack now belong to '+(team(el.value)?.name||'an unassigned team')+'.')}else if(el.matches('[data-select-pack]'))focusPack(el.value);else if(el.dataset.field||el.dataset.teamName){render();save();note('Draft updated.')}});
+root.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.id==='pf-people-tab'){showTab('people');return}if(b.id==='pf-work-tab'){showTab('work');return}if(b.dataset.addRoleTeam){openEditor('role',b.dataset.addRoleTeam);return}if(b.dataset.showTeam){st.filter=b.dataset.showTeam;showTab('work');return}if(b.dataset.filter!==undefined){st.filter=b.dataset.filter||null;renderWork();save();return}if(b.dataset.openPack){st.selectedPack=b.dataset.openPack;st.selectedTask=null;renderNodes();renderInspector();save();return}if(b.dataset.nodeTask){st.selectedPack=b.dataset.ownerPack;st.selectedTask=b.dataset.nodeTask;renderNodes();renderInspector();save();return}if(b.dataset.task){st.selectedTask=b.dataset.task;renderInspector();save();return}if(b.dataset.portOut){connectFrom=b.dataset.portOut;renderNodes();note('Connect '+pack(connectFrom).title+' to an input ○, or use Connections & sequence.');return}if(b.dataset.portIn){if(connectFrom)connect(connectFrom,b.dataset.portIn);else note('Choose an output › first.');return}if(b.dataset.removeEdge){checkpoint();const [a,t]=b.dataset.removeEdge.split('|');st.edges=st.edges.filter(x=>!(x.from===a&&x.to===t));done('Suggested connection removed. Original task dependencies are preserved.');return}switch(b.dataset.action){case 'add-team':openEditor('team');break;case 'add-role':openEditor('role');break;case 'add-pack':openEditor('pack',st.filter);break;case 'cancel-editor':editor=null;$('#pf-editor-host').innerHTML='';break;case 'save':{const stored=save();render();note(stored===true?'Draft saved in this preview. No website changes or invitations.':stored===false?'Changes remain in this open preview; storage could not be updated.':'Draft remains in this open page. Session saving is unavailable here.',stored===false);break;}case 'undo':if(history.length){st=history.pop();done('Last change undone.')}break;case 'fit':fit();save();break;case 'zoom-in':zoom(1.25);break;case 'zoom-out':zoom(.8);break;case 'readable':focusPack(st.selectedPack);break;case 'arrange':checkpoint();arrange();done('Task packs arranged from left to right.');break;case 'go-people':showTab('people');break;}});
+root.addEventListener('submit',e=>{e.preventDefault();if(e.target.id==='pf-connect-form'){const f=new FormData(e.target);connect(f.get('from'),f.get('to'));return}if(e.target.id!=='pf-editor-form'||!editor)return;const f=new FormData(e.target);checkpoint();const id='new-'+Date.now().toString(36)+'-'+counter++;const type=editor.type;if(type==='team'){st.teams.push({id,name:f.get('teamName').trim()||'New team',leadRoleId:null,color:'teal',kind:'team'})}else if(type==='role'){const pid='person-'+id;st.people.push({id:pid,name:f.get('personName').trim(),email:f.get('personEmail').trim()});st.roles.push({id,title:f.get('roleTitle').trim(),personId:pid,teamId:f.get('teamId')||null,reportsToRoleId:f.get('reportsTo')||null})}else{st.packs.push({id,title:f.get('packName').trim(),taskIds:[],teamId:f.get('teamId')||null,x:Math.max(...st.packs.map(p=>p.x))+350,y:290});st.selectedPack=id;st.camera=null}editor=null;done(type==='team'?'Empty team created. Add roles or drag them in.':type==='role'?'Role created. Your team structure is unchanged.':'Empty task pack created. Connect it to the workflow.')});
+root.addEventListener('pointerdown',e=>{if(e.button!==0)return;const rh=e.target.closest('[data-drag-role]');const ph=e.target.closest('[data-drag-pack]');const s=e.target.closest('.pf-stage');if(rh){e.preventDefault();const source=rh.closest('.pf-role');drag={kind:'role',id:rh.dataset.dragRole,startX:e.clientX,startY:e.clientY,source,moved:false};return}if(ph){e.preventDefault();const p=pack(ph.dataset.dragPack);drag={kind:'pack',id:p.id,startX:e.clientX,startY:e.clientY,x:p.x,y:p.y,moved:false};return}if(s&&!e.target.closest('button,.pf-node')){e.preventDefault();drag={kind:'pan',startX:e.clientX,startY:e.clientY,camera:clone(camera()),moved:false}}});
+function pointerMove(e){if(!drag)return;const dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;if(Math.hypot(dx,dy)<4&&!drag.moved)return;if(!drag.moved){drag.moved=true;if(drag.kind==='role'){drag.ghost=drag.source.cloneNode(true);drag.ghost.classList.add('pf-ghost');drag.ghost.setAttribute('aria-hidden','true');drag.ghost.querySelectorAll('input,select,button').forEach(x=>x.tabIndex=-1);root.appendChild(drag.ghost);drag.source.classList.add('pf-drag-source')}else if(drag.kind==='pack')checkpoint()}if(drag.kind==='role'){drag.ghost.style.left=e.clientX+14+'px';drag.ghost.style.top=e.clientY+14+'px';$$('.pf-over').forEach(x=>x.classList.remove('pf-over'));const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-drop-team]');if(target&&root.contains(target))target.classList.add('pf-over')}else if(drag.kind==='pan'){st.camera={...drag.camera,x:drag.camera.x+dx,y:drag.camera.y+dy};applyCamera()}else{const p=pack(drag.id),z=camera().z;const minX=Math.max(0,...st.edges.filter(x=>x.to===p.id).map(x=>pack(x.from).x+320)),maxX=Math.min(5000,...st.edges.filter(x=>x.from===p.id).map(x=>pack(x.to).x-320));p.x=Math.max(minX,Math.min(maxX,Math.round((drag.x+dx/z)/16)*16));p.y=Math.max(20,Math.min(1800,Math.round((drag.y+dy/z)/16)*16));const node=$(`[data-pack="${p.id}"]`);node.style.left=p.x+'px';node.style.top=p.y+'px';drawPaths()}}
+function pointerUp(e){if(!drag)return;const d=drag;drag=null;if(d.kind==='role'){d.ghost?.remove();d.source?.classList.remove('pf-drag-source');const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-drop-team]');$$('.pf-over').forEach(x=>x.classList.remove('pf-over'));if(d.moved&&target&&root.contains(target))moveRole(d.id,target.dataset.dropTeam);else if(!d.moved)note('Drag into a team, or use the Team dropdown on this card.')}else if(d.kind==='pack'&&d.moved){const p=pack(d.id);while(st.packs.some(x=>x.id!==p.id&&Math.abs(x.x-p.x)<280&&Math.abs(x.y-p.y)<230))p.y+=256;renderNodes();save();$$('[data-action=undo]').forEach(x=>x.disabled=false);note('Task pack moved. Dependencies are unchanged.')}else if(d.moved)save()}
+window.addEventListener('pointermove',pointerMove);window.addEventListener('pointerup',pointerUp);window.addEventListener('pointercancel',()=>{if(drag?.ghost)drag.ghost.remove();drag?.source?.classList.remove('pf-drag-source');drag=null;$$('.pf-over').forEach(x=>x.classList.remove('pf-over'))});
+root.addEventListener('wheel',e=>{if(e.target.closest('.pf-stage')&&(e.ctrlKey||e.metaKey)){e.preventDefault();zoom(e.deltaY<0?1.08:.93)}},{passive:false});
+root.addEventListener('keydown',e=>{if(e.key==='Escape'){connectFrom=null;editor=null;$('#pf-editor-host').innerHTML='';renderNodes();note('Connection cancelled.')}if(e.target.matches('.pf-tab')&&['ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();showTab(st.tab==='work'?'people':'work');$(st.tab==='work'?'#pf-work-tab':'#pf-people-tab').focus()}});
+window.addEventListener('openai:set_globals',e=>{if(e.detail?.globals?.widgetState){incoming(e.detail.globals.widgetState);render()}});
+let lastWidth=0;new ResizeObserver(()=>{const width=root.clientWidth;if(width!==lastWidth){const previousWidth=lastWidth;lastWidth=width;if(st.tab==='work'&&previousWidth&&Math.abs(width-previousWidth)>80){const f=$('[data-action=fit]');if(f)f.textContent=width<600?'Center pack':'Overview';fit()}}}).observe(root);
+render();
+})();
+</script>
+</div>

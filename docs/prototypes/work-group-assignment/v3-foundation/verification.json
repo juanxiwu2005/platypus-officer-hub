@@ -1,0 +1,10 @@
+{
+  "checks": "Role/team distinction, real role drag, stable IDs/hierarchy, lead removal, 46 task coverage, graph provenance, pack assignment, cycle rejection, draft creation/connection/undo, restored local state, contact privacy, responsive overflow, light/dark screenshots",
+  "tasks": 46,
+  "packs": 13,
+  "templateCrossPackEdges": 11,
+  "suggestedEdges": 8,
+  "sourceTaskEdges": 43,
+  "stateBytes": 6794,
+  "errors": []
+}
