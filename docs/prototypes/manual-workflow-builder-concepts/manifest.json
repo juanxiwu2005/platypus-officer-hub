@@ -1,0 +1,93 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "sourceCommit": "bebe999",
+  "kind": "static-manual-workflow-builder-concepts",
+  "conceptOnly": true,
+  "generatedWith": "image_gen.imagegen",
+  "imageGenerationCalls": 6,
+  "productCodeChanged": false,
+  "htmlCreated": false,
+  "example": "Company visit; task values and ownership are illustrative, not a validated schedule",
+  "speedTarget": "A 5-to-8-task initial workflow with existing organization roles; 2-to-3-minute target has not been user-tested",
+  "images": [
+    {
+      "number": "1",
+      "title": "Task sheet",
+      "caption": "清单快建与连线预览",
+      "file": "01-task-sheet.png",
+      "original": "exec-1ff1de42-d4b5-44e2-8d65-e437fefa414c.png",
+      "bytes": 1511613,
+      "sha256": "790de2427b7121e7d2766bd4859f79e5d8b1025fcbec888da93ef1e1fe7bc734",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "number": "2",
+      "title": "Connected timeline",
+      "caption": "连线时间轴与团队泳道",
+      "file": "02-connected-timeline.png",
+      "original": "exec-2233f25f-3604-45f7-944b-4e577a237af5.png",
+      "bytes": 1430856,
+      "sha256": "c826d578e2f4461f337eceff3f2af0e8878d07d8b92fce8ad8445d92788b9c65",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "number": "3",
+      "title": "Dependency canvas",
+      "caption": "依赖卡片画布",
+      "file": "03-dependency-canvas.png",
+      "original": "exec-e8e0916d-f9ba-4a5c-8096-0a8634ee9509.png",
+      "bytes": 1380989,
+      "sha256": "e92f2a86073646c8655925d951770bdf0e8b8eb83fcf694a10def61d7afc7c04",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "number": "4",
+      "title": "Team-first builder",
+      "caption": "团队接力板",
+      "file": "04-team-first.png",
+      "original": "exec-935fac67-9f16-4c24-aa15-e953b5ff3e70.png",
+      "bytes": 1535202,
+      "sha256": "f3a85867532f19bfef3cb589b861f0c2fb4698f2eb569bbb9bbe475bcf56bc8a",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "number": "5",
+      "title": "Milestone builder",
+      "caption": "里程碑分段",
+      "file": "05-milestone-builder.png",
+      "original": "exec-9811856e-0058-4daf-9173-794889cd974f.png",
+      "bytes": 1563798,
+      "sha256": "99511d6366dc2eca4b2ca5d89c1c9573cc02f67194e7cee4c20c583ec632e466",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "number": "6",
+      "title": "Guided task composer",
+      "caption": "逐步任务向导",
+      "file": "06-guided-task-composer.png",
+      "original": "exec-e9cc3262-12c6-4972-8d23-a4b0460461a1.png",
+      "bytes": 1434409,
+      "sha256": "839a2e6709c5543c24e459625d2d15beb02d1c982fac8d4ae182315edd35d223",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    }
+  ]
+}

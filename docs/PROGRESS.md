@@ -1,5 +1,6 @@
-> **2026-11-18（America/Phoenix） · 人工工作流搭建器六方案讨论准备中（Codex）**
-> **用户范围：** 先完善人工模板编辑器，AI暂不作为依赖；参考上传的event-workflow-timeline.html，围绕2–3分钟创建简单流程、团队/岗位接入、工作日时长与T-minus、可见依赖连线设计六种具体编辑方式。沿用静态图讨论，不开发HTML或产品功能，不创建后续预设；基于`bebe999`，保留所有同期改动，不合并main。
+> **2026-11-18（America/Phoenix） · 人工工作流搭建器六方案已交付，待讨论（Codex）**
+> **方向与参考：** 用户先完善人工编辑器，AI不作为依赖，之后再搭3–4份预设。已审阅上传的event-workflow-timeline.html：32条时间数据、阶段泳道、按名称保存依赖但无任务连线，Owner固定文字，工作量与窗口分开。新方案共用任务名称/Details、组织岗位引用、工作日时长、T±完成目标和稳定前置关系；开始默认计算、精确开始按需展开，保留双击线无操作。
+> **交付：** [六方案、共同规则和速度目标](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md) · [六张1536×1024静态图清单](prototypes/manual-workflow-builder-concepts/manifest.json)：①清单＋连线预览、②连线时间轴＋团队泳道、③依赖卡片、④团队接力、⑤里程碑、⑥逐步任务向导。全部已在对话展示、原图原样保存；建议②主视图＋①快建，同一数据可借③下一步/并行/汇合操作。2–3分钟是已有思路、5–8任务首版的待验证目标，未做交互计时；图内时间/主责是示例。仅docs/PNG/JSON，0 HTML/产品改动、0真实AI产品调用/邮件，6次用户讨论图像生成；基于`bebe999`，保留旧A–F及v1/v2/v3，沿用原分支/PR14，不合并main。需要同步本地备份。
 
 > **2026-11-17（America/Phoenix） · D方案直接更新团队目标并知会完成检查，待验收（Codex）**
 > **授权与交付：** Juanxi看过四张独立静态图后明确选择D并要求实施。Task status → Need more time…现在打开Update the team：New target date、可选Message、多选Notify others及Add teammate，Update date & notify直接保存目标、历史和所选通知；不再生成新审批或等待批准。按实际依赖推荐下游，同一人合并一条，自己可选，也可取消默认领导或全不选。学校硬性日期、状态、成果/附件/草稿、完成退回和财务完成权保持原样；旧申请归档保留，新保存后同节点旧pending取消。[交付与验收](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)。

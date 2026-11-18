@@ -1,0 +1,13 @@
+{
+  "fileName": "event-workflow-timeline.html",
+  "bytes": 30130,
+  "sha256": "fea42e1c9b09ddda330054e2a792c294de32ee798211a2438d21b404abf95f7c",
+  "method": "Source inspection only",
+  "embeddedTasks": 32,
+  "fixedStageLanes": 6,
+  "dependencyData": "Semicolon-separated names; exact or partial-name matching",
+  "dependencyDrawing": "No task-to-task edge layer in render()",
+  "ownerSource": "Hardcoded LANE_META labels",
+  "timeModel": "Separate start/deadline offsets and effort; window shown as deadline minus start",
+  "originalModified": false
+}
