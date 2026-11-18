@@ -4,14 +4,16 @@ import { replyToTask } from "../data/taskWorkflow"
 import { isBudgetControlledNode } from "../engine/eventBudget"
 import type { TaskAttachment, TaskExternalLink, TaskWork, TaskWorkInput } from "./contracts"
 
-export const MAX_FILE_BYTES = 512_000, MAX_FILES = 5, MAX_TOTAL_BYTES = 2_000_000
+export const MAX_FILE_BYTES = 2 * 1024 * 1024, MAX_FILES = 3, MAX_TOTAL_BYTES = 5 * 1024 * 1024
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v)
 export const safeTaskUrl = (v: string) => { try { const u = new URL(v); return ["https:", "http:"].includes(u.protocol) && !u.username && !u.password } catch { return false } }
 export function validTaskLinks(v: unknown): v is TaskExternalLink[] {
   return Array.isArray(v) && v.length <= 8 && v.every(x => object(x) && typeof x.label === "string" && !!x.label.trim() && x.label.length <= 100 && typeof x.url === "string" && x.url.length <= 2048 && safeTaskUrl(x.url))
 }
 export function validAttachment(v: unknown): v is TaskAttachment {
-  if (!object(v) || typeof v.id !== "string" || !/^[\w-]{1,100}$/.test(v.id) || typeof v.name !== "string" || !/^.{1,160}\.(pdf|txt|md|csv|docx|xlsx|png|jpe?g|webp)$/i.test(v.name) || !Number.isInteger(v.size) || (v.size as number) < 1 || (v.size as number) > MAX_FILE_BYTES || typeof v.dataUrl !== "string" || v.dataUrl.length > 700_000 || !/^data:application\/octet-stream;base64,[A-Za-z0-9+/]+={0,2}$/.test(v.dataUrl)) return false
+  if (!object(v) || typeof v.id !== "string" || !/^[\w-]{1,100}$/.test(v.id) || typeof v.name !== "string" || !/^.{1,160}\.(pdf|txt|md|csv|docx|xlsx|png|jpe?g|webp)$/i.test(v.name) || !Number.isInteger(v.size) || (v.size as number) < 1 || (v.size as number) > MAX_FILE_BYTES) return false
+  if (v.dataUrl === undefined) return typeof v.blobKey === "string" && /^[\w-]{1,100}$/.test(v.blobKey)
+  if (typeof v.dataUrl !== "string" || v.dataUrl.length > Math.ceil(MAX_FILE_BYTES / 3) * 4 + 100 || !/^data:application\/octet-stream;base64,[A-Za-z0-9+/]+={0,2}$/.test(v.dataUrl)) return false
   try { return atob(v.dataUrl.split(",")[1]).length === v.size } catch { return false }
 }
 const emptyWork = (): TaskWork => ({ version: 1, revision: 0, files: [], drafts: [], submissions: [] })
@@ -19,10 +21,10 @@ const emptyWork = (): TaskWork => ({ version: 1, revision: 0, files: [], drafts:
 export function taskWork(node: Node): TaskWork | null {
   const w = node.taskWork
   if (w === undefined) return emptyWork()
-  if (!object(w) || w.version !== 1 || !Number.isSafeInteger(w.revision) || w.revision < 0 || !Array.isArray(w.files) || !w.files.every(validAttachment) || !Array.isArray(w.drafts) || !Array.isArray(w.submissions)) return null
+  if (!object(w) || ![1, 2].includes(w.version) || !Number.isSafeInteger(w.revision) || w.revision < 0 || !Array.isArray(w.files) || !w.files.every(validAttachment) || !Array.isArray(w.drafts) || !Array.isArray(w.submissions)) return null
   const ids = new Set(w.files.map(f => f.id))
   if (ids.size !== w.files.length) return null
-  for (const r of [...w.drafts, ...w.submissions]) if (!object(r) || typeof r.authorId !== "string" || typeof r.details !== "string" || r.details.length > 20_000 || typeof r.savedOn !== "string" || !Array.isArray(r.attachmentIds) || r.attachmentIds.length > MAX_FILES || !r.attachmentIds.every(id => typeof id === "string" && ids.has(id))) return null
+  for (const r of [...w.drafts, ...w.submissions]) if (!object(r) || typeof r.authorId !== "string" || typeof r.details !== "string" || r.details.length > 20_000 || typeof r.savedOn !== "string" || !Array.isArray(r.attachmentIds) || r.attachmentIds.length > 5 || !r.attachmentIds.every(id => typeof id === "string" && ids.has(id))) return null
   if (w.submissions.some(r => typeof r.id !== "string" || !Number.isSafeInteger(r.ownerVersion) || r.ownerVersion < 0) || new Set(w.submissions.map(r => r.id)).size !== w.submissions.length || new Set(w.drafts.map(d => d.authorId)).size !== w.drafts.length) return null
   return w
 }
@@ -35,6 +37,7 @@ export function saveTaskWork(s: DemoState, id: string, actorId: string, input: T
   const work = taskWork(node)
   if (!work || !input || work.revision !== input.expectedRevision || node.ownerId !== input.expectedOwnerId || (node.ownerVersion ?? 0) !== input.expectedOwnerVersion || typeof input.submit !== "boolean" || typeof input.details !== "string" || input.details.length > 20_000 || !Array.isArray(input.attachments) || input.attachments.length > MAX_FILES || !input.attachments.every(validAttachment) || new Set(input.attachments.map(f => f.id)).size !== input.attachments.length) return s
   const details = input.details.trim()
+  if (input.attachments.reduce((sum, f) => sum + f.size, 0) > MAX_TOTAL_BYTES) return s
   if (input.submit && !details && !input.attachments.length) return s
   const files = [...work.files]
   for (const f of input.attachments) {
@@ -48,13 +51,12 @@ export function saveTaskWork(s: DemoState, id: string, actorId: string, input: T
   if (!input.submit) drafts.push(record)
   const used = new Set([...drafts, ...submissions].flatMap(r => r.attachmentIds))
   const retained = files.filter(f => used.has(f.id))
-  if (retained.reduce((sum, f) => sum + f.size, 0) > MAX_TOTAL_BYTES) return s
   let next = s
   // Financial nodes can accept evidence, but Event Budget remains their completion authority.
   if (input.submit && node.status !== "done" && !isBudgetControlledNode(node)) {
     next = replyToTask(s, id, actorId, "done")
     if (next === s) return s
   }
-  const updated: TaskWork = { version: 1, revision: work.revision + 1, files: retained, drafts, submissions }
+  const updated: TaskWork = { version: retained.some(f => f.blobKey) ? 2 : work.version, revision: work.revision + 1, files: retained, drafts, submissions }
   return { ...next, nodes: next.nodes.map(n => n.id === id ? { ...n, taskWork: updated, ...(input.submit ? { lastUpdate: s.today } : {}) } : n) }
 }

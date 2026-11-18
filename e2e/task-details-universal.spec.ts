@@ -19,6 +19,11 @@ async function open(page: Page, id = ROOM) { await page.goto(`/#/tasks?node=${id
 async function work(page: Page, id = ROOM) { return (await savedDemo(page)).nodes.find(n => n.id === id)! }
 async function attach(page: Page) { await page.getByLabel("Attach files", { exact: true }).setInputFiles([{ name: "confirmation.txt", mimeType: "text/plain", buffer: Buffer.from("Fictional booking confirmation") }, { name: "layout.txt", mimeType: "text/plain", buffer: Buffer.from("Fictional room layout") }]); await expect(page.getByRole("button", { name: "Download confirmation.txt", exact: true })).toBeVisible() }
 
+async function switchTask(page: Page, id: string) {
+  await page.evaluate(taskId => { location.hash = `/tasks?node=${taskId}` }, id)
+  await expect(page.getByTestId("task-detail").getByRole("heading", { level: 2 })).toHaveText(id === ROOM ? "Reserve a room" : id === SAP ? "Submit the speaker agreement" : "Confirm the community partner")
+}
+
 test.beforeEach(async ({ page, context }) => {
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { message: "Offline task-detail verification" } }))
   await context.route(url => !["localhost", "127.0.0.1"].includes(url.hostname), route => route.abort())
@@ -29,7 +34,7 @@ test("draft and multi-file submission survive refresh, complete atomically, and 
   await page.evaluate(() => { document.documentElement.dataset.theme = "dark" })
   await panel.getByLabel("Details", { exact: true }).fill("Student Union, Room 204. East entrance; accessible elevator nearby.")
   await attach(page)
-  await panel.getByRole("button", { name: "Save draft", exact: true }).click()
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
   expect((await work(page)).status).toBe("accepted")
   await page.reload(); panel = page.getByTestId("task-detail")
   await expect(panel.getByLabel("Details", { exact: true })).toHaveValue(/Room 204/)
@@ -88,12 +93,13 @@ test("room, SAP and a custom workflow node use the same form and keep their work
     await expect(panel.getByRole("textbox", { name: "Details", exact: true })).toHaveValue("")
     await expect(panel.getByRole("textbox")).toHaveCount(1)
     await panel.getByLabel("Details", { exact: true }).fill(text)
-    await panel.getByRole("button", { name: "Save draft", exact: true }).click()
-    expect((await work(page, id)).taskWork!.drafts[0].details).toBe(text)
+    await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+    expect((await work(page, id)).taskWork).toBeUndefined()
   }
   const panel = await open(page)
   await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Room reference 204")
-  expect((await work(page, SAP)).taskWork!.drafts[0].details).toContain("A-42")
+  await switchTask(page, SAP)
+  await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Speaker agreement reference A-42")
 })
 
 test("a failed save preserves text and attachments and can be retried without false completion", async ({ page }) => {
@@ -144,4 +150,81 @@ test("tablet editing stays open when interacting with the drawer outside the ori
   await expect(editor).toBeVisible()
   await editor.getByRole("button", { name: "Save changes", exact: true }).click()
   await expect(panel.getByRole("heading", { name: "Tablet room booking", exact: true })).toBeVisible()
+})
+
+test("automatically saves 2 MB files across immediate task switches and refresh, with three files and 5 MB total", async ({ page }, info) => {
+  await seed(page); let panel = await open(page)
+  const mb = 1024 * 1024
+  const files = [2, 2, 1].map((size, i) => ({ name: `proof-${i}.txt`, mimeType: "text/plain", buffer: Buffer.alloc(size * mb, 65 + i) }))
+  await panel.getByLabel("Details", { exact: true }).fill("Room 204 — save without a button")
+  await page.getByLabel("Attach files", { exact: true }).setInputFiles(files.slice(0, 2))
+  // Leave immediately, without waiting for saving or clicking a draft button.
+  await switchTask(page, SAP)
+  await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("")
+  await panel.getByLabel("Details", { exact: true }).fill("Separate speaker agreement")
+  await switchTask(page, ROOM)
+  await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Room 204 — save without a button")
+  await expect(panel.getByRole("button", { name: "Download proof-0.txt", exact: true })).toBeVisible()
+  // A third 2 MB file exceeds 5 MB; the current files and text survive rejection.
+  await page.getByLabel("Attach files", { exact: true }).setInputFiles([{ ...files[2], buffer: Buffer.alloc(2 * mb) }])
+  await expect(panel.getByRole("alert")).toContainText("5 MB")
+  await page.getByLabel("Attach files", { exact: true }).setInputFiles([files[2]])
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+  await expect(panel.getByRole("button", { name: "+ Add files", exact: true })).toBeDisabled()
+  await expect(panel.getByRole("button", { name: "Save draft", exact: true })).toHaveCount(0)
+  expect((await work(page)).status).toBe("accepted")
+  expect((await work(page)).taskWork).toBeUndefined()
+  await page.reload(); panel = page.getByTestId("task-detail")
+  await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Room 204 — save without a button")
+  await expect(panel.getByRole("button", { name: "Download proof-2.txt", exact: true })).toBeVisible()
+  const downloading = page.waitForEvent("download")
+  await panel.getByRole("button", { name: "Download proof-0.txt", exact: true }).click()
+  expect(await readFile((await (await downloading).path())!)).toEqual(files[0].buffer)
+  await page.screenshot({ path: info.outputPath("task-autosave.png"), fullPage: true })
+  await panel.getByRole("button", { name: "Submit & mark done", exact: true }).click()
+  await expect.poll(async () => (await work(page)).status).toBe("done")
+  expect((await work(page)).taskWork?.files).toHaveLength(3)
+  expect(await page.evaluate(key => localStorage.getItem(key)!.length, KEY)).toBeLessThan(1_000_000)
+  await switchTask(page, SAP)
+  await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Separate speaker agreement")
+})
+
+test("a failed automatic file transaction retains the draft through navigation and retries without false saved feedback", async ({ page }) => {
+  await seed(page); const panel = await open(page)
+  await page.evaluate(() => {
+    const put = IDBObjectStore.prototype.put
+    Object.assign(window, { failTaskUpload: true })
+    IDBObjectStore.prototype.put = function(...args) { if (this.name === "files" && (window as unknown as { failTaskUpload: boolean }).failTaskUpload) throw new DOMException("Fictional upload quota failure", "QuotaExceededError"); return put.apply(this, args) }
+  })
+  await panel.getByLabel("Details", { exact: true }).fill("Keep the unfinished booking")
+  await page.getByLabel("Attach files", { exact: true }).setInputFiles([{ name: "booking.txt", mimeType: "text/plain", buffer: Buffer.from("Keep these bytes") }])
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft not saved.")
+  await switchTask(page, SAP); await switchTask(page, ROOM)
+  await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Keep the unfinished booking")
+  await expect(panel.getByRole("button", { name: "Download booking.txt", exact: true })).toBeVisible()
+  expect((await work(page)).status).toBe("accepted")
+  await page.evaluate(() => Object.assign(window, { failTaskUpload: false }))
+  await panel.getByRole("button", { name: "Retry saving draft", exact: true }).click()
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+  await page.reload()
+  await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Keep the unfinished booking")
+  await expect(panel.getByRole("button", { name: "Download booking.txt", exact: true })).toBeVisible()
+})
+
+test("enforces the per-file limit and exports unfinished automatic drafts with complete attachment bytes", async ({ page }) => {
+  await seed(page); const panel = await open(page)
+  await page.getByLabel("Attach files", { exact: true }).setInputFiles([{ name: "too-large.txt", mimeType: "text/plain", buffer: Buffer.alloc(2 * 1024 * 1024 + 1) }])
+  await expect(panel.getByRole("alert")).toContainText("2 MB")
+  await expect(panel.getByRole("button", { name: "Download too-large.txt", exact: true })).toHaveCount(0)
+  await panel.getByLabel("Details", { exact: true }).fill("Unsubmitted location: room 204")
+  await attach(page)
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+  await page.goto("/#/settings"); await closeRail(page)
+  const downloading = page.waitForEvent("download")
+  await page.getByTestId("export-data").click()
+  const archive = JSON.parse(await readFile((await (await downloading).path())!, "utf8"))
+  const draft = archive.taskDrafts.find((d: { nodeId: string }) => d.nodeId === ROOM)
+  expect(draft.details).toBe("Unsubmitted location: room 204")
+  expect(Buffer.from(draft.files[0].dataUrl.split(",")[1], "base64").toString()).toBe("Fictional booking confirmation")
+  expect(archive.state.nodes.find((n: { id: string }) => n.id === ROOM).status).toBe("accepted")
 })

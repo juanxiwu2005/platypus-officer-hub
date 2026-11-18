@@ -14,6 +14,8 @@ import { buildReminderMail } from "./mail"
 import { planReminders } from "./engine"
 import SingleTaskPage from "./SingleTaskPage"
 
+vi.mock("../taskDetails/fileStorage", async original => ({ ...await original<typeof import("../taskDetails/fileStorage")>(), ...await import("../test/taskFileStorageMock") }))
+
 vi.mock("./taskAccess", async original => {
   const actual = await original<typeof import("./taskAccess")>()
   return { ...actual, verifyTaskAccessGrant: vi.fn(actual.verifyTaskAccessGrant) }
@@ -47,6 +49,7 @@ function Host({ state, token }: { state: DemoState; token: string }) {
 async function show(state: DemoState, token: string) {
   const result = render(<Host state={state} token={token} />)
   await screen.findByTestId("single-task-page")
+  await waitFor(() => expect(screen.queryByText("Opening draft…")).toBeNull())
   return result
 }
 function waitingState(detail = "Please confirm the room requirements", personId: string | null = "sam") {
@@ -89,7 +92,7 @@ describe("the standalone owner task", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Task status" }), { target: { value: "in_progress" } })
     await waitFor(() => expect(latest.nodes[0].status).toBe("in_progress"))
     expect((screen.getByRole("combobox", { name: "Task status" }) as HTMLSelectElement).value).toBe("in_progress")
-    expect(screen.getByRole("status").textContent).toContain("saved")
+    expect(screen.getByText("Your update is saved. Thank you.")).toBeTruthy()
     expect(usableTaskAccessGrant(latest, token)).toBeTruthy()
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room confirmed; reference saved." } }); fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
     await waitFor(() => expect(latest.nodes[0].status).toBe("done"))
@@ -236,7 +239,7 @@ describe("the standalone owner task", () => {
     const submit = screen.getByRole("button", { name: "Submit result" })
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Application submitted" } })
     fireEvent.click(submit)
-    expect(latest.nodes[0].taskWork?.submissions).toHaveLength(1)
+    await waitFor(() => expect(latest.nodes[0].taskWork?.submissions).toHaveLength(1))
     expect(latest.nodes[0].status).toBe("accepted")
     expect(screen.getByRole("link", { name: "Event Budget" }).getAttribute("href")).toContain("view=budget")
   })
