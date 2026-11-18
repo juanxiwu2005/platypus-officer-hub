@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useId, useMemo, useState } from "react"
 import type { DemoState, Event, Role, StepTemplate, WorkflowBranch } from "../../data/types"
 import { addDays } from "../../lib/dates"
 import { computeSchedule } from "../../engine/schedule"
@@ -11,21 +11,23 @@ import { descendantsOf, type StepEdit } from "../../lib/stepOrder"
 import type { Node } from "../../data/types"
 import { WorkflowIssues } from "./WorkflowReview"
 import { useRail } from "../rail/RailContext"
-import { DEFAULT_WORKFLOW_BRANCHES, placementOf, resolveBranches } from "../../engine/workflowBranches"
+import { DEFAULT_WORKFLOW_BRANCHES, branchConditions, placementOf, resolveBranches } from "../../engine/workflowBranches"
 import { deletionReason } from "../../engine/workflowPolicy"
 import { WorkflowEffortInput } from "./WorkflowEffortInput"
+import { workflowStepKind } from "../../engine/workflowStepKind"
+import { reassignWorkflowStep } from "../../engine/workflowRoleBranches"
 
 /**
  * The club's event workflow on the same chart as a real event's Flow tab: five
  * pre-event routes fan out from Start and meet at Full Check, left to right.
- * Drag a step onto a ◆, double-click a step or a line to add, delete or cut a link. Selecting a step opens its details
+ * Drag a step onto a ◆, double-click a step to add or delete a task. Selecting a step opens its details
  * beside the chart, so workflow timing can be adjusted without losing the graph.
  * Everything is checked by the engine (engine/workflow.ts): steps and links ASU rules need cannot be removed, and a change that breaks one is
  * marked on the chart and has to be fixed before setup continues.
  */
 const withEdits = (steps: StepTemplate[], edits: StepEdit[]): StepTemplate[] => {
   const by = new Map(edits.map(e => [e.id, e.patch]))
-  return steps.map(s => { const p = by.get(s.key); return p ? { ...s, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays } : {}), ...(p.phase ? { phase: p.phase } : {}), ...(p.placement ? { placement: p.placement } : {}), ...(p.cond !== undefined ? { cond: p.cond ?? undefined } : {}), ...(p.startPolicy ? { startPolicy: p.startPolicy } : {}) } : s })
+  return steps.map(s => { const p = by.get(s.key); return p ? { ...s, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays } : {}), ...(p.phase ? { phase: p.phase } : {}), ...(p.placement ? { placement: p.placement } : {}), ...(p.cond !== undefined ? { cond: p.cond ?? undefined } : {}), ...(p.startPolicy ? { startPolicy: p.startPolicy } : {}), ...(p.stepKind !== undefined ? { stepKind: p.stepKind ?? undefined } : {}) } : s })
 }
 const NO_FORECAST: Forecast = { nodes: {}, events: {} }
 
@@ -64,7 +66,7 @@ export function WorkflowPanel({ state, steps, branches, roles, issues, onChange 
     addStep: (key, uId, vId, target) => {
       if (!target || steps.length >= MAX_STEPS) return false
       const ref = byKey.get(target.referenceId ?? uId ?? vId ?? "")
-      const fresh: StepTemplate = { key, title: "New step", fn: ref?.fn ?? "programs", ownerRoleId: ref?.ownerRoleId ?? null, phase: ref?.phase ?? "prepare", estDays: 1, tier: "light", dependsOn: [], why: "Added by the club.", source: "Added in the workflow chart", custom: true }
+      const fresh: StepTemplate = { key, title: "New step", fn: ref?.fn ?? "programs", ownerRoleId: ref?.ownerRoleId ?? null, phase: ref?.phase ?? "prepare", stepKind: workflowStepKind(ref ?? {}, currentBranches), estDays: 1, tier: "light", dependsOn: [], why: "Added by the club.", source: "Added in the workflow chart", custom: true }
       const existing = stepsAsNodes(steps, "wf")
       const r = insertFlowStep(existing, stepsAsNodes([fresh], "wf")[0], target, currentBranches)
       if (r.error) return false
@@ -73,7 +75,7 @@ export function WorkflowPanel({ state, steps, branches, roles, issues, onChange 
     addBranch: (branch, key, title) => {
       if (steps.length >= MAX_STEPS) return false
       const role = roles.find(candidate => candidate.id === branch.defaultRoleId)
-      const fresh: StepTemplate = { key, title, fn: role?.fn ?? "programs", ownerRoleId: role?.id ?? null, phase: branch.side === "after_event" ? "close" : "prepare", estDays: 1, tier: "light", dependsOn: [], why: "Added by the club.", source: "Added in the workflow chart", custom: true }
+      const fresh: StepTemplate = { key, title, fn: role?.fn ?? "programs", ownerRoleId: role?.id ?? null, phase: branch.side === "after_event" ? "close" : "prepare", stepKind: branchConditions(branch).length ? "situation" : "core", estDays: 1, tier: "light", dependsOn: [], why: "Added by the club.", source: "Added in the workflow chart", custom: true }
       const r = insertFlowBranch(stepsAsNodes(steps, "wf"), stepsAsNodes([fresh], "wf")[0], branch, currentBranches)
       if (r.error) return false
       return graphChange(withEdits([...steps, fresh], r.edits), [...currentBranches, branch])
@@ -91,21 +93,29 @@ export function WorkflowPanel({ state, steps, branches, roles, issues, onChange 
   const closeStep = () => { setSelected(null); rail.closeDetail() }
   useEffect(() => {
     if (!step) return
-    rail.setWorkflowDetail(<StepPanel key={step.key} step={step} steps={steps} roles={roles} label={label} onChange={next => change(next)} onClose={closeStep} />)
+    rail.setWorkflowDetail(<StepPanel key={step.key} step={step} steps={steps} branches={currentBranches} roles={roles} label={label} onChange={change} onClose={closeStep} />)
     return () => rail.setWorkflowDetail(null)
   // The content deliberately refreshes whenever the editable template changes.
   }, [step, steps, roles, label, onChange, currentBranches])
   return <>
     <WorkflowIssues issues={issues} />
-    <p className="small muted">Look at the chart first: it reads left to right in the order the work happens. Drag a step onto a ◆ to move it, double-click a step to add or delete one, double-click a line to cut a link. Click a step for its details.</p>
+    <p className="small muted">Look at the chart first: it reads left to right in the order the work happens. Drag a step onto a ◆ to move it, double-click a step to add or delete one. Click a step for its details.</p>
     <div className="workflow-editor"><div className="workflow-editor-flow"><MetroChart key="wf" state={sample.s} sched={sample.sched} forecast={NO_FORECAST} eventId="wf" selectedId={selected} onSelect={selectStep} canEdit alwaysEdit port={port} /></div></div>
   </>
 }
 
 /** One step's details: name, who does it, days of work, what it waits for. */
-function StepPanel({ step, steps, roles, label, onChange, onClose }: { step: StepTemplate; steps: StepTemplate[]; roles: Role[]; label: Map<string, string>; onChange: (s: StepTemplate[]) => void; onClose: () => void }) {
+function StepPanel({ step, steps, branches, roles, label, onChange, onClose }: { step: StepTemplate; steps: StepTemplate[]; branches: WorkflowBranch[]; roles: Role[]; label: Map<string, string>; onChange: (steps: StepTemplate[], branches?: WorkflowBranch[]) => void; onClose: () => void }) {
   const nodes: Node[] = stepsAsNodes(steps, "wf")
-  const set = (p: Partial<StepTemplate>) => onChange(steps.map(s => s.key === step.key ? { ...s, ...p } : s))
+  const set = (p: Partial<StepTemplate>) => onChange(steps.map(s => s.key === step.key ? { ...s, ...p } : s), branches)
+  const [roleError, setRoleError] = useState<string | null>(null)
+  const roleErrorId = useId()
+  const assignRole = (roleId: string) => {
+    const result = reassignWorkflowStep(steps, branches, roles, step.key, roleId)
+    if (result.error) { setRoleError(result.error); return }
+    setRoleError(null)
+    onChange(result.steps, result.branches)
+  }
   const doers = roles.filter(r => r.fn !== "advisor")
   const owner = ownerOfStep(step, roles)
   const locked = isLocked(step)
@@ -116,11 +126,14 @@ function StepPanel({ step, steps, roles, label, onChange, onClose }: { step: Ste
   return <section className="card form-stack wf-detail" data-testid="workflow-step-panel" aria-label={`Details: ${step.title}`}>
     <header><h3 className="org-h">Step details</h3><button type="button" className="btn small btn-quiet" onClick={onClose}>Close</button></header>
     <div className="form-grid">
+      {/* TODO: Connect saved step kinds to event intake choices in a later change; current activation conditions stay unchanged. */}
+      <label>Step type<select value={workflowStepKind(step, branches)} onChange={event => { const stepKind = event.target.value; if (stepKind === "core" || stepKind === "situation") set({ stepKind }) }}><option value="core">Core event step</option><option value="situation">Situation-based step</option></select></label>
       <label>Step name<input type="text" value={step.title} maxLength={120} onChange={e => set({ title: e.target.value })} /></label>
-      <label>Done by<select value={owner?.id ?? ""} onChange={e => set({ ownerRoleId: e.target.value, fn: roles.find(r => r.id === e.target.value)?.fn ?? step.fn })}>
+      <label>Done by<select value={owner?.id ?? ""} aria-invalid={!!roleError || undefined} aria-describedby={roleError ? roleErrorId : undefined} onChange={e => assignRole(e.target.value)}>
         {!owner && <option value="">No owner</option>}
         {doers.map(r => <option key={r.id} value={r.id} title={r.displayName}>{label.get(r.id)}</option>)}
       </select></label>
+      {roleError && <p id={roleErrorId} role="alert" className="small late-text">{roleError}</p>}
       <WorkflowEffortInput value={step.estDays} onCommit={set} />
       {!locked && step.phase !== "close" && <label>Target timing (days before event)<input type="number" inputMode="numeric" min={0} max={180} value={step.anchor?.kind === "target" ? step.anchor.days : ""} placeholder="From dependencies" onChange={e => { const days = e.target.value === "" ? null : Math.max(0, Math.min(180, Math.round(Number(e.target.value) || 0))); set({ anchor: days === null ? undefined : { kind: "target", days, unit: "calendar", label: "Club workflow timing" } }) }} /></label>}
     </div>
