@@ -93,6 +93,22 @@ describe("workflow stability · business persistence", () => {
     expect(result).toBe(s)
   })
 
+  it("inherits and persists the clicked node's authored category when adding before or after it", () => {
+    for (const stepKind of ["core", "situation"] as const) for (const where of ["before", "after"]) {
+      const s = base(), eventId = "e-speaker", referenceId = `${eventId}:speakerPacket`, id = `${eventId}:typed-${where}`
+      s.nodes = s.nodes.map(node => node.id === referenceId ? { ...node, stepKind } : node)
+      const before = where === "before"
+      const afterId = before ? `${eventId}:partner` : referenceId
+      const beforeId = before ? referenceId : `${eventId}:travel`
+      const added = reducer(s, { type: "addEventStep", eventId, id, uId: afterId, vId: beforeId, target: { branchId: "speaker", afterId, beforeId, referenceId, source: before ? "before_node" : "after_node" } })
+      expect(added.nodes.find(node => node.id === id)).toMatchObject({ stepKind, placement: { branchId: "speaker" } })
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(added))
+      expect(loadStateWithNotice().state.nodes.find(node => node.id === id)?.stepKind).toBe(stepKind)
+      const restored = reducer(added, { type: "restoreEventNodes", eventId, nodes: s.nodes.filter(node => node.eventId === eventId), branches: s.events.find(event => event.id === eventId)?.workflowBranches })
+      expect(restored.nodes.some(node => node.id === id)).toBe(false)
+    }
+  })
+
   it("retains a valid v23 event missing Full Check verbatim on read", () => {
     const s = base()
     s.nodes = s.nodes.filter(n => n.id !== "e-speaker:finalcheck")
