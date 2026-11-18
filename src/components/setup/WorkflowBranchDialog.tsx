@@ -17,7 +17,7 @@ export function WorkflowBranchDialog({ roles, onAdd, onClose }: { roles: Role[];
   const [title, setTitle] = useState("")
   const [side, setSide] = useState<WorkflowBranch["side"]>("before_event")
   const [condition, setCondition] = useState<StepCond | "">("")
-  const [roleId, setRoleId] = useState("")
+  const [roleId, setRoleId] = useState(() => roles.find(role => role.fn === "programs")?.id ?? roles.find(role => role.fn !== "advisor")?.id ?? "")
   const [firstStepTitle, setFirstStepTitle] = useState("")
   const [error, setError] = useState<string | null>(null)
   useEffect(() => {
@@ -45,7 +45,7 @@ export function WorkflowBranchDialog({ roles, onAdd, onClose }: { roles: Role[];
         <label>Branch name<input value={title} maxLength={80} onChange={e => setTitle(e.target.value)} required /></label>
         <label>When<select value={side} onChange={e => setSide(e.target.value as WorkflowBranch["side"])}><option value="before_event">Before event</option><option value="after_event">After event</option></select></label>
         <label>Applies to<select value={condition} onChange={e => setCondition(e.target.value as StepCond | "")}>{WORKFLOW_CONDITION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-        <label>Default role<select value={roleId} onChange={e => setRoleId(e.target.value)}><option value="">Choose later</option>{roles.filter(role => role.fn !== "advisor").map(role => <option key={role.id} value={role.id}>{role.displayName}</option>)}</select></label>
+        <label>Default role<select value={roleId} onChange={e => setRoleId(e.target.value)}>{!roleId && <option value="">No matching role</option>}{roles.filter(role => role.fn !== "advisor").map(role => <option key={role.id} value={role.id}>{role.displayName}</option>)}</select></label>
         <label>First task<input value={firstStepTitle} maxLength={120} onChange={e => setFirstStepTitle(e.target.value)} required /></label>
         {error && <p role="alert" className="small late-text">{error}</p>}
         <div className="action-row"><button type="submit" className="btn">Add branch</button><button type="button" className="btn btn-quiet" onClick={onClose}>Cancel</button></div>
