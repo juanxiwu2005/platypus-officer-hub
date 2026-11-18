@@ -185,7 +185,8 @@ function moveOnBranch(nodes: Node[], id: string, context: FlowMoveContext): Edit
   })
   const error = validateTarget(detached, context.target, branches)
   if (error) return fail(error)
-  const result = insertFlowStep(detached, { ...r, dependsOn: [] }, { ...context.target, condition: targetCondition ?? null }, branches)
+  // A move preserves the source category, including old custom steps whose kind was inferred.
+  const result = insertFlowStep(detached, { ...r, stepKind: workflowStepKind(r, branches), dependsOn: [] }, { ...context.target, condition: targetCondition ?? null }, branches)
   if (result.error) return result
   const patches = new Map(result.edits.map(e => [e.id, e.patch]))
   const after = [...detached, r].map(n => {
