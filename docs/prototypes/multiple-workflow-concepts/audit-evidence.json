@@ -1,0 +1,24 @@
+{
+  "sourceCommit": "1e0ef5a",
+  "method": "Offline calls to existing stepsFor, checkWorkflow and FlowSchema via Vite SSR; fictional inputs; no application state written",
+  "standardStepCount": 46,
+  "requiredCoreCount": 31,
+  "tinyWorkflow": {
+    "requestedSteps": 1,
+    "inputKind": "Event with type=meeting and checks={}",
+    "inputStep": "contact-partner",
+    "generatedSteps": 32,
+    "injectedStandardSteps": 31,
+    "templateValidationBlockedIssuesWithEmptyRoles": 38
+  },
+  "changingOnlyEventTypeFromSpeakerToMeetingChangesSelectedSteps": false,
+  "newFlowSchemaAccepts46NodeStandardAdapterShape": false,
+  "newFlowSchemaRejection": {
+    "path": ["nodes"],
+    "message": "Too big: expected array to have <=40 items"
+  },
+  "productCodeChanged": false,
+  "liveProductAiCalls": 0,
+  "imageGenerationCalls": 6,
+  "emailsSent": 0
+}

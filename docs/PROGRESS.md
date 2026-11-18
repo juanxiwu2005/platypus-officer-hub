@@ -1,8 +1,9 @@
 > **2026-11-17（America/Phoenix） · D方案：更新团队目标日期并知会进行中（Codex）**
 > **授权：** Juanxi审阅四张静态图后选择D并要求实施。成员直接更新社团目标日期、填写可选Message、多选通知对象或添加成员；系统按实际依赖推荐下游并按人合并通知，不再经过审批。学校硬性日期保持不变，正式完成/撤回与自动草稿继续保留；负责人邮件入口同权，协助grant不扩权。沿用PR14，不新建PR、不合并main；不修改Settings模板，保留同期多模板研究记录，0真实AI/外部投递。
 
-> **2026-11-17（America/Phoenix） · 多工作流能力审阅与六种静态方案研究中（Codex）**
-> **用户范围：** 审阅当前Plan能否支持活动、Executive Board事务及5/10/20个预设或社团自定义模板；调研并生成六张不同方案的静态效果图，简单解释。本轮只做研究和图片，不实现HTML或产品改动；基于原功能分支`1e0ef5a`，保留其他聊天交付，不合并main。
+> **2026-11-17（America/Phoenix） · 多工作流能力审阅与六张静态方案已完成，待讨论（Codex）**
+> **结论：** 当前Plan支持多个活动实例，但仅一份org.eventWorkflow；create_event不带模板选择，常规生成与验证强制31核心步骤。离线反例1项内部工作生成32项；只改Event.type不会换模板。另有默认隐藏的WorkItem/Executive基础，但成员仍用单一确认流程，40节点schema也不能直接装当前46节点模板；需统一通用工作项、模板目录/ID/版本、实例快照及按事实适用的规则。[完整研究](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)与[离线证据](prototypes/multiple-workflow-concepts/audit-evidence.json)。
+> **六张图：** [静态图片目录与清单](prototypes/multiple-workflow-concepts/manifest.json)，A模板库、B目标问答、C双工作台、D模块拼装、E社团流程手册/版本、F历史计划复用；六张1536×1024原始PNG已在对话展示并保存，原图未删。建议A+C先行，E保留最小版本规则，B/F后续，D较复杂；未批准或启动实施。仅docs/PNG/JSON，0 HTML、产品行为不变，未重复全站门禁，0真实AI产品调用/邮件（图片为用户明确要求的image_gen生成）；基于`1e0ef5a`，沿用原分支/PR14，保留其他聊天交付，不合并main，需要同步本地备份。
 
 > **2026-11-17（America/Phoenix） · 延期申请、自动站内通知与完成退回完成检查，待验收（Codex）**
 > **结果：** Need more time去掉Current draft link，仅保留Requested club deadline和可选Message；Request extension将申请和给现任审批人/社长/副社长的通知一起保存，点通知直接在任务内审批，批准前保留原日期与状态。普通任务完成后Undo mark done紧邻提交操作，刷新后仍能从状态菜单改回To do/Working/Stuck/Waiting；保留正文/附件/版本，清除完成标记及积分，提醒下游重新核对依赖。财务Done仍由Event Budget管理，负责人邮件入口同权，协助grant不扩权。[交付与验收](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)。
