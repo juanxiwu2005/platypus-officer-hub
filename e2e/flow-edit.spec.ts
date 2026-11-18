@@ -103,7 +103,7 @@ test("Reset discards flow edits and their Undo history", async ({ page }) => {
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(38)
 })
 
-test("steps ASU rules need, and finished steps, cannot be deleted; the menu says why", async ({ page }) => {
+test("steps ASU rules need, and required organization steps, cannot be deleted; the menu says why", async ({ page }) => {
   await page.getByTestId("flow-edit-toggle").click()
   await act(page, "purchaseRequest")
   const menu = page.getByTestId("flow-menu")
@@ -111,7 +111,8 @@ test("steps ASU rules need, and finished steps, cannot be deleted; the menu says
   await expect(menu).toContainText("Cannot delete: ASU rule")
   await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0)
   await act(page, "plan")
-  await expect(page.getByTestId("flow-menu")).toContainText("already done")
+  await expect(page.getByTestId("flow-menu").getByRole("button", { name: "Delete this step" })).toBeDisabled()
+  await expect(page.getByTestId("flow-menu")).toContainText("required organization event workflow")
 })
 
 test("line double-clicks and double-taps leave the graph unchanged, with hover disabled", async ({ page }, info) => {
