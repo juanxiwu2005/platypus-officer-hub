@@ -190,7 +190,7 @@ function moveOnBranch(nodes: Node[], id: string, context: FlowMoveContext): Edit
   const patches = new Map(result.edits.map(e => [e.id, e.patch]))
   const after = [...detached, r].map(n => {
     const p = patches.get(n.id)
-    const changed = p ? { ...n, ...p, cond: Object.hasOwn(p, "cond") ? p.cond ?? undefined : n.cond } : n
+    const changed = p ? { ...n, ...p, cond: Object.hasOwn(p, "cond") ? p.cond ?? undefined : n.cond, stepKind: Object.hasOwn(p, "stepKind") ? p.stepKind ?? undefined : n.stepKind } : n
     return changed.id === id ? { ...changed, dependsOn: uniq([...changed.dependsOn, ...external]) } : changed
   })
   const sourceOrder = orderedBranchNodes(after, source.branchId).map(n => n.id)

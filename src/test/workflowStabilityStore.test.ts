@@ -7,6 +7,7 @@ import { EVENT_STEPS } from "../engine/playbooks"
 import { resolveBranches } from "../engine/workflowBranches"
 import type { WorkflowBranch } from "../data/types"
 import type { CommandOp } from "../lib/commands"
+import { inverseOf } from "../lib/stepOrder"
 
 const branch: WorkflowBranch = { id: "speaker-checks", title: "Speaker checks", order: 20, side: "before_event", condition: "externalGuest", defaultRoleId: "r-events" }
 const base = () => seedDemo(undefined, "v2")
@@ -107,6 +108,17 @@ describe("workflow stability · business persistence", () => {
       const restored = reducer(added, { type: "restoreEventNodes", eventId, nodes: s.nodes.filter(node => node.eventId === eventId), branches: s.events.find(event => event.id === eventId)?.workflowBranches })
       expect(restored.nodes.some(node => node.id === id)).toBe(false)
     }
+  })
+
+  it("rejects invalid categories and lets inverse edits clear an authored override", () => {
+    const s = base(), eventId = "e-speaker", id = `${eventId}:marketingNeeds`
+    const invalid = reducer(s, { type: "applyStepEdits", eventId, edits: [{ id, patch: { stepKind: "unknown" as "core" } }] })
+    expect(invalid).toBe(s)
+    const edits = [{ id, patch: { stepKind: "situation" as const } }]
+    const changed = reducer(s, { type: "applyStepEdits", eventId, edits })
+    expect(changed.nodes.find(node => node.id === id)?.stepKind).toBe("situation")
+    const restored = reducer(changed, { type: "applyStepEdits", eventId, edits: inverseOf(s.nodes, edits) })
+    expect(restored.nodes.find(node => node.id === id)?.stepKind).toBeUndefined()
   })
 
   it("retains a valid v23 event missing Full Check verbatim on read", () => {
