@@ -31,6 +31,8 @@ describe("universal work on actual task nodes", () => {
     expect(submitted.nodes[0].taskWork?.drafts).toEqual([])
     const exported = buildExport(submitted, [], Date.now()).state
     expect(JSON.parse(JSON.stringify(exported)).nodes[0].taskWork.files).toEqual([file])
+    const restored = reducer(seedDemo(undefined, "v2"), { type: "replace", state: JSON.parse(JSON.stringify(exported)) })
+    expect(restored.nodes[0].taskWork).toEqual(submitted.nodes[0].taskWork)
     expect(taskWork(submitted.nodes[0])?.submissions[0]).toMatchObject({ authorId: "jordan", details: "Student Union, Room 204", attachmentIds: [file.id] })
   })
   it("keeps previous submissions when a completed task's result is corrected", () => {
