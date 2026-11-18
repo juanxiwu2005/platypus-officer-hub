@@ -189,6 +189,7 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
   const clean: StepEdit[] = edits.filter(e => e && ids.has(e.id)).map(e => ({ id: e.id, patch: cleanPatch(e.patch, ids, e.id) })).filter(e => Object.keys(e.patch).length > 0)
   if (createsLoop(inEvent, clean)) return state
   const by = new Map(clean.map(e => [e.id, e.patch]))
+  const graphEdit = ev.checks !== undefined || clean.some(edit => edit.patch.placement !== undefined)
   const branches = resolveBranches(inEvent, ev.workflowBranches)
   let changed = false
   const nodes = state.nodes.map(n => {
@@ -199,16 +200,16 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
     return next
   })
   if (nodes.some(n => {
-    if (n.eventId !== eventId || !by.has(n.id)) return false
+    if (n.eventId !== eventId || !by.has(n.id) || !graphEdit) return false
     const branch = branches.find(b => b.id === n.placement?.branchId)
     const original = inEvent.find(item => item.id === n.id)!
     if (placementOf(original).branchId === "main" && placementOf(n).branchId !== "main") return true
-    if (isCoreStep(n) && (n.cond || branch?.condition)) return true
+    if (ev.checks !== undefined && isCoreStep(n) && (n.cond || branch?.condition)) return true
     if (isAsuStep(original) && scopeKey(original, branches) !== scopeKey(n, branches)) return true
     return !!n.placement && n.placement.branchId !== "main" && (!branch || (n.phase === "close") !== (branch.side === "after_event"))
   })) return state
   const candidateNodes = nodes.filter(n => n.eventId === eventId)
-  for (const n of candidateNodes) {
+  for (const n of graphEdit ? candidateNodes : []) {
     if (!isAsuStep(n)) continue
     const required = EVENT_STEPS.find(step => step.key === n.stepKey)?.dependsOn ?? []
     const previous = ancestorsOf(inEvent, n.id), after = ancestorsOf(candidateNodes, n.id)

@@ -46,7 +46,7 @@ test("the flow chart has one main line through the event day, and a step opens w
   // opens 30 days before the Mar 25 event and is due with Budget Approval, 18 days before (Sun Mar 7 → Fri Mar 5); ASU (R09) Thu Mar 11.
   const saved = await savedTask(page, "e-night:purchaseRequest")
   expect([saved.latestStart, saved.clubDeadline, saved.officialDeadline]).toEqual(["2027-02-23", "2027-03-05", "2027-03-11"])
-  await expect(panel.getByTestId("task-due")).toContainText(`Due ${fmtShort(saved.clubDeadline!)}`)
+  await expect(panel.getByTestId("task-due").locator("strong")).toHaveText(fmtShort(saved.clubDeadline!))
   await expect(panel.locator(".td-head")).not.toContainText(/Start by|Club deadline|ASU/)
   await panel.getByText("Why this date", { exact: true }).click()
   await expect(panel.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(saved.officialDeadline!)}.`)
@@ -68,7 +68,7 @@ test("a pointer hovers a step; touch opens its details with the same Due", async
     await expect(card).not.toContainText("ASU deadline")
   } else {
     await node.tap()
-    await expect(page.getByTestId("task-detail").getByTestId("task-due")).toContainText(`Due ${fmtShort(saved.clubDeadline!)}`)
+    await expect(page.getByTestId("task-detail").getByTestId("task-due").locator("strong")).toHaveText(fmtShort(saved.clubDeadline!))
   }
 })
 
@@ -85,7 +85,7 @@ test("moving an upstream due date later reschedules its dependants and flags the
   const panel = page.getByTestId("task-detail")
   const moved = await savedTask(page, "e-night:purchaseRequest")
   expect(moved.clubDeadline).toBe("2026-11-05")
-  await expect(panel.getByTestId("task-due")).toContainText(`Due ${fmtShort(moved.clubDeadline!)}`)
+  await expect(panel.getByTestId("task-due").locator("strong")).toHaveText(fmtShort(moved.clubDeadline!))
   await closeRail(page)
   await expect(page.getByTestId("flow-node-purchaseRequest")).toHaveClass(/has-error/)
   await expect(page.getByTestId("event-issues")).toContainText("cannot finish in time")
@@ -100,7 +100,7 @@ test("changing the event date recomputes the plan and warnings in Flow and List"
   await page.getByTestId("flow-node-purchaseRequest").click()
   const replanned = await savedTask(page, "e-night:purchaseRequest")
   const detail = page.getByTestId("task-detail")
-  await expect(detail.getByTestId("task-due")).toContainText(`Due ${fmtShort(replanned.clubDeadline!)}`)
+  await expect(detail.getByTestId("task-due").locator("strong")).toHaveText(fmtShort(replanned.clubDeadline!))
   await detail.getByText("Why this date", { exact: true }).click()
   await expect(detail.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(replanned.officialDeadline!)}.`)
   await closeRail(page)
@@ -108,7 +108,7 @@ test("changing the event date recomputes the plan and warnings in Flow and List"
   const row = page.getByTestId("event-step-e-night:purchaseRequest").locator("xpath=ancestor::tr")
   await expect(row).toContainText(fmtShort(replanned.clubDeadline!))
   await row.getByTestId("event-step-e-night:purchaseRequest").click()
-  await expect(page.getByTestId("task-detail").getByTestId("task-due")).toContainText(`Due ${fmtShort(replanned.clubDeadline!)}`)
+  await expect(page.getByTestId("task-detail").getByTestId("task-due").locator("strong")).toHaveText(fmtShort(replanned.clubDeadline!))
 })
 
 test("the list view opens every step from the same event as the Flow", async ({ page }) => {

@@ -25,7 +25,12 @@ test("shared Full Check requires an explicit insertion branch", async ({ page })
 
 test("a mixed-scope line never silently inherits its left endpoint scope", async ({ page }) => {
   await workflow(page)
-  await page.getByTestId("flow-line-foodCompliance-quotes").dblclick()
+  const left = page.getByTestId("flow-node-foodCompliance"), right = page.getByTestId("flow-node-quotes")
+  await left.scrollIntoViewIfNeeded()
+  await right.scrollIntoViewIfNeeded()
+  const a = await left.boundingBox(), b = await right.boundingBox()
+  // Straight SVG strokes have a zero-height/width DOM box; click the painted midpoint.
+  await page.mouse.dblclick((a!.x + a!.width / 2 + b!.x + b!.width / 2) / 2, (a!.y + a!.height / 2 + b!.y + b!.height / 2) / 2)
   const menu = page.getByTestId("flow-menu")
   const add = menu.getByRole("button", { name: "Add a step here" })
   await expect(add).toBeDisabled()
