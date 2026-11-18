@@ -1,6 +1,6 @@
-> **2026-11-18（America/Phoenix） · P1 人员卡与一队一泳道基础代码，进行中（Codex）**
-> **本轮授权：** Juanxi选P1，要求开始调整；工作流明确每team恰好一条泳道（5队5道、7队7道），按独立模块先写简单代码及记录，另一个对话的模板库/直观编辑器完成后再适配。
-> **文件边界：** 新增 `src/teamWorkflow/` 与对应交接/检查；不改Settings、WorkflowPanel、MetroChart、数据schema、模板库、正式onboarding入口或其他会话文件。P1提供受控可复用组件，一队一泳道提供纯函数契约/旧数据显式适配，不提前接生产入口或旧存储。重复Operations合一条、活动前后同队仍一条，未分组任务阻止确认，不暗增“未分组”泳道；保留旧46任务、依赖、条件、时间引擎及章程AI。沿用PR14/原功能分支，不合并main。需要同步本地备份。
+> **2026-11-18（America/Phoenix） · P1 人员卡与一队一泳道基础代码完成，等待编辑器统一适配（Codex）**
+> **交付：** 独立分支 `feat/team-swimlane-foundation` 的 `src/teamWorkflow/` 提供 P1 受控人员卡、独立Team/Reports to、下级创建/拖入团队/负责人空缺、防循环、唯一team ID泳道投影、整段改派及显式旧数据投影。[给模板库/编辑器的交接](feedback-fix/TEAM_WORKFLOW_FOUNDATION_HANDOFF.md) 明确5队5道、7队7道，空队保留，同队活动前后合一行，截图多条Operations必须合并，未分组项不能变成额外泳道；原任务条件/依赖/工作量/日期保留。
+> **验证与边界：** 2文件28项单元/组件通过；隔离浏览器验证真实拖拽、姓名邮箱/多级汇报、5/7行及46任务、320/390触控、浅深色、严重/关键axe和无脚本错误；全站lint、独立CSS、前端类型及生产构建通过。[检查记录](feedback-fix/team-workflow-verification.json)与[P1实测截图](prototypes/team-workflow-foundation/manifest.json)。新源码仅在独立分支，原功能分支只同步交接/进度/截图，未挂正式onboarding或Settings、未覆盖另一对话的模板库或编辑器，未改schema/store/规则/原46任务，不新建PR、不合并main，0真实AI/邮件。当前graph.ready只校验本模块归属/基础引用，不替代既有规则/日期/权限；接入与实例负责人分派仍待后续。需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · 人工工作流搭建器六方案讨论准备中（Codex）**
 > **用户范围：** 先完善人工模板编辑器，AI暂不作为依赖；参考上传的event-workflow-timeline.html，围绕2–3分钟创建简单流程、团队/岗位接入、工作日时长与T-minus、可见依赖连线设计六种具体编辑方式。沿用静态图讨论，不开发HTML或产品功能，不创建后续预设；基于`bebe999`，保留所有同期改动，不合并main。

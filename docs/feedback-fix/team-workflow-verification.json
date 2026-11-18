@@ -1,0 +1,28 @@
+{
+  "results": [
+    "P1 editing, direct report creation, independent membership and contacts",
+    "Native role drag keeps manager",
+    "5 teams=5 rows; 7 teams=7 rows; all 46 tasks covered",
+    "Lane shell serious/critical axe check",
+    "320px touch layout and Reports to edit",
+    "390px touch layout and Reports to edit"
+  ],
+  "errors": [],
+  "fixtureOnly": true,
+  "realAI": 0,
+  "emails": 0,
+  "unitComponentTests": 28,
+  "testFiles": 2,
+  "frontendTypecheck": true,
+  "productionBuild": true,
+  "globalLint": true,
+  "moduleCssLint": true,
+  "sourceBranch": "feat/team-swimlane-foundation",
+  "applicationImported": false,
+  "checksScope": "isolated component browser checks; not whole-site e2e",
+  "fixedDuringChecks": [
+    "select accessible labels",
+    "role-card label content matching",
+    "standalone axe browser context setup"
+  ]
+}

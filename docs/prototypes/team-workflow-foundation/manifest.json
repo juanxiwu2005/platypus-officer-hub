@@ -1,0 +1,8 @@
+{
+  "status": "P1 reusable component screenshots; source code only in feat/team-swimlane-foundation, not live application",
+  "files": {
+    "p1-finance-mobile.png": "0908c6f2e3d59b20306762223514a88def610780d98504154d2dd0993ef35b03",
+    "p1-finance-dark.png": "9a308525ed743e1d74dd1739d717b0804006e63d54cc5b207261ca494cbafb8a",
+    "p1-finance-desktop.png": "de3e8e3447fc41ebf309dff99f5b7264d529fd93c79e71d146a8bfe1f9662b09"
+  }
+}

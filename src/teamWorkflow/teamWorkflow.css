@@ -1,0 +1,45 @@
+.tw-people, .tw-swimlanes { min-width: 0; }
+.tw-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s6); margin-bottom: var(--s7); }
+.tw-heading h2 { margin: 0; font-family: var(--serif); font-size: var(--fs-2xl); font-weight: 600; line-height: 1.2; }
+.tw-heading p, .tw-note, .tw-empty, .tw-parent, .tw-email { color: var(--muted); font-size: var(--fs-sm); }
+.tw-team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: var(--s6); }
+.tw-team { min-width: 0; padding: var(--s6); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.tw-team.tw-drop-active { outline: 2px solid var(--accent); background: var(--accent-soft); }
+.tw-team-header { display: grid; gap: var(--s4); margin-bottom: var(--s6); }
+.tw-team-header > input { width: 100%; min-width: 0; font-weight: 600; background: transparent; border-color: transparent; }
+.tw-team label, .tw-role-editor, .tw-add-form { display: grid; gap: var(--s4); }
+.tw-team label, .tw-add-form label { font-size: var(--fs-sm); color: var(--muted); }
+.tw-team input, .tw-team select, .tw-add-form input, .tw-add-form select { min-width: 0; width: 100%; padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); }
+.tw-role-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s5); }
+.tw-role-row { min-width: 0; margin-left: calc(var(--tw-depth) * var(--s5)); border-left: 1px solid var(--line); padding-left: var(--s4); }
+.tw-role-card { min-width: 0; position: relative; padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.tw-role-card.tw-selected { background: var(--accent-soft); border-color: var(--accent); }
+.tw-drag { position: absolute; top: var(--s5); right: var(--s4); padding: var(--s2); border: 0; background: transparent; color: var(--muted); cursor: grab; }
+.tw-role-open { display: grid; gap: var(--s2); width: 100%; padding: 0 var(--s7) 0 0; border: 0; background: transparent; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.tw-role-open strong { font-family: var(--serif); font-size: var(--fs-xl); font-weight: 600; line-height: 1.2; }
+.tw-role-editor { clear: both; }
+.tw-role-editor label { grid-template-columns: minmax(0, 1fr); }
+.tw-role-editor .tw-routing-field { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: var(--s5); }
+.tw-inline-fields { display: grid; gap: var(--s2); margin-bottom: var(--s5); }
+.tw-inline-fields input { padding: var(--s2); border-color: transparent; background: transparent; }
+.tw-inline-fields input:hover, .tw-inline-fields input:focus { border-color: var(--line); background: var(--surface); }
+.tw-inline-fields .tw-title-input { padding-right: var(--s7); font-family: var(--serif); font-size: var(--fs-xl); font-weight: 600; }
+.tw-inline-fields .tw-contact-email { font-size: var(--fs-sm); color: var(--muted); }
+.tw-empty { margin: var(--s6) 0; }
+.tw-people > .tw-team { margin-top: var(--s6); }
+.tw-add-form { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); padding: var(--s6); margin-bottom: var(--s6); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); }
+.tw-add-form .action-row { align-self: end; }
+.tw-error { color: var(--late); font-size: var(--fs-sm); }
+.tw-swimlanes { display: grid; gap: var(--s5); }
+.tw-lane { --tw-lane-tint: var(--accent); min-width: 0; border-radius: var(--r-md); padding: var(--s6); background: linear-gradient(90deg, color-mix(in srgb, var(--tw-lane-tint) 16%, var(--surface)), color-mix(in srgb, var(--tw-lane-tint) 5%, var(--surface))); }
+.tw-tone-amber { --tw-lane-tint: var(--warn); }
+.tw-tone-blue { --tw-lane-tint: var(--info); }
+.tw-tone-neutral { --tw-lane-tint: var(--muted); }
+.tw-lane > header { display: flex; gap: var(--s5); align-items: baseline; flex-wrap: wrap; }
+.tw-lane h3 { margin: 0; font-size: var(--fs-lg); }
+.tw-lane > header span { color: var(--muted); font-size: var(--fs-sm); }
+.tw-lane-content { min-width: 0; margin-top: var(--s5); }
+@media (pointer: coarse) {
+  .tw-people input, .tw-people select { min-height: 44px; font-size: var(--fs-base); }
+  .tw-drag, .tw-role-open { min-height: 44px; }
+}
