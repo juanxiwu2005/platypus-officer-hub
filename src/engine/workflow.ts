@@ -220,6 +220,7 @@ export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: Demo
     if (s.placement && (typeof s.placement.branchId !== "string" || !authoredIds.has(s.placement.branchId) || !Number.isFinite(s.placement.order))) out.push({ level: "blocked", text: `“${s.title}” needs a valid branch and position.`, key: s.key })
     if (s.cond !== undefined && !isWorkflowCondition(s.cond)) out.push({ level: "blocked", text: `“${s.title}” has an unknown event condition.`, key: s.key })
     if (s.startPolicy !== undefined && !["window", "effort"].includes(s.startPolicy)) out.push({ level: "blocked", text: `“${s.title}” has an unknown start policy.`, key: s.key })
+    if (s.stepKind !== undefined && !["core", "situation"].includes(s.stepKind)) out.push({ level: "blocked", text: `“${s.title}” has an unknown step type.`, key: s.key })
     if (branch && (s.phase === "close") !== (branch.side === "after_event")) out.push({ level: "blocked", text: `“${s.title}” must stay on the same side of the event as its branch.`, key: s.key })
     if (isCoreStep(s) && ["finalcheck", "checkin", "headcount"].includes(s.key) && (placement.branchId !== "main" || s.phase !== EVENT_STEPS.find(p => p.key === s.key)?.phase)) out.push({ level: "blocked", text: `“${s.title}” connects the workflow and must stay on the main line.`, key: s.key })
     for (const d of s.dependsOn ?? []) if (!by.has(d)) out.push({ level: "blocked", text: `“${s.title}” waits for a step that is not in the workflow.`, key: s.key })
@@ -238,6 +239,7 @@ export function stepsAsNodes(steps: StepTemplate[], eventId = "workflow"): Node[
   return steps.map(s => ({
     id: s.key, title: s.title, eventId, stepKey: s.key, phase: s.phase, fn: s.fn, ownerId: null, approverRoleId: null, consultedRoleIds: [], informedRoleIds: [],
     placement: placementOf(s), ...(s.startPolicy ? { startPolicy: s.startPolicy } : {}), ...(s.cond ? { cond: s.cond } : {}),
+    ...(s.stepKind ? { stepKind: s.stepKind } : {}),
     dependsOn: [...(s.dependsOn ?? [])], tier: s.tier, estDays: s.estDays, anchor: s.anchor ?? null, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null,
     ruleIds: s.ruleIds ?? [], status: "unclaimed", acceptedOn: null, waitingOn: null, draftLink: null, why: s.why, source: s.source, lastUpdate: null,
   }) as Node)

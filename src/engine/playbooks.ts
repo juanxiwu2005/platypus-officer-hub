@@ -345,6 +345,7 @@ export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?:
       stepKey: s.key,
       phase: s.phase,
       placement: placementOf(s),
+      ...(s.stepKind ? { stepKind: s.stepKind } : {}),
       ...(s.startPolicy ? { startPolicy: s.startPolicy } : {}),
       ...(s.cond ? { cond: s.cond } : {}),
       fn: s.fn,
