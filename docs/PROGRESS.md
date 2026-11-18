@@ -1,5 +1,7 @@
-> **2026-11-17（America/Phoenix） · D方案：更新团队目标日期并知会进行中（Codex）**
-> **授权：** Juanxi审阅四张静态图后选择D并要求实施。成员直接更新社团目标日期、填写可选Message、多选通知对象或添加成员；系统按实际依赖推荐下游并按人合并通知，不再经过审批。学校硬性日期保持不变，正式完成/撤回与自动草稿继续保留；负责人邮件入口同权，协助grant不扩权。沿用PR14，不新建PR、不合并main；不修改Settings模板，保留同期多模板研究记录，0真实AI/外部投递。
+> **2026-11-17（America/Phoenix） · D方案直接更新团队目标并知会完成检查，待验收（Codex）**
+> **授权与交付：** Juanxi看过四张独立静态图后明确选择D并要求实施。Task status → Need more time…现在打开Update the team：New target date、可选Message、多选Notify others及Add teammate，Update date & notify直接保存目标、历史和所选通知；不再生成新审批或等待批准。按实际依赖推荐下游，同一人合并一条，自己可选，也可取消默认领导或全不选。学校硬性日期、状态、成果/附件/草稿、完成退回和财务完成权保持原样；旧申请归档保留，新保存后同节点旧pending取消。[交付与验收](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)。
+> **验证：** 运行时代码954e582＋676f638；13文件218相关单元/组件通过，新增协助grant拒绝覆盖后该文件8项通过，按唯一用例计219；最终4文件65项复验通过。生产构建双端首轮30通过/2设备限定跳过；最终收件人/自己/多任务去重、邮件身份、财务学校日期和入口预算8项复验通过，其中财务2项为新增覆盖，按不重复用例计32通过/2跳过。lint、前后端类型、build、独立CSS、9页字数通过；最终入口549,688/550,000，Settings147/150，未提高门槛。双端截图已查看，D表单严重/关键axe与手机溢出检查通过；未重复全站门禁。
+> **验收与边界：** [preview14 Tasks](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/tasks)中改目标、选择人员后保存，立即看到新日期；切换收件人点铃铛，查看合并后的通知及同一任务。刷新后成果与目标保留，无审批卡；负责人邮件同权，协助入口不能改日期。保留0784e75多模板研究及所有同期工作，不改Settings模板；0真实AI/外部邮件，仍是同浏览器站内演示。沿用PR14，不新增PR、不合并main；PRODUCT_PLAN/RULES/字典已更新，需要同步本地备份。
 
 > **2026-11-17（America/Phoenix） · 多工作流能力审阅与六张静态方案已完成，待讨论（Codex）**
 > **结论：** 当前Plan支持多个活动实例，但仅一份org.eventWorkflow；create_event不带模板选择，常规生成与验证强制31核心步骤。离线反例1项内部工作生成32项；只改Event.type不会换模板。另有默认隐藏的WorkItem/Executive基础，但成员仍用单一确认流程，40节点schema也不能直接装当前46节点模板；需统一通用工作项、模板目录/ID/版本、实例快照及按事实适用的规则。[完整研究](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)与[离线证据](prototypes/multiple-workflow-concepts/audit-evidence.json)。
@@ -518,6 +520,8 @@
 - 要问 Marcie：论文题目里的 “cloud-Excel-based” 是否要改；深访作为设计依据的写法是否合适。
 
 ## 交接记录（最新的在最上面）
+
+- **2026-11-17（America/Phoenix） · Codex：** 按用户选定D实施Update the team，内部目标即时更新、多选/取消/添加知会人、自己可选、按人合并，下游来自真实依赖；没有新审批步骤。954e582＋676f638，219相关单元/组件与生产双端分批32浏览器通过/2设备限定跳过，最终65组件及8关键浏览器复验通过；lint/类型/build/CSS/9页字数通过，入口549,688/550,000。保留旧延期历史、Task Details/附件自动保存/完成退回和同期研究，站内通知不等于外部投递。见[交付](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)；沿用preview14，不合并main。PRODUCT_PLAN/RULES/字典更新，需要同步本地备份。
 
 - **2026-11-17（America/Phoenix） · Codex：** 完成Need more time的Message/无草稿链接申请、自动审批人/领导站内通知与任务内审批；Undo mark done邻近提交，Done可从状态菜单退回，结果/附件保留，积分及依赖同步。代码3865ea5＋dd94d7f，保留c3cfda1同期工作流和0ad5c08原稿。211相关单元/组件与生产双端分批32浏览器通过/2设备限定跳过，最终关键8项复验全过；类型/build/lint/字数通过，入口545,969/550,000。见[交付](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)；站内演示、不合并main。PRODUCT_PLAN/RULES/字典更新，需要同步本地备份。
 

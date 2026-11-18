@@ -432,6 +432,9 @@ Finished study task 2 after 3 min 5 s
 | `taskDrafts`（完整导出） | 自动保存的私有未提交草稿及其实际文件字节；downloadExport异步收集，缺文件/保存失败时不输出虚假的完整副本；restoreTaskWorkArchive先暂存文件再返回小业务快照，无新增导入界面 |
 | `saveTaskWork` | 同一次持久写入保存结果与完成；财务节点只保存材料，仍由Event Budget决定完成。业务日志仅记录正文长度和附件元数据；原UI输入日志沿用全站规则 |
 | Edit | 独立面板保存任务定义，带原定义指纹，保留成员提交；Cancel不写入。旧draftLink仍可打开，不冒充新的已提交内容 |
+| `Node.targetDates` | D方案独立版本1日期变更日志：revision和追加changes。每项含id/actorId/ownerId/ownerVersion/on/previousDate/date/message/notifiedPersonIds/affectedNodeIds；随原业务导出保留，未知/损坏日志禁止覆盖；外层仍schema23 |
+| `updateTaskTarget` | 直接改社团目标并按所选成员ID合并站内通知；expectedTask核对日期/归属任期/状态/日志版本。权限从当前viewer或已签发负责人grant取得，不能借用知会人或浏览器中的社长身份；目标、记录和通知一次持久保存，原任务status/成果不变 |
+| 旧延期数据（以下两行是历史兼容） | 新D界面不显示审批按钮，也不创建ExtensionRequest；旧pending不自动应用，新目标保存后取消同节点旧pending，其他历史字段保留。原reviewExtension逻辑保留兼容，不是新D流程入口 |
 | `ExtensionRequest.requestedBy?` | 新申请记录实际操作者，与原ownerId分开；旧申请无此字段则展示原owner。reason作为可选Message，draftLink新申请可为空，旧链接仍可读；通知收件人为现任审批人与现任领导，和请求一起保存 |
 | `reviewExtension` | 当前审批岗位持有人或社长/副社长可处理；离任、改派、过期和截止日版本继续核对；持久化成功才确认，批准只改clubDeadlineOverride，不改官方学校日 |
 | Done退回 / Undo mark done | `replyTask`或负责人grant更新到todo/working/help/waiting，清除completedOn与该任务当前contribution；不删除taskWork结果和历史。Undo核对工作区、作者权限、原归属任期和本次提交revision后恢复原状态，刷新后用状态菜单重新打开；财务Done保持由Event Budget控制 |
