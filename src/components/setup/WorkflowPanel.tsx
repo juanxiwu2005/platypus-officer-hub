@@ -3,7 +3,7 @@ import type { DemoState, Event, Role, StepTemplate, WorkflowBranch } from "../..
 import { addDays } from "../../lib/dates"
 import { computeSchedule } from "../../engine/schedule"
 import type { Forecast } from "../../engine/forecast"
-import { MAX_STEPS, isLocked, newStepKey, ownerOfStep, removeStep, ruleList, stepsAsNodes, type WorkflowIssue } from "../../engine/workflow"
+import { MAX_STEPS, checkWorkflow, isLocked, newStepKey, ownerOfStep, removeStep, ruleList, stepsAsNodes, type WorkflowIssue } from "../../engine/workflow"
 import { roleLabels } from "../../data/structure"
 import { MetroChart, type EditPort } from "../flow/MetroChart"
 import { insertFlowBranch, insertFlowStep } from "../../lib/flowEdit"
@@ -41,6 +41,13 @@ export function WorkflowPanel({ state, steps, branches, roles, issues, onChange 
     // A custom branch disappears with its final task; unrelated old metadata is preserved.
     onChange(next, nextBranches.filter(branch => defaults.has(branch.id) || !previous.has(branch.id) || remaining.has(branch.id)))
   }
+  const graphChange = (next: StepTemplate[], nextBranches = currentBranches) => {
+    const blocked = (items: StepTemplate[], definitions: WorkflowBranch[]) => checkWorkflow(items, roles, undefined, definitions).filter(issue => issue.level === "blocked").map(issue => `${issue.key ?? ""}:${issue.text}`)
+    const existing = new Set(blocked(steps, currentBranches))
+    if (blocked(next, nextBranches).some(issue => !existing.has(issue))) return false
+    change(next, nextBranches)
+    return true
+  }
   // The workflow shown as a sample event, so the same chart (and the same layout) draws it. Its dates are never shown.
   const sample = useMemo(() => {
     const ev: Event = { id: "wf", name: "Sample event", date: addDays(state.today, 56), type: "social", headcount: 30, venue: "campus", food: "none", funding: "none", speaker: false, checks: {}, goalId: null, playbookId: "asu-event-v2", workflowBranches: currentBranches }
@@ -53,7 +60,7 @@ export function WorkflowPanel({ state, steps, branches, roles, issues, onChange 
   const port: EditPort = {
     snapshot: () => structuredClone({ steps, branches: currentBranches }),
     restore: snap => { const previous = snap as { steps: StepTemplate[]; branches: WorkflowBranch[] }; change(previous.steps, previous.branches); setSelected(null) },
-    applyEdits: edits => { change(withEdits(steps, edits)); return true },
+    applyEdits: edits => graphChange(withEdits(steps, edits)),
     addStep: (key, uId, vId, target) => {
       if (!target || steps.length >= MAX_STEPS) return false
       const ref = byKey.get(target.referenceId ?? uId ?? vId ?? "")
@@ -61,8 +68,7 @@ export function WorkflowPanel({ state, steps, branches, roles, issues, onChange 
       const existing = stepsAsNodes(steps, "wf")
       const r = insertFlowStep(existing, stepsAsNodes([fresh], "wf")[0], target, currentBranches)
       if (r.error) return false
-      change(withEdits([...steps, fresh], r.edits))
-      return true
+      return graphChange(withEdits([...steps, fresh], r.edits))
     },
     addBranch: (branch, key, title) => {
       if (steps.length >= MAX_STEPS) return false
@@ -70,10 +76,9 @@ export function WorkflowPanel({ state, steps, branches, roles, issues, onChange 
       const fresh: StepTemplate = { key, title, fn: role?.fn ?? "programs", ownerRoleId: role?.id ?? null, phase: branch.side === "after_event" ? "close" : "prepare", estDays: 1, tier: "light", dependsOn: [], why: "Added by the club.", source: "Added in the workflow chart", custom: true }
       const r = insertFlowBranch(stepsAsNodes(steps, "wf"), stepsAsNodes([fresh], "wf")[0], branch, currentBranches)
       if (r.error) return false
-      change(withEdits([...steps, fresh], r.edits), [...currentBranches, branch])
-      return true
+      return graphChange(withEdits([...steps, fresh], r.edits), [...currentBranches, branch])
     },
-    removeStep: key => { const step = byKey.get(key); if (!step || deletionReason(step)) return false; change(removeStep(steps, key)); setSelected(null); return true },
+    removeStep: key => { const step = byKey.get(key); if (!step || deletionReason(step) || !graphChange(removeStep(steps, key))) return false; setSelected(null); return true },
     newId: () => newStepKey(steps, "new step"),
     template: {
       sublabel: n => ownerName(n.id),

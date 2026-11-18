@@ -7,9 +7,22 @@ import { seedDemo } from "../../data/seed"
 import { STORAGE_KEY, StoreProvider, useStore } from "../../data/store"
 import type { DemoState, WorkflowBranch } from "../../data/types"
 import { presetSteps } from "../../engine/workflow"
+import type { StepEdit } from "../../lib/stepOrder"
 
 // These cases exercise the real settings state, rail and persistence. Graph gestures have their own tests.
-vi.mock("../flow/MetroChart", () => ({ MetroChart: ({ onSelect, port }: { onSelect: (id: string) => void; port: { addBranch?: (branch: WorkflowBranch, id: string, title: string) => boolean | void } }) => <div><button onClick={() => onSelect("budget")}>Select budget</button><button onClick={() => onSelect("partnerReview")}>Select partner review</button><button onClick={() => onSelect("guest-followup")}>Select custom step</button><button onClick={() => port.addBranch?.({ id: "new-support", title: "New support", side: "before_event", condition: "externalGuest", order: 20, defaultRoleId: "r-events" }, "new-step", "Guest arrival")}>Add test branch</button></div> }))
+const operation = vi.hoisted(() => ({ accepted: undefined as boolean | void, error: undefined as string | undefined, edits: 0 }))
+vi.mock("../flow/MetroChart", async () => {
+  const { moveBetween } = await import("../../lib/flowEdit")
+  return { MetroChart: ({ onSelect, port, state }: { state: DemoState; onSelect: (id: string) => void; port: { applyEdits: (edits: StepEdit[]) => boolean | void; addBranch?: (branch: WorkflowBranch, id: string, title: string) => boolean | void } }) => <div>
+    <button onClick={() => onSelect("budget")}>Select budget</button><button onClick={() => onSelect("partnerReview")}>Select partner review</button><button onClick={() => onSelect("guest-followup")}>Select custom step</button>
+    <button onClick={() => port.addBranch?.({ id: "new-support", title: "New support", side: "before_event", condition: "externalGuest", order: 20, defaultRoleId: "r-events" }, "new-step", "Guest arrival")}>Add test branch</button>
+    <button onClick={() => {
+      const result = moveBetween(state.nodes, "purchaseRequest", "budgetRequest", "budgetApproval", { target: { branchId: "finance", afterId: "budgetRequest", beforeId: "budgetApproval", source: "gap" }, branches: state.events[0].workflowBranches! })
+      operation.error = result.error; operation.edits = result.edits.length
+      operation.accepted = result.error ? false : port.applyEdits(result.edits)
+    }}>Move purchase before approval</button>
+  </div> }
+})
 
 let latest: DemoState
 function Details() { latest = useStore().state; return <>{useRail().workflowDetail}</> }
@@ -18,7 +31,7 @@ function show(initial = seedDemo(undefined, "v2")) {
   fireEvent.click(screen.getByRole("button", { name: "Workflow" }))
   fireEvent.click(screen.getByRole("button", { name: "Select budget" }))
 }
-beforeEach(() => localStorage.clear())
+beforeEach(() => { localStorage.clear(); operation.accepted = undefined; operation.error = undefined; operation.edits = 0 })
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
 describe("workflow settings editing", () => {
@@ -75,5 +88,15 @@ describe("workflow settings editing", () => {
     fireEvent.click(within(settings).getByRole("button", { name: "Undo" }))
     await waitFor(() => expect(latest.org.eventWorkflow?.steps.some(step => step.key === "new-step")).toBe(false))
     expect(latest.org.eventWorkflow?.branches?.some(branch => branch.id === "new-support")).toBe(false)
+  })
+
+  it("rejects a graph move that would break the required approval dependency before claiming success", () => {
+    show()
+    fireEvent.click(screen.getByRole("button", { name: "Move purchase before approval" }))
+    expect(operation.error).toBeUndefined()
+    expect(operation.edits).toBeGreaterThan(0)
+    expect(operation.accepted).toBe(false)
+    expect(latest.org.eventWorkflow).toBeUndefined()
+    expect(screen.queryByRole("status")).toBeNull()
   })
 })
