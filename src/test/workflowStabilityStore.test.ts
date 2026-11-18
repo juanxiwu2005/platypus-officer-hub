@@ -58,6 +58,14 @@ describe("workflow stability · business persistence", () => {
     expect(result).toBe(s)
   })
 
+  it("refuses hiding a core or ASU step through raw graph patches", () => {
+    const s = base()
+    for (const key of ["promotionItems", "foodCompliance", "finalcheck"]) {
+      const next = reducer(s, { type: "applyStepEdits", eventId: "e-speaker", edits: [{ id: `e-speaker:${key}`, patch: { placement: { branchId: "speaker", order: 2 } } }] })
+      expect(next).toBe(s)
+    }
+  })
+
   it("retains a valid v23 event missing Full Check verbatim on read", () => {
     const s = base()
     s.nodes = s.nodes.filter(n => n.id !== "e-speaker:finalcheck")
