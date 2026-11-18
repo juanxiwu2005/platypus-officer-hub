@@ -561,3 +561,6 @@
 
 > **2026-11-02 · First Event 时间线审计（Codex）· 待用户调整**
 > **发现：** 当前模板允许 `Budget`（2/8）先于 `Event Plan`（2/15），根因是 Budget 只作为 Food Exception Permit 的前置条件，未依赖 Event Plan；预览又按最早 club deadline 截取 6 点，不是依赖路径。没有伪改日期或改动引擎。已提供可在 Excel 打开的 TSV（每节点的起止日、依赖、官方截止日及可填写的提议列）和受影响早期分支的逐日泳道表；详情见 `docs/onboarding-redesign/reports/OB-06-timeline-review-2026-11-02.md`。另附 GitHub Primer 对齐的三段统一卡片式页面方案，待时序确认后实施。
+> **2026-11-17（America/Phoenix） · Speaker 工作流模板审计进行中（Codex）**
+> **本轮范围：** Juanxi 要求先核对 Settings → Workflow 模板及实际活动 Plan 的链接、Details、节点移动和右键新增，并记录其他相关问题；本轮不修改产品代码。以 `claude/fervent-thompson-e2j5u2@0f53577` 为审查基点，独立工作目录检查，报告归入 `docs/feedback-fix/`。优先服务自动提醒及组织交接；模板修复方案待审查结果整理后讨论，不自动开始实现。
+
