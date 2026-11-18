@@ -87,7 +87,9 @@ test("a new conditional branch and its first task undo together", async ({ page 
   await page.getByRole("button", { name: "Add branch", exact: true }).click()
   const dialog = page.getByRole("dialog", { name: "Add branch", exact: true })
   await dialog.getByLabel("Branch name").fill("Guest support")
-  await dialog.getByLabel("Applies to").selectOption("externalGuest")
+  await dialog.getByRole("checkbox", { name: "External speaker, artist, or performer", exact: true }).check()
+  await dialog.getByRole("checkbox", { name: "Travel or off-site participant trip", exact: true }).check()
+  await expect(dialog).toContainText("All 2 selected items must be checked.")
   await dialog.getByLabel("Default role").selectOption("r-events")
   await dialog.getByLabel("First task").fill("Confirm guest arrival")
   await dialog.getByRole("button", { name: "Add branch", exact: true }).click()
@@ -96,8 +98,8 @@ test("a new conditional branch and its first task undo together", async ({ page 
   const branchId = (await savedStep(page, "new-step"))!.placement!.branchId
   expect(await page.evaluate(id => {
     const state = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
-    return state.org.eventWorkflow.branches.find((branch: { id: string }) => branch.id === id)?.condition
-  }, branchId)).toBe("externalGuest")
+    return state.org.eventWorkflow.branches.find((branch: { id: string }) => branch.id === id)?.conditions
+  }, branchId)).toEqual(["speaker", "travel"])
   await closeRail(page)
   await page.getByTestId("flow-undo").click()
   await expect(page.getByTestId("flow-node-new-step")).toHaveCount(0)
@@ -105,4 +107,30 @@ test("a new conditional branch and its first task undo together", async ({ page 
     const state = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
     return state.org.eventWorkflow?.branches?.some((branch: { id: string }) => branch.id === id) ?? false
   }, branchId)).toBe(false)
+})
+
+test("multiple branch requirements survive reload and apply to inserted steps in that branch", async ({ page }) => {
+  await workflow(page)
+  await page.getByRole("button", { name: "Add branch", exact: true }).click()
+  const dialog = page.getByRole("dialog", { name: "Add branch", exact: true })
+  await dialog.getByLabel("Branch name").fill("Speaker travel")
+  await expect(dialog).toContainText("Leave all unchecked for every event.")
+  await dialog.getByRole("checkbox", { name: "External speaker, artist, or performer", exact: true }).check()
+  await dialog.getByRole("checkbox", { name: "Travel or off-site participant trip", exact: true }).check()
+  await dialog.getByLabel("First task").fill("Confirm guest arrival")
+  await dialog.getByRole("button", { name: "Add branch", exact: true }).click()
+  await expect(dialog).toHaveCount(0)
+  await expect.poll(async () => (await savedStep(page, "new-step"))?.placement?.branchId).toBeTruthy()
+  const branchId = (await savedStep(page, "new-step"))!.placement!.branchId
+  await page.reload()
+  await page.getByRole("button", { name: "Workflow", exact: true }).click()
+  await closeRail(page)
+  const anchor = page.getByTestId("flow-node-new-step")
+  if (test.info().project.name === "mobile") await anchor.click(); else await anchor.click({ button: "right" })
+  await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step before this one", exact: true }).click()
+  await expect.poll(async () => (await savedStep(page, "new-step-2"))?.placement?.branchId).toBe(branchId)
+  expect(await page.evaluate(id => {
+    const state = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
+    return state.org.eventWorkflow.branches.find((branch: { id: string }) => branch.id === id)?.conditions
+  }, branchId)).toEqual(["speaker", "travel"])
 })

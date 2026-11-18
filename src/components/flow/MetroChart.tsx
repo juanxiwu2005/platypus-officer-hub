@@ -13,7 +13,7 @@ import { nextCounter } from "../../lib/ids"
 import { cannotDelete, flowGaps, flowTracks, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, unlinkSteps, type FlowInsertionTarget, type Gap } from "../../lib/flowEdit"
 import { ancestorsOf, doAfter, type EditResult, type StepEdit } from "../../lib/stepOrder"
 import { isolateDialog, trapTabKey } from "../../lib/focus"
-import { conditionLabel, conditionsOf, placementOf, resolveBranches, scopeKey, WORKFLOW_CONDITION_OPTIONS } from "../../engine/workflowBranches"
+import { branchConditionLabel, conditionLabel, conditionsOf, placementOf, resolveBranches, scopeKey, WORKFLOW_CONDITION_OPTIONS } from "../../engine/workflowBranches"
 import { WorkflowBranchDialog, type BranchDraft } from "../setup/WorkflowBranchDialog"
 
 const SHORT: Record<string, string> = {
@@ -183,7 +183,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     if (!port.addBranch) return "Adding branches is not available here."
     let branchId = "branch-1", index = 1
     while (branchDefinitions.some(b => b.id === branchId)) branchId = `branch-${++index}`
-    const branch: WorkflowBranch = { id: branchId, title: draft.title, side: draft.side, order: Math.max(-1, ...branchDefinitions.map(b => b.order)) + 1, ...(draft.condition ? { condition: draft.condition } : {}), defaultRoleId: draft.defaultRoleId }
+    const branch: WorkflowBranch = { id: branchId, title: draft.title, side: draft.side, order: Math.max(-1, ...branchDefinitions.map(b => b.order)) + 1, conditions: [...draft.conditions], defaultRoleId: draft.defaultRoleId }
     const id = port.newId()
     const fresh = { ...newStepNode(ev, id, undefined, state.today), title: draft.firstStepTitle, phase: draft.side === "after_event" ? "close" as const : "prepare" as const }
     const result = insertFlowBranch(eventNodes, fresh, branch, branchDefinitions)
@@ -399,7 +399,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
           const destination = branchDefinitions.find(b => b.id === menu.target.branchId)
           const from = conditionsOf(n, branchDefinitions).map(conditionLabel).join(" and ") || "Every event"
           return <div className="m-menu" ref={menuRef} role="dialog" aria-modal="true" aria-label="Confirm branch scope" style={{ left, top }} data-testid="flow-menu">
-            <b>Move “{n.title}”?</b><span className="small">From: {from}. New scope: {conditionLabel(destination?.condition)}. Its owner and days of work stay the same.</span>
+            <b>Move “{n.title}”?</b><span className="small">From: {from}. New scope: {branchConditionLabel(destination)}. Its owner and days of work stay the same.</span>
             <button type="button" className="btn small" onClick={() => { moveToTarget(menu.id, menu.target, true); setMenu(null) }}>Move with this scope</button>
             <button type="button" className="btn btn-quiet small" onClick={() => setMenu(null)}>Cancel</button>
           </div>
