@@ -129,7 +129,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
 
   // ---- Editing the flow right on the chart (president and vice president) ----
   const port: EditPort = given ?? {
-    snapshot: () => structuredClone({ nodes: eventNodes, branches: ev.workflowBranches }),
+    snapshot: () => structuredClone({ nodes: eventNodes, branches: branchDefinitions }),
     restore: snap => { const saved = Array.isArray(snap) ? { nodes: snap as Node[], branches: undefined } : snap as { nodes: Node[]; branches?: WorkflowBranch[] }; return tryDispatch({ type: "restoreEventNodes", eventId, nodes: saved.nodes, branches: saved.branches }) },
     applyEdits: edits => tryDispatch({ type: "applyStepEdits", eventId, edits }),
     addStep: (id, uId, vId, target) => tryDispatch({ type: "addEventStep", eventId, id, uId, vId, target }),
