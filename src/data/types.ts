@@ -66,6 +66,9 @@ export interface WorkflowBranch {
   title: string
   order: number
   side: "before_event" | "after_event"
+  /** All selected event requirements must match. An explicit empty list means every event. */
+  conditions?: StepCond[]
+  /** Legacy single requirement, used only when conditions is absent. */
   condition?: StepCond
   defaultRoleId?: string | null
 }
