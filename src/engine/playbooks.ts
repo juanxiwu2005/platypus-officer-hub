@@ -234,13 +234,14 @@ export function stepsFor(e: Event, steps?: StepTemplate[], branches?: readonly W
   // lifecycle or purchasing step disappear through a condition or omission.
   const standard = new Map(EVENT_STEPS.map(step => [step.key, step]))
   const selected = new Map(selectedSteps.map(step => [step.key, step]))
-  if (selectedSteps === EVENT_STEPS || e.checks !== undefined) for (const key of CORE_EVENT_STEP_KEYS) {
+  const requiresCore = selectedSteps === EVENT_STEPS || e.checks !== undefined
+  if (requiresCore) for (const key of CORE_EVENT_STEP_KEYS) {
     const step = selected.get(key) ?? standard.get(key)
     if (step) selected.set(key, { ...step, cond: undefined })
   }
   const normalizedSteps = [...selected.values()]
   const definitions = resolveBranches(normalizedSteps, branches)
-  const included = new Map(normalizedSteps.filter(s => isCoreStep(s) || conditionsOf(s, definitions).every(condition => isWorkflowCondition(condition) && CONDITIONS[condition](e))).map(s => [s.key, s]))
+  const included = new Map(normalizedSteps.filter(s => (requiresCore && isCoreStep(s)) || conditionsOf(s, definitions).every(condition => isWorkflowCondition(condition) && CONDITIONS[condition](e))).map(s => [s.key, s]))
   const all = new Map(normalizedSteps.map(s => [s.key, s]))
   const resolve = (key: string, seen = new Set<string>()): string[] => {
     if (included.has(key)) return [key]
