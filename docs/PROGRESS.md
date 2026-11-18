@@ -1,5 +1,7 @@
-> **2026-11-17（America/Phoenix） · 保存五屏原稿、只审阅onboarding，进行中（Codex）**
-> Juanxi喜欢五屏交互稿，要求保存，并只讨论onboarding；职位层级、姓名与email要直观，work groups必须覆盖真实40多项模板。原稿按字节归档于`docs/prototypes/work-group-assignment/v1/`；第二至第五屏冻结。准备4种人员设置、6种完整模板分组交互方案；不修改运行时和其他进行中工作。只有用户说“可以了，进行下一步”才推进新建活动的下一轮设计。需要同步本地备份。
+> **2026-11-17（America/Phoenix） · 五屏原稿已保存，onboarding 4＋6图形方案待用户选择（Codex）**
+> **已保存：** `923a123`将用户喜欢的五屏完整源码按字节归档到`docs/prototypes/work-group-assignment/v1/`，原件SHA-256一致。第二至第五屏冻结；只有用户说“可以了，进行下一步”，才推进新建活动的下一轮讨论，不自动开发。
+> **本轮：** `v2-onboarding/`保存4种职位层级/姓名/email方案，以及6种完整模板分组方案。直接使用e87b19c的46项模板与43条依赖；46个短名恰好两个英文词且唯一，完整名称和要求保留。仅界面稿，未改src、public、schema或其他线程的任务Details/Workflow修复。
+> **检查与交付：** 10视图×4宽度共40布局，无横向溢出和脚本错误；所有分组方案各覆盖46个唯一任务。邮箱保存、汇报关系、地铁/矩阵改组、整包改组与撤销、涂色点击通过；0真实AI/邮件。[方案说明](prototypes/work-group-assignment/v2-onboarding/README.md)。沿用原功能分支和PR #14，不合并main。需要同步本地备份。
 
 > **2026-11-17（America/Phoenix） · Workflow 修复方案与 worktree Agent 分工进行中（Codex）**
 > **用户范围：** 暂不修改链接及Details易用性；先制定移动、同分支插入、工作量数据、Full Check删除保护、各类条件分支任务隔离的详细修复方案，同时说明before插入及新增分支交互，再按阶段分worktree实施。三位Agent已在独立worktree只读拆解图形操作、工作量/排程、条件/结构保护；本阶段不改产品代码，不触碰实际任务Details/Edit进行中的工作。
@@ -483,6 +485,8 @@
 ## 交接记录（最新的在最上面）
 
 - **2026-11-17（America/Phoenix） · Codex：** 完成实际节点通用Details、多附件草稿/提交、多个办理链接、Edit侧栏和邮件同表单；运行时代码`cea7530`，301项单元/组件及分批64浏览器项通过、2设备限定跳过；lint/类型/build/CSS/字数通过，入口545,623/550,000。Settings模板未动，同期文档保留；附件下载与导出恢复已实测。边界与验收见[交付](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)，当前仍为单浏览器演示数据。`PRODUCT_PLAN.md`已更新，需要同步本地备份；不合并main。
+
+- **2026-11-17 · Codex（onboarding 图形方案）：** 原五屏已在`923a123`归档，v1原件未变；v2提供4种人员层级与邮箱、6种完整46任务分组方案，40布局与主要交互检查通过。只审阅onboarding；等用户说“可以了，进行下一步”才继续新建活动。未改运行时、未发送邀请；需要同步本地备份。
 
 - **2026-11-17（America/Phoenix） · Codex：** 完成speaker工作流模板审计，13项问题见[问题记录](feedback-fix/WORKFLOW_TEMPLATE_AUDIT_2026-11-17.md)。104项单元及现有双端2项浏览器检查通过，另8个浏览器反例场景；只记录，不改产品代码。后续修复先核对实际任务Details并行改动，Settings模板仍是本报告范围；不合并main，需要同步本地备份。
 
