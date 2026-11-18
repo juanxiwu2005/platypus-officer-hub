@@ -118,13 +118,13 @@ describe("task actions use actual persisted state", () => {
     expect(screen.getByRole("button", { name: "Working on it" })).toBeTruthy()
   })
 
-  it("does not bypass a responsibility assignment that needs recovery before claiming", () => {
+  it("keeps archived responsibility data inert after the approved matching rollback", () => {
     const state = fixture({ status: "unclaimed", acceptedOn: null, matching: { workflowId: "missing-workflow", stepId: "venue", responsibilityId: "missing-duty", reason: "primary_candidate" } })
     show({ ...state, matching: undefined })
-    expect((screen.getByRole("button", { name: "I've got it" }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole("button", { name: "I've got it" }) as HTMLButtonElement).disabled).toBe(false)
     fireEvent.click(screen.getByRole("button", { name: "I've got it" }))
-    expect(latest.nodes[0].status).toBe("unclaimed")
-    expect(screen.queryByRole("button", { name: "Working on it" })).toBeNull()
+    expect(latest.nodes[0].status).toBe("accepted")
+    expect(screen.queryByRole("button", { name: "Working on it" })).toBeTruthy()
   })
 
   it.each(["maya", "sam"])("does not give %s permission to update another member's task", actor => {

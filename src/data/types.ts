@@ -269,6 +269,9 @@ export type Anchor =
 
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
+  /** Actual task overrides and work only; workflow templates remain independent. */
+  externalLinks?: import("../taskDetails/contracts").TaskExternalLink[]
+  taskWork?: import("../taskDetails/contracts").TaskWork
   /** Optional human-authored instructions; reminder facts never invent missing details. */
   instructions?: string
   completionCriteria?: string

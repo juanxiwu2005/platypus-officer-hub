@@ -1,0 +1,66 @@
+/* The same task surface works in the activity rail and the email's focused page. */
+.task-detail-universal { display: grid; min-width: 0; gap: var(--s6); padding: var(--s3); background: var(--surface); }
+.task-detail-universal > .td-head { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: var(--s5); }
+.task-detail-universal .td-event { margin: 0; color: var(--muted); }
+.task-detail-universal .td-event a { color: inherit; text-decoration: none; }
+.task-title-row { display: flex; align-items: start; justify-content: space-between; gap: var(--s5); min-width: 0; }
+.task-title-row h1, .task-title-row h2 { margin: 0; font-size: var(--fs-2xl); overflow-wrap: anywhere; }
+.task-title-row .btn { flex-shrink: 0; }
+.task-identity { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s5) var(--s6); font-size: var(--fs-md); }
+.task-identity > .who { display: inline-flex; gap: var(--s3); align-items: center; min-width: 0; white-space: normal; }
+.task-compact-due { display: inline-flex; align-items: baseline; gap: var(--s3); white-space: nowrap; }
+.task-progress { min-width: 0; flex: 1; }
+.task-progress > label { display: block; }
+.task-progress select { width: 100%; min-width: 140px; min-height: 44px; }
+.task-progress-form { display: grid; gap: var(--s5); width: 100%; margin-top: var(--s5); }
+.task-progress-form label { display: grid; gap: var(--s3); }
+.task-progress-form input, .task-progress-form textarea { width: 100%; min-width: 0; }
+.task-progress-form textarea { min-height: 88px; }
+.task-inline-actions { display: flex; flex-wrap: wrap; gap: var(--s3); }
+.task-waiting-summary { margin: var(--s3) 0 0; overflow-wrap: anywhere; }
+.task-detail-universal .task-requirement { margin: 0; padding: var(--s6) 0; border-block: 1px solid var(--line); white-space: pre-line; overflow-wrap: anywhere; }
+.task-external-links { display: flex; flex-wrap: wrap; gap: var(--s3); padding-bottom: var(--s6); border-bottom: 1px solid var(--line); }
+.task-external-links .btn { flex: 1 1 130px; display: inline-flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: 44px; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.task-submission { display: grid; min-width: 0; gap: var(--s5); }
+.task-submission:focus { outline: none; }
+.task-details-field { display: grid; gap: var(--s4); font-weight: 600; }
+.task-details-field textarea { width: 100%; min-width: 0; min-height: 180px; resize: vertical; font-weight: 400; }
+.task-submission-readback { display: block; min-height: 80px; font-weight: 400; white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-file-list { display: grid; gap: var(--s3); list-style: none; padding: 0; margin: 0; }
+.task-file-list li { display: flex; align-items: center; gap: var(--s3); min-width: 0; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.task-file-download { display: flex; align-items: center; gap: var(--s4); padding: var(--s4); min-width: 0; min-height: 44px; flex: 1; background: none; border: 0; text-align: left; cursor: pointer; }
+.task-file-download span:last-child { overflow-wrap: anywhere; }
+.task-add-files { width: 100%; min-height: 44px; }
+.task-submission .task-file-limit, .task-submission .task-submission-author { margin: 0; }
+.task-submit-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s4); padding-top: var(--s6); border-top: 1px solid var(--line); }
+.task-submit-actions .btn { min-height: 44px; }
+.task-schedule-notes { padding-top: var(--s4); border-top: 1px solid var(--line); }
+.task-detail-standalone { padding: var(--s7); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.task-detail-standalone .task-identity { flex-wrap: nowrap; }
+.task-edit-backdrop { position: fixed; inset: 0; z-index: var(--z-menu); background: color-mix(in srgb, var(--ink) 16%, transparent); }
+.task-edit-panel { display: flex; flex-direction: column; position: absolute; inset: 0 0 0 auto; width: min(500px, 100%); background: var(--surface); border-left: 1px solid var(--line); box-shadow: var(--shadow); }
+.task-edit-panel > header { display: flex; justify-content: space-between; align-items: center; gap: var(--s5); padding: var(--s6) var(--s7); }
+.task-edit-panel > header h2 { font-size: var(--fs-2xl); }
+.task-edit-panel > form { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.task-edit-fields { display: grid; gap: var(--s6); padding: var(--s5) var(--s7); overflow-y: auto; min-height: 0; flex: 1; align-content: start; }
+.task-edit-fields label { display: grid; min-width: 0; gap: var(--s3); font-size: var(--fs-md); font-weight: 600; }
+.task-edit-fields input, .task-edit-fields textarea, .task-edit-fields select { width: 100%; min-width: 0; min-height: 44px; font-weight: 400; }
+.task-edit-fields textarea { resize: vertical; }
+.task-edit-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s4); }
+.task-link-editor { display: grid; min-width: 0; gap: var(--s4); margin: 0; padding: var(--s6) 0 0; border: 0; border-top: 1px solid var(--line); }
+.task-link-editor legend { padding: 0 0 var(--s4); font-weight: 600; }
+.task-link-editor > .btn { justify-self: start; }
+.task-link-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto; align-items: center; gap: var(--s3); }
+.task-edit-panel footer { display: flex; justify-content: flex-end; gap: var(--s4); border-top: 1px solid var(--line); padding: var(--s6) var(--s7); }
+.task-edit-panel .btn { min-height: 44px; }
+.task-detail-universal :is(button, select, textarea, input, a):focus-visible, .task-edit-panel :is(button, select, textarea, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .task-detail-standalone { padding: var(--s5); }
+  .task-detail-standalone .task-identity { flex-wrap: wrap; }
+  .task-identity > .task-progress { flex-basis: 100%; }
+  .task-edit-fields, .task-edit-panel footer, .task-edit-panel > header { padding-inline: var(--s5); }
+  .task-link-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .task-link-row label:first-child { grid-column: 1; }
+  .task-link-row label:nth-child(2) { grid-row: 2; grid-column: 1; }
+  .task-link-row > button { grid-row: 1 / span 2; grid-column: 2; }
+}

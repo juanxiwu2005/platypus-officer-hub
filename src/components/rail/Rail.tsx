@@ -42,7 +42,7 @@ export function Rail({ closing = false, shown = true }: { closing?: boolean; sho
     covered.forEach(el => el.setAttribute("inert", ""))
     const outside = (e: PointerEvent) => {
       const t = e.target as Element | null
-      if (phone || !t || aside.current?.contains(t) || t.closest("header.topbar, .ask-fab")) return
+      if (phone || !t || aside.current?.contains(t) || t.closest("header.topbar, .ask-fab, .task-edit-backdrop")) return
       rail.setOpen(false)
     }
     document.addEventListener("pointerdown", outside)
