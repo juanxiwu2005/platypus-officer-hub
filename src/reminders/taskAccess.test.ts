@@ -35,7 +35,7 @@ function snapshot(s: DemoState, grant: TaskAccessGrant, planned = false): Remind
 }
 
 describe("reusable task entry and effective actor", () => {
-  it("viewing is read-only, Working then Done uses the same token, and completed work stays readable", async () => {
+  it("viewing is read-only, Working then Done uses the same token, and completed work can be reopened", async () => {
     const { state, token, grant } = await issue()
     const before = structuredClone(state)
     expect(await verifyTaskAccessGrant(state, token)).toBe(true)
@@ -48,7 +48,7 @@ describe("reusable task entry and effective actor", () => {
     expect(done.nodes[0].status).toBe("done")
     expect(await verifyTaskAccessGrant(done, token)).toBe(true)
     expect(usableTaskAccessGrant(JSON.parse(JSON.stringify(done)), token)?.id).toBe(grant.id)
-    expect(act(done, grant, { kind: "working" }).nodes[0].status).toBe("done")
+    expect(act(done, grant, { kind: "working" }).nodes[0]).toMatchObject({ status: "in_progress", completedOn: undefined })
     expect(await makeTaskAccessGrant(working, id)).toEqual(grant)
   })
   it("claiming a proposed task does not consume its link or skip the handshake", async () => {
@@ -130,7 +130,7 @@ describe("waiting entry is an independent request", () => {
     const { state, grant } = await waiting()
     expect(grant.scope).toBe("waiting")
     expect(grant.recipientId).toBe("sam")
-    for (const kind of ["done", "claim", "working", "stuck", "waiting"] as const) {
+    for (const kind of ["done", "claim", "todo", "working", "stuck", "waiting", "extension"] as const) {
       expect(act(state, grant, { kind }).nodes).toEqual(state.nodes)
     }
     const ack = act(state, grant, { kind: "acknowledge" })

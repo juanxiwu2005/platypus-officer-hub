@@ -16,9 +16,11 @@ export interface TaskAccessGrant {
   signature: string
 }
 export interface TaskAccessUpdate {
-  kind: "claim" | "working" | "done" | "stuck" | "waiting" | "acknowledge" | "provided"
+  kind: "claim" | "todo" | "working" | "done" | "stuck" | "waiting" | "extension" | "acknowledge" | "provided"
   waitingOn?: string
   waitingOnPersonId?: string | null
+  requestedDate?: string
+  reason?: string
 }
 export interface ReminderMailInput {
   today: string

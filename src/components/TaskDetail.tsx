@@ -12,6 +12,7 @@ import { TaskSubmission } from "../taskDetails/TaskSubmission"
 import { TaskProgress } from "../taskDetails/TaskProgress"
 import { TaskEditPanel } from "../taskDetails/TaskEditPanel"
 import type { TaskAuthorization } from "../taskDetails/contracts"
+import { ExtensionReview } from "./ExtensionReview"
 import "../taskDetails/detail.css"
 
 /** One task surface for every real node and email entry; templates never render this component. */
@@ -35,9 +36,10 @@ export function TaskDetail({ node, actorId, token, accessToken, standalone = fal
       <div className="task-identity">
         <span className={`task-compact-due${isLate(node, due, state.today) ? " late-text" : ""}`} data-testid={standalone ? "single-task-due" : "task-due"}>Due <strong>{due ? fmtShort(due) : "Not set"}</strong></span>
         <span className="who"><Avatar name={owner?.name} size="sm" /><span>{owner?.name ?? "No owner yet"}</span></span>
-        <TaskProgress node={node} actorId={actorId} authorization={authorization} initialReply={initialReply} />
+        <TaskProgress key={`${node.id}:${actorId}:${node.ownerVersion ?? 0}:${accessToken ?? token ?? "viewer"}`} node={node} actorId={actorId} authorization={authorization} initialReply={initialReply} />
       </div>
     </header>
+    {!authorization && state.extensionRequests.filter(r => r.nodeId === node.id && r.status === "pending").map(request => <ExtensionReview key={request.id} request={request} />)}
     <p className="task-requirement">{facts?.requirement ?? node.instructions ?? node.title}</p>
     {links.length > 0 && <nav className="task-external-links" aria-label="External task links">{links.map(link => <a key={`${link.label}:${link.url}`} className="btn small" href={link.url} target="_blank" rel="noreferrer">{link.label} <span aria-hidden="true">↗</span></a>)}</nav>}
     <TaskSubmission key={`${node.id}:${actorId}`} node={node} actorId={actorId} authorization={authorization} />

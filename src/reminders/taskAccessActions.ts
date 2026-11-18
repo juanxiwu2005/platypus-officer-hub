@@ -8,9 +8,9 @@ import { isReminderRuntime } from "./runtime"
 export function applyTaskAccessUpdate(s: DemoState, token: string, update: TaskAccessUpdate): DemoState {
   const grant = usableTaskAccessGrant(s, token)
   const node = s.nodes.find(n => n.id === grant?.nodeId)
-  if (!grant || !node || node.status === "done" || !update || typeof update.kind !== "string") return s
+  if (!grant || !node || !update || typeof update.kind !== "string") return s
   if (grant.scope === "waiting") {
-    if (!isReminderRuntime(s.reminderRuntime) || !["acknowledge", "provided"].includes(update.kind)) return s
+    if (node.status === "done" || !isReminderRuntime(s.reminderRuntime) || !["acknowledge", "provided"].includes(update.kind)) return s
     const request = s.reminderRuntime.waitingRequests.find(r => r.id === grant.waitingRequestId)
     const response = update.kind === "provided" ? "provided" as const : "acknowledged" as const
     if (!request || request.closedOn || request.response === response || request.response === "provided") return s
@@ -21,7 +21,7 @@ export function applyTaskAccessUpdate(s: DemoState, token: string, update: TaskA
     } }
   }
   if (update.kind === "claim") return claimTask(s, node.id, grant.recipientId)
-  if (!["working", "done", "stuck", "waiting"].includes(update.kind)) return s
-  const reply = update.kind === "stuck" ? "help" : update.kind as "working" | "done" | "waiting"
-  return replyToTask(s, node.id, grant.recipientId, reply, { waitingOn: update.waitingOn, waitingOnPersonId: update.waitingOnPersonId })
+  if (!["todo", "working", "done", "stuck", "waiting", "extension"].includes(update.kind)) return s
+  const reply = update.kind === "stuck" ? "help" : update.kind as "todo" | "working" | "done" | "waiting" | "extension"
+  return replyToTask(s, node.id, grant.recipientId, reply, { waitingOn: update.waitingOn, waitingOnPersonId: update.waitingOnPersonId, requestedDate: update.requestedDate, reason: update.reason })
 }

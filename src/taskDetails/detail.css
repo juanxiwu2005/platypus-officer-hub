@@ -18,6 +18,7 @@
 .task-progress-form textarea { min-height: 88px; }
 .task-inline-actions { display: flex; flex-wrap: wrap; gap: var(--s3); }
 .task-waiting-summary { margin: var(--s3) 0 0; overflow-wrap: anywhere; }
+.task-extension-message { white-space: pre-wrap; overflow-wrap: anywhere; }
 .task-detail-universal .task-requirement { margin: 0; padding: var(--s6) 0; border-block: 1px solid var(--line); white-space: pre-line; overflow-wrap: anywhere; }
 .task-external-links { display: flex; flex-wrap: wrap; gap: var(--s3); padding-bottom: var(--s6); border-bottom: 1px solid var(--line); }
 .task-external-links .btn { flex: 1 1 130px; display: inline-flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: 44px; white-space: normal; text-align: left; overflow-wrap: anywhere; }

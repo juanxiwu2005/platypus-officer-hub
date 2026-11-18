@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useLocation, useSearchParams } from "react-router-dom"
 import { useSchedule, useStore, useViewer } from "../data/store"
 import type { Node, NodeStatus } from "../data/types"
 import { PageHead } from "../components/Page"
@@ -35,6 +35,7 @@ export default function Tasks() {
   const { person } = useViewer()
   const rail = useRail()
   const [params] = useSearchParams()
+  const location = useLocation()
   const [view, setView] = useState<View>("board")
   const [scope, setScope] = useState("mine")
   const [notice, setNotice] = useState("")
@@ -43,7 +44,7 @@ export default function Tasks() {
   const [creating, setCreating] = useState(false)
   const lead = canLead(state)
   const linked = params.get("node")
-  useEffect(() => { if (linked && state.nodes.some(n => n.id === linked)) rail.show({ kind: "task", id: linked, reply: params.get("reply") }) }, [linked, params.get("reply")])
+  useEffect(() => { if (linked && state.nodes.some(n => n.id === linked)) rail.show({ kind: "task", id: linked, reply: params.get("reply") }) }, [linked, params.get("reply"), location.key])
   useEffect(() => { if (!notice) return; const t = setTimeout(() => { setNotice(""); setUndoId(null) }, undoId ? 8000 : 3200); return () => clearTimeout(t) }, [notice, undoId])
   const say = (text: string) => { setUndoId(null); setNotice(text) }
 

@@ -68,11 +68,12 @@ describe("claim handshake and status permissions", () => {
   })
 })
 
-describe("extension with a current draft", () => {
+describe("extension with an optional message", () => {
   const request = (base = personal("maya")) => reducer(base, { type: "replyTask", nodeId: "e-night:usg", reply: "extension", input: { draftLink: "https://example.org/current-draft", requestedDate: "2026-11-06", reason: "We need the vendor quote." } })
-  it("rejects missing/unsafe drafts, invalid dates, earlier deadlines and duplicate requests", () => {
+  it("accepts no draft link and rejects unsafe legacy links, invalid dates and duplicate requests", () => {
     const base = personal("maya"), n = base.nodes.find(n => n.id === "e-night:usg")!
-    for (const draftLink of ["", "javascript:alert(1)", "data:text/plain,hi"]) expect(validateReply(base, n, "maya", "extension", { draftLink, requestedDate: "2026-11-06" })).toMatch(/draft/)
+    expect(validateReply(base, n, "maya", "extension", { requestedDate: "2026-11-06" })).toBeNull()
+    for (const draftLink of ["javascript:alert(1)", "data:text/plain,hi"]) expect(validateReply(base, n, "maya", "extension", { draftLink, requestedDate: "2026-11-06" })).toMatch(/http/)
     for (const requestedDate of ["2026-02-30", "2026-10-20", "2026-10-30"]) expect(validateReply(base, n, "maya", "extension", { draftLink: "https://example.org/draft", requestedDate })).toMatch(/later/)
     const pending = request()
     expect(request(pending)).toBe(pending)
@@ -106,6 +107,41 @@ describe("extension with a current draft", () => {
     const reassigned = reducer({ ...pending, viewerId: "alex" }, { type: "updateNode", id: "e-night:usg", patch: { ownerId: "jordan" } })
     expect(reassigned.extensionRequests[0].status).toBe("cancelled")
     expect(reassigned.nodes.find(n => n.id === "e-night:usg")).toMatchObject({ ownerId: "jordan", status: "accepted", acceptedOn: s.today, assignedOn: s.today, ownerVersion: 1 })
+  })
+  it("preserves waiting state, notifies the assigned approver and club lead, and allows that approver to decide", () => {
+    const base = personal("maya"), id = "e-night:usg", approver = base.people.find(p => p.id === "sam")!
+    base.nodes = base.nodes.map(n => n.id === id ? { ...n, approverRoleId: approver.roleId, status: "waiting", waitingOn: "Vendor reply", waitingOnPersonId: "jordan" } : n)
+    const pending = reducer(base, { type: "replyTask", nodeId: id, reply: "extension", input: { requestedDate: "2026-11-06", reason: "The vendor needs two more days." } })
+    expect(pending.nodes.find(n => n.id === id)).toMatchObject({ status: "waiting", waitingOn: "Vendor reply", waitingOnPersonId: "jordan" })
+    expect(pending.extensionRequests[0]).toMatchObject({ draftLink: "", reason: "The vendor needs two more days." })
+    expect(pending.notifications.filter(n => n.nodeId === id && n.kind === "approval").map(n => n.recipientId).sort()).toEqual(["alex", "sam"])
+    const action = { type: "reviewExtension" as const, id: pending.extensionRequests[0].id, approve: true }
+    expect(reducer({ ...pending, viewerId: "jordan" }, action)).toEqual({ ...pending, viewerId: "jordan" })
+    expect(reducer({ ...pending, viewerId: "sam" }, action).extensionRequests[0].status).toBe("approved")
+    const former = { ...pending, viewerId: "sam", people: pending.people.map(p => p.id === "sam" ? { ...p, leftOn: pending.today } : p) }
+    expect(reducer(former, action)).toBe(former)
+  })
+})
+
+describe("reopening a completed task", () => {
+  it("clears completion and points, updates dependencies, and counts a later completion once", () => {
+    const start = personal("jordan"), source = start.nodes.find(n => n.id === "t-silence")!
+    start.nodes = [{ ...source, dependsOn: [], status: "in_progress" }, { ...source, id: "downstream", ownerId: "sam", dependsOn: [source.id], status: "accepted" }]
+    const done = reducer(start, { type: "replyTask", nodeId: source.id, reply: "done" })
+    expect(done.notifications.some(n => n.nodeId === "downstream" && n.kind === "ready" && !n.read)).toBe(true)
+    for (const reply of ["todo", "working", "help", "waiting"] as const) {
+      const reopened = reducer(done, { type: "replyTask", nodeId: source.id, reply, input: { waitingOn: "Check room access", waitingOnPersonId: "sam" } })
+      expect(reopened.nodes[0].status).toBe(({ todo: "accepted", working: "in_progress", help: "blocked", waiting: "waiting" })[reply])
+      expect(reopened.nodes[0].completedOn).toBeUndefined()
+      expect(reopened.contributions.filter(c => c.nodeId === source.id)).toHaveLength(0)
+      expect(reopened.notifications.some(n => n.nodeId === "downstream" && n.kind === "ready" && !n.read)).toBe(false)
+      expect(reopened.notifications.some(n => n.nodeId === "downstream" && n.kind === "delay" && /reopened/.test(n.text))).toBe(true)
+      expect(reducer(reopened, { type: "replyTask", nodeId: source.id, reply: "done" }).contributions.filter(c => c.nodeId === source.id)).toHaveLength(1)
+    }
+    const other = { ...done, viewerId: "sam" }
+    expect(reducer(other, { type: "replyTask", nodeId: source.id, reply: "working" })).toBe(other)
+    const budget = { ...done, nodes: done.nodes.map(n => n.id === source.id ? { ...n, eventId: "e-night", stepKey: "budgetRequest" } : n) }
+    expect(reducer(budget, { type: "replyTask", nodeId: source.id, reply: "working" })).toBe(budget)
   })
 })
 

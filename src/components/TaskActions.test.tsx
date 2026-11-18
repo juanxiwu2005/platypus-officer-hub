@@ -160,12 +160,13 @@ describe("task actions use actual persisted state", () => {
     const initial = fixture(), due = initial.nodes[0].clubDeadline!
     show(initial)
     fireEvent.click(screen.getByRole("button", { name: "Need more time" }))
-    fireEvent.change(screen.getByRole("textbox", { name: "Current draft link" }), { target: { value: "https://example.org/draft" } })
+    expect(screen.queryByLabelText("Current draft link")).toBeNull()
+    fireEvent.change(screen.getByRole("textbox", { name: "Message (optional)" }), { target: { value: "Waiting for confirmation" } })
     fireEvent.change(screen.getByLabelText("Requested club deadline"), { target: { value: addDays(due, 2) } })
     fireEvent.click(screen.getByRole("button", { name: "Request extension" }))
     expect(latest.extensionRequests.at(-1)).toMatchObject({ nodeId: ID, status: "pending", requestedDate: addDays(due, 2) })
     expect(latest.nodes[0].clubDeadline).toBe(due)
-    expect(screen.getByRole("status").textContent).toContain("stays unchanged")
+    expect(screen.getByRole("status").textContent).toContain("current deadline stays")
   })
 
   it("keeps a legacy token action scoped and consumes it only after a saved update", async () => {

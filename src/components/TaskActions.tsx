@@ -15,7 +15,7 @@ export function TaskActions({ node, actorId, token, initialReply }: { node: Node
   const root = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState(initialReply === "waiting" || initialReply === "extension" ? initialReply : "")
   const [waitingPerson, setWaitingPerson] = useState(waitingTarget(node))
-  const [input, setInput] = useState<ReplyInput>({ waitingOn: node.waitingOn ?? "", waitingOnPersonId: node.waitingOnPersonId ?? null, draftLink: node.draftLink ?? "", requestedDate: "", reason: "" })
+  const [input, setInput] = useState<ReplyInput>({ waitingOn: node.waitingOn ?? "", waitingOnPersonId: node.waitingOnPersonId ?? null, requestedDate: "", reason: "" })
   const [notice, setNotice] = useState("")
   const [error, setError] = useState("")
   const failed = () => setError("Your update was not saved. Your entered details are kept here. Please try again, or reload if this page reports a conflict.")
@@ -28,13 +28,13 @@ export function TaskActions({ node, actorId, token, initialReply }: { node: Node
     const oldRequests = new Set(before.extensionRequests.map(r => r.id))
     const accepted = token ? tryDispatch({ type: "officerAction", token, reply, input: value }) : tryDispatch({ type: "replyTask", nodeId: node.id, reply, input: value })
     const after = getState(), savedNode = after.nodes.find(n => n.id === node.id)
-    const expected = reply === "done" ? "done" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : "in_progress"
+    const expected = reply === "extension" ? current.status : reply === "todo" ? "accepted" : reply === "done" ? "done" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : "in_progress"
     const saved = accepted && savedNode?.status === expected
       && (reply !== "waiting" || (savedNode.waitingOn === value.waitingOn?.trim().slice(0, 180) && (savedNode.waitingOnPersonId ?? null) === (value.waitingOnPersonId ?? null)))
       && (reply !== "extension" || after.extensionRequests.some(r => !oldRequests.has(r.id) && r.nodeId === node.id && r.status === "pending" && r.requestedDate === value.requestedDate))
     if (!saved) { failed(); return }
     setForm("")
-    setNotice(reply === "extension" ? "Extension requested. The deadline stays unchanged until approval." : "Your update is saved. Thank you.")
+    setNotice(reply === "extension" ? "Your new deadline request was saved and your approver notified. The current deadline stays until approval." : "Your update is saved. Thank you.")
     root.current?.focus()
   }
   function claim() {
@@ -87,10 +87,8 @@ export function TaskActions({ node, actorId, token, initialReply }: { node: Node
       <button className="btn btn-primary" type="submit">Save waiting status</button>
     </form>}
     {editable && node.status !== "unclaimed" && form === "extension" && <form className="task-form" onSubmit={e => { e.preventDefault(); send("extension") }}>
-      <p className="small muted">Share your current draft so we can decide together.</p>
-      <label>Current draft link<input type="url" value={input.draftLink} onChange={e => setInput({ ...input, draftLink: e.target.value })} placeholder="https://…" /></label>
       <label>Requested club deadline<input type="date" value={input.requestedDate} onChange={e => setInput({ ...input, requestedDate: e.target.value })} /></label>
-      <label>What would help? (optional)<textarea maxLength={300} value={input.reason} onChange={e => setInput({ ...input, reason: e.target.value })} /></label>
+      <label>Message (optional)<textarea maxLength={300} value={input.reason} onChange={e => setInput({ ...input, reason: e.target.value })} /></label>
       <button className="btn btn-primary" type="submit">Request extension</button>
     </form>}
     {editable && form && <button type="button" className="btn btn-quiet small" onClick={() => { setForm(""); setError("") }}>Cancel</button>}

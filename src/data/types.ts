@@ -380,6 +380,7 @@ export interface ExtensionRequest {
   nodeId: string
   ownerId: string
   requestedOn: string
+  requestedBy?: string
   requestedDate: string
   previousDeadline: string | null
   draftLink: string
