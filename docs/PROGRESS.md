@@ -1,6 +1,7 @@
-> **2026-11-17（America/Phoenix） · 统一 Start 与再次设置入口，进行中（Codex）**
-> **授权：** Juanxi 要求两条设置链条一致；将旧 `/setup`、`/welcome/classic` 和 Settings 的 Replay setup 接入 Start 的同一组 founder 页面，保留旧草稿。不恢复已撤回的职责库，不改 main。
-> **新方向记录：** 工作流按任务组划分，创建每次活动时明确选择各组负责人；本轮只结合代码制定方案，不实现新的分配机制。保留最新远端 `1c832a2` 的提醒整合。需要同步本地备份。
+> **2026-11-17（America/Phoenix） · Start 与再次设置已统一，待 Juanxi 验收（Codex）**
+> **问题与结果：** Start 是八步 founder flow，截图中的 Settings → Replay setup 却仍渲染旧六步 Setup。代码`d616bb1`删除独立六步页面；Settings、`/setup`、`/welcome/classic`与Start共用页面、进度条、校验和保存；Team职责按需展开，章程AI识别保留。有效旧草稿可显式继续，原件保留；当前草稿原子备份后写入，失败可重试，恢复不自动重读章程。不改23版业务存档，不恢复职责库，保留`1c832a2`提醒整合。
+> **检查与验收：** 156项相关单元/组件通过；最终浏览器131通过/1设备限定跳过，另两端逐步无障碍2项通过，共133通过/1跳过。lint、前后端类型、生产构建、9页文字预算通过；入口542,460/550,000，Settings147/150，未提高门槛。Netlify确认`d616bb1`部署success。[preview 14再次设置](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/setup) · [交付与草稿保护](feedback-fix/SETUP_ENTRY_UNIFICATION_HANDOFF.md)。未重复全站门禁；既有64/60词差异与calibration超时未改，0真实AI/邮件。
+> **新方向已记录：** [按活动任务组分配负责人方案](feedback-fix/EVENT_TASK_GROUP_ASSIGNMENT_PROPOSAL.md)：工作流自定义任务组，每次活动为各组选具体负责人；覆盖实际体验、代码改动、技术限制、最小原型及扩展。仅方案，未接入新分配。沿用PR #14与原功能分支，main仍为`b9e7a02`。需要同步本地备份。
 
 > **2026-11-16（America/Phoenix） · 提醒阶段1–3已整合至preview 14，检查完成、交付待验收（Codex）**
 > **授权：** Juanxi 明确要求“不需要新增pull request，把代码整合到preview14里面”。沿用PR #14和`claude/fervent-thompson-e2j5u2`，以当前`57c7e55`为整合基点；不创建新PR、不改main。
@@ -463,6 +464,8 @@
 - 要问 Marcie：论文题目里的 “cloud-Excel-based” 是否要改；深访作为设计依据的写法是否合适。
 
 ## 交接记录（最新的在最上面）
+
+- **2026-11-17 · Codex：** `d616bb1`统一Start与Settings/旧链接的设置链条，删除旧六步Setup；旧草稿显式继续、事务备份、失败重试、恢复不自动读AI。156项单元、133项浏览器通过/1设备限定跳过；Netlify preview14代码部署success。新增按任务组分配的提案，未实施分配功能；交付详见[设置统一](feedback-fix/SETUP_ENTRY_UNIFICATION_HANDOFF.md)。main未变，需要同步本地备份。
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
