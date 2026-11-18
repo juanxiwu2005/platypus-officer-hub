@@ -14,7 +14,7 @@ import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "..
 import { nextCounter } from "../lib/ids"
 import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
 import { cannotDelete, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, removalEdits, type FlowInsertionTarget } from "../lib/flowEdit"
-import { resolveBranches, validateBranchDefinitions } from "../engine/workflowBranches"
+import { DEFAULT_WORKFLOW_BRANCHES, placementOf, resolveBranches, validateBranchDefinitions } from "../engine/workflowBranches"
 import { isCoreStep } from "../engine/workflowPolicy"
 import { parseEffortDays } from "../lib/workflowEffort"
 import { advanceClock } from "../engine/followup"
@@ -251,9 +251,12 @@ function removeEventStep(state: DemoState, eventId: string, nodeId: string): Dem
   if (!node || cannotDelete(node)) return state
   const patches = new Map(removalEdits(inEvent, nodeId).map(e => [e.id, e.patch.dependsOn!]))
   const gone = (x: { nodeId: string }) => x.nodeId !== nodeId
+  const remaining = state.nodes.filter(n => n.id !== nodeId).map(n => (patches.has(n.id) ? { ...n, dependsOn: patches.get(n.id)! } : n))
+  const defaults = new Set(DEFAULT_WORKFLOW_BRANCHES.map(b => b.id))
   return applySchedule({
     ...state,
-    nodes: state.nodes.filter(n => n.id !== nodeId).map(n => (patches.has(n.id) ? { ...n, dependsOn: patches.get(n.id)! } : n)),
+    nodes: remaining,
+    events: state.events.map(event => event.id === eventId && event.workflowBranches ? { ...event, workflowBranches: event.workflowBranches.filter(branch => defaults.has(branch.id) || !inEvent.some(n => placementOf(n).branchId === branch.id) || remaining.some(n => n.eventId === eventId && placementOf(n).branchId === branch.id)) } : event),
     nudges: state.nudges.filter(gone), extensionRequests: state.extensionRequests.filter(gone), notifications: state.notifications.filter(gone),
     silenceCases: state.silenceCases.filter(gone), protocolLog: state.protocolLog.filter(gone), officerGrants: state.officerGrants.filter(gone),
   })
