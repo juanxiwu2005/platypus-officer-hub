@@ -2,7 +2,7 @@
 
 2026-11-18（America/Phoenix） · Codex · 用户已选定方向并授权写基础代码；正式接入等待另一对话的模板库/编辑器完成。
 
-代码分支：`feat/team-swimlane-foundation`。基于原功能分支 `55d8129`；开始记录 `24c69c8`。**本分支不合并到 main，也不提前接入 Settings。当前 PR14 的原功能分支只同步本交接及进度记录，源代码留在独立分支，后续统一合并。** 不创建新 PR。
+代码分支：`feat/team-swimlane-foundation`。基于原功能分支 `55d8129`；开始记录 `24c69c8`。**本分支不合并到 main，也不提前接入 Settings。当前 PR14 的原功能分支只同步本交接及进度记录，源代码留在独立分支，后续统一合并。** 不创建新 PR。代码实现提交 `2d24427`，最终无障碍修正 `8d55107`；只取前者不构成完整交付。
 
 ## 最新决定优先于旧稿
 
@@ -68,7 +68,7 @@ const graph = compileTeamLanes(template.id, template.steps, directory, teamMapDr
 
 ## 给模板库/编辑器对话的接入步骤
 
-1. 先完成自己当前的编辑器工作，不改本分支文件；合并时读取本交接，再统一契约。可以只 cherry-pick 本分支的基础代码提交，或在确认后 merge 本分支，不改变现有 PR 编号。
+1. 先完成自己当前的编辑器工作，不改本分支文件；合并时读取本交接，再统一契约。可以按顺序 cherry-pick `2d24427` 和 `8d55107`（两者都要），或在确认后 merge 本分支，不改变现有 PR 编号。
 2. 组织目录有唯一 Team 实体，Role 上明确 teamId 与独立 reportsToRoleId。章程 AI 的岗位/职责识别继续使用；`directoryFromLegacy` 只读投影已有人名/邮箱/上级，roleTeams 必须由人工确认或显式认可的章程建议提供。
 3. **不要用投影覆盖旧 Role/Person 全记录。** 其中没有复制 duties、fn、交接历史、提醒偏好等字段。正式写回时按 ID 合并真实修改，保留原始章程/职责/历史/联系方式及现有保护。存档结构升级与数据迁移在接入阶段设计，本轮未做。
 4. 每个模板版本保存 team map sidecar。已有 ownerRoleId 可经 `teamMapFromExplicitOwners` 起草候选；缺失/已删除/未入组岗位的任务保留 unresolved，让用户选，不用岗位关键字猜团队，也不建立“默认秘书/市场”硬编码。
