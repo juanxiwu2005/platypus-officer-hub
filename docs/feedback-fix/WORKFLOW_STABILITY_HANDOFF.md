@@ -1,5 +1,42 @@
 # 工作流模板修复交付
 
+## 研究：多个工作流与六种静态方向（2026-11-17，America/Phoenix）
+
+基于功能分支`1e0ef5a`审阅；本轮只做代码研究、离线纯函数验证及六张概念图，没有改src、表单、存储、规则或构建，也没有制作HTML原型。图片展示的是未来方案，不表示相关功能已经上线。
+
+六张1536×1024 PNG已在对话展示并原样归档到`docs/prototypes/multiple-workflow-concepts/`，`manifest.json`保存图号、说明、原始来源文件及SHA-256；`audit-evidence.json`保存下述离线验证结果。图内模板数与工作进度是布局示例，非当前运行数据；旧v1/v2/v3原稿均未改。
+
+**结论：现有任务／依赖／岗位／条件／日期计算可以复用；当前Plan并不是通用的多模板工作流系统。** 5、10、20是模板目录规模，不能与同时运行多少活动混为一谈。要保存多份模板、在创建时选择、让内部事务拥有独立规则，仍需要模板层与通用工作项实例层；性能上限本轮未基准测试。
+
+| 问题 | 当前代码事实 | 扩展所需 |
+| --- | --- | --- |
+| 能运行多个计划吗 | `DemoState.events[]`能存多个活动，各自Node.eventId、分支快照及任务内容独立；MetroChart按eventId绘图 | 保留实例隔离，Plan列表增加工作类型与模板来源 |
+| 能任选多份模板吗 | `Org.eventWorkflow`是单个对象；Settings仅编辑这一份，newObjects创建活动统一读取orgSteps；create_event命令没有templateId，Event.playbookId目前只是写入的字符串，不是模板注册表路由 | Template列表、稳定模板ID／版本、创建入口选用与受验证命令传递、每实例定义快照 |
+| 内部Board事务是否已有基础 | 当前独立任务以eventId=null创建，能做单项任务；没有自己的workflow/project父对象，不能把一组内部任务当成有完整生命周期的独立计划管理。另一套workspace存在WorkItem与executive_work | 使用通用工作项聚合与独立项目ID，区分单任务／多步骤计划，不用虚构公众活动和人数来塞内部工作 |
+| 轻量模板能否只留几步 | stepsFor在当前创建路径有checks时补齐31个核心活动步骤，checkWorkflow也要求这些标准步骤与ASU步骤；分支、阶段、主干布局仍以活动为中心 | 分开通用图校验与各类适用的规则配置；Full Check、Headcount等仅属于需要它们的流程。适用的采购、出行、学校审批仍按事实保留 |
+| 是否只要启用另一套工作区 | src/workspace已有member_event/executive_work、任务依赖、模板快照和版本；但PhaseOne/接口默认受ORG_SETUP_ENABLED隐藏，和当前Plan是独立模型、存储及页面 | 先决定统一的数据契约与迁移／适配策略，接回现有提醒、材料提交与归档；不直接开启开关当作完成迁移，不再新建第三套引擎 |
+
+离线反例：标准EVENT_STEPS为46项、CORE_EVENT_STEP_KEYS为31项；请求只有contact-partner一步且checks={}的模板，stepsFor返回32项；该一项模板还会被checkWorkflow阻止保存。只改变Event.type由speaker到meeting而不改变事实，选出的步骤完全相同，因此type标签不能当成多模板选择器。新OrgFlow的nodes schema上限40，直接装当前46节点形状会被拒绝，说明两套结构不能无适配互换。对应源文件：`src/data/types.ts:123/145`、`src/data/changeReview.ts:60`、`src/lib/commands.ts:8`、`src/engine/playbooks.ts:244`、`src/engine/workflow.ts:192`、`src/organization/schema.ts:81`。
+
+另一套工作区也尚无20份预设模板库：`netlify/lib/workspace/runtime.mts:161`对member_event统一取确认过的memberFlow，对executive_work接受input.flow，否则生成三步后备流程；`templateVersion`是组织contextVersion，缺少独立模板ID及各模板版本。`CreateWorkForm`没有模板库选择器。可复用其WorkItem/Task/flow快照思想，不能把已有代码说成当前网站已支持任意预设或任意工作流。
+
+建议共有基础：内置模板与本社团副本分开；模板记录ID、名称、工作类型、版本、任务图、岗位绑定、日期锚点和适用规则；创建时复制结构与版本到实例，不复制旧负责人、日期、完成状态或成果附件。新版本默认只影响未来计划。内部事务的目标完成日与公众活动发生日分开，日期仍由规则引擎计算。不同社团独立保存自己的模板，不自动共享组织内容。
+
+六张静态方案体现不同的使用逻辑，均是提案，未实施：
+
+| 方案 | 主要入口／组织方式 | 优势与取舍 |
+| --- | --- | --- |
+| [A 模板库优先](../prototypes/multiple-workflow-concepts/A-template-library.png) | 搜索、分类、收藏，查看预览后使用 | 最直接，5–20份易理解；用户仍需判断选哪份 |
+| [B 目标优先问答](../prototypes/multiple-workflow-concepts/B-goal-first.png) | 先说明想做什么，回答少量事实，再确认推荐流程 | 减少选错；需要清晰可解释的匹配，不能AI暗中创建 |
+| [C 双工作台](../prototypes/multiple-workflow-concepts/C-two-workspaces.png) | Member activities和Executive Board各有计划列表及创建入口 | 清楚区分公众活动和内部事务；模板仍需A/B等入口配合 |
+| [D 模块拼装](../prototypes/multiple-workflow-concepts/D-modular-workflow.png) | 基础流程加宣传、志愿者、出行、资金等可复用模块 | 可覆盖大量变体；模块接口、重复节点和依赖合并更复杂，适合后续 |
+| [E 社团流程手册](../prototypes/multiple-workflow-concepts/E-club-playbooks.png) | 模板目录、内置起点、本社团版本、草稿／发布与岗位操作说明 | 最利于20份以上模板治理和换届；维护成本较高 |
+| [F 从成功计划复用](../prototypes/multiple-workflow-concepts/F-reuse-past-work.png) | 从历史计划提取结构与审阅过的经验，重新选日期和现任团队 | 少写模板、保留经验；必须清除旧完成状态、个人归属和历史结果 |
+
+建议先以A为创建入口、C为Plan组织结构，采用E最小的版本和快照规则；之后按实际使用补B或F，D留作更复杂变体的扩展。六个方向并非要求全部同时开发。本轮不需要用户先批准任何实施步骤，也没有自动进入实现。
+
+外部对照仅使用官方文档：Asana项目模板支持相对项目开始／截止日的日期，说明不同流程应有自己的锚点（https://help.asana.com/s/article/project-templates?language=en_US）；monday的模板中心组织预设与自定义模板，适合参考目录入口（https://support.monday.com/hc/en-us/articles/360001362625-monday-com-templates）；Notion数据库模板以复制结构来复用，定期重复是另一项能力（https://www.notion.com/help/database-templates）。这里只借鉴模式，不比较收费方案或声称功能等同。
+
 ## 追加：连线简化、岗位分支与节点类别（2026-11-17，America/Phoenix）
 
 用户要求直接实施，继续由Data、UI、Graph独立worktree实现、主Agent整合及Review独立复核。运行时代码`3f731a5`，保留同期附件自动草稿保存交付与其他聊天进行中记录，沿用PR14/preview14。
