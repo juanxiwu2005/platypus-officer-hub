@@ -4,7 +4,7 @@ import { useStore } from "../data/store"
 import { isOfficer, isPresident } from "../data/permissions"
 import { isBudgetControlledNode } from "../engine/eventBudget"
 import { Link } from "react-router-dom"
-import { MAX_FILES, taskWork } from "./data"
+import { MAX_FILES, safeTaskUrl, taskWork } from "./data"
 import { downloadTaskAttachment, readTaskAttachment } from "./attachments"
 import type { TaskAttachment, TaskAuthorization } from "./contracts"
 
@@ -57,6 +57,7 @@ export function TaskSubmission({ node, actorId, authorization }: { node: Node; a
   return <section className="task-submission" aria-label="Task submission" ref={section} tabIndex={-1} data-testid="task-submission">
     {!initial ? <p role="alert">This saved submission needs recovery before it can be edited.</p> : <>
       <div className="task-details-field">{editable ? <><label htmlFor={detailsId}>Details</label><textarea id={detailsId} value={details} onChange={e => { setDetails(e.target.value); setNotice("") }} maxLength={20_000} rows={6} placeholder="Share the result, location, reference numbers or anything your team needs." /></> : <><span>Details</span><span className="task-submission-readback">{published?.details || "No details submitted yet."}</span></>}</div>
+      {node.draftLink && safeTaskUrl(node.draftLink) && <a className="small" href={node.draftLink} target="_blank" rel="noreferrer">Open current draft ↗</a>}
       {showFiles.length > 0 && <ul className="task-file-list" aria-label="Attachments">{showFiles.map(file => <li key={file.id}><button type="button" className="task-file-download" onClick={() => download(file)} aria-label={`Download ${file.name}`}><span aria-hidden="true">▤</span><span>{file.name}</span></button>{editable && <button type="button" className="btn btn-quiet small" aria-label={`Remove ${file.name}`} disabled={busy} onClick={() => { setFiles(files.filter(f => f.id !== file.id)); setNotice("") }}>×</button>}</li>)}</ul>}
       {editable && <><input ref={input} className="sr-only" tabIndex={-1} type="file" multiple accept=".pdf,.txt,.md,.csv,.docx,.xlsx,.png,.jpg,.jpeg,.webp" aria-label="Attach files" onChange={e => void addFiles(e.target.files)} /><button type="button" className="btn task-add-files" disabled={busy || files.length >= MAX_FILES} onClick={() => input.current?.click()}>{busy ? "Reading files…" : "+ Add files"}</button><p className="small muted task-file-limit">Up to 5 files, 512 KB each; 2 MB total. Saved in this demo browser.</p></>}
       {published && <p className="small muted task-submission-author">Submitted by {state.people.find(p => p.id === published.authorId)?.name ?? "Former teammate"} · {published.savedOn}</p>}

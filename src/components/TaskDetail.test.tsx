@@ -42,6 +42,11 @@ describe("the universal task page and edit drawer", () => {
     const s = fixture(); show({ ...s, events: s.events.map(e => ({ ...e, venue: "offcampus" })) })
     expect(screen.queryByRole("navigation", { name: "External task links" })).toBeNull()
   })
+  it("retains existing draft materials without inventing a published submission", () => {
+    show(fixture({ draftLink: "https://example.org/existing-materials" }))
+    expect(screen.getByRole("link", { name: /Open current draft/ }).getAttribute("href")).toBe("https://example.org/existing-materials")
+    expect(store.state.nodes[0].taskWork).toBeUndefined()
+  })
   it("saves the draft without completion, restores it on refresh, and publishes files with completion", async () => {
     show()
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Student Union, Room 204" } })

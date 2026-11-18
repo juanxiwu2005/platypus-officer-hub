@@ -10,7 +10,7 @@ export function TaskProgress({ node, actorId, authorization, initialReply }: { n
   const { state, tryDispatch, getState } = useStore()
   const [form, setForm] = useState(initialReply === "waiting" || initialReply === "extension" ? initialReply : "")
   const [person, setPerson] = useState(node.waitingOnPersonId ?? "other")
-  const [input, setInput] = useState<ReplyInput>({ waitingOn: node.waitingOn ?? "", requestedDate: "", draftLink: "", reason: "" })
+  const [input, setInput] = useState<ReplyInput>({ waitingOn: node.waitingOn ?? "", requestedDate: "", draftLink: node.draftLink ?? "", reason: "" })
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
   const editable = state.people.some(p => p.id === actorId && isOfficer(p)) && (!node.ownerId || node.ownerId === actorId || isPresident(state, actorId))
