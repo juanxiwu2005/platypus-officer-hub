@@ -290,6 +290,7 @@ test("accidental completion can be undone and reopened later without losing subm
   await attach(page)
   await panel.getByRole("button", { name: "Submit & mark done", exact: true }).click()
   await expect.poll(async () => (await work(page)).status).toBe("done")
+  await panel.getByRole("button", { name: "Undo mark done", exact: true }).scrollIntoViewIfNeeded()
   await page.screenshot({ path: info.outputPath("task-undo-completion.png"), fullPage: true })
   await panel.getByRole("button", { name: "Undo mark done", exact: true }).click()
   await expect.poll(async () => (await work(page)).status).toBe("accepted")
