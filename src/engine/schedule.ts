@@ -34,7 +34,10 @@ import {
  *    deadline only when it has slipped past its own recommended date;
  *  - a later calibrated step's ASU deadline is a hard limit for the calibrated steps before it (backward pass), and the
  *    template's own finish order is part of the recommended deadline, so a fresh event shows no "Moved later" warning.
- * Steps without `timing` (hand-made tasks, conditional steps, events built before FB-6) are dated exactly as before.
+ * Steps without `timing` (hand-made tasks, conditional steps, events built before FB-6) retain their earlier rules unless explicitly edited.
+ * An explicit `startPolicy: effort` keeps calibrated due dates and link semantics, but dates its start from the
+ * work estimate and the full personal buffer. If a real start constraint leaves too little time, its feasible
+ * finish is shown with an effort_window warning; the original target and official deadline remain available.
  */
 
 export const DEFAULT_PERSONAL_BUFFER = 1
@@ -162,8 +165,19 @@ function timingDue(n: Node, ev: Event, t: StepTiming): { date: string; why: stri
 const closeFloor = (n: Node, ev: Event) => (n.timing?.dueDays === 0 ? ev.date : shiftWork(ev.date, 1))
 const closeFloorWhy = (n: Node) => (n.timing?.dueDays === 0 ? "Starts on the event day" : "The first business day after the event")
 
+/** A person changed the work estimate: count real working days, including the full buffer, back from the deadline. */
+function effortStart(ctx: Ctx, n: Node, club: string): { date: string; why: string } {
+  const e = effortOf(ctx, n)
+  const finish = onOrBefore(club, e.work)
+  const date = shiftWork(finish, -e.days, e.work)
+  let why = startWhy(club, n, e, date)
+  if (finish !== club) why += `; work is ready by ${fmtLong(finish)}, the owner's working day on or before the deadline`
+  return { date, why }
+}
+
 /** Latest start of a calibrated step: its window opens `startDays` before the event, on the owner's working day. */
 function timingStart(ctx: Ctx, n: Node, ev: Event, t: StepTiming, club: string): { date: string; why: string } {
+  if (n.startPolicy === "effort") return effortStart(ctx, n, club)
   const e = effortOf(ctx, n)
   const first = e.person?.name.split(" ")[0]
   const raw = fromEvent(ev, t.startDays, t.unit)
@@ -283,9 +297,10 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     const e = effortOf(ctx, n)
     let club = best.date
     let clubWhy = best.why
-    let start = shiftWork(club, -e.days, e.work)
-    let sWhy = startWhy(club, n, e, start)
-    if (n.phase === "close" && start < afterEvent) {
+    const explicit = n.startPolicy === "effort" ? effortStart(ctx, n, club) : null
+    let start = explicit?.date ?? shiftWork(club, -e.days, e.work)
+    let sWhy = explicit?.why ?? startWhy(club, n, e, start)
+    if (!explicit && n.phase === "close" && start < afterEvent) {
       start = onOrAfter(afterEvent, e.work)
       sWhy = "The first business day after the event"
       club = shiftWork(start, e.days, e.work)
@@ -307,6 +322,10 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     }
     planned.set(n.id, p)
     const r = p.date === r0.club ? r0 : { ...r0, club: p.date, clubWhy: p.why }
+    if (n.startPolicy === "effort") {
+      planExplicitEffort(ctx, n, ev, r, out, loopedIds)
+      continue
+    }
     if (n.timing) {
       planCalibrated(ctx, n, ev, r, out, loopedIds, planned)
       continue
@@ -466,17 +485,86 @@ function planCalibrated(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule, loo
   }
 }
 
+/** The explicit estimate uses the final due date; moving a calibrated finish still allows overlapping work. */
+function planExplicitEffort(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule, loopedIds: Set<string>) {
+  const e = effortOf(ctx, n)
+  let club = n.clubDeadlineOverride ?? r.club
+  let clubWhy = n.clubDeadlineOverride ? `Set by a person (Platypus recommends ${fmtLong(r.club)})` : r.clubWhy
+  let pushedBy: string | null = null
+  let earliest: string | null = null
+  let earliestBy: string | null = null
+  for (const id of n.dependsOn) {
+    const upstream = ctx.byId.get(id), plan = out.nodes[id]
+    if (!upstream || !plan || upstream.status === "done" || loopedIds.has(id)) continue
+    if (upstream.timing) {
+      if (plan.club > club) {
+        club = plan.club
+        pushedBy = id
+        clubWhy = `Moved later: “${upstream.title}” finishes ${fmtLong(plan.club)}`
+      }
+    } else {
+      const available = shiftWork(plan.club, 1)
+      if (!earliest || available > earliest) { earliest = available; earliestBy = id }
+    }
+  }
+  const target = club
+  const base = effortStart(ctx, n, club)
+  let start = base.date, sWhy = base.why
+  let constraint: string | null = null
+  if (n.phase === "close") {
+    const floor = onOrAfter(closeFloor(n, ev), e.work)
+    if (start < floor) {
+      start = floor
+      constraint = `Close-out work cannot start before ${fmtLong(floor)}`
+      sWhy = constraint
+    }
+  }
+  if (earliest && earliestBy) {
+    const available = onOrAfter(earliest, e.work)
+    if (start < available) {
+      start = available
+      pushedBy = earliestBy
+      constraint = `“${ctx.byId.get(earliestBy)!.title}” must finish before this work starts`
+      sWhy = `The owner's first working day after “${ctx.byId.get(earliestBy)!.title}” finishes`
+    }
+  }
+  if (n.recoveryFrom && n.status !== "done") {
+    const available = onOrAfter(n.recoveryFrom, e.work)
+    if (start < available) {
+      start = available
+      constraint = `The approved recovery plan starts ${fmtLong(available)}`
+      sWhy = "First available working day in the approved recovery plan"
+    }
+  }
+  const finish = shiftWork(start, e.days, e.work)
+  const insufficient = finish > club
+  if (insufficient) {
+    club = finish
+    clubWhy = `${constraint ?? "The available work window is too short"}. ${plural(n.estDays, "working day")} of work and ${plural(e.buffer, "working day")} of personal buffer move the planned finish from ${fmtLong(target)} to ${fmtLong(finish)}; the original target and ASU deadline stay unchanged`
+  }
+  const issues = nodeIssues(ctx, n, { official: r.official?.date ?? null, club, start, rec: r.club, pushedBy, looped: loopedIds.has(n.id) }, ev)
+  if (insufficient && n.status !== "done") issues.push({ code: "effort_window", severity: "warn", text: `The work and personal buffer do not fit the target of ${fmtLong(target)}. Earliest feasible finish: ${fmtLong(finish)}. The target has not been met.` })
+  out.nodes[n.id] = {
+    id: n.id, official: r.official?.date ?? null, club, latestStart: start, recommendedClub: r.club,
+    explain: { official: r.official?.why ?? null, club: clubWhy, latestStart: sWhy }, pushedBy, issues,
+  }
+}
+
 function planStandalone(ctx: Ctx, n: Node, out: Schedule) {
   const a = n.anchor
   const e = effortOf(ctx, n)
   const fixedClub = a?.kind === "fixed" ? a.club : a?.kind === "followup" ? onOrBefore(addDays(a.from, a.days)) : n.clubDeadline ?? ctx.state.today
   const official = a?.kind === "fixed" ? a.official : null
   let club = n.clubDeadlineOverride ?? fixedClub
-  let start = shiftWork(club, -e.days, e.work)
+  const target = club
+  const explicit = n.startPolicy === "effort" ? effortStart(ctx, n, club) : null
+  let start = explicit?.date ?? shiftWork(club, -e.days, e.work)
   if (n.recoveryFrom && n.status !== "done" && start < n.recoveryFrom) {
     start = onOrAfter(n.recoveryFrom, e.work)
     club = shiftWork(start, e.days, e.work)
   }
+  const issues = nodeIssues(ctx, n, { official, club, start, rec: fixedClub, pushedBy: null, looped: false }, null)
+  if (explicit && club > target && n.status !== "done") issues.push({ code: "effort_window", severity: "warn", text: `The approved recovery start leaves too little time before ${fmtLong(target)}. Earliest feasible finish: ${fmtLong(club)}. The target has not been met.` })
   out.nodes[n.id] = {
     id: n.id,
     official,
@@ -486,10 +574,10 @@ function planStandalone(ctx: Ctx, n: Node, out: Schedule) {
     explain: {
       official: official ? "Fixed deadline" : null,
       club: n.recoveryFrom ? "Recovery plan approved by the president" : n.clubDeadlineOverride ? `Set by a person (was ${fmtLong(fixedClub)})` : a?.kind === "followup" ? a.label : "Set when the task was created",
-      latestStart: startWhy(club, n, e, start),
+      latestStart: explicit && club === target ? explicit.why : startWhy(club, n, e, start),
     },
     pushedBy: null,
-    issues: nodeIssues(ctx, n, { official, club, start, rec: fixedClub, pushedBy: null, looped: false }, null),
+    issues,
   }
 }
 
