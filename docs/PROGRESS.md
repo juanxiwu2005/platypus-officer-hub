@@ -1,10 +1,14 @@
+> **2026-11-17（America/Phoenix） · Workflow 三阶段修复已完成检查，待用户验收（Codex主Agent与Data/Graph/Timing/UI/Review worktree）**
+> **授权与交付：** 链接和Details易用性暂缓；工作量/日期两者都查，方案后连续实施全部阶段。[详细方案](feedback-fix/WORKFLOW_STABILITY_PLAN.md)先保存后执行；运行时代码`18d7316`修移动不更新、插入跑分支、工时输入与开始提醒、Full Check保护及条件泄漏，接通明确before/after、汇合点选分支与Add branch。旧v23历史、完整Undo及后来保存的任务内容保留。
+> **验证与验收：** [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow；[交付记录](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)。分批1665单元/组件通过、1慢枚举未跑；最终生产构建双端76通过/2设备限定跳过。类型、build、lint、9页文字预算通过，Settings147/150，完整部署元数据入口544,207/550,000，上限未提高。代码`18d7316`的Netlify部署success已核对。保留`5758c2d`同期实际任务Details及设计原稿，未重做其界面或链接。0真实AI/邮件，不新建PR、不合并main。需要同步本地备份。
+
 > **2026-11-17（America/Phoenix） · 五屏原稿已保存，onboarding 4＋6图形方案待用户选择（Codex）**
 > **已保存：** `923a123`将用户喜欢的五屏完整源码按字节归档到`docs/prototypes/work-group-assignment/v1/`，原件SHA-256一致。第二至第五屏冻结；只有用户说“可以了，进行下一步”，才推进新建活动的下一轮讨论，不自动开发。
 > **本轮：** `v2-onboarding/`保存4种职位层级/姓名/email方案，以及6种完整模板分组方案。直接使用e87b19c的46项模板与43条依赖；46个短名恰好两个英文词且唯一，完整名称和要求保留。仅界面稿，未改src、public、schema或其他线程的任务Details/Workflow修复。
 > **检查与交付：** 10视图×4宽度共40布局，无横向溢出和脚本错误；所有分组方案各覆盖46个唯一任务。邮箱保存、汇报关系、地铁/矩阵改组、整包改组与撤销、涂色点击通过；0真实AI/邮件。[方案说明](prototypes/work-group-assignment/v2-onboarding/README.md)。沿用原功能分支和PR #14，不合并main。需要同步本地备份。
 
-> **2026-11-17（America/Phoenix） · Workflow 修复方案与 worktree Agent 分工进行中（Codex）**
-> **用户范围：** 暂不修改链接及Details易用性；先制定移动、同分支插入、工作量数据、Full Check删除保护、各类条件分支任务隔离的详细修复方案，同时说明before插入及新增分支交互，再按阶段分worktree实施。三位Agent已在独立worktree只读拆解图形操作、工作量/排程、条件/结构保护；本阶段不改产品代码，不触碰实际任务Details/Edit进行中的工作。
+> **2026-11-17（America/Phoenix） · Workflow 方案与Agent准备记录（已由上方交付取代）**
+> **最初范围：** 三位Agent先拆解图形操作、工时/排程及条件/结构保护。Juanxi随后明确选择两者都查，方案后连续实施所有阶段；最终结果见上方交付。
 
 > **2026-11-17（America/Phoenix） · Speaker 工作流模板审计已完成，修复待讨论（Codex）**
 > **结论与记录：** 基于功能分支 `0f53577`，收口复核至仅增加进度文档的 `ab7123c`；用户提出的链接、Details、移动与新增分支问题均有依据，共记录13项。详见[模板问题记录](feedback-fix/WORKFLOW_TEMPLATE_AUDIT_2026-11-17.md)，含复现、优先级、代码位置、原因与验收标准。重点包括图与已保存依赖不一致、自定义节点进入其他分支、工作量不改变开始提醒、条件丢失、删除后补回及删Full Check使活动前节点消失。
@@ -417,6 +421,8 @@
 
 ## 决定记录
 
+- **2026-11-17 · Juanxi：** 链接及Details易用性暂缓；工时和日期两者都检查；先修复方案，再分worktree、多Agent连续实施全部阶段，不逐阶段重复确认。覆盖移动、同分支新增、Full Check、条件隔离、before与新增分支；不含main合并。
+
 - **2026-11-17 · Juanxi：** 选定任务详情大文本框/多附件/多办理链接布局及右侧Edit；应用全部实际活动节点与负责人邮件入口，Settings模板另行修改。Edit与成员提交独立，保留原权限与日期/财务规则；当前节点提交不自动解析并改写活动地点字段。
 
 | 日期 | 决定 | 谁定的 |
@@ -483,6 +489,8 @@
 - 要问 Marcie：论文题目里的 “cloud-Excel-based” 是否要改；深访作为设计依据的写法是否合适。
 
 ## 交接记录（最新的在最上面）
+
+- **2026-11-17 · Codex与5位worktree Agent：** Workflow运行时代码18d7316，[三阶段交付](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)。分批1665单元/组件及最终生产双端76浏览器通过，1慢枚举/2设备场景未跑；保留5758c2d并行交付。旧自定义归属不猜，历史不重建；在preview14 Settings→Workflow验收，需要同步本地备份。
 
 - **2026-11-17（America/Phoenix） · Codex：** 完成实际节点通用Details、多附件草稿/提交、多个办理链接、Edit侧栏和邮件同表单；运行时代码`cea7530`，301项单元/组件及分批64浏览器项通过、2设备限定跳过；lint/类型/build/CSS/字数通过，入口545,623/550,000。Settings模板未动，同期文档保留；附件下载与导出恢复已实测。边界与验收见[交付](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)，当前仍为单浏览器演示数据。`PRODUCT_PLAN.md`已更新，需要同步本地备份；不合并main。
 
