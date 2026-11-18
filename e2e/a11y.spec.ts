@@ -30,14 +30,23 @@ test("no accessibility violations on any setup step, with a constitution read", 
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
   await page.route("**/api/setup/constitution", r => r.fulfill({ status: 503, json: {} }))
   await page.goto("/#/setup")
-  const step = page.getByTestId("setup-step")
-  await step.getByRole("button", { name: "Use the sample constitution", exact: true }).click()
+  await page.getByLabel("Club name").fill("Fictional accessible club")
   expect(await scan(page)).toEqual([])
-  for (let i = 0; i < 5; i++) {
-    await step.getByRole("button", { name: "Continue", exact: true }).click()
-    await page.waitForTimeout(250)
+  await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await page.getByRole("button", { name: /Use sample/ }).click()
+  expect(await scan(page)).toEqual([])
+  await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await page.getByRole("textbox", { name: "Mission", exact: true }).fill("Build together.")
+  expect(await scan(page)).toEqual([])
+  for (let i = 0; i < 2; i++) {
+    await page.getByRole("button", { name: "Continue", exact: true }).click()
     expect(await scan(page)).toEqual([])
   }
+  for (let i = 0; i < 2; i++) {
+    await page.getByRole("button", { name: "Skip for now", exact: true }).click()
+    expect(await scan(page)).toEqual([])
+  }
+
 })
 test("Owners: Escape dismisses suggestions without closing the task form", async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false } }))

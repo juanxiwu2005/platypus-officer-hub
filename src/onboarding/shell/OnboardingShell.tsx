@@ -11,7 +11,7 @@ export function OnboardingShell() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { draft, clear } = useOnboardingDraft()
-  useResumeReading()
+  useResumeReading(pathname === "/welcome/setup" || pathname === "/welcome/classic")
   const at = stepAt(pathname)
   const exit = () => { if (at) recordEvent(FLOWS[at.flow][at.index].id, "exit"); endWalkthrough("exited"); clear(); navigate("/") }
   // The classic Join page brings its own <main>; two would break the page landmarks.

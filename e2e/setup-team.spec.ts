@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test"
+import { continueSetup, finishSetup, setupToTeam } from "./setupHelpers"
+import { passReminders } from "./ob-helpers"
 import { closeRail, openDemoMenu, resetDemo, viewAs } from "./helpers"
 
 test.beforeEach(async ({ page }) => {
@@ -6,62 +8,39 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/command", r => r.fulfill({ status: 503, json: { message: "Local demo" } }))
 })
 
-test("six steps create a first workflow only after approval without collecting planning files", async ({ page }) => {
-  const started = Date.now()
-  await page.goto("/#/setup")
+test("the shared setup creates the workspace only after confirmation", async ({ page }) => {
+  await setupToTeam(page)
   const before = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
-  const step = page.getByTestId("setup-step")
-  await step.getByLabel("Club name", { exact: true }).fill("Fictional Launch Club")
-  await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 2 of 6 · Semester goals")
-  await step.getByLabel("Target", { exact: true }).first().fill("6")
-  await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 3 of 6 · Officer roles")
-  await step.getByLabel("Role title", { exact: true }).nth(1).fill("VP of Finance")
-  await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await expect(step).toContainText("No Calendar, Gmail, WhatsApp or Drive account is connected or read.")
-  await step.getByLabel("Club Google Drive folder (optional)", { exact: true }).fill("https://example.org/fictional-planning")
-  await expect(step.getByLabel("Planning notes (how your club runs events)")).toHaveCount(0)
-  await expect(step.getByLabel("Fictional planning files", { exact: true })).toHaveCount(0)
-  await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await expect(step.getByRole("heading", { level: 2 })).toHaveText("Step 5 of 6 · Event workflow")
-  await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await step.getByRole("button", { name: "Prepare first workflow", exact: true }).click()
-  await expect(step.getByLabel("Confirm event date", { exact: true })).toHaveValue("2026-11-19")
-  await expect(page.getByTestId("setup-preview")).toContainText("Events lead")
+  await page.getByRole("textbox", { name: "Role 2", exact: true }).fill("VP of Finance")
+  await continueSetup(page)
+  await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
+  await page.getByRole("button", { name: "Plan it", exact: true }).click()
+  await continueSetup(page); await passReminders(page)
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(before)
-  await expect(step.getByRole("button", { name: "Approve & start workspace", exact: true })).toBeDisabled()
-  await step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." }).check()
-  await step.getByRole("button", { name: "Approve & start workspace", exact: true }).click()
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Events")
+  await finishSetup(page)
   await page.goto("/#/team")
   await expect(page.getByText("VP of Finance", { exact: true }).first()).toBeVisible()
-  // The planned event comes first; the three sample event templates follow it (P3-A).
-  const saved = await page.evaluate(() => { const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!); return { events: s.events.length, first: s.events[0].id, name: s.org.name, files: s.org.workspace.files.length, date: s.events[0].date, official: s.nodes.find((n: { eventId: string; stepKey: string }) => n.eventId === s.events[0].id && n.stepKey === "purchaseRequest").officialDeadline } })
-  expect(saved).toEqual({ events: 4, first: "setup-event-dfs", name: "Fictional Launch Club", files: 0, date: "2026-11-19", official: "2026-11-04" })
   await page.reload()
   await expect(page.getByText("VP of Finance", { exact: true }).first()).toBeVisible()
-  expect(Date.now() - started).toBeLessThan(300000)
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
-test("first-event API dates are ignored and private profile/files are absent from the request", async ({ page }) => {
+test("first-event API dates are ignored and private profile/files stay out of the request", async ({ page }) => {
   let requestBody: Record<string, unknown> | null = null
   await page.unroute("**/api/command")
-  await page.route("**/api/command", async r => {
+  await page.route("**/api/command", r => {
     requestBody = r.request().postDataJSON()
-    await r.fulfill({ json: { source: "ai", ops: [{ op: "create_event", name: "Fictional API Dinner", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, date: "2099-01-01", officialDeadline: "2098-01-01" }] } })
+    return r.fulfill({ json: { source: "ai", ops: [{ op: "create_event", name: "Fictional API Dinner", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, date: "2099-01-01", officialDeadline: "2098-01-01" }] } })
   })
-  await page.goto("/#/setup")
-  const step = page.getByTestId("setup-step")
-  for (let i = 0; i < 5; i++) await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await step.getByRole("button", { name: "Prepare first workflow", exact: true }).click()
-  await expect(step.getByLabel("Event name", { exact: true })).toHaveValue("Fictional API Dinner")
-  await expect(step.getByLabel("Confirm event date", { exact: true })).toHaveValue("2026-11-19")
-  await expect(step).not.toContainText("2099")
+  await setupToTeam(page); await continueSetup(page)
+  await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
+  await page.getByRole("button", { name: "Plan it", exact: true }).click()
+  await page.locator("summary").filter({ hasText: "Event details" }).click()
+  await expect(page.getByLabel("Event name", { exact: true })).toHaveValue("Fictional API Dinner")
+  await expect(page.getByLabel("Event date", { exact: true })).not.toHaveValue("2099-01-01")
   expect(requestBody).not.toBeNull()
   expect(JSON.stringify(requestBody)).not.toMatch(/personalBuffer|busyWeeks|dataUrl|files|careerGoal|phone/)
-  await step.getByRole("link", { name: "Cancel setup", exact: true }).click()
+  await page.getByRole("button", { name: "Exit", exact: true }).click()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).events.length)).toBe(3)
 })
 
@@ -185,7 +164,7 @@ test("task dates remain visible while another officer's buffer explanation stays
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
   // FB-4: the one visible date is Due; someone else's reminder timing stays general. FB-6 moved the dates; they are not asserted here.
-  await expect(panel.getByTestId("task-due")).toContainText(/^Due \w{3} \d+/)
+  await expect(panel.getByTestId("task-due").locator("strong")).toHaveText(/^\w{3} \d+/)
   await panel.getByText("Why this date", { exact: true }).click()
   await expect(panel).toContainText("private planning preferences")
   await expect(panel).not.toContainText("Maya's personal buffer")

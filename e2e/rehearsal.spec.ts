@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
+import { finishSetup, setupToConfirm } from "./setupHelpers"
 import { ask, closeRail, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
 
@@ -10,7 +11,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/chat", r => r.fulfill({ status: 503, json: {} }))
 })
 
-test("participant path: clean browser → six-step setup → task → event → rule question → export; nothing blank, every action logged in order", async ({ page }) => {
+test("participant path: clean browser → shared setup → task → event → rule question → export; nothing blank, every action logged in order", async ({ page }) => {
   const errors: string[] = []
   page.on("pageerror", e => errors.push(String(e)))
   // Establish the clean browser before the Provider reads its first snapshot; deleting a mounted tab's
@@ -21,14 +22,8 @@ test("participant path: clean browser → six-step setup → task → event → 
       sessionStorage.setItem("rehearsal-clean-browser", "1")
     }
   })
-  await page.goto("/#/setup")
-  const step = page.getByTestId("setup-step")
-  await step.getByLabel("Club name", { exact: true }).fill("Fictional Rehearsal Club")
-  for (let i = 0; i < 5; i++) await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await step.getByRole("button", { name: "Prepare first workflow", exact: true }).click()
-  await step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." }).check()
-  await step.getByRole("button", { name: "Approve & start workspace", exact: true }).click()
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Events")
+  await setupToConfirm(page, "Fictional Rehearsal Club")
+  await finishSetup(page)
   await closeRail(page)
   // a task
   await ask(page, "Add a task: order name tags")
@@ -61,24 +56,9 @@ test("participant path: clean browser → six-step setup → task → event → 
   expect(errors).toEqual([])
 })
 
-test("a refused classic setup save keeps the draft, original organization and confirmation page", async ({ page }) => {
-  await page.goto("/#/setup")
-  const step = page.getByTestId("setup-step")
-  await step.getByLabel("Club name", { exact: true }).fill("Fictional unsaved club")
-  for (let i = 0; i < 5; i++) await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await step.getByRole("button", { name: "Prepare first workflow", exact: true }).click()
-  await step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." }).check()
-  await expect.poll(() => page.evaluate(() => new Promise<number | null>((resolve, reject) => {
-    const request = indexedDB.open("platypus.docs", 1)
-    request.onerror = () => reject(request.error)
-    request.onsuccess = () => {
-      const db = request.result, read = db.transaction("docs").objectStore("docs").get("setup-draft")
-      read.onsuccess = () => { db.close(); resolve(read.result?.value?.step ?? null) }
-      read.onerror = () => { db.close(); reject(read.error) }
-    }
-  }))).toBe(5)
+test("a refused setup save keeps the founder draft, organization and confirmation page", async ({ page }) => {
+  await setupToConfirm(page, "Fictional unsaved club")
   const original = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
-  const name = await step.getByLabel("Event name", { exact: true }).inputValue()
   await page.evaluate(() => {
     const write = Storage.prototype.setItem
     Storage.prototype.setItem = function (key, value) {
@@ -86,17 +66,13 @@ test("a refused classic setup save keeps the draft, original organization and co
       return write.call(this, key, value)
     }
   })
-  await step.getByRole("button", { name: "Approve & start workspace", exact: true }).click()
-  await expect(step.getByRole("alert")).toContainText("Your workspace could not be saved")
-  await expect(page).toHaveURL(/#\/setup$/)
-  await expect(step.getByLabel("Event name", { exact: true })).toHaveValue(name)
-  await expect(step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." })).toBeChecked()
+  await page.getByRole("button", { name: "Start workspace", exact: true }).click()
+  await expect(page.locator("main").getByRole("alert")).toContainText("Your club could not be saved")
+  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
+  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(original)
   await page.reload()
-  await page.getByTestId("setup-restore").getByRole("button", { name: "Restore it", exact: true }).click()
-  // Legacy restore intentionally returns to the workflow review before rebuilding the first event.
-  for (let i = 0; i < 4; i++) await step.getByRole("button", { name: "Back", exact: true }).click()
-  await expect(step.getByLabel("Club name", { exact: true })).toHaveValue("Fictional unsaved club")
+  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
 })
 
 test("keyboard only: claim a task, change its status and finish it without a mouse", async ({ page }) => {

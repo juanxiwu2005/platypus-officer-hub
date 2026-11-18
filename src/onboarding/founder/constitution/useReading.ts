@@ -12,7 +12,7 @@ type Update = (fn: (d: OnboardingDraft) => OnboardingDraft) => void
 
 /**
  * The AI reads the constitution in the background while the president keeps going: first part=structure (departments, roles, who reports to whom),
- * then part=duties, six positions at a time. It is the same job as `startReading` in pages/Setup.tsx, with the results written into the walkthrough draft.
+ * then part=duties, six positions at a time. The results are written into the shared founder draft used by every setup entry.
  *
  * WHY THIS IS NOT A COMPONENT'S STATE: the job has to keep running after the president leaves the Constitution screen. This package may not edit the
  * draft provider or the shell, so the job lives here at module level, keyed by the document checksum, and writes through `sink`, the provider's stable
@@ -77,17 +77,17 @@ export async function runReading(doc: ConstitutionDoc, { aiEnabled, again = fals
  * For the walkthrough shell: a reload in the middle of a reading keeps the document but not the job, so the job starts again once, when the shell
  * first shows the restored draft. A finished reading is restored as it was and is not read again.
  */
-export function useResumeReading() {
+export function useResumeReading(paused = false) {
   const { update, draft } = useOnboardingDraft()
   const { state } = useStore()
   const tried = useRef(false)
   useEffect(() => {
-    if (tried.current) return
+    if (paused || tried.current) return
     tried.current = true
     if (!draft.doc || draft.reading.status !== "idle" || draft.applied) return
     bindDraft(update)
     void runReading(draft.doc, { aiEnabled: state.aiEnabled })
-  }, [draft.doc, draft.reading.status, draft.applied, update, state.aiEnabled])
+  }, [paused, draft.doc, draft.reading.status, draft.applied, update, state.aiEnabled])
 }
 
 /** For the Constitution screen: hands the draft's update function to the job, and gives the screen start and stop. */

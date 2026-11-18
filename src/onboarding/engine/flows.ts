@@ -22,7 +22,7 @@ export const MEMBER_STEPS: FlowStep[] = [
 ]
 export const FLOWS: Record<FlowName, FlowStep[]> = { founder: FOUNDER_STEPS, member: MEMBER_STEPS }
 
-/** Which flow and step a /welcome sub-path belongs to, or null (welcome page, classic screens). */
+/** Which flow and step a /welcome sub-path belongs to, or null (welcome page, entry bridges or classic join). */
 export function stepAt(pathname: string): { flow: FlowName; index: number } | null {
   const sub = pathname.replace(/^\/welcome\/?/, "")
   for (const flow of ["founder", "member"] as const) {

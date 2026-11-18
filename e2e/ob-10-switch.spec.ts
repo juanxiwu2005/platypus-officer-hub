@@ -55,9 +55,9 @@ test("Replay walkthrough from the Demo menu starts the same flow and records a s
   expect(rec.attempts.map(a => `${a.entry}:${a.outcome}`)).toEqual(["explore:explored", "start:exited"])
 })
 
-test("the classic setup stays reachable as a fallback", async ({ page }) => {
+test("the old classic link enters the same founder setup", async ({ page }) => {
   await page.goto("/#/welcome/classic")
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set up your fictional club")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(c.founder.name.title)
 })
 
 test("the Demo menu has two test buttons that open the onboarding pages without recording anything and without any URL flag", async ({ page }) => {

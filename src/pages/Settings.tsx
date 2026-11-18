@@ -109,7 +109,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
           {defaults.eventCreators === "chosen" && <div className="form-stack">{officers(state).filter(p => !["president", "vice_president"].includes(state.roles.find(r => r.id === p.roleId)?.fn ?? "")).map(p => <label key={p.id} className="check-label"><input type="checkbox" checked={(defaults.eventCreatorIds ?? []).includes(p.id)} onChange={e => setDefaults({ ...defaults, eventCreatorIds: e.target.checked ? [...(defaults.eventCreatorIds ?? []), p.id] : (defaults.eventCreatorIds ?? []).filter(id => id !== p.id) })} />{p.name}</label>)}</div>}
         </fieldset>
       </div></details>
-      <div className="action-row"><Link className="btn" to="/setup">Replay setup</Link></div>
+      <div className="action-row"><Link className="btn" to="/welcome/setup">Replay setup</Link></div>
     </>}
     {tab === "roles" && <>
       <h2>Roles</h2>

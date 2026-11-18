@@ -92,8 +92,8 @@ test("PDF code and its worker load only after selecting a PDF", async ({ page },
   })
   // The file is parsed locally. No AI action is needed to read a PDF.
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { message: "Offline bundle check" } }))
-  await page.goto("/#/setup")
-  await expect(page.getByLabel("Constitution file", { exact: true })).toBeVisible()
+  await page.goto("/#/welcome/founder/constitution")
+  await expect(page.getByRole("button", { name: "Upload a file", exact: true })).toBeVisible()
   await page.waitForLoadState("networkidle")
   expect(scripts.filter(url => /\/pdf[.-]/i.test(url))).toEqual([])
   await page.getByLabel("Constitution file", { exact: true }).setInputFiles("public/organization/fictional-constitution.pdf")

@@ -35,7 +35,7 @@ const Rules = lazy(() => import("./pages/Rules"))
 const Settings = lazy(() => import("./pages/Settings"))
 const Help = lazy(() => import("./pages/Help"))
 const Officer = lazy(() => import("./pages/Officer"))
-const Setup = lazy(() => import("./pages/Setup"))
+const SetupEntry = lazy(() => import("./onboarding/gate/SetupEntry"))
 const Join = lazy(() => import("./pages/Join"))
 const PhaseOne = lazy(() => import("./phase1/PhaseOne"))
 
@@ -47,7 +47,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="welcome" element={<OnboardingDraftProvider><OnboardingShell /></OnboardingDraftProvider>}>
-        <Route index element={<Welcome />} /><Route path="start" element={<StartWalkthrough />} /><Route path="test/president" element={<TestWalkthrough to="/welcome/founder/name" />} /><Route path="test/invite" element={<TestWalkthrough to="/welcome/member/invitation" />} /><Route path="classic" element={screen(<Setup />, "Preparing organization setup…", true)} /><Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
+        <Route index element={<Welcome />} /><Route path="start" element={<StartWalkthrough />} /><Route path="test/president" element={<TestWalkthrough to="/welcome/founder/name" />} /><Route path="test/invite" element={<TestWalkthrough to="/welcome/member/invitation" />} /><Route path="setup" element={screen(<SetupEntry />, "Preparing organization setup…", true)} /><Route path="classic" element={<Navigate to="/welcome/setup" replace />} /><Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
         <Route path="founder/name" element={<Name />} /><Route path="founder/constitution" element={<Constitution />} /><Route path="founder/goals" element={<Goals />} /><Route path="founder/team" element={<OnboardingTeam />} /><Route path="founder/first-event" element={<FirstEvent />} /><Route path="founder/reminders" element={<ReminderMode />} /><Route path="founder/confirm" element={<Confirm />} /><Route path="founder/invite" element={<Invite />} />
         <Route path="member/invitation" element={<Invitation />} /><Route path="member/you" element={<You />} /><Route path="member/reminders" element={<Reminders />} /><Route path="member/busy-weeks" element={<BusyWeeks />} /><Route path="member/about" element={<About />} /><Route path="member/done" element={<Done />} />
         <Route path="*" element={<ComingSoon />} />
@@ -55,6 +55,7 @@ export default function App() {
       {/* The short study link (Phase 3): /#/start does exactly what /welcome/start does: one recorded attempt, then the founder name screen.
           Each hop replaces the history entry, so a reload on that screen or the browser's Back never starts a second attempt. */}
       <Route path="start" element={<Navigate to="/welcome/start" replace />} />
+      <Route path="setup" element={<Navigate to="/welcome/setup" replace />} />
       <Route path="phase1/*" element={screen(<PhaseOne />, "Opening your workspace…", true)} />
       <Route path="officer" element={screen(<Officer />, "Opening your task…", true)} />
       <Route path="join" element={screen(<Join />, "Preparing your invitation…", true)} />
@@ -69,7 +70,6 @@ export default function App() {
         <Route path="partners" element={screen(<Partners />, "Loading partners…")} />
         <Route path="rules" element={screen(<Rules />, "Loading rules…")} />
         <Route path="settings" element={screen(<Settings />, "Loading settings…")} />
-        <Route path="setup" element={screen(<Setup />, "Preparing organization setup…")} />
         <Route path="help" element={screen(<Help />, "Loading help…")} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

@@ -15,8 +15,7 @@ const FIRST_EVENT = "founder.first-event"
 const REMINDERS = "founder.reminders"
 
 /**
- * Screen 6 of the founder flow (required): one sentence says what will be created, then Start workspace creates it with exactly the arguments the
- * classic setup page uses. The warning about replacing the demo only shows when a club was already set up. A ref stops a double click (or React's
+ * Screen 6 of the founder flow (required): one sentence says what will be created, then Start workspace creates it through the shared completeSetup action. The warning about replacing the demo only shows when a club was already set up. A ref stops a double click (or React's
  * development double-run) from creating it twice. Keep current demo leaves every piece of data as it is.
  * When the president pressed Skip for now on First event, the club starts with no new event (completeSetup gets a null event and an empty date).
  * Arriving here without planning and without skipping (an address typed by hand) still asks for the first event.
