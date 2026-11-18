@@ -31,7 +31,7 @@ for (const version of [17, 18, 19]) test(`Spring Speaker Night's event plan is D
   await expect(page.getByTestId("flow-node-plan")).toHaveClass(/done/)
 })
 
-test("the flow chart has one main line through the event day, and a step opens with one Due and its ASU deadline under Why this date", async ({ page }) => {
+test("the flow chart opens the shared task detail with one Due and retains its official deadline", async ({ page }) => {
   const chart = page.getByTestId("flow-chart")
   await expect(chart).toBeVisible()
   await expect(chart.locator("button.m-dot")).toHaveCount(38)
@@ -42,16 +42,14 @@ test("the flow chart has one main line through the event day, and a step opens w
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
   await expect(panel.getByRole("heading", { name: "Purchase Request", exact: true })).toBeVisible()
-  // FB-4: one date, Due (the club deadline); the ASU deadline is one sentence under "Why this date". FB-6: the calibrated window
+  // The shared detail shows one Due. The official limit remains in the rule data. FB-6: the calibrated window
   // opens 30 days before the Mar 25 event and is due with Budget Approval, 18 days before (Sun Mar 7 → Fri Mar 5); ASU (R09) Thu Mar 11.
   const saved = await savedTask(page, "e-night:purchaseRequest")
   expect([saved.latestStart, saved.clubDeadline, saved.officialDeadline]).toEqual(["2027-02-23", "2027-03-05", "2027-03-11"])
   await expect(panel.getByTestId("task-due").locator("strong")).toHaveText(fmtShort(saved.clubDeadline!))
   await expect(panel.locator(".td-head")).not.toContainText(/Start by|Club deadline|ASU/)
-  await panel.getByText("Why this date", { exact: true }).click()
-  await expect(panel.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(saved.officialDeadline!)}.`)
-  await panel.getByText("Sources", { exact: true }).click()
-  await expect(panel.getByRole("link", { name: "R09", exact: true })).toHaveAttribute("href", /^https:/)
+  await expect(panel.getByRole("navigation", { name: "External task links" }).getByRole("link").first()).toHaveAttribute("href", /^https:/)
+  expect((await savedTask(page, "e-night:purchaseRequest")).officialDeadline).toBe(saved.officialDeadline)
   await page.keyboard.press("Escape")
   await expect(panel).toHaveCount(0)
 })
@@ -101,8 +99,7 @@ test("changing the event date recomputes the plan and warnings in Flow and List"
   const replanned = await savedTask(page, "e-night:purchaseRequest")
   const detail = page.getByTestId("task-detail")
   await expect(detail.getByTestId("task-due").locator("strong")).toHaveText(fmtShort(replanned.clubDeadline!))
-  await detail.getByText("Why this date", { exact: true }).click()
-  await expect(detail.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(replanned.officialDeadline!)}.`)
+  expect(replanned.officialDeadline).not.toBeNull()
   await closeRail(page)
   await page.getByTestId("view-list").click()
   const row = page.getByTestId("event-step-e-night:purchaseRequest").locator("xpath=ancestor::tr")

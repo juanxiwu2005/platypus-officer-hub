@@ -95,7 +95,7 @@ test("Rules search finds archived records and keyboard controls open sources and
   await expect(page.getByTestId("rule-answer").last()).toBeVisible()
 })
 
-test("Events mounts a node description on keyboard focus with one Due, and the ASU deadline stays under Why this date", async ({ page }) => {
+test("Events mounts one focused description and opens the shared detail without changing the official limit", async ({ page }) => {
   await page.goto("/#/events?event=e-night")
   await closeRail(page)
   await page.getByTestId("view-flow").click()
@@ -111,14 +111,13 @@ test("Events mounts a node description on keyboard focus with one Due, and the A
   await node.focus()
   const cardId = await node.getAttribute("aria-describedby")
   expect(cardId).toBeTruthy()
-  // FB-4: the hover card shows one date, Due (the club deadline); the ASU deadline moved to the detail's "Why this date".
+  // The hover card and shared detail each show one Due; the official limit remains in rule data.
   await expect(page.locator(`[id="${cardId}"]`)).toContainText(`Due ${fmtShort(purchaseRequest!.clubDeadline!)}`)
   await expect(page.locator(`[id="${cardId}"]`)).not.toContainText("ASU deadline")
   await expect(chart.locator(".m-card")).toHaveCount(1)
   await page.keyboard.press("Enter")
   const detail = page.getByTestId("task-detail")
-  await detail.getByText("Why this date", { exact: true }).click()
-  await expect(detail.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(officialDeadline!)}.`)
-  await detail.getByText("Sources", { exact: true }).click()
-  await expect(detail.getByRole("link", { name: "R09", exact: true })).toHaveAttribute("href", /^https:/)
+  await expect(detail.getByTestId("task-due").locator("strong")).toHaveText(fmtShort(purchaseRequest!.clubDeadline!))
+  await expect(detail.getByRole("navigation", { name: "External task links" }).getByRole("link").first()).toHaveAttribute("href", /^https:/)
+  expect((await savedDemo(page)).nodes.find(item => item.id === purchaseRequest!.id)?.officialDeadline).toBe(officialDeadline)
 })
