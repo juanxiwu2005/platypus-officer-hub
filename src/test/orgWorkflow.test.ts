@@ -45,16 +45,18 @@ describe("org workflow · applying changes", () => {
     expect(r.steps).toEqual(presetSteps())
   })
   it("removing a step the club does not use lets later steps wait for what it waited for; locked steps are never removed", () => {
-    const r = applyChanges(presetSteps(), [ch({ op: "remove", key: "promotionItems" })], base.roles)
-    expect(r.steps.some(x => x.key === "promotionItems")).toBe(false)
-    expect(r.steps.find(x => x.key === "rsvp")!.dependsOn).toEqual(expect.arrayContaining(["contentCreation"])); expect(r.steps.find(x => x.key === "rsvp")!.dependsOn).not.toContain("promotionItems")
+    const r = applyChanges(presetSteps(), [ch({ op: "remove", key: "partnerReview" }), ch({ op: "remove", key: "promotionItems" })], base.roles)
+    expect(r.steps.some(x => x.key === "partnerReview")).toBe(false)
+    expect(r.steps.find(x => x.key === "parking")!.dependsOn).toEqual(expect.arrayContaining(["travel"])); expect(r.steps.find(x => x.key === "parking")!.dependsOn).not.toContain("partnerReview")
+    expect(r.steps.some(x => x.key === "promotionItems")).toBe(true)
+    expect(r.refused[0].reason).toMatch(/required organization/)
     expect(isLocked(EVENT_STEPS.find(x => x.key === "purchaseRequest")!)).toBe(true); expect(isLocked(EVENT_STEPS.find(x => x.key === "promotionItems")!)).toBe(false)
   })
   it("each change can be undone on its own", () => {
-    const changes = [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { dependsOn: ["plan"] }, beforeKeys: ["finalcheck"] }), ch({ op: "update", key: "contentCreation", patch: { title: "Design the flyer", estDays: 5 } }), ch({ op: "remove", key: "promotionItems" })]
+    const changes = [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { dependsOn: ["plan"] }, beforeKeys: ["finalcheck"] }), ch({ op: "update", key: "contentCreation", patch: { title: "Design the flyer", estDays: 5 } }), ch({ op: "remove", key: "partnerReview" })]
     const r = applyChanges(presetSteps(), changes, base.roles)
     expect(r.applied).toHaveLength(3)
-    let steps = revertChange(r.steps, r.applied[2]); expect(steps.some(x => x.key === "promotionItems")).toBe(true); expect(steps.find(x => x.key === "rsvp")!.dependsOn).toContain("promotionItems")
+    let steps = revertChange(r.steps, r.applied[2]); expect(steps.some(x => x.key === "partnerReview")).toBe(true); expect(steps.find(x => x.key === "parking")!.dependsOn).toContain("partnerReview")
     steps = revertChange(steps, r.applied[1]); expect(steps.find(x => x.key === "contentCreation")).toMatchObject({ title: EVENT_STEPS.find(x => x.key === "contentCreation")!.title, estDays: EVENT_STEPS.find(x => x.key === "contentCreation")!.estDays })
     steps = revertChange(steps, r.applied[0]); expect(steps.some(x => x.key === "permission")).toBe(false); expect(steps.find(x => x.key === "finalcheck")!.dependsOn).not.toContain("permission")
     expect(describeWorkflow(presetSteps())).toBe("The standard workflow.")

@@ -1,4 +1,7 @@
-import type { Anchor, Event, Node, Phase, Role, RoleFunction, StepCond, StepTemplate } from "../data/types"
+import type { Anchor, Event, Node, Phase, Role, RoleFunction, StepCond, StepTemplate, WorkflowBranch } from "../data/types"
+import { conditionsOf, isWorkflowCondition, placementOf, resolveBranches } from "./workflowBranches"
+import { CORE_EVENT_STEP_KEYS, isCoreStep } from "./workflowPolicy"
+export { CORE_EVENT_STEP_KEYS } from "./workflowPolicy"
 
 /**
  * Event playbook (plan §4, §11 "Playbook"). Built from SEO's own workflows:
@@ -222,14 +225,8 @@ export function roleFor(roles: Role[], fn: RoleFunction): Role | undefined {
 }
 
 /** These are never situation-based. Checklist conditions may add routes but may never remove them. */
-export const CORE_EVENT_STEP_KEYS = [
-  "plan", "backup", "venuechoice", "registry", "venue", "moderator", "materials", "checkin", "headcount", "thankyou", "feedback", "postmarketing", "photoBackup", "invoice", "attendance", "spending", "financeRecord", "documentation",
-  "budget", "quotes", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "orderPlaced",
-  "marketingNeeds", "contentCreation", "promotionItems", "content", "reminder", "finalcheck",
-] as const
-
 /** The steps that apply to this event, with links to skipped steps passed through to their own links. */
-export function stepsFor(e: Event, steps?: StepTemplate[]): StepTemplate[] {
+export function stepsFor(e: Event, steps?: StepTemplate[], branches?: readonly WorkflowBranch[]): StepTemplate[] {
   // Records saved before the structured v2 intake retain their former graph until store migration adds checks.
   // New and migrated activities always carry `checks` (including an empty object) and use the approved standard.
   const selectedSteps = steps ?? (e.checks === undefined ? LEGACY_EVENT_STEPS : EVENT_STEPS)
@@ -242,7 +239,8 @@ export function stepsFor(e: Event, steps?: StepTemplate[]): StepTemplate[] {
     if (step) selected.set(key, { ...step, cond: undefined })
   }
   const normalizedSteps = [...selected.values()]
-  const included = new Map(normalizedSteps.filter(s => !s.cond || CONDITIONS[s.cond](e)).map(s => [s.key, s]))
+  const definitions = resolveBranches(normalizedSteps, branches)
+  const included = new Map(normalizedSteps.filter(s => isCoreStep(s) || conditionsOf(s, definitions).every(condition => isWorkflowCondition(condition) && CONDITIONS[condition](e))).map(s => [s.key, s]))
   const all = new Map(normalizedSteps.map(s => [s.key, s]))
   const resolve = (key: string, seen = new Set<string>()): string[] => {
     if (included.has(key)) return [key]
@@ -308,19 +306,19 @@ export function calibratedStep(s: StepTemplate): StepTemplate {
   if (!std?.timing) return s
   if (s.timing) return sameAnchor(s.anchor, std.anchor) ? s : clubTiming(s, std)
   const pre = PRE_FB6[s.key]
-  const estDays = pre && s.estDays === pre[0] ? std.estDays : s.estDays
+  const estDays = !s.startPolicy && pre && s.estDays === pre[0] ? std.estDays : s.estDays
   if (sameAnchor(s.anchor, std.anchor) || (pre && sameAnchor(s.anchor, pre[1]))) return { ...s, estDays, anchor: std.anchor, timing: { ...std.timing } }
   return clubTiming({ ...s, estDays }, std)
 }
 
 /** Turn the playbook into nodes for one event. A normal workflow step is assigned
  * straight to its accountable officer; only work with no owner is unclaimed. */
-export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[] } = {}): Node[] {
+export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[]; branches?: readonly WorkflowBranch[] } = {}): Node[] {
   const president = roleFor(roles, "president")
   const perHead = opts.fundingAmount && e.headcount ? opts.fundingAmount / e.headcount : 0
   // The legacy graph (pre-v1.0 records without checks) is never calibrated; the standard and club workflows are (FB-6).
   const calibrate = !!opts.steps || e.checks !== undefined
-  return stepsFor(e, opts.steps).map(step => calibrate ? calibratedStep(step) : step).map(s => {
+  return stepsFor(e, opts.steps, opts.branches ?? e.workflowBranches).map(step => calibrate ? calibratedStep(step) : step).map(s => {
     const role = (s.ownerRoleId ? roles.find(r => r.id === s.ownerRoleId) : undefined) ?? roleFor(roles, s.fn)
     const ruleIds = [...(s.ruleIds ?? [])]
     if (s.key === "closeout" && perHead >= 25) ruleIds.push("R12")
@@ -330,6 +328,9 @@ export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?:
       eventId: e.id,
       stepKey: s.key,
       phase: s.phase,
+      placement: placementOf(s),
+      ...(s.startPolicy ? { startPolicy: s.startPolicy } : {}),
+      ...(s.cond ? { cond: s.cond } : {}),
       fn: s.fn,
       ownerId: role?.holderId ?? null,
       approverRoleId: role?.id === president?.id ? null : president?.id ?? null,
