@@ -73,6 +73,13 @@ describe("workflow stability · business persistence", () => {
     expect(loadStateWithNotice().state.nodes).toEqual(s.nodes)
   })
 
+  it("does not retain a fresh branch or task when final graph validation refuses it", () => {
+    const s = base(), eventId = "e-speaker"
+    s.nodes = s.nodes.map(n => n.id === `${eventId}:finalcheck` ? { ...n, cond: "externalGuest" } : n)
+    expect(reducer(s, { type: "addEventBranch", eventId, id: `${eventId}:refused`, branch, title: "Refused whole graph" })).toBe(s)
+    expect(reducer(s, { type: "addEventStep", eventId, id: `${eventId}:refused`, uId: `${eventId}:parking`, vId: `${eventId}:finalcheck`, target: { branchId: "speaker", afterId: `${eventId}:parking`, beforeId: `${eventId}:finalcheck`, referenceId: `${eventId}:parking`, source: "after_node" } })).toBe(s)
+  })
+
   it("rejects illegal effort and opts valid explicit edits into effort scheduling", () => {
     const s = base(), id = "e-speaker:marketingNeeds"
     const original = s.nodes.find(n => n.id === id)!

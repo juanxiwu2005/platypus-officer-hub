@@ -12,7 +12,7 @@ import { clearLocalDocs } from "../lib/localDocs"
 import { applySchedule, computeSchedule, topoOrder, type Schedule } from "../engine/schedule"
 import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "../engine/playbooks"
 import { nextCounter } from "../lib/ids"
-import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
+import { PHASES, ancestorsOf, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
 import { cannotDelete, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, removalEdits, type FlowInsertionTarget } from "../lib/flowEdit"
 import { DEFAULT_WORKFLOW_BRANCHES, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
 import { isAsuStep, isCoreStep } from "../engine/workflowPolicy"
@@ -211,15 +211,10 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
   for (const n of candidateNodes) {
     if (!isAsuStep(n)) continue
     const required = EVENT_STEPS.find(step => step.key === n.stepKey)?.dependsOn ?? []
-    const before = new Set<string>()
-    const pending = [...n.dependsOn]
-    while (pending.length) {
-      const id = pending.pop()!
-      if (before.has(id)) continue
-      before.add(id)
-      pending.push(...(candidateNodes.find(node => node.id === id)?.dependsOn ?? []))
-    }
-    if (required.some(key => { const dependency = candidateNodes.find(node => node.stepKey === key); return dependency && !before.has(dependency.id) })) return state
+    const previous = ancestorsOf(inEvent, n.id), after = ancestorsOf(candidateNodes, n.id)
+    // Historical events can use the old rule graph; refuse newly broken requirements,
+    // without silently imposing today's template on an unrelated legacy edit.
+    if (required.some(key => { const dependency = candidateNodes.find(node => node.stepKey === key); return dependency && previous.has(dependency.id) && !after.has(dependency.id) })) return state
   }
   const order = Array.isArray(phaseOrder) && phaseOrder.length === PHASES.length && PHASES.every(p => phaseOrder.includes(p)) ? phaseOrder : undefined
   const orderChanged = !!order && phaseOrderOf(ev).join() !== order.join()
@@ -243,6 +238,7 @@ function addEventStep(state: DemoState, eventId: string, id: string, uId: string
   const r = target ? insertFlowStep(inEvent, fresh, target, resolveBranches(inEvent, ev.workflowBranches)) : moveBetween(withNode.nodes.filter(n => n.eventId === eventId), id, uId, vId)
   if (r.error) return state
   const next = applyStepEdits(withNode, eventId, r.edits)
+  if (next === withNode && target) return state
   return applySchedule(next === withNode || next === state ? withNode : next)
 }
 
@@ -258,7 +254,8 @@ function addEventBranch(state: DemoState, eventId: string, id: string, branch: W
   const r = insertFlowBranch(nodes, fresh, branch, existing)
   if (r.error) return state
   const withNode = { ...state, events: state.events.map(e => e.id === eventId ? { ...e, workflowBranches: [...existing, structuredClone(branch)] } : e), nodes: [...state.nodes, fresh] }
-  return applyStepEdits(withNode, eventId, r.edits)
+  const next = applyStepEdits(withNode, eventId, r.edits)
+  return next === withNode ? state : next
 }
 
 /** Delete a step the club added (or any step no ASU rule needs). Steps that waited for it wait for what it waited for. */
