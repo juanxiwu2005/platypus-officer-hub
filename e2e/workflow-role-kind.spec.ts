@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
+import AxeBuilder from "@axe-core/playwright"
 import { closeRail } from "./helpers"
 
 async function workflow(page: Page) {
@@ -39,7 +40,8 @@ test("changing Done by moves the template task into the role's branch and surviv
   expect((await saved(page, "contentCreation"))?.dependsOn).toEqual(moved.dependsOn)
 })
 
-test("Step type is the first details setting and updates the saved category and chart", async ({ page }) => {
+test("Step type is the first details setting and updates the saved category and chart", async ({ page }, info) => {
+  await page.emulateMedia({ colorScheme: "dark" })
   await workflow(page)
   const panel = await details(page, "contentCreation")
   const first = panel.locator("input, select, textarea").first()
@@ -52,6 +54,10 @@ test("Step type is the first details setting and updates the saved category and 
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
   const restored = await details(page, "contentCreation")
   await expect(restored.getByLabel("Step type", { exact: true })).toHaveValue("situation")
+  expect(await restored.evaluate(element => element.scrollWidth <= element.clientWidth + 1)).toBe(true)
+  const a11y = await new AxeBuilder({ page }).include('[data-testid="workflow-step-panel"]').withTags(["wcag2a", "wcag2aa"]).analyze()
+  expect(a11y.violations).toEqual([])
+  await page.screenshot({ path: info.outputPath("workflow-step-type.png") })
   await restored.getByLabel("Step type", { exact: true }).selectOption("core")
   await expect.poll(async () => (await saved(page, "contentCreation"))?.stepKind).toBe("core")
 })

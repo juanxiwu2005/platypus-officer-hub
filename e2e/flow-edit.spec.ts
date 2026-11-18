@@ -66,8 +66,10 @@ test("double-click a step: add one after it (its details open on the right), nam
   await menu.getByRole("button", { name: "Add a step after this one" }).click()
   await expect(page.getByTestId("task-detail")).toContainText("New step")                                  // details open for the new step
   const panel = page.getByTestId("task-detail")
-  await panel.getByText("Edit", { exact: true }).click()
-  await panel.getByLabel("Task name").fill("Photo release check"); await panel.getByLabel("Task name").press("Tab")
+  await panel.getByRole("button", { name: "Edit", exact: true }).click()
+  const editor = page.getByRole("dialog", { name: "Edit task", exact: true })
+  await editor.getByLabel("Task name", { exact: true }).fill("Photo release check")
+  await editor.getByRole("button", { name: "Save changes", exact: true }).click()
   await expect(page.getByTestId("flow-chart")).toContainText("Photo release")
   const created = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { title: string }) => n.title === "Photo release check"))
   expect(created).toMatchObject({ eventId: "e-night", dependsOn: ["e-night:budget"], ownerId: null, estDays: 1 })
