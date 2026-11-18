@@ -2,7 +2,7 @@ import type { DemoState, Node } from "../data/types"
 import { isOfficer, isPresident } from "../data/permissions"
 import { validDate } from "../lib/commands"
 import { applySchedule, computeSchedule } from "../engine/schedule"
-import { closeSilence, leaders } from "../data/taskWorkflow"
+import { closeSilence } from "../data/taskWorkflow"
 
 export interface TaskTargetInput { date: string; message: string; notifyPersonIds: string[]; expectedTask: string }
 export interface TaskTargetChange { id: string; actorId: string; ownerId: string | null; ownerVersion: number; on: string; previousDate: string | null; date: string; message: string; notifiedPersonIds: string[]; affectedNodeIds: string[] }
@@ -25,10 +25,6 @@ export function targetImpact(s: DemoState, nodeId: string, date: string) {
     return n.dependsOn.includes(nodeId) || (a && b && (a.club !== b.club || a.latestStart !== b.latestStart || JSON.stringify(a.issues) !== JSON.stringify(b.issues)))
   })
   return { before, after, affected, state: changed }
-}
-export function suggestedTargetPeople(s: DemoState, nodeId: string, date: string) {
-  const affected = targetImpact(s, nodeId, date).affected, lead = new Set(leaders(s))
-  return s.people.filter(p => isOfficer(p) && (lead.has(p.id) || affected.some(n => n.ownerId === p.id))).map(p => ({ person: p, lead: lead.has(p.id), tasks: affected.filter(n => n.ownerId === p.id) }))
 }
 
 /** The target, immutable change record and one notice per selected person persist together. */

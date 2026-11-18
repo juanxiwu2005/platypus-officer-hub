@@ -4,7 +4,9 @@ import { useStore } from "../data/store"
 import { officers } from "../data/permissions"
 import { validDate } from "../lib/commands"
 import { taskWorkActor } from "./authorization"
-import { suggestedTargetPeople, targetLog, taskTargetKey } from "./targetDates"
+import { targetImpact, targetLog, taskTargetKey } from "./targetDates"
+import { suggestedTargetPeople } from "./targetPeople"
+import { fmtShort } from "../lib/dates"
 import type { TaskAuthorization } from "./contracts"
 
 export function TaskTargetForm({ node, actorId, authorization, onSaved, onCancel }: { node: Node; actorId: string; authorization?: TaskAuthorization; onSaved: (message: string) => void; onCancel: () => void }) {
@@ -25,6 +27,8 @@ export function TaskTargetForm({ node, actorId, authorization, onSaved, onCancel
     if (!validDate(date) || date < state.today || date === node.clubDeadline) { setError("Choose a different target date, no earlier than today."); return }
     const current = getState()
     if (current.demoLinkKey !== baseline.workspace || taskWorkActor(current, node.id, authorization) !== actorId) { setError("The workspace or task entry changed. Your message is kept; reopen the task to continue."); return }
+    const planned = targetImpact(current, node.id, date).after.nodes[node.id]
+    if (planned && planned.club !== date) { setError(`Connected tasks place this target on ${fmtShort(planned.club)}. Choose that date or review the connected tasks.`); return }
     const accepted = tryDispatch({ type: "updateTaskTarget", nodeId: node.id, authorization, input: { date, message, notifyPersonIds: selected, expectedTask: baseline.task } })
     const saved = getState().nodes.find(n => n.id === node.id), record = saved && targetLog(saved)?.changes.at(-1)
     if (!accepted || saved?.clubDeadline !== date || saved.targetDates?.revision !== (baseline.revision ?? -1) + 1 || record?.actorId !== actorId || JSON.stringify(record.notifiedPersonIds) !== JSON.stringify(selected)) { setError("Your date update was not saved. Your message and selections are kept. Check for newer changes or unavailable teammates, restore saving, then try again."); return }

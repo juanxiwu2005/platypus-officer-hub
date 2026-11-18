@@ -27,6 +27,8 @@
 .task-target-form .task-target-person input { width: 18px; height: 18px; min-width: 18px; margin-top: var(--s2); accent-color: var(--accent); }
 .task-target-add { display: grid; gap: var(--s4); }
 .task-target-people > .btn { justify-self: start; }
+.task-detail-standalone .task-identity:has(.task-target-form) { flex-wrap: wrap; align-items: start; }
+.task-identity:has(.task-target-form) > .task-progress { flex-basis: 100%; }
 .task-detail-universal .task-requirement { margin: 0; padding: var(--s6) 0; border-block: 1px solid var(--line); white-space: pre-line; overflow-wrap: anywhere; }
 .task-external-links { display: flex; flex-wrap: wrap; gap: var(--s3); padding-bottom: var(--s6); border-bottom: 1px solid var(--line); }
 .task-external-links .btn { flex: 1 1 130px; display: inline-flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: 44px; white-space: normal; text-align: left; overflow-wrap: anywhere; }
