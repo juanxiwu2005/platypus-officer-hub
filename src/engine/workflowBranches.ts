@@ -1,4 +1,5 @@
 import type { Phase, StepCond, WorkflowBranch, WorkflowPlacement } from "../data/types"
+import { EVENT_CHECKLIST } from "../data/eventChecklist"
 
 export interface WorkflowBranchItem {
   key?: string
@@ -106,7 +107,20 @@ export function branchOf(item: WorkflowBranchItem, branches?: readonly WorkflowB
 export function conditionsOf(item: WorkflowBranchItem, branches?: readonly WorkflowBranch[]): StepCond[] {
   return [...new Set([...branchConditions(branchOf(item, branches)), ...(item.cond === undefined ? [] : [item.cond])])]
 }
-export const scopeKey = (item: WorkflowBranchItem, branches?: readonly WorkflowBranch[]): string => conditionsOf(item, branches).sort().join("&") || "always"
+const checklistKeys = new Set<string>(EVENT_CHECKLIST.map(item => item.key))
+// Legacy rules for these checks also accept derived event facts; explicit selections require the checked box.
+const derivedRuleChecks = new Set<StepCond>(["funding", "externalFood", "onsiteFood", "schoolApproval"])
+const predicateKey = (condition: StepCond, explicit: boolean): string => {
+  const usesCheckbox = checklistKeys.has(condition) && condition !== "food" && condition !== "speaker" && (explicit || !derivedRuleChecks.has(condition))
+  return `${usesCheckbox ? "check" : "rule"}:${condition}`
+}
+/** Encode predicates before deduplication: a checked box and a derived rule can share a name but differ in scope. */
+export function scopeKey(item: WorkflowBranchItem, branches?: readonly WorkflowBranch[]): string {
+  const branch = branchOf(item, branches)
+  const predicates = branchConditions(branch).map(condition => predicateKey(condition, branch?.conditions !== undefined))
+  if (item.cond !== undefined) predicates.push(predicateKey(item.cond, false))
+  return [...new Set(predicates)].sort().join("&") || "always"
+}
 
 /** Validate authored definitions; compatibility rendering remains deliberately forgiving. */
 export function validateBranchDefinitions(branches: readonly WorkflowBranch[] | undefined): string | null {

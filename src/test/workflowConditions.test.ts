@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import type { Event, StepCond, StepTemplate, WorkflowBranch } from "../data/types"
 import { seedDemo } from "../data/seed"
 import { CONDITIONS, EVENT_STEPS, branchMatchesEvent, buildEventNodes, stepsFor } from "../engine/playbooks"
+import { checkWorkflow } from "../engine/workflow"
 import { DEFAULT_WORKFLOW_BRANCHES, branchConditionLabel, branchConditions, conditionsOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
 
 const branch = (patch: Partial<WorkflowBranch> = {}): WorkflowBranch => ({ id: "local-checks", title: "Local requirements", order: 12, side: "before_event", ...patch })
@@ -127,6 +128,50 @@ describe("requirements match the visible event checklist", () => {
     const ev = event({ checks: undefined, funding: "dues", food: "offsite" })
     expect(includes(ev, branch({ conditions: ["funding", "externalFood"] }))).toBe(true)
     expect(includes(ev, branch({ condition: "funding" }))).toBe(true)
+  })
+})
+
+describe("scope identity preserves predicate semantics", () => {
+  it("blocks moving the food-exception rule into a stricter explicit checkbox branch", () => {
+    const original = EVENT_STEPS.find(item => item.key === "foodCompliance")!
+    const definition = branch({ conditions: ["externalFood"] })
+    const moved = { ...original, placement: { branchId: definition.id, order: 0 } }
+    const ev = event({ food: "offsite", checks: {} })
+    // Display names may flatten, but protection must compare the actual predicates.
+    expect(conditionsOf(original)).toEqual(conditionsOf(moved, [definition]))
+    expect(scopeKey(original)).toBe("rule:externalFood")
+    expect(scopeKey(moved, [definition])).toBe("check:externalFood&rule:externalFood")
+    expect(stepsFor(ev).some(item => item.key === original.key)).toBe(true)
+    const changed = EVENT_STEPS.map(item => item.key === original.key ? moved : item)
+    expect(stepsFor(ev, changed, [definition]).some(item => item.key === original.key)).toBe(false)
+    expect(checkWorkflow(changed, seedDemo(undefined, "v2").roles, undefined, [definition]).some(issue => issue.level === "blocked" && issue.key === original.key && /branch cannot change/.test(issue.text))).toBe(true)
+  })
+
+  it.each(["funding", "externalFood", "onsiteFood", "schoolApproval"] as StepCond[])("distinguishes explicit %s from the derived legacy rule", condition => {
+    const item = step({ cond: condition })
+    const legacy = branch({ condition }), explicit = branch({ conditions: [condition] })
+    expect(scopeKey(item, [legacy])).toBe(`rule:${condition}`)
+    expect(scopeKey(item, [explicit])).toBe(`check:${condition}&rule:${condition}`)
+  })
+
+  it.each(["food", "speaker", "travel", "alcohol"] as StepCond[])("keeps truly identical %s predicates equivalent", condition => {
+    const item = step({ cond: condition })
+    expect(scopeKey(item, [branch({ condition })])).toBe(scopeKey(item, [branch({ conditions: [condition] })]))
+  })
+
+  it("allows an ASU alcohol step to move when the explicit checkbox predicate is truly unchanged", () => {
+    const original = EVENT_STEPS.find(item => item.key === "alcohol")!
+    const definition = branch({ conditions: ["alcohol"] })
+    const moved = { ...original, placement: { branchId: definition.id, order: 0 } }
+    const changed = EVENT_STEPS.map(item => item.key === original.key ? moved : item)
+    expect(scopeKey(original)).toBe(scopeKey(moved, [definition]))
+    expect(checkWorkflow(changed, seedDemo(undefined, "v2").roles, undefined, [definition]).filter(issue => issue.level === "blocked")).toEqual([])
+  })
+
+  it("does not carry an obsolete legacy predicate into an explicit empty selection", () => {
+    const item = step(), cleared = branch({ condition: "externalFood", conditions: [] })
+    expect(scopeKey(item, [cleared])).toBe("always")
+    expect(scopeKey(item, [branch({ condition: "externalFood" })])).toBe("rule:externalFood")
   })
 })
 
