@@ -948,9 +948,11 @@ export function downloadText(filename: string, text: string) {
 }
 
 /** Download the person's current data and interaction log as a JSON file. */
-export function downloadExport(state: DemoState, log: LogEntry[]) {
+export async function downloadExport(state: DemoState, log: LogEntry[]) {
   const at = Date.now()
-  downloadText(`platypus-export-${new Date(at).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`, JSON.stringify(buildExport(state, log, at), null, 2))
+  const { taskWorkArchive } = await import("../taskDetails/archive")
+  const archive = await taskWorkArchive(state)
+  downloadText(`platypus-export-${new Date(at).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`, JSON.stringify({ ...buildExport(archive.state, log, at), taskDrafts: archive.taskDrafts }, null, 2))
 }
 
 /* ───────────── Provider ───────────── */
@@ -987,6 +989,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   const [held, setHeld] = useState(boot.notice?.kind === "migration_blocked" || (boot.notice?.kind === "restored_demo" && boot.notice.backupKey === null))
   const [notice, setNotice] = useState<StorageNotice | null>(boot.notice)
   const [saveFailed, setSaveFailed] = useState(false)
+  const [exportError, setExportError] = useState(false)
   // Data and log are saved separately: a click changes only the log, so the (larger) demo data is not rewritten for it.
   const saved = useRef({ app: true, log: true })
   const savedApp = useRef<DemoState | null>(null)
@@ -1068,10 +1071,14 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }, [commit, sessionAt])
   useEffect(() => onUi(logUi), [logUi])
   const getLog = useCallback(() => rootRef.current!.log, [])
+  const downloadCurrent = useCallback(() => {
+    setExportError(false)
+    void downloadExport(rootRef.current!.app, rootRef.current!.log).catch(() => setExportError(true))
+  }, [])
   const exportData = useCallback(() => {
     logUi({ type: "ui.export", payload: { entries: rootRef.current!.log.length + 1 } })
-    downloadExport(rootRef.current!.app, rootRef.current!.log)
-  }, [logUi])
+    downloadCurrent()
+  }, [logUi, downloadCurrent])
   const reset = useCallback(() => { if (!held && storageUnchanged()) { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) } }, [dispatch, held, storageUnchanged])
   const persistenceFailed = saveFailed || held
   const automaticReminders = useAutomaticReminders(root.app, held, getState, tryDispatch)
@@ -1079,8 +1086,9 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   const value = useMemo(() => ({ state: root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
   const shown: StorageNotice | null = notice?.kind === "storage_conflict" ? notice : saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
+    {exportError && <div role="alert" className="save-status err">Your full export could not be downloaded. Your saved data is kept here. <button type="button" className="btn small" onClick={downloadCurrent}>Retry export</button></div>}
     {shown && <StorageBanner notice={shown} onDownload={() => {
-      if (shown.kind === "save_failed" || shown.kind === "storage_conflict") downloadExport(rootRef.current!.app, rootRef.current!.log)
+      if (shown.kind === "save_failed" || shown.kind === "storage_conflict") downloadCurrent()
       else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); if (shown.kind !== "migration_blocked") setHeld(false) }
     }} onRetry={shown.kind === "save_failed" && !held ? () => {
       const current = rootRef.current!

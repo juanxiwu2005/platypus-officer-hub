@@ -9,6 +9,8 @@ import type { DemoState, Node } from "../data/types"
 import { applySchedule } from "../engine/schedule"
 import { fmtShort } from "../lib/dates"
 
+vi.mock("../taskDetails/fileStorage", async original => ({ ...await original<typeof import("../taskDetails/fileStorage")>(), ...await import("../test/taskFileStorageMock") }))
+
 beforeEach(() => { localStorage.clear(); vi.stubGlobal("crypto", webcrypto) })
 afterEach(() => { cleanup(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
 let store: ReturnType<typeof useStore>
@@ -17,11 +19,15 @@ function fixture(patch: Partial<Node> = {}, viewerId = "jordan"): DemoState {
   return applySchedule({ ...s, viewerId, today: "2027-03-28", events: s.events.map(e => e.id === source.eventId ? { ...e, name: "Speaker Night", headcount: 40, venue: "campus" } : e), nodes: [{ ...source, id: "details-task", ownerId: "jordan", status: "accepted", dependsOn: [], instructions: "Book an accessible room for 40 attendees.", ...patch }], nudges: [], protocolLog: [], silenceCases: [], notifications: [] })
 }
 function Live({ token }: { token?: string }) { store = useStore(); return <TaskDetail node={store.state.nodes[0]} actorId={store.state.viewerId} token={token} /> }
-function show(state = fixture(), token?: string) { return render(<MemoryRouter><StoreProvider initial={state}><Live token={token} /></StoreProvider></MemoryRouter>) }
+async function show(state = fixture(), token?: string) {
+  const rendered = render(<MemoryRouter><StoreProvider initial={state}><Live token={token} /></StoreProvider></MemoryRouter>)
+  await waitFor(() => expect(screen.queryByText("Opening draft…")).toBeNull())
+  return rendered
+}
 
 describe("the universal task page and edit drawer", () => {
-  it("shows task identity, one due, one requirement, the booking links and the universal form", () => {
-    const s = fixture(); show(s)
+  it("shows task identity, one due, one requirement, the booking links and the universal form", async () => {
+    const s = fixture(); await show(s)
     expect(screen.getByText("← Speaker Night")).toBeTruthy()
     expect(screen.getByRole("heading", { name: s.nodes[0].title })).toBeTruthy()
     expect(screen.getByTestId("task-due").textContent).toBe(`Due ${fmtShort(s.nodes[0].clubDeadline!)}`)
@@ -32,66 +38,67 @@ describe("the universal task page and edit drawer", () => {
     expect(screen.queryByText("Why it matters:")).toBeNull()
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull()
   })
-  it("uses the same text-and-files form for custom workflow nodes, without injecting room-specific links", () => {
-    show(fixture({ stepKey: "fictional-custom", title: "Prepare the demo", externalLinks: [{ label: "Custom platform", url: "https://example.org/work" }] }))
+  it("uses the same text-and-files form for custom workflow nodes, without injecting room-specific links", async () => {
+    await show(fixture({ stepKey: "fictional-custom", title: "Prepare the demo", externalLinks: [{ label: "Custom platform", url: "https://example.org/work" }] }))
     expect(screen.getByLabelText("Details")).toBeTruthy()
     expect(screen.getByRole("link", { name: /Custom platform/ }).getAttribute("href")).toBe("https://example.org/work")
     expect(screen.queryByRole("link", { name: /Mazevo/ })).toBeNull()
   })
-  it("does not inject campus booking links for an off-campus venue", () => {
-    const s = fixture(); show({ ...s, events: s.events.map(e => ({ ...e, venue: "offcampus" })) })
+  it("does not inject campus booking links for an off-campus venue", async () => {
+    const s = fixture(); await show({ ...s, events: s.events.map(e => ({ ...e, venue: "offcampus" })) })
     expect(screen.queryByRole("navigation", { name: "External task links" })).toBeNull()
   })
-  it("retains existing draft materials without inventing a published submission", () => {
-    show(fixture({ draftLink: "https://example.org/existing-materials" }))
+  it("retains existing draft materials without inventing a published submission", async () => {
+    await show(fixture({ draftLink: "https://example.org/existing-materials" }))
     expect(screen.getByRole("link", { name: /Open current draft/ }).getAttribute("href")).toBe("https://example.org/existing-materials")
     expect(store.state.nodes[0].taskWork).toBeUndefined()
   })
   it("saves the draft without completion, restores it on refresh, and publishes files with completion", async () => {
-    show()
+    await show()
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Student Union, Room 204" } })
     fireEvent.change(screen.getByLabelText("Attach files"), { target: { files: [new File(["hello"], "booking.txt", { type: "text/plain" }), new File(["plan"], "room.txt", { type: "text/plain" })] } })
     await screen.findByRole("button", { name: "Download booking.txt" })
-    fireEvent.click(screen.getByRole("button", { name: "Save draft" }))
+    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved automatically"))
     expect(store.state.nodes[0].status).toBe("accepted")
-    expect(store.state.nodes[0].taskWork?.files).toHaveLength(2)
-    const draft = store.state; cleanup(); show(draft)
+    expect(store.state.nodes[0].taskWork).toBeUndefined()
+    const draft = store.state; cleanup(); await show(draft)
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Student Union, Room 204")
     fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
-    expect(store.state.nodes[0].status).toBe("done")
+    await waitFor(() => expect(store.state.nodes[0].status).toBe("done"))
     expect(store.state.nodes[0].taskWork?.submissions[0].authorId).toBe("jordan")
     expect(screen.getByText(/Submitted by Jordan/)).toBeTruthy()
   })
-  it("lets a president read a member's submission while other members get a read-only result", () => {
-    show(); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204, east entrance" } }); fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
-    const saved = store.state; cleanup(); show({ ...saved, viewerId: "sam" })
+  it("lets a president read a member's submission while other members get a read-only result", async () => {
+    await show(); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204, east entrance" } }); fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    await waitFor(() => expect(store.state.nodes[0].status).toBe("done"))
+    const saved = store.state; cleanup(); await show({ ...saved, viewerId: "sam" })
     expect(screen.getByText("Room 204, east entrance")).toBeTruthy()
     expect(screen.queryByRole("textbox", { name: "Details" })).toBeNull()
     expect(screen.queryByRole("button", { name: /Submit|Save draft|Edit/ })).toBeNull()
-    cleanup(); show({ ...saved, viewerId: "alex" })
+    cleanup(); await show({ ...saved, viewerId: "alex" })
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Room 204, east entrance")
     expect(screen.getByRole("button", { name: "Edit" })).toBeTruthy()
   })
   it("keeps text and files after a refused storage write without claiming completion", async () => {
-    show(); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Keep this result" } })
+    await show(); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Keep this result" } })
     fireEvent.change(screen.getByLabelText("Attach files"), { target: { files: [new File(["hello"], "booking.txt")] } })
     await screen.findByRole("button", { name: "Download booking.txt" })
     const write = Storage.prototype.setItem
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key, value) { if (key === STORAGE_KEY) throw new Error("Storage full"); write.call(this, key, value) })
     fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
-    expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toContain("not saved")
+    await waitFor(() => expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toContain("not saved"))
     expect(store.state.nodes[0].status).toBe("accepted")
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Keep this result")
     expect(screen.getByRole("button", { name: "Download booking.txt" })).toBeTruthy()
   })
   it("rejects unsupported files while preserving the current draft", async () => {
-    show(); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Keep me" } })
+    await show(); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Keep me" } })
     fireEvent.change(screen.getByLabelText("Attach files"), { target: { files: [new File(["script"], "bad.html")] } })
-    expect((await screen.findByRole("alert")).textContent).toContain("Choose a PDF")
+    expect((await screen.findByRole("alert")).textContent).toContain("choose a PDF")
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Keep me")
   })
-  it("edits a task in a separate drawer, saves once, and leaves its submission and template intact", () => {
-    show(fixture({}, "alex")); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Unsubmitted member result" } })
+  it("edits a task in a separate drawer, saves once, and leaves its submission and template intact", async () => {
+    await show(fixture({}, "alex")); fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Unsubmitted member result" } })
     const template = store.state.org.eventWorkflow
     fireEvent.click(screen.getByRole("button", { name: "Edit" }))
     const editor = screen.getByRole("dialog", { name: "Edit task" })
@@ -105,8 +112,8 @@ describe("the universal task page and edit drawer", () => {
     expect(store.state.org.eventWorkflow).toBe(template)
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Unsubmitted member result")
   })
-  it("cancels editing and refuses a stale drawer after another task edit", () => {
-    show(fixture({}, "alex")); const old = store.state.nodes[0].title
+  it("cancels editing and refuses a stale drawer after another task edit", async () => {
+    await show(fixture({}, "alex")); const old = store.state.nodes[0].title
     fireEvent.click(screen.getByRole("button", { name: "Edit" }))
     fireEvent.change(screen.getByLabelText("Task name"), { target: { value: "Discard me" } })
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
@@ -117,15 +124,15 @@ describe("the universal task page and edit drawer", () => {
     expect(screen.getByRole("alert").textContent).toContain("not saved")
     expect(store.state.nodes[0].title).toBe("Newer edit")
   })
-  it("withholds lead editing through legacy links and requires claiming before a submission", () => {
-    show(fixture({ status: "unclaimed" }), "not-an-issued-token")
+  it("withholds lead editing through legacy links and requires claiming before a submission", async () => {
+    await show(fixture({ status: "unclaimed" }), "not-an-issued-token")
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull()
     expect(screen.queryByLabelText("Details")).toBeNull()
     expect(screen.getByRole("button", { name: "I've got it" })).toBeTruthy()
   })
   it("retains an unknown reminder runtime during ordinary edits and updates", async () => {
     const s = fixture(), runtime = { opaque: "preserve" } as unknown as DemoState["reminderRuntime"]
-    show({ ...s, reminderRuntime: runtime })
+    await show({ ...s, reminderRuntime: runtime })
     fireEvent.change(screen.getByRole("combobox", { name: "Task status" }), { target: { value: "in_progress" } })
     await waitFor(() => expect(store.state.nodes[0].status).toBe("in_progress"))
     expect(store.state.reminderRuntime).toEqual(runtime)

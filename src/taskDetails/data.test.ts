@@ -50,7 +50,7 @@ describe("universal work on actual task nodes", () => {
   })
   it("does not overwrite a corrupt or future-version submission", () => {
     const s = fixture()
-    for (const work of [{ version: 2 }, { version: 1, revision: 0, files: [file], drafts: [], submissions: [{ authorId: "sam", details: "preserve", savedOn: s.today, attachmentIds: ["missing"] }] }]) {
+    for (const work of [{ version: 3 }, { version: 1, revision: 0, files: [file], drafts: [], submissions: [{ authorId: "sam", details: "preserve", savedOn: s.today, attachmentIds: ["missing"] }] }]) {
       const bad = { ...s, nodes: s.nodes.map(n => ({ ...n, taskWork: work as unknown as typeof n.taskWork })) }
       expect(save(bad, input(s))).toBe(bad)
     }
@@ -58,6 +58,21 @@ describe("universal work on actual task nodes", () => {
   it("rejects empty completion, mismatched file contents, executable files and excessive attachments", () => {
     const s = fixture()
     for (const change of [{ details: " ", attachments: [], submit: true }, { attachments: [{ ...file, size: 99 }] }, { attachments: [{ ...file, name: "run.html" }] }, { attachments: Array.from({ length: 6 }, (_, i) => ({ ...file, id: `file-${i}` })) }]) expect(save(s, { ...input(s), ...change })).toBe(s)
+  })
+  it("accepts three files totalling 5 MB, rejects either size limit, and keeps earlier submission files", () => {
+    const s = fixture(), mb = 1024 * 1024
+    const attachments = [2, 2, 1].map((size, i) => ({ id: `large-${i}`, blobKey: `blob-${i}`, name: `booking-${i}.pdf`, size: size * mb }))
+    const first = save(s, { ...input(s, true), attachments })
+    expect(first.nodes[0].taskWork).toMatchObject({ version: 2, files: attachments })
+    for (const invalid of [attachments.map(f => ({ ...f, size: 2 * mb })), [{ ...attachments[0], size: 2 * mb + 1 }], [...attachments, { ...attachments[2], id: "fourth" }]]) expect(save(s, { ...input(s, true), attachments: invalid })).toBe(s)
+    const second = save(first, { ...input(first, true), attachments: [{ ...attachments[0], id: "new-file", blobKey: "new-blob" }] })
+    expect(taskWork(second.nodes[0])?.files).toHaveLength(4)
+    expect(taskWork(second.nodes[0])?.submissions[0].attachmentIds).toEqual(attachments.map(f => f.id))
+  })
+  it("continues to read older five-file records after lowering the new upload count", () => {
+    const s = fixture(), files = Array.from({ length: 5 }, (_, i) => ({ ...file, id: `old-${i}` }))
+    s.nodes[0].taskWork = { version: 1, revision: 1, files, drafts: [{ authorId: "jordan", details: "Old draft", attachmentIds: files.map(f => f.id), savedOn: s.today }], submissions: [] }
+    expect(taskWork(s.nodes[0])?.files).toHaveLength(5)
   })
   it("accepts evidence for a finance node without bypassing Event Budget", () => {
     const s = fixture(); s.nodes[0].stepKey = "budgetRequest"
