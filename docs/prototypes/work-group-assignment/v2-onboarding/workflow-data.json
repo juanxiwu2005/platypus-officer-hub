@@ -1,0 +1,913 @@
+{
+  "sourceCommit": "e87b19c95e6eece07a3a695fdc0438de3f92fb67",
+  "sourceFile": "src/engine/playbooks.ts",
+  "tasks": [
+    {
+      "key": "plan",
+      "title": "Event Plan",
+      "fn": "programs",
+      "phase": "plan",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Define the purpose, operating scope and backup plan before routing work.",
+      "source": "PLAN-01",
+      "index": 1,
+      "short": "Event Plan",
+      "group": "events"
+    },
+    {
+      "key": "backup",
+      "title": "Back-up Plan",
+      "fn": "programs",
+      "phase": "plan",
+      "dependsOn": [
+        "plan"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Document a workable fallback for venue, program, weather, or attendance changes.",
+      "source": "PLAN-01",
+      "index": 2,
+      "short": "Backup Plan",
+      "group": "events"
+    },
+    {
+      "key": "venuechoice",
+      "title": "Candidate Venue",
+      "fn": "programs",
+      "phase": "plan",
+      "dependsOn": [
+        "backup"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Choose a candidate venue with capacity, access and setup needs.",
+      "source": "VENUE-01",
+      "index": 3,
+      "short": "Venue Options",
+      "group": "events"
+    },
+    {
+      "key": "registry",
+      "title": "Event Registry (SDC & Special Event)",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "venuechoice"
+      ],
+      "cond": null,
+      "ruleIds": [
+        "R01"
+      ],
+      "why": "Events lead records the Event Registry submission and confirmation.",
+      "source": "R01",
+      "index": 4,
+      "short": "Event Registry",
+      "group": "events"
+    },
+    {
+      "key": "venue",
+      "title": "Book Room & Layout",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "registry"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Request and confirm the permitted room, site, layout and capacity.",
+      "source": "VENUE-01",
+      "index": 5,
+      "short": "Room Booking",
+      "group": "events"
+    },
+    {
+      "key": "moderator",
+      "title": "Moderator Lead Staffing",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "venue"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Confirm the moderator, host, and required event staffing.",
+      "source": "Organization standard",
+      "index": 6,
+      "short": "Moderator Staffing",
+      "group": "events"
+    },
+    {
+      "key": "materials",
+      "title": "Event Materials PPT Decorations",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "moderator"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Prepare the run-of-show materials, signage, slides and event items.",
+      "source": "Organization standard",
+      "index": 7,
+      "short": "Event Materials",
+      "group": "events"
+    },
+    {
+      "key": "checkin",
+      "title": "Check-in Forms Photo Release Liability",
+      "fn": "programs",
+      "phase": "run",
+      "dependsOn": [
+        "finalcheck"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Prepare photo release, liability, and check-in forms for event day.",
+      "source": "Organization standard",
+      "index": 8,
+      "short": "Check-in Forms",
+      "group": "events"
+    },
+    {
+      "key": "headcount",
+      "title": "Headcount",
+      "fn": "programs",
+      "phase": "close",
+      "dependsOn": [
+        "checkin"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Record the final attendance count after event day.",
+      "source": "Organization standard",
+      "index": 9,
+      "short": "Attendance Count",
+      "group": "events"
+    },
+    {
+      "key": "thankyou",
+      "title": "Thank You Note",
+      "fn": "secretary",
+      "phase": "close",
+      "dependsOn": [
+        "headcount"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Send a concise thank-you to attendees, partners and contributors.",
+      "source": "Organization standard",
+      "index": 10,
+      "short": "Thank-you Notes",
+      "group": "records"
+    },
+    {
+      "key": "feedback",
+      "title": "Feedback",
+      "fn": "vice_president",
+      "phase": "close",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Collect feedback and record a short reusable retrospective.",
+      "source": "CLOSE-03",
+      "index": 11,
+      "short": "Collect Feedback",
+      "group": "leadership"
+    },
+    {
+      "key": "postmarketing",
+      "title": "Post Marketing",
+      "fn": "marketing",
+      "phase": "close",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Publish an approved post-event recap or outcome update.",
+      "source": "Organization standard",
+      "index": 12,
+      "short": "Post-event Promotion",
+      "group": "marketing"
+    },
+    {
+      "key": "photoBackup",
+      "title": "Photo Backup",
+      "fn": "marketing",
+      "phase": "close",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Save and back up approved event photos or media in the organization record.",
+      "source": "Organization standard",
+      "index": 13,
+      "short": "Photo Backup",
+      "group": "marketing"
+    },
+    {
+      "key": "invoice",
+      "title": "Invoice",
+      "fn": "finance",
+      "phase": "close",
+      "dependsOn": [
+        "headcount"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Collect and verify invoices after the event.",
+      "source": "CLOSE-02",
+      "index": 14,
+      "short": "Collect Invoices",
+      "group": "finance"
+    },
+    {
+      "key": "attendance",
+      "title": "Attendance Submit",
+      "fn": "finance",
+      "phase": "close",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Submit attendance and the required business meal form.",
+      "source": "CLOSE-02",
+      "index": 15,
+      "short": "Submit Attendance",
+      "group": "finance"
+    },
+    {
+      "key": "spending",
+      "title": "Paid Reimbursed",
+      "fn": "finance",
+      "phase": "close",
+      "dependsOn": [
+        "attendance"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Confirm payment or reimbursement from the respective funding source.",
+      "source": "CLOSE-02",
+      "index": 16,
+      "short": "Settle Expenses",
+      "group": "finance"
+    },
+    {
+      "key": "financeRecord",
+      "title": "Finance Record",
+      "fn": "finance",
+      "phase": "close",
+      "dependsOn": [
+        "spending"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Record all event spending and income for tax-ready records.",
+      "source": "CLOSE-02",
+      "index": 17,
+      "short": "Finance Records",
+      "group": "finance"
+    },
+    {
+      "key": "documentation",
+      "title": "Documentation",
+      "fn": "secretary",
+      "phase": "close",
+      "dependsOn": [
+        "feedback"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Preserve approved materials, decisions and reusable event records.",
+      "source": "CLOSE-03",
+      "index": 18,
+      "short": "Archive Documents",
+      "group": "records"
+    },
+    {
+      "key": "partner",
+      "title": "Partner Meeting",
+      "fn": "programs",
+      "phase": "plan",
+      "dependsOn": [],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Align scope, roles and commitments with the outside party.",
+      "source": "SPEND-02",
+      "index": 19,
+      "short": "Partner Meeting",
+      "group": "events"
+    },
+    {
+      "key": "speakerPacket",
+      "title": "Speaker SAP Headshot",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "partner"
+      ],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Collect the speaker scope, headshot, quote and required agreement information.",
+      "source": "SPECIAL-04",
+      "index": 20,
+      "short": "Speaker Packet",
+      "group": "events"
+    },
+    {
+      "key": "travel",
+      "title": "Partner Travel Plan",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "speakerPacket"
+      ],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Document speaker or partner travel, transport and emergency coverage.",
+      "source": "TRAVEL-01",
+      "index": 21,
+      "short": "Partner Travel",
+      "group": "events"
+    },
+    {
+      "key": "partnerReview",
+      "title": "Partner Speaker Review",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "travel"
+      ],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Review partner or speaker requirements before final delivery.",
+      "source": "Organization standard",
+      "index": 22,
+      "short": "Partner Review",
+      "group": "events"
+    },
+    {
+      "key": "parking",
+      "title": "Parking Validation",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "partnerReview"
+      ],
+      "cond": "externalGuest",
+      "ruleIds": [],
+      "why": "Validate guest parking, loading, shuttle or transport needs.",
+      "source": "VENUE-02",
+      "index": 23,
+      "short": "Parking Validation",
+      "group": "events"
+    },
+    {
+      "key": "budget",
+      "title": "Budget",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "plan"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Build the budget and identify the funding source.",
+      "source": "FUND-02",
+      "index": 24,
+      "short": "Build Budget",
+      "group": "finance"
+    },
+    {
+      "key": "foodCompliance",
+      "title": "Food Exception Permit",
+      "fn": "finance",
+      "phase": "prepare",
+      "dependsOn": [
+        "budget"
+      ],
+      "cond": "externalFood",
+      "ruleIds": [
+        "R06"
+      ],
+      "why": "Resolve the food exception, permit or evidence needed before submitting a food budget.",
+      "source": "R06",
+      "index": 25,
+      "short": "Food Compliance",
+      "group": "finance"
+    },
+    {
+      "key": "quotes",
+      "title": "Quote Gather",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "foodCompliance"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Collect dated provider, speaker or vendor quotes for the budget route.",
+      "source": "FUND-04",
+      "index": 26,
+      "short": "Gather Quotes",
+      "group": "finance"
+    },
+    {
+      "key": "budgetRequest",
+      "title": "Budget Request",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "quotes",
+        "foodCompliance"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Submit the budget, public purpose and supporting quote package.",
+      "source": "FUND-02 · FUND-04",
+      "index": 27,
+      "short": "Budget Request",
+      "group": "finance"
+    },
+    {
+      "key": "budgetApproval",
+      "title": "Budget Approval",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "budgetRequest"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Record the funding decision before any approval-dependent commitment.",
+      "source": "FUND-02",
+      "index": 28,
+      "short": "Budget Approval",
+      "group": "finance"
+    },
+    {
+      "key": "purchaseRequest",
+      "title": "Purchase Request",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "budgetApproval"
+      ],
+      "cond": null,
+      "ruleIds": [
+        "R09"
+      ],
+      "why": "Route the approved purchase through the applicable purchasing process.",
+      "source": "R09",
+      "index": 29,
+      "short": "Purchase Request",
+      "group": "finance"
+    },
+    {
+      "key": "purchaseApproval",
+      "title": "Purchase Approval",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "purchaseRequest"
+      ],
+      "cond": null,
+      "ruleIds": [
+        "R09"
+      ],
+      "why": "Record purchase approval before ordering or reimbursement.",
+      "source": "R09",
+      "index": 30,
+      "short": "Purchase Approval",
+      "group": "finance"
+    },
+    {
+      "key": "advisor",
+      "title": "Advisor Involved",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [],
+      "cond": "advisor",
+      "ruleIds": [],
+      "why": "Bring in the advisor when the event needs their participation or signature.",
+      "source": "PLAN-03",
+      "index": 31,
+      "short": "Advisor Involvement",
+      "group": "events"
+    },
+    {
+      "key": "access",
+      "title": "Accessibility Check",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "advisor"
+      ],
+      "cond": "access",
+      "ruleIds": [],
+      "why": "Confirm disability accommodations, accessible route, seating and accessible communications.",
+      "source": "VENUE-03",
+      "index": 32,
+      "short": "Accessibility Check",
+      "group": "events"
+    },
+    {
+      "key": "security",
+      "title": "Security",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "access"
+      ],
+      "cond": "safety",
+      "ruleIds": [],
+      "why": "Identify security and elevated-risk needs before preparing the event plan.",
+      "source": "RISK-01",
+      "index": 33,
+      "short": "Security Review",
+      "group": "events"
+    },
+    {
+      "key": "eams",
+      "title": "EAMS Plan",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "security"
+      ],
+      "cond": "safety",
+      "ruleIds": [],
+      "why": "Prepare the event and medical safety plan required by risk review.",
+      "source": "RISK-01",
+      "index": 34,
+      "short": "EAMS Plan",
+      "group": "events"
+    },
+    {
+      "key": "permit",
+      "title": "Permit Insurance",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "eams"
+      ],
+      "cond": "safety",
+      "ruleIds": [],
+      "why": "Resolve permit, insurance or certificate requirements returned by risk review.",
+      "source": "RISK-01",
+      "index": 35,
+      "short": "Insurance Permits",
+      "group": "events"
+    },
+    {
+      "key": "alcohol",
+      "title": "Alcohol Permit",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "permit"
+      ],
+      "cond": "alcohol",
+      "ruleIds": [
+        "SPECIAL-03"
+      ],
+      "why": "Resolve alcohol permit, venue and insurance conditions before service.",
+      "source": "SPECIAL-03",
+      "index": 36,
+      "short": "Alcohol Permit",
+      "group": "events"
+    },
+    {
+      "key": "drone",
+      "title": "Drone Approval",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "permit"
+      ],
+      "cond": "drone",
+      "ruleIds": [
+        "SPECIAL-06"
+      ],
+      "why": "Obtain the required unmanned aircraft approval before operating a drone.",
+      "source": "SPECIAL-06",
+      "index": 37,
+      "short": "Drone Approval",
+      "group": "events"
+    },
+    {
+      "key": "schoolApproval",
+      "title": "School Admin Approval",
+      "fn": "programs",
+      "phase": "prepare",
+      "dependsOn": [
+        "alcohol",
+        "drone"
+      ],
+      "cond": "schoolApproval",
+      "ruleIds": [],
+      "why": "Confirm the director, dean or college approval route for a 250+ event.",
+      "source": "PLAN-03",
+      "index": 38,
+      "short": "School Approval",
+      "group": "events"
+    },
+    {
+      "key": "marketingNeeds",
+      "title": "Marketing Needs",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Identify audience, channels, timeline, and promotion needs.",
+      "source": "Organization standard",
+      "index": 39,
+      "short": "Marketing Needs",
+      "group": "marketing"
+    },
+    {
+      "key": "contentCreation",
+      "title": "Content Creation",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "marketingNeeds"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Create approved copy, graphics, and campaign assets.",
+      "source": "Organization standard",
+      "index": 40,
+      "short": "Create Content",
+      "group": "marketing"
+    },
+    {
+      "key": "promotionItems",
+      "title": "Promotion Items",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "contentCreation"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Prepare promotional items, giveaways, or printed materials.",
+      "source": "Organization standard",
+      "index": 41,
+      "short": "Promo Items",
+      "group": "marketing"
+    },
+    {
+      "key": "rsvp",
+      "title": "Open RSVPs",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "promotionItems"
+      ],
+      "cond": "rsvp",
+      "ruleIds": [],
+      "why": "Open registration and collect attendance intent.",
+      "source": "Organization standard",
+      "index": 42,
+      "short": "Open RSVPs",
+      "group": "marketing"
+    },
+    {
+      "key": "content",
+      "title": "Content Distribution",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "rsvp"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Distribute approved campaign content through selected channels.",
+      "source": "Organization standard",
+      "index": 43,
+      "short": "Distribute Content",
+      "group": "marketing"
+    },
+    {
+      "key": "reminder",
+      "title": "Event Reminder",
+      "fn": "marketing",
+      "phase": "marketing",
+      "dependsOn": [
+        "content"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Send the final reminder to registered and intended attendees.",
+      "source": "Organization standard",
+      "index": 44,
+      "short": "Event Reminder",
+      "group": "marketing"
+    },
+    {
+      "key": "orderPlaced",
+      "title": "Order Placed",
+      "fn": "finance",
+      "phase": "money",
+      "dependsOn": [
+        "purchaseApproval"
+      ],
+      "cond": null,
+      "ruleIds": [
+        "R09"
+      ],
+      "why": "Place approved orders and record vendor commitments.",
+      "source": "R09",
+      "index": 45,
+      "short": "Place Orders",
+      "group": "finance"
+    },
+    {
+      "key": "finalcheck",
+      "title": "Full Check Alert Changes",
+      "fn": "president",
+      "phase": "run",
+      "dependsOn": [
+        "materials",
+        "parking",
+        "orderPlaced",
+        "schoolApproval"
+      ],
+      "cond": null,
+      "ruleIds": [],
+      "why": "Check every active route, alert stakeholders to changes, and confirm readiness.",
+      "source": "CLOSE-01",
+      "index": 46,
+      "short": "Full Check",
+      "group": "leadership"
+    }
+  ],
+  "groups": [
+    {
+      "id": "events",
+      "name": "Event team",
+      "short": "Events",
+      "fn": "programs"
+    },
+    {
+      "id": "finance",
+      "name": "Finance",
+      "short": "Finance",
+      "fn": "finance"
+    },
+    {
+      "id": "marketing",
+      "name": "Marketing",
+      "short": "Marketing",
+      "fn": "marketing"
+    },
+    {
+      "id": "records",
+      "name": "Records",
+      "short": "Records",
+      "fn": "secretary"
+    },
+    {
+      "id": "leadership",
+      "name": "Leadership",
+      "short": "Leads",
+      "fn": "president"
+    }
+  ],
+  "phaseOrder": [
+    "plan",
+    "prepare",
+    "money",
+    "marketing",
+    "run",
+    "close"
+  ],
+  "phaseNames": {
+    "plan": "Plan",
+    "prepare": "Prepare",
+    "money": "Finance",
+    "marketing": "Promote",
+    "run": "Event day",
+    "close": "Close out"
+  },
+  "bundles": [
+    {
+      "id": "planning",
+      "name": "Event Planning",
+      "tasks": [
+        "plan",
+        "backup",
+        "venuechoice"
+      ]
+    },
+    {
+      "id": "venue",
+      "name": "Venue Setup",
+      "tasks": [
+        "registry",
+        "venue",
+        "moderator",
+        "materials"
+      ]
+    },
+    {
+      "id": "partner",
+      "name": "Partner Logistics",
+      "tasks": [
+        "partner",
+        "speakerPacket",
+        "travel",
+        "partnerReview",
+        "parking"
+      ]
+    },
+    {
+      "id": "safety",
+      "name": "Safety Review",
+      "tasks": [
+        "advisor",
+        "access",
+        "security",
+        "eams",
+        "permit",
+        "alcohol",
+        "drone",
+        "schoolApproval"
+      ]
+    },
+    {
+      "id": "funding",
+      "name": "Budget Funding",
+      "tasks": [
+        "budget",
+        "foodCompliance",
+        "quotes",
+        "budgetRequest",
+        "budgetApproval"
+      ]
+    },
+    {
+      "id": "purchasing",
+      "name": "Purchase Process",
+      "tasks": [
+        "purchaseRequest",
+        "purchaseApproval",
+        "orderPlaced"
+      ]
+    },
+    {
+      "id": "campaign",
+      "name": "Event Promotion",
+      "tasks": [
+        "marketingNeeds",
+        "contentCreation",
+        "promotionItems",
+        "rsvp",
+        "content",
+        "reminder"
+      ]
+    },
+    {
+      "id": "eventday",
+      "name": "Event Delivery",
+      "tasks": [
+        "checkin",
+        "headcount"
+      ]
+    },
+    {
+      "id": "financeclose",
+      "name": "Finance Closeout",
+      "tasks": [
+        "invoice",
+        "attendance",
+        "spending",
+        "financeRecord"
+      ]
+    },
+    {
+      "id": "mediaclose",
+      "name": "Media Archive",
+      "tasks": [
+        "postmarketing",
+        "photoBackup"
+      ]
+    },
+    {
+      "id": "records",
+      "name": "Club Records",
+      "tasks": [
+        "thankyou",
+        "documentation"
+      ]
+    },
+    {
+      "id": "leadership",
+      "name": "Leadership Review",
+      "tasks": [
+        "finalcheck",
+        "feedback"
+      ]
+    }
+  ]
+}

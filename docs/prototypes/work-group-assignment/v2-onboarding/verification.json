@@ -1,0 +1,368 @@
+{
+  "errors": [],
+  "measurements": [
+    {
+      "id": "people",
+      "index": 0,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1068,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 1,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1068,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 2,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1068,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 3,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1068,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 0,
+      "width": 736,
+      "scroll": 736,
+      "height": 1383,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 1,
+      "width": 736,
+      "scroll": 736,
+      "height": 1383,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 2,
+      "width": 736,
+      "scroll": 736,
+      "height": 1383,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 3,
+      "width": 736,
+      "scroll": 736,
+      "height": 1383,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 0,
+      "width": 393,
+      "scroll": 393,
+      "height": 1938,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 1,
+      "width": 393,
+      "scroll": 393,
+      "height": 1938,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 2,
+      "width": 393,
+      "scroll": 393,
+      "height": 1938,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 3,
+      "width": 393,
+      "scroll": 393,
+      "height": 1938,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 0,
+      "width": 320,
+      "scroll": 320,
+      "height": 1938,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 1,
+      "width": 320,
+      "scroll": 320,
+      "height": 1938,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 2,
+      "width": 320,
+      "scroll": 320,
+      "height": 1938,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "people",
+      "index": 3,
+      "width": 320,
+      "scroll": 320,
+      "height": 1938,
+      "tasks": null,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 0,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1760,
+      "tasks": 46,
+      "edges": 43
+    },
+    {
+      "id": "workflow",
+      "index": 1,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1760,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 2,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1760,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 3,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1760,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 4,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1760,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 5,
+      "width": 1024,
+      "scroll": 1024,
+      "height": 1760,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 0,
+      "width": 736,
+      "scroll": 736,
+      "height": 2420,
+      "tasks": 46,
+      "edges": 43
+    },
+    {
+      "id": "workflow",
+      "index": 1,
+      "width": 736,
+      "scroll": 736,
+      "height": 2420,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 2,
+      "width": 736,
+      "scroll": 736,
+      "height": 2420,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 3,
+      "width": 736,
+      "scroll": 736,
+      "height": 2420,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 4,
+      "width": 736,
+      "scroll": 736,
+      "height": 2420,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 5,
+      "width": 736,
+      "scroll": 736,
+      "height": 2420,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 0,
+      "width": 393,
+      "scroll": 393,
+      "height": 3680,
+      "tasks": 46,
+      "edges": 43
+    },
+    {
+      "id": "workflow",
+      "index": 1,
+      "width": 393,
+      "scroll": 393,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 2,
+      "width": 393,
+      "scroll": 393,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 3,
+      "width": 393,
+      "scroll": 393,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 4,
+      "width": 393,
+      "scroll": 393,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 5,
+      "width": 393,
+      "scroll": 393,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 0,
+      "width": 320,
+      "scroll": 320,
+      "height": 3680,
+      "tasks": 46,
+      "edges": 43
+    },
+    {
+      "id": "workflow",
+      "index": 1,
+      "width": 320,
+      "scroll": 320,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 2,
+      "width": 320,
+      "scroll": 320,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 3,
+      "width": 320,
+      "scroll": 320,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 4,
+      "width": 320,
+      "scroll": 320,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    },
+    {
+      "id": "workflow",
+      "index": 5,
+      "width": 320,
+      "scroll": 320,
+      "height": 3680,
+      "tasks": 46,
+      "edges": null
+    }
+  ],
+  "interactions": "Email save, hierarchy change, metro assignment, matrix assignment, bundle undo and brush click passed",
+  "sourceTasks": 46,
+  "sourceEdges": 43
+}
