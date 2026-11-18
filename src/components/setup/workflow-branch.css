@@ -14,3 +14,45 @@
   overflow-y: auto;
   box-shadow: var(--shadow);
 }
+
+.workflow-branch-conditions p {
+  margin: 0;
+}
+
+.workflow-branch-conditions-list {
+  display: grid;
+  gap: var(--s2);
+  max-height: min(28dvh, 220px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--s1);
+}
+
+.workflow-branch-conditions-list .check-label {
+  align-items: flex-start;
+  gap: var(--s2);
+  margin: 0;
+}
+
+.workflow-branch-conditions-list input {
+  flex-shrink: 0;
+}
+
+.workflow-branch-conditions-list span {
+  overflow-wrap: anywhere;
+}
+
+.workflow-branch-condition-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+
+.workflow-branch-actions {
+  position: sticky;
+  bottom: 0;
+  padding-block: var(--s2);
+  background: var(--surface);
+}
