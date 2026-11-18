@@ -1,3 +1,6 @@
+> **2026-11-17（America/Phoenix） · 延期申请简化、自动通知与完成退回进行中（Codex）**
+> **用户授权：** Need more time移除Current draft link，说明改Message以区别成果Details；Request extension保存后自动通知对应审批人/社长，截止日仍待审批后变更。Submit & mark done误点可撤回或改回其他状态，保留正文与附件、同步清理完成标记与积分；覆盖普通节点与负责人邮件入口，财务完成权仍归Event Budget。沿用PR14，不新建PR、不合并main；保留Settings工作流及原稿的同期工作，0真实AI/邮件投递。
+
 > **2026-11-17（America/Phoenix） · Workflow连线简化、岗位换分支与节点类型进行中（Codex）**
 > **用户要求：** 双击连线不做任何事，移除连线删除入口；黄色悬浮高亮保留代码但关闭。模板修改Done by时随岗位自动换到合适分支，尽量一分支一岗位，保留未来团队/岗位规则备注。右侧第一项可选Core event step或Situation-based step，新增前后节点继承被点击节点类型；类型独立保存，已有活动表单条件先保留并标明未来接入点。沿用原分支与PR14，保留同期附件自动保存工作，不改main。
 
