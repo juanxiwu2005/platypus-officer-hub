@@ -1,5 +1,6 @@
-import type { Event, Node, Phase } from "../data/types"
+import type { Event, Node, Phase, StepCond, WorkflowPlacement } from "../data/types"
 import type { Schedule } from "../engine/schedule"
+import { isStepCondition } from "../engine/workflowBranches"
 
 /**
  * The step editor's rules (M3). Pure functions: they turn "move this row there" into edits to a few steps'
@@ -13,7 +14,7 @@ import type { Schedule } from "../engine/schedule"
 export const PHASES: Phase[] = ["plan", "prepare", "money", "marketing", "run", "close"]
 export const MAX_DAYS = 30
 
-export interface StepPatch { dependsOn?: string[]; estDays?: number; phase?: Phase }
+export interface StepPatch { dependsOn?: string[]; estDays?: number; phase?: Phase; placement?: WorkflowPlacement; cond?: StepCond | null; startPolicy?: "window" | "effort" }
 export interface StepEdit { id: string; patch: StepPatch }
 export interface EditResult { edits: StepEdit[]; message: string; error?: string; note?: string }
 
@@ -65,7 +66,12 @@ export function reduceDeps(nodes: Node[], deps: string[]): string[] {
 /** The graph with these edits applied (a copy). */
 export function applyEdits(nodes: Node[], edits: StepEdit[]): Node[] {
   const by = new Map(edits.map(e => [e.id, e.patch]))
-  return nodes.map(n => (by.has(n.id) ? { ...n, ...by.get(n.id) } as Node : n))
+  return nodes.map(n => {
+    const p = by.get(n.id)
+    if (!p) return n
+    const { cond, ...rest } = p
+    return { ...n, ...rest, ...(Object.hasOwn(p, "cond") ? { cond: cond ?? undefined } : {}) }
+  })
 }
 
 /** Would the edits make some step wait for itself? Loops that were already there do not count. */
@@ -150,8 +156,8 @@ export const clampDays = (v: number) => Math.max(0, Math.min(MAX_DAYS, Math.roun
 export function setDays(nodes: Node[], id: string, days: number): EditResult {
   const n = nodes.find(x => x.id === id)
   if (!n) return fail("That step no longer exists.")
-  const d = clampDays(days)
-  return d === n.estDays ? noop("No change.") : ok([{ id, patch: { estDays: d } }], `${title(n)} now takes ${d} working day${d === 1 ? "" : "s"}.`)
+  if (!Number.isInteger(days) || days < 0 || days > MAX_DAYS) return fail("Use a whole number from 0 to 30 working days.")
+  return days === n.estDays ? noop("No change.") : ok([{ id, patch: { estDays: days, startPolicy: "effort" } }], `${title(n)} now takes ${days} working day${days === 1 ? "" : "s"}.`)
 }
 
 /** Move a step into another phase group. Into or out of Close changes its dates, so say so. */
@@ -181,6 +187,9 @@ export function inverseOf(nodes: Node[], edits: StepEdit[]): StepEdit[] {
       if (e.patch.dependsOn) back.dependsOn = [...n.dependsOn]
       if (e.patch.estDays !== undefined) back.estDays = n.estDays
       if (e.patch.phase) back.phase = n.phase ?? undefined
+      if (e.patch.placement) back.placement = n.placement
+      if (Object.hasOwn(e.patch, "cond")) back.cond = n.cond ?? null
+      if (e.patch.startPolicy) back.startPolicy = n.startPolicy
     }
     return { id: e.id, patch: back }
   })
@@ -191,8 +200,15 @@ export function cleanPatch(patch: unknown, eventIds: Set<string>, selfId: string
   const p = (patch && typeof patch === "object" ? patch : {}) as Record<string, unknown>
   const out: StepPatch = {}
   if (Array.isArray(p.dependsOn)) out.dependsOn = uniq(p.dependsOn.filter((d): d is string => typeof d === "string" && d !== selfId && eventIds.has(d)))
-  if (typeof p.estDays === "number" && Number.isFinite(p.estDays)) out.estDays = clampDays(p.estDays)
+  if (typeof p.estDays === "number" && Number.isInteger(p.estDays) && p.estDays >= 0 && p.estDays <= MAX_DAYS) { out.estDays = p.estDays; out.startPolicy = "effort" }
   if (typeof p.phase === "string" && (PHASES as string[]).includes(p.phase)) out.phase = p.phase as Phase
+  if (p.placement && typeof p.placement === "object") {
+    const at = p.placement as Record<string, unknown>
+    if (typeof at.branchId === "string" && /^[a-zA-Z0-9][a-zA-Z0-9:_-]{0,79}$/.test(at.branchId) && typeof at.order === "number" && Number.isFinite(at.order)) out.placement = { branchId: at.branchId, order: at.order }
+  }
+  if (p.cond === null) out.cond = null
+  else if (isStepCondition(p.cond)) out.cond = p.cond
+  if (p.startPolicy === "window" || p.startPolicy === "effort") out.startPolicy = p.startPolicy
   return out
 }
 

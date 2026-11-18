@@ -1,7 +1,21 @@
-import type { Event, Node } from "../data/types"
+import type { Event, Node, StepCond, WorkflowBranch } from "../data/types"
 import type { MetroLayout } from "../components/flow/metro"
 import { END_KEY, EVENT_KEY, START_KEY } from "../components/flow/metro"
 import { ancestorsOf, createsLoop, reduceDeps, type EditResult, type StepEdit } from "./stepOrder"
+import { isStepCondition, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
+import { deletionReason } from "../engine/workflowPolicy"
+import { orderedBranchNodes } from "./flowOrder"
+
+export interface FlowInsertionTarget {
+  branchId: string
+  afterId: string | null
+  beforeId: string | null
+  referenceId?: string
+  source: "before_node" | "after_node" | "gap"
+  /** Explicit null means only the branch's scope; absent inherits the reference step. */
+  condition?: StepCond | null
+}
+export interface FlowMoveContext { target: FlowInsertionTarget; branches: WorkflowBranch[]; conditionConfirmed?: boolean }
 
 /**
  * Editing the event's flow chart directly (drag a step to a new place, add a step, delete a step, cut a link).
@@ -20,7 +34,8 @@ const same = (a: string[], b: string[]) => a.length === b.length && [...a].sort(
  * Take step `r` out of where it is and put it between `u` and `v` (either can be missing: the start, or the event day).
  * Whoever waited for `r` now waits for what `r` waited for; `r` then waits for `u`, and `v` waits for `r` instead of `u`.
  */
-export function moveBetween(nodes: Node[], rId: string, uId: string | null, vId: string | null): EditResult {
+export function moveBetween(nodes: Node[], rId: string, uId: string | null, vId: string | null, context?: FlowMoveContext): EditResult {
+  if (context) return moveOnBranch(nodes, rId, context)
   const by = new Map(nodes.map(n => [n.id, n]))
   const r = by.get(rId), u = uId ? by.get(uId) : null, v = vId ? by.get(vId) : null
   if (!r || (uId && !u) || (vId && !v)) return fail("Pick steps that are in this event.")
@@ -61,9 +76,122 @@ export function unlinkSteps(nodes: Node[], waiterId: string, waiteeId: string): 
 
 /** Why a step cannot be deleted, or null. Steps ASU rules need, and steps already finished, stay. */
 export function cannotDelete(n: Node): string | null {
-  if (n.ruleIds.length) return `ASU rule ${n.ruleIds.join(", ")} needs this step.`
-  if (n.status === "done") return "It is already done and counts toward the contribution board."
+  return deletionReason(n)
+}
+
+const keyOf = (n: Node) => n.stepKey ?? n.id
+const isPreJoin = (n: Node) => ["finalcheck", "review", "checkin", "runshow"].includes(keyOf(n))
+const isPostStart = (n: Node) => keyOf(n) === "headcount"
+
+function validateTarget(nodes: Node[], target: FlowInsertionTarget, branches: WorkflowBranch[]): string | null {
+  const branch = resolveBranches(nodes, branches).find(b => b.id === target.branchId)
+  if (!branch || target.branchId === "main") return "Choose a branch line rather than the shared event spine."
+  if (target.condition !== undefined && target.condition !== null && !isStepCondition(target.condition)) return "Choose a supported event condition."
+  const ordered = orderedBranchNodes(nodes, target.branchId)
+  const left = target.afterId ? nodes.find(n => n.id === target.afterId) : undefined
+  const right = target.beforeId ? nodes.find(n => n.id === target.beforeId) : undefined
+  if ((target.afterId && !left) || (target.beforeId && !right)) return "That insertion point changed. Select the line again."
+  const leftHere = !!left && placementOf(left).branchId === branch.id
+  const rightHere = !!right && placementOf(right).branchId === branch.id
+  if (left && !leftHere && !(branch.side === "after_event" && isPostStart(left))) return "The preceding step belongs to another branch."
+  if (right && !rightHere && !(branch.side === "before_event" && isPreJoin(right))) return "The following step belongs to another branch."
+  const i = leftHere ? ordered.findIndex(n => n.id === left.id) : -1
+  const j = rightHere ? ordered.findIndex(n => n.id === right.id) : ordered.length
+  if (j !== i + 1) return "Those steps are no longer neighbours. Select the line again."
+  if (target.referenceId && !ordered.some(n => n.id === target.referenceId)) return "The selected step no longer belongs to this branch."
   return null
+}
+
+function editsFrom(before: Node[], after: Node[]): StepEdit[] {
+  const by = new Map(before.map(n => [n.id, n]))
+  return after.flatMap(n => {
+    const old = by.get(n.id)
+    if (!old) return []
+    const patch: StepEdit["patch"] = {}
+    if (!same(n.dependsOn, old.dependsOn)) patch.dependsOn = n.dependsOn
+    if (JSON.stringify(n.placement) !== JSON.stringify(old.placement)) patch.placement = n.placement
+    if (n.cond !== old.cond) patch.cond = n.cond ?? null
+    return Object.keys(patch).length ? [{ id: n.id, patch }] : []
+  })
+}
+
+/** Existing nodes exclude fresh. The result patches the fresh node as well as its successor. */
+export function insertFlowStep(nodes: Node[], fresh: Node, target: FlowInsertionTarget, branches: WorkflowBranch[]): EditResult {
+  if (nodes.some(n => n.id === fresh.id) || nodes.some(n => n.eventId !== fresh.eventId)) return fail("Choose a new step in this event.")
+  const error = validateTarget(nodes, target, branches)
+  if (error) return fail(error)
+  const branch = resolveBranches(nodes, branches).find(b => b.id === target.branchId)!
+  if ((fresh.phase === "close") !== (branch.side === "after_event")) return fail("A step must stay on the same side of the event day.")
+  const reference = nodes.find(n => n.id === target.referenceId)
+  const condition = target.condition !== undefined ? target.condition ?? undefined : reference?.cond ?? fresh.cond
+  const ordered = orderedBranchNodes(nodes, branch.id)
+  const index = target.beforeId ? ordered.findIndex(n => n.id === target.beforeId) : -1
+  const insertion = index < 0 ? ordered.length : index
+  const ids = ordered.map(n => n.id); ids.splice(insertion, 0, fresh.id)
+  const all = [...nodes, fresh]
+  const after = all.map(n => {
+    const order = ids.indexOf(n.id)
+    const placement = order >= 0 ? { branchId: branch.id, order } : n.placement
+    if (n.id === fresh.id) return { ...n, placement, cond: condition, dependsOn: target.afterId ? [target.afterId] : [] }
+    if (n.id === target.beforeId) return { ...n, placement, dependsOn: uniq([...n.dependsOn.filter(d => d !== target.afterId), fresh.id]) }
+    return order >= 0 ? { ...n, placement } : n
+  })
+  const edits = editsFrom(all, after)
+  if (createsLoop(all, edits)) return fail("That insertion would create a circular dependency. Nothing changed.")
+  return ok(edits, "Added a new step in this branch.")
+}
+
+/** Creates a parallel route and connects only its new, explicit entry/exit. */
+export function insertFlowBranch(nodes: Node[], fresh: Node, branch: WorkflowBranch, branches: WorkflowBranch[]): EditResult {
+  const existing = resolveBranches(nodes, branches)
+  const error = validateBranchDefinitions([...existing, branch])
+  if (error || existing.some(b => b.id === branch.id)) return fail(error ?? "Choose a new branch ID.")
+  const byKey = (keys: string[]) => keys.map(key => nodes.find(n => keyOf(n) === key)).find((n): n is Node => !!n)
+  const start = branch.side === "after_event" ? byKey(["headcount"]) : undefined
+  const join = branch.side === "before_event" ? byKey(["finalcheck", "review", "checkin", "runshow"]) : undefined
+  return insertFlowStep(nodes, fresh, { branchId: branch.id, afterId: start?.id ?? null, beforeId: join?.id ?? null, source: "gap", condition: null }, [...existing, branch])
+}
+
+/** A graph move updates membership and only the source/target branch's order edges. */
+function moveOnBranch(nodes: Node[], id: string, context: FlowMoveContext): EditResult {
+  const r = nodes.find(n => n.id === id)
+  if (!r) return fail("Choose a step in this event.")
+  const source = placementOf(r)
+  if (source.branchId === "main") return fail("Shared event checkpoints stay on the event spine.")
+  if (context.target.afterId === id || context.target.beforeId === id) return noop("No change.")
+  const branches = resolveBranches(nodes, context.branches)
+  const origin = branches.find(b => b.id === source.branchId)
+  const destination = branches.find(b => b.id === context.target.branchId)
+  if (!origin || !destination) return fail("Choose an existing branch.")
+  if (origin.side !== destination.side) return fail("Steps cannot move between preparation and close-out. Choose a branch on the same side of the event day.")
+  const targetCondition = context.target.condition !== undefined ? context.target.condition ?? undefined : r.cond
+  const candidate = { ...r, placement: { branchId: destination.id, order: source.order }, cond: targetCondition }
+  if (origin.id !== destination.id && scopeKey(r, branches) !== scopeKey(candidate, branches) && !context.conditionConfirmed) return fail("Moving to this branch changes which events use the step. Confirm the new scope first.")
+  const external = r.dependsOn.filter(d => {
+    const n = nodes.find(n => n.id === d)
+    return !n || placementOf(n).branchId !== source.branchId
+  })
+  // Other branches that wait for r still wait for r. Only its former line closes up.
+  const detached = nodes.filter(n => n.id !== id).map(n => {
+    const onSource = placementOf(n).branchId === source.branchId || (origin.side === "before_event" && isPreJoin(n))
+    return onSource && n.dependsOn.includes(id) ? { ...n, dependsOn: uniq([...n.dependsOn.filter(d => d !== id), ...r.dependsOn]) } : n
+  })
+  const error = validateTarget(detached, context.target, branches)
+  if (error) return fail(error)
+  const result = insertFlowStep(detached, { ...r, dependsOn: [] }, { ...context.target, condition: targetCondition ?? null }, branches)
+  if (result.error) return result
+  const patches = new Map(result.edits.map(e => [e.id, e.patch]))
+  const after = [...detached, r].map(n => {
+    const p = patches.get(n.id)
+    const changed = p ? { ...n, ...p, cond: Object.hasOwn(p, "cond") ? p.cond ?? undefined : n.cond } : n
+    return changed.id === id ? { ...changed, dependsOn: uniq([...changed.dependsOn, ...external]) } : changed
+  })
+  const sourceOrder = orderedBranchNodes(after, source.branchId).map(n => n.id)
+  const normalized = after.map(n => sourceOrder.includes(n.id) ? { ...n, placement: { branchId: source.branchId, order: sourceOrder.indexOf(n.id) } } : n)
+  const edits = editsFrom(nodes, normalized)
+  if (createsLoop(nodes, edits)) return fail("That move would create a circular dependency. Nothing changed.")
+  if (!edits.length) return noop("No change.")
+  return ok(edits, `Moved ${q(r)} ${context.target.afterId ? `after ${q(nodes.find(n => n.id === context.target.afterId))}` : "to the start of this branch"}.`)
 }
 
 /** Whoever waited for the step now waits for what it waited for. */
