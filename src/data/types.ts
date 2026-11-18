@@ -61,6 +61,8 @@ export type StepCond = "campus" | "offcampus" | "speaker" | "externalGuest" | "u
 
 /** Saved graph membership; order only breaks ties between independent steps. */
 export interface WorkflowPlacement { branchId: string; order: number }
+/** A step's authored category. Event intake predicates remain separate in cond/branch conditions. */
+export type WorkflowStepKind = "core" | "situation"
 export interface WorkflowBranch {
   id: string
   title: string
@@ -78,6 +80,7 @@ export interface WorkflowBranch {
  * steps; the rule engine (schedule.ts) turns those into deadlines. Both the standard workflow and a club's own are lists of these.
  */
 export interface StepTemplate {
+  stepKind?: WorkflowStepKind
   placement?: WorkflowPlacement
   /** Missing preserves the calibrated defaults; an explicit effort edit opts in. */
   startPolicy?: "window" | "effort"
@@ -289,6 +292,7 @@ export type Anchor =
 
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
+  stepKind?: WorkflowStepKind
   placement?: WorkflowPlacement
   startPolicy?: "window" | "effort"
   /** Creation scope, retained for graph editing; existing event tasks are never filtered on read. */

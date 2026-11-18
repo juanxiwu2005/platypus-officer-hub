@@ -1,3 +1,6 @@
+> **2026-11-17（America/Phoenix） · Workflow连线简化、岗位换分支与节点类型进行中（Codex）**
+> **用户要求：** 双击连线不做任何事，移除连线删除入口；黄色悬浮高亮保留代码但关闭。模板修改Done by时随岗位自动换到合适分支，尽量一分支一岗位，保留未来团队/岗位规则备注。右侧第一项可选Core event step或Situation-based step，新增前后节点继承被点击节点类型；类型独立保存，已有活动表单条件先保留并标明未来接入点。沿用原分支与PR14，保留同期附件自动保存工作，不改main。
+
 > **2026-11-17（America/Phoenix） · 分支启用条件多选与说明完成检查，待验收（Codex/Data/UI/Review worktree）**
 > **结果：** Add branch的Applies to改为Include this branch when，复用创建活动的18项checklist，多选全部AND；不选则Every event，附规则说明、数量摘要与Clear selection。新conditions数组覆盖旧condition（含显式空数组）；旧配置/节点规则不变，新分支保存、活动生成、前插继承及完整Undo接通，v23不重置。运行时代码`3432f52`。
 > **检查与验收：** 171项相关单元/组件通过；生产构建双端72浏览器通过、8项设备限定跳过，包含暗色、多选/刷新/插入/Undo、键盘和axe。首轮鼠标拖动用例未将节点移入可见区域，补关闭Ask/滚动后该项复验通过；未改产品拖动逻辑。前后端类型、build、lint、独立CSS、9页字数通过，入口543,387/550,000字节，Settings147/150，门槛未改。独立Review发现并修复同名checklist与派生规则的范围混淆，学校步骤不会因移入新条件分支被隐藏。[交付与用法](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md) · [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow → Add branch。保留同期附件自动保存进行中记录；0真实AI/邮件，沿用PR14、不合并main。需要同步本地备份。
