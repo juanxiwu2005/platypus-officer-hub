@@ -169,7 +169,7 @@ function moveOnBranch(nodes: Node[], id: string, context: FlowMoveContext): Edit
   if (isCoreStep(r) && conditionsOf(candidate, branches).length) return fail("Required workflow steps cannot be limited to conditional events.")
   if (isAsuStep(r) && scopeKey(r, branches) !== scopeKey(candidate, branches)) return fail("An ASU step must keep the events it applies to.")
   if (origin.id !== destination.id && scopeKey(r, branches) !== scopeKey(candidate, branches) && !context.conditionConfirmed) return fail("Moving to this branch changes which events use the step. Confirm the new scope first.")
-  const external = r.dependsOn.filter(d => {
+  const external = isAsuStep(r) ? [...r.dependsOn] : r.dependsOn.filter(d => {
     const n = nodes.find(n => n.id === d)
     return !n || placementOf(n).branchId !== source.branchId
   })

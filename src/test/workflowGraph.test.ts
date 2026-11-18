@@ -76,6 +76,7 @@ describe("saved workflow branch operations", () => {
     expect(result.error).toBeUndefined()
     const after = applyEdits(nodes, result.edits)
     expect(ancestorsOf(after, id("finalcheck")).has(id("orderPlaced"))).toBe(true)
+    expect(ancestorsOf(after, id("orderPlaced")).has(id("purchaseApproval"))).toBe(true)
   })
   it("rejects moving a required core step into a conditional branch before reporting success", () => {
     const nodes = base.nodes.filter(n => n.eventId === "e-speaker")
