@@ -1,0 +1,115 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "kind": "reminder-email-research-static-concepts",
+  "conceptOnly": true,
+  "productCodeChanged": false,
+  "sourceCommit": "bebe999",
+  "docsIntegrationCommit": "273222b",
+  "generatedWith": "image_gen.imagegen",
+  "imageGenerationCalls": 11,
+  "originalsPreserved": true,
+  "report": "../../feedback-fix/REMINDER_EMAIL_RESEARCH_2026-11-18.md",
+  "scenario": {
+    "fictional": true,
+    "event": "Speaker Night",
+    "eventWhen": "Apr 16, 6–8 pm",
+    "task": "Reserve a room",
+    "owner": "Jordan Patel",
+    "taskDue": "Mar 31",
+    "requirement": "Accessible room for 40 attendees",
+    "dependency": "Sam publishes event details after location confirmation"
+  },
+  "images": [
+    {
+      "letter": "A",
+      "title": "A · One clear first step",
+      "mechanism": "Concrete next action; one internal task link",
+      "file": "A-next-action.png",
+      "original": "/workspace/generated_images/exec-a3421177-9eda-476c-8ee1-0fe8f4e8b8fd.png",
+      "emailUrlCount": 1,
+      "notes": "Proposed design; opening a link never changes task status.",
+      "bytes": 1482716,
+      "sha256": "7f8b020086b651c6228adb66a3262fa695ae7d51599b3370c3f8709c62aad052",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "letter": "B",
+      "title": "B · Go straight to the work",
+      "mechanism": "One external primary action plus one subordinate internal return path",
+      "file": "B-direct-booking.png",
+      "original": "/workspace/generated_images/exec-2783735c-a2ee-486c-82c2-90f959df2291.png",
+      "emailUrlCount": 2,
+      "notes": "Proposed design; opening a link never changes task status.",
+      "bytes": 1700328,
+      "sha256": "24a8f1db0972c3878b23d005de281aeae42e211897646bda36cf0bd088384c0f",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "letter": "C",
+      "title": "C · Choose a moment to begin",
+      "mechanism": "Optional private implementation intention; one internal link",
+      "file": "C-choose-a-moment.png",
+      "original": "/workspace/generated_images/exec-95060d76-3086-4c67-aff1-999f14c93ca0.png",
+      "emailUrlCount": 1,
+      "notes": "Proposed design; opening a link never changes task status.",
+      "bytes": 1674441,
+      "sha256": "6d034a74a677a7bcedc2490bca28ed6373a35d846cd9ff2c14ced4d5178d6971",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "letter": "D",
+      "title": "D · Show why it matters",
+      "mechanism": "Specific task significance, real dependency, appreciation; one task link",
+      "file": "D-purpose-and-peer.png",
+      "original": "/workspace/generated_images/exec-730c750a-1bb0-41f9-8501-beea84feb201.png",
+      "emailUrlCount": 1,
+      "notes": "Proposed design; opening a link never changes task status.",
+      "bytes": 1749926,
+      "sha256": "29ca1386d4600a91709e8a507c6c126cd210ea6312674a68d8848174a23e892e",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "letter": "E",
+      "title": "E · Find the obstacle",
+      "mechanism": "Three explicit navigation choices; contextual help; no one-click status mutation",
+      "file": "E-remove-a-barrier.png",
+      "original": "/workspace/generated_images/exec-241faf30-4f86-4ff3-afd5-b7372aa97435.png",
+      "emailUrlCount": 3,
+      "notes": "Proposed design; opening a link never changes task status.",
+      "bytes": 1705913,
+      "sha256": "5adf1a5771d94d3f29c4f7c4f2a595b21df4a1301ed42fa63e2603374a69f8f1",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "letter": "F",
+      "title": "F · A real person can help",
+      "mechanism": "Genuine human-reviewed follow-up, monitored reply, one task URL",
+      "file": "F-real-human-support.png",
+      "original": "/workspace/generated_images/exec-8ef2d300-f34d-4a57-93bf-ba7892ed7927.png",
+      "emailUrlCount": 1,
+      "notes": "Only when a real person reviews, sends, and receives replies. Native email Reply is separate from the single task URL.",
+      "bytes": 1717258,
+      "sha256": "61acedcaa3e29ebade5d77ce8af21b396dd675af3c9fdb7496f478b1c0de4c83",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    }
+  ]
+}
