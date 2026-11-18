@@ -1,3 +1,7 @@
+> **2026-11-17（America/Phoenix） · Onboarding 团队板与工作包画板 v3 原稿，进行中（Codex）**
+> **本轮范围：** 按 Juanxi 反馈区分 Add team / Add role，明确团队成员与岗位层级，支持拖动岗位入组；将整包指派重做为左到右、分支与汇合的可操作画板。仅交付隔离原稿，审核后再决定正式接入。
+> **保留：** v1 五屏与 v2 所有方案原样留档，后续新建活动等四屏冻结；不改 src、服务器、规则、存储结构、main，不调用真实 AI 或发送邮件。采用独立 worktree，基线 c31bc7f；原模板依赖与建议连线分开标记。
+
 > **2026-11-17（America/Phoenix） · 分支启用条件多选与说明完成检查，待验收（Codex/Data/UI/Review worktree）**
 > **结果：** Add branch的Applies to改为Include this branch when，复用创建活动的18项checklist，多选全部AND；不选则Every event，附规则说明、数量摘要与Clear selection。新conditions数组覆盖旧condition（含显式空数组）；旧配置/节点规则不变，新分支保存、活动生成、前插继承及完整Undo接通，v23不重置。运行时代码`3432f52`。
 > **检查与验收：** 171项相关单元/组件通过；生产构建双端72浏览器通过、8项设备限定跳过，包含暗色、多选/刷新/插入/Undo、键盘和axe。首轮鼠标拖动用例未将节点移入可见区域，补关闭Ask/滚动后该项复验通过；未改产品拖动逻辑。前后端类型、build、lint、独立CSS、9页字数通过，入口543,387/550,000字节，Settings147/150，门槛未改。独立Review发现并修复同名checklist与派生规则的范围混淆，学校步骤不会因移入新条件分支被隐藏。[交付与用法](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md) · [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow → Add branch。保留同期附件自动保存进行中记录；0真实AI/邮件，沿用PR14、不合并main。需要同步本地备份。
