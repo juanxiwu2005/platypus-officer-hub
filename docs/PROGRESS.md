@@ -1,3 +1,6 @@
+> **2026-11-17（America/Phoenix） · 保存五屏原稿、只审阅onboarding，进行中（Codex）**
+> Juanxi喜欢五屏交互稿，要求保存，并只讨论onboarding；职位层级、姓名与email要直观，work groups必须覆盖真实40多项模板。原稿按字节归档于`docs/prototypes/work-group-assignment/v1/`；第二至第五屏冻结。准备4种人员设置、6种完整模板分组交互方案；不修改运行时和其他进行中工作。只有用户说“可以了，进行下一步”才推进新建活动的下一轮设计。需要同步本地备份。
+
 > **2026-11-17（America/Phoenix） · Workflow 修复方案与 worktree Agent 分工进行中（Codex）**
 > **用户范围：** 暂不修改链接及Details易用性；先制定移动、同分支插入、工作量数据、Full Check删除保护、各类条件分支任务隔离的详细修复方案，同时说明before插入及新增分支交互，再按阶段分worktree实施。三位Agent已在独立worktree只读拆解图形操作、工作量/排程、条件/结构保护；本阶段不改产品代码，不触碰实际任务Details/Edit进行中的工作。
 
