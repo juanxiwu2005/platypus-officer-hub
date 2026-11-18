@@ -424,10 +424,12 @@ Finished study task 2 after 3 min 5 s
 | 字段/操作 | 含义与边界 |
 | --- | --- |
 | `Node.externalLinks[]` | 人工编辑的办理入口标签及http/https URL；未设置使用已知入口，显式空数组不补回；不写回模板 |
-| `Node.taskWork.version/revision` | 版本1的通用提交及递增内容版本；保存同时核对归属任期，未知/损坏版本不自动清空 |
-| `taskWork.drafts[]` | 按作者保留当前正文、附件ID和保存业务日；仅作者在提交编辑区看到自己的草稿，不据此标为完成或负责人回复 |
+| `Node.taskWork.version/revision` | 兼容版本1内嵌文件与版本2文件引用的通用提交及递增内容版本；保存同时核对归属任期，未知/损坏版本不自动清空 |
+| `taskWork.drafts[]` | 旧版按作者保存的正文/附件ID/业务日继续读取；新自动草稿在独立IndexedDB journal中，不据此标为完成或负责人回复 |
 | `taskWork.submissions[]` | 追加式已提交正文、作者、保存业务日、原负责人任期与附件ID；更正时保留旧提交，其他成员可在节点查看已发布结果 |
-| `taskWork.files[]` | 去重原文件字节与名称/大小；随业务快照和完整导出恢复，下载使用octet-stream；不自动送AI。最多5个当前附件、512KB/个、每任务含历史共2MB |
+| `taskWork.files[]` | 去重文件元数据与blobKey，原始字节在platypus.task-work/files；旧dataUrl仍可读，完整JSON导出补齐字节，下载用octet-stream，不自动送AI。最多3个当前附件、2MB/个、总计5MB，旧版本历史文件保留 |
+| `platypus.task-work/drafts` | 按工作区哈希、节点、作者、ownerId/ownerVersion隔离，正文与文件引用在同一事务自动提交；revision做跨标签页CAS，事务完成才报告已保存，切换任务不取消；不包含可直接使用的链接签名密钥 |
+| `taskDrafts`（完整导出） | 自动保存的私有未提交草稿及其实际文件字节；downloadExport异步收集，缺文件/保存失败时不输出虚假的完整副本；restoreTaskWorkArchive先暂存文件再返回小业务快照，无新增导入界面 |
 | `saveTaskWork` | 同一次持久写入保存结果与完成；财务节点只保存材料，仍由Event Budget决定完成。业务日志仅记录正文长度和附件元数据；原UI输入日志沿用全站规则 |
 | Edit | 独立面板保存任务定义，带原定义指纹，保留成员提交；Cancel不写入。旧draftLink仍可打开，不冒充新的已提交内容 |
 
