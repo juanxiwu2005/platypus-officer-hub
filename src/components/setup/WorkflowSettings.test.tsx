@@ -12,15 +12,15 @@ import type { StepEdit } from "../../lib/stepOrder"
 // These cases exercise the real settings state, rail and persistence. Graph gestures have their own tests.
 const operation = vi.hoisted(() => ({ accepted: undefined as boolean | void, error: undefined as string | undefined, edits: 0 }))
 vi.mock("../flow/MetroChart", async () => {
-  const { moveBetween } = await import("../../lib/flowEdit")
+  const { unlinkSteps } = await import("../../lib/flowEdit")
   return { MetroChart: ({ onSelect, port, state }: { state: DemoState; onSelect: (id: string) => void; port: { applyEdits: (edits: StepEdit[]) => boolean | void; addBranch?: (branch: WorkflowBranch, id: string, title: string) => boolean | void } }) => <div>
     <button onClick={() => onSelect("budget")}>Select budget</button><button onClick={() => onSelect("partnerReview")}>Select partner review</button><button onClick={() => onSelect("guest-followup")}>Select custom step</button>
     <button onClick={() => port.addBranch?.({ id: "new-support", title: "New support", side: "before_event", condition: "externalGuest", order: 20, defaultRoleId: "r-events" }, "new-step", "Guest arrival")}>Add test branch</button>
     <button onClick={() => {
-      const result = moveBetween(state.nodes, "purchaseRequest", "budgetRequest", "budgetApproval", { target: { branchId: "finance", afterId: "budgetRequest", beforeId: "budgetApproval", source: "gap" }, branches: state.events[0].workflowBranches! })
+      const result = unlinkSteps(state.nodes, "purchaseRequest", "budgetApproval")
       operation.error = result.error; operation.edits = result.edits.length
       operation.accepted = result.error ? false : port.applyEdits(result.edits)
-    }}>Move purchase before approval</button>
+    }}>Cut purchase approval link</button>
   </div> }
 })
 
@@ -90,9 +90,9 @@ describe("workflow settings editing", () => {
     expect(latest.org.eventWorkflow?.branches?.some(branch => branch.id === "new-support")).toBe(false)
   })
 
-  it("rejects a graph move that would break the required approval dependency before claiming success", () => {
+  it("rejects a graph edit that removes the required approval dependency before claiming success", () => {
     show()
-    fireEvent.click(screen.getByRole("button", { name: "Move purchase before approval" }))
+    fireEvent.click(screen.getByRole("button", { name: "Cut purchase approval link" }))
     expect(operation.error).toBeUndefined()
     expect(operation.edits).toBeGreaterThan(0)
     expect(operation.accepted).toBe(false)
