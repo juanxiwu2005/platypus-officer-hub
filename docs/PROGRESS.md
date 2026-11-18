@@ -1,3 +1,7 @@
+> **2026-11-17（America/Phoenix） · Speaker 工作流模板审计已完成，修复待讨论（Codex）**
+> **结论与记录：** 基于功能分支 `0f53577`，收口复核至仅增加进度文档的 `ab7123c`；用户提出的链接、Details、移动与新增分支问题均有依据，共记录13项。详见[模板问题记录](feedback-fix/WORKFLOW_TEMPLATE_AUDIT_2026-11-17.md)，含复现、优先级、代码位置、原因与验收标准。重点包括图与已保存依赖不一致、自定义节点进入其他分支、工作量不改变开始提醒、条件丢失、删除后补回及删Full Check使活动前节点消失。
+> **验证与下一步：** 104项相关单元测试及现有Settings工作流双端2项浏览器检查通过；另有8个浏览器场景记录及函数反例。仅提交文档，0真实AI/邮件；未实施修复、不合并main、不创建PR。实际任务Details改版另有进行中的工作，本报告保留其记录并标明边界；后续先统一模板、布局和排程，再补办理链接和可复用任务说明。需要同步本地备份。
+
 > **2026-11-17（America/Phoenix） · 所有实际活动节点统一 Details、通用提交与 Edit 侧栏进行中（Codex）**
 > **授权：** Juanxi 选定独立任务详情布局与右侧Edit面板，要求应用到所有活动节点；Settings工作流模板明确排除。以PR #14最新`81fd290`为基点，保留Start设置统一及此前提醒交付，不新增PR、不合并main。
 > **范围：** 活动/任务和邮件入口共用简洁任务头、一个Due、负责人/状态、多个外部办理链接，以及统一Details文本框、多附件、保存草稿和提交完成。Edit只编辑任务定义和外部链接，提交内容独立保存；原权限、财务完成条件、改派撤权和写失败保护继续有效。逐项验证后推送preview14。
@@ -469,6 +473,8 @@
 
 ## 交接记录（最新的在最上面）
 
+- **2026-11-17（America/Phoenix） · Codex：** 完成speaker工作流模板审计，13项问题见[问题记录](feedback-fix/WORKFLOW_TEMPLATE_AUDIT_2026-11-17.md)。104项单元及现有双端2项浏览器检查通过，另8个浏览器反例场景；只记录，不改产品代码。后续修复先核对实际任务Details并行改动，Settings模板仍是本报告范围；不合并main，需要同步本地备份。
+
 - **2026-11-17 · Codex：** `d616bb1`统一Start与Settings/旧链接的设置链条，删除旧六步Setup；旧草稿显式继续、事务备份、失败重试、恢复不自动读AI。156项单元、133项浏览器通过/1设备限定跳过；Netlify preview14代码部署success。新增按任务组分配的提案，未实施分配功能；交付详见[设置统一](feedback-fix/SETUP_ENTRY_UNIFICATION_HANDOFF.md)。main未变，需要同步本地备份。
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
@@ -565,6 +571,3 @@
 
 > **2026-11-02 · First Event 时间线审计（Codex）· 待用户调整**
 > **发现：** 当前模板允许 `Budget`（2/8）先于 `Event Plan`（2/15），根因是 Budget 只作为 Food Exception Permit 的前置条件，未依赖 Event Plan；预览又按最早 club deadline 截取 6 点，不是依赖路径。没有伪改日期或改动引擎。已提供可在 Excel 打开的 TSV（每节点的起止日、依赖、官方截止日及可填写的提议列）和受影响早期分支的逐日泳道表；详情见 `docs/onboarding-redesign/reports/OB-06-timeline-review-2026-11-02.md`。另附 GitHub Primer 对齐的三段统一卡片式页面方案，待时序确认后实施。
-> **2026-11-17（America/Phoenix） · Speaker 工作流模板审计进行中（Codex）**
-> **本轮范围：** Juanxi 要求先核对 Settings → Workflow 模板及实际活动 Plan 的链接、Details、节点移动和右键新增，并记录其他相关问题；本轮不修改产品代码。以 `claude/fervent-thompson-e2j5u2@0f53577` 为审查基点，独立工作目录检查，报告归入 `docs/feedback-fix/`。优先服务自动提醒及组织交接；模板修复方案待审查结果整理后讨论，不自动开始实现。
-
