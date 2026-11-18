@@ -5,6 +5,7 @@ import { ancestorsOf, createsLoop, reduceDeps, type EditResult, type StepEdit } 
 import { conditionsOf, isStepCondition, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
 import { deletionReason, isAsuStep, isCoreStep } from "../engine/workflowPolicy"
 import { orderedBranchNodes } from "./flowOrder"
+import { workflowStepKind } from "../engine/workflowStepKind"
 
 export interface FlowInsertionTarget {
   branchId: string
@@ -111,6 +112,7 @@ function editsFrom(before: Node[], after: Node[]): StepEdit[] {
     if (!same(n.dependsOn, old.dependsOn)) patch.dependsOn = n.dependsOn
     if (JSON.stringify(n.placement) !== JSON.stringify(old.placement)) patch.placement = n.placement
     if (n.cond !== old.cond) patch.cond = n.cond ?? null
+    if (n.stepKind !== old.stepKind && n.stepKind !== undefined) patch.stepKind = n.stepKind
     return Object.keys(patch).length ? [{ id: n.id, patch }] : []
   })
 }
@@ -124,6 +126,7 @@ export function insertFlowStep(nodes: Node[], fresh: Node, target: FlowInsertion
   if ((fresh.phase === "close") !== (branch.side === "after_event")) return fail("A step must stay on the same side of the event day.")
   const reference = nodes.find(n => n.id === target.referenceId)
   const condition = target.condition !== undefined ? target.condition ?? undefined : reference?.cond ?? fresh.cond
+  const stepKind = fresh.stepKind ?? workflowStepKind(reference ?? { ...fresh, placement: { branchId: branch.id, order: 0 } }, branches)
   const ordered = orderedBranchNodes(nodes, branch.id)
   const index = target.beforeId ? ordered.findIndex(n => n.id === target.beforeId) : -1
   const insertion = index < 0 ? ordered.length : index
@@ -132,7 +135,7 @@ export function insertFlowStep(nodes: Node[], fresh: Node, target: FlowInsertion
   const after = all.map(n => {
     const order = ids.indexOf(n.id)
     const placement = order >= 0 ? { branchId: branch.id, order } : n.placement
-    if (n.id === fresh.id) return { ...n, placement, cond: condition, dependsOn: target.afterId ? [target.afterId] : [] }
+    if (n.id === fresh.id) return { ...n, placement, cond: condition, stepKind, dependsOn: target.afterId ? [target.afterId] : [] }
     if (n.id === target.beforeId) return { ...n, placement, dependsOn: uniq([...n.dependsOn.filter(d => d !== target.afterId), fresh.id]) }
     return order >= 0 ? { ...n, placement } : n
   })
@@ -182,12 +185,14 @@ function moveOnBranch(nodes: Node[], id: string, context: FlowMoveContext): Edit
   })
   const error = validateTarget(detached, context.target, branches)
   if (error) return fail(error)
-  const result = insertFlowStep(detached, { ...r, dependsOn: [] }, { ...context.target, condition: targetCondition ?? null }, branches)
+  // A move preserves the source category, including old custom steps whose kind was inferred.
+  const sourceKind = workflowStepKind(r, branches)
+  const result = insertFlowStep(detached, { ...r, stepKind: sourceKind, dependsOn: [] }, { ...context.target, condition: targetCondition ?? null }, branches)
   if (result.error) return result
   const patches = new Map(result.edits.map(e => [e.id, e.patch]))
-  const after = [...detached, r].map(n => {
+  const after = [...detached, { ...r, stepKind: sourceKind }].map(n => {
     const p = patches.get(n.id)
-    const changed = p ? { ...n, ...p, cond: Object.hasOwn(p, "cond") ? p.cond ?? undefined : n.cond } : n
+    const changed = p ? { ...n, ...p, cond: Object.hasOwn(p, "cond") ? p.cond ?? undefined : n.cond, stepKind: Object.hasOwn(p, "stepKind") ? p.stepKind ?? undefined : n.stepKind } : n
     return changed.id === id ? { ...changed, dependsOn: uniq([...changed.dependsOn, ...external]) } : changed
   })
   const sourceOrder = orderedBranchNodes(after, source.branchId).map(n => n.id)
@@ -207,8 +212,9 @@ export function removalEdits(nodes: Node[], id: string): StepEdit[] {
 }
 
 /** A new step made in the chart: one working day, no owner yet (it shows up in the details panel to fill in), same phase and kind of work as its neighbour. */
-export function newStepNode(ev: Pick<Event, "id">, id: string, ref: Node | undefined, today: string): Node {
+export function newStepNode(ev: Pick<Event, "id">, id: string, ref: Node | undefined, today: string, branches?: readonly WorkflowBranch[]): Node {
   return {
+    stepKind: ref ? workflowStepKind(ref, branches) : "core",
     id, title: "New step", eventId: ev.id, stepKey: null, phase: ref?.phase ?? "prepare", fn: ref?.fn ?? "programs", ownerId: null, approverRoleId: ref?.approverRoleId ?? null,
     consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: "light", estDays: 1, anchor: null, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null,
     ruleIds: [], status: "unclaimed", acceptedOn: null, waitingOn: null, draftLink: null, why: "Added in the flow chart.", source: "Added by you", lastUpdate: null, assignedOn: today, ownerVersion: 0,

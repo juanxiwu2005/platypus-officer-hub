@@ -1,4 +1,4 @@
-import type { Event, Node, Phase, StepCond, WorkflowPlacement } from "../data/types"
+import type { Event, Node, Phase, StepCond, WorkflowPlacement, WorkflowStepKind } from "../data/types"
 import type { Schedule } from "../engine/schedule"
 import { isStepCondition } from "../engine/workflowBranches"
 
@@ -14,7 +14,7 @@ import { isStepCondition } from "../engine/workflowBranches"
 export const PHASES: Phase[] = ["plan", "prepare", "money", "marketing", "run", "close"]
 export const MAX_DAYS = 30
 
-export interface StepPatch { dependsOn?: string[]; estDays?: number; phase?: Phase; placement?: WorkflowPlacement; cond?: StepCond | null; startPolicy?: "window" | "effort" }
+export interface StepPatch { dependsOn?: string[]; estDays?: number; phase?: Phase; placement?: WorkflowPlacement; cond?: StepCond | null; stepKind?: WorkflowStepKind | null; startPolicy?: "window" | "effort" }
 export interface StepEdit { id: string; patch: StepPatch }
 export interface EditResult { edits: StepEdit[]; message: string; error?: string; note?: string }
 
@@ -69,8 +69,8 @@ export function applyEdits(nodes: Node[], edits: StepEdit[]): Node[] {
   return nodes.map(n => {
     const p = by.get(n.id)
     if (!p) return n
-    const { cond, ...rest } = p
-    return { ...n, ...rest, ...(Object.hasOwn(p, "cond") ? { cond: cond ?? undefined } : {}) }
+    const { cond, stepKind, ...rest } = p
+    return { ...n, ...rest, ...(Object.hasOwn(p, "cond") ? { cond: cond ?? undefined } : {}), ...(Object.hasOwn(p, "stepKind") ? { stepKind: stepKind ?? undefined } : {}) }
   })
 }
 
@@ -190,6 +190,7 @@ export function inverseOf(nodes: Node[], edits: StepEdit[]): StepEdit[] {
       if (e.patch.placement) back.placement = n.placement
       if (Object.hasOwn(e.patch, "cond")) back.cond = n.cond ?? null
       if (e.patch.startPolicy) back.startPolicy = n.startPolicy
+      if (Object.hasOwn(e.patch, "stepKind")) back.stepKind = n.stepKind ?? null
     }
     return { id: e.id, patch: back }
   })
@@ -209,6 +210,7 @@ export function cleanPatch(patch: unknown, eventIds: Set<string>, selfId: string
   if (p.cond === null) out.cond = null
   else if (isStepCondition(p.cond)) out.cond = p.cond
   if (p.startPolicy === "window" || p.startPolicy === "effort") out.startPolicy = p.startPolicy
+  if (p.stepKind === null || p.stepKind === "core" || p.stepKind === "situation") out.stepKind = p.stepKind
   return out
 }
 

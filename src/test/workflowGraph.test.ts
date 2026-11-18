@@ -69,6 +69,15 @@ describe("saved workflow branch operations", () => {
     expect(result.error).toBeUndefined()
     expect(applyEdits(nodes, result.edits).find(n => n.id === "partner")).toMatchObject({ placement: { branchId: "work", order: 0 }, cond: undefined })
   })
+  it("preserves an old custom step's situation category when a confirmed move changes its branch scope", () => {
+    const definitions: WorkflowBranch[] = [...branches, { id: "trip", title: "Travel", side: "before_event", order: 12, conditions: ["travel"] }]
+    const nodes = [n("old-custom", "trip", 0), n("other", "work", 0)]
+    const destination = { ...target("work", null, "other"), condition: null }
+    const result = moveBetween(nodes, "old-custom", null, "other", { target: destination, branches: definitions, conditionConfirmed: true })
+    expect(result.error).toBeUndefined()
+    expect(applyEdits(nodes, result.edits).find(node => node.id === "old-custom")).toMatchObject({ stepKind: "situation", placement: { branchId: "work" } })
+    expect(nodes[0].stepKind).toBeUndefined()
+  })
   it("preserves the standard Full Check dependency when an order task moves to Marketing", () => {
     const nodes = base.nodes.filter(n => n.eventId === "e-speaker")
     const id = (key: string) => `e-speaker:${key}`

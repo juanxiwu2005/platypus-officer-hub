@@ -72,6 +72,7 @@ export interface WorkflowBranch {
   conditions?: StepCond[]
   /** Legacy single requirement, used only when conditions is absent. */
   condition?: StepCond
+  /** Prefer one role/team per branch. TODO: replace role-routing fallback with the future explicit team/role map. */
   defaultRoleId?: string | null
 }
 

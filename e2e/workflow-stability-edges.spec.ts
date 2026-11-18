@@ -23,21 +23,20 @@ test("shared Full Check requires an explicit insertion branch", async ({ page })
   expect(step.cond).toBe("externalGuest")
 })
 
-test("a mixed-scope line never silently inherits its left endpoint scope", async ({ page }) => {
+test("a mixed-scope template line has no double-click or double-tap action", async ({ page }) => {
   await workflow(page)
+  const before = await saved(page)
   const left = page.getByTestId("flow-node-foodCompliance"), right = page.getByTestId("flow-node-quotes")
   await left.scrollIntoViewIfNeeded()
   await right.scrollIntoViewIfNeeded()
   const a = await left.boundingBox(), b = await right.boundingBox()
   // Straight SVG strokes have a zero-height/width DOM box; click the painted midpoint.
-  await page.mouse.dblclick((a!.x + a!.width / 2 + b!.x + b!.width / 2) / 2, (a!.y + a!.height / 2 + b!.y + b!.height / 2) / 2)
-  const menu = page.getByTestId("flow-menu")
-  const add = menu.getByRole("button", { name: "Add a step here" })
-  await expect(add).toBeDisabled()
-  await menu.getByLabel("New step applies to").selectOption("externalFood")
-  await add.click()
-  await expect.poll(async () => (await saved(page)).org.eventWorkflow?.steps.find((s: { key: string }) => s.key === "new-step")?.cond).toBe("externalFood")
-  expect((await saved(page)).org.eventWorkflow.steps.find((s: { key: string }) => s.key === "new-step").placement.branchId).toBe("finance")
+  const x = (a!.x + a!.width / 2 + b!.x + b!.width / 2) / 2, y = (a!.y + a!.height / 2 + b!.y + b!.height / 2) / 2
+  if (test.info().project.name === "mobile") { await page.touchscreen.tap(x, y); await page.touchscreen.tap(x, y) }
+  else await page.mouse.dblclick(x, y)
+  await expect(page.getByTestId("flow-menu")).toHaveCount(0)
+  await expect(page.getByTestId("flow-undo")).toBeDisabled()
+  expect(await saved(page)).toEqual(before)
 })
 
 test("an old event without Full Check keeps all its other tasks visible", async ({ page }) => {

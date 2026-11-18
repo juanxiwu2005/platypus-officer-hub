@@ -1,5 +1,9 @@
 import type { EventCheck } from "./types"
 
+// TODO (event intake redesign): map situation-based steps to reviewed checklist keys here and
+// branch conditions in workflowBranches.ts. stepKind is the authored category, not an answer:
+// changing a step's category must never silently check event flags or rewrite old event tasks.
+
 /** The event form's selectable facts, shared with workflow branch requirements. */
 export const EVENT_CHECKLIST: readonly { key: EventCheck; label: string }[] = [
   { key: "funding", label: "Need funding or reimbursement" }, { key: "food", label: "Food or beverage" }, { key: "externalFood", label: "External food provider" }, { key: "onsiteFood", label: "On-site food preparation or food truck" },

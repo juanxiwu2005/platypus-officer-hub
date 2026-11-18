@@ -14,7 +14,7 @@ import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "..
 import { nextCounter } from "../lib/ids"
 import { PHASES, ancestorsOf, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
 import { cannotDelete, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, removalEdits, type FlowInsertionTarget } from "../lib/flowEdit"
-import { DEFAULT_WORKFLOW_BRANCHES, conditionsOf, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
+import { DEFAULT_WORKFLOW_BRANCHES, branchConditions, conditionsOf, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
 import { isAsuStep, isCoreStep } from "../engine/workflowPolicy"
 import { parseEffortDays } from "../lib/workflowEffort"
 import { advanceClock } from "../engine/followup"
@@ -199,7 +199,7 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
   const nodes = state.nodes.map(n => {
     const p = by.get(n.id)
     if (!p) return n
-    const next: Node = { ...n, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays, startPolicy: "effort" as const } : {}), ...(p.startPolicy ? { startPolicy: p.startPolicy } : {}), ...(p.phase ? { phase: p.phase } : {}), ...(p.placement ? { placement: p.placement } : {}), ...(p.cond !== undefined ? { cond: p.cond ?? undefined } : {}) }
+    const next: Node = { ...n, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays, startPolicy: "effort" as const } : {}), ...(p.startPolicy ? { startPolicy: p.startPolicy } : {}), ...(p.phase ? { phase: p.phase } : {}), ...(p.placement ? { placement: p.placement } : {}), ...(p.stepKind !== undefined ? { stepKind: p.stepKind ?? undefined } : {}), ...(p.cond !== undefined ? { cond: p.cond ?? undefined } : {}) }
     if (JSON.stringify(next) !== JSON.stringify(n)) changed = true
     return next
   })
@@ -238,7 +238,7 @@ function addEventStep(state: DemoState, eventId: string, id: string, uId: string
   const ref = inEvent.find(n => n.id === (target?.referenceId ?? uId ?? vId))
   if (!ev || typeof id !== "string" || !id.startsWith(`${eventId}:`) || state.nodes.some(n => n.id === id) || inEvent.length >= 80) return state
   if ((uId && !inEvent.some(n => n.id === uId)) || (vId && !inEvent.some(n => n.id === vId))) return state
-  const fresh = newStepNode(ev, id, ref, state.today)
+  const fresh = newStepNode(ev, id, ref, state.today, resolveBranches(inEvent, ev.workflowBranches))
   const withNode: DemoState = { ...state, nodes: [...state.nodes, fresh] }
   const r = target ? insertFlowStep(inEvent, fresh, target, resolveBranches(inEvent, ev.workflowBranches)) : moveBetween(withNode.nodes.filter(n => n.eventId === eventId), id, uId, vId)
   if (r.error) return state
@@ -255,7 +255,7 @@ function addEventBranch(state: DemoState, eventId: string, id: string, branch: W
   if (!branch || existing.some(b => b.id === branch.id) || validateBranchDefinitions([...existing, branch])) return state
   const role = branch.defaultRoleId ? state.roles.find(r => r.id === branch.defaultRoleId && r.fn !== "advisor") : undefined
   if (branch.defaultRoleId && !role) return state
-  const fresh: Node = { ...newStepNode(ev, id, undefined, state.today), title: title.trim(), phase: branch.side === "after_event" ? "close" : "prepare", fn: role?.fn ?? "programs", ownerId: role?.holderId ?? null, status: role?.holderId ? "accepted" : "unclaimed", acceptedOn: role?.holderId ? state.today : null }
+  const fresh: Node = { ...newStepNode(ev, id, undefined, state.today), stepKind: branchConditions(branch).length ? "situation" : "core", title: title.trim(), phase: branch.side === "after_event" ? "close" : "prepare", fn: role?.fn ?? "programs", ownerId: role?.holderId ?? null, status: role?.holderId ? "accepted" : "unclaimed", acceptedOn: role?.holderId ? state.today : null }
   const r = insertFlowBranch(nodes, fresh, branch, existing)
   if (r.error) return state
   const withNode = { ...state, events: state.events.map(e => e.id === eventId ? { ...e, workflowBranches: [...existing, structuredClone(branch)] } : e), nodes: [...state.nodes, fresh] }
@@ -294,7 +294,7 @@ function restoreEventNodes(state: DemoState, eventId: string, nodes: Node[], bra
   const current = new Map(existing.map(n => [n.id, n]))
   const restored = nodes.map(n => {
     const live = current.get(n.id)
-    return live ? { ...live, dependsOn: [...n.dependsOn], phase: n.phase, placement: n.placement ? { ...n.placement } : undefined, cond: n.cond, estDays: n.estDays, startPolicy: n.startPolicy } : structuredClone(n)
+    return live ? { ...live, dependsOn: [...n.dependsOn], phase: n.phase, placement: n.placement ? { ...n.placement } : undefined, cond: n.cond, stepKind: n.stepKind, estDays: n.estDays, startPolicy: n.startPolicy } : structuredClone(n)
   })
   return applySchedule({ ...state, events: state.events.map(e => e.id === eventId && branches !== undefined ? { ...e, workflowBranches: structuredClone(branches) } : e), nodes: [...state.nodes.filter(n => n.eventId !== eventId), ...restored] })
 }

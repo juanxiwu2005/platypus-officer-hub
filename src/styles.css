@@ -563,10 +563,11 @@ div.hover { display: block; }
 .metro.editing .m-dot:not(.station) { cursor: grab; touch-action: none; }
 .metro.editing .m-dot:not(.station):active { cursor: grabbing; }
 .m-node.is-dragging { opacity: .35; }
-.m-hit { fill: none; stroke: transparent; stroke-width: 20; pointer-events: stroke; cursor: pointer; }
+.m-hit { fill: none; stroke: transparent; stroke-width: 20; pointer-events: stroke; cursor: default; }
 .m-hit-line { fill: none; stroke: transparent; stroke-width: 0; pointer-events: none; }
-.m-hit:hover + .m-hit-line { stroke: var(--good); stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round; }
-.m-hit-main:hover + .m-hit-line { stroke-width: 5px; }
+/* Visual-only link hover is retained behind ENABLE_LINK_HOVER in MetroChart.tsx. */
+.link-hover-enabled .m-hit:hover + .m-hit-line { stroke: var(--good); stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round; }
+.link-hover-enabled .m-hit-main:hover + .m-hit-line { stroke-width: 5px; }
 .m-gap { position: absolute; width: 14px; height: 14px; transform: translate(-50%, -50%) rotate(45deg); background: var(--surface); border: 2px solid var(--accent); border-radius: var(--r-xs); pointer-events: none; opacity: .7; z-index: var(--z-raised); }
 .m-gap.is-near { width: 22px; height: 22px; background: var(--accent); opacity: 1; box-shadow: 0 0 0 5px var(--accent-soft); }
 .m-ghost { position: absolute; transform: translate(-50%, -140%); display: grid; gap: var(--s1); padding: var(--s3) var(--s5); border-radius: var(--r-md); background: var(--ink); color: var(--surface); font-size: var(--fs-sm); pointer-events: none; z-index: var(--z-local); max-width: 260px; }
