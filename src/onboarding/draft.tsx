@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom"
 import { useStore } from "../data/store"
 import { stepAt } from "./engine/flows"
 import { BUFFER_CHOICES, clubDraft, type ClubDraft, type FirstEvent } from "../data/settings"
-import type { DemoState, ReminderMode, StepTemplate } from "../data/types"
+import type { DemoState, ReminderMode, StepTemplate, WorkflowBranch } from "../data/types"
 import { orgSteps } from "../engine/playbooks"
 import { withOwners } from "../engine/workflow"
 import type { ConstitutionDoc } from "../components/setup/ConstitutionStep"
@@ -24,6 +24,7 @@ export interface OnboardingDraft {
   structureTouched: boolean       // the president edited roles by hand: never overwrite them
   missionTouched: boolean
   steps: StepTemplate[]           // the club's event workflow
+  workflowBranches?: WorkflowBranch[]
   workflowTouched: boolean
   buffer: number                  // working days before the real deadline
   sentence: string                // the first event, in one sentence
@@ -68,7 +69,7 @@ export function freshDraft(state: DemoState): OnboardingDraft {
   const club: ClubDraft = { ...base, name: "", mission: "", goals: [], workspace: { ...base.workspace, planningNotes: "", files: [] } }
   return {
     club, doc: null, reading: { status: "idle" }, applied: false, structureTouched: false, missionTouched: false,
-    steps: withOwners(orgSteps(state), club.roles), workflowTouched: false,
+    steps: withOwners(orgSteps(state), club.roles), workflowBranches: state.org.eventWorkflow?.branches ? structuredClone(state.org.eventWorkflow.branches) : undefined, workflowTouched: false,
     buffer: (BUFFER_CHOICES as readonly number[]).includes(state.org.settings.clubBufferBusinessDays) ? state.org.settings.clubBufferBusinessDays : 3,
     sentence: "", event: null, date: "", source: "", confirmed: false, reminderMode: null,
     inviteCode: crypto.randomUUID(), skipped: [],

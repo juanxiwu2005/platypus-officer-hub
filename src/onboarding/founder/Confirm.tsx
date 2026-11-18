@@ -43,7 +43,7 @@ export function Confirm() {
     const error = validateClub(draft.club)
     if (error) { setProblem(error); return }
     started.current = true
-    if (!tryDispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, reminderMode })) { started.current = false; setProblem("Your club could not be saved. Export your current data and retry before leaving this page."); return }
+    if (!tryDispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, workflowBranches: draft.workflowBranches, reminderMode })) { started.current = false; setProblem("Your club could not be saved. Export your current data and retry before leaving this page."); return }
     recordSetup("start-workspace")
     clear()
     navigate("/welcome/founder/invite")

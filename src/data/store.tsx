@@ -2,7 +2,7 @@ import { changeHandoff, repairLegacyHandoff, type HandoffAction } from "./handof
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate } from "./types"
+import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate, WorkflowBranch } from "./types"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
@@ -13,7 +13,10 @@ import { applySchedule, computeSchedule, type Schedule } from "../engine/schedul
 import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "../engine/playbooks"
 import { nextCounter } from "../lib/ids"
 import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
-import { cannotDelete, moveBetween, newStepNode, removalEdits } from "../lib/flowEdit"
+import { cannotDelete, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, removalEdits, type FlowInsertionTarget } from "../lib/flowEdit"
+import { resolveBranches, validateBranchDefinitions } from "../engine/workflowBranches"
+import { isCoreStep } from "../engine/workflowPolicy"
+import { parseEffortDays } from "../lib/workflowEffort"
 import { advanceClock } from "../engine/followup"
 import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type ReplyInput, type TaskReply } from "./taskWorkflow"
 import { usableGrant } from "../lib/officerLinks"
@@ -100,7 +103,7 @@ function completeDemoSpeakerPlan(state: DemoState): DemoState {
 }
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
-export type NodePatch = Partial<Pick<Node, "title" | "instructions" | "completionCriteria" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
+export type NodePatch = Partial<Pick<Node, "title" | "instructions" | "completionCriteria" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "startPolicy" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "details">>
 
 export type Action =
@@ -137,9 +140,10 @@ export type Action =
   | { type: "updateNode"; id: string; patch: NodePatch }
   /** The step editor (M3): a few steps' dependsOn / estDays / phase, and the display order of the phase groups. Never a date. */
   | { type: "applyStepEdits"; eventId: string; edits: StepEdit[]; phaseOrder?: Phase[] }
-  | { type: "addEventStep"; eventId: string; id: string; uId: string | null; vId: string | null }
+  | { type: "addEventStep"; eventId: string; id: string; uId: string | null; vId: string | null; target?: FlowInsertionTarget }
+  | { type: "addEventBranch"; eventId: string; id: string; branch: WorkflowBranch; title: string }
   | { type: "removeEventStep"; eventId: string; nodeId: string }
-  | { type: "restoreEventNodes"; eventId: string; nodes: Node[] }
+  | { type: "restoreEventNodes"; eventId: string; nodes: Node[]; branches?: WorkflowBranch[] }
   | { type: "updateEvent"; id: string; patch: EventPatch }
   | { type: "draftChanges"; changeSet: ChangeSet }
   | { type: "aiAutoApply"; changeSet: ChangeSet }
@@ -165,11 +169,11 @@ export type Action =
   | { type: "officerAction"; token: string; reply: TaskReply | "claim"; input?: ReplyInput }
   | { type: "saveClubSettings"; draft: ClubDraft; defaults: OrgSettings }
   | { type: "saveProfile"; personId: string; patch: ProfilePatch; invite?: string }
-  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number; workflow?: StepTemplate[]; reminderMode?: ReminderMode | null }
-  | { type: "saveWorkflow"; steps: StepTemplate[] }
+  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number; workflow?: StepTemplate[]; workflowBranches?: WorkflowBranch[]; reminderMode?: ReminderMode | null }
+  | { type: "saveWorkflow"; steps: StepTemplate[]; branches?: WorkflowBranch[] }
   | { type: "resetWorkflow" }
 
-const NODE_FIELDS: (keyof NodePatch)[] = ["title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
+const NODE_FIELDS: (keyof NodePatch)[] = ["title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "startPolicy", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
 
 /**
@@ -185,14 +189,21 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
   const clean: StepEdit[] = edits.filter(e => e && ids.has(e.id)).map(e => ({ id: e.id, patch: cleanPatch(e.patch, ids, e.id) })).filter(e => Object.keys(e.patch).length > 0)
   if (createsLoop(inEvent, clean)) return state
   const by = new Map(clean.map(e => [e.id, e.patch]))
+  const branches = resolveBranches(inEvent, ev.workflowBranches)
   let changed = false
   const nodes = state.nodes.map(n => {
     const p = by.get(n.id)
     if (!p) return n
-    const next: Node = { ...n, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays } : {}), ...(p.phase ? { phase: p.phase } : {}) }
-    if (next.dependsOn.join() !== n.dependsOn.join() || next.estDays !== n.estDays || next.phase !== n.phase) changed = true
+    const next: Node = { ...n, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays, startPolicy: "effort" as const } : {}), ...(p.startPolicy ? { startPolicy: p.startPolicy } : {}), ...(p.phase ? { phase: p.phase } : {}), ...(p.placement ? { placement: p.placement } : {}), ...(p.cond !== undefined ? { cond: p.cond ?? undefined } : {}) }
+    if (JSON.stringify(next) !== JSON.stringify(n)) changed = true
     return next
   })
+  if (nodes.some(n => {
+    if (n.eventId !== eventId || !by.has(n.id)) return false
+    const branch = branches.find(b => b.id === n.placement?.branchId)
+    if (isCoreStep(n) && (n.cond || branch?.condition)) return true
+    return !!n.placement && n.placement.branchId !== "main" && (!branch || (n.phase === "close") !== (branch.side === "after_event"))
+  })) return state
   const order = Array.isArray(phaseOrder) && phaseOrder.length === PHASES.length && PHASES.every(p => phaseOrder.includes(p)) ? phaseOrder : undefined
   const orderChanged = !!order && phaseOrderOf(ev).join() !== order.join()
   if (!changed && !orderChanged) return state
@@ -204,17 +215,33 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
  * Add a step in the event's flow chart, between two neighbours (either can be missing). It starts with one day of work and no owner; the details panel
  * is where it gets a name, an owner and the rest. Its place comes from the same "waits for" links as every other step, so the rule engine dates it.
  */
-function addEventStep(state: DemoState, eventId: string, id: string, uId: string | null, vId: string | null): DemoState {
+function addEventStep(state: DemoState, eventId: string, id: string, uId: string | null, vId: string | null, target?: FlowInsertionTarget): DemoState {
   const ev = state.events.find(e => e.id === eventId)
   const inEvent = state.nodes.filter(n => n.eventId === eventId)
-  const ref = inEvent.find(n => n.id === (uId ?? vId))
+  const ref = inEvent.find(n => n.id === (target?.referenceId ?? uId ?? vId))
   if (!ev || typeof id !== "string" || !id.startsWith(`${eventId}:`) || state.nodes.some(n => n.id === id) || inEvent.length >= 80) return state
   if ((uId && !inEvent.some(n => n.id === uId)) || (vId && !inEvent.some(n => n.id === vId))) return state
-  const withNode: DemoState = { ...state, nodes: [...state.nodes, newStepNode(ev, id, ref, state.today)] }
-  const r = moveBetween(withNode.nodes.filter(n => n.eventId === eventId), id, uId, vId)
+  const fresh = newStepNode(ev, id, ref, state.today)
+  const withNode: DemoState = { ...state, nodes: [...state.nodes, fresh] }
+  const r = target ? insertFlowStep(inEvent, fresh, target, resolveBranches(inEvent, ev.workflowBranches)) : moveBetween(withNode.nodes.filter(n => n.eventId === eventId), id, uId, vId)
   if (r.error) return state
   const next = applyStepEdits(withNode, eventId, r.edits)
   return applySchedule(next === withNode || next === state ? withNode : next)
+}
+
+function addEventBranch(state: DemoState, eventId: string, id: string, branch: WorkflowBranch, title: string): DemoState {
+  const ev = state.events.find(e => e.id === eventId)
+  const nodes = state.nodes.filter(n => n.eventId === eventId)
+  if (!ev || typeof id !== "string" || !id.startsWith(`${eventId}:`) || state.nodes.some(n => n.id === id) || nodes.length >= 80 || typeof title !== "string" || !title.trim() || title.length > 120) return state
+  const existing = resolveBranches(nodes, ev.workflowBranches)
+  if (!branch || existing.some(b => b.id === branch.id) || validateBranchDefinitions([...existing, branch])) return state
+  const role = branch.defaultRoleId ? state.roles.find(r => r.id === branch.defaultRoleId && r.fn !== "advisor") : undefined
+  if (branch.defaultRoleId && !role) return state
+  const fresh: Node = { ...newStepNode(ev, id, undefined, state.today), title: title.trim(), phase: branch.side === "after_event" ? "close" : "prepare", fn: role?.fn ?? "programs", ownerId: role?.holderId ?? null, status: role?.holderId ? "accepted" : "unclaimed", acceptedOn: role?.holderId ? state.today : null }
+  const r = insertFlowBranch(nodes, fresh, branch, existing)
+  if (r.error) return state
+  const withNode = { ...state, events: state.events.map(e => e.id === eventId ? { ...e, workflowBranches: [...existing, structuredClone(branch)] } : e), nodes: [...state.nodes, fresh] }
+  return applyStepEdits(withNode, eventId, r.edits)
 }
 
 /** Delete a step the club added (or any step no ASU rule needs). Steps that waited for it wait for what it waited for. */
@@ -233,12 +260,21 @@ function removeEventStep(state: DemoState, eventId: string, nodeId: string): Dem
 }
 
 /** Put the event's steps back as they were (the chart's Undo). Only this event's steps; nothing else changes. */
-function restoreEventNodes(state: DemoState, eventId: string, nodes: Node[]): DemoState {
+function restoreEventNodes(state: DemoState, eventId: string, nodes: Node[], branches?: WorkflowBranch[]): DemoState {
   if (!state.events.some(e => e.id === eventId) || !Array.isArray(nodes) || nodes.length > 80) return state
   const ids = new Set<string>()
   for (const n of nodes) { if (!n || typeof n.id !== "string" || n.eventId !== eventId || ids.has(n.id) || !Array.isArray(n.dependsOn)) return state; ids.add(n.id) }
   if (nodes.some(n => n.dependsOn.some(d => !ids.has(d)))) return state
-  return applySchedule({ ...state, nodes: [...state.nodes.filter(n => n.eventId !== eventId), ...nodes.map(n => structuredClone(n))] })
+  if (topoOrder(nodes).looped.length) return state
+  if (validateBranchDefinitions(branches)) return state
+  const existing = state.nodes.filter(n => n.eventId === eventId)
+  if (existing.some(n => !ids.has(n.id) && cannotDelete(n))) return state
+  const current = new Map(existing.map(n => [n.id, n]))
+  const restored = nodes.map(n => {
+    const live = current.get(n.id)
+    return live ? { ...live, dependsOn: [...n.dependsOn], phase: n.phase, placement: n.placement ? { ...n.placement } : undefined, cond: n.cond, estDays: n.estDays, startPolicy: n.startPolicy } : structuredClone(n)
+  })
+  return applySchedule({ ...state, events: state.events.map(e => e.id === eventId && branches !== undefined ? { ...e, workflowBranches: structuredClone(branches) } : e), nodes: [...state.nodes.filter(n => n.eventId !== eventId), ...restored] })
 }
 
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
@@ -246,7 +282,12 @@ function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   for (const field of ["instructions", "completionCriteria"] as const) if (patch[field] !== undefined) patch[field] = String(patch[field]).trim().slice(0, 1200)
   if (patch.title !== undefined) { const t = String(patch.title).trim().slice(0, 100); if (t) patch.title = t; else delete patch.title }
   if (patch.tags !== undefined) patch.tags = Array.isArray(patch.tags) ? [...new Set(patch.tags.filter(t => (state.org.board?.tags ?? []).some(x => x.id === t)))] : []
-  if (patch.estDays !== undefined) patch.estDays = Math.max(0, Math.min(30, Math.round(Number(patch.estDays) || 0)))
+  if (patch.estDays !== undefined) {
+    const days = parseEffortDays(patch.estDays)
+    if (days === null) delete patch.estDays
+    else { patch.estDays = days; if (state.nodes.find(n => n.id === id)?.estDays !== days) patch.startPolicy = "effort" }
+  }
+  if (patch.startPolicy !== undefined && !["window", "effort"].includes(patch.startPolicy)) delete patch.startPolicy
   if (patch.phase !== undefined && !(PHASES as string[]).includes(patch.phase as string)) delete patch.phase
   let next: DemoState = {
     ...state,
@@ -395,9 +436,10 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "updateNode":
       return canLead(state) && state.nodes.some(n => n.id === action.id) ? applySchedule(updateNode(state, action.id, action.patch)) : state
     case "applyStepEdits": return canLead(state) ? applyStepEdits(state, action.eventId, action.edits, action.phaseOrder) : state
-    case "addEventStep": return canLead(state) ? addEventStep(state, action.eventId, action.id, action.uId, action.vId) : state
+    case "addEventStep": return canLead(state) ? addEventStep(state, action.eventId, action.id, action.uId, action.vId, action.target) : state
+    case "addEventBranch": return canLead(state) ? addEventBranch(state, action.eventId, action.id, action.branch, action.title) : state
     case "removeEventStep": return canLead(state) ? removeEventStep(state, action.eventId, action.nodeId) : state
-    case "restoreEventNodes": return canLead(state) ? restoreEventNodes(state, action.eventId, action.nodes) : state
+    case "restoreEventNodes": return canLead(state) ? restoreEventNodes(state, action.eventId, action.nodes, action.branches) : state
     case "updateEvent": {
       const patch = pick(action.patch, ["date", "name", "headcount", "details"])
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
@@ -511,8 +553,8 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     }
     case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
     case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
-    case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode)
-    case "saveWorkflow": return saveWorkflow(state, action.steps)
+    case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode, action.workflowBranches)
+    case "saveWorkflow": return saveWorkflow(state, action.steps, action.branches)
     case "resetWorkflow": return resetWorkflow(state)
   }
 }
@@ -570,7 +612,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
     // S3 only adds optional matching fields; all existing tasks, people and history stay intact.
     return { state: normalizeTerms({ ...parsed, schemaVersion: SCHEMA_VERSION }), notice: null }
   }
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: normalizeTerms(repairCoreEventSteps(repairTaskLinks(parsed))), notice: null }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: normalizeTerms(repairTaskLinks(parsed)), notice: null }
   // Keep all supported saved versions on the same one-time demo-update path.
   // v20 and v21 (the live site during Phase 3) only gain the Handoff fields: no demo-plan update, so a participant's saved club is not changed.
   if (parsed && typeof parsed === "object" && [20, 21].includes(parsed.schemaVersion) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
@@ -681,9 +723,10 @@ function payloadOf(a: Action): unknown {
     case "draftChanges":
     case "aiAutoApply": return { changeSetId: a.changeSet.id, source: a.changeSet.source ?? null, sentence: slim(a.changeSet.sentence), ops: a.changeSet.ops.map(o => o.op) }
     case "reviewChange": return { id: a.id, index: a.index, decision: a.decision, op: slim(a.op), human: slim(a.human) }
-    case "addEventStep": return { eventId: a.eventId, id: a.id, uId: a.uId, vId: a.vId }
+    case "addEventStep": return { eventId: a.eventId, id: a.id, uId: a.uId, vId: a.vId, target: a.target }
+    case "addEventBranch": return { eventId: a.eventId, id: a.id, branch: a.branch, title: a.title }
     case "removeEventStep": return { eventId: a.eventId, nodeId: a.nodeId }
-    case "restoreEventNodes": return { eventId: a.eventId, steps: Array.isArray(a.nodes) ? a.nodes.length : 0 }
+    case "restoreEventNodes": return { eventId: a.eventId, steps: Array.isArray(a.nodes) ? a.nodes.length : 0, branches: a.branches?.map(b => b.id) }
     case "applyStepEdits": return { eventId: a.eventId, edits: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, dependsOn: e?.patch?.dependsOn, estDays: e?.patch?.estDays, phase: e?.patch?.phase })), phaseOrder: a.phaseOrder }
     default: return slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
   }

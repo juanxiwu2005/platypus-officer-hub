@@ -61,7 +61,8 @@ export function newObjects(s: DemoState, op: CommandOp, id: string, human: Human
   if (op.op === "create_event") {
     const { op: _kind, ...fields } = op
     const event: Event = { ...fields, id, date: human.date!, goalId: s.org.goals[0]?.id ?? null, playbookId: "seo-event" }
-    return { events: [...s.events, event], nodes: [...s.nodes, ...buildEventNodes(event, s.roles, { steps: orgSteps(s) }).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 }))] }
+    const branches = s.org.eventWorkflow?.branches
+    return { events: [...s.events, { ...event, ...(branches ? { workflowBranches: structuredClone(branches) } : {}) }], nodes: [...s.nodes, ...buildEventNodes(event, s.roles, { steps: orgSteps(s), branches }).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 }))] }
   }
   if (op.op === "add_node") {
     if (op.eventId) {
