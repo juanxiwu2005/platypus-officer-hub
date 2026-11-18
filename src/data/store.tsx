@@ -207,6 +207,20 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
     if (isAsuStep(original) && scopeKey(original, branches) !== scopeKey(n, branches)) return true
     return !!n.placement && n.placement.branchId !== "main" && (!branch || (n.phase === "close") !== (branch.side === "after_event"))
   })) return state
+  const candidateNodes = nodes.filter(n => n.eventId === eventId)
+  for (const n of candidateNodes) {
+    if (!isAsuStep(n)) continue
+    const required = EVENT_STEPS.find(step => step.key === n.stepKey)?.dependsOn ?? []
+    const before = new Set<string>()
+    const pending = [...n.dependsOn]
+    while (pending.length) {
+      const id = pending.pop()!
+      if (before.has(id)) continue
+      before.add(id)
+      pending.push(...(candidateNodes.find(node => node.id === id)?.dependsOn ?? []))
+    }
+    if (required.some(key => { const dependency = candidateNodes.find(node => node.stepKey === key); return dependency && !before.has(dependency.id) })) return state
+  }
   const order = Array.isArray(phaseOrder) && phaseOrder.length === PHASES.length && PHASES.every(p => phaseOrder.includes(p)) ? phaseOrder : undefined
   const orderChanged = !!order && phaseOrderOf(ev).join() !== order.join()
   if (!changed && !orderChanged) return state
