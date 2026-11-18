@@ -23,6 +23,7 @@
   "fixedDuringChecks": [
     "select accessible labels",
     "role-card label content matching",
-    "standalone axe browser context setup"
+    "standalone axe browser context setup",
+    "explicit role-card name spacing consistent in jsdom and browser"
   ]
 }

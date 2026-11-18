@@ -37,8 +37,8 @@ export function TeamPeopleSetup({ directory, onChange, createId = () => crypto.r
           <button type="button" className="btn small" onClick={() => { const id = createId(); if (commit(addDirectReport(directory, role.id, { id, title: "New role" }), "Direct report added. Edit the role and invitation details.")) setSelectedId(id) }}>+ Add direct report</button>
           <button type="button" className="btn btn-quiet small" onClick={() => setSelectedId(null)}>Close editing</button>
         </div> : <button type="button" className="tw-role-open" onClick={() => setSelectedId(role.id)}>
-          <span className="sr-only">Edit </span><strong>{role.title}</strong><span>{person?.name || "Open position"}</span><span className="tw-email">{person?.email || "+ Email for invitation"}</span>
-          {parent && parent.teamId !== role.teamId && <span className="tw-parent">Reports to {parent.title}</span>}
+          <span className="sr-only">Edit</span>{" "}<strong>{role.title}</strong>{" "}<span>{person?.name || "Open position"}</span>{" "}<span className="tw-email">{person?.email || "+ Email for invitation"}</span>
+          {parent && parent.teamId !== role.teamId && <span className="tw-parent"> Reports to {parent.title}</span>}
           {depth > 3 && <span className="tw-parent">Level {depth + 1}</span>}
         </button>}
       </article>
