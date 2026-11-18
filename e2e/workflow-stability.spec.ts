@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
+import AxeBuilder from "@axe-core/playwright"
 import { closeRail } from "./helpers"
 
 async function workflow(page: Page) {
@@ -133,4 +134,35 @@ test("multiple branch requirements survive reload and apply to inserted steps in
     const state = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
     return state.org.eventWorkflow.branches.find((branch: { id: string }) => branch.id === id)?.conditions
   }, branchId)).toEqual(["speaker", "travel"])
+})
+
+test("branch requirements explain the rule and support keyboard selection on both screen sizes", async ({ page }, info) => {
+  await page.emulateMedia({ colorScheme: "dark" })
+  await workflow(page)
+  await page.getByRole("button", { name: "Add branch", exact: true }).click()
+  const dialog = page.getByRole("dialog", { name: "Add branch", exact: true })
+  const name = dialog.getByLabel("Branch name")
+  await expect(name).toBeFocused()
+  await name.press("Shift+Tab")
+  await expect(dialog.getByRole("button", { name: "Cancel", exact: true })).toBeFocused()
+  await page.keyboard.press("Tab")
+  await expect(name).toBeFocused()
+  await expect(dialog.getByRole("group", { name: "Include this branch when", exact: true })).toBeVisible()
+  await expect(dialog.getByRole("checkbox")).toHaveCount(18)
+  const speaker = dialog.getByRole("checkbox", { name: "External speaker, artist, or performer", exact: true })
+  await speaker.focus()
+  await speaker.press("Space")
+  await expect(speaker).toBeChecked()
+  await expect(dialog.getByRole("status")).toHaveText("1 selected item must be checked.")
+  const rsvp = dialog.getByRole("checkbox", { name: "RSVP registration needed", exact: true })
+  await rsvp.focus()
+  await rsvp.press("Space")
+  await expect(rsvp).toBeChecked()
+  await expect(dialog.getByRole("status")).toHaveText("All 2 selected items must be checked.")
+  expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+  const a11y = await new AxeBuilder({ page }).include(".workflow-branch-dialog").withTags(["wcag2a", "wcag2aa"]).analyze()
+  expect(a11y.violations).toEqual([])
+  await page.screenshot({ path: info.outputPath("branch-conditions.png") })
+  await page.keyboard.press("Escape")
+  await expect(dialog).toHaveCount(0)
 })
