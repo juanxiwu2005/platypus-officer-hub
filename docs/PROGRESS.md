@@ -1,3 +1,7 @@
+> **2026-11-17（America/Phoenix） · 所有实际活动节点统一 Details、通用提交与 Edit 侧栏进行中（Codex）**
+> **授权：** Juanxi 选定独立任务详情布局与右侧Edit面板，要求应用到所有活动节点；Settings工作流模板明确排除。以PR #14最新`81fd290`为基点，保留Start设置统一及此前提醒交付，不新增PR、不合并main。
+> **范围：** 活动/任务和邮件入口共用简洁任务头、一个Due、负责人/状态、多个外部办理链接，以及统一Details文本框、多附件、保存草稿和提交完成。Edit只编辑任务定义和外部链接，提交内容独立保存；原权限、财务完成条件、改派撤权和写失败保护继续有效。逐项验证后推送preview14。
+
 > **2026-11-17（America/Phoenix） · Start 与再次设置已统一，待 Juanxi 验收（Codex）**
 > **问题与结果：** Start 是八步 founder flow，截图中的 Settings → Replay setup 却仍渲染旧六步 Setup。代码`d616bb1`删除独立六步页面；Settings、`/setup`、`/welcome/classic`与Start共用页面、进度条、校验和保存；Team职责按需展开，章程AI识别保留。有效旧草稿可显式继续，原件保留；当前草稿原子备份后写入，失败可重试，恢复不自动重读章程。不改23版业务存档，不恢复职责库，保留`1c832a2`提醒整合。
 > **检查与验收：** 156项相关单元/组件通过；最终浏览器131通过/1设备限定跳过，另两端逐步无障碍2项通过，共133通过/1跳过。lint、前后端类型、生产构建、9页文字预算通过；入口542,460/550,000，Settings147/150，未提高门槛。Netlify确认`d616bb1`部署success。[preview 14再次设置](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/setup) · [交付与草稿保护](feedback-fix/SETUP_ENTRY_UNIFICATION_HANDOFF.md)。未重复全站门禁；既有64/60词差异与calibration超时未改，0真实AI/邮件。
