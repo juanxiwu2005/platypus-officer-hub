@@ -1,5 +1,30 @@
 # 工作流模板修复交付
 
+## 追加：连线简化、岗位分支与节点类别（2026-11-17，America/Phoenix）
+
+用户要求直接实施，继续由Data、UI、Graph独立worktree实现、主Agent整合及Review独立复核。运行时代码`3f731a5`，保留同期附件自动草稿保存交付与其他聊天进行中记录，沿用PR14/preview14。
+
+| 用户操作 | 当前行为 |
+| --- | --- |
+| 双击／双击触摸任何连线 | 无菜单、无新增、无删线、无依赖或状态写入；移除线编辑菜单及节点菜单Stop waiting快捷入口 |
+| 鼠标悬浮连线 | 不高亮，默认指针。原高亮CSS保留，由MetroChart.tsx的ENABLE_LINK_HOVER=false和link-hover-enabled类关闭；恢复开关只恢复视觉 |
+| 模板Done by改岗位 | 同时修改ownerRoleId、fn和placement，优先同侧／同适用条件的该岗位分支。无合适分支时新建绑定role ID的分支，同职能的不同岗位不会混为一个岗位 |
+| 修改共享汇合点岗位 | Full Check、Headcount等主干结构节点留在main，仍可改岗位；避免破坏活动前后汇合结构 |
+| 右侧Step details第一项 | Step type可选Core event step或Situation-based step，保存后图上颜色和可访问名称同步，刷新和Undo保留 |
+| 节点前插／后插 | 新节点继承所点击节点的有效类型和原分支；显式类型优先，旧节点可从原分类或条件推导 |
+
+岗位自动归组仅改负责人、职能及图上位置，保留全部依赖、阶段、工时、日期配置、节点类型和完整条件来源；不重写现有任务链。原有混合岗位分支不在后台全量重组，未来由明确team/role映射替换后备规则。图拖动依旧可用，前后插入从节点菜单操作；右侧既有Waits for手动依赖编辑保留。
+
+`stepKind?: "core" | "situation"`为节点和模板共享可选字段，Schema23不重置，不自动改旧活动。类别目前与激活条件、ASU必办保护独立，原branch条件AND节点cond继续决定新活动生成；仅选择类别不会擅自勾选活动表单或改已有任务。旧节点类型按原分类和条件兼容推导。独立Review发现并修复旧条件节点跨分支移动时类型丢失的P2：移动前冻结原有效类型，最终图补丁写回；Undo能恢复原来没有显式字段的状态。
+
+用户要求的后续接口备注已写入`WorkflowBranch.defaultRoleId`、`workflowRoleBranches.ts`、`workflowStepKind.ts`、`WorkflowPanel.tsx`及`eventChecklist.ts`：分支尽量单一团队／岗位，后续建立显式映射；situation类别与活动创建表单的条件对接需要明确匹配，不能把类别当作已确认的活动事实。
+
+本轮分批230项相关单元/组件通过（主运行16文件229项，Review修复后5文件56项含新增1项，按唯一用例计数）。生产构建浏览器按唯一用例107通过、5项设备限定跳过；初轮112项中101通过、5跳过、6失败：新用例getByLabel精确匹配包含option文字的select，以及旧用例仍期待Full Check保护前的删除原因，均属断言前提问题。修为真实combobox可访问名称及既有必需步骤原因，并在Review修复后的最终构建重跑受影响组，45通过、3设备限定跳过。原实际节点Edit旧选择器也已随当前独立Edit drawer及Save changes流程更新，产品编辑行为未改。
+
+前后端类型、build、lint、独立CSS、9页文字预算通过；最终构建入口`index-BdsxrOMf.js`为544,520/550,000字节，Settings147/150，未提高预算。独立岗位原函数6项检查与旧类别移动/Undo反例复验通过，无开放P1/P2。暗色双端截图已查看。没有重复全站门禁，0真实AI/邮件；合并保留同期附件自动保存与v3隔离原稿，未修改它们的实现。
+
+日志：`/tmp/workflow-role-kind-unit.log`、`/tmp/workflow-role-kind-review-fix.log`、`/tmp/workflow-role-kind-browser.log`、`/tmp/workflow-role-kind-final-browser.log`、`/tmp/workflow-role-kind-final-build.log`、`/tmp/workflow-role-kind-words.log`。验收在[preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow：双击／悬浮连线；把Content Creation从Marketing lead改为Events lead再改回；分别在蓝色／黄色节点前后插入；更改首项Step type、刷新、Undo。
+
 ## 追加：分支启用条件多选（2026-11-17，America/Phoenix）
 
 用户反馈Add branch的Applies to不易理解，并明确要求多个checklist全部成立才启用。运行时代码`3432f52`：

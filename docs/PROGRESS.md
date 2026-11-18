@@ -1,8 +1,9 @@
 > **2026-11-17（America/Phoenix） · 延期申请简化、自动通知与完成退回进行中（Codex）**
 > **用户授权：** Need more time移除Current draft link，说明改Message以区别成果Details；Request extension保存后自动通知对应审批人/社长，截止日仍待审批后变更。Submit & mark done误点可撤回或改回其他状态，保留正文与附件、同步清理完成标记与积分；覆盖普通节点与负责人邮件入口，财务完成权仍归Event Budget。沿用PR14，不新建PR、不合并main；保留Settings工作流及原稿的同期工作，0真实AI/邮件投递。
 
-> **2026-11-17（America/Phoenix） · Workflow连线简化、岗位换分支与节点类型进行中（Codex）**
-> **用户要求：** 双击连线不做任何事，移除连线删除入口；黄色悬浮高亮保留代码但关闭。模板修改Done by时随岗位自动换到合适分支，尽量一分支一岗位，保留未来团队/岗位规则备注。右侧第一项可选Core event step或Situation-based step，新增前后节点继承被点击节点类型；类型独立保存，已有活动表单条件先保留并标明未来接入点。沿用原分支与PR14，保留同期附件自动保存工作，不改main。
+> **2026-11-17（America/Phoenix） · Workflow连线简化、岗位分支与节点类型完成检查，待验收（Codex/Data/UI/Graph/Review worktree）**
+> **结果：** 双击／双击触摸连线完全无操作，删线菜单移除；原hover代码由ENABLE_LINK_HOVER=false关闭。模板Done by同时更新岗位与同侧同条件分支，无合适分支时新建岗位分支，保留全部依赖和日期配置，主干汇合点留main。右侧第一项Step type可选core/situation，前后新增继承被点击节点，刷新与Undo完整保留。分类与现有表单条件独立，未来team/role及event intake映射备注已写入源码；运行时代码`3f731a5`。
+> **验证与交付：** 分批230项相关单元/组件通过；生产构建浏览器按唯一用例107通过、5设备限定跳过，最终受影响组45通过/3跳过（含新增岗位/类型、暗色、axe、前后插入、drag、Undo、线无操作和入口预算）。首轮6条因新测试精确label匹配select及旧删除原因断言失败，修用真实combobox/既有必需步骤保护后复验通过。独立Review发现并修复旧条件节点跨分支拖动类别丢失P2。前后端类型、build、lint、独立CSS和9页字数通过，入口544,520/550,000，Settings147/150，未抬上限；未重复全站门禁。[交付与验收](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md) · [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow。保留同期附件自动保存、延期调整记录及v3原稿，0真实AI/邮件；沿用PR14、不合并main，需要同步本地备份。
 
 > **2026-11-17（America/Phoenix） · Onboarding 团队板与工作包画板 v3 原稿，待验收（Codex）**
 > **结果：** [原稿及交接](prototypes/work-group-assignment/v3-foundation/README.md)：Add team / Add role 分离，拖岗位入组与下拉替代，保留职位/姓名/邮箱及独立汇报关系；工作包显式绑定团队 ID，改团队名称后指派同步。左到右画板保留46任务，分13包，支持分支/汇合、平移缩放、拖卡、整包改派、新包/连线/防循环/Undo。11条模板跨包依赖实线、8条建议虚线，43条任务原依赖不变；加入连线避让，避免穿过其他包造成误读。
