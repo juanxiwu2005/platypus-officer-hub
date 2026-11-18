@@ -81,7 +81,9 @@ test("an actual event adds and undoes a complete branch snapshot", async ({ page
 test("pointer movement updates the real screen order", async ({ page }) => {
   test.skip(test.info().project.name === "mobile", "Desktop pointer gesture; mobile keyboard order is covered separately.")
   await workflow(page)
+  await closeRail(page)
   const task = page.getByTestId("flow-node-promotionItems")
+  await task.scrollIntoViewIfNeeded()
   const a = await page.getByTestId("flow-node-marketingNeeds").boundingBox()
   const b = await page.getByTestId("flow-node-contentCreation").boundingBox()
   const from = await task.boundingBox()
