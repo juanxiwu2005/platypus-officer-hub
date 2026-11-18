@@ -1,0 +1,354 @@
+<div id="platypus-assignment-review" class="viz-carousel" aria-label="工作组与任务分派效果图" data-previous-label="上一张" data-next-label="下一张">
+  <section data-variant="Onboarding · 设置任务组" aria-label="Onboarding 设置任务组"><div class="pg" data-screen="onboarding" aria-label="首次设置的工作组布局"></div></section>
+  <section data-variant="新建活动 · 统一选人" aria-label="新建活动统一选人" hidden><div class="pg" data-screen="create"></div></section>
+  <section data-variant="Finance · 批量分派" aria-label="Finance 批量分派" hidden><div class="pg" data-screen="finance"></div></section>
+  <section data-variant="Marketing · 直接换人" aria-label="Marketing 直接修改执行人" hidden><div class="pg" data-screen="marketing"></div></section>
+  <section data-variant="活动统筹 · 任务详情" aria-label="活动统筹从任务详情中分派" hidden><div class="pg" data-screen="coordination"></div></section>
+</div>
+<style>
+#platypus-assignment-review .pg {
+  --pg-bg: light-dark(#fbfaf7,#0f1312); --pg-paper: light-dark(#fff,#171c1b); --pg-raised: light-dark(#f3f1ec,#1d2322);
+  --pg-ink: light-dark(#1b1f1d,#eceeed); --pg-sub: light-dark(#5b625e,#a2aaa6); --pg-rule: light-dark(#e5e2da,#2a312f);
+  --pg-teal: light-dark(#0f766e,#3fb8a8); --pg-teal-text: light-dark(#0b5a54,#7fd6ca); --pg-soft: light-dark(#e4f1ef,#14302c); --pg-on: light-dark(#fff,#06201d);
+  --pg-shadow: 0 10px 28px light-dark(#1b1f1d0d,#00000038); --pg-serif: ui-serif,"Iowan Old Style",Georgia,"Times New Roman",serif;
+  --pg-sans: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; --pg-gap:16px; --pg-stage:860px;
+  color:var(--pg-ink); background:var(--pg-bg); font:400 14px/1.5 var(--pg-sans); min-height:var(--pg-stage); position:relative; isolation:isolate; overflow-wrap:anywhere;
+}
+#platypus-assignment-review .pg *,#platypus-assignment-review .pg *::before,#platypus-assignment-review .pg *::after{box-sizing:border-box}
+#platypus-assignment-review .pg h1,#platypus-assignment-review .pg h2,#platypus-assignment-review .pg h3{font-family:var(--pg-serif);font-weight:600;letter-spacing:-.015em;line-height:1.2;margin:0;color:var(--pg-ink)}
+#platypus-assignment-review .pg h1{font-size:27px}#platypus-assignment-review .pg h2{font-size:21px}#platypus-assignment-review .pg h3{font-size:17px}
+#platypus-assignment-review .pg p{margin:0}#platypus-assignment-review .pg b,#platypus-assignment-review .pg strong{font-weight:600}
+#platypus-assignment-review .pg button,#platypus-assignment-review .pg input,#platypus-assignment-review .pg select,#platypus-assignment-review .pg textarea{font:inherit;color:inherit}
+#platypus-assignment-review .pg button{cursor:pointer}#platypus-assignment-review .pg input,#platypus-assignment-review .pg select,#platypus-assignment-review .pg textarea{max-width:100%;min-width:0}
+#platypus-assignment-review .pg button:focus-visible,#platypus-assignment-review .pg input:focus-visible,#platypus-assignment-review .pg select:focus-visible{outline:2px solid var(--pg-teal);outline-offset:3px}
+#platypus-assignment-review .pg button:disabled{cursor:default;opacity:.5}
+#platypus-assignment-review .pg-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:7px 12px;background:var(--pg-paper);border:1px solid var(--pg-rule);border-radius:11px;white-space:normal;text-align:center;text-decoration:none}
+#platypus-assignment-review .pg-btn:hover{background:var(--pg-raised)}#platypus-assignment-review .pg-btn.pg-main{background:var(--pg-teal);border-color:var(--pg-teal);color:var(--pg-on)}
+#platypus-assignment-review .pg-btn.pg-quiet{background:transparent;border-color:transparent;color:var(--pg-teal-text)}
+#platypus-assignment-review .pg-icon{min-width:32px;min-height:32px;padding:4px 8px;background:transparent;border:0;border-radius:8px;color:var(--pg-sub);font-size:19px}
+#platypus-assignment-review .pg-icon:hover{background:var(--pg-raised)}
+#platypus-assignment-review .pg-sub{color:var(--pg-sub)}#platypus-assignment-review .pg-small{font-size:12px;color:var(--pg-sub)}
+#platypus-assignment-review .pg-label{display:block;font-size:12px;color:var(--pg-sub);margin-bottom:6px}
+#platypus-assignment-review .pg-input,#platypus-assignment-review .pg-select{display:block;width:100%;border:1px solid var(--pg-rule);background:var(--pg-paper);border-radius:10px;padding:9px 10px;min-height:40px}
+#platypus-assignment-review .pg-select{padding-right:24px}
+#platypus-assignment-review .pg-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid var(--pg-rule);border-radius:999px;font-size:12px;white-space:nowrap;background:var(--pg-paper)}
+#platypus-assignment-review .pg-pill.pg-active{color:var(--pg-teal-text);border-color:transparent;background:var(--pg-soft)}
+#platypus-assignment-review .pg-avatar{width:28px;height:28px;flex:none;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--pg-raised);border:1px solid var(--pg-rule);font-size:10px;font-weight:600}
+#platypus-assignment-review .pg-avatar.pg-lead{background:var(--pg-soft);border-color:transparent;color:var(--pg-teal-text)}
+#platypus-assignment-review .pg-line{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap}
+#platypus-assignment-review .pg-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#platypus-assignment-review .pg-rule{border:0;border-top:1px solid var(--pg-rule);margin:18px 0}
+#platypus-assignment-review .pg-check{appearance:auto;accent-color:var(--pg-teal);width:16px;height:16px;flex:none;margin:0}
+#platypus-assignment-review .pg-checklabel{display:flex;align-items:center;gap:10px;min-height:40px;padding:7px 0}
+#platypus-assignment-review .pg-top{height:64px;border-bottom:1px solid var(--pg-rule);background:var(--pg-paper);display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 22px}
+#platypus-assignment-review .pg-brand{font-family:var(--pg-serif);font-size:23px;font-weight:600;letter-spacing:-.04em;display:flex;align-items:center;gap:8px}
+#platypus-assignment-review .pg-brandmark{height:23px;width:23px;display:inline-block;background:var(--pg-soft);border:1px solid var(--pg-teal);border-radius:7px 11px 7px 5px;transform:rotate(-8deg)}
+#platypus-assignment-review .pg-org{border-left:1px solid var(--pg-rule);padding-left:12px;font-size:12px;color:var(--pg-sub);font-family:var(--pg-sans);font-weight:400;letter-spacing:0}
+#platypus-assignment-review .pg-account{display:flex;align-items:center;gap:9px;color:var(--pg-sub);font-size:12px}
+#platypus-assignment-review .pg-account b{font-weight:500;color:var(--pg-ink)}
+#platypus-assignment-review .pg-frame{display:grid;grid-template-columns:148px minmax(0,1fr);min-height:calc(var(--pg-stage) - 64px)}
+#platypus-assignment-review .pg-nav{display:flex;flex-direction:column;gap:4px;padding:25px 13px;background:var(--pg-paper);border-right:1px solid var(--pg-rule)}
+#platypus-assignment-review .pg-navbutton{display:flex;align-items:center;gap:10px;text-align:left;width:100%;border:0;background:transparent;border-radius:9px;padding:10px 12px;color:var(--pg-sub);min-height:42px}
+#platypus-assignment-review .pg-navbutton[aria-current=page]{background:var(--pg-soft);color:var(--pg-teal-text);font-weight:600}
+#platypus-assignment-review .pg-navfoot{margin-top:auto;display:grid;gap:4px;padding-top:28px}
+#platypus-assignment-review .pg-navword{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--pg-sub);padding:0 12px 8px}
+#platypus-assignment-review .pg-dot{width:7px;height:7px;background:currentColor;border-radius:50%;opacity:.65;flex:none}
+#platypus-assignment-review .pg-appcontent{padding:23px;min-width:0}
+#platypus-assignment-review .pg-breadcrumb{font-size:12px;color:var(--pg-sub);margin-bottom:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#platypus-assignment-review .pg-breadcrumb button{border:0;background:none;color:inherit;padding:0}
+#platypus-assignment-review .pg-breadcrumb span:last-child{color:var(--pg-ink)}
+#platypus-assignment-review .pg-stepmeta{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--pg-teal-text);margin-bottom:9px}
+#platypus-assignment-review .pg-pageintro{display:grid;gap:8px;margin-bottom:22px}
+#platypus-assignment-review .pg-headeractions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#platypus-assignment-review .pg-flash{color:var(--pg-teal-text);background:var(--pg-soft);border-radius:10px;padding:10px 13px;margin-top:14px;display:flex;align-items:flex-start;gap:8px}
+#platypus-assignment-review .pg-flash:empty{display:none}
+#platypus-assignment-review .pg-obhead{max-width:950px;margin:auto;padding:24px 28px;display:flex;align-items:center;gap:32px}
+#platypus-assignment-review .pg-obhead .pg-brand{font-size:19px}
+#platypus-assignment-review .pg-progress{flex:1;display:flex;align-items:center;justify-content:center;gap:0;max-width:530px;margin-left:auto;list-style:none;padding:0}
+#platypus-assignment-review .pg-progress li{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--pg-sub);font-size:10px;z-index:1;text-align:center}
+#platypus-assignment-review .pg-progress li::before{content:"";position:absolute;top:5px;left:0;right:0;height:1px;background:var(--pg-rule);z-index:-1}
+#platypus-assignment-review .pg-progress li:first-child::before{left:50%}#platypus-assignment-review .pg-progress li:last-child::before{right:50%}
+#platypus-assignment-review .pg-progress i{height:11px;width:11px;border:1.5px solid var(--pg-sub);border-radius:50%;background:var(--pg-bg)}
+#platypus-assignment-review .pg-progress .pg-past i,#platypus-assignment-review .pg-progress .pg-now i{border-color:var(--pg-teal);background:var(--pg-teal)}
+#platypus-assignment-review .pg-progress .pg-now{color:var(--pg-teal-text);font-weight:600}#platypus-assignment-review .pg-progress .pg-now i{outline:4px solid var(--pg-soft)}
+#platypus-assignment-review .pg-obmain{max-width:870px;margin:0 auto;padding:24px 28px 36px}
+#platypus-assignment-review .pg-obintro{margin:12px 0 25px;display:grid;gap:9px}
+#platypus-assignment-review .pg-tabs{display:flex;gap:19px;border-bottom:1px solid var(--pg-rule);margin-bottom:23px}
+#platypus-assignment-review .pg-tab{background:transparent;border:0;border-bottom:2px solid transparent;padding:10px 0;color:var(--pg-sub);display:flex;gap:7px;align-items:center;min-height:42px}
+#platypus-assignment-review .pg-tab[aria-selected=true]{border-bottom-color:var(--pg-teal);color:var(--pg-teal-text);font-weight:600}
+#platypus-assignment-review .pg-count{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;background:var(--pg-raised);border-radius:50%;font-size:11px;font-weight:500}
+#platypus-assignment-review .pg-groupgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:20px 0 16px}
+#platypus-assignment-review .pg-groupcard{background:var(--pg-paper);border:1px solid var(--pg-rule);border-radius:14px;min-width:0;padding:18px 16px 10px;box-shadow:0 1px 2px light-dark(#1b1f1d04,#00000010)}
+#platypus-assignment-review .pg-groupcap{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--pg-sub);margin-bottom:11px;display:flex;align-items:center;gap:7px}
+#platypus-assignment-review .pg-groupname{font-family:var(--pg-serif)!important;font-size:18px!important;font-weight:600;border:0!important;background:transparent!important;width:100%;padding:0!important;min-height:29px;margin-bottom:4px;letter-spacing:-.01em}
+#platypus-assignment-review .pg-grouplist{list-style:none;margin:15px 0 4px;padding:0;border-top:1px solid var(--pg-rule)}
+#platypus-assignment-review .pg-grouptask{display:flex;align-items:center;justify-content:space-between;gap:6px;border-bottom:1px solid var(--pg-rule);padding:12px 0;position:relative;min-height:64px}
+#platypus-assignment-review .pg-grouptask:last-child{border-bottom:0}
+#platypus-assignment-review .pg-grouptask span{min-width:0;font-size:13px}
+#platypus-assignment-review .pg-taskmark{width:5px;height:5px;border:1px solid var(--pg-sub);border-radius:50%;flex:none;margin-right:3px}
+#platypus-assignment-review .pg-obfooter{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--pg-rule);margin-top:26px;padding-top:20px;flex-wrap:wrap}
+#platypus-assignment-review .pg-peoplegrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-bottom:1px solid var(--pg-rule);padding:12px 0}
+#platypus-assignment-review .pg-pop{position:absolute;top:calc(100% - 7px);right:0;z-index:25;width:230px;max-width:calc(100vw - 70px);padding:8px;border:1px solid var(--pg-rule);background:var(--pg-paper);box-shadow:var(--pg-shadow);border-radius:12px;text-align:left;color:var(--pg-ink)}
+#platypus-assignment-review .pg-poplabel{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--pg-sub);padding:7px 9px}
+#platypus-assignment-review .pg-popoption{background:transparent;border:0;border-radius:7px;width:100%;display:flex;gap:9px;align-items:center;text-align:left;padding:9px;color:var(--pg-ink);min-height:43px}
+#platypus-assignment-review .pg-popoption:hover,#platypus-assignment-review .pg-popoption[aria-selected=true]{background:var(--pg-soft)}
+#platypus-assignment-review .pg-popoption span{display:block}#platypus-assignment-review .pg-popoption small{display:block;font-size:11px;color:var(--pg-sub)}
+#platypus-assignment-review .pg-eventmeta{border:1px solid var(--pg-rule);background:var(--pg-paper);border-radius:13px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:23px;flex-wrap:wrap}
+#platypus-assignment-review .pg-assignment{border:1px solid var(--pg-rule);background:var(--pg-paper);border-radius:14px;margin-top:20px}
+#platypus-assignment-review .pg-assignmenthead{display:grid;grid-template-columns:1.1fr 1fr 1.05fr;gap:16px;padding:13px 18px;border-bottom:1px solid var(--pg-rule);font-size:12px;color:var(--pg-sub)}
+#platypus-assignment-review .pg-assignmentrow{display:grid;grid-template-columns:1.1fr 1fr 1.05fr;gap:16px;padding:19px 18px;border-bottom:1px solid var(--pg-rule);align-items:start;position:relative}
+#platypus-assignment-review .pg-assignmentrow:last-child{border-bottom:0}
+#platypus-assignment-review .pg-assignmentrow h3{margin:0 0 8px;overflow-wrap:normal}
+#platypus-assignment-review .pg-taskpeek{border:0;background:none;padding:0;color:var(--pg-teal-text);font-size:12px;text-decoration:underline;text-underline-offset:3px}
+#platypus-assignment-review .pg-rolechoice{min-height:40px;padding:7px 10px;display:flex;align-items:center;gap:8px;border:1px solid var(--pg-rule);background:var(--pg-paper);border-radius:10px;text-align:left;width:100%;justify-content:space-between}
+#platypus-assignment-review .pg-personchoice{position:relative;min-width:0}
+#platypus-assignment-review .pg-collabs{display:flex;gap:6px;align-items:center;flex-wrap:wrap;min-height:40px}
+#platypus-assignment-review .pg-collabchip{display:flex;align-items:center;gap:5px;border:1px solid var(--pg-rule);border-radius:999px;background:var(--pg-raised);padding:4px 9px;font-size:12px;min-height:30px}
+#platypus-assignment-review .pg-addmember{border:1px dashed var(--pg-rule);background:transparent;color:var(--pg-teal-text);border-radius:50%;width:30px;height:30px;min-width:30px}
+#platypus-assignment-review .pg-eventtasks{grid-column:1/-1;margin:0;padding:10px 0 0;list-style:none;display:flex;gap:6px;flex-wrap:wrap}
+#platypus-assignment-review .pg-eventtasks li{font-size:12px;border:1px solid var(--pg-rule);border-radius:7px;padding:5px 8px;background:var(--pg-bg)}
+#platypus-assignment-review .pg-formfooter{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:20px}
+#platypus-assignment-review .pg-splitapp{display:grid;grid-template-columns:117px minmax(0,1fr);min-height:calc(var(--pg-stage) - 64px)}
+#platypus-assignment-review .pg-eventsnav{border-right:1px solid var(--pg-rule);padding:24px 9px;background:var(--pg-bg);display:flex;flex-direction:column;gap:7px}
+#platypus-assignment-review .pg-eventsnav strong{font-family:var(--pg-serif);font-size:16px;padding:0 8px 6px}
+#platypus-assignment-review .pg-eventnavbutton{padding:9px 8px;min-height:40px;background:transparent;text-align:left;border:0;border-radius:8px;font-size:12px;color:var(--pg-sub)}
+#platypus-assignment-review .pg-eventnavbutton[aria-current=page]{background:var(--pg-soft);color:var(--pg-teal-text);font-weight:500}
+#platypus-assignment-review .pg-workspace{min-width:0;padding:23px 19px}
+#platypus-assignment-review .pg-workhead{display:grid;gap:13px;margin-bottom:22px}
+#platypus-assignment-review .pg-eventtitle{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+#platypus-assignment-review .pg-grouptabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--pg-rule);padding-bottom:14px}
+#platypus-assignment-review .pg-groupnav{padding:6px 10px;background:transparent;border:1px solid transparent;border-radius:8px;min-height:34px;font-size:12px;color:var(--pg-sub)}
+#platypus-assignment-review .pg-groupnav[aria-selected=true]{background:var(--pg-paper);border-color:var(--pg-rule);color:var(--pg-ink);box-shadow:0 1px 2px light-dark(#00000008,#00000020)}
+#platypus-assignment-review .pg-leadline{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:13px 0 18px;color:var(--pg-sub);font-size:12px}
+#platypus-assignment-review .pg-leadline strong{color:var(--pg-ink);font-weight:500}
+#platypus-assignment-review .pg-tasklayout{display:grid;grid-template-columns:minmax(0,1fr) 269px;gap:17px;align-items:start}
+#platypus-assignment-review .pg-tasklayout.pg-nopanel{grid-template-columns:minmax(0,1fr)}
+#platypus-assignment-review .pg-taskarea{min-width:0}
+#platypus-assignment-review .pg-tasktools{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:14px;min-height:36px}
+#platypus-assignment-review .pg-selection{font-size:12px;color:var(--pg-teal-text);font-weight:500}
+#platypus-assignment-review .pg-tasktable{border:1px solid var(--pg-rule);border-radius:12px;background:var(--pg-paper);min-width:0}
+#platypus-assignment-review .pg-tr{display:grid;grid-template-columns:19px minmax(90px,1fr) 82px 46px;gap:9px;align-items:center;padding:var(--pg-gap) 12px;border-bottom:1px solid var(--pg-rule);position:relative;min-width:0}
+#platypus-assignment-review .pg-tr:last-child{border-bottom:0}
+#platypus-assignment-review .pg-tr.pg-selected{background:var(--pg-soft)}
+#platypus-assignment-review .pg-tr.pg-thead{padding-top:11px;padding-bottom:11px;font-size:11px;color:var(--pg-sub);background:var(--pg-bg);border-radius:12px 12px 0 0}
+#platypus-assignment-review .pg-tasktitle{background:transparent;border:0;text-align:left;padding:0;line-height:1.45;font-size:13px;min-width:0}
+#platypus-assignment-review .pg-taskstate{color:var(--pg-sub);font-size:11px;margin-top:5px;display:flex;align-items:center;gap:5px}
+#platypus-assignment-review .pg-inline-due{display:none}
+#platypus-assignment-review .pg-statusdot{display:inline-block;width:5px;height:5px;flex:none;background:var(--pg-sub);border-radius:50%;opacity:.7}
+#platypus-assignment-review .pg-taskowner{position:relative;min-width:0}
+#platypus-assignment-review .pg-ownerbutton{border:1px solid var(--pg-rule);background:var(--pg-paper);border-radius:999px;display:flex;align-items:center;gap:5px;padding:5px 7px;font-size:11px;max-width:100%;min-height:30px;white-space:nowrap}
+#platypus-assignment-review .pg-ownerbutton:hover,#platypus-assignment-review .pg-ownerbutton[aria-expanded=true]{border-color:var(--pg-teal);background:var(--pg-soft);color:var(--pg-teal-text)}
+#platypus-assignment-review .pg-ownerbutton .pg-avatar{width:17px;height:17px;font-size:8px}
+#platypus-assignment-review .pg-due{font-size:11px;color:var(--pg-sub);font-variant-numeric:tabular-nums}
+#platypus-assignment-review .pg-panel{padding:18px 16px;border:1px solid var(--pg-rule);background:var(--pg-paper);box-shadow:var(--pg-shadow);border-radius:13px;position:relative;min-width:0}
+#platypus-assignment-review .pg-panelhead{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:13px}
+#platypus-assignment-review .pg-panelhead h2{font-size:19px;margin-top:5px}
+#platypus-assignment-review .pg-paneloverline{font-size:10px;color:var(--pg-sub);letter-spacing:.08em;text-transform:uppercase}
+#platypus-assignment-review .pg-assigntasks{list-style:none;padding:0;margin:15px 0 18px;border-top:1px solid var(--pg-rule)}
+#platypus-assignment-review .pg-assigntasks li{font-size:12px;padding:8px 0;border-bottom:1px solid var(--pg-rule);display:flex;gap:8px;align-items:center}
+#platypus-assignment-review .pg-radioperson{display:flex;align-items:center;gap:9px;border:1px solid var(--pg-rule);border-radius:10px;padding:10px;margin-top:8px;min-height:58px}
+#platypus-assignment-review .pg-radioperson:has(input:checked){border-color:var(--pg-teal);background:var(--pg-soft)}
+#platypus-assignment-review .pg-radioperson input{accent-color:var(--pg-teal);margin:0;flex:none}
+#platypus-assignment-review .pg-radioperson b{display:block;font-size:12px;font-weight:500}#platypus-assignment-review .pg-radioperson small{display:block;font-size:11px;color:var(--pg-sub)}
+#platypus-assignment-review .pg-panelaction{margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+#platypus-assignment-review .pg-panelnote{margin-top:13px;font-size:11px;color:var(--pg-sub);display:flex;gap:7px;align-items:flex-start}
+#platypus-assignment-review .pg-keyvalue{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:9px 0;border-bottom:1px solid var(--pg-rule)}
+#platypus-assignment-review .pg-keyvalue span{color:var(--pg-sub)}
+#platypus-assignment-review .pg-detailsection{margin-top:19px;display:grid;gap:9px}
+#platypus-assignment-review .pg-detailsection h3{font-size:14px;font-family:var(--pg-sans);font-weight:500}
+#platypus-assignment-review .pg-ownermenu{left:auto;right:0;top:calc(100% + 6px);width:236px}
+#platypus-assignment-review .pg-note{margin-top:17px;color:var(--pg-sub);font-size:12px;display:flex;gap:8px;align-items:flex-start}
+#platypus-assignment-review .pg-summarylist{display:grid;gap:12px;margin-top:20px}
+#platypus-assignment-review .pg-summaryrow{background:var(--pg-paper);border:1px solid var(--pg-rule);border-radius:12px;padding:17px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+#platypus-assignment-review .pg-stepswitch{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--pg-sub);margin:8px 0 24px}
+#platypus-assignment-review .pg-stepswitch .pg-current{color:var(--pg-teal-text);font-weight:600}
+#platypus-assignment-review .pg-groupgrid.pg-compact{display:block;border-top:1px solid var(--pg-rule)}
+#platypus-assignment-review .pg-groupgrid.pg-compact .pg-groupcard{border:0;border-bottom:1px solid var(--pg-rule);background:transparent;box-shadow:none;border-radius:0;display:grid;grid-template-columns:190px 1fr;gap:20px;padding:16px 0}
+#platypus-assignment-review .pg-groupgrid.pg-compact .pg-grouplist{margin:0;border:0}
+@media(min-width:621px) and (max-width:900px){#platypus-assignment-review .pg-inline-due{display:inline}}
+@media(min-width:1250px){#platypus-assignment-review .pg-frame{grid-template-columns:166px minmax(0,1fr)}}
+@media(max-width:900px){#platypus-assignment-review .pg-frame{grid-template-columns:124px minmax(0,1fr)}#platypus-assignment-review .pg-nav{padding:20px 8px}#platypus-assignment-review .pg-appcontent{padding:20px 16px}#platypus-assignment-review .pg-org{display:none}#platypus-assignment-review .pg-splitapp{grid-template-columns:100px minmax(0,1fr)}#platypus-assignment-review .pg-workspace{padding:20px 14px}#platypus-assignment-review .pg-tasklayout{grid-template-columns:minmax(0,1fr) 245px;gap:12px}#platypus-assignment-review .pg-tasklayout .pg-tr{grid-template-columns:18px minmax(85px,1fr) 68px;gap:7px}#platypus-assignment-review .pg-tasklayout .pg-due{display:none}#platypus-assignment-review .pg-assignmentrow,#platypus-assignment-review .pg-assignmenthead{gap:10px;padding-left:14px;padding-right:14px}}
+@media(max-width:760px){#platypus-assignment-review .pg{--pg-stage:1100px}#platypus-assignment-review .pg-frame{grid-template-columns:1fr}#platypus-assignment-review .pg-nav{display:none}#platypus-assignment-review .pg-tasklayout{grid-template-columns:minmax(0,1fr) 260px}#platypus-assignment-review .pg-top{padding:12px 16px}#platypus-assignment-review .pg-account>span{display:none}#platypus-assignment-review .pg-obhead{padding:20px;gap:15px}#platypus-assignment-review .pg-progress li span{display:none}#platypus-assignment-review .pg-progress{max-width:320px}#platypus-assignment-review .pg-obmain{padding:16px 20px 30px}#platypus-assignment-review .pg-groupgrid{gap:10px}#platypus-assignment-review .pg-groupcard{padding:15px 12px 8px}#platypus-assignment-review .pg-assignmenthead{grid-template-columns:.95fr 1fr 1fr}#platypus-assignment-review .pg-assignmentrow{grid-template-columns:.95fr 1fr 1fr}}
+@media(max-width:620px){#platypus-assignment-review .pg{--pg-stage:1450px}#platypus-assignment-review .pg h1{font-size:25px}#platypus-assignment-review .pg-groupgrid{grid-template-columns:1fr}#platypus-assignment-review .pg-groupcard{padding:17px 16px 8px}#platypus-assignment-review .pg-grouptask{min-height:46px;padding:8px 0}#platypus-assignment-review .pg-progress{max-width:190px;gap:0}#platypus-assignment-review .pg-obhead{gap:12px;padding:18px 16px}#platypus-assignment-review .pg-obmain{padding:10px 16px 28px}#platypus-assignment-review .pg-obhead .pg-brand{font-size:17px}#platypus-assignment-review .pg-obhead .pg-btn{padding:6px 9px}#platypus-assignment-review .pg-groupgrid.pg-compact .pg-groupcard{grid-template-columns:1fr;gap:8px}#platypus-assignment-review .pg-assignmenthead{display:none}#platypus-assignment-review .pg-assignmentrow{grid-template-columns:1fr 1fr;gap:14px;padding:18px 14px}#platypus-assignment-review .pg-assignmentrow>.pg-assignmentname{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px}#platypus-assignment-review .pg-assignmentrow h3{margin-bottom:0}#platypus-assignment-review .pg-assignmentrow .pg-labelmobile{display:block;margin-bottom:7px;color:var(--pg-sub);font-size:11px}#platypus-assignment-review .pg-splitapp{display:block}#platypus-assignment-review .pg-eventsnav{flex-direction:row;align-items:center;gap:4px;border-right:0;border-bottom:1px solid var(--pg-rule);padding:8px 12px;flex-wrap:wrap}#platypus-assignment-review .pg-eventsnav strong{display:none}#platypus-assignment-review .pg-eventnavbutton{font-size:11px;padding:6px;min-height:32px}#platypus-assignment-review .pg-tasklayout{grid-template-columns:1fr}#platypus-assignment-review .pg-tasklayout .pg-tr{grid-template-columns:20px minmax(90px,1fr) 86px 48px}#platypus-assignment-review .pg-tasklayout .pg-due{display:block}#platypus-assignment-review .pg-panel{padding:18px 16px}#platypus-assignment-review .pg-workspace{padding:18px 14px}#platypus-assignment-review .pg-groupnav{padding:6px 7px;font-size:11px}#platypus-assignment-review .pg-account{gap:5px}#platypus-assignment-review .pg-account b{font-size:11px}#platypus-assignment-review .pg-brand{font-size:21px}}
+@media(min-width:621px){#platypus-assignment-review .pg-labelmobile{display:none}}
+@media(pointer:coarse){#platypus-assignment-review .pg-btn,#platypus-assignment-review .pg-icon,#platypus-assignment-review .pg-popoption,#platypus-assignment-review .pg-ownerbutton,#platypus-assignment-review .pg-tasktitle,#platypus-assignment-review .pg-tab,#platypus-assignment-review .pg-taskpeek,#platypus-assignment-review .pg-addmember{min-height:44px}#platypus-assignment-review .pg-input,#platypus-assignment-review .pg-select{font-size:16px}#platypus-assignment-review .pg-groupname{min-height:44px}#platypus-assignment-review .pg-checklabel{min-height:44px}}
+</style>
+<script>
+(function () {
+  const root = document.getElementById('platypus-assignment-review');
+  const persons = {
+    alex:{name:'Alex Rivera',role:'President'}, maya:{name:'Maya Chen',role:'Treasurer'}, jordan:{name:'Jordan Patel',role:'Events lead'},
+    sam:{name:'Sam Okafor',role:'Marketing lead'}, priya:{name:'Priya Nair',role:'Secretary'}, chris:{name:'Chris Lee',role:'Finance team'},
+    riley:{name:'Riley Brooks',role:'Designer'}, taylor:{name:'Taylor Kim',role:'Operations'}
+  };
+  const groupData = {
+    coordination:{name:'Event coordination',short:'Coordination',lead:'jordan',members:['jordan','priya','taylor'],tasks:[
+      {id:'room',title:'Reserve campus room',due:'Feb 19',status:'Not started'},
+      {id:'schedule',title:'Confirm the run of show',due:'Feb 26',status:'Not started'},
+      {id:'setup',title:'Prepare room setup',due:'Mar 4',status:'Not started'}]},
+    finance:{name:'Finance',short:'Finance',lead:'maya',members:['maya','chris'],tasks:[
+      {id:'budget',title:'Prepare event budget',due:'Feb 12',status:'Working on it'},
+      {id:'funding',title:'Submit funding request',due:'Feb 16',status:'Not started'},
+      {id:'purchase',title:'Submit purchase request',due:'Feb 19',status:'Not started'}]},
+    marketing:{name:'Marketing',short:'Marketing',lead:'sam',members:['sam','riley','alex'],tasks:[
+      {id:'poster',title:'Design the event poster',due:'Feb 19',status:'Working on it'},
+      {id:'promote',title:'Publish event announcement',due:'Feb 22',status:'Not started'},
+      {id:'rsvp',title:'Collect RSVPs',due:'Mar 3',status:'Not started'}]}
+  };
+  const order=['coordination','finance','marketing'];
+  const design={theme:'Follow device',layout:'Group cards',spacing:16,showDue:true};
+  const initialGroups=order.map(function(id){return {id:id,name:groupData[id].name,tasks:groupData[id].tasks.map(function(t){return t.id;})};});
+  const taskIndex=Object.fromEntries(order.flatMap(function(g){return groupData[g].tasks.map(function(t){return [t.id,t];});}));
+  let state={
+    onboarding:{tab:'groups',step:'groups',groups:initialGroups,menu:null,message:''},
+    create:{leads:{coordination:'jordan',finance:'maya',marketing:'sam'},members:{coordination:['priya','taylor'],finance:['chris'],marketing:['riley','alex']},menu:null,peek:null,created:false,message:''},
+    workspaces:{
+      finance:{owners:{budget:'maya',funding:'maya',purchase:'maya'},selected:['funding','purchase'],panel:'bulk',target:'chris',menu:null,message:''},
+      marketing:{owners:{poster:'sam',promote:'sam',rsvp:'sam'},selected:[],panel:null,target:'riley',menu:'promote',message:''},
+      coordination:{owners:{room:'jordan',schedule:'jordan',setup:'jordan'},selected:[],panel:'room',target:'priya',menu:null,message:''}
+    }
+  };
+  function esc(v){return String(v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+  function initials(id){return persons[id].name.split(' ').map(function(w){return w[0];}).join('');}
+  function first(id){return persons[id].name.split(' ')[0];}
+  function av(id,lead){return '<span class="pg-avatar'+(lead?' pg-lead':'')+'" aria-hidden="true">'+initials(id)+'</span>';}
+  function button(text,action,extra){return '<button type="button" class="pg-btn '+(extra||'')+'" data-action="'+action+'">'+text+'</button>';}
+  function flash(text){return '<div class="pg-flash" role="status" aria-live="polite">'+(text?'✓ <span>'+esc(text)+'</span>':'')+'</div>';}
+  function persist(){
+    if(window.openai && window.openai.setWidgetState){
+      const assignments={}; order.forEach(function(g){assignments[g]={lead:persons[groupData[g].lead].name,owners:state.workspaces[g].owners};});
+      window.openai.setWidgetState({modelContent:{review:'Work-group assignment designs',event:'Welcome Mixer',eventLeads:state.create.leads,taskAssignments:assignments},privateContent:{prototype:state,design:design}}).catch(function(){});
+    }
+  }
+  function hydrate(saved){
+    const p=saved && saved.privateContent;
+    if(!p || !p.prototype || !p.prototype.onboarding || !p.prototype.create || !p.prototype.workspaces) return;
+    const candidate=p.prototype;
+    if(!Array.isArray(candidate.onboarding.groups) || !order.every(function(g){return candidate.workspaces[g] && candidate.workspaces[g].owners && candidate.create.leads[g] && persons[candidate.create.leads[g]];}))return;
+    state=candidate; if(p.design)Object.assign(design,p.design);
+    if(state.create.created)commitEventTeams(true);
+  }
+  hydrate(window.openai && window.openai.widgetState);
+  window.addEventListener('openai:set_globals',function(e){hydrate(e.detail && e.detail.globals && e.detail.globals.widgetState);renderAll();});
+  function brand(compact){return '<div class="pg-brand"><span class="pg-brandmark" aria-hidden="true"></span>Platypus'+(compact?'':'<span class="pg-org">Desert Founders Society</span>')+'</div>';}
+  function topbar(viewer){return '<header class="pg-top">'+brand(false)+'<div class="pg-account"><span>View as</span><b>'+esc(persons[viewer].name)+'</b>'+av(viewer,true)+'</div></header>';}
+  function appNav(){return '<nav class="pg-nav" aria-label="Main navigation"><div class="pg-navword">Your workspace</div>'+['Reminders','Plan','Handoff','Rules'].map(function(n){return '<button class="pg-navbutton" type="button" '+(n==='Plan'?'aria-current="page"':'')+' data-action="nav-preview" data-name="'+n+'"><span class="pg-dot" aria-hidden="true"></span>'+n+'</button>';}).join('')+'<div class="pg-navfoot"><button class="pg-navbutton" type="button" data-action="nav-preview" data-name="Team">Team</button><button class="pg-navbutton" type="button" data-action="nav-preview" data-name="Settings">Settings</button><div class="pg-small" style="padding:14px 12px 0">Fictional demo</div></div></nav>';}
+  function eventNav(){return '<nav class="pg-eventsnav" aria-label="Events"><strong>Events</strong>'+['Welcome Mixer','Founder Dinner','Speaker Night'].map(function(n){return '<button type="button" class="pg-eventnavbutton" '+(n==='Welcome Mixer'?'aria-current="page"':'')+' data-action="event-preview" data-name="'+n+'">'+n+'</button>';}).join('')+'</nav>';}
+  function progress(index){const labels=['Name','Constitution','Goals','Team','First event','Reminders','Confirm','Invite'];return '<ol class="pg-progress" aria-label="Setup progress">'+labels.map(function(l,i){return '<li class="'+(i<index?'pg-past':i===index?'pg-now':'')+'" '+(i===index?'aria-current="step"':'')+'><i aria-hidden="true"></i><span>'+l+'</span></li>';}).join('')+'</ol>';}
+  function obHeader(index){return '<header class="pg-obhead">'+brand(true)+progress(index)+button('Exit','ob-exit')+'</header>';}
+  function moveMenu(task){return '<div class="pg-pop" role="menu" aria-label="Move task"><div class="pg-poplabel">Move to group</div>'+state.onboarding.groups.map(function(g){return '<button type="button" class="pg-popoption" role="menuitem" data-action="move-task" data-task="'+task+'" data-group="'+g.id+'">'+esc(g.name)+'</button>';}).join('')+'</div>';}
+  function groupCards(){return '<div class="pg-groupgrid '+(design.layout==='Compact rows'?'pg-compact':'')+'">'+state.onboarding.groups.map(function(g,i){return '<article class="pg-groupcard"><div><div class="pg-groupcap"><span class="pg-taskmark" aria-hidden="true"></span>Work group '+(i+1)+'</div><input class="pg-groupname" aria-label="Name of group '+(i+1)+'" data-group-name="'+g.id+'" value="'+esc(g.name)+'" maxlength="40"><div class="pg-small">'+g.tasks.length+' tasks</div></div><ul class="pg-grouplist">'+g.tasks.map(function(t){return '<li class="pg-grouptask"><span>'+esc(taskIndex[t].title)+'</span><button type="button" class="pg-icon" aria-label="Move '+esc(taskIndex[t].title)+'" data-action="ob-task-menu" data-task="'+t+'">⋯</button>'+(state.onboarding.menu===t?moveMenu(t):'')+'</li>';}).join('')+(g.tasks.length?'':'<li class="pg-grouptask"><span class="pg-small">Move a task here.</span></li>')+'</ul></article>';}).join('')+'</div>';}
+  function peopleTab(){return '<div>'+[['President','Alex Rivera'],['Treasurer','Maya Chen'],['Events lead','Jordan Patel'],['Marketing lead','Sam Okafor'],['Secretary','Priya Nair'],['Finance associate','Chris Lee'],['Marketing associate','Riley Brooks'],['Operations coordinator','Taylor Kim']].map(function(p){return '<div class="pg-peoplegrid"><label><span class="pg-label">Role</span><input class="pg-input" value="'+p[0]+'"></label><label><span class="pg-label">Person</span><input class="pg-input" value="'+p[1]+'"></label></div>';}).join('')+'</div>';}
+  function renderOnboarding(){
+    const mount=root.querySelector('[data-screen="onboarding"]');const ob=state.onboarding;
+    if(ob.step==='event'){
+      mount.innerHTML=obHeader(4)+'<main class="pg-obmain"><div class="pg-stepmeta">Step 5 of 8 · First event</div><div class="pg-obintro"><h1>Who\'s leading your first event?</h1><p class="pg-sub">Welcome Mixer · Mar 5, 2027 · 40 people</p></div>'+assignmentRows('onboarding')+'<div class="pg-obfooter">'+button('Back','ob-back')+button('Continue','ob-done','pg-main')+'</div>'+flash(ob.message)+'</main>';
+    }else{
+      mount.innerHTML=obHeader(3)+'<main class="pg-obmain"><div class="pg-stepmeta">Step 4 of 8 · Team</div><div class="pg-obintro"><h1>How will your team split the work?</h1><p class="pg-sub">Group related tasks once. Choose people for each event.</p></div><div class="pg-tabs" role="tablist" aria-label="Team setup"><button type="button" class="pg-tab" role="tab" aria-selected="'+(ob.tab==='people')+'" aria-controls="pg-ob-tabpanel" data-action="ob-tab" data-tab="people">People <span class="pg-count">8</span></button><button type="button" class="pg-tab" role="tab" aria-selected="'+(ob.tab==='groups')+'" aria-controls="pg-ob-tabpanel" data-action="ob-tab" data-tab="groups">Work groups <span class="pg-count">'+ob.groups.length+'</span></button></div><div id="pg-ob-tabpanel" role="tabpanel">'+(ob.tab==='groups'?'<div class="pg-between"><div><b>General meeting workflow</b><div class="pg-small">'+Object.keys(taskIndex).length+' tasks · names are editable</div></div>'+button('+ Add a group','ob-add','pg-quiet')+'</div>'+groupCards():peopleTab())+'</div><div class="pg-obfooter">'+button('Back','ob-back')+'<div class="pg-line"><span class="pg-small">Adjust groups later in Settings.</span>'+button('Continue','ob-next','pg-main')+'</div></div>'+flash(ob.message)+'</main>';
+    }
+  }
+  function activeGroups(){return state.onboarding.groups.filter(function(g){return g.tasks.length>0;});}
+  function syncDraftGroups(){
+    state.onboarding.groups.forEach(function(g){
+      if(!(g.id in state.create.leads))state.create.leads[g.id]=null;
+      if(!(g.id in state.create.members))state.create.members[g.id]=[];
+    });
+  }
+  function commitEventTeams(keepOwners){
+    activeGroups().forEach(function(g){
+      if(!groupData[g.id])return;
+      const meta=groupData[g.id],ws=state.workspaces[g.id];
+      meta.name=g.name;meta.short=g.name==='Event coordination'?'Coordination':g.name;meta.lead=state.create.leads[g.id];
+      meta.members=Array.from(new Set([meta.lead].concat(state.create.members[g.id])));
+      meta.tasks=g.tasks.map(function(t){return taskIndex[t];});
+      if(!keepOwners){
+        ws.owners=Object.fromEntries(g.tasks.map(function(t){return [t,meta.lead];}));
+        ws.selected=[];ws.panel=null;ws.menu=null;ws.message='';ws.undo=null;
+        ws.target=meta.members.find(function(p){return p!==meta.lead;})||meta.lead;
+      }
+    });
+  }
+  function workspaceFlash(group){
+    const ws=state.workspaces[group];
+    return '<div class="pg-flash" role="status" aria-live="polite">'+(ws.message?'<span>'+esc(ws.message)+'</span>':'')+(ws.undo?'<button type="button" class="pg-btn pg-quiet" data-action="undo-assignment" data-group="'+group+'">Undo</button>':'')+'</div>';
+  }
+  function personMenu(group,kind,source){
+    const c=state.create;
+    return '<div class="pg-pop" role="listbox" aria-label="'+(kind==='lead'?'Choose group lead':'Choose collaborators')+'"><div class="pg-poplabel">'+(kind==='lead'?'Group lead':'Collaborators')+'</div>'+Object.keys(persons).filter(function(id){return kind==='lead'||id!==c.leads[group];}).map(function(id){return '<button type="button" class="pg-popoption" role="option" aria-selected="'+(kind==='lead'?c.leads[group]===id:c.members[group].includes(id))+'" data-action="'+(kind==='lead'?'choose-lead':'choose-member')+'" data-group="'+group+'" data-person="'+id+'" data-source="'+source+'">'+av(id,id===c.leads[group])+'<span>'+esc(persons[id].name)+'<small>'+esc(persons[id].role)+'</small></span>'+(kind==='members'&&c.members[group].includes(id)?'<span aria-hidden="true">✓</span>':'')+'</button>';}).join('')+'</div>';
+  }
+  function assignmentRows(source){
+    syncDraftGroups();const c=state.create;
+    return '<div class="pg-assignment"><div class="pg-assignmenthead"><span>Work group</span><span>Group lead</span><span>Collaborators</span></div>'+activeGroups().map(function(g){
+      const id=g.id,lead=c.leads[id];
+      return '<section class="pg-assignmentrow"><div class="pg-assignmentname"><h3>'+esc(g.name)+'</h3><button type="button" class="pg-taskpeek" aria-expanded="'+(c.peek===id)+'" data-action="peek-tasks" data-group="'+id+'" data-source="'+source+'">'+g.tasks.length+' tasks</button></div><div class="pg-personchoice"><span class="pg-labelmobile">Group lead</span><button type="button" class="pg-rolechoice" aria-label="Choose '+esc(g.name)+' lead" aria-expanded="'+(c.menu===source+':'+id+':lead')+'" data-action="event-menu" data-group="'+id+'" data-kind="lead" data-source="'+source+'"><span class="pg-line">'+(lead?av(lead,true)+'<span>'+first(lead)+'</span>':'<span class="pg-sub">Choose a lead</span>')+'</span><span aria-hidden="true">⌄</span></button>'+(c.menu===source+':'+id+':lead'?personMenu(id,'lead',source):'')+'</div><div class="pg-personchoice"><span class="pg-labelmobile">Collaborators</span><div class="pg-collabs">'+c.members[id].filter(function(p){return p!==lead;}).map(function(p){return '<span class="pg-collabchip">'+first(p)+'</span>';}).join('')+'<button type="button" class="pg-addmember" aria-label="Choose '+esc(g.name)+' collaborators" aria-expanded="'+(c.menu===source+':'+id+':members')+'" data-action="event-menu" data-group="'+id+'" data-kind="members" data-source="'+source+'">+</button></div>'+(c.menu===source+':'+id+':members'?personMenu(id,'members',source):'')+'</div>'+(c.peek===id?'<ul class="pg-eventtasks">'+g.tasks.map(function(t){return '<li>'+esc(taskIndex[t].title)+'</li>';}).join('')+'</ul>':'')+'</section>';
+    }).join('')+'</div>';
+  }
+  function renderCreate(){const c=state.create;const mount=root.querySelector('[data-screen="create"]');
+    let main;
+    if(c.created){main='<div class="pg-stepmeta">Event created</div><div class="pg-pageintro"><h1>Welcome Mixer is ready.</h1><p class="pg-sub">9 tasks assigned across '+activeGroups().length+' work groups.</p></div><div class="pg-summarylist">'+activeGroups().map(function(entry){const g=entry.id,lead=c.leads[g];return '<section class="pg-summaryrow"><div><h3>'+esc(entry.name)+'</h3><p class="pg-small">'+entry.tasks.length+' tasks · '+c.members[g].filter(function(p){return p!==lead;}).map(first).join(', ')+' collaborating</p></div><div class="pg-line">'+av(lead,true)+'<b>'+persons[lead].name+'</b><span class="pg-pill pg-active">Group lead</span></div></section>';}).join('')+'</div><div class="pg-formfooter">'+button('Edit team assignments','edit-event')+'<span class="pg-small">Task reminders follow the task owner.</span></div>'+flash(c.message);
+    }else{main='<div class="pg-breadcrumb"><span>Plan</span><span>›</span><span>Create event</span></div><div class="pg-between"><h1>Create an event</h1><span class="pg-pill">2 of 2</span></div><div class="pg-stepswitch"><span>✓ Event details</span><span aria-hidden="true">→</span><span class="pg-current">Teams &amp; owners</span></div><div class="pg-eventmeta"><div><h3>Welcome Mixer</h3><p class="pg-small">Mar 5, 2027 · 40 people · On campus</p></div>'+button('Edit details','event-details','pg-quiet')+'</div><div class="pg-pageintro"><h2>Who\'s taking each part?</h2><p class="pg-sub">Choose a lead and collaborators for each group.</p></div>'+assignmentRows('create')+'<div class="pg-note"><span aria-hidden="true">•</span><span>Tasks start with the group lead. Leads can assign them within their team.</span></div><div class="pg-formfooter">'+button('Back','event-details')+'<div class="pg-line"><span class="pg-small">'+activeGroups().length+' groups · 9 tasks</span>'+button('Create event','create-event','pg-main')+'</div></div>'+flash(c.message);}
+    mount.innerHTML=topbar('alex')+'<div class="pg-frame">'+appNav()+'<main class="pg-appcontent">'+main+'</main></div>';
+  }
+  function ownerMenu(group,task){const ws=state.workspaces[group],g=groupData[group];return '<div class="pg-pop pg-ownermenu" role="listbox" aria-label="Task owner"><div class="pg-poplabel">Assign within '+esc(g.name)+'</div>'+g.members.map(function(p){return '<button type="button" class="pg-popoption" role="option" aria-selected="'+(ws.owners[task]===p)+'" data-action="inline-assign" data-group="'+group+'" data-task="'+task+'" data-person="'+p+'">'+av(p,p===g.lead)+'<span>'+persons[p].name+'<small>'+(p===g.lead?'Group lead':persons[p].role)+'</small></span>'+(ws.owners[task]===p?'<span aria-hidden="true">✓</span>':'')+'</button>';}).join('')+'</div>';}
+  function taskTable(group){const ws=state.workspaces[group],g=groupData[group];return '<div class="pg-tasktable" role="table" aria-label="'+esc(g.name)+' tasks"><div class="pg-tr pg-thead" role="row"><span></span><span role="columnheader">Task</span><span role="columnheader">Owner</span>'+(design.showDue?'<span class="pg-due" role="columnheader">Due</span>':'<span></span>')+'</div>'+g.tasks.map(function(t){const owner=ws.owners[t.id],selected=ws.selected.includes(t.id);return '<div class="pg-tr '+(selected?'pg-selected':'')+'" role="row" data-task-row="'+t.id+'"><input type="checkbox" class="pg-check" aria-label="Select '+esc(t.title)+'" data-select-task="'+t.id+'" data-group="'+group+'" '+(selected?'checked':'')+'><div role="cell"><button class="pg-tasktitle" type="button" data-action="task-details" data-group="'+group+'" data-task="'+t.id+'">'+esc(t.title)+'</button><div class="pg-taskstate"><span class="pg-statusdot" aria-hidden="true"></span>'+t.status+'<span class="pg-inline-due"> · Due '+t.due+'</span></div></div><div role="cell" class="pg-taskowner"><button type="button" class="pg-ownerbutton" data-action="owner-menu" data-group="'+group+'" data-task="'+t.id+'" aria-expanded="'+(ws.menu===t.id)+'" aria-label="Change owner of '+esc(t.title)+'; currently '+persons[owner].name+'"><span>'+first(owner)+'</span><span aria-hidden="true">⌄</span></button>'+(ws.menu===t.id?ownerMenu(group,t.id):'')+'</div>'+(design.showDue?'<span role="cell" class="pg-due">'+t.due+'</span>':'<span></span>')+'</div>';}).join('')+'</div>';}
+  function bulkPanel(group){const g=groupData[group],ws=state.workspaces[group];return '<aside class="pg-panel" aria-label="Bulk task assignment"><div class="pg-panelhead"><div><div class="pg-paneloverline">'+esc(g.name)+' team</div><h2>Assign '+ws.selected.length+' tasks</h2></div><button class="pg-icon" type="button" aria-label="Close assignment" data-action="close-panel" data-group="'+group+'">×</button></div><ul class="pg-assigntasks">'+g.tasks.filter(function(t){return ws.selected.includes(t.id);}).map(function(t){return '<li><span aria-hidden="true">✓</span>'+t.title+'</li>';}).join('')+'</ul><span class="pg-label">Task owner</span>'+g.members.map(function(p){return '<label class="pg-radioperson"><input type="radio" name="'+group+'-assignee" value="'+p+'" data-bulk-target="'+group+'" '+(ws.target===p?'checked':'')+'>'+av(p,p===g.lead)+'<span><b>'+persons[p].name+'</b><small>'+(p===g.lead?'Group lead':'Collaborator')+'</small></span></label>';}).join('')+'<div class="pg-panelaction">'+button('Cancel','close-panel','pg-quiet')+'<button class="pg-btn pg-main" type="button" '+(!ws.selected.length?'disabled':'')+' data-action="bulk-assign" data-group="'+group+'">Assign '+ws.selected.length+' tasks</button></div><div class="pg-panelnote"><span aria-hidden="true">•</span><span>'+first(g.lead)+' stays group lead.'+(group==='finance'?' Budget approval stays with Alex.':'')+'</span></div></aside>';}
+  function detailsPanel(group,task){const ws=state.workspaces[group],g=groupData[group],t=g.tasks.find(function(x){return x.id===task;});if(!t)return '';
+    return '<aside class="pg-panel" aria-label="Task details"><div class="pg-panelhead"><div><div class="pg-paneloverline">Task details</div><h2>'+t.title+'</h2></div><button class="pg-icon" type="button" aria-label="Close details" data-action="close-panel" data-group="'+group+'">×</button></div><div class="pg-keyvalue"><span>Work group</span><b>'+esc(g.name)+'</b></div><div class="pg-keyvalue"><span>Group lead</span><b>'+first(g.lead)+'</b></div><div class="pg-keyvalue"><span>Task due</span><b>'+t.due+'</b></div><div class="pg-detailsection"><h3>What needs to happen</h3><p class="pg-small">'+(task==='room'?'Request a campus room for 40 people and attach the confirmation.':task==='poster'?'Prepare a poster with the event date, room and RSVP link.':'Complete this step and add the confirmation to the task.')+'</p></div><div class="pg-detailsection"><label><span class="pg-label">Task owner</span><select class="pg-select" aria-label="Task owner" data-detail-target="'+group+'">'+g.members.map(function(p){return '<option value="'+p+'" '+(ws.target===p?'selected':'')+'>'+persons[p].name+(p===g.lead?' · Group lead':'')+'</option>';}).join('')+'</select></label><p class="pg-small">Members of this event\'s '+esc(g.name)+' team.</p></div><div class="pg-panelaction"><button type="button" class="pg-btn pg-main" data-action="detail-assign" data-group="'+group+'" data-task="'+task+'">Save assignment</button></div><div class="pg-panelnote"><span aria-hidden="true">•</span><span>'+first(g.lead)+' remains responsible for the group.</span></div></aside>';
+  }
+  function renderWorkspace(group){const mount=root.querySelector('[data-screen="'+group+'"]'),g=groupData[group],ws=state.workspaces[group];const panel=ws.panel==='bulk'?bulkPanel(group):ws.panel?detailsPanel(group,ws.panel):'';
+    mount.innerHTML=topbar(g.lead)+'<div class="pg-frame">'+appNav()+'<div class="pg-splitapp">'+eventNav()+'<main class="pg-workspace"><div class="pg-breadcrumb"><span>Events</span><span>›</span><span>Welcome Mixer</span></div><header class="pg-workhead"><div class="pg-eventtitle"><h1>Welcome Mixer</h1><span class="pg-small">Mar 5, 2027</span></div><div class="pg-grouptabs" role="tablist" aria-label="Event work groups">'+order.map(function(id){return '<button type="button" class="pg-groupnav" role="tab" aria-selected="'+(id===group)+'" data-action="group-preview" data-group="'+group+'" data-target-group="'+id+'">'+groupData[id].short+'</button>';}).join('')+'</div></header><div class="pg-between"><h2>'+esc(g.name)+'</h2><span class="pg-pill pg-active">You lead this group</span></div><div class="pg-leadline">'+av(g.lead,true)+'<span><strong>'+persons[g.lead].name+'</strong> · Group lead</span><span aria-hidden="true">·</span><span>Team: '+g.members.map(first).join(', ')+'</span></div><div class="pg-tasklayout '+(!panel?'pg-nopanel':'')+'"><section class="pg-taskarea" aria-label="Group tasks"><div class="pg-tasktools"><span class="'+(ws.selected.length?'pg-selection':'pg-small')+'">'+(ws.selected.length?ws.selected.length+' tasks selected':g.tasks.length+' tasks in this group')+'</span><button type="button" class="pg-btn" data-action="open-bulk" data-group="'+group+'">Assign tasks</button></div>'+taskTable(group)+'<div class="pg-note"><span aria-hidden="true">•</span><span>Click a task owner to change one assignment.</span></div>'+workspaceFlash(group)+'</section>'+panel+'</div></main></div></div>';
+  }
+  function applyDesign(){root.querySelectorAll('.pg').forEach(function(el){el.style.setProperty('--pg-gap',design.spacing+'px');el.style.colorScheme=design.theme==='Light'?'light':design.theme==='Dark'?'dark':'';});}
+  function renderAll(){renderOnboarding();renderCreate();order.forEach(renderWorkspace);applyDesign();}
+  function updateAssignmentScreens(){renderOnboarding();renderCreate();applyDesign();}
+  function updateWorkspace(group){renderWorkspace(group);applyDesign();}
+  root.addEventListener('input',function(e){const field=e.target.closest('[data-group-name]');if(field){const g=state.onboarding.groups.find(function(x){return x.id===field.dataset.groupName;});if(g){g.name=field.value;persist();}}});
+  root.addEventListener('change',function(e){const el=e.target;
+    if(el.matches('[data-select-task]')){const g=el.dataset.group,ws=state.workspaces[g],task=el.dataset.selectTask;ws.selected=el.checked?Array.from(new Set(ws.selected.concat(task))):ws.selected.filter(function(x){return x!==task;});updateWorkspace(g);persist();}
+    if(el.matches('[data-bulk-target]')){state.workspaces[el.dataset.bulkTarget].target=el.value;persist();}
+    if(el.matches('[data-detail-target]')){state.workspaces[el.dataset.detailTarget].target=el.value;persist();}
+  });
+  root.addEventListener('click',function(e){const el=e.target.closest('[data-action]');if(!el||!root.contains(el))return;const a=el.dataset.action,g=el.dataset.group,task=el.dataset.task,person=el.dataset.person,ws=g&&state.workspaces[g];
+    if(a==='ob-tab'){state.onboarding.tab=el.dataset.tab;state.onboarding.menu=null;renderOnboarding();}
+    else if(a==='ob-task-menu'){state.onboarding.menu=state.onboarding.menu===task?null:task;renderOnboarding();}
+    else if(a==='move-task'){state.onboarding.groups.forEach(function(x){x.tasks=x.tasks.filter(function(t){return t!==task;});});state.onboarding.groups.find(function(x){return x.id===g;}).tasks.push(task);state.onboarding.menu=null;state.onboarding.message=taskIndex[task].title+' moved.';renderOnboarding();}
+    else if(a==='ob-add'){const id='custom-'+(state.onboarding.groups.length+1);state.onboarding.groups.push({id:id,name:'New group',tasks:[]});renderOnboarding();const field=root.querySelector('[data-group-name="'+id+'"]');if(field){field.focus();field.select();}}
+    else if(a==='ob-next'){state.onboarding.step='event';state.onboarding.message='';renderOnboarding();}
+    else if(a==='ob-back'){state.onboarding.step='groups';state.onboarding.tab='people';state.onboarding.message='';renderOnboarding();}
+    else if(a==='ob-done'){state.onboarding.message='Teams saved for your first event. Next: Reminders.';renderOnboarding();}
+    else if(a==='ob-exit'){state.onboarding.message='Your work groups are kept for this setup.';renderOnboarding();}
+    else if(a==='event-menu'){const key=el.dataset.source+':'+g+':'+el.dataset.kind;state.create.menu=state.create.menu===key?null:key;updateAssignmentScreens();}
+    else if(a==='choose-lead'){const c=state.create,old=c.leads[g];c.leads[g]=person;if(old && old!==person && !c.members[g].includes(old))c.members[g].push(old);c.members[g]=c.members[g].filter(function(p){return p!==person;});c.menu=null;c.message='';updateAssignmentScreens();}
+    else if(a==='choose-member'){const members=state.create.members[g];state.create.members[g]=members.includes(person)?members.filter(function(p){return p!==person;}):members.concat(person);updateAssignmentScreens();}
+    else if(a==='peek-tasks'){state.create.peek=state.create.peek===g?null:g;updateAssignmentScreens();}
+    else if(a==='create-event'){
+      const missing=activeGroups().find(function(group){return !state.create.leads[group.id];});
+      if(missing){state.create.message='Choose a lead for '+missing.name+'.';renderCreate();}
+      else{commitEventTeams();state.create.created=true;state.create.menu=null;state.create.message='9 tasks now have a named owner.';renderAll();}
+    }
+    else if(a==='edit-event'){state.create.created=false;state.create.message='';renderCreate();}
+    else if(a==='event-details'){state.create.message='Welcome Mixer · Mar 5, 2027 · 40 people · On campus.';renderCreate();}
+    else if(a==='owner-menu'){ws.menu=ws.menu===task?null:task;updateWorkspace(g);}
+    else if(a==='inline-assign'){ws.undo={};ws.undo[task]=ws.owners[task];ws.owners[task]=person;ws.menu=null;ws.message=taskIndex[task].title+' assigned to '+persons[person].name+'.';updateWorkspace(g);}
+    else if(a==='open-bulk'){if(!ws.selected.length)ws.selected=groupData[g].tasks.map(function(t){return t.id;});ws.panel='bulk';ws.menu=null;ws.target=groupData[g].members.find(function(p){return p!==groupData[g].lead;})||groupData[g].lead;updateWorkspace(g);}
+    else if(a==='close-panel'){const currentGroup=g||el.closest('[data-screen]').dataset.screen;state.workspaces[currentGroup].panel=null;updateWorkspace(currentGroup);}
+    else if(a==='bulk-assign'){const count=ws.selected.length;ws.undo={};ws.selected.forEach(function(t){ws.undo[t]=ws.owners[t];});ws.selected.forEach(function(t){ws.owners[t]=ws.target;});ws.selected=[];ws.panel=null;ws.message=count+' tasks assigned to '+persons[ws.target].name+'. '+first(groupData[g].lead)+' stays group lead.';updateWorkspace(g);}
+    else if(a==='task-details'){ws.panel=task;ws.target=ws.owners[task];ws.menu=null;updateWorkspace(g);}
+    else if(a==='detail-assign'){ws.undo={};ws.undo[task]=ws.owners[task];ws.owners[task]=ws.target;ws.message=taskIndex[task].title+' assigned to '+persons[ws.target].name+'.';updateWorkspace(g);}
+    else if(a==='undo-assignment'){if(ws.undo)Object.assign(ws.owners,ws.undo);ws.undo=null;ws.message='Assignment undone.';updateWorkspace(g);}
+    else if(a==='group-preview'){ws.message=groupData[el.dataset.targetGroup].name+' is led by '+persons[groupData[el.dataset.targetGroup].lead].name+'.';updateWorkspace(g);}
+    else if(a==='nav-preview'||a==='event-preview'){const screen=el.closest('[data-screen]').dataset.screen;const message='Welcome Mixer · Mar 5, 2027 · '+(screen==='create'?'Choose a lead for each group.':screen==='onboarding'?'Set up your work groups.':'Your group assignments are shown here.');if(screen==='create'){state.create.message=message;renderCreate();}else if(state.workspaces[screen]){state.workspaces[screen].message=message;updateWorkspace(screen);}}
+    applyDesign();persist();
+  });
+  document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;state.onboarding.menu=null;state.create.menu=null;order.forEach(function(g){state.workspaces[g].menu=null;});renderAll();});
+  if(state.create.created)commitEventTeams(true);
+  renderAll();
+  if(globalThis.Tweak){
+    const tweak=new Tweak({container:root,onChange:function(){renderAll();persist();}});
+    tweak.addSelect(design,'theme',{label:'界面外观',options:[{label:'跟随系统',value:'Follow device'},{label:'浅色',value:'Light'},{label:'深色',value:'Dark'}]});
+    const setupTweak=new Tweak({container:root.querySelector('[data-screen="onboarding"]'),onChange:function(){renderOnboarding();applyDesign();persist();}});
+    setupTweak.addSelect(design,'layout',{label:'分组呈现方式',options:[{label:'分组卡片',value:'Group cards'},{label:'紧凑分行',value:'Compact rows'}]});
+    tweak.addSlider(design,'spacing',{label:'任务行留白',min:12,max:23,step:1,unit:'px'});
+  }
+})();
+</script>
