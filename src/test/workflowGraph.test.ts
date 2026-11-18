@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import type { Node, WorkflowBranch } from "../data/types"
 import { seedDemo } from "../data/seed"
 import { insertFlowBranch, insertFlowStep, moveBetween, type FlowInsertionTarget } from "../lib/flowEdit"
-import { applyEdits, cleanPatch } from "../lib/stepOrder"
+import { ancestorsOf, applyEdits, cleanPatch } from "../lib/stepOrder"
 import { orderedBranchNodes } from "../lib/flowOrder"
 import { metroLayout, EVENT_KEY } from "../components/flow/metro"
 
@@ -68,6 +68,20 @@ describe("saved workflow branch operations", () => {
     const result = moveBetween(nodes, "partner", null, "other", { target: t, branches, conditionConfirmed: true })
     expect(result.error).toBeUndefined()
     expect(applyEdits(nodes, result.edits).find(n => n.id === "partner")).toMatchObject({ placement: { branchId: "work", order: 0 }, cond: undefined })
+  })
+  it("preserves the standard Full Check dependency when an order task moves to Marketing", () => {
+    const nodes = base.nodes.filter(n => n.eventId === "e-speaker")
+    const id = (key: string) => `e-speaker:${key}`
+    const result = moveBetween(nodes, id("orderPlaced"), id("marketingNeeds"), id("contentCreation"), { target: target("marketing", id("marketingNeeds"), id("contentCreation")), branches: [] })
+    expect(result.error).toBeUndefined()
+    const after = applyEdits(nodes, result.edits)
+    expect(ancestorsOf(after, id("finalcheck")).has(id("orderPlaced"))).toBe(true)
+  })
+  it("rejects moving a required core step into a conditional branch before reporting success", () => {
+    const nodes = base.nodes.filter(n => n.eventId === "e-speaker")
+    const id = (key: string) => `e-speaker:${key}`
+    const result = moveBetween(nodes, id("promotionItems"), id("partner"), id("speakerPacket"), { target: { ...target("speaker", id("partner"), id("speakerPacket")), condition: null }, branches: [], conditionConfirmed: true })
+    expect(result).toMatchObject({ edits: [], error: expect.stringContaining("Required workflow") })
   })
   it("creates new pre and post branches with real entry/exit dependencies", () => {
     const nodes = [n("finalcheck", "main", 0), n("headcount", "main", 1)]

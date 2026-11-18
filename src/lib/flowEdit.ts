@@ -2,8 +2,8 @@ import type { Event, Node, StepCond, WorkflowBranch } from "../data/types"
 import type { MetroLayout } from "../components/flow/metro"
 import { END_KEY, EVENT_KEY, START_KEY } from "../components/flow/metro"
 import { ancestorsOf, createsLoop, reduceDeps, type EditResult, type StepEdit } from "./stepOrder"
-import { isStepCondition, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
-import { deletionReason } from "../engine/workflowPolicy"
+import { conditionsOf, isStepCondition, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
+import { deletionReason, isAsuStep, isCoreStep } from "../engine/workflowPolicy"
 import { orderedBranchNodes } from "./flowOrder"
 
 export interface FlowInsertionTarget {
@@ -166,6 +166,8 @@ function moveOnBranch(nodes: Node[], id: string, context: FlowMoveContext): Edit
   if (origin.side !== destination.side) return fail("Steps cannot move between preparation and close-out. Choose a branch on the same side of the event day.")
   const targetCondition = context.target.condition !== undefined ? context.target.condition ?? undefined : r.cond
   const candidate = { ...r, placement: { branchId: destination.id, order: source.order }, cond: targetCondition }
+  if (isCoreStep(r) && conditionsOf(candidate, branches).length) return fail("Required workflow steps cannot be limited to conditional events.")
+  if (isAsuStep(r) && scopeKey(r, branches) !== scopeKey(candidate, branches)) return fail("An ASU step must keep the events it applies to.")
   if (origin.id !== destination.id && scopeKey(r, branches) !== scopeKey(candidate, branches) && !context.conditionConfirmed) return fail("Moving to this branch changes which events use the step. Confirm the new scope first.")
   const external = r.dependsOn.filter(d => {
     const n = nodes.find(n => n.id === d)
@@ -173,7 +175,9 @@ function moveOnBranch(nodes: Node[], id: string, context: FlowMoveContext): Edit
   })
   // Other branches that wait for r still wait for r. Only its former line closes up.
   const detached = nodes.filter(n => n.id !== id).map(n => {
-    const onSource = placementOf(n).branchId === source.branchId || (origin.side === "before_event" && isPreJoin(n))
+    const sharedJoin = origin.side === "before_event" && isPreJoin(n)
+    if (sharedJoin && origin.id !== destination.id && n.dependsOn.includes(id)) return { ...n, dependsOn: uniq([...n.dependsOn, ...r.dependsOn]) }
+    const onSource = placementOf(n).branchId === source.branchId || sharedJoin
     return onSource && n.dependsOn.includes(id) ? { ...n, dependsOn: uniq([...n.dependsOn.filter(d => d !== id), ...r.dependsOn]) } : n
   })
   const error = validateTarget(detached, context.target, branches)
@@ -244,7 +248,7 @@ export function flowGaps(L: MetroLayout): Gap[] {
   for (const t of flowTracks(L)) {
     t.items.slice(0, -1).forEach((u, i) => {
       const v = t.items[i + 1]
-      if (u.key === EVENT_KEY) return
+      if (t.id === "main" && u.key === EVENT_KEY) return
       const branchRow = t.items.find(x => x.row !== 0)?.row ?? 0
       out.push({ id: `${t.id}:${u.key}:${v.key}`, track: t.id, uId: u.node?.id ?? null, vId: v.node?.id ?? null, u, v, col: (u.col + v.col) / 2, row: t.id === "main" ? 0 : branchRow })
     })
