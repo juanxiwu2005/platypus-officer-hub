@@ -1,3 +1,6 @@
+> **2026-11-17（America/Phoenix） · 分支启用条件多选与说明进行中（Codex）**
+> **用户要求：** Add branch中的Applies to不直观，改为可勾选多个活动checklist条件；所有选中项都满足才启用分支，不选则适用所有活动。同步覆盖保存、活动生成、插入继承和范围提示，旧单条件配置继续可读；沿用PR14，不改main。
+
 > **2026-11-17（America/Phoenix） · Workflow 三阶段修复已完成检查，待用户验收（Codex主Agent与Data/Graph/Timing/UI/Review worktree）**
 > **授权与交付：** 链接和Details易用性暂缓；工作量/日期两者都查，方案后连续实施全部阶段。[详细方案](feedback-fix/WORKFLOW_STABILITY_PLAN.md)先保存后执行；运行时代码`18d7316`修移动不更新、插入跑分支、工时输入与开始提醒、Full Check保护及条件泄漏，接通明确before/after、汇合点选分支与Add branch。旧v23历史、完整Undo及后来保存的任务内容保留。
 > **验证与验收：** [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow；[交付记录](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)。分批1665单元/组件通过、1慢枚举未跑；最终生产构建双端76通过/2设备限定跳过。类型、build、lint、9页文字预算通过，Settings147/150，完整部署元数据入口544,207/550,000，上限未提高。代码`18d7316`的Netlify部署success已核对。保留`5758c2d`同期实际任务Details及设计原稿，未重做其界面或链接。0真实AI/邮件，不新建PR、不合并main。需要同步本地备份。
