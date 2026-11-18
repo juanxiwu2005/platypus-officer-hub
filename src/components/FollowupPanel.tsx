@@ -1,20 +1,15 @@
 import { useState } from "react"
 import { useStore, useViewer } from "../data/store"
 import { recoveryPreview } from "../engine/followup"
-import { Empty } from "./ui"
-import { canReviewExtension } from "../data/taskWorkflow"
-import { ExtensionReview } from "./ExtensionReview"
 
 export function FollowupPanel() {
   const { state, dispatch } = useStore()
   const { canNudge } = useViewer()
   const [selected, setSelected] = useState("t-silence")
   const entries = state.protocolLog.filter(e => e.nodeId === selected)
-  const pending = state.extensionRequests.filter(r => r.status === "pending" && canReviewExtension(state, r))
-  if (!pending.length && (!canNudge || !state.protocolLog.length)) return null
+  if (!canNudge || !state.protocolLog.length) return null
   return <section className="card" aria-label="President review" data-testid="president-review">
-    <header><h2>Approvals</h2><span className="small muted">Only you see this</span></header>
-    <div className="review-queue">{pending.map(r => <ExtensionReview key={r.id} request={r} showTaskLink />)}{!pending.length && <Empty>No requests waiting.</Empty>}</div>
+    <header><h2>Follow-up</h2><span className="small muted">Only you see this</span></header>
     {canNudge && <details className="followup-details" open={entries.length > 0}>
       <summary>Follow-up walkthrough</summary>
       <p className="small muted">Move the Demo clock to see each private step. Nothing is sent.</p>

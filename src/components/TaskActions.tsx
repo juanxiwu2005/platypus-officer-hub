@@ -5,6 +5,7 @@ import { useStore } from "../data/store"
 import { validateReply, type ReplyInput, type TaskReply } from "../data/taskWorkflow"
 import { isPresident, officers } from "../data/permissions"
 import { isBudgetControlledNode } from "../engine/eventBudget"
+import { TaskTargetForm } from "../taskDetails/TaskTargetForm"
 
 const waitingTarget = (node: Node) => node.waitingOnPersonId ?? (node.waitingOn?.trim() ? "other" : "")
 
@@ -19,22 +20,20 @@ export function TaskActions({ node, actorId, token, initialReply }: { node: Node
   const [notice, setNotice] = useState("")
   const [error, setError] = useState("")
   const failed = () => setError("Your update was not saved. Your entered details are kept here. Please try again, or reload if this page reports a conflict.")
-  function send(reply: TaskReply, value: ReplyInput = input) {
+  function send(reply: Exclude<TaskReply, "extension">, value: ReplyInput = input) {
     setNotice(""); setError("")
     const before = getState(), current = before.nodes.find(n => n.id === node.id)
     if (!current) { failed(); return }
     const problem = validateReply(before, current, actorId, reply, value)
     if (problem) { setError(problem); return }
-    const oldRequests = new Set(before.extensionRequests.map(r => r.id))
     const accepted = token ? tryDispatch({ type: "officerAction", token, reply, input: value }) : tryDispatch({ type: "replyTask", nodeId: node.id, reply, input: value })
     const after = getState(), savedNode = after.nodes.find(n => n.id === node.id)
-    const expected = reply === "extension" ? current.status : reply === "todo" ? "accepted" : reply === "done" ? "done" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : "in_progress"
+    const expected = reply === "todo" ? "accepted" : reply === "done" ? "done" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : "in_progress"
     const saved = accepted && savedNode?.status === expected
       && (reply !== "waiting" || (savedNode.waitingOn === value.waitingOn?.trim().slice(0, 180) && (savedNode.waitingOnPersonId ?? null) === (value.waitingOnPersonId ?? null)))
-      && (reply !== "extension" || after.extensionRequests.some(r => !oldRequests.has(r.id) && r.nodeId === node.id && r.status === "pending" && r.requestedDate === value.requestedDate))
     if (!saved) { failed(); return }
     setForm("")
-    setNotice(reply === "extension" ? "Your new deadline request was saved and your approver notified. The current deadline stays until approval." : "Your update is saved. Thank you.")
+    setNotice("Your update is saved. Thank you.")
     root.current?.focus()
   }
   function claim() {
@@ -86,12 +85,9 @@ export function TaskActions({ node, actorId, token, initialReply }: { node: Node
       <p className="small muted">The reminder plan can follow up with a named teammate. Other dependencies are saved without guessing an email address. This task keeps its current owner.</p>
       <button className="btn btn-primary" type="submit">Save waiting status</button>
     </form>}
-    {editable && node.status !== "unclaimed" && form === "extension" && <form className="task-form" onSubmit={e => { e.preventDefault(); send("extension") }}>
-      <label>Requested club deadline<input type="date" value={input.requestedDate} onChange={e => setInput({ ...input, requestedDate: e.target.value })} /></label>
-      <label>Message (optional)<textarea maxLength={300} value={input.reason} onChange={e => setInput({ ...input, reason: e.target.value })} /></label>
-      <button className="btn btn-primary" type="submit">Request extension</button>
-    </form>}
-    {editable && form && <button type="button" className="btn btn-quiet small" onClick={() => { setForm(""); setError("") }}>Cancel</button>}
+    {editable && node.status !== "unclaimed" && form === "extension" && <TaskTargetForm node={node} actorId={actorId} authorization={token ? { kind: "legacy", token } : undefined} onCancel={() => setForm("")} onSaved={text => { setForm(""); setNotice(text) }} />}
+
+    {editable && form && form !== "extension" && <button type="button" className="btn btn-quiet small" onClick={() => { setForm(""); setError("") }}>Cancel</button>}
     {notice && <p className="small good-text" role="status">{notice}</p>}
     {error && <p className="small late-text" role="alert">{error}</p>}
   </div>

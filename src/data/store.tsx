@@ -46,6 +46,7 @@ import { validatedReminderMessage } from "../reminders/message"
 import { saveTaskWork, taskDefinitionKey, validTaskLinks } from "../taskDetails/data"
 import { taskWorkActor } from "../taskDetails/authorization"
 import type { TaskAuthorization, TaskWorkInput } from "../taskDetails/contracts"
+import { updateTaskTarget, type TaskTargetInput } from "../taskDetails/targetDates"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -142,6 +143,7 @@ export type Action =
   | { type: "replace"; state: DemoState }
   | { type: "updateNode"; id: string; patch: NodePatch; expectedTask?: string }
   | { type: "saveTaskWork"; nodeId: string; input: TaskWorkInput; authorization?: TaskAuthorization }
+  | { type: "updateTaskTarget"; nodeId: string; input: TaskTargetInput; authorization?: TaskAuthorization }
   /** The step editor (M3): a few steps' dependsOn / estDays / phase, and the display order of the phase groups. Never a date. */
   | { type: "applyStepEdits"; eventId: string; edits: StepEdit[]; phaseOrder?: Phase[] }
   | { type: "addEventStep"; eventId: string; id: string; uId: string | null; vId: string | null; target?: FlowInsertionTarget }
@@ -362,7 +364,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
   if (!READ_ONLY_OK.has(action.type) && state.people.some(p => p.id === state.viewerId && !isOfficer(p))) return state
   const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
   const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
-  const actorId = action.type === "saveTaskWork" ? taskWorkActor(state, action.nodeId, action.authorization) ?? state.viewerId : action.type === "recordReminderBatch" && action.via === "automatic" ? "system:reminders" : access?.recipientId ?? grant?.ownerId ?? state.viewerId
+  const actorId = (action.type === "saveTaskWork" || action.type === "updateTaskTarget") ? taskWorkActor(state, action.nodeId, action.authorization) ?? state.viewerId : action.type === "recordReminderBatch" && action.via === "automatic" ? "system:reminders" : access?.recipientId ?? grant?.ownerId ?? state.viewerId
   let next = normalizeTerms(baseReducer(state, action))
   if (next === state) return state
   if (action.type === "completeSetup" && (next.reminderRuntime !== undefined || next.taskAccessGrants !== undefined)) {
@@ -372,7 +374,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
   }
   if (action.type === "completeSetup") return enableReminderPlan(next)
   if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "upgradeReminderPlan", "reviewLegacyReminder", "recordReminderBatch", "advanceClock"].includes(action.type)) return next
-  const updated = action.type === "saveTaskWork" ? action.input.submit ? [action.nodeId] : [] : action.type === "claimTask" || action.type === "replyTask" ? [action.nodeId]
+  const updated = action.type === "saveTaskWork" ? action.input.submit ? [action.nodeId] : [] : action.type === "claimTask" || action.type === "replyTask" || action.type === "updateTaskTarget" ? [action.nodeId]
     : action.type === "officerAction" && grant ? [grant.nodeId]
     : action.type === "taskAccessAction" && access?.scope === "owner" ? [access.nodeId]
     : action.type === "moveTask" && state.nodes.find(n => n.id === action.nodeId)?.status !== next.nodes.find(n => n.id === action.nodeId)?.status ? [action.nodeId] : []
@@ -382,7 +384,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
  * reads, works through their own handoff steps and switches view, but cannot claim, create or change tasks, contacts, events or settings.
  */
-const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch", "saveTaskWork"])
+const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch", "saveTaskWork", "updateTaskTarget"])
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
@@ -534,6 +536,16 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       return { ...state, taskAccessGrants: [...(state.taskAccessGrants ?? []), g] }
     }
     case "taskAccessAction": return applyTaskAccessUpdate(state, action.token, action.update)
+    case "updateTaskTarget": {
+      const actor = taskWorkActor(state, action.nodeId, action.authorization)
+      if (!actor) return state
+      const next = updateTaskTarget(state, action.nodeId, actor, action.input)
+      if (next !== state && action.authorization?.kind === "legacy") {
+        const grant = usableGrant(state, action.authorization.token)
+        return { ...next, officerGrants: next.officerGrants.map(g => g.id === grant?.id ? { ...g, usedOn: state.today } : g) }
+      }
+      return next
+    }
     case "saveTaskWork": {
       const actor = taskWorkActor(state, action.nodeId, action.authorization)
       if (!actor) return state
@@ -748,6 +760,7 @@ function slim(v: unknown, depth = 0): unknown {
 /** The action's arguments as they go into the log. */
 function payloadOf(a: Action): unknown {
   switch (a.type) {
+    case "updateTaskTarget": return { nodeId: a.nodeId, date: a.input.date, message: a.input.message, notifyPersonIds: a.input.notifyPersonIds }
     case "saveTaskWork": return { nodeId: a.nodeId, submit: a.input.submit, revision: a.input.expectedRevision, detailsLength: a.input.details?.length, attachments: a.input.attachments?.map(f => ({ id: f.id, name: f.name, size: f.size })) }
     case "recordReminderBatch": return { via: a.via, candidateIds: a.entries.map(e => e.candidateId), count: a.entries.length }
     case "issueTaskAccessGrant": return { nodeId: a.grant.nodeId, recipientId: a.grant.recipientId, scope: a.grant.scope, issuedOn: a.grant.issuedOn }
@@ -781,6 +794,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "taskAccessAction": { const g = usableTaskAccessGrant(s, a.token); out = g ? fields(node(g.nodeId), ["status", "ownerId"]) : undefined; break }
     case "enableReminderPlan": out = { reminderVersion: s.reminderRuntime?.version }; break
     case "confirmPlannedReminder": out = { reminderDeliveryCount: remindersEnabled(s) ? s.reminderRuntime!.deliveries.length : undefined }; break
+    case "updateTaskTarget": out = fields(node(a.nodeId), ["clubDeadline", "clubDeadlineOverride", "targetDates"]); break
     case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
     case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount", "details"].includes(k))); break
     case "moveTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
@@ -816,7 +830,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
 export function appendLog(log: LogEntry[], before: DemoState, after: DemoState, action: Action, at: number, session?: string | null): LogEntry[] {
   const prior = beforeOf(before, action)
   const entry: LogEntry = {
-    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: action.type === "saveTaskWork" ? taskWorkActor(before, action.nodeId, action.authorization) ?? before.viewerId : action.type === "recordReminderBatch" && action.via === "automatic" ? "system:reminders" : action.type === "taskAccessAction" ? usableTaskAccessGrant(before, action.token)?.recipientId ?? before.viewerId : before.viewerId, type: action.type,
+    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: (action.type === "saveTaskWork" || action.type === "updateTaskTarget") ? taskWorkActor(before, action.nodeId, action.authorization) ?? before.viewerId : action.type === "recordReminderBatch" && action.via === "automatic" ? "system:reminders" : action.type === "taskAccessAction" ? usableTaskAccessGrant(before, action.token)?.recipientId ?? before.viewerId : before.viewerId, type: action.type,
     payload: payloadOf(action), ...(prior !== undefined ? { before: prior } : {}), applied: after !== before, ...(session ? { session } : {}),
   }
   return log.length >= LOG_LIMIT ? [...log.slice(log.length - LOG_LIMIT + 1), entry] : [...log, entry]

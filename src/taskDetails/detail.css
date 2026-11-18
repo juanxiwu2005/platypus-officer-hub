@@ -19,6 +19,14 @@
 .task-inline-actions { display: flex; flex-wrap: wrap; gap: var(--s3); }
 .task-waiting-summary { margin: var(--s3) 0 0; overflow-wrap: anywhere; }
 .task-extension-message { white-space: pre-wrap; overflow-wrap: anywhere; }
+.task-target-form h3, .task-target-form p { margin: 0; }
+.task-target-people { display: grid; min-width: 0; margin: 0; padding: var(--s5); gap: var(--s4); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.task-target-people legend { padding-inline: var(--s3); font-weight: 600; }
+.task-target-form label.task-target-person { display: flex; align-items: start; gap: var(--s4); min-width: 0; }
+.task-target-person > span { display: grid; min-width: 0; gap: var(--s2); overflow-wrap: anywhere; }
+.task-target-form .task-target-person input { width: 18px; height: 18px; min-width: 18px; margin-top: var(--s2); accent-color: var(--accent); }
+.task-target-add { display: grid; gap: var(--s4); }
+.task-target-people > .btn { justify-self: start; }
 .task-detail-universal .task-requirement { margin: 0; padding: var(--s6) 0; border-block: 1px solid var(--line); white-space: pre-line; overflow-wrap: anywhere; }
 .task-external-links { display: flex; flex-wrap: wrap; gap: var(--s3); padding-bottom: var(--s6); border-bottom: 1px solid var(--line); }
 .task-external-links .btn { flex: 1 1 130px; display: inline-flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: 44px; white-space: normal; text-align: left; overflow-wrap: anywhere; }

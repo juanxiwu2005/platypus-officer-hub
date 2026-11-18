@@ -301,6 +301,7 @@ export interface Node {
   /** Actual task overrides and work only; workflow templates remain independent. */
   externalLinks?: import("../taskDetails/contracts").TaskExternalLink[]
   taskWork?: import("../taskDetails/contracts").TaskWork
+  targetDates?: import("../taskDetails/targetDates").TaskTargetLog
   /** Optional human-authored instructions; reminder facts never invent missing details. */
   instructions?: string
   completionCriteria?: string

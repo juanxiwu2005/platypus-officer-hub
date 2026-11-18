@@ -156,17 +156,18 @@ describe("task actions use actual persisted state", () => {
     expect(screen.getByRole("button", { name: "Open Event Budget" })).toBeTruthy()
   })
 
-  it("preserves the extension workflow and its unchanged due date until approval", () => {
+  it("updates the internal target without approval and keeps school dates unchanged", () => {
     const initial = fixture(), due = initial.nodes[0].clubDeadline!
     show(initial)
     fireEvent.click(screen.getByRole("button", { name: "Need more time" }))
     expect(screen.queryByLabelText("Current draft link")).toBeNull()
     fireEvent.change(screen.getByRole("textbox", { name: "Message (optional)" }), { target: { value: "Waiting for confirmation" } })
-    fireEvent.change(screen.getByLabelText("Requested club deadline"), { target: { value: addDays(due, 2) } })
-    fireEvent.click(screen.getByRole("button", { name: "Request extension" }))
-    expect(latest.extensionRequests.at(-1)).toMatchObject({ nodeId: ID, status: "pending", requestedDate: addDays(due, 2) })
-    expect(latest.nodes[0].clubDeadline).toBe(due)
-    expect(screen.getByRole("status").textContent).toContain("current deadline stays")
+    fireEvent.change(screen.getByLabelText("New target date"), { target: { value: addDays(due, 2) } })
+    fireEvent.click(screen.getByRole("button", { name: "Update date & notify" }))
+    expect(latest.extensionRequests).toHaveLength(0)
+    expect(latest.nodes[0].clubDeadline).toBe(addDays(due, 2))
+    expect(latest.nodes[0].officialDeadline).toBe(initial.nodes[0].officialDeadline)
+    expect(screen.getByRole("status").textContent).toContain("Target date updated")
   })
 
   it("keeps a legacy token action scoped and consumes it only after a saved update", async () => {

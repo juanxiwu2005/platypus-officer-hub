@@ -6,12 +6,17 @@ import { applySchedule } from "../src/engine/schedule"
 import { createReminderRuntime } from "../src/reminders/engine"
 import { savedDemo } from "./demo-contract"
 import { closeRail, noOverflow, viewAs } from "./helpers"
-import type { ReminderMode } from "../src/data/types"
+import type { Node, ReminderMode } from "../src/data/types"
 
 const KEY = "platypus.v1.demo", ROOM = "task-work-room", SAP = "task-work-sap", CUSTOM = "task-work-custom"
-async function seed(page: Page, viewerId = "jordan", mode: ReminderMode = "review_then_self") {
+async function seed(page: Page, viewerId = "jordan", mode: ReminderMode = "review_then_self", connected = false) {
   const base = seedDemo(undefined, "v2"), source = base.nodes.find(n => n.stepKey === "venue")!, today = "2027-03-31"
-  const nodes = [{ id: ROOM, title: "Reserve a room", stepKey: "venue", instructions: "Book an accessible room for 40 attendees." }, { id: SAP, title: "Submit the speaker agreement", stepKey: "sap", instructions: "Save the agreement reference and current status." }, { id: CUSTOM, title: "Confirm the community partner", stepKey: "club-custom", instructions: "Record the agreed arrangements.", externalLinks: [{ label: "Partner portal", url: "https://example.org/partner" }] }].map(extra => ({ ...source, ...extra, ownerId: "jordan", ownerVersion: 0, status: "accepted" as const, dependsOn: [], waitingOn: null, waitingOnPersonId: null, ruleIds: [], timing: undefined, anchor: { kind: "fixed" as const, official: null, club: today }, clubDeadlineOverride: today, taskWork: undefined }))
+  const nodes: Node[] = [{ id: ROOM, title: "Reserve a room", stepKey: "venue", instructions: "Book an accessible room for 40 attendees." }, { id: SAP, title: "Submit the speaker agreement", stepKey: "sap", instructions: "Save the agreement reference and current status." }, { id: CUSTOM, title: "Confirm the community partner", stepKey: "club-custom", instructions: "Record the agreed arrangements.", externalLinks: [{ label: "Partner portal", url: "https://example.org/partner" }] }].map(extra => ({ ...source, ...extra, ownerId: "jordan", ownerVersion: 0, status: "accepted" as const, dependsOn: [], waitingOn: null, waitingOnPersonId: null, ruleIds: [], timing: undefined, anchor: { kind: "fixed" as const, official: null, club: today }, clubDeadlineOverride: today, taskWork: undefined }))
+  if (connected) {
+    nodes[1] = { ...nodes[1], ownerId: "sam", dependsOn: [ROOM] }
+    nodes[2] = { ...nodes[2], ownerId: "sam", dependsOn: [ROOM] }
+    nodes.push({ ...nodes[2], id: "task-work-self", title: "Publish location", ownerId: "jordan", dependsOn: [ROOM] })
+  }
   const state = applySchedule({ ...base, today, viewerId, nodes, events: base.events.filter(e => e.id === source.eventId).map(e => ({ ...e, name: "Speaker Night", date: "2027-04-16", headcount: 40, venue: "campus" as const })), org: { ...base.org, settings: { ...base.org.settings, reminderMode: mode } }, nudges: [], protocolLog: [], notifications: [], silenceCases: [], taskAccessGrants: [], reminderRuntime: { ...createReminderRuntime(today), version: 2, mailRequiredAfter: 0 } })
   await page.addInitScript(({ key, value }) => { if (!sessionStorage.getItem("task-work-seeded")) { localStorage.setItem(key, JSON.stringify(value)); sessionStorage.setItem("task-work-seeded", "1") } }, { key: KEY, value: state })
 }
@@ -141,10 +146,11 @@ test("the email's single link opens the same submission form and remains readabl
   await expect.poll(async () => (await work(page)).status).toBe("in_progress")
   expect((await savedDemo(page)).reminderRuntime?.updates.at(-1)).toMatchObject({ actorId: "jordan", ownerReply: true })
   await task.getByRole("combobox", { name: "Task status", exact: true }).selectOption("extension")
-  await task.getByLabel("Requested club deadline", { exact: true }).fill("2027-04-02")
+  await task.getByLabel("New target date", { exact: true }).fill("2027-04-02")
   await task.getByLabel("Message (optional)", { exact: true }).fill("Please allow time for the final room check")
-  await task.getByRole("button", { name: "Request extension", exact: true }).click()
-  expect((await savedDemo(page)).extensionRequests.at(-1)).toMatchObject({ requestedBy: "jordan", status: "pending" })
+  await task.getByRole("button", { name: "Update date & notify", exact: true }).click()
+  expect((await work(page)).targetDates?.changes.at(-1)).toMatchObject({ actorId: "jordan", date: "2027-04-02" })
+  expect((await savedDemo(page)).extensionRequests).toHaveLength(0)
 })
 
 test("tablet editing stays open when interacting with the drawer outside the original rail", async ({ page, isMobile }) => {
@@ -255,33 +261,47 @@ test("a second tab preserves its conflicting automatic draft without overwriting
   await stale.close()
 })
 
-test("requesting a deadline needs no link, automatically notifies the president, and opens an actionable review", async ({ page }, info) => {
-  await seed(page); let panel = await open(page)
+test("D updates the target immediately, supports chosen teammates and self, and merges connected work into one notice per person", async ({ page }, info) => {
+  await seed(page, "jordan", "review_then_self", true); let panel = await open(page)
+  await panel.getByLabel("Details", { exact: true }).fill("Unsubmitted room details stay here")
+  await attach(page)
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
   await panel.getByRole("combobox", { name: "Task status", exact: true }).selectOption("extension")
-  await expect(panel.getByLabel("Current draft link", { exact: true })).toHaveCount(0)
-  await panel.getByLabel("Requested club deadline", { exact: true }).fill("2027-04-02")
-  await panel.getByLabel("Message (optional)", { exact: true }).fill("The room office will confirm availability tomorrow. Thank you for helping.")
-  await page.screenshot({ path: info.outputPath("task-deadline-request.png"), fullPage: true })
-  await panel.getByRole("button", { name: "Request extension", exact: true }).click()
-  await expect(panel).toContainText("your approver notified")
-  expect((await work(page)).status).toBe("accepted")
-  expect((await work(page)).clubDeadline).toBe("2027-03-31")
-  let saved = await savedDemo(page)
-  expect(saved.extensionRequests[0]).toMatchObject({ requestedBy: "jordan", requestedDate: "2027-04-02", draftLink: "", status: "pending" })
-  expect(saved.notifications.some(n => n.recipientId === "alex" && /requested a new deadline/.test(n.text))).toBe(true)
-  await closeRail(page); await viewAs(page, "alex")
-  await page.getByTestId("bell").click()
-  await page.getByTestId("private-inbox").getByRole("link", { name: /Jordan Patel requested a new deadline/ }).click()
-  panel = page.getByTestId("task-detail")
-  const review = panel.getByRole("article", { name: "Deadline request", exact: true })
-  await expect(review).toContainText("The room office will confirm availability tomorrow.")
+  await panel.getByLabel("New target date", { exact: true }).fill("2027-04-02")
+  await panel.getByLabel("Message (optional)", { exact: true }).fill("The room office will confirm availability tomorrow.")
+  await expect(panel.getByRole("checkbox", { name: /Alex Rivera/ })).toBeChecked()
+  await expect(panel.getByRole("checkbox", { name: /Sam Okafor/ })).toBeChecked()
+  await expect(panel.getByRole("checkbox", { name: /Jordan Patel/ })).not.toBeChecked()
+  await panel.getByRole("checkbox", { name: /Alex Rivera/ }).uncheck()
+  await panel.getByRole("checkbox", { name: /Jordan Patel/ }).check()
+  await panel.getByRole("button", { name: "+ Add teammate", exact: true }).click()
+  await panel.getByRole("combobox", { name: "Teammate", exact: true }).selectOption("maya")
+  await panel.getByRole("button", { name: "Add", exact: true }).click()
+  await expect(panel.getByRole("checkbox", { name: /Maya Chen/ })).toBeChecked()
+  await expect(panel.getByRole("button", { name: /Approve extension|Request extension/ })).toHaveCount(0)
   expect((await new AxeBuilder({ page }).include('[data-testid="task-detail"]').analyze()).violations.filter(v => v.impact === "serious" || v.impact === "critical")).toEqual([])
-  await page.screenshot({ path: info.outputPath("task-deadline-review.png"), fullPage: true })
-  await review.getByRole("button", { name: "Approve extension", exact: true }).click()
-  await expect.poll(async () => (await work(page)).clubDeadline).toBe("2027-04-02")
-  saved = await savedDemo(page)
-  expect(saved.extensionRequests[0].status).toBe("approved")
-  expect(saved.notifications.some(n => n.recipientId === "jordan" && /approved/.test(n.text))).toBe(true)
+  await page.screenshot({ path: info.outputPath("D-update-team.png"), fullPage: true })
+  await panel.getByRole("button", { name: "Update date & notify", exact: true }).click()
+  await expect(panel).toContainText("Target date updated. 3 people notified.")
+  expect((await work(page))).toMatchObject({ clubDeadline: "2027-04-02", status: "accepted" })
+  let saved = await savedDemo(page)
+  expect(saved.extensionRequests).toHaveLength(0)
+  expect(saved.nodes.find(n => n.id === ROOM)?.targetDates?.changes[0].notifiedPersonIds.sort()).toEqual(["jordan", "maya", "sam"])
+  const sent = saved.notifications.filter(n => n.id.startsWith(`target-date:${ROOM}:`))
+  expect(sent).toHaveLength(3)
+  expect(sent.filter(n => n.recipientId === "sam")).toHaveLength(1)
+  expect(sent.find(n => n.recipientId === "sam")?.text).toMatch(/Submit the speaker agreement.*Confirm the community partner/)
+  expect(sent.some(n => n.recipientId === "alex")).toBe(false)
+  await page.reload(); panel = page.getByTestId("task-detail")
+  await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Unsubmitted room details stay here")
+  await expect(panel.getByRole("button", { name: "Download confirmation.txt", exact: true })).toBeVisible()
+  await expect(panel.getByTestId("task-due")).toContainText("Apr 2")
+  await closeRail(page); await viewAs(page, "maya")
+  await page.getByTestId("bell").click()
+  await page.getByTestId("private-inbox").getByRole("link", { name: /Jordan Patel updated/ }).click()
+  await expect(panel.getByTestId("task-due")).toContainText("Apr 2")
+  await expect(panel.getByRole("button", { name: /Approve extension|Decline extension/ })).toHaveCount(0)
+  expect(await noOverflow(page)).toBeLessThanOrEqual(1)
 })
 
 test("accidental completion can be undone and reopened later without losing submission files or duplicating points", async ({ page }, info) => {
