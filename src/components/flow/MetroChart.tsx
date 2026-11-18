@@ -10,10 +10,11 @@ import { EVENT_KEY, END_KEY, START_KEY, metroLayout } from "./metro"
 import { useStore } from "../../data/store"
 import { prefersReducedMotion, tokenMs } from "../../lib/motion"
 import { nextCounter } from "../../lib/ids"
-import { cannotDelete, flowGaps, flowTracks, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, unlinkSteps, type FlowInsertionTarget, type Gap } from "../../lib/flowEdit"
-import { ancestorsOf, doAfter, type EditResult, type StepEdit } from "../../lib/stepOrder"
+import { cannotDelete, flowGaps, flowTracks, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, type FlowInsertionTarget, type Gap } from "../../lib/flowEdit"
+import { type EditResult, type StepEdit } from "../../lib/stepOrder"
 import { isolateDialog, trapTabKey } from "../../lib/focus"
-import { branchConditionLabel, conditionLabel, conditionsOf, placementOf, resolveBranches, scopeKey, WORKFLOW_CONDITION_OPTIONS } from "../../engine/workflowBranches"
+import { branchConditionLabel, conditionLabel, conditionsOf, placementOf, resolveBranches, scopeKey } from "../../engine/workflowBranches"
+import { workflowStepKind } from "../../engine/workflowStepKind"
 import { WorkflowBranchDialog, type BranchDraft } from "../setup/WorkflowBranchDialog"
 
 const SHORT: Record<string, string> = {
@@ -27,7 +28,6 @@ const SHORT: Record<string, string> = {
   security: "Security", eams: "EAMS plan", permit: "Permit insurance", alcohol: "Alcohol permit", drone: "Drone approval", schoolApproval: "School approval",
   marketingNeeds: "Marketing needs", contentCreation: "Content creation", promotionItems: "Promotion items", rsvp: "Open RSVPs", content: "Content distribution", reminder: "Event reminder", finalcheck: "Full check",
 }
-const SITUATION_KEYS = new Set(["partner", "speakerPacket", "travel", "partnerReview", "parking", "foodCompliance", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "advisor", "access", "security", "eams", "permit", "alcohol", "drone", "schoolApproval", "rsvp"])
 /** Two to four words for the chart; the full title is in the hover card. */
 export const shortTitle = (n: Node) => (n.stepKey && SHORT[n.stepKey]) || n.title.split(/\s+/).slice(0, 3).join(" ").replace(/[,:;]$/, "")
 
@@ -46,8 +46,10 @@ export interface EditPort {
   template?: { sublabel: (n: Node) => string; lines: (n: Node) => string[]; marks?: Record<string, "error" | "warn"> }
 }
 interface Props { state: DemoState; sched: Schedule; forecast: Forecast; eventId: string; selectedId: string | null; onSelect: (id: string) => void; canEdit?: boolean; alwaysEdit?: boolean; editing?: boolean; onEditingChange?: (editing: boolean) => void; port?: EditPort }
-type Menu = { kind: "node"; id: string; x: number; y: number } | { kind: "gap"; gap: Gap; x: number; y: number } | { kind: "move"; id: string; target: FlowInsertionTarget; x: number; y: number }
+type Menu = { kind: "node"; id: string; x: number; y: number } | { kind: "move"; id: string; target: FlowInsertionTarget; x: number; y: number }
 const SNAP = 72
+// Restore visual link hover by enabling this flag. It never enables link editing.
+const ENABLE_LINK_HOVER = false
 
 /** One main line; parallel work forks off and merges back. Look → hover → click. */
 export function MetroChart({ state, sched, forecast, eventId, selectedId, onSelect, canEdit = false, alwaysEdit = false, editing: requestedEditing, onEditingChange, port: given }: Props) {
@@ -70,7 +72,6 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const justDragged = useRef(false)
   const [menu, setMenu] = useState<Menu | null>(null)
   const [menuBranchId, setMenuBranchId] = useState("")
-  const [menuCondition, setMenuCondition] = useState("__choose__")
   const [addingBranch, setAddingBranch] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const [msg, setMsg] = useState<{ text: string; error?: boolean } | null>(null)
@@ -170,7 +171,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const id = port.newId()
     const reference = byId.get(target.referenceId ?? target.afterId ?? target.beforeId ?? "")
     const branch = branchDefinitions.find(b => b.id === target.branchId)
-    const fresh = { ...newStepNode(ev, id, reference, state.today), phase: branch?.side === "after_event" ? "close" as const : reference?.phase === "close" ? "prepare" as const : reference?.phase ?? "prepare" as const }
+    const fresh = { ...newStepNode(ev, id, reference, state.today, branchDefinitions), phase: branch?.side === "after_event" ? "close" as const : reference?.phase === "close" ? "prepare" as const : reference?.phase ?? "prepare" as const }
     const result = insertFlowStep(eventNodes, fresh, target, branchDefinitions)
     if (result.error) return say(result.error, true)
     const snap = port.snapshot()
@@ -185,7 +186,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     while (branchDefinitions.some(b => b.id === branchId)) branchId = `branch-${++index}`
     const branch: WorkflowBranch = { id: branchId, title: draft.title, side: draft.side, order: Math.max(-1, ...branchDefinitions.map(b => b.order)) + 1, conditions: [...draft.conditions], defaultRoleId: draft.defaultRoleId }
     const id = port.newId()
-    const fresh = { ...newStepNode(ev, id, undefined, state.today), title: draft.firstStepTitle, phase: draft.side === "after_event" ? "close" as const : "prepare" as const }
+    const fresh = { ...newStepNode(ev, id, undefined, state.today), title: draft.firstStepTitle, phase: draft.side === "after_event" ? "close" as const : "prepare" as const, stepKind: draft.conditions.length ? "situation" as const : "core" as const }
     const result = insertFlowBranch(eventNodes, fresh, branch, branchDefinitions)
     if (result.error) return result.error
     const snap = port.snapshot()
@@ -253,10 +254,9 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
   const onKey = (e: KeyboardEvent<HTMLButtonElement>, id: string) => {
     if (!on) return
     if (e.altKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) { e.preventDefault(); shift(id, e.key === "ArrowRight" ? 1 : -1) }
-    if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); setMenuBranchId(""); setMenuCondition("__choose__"); setMenu({ kind: "node", id, x: r.left, y: r.bottom + 8 }) }
+    if (e.key === "ContextMenu" || (e.shiftKey && e.key === "F10")) { e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); setMenuBranchId(""); setMenu({ kind: "node", id, x: r.left, y: r.bottom + 8 }) }
   }
-  const openNode = (id: string, e: { clientX: number; clientY: number }) => { if (!on) return; setMenuBranchId(""); setMenuCondition("__choose__"); setMenu({ kind: "node", id, x: e.clientX, y: e.clientY + 12 }) }
-  const openGap = (g: Gap, e: { clientX: number; clientY: number }) => { setMenuBranchId(""); setMenuCondition("__choose__"); setMenu({ kind: "gap", gap: g, x: e.clientX, y: e.clientY + 12 }) }
+  const openNode = (id: string, e: { clientX: number; clientY: number }) => { if (!on) return; setMenuBranchId(""); setMenu({ kind: "node", id, x: e.clientX, y: e.clientY + 12 }) }
   useEffect(() => {
     if (!menu) return
     const dialog = menuRef.current
@@ -306,7 +306,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const xa = a.x + 34, xb = b.x - 34
     return `M${a.x} ${a.y} C${a.x + 22} ${a.y} ${xa - 22} ${ra.y} ${xa} ${ra.y} L${xb} ${rb.y} C${xb + 22} ${rb.y} ${b.x - 22} ${b.y} ${b.x} ${b.y}`
   }
-  /** A hit target follows the exact painted rail segment, so its mint feedback overlays the grey line. */
+  /** Optional visual hover follows the rail; line clicks and double-clicks have no action. */
   const gapPath = (g: Gap) => {
     if (g.track === "main") { const a = pos(g.u.col, 0), b = pos(g.v.col, 0); return `M${a.x} ${a.y}L${b.x} ${b.y}` }
     const branch = L.branches.find(b => b.id === g.track)!
@@ -336,7 +336,7 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
     const owner = state.people.find(x => x.id === n.ownerId)?.name
     const mark = tpl?.marks?.[n.id]
     const label = tpl ? tpl.lines(n).join(". ") + "." : `${n.title}. ${styles[n.status].label}. Owner ${owner ?? "none"}. Due ${plan ? fmtShort(plan.club) : "pending"}.${issue ? ` ${issue.text}` : ""}`
-    const kind = SITUATION_KEYS.has(n.stepKey ?? "") ? "situation" : "baseline"
+    const kind = workflowStepKind(n, branchDefinitions) === "core" ? "baseline" : "situation"
     const showCard = hoveredId === n.id || focusedId === n.id
     const cardId = `flow-card-${n.id}`
     return <div key={n.id} className={`m-node ${labelSide} ${n.id === selectedId ? "is-selected" : ""}${drag?.id === n.id ? " is-dragging" : ""}`} style={{ "--x": `${p.x}px`, "--y": `${p.y}px` } as CSSProperties}
@@ -366,17 +366,17 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
       {!alwaysEdit && requestedEditing === undefined && <button type="button" className="btn small" aria-pressed={editing} onClick={() => { setEditing(!editing); setMenu(null); setDragBoth(null) }} data-testid="flow-edit-toggle">{editing ? "Done editing" : "Edit flow"}</button>}
       {on && <button type="button" className="btn small" onClick={undo} disabled={!history.current.length} data-testid="flow-undo">Undo{history.current.length ? `: ${history.current[history.current.length - 1].label}` : ""}</button>}
       {on && port.addBranch && <button type="button" className="btn small" onClick={() => { setMenu(null); setAddingBranch(true) }} data-testid="flow-add-branch">Add branch</button>}
-      {on && <span className="small muted">{touch ? "Tap a step for add, delete and details · Drag it onto a ◆ to move it · Double-tap a line to cut or add a link" : "Drag a step onto a ◆ between two steps · Double-click a step to add or delete · Double-click a line to cut or add a link"}</span>}
+      {on && <span className="small muted">{touch ? "Tap a step for add, delete and details · Drag it onto a ◆ to move it" : "Drag a step onto a ◆ between two steps · Double-click a step to add or delete"}</span>}
       <span role="status" aria-live="polite" className={`small ${msg?.error ? "late-text" : ""}`} data-testid="flow-edit-msg">{on ? msg?.text : ""}</span>
     </div>}
-  <div className={`metro ${vertical ? "vertical" : ""}${on ? " editing" : ""}${drag ? " dragging" : ""}${settling ? " is-settling" : ""}`} ref={wrap} data-testid="flow-chart" style={{ "--label-w": `${vertical ? 140 : COL - 8}px` } as CSSProperties}>
+  <div className={`metro ${vertical ? "vertical" : ""}${on ? " editing" : ""}${drag ? " dragging" : ""}${settling ? " is-settling" : ""}${ENABLE_LINK_HOVER ? " link-hover-enabled" : ""}`} ref={wrap} data-testid="flow-chart" style={{ "--label-w": `${vertical ? 140 : COL - 8}px` } as CSSProperties}>
     <div className="metro-canvas" ref={canvasRef} style={{ width: W, height: H }}>
       <svg width={W} height={H} aria-hidden="true">
         {!vertical && !tpl && <text x={pos(evStation.col, 0).x} y={18} className="m-tick strong" textAnchor="middle">{fmtShort(ev.date)}</text>}
         {L.branches.map(b => <path key={b.id} d={branchPath(b.from, b.to, b.row)} className={`m-line branch ${b.nodes.every(x => x.node.status === "done") ? "done" : ""}`} />)}
         <path d={mainPath} className="m-line main" />
         {donePath && <path d={donePath} className="m-line main done" />}
-        {on && gaps.map(g => { const d = gapPath(g); return <g key={g.id}><path d={d} className={`m-hit ${g.track === "main" ? "m-hit-main" : ""}`} data-testid={`flow-line-${g.u.key}-${g.v.key}`} onDoubleClick={e => openGap(g, e)} /><path d={d} className="m-hit-line" /></g> })}
+        {on && gaps.map(g => { const d = gapPath(g); return <g key={g.id}><path d={d} className={`m-hit ${g.track === "main" ? "m-hit-main" : ""}`} data-testid={`flow-line-${g.u.key}-${g.v.key}`} /><path d={d} className="m-hit-line" /></g> })}
       </svg>
       {L.stations.map(s => s.node ? dot(s.node, s.col, 0, vertical ? "right" : "below") : null)}
       {L.branches.flatMap(b => b.nodes.map(x => dot(x.node, x.col, b.row, vertical ? "right" : b.row < 0 ? "above" : "below")))}
@@ -424,7 +424,6 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
             return { branchId: track.id, afterId: direction === "before" ? prior?.node?.id ?? null : n.id, beforeId: direction === "before" ? n.id : next?.node?.id ?? null, ...(reference ? { referenceId: reference.id } : {}), source: direction === "before" ? "before_node" : "after_node" }
           }
           const block = cannotDelete(n)
-          const upstream = n.dependsOn.map(d => byId.get(d)).filter((x): x is Node => !!x)
           return <div className="m-menu" ref={menuRef} role="dialog" aria-modal="true" aria-label={`Actions for ${n.title}`} style={{ left, top }} data-testid="flow-menu">
             <b>{n.title}</b>
             {touch && <button type="button" className="btn small" onClick={() => {
@@ -438,27 +437,10 @@ export function MetroChart({ state, sched, forecast, eventId, selectedId, onSele
             <button type="button" className="btn small" disabled={!beforeTrack} onClick={() => { const target = insertionTarget("before"); if (target) addAt(target) }}>Add a step before this one</button>
             <button type="button" className="btn small" disabled={!!block} onClick={() => removeStep(n.id)} aria-describedby={block ? "m-menu-why" : undefined}>Delete this step</button>
             {block && <span id="m-menu-why" className="small muted">Cannot delete: {block}</span>}
-            {upstream.length > 0 && <label className="small">Stop waiting for…<select aria-label={`Stop ${n.title} waiting for`} value="" onChange={e => { if (e.target.value) { applyResult(unlinkSteps(eventNodes, n.id, e.target.value), "Cut a link"); setMenu(null) } }}><option value="">Choose a step</option>{upstream.map(u => <option key={u.id} value={u.id}>{u.title}</option>)}</select></label>}
             <button type="button" className="btn btn-quiet small" onClick={() => setMenu(null)}>Close</button>
           </div>
         }
-        const g = menu.gap, u = g.uId ? byId.get(g.uId) : undefined, v = g.vId ? byId.get(g.vId) : undefined
-        const direct = !!(u && v && v.dependsOn.includes(u.id)), indirect = !!(u && v && !direct && ancestorsOf(eventNodes, v.id).has(u.id))
-        const onRoute = [u, v].filter((n): n is Node => !!n && placementOf(n).branchId === g.track)
-        const mixed = onRoute.length === 2 && onRoute[0].cond !== onRoute[1].cond
-        const chosen = WORKFLOW_CONDITION_OPTIONS.find(option => option.value === menuCondition)?.value || null
-        const condition = mixed ? chosen : onRoute[0]?.cond ?? null
-        return <div className="m-menu" ref={menuRef} role="dialog" aria-modal="true" aria-label="Actions for this line" style={{ left, top }} data-testid="flow-menu">
-          <b>{u ? `After “${u.title}”` : "From the start"}{v ? `, before “${v.title}”` : ", before the event day"}</b>
-          {u && v && direct && <button type="button" className="btn small" onClick={() => { applyResult(unlinkSteps(eventNodes, v.id, u.id), "Cut a link"); setMenu(null) }}>Remove the link: “{v.title}” stops waiting</button>}
-          {u && v && !direct && !indirect && <><span className="small muted">These two steps are not linked: the line only shows their order.</span><button type="button" className="btn small" onClick={() => { applyResult(doAfter(eventNodes, v.id, u.id), "Add a link"); setMenu(null) }}>Make “{v.title}” wait for “{u.title}”</button></>}
-          {u && v && indirect && <span className="small muted">“{v.title}” waits for “{u.title}” through other steps. Cut a link on that path to separate them.</span>}
-          {!(u && v) && <span className="small muted">This line has no link to cut. It leads to the start or the event day.</span>}
-          {mixed && <label className="small">New step applies to<select aria-label="New step applies to" value={menuCondition} onChange={e => setMenuCondition(e.target.value)}><option value="__choose__">Choose the event scope</option>{WORKFLOW_CONDITION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>}
-          {g.track === "main" && <span className="small muted">Use a branch line or select a branch at a shared checkpoint to insert a step.</span>}
-          <button type="button" className="btn small" disabled={g.track === "main" || (mixed && menuCondition === "__choose__")} onClick={() => addAt({ ...gapTarget(g), condition })}>Add a step here</button>
-          <button type="button" className="btn btn-quiet small" onClick={() => setMenu(null)}>Close</button>
-        </div>
+        return null
       })()}
     </div>
     {tpl ? <div className="m-legend small" aria-label="Legend"><span><i className="m-dot baseline todo" />Core event step</span><span><i className="m-dot situation todo" />Situation-based step</span></div> : <div className="m-legend small" aria-label="Legend">
