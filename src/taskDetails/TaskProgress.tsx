@@ -9,14 +9,14 @@ import { taskWorkActor } from "./authorization"
 import { TaskTargetForm } from "./TaskTargetForm"
 
 export const TASK_STATUS = { unclaimed: "Not claimed", accepted: "To do", in_progress: "Working on it", waiting: "Waiting on", blocked: "Stuck", done: "Done" }
-export function TaskProgress({ node, actorId, authorization, initialReply }: { node: Node; actorId: string; authorization?: TaskAuthorization; initialReply?: string | null }) {
+export function TaskProgress({ node, actorId, authorization, initialReply, readOnly = false }: { node: Node; actorId: string; authorization?: TaskAuthorization; initialReply?: string | null; readOnly?: boolean }) {
   const { state, tryDispatch, getState } = useStore()
   const [form, setForm] = useState(initialReply === "waiting" || initialReply === "extension" ? initialReply : "")
   const [person, setPerson] = useState(node.waitingOnPersonId ?? "other")
   const [input, setInput] = useState<ReplyInput>({ waitingOn: node.waitingOn ?? "",  })
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
-  const editable = taskWorkActor(state, node.id, authorization) === actorId && state.people.some(p => p.id === actorId && isOfficer(p)) && (!node.ownerId || node.ownerId === actorId || isPresident(state, actorId)) && !(node.status === "done" && isBudgetControlledNode(node))
+  const editable = !readOnly && taskWorkActor(state, node.id, authorization) === actorId && state.people.some(p => p.id === actorId && isOfficer(p)) && (!node.ownerId || node.ownerId === actorId || isPresident(state, actorId)) && !(node.status === "done" && isBudgetControlledNode(node))
   function update(reply: Exclude<TaskReply, "extension"> | "claim", value: ReplyInput = {}) {
     setError(""); setNotice("")
     const before = getState(), current = before.nodes.find(n => n.id === node.id)

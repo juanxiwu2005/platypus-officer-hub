@@ -12,10 +12,10 @@ import { taskWorkActor } from "./authorization"
 import type { TaskAuthorization, TaskWork } from "./contracts"
 import type { ReplyInput, TaskReply } from "../data/taskWorkflow"
 
-export function TaskSubmission({ node, actorId, authorization }: { node: Node; actorId: string; authorization?: TaskAuthorization }) {
+export function TaskSubmission({ node, actorId, authorization, readOnly = false }: { node: Node; actorId: string; authorization?: TaskAuthorization; readOnly?: boolean }) {
   const { state } = useStore()
   const work = useMemo(() => taskWork(node), [node])
-  const editable = !!work && taskWorkActor(state, node.id, authorization) === actorId && state.people.some(p => p.id === actorId && isOfficer(p)) && (node.ownerId === actorId || isPresident(state, actorId)) && node.status !== "unclaimed"
+  const editable = !readOnly && !!work && taskWorkActor(state, node.id, authorization) === actorId && state.people.some(p => p.id === actorId && isOfficer(p)) && (node.ownerId === actorId || isPresident(state, actorId)) && node.status !== "unclaimed"
   if (!work) return <section className="task-submission" data-testid="task-submission"><p role="alert">This saved submission needs recovery before it can be edited.</p></section>
   return editable ? <EditableSubmission key={`${node.id}:${actorId}:${node.ownerId}:${node.ownerVersion ?? 0}`} node={node} actorId={actorId} authorization={authorization} work={work} /> : <ReadSubmission node={node} work={work} />
 }

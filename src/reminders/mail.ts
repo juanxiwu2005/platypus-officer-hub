@@ -1,4 +1,5 @@
 import type { ReminderMail, ReminderMailInput } from "./accessContracts"
+import { isPlanTaskHash } from "./planEntry"
 import { daysBetween, fmtShort, fromISO, toISO } from "../lib/dates"
 
 const words = (value: string) => value.trim().split(/\s+/).filter(Boolean)
@@ -20,7 +21,7 @@ function taskEntry(value: string) {
   try {
     const url = new URL(value)
     return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password
-      && /^#\/officer\?access=[\w.%~-]+$/.test(url.hash)
+      && (/^#\/officer\?access=[\w.%~-]+$/.test(url.hash) || isPlanTaskHash(url.hash))
   } catch { return false }
 }
 
@@ -89,6 +90,12 @@ export function buildReminderMail(input: ReminderMailInput): ReminderMail {
     ? !!request && !request.closedOn && request.recipientId === recipient.id && request.nodeId === facts.nodeId
       && request.ownerId === facts.ownerId && request.ownerVersion === facts.ownerVersion && recipient.id !== facts.ownerId
     : recipient.id === facts.ownerId
-  mail.checked = recipient.active && facts.status !== "done" && !!scope && checkReminderMail(mail)
+  let matchesTask = false
+  try {
+    const target = new URL(input.taskUrl)
+    const path = new URLSearchParams(target.hash.slice(target.hash.indexOf("?") + 1))
+    matchesTask = !target.hash.startsWith("#/events?") || (path.get("event") === facts.eventId && path.get("node") === facts.nodeId)
+  } catch { /* The mail remains unchecked. */ }
+  mail.checked = recipient.active && facts.status !== "done" && !!scope && matchesTask && checkReminderMail(mail)
   return mail
 }

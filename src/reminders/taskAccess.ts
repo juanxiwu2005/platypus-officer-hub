@@ -3,6 +3,7 @@ import { canLead, isOfficer } from "../data/permissions"
 import { addDays } from "../lib/dates"
 import type { TaskAccessGrant } from "./accessContracts"
 import { isReminderRuntime } from "./runtime"
+import { planTaskPath } from "./planEntry"
 import { buildReminderInput } from "./facts"
 import { planReminders } from "./engine"
 
@@ -34,7 +35,9 @@ function current(s: DemoState, g: TaskAccessGrant): boolean {
 }
 
 export const taskAccessToken = (g: TaskAccessGrant) => `${g.id}.${g.signature}`
-export const taskAccessUrl = (origin: string, g: TaskAccessGrant) => `${origin}/#/officer?access=${encodeURIComponent(taskAccessToken(g))}`
+export const taskAccessUrl = (origin: string, g: TaskAccessGrant, eventId?: string | null) => eventId
+  ? `${origin}/#${planTaskPath(eventId, g.nodeId, taskAccessToken(g))}`
+  : `${origin}/#/officer?access=${encodeURIComponent(taskAccessToken(g))}`
 export function usableTaskAccessGrant(s: DemoState, token: string): TaskAccessGrant | undefined {
   const grant = Array.isArray(s.taskAccessGrants) ? s.taskAccessGrants.find(g => shape(g) && taskAccessToken(g) === token) : undefined
   return grant && current(s, grant) ? grant : undefined

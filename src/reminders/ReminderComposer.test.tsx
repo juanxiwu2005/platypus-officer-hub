@@ -45,7 +45,7 @@ describe("real reminder composer state integration", () => {
     await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())
     expect(preview().getByRole("heading", { name: "Speaker Night · Reserve a room" })).toBeTruthy()
     expect(preview().getAllByRole("link")).toHaveLength(1)
-    expect(preview().getByRole("link").getAttribute("href")).toContain("/#/officer?access=")
+    expect(preview().getByRole("link").getAttribute("href")).toContain("/#/events?event=")
     expect(screen.getByTestId("nudge-body").textContent).toContain("40 attendees")
     expect(screen.getByTestId("nudge-body").textContent).toContain("booking confirmation")
     expect(screen.queryByRole("button", { name: /Skip AI|Done|Working on it/ })).toBeNull()
