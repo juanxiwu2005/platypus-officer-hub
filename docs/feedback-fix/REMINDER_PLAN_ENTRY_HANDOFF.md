@@ -20,7 +20,7 @@
 
 [真实桌面Networking流程图](../prototypes/reminder-events-entry/networking-event-desktop.png)、[手机Details](../prototypes/reminder-events-entry/networking-event-mobile.png)、[无活动任务与图并列](../prototypes/reminder-events-entry/club-task-with-event-desktop.png)、[证据清单](../prototypes/reminder-events-entry/manifest.json)已保存并查看。完整种子检查用实际e-night/moderator/venue和全部38任务，非单节点夹具；另覆盖最近活动、真实归属优先、旧Tasks入口、My tasks默认、自动草稿/附件、改派失效和只读资料。
 
-当前仍沿用PR14和preview14，不新建PR、不合并main；部署结果另补。测试使用本地重新签发grant，无真实产品AI或外部邮件，无用户完整授权链接归档。日志`/tmp/events-entry-{unit,related,browser,browser-final,browser-seed,build,lint,netlify-types,words}.log`，未重复全站门禁。
+当前仍沿用PR14和preview14，不新建PR、不合并main；运行时代码`c0fbf9f60fd90cb7cfc078575d2380bc555f09a7`的`netlify/platypus-officer-hub/deploy-preview`已确认success，继续使用[preview14](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/events)。本轮交互证据来自本地生产构建，线上核对部署状态，未另做线上逐步浏览器验收。测试使用本地重新签发grant，无真实产品AI或外部邮件，无用户完整授权链接归档。日志`/tmp/events-entry-{unit,related,browser,browser-final,browser-seed,build,lint,netlify-types,words}.log`，未重复全站门禁。
 
 ## 以下为前轮记录：保留历史，路由以上述当前交付为准
 
