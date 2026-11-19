@@ -2,8 +2,9 @@
 > **用户范围：** 用户反馈模块太大太长、相邻/并行任务连线过度折返，要求不同静态图片比较。先生成3种卡片密度方案＋3种线路表达方案，并记录引擎优化思路；本轮不先改实际编辑器、模板或活动数据。沿同一Operations安全要求8节点/8真实依赖，保留四队与原任务身份/时长，图示位置不作为实际排程。
 > **代码依据：** 当前timeline按max(176,窗口×18)取宽，轨距100，首次可放置轨道而非依赖连续性；连线固定右→左，重叠时右侧折返，缺少四边端口选择/障碍检测/通道与全局交叉处理。基于`e2560f6`独立设计worktree，沿用PR14、不合并main；0产品AI/邮件，图片按用户请求生成，需要同步本地备份。
 
-> **2026-11-18（America/Phoenix） · 无活动社团任务邮件仍独立打开的问题修复中（Codex）**
-> **用户复现与根因：** 用户截图是Draft the meeting agenda（t-agenda），seed中eventId为null；上轮只把活动邮件送入Plan，明确保留的无活动Officer分支造成入口不一致。本轮补齐Plan → Tasks右列入口、旧链接跳转、原任务授权和其他任务共享提交只读；不把社团任务硬关联活动，不重置用户任务/草稿，不改同期默认团队修复，沿用PR14，不合并main。
+> **2026-11-18（America/Phoenix） · 无活动社团任务邮件入口遗漏已修复并检查，待验收（Codex）**
+> **根因与修复：** 用户实际截图是种子t-agenda（Draft the meeting agenda、eventId:null），上轮只覆盖活动入口导致独立页分支保留。运行时`76cd2df`补齐旧officer?access和新邮件进入Plan → Tasks并展开右列；活动任务仍进对应活动。Tasks邮件默认Team tasks，看板/表格/时间线和右列选择器都保留原邮件上下文；其他共享提交只读，自己草稿/附件、原负责人和null活动关联保留，绝不硬塞到活动。
+> **验证与边界：** 17文件262单元/组件通过；双端18唯一浏览器场景，初轮16过/2定位因图标前缀失败，修正定位后2项复验通过，并补查三种Tasks视图；原始Agenda旧链接截图双端2项重复取证通过。lint、前后端类型、生产build和9页字数通过，entry495,514/550,000。见[交付补充](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)与[真实Agenda双端截图](prototypes/reminder-plan-club-fix/manifest.json)。未存用户完整授权链接、未放宽签名/改派/成员限制、未改schema/store/日期或Settings；已合入保留同期四队预设与静态布局研究。已确认`84ee1fd`的Netlify preview14为success；最终seed完整字段校正后12单元/2双端取证复验通过，不重复计数。沿用原分支/PR14，不合并main，0真实AI/邮件，需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · 原四类预设团队与46任务默认归属已恢复，待验收（Codex）**
 > **用户纠正与交付：** 上轮遗漏默认团队，用户要求沿原工作流先预设必需团队，名称以后可任意修改。本轮按v3-foundation原分工恢复Club leadership 1、Operations 25、Marketing 8、Finance 12；首次打开、旧v23加载、Reset和新工作区自动具备默认团队/岗位关联，Speaker标准模板直接完整分组，不再先手建队或一岗一队。新增稳定语义槽→teamId关联，团队可改名/加队，必需引用受保护；已有用户团队ID、改名和显式分组优先保留，旧四队规范名称只在初始化时一次沿用ID，此后按ID关联。
@@ -585,6 +586,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-18 | Codex（社团任务邮件入口补漏） | `76cd2df`修复t-agenda无活动仍进独立页，旧/新邮件统一进入Plan → Tasks右列；保留null活动、原grant操作者/草稿/附件和他人只读提交，三种Tasks视图可切换。262单元/组件、18唯一浏览器、lint/types/build/9页字数通过；原始任务双端截图取证保留。 | 沿用PR14，不合并main；PRODUCT_PLAN/RULES已补充，需要同步本地备份。 |
 | 2026-11-18 | Codex（邮件进入真实Plan） | `3505d79`实现邮件活动/节点定位、右列Details与跨节点已提交资料切换，旧链接兼容，原任务grant与成员上下文分离；即时草稿/附件、手机返回/切换、刷新/历史和离开清理已检查。270单元/组件、38唯一浏览器用例（末次14复验）、lint/types/build/CSS/字数通过。见 `feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md`。 | 沿用PR14待验收；0真实邮件/AI，不合并main。PRODUCT_PLAN/RULES已同步，需要同步本地备份。 |
 | 2026-11-18 | Codex（邮件进入Plan两张图） | 静态图展示邮件定位活动/节点并展开右侧Details，再切换他人已提交信息/附件并返回原任务。见 `feedback-fix/REMINDER_PLAN_ENTRY_CONCEPTS.md`。仅文档/PNG/JSON，2次图片生成，未改产品/邮件/授权；保留Plan点状执行和原通用表单。 | 待Juanxi批准后实施；需要同步本地备份。 |
 | 2026-11-18 | Codex（提醒邮件研究） | 完成最新代码核对、17项来源证据表与六张独立邮件/落地页静态图；建议A＋D，未选定实施。见 `feedback-fix/REMINDER_EMAIL_RESEARCH_2026-11-18.md` 和图集manifest。只改文档/PNG/JSON，0产品AI调用/真实邮件，6生成＋5修图；保留同期工作流/团队资料，不建PR、不合并main。 | 待Juanxi比较方案；后续实施另行明确。需要同步本地备份。 |

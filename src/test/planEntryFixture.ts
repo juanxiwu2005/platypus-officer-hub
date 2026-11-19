@@ -16,7 +16,7 @@ export function planEntryFixture(viewerId = "alex"): DemoState {
 export function clubAgendaEntryFixture(viewerId = "alex"): DemoState {
   const state = planEntryFixture(viewerId)
   const agenda = seedDemo(undefined, "v2").nodes.find(node => node.id === "t-agenda")!
-  const original = { ...state.nodes[0], ...agenda, ownerVersion: 0, status: "accepted" as const, taskWork: undefined, dependsOn: [], anchor: { kind: "fixed" as const, official: null, club: "2026-11-03" }, clubDeadlineOverride: "2026-11-03" }
+  const original = { ...agenda, ownerVersion: 0, status: "accepted" as const, taskWork: undefined, dependsOn: [], anchor: { kind: "fixed" as const, official: null, club: "2026-11-03" }, clubDeadlineOverride: "2026-11-03" }
   const other = { ...state.nodes[1], eventId: null, title: "Prepare meeting materials", completedOn: "2026-11-02" }
   return applySchedule({ ...state, today: "2026-11-03", nodes: [original, other, state.nodes[2]] })
 }

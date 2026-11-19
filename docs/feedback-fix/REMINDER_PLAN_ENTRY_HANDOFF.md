@@ -56,3 +56,7 @@ Plan 中查看其他节点依靠当前演示工作区已有的活跃成员上下
 
 
 社团任务修复日志：`/tmp/club-plan-final-unit.log`、`/tmp/club-plan-browser.log`、`/tmp/club-plan-browser-final.log`、`/tmp/club-plan-final-build.log`、`/tmp/club-plan-final-lint.log`、`/tmp/club-plan-words.log`。本轮代码不修改Settings/团队/模板、ASU规则、schema/store或后台发送；同期四队预设恢复已合入保留。没有复制、存储用户发来的完整授权链接。
+
+社团任务真实页面证据：[桌面](../prototypes/reminder-plan-club-fix/club-agenda-desktop.png)、[手机](../prototypes/reminder-plan-club-fix/club-agenda-mobile.png)、[清单](../prototypes/reminder-plan-club-fix/manifest.json)。使用原始种子t-agenda与本地重新签发的测试grant，没有复制用户token。运行时代码 `76cd2df`，合并同期布局研究后为 `84ee1fd`。
+
+**社团任务补漏部署：** GitHub已确认 `84ee1fd74feb93b258f9c635d9c7c0f2d907f30e` 的 `netlify/platypus-officer-hub/deploy-preview` 为success，仍使用preview14。最终截图夹具改为只取原始议程节点，去除继承的订房说明；12单元与2双端取证复验通过，截图和运行时都不改用户实际说明。以上复验不重复加入262/18计数。

@@ -1,0 +1,49 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "kind": "actual-browser-screenshots",
+  "runtimeCommit": "76cd2df",
+  "integrationCommit": "84ee1fd",
+  "fixture": "Original seed task t-agenda, Draft the meeting agenda; eventId remains null. Generated local test grants; no user token copied.",
+  "checks": {
+    "unit": 262,
+    "browserUnique": 18,
+    "browserInitial": {
+      "passed": 16,
+      "failed": 2
+    },
+    "afterSelectorCorrection": {
+      "passed": 2,
+      "failed": 0
+    },
+    "screenshotRepeat": 2,
+    "lint": true,
+    "frontendTypesAndBuild": true,
+    "backendTypes": true,
+    "wordBudgetPages": 9,
+    "entryBytes": 495514,
+    "entryLimit": 550000,
+    "realAiCalls": 0,
+    "realEmails": 0,
+    "finalFixtureUnitRecheck": 12,
+    "note": "Final screenshot fixture uses only the actual seed agenda fields, without inheriting room instructions; 2-device proof recaptured. Rechecks are not added to unique counts."
+  },
+  "images": [
+    {
+      "file": "club-agenda-desktop.png",
+      "bytes": 92058,
+      "sha256": "33483c916d89c79c91990b0d7eacde9d74060439bf934418b4d35880691517ee"
+    },
+    {
+      "file": "club-agenda-mobile.png",
+      "bytes": 120758,
+      "sha256": "a3ef382e6ae2a1be23a4352c9bb732506d82684b3637638b3a62181e77cf79f1"
+    }
+  ],
+  "deployment": {
+    "commit": "84ee1fd74feb93b258f9c635d9c7c0f2d907f30e",
+    "context": "netlify/platypus-officer-hub/deploy-preview",
+    "state": "success",
+    "url": "https://deploy-preview-14--platypus-officer-hub.netlify.app"
+  }
+}

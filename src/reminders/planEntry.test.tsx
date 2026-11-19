@@ -117,6 +117,7 @@ describe("the reported Club task without an event", () => {
     const base = clubAgendaEntryFixture(), grant = await makeTaskAccessGrant(base, "t-agenda")
     const state = reducer(base, { type: "issueTaskAccessGrant", grant }), facts = buildReminderFacts(state, "t-agenda")!
     expect(facts.eventId).toBeNull()
+    expect(facts.requirement).toBe("Draft the meeting agenda.")
     const taskUrl = taskAccessUrl("https://demo.example.org", grant, facts.eventId)
     expect(taskUrl).toContain("/#/tasks?node=t-agenda&access=")
     for (const url of [taskUrl, legacyTaskAccessUrl("https://demo.example.org", grant)]) {
