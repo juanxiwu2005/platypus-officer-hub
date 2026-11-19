@@ -1,5 +1,6 @@
-> **2026-11-18（America/Phoenix） · Settings人工编辑器方向已选定，模板与实例任务身份方案整理中（Codex）**
-> **用户已确定：** ②时间轴/泳道作为主界面、①清单作为快建入口，放在Settings → Workflow；Plan执行界面继续采用点状轨道图，不把矩形规划图搬入Plan。核对现有ID基础并记录模板ID/版本、稳定步骤身份、实例任务ID、依赖重映射及版本快照建议，便于创建活动时一次套用；本轮仍是设计讨论，不启动产品接入。基于`9d9ccac`，保留独立P1预备分支与所有同期交付，不合并main。
+> **2026-11-18（America/Phoenix） · Settings人工编辑器与Plan点状执行方向已确定，ID/实例化建议已记录（Codex）**
+> **用户已选定：** ②时间轴/泳道主界面＋①清单快建入口，均在Settings → Workflow；Plan继续点状轨道图，点击点打开本次活动的实际任务。每team一泳道，团队归组、岗位主责、业务分支和前置关系独立。此条是后续设计约束，不是已经上线的编辑器。
+> **建议与依据：** [身份层次及实例化方案](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)：templateId/version、稳定templateStepId、一次workflowRun、独立taskId；批量实例化并重映射依赖，冻结版本/快照，Point直接用taskId，无额外点状态。保留现有eventId:stepKey与旧链接，补来源/版本，不按标题/坐标当ID；同一次重试幂等，不把模板状态或其他活动成果带入。已核对buildEventNodes/stepsAsNodes/newStepKey/Node/MetroChart及独立团队接入记录；未改src、数据schema、页面或旧任务，未跑无关全站测试，0真实AI/邮件。本轮为设计记录，不启动产品实现；基于`9d9ccac`，保留独立P1预备分支与同期交付，沿用PR14、不合并main，需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · P1 / 一队一泳道预备代码已独立保存，等待模板库编辑器统一适配（Codex）**
 > **交付与协作边界：** Juanxi选择P1并明确N队N道。完整代码仅在 `feat/team-swimlane-foundation`（`2d24427` + `8d55107`，交接补充 `863b48a`），原功能分支只同步[接入记录](feedback-fix/TEAM_WORKFLOW_ADAPTER_READY.md)，不合并或覆盖另一对话的模板库/直观编辑器；本条取代本任务较早的“进行中”开始记录。P1提供团队/上级独立编辑、下级创建与拖入团队；泳道保留空队、合并同队活动前后及重复Operations，未分组项单列问题，保留原46任务/依赖/条件/时间字段。
