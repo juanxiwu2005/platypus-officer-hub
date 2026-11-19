@@ -38,9 +38,11 @@ test("Settings workflow preserves school dependencies, Undo, manual owners, vers
   panel = await openWorkflowStep(page, "purchaseRequest")
   await expect(panel).toContainText("School rule deadlines and required prerequisites are protected")
   await expect(panel.getByRole("button", { name: "Delete task", exact: true })).toBeDisabled()
+  // The school-rule prerequisite stays: removing it is refused with the rule, and the prerequisite remains listed.
   const requiredPreviousTask = panel.getByRole("button", { name: "Remove prerequisite Budget Approval", exact: true })
-  await expect(requiredPreviousTask).toBeDisabled()
-  await expect(requiredPreviousTask).toHaveAttribute("title", /Previous task in this team/)
+  await requiredPreviousTask.click()
+  await expect(page.getByTestId("workflow-builder").getByRole("alert")).toContainText("must wait for “Budget Approval”")
+  await expect(requiredPreviousTask).toBeVisible()
   await closeRail(page)
   expect((await savedWorkflowStep(page, "purchaseRequest"))?.dependsOn).toContain("budgetApproval")
   await settings.getByRole("button", { name: "Save version", exact: true }).click()

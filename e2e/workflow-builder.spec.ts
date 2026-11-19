@@ -4,6 +4,7 @@ import type { DemoState, Event, Node, StepTemplate, WorkflowMilestoneGraph } fro
 import { addDays } from "../src/lib/dates"
 import { computeSchedule } from "../src/engine/schedule"
 import { noOverflow } from "./helpers"
+import { openMenu } from "./workflowLegacyHelpers"
 
 type Version = { name: string; version: number; steps: StepTemplate[]; milestoneGraph?: WorkflowMilestoneGraph; teamMap?: { stepTeams: Record<string, string> } }
 type Template = { id: string; draft?: Omit<Version, "version">; versions: Version[] }
@@ -45,7 +46,7 @@ async function templateByName(page: Page, name: string) {
 async function createTemplate(page: Page, name: string, taskNames = names) {
   await settings(page)
   expect((await read(page)).org.workflowTeams?.length).toBeGreaterThan(0)
-  await page.getByRole("button", { name: "New workflow", exact: true }).click()
+  await openMenu(page, "New workflow", "Blank workflow")
   await page.getByLabel("Workflow name", { exact: true }).fill(name)
   const builder = page.getByTestId("workflow-builder")
   await builder.getByRole("button", { name: "Quick entry", exact: true }).click()
@@ -211,8 +212,8 @@ test("dependency connections reject loops and double-clicking an arrow leaves th
   const builder = page.getByTestId("workflow-builder")
   await builder.getByRole("button", { name: "Flow", exact: true }).click()
   await builder.getByRole("button", { name: `Edit ${names[1]}`, exact: true }).click()
+  await page.getByTestId("workflow-builder-details").getByRole("button", { name: "Connect on canvas", exact: true }).click()
   await closeRail(page)
-  await builder.getByRole("button", { name: "Connect", exact: true }).click()
   await builder.getByRole("button", { name: `Edit ${names[0]}`, exact: true }).click()
   await expect(builder.getByRole("alert")).toHaveText("This dependency would create a loop.")
   await builder.getByRole("button", { name: "Cancel connection", exact: true }).click()
@@ -286,7 +287,7 @@ test("the two authoring views share saved IDs and support keyboard, dark mode an
   expect(accessibility.violations.filter(violation => violation.impact === "serious" || violation.impact === "critical")).toEqual([])
   await expect(editor).toBeVisible()
   await page.screenshot({ path: info.outputPath("workflow-builder-dark.png"), fullPage: false })
-  await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath("workflow-timeline-dark.png") })
+  await builder.locator(".wfx-scroll").screenshot({ path: info.outputPath("workflow-timeline-dark.png") })
 })
 
 test("changing a target in Details preserves its task identity and dependencies after refresh", async ({ page, isMobile }, info) => {
@@ -319,7 +320,7 @@ test("changing a target in Details preserves its task identity and dependencies 
     await page.setViewportSize({ width: 1440, height: 1000 })
     await page.getByRole("button", { name: "Hide side panel", exact: true }).evaluateAll(buttons => buttons.forEach(button => (button as HTMLButtonElement).click()))
     await page.screenshot({ path: info.outputPath("workflow-editor-1440.png"), fullPage: true })
-    await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath("workflow-timeline-1440.png") })
+    await builder.locator(".wfx-scroll").screenshot({ path: info.outputPath("workflow-timeline-1440.png") })
     await page.getByRole("button", { name: "Save version", exact: true }).click()
     await expect.poll(async () => (await templateByName(page, "Drag visit timeline")).versions.length).toBe(2)
     await createEvent(page, "Wide company visit", await templateByName(page, "Drag visit timeline"), 2)

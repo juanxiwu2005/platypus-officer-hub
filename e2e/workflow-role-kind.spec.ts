@@ -30,11 +30,14 @@ test("changing Done by preserves the chosen team, business branch and prerequisi
   expect((await savedWorkflowStep(page, "contentCreation"))?.dependsOn).toEqual(moved.dependsOn)
 })
 
-test("Step type is the first details setting and updates the saved category and chart", async ({ page }, info) => {
+test("Step type is the first setting after the task name and updates the saved category and chart", async ({ page }, info) => {
   await page.emulateMedia({ colorScheme: "dark" })
   await openWorkflow(page)
   const panel = await openWorkflowStep(page, "contentCreation")
-  await expect(panel.locator("input, select, textarea").first()).toHaveAccessibleName("Step type")
+  // The milestone Details lead with the task's own name; its type is the first setting under it.
+  const fields = panel.locator("input, select, textarea")
+  await expect(fields.nth(0)).toHaveAccessibleName("Task name")
+  await expect(fields.nth(1)).toHaveAccessibleName("Step type")
   await panel.getByRole("combobox", { name: "Step type", exact: true }).selectOption("situation")
   await expect.poll(async () => (await savedWorkflowStep(page, "contentCreation"))?.stepKind).toBe("situation")
   await closeRail(page)
@@ -63,7 +66,11 @@ for (const { key, kind } of [{ key: "promotionItems", kind: "core" }, { key: "sp
       expect((await savedWorkflowStep(page, inserted))?.placement?.branchId).toBe(kind === "core" ? "marketing" : "speaker")
       expect((await savedWorkflow(page)).teamMap!.stepTeams[inserted]).toBe(team)
       await closeRail(page)
-      await expect(page.getByTestId(`workflow-task-${inserted}`)).toHaveClass(kind === "core" ? /\bis-core\b/ : /\bis-situation\b/)
+      // Core is the canvas default; only conditional (situation) steps carry a marker class.
+      const dot = page.getByTestId(`workflow-task-${inserted}`)
+      await expect(dot).toBeVisible()
+      if (kind === "core") await expect(dot).not.toHaveClass(/\bis-situation\b/)
+      else await expect(dot).toHaveClass(/\bis-situation\b/)
       await page.getByRole("button", { name: "Undo edit", exact: true }).click()
       await expect.poll(async () => !!(await savedWorkflowStep(page, inserted))).toBe(false)
     })
