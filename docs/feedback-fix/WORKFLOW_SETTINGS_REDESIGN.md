@@ -63,6 +63,18 @@
 
 **测试改写说明（Agent C）：** 按新界面改了找按钮的方式，没有删除或跳过任何行为检查。另外有几项测试检查的界面在这次之前就已经没有了（Details 第一项是 Task name；Settings 画布不再画依赖箭头；Remove prerequisite 不再禁用，而是点了以后被 ASU 规则拒绝；条件分支对话框只在 Plan 的 Edit flow 里），这些测试改成检查现在真实的行为；三项条件分支测试移到了 Plan 的 `e-speaker` 活动上。
 
+## 第二轮修正（2026-11-19，Juanxi 反馈；worktree Agent D）
+
+1. **菱形放置提示加回来：** 拖动时，在每个团队行的步骤之间、行首行尾、主轴相邻节点之间都显示菱形；最近的那个放大。只有放在菱形上才移动，放在别处不改动，并提示 “Drop a step on a diamond.”（`laneDropSlots`、`.wfx-slot`）。
+2. **主轴可以调整：** 主轴上的任务（Full check、Check-in Forms、Headcount）可以拖到团队行或主轴的其他位置；团队行的任务也能拖上主轴。从被移动或被删除的主轴任务出发/汇合的分支，会自动接到旁边的节点。
+   - 预设模板里，只有 ASU 学校规则要求的步骤、以及学校规则步骤要等它的步骤（如 Venue、Budget、Budget Approval）仍然不能删；其他 core 步骤（包括 Check-in Forms）可以删除，Details 提示 “Restore Platypus preset brings it back.”。这放宽了原来“预设 core 步骤不能删”的规则（`checkWorkflow` 新选项 `requireCoreSteps`，只在模板编辑和模板保存时关掉，其他地方不变）。
+   - 用这样的版本建活动时，删掉的步骤不会被悄悄补回来（`restoreMissingCore` 只在 `instantiateWorkflowTemplate` 关掉）。
+3. **恢复按钮（More 菜单，先确认）：** “Restore Platypus preset”（只对预设；把草稿换回原始预设，名称也恢复成 Speaker series，要点 Save version 才成为新版本）和 “Discard draft”（回到最近保存的版本）。已保存的版本和已有活动都不变。
+
+验证：lint、build 通过；单元测试 2088 项中 2086 过（2 项旧失败同上）；新 `e2e/workflow-main-line.spec.ts` 桌面+手机 8/8；`workflow-main-line`、`workflow-settings-layout`、`workflow-stability` 合并后复验 32/32。全部 Workflow 页面测试在干净运行中桌面 56/56、手机 55/55（+1 原有跳过）；`workflow-milestones` 和 `workflow-builder` 各有 1 项在全量并行时偶尔失败、单独运行通过，在改动前的代码上同样偶发。截图：`drag-diamonds.png`、`restore-preset-dialog.png`。
+
+验收：拖一个团队行的步骤，看到菱形，把它放到主轴的菱形上；把 Check-in Forms 拖进团队行，或在 Details 里 Delete task；然后 More → Restore Platypus preset 恢复；More → Discard draft 回到上次保存的版本。
+
 ## 怎么验收
 
 1. 打开 preview14 → Settings → Workflow（模板 Speaker series）。
