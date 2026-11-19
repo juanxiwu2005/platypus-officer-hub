@@ -1,10 +1,11 @@
+> **2026-11-18（America/Phoenix） · Settings人工模板编辑器到Plan任务执行已完成检查，待验收（Codex＋6个独立worktree Agent）**
+> **交付：** [分阶段方案与交付](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)。Settings → Workflow新增模板目录、空白创建/复制、自动草稿/保存版本/默认模板，②团队时间轴为主＋①清单批录；稳定任务key、岗位/团队、Details、工作日/T±、前置连线/防循环、before/after/parallel/条件分支与汇合点明确选择、Undo；水平鼠标/触屏拖动改真实目标，学校与business目标保护。创建活动选择固定模板版本，批量生成独立run/task与团队快照，Plan为一队一泳道圆点，旧活动/任务ID/链接/schema23保留，custom不回填31core，也不自动收费AI检查。
+> **验证：** 最终27文件368单元/组件通过、1旧全checklist枚举未跑；16新增双端＋41旧工作流浏览器用例通过、1手机鼠标限定跳过，按唯一用例共57通过；真实鼠标/触屏、两活动材料进度隔离/v1v2、草稿切页/切模板/刷新、T0/T+、关闭侧栏后保存、axe严重关键/0脚本错误已检查。完整lint、前后端类型、build、独立CSS、9页字数通过，最终本地entry492833/550000。规则分包不减少总下载：实验总初始+391字节、请求数不变；预算未提高。实际[Settings截图](prototypes/workflow-builder-implemented/settings-editor-desktop.png)与[Plan截图](prototypes/workflow-builder-implemented/plan-dots-desktop.png)已查看，[证据](feedback-fix/workflow-builder-verification.json)。
+> **验收与边界：** 原preview14 Settings → Workflow → Teams明确团队/岗位映射 → New workflow → Quick entry → Save version；Plan → New event选模板，确认后点圆点执行。现有Speaker预设保留，其他预设未制作；本地浏览器持久化，每活动当前选择一份模板，尚非跨设备账户/服务器存储。2–3分钟目标未实测，密集连线路由可后续改善。沿用PR14、不合并main，保留同期邮件/团队交付，0真实AI/邮件；环境对GitHub API与Netlify预览返回403，不能核实线上CI/部署状态。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
+
 > **2026-11-18（America/Phoenix） · 邮件进入Plan与跨节点资料两张静态图已交付，待审图批准（Codex）**
 > **交付：** [设计与实施边界](feedback-fix/REMINDER_PLAN_ENTRY_CONCEPTS.md) · [两张图片](prototypes/reminder-plan-entry/manifest.json)。图1邮件直达Speaker Night Plan，高亮订房节点，右侧Details自动展开，保留外部入口/统一正文附件/自动草稿；图2同图切至其他成员已提交的活动要求与附件，提供返回原任务入口。Plan沿用点状轨道，不把Settings模板编辑器带入。
 > **检查与边界：** 两图1536×1024，PNG/清单/文档本地链接及差异校验通过，原图保留；代码核对Events/Rail/TaskSubmission已有基础。仅docs/PNG/JSON，未改网站/邮件URL/规则/授权/存储，未跑产品测试、0真实邮件，2次图片生成；用户批准后才实施。已记录成员身份、他人提交只读/私人草稿隔离、刷新回退和手机适配待实施，不扩大单任务token授权。沿用PR14/原分支，保留同期资料，不合并main。需要同步本地备份。
-
-> **2026-11-18（America/Phoenix） · 人工工作流模板编辑器与独立活动实例，进行中（Codex＋5个独立worktree Agent）**
-> **授权与实施顺序：** 用户明确要求编写程序规划并用worktree agents完成代码修改。按[分阶段实施方案](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)先定模板/版本/实例契约，再并行数据、编辑器、创建活动、团队点图，最后独立Review与集成验收。Settings → Workflow采用②连线时间轴＋①清单快录；Plan保留实际任务圆点。先完善人工编辑器和一份标准模板，不自动制作其他预设或引入AI。
-> **协作边界：** 从`3a40a13`独立集成，Data负责types/模板纯函数，Editor负责新编辑组件，Execution负责活动入口/审批，Lanes负责teamWorkflow/点图，Review负责独立验收；主Agent负责store/Settings/集成。保留v23旧状态、旧任务ID/提醒链接、学校政策与所有同期记录；沿用PR14，不合并main，0真实AI/邮件；需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · Settings人工编辑器与Plan点状执行方向已确定，ID/实例化建议已记录（Codex）**
 > **用户已选定：** ②时间轴/泳道主界面＋①清单快建入口，均在Settings → Workflow；Plan继续点状轨道图，点击点打开本次活动的实际任务。每team一泳道，团队归组、岗位主责、业务分支和前置关系独立。此条是后续设计约束，不是已经上线的编辑器。

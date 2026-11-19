@@ -1,0 +1,82 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "runtimeCommit": "ab3fa29",
+  "reviewSnapshotCommit": "081483e",
+  "branch": "claude/fervent-thompson-e2j5u2",
+  "pullRequest": 14,
+  "schemaVersion": 23,
+  "tests": {
+    "unitComponentFiles": 27,
+    "unitComponentPassed": 368,
+    "unitComponentSkipped": 1,
+    "unitSkippedReason": "Existing exhaustive all-checklist combinations; other workflowV2 cases run",
+    "newWorkflowBrowserPassed": 16,
+    "legacyWorkflowBrowserPassed": 41,
+    "legacyWorkflowBrowserSkipped": 1,
+    "legacySkippedReason": "Existing desktop mouse drag case is device-limited",
+    "uniqueWorkflowBrowserPassed": 57,
+    "extraTodayBundleBrowserPassed": 2,
+    "fullSuiteRun": false,
+    "realAiCalls": 0,
+    "externalMailSent": 0,
+    "criticalSeriousAxeViolations": 0,
+    "pageErrors": 0
+  },
+  "checks": [
+    "production frontend typecheck/build",
+    "netlify typecheck",
+    "full lint and guardrails",
+    "four feature CSS files",
+    "all nine page word budgets",
+    "git diff --check"
+  ],
+  "entryBytes": 492833,
+  "entryBudget": 550000,
+  "performanceExperiment": {
+    "entryBeforeBytes": 564649,
+    "entryAfterBytes": 492858,
+    "totalInitialBeforeBytes": 737197,
+    "totalInitialAfterBytes": 737588,
+    "initialRequestsBefore": 4,
+    "initialRequestsAfter": 4,
+    "scope": "Separate data-agent controlled experiment; not a claim of smaller total download"
+  },
+  "scenarios": [
+    "template version freeze",
+    "two event task IDs/progress/submitted work isolation",
+    "draft survives template/page switches and reload",
+    "custom does not gain 31 core tasks",
+    "legacy IDs/graphs preserved",
+    "AND branch conditions and merge insertion scope",
+    "actual mouse and CDP touch drag changes target while preserving identity/relations/effort/ownership",
+    "school and business-date drag guards",
+    "autosave respects manually closed rail",
+    "Plan task dots open actual task",
+    "T0/T+ custom relative targets",
+    "dependency loop rejection and double click link no operation"
+  ],
+  "images": [
+    {
+      "file": "docs/prototypes/workflow-builder-implemented/plan-dots-desktop.png",
+      "bytes": 85654,
+      "sha256": "a4f4c680e1a45f0790b28f0d523a230597861d9545516db0c871d9cee38b7c8f",
+      "source": "Actual local production build, fictional sample organization; inspected visually"
+    },
+    {
+      "file": "docs/prototypes/workflow-builder-implemented/settings-editor-desktop.png",
+      "bytes": 122460,
+      "sha256": "216f56627530d3cf3730a0630f0b0c52f3043836c09fed362b5ff40e0a003c6f",
+      "source": "Actual local production build, fictional sample organization; inspected visually"
+    }
+  ],
+  "limitations": [
+    "Browser-local demo persistence",
+    "One selected workflow template per event in current UI",
+    "Only existing Speaker preset shipped",
+    "No measured novice 2-3 minute study",
+    "Dense same-team lines can cross",
+    "GitHub API and Netlify preview HTTP access returned 403 in this environment; online CI/deployment not verified",
+    "main not merged"
+  ]
+}
