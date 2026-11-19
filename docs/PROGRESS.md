@@ -1,3 +1,6 @@
+> **2026-11-18（America/Phoenix） · 提醒四项修正进行中（Codex）**
+> **用户决定：** 改期保留已发阶段（1B）、协助承诺与提供分开（2B）、优先排序/预留额度（4A）；第3项授权Codex决定，采用未回复两天后额外跟进一次、与当前关键检查合并。具体默认、较低额度兼容及交付见[本轮规则](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。从d66d15a隔离开发，沿用原分支/PR14，保留Settings与邮件Plan工作；schema23不重置，0真实AI/外部邮件，不合并main。
+
 > **2026-11-18（America/Phoenix） · Settings点状团队泳道编辑器完成检查，待验收（Codex / Model / Canvas / Browser / 独立Review）**
 > **交付：** 按用户截图改圆点、灰色Start—Done与半透明团队底卡；一键空branch/任务、重复Full check和Event day、跨队鼠标/触屏拖动及改名。一个team一个底卡，密集节点每8点续行，最大宽924px，Fit/缩放/Quick entry/Undo/草稿/版本保留。新dependencies模式不自动串队，移动只改团队映射；旧sequential版本、实际活动/成果、校规与条件保留。运行时`cc1fbe9`，已确认Netlify preview14为success。
 > **验证：** 最终21文件209项单元/组件、34唯一双端浏览器通过（最终两组18项复验+既有builder16项，不重复累计），包括真实触屏、46任务原依赖、重复预设到Plan、版本/成果隔离、两主题axe严重关键0及无页面横溢出。独立Review发现的原位拖动误串行与Teams旧表单覆盖均已修复/复核。lint、前后端类型、build、独立CSS、9页字数通过，入口495864/550000、Settings147/150。
