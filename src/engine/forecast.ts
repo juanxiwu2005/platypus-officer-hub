@@ -37,12 +37,13 @@ export function computeForecast(state: DemoState, seed = 20261022): Forecast {
       if (n.status === "done") { finish[n.id] = n.completedOn ?? n.lastUpdate ?? state.today; available[n.id] = finish[n.id]; hit[n.id] += finish[n.id] <= plan.club ? 1 : 0; continue }
       if (!n.ownerId || invalid.has(n.id) || n.dependsOn.some(id => !byId.has(id) || available[id] === "9999-12-31")) { finish[n.id] = available[n.id] = "9999-12-31"; continue }
       const person = state.people.find(p => p.id === n.ownerId)
+      const event = state.events.find(e => e.id === n.eventId)
       // Calibrated steps (FB-6): their window already includes the default one-day personal buffer, and both ends of the window are
       // working days (Headcount starts and finishes on the event day), so only extra buffer counts and the start day is a working day.
-      const calibrated = !!n.timing
+      // New sequential snapshots retain timing as source metadata but use full effort/buffer scheduling instead of that window.
+      const calibrated = !!n.timing && event?.workflowRun?.snapshot.teamExecution !== "sequential"
       // A calibrated close-out step cannot start before its window opens after the event, so its extra buffer has nowhere to go either.
       const buffer = calibrated ? (n.phase === "close" ? 0 : Math.max(0, personalBuffer(state, person).days - DEFAULT_PERSONAL_BUFFER)) : personalBuffer(state, person).days
-      const event = state.events.find(e => e.id === n.eventId)
       const opens = n.phase === "close" && event ? [calibrated ? max(event.date, plan.latestStart) : event.date] : []
       const start = max(state.today, ...opens, ...n.dependsOn.map(id => available[id] ?? "9999-12-31"))
       const [lo,hi] = EFFORT[n.tier]
