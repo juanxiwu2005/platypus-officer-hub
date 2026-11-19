@@ -55,7 +55,13 @@
 
 ## 验证
 
-（整合完成后补充具体数字。）
+- 单元/组件：相关 15 个文件 139 项全过；全套 2051 项中 2049 过，失败的 `calibration.test.ts`（超时）和 `uiLog.test.tsx` 在 `4d6290e` 上同样失败。
+- lint（含样式守卫）、前后端类型、生产 build 通过；入口 498,36x / 550,000 字节，没有变（Workflow 是懒加载）。
+- 页面测试（Playwright，桌面 + 手机）：Settings 工作流相关 11 个文件，桌面 52 过，手机 51 过 + 1 个原有的仅桌面跳过；其中新增 `e2e/workflow-settings-layout.spec.ts` 5 项（每个团队一行、时间段顺序、步骤名不断词、批量分配 + 一次 Undo 复原、菜单与焦点、手机无横向溢出、axe 严重/关键 0）。
+- Plan 那一侧的 10 个页面测试文件：169 过、15 跳过、18 失败；在 `4d6290e` 上跑同样的文件，同样 17 项失败；多出的 `a11y.spec.ts:286`（手机）在两边都是 3 次里只过 1 次（不稳定的旧测试）。所以这次没有让 Plan 变坏，但这些旧失败需要以后另外处理。
+- 截图：`docs/prototypes/workflow-settings-redesign/`（改前 `before-desktop.png`；改后 `desktop-default.png`、`desktop-fit.png`、`desktop-team-assignment.png`、`mobile-default.png`）。
+
+**测试改写说明（Agent C）：** 按新界面改了找按钮的方式，没有删除或跳过任何行为检查。另外有几项测试检查的界面在这次之前就已经没有了（Details 第一项是 Task name；Settings 画布不再画依赖箭头；Remove prerequisite 不再禁用，而是点了以后被 ASU 规则拒绝；条件分支对话框只在 Plan 的 Edit flow 里），这些测试改成检查现在真实的行为；三项条件分支测试移到了 Plan 的 `e-speaker` 活动上。
 
 ## 怎么验收
 
@@ -70,6 +76,8 @@
 
 - Plan 活动图还是旧排版；等 Juanxi 确认后移植。
 - 深色没有验收。
+- 批量分配如果违反学校规则（例如 R06：Food Exception Permit 要等 Budget），会被拒绝，错误显示在画布上方，但右侧面板里的 “N steps selected” 没有提示原因。
+- 打开预设模板约 0.5 秒后会自动存一份 Draft（原有行为）。
 - 1440 宽的屏幕上，标准模板在 85% 时要左右滚动；`Fit` 时可以看全图，但字比较小。
 - 两个单元测试（`calibration.test.ts` 超时、`uiLog.test.tsx`）在改动之前的 `4d6290e` 上就失败，和这次无关。
 - 这次没有连到 Juanxi 的电脑，**需要同步本地备份**。
