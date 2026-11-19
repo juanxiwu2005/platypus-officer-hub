@@ -156,6 +156,15 @@ describe("milestone authoring commands", () => {
     expect(graphError(workflowMilestoneSteps(result.steps, result.milestoneGraph!))).toBeNull()
   })
 
+  it("places the first task of a branch joining a shared check just before that check's target", () => {
+    let value = addMilestoneCheck(ensureMilestoneSnapshot({ steps: [], stepTeams: {} }), "check")
+    value = addMilestoneBranch(value, { teamId: "ops", fromId: WORKFLOW_START, toId: "check" }, "early")
+    value = addMilestoneTask(value, "early", "prep")
+    expect(value.milestoneGraph!.taskAnchors.prep).toEqual({ eventDayId: WORKFLOW_DAY_ONE, offsetDays: -15, unit: "calendar" })
+    expect(branchFor(value, "prep").toId).toBe("check")
+    expect(graphError(workflowMilestoneSteps(value.steps, value.milestoneGraph!))).toBeNull()
+  })
+
   it("reconnects only old immediate chain neighbors when reordering, with no new cycle", () => {
     const value = fixture()
     value.steps = [step("A"), step("B", ["A"]), step("C", ["B"]), step("outside")]

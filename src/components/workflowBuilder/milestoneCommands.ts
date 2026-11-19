@@ -17,6 +17,10 @@ export function ensureMilestoneSnapshot(snapshot: BuilderSnapshot): BuilderSnaps
 function branchAnchor(graph: WorkflowMilestoneGraph, branch: TeamBranch): TaskAnchor {
   const atTo = graph.eventDays.find(day => day.id === branch.toId)
   if (atTo) return { eventDayId: atTo.id, offsetDays: -1, unit: "calendar" }
+  const beforeTask = graph.taskAnchors[branch.toId]
+  if (beforeTask) return { ...beforeTask, offsetDays: beforeTask.offsetDays - 1 }
+  const afterTask = graph.taskAnchors[branch.fromId]
+  if (afterTask) return { ...afterTask, offsetDays: afterTask.offsetDays + 1 }
   const startIndex = graph.spine.indexOf(branch.fromId)
   const preceding = graph.eventDays.filter(day => graph.spine.indexOf(day.id) <= startIndex).at(-1)
   if (preceding) return { eventDayId: preceding.id, offsetDays: 1, unit: "calendar" }
