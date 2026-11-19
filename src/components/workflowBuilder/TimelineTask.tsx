@@ -44,6 +44,6 @@ export function TimelineTask({ box, branches, selected, connecting, onSelect, on
     style={{ left: box.x + offset, top: box.y, width: box.width, height: box.height }}
     onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={reset} onLostPointerCapture={reset} onDragStart={event => event.preventDefault()}
     onClick={event => { if (suppressClick.current && event.detail !== 0) { suppressClick.current = false; event.preventDefault(); return }; suppressClick.current = false; onSelect() }}>
-    <button type="button" className="wfb-task-hit" aria-label={`Edit ${box.step.title || "Untitled task"}`} aria-pressed={selected}><strong data-testid="task-title">{taskShortTitle(box.step.title)}</strong></button><span data-testid="task-date">{tLabel(box.finish)}</span>
+    <button type="button" className="wfb-task-hit" aria-label={`Edit ${box.step.title || "Untitled task"}`} aria-pressed={selected}><strong data-testid="task-title">{taskShortTitle(box.step.title)}</strong></button><span data-testid="task-date">{box.dateUnavailable ? "—" : tLabel(box.finish)}</span>
   </div>
 }

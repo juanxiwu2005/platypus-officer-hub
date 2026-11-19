@@ -44,3 +44,11 @@ describe("one compact task line per team", () => {
     for (const route of result.routes) for (let index = 1; index < route.points.length; index++) for (const item of result.boxes) expect(segmentCrossesBox(route.points[index - 1], route.points[index], { id: item.step.key, x: item.x, y: item.y, width: item.width, height: item.height })).toBe(false)
   })
 })
+
+it("does not present calendar-guard fallback numbers as trustworthy T labels", () => {
+  const state = ensureWorkflowPresetTeams(seedDemo("2026-10-31", "v2"))
+  const template = getWorkflowTemplates(state)[0].versions[0]
+  const result = buildTimeline(state, { steps: template.steps, branches: template.branches, stepTeams: template.teamMap!.stepTeams }, state.org.workflowTeams!, "standard", "2026-12-12")
+  expect(result.dateError).toContain("supported calendar")
+  expect(result.boxes.every(box => box.dateUnavailable)).toBe(true)
+})

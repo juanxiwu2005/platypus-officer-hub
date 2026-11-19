@@ -34,7 +34,7 @@ export function WorkflowBuilder({ state, steps: inputSteps, branches, stepTeams,
   const [error, setError] = useState<string | null>(null)
   const [connectFrom, setConnectFrom] = useState<string | null>(null)
   const [addBranch, setAddBranch] = useState(false)
-  const [previewDate, setPreviewDate] = useState(() => addDays(state.today, 42))
+  const [previewDate, setPreviewDate] = useState(() => addDays(state.today, 180))
   const rail = useRail()
   const markerId = useId().replace(/:/g, "")
   const snapshot = useMemo(() => ({ steps, branches, stepTeams }), [steps, branches, stepTeams])
@@ -133,8 +133,9 @@ export function WorkflowBuilder({ state, steps: inputSteps, branches, stepTeams,
     {connectFrom && <p className="small" role="status">Choose the task that waits for “{steps.find(candidate => candidate.key === connectFrom)?.title}”. <button type="button" className="link" onClick={() => setConnectFrom(null)}>Cancel connection</button></p>}
     {unmapped.length > 0 && <div className="wfb-unassigned" role="status"><span>{unmapped.length} task{unmapped.length === 1 ? " needs" : "s need"} a team:</span>{unmapped.map(candidate => <button type="button" className="link" key={candidate.key} onClick={() => select(candidate.key)}>{candidate.title || "Untitled task"}</button>)}</div>}
     {view === "quick" ? <QuickEntry state={state} snapshot={snapshot} teams={teams} onChange={commit} onSelect={select} selected={selected} /> : <>
-      <p className="small muted wfb-hint">One team, one sequence. Teams can work in parallel. Drag to reorder; click for details. T0 = target day.</p>
+      <p className="small muted wfb-hint">One team, one sequence. Teams can work in parallel. Drag to reorder; click for details. T0 = target day. Preview includes all situations.</p>
       <label className="wfb-preview-date">Preview target day<input type="date" value={previewDate} onChange={event => { if (event.target.value) setPreviewDate(event.target.value) }} /></label>
+      {timeline.dateError && <p className="small late-text" role="alert">{timeline.dateError}</p>}
       <div className="wfb-scroll" tabIndex={0} role="region" aria-label="Team timeline, scroll horizontally to explore">
         <div className="wfb-canvas" style={{ width: timeline.width, height: Math.max(HEADER_HEIGHT + 120, timeline.height) }}>
           <div className="wfb-time-axis" style={{ height: HEADER_HEIGHT }}><span className="wfb-axis-title">Team</span><span className="wfb-sequence-title" style={{ left: LABEL_WIDTH + 20 }}>Task order →</span></div>

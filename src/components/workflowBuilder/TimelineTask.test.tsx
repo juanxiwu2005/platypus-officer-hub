@@ -18,6 +18,12 @@ describe("compact task card", () => {
     expect(taskShortTitle("")).toBe("Untitled task")
   })
 
+  it("uses an empty date marker when the calendar cannot support the preview", () => {
+    render(<TimelineTask box={{ ...box, dateUnavailable: true, finish: -16941 }} selected={false} connecting={false} onSelect={() => {}} onReorder={() => {}} />)
+    expect(screen.getByTestId("task-date").textContent).toBe("—")
+    expect(screen.queryByText("T-16941")).toBeNull()
+  })
+
   it("reports the dropped canvas center for reordering even for a school task, without changing its date", () => {
     const onReorder = vi.fn(), onSelect = vi.fn()
     render(<TimelineTask box={box} selected={false} connecting={false} onSelect={onSelect} onReorder={onReorder} />)

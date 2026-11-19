@@ -81,8 +81,8 @@ async function publish(page: Page, id: string, version: number) {
 
 async function createEvent(page: Page, name: string, templateId: string, version: number) {
   const definition = (await savedTemplate(page, templateId)).versions.find(item => item.version === version)!
-  await page.goto("/#/events")
   await closeRail(page)
+  await page.getByRole("navigation", { name: "Sections", exact: true }).getByRole("link", { name: /^Plan/ }).click()
   await page.getByTestId("new-event").click()
   const form = page.getByTestId("plan-form").last()
   await form.getByLabel("Event name", { exact: true }).fill(name)
@@ -287,4 +287,20 @@ test("reordering through a cross-team dependency loop is refused without changin
   await expect(builder.getByRole("alert")).toContainText(/loop|cycle|cannot|keep/i)
   await page.getByRole("button", { name: "Save draft", exact: true }).click()
   expect((await draft(page, id)).steps).toEqual(current.steps)
+})
+
+test("unsupported calendar previews explain missing dates and recover after choosing a supported target", async ({ page }, info) => {
+  const builder = await open(page)
+  const target = builder.getByLabel("Preview target day", { exact: true })
+  const supported = await target.inputValue()
+  await target.fill("2026-12-12")
+  await expect(builder.getByRole("alert")).toContainText("supported calendar")
+  const dates = builder.getByTestId("task-date")
+  await expect(dates).toHaveCount(46)
+  expect(await dates.allTextContents()).toEqual(Array(46).fill("—"))
+  await target.fill(supported)
+  await expect(builder.getByRole("alert")).toHaveCount(0)
+  expect((await dates.allTextContents()).every(date => /^T(?:0|[+−-]\d+)$/.test(date))).toBe(true)
+  await closeRail(page)
+  await page.screenshot({ path: info.outputPath("compact-settings.png"), fullPage: true })
 })

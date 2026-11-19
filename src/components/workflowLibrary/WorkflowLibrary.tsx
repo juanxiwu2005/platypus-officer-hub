@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MutableRefObject } from "react"
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react"
 import { useStore } from "../../data/store"
 import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDraft, DemoState } from "../../data/types"
 import { getWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
@@ -77,12 +77,13 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
     window.addEventListener("beforeunload", warn)
     return () => window.removeEventListener("beforeunload", warn)
   }, [pending, persistenceFailed])
-  const update = (steps: StepTemplate[], branches?: WorkflowBranch[], stepTeams = draft.teamMap?.stepTeams ?? {}) => {
+  // Rail details refresh the library. A stable callback prevents the child effect feeding that context forever.
+  const update = useCallback((steps: StepTemplate[], branches?: WorkflowBranch[], stepTeams = draft.teamMap?.stepTeams ?? {}) => {
     const previousKeys = new Set(draft.steps.map(step => step.key))
     const mappings = { ...stepTeams }
     for (const step of steps) if (!previousKeys.has(step.key) && !mappings[step.key] && step.ownerRoleId && state.org.workflowRoleTeams?.[step.ownerRoleId]) mappings[step.key] = state.org.workflowRoleTeams[step.ownerRoleId]
     setDraft({ ...draft, teamExecution: "sequential", steps: sequenceTeamStepsForDraft(state, steps, mappings, branches, draft.kind), branches, teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
-  }
+  }, [draft, state.org.workflowRoleTeams, template.id])
   const groupRoles = () => {
     const current = draft.teamMap?.stepTeams ?? {}
     const mappings = { ...current }
