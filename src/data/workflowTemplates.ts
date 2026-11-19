@@ -131,7 +131,8 @@ export function newWorkflowTemplate(s: DemoState, id: string, name = "Untitled w
 
 export function saveWorkflowTemplateDraft(s: DemoState, id: string, draft: WorkflowTemplateDraft): DemoState {
   if (!canLead(s)) return s
-  if (draft.teamExecution === "sequential" && Array.isArray(draft.steps)) draft = { ...draft, steps: sequenceTeamStepsForDraft(s, draft.steps, draft.teamMap?.stepTeams ?? {}, draft.branches, draft.kind) }
+  if (workflowTemplateDraftError(draft, s.roles)) return s
+  if (draft.teamExecution === "sequential") draft = { ...draft, steps: sequenceTeamStepsForDraft(s, draft.steps, draft.teamMap?.stepTeams ?? {}, draft.branches, draft.kind) }
   const template = getWorkflowTemplate(s, id)
   if (!template || draft.baseVersion !== (latestVersion(template)?.version ?? 0) || workflowTemplateDraftError(draft, s.roles) || draft.kind !== (template.draft?.kind ?? latestVersion(template)?.kind) || (draft.teamMap && draft.teamMap.workflowId !== id)) return s
   // Draft-only inserts must remain undoable; required ancestry comes from the

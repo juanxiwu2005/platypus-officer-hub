@@ -1,6 +1,6 @@
 import type { DemoState, Event, StepTemplate } from "../../data/types"
 import { computeSchedule } from "../../engine/schedule"
-import { orderedWorkflowSteps, sequenceTeamSteps } from "../../engine/workflowSequence"
+import { orderedWorkflowSteps, sequenceTeamStepsForDraft } from "../../engine/workflowSequence"
 import { stepsAsNodes } from "../../engine/workflow"
 import { addDays, daysBetween } from "../../lib/dates"
 import type { BuilderPolicy, BuilderSnapshot } from "./model"
@@ -18,9 +18,10 @@ export const TEAM_ROW_HEIGHT = 96
 
 /** Columns express dependency order, not elapsed time. Only the engine dates a card. */
 export function buildTimeline(state: DemoState, snapshot: BuilderSnapshot, teams: BuilderTeam[], policy: BuilderPolicy = "custom", previewDate = addDays(state.today, 42)) {
-  const steps = orderedWorkflowSteps(sequenceTeamSteps(snapshot.steps, snapshot.stepTeams))
+  const steps = orderedWorkflowSteps(sequenceTeamStepsForDraft(state, snapshot.steps, snapshot.stepTeams, snapshot.branches, policy))
   const date = /^\d{4}-\d{2}-\d{2}$/.test(previewDate) ? previewDate : addDays(state.today, 42)
   const event: Event = { id: "workflow-editor-preview", name: "Workflow preview", date, type: "social", headcount: 30, venue: "campus", food: "none", funding: "none", speaker: false, checks: {}, goalId: null, playbookId: `workflow-editor-${policy}`, workflowBranches: snapshot.branches }
+  event.workflowRun = { id: event.id, templateId: "workflow-editor", templateVersion: 0, templateName: event.name, snapshot: { name: event.name, kind: policy, version: 0, savedOn: state.today, teamExecution: "sequential", steps, branches: snapshot.branches, teams, teamMap: { version: 1, workflowId: "workflow-editor", stepTeams: snapshot.stepTeams } } }
   const nodes = stepsAsNodes(steps, event.id).map((node, index) => ({ ...node, ...(steps[index].timing ? { timing: { ...steps[index].timing! } } : {}) }))
   const schedule = computeSchedule({ ...state, people: [], events: [event], nodes })
   const columns = new Map<string, number>()
