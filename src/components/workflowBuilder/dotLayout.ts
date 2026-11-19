@@ -1,5 +1,5 @@
 import type { StepTemplate } from "../../data/types"
-import { orderedWorkflowSteps } from "../../engine/workflowSequence"
+import { orderedDotSteps } from "./dotModel"
 import { compileTeamLanes } from "../../teamWorkflow/lanes"
 
 export interface DotTeam { id: string; name: string }
@@ -15,7 +15,7 @@ const LANE_GAP = 18, LANE_TOP = 88, LABEL_TOP = 58
 
 /** Team tracks are compact presentation. Their geometry never changes a date or a dependency. */
 export function buildDotLayout(steps: StepTemplate[], stepTeams: Record<string, string>, teams: DotTeam[]): DotLayout {
-  const graph = compileTeamLanes("dot-editor", orderedWorkflowSteps(steps), { teams: teams.map(team => ({ ...team, leadRoleId: null })), roles: [], people: [] }, { version: 1, workflowId: "dot-editor", stepTeams })
+  const graph = compileTeamLanes("dot-editor", orderedDotSteps(steps), { teams: teams.map(team => ({ ...team, leadRoleId: null })), roles: [], people: [] }, { version: 1, workflowId: "dot-editor", stepTeams })
   const most = Math.min(DOTS_PER_TRACK, Math.max(1, ...graph.lanes.map(lane => lane.steps.length)))
   const width = Math.max(640, DOT_LEFT * 2 + (most - 1) * DOT_GAP)
   const start = { x: 32, y: 32 }, done = { x: width - 32, y: 32 }

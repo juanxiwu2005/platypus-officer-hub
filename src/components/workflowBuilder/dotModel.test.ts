@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { StepTemplate } from "../../data/types"
 import { graphError, type BuilderSnapshot } from "./model"
-import { addDotTask, moveDotTask } from "./dotModel"
+import { addDotTask, moveDotTask, orderedDotSteps } from "./dotModel"
 
 const task = (key: string, dependsOn: string[] = []): StepTemplate => ({ key, title: key, fn: "programs", ownerRoleId: "programs-role", phase: "prepare", estDays: 2, tier: "medium", dependsOn, anchor: { kind: "target", days: 10, unit: "calendar", label: "Club target" }, why: "Saved instructions.", source: "Club authored", custom: true })
 const teams = [{ id: "ops", name: "Operations" }, { id: "finance", name: "Finance" }]
@@ -53,6 +53,46 @@ describe("dot workflow authoring transactions", () => {
     expect(result.steps.find(step => step.key === "b")?.dependsOn).toEqual(["c"])
     expect(result.steps.find(step => step.key === "a")?.dependsOn).toEqual(["b"])
     expect(graphError(result.steps)).toBeNull()
+  })
+  it("treats a drop that leaves independent tasks in the same order as a complete no-op", () => {
+    const initial: BuilderSnapshot = { steps: [task("a"), task("b"), task("c")], stepTeams: { a: "ops", b: "ops", c: "ops" } }
+    expect(moveDotTask(initial, "a", "ops", teams, "b", true)).toBe(initial)
+    expect(moveDotTask(initial, "b", "ops", teams, "a", false)).toBe(initial)
+    expect(initial.steps.every(step => step.dependsOn?.length === 0)).toBe(true)
+  })
+  it("moves independent tasks by canvas order without linking them or changing their relative dates", () => {
+    const initial: BuilderSnapshot = { steps: [task("a"), { ...task("b"), anchor: { kind: "target", days: 4, unit: "calendar", label: "Later task" } }, task("c")], stepTeams: { a: "ops", b: "ops", c: "ops" } }
+    const result = moveDotTask(initial, "b", "ops", teams, "a", true)
+    expect(orderedDotSteps(result.steps).map(step => step.key)).toEqual(["b", "a", "c"])
+    expect(result.steps.map(step => step.dependsOn)).toEqual(initial.steps.map(step => step.dependsOn))
+    expect(result.steps.map(step => step.anchor)).toEqual(initial.steps.map(step => step.anchor))
+    expect(result.steps.map(step => step.estDays)).toEqual(initial.steps.map(step => step.estDays))
+    expect(initial.steps.every(step => step.placement === undefined)).toBe(true)
+  })
+  it("reverses an actual two-task chain without serializing an unrelated parallel task", () => {
+    const initial: BuilderSnapshot = { steps: [task("a"), task("b", ["a"]), task("independent")], stepTeams: { a: "ops", b: "ops", independent: "ops" } }
+    const result = moveDotTask(initial, "b", "ops", teams, "a", true)
+    expect(result.steps.find(step => step.key === "a")?.dependsOn).toEqual(["b"])
+    expect(result.steps.find(step => step.key === "b")?.dependsOn).toEqual([])
+    expect(result.steps.find(step => step.key === "independent")?.dependsOn).toEqual([])
+    expect(orderedDotSteps(result.steps).map(step => step.key)).toEqual(["b", "a", "independent"])
+    expect(graphError(result.steps)).toBeNull()
+  })
+  it("preserves parallel siblings in a branching graph instead of converting the whole component into a chain", () => {
+    const initial: BuilderSnapshot = { steps: [task("a"), task("b", ["a"]), task("c", ["a"])], stepTeams: { a: "ops", b: "ops", c: "ops" } }
+    const result = moveDotTask(initial, "c", "ops", teams, "b", true)
+    expect(orderedDotSteps(result.steps).map(step => step.key)).toEqual(["a", "c", "b"])
+    expect(result.steps.map(step => step.dependsOn)).toEqual(initial.steps.map(step => step.dependsOn))
+    expect(graphError(result.steps)).toBeNull()
+  })
+  it("keeps external dependencies available for the caller's cycle validation", () => {
+    const initial = snapshot()
+    initial.steps[1] = { ...initial.steps[1], dependsOn: ["a", "c"] }
+    initial.steps[2] = { ...initial.steps[2], dependsOn: ["a"] }
+    const result = moveDotTask(initial, "b", "ops", teams, "a", true)
+    expect(result.steps.find(step => step.key === "b")?.dependsOn).toContain("c")
+    expect(result.steps.find(step => step.key === "c")?.dependsOn).toContain("a")
+    expect(graphError(result.steps)).toContain("loop")
   })
   it("ignores invalid drops and repeated existing step IDs", () => {
     const initial = snapshot()
