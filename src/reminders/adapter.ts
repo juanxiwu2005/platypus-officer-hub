@@ -89,7 +89,7 @@ export function confirmPlannedReminder(s: DemoState, candidateId: string, via: R
 export function confirmLegacyPlannedReminder(s: DemoState, nodeId: string, via: "president" | "platypus" | undefined, message?: ReminderMailSnapshot): DemoState {
   if (!remindersEnabled(s)) return s
   const q = planReminders(buildReminderInput(s, s.reminderRuntime!))
-  const candidate = q.ready.find(c => c.nodeId === nodeId && c.reason !== "waiting_on")
+  const candidate = q.ready.find(c => c.nodeId === nodeId && !c.waitingRequestId)
   return candidate ? confirmPlannedReminder(s, candidate.id, via === "platypus" ? "platypus" : "manual", message) : s
 }
 

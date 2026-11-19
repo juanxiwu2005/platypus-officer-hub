@@ -33,13 +33,14 @@ export function isReminderRuntime(value: unknown): value is ReminderRuntime {
   if (!Array.isArray(value.deliveries) || !value.deliveries.every(v => entry(v)
     && fields(v, "candidateId recipientId ownerId planKey recipientName taskTitle", string)
     && fields(v, "scheduledOn sentOn", day) && nullable(v.eventName, v => typeof v === "string") && nullable(v.due, day)
-    && oneOf(v.reason, "start|due|overdue|waiting_on") && oneOf(v.via, "manual|platypus|automatic")
+    && oneOf(v.reason, "start|due|overdue|waiting_on|no_reply|waiting_followup") && oneOf(v.via, "manual|platypus|automatic")
     && v.outcome === (v.via === "manual" ? "recorded_by_sender" : "simulated")
     && (v.waitingRequestId === undefined || string(v.waitingRequestId))
     && (v.message === undefined ? value.version !== 2 || (v.sequence as number) <= (value.mailRequiredAfter as number) : message(v.message)))) return false
   if (!Array.isArray(value.waitingRequests) || !value.waitingRequests.every(v => entry(v)
     && string(v.ownerId) && nullable(v.recipientId, string) && typeof v.waitingOn === "string"
     && day(v.createdOn) && nullable(v.closedOn, day)
+    && (v.expectedOn === undefined || day(v.expectedOn) && oneOf(v.response, "acknowledged|provided"))
     && (v.closeReason === undefined || oneOf(v.closeReason, "resolved|changed|reassigned|completed|unavailable"))
     && (v.response === undefined ? v.respondedOn === undefined && v.responseBy === undefined : oneOf(v.response, "acknowledged|provided") && day(v.respondedOn) && string(v.responseBy)))) return false
   return value.legacyUnresolvedNodeIds === undefined || (Array.isArray(value.legacyUnresolvedNodeIds) && value.legacyUnresolvedNodeIds.every(string))

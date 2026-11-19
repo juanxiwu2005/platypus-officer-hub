@@ -1,8 +1,10 @@
 import type { DemoState } from "../data/types"
 import type { TaskAccessUpdate } from "./accessContracts"
 import { usableTaskAccessGrant } from "./taskAccess"
-import { claimTask, replyToTask } from "../data/taskWorkflow"
+import { addNotices, claimTask, replyToTask } from "../data/taskWorkflow"
 import { isReminderRuntime } from "./runtime"
+import { addDays } from "../lib/dates"
+import { FOLLOWUP_DAYS, validReminderDay } from "./policy"
 
 /** Scope is taken from the stored grant, never from the URL or the page's viewer selector. */
 export function applyTaskAccessUpdate(s: DemoState, token: string, update: TaskAccessUpdate): DemoState {
@@ -14,11 +16,14 @@ export function applyTaskAccessUpdate(s: DemoState, token: string, update: TaskA
     const request = s.reminderRuntime.waitingRequests.find(r => r.id === grant.waitingRequestId)
     const response = update.kind === "provided" ? "provided" as const : "acknowledged" as const
     if (!request || request.closedOn || request.response === response || request.response === "provided") return s
+    const expectedOn = response === "acknowledged" ? update.expectedOn ?? addDays(s.today, FOLLOWUP_DAYS) : request.expectedOn
+    if (response === "acknowledged" && (!validReminderDay(expectedOn) || expectedOn < s.today)) return s
     const sequence = s.reminderRuntime.sequence + 1
-    return { ...s, reminderRuntime: { ...s.reminderRuntime, sequence,
-      waitingRequests: s.reminderRuntime.waitingRequests.map(r => r.id === request.id ? { ...r, response, respondedOn: s.today, responseBy: grant.recipientId } : r),
+    const next: DemoState = { ...s, reminderRuntime: { ...s.reminderRuntime, sequence,
+      waitingRequests: s.reminderRuntime.waitingRequests.map(r => r.id === request.id ? { ...r, response, respondedOn: s.today, responseBy: grant.recipientId, ...(expectedOn ? { expectedOn } : {}) } : r),
       updates: [...s.reminderRuntime.updates, { id: `reminder-update:${sequence}`, sequence, nodeId: node.id, ownerId: node.ownerId, ownerVersion: node.ownerVersion ?? 0, actorId: grant.recipientId, on: s.today, status: node.status, ownerReply: false, waitingRequestId: request.id, waitingResponse: response }],
     } }
+    return response === "provided" ? addNotices(next, node.id, [request.ownerId], "info", `Input is available for “${node.title}”. Please check it and update the task when you can continue.`, `waiting-provided:${request.id}`) : next
   }
   if (update.kind === "claim") return claimTask(s, node.id, grant.recipientId)
   if (!["todo", "working", "done", "stuck", "waiting", "extension"].includes(update.kind)) return s

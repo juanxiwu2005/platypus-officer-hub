@@ -36,6 +36,9 @@ const BLOCKED = {
   unresolved_waiting: "Choose who this task is waiting on before preparing a follow-up.",
   task_limit: "This recipient has reached the reminder limit for this task.",
   weekly_limit: "This recipient has reached the weekly reminder limit.",
+  weekly_reserved: "The remaining weekly slots are reserved for due and overdue reminders.",
+  daily_limit: "This recipient has reached today's two-reminder limit.",
+  daily_reserved: "Today's remaining slot is reserved for a due or overdue reminder.",
   already_sent_today: "A reminder for this task and recipient was already recorded today.",
   paused: "This task needs support. Ordinary reminders are paused.",
   legacy_history: "Review earlier reminders before enabling future reminders for this task.",
@@ -70,7 +73,7 @@ export function reminderCentre(state: DemoState): ReminderCentre {
   for (const d of runtime?.deliveries ?? []) sent.push({ ...base(d.nodeId), id: d.id, deliveryId: d.id,
     eventName: d.eventName, taskTitle: d.taskTitle, recipientId: d.recipientId, recipientName: d.recipientName,
     ownerId: d.ownerId, ownerVersion: d.ownerVersion, due: d.due, reason: d.reason,
-    explanation: d.reason === "waiting_on" ? "A request for help." : "Recorded reminder.",
+    explanation: d.waitingRequestId ? "A request for help." : d.reason === "no_reply" ? "A follow-up after no reply." : "Recorded reminder.",
     sentOn: d.sentOn, scheduledOn: d.scheduledOn, via: d.via, outcome: d.outcome, message: d.message, sequence: d.sequence })
   for (const n of state.nudges) sent.push({ ...base(n.nodeId), id: `legacy:${n.id}`, legacy: true,
     eventName: null, taskTitle: n.message?.subject ?? "Earlier reminder", recipientId: n.message?.recipientId ?? null,
@@ -120,12 +123,14 @@ export function reminderCentre(state: DemoState): ReminderCentre {
   for (const c of plan?.upcoming ?? []) if (c.scheduledOn > state.today && c.scheduledOn <= weekEnd && !future.has(c.nodeId)) future.set(c.nodeId, candidateRow(c))
   const riskFirst = (a: CentreRow, b: CentreRow) => Number(b.risk) - Number(a.risk)
     || (a.due ?? "9999").localeCompare(b.due ?? "9999") || a.id.localeCompare(b.id)
-  const needsOk = (plan?.ready ?? []).map(candidateRow).sort(riskFirst)
+  // The engine's priority order also governs the review batch; risk is explanatory, not a different send order.
+  const needsOk = (plan?.ready ?? []).map(candidateRow)
   for (const row of noReply) {
     const ready = needsOk.find(x => x.nodeId === row.nodeId && x.recipientId === row.recipientId)
     const block = blocked.find(x => x.nodeId === row.nodeId)
     row.candidateId = ready?.candidateId
-    row.blockedReason = block?.explanation ?? (!ready ? "No follow-up is due yet." : undefined)
+    const next = plan?.upcoming.filter(c => c.nodeId === row.nodeId && c.recipientId === row.recipientId).sort((a, b) => a.scheduledOn.localeCompare(b.scheduledOn))[0]
+    row.blockedReason = block?.explanation ?? (!ready ? next ? `Next check: ${next.scheduledOn}. You can review the task now.` : "No further automatic follow-up is planned. Review the task to decide the next step." : undefined)
   }
   return { runtimeState: status, mode, needsOk, thisWeek: [...future.values()].sort(riskFirst), sent: sent.sort(newest),
     replies: replies.sort(newest), noReply: noReply.sort(riskFirst), blocked,
@@ -140,7 +145,7 @@ export function taskReminderSummary(state: DemoState, nodeId: string): TaskRemin
   const request = isReminderRuntime(state.reminderRuntime) ? state.reminderRuntime.waitingRequests.find(w => w.nodeId === nodeId
     && !w.closedOn && w.ownerId === node?.ownerId && w.ownerVersion === (node?.ownerVersion ?? 0)) : null
   const waitingReply = request?.response === "provided" ? "The requested input has been provided."
-    : request?.response === "acknowledged" ? "The selected person has agreed to follow up." : null
+    : request?.response === "acknowledged" ? "The selected person has agreed to follow up. Input is still pending." : null
   let explanation = candidate?.explanation ?? blocked?.explanation ?? (node?.status === "done" ? "This task is complete. No reminder is needed."
     : node?.status === "in_progress" ? "Work has started. We will check for completion when due."
     : node?.status === "waiting" ? waitingReply ?? "Ordinary owner reminders are paused while waiting for input."

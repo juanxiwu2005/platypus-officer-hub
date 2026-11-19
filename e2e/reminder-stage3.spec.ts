@@ -253,7 +253,7 @@ test("a real storage failure keeps the waiting draft and avoids Saved until the 
     await page.evaluate(() => (window as Window & { restoreReminderStorage: () => void }).restoreReminderStorage())
   }
   await panel.getByRole("button", { name: "Save waiting status" }).click()
-  await expect(panel.getByRole("status")).toHaveText("Your update is saved. Thank you.")
+  await expect(panel.getByRole("status").filter({ hasText: "Your update is saved. Thank you." })).toHaveText("Your update is saved. Thank you.")
   await expect.poll(async () => node(await read(page)).status).toBe("waiting")
   expect(node(await read(page))).toMatchObject({ waitingOn: DETAILS, waitingOnPersonId: "sam" })
   expect((await read(page)).reminderRuntime!.waitingRequests).toHaveLength(1)

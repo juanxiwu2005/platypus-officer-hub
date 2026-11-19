@@ -82,7 +82,7 @@ function ReminderCentre({ q }: { q: Centre }) {
       {q.replies.map(x => row(x, <span className="rq-reply">{x.reply}</span>, <>Reminder recorded {fmtShort(x.sentOn!)}</>))}
     </Section>
     <Section id="wait" title="No reply yet" count={q.noReply.length} testId="rq-no-reply" empty="Nobody needs a follow-up." note="At least 2 days since a recorded reminder, with no reply from that recipient.">
-      {q.noReply.map(x => row(x, <button type="button" className="btn small" disabled={!x.candidateId || busy || persistenceFailed} title={x.blockedReason} onClick={() => review(x.nodeId)}>Follow up</button>, <>{x.days} days since reminder</>))}
+      {q.noReply.map(x => row(x, <button type="button" className="btn small" disabled={busy || persistenceFailed || !x.taskAvailable} title={x.blockedReason} onClick={() => x.candidateId ? review(x.nodeId) : rail.show({ kind: "node", id: x.nodeId })}>{x.candidateId ? "Follow up" : "Review task"}</button>, <>{x.days} days since reminder{!x.candidateId && x.blockedReason && <> · {x.blockedReason}</>}</>))}
     </Section>
   </div>
 }

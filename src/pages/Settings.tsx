@@ -103,7 +103,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
           {/* Only the chosen option's line, to stay inside the page's word budget (150 / 150). */}
           {defaults.reminderMode && <p id="settings-reminder-mode-body" className="small muted">{onboardingCopy.founder.reminders.options[defaults.reminderMode].body}</p>}
         </fieldset>
-        <p className="small muted" data-testid="reminder-plan-settings">Checks: start, due, 3 days overdue. Waiting on asks your selected helper. Limit: {defaults.maxRemindersPerTask} per task and recipient; 6 per recipient in 7 days. <Link to="/">Review plan</Link></p>
+        <p className="small muted" data-testid="reminder-plan-settings">Checks: start, due, 3 days overdue; {defaults.maxRemindersPerTask} per task and recipient{defaults.maxRemindersPerTask === 3 ? "; one extra no-reply follow-up" : ""}. Per person: 6/week, 2/day; ordinary: 4/week, 1/day. <Link to="/">Review plan</Link></p>
         <label>Task length<select aria-label="Usual task length" value={defaults.taskDueDays ?? 5} onChange={e => setDefaults({ ...defaults, taskDueDays: Number(e.target.value) })}>{TASK_DUE_CHOICES.map(d => <option key={d} value={d}>{d} days</option>)}</select></label>
         <p className="small muted">Task due follows this length; club buffer applies to ASU event deadlines.</p>
         <fieldset><legend className="small muted">Who can create events</legend>

@@ -16,10 +16,10 @@ export async function sendReminderBatch(store: {getState: () => DemoState; tryDi
   if (!isReminderRuntime(state.reminderRuntime) || state.reminderRuntime.version !== 2) return failed("Enable the updated reminder plan first.")
   const candidates = planReminders(buildReminderInput(state, state.reminderRuntime)).ready
   const people = reminderPeople(state), entries: PreparedReminder[] = []
-  for (const id of requested.slice(0, 200)) {
+  for (const candidate of candidates.filter(c => requested.includes(c.id)).slice(0, 200)) {
     if (!isCurrent()) return failed("The reminder preparation changed. Please review the latest plan.")
     try {
-      const candidate = candidates.find(c => c.id === id)
+      const id = candidate.id
       const facts = candidate && buildReminderFacts(state, candidate.nodeId)
       const recipient = candidate && people.find(p => p.id === candidate.recipientId)
       if (!candidate || !facts || !recipient) continue

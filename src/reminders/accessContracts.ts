@@ -20,6 +20,7 @@ export interface TaskAccessUpdate {
   waitingOn?: string
   waitingOnPersonId?: string | null
   requestedDate?: string
+  expectedOn?: string
   reason?: string
 }
 export interface ReminderMailInput {

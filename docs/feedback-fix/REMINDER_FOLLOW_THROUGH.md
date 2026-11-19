@@ -13,4 +13,21 @@
 
 ## 验证与交付
 
-进行中。须覆盖改期不重发、旧记录、未回复一次性与合并、Waiting承诺/提供/权限/刷新、批量优先级及每日/七天额度，并运行相关回归、lint、前后端类型、build、文字预算和双端目标浏览器检查。最终提交、结果和边界在此补充。
+已完成本轮实施与Codex自查，待Juanxi验收；未调用独立Agent。
+
+- 单元/组件19文件336项通过：`npm test -- src/reminders src/pages/Today.reminders.test.tsx src/test/workflow.test.ts src/test/reminderQueue.test.ts src/test/nudges.test.ts src/test/handoffReview.test.ts --maxWorkers=2`。包含21个新增规则/集成用例、真实协助日期UI刷新/提供通知、倒序批量入口；最终修正测试类型参数后SingleTaskPage 28项复验通过，不重复计数。
+- 桌面/手机浏览器共14个不同用例通过：新增`e2e/reminder-follow-through.spec.ts`每端3项，原`reminder-stage3.spec.ts`每端4项。首轮12过/2失败是旧存储失败测试的宽泛`role=status`同时匹配原有自动保存提示；保留原成功文字、数据和失败重试断言，收窄定位后两端2项复验通过。协助面板严重/关键无障碍0，手机横向溢出0。
+- lint、前后端类型、最终生产构建和diff检查通过。9页文字预算通过，Settings145/150；入口498,205/550,000字节，未提高预算。浏览器检查针对本地生产构建，不把它称作线上验收；未重复无关全站门禁或真实AI/外部发送。
+
+## 怎样验收
+
+沿用PR14和原preview14。旧存档先显式Enable updated reminders；以下均为演示记录。
+
+1. 普通任务先记录开始提醒；用演示时钟前进两个自然日，No reply yet应可Follow up。记录后再前进，两天未回复不再产生第二次附加催办，仍可Review task并看下一次关键检查或受限原因。
+2. 到期提醒记录后改开始日、或开始提醒记录后改截止日，不重发已发生阶段；Update date & notify仍按所选名单通知新目标。历史不变。
+3. 原负责人选择Waiting on现任成员；协助邮件Open task后填写Expected input date并Acknowledge，刷新仍显示承诺和待提供。承诺到日未提供时中心出现独立协助跟进；Update provided后原负责人收到站内通知，原任务仍Waiting。原负责人或获准领导确认进展后才继续。
+4. 同人多项待发时，批量和自动优先逾期/到期；当天最多2条，其中普通最多1条。七天普通满4条仍给关键检查保留名额；总量6条后继续显示限制并可查看任务，不能承诺无限任务都按日发出。
+
+## 边界与后续
+
+这些天数和额度是按所选方案细化的本轮默认值。小于3的旧自定义任务上限保留，不偷偷添加普通未回复跟进；Waiting对象仍只支持明确现任成员，外部审批保留文本，不猜邮箱。提供与停滞通知是站内通知，不宣称外部邮件已送达；自动仍只在本浏览器开页时演示，后台、真实投递、跨设备、RACI扩展另做。未恢复职责设置、未改Settings工作流或学校日期、未重置schema23。`PRODUCT_PLAN.md`与`RULES.md`已补本轮增量，需要同步本地备份。

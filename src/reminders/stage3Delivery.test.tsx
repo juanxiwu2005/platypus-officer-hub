@@ -11,6 +11,7 @@ import { buildReminderInput } from "./facts"
 import { isReminderRuntime } from "./runtime"
 import { sendReminderBatch } from "./delivery"
 import { taskAccessToken, verifyTaskAccessGrant } from "./taskAccess"
+import { addDays } from "../lib/dates"
 
 const NODE = "t-room"
 function fixture(mode: ReminderMode = "review_then_auto", count = 1): DemoState {
@@ -84,10 +85,19 @@ describe("stage three complete-mail delivery", () => {
   it("rechecks aggregate recipient limits for each prepared entry", async () => {
     const s = active("review_then_auto", 8), api = memory(s)
     const result = await sendReminderBatch(api, ids(s), "https://demo.example.org", "platypus")
-    expect(result.recordedIds).toHaveLength(6)
-    expect(result.failedIds).toHaveLength(2)
-    expect(api.getState().taskAccessGrants).toHaveLength(6)
+    expect(result.recordedIds).toHaveLength(1)
+    expect(result.failedIds).toHaveLength(7)
+    expect(api.getState().taskAccessGrants).toHaveLength(1)
     expect(api.getState().reminderRuntime!.deliveries.every(d => d.message?.checked)).toBe(true)
+  })
+  it("sorts both requested IDs and reversed prepared entries before consuming scarce daily slots", async () => {
+    const base = active("review_then_auto", 3)
+    const s = { ...base, nodes: base.nodes.map((n, i) => ({ ...n, clubDeadline: i === 0 ? addDays(base.today, 10) : i === 1 ? base.today : addDays(base.today, -3), latestStart: addDays(base.today, -10) })) }
+    const saved = memory(s)
+    const api = { getState: saved.getState, tryDispatch: (a: Action) => saved.tryDispatch(a.type === "recordReminderBatch" ? { ...a, entries: [...a.entries].reverse() } : a) }
+    await sendReminderBatch(api, ids(s).reverse(), "https://demo.example.org", "platypus")
+    expect(api.getState().reminderRuntime!.deliveries.map(d => d.reason)).toEqual(["overdue", "due"])
+    expect(api.getState().taskAccessGrants).toHaveLength(2)
   })
 
   it("does not publish a prepared grant or mail after reassignment, mode change or workspace replacement", async () => {

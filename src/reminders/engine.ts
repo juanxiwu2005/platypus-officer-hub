@@ -1,4 +1,5 @@
 import { addDays, daysBetween } from "../lib/dates"
+import { compareReminders, expectedInputOn, FOLLOWUP_DAYS, importantDelivery, importantReminder, isMilestone } from "./policy"
 import type {
   BlockedReminder, ReminderCandidate, ReminderDelivery, ReminderInput, ReminderPerson, ReminderPlan,
   ReminderReason, ReminderRuntime, ReminderTaskFacts, ReminderTransition, WaitingRequest,
@@ -76,7 +77,7 @@ export function transitionReminderRuntime(input: ReminderTransition): ReminderRu
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 const canReceive = (person: ReminderPerson | undefined, emailOnly = false): person is ReminderPerson => !!person?.active
   && (!(emailOnly || person.channel === "email") || isEmail(person.email))
-const rank: Record<ReminderReason, number> = { start: 0, due: 1, overdue: 2, waiting_on: 3 }
+const rank: Record<ReminderReason, number> = { start: 0, no_reply: 0, due: 1, overdue: 2, waiting_on: 3, waiting_followup: 3 }
 const candidateOrder = (a: ReminderCandidate, b: ReminderCandidate) => a.scheduledOn.localeCompare(b.scheduledOn)
   || a.nodeId.localeCompare(b.nodeId) || a.recipientId.localeCompare(b.recipientId) || a.id.localeCompare(b.id)
 
@@ -107,10 +108,18 @@ function limitReason(input: ReminderInput, candidate: ReminderCandidate): Blocke
   if (deliveries.some(delivery => delivery.nodeId === candidate.nodeId && delivery.recipientId === candidate.recipientId && delivery.sentOn === input.today)) return "already_sent_today"
   const rawLimit = Number.isFinite(input.maxPerTask) ? Math.floor(input.maxPerTask) : 3
   const taskLimit = Math.max(1, Math.min(3, rawLimit))
-  if (deliveries.filter(delivery => delivery.nodeId === candidate.nodeId && sameOwner(delivery, candidate)
-    && delivery.recipientId === candidate.recipientId).length >= taskLimit) return "task_limit"
+  const scoped = deliveries.filter(delivery => delivery.nodeId === candidate.nodeId && sameOwner(delivery, candidate)
+    && delivery.recipientId === candidate.recipientId)
+  if (candidate.reason === "no_reply" ? scoped.some(d => d.reason === "no_reply") || taskLimit < 3
+    : (isMilestone(candidate.reason) ? new Set(scoped.filter(d => isMilestone(d.reason)).map(d => d.reason)).size
+      : scoped.filter(d => !isMilestone(d.reason) && d.reason !== "no_reply").length) >= taskLimit) return "task_limit"
   const weekStart = addDays(input.today, -6)
-  if (deliveries.filter(delivery => delivery.recipientId === candidate.recipientId && delivery.sentOn >= weekStart && delivery.sentOn <= input.today).length >= 6) return "weekly_limit"
+  const week = deliveries.filter(delivery => delivery.recipientId === candidate.recipientId && delivery.sentOn >= weekStart && delivery.sentOn <= input.today)
+  if (week.length >= 6) return "weekly_limit"
+  if (!importantReminder(candidate, input.today) && week.filter(d => !importantDelivery(d)).length >= 4) return "weekly_reserved"
+  const day = week.filter(d => d.sentOn === input.today)
+  if (day.length >= 2) return "daily_limit"
+  if (!importantReminder(candidate, input.today) && day.some(d => !importantDelivery(d))) return "daily_reserved"
   return null
 }
 
@@ -119,6 +128,9 @@ export function planReminders(input: ReminderInput): ReminderPlan {
   const ready: ReminderCandidate[] = [], upcoming: ReminderCandidate[] = [], blocked: BlockedReminder[] = []
   const people = new Map(input.people.map(person => [person.id, person]))
   const delivered = new Set(input.runtime.deliveries.map(delivery => delivery.candidateId))
+  // Dates reject stale drafts, but never erase a milestone that was actually delivered in this assignment.
+  const sent = (candidate: ReminderCandidate) => delivered.has(candidate.id) || (isMilestone(candidate.reason) || candidate.reason === "no_reply")
+    && input.runtime.deliveries.some(d => d.nodeId === candidate.nodeId && sameOwner(d, candidate) && d.recipientId === candidate.recipientId && d.reason === candidate.reason)
   // Additive migration marker: no recipient or assignment is inferred from ambiguous old history.
   const legacy = new Set((input.runtime as ReminderRuntime & { legacyUnresolvedNodeIds?: string[] }).legacyUnresolvedNodeIds ?? [])
   for (const task of input.tasks) {
@@ -131,15 +143,21 @@ export function planReminders(input: ReminderInput): ReminderPlan {
     let candidates: ReminderCandidate[]
     if (task.status === "waiting") {
       const request = input.runtime.waitingRequests.find(value => value.nodeId === task.nodeId && !value.closedOn && sameWaiting(value, task))
-      if (request?.respondedOn) continue
+      if (request?.response === "provided") continue
       if (!request?.recipientId || request.recipientId === task.ownerId) { blocked.push({ nodeId: task.nodeId, reason: "unresolved_waiting" }); continue }
       if (!canReceive(people.get(request.recipientId), true)) { blocked.push({ nodeId: task.nodeId, recipientId: request.recipientId, reason: "unavailable_recipient" }); continue }
       const ownerName = people.get(task.ownerId)!.name
+      const first = input.runtime.deliveries.find(d => d.waitingRequestId === request.id && d.reason === "waiting_on")
+      const promised = request.response === "acknowledged"
+      const followup = promised || !!first
+      const scheduledOn = promised ? expectedInputOn(request) : first ? addDays(first.sentOn, FOLLOWUP_DAYS) : request.createdOn
       candidates = [{
-        id: JSON.stringify(["reminder", "waiting_on", request.id]), nodeId: task.nodeId, ownerId: task.ownerId,
-        ownerVersion: task.ownerVersion, recipientId: request.recipientId, planKey: task.planKey, reason: "waiting_on",
-        scheduledOn: request.createdOn, due: task.due, overdueDays: task.due ? Math.max(0, daysBetween(task.due, input.today)) : 0,
-        explanation: `${ownerName} is waiting on your help with “${task.title}”. Thank you.`,
+        id: JSON.stringify(followup ? ["reminder", "waiting_followup", request.id, promised ? "promised" : "unanswered"] : ["reminder", "waiting_on", request.id]),
+        nodeId: task.nodeId, ownerId: task.ownerId, ownerVersion: task.ownerVersion, recipientId: request.recipientId,
+        planKey: task.planKey, reason: followup ? "waiting_followup" : "waiting_on", scheduledOn,
+        due: task.due, overdueDays: task.due ? Math.max(0, daysBetween(task.due, input.today)) : 0,
+        explanation: promised ? `The planned input date is ${scheduledOn}; ${ownerName} is still waiting for your input.`
+          : followup ? `${ownerName} has not received a reply to the request for help.` : `${ownerName} is waiting on your help with “${task.title}”. Thank you.`,
         waitingRequestId: request.id,
       }]
     } else {
@@ -162,14 +180,29 @@ export function planReminders(input: ReminderInput): ReminderPlan {
       if (!prior || rank[candidate.reason] > rank[prior.reason]) byDate.set(candidate.scheduledOn, candidate)
     }
     const ordered = [...byDate.values()].sort(candidateOrder)
-    upcoming.push(...ordered.filter(candidate => candidate.scheduledOn > input.today && !delivered.has(candidate.id)))
     const latest = ordered.filter(candidate => candidate.scheduledOn <= input.today).at(-1)
-    if (!latest || delivered.has(latest.id)) continue
-    const held = limitReason(input, latest)
-    if (held) blocked.push({ nodeId: latest.nodeId, recipientId: latest.recipientId, reason: held })
-    else ready.push(latest)
+    let followup: ReminderCandidate | undefined
+    if (task.status !== "waiting" && input.maxPerTask >= 3) {
+      const last = input.runtime.deliveries.filter(d => d.nodeId === task.nodeId && sameOwner(d, task)
+        && d.recipientId === task.ownerId && !d.waitingRequestId && d.sentOn <= input.today).sort((a, b) => b.sequence - a.sequence)[0]
+      const replied = last && input.runtime.updates.some(u => u.nodeId === task.nodeId && sameOwner(u, task)
+        && u.ownerReply && u.sequence > last.sequence && u.on <= input.today)
+      if (last && last.planKey === task.planKey && !replied) {
+        followup = { ...taskCandidate(task, "start", addDays(last.sentOn, FOLLOWUP_DAYS), input.today), reason: "no_reply",
+          id: JSON.stringify(["reminder", task.planKey, "no_reply"]), explanation: "No reply is recorded since the last reminder. Could you share an update?" }
+        if (sent(followup)) followup = undefined
+      }
+    }
+    upcoming.push(...ordered.filter(candidate => candidate.scheduledOn > input.today && !sent(candidate)))
+    if (followup && followup.scheduledOn > input.today && !ordered.some(c => c.scheduledOn === followup!.scheduledOn && !sent(c))) upcoming.push(followup)
+    // A reached, unsent milestone wins over silence follow-up; never backfill an older stage.
+    const selected = latest && !sent(latest) ? latest : followup && followup.scheduledOn <= input.today ? followup : undefined
+    if (!selected) continue
+    const held = limitReason(input, selected)
+    if (held) blocked.push({ nodeId: selected.nodeId, recipientId: selected.recipientId, reason: held })
+    else ready.push(selected)
   }
-  return { ready: ready.sort(candidateOrder), upcoming: upcoming.sort(candidateOrder), blocked }
+  return { ready: ready.sort(compareReminders(input.today)), upcoming: upcoming.sort(candidateOrder), blocked }
 }
 
 /** The caller owns business authorization. This function rechecks readiness, mode and all delivery limits. */

@@ -1,5 +1,6 @@
-> **2026-11-18（America/Phoenix） · 提醒四项修正进行中（Codex）**
+> **2026-11-18（America/Phoenix） · 提醒四项修正完成检查，待验收（Codex）**
 > **用户决定：** 改期保留已发阶段（1B）、协助承诺与提供分开（2B）、优先排序/预留额度（4A）；第3项授权Codex决定，采用未回复两天后额外跟进一次、与当前关键检查合并。具体默认、较低额度兼容及交付见[本轮规则](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。从d66d15a隔离开发，沿用原分支/PR14，保留Settings与邮件Plan工作；schema23不重置，0真实AI/外部邮件，不合并main。
+> **验证与验收：** 19文件336项单元/组件通过、双端14个不同浏览器用例通过（首轮12过，旧宽泛status定位收窄后另2项复验），新增承诺刷新/提供通知、未回复一次性/合并、旧重复阶段及倒序批量回归。lint、前后端类型、最终build、9页字数通过；入口498,205/550,000，Settings145/150。未重复无关全站门禁；当前为本浏览器演示、提供后站内通知而非真实投递。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · Settings点状团队泳道编辑器完成检查，待验收（Codex / Model / Canvas / Browser / 独立Review）**
 > **交付：** 按用户截图改圆点、灰色Start—Done与半透明团队底卡；一键空branch/任务、重复Full check和Event day、跨队鼠标/触屏拖动及改名。一个team一个底卡，密集节点每8点续行，最大宽924px，Fit/缩放/Quick entry/Undo/草稿/版本保留。新dependencies模式不自动串队，移动只改团队映射；旧sequential版本、实际活动/成果、校规与条件保留。运行时`cc1fbe9`，已确认Netlify preview14为success。
@@ -519,6 +520,8 @@
 
 ## 决定记录
 
+- **2026-11-18（America/Phoenix） · Juanxi选择1B/2B/4A，第3项交Codex决定：** 保留已发阶段、改期另通知；协助区分承诺和提供；提醒优先排序并预留额度。第3项采用一次两自然日无回复附加跟进并合并已到达的关键检查；默认六封中普通最多四封、每天两封中普通最多一封，原较低任务上限保留。完整具体规则和不扩展范围见[交付](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。
+
 - **2026-11-17 · Juanxi：** 链接及Details易用性暂缓；工时和日期两者都检查；先修复方案，再分worktree、多Agent连续实施全部阶段，不逐阶段重复确认。覆盖移动、同分支新增、Full Check、条件隔离、before与新增分支；不含main合并。
 
 - **2026-11-17 · Juanxi：** 选定任务详情大文本框/多附件/多办理链接布局及右侧Edit；应用全部实际活动节点与负责人邮件入口，Settings模板另行修改。Edit与成员提交独立，保留原权限与日期/财务规则；当前节点提交不自动解析并改写活动地点字段。
@@ -587,6 +590,8 @@
 - 要问 Marcie：论文题目里的 “cloud-Excel-based” 是否要改；深访作为设计依据的写法是否合适。
 
 ## 交接记录（最新的在最上面）
+
+- **2026-11-18（America/Phoenix） · Codex（提醒四项修正）：** 实施1B/2B/4A和受托决定的3B：保留已发阶段及旧重复历史、一次未回复跟进、协助预计日与提供确认、原负责人站内处理提示、六封周限额中的两封关键预留及每日上限，统一单条/批量/自动检查和顺序。336相关单元/组件及双端14唯一浏览器通过，lint/types/build/字数通过，入口498,205/550,000。见[规则、验收与边界](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。沿用PR14，不合并main、不改schema23/工作流/学校日期，0真实AI/邮件；PRODUCT_PLAN/RULES已同步，需要同步本地备份。
 
 - **2026-11-18（America/Phoenix） · Codex（邮件按截图统一Events）：** 活动邮件按真实归属定位流程图/Details；无活动任务使用最近活动供浏览且不伪造归属，旧Tasks入口也跳转Events，普通Tasks恢复My tasks。276单元/组件和生产双端分批32唯一浏览器检查通过，完整Networking38任务、原始Agenda、历史/草稿/只读/协助范围及入口预算均验证；lint/types/build/9页字数通过。沿用PR14，不合并main；当前交付取代上轮Tasks/Team tasks路由。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
 

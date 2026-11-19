@@ -168,7 +168,7 @@ describe("meaningful updates and ownership", () => {
     expect(runtime.updates[0].actorId).toBe("maya")
   })
   it("new owners and new owner versions do not inherit an old reply or reminder budget", () => {
-    const value = input()
+    const value = input({ maxPerTask: 1 })
     const runtime = { ...value.runtime, deliveries: Array.from({ length: 3 }, (_, i) => historical({ id: `old-${i}`, nodeId: "room", sequence: i + 1, sentOn: "2027-03-20" })) }
     expect(planReminders({ ...value, runtime }).blocked[0].reason).toBe("task_limit")
     const newOwner = task({ ownerId: "sam", ownerVersion: 1 })
@@ -324,14 +324,15 @@ describe("durable delivery, modes and limits", () => {
     expect(next.deliveries).toBe(runtime.deliveries)
     expect(next.deliveries[0]).toMatchObject({ recipientId: "jordan", recipientName: "Jordan", taskTitle: "Reserve a room", eventName: "Speaker Night" })
   })
-  it("a date edit does not reset the three-per-assignment budget", () => {
-    const value = input(), runtime = { ...value.runtime, deliveries: Array.from({ length: 3 }, (_, i) => historical({ nodeId: "room", id: `historical-${i}`, sentOn: "2027-03-20" })) }
-    expect(planReminders({ ...value, tasks: [task({ due: "2027-04-01" })], runtime }).blocked[0].reason).toBe("task_limit")
+  it("a date edit does not reopen the three already delivered milestones", () => {
+    const value = input(), runtime = { ...value.runtime, deliveries: (["start", "due", "overdue"] as const).map((reason, i) => historical({ nodeId: "room", reason, id: `historical-${i}`, sentOn: "2027-03-20" })) }
+    expect(planReminders({ ...value, tasks: [task({ due: "2027-04-01" })], runtime }).ready).toEqual([])
   })
   it("applies a smaller configured task limit and clamps an oversized one to three", () => {
     const value = input({ maxPerTask: 1 }), runtime = send(value)
     expect(planReminders({ ...value, runtime, today: "2027-03-31" }).blocked[0].reason).toBe("task_limit")
-    const capped = { ...value, maxPerTask: 99, runtime: { ...runtime, deliveries: Array.from({ length: 3 }, (_, i) => historical({ nodeId: "room", id: String(i) })) } }
+    const waitingValue = withWaiting()
+    const capped = { ...waitingValue, maxPerTask: 99, runtime: { ...waitingValue.runtime, deliveries: Array.from({ length: 3 }, (_, i) => historical({ nodeId: "room", recipientId: "sam", reason: "waiting_on", id: String(i) })) } }
     expect(planReminders(capped).blocked[0].reason).toBe("task_limit")
   })
   it("does not resend the same task to the same person twice on one day even after a plan edit", () => {
@@ -347,12 +348,12 @@ describe("durable delivery, modes and limits", () => {
     expect(planReminders({ ...value, runtime, today: addDays(TODAY, 1) }).ready[0].recipientId).toBe("sam")
     expect(planReminders(input({ runtime })).ready[0].recipientId).toBe("jordan")
   })
-  it("rechecks a batch so seven eligible tasks to one person produce six deliveries", () => {
+  it("rechecks a batch so only one ordinary reminder per recipient is recorded that day", () => {
     const value = input({ mode: "auto_email", tasks: Array.from({ length: 7 }, (_, i) => task({ nodeId: `task-${i}` })) })
     expect(planReminders(value).ready).toHaveLength(7)
     const runtime = runAutomaticReminders(value)
-    expect(runtime.deliveries).toHaveLength(6)
-    expect(planReminders({ ...value, runtime }).blocked).toContainEqual({ nodeId: "task-6", recipientId: "jordan", reason: "weekly_limit" })
+    expect(runtime.deliveries).toHaveLength(1)
+    expect(planReminders({ ...value, runtime }).blocked).toContainEqual({ nodeId: "task-6", recipientId: "jordan", reason: "daily_reserved" })
   })
   it("does not mutate frozen inputs while recording a reply, rerouting waiting, or delivering", () => {
     const value = frozen(withWaiting())

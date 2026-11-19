@@ -1,6 +1,7 @@
 import type { ReminderMail, ReminderMailInput } from "./accessContracts"
 import { isPlanTaskHash } from "./planEntry"
 import { daysBetween, fmtShort, fromISO, toISO } from "../lib/dates"
+import { expectedInputOn } from "./policy"
 
 const words = (value: string) => value.trim().split(/\s+/).filter(Boolean)
 const banned = [/is\s+it\s+done\s+yet/i, /\basap\b/i, /this\s+should\s+only\s+take\s+(?:an?|one|1)\s+hour/i, /just\s+use\s+ai/i, /\burgent\b/i, /@everyone|@here/i]
@@ -40,7 +41,11 @@ export function checkReminderMail(mail: ReminderMail): boolean {
 
 function trigger(input: ReminderMailInput, waiting: boolean): string {
   const { facts, today } = input
+  if (waiting && input.candidate?.reason === "waiting_followup") return input.request?.response === "acknowledged"
+    ? `Input was expected by ${fmtShort(expectedInputOn(input.request))}; it is not recorded as provided.`
+    : `${clean(input.requesterName ?? "A teammate")} is still waiting; no reply to the help request is recorded.`
   if (waiting) return `${clean(input.requesterName ?? "A teammate")} is waiting for your input on this task.`
+  if (input.candidate?.reason === "no_reply") return "No reply to the previous reminder is recorded. Could you share an update?"
   if (facts.status === "done") return "A completion update is recorded for this task."
   if (facts.status === "waiting") return "This task is marked as waiting. Let us know what would help."
   if (facts.status === "blocked") return "This task is marked as stuck. Let's work out the next step together."

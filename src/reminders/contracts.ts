@@ -21,10 +21,10 @@ export interface ReminderTaskFacts {
   waitingOnPersonId: string | null
   actionLink: TaskActionLink | null
   source: string
-  /** Only ownership and rule-engine dates: a title edit must not restart the plan. */
+  /** Ownership/date fingerprint rejects stale drafts. Delivered milestones are matched separately across date edits. */
   planKey: string
 }
-export type ReminderReason = "start" | "due" | "overdue" | "waiting_on"
+export type ReminderReason = "start" | "due" | "overdue" | "waiting_on" | "no_reply" | "waiting_followup"
 export interface ReminderUpdate {
   waitingRequestId?: string
   waitingResponse?: "acknowledged" | "provided"
@@ -53,6 +53,7 @@ export interface WaitingRequest {
   response?: "acknowledged" | "provided"
   respondedOn?: string
   responseBy?: string
+  expectedOn?: string
 }
 export interface ReminderDelivery {
   message?: import("./accessContracts").ReminderMailSnapshot
@@ -112,7 +113,7 @@ export interface ReminderCandidate {
   explanation: string
   waitingRequestId?: string
 }
-export interface BlockedReminder { nodeId: string; reason: "no_owner" | "unavailable_recipient" | "unresolved_waiting" | "task_limit" | "weekly_limit" | "already_sent_today" | "paused" | "legacy_history"; recipientId?: string }
+export interface BlockedReminder { nodeId: string; reason: "no_owner" | "unavailable_recipient" | "unresolved_waiting" | "task_limit" | "weekly_limit" | "weekly_reserved" | "daily_limit" | "daily_reserved" | "already_sent_today" | "paused" | "legacy_history"; recipientId?: string }
 export interface ReminderPlan { ready: ReminderCandidate[]; upcoming: ReminderCandidate[]; blocked: BlockedReminder[] }
 export interface ReminderTransition {
   today: string

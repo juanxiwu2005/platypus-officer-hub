@@ -22,6 +22,9 @@ const BLOCKED: Record<BlockedReminder["reason"], string> = {
   unresolved_waiting: "Choose who this task is waiting on before preparing a follow-up.",
   task_limit: "This task has reached its reminder limit for this person.",
   weekly_limit: "This person has reached the weekly reminder limit.",
+  weekly_reserved: "The remaining weekly slots are reserved for due and overdue reminders.",
+  daily_limit: "This person has reached today's two-reminder limit.",
+  daily_reserved: "Today's remaining slot is reserved for a due or overdue reminder.",
   already_sent_today: "A reminder for this task was already recorded today.",
   paused: "This task needs support. Review the current update before another reminder.",
   legacy_history: "Review this task's earlier reminders before sending another.",
@@ -61,7 +64,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
   const platypusSends = state.org.settings.reminderMode === "review_then_auto" || state.org.settings.reminderMode === "auto_email"
   const mode = state.org.settings.reminderMode
   const modeTitle = mode ? onboardingCopy.founder.reminders.options[mode]?.title : undefined
-  const fixedEmail = platypusSends || candidate?.reason === "waiting_on" || recordedDelivery?.reason === "waiting_on"
+  const fixedEmail = platypusSends || !!requestId
   const allowed = canLead(state)
   const recordedByPerson = recordedDelivery ? recordedDelivery.via === "manual" : recordedNudge?.via !== "platypus"
   const blocked = !allowed ? "Only the president or vice president can prepare reminders."
@@ -133,7 +136,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
   return <aside className="panel nudge-panel reminder-composer" role="dialog" aria-labelledby="nudge-heading" data-testid="nudge-panel">
     <div className="panel-head"><span className="eyebrow">Email preview</span><button type="button" className="btn btn-quiet" aria-label="Close reminder" onClick={onClose}>✕</button></div>
     <h2 id="nudge-heading" ref={heading} tabIndex={-1}>{recipient?.name ?? "Reminder"}</h2>
-    {candidate?.reason === "waiting_on" && <p className="small muted">A request for help with {facts?.title}.</p>}
+    {candidate?.waitingRequestId && <p className="small muted">A request for help with {facts?.title}.</p>}
     {mail ? <section className="rc-mail" aria-label="Reminder email">
       <h3>{mail.subject}</h3>
       <div className="rc-body" data-testid="nudge-body">{preview?.split("\n\n").map((part, index) => part.startsWith("Task due:") ? <p key={index} className="rc-due"><strong>{part}</strong></p> : <p key={index}>{part}</p>)}</div>

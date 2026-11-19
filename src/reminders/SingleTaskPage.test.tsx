@@ -64,6 +64,23 @@ async function waitingFixture() {
 }
 
 describe("the standalone owner task", () => {
+  it("saves the helper's promised input date and keeps the pending promise after a reload", async () => {
+    const { state, token } = await waitingFixture()
+    await show(state, token)
+    const expectedOn = addDays(state.today, 4)
+    fireEvent.change(screen.getByLabelText("Expected input date"), { target: { value: expectedOn } })
+    fireEvent.click(screen.getByRole("button", { name: "Acknowledge" }))
+    await waitFor(() => expect(latest.reminderRuntime!.waitingRequests[0].expectedOn).toBe(expectedOn))
+    const saved = JSON.parse(JSON.stringify(latest)) as DemoState
+    cleanup()
+    await show(saved, token)
+    expect(screen.getByText(/Input expected/).textContent).toContain("We will check again")
+    expect(screen.getByRole("button", { name: "Acknowledge" }).hasAttribute("disabled")).toBe(true)
+    expect(latest.nodes[0].status).toBe("waiting")
+    fireEvent.click(screen.getByRole("button", { name: "Update provided" }))
+    await waitFor(() => expect(latest.notifications.some(n => n.id.startsWith("waiting-provided:") && n.recipientId === "jordan")).toBe(true))
+    expect(latest.nodes[0].status).toBe("waiting")
+  })
   it("opens only the authorized task, emphasizes one due date and keeps real requirements and an applicable action", async () => {
     const { state, token } = await issued()
     await show(state, token)

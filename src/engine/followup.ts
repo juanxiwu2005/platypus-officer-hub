@@ -4,6 +4,7 @@ import { applySchedule, computeSchedule } from "./schedule"
 import { addNotices, leaders } from "../data/taskWorkflow"
 import { buildNudge } from "../lib/nudges"
 import { officers } from "../data/permissions"
+import { notifyWaitingOwner } from "../reminders/waitingNotices"
 
 // Only current officers can stand in: never someone who handed their role over, nor a next officer who has not taken it yet.
 export const suggestedOwner = (s: DemoState, n: Node) => officers(s).filter(p => p.id !== n.ownerId).sort((a, b) => {
@@ -18,7 +19,7 @@ function retroNode(n: Node, c: SilenceCase, from: string): Node {
 
 /** One deterministic day at a time, including a multi-day jump. Never sends a real message. */
 export function runFollowupDay(input: DemoState, today: string): DemoState {
-  let s = applySchedule({ ...input, today })
+  let s = notifyWaitingOwner(applySchedule({ ...input, today }))
   for (const n of [...s.nodes]) {
     if (n.status === "done" || !n.ownerId || n.source.startsWith("SEO Ghost Owner Protocol") || (s.reminderRuntime && (n.status === "waiting" || n.status === "blocked"))) continue
     let c = s.silenceCases.find(c => c.nodeId === n.id && !c.closedOn)
