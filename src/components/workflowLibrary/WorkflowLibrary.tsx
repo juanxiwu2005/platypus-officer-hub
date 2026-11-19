@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react"
+import { useCallback, useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react"
 import { useStore } from "../../data/store"
 import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDraft, WorkflowMilestoneGraph, DemoState } from "../../data/types"
 import { getWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
@@ -7,6 +7,7 @@ import { createWorkflowMilestoneGraph } from "../../engine/workflowMilestones"
 import { presetWorkflowStepTeams } from "../../data/workflowTeamDefaults"
 import { useRail } from "../rail/RailContext"
 import { WorkflowTeams } from "./WorkflowTeams"
+import { MenuButton } from "./MenuButton"
 import "./workflowLibrary.css"
 
 const rawDraftOf = (template: WorkflowTemplate): WorkflowTemplateDraft => {
@@ -21,6 +22,8 @@ const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplate
   return { ...draft, teamExecution: "dependencies", steps: draft.steps, milestoneGraph: draft.milestoneGraph ?? createWorkflowMilestoneGraph(draft.steps, stepTeams), teamMap: { version: 1, workflowId: template.id, stepTeams } }
 }
 
+const templateName = (template: WorkflowTemplate) => template.draft?.name ?? template.versions[template.versions.length - 1]?.name ?? "Untitled workflow"
+
 export default function WorkflowLibrary() {
   const { state, tryDispatch } = useStore()
   const templates = getWorkflowTemplates(state)
@@ -33,21 +36,45 @@ export default function WorkflowLibrary() {
   const [teamsOpen, setTeamsOpen] = useState(false)
   const [error, setError] = useState("")
   const template = templates.find(item => item.id === selected) ?? templates[0]
+  const preset = templates.find(item => item.id === STANDARD_WORKFLOW_TEMPLATE_ID)
+  const own = templates.filter(item => item.id !== STANDARD_WORKFLOW_TEMPLATE_ID)
+  const defaultId = state.org.defaultWorkflowTemplateId ?? STANDARD_WORKFLOW_TEMPLATE_ID
+  const latest = template?.versions[template.versions.length - 1]
   const create = () => {
     if (!flush.current()) return
     const id = crypto.randomUUID()
     if (!tryDispatch({ type: "newWorkflowTemplate", id, name: "Untitled workflow" })) { setError("Could not create. Try again."); return }
     setSelected(id); setError("")
   }
+  const copyPreset = () => {
+    if (!flush.current()) return
+    const id = crypto.randomUUID()
+    const name = `${preset ? templateName(preset) : "Speaker series"} copy`
+    if (!tryDispatch({ type: "duplicateWorkflowTemplate", sourceId: STANDARD_WORKFLOW_TEMPLATE_ID, id, name })) { setError("Could not copy the preset. Try again."); return }
+    setSelected(id); setError("")
+  }
+  const option = (item: WorkflowTemplate) => <option key={item.id} value={item.id}>{templateName(item)}{item.draft ? " · Draft" : ""}</option>
   return <section className="form-stack wfl-root" data-testid="workflow-settings">
-    <header className="action-row wfl-header"><h2>Workflow templates</h2><label><span className="sr-only">Saved workflow</span><select aria-label="Saved workflow" value={template?.id ?? ""} onChange={e => { if (flush.current()) { setSelected(e.target.value); setError("") } }}>{templates.map(item => <option key={item.id} value={item.id}>{item.draft?.name ?? item.versions[item.versions.length - 1]?.name ?? "Untitled workflow"}{item.draft ? " · Draft" : ""}</option>)}</select></label><button type="button" className="btn" onClick={create}>New workflow</button><button type="button" className="btn small" onClick={() => setTeamsOpen(!teamsOpen)}>Teams</button></header>
-    {teamsOpen && <WorkflowTeams onClose={() => setTeamsOpen(false)} />}
+    <header className="wfl-header">
+      <h2>Workflow templates</h2>
+      <label className="wfl-picker"><span className="sr-only">Saved workflow</span><select aria-label="Saved workflow" value={template?.id ?? ""} onChange={e => { if (flush.current()) { setSelected(e.target.value); setError("") } }}>
+        {preset && <optgroup label="Platypus preset">{option(preset)}</optgroup>}
+        {!!own.length && <optgroup label="Your organization">{own.map(option)}</optgroup>}
+      </select></label>
+      {template && <ul className="wfl-badges" aria-label="Template status">
+        {template.id === STANDARD_WORKFLOW_TEMPLATE_ID && <li className="tag accent">Preset</li>}
+        {template.id === defaultId && <li className="tag good">Default</li>}
+        {template.draft && <li className="tag warn">Draft</li>}
+        <li className="tag">{latest ? `Version ${latest.version}` : "Unpublished"}</li>
+      </ul>}
+      <div className="wfl-header-end"><MenuButton label="New workflow" items={[{ label: "Blank workflow", onSelect: create }, { label: "Copy of preset", onSelect: copyPreset, disabled: !preset }]} /></div>
+    </header>
     {error && <p role="alert">{error}</p>}
-    {template && <TemplateEditor key={template.id} template={template} flush={flush} onDuplicate={id => setSelected(id)} />}
+    {template && <TemplateEditor key={template.id} template={template} flush={flush} onDuplicate={id => setSelected(id)} teamsOpen={teamsOpen} onTeams={() => setTeamsOpen(!teamsOpen)} teams={teamsOpen && <WorkflowTeams onClose={() => setTeamsOpen(false)} />} />}
   </section>
 }
 
-function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTemplate; onDuplicate: (id: string) => void; flush: MutableRefObject<() => boolean> }) {
+function TemplateEditor({ template, onDuplicate, flush, teamsOpen, onTeams, teams }: { template: WorkflowTemplate; onDuplicate: (id: string) => void; flush: MutableRefObject<() => boolean>; teamsOpen: boolean; onTeams: () => void; teams: ReactNode }) {
   const { state, tryDispatch, persistenceFailed, getState } = useStore()
   const [draft, setDraft] = useState(() => draftOf(template, state))
   const [status, setStatus] = useState("")
@@ -97,33 +124,43 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
     setStatus("Role teams applied where one team owns the branch. Choose any remaining branch teams in Flow.")
   }
   const latest = template.versions[template.versions.length - 1]
+  const saveVersion = () => {
+    if (!save()) return
+    const fresh = getWorkflowTemplates(getState()).find(item => item.id === template.id)!
+    if (!fresh.draft && fresh.versions.length) { setStatus(`Version ${fresh.versions[fresh.versions.length - 1].version} saved`); setError(""); return }
+    const problem = workflowTemplatePublishError(getState(), template.id)
+    if (problem) { setError(problem); return }
+    if (!tryDispatch({ type: "publishWorkflowTemplate", id: template.id })) { setError("Could not save version. Your draft is kept."); return }
+    const entry = getWorkflowTemplates(getState()).find(item => item.id === template.id)!
+    setDraft(draftOf(entry, getState())); setStatus(`Version ${entry.versions[entry.versions.length - 1].version} saved`); setError("")
+  }
+  const duplicate = () => {
+    if (!save()) return
+    const id = crypto.randomUUID()
+    if (tryDispatch({ type: "duplicateWorkflowTemplate", sourceId: template.id, id, name: `${draft.name} copy` })) onDuplicate(id)
+    else setError("Could not duplicate. Save your draft and try again.")
+  }
+  const useByDefault = () => {
+    if (tryDispatch({ type: "setDefaultWorkflowTemplate", id: template.id })) { setStatus("Default workflow saved"); setError("") }
+    else setError("Could not set the default.")
+  }
+  const isDefault = state.org.defaultWorkflowTemplateId === template.id || (!state.org.defaultWorkflowTemplateId && template.id === STANDARD_WORKFLOW_TEMPLATE_ID)
   return <div className="form-stack wfl-editor" data-testid="workflow-template-editor">
-    <div className="action-row"><label className="wfl-name">Workflow name<input value={draft.name} maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><span className="small muted">{latest ? `Version ${latest.version}` : "Unpublished"}</span></div>
-    <div className="action-row">
-      <button type="button" className="btn small" onClick={() => save()}>Save draft</button>
-      <button type="button" className="btn btn-primary" onClick={() => {
-        if (!save()) return
-        const fresh = getWorkflowTemplates(getState()).find(item => item.id === template.id)!
-        if (!fresh.draft && fresh.versions.length) { setStatus(`Version ${fresh.versions[fresh.versions.length - 1].version} saved`); setError(""); return }
-        const problem = workflowTemplatePublishError(getState(), template.id)
-        if (problem) { setError(problem); return }
-        if (!tryDispatch({ type: "publishWorkflowTemplate", id: template.id })) { setError("Could not save version. Your draft is kept."); return }
-        const entry = getWorkflowTemplates(getState()).find(item => item.id === template.id)!
-        setDraft(draftOf(entry, getState())); setStatus(`Version ${entry.versions[entry.versions.length - 1].version} saved`); setError("")
-      }}>Save version</button>
-      <button type="button" className="btn small" onClick={() => {
-        if (!save()) return
-        const id = crypto.randomUUID()
-        if (tryDispatch({ type: "duplicateWorkflowTemplate", sourceId: template.id, id, name: `${draft.name} copy` })) onDuplicate(id)
-        else setError("Could not duplicate. Save your draft and try again.")
-      }}>Duplicate workflow</button>
-      <button type="button" className="btn small" disabled={!latest || state.org.defaultWorkflowTemplateId === template.id || (!state.org.defaultWorkflowTemplateId && template.id === STANDARD_WORKFLOW_TEMPLATE_ID)} onClick={() => {
-        if (tryDispatch({ type: "setDefaultWorkflowTemplate", id: template.id })) { setStatus("Default workflow saved"); setError("") }
-        else setError("Could not set the default.")
-      }}>Use by default</button>
-      {!!state.org.workflowTeams?.length && <button type="button" className="btn small" onClick={groupRoles}>Apply role teams</button>}
+    <div className="wfl-bar">
+      <label className="wfl-name"><span className="sr-only">Workflow name</span><input value={draft.name} placeholder="Untitled workflow" maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label>
+      <p className="small muted wfl-autosave" role="status">{persistenceFailed ? "Saving failed. Keep this page open and retry." : pending ? "Saving draft…" : status}</p>
+      <div className="wfl-actions">
+        <button type="button" className="btn small" onClick={() => save()}>Save draft</button>
+        <button type="button" className="btn small btn-primary" onClick={saveVersion}>Save version</button>
+        <MenuButton label="More" items={[
+          { label: "Duplicate workflow", onSelect: duplicate },
+          { label: "Use by default", onSelect: useByDefault, disabled: !latest || isDefault, hint: !latest ? "Save a version first." : isDefault ? "Already the default." : undefined },
+          ...(state.org.workflowTeams?.length ? [{ label: "Apply role teams", onSelect: groupRoles }] : []),
+          { label: teamsOpen ? "Hide teams" : "Teams", onSelect: onTeams },
+        ]} />
+      </div>
     </div>
-    <p className="small" role="status">{persistenceFailed ? "Saving failed. Keep this page open and retry." : pending ? "Saving draft…" : status}</p>
+    {teams}
     {error && <p role="alert">{error}</p>}
     <WorkflowBuilder state={state} steps={draft.steps} branches={draft.branches} stepTeams={draft.teamMap?.stepTeams ?? {}} teams={state.org.workflowTeams ?? []} policy={draft.kind} graph={draft.milestoneGraph} onChange={update} />
   </div>

@@ -148,4 +148,14 @@ describe("versioned one/two-day workflow graph", () => {
     const wrong = { ...original, teamMap: { ...original.teamMap!, stepTeams: { ...original.teamMap!.stepTeams, before: "another" } } }
     expect(workflowTemplateDraftError(wrong, state.roles)).toContain("branch's team")
   })
+  it("accepts an optional team branch description up to 400 characters", () => {
+    const withDetails = (details: unknown) => { const value = graph(); (value.teamBranches[0] as Record<string, unknown>).details = details; return value }
+    const ops = new Set(["ops"])
+    expect(workflowMilestoneGraphError(graph(), steps(), ops)).toBeNull()
+    expect(workflowMilestoneGraphError(withDetails(""), steps(), ops)).toBeNull()
+    expect(workflowMilestoneGraphError(withDetails("Collect receipts before the event."), steps(), ops)).toBeNull()
+    expect(workflowMilestoneGraphError(withDetails("x".repeat(400)), steps(), ops)).toBeNull()
+    expect(workflowMilestoneGraphError(withDetails("x".repeat(401)), steps(), ops)).toContain("400 characters")
+    expect(workflowMilestoneGraphError(withDetails(42), steps(), ops)).toContain("400 characters")
+  })
 })

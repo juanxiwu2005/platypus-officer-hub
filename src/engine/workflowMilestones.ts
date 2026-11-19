@@ -56,6 +56,7 @@ export function workflowMilestoneGraphError(value: unknown, steps: readonly Step
   const occupied = new Set(graph.spine.filter(id => keys.has(id))), branchIds = new Set<string>()
   for (const branch of graph.teamBranches) {
     if (!object(branch) || !text(branch.id, 100) || branchIds.has(branch.id) || !text(branch.teamId, 100, true) || (teamIds && (!branch.teamId.trim() || !teamIds.has(branch.teamId))) || !Array.isArray(branch.stepIds) || !graph.spine.includes(branch.fromId) || !graph.spine.includes(branch.toId) || graph.spine.indexOf(branch.fromId) >= graph.spine.indexOf(branch.toId)) return "Choose an existing team and main-line departure and arrival for every branch."
+    if (branch.details !== undefined && !text(branch.details, 400, true)) return "Keep each team branch description to 400 characters."
     branchIds.add(branch.id)
     for (const key of branch.stepIds) {
       if (!keys.has(key) || occupied.has(key)) return "Place each real task exactly once on the main line or a team branch."

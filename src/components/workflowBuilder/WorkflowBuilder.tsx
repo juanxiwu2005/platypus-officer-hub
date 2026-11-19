@@ -7,10 +7,11 @@ import { addDays } from "../../lib/dates"
 import { roleLabels } from "../../data/structure"
 import { useRail } from "../rail/RailContext"
 import { createBuilderStep, editError, graphError, insertTeamBuilderStep, type BuilderPolicy, type BuilderSnapshot } from "./model"
-import { addMilestoneBranch, addMilestoneCheck, addMilestoneTask, assignMilestoneBranchTeam, moveMilestoneTask, setMilestoneDayCount, syncMilestoneSnapshot } from "./milestoneCommands"
+import { addMilestoneBranch, addMilestoneCheck, addMilestoneTask, moveMilestoneTask, moveMilestoneTasks, setMilestoneDayCount, syncMilestoneSnapshot } from "./milestoneCommands"
 import type { BuilderTeam } from "./timeline"
 import { MilestoneWorkflowCanvas } from "./MilestoneWorkflowCanvas"
 import { MilestoneDetails } from "./MilestoneDetails"
+import { MenuButton } from "../workflowLibrary/MenuButton"
 import "./workflowBuilder.css"
 
 export interface WorkflowBuilderProps {
@@ -32,6 +33,10 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inpu
   const [error, setError] = useState<string | null>(null)
   const [connectFrom, setConnectFrom] = useState<string | null>(null)
   const [eventDate, setEventDate] = useState(() => addDays(state.today, 90))
+  // Bulk assignment: while selectMode is on, canvas task clicks toggle `checked` instead of opening Details.
+  const [selectMode, setSelectMode] = useState(false)
+  const [checked, setChecked] = useState<Set<string>>(() => new Set())
+  const [notice, setNotice] = useState<string | null>(null)
   const rail = useRail()
   const graph = useMemo(() => inputGraph ?? createWorkflowMilestoneGraph(steps, stepTeams), [inputGraph, steps, stepTeams])
   const snapshot = useMemo(() => ({ steps, branches, stepTeams, milestoneGraph: graph }), [steps, branches, stepTeams, graph])
@@ -46,11 +51,45 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inpu
     if (problem) { setError(problem); return false }
     if (JSON.stringify(snapshot) === JSON.stringify(next)) return true
     setHistory(previous => [...previous.slice(-29), structuredClone(snapshot)])
-    setError(null)
+    setError(null); setNotice(null)
     onChange(next.steps, next.branches, next.stepTeams, next.milestoneGraph)
     return true
   }
-  const openNode = (key: string) => { setSelected(key); setConnectFrom(null); rail.show({ kind: "workflow" }) }
+  const stopSelect = () => { setSelectMode(false); setChecked(new Set()) }
+  const openNode = (key: string) => {
+    // Selection belongs to one team branch; choosing anything else ends it.
+    if (selectMode && !key.startsWith("branch:")) stopSelect()
+    setSelected(key); setConnectFrom(null); rail.show({ kind: "workflow" })
+  }
+  const spineIds = new Set(graph.spine)
+  const toggleCheck = (key: string) => {
+    if (spineIds.has(key) || !steps.some(candidate => candidate.key === key)) return
+    setChecked(previous => { const next = new Set(previous); if (next.has(key)) next.delete(key); else next.add(key); return next })
+  }
+  const startSelect = (branchId?: string) => {
+    const branch = graph.teamBranches.find(item => item.id === branchId) ?? graph.teamBranches.find(item => `branch:${item.id}` === selected) ?? graph.teamBranches[0]
+    if (!branch) { setError("Choose a team branch first."); return }
+    setConnectFrom(null); setError(null); setNotice(null); setChecked(new Set()); setSelectMode(true)
+    if (selected !== `branch:${branch.id}`) { setSelected(`branch:${branch.id}`); rail.show({ kind: "workflow" }) }
+  }
+  const assign = (branchId: string) => {
+    const branch = graph.teamBranches.find(item => item.id === branchId)
+    if (!branch) return
+    const keys = [...checked].filter(key => !branch.stepIds.includes(key) && steps.some(candidate => candidate.key === key))
+    if (!keys.length) { stopSelect(); return }
+    if (!commit(moveMilestoneTasks(snapshot, keys, branchId))) return
+    stopSelect()
+    setNotice(`Moved ${keys.length} step${keys.length === 1 ? "" : "s"} to ${teams.find(team => team.id === branch.teamId)?.name ?? "the team branch"}.`)
+  }
+  useEffect(() => {
+    if (!selectMode) return
+    // Capture phase so Escape leaves selection before the rail treats it as "close Details". An open menu handles its own Escape.
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || (event.target instanceof Element && event.target.closest("[role=menu]"))) return
+      event.preventDefault(); stopSelect()
+    }
+    window.addEventListener("keydown", escape, true); return () => window.removeEventListener("keydown", escape, true)
+  }, [selectMode])
   const select = (key: string) => {
     if (connectFrom) {
       const target = steps.find(candidate => candidate.key === key)
@@ -59,7 +98,7 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inpu
     }
     openNode(key)
   }
-  const close = () => { setSelected(null); rail.closeDetail() }
+  const close = () => { stopSelect(); setSelected(null); rail.closeDetail() }
   const insert = (position: "before" | "after") => {
     if (!step) return
     const next = insertTeamBuilderStep(snapshot, step.key, position)
@@ -72,9 +111,10 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inpu
   }, [selected, steps, graph])
   useEffect(() => {
     if (!selected) { rail.setWorkflowDetail(null); return }
-    rail.setWorkflowDetail(<MilestoneDetails key={selected} selected={selected} snapshot={snapshot} state={state} teams={teams} policy={policy} eventDate={eventDate} onEventDate={setEventDate} onChange={commit} onInsert={insert} onSelect={openNode} onClose={close} />)
+    rail.setWorkflowDetail(<MilestoneDetails key={selected} selected={selected} snapshot={snapshot} state={state} teams={teams} policy={policy} eventDate={eventDate} onEventDate={setEventDate} onChange={commit} onInsert={insert} onSelect={openNode} onClose={close}
+      selectMode={selectMode} checkedCount={checked.size} onStartSelect={startSelect} onAssign={assign} onCancelSelect={stopSelect} onConnect={() => { stopSelect(); setConnectFrom(selected) }} />)
     return () => rail.setWorkflowDetail(null)
-  }, [selected, snapshot, state.roles, teams, policy, onChange, eventDate])
+  }, [selected, snapshot, state.roles, state.people, state.org.workflowRoleTeams, teams, policy, onChange, eventDate, selectMode, checked])
 
   const addTask = (branchId?: string, check = false) => {
     let base: BuilderSnapshot = snapshot
@@ -92,31 +132,40 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inpu
     if (commit(next) && fresh) openNode(fresh.key)
   }
   return <section className="wfb form-stack" data-testid="workflow-builder" aria-label="Workflow builder">
+    <div className="wfb-card">
     <div className="wfb-toolbar">
-      <div className="wfb-view" role="group" aria-label="Editor view">
-        <button type="button" className="btn small" aria-pressed={view === "flow"} onClick={() => setView("flow")}>Flow</button>
-        <button type="button" className="btn small" aria-pressed={view === "quick"} onClick={() => setView("quick")}>Quick entry</button>
-      </div>
-      <div className="action-row">
-        <label>Workflow length<select aria-label="Workflow length" value={graph.eventDays.length} onChange={event => commit(setMilestoneDayCount(snapshot, Number(event.target.value) as 1 | 2))}><option value={1}>1-day event</option><option value={2}>2-day event</option></select></label>
-        <button type="button" className="btn small" disabled={!history.length} onClick={() => {
+      <div className="wfb-tools">
+        <button type="button" className="btn small" aria-label="Undo edit" disabled={!history.length} onClick={() => {
           const previous = history[history.length - 1]
           if (!previous) return
-          setHistory(items => items.slice(0, -1)); setError(null); setConnectFrom(null)
+          setHistory(items => items.slice(0, -1)); setError(null); setNotice(null); setConnectFrom(null); stopSelect()
           onChange(previous.steps, previous.branches, previous.stepTeams, previous.milestoneGraph)
-        }}>Undo edit</button>
-        <button type="button" className="btn small" aria-pressed={!!connectFrom} disabled={!step && !connectFrom} onClick={() => setConnectFrom(connectFrom ? null : selected)}>Connect</button>
-        <button type="button" className="btn small" disabled={!teams.length || graph.teamBranches.length >= 60} onClick={() => openNode("__new_branch__")}>Add branch</button>
-        <button type="button" className="btn small primary" disabled={steps.length >= MAX_STEPS} onClick={() => addTask()}>+ Task</button>
-        <span className="small muted">Presets</span>
-        <button type="button" className="btn small" disabled={steps.length >= MAX_STEPS} onClick={() => addTask(undefined, true)}>Full check</button>
-        <button type="button" className="btn small" disabled={graph.eventDays.length >= 2} onClick={() => { if (commit(setMilestoneDayCount(snapshot, 2))) openNode("__event2__") }}>Event day</button>
+        }}><span aria-hidden="true">↶</span> Undo</button>
+        <div className="seg" role="group" aria-label="Editor view">
+          <button type="button" aria-pressed={view === "flow"} onClick={() => setView("flow")}>Flow</button>
+          <button type="button" aria-pressed={view === "quick"} onClick={() => { stopSelect(); setView("quick") }}>Quick entry</button>
+        </div>
+        <div className="seg" role="group" aria-label="Workflow length">
+          {([1, 2] as const).map(count => <button key={count} type="button" aria-pressed={graph.eventDays.length === count} onClick={() => { if (graph.eventDays.length !== count) commit(setMilestoneDayCount(snapshot, count)) }}>{count}-day</button>)}
+        </div>
+      </div>
+      <div className="wfb-tools">
+        <button type="button" className="btn small" aria-pressed={selectMode} disabled={view !== "flow"} onClick={() => selectMode ? stopSelect() : startSelect()}>Select steps</button>
+        <button type="button" className="btn small btn-primary" disabled={steps.length >= MAX_STEPS} onClick={() => addTask()}>+ Task</button>
+        <MenuButton label="Add" items={[
+          { label: "Team branch", onSelect: () => openNode("__new_branch__"), disabled: !teams.length || graph.teamBranches.length >= 60, hint: !teams.length ? "Create teams first." : graph.teamBranches.length >= 60 ? "A workflow can have up to 60 team branches." : undefined },
+          { label: "Full check", onSelect: () => addTask(undefined, true), disabled: steps.length >= MAX_STEPS, hint: steps.length >= MAX_STEPS ? `A workflow can have up to ${MAX_STEPS} tasks.` : undefined },
+          { label: "Event day", onSelect: () => { if (commit(setMilestoneDayCount(snapshot, 2))) openNode("__event2__") }, disabled: graph.eventDays.length >= 2, hint: graph.eventDays.length >= 2 ? "This workflow already has two event days." : undefined },
+        ]} />
       </div>
     </div>
     {error && <p className="small late-text" role="alert">{error}</p>}
+    {notice && <p className="small" role="status">{notice}</p>}
+    {selectMode && <p className="small wfb-select-hint" role="status">Click steps on the canvas to select them, then choose Assign in Details. Press Escape to stop.</p>}
     {connectFrom && <p className="small" role="status">Choose the task that waits for “{steps.find(candidate => candidate.key === connectFrom)?.title}”. <button type="button" className="link" onClick={() => setConnectFrom(null)}>Cancel connection</button></p>}
     {unmapped.length > 0 && <div className="wfb-unassigned" role="status"><span>{unmapped.length} task{unmapped.length === 1 ? " needs" : "s need"} a team:</span>{unmapped.map(candidate => <button type="button" className="link" key={candidate.key} onClick={() => select(candidate.key)}>{candidate.title || "Untitled task"}</button>)}</div>}
-    {view === "quick" ? <QuickEntry state={state} snapshot={snapshot} teams={teams} onChange={commit} onSelect={select} selected={selected} /> : <MilestoneWorkflowCanvas steps={steps} graph={graph} teams={teams} eventDate={eventDate} selected={selected} onSelect={select} onAddTask={addTask} onBranchTeamChange={(id, teamId) => commit(assignMilestoneBranchTeam(snapshot, id, teamId))} onMove={(key, branchId, targetId, before) => commit(moveMilestoneTask(snapshot, key, branchId, targetId, before))} />}
+    {view === "quick" ? <QuickEntry state={state} snapshot={snapshot} teams={teams} onChange={commit} onSelect={select} selected={selected} /> : <MilestoneWorkflowCanvas steps={steps} graph={graph} teams={teams} eventDate={eventDate} selected={selected} selectMode={selectMode} checked={checked} onSelect={select} onToggleCheck={toggleCheck} onAddTask={addTask} onMove={(key, branchId, targetId, before) => commit(moveMilestoneTask(snapshot, key, branchId, targetId, before))} />}
+    </div>
   </section>
 }
 

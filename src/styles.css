@@ -138,6 +138,7 @@ p { margin: 0; }
 main { min-width: 0; display: grid; gap: 16px; max-width: 1180px; width: 100%; justify-self: center; }
 /* Events has the list of events on the left and a wide flow chart, so it sits against the navigation and may use more room; a centered 1180px column left a wide empty strip beside the navigation when the side panel was closed. */
 main:has(> .events-layout) { max-width: 1600px; justify-self: start; }
+main:has(.wfl-root) { max-width: 1600px; }
 
 /* Page parts */
 .page-head { display: flex; gap: 12px; max-width: none; align-items: center; justify-content: space-between; flex-wrap: wrap; min-height: 40px; }

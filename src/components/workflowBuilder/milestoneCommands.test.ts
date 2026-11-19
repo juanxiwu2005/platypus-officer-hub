@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import type { StepTemplate, WorkflowMilestoneGraph } from "../../data/types"
 import { createWorkflowMilestoneGraph, workflowMilestoneGraphError, workflowMilestoneSteps, WORKFLOW_DAY_ONE, WORKFLOW_DAY_TWO, WORKFLOW_DONE, WORKFLOW_START } from "../../engine/workflowMilestones"
 import { graphError, insertTeamBuilderStep, type BuilderSnapshot } from "./model"
-import { addMilestoneBranch, addMilestoneCheck, addMilestoneTask, assignMilestoneBranchTeam, ensureMilestoneSnapshot, moveMilestoneTask, setMilestoneDayCount, syncMilestoneSnapshot } from "./milestoneCommands"
+import { addMilestoneBranch, addMilestoneCheck, addMilestoneTask, assignMilestoneBranchTeam, ensureMilestoneSnapshot, moveMilestoneTask, moveMilestoneTasks, setMilestoneDayCount, syncMilestoneSnapshot } from "./milestoneCommands"
 
 const step = (key: string, dependsOn: string[] = []): StepTemplate => ({ key, title: key, fn: "programs", ownerRoleId: "events-role", phase: "prepare", estDays: 2, tier: "medium", dependsOn, anchor: { kind: "target", days: 7, unit: "calendar", label: "Authored target" }, why: "Saved instructions", source: "Fictional fixture", custom: true })
 const graph = (steps: StepTemplate[], map: Record<string, string>): WorkflowMilestoneGraph => createWorkflowMilestoneGraph(steps, map)
@@ -290,5 +290,34 @@ describe("milestone authoring commands", () => {
     expect(result.milestoneGraph!.teamBranches[0].fromId).toBe("missing-station")
     expect(result.steps).toBe(added.steps)
     expect(errors(result)).not.toBeNull()
+  })
+
+  it("moves several tasks from two branches into one branch as a single snapshot", () => {
+    let value = fixture()
+    value.steps = value.steps.map(item => item.key === "outside" ? { ...item, cond: "travel", ownerRoleId: "finance-role", estDays: 4 } : item)
+    value = addMilestoneBranch(value, { teamId: "finance", fromId: WORKFLOW_START, toId: WORKFLOW_DAY_ONE }, "target")
+    value = addMilestoneTask(value, "target", "kept")
+    const before = structuredClone(value.steps)
+    const moved = moveMilestoneTasks(value, ["outside", "B", "A", "kept", "missing"], "target")
+    expect(branchFor(moved, "A").id).toBe("target")
+    expect(moved.milestoneGraph!.teamBranches.find(branch => branch.id === "target")!.stepIds).toEqual(["kept", "A", "B", "outside"])
+    expect(moved.steps.map(item => item.key)).toEqual(before.map(item => item.key))
+    const facts = (item?: StepTemplate) => item && [item.cond, item.ownerRoleId, item.estDays, item.fn, item.title]
+    for (const original of before) expect(facts(moved.steps.find(item => item.key === original.key))).toEqual(facts(original))
+    expect(["A", "B", "outside"].map(key => moved.stepTeams[key])).toEqual(["finance", "finance", "finance"])
+    expect(moved.milestoneGraph!.teamBranches.filter(branch => branch.id !== "target").every(branch => branch.stepIds.length === 0)).toBe(true)
+    expect(errors(moved)).toBeNull()
+  })
+
+  it("is a no-op for an empty list or an unknown branch, and places an unplaced task", () => {
+    const value = fixture()
+    expect(moveMilestoneTasks(value, [], branchFor(value, "A").id)).toBe(value)
+    expect(moveMilestoneTasks(value, ["A"], "nope")).toBe(value)
+    const loose = { ...value, milestoneGraph: { ...value.milestoneGraph!, teamBranches: value.milestoneGraph!.teamBranches.map(branch => ({ ...branch, stepIds: branch.stepIds.filter(key => key !== "outside") })) } }
+    expect(errors(loose)).not.toBeNull()
+    const placed = moveMilestoneTasks(loose, ["outside"], branchFor(value, "A").id)
+    expect(branchFor(placed, "outside").stepIds).toEqual(["A", "B", "outside"])
+    expect(placed.stepTeams.outside).toBe("ops")
+    expect(errors(placed)).toBeNull()
   })
 })

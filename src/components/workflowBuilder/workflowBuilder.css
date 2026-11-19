@@ -1,7 +1,20 @@
 .wfb { min-width: 0; }
-.wfb-toolbar, .wfb-view, .wfb-detail-header, .wfb-prerequisite { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s4); }
-.wfb-view { justify-content: flex-start; }
-.wfb-view [aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+.wfb-toolbar, .wfb-detail-header, .wfb-prerequisite { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s4); }
+/* The canvas card: tools sit on its top edge, messages and the canvas below. */
+.wfb-card { display: grid; gap: var(--s5); min-width: 0; padding: 0 var(--s5) var(--s5); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); }
+.wfb-card > .wfb-toolbar { margin: 0 calc(var(--s5) * -1); padding: var(--s4) var(--s5); background: var(--surface-2); border-bottom: 1px solid var(--line); border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.wfb-card > p { margin: 0; }
+.wfb-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+.wfb-toolbar .btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+.wfb-select-hint { color: var(--accent-ink); }
+.wfb-detail-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); min-width: 0; }
+.wfb-roster { display: flex; flex-wrap: wrap; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
+.wfb-roster-chip { padding: var(--s1) var(--s4); border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink); font-size: var(--fs-sm); }
+.wfb-roster-empty { margin: 0; }
+.wfb-assign { display: grid; gap: var(--s4); justify-items: start; padding: var(--s5); border: 1px dashed var(--line); border-radius: var(--r-md); background: var(--lane); }
+.wfb-assign p { margin: 0; }
+.wfb-danger:not([disabled]) { color: var(--late); border-color: var(--late-soft); }
+.wfb-danger:not([disabled]):hover { background: var(--late-soft); }
 .wfb-unassigned { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s4); background: var(--warn-soft); padding: var(--s5); border-radius: var(--r-sm); color: var(--warn); font-size: var(--fs-md); }
 .wfb-unassigned .link { color: inherit; }
 .wfb-hint { margin: 0; }
