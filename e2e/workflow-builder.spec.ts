@@ -169,6 +169,26 @@ test("before and parallel insertion keep the selected task's team and type; Undo
   expect(draft.teamMap?.stepTeams[added.key]).toBe(draft.teamMap?.stepTeams[reference.key])
 })
 
+test("dependency connections reject loops and double-clicking an arrow leaves the workflow intact", async ({ page }) => {
+  const template = await createTemplate(page, "Safe connections", names.slice(0, 2))
+  const builder = page.getByTestId("workflow-builder")
+  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await builder.getByRole("button", { name: `Edit ${names[1]}`, exact: true }).click()
+  await closeRail(page)
+  await builder.getByRole("button", { name: "Connect", exact: true }).click()
+  await builder.getByRole("button", { name: `Edit ${names[0]}`, exact: true }).click()
+  await expect(builder.getByRole("alert")).toHaveText("This dependency would create a loop.")
+  await builder.getByRole("button", { name: "Cancel connection", exact: true }).click()
+  const arrow = builder.getByTestId("workflow-dependency").first()
+  await expect(arrow).toHaveCount(1)
+  // SVG arrows intentionally have no pointer actions. Dispatch the DOM event to guard against a future delegated handler.
+  await arrow.dispatchEvent("dblclick")
+  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  const saved = await templateByName(page, "Safe connections")
+  expect((saved.draft ?? saved.versions.at(-1)!).steps).toEqual(template.versions[0].steps)
+  expect(await builder.getByTestId("workflow-dependency").count()).toBe(1)
+})
+
 test("the two authoring views share saved IDs and support keyboard, dark mode and narrow screens", async ({ page }, info) => {
   await page.emulateMedia({ colorScheme: "dark" })
   const template = await createTemplate(page, "Readable visit")
