@@ -4,6 +4,7 @@ import { useStore, useSchedule } from "../data/store"
 import { PageHead } from "../components/Page"
 import { Bts, BtsRow, BtsTr } from "../components/Bts"
 import { MetroChart } from "../components/flow/MetroChart"
+import { hasTeamExecutionTracks } from "../components/flow/teamMetro"
 import { useRail } from "../components/rail/RailContext"
 import { forecastFor } from "../engine/forecast"
 import { daysBetween, fmtShort } from "../lib/dates"
@@ -80,6 +81,7 @@ export default function Events() {
       <section className="card event-head" aria-labelledby="ev-title">
         <div className="event-head-row">
           <h2 id="ev-title">{ev.name}</h2>
+          {ev.workflowRun && <span className="tag" title="The saved workflow version used to create these independent tasks">{ev.workflowRun.templateName} · v{ev.workflowRun.templateVersion}</span>}
           <Info>{[ev.venue === "campus" ? "On campus" : "Off campus", FOOD[ev.food], FUNDING[ev.funding], ev.speaker ? "Guest speaker" : null, `About ${ev.headcount} people`].filter(Boolean).join(" · ")}.{ev.details ? ` ${ev.details}` : ""} Dates come from the rule engine; see Help.</Info>
           <input type="date" aria-label="Event date" value={ev.date} data-testid="event-date" onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && dispatch({ type: "updateEvent", id: ev.id, patch: { date: e.target.value } })} />
           <span className="spacer" />
@@ -108,7 +110,7 @@ export default function Events() {
       </div>
 
       {view === "flow" && <BtsRow><Bts label="Computed">Each dot's place comes from its dates. Colour: done when finished; risk when its forecast is red; now when it has started or its start day is today or earlier; otherwise to do.</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
-      {view === "flow" && <div className="metro-fade"><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead && !ev.workflowRun} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
+      {view === "flow" && <div className="metro-fade"><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead && !hasTeamExecutionTracks(ev, nodes)} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
       {view === "list" && <section className="card tbl-wrap" data-testid="event-list">
         <table className="tbl">
           <thead><tr><th>Step</th><th>Owner</th><th>Status</th><th>Due</th></tr></thead>
