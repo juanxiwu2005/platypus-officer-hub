@@ -69,8 +69,15 @@ export function buildLaneLayout(steps: readonly StepTemplate[], graph: WorkflowM
   const stackHeight = (rows: Row[]) => rows.reduce((total, row) => total + row.height, 0) + Math.max(0, rows.length - 1) * LANE_GAP
   const assigned = intervals.map(item => {
     const rows = Math.max(1, Math.ceil(branchSteps.get(item.branch.id)!.length / LANE_MAX)), height = laneHeight(rows)
-    const side: LaneSide = stackHeight(sides.below) < stackHeight(sides.above) ? "below" : "above"
-    const stack = sides[side].findIndex(row => row.spans.every(span => item.end <= span.start || item.start >= span.end))
+    // Pick the side whose total height grows least; reusing a free row costs nothing. Ties prefer reuse, then the shorter side, then above.
+    const free = (side: LaneSide) => sides[side].findIndex(row => row.spans.every(span => item.end <= span.start || item.start >= span.end))
+    const grown = (side: LaneSide) => {
+      const at = free(side), rowsOf = sides[side]
+      return at < 0 ? stackHeight(rowsOf) + (rowsOf.length ? LANE_GAP : 0) + height : stackHeight(rowsOf) + Math.max(0, height - rowsOf[at].height)
+    }
+    const above = grown("above"), below = grown("below"), reuses = (side: LaneSide) => free(side) >= 0
+    const side: LaneSide = below < above || (below === above && (reuses("below") !== reuses("above") ? reuses("below") : stackHeight(sides.below) < stackHeight(sides.above))) ? "below" : "above"
+    const stack = free(side)
     const index = stack < 0 ? sides[side].length : stack
     const row = sides[side][index] ?? (sides[side][index] = { spans: [], height: 0 })
     row.spans.push({ start: item.start, end: item.end }); row.height = Math.max(row.height, height)
