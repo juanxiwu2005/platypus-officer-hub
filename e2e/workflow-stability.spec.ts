@@ -86,7 +86,7 @@ test("a new conditional branch and its first task undo together", async ({ page 
   await closeRail(page)
   await page.getByRole("button", { name: "Undo edit", exact: true }).click()
   await expect.poll(async () => !!(await savedWorkflowStep(page, key))).toBe(false)
-  expect((await savedWorkflow(page)).branches?.some(branch => branch.id === branchId)).toBe(false)
+  expect((await savedWorkflow(page)).branches?.some(branch => branch.id === branchId) ?? false).toBe(false)
 })
 
 test("multiple branch requirements survive reload and apply to inserted steps in that branch", async ({ page }) => {
