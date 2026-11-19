@@ -1,3 +1,6 @@
+> **2026-11-19（America/Phoenix） · Settings → Roles & teams（方案 C）完成检查，待验收（Claude + worktree Agent E）**
+> **交付：** Roles 页改为 Roles & teams：组织图保留汇报线，Workflow 团队显示为同色色块（“Finance · 12 steps”），右侧面板编辑岗位（含 Team）或团队（改名、删除守卫）；Contact list 保留原表格并加 Team 列；Workflow → More → Teams 可跳转过来。schema 不变。单元 2118/2120（2 项旧失败），新页面测试 10/10，Settings 字数 146/150。见[方案与实现](feedback-fix/ROLES_TEAMS_CONCEPTS_2026-11-19.md)。需要同步本地备份。
+
 > **2026-11-19（America/Phoenix） · Partners 暂时归档与 Team 主导航，待验收（Codex）**
 > **交付：** 独立Partners页面、专属拖动CSS和浏览器场景通过git移动归档，原逻辑保留，归档原始/现有SHA记录齐备；导航及App退出页面加载，旧`/#/partners`及下级地址返回首页。Team在Plan之后直接显示，无活动子项时不渲染空More。联系人/组织/联系历史及共享Handoff详情保留，schema23和已有数据不变。基于ac19513，保留同期提醒方案F与Workflow修改，沿用PR14，不合并main，0真实AI/邮件。
 > **验收与验证：** 运行时`52dd77a`已确认Netlify success。[preview14 Team](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/team)；[代码归档与恢复](../src/archive/partners/README.md)。CRM/Team/交接相关3文件44单元通过；39项桌面/手机检查通过、1设备限定跳过（6项新增直接导航/旧链接数据/共享交接详情均通过）。另外2项原提醒空态用例仍期待旧句子None yet，ac19513的Today已改为No recorded reminders yet；未改并行提醒模块。lint、前后端类型、build、8个活动页字数与入口预算508,070/550,000通过；归档CSS逐字、页面仅导入路径/标题调整，生产无Partners页面chunk已核对。需要同步本地备份。

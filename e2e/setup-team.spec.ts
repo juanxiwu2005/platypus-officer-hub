@@ -46,8 +46,9 @@ test("first-event API dates are ignored and private profile/files stay out of th
 
 test("renaming a role saves itself, can be undone, and follows through team and handoff", async ({ page }) => {
   await page.goto("/#/settings")
-  await page.getByRole("button", { name: "Roles", exact: true }).click()
+  await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   const settings = page.getByTestId("club-settings")
+  await settings.getByRole("button", { name: "Contact list", exact: true }).click()
   await settings.getByRole("button", { name: "Edit roles", exact: true }).click()
   await settings.getByLabel("Role title", { exact: true }).nth(1).fill("Finance Chair")
   await expect(settings.getByRole("status")).toContainText("Saved")
@@ -65,7 +66,7 @@ test("renaming a role saves itself, can be undone, and follows through team and 
 test("officer five-question setup saves preferences and busy weeks while private buffers stay personal", async ({ page }) => {
   const started = Date.now()
   await page.goto("/#/settings")
-  await page.getByRole("button", { name: "Roles", exact: true }).click()
+  await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   const settings = page.getByTestId("club-settings")
   await settings.getByText("Invite officers", { exact: true }).click()
   await settings.getByRole("link", { name: "Try officer setup", exact: true }).click()
@@ -147,7 +148,7 @@ test("invalid defaults and expired invitations cannot change the local demo", as
   await settings.getByLabel("Private check day", { exact: true }).fill("4")
   await expect(settings.getByRole("status")).toContainText("must increase")
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).org.settings.silenceProtocol.presidentDay)).toBe(7)
-  await page.getByRole("button", { name: "Roles", exact: true }).click()
+  await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   await settings.getByText("Invite officers", { exact: true }).click()
   const href = await settings.getByRole("link", { name: "Try officer setup", exact: true }).getAttribute("href")
   await resetDemo(page)
@@ -201,12 +202,13 @@ for (const width of [375, 390, 768]) {
     await page.goto("/#/settings")
     const activate = async (target: import("@playwright/test").Locator) => info.project.name === "mobile" ? target.tap() : target.click()
     const nav = page.getByRole("navigation", { name: "Settings sections" })
-    for (const name of ["Roles", "Workflow", "Tasks", "Links & files", "My preferences", "Admin", "Club", "Roles"]) {
+    for (const name of ["Roles & teams", "Workflow", "Tasks", "Links & files", "My preferences", "Admin", "Club", "Roles & teams"]) {
       const button = nav.getByRole("button", { name, exact: true })
       await activate(button)
       await expect(button).toHaveAttribute("aria-current", "page")
     }
     const settings = page.getByTestId("club-settings")
+    await activate(settings.getByRole("button", { name: "Contact list", exact: true }))
     await activate(settings.getByRole("button", { name: "Edit roles", exact: true }))
     await settings.getByLabel("Role title", { exact: true }).nth(1).fill("Finance Chair")
     await expect(settings.getByRole("status")).toContainText("Saved")
@@ -215,6 +217,7 @@ for (const width of [375, 390, 768]) {
     await activate(settings.getByRole("button", { name: "Undo", exact: true }))
     await expect(settings.getByLabel("Role title", { exact: true }).nth(1)).toHaveValue("Treasurer")
     // The wide chart remains scrollable and readable; it is never an overlay over the invitation.
+    await activate(settings.getByRole("button", { name: "Chart", exact: true }))
     const chart = settings.getByRole("group", { name: "Organization chart, scrolls sideways", exact: true })
     await chart.focus()
     await page.keyboard.press("End")
@@ -249,7 +252,7 @@ test("Settings and officer setup keep drafts and report browser storage failure 
   await expect(page.getByTestId("storage-banner")).toContainText("could not be saved")
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(before)
   await expect(settings.getByLabel("Club name", { exact: true })).toHaveValue("Fictional unsaved club")
-  await page.getByRole("button", { name: "Roles", exact: true }).click()
+  await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   await settings.getByText("Invite officers", { exact: true }).click()
   await settings.getByRole("link", { name: "Try officer setup", exact: true }).click()
   await page.getByRole("textbox", { name: "Expectations for this role", exact: true }).fill("Fictional unsaved preference")

@@ -41,8 +41,9 @@ test("after a role handoff, Settings still save and the former officer leaves th
 
 test("a role added in Settings during the season gets its own handbook card", async ({ page }) => {
   await page.goto("/#/settings")
-  await page.getByRole("button", { name: "Roles", exact: true }).click()
+  await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   const settings = page.getByTestId("club-settings")
+  await settings.getByRole("button", { name: "Contact list", exact: true }).click()
   await settings.getByRole("button", { name: "Edit roles", exact: true }).click()
   await settings.getByRole("button", { name: "Add role", exact: true }).click()
   await settings.getByLabel("Role title", { exact: true }).last().fill("Events Chair")
