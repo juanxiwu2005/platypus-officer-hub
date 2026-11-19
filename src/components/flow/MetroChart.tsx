@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react"
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react"
 import type { DemoState, Node, WorkflowBranch } from "../../data/types"
 import type { Schedule } from "../../engine/schedule"
 import type { Forecast } from "../../engine/forecast"
@@ -16,6 +16,9 @@ import { isolateDialog, trapTabKey } from "../../lib/focus"
 import { branchConditionLabel, conditionLabel, conditionsOf, placementOf, resolveBranches, scopeKey } from "../../engine/workflowBranches"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { WorkflowBranchDialog, type BranchDraft } from "../setup/WorkflowBranchDialog"
+import { hasTeamExecutionTracks } from "./teamMetro"
+
+const TeamMetroChart = lazy(() => import("./TeamMetroChart").then(module => ({ default: module.TeamMetroChart })))
 
 const SHORT: Record<string, string> = {
   plan: "Event plan", backup: "Back-up plan", venuechoice: "Candidate venue", registry: "Event Registry", venue: "Book room",
@@ -52,7 +55,15 @@ const SNAP = 72
 const ENABLE_LINK_HOVER = false
 
 /** One main line; parallel work forks off and merges back. Look → hover → click. */
-export function MetroChart({ state, sched, forecast, eventId, selectedId, onSelect, canEdit = false, alwaysEdit = false, editing: requestedEditing, onEditingChange, port: given }: Props) {
+export function MetroChart(props: Props) {
+  const event = props.state.events.find(item => item.id === props.eventId)
+  // Authoring belongs to Settings. New saved-template runs use the same task
+  // records as details/reminders, rendered as points on unique team tracks.
+  if (!props.port && hasTeamExecutionTracks(event, props.state.nodes.filter(node => node.eventId === props.eventId))) return <Suspense fallback={<p className="small muted" role="status">Loading task tracks…</p>}><TeamMetroChart {...props} /></Suspense>
+  return <LegacyMetroChart {...props} />
+}
+
+function LegacyMetroChart({ state, sched, forecast, eventId, selectedId, onSelect, canEdit = false, alwaysEdit = false, editing: requestedEditing, onEditingChange, port: given }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLDivElement>(null)
   const { tryDispatch } = useStore()
