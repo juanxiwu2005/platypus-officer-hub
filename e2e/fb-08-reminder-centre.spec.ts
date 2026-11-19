@@ -6,9 +6,9 @@ import type { DemoState, ReminderMode } from "../src/data/types"
 import { applySchedule } from "../src/engine/schedule"
 import { addDays } from "../src/lib/dates"
 
-// FB-8 (docs/feedback-fix/PLAN.md §12.2): the home page is the reminder centre; the three reminder modes really behave differently;
-// the navigation is Reminders, Plan, Handoff, Rules plus a folded More. Nothing is ever sent: no request leaves the browser.
-// Set FB8_SHOTS=<folder> to also save screenshots of each state for a visual check.
+// FB-8 (docs/feedback-fix/PLAN.md §12.2), redrawn as concept F (2026-11-19): the home page is the reminder centre; one email per person;
+// the three reminder modes really behave differently; the navigation is Reminders, Plan, Handoff, Rules plus a folded More.
+// Nothing is ever sent: no request leaves the browser. Set FB8_SHOTS=<folder> to also save screenshots of each state for a visual check.
 const SHOTS = process.env.FB8_SHOTS
 const shot = async (page: Page, name: string, isMobile: boolean) => { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}-${isMobile ? "phone" : "desktop"}.png`, fullPage: true }) }
 const scan = async (page: Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).slice(0, 3).join(" ; ")}`)
@@ -27,50 +27,61 @@ test.afterEach(async ({ page }) => {
 })
 
 const demo = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!) as DemoState)
-/** Begin with an older saved club, then explicitly activate the current rule plan. */
+const TASKS = ["centre-room", "centre-layout", "centre-access", "centre-next"]
+/** Begin with an older saved club, then explicitly activate the current rule plan. Jordan has three tasks due today and one next week. */
 async function open(page: Page, mode?: ReminderMode, legacyHistory = false) {
   await page.goto("/#/")
   const s = await savedDemo(page)
   const template = s.nodes.find(n => n.id === "t-room")!
   const today = "2026-11-05"
-  const event = { ...s.events.find(e => e.id === template.eventId)!, name: "Speaker Night", date: addDays(today, 21), headcount: 40 }
-  const nodes = ["centre-room", "centre-layout", "centre-access", "centre-next"].map((id, i) => ({ ...template,
+  // t-room is a club task in the current seed: the four tasks are club tasks too, so no event is needed.
+  const nodes = TASKS.map((id, i) => ({ ...template,
     id, title: ["Reserve a room", "Confirm the room layout", "Confirm room access", "Prepare the next room booking"][i],
     ownerId: "jordan", ownerVersion: 0, matching: undefined, timing: undefined, dependsOn: [], status: "accepted" as const,
     waitingOn: null, waitingOnPersonId: null, estDays: 2, clubDeadlineOverride: null,
     anchor: { kind: "fixed" as const, official: null, club: i === 3 ? addDays(today, 7) : today },
   }))
   const nudges = legacyHistory ? [{ id: "earlier-reminder", nodeId: "centre-room", channel: "email" as const, text: "Earlier message with no recipient snapshot", sentBy: "alex", sentOn: addDays(today, -4), response: null }] : []
-  const saved: DemoState = applySchedule({ ...s, today, nodes, events: [event], nudges, protocolLog: [], silenceCases: [], notifications: [], funding: [], extensionRequests: [], taskAccessGrants: [], reminderRuntime: undefined,
+  const saved: DemoState = applySchedule({ ...s, today, nodes, events: [], nudges, protocolLog: [], silenceCases: [], notifications: [], funding: [], extensionRequests: [], taskAccessGrants: [], reminderRuntime: undefined,
     people: s.people.map(p => p.id === "jordan" ? { ...p, busyWeeks: [], personalBufferDays: 1 } : p),
     org: { ...s.org, settings: { ...s.org.settings, reminderMode: mode, matchingMode: "legacy" } } })
   await page.evaluate(state => localStorage.setItem("platypus.v1.demo", JSON.stringify(state)), saved)
   await page.reload()
   await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
-  await expect(page.getByTestId("approve-all")).toHaveCount(0)
+  await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
   await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
   await expect.poll(async () => (await demo(page)).reminderRuntime?.version).toBe(2)
   if (mode === "auto_email") await expect.poll(async () => (await demo(page)).reminderRuntime?.deliveries.length).toBe(3)
 }
-const section = (page: Page, id: string) => page.getByTestId(id)
-const rows = (page: Page, id: string) => section(page, id).getByTestId("rq-row")
-const composer = (page: Page) => page.getByTestId("nudge-panel")
-const closeComposer = async (page: Page) => { await composer(page).getByRole("button", { name: "Close reminder" }).click(); await closeRail(page) }
+const person = (page: Page, id = "jordan") => page.locator(`[data-testid="rq-person"][data-recipient="${id}"]`)
+const panel = (page: Page) => page.getByTestId("digest-panel")
+/** Open one person's combined email in the right rail and wait until the rule-written email is ready. */
+async function openEmail(page: Page, id = "jordan") {
+  await person(page, id).locator(".dg-person-head").click()
+  await expect(panel(page).getByTestId("digest-body")).toBeVisible()
+}
+const closePanel = async (page: Page) => { await panel(page).getByRole("button", { name: "Close email" }).click(); await closeRail(page) }
+async function openHistory(page: Page) {
+  await page.getByTestId("open-history").click()
+  await expect(page.getByTestId("reminder-history")).toBeVisible()
+}
+const closeHistory = async (page: Page) => { await page.getByRole("button", { name: "Close details" }).click(); await closeRail(page) }
 
-test("no mode: send-day items wait under Needs your OK, with a link to choose a mode; the five sections are there", async ({ page, isMobile }) => {
+test("no mode: today's tasks are one email for Jordan, with a link to choose a mode and no repeated week list", async ({ page, isMobile }) => {
   await open(page)
-  for (const [id, name] of [["rq-needs-ok", "Needs your OK"], ["rq-this-week", "This week"], ["rq-sent", "Sent"], ["rq-replies", "Replies"], ["rq-no-reply", "No reply yet"]])
-    await expect(section(page, id).getByRole("heading", { level: 2 })).toContainText(name)
-  // The old Today cards are gone.
-  for (const gone of ["Needs a nudge", "Semester goals", "Superstar of the week"]) await expect(page.getByRole("heading", { name: gone })).toHaveCount(0)
+  await expect(page.getByTestId("rq-summary")).toContainText("Review 1 email · 3 tasks · 0 sent today")
+  // The old Today cards and the old five lists are gone.
+  for (const gone of ["Needs a nudge", "Semester goals", "Superstar of the week", "This week", "Needs your OK"]) await expect(page.getByRole("heading", { name: gone })).toHaveCount(0)
   await expect(page.getByTestId("event-strip")).toHaveCount(0)
-  expect(await rows(page, "rq-needs-ok").count()).toBeGreaterThan(1)
-  await expect(rows(page, "rq-needs-ok").first().getByRole("button", { name: "Review & open draft" })).toBeVisible()
-  // Forecast red first, with the risk mark.
-  await expect(rows(page, "rq-needs-ok").first().getByTestId("forecast")).toBeVisible()
-  await expect(rows(page, "rq-this-week").first()).toContainText(/Planned reminder (Mon|Tue|Wed|Thu|Fri|Sat|Sun), Nov \d+/)
-  await expect(page.getByTestId("approve-all")).toHaveCount(0)
+  await expect(page.getByTestId("rq-person")).toHaveCount(1)
+  await expect(person(page).getByTestId("rq-person-task")).toHaveCount(3)
+  await expect(person(page)).toContainText("Up next")
+  await expect(person(page)).toContainText("Also has 1 other open task")
+  // B3: the task planned for next week is one quiet line, not a second list that repeats today's tasks.
+  await expect(page.getByTestId("rq-next")).toHaveText(/^Next check: (Mon|Tue|Wed|Thu|Fri|Sat|Sun), Nov \d+ · 1 planned this week$/)
+  await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
+  await expect(page.getByTestId("rq-fix")).toHaveCount(0)
   await shot(page, "president-no-mode", isMobile)
   expect(await scan(page)).toEqual([])
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
@@ -83,112 +94,130 @@ test("no mode: send-day items wait under Needs your OK, with a link to choose a 
   await choice.getByRole("radio", { name: "I review, Platypus sends" }).check()
   await expect.poll(async () => (await demo(page)).org.settings.reminderMode).toBe("review_then_auto")
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Reminders" }).click()
-  await expect(page.getByTestId("approve-all")).toBeVisible()
+  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all 1 email")
 })
 
-test("I review, then I send: Review & open draft → draft → I sent this reminder → under Sent, by the president", async ({ page, isMobile }) => {
+test("I review, then I send: Open draft 1 of 1 → Gmail draft → I sent this email records one email for three tasks, by the president", async ({ page, isMobile }) => {
   await open(page, "review_then_self")
   await expect(page.getByTestId("choose-mode")).toHaveCount(0)
   await shot(page, "president-review-then-self", isMobile)
-  const first = rows(page, "rq-needs-ok").first()
-  const id = (await first.getAttribute("data-node"))!
-  const before = await rows(page, "rq-needs-ok").count()
-  await first.getByRole("button", { name: "Review & open draft" }).click()
-  await expect(composer(page).getByRole("button", { name: /Approve/ })).toHaveCount(0)
-  await composer(page).getByLabel("Preferred channel").selectOption("email")
-  const draft = composer(page).getByRole("link", { name: "Open Gmail draft" })
-  await expect(draft).toBeVisible()
+  await page.getByRole("button", { name: "Open draft 1 of 1" }).click()
+  await expect(panel(page).getByTestId("digest-body")).toBeVisible()
+  await expect(panel(page).getByTestId("digest-send-next")).toHaveCount(0)
+  await expect(panel(page).getByTestId("digest-sent-self")).toHaveCount(0)
+  const draft = panel(page).getByTestId("digest-open-draft")
+  await expect(draft).toHaveAttribute("href", /^https:\/\/mail\.google\.com\/mail\/\?view=cm/)
   await draft.evaluate(a => a.removeAttribute("target"))           // stay on the page: the draft itself is not part of this test
   await draft.evaluate(a => a.addEventListener("click", e => e.preventDefault()))
   await draft.click()
-  await composer(page).getByRole("button", { name: "I sent this reminder" }).click()
-  await expect(composer(page)).toContainText("Recorded as sent by you")
-  await closeComposer(page)
-  await expect(rows(page, "rq-needs-ok")).toHaveCount(before - 1)
-  const sent = section(page, "rq-sent").locator(`[data-node="${id}"]`)
-  await expect(sent).toContainText("Recorded by sender")
+  await panel(page).getByTestId("digest-sent-self").click()
+  await expect(panel(page)).toContainText("All emails recorded. Demo: nothing is sent.")
+  await closePanel(page)
+  await expect(person(page)).toHaveAttribute("data-state", "sent")
+  await expect(page.getByTestId("rq-summary")).toContainText("Nothing to send today. · 1 sent today")
   const state = await demo(page)
   expect(state.nudges).toEqual([])
-  expect(state.reminderRuntime!.deliveries.map(d => [d.nodeId, d.via, d.recipientId])).toEqual([[id, "manual", "jordan"]])
-  expect(state.reminderRuntime!.deliveries[0].message).toMatchObject({ checked: true, source: "rules", channel: "email" })
+  expect(state.reminderRuntime!.deliveries.map(d => d.nodeId).sort()).toEqual(TASKS.slice(0, 3).sort())
+  expect(state.reminderRuntime!.deliveries.every(d => d.via === "manual" && d.recipientId === "jordan")).toBe(true)
+  expect(state.reminderRuntime!.digests).toHaveLength(1)
+  expect(state.reminderRuntime!.digests![0]).toMatchObject({ via: "manual", recipientId: "jordan", checked: true, source: "rules" })
+  await openHistory(page)
+  await expect(page.getByTestId("rq-sent").getByTestId("rq-row")).toHaveCount(1)
+  await expect(page.getByTestId("rq-sent")).toContainText("To Jordan · 3 tasks")
 })
 
-test("I review, Platypus sends: single approval and batch both save complete checked mail", async ({ page, isMobile }) => {
+test("I review, Platypus sends: Send & next records the whole email; every task keeps its own checked mail and link", async ({ page, isMobile }) => {
   await open(page, "review_then_auto")
   await shot(page, "president-review-then-auto", isMobile)
-  const first = rows(page, "rq-needs-ok").first()
-  const id = (await first.getAttribute("data-node"))!
-  await first.getByRole("button", { name: "Review", exact: true }).click()
-  await expect(composer(page).getByRole("link", { name: /draft/ })).toHaveCount(0)
-  await composer(page).getByRole("button", { name: "Approve · Platypus sends (demo)" }).click()
-  await expect(composer(page)).toContainText("Approved. Platypus would send it now.")
-  await closeComposer(page)
-  await expect(section(page, "rq-sent").locator(`[data-node="${id}"]`)).toContainText("Approved demo")
-  const all = page.getByTestId("approve-all")
-  const n = Number((await all.innerText()).match(/\((\d+)\)/)![1])
-  expect(n).toBe(2)
-  await all.click()
-  await expect(page.getByText("2 reminders saved as a demo. Nothing was sent.")).toBeVisible()
-  await expect(page.getByTestId("approve-all")).toHaveCount(0)
+  await openEmail(page)
+  await expect(panel(page)).toContainText("Email 1 of 1 · to Jordan")
+  await expect(panel(page).getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(3)
+  await expect(panel(page).getByTestId("digest-open-draft")).toHaveCount(0)
+  await panel(page).getByTestId("digest-send-next").click()
+  await expect(panel(page)).toContainText("All emails recorded. Demo: nothing is sent.")
+  await closePanel(page)
   const saved = await demo(page)
   expect(saved.nudges).toEqual([])
   expect(saved.reminderRuntime!.deliveries).toHaveLength(3)
+  expect(saved.reminderRuntime!.digests).toHaveLength(1)
   for (const d of saved.reminderRuntime!.deliveries) {
     expect(d.via).toBe("platypus")
     expect(d.recipientId).toBe("jordan")
+    expect(d.digestId).toBe(saved.reminderRuntime!.digests![0].id)
     expect(d.message).toMatchObject({ checked: true, source: "rules", channel: "email" })
-    expect(d.message!.body.match(/https?:\/\/\S+/g)).toEqual([d.message!.taskUrl])
+    expect(saved.reminderRuntime!.digests![0].taskUrls).toContain(d.message!.taskUrl)
   }
-  await expect(section(page, "rq-sent").getByText("Approved demo")).toHaveCount(3)
   const log = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.log") ?? "[]") as { type: string }[])
-  expect(log.filter(e => e.type === "recordReminderBatch")).toHaveLength(1)
+  expect(log.filter(e => e.type === "recordReminderDigests")).toHaveLength(1)
+  await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
   await shot(page, "president-review-then-auto-approved", isMobile)
   expect(await scan(page)).toEqual([])
 })
 
-test("Send automatically: actual durable mail records replace derived would-send rows and survive reload", async ({ page, isMobile }) => {
+test("I review, Platypus sends: Send all N emails records every email in one store action", async ({ page }) => {
+  await open(page, "review_then_auto")
+  await page.getByTestId("send-all-digests").click()
+  await expect(page.getByText("1 email recorded. Demo: nothing is sent.")).toBeVisible()
+  await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
+  const saved = await demo(page)
+  expect(saved.reminderRuntime!.deliveries).toHaveLength(3)
+  expect(saved.reminderRuntime!.digests).toHaveLength(1)
+  const log = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.log") ?? "[]") as { type: string }[])
+  expect(log.filter(e => e.type === "recordReminderDigests")).toHaveLength(1)
+  expect(log.filter(e => e.type === "recordReminderBatch")).toHaveLength(0)
+})
+
+test("Send automatically: the email is recorded without a button, survives reload, and the page only shows status", async ({ page, isMobile }) => {
   await open(page, "auto_email")
-  await expect(rows(page, "rq-needs-ok")).toHaveCount(0)
-  await expect(section(page, "rq-needs-ok")).toContainText("Automatic reminders are recorded only after")
-  await expect(section(page, "rq-sent").getByText("Automatic demo", { exact: true })).toHaveCount(3)
-  await expect(section(page, "rq-sent").getByText("Would be sent · demo")).toHaveCount(0)
+  await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
+  await expect(page.getByTestId("open-first-draft")).toHaveCount(0)
+  await expect(person(page)).toHaveAttribute("data-state", "sent")
+  await expect(page.getByTestId("rq-summary")).toContainText("1 sent today")
   const saved = await demo(page)
   expect(saved.nudges).toEqual([])
   expect(saved.reminderRuntime!.deliveries.every(d => d.via === "automatic" && d.message?.checked)).toBe(true)
-  await expect(rows(page, "rq-no-reply")).toHaveCount(0)
+  expect(saved.reminderRuntime!.digests).toHaveLength(1)
+  await expect(page.getByTestId("rq-history")).toContainText("1 sent this week · 0 replied · 0 no reply")
   const ids = saved.reminderRuntime!.deliveries.map(d => d.id)
   await page.reload()
   await closeRail(page)
   expect((await demo(page)).reminderRuntime!.deliveries.map(d => d.id)).toEqual(ids)
+  await openHistory(page)
+  await expect(page.getByTestId("rq-sent")).toContainText("To Jordan · 3 tasks")
+  await expect(page.getByTestId("rq-no-reply")).toHaveCount(0)
+  await closeHistory(page)
   await shot(page, "president-auto", isMobile)
   expect(await scan(page)).toEqual([])
 })
 
-test("Follow up: real recorded sends start the no-reply clock, with no duplicate legacy member reminders", async ({ page }) => {
+test("Follow up: a recorded email starts the no-reply clock; Follow up opens that person's next email", async ({ page }) => {
   await open(page, "review_then_auto")
-  const first = rows(page, "rq-needs-ok").first()
-  const id = (await first.getAttribute("data-node"))!
-  await first.getByRole("button", { name: "Review", exact: true }).click()
-  await composer(page).getByRole("button", { name: "Approve · Platypus sends (demo)" }).click()
-  await expect(composer(page)).toContainText("Approved. Platypus would send it now.")
-  await closeComposer(page)
-  await expect(section(page, "rq-no-reply").locator(`[data-node="${id}"]`)).toHaveCount(0)
+  await openEmail(page)
+  await panel(page).getByTestId("digest-send-next").click()
+  await expect(panel(page)).toContainText("All emails recorded.")
+  await closePanel(page)
+  await openHistory(page)
+  await expect(page.getByTestId("rq-no-reply")).toHaveCount(0)
+  await closeHistory(page)
   await demoClock(page, 3)
   await page.keyboard.press("Escape")
   await closeRail(page)
-  const wait = section(page, "rq-no-reply").locator(`[data-node="${id}"]`)
+  await openHistory(page)
+  const wait = page.getByTestId("rq-no-reply").locator('[data-node="centre-room"]')
   await expect(wait).toContainText("3 days since reminder")
   await expect(wait.getByRole("button", { name: "Follow up" })).toBeEnabled()
   expect((await demo(page)).protocolLog.filter(e => e.kind === "reminder")).toEqual([])
   await wait.getByRole("button", { name: "Follow up" }).click()
-  await composer(page).getByRole("button", { name: "Approve · Platypus sends (demo)" }).click()
-  await expect(composer(page)).toContainText("Approved. Platypus would send it now.")
-  await closeComposer(page)
+  await expect(panel(page).getByTestId("digest-body")).toBeVisible()
+  await panel(page).getByTestId("digest-send-next").click()
+  await expect(panel(page)).toContainText("recorded. Demo: nothing is sent.")
+  await closePanel(page)
   const saved = await demo(page)
-  const history = saved.reminderRuntime!.deliveries.filter(d => d.nodeId === id)
+  const history = saved.reminderRuntime!.deliveries.filter(d => d.nodeId === "centre-room")
   expect(history).toHaveLength(2)
   expect(history[1]).toMatchObject({ reason: "overdue", recipientId: "jordan", sentOn: saved.today })
-  await expect(section(page, "rq-no-reply").locator(`[data-node="${id}"]`)).toHaveCount(0)
+  await openHistory(page)
+  await expect(page.getByTestId("rq-no-reply").locator('[data-node="centre-room"]')).toHaveCount(0)
 })
 
 test("an officer who is not a lead sees a read-only Your reminders", async ({ page, isMobile }) => {
@@ -202,7 +231,7 @@ test("an officer who is not a lead sees a read-only Your reminders", async ({ pa
   await expect(mine.getByText("Automatic demo", { exact: true })).toHaveCount(3)
   expect((await demo(page)).reminderRuntime!.deliveries.every(d => d.recipientId === "jordan")).toBe(true)
   await expect(page.getByTestId("reminder-centre")).toHaveCount(0)
-  for (const name of ["Review & open draft", "Review", "Follow up", /Approve all/]) await expect(page.locator("main").getByRole("button", { name, exact: typeof name === "string" })).toHaveCount(0)
+  for (const name of [/^Send all/, /^Open draft/, "Follow up", "History"]) await expect(page.locator("main").getByRole("button", { name, exact: typeof name === "string" })).toHaveCount(0)
   await shot(page, "officer", isMobile)
   expect(await scan(page)).toEqual([])
 })
@@ -210,15 +239,18 @@ test("an officer who is not a lead sees a read-only Your reminders", async ({ pa
 test("older reminders keep unknown recipients until a lead explicitly confirms the current future assignment", async ({ page }) => {
   await open(page, "review_then_self", true)
   const original = (await demo(page)).nudges
-  const row = section(page, "rq-needs-ok").locator('[data-node="centre-room"]')
-  await expect(row).toContainText("Jordan Patel")
-  await expect(row.getByRole("button", { name: "Review & open draft" })).toHaveCount(0)
-  const earlier = section(page, "rq-sent").locator('[data-node="centre-room"]')
-  await expect(earlier).toContainText("recipient not recorded")
+  const row = page.getByTestId("rq-fix").locator('[data-node="centre-room"]')
+  await expect(row).toContainText("Check earlier reminders")
+  await expect(person(page).locator('[data-node="centre-room"]')).toHaveCount(0)
+  await openHistory(page)
+  const earlier = page.getByTestId("rq-sent").locator('[data-node="centre-room"]')
+  await expect(earlier).toContainText("Recipient not recorded")
   await expect(earlier).not.toContainText("Jordan Patel")
+  await closeHistory(page)
   await row.getByRole("button", { name: "I checked · allow future reminders" }).click()
   await expect(page.getByText("Future reminders are enabled for the current assignment. Earlier history is unchanged.")).toBeVisible()
-  await expect(row.getByRole("button", { name: "Review & open draft" })).toBeEnabled()
+  await expect(person(page).locator('[data-node="centre-room"]')).toHaveCount(1)
+  await expect(page.getByTestId("rq-fix")).toHaveCount(0)
   const saved = await demo(page)
   expect(saved.nudges).toEqual(original)
   expect(saved.reminderRuntime!.legacyUnresolvedNodeIds).toEqual([])
@@ -227,21 +259,23 @@ test("older reminders keep unknown recipients until a lead explicitly confirms t
 
 test("an owner's same-day task reply appears against the recorded recipient and suppresses no-reply", async ({ page }) => {
   await open(page, "review_then_auto")
-  const first = rows(page, "rq-needs-ok").first()
-  const nodeId = (await first.getAttribute("data-node"))!
-  await first.getByRole("button", { name: "Review", exact: true }).click()
-  await composer(page).getByRole("button", { name: "Approve · Platypus sends (demo)" }).click()
-  await expect(composer(page)).toContainText("Approved. Platypus would send it now.")
-  const delivery = (await demo(page)).reminderRuntime!.deliveries[0]
+  await openEmail(page)
+  await panel(page).getByTestId("digest-send-next").click()
+  await expect(panel(page)).toContainText("All emails recorded.")
+  const delivery = (await demo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === "centre-room")!
   await page.goto(delivery.message!.taskUrl)
-  await page.getByTestId("single-task-page").getByRole("combobox", { name: "Task status", exact: true }).selectOption("in_progress")
+  await page.getByTestId("task-detail").getByRole("combobox", { name: "Task status", exact: true }).selectOption("in_progress")
   await expect(page.getByRole("combobox", { name: "Task status", exact: true })).toHaveValue("in_progress")
   await page.goto("/#/")
-  await closeRail(page)
-  const reply = section(page, "rq-replies").locator(`[data-node="${nodeId}"]`)
+  await expect(page.getByTestId("reminder-centre")).toBeVisible()
+  // Leaving the task closes its details; on a phone the side panel goes with it.
+  if ((page.viewportSize()?.width ?? 1280) < 1200) await expect(page.getByTestId("rail")).toBeHidden()
+  await expect(page.getByTestId("rq-history")).toContainText("1 replied")
+  await openHistory(page)
+  const reply = page.getByTestId("rq-replies").locator('[data-node="centre-room"]')
   await expect(reply).toContainText("Working on it")
   await expect(reply).toContainText("Jordan Patel")
-  await expect(section(page, "rq-no-reply").locator(`[data-node="${nodeId}"]`)).toHaveCount(0)
+  await expect(page.getByTestId("rq-no-reply")).toHaveCount(0)
   expect((await demo(page)).reminderRuntime!.updates.some(u => u.ownerReply && u.actorId === "jordan" && u.sequence > delivery.sequence)).toBe(true)
 })
 
@@ -296,8 +330,8 @@ test("phone: the navigation strip keeps all items reachable and the More button 
   await nav.getByRole("link", { name: "Partners" }).scrollIntoViewIfNeeded()
   await expect(nav.getByRole("link", { name: "Partners" })).toBeInViewport()
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
-  // The row's action sits under the task on a phone, inside the screen.
-  const btn = rows(page, "rq-needs-ok").first().getByRole("button", { name: "Review & open draft" })
-  const b = (await btn.boundingBox())!
-  expect(b.x + b.width).toBeLessThanOrEqual(page.viewportSize()!.width)
+  // The person row is a full-width target inside the screen.
+  const head = (await person(page).locator(".dg-person-head").boundingBox())!
+  expect(head.height).toBeGreaterThanOrEqual(43.5)
+  expect(head.x + head.width).toBeLessThanOrEqual(page.viewportSize()!.width)
 })
