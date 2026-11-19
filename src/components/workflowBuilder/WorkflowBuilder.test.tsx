@@ -13,9 +13,8 @@ let latest: BuilderSnapshot
 function Details() { return <aside>{useRail().workflowDetail}</aside> }
 function App({ initial }: { initial: BuilderSnapshot }) {
   const [snapshot, setSnapshot] = useState(initial)
-  const [directory, setDirectory] = useState(teams)
   latest = snapshot
-  return <RailProvider><WorkflowBuilder state={seedDemo(undefined, "v2")} steps={snapshot.steps} branches={snapshot.branches} stepTeams={snapshot.stepTeams} teams={directory} policy="custom" onAddTeam={() => { const id = `team-${directory.length + 1}`; setDirectory([...directory, { id, name: `Team ${directory.length + 1}` }]); return id }} onChange={(steps, branches, stepTeams) => setSnapshot({ steps, branches, stepTeams })} /><Details /></RailProvider>
+  return <RailProvider><WorkflowBuilder state={seedDemo(undefined, "v2")} steps={snapshot.steps} branches={snapshot.branches} stepTeams={snapshot.stepTeams} graph={snapshot.milestoneGraph} teams={teams} policy="custom" onChange={(steps, branches, stepTeams, milestoneGraph) => setSnapshot({ steps, branches, stepTeams, milestoneGraph })} /><Details /></RailProvider>
 }
 const show = (steps = [task("A"), task("B", ["A"])]) => render(<App initial={{ steps, branches: [{ id: "speaker", title: "Speaker", side: "before_event", order: 1, conditions: ["speaker"] }], stepTeams: Object.fromEntries(steps.map(step => [step.key, "events"])) }} />)
 afterEach(cleanup)
@@ -31,7 +30,7 @@ describe("manual workflow builder", () => {
     expect(latest.steps[2].dependsOn).toEqual([latest.steps[1].key])
     const keys = latest.steps.map(step => step.key)
     fireEvent.click(screen.getByRole("button", { name: "Flow" }))
-    expect(screen.getAllByTestId("workflow-dependency")).toHaveLength(2)
+    expect(screen.getAllByTestId("workflow-branch-track").length).toBeGreaterThan(0)
     expect(screen.getByRole("button", { name: "Edit Confirm transport" })).toBeTruthy()
     expect(latest.steps.map(step => step.key)).toEqual(keys)
   })
@@ -43,18 +42,18 @@ describe("manual workflow builder", () => {
     fireEvent.change(screen.getByLabelText("Days of work"), { target: { value: "2" } })
     fireEvent.change(screen.getByLabelText("Finish by (T±)"), { target: { value: "-14" } })
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Confirm seats and pickup point." } })
-    expect(latest.steps.find(step => step.key === "B")).toMatchObject({ title: "Confirm transport", estDays: 2, startPolicy: "effort", dependsOn: ["A"], anchor: { kind: "target", days: 14 }, why: "Confirm seats and pickup point." })
+    expect(latest.steps.find(step => step.key === "B")).toMatchObject({ title: "Confirm transport", estDays: 2, startPolicy: "effort", dependsOn: ["A"], why: "Confirm seats and pickup point." })
+    expect(latest.milestoneGraph?.taskAnchors.B.offsetDays).toBe(-14)
   })
 
-  it("moves a task between team lanes without changing its owner, branch or dependency", () => {
+  it("assigns a branch to an existing team without changing task definitions", () => {
     show()
-    fireEvent.click(screen.getByRole("button", { name: "Edit B" }))
+    fireEvent.click(screen.getAllByRole("button", { name: /^Edit branch / })[0])
     const before = structuredClone(latest.steps)
     fireEvent.change(screen.getByLabelText("Team"), { target: { value: "marketing" } })
     expect(latest.stepTeams.B).toBe("marketing")
     expect(latest.steps).toEqual(before)
-    expect(within(screen.getByTestId("workflow-team-marketing")).queryByText("B")).toBeNull()
-    expect(screen.getAllByTestId(/^workflow-team-/)).toHaveLength(2)
+    expect(latest.milestoneGraph?.teamBranches[0].teamId).toBe("marketing")
   })
 
   it("inserts in the selected branch with the selected situation category and can undo the entire insertion", () => {
@@ -74,7 +73,7 @@ describe("manual workflow builder", () => {
   it("refuses a cycle through Connect and leaves double-clicking a connection inert", () => {
     show()
     const original = structuredClone(latest)
-    fireEvent.doubleClick(screen.getByTestId("workflow-dependency"))
+    fireEvent.doubleClick(screen.getByTestId("workflow-main-track"))
     expect(latest).toEqual(original)
     fireEvent.click(screen.getByRole("button", { name: "Edit B" }))
     fireEvent.click(screen.getByRole("button", { name: "Connect" }))
@@ -105,32 +104,38 @@ describe("manual workflow builder", () => {
     expect(screen.getByRole("alert").textContent).toContain("whole number")
   })
 
-  it("adds an empty parallel team branch immediately without changing any existing task", () => {
+  it("adds a branch using an existing organization team and can add its first task", () => {
     show()
-    const before = structuredClone(latest)
+    const before = structuredClone(latest.steps)
     fireEvent.click(screen.getByRole("button", { name: "Add branch" }))
-    expect(screen.queryByRole("dialog")).toBeNull()
-    expect(screen.getAllByTestId(/^workflow-team-/)).toHaveLength(3)
-    expect(screen.getByTestId("workflow-team-team-3")).toBeTruthy()
-    expect(latest).toEqual(before)
-    fireEvent.click(screen.getByRole("button", { name: "+ Task" }))
-    const fresh = latest.steps.find(step => !before.steps.some(previous => previous.key === step.key))!
-    expect(latest.stepTeams[fresh.key]).toBe("team-3")
-    expect(fresh.dependsOn).toEqual([])
+    fireEvent.change(screen.getByLabelText("Team"), { target: { value: "marketing" } })
+    fireEvent.click(within(screen.getByTestId("workflow-builder-details")).getByRole("button", { name: "Add branch" }))
+    expect(latest.steps).toEqual(before)
+    const branch = latest.milestoneGraph!.teamBranches.at(-1)!
+    expect(branch.teamId).toBe("marketing")
+    expect(branch.stepIds).toEqual([])
+    fireEvent.click(screen.getByRole("button", { name: `Add task to branch ${branch.id}` }))
+    expect(latest.stepTeams[latest.steps.at(-1)!.key]).toBe("marketing")
   })
 
-  it("has fixed Start and Done stations with no task and supports duplicate Event day presets", () => {
+  it("edits both endpoints and both event days in Details, with only one/two day options", () => {
     show([])
-    expect(screen.getByTestId("workflow-start")).toBeTruthy()
-    expect(screen.getByTestId("workflow-done")).toBeTruthy()
-    expect(screen.queryAllByTestId(/^workflow-task-/)).toHaveLength(0)
-    fireEvent.click(screen.getByRole("button", { name: "Event day" }))
-    fireEvent.click(screen.getByRole("button", { name: "Event day" }))
-    expect(latest.steps.map(step => step.title)).toEqual(["Event day", "Event day"])
-    expect(new Set(latest.steps.map(step => step.key)).size).toBe(2)
-    expect(latest.steps.every(step => step.anchor?.kind === "target" && step.anchor.days === 0)).toBe(true)
-    fireEvent.click(screen.getByRole("button", { name: "Undo edit" }))
-    expect(latest.steps).toHaveLength(1)
+    fireEvent.click(screen.getByTestId("workflow-start"))
+    fireEvent.change(screen.getByLabelText("Station name"), { target: { value: "Begin planning" } })
+    fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Gather the team" } })
+    expect(latest.milestoneGraph?.start).toEqual({ title: "Begin planning", details: "Gather the team" })
+    fireEvent.click(screen.getByTestId("workflow-done"))
+    fireEvent.change(screen.getByLabelText("Station name"), { target: { value: "All complete" } })
+    expect(latest.milestoneGraph?.done.title).toBe("All complete")
+    fireEvent.click(screen.getByTestId("workflow-event-day-1"))
+    fireEvent.change(screen.getByLabelText("Event day name"), { target: { value: "Opening" } })
+    fireEvent.change(screen.getByLabelText("Workflow length"), { target: { value: "2" } })
+    fireEvent.click(screen.getByTestId("workflow-event-day-2"))
+    fireEvent.change(screen.getByLabelText("Event day name"), { target: { value: "Showcase" } })
+    fireEvent.change(screen.getByLabelText("Days after Day 1"), { target: { value: "3" } })
+    expect(latest.milestoneGraph?.eventDays.map(day => [day.title, day.offsetDays])).toEqual([["Opening", 0], ["Showcase", 3]])
+    expect(within(screen.getByLabelText("Workflow length")).getAllByRole("option")).toHaveLength(2)
+    expect(latest.steps).toEqual([])
   })
 
   it("does not silently chain independent same-team tasks when editing their definitions", () => {

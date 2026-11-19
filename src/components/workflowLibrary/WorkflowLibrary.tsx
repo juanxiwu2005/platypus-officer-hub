@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react"
 import { useStore } from "../../data/store"
-import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDraft, DemoState } from "../../data/types"
+import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDraft, WorkflowMilestoneGraph, DemoState } from "../../data/types"
 import { getWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
 import { WorkflowBuilder } from "../workflowBuilder/WorkflowBuilder"
+import { createWorkflowMilestoneGraph } from "../../engine/workflowMilestones"
 import { presetWorkflowStepTeams } from "../../data/workflowTeamDefaults"
 import { useRail } from "../rail/RailContext"
 import { WorkflowTeams } from "./WorkflowTeams"
@@ -11,13 +12,13 @@ import "./workflowLibrary.css"
 const rawDraftOf = (template: WorkflowTemplate): WorkflowTemplateDraft => {
   if (template.draft) return structuredClone(template.draft)
   const version = template.versions[template.versions.length - 1]
-  return { name: version.name, description: version.description, kind: version.kind, teamExecution: version.teamExecution, steps: structuredClone(version.steps), branches: structuredClone(version.branches), teamMap: structuredClone(version.teamMap), baseVersion: version.version }
+  return { name: version.name, description: version.description, kind: version.kind, teamExecution: version.teamExecution, steps: structuredClone(version.steps), branches: structuredClone(version.branches), teamMap: structuredClone(version.teamMap), milestoneGraph: structuredClone(version.milestoneGraph), baseVersion: version.version }
 }
 
 const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplateDraft => {
   const draft = rawDraftOf(template)
   const stepTeams = draft.kind === "standard" ? presetWorkflowStepTeams(state, draft.steps, draft.teamMap?.stepTeams) : draft.teamMap?.stepTeams ?? {}
-  return { ...draft, teamExecution: "dependencies", steps: draft.steps, teamMap: { version: 1, workflowId: template.id, stepTeams } }
+  return { ...draft, teamExecution: "dependencies", steps: draft.steps, milestoneGraph: draft.milestoneGraph ?? createWorkflowMilestoneGraph(draft.steps, stepTeams), teamMap: { version: 1, workflowId: template.id, stepTeams } }
 }
 
 export default function WorkflowLibrary() {
@@ -76,39 +77,24 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
     return () => window.removeEventListener("beforeunload", warn)
   }, [pending, persistenceFailed])
   // Rail details refresh the library. A stable callback prevents the child effect feeding that context forever.
-  const update = useCallback((steps: StepTemplate[], branches?: WorkflowBranch[], stepTeams = draft.teamMap?.stepTeams ?? {}) => {
-    const previousKeys = new Set(draft.steps.map(step => step.key))
-    const mappings = { ...stepTeams }
-    for (const step of steps) if (!previousKeys.has(step.key) && !mappings[step.key] && step.ownerRoleId && state.org.workflowRoleTeams?.[step.ownerRoleId]) mappings[step.key] = state.org.workflowRoleTeams[step.ownerRoleId]
-    setDraft({ ...draft, teamExecution: "dependencies", steps, branches, teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
-  }, [draft, state.org.workflowRoleTeams, template.id])
+  const update = useCallback((steps: StepTemplate[], branches?: WorkflowBranch[], stepTeams = draft.teamMap?.stepTeams ?? {}, milestoneGraph?: WorkflowMilestoneGraph) => {
+    setDraft({ ...draft, teamExecution: "dependencies", steps, branches, milestoneGraph, teamMap: { version: 1, workflowId: template.id, stepTeams } })
+  }, [draft, template.id])
   const groupRoles = () => {
-    const current = draft.teamMap?.stepTeams ?? {}
-    const mappings = { ...current }
-    for (const step of draft.steps) if (!mappings[step.key] && step.ownerRoleId && state.org.workflowRoleTeams?.[step.ownerRoleId]) mappings[step.key] = state.org.workflowRoleTeams[step.ownerRoleId]
-    setDraft({ ...draft, steps: draft.steps, teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
-  }
-  const addTeam = () => {
-    if (!save()) return null
-    const current = getState()
-    const teams = current.org.workflowTeams ?? []
-    let number = teams.length + 1
-    while (teams.some(team => team.name.toLowerCase() === `team ${number}`)) number++
-    const id = crypto.randomUUID()
-    if (!tryDispatch({ type: "saveWorkflowTeams", teams: [...teams, { id, name: `Team ${number}` }], roleTeams: current.org.workflowRoleTeams ?? {} })) {
-      setError("Could not save the new team. Try again."); return null
-    }
-    setError(""); return id
-  }
-  const renameTeam = (id: string, name: string) => {
-    const current = getState(), clean = name.trim()
-    if (!clean || clean.length > 80 || current.org.workflowTeams?.some(team => team.id !== id && team.name.toLowerCase() === clean.toLowerCase())) {
-      setError("Give each team a distinct name."); return false
-    }
-    if (!tryDispatch({ type: "saveWorkflowTeams", teams: (current.org.workflowTeams ?? []).map(team => team.id === id ? { ...team, name: clean } : team), roleTeams: current.org.workflowRoleTeams ?? {} })) {
-      setError("The team name was not saved. Try again."); return false
-    }
-    setError(""); return true
+    const mappings = { ...draft.teamMap?.stepTeams }
+    const legal = new Set((state.org.workflowTeams ?? []).map(team => team.id))
+    const roleTeam = (step: StepTemplate) => step.ownerRoleId ? state.org.workflowRoleTeams?.[step.ownerRoleId] : undefined
+    const graph = draft.milestoneGraph
+    const teamBranches = graph?.teamBranches.map(branch => {
+      const candidates = new Set(branch.stepIds.map(key => draft.steps.find(step => step.key === key)).filter((step): step is StepTemplate => !!step).map(roleTeam).filter((id): id is string => !!id && legal.has(id)))
+      const teamId = legal.has(branch.teamId) ? branch.teamId : candidates.size === 1 ? [...candidates][0] : branch.teamId
+      for (const key of branch.stepIds) { if (teamId) mappings[key] = teamId; else delete mappings[key] }
+      return { ...branch, teamId }
+    })
+    const routed = new Set(teamBranches?.flatMap(branch => branch.stepIds) ?? [])
+    for (const step of draft.steps) { const id = roleTeam(step); if (!routed.has(step.key) && !legal.has(mappings[step.key]) && id && legal.has(id)) mappings[step.key] = id }
+    setDraft({ ...draft, ...(graph ? { milestoneGraph: { ...graph, teamBranches: teamBranches! } } : {}), teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
+    setStatus("Role teams applied where one team owns the branch. Choose any remaining branch teams in Flow.")
   }
   const latest = template.versions[template.versions.length - 1]
   return <div className="form-stack wfl-editor" data-testid="workflow-template-editor">
@@ -139,6 +125,6 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
     </div>
     <p className="small" role="status">{persistenceFailed ? "Saving failed. Keep this page open and retry." : pending ? "Saving draft…" : status}</p>
     {error && <p role="alert">{error}</p>}
-    <WorkflowBuilder state={state} steps={draft.steps} branches={draft.branches} stepTeams={draft.teamMap?.stepTeams ?? {}} teams={state.org.workflowTeams ?? []} policy={draft.kind} onChange={update} onAddTeam={addTeam} onRenameTeam={renameTeam} />
+    <WorkflowBuilder state={state} steps={draft.steps} branches={draft.branches} stepTeams={draft.teamMap?.stepTeams ?? {}} teams={state.org.workflowTeams ?? []} policy={draft.kind} graph={draft.milestoneGraph} onChange={update} />
   </div>
 }
