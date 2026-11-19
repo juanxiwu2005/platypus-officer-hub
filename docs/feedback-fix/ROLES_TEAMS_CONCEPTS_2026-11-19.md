@@ -1,4 +1,4 @@
-# Settings → Roles & teams 四个静态方案（待 Juanxi 选择）
+# Settings → Roles & teams 四个静态方案（Juanxi 选 C，已实现，待验收）
 
 2026-11-19，Claude。只有静态图，没有改产品代码。数据是虚构演示社团（Desert Founders Society）。
 
@@ -22,3 +22,14 @@ Workflow 的团队分支（Operations、Finance、Marketing、Club leadership）
 ## 源文件
 
 `docs/prototypes/roles-teams-concepts/source/`（`gen.py` 生成 HTML，`snap.cjs` 用 Playwright 截图，1440 宽、2 倍像素）。
+
+## 方案 C 实现（2026-11-19，worktree Agent E）
+
+- Settings 的 “Roles” 改名 **Roles & teams**。Chart 视图：汇报线 + 团队色块（颜色与 Workflow 画布同一套，抽到 `src/styles/fb-10-team-tones.css`，Workflow 画布像素不变），标签 “<Team> · N steps”（默认模板的步骤数），没有团队的岗位放在 “Not in a team”。
+- 右侧面板：点岗位改 Title / Officer name / Reports to / Team / Email / Phone / ASU ID / Duties，显示 “Owns N steps in <模板>” 和 Open in Workflow；改团队立即保存（`saveWorkflowTeams`），可 Undo。点团队标签改团队名、看岗位、Delete team（有岗位、任何模板版本或草稿在用、预设团队、最后一个团队时不能删，并写原因）。
+- `+ Role`、`+ Team`；`Contact list` 是原来的表格，多一列 Team 标签；Closed roles、Invite officers 在下方。Workflow → More → Teams 继续可用，并能跳到 Roles & teams（`#/settings?tab=roles`）。
+- 在这一页右侧 Ask 面板默认收起（和 Workflow 页一样），平板和手机上右侧面板排到组织图下面。
+- 代码：`src/engine/teamOrgChart.ts`、`src/components/settings/{TeamOrgChart,RolesTeams,RolesTable}.tsx`、`src/data/roleEdits.ts`、`src/data/workflowTeamSettings.ts`。schema 不变。
+- 验证：lint、build 通过；单元 2120 项中 2118 过（2 项旧失败）；新 `e2e/settings-roles-teams.spec.ts` 桌面+手机 10/10，和 Workflow 两份页面测试合并复验 28/28；Settings 字数 146/150。Agent 另跑的 handoff / setup-team / a11y / m4-setup 中 8 项失败，在改动前的代码上同样失败（之前也记录过），与本次无关。
+- 截图：`C-implemented-desktop.png`、`C-implemented-team.png`、`C-implemented-phone.png`。
+- 验收：preview14 → Settings → Roles & teams；点 Secretary，把 Team 改成 Marketing，看色块变化，再点 Undo；点 Finance 标签看团队详情；切到 Contact list。
