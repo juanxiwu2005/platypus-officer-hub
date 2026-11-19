@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import type { DemoState, Event, Node, StepTemplate } from "../src/data/types"
 import { addDays } from "../src/lib/dates"
+import { computeSchedule } from "../src/engine/schedule"
 import { closeRail, noOverflow } from "./helpers"
 
 type Version = { name: string; version: number; steps: StepTemplate[]; teamMap?: { stepTeams: Record<string, string> } }
@@ -190,6 +191,28 @@ test("dependency connections reject loops and double-clicking an arrow leaves th
   const saved = await templateByName(page, "Safe connections")
   expect((saved.draft ?? saved.versions.at(-1)!).steps).toEqual(template.versions[0].steps)
   expect(await builder.getByTestId("workflow-dependency").count()).toBe(1)
+})
+
+test("custom T0 and T+ targets remain valid work on and after the activity day", async ({ page }) => {
+  const template = await createTemplate(page, "Visit day and follow-up", ["Host visit", "Thank host"])
+  const builder = page.getByTestId("workflow-builder")
+  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  for (const [title, offset] of [["Host visit", "0"], ["Thank host", "2"]]) {
+    await builder.getByRole("button", { name: `Edit ${title}`, exact: true }).click()
+    await page.getByLabel("Finish by (T±)", { exact: true }).fill(offset)
+    await closeRail(page)
+  }
+  await page.getByRole("button", { name: "Save version", exact: true }).click()
+  await expect.poll(async () => (await templateByName(page, "Visit day and follow-up"))?.versions.length).toBe(2)
+  const updated = await templateByName(page, "Visit day and follow-up")
+  const event = await createEvent(page, "Visit with follow-up", updated, 2)
+  const saved = await read(page)
+  const tasks = saved.nodes.filter(node => node.eventId === event.id)
+  const schedule = computeSchedule(saved)
+  expect(tasks.find(node => node.title === "Host visit")?.clubDeadline).toBe(event.date)
+  expect(tasks.find(node => node.title === "Thank host")!.clubDeadline! > event.date).toBe(true)
+  expect(tasks.flatMap(node => schedule.nodes[node.id].issues).filter(issue => issue.code === "after_event")).toEqual([])
+  expect(template.versions[0].steps.map(step => step.anchor)).not.toEqual(updated.versions[1].steps.map(step => step.anchor))
 })
 
 test("the two authoring views share saved IDs and support keyboard, dark mode and narrow screens", async ({ page }, info) => {
