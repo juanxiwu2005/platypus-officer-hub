@@ -75,7 +75,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
   const token = grant ? taskAccessToken(grant) : ""
   const usable = !!grant && usableTaskAccessGrant(state, token)?.id === grant.id
   const draft = facts && recipient && grant ? buildReminderMail({ today: state.today, facts, recipient,
-    taskUrl: taskAccessUrl(window.location.origin, grant), candidate, request,
+    taskUrl: taskAccessUrl(window.location.origin, grant, facts.eventId), candidate, request,
     requesterName: state.people.find(p => p.id === facts.ownerId)?.name,
   }) : null
   const mail = recorded ? attempted : draft

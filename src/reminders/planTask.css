@@ -1,0 +1,4 @@
+.plan-task-nav { display: grid; gap: var(--s2); margin-bottom: var(--s4); padding-bottom: var(--s3); border-bottom: 1px solid var(--line); }
+.plan-task-nav-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--s2); }
+.plan-task-nav-row a { overflow-wrap: anywhere; }
+.plan-task-nav label, .plan-task-nav select { width: 100%; min-width: 0; max-width: 100%; }

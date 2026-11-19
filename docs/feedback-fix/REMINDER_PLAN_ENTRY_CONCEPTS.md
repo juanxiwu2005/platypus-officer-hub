@@ -1,5 +1,7 @@
 # 邮件进入活动 Plan，并在右侧展开任务
 
+> **后续状态：** Juanxi已批准按真实workflow执行，实施见[交付记录](REMINDER_PLAN_ENTRY_HANDOFF.md)。以下保留两张静态图的原始讨论范围，图片不是最终流程图布局。
+
 2026-11-18（America/Phoenix）· Codex · 两张静态参考图，待 Juanxi 批准后实施
 
 ## 本轮要求与范围

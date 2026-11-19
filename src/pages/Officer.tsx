@@ -8,7 +8,7 @@ const SingleTaskPage = lazy(() => import("../reminders/SingleTaskPage"))
 
 export default function Officer() {
   const [params] = useSearchParams()
-  return params.has("access") ? <SingleTaskPage token={params.get("access") ?? ""} /> : <LegacyOfficer />
+  return params.has("access") ? <SingleTaskPage token={params.get("access") ?? ""} preferPlan /> : <LegacyOfficer />
 }
 
 function LegacyOfficer() {

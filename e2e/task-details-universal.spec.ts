@@ -133,7 +133,7 @@ test("the email's single link opens the same submission form and remains readabl
   await mail.getByRole("button", { name: "Approve · Platypus sends (demo)", exact: true }).click()
   const delivery = (await savedDemo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === ROOM)!
   await page.goto(delivery.message!.taskUrl)
-  const task = page.getByTestId("single-task-page")
+  const task = page.getByTestId("task-detail")
   await expect(task.getByRole("navigation", { name: "External task links" }).getByRole("link")).toHaveCount(3)
   await task.getByLabel("Details", { exact: true }).fill("Booked Room 204 from the task email")
   await task.getByRole("button", { name: "Submit & mark done", exact: true }).click()

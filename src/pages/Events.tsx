@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "react-router-dom"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { Link, useSearchParams } from "react-router-dom"
 import { useStore, useSchedule } from "../data/store"
 import { PageHead } from "../components/Page"
 import { Bts, BtsRow, BtsTr } from "../components/Bts"
@@ -19,6 +19,9 @@ import { budgetTotal } from "../engine/eventBudget"
 import { TaskTypeIcon } from "../components/TaskTypeIcon"
 import { asuSentence, isLate, reminderSentence } from "../lib/taskDue"
 
+import { resolvePlanEntry } from "../reminders/planEntry"
+import { useTaskAccess } from "../reminders/useTaskAccess"
+
 type View = "flow" | "list" | "budget"
 const VIEW_KEY = "platypus.v1.eventsView"
 function initialView(): View {
@@ -33,16 +36,59 @@ export default function Events() {
   const sched = useSchedule()
   const rail = useRail()
   const [params, setParams] = useSearchParams()
+  const access = useTaskAccess(params.get("access") ?? "")
+  const entry = resolvePlanEntry(state, params, access.grant, access.checking)
+  const appliedSelection = useRef<string | null>(null)
+  const chart = useRef<HTMLDivElement>(null)
   const [savedView, setViewState] = useState<View>(initialView)
   const [editingFlow, setEditingFlow] = useState(false)
   const lead = canLead(state)
-  const view: View = params.get("view") === "budget" ? "budget" : savedView
+  const requestedView = params.get("view")
+  const view: View = requestedView === "flow" || requestedView === "list" || requestedView === "budget" ? requestedView : params.has("node") ? "flow" : savedView
   const forecast = forecastFor(state)
-  const ev = state.events.find(e => e.id === params.get("event")) ?? state.events[0]
+  const ev = entry.linked ? entry.event : state.events.find(e => e.id === params.get("event")) ?? state.events[0]
   const eventsByDate = useMemo(() => [...state.events].sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)), [state.events])
-  const selected = rail.detail?.kind === "node" ? rail.detail.id : null
+  const selected = entry.linked && !entry.error && !entry.checking ? entry.node?.id ?? null : rail.detail?.kind === "node" || rail.detail?.kind === "task" ? rail.detail.id : null
+  const selectionKey = JSON.stringify([params.get("event"), params.get("node"), params.get("access"), params.get("from")])
+  useEffect(() => {
+    if (entry.checking || entry.error) {
+      appliedSelection.current = null
+      if (rail.detail?.kind === "task" || rail.detail?.kind === "node") rail.closeDetail()
+    } else if (entry.linked && entry.node) {
+      if (appliedSelection.current === selectionKey) return
+      appliedSelection.current = selectionKey
+      rail.show({ kind: "task", id: entry.node.id })
+    } else if (appliedSelection.current !== null) {
+      appliedSelection.current = null
+      if (rail.detail?.kind === "task") rail.closeDetail()
+    }
+  }, [selectionKey, entry.checking, entry.error, state.demoLinkKey])
+  useEffect(() => {
+    if (view !== "flow" || !selected || entry.error || entry.checking) return
+    const center = () => {
+      const scroller = chart.current?.querySelector<HTMLElement>(".metro")
+      const dot = chart.current?.querySelector<HTMLElement>(".is-selected .m-dot")
+      if (!scroller || !dot) return
+      const frame = scroller.getBoundingClientRect(), point = dot.getBoundingClientRect()
+      scroller.scrollBy?.({ left: point.left + point.width / 2 - frame.left - frame.width / 2, behavior: "instant" })
+    }
+    let second = 0
+    const first = requestAnimationFrame(() => { second = requestAnimationFrame(center) })
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(center) : null
+    if (chart.current) observer?.observe(chart.current)
+    return () => { cancelAnimationFrame(first); cancelAnimationFrame(second); observer?.disconnect() }
+  }, [selected, view, ev?.id, entry.error, entry.checking, rail.open])
+  const openNode = (id: string) => {
+    const next = new URLSearchParams(params)
+    next.set("event", ev!.id); next.set("node", id)
+    if (entry.origin) next.set("from", entry.origin.id)
+    setParams(next)
+    // Clicking the current node should also reopen a deliberately hidden panel.
+    if (id === entry.node?.id) rail.show({ kind: "task", id })
+  }
   const chooseEvent = (eventId: string) => {
     const next = new URLSearchParams(params)
+    for (const key of ["node", "access", "from"]) next.delete(key)
     next.set("event", eventId)
     setParams(next)
     rail.show({ kind: "event", eventId })
@@ -50,12 +96,14 @@ export default function Events() {
   const setView = (v: View) => {
     setViewState(v)
     const next = new URLSearchParams(params)
-    if (v === "budget") next.set("view", "budget"); else next.delete("view")
+    next.set("view", v)
     setParams(next, { replace: true })
     if (v !== "budget") try { window.localStorage.setItem(VIEW_KEY, v) } catch { /* storage unavailable */ }
   }
   const nodes = useMemo(() => state.nodes.filter(n => n.eventId === ev?.id), [state.nodes, ev?.id])
-  useEffect(() => { if (ev && params.get("event") && !state.events.some(e => e.id === params.get("event"))) setParams({}, { replace: true }) }, [ev?.id])
+  useEffect(() => { if (!entry.linked && ev && params.get("event") && !state.events.some(e => e.id === params.get("event"))) setParams({}, { replace: true }) }, [ev?.id])
+  if (entry.checking) return <p role="status">Opening your task in Plan…</p>
+  if (entry.error) return <section className="card"><h1>Check your task link</h1><p role="alert">{entry.error}</p><Link to="/events">Open Plan</Link></section>
   if (!ev) return <><PageHead path="/events" actions={<NewEvent />} /><div className="new-event-empty"><Empty>No events yet.</Empty><NewEvent testId="new-event-empty" /></div></>
 
   const evIssues = sched.events[ev.id]?.issues ?? []
@@ -110,7 +158,7 @@ export default function Events() {
       </div>
 
       {view === "flow" && <BtsRow><Bts label="Computed">{hasTeamExecutionTracks(ev, nodes) ? "Dots follow task dependencies within the saved team tracks. Dates come from the rule engine; select a task for its current progress." : "Each dot's place comes from its dates. Colour: done when finished; risk when its forecast is red; now when it has started or its start day is today or earlier; otherwise to do."}</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
-      {view === "flow" && <div className="metro-fade"><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead && !hasTeamExecutionTracks(ev, nodes)} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
+      {view === "flow" && <div className="metro-fade" ref={chart}><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={openNode} canEdit={lead && !hasTeamExecutionTracks(ev, nodes)} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
       {view === "list" && <section className="card tbl-wrap" data-testid="event-list">
         <table className="tbl">
           <thead><tr><th>Step</th><th>Owner</th><th>Status</th><th>Due</th></tr></thead>
@@ -119,7 +167,7 @@ export default function Events() {
             const issue = worstIssue(p.issues)
             const asu = asuSentence(n, p)
             return [<tr key={n.id}>
-              <td><button type="button" className={`row-btn task-title ${issue?.severity === "error" ? "late-text" : ""}`} onClick={() => rail.show({ kind: "node", id: n.id })} data-testid={`event-step-${n.id}`} title={issue?.text}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
+              <td><button type="button" className={`row-btn task-title ${issue?.severity === "error" ? "late-text" : ""}`} onClick={() => openNode(n.id)} data-testid={`event-step-${n.id}`} title={issue?.text}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
               <td><span className="who"><Avatar name={state.people.find(x => x.id === n.ownerId)?.name} size="sm" />{firstName(state, n.ownerId)}</span></td>
               <td><NodePill node={n} small /></td>
               <td className={`small num nowrap ${isLate(n, p.club, state.today) ? "late-text" : ""}`}>{fmtShort(p.club)}</td>

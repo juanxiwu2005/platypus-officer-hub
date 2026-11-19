@@ -10,6 +10,7 @@ import { RouteLoading } from "../RouteLoading"
 import { trapTabKey } from "../../lib/focus"
 
 // Ask, task details and reminders stay eager for Today. Auxiliary editors load when opened.
+const PlanTaskPanel = lazy(() => import("../../reminders/PlanTaskPanel"))
 const FundingDetail = lazy(() => import("../../pages/Funding").then(module => ({ default: module.FundingDetail })))
 const TaskDetail = lazy(() => import("../TaskDetail").then(module => ({ default: module.TaskDetail })))
 const PartnerDetail = lazy(() => import("../crm/ContactDetail").then(module => ({ default: module.PartnerDetail })))
@@ -102,6 +103,11 @@ function DetailView() {
   }, [key])
   const close = () => {
     if (d.kind === "task" && location.pathname === "/tasks" && location.search.includes("node=")) navigate("/tasks", { replace: true })
+    if (d.kind === "task" && location.pathname === "/events" && new URLSearchParams(location.search).has("node")) {
+      const params = new URLSearchParams(location.search)
+      for (const key of ["node", "access", "from"]) params.delete(key)
+      navigate(`/events?${params}`, { replace: true })
+    }
     rail.closeDetail()
   }
   useEffect(() => {
@@ -129,7 +135,7 @@ function DetailView() {
     case "nudge": return <div ref={box} className="detail-scroll" {...region}><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
     case "task": {
       const node = state.nodes.find(n => n.id === d.id)
-      body = node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
+      body = location.pathname === "/events" ? <PlanTaskPanel nodeId={d.id} /> : node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
       break
     }
     case "funding": body = <FundingDetail eventId={d.eventId} />; break

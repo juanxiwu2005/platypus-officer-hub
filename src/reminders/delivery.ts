@@ -27,7 +27,7 @@ export async function sendReminderBatch(store: {getState: () => DemoState; tryDi
       const prepared = { ...state, taskAccessGrants: [...(state.taskAccessGrants ?? []), grant] }
       if (!await verifyTaskAccessGrant(prepared, taskAccessToken(grant))) continue
       const request = state.reminderRuntime.waitingRequests.find(r => r.id === candidate.waitingRequestId)
-      const mail = buildReminderMail({ today: state.today, facts, recipient, candidate, request, requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskAccessUrl(origin, grant) })
+      const mail = buildReminderMail({ today: state.today, facts, recipient, candidate, request, requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskAccessUrl(origin, grant, facts.eventId) })
       if (mail.checked) entries.push({ candidateId: id, grant, message: { ...mail, channel: "email", preparedOn: state.today, accessId: grant.id } })
     } catch { /* Keep valid entries; the result identifies everything that was not recorded. */ }
   }

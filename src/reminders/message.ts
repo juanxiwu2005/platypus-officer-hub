@@ -15,7 +15,7 @@ export function validatedReminderMessage(s: DemoState, raw: ReminderMailSnapshot
     const grant = usableTaskAccessGrant(s, token)
     if (!grant || grant.id !== raw.accessId || grant.nodeId !== nodeId || grant.recipientId !== raw.recipientId
       || !["http:", "https:"].includes(url.protocol) || url.pathname !== "/" || url.search || url.username || url.password
-      || url.hash !== taskAccessUrl("", grant).slice(1)) return null
+      || ![taskAccessUrl("", grant), taskAccessUrl("", grant, s.nodes.find(n => n.id === nodeId)?.eventId)].some(value => url.hash === value.slice(1))) return null
     const facts = buildReminderFacts(s, nodeId)
     const people = reminderPeople(s)
     const recipient = people.find(p => p.id === grant.recipientId)

@@ -1,8 +1,9 @@
 > **2026-11-18（America/Phoenix） · 恢复原预设团队与46项模板默认归组，进行中（Codex）**
 > **用户纠正与范围：** 用户指出上轮把原有结果打乱，要求根据之前工作流预设必需团队，社长以后可以任意改团队名称。沿用v3-foundation原分组：Club leadership 1、Operations 25、Marketing 8、Finance 12；自动准备稳定团队ID/岗位默认关联/46步骤归组，不再要求先手工建团队或“一岗一队”。保留用户已有改名/显式分组、原任务/连线/时长及所有既有活动快照；不改同期邮件Plan入口工作，不合并main。基于`f1f1173`独立worktree，沿用PR14，0真实AI/邮件；需要同步本地备份。
 
-> **2026-11-18（America/Phoenix） · 邮件直达真实Plan与跨节点Details实施中（Codex）**
-> **授权：** Juanxi确认已理解两张示意，明确要求开始修改；沿用真实workflow样式，不照搬图片。基于最新工作流交付`a2f4dd8`，实现邮件定位对应活动/节点、右列展开、其他节点已提交资料切换与返回，保护草稿及任务授权；不重做模板编辑器、不引入真实后台邮件或成员账号。保留同期模板库/团队/独立实例交付，沿用PR14/原分支，不合并main。
+> **2026-11-18（America/Phoenix） · 邮件直达真实Plan与跨节点Details检查完成，待验收（Codex）**
+> **授权与交付：** Juanxi明确批准修改，要求沿用真实workflow、不照搬效果图。以最新工作流`a2f4dd8`为基点，运行时`3505d79`将活动邮件直接定位Plan实际节点并展开右侧Details；可点图或右列下拉切换同活动已提交资料/附件并返回原任务，手机有Back to Plan。刷新/历史保留选择和自动草稿，旧可复用邮件链接兼容跳转；原grant仅作用原任务，他人节点只读，不切换viewer、不暴露私人草稿。未修改Settings模板、图渲染器、schema/store或日期/提醒频率。
+> **验证与验收：** [preview14提醒中心](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/) · [使用、权限与验证](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md) · [真实双端截图](prototypes/reminder-plan-implemented/manifest.json)。19文件270相关单元/组件通过；最终集成38项中37过/1手机自动关闭竞态，修正离开Plan清理及等待条件后14项复验全过，按唯一用例计38通过。lint、前后端类型、生产构建、独立CSS及9页字数通过，入口494,992/550,000。检查包括附件下载、立即输入后切换、旧链接/改派、Waiting on范围、正文附件、延期/撤回、两种实际流程图、严重无障碍与溢出。0真实产品AI/邮件，仍为本浏览器演示，未重复全站门禁；已确认`861431c`的Netlify deploy-preview为success，直接网页抓取受环境代理403限制，交互证据为本地生产构建。沿用原分支/PR14，保留同期工作流与默认分组讨论，不合并main。需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · Settings人工模板编辑器到Plan任务执行已完成检查，待验收（Codex＋6个独立worktree Agent）**
 > **交付：** [分阶段方案与交付](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)。Settings → Workflow新增模板目录、空白创建/复制、自动草稿/保存版本/默认模板，②团队时间轴为主＋①清单批录；稳定任务key、岗位/团队、Details、工作日/T±、前置连线/防循环、before/after/parallel/条件分支与汇合点明确选择、Undo；水平鼠标/触屏拖动改真实目标，学校与business目标保护。创建活动选择固定模板版本，批量生成独立run/task与团队快照，Plan为一队一泳道圆点，旧活动/任务ID/链接/schema23保留，custom不回填31core，也不自动收费AI检查。
@@ -575,6 +576,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-18 | Codex（邮件进入真实Plan） | `3505d79`实现邮件活动/节点定位、右列Details与跨节点已提交资料切换，旧链接兼容，原任务grant与成员上下文分离；即时草稿/附件、手机返回/切换、刷新/历史和离开清理已检查。270单元/组件、38唯一浏览器用例（末次14复验）、lint/types/build/CSS/字数通过。见 `feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md`。 | 沿用PR14待验收；0真实邮件/AI，不合并main。PRODUCT_PLAN/RULES已同步，需要同步本地备份。 |
 | 2026-11-18 | Codex（邮件进入Plan两张图） | 静态图展示邮件定位活动/节点并展开右侧Details，再切换他人已提交信息/附件并返回原任务。见 `feedback-fix/REMINDER_PLAN_ENTRY_CONCEPTS.md`。仅文档/PNG/JSON，2次图片生成，未改产品/邮件/授权；保留Plan点状执行和原通用表单。 | 待Juanxi批准后实施；需要同步本地备份。 |
 | 2026-11-18 | Codex（提醒邮件研究） | 完成最新代码核对、17项来源证据表与六张独立邮件/落地页静态图；建议A＋D，未选定实施。见 `feedback-fix/REMINDER_EMAIL_RESEARCH_2026-11-18.md` 和图集manifest。只改文档/PNG/JSON，0产品AI调用/真实邮件，6生成＋5修图；保留同期工作流/团队资料，不建PR、不合并main。 | 待Juanxi比较方案；后续实施另行明确。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（提醒整合至preview 14） | 按用户要求将提醒1–3阶段合入既有PR #14；0555fc4合并、6bb3e24最终运行时代码。保留57c7e55职责撤回、main onboarding和匹配归档，补提醒入口下旧归档认领/改派撤权回归；纯规则缓存模块保持入口542,788/550,000。381项单元/组件及分批97浏览器用例通过，1设备限定跳过；lint/类型/build/CSS/字数通过。 | 沿用preview14，不再交付推测的preview15地址。详见`feedback-fix/REMINDER_PREVIEW14_INTEGRATION.md`；已有存档显式启用，不恢复撤回的职责界面。不新增PR、不合并main、0真实AI/邮件。保留原全量门禁差异；`PRODUCT_PLAN.md`含已批准提醒增量，需要同步本地备份。 |
