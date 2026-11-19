@@ -1,0 +1,19 @@
+.mxe { min-width: 0; }
+.mxe > p { margin-top: 0; }
+.mxe-scroll { max-height: 76vh; }
+.mxe-segment { padding: var(--s4) var(--s5); }
+.mxe-segment > b { font-size: var(--fs-md); }
+.mxe-segment > span { margin-left: var(--s4); font-size: var(--fs-sm); color: var(--muted); }
+.mxe-task.m-dot { width: 96px; height: 102px; transform: translate(-50%, -22px); display: flex; flex-direction: column; align-items: center; gap: var(--s3); border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: var(--s4) 0 0; color: var(--ink); }
+.mxe-task.m-dot::after { display: none; }
+.mxe-task > i { width: 24px; height: 24px; flex-shrink: 0; border-radius: var(--r-circle); border: 2px solid var(--info); background: var(--surface); }
+.mxe-task.situation > i { border-color: var(--risk-yellow); }
+.mxe-task.done > i { background: var(--good); border-color: var(--good); }
+.mxe-task.now > i { background: var(--info); border-color: var(--info); box-shadow: 0 0 0 4px var(--info-glow); }
+.mxe-task.risk > i { border-color: var(--late); border-width: 3px; }
+.mxe-task[aria-pressed="true"] > i { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 5px var(--accent); }
+.mxe-task strong { max-width: 92px; font-size: var(--fs-md); line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
+.mxe-task > span { max-width: 108px; font-size: var(--fs-sm); color: var(--muted); text-align: center; line-height: 1.25; }
+.mxe-task.is-shared strong { position: absolute; bottom: calc(100% + var(--s3)); }
+.mxe-task:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); border-radius: var(--r-sm); }
+.mxe-unplaced { display: flex; flex-wrap: wrap; gap: var(--s4); margin-top: var(--s5); }

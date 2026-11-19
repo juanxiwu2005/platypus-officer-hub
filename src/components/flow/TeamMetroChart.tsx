@@ -1,4 +1,4 @@
-import { useId, useMemo, useState, type CSSProperties } from "react"
+import { lazy, Suspense, useId, useMemo, useState, type CSSProperties } from "react"
 import type { DemoState } from "../../data/types"
 import type { Forecast } from "../../engine/forecast"
 import type { Schedule } from "../../engine/schedule"
@@ -11,6 +11,7 @@ import { executionTeamSnapshot, teamMetroLayout } from "./teamMetro"
 import "./teamMetro.css"
 
 interface Props { state: DemoState; sched: Schedule; forecast: Forecast; eventId: string; selectedId: string | null; onSelect: (id: string) => void }
+const MilestoneExecutionChart = lazy(() => import("./MilestoneExecutionChart").then(module => ({ default: module.MilestoneExecutionChart })))
 const LEFT = 194, COL = 144, ROW = 136, TOP = 154
 
 /** Saved workflow definitions become actual tasks here; a dot never has separate state or a separate ID. */
@@ -22,6 +23,7 @@ export function TeamMetroChart({ state, sched, forecast, eventId, selectedId, on
   const marker = useId().replace(/:/g, "")
   const [hovered, setHovered] = useState<string | null>(null)
   const [focused, setFocused] = useState<string | null>(null)
+  if (event?.workflowRun?.snapshot.milestoneGraph) return <Suspense fallback={<p className="small muted" role="status">Loading activity workflow…</p>}><MilestoneExecutionChart state={state} sched={sched} forecast={forecast} eventId={eventId} selectedId={selectedId} onSelect={onSelect} /></Suspense>
   if (!event || !graph) return null
   const width = Math.max(640, LEFT + graph.columns * COL + 48)
   const height = TOP + Math.max(1, graph.lanes.length) * ROW
