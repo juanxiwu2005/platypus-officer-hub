@@ -292,3 +292,57 @@ test("the two authoring views share saved IDs and support keyboard, dark mode an
   await page.screenshot({ path: info.outputPath("workflow-builder-dark.png"), fullPage: false })
   await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath("workflow-timeline-dark.png") })
 })
+
+test("dragging a task changes only its relative target and preserves its identity after refresh", async ({ page, isMobile }, info) => {
+  const template = await createTemplate(page, "Drag visit timeline")
+  const original = template.versions[0]
+  const last = original.steps[original.steps.length - 1]
+  const builder = page.getByTestId("workflow-builder")
+  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await closeRail(page)
+  const task = builder.getByTestId(`workflow-task-${last.key}`)
+  await task.scrollIntoViewIfNeeded()
+  const box = (await task.boundingBox())!
+  const x = box.x + box.width / 2, y = box.y + 40
+  if (isMobile) {
+    const cdp = await page.context().newCDPSession(page)
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] })
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + 27, y }] })
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + 54, y }] })
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
+    await cdp.detach()
+  } else {
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x + 54, y, { steps: 6 })
+    await page.mouse.up()
+  }
+  const beforeDays = last.anchor?.kind === "target" ? last.anchor.days : undefined
+  expect(beforeDays).toBeDefined()
+  await expect.poll(async () => {
+    const current = (await templateByName(page, "Drag visit timeline")).draft?.steps.find(step => step.key === last.key)
+    return current?.anchor?.kind === "target" ? current.anchor.days : undefined
+  }).toBe(beforeDays! - 3)
+  const draft = (await templateByName(page, "Drag visit timeline")).draft!
+  const moved = draft.steps.find(step => step.key === last.key)!
+  expect({ key: moved.key, estDays: moved.estDays, ownerRoleId: moved.ownerRoleId, dependsOn: moved.dependsOn }).toEqual({ key: last.key, estDays: last.estDays, ownerRoleId: last.ownerRoleId, dependsOn: last.dependsOn })
+  expect(draft.teamMap?.stepTeams).toEqual(original.teamMap?.stepTeams)
+  await page.reload()
+  await page.getByRole("button", { name: "Workflow", exact: true }).click()
+  await page.getByLabel("Saved workflow", { exact: true }).selectOption(template.id)
+  const restored = (await templateByName(page, "Drag visit timeline")).draft!.steps.find(step => step.key === last.key)!
+  expect(restored.anchor).toEqual(moved.anchor)
+
+  if (!isMobile) {
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await page.getByRole("button", { name: "Hide side panel", exact: true }).evaluateAll(buttons => buttons.forEach(button => (button as HTMLButtonElement).click()))
+    await page.screenshot({ path: info.outputPath("workflow-editor-1440.png"), fullPage: true })
+    await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath("workflow-timeline-1440.png") })
+    await page.getByRole("button", { name: "Save version", exact: true }).click()
+    await expect.poll(async () => (await templateByName(page, "Drag visit timeline")).versions.length).toBe(2)
+    await createEvent(page, "Wide company visit", await templateByName(page, "Drag visit timeline"), 2)
+    await page.getByRole("button", { name: "Hide side panel", exact: true }).evaluateAll(buttons => buttons.forEach(button => (button as HTMLButtonElement).click()))
+    await page.getByTestId("flow-chart").scrollIntoViewIfNeeded()
+    await page.screenshot({ path: info.outputPath("plan-dots-1440.png"), fullPage: false })
+  }
+})
