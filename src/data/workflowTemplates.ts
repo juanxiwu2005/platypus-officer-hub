@@ -5,6 +5,7 @@ import { MAX_STEPS, PHASE_LIST, checkWorkflow, withOwners } from "../engine/work
 import { DEFAULT_WORKFLOW_BRANCHES, branchOf, isWorkflowCondition, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
 import { isAsuStep } from "../engine/workflowPolicy"
 import { presetWorkflowStepTeams } from "./workflowTeamDefaults"
+import { sequenceTeamSteps, sequenceTeamStepsForDraft } from "../engine/workflowSequence"
 import { RULES } from "./rules"
 
 /** This built-in identity is scoped by Org.id; user-created templates use generated IDs. */
@@ -13,7 +14,7 @@ export const MAX_WORKFLOW_TEMPLATES = 100
 
 const copy = <T,>(value: T): T => structuredClone(value)
 const text = (value: unknown, max: number, empty = false): value is string => typeof value === "string" && (empty || !!value.trim()) && value.length <= max
-const contentOf = (value: WorkflowTemplateContent): WorkflowTemplateContent => copy({ name: value.name, ...(value.description !== undefined ? { description: value.description } : {}), kind: value.kind, steps: value.steps, ...(value.branches ? { branches: value.branches } : {}), ...(value.teamMap ? { teamMap: value.teamMap } : {}) })
+const contentOf = (value: WorkflowTemplateContent): WorkflowTemplateContent => copy({ name: value.name, ...(value.description !== undefined ? { description: value.description } : {}), kind: value.kind, ...(value.teamExecution ? { teamExecution: value.teamExecution } : {}), steps: value.steps, ...(value.branches ? { branches: value.branches } : {}), ...(value.teamMap ? { teamMap: value.teamMap } : {}) })
 const latestVersion = (template: WorkflowTemplate) => template.versions[template.versions.length - 1]
 const knownRuleIds = new Set([...RULES.map(rule => rule.id), ...EVENT_STEPS.flatMap(step => step.ruleIds ?? [])])
 
@@ -55,6 +56,7 @@ export const newWorkflowTemplateId = (): string => crypto.randomUUID()
 export function workflowTemplateDraftError(draft: WorkflowTemplateContent, roles: Role[], publishing = false): string | null {
   if (!draft || !text(draft.name, 100, !publishing) || (draft.description !== undefined && !text(draft.description, 1000, true))) return "Give the workflow a name of up to 100 characters."
   if (!["standard", "custom"].includes(draft.kind) || !Array.isArray(draft.steps) || draft.steps.length > MAX_STEPS || (publishing && !draft.steps.length)) return `A saved workflow needs 1 to ${MAX_STEPS} tasks.`
+  if (draft.teamExecution !== undefined && draft.teamExecution !== "sequential") return "Choose sequential team execution."
   const keys = new Set<string>()
   for (const step of draft.steps) {
     if (!step || !text(step.key, 40) || !/^[a-zA-Z0-9_-]+$/.test(step.key) || keys.has(step.key)) return "Every task needs a different stable ID."
@@ -123,12 +125,13 @@ function replaceTemplate(s: DemoState, template: WorkflowTemplate): DemoState {
 
 export function newWorkflowTemplate(s: DemoState, id: string, name = "Untitled workflow"): DemoState {
   if (!canLead(s) || !text(id, 100) || !text(name, 100) || getWorkflowTemplate(s, id) || getWorkflowTemplates(s).length >= MAX_WORKFLOW_TEMPLATES) return s
-  const template: WorkflowTemplate = { id, versions: [], draft: { name: name.trim(), kind: "custom", steps: [], baseVersion: 0, teamMap: { version: 1, workflowId: id, stepTeams: {} } }, updatedOn: s.today }
+  const template: WorkflowTemplate = { id, versions: [], draft: { name: name.trim(), kind: "custom", teamExecution: "sequential", steps: [], baseVersion: 0, teamMap: { version: 1, workflowId: id, stepTeams: {} } }, updatedOn: s.today }
   return { ...s, org: { ...s.org, workflowTemplates: [...getWorkflowTemplates(s), template] } }
 }
 
 export function saveWorkflowTemplateDraft(s: DemoState, id: string, draft: WorkflowTemplateDraft): DemoState {
   if (!canLead(s)) return s
+  if (draft.teamExecution === "sequential" && Array.isArray(draft.steps)) draft = { ...draft, steps: sequenceTeamStepsForDraft(s, draft.steps, draft.teamMap?.stepTeams ?? {}, draft.branches, draft.kind) }
   const template = getWorkflowTemplate(s, id)
   if (!template || draft.baseVersion !== (latestVersion(template)?.version ?? 0) || workflowTemplateDraftError(draft, s.roles) || draft.kind !== (template.draft?.kind ?? latestVersion(template)?.kind) || (draft.teamMap && draft.teamMap.workflowId !== id)) return s
   // Draft-only inserts must remain undoable; required ancestry comes from the
@@ -147,6 +150,7 @@ export function workflowTemplatePublishError(s: DemoState, id: string): string |
   if (draft.baseVersion !== (latestVersion(template)?.version ?? 0)) return "This workflow has a newer saved version. Reopen it before saving."
   const problem = workflowTemplateDraftError(draft, s.roles, true) ?? retainedRuleError(latestVersion(template), draft)
   if (problem) return problem
+  if (draft.teamExecution === "sequential" && JSON.stringify(sequenceTeamSteps(draft.steps, draft.teamMap?.stepTeams ?? {})) !== JSON.stringify(draft.steps)) return "Save the sequential team draft before publishing."
   const teams = new Set((s.org.workflowTeams ?? []).map(team => team.id))
   if (draft.steps.some(step => !teams.has(draft.teamMap?.stepTeams[step.key] ?? ""))) return "Choose an organization team for every task before saving."
   return null

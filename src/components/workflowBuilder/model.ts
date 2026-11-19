@@ -2,6 +2,7 @@ import type { StepTemplate, WorkflowBranch } from "../../data/types"
 import { checkWorkflow, MAX_STEPS } from "../../engine/workflow"
 import { deletionReason, isAsuStep } from "../../engine/workflowPolicy"
 import { placementOf } from "../../engine/workflowBranches"
+import { orderedWorkflowSteps } from "../../engine/workflowSequence"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import type { Role } from "../../data/types"
 
@@ -118,4 +119,36 @@ export function shiftBuilderTaskTarget(step: StepTemplate, calendarDays: number,
     },
     error: null,
   }
+}
+
+/** Settings insertion always follows the clicked task's team, regardless of incoming business branches. */
+export function insertTeamBuilderStep(snapshot: BuilderSnapshot, referenceId: string, position: "before" | "after", key = newBuilderStepId()): BuilderSnapshot {
+  const reference = snapshot.steps.find(step => step.key === referenceId)
+  if (!reference) return snapshot
+  const team = snapshot.stepTeams[referenceId]
+  const fresh = createBuilderStep("New task", reference, snapshot.branches, key)
+  fresh.dependsOn = position === "after" ? [referenceId] : [...(reference.dependsOn ?? [])]
+  const steps = snapshot.steps.map(step => {
+    if (position === "before" && step.key === referenceId) return { ...step, dependsOn: [...(step.dependsOn ?? []).filter(id => !team || snapshot.stepTeams[id] !== team), fresh.key] }
+    if (position === "after" && team && snapshot.stepTeams[step.key] === team && step.dependsOn?.includes(referenceId)) return { ...step, dependsOn: step.dependsOn.map(id => id === referenceId ? fresh.key : id) }
+    return step
+  })
+  return { ...snapshot, steps: [...steps, fresh], stepTeams: { ...snapshot.stepTeams, ...(team ? { [fresh.key]: team } : {}) } }
+}
+
+/** Explicit drag rewrites only this team's order. Call editError before accepting the whole transaction. */
+export function reorderTeamBuilderStep(snapshot: BuilderSnapshot, key: string, targetId: string, before: boolean): BuilderSnapshot {
+  const team = snapshot.stepTeams[key]
+  if (!team || snapshot.stepTeams[targetId] !== team || key === targetId) return snapshot
+  const ordered = orderedWorkflowSteps(snapshot.steps).filter(step => snapshot.stepTeams[step.key] === team).map(step => step.key)
+  ordered.splice(ordered.indexOf(key), 1)
+  ordered.splice(ordered.indexOf(targetId) + (before ? 0 : 1), 0, key)
+  const previous = new Map(ordered.map((id, index) => [id, ordered[index - 1]]))
+  const steps = snapshot.steps.map(step => {
+    if (snapshot.stepTeams[step.key] !== team) return step
+    const external = (step.dependsOn ?? []).filter(id => snapshot.stepTeams[id] !== team)
+    const preceding = previous.get(step.key)
+    return { ...step, dependsOn: [...external, ...(preceding ? [preceding] : [])] }
+  })
+  return { ...snapshot, steps }
 }

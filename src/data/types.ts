@@ -131,6 +131,8 @@ export interface EventWorkflow {
 
 /** Authored task identity is its stable key within a template, never its label or position. */
 export interface WorkflowTemplateContent {
+  /** New Settings versions use one ordered task chain per team. Missing keeps legacy snapshots unchanged. */
+  teamExecution?: "sequential"
   name: string
   description?: string
   kind: "standard" | "custom"

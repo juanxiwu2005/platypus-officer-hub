@@ -4,12 +4,13 @@ import { MAX_STEPS } from "../../engine/workflow"
 import { isAsuStep } from "../../engine/workflowPolicy"
 import { branchConditions, conditionLabel, placementOf, resolveBranches } from "../../engine/workflowBranches"
 import { workflowStepKind } from "../../engine/workflowStepKind"
+import { orderedWorkflowSteps, sequenceTeamStepsForDraft } from "../../engine/workflowSequence"
 import { roleLabels } from "../../data/structure"
 import { addDays } from "../../lib/dates"
 import { useRail } from "../rail/RailContext"
 import { WorkflowEffortInput } from "../setup/WorkflowEffortInput"
 import { WorkflowBranchDialog, type BranchDraft } from "../setup/WorkflowBranchDialog"
-import { builderDeletionReason, createBuilderStep, deleteBuilderStep, editError, graphError, insertBuilderStep, newBuilderStepId, shiftBuilderTaskTarget, tLabel, type BuilderPolicy, type BuilderSnapshot, type InsertPosition } from "./model"
+import { builderDeletionReason, createBuilderStep, deleteBuilderStep, editError, graphError, insertTeamBuilderStep, newBuilderStepId, reorderTeamBuilderStep, type BuilderPolicy, type BuilderSnapshot } from "./model"
 import { buildTimeline, HEADER_HEIGHT, LABEL_WIDTH, type BuilderTeam } from "./timeline"
 import { TimelineTask } from "./TimelineTask"
 import "./workflowBuilder.css"
@@ -25,7 +26,8 @@ export interface WorkflowBuilderProps {
 }
 
 /** Settings edits definitions; neither this component nor its preview creates executable Plan tasks. */
-export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, policy, onChange }: WorkflowBuilderProps) {
+export function WorkflowBuilder({ state, steps: inputSteps, branches, stepTeams, teams, policy, onChange }: WorkflowBuilderProps) {
+  const steps = useMemo(() => sequenceTeamStepsForDraft(state, inputSteps, stepTeams, branches, policy), [inputSteps, stepTeams, branches, policy, state.today])
   const [view, setView] = useState<"timeline" | "quick">("timeline")
   const [selected, setSelected] = useState<string | null>(null)
   const [history, setHistory] = useState<BuilderSnapshot[]>([])
@@ -40,10 +42,10 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
   const teamIds = new Set(teams.map(team => team.id))
   const unmapped = steps.filter(step => !teamIds.has(stepTeams[step.key]))
   const step = steps.find(candidate => candidate.key === selected)
-  const labels = useMemo(() => roleLabels(state.roles), [state.roles])
   const commit = (next: BuilderSnapshot): boolean => {
-    const problem = editError(snapshot, next, policy, state.roles)
+    const problem = graphError(next.steps) ?? editError(snapshot, { ...next, steps: sequenceTeamStepsForDraft(state, next.steps, next.stepTeams, next.branches, policy) }, policy, state.roles)
     if (problem) { setError(problem); return false }
+    next = { ...next, steps: sequenceTeamStepsForDraft(state, next.steps, next.stepTeams, next.branches, policy) }
     if (JSON.stringify(snapshot) === JSON.stringify(next)) return true
     setHistory(previous => [...previous.slice(-29), structuredClone(snapshot)])
     setError(null)
@@ -60,9 +62,9 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
     openTask(key)
   }
   const close = () => { setSelected(null); rail.closeDetail() }
-  const insert = (position: InsertPosition, insertionBranch?: string) => {
+  const insert = (position: "before" | "after") => {
     if (!step) return
-    const next = insertBuilderStep(snapshot, step.key, position, undefined, insertionBranch)
+    const next = insertTeamBuilderStep(snapshot, step.key, position)
     if (commit(next)) openTask(next.steps[next.steps.length - 1].key)
   }
   const makeBranch = (draft: BranchDraft) => {
@@ -76,7 +78,10 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
     fresh.fn = role?.fn ?? "programs"
     fresh.stepKind = branch.conditions?.length ? "situation" : "core"
     if (draft.side === "after_event") fresh.anchor = { kind: "target", days: -2, unit: "calendar", label: "Workflow target" }
-    const next = { ...snapshot, steps: [...steps, fresh], branches: [...(branches ?? []), branch] }
+    const team = (role && state.org.workflowRoleTeams?.[role.id]) || teams[0]?.id
+    const tail = orderedWorkflowSteps(steps).filter(step => stepTeams[step.key] === team).at(-1)
+    if (tail) fresh.dependsOn = [tail.key]
+    const next = { ...snapshot, steps: [...steps, fresh], branches: [...(branches ?? []), branch], stepTeams: { ...stepTeams, ...(team ? { [fresh.key]: team } : {}) } }
     if (!commit(next)) return "This branch would conflict with a protected workflow step."
     setAddBranch(false); openTask(fresh.key)
     return null
@@ -88,7 +93,18 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
     // The controlled definition refreshes Details after edits, restores and view changes.
   }, [step, snapshot, state.roles, teams, policy, onChange])
 
-  const byKey = new Map(timeline.boxes.map(box => [box.step.key, box]))
+  const addTask = (teamId?: string) => {
+    const team = teamId ?? (step && stepTeams[step.key]) ?? teams[0]?.id
+    const reference = !teamId && step && stepTeams[step.key] === team ? step : orderedWorkflowSteps(steps).filter(item => stepTeams[item.key] === team).at(-1)
+    if (reference) {
+      const next = insertTeamBuilderStep(snapshot, reference.key, "after")
+      if (commit(next)) openTask(next.steps[next.steps.length - 1].key)
+    } else {
+      const fresh = createBuilderStep("New task")
+      const next = { ...snapshot, steps: [...steps, fresh], stepTeams: { ...stepTeams, ...(team ? { [fresh.key]: team } : {}) } }
+      if (commit(next)) openTask(fresh.key)
+    }
+  }
   return <section className="wfb form-stack" data-testid="workflow-builder" aria-label="Workflow builder">
     <div className="wfb-toolbar">
       <div className="wfb-view" role="group" aria-label="Editor view">
@@ -105,44 +121,28 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
         }}>Undo edit</button>
         <button type="button" className="btn small" aria-pressed={!!connectFrom} disabled={!step && !connectFrom} onClick={() => setConnectFrom(connectFrom ? null : selected)}>Connect</button>
         <button type="button" className="btn small" onClick={() => setAddBranch(true)}>Add branch</button>
-        <button type="button" className="btn small primary" disabled={steps.length >= MAX_STEPS} onClick={() => {
-          const fresh = createBuilderStep("New task", step, branches)
-          const next = { ...snapshot, steps: [...steps, fresh], stepTeams: { ...stepTeams, ...(step && stepTeams[step.key] ? { [fresh.key]: stepTeams[step.key] } : teams.length === 1 ? { [fresh.key]: teams[0].id } : {}) } }
-          if (commit(next)) openTask(fresh.key)
-        }}>+ Task</button>
+        <button type="button" className="btn small primary" disabled={steps.length >= MAX_STEPS} onClick={() => addTask()}>+ Task</button>
       </div>
     </div>
     {error && <p className="small late-text" role="alert">{error}</p>}
     {connectFrom && <p className="small" role="status">Choose the task that waits for “{steps.find(candidate => candidate.key === connectFrom)?.title}”. <button type="button" className="link" onClick={() => setConnectFrom(null)}>Cancel connection</button></p>}
     {unmapped.length > 0 && <div className="wfb-unassigned" role="status"><span>{unmapped.length} task{unmapped.length === 1 ? " needs" : "s need"} a team:</span>{unmapped.map(candidate => <button type="button" className="link" key={candidate.key} onClick={() => select(candidate.key)}>{candidate.title || "Untitled task"}</button>)}</div>}
     {view === "quick" ? <QuickEntry state={state} snapshot={snapshot} teams={teams} onChange={commit} onSelect={select} selected={selected} /> : <>
-      <p className="small muted wfb-hint">T0 = activity or target day. Arrows show prerequisites. Drag a task horizontally to move its target; click to edit.</p>
+      <p className="small muted wfb-hint">One team, one sequence. Teams can work in parallel. Drag to reorder; click for details. T0 = target day.</p>
       <label className="wfb-preview-date">Preview target day<input type="date" value={previewDate} onChange={event => { if (event.target.value) setPreviewDate(event.target.value) }} /></label>
       <div className="wfb-scroll" tabIndex={0} role="region" aria-label="Team timeline, scroll horizontally to explore">
         <div className="wfb-canvas" style={{ width: timeline.width, height: Math.max(HEADER_HEIGHT + 120, timeline.height) }}>
-          <div className="wfb-time-axis" style={{ height: HEADER_HEIGHT }}><span className="wfb-axis-title">Team</span>{timeline.ticks.map(day => <span key={day} className="wfb-tick" style={{ left: timeline.xOf(day) }}>{tLabel(day)}</span>)}</div>
-          <div className="wfb-zero" aria-hidden="true" style={{ left: timeline.xOf(0), top: HEADER_HEIGHT, height: Math.max(120, timeline.height - HEADER_HEIGHT) }} />
-          {timeline.rows.map(row => <div key={row.team.id} className="wfb-lane" data-testid={`workflow-team-${row.team.id}`} style={{ top: row.top, height: row.height }}><div className="wfb-lane-label" style={{ width: LABEL_WIDTH }}>{row.team.name}<button type="button" className="link" aria-label={`Add task to ${row.team.name}`} onClick={() => {
-            const fresh = createBuilderStep("New task")
-            const next = { ...snapshot, steps: [...steps, fresh], stepTeams: { ...stepTeams, [fresh.key]: row.team.id } }
-            if (commit(next)) openTask(fresh.key)
-          }}>+ Task</button></div></div>)}
+          <div className="wfb-time-axis" style={{ height: HEADER_HEIGHT }}><span className="wfb-axis-title">Team</span><span className="wfb-sequence-title" style={{ left: LABEL_WIDTH + 20 }}>Task order →</span></div>
+          {timeline.rows.map(row => <div key={row.team.id} className="wfb-lane" data-testid={`workflow-team-${row.team.id}`} style={{ top: row.top, height: row.height }}><div className="wfb-lane-label" style={{ width: LABEL_WIDTH }}>{row.team.name}<button type="button" className="link" aria-label={`Add task to ${row.team.name}`} onClick={() => addTask(row.team.id)}>+ Task</button></div></div>)}
           <svg className="wfb-links" width={timeline.width} height={Math.max(HEADER_HEIGHT + 120, timeline.height)} aria-label="Task dependency connections" role="img">
             <title>Arrows connect prerequisites to the tasks that wait for them</title>
             <defs><marker id={markerId} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" /></marker></defs>
-            {timeline.boxes.flatMap(target => (target.step.dependsOn ?? []).flatMap(id => {
-              const source = byKey.get(id)
-              if (!source) return []
-              const sx = source.x + source.width, sy = source.y + 40, tx = target.x, ty = target.y + 40
-              const middle = sx < tx ? (sx + tx) / 2 : Math.max(sx, tx + target.width) + 16
-              const path = sx < tx ? `M${sx},${sy} H${middle} V${ty} H${tx - 3}` : `M${sx},${sy} H${middle} V${ty - 50} H${tx - 14} V${ty} H${tx - 3}`
-              return <path key={`${id}:${target.step.key}`} data-testid="workflow-dependency" className={selected === id || selected === target.step.key ? "wfb-link is-selected" : "wfb-link"} d={path} markerEnd={`url(#${markerId})`}><title>{source.step.title} → {target.step.title}</title></path>
-            }))}
+            {timeline.routes.map(route => <path key={`${route.from}:${route.to}`} data-testid="workflow-dependency" className={selected === route.from || selected === route.to ? "wfb-link is-selected" : "wfb-link"} d={route.path} markerEnd={`url(#${markerId})`}><title>{steps.find(item => item.key === route.from)?.title} → {steps.find(item => item.key === route.to)?.title}</title></path>)}
           </svg>
-          {timeline.boxes.map(box => <TimelineTask key={box.step.key} box={box} branches={branches} selected={selected === box.step.key} connecting={!!connectFrom} roleLabel={box.step.ownerRoleId ? labels.get(box.step.ownerRoleId) ?? "Missing role" : "Unassigned role"} onSelect={() => select(box.step.key)} onBlocked={setError} onShift={days => {
-            const shifted = shiftBuilderTaskTarget(box.step, days, box.finish)
-            if (shifted.error) { setError(shifted.error); return }
-            commit({ ...snapshot, steps: steps.map(candidate => candidate.key === box.step.key ? shifted.step : candidate) })
+          {timeline.boxes.map(box => <TimelineTask key={box.step.key} box={box} branches={branches} selected={selected === box.step.key} connecting={!!connectFrom} onSelect={() => select(box.step.key)} onReorder={centerX => {
+            const others = timeline.boxes.filter(candidate => candidate.step.key !== box.step.key && stepTeams[candidate.step.key] === stepTeams[box.step.key])
+            const target = others.sort((a, b) => Math.abs(a.x + a.width / 2 - centerX) - Math.abs(b.x + b.width / 2 - centerX))[0]
+            if (target) commit(reorderTeamBuilderStep(snapshot, box.step.key, target.step.key, centerX < target.x + target.width / 2))
           }} />)}
           {!teams.length && <p className="wfb-no-teams">Add teams from your organization settings to arrange tasks into lanes.</p>}
         </div>
@@ -154,7 +154,6 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
 
 function QuickEntry({ state, snapshot, teams, onChange, onSelect, selected }: { state: DemoState; snapshot: BuilderSnapshot; teams: BuilderTeam[]; onChange: (next: BuilderSnapshot) => boolean; onSelect: (id: string) => void; selected: string | null }) {
   const [names, setNames] = useState("")
-  const [order, setOrder] = useState("sequential")
   const [team, setTeam] = useState(teams[0]?.id ?? "")
   const [role, setRole] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -165,27 +164,28 @@ function QuickEntry({ state, snapshot, teams, onChange, onSelect, selected }: { 
     if (!titles.length) { setError("Enter at least one task name."); return }
     if (titles.some(title => title.length > 120)) { setError("Keep task names to 120 characters."); return }
     if (titles.length + snapshot.steps.length > MAX_STEPS) { setError(`A workflow can have up to ${MAX_STEPS} tasks.`); return }
-    const reference = snapshot.steps.find(step => step.key === selected)
+    const chosen = snapshot.steps.find(step => step.key === selected)
+    const assignedTeam = team || (chosen ? snapshot.stepTeams[chosen.key] : "")
+    const reference = chosen && snapshot.stepTeams[chosen.key] === assignedTeam ? chosen : orderedWorkflowSteps(snapshot.steps).filter(step => snapshot.stepTeams[step.key] === assignedTeam).at(-1)
     const chosenRole = state.roles.find(candidate => candidate.id === role)
     const fresh = titles.map(title => createBuilderStep(title, reference, snapshot.branches))
     fresh.forEach((step, index) => {
       if (chosenRole) { step.ownerRoleId = chosenRole.id; step.fn = chosenRole.fn }
-      step.dependsOn = order === "sequential" && index > 0 ? [fresh[index - 1].key] : reference ? [reference.key] : []
+      step.dependsOn = index > 0 ? [fresh[index - 1].key] : reference ? [reference.key] : []
     })
     const stepTeams = { ...snapshot.stepTeams }
-    const assignedTeam = team || (reference ? snapshot.stepTeams[reference.key] : "")
     if (assignedTeam) fresh.forEach(step => { stepTeams[step.key] = assignedTeam })
-    if (onChange({ ...snapshot, steps: [...snapshot.steps, ...fresh], stepTeams })) { setNames(""); setError(null) }
+    const following = snapshot.steps.map(step => reference && snapshot.stepTeams[step.key] === assignedTeam && step.dependsOn?.includes(reference.key) ? { ...step, dependsOn: step.dependsOn.map(id => id === reference.key ? fresh[fresh.length - 1].key : id) } : step)
+    if (onChange({ ...snapshot, steps: [...following, ...fresh], stepTeams })) { setNames(""); setError(null) }
   }
   return <div className="wfb-quick form-stack">
     <form className="form-stack" onSubmit={add}>
       <label>Task names<textarea aria-label="Task names" rows={4} value={names} onChange={event => setNames(event.target.value)} placeholder={"Agree visit\nConfirm transport\nShare briefing"} /></label>
       <div className="wfb-quick-fields">
-        <label>Add as<select value={order} onChange={event => setOrder(event.target.value)}><option value="sequential">Sequential</option><option value="parallel">Parallel</option></select></label>
         <label>Assign team<select value={team} onChange={event => setTeam(event.target.value)}><option value="">Choose later</option>{teams.map(item => <option value={item.id} key={item.id}>{item.name}</option>)}</select></label>
         <label>Assign role<select value={role} onChange={event => setRole(event.target.value)}><option value="">{selected ? "Use selected task's role" : "Choose later"}</option>{state.roles.filter(item => item.fn !== "advisor").map(item => <option value={item.id} key={item.id}>{labels.get(item.id)}</option>)}</select></label>
       </div>
-      <p className="small muted">One task per line. {selected ? "New tasks follow the selected task and inherit its branch and type." : "Start with a short list; add details as needed."}</p>
+      <p className="small muted">One task per line. Tasks follow the chosen team’s sequence and inherit the preceding task’s type.</p>
       {error && <p className="small late-text" role="alert">{error}</p>}
       <div><button type="submit" className="btn primary">Add tasks</button></div>
     </form>
@@ -193,7 +193,7 @@ function QuickEntry({ state, snapshot, teams, onChange, onSelect, selected }: { 
   </div>
 }
 
-function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, onInsert, onClose }: { step: StepTemplate; snapshot: BuilderSnapshot; state: DemoState; teams: BuilderTeam[]; policy: BuilderPolicy; onChange: (next: BuilderSnapshot) => boolean; onInsert: (position: InsertPosition, insertionBranch?: string) => void; onClose: () => void }) {
+function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, onInsert, onClose }: { step: StepTemplate; snapshot: BuilderSnapshot; state: DemoState; teams: BuilderTeam[]; policy: BuilderPolicy; onChange: (next: BuilderSnapshot) => boolean; onInsert: (position: "before" | "after") => void; onClose: () => void }) {
   const { steps, branches, stepTeams } = snapshot
   const patch = (value: Partial<StepTemplate>) => onChange({ ...snapshot, steps: steps.map(candidate => candidate.key === step.key ? { ...candidate, ...value } : candidate) })
   const labels = roleLabels(state.roles)
@@ -201,9 +201,7 @@ function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, on
   const locked = isAsuStep(step)
   const cannotDelete = builderDeletionReason(step, policy)
   const waits = step.dependsOn ?? []
-  const incomingBranches = [...new Set(steps.filter(candidate => waits.includes(candidate.key)).map(candidate => placementOf(candidate).branchId))]
-  const [insertionBranch, setInsertionBranch] = useState("")
-  const [insertionError, setInsertionError] = useState<string | null>(null)
+  const previousInTeam = waits.find(id => !!stepTeams[step.key] && stepTeams[id] === stepTeams[step.key])
   const candidates = steps.filter(candidate => candidate.key !== step.key && !waits.includes(candidate.key) && !graphError(steps.map(item => item.key === step.key ? { ...item, dependsOn: [...waits, candidate.key] } : item)))
   const branch = definitions.find(candidate => candidate.id === placementOf(step).branchId)
   return <section className="form-stack wfb-details" data-testid="workflow-builder-details" aria-label={`Details: ${step.title}`}>
@@ -228,15 +226,10 @@ function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, on
     }}><option value="main">Main</option>{definitions.filter(candidate => candidate.id !== "main").map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.title}</option>)}</select></label>}
     {branch && branchConditions(branch).length > 0 && <p className="small muted">Included when all branch conditions match: {branchConditions(branch).map(conditionLabel).join(", ")}.</p>}
     {locked && <p className="small muted">School rule deadlines and required prerequisites are protected.</p>}
-    <div className="form-stack"><span className="small muted">Waits for · all must finish</span>{!waits.length && <span className="small">Nothing</span>}{waits.map(id => <div className="wfb-prerequisite small" key={id}><span>{steps.find(candidate => candidate.key === id)?.title ?? "Missing task"}</span><button type="button" className="link" aria-label={`Remove prerequisite ${steps.find(candidate => candidate.key === id)?.title ?? id}`} onClick={() => patch({ dependsOn: waits.filter(key => key !== id) })}>Remove</button></div>)}
+    <div className="form-stack"><span className="small muted">Waits for · all must finish</span>{!waits.length && <span className="small">Nothing</span>}{waits.map(id => <div className="wfb-prerequisite small" key={id}><span>{steps.find(candidate => candidate.key === id)?.title ?? "Missing task"}</span><button type="button" className="link" disabled={id === previousInTeam} title={id === previousInTeam ? "Previous task in this team. Drag tasks to change the order." : undefined} aria-label={`Remove prerequisite ${steps.find(candidate => candidate.key === id)?.title ?? id}`} onClick={() => patch({ dependsOn: waits.filter(key => key !== id) })}>Remove</button></div>)}
       <label className="sr-only" htmlFor={`wfb-prerequisite-${step.key}`}>Add prerequisite</label><select id={`wfb-prerequisite-${step.key}`} aria-label="Add prerequisite" value="" onChange={event => { if (event.target.value) patch({ dependsOn: [...waits, event.target.value] }) }}><option value="">+ Prerequisite</option>{candidates.map(candidate => <option value={candidate.key} key={candidate.key}>{candidate.title}</option>)}</select>
     </div>
-    {incomingBranches.length > 1 && <label>Insertion branch<select value={insertionBranch} onChange={event => { setInsertionBranch(event.target.value); setInsertionError(null) }}><option value="">Choose a branch for Add before</option>{incomingBranches.map(id => <option key={id} value={id}>{definitions.find(candidate => candidate.id === id)?.title ?? (id === "main" ? "Main" : id)}</option>)}</select></label>}
-    {insertionError && <p className="small late-text" role="alert">{insertionError}</p>}
-    <div className="action-row"><button type="button" className="btn small" onClick={() => {
-      if (incomingBranches.length > 1 && !incomingBranches.includes(insertionBranch)) { setInsertionError("Choose which incoming branch gets the new task."); return }
-      onInsert("before", incomingBranches.length > 1 ? insertionBranch : undefined)
-    }}>Add before</button><button type="button" className="btn small" onClick={() => onInsert("after")}>Add next</button><button type="button" className="btn small" onClick={() => onInsert("parallel")}>Add parallel</button></div>
+    <div className="action-row"><button type="button" className="btn small" onClick={() => onInsert("before")}>Add before</button><button type="button" className="btn small" onClick={() => onInsert("after")}>Add next</button></div>
     <div><button type="button" className="btn small" disabled={!!cannotDelete} title={cannotDelete ?? undefined} onClick={() => { if (!cannotDelete && onChange(deleteBuilderStep(snapshot, step.key))) onClose() }}>Delete task</button></div>
     {cannotDelete && <p className="small muted">{cannotDelete}</p>}
   </section>

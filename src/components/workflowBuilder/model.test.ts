@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { StepTemplate, WorkflowBranch } from "../../data/types"
 import { seedDemo } from "../../data/seed"
-import { builderDeletionReason, createBuilderStep, deleteBuilderStep, graphError, insertBuilderStep, shiftBuilderTaskTarget, type BuilderSnapshot } from "./model"
+import { builderDeletionReason, createBuilderStep, deleteBuilderStep, graphError, insertBuilderStep, insertTeamBuilderStep, reorderTeamBuilderStep, shiftBuilderTaskTarget, type BuilderSnapshot } from "./model"
 import { buildTimeline } from "./timeline"
 
 const branch: WorkflowBranch = { id: "speaker", title: "Speaker", order: 0, side: "before_event", conditions: ["speaker", "travel"] }
@@ -100,5 +100,27 @@ describe("workflow editor team timeline", () => {
     expect(result.rows).toHaveLength(1)
     expect(result.boxes.map(box => box.step.key)).toEqual(["A"])
     expect(current).toEqual(before)
+  })
+})
+
+describe("explicit team ordering", () => {
+  it("inserts before a cross-team merge in the clicked team, keeping all external handoffs", () => {
+    const current = snapshot()
+    current.steps = [task("a"), task("b"), { ...task("merge", ["a", "b"]), stepKind: "core", cond: undefined, placement: { branchId: "main", order: 1 } }]
+    current.stepTeams = { a: "ops", b: "marketing", merge: "leadership" }
+    const result = insertTeamBuilderStep(current, "merge", "before", "new")
+    expect(result.stepTeams.new).toBe("leadership")
+    expect(result.steps.find(step => step.key === "new")).toMatchObject({ stepKind: "core", placement: { branchId: "main" }, dependsOn: ["a", "b"] })
+    expect(result.steps.find(step => step.key === "merge")?.dependsOn).toEqual(["a", "b", "new"])
+  })
+
+  it("moves only one team's chain and reports a cycle when cross-team handoffs prohibit reordering", () => {
+    const current = snapshot()
+    const before = structuredClone(current)
+    current.stepTeams = { A: "ops", B: "marketing", C: "ops" }
+    const invalid = reorderTeamBuilderStep(current, "C", "A", true)
+    expect(graphError(invalid.steps)).toContain("loop")
+    expect(invalid.steps.find(step => step.key === "B")).toEqual(before.steps[1])
+    expect(current.steps).toEqual(before.steps)
   })
 })

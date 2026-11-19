@@ -4,15 +4,21 @@ import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDr
 import { getWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
 import { WorkflowBuilder } from "../workflowBuilder/WorkflowBuilder"
 import { presetWorkflowStepTeams } from "../../data/workflowTeamDefaults"
+import { sequenceTeamStepsForDraft } from "../../engine/workflowSequence"
 import { useRail } from "../rail/RailContext"
 import { WorkflowTeams } from "./WorkflowTeams"
 import "./workflowLibrary.css"
 
-const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplateDraft => {
-  const grouped = (draft: WorkflowTemplateDraft): WorkflowTemplateDraft => draft.kind === "standard" ? { ...draft, teamMap: { version: 1, workflowId: template.id, stepTeams: presetWorkflowStepTeams(state, draft.steps, draft.teamMap?.stepTeams) } } : draft
-  if (template.draft) return grouped(structuredClone(template.draft))
+const rawDraftOf = (template: WorkflowTemplate): WorkflowTemplateDraft => {
+  if (template.draft) return structuredClone(template.draft)
   const version = template.versions[template.versions.length - 1]
-  return grouped({ name: version.name, description: version.description, kind: version.kind, steps: structuredClone(version.steps), branches: structuredClone(version.branches), teamMap: structuredClone(version.teamMap), baseVersion: version.version })
+  return { name: version.name, description: version.description, kind: version.kind, teamExecution: version.teamExecution, steps: structuredClone(version.steps), branches: structuredClone(version.branches), teamMap: structuredClone(version.teamMap), baseVersion: version.version }
+}
+
+const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplateDraft => {
+  const draft = rawDraftOf(template)
+  const stepTeams = draft.kind === "standard" ? presetWorkflowStepTeams(state, draft.steps, draft.teamMap?.stepTeams) : draft.teamMap?.stepTeams ?? {}
+  return { ...draft, teamExecution: "sequential", steps: sequenceTeamStepsForDraft(state, draft.steps, stepTeams, draft.branches, draft.kind), teamMap: { version: 1, workflowId: template.id, stepTeams } }
 }
 
 export default function WorkflowLibrary() {
@@ -47,11 +53,11 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
   const [draft, setDraft] = useState(() => draftOf(template, state))
   const [status, setStatus] = useState("")
   const [error, setError] = useState("")
-  const saved = template.draft ?? draftOf(template, state)
+  const saved = rawDraftOf(template)
   const pending = JSON.stringify(draft) !== JSON.stringify(saved)
   const save = (value = draft) => {
     const fresh = getWorkflowTemplates(getState()).find(item => item.id === template.id)
-    if (fresh && JSON.stringify(value) === JSON.stringify(fresh.draft ?? draftOf(fresh, getState()))) return true
+    if (fresh && JSON.stringify(value) === JSON.stringify(rawDraftOf(fresh))) return true
     if (!tryDispatch({ type: "saveWorkflowTemplateDraft", id: template.id, draft: value })) { setError("Could not save. Your draft is kept here. Try Save draft."); return false }
     setStatus("Draft saved"); setError(""); return true
   }
@@ -75,13 +81,13 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
     const previousKeys = new Set(draft.steps.map(step => step.key))
     const mappings = { ...stepTeams }
     for (const step of steps) if (!previousKeys.has(step.key) && !mappings[step.key] && step.ownerRoleId && state.org.workflowRoleTeams?.[step.ownerRoleId]) mappings[step.key] = state.org.workflowRoleTeams[step.ownerRoleId]
-    setDraft({ ...draft, steps, branches, teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
+    setDraft({ ...draft, teamExecution: "sequential", steps: sequenceTeamStepsForDraft(state, steps, mappings, branches, draft.kind), branches, teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
   }
   const groupRoles = () => {
     const current = draft.teamMap?.stepTeams ?? {}
     const mappings = { ...current }
     for (const step of draft.steps) if (!mappings[step.key] && step.ownerRoleId && state.org.workflowRoleTeams?.[step.ownerRoleId]) mappings[step.key] = state.org.workflowRoleTeams[step.ownerRoleId]
-    setDraft({ ...draft, teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
+    setDraft({ ...draft, steps: sequenceTeamStepsForDraft(state, draft.steps, mappings, draft.branches, draft.kind), teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
   }
   const latest = template.versions[template.versions.length - 1]
   return <div className="form-stack" data-testid="workflow-template-editor">

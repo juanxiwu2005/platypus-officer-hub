@@ -83,18 +83,18 @@ describe("manual workflow builder", () => {
     expect(latest).toEqual(original)
   })
 
-  it("requires an explicit branch before inserting at a multi-branch merge", () => {
+  it("inserts before a merge in its own team and category without a branch picker", () => {
     show([task("Speaker task"), { ...task("Marketing task"), placement: { branchId: "marketing", order: 1 }, stepKind: "core", cond: undefined }, { ...task("Merge", ["Speaker task", "Marketing task"]), placement: { branchId: "main", order: 2 }, stepKind: "core", cond: undefined }])
     fireEvent.click(screen.getByRole("button", { name: "Edit Merge" }))
+    expect(screen.queryByLabelText("Insertion branch")).toBeNull()
+    expect(screen.queryByRole("button", { name: "Add parallel" })).toBeNull()
     fireEvent.click(screen.getByRole("button", { name: "Add before" }))
-    expect(latest.steps).toHaveLength(3)
-    expect(screen.getByRole("alert").textContent).toContain("incoming branch")
-    fireEvent.change(screen.getByLabelText("Insertion branch"), { target: { value: "speaker" } })
-    fireEvent.click(screen.getByRole("button", { name: "Add before" }))
-    expect(latest.steps).toHaveLength(4)
     const fresh = latest.steps.find(step => !["Speaker task", "Marketing task", "Merge"].includes(step.key))!
-    expect(fresh).toMatchObject({ placement: { branchId: "speaker" }, dependsOn: ["Speaker task"], stepKind: "situation" })
-    expect(latest.steps.find(step => step.key === "Merge")?.dependsOn).toEqual(["Marketing task", fresh.key])
+    expect(latest.steps).toHaveLength(4)
+    expect(fresh).toMatchObject({ placement: { branchId: "main" }, dependsOn: ["Marketing task"], stepKind: "core" })
+    expect(fresh.cond).toBeUndefined()
+    expect(latest.stepTeams[fresh.key]).toBe("events")
+    expect(latest.steps.find(step => step.key === "Merge")?.dependsOn).toEqual([fresh.key])
   })
 
   it("keeps malformed work estimates out of the saved definition", () => {
@@ -121,14 +121,15 @@ describe("manual workflow builder", () => {
     expect(latest.steps.find(step => step.title === "Arrange pickup")).toMatchObject({ placement: { branchId: branch.id }, stepKind: "situation" })
   })
 
-  it("persists a horizontal pointer drag as one calendar target edit and can undo it", () => {
+  it("persists a pointer reorder within the team without changing dates, and can undo it", () => {
     show()
     const card = screen.getByRole("button", { name: "Edit B" })
     const before = structuredClone(latest)
-    fireEvent.pointerDown(card, { pointerId: 1, button: 0, clientX: 200, clientY: 100 })
-    fireEvent.pointerMove(card, { pointerId: 1, clientX: 254, clientY: 102 })
-    fireEvent.pointerUp(card, { pointerId: 1, clientX: 254, clientY: 102 })
-    expect(latest.steps.find(step => step.key === "B")).toEqual({ ...before.steps.find(step => step.key === "B"), anchor: { kind: "target", days: 4, unit: "calendar", label: "Human target" } })
+    fireEvent.pointerDown(card, { pointerId: 1, button: 0, clientX: 400, clientY: 100 })
+    fireEvent.pointerMove(card, { pointerId: 1, clientX: 180, clientY: 102 })
+    fireEvent.pointerUp(card, { pointerId: 1, clientX: 180, clientY: 102 })
+    expect(latest.steps.find(step => step.key === "B")).toEqual({ ...before.steps.find(step => step.key === "B"), dependsOn: [] })
+    expect(latest.steps.find(step => step.key === "A")?.dependsOn).toEqual(["B"])
     expect(latest.stepTeams).toEqual(before.stepTeams)
     fireEvent.click(screen.getByRole("button", { name: "Undo edit" }))
     expect(latest).toEqual(before)
