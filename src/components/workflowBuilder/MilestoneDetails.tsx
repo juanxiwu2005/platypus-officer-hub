@@ -74,7 +74,8 @@ function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, o
   const labels = roleLabels(state.roles), locked = isAsuStep(step), cannotDelete = builderDeletionReason(step, policy)
   const waits = step.dependsOn ?? []
   const candidates = steps.filter(candidate => candidate.key !== step.key && !waits.includes(candidate.key) && !graphError(steps.map(item => item.key === step.key ? { ...item, dependsOn: [...waits, candidate.key] } : item)))
-  const business = resolveBranches(steps, branches).find(item => item.id === placementOf(step).branchId)
+  const definitions = resolveBranches(steps, branches).filter(item => policy === "standard" || branches?.some(authored => authored.id === item.id) || steps.some(candidate => placementOf(candidate).branchId === item.id))
+  const business = definitions.find(item => item.id === placementOf(step).branchId)
   const route = graph.teamBranches.find(item => item.stepIds.includes(step.key)), anchor = graph.taskAnchors[step.key]
   const anchorPatch = (value: Partial<typeof anchor>) => onChange({ ...snapshot, milestoneGraph: { ...graph, taskAnchors: { ...graph.taskAnchors, [step.key]: { ...anchor, ...value } } } })
   const due = workflowMilestoneTaskDate(graph, step.key, eventDate)
@@ -90,6 +91,10 @@ function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, o
     <label>Target unit<select disabled={locked} value={anchor.unit ?? "calendar"} onChange={event => anchorPatch({ unit: event.target.value as "calendar" | "business" })}><option value="calendar">Calendar days</option><option value="business">Business days</option></select></label>
     <p className="small muted">−7 is before the selected event day; +2 is after. {due ? `Preview target: ${fmtLong(due)}.` : ""} Start is calculated from workdays, buffers and prerequisites.</p>
     <label>Details<textarea rows={4} maxLength={400} value={step.why} onChange={event => patch({ why: event.target.value })} /></label>
+    {!!definitions.length && <label>Include with<select disabled={locked || (policy === "standard" && ["finalcheck", "checkin", "headcount"].includes(step.key))} value={placementOf(step).branchId} onChange={event => {
+      const definition = definitions.find(item => item.id === event.target.value)
+      patch({ placement: { branchId: event.target.value, order: placementOf(step).order }, ...(definition ? { phase: definition.side === "after_event" ? "close" : "prepare" } : {}) })
+    }}><option value="main">Main</option>{definitions.filter(item => item.id !== "main").map(item => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label>}
     {business && branchConditions(business).length > 0 && <p className="small muted">Included when: {branchConditions(business).map(conditionLabel).join(", ")}.</p>}
     {locked && <p className="small muted">School rule deadlines and required prerequisites are protected and stay anchored to Day 1.</p>}
     <div className="form-stack"><span className="small muted">Waits for · all must finish</span>{!waits.length && <span className="small">Nothing</span>}{waits.map(id => <div className="wfb-prerequisite small" key={id}><span>{steps.find(candidate => candidate.key === id)?.title ?? "Missing task"}</span><button type="button" className="link" aria-label={`Remove prerequisite ${steps.find(candidate => candidate.key === id)?.title ?? id}`} onClick={() => patch({ dependsOn: waits.filter(key => key !== id) })}>Remove</button></div>)}

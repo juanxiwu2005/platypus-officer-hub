@@ -118,6 +118,18 @@ describe("manual workflow builder", () => {
     expect(latest.stepTeams[latest.steps.at(-1)!.key]).toBe("marketing")
   })
 
+  it("can clear a branch team and add unassigned work without inventing mapping values", () => {
+    show()
+    fireEvent.click(screen.getAllByRole("button", { name: /^Edit branch / })[0])
+    fireEvent.change(screen.getByLabelText("Team"), { target: { value: "" } })
+    expect(latest.stepTeams).toEqual({})
+    expect(latest.milestoneGraph?.teamBranches[0].teamId).toBe("")
+    fireEvent.click(screen.getByRole("button", { name: "+ Task" }))
+    expect(latest.steps).toHaveLength(3)
+    expect(Object.values(latest.stepTeams)).toEqual([])
+    expect(latest.milestoneGraph?.teamBranches[0].stepIds).toHaveLength(3)
+  })
+
   it("edits both endpoints and both event days in Details, with only one/two day options", () => {
     show([])
     fireEvent.click(screen.getByTestId("workflow-start"))
