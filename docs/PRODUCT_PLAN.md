@@ -1,3 +1,5 @@
+> **2026-11-18 紧凑顺序泳道（Juanxi已选定并授权实施）：** Settings → Workflow采用固定132×52小卡，每卡只显示一至两个词的标题与一个T-minus/T0/T+标签，完整任务名称/Details/负责人/工作日仍在右侧。一个组织团队只占一行且内部一条顺序链，团队间无依赖时并行；移除Add parallel与Quick entry Parallel，新增前/后继承所选节点的团队/类别/业务分支，拖动调整顺序、日期改在Details。连线使用真实卡片四边端口、短正交避障；横向位置表达依赖顺序而非等比例日期。新Settings草稿/保存版本带`teamExecution:sequential`，新活动按工期和个人缓冲进行finish→start排程；ASU硬限不放松，工期不足如实报告。旧已发布版本与已有Plan任务/快照不补链，Plan继续圆点图。[交付记录](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)。
+
 > **2026-11-18 邮件入口按实际截图修正：** Juanxi明确要求Events节点流程图＋右侧Details，而非Tasks看板。新邮件及旧officer/Tasks可复用链接均进入Plan → Events；真实活动任务按自己的eventId定位并选中节点，不能受最近浏览的活动影响。无活动Club task仍在右列打开原任务，左侧以本工作区最近查看活动（没有则首个活动）作为可切换的浏览上下文，不写入任务归属。可点其他节点查看已提交内容、返回原任务继续自动草稿；普通Tasks页默认My tasks。见[当前交付](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)，沿用PR14。
 
 > **2026-11-18 邮件Plan入口补漏（历史，路由由上条取代）：** 根据用户实际测试的无活动 `Draft the meeting agenda`，补齐社团任务新邮件与旧可复用链接进入Plan → Tasks，右列直接展开并可切换/返回；活动任务仍进对应活动Plan。不为任务伪造活动关联，保持原负责人/授权/自动草稿与只读提交边界。见[交付补充](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)，沿用PR14。
