@@ -21,12 +21,15 @@
 .wfb-link { fill: none; stroke: var(--edge); stroke-width: 1.5; }
 .wfb-link.is-selected { stroke: var(--accent); stroke-width: 2; }
 .wfb-links marker path { fill: var(--edge); }
-.wfb-task { position: absolute; min-height: 80px; padding: var(--s4) var(--s5); text-align: left; display: flex; flex-direction: column; gap: var(--s2); background: var(--surface); border: 1px solid var(--info); border-left: 4px solid var(--info); border-radius: var(--r-sm); color: var(--ink); z-index: var(--z-sticky); cursor: pointer; }
+.wfb-task { position: absolute; min-height: 80px; padding: var(--s4) var(--s5); text-align: left; display: flex; flex-direction: column; gap: var(--s2); background: var(--surface); border: 1px solid var(--info); border-left: 4px solid var(--info); border-radius: var(--r-sm); color: var(--ink); z-index: var(--z-sticky); touch-action: pan-y; user-select: none; cursor: grab; }
 .wfb-task.is-situation { border-color: var(--risk-yellow); }
 .wfb-task.is-selected { outline: 2px solid var(--accent); outline-offset: var(--s1); background: var(--accent-soft); }
 .wfb-task strong { font-size: var(--fs-md); line-height: 1.3; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .wfb-task span { font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-.wfb-task:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+.wfb-task:focus-within { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+.wfb-task-hit { border: 0; background: transparent; color: inherit; text-align: left; padding: 0; width: 100%; cursor: inherit; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.wfb-task.is-dragging { z-index: var(--z-local); cursor: grabbing; box-shadow: 0 var(--s2) var(--s5) var(--line); }
+.wfb-task.is-date-locked { cursor: pointer; }
 .wfb-no-teams { padding: var(--s7); }
 .wfb-quick-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s5); }
 .wfb-table-scroll { overflow-x: auto; max-width: 100%; }

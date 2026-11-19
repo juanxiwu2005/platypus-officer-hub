@@ -120,4 +120,17 @@ describe("manual workflow builder", () => {
     expect(branch.conditions).toEqual(["speaker", "travel"])
     expect(latest.steps.find(step => step.title === "Arrange pickup")).toMatchObject({ placement: { branchId: branch.id }, stepKind: "situation" })
   })
+
+  it("persists a horizontal pointer drag as one calendar target edit and can undo it", () => {
+    show()
+    const card = screen.getByRole("button", { name: "Edit B" })
+    const before = structuredClone(latest)
+    fireEvent.pointerDown(card, { pointerId: 1, button: 0, clientX: 200, clientY: 100 })
+    fireEvent.pointerMove(card, { pointerId: 1, clientX: 254, clientY: 102 })
+    fireEvent.pointerUp(card, { pointerId: 1, clientX: 254, clientY: 102 })
+    expect(latest.steps.find(step => step.key === "B")).toEqual({ ...before.steps.find(step => step.key === "B"), anchor: { kind: "target", days: 4, unit: "calendar", label: "Human target" } })
+    expect(latest.stepTeams).toEqual(before.stepTeams)
+    fireEvent.click(screen.getByRole("button", { name: "Undo edit" }))
+    expect(latest).toEqual(before)
+  })
 })

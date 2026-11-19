@@ -9,7 +9,8 @@ export interface TaskBox { step: StepTemplate; x: number; y: number; width: numb
 export interface TeamRow { team: BuilderTeam; top: number; height: number; boxes: TaskBox[] }
 export const LABEL_WIDTH = 164
 export const HEADER_HEIGHT = 50
-const PIXELS_PER_DAY = 18
+/** Horizontal dragging changes calendar-day offsets, never work estimates. */
+export const TIMELINE_PIXELS_PER_DAY = 18
 
 /** Dates are a rule-engine preview. Pixel layout and effort never calculate business dates. */
 export function buildTimeline(state: DemoState, snapshot: BuilderSnapshot, teams: BuilderTeam[], policy: BuilderPolicy = "custom", previewDate = addDays(state.today, 42)) {
@@ -23,14 +24,14 @@ export function buildTimeline(state: DemoState, snapshot: BuilderSnapshot, teams
   })
   const minimum = Math.floor(Math.min(-21, ...dates.map(item => item.start)) / 7) * 7
   const maximum = Math.ceil(Math.max(7, ...dates.map(item => item.finish)) / 7) * 7
-  const width = Math.max(960, LABEL_WIDTH + (maximum - minimum) * PIXELS_PER_DAY + 220)
-  const xOf = (offset: number) => LABEL_WIDTH + 20 + (offset - minimum) * PIXELS_PER_DAY
+  const width = Math.max(960, LABEL_WIDTH + (maximum - minimum) * TIMELINE_PIXELS_PER_DAY + 220)
+  const xOf = (offset: number) => LABEL_WIDTH + 20 + (offset - minimum) * TIMELINE_PIXELS_PER_DAY
   let top = HEADER_HEIGHT
   const rows: TeamRow[] = teams.map(team => {
     const occupied: number[] = []
     const boxes = dates.filter(item => snapshot.stepTeams[item.step.key] === team.id).sort((a, b) => a.start - b.start || a.finish - b.finish || a.step.key.localeCompare(b.step.key)).map(item => {
       const x = xOf(item.start)
-      const boxWidth = Math.max(176, (item.finish - item.start) * PIXELS_PER_DAY)
+      const boxWidth = Math.max(176, (item.finish - item.start) * TIMELINE_PIXELS_PER_DAY)
       let track = occupied.findIndex(right => right + 24 <= x)
       if (track < 0) track = occupied.length
       occupied[track] = x + boxWidth

@@ -90,3 +90,32 @@ export function deleteBuilderStep(snapshot: BuilderSnapshot, key: string): Build
 }
 
 export const tLabel = (offset: number) => offset === 0 ? "T0" : `T${offset > 0 ? "+" : ""}${offset}`
+
+export function taskDragBlockReason(step: StepTemplate): string | null {
+  if (isAsuStep(step)) return "School deadlines are locked. Change workdays or the club buffer instead."
+  if ((step.anchor?.kind === "target" && step.anchor.unit === "business") || step.timing?.unit === "business") return "This task uses working-day targets. Use Finish by (T±) to set a calendar-day target first."
+  if (step.anchor && step.anchor.kind !== "target") return "This task uses a linked date. Use Finish by (T±) to choose a calendar-day target first."
+  return null
+}
+
+/** Moving right is later: subtract calendar days from the stored T-minus offset. */
+export function shiftBuilderTaskTarget(step: StepTemplate, calendarDays: number, previewFinish: number): { step: StepTemplate; error: string | null } {
+  const error = taskDragBlockReason(step)
+  if (error) return { step, error }
+  if (!Number.isInteger(calendarDays) || !Number.isFinite(previewFinish)) return { step, error: "Choose a whole calendar-day shift." }
+  if (!calendarDays) return { step, error: null }
+  const oldDays = step.anchor?.kind === "target" ? step.anchor.days : step.timing?.dueDays ?? -previewFinish
+  const days = oldDays - calendarDays
+  if (days < -180 || days > 180) return { step, error: "Keep the target between T−180 and T+180." }
+  const shift = oldDays - days
+  return {
+    step: {
+      ...step,
+      anchor: { kind: "target", days, unit: "calendar", label: step.anchor?.kind === "target" ? step.anchor.label : "Dragged workflow target" },
+      // A calibrated window moves as a whole. Workdays, personal buffers and dependencies
+      // are still interpreted only by the schedule engine after this authoring edit.
+      ...(step.timing ? { timing: { ...step.timing, startDays: step.timing.startDays - shift, dueDays: step.timing.dueDays - shift } } : {}),
+    },
+    error: null,
+  }
+}

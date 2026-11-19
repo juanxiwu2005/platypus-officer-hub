@@ -9,8 +9,9 @@ import { addDays } from "../../lib/dates"
 import { useRail } from "../rail/RailContext"
 import { WorkflowEffortInput } from "../setup/WorkflowEffortInput"
 import { WorkflowBranchDialog, type BranchDraft } from "../setup/WorkflowBranchDialog"
-import { builderDeletionReason, createBuilderStep, deleteBuilderStep, editError, graphError, insertBuilderStep, newBuilderStepId, tLabel, type BuilderPolicy, type BuilderSnapshot, type InsertPosition } from "./model"
+import { builderDeletionReason, createBuilderStep, deleteBuilderStep, editError, graphError, insertBuilderStep, newBuilderStepId, shiftBuilderTaskTarget, tLabel, type BuilderPolicy, type BuilderSnapshot, type InsertPosition } from "./model"
 import { buildTimeline, HEADER_HEIGHT, LABEL_WIDTH, type BuilderTeam } from "./timeline"
+import { TimelineTask } from "./TimelineTask"
 import "./workflowBuilder.css"
 
 export interface WorkflowBuilderProps {
@@ -115,7 +116,7 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
     {connectFrom && <p className="small" role="status">Choose the task that waits for “{steps.find(candidate => candidate.key === connectFrom)?.title}”. <button type="button" className="link" onClick={() => setConnectFrom(null)}>Cancel connection</button></p>}
     {unmapped.length > 0 && <div className="wfb-unassigned" role="status"><span>{unmapped.length} task{unmapped.length === 1 ? " needs" : "s need"} a team:</span>{unmapped.map(candidate => <button type="button" className="link" key={candidate.key} onClick={() => select(candidate.key)}>{candidate.title || "Untitled task"}</button>)}</div>}
     {view === "quick" ? <QuickEntry state={state} snapshot={snapshot} teams={teams} onChange={commit} onSelect={select} selected={selected} /> : <>
-      <p className="small muted wfb-hint">T0 = activity or target day. Arrows show prerequisites. Select a task to edit.</p>
+      <p className="small muted wfb-hint">T0 = activity or target day. Arrows show prerequisites. Drag a task horizontally to move its target; click to edit.</p>
       <label className="wfb-preview-date">Preview target day<input type="date" value={previewDate} onChange={event => { if (event.target.value) setPreviewDate(event.target.value) }} /></label>
       <div className="wfb-scroll" tabIndex={0} role="region" aria-label="Team timeline, scroll horizontally to explore">
         <div className="wfb-canvas" style={{ width: timeline.width, height: Math.max(HEADER_HEIGHT + 120, timeline.height) }}>
@@ -138,9 +139,11 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
               return <path key={`${id}:${target.step.key}`} data-testid="workflow-dependency" className={selected === id || selected === target.step.key ? "wfb-link is-selected" : "wfb-link"} d={path} markerEnd={`url(#${markerId})`}><title>{source.step.title} → {target.step.title}</title></path>
             }))}
           </svg>
-          {timeline.boxes.map(box => <button key={box.step.key} type="button" data-testid={`workflow-task-${box.step.key}`} aria-label={`Edit ${box.step.title || "Untitled task"}`} aria-pressed={selected === box.step.key} className={`wfb-task ${workflowStepKind(box.step, branches) === "situation" ? "is-situation" : "is-core"} ${selected === box.step.key ? "is-selected" : ""}`} style={{ left: box.x, top: box.y, width: box.width }} onClick={() => select(box.step.key)}>
-            <strong>{box.step.title || "Untitled task"}</strong><span aria-hidden="true">{box.step.ownerRoleId ? labels.get(box.step.ownerRoleId) ?? "Missing role" : "Unassigned role"}</span><span aria-hidden="true">{box.step.estDays} workday{box.step.estDays === 1 ? "" : "s"} · {tLabel(box.start)} → {tLabel(box.finish)}</span>
-          </button>)}
+          {timeline.boxes.map(box => <TimelineTask key={box.step.key} box={box} branches={branches} selected={selected === box.step.key} connecting={!!connectFrom} roleLabel={box.step.ownerRoleId ? labels.get(box.step.ownerRoleId) ?? "Missing role" : "Unassigned role"} onSelect={() => select(box.step.key)} onBlocked={setError} onShift={days => {
+            const shifted = shiftBuilderTaskTarget(box.step, days, box.finish)
+            if (shifted.error) { setError(shifted.error); return }
+            commit({ ...snapshot, steps: steps.map(candidate => candidate.key === box.step.key ? shifted.step : candidate) })
+          }} />)}
           {!teams.length && <p className="wfb-no-teams">Add teams from your organization settings to arrange tasks into lanes.</p>}
         </div>
       </div>

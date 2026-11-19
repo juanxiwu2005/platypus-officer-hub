@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { StepTemplate, WorkflowBranch } from "../../data/types"
 import { seedDemo } from "../../data/seed"
-import { builderDeletionReason, createBuilderStep, deleteBuilderStep, graphError, insertBuilderStep, type BuilderSnapshot } from "./model"
+import { builderDeletionReason, createBuilderStep, deleteBuilderStep, graphError, insertBuilderStep, shiftBuilderTaskTarget, type BuilderSnapshot } from "./model"
 import { buildTimeline } from "./timeline"
 
 const branch: WorkflowBranch = { id: "speaker", title: "Speaker", order: 0, side: "before_event", conditions: ["speaker", "travel"] }
@@ -62,6 +62,21 @@ describe("workflow editor graph operations", () => {
     expect(a.key).toHaveLength(36)
     expect(a.key).not.toBe(b.key)
     expect(a.key).not.toContain("Same")
+  })
+
+  it("moves a calibrated window by calendar days while keeping effort, dependencies and assignment", () => {
+    const original = { ...task("Move me", ["A"]), timing: { startDays: 12, dueDays: 7 }, startPolicy: "window" as const }
+    const result = shiftBuilderTaskTarget(original, 3, -7)
+    expect(result.error).toBeNull()
+    expect(result.step).toEqual({ ...original, anchor: { ...original.anchor, days: 4 }, timing: { startDays: 9, dueDays: 4 } })
+    expect(original.timing).toEqual({ startDays: 12, dueDays: 7 })
+  })
+
+  it("refuses school-rule or business-unit dragging instead of silently reinterpreting a date", () => {
+    const official: StepTemplate = { ...task("School rule"), anchor: { kind: "rule", days: 14, ruleId: "R06", unit: "calendar" }, ruleIds: ["R06"] }
+    expect(shiftBuilderTaskTarget(official, 2, -14)).toMatchObject({ step: official, error: expect.stringContaining("locked") })
+    const business: StepTemplate = { ...task("Working days"), anchor: { kind: "target", days: 7, unit: "business", label: "Working target" } }
+    expect(shiftBuilderTaskTarget(business, 2, -14)).toMatchObject({ step: business, error: expect.stringContaining("Finish by") })
   })
 })
 
