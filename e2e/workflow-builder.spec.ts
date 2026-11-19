@@ -33,8 +33,11 @@ async function templateByName(page: Page, name: string) {
 
 async function createTemplate(page: Page, name: string, taskNames = names) {
   await settings(page)
-  const createTeams = page.getByRole("button", { name: "Create teams from roles", exact: true })
-  if (await createTeams.isVisible()) await createTeams.click()
+  if (!(await read(page)).org.workflowTeams?.length) {
+    await page.getByRole("button", { name: "Teams", exact: true }).click()
+    await page.getByRole("button", { name: "Create teams from roles", exact: true }).click()
+    await page.getByRole("button", { name: "Save teams", exact: true }).click()
+  }
   await page.getByRole("button", { name: "New workflow", exact: true }).click()
   await page.getByLabel("Workflow name", { exact: true }).fill(name)
   const builder = page.getByTestId("workflow-builder")
