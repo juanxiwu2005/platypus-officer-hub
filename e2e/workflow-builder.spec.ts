@@ -341,6 +341,7 @@ test("dragging a task changes only its relative target and preserves its identit
     await page.getByRole("button", { name: "Save version", exact: true }).click()
     await expect.poll(async () => (await templateByName(page, "Drag visit timeline")).versions.length).toBe(2)
     await createEvent(page, "Wide company visit", await templateByName(page, "Drag visit timeline"), 2)
+    await expect(page.getByTestId("flow-edit-toggle")).toHaveCount(0)
     await page.getByRole("button", { name: "Hide side panel", exact: true }).evaluateAll(buttons => buttons.forEach(button => (button as HTMLButtonElement).click()))
     await page.getByTestId("flow-chart").scrollIntoViewIfNeeded()
     await page.screenshot({ path: info.outputPath("plan-dots-1440.png"), fullPage: false })
