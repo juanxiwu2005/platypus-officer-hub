@@ -121,6 +121,20 @@ describe("manual workflow builder", () => {
     expect(latest.steps.find(step => step.title === "Arrange pickup")).toMatchObject({ placement: { branchId: branch.id }, stepKind: "situation" })
   })
 
+  it("inserts a before-event activation branch before the team's existing close-out work", () => {
+    const closing = { ...task("Archive", ["A"]), phase: "close" as const, placement: { branchId: "after", order: 0 }, cond: undefined }
+    render(<App initial={{ steps: [task("A"), closing], stepTeams: { A: "events", Archive: "events" }, branches: [{ id: "speaker", title: "Speaker", side: "before_event", order: 0, conditions: ["speaker"] }, { id: "after", title: "Close out", side: "after_event", order: 1 }] }} />)
+    fireEvent.click(screen.getByRole("button", { name: "Add branch" }))
+    const dialog = screen.getByRole("dialog", { name: "Add branch" })
+    fireEvent.change(within(dialog).getByLabelText("Branch name"), { target: { value: "Early checks" } })
+    fireEvent.change(within(dialog).getByLabelText("First task"), { target: { value: "Check permit" } })
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add branch" }))
+    const fresh = latest.steps.find(step => step.title === "Check permit")!
+    expect(fresh.phase).toBe("prepare")
+    expect(fresh.dependsOn).toEqual(["A"])
+    expect(latest.steps.find(step => step.key === "Archive")?.dependsOn).toEqual([fresh.key])
+  })
+
   it("persists a pointer reorder within the team without changing dates, and can undo it", () => {
     show()
     const card = screen.getByRole("button", { name: "Edit B" })
