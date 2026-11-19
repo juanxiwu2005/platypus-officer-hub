@@ -1,3 +1,8 @@
+> **2026-11-18（America/Phoenix） · Settings点状团队泳道编辑器完成检查，待验收（Codex / Model / Canvas / Browser / 独立Review）**
+> **交付：** 按用户截图改圆点、灰色Start—Done与半透明团队底卡；一键空branch/任务、重复Full check和Event day、跨队鼠标/触屏拖动及改名。一个team一个底卡，密集节点每8点续行，最大宽924px，Fit/缩放/Quick entry/Undo/草稿/版本保留。新dependencies模式不自动串队，移动只改团队映射；旧sequential版本、实际活动/成果、校规与条件保留。运行时`cc1fbe9`，已确认Netlify preview14为success。
+> **验证：** 最终21文件209项单元/组件、34唯一双端浏览器通过（最终两组18项复验+既有builder16项，不重复累计），包括真实触屏、46任务原依赖、重复预设到Plan、版本/成果隔离、两主题axe严重关键0及无页面横溢出。独立Review发现的原位拖动误串行与Teams旧表单覆盖均已修复/复核。lint、前后端类型、build、独立CSS、9页字数通过，入口495864/550000、Settings147/150。
+> **验收与边界：** [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow；[完整交付](feedback-fix/WORKFLOW_DOT_EDITOR_HANDOFF.md) · [真实完整画布](prototypes/workflow-dot-editor/desktop-canvas.png) · [检查清单](feedback-fix/workflow-dot-editor-verification.json)。本条取代下方本轮“进行中”，保留历史记录。沿用PR14，不合并main；schema23不重置，0真实产品AI/外部邮件，未重复无关全站门禁。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
+
 > **2026-11-18（America/Phoenix） · Settings点状团队泳道编辑器，进行中（Codex 主Agent / Model / Canvas独立worktree）**
 > **用户授权：** 全面按上传截图改Settings Workflow：默认Start—Done灰线、一键Add task、Add branch团队平行线、圆点跨团队拖动，Full check/Event day可重复预设。已核对当前d5b4025与团队基础863b48a；团队基础已接入，历史“等待接入”仅作原交接。最新选择覆盖顺序小卡外观与自动串队；保留已有明确依赖、校规/条件、旧版本/实际活动、邮件入口和成果。
 > **边界与分工：** [冻结设计和文件负责人](feedback-fix/WORKFLOW_DOT_EDITOR_CONTRACT.md)。只在原功能分支/PR14交付，不新增PR、不合并main，0真实AI/邮件。完成后补交付与检查。

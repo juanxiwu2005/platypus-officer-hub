@@ -1,0 +1,77 @@
+{
+  "runtimeCommit": "cc1fbe9481dc3c7416b4fb1b8098f8147e88ff80",
+  "source": "Actual local production build; no generated mockups",
+  "browser": "Chromium /usr/bin/chromium",
+  "files": [
+    {
+      "file": "desktop-canvas.png",
+      "width": 994,
+      "height": 1247,
+      "bytes": 476034,
+      "sha256": "b69f1612dd11f45f1e75a16882c2f4911f52a6d86bccb778d48423543a7e5936"
+    },
+    {
+      "file": "desktop-dark-details.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 123284,
+      "sha256": "b0fb66fbd605103e06826db60382ed03531a025ac76b3b4d2101fdbaf10a67c8"
+    },
+    {
+      "file": "desktop-dark-overview.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 183214,
+      "sha256": "248c0b4b778565a4b964e74b985aaa0ae1aec653a7e9fbe65c4d1ee9ee28bc32"
+    },
+    {
+      "file": "desktop-light-details.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 120192,
+      "sha256": "e19bd07d2c414c910a61f70aee66f8746c624dbf80c28d169fcc74aec2b22190"
+    },
+    {
+      "file": "desktop-light-overview.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 173871,
+      "sha256": "4ac464690a3e391edfaac061ef7090ea5c152885a5fedfee6f3b72e72bf12a27"
+    },
+    {
+      "file": "desktop-workspace.png",
+      "width": 1512,
+      "height": 1800,
+      "bytes": 568410,
+      "sha256": "9b4f2ec22226cb36781056b284b63ece2a12a9041ff1bb1a933b32a13f081925"
+    },
+    {
+      "file": "mobile-dark-details.png",
+      "width": 1082,
+      "height": 2202,
+      "bytes": 132912,
+      "sha256": "74089fe5484d370c7be0e1a8bc9d9cbb1c33d1a7a6f6b4cf5635b742387bf3b9"
+    },
+    {
+      "file": "mobile-dark-overview.png",
+      "width": 1082,
+      "height": 2202,
+      "bytes": 220979,
+      "sha256": "5615ffa3e44f18041597250b3d8029aec808df6a3507d7c1835488b3a7614a3b"
+    },
+    {
+      "file": "mobile-light-details.png",
+      "width": 1082,
+      "height": 2202,
+      "bytes": 131301,
+      "sha256": "a79b0cf0ca358ac13e6118149ff205ce3ea468b0be70f770d7b636a54419eeef"
+    },
+    {
+      "file": "mobile-light-overview.png",
+      "width": 1082,
+      "height": 2202,
+      "bytes": 224624,
+      "sha256": "43dc54e4a0580da8628329f2ddb97328f506cab3e1416159c4172950cbd96a71"
+    }
+  ]
+}
