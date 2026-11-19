@@ -1,3 +1,6 @@
+> **2026-11-19（America/Phoenix） · 提醒中心方案F＋按人合并邮件，进行中（Claude 主Agent / Engine Agent / UI Agent）**
+> **用户决定：** Juanxi选方案F（按人竖向排列，社长看到每人现有任务，右栏邮件预览，Send & next或一键全发），要求多Agent修bug。[冻结契约与分工](feedback-fix/REMINDER_DIGEST_CONTRACT.md)：Engine负责按封计上限（修Approve all少记一条）、合并邮件、整组记录与自动模式；UI负责Today页、右栏DigestPanel、Fix first与历史行、提醒e2e。沿用PR14，不合并main，0真实AI/邮件，schema不升。
+
 > **2026-11-19（America/Phoenix） · Settings → Workflow 编辑器重新设计，待验收（Claude + worktree Agent A 画布 / B 页面与面板 / C 页面测试）**
 > **交付：** 每个团队一行（超过10步才折行），按高度平衡放在主线上下；顶部 Plan → Prepare → Event day → Close；团队标签“Operations · 7 steps”；步骤名不再断词；模板分组 Platypus preset / Your organization 与状态标签；唯一主按钮 Save version，次要动作进 More；画布工具栏 Undo / Flow·Quick entry / 1-day·2-day / Select steps / + Task / Add；右侧 Team assignment（成员名字、Description、Select steps → Assign N steps 一次 Undo）。团队分支新增可选 `details`，schema23 不变。**Plan 活动图一行未改**，等 Juanxi 满意后移植；只做浅色。
 > **验证：** 相关单元139项全过（全套2049/2051，2项在4d6290e上同样失败）；lint/类型/build通过，入口未变；Settings工作流页面测试桌面52过、手机51过1原有跳过，含新 `workflow-settings-layout.spec.ts`。Plan侧旧失败与4d6290e相同，未新增。详见[交付文档](feedback-fix/WORKFLOW_SETTINGS_REDESIGN.md)与[截图](prototypes/workflow-settings-redesign/)。验收：preview14 → Settings → Workflow。需要同步本地备份。

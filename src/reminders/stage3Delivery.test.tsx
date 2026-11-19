@@ -143,7 +143,9 @@ describe("stage three complete-mail delivery", () => {
     expect(delivery).toMatchObject({via: "automatic", outcome: "simulated", recipientId: "jordan"})
     expect(delivery.message?.checked).toBe(true)
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).reminderRuntime.deliveries).toEqual([delivery])
-    expect(store.getLog().find(l => l.type === "recordReminderBatch")?.actor).toBe("system:reminders")
+    // Automatic mode records one person digest per recipient (2026-11-19), so the log shows the digest action.
+    expect(delivery.digestId).toBe(store.state.reminderRuntime!.digests![0].id)
+    expect(store.getLog().find(l => l.type === "recordReminderDigests")?.actor).toBe("system:reminders")
     expect(JSON.stringify(store.getLog())).not.toContain(store.state.demoLinkKey)
     expect(fetch).not.toHaveBeenCalled()
   })

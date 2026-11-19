@@ -1,7 +1,8 @@
 import type { ReminderMail, ReminderMailInput } from "./accessContracts"
 import { isPlanTaskHash } from "./planEntry"
 import { daysBetween, fmtShort, fromISO, toISO } from "../lib/dates"
-import { expectedInputOn } from "./policy"
+import { digestWordBudget, DIGEST_TASK_CAP, expectedInputOn } from "./policy"
+import type { ReminderCandidate, ReminderPerson, ReminderTaskFacts, WaitingRequest } from "./contracts"
 
 const words = (value: string) => value.trim().split(/\s+/).filter(Boolean)
 const banned = [/is\s+it\s+done\s+yet/i, /\basap\b/i, /this\s+should\s+only\s+take\s+(?:an?|one|1)\s+hour/i, /just\s+use\s+ai/i, /\burgent\b/i, /@everyone|@here/i]
@@ -103,5 +104,99 @@ export function buildReminderMail(input: ReminderMailInput): ReminderMail {
       : !target.hash.startsWith("#/tasks?") || path.get("node") === facts.nodeId
   } catch { /* The mail remains unchecked. */ }
   mail.checked = recipient.active && facts.status !== "done" && !!scope && matchesTask && checkReminderMail(mail)
+  return mail
+}
+
+/* ---------- Person digest: several tasks for one person in ONE email (2026-11-19). Rules only, no AI. ---------- */
+
+export interface ReminderDigestMailItem {
+  facts: ReminderTaskFacts
+  candidate: ReminderCandidate
+  request?: WaitingRequest | null
+  requesterName?: string
+  /** This task's own entry URL (taskAccessUrl for this task's grant). */
+  taskUrl: string
+}
+export interface ReminderDigestMailInput { today: string; recipient: ReminderPerson; items: ReminderDigestMailItem[] }
+export interface ReminderDigestMail {
+  subject: string
+  /** Plain text with exactly one task entry URL per item, in item order. */
+  body: string
+  text: string
+  taskUrls: string[]
+  nodeIds: string[]
+  recipientId: string
+  intendedEmail: string | null
+  wordCount: number
+  checked: boolean
+  source: "rules"
+}
+
+const cut = (value: string, limit: number) => {
+  const list = words(value)
+  return list.length > limit ? `${list.slice(0, limit).join(" ")}…` : list.join(" ")
+}
+/** The URL is a canonical Plan task entry for exactly this task (and this activity when one is known). */
+function entryFor(value: string, nodeId: string, eventId?: string | null): boolean {
+  try {
+    const url = new URL(value)
+    if (!taskEntry(value) || !isPlanTaskHash(url.hash)) return false
+    const params = new URLSearchParams(url.hash.slice(url.hash.indexOf("?") + 1))
+    return params.get("node") === nodeId && (eventId === undefined || !params.has("event") || params.get("event") === eventId)
+  } catch { return false }
+}
+
+/** Check the complete digest output: one valid entry link per task, no banned wording, a word budget that scales with items. */
+export function checkReminderDigestMail(mail: ReminderDigestMail): boolean {
+  const n = Array.isArray(mail.taskUrls) ? mail.taskUrls.length : -1
+  if (mail.source !== "rules" || !mail.recipientId || n < 1 || n > DIGEST_TASK_CAP || !Array.isArray(mail.nodeIds) || mail.nodeIds.length !== n) return false
+  if (new Set(mail.nodeIds).size !== n || new Set(mail.taskUrls).size !== n) return false
+  if (!mail.taskUrls.every((url, index) => typeof url === "string" && typeof mail.nodeIds[index] === "string" && !!mail.nodeIds[index] && entryFor(url, mail.nodeIds[index]))) return false
+  const links = urls(mail.body)
+  return typeof mail.subject === "string" && typeof mail.body === "string"
+    && links.length === n && links.every((link, index) => link === mail.taskUrls[index]) && urls(mail.subject).length === 0
+    && !/[\r\n]/.test(mail.subject) && !banned.some(pattern => pattern.test(`${mail.subject}\n${mail.body}`))
+    && mail.body.startsWith("Hi ") && (mail.body.match(/^Task due: /gm) ?? []).length === n && mail.body.includes("Thank you")
+    && !/^(?:Why now|What|When|How|Why it matters|Start by|Latest start):/m.test(mail.body)
+    && mail.wordCount === words(mail.body).length && mail.wordCount <= digestWordBudget(n)
+    && mail.text === `${mail.subject}\n\n${mail.body}`
+    && (mail.intendedEmail === null || email(mail.intendedEmail))
+}
+
+/** Every fact and date comes from the supplied saved state, in the supplied (engine priority) order. */
+export function buildReminderDigestMail(input: ReminderDigestMailInput): ReminderDigestMail {
+  const { recipient, items, today } = input
+  const name = safe(clean(recipient.name).split(" ")[0], "there") || "there"
+  const one = items.length === 1
+  const label = (facts: ReminderTaskFacts) => cut(safe(clean(facts.title), "Task update") || "Task update", 12)
+  const activity = (facts: ReminderTaskFacts) => cut(safe(clean(facts.eventName ?? "Club work"), "Club work") || "Club work", 8)
+  const subject = one ? `${activity(items[0].facts)} · ${label(items[0].facts)}` : `${items.length} Platypus tasks need you`
+  const lines = items.map((item, index) => {
+    const waiting = item.candidate.reason === "waiting_on" || !!item.request
+    const single: ReminderMailInput = { today, facts: item.facts, recipient, taskUrl: item.taskUrl, candidate: item.candidate, request: item.request, requesterName: item.requesterName }
+    const reason = cut(safe(trigger(single, waiting), "A quick check-in on this task."), 18)
+    const due = validDay(item.facts.due) ? fmtShort(item.facts.due!) : "Not set"
+    const title = item.facts.eventName ? `${label(item.facts)} · ${activity(item.facts)}` : label(item.facts)
+    return `${index + 1}. ${title}\nTask due: ${due}\n${reason}\nOpen task: ${item.taskUrl}`
+  })
+  const intro = one ? "One task could use an update today." : `${items.length} tasks could use an update today.`
+  const body = `Hi ${name},\n\n${intro}\n\n${lines.join("\n\n")}\n\nIf anything is in the way, share an update so we can help.\nThank you for your work on ${one ? "this" : "these"}.`
+  const mail: ReminderDigestMail = {
+    subject, body, text: `${subject}\n\n${body}`, taskUrls: items.map(item => item.taskUrl), nodeIds: items.map(item => item.facts.nodeId),
+    recipientId: recipient.id, intendedEmail: email(recipient.email) ? recipient.email : null,
+    wordCount: words(body).length, checked: false, source: "rules",
+  }
+  const scoped = items.every(item => {
+    const { facts, candidate, request } = item
+    const waiting = candidate.reason === "waiting_on" || !!request
+    const scope = waiting
+      ? !!request && !request.closedOn && request.recipientId === recipient.id && request.nodeId === facts.nodeId
+        && request.ownerId === facts.ownerId && request.ownerVersion === facts.ownerVersion && recipient.id !== facts.ownerId
+        && candidate.waitingRequestId === request.id
+      : recipient.id === facts.ownerId && !candidate.waitingRequestId
+    return scope && facts.status !== "done" && candidate.nodeId === facts.nodeId && candidate.recipientId === recipient.id
+      && entryFor(item.taskUrl, facts.nodeId, facts.eventId)
+  })
+  mail.checked = recipient.active && items.length > 0 && scoped && checkReminderDigestMail(mail)
   return mail
 }

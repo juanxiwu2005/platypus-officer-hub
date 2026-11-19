@@ -77,6 +77,8 @@ export interface ReminderDelivery {
   waitingRequestId?: string
   /** Demo outcomes are explicit, never a claim of external delivery. */
   outcome: "recorded_by_sender" | "simulated"
+  /** Set when this task went out inside a person digest (one email for several tasks). */
+  digestId?: string
 }
 export interface ReminderRuntime {
   version: 1 | 2
@@ -89,6 +91,8 @@ export interface ReminderRuntime {
   waitingRequests: WaitingRequest[]
   /** Old sends without recipient/assignment snapshots need review; never guess their ownership. */
   legacyUnresolvedNodeIds?: string[]
+  /** Person digests actually recorded (additive, optional: older v2 ledgers have none). */
+  digests?: import("./digestContracts").ReminderDigestSnapshot[]
 }
 export interface ReminderInput {
   today: string
