@@ -54,7 +54,7 @@ export function createBuilderStep(title: string, reference?: StepTemplate, branc
   }
 }
 
-/** Insertion preserves the clicked task's business branch, scope, category, role and team. */
+/** Legacy branch-aware insertion. Current Settings uses insertTeamBuilderStep for one chain per team. */
 export function insertBuilderStep(snapshot: BuilderSnapshot, referenceId: string, position: InsertPosition, key = newBuilderStepId(), insertionBranch?: string): BuilderSnapshot {
   const reference = snapshot.steps.find(step => step.key === referenceId)
   if (!reference) return snapshot
@@ -92,6 +92,7 @@ export function deleteBuilderStep(snapshot: BuilderSnapshot, key: string): Build
 
 export const tLabel = (offset: number) => offset === 0 ? "T0" : `T${offset > 0 ? "+" : ""}${offset}`
 
+/** Legacy date-axis helpers; current Settings drags call reorderTeamBuilderStep and never shift a target. */
 export function taskDragBlockReason(step: StepTemplate): string | null {
   if (isAsuStep(step)) return "School deadlines are locked. Change workdays or the club buffer instead."
   if ((step.anchor?.kind === "target" && step.anchor.unit === "business") || step.timing?.unit === "business") return "This task uses working-day targets. Use Finish by (T±) to set a calendar-day target first."

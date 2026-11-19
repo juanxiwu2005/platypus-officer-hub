@@ -28,7 +28,7 @@ export function orderedWorkflowSteps(steps: readonly StepTemplate[]): StepTempla
 /**
  * Settings authoring contract: one sequential chain per organization team; teams may work independently.
  * Projecting one global topological order into each team preserves every existing precedence without cycles.
- * Keep all cross-team handoffs, task IDs, conditions, dates and durations intact. Apply to drafts/new versions
+ * Keep all cross-team handoffs, task IDs, conditions, relative targets and durations intact. Apply to drafts/new versions
  * only: never normalize historical versions or the task snapshots of existing Plan activities.
  */
 export function sequenceTeamSteps(steps: readonly StepTemplate[], stepTeams: Readonly<Record<string, string>>, dates?: Readonly<Record<string, string>>): StepTemplate[] {

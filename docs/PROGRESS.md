@@ -1,5 +1,6 @@
-> **2026-11-18（America/Phoenix） · Settings紧凑顺序泳道实施中（Codex）**
-> **用户决定：** 采用固定小卡＋就近直连，单团队内任务依次执行、团队间可并行。卡片仅短标题与T-minus；完整名称、负责人、工期与说明留在Details。新草稿及新保存版本按团队顺序补齐依赖，保留跨团队交接与原日期引擎；既有版本和活动快照不回写。独立worktree分别处理布局/路由、数据与编辑器、浏览器验证，沿用PR14、不合并main。
+> **2026-11-18（America/Phoenix） · Settings紧凑顺序泳道完成检查，待验收（Codex）**
+> **用户决定与交付：** 采用固定小卡＋就近直连，每团队96px一行、132×52卡，只显示一两词标题＋单个T标签；完整任务名称/Details/负责人/工期保留。团队内真正顺序执行、团队间无依赖可并行，新增前/后继承团队/类别/业务条件，拖动重排、Undo及循环保护接通，移除同队并行入口。新保存版本显式启用finish→start排程和完整缓冲；旧版本/已有活动与原四队身份不回写，Plan仍为圆点图。修复Details回调身份反馈循环导致离开Settings卡住，预览日历越界明确报错/日期—，默认参考180天，不伪造未知日期。
+> **验证与验收：** 分批按唯一用例计26文件324单元/组件通过；71项双端浏览器通过、1项既有手机鼠标专用跳过，新Settings真实触屏重排已过。旧前置删除禁用与缺省main分支两处测试预期更新并复验，未放松校规。lint、前后端类型、build、独立CSS、9页字数通过，入口495,864/550,000。[交付](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md) · [证据](feedback-fix/workflow-compact-sequence-verification.json) · [真实双端截图](prototypes/workflow-compact-sequence/manifest.json)。preview14 → Settings → Workflow，点卡看Details、拖动/新增并Save version，新活动选择该版本；严格顺序可能要求更早开工，实际情况筛选后任务数会减少。沿用PR14/原分支，保留同期邮件Events工作，不合并main；schema23不重置，0真实产品AI/外部邮件。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · 邮件统一Events流程图与恢复My tasks默认，检查完成待验收（Codex）**
 > **用户纠正与交付：** 按截图把全部新邮件及旧officer/Tasks可复用入口统一到Plan → Events实际流程图＋右侧Details。真实活动任务总按真实eventId定位/选中；无活动Club task右列保留原任务，左侧以最近查看活动供查阅，可切换及返回但不修改活动归属。普通Tasks恢复My tasks默认。其他节点只读共享提交，原grant/操作者、草稿/附件、刷新/历史及Waiting on边界保留。

@@ -17,7 +17,7 @@ test("inserting before shared Full Check keeps its team without a branch prompt"
   await panel.getByRole("button", { name: "Add before", exact: true }).click()
   const key = await insertedKey(page, keys)
   const step = (await savedWorkflowStep(page, key))!
-  expect(step.placement?.branchId).toBe(reference.placement?.branchId)
+  expect(step.placement?.branchId).toBe(reference.placement?.branchId ?? "main")
   expect(step.cond).toBe(reference.cond)
   expect((await savedWorkflow(page)).teamMap?.stepTeams[key]).toBe(before.teamMap?.stepTeams.finalcheck)
   expect((await savedWorkflowStep(page, "finalcheck"))?.dependsOn).toContain(key)

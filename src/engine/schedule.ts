@@ -35,6 +35,9 @@ import {
  *  - a later calibrated step's ASU deadline is a hard limit for the calibrated steps before it (backward pass), and the
  *    template's own finish order is part of the recommended deadline, so a fresh event shows no "Moved later" warning.
  * Steps without `timing` (hand-made tasks, conditional steps, events built before FB-6) retain their earlier rules unless explicitly edited.
+ * New workflow snapshots with `teamExecution: sequential` instead use full effort plus personal buffer and
+ * finish-to-start dependencies. Calibrated due targets and official limits remain; start windows cannot force overlap.
+ * Historical snapshots without that explicit flag retain the rules above.
  * An explicit `startPolicy: effort` keeps calibrated due dates and link semantics, but dates its start from the
  * work estimate and the full personal buffer. If a real start constraint leaves too little time, its feasible
  * finish is shown with an effort_window warning; the original target and official deadline remain available.
