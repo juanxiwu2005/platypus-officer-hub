@@ -1,8 +1,9 @@
 > **2026-11-18（America/Phoenix） · Settings紧凑顺序泳道实施中（Codex）**
 > **用户决定：** 采用固定小卡＋就近直连，单团队内任务依次执行、团队间可并行。卡片仅短标题与T-minus；完整名称、负责人、工期与说明留在Details。新草稿及新保存版本按团队顺序补齐依赖，保留跨团队交接与原日期引擎；既有版本和活动快照不回写。独立worktree分别处理布局/路由、数据与编辑器、浏览器验证，沿用PR14、不合并main。
 
-> **2026-11-18（America/Phoenix） · 邮件统一Events流程图与恢复My tasks默认，实施中（Codex）**
-> **用户纠正：** 邮件应进入截图所示Events节点图＋右侧Details，而非Team tasks看板。活动任务按真实关联定位；无活动任务保留原任务在右侧，以最近查看的活动作为只读浏览上下文，不能伪造归属。补齐旧Tasks邮件跳转、原任务返回和跨节点只读；Tasks普通入口恢复My tasks。保留当前四队模板与另一对话静态布局研究，沿用PR14，不合并main。
+> **2026-11-18（America/Phoenix） · 邮件统一Events流程图与恢复My tasks默认，检查完成待验收（Codex）**
+> **用户纠正与交付：** 按截图把全部新邮件及旧officer/Tasks可复用入口统一到Plan → Events实际流程图＋右侧Details。真实活动任务总按真实eventId定位/选中；无活动Club task右列保留原任务，左侧以最近查看活动供查阅，可切换及返回但不修改活动归属。普通Tasks恢复My tasks默认。其他节点只读共享提交，原grant/操作者、草稿/附件、刷新/历史及Waiting on边界保留。
+> **验证与验收：** 19文件276单元/组件通过，生产双端按唯一用例计32浏览器通过；初轮手机定位、补充种子中视觉标记误计两处测试错误已修并复验，未改图或放宽授权。lint、前后端类型、build、9页字数和入口预算通过，495,809/550,000；完整Networking Night的实际38节点及Moderator定位、Book room切换已验证。[交付](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)与[真实双端截图](prototypes/reminder-events-entry/manifest.json)。沿用PR14/preview14，待部署状态补充；不合并main，保留同期四队与静态布局研究，0真实AI/邮件，需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · 紧凑卡片与连线路由6张静态方案已交付，待选择（Codex）**
 > **交付：** 用户要求解决模块太大/太长与相邻/并行连接过度折返，完成A1固定小卡、A2文字＋细时间条、A3任务组、B1就近直连、B2共享分叉/AND通道、B3选中聚焦。[六图清单](prototypes/workflow-compact-routing-concepts/manifest.json) · [图与引擎实施思路](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)。使用Operations真实安全要求8节点/8依赖与原工作日，四队不变；位置仅示意，A3跨组线是总览抽象。建议A1＋B1＋B2，B3辅助；尚未选择或实装。
@@ -573,6 +574,8 @@
 - 要问 Marcie：论文题目里的 “cloud-Excel-based” 是否要改；深访作为设计依据的写法是否合适。
 
 ## 交接记录（最新的在最上面）
+
+- **2026-11-18（America/Phoenix） · Codex（邮件按截图统一Events）：** 活动邮件按真实归属定位流程图/Details；无活动任务使用最近活动供浏览且不伪造归属，旧Tasks入口也跳转Events，普通Tasks恢复My tasks。276单元/组件和生产双端分批32唯一浏览器检查通过，完整Networking38任务、原始Agenda、历史/草稿/只读/协助范围及入口预算均验证；lint/types/build/9页字数通过。沿用PR14，不合并main；当前交付取代上轮Tasks/Team tasks路由。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
 
 - **2026-11-17（America/Phoenix） · Codex：** 按用户选定D实施Update the team，内部目标即时更新、多选/取消/添加知会人、自己可选、按人合并，下游来自真实依赖；没有新审批步骤。954e582＋676f638，219相关单元/组件与生产双端分批32浏览器通过/2设备限定跳过，最终65组件及8关键浏览器复验通过；lint/类型/build/CSS/9页字数通过，入口549,688/550,000。保留旧延期历史、Task Details/附件自动保存/完成退回和同期研究，站内通知不等于外部投递。见[交付](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md)；沿用preview14，不合并main。PRODUCT_PLAN/RULES/字典更新，需要同步本地备份。
 

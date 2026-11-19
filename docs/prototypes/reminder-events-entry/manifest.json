@@ -1,0 +1,65 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "kind": "actual-browser-screenshots",
+  "runtimeCommit": "pending",
+  "fixture": "Networking Night: full current v2 fictional seed, real e-night moderator and all 38 task buttons. Club task: original t-agenda fields, eventId stays null, event used only for browsing. Locally generated test grants; no user token copied.",
+  "checks": {
+    "unitFiles": 19,
+    "unit": 276,
+    "browserUnique": 32,
+    "browserInitial": {
+      "passed": 19,
+      "failed": 1,
+      "reason": "Mobile test selected hidden desktop event button; corrected to existing Choose an event selector."
+    },
+    "browserRelated": {
+      "passed": 12,
+      "failed": 2,
+      "reason": "New seed proof counted three synthetic visual gate markers as task nodes; corrected selector to actual flow-node buttons."
+    },
+    "browserFinalSeedAndBudget": {
+      "passed": 4,
+      "failed": 0
+    },
+    "note": "Unique total: 22 Plan-entry checks, 8 existing mail/submission/workflow compatibility checks, 2 bundle checks. Repeats are not added. Mobile event switching passed in the second batch. No product implementation changed after the initial build.",
+    "lint": true,
+    "frontendTypesAndBuild": true,
+    "backendTypes": true,
+    "wordBudgetPages": 9,
+    "entryBytes": 495809,
+    "entryLimit": 550000,
+    "realAiCalls": 0,
+    "realEmails": 0
+  },
+  "images": [
+    {
+      "file": "networking-event-desktop.png",
+      "width": 1280,
+      "height": 1073,
+      "bytes": 139601,
+      "sha256": "2e3096229661317e83009e44a4ffb7cc45999cd8113614ee8e372e100058d097"
+    },
+    {
+      "file": "club-task-with-event-desktop.png",
+      "width": 1280,
+      "height": 1068,
+      "bytes": 110169,
+      "sha256": "ec01d15cdf2d5adeb2d85797f37d7b2663d4b883bf1dea2e7fb42dd8b1f2506b"
+    },
+    {
+      "file": "networking-event-mobile.png",
+      "width": 1082,
+      "height": 2202,
+      "bytes": 132787,
+      "sha256": "003fe48196771864aca4312ebebc0ea5450d98745dcdc4fe07040fd53c469ee5"
+    },
+    {
+      "file": "club-task-with-event-mobile.png",
+      "width": 1082,
+      "height": 2202,
+      "bytes": 121654,
+      "sha256": "21c9ee630889c4b9e5bd3388cc5ddf6efe03b3f2a59765d34f186b95149770dc"
+    }
+  ]
+}

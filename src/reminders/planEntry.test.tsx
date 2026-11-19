@@ -6,16 +6,17 @@ import { StoreProvider, reducer, useStore } from "../data/store"
 import type { DemoState } from "../data/types"
 import { RailProvider } from "../components/rail/RailContext"
 import { clubAgendaEntryFixture, planEntryFixture, PLAN_EVENT, PLAN_OTHER, PLAN_ROOM } from "../test/planEntryFixture"
-import { legacyTaskAccessUrl, makeTaskAccessGrant, taskAccessToken, taskAccessUrl } from "./taskAccess"
+import { legacyTaskAccessUrl, legacyTaskPlanUrl, makeTaskAccessGrant, taskAccessToken, taskAccessUrl } from "./taskAccess"
 import { planTaskPath, resolvePlanEntry } from "./planEntry"
 import { buildReminderFacts, reminderPeople } from "./facts"
 import { buildReminderMail } from "./mail"
 import { validatedReminderMessage } from "./message"
 import PlanTaskPanel from "./PlanTaskPanel"
+import { recentPlanEvent, rememberPlanEvent } from "./planEventPreference"
 
 vi.mock("../taskDetails/fileStorage", async original => ({ ...await original<typeof import("../taskDetails/fileStorage")>(), ...await import("../test/taskFileStorageMock") }))
 beforeAll(() => vi.stubGlobal("crypto", webcrypto))
-beforeEach(() => localStorage.clear())
+beforeEach(() => { localStorage.clear(); sessionStorage.clear() })
 afterEach(cleanup)
 afterAll(() => vi.unstubAllGlobals())
 
@@ -113,14 +114,14 @@ describe("Plan task panel", () => {
 
 
 describe("the reported Club task without an event", () => {
-  it("generates a Plan Tasks link and accepts its saved legacy Officer snapshot", async () => {
+  it("generates an Events link and accepts saved Officer and Tasks snapshots", async () => {
     const base = clubAgendaEntryFixture(), grant = await makeTaskAccessGrant(base, "t-agenda")
     const state = reducer(base, { type: "issueTaskAccessGrant", grant }), facts = buildReminderFacts(state, "t-agenda")!
     expect(facts.eventId).toBeNull()
     expect(facts.requirement).toBe("Draft the meeting agenda.")
     const taskUrl = taskAccessUrl("https://demo.example.org", grant, facts.eventId)
-    expect(taskUrl).toContain("/#/tasks?node=t-agenda&access=")
-    for (const url of [taskUrl, legacyTaskAccessUrl("https://demo.example.org", grant)]) {
+    expect(taskUrl).toContain("/#/events?node=t-agenda&access=")
+    for (const url of [taskUrl, legacyTaskAccessUrl("https://demo.example.org", grant), legacyTaskPlanUrl("https://demo.example.org", grant)]) {
       const mail = buildReminderMail({ today: state.today, facts, recipient: reminderPeople(state).find(p => p.id === "priya")!, taskUrl: url })
       expect(mail.checked).toBe(true)
       expect(validatedReminderMessage(state, { ...mail, channel: "email", preparedOn: state.today, accessId: grant.id }, "t-agenda")).toBeTruthy()
@@ -146,5 +147,36 @@ describe("the reported Club task without an event", () => {
     await waitFor(() => expect(latest.nodes.find(n => n.id === "t-agenda")?.status).toBe("done"))
     expect(latest.nodes.find(n => n.id === "t-agenda")?.taskWork?.submissions[0].authorId).toBe("priya")
     expect(latest.viewerId).toBe("alex")
+  })
+})
+
+
+describe("event context without inventing a task association", () => {
+  it("uses the most recently viewed event for a club task and keeps its original assignment intact", async () => {
+    const base = clubAgendaEntryFixture(), grant = await makeTaskAccessGrant(base, "t-agenda")
+    const state = reducer(base, { type: "issueTaskAccessGrant", grant })
+    rememberPlanEvent(state, "plan-other-event")
+    const result = resolvePlanEntry(state, params(planTaskPath(null, "t-agenda", taskAccessToken(grant))), grant, false, "events", recentPlanEvent(state))
+    expect(result).toMatchObject({ error: null, event: { id: "plan-other-event" }, node: { id: "t-agenda", eventId: null } })
+    const other = resolvePlanEntry(state, params(planTaskPath("plan-other-event", "plan-other-event-task", taskAccessToken(grant), "t-agenda")), grant)
+    expect(other).toMatchObject({ error: null, readOnly: true, origin: { id: "t-agenda" } })
+    expect(state.nodes.find(node => node.id === "t-agenda")?.eventId).toBeNull()
+  })
+  it("uses the real event for an assigned task even if a different event was last viewed", async () => {
+    const { state, grant, token } = await issued()
+    rememberPlanEvent(state, "plan-other-event")
+    expect(resolvePlanEntry(state, params(planTaskPath(null, PLAN_ROOM, token)), grant, false, "events", recentPlanEvent(state))).toMatchObject({ error: null, event: { id: PLAN_EVENT } })
+  })
+  it("keeps event browsing preferences isolated across workspaces and ignores a deleted event", () => {
+    const state = planEntryFixture()
+    rememberPlanEvent(state, "plan-other-event")
+    expect(recentPlanEvent(state)).toBe("plan-other-event")
+    expect(recentPlanEvent({ ...state, demoLinkKey: "another-workspace-key" })).toBeUndefined()
+    expect(recentPlanEvent({ ...state, events: state.events.filter(event => event.id !== "plan-other-event") })).toBeUndefined()
+  })
+  it("keeps a club task available when the workspace has no events", async () => {
+    const base = clubAgendaEntryFixture(), grant = await makeTaskAccessGrant(base, "t-agenda")
+    const state = { ...reducer(base, { type: "issueTaskAccessGrant", grant }), events: [] }
+    expect(resolvePlanEntry(state, params(planTaskPath(null, "t-agenda", taskAccessToken(grant))), grant)).toMatchObject({ error: null, event: undefined, node: { id: "t-agenda", eventId: null } })
   })
 })
