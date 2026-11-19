@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright"
 import type { DemoState, Event, Node, StepTemplate } from "../src/data/types"
 import { addDays } from "../src/lib/dates"
 import { computeSchedule } from "../src/engine/schedule"
-import { closeRail, noOverflow } from "./helpers"
+import { noOverflow } from "./helpers"
 
 type Version = { name: string; version: number; steps: StepTemplate[]; teamMap?: { stepTeams: Record<string, string> } }
 type Template = { id: string; draft?: Omit<Version, "version">; versions: Version[] }
@@ -13,6 +13,12 @@ type Saved = DemoState & { org: DemoState["org"] & { workflowTemplates?: Templat
 
 const read = (page: Page): Promise<Saved> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
 const names = ["Agree visit", "Confirm transport", "Open sign-up", "Share briefing", "Thank host"]
+
+async function closeRail(page: Page) {
+  if ((page.viewportSize()?.width ?? 1280) >= 1200) return
+  // Route changes may close the rail between a visibility check and a click. Query and close once, atomically.
+  await page.getByRole("button", { name: "Hide side panel", exact: true }).evaluateAll(buttons => buttons.forEach(button => (button as HTMLButtonElement).click()))
+}
 
 test.beforeEach(async ({ page }) => {
   // Every server boundary is offline: creating a human-authored workflow must need no model or mail service.
@@ -55,13 +61,13 @@ async function createTemplate(page: Page, name: string, taskNames = names) {
   return (await templateByName(page, name))
 }
 
-async function createEvent(page: Page, name: string, template: Template, version = 1) {
+async function createEvent(page: Page, name: string, template: Template, version = 1, dateOffset = 90) {
   await page.goto("/#/events")
   await closeRail(page)
   await page.getByTestId("new-event").click()
   const form = page.getByTestId("plan-form").last()
   await form.getByLabel("Event name", { exact: true }).fill(name)
-  await form.getByLabel("Date", { exact: true }).fill(addDays((await read(page)).today, 90))
+  await form.getByLabel("Date", { exact: true }).fill(addDays((await read(page)).today, dateOffset))
   const workflowName = template.versions.find(item => item.version === version)!.name
   await form.getByLabel("Workflow template", { exact: true }).selectOption({ label: `${workflowName} · v${version}` })
   await form.getByRole("button", { name: "Continue", exact: true }).click()
@@ -221,13 +227,18 @@ test("custom T0 and T+ targets remain valid work on and after the activity day",
   await builder.getByRole("button", { name: "Timeline", exact: true }).click()
   for (const [title, offset] of [["Host visit", "0"], ["Thank host", "2"]]) {
     await builder.getByRole("button", { name: `Edit ${title}`, exact: true }).click()
+    if (title === "Thank host") await page.getByRole("button", { name: "Remove prerequisite Host visit", exact: true }).click()
     await page.getByLabel("Finish by (T±)", { exact: true }).fill(offset)
     await closeRail(page)
   }
   await page.getByRole("button", { name: "Save version", exact: true }).click()
   await expect.poll(async () => (await templateByName(page, "Visit day and follow-up"))?.versions.length).toBe(2)
   const updated = await templateByName(page, "Visit day and follow-up")
-  const event = await createEvent(page, "Visit with follow-up", updated, 2)
+  let dateOffset = 90
+  const today = (await read(page)).today
+  // A Monday target keeps T+2 on a workday, so this checks event-relative policy rather than weekend adjustment.
+  while (new Date(`${addDays(today, dateOffset)}T12:00:00Z`).getUTCDay() !== 1) dateOffset++
+  const event = await createEvent(page, "Visit with follow-up", updated, 2, dateOffset)
   const saved = await read(page)
   const tasks = saved.nodes.filter(node => node.eventId === event.id)
   const schedule = computeSchedule(saved)
