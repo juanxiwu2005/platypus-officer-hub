@@ -5,7 +5,7 @@ import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { addDays } from "../src/lib/dates"
 import { noOverflow } from "./helpers"
 
-type Content = WorkflowTemplateContent & { teamExecution?: "sequential" }
+type Content = WorkflowTemplateContent
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
 let errors: string[] = []
 
@@ -117,84 +117,47 @@ async function dragBefore(page: Page, sourceKey: string, targetKey: string, touc
   }
 }
 
-test("the default 46 tasks use four compact single-row teams and save a new sequence without changing history", async ({ page }, info) => {
+test("the default 46 tasks use four compact team containers without rewriting dependencies or historical activities", async ({ page }, info) => {
   await page.goto("/#/settings")
   const before = await read(page)
   const oldVersion = getWorkflowTemplates(before).find(template => template.id === "standard-event")!.versions[0]
   const builder = await open(page)
-  const cards = builder.locator('[data-testid^="workflow-task-"]')
-  await expect(cards).toHaveCount(46)
+  const dots = builder.locator('[data-testid^="workflow-task-"]')
+  await expect(dots).toHaveCount(46)
   await expect(builder.locator('[data-testid^="workflow-team-"]')).toHaveCount(4)
-  const geometry = await cards.evaluateAll(elements => elements.map(element => {
-    const rect = element.getBoundingClientRect()
-    return { key: element.getAttribute("data-testid")!.slice("workflow-task-".length), team: element.getAttribute("data-team-id"), col: Number(element.getAttribute("data-col")), y: rect.y, width: rect.width, height: rect.height, lines: (element as HTMLElement).innerText.split("\n").map(text => text.trim()).filter(Boolean), title: element.querySelector('[data-testid="task-title"]')?.textContent?.trim(), date: element.querySelector('[data-testid="task-date"]')?.textContent?.trim() }
-  }))
-  for (const card of geometry) {
-    expect(card.width).toBeCloseTo(132, 0)
-    expect(card.height).toBeCloseTo(52, 0)
-    expect(card.lines).toHaveLength(2)
-    expect(card.title!.split(/\s+/).length).toBeLessThanOrEqual(2)
-    expect(card.date).toMatch(/^T(?:0|[+−-]\d+)$/)
-    expect(card.lines.join(" ")).not.toMatch(/workday|\bwd\b|Owner|lead$/i)
-  }
-  for (const team of before.org.workflowTeams!) expect(new Set(geometry.filter(card => card.team === team.id).map(card => card.y)).size).toBe(1)
-  expect(geometry.find(card => card.key === "drone")!.col).toBeGreaterThan(geometry.find(card => card.key === "alcohol")!.col)
+  await expect(builder.locator(".wfb-task")).toHaveCount(0)
+  for (const task of oldVersion.steps) await expect(builder.getByRole("button", { name: `Edit ${task.title}`, exact: true })).toHaveCount(1)
   await page.getByRole("button", { name: "Save draft", exact: true }).click()
-  await expect.poll(async () => (await draft(page, "standard-event")).teamExecution).toBe("sequential")
+  await expect.poll(async () => (await draft(page, "standard-event")).teamExecution).toBe("dependencies")
   const authored = await draft(page, "standard-event")
+  expect(authored.steps).toEqual(oldVersion.steps)
   await expect(builder.getByTestId("workflow-dependency")).toHaveCount(authored.steps.reduce((count, step) => count + (step.dependsOn?.length ?? 0), 0))
-  const crossedCards = await builder.getByTestId("workflow-dependency").evaluateAll(paths => {
-    const cards = [...document.querySelectorAll('[data-testid^="workflow-task-"]')].map(card => ({ name: card.querySelector('[data-testid="task-title"]')?.textContent, rect: card.getBoundingClientRect() }))
-    const intersections: string[] = []
-    for (const element of paths) {
-      const path = element as SVGPathElement
-      const transform = path.getScreenCTM()!
-      for (let distance = 2; distance < path.getTotalLength(); distance += 4) {
-        const raw = path.getPointAtLength(distance)
-        const point = new DOMPoint(raw.x, raw.y).matrixTransform(transform)
-        const crossed = cards.find(({ rect }) => point.x > rect.left + 2 && point.x < rect.right - 2 && point.y > rect.top + 2 && point.y < rect.bottom - 2)
-        if (crossed) { intersections.push(`${path.querySelector("title")?.textContent}: ${crossed.name}`); break }
-      }
-    }
-    return intersections
-  })
-  expect(crossedCards).toEqual([])
-  for (const team of before.org.workflowTeams!) {
-    const order = teamOrder(authored, team.id)
-    for (let index = 1; index < order.length; index++) expect(ancestors(authored.steps, order[index]).has(order[index - 1])).toBe(true)
-  }
-  expect(ancestors(authored.steps, "drone").has("alcohol")).toBe(true)
+  // Dense teams continue inside their own container; the workflow no longer grows with effort windows.
+  const canvasWidth = await builder.locator(".wfb-scroll").evaluate(element => element.scrollWidth)
+  expect(canvasWidth).toBeLessThanOrEqual(1200)
   const full = oldVersion.steps.find(step => step.title.split(/\s+/).length > 2)!
   await builder.getByRole("button", { name: `Edit ${full.title}`, exact: true }).click()
   await expect(page.getByLabel("Task name", { exact: true })).toHaveValue(full.title)
   await expect(page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true })).toHaveValue(full.why)
-  await expect(page.getByRole("button", { name: "Add parallel", exact: true })).toHaveCount(0)
   await closeRail(page)
-  await builder.getByRole("button", { name: "Quick entry", exact: true }).click()
-  await expect(builder.getByRole("combobox", { name: "Add as", exact: true })).toHaveCount(0)
-  await expect(builder.getByRole("option", { name: "Parallel", exact: true })).toHaveCount(0)
-  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
   const savedVersion = await publish(page, "standard-event", oldVersion.version + 1)
-  expect((savedVersion as Content).teamExecution).toBe("sequential")
+  expect(savedVersion.teamExecution).toBe("dependencies")
   expect((await savedTemplate(page, "standard-event")).versions[0]).toEqual(oldVersion)
   expect((await read(page)).nodes).toEqual(before.nodes)
   expect((await read(page)).events).toEqual(before.events)
-  const event = await createEvent(page, "Compact standard event", "standard-event", savedVersion.version)
+  const event = await createEvent(page, "Dot standard event", "standard-event", savedVersion.version)
   const state = await read(page)
   const tasks = state.nodes.filter(node => node.eventId === event.id)
   expect(tasks.some(node => node.stepKey === "drone" || node.stepKey === "alcohol")).toBe(false)
-  const actual = tasks.map(node => ({ key: node.id, dependsOn: node.dependsOn }))
-  for (const team of state.org.workflowTeams!) {
-    const ids = tasks.filter(node => node.teamId === team.id).map(node => node.id)
-    for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) expect(ancestors(actual, ids[j]).has(ids[i]) || ancestors(actual, ids[i]).has(ids[j])).toBe(true)
-  }
+  // The original graph's prerequisites still reference actual tasks in this run.
+  expect(tasks.every(node => node.dependsOn.every(id => tasks.some(task => task.id === id)))).toBe(true)
   expect(state.nodes.filter(node => before.nodes.some(old => old.id === node.id))).toEqual(before.nodes)
   expect(state.events.filter(item => before.events.some(old => old.id === item.id))).toEqual(before.events)
   await open(page)
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
   const axe = await new AxeBuilder({ page }).include("[data-testid='workflow-template-editor']").withTags(["wcag2a", "wcag2aa"]).analyze()
   expect(axe.violations.filter(item => ["serious", "critical"].includes(item.impact ?? ""))).toEqual([])
-  await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath("compact-default-four-teams.png") })
+  await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath("dot-default-four-teams.png") })
 })
 
 test("independent teams keep parallel starting columns while their tasks remain compact and reusable", async ({ page }) => {
@@ -205,7 +168,7 @@ test("independent teams keep parallel starting columns while their tasks remain 
   await addTasks(page, ["Publish volunteer outreach announcement"], marketing)
   const definition = await publish(page, id, 1)
   expect(definition.steps.every(step => !step.dependsOn?.length)).toBe(true)
-  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await builder.getByRole("button", { name: "Flow", exact: true }).click()
   const positions = await Promise.all(definition.steps.map(async step => {
     const element = builder.getByTestId(`workflow-task-${step.key}`)
     return { col: await element.getAttribute("data-col"), box: await element.boundingBox() }
@@ -232,7 +195,7 @@ test("real pointer reordering preserves IDs and dates, supports Undo, and only a
   const oldTasks = (await read(page)).nodes.filter(node => node.eventId === oldEvent.id)
   await open(page)
   await page.getByRole("combobox", { name: "Saved workflow", exact: true }).selectOption(id)
-  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await builder.getByRole("button", { name: "Flow", exact: true }).click()
   const source = originalKeys[2], target = originalKeys[1]
   const nextOrder = [originalKeys[0], source, target]
   await dragBefore(page, source, target, isMobile)
@@ -271,7 +234,7 @@ test("reordering through a cross-team dependency loop is refused without changin
   const operations = state.org.workflowPresetTeamIds!.operations!, marketing = state.org.workflowPresetTeamIds!.marketing!
   await addTasks(page, ["Agree partner visit", "Confirm partner arrival"], operations)
   await addTasks(page, ["Publish partner announcement"], marketing)
-  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await builder.getByRole("button", { name: "Flow", exact: true }).click()
   let current = await draft(page, id)
   const [a, c, b] = current.steps
   await builder.getByRole("button", { name: `Edit ${b.title}`, exact: true }).click()
@@ -289,18 +252,23 @@ test("reordering through a cross-team dependency loop is refused without changin
   expect((await draft(page, id)).steps).toEqual(current.steps)
 })
 
-test("unsupported calendar previews explain missing dates and recover after choosing a supported target", async ({ page }, info) => {
-  const builder = await open(page)
-  const target = builder.getByLabel("Preview target day", { exact: true })
-  const supported = await target.inputValue()
-  await target.fill("2026-12-12")
-  await expect(builder.getByRole("alert")).toContainText("supported calendar")
-  const dates = builder.getByTestId("task-date")
-  await expect(dates).toHaveCount(46)
-  expect(await dates.allTextContents()).toEqual(Array(46).fill("—"))
-  await target.fill(supported)
-  await expect(builder.getByRole("alert")).toHaveCount(0)
-  expect((await dates.allTextContents()).every(date => /^T(?:0|[+−-]\d+)$/.test(date))).toBe(true)
+test("editing work effort keeps compact dot positions while preserving the engine-owned target", async ({ page }, info) => {
+  const { builder, id } = await newTemplate(page, "Compact effort preview")
+  const team = (await read(page)).org.workflowPresetTeamIds!.operations!
+  await addTasks(page, ["Confirm room", "Share location"], team)
+  await builder.getByRole("button", { name: "Flow", exact: true }).click()
+  const original = await draft(page, id)
+  const last = original.steps[1]
+  const position = await builder.getByTestId(`workflow-task-${last.key}`).getAttribute("data-col")
+  await builder.getByRole("button", { name: `Edit ${last.title}`, exact: true }).click()
+  await page.getByRole("spinbutton", { name: "Days of work", exact: true }).fill("12")
   await closeRail(page)
-  await page.screenshot({ path: info.outputPath("compact-settings.png"), fullPage: true })
+  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  const changed = await draft(page, id)
+  expect(changed.steps.find(step => step.key === last.key)?.estDays).toBe(12)
+  expect(changed.steps.find(step => step.key === last.key)?.anchor).toEqual(last.anchor)
+  expect(await builder.getByTestId(`workflow-task-${last.key}`).getAttribute("data-col")).toBe(position)
+  await expect(builder.getByLabel("Preview target day", { exact: true })).toHaveCount(0)
+  expect(await noOverflow(page)).toBeLessThanOrEqual(1)
+  await page.screenshot({ path: info.outputPath("dot-settings.png"), fullPage: true })
 })

@@ -148,7 +148,7 @@ test("a second template version creates independent tasks without rewriting an e
   await settings(page)
   await page.getByLabel("Saved workflow", { exact: true }).selectOption(template.id)
   const builder = page.getByTestId("workflow-builder")
-  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await builder.getByRole("button", { name: "Flow", exact: true }).click()
   await builder.getByRole("button", { name: `Edit ${names[0]}`, exact: true }).click()
   await page.getByLabel("Task name", { exact: true }).fill("Agree host visit")
   await closeRail(page)
@@ -176,7 +176,7 @@ test("before and next insertion keep the selected task's team and type; Undo res
   const template = await createTemplate(page, "Insertion trial", names.slice(0, 2))
   const original = template.versions[0]
   const builder = page.getByTestId("workflow-builder")
-  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await builder.getByRole("button", { name: "Flow", exact: true }).click()
   await builder.getByRole("button", { name: `Edit ${names[1]}`, exact: true }).click()
   await page.getByRole("combobox", { name: "Step type", exact: true }).selectOption("situation")
   await page.getByRole("button", { name: "Add before", exact: true }).click()
@@ -209,7 +209,7 @@ test("before and next insertion keep the selected task's team and type; Undo res
 test("dependency connections reject loops and double-clicking an arrow leaves the workflow intact", async ({ page }) => {
   const template = await createTemplate(page, "Safe connections", names.slice(0, 2))
   const builder = page.getByTestId("workflow-builder")
-  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await builder.getByRole("button", { name: "Flow", exact: true }).click()
   await builder.getByRole("button", { name: `Edit ${names[1]}`, exact: true }).click()
   await closeRail(page)
   await builder.getByRole("button", { name: "Connect", exact: true }).click()
@@ -229,7 +229,7 @@ test("dependency connections reject loops and double-clicking an arrow leaves th
 test("custom T0 and T+ targets remain valid work on and after the activity day", async ({ page }) => {
   const template = await createTemplate(page, "Visit day and follow-up", ["Host visit", "Thank host"])
   const builder = page.getByTestId("workflow-builder")
-  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await builder.getByRole("button", { name: "Flow", exact: true }).click()
   for (const [title, offset] of [["Host visit", "0"], ["Thank host", "2"]]) {
     await builder.getByRole("button", { name: `Edit ${title}`, exact: true }).click()
     if (title === "Thank host") {
@@ -262,7 +262,7 @@ test("the two authoring views share saved IDs and support keyboard, dark mode an
   const template = await createTemplate(page, "Readable visit")
   const editor = page.getByTestId("workflow-template-editor")
   const builder = page.getByTestId("workflow-builder")
-  const timeline = builder.getByRole("button", { name: "Timeline", exact: true })
+  const timeline = builder.getByRole("button", { name: "Flow", exact: true })
   await timeline.focus()
   await timeline.press("Enter")
   await expect(builder.getByRole("button", { name: `Edit ${names[0]}`, exact: true })).toBeVisible()
@@ -299,7 +299,7 @@ test("changing a target in Details preserves its task identity and dependencies 
   const original = template.versions[0]
   const last = original.steps[original.steps.length - 1]
   const builder = page.getByTestId("workflow-builder")
-  await builder.getByRole("button", { name: "Timeline", exact: true }).click()
+  await builder.getByRole("button", { name: "Flow", exact: true }).click()
   await closeRail(page)
   const beforeDays = last.anchor?.kind === "target" ? last.anchor.days : undefined
   expect(beforeDays).toBeDefined()
