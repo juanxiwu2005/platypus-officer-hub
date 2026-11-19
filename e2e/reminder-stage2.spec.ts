@@ -19,7 +19,7 @@ async function openMail(page: Page, waiting = false) {
     completionCriteria: "The confirmed location and reservation reference are saved.",
     why: "The confirmed room lets us share the location with everyone.",
   }
-  const planned = applySchedule({ ...s, nodes: s.nodes.map(n => n.id === node.id ? node : n), events: s.events.map(e => e.id === event.id ? event : e),
+  const planned = applySchedule({ ...s, nodes: s.nodes.map(n => n.id === node.id ? node : n.ownerId === node.ownerId && n.status !== "done" ? { ...n, status: "done" as const } : n), events: s.events.map(e => e.id === event.id ? event : e),
     viewerId: "alex", aiEnabled: true, org: { ...s.org, settings: { ...s.org.settings, reminderMode: "review_then_auto", matchingMode: "legacy" } },
     nudges: [], protocolLog: [], silenceCases: [], extensionRequests: [], taskAccessGrants: [], reminderRuntime: undefined })
   // Use an actual rule-engine date so the ordinary owner reminder is currently eligible.
@@ -31,11 +31,17 @@ async function openMail(page: Page, waiting = false) {
   await closeRail(page)
   await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
   await expect.poll(async () => (await demo(page)).reminderRuntime?.version).toBe(2)
-  await page.goto(`/#/tasks?node=${encodeURIComponent(selected.nodeId)}`)
-  await page.getByTestId("task-detail").getByRole("button", { name: /^Remind / }).click()
-  const panel = page.getByTestId("nudge-panel")
-  await expect(panel.getByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeEnabled()
-  return { ...selected, panel }
+  // Concept F: the reminder is part of the recipient's email for today, opened from the Reminders page.
+  const recipientId = waiting ? "sam" : node.ownerId!
+  await page.locator(`[data-testid="rq-person"][data-recipient="${recipientId}"] .dg-person-head`).click()
+  const panel = page.getByTestId("digest-panel")
+  await expect(panel.getByTestId("digest-send-next")).toBeEnabled()
+  await expect(panel.getByTestId("digest-body").getByRole("link", { name: "Open task" }).first()).toBeVisible()
+  // The combined email has one "Open task" link per task; pick this task's link by its node.
+  const entry = await panel.getByTestId("digest-body").getByRole("link", { name: "Open task" }).evaluateAll((links, id) => links.map(a => (a as HTMLAnchorElement).href)
+    .filter(href => new URLSearchParams(new URL(href).hash.split("?")[1] ?? "").get("node") === id), node.id)
+  expect(entry).toHaveLength(1)
+  return { ...selected, panel, entry: entry[0], recipientId }
 }
 
 test.beforeEach(async ({ page, context }) => {
@@ -48,17 +54,17 @@ test("one rule-written mail opens a reusable task page: Working, reload, Done an
   page.on("request", r => { if (/\/api\/(?:nudge|chat|command|ask)/.test(r.url())) ai.push(r.url()) })
   page.on("pageerror", e => errors.push(e.message))
   const { panel, nodeId, eventName, ownerId } = await openMail(page)
-  await expect(panel.getByRole("heading", { name: `${eventName} · Reserve a room`, exact: true })).toBeVisible()
-  await expect(panel.getByTestId("nudge-body")).toContainText("40 attendees")
-  await expect(panel.getByTestId("nudge-body")).toContainText("Task due:")
-  await expect(panel.getByTestId("nudge-body")).toContainText("Thank you")
+  await expect(panel.getByTestId("digest-mail")).toContainText("Reserve a room")
+  await expect(panel.getByTestId("digest-mail")).toContainText(eventName)
+  await expect(panel.getByTestId("digest-body")).toContainText("Task due:")
+  await expect(panel.getByTestId("digest-body")).toContainText("Thank you")
   await expect(panel.getByTestId("ai-wait")).toHaveCount(0)
-  await expect(panel.getByRole("link", { name: "Open task", exact: true })).toHaveCount(1)
   await expect(panel.getByRole("link", { name: /^(Done|Working on it|Stuck|Waiting on)$/ })).toHaveCount(0)
   await page.screenshot({ path: info.outputPath(`mail-${isMobile ? "phone" : "desktop"}.png`), fullPage: true })
-  await panel.getByRole("button", { name: "Approve · Platypus sends (demo)" }).click()
-  await expect(panel).toContainText("Approved. Platypus would send it now.")
+  await panel.getByTestId("digest-send-next").click()
+  await expect(panel).toContainText("recorded. Demo: nothing is sent.")
   const saved = (await demo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === nodeId)!
+  expect(saved.message!.body).toContain("40 attendees")
   expect((await demo(page)).nudges).toEqual([])
   expect(saved.message?.recipientId).toBe(ownerId)
   expect(saved.message?.source).toBe("rules")
@@ -92,8 +98,7 @@ test("one rule-written mail opens a reusable task page: Working, reload, Done an
 })
 
 test("the same task entry can record Waiting on and Stuck without consuming it", async ({ page }) => {
-  const { panel, nodeId } = await openMail(page)
-  const entry = (await panel.getByRole("link", { name: "Open task", exact: true }).getAttribute("href"))!
+  const { entry, nodeId } = await openMail(page)
   await page.goto(entry)
   const task = page.getByTestId("single-task-page")
   await expect(task).toBeVisible()
@@ -112,8 +117,7 @@ test("the same task entry can record Waiting on and Stuck without consuming it",
 })
 
 test("altered entries and reassignment withdraw the old recipient's action rights", async ({ page }) => {
-  const { panel, nodeId } = await openMail(page)
-  const entry = (await panel.getByRole("link", { name: "Open task", exact: true }).getAttribute("href"))!
+  const { entry, nodeId } = await openMail(page)
   await page.goto(`${entry}0`)
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
   await page.evaluate(id => {
@@ -131,10 +135,11 @@ test("altered entries and reassignment withdraw the old recipient's action right
 test("a waiting follow-up goes to Sam and its task entry only responds to the help request", async ({ page }) => {
   const { panel, nodeId, ownerId } = await openMail(page, true)
   await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Sam Okafor")
-  await expect(panel.getByTestId("nudge-body")).toContainText("Please confirm our room requirements")
-  await panel.getByRole("button", { name: "Approve · Platypus sends (demo)" }).click()
-  await expect(panel).toContainText("Approved. Platypus would send it now.")
-  const saved = (await demo(page)).reminderRuntime!.deliveries[0]
+  await expect(panel.getByTestId("digest-body")).toContainText("Reserve a room")
+  await panel.getByTestId("digest-send-next").click()
+  await expect(panel).toContainText("recorded. Demo: nothing is sent.")
+  const saved = (await demo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === nodeId)!
+  expect(saved.message!.body).toContain("Please confirm our room requirements")
   expect(saved.recipientId).toBe("sam")
   expect(saved.ownerId).toBe(ownerId)
   await page.goto(saved.message!.taskUrl)

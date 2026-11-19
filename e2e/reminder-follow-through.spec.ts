@@ -29,9 +29,19 @@ async function simulateDate(page: Page, today: string) {
   await page.evaluate(({ key, today }) => { const state = JSON.parse(localStorage.getItem(key)!); state.today = today; localStorage.setItem(key, JSON.stringify(state)) }, { key: KEY, today })
   await page.reload(); await closeRail(page)
 }
+/** Concept F: one person's email opens in the right rail; Send & next records it. */
+async function openEmail(page: Page, recipientId: string) {
+  await page.locator(`[data-testid="rq-person"][data-recipient="${recipientId}"] .dg-person-head`).click()
+  await expect(page.getByTestId("digest-body")).toBeVisible()
+}
 async function approve(page: Page, count: number) {
-  await page.getByTestId("approve-send").click()
+  await page.getByTestId("digest-send-next").click()
   await expect.poll(async () => (await read(page)).reminderRuntime!.deliveries.length).toBe(count)
+}
+async function openHistory(page: Page) {
+  await closeRail(page)
+  await page.getByTestId("open-history").click()
+  await expect(page.getByTestId("reminder-history")).toBeVisible()
 }
 test.beforeEach(async ({ page, context }) => {
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { message: "Offline reminder check" } }))
@@ -40,16 +50,18 @@ test.beforeEach(async ({ page, context }) => {
 
 test("no reply produces one actionable follow-up, then an enabled task review instead of a dead button", async ({ page }, info) => {
   const initial = await open(page)
-  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review", exact: true }).click()
+  await openEmail(page, "jordan")
   await approve(page, 1)
   await simulateDate(page, addDays(initial.today, 2))
+  await openHistory(page)
   const noReply = page.getByTestId("rq-no-reply")
   await expect(noReply.getByRole("button", { name: "Follow up", exact: true })).toBeEnabled()
   await noReply.getByRole("button", { name: "Follow up", exact: true }).click()
-  await expect(page.getByTestId("nudge-body")).toContainText("No reply to the previous reminder")
+  await expect(page.getByTestId("digest-body")).toContainText("No reply to the previous reminder")
   await approve(page, 2)
   expect((await read(page)).reminderRuntime!.deliveries.map(d => d.reason)).toEqual(["start", "no_reply"])
   await simulateDate(page, addDays(initial.today, 4))
+  await openHistory(page)
   await expect(noReply.getByRole("button", { name: "Review task", exact: true })).toBeEnabled()
   await expect(noReply).toContainText("Next check:")
   await expect(noReply.getByRole("button", { name: "Follow up", exact: true })).toHaveCount(0)
@@ -59,7 +71,7 @@ test("no reply produces one actionable follow-up, then an enabled task review in
 
 test("helper promises survive refresh, are checked on the promised day, and provision notifies the owner", async ({ page }, info) => {
   const initial = await open(page, true)
-  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review", exact: true }).click()
+  await openEmail(page, "sam")
   await approve(page, 1)
   const first = (await read(page)).reminderRuntime!.deliveries[0]
   await page.goto(first.message!.taskUrl)
@@ -79,8 +91,8 @@ test("helper promises survive refresh, are checked on the promised day, and prov
   await page.screenshot({ path: info.outputPath("helper-promise.png"), fullPage: true })
   await simulateDate(page, promised)
   await page.goto("/#/"); await closeRail(page)
-  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review", exact: true }).click()
-  await expect(page.getByTestId("nudge-body")).toContainText("Input was expected by")
+  await openEmail(page, "sam")
+  await expect(page.getByTestId("digest-body")).toContainText("Input was expected by")
   await approve(page, 2)
   expect((await read(page)).reminderRuntime!.deliveries[1].reason).toBe("waiting_followup")
   await page.goto(first.message!.taskUrl)
@@ -93,13 +105,17 @@ test("helper promises survive refresh, are checked on the promised day, and prov
   await expect(panel).toContainText("Update provided")
 })
 
-test("automatic batches spend two daily slots on overdue and due before ordinary starts", async ({ page }) => {
+test("automatic mode puts one person's overdue, due and start tasks into one email, in that order, with no limit left over", async ({ page }) => {
   await open(page, false, "auto_email", true)
-  await expect.poll(async () => (await read(page)).reminderRuntime!.deliveries.length).toBe(2)
+  await expect.poll(async () => (await read(page)).reminderRuntime!.deliveries.length).toBe(3)
   const saved = await read(page)
-  expect(saved.reminderRuntime!.deliveries.map(d => d.reason)).toEqual(["overdue", "due"])
+  expect(saved.reminderRuntime!.deliveries.map(d => d.reason)).toEqual(["overdue", "due", "start"])
   expect(saved.reminderRuntime!.deliveries.every(d => !!d.message?.checked)).toBe(true)
+  expect(saved.reminderRuntime!.digests).toHaveLength(1)
+  expect(saved.reminderRuntime!.digests![0].nodeIds).toEqual(saved.reminderRuntime!.deliveries.map(d => d.nodeId))
   await page.reload()
-  await expect(page.getByTestId("rq-needs-ok")).toContainText("two-reminder limit")
-  expect((await read(page)).reminderRuntime!.deliveries).toHaveLength(2)
+  await closeRail(page)
+  await expect(page.locator('[data-testid="rq-person"][data-recipient="jordan"]')).toHaveAttribute("data-state", "sent")
+  await expect(page.getByTestId("rq-fix")).toHaveCount(0)
+  expect((await read(page)).reminderRuntime!.deliveries).toHaveLength(3)
 })
