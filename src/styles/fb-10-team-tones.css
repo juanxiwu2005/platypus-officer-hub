@@ -1,0 +1,10 @@
+/* Workflow team colours, shared by the Settings → Workflow canvas (lane-editor.css) and Settings → Roles & teams (fb-11-roles-teams.css).
+   Six stable tones by the team's position in the organization's team list (index % 6); a branch without a team is muted.
+   Each class only sets --wfx-team; the components mix it with --surface for tints. Moved here unchanged from lane-editor.css. Tokens only. */
+.wfx-tone-0 { --wfx-team: var(--accent); }
+.wfx-tone-1 { --wfx-team: var(--info); }
+.wfx-tone-2 { --wfx-team: var(--warn); }
+.wfx-tone-3 { --wfx-team: var(--good); }
+.wfx-tone-4 { --wfx-team: color-mix(in srgb, var(--info) 55%, var(--late)); }
+.wfx-tone-5 { --wfx-team: color-mix(in srgb, var(--late) 65%, var(--warn)); }
+.wfx-tone-none { --wfx-team: var(--muted); }

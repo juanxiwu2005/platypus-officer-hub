@@ -1,20 +1,20 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
 import { personalBuffer } from "../engine/schedule"
-import { Fragment, Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
 import { BoardSettingsPanel } from "../components/BoardSettings"
 import { GoalsEditor, ProfileForm, RoleCard, WorkspaceEditor } from "../components/SettingsForms"
-import { OrgChart } from "../components/setup/OrgChart"
-import { MAX_ROLES, newRole, rederiveFn, withBelow } from "../data/structure"
+import { RolesTeams } from "../components/settings/RolesTeams"
+import { SettingsNavContext, isSettingsTab, type SettingsTab } from "../components/settings/settingsNav"
 import { WorkflowPanel } from "../components/setup/WorkflowPanel"
 import { orgSteps } from "../engine/playbooks"
 import { checkWorkflow, presetSteps, withOwners } from "../engine/workflow"
 import type { StepTemplate, WorkflowBranch } from "../data/types"
 import { validateWorkflow } from "../data/settings"
 import { clubDraft, profilePatch, validateClub, validateDefaults, validateProfile, type ClubDraft } from "../data/settings"
-import type { OrgSettings, Person, Role } from "../data/types"
+import type { OrgSettings } from "../data/types"
 import { Empty, Info } from "../components/ui"
 import { officers } from "../data/permissions"
 import { ClosedRoles } from "./HandoffRoleChanges"
@@ -30,9 +30,9 @@ export function InviteLink({ code }: { code: string }) {
   return <div className="form-stack"><label>Officer setup link<input readOnly value={url} onFocus={e => e.target.select()} /></label><div className="action-row"><button type="button" className="btn" onClick={async () => { try { await navigator.clipboard.writeText(url); setCopied(true) } catch { setCopied(false) } }}>{copied ? "Copied" : "Copy invite link"}</button><a className="btn" href={url}>Try officer setup</a><Info>Same-browser demo invitation: choose a fictional officer to try their setup.</Info></div></div>
 }
 
-type Tab = "club" | "roles" | "workflow" | "tasks" | "links" | "me" | "admin"
+type Tab = SettingsTab
 const TABS: { id: Tab; label: string; lead: boolean }[] = [
-  { id: "club", label: "Club", lead: true }, { id: "roles", label: "Roles", lead: true }, { id: "workflow", label: "Workflow", lead: true }, { id: "tasks", label: "Tasks", lead: true }, { id: "links", label: "Links & files", lead: true },
+  { id: "club", label: "Club", lead: true }, { id: "roles", label: "Roles & teams", lead: true }, { id: "workflow", label: "Workflow", lead: true }, { id: "tasks", label: "Tasks", lead: true }, { id: "links", label: "Links & files", lead: true },
   { id: "me", label: "My preferences", lead: false }, { id: "admin", label: "Admin", lead: true },
 ]
 
@@ -40,17 +40,25 @@ const TABS: { id: Tab; label: string; lead: boolean }[] = [
 export default function Settings() {
   const { canNudge } = useViewer()
   const tabs = TABS.filter(t => canNudge || !t.lead)
-  const [tab, setTab] = useState<Tab>(canNudge ? "club" : "me")
+  // A section can be opened by link (#/settings?tab=roles) or by another section (Roles & teams ↔ Workflow).
+  const [params, setParams] = useSearchParams()
+  const linked = params.get("tab")
+  const [tab, setTab] = useState<Tab>(() => isSettingsTab(linked) ? linked : canNudge ? "club" : "me")
+  useEffect(() => { if (isSettingsTab(linked)) setTab(linked) }, [linked])
+  const go = useCallback((next: Tab) => {
+    setTab(next)
+    if (params.has("tab")) setParams(current => { const copy = new URLSearchParams(current); copy.delete("tab"); return copy }, { replace: true })
+  }, [params, setParams])
   const active = tabs.some(t => t.id === tab) ? tab : "me"
-  return <>
+  return <SettingsNavContext.Provider value={go}>
     <PageHead path="/settings" />
     <div className="settings">
-      <nav className="settings-nav" aria-label="Settings sections">{tabs.map(t => <button key={t.id} type="button" aria-current={active === t.id ? "page" : undefined} onClick={() => setTab(t.id)}>{t.label}</button>)}</nav>
+      <nav className="settings-nav" aria-label="Settings sections">{tabs.map(t => <button key={t.id} type="button" aria-current={active === t.id ? "page" : undefined} onClick={() => go(t.id)}>{t.label}</button>)}</nav>
       <div className="settings-body">
         {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <Suspense fallback={<p>Loading workflows…</p>}><WorkflowLibrary /></Suspense> : active === "tasks" ? <TaskSettings /> : <ClubSettings tab={active} />}
       </div>
     </div>
-  </>
+  </SettingsNavContext.Provider>
 }
 
 function TaskSettings() {
@@ -89,6 +97,14 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
   const openReminders = tab === "club" && params.has("reminders")
   const reminderBox = useRef<HTMLFieldSetElement>(null)
   useEffect(() => { if (openReminders) reminderBox.current?.scrollIntoView({ block: "center" }) }, [openReminders])
+  const saveStatus = <SaveStatus status={status} onUndo={undo} onRetry={retry} />
+  // Roles & teams: the chart (or contact list) card with its inspector, then closed roles and invitations as before.
+  if (tab === "roles") return <div className="form-stack" data-testid="club-settings">
+    <RolesTeams roles={draft.roles} people={draft.people} onChange={(roles, people = draft.people) => setDraft({ ...draft, roles, people })} status={saveStatus} />
+    <section className="card form-stack rt-after" aria-label="Closed roles and invitations"><ClosedRoles />
+      <details className="more"><summary>Invite officers</summary><InviteLink code={state.org.inviteCode} /></details>
+    </section>
+  </div>
   return <section className="card form-stack" data-testid="club-settings">
     {tab === "club" && <>
       <h2>Club</h2>
@@ -113,13 +129,8 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
       </div></details>
       <div className="action-row"><Link className="btn" to="/welcome/setup">Replay setup</Link></div>
     </>}
-    {tab === "roles" && <>
-      <h2>Roles</h2>
-      <RolesTable roles={draft.roles} people={draft.people} onChange={(roles, people = draft.people) => setDraft({ ...draft, roles, people })} /><OrgChart roles={draft.roles} /><ClosedRoles />
-      <details className="more"><summary>Invite officers</summary><InviteLink code={state.org.inviteCode} /></details>
-    </>}
     {tab === "links" && <><h2>Links & files</h2><WorkspaceEditor value={draft.workspace} onChange={workspace => setDraft({ ...draft, workspace })} /></>}
-    <SaveStatus status={status} onUndo={undo} onRetry={retry} />
+    {saveStatus}
   </section>
 }
 
@@ -143,38 +154,6 @@ export function WorkflowSettings() {
     <div className="action-row"><button type="button" className="btn small" onClick={() => { if (!tryDispatch({ type: "resetWorkflow" })) return; setDraft({ steps: withOwners(presetSteps(), state.roles) }); clear() }}>Go back to the standard workflow</button></div>
     <SaveStatus status={status} onRetry={retry} onUndo={(prev: typeof draft) => { const previous = { ...prev, branches: prev.branches ?? [] }; if (!tryDispatch({ type: "saveWorkflow", steps: previous.steps, branches: previous.branches })) return; setDraft(structuredClone(previous)); clear() }} />
   </section>
-}
-
-function RolesTable({ roles, people, onChange }: { roles: Role[]; people: Person[]; onChange: (roles: Role[], people?: Person[]) => void }) {
-  const [editing, setEditing] = useState(false)
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
-  const change = (i: number, patch: Partial<Role>, reFn = false) => onChange(roles.map((r, j) => i === j ? (reFn ? rederiveFn(roles, { ...r, ...patch }) : { ...r, ...patch }) : r))
-  const changePerson = (id: string, patch: Partial<Pick<Person, "name" | "email" | "phone" | "asuId">>) => onChange(roles, people.map(p => p.id === id ? { ...p, ...patch } : p))
-  const copyEmails = async () => { try { await navigator.clipboard.writeText(roles.map(r => people.find(p => p.id === r.holderId)?.email ?? "").filter(Boolean).join(", ")); setCopied(true) } catch { setCopied(false) } }
-  const addRole = () => { const role = newRole("New role", roles.find(r => r.fn === "president")?.id ?? null); onChange([...roles, role]); setExpanded(role.id) }
-  const columnWidth = (values: string[], min: number, max: number) => `${Math.min(max, Math.max(min, ...values.map(value => value.length + 1)))}ch`
-  const widths = {
-    title: columnWidth(roles.map(r => r.displayName), 14, 28), reports: columnWidth(roles.map(r => roles.find(x => x.id === r.reportsToId)?.displayName ?? "Nobody (top)"), 13, 22),
-    officer: columnWidth(roles.map(r => people.find(p => p.id === r.holderId)?.name ?? "Open position"), 14, 24), email: columnWidth(people.map(p => p.email), 18, 30), phone: columnWidth(people.map(p => p.phone), 14, 18), asu: "12ch",
-  }
-  return <div className="roles-manager">
-    <div className="roles-actions"><p className="small muted">Select a role to view its full duties.</p><div className="action-row"><button type="button" className="btn small" onClick={copyEmails}>{copied ? "Emails copied" : "Copy all emails"}</button><button type="button" className={`btn small${editing ? " btn-primary" : ""}`} aria-pressed={editing} onClick={() => setEditing(value => !value)}>{editing ? "Done editing" : "Edit roles"}</button>{editing && roles.length < MAX_ROLES && <button type="button" className="btn small" onClick={addRole}>Add role</button>}</div></div>
-    <div className="roles-table-wrap"><table className="tbl roles-table"><thead><tr><th>Title</th><th>Reports to</th><th>Officer</th><th>Email</th><th>Phone</th><th>ASU ID</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>
-      {roles.map((r, i) => {
-        const person = people.find(p => p.id === r.holderId), open = expanded === r.id, boss = withBelow(roles, r.id)
-        return <Fragment key={r.id}><tr className={open ? "is-open" : ""}>
-          <td>{editing ? <input style={{ width: widths.title }} type="text" aria-label="Role title" value={r.displayName} maxLength={60} onChange={e => change(i, { displayName: e.target.value }, true)} /> : <span className="role-name" title={r.displayName}>{r.displayName}</span>}</td>
-          <td>{editing ? <select style={{ width: widths.reports }} aria-label="Reports to" value={r.reportsToId ?? ""} onChange={e => change(i, { reportsToId: e.target.value || null })}><option value="">Nobody (top)</option>{roles.filter(x => !boss.has(x.id)).map(x => <option key={x.id} value={x.id}>{x.displayName}</option>)}</select> : <span className="role-value" title={roles.find(x => x.id === r.reportsToId)?.displayName ?? "Nobody (top)"}>{roles.find(x => x.id === r.reportsToId)?.displayName ?? "Nobody (top)"}</span>}</td>
-          <td>{editing && person ? <input style={{ width: widths.officer }} type="text" aria-label="Officer name" value={person.name} maxLength={80} onChange={e => changePerson(person.id, { name: e.target.value })} /> : <span className="role-value" title={person?.name || "Open position"}>{person?.name || "Open position"}</span>}</td>
-          <td>{editing && person ? <input style={{ width: widths.email }} type="email" aria-label="Officer email" value={person.email} maxLength={120} onChange={e => changePerson(person.id, { email: e.target.value })} /> : <span className="role-value" title={person?.email || "—"}>{person?.email || "—"}</span>}</td>
-          <td>{editing && person ? <input style={{ width: widths.phone }} type="tel" aria-label="Officer phone" value={person.phone} maxLength={18} onChange={e => changePerson(person.id, { phone: e.target.value })} /> : <span className="role-value" title={person?.phone || "—"}>{person?.phone || "—"}</span>}</td>
-          <td>{editing && person ? <input style={{ width: widths.asu }} type="text" inputMode="numeric" aria-label="Officer ASU ID" maxLength={10} value={person.asuId ?? ""} onChange={e => changePerson(person.id, { asuId: e.target.value.replace(/\D/g, "") })} /> : <span className="role-value" title={person?.asuId || "—"}>{person?.asuId || "—"}</span>}</td>
-          <td className="role-actions-cell"><button type="button" className="btn small" aria-label={`Show duties for ${r.displayName}`} aria-expanded={open} onClick={() => setExpanded(open ? null : r.id)}>Duties</button>{editing && !person && r.fn !== "president" && <button type="button" className="btn small btn-quiet" aria-label={`Remove ${r.displayName}`} onClick={() => onChange(roles.filter(x => x.id !== r.id))}>Remove</button>}</td>
-        </tr>{open && <tr className="role-detail"><td colSpan={7}><div><span className="cap">Duties</span>{editing ? <textarea aria-label="Role duties" rows={4} maxLength={400} value={r.duties ?? ""} onChange={e => change(i, { duties: e.target.value })} /> : <p>{r.duties?.trim() || "No duties written yet."}</p>}</div></td></tr>}</Fragment>
-      })}
-    </tbody></table></div>
-  </div>
 }
 
 function MySettings() {

@@ -1,0 +1,65 @@
+/* Settings → Roles & teams (concept C): org chart with workflow teams as coloured areas, and an inspector beside it.
+   Team colours come from fb-10-team-tones.css (--wfx-team, same as the Workflow canvas). Positions and sizes of zones and cards are
+   data-driven inline styles (src/engine/teamOrgChart.ts). Tokens only: see docs/DESIGN_TOKENS.md and AGENTS.md 7.1. No motion here:
+   selecting a role is an everyday action (7.1 rule 5). */
+
+/* ---- Layout: chart card + sticky inspector; one column on tablets and phones (inspector below the chart). ---- */
+.rt-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--s6); align-items: start; min-width: 0; }
+.rt-layout.is-list { grid-template-columns: minmax(0, 1fr); }
+.rt-main { min-width: 0; }
+.rt-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--s5); }
+.rt-head h2 { margin: 0; }
+.rt-head p { margin: var(--s2) 0 0; }
+.rt-inspector { position: sticky; top: calc(var(--topbar-h) + var(--s6)); max-height: calc(100vh - var(--topbar-h) - 2 * var(--s7)); overflow-y: auto; }
+.rt-inspector-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s4); }
+.rt-inspector-head h2 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.rt-close { flex-shrink: 0; min-width: 32px; min-height: 32px; border: 0; background: transparent; color: var(--muted); font-size: var(--fs-xl); line-height: 1; cursor: pointer; }
+.rt-close:hover { color: var(--ink); background: var(--surface-2); }
+.rt-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s5); }
+.rt-team-roles { display: grid; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
+.rt-inspector p { margin: 0; }
+/* Closed roles and Invite officers, in their own card under the chart: no divider above the first item. */
+.rt-after > details:first-child { border-top: 0; padding-top: 0; }
+@media (max-width: 1023px) {
+  .rt-layout { grid-template-columns: minmax(0, 1fr); }
+  .rt-inspector { position: static; max-height: none; overflow: visible; }
+}
+
+/* ---- Chart ---- */
+.rt-chart { display: grid; gap: var(--s5); min-width: 0; }
+.rt-scroll { min-width: 0; max-width: 100%; overflow-x: auto; padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface-2); overscroll-behavior-x: contain; }
+.rt-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+.rt-canvas { position: relative; margin: 0 auto; }
+.rt-lines { position: absolute; inset: 0; z-index: var(--z-base); pointer-events: none; overflow: visible; }
+.rt-lines path { fill: none; stroke: var(--edge); stroke-width: 1.5; }
+.rt-lines path.advisory { stroke-dasharray: 5 4; }
+
+/* A team's area: the same tint and edge as a Workflow lane. Opaque, so lines show only between levels. */
+.rt-zone { position: absolute; z-index: var(--z-raised); box-sizing: border-box; border: 1px solid color-mix(in srgb, var(--wfx-team) 22%, transparent); border-radius: var(--r-lg); background: color-mix(in srgb, var(--wfx-team) 11%, var(--surface)); }
+.rt-zone.is-none { --wfx-team: var(--muted); border: 1px dashed var(--edge); background: color-mix(in srgb, var(--muted) 5%, var(--surface)); }
+.rt-zone.is-selected { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+.rt-pill { position: absolute; top: var(--s4); left: var(--s4); box-sizing: border-box; display: block; max-width: calc(100% - 2 * var(--s4)); min-height: 28px; padding: 0 var(--s4); border: 0; border-radius: var(--r-pill); background: color-mix(in srgb, var(--wfx-team) 20%, var(--surface)); color: color-mix(in srgb, var(--wfx-team) 72%, var(--ink)); font-size: var(--fs-sm); font-weight: 600; line-height: 28px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt-pill::before { content: ""; display: inline-block; width: 6px; height: 6px; margin-right: var(--s2); border-radius: var(--r-circle); background: var(--wfx-team); vertical-align: 1px; }
+button.rt-pill { cursor: pointer; }
+button.rt-pill:hover { background: color-mix(in srgb, var(--wfx-team) 28%, var(--surface)); }
+.rt-pill:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+.rt-zone.is-none .rt-pill { background: transparent; color: var(--muted); }
+
+/* A role: title and officer, edged in its team's colour. */
+.rt-card { position: absolute; z-index: var(--z-sticky); box-sizing: border-box; display: grid; align-content: center; gap: var(--s1); min-width: 0; padding: var(--s2); border: 2px solid var(--wfx-team); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font: inherit; text-align: center; cursor: pointer; }
+.rt-card.is-none { --wfx-team: var(--edge); }
+.rt-card.is-advisor { border-style: dashed; }
+.rt-card > strong, .rt-card > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.25; }
+.rt-card > strong { font-size: var(--fs-md); font-weight: 600; }
+.rt-card > span { font-size: var(--fs-sm); color: var(--muted); }
+.rt-card.is-open > span { font-style: italic; }
+.rt-card:hover { background: color-mix(in srgb, var(--wfx-team) 6%, var(--surface)); }
+.rt-card[aria-pressed="true"] { box-shadow: 0 0 0 var(--s2) color-mix(in srgb, var(--wfx-team) 28%, var(--surface)); }
+.rt-card:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s2); }
+
+.rt-legend { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s7); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-md); }
+.rt-legend strong { color: var(--ink); font-weight: 600; }
+
+/* ---- Contact list: the read-only Team tag. ---- */
+.rt-tag { display: inline-block; max-width: 18ch; padding: var(--s1) var(--s4); border-radius: var(--r-pill); background: color-mix(in srgb, var(--wfx-team) 16%, var(--surface)); color: color-mix(in srgb, var(--wfx-team) 72%, var(--ink)); font-size: var(--fs-sm); font-weight: 600; line-height: 1.4; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rt-tag.is-none { --wfx-team: var(--muted); background: transparent; padding-inline: 0; color: var(--muted); font-weight: 400; }

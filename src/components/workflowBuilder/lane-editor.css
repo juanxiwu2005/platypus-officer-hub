@@ -22,14 +22,7 @@
 .wfx-size { position: relative; }
 .wfx-stage { position: relative; transform: scale(var(--wfx-scale)) translateY(calc(-1 * var(--wfx-head))); transform-origin: 0 0; }
 
-/* Six stable team tones by the team's position in Settings → Teams. */
-.wfx-tone-0 { --wfx-team: var(--accent); }
-.wfx-tone-1 { --wfx-team: var(--info); }
-.wfx-tone-2 { --wfx-team: var(--warn); }
-.wfx-tone-3 { --wfx-team: var(--good); }
-.wfx-tone-4 { --wfx-team: color-mix(in srgb, var(--info) 55%, var(--late)); }
-.wfx-tone-5 { --wfx-team: color-mix(in srgb, var(--late) 65%, var(--warn)); }
-.wfx-tone-none { --wfx-team: var(--muted); }
+/* The six team tones (.wfx-tone-0…5, -none → --wfx-team) live in src/styles/fb-10-team-tones.css, shared with Settings → Roles & teams. */
 
 .wfx-lane { position: absolute; z-index: var(--z-base); box-sizing: border-box; border-radius: var(--r-lg); border: 1px solid color-mix(in srgb, var(--wfx-team) 22%, transparent); background: color-mix(in srgb, var(--wfx-team) 11%, var(--surface)); }
 .wfx-lane.is-selected, .wfx-lane.is-drop-target { outline: 2px solid var(--accent); outline-offset: var(--s1); }

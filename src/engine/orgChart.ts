@@ -17,15 +17,28 @@ export interface OrgChart { nodes: ChartNode[]; edges: ChartEdge[]; levels: numb
 /** How far (in columns) the first advisor stands from the president. */
 export const BESIDE = 1.25
 
-export function orgChart(roles: Role[]): OrgChart {
+/**
+ * Who reports to whom, shared by this chart and Settings → Roles & teams (`teamOrgChart.ts`). `kids` lists each role's direct
+ * reports in role order; `roots` are the roles at the top (officers first, then advisors who do not stand beside the president);
+ * `beside` are the advisors who report to nobody and stand beside the president.
+ */
+export interface ReportingStructure { president?: Role; beside: Role[]; kids: Map<string, Role[]>; roots: Role[] }
+export function reportingStructure(roles: Role[]): ReportingStructure {
   const ids = new Set(roles.map(r => r.id))
   const bossOf = (r: Role) => r.reportsToId && r.reportsToId !== r.id && ids.has(r.reportsToId) ? r.reportsToId : null
   const president = roles.find(r => r.fn === "president")
-  // Advisors who report to nobody are placed beside the president once the rest of the chart is laid out.
   const beside = president ? roles.filter(r => r.fn === "advisor" && !bossOf(r) && r.id !== president.id) : []
   const besideIds = new Set(beside.map(r => r.id))
   const kids = new Map<string, Role[]>()
   for (const r of roles) { const b = bossOf(r); if (b) kids.set(b, [...(kids.get(b) ?? []), r]) }
+  const roots = [...roles.filter(r => !bossOf(r) && r.fn !== "advisor"), ...roles.filter(r => !bossOf(r) && r.fn === "advisor" && !besideIds.has(r.id))]
+  return { president, beside, kids, roots }
+}
+
+export function orgChart(roles: Role[]): OrgChart {
+  // Advisors who report to nobody are placed beside the president once the rest of the chart is laid out.
+  const { president, beside, kids, roots } = reportingStructure(roles)
+  const besideIds = new Set(beside.map(r => r.id))
   const placed = new Map<string, ChartNode>()
   const edges: ChartEdge[] = []
   let next = 0
@@ -38,7 +51,6 @@ export function orgChart(roles: Role[]): OrgChart {
     placed.set(r.id, n)
     return n
   }
-  const roots = [...roles.filter(r => !bossOf(r) && r.fn !== "advisor"), ...roles.filter(r => !bossOf(r) && r.fn === "advisor" && !besideIds.has(r.id))]
   for (const r of roots) if (!placed.has(r.id)) place(r, 0, new Set())
   // Anything left is part of a loop in the links; show it at the top so nothing disappears.
   for (const r of roles) if (!placed.has(r.id) && !besideIds.has(r.id)) place(r, 0, new Set())

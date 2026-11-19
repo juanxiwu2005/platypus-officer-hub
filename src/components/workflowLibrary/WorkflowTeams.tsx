@@ -1,9 +1,11 @@
 import { useRef, useState } from "react"
 import { useStore } from "../../data/store"
+import { useSettingsNav } from "../settings/settingsNav"
 
 /** Explicit organization sidecar; never rewrites legacy roles, people or reporting lines. */
 export function WorkflowTeams({ onClose }: { onClose: () => void }) {
   const { state, tryDispatch } = useStore()
+  const go = useSettingsNav()
   const originalTeams = useRef(JSON.stringify([state.org.workflowTeams ?? [], state.org.workflowRoleTeams ?? {}]))
   const [teams, setTeams] = useState(state.org.workflowTeams ?? [])
   const [roleTeams, setRoleTeams] = useState(state.org.workflowRoleTeams ?? {})
@@ -18,6 +20,7 @@ export function WorkflowTeams({ onClose }: { onClose: () => void }) {
   return <section className="card form-stack" aria-label="Workflow teams">
     <header className="action-row"><h3>Teams</h3><button type="button" className="btn small" onClick={onClose}>Close teams</button></header>
     <p className="small muted">Preset teams keep the workflow ready to use. Rename them here; task assignments stay linked. You can also add teams.</p>
+    <p className="small muted">You can also manage teams in Roles & teams. <button type="button" className="link" onClick={() => go("roles")}>Open Roles & teams</button></p>
     <label>Team names<textarea rows={2} value={names} maxLength={1800} placeholder="One team per line" onChange={e => setNames(e.target.value)} /></label>
     <button type="button" className="btn small" onClick={add}>Add teams</button>
     <div className="form-grid">{teams.map(team => <label key={team.id}>Team name<input aria-label={`Team name: ${team.name}`} value={team.name} maxLength={80} onChange={e => setTeams(teams.map(t => t.id === team.id ? { ...t, name: e.target.value } : t))} /></label>)}</div>
