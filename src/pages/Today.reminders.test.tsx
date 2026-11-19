@@ -58,16 +58,27 @@ const fakePrepared = (state: DemoState, groupId: string): PreparedDigest => {
   return { groupId, recipientId: group.recipientId, entries: [], digest: { version: 1, groupId, recipientId: group.recipientId, recipientName: name, intendedEmail: `${group.recipientId}@example.org`,
     channel: "email", preparedOn: state.today, subject, body, text: `${subject}\n\n${body}`, taskUrls: urls, nodeIds: group.candidates.map(c => c.nodeId), wordCount: 20, checked: true, source: "rules" } }
 }
-const snapshot = (state: DemoState, recipientId: string, nodeIds: string[]): ReminderDigestSnapshot => ({ version: 1, id: "reminder-digest:1", groupId: "g", recipientId,
-  recipientName: state.people.find(p => p.id === recipientId)!.name, intendedEmail: `${recipientId}@example.org`, channel: "email", preparedOn: state.today, sentOn: state.today,
-  via: "platypus", subject: "Your tasks", body: "Hi", text: "Your tasks\n\nHi", taskUrls: [], nodeIds, wordCount: 1, checked: true, source: "rules" })
+/** A complete saved ledger in which one group was recorded today as one email (digest + one delivery per task). */
+function recordedToday(state: DemoState, groupIndex: number): DemoState {
+  const runtime = state.reminderRuntime!, group = digest.planReminderDigests(state).groups[groupIndex], base = runtime.sequence
+  const id = `reminder-digest:${base + group.candidates.length + 1}`
+  const name = state.people.find(p => p.id === group.recipientId)!.name
+  const snap: ReminderDigestSnapshot = { version: 1, id, groupId: group.id, recipientId: group.recipientId, recipientName: name, intendedEmail: `${group.recipientId}@example.org`,
+    channel: "email", preparedOn: state.today, sentOn: state.today, via: "platypus", subject: "Your tasks", body: "Hi", text: "Your tasks\n\nHi",
+    taskUrls: group.candidates.map((_, i) => `http://localhost/#/t${i}`), nodeIds: group.candidates.map(c => c.nodeId), wordCount: 1, checked: true, source: "rules" }
+  const deliveries = group.candidates.map((c, i) => ({ id: `d${i}`, candidateId: c.id, nodeId: c.nodeId, recipientId: group.recipientId, ownerId: c.ownerId, ownerVersion: c.ownerVersion,
+    planKey: c.planKey, reason: c.reason, scheduledOn: c.scheduledOn, sentOn: state.today, sequence: base + i + 1, via: "platypus" as const, recipientName: name,
+    taskTitle: state.nodes.find(n => n.id === c.nodeId)!.title, eventName: null, due: c.due, outcome: "simulated" as const, digestId: id }))
+  const sequence = base + group.candidates.length + 1
+  return { ...state, reminderRuntime: { ...runtime, deliveries: [...runtime.deliveries, ...deliveries], digests: [snap], sequence, mailRequiredAfter: sequence } }
+}
 beforeEach(() => {
   localStorage.clear(); vi.stubGlobal("crypto", webcrypto); vi.stubGlobal("fetch", vi.fn())
   prepare.mockImplementation(async (store, groupId) => fakePrepared(store.getState(), groupId))
   record.mockImplementation((_store, prepared) => ({ recordedGroupIds: prepared.map(p => p.groupId), failedGroupIds: [], error: null }))
-  sendAll.mockImplementation(async (_store, groupIds) => ({ recordedGroupIds: groupIds, failedGroupIds: [], error: null }))
 })
-afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); prepare.mockReset(); record.mockReset(); sendAll.mockReset() })
+afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks(); prepare.mockReset(); record.mockReset(); sendAll.mockReset() })
+const sendAllSucceeds = () => sendAll.mockImplementation(async (_store, groupIds) => ({ recordedGroupIds: groupIds, failedGroupIds: [], error: null }))
 
 describe("reminder centre (concept F): one email per person", () => {
   it.each(["alex", "jordan"])("keeps optional calculation notes for %s and removes them from the DOM when off", viewerId => {
@@ -118,6 +129,7 @@ describe("reminder centre (concept F): one email per person", () => {
   })
 
   it("review_then_auto: Send all N emails records every group through the digest service and says nothing was sent", async () => {
+    sendAllSucceeds()
     const s = seedClub("review_then_auto")
     show(s)
     const ids = digest.planReminderDigests(s).groups.map(g => g.id)
@@ -226,13 +238,7 @@ describe("reminder centre (concept F): one email per person", () => {
 
   it("an email recorded today stays listed as Sent ✓ and fills a progress segment", () => {
     const s = seedClub("review_then_auto")
-    const maya = digest.planReminderDigests(s).groups[0]
-    const sent = { ...s, reminderRuntime: { ...s.reminderRuntime!, digests: [snapshot(s, "maya", maya.candidates.map(c => c.nodeId))] } }
-    // The recorded tasks are no longer ready today (the engine marks them as already sent).
-    const runtime = { ...sent.reminderRuntime, deliveries: maya.candidates.map((c, i) => ({ id: `d${i}`, candidateId: c.id, nodeId: c.nodeId, recipientId: "maya", ownerId: c.ownerId, ownerVersion: c.ownerVersion,
-      planKey: c.planKey, reason: c.reason, scheduledOn: c.scheduledOn, sentOn: s.today, sequence: s.reminderRuntime!.sequence + i + 1, via: "platypus" as const, recipientName: "Maya Chen", taskTitle: "Reconcile September receipts",
-      eventName: null, due: c.due, outcome: "simulated" as const, digestId: "reminder-digest:1" })), sequence: s.reminderRuntime!.sequence + 5, mailRequiredAfter: s.reminderRuntime!.sequence + 5 }
-    show({ ...sent, reminderRuntime: runtime })
+    show(recordedToday(s, 0))
     const maya1 = screen.getAllByTestId("rq-person").find(p => p.dataset.recipient === "maya")!
     expect(maya1.dataset.state).toBe("sent")
     expect(within(maya1).getByText("Sent ✓")).toBeTruthy()
