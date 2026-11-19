@@ -7,6 +7,7 @@ import { isAsuStep } from "../engine/workflowPolicy"
 import { presetWorkflowStepTeams } from "./workflowTeamDefaults"
 import { sequenceTeamSteps, sequenceTeamStepsForDraft } from "../engine/workflowSequence"
 import { RULES } from "./rules"
+import { createWorkflowMilestoneGraph, workflowMilestoneGraphError, workflowMilestoneSteps } from "../engine/workflowMilestones"
 
 /** This built-in identity is scoped by Org.id; user-created templates use generated IDs. */
 export const STANDARD_WORKFLOW_TEMPLATE_ID = "standard-event"
@@ -14,7 +15,7 @@ export const MAX_WORKFLOW_TEMPLATES = 100
 
 const copy = <T,>(value: T): T => structuredClone(value)
 const text = (value: unknown, max: number, empty = false): value is string => typeof value === "string" && (empty || !!value.trim()) && value.length <= max
-const contentOf = (value: WorkflowTemplateContent): WorkflowTemplateContent => copy({ name: value.name, ...(value.description !== undefined ? { description: value.description } : {}), kind: value.kind, ...(value.teamExecution ? { teamExecution: value.teamExecution } : {}), steps: value.steps, ...(value.branches ? { branches: value.branches } : {}), ...(value.teamMap ? { teamMap: value.teamMap } : {}) })
+const contentOf = (value: WorkflowTemplateContent): WorkflowTemplateContent => copy({ name: value.name, ...(value.description !== undefined ? { description: value.description } : {}), kind: value.kind, ...(value.teamExecution ? { teamExecution: value.teamExecution } : {}), steps: value.steps, ...(value.branches ? { branches: value.branches } : {}), ...(value.teamMap ? { teamMap: value.teamMap } : {}), ...(value.milestoneGraph ? { milestoneGraph: value.milestoneGraph } : {}) })
 const latestVersion = (template: WorkflowTemplate) => template.versions[template.versions.length - 1]
 const knownRuleIds = new Set([...RULES.map(rule => rule.id), ...EVENT_STEPS.flatMap(step => step.ruleIds ?? [])])
 
@@ -83,7 +84,10 @@ export function workflowTemplateDraftError(draft: WorkflowTemplateContent, roles
     const branch = branchOf(step, definitions)
     if (branch && (step.phase === "close") !== (branch.side === "after_event")) return "Keep a task and its branch on the same side of the activity date."
   }
-  const byId = new Map(draft.steps.map(step => [step.key, step]))
+  const milestoneError = draft.milestoneGraph === undefined ? null : workflowMilestoneGraphError(draft.milestoneGraph, draft.steps)
+  if (milestoneError) return milestoneError
+  const effectiveSteps = draft.milestoneGraph ? workflowMilestoneSteps(draft.steps, draft.milestoneGraph) : draft.steps
+  const byId = new Map(effectiveSteps.map(step => [step.key, step]))
   const complete = new Set<string>(), active = new Set<string>()
   const visit = (key: string): boolean => {
     if (active.has(key)) return false
@@ -96,6 +100,7 @@ export function workflowTemplateDraftError(draft: WorkflowTemplateContent, roles
   }
   if (draft.steps.some(step => !visit(step.key))) return "Dependencies need existing tasks and must not form a loop."
   if (draft.teamMap && (draft.teamMap.version !== 1 || !text(draft.teamMap.workflowId, 100) || !draft.teamMap.stepTeams || typeof draft.teamMap.stepTeams !== "object" || Array.isArray(draft.teamMap.stepTeams) || Object.entries(draft.teamMap.stepTeams).some(([key, team]) => !keys.has(key) || !text(team, 100)))) return "Assign teams only to tasks in this workflow."
+  if (draft.milestoneGraph?.teamBranches.some(branch => branch.stepIds.some(key => (draft.teamMap?.stepTeams[key] ?? "") !== branch.teamId))) return "Keep each branch task assigned to that branch's team."
   if (draft.kind === "standard") return checkWorkflow(draft.steps, roles, undefined, draft.branches).find(issue => issue.level === "blocked")?.text ?? null
   // Custom templates are independent workflows. They do not inherit the standard event's 31 lifecycle tasks.
   return null
@@ -125,7 +130,7 @@ function replaceTemplate(s: DemoState, template: WorkflowTemplate): DemoState {
 
 export function newWorkflowTemplate(s: DemoState, id: string, name = "Untitled workflow"): DemoState {
   if (!canLead(s) || !text(id, 100) || !text(name, 100) || getWorkflowTemplate(s, id) || getWorkflowTemplates(s).length >= MAX_WORKFLOW_TEMPLATES) return s
-  const template: WorkflowTemplate = { id, versions: [], draft: { name: name.trim(), kind: "custom", teamExecution: "dependencies", steps: [], baseVersion: 0, teamMap: { version: 1, workflowId: id, stepTeams: {} } }, updatedOn: s.today }
+  const template: WorkflowTemplate = { id, versions: [], draft: { name: name.trim(), kind: "custom", teamExecution: "dependencies", steps: [], baseVersion: 0, teamMap: { version: 1, workflowId: id, stepTeams: {} }, milestoneGraph: createWorkflowMilestoneGraph([], {}) }, updatedOn: s.today }
   return { ...s, org: { ...s.org, workflowTemplates: [...getWorkflowTemplates(s), template] } }
 }
 
@@ -153,6 +158,10 @@ export function workflowTemplatePublishError(s: DemoState, id: string): string |
   if (problem) return problem
   if (draft.teamExecution === "sequential" && JSON.stringify(sequenceTeamSteps(draft.steps, draft.teamMap?.stepTeams ?? {})) !== JSON.stringify(draft.steps)) return "Save the sequential team draft before publishing."
   const teams = new Set((s.org.workflowTeams ?? []).map(team => team.id))
+  if (draft.milestoneGraph) {
+    const graphError = workflowMilestoneGraphError(draft.milestoneGraph, draft.steps, teams)
+    if (graphError) return graphError
+  }
   if (draft.steps.some(step => !teams.has(draft.teamMap?.stepTeams[step.key] ?? ""))) return "Choose an organization team for every task before saving."
   return null
 }
@@ -182,6 +191,10 @@ export function duplicateWorkflowTemplate(s: DemoState, sourceId: string, id: st
   const steps = original.steps.map(step => ({ ...copy(step), key: keys.get(step.key)!, dependsOn: (step.dependsOn ?? []).map(key => keys.get(key)!).filter(Boolean) }))
   const stepTeams = Object.fromEntries(Object.entries(original.teamMap?.stepTeams ?? {}).flatMap(([key, team]) => keys.has(key) ? [[keys.get(key)!, team]] : []))
   const draft: WorkflowTemplateDraft = { ...contentOf(original), name: name.trim(), steps, baseVersion: 0, teamMap: { version: 1, workflowId: id, stepTeams } }
+  if (draft.milestoneGraph) {
+    const graph = draft.milestoneGraph, remap = (key: string) => keys.get(key) ?? key
+    draft.milestoneGraph = { ...graph, spine: graph.spine.map(remap), teamBranches: graph.teamBranches.map(branch => ({ ...branch, fromId: remap(branch.fromId), toId: remap(branch.toId), stepIds: branch.stepIds.map(remap) })), taskAnchors: Object.fromEntries(Object.entries(graph.taskAnchors).map(([key, anchor]) => [remap(key), anchor])) }
+  }
   if (workflowTemplateDraftError(draft, s.roles)) return s
   const template: WorkflowTemplate = { id, versions: [], draft, updatedOn: s.today, copiedFrom: { templateId: sourceId, templateVersion: latestVersion(source)?.version ?? 0 } }
   return { ...s, org: { ...s.org, workflowTemplates: [...getWorkflowTemplates(s), template] } }
@@ -212,6 +225,10 @@ export function workflowTemplateRunError(s: DemoState, version: WorkflowTemplate
   const problem = workflowTemplateDraftError(version, s.roles, true)
   if (problem) return problem
   const { teamIds, stepTeams } = executionTeamSnapshot(s, version)
+  if (version.milestoneGraph) {
+    const graphError = workflowMilestoneGraphError(version.milestoneGraph, version.steps, teamIds)
+    if (graphError) return graphError
+  }
   if ((version.kind === "custom" || version.teamMap) && version.steps.some(step => !teamIds.has(stepTeams[step.key]))) return "An organization team used by this workflow is missing. Update and save the workflow before creating an activity."
   return null
 }
@@ -235,7 +252,7 @@ export function instantiateWorkflowTemplate(s: DemoState, event: Event, selectio
   const { teams, teamIds, stepTeams } = executionTeamSnapshot(s, version)
   const snapshot = { ...copy(version), teams, teamMap: { version: 1 as const, workflowId: selection.templateId, stepTeams } }
   const withRun: Event = { ...event, ...(snapshot.branches ? { workflowBranches: copy(snapshot.branches) } : {}), workflowRun: { id: runId, templateId: selection.templateId, templateVersion: version.version, templateName: version.name, snapshot } }
-  const generated = buildEventNodes(withRun, s.roles, { steps: snapshot.steps, branches: snapshot.branches, mode: snapshot.kind, explicitOwnersOnly: true })
+  const generated = buildEventNodes(withRun, s.roles, { steps: snapshot.milestoneGraph ? workflowMilestoneSteps(snapshot.steps, snapshot.milestoneGraph) : snapshot.steps, branches: snapshot.branches, mode: snapshot.kind, explicitOwnersOnly: true })
   const ids = new Map(generated.map(node => [node.id, `${runId}:${node.stepKey}`]))
   const nodes = generated.map(node => ({ ...node, id: ids.get(node.id)!, dependsOn: node.dependsOn.map(id => ids.get(id)!).filter(Boolean), workflowSource: { runId, templateId: selection.templateId, templateVersion: version.version, templateStepId: node.stepKey! }, ...(stepTeams[node.stepKey!] && teamIds.has(stepTeams[node.stepKey!]) ? { teamId: stepTeams[node.stepKey!] } : {}), assignedOn: s.today, ownerVersion: 0, acceptedOn: node.ownerId ? s.today : null }))
   if (nodes.some(node => s.nodes.some(old => old.id === node.id))) return fail("A task with this execution ID already exists. No tasks were added.")

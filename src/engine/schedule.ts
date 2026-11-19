@@ -1,6 +1,7 @@
 import type { DemoState, Event, Node, Person, StepTiming } from "../data/types"
 import { RULES } from "../data/rules"
 import { addDays, daysBetween, fmtLong } from "../lib/dates"
+import { workflowMilestoneDates, workflowMilestoneGraphError, workflowMilestoneTaskDate } from "./workflowMilestones"
 import {
   BREAKS, CALENDAR_END, CALENDAR_START, FINALS, HOLIDAYS, TERMS, findPeriod, isWeekend, onOrAfter, onOrBefore, outsideCalendar,
   busyDays, isBusinessDay, personalWorkDay, shiftWork, skippedReasons, studentOffReason, type WorkDay,
@@ -252,6 +253,7 @@ interface Rec {
 }
 
 function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
+  if (ev.workflowRun?.snapshot.milestoneGraph) { planMilestoneEvent(ctx, ev, out); return }
   const { state } = ctx
   const sequential = ev.workflowRun?.snapshot.teamExecution === "sequential"
   const nodes = state.nodes.filter(n => n.eventId === ev.id)
@@ -405,6 +407,76 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
   }
 
   out.events[ev.id] = { eventId: ev.id, issues: eventIssues(ctx, ev, nodes, out, looped) }
+}
+
+/** New milestone versions pin their targets. Dependency conflicts become risks, never moving an event day or target. */
+function planMilestoneEvent(ctx: Ctx, ev: Event, out: Schedule) {
+  const version = ev.workflowRun!.snapshot, graph = version.milestoneGraph!
+  const nodes = ctx.state.nodes.filter(node => node.eventId === ev.id), { order, looped } = topoOrder(nodes)
+  const invalid = workflowMilestoneGraphError(graph, version.steps, new Set(version.teams.map(team => team.id)))
+  if (invalid) {
+    for (const node of nodes) {
+      const club = node.clubDeadline ?? ev.date, start = node.latestStart ?? club
+      out.nodes[node.id] = { id: node.id, official: node.officialDeadline, club, latestStart: start, recommendedClub: club, explain: { official: null, club: "Saved workflow graph needs review.", latestStart: "Saved workflow graph needs review." }, pushedBy: null, issues: [{ code: "milestone_graph", severity: "error", text: invalid }] }
+    }
+    out.events[ev.id] = { eventId: ev.id, issues: [{ code: "milestone_graph", severity: "error", text: invalid }] }
+    return
+  }
+  const loopedIds = new Set(looped.map(node => node.id))
+  for (const node of order) {
+    const key = node.workflowSource?.templateStepId ?? node.stepKey ?? node.id
+    const anchor = graph.taskAnchors[key], day = graph.eventDays.find(candidate => candidate.id === anchor?.eventDayId)
+    const target = workflowMilestoneTaskDate(graph, key, ev.date) ?? (node.timing ? timingDue(node, ev, node.timing).date : targetDate(node, ev)?.date) ?? node.clubDeadline ?? ev.date
+    const official = officialDeadline(node, ev)
+    const cap = official ? shiftWork(official.date, -ctx.state.org.settings.clubBufferBusinessDays) : null
+    const recommended = cap && cap < target ? cap : target
+    const requested = node.clubDeadlineOverride ?? recommended
+    const club = cap && cap < requested ? cap : requested
+    const start = effortStart(ctx, node, club)
+    const why = cap && club === cap ? `Day 1 school deadline with the club buffer; ${official!.why}`
+      : `${day?.title ?? "Activity"} ${anchor?.offsetDays === 0 ? "date" : `${anchor?.offsetDays ?? 0} ${anchor?.unit === "business" ? "working" : "calendar"} days`}; this target stays fixed.`
+    const nodeEvent = day ? { ...ev, date: addDays(ev.date, day.offsetDays) } : ev
+    const issues = nodeIssues(ctx, node, { official: official?.date ?? null, club, start: start.date, rec: recommended, pushedBy: null, looped: loopedIds.has(node.id) }, nodeEvent).filter(issue => issue.code !== "after_event")
+    if (node.recoveryFrom && node.recoveryFrom > start.date) issues.push({ code: "milestone_recovery", severity: "warn", text: `The recovery start ${fmtLong(node.recoveryFrom)} leaves less time before this fixed target. Review the plan; event days have not moved.` })
+    out.nodes[node.id] = { id: node.id, official: official?.date ?? null, club, latestStart: start.date, recommendedClub: recommended, explain: { official: official?.why ?? null, club: why, latestStart: start.why }, pushedBy: null, issues }
+  }
+  for (const node of order) {
+    const plan = out.nodes[node.id]
+    for (const id of node.dependsOn) {
+      const parent = ctx.byId.get(id), prior = out.nodes[id]
+      if (!parent || !prior || parent.status === "done" || prior.club <= plan.latestStart) continue
+      plan.issues.push({ code: "milestone_dependency", severity: "warn", nodeId: id, text: `“${parent.title}” is planned to finish ${fmtLong(prior.club)}, after this task's planned start. Coordinate or change this task's target; its date has not moved.` })
+    }
+  }
+  const dayDates = workflowMilestoneDates(graph, ev.date)
+  const byStep = new Map(nodes.map(node => [node.workflowSource?.templateStepId ?? node.stepKey ?? node.id, node]))
+  const boundaryDate = (id: string, side: "from" | "to"): string | undefined => {
+    if (dayDates[id]) return dayDates[id]
+    const task = byStep.get(id)
+    if (task) return out.nodes[task.id]?.club
+    const index = graph.spine.indexOf(id)
+    const candidates = graph.spine.filter((_, position) => side === "from" ? position <= index : position >= index)
+    return (side === "from" ? candidates.reverse() : candidates).map(key => dayDates[key]).find(Boolean)
+  }
+  for (const branch of graph.teamBranches) {
+    const floor = branch.fromId === "__start__" ? undefined : boundaryDate(branch.fromId, "from")
+    const ceiling = branch.toId === "__end__" ? undefined : boundaryDate(branch.toId, "to")
+    for (const key of branch.stepIds) {
+      const node = byStep.get(key)
+      if (!node || node.status === "done") continue
+      const plan = out.nodes[node.id]
+      if ((floor && (plan.club < floor || plan.latestStart < floor)) || (ceiling && plan.club > ceiling)) plan.issues.push({ code: "milestone_branch_window", severity: "error", text: `This task does not fit its branch${floor ? ` from ${fmtLong(floor)}` : ""}${ceiling ? ` through ${fmtLong(ceiling)}` : ""}. Choose a target and work estimate within that interval; the event dates have not moved.` })
+    }
+  }
+  const issues = eventIssues(ctx, ev, nodes, out, looped).filter(issue => issue.code !== "past"), dates = workflowMilestoneDates(graph, ev.date)
+  if (dates[graph.eventDays.at(-1)!.id] < ctx.state.today) issues.push({ code: "past", severity: "info", text: "This event has already happened." })
+  const outsideBranch = nodes.filter(node => out.nodes[node.id].issues.some(issue => issue.code === "milestone_branch_window"))
+  if (outsideBranch.length) issues.push({ code: "milestone_branch_window", severity: "error", text: `${plural(outsideBranch.length, "task")} falls outside its authored branch interval. Review the targets or work estimates; event days stay fixed.` })
+  for (const day of graph.eventDays.slice(1)) {
+    const date = dates[day.id]
+    issues.push(...eventIssues(ctx, { ...ev, date }, [], out, []).filter(issue => ["finals", "holiday", "break", "calendar_range", "no_term"].includes(issue.code)).map(issue => ({ ...issue, text: `${day.title}: ${issue.text}` })))
+  }
+  out.events[ev.id] = { eventId: ev.id, issues }
 }
 
 /** Forward pass for a calibrated step (see the header): a person's deadline, finish order between calibrated steps, recovery. */

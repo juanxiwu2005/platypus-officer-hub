@@ -3,6 +3,7 @@ import { addDays } from "../lib/dates"
 import { shiftWork } from "./calendar"
 import { orderedWorkflowSteps } from "./workflowSequence"
 import { isAsuStep } from "./workflowPolicy"
+import { placementOf } from "./workflowBranches"
 
 export const WORKFLOW_START = "__start__"
 export const WORKFLOW_DONE = "__end__"
@@ -22,7 +23,7 @@ export function createWorkflowMilestoneGraph(steps: readonly StepTemplate[], ste
   for (const step of ordered) {
     if (shared.has(step.key)) continue
     const teamId = stepTeams[step.key] ?? ""
-    const close = step.phase === "close", id = JSON.stringify([teamId, close])
+    const close = step.phase === "close", id = JSON.stringify([teamId, close, placementOf(step).branchId])
     const group = groups.get(id) ?? { teamId, close, stepIds: [] }
     group.stepIds.push(step.key); groups.set(id, group)
   }
@@ -54,7 +55,7 @@ export function workflowMilestoneGraphError(value: unknown, steps: readonly Step
   if (!Array.isArray(graph.teamBranches) || graph.teamBranches.length > 60 || !object(graph.taskAnchors)) return "Use valid team branches and task dates."
   const occupied = new Set(graph.spine.filter(id => keys.has(id))), branchIds = new Set<string>()
   for (const branch of graph.teamBranches) {
-    if (!object(branch) || !text(branch.id, 100) || branchIds.has(branch.id) || !text(branch.teamId, 100) || (teamIds && !teamIds.has(branch.teamId)) || !Array.isArray(branch.stepIds) || !graph.spine.includes(branch.fromId) || !graph.spine.includes(branch.toId) || graph.spine.indexOf(branch.fromId) >= graph.spine.indexOf(branch.toId)) return "Choose an existing team and main-line departure and arrival for every branch."
+    if (!object(branch) || !text(branch.id, 100) || branchIds.has(branch.id) || !text(branch.teamId, 100, true) || (teamIds && (!branch.teamId.trim() || !teamIds.has(branch.teamId))) || !Array.isArray(branch.stepIds) || !graph.spine.includes(branch.fromId) || !graph.spine.includes(branch.toId) || graph.spine.indexOf(branch.fromId) >= graph.spine.indexOf(branch.toId)) return "Choose an existing team and main-line departure and arrival for every branch."
     branchIds.add(branch.id)
     for (const key of branch.stepIds) {
       if (!keys.has(key) || occupied.has(key)) return "Place each real task exactly once on the main line or a team branch."
@@ -68,6 +69,17 @@ export function workflowMilestoneGraphError(value: unknown, steps: readonly Step
     if (!object(anchor) || !days.has(anchor.eventDayId) || !Number.isInteger(anchor.offsetDays) || Math.abs(anchor.offsetDays) > 365 || (anchor.unit !== undefined && anchor.unit !== "calendar" && anchor.unit !== "business")) return "Set each task within 365 whole days of an existing event day."
     if (isAsuStep(step) && anchor.eventDayId !== WORKFLOW_DAY_ONE) return "School-required dates stay anchored to Day 1."
   }
+  const projected = new Map(workflowMilestoneSteps(steps, graph).map(step => [step.key, step]))
+  const visited = new Set<string>(), active = new Set<string>()
+  const acyclic = (id: string): boolean => {
+    if (active.has(id)) return false
+    if (visited.has(id)) return true
+    active.add(id)
+    if ((projected.get(id)?.dependsOn ?? []).some(parent => !projected.has(parent) || !acyclic(parent))) return false
+    active.delete(id); visited.add(id)
+    return true
+  }
+  if (steps.some(step => !acyclic(step.key))) return "The main line, branch joins and existing prerequisites must not form a loop."
   return null
 }
 
