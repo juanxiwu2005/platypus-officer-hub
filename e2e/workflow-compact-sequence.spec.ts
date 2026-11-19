@@ -48,6 +48,7 @@ function ancestors(steps: { key: string; dependsOn?: string[] }[], key: string, 
 }
 
 function teamOrder(content: Content, teamId: string) {
+  if (content.milestoneGraph) return content.milestoneGraph.teamBranches.filter(branch => branch.teamId === teamId).flatMap(branch => branch.stepIds)
   const pending = content.steps.filter(step => content.teamMap?.stepTeams[step.key] === teamId)
   return [...pending].sort((a, b) => ancestors(content.steps, b.key).has(a.key) ? -1 : ancestors(content.steps, a.key).has(b.key) ? 1 : 0).map(step => step.key)
 }
