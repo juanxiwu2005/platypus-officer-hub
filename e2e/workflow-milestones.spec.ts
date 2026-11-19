@@ -151,6 +151,11 @@ test("branches choose existing teams and keep independent before, between-day an
   expect(saved.milestoneGraph!.teamBranches.slice(0, 3).map(item => [item.fromId, item.toId])).toEqual([["__start__", "shared"], ["__event__", "__event2__"], ["__event2__", "__end__"]])
   expect((await read(page)).org.workflowTeams).toEqual(before.org.workflowTeams)
   expect((await read(page)).roles).toEqual(before.roles)
+  await builder.getByTestId("workflow-task-prepare").click()
+  await page.getByTestId("workflow-builder-details").getByRole("combobox", { name: "Team", exact: true }).selectOption(finance)
+  saved = await save(page)
+  expect(saved.milestoneGraph!.teamBranches.find(item => item.id === "before-day")?.teamId).toBe(finance)
+  expect(saved.teamMap!.stepTeams.prepare).toBe(finance)
 })
 
 test("every real node keeps its identity through Details, cross-branch mouse or touch movement, Undo and reload", async ({ page, isMobile }) => {
@@ -188,6 +193,7 @@ test("cleared branch teams remain unassigned through new tasks and role-team app
   expect(Object.hasOwn(saved.teamMap!.stepTeams, "prepare")).toBe(false)
   await builder.getByRole("button", { name: "Add task to branch before-day", exact: true }).click()
   await expect(page.getByLabel("Task name", { exact: true })).toHaveValue("New task")
+  await expect(page.getByTestId("workflow-builder-details").getByRole("combobox", { name: "Team", exact: true })).toHaveValue("")
   saved = await save(page)
   const branch = saved.milestoneGraph!.teamBranches.find(branch => branch.id === "before-day")!
   expect(branch.stepIds).toHaveLength(2)
@@ -231,6 +237,8 @@ test("saved two-day workflows open actual Plan tasks while day stations remain f
   expect(state.nodes.find(node => node.id === shared.id)?.status).toBe("in_progress")
   await expect(page.getByTestId("flow-event-day-2")).toContainText("Apr 17")
   await page.reload(); await closeRail(page)
+  await page.getByTestId("flow-chart").scrollIntoViewIfNeeded()
+  await expect(page.getByTestId("flow-node-shared")).toBeInViewport()
   await expect(page.getByTestId("flow-event-day-2")).toContainText("Apr 17")
   const reminders = before.reminderRuntime?.deliveries ?? []
   expect((state.reminderRuntime?.deliveries ?? []).filter(delivery => reminders.some(old => old.id === delivery.id))).toEqual(reminders)
@@ -254,8 +262,12 @@ test("one/two-day authoring and actual execution remain accessible in both theme
   }
   const template = await publish(page)
   await createEvent(page, template, "Readable two-day execution")
+  const tones = await page.getByTestId("milestone-execution-branch").evaluateAll(branches => branches.map(branch => [...branch.classList].find(name => name.startsWith("wfm-tone-"))))
+  expect(new Set(tones).size).toBe(1)
   const axe = await new AxeBuilder({ page }).include("[data-testid='milestone-execution-chart']").withTags(["wcag2a", "wcag2aa"]).analyze()
   expect(axe.violations.filter(issue => ["serious", "critical"].includes(issue.impact ?? ""))).toEqual([])
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
+  await page.getByTestId("flow-chart").scrollIntoViewIfNeeded()
+  await page.getByTestId("flow-chart").screenshot({ path: info.outputPath("milestone-plan-dark-canvas.png") })
   await page.screenshot({ path: info.outputPath("milestone-plan-dark.png"), fullPage: false })
 })
