@@ -238,3 +238,37 @@ export function assignMilestoneBranchTeam(snapshot: BuilderSnapshot, branchId: s
     teamBranches: graph.teamBranches.map(item => item.id === branchId ? { ...item, teamId } : item),
   } }
 }
+
+/** Put a task that has no graph position at the end of a branch; its definition is not touched. */
+function placeUnplacedTask(snapshot: BuilderSnapshot, key: string, branchId: string): BuilderSnapshot {
+  const step = snapshot.steps.find(item => item.key === key)
+  const graph = copy(snapshot.milestoneGraph!), target = graph.teamBranches.find(branch => branch.id === branchId)
+  if (!step || !target) return snapshot
+  const reference = target.stepIds.at(-1)
+  target.stepIds.push(key)
+  if (!graph.taskAnchors[key]) graph.taskAnchors[key] = anchorForStep(graph, step, target, reference)
+  const stepTeams = { ...snapshot.stepTeams }
+  if (target.teamId) stepTeams[key] = target.teamId
+  else delete stepTeams[key]
+  return { ...snapshot, stepTeams, milestoneGraph: graph }
+}
+
+/**
+ * Bulk assignment: move several tasks to the end of one team branch as a single snapshot,
+ * so one Undo reverts the whole batch. Tasks move in their current graph order
+ * (main line, then branches in order, then unplaced tasks). Keys already in the
+ * target branch or not found are skipped.
+ */
+export function moveMilestoneTasks(snapshot: BuilderSnapshot, keys: readonly string[], branchId: string): BuilderSnapshot {
+  let current = ensureMilestoneSnapshot(snapshot)
+  const graph = current.milestoneGraph!
+  if (!keys.length || !graph.teamBranches.some(branch => branch.id === branchId)) return current
+  const wanted = new Set(keys), real = new Set(current.steps.map(step => step.key))
+  const placed = new Set([...graph.spine, ...graph.teamBranches.flatMap(branch => branch.stepIds)])
+  const unplaced = current.steps.map(step => step.key).filter(key => !placed.has(key))
+  const order = [...graph.spine, ...graph.teamBranches.filter(branch => branch.id !== branchId).flatMap(branch => branch.stepIds), ...unplaced]
+    .filter(key => wanted.has(key) && real.has(key))
+  const loose = new Set(unplaced)
+  for (const key of order) current = loose.has(key) ? placeUnplacedTask(current, key, branchId) : moveMilestoneTask(current, key, branchId)
+  return current
+}
