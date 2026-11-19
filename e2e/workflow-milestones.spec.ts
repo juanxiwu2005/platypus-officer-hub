@@ -179,6 +179,30 @@ test("every real node keeps its identity through Details, cross-branch mouse or 
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
 })
 
+test("cleared branch teams remain unassigned through new tasks and role-team application stays consistent", async ({ page }) => {
+  const { builder, before } = await fixture(page)
+  await builder.getByRole("button", { name: "Edit branch before-day", exact: true }).click()
+  await page.getByTestId("workflow-builder-details").getByRole("combobox", { name: "Team", exact: true }).selectOption("")
+  let saved = await save(page)
+  expect(saved.milestoneGraph!.teamBranches.find(branch => branch.id === "before-day")?.teamId).toBe("")
+  expect(Object.hasOwn(saved.teamMap!.stepTeams, "prepare")).toBe(false)
+  await builder.getByRole("button", { name: "Add task to branch before-day", exact: true }).click()
+  await expect(page.getByLabel("Task name", { exact: true })).toHaveValue("New task")
+  saved = await save(page)
+  const branch = saved.milestoneGraph!.teamBranches.find(branch => branch.id === "before-day")!
+  expect(branch.stepIds).toHaveLength(2)
+  expect(branch.stepIds.every(key => !Object.hasOwn(saved.teamMap!.stepTeams, key))).toBe(true)
+  await page.getByRole("button", { name: "Apply role teams", exact: true }).click()
+  saved = await save(page)
+  for (const branch of saved.milestoneGraph!.teamBranches) for (const key of branch.stepIds) {
+    if (branch.teamId) expect(saved.teamMap!.stepTeams[key]).toBe(branch.teamId)
+    else expect(Object.hasOwn(saved.teamMap!.stepTeams, key)).toBe(false)
+  }
+  expect((await read(page)).org.workflowTeams).toEqual(before.org.workflowTeams)
+  await page.reload(); await open(page, ID)
+  expect((await save(page)).milestoneGraph).toEqual(saved.milestoneGraph)
+})
+
 test("saved two-day workflows open actual Plan tasks while day stations remain fixed, read-only dates", async ({ page }) => {
   const { before } = await fixture(page)
   const template = await publish(page)
