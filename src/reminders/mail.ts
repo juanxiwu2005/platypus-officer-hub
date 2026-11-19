@@ -94,7 +94,7 @@ export function buildReminderMail(input: ReminderMailInput): ReminderMail {
   try {
     const target = new URL(input.taskUrl)
     const path = new URLSearchParams(target.hash.slice(target.hash.indexOf("?") + 1))
-    matchesTask = target.hash.startsWith("#/events?") ? path.get("event") === facts.eventId && path.get("node") === facts.nodeId
+    matchesTask = target.hash.startsWith("#/events?") ? (path.get("event") === facts.eventId || !path.has("event")) && path.get("node") === facts.nodeId
       : !target.hash.startsWith("#/tasks?") || path.get("node") === facts.nodeId
   } catch { /* The mail remains unchecked. */ }
   mail.checked = recipient.active && facts.status !== "done" && !!scope && matchesTask && checkReminderMail(mail)

@@ -3,15 +3,20 @@ import AxeBuilder from "@axe-core/playwright"
 import { readFile } from "node:fs/promises"
 import { clubAgendaEntryFixture, planEntryFixture, PLAN_EVENT, PLAN_OTHER, PLAN_ROOM } from "../src/test/planEntryFixture"
 import { reducer } from "../src/data/store"
+import { seedDemo } from "../src/data/seed"
 import { makeTaskAccessGrant, taskAccessToken } from "../src/reminders/taskAccess"
 import { planTaskPath } from "../src/reminders/planEntry"
 import { savedDemo } from "./demo-contract"
 import { noOverflow } from "./helpers"
 
 const KEY = "platypus.v1.demo"
-async function seed(page: Page, viewerId = "alex", waiting = false, club = false) {
+async function seed(page: Page, viewerId = "alex", waiting = false, club = false, selectedTask?: string) {
   let state = club ? clubAgendaEntryFixture() : planEntryFixture()
-  const target = club ? "t-agenda" : PLAN_ROOM
+  const target = selectedTask ?? (club ? "t-agenda" : PLAN_ROOM)
+  if (club || selectedTask) state = { ...state,
+    events: state.events.map(event => event.id === "plan-other-event" ? { ...event, name: "Networking Night" } : event),
+    nodes: state.nodes.map(node => node.id === "plan-other-event-task" ? { ...node, title: "Moderator Lead Staffing", stepKey: "moderator-staffing", instructions: "Confirm the moderator lead and staffing plan.", externalLinks: [] } : node),
+  }
   if (waiting) {
     state = reducer({ ...state, viewerId: "jordan" }, { type: "replyTask", nodeId: PLAN_ROOM, reply: "waiting", input: { waitingOnPersonId: "sam", waitingOn: "Please confirm the event requirements" } })
     state = { ...state, viewerId: "alex" }
@@ -25,7 +30,7 @@ async function seed(page: Page, viewerId = "alex", waiting = false, club = false
       localStorage.setItem("platypus.v1.eventsView", "list"); localStorage.setItem("platypus.v1.railOpen", "0")
     }
   }, { state, key: KEY })
-  return { token: taskAccessToken(grant), path: `/#${planTaskPath(club ? null : PLAN_EVENT, target, taskAccessToken(grant))}` }
+  return { token: taskAccessToken(grant), path: `/#${planTaskPath(state.nodes.find(node => node.id === target)?.eventId, target, taskAccessToken(grant))}` }
 }
 const panel = (page: Page) => page.getByTestId("rail")
 const task = (page: Page) => page.getByTestId("task-detail")
@@ -153,13 +158,15 @@ test("waiting recipients retain only their help actions while browsing shared ev
 })
 
 
-test("the reported agenda legacy link opens Plan Tasks, preserves files and never assigns an activity", async ({ page }, info) => {
+test("the reported agenda legacy link opens Events beside the original task without assigning an activity", async ({ page }, info) => {
   const { token } = await seed(page, "priya", false, true)
   await page.goto(`/#/officer?access=${encodeURIComponent(token)}`)
   await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda", exact: true })).toBeVisible()
-  await expect(page).toHaveURL(/#\/tasks\?node=t-agenda&access=/)
+  await expect(page).toHaveURL(/#\/events\?node=t-agenda&access=/)
   await expect(page.locator("main.single-task")).toHaveCount(0)
   await expect(page.locator("nav.sidenav")).toBeAttached()
+  await expect(page.getByTestId("flow-chart")).toBeAttached()
+  await expect(page.getByTestId("task-board")).toHaveCount(0)
   await expect(page.getByTestId("task-detail")).toContainText("Club task")
   expect((await savedDemo(page)).nodes.find(n => n.id === "t-agenda")?.eventId).toBeNull()
   await task(page).getByLabel("Details", { exact: true }).fill("Agenda: introductions and room planning")
@@ -183,34 +190,43 @@ test("the reported agenda legacy link opens Plan Tasks, preserves files and neve
   expect(agenda.taskWork!.submissions[0].authorId).toBe("priya")
 })
 
-test("a new Club-task mail targets Plan Tasks and the board can switch to another shared submission", async ({ page }) => {
+test("club mail opens the last viewed event, supports graph browsing and leaves My tasks as the normal default", async ({ page, isMobile }) => {
   await seed(page, "alex", false, true)
+  await page.goto("/#/events?event=plan-other-event")
+  await expect(page.getByRole("heading", { name: "Networking Night", exact: true })).toBeVisible()
   await page.goto("/#/")
   const row = page.getByTestId("rq-row").filter({ hasText: "Draft the meeting agenda" }).first()
   await row.getByRole("button", { name: /Review/ }).click()
-  const composer = page.getByTestId("nudge-panel")
-  const url = await composer.getByRole("link", { name: "Open task", exact: true }).getAttribute("href")
-  expect(url).toContain("/#/tasks?node=t-agenda&access=")
+  const url = await page.getByTestId("nudge-panel").getByRole("link", { name: "Open task", exact: true }).getAttribute("href")
+  expect(url).toContain("/#/events?node=t-agenda&access=")
   await page.goto(url!)
   await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda" })).toBeVisible()
+  await expect(page.getByRole("heading", { name: "Networking Night", exact: true })).toBeAttached()
+  await expect(page.getByTestId("task-board")).toHaveCount(0)
+  await expect(page).toHaveURL(/event=plan-other-event/)
   await panel(page).getByRole("button", { name: "← Back to Plan" }).click()
-  await expect(panel(page)).toBeHidden()
-  await expect(page.getByLabel("Task scope")).toHaveValue("team")
-  await page.getByRole("button", { name: /Prepare meeting materials$/ }).click()
-  await expect(task(page).getByRole("heading", { name: "Prepare meeting materials" })).toBeVisible()
+  await page.getByTestId("flow-node-moderator-staffing").click()
+  await expect(task(page).getByRole("heading", { name: "Moderator Lead Staffing" })).toBeVisible()
   await expect(task(page).getByRole("textbox")).toHaveCount(0)
-  await expect(page).toHaveURL(/node=plan-requirements/)
-  await panel(page).getByRole("link", { name: /Draft the meeting agenda/ }).click()
+  await panel(page).getByRole("button", { name: "← Back to Plan" }).click()
+  if (isMobile) await page.getByLabel("Choose an event", { exact: true }).selectOption(PLAN_EVENT)
+  else await page.getByRole("button", { name: "Speaker Night", exact: true }).click()
   await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda" })).toBeVisible()
+  await page.goBack()
+  await expect(task(page).getByRole("heading", { name: "Moderator Lead Staffing" })).toBeVisible()
+  await expect(page).toHaveURL(/event=plan-other-event/)
+  await page.goForward()
+  await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda" })).toBeVisible()
+  await panel(page).getByRole("button", { name: "← Back to Plan" }).click()
+  await page.getByTestId("flow-node-club-requirements").click()
+  await expect(task(page)).toContainText("40 attendees. Accessible room. Projector required.")
+  await expect(task(page)).not.toContainText("PRIVATE unsubmitted notes")
+  await panel(page).getByRole("link", { name: /Draft the meeting agenda/ }).click()
   await expect(task(page).getByLabel("Task status")).toBeVisible()
+  expect((await savedDemo(page)).nodes.find(node => node.id === "t-agenda")?.eventId).toBeNull()
+  await page.goto("/#/tasks")
+  await expect(page.getByLabel("Task scope")).toHaveValue("mine")
   expect((await savedDemo(page)).viewerId).toBe("alex")
-  for (const view of ["Table", "Timeline"]) {
-    await panel(page).getByRole("button", { name: "← Back to Plan" }).click()
-    await page.getByRole("button", { name: view, exact: true }).click()
-    await page.getByRole("button", { name: /Draft the meeting agenda$/ }).click()
-    await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda" })).toBeVisible()
-    await expect(task(page).getByLabel("Task status")).toBeVisible()
-  }
 })
 
 test("Club-task Plan rejects an invalid or reassigned original grant without opening another task", async ({ page }) => {
@@ -221,4 +237,53 @@ test("Club-task Plan rejects an invalid or reassigned original grant without ope
   await page.reload()
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
   await expect(task(page)).toHaveCount(0)
+})
+
+
+test("an assigned Moderator email always opens its real Networking Night flow rather than the task board", async ({ page }, info) => {
+  const { token } = await seed(page, "alex", false, false, "plan-other-event-task")
+  await page.goto(`/#/events?event=${PLAN_EVENT}`)
+  await expect(page.getByRole("heading", { name: "Speaker Night", exact: true })).toBeVisible()
+  await page.goto(`/#/officer?access=${encodeURIComponent(token)}`)
+  await expect(task(page).getByRole("heading", { name: "Moderator Lead Staffing" })).toBeVisible()
+  await expect(page).toHaveURL(/#\/events\?event=plan-other-event&node=plan-other-event-task/)
+  await expect(page.getByRole("heading", { name: "Networking Night", exact: true })).toBeAttached()
+  await expect(page.getByTestId("flow-chart")).toBeAttached()
+  await expect(page.locator('.m-node.is-selected .m-dot')).toHaveCount(1)
+  await expect(page.getByTestId("task-board")).toHaveCount(0)
+  await expect(page.getByTestId("view-flow")).toHaveAttribute("aria-pressed", "true")
+  await page.screenshot({ path: info.outputPath("moderator-event-entry.png"), fullPage: !info.project.name.includes("mobile") })
+  // A Tasks link saved by the previous version must also leave the board automatically.
+  await page.goto(`/#/tasks?node=plan-other-event-task&access=${encodeURIComponent(token)}`)
+  await expect(task(page).getByRole("heading", { name: "Moderator Lead Staffing" })).toBeVisible()
+  await expect(page).toHaveURL(/#\/events\?event=plan-other-event/)
+})
+
+
+test("the full seeded Networking Night opens its real selected node and shared room result from a legacy email", async ({ page }, info) => {
+  const base = seedDemo(undefined, "v2")
+  const moderator = base.nodes.find(node => node.eventId === "e-night" && node.stepKey === "moderator")!
+  const room = base.nodes.find(node => node.eventId === "e-night" && node.stepKey === "venue")!
+  const grant = await makeTaskAccessGrant(base, moderator.id)
+  const state = reducer(base, { type: "issueTaskAccessGrant", grant })
+  await page.addInitScript(({ state, key }) => { localStorage.setItem(key, JSON.stringify(state)); localStorage.setItem("platypus.v1.eventsView", "list"); localStorage.setItem("platypus.v1.railOpen", "0") }, { state, key: KEY })
+  const errors: string[] = []
+  page.on("pageerror", error => errors.push(error.message))
+  await page.goto(`/#/officer?access=${encodeURIComponent(taskAccessToken(grant))}`)
+  await expect(task(page).getByRole("heading", { name: moderator.title, exact: true })).toBeVisible()
+  await expect(page).toHaveURL(/#\/events\?event=e-night/)
+  await expect(page.getByRole("heading", { name: "Networking Night", exact: true })).toBeAttached()
+  await expect(page.getByTestId("flow-chart")).toBeAttached()
+  await expect(page.locator('[data-testid^="flow-node-"]')).toHaveCount(base.nodes.filter(node => node.eventId === "e-night").length)
+  await expect(page.locator(".m-node.is-selected .m-dot")).toHaveCount(1)
+  await expect(page.getByTestId("task-board")).toHaveCount(0)
+  await page.screenshot({ path: info.outputPath("networking-real-seed.png"), fullPage: !info.project.name.includes("mobile") })
+  await panel(page).getByRole("button", { name: "← Back to Plan" }).click()
+  await page.getByTestId("flow-node-venue").click()
+  await expect(task(page).getByRole("heading", { name: room.title, exact: true })).toBeVisible()
+  await expect(task(page).getByRole("combobox", { name: "Task status" })).toHaveCount(0)
+  await panel(page).getByRole("link", { name: moderator.title }).click()
+  await expect(task(page).getByRole("heading", { name: moderator.title, exact: true })).toBeVisible()
+  expect((await savedDemo(page)).viewerId).toBe(state.viewerId)
+  expect(errors).toEqual([])
 })

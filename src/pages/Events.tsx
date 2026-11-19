@@ -21,6 +21,7 @@ import { asuSentence, isLate, reminderSentence } from "../lib/taskDue"
 
 import { resolvePlanEntry } from "../reminders/planEntry"
 import { useTaskAccess } from "../reminders/useTaskAccess"
+import { recentPlanEvent, rememberPlanEvent } from "../reminders/planEventPreference"
 
 type View = "flow" | "list" | "budget"
 const VIEW_KEY = "platypus.v1.eventsView"
@@ -37,7 +38,7 @@ export default function Events() {
   const rail = useRail()
   const [params, setParams] = useSearchParams()
   const access = useTaskAccess(params.get("access") ?? "")
-  const entry = resolvePlanEntry(state, params, access.grant, access.checking)
+  const entry = resolvePlanEntry(state, params, access.grant, access.checking, "events", recentPlanEvent(state))
   const appliedSelection = useRef<string | null>(null)
   const chart = useRef<HTMLDivElement>(null)
   const [savedView, setViewState] = useState<View>(initialView)
@@ -50,6 +51,12 @@ export default function Events() {
   const eventsByDate = useMemo(() => [...state.events].sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)), [state.events])
   const selected = entry.linked && !entry.error && !entry.checking ? entry.node?.id ?? null : rail.detail?.kind === "node" || rail.detail?.kind === "task" ? rail.detail.id : null
   const selectionKey = JSON.stringify([params.get("event"), params.get("node"), params.get("access"), params.get("from")])
+  useEffect(() => {
+    if (entry.linked && entry.event && !entry.checking && !entry.error && !params.has("event")) {
+      const next = new URLSearchParams(params); next.set("event", entry.event.id)
+      setParams(next, { replace: true })
+    }
+  }, [selectionKey, entry.event?.id, entry.checking, entry.error])
   useEffect(() => {
     if (entry.checking || entry.error) {
       appliedSelection.current = null
@@ -87,6 +94,13 @@ export default function Events() {
     if (id === entry.node?.id) rail.show({ kind: "task", id })
   }
   const chooseEvent = (eventId: string) => {
+    rememberPlanEvent(state, eventId)
+    if (params.has("access") && entry.origin && !entry.origin.eventId) {
+      const next = new URLSearchParams(params)
+      next.set("event", eventId); next.set("node", entry.origin.id); next.set("from", entry.origin.id)
+      setParams(next)
+      return
+    }
     const next = new URLSearchParams(params)
     for (const key of ["node", "access", "from"]) next.delete(key)
     next.set("event", eventId)
@@ -100,6 +114,7 @@ export default function Events() {
     setParams(next, { replace: true })
     if (v !== "budget") try { window.localStorage.setItem(VIEW_KEY, v) } catch { /* storage unavailable */ }
   }
+  useEffect(() => { if (ev && !entry.checking && !entry.error) rememberPlanEvent(state, ev.id) }, [ev?.id, state.demoLinkKey, entry.checking, entry.error])
   const nodes = useMemo(() => state.nodes.filter(n => n.eventId === ev?.id), [state.nodes, ev?.id])
   useEffect(() => { if (!entry.linked && ev && params.get("event") && !state.events.some(e => e.id === params.get("event"))) setParams({}, { replace: true }) }, [ev?.id])
   if (entry.checking) return <p role="status">Opening your task in Plan…</p>

@@ -36,6 +36,7 @@ function current(s: DemoState, g: TaskAccessGrant): boolean {
 
 export const taskAccessToken = (g: TaskAccessGrant) => `${g.id}.${g.signature}`
 export const legacyTaskAccessUrl = (origin: string, g: TaskAccessGrant) => `${origin}/#/officer?access=${encodeURIComponent(taskAccessToken(g))}`
+export const legacyTaskPlanUrl = (origin: string, g: TaskAccessGrant) => `${origin}/#/tasks?${new URLSearchParams({ node: g.nodeId, access: taskAccessToken(g) })}`
 export const taskAccessUrl = (origin: string, g: TaskAccessGrant, eventId?: string | null) => `${origin}/#${planTaskPath(eventId, g.nodeId, taskAccessToken(g))}`
 export function usableTaskAccessGrant(s: DemoState, token: string): TaskAccessGrant | undefined {
   const grant = Array.isArray(s.taskAccessGrants) ? s.taskAccessGrants.find(g => shape(g) && taskAccessToken(g) === token) : undefined

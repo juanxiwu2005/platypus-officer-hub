@@ -2,6 +2,28 @@
 
 2026-11-18（America/Phoenix）· Codex · 用户已批准实施，沿用 PR #14
 
+## 当前交付：以活动流程图作为邮件入口
+
+用户再次验收后明确：不能落在Team tasks或自己的Tasks集合，应是截图中的**Plan → Events流程图，右侧展开对应任务Details**。前轮“无活动任务进入Tasks/Team tasks”只解决了独立页遗漏，却选错了左侧工作区，本次取代该路由。
+
+- **真实活动任务：** 新邮件、旧officer入口、上轮生成的Tasks邮件入口均进入`/events`，按任务真实eventId打开活动、选中实际节点并展开Details。即使最近看过另一活动，也不能替换真实归属；沿用现有MetroChart/TeamMetroChart，不改图布局。
+- **无活动Club task：** 新链接为`/events?node=<id>&access=<grant>`。右列仍是原任务，左侧使用本工作区最近查看的活动（无偏好时首个活动）供查阅。进入后将浏览event补入当前URL供刷新/历史还原；切换活动保留原任务入口，点击图中其他节点后可以返回。明确提示任务尚未关联活动，绝不改task.eventId或声称它属于当前图；工作区无活动时显示空Events及原任务详情。
+- **普通Tasks入口：** 默认恢复My tasks；Team tasks仍可手动选择。邮件不再进入任务看板。
+- **共享信息与自动草稿：** 原任务保留同一grant的更新范围、操作者与草稿/附件；其他节点只读团队已提交的正文与对应附件，不能修改或读取私有草稿。Waiting on只可回复协助。Back to Plan隐藏Details供点图，返回原任务、刷新和前进/后退保留任务选择及已自动保存内容。
+- **浏览偏好：** 最近活动仅为sessionStorage中的工作区隔离UI偏好，不写入业务状态、任务归属或授权。无效/删除活动忽略；显式错配、过期/改派或伪造链接仍显示错误。
+
+本轮文件：Events、Tasks入口，planEntry/PlanTaskPanel/planEventPreference、邮件URL生成和历史快照校验，以及相关单元/浏览器夹具。未改Settings模板、图渲染器、日期算法、schema/store、业务收件人或服务器发送；保留同期四队默认和静态布局研究。
+
+### 本轮验证与部署
+
+276项相关单元/组件（19文件）、前后端类型、生产构建、lint和9页字数均通过；入口495,809/550,000字节，普通Tasks为84/130词。双端浏览器按唯一用例计32通过：22项Plan入口、8项已有邮件/通用提交/默认工作流兼容、2项入口预算。首轮20项19过/1手机脚本用了桌面活动按钮；改用已有手机下拉后复验通过。补充14项中12过/2新种子检查误将三个视觉汇合点计作任务；按真实flow-node按钮计数后完整38任务场景及入口预算4项复验通过，未为测试改图或放宽产品校验。
+
+[真实桌面Networking流程图](../prototypes/reminder-events-entry/networking-event-desktop.png)、[手机Details](../prototypes/reminder-events-entry/networking-event-mobile.png)、[无活动任务与图并列](../prototypes/reminder-events-entry/club-task-with-event-desktop.png)、[证据清单](../prototypes/reminder-events-entry/manifest.json)已保存并查看。完整种子检查用实际e-night/moderator/venue和全部38任务，非单节点夹具；另覆盖最近活动、真实归属优先、旧Tasks入口、My tasks默认、自动草稿/附件、改派失效和只读资料。
+
+当前仍沿用PR14和preview14，不新建PR、不合并main；部署结果另补。测试使用本地重新签发grant，无真实产品AI或外部邮件，无用户完整授权链接归档。日志`/tmp/events-entry-{unit,related,browser,browser-final,browser-seed,build,lint,netlify-types,words}.log`，未重复全站门禁。
+
+## 以下为前轮记录：保留历史，路由以上述当前交付为准
+
 > **本日补漏修复：** 用户实际测试的 `Draft the meeting agenda` 是 `t-agenda`，`eventId:null`。初次实现仅处理活动任务，留下的社团任务独立页分支导致复现。现已补齐：这类旧/新邮件进入 **Plan → Tasks** 并展开右列；活动任务仍进入对应活动Plan。未把社团任务硬关联活动，旧签名/任务ID/草稿保留。补充验证：17文件262项单元/组件通过；双端18个唯一浏览器用例通过，包含用户同名种子任务、旧链接/新邮件、正文/附件/刷新、其他提交只读、看板/表格/时间线选择及改派失效。首轮2项因忽略任务类型图标前缀的测试定位失败，修正定位后复验通过；产品校验未放宽。
 
 ## 问题与结果

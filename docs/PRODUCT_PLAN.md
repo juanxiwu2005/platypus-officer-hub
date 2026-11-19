@@ -1,4 +1,6 @@
-> **2026-11-18 邮件Plan入口补漏：** 根据用户实际测试的无活动 `Draft the meeting agenda`，补齐社团任务新邮件与旧可复用链接进入Plan → Tasks，右列直接展开并可切换/返回；活动任务仍进对应活动Plan。不为任务伪造活动关联，保持原负责人/授权/自动草稿与只读提交边界。见[交付补充](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)，沿用PR14。
+> **2026-11-18 邮件入口按实际截图修正：** Juanxi明确要求Events节点流程图＋右侧Details，而非Tasks看板。新邮件及旧officer/Tasks可复用链接均进入Plan → Events；真实活动任务按自己的eventId定位并选中节点，不能受最近浏览的活动影响。无活动Club task仍在右列打开原任务，左侧以本工作区最近查看活动（没有则首个活动）作为可切换的浏览上下文，不写入任务归属。可点其他节点查看已提交内容、返回原任务继续自动草稿；普通Tasks页默认My tasks。见[当前交付](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)，沿用PR14。
+
+> **2026-11-18 邮件Plan入口补漏（历史，路由由上条取代）：** 根据用户实际测试的无活动 `Draft the meeting agenda`，补齐社团任务新邮件与旧可复用链接进入Plan → Tasks，右列直接展开并可切换/返回；活动任务仍进对应活动Plan。不为任务伪造活动关联，保持原负责人/授权/自动草稿与只读提交边界。见[交付补充](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)，沿用PR14。
 
 > **2026-11-18（America/Phoenix）团队默认修正：** 用户要求恢复原工作流的预设团队，避免从空团队开始。沿原v3分组预置Club leadership、Operations、Marketing、Finance（46任务为1/25/8/12），自动完成默认关联；社长后续可改任意团队名称、增加团队，内部引用按稳定ID保留，已有显式设置和活动快照不被改写。此条取代上轮“先手工确认团队才使用标准模板”的当前指引；见[实施说明](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)。
 
