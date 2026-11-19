@@ -4,6 +4,7 @@ import type { DemoState, WorkflowTemplate, WorkflowTemplateContent } from "../sr
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { addDays } from "../src/lib/dates"
 import { noOverflow } from "./helpers"
+import { openMenu } from "./workflowLegacyHelpers"
 
 type Content = WorkflowTemplateContent
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
@@ -55,7 +56,7 @@ function teamOrder(content: Content, teamId: string) {
 
 async function newTemplate(page: Page, name: string) {
   const builder = await open(page)
-  await page.getByRole("button", { name: "New workflow", exact: true }).click()
+  await openMenu(page, "New workflow", "Blank workflow")
   await page.getByLabel("Workflow name", { exact: true }).fill(name)
   await page.getByRole("button", { name: "Save draft", exact: true }).click()
   const template = getWorkflowTemplates(await read(page)).find(item => item.draft?.name === name)!
@@ -159,7 +160,7 @@ test("the default 46 tasks use four compact team containers without rewriting de
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
   const axe = await new AxeBuilder({ page }).include("[data-testid='workflow-template-editor']").withTags(["wcag2a", "wcag2aa"]).analyze()
   expect(axe.violations.filter(item => ["serious", "critical"].includes(item.impact ?? ""))).toEqual([])
-  await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath("dot-default-four-teams.png") })
+  await builder.locator(".wfx-scroll").screenshot({ path: info.outputPath("dot-default-four-teams.png") })
 })
 
 test("independent teams keep parallel starting columns while their tasks remain compact and reusable", async ({ page }) => {

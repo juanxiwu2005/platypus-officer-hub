@@ -18,7 +18,7 @@ export async function openWorkflow(page: Page) {
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
   await expect(page.getByTestId("workflow-builder")).toBeVisible()
   expect((await readWorkflowState(page)).org.workflowTeams?.length).toBeGreaterThan(0)
-  await page.getByRole("button", { name: "Apply role teams", exact: true }).click()
+  await openMenu(page, "More", "Apply role teams")
   await expect.poll(async () => Object.keys((await savedWorkflow(page))?.teamMap?.stepTeams ?? {}).length).toBeGreaterThan(0)
   await page.getByRole("button", { name: "Save draft", exact: true }).click()
   return page.getByTestId("workflow-settings")
@@ -31,4 +31,29 @@ export async function openWorkflowStep(page: Page, key: string) {
 export async function insertedKey(page: Page, before: string[]) {
   await expect.poll(async () => (await savedWorkflow(page)).steps.filter(step => !before.includes(step.key)).length).toBe(1)
   return (await savedWorkflow(page)).steps.find(step => !before.includes(step.key))!.key
+}
+
+export const menuTrigger = (page: Page, trigger: string) => page.getByTestId("workflow-settings").getByRole("button", { name: trigger, exact: true }).and(page.locator("[aria-haspopup=menu]"))
+/** Header and toolbar actions live in disclosure menus ("New workflow", "More", "Add"); items are role="menuitem". */
+export async function openMenu(page: Page, trigger: string, item: string) {
+  const settings = page.getByTestId("workflow-settings")
+  await menuTrigger(page, trigger).click()
+  await settings.getByRole("menu").getByRole("menuitem", { name: item, exact: true }).click()
+}
+/** Each lane has a team pill ("<Team> · N steps, edit branch") with a stable testid. */
+export const branchPill = (page: Page, branchId: string) => page.getByTestId(`workflow-branch-pill-${branchId}`)
+export async function openBranch(page: Page, branchId: string) {
+  await branchPill(page, branchId).click()
+  return page.getByTestId("workflow-builder-details")
+}
+/** The canvas no longer has a team select: open the branch and choose its team in Details. */
+export async function setBranchTeam(page: Page, branchId: string, teamId: string) {
+  const details = await openBranch(page, branchId)
+  await details.getByRole("combobox", { name: "Team", exact: true }).selectOption(teamId)
+  return details
+}
+/** The selected value of a branch's Details "Team" select. */
+export async function branchTeamValue(page: Page, branchId: string) {
+  const details = await openBranch(page, branchId)
+  return details.getByRole("combobox", { name: "Team", exact: true })
 }

@@ -4,6 +4,7 @@ import type { DemoState, WorkflowTemplate } from "../src/data/types"
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { addDays } from "../src/lib/dates"
 import { noOverflow } from "./helpers"
+import { branchPill, branchTeamValue, menuTrigger, openMenu, setBranchTeam } from "./workflowLegacyHelpers"
 
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
 let errors: string[] = []
@@ -35,7 +36,7 @@ async function save(page: Page) {
 }
 async function empty(page: Page, name: string) {
   const builder = await open(page)
-  await page.getByRole("button", { name: "New workflow", exact: true }).click()
+  await openMenu(page, "New workflow", "Blank workflow")
   await page.getByLabel("Workflow name", { exact: true }).fill(name)
   await save(page)
   return builder
@@ -46,7 +47,7 @@ async function moveToTeam(page: Page, sourceKey: string, targetBranchId: string,
   await closeRail(page)
   const source = page.getByTestId(`workflow-task-${sourceKey}`)
   const lane = page.getByTestId(`workflow-segment-${targetBranchId}`)
-  await page.getByTestId("workflow-builder").locator(".wfb-scroll").scrollIntoViewIfNeeded()
+  await page.getByTestId("workflow-builder").locator(".wfx-scroll").scrollIntoViewIfNeeded()
   await source.scrollIntoViewIfNeeded()
   const [a, b] = await Promise.all([source.boundingBox(), lane.boundingBox()])
   if (!a || !b) throw new Error("Task and destination branch must both be rendered")
@@ -91,9 +92,8 @@ async function eventFromTemplate(page: Page, template: WorkflowTemplate, name: s
 }
 
 async function addBranch(page: Page, teamId: string) {
-  const builder = page.getByTestId("workflow-builder")
   await closeRail(page)
-  await builder.getByRole("button", { name: "Add branch", exact: true }).click()
+  await openMenu(page, "Add", "Team branch")
   const details = page.getByTestId("workflow-builder-details")
   await details.getByRole("combobox", { name: "Team", exact: true }).selectOption(teamId)
   await details.getByRole("button", { name: "Add branch", exact: true }).click()
@@ -109,7 +109,7 @@ test("a blank workflow has editable boundary stations and an empty branch uses a
   const branch = await addBranch(page, team.id)
   expect((await read(page)).org.workflowTeams).toEqual(before.org.workflowTeams)
   expect((await save(page)).steps).toEqual([])
-  await builder.getByRole("button", { name: `Add task to branch ${branch.id}`, exact: true }).click()
+  await builder.getByTestId(`workflow-segment-${branch.id}`).getByRole("button", { name: `Add task to ${team.name} branch`, exact: true }).click()
   await expect(page.getByLabel("Task name", { exact: true })).toHaveValue("New task")
   const added = await save(page)
   expect(added.steps).toHaveLength(1)
@@ -118,13 +118,16 @@ test("a blank workflow has editable boundary stations and an empty branch uses a
   await builder.getByRole("button", { name: "Undo edit", exact: true }).click()
   expect((await save(page)).steps).toHaveLength(0)
   const changedTeam = before.org.workflowTeams![2]
-  await builder.getByRole("combobox", { name: `Team for ${branch.id}`, exact: true }).selectOption(changedTeam.id)
+  await setBranchTeam(page, branch.id, changedTeam.id)
   const saved = await save(page), templateId = (await current(page)).id
   expect(saved.milestoneGraph!.teamBranches.find(item => item.id === branch.id)?.teamId).toBe(changedTeam.id)
   await page.reload()
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
   await page.getByRole("combobox", { name: "Saved workflow", exact: true }).selectOption(templateId)
-  await expect(builder.getByRole("combobox", { name: `Team for ${branch.id}`, exact: true })).toHaveValue(changedTeam.id)
+  await closeRail(page)
+  await expect(branchPill(page, branch.id)).toHaveAccessibleName(`${changedTeam.name} · 0 steps, edit branch`)
+  await expect(await branchTeamValue(page, branch.id)).toHaveValue(changedTeam.id)
+  await closeRail(page)
   expect((await read(page)).org.workflowTeams).toEqual(before.org.workflowTeams)
   expect((await read(page)).nodes).toEqual(before.nodes)
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
@@ -133,12 +136,15 @@ test("a blank workflow has editable boundary stations and an empty branch uses a
 test("the second Event day is a date station and repeated Full checks remain independent real tasks", async ({ page }) => {
   const builder = await empty(page, "Two event dates")
   const before = await read(page)
-  await builder.getByRole("button", { name: "Event day", exact: true }).click()
+  await openMenu(page, "Add", "Event day")
   await closeRail(page)
-  await expect(builder.getByRole("button", { name: "Event day", exact: true })).toBeDisabled()
+  await menuTrigger(page, "Add").click()
+  await expect(page.getByRole("menuitem", { name: "Event day", exact: true })).toBeDisabled()
+  await page.keyboard.press("Escape")
+  await expect(page.getByRole("menu")).toHaveCount(0)
   await expect(builder.getByTestId("workflow-event-day-2")).toBeVisible()
   expect((await save(page)).steps).toHaveLength(0)
-  for (let i = 0; i < 2; i++) { await builder.getByRole("button", { name: "Full check", exact: true }).click(); await closeRail(page) }
+  for (let i = 0; i < 2; i++) { await openMenu(page, "Add", "Full check"); await closeRail(page) }
   let draft = await save(page)
   expect(draft.steps).toHaveLength(2)
   expect(new Set(draft.steps.map(step => step.key)).size).toBe(2)
@@ -209,6 +215,6 @@ test("the dense preset remains readable in light and dark mode with accessible t
     expect(await noOverflow(page)).toBeLessThanOrEqual(1)
     const axe = await new AxeBuilder({ page }).include("[data-testid='workflow-template-editor']").withTags(["wcag2a", "wcag2aa"]).analyze()
     expect(axe.violations.filter(item => ["serious", "critical"].includes(item.impact ?? ""))).toEqual([])
-    await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath(`workflow-dots-${scheme}.png`) })
+    await builder.locator(".wfx-scroll").screenshot({ path: info.outputPath(`workflow-dots-${scheme}.png`) })
   }
 })

@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright"
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { EVENT_STEPS } from "../src/engine/playbooks"
 import { closeRail, noOverflow } from "./helpers"
+import { openMenu } from "./workflowLegacyHelpers"
 import { addDays } from "../src/lib/dates"
 import type { DemoState } from "../src/data/types"
 
@@ -20,16 +21,27 @@ test("the original 46-step template opens fully grouped with four preset teams",
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
   const builder = page.getByTestId("workflow-builder")
   await expect(builder).toBeVisible()
-  await expect(builder.locator('[data-testid^="workflow-team-"]')).toHaveCount(4)
   await expect(builder.locator('[data-testid^="workflow-task-"]')).toHaveCount(46)
   const saved = await read(page)
   expect(saved.org.workflowTeams?.map(team => team.name)).toEqual(["Club leadership", "Operations", "Marketing", "Finance"])
+  // One lane per team branch: its pill names the team and counts its steps. Shared steps sit on the main line.
+  const pills = builder.locator('[data-testid^="workflow-branch-pill-"]')
+  const lanes = await pills.evaluateAll(elements => elements.map(element => ({ id: element.getAttribute("data-testid")!.replace("workflow-branch-pill-", ""), label: element.getAttribute("aria-label")! })))
+  expect(lanes.length).toBeGreaterThan(0)
+  expect(lanes.every(lane => /^.+ · \d+ steps?, edit branch$/.test(lane.label) && !lane.label.startsWith("Choose team"))).toBe(true)
+  const laneTeam = new Map(lanes.map(lane => [lane.id, lane.label.split(" · ")[0]]))
+  const dots = await builder.locator('[data-testid^="workflow-task-"]').evaluateAll(elements => elements.map(element => ({ key: element.getAttribute("data-testid")!.replace("workflow-task-", ""), branch: element.getAttribute("data-branch-id") })))
+  // Every branch dot sits in a lane that shows its pill; the lane's step count matches its dots.
+  for (const lane of lanes) expect(lane.label).toContain(`· ${dots.filter(dot => dot.branch === lane.id).length} step`)
+  const maps = getWorkflowTemplates(saved)[0].versions[0].teamMap!.stepTeams
   for (const [key, count] of [["leadership", 1], ["operations", 25], ["marketing", 8], ["finance", 12]] as const) {
     const team = saved.org.workflowPresetTeamIds![key]!
-    const maps = getWorkflowTemplates(saved)[0].versions[0].teamMap!.stepTeams
+    const name = saved.org.workflowTeams!.find(item => item.id === team)!.name
     expect(Object.values(maps).filter(id => id === team)).toHaveLength(count)
-    const cards = builder.locator(`[data-testid="workflow-team-${team}"]`)
-    await expect(cards).toHaveCount(1)
+    // Each mapped step is shown either in one of this team's lanes or on the shared main line.
+    const shown = dots.filter(dot => dot.branch ? laneTeam.get(dot.branch) === name : maps[dot.key] === team)
+    expect(shown).toHaveLength(count)
+    expect(shown.every(dot => maps[dot.key] === team)).toBe(true)
   }
   expect(saved.nodes).toEqual(before.nodes)
   expect(EVENT_STEPS).toHaveLength(46)
@@ -48,7 +60,7 @@ test("arbitrary team names survive reload and the preset still creates grouped P
   await expect(page.getByTestId("workflow-builder")).toBeVisible()
   const before = await read(page)
   const renamed = ["Board", "Event crew", "Storytelling", "Resources"]
-  await page.getByRole("button", { name: "Teams", exact: true }).click()
+  await openMenu(page, "More", "Teams")
   for (let i = 0; i < before.org.workflowTeams!.length; i++) await page.getByLabel(`Team name: ${before.org.workflowTeams![i].name}`, { exact: true }).fill(renamed[i])
   await page.getByRole("button", { name: "Save teams", exact: true }).click()
   await expect.poll(async () => (await read(page)).org.workflowTeams?.map(team => team.name)).toEqual(renamed)

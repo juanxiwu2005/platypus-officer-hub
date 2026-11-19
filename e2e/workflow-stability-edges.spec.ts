@@ -26,7 +26,8 @@ test("inserting before shared Full Check keeps its team without a branch prompt"
 test("a mixed-scope template line has no double-click or double-tap action", async ({ page }) => {
   await openWorkflow(page)
   const before = await saved(page)
-  const line = page.getByTestId("workflow-dependency").first()
+  // Settings draws team branch lines (no separate dependency arrows); they carry no pointer actions.
+  const line = page.getByTestId("workflow-branch-track").first()
   await line.scrollIntoViewIfNeeded()
   const point = await line.evaluate(element => {
     const path = element as SVGPathElement
