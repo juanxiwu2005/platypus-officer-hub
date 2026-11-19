@@ -130,7 +130,20 @@ export interface EventWorkflow {
 }
 
 /** Authored task identity is its stable key within a template, never its label or position. */
+export interface WorkflowMilestoneGraph {
+  version: 1
+  eventDays: { id: string; title: string; offsetDays: number; details: string }[]
+  start: { title: string; details: string }
+  done: { title: string; details: string }
+  /** Ordered shared stations and real shared task IDs; endpoints and day markers are not executable tasks. */
+  spine: string[]
+  teamBranches: { id: string; teamId: string; fromId: string; toId: string; stepIds: string[] }[]
+  taskAnchors: Record<string, { eventDayId: string; offsetDays: number; unit?: "calendar" | "business" }>
+}
+
 export interface WorkflowTemplateContent {
+  /** Optional, version-scoped one/two-day authoring graph. Historical templates remain unchanged. */
+  milestoneGraph?: WorkflowMilestoneGraph
   /** Explicit dependencies keep team membership separate from precedence. Older sequential snapshots retain their saved behavior. */
   teamExecution?: "sequential" | "dependencies"
   name: string
