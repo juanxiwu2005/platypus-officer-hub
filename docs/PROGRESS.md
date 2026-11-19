@@ -3,8 +3,9 @@
 > **验收与验证：** 运行时`52dd77a`已确认Netlify success。[preview14 Team](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/team)；[代码归档与恢复](../src/archive/partners/README.md)。CRM/Team/交接相关3文件44单元通过；39项桌面/手机检查通过、1设备限定跳过（6项新增直接导航/旧链接数据/共享交接详情均通过）。另外2项原提醒空态用例仍期待旧句子None yet，ac19513的Today已改为No recorded reminders yet；未改并行提醒模块。lint、前后端类型、build、8个活动页字数与入口预算508,070/550,000通过；归档CSS逐字、页面仅导入路径/标题调整，生产无Partners页面chunk已核对。需要同步本地备份。
 
 
-> **2026-11-19（America/Phoenix） · 提醒中心方案F＋按人合并邮件，进行中（Claude 主Agent / Engine Agent / UI Agent）**
-> **用户决定：** Juanxi选方案F（按人竖向排列，社长看到每人现有任务，右栏邮件预览，Send & next或一键全发），要求多Agent修bug。[冻结契约与分工](feedback-fix/REMINDER_DIGEST_CONTRACT.md)：Engine负责按封计上限（修Approve all少记一条）、合并邮件、整组记录与自动模式；UI负责Today页、右栏DigestPanel、Fix first与历史行、提醒e2e。沿用PR14，不合并main，0真实AI/邮件，schema不升。
+> **2026-11-19（America/Phoenix） · 提醒中心方案F＋按人合并邮件，完成检查待验收（Claude 主Agent / Engine / UI / Review / Tests Agent）**
+> **交付：** Juanxi选方案F并要求多Agent修bug。同一人当天提醒合成一封（每封≤8项，多出顺延次日），上限按封计，种子一键全发3封/5任务全记（修Approve all少记一条）；Today改为按人竖向列表＋右栏真实邮件（Skip/Send & next/Send all；自己发=Open Gmail draft→I sent this email；自动只读）＋该人全部未完成任务，Fix first只放可修问题，历史一行。独立审查4项问题已修。[交付与验证](feedback-fix/REMINDER_DIGEST_HANDOFF.md) · [截图](prototypes/reminder-digest-implemented/final/)。
+> **验证：** 单元2098/2100（2项改动前即失败）；桌面浏览器585通过，手机提醒相关82通过；与基线对比无本工作引起的新失败，偶发3项单独复跑通过。tsc/lint/字数通过，页面高1142px（原2856）。0真实AI/邮件，schema不升，沿用PR14不合并main，需要同步本地备份。
 
 > **2026-11-19（America/Phoenix） · Settings → Workflow 编辑器重新设计，待验收（Claude + worktree Agent A 画布 / B 页面与面板 / C 页面测试）**
 > **交付：** 每个团队一行（超过10步才折行），按高度平衡放在主线上下；顶部 Plan → Prepare → Event day → Close；团队标签“Operations · 7 steps”；步骤名不再断词；模板分组 Platypus preset / Your organization 与状态标签；唯一主按钮 Save version，次要动作进 More；画布工具栏 Undo / Flow·Quick entry / 1-day·2-day / Select steps / + Task / Add；右侧 Team assignment（成员名字、Description、Select steps → Assign N steps 一次 Undo）。团队分支新增可选 `details`，schema23 不变。**Plan 活动图一行未改**，等 Juanxi 满意后移植；只做浅色。
