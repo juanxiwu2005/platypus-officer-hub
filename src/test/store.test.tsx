@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react"
 import { HashRouter } from "react-router-dom"
 import { reducer, loadState, loadStateWithNotice, saveState, STORAGE_KEY, StoreProvider } from "../data/store"
 import { SCHEMA_VERSION, seedDemo } from "../data/seed"
+import { ensureWorkflowPresetTeams } from "../data/workflowTeamDefaults"
 import App from "../App"
 
 describe("store reducer", () => {
@@ -100,7 +101,7 @@ describe("storage", () => {
     expect(state.nodes.find(node => node.id === "e-speaker:plan")).toMatchObject({ status: "done", completedOn: saved.today })
     expect(state.nodes.map(node => ({ id: node.id, title: node.title, status: node.status }))).toEqual(saved.nodes.map(node => ({ id: node.id, title: node.title, status: node.id === "e-speaker:plan" ? "done" : node.status })))
     expect(state.events).toEqual(saved.events)
-    expect(state.org).toEqual(saved.org)
+    expect(state.org).toEqual(ensureWorkflowPresetTeams(saved).org)
     expect(state.people).toEqual(saved.people)
     expect(state.viewerId).toBe("maya")
     saveState({ ...state, nodes: state.nodes.map(node => node.id === "e-speaker:plan" ? { ...node, status: "accepted" as const, completedOn: undefined } : node) })

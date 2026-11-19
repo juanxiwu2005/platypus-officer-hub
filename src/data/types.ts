@@ -148,6 +148,7 @@ export interface WorkflowTemplate {
   updatedOn: string
   copiedFrom?: { templateId: string; templateVersion: number }
 }
+export type WorkflowPresetTeam = "leadership" | "operations" | "marketing" | "finance"
 export interface WorkflowTeam { id: string; name: string }
 export interface WorkflowRun {
   id: string
@@ -178,6 +179,8 @@ export interface Org {
   /** Explicit organization grouping, independent of reporting lines and legacy Role/Person fields. */
   workflowTeams?: WorkflowTeam[]
   workflowRoleTeams?: Record<string, string>
+  /** Stable defaults bind semantic work groups to editable organization team names. */
+  workflowPresetTeamIds?: Partial<Record<WorkflowPresetTeam, string>>
   /** Task board look (v1.1): renamed statuses, colours, custom tags and which fields cards show. Meanings never change. */
   board?: BoardSettings
 }

@@ -16,12 +16,7 @@ export function WorkflowTeams({ onClose }: { onClose: () => void }) {
   }
   return <section className="card form-stack" aria-label="Workflow teams">
     <header className="action-row"><h3>Teams</h3><button type="button" className="btn small" onClick={onClose}>Close teams</button></header>
-    <p className="small muted">Use your organization’s teams. Team grouping and the task’s responsible role are separate.</p>
-    {!teams.length && <button type="button" className="btn" onClick={() => {
-      const available = state.roles.filter(role => role.fn !== "advisor")
-      const created = available.map(role => ({ id: crypto.randomUUID(), name: role.displayName }))
-      setTeams(created); setRoleTeams(Object.fromEntries(available.map((role, i) => [role.id, created[i].id])))
-    }}>Create teams from roles</button>}
+    <p className="small muted">Preset teams keep the workflow ready to use. Rename them here; task assignments stay linked. You can also add teams.</p>
     <label>Team names<textarea rows={2} value={names} maxLength={1800} placeholder="One team per line" onChange={e => setNames(e.target.value)} /></label>
     <button type="button" className="btn small" onClick={add}>Add teams</button>
     <div className="form-grid">{teams.map(team => <label key={team.id}>Team name<input aria-label={`Team name: ${team.name}`} value={team.name} maxLength={80} onChange={e => setTeams(teams.map(t => t.id === team.id ? { ...t, name: e.target.value } : t))} /></label>)}</div>

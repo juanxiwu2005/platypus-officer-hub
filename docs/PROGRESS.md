@@ -1,8 +1,10 @@
 > **2026-11-18（America/Phoenix） · 无活动社团任务邮件仍独立打开的问题修复中（Codex）**
 > **用户复现与根因：** 用户截图是Draft the meeting agenda（t-agenda），seed中eventId为null；上轮只把活动邮件送入Plan，明确保留的无活动Officer分支造成入口不一致。本轮补齐Plan → Tasks右列入口、旧链接跳转、原任务授权和其他任务共享提交只读；不把社团任务硬关联活动，不重置用户任务/草稿，不改同期默认团队修复，沿用PR14，不合并main。
 
-> **2026-11-18（America/Phoenix） · 恢复原预设团队与46项模板默认归组，进行中（Codex）**
-> **用户纠正与范围：** 用户指出上轮把原有结果打乱，要求根据之前工作流预设必需团队，社长以后可以任意改团队名称。沿用v3-foundation原分组：Club leadership 1、Operations 25、Marketing 8、Finance 12；自动准备稳定团队ID/岗位默认关联/46步骤归组，不再要求先手工建团队或“一岗一队”。保留用户已有改名/显式分组、原任务/连线/时长及所有既有活动快照；不改同期邮件Plan入口工作，不合并main。基于`f1f1173`独立worktree，沿用PR14，0真实AI/邮件；需要同步本地备份。
+> **2026-11-18（America/Phoenix） · 原四类预设团队与46任务默认归属已恢复，待验收（Codex）**
+> **用户纠正与交付：** 上轮遗漏默认团队，用户要求沿原工作流先预设必需团队，名称以后可任意修改。本轮按v3-foundation原分工恢复Club leadership 1、Operations 25、Marketing 8、Finance 12；首次打开、旧v23加载、Reset和新工作区自动具备默认团队/岗位关联，Speaker标准模板直接完整分组，不再先手建队或一岗一队。新增稳定语义槽→teamId关联，团队可改名/加队，必需引用受保护；已有用户团队ID、改名和显式分组优先保留，旧四队规范名称只在初始化时一次沿用ID，此后按ID关联。
+> **保留与检查：** 未改原46任务名称、Details、日期/工作量、业务分支或依赖；已有任务/活动/版本/成果/团队快照保持。219项相关单元/组件通过；默认即用、四队任意改名/刷新/新建Plan及自建5任务等8项双端通过，旧设置/政策保护/Undo/类型继承18项双端通过，唯一浏览器共26项；与同期邮件Plan合并后16单元/组件及4项双端定向复验通过。lint、前后端类型、生产build、9页字数与diff检查通过，[本轮证据](feedback-fix/workflow-preset-teams-verification.json)。
+> **验收：** preview14 → Settings → Workflow应直接看见分组，无需配置；Teams可改名称，重新打开及新建活动仍能套用。已合并保留`049ea2a`同期真实邮件Plan工作，沿用PR14，不合并main、schema23不重置，0真实AI/邮件。PRODUCT_PLAN与编辑器交付说明已同步，需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · 邮件直达真实Plan与跨节点Details检查完成，待验收（Codex）**
 > **授权与交付：** Juanxi明确批准修改，要求沿用真实workflow、不照搬效果图。以最新工作流`a2f4dd8`为基点，运行时`3505d79`将活动邮件直接定位Plan实际节点并展开右侧Details；可点图或右列下拉切换同活动已提交资料/附件并返回原任务，手机有Back to Plan。刷新/历史保留选择和自动草稿，旧可复用邮件链接兼容跳转；原grant仅作用原任务，他人节点只读，不切换viewer、不暴露私人草稿。未修改Settings模板、图渲染器、schema/store或日期/提醒频率。
