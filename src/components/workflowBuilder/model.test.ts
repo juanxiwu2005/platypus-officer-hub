@@ -33,6 +33,17 @@ describe("workflow editor graph operations", () => {
     expect(result.steps.find(step => step.key === "C")?.dependsOn).toEqual(["B"])
   })
 
+  it("inserts into an explicitly chosen incoming branch at a merge, retaining the other branch", () => {
+    const current = snapshot()
+    current.steps = [task("speaker-end"), { ...task("marketing-end"), stepKind: "core", cond: undefined, placement: { branchId: "marketing", order: 1 } }, { ...task("finalcheck", ["speaker-end", "marketing-end"]), placement: { branchId: "main", order: 2 }, stepKind: "core", cond: undefined }]
+    current.stepTeams = { "speaker-end": "team-1", "marketing-end": "team-2", finalcheck: "team-2" }
+    const result = insertBuilderStep(current, "finalcheck", "before", "new", "speaker")
+    expect(result.steps.find(step => step.key === "new")).toMatchObject({ stepKind: "situation", cond: "speaker", placement: { branchId: "speaker" }, dependsOn: ["speaker-end"] })
+    expect(result.stepTeams.new).toBe("team-1")
+    expect(result.steps.find(step => step.key === "finalcheck")?.dependsOn).toEqual(["marketing-end", "new"])
+    expect(result.steps.find(step => step.key === "marketing-end")?.dependsOn).toEqual([])
+  })
+
   it("rejects cycles and dangling references", () => {
     expect(graphError([task("A", ["B"]), task("B", ["A"])])).toContain("loop")
     expect(graphError([task("A", ["missing"])])).toContain("no longer exists")

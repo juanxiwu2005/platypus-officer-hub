@@ -49,20 +49,20 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
     onChange(next.steps, next.branches, next.stepTeams)
     return true
   }
+  const openTask = (key: string) => { setSelected(key); setConnectFrom(null); rail.show({ kind: "workflow" }) }
   const select = (key: string) => {
     if (connectFrom) {
       const target = steps.find(candidate => candidate.key === key)
       if (target && commit({ ...snapshot, steps: steps.map(candidate => candidate.key === key ? { ...candidate, dependsOn: [...new Set([...(candidate.dependsOn ?? []), connectFrom])] } : candidate) })) setConnectFrom(null)
       return
     }
-    setSelected(key)
-    rail.show({ kind: "workflow" })
+    openTask(key)
   }
   const close = () => { setSelected(null); rail.closeDetail() }
-  const insert = (position: InsertPosition) => {
+  const insert = (position: InsertPosition, insertionBranch?: string) => {
     if (!step) return
-    const next = insertBuilderStep(snapshot, step.key, position)
-    if (commit(next)) select(next.steps[next.steps.length - 1].key)
+    const next = insertBuilderStep(snapshot, step.key, position, undefined, insertionBranch)
+    if (commit(next)) openTask(next.steps[next.steps.length - 1].key)
   }
   const makeBranch = (draft: BranchDraft) => {
     if (steps.length >= MAX_STEPS) return `A workflow can have up to ${MAX_STEPS} tasks.`
@@ -77,7 +77,7 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
     if (draft.side === "after_event") fresh.anchor = { kind: "target", days: -2, unit: "calendar", label: "Workflow target" }
     const next = { ...snapshot, steps: [...steps, fresh], branches: [...(branches ?? []), branch] }
     if (!commit(next)) return "This branch would conflict with a protected workflow step."
-    setAddBranch(false); select(fresh.key)
+    setAddBranch(false); openTask(fresh.key)
     return null
   }
   useEffect(() => {
@@ -107,7 +107,7 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
         <button type="button" className="btn small primary" disabled={steps.length >= MAX_STEPS} onClick={() => {
           const fresh = createBuilderStep("New task", step, branches)
           const next = { ...snapshot, steps: [...steps, fresh], stepTeams: { ...stepTeams, ...(step && stepTeams[step.key] ? { [fresh.key]: stepTeams[step.key] } : teams.length === 1 ? { [fresh.key]: teams[0].id } : {}) } }
-          if (commit(next)) select(fresh.key)
+          if (commit(next)) openTask(fresh.key)
         }}>+ Task</button>
       </div>
     </div>
@@ -124,7 +124,7 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
           {timeline.rows.map(row => <div key={row.team.id} className="wfb-lane" data-testid={`workflow-team-${row.team.id}`} style={{ top: row.top, height: row.height }}><div className="wfb-lane-label" style={{ width: LABEL_WIDTH }}>{row.team.name}<button type="button" className="link" aria-label={`Add task to ${row.team.name}`} onClick={() => {
             const fresh = createBuilderStep("New task")
             const next = { ...snapshot, steps: [...steps, fresh], stepTeams: { ...stepTeams, [fresh.key]: row.team.id } }
-            if (commit(next)) select(fresh.key)
+            if (commit(next)) openTask(fresh.key)
           }}>+ Task</button></div></div>)}
           <svg className="wfb-links" width={timeline.width} height={Math.max(HEADER_HEIGHT + 120, timeline.height)} aria-label="Task dependency connections" role="img">
             <title>Arrows connect prerequisites to the tasks that wait for them</title>
@@ -138,7 +138,7 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
               return <path key={`${id}:${target.step.key}`} data-testid="workflow-dependency" className={selected === id || selected === target.step.key ? "wfb-link is-selected" : "wfb-link"} d={path} markerEnd={`url(#${markerId})`}><title>{source.step.title} → {target.step.title}</title></path>
             }))}
           </svg>
-          {timeline.boxes.map(box => <button key={box.step.key} type="button" data-testid={`workflow-task-${box.step.key}`} aria-label={`Edit ${box.step.title}`} aria-pressed={selected === box.step.key} className={`wfb-task ${workflowStepKind(box.step, branches) === "situation" ? "is-situation" : "is-core"} ${selected === box.step.key ? "is-selected" : ""}`} style={{ left: box.x, top: box.y, width: box.width }} onClick={() => select(box.step.key)}>
+          {timeline.boxes.map(box => <button key={box.step.key} type="button" data-testid={`workflow-task-${box.step.key}`} aria-label={`Edit ${box.step.title || "Untitled task"}`} aria-pressed={selected === box.step.key} className={`wfb-task ${workflowStepKind(box.step, branches) === "situation" ? "is-situation" : "is-core"} ${selected === box.step.key ? "is-selected" : ""}`} style={{ left: box.x, top: box.y, width: box.width }} onClick={() => select(box.step.key)}>
             <strong>{box.step.title || "Untitled task"}</strong><span aria-hidden="true">{box.step.ownerRoleId ? labels.get(box.step.ownerRoleId) ?? "Missing role" : "Unassigned role"}</span><span aria-hidden="true">{box.step.estDays} workday{box.step.estDays === 1 ? "" : "s"} · {tLabel(box.start)} → {tLabel(box.finish)}</span>
           </button>)}
           {!teams.length && <p className="wfb-no-teams">Add teams from your organization settings to arrange tasks into lanes.</p>}
@@ -190,13 +190,16 @@ function QuickEntry({ state, snapshot, teams, onChange, onSelect, selected }: { 
   </div>
 }
 
-function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, onInsert, onClose }: { step: StepTemplate; snapshot: BuilderSnapshot; state: DemoState; teams: BuilderTeam[]; policy: BuilderPolicy; onChange: (next: BuilderSnapshot) => boolean; onInsert: (position: InsertPosition) => void; onClose: () => void }) {
+function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, onInsert, onClose }: { step: StepTemplate; snapshot: BuilderSnapshot; state: DemoState; teams: BuilderTeam[]; policy: BuilderPolicy; onChange: (next: BuilderSnapshot) => boolean; onInsert: (position: InsertPosition, insertionBranch?: string) => void; onClose: () => void }) {
   const { steps, branches, stepTeams } = snapshot
   const patch = (value: Partial<StepTemplate>) => onChange({ ...snapshot, steps: steps.map(candidate => candidate.key === step.key ? { ...candidate, ...value } : candidate) })
   const labels = roleLabels(state.roles)
   const locked = isAsuStep(step)
   const cannotDelete = builderDeletionReason(step, policy)
   const waits = step.dependsOn ?? []
+  const incomingBranches = [...new Set(steps.filter(candidate => waits.includes(candidate.key)).map(candidate => placementOf(candidate).branchId))]
+  const [insertionBranch, setInsertionBranch] = useState("")
+  const [insertionError, setInsertionError] = useState<string | null>(null)
   const candidates = steps.filter(candidate => candidate.key !== step.key && !waits.includes(candidate.key) && !graphError(steps.map(item => item.key === step.key ? { ...item, dependsOn: [...waits, candidate.key] } : item)))
   const branch = branches?.find(candidate => candidate.id === placementOf(step).branchId)
   return <section className="form-stack wfb-details" data-testid="workflow-builder-details" aria-label={`Details: ${step.title}`}>
@@ -224,7 +227,12 @@ function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, on
     <div className="form-stack"><span className="small muted">Waits for · all must finish</span>{!waits.length && <span className="small">Nothing</span>}{waits.map(id => <div className="wfb-prerequisite small" key={id}><span>{steps.find(candidate => candidate.key === id)?.title ?? "Missing task"}</span><button type="button" className="link" aria-label={`Remove prerequisite ${steps.find(candidate => candidate.key === id)?.title ?? id}`} onClick={() => patch({ dependsOn: waits.filter(key => key !== id) })}>Remove</button></div>)}
       <label className="sr-only" htmlFor={`wfb-prerequisite-${step.key}`}>Add prerequisite</label><select id={`wfb-prerequisite-${step.key}`} aria-label="Add prerequisite" value="" onChange={event => { if (event.target.value) patch({ dependsOn: [...waits, event.target.value] }) }}><option value="">+ Prerequisite</option>{candidates.map(candidate => <option value={candidate.key} key={candidate.key}>{candidate.title}</option>)}</select>
     </div>
-    <div className="action-row"><button type="button" className="btn small" onClick={() => onInsert("before")}>Add before</button><button type="button" className="btn small" onClick={() => onInsert("after")}>Add next</button><button type="button" className="btn small" onClick={() => onInsert("parallel")}>Add parallel</button></div>
+    {incomingBranches.length > 1 && <label>Insertion branch<select value={insertionBranch} onChange={event => { setInsertionBranch(event.target.value); setInsertionError(null) }}><option value="">Choose a branch for Add before</option>{incomingBranches.map(id => <option key={id} value={id}>{branches?.find(candidate => candidate.id === id)?.title ?? (id === "main" ? "Main" : id)}</option>)}</select></label>}
+    {insertionError && <p className="small late-text" role="alert">{insertionError}</p>}
+    <div className="action-row"><button type="button" className="btn small" onClick={() => {
+      if (incomingBranches.length > 1 && !incomingBranches.includes(insertionBranch)) { setInsertionError("Choose which incoming branch gets the new task."); return }
+      onInsert("before", incomingBranches.length > 1 ? insertionBranch : undefined)
+    }}>Add before</button><button type="button" className="btn small" onClick={() => onInsert("after")}>Add next</button><button type="button" className="btn small" onClick={() => onInsert("parallel")}>Add parallel</button></div>
     <div><button type="button" className="btn small" disabled={!!cannotDelete} title={cannotDelete ?? undefined} onClick={() => { if (!cannotDelete && onChange(deleteBuilderStep(snapshot, step.key))) onClose() }}>Delete task</button></div>
     {cannotDelete && <p className="small muted">{cannotDelete}</p>}
   </section>

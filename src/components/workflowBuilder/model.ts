@@ -54,9 +54,19 @@ export function createBuilderStep(title: string, reference?: StepTemplate, branc
 }
 
 /** Insertion preserves the clicked task's business branch, scope, category, role and team. */
-export function insertBuilderStep(snapshot: BuilderSnapshot, referenceId: string, position: InsertPosition, key = newBuilderStepId()): BuilderSnapshot {
+export function insertBuilderStep(snapshot: BuilderSnapshot, referenceId: string, position: InsertPosition, key = newBuilderStepId(), insertionBranch?: string): BuilderSnapshot {
   const reference = snapshot.steps.find(step => step.key === referenceId)
   if (!reference) return snapshot
+  if (position === "before" && insertionBranch) {
+    const incoming = snapshot.steps.filter(step => (reference.dependsOn ?? []).includes(step.key) && placementOf(step).branchId === insertionBranch)
+    if (!incoming.length) return snapshot
+    const context = incoming[incoming.length - 1]
+    const fresh = createBuilderStep("New task", context, snapshot.branches, key)
+    fresh.dependsOn = incoming.map(step => step.key)
+    const incomingIds = new Set(fresh.dependsOn)
+    const steps = snapshot.steps.map(step => step.key === referenceId ? { ...step, dependsOn: [...(step.dependsOn ?? []).filter(id => !incomingIds.has(id)), fresh.key] } : step)
+    return { ...snapshot, steps: [...steps, fresh], stepTeams: { ...snapshot.stepTeams, ...(snapshot.stepTeams[context.key] ? { [fresh.key]: snapshot.stepTeams[context.key] } : {}) } }
+  }
   const fresh = createBuilderStep("New task", reference, snapshot.branches, key)
   fresh.dependsOn = position === "after" ? [reference.key] : [...(reference.dependsOn ?? [])]
   const branch = placementOf(reference).branchId

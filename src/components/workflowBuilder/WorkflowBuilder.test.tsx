@@ -82,6 +82,20 @@ describe("manual workflow builder", () => {
     expect(latest).toEqual(original)
   })
 
+  it("requires an explicit branch before inserting at a multi-branch merge", () => {
+    show([task("Speaker task"), { ...task("Marketing task"), placement: { branchId: "marketing", order: 1 }, stepKind: "core", cond: undefined }, { ...task("Merge", ["Speaker task", "Marketing task"]), placement: { branchId: "main", order: 2 }, stepKind: "core", cond: undefined }])
+    fireEvent.click(screen.getByRole("button", { name: "Edit Merge" }))
+    fireEvent.click(screen.getByRole("button", { name: "Add before" }))
+    expect(latest.steps).toHaveLength(3)
+    expect(screen.getByRole("alert").textContent).toContain("incoming branch")
+    fireEvent.change(screen.getByLabelText("Insertion branch"), { target: { value: "speaker" } })
+    fireEvent.click(screen.getByRole("button", { name: "Add before" }))
+    expect(latest.steps).toHaveLength(4)
+    const fresh = latest.steps.find(step => !["Speaker task", "Marketing task", "Merge"].includes(step.key))!
+    expect(fresh).toMatchObject({ placement: { branchId: "speaker" }, dependsOn: ["Speaker task"], stepKind: "situation" })
+    expect(latest.steps.find(step => step.key === "Merge")?.dependsOn).toEqual(["Marketing task", fresh.key])
+  })
+
   it("keeps malformed work estimates out of the saved definition", () => {
     show()
     fireEvent.click(screen.getByRole("button", { name: "Edit B" }))
