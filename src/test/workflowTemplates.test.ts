@@ -129,6 +129,18 @@ describe("workflow template identities and versions", () => {
     expect(findWorkflowTemplateVersion(saved, STANDARD_WORKFLOW_TEMPLATE_ID)?.version).toBe(2)
     expect(saved.org.eventWorkflow?.steps.find(item => item.key === school.key)?.dependsOn).toEqual([first])
   })
+  it("lets Undo remove a draft-only insert before a school task without requiring it forever", () => {
+    const s = base(), original = findWorkflowTemplateVersion(s, STANDARD_WORKFLOW_TEMPLATE_ID)!
+    const school = original.steps.find(item => item.key === "registry")!
+    const inserted = { ...step(first, school.dependsOn), ownerRoleId: school.ownerRoleId, phase: school.phase, placement: school.placement }
+    const steps = [...original.steps.map(item => item.key === school.key ? { ...item, dependsOn: [first] } : item), inserted]
+    const changed: WorkflowTemplateDraft = { ...original, baseVersion: 1, steps }
+    const edited = saveWorkflowTemplateDraft(s, STANDARD_WORKFLOW_TEMPLATE_ID, changed)
+    expect(getWorkflowTemplate(edited, STANDARD_WORKFLOW_TEMPLATE_ID)?.draft?.steps.some(item => item.key === first)).toBe(true)
+    const undone = saveWorkflowTemplateDraft(edited, STANDARD_WORKFLOW_TEMPLATE_ID, { ...original, baseVersion: 1 })
+    expect(undone).not.toBe(edited)
+    expect(getWorkflowTemplate(undone, STANDARD_WORKFLOW_TEMPLATE_ID)?.draft?.steps).toEqual(original.steps)
+  })
 })
 
 describe("template execution snapshots", () => {

@@ -128,7 +128,9 @@ export function saveWorkflowTemplateDraft(s: DemoState, id: string, draft: Workf
   if (!canLead(s)) return s
   const template = getWorkflowTemplate(s, id)
   if (!template || draft.baseVersion !== (latestVersion(template)?.version ?? 0) || workflowTemplateDraftError(draft, s.roles) || draft.kind !== (template.draft?.kind ?? latestVersion(template)?.kind) || (draft.teamMap && draft.teamMap.workflowId !== id)) return s
-  if (retainedRuleError(template.draft ?? latestVersion(template), draft)) return s
+  // Draft-only inserts must remain undoable; required ancestry comes from the
+  // immutable saved definition, never from the immediately preceding edit.
+  if (retainedRuleError(latestVersion(template), draft)) return s
   if (JSON.stringify(template.draft) === JSON.stringify(draft)) return s
   return replaceTemplate(s, { ...template, draft: copy(draft), updatedOn: s.today })
 }
