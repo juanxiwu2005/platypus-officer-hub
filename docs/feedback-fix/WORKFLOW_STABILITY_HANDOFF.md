@@ -1,5 +1,9 @@
 # 工作流模板修复交付
 
+## 默认团队已沿原设置恢复（2026-11-18）
+
+用户纠正后，默认带齐Club leadership / Operations / Marketing / Finance与原46任务的1/25/8/12归属；直接打开模板就能使用，不再要求先手动建团队。名称可改，固定语义槽关联稳定teamId，旧用户显式配置/原任务及历史活动不改写。实现与验收见[编辑器交付说明](WORKFLOW_BUILDER_IMPLEMENTATION.md#团队默认修正2026-11-18)及[本轮证据](workflow-preset-teams-verification.json)。下方“首次先设置Teams”属于上轮历史流程，已被本修正取代。
+
 ## 人工模板编辑器实际实现与验收（2026-11-18，America/Phoenix）
 
 用户已明确授权worktree多Agent实施，此节取代下方历史“仅设计、未实现”的当前状态。完整[实施/交付说明](WORKFLOW_BUILDER_IMPLEMENTATION.md)与[验证证据](workflow-builder-verification.json)。Settings → Workflow已接②团队时间轴/连线与①清单批录，目录/草稿/不可变版本、明确团队、独立活动实例与Plan点图已接通。全部旧标准key/任务ID/历史保留，不改schema23，不改实际任务的链接/Details内容设计，不制作其他预设，不启用隐藏服务器工作区，不合并main。

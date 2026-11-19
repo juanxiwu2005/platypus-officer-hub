@@ -1,3 +1,5 @@
+> **2026-11-18（America/Phoenix）团队默认修正：** 用户要求恢复原工作流的预设团队，避免从空团队开始。沿原v3分组预置Club leadership、Operations、Marketing、Finance（46任务为1/25/8/12），自动完成默认关联；社长后续可改任意团队名称、增加团队，内部引用按稳定ID保留，已有显式设置和活动快照不被改写。此条取代上轮“先手工确认团队才使用标准模板”的当前指引；见[实施说明](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)。
+
 > **2026-11-18 邮件进入Plan已批准实施：** 活动任务邮件直接定位对应活动和实际任务，打开右侧Details；保留真实点状workflow，可切换其他节点查看团队共享的已提交内容/附件并返回原任务。自己的正文和附件自动草稿继续保留；单任务邮件授权不扩大为工作区身份，旧链接兼容。只改入口/导航，不重画流程、不改Settings模板或提醒频率；仍为本浏览器演示，不新增真实账号/后台发送/跨设备同步。见[交付](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)，沿用PR14，不合并main。
 
 > **2026-11-18（America/Phoenix）人工模板编辑器授权：** Juanxi确认Settings → Workflow使用②连线时间轴/团队泳道为主、①清单为快建入口，并明确授权worktree多Agent规划和实现。模板库保存稳定ID、不可变版本和团队/岗位引用；新建活动选择已保存版本后批量生成独立任务，Plan继续点状轨道图，点击实际taskId进入任务。草稿与发布分开，旧活动/任务/链接不重建；先完成人工编辑器与现有Speaker模板，其余预设及AI拓展后续进行。实施与验证见[本轮方案](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)，不合并main，schema23兼容，不新增研究采集字段。

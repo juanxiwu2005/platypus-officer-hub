@@ -1,0 +1,62 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "runtimeChangeCommit": "02f8891",
+  "integratedSnapshot": "ebc9982",
+  "preservedConcurrentRemote": "049ea2a",
+  "branch": "claude/fervent-thompson-e2j5u2",
+  "pr": 14,
+  "defaults": {
+    "leadership": {
+      "name": "Club leadership",
+      "taskCount": 1
+    },
+    "operations": {
+      "name": "Operations",
+      "taskCount": 25
+    },
+    "marketing": {
+      "name": "Marketing",
+      "taskCount": 8
+    },
+    "finance": {
+      "name": "Finance",
+      "taskCount": 12
+    }
+  },
+  "basis": "docs/prototypes/work-group-assignment/v3-foundation/README.md and original 46 task IDs",
+  "identity": "Org.workflowPresetTeamIds -> stable teamId, editable display name",
+  "behavior": [
+    "automatic first-load/old-v23/reset/new-workspace defaults",
+    "reuse explicit existing team IDs/names and manual task grouping",
+    "one-time adoption of unambiguous old canonical team labels only when no slot binding exists",
+    "rename and reload keep IDs and dependency graph",
+    "all 46 standard tasks grouped without manual team setup",
+    "new Plan runs snapshot renamed teams; old runs and saved versions stay unchanged",
+    "required team references protected; additional teams allowed"
+  ],
+  "checks": {
+    "unitComponentPassedUnique": 219,
+    "browserPassedUnique": 26,
+    "postMergeUnitComponentRerunPassed": 16,
+    "postMergeBrowserRerunPassed": 4,
+    "frontendTypesAndBuild": "passed",
+    "netlifyTypes": "passed",
+    "lint": "passed",
+    "ninePageWords": "passed",
+    "diffCheck": "passed",
+    "realAiCalls": 0,
+    "externalEmails": 0,
+    "schemaVersion": 23,
+    "mainMerged": false
+  },
+  "validationScopes": [
+    "core defaults, standard and custom templates, load/restore/backups, settings and old workflow components",
+    "all other local-storage consumers: Handoff, budget, workflow history, reminders",
+    "desktop/mobile: fresh 46-task default, arbitrary four team names after reload, standard Plan dots, custom five tasks",
+    "desktop/mobile old settings, school policy, Undo, version and node type inheritance",
+    "combined mail Plan changes plus preset tests rerun after merge"
+  ],
+  "entryBytes": 495188,
+  "entryBudget": 550000
+}

@@ -2,6 +2,16 @@
 
 2026-11-18（America/Phoenix）。用户确认②主界面＋①快速录入均在Settings → Workflow；Plan使用点状轨道图。本轮明确授权worktree多Agent连续完成编写和代码修改，不涉及main合并。
 
+## 团队默认修正（2026-11-18）
+
+用户指出此前编辑器没有一并准备默认团队，导致原模板需要重新归组，明确要求恢复原工作流分工。当前默认直接提供四类必需团队：Club leadership（Full Check，1任务）、Operations（活动、Speaker/Partner、特殊事项与归档，25任务）、Marketing（含活动后宣传，8任务）、Finance（含结算，12任务）。这些数字只描述原46项预设，用户自定义任务/显式改派保持其设置。
+
+`src/data/workflowTeamDefaults.ts`保存生产默认表及幂等初始化；`Org.workflowPresetTeamIds`把语义槽关联到稳定teamId，名称是可编辑标签。优先保留已有显式岗位/团队ID和手工步骤映射；旧四队规范标签可在无关联记录时一次沿用原ID，建立关联后改成任何名称均不重新匹配。未知任务不按名称猜归属，未分配岗位保持空缺，不创造人员。
+
+新浏览器、旧v23加载、Reset/新建工作区都可直接使用预设；初始化只增加组织sidecar，不重建任何任务、历史版本或活动快照。团队必需引用受保护，可自由改名/加队；标准模板编辑和新活动实例化共用同一个缺失映射补全，已发布版本不就地重写。移除“一岗一队”初始化入口，通常无需再点Apply role teams。验收直接Settings → Workflow，Teams仅用于改名称或新增。
+
+219项单元/组件、26项唯一双端浏览器通过（含默认即用/四队任意改名和刷新/Plan套用、旧学校保护/Undo/类型继承）；与同期邮件Plan实现合并后再过16项单元/组件及4项双端。生产构建、类型、lint、9页字数和diff通过；具体见[本轮JSON](workflow-preset-teams-verification.json)。不改规则日期/Task Details/网站链接，不改schema23，不合并main，需要同步本地备份。
+
 ## 阶段与文件责任
 
 1. **数据与身份契约**：Data Agent维护types、workflowTemplates纯函数与playbooks显式自定义生成。模板ID、不可变版本、稳定步骤key、执行run、独立任务ID；旧v23惰性兼容，无全库重置。
@@ -51,7 +61,7 @@
 
 完整lint、前后端类型、生产build、4份特性CSS与9页字数通过；Settings147/150，entry本地492833/550000字节，未改门槛。分包共享纯规则保持4个初始JS请求，实验总初始JS增加391字节(0.053%)，改善缓存边界及入口大小，不声称减少总下载或解析。具体[JSON记录](workflow-builder-verification.json)；实际[编辑器截图](../prototypes/workflow-builder-implemented/settings-editor-desktop.png)、[Plan圆点截图](../prototypes/workflow-builder-implemented/plan-dots-desktop.png)已查看。
 
-验收入口为原preview14：`/#/settings` → Workflow → Teams先确认团队/岗位映射（可明确选择Create teams from roles），New workflow → Quick entry批录 → Timeline检查/详情/前置 → Save version；`/#/events` → New event选模板，确认后打开任务圆点。未分组的旧标准可继续按原路径创建；只有已保存版本能被新活动使用。
+验收入口为原preview14：`/#/settings` → Workflow（默认四类团队和标准任务归组已就绪，Teams可选改名），New workflow → Quick entry批录 → Timeline检查/详情/前置 → Save version；`/#/events` → New event选模板，确认后打开任务圆点。未分组的旧标准可继续按原路径创建；只有已保存版本能被新活动使用。
 
 ### 当前边界
 
