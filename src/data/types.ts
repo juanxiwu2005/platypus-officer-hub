@@ -129,6 +129,35 @@ export interface EventWorkflow {
   summary?: string
 }
 
+/** Authored task identity is its stable key within a template, never its label or position. */
+export interface WorkflowTemplateContent {
+  name: string
+  description?: string
+  kind: "standard" | "custom"
+  steps: StepTemplate[]
+  branches?: WorkflowBranch[]
+  /** Kept in each version so regrouping the next draft cannot change an existing run. */
+  teamMap?: { version: 1; workflowId: string; stepTeams: Record<string, string> }
+}
+export interface WorkflowTemplateDraft extends WorkflowTemplateContent { baseVersion: number }
+export interface WorkflowTemplateVersion extends WorkflowTemplateContent { version: number; savedOn: string }
+export interface WorkflowTemplate {
+  id: string
+  versions: WorkflowTemplateVersion[]
+  draft?: WorkflowTemplateDraft
+  updatedOn: string
+  copiedFrom?: { templateId: string; templateVersion: number }
+}
+export interface WorkflowTeam { id: string; name: string }
+export interface WorkflowRun {
+  id: string
+  templateId: string
+  templateVersion: number
+  templateName: string
+  /** Frozen definition and team names; actual work lives only on the generated Nodes. */
+  snapshot: WorkflowTemplateVersion & { teams: WorkflowTeam[] }
+}
+
 export interface Org {
   /** Archived responsibility workspace identity; not an account or permission. */
   matchingWorkspaceId?: string
@@ -143,6 +172,12 @@ export interface Org {
   inviteCode: string
   /** The club's own event workflow. Absent: the standard workflow is used. */
   eventWorkflow?: EventWorkflow
+  /** Additive template library. Missing keeps the legacy standard workflow without a migration/reset. */
+  workflowTemplates?: WorkflowTemplate[]
+  defaultWorkflowTemplateId?: string
+  /** Explicit organization grouping, independent of reporting lines and legacy Role/Person fields. */
+  workflowTeams?: WorkflowTeam[]
+  workflowRoleTeams?: Record<string, string>
   /** Task board look (v1.1): renamed statuses, colours, custom tags and which fields cards show. Meanings never change. */
   board?: BoardSettings
 }
@@ -242,6 +277,7 @@ export interface Person {
 export type EventType = "speaker" | "social" | "workshop" | "meeting" | "fundraiser" | "offcampus"
 
 export interface Event {
+  workflowRun?: WorkflowRun
   /** Snapshot for this event; later template edits must never change its graph. */
   workflowBranches?: WorkflowBranch[]
   id: string
@@ -293,6 +329,8 @@ export type Anchor =
 
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
+  workflowSource?: { runId: string; templateId: string; templateVersion: number; templateStepId: string }
+  teamId?: string
   stepKind?: WorkflowStepKind
   placement?: WorkflowPlacement
   startPolicy?: "window" | "effort"
@@ -556,6 +594,8 @@ export interface HandoffSeason {
 
 /** An AI-proposed change. Applied only after a person approves it (plan §8). */
 export interface ChangeSet {
+  /** Human-selected templates survive the trip from New event to its approval card. */
+  workflowChoices?: Record<number, { templateId: string; templateVersion: number }>
   id: string
   sentence: string
   ops: { op: string; [key: string]: unknown }[]
