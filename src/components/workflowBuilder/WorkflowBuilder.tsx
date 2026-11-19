@@ -43,9 +43,11 @@ export function WorkflowBuilder({ state, steps: inputSteps, branches, stepTeams,
   const unmapped = steps.filter(step => !teamIds.has(stepTeams[step.key]))
   const step = steps.find(candidate => candidate.key === selected)
   const commit = (next: BuilderSnapshot): boolean => {
-    const problem = graphError(next.steps) ?? editError(snapshot, { ...next, steps: sequenceTeamStepsForDraft(state, next.steps, next.stepTeams, next.branches, policy) }, policy, state.roles)
-    if (problem) { setError(problem); return false }
+    const invalid = graphError(next.steps)
+    if (invalid) { setError(invalid); return false }
     next = { ...next, steps: sequenceTeamStepsForDraft(state, next.steps, next.stepTeams, next.branches, policy) }
+    const problem = editError(snapshot, next, policy, state.roles)
+    if (problem) { setError(problem); return false }
     if (JSON.stringify(snapshot) === JSON.stringify(next)) return true
     setHistory(previous => [...previous.slice(-29), structuredClone(snapshot)])
     setError(null)

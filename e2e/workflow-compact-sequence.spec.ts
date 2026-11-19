@@ -167,7 +167,7 @@ test("the default 46 tasks use four compact single-row teams and save a new sequ
   const full = oldVersion.steps.find(step => step.title.split(/\s+/).length > 2)!
   await builder.getByRole("button", { name: `Edit ${full.title}`, exact: true }).click()
   await expect(page.getByLabel("Task name", { exact: true })).toHaveValue(full.title)
-  await expect(page.getByLabel("Details", { exact: true })).toHaveValue(full.why)
+  await expect(page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true })).toHaveValue(full.why)
   await expect(page.getByRole("button", { name: "Add parallel", exact: true })).toHaveCount(0)
   await closeRail(page)
   await builder.getByRole("button", { name: "Quick entry", exact: true }).click()

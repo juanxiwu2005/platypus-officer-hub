@@ -55,6 +55,8 @@ export function sequenceTeamSteps(steps: readonly StepTemplate[], stepTeams: Rea
  * Existing chains and cross-team handoffs still take precedence. No task timing is rewritten here.
  */
 export function sequenceTeamStepsForDraft(state: DemoState, steps: StepTemplate[], stepTeams: Readonly<Record<string, string>>, branches?: WorkflowBranch[], policy: "standard" | "custom" = "custom"): StepTemplate[] {
+  // Most keystrokes edit an already ordered draft. Avoid re-running the calendar merely to confirm its chain.
+  if (JSON.stringify(sequenceTeamSteps(steps, stepTeams)) === JSON.stringify(steps)) return steps
   const event: Event = { id: "workflow-sequence-preview", name: "Workflow sequence", date: addDays(state.today, 42), type: "social", headcount: 30, venue: "campus", food: "none", funding: "none", speaker: false, checks: {}, goalId: null, playbookId: `workflow-editor-${policy}`, workflowBranches: branches }
   const nodes = stepsAsNodes(steps, event.id).map((node, index) => ({ ...node, ...(steps[index].timing ? { timing: steps[index].timing } : {}) }))
   const schedule = computeSchedule({ ...state, people: [], events: [event], nodes })
