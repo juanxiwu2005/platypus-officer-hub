@@ -1,5 +1,7 @@
-> **2026-11-19（America/Phoenix） · Partners 暂时归档与 Team 主导航，进行中（Codex）**
-> **用户授权：** 暂时隐藏Partners模块，代码归档而非删除；Team移出More，直接出现在主导航。以ac19513为起点，保留同期提醒方案F和Workflow修改，沿用原PR14/preview14，不合并main。独立Partners页面与专属浏览器场景留档，旧地址安全返回首页；联系人数据、共享Handoff联系资料和存储结构保留。完成后补验收与恢复说明，0真实AI/邮件。
+> **2026-11-19（America/Phoenix） · Partners 暂时归档与 Team 主导航，待验收（Codex）**
+> **交付：** 独立Partners页面、专属拖动CSS和浏览器场景通过git移动归档，原逻辑保留，归档原始/现有SHA记录齐备；导航及App退出页面加载，旧`/#/partners`及下级地址返回首页。Team在Plan之后直接显示，无活动子项时不渲染空More。联系人/组织/联系历史及共享Handoff详情保留，schema23和已有数据不变。基于ac19513，保留同期提醒方案F与Workflow修改，沿用PR14，不合并main，0真实AI/邮件。
+> **验收与验证：** 运行时`52dd77a`已确认Netlify success。[preview14 Team](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/team)；[代码归档与恢复](../src/archive/partners/README.md)。CRM/Team/交接相关3文件44单元通过；39项桌面/手机检查通过、1设备限定跳过（6项新增直接导航/旧链接数据/共享交接详情均通过）。另外2项原提醒空态用例仍期待旧句子None yet，ac19513的Today已改为No recorded reminders yet；未改并行提醒模块。lint、前后端类型、build、8个活动页字数与入口预算508,070/550,000通过；归档CSS逐字、页面仅导入路径/标题调整，生产无Partners页面chunk已核对。需要同步本地备份。
+
 
 > **2026-11-19（America/Phoenix） · 提醒中心方案F＋按人合并邮件，进行中（Claude 主Agent / Engine Agent / UI Agent）**
 > **用户决定：** Juanxi选方案F（按人竖向排列，社长看到每人现有任务，右栏邮件预览，Send & next或一键全发），要求多Agent修bug。[冻结契约与分工](feedback-fix/REMINDER_DIGEST_CONTRACT.md)：Engine负责按封计上限（修Approve all少记一条）、合并邮件、整组记录与自动模式；UI负责Today页、右栏DigestPanel、Fix first与历史行、提醒e2e。沿用PR14，不合并main，0真实AI/邮件，schema不升。
