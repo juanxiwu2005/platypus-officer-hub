@@ -1,3 +1,6 @@
+> **2026-11-18（America/Phoenix） · 邮件直达真实Plan与跨节点Details实施中（Codex）**
+> **授权：** Juanxi确认已理解两张示意，明确要求开始修改；沿用真实workflow样式，不照搬图片。基于最新工作流交付`a2f4dd8`，实现邮件定位对应活动/节点、右列展开、其他节点已提交资料切换与返回，保护草稿及任务授权；不重做模板编辑器、不引入真实后台邮件或成员账号。保留同期模板库/团队/独立实例交付，沿用PR14/原分支，不合并main。
+
 > **2026-11-18（America/Phoenix） · Settings人工模板编辑器到Plan任务执行已完成检查，待验收（Codex＋6个独立worktree Agent）**
 > **交付：** [分阶段方案与交付](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)。Settings → Workflow新增模板目录、空白创建/复制、自动草稿/保存版本/默认模板，②团队时间轴为主＋①清单批录；稳定任务key、岗位/团队、Details、工作日/T±、前置连线/防循环、before/after/parallel/条件分支与汇合点明确选择、Undo；水平鼠标/触屏拖动改真实目标，学校与business目标保护。创建活动选择固定模板版本，批量生成独立run/task与团队快照，Plan为一队一泳道圆点，旧活动/任务ID/链接/schema23保留，custom不回填31core，也不自动收费AI检查。
 > **验证：** 最终27文件368单元/组件通过、1旧全checklist枚举未跑；16新增双端＋41旧工作流浏览器用例通过、1手机鼠标限定跳过，按唯一用例共57通过；真实鼠标/触屏、两活动材料进度隔离/v1v2、草稿切页/切模板/刷新、T0/T+、关闭侧栏后保存、axe严重关键/0脚本错误已检查。完整lint、前后端类型、build、独立CSS、9页字数通过，最终本地entry492833/550000。规则分包不减少总下载：实验总初始+391字节、请求数不变；预算未提高。实际[Settings截图](prototypes/workflow-builder-implemented/settings-editor-desktop.png)与[Plan截图](prototypes/workflow-builder-implemented/plan-dots-desktop.png)已查看，[证据](feedback-fix/workflow-builder-verification.json)。
