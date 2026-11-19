@@ -210,6 +210,7 @@ test("saved two-day workflows open actual Plan tasks while day stations remain f
   let state = await read(page)
   const tasks = state.nodes.filter(node => node.eventId === event.id)
   expect(tasks).toHaveLength(4)
+  expect(Object.fromEntries(tasks.map(node => [node.stepKey, node.clubDeadline]))).toEqual({ prepare: "2027-04-13", shared: "2027-04-15", between: "2027-04-16", after: "2027-04-19" })
   expect(tasks.some(node => ["__start__", "__end__", "__event__", "__event2__"].includes(node.stepKey ?? ""))).toBe(false)
   await expect(page.getByTestId("milestone-execution-chart")).toBeVisible()
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(4)
