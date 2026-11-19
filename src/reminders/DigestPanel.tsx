@@ -50,15 +50,22 @@ export default function DigestPanel({ recipientId, onClose }: { recipientId: str
   const [status, setStatus] = useState("")
   const [opened, setOpened] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [attempt, setAttempt] = useState(0)
   const alive = useRef(true)
+  const keepStatus = useRef(false)
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
-  useEffect(() => { heading.current?.focus() }, [recipientId])
+  // A new person starts clean; only the "recorded" note from Send & next carries over.
+  useEffect(() => { heading.current?.focus(); if (!keepStatus.current) setStatus(""); keepStatus.current = false }, [recipientId])
   useEffect(() => {
     const escape = (event: KeyboardEvent) => { if (event.key === "Escape" && !event.defaultPrevented) onClose() }
     window.addEventListener("keydown", escape)
     return () => window.removeEventListener("keydown", escape)
   }, [onClose])
+  // Re-prepare when anything the email shows changes (titles, due dates, recipient name or address), not only the group id.
+  const people = state.people
+  const contentKey = useMemo(() => JSON.stringify([group?.id, group?.candidates.map(c => { const n = state.nodes.find(x => x.id === c.nodeId); return [n?.title, n?.clubDeadline, n?.instructions, n?.why, n?.status] }),
+    people.find(p => p.id === recipientId)]), [group, state.nodes, people, recipientId])
   // Preparing saves each task's link first, so the email never carries a link that does not work.
   useEffect(() => {
     setPrepared(null); setProblem(""); setOpened(null)
@@ -68,24 +75,29 @@ export default function DigestPanel({ recipientId, onClose }: { recipientId: str
       .then(result => { if (!current) return; if ("error" in result) setProblem(result.error); else setPrepared(result) })
       .catch(() => { if (current) setProblem("This email could not be prepared. Close it and try again.") })
     return () => { current = false }
-  }, [group?.id, allowed, active, persistenceFailed, via])
+  }, [contentKey, attempt, allowed, active, persistenceFailed, via])
 
   const ready = !!prepared && !!group && prepared.groupId === group.id
   const later = centre.groups.filter(g => g.recipientId !== recipientId)
   const after = later.find(g => centre.groups.indexOf(g) > centre.groups.indexOf(group!)) ?? later[0]
   const needsEmail = via !== "manual" && ready && !prepared!.digest.intendedEmail
   const disabled = busy || persistenceFailed || !ready || needsEmail
-  const record = (how: ReminderDelivery["via"]) => {
-    if (disabled || !prepared) return
+  const record = (how: ReminderDelivery["via"], clicks = 1) => {
+    // A double click must not approve the next person's email, which can appear under the pointer right away.
+    if (disabled || !prepared || clicks > 1) return
     setBusy(true)
     const order = centre.groups.map(g => g.recipientId)
     const result = recordReminderDigests({ getState, tryDispatch }, [prepared], how)
     setBusy(false)
-    if (!result.recordedGroupIds.includes(prepared.groupId)) { setStatus(result.error ?? "This email was not recorded. Review the latest tasks and try again."); return }
+    if (!result.recordedGroupIds.includes(prepared.groupId)) {
+      setStatus(result.error ?? "This email changed. Review the new version, then try again.")
+      setAttempt(n => n + 1)
+      return
+    }
     const left = digestCentre(getState()).groups.map(g => g.recipientId)
     const at = order.indexOf(recipientId)
     const next = [...order.slice(at + 1), ...order.slice(0, at)].find(id => left.includes(id)) ?? left[0]
-    if (next) { setStatus(`Email to ${first} recorded. Demo: nothing is sent.`); rail.show({ kind: "reminderDigest", recipientId: next }) }
+    if (next) { keepStatus.current = true; setStatus(`Email to ${first} recorded. Demo: nothing is sent.`); rail.show({ kind: "reminderDigest", recipientId: next }) }
     else setStatus("All emails recorded. Demo: nothing is sent.")
   }
   const sendAll = async () => {
@@ -111,14 +123,14 @@ export default function DigestPanel({ recipientId, onClose }: { recipientId: str
         {mode === "review_then_auto" ? <>
           <div className="dg-nav">
             <button type="button" className="btn" data-testid="digest-skip" disabled={busy || !after} onClick={() => after && rail.show({ kind: "reminderDigest", recipientId: after.recipientId })}>Skip</button>
-            <button type="button" className="btn btn-primary" data-testid="digest-send-next" disabled={disabled} onClick={() => record("platypus")}>{busy ? "Recording…" : "Send & next"}</button>
+            <button type="button" className="btn btn-primary" data-testid="digest-send-next" disabled={disabled} onClick={event => record("platypus", event.detail)}>{busy ? "Recording…" : "Send & next"}</button>
           </div>
           {centre.groups.length > 1 && <button type="button" className="btn btn-quiet dg-send-all" data-testid="digest-send-all" disabled={busy || persistenceFailed} onClick={sendAll}>Send all {centre.groups.length} without reviewing</button>}
         </> : mode === "auto_email" ? <p className="small muted">Platypus sends these automatically. Demo: nothing is sent.</p>
           : <div className="dg-nav">
             {ready ? <a className="btn btn-primary" data-testid="digest-open-draft" href={composeUrl("email", prepared!.digest.body, prepared!.digest.subject)} target="_blank" rel="noreferrer" onClick={() => setOpened(prepared!.groupId)}>Open Gmail draft</a>
               : <button type="button" className="btn btn-primary" data-testid="digest-open-draft" disabled>Open Gmail draft</button>}
-            {ready && opened === prepared!.groupId && <button type="button" className="btn" data-testid="digest-sent-self" disabled={disabled} onClick={() => record("manual")}>I sent this email</button>}
+            {ready && opened === prepared!.groupId && <button type="button" className="btn" data-testid="digest-sent-self" disabled={disabled} onClick={event => record("manual", event.detail)}>I sent this email</button>}
           </div>}
         {mode !== "review_then_auto" && mode !== "auto_email" && <p className="small muted">The draft recipient is blank. Choose a fictional test destination yourself.</p>}
       </> : sent ? <Mail to={sent.intendedEmail} subject={sent.subject} body={sent.body} />

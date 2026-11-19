@@ -87,6 +87,7 @@ function ReminderCentre({ q }: { q: Centre }) {
       {q.mode === null ? <p className="dg-top-note"><Link to="/settings?reminders=1" data-testid="choose-mode">Choose how reminders go out</Link></p>
         : q.mode === "auto_email" && n > 0 ? <p className="dg-top-note">Platypus sends these automatically. Demo: nothing is sent.</p> : null}
       {dc.nextCheck && <p className="dg-top-note" data-testid="rq-next">Next check: {fmtLong(dc.nextCheck.on)} · {dc.nextCheck.count} planned this week</p>}
+      {dc.held > 0 && <p className="dg-top-note" data-testid="rq-held">{plural(dc.held, "task")} wait for the next email (reminder limit).</p>}
     </section>}
     {ready && dc.people.length > 0 && <section className="card dg-people" aria-labelledby="dg-people-h" data-testid="rq-people">
       <h2 id="dg-people-h" className="sr-only">Emails by person</h2>

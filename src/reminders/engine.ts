@@ -227,13 +227,18 @@ export function planReminders(input: ReminderInput): ReminderPlan {
     if (!list.length) byRecipient.set(candidate.recipientId, list)
     list.push(candidate)
   }
+  const nextEmail = (candidate: ReminderCandidate): ReminderCandidate => ({ ...candidate, scheduledOn: addDays(input.today, 1), explanation: "We will include this in the next reminder email." })
   for (const [recipientId, list] of byRecipient) {
+    // Tasks left over after today's digest reached the cap wait for tomorrow's email; they never become a second email today.
+    const todays = new Map<string, number>()
+    for (const d of input.runtime.deliveries) if (d.digestId && d.recipientId === recipientId && d.sentOn === input.today) todays.set(d.digestId, (todays.get(d.digestId) ?? 0) + 1)
+    if ([...todays.values()].some(count => count >= DIGEST_TASK_CAP)) { upcoming.push(...list.map(nextEmail)); continue }
     const email = list.slice(0, DIGEST_TASK_CAP), overflow = list.slice(DIGEST_TASK_CAP)
     const held = emailLimitReason(input, recipientId, email.some(candidate => importantReminder(candidate, input.today)))
     if (held) { blocked.push(...list.map(candidate => ({ nodeId: candidate.nodeId, recipientId, reason: held }))); continue }
     ready.push(...email)
     // Beyond the cap, tasks are not dropped: they wait for this person's next email (tomorrow at the earliest).
-    upcoming.push(...overflow.map(candidate => ({ ...candidate, scheduledOn: addDays(input.today, 1), explanation: "We will include this in the next reminder email." })))
+    upcoming.push(...overflow.map(nextEmail))
   }
   return { ready: ready.sort(compareReminders(input.today)), upcoming: upcoming.sort(candidateOrder), blocked }
 }

@@ -182,6 +182,8 @@ export interface DigestCentre {
   tasks: number; sentToday: number; sentWeek: number
   fix: FixRow[]
   nextCheck: { on: string; count: number } | null
+  /** Tasks held by a per-person email limit; they go out in that person's next email. */
+  held: number
 }
 const FIX: Record<string, [string, string]> = {
   no_owner: ["No owner", "Assign"],
@@ -189,11 +191,11 @@ const FIX: Record<string, [string, string]> = {
   paused: ["Stuck", "Help"],
   unavailable_recipient: ["No valid email", "Review"],
   legacy_history: ["Check earlier reminders", "I checked · allow future reminders"],
-  daily_limit: ["Limit reached", "Review"], daily_reserved: ["Limit reached", "Review"],
-  weekly_limit: ["Limit reached", "Review"], weekly_reserved: ["Limit reached", "Review"], task_limit: ["Limit reached", "Review"],
+  task_limit: ["Reminder limit reached", "Review"],
 }
-/** Not a problem to fix: the task was already in today's email. */
+/** Not a problem to fix: the task was already in today's email, or it waits for this person's next email (email limits). */
 const NOT_A_PROBLEM = new Set(["already_sent_today"])
+const NEXT_EMAIL = new Set(["daily_limit", "daily_reserved", "weekly_limit", "weekly_reserved"])
 export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join("") || "?"
 export const firstName = (name: string) => name.split(/\s+/)[0] || name
 
@@ -239,7 +241,8 @@ export function digestCentre(state: DemoState, centre: ReminderCentre = reminder
     ...[...latestSent.values()].filter(d => !grouped.has(d.recipientId)).map(d => person(d.recipientId, d.recipientName, null)),
     ...plan.groups.map(g => person(g.recipientId, g.recipientName, g)),
   ]
-  const fix = centre.blocked.filter(b => !NOT_A_PROBLEM.has(b.blockedReason ?? "")).map(b => {
+  const held = new Set(centre.blocked.filter(b => NEXT_EMAIL.has(b.blockedReason ?? "")).map(b => b.nodeId)).size
+  const fix = centre.blocked.filter(b => !NOT_A_PROBLEM.has(b.blockedReason ?? "") && !NEXT_EMAIL.has(b.blockedReason ?? "")).map(b => {
     const [problem, action] = FIX[b.blockedReason ?? ""] ?? ["Review this task", "Review task"]
     const tone: ChipTone = b.blockedReason === "paused" || b.blockedReason === "unavailable_recipient" ? "late" : "warn"
     return { id: b.id, nodeId: b.nodeId, title: b.taskTitle, problem, tone, action, legacy: b.blockedReason === "legacy_history", taskAvailable: b.taskAvailable }
@@ -254,5 +257,5 @@ export function digestCentre(state: DemoState, centre: ReminderCentre = reminder
   const sentWeek = (runtime?.digests ?? []).filter(d => inWeek(d.sentOn)).length
     + centre.sent.filter(x => !x.digestId && !x.legacy && inWeek(x.sentOn)).length
   return { groups: plan.groups, people, tasks: plan.groups.reduce((n, g) => n + g.candidates.length, 0), sentToday: sentToday.length, sentWeek, fix,
-    nextCheck: on ? { on, count: new Set(later.map(c => c.nodeId)).size } : null }
+    nextCheck: on ? { on, count: new Set(later.map(c => c.nodeId)).size } : null, held }
 }
