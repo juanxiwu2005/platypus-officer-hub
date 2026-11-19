@@ -161,7 +161,7 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inpu
     </div>
     {error && <p className="small late-text" role="alert">{error}</p>}
     {notice && <p className="small" role="status">{notice}</p>}
-    {selectMode && <p className="small wfb-select-hint" role="status">Click steps on the canvas to select them, then choose Assign in Details. Press Escape to stop.</p>}
+    {selectMode && <p className="small wfb-select-hint" role="status">Selecting steps. Press Escape to stop.</p>}
     {connectFrom && <p className="small" role="status">Choose the task that waits for “{steps.find(candidate => candidate.key === connectFrom)?.title}”. <button type="button" className="link" onClick={() => setConnectFrom(null)}>Cancel connection</button></p>}
     {unmapped.length > 0 && <div className="wfb-unassigned" role="status"><span>{unmapped.length} task{unmapped.length === 1 ? " needs" : "s need"} a team:</span>{unmapped.map(candidate => <button type="button" className="link" key={candidate.key} onClick={() => select(candidate.key)}>{candidate.title || "Untitled task"}</button>)}</div>}
     {view === "quick" ? <QuickEntry state={state} snapshot={snapshot} teams={teams} onChange={commit} onSelect={select} selected={selected} /> : <MilestoneWorkflowCanvas steps={steps} graph={graph} teams={teams} eventDate={eventDate} selected={selected} selectMode={selectMode} checked={checked} onSelect={select} onToggleCheck={toggleCheck} onAddTask={addTask} onMove={(key, branchId, targetId, before) => commit(moveMilestoneTask(snapshot, key, branchId, targetId, before))} />}
