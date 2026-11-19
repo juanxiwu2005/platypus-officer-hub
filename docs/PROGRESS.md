@@ -1,3 +1,7 @@
+> **2026-11-18（America/Phoenix） · 人工工作流模板编辑器与独立活动实例，进行中（Codex＋5个独立worktree Agent）**
+> **授权与实施顺序：** 用户明确要求编写程序规划并用worktree agents完成代码修改。按[分阶段实施方案](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)先定模板/版本/实例契约，再并行数据、编辑器、创建活动、团队点图，最后独立Review与集成验收。Settings → Workflow采用②连线时间轴＋①清单快录；Plan保留实际任务圆点。先完善人工编辑器和一份标准模板，不自动制作其他预设或引入AI。
+> **协作边界：** 从`3a40a13`独立集成，Data负责types/模板纯函数，Editor负责新编辑组件，Execution负责活动入口/审批，Lanes负责teamWorkflow/点图，Review负责独立验收；主Agent负责store/Settings/集成。保留v23旧状态、旧任务ID/提醒链接、学校政策与所有同期记录；沿用PR14，不合并main，0真实AI/邮件；需要同步本地备份。
+
 > **2026-11-18（America/Phoenix） · 邮件进入Plan并展开任务的两张静态示意制作中（Codex）**
 > **范围：** Juanxi希望邮件跳至对应活动Plan，右侧Details直接打开目标任务，能切换节点查看其他成员已提交资料。本轮仅核对现有Plan/Details并生成两张图片，批准后才改网站；保留上一轮E邮件及通用Details/附件/自动草稿，Settings模板和同期工作流设计不动，沿用原分支/PR14，不合并main。
 
