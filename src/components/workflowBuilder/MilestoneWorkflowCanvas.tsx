@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type PointerEvent } from "react"
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from "react"
 import type { StepTemplate, WorkflowMilestoneGraph } from "../../data/types"
 import { workflowMilestoneDates, WORKFLOW_DONE, WORKFLOW_START } from "../../engine/workflowMilestones"
 import { workflowStepKind } from "../../engine/workflowStepKind"
@@ -40,8 +40,10 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
     window.addEventListener("keydown", escape, true); return () => window.removeEventListener("keydown", escape, true)
   }, [])
   useEffect(() => {
-    const point = [...layout.stations, ...layout.points.map(point => ({ id: point.step.key, ...point }))].find(point => point.id === selected), element = viewport.current
-    if (!point || !element) return
+    const branch = layout.segments.find(segment => `branch:${segment.branch.id}` === selected)
+    const point = [...layout.stations, ...layout.points.map(point => ({ id: point.step.key, ...point }))].find(point => point.id === selected) ?? (branch ? { x: branch.x + branch.width / 2, y: branch.y + 35 } : null), element = viewport.current
+    if (!element) return
+    if (!point) { if (!selected) element.scrollTop = Math.max(0, layout.mainY * scale - (element.clientHeight || 560) / 2); return }
     const x = point.x * scale, y = point.y * scale
     if (x < element.scrollLeft + 60 || x > element.scrollLeft + element.clientWidth - 60) element.scrollLeft = Math.max(0, x - element.clientWidth / 2)
     if (y < element.scrollTop + 80 || y > element.scrollTop + element.clientHeight - 100) element.scrollTop = Math.max(0, y - element.clientHeight / 2)
@@ -77,7 +79,7 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId)
     if (target) onMove(active.stepId, target.branchId, target.targetId, target.before)
   }
-  const clickTask = (event: React.MouseEvent<HTMLButtonElement>, key: string) => {
+  const clickTask = (event: MouseEvent<HTMLButtonElement>, key: string) => {
     if (suppressClick.current && event.detail !== 0) { suppressClick.current = false; event.preventDefault(); return }
     suppressClick.current = false; onSelect(key)
   }
@@ -89,11 +91,11 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
           <div className="wfm-branch-head"><label className="sr-only" htmlFor={`${id}-team-${index}`}>Team for {segment.branch.id}</label><select id={`${id}-team-${index}`} aria-label={`Team for ${segment.branch.id}`} value={segment.branch.teamId} onChange={event => onBranchTeamChange(segment.branch.id, event.target.value)}>{!teams.some(team => team.id === segment.branch.teamId) && <option value={segment.branch.teamId}>Choose team</option>}{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select><button type="button" className="wfm-branch-edit" aria-label={`Edit branch ${segment.branch.id}`} title="Edit branch" onClick={() => onSelect(`branch:${segment.branch.id}`)}>✎</button><button type="button" className="wfm-branch-add" aria-label={`Add task to branch ${segment.branch.id}`} onClick={() => onAddTask(segment.branch.id)}>+</button></div>
         </div>)}
         <svg className="wfm-lines" width={layout.width} height={layout.height} aria-hidden="true"><path className="wfm-main-track" data-testid="workflow-main-track" d={`M${layout.stations[0]?.x ?? 44} ${layout.mainY} H${layout.stations.at(-1)?.x ?? layout.width - 44}`} />{layout.segments.map(segment => <path key={segment.branch.id} className="wfm-branch-track" data-testid="workflow-branch-track" data-branch-id={segment.branch.id} d={segment.path} />)}{layout.stations.filter(station => station.kind === "day").map(station => <path key={station.id} className="wfm-date-guide" d={`M${station.x} 24 V${layout.height - 20}`} />)}</svg>
-        {layout.stations.map(station => <button key={station.id} type="button" data-testid={station.id === WORKFLOW_START ? "workflow-start" : station.id === WORKFLOW_DONE ? "workflow-done" : station.kind === "day" ? `workflow-event-day-${(station.dayIndex ?? 0) + 1}` : `workflow-task-${station.id}`} data-station-id={station.id} title={station.title} aria-label={`Edit ${station.title}`} aria-pressed={selected === station.id} className={`wfm-station is-${station.kind}${selected === station.id ? " is-selected" : ""}`} style={{ left: station.x, top: station.y }} onClick={() => onSelect(station.id)}><i aria-hidden="true" /><strong>{station.title}</strong>{station.kind === "day" && <><span>{dates[station.id] ? fmtShort(dates[station.id]) : "Date unavailable"}</span><small>{station.dayIndex === 0 ? "Day 1 · fixed date" : `Day 2 · T+${graph.eventDays[station.dayIndex ?? 0].offsetDays}`}</small></>}</button>)}
+        {layout.stations.map(station => <button key={station.id} type="button" data-testid={station.id === WORKFLOW_START ? "workflow-start" : station.id === WORKFLOW_DONE ? "workflow-done" : station.kind === "day" ? `workflow-event-day-${(station.dayIndex ?? 0) + 1}` : `workflow-task-${station.id}`} data-station-id={station.id} title={station.title} aria-label={`Edit ${station.title}`} aria-pressed={selected === station.id} className={`wfm-station is-${station.kind}${selected === station.id ? " is-selected" : ""}`} style={{ left: station.x, top: station.y }} onClick={() => onSelect(station.id)}><i aria-hidden="true" /><strong>{station.kind === "task" ? taskShortTitle(station.title) : station.title}</strong>{station.kind === "day" && <><span>{dates[station.id] ? fmtShort(dates[station.id]) : "Date unavailable"}</span><small>{station.dayIndex === 0 ? "Day 1 · T0" : `Day 2 · T+${graph.eventDays[station.dayIndex ?? 0].offsetDays}`}</small></>}</button>)}
         {layout.points.map(point => <button key={point.step.key} type="button" data-testid={`workflow-task-${point.step.key}`} data-branch-id={point.branchId} title={point.step.title} aria-label={`Edit ${point.step.title}`} aria-pressed={selected === point.step.key} className={`wfm-task${workflowStepKind(point.step) === "situation" ? " is-situation" : ""}${selected === point.step.key ? " is-selected" : ""}${moving?.stepId === point.step.key ? " is-dragging" : ""}`} style={{ left: moving?.stepId === point.step.key ? moving.x : point.x, top: moving?.stepId === point.step.key ? moving.y : point.y }} onPointerDown={event => begin(event, point)} onPointerMove={move} onPointerUp={finish} onPointerCancel={() => { suppressClick.current = true; cancel() }} onLostPointerCapture={cancel} onDragStart={event => event.preventDefault()} onClick={event => clickTask(event, point.step.key)}><i aria-hidden="true" /><strong>{taskShortTitle(point.step.title)}</strong></button>)}
       </div></div>
     </div>
     <div className="wfm-legend small"><span><i className="wfm-day-key" />Event day · fixed date</span><span><i />Task / shared check</span><span>Branch → organization team</span></div>
-    {!!layout.unplaced.length && <section className="wfm-unplaced" aria-label="Tasks needing a workflow position"><span className="small muted">Choose a position for these tasks:</span>{layout.unplaced.map(step => <button key={step.key} type="button" className="btn small" data-testid={`workflow-task-${step.key}`} onClick={() => onSelect(step.key)}>{step.title}</button>)}</section>}
+    {!!layout.unplaced.length && <section className="wfm-unplaced" aria-label="Tasks needing a workflow position"><span className="small muted">Choose a position for these tasks:</span>{layout.unplaced.map(step => <button key={step.key} type="button" className="btn small" data-testid={`workflow-task-${step.key}`} aria-label={`Edit ${step.title}`} onClick={() => onSelect(step.key)}>{step.title}</button>)}</section>}
   </div>
 }

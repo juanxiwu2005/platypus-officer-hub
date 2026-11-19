@@ -27,10 +27,10 @@
 .wfm-station.is-endpoint i { border-color: var(--mline-main); }
 .wfm-station.is-day i { border: 3px solid var(--accent); background: var(--accent-soft); }
 .wfm-station.is-day { width: 132px; margin-left: -66px; }
-.wfm-station strong, .wfm-task strong { max-width: 96px; font-size: var(--fs-md); line-height: 1.25; font-weight: 600; overflow-wrap: anywhere; }
+.wfm-station strong, .wfm-task strong { max-width: 96px; font-size: var(--fs-md); line-height: 1.25; font-weight: 600; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .wfm-station.is-day strong { max-width: 128px; color: var(--accent-ink); }
 .wfm-station > span, .wfm-station small { font-size: var(--fs-sm); line-height: 1.5; color: var(--muted); }
-.wfm-station.is-task strong { position: absolute; top: -24px; }
+.wfm-station.is-task strong { position: absolute; top: -6px; transform: translateY(-100%); }
 .wfm-station.is-task { min-height: 58px; }
 .wfm-station.is-selected i, .wfm-task.is-selected i { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 5px var(--accent); }
 .wfm-task { width: 76px; margin-left: -38px; min-height: 76px; cursor: grab; touch-action: none; user-select: none; }
@@ -49,4 +49,9 @@
   .wfm-controls > span { flex-basis: 100%; }
   .wfm-scroll { max-height: 66vh; }
   .wfm-legend > span:last-child { margin-left: 0; }
+}
+
+@media (pointer: coarse) {
+  .wfm-branch-head select { min-height: 44px; }
+  .wfm-branch-edit, .wfm-branch-add { width: 44px; min-height: 44px; }
 }

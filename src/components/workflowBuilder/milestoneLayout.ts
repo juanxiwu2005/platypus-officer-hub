@@ -5,13 +5,13 @@ export interface MilestoneStation { id: string; title: string; kind: "endpoint" 
 export interface MilestoneTaskPoint { step: StepTemplate; branchId: string; x: number; y: number; track: number; col: number }
 export interface MilestoneSegment { branch: WorkflowMilestoneGraph["teamBranches"][number]; x: number; y: number; width: number; height: number; points: MilestoneTaskPoint[]; path: string }
 export interface MilestoneLayout { width: number; height: number; mainY: number; stations: MilestoneStation[]; segments: MilestoneSegment[]; points: MilestoneTaskPoint[]; unplaced: StepTemplate[] }
-export const MILESTONE_TASKS_PER_TRACK = 5
-const GAP = 84, TRACK = 80, BETWEEN = 20, MAIN_CLEARANCE = 76, BELOW_CLEARANCE = 106
+export const MILESTONE_TASKS_PER_TRACK = 4
+const GAP = 78, TRACK = 80, BETWEEN = 20, MAIN_CLEARANCE = 76, BELOW_CLEARANCE = 106
 
 /** Main-line distance depends on readable station spacing, never on a duration or unfinished task. */
 export function buildMilestoneLayout(steps: StepTemplate[], graph: WorkflowMilestoneGraph): MilestoneLayout {
   const byKey = new Map(steps.map(step => [step.key, step])), indices = new Map(graph.spine.map((id, i) => [id, i]))
-  const widths = Array.from({ length: Math.max(0, graph.spine.length - 1) }, () => 112)
+  const widths = Array.from({ length: Math.max(0, graph.spine.length - 1) }, () => 104)
   const intervals = graph.teamBranches.flatMap(branch => {
     const start = indices.get(branch.fromId), end = indices.get(branch.toId)
     return start !== undefined && end !== undefined && start < end ? [{ branch, start, end }] : []
@@ -21,6 +21,8 @@ export function buildMilestoneLayout(steps: StepTemplate[], graph: WorkflowMiles
     const extra = desired - widths.slice(start, end).reduce((total, width) => total + width, 0)
     if (extra > 0) for (let i = start; i < end; i++) widths[i] += extra / (end - start)
   }
+  const slack = Math.max(0, 640 - 88 - widths.reduce((sum, value) => sum + value, 0))
+  if (slack && widths.length) for (let index = 0; index < widths.length; index++) widths[index] += slack / widths.length
   const positions = new Map<string, number>(); let cursor = 44
   graph.spine.forEach((id, index) => { positions.set(id, cursor); cursor += widths[index] ?? 0 })
   const width = Math.max(640, cursor + 44)
@@ -29,7 +31,7 @@ export function buildMilestoneLayout(steps: StepTemplate[], graph: WorkflowMiles
   type Row = { start: number; end: number }[]
   const above: Row[] = [], below: Row[] = [], aboveHeights: number[] = [], belowHeights: number[] = []
   const assigned = intervals.map((item, index) => {
-    const height = 48 + Math.max(1, Math.ceil(item.branch.stepIds.length / MILESTONE_TASKS_PER_TRACK)) * TRACK
+    const height = 64 + Math.max(1, Math.ceil(item.branch.stepIds.length / MILESTONE_TASKS_PER_TRACK)) * TRACK
     const preferred = index % 2 ? [below, above] : [above, below]
     const choose = (rows: Row[]) => {
       const index = rows.findIndex(row => row.every(other => item.end <= other.start || item.start >= other.end))
@@ -66,9 +68,9 @@ export function buildMilestoneLayout(steps: StepTemplate[], graph: WorkflowMiles
       if (!step || placed.has(key)) continue
       placed.add(key)
       const index = points.length, track = Math.floor(index / MILESTONE_TASKS_PER_TRACK), slot = index % MILESTONE_TASKS_PER_TRACK, col = track % 2 ? count - 1 - slot : slot
-      points.push({ step, branchId: branch.id, x: x + 34 + (span - 68) * (col + 0.5) / count, y: y + 54 + track * TRACK, track, col })
+      points.push({ step, branchId: branch.id, x: count === 1 ? x + span / 2 : x + 42 + (span - 84) * col / (count - 1), y: y + 64 + track * TRACK, track, col })
     }
-    const left = from + 32, right = to - 32, tracks = Math.max(1, Math.ceil(points.length / MILESTONE_TASKS_PER_TRACK)), firstY = y + 54
+    const left = from + 32, right = to - 32, tracks = Math.max(1, Math.ceil(points.length / MILESTONE_TASKS_PER_TRACK)), firstY = y + 64
     let path = `M${from} ${mainY} C${from + 14} ${mainY} ${from + 10} ${firstY} ${left} ${firstY}`
     for (let track = 0; track < tracks; track++) {
       const lineY = firstY + track * TRACK, direction = track % 2 === 0 ? 1 : -1, edge = direction > 0 ? right : left
