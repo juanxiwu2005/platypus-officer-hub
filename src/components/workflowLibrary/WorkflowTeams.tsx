@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useStore } from "../../data/store"
 
 /** Explicit organization sidecar; never rewrites legacy roles, people or reporting lines. */
 export function WorkflowTeams({ onClose }: { onClose: () => void }) {
   const { state, tryDispatch } = useStore()
+  const originalTeams = useRef(JSON.stringify([state.org.workflowTeams ?? [], state.org.workflowRoleTeams ?? {}]))
   const [teams, setTeams] = useState(state.org.workflowTeams ?? [])
   const [roleTeams, setRoleTeams] = useState(state.org.workflowRoleTeams ?? {})
   const [names, setNames] = useState("")
@@ -23,6 +24,9 @@ export function WorkflowTeams({ onClose }: { onClose: () => void }) {
     {teams.length > 0 && <div className="form-grid">{state.roles.filter(role => role.fn !== "advisor").map(role => <label key={role.id}>{role.displayName}<select aria-label={`Workflow team for ${role.displayName}`} value={roleTeams[role.id] ?? ""} onChange={e => setRoleTeams({ ...roleTeams, [role.id]: e.target.value })}><option value="">Not grouped</option>{teams.map(team => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>)}</div>}
     {error && <p role="alert">{error}</p>}
     <button type="button" className="btn btn-primary" onClick={() => {
+      if (JSON.stringify([state.org.workflowTeams ?? [], state.org.workflowRoleTeams ?? {}]) !== originalTeams.current) {
+        setError("Teams changed on the canvas. Your edits are kept here. Close and reopen Teams to review the latest names and branches."); return
+      }
       if (!teams.length || teams.some(team => !team.name.trim()) || new Set(teams.map(t => t.name.trim().toLowerCase())).size !== teams.length) { setError("Give each team a distinct name."); return }
       if (!tryDispatch({ type: "saveWorkflowTeams", teams, roleTeams: Object.fromEntries(Object.entries(roleTeams).filter(([id]) => state.roles.some(role => role.id === id))) })) { setError("Could not save. Your changes are kept here."); return }
       onClose()

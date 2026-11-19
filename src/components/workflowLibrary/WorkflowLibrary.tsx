@@ -24,7 +24,7 @@ export default function WorkflowLibrary() {
   const { state, tryDispatch } = useStore()
   const templates = getWorkflowTemplates(state)
   const rail = useRail()
-  // Authoring starts with the timeline in focus. Selecting a task still opens
+  // Authoring starts with the dot canvas in focus. Selecting a task still opens
   // Details explicitly; background draft saves never reopen the generic Ask.
   useEffect(() => { if (rail.tab === "ask") rail.setOpen(false) }, [])
   const [selected, setSelected] = useState(state.org.defaultWorkflowTemplateId ?? STANDARD_WORKFLOW_TEMPLATE_ID)
@@ -38,9 +38,8 @@ export default function WorkflowLibrary() {
     if (!tryDispatch({ type: "newWorkflowTemplate", id, name: "Untitled workflow" })) { setError("Could not create. Try again."); return }
     setSelected(id); setError("")
   }
-  return <section className="form-stack" data-testid="workflow-settings">
-    <header className="action-row"><h2>Workflow templates</h2><button type="button" className="btn small" onClick={() => setTeamsOpen(!teamsOpen)}>Teams</button></header>
-    <div className="action-row"><label>Saved workflow<select aria-label="Saved workflow" value={template?.id ?? ""} onChange={e => { if (flush.current()) { setSelected(e.target.value); setError("") } }}>{templates.map(item => <option key={item.id} value={item.id}>{item.draft?.name ?? item.versions[item.versions.length - 1]?.name ?? "Untitled workflow"}{item.draft ? " · Draft" : ""}</option>)}</select></label><button type="button" className="btn" onClick={create}>New workflow</button></div>
+  return <section className="form-stack wfl-root" data-testid="workflow-settings">
+    <header className="action-row wfl-header"><h2>Workflow templates</h2><label><span className="sr-only">Saved workflow</span><select aria-label="Saved workflow" value={template?.id ?? ""} onChange={e => { if (flush.current()) { setSelected(e.target.value); setError("") } }}>{templates.map(item => <option key={item.id} value={item.id}>{item.draft?.name ?? item.versions[item.versions.length - 1]?.name ?? "Untitled workflow"}{item.draft ? " · Draft" : ""}</option>)}</select></label><button type="button" className="btn" onClick={create}>New workflow</button><button type="button" className="btn small" onClick={() => setTeamsOpen(!teamsOpen)}>Teams</button></header>
     {teamsOpen && <WorkflowTeams onClose={() => setTeamsOpen(false)} />}
     {error && <p role="alert">{error}</p>}
     {template && <TemplateEditor key={template.id} template={template} flush={flush} onDuplicate={id => setSelected(id)} />}
@@ -112,7 +111,7 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
     setError(""); return true
   }
   const latest = template.versions[template.versions.length - 1]
-  return <div className="form-stack" data-testid="workflow-template-editor">
+  return <div className="form-stack wfl-editor" data-testid="workflow-template-editor">
     <div className="action-row"><label className="wfl-name">Workflow name<input value={draft.name} maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><span className="small muted">{latest ? `Version ${latest.version}` : "Unpublished"}</span></div>
     <div className="action-row">
       <button type="button" className="btn small" onClick={() => save()}>Save draft</button>
@@ -138,7 +137,6 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
       }}>Use by default</button>
       {!!state.org.workflowTeams?.length && <button type="button" className="btn small" onClick={groupRoles}>Apply role teams</button>}
     </div>
-    <p className="small muted">Edit here. Saved versions create independent tasks in Plan.</p>
     <p className="small" role="status">{persistenceFailed ? "Saving failed. Keep this page open and retry." : pending ? "Saving draft…" : status}</p>
     {error && <p role="alert">{error}</p>}
     <WorkflowBuilder state={state} steps={draft.steps} branches={draft.branches} stepTeams={draft.teamMap?.stepTeams ?? {}} teams={state.org.workflowTeams ?? []} policy={draft.kind} onChange={update} onAddTeam={addTeam} onRenameTeam={renameTeam} />

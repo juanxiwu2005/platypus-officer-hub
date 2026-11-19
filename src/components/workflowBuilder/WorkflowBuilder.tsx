@@ -114,7 +114,6 @@ export function WorkflowBuilder({ state, steps: inputSteps, branches, stepTeams,
     {connectFrom && <p className="small" role="status">Choose the task that waits for “{steps.find(candidate => candidate.key === connectFrom)?.title}”. <button type="button" className="link" onClick={() => setConnectFrom(null)}>Cancel connection</button></p>}
     {unmapped.length > 0 && <div className="wfb-unassigned" role="status"><span>{unmapped.length} task{unmapped.length === 1 ? " needs" : "s need"} a team:</span>{unmapped.map(candidate => <button type="button" className="link" key={candidate.key} onClick={() => select(candidate.key)}>{candidate.title || "Untitled task"}</button>)}</div>}
     {view === "quick" ? <QuickEntry state={state} snapshot={snapshot} teams={teams} onChange={commit} onSelect={select} selected={selected} /> : <>
-      <p className="small muted wfb-hint">Follow the dots. Drag to another team; select a task for details. Select then Connect to add a prerequisite.</p>
       <DotWorkflowCanvas steps={steps} branches={branches} stepTeams={stepTeams} teams={teams} selected={selected} connecting={!!connectFrom}
         onSelect={select} onAddTask={team => addTask(team)} onRenameTeam={onRenameTeam}
         onMove={(key, teamId, targetId, before) => {

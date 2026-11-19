@@ -3,3 +3,9 @@
 [data-testid="workflow-template-editor"] { min-width: 0; }
 [data-testid="workflow-settings"] > .action-row { flex-wrap: wrap; }
 [data-testid="workflow-settings"] label { min-width: 0; }
+
+.wfl-root, .wfl-editor { gap: var(--s4); }
+.wfl-header { gap: var(--s5); }
+.wfl-header h2 { margin: 0 auto 0 0; }
+.wfl-header label { display: flex; }
+.wfl-editor > [role="status"] { margin: 0; }
