@@ -2,7 +2,7 @@
   "date": "2026-11-18",
   "timezone": "America/Phoenix",
   "kind": "actual-browser-screenshots",
-  "runtimeCommit": "pending",
+  "runtimeCommit": "c0fbf9f60fd90cb7cfc078575d2380bc555f09a7",
   "fixture": "Networking Night: full current v2 fictional seed, real e-night moderator and all 38 task buttons. Club task: original t-agenda fields, eventId stays null, event used only for browsing. Locally generated test grants; no user token copied.",
   "checks": {
     "unitFiles": 19,
@@ -61,5 +61,12 @@
       "bytes": 121654,
       "sha256": "21c9ee630889c4b9e5bd3388cc5ddf6efe03b3f2a59765d34f186b95149770dc"
     }
-  ]
+  ],
+  "deployment": {
+    "commit": "c0fbf9f60fd90cb7cfc078575d2380bc555f09a7",
+    "context": "netlify/platypus-officer-hub/deploy-preview",
+    "state": "success",
+    "url": "https://deploy-preview-14--platypus-officer-hub.netlify.app",
+    "verification": "GitHub commit status confirmed; interaction evidence is from the local production build."
+  }
 }
