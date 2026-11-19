@@ -11,6 +11,7 @@ import { confirmReminderDelivery, createReminderRuntime, planReminders } from ".
 import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
 import { buildReminderDigestMail, checkReminderDigestMail, type ReminderDigestMail } from "./mail"
 import { digestWordBudget, DIGEST_TASK_CAP } from "./policy"
+import { digestCentre } from "./centre"
 import { isReminderRuntime } from "./runtime"
 import { taskAccessToken, verifyTaskAccessGrant } from "./taskAccess"
 
@@ -129,12 +130,55 @@ describe("limits count emails, not tasks", () => {
     expect(plan.blocked).toEqual([])
     expect(new Set([...plan.ready, ...waiting].map(c => c.nodeId)).size).toBe(DIGEST_TASK_CAP + 2)
   })
+  it("after today's capped email is recorded, the leftover tasks wait for tomorrow's email instead of a second email today", () => {
+    const tasks = starts(DIGEST_TASK_CAP + 2)
+    const first = planReminders(input(tasks))
+    expect(first.ready).toHaveLength(DIGEST_TASK_CAP)
+    const recorded = first.ready.map((c, i) => sent(i, { id: `capped-${i}`, candidateId: c.id, nodeId: c.nodeId, planKey: c.planKey, reason: c.reason, due: c.due, digestId: "reminder-digest:30" }))
+    const leftover = tasks.map(t => t.nodeId).filter(id => !first.ready.some(c => c.nodeId === id))
+    expect(leftover).toHaveLength(2)
+    const after = planReminders(input(tasks, recorded))
+    expect(after.ready.filter(c => leftover.includes(c.nodeId))).toEqual([])
+    expect(after.blocked.filter(b => leftover.includes(b.nodeId))).toEqual([])
+    // Each leftover task is in the next email, dated tomorrow (later planned checks may follow it).
+    const next = after.upcoming.filter(c => leftover.includes(c.nodeId) && c.scheduledOn === addDays(TODAY, 1))
+    expect(next.map(c => c.nodeId).sort()).toEqual([...leftover].sort())
+    for (const c of next) expect(c.explanation).toBe("We will include this in the next reminder email.")
+    expect(after.upcoming.filter(c => leftover.includes(c.nodeId)).every(c => c.scheduledOn > TODAY)).toBe(true)
+  })
   it("the single-task path records one email without digestId, and the rest are judged as the next email", () => {
     const value = input(starts(3))
     const runtime = confirmReminderDelivery(value, planReminders(value).ready[0].id, "platypus")
     expect(runtime.deliveries).toHaveLength(1)
     expect(runtime.deliveries[0].digestId).toBeUndefined()
     expect(planReminders({ ...value, runtime }).blocked.map(b => b.reason)).toEqual(["daily_reserved", "daily_reserved"])
+  })
+})
+
+describe("tasks held by email limits on the Reminders page", () => {
+  it("count as waiting for the next email and are not listed under Fix first", () => {
+    const s = seed(), runtime = s.reminderRuntime!
+    const ready = Object.fromEntries(planReminderDigests(s).groups.map(g => [g.recipientId, g.candidates.map(c => c.nodeId)]))
+    expect(ready.maya).toHaveLength(1)
+    expect(ready.jordan).toHaveLength(3)
+    // Earlier fictional emails without a saved mail: two to Maya today (daily limit), six to Jordan this week (weekly limit).
+    const earlier = [
+      ...[0, 1].map(i => ({ recipientId: "maya", recipientName: "Maya Chen", sentOn: s.today, i })),
+      ...[1, 2, 3, 4, 5, 6].map(i => ({ recipientId: "jordan", recipientName: "Jordan Patel", sentOn: addDays(s.today, -i), i })),
+    ].map(({ recipientId, recipientName, sentOn, i }, k): ReminderDelivery => ({
+      id: `earlier-${recipientId}-${i}`, candidateId: `earlier-${recipientId}-${i}`, nodeId: `earlier-node-${recipientId}-${i}`, recipientId, ownerId: recipientId, ownerVersion: 0,
+      planKey: "earlier", reason: "start", scheduledOn: sentOn, sentOn, sequence: runtime.sequence + k + 1, via: "platypus", recipientName,
+      taskTitle: "Earlier fictional task", eventName: null, due: null, outcome: "simulated",
+    }))
+    const sequence = runtime.sequence + earlier.length
+    const held: DemoState = { ...s, reminderRuntime: { ...runtime, sequence, mailRequiredAfter: sequence, deliveries: [...runtime.deliveries, ...earlier] } }
+    expect(isReminderRuntime(held.reminderRuntime)).toBe(true)
+    const centre = digestCentre(held)
+    expect(centre.held).toBe(ready.maya.length + ready.jordan.length)
+    const limited = [...ready.maya, ...ready.jordan]
+    expect(centre.fix.filter(row => limited.includes(row.nodeId))).toEqual([])
+    expect(centre.groups.map(g => g.recipientId)).toEqual(["priya"])
+    expect(digestCentre(s).held).toBe(0)
   })
 })
 
