@@ -7,7 +7,7 @@ import { addDays } from "../../lib/dates"
 import { roleLabels } from "../../data/structure"
 import { useRail } from "../rail/RailContext"
 import { createBuilderStep, editError, graphError, insertTeamBuilderStep, type BuilderPolicy, type BuilderSnapshot } from "./model"
-import { addMilestoneBranch, addMilestoneCheck, addMilestoneTask, assignMilestoneBranchTeam, moveMilestoneTask, setMilestoneDayCount, syncMilestoneSnapshot } from "./milestoneCommands"
+import { addMilestoneBranch, addMilestoneCheck, addMilestoneTask, moveMilestoneTask, setMilestoneDayCount, syncMilestoneSnapshot } from "./milestoneCommands"
 import type { BuilderTeam } from "./timeline"
 import { MilestoneWorkflowCanvas } from "./MilestoneWorkflowCanvas"
 import { MilestoneDetails } from "./MilestoneDetails"
@@ -116,7 +116,7 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inpu
     {error && <p className="small late-text" role="alert">{error}</p>}
     {connectFrom && <p className="small" role="status">Choose the task that waits for “{steps.find(candidate => candidate.key === connectFrom)?.title}”. <button type="button" className="link" onClick={() => setConnectFrom(null)}>Cancel connection</button></p>}
     {unmapped.length > 0 && <div className="wfb-unassigned" role="status"><span>{unmapped.length} task{unmapped.length === 1 ? " needs" : "s need"} a team:</span>{unmapped.map(candidate => <button type="button" className="link" key={candidate.key} onClick={() => select(candidate.key)}>{candidate.title || "Untitled task"}</button>)}</div>}
-    {view === "quick" ? <QuickEntry state={state} snapshot={snapshot} teams={teams} onChange={commit} onSelect={select} selected={selected} /> : <MilestoneWorkflowCanvas steps={steps} graph={graph} teams={teams} eventDate={eventDate} selected={selected} onSelect={select} onAddTask={addTask} onBranchTeamChange={(id, teamId) => commit(assignMilestoneBranchTeam(snapshot, id, teamId))} onMove={(key, branchId, targetId, before) => commit(moveMilestoneTask(snapshot, key, branchId, targetId, before))} />}
+    {view === "quick" ? <QuickEntry state={state} snapshot={snapshot} teams={teams} onChange={commit} onSelect={select} selected={selected} /> : <MilestoneWorkflowCanvas steps={steps} graph={graph} teams={teams} eventDate={eventDate} selected={selected} onSelect={select} onAddTask={addTask} /* integration stub (Agent A) */ selectMode={false} checked={new Set()} onToggleCheck={() => {}} onMove={(key, branchId, targetId, before) => commit(moveMilestoneTask(snapshot, key, branchId, targetId, before))} />}
   </section>
 }
 
