@@ -1,3 +1,5 @@
+> **2026-11-18（America/Phoenix）人工模板编辑器授权：** Juanxi确认Settings → Workflow使用②连线时间轴/团队泳道为主、①清单为快建入口，并明确授权worktree多Agent规划和实现。模板库保存稳定ID、不可变版本和团队/岗位引用；新建活动选择已保存版本后批量生成独立任务，Plan继续点状轨道图，点击实际taskId进入任务。草稿与发布分开，旧活动/任务/链接不重建；先完成人工编辑器与现有Speaker模板，其余预设及AI拓展后续进行。实施与验证见[本轮方案](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)，不合并main，schema23兼容，不新增研究采集字段。
+
 > **2026-10-26 Activity Workspace已批准实施：** A1/B1/C2、个人三列Board、活动短链、Funding并入活动、8/7/6周组织时间默认、全局AI及稳定ID。首页重点事项直接从个人任务排序，不另生成摘要。详见 [本轮唯一实施范围](organization/ACTIVITY_WORKSPACE_PLAN.md)。不含main合并/正式发布/正式多人账号。
 
 > **2026-10-26 F1–F7（Juanxi 在审计方案后回复“执行”）：** 批准独立 Worktree 多 Agent 补保存恢复、增量复核、图与风险卡交互、性能诊断，并将服务器批准组织配置接通新版工作区。旧原型保留独立示例入口；不扩张完整 Board planner/真实账号/旧业务迁移，不合并 main 或正式发布。当前交接见 [实施记录](organization/F1_F7_IMPLEMENTATION.md)，以下更早记录保留为历史。
