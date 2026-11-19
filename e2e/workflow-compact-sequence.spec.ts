@@ -142,6 +142,23 @@ test("the default 46 tasks use four compact single-row teams and save a new sequ
   await page.getByRole("button", { name: "Save draft", exact: true }).click()
   await expect.poll(async () => (await draft(page, "standard-event")).teamExecution).toBe("sequential")
   const authored = await draft(page, "standard-event")
+  await expect(builder.getByTestId("workflow-dependency")).toHaveCount(authored.steps.reduce((count, step) => count + (step.dependsOn?.length ?? 0), 0))
+  const crossedCards = await builder.getByTestId("workflow-dependency").evaluateAll(paths => {
+    const cards = [...document.querySelectorAll('[data-testid^="workflow-task-"]')].map(card => ({ name: card.querySelector('[data-testid="task-title"]')?.textContent, rect: card.getBoundingClientRect() }))
+    const intersections: string[] = []
+    for (const element of paths) {
+      const path = element as SVGPathElement
+      const transform = path.getScreenCTM()!
+      for (let distance = 2; distance < path.getTotalLength(); distance += 4) {
+        const raw = path.getPointAtLength(distance)
+        const point = new DOMPoint(raw.x, raw.y).matrixTransform(transform)
+        const crossed = cards.find(({ rect }) => point.x > rect.left + 2 && point.x < rect.right - 2 && point.y > rect.top + 2 && point.y < rect.bottom - 2)
+        if (crossed) { intersections.push(`${path.querySelector("title")?.textContent}: ${crossed.name}`); break }
+      }
+    }
+    return intersections
+  })
+  expect(crossedCards).toEqual([])
   for (const team of before.org.workflowTeams!) {
     const order = teamOrder(authored, team.id)
     for (let index = 1; index < order.length; index++) expect(ancestors(authored.steps, order[index]).has(order[index - 1])).toBe(true)
