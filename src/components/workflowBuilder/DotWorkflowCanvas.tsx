@@ -41,9 +41,9 @@ export function DotWorkflowCanvas({ steps, branches, stepTeams, teams, selected,
     return () => window.removeEventListener("resize", measure)
   }, [])
   useEffect(() => {
-    const cancel = (event: KeyboardEvent) => { if (event.key === "Escape" && gestures.current) { event.preventDefault(); suppressClick.current = true; clearDrag() } }
-    window.addEventListener("keydown", cancel)
-    return () => window.removeEventListener("keydown", cancel)
+    const cancel = (event: KeyboardEvent) => { if (event.key === "Escape" && gestures.current) { event.preventDefault(); event.stopPropagation(); suppressClick.current = true; clearDrag() } }
+    window.addEventListener("keydown", cancel, true)
+    return () => window.removeEventListener("keydown", cancel, true)
   }, [])
   useEffect(() => {
     const point = graph.points.find(item => item.step.key === selected), element = viewport.current
