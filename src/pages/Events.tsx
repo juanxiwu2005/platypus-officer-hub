@@ -106,10 +106,10 @@ export default function Events() {
           <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")} data-testid="view-list">List</button>
           <button type="button" aria-pressed={view === "budget"} onClick={() => setView("budget")} data-testid="view-budget">Budget</button>
         </div>
-        {lead && view === "flow" && <button type="button" className="btn small" aria-pressed={editingFlow} onClick={() => setEditingFlow(editing => !editing)} data-testid="flow-edit-toggle">{editingFlow ? "Done editing" : "Edit flow"}</button>}
+        {lead && view === "flow" && !hasTeamExecutionTracks(ev, nodes) && <button type="button" className="btn small" aria-pressed={editingFlow} onClick={() => setEditingFlow(editing => !editing)} data-testid="flow-edit-toggle">{editingFlow ? "Done editing" : "Edit flow"}</button>}
       </div>
 
-      {view === "flow" && <BtsRow><Bts label="Computed">Each dot's place comes from its dates. Colour: done when finished; risk when its forecast is red; now when it has started or its start day is today or earlier; otherwise to do.</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
+      {view === "flow" && <BtsRow><Bts label="Computed">{hasTeamExecutionTracks(ev, nodes) ? "Dots follow task dependencies within the saved team tracks. Dates come from the rule engine; select a task for its current progress." : "Each dot's place comes from its dates. Colour: done when finished; risk when its forecast is red; now when it has started or its start day is today or earlier; otherwise to do."}</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
       {view === "flow" && <div className="metro-fade"><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={id => rail.show({ kind: "node", id })} canEdit={lead && !hasTeamExecutionTracks(ev, nodes)} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
       {view === "list" && <section className="card tbl-wrap" data-testid="event-list">
         <table className="tbl">
