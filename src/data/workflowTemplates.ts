@@ -54,7 +54,7 @@ export function workflowTemplateDraftError(draft: WorkflowTemplateContent, roles
   if (!["standard", "custom"].includes(draft.kind) || !Array.isArray(draft.steps) || draft.steps.length > MAX_STEPS || (publishing && !draft.steps.length)) return `A saved workflow needs 1 to ${MAX_STEPS} tasks.`
   const keys = new Set<string>()
   for (const step of draft.steps) {
-    if (!step || !text(step.key, 40) || keys.has(step.key)) return "Every task needs a different stable ID."
+    if (!step || !text(step.key, 40) || !/^[a-zA-Z0-9_-]+$/.test(step.key) || keys.has(step.key)) return "Every task needs a different stable ID."
     keys.add(step.key)
     if (!text(step.title, 120, !publishing) || !text(step.why, 400, true) || !text(step.source, 400, true) || !PHASE_LIST.includes(step.phase) || !["president", "vice_president", "finance", "programs", "marketing", "outreach", "secretary", "membership", "advisor"].includes(step.fn) || !Number.isInteger(step.estDays) || step.estDays < 0 || step.estDays > 30 || !["light", "medium", "heavy"].includes(step.tier)) return "Use a task name and 0 to 30 whole workdays."
     if (step.ownerRoleId && !roles.some(role => role.id === step.ownerRoleId && role.fn !== "advisor")) return `Choose an existing owner role for “${step.title || "this task"}”.`
@@ -185,6 +185,27 @@ export function setDefaultWorkflowTemplate(s: DemoState, id: string): DemoState 
 export interface WorkflowTemplateSelection { templateId: string; templateVersion?: number; runId?: string }
 export interface WorkflowInstantiation { event: Event; nodes: Node[]; error?: string }
 
+function executionTeamSnapshot(s: DemoState, version: WorkflowTemplateVersion) {
+  const teams = copy(s.org.workflowTeams ?? [])
+  const teamIds = new Set(teams.map(team => team.id))
+  const stepTeams = { ...version.teamMap?.stepTeams }
+  // Only explicit organization metadata supplies grouping. No role-name/function guessing.
+  for (const step of version.steps) if (!stepTeams[step.key] && step.ownerRoleId) {
+    const team = s.org.workflowRoleTeams?.[step.ownerRoleId]
+    if (team && teamIds.has(team)) stepTeams[step.key] = team
+  }
+  return { teams, teamIds, stepTeams }
+}
+
+/** Approval and execution share the same fresh-state checks, including teams changed since publication. */
+export function workflowTemplateRunError(s: DemoState, version: WorkflowTemplateVersion): string | null {
+  const problem = workflowTemplateDraftError(version, s.roles, true)
+  if (problem) return problem
+  const { teamIds, stepTeams } = executionTeamSnapshot(s, version)
+  if ((version.kind === "custom" || version.teamMap) && version.steps.some(step => !teamIds.has(stepTeams[step.key]))) return "An organization team used by this workflow is missing. Update and save the workflow before creating an activity."
+  return null
+}
+
 /** A single batch projection. No date arithmetic, no AI, and never another execution's progress or work. */
 export function instantiateWorkflowTemplate(s: DemoState, event: Event, selection: WorkflowTemplateSelection): WorkflowInstantiation {
   const fail = (error: string): WorkflowInstantiation => ({ event, nodes: [], error })
@@ -199,17 +220,9 @@ export function instantiateWorkflowTemplate(s: DemoState, event: Event, selectio
   if (s.events.some(candidate => candidate.workflowRun?.id === runId)) return fail("This workflow execution already belongs to another activity.")
   const version = findWorkflowTemplateVersion(s, selection.templateId, selection.templateVersion)
   if (!version) return fail("That saved workflow version is no longer available. Choose a saved workflow.")
-  const problem = workflowTemplateDraftError(version, s.roles, true)
+  const problem = workflowTemplateRunError(s, version)
   if (problem) return fail(problem)
-  const teams = copy(s.org.workflowTeams ?? [])
-  const teamIds = new Set(teams.map(team => team.id))
-  const stepTeams = { ...version.teamMap?.stepTeams }
-  // Only explicit organization metadata supplies grouping. No role-name/function guessing.
-  for (const step of version.steps) if (!stepTeams[step.key] && step.ownerRoleId) {
-    const team = s.org.workflowRoleTeams?.[step.ownerRoleId]
-    if (team && teamIds.has(team)) stepTeams[step.key] = team
-  }
-  if ((version.kind === "custom" || version.teamMap) && version.steps.some(step => !teamIds.has(stepTeams[step.key]))) return fail("An organization team used by this workflow is missing. Update and save the workflow before creating an activity.")
+  const { teams, teamIds, stepTeams } = executionTeamSnapshot(s, version)
   const snapshot = { ...copy(version), teams, teamMap: { version: 1 as const, workflowId: selection.templateId, stepTeams } }
   const withRun: Event = { ...event, ...(snapshot.branches ? { workflowBranches: copy(snapshot.branches) } : {}), workflowRun: { id: runId, templateId: selection.templateId, templateVersion: version.version, templateName: version.name, snapshot } }
   const generated = buildEventNodes(withRun, s.roles, { steps: snapshot.steps, branches: snapshot.branches, mode: snapshot.kind, explicitOwnersOnly: true })

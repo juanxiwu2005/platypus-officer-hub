@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import type { DemoState, Event, StepTemplate, WorkflowTemplateDraft } from "../data/types"
-import { STANDARD_WORKFLOW_TEMPLATE_ID, duplicateWorkflowTemplate, findWorkflowTemplateVersion, getWorkflowTemplate, getWorkflowTemplates, instantiateWorkflowTemplate, newWorkflowTemplate, newWorkflowStepId, publishWorkflowTemplate, publishedWorkflowTemplates, saveWorkflowTemplateDraft, setDefaultWorkflowTemplate, workflowTemplateDraftError, workflowTemplatePublishError } from "../data/workflowTemplates"
+import { STANDARD_WORKFLOW_TEMPLATE_ID, duplicateWorkflowTemplate, findWorkflowTemplateVersion, getWorkflowTemplate, getWorkflowTemplates, instantiateWorkflowTemplate, newWorkflowTemplate, newWorkflowStepId, publishWorkflowTemplate, publishedWorkflowTemplates, saveWorkflowTemplateDraft, setDefaultWorkflowTemplate, workflowTemplateDraftError, workflowTemplatePublishError, workflowTemplateRunError } from "../data/workflowTemplates"
 import { EVENT_STEPS, stepsFor } from "../engine/playbooks"
 import { computeSchedule } from "../engine/schedule"
 
@@ -100,6 +100,7 @@ describe("workflow template identities and versions", () => {
     expect(workflowTemplateDraftError({ ...d, steps: [step(first, ["missing"])] }, s.roles, true)).toBeTruthy()
     expect(workflowTemplateDraftError({ ...d, steps: [{ ...d.steps[0], estDays: 1.5 }] }, s.roles, true)).toContain("workdays")
     expect(workflowTemplateDraftError({ ...d, steps: [{ ...d.steps[0], ownerRoleId: "removed" }] }, s.roles, true)).toContain("owner")
+    expect(workflowTemplateDraftError({ ...d, steps: [{ ...d.steps[0], key: "run:ambiguous" }] }, s.roles, true)).toContain("ID")
     expect(workflowTemplateDraftError({ ...d, steps: [{ ...d.steps[0], anchor: { kind: "fixed", official: null, club: "2027-04-10" } }] }, s.roles, true)).toContain("relative")
   })
   it("does not allow changing a saved template's policy kind or dropping its school steps", () => {
@@ -186,5 +187,6 @@ describe("template execution snapshots", () => {
     const s = published()
     const missing = { ...s, org: { ...s.org, workflowTeams: [{ id: "empty", name: "Other" }] } }
     expect(instantiateWorkflowTemplate(missing, event(), { templateId: "visit-template" }).error).toContain("team")
+    expect(workflowTemplateRunError(missing, findWorkflowTemplateVersion(s, "visit-template")!)).toContain("team")
   })
 })
