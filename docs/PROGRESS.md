@@ -1,6 +1,6 @@
 > **2026-11-18（America/Phoenix） · 提醒四项修正完成检查，待验收（Codex）**
 > **用户决定：** 改期保留已发阶段（1B）、协助承诺与提供分开（2B）、优先排序/预留额度（4A）；第3项授权Codex决定，采用未回复两天后额外跟进一次、与当前关键检查合并。具体默认、较低额度兼容及交付见[本轮规则](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。从d66d15a隔离开发，沿用原分支/PR14，保留Settings与邮件Plan工作；schema23不重置，0真实AI/外部邮件，不合并main。
-> **验证与验收：** 19文件336项单元/组件通过、双端14个不同浏览器用例通过（首轮12过，旧宽泛status定位收窄后另2项复验），新增承诺刷新/提供通知、未回复一次性/合并、旧重复阶段及倒序批量回归。lint、前后端类型、最终build、9页字数通过；入口498,205/550,000，Settings145/150。未重复无关全站门禁；当前为本浏览器演示、提供后站内通知而非真实投递。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
+> **验证与验收：** 19文件336项单元/组件通过、双端14个不同浏览器用例通过（首轮12过，旧宽泛status定位收窄后另2项复验），新增承诺刷新/提供通知、未回复一次性/合并、旧重复阶段及倒序批量回归。lint、前后端类型、最终build、9页字数通过；入口498,362/550,000，Settings145/150。未重复无关全站门禁；当前为本浏览器演示、提供后站内通知而非真实投递。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · Settings点状团队泳道编辑器完成检查，待验收（Codex / Model / Canvas / Browser / 独立Review）**
 > **交付：** 按用户截图改圆点、灰色Start—Done与半透明团队底卡；一键空branch/任务、重复Full check和Event day、跨队鼠标/触屏拖动及改名。一个team一个底卡，密集节点每8点续行，最大宽924px，Fit/缩放/Quick entry/Undo/草稿/版本保留。新dependencies模式不自动串队，移动只改团队映射；旧sequential版本、实际活动/成果、校规与条件保留。运行时`cc1fbe9`，已确认Netlify preview14为success。
@@ -591,7 +591,7 @@
 
 ## 交接记录（最新的在最上面）
 
-- **2026-11-18（America/Phoenix） · Codex（提醒四项修正）：** 实施1B/2B/4A和受托决定的3B：保留已发阶段及旧重复历史、一次未回复跟进、协助预计日与提供确认、原负责人站内处理提示、六封周限额中的两封关键预留及每日上限，统一单条/批量/自动检查和顺序。336相关单元/组件及双端14唯一浏览器通过，lint/types/build/字数通过，入口498,205/550,000。见[规则、验收与边界](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。沿用PR14，不合并main、不改schema23/工作流/学校日期，0真实AI/邮件；PRODUCT_PLAN/RULES已同步，需要同步本地备份。
+- **2026-11-18（America/Phoenix） · Codex（提醒四项修正）：** 实施1B/2B/4A和受托决定的3B：保留已发阶段及旧重复历史、一次未回复跟进、协助预计日与提供确认、原负责人站内处理提示、六封周限额中的两封关键预留及每日上限，统一单条/批量/自动检查和顺序。336相关单元/组件及双端14唯一浏览器通过，lint/types/build/字数通过，入口498,362/550,000。见[规则、验收与边界](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。沿用PR14，不合并main、不改schema23/工作流/学校日期，0真实AI/邮件；PRODUCT_PLAN/RULES已同步，需要同步本地备份。
 
 - **2026-11-18（America/Phoenix） · Codex（邮件按截图统一Events）：** 活动邮件按真实归属定位流程图/Details；无活动任务使用最近活动供浏览且不伪造归属，旧Tasks入口也跳转Events，普通Tasks恢复My tasks。276单元/组件和生产双端分批32唯一浏览器检查通过，完整Networking38任务、原始Agenda、历史/草稿/只读/协助范围及入口预算均验证；lint/types/build/9页字数通过。沿用PR14，不合并main；当前交付取代上轮Tasks/Team tasks路由。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
 

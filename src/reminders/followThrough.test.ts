@@ -182,6 +182,8 @@ describe("real helper actions and owner notifications", () => {
     const ack = reducer(state, { type: "taskAccessAction", token, update: { kind: "acknowledge", expectedOn } })
     expect(ack.nodes[0]).toMatchObject({ status: "waiting", ownerId: "jordan" })
     expect(ack.reminderRuntime!.waitingRequests[0]).toMatchObject({ response: "acknowledged", expectedOn })
+    expect(ack.notifications.filter(n => n.id.startsWith("waiting-promised:")).map(n => [n.recipientId, n.text.includes(expectedOn)])).toEqual([["jordan", true]])
+    expect(reducer(ack, { type: "taskAccessAction", token, update: { kind: "acknowledge", expectedOn } }).notifications).toEqual(ack.notifications)
     const reload = JSON.parse(JSON.stringify(ack)) as DemoState
     expect(isReminderRuntime(reload.reminderRuntime)).toBe(true)
     expect(planReminders(buildReminderInput({ ...reload, today: expectedOn }, reload.reminderRuntime!)).ready[0].reason).toBe("waiting_followup")

@@ -125,7 +125,9 @@
 - `issueTaskAccessGrant`：日志 payload 只含任务、收件人、范围及可选等待请求 ID；不记签名和完整链接。`taskAccessAction`：日志 actor 取有效授权的实际收件人，payload 为任务、收件人、范围、操作种类。URL token 不写入动作摘要。新增业务动作使用既有数据动作日志机制，旧页面的一般 `ui.*` 行为记录照旧；本轮未改变研究引导步骤和采集流程。
 - `Node.instructions?` / `completionCriteria?`：人工填写的具体要求和完成标准；重要性沿用 `why`。事实优先读人工要求，缺信息不让 AI 补造。
 - `Nudge.message?` / `ReminderDelivery.message?`：经当前事实、收件人、模式和授权重新校验的完整规则邮件快照，含主题、正文、唯一任务链接、计划邮箱、渠道、生成日、授权 ID、词数和 `source: rules`。快照在保存记录时生成；旧记录不回填。人工草稿的实际目的地仍由用户在外部选择，本站不核验。动作日志只记快照的收件人/来源/词数等摘要，不复制正文或链接。它记录的是已批准的演示内容，并非外部投递回执。
-- `waitingRequests[].response? / respondedOn? / responseBy?`：明确等待对象的 Acknowledge / Update provided；同时在 runtime.updates 追加实际操作人及顺序，`ownerReply: false`。等待对象不能更新原任务四种状态；原负责人/状态不因响应被改写。已响应请求不重新生成同一跟进，取消等待、换对象、改派和完成沿用原有撤销约束。
+- `waitingRequests[].response? / respondedOn? / responseBy?`：明确等待对象的 Acknowledge / Update provided；同时在 runtime.updates 追加实际操作人及顺序，`ownerReply: false`。等待对象不能更新原任务四种状态；原负责人/状态不因响应被改写。首次请求不重复；2026-11-18增量中Acknowledge只表示承诺，仍有预计日检查，provided才停止协助催办。取消等待、换对象、改派和完成沿用原有撤销约束。
+- **2026-11-18提醒四项修正：** `waitingRequests[].expectedOn?`为协助人首次承诺时保存的人工日期；旧客户端省略时规则默认演示今天+2个自然日，旧ack记录则从其respondedOn+2判断，不补写旧事实。承诺与提供分别给原负责人一次`info`站内通知，ID为`waiting-promised:<requestId>:<ownerId>`及`waiting-provided:…`；停滞提醒为`waiting-needs-action:<requestId>:<unanswered|promised>:<ownerId>`，不是外部投递回执。
+- `ReminderDelivery.reason`新增`no_reply`（默认三阶段以外至多一次普通未回复跟进）和`waiting_followup`（等待未回复/承诺到期）。字段、实际sentOn和不可变快照仍沿用既有delivery，candidateId区分两种协助跟进阶段；不得只用candidateId判断改期后的里程碑是否发过。旧重复发送不删除，每封仍计入收件人每日/七天总量，单任务里程碑额度按不同已发阶段计数。没有新增研究引导步骤、动作类型或导出formatVersion，外层schema23不重置。完整规则见[交付](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。
 
 新单条邮件编辑器不请求 AI；旧 `?token=` 入口保持兼容。阶段二没有默认启用新计划、统一旧批量记录、接通邮件后台或改变研究流程版本。完整权限与验收边界见 `feedback-fix/REMINDER_STAGE2_CONTRACT.md`。
 
