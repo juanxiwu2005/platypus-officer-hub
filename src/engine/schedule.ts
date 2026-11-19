@@ -600,7 +600,12 @@ function nodeIssues(
   // Check-in materials are intentionally allowed to be completed up to the event day.
   // They become an event-level warning only if they remain open on that day.
   const isCheckin = n.stepKey === "checkin"
-  if (ev && n.phase !== "close" && !isCheckin && d.club >= ev.date)
+  // Human-authored workflows also cover event-day and follow-up work. Their
+  // explicit T0/T+ targets are valid; the standard event policy stays unchanged.
+  const customWorkflow = ev?.workflowRun?.snapshot.kind === "custom" || ev?.playbookId === "workflow-editor-custom"
+  const customTarget = customWorkflow && n.anchor?.kind === "target" ? n.anchor.days : null
+  const outsideEventTarget = customTarget !== null && customTarget < 0 ? false : customTarget === 0 ? d.club > ev!.date : d.club >= (ev?.date ?? "")
+  if (ev && n.phase !== "close" && !isCheckin && outsideEventTarget)
     out.push({ code: "after_event", severity: "error", text: `Planned finish ${fmtLong(d.club)} is not before the event (${fmtLong(ev.date)}).` })
   if (ev && isCheckin && today === ev.date)
     out.push({ code: "checkin_due", severity: "error", text: "Check-in materials are still incomplete on event day." })

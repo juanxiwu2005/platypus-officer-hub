@@ -83,6 +83,8 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
       <button type="button" className="btn small" onClick={() => save()}>Save draft</button>
       <button type="button" className="btn btn-primary" onClick={() => {
         if (!save()) return
+        const fresh = getWorkflowTemplates(getState()).find(item => item.id === template.id)!
+        if (!fresh.draft && fresh.versions.length) { setStatus(`Version ${fresh.versions[fresh.versions.length - 1].version} saved`); setError(""); return }
         const problem = workflowTemplatePublishError(getState(), template.id)
         if (problem) { setError(problem); return }
         if (!tryDispatch({ type: "publishWorkflowTemplate", id: template.id })) { setError("Could not save version. Your draft is kept."); return }

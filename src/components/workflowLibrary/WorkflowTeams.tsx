@@ -29,7 +29,7 @@ export function WorkflowTeams({ onClose }: { onClose: () => void }) {
     {error && <p role="alert">{error}</p>}
     <button type="button" className="btn btn-primary" onClick={() => {
       if (!teams.length || teams.some(team => !team.name.trim()) || new Set(teams.map(t => t.name.trim().toLowerCase())).size !== teams.length) { setError("Give each team a distinct name."); return }
-      if (!tryDispatch({ type: "saveWorkflowTeams", teams, roleTeams })) { setError("Could not save. Your changes are kept here."); return }
+      if (!tryDispatch({ type: "saveWorkflowTeams", teams, roleTeams: Object.fromEntries(Object.entries(roleTeams).filter(([id]) => state.roles.some(role => role.id === id))) })) { setError("Could not save. Your changes are kept here."); return }
       onClose()
     }}>Save teams</button>
   </section>

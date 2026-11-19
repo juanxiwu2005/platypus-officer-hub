@@ -173,6 +173,11 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   delete cleanWorkspace.matching
   delete cleanWorkspace.matchingContext
   delete cleanOrg.matchingWorkspaceId
+  // A deliberately new workspace starts its own template library and team IDs.
+  delete cleanOrg.workflowTemplates
+  delete cleanOrg.defaultWorkflowTemplateId
+  delete cleanOrg.workflowTeams
+  delete cleanOrg.workflowRoleTeams
   const { reminderMode: _earlier, matchingMode: _matchingMode, ...kept } = s.org.settings; void _earlier; void _matchingMode
   return applySchedule({ ...cleanWorkspace, viewerId: president.holderId!, org: { ...cleanOrg, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, ...(branches ? { branches: structuredClone(branches) } : {}), updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, ...(reminderMode ? { reminderMode } : {}), ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
