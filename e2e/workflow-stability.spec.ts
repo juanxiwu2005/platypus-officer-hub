@@ -67,11 +67,28 @@ test("Full Check remains protected in the new details panel", async ({ page }) =
   await expect(page.getByTestId("workflow-task-plan")).toBeVisible()
 })
 
+// Settings → Workflow now authors team branches in Details; the conditional business-branch dialog
+// (WorkflowBranchDialog) is reached from an actual event's Edit flow, so its behaviour is checked there.
+type PlanNode = { id: string; eventId: string; stepKey?: string; placement?: { branchId: string } }
+type PlanBranch = { id: string; conditions?: string[] }
+const planState = (page: Page): Promise<{ nodes: PlanNode[]; events: { id: string; workflowBranches?: PlanBranch[] }[] }> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
+const planBranch = async (page: Page, branchId: string) => (await planState(page)).events.find(event => event.id === "e-speaker")?.workflowBranches?.find(branch => branch.id === branchId)
+async function openBranchDialog(page: Page) {
+  await page.goto("/#/events?event=e-speaker")
+  await closeRail(page)
+  await page.getByTestId("flow-edit-toggle").click()
+  await page.getByTestId("flow-add-branch").click()
+  return page.getByRole("dialog", { name: "Add branch", exact: true })
+}
+async function addedNode(page: Page, before: string[]) {
+  await expect.poll(async () => (await planState(page)).nodes.filter(node => !before.includes(node.id)).length).toBe(1)
+  return (await planState(page)).nodes.find(node => !before.includes(node.id))!
+}
+
 test("a new conditional branch and its first task undo together", async ({ page }) => {
-  await openWorkflow(page)
-  const keys = (await savedWorkflow(page)).steps.map(step => step.key)
-  await page.getByRole("button", { name: "Add branch", exact: true }).click()
-  const dialog = page.getByRole("dialog", { name: "Add branch", exact: true })
+  await page.goto("/#/events?event=e-speaker")
+  const keys = (await planState(page)).nodes.map(node => node.id)
+  const dialog = await openBranchDialog(page)
   await dialog.getByLabel("Branch name").fill("Guest support")
   await dialog.getByRole("checkbox", { name: "External speaker, artist, or performer", exact: true }).check()
   await dialog.getByRole("checkbox", { name: "Travel or off-site participant trip", exact: true }).check()
@@ -80,20 +97,19 @@ test("a new conditional branch and its first task undo together", async ({ page 
   await dialog.getByLabel("First task").fill("Confirm guest arrival")
   await dialog.getByRole("button", { name: "Add branch", exact: true }).click()
   await expect(dialog).toHaveCount(0)
-  const key = await insertedKey(page, keys)
-  const branchId = (await savedWorkflowStep(page, key))!.placement!.branchId
-  expect((await savedWorkflow(page)).branches?.find(branch => branch.id === branchId)?.conditions).toEqual(["speaker", "travel"])
+  const added = await addedNode(page, keys)
+  const branchId = added.placement!.branchId
+  expect((await planBranch(page, branchId))?.conditions).toEqual(["speaker", "travel"])
   await closeRail(page)
-  await page.getByRole("button", { name: "Undo edit", exact: true }).click()
-  await expect.poll(async () => !!(await savedWorkflowStep(page, key))).toBe(false)
-  expect((await savedWorkflow(page)).branches?.some(branch => branch.id === branchId) ?? false).toBe(false)
+  await page.getByTestId("flow-undo").click()
+  await expect.poll(async () => (await planState(page)).nodes.some(node => node.id === added.id)).toBe(false)
+  expect(await planBranch(page, branchId)).toBeUndefined()
 })
 
 test("multiple branch requirements survive reload and apply to inserted steps in that branch", async ({ page }) => {
-  await openWorkflow(page)
-  const keys = (await savedWorkflow(page)).steps.map(step => step.key)
-  await page.getByRole("button", { name: "Add branch", exact: true }).click()
-  const dialog = page.getByRole("dialog", { name: "Add branch", exact: true })
+  await page.goto("/#/events?event=e-speaker")
+  const keys = (await planState(page)).nodes.map(node => node.id)
+  const dialog = await openBranchDialog(page)
   await dialog.getByLabel("Branch name").fill("Speaker travel")
   await expect(dialog).toContainText("Leave all unchecked for every event.")
   await dialog.getByRole("checkbox", { name: "External speaker, artist, or performer", exact: true }).check()
@@ -102,22 +118,25 @@ test("multiple branch requirements survive reload and apply to inserted steps in
   await dialog.getByLabel("First task").fill("Confirm guest arrival")
   await dialog.getByRole("button", { name: "Add branch", exact: true }).click()
   await expect(dialog).toHaveCount(0)
-  const key = await insertedKey(page, keys)
-  const branchId = (await savedWorkflowStep(page, key))!.placement!.branchId
-  await page.reload(); await page.getByRole("button", { name: "Workflow", exact: true }).click()
-  const before = (await savedWorkflow(page)).steps.map(step => step.key)
-  const panel = await openWorkflowStep(page, key)
-  await panel.getByRole("button", { name: "Add before", exact: true }).click()
-  const inserted = await insertedKey(page, before)
-  expect((await savedWorkflowStep(page, inserted))?.placement?.branchId).toBe(branchId)
-  expect((await savedWorkflow(page)).branches?.find(branch => branch.id === branchId)?.conditions).toEqual(["speaker", "travel"])
+  const added = await addedNode(page, keys)
+  const branchId = added.placement!.branchId
+  await page.reload()
+  expect((await planBranch(page, branchId))?.conditions).toEqual(["speaker", "travel"])
+  const before = (await planState(page)).nodes.map(node => node.id)
+  await closeRail(page)
+  await page.getByTestId("flow-edit-toggle").click()
+  // Shift+F10 opens the step's actions on both screen sizes (double-click or tap are pointer-specific).
+  await page.getByTestId(`flow-node-${added.stepKey ?? added.id}`).focus()
+  await page.keyboard.press("Shift+F10")
+  await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step before this one", exact: true }).click()
+  const inserted = await addedNode(page, before)
+  expect(inserted.placement?.branchId).toBe(branchId)
+  expect((await planBranch(page, branchId))?.conditions).toEqual(["speaker", "travel"])
 })
 
 test("branch requirements explain the rule and support keyboard selection on both screen sizes", async ({ page }, info) => {
   await page.emulateMedia({ colorScheme: "dark" })
-  await openWorkflow(page)
-  await page.getByRole("button", { name: "Add branch", exact: true }).click()
-  const dialog = page.getByRole("dialog", { name: "Add branch", exact: true })
+  const dialog = await openBranchDialog(page)
   const name = dialog.getByLabel("Branch name")
   await expect(name).toBeFocused()
   await name.press("Shift+Tab")

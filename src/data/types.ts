@@ -137,7 +137,8 @@ export interface WorkflowMilestoneGraph {
   done: { title: string; details: string }
   /** Ordered shared stations and real shared task IDs; endpoints and day markers are not executable tasks. */
   spine: string[]
-  teamBranches: { id: string; teamId: string; fromId: string; toId: string; stepIds: string[] }[]
+  /** `details` is an optional author note for the team assignment (up to 400 characters). */
+  teamBranches: { id: string; teamId: string; fromId: string; toId: string; stepIds: string[]; details?: string }[]
   taskAnchors: Record<string, { eventDayId: string; offsetDays: number; unit?: "calendar" | "business" }>
 }
 

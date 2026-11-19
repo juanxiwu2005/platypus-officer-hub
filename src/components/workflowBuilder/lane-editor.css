@@ -1,0 +1,86 @@
+/* Settings → Workflow editor canvas: one horizontal lane per team branch around a centred main line.
+   Plan's execution chart keeps its own wfm-* styles in milestone-editor.css. */
+.wfx { min-width: 0; max-width: 100%; }
+.wfx-controls, .wfx-zoom, .wfx-lane-head, .wfx-legend, .wfx-legend > li, .wfx-unplaced { display: flex; align-items: center; gap: var(--s4); }
+.wfx-controls { justify-content: space-between; flex-wrap: wrap; margin-bottom: var(--s5); }
+.wfx-zoom { flex-wrap: nowrap; }
+.wfx-zoom output { min-width: 42px; text-align: center; font-size: var(--fs-sm); color: var(--muted); }
+
+.wfx-scroll { position: relative; overflow: auto; max-width: 100%; max-height: 74vh; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); isolation: isolate; overscroll-behavior: contain; }
+.wfx-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+
+/* The header lives outside the scaled stage so it can stick; its positions are pre-multiplied by the scale. */
+.wfx-phases { position: sticky; top: 0; z-index: var(--z-local); box-sizing: border-box; height: var(--wfx-head); min-width: 100%; margin: 0; padding: 0; list-style: none; background: var(--surface); border-bottom: 1px solid var(--line); }
+.wfx-phase { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; gap: var(--s4); min-width: 0; padding: 0 var(--s4) 0 var(--wfx-indent, var(--s5)); color: var(--muted); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
+.wfx-phase span { flex-shrink: 0; }
+.wfx-phase i { position: relative; flex: 1 1 auto; min-width: 0; height: 1px; background: var(--edge); }
+.wfx-phase i::after { content: ""; position: absolute; right: -1px; top: 50%; transform: translateY(-50%); border-left: var(--s3) solid var(--edge); border-top: var(--s2) solid transparent; border-bottom: var(--s2) solid transparent; }
+.wfx-phase.is-event { color: var(--accent-ink); }
+.wfx-phase.is-event i, .wfx-phase.is-event i::after { background: var(--accent); border-left-color: var(--accent); }
+.wfx-phase.is-event i::after { background: transparent; }
+
+.wfx-size { position: relative; }
+.wfx-stage { position: relative; transform: scale(var(--wfx-scale)) translateY(calc(-1 * var(--wfx-head))); transform-origin: 0 0; }
+
+/* Six stable team tones by the team's position in Settings → Teams. */
+.wfx-tone-0 { --wfx-team: var(--accent); }
+.wfx-tone-1 { --wfx-team: var(--info); }
+.wfx-tone-2 { --wfx-team: var(--warn); }
+.wfx-tone-3 { --wfx-team: var(--good); }
+.wfx-tone-4 { --wfx-team: color-mix(in srgb, var(--info) 55%, var(--late)); }
+.wfx-tone-5 { --wfx-team: color-mix(in srgb, var(--late) 65%, var(--warn)); }
+.wfx-tone-none { --wfx-team: var(--muted); }
+
+.wfx-lane { position: absolute; z-index: var(--z-base); box-sizing: border-box; border-radius: var(--r-lg); border: 1px solid color-mix(in srgb, var(--wfx-team) 22%, transparent); background: color-mix(in srgb, var(--wfx-team) 11%, var(--surface)); }
+.wfx-lane.is-selected, .wfx-lane.is-drop-target { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+.wfx-lane.is-drop-target { background: var(--accent-soft); }
+.wfx-lane-head { position: relative; z-index: var(--z-sticky); justify-content: space-between; padding: var(--s4) var(--s4) 0 var(--s5); }
+.wfx-pill { display: inline-block; min-width: 0; max-width: calc(100% - 40px); min-height: 28px; padding: 0 var(--s5); border: 0; border-radius: var(--r-pill); background: color-mix(in srgb, var(--wfx-team) 20%, var(--surface)); color: color-mix(in srgb, var(--wfx-team) 72%, var(--ink)); font-size: var(--fs-sm); font-weight: 600; line-height: 28px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.wfx-add { flex-shrink: 0; width: 28px; height: 28px; padding: 0; border: 1px solid color-mix(in srgb, var(--wfx-team) 30%, transparent); border-radius: var(--r-circle); background: var(--surface); color: color-mix(in srgb, var(--wfx-team) 72%, var(--ink)); font-size: var(--fs-md); font-weight: 600; line-height: 1; cursor: pointer; }
+.wfx-pill:hover, .wfx-add:hover { background: color-mix(in srgb, var(--wfx-team) 28%, var(--surface)); }
+.wfx-pill:focus-visible, .wfx-add:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+
+.wfx-lines { position: absolute; inset: 0; z-index: var(--z-raised); pointer-events: none; overflow: visible; }
+.wfx-main-track, .wfx-branch-track { fill: none; stroke: var(--mline-main); stroke-width: 2; }
+.wfx-main-track { stroke-width: 2.5; }
+.wfx-branch-track { stroke: color-mix(in srgb, var(--wfx-team) 55%, var(--mline-main)); }
+
+.wfx-station, .wfx-task { position: absolute; z-index: var(--z-raised); display: flex; flex-direction: column; align-items: center; width: 100px; margin-left: -50px; margin-top: -11px; padding: 0; border: 0; background: transparent; color: var(--ink); text-align: center; cursor: pointer; }
+.wfx-station i, .wfx-task i { display: grid; place-items: center; box-sizing: border-box; flex-shrink: 0; width: 22px; height: 22px; border: 2px solid var(--info); border-radius: var(--r-circle); background: var(--surface); color: var(--on-accent); font-size: var(--fs-xs); font-style: normal; font-weight: 700; line-height: 1; }
+.wfx-station strong, .wfx-task strong { display: -webkit-box; max-width: 100px; margin-top: var(--s2); font-size: var(--fs-md); font-weight: 600; line-height: 1.25; overflow-wrap: normal; word-break: normal; hyphens: manual; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* Station labels sit on an opaque chip so branch curves leaving the station pass behind them. */
+.wfx-station strong { padding: 0 var(--s2); border-radius: var(--r-xs); background: var(--surface); }
+.wfx-station > span, .wfx-station small { padding: 0 var(--s2); background: var(--surface); font-size: var(--fs-sm); line-height: 1.4; color: var(--muted); }
+.wfx-station.is-endpoint i { border-color: var(--muted); }
+.wfx-station.is-situation i, .wfx-task.is-situation i { border-color: var(--risk-yellow); }
+.wfx-station.is-day { width: 132px; margin-left: -66px; margin-top: -15px; }
+.wfx-station.is-day i { width: 30px; height: 30px; border: 3px solid var(--accent); background: var(--accent-soft); }
+.wfx-station.is-day strong { max-width: 132px; color: var(--accent-ink); }
+.wfx-station.is-selected i, .wfx-task.is-selected i { box-shadow: 0 0 0 var(--s2) var(--accent-soft), 0 0 0 var(--s3) var(--accent); }
+.wfx-task { cursor: grab; touch-action: none; user-select: none; }
+.wfx-task.is-checked i { border-color: var(--accent); background: var(--accent); }
+.wfx-task.is-dragging { z-index: var(--z-menu); cursor: grabbing; }
+.wfx-task.is-dragging i { box-shadow: var(--elev-2); background: var(--accent-soft); }
+.wfx-station:focus-visible, .wfx-task:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); border-radius: var(--r-sm); }
+
+.wfx-legend { flex-wrap: wrap; gap: var(--s4) var(--s7); margin: var(--s5) 0 0; padding: 0; list-style: none; color: var(--muted); }
+.wfx-legend > li { gap: var(--s3); }
+.wfx-legend strong { color: var(--ink); font-weight: 600; }
+.wfx-key { display: inline-block; flex-shrink: 0; box-sizing: border-box; width: 14px; height: 14px; border: 2px solid var(--info); border-radius: var(--r-circle); background: var(--surface); }
+.wfx-key.is-situation { border-color: var(--risk-yellow); }
+.wfx-key.is-day { width: 16px; height: 16px; border: 3px solid var(--accent); background: var(--accent-soft); }
+.wfx-key.is-team { width: 20px; height: 14px; border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent); border-radius: var(--r-xs); background: color-mix(in srgb, var(--accent) 11%, var(--surface)); }
+.wfx-unplaced { flex-wrap: wrap; margin-top: var(--s5); }
+
+@media (max-width: 700px) {
+  .wfx-controls { align-items: flex-start; }
+  .wfx-controls > span { flex-basis: 100%; }
+  .wfx-scroll { max-height: 66vh; }
+}
+
+@media (pointer: coarse) {
+  /* 44px hit targets that still fit above the dot row (pill spans the card's top edge). */
+  .wfx-lane-head { padding-top: 0; }
+  .wfx-pill { min-height: 44px; line-height: 44px; margin-top: calc(-1 * var(--s4)); }
+  .wfx-add { width: 44px; height: 44px; margin-top: calc(-1 * var(--s4)); }
+}

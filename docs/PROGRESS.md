@@ -1,3 +1,7 @@
+> **2026-11-19（America/Phoenix） · Settings → Workflow 编辑器重新设计，待验收（Claude + worktree Agent A 画布 / B 页面与面板 / C 页面测试）**
+> **交付：** 每个团队一行（超过10步才折行），按高度平衡放在主线上下；顶部 Plan → Prepare → Event day → Close；团队标签“Operations · 7 steps”；步骤名不再断词；模板分组 Platypus preset / Your organization 与状态标签；唯一主按钮 Save version，次要动作进 More；画布工具栏 Undo / Flow·Quick entry / 1-day·2-day / Select steps / + Task / Add；右侧 Team assignment（成员名字、Description、Select steps → Assign N steps 一次 Undo）。团队分支新增可选 `details`，schema23 不变。**Plan 活动图一行未改**，等 Juanxi 满意后移植；只做浅色。
+> **验证：** 相关单元139项全过（全套2049/2051，2项在4d6290e上同样失败）；lint/类型/build通过，入口未变；Settings工作流页面测试桌面52过、手机51过1原有跳过，含新 `workflow-settings-layout.spec.ts`。Plan侧旧失败与4d6290e相同，未新增。详见[交付文档](feedback-fix/WORKFLOW_SETTINGS_REDESIGN.md)与[截图](prototypes/workflow-settings-redesign/)。验收：preview14 → Settings → Workflow。需要同步本地备份。
+
 > **2026-11-19（America/Phoenix） · Reminder 模块审阅与六个界面静态方案，待选择（Claude）**
 > **核对：** 本地分支 = PR #14 顶端 `4d6290e`（preview14）。实测现状 Reminders 页 2856px≈3屏；"Needs your OK 13"里8条是待修问题；"Approve all (5)"实际只记录4条——同一人一天2条上限只按已发记录算，不按同批候选算（Jordan 3条）。底层：引擎纯函数、追加式账本、确定性候选id可直接搬到服务器；发送/自动在浏览器、浏览器签名、单JSON无并发、无存储接口、无按人合并、批量重复计算、新旧两套提醒并存需在接数据库前处理。[审阅与建议](feedback-fix/REMINDER_CENTRE_REVIEW_2026-11-19.md)
 > **交付：** [现状＋A–F六方案＋三种模式附图](prototypes/reminder-centre-concepts/manifest.json)：A一键总览、B按人合并、C流水线、D一周时间轴、E表格批量、F逐封审阅；用网站真实CSS写静态页再截图，Sent/Replied数字示意。建议A首屏＋F审阅页，按人合并为任何方案的前提。仅docs/PNG/JSON/生成脚本，未改src，0产品AI/邮件，未跑全站门禁；沿用PR14，不合并main，需要同步本地备份。

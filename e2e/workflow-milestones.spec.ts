@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright"
 import type { DemoState, StepTemplate, WorkflowMilestoneGraph, WorkflowTemplate } from "../src/data/types"
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { noOverflow } from "./helpers"
+import { openBranch, openMenu, setBranchTeam } from "./workflowLegacyHelpers"
 
 const ID = "milestone-browser-fixture"
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
@@ -99,11 +100,13 @@ async function dragToBranch(page: Page, sourceKey: string, targetBranch: string,
 
 test("only one-day and two-day workflows exist and every boundary, date and shared task edits in Details", async ({ page }) => {
   const builder = await open(page)
-  await page.getByRole("button", { name: "New workflow", exact: true }).click()
+  await openMenu(page, "New workflow", "Blank workflow")
   await page.getByLabel("Workflow name", { exact: true }).fill("Editable milestone stations")
-  const length = builder.getByRole("combobox", { name: "Workflow length", exact: true })
-  expect(await length.locator("option").allTextContents()).toEqual(["1-day event", "2-day event"])
-  await length.selectOption({ label: "2-day event" })
+  const length = builder.getByRole("group", { name: "Workflow length", exact: true })
+  expect(await length.getByRole("button").allTextContents()).toEqual(["1-day", "2-day"])
+  await expect(length.getByRole("button", { name: "1-day", exact: true })).toHaveAttribute("aria-pressed", "true")
+  await length.getByRole("button", { name: "2-day", exact: true }).click()
+  await expect(length.getByRole("button", { name: "2-day", exact: true })).toHaveAttribute("aria-pressed", "true")
   for (const [id, name] of [["workflow-start", "Preparation starts"], ["workflow-done", "Records complete"]]) {
     await builder.getByTestId(id).click()
     await page.getByLabel("Station name", { exact: true }).fill(name)
@@ -117,7 +120,7 @@ test("only one-day and two-day workflows exist and every boundary, date and shar
     if (index === 2) await page.getByLabel("Days after Day 1", { exact: true }).fill("3")
     await closeRail(page)
   }
-  await builder.getByRole("button", { name: "Full check", exact: true }).click()
+  await openMenu(page, "Add", "Full check")
   await page.getByLabel("Task name", { exact: true }).fill("Shared readiness review")
   await page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true }).fill("Review the same materials together.")
   const saved = await save(page), id = (await current(page)).id
@@ -135,7 +138,7 @@ test("only one-day and two-day workflows exist and every boundary, date and shar
 
 test("branches choose existing teams and keep independent before, between-day and after-day junctions", async ({ page }) => {
   const { builder, before, otherTeam } = await fixture(page)
-  await builder.getByRole("button", { name: "Add branch", exact: true }).click()
+  await openMenu(page, "Add", "Team branch")
   await page.getByRole("combobox", { name: "Team", exact: true }).selectOption(otherTeam)
   await page.getByRole("combobox", { name: "Starts at", exact: true }).selectOption("__event__")
   await page.getByRole("combobox", { name: "Joins at", exact: true }).selectOption("__event2__")
@@ -145,7 +148,7 @@ test("branches choose existing teams and keep independent before, between-day an
   expect(branch).toMatchObject({ teamId: otherTeam, fromId: "__event__", toId: "__event2__", stepIds: [] })
   expect((await read(page)).org.workflowTeams).toEqual(before.org.workflowTeams)
   const finance = before.org.workflowPresetTeamIds!.finance!
-  await builder.getByRole("combobox", { name: `Team for ${branch.id}`, exact: true }).selectOption(finance)
+  await setBranchTeam(page, branch.id, finance)
   saved = await save(page)
   expect(saved.milestoneGraph!.teamBranches.find(item => item.id === branch.id)?.teamId).toBe(finance)
   expect(saved.milestoneGraph!.teamBranches.slice(0, 3).map(item => [item.fromId, item.toId])).toEqual([["__start__", "shared"], ["__event__", "__event2__"], ["__event2__", "__end__"]])
@@ -186,19 +189,18 @@ test("every real node keeps its identity through Details, cross-branch mouse or 
 
 test("cleared branch teams remain unassigned through new tasks and role-team application stays consistent", async ({ page }) => {
   const { builder, before } = await fixture(page)
-  await builder.getByRole("button", { name: "Edit branch before-day", exact: true }).click()
-  await page.getByTestId("workflow-builder-details").getByRole("combobox", { name: "Team", exact: true }).selectOption("")
+  await (await openBranch(page, "before-day")).getByRole("combobox", { name: "Team", exact: true }).selectOption("")
   let saved = await save(page)
   expect(saved.milestoneGraph!.teamBranches.find(branch => branch.id === "before-day")?.teamId).toBe("")
   expect(Object.hasOwn(saved.teamMap!.stepTeams, "prepare")).toBe(false)
-  await builder.getByRole("button", { name: "Add task to branch before-day", exact: true }).click()
+  await builder.getByTestId("workflow-segment-before-day").getByRole("button", { name: "Add task to Choose team branch", exact: true }).click()
   await expect(page.getByLabel("Task name", { exact: true })).toHaveValue("New task")
   await expect(page.getByTestId("workflow-builder-details").getByRole("combobox", { name: "Team", exact: true })).toHaveValue("")
   saved = await save(page)
   const branch = saved.milestoneGraph!.teamBranches.find(branch => branch.id === "before-day")!
   expect(branch.stepIds).toHaveLength(2)
   expect(branch.stepIds.every(key => !Object.hasOwn(saved.teamMap!.stepTeams, key))).toBe(true)
-  await page.getByRole("button", { name: "Apply role teams", exact: true }).click()
+  await openMenu(page, "More", "Apply role teams")
   saved = await save(page)
   for (const branch of saved.milestoneGraph!.teamBranches) for (const key of branch.stepIds) {
     if (branch.teamId) expect(saved.teamMap!.stepTeams[key]).toBe(branch.teamId)
@@ -258,7 +260,7 @@ test("one/two-day authoring and actual execution remain accessible in both theme
     const axe = await new AxeBuilder({ page }).include("[data-testid='workflow-template-editor']").withTags(["wcag2a", "wcag2aa"]).analyze()
     expect(axe.violations.filter(issue => ["serious", "critical"].includes(issue.impact ?? ""))).toEqual([])
     await page.screenshot({ path: info.outputPath(`milestone-editor-${colorScheme}.png`), fullPage: false })
-    await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath(`milestone-editor-${colorScheme}-canvas.png`) })
+    await builder.locator(".wfx-scroll").screenshot({ path: info.outputPath(`milestone-editor-${colorScheme}-canvas.png`) })
   }
   const template = await publish(page)
   await createEvent(page, template, "Readable two-day execution")

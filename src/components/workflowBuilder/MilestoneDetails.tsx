@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import type { DemoState, StepTemplate, WorkflowMilestoneGraph } from "../../data/types"
 import { roleLabels } from "../../data/structure"
+import { officers } from "../../data/permissions"
 import { isAsuStep } from "../../engine/workflowPolicy"
 import { branchConditions, conditionLabel, placementOf, resolveBranches } from "../../engine/workflowBranches"
 import { workflowStepKind } from "../../engine/workflowStepKind"
@@ -15,7 +16,13 @@ interface Props {
   selected: string; snapshot: BuilderSnapshot; state: DemoState; teams: BuilderTeam[]; policy: BuilderPolicy; eventDate: string
   onEventDate: (date: string) => void; onChange: (next: BuilderSnapshot) => boolean
   onInsert: (position: "before" | "after") => void; onSelect: (id: string) => void; onClose: () => void
+  /** Bulk assignment for the selected team branch; the builder owns the checked set. */
+  selectMode: boolean; checkedCount: number
+  onStartSelect: (branchId: string) => void; onAssign: (branchId: string) => void; onCancelSelect: () => void
+  /** Starts the canvas connect mode from the selected task. */
+  onConnect: () => void
 }
+const stepCount = (count: number) => `${count} step${count === 1 ? "" : "s"}`
 export function milestoneStationTitle(graph: WorkflowMilestoneGraph, steps: StepTemplate[], id: string): string {
   return id === WORKFLOW_START ? graph.start.title : id === WORKFLOW_DONE ? graph.done.title : graph.eventDays.find(day => day.id === id)?.title ?? steps.find(step => step.key === id)?.title ?? id
 }
@@ -27,8 +34,11 @@ export function MilestoneDetails(props: Props) {
   const step = snapshot.steps.find(item => item.key === selected)
   const day = graph.eventDays.find(item => item.id === selected)
   const endpoint = selected === WORKFLOW_START ? "start" : selected === WORKFLOW_DONE ? "done" : null
+  const branch = graph.teamBranches.find(item => `branch:${item.id}` === selected)
+  const branchTeam = branch && props.teams.find(team => team.id === branch.teamId)
+  const heading = step ? "Task details" : selected === "__new_branch__" ? "Add team branch" : branch ? branchTeam ? `${branchTeam.name} path` : "Team branch" : day ? "Event day" : "Workflow station"
   return <section className="form-stack wfb-details" data-testid="workflow-builder-details" aria-label={`Details: ${milestoneStationTitle(graph, snapshot.steps, selected)}`}>
-    <header className="wfb-detail-header"><h3>{step ? "Task details" : selected === "__new_branch__" ? "Add team branch" : selected.startsWith("branch:") ? "Team branch" : day ? "Event day" : "Workflow station"}</h3><button type="button" className="btn small btn-quiet" onClick={onClose}>Close</button></header>
+    <header className="wfb-detail-header"><div className="wfb-detail-title"><h3>{heading}</h3>{branch && <span className="tag">{stepCount(branch.stepIds.length)}</span>}</div><button type="button" className="btn small btn-quiet" onClick={onClose}>Close</button></header>
     {endpoint && <>
       <label>Station name<input maxLength={120} value={graph[endpoint].title} onChange={event => patchGraph({ [endpoint]: { ...graph[endpoint], title: event.target.value } })} /></label>
       <label>Details<textarea aria-label="Details" rows={5} maxLength={2000} value={graph[endpoint].details} onChange={event => patchGraph({ [endpoint]: { ...graph[endpoint], details: event.target.value } })} /></label>
@@ -47,7 +57,7 @@ export function MilestoneDetails(props: Props) {
   </section>
 }
 
-function BranchDetails({ selected, snapshot, graph, teams, onChange, onSelect, onClose }: Props & { graph: WorkflowMilestoneGraph }) {
+function BranchDetails({ selected, snapshot, graph, teams, onChange, onSelect, onClose, state, selectMode, checkedCount, onStartSelect, onAssign, onCancelSelect }: Props & { graph: WorkflowMilestoneGraph }) {
   const branch = graph.teamBranches.find(item => `branch:${item.id}` === selected)
   const [teamId, setTeam] = useState(teams[0]?.id ?? "")
   const [fromId, setFrom] = useState(graph.spine[0])
@@ -55,20 +65,46 @@ function BranchDetails({ selected, snapshot, graph, teams, onChange, onSelect, o
   const from = branch?.fromId ?? fromId, to = branch?.toId ?? toId
   const patch = (values: Partial<NonNullable<typeof branch>>) => onChange({ ...snapshot, milestoneGraph: { ...graph, teamBranches: graph.teamBranches.map(item => item.id === branch?.id ? { ...item, ...values } : item) } })
   const label = (id: string) => milestoneStationTitle(graph, snapshot.steps, id)
-  return <>
-    <label>Team<select value={branch?.teamId ?? teamId} onChange={event => { if (branch) onChange(assignMilestoneBranchTeam(snapshot, branch.id, event.target.value)); else setTeam(event.target.value) }}><option value="">Choose team</option>{teams.map(team => <option value={team.id} key={team.id}>{team.name}</option>)}</select></label>
+  const teamSelect = <label>Team<select value={branch?.teamId ?? teamId} onChange={event => { if (branch) onChange(assignMilestoneBranchTeam(snapshot, branch.id, event.target.value)); else setTeam(event.target.value) }}><option value="">Choose team</option>{teams.map(team => <option value={team.id} key={team.id}>{team.name}</option>)}</select></label>
+  const interval = <>
     <label>Starts at<select value={from} onChange={event => { if (branch) patch({ fromId: event.target.value }); else { setFrom(event.target.value); if (graph.spine.indexOf(event.target.value) >= graph.spine.indexOf(to)) setTo(graph.spine[graph.spine.indexOf(event.target.value) + 1]) } }}>{graph.spine.slice(0, -1).filter(id => !branch || graph.spine.indexOf(id) < graph.spine.indexOf(to)).map(id => <option key={id} value={id}>{label(id)}</option>)}</select></label>
     <label>Joins at<select value={to} onChange={event => branch ? patch({ toId: event.target.value }) : setTo(event.target.value)}>{graph.spine.filter(id => graph.spine.indexOf(id) > graph.spine.indexOf(from)).map(id => <option key={id} value={id}>{label(id)}</option>)}</select></label>
+  </>
+  if (!branch) return <>
+    {teamSelect}
+    {interval}
     <p className="small muted">A branch belongs to an existing organization team. The same team can work in several parts of the workflow.</p>
-    {!branch && <button type="button" className="btn primary" disabled={!teams.some(team => team.id === teamId)} onClick={() => { const next = addMilestoneBranch(snapshot, { teamId, fromId: from, toId: to }); if (onChange(next)) { const fresh = next.milestoneGraph?.teamBranches.at(-1); if (fresh) onSelect(`branch:${fresh.id}`) } }}>Add branch</button>}
-    {branch && <>
-      <p className="small">{branch.stepIds.length} task{branch.stepIds.length === 1 ? "" : "s"}</p>
-      <button type="button" className="btn small" disabled={!!branch.stepIds.length} onClick={() => { if (onChange({ ...snapshot, milestoneGraph: { ...graph, teamBranches: graph.teamBranches.filter(item => item.id !== branch.id) } })) onClose() }}>Delete empty branch</button>
-    </>}
+    <button type="button" className="btn btn-primary" disabled={!teams.some(team => team.id === teamId)} onClick={() => { const next = addMilestoneBranch(snapshot, { teamId, fromId: from, toId: to }); if (onChange(next)) { const fresh = next.milestoneGraph?.teamBranches.at(-1); if (fresh) onSelect(`branch:${fresh.id}`) } }}>Add branch</button>
+  </>
+  // Roster: current officers whose role the organization grouped into this team (Settings → Teams).
+  const people = new Map(officers(state).map(person => [person.id, person]))
+  const roster = branch.teamId ? state.roles.filter(role => state.org.workflowRoleTeams?.[role.id] === branch.teamId && role.holderId && people.has(role.holderId)).map(role => ({ id: role.id, text: `${people.get(role.holderId!)!.name.trim().split(/\s+/)[0]} · ${role.displayName}` })) : []
+  return <>
+    {teamSelect}
+    <div className="form-stack tight">
+      <span className="small muted" id={`wfb-roster-${branch.id}`}>Team roster</span>
+      {roster.length ? <ul className="wfb-roster" aria-labelledby={`wfb-roster-${branch.id}`}>{roster.map(item => <li key={item.id} className="wfb-roster-chip">{item.text}</li>)}</ul> : <p className="small muted wfb-roster-empty">No roles mapped to this team yet. Map roles in Teams.</p>}
+    </div>
+    {interval}
+    <div className="wfb-assign" role="group" aria-label="Assign steps">
+      {selectMode ? <>
+        <span className="tag accent" aria-live="polite">{stepCount(checkedCount)} selected</span>
+        <div className="action-row">
+          <button type="button" className="btn small btn-primary" disabled={!checkedCount} onClick={() => onAssign(branch.id)}>Assign {stepCount(checkedCount)}</button>
+          <button type="button" className="btn small" onClick={onCancelSelect}>Cancel</button>
+        </div>
+        <p className="small muted">Click steps on the canvas to add or remove them.</p>
+      </> : <button type="button" className="btn small" onClick={() => onStartSelect(branch.id)}>+ Select steps</button>}
+    </div>
+    <label>Description<textarea aria-label="Description" rows={3} maxLength={400} value={branch.details ?? ""} placeholder="What this team does on this path" onChange={event => patch({ details: event.target.value })} /></label>
+    <div className="form-stack tight">
+      <button type="button" className="btn small wfb-danger" disabled={!!branch.stepIds.length} onClick={() => { if (onChange({ ...snapshot, milestoneGraph: { ...graph, teamBranches: graph.teamBranches.filter(item => item.id !== branch.id) } })) onClose() }}>Delete team branch</button>
+      {!!branch.stepIds.length && <p className="small muted">Move its steps first.</p>}
+    </div>
   </>
 }
 
-function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, onChange, onInsert, onClose }: Props & { step: StepTemplate; graph: WorkflowMilestoneGraph }) {
+function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, onChange, onInsert, onClose, onConnect }: Props & { step: StepTemplate; graph: WorkflowMilestoneGraph }) {
   const { steps, branches } = snapshot
   const patch = (value: Partial<StepTemplate>) => onChange({ ...snapshot, steps: steps.map(item => item.key === step.key ? { ...item, ...value } : item) })
   const labels = roleLabels(state.roles), locked = isAsuStep(step), cannotDelete = builderDeletionReason(step, policy)
@@ -101,6 +137,7 @@ function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, o
     <div className="form-stack"><span className="small muted">Waits for · all must finish</span>{!waits.length && <span className="small">Nothing</span>}{waits.map(id => <div className="wfb-prerequisite small" key={id}><span>{steps.find(candidate => candidate.key === id)?.title ?? "Missing task"}</span><button type="button" className="link" aria-label={`Remove prerequisite ${steps.find(candidate => candidate.key === id)?.title ?? id}`} onClick={() => patch({ dependsOn: waits.filter(key => key !== id) })}>Remove</button></div>)}
       <label className="sr-only" htmlFor={`wfb-prerequisite-${step.key}`}>Add prerequisite</label><select id={`wfb-prerequisite-${step.key}`} aria-label="Add prerequisite" value="" onChange={event => { if (event.target.value) patch({ dependsOn: [...waits, event.target.value] }) }}><option value="">+ Prerequisite</option>{candidates.map(candidate => <option value={candidate.key} key={candidate.key}>{candidate.title}</option>)}</select>
     </div>
+    <div className="action-row"><button type="button" className="btn small" onClick={onConnect}>Connect on canvas</button></div>
     <div className="action-row"><button type="button" className="btn small" onClick={() => onInsert("before")}>Add before</button><button type="button" className="btn small" onClick={() => onInsert("after")}>Add next</button></div>
     <button type="button" className="btn small" disabled={!!cannotDelete} title={cannotDelete ?? undefined} onClick={() => { if (!cannotDelete && onChange(deleteBuilderStep(snapshot, step.key))) onClose() }}>Delete task</button>
     {cannotDelete && <p className="small muted">{cannotDelete}</p>}

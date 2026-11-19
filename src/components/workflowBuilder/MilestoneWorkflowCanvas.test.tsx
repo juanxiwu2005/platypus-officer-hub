@@ -2,15 +2,17 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { StepTemplate, WorkflowMilestoneGraph } from "../../data/types"
 import { MilestoneWorkflowCanvas } from "./MilestoneWorkflowCanvas"
-import { buildMilestoneLayout } from "./milestoneLayout"
+import { buildLaneLayout } from "./laneLayout"
 
-const task = (key: string, title: string): StepTemplate => ({ key, title, fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: [], why: "Saved details", source: "Fictional test" })
-const steps = [task("A", "Prepare event materials"), task("B", "Send thank you"), task("check", "Full check")]
+const task = (key: string, title: string, phase: StepTemplate["phase"] = "prepare"): StepTemplate => ({ key, title, fn: "programs", phase, estDays: 1, tier: "light", dependsOn: [], why: "Saved details", source: "Fictional test" })
+const steps = [task("A", "Prepare event materials", "plan"), task("B", "Send thank you", "close"), task("check", "Full check")]
 const graph = (): WorkflowMilestoneGraph => ({ version: 1, start: { title: "Start here", details: "Entry" }, done: { title: "Wrap up", details: "Finish" }, eventDays: [{ id: "__event__", title: "Show day", offsetDays: 0, details: "Main day" }], spine: ["__start__", "check", "__event__", "__end__"], teamBranches: [{ id: "prepare", teamId: "ops", fromId: "__start__", toId: "check", stepIds: ["A"] }, { id: "after", teamId: "ops", fromId: "__event__", toId: "__end__", stepIds: ["B"] }, { id: "empty", teamId: "finance", fromId: "__start__", toId: "check", stepIds: [] }], taskAnchors: {} })
-const props = () => ({ steps, graph: graph(), teams: [{ id: "ops", name: "Operations" }, { id: "finance", name: "Finance" }], eventDate: "2027-05-14", selected: null, onSelect: vi.fn(), onMove: vi.fn(), onAddTask: vi.fn(), onBranchTeamChange: vi.fn() })
+const props = () => ({ steps, graph: graph(), teams: [{ id: "ops", name: "Operations" }, { id: "finance", name: "Finance" }], eventDate: "2027-05-14", selected: null, selectMode: false, checked: new Set<string>() as ReadonlySet<string>, onSelect: vi.fn(), onToggleCheck: vi.fn(), onMove: vi.fn(), onAddTask: vi.fn() })
+// jsdom reports no width, so the canvas measures its 1040px fallback and fits at 100%.
+const layoutFor = (value: ReturnType<typeof props>) => buildLaneLayout(value.steps, value.graph, { availableWidth: 1036 })
 afterEach(cleanup)
 
-describe("editable milestone workflow canvas", () => {
+describe("editable lane workflow canvas", () => {
   it("makes both endpoints, the day, shared check and branch tasks native selectable buttons", () => {
     const value = props()
     render(<MilestoneWorkflowCanvas {...value} />)
@@ -21,26 +23,61 @@ describe("editable milestone workflow canvas", () => {
       expect(value.onSelect).toHaveBeenLastCalledWith(id)
     }
     expect(screen.getByRole("button", { name: "Edit Full check" })).toBeTruthy()
+    expect(screen.getByTestId("workflow-main-track")).toBeTruthy()
+    expect(screen.getAllByTestId("workflow-branch-track").map(track => track.getAttribute("data-branch-id"))).toEqual(["prepare", "after", "empty"])
   })
 
-  it("keeps a shared check's long title accessible without letting it cover the main-line dot", () => {
-    const value = props()
-    render(<MilestoneWorkflowCanvas {...value} steps={steps.map(step => step.key === "check" ? { ...step, title: "Full check alert the team about changes" } : step)} />)
-    const shared = screen.getByRole("button", { name: "Edit Full check alert the team about changes" })
-    expect(shared.textContent).toBe("Full check")
+  it("shows full task titles with the whole title kept in the tooltip", () => {
+    const value = props(), long = "Event Registry (SDC & Special Event)"
+    render(<MilestoneWorkflowCanvas {...value} steps={steps.map(step => step.key === "A" ? { ...step, title: long } : step)} />)
+    const button = screen.getByRole("button", { name: `Edit ${long}` })
+    expect(button.textContent).toBe(long)
+    expect(button.getAttribute("title")).toBe(long)
   })
 
-  it("selects a branch inspector and changes its team using only existing native options", () => {
+  it("labels each lane with a team pill that opens the branch inspector and an add button", () => {
     const value = props()
+    value.graph.teamBranches.push({ id: "orphan", teamId: "gone", fromId: "__event__", toId: "__end__", stepIds: [] })
     render(<MilestoneWorkflowCanvas {...value} />)
-    fireEvent.click(screen.getByRole("button", { name: "Edit branch prepare" }))
+    const pill = screen.getByTestId("workflow-branch-pill-prepare")
+    expect(pill.textContent).toBe("Operations · 1 step")
+    expect(screen.getByTestId("workflow-branch-pill-empty").textContent).toBe("Finance · 0 steps")
+    expect(screen.getByTestId("workflow-branch-pill-orphan").textContent).toBe("Choose team · 0 steps")
+    expect(screen.getByTestId("workflow-segment-orphan").className).toContain("wfx-tone-none")
+    expect(screen.getByTestId("workflow-segment-prepare").className).toContain("wfx-tone-0")
+    expect(screen.getByTestId("workflow-segment-empty").className).toContain("wfx-tone-1")
+    fireEvent.click(screen.getAllByRole("button", { name: /^Operations · .*, edit branch$/ })[0])
     expect(value.onSelect).toHaveBeenLastCalledWith("branch:prepare")
-    fireEvent.change(screen.getByLabelText("Team for prepare"), { target: { value: "finance" } })
-    expect(value.onBranchTeamChange).toHaveBeenCalledWith("prepare", "finance")
+    expect(screen.queryByRole("combobox")).toBeNull()
     expect(screen.queryByRole("textbox")).toBeNull()
-    expect(screen.queryByRole("button", { name: /Rename/ })).toBeNull()
-    fireEvent.click(screen.getByRole("button", { name: "Add task to branch empty" }))
+    const add = screen.getByRole("button", { name: "Add task to Finance branch" })
+    expect(add.textContent).toBe("+")
+    fireEvent.click(add)
     expect(value.onAddTask).toHaveBeenCalledWith("empty")
+  })
+
+  it("marks the selected lane and shows the phase header and legend", () => {
+    const value = props()
+    render(<MilestoneWorkflowCanvas {...value} selected="branch:empty" />)
+    expect(screen.getByTestId("workflow-segment-empty").className).toContain("is-selected")
+    expect(screen.getByTestId("workflow-branch-pill-empty").getAttribute("aria-pressed")).toBe("true")
+    expect(["plan", "prepare", "event", "close"].map(id => screen.getByTestId(`workflow-phase-${id}`).textContent)).toEqual(["Plan", "Prepare", "Event day", "Close"])
+    for (const text of ["Core step", "Required in all events", "Conditional step", "Used only when needed", "Team area", "Owned by an organization team", "Event day", "fixed date"]) expect(screen.getAllByText(text).length).toBeGreaterThan(0)
+  })
+
+  it("toggles task checks instead of opening Details in select mode", () => {
+    const value = props()
+    render(<MilestoneWorkflowCanvas {...value} selectMode checked={new Set(["A"])} />)
+    const checkedTask = screen.getByRole("button", { name: "Select Prepare event materials" })
+    expect(checkedTask.getAttribute("aria-pressed")).toBe("true")
+    expect(checkedTask.className).toContain("is-checked")
+    const other = screen.getByRole("button", { name: "Select Send thank you" })
+    expect(other.getAttribute("aria-pressed")).toBe("false")
+    fireEvent.click(other, { detail: 0 })
+    expect(value.onToggleCheck).toHaveBeenCalledWith("B")
+    expect(value.onSelect).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByTestId("workflow-event-day-1"))
+    expect(value.onSelect).toHaveBeenCalledWith("__event__")
   })
 
   it("shows one or two fixed dates from the engine regardless of changes to task estimates", () => {
@@ -50,6 +87,7 @@ describe("editable milestone workflow canvas", () => {
     const { rerender } = render(<MilestoneWorkflowCanvas {...value} />)
     expect(screen.getByTestId("workflow-event-day-1").textContent).toContain("May 14")
     expect(screen.getByTestId("workflow-event-day-2").textContent).toContain("May 16")
+    expect(screen.getByTestId("workflow-phase-event").textContent).toBe("Event days")
     fireEvent.click(screen.getByRole("button", { name: "Edit Workshop" }))
     expect(value.onSelect).toHaveBeenLastCalledWith("__event2__")
     rerender(<MilestoneWorkflowCanvas {...value} steps={steps.map(step => ({ ...step, estDays: 20 }))} />)
@@ -59,7 +97,7 @@ describe("editable milestone workflow canvas", () => {
   })
 
   it("drags a task vertically into an empty branch and suppresses the incidental click", () => {
-    const value = props(), layout = buildMilestoneLayout(steps, value.graph), point = layout.points.find(point => point.step.key === "A")!, empty = layout.segments.find(segment => segment.branch.id === "empty")!
+    const value = props(), layout = layoutFor(value), point = layout.points.find(item => item.step.key === "A")!, empty = layout.lanes.find(lane => lane.branch.id === "empty")!
     render(<MilestoneWorkflowCanvas {...value} />)
     const button = screen.getByTestId("workflow-task-A"), target = { x: empty.x + empty.width / 2, y: empty.y + 70 }
     fireEvent.pointerDown(button, { pointerId: 1, button: 0, clientX: point.x, clientY: point.y })
@@ -72,9 +110,10 @@ describe("editable milestone workflow canvas", () => {
   })
 
   it("uses inverse zoom for touch dragging and allows returning to the fit view", () => {
-    const value = props(), layout = buildMilestoneLayout(steps, value.graph), point = layout.points.find(point => point.step.key === "A")!, empty = layout.segments.find(segment => segment.branch.id === "empty")!
+    const value = props(), layout = layoutFor(value), point = layout.points.find(item => item.step.key === "A")!, empty = layout.lanes.find(lane => lane.branch.id === "empty")!
     render(<MilestoneWorkflowCanvas {...value} />)
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }))
+    expect(screen.getByRole("status").textContent).toBe("115%")
     const scale = 1.15, button = screen.getByTestId("workflow-task-A"), target = { x: (empty.x + empty.width / 2) * scale, y: (empty.y + 70) * scale }
     fireEvent.pointerDown(button, { pointerId: 4, pointerType: "touch", button: 0, clientX: point.x * scale, clientY: point.y * scale })
     fireEvent.pointerMove(button, { pointerId: 4, pointerType: "touch", clientX: target.x, clientY: target.y })
@@ -82,10 +121,13 @@ describe("editable milestone workflow canvas", () => {
     expect(value.onMove).toHaveBeenCalledWith("A", "empty", undefined, undefined)
     fireEvent.click(screen.getByRole("button", { name: "Fit" }))
     expect(screen.getByRole("status").textContent).toBe("100%")
+    for (let index = 0; index < 8; index++) fireEvent.click(screen.getByRole("button", { name: "Zoom out" }))
+    expect(screen.getByRole("status").textContent).toBe("50%")
+    expect((screen.getByRole("button", { name: "Zoom out" }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it("cancels Escape and outside drops without changing the selected node", () => {
-    const value = props(), layout = buildMilestoneLayout(steps, value.graph), point = layout.points[0]
+    const value = props(), layout = layoutFor(value), point = layout.points[0]
     render(<MilestoneWorkflowCanvas {...value} />)
     const button = screen.getByTestId("workflow-task-A")
     fireEvent.pointerDown(button, { pointerId: 2, button: 0, clientX: point.x, clientY: point.y })
@@ -102,6 +144,7 @@ describe("editable milestone workflow canvas", () => {
   it("keeps an unresolved task available as a Details button rather than hiding it", () => {
     const value = props(); value.graph.teamBranches[0].stepIds = []
     render(<MilestoneWorkflowCanvas {...value} />)
+    expect(screen.getByTestId("workflow-branch-pill-prepare").textContent).toBe("Operations · 0 steps")
     fireEvent.click(screen.getByTestId("workflow-task-A"))
     expect(value.onSelect).toHaveBeenCalledWith("A")
   })
