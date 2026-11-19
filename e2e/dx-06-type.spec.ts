@@ -27,9 +27,15 @@ test("dates and counts use equal-width digits", async ({ page }) => {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
-  const row = page.getByTestId("reminder-centre").locator(".rq-meta").first()   // FB-8: the reminder centre's dates
-  await expect(row).toBeVisible()
-  expect(await row.evaluate(el => getComputedStyle(el).fontVariantNumeric)).toContain("tabular-nums")
+  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // Concept F: the reminder centre's counts (Fix first) and the Due dates in a person's email panel.
+  const count = page.getByTestId("rq-fix").locator(".rq-n")
+  await expect(count).toBeVisible()
+  expect(await count.evaluate(el => getComputedStyle(el).fontVariantNumeric)).toContain("tabular-nums")
+  await page.getByTestId("rq-person").first().locator(".dg-person-head").click()
+  const due = page.getByTestId("digest-panel").locator(".dg-due").first()
+  await expect(due).toBeVisible()
+  expect(await due.evaluate(el => getComputedStyle(el).fontVariantNumeric)).toContain("tabular-nums")
   expect(await page.locator(".sidenav .count").first().evaluate(el => getComputedStyle(el).fontVariantNumeric)).toContain("tabular-nums")
 })
 
