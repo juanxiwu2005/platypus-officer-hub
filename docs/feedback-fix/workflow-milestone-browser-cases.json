@@ -1,0 +1,472 @@
+{
+  "note": "Unique test/project cases, latest relevant rerun overrides stale assertion failures; not a single 46-case run.",
+  "sourceReports": [
+    "milestone-regression-results.json",
+    "milestone-final-browser-results.json",
+    "milestone-plan-final-results.json"
+  ],
+  "totalUniqueCases": 46,
+  "passedUniqueCases": 46,
+  "cases": [
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "five manually entered tasks save, instantiate as Plan dots and reopen after refresh without AI",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "the default standard workflow still shows task dots before an organization configures teams",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "a second template version creates independent tasks without rewriting an existing activity",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "before and next insertion keep the selected task's team and type; Undo restores the graph",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "dependency connections reject loops and double-clicking an arrow leaves the workflow intact",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "custom T0 and T+ targets remain valid work on and after the activity day",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "the two authoring views share saved IDs and support keyboard, dark mode and narrow screens",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "changing a target in Details preserves its task identity and dependencies after refresh",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "five manually entered tasks save, instantiate as Plan dots and reopen after refresh without AI",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "the default standard workflow still shows task dots before an organization configures teams",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "a second template version creates independent tasks without rewriting an existing activity",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "before and next insertion keep the selected task's team and type; Undo restores the graph",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "dependency connections reject loops and double-clicking an arrow leaves the workflow intact",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "custom T0 and T+ targets remain valid work on and after the activity day",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "the two authoring views share saved IDs and support keyboard, dark mode and narrow screens",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-builder.spec.ts",
+      "title": "changing a target in Details preserves its task identity and dependencies after refresh",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "the default 46 tasks use four compact team containers without rewriting dependencies or historical activities",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "independent teams keep parallel starting columns while their tasks remain compact and reusable",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "real pointer reordering preserves IDs and dates, supports Undo, and only affects the next saved activity",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "reordering through a cross-team dependency loop is refused without changing the saved graph",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "editing work effort keeps compact dot positions while preserving the engine-owned target",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "the default 46 tasks use four compact team containers without rewriting dependencies or historical activities",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "independent teams keep parallel starting columns while their tasks remain compact and reusable",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "real pointer reordering preserves IDs and dates, supports Undo, and only affects the next saved activity",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "reordering through a cross-team dependency loop is refused without changing the saved graph",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-compact-sequence.spec.ts",
+      "title": "editing work effort keeps compact dot positions while preserving the engine-owned target",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-dot-editor.spec.ts",
+      "title": "a blank workflow has editable boundary stations and an empty branch uses an existing team",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-dot-editor.spec.ts",
+      "title": "the second Event day is a date station and repeated Full checks remain independent real tasks",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-dot-editor.spec.ts",
+      "title": "mouse and touch can move a node to an empty branch without changing task facts and Undo restores it",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-dot-editor.spec.ts",
+      "title": "the dense preset remains readable in light and dark mode with accessible task buttons and no page overflow",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-dot-editor.spec.ts",
+      "title": "a blank workflow has editable boundary stations and an empty branch uses an existing team",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-dot-editor.spec.ts",
+      "title": "the second Event day is a date station and repeated Full checks remain independent real tasks",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-dot-editor.spec.ts",
+      "title": "mouse and touch can move a node to an empty branch without changing task facts and Undo restores it",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-dot-editor.spec.ts",
+      "title": "the dense preset remains readable in light and dark mode with accessible task buttons and no page overflow",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-regression-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "only one-day and two-day workflows exist and every boundary, date and shared task edits in Details",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "branches choose existing teams and keep independent before, between-day and after-day junctions",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "every real node keeps its identity through Details, cross-branch mouse or touch movement, Undo and reload",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "cleared branch teams remain unassigned through new tasks and role-team application stays consistent",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "saved two-day workflows open actual Plan tasks while day stations remain fixed, read-only dates",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-plan-final-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "one/two-day authoring and actual execution remain accessible in both themes and on narrow screens",
+      "project": "desktop",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-plan-final-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "only one-day and two-day workflows exist and every boundary, date and shared task edits in Details",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "branches choose existing teams and keep independent before, between-day and after-day junctions",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "every real node keeps its identity through Details, cross-branch mouse or touch movement, Undo and reload",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "cleared branch teams remain unassigned through new tasks and role-team application stays consistent",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-final-browser-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "saved two-day workflows open actual Plan tasks while day stations remain fixed, read-only dates",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-plan-final-results.json"
+    },
+    {
+      "file": "workflow-milestones.spec.ts",
+      "title": "one/two-day authoring and actual execution remain accessible in both themes and on narrow screens",
+      "project": "mobile",
+      "status": "expected",
+      "results": [
+        "passed"
+      ],
+      "report": "milestone-plan-final-results.json"
+    }
+  ]
+}

@@ -18,9 +18,9 @@ taskAnchors保存eventDayId、offsetDays与可选calendar/business单位；学�
 
 ## 文件负责人
 
-- 主Agent：Builder/Library与右侧Details、新增/移动命令、文档、集成和最终推送。
+- 主Agent：Builder/Library与右侧Details、文档、集成和最终推送。
 - Model：共享types、workflowTemplates、新engine/workflowMilestones、必要schedule与针对测试。
 - Canvas：新MilestoneWorkflowCanvas、milestoneLayout与独立CSS/测试，不改Builder/Library。
-- Browser：新milestone e2e与当前编辑器受影响回归；独立Review最终只读复核。
+- Commands：独立worktree实现新增/移动/日期切换纯命令；Browser：Plan实际任务投影与milestone e2e、受影响回归；独立Review最终只读复核。
 
 普通日期、负责人和队伍仍通过既有受验证操作保存；不能把像素位置当日期。保留同期提醒修复ef0d0d0，不修改提醒/邮件/交接实现。沿用原PR14/功能分支，0真实产品AI/外部邮件，不合并main。

@@ -1,6 +1,7 @@
-> **2026-11-18（America/Phoenix） · 一日／两日里程碑工作流接入，进行中（Codex / Model / Canvas / Browser / Review）**
-> **用户已批准：** 将交互预览接入preview14，仅1-day与2-day；所有node均可点击并在右Details编辑。主线日期里程碑＋共享任务，团队分支可在活动前、日间、活动后分叉/汇合；branch只选择已有组织团队，不直接改团队名、不自动建Team N。
-> **实施边界：** [冻结契约与分工](feedback-fix/WORKFLOW_MILESTONE_CONTRACT.md)。以ef0d0d0保留同期提醒修复；新可选图/日期锚点随版本和活动快照保存，旧任务/成果不回写。沿用PR14不合并main，0真实AI/邮件；完成后更新交接和验收。
+> **2026-11-18（America/Phoenix） · 一日／两日里程碑工作流完成检查，待验收（Codex / Model / Canvas / Commands / Browser / 独立Review）**
+> **交付：** 仅1-day / 2-day；Start/Done、各Event day、共享检查和普通任务均可点开右Details修改。主线固定日期＋共享任务，已有组织团队分支明确保存起点/汇合点，可在活动前、两日之间、活动后分叉；同team可重复负责不同区间，画布不创建/改名组织团队。新graph版本保存独立日期锚点与真实路径前置；日期/依赖/工期不适配明确报风险，学校Day1硬限和缓冲保留。旧活动/成果/提醒历史不回写，schema23不重置；保留同期ef0d0d0提醒修复，0真实产品AI/外部邮件，不合并main。
+> **验证与验收：** 最终23文件210单元/组件，46唯一双端浏览器全部通过；最终Plan颜色/链接/浅深4项再验通过，未重复计数。包括全节点编辑刷新、真实触屏、三段分支、两日实际任务日期、旧数据、严重关键axe0与无横溢出。lint、前后端类型、build、独立CSS与9页字数通过，Settings145/150，入口498,362/550,000。运行时`7b3f5fc`已确认Netlify success。沿用[preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow；[当前交付](feedback-fix/WORKFLOW_MILESTONE_HANDOFF.md) · [截图](prototypes/workflow-milestones/manifest.json)。交互以相同生产构建本地验收，部署依据Netlify状态；无会话线上浏览器会进入原站点edge-access。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
+
 
 > **2026-11-18（America/Phoenix） · 提醒四项修正完成检查，待验收（Codex）**
 > **用户决定：** 改期保留已发阶段（1B）、协助承诺与提供分开（2B）、优先排序/预留额度（4A）；第3项授权Codex决定，采用未回复两天后额外跟进一次、与当前关键检查合并。具体默认、较低额度兼容及交付见[本轮规则](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。从d66d15a隔离开发，沿用原分支/PR14，保留Settings与邮件Plan工作；schema23不重置，0真实AI/外部邮件，不合并main。

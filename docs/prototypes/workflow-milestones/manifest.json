@@ -1,0 +1,84 @@
+{
+  "runtimeCommit": "7b3f5fc27d3b2b5e9ffb5c3f80cb31087494dfb4",
+  "source": "Actual local production build; no generated mockups. Fictional test data. Desktop CSS viewport1280x720; mobile Pixel7 DPR screenshots; standard46 at1600x1000.",
+  "browser": "Chromium /usr/bin/chromium",
+  "files": [
+    {
+      "file": "desktop-editor-dark-canvas.png",
+      "width": 842,
+      "height": 500,
+      "bytes": 62710,
+      "sha256": "29a5a65517e00759b9ebe13715cc4658a78235256206a3e616851d4f74437408"
+    },
+    {
+      "file": "desktop-editor-dark.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 124186,
+      "sha256": "a5498ba08701c6ed62cee704c163eb2ca7aad290eb4d5569503a793821872fc6"
+    },
+    {
+      "file": "desktop-editor-light-canvas.png",
+      "width": 842,
+      "height": 500,
+      "bytes": 63689,
+      "sha256": "f6c47310fd99c6af72162b513a5a64dc88c754de1b64afee58e32b6cfc094ab3"
+    },
+    {
+      "file": "desktop-editor-light.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 124914,
+      "sha256": "098e826dfcc32bd8524f9da345923b3be9ec13a3b308796d746906467f3687f1"
+    },
+    {
+      "file": "desktop-plan-dark-canvas.png",
+      "width": 792,
+      "height": 500,
+      "bytes": 65381,
+      "sha256": "4a788d3dbdeb075f1c316d6fc63a8eeb908dc618c1d1cae7260877b210439d0a"
+    },
+    {
+      "file": "mobile-editor-dark-canvas.png",
+      "width": 998,
+      "height": 1315,
+      "bytes": 124189,
+      "sha256": "01a36d80a344085cf11ead1a89ca4deb9112476dc679237dd5cf54fb47d6475f"
+    },
+    {
+      "file": "mobile-editor-dark.png",
+      "width": 1082,
+      "height": 2202,
+      "bytes": 230614,
+      "sha256": "924876e21bff467805971008dd910c65532e16e139544771cecfc5b4ae8d88c3"
+    },
+    {
+      "file": "mobile-editor-light-canvas.png",
+      "width": 998,
+      "height": 1315,
+      "bytes": 128137,
+      "sha256": "03f834fc9600dc79bb3aa88cc571b3e31d3b7b7f693e03124e6b66dbad57aaaa"
+    },
+    {
+      "file": "mobile-editor-light.png",
+      "width": 1082,
+      "height": 2202,
+      "bytes": 239377,
+      "sha256": "2687b3a2e91f6fe8db65ac310300aad942adc613989d14faee03694bd08bbe3a"
+    },
+    {
+      "file": "mobile-plan-dark-canvas.png",
+      "width": 998,
+      "height": 1313,
+      "bytes": 129864,
+      "sha256": "9f25b40298fec845a97999af917caf5c70788c36b627f492309757b8376472ed"
+    },
+    {
+      "file": "standard-46-desktop.png",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 250910,
+      "sha256": "5fd6440a1e75dab1822c2ca36f9b29b1dd1392f8913a25dea11d371fb4671f36"
+    }
+  ]
+}
