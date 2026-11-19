@@ -2,6 +2,10 @@
 > **交付：** [设计与实施边界](feedback-fix/REMINDER_PLAN_ENTRY_CONCEPTS.md) · [两张图片](prototypes/reminder-plan-entry/manifest.json)。图1邮件直达Speaker Night Plan，高亮订房节点，右侧Details自动展开，保留外部入口/统一正文附件/自动草稿；图2同图切至其他成员已提交的活动要求与附件，提供返回原任务入口。Plan沿用点状轨道，不把Settings模板编辑器带入。
 > **检查与边界：** 两图1536×1024，PNG/清单/文档本地链接及差异校验通过，原图保留；代码核对Events/Rail/TaskSubmission已有基础。仅docs/PNG/JSON，未改网站/邮件URL/规则/授权/存储，未跑产品测试、0真实邮件，2次图片生成；用户批准后才实施。已记录成员身份、他人提交只读/私人草稿隔离、刷新回退和手机适配待实施，不扩大单任务token授权。沿用PR14/原分支，保留同期资料，不合并main。需要同步本地备份。
 
+> **2026-11-18（America/Phoenix） · 人工工作流模板编辑器与独立活动实例，进行中（Codex＋5个独立worktree Agent）**
+> **授权与实施顺序：** 用户明确要求编写程序规划并用worktree agents完成代码修改。按[分阶段实施方案](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)先定模板/版本/实例契约，再并行数据、编辑器、创建活动、团队点图，最后独立Review与集成验收。Settings → Workflow采用②连线时间轴＋①清单快录；Plan保留实际任务圆点。先完善人工编辑器和一份标准模板，不自动制作其他预设或引入AI。
+> **协作边界：** 从`3a40a13`独立集成，Data负责types/模板纯函数，Editor负责新编辑组件，Execution负责活动入口/审批，Lanes负责teamWorkflow/点图，Review负责独立验收；主Agent负责store/Settings/集成。保留v23旧状态、旧任务ID/提醒链接、学校政策与所有同期记录；沿用PR14，不合并main，0真实AI/邮件；需要同步本地备份。
+
 > **2026-11-18（America/Phoenix） · Settings人工编辑器与Plan点状执行方向已确定，ID/实例化建议已记录（Codex）**
 > **用户已选定：** ②时间轴/泳道主界面＋①清单快建入口，均在Settings → Workflow；Plan继续点状轨道图，点击点打开本次活动的实际任务。每team一泳道，团队归组、岗位主责、业务分支和前置关系独立。此条是后续设计约束，不是已经上线的编辑器。
 > **建议与依据：** [身份层次及实例化方案](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)：templateId/version、稳定templateStepId、一次workflowRun、独立taskId；批量实例化并重映射依赖，冻结版本/快照，Point直接用taskId，无额外点状态。保留现有eventId:stepKey与旧链接，补来源/版本，不按标题/坐标当ID；同一次重试幂等，不把模板状态或其他活动成果带入。已核对buildEventNodes/stepsAsNodes/newStepKey/Node/MetroChart及独立团队接入记录；未改src、数据schema、页面或旧任务，未跑无关全站测试，0真实AI/邮件。本轮为设计记录，不启动产品实现；基于`9d9ccac`，保留独立P1预备分支与同期交付，沿用PR14、不合并main，需要同步本地备份。
