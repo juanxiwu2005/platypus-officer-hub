@@ -1,3 +1,6 @@
+> **2026-11-18（America/Phoenix） · 邮件进入Plan并展开任务的两张静态示意制作中（Codex）**
+> **范围：** Juanxi希望邮件跳至对应活动Plan，右侧Details直接打开目标任务，能切换节点查看其他成员已提交资料。本轮仅核对现有Plan/Details并生成两张图片，批准后才改网站；保留上一轮E邮件及通用Details/附件/自动草稿，Settings模板和同期工作流设计不动，沿用原分支/PR14，不合并main。
+
 > **2026-11-18（America/Phoenix） · Settings人工编辑器与Plan点状执行方向已确定，ID/实例化建议已记录（Codex）**
 > **用户已选定：** ②时间轴/泳道主界面＋①清单快建入口，均在Settings → Workflow；Plan继续点状轨道图，点击点打开本次活动的实际任务。每team一泳道，团队归组、岗位主责、业务分支和前置关系独立。此条是后续设计约束，不是已经上线的编辑器。
 > **建议与依据：** [身份层次及实例化方案](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md)：templateId/version、稳定templateStepId、一次workflowRun、独立taskId；批量实例化并重映射依赖，冻结版本/快照，Point直接用taskId，无额外点状态。保留现有eventId:stepKey与旧链接，补来源/版本，不按标题/坐标当ID；同一次重试幂等，不把模板状态或其他活动成果带入。已核对buildEventNodes/stepsAsNodes/newStepKey/Node/MetroChart及独立团队接入记录；未改src、数据schema、页面或旧任务，未跑无关全站测试，0真实AI/邮件。本轮为设计记录，不启动产品实现；基于`9d9ccac`，保留独立P1预备分支与同期交付，沿用PR14、不合并main，需要同步本地备份。
