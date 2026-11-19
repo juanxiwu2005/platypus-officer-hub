@@ -104,6 +104,28 @@ test("five manually entered tasks save, instantiate as Plan dots and reopen afte
   expect(calls).toEqual([])
 })
 
+test("the default standard workflow still shows task dots before an organization configures teams", async ({ page }) => {
+  await page.goto("/#/events")
+  await closeRail(page)
+  expect((await read(page)).org.workflowTeams).toBeUndefined()
+  await page.getByTestId("new-event").click()
+  const form = page.getByTestId("plan-form").last()
+  await form.getByLabel("Event name", { exact: true }).fill("Standard workflow without team setup")
+  await form.getByLabel("Date", { exact: true }).fill(addDays((await read(page)).today, 90))
+  await expect(form.getByLabel("Workflow template", { exact: true }).locator("option:checked")).toHaveText("Speaker series · v1")
+  await form.getByRole("button", { name: "Continue", exact: true }).click()
+  await page.getByTestId("change-item").last().getByRole("button", { name: "Apply this change", exact: true }).click()
+  await expect.poll(async () => (await read(page)).events.some(event => event.name === "Standard workflow without team setup")).toBe(true)
+  await closeRail(page)
+  const saved = await read(page)
+  const event = saved.events.find(event => event.name === "Standard workflow without team setup")!
+  const tasks = saved.nodes.filter(node => node.eventId === event.id)
+  expect(tasks.length).toBeGreaterThanOrEqual(31)
+  expect(tasks.every(node => node.id === `${event.id}:${node.stepKey}`)).toBe(true)
+  await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(tasks.length)
+  await expect(page.getByTestId("team-execution-chart")).toHaveCount(0)
+})
+
 test("a second template version creates independent tasks without rewriting an existing activity", async ({ page }) => {
   const template = await createTemplate(page, "Reusable visit")
   const first = await createEvent(page, "April reusable visit", template)
