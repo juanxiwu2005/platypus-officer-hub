@@ -6,6 +6,7 @@ import { seedDemo } from "../../data/seed"
 import { RailProvider, useRail } from "../rail/RailContext"
 import { WorkflowBuilder } from "./WorkflowBuilder"
 import type { BuilderSnapshot } from "./model"
+import { validateBranchDefinitions } from "../../engine/workflowBranches"
 
 const teams = [{ id: "events", name: "Events team" }, { id: "marketing", name: "Marketing team" }]
 const task = (key: string, dependsOn: string[] = []): StepTemplate => ({ key, title: key, fn: "programs", ownerRoleId: "r-events", phase: "prepare", placement: { branchId: "speaker", order: 0 }, stepKind: "situation", cond: "speaker", estDays: 1, tier: "light", dependsOn, why: "Do the work", source: "Manual", custom: true, anchor: { kind: "target", days: 7, unit: "calendar", label: "Human target" } })
@@ -102,5 +103,21 @@ describe("manual workflow builder", () => {
     fireEvent.change(screen.getByLabelText("Days of work"), { target: { value: "1.5" } })
     expect(latest.steps.find(step => step.key === "B")?.estDays).toBe(1)
     expect(screen.getByRole("alert").textContent).toContain("whole number")
+  })
+
+  it("adds a branch with a valid opaque ID and all selected activation conditions", () => {
+    show()
+    fireEvent.click(screen.getByRole("button", { name: "Add branch" }))
+    const dialog = screen.getByRole("dialog", { name: "Add branch" })
+    fireEvent.change(within(dialog).getByLabelText("Branch name"), { target: { value: "Speaker travel" } })
+    fireEvent.change(within(dialog).getByLabelText("First task"), { target: { value: "Arrange pickup" } })
+    fireEvent.click(within(dialog).getByLabelText("External speaker, artist, or performer"))
+    fireEvent.click(within(dialog).getByLabelText("Travel or off-site participant trip"))
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add branch" }))
+    const branch = latest.branches!.find(candidate => candidate.title === "Speaker travel")!
+    expect(validateBranchDefinitions(latest.branches)).toBeNull()
+    expect(branch.id).toMatch(/^b-[a-z0-9-]+$/)
+    expect(branch.conditions).toEqual(["speaker", "travel"])
+    expect(latest.steps.find(step => step.title === "Arrange pickup")).toMatchObject({ placement: { branchId: branch.id }, stepKind: "situation" })
   })
 })

@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useState, type FormEvent } from "react"
 import type { DemoState, StepTemplate, WorkflowBranch } from "../../data/types"
 import { MAX_STEPS } from "../../engine/workflow"
 import { isAsuStep } from "../../engine/workflowPolicy"
-import { branchConditions, placementOf } from "../../engine/workflowBranches"
+import { branchConditions, conditionLabel, placementOf, resolveBranches } from "../../engine/workflowBranches"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { roleLabels } from "../../data/structure"
 import { addDays } from "../../lib/dates"
@@ -66,7 +66,7 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, teams, poli
   }
   const makeBranch = (draft: BranchDraft) => {
     if (steps.length >= MAX_STEPS) return `A workflow can have up to ${MAX_STEPS} tasks.`
-    const branch: WorkflowBranch = { id: newBuilderStepId(), title: draft.title, side: draft.side, conditions: draft.conditions, defaultRoleId: draft.defaultRoleId, order: Math.max(0, ...(branches ?? []).map(item => item.order)) + 1 }
+    const branch: WorkflowBranch = { id: `b-${newBuilderStepId()}`, title: draft.title, side: draft.side, conditions: draft.conditions, defaultRoleId: draft.defaultRoleId, order: Math.max(0, ...(branches ?? []).map(item => item.order)) + 1 }
     const role = state.roles.find(candidate => candidate.id === draft.defaultRoleId)
     const fresh = createBuilderStep(draft.firstStepTitle)
     fresh.placement = { branchId: branch.id, order: 0 }
@@ -194,6 +194,7 @@ function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, on
   const { steps, branches, stepTeams } = snapshot
   const patch = (value: Partial<StepTemplate>) => onChange({ ...snapshot, steps: steps.map(candidate => candidate.key === step.key ? { ...candidate, ...value } : candidate) })
   const labels = roleLabels(state.roles)
+  const definitions = resolveBranches(steps, branches).filter(candidate => policy === "standard" || branches?.some(authored => authored.id === candidate.id) || steps.some(item => placementOf(item).branchId === candidate.id))
   const locked = isAsuStep(step)
   const cannotDelete = builderDeletionReason(step, policy)
   const waits = step.dependsOn ?? []
@@ -201,7 +202,7 @@ function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, on
   const [insertionBranch, setInsertionBranch] = useState("")
   const [insertionError, setInsertionError] = useState<string | null>(null)
   const candidates = steps.filter(candidate => candidate.key !== step.key && !waits.includes(candidate.key) && !graphError(steps.map(item => item.key === step.key ? { ...item, dependsOn: [...waits, candidate.key] } : item)))
-  const branch = branches?.find(candidate => candidate.id === placementOf(step).branchId)
+  const branch = definitions.find(candidate => candidate.id === placementOf(step).branchId)
   return <section className="form-stack wfb-details" data-testid="workflow-builder-details" aria-label={`Details: ${step.title}`}>
     <header className="wfb-detail-header"><h3>Task details</h3><button type="button" className="btn small btn-quiet" onClick={onClose}>Close</button></header>
     {/* TODO: Step classification is separate from activation. Future event intake changes must map reviewed facts to cond/branch conditions. */}
@@ -218,16 +219,16 @@ function BuilderTaskDetails({ step, snapshot, state, teams, policy, onChange, on
     <WorkflowEffortInput value={step.estDays} onCommit={patch} />
     <TargetInput step={step} locked={locked} onChange={patch} />
     <label>Details<textarea rows={4} maxLength={400} value={step.why} onChange={event => patch({ why: event.target.value })} /></label>
-    {!!branches?.length && <label>Branch<select disabled={locked || (policy === "standard" && ["finalcheck", "checkin", "headcount"].includes(step.key))} value={placementOf(step).branchId} onChange={event => {
-      const next = branches.find(candidate => candidate.id === event.target.value)
+    {!!definitions.length && <label>Branch<select disabled={locked || (policy === "standard" && ["finalcheck", "checkin", "headcount"].includes(step.key))} value={placementOf(step).branchId} onChange={event => {
+      const next = definitions.find(candidate => candidate.id === event.target.value)
       patch({ placement: { branchId: event.target.value, order: placementOf(step).order }, ...(next ? { phase: next.side === "after_event" ? "close" : "prepare" } : {}) })
-    }}><option value="main">Main</option>{branches.filter(candidate => candidate.id !== "main").map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.title}</option>)}</select></label>}
-    {branch && branchConditions(branch).length > 0 && <p className="small muted">Included when all branch conditions match: {branchConditions(branch).join(", ")}.</p>}
+    }}><option value="main">Main</option>{definitions.filter(candidate => candidate.id !== "main").map(candidate => <option key={candidate.id} value={candidate.id}>{candidate.title}</option>)}</select></label>}
+    {branch && branchConditions(branch).length > 0 && <p className="small muted">Included when all branch conditions match: {branchConditions(branch).map(conditionLabel).join(", ")}.</p>}
     {locked && <p className="small muted">School rule deadlines and required prerequisites are protected.</p>}
     <div className="form-stack"><span className="small muted">Waits for · all must finish</span>{!waits.length && <span className="small">Nothing</span>}{waits.map(id => <div className="wfb-prerequisite small" key={id}><span>{steps.find(candidate => candidate.key === id)?.title ?? "Missing task"}</span><button type="button" className="link" aria-label={`Remove prerequisite ${steps.find(candidate => candidate.key === id)?.title ?? id}`} onClick={() => patch({ dependsOn: waits.filter(key => key !== id) })}>Remove</button></div>)}
       <label className="sr-only" htmlFor={`wfb-prerequisite-${step.key}`}>Add prerequisite</label><select id={`wfb-prerequisite-${step.key}`} aria-label="Add prerequisite" value="" onChange={event => { if (event.target.value) patch({ dependsOn: [...waits, event.target.value] }) }}><option value="">+ Prerequisite</option>{candidates.map(candidate => <option value={candidate.key} key={candidate.key}>{candidate.title}</option>)}</select>
     </div>
-    {incomingBranches.length > 1 && <label>Insertion branch<select value={insertionBranch} onChange={event => { setInsertionBranch(event.target.value); setInsertionError(null) }}><option value="">Choose a branch for Add before</option>{incomingBranches.map(id => <option key={id} value={id}>{branches?.find(candidate => candidate.id === id)?.title ?? (id === "main" ? "Main" : id)}</option>)}</select></label>}
+    {incomingBranches.length > 1 && <label>Insertion branch<select value={insertionBranch} onChange={event => { setInsertionBranch(event.target.value); setInsertionError(null) }}><option value="">Choose a branch for Add before</option>{incomingBranches.map(id => <option key={id} value={id}>{definitions.find(candidate => candidate.id === id)?.title ?? (id === "main" ? "Main" : id)}</option>)}</select></label>}
     {insertionError && <p className="small late-text" role="alert">{insertionError}</p>}
     <div className="action-row"><button type="button" className="btn small" onClick={() => {
       if (incomingBranches.length > 1 && !incomingBranches.includes(insertionBranch)) { setInsertionError("Choose which incoming branch gets the new task."); return }
