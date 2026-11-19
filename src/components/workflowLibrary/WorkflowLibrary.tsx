@@ -4,7 +4,6 @@ import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDr
 import { getWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
 import { WorkflowBuilder } from "../workflowBuilder/WorkflowBuilder"
 import { presetWorkflowStepTeams } from "../../data/workflowTeamDefaults"
-import { sequenceTeamStepsForDraft } from "../../engine/workflowSequence"
 import { useRail } from "../rail/RailContext"
 import { WorkflowTeams } from "./WorkflowTeams"
 import "./workflowLibrary.css"
@@ -18,7 +17,7 @@ const rawDraftOf = (template: WorkflowTemplate): WorkflowTemplateDraft => {
 const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplateDraft => {
   const draft = rawDraftOf(template)
   const stepTeams = draft.kind === "standard" ? presetWorkflowStepTeams(state, draft.steps, draft.teamMap?.stepTeams) : draft.teamMap?.stepTeams ?? {}
-  return { ...draft, teamExecution: "sequential", steps: sequenceTeamStepsForDraft(state, draft.steps, stepTeams, draft.branches, draft.kind), teamMap: { version: 1, workflowId: template.id, stepTeams } }
+  return { ...draft, teamExecution: "dependencies", steps: draft.steps, teamMap: { version: 1, workflowId: template.id, stepTeams } }
 }
 
 export default function WorkflowLibrary() {
@@ -82,13 +81,35 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
     const previousKeys = new Set(draft.steps.map(step => step.key))
     const mappings = { ...stepTeams }
     for (const step of steps) if (!previousKeys.has(step.key) && !mappings[step.key] && step.ownerRoleId && state.org.workflowRoleTeams?.[step.ownerRoleId]) mappings[step.key] = state.org.workflowRoleTeams[step.ownerRoleId]
-    setDraft({ ...draft, teamExecution: "sequential", steps: sequenceTeamStepsForDraft(state, steps, mappings, branches, draft.kind), branches, teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
+    setDraft({ ...draft, teamExecution: "dependencies", steps, branches, teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
   }, [draft, state.org.workflowRoleTeams, template.id])
   const groupRoles = () => {
     const current = draft.teamMap?.stepTeams ?? {}
     const mappings = { ...current }
     for (const step of draft.steps) if (!mappings[step.key] && step.ownerRoleId && state.org.workflowRoleTeams?.[step.ownerRoleId]) mappings[step.key] = state.org.workflowRoleTeams[step.ownerRoleId]
-    setDraft({ ...draft, steps: sequenceTeamStepsForDraft(state, draft.steps, mappings, draft.branches, draft.kind), teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
+    setDraft({ ...draft, steps: draft.steps, teamMap: { version: 1, workflowId: template.id, stepTeams: mappings } })
+  }
+  const addTeam = () => {
+    if (!save()) return null
+    const current = getState()
+    const teams = current.org.workflowTeams ?? []
+    let number = teams.length + 1
+    while (teams.some(team => team.name.toLowerCase() === `team ${number}`)) number++
+    const id = crypto.randomUUID()
+    if (!tryDispatch({ type: "saveWorkflowTeams", teams: [...teams, { id, name: `Team ${number}` }], roleTeams: current.org.workflowRoleTeams ?? {} })) {
+      setError("Could not save the new team. Try again."); return null
+    }
+    setError(""); return id
+  }
+  const renameTeam = (id: string, name: string) => {
+    const current = getState(), clean = name.trim()
+    if (!clean || clean.length > 80 || current.org.workflowTeams?.some(team => team.id !== id && team.name.toLowerCase() === clean.toLowerCase())) {
+      setError("Give each team a distinct name."); return false
+    }
+    if (!tryDispatch({ type: "saveWorkflowTeams", teams: (current.org.workflowTeams ?? []).map(team => team.id === id ? { ...team, name: clean } : team), roleTeams: current.org.workflowRoleTeams ?? {} })) {
+      setError("The team name was not saved. Try again."); return false
+    }
+    setError(""); return true
   }
   const latest = template.versions[template.versions.length - 1]
   return <div className="form-stack" data-testid="workflow-template-editor">
@@ -120,6 +141,6 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
     <p className="small muted">Edit here. Saved versions create independent tasks in Plan.</p>
     <p className="small" role="status">{persistenceFailed ? "Saving failed. Keep this page open and retry." : pending ? "Saving draft…" : status}</p>
     {error && <p role="alert">{error}</p>}
-    <WorkflowBuilder state={state} steps={draft.steps} branches={draft.branches} stepTeams={draft.teamMap?.stepTeams ?? {}} teams={state.org.workflowTeams ?? []} policy={draft.kind} onChange={update} />
+    <WorkflowBuilder state={state} steps={draft.steps} branches={draft.branches} stepTeams={draft.teamMap?.stepTeams ?? {}} teams={state.org.workflowTeams ?? []} policy={draft.kind} onChange={update} onAddTeam={addTeam} onRenameTeam={renameTeam} />
   </div>
 }

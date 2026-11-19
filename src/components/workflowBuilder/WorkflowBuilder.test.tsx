@@ -6,7 +6,6 @@ import { seedDemo } from "../../data/seed"
 import { RailProvider, useRail } from "../rail/RailContext"
 import { WorkflowBuilder } from "./WorkflowBuilder"
 import type { BuilderSnapshot } from "./model"
-import { validateBranchDefinitions } from "../../engine/workflowBranches"
 
 const teams = [{ id: "events", name: "Events team" }, { id: "marketing", name: "Marketing team" }]
 const task = (key: string, dependsOn: string[] = []): StepTemplate => ({ key, title: key, fn: "programs", ownerRoleId: "r-events", phase: "prepare", placement: { branchId: "speaker", order: 0 }, stepKind: "situation", cond: "speaker", estDays: 1, tier: "light", dependsOn, why: "Do the work", source: "Manual", custom: true, anchor: { kind: "target", days: 7, unit: "calendar", label: "Human target" } })
@@ -14,8 +13,9 @@ let latest: BuilderSnapshot
 function Details() { return <aside>{useRail().workflowDetail}</aside> }
 function App({ initial }: { initial: BuilderSnapshot }) {
   const [snapshot, setSnapshot] = useState(initial)
+  const [directory, setDirectory] = useState(teams)
   latest = snapshot
-  return <RailProvider><WorkflowBuilder state={seedDemo(undefined, "v2")} steps={snapshot.steps} branches={snapshot.branches} stepTeams={snapshot.stepTeams} teams={teams} policy="custom" onChange={(steps, branches, stepTeams) => setSnapshot({ steps, branches, stepTeams })} /><Details /></RailProvider>
+  return <RailProvider><WorkflowBuilder state={seedDemo(undefined, "v2")} steps={snapshot.steps} branches={snapshot.branches} stepTeams={snapshot.stepTeams} teams={directory} policy="custom" onAddTeam={() => { const id = `team-${directory.length + 1}`; setDirectory([...directory, { id, name: `Team ${directory.length + 1}` }]); return id }} onChange={(steps, branches, stepTeams) => setSnapshot({ steps, branches, stepTeams })} /><Details /></RailProvider>
 }
 const show = (steps = [task("A"), task("B", ["A"])]) => render(<App initial={{ steps, branches: [{ id: "speaker", title: "Speaker", side: "before_event", order: 1, conditions: ["speaker"] }], stepTeams: Object.fromEntries(steps.map(step => [step.key, "events"])) }} />)
 afterEach(cleanup)
@@ -30,7 +30,7 @@ describe("manual workflow builder", () => {
     expect(latest.steps[1].dependsOn).toEqual([latest.steps[0].key])
     expect(latest.steps[2].dependsOn).toEqual([latest.steps[1].key])
     const keys = latest.steps.map(step => step.key)
-    fireEvent.click(screen.getByRole("button", { name: "Timeline" }))
+    fireEvent.click(screen.getByRole("button", { name: "Flow" }))
     expect(screen.getAllByTestId("workflow-dependency")).toHaveLength(2)
     expect(screen.getByRole("button", { name: "Edit Confirm transport" })).toBeTruthy()
     expect(latest.steps.map(step => step.key)).toEqual(keys)
@@ -105,47 +105,39 @@ describe("manual workflow builder", () => {
     expect(screen.getByRole("alert").textContent).toContain("whole number")
   })
 
-  it("adds a branch with a valid opaque ID and all selected activation conditions", () => {
+  it("adds an empty parallel team branch immediately without changing any existing task", () => {
     show()
-    fireEvent.click(screen.getByRole("button", { name: "Add branch" }))
-    const dialog = screen.getByRole("dialog", { name: "Add branch" })
-    fireEvent.change(within(dialog).getByLabelText("Branch name"), { target: { value: "Speaker travel" } })
-    fireEvent.change(within(dialog).getByLabelText("First task"), { target: { value: "Arrange pickup" } })
-    fireEvent.click(within(dialog).getByLabelText("External speaker, artist, or performer"))
-    fireEvent.click(within(dialog).getByLabelText("Travel or off-site participant trip"))
-    fireEvent.click(within(dialog).getByRole("button", { name: "Add branch" }))
-    const branch = latest.branches!.find(candidate => candidate.title === "Speaker travel")!
-    expect(validateBranchDefinitions(latest.branches)).toBeNull()
-    expect(branch.id).toMatch(/^b-[a-z0-9-]+$/)
-    expect(branch.conditions).toEqual(["speaker", "travel"])
-    expect(latest.steps.find(step => step.title === "Arrange pickup")).toMatchObject({ placement: { branchId: branch.id }, stepKind: "situation" })
-  })
-
-  it("inserts a before-event activation branch before the team's existing close-out work", () => {
-    const closing = { ...task("Archive", ["A"]), phase: "close" as const, placement: { branchId: "after", order: 0 }, cond: undefined }
-    render(<App initial={{ steps: [task("A"), closing], stepTeams: { A: "events", Archive: "events" }, branches: [{ id: "speaker", title: "Speaker", side: "before_event", order: 0, conditions: ["speaker"] }, { id: "after", title: "Close out", side: "after_event", order: 1 }] }} />)
-    fireEvent.click(screen.getByRole("button", { name: "Add branch" }))
-    const dialog = screen.getByRole("dialog", { name: "Add branch" })
-    fireEvent.change(within(dialog).getByLabelText("Branch name"), { target: { value: "Early checks" } })
-    fireEvent.change(within(dialog).getByLabelText("First task"), { target: { value: "Check permit" } })
-    fireEvent.click(within(dialog).getByRole("button", { name: "Add branch" }))
-    const fresh = latest.steps.find(step => step.title === "Check permit")!
-    expect(fresh.phase).toBe("prepare")
-    expect(fresh.dependsOn).toEqual(["A"])
-    expect(latest.steps.find(step => step.key === "Archive")?.dependsOn).toEqual([fresh.key])
-  })
-
-  it("persists a pointer reorder within the team without changing dates, and can undo it", () => {
-    show()
-    const card = screen.getByRole("button", { name: "Edit B" })
     const before = structuredClone(latest)
-    fireEvent.pointerDown(card, { pointerId: 1, button: 0, clientX: 400, clientY: 100 })
-    fireEvent.pointerMove(card, { pointerId: 1, clientX: 180, clientY: 102 })
-    fireEvent.pointerUp(card, { pointerId: 1, clientX: 180, clientY: 102 })
-    expect(latest.steps.find(step => step.key === "B")).toEqual({ ...before.steps.find(step => step.key === "B"), dependsOn: [] })
-    expect(latest.steps.find(step => step.key === "A")?.dependsOn).toEqual(["B"])
-    expect(latest.stepTeams).toEqual(before.stepTeams)
-    fireEvent.click(screen.getByRole("button", { name: "Undo edit" }))
+    fireEvent.click(screen.getByRole("button", { name: "Add branch" }))
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(screen.getAllByTestId(/^workflow-team-/)).toHaveLength(3)
+    expect(screen.getByTestId("workflow-team-team-3")).toBeTruthy()
     expect(latest).toEqual(before)
+    fireEvent.click(screen.getByRole("button", { name: "+ Task" }))
+    const fresh = latest.steps.find(step => !before.steps.some(previous => previous.key === step.key))!
+    expect(latest.stepTeams[fresh.key]).toBe("team-3")
+    expect(fresh.dependsOn).toEqual([])
+  })
+
+  it("has fixed Start and Done stations with no task and supports duplicate Event day presets", () => {
+    show([])
+    expect(screen.getByTestId("workflow-start")).toBeTruthy()
+    expect(screen.getByTestId("workflow-done")).toBeTruthy()
+    expect(screen.queryAllByTestId(/^workflow-task-/)).toHaveLength(0)
+    fireEvent.click(screen.getByRole("button", { name: "Event day" }))
+    fireEvent.click(screen.getByRole("button", { name: "Event day" }))
+    expect(latest.steps.map(step => step.title)).toEqual(["Event day", "Event day"])
+    expect(new Set(latest.steps.map(step => step.key)).size).toBe(2)
+    expect(latest.steps.every(step => step.anchor?.kind === "target" && step.anchor.days === 0)).toBe(true)
+    fireEvent.click(screen.getByRole("button", { name: "Undo edit" }))
+    expect(latest.steps).toHaveLength(1)
+  })
+
+  it("does not silently chain independent same-team tasks when editing their definitions", () => {
+    show([task("A"), task("B")])
+    fireEvent.click(screen.getByRole("button", { name: "Edit B" }))
+    fireEvent.change(screen.getByLabelText("Task name"), { target: { value: "Updated B" } })
+    expect(latest.steps.map(step => step.dependsOn)).toEqual([[], []])
+    expect(latest.steps.map(step => step.key)).toEqual(["A", "B"])
   })
 })
