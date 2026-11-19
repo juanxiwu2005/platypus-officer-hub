@@ -3,6 +3,7 @@ import { useStore } from "../../data/store"
 import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDraft } from "../../data/types"
 import { getWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
 import { WorkflowBuilder } from "../workflowBuilder/WorkflowBuilder"
+import { useRail } from "../rail/RailContext"
 import { WorkflowTeams } from "./WorkflowTeams"
 import "./workflowLibrary.css"
 
@@ -15,6 +16,10 @@ const draftOf = (template: WorkflowTemplate): WorkflowTemplateDraft => {
 export default function WorkflowLibrary() {
   const { state, tryDispatch } = useStore()
   const templates = getWorkflowTemplates(state)
+  const rail = useRail()
+  // Authoring starts with the timeline in focus. Selecting a task still opens
+  // Details explicitly; background draft saves never reopen the generic Ask.
+  useEffect(() => { if (rail.tab === "ask") rail.setOpen(false) }, [])
   const [selected, setSelected] = useState(state.org.defaultWorkflowTemplateId ?? STANDARD_WORKFLOW_TEMPLATE_ID)
   const flush = useRef<() => boolean>(() => true)
   const [teamsOpen, setTeamsOpen] = useState(false)
