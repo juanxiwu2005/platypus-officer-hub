@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { ask, closeRail, openAsk, openDemoMenu, openMore, viewAs } from "./helpers"
+import { enableUpdatedReminders } from "./reminderHelpers"
 
 // "Behind the scenes" (S7): a switch in the Demo menu that shows where numbers, dates and AI output come from.
 // Off (the default) means the notes are not in the page at all.
@@ -43,7 +44,7 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
   expect(await setting(page)).toBe("1")
   await closeRail(page)
   await expect(page.locator(".bts").first()).toBeVisible()
-  await expect(page.getByTestId("reminder-centre")).toContainText("Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. Sent lists saved records.")
+  await expect(page.getByTestId("reminder-centre")).toContainText("Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. One email per person per day.")
   await page.reload()
   await page.waitForTimeout(300)
   await expect(page.locator(".bts").first()).toBeVisible()
@@ -58,12 +59,14 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
 })
 
 test("when on: dates show where they come from on Reminders, Events and Tasks", async ({ page }) => {
-  await page.goto("/#/")
+  await enableUpdatedReminders(page)
   await switchOn(page)
   await closeRail(page)
   // FB-8: the home page is the reminder centre; its send days and Due come from the rule engine (the Events strip moved off home).
-  await expect(page.getByTestId("rq-needs-ok").locator(".bts").first()).toContainText("Rule engine")
-  await expect(page.getByTestId("rq-this-week").locator(".bts")).toContainText("Planned checks from tomorrow through the next 7 days.")
+  // Concept F: the people list keeps the rule engine's order, and the page note says which dates the checks use.
+  await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Rule engine")
+  await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Tasks keep the rule engine's order: overdue, due, past due, then starts and follow-ups.")
+  await expect(page.getByTestId("reminder-centre").locator(".bts").first()).toContainText("latest start and Task due")
   await page.goto("/#/events")
   await expect(page.locator("main .bts").first()).toBeVisible()
   await page.getByTestId("view-list").click()

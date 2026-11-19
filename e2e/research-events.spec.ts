@@ -60,7 +60,8 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
   // FB-8: the home page is the reminder centre; its hover cards are the risk marks (the "Needs a nudge" card and its ⓘ are gone).
-  const info = page.getByTestId("rq-needs-ok").getByTestId("forecast").first().getByRole("button")
+  // Concept F: the marks sit on the task lines of each person's email.
+  const info = page.getByTestId("rq-people").getByTestId("rq-person-task").getByTestId("forecast").first().getByRole("button")
   if (phone(page)) { await info.tap(); await page.waitForTimeout(900); await page.locator("main h1").tap() }
   else { await info.hover(); await page.waitForTimeout(900); await page.mouse.move(2, 400) }
   // ...and a mouse pass that is too short to count.
