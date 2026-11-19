@@ -107,19 +107,19 @@ test("only one-day and two-day workflows exist and every boundary, date and shar
   for (const [id, name] of [["workflow-start", "Preparation starts"], ["workflow-done", "Records complete"]]) {
     await builder.getByTestId(id).click()
     await page.getByLabel("Station name", { exact: true }).fill(name)
-    await page.getByTestId("workflow-builder-details").getByLabel("Details", { exact: true }).fill(`${name} description`)
+    await page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true }).fill(`${name} description`)
     await closeRail(page)
   }
   for (const [index, name] of [[1, "Opening day"], [2, "Closing day"]] as const) {
     await builder.getByTestId(`workflow-event-day-${index}`).click()
     await page.getByLabel("Event day name", { exact: true }).fill(name)
-    await page.getByTestId("workflow-builder-details").getByLabel("Details", { exact: true }).fill(`${name} program`)
+    await page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true }).fill(`${name} program`)
     if (index === 2) await page.getByLabel("Days after Day 1", { exact: true }).fill("3")
     await closeRail(page)
   }
   await builder.getByRole("button", { name: "Full check", exact: true }).click()
   await page.getByLabel("Task name", { exact: true }).fill("Shared readiness review")
-  await page.getByTestId("workflow-builder-details").getByLabel("Details", { exact: true }).fill("Review the same materials together.")
+  await page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true }).fill("Review the same materials together.")
   const saved = await save(page), id = (await current(page)).id
   expect(saved.milestoneGraph!.eventDays.map(day => [day.title, day.offsetDays, day.details])).toEqual([["Opening day", 0, "Opening day program"], ["Closing day", 3, "Closing day program"]])
   expect(saved.milestoneGraph!.start).toEqual({ title: "Preparation starts", details: "Preparation starts description" })
@@ -130,7 +130,7 @@ test("only one-day and two-day workflows exist and every boundary, date and shar
   await expect(builder.getByRole("button", { name: "Edit Closing day", exact: true })).toBeVisible()
   await builder.getByRole("button", { name: "Edit Shared readiness review", exact: true }).click()
   await expect(page.getByLabel("Task name", { exact: true })).toHaveValue("Shared readiness review")
-  await expect(page.getByTestId("workflow-builder-details").getByLabel("Details", { exact: true })).toHaveValue("Review the same materials together.")
+  await expect(page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true })).toHaveValue("Review the same materials together.")
 })
 
 test("branches choose existing teams and keep independent before, between-day and after-day junctions", async ({ page }) => {
@@ -158,7 +158,7 @@ test("every real node keeps its identity through Details, cross-branch mouse or 
   for (const key of ["prepare", "shared", "between", "after"]) {
     await builder.getByTestId(`workflow-task-${key}`).click()
     await page.getByLabel("Task name", { exact: true }).fill(`Edited ${key}`)
-    await page.getByTestId("workflow-builder-details").getByLabel("Details", { exact: true }).fill(`Saved ${key} instructions`)
+    await page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true }).fill(`Saved ${key} instructions`)
     await closeRail(page)
   }
   const original = await save(page)
@@ -173,7 +173,7 @@ test("every real node keeps its identity through Details, cross-branch mouse or 
   for (const key of ["prepare", "shared", "between", "after"]) {
     await builder.getByTestId(`workflow-task-${key}`).click()
     await expect(page.getByLabel("Task name", { exact: true })).toHaveValue(`Edited ${key}`)
-    await expect(page.getByTestId("workflow-builder-details").getByLabel("Details", { exact: true })).toHaveValue(`Saved ${key} instructions`)
+    await expect(page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true })).toHaveValue(`Saved ${key} instructions`)
     await closeRail(page)
   }
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
