@@ -35,9 +35,49 @@ describe("workflow template identities and versions", () => {
   it("supports blank drafts but does not publish or offer them for event creation", () => {
     const s = newWorkflowTemplate(base(), "blank", "Volunteer")
     expect(getWorkflowTemplate(s, "blank")?.draft?.steps).toEqual([])
+    expect(getWorkflowTemplate(s, "blank")?.draft?.teamExecution).toBe("dependencies")
     expect(workflowTemplatePublishError(s, "blank")).toContain("1 to")
     expect(publishWorkflowTemplate(s, "blank")).toBe(s)
     expect(publishedWorkflowTemplates(s).some(template => template.id === "blank")).toBe(false)
+  })
+  it("saves explicit dependencies without manufacturing a sequential chain after a team reassignment", () => {
+    const s = newWorkflowTemplate(base(), "visit-template", "Company visit")
+    const content = { ...draft(s, [step(first), step(second), step(third, [first])]), teamExecution: "dependencies" as const }
+    const saved = saveWorkflowTemplateDraft(s, "visit-template", content)
+    expect(getWorkflowTemplate(saved, "visit-template")?.draft?.steps).toEqual(content.steps)
+    const reassigned = { ...content, teamMap: { ...content.teamMap!, stepTeams: { [first]: "ops", [second]: "ops", [third]: "empty" } } }
+    const moved = saveWorkflowTemplateDraft(saved, "visit-template", reassigned)
+    expect(getWorkflowTemplate(moved, "visit-template")?.draft?.steps).toEqual(content.steps)
+    expect(getWorkflowTemplate(moved, "visit-template")?.draft?.teamMap?.stepTeams[third]).toBe("empty")
+    expect(workflowTemplatePublishError(moved, "visit-template")).toBeNull()
+    expect(findWorkflowTemplateVersion(publishWorkflowTemplate(moved, "visit-template"), "visit-template")?.teamExecution).toBe("dependencies")
+  })
+  it("keeps sequential saved versions and existing runs intact when the next draft uses explicit dependencies", () => {
+    const s = newWorkflowTemplate(base(), "visit-template", "Company visit")
+    const original = publishWorkflowTemplate(saveWorkflowTemplateDraft(s, "visit-template", { ...draft(s), teamExecution: "sequential" }), "visit-template")
+    const version = findWorkflowTemplateVersion(original, "visit-template", 1)!
+    const run = instantiateWorkflowTemplate(original, event(), { templateId: "visit-template", templateVersion: 1 })
+    expect(run.error).toBeUndefined()
+    const running = { ...original, events: [...original.events, run.event], nodes: [...original.nodes, ...run.nodes] }
+    const changed = saveWorkflowTemplateDraft(running, "visit-template", { ...draft(running), baseVersion: 1, teamExecution: "dependencies" })
+    const next = publishWorkflowTemplate(changed, "visit-template")
+    expect(findWorkflowTemplateVersion(next, "visit-template", 1)).toEqual(version)
+    expect(findWorkflowTemplateVersion(next, "visit-template", 2)?.teamExecution).toBe("dependencies")
+    expect(next.events).toBe(running.events)
+    expect(next.nodes).toBe(running.nodes)
+    expect(next.events.find(item => item.id === run.event.id)?.workflowRun?.snapshot.teamExecution).toBe("sequential")
+  })
+  it("allows repeated Event day tasks with independent stable IDs and one unchanged activity date", () => {
+    const s = newWorkflowTemplate(base(), "visit-template", "Two sessions")
+    const milestones = [first, second].map(key => ({ ...step(key), title: "Event day", estDays: 0, anchor: { kind: "target" as const, days: 0, unit: "calendar" as const, label: "Event day milestone" } }))
+    const saved = publishWorkflowTemplate(saveWorkflowTemplateDraft(s, "visit-template", { ...draft(s, milestones), teamExecution: "dependencies" }), "visit-template")
+    const result = instantiateWorkflowTemplate(saved, event(), { templateId: "visit-template" })
+    expect(result.error).toBeUndefined()
+    expect(result.event.date).toBe(event().date)
+    expect(result.nodes).toHaveLength(2)
+    expect(result.nodes.map(node => node.title)).toEqual(["Event day", "Event day"])
+    expect(new Set(result.nodes.map(node => node.id)).size).toBe(2)
+    expect(result.nodes.every(node => node.anchor?.kind === "target" && node.anchor.days === 0)).toBe(true)
   })
   it("publishes immutable versions and keeps renamed/repositioned task identity", () => {
     const s = published()

@@ -56,7 +56,7 @@ export const newWorkflowTemplateId = (): string => crypto.randomUUID()
 export function workflowTemplateDraftError(draft: WorkflowTemplateContent, roles: Role[], publishing = false): string | null {
   if (!draft || !text(draft.name, 100, !publishing) || (draft.description !== undefined && !text(draft.description, 1000, true))) return "Give the workflow a name of up to 100 characters."
   if (!["standard", "custom"].includes(draft.kind) || !Array.isArray(draft.steps) || draft.steps.length > MAX_STEPS || (publishing && !draft.steps.length)) return `A saved workflow needs 1 to ${MAX_STEPS} tasks.`
-  if (draft.teamExecution !== undefined && draft.teamExecution !== "sequential") return "Choose sequential team execution."
+  if (draft.teamExecution !== undefined && !["sequential", "dependencies"].includes(draft.teamExecution)) return "Choose a supported workflow execution mode."
   const keys = new Set<string>()
   for (const step of draft.steps) {
     if (!step || !text(step.key, 40) || !/^[a-zA-Z0-9_-]+$/.test(step.key) || keys.has(step.key)) return "Every task needs a different stable ID."
@@ -125,7 +125,7 @@ function replaceTemplate(s: DemoState, template: WorkflowTemplate): DemoState {
 
 export function newWorkflowTemplate(s: DemoState, id: string, name = "Untitled workflow"): DemoState {
   if (!canLead(s) || !text(id, 100) || !text(name, 100) || getWorkflowTemplate(s, id) || getWorkflowTemplates(s).length >= MAX_WORKFLOW_TEMPLATES) return s
-  const template: WorkflowTemplate = { id, versions: [], draft: { name: name.trim(), kind: "custom", teamExecution: "sequential", steps: [], baseVersion: 0, teamMap: { version: 1, workflowId: id, stepTeams: {} } }, updatedOn: s.today }
+  const template: WorkflowTemplate = { id, versions: [], draft: { name: name.trim(), kind: "custom", teamExecution: "dependencies", steps: [], baseVersion: 0, teamMap: { version: 1, workflowId: id, stepTeams: {} } }, updatedOn: s.today }
   return { ...s, org: { ...s.org, workflowTemplates: [...getWorkflowTemplates(s), template] } }
 }
 
