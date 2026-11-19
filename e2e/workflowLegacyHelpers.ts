@@ -20,6 +20,7 @@ export async function openWorkflow(page: Page) {
   expect((await readWorkflowState(page)).org.workflowTeams?.length).toBeGreaterThan(0)
   await page.getByRole("button", { name: "Apply role teams", exact: true }).click()
   await expect.poll(async () => Object.keys((await savedWorkflow(page))?.teamMap?.stepTeams ?? {}).length).toBeGreaterThan(0)
+  await page.getByRole("button", { name: "Save draft", exact: true }).click()
   return page.getByTestId("workflow-settings")
 }
 export async function openWorkflowStep(page: Page, key: string) {

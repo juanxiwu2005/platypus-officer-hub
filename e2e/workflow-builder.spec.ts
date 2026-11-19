@@ -50,7 +50,6 @@ async function createTemplate(page: Page, name: string, taskNames = names) {
   const builder = page.getByTestId("workflow-builder")
   await builder.getByRole("button", { name: "Quick entry", exact: true }).click()
   await builder.getByLabel("Task names", { exact: true }).fill(taskNames.join("\n"))
-  await builder.getByRole("combobox", { name: "Add as", exact: true }).selectOption({ label: "Sequential" })
   const saved = await read(page)
   const role = saved.roles.find(role => role.holderId === saved.viewerId)!
   await builder.getByRole("combobox", { name: "Assign role", exact: true }).selectOption(role.id)
@@ -173,7 +172,7 @@ test("a second template version creates independent tasks without rewriting an e
   expect((await read(page)).nodes.filter(node => node.eventId === first.id)).toEqual(firstSaved)
 })
 
-test("before and parallel insertion keep the selected task's team and type; Undo restores the graph", async ({ page }) => {
+test("before and next insertion keep the selected task's team and type; Undo restores the graph", async ({ page }) => {
   const template = await createTemplate(page, "Insertion trial", names.slice(0, 2))
   const original = template.versions[0]
   const builder = page.getByTestId("workflow-builder")
@@ -195,13 +194,14 @@ test("before and parallel insertion keep the selected task's team and type; Undo
   await page.getByRole("button", { name: "Save draft", exact: true }).click()
   expect((await templateByName(page, "Insertion trial")).draft?.steps).toHaveLength(2)
   await builder.getByRole("button", { name: `Edit ${names[1]}`, exact: true }).click()
-  await page.getByRole("button", { name: "Add parallel", exact: true }).click()
+  await expect(page.getByRole("button", { name: "Add parallel", exact: true })).toHaveCount(0)
+  await page.getByRole("button", { name: "Add next", exact: true }).click()
   await closeRail(page)
   await page.getByRole("button", { name: "Save draft", exact: true }).click()
   draft = (await templateByName(page, "Insertion trial")).draft!
   added = draft.steps.find(step => !original.steps.some(prior => prior.key === step.key))!
   const reference = draft.steps.find(step => step.key === original.steps[1].key)!
-  expect(added.dependsOn).toEqual(reference.dependsOn)
+  expect(added.dependsOn).toContain(reference.key)
   expect(added.stepKind).toBe(reference.stepKind)
   expect(draft.teamMap?.stepTeams[added.key]).toBe(draft.teamMap?.stepTeams[reference.key])
 })
@@ -232,7 +232,11 @@ test("custom T0 and T+ targets remain valid work on and after the activity day",
   await builder.getByRole("button", { name: "Timeline", exact: true }).click()
   for (const [title, offset] of [["Host visit", "0"], ["Thank host", "2"]]) {
     await builder.getByRole("button", { name: `Edit ${title}`, exact: true }).click()
-    if (title === "Thank host") await page.getByRole("button", { name: "Remove prerequisite Host visit", exact: true }).click()
+    if (title === "Thank host") {
+      const otherTeam = (await read(page)).org.workflowTeams!.find(team => team.id !== template.versions[0].teamMap!.stepTeams[template.versions[0].steps[0].key])!
+      await page.getByRole("combobox", { name: "Team", exact: true }).selectOption(otherTeam.id)
+      await page.getByRole("button", { name: "Remove prerequisite Host visit", exact: true }).click()
+    }
     await page.getByLabel("Finish by (T±)", { exact: true }).fill(offset)
     await closeRail(page)
   }
@@ -290,32 +294,18 @@ test("the two authoring views share saved IDs and support keyboard, dark mode an
   await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath("workflow-timeline-dark.png") })
 })
 
-test("dragging a task changes only its relative target and preserves its identity after refresh", async ({ page, isMobile }, info) => {
+test("changing a target in Details preserves its task identity and dependencies after refresh", async ({ page, isMobile }, info) => {
   const template = await createTemplate(page, "Drag visit timeline")
   const original = template.versions[0]
   const last = original.steps[original.steps.length - 1]
   const builder = page.getByTestId("workflow-builder")
   await builder.getByRole("button", { name: "Timeline", exact: true }).click()
   await closeRail(page)
-  const task = builder.getByTestId(`workflow-task-${last.key}`)
-  await task.scrollIntoViewIfNeeded()
-  const box = (await task.boundingBox())!
-  const x = box.x + box.width / 2, y = box.y + 40
-  if (isMobile) {
-    const cdp = await page.context().newCDPSession(page)
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] })
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + 27, y }] })
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + 54, y }] })
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
-    await cdp.detach()
-  } else {
-    await page.mouse.move(x, y)
-    await page.mouse.down()
-    await page.mouse.move(x + 54, y, { steps: 6 })
-    await page.mouse.up()
-  }
   const beforeDays = last.anchor?.kind === "target" ? last.anchor.days : undefined
   expect(beforeDays).toBeDefined()
+  await builder.getByRole("button", { name: `Edit ${last.title}`, exact: true }).click()
+  await page.getByLabel("Finish by (T±)", { exact: true }).fill(String(-(beforeDays! - 3)))
+  await closeRail(page)
   await expect.poll(async () => {
     const current = (await templateByName(page, "Drag visit timeline")).draft?.steps.find(step => step.key === last.key)
     return current?.anchor?.kind === "target" ? current.anchor.days : undefined

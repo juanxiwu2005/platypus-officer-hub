@@ -7,19 +7,19 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { message: "Offline workflow check" } }))
 })
 
-test("shared Full Check requires an explicit insertion branch", async ({ page }) => {
+test("inserting before shared Full Check keeps its team without a branch prompt", async ({ page }) => {
   await openWorkflow(page)
-  const keys = (await savedWorkflow(page)).steps.map(step => step.key)
+  const before = await savedWorkflow(page)
+  const keys = before.steps.map(step => step.key)
+  const reference = before.steps.find(step => step.key === "finalcheck")!
   const panel = await openWorkflowStep(page, "finalcheck")
-  await panel.getByRole("button", { name: "Add before", exact: true }).click()
-  await expect(panel.getByRole("alert")).toContainText("Choose which incoming branch")
-  expect((await savedWorkflow(page)).steps.map(step => step.key)).toEqual(keys)
-  await panel.getByRole("combobox", { name: "Insertion branch", exact: true }).selectOption("speaker")
+  await expect(panel.getByRole("combobox", { name: "Insertion branch", exact: true })).toHaveCount(0)
   await panel.getByRole("button", { name: "Add before", exact: true }).click()
   const key = await insertedKey(page, keys)
   const step = (await savedWorkflowStep(page, key))!
-  expect(step.placement?.branchId).toBe("speaker")
-  expect(step.cond).toBe("externalGuest")
+  expect(step.placement?.branchId).toBe(reference.placement?.branchId)
+  expect(step.cond).toBe(reference.cond)
+  expect((await savedWorkflow(page)).teamMap?.stepTeams[key]).toBe(before.teamMap?.stepTeams.finalcheck)
   expect((await savedWorkflowStep(page, "finalcheck"))?.dependsOn).toContain(key)
 })
 
@@ -81,8 +81,8 @@ test("an actual event adds and undoes a complete branch snapshot", async ({ page
 
 test("pointer movement updates the real screen order", async ({ page }) => {
   test.skip(test.info().project.name === "mobile", "Desktop pointer gesture; mobile keyboard order is covered separately.")
-  // Date-based Settings placement replaces order dragging; the existing pointer
-  // reorder gesture is retained and verified against a real legacy Plan instance.
+  // The legacy Plan retains its existing pointer-reordering behavior independently
+  // of the new compact Settings sequence editor.
   await page.goto("/#/events?event=e-speaker")
   await closeRail(page)
   await page.getByTestId("flow-edit-toggle").click()
