@@ -13,6 +13,7 @@ type Saved = DemoState & { org: DemoState["org"] & { workflowTemplates?: Templat
 
 const read = (page: Page): Promise<Saved> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
 const names = ["Agree visit", "Confirm transport", "Open sign-up", "Share briefing", "Thank host"]
+let pageErrors: string[] = []
 
 async function closeRail(page: Page) {
   if ((page.viewportSize()?.width ?? 1280) >= 1200) return
@@ -21,11 +22,14 @@ async function closeRail(page: Page) {
 }
 
 test.beforeEach(async ({ page }) => {
+  pageErrors = []
+  page.on("pageerror", error => pageErrors.push(error.message))
   // Every server boundary is offline: creating a human-authored workflow must need no model or mail service.
   await page.route("**/api/**", route => route.request().url().endsWith("/api/health")
     ? route.fulfill({ json: { ok: true, configured: false, provider: null, model: null } })
     : route.fulfill({ status: 503, json: { message: "Offline workflow acceptance" } }))
 })
+test.afterEach(() => expect(pageErrors).toEqual([]))
 
 async function settings(page: Page) {
   await page.goto("/#/settings")
@@ -79,7 +83,7 @@ async function createEvent(page: Page, name: string, template: Template, version
   return (await read(page)).events.find(event => event.name === name)!
 }
 
-test("five manually entered tasks save, instantiate as Plan dots and reopen after refresh without AI", async ({ page }) => {
+test("five manually entered tasks save, instantiate as Plan dots and reopen after refresh without AI", async ({ page }, info) => {
   const calls: string[] = []
   page.on("request", request => { if (/\/api\/(chat|setup\/workflow|nudge\/draft|event\/review)(?:\?|$)/.test(request.url())) calls.push(request.url()) })
   const template = await createTemplate(page, "Company visit")
@@ -96,6 +100,8 @@ test("five manually entered tasks save, instantiate as Plan dots and reopen afte
   expect(tasks.every(node => node.latestStart && node.clubDeadline)).toBe(true)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(5)
   await expect(page.getByTestId("workflow-builder")).toHaveCount(0)
+  await page.getByTestId("flow-chart").scrollIntoViewIfNeeded()
+  await page.screenshot({ path: info.outputPath("plan-task-dots.png"), fullPage: false })
   await page.getByTestId(`flow-node-${tasks[0].stepKey}`).click()
   const detail = page.getByTestId("task-detail")
   await expect(detail.getByRole("heading", { name: names[0], exact: true })).toBeVisible()
@@ -179,6 +185,8 @@ test("before and parallel insertion keep the selected task's team and type; Undo
   await page.getByRole("combobox", { name: "Step type", exact: true }).selectOption("situation")
   await page.getByRole("button", { name: "Add before", exact: true }).click()
   await closeRail(page)
+  await expect.poll(async () => (await templateByName(page, "Insertion trial")).draft?.steps.length).toBe(3)
+  if ((page.viewportSize()?.width ?? 1280) < 1200) await expect(page.locator('[data-testid="rail"][data-state="open"]')).toHaveCount(0)
   await page.getByRole("button", { name: "Save draft", exact: true }).click()
   let draft = (await templateByName(page, "Insertion trial")).draft!
   let added = draft.steps.find(step => !original.steps.some(prior => prior.key === step.key))!
@@ -282,4 +290,5 @@ test("the two authoring views share saved IDs and support keyboard, dark mode an
   expect(accessibility.violations.filter(violation => violation.impact === "serious" || violation.impact === "critical")).toEqual([])
   await expect(editor).toBeVisible()
   await page.screenshot({ path: info.outputPath("workflow-builder-dark.png"), fullPage: false })
+  await builder.locator(".wfb-scroll").screenshot({ path: info.outputPath("workflow-timeline-dark.png") })
 })
