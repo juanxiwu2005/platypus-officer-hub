@@ -79,9 +79,12 @@ export function WorkflowBuilder({ state, steps: inputSteps, branches, stepTeams,
     fresh.stepKind = branch.conditions?.length ? "situation" : "core"
     if (draft.side === "after_event") fresh.anchor = { kind: "target", days: -2, unit: "calendar", label: "Workflow target" }
     const team = (role && state.org.workflowRoleTeams?.[role.id]) || teams[0]?.id
-    const tail = orderedWorkflowSteps(steps).filter(step => stepTeams[step.key] === team).at(-1)
-    if (tail) fresh.dependsOn = [tail.key]
-    const next = { ...snapshot, steps: [...steps, fresh], branches: [...(branches ?? []), branch], stepTeams: { ...stepTeams, ...(team ? { [fresh.key]: team } : {}) } }
+    // A conditional branch is an activation group inside this team's sequence, not a parallel lane.
+    // A before-event branch must be inserted before this team's close-out tasks.
+    const teamSteps = team ? orderedWorkflowSteps(steps).filter(step => stepTeams[step.key] === team) : []
+    const reference = draft.side === "after_event" ? teamSteps.at(-1) : teamSteps.filter(step => step.phase !== "close").at(-1)
+    const inserted = reference ? insertTeamBuilderStep(snapshot, reference.key, "after", fresh.key) : teamSteps.length ? insertTeamBuilderStep(snapshot, teamSteps[0].key, "before", fresh.key) : { ...snapshot, steps: [...steps, fresh] }
+    const next = { ...inserted, steps: inserted.steps.map(item => item.key === fresh.key ? { ...fresh, dependsOn: item.dependsOn } : item), branches: [...(branches ?? []), branch], stepTeams: { ...inserted.stepTeams, ...(team ? { [fresh.key]: team } : {}) } }
     if (!commit(next)) return "This branch would conflict with a protected workflow step."
     setAddBranch(false); openTask(fresh.key)
     return null
