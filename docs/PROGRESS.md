@@ -1,3 +1,6 @@
+> **2026-11-18（America/Phoenix） · Settings紧凑顺序泳道实施中（Codex）**
+> **用户决定：** 采用固定小卡＋就近直连，单团队内任务依次执行、团队间可并行。卡片仅短标题与T-minus；完整名称、负责人、工期与说明留在Details。新草稿及新保存版本按团队顺序补齐依赖，保留跨团队交接与原日期引擎；既有版本和活动快照不回写。独立worktree分别处理布局/路由、数据与编辑器、浏览器验证，沿用PR14、不合并main。
+
 > **2026-11-18（America/Phoenix） · 邮件统一Events流程图与恢复My tasks默认，检查完成待验收（Codex）**
 > **用户纠正与交付：** 按截图把全部新邮件及旧officer/Tasks可复用入口统一到Plan → Events实际流程图＋右侧Details。真实活动任务总按真实eventId定位/选中；无活动Club task右列保留原任务，左侧以最近查看活动供查阅，可切换及返回但不修改活动归属。普通Tasks恢复My tasks默认。其他节点只读共享提交，原grant/操作者、草稿/附件、刷新/历史及Waiting on边界保留。
 > **验证与验收：** 19文件276单元/组件通过，生产双端按唯一用例计32浏览器通过；初轮手机定位、补充种子中视觉标记误计两处测试错误已修并复验，未改图或放宽授权。lint、前后端类型、build、9页字数和入口预算通过，495,809/550,000；完整Networking Night的实际38节点及Moderator定位、Book room切换已验证。[交付](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)与[真实双端截图](prototypes/reminder-events-entry/manifest.json)。运行时代码`c0fbf9f`的Netlify preview14已确认success；沿用PR14/preview14，不合并main，保留同期四队与静态布局研究，0真实AI/邮件，需要同步本地备份。
