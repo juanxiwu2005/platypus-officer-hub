@@ -9,6 +9,10 @@ export type Detail =
   | { kind: "node"; id: string }
   | { kind: "task"; id: string; reply?: string | null }
   | { kind: "nudge"; id: string }
+  /** Today's combined email for one person (concept F): preview, send and that person's open tasks. */
+  | { kind: "reminderDigest"; recipientId: string }
+  /** Recorded reminder emails, replies and no-reply follow-ups. */
+  | { kind: "reminderHistory" }
   | { kind: "funding"; eventId: string }
   | { kind: "event"; eventId: string }
   | { kind: "partner"; id: string }

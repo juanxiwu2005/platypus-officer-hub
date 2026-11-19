@@ -17,6 +17,8 @@ const PartnerDetail = lazy(() => import("../crm/ContactDetail").then(module => (
 const OrgDetail = lazy(() => import("../crm/OrgDetail").then(module => ({ default: module.OrgDetail })))
 const HandoffRoleDetail = lazy(() => import("../../pages/Handoff").then(module => ({ default: module.HandoffRoleDetail })))
 const BoardSettingsPanel = lazy(() => import("../BoardSettings").then(module => ({ default: module.BoardSettingsPanel })))
+const DigestPanel = lazy(() => import("../../reminders/DigestPanel"))
+const ReminderHistoryPanel = lazy(() => import("../../reminders/DigestPanel").then(module => ({ default: module.ReminderHistoryPanel })))
 const EventDetail = lazy(() => import("../EventDetail").then(module => ({ default: module.EventDetail })))
 
 /** Right rail: Ask (the only AI box) and Details (whatever was clicked). */
@@ -96,7 +98,7 @@ function DetailView() {
   const d = rail.detail!
   const box = useRef<HTMLDivElement>(null)
   // Every kind of detail takes focus when it opens or changes (unless it already put focus inside itself).
-  const key = d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" || d.kind === "event" ? `${d.kind}:${d.eventId}` : d.kind
+  const key = d.kind === "reminderDigest" ? `${d.kind}:${d.recipientId}` : d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" || d.kind === "event" ? `${d.kind}:${d.eventId}` : d.kind
   useEffect(() => {
     box.current?.scrollTo?.({ top: 0 })
     if (box.current && !box.current.contains(document.activeElement)) box.current.focus()
@@ -111,7 +113,7 @@ function DetailView() {
     rail.closeDetail()
   }
   useEffect(() => {
-    if (d.kind === "nudge") return // NudgeComposer handles Escape itself
+    if (d.kind === "nudge" || d.kind === "reminderDigest") return // the reminder panels handle Escape themselves
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) close() }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -138,6 +140,8 @@ function DetailView() {
       body = (location.pathname === "/events" || (location.pathname === "/tasks" && new URLSearchParams(location.search).has("access"))) ? <PlanTaskPanel nodeId={d.id} /> : node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
       break
     }
+    case "reminderDigest": return <div ref={box} className="detail-scroll" {...region}><Suspense fallback={<RouteLoading label="Preparing the email…" />}><DigestPanel recipientId={d.recipientId} onClose={close} /></Suspense></div>
+    case "reminderHistory": body = <ReminderHistoryPanel />; break
     case "funding": body = <FundingDetail eventId={d.eventId} />; break
     case "event": body = <EventDetail eventId={d.eventId} />; break
     case "partner": body = <PartnerDetail id={d.id} />; break

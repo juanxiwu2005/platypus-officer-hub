@@ -7,6 +7,8 @@ import { planReminders } from "./engine"
 import { isReminderRuntime } from "./runtime"
 import type { ReminderCandidate, ReminderDelivery, ReminderReason } from "./contracts"
 import type { ReminderMailSnapshot } from "./accessContracts"
+import { planReminderDigests } from "./digest"
+import type { ReminderDigestGroup, ReminderDigestSnapshot } from "./digestContracts"
 
 export type CentreRuntimeState = "active" | "legacy" | "invalid"
 export interface CentreRow {
@@ -16,7 +18,7 @@ export interface CentreRow {
   reason: ReminderReason | null; explanation: string; risk: boolean; taskAvailable: boolean
   candidateId?: string; scheduledOn?: string; blockedReason?: string
   deliveryId?: string; sentOn?: string; via?: ReminderDelivery["via"] | "legacy"
-  outcome?: ReminderDelivery["outcome"]; message?: ReminderMailSnapshot
+  outcome?: ReminderDelivery["outcome"]; message?: ReminderMailSnapshot; digestId?: string
   reply?: string; days?: number; legacy?: boolean; sequence?: number
 }
 export interface ReminderCentre {
@@ -74,7 +76,7 @@ export function reminderCentre(state: DemoState): ReminderCentre {
     eventName: d.eventName, taskTitle: d.taskTitle, recipientId: d.recipientId, recipientName: d.recipientName,
     ownerId: d.ownerId, ownerVersion: d.ownerVersion, due: d.due, reason: d.reason,
     explanation: d.waitingRequestId ? "A request for help." : d.reason === "no_reply" ? "A follow-up after no reply." : "Recorded reminder.",
-    sentOn: d.sentOn, scheduledOn: d.scheduledOn, via: d.via, outcome: d.outcome, message: d.message, sequence: d.sequence })
+    sentOn: d.sentOn, scheduledOn: d.scheduledOn, via: d.via, outcome: d.outcome, message: d.message, sequence: d.sequence, digestId: d.digestId })
   for (const n of state.nudges) sent.push({ ...base(n.nodeId), id: `legacy:${n.id}`, legacy: true,
     eventName: null, taskTitle: n.message?.subject ?? "Earlier reminder", recipientId: n.message?.recipientId ?? null,
     recipientName: name(state, n.message?.recipientId ?? null), ownerId: null, ownerVersion: null, due: null,
@@ -157,4 +159,100 @@ export function taskReminderSummary(state: DemoState, nodeId: string): TaskRemin
   return { runtimeState: centre.runtimeState, recipientId, recipientName: name(state, recipientId), explanation,
     blockedReason, canPrepare: centre.runtimeState === "active" && !!candidate && canLead(state),
     candidateId: candidate?.candidateId, history: centre.sent.filter(x => x.nodeId === nodeId) }
+}
+
+/* ---- Person digests (concept F, 2026-11-19): one email per person per day. Presentation only. ---- */
+export type ChipTone = "late" | "warn" | "info"
+export interface DigestTaskLine { id: string; nodeId: string; title: string; chip: string | null; tone: ChipTone; risk: boolean }
+export interface DigestPerson {
+  recipientId: string; name: string; initials: string
+  /** Today's unsent email for this person, or null when only a recorded email remains. */
+  group: ReminderDigestGroup | null
+  /** The email recorded for this person today, if any. */
+  sent: ReminderDigestSnapshot | null
+  tasks: DigestTaskLine[]
+  /** Not-done tasks this person owns that are not in today's email. */
+  otherOpen: number
+}
+export interface FixRow { id: string; nodeId: string; title: string; problem: string; tone: ChipTone; action: string; legacy: boolean; taskAvailable: boolean }
+export interface DigestCentre {
+  groups: ReminderDigestGroup[]
+  /** Recorded today first, then today's emails in engine order. One entry per email. */
+  people: DigestPerson[]
+  tasks: number; sentToday: number; sentWeek: number
+  fix: FixRow[]
+  nextCheck: { on: string; count: number } | null
+}
+const FIX: Record<string, [string, string]> = {
+  no_owner: ["No owner", "Assign"],
+  unresolved_waiting: ["Pick who it waits on", "Choose person"],
+  paused: ["Stuck", "Help"],
+  unavailable_recipient: ["No valid email", "Review"],
+  legacy_history: ["Check earlier reminders", "I checked · allow future reminders"],
+  daily_limit: ["Limit reached", "Review"], daily_reserved: ["Limit reached", "Review"],
+  weekly_limit: ["Limit reached", "Review"], weekly_reserved: ["Limit reached", "Review"], task_limit: ["Limit reached", "Review"],
+}
+/** Not a problem to fix: the task was already in today's email. */
+const NOT_A_PROBLEM = new Set(["already_sent_today"])
+export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join("") || "?"
+export const firstName = (name: string) => name.split(/\s+/)[0] || name
+
+/** One short reason per task line. Dates and day counts come from the rule engine's candidate. */
+export function reasonChip(c: ReminderCandidate, today: string): { label: string; tone: ChipTone } {
+  if (c.reason === "waiting_on" || c.reason === "waiting_followup") return { label: "Waiting on you", tone: "info" }
+  if (c.reason === "no_reply") return { label: "Follow-up", tone: "info" }
+  if (c.overdueDays > 0) return { label: `${c.overdueDays} day${c.overdueDays === 1 ? "" : "s"} overdue`, tone: "late" }
+  if (c.reason === "overdue") return { label: "Overdue", tone: "late" }
+  if (c.reason === "due") return { label: "Due today", tone: "warn" }
+  return { label: c.scheduledOn < today ? "Start passed" : "Starts today", tone: "warn" }
+}
+
+export function openTasksOf(state: DemoState, personId: string) {
+  return state.nodes.filter(n => n.ownerId === personId && n.status !== "done")
+}
+
+export function digestCentre(state: DemoState, centre: ReminderCentre = reminderCentre(state)): DigestCentre {
+  const today = state.today
+  const plan = centre.runtimeState === "active" ? planReminderDigests(state) : { groups: [], blocked: [], upcoming: [] }
+  const runtime = isReminderRuntime(state.reminderRuntime) ? state.reminderRuntime : null
+  const forecast = forecastFor(state)
+  const sentToday = (runtime?.digests ?? []).filter(d => d.sentOn === today)
+  const latestSent = new Map<string, ReminderDigestSnapshot>()
+  for (const d of sentToday) latestSent.set(d.recipientId, d)
+  const titleOf = (nodeId: string) => state.nodes.find(n => n.id === nodeId)?.title
+  const person = (recipientId: string, fallback: string, group: ReminderDigestGroup | null): DigestPerson => {
+    const name = state.people.find(p => p.id === recipientId)?.name ?? fallback
+    const sent = latestSent.get(recipientId) ?? null
+    const tasks: DigestTaskLine[] = group
+      ? group.candidates.map(c => {
+        const chip = reasonChip(c, today)
+        return { id: c.id, nodeId: c.nodeId, title: titleOf(c.nodeId) ?? "Earlier task", chip: chip.label, tone: chip.tone, risk: forecast.nodes[c.nodeId]?.color === "red" }
+      })
+      : (sent?.nodeIds ?? []).map(nodeId => ({ id: `${sent!.id}:${nodeId}`, nodeId, chip: null, tone: "info" as const, risk: false,
+        title: runtime?.deliveries.find(d => d.digestId === sent!.id && d.nodeId === nodeId)?.taskTitle ?? titleOf(nodeId) ?? "Earlier task" }))
+    const inEmail = new Set(tasks.map(t => t.nodeId))
+    return { recipientId, name, initials: initials(name), group, sent, tasks,
+      otherOpen: openTasksOf(state, recipientId).filter(n => !inEmail.has(n.id)).length }
+  }
+  const grouped = new Set(plan.groups.map(g => g.recipientId))
+  const people = [
+    ...[...latestSent.values()].filter(d => !grouped.has(d.recipientId)).map(d => person(d.recipientId, d.recipientName, null)),
+    ...plan.groups.map(g => person(g.recipientId, g.recipientName, g)),
+  ]
+  const fix = centre.blocked.filter(b => !NOT_A_PROBLEM.has(b.blockedReason ?? "")).map(b => {
+    const [problem, action] = FIX[b.blockedReason ?? ""] ?? ["Review this task", "Review task"]
+    const tone: ChipTone = b.blockedReason === "paused" || b.blockedReason === "unavailable_recipient" ? "late" : "warn"
+    return { id: b.id, nodeId: b.nodeId, title: b.taskTitle, problem, tone, action, legacy: b.blockedReason === "legacy_history", taskAvailable: b.taskAvailable }
+  })
+  // B3: a task already in today's email is not listed again as "coming up".
+  const todayNodes = new Set(plan.groups.flatMap(g => g.candidates.map(c => c.nodeId)))
+  const weekEnd = addDays(today, 7)
+  const later = plan.upcoming.filter(c => c.scheduledOn > today && c.scheduledOn <= weekEnd && !todayNodes.has(c.nodeId))
+  const on = later.map(c => c.scheduledOn).sort()[0]
+  const weekStart = addDays(today, -6)
+  const inWeek = (on?: string) => !!on && on >= weekStart && on <= today
+  const sentWeek = (runtime?.digests ?? []).filter(d => inWeek(d.sentOn)).length
+    + centre.sent.filter(x => !x.digestId && !x.legacy && inWeek(x.sentOn)).length
+  return { groups: plan.groups, people, tasks: plan.groups.reduce((n, g) => n + g.candidates.length, 0), sentToday: sentToday.length, sentWeek, fix,
+    nextCheck: on ? { on, count: new Set(later.map(c => c.nodeId)).size } : null }
 }
