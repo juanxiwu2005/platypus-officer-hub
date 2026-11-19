@@ -10,6 +10,8 @@ import { Feedback } from "../Feedback"
 import { RULES } from "../../data/rules"
 import { officers } from "../../data/permissions"
 import { useRail } from "./RailContext"
+import { findWorkflowTemplateVersion } from "../../data/workflowTemplates"
+import { initialWorkflowChoice, WorkflowTemplatePicker } from "./WorkflowTemplatePicker"
 
 
 /** A change set inside the Ask panel. Each item is checked, edited and approved one by one (plan §8). */
@@ -49,6 +51,7 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
   const navigate = useNavigate()
   const rail = useRail()
   const [op, setOp] = useState(initial)
+  const [workflowChoice, setWorkflowChoice] = useState(() => initial.op === "create_event" ? initialWorkflowChoice(state, change.workflowChoices?.[index]) : undefined)
   const canNudge = canApplyOp(state, initial)
   // Dates come only from the original human sentence, the club's task length setting, or this form — never the AI.
   const [date, setDate] = useState(humanEventDate(change.sentence, state.today) || (initial.op === "add_node" && !initial.eventId ? defaultTaskDue(state) : ""))
@@ -60,14 +63,18 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
   const tierSelect = (tier: Tier, update: (value: Tier) => void) => <label>Difficulty<select aria-label="Difficulty" value={tier} onChange={e => update(e.target.value as Tier)}>{TIERS.map(t => <option key={t}>{t}</option>)}</select></label>
   function apply() {
     // FB-5: a standalone task has one date, Due, so no club buffer is taken off it.
-    const problem = validateReview(state, op, { date, buffered: false })
+    if (op.op === "create_event" && !workflowChoice) { setError("Choose a saved workflow version."); return }
+    const human = { date, buffered: false, ...(op.op === "create_event" && workflowChoice ? { workflowTemplateId: workflowChoice.templateId, workflowTemplateVersion: workflowChoice.templateVersion } : {}) }
+    const problem = validateReview(state, op, human)
     if (problem) { setError(problem); return }
-    dispatch({ type: "reviewChange", id: change.id, index, decision: "applied", op, human: { date, buffered: false } })
+    dispatch({ type: "reviewChange", id: change.id, index, decision: "applied", op, human })
     setError("")
     if (op.op === "propose_nudge") onNudge(op.nodeId)
     if (op.op === "create_event") setTimeout(() => {
       navigate(`/events?event=${encodeURIComponent(`${change.id}:${index}`)}`)
-      rail.requestReview(`${change.id}:${index}`)
+      // Manual workflows are ready to execute directly. AI review remains an optional extension.
+      const version = workflowChoice && findWorkflowTemplateVersion(state, workflowChoice.templateId, workflowChoice.templateVersion)
+      if (version?.kind !== "custom") rail.requestReview(`${change.id}:${index}`)
     }, 0)
   }
   return <article className="change-item" data-testid="change-item">
@@ -80,12 +87,13 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
       <legend className="small muted">Check or edit before applying</legend>
       {op.op === "create_event" && <>
         <label>Event name<input value={op.name} maxLength={80} onChange={e => setOp({ ...op, name: e.target.value })} /></label>
+        <WorkflowTemplatePicker state={state} value={workflowChoice} onChange={setWorkflowChoice} />
         <label>Event date · confirm your choice<input aria-label="Event date" type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
         <label>Expected people<input type="number" min={1} max={5000} value={op.headcount} onChange={e => setOp({ ...op, headcount: Number(e.target.value) })} /></label>
         <label>Food<select aria-label="Food" value={op.food === "none" ? "no" : "yes"} onChange={e => setOp({ ...op, food: e.target.value === "yes" ? (initial.op === "create_event" && initial.food !== "none" ? initial.food : "tbd") : "none" })}><option value="no">No</option><option value="yes">Yes</option></select></label>
         <label className="check-label"><input type="checkbox" checked={op.speaker} onChange={e => setOp({ ...op, speaker: e.target.checked })} /> Guest speaker or performer</label>
         <label>Details<textarea rows={2} maxLength={500} value={op.details ?? ""} onChange={e => setOp({ ...op, details: e.target.value })} /></label>
-        <p className="small muted">Steps and deadlines come from the club playbook after approval.</p>
+        <p className="small muted">The saved workflow supplies the steps. Dates are calculated from your event date.</p>
       </>}
       {op.op === "add_node" && <>
         <label>Task title<input value={op.title} maxLength={100} onChange={e => setOp({ ...op, title: e.target.value })} /></label>

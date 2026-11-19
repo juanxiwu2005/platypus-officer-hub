@@ -19,6 +19,8 @@ import { answerSummary, emitUi } from "../../lib/uiLog"
 import { readAiBudget } from "../../lib/api"
 import { AiWait } from "../AiWait"
 import { EVENT_CHECKLIST } from "../../data/eventChecklist"
+import { findWorkflowTemplateVersion } from "../../data/workflowTemplates"
+import { initialWorkflowChoice, WorkflowTemplatePicker, type WorkflowChoice } from "./WorkflowTemplatePicker"
 
 const CHAT_KEY = "platypus.v1.chat"
 const load = (): ChatMsg[] => {
@@ -177,7 +179,7 @@ export function AskPanel() {
     if (open && open.kind === "form") { focusFirst(open.id); return }
     const card = newEventForm()
     blankForm.current = card.id
-    setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Tell me about the event and I'll draft the plan from the club playbook." }, card], source: "Platypus" }])
+    setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Choose a saved workflow and tell me about the event." }, card], source: "Platypus" }])
     focusFirst(card.id)
   }, [rail.formRequest?.n])
 
@@ -213,15 +215,15 @@ export function AskPanel() {
   }
   const patchCard = (msgId: string, cardIndex: number, card: ChatCard) => setMessages(m => m.map(x => x.id === msgId ? { ...x, cards: x.cards?.map((c, i) => i === cardIndex ? card : c) } : x))
   /** The filled form becomes a change set straight away; the date is the one the person picked. */
-  function submitPlan(msgId: string, index: number, c: Extract<ChatCard, { kind: "form" }>) {
+  function submitPlan(msgId: string, index: number, c: Extract<ChatCard, { kind: "form" }>, workflowChoice?: WorkflowChoice) {
     patchCard(msgId, index, c)
     const op = sanitizeOps([{ ...c.prefill, op: "create_event" }], state)[0]
     if (!op) return
     const id = `change-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-    dispatch({ type: "draftChanges", changeSet: { id, sentence: `Plan ${c.prefill.name} on ${c.date}`, ops: [op], status: "pending", source: "Your details + the club playbook" } })
+    dispatch({ type: "draftChanges", changeSet: { id, sentence: `Plan ${c.prefill.name} on ${c.date}`, ops: [op], status: "pending", source: "Your details + the saved workflow", ...(workflowChoice ? { workflowChoices: { 0: workflowChoice } } : {}) } })
     setMessages(m => [...m,
       { id: uid(), role: "user", text: [c.prefill.name, c.date, `${c.prefill.headcount} people`, `food: ${c.prefill.food && c.prefill.food !== "none" ? FOOD[c.prefill.food] : "no"}`, c.prefill.speaker ? "guest speaker or performer" : null].filter(Boolean).join(" · ") },
-      { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Here is the draft. Approve it and I'll check the plan and open its flow chart." }, { kind: "changes", changeSetId: id }], source: "Club playbook" },
+      { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Review the details, then apply them to open the plan." }, { kind: "changes", changeSetId: id }], source: "Saved workflow" },
     ])
   }
   /** The task form creates at once, as the viewer, with Undo: one task per owner. Its one date is Due (FB-5): no buffer. */
@@ -250,7 +252,7 @@ export function AskPanel() {
       {messages.map(m => m.role === "user"
         ? <div key={m.id} className={`bubble user${alreadyThere.current.has(m.id) ? "" : " is-new"}`}>{m.text}</div>
         : <div key={m.id} className={`bubble bot${alreadyThere.current.has(m.id) ? "" : " is-new"}`} data-testid="bot-reply">
-          {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={card => submitPlan(m.id, i, card)} onTask={card => submitTask(m.id, i, card)} onMoved={card => patchCard(m.id, i, card)} />)}
+          {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={(card, workflowChoice) => submitPlan(m.id, i, card, workflowChoice)} onTask={card => submitTask(m.id, i, card)} onMoved={card => patchCard(m.id, i, card)} />)}
           {m.source && <span className="ask-source">{m.source}</span>}
         </div>)}
       {waiting > 0 && <AiWait key={waitKey} onStop={stopAll} stopTestId="ask-stop" />}
@@ -264,7 +266,7 @@ export function AskPanel() {
   </section>
 }
 
-function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (c: Extract<ChatCard, { kind: "form" }>) => void; onTask: (c: Extract<ChatCard, { kind: "taskform" }>) => void; onMoved: (c: Extract<ChatCard, { kind: "eventdate" }>) => void }) {
+function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (c: Extract<ChatCard, { kind: "form" }>, workflowChoice?: WorkflowChoice) => void; onTask: (c: Extract<ChatCard, { kind: "taskform" }>) => void; onMoved: (c: Extract<ChatCard, { kind: "eventdate" }>) => void }) {
   const { state } = useStore()
   const rail = useRail()
   switch (card.kind) {
@@ -319,15 +321,16 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
 const FOOD: Record<Event["food"], string> = { none: "none", dining: "Sun Devil Dining", offsite: "outside caterer", onsite: "made on site", tbd: "yes" }
 
 /**
- * The event form (M2b, Juanxi 2026-10-27): only what changes the plan — name, date, people, food yes/no and a
+ * The event form: choose a saved workflow, then provide the event facts — name, date, people, food and a
  * guest speaker or performer — plus Details in the person's own words. Place, catering and funding are decided
  * later in the event and finance steps; anything the person already said is kept as it was understood.
  */
-function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>; onDone: (c: Extract<ChatCard, { kind: "form" }>) => void }) {
+export function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>; onDone: (c: Extract<ChatCard, { kind: "form" }>, workflowChoice?: WorkflowChoice) => void }) {
   const { state } = useStore()
   const allowed = canCreateEvent(state)
   const [f, setF] = useState({ name: card.prefill.name ?? "", type: card.prefill.type ?? (card.prefill.speaker ? "speaker" : "social"), headcount: card.prefill.headcount ?? 30, venue: card.prefill.venue ?? "campus", food: card.prefill.food ?? "none", funding: card.prefill.funding ?? "none", speaker: card.prefill.speaker ?? false, checks: card.prefill.checks ?? {} as EventChecks, details: card.prefill.details ?? "" })
   const [date, setDate] = useState(card.date)
+  const [workflowChoice, setWorkflowChoice] = useState(() => initialWorkflowChoice(state))
   const [error, setError] = useState("")
   // Fields the person changed are theirs; the assistant's later reading only fills the others.
   const touched = useRef(new Set<string>())
@@ -356,13 +359,15 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
     if (!allowed) return setError("The president chooses who can create events (Settings).")
     if (!f.name.trim()) return setError("Give the event a name.")
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < state.today) return setError("Pick a date from today on.")
+    if (!workflowChoice || !findWorkflowTemplateVersion(state, workflowChoice.templateId, workflowChoice.templateVersion)) return setError("Choose a saved workflow version.")
     const details = f.details.trim()
-    onDone({ ...card, done: true, date, prefill: { ...f, name: f.name.trim(), details: details || undefined } })
+    onDone({ ...card, done: true, date, prefill: { ...f, name: f.name.trim(), details: details || undefined } }, workflowChoice)
   }}>
     <b>I need these details</b>
     {card.thinking && <p className="small muted" data-testid="ai-reading">AI is reading your message and will fill in what it can…</p>}
     {filled && <p className="small muted" data-testid="ai-filled">AI filled in what you told it. Check and change anything.</p>}
     <label>Event name<input name="platypus-event-title" autoComplete="off" value={f.name} maxLength={80} onChange={e => edit({ name: e.target.value })} placeholder="e.g. Founder Dinner" /></label>
+    <WorkflowTemplatePicker state={state} value={workflowChoice} onChange={setWorkflowChoice} />
     <div className="form-2">
       <label>Date<input type="date" aria-label="Date" value={date} min={state.today} onChange={e => setDate(e.target.value)} /></label>
       <label>People<input type="number" min={1} max={5000} value={f.headcount} onChange={e => edit({ headcount: Number(e.target.value) })} /></label>
@@ -436,7 +441,7 @@ function EventDateCard({ card, onDone }: { card: Extract<ChatCard, { kind: "even
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < state.today) return setError("Pick a date from today on.")
     dispatch({ type: "updateEvent", id: ev.id, patch: { date } })
     onDone({ ...card, eventId: ev.id, date, done: true })
-    rail.requestReview(ev.id)
+    if (ev.workflowRun?.snapshot.kind !== "custom") rail.requestReview(ev.id)
   }}>
     <b>Move an event</b>
     <label>Event<select aria-label="Event" value={eventId} onChange={e => setEventId(e.target.value)}>{state.events.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
