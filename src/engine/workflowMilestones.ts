@@ -9,6 +9,8 @@ export const WORKFLOW_START = "__start__"
 export const WORKFLOW_DONE = "__end__"
 export const WORKFLOW_DAY_ONE = "__event__"
 export const WORKFLOW_DAY_TWO = "__event2__"
+/** The validator's message when Start, the event days or Done are out of order on the main line. */
+export const WORKFLOW_MAIN_LINE_ORDER_ERROR = "Keep Start, each event day and Done in order on the main line."
 const reserved = new Set([WORKFLOW_START, WORKFLOW_DONE, WORKFLOW_DAY_ONE, WORKFLOW_DAY_TWO])
 
 /** Creates version metadata only. Original tasks, business conditions and dependency objects stay untouched. */
@@ -51,7 +53,7 @@ export function workflowMilestoneGraphError(value: unknown, steps: readonly Step
   }
   const keys = new Set(steps.map(step => step.key)), days = new Set(graph.eventDays.map(day => day.id))
   if (keys.size !== steps.length || steps.some(step => reserved.has(step.key))) return "Give real tasks stable IDs separate from workflow stations."
-  if (!Array.isArray(graph.spine) || graph.spine.length < graph.eventDays.length + 2 || graph.spine.length > steps.length + 4 || graph.spine[0] !== WORKFLOW_START || graph.spine.at(-1) !== WORKFLOW_DONE || new Set(graph.spine).size !== graph.spine.length || graph.spine.some(id => typeof id !== "string" || (!keys.has(id) && !days.has(id) && id !== WORKFLOW_START && id !== WORKFLOW_DONE)) || graph.eventDays.some(day => !graph.spine.includes(day.id)) || (days.size === 2 && graph.spine.indexOf(WORKFLOW_DAY_ONE) > graph.spine.indexOf(WORKFLOW_DAY_TWO))) return "Keep Start, each event day and Done in order on the main line."
+  if (!Array.isArray(graph.spine) || graph.spine.length < graph.eventDays.length + 2 || graph.spine.length > steps.length + 4 || graph.spine[0] !== WORKFLOW_START || graph.spine.at(-1) !== WORKFLOW_DONE || new Set(graph.spine).size !== graph.spine.length || graph.spine.some(id => typeof id !== "string" || (!keys.has(id) && !days.has(id) && id !== WORKFLOW_START && id !== WORKFLOW_DONE)) || graph.eventDays.some(day => !graph.spine.includes(day.id)) || (days.size === 2 && graph.spine.indexOf(WORKFLOW_DAY_ONE) > graph.spine.indexOf(WORKFLOW_DAY_TWO))) return WORKFLOW_MAIN_LINE_ORDER_ERROR
   if (!Array.isArray(graph.teamBranches) || graph.teamBranches.length > 60 || !object(graph.taskAnchors)) return "Use valid team branches and task dates."
   const occupied = new Set(graph.spine.filter(id => keys.has(id))), branchIds = new Set<string>()
   for (const branch of graph.teamBranches) {

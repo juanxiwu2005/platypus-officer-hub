@@ -26,7 +26,7 @@ if (args[0] === "--compare") {
 
 const [label, baseUrl] = args
 if (!label || !baseUrl) { console.error("usage: node scripts/dx-shots.mjs <label> <baseUrl>"); process.exit(2) }
-const PAGES = [["today", "/"], ["events", "/events"], ["tasks", "/tasks"], ["team", "/team"], ["rules", "/rules"], ["partners", "/partners"], ["handoff", "/handoff"], ["settings", "/settings"]]
+const PAGES = [["today", "/"], ["events", "/events"], ["tasks", "/tasks"], ["team", "/team"], ["rules", "/rules"], ["handoff", "/handoff"], ["settings", "/settings"]]
 // Playwright reads the page size from `viewport`, so it must be spelled out (the first version put width/height at the top level and got 1280x720).
 const VIEWPORTS = { desktop: { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 }, mobile: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true } }
 mkdirSync(dir(label), { recursive: true })

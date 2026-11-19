@@ -57,10 +57,18 @@
 .wfx-station.is-day i { width: 30px; height: 30px; border: 3px solid var(--accent); background: var(--accent-soft); }
 .wfx-station.is-day strong { max-width: 132px; color: var(--accent-ink); }
 .wfx-station.is-selected i, .wfx-task.is-selected i { box-shadow: 0 0 0 var(--s2) var(--accent-soft), 0 0 0 var(--s3) var(--accent); }
-.wfx-task { cursor: grab; touch-action: none; user-select: none; }
+/* Lane tasks and main-line tasks are draggable; event days, Start and Done are not. */
+.wfx-task, .wfx-station.is-task { cursor: grab; touch-action: none; user-select: none; }
 .wfx-task.is-checked i { border-color: var(--accent); background: var(--accent); }
-.wfx-task.is-dragging { z-index: var(--z-menu); cursor: grabbing; }
-.wfx-task.is-dragging i { box-shadow: var(--elev-2); background: var(--accent-soft); }
+.wfx-task.is-dragging, .wfx-station.is-dragging { z-index: var(--z-menu); cursor: grabbing; }
+.wfx-task.is-dragging i, .wfx-station.is-dragging i { box-shadow: var(--elev-2); background: var(--accent-soft); }
+
+/* Drop diamonds, the same language as Plan's .m-gap: every legal slot shows while dragging; the nearest grows. */
+.wfx-slot { position: absolute; z-index: var(--z-sticky); box-sizing: border-box; width: 14px; height: 14px; border: 2px solid var(--accent); border-radius: var(--r-xs); background: var(--surface); opacity: .7; pointer-events: none; transform: translate(-50%, -50%) rotate(45deg); transition: transform var(--dur-press) var(--ease-out), opacity var(--dur-press) var(--ease-out); }
+/* The chosen diamond stays visible above the dragged dot (the stage is its own stacking context). */
+.wfx-slot.is-near { z-index: var(--z-tip); opacity: 1; background: var(--accent); box-shadow: 0 0 0 var(--s3) var(--accent-soft); transform: translate(-50%, -50%) rotate(45deg) scale(1.57); }
+.wfx-drop-note { margin: 0 0 var(--s4); color: var(--muted); }
+.wfx-drop-note:empty { margin: 0; }
 .wfx-station:focus-visible, .wfx-task:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); border-radius: var(--r-sm); }
 
 .wfx-legend { flex-wrap: wrap; gap: var(--s4) var(--s7); margin: var(--s5) 0 0; padding: 0; list-style: none; color: var(--muted); }

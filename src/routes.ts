@@ -20,15 +20,14 @@ export interface PageDef {
 
 /**
  * Navigation (FB-8, docs/feedback-fix/PLAN.md §12.2): the product does two things, reminding officers and handing a role over,
- * so the main items are Reminders, Plan, Handoff and Rules. Team and Partners stay, folded into "More". Settings and Help at the bottom.
+ * Team is a primary item. Partners is temporarily archived (src/archive/partners); Settings and Help stay at the bottom.
  */
 export const PAGES: PageDef[] = [
   { path: "/", label: "Reminders", icon: "reminders", question: "Who needs a reminder, and who hasn't answered?", group: "main" },
   { path: "/events", label: "Plan", title: "Events", icon: "events", question: "What has to happen, and who owns it?", group: "main", also: ["/tasks"] },
+  { path: "/team", label: "Team", icon: "team", question: "Who is overloaded, who deserves credit, and when can we meet?", group: "main" },
   { path: "/handoff", label: "Handoff", icon: "handoff", question: "How do we hand over without starting from zero?", group: "main" },
   { path: "/rules", label: "Rules", icon: "rules", question: "What does ASU require?", group: "main" },
-  { path: "/team", label: "Team", icon: "team", question: "Who is overloaded, who deserves credit, and when can we meet?", group: "more" },
-  { path: "/partners", label: "Partners", icon: "partners", question: "Which relationships need a touch?", group: "more" },
   { path: "/tasks", label: "Tasks", icon: "tasks", question: "What has to happen, and who owns it?", group: "plan" },
   { path: "/settings", label: "Settings", icon: "settings", question: "How should Platypus work for this club?", group: "footer" },
   { path: "/help", label: "Help", icon: "help", question: "How does Platypus work?", group: "footer" },

@@ -1,3 +1,5 @@
+> **2026-11-19 Partners 暂时归档／Team 主导航（Juanxi明确要求）：** 暂时隐藏独立Partners模块，页面和专用样式、测试移至归档目录，不删除业务代码或既有联系人/组织/联系历史；旧Partners地址返回首页。共享Handoff联系资料保留。Team直接显示在主导航，无活动子项时隐藏空More菜单。原型仍沿用preview14；[归档与恢复](../src/archive/partners/README.md)。
+
 > **2026-11-18 一日／两日日期主线（Juanxi已批准接入preview14，覆盖下方旧点状编辑设计）：** 仅1-day / 2-day，不提供3-day。Start—共享任务—独立Event day—Done为主线，团队branch保存明确起点/汇合点，支持活动前、两日之间和最后一日之后分叉；同团队可在不同区间重复负责branch。每branch从组织已有团队下拉选择，画布不创建Team N、不改组织团队名。Start/Done、每个Event day、共享任务与所有普通任务均可点击，在右侧Details编辑；Full check仍是真实任务，Event day改为固定日期里程碑而非普通任务。相对Day1日期与任务目标由规则引擎计算，未完成前置只报风险，活动日不随任务拖延；ASU硬限仍相对Day1。新版本/运行快照保存可选milestoneGraph，已有活动不回写。Quick entry、Undo、条件/岗位/团队、草稿与版本保留。[实施契约](feedback-fix/WORKFLOW_MILESTONE_CONTRACT.md)。
 
 > **2026-11-18 点状团队泳道（Juanxi最新要求，取代下条顺序小卡编辑设计）：** Settings → Workflow改为圆点、灰色轨道和半透明团队底卡；默认Start—Done为固定虚拟端点。Add branch一键创建组织团队及空平行轨道，Add task一键新增；Full check/Event day预设可重复，节点均为独立稳定ID。复用团队基础映射，跨团队拖动仅改teamMap，保留原岗位、条件、依赖和日期；新编辑草稿/版本采用`teamExecution:dependencies`，不再自动串起同队全部任务。旧sequential已发布版本与已有活动保持原快照；依赖仍可在Details明确编辑并经过环/校规验证。密集团队在单一底卡内续行，缩放/适应宽度与完整右侧编辑保留，Plan仍使用实际任务圆点。[本轮设计](feedback-fix/WORKFLOW_DOT_EDITOR_CONTRACT.md)。

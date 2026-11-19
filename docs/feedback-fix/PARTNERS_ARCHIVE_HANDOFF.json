@@ -1,0 +1,43 @@
+{
+  "runtimeCommit": "52dd77ad62e8047cd3ec5c38f863f2843fc67ace",
+  "baseline": "ac19513",
+  "archive": "../../archive/partners/manifest.json",
+  "unitTests": {
+    "files": 3,
+    "passed": 44
+  },
+  "browser": {
+    "passed": 39,
+    "deviceSpecificSkipped": 1,
+    "newArchiveAndTeamPassed": 6,
+    "knownUnrelatedFailures": {
+      "count": 2,
+      "spec": "dx-18-empty.spec.ts",
+      "cause": "Reminders empty text expects None yet. but baseline ac19513 already renders No recorded reminders yet.; existing reminder UI is being edited independently."
+    }
+  },
+  "checks": {
+    "lint": "passed",
+    "frontendTypes": "passed",
+    "netlifyTypes": "passed",
+    "productionBuild": "passed",
+    "words": "8 active pages passed; archived Partners original budget documented for restoration",
+    "entryBytes": 508070,
+    "entryBudget": 550000,
+    "noPartnersPageChunk": true,
+    "originalCssByteExact": true,
+    "originalPageLogicPreserved": true,
+    "seriousCriticalNavigationAxe": 0,
+    "realAiCalls": 0,
+    "externalEmails": 0
+  },
+  "screenshots": [
+    "../prototypes/partners-archive/team-navigation-desktop.png",
+    "../prototypes/partners-archive/team-navigation-mobile.png"
+  ],
+  "deployPreview": {
+    "state": "success",
+    "url": "https://deploy-preview-14--platypus-officer-hub.netlify.app",
+    "statusContext": "netlify/platypus-officer-hub/deploy-preview"
+  }
+}

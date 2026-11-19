@@ -59,10 +59,13 @@ test("workflow workdays reject empty and out of range drafts then persist an int
   await expect(restoredPanel.getByLabel("Days of work", { exact: true })).toHaveValue("10")
 })
 
-test("Full Check remains protected in the new details panel", async ({ page }) => {
+// 2026-11-19 (Juanxi): the preset's main line is adjustable. Organization core steps such as Full Check can be
+// deleted from the preset; ASU-rule steps stay protected (see workflow-setup.spec.ts) and Restore brings the preset back.
+test("Full Check can be removed from the preset, with Restore named as the way back", async ({ page }) => {
   await openWorkflow(page)
   const panel = await openWorkflowStep(page, "finalcheck")
-  await expect(panel.getByRole("button", { name: "Delete task", exact: true })).toBeDisabled()
+  await expect(panel.getByRole("button", { name: "Delete task", exact: true })).toBeEnabled()
+  await expect(panel).toContainText("Restore Platypus preset brings it back.")
   await closeRail(page)
   await expect(page.getByTestId("workflow-task-plan")).toBeVisible()
 })

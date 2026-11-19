@@ -189,14 +189,73 @@ describe("milestone authoring commands", () => {
     expect(errors(result)).toBeNull()
   })
 
-  it("places a task on the main spine before Day 1 and refuses to move a referenced shared station away", () => {
+  it("places a task on the main spine before Day 1 by default and never moves a station that is not a task", () => {
     const value = fixture(), result = moveMilestoneTask(value, "B", "__main__")
     expect(result.milestoneGraph!.spine).toEqual([WORKFLOW_START, "B", WORKFLOW_DAY_ONE, WORKFLOW_DONE])
     expect(result.stepTeams.B).toBe(value.stepTeams.B)
     const early = { ...value, milestoneGraph: { ...value.milestoneGraph!, taskAnchors: Object.fromEntries(Object.keys(value.milestoneGraph!.taskAnchors).map(key => [key, { eventDayId: WORKFLOW_DAY_ONE, offsetDays: -21 }])) } }
     const check = addMilestoneCheck(early, "check")
-    expect(moveMilestoneTask(check, "check", branchFor(check, "A").id)).toBe(check)
     expect(moveMilestoneTask(check, WORKFLOW_DAY_ONE, branchFor(check, "A").id)).toBe(check)
+    expect(moveMilestoneTask(check, WORKFLOW_START, "__main__", WORKFLOW_DONE, true)).toBe(check)
+  })
+
+  it("moves a shared main-line task into a branch, handing branch joins to its surviving neighbours", () => {
+    const value = fixture()
+    const early = { ...value, milestoneGraph: { ...value.milestoneGraph!, taskAnchors: Object.fromEntries(Object.keys(value.milestoneGraph!.taskAnchors).map(key => [key, { eventDayId: WORKFLOW_DAY_ONE, offsetDays: -21 }])) } }
+    let check = addMilestoneCheck(early, "check")
+    check = addMilestoneBranch(check, { teamId: "ops", fromId: "check", toId: WORKFLOW_DONE }, "after-check")
+    expect(check.milestoneGraph!.teamBranches.some(branch => branch.toId === "check")).toBe(true)
+    const target = branchFor(check, "A")
+    const result = moveMilestoneTask(check, "check", target.id, "A", true)
+    const graph = result.milestoneGraph!
+    expect(graph.spine).toEqual([WORKFLOW_START, WORKFLOW_DAY_ONE, WORKFLOW_DONE])
+    expect(graph.teamBranches.find(branch => branch.id === target.id)!.stepIds).toEqual(["check", "A", "B"])
+    expect(graph.teamBranches.some(branch => branch.fromId === "check" || branch.toId === "check")).toBe(false)
+    expect(graph.teamBranches.find(branch => branch.id === "after-check")!.fromId).toBe(WORKFLOW_START)
+    expect(graph.teamBranches.filter(branch => branch.id !== "after-check").every(branch => branch.toId === WORKFLOW_DAY_ONE)).toBe(true)
+    expect(result.stepTeams.check).toBe(target.teamId)
+    expect(errors(result)).toBeNull()
+  })
+
+  it("inserts on the main line relative to a station, keeping Start first and Done last", () => {
+    let value = setMilestoneDayCount(fixture(), 2)
+    value = addMilestoneBranch(value, { teamId: "ops", fromId: WORKFLOW_DAY_TWO, toId: WORKFLOW_DONE }, "post")
+    value = addMilestoneTask(value, "post", "closing")
+    const afterDayOne = moveMilestoneTask(value, "B", "__main__", WORKFLOW_DAY_TWO, true)
+    expect(afterDayOne.milestoneGraph!.spine).toEqual([WORKFLOW_START, WORKFLOW_DAY_ONE, "B", WORKFLOW_DAY_TWO, WORKFLOW_DONE])
+    // Dated from the next event day at or after its new position.
+    expect(afterDayOne.milestoneGraph!.taskAnchors.B.eventDayId).toBe(WORKFLOW_DAY_TWO)
+    const beforeDone = moveMilestoneTask(value, "closing", "__main__", WORKFLOW_DONE, true)
+    expect(beforeDone.milestoneGraph!.spine).toEqual([WORKFLOW_START, WORKFLOW_DAY_ONE, WORKFLOW_DAY_TWO, "closing", WORKFLOW_DONE])
+    // Nothing after the task: the last event day.
+    expect(beforeDone.milestoneGraph!.taskAnchors.closing.eventDayId).toBe(WORKFLOW_DAY_TWO)
+    expect(errors(afterDayOne)).toBeNull()
+    expect(errors(beforeDone)).toBeNull()
+    // Reorder within the main line.
+    const both = moveMilestoneTask(afterDayOne, "closing", "__main__", "B", true)
+    expect(both.milestoneGraph!.spine).toEqual([WORKFLOW_START, WORKFLOW_DAY_ONE, "closing", "B", WORKFLOW_DAY_TWO, WORKFLOW_DONE])
+    const reordered = moveMilestoneTask(both, "B", "__main__", "closing", true)
+    expect(reordered.milestoneGraph!.spine).toEqual([WORKFLOW_START, WORKFLOW_DAY_ONE, "B", "closing", WORKFLOW_DAY_TWO, WORKFLOW_DONE])
+    expect(errors(reordered)).toBeNull()
+    // Never before Start, never after Done.
+    expect(moveMilestoneTask(value, "B", "__main__", WORKFLOW_START, true)).toBe(value)
+    expect(moveMilestoneTask(value, "B", "__main__", WORKFLOW_DONE, false)).toBe(value)
+    // School steps stay on Day 1 wherever they go.
+    value.steps = value.steps.map(item => item.key === "B" ? { ...item, ruleIds: ["R01"] } : item)
+    expect(moveMilestoneTask(value, "B", "__main__", WORKFLOW_DONE, true).milestoneGraph!.taskAnchors.B.eventDayId).toBe(WORKFLOW_DAY_ONE)
+  })
+
+  it("moves a main-line task to another main-line slot and re-points the branches that left from or joined it", () => {
+    const value = fixture()
+    const early = { ...value, milestoneGraph: { ...value.milestoneGraph!, taskAnchors: Object.fromEntries(Object.keys(value.milestoneGraph!.taskAnchors).map(key => [key, { eventDayId: WORKFLOW_DAY_ONE, offsetDays: -21 }])) } }
+    let check = addMilestoneCheck(early, "check")
+    check = addMilestoneBranch(check, { teamId: "ops", fromId: "check", toId: WORKFLOW_DAY_ONE }, "from-check")
+    const result = moveMilestoneTask(check, "check", "__main__", WORKFLOW_DONE, true)
+    const graph = result.milestoneGraph!
+    expect(graph.spine).toEqual([WORKFLOW_START, WORKFLOW_DAY_ONE, "check", WORKFLOW_DONE])
+    expect(graph.teamBranches.find(branch => branch.id === "from-check")).toMatchObject({ fromId: WORKFLOW_START, toId: WORKFLOW_DAY_ONE })
+    expect(graph.teamBranches.every(branch => branch.toId !== "check" && branch.fromId !== "check")).toBe(true)
+    expect(errors(result)).toBeNull()
   })
 
   it("moves a post-Day-2 task to the main line against Day 1 while retaining its authored offset and role", () => {

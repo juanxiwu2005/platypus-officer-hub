@@ -11,7 +11,7 @@ import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { clearLocalDocs } from "../lib/localDocs"
 import { applySchedule, computeSchedule, topoOrder, type Schedule } from "../engine/schedule"
 import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "../engine/playbooks"
-import { newWorkflowTemplate, saveWorkflowTemplateDraft, publishWorkflowTemplate, duplicateWorkflowTemplate, setDefaultWorkflowTemplate } from "./workflowTemplates"
+import { newWorkflowTemplate, saveWorkflowTemplateDraft, publishWorkflowTemplate, duplicateWorkflowTemplate, setDefaultWorkflowTemplate, discardWorkflowTemplateDraft, restoreWorkflowPreset } from "./workflowTemplates"
 import { ensureWorkflowPresetTeams } from "./workflowTeamDefaults"
 import { saveWorkflowTeams } from "./workflowTeamSettings"
 import { nextCounter } from "../lib/ids"
@@ -189,6 +189,8 @@ export type Action =
   | { type: "publishWorkflowTemplate"; id: string }
   | { type: "duplicateWorkflowTemplate"; sourceId: string; id: string; name: string }
   | { type: "setDefaultWorkflowTemplate"; id: string }
+  | { type: "discardWorkflowTemplateDraft"; id: string }
+  | { type: "restoreWorkflowPreset"; id: string }
   | { type: "saveWorkflowTeams"; teams: WorkflowTeam[]; roleTeams: Record<string, string> }
 
 const NODE_FIELDS: (keyof NodePatch)[] = ["externalLinks", "title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "startPolicy", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
@@ -636,6 +638,8 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "publishWorkflowTemplate": return publishWorkflowTemplate(state, action.id)
     case "duplicateWorkflowTemplate": return duplicateWorkflowTemplate(state, action.sourceId, action.id, action.name)
     case "setDefaultWorkflowTemplate": return setDefaultWorkflowTemplate(state, action.id)
+    case "discardWorkflowTemplateDraft": return discardWorkflowTemplateDraft(state, action.id)
+    case "restoreWorkflowPreset": return restoreWorkflowPreset(state, action.id)
     case "saveWorkflowTeams": return saveWorkflowTeams(state, action.teams, action.roleTeams)
     case "saveWorkflow": return saveWorkflow(state, action.steps, action.branches)
     case "resetWorkflow": return resetWorkflow(state)
@@ -854,7 +858,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "advanceClock": out = { today: s.today }; break
     case "saveBoard": out = { board: s.org.board }; break
     case "removeEventStep": out = fields(node(a.nodeId), ["title", "dependsOn", "status", "estDays", "ownerId"]); break
-    case "newWorkflowTemplate": case "saveWorkflowTemplateDraft": case "publishWorkflowTemplate": case "duplicateWorkflowTemplate": case "setDefaultWorkflowTemplate": out = { templateIds: s.org.workflowTemplates?.map(template => template.id), defaultWorkflowTemplateId: s.org.defaultWorkflowTemplateId }; break
+    case "newWorkflowTemplate": case "saveWorkflowTemplateDraft": case "publishWorkflowTemplate": case "duplicateWorkflowTemplate": case "setDefaultWorkflowTemplate": case "discardWorkflowTemplateDraft": case "restoreWorkflowPreset": out = { templateIds: s.org.workflowTemplates?.map(template => template.id), defaultWorkflowTemplateId: s.org.defaultWorkflowTemplateId }; break
     case "saveWorkflowTeams": out = { workflowTeams: s.org.workflowTeams, workflowRoleTeams: s.org.workflowRoleTeams }; break
     case "saveWorkflow": case "resetWorkflow": out = { eventWorkflow: s.org.eventWorkflow }; break
     case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break

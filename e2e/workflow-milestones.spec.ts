@@ -4,6 +4,7 @@ import type { DemoState, StepTemplate, WorkflowMilestoneGraph, WorkflowTemplate 
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { noOverflow } from "./helpers"
 import { openBranch, openMenu, setBranchTeam } from "./workflowLegacyHelpers"
+import { dragToSlot } from "./workflowDrag"
 
 const ID = "milestone-browser-fixture"
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
@@ -80,22 +81,7 @@ async function createEvent(page: Page, template: WorkflowTemplate, name: string,
 }
 
 async function dragToBranch(page: Page, sourceKey: string, targetBranch: string, touch: boolean) {
-  await closeRail(page)
-  const source = page.getByTestId(`workflow-task-${sourceKey}`), target = page.getByTestId(`workflow-segment-${targetBranch}`)
-  await source.scrollIntoViewIfNeeded()
-  const [a, b] = await Promise.all([source.boundingBox(), target.boundingBox()])
-  if (!a || !b) throw new Error("The task and destination branch must be rendered")
-  const x = a.x + a.width / 2, y = a.y + 16
-  const tx = Math.min(b.x + b.width - 28, Math.max(x, b.x + 40)), ty = b.y + b.height * 0.6
-  if (touch) {
-    const cdp = await page.context().newCDPSession(page)
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] })
-    for (let i = 1; i <= 10; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + (tx - x) * i / 10, y: y + (ty - y) * i / 10 }] })
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
-    await cdp.detach()
-  } else {
-    await page.mouse.move(x, y); await page.mouse.down(); await page.mouse.move(tx, ty, { steps: 12 }); await page.mouse.up()
-  }
+  await dragToSlot(page, `workflow-task-${sourceKey}`, slot => slot.branchId === targetBranch, touch)
 }
 
 test("only one-day and two-day workflows exist and every boundary, date and shared task edits in Details", async ({ page }) => {

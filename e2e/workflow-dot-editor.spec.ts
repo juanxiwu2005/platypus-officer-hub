@@ -5,6 +5,7 @@ import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { addDays } from "../src/lib/dates"
 import { noOverflow } from "./helpers"
 import { branchPill, branchTeamValue, menuTrigger, openMenu, setBranchTeam } from "./workflowLegacyHelpers"
+import { dragToSlot } from "./workflowDrag"
 
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
 let errors: string[] = []
@@ -42,31 +43,9 @@ async function empty(page: Page, name: string) {
   return builder
 }
 
-/** Use browser input, including real touch pointer events on the mobile project. */
+/** Use browser input, including real touch pointer events on the mobile project: drop on one of the branch's diamonds. */
 async function moveToTeam(page: Page, sourceKey: string, targetBranchId: string, touch: boolean) {
-  await closeRail(page)
-  const source = page.getByTestId(`workflow-task-${sourceKey}`)
-  const lane = page.getByTestId(`workflow-segment-${targetBranchId}`)
-  await page.getByTestId("workflow-builder").locator(".wfx-scroll").scrollIntoViewIfNeeded()
-  await source.scrollIntoViewIfNeeded()
-  const [a, b] = await Promise.all([source.boundingBox(), lane.boundingBox()])
-  if (!a || !b) throw new Error("Task and destination branch must both be rendered")
-  const x = a.x + a.width / 2, y = a.y + a.height / 2
-  // Stay in the destination's task area, away from its team-name and Add task controls.
-  const targetX = Math.min(b.x + b.width - 45, Math.max(x, b.x + 170))
-  const targetY = b.y + b.height * 0.65
-  if (touch) {
-    const cdp = await page.context().newCDPSession(page)
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] })
-    for (let i = 1; i <= 8; i++) await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + (targetX - x) * i / 8, y: y + (targetY - y) * i / 8 }] })
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
-    await cdp.detach()
-  } else {
-    await page.mouse.move(x, y)
-    await page.mouse.down()
-    await page.mouse.move(targetX, targetY, { steps: 10 })
-    await page.mouse.up()
-  }
+  await dragToSlot(page, `workflow-task-${sourceKey}`, slot => slot.branchId === targetBranchId, touch)
 }
 
 async function publish(page: Page) {

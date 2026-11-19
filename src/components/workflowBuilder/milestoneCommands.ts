@@ -1,7 +1,8 @@
 import type { StepTemplate, WorkflowMilestoneGraph } from "../../data/types"
-import { createWorkflowMilestoneGraph, WORKFLOW_DAY_ONE, WORKFLOW_DAY_TWO, WORKFLOW_DONE, WORKFLOW_START } from "../../engine/workflowMilestones"
+import { createWorkflowMilestoneGraph, workflowMilestoneGraphError, WORKFLOW_DAY_ONE, WORKFLOW_MAIN_LINE_ORDER_ERROR, WORKFLOW_DAY_TWO, WORKFLOW_DONE, WORKFLOW_START } from "../../engine/workflowMilestones"
 import { isAsuStep } from "../../engine/workflowPolicy"
 import { createBuilderStep, newBuilderStepId, type BuilderSnapshot } from "./model"
+import { MAIN_LINE } from "./laneLayout"
 
 type TeamBranch = WorkflowMilestoneGraph["teamBranches"][number]
 type TaskAnchor = WorkflowMilestoneGraph["taskAnchors"][string]
@@ -193,35 +194,54 @@ function detachOldPath(steps: StepTemplate[], path: string[], key: string): Step
   })
 }
 
+/**
+ * Move one task into a team branch, or onto the main line (`branchId` "__main__") relative to `targetId`.
+ * A main-line task that branches leave from or join at hands those endpoints to its surviving neighbours,
+ * so the move succeeds and the graph stays valid. An invalid result leaves the snapshot unchanged.
+ */
 export function moveMilestoneTask(snapshot: BuilderSnapshot, key: string, branchId: string, targetId?: string, before = false): BuilderSnapshot {
   const current = ensureMilestoneSnapshot(snapshot), original = current.milestoneGraph!
   const step = current.steps.find(item => item.key === key)
-  if (!step) return current
+  if (!step || targetId === key) return current
+  const toMain = branchId === MAIN_LINE
   const source = original.teamBranches.find(branch => branch.stepIds.includes(key)), inSpine = original.spine.includes(key)
-  const target = branchId === "__main__" ? null : original.teamBranches.find(branch => branch.id === branchId)
-  if ((!source && !inSpine) || (branchId !== "__main__" && !target)) return current
-  if (inSpine && original.teamBranches.some(branch => branch.fromId === key || branch.toId === key)) return current
+  const target = toMain ? null : original.teamBranches.find(branch => branch.id === branchId)
+  if ((!source && !inSpine) || (!toMain && !target)) return current
   const oldPath = source?.stepIds ?? original.spine.filter(id => current.steps.some(item => item.key === id))
   const targetPath = target?.stepIds ?? original.spine
-  if (targetId === key && source?.id === branchId) return current
   const reordered = targetPath.filter(id => id !== key)
-  const at = !target ? reordered.indexOf(original.eventDays[0]?.id ?? WORKFLOW_DAY_ONE)
-    : targetId && reordered.includes(targetId) ? reordered.indexOf(targetId) + (before ? 0 : 1) : reordered.length
-  if (at < 0) return current
+  const at = targetId && reordered.includes(targetId) ? reordered.indexOf(targetId) + (before ? 0 : 1)
+    : toMain ? reordered.indexOf(original.eventDays[0]?.id ?? WORKFLOW_DAY_ONE) : reordered.length
+  // The main line always opens with Start and closes with Done.
+  if (at < 0 || (toMain && (at < 1 || at > reordered.length - 1))) return current
   reordered.splice(at, 0, key)
-  if (((source && source.id === branchId) || (inSpine && branchId === "__main__")) && JSON.stringify(targetPath) === JSON.stringify(reordered)) return current
+  if (((source && source.id === branchId) || (inSpine && toMain)) && JSON.stringify(targetPath) === JSON.stringify(reordered)) return current
   const graph = copy(original)
-  graph.spine = branchId === "__main__" ? reordered : graph.spine.filter(id => id !== key)
-  graph.teamBranches = graph.teamBranches.map(branch => ({ ...branch, stepIds: branch.id === branchId ? reordered : branch.stepIds.filter(id => id !== key) }))
+  graph.spine = toMain ? reordered : graph.spine.filter(id => id !== key)
+  const oldSpine = original.spine, spineAt = oldSpine.indexOf(key)
+  graph.teamBranches = graph.teamBranches.map(branch => ({ ...branch,
+    ...(inSpine && branch.fromId === key ? { fromId: oldSpine[spineAt - 1] } : {}),
+    ...(inSpine && branch.toId === key ? { toId: oldSpine[spineAt + 1] } : {}),
+    stepIds: branch.id === branchId ? reordered : branch.stepIds.filter(id => id !== key),
+  }))
   const steps = detachOldPath(current.steps, oldPath, key)
   const changedInterval = target && (!source || source.fromId !== target.fromId || source.toId !== target.toId)
   const anchor = graph.taskAnchors[key]
-  if (anchor && (changedInterval || branchId === "__main__")) graph.taskAnchors[key] = { ...anchor, eventDayId: isAsuStep(step) || !target ? WORKFLOW_DAY_ONE : branchAnchor(graph, target).eventDayId }
+  if (anchor && (changedInterval || toMain)) {
+    // On the main line a task dates from the next event day at or after it, else the last one.
+    const position = graph.spine.indexOf(key)
+    const mainDay = graph.eventDays.find(day => graph.spine.indexOf(day.id) > position)?.id ?? graph.eventDays.at(-1)?.id ?? WORKFLOW_DAY_ONE
+    graph.taskAnchors[key] = { ...anchor, eventDayId: isAsuStep(step) ? WORKFLOW_DAY_ONE : target ? branchAnchor(graph, target).eventDayId : mainDay }
+  }
   const stepTeams = target ? { ...current.stepTeams } : current.stepTeams
   if (target) {
     if (target.teamId) stepTeams[key] = target.teamId
     else delete stepTeams[key]
   }
+  // Main-line order (Start first, event days in order, Done last) is never broken by a move. Other problems,
+  // such as a dependency loop, are returned so the editor can explain why it refuses the change.
+  const problem = workflowMilestoneGraphError(graph, steps)
+  if (problem && problem === WORKFLOW_MAIN_LINE_ORDER_ERROR && problem !== workflowMilestoneGraphError(original, current.steps)) return current
   return { ...current, steps, stepTeams, milestoneGraph: graph }
 }
 

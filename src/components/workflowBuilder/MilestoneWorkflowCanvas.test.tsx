@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react"
 import type { StepTemplate, WorkflowMilestoneGraph } from "../../data/types"
 import { MilestoneWorkflowCanvas } from "./MilestoneWorkflowCanvas"
-import { buildLaneLayout } from "./laneLayout"
+import { buildLaneLayout, laneDropSlots } from "./laneLayout"
 
 const task = (key: string, title: string, phase: StepTemplate["phase"] = "prepare"): StepTemplate => ({ key, title, fn: "programs", phase, estDays: 1, tier: "light", dependsOn: [], why: "Saved details", source: "Fictional test" })
 const steps = [task("A", "Prepare event materials", "plan"), task("B", "Send thank you", "close"), task("check", "Full check")]
@@ -11,6 +11,7 @@ const props = () => ({ steps, graph: graph(), teams: [{ id: "ops", name: "Operat
 // jsdom reports no width, so the canvas measures its 1040px fallback and fits at 100%.
 const layoutFor = (value: ReturnType<typeof props>) => buildLaneLayout(value.steps, value.graph, { availableWidth: 1036 })
 afterEach(cleanup)
+const zoomLevel = () => within(screen.getByRole("group", { name: "Canvas zoom" })).getByRole("status")
 
 describe("editable lane workflow canvas", () => {
   it("makes both endpoints, the day, shared check and branch tasks native selectable buttons", () => {
@@ -113,16 +114,16 @@ describe("editable lane workflow canvas", () => {
     const value = props(), layout = layoutFor(value), point = layout.points.find(item => item.step.key === "A")!, empty = layout.lanes.find(lane => lane.branch.id === "empty")!
     render(<MilestoneWorkflowCanvas {...value} />)
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }))
-    expect(screen.getByRole("status").textContent).toBe("115%")
+    expect(zoomLevel().textContent).toBe("115%")
     const scale = 1.15, button = screen.getByTestId("workflow-task-A"), target = { x: (empty.x + empty.width / 2) * scale, y: (empty.y + 70) * scale }
     fireEvent.pointerDown(button, { pointerId: 4, pointerType: "touch", button: 0, clientX: point.x * scale, clientY: point.y * scale })
     fireEvent.pointerMove(button, { pointerId: 4, pointerType: "touch", clientX: target.x, clientY: target.y })
     fireEvent.pointerUp(button, { pointerId: 4, pointerType: "touch", clientX: target.x, clientY: target.y })
     expect(value.onMove).toHaveBeenCalledWith("A", "empty", undefined, undefined)
     fireEvent.click(screen.getByRole("button", { name: "Fit" }))
-    expect(screen.getByRole("status").textContent).toBe("100%")
+    expect(zoomLevel().textContent).toBe("100%")
     for (let index = 0; index < 8; index++) fireEvent.click(screen.getByRole("button", { name: "Zoom out" }))
-    expect(screen.getByRole("status").textContent).toBe("50%")
+    expect(zoomLevel().textContent).toBe("50%")
     expect((screen.getByRole("button", { name: "Zoom out" }) as HTMLButtonElement).disabled).toBe(true)
   })
 
@@ -139,6 +140,66 @@ describe("editable lane workflow canvas", () => {
     fireEvent.pointerUp(button, { pointerId: 3, clientX: -20, clientY: -20 })
     expect(value.onMove).not.toHaveBeenCalled()
     expect(value.onSelect).not.toHaveBeenCalled()
+  })
+
+  it("shows every legal diamond while dragging, grows the nearest one and drops on the main line", () => {
+    const value = props(), layout = layoutFor(value), point = layout.points.find(item => item.step.key === "A")!
+    const main = laneDropSlots(layout, "A").find(slot => slot.branchId === "__main__" && slot.targetId === "__event__")!
+    render(<MilestoneWorkflowCanvas {...value} />)
+    expect(screen.queryAllByTestId("workflow-drop-slot")).toHaveLength(0)
+    const button = screen.getByTestId("workflow-task-A")
+    fireEvent.pointerDown(button, { pointerId: 5, button: 0, clientX: point.x, clientY: point.y })
+    fireEvent.pointerMove(button, { pointerId: 5, clientX: main.x + 6, clientY: main.y - 6 })
+    const diamonds = screen.getAllByTestId("workflow-drop-slot")
+    expect(diamonds).toHaveLength(laneDropSlots(layout, "A").length)
+    expect(diamonds.every(diamond => diamond.getAttribute("aria-hidden") === "true")).toBe(true)
+    expect(new Set(diamonds.map(diamond => diamond.getAttribute("data-branch-id")))).toEqual(new Set(["__main__", "after", "empty"]))
+    const near = diamonds.filter(diamond => diamond.className.includes("is-near"))
+    expect(near).toHaveLength(1)
+    expect(near[0].getAttribute("data-branch-id")).toBe("__main__")
+    fireEvent.pointerUp(button, { pointerId: 5, clientX: main.x + 6, clientY: main.y - 6 })
+    expect(value.onMove).toHaveBeenCalledWith("A", "__main__", "__event__", true)
+    expect(screen.queryAllByTestId("workflow-drop-slot")).toHaveLength(0)
+  })
+
+  it("drags a main-line task into a lane but never an event day, Start or Done", () => {
+    const value = props(), layout = layoutFor(value), check = layout.stations.find(item => item.id === "check")!, empty = layout.lanes.find(lane => lane.branch.id === "empty")!
+    render(<MilestoneWorkflowCanvas {...value} />)
+    const button = screen.getByTestId("workflow-task-check"), target = { x: empty.x + empty.width / 2, y: empty.y + 57 }
+    fireEvent.pointerDown(button, { pointerId: 6, button: 0, clientX: check.x, clientY: check.y })
+    fireEvent.pointerMove(button, { pointerId: 6, clientX: target.x, clientY: target.y })
+    expect(button.className).toContain("is-dragging")
+    expect(screen.getAllByTestId("workflow-drop-slot").filter(diamond => diamond.getAttribute("data-branch-id") === "__main__")).toHaveLength(layout.stations.length - 3)
+    fireEvent.pointerUp(button, { pointerId: 6, clientX: target.x, clientY: target.y })
+    expect(value.onMove).toHaveBeenCalledWith("check", "empty", undefined, undefined)
+    fireEvent.click(button, { detail: 1 })
+    expect(value.onSelect).not.toHaveBeenCalled()
+    for (const id of ["workflow-event-day-1", "workflow-start", "workflow-done"]) {
+      const station = screen.getByTestId(id), at = layout.stations.find(item => item.id === station.getAttribute("data-station-id"))!
+      fireEvent.pointerDown(station, { pointerId: 7, button: 0, clientX: at.x, clientY: at.y })
+      fireEvent.pointerMove(station, { pointerId: 7, clientX: target.x, clientY: target.y })
+      expect(screen.queryAllByTestId("workflow-drop-slot")).toHaveLength(0)
+      fireEvent.pointerUp(station, { pointerId: 7, clientX: target.x, clientY: target.y })
+    }
+    expect(value.onMove).toHaveBeenCalledTimes(1)
+  })
+
+  it("changes nothing when dropped away from a diamond and says so politely", () => {
+    const value = props(), layout = layoutFor(value), point = layout.points.find(item => item.step.key === "A")!
+    render(<MilestoneWorkflowCanvas {...value} />)
+    const note = screen.getByTestId("workflow-drop-note"), button = screen.getByTestId("workflow-task-A")
+    expect(note.getAttribute("role")).toBe("status")
+    expect(note.textContent).toBe("")
+    fireEvent.pointerDown(button, { pointerId: 8, button: 0, clientX: point.x, clientY: point.y })
+    fireEvent.pointerMove(button, { pointerId: 8, clientX: layout.width - 4, clientY: layout.height - 4 })
+    expect(screen.getAllByTestId("workflow-drop-slot").some(diamond => diamond.className.includes("is-near"))).toBe(false)
+    fireEvent.pointerUp(button, { pointerId: 8, clientX: layout.width - 4, clientY: layout.height - 4 })
+    expect(value.onMove).not.toHaveBeenCalled()
+    expect(note.textContent).toBe("Dropped away from a diamond, so nothing changed. Drop a step on a diamond.")
+    // The next drag clears the message.
+    fireEvent.pointerDown(button, { pointerId: 9, button: 0, clientX: point.x, clientY: point.y })
+    fireEvent.pointerMove(button, { pointerId: 9, clientX: point.x + 30, clientY: point.y + 30 })
+    expect(note.textContent).toBe("")
   })
 
   it("keeps an unresolved task available as a Details button rather than hiding it", () => {

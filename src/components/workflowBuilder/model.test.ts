@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { StepTemplate, WorkflowBranch } from "../../data/types"
 import { seedDemo } from "../../data/seed"
-import { builderDeletionReason, createBuilderStep, deleteBuilderStep, graphError, insertBuilderStep, insertTeamBuilderStep, reorderTeamBuilderStep, shiftBuilderTaskTarget, type BuilderSnapshot } from "./model"
+import { checkWorkflow, presetSteps } from "../../engine/workflow"
+import { builderDeletionReason, createBuilderStep, deleteBuilderStep, editError, graphError, insertBuilderStep, insertTeamBuilderStep, reorderTeamBuilderStep, shiftBuilderTaskTarget, type BuilderSnapshot } from "./model"
+const ROLES = seedDemo().roles
 import { buildTimeline } from "./timeline"
 
 const branch: WorkflowBranch = { id: "speaker", title: "Speaker", order: 0, side: "before_event", conditions: ["speaker", "travel"] }
@@ -53,8 +55,27 @@ describe("workflow editor graph operations", () => {
     const result = deleteBuilderStep(snapshot(), "B")
     expect(result.steps.find(step => step.key === "C")?.dependsOn).toEqual(["A"])
     expect(result.stepTeams.B).toBeUndefined()
-    expect(builderDeletionReason(task("finalcheck"), "standard")).toContain("must stay")
     expect(builderDeletionReason(task("finalcheck"), "custom")).toBeNull()
+  })
+
+  it("lets the preset remove its organization core steps but never an ASU step or one an ASU step waits for", () => {
+    for (const key of ["finalcheck", "checkin", "headcount", "plan"]) expect(builderDeletionReason(task(key), "standard")).toBeNull()
+    const school = { ...task("registry", ["venuechoice"]), ruleIds: ["R01"] }
+    expect(builderDeletionReason(school, "standard")).toContain("R01")
+    expect(builderDeletionReason(school, "custom")).toContain("R01")
+    const steps = [task("venuechoice"), school]
+    expect(builderDeletionReason(steps[0], "standard", steps)).toBe("A school-required step waits for this step.")
+    expect(builderDeletionReason(steps[0], "custom", steps)).toBe("A school-required step waits for this step.")
+  })
+
+  it("accepts removing a preset core step in the template editor while ASU steps stay protected", () => {
+    const preset = presetSteps()
+    const before = { steps: preset, stepTeams: {} }
+    expect(editError(before, deleteBuilderStep(before, "checkin"), "standard", ROLES)).toBeNull()
+    expect(editError(before, deleteBuilderStep(before, "finalcheck"), "standard", ROLES)).toBeNull()
+    expect(editError(before, deleteBuilderStep(before, "registry"), "standard", ROLES)).toContain("ASU rule")
+    // Other callers keep the old rule: every organization core step is required.
+    expect(checkWorkflow(deleteBuilderStep(before, "checkin").steps, ROLES).some(issue => issue.level === "blocked" && issue.key === "checkin")).toBe(true)
   })
 
   it("generates opaque 36-character step identifiers independently of titles", () => {

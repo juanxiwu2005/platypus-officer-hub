@@ -190,7 +190,13 @@ export function simulationIssues(state: DemoState, steps: StepTemplate[], roles:
  * The checks that protect ASU policy, worked out by the engine (not by the AI). "blocked" must be fixed before setup continues;
  * "warning" is shown and the president decides.
  */
-export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: DemoState, branches?: readonly WorkflowBranch[]): WorkflowIssue[] {
+export interface CheckWorkflowOptions {
+  /** Default true. Template authoring passes false: the organization's own core steps may then be removed or moved off the main line. ASU steps stay protected either way. */
+  requireCoreSteps?: boolean
+}
+
+export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: DemoState, branches?: readonly WorkflowBranch[], options: CheckWorkflowOptions = {}): WorkflowIssue[] {
+  const requireCore = options.requireCoreSteps ?? true
   const out: WorkflowIssue[] = []
   const by = new Map(steps.map(s => [s.key, s]))
   const branchError = validateBranchDefinitions(branches)
@@ -201,6 +207,7 @@ export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: Demo
   for (const branch of savedBranches ?? []) if (branch?.defaultRoleId && !roles.some(role => role.id === branch.defaultRoleId)) out.push({ level: "blocked", text: `“${branch.title}” needs a default role that exists in this club.` })
   for (const key of CORE_EVENT_STEP_KEYS) {
     const step = by.get(key)
+    if (!step && !requireCore) continue
     if (!step) out.push({ level: "blocked", text: `“${EVENT_STEPS.find(s => s.key === key)?.title ?? key}” is missing and is required by the organization event workflow. Restore it before saving.`, key })
     else if (conditionsOf(step, definitions).length) out.push({ level: "blocked", text: `“${step.title}” is required for every event and cannot be conditional.`, key })
   }
@@ -222,7 +229,7 @@ export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: Demo
     if (s.startPolicy !== undefined && !["window", "effort"].includes(s.startPolicy)) out.push({ level: "blocked", text: `“${s.title}” has an unknown start policy.`, key: s.key })
     if (s.stepKind !== undefined && !["core", "situation"].includes(s.stepKind)) out.push({ level: "blocked", text: `“${s.title}” has an unknown step type.`, key: s.key })
     if (branch && (s.phase === "close") !== (branch.side === "after_event")) out.push({ level: "blocked", text: `“${s.title}” must stay on the same side of the event as its branch.`, key: s.key })
-    if (isCoreStep(s) && ["finalcheck", "checkin", "headcount"].includes(s.key) && (placement.branchId !== "main" || s.phase !== EVENT_STEPS.find(p => p.key === s.key)?.phase)) out.push({ level: "blocked", text: `“${s.title}” connects the workflow and must stay on the main line.`, key: s.key })
+    if (requireCore && isCoreStep(s) && ["finalcheck", "checkin", "headcount"].includes(s.key) && (placement.branchId !== "main" || s.phase !== EVENT_STEPS.find(p => p.key === s.key)?.phase)) out.push({ level: "blocked", text: `“${s.title}” connects the workflow and must stay on the main line.`, key: s.key })
     for (const d of s.dependsOn ?? []) if (!by.has(d)) out.push({ level: "blocked", text: `“${s.title}” waits for a step that is not in the workflow.`, key: s.key })
     if (ancestors(steps, s.key).has(s.key)) out.push({ level: "blocked", text: `“${s.title}” waits for itself, through other steps.`, key: s.key })
     const owner = ownerOfStep(s, roles)

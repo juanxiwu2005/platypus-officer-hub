@@ -137,7 +137,7 @@ test("the header groups saved workflows and the More menu closes with Escape bac
   await more.click()
   await expect(more).toHaveAttribute("aria-expanded", "true")
   const menu = page.getByTestId("workflow-settings").getByRole("menu")
-  await expect(menu.getByRole("menuitem")).toHaveText(["Duplicate workflow", "Use by default", "Apply role teams", "Teams"])
+  await expect(menu.getByRole("menuitem")).toHaveText(["Duplicate workflow", "Use by default", "Apply role teams", "Teams", "Discard draft"])
   await expect(menu.getByRole("menuitem").first()).toBeFocused()
   await page.keyboard.press("Escape")
   await expect(menu).toHaveCount(0)

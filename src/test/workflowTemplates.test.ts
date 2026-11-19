@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import type { DemoState, Event, StepTemplate, WorkflowTemplateDraft } from "../data/types"
-import { STANDARD_WORKFLOW_TEMPLATE_ID, duplicateWorkflowTemplate, findWorkflowTemplateVersion, getWorkflowTemplate, getWorkflowTemplates, instantiateWorkflowTemplate, newWorkflowTemplate, newWorkflowStepId, publishWorkflowTemplate, publishedWorkflowTemplates, saveWorkflowTemplateDraft, setDefaultWorkflowTemplate, workflowTemplateDraftError, workflowTemplatePublishError, workflowTemplateRunError } from "../data/workflowTemplates"
+import { STANDARD_WORKFLOW_TEMPLATE_ID, discardWorkflowTemplateDraft, originalWorkflowPreset, restoreWorkflowPreset, duplicateWorkflowTemplate, findWorkflowTemplateVersion, getWorkflowTemplate, getWorkflowTemplates, instantiateWorkflowTemplate, newWorkflowTemplate, newWorkflowStepId, publishWorkflowTemplate, publishedWorkflowTemplates, saveWorkflowTemplateDraft, setDefaultWorkflowTemplate, workflowTemplateDraftError, workflowTemplatePublishError, workflowTemplateRunError } from "../data/workflowTemplates"
 import { EVENT_STEPS, stepsFor } from "../engine/playbooks"
 import { computeSchedule } from "../engine/schedule"
+import { ensureWorkflowPresetTeams } from "../data/workflowTeamDefaults"
+import { deleteBuilderStep } from "../components/workflowBuilder/model"
+import { syncMilestoneSnapshot } from "../components/workflowBuilder/milestoneCommands"
 
 const first = "a1b2c3d4-1111-4444-8888-111111111111", second = "a1b2c3d4-2222-4444-8888-222222222222", third = "a1b2c3d4-3333-4444-8888-333333333333"
 const step = (key: string, dependsOn: string[] = []): StepTemplate => ({ key, title: "Arrange transport", fn: "programs", ownerRoleId: "r-programs", phase: "prepare", estDays: 2, tier: "light", why: "Confirm seats and pickup.", source: "Created by the club", custom: true, startPolicy: "effort", anchor: { kind: "target", days: 7, unit: "calendar", label: "Club target" }, dependsOn })
@@ -240,5 +243,87 @@ describe("template execution snapshots", () => {
     const missing = { ...s, org: { ...s.org, workflowTeams: [{ id: "empty", name: "Other" }] } }
     expect(instantiateWorkflowTemplate(missing, event(), { templateId: "visit-template" }).error).toContain("team")
     expect(workflowTemplateRunError(missing, findWorkflowTemplateVersion(s, "visit-template")!)).toContain("team")
+  })
+})
+
+describe("restoring the preset and discarding drafts", () => {
+  const lead = (): DemoState => {
+    const s = ensureWorkflowPresetTeams(seedDemo(undefined, "v2"))
+    return { ...s, viewerId: s.roles.find(item => item.fn === "president")!.holderId! }
+  }
+  const member = (s: DemoState): DemoState => ({ ...s, viewerId: s.people.find(person => !s.roles.some(role => role.holderId === person.id && ["president", "vice_president"].includes(role.fn)))!.id })
+  /** The preset without Check-in, edited the way the Settings builder does it. */
+  const withoutCheckin = (s: DemoState): WorkflowTemplateDraft => {
+    const preset = originalWorkflowPreset(s, 1)
+    const before = { steps: preset.steps, stepTeams: preset.teamMap!.stepTeams, milestoneGraph: preset.milestoneGraph }
+    const next = syncMilestoneSnapshot(before, deleteBuilderStep(before, "checkin"))
+    return { ...preset, steps: next.steps, teamMap: { ...preset.teamMap!, stepTeams: next.stepTeams }, milestoneGraph: next.milestoneGraph }
+  }
+
+  it("lets the preset drop an organization core step, save a version and still create a dated activity", () => {
+    let s = lead()
+    const edited = withoutCheckin(s)
+    expect(edited.milestoneGraph!.spine).not.toContain("checkin")
+    expect(edited.milestoneGraph!.teamBranches.every(branch => branch.fromId !== "checkin" && branch.toId !== "checkin")).toBe(true)
+    expect(workflowTemplateDraftError(edited, s.roles, true)).toBeNull()
+    s = saveWorkflowTemplateDraft(s, STANDARD_WORKFLOW_TEMPLATE_ID, edited)
+    expect(workflowTemplatePublishError(s, STANDARD_WORKFLOW_TEMPLATE_ID)).toBeNull()
+    s = publishWorkflowTemplate(s, STANDARD_WORKFLOW_TEMPLATE_ID)
+    const version = findWorkflowTemplateVersion(s, STANDARD_WORKFLOW_TEMPLATE_ID)!
+    expect(version.version).toBe(2)
+    expect(version.steps.some(item => item.key === "checkin")).toBe(false)
+    const e: Event = { ...event("no-checkin"), type: "speaker", speaker: true, playbookId: "seo-event" }
+    const result = instantiateWorkflowTemplate(s, e, { templateId: STANDARD_WORKFLOW_TEMPLATE_ID, templateVersion: 2 })
+    expect(result.error).toBeUndefined()
+    expect(result.nodes.some(node => node.stepKey === "checkin")).toBe(false)
+    expect(result.nodes.some(node => node.stepKey === "headcount")).toBe(true)
+    // Dates come only from the rule engine.
+    expect(result.nodes.every(node => node.clubDeadline === null && node.officialDeadline === null)).toBe(true)
+    const scheduled = computeSchedule({ ...s, events: [...s.events, result.event], nodes: [...s.nodes, ...result.nodes] })
+    for (const node of result.nodes) expect(scheduled.nodes[node.id]?.club).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+    // Version 1 still has Check-in.
+    expect(findWorkflowTemplateVersion(s, STANDARD_WORKFLOW_TEMPLATE_ID, 1)!.steps.some(item => item.key === "checkin")).toBe(true)
+  })
+
+  it("restores the original preset as a draft on top of the latest version, leaving versions and activities alone", () => {
+    let s = lead()
+    s = publishWorkflowTemplate(saveWorkflowTemplateDraft(s, STANDARD_WORKFLOW_TEMPLATE_ID, withoutCheckin(s)), STANDARD_WORKFLOW_TEMPLATE_ID)
+    const versions = structuredClone(getWorkflowTemplate(s, STANDARD_WORKFLOW_TEMPLATE_ID)!.versions), events = s.events, nodes = s.nodes
+    expect(versions).toHaveLength(2)
+    const restored = restoreWorkflowPreset(s, STANDARD_WORKFLOW_TEMPLATE_ID)
+    const template = getWorkflowTemplate(restored, STANDARD_WORKFLOW_TEMPLATE_ID)!
+    expect(template.versions).toEqual(versions)
+    expect(template.draft?.baseVersion).toBe(2)
+    expect(template.draft?.steps.map(item => item.key)).toEqual(EVENT_STEPS.map(item => item.key))
+    expect(template.draft?.milestoneGraph?.spine).toContain("checkin")
+    expect(template.draft?.teamMap?.stepTeams.checkin).toBeTruthy()
+    expect(restored.events).toBe(events)
+    expect(restored.nodes).toBe(nodes)
+    expect(workflowTemplatePublishError(restored, STANDARD_WORKFLOW_TEMPLATE_ID)).toBeNull()
+    const saved = publishWorkflowTemplate(restored, STANDARD_WORKFLOW_TEMPLATE_ID)
+    expect(findWorkflowTemplateVersion(saved, STANDARD_WORKFLOW_TEMPLATE_ID)!.version).toBe(3)
+    // Only the preset, only a lead, and an unchanged draft is not rewritten.
+    const custom = newWorkflowTemplate(s, "visit-template", "Company visit")
+    expect(restoreWorkflowPreset(custom, "visit-template")).toBe(custom)
+    const viewer = member(s)
+    expect(restoreWorkflowPreset(viewer, STANDARD_WORKFLOW_TEMPLATE_ID)).toBe(viewer)
+    expect(restoreWorkflowPreset(restored, STANDARD_WORKFLOW_TEMPLATE_ID)).toBe(restored)
+  })
+
+  it("discards a draft back to the latest saved version only when one exists", () => {
+    let s = lead()
+    s = saveWorkflowTemplateDraft(s, STANDARD_WORKFLOW_TEMPLATE_ID, withoutCheckin(s))
+    expect(getWorkflowTemplate(s, STANDARD_WORKFLOW_TEMPLATE_ID)!.draft).toBeTruthy()
+    const discarded = discardWorkflowTemplateDraft(s, STANDARD_WORKFLOW_TEMPLATE_ID)
+    const template = getWorkflowTemplate(discarded, STANDARD_WORKFLOW_TEMPLATE_ID)!
+    expect(template.draft).toBeUndefined()
+    expect(template.versions).toEqual(getWorkflowTemplate(s, STANDARD_WORKFLOW_TEMPLATE_ID)!.versions)
+    expect(findWorkflowTemplateVersion(discarded, STANDARD_WORKFLOW_TEMPLATE_ID)!.steps.some(item => item.key === "checkin")).toBe(true)
+    expect(discardWorkflowTemplateDraft(discarded, STANDARD_WORKFLOW_TEMPLATE_ID)).toBe(discarded)
+    // A template that was never saved keeps its only draft.
+    const blank = newWorkflowTemplate(s, "blank", "Volunteer")
+    expect(discardWorkflowTemplateDraft(blank, "blank")).toBe(blank)
+    const viewer = member(s)
+    expect(discardWorkflowTemplateDraft(viewer, STANDARD_WORKFLOW_TEMPLATE_ID)).toBe(viewer)
   })
 })

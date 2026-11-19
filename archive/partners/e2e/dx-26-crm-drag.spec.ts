@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
-import { closeRail, viewAs } from "./helpers"
+import { closeRail, viewAs } from "../../../e2e/helpers"
 
 // DX-26: the Partners board uses the same pointer drag as the task board (src/lib/dragSort.ts). Dragging a contact to another stage
 // changes its stage; Escape puts it back; Alt + arrow moves it by keyboard; someone who may not edit a contact cannot drag it; the stage

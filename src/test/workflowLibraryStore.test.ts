@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import { loadStateWithNotice, reducer, STORAGE_KEY } from "../data/store"
 import { saveWorkflowTeams } from "../data/workflowTeamSettings"
-import { getWorkflowTemplate } from "../data/workflowTemplates"
+import { getWorkflowTemplate, STANDARD_WORKFLOW_TEMPLATE_ID } from "../data/workflowTemplates"
+import { ensureWorkflowPresetTeams } from "../data/workflowTeamDefaults"
 
 const base = () => seedDemo(undefined, "v2")
 
@@ -59,5 +60,20 @@ describe("workflow library integration and team ownership", () => {
     expect(reviewed).toBe(pending)
     expect(reviewed.events).toBe(state.events)
     expect(reviewed.changeSets.at(-1)?.status).toBe("pending")
+  })
+
+  it("discards a draft and restores the preset through the reducer, for leads only", () => {
+    const lead = ensureWorkflowPresetTeams(base())
+    const version = getWorkflowTemplate(lead, STANDARD_WORKFLOW_TEMPLATE_ID)!.versions[0]
+    const restored = reducer(lead, { type: "restoreWorkflowPreset", id: STANDARD_WORKFLOW_TEMPLATE_ID })
+    expect(getWorkflowTemplate(restored, STANDARD_WORKFLOW_TEMPLATE_ID)!.draft?.baseVersion).toBe(version.version)
+    expect(restored.events).toBe(lead.events)
+    expect(restored.nodes).toBe(lead.nodes)
+    const discarded = reducer(restored, { type: "discardWorkflowTemplateDraft", id: STANDARD_WORKFLOW_TEMPLATE_ID })
+    expect(getWorkflowTemplate(discarded, STANDARD_WORKFLOW_TEMPLATE_ID)!.draft).toBeUndefined()
+    expect(getWorkflowTemplate(discarded, STANDARD_WORKFLOW_TEMPLATE_ID)!.versions).toEqual(getWorkflowTemplate(restored, STANDARD_WORKFLOW_TEMPLATE_ID)!.versions)
+    const other = { ...restored, viewerId: restored.roles.find(role => !["president", "vp", "advisor"].includes(role.fn))!.holderId! }
+    expect(reducer(other, { type: "discardWorkflowTemplateDraft", id: STANDARD_WORKFLOW_TEMPLATE_ID })).toBe(other)
+    expect(reducer(other, { type: "restoreWorkflowPreset", id: STANDARD_WORKFLOW_TEMPLATE_ID })).toBe(other)
   })
 })

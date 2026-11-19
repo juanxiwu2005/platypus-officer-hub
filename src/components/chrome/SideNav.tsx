@@ -6,8 +6,8 @@ import { useStore } from "../../data/store"
 import { prefersReducedMotion } from "../../lib/motion"
 
 /**
- * FB-8: Reminders, Plan, Handoff, Rules; then a folded "More" with Team and Partners (closed at first, open by itself when the
- * current page is inside it); Settings and Help at the bottom. The same list is the phone's scrolling strip (DX-20).
+ * Primary pages include Team. More only renders when it has active items; archived Partners has no navigation entry.
+ * Settings and Help stay at the bottom. The same list is the phone's scrolling strip (DX-20).
  */
 export function SideNav() {
   const { state } = useStore()
@@ -36,10 +36,10 @@ export function SideNav() {
   return (
     <nav className="sidenav" aria-label="Sections">
       {PAGES.filter(p => p.group === "main").map(item)}
-      <button type="button" className="nav-more" aria-expanded={moreOpen} aria-controls={moreId} data-testid="nav-more" onClick={() => setMoreOpen(o => !o)}>
+      {!!more.length && <><button type="button" className="nav-more" aria-expanded={moreOpen} aria-controls={moreId} data-testid="nav-more" onClick={() => setMoreOpen(o => !o)}>
         {Icons.more}<span>More</span><span className="caret" aria-hidden="true" />
       </button>
-      <div id={moreId} className="nav-more-items" hidden={!moreOpen}>{more.map(item)}</div>
+      <div id={moreId} className="nav-more-items" hidden={!moreOpen}>{more.map(item)}</div></>}
       <div className="group">Reference</div>
       {PAGES.filter(p => p.group === "footer").map(p => (
         <NavLink key={p.path} to={p.path} title={p.question}>

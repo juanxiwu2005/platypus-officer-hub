@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react"
 import { useStore } from "../../data/store"
 import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDraft, WorkflowMilestoneGraph, DemoState } from "../../data/types"
-import { getWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
+import { getWorkflowTemplates, originalWorkflowPreset, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
 import { WorkflowBuilder } from "../workflowBuilder/WorkflowBuilder"
 import { createWorkflowMilestoneGraph } from "../../engine/workflowMilestones"
 import { presetWorkflowStepTeams } from "../../data/workflowTeamDefaults"
 import { useRail } from "../rail/RailContext"
 import { WorkflowTeams } from "./WorkflowTeams"
 import { MenuButton } from "./MenuButton"
+import { ConfirmDialog } from "./ConfirmDialog"
 import "./workflowLibrary.css"
 
 const rawDraftOf = (template: WorkflowTemplate): WorkflowTemplateDraft => {
@@ -79,12 +80,20 @@ function TemplateEditor({ template, onDuplicate, flush, teamsOpen, onTeams, team
   const [draft, setDraft] = useState(() => draftOf(template, state))
   const [status, setStatus] = useState("")
   const [error, setError] = useState("")
+  // Bumped when the draft is reloaded from the store, so the builder starts with a fresh Undo history.
+  const [revision, setRevision] = useState(0)
+  const [confirming, setConfirming] = useState<"discard" | "restore" | null>(null)
+  // After Discard draft / Restore preset the reloaded editor content is not an edit: autosave must not write it back.
+  const reloaded = useRef<string | null>(null)
   const saved = rawDraftOf(template)
-  const pending = JSON.stringify(draft) !== JSON.stringify(saved)
+  const draftJson = JSON.stringify(draft)
+  const pending = draftJson !== JSON.stringify(saved) && draftJson !== reloaded.current
   const save = (value = draft) => {
     const fresh = getWorkflowTemplates(getState()).find(item => item.id === template.id)
     if (fresh && JSON.stringify(value) === JSON.stringify(rawDraftOf(fresh))) return true
+    if (reloaded.current !== null && JSON.stringify(value) === reloaded.current) return true
     if (!tryDispatch({ type: "saveWorkflowTemplateDraft", id: template.id, draft: value })) { setError("Could not save. Your draft is kept here. Try Save draft."); return false }
+    reloaded.current = null
     setStatus("Draft saved"); setError(""); return true
   }
   flush.current = save
@@ -144,6 +153,28 @@ function TemplateEditor({ template, onDuplicate, flush, teamsOpen, onTeams, team
     if (tryDispatch({ type: "setDefaultWorkflowTemplate", id: template.id })) { setStatus("Default workflow saved"); setError("") }
     else setError("Could not set the default.")
   }
+  const reload = (message: string) => {
+    const entry = getWorkflowTemplates(getState()).find(item => item.id === template.id)
+    if (!entry) return
+    const next = draftOf(entry, getState())
+    reloaded.current = JSON.stringify(next)
+    setDraft(next); setRevision(value => value + 1); setStatus(message); setError("")
+  }
+  const discardDraft = () => {
+    setConfirming(null)
+    const fresh = getWorkflowTemplates(getState()).find(item => item.id === template.id)
+    if (fresh?.draft && !tryDispatch({ type: "discardWorkflowTemplateDraft", id: template.id })) { setError("Could not discard the draft. Try again."); return }
+    reload("Draft discarded")
+  }
+  const restorePreset = () => {
+    setConfirming(null)
+    const fresh = getWorkflowTemplates(getState()).find(item => item.id === template.id)
+    const base = fresh?.versions[fresh.versions.length - 1]?.version ?? 0
+    const already = JSON.stringify(fresh?.draft) === JSON.stringify(originalWorkflowPreset(getState(), base))
+    if (!already && !tryDispatch({ type: "restoreWorkflowPreset", id: template.id })) { setError("Could not restore the preset. Try again."); return }
+    reload("Original preset restored")
+  }
+  const canDiscard = !!latest && (!!template.draft || pending)
   const isDefault = state.org.defaultWorkflowTemplateId === template.id || (!state.org.defaultWorkflowTemplateId && template.id === STANDARD_WORKFLOW_TEMPLATE_ID)
   return <div className="form-stack wfl-editor" data-testid="workflow-template-editor">
     <div className="wfl-bar">
@@ -157,11 +188,15 @@ function TemplateEditor({ template, onDuplicate, flush, teamsOpen, onTeams, team
           { label: "Use by default", onSelect: useByDefault, disabled: !latest || isDefault, hint: !latest ? "Save a version first." : isDefault ? "Already the default." : undefined },
           ...(state.org.workflowTeams?.length ? [{ label: "Apply role teams", onSelect: groupRoles }] : []),
           { label: teamsOpen ? "Hide teams" : "Teams", onSelect: onTeams },
+          { label: "Discard draft", onSelect: () => setConfirming("discard"), disabled: !canDiscard, hint: !latest ? "Save a version first." : !canDiscard ? "There is no draft to discard." : `Go back to Version ${latest.version}.` },
+          ...(template.id === STANDARD_WORKFLOW_TEMPLATE_ID ? [{ label: "Restore Platypus preset", onSelect: () => setConfirming("restore"), hint: "Replace the draft with the original preset." }] : []),
         ]} />
       </div>
     </div>
     {teams}
     {error && <p role="alert">{error}</p>}
-    <WorkflowBuilder state={state} steps={draft.steps} branches={draft.branches} stepTeams={draft.teamMap?.stepTeams ?? {}} teams={state.org.workflowTeams ?? []} policy={draft.kind} graph={draft.milestoneGraph} onChange={update} />
+    {confirming === "discard" && latest && <ConfirmDialog title="Discard draft" message={`Discard this draft? The editor goes back to Version ${latest.version}. Saved versions and activities are not changed.`} confirmLabel="Discard draft" onConfirm={discardDraft} onCancel={() => setConfirming(null)} />}
+    {confirming === "restore" && <ConfirmDialog title="Restore preset" message="Restore the original Platypus preset? This replaces the current draft. Saved versions and activities are not changed. Save version to keep it." confirmLabel="Restore preset" onConfirm={restorePreset} onCancel={() => setConfirming(null)} />}
+    <WorkflowBuilder key={revision} state={state} steps={draft.steps} branches={draft.branches} stepTeams={draft.teamMap?.stepTeams ?? {}} teams={state.org.workflowTeams ?? []} policy={draft.kind} graph={draft.milestoneGraph} onChange={update} />
   </div>
 }

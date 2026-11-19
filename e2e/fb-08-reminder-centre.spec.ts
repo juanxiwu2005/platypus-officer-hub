@@ -7,7 +7,7 @@ import { applySchedule } from "../src/engine/schedule"
 import { addDays } from "../src/lib/dates"
 
 // FB-8 (docs/feedback-fix/PLAN.md §12.2), redrawn as concept F (2026-11-19): the home page is the reminder centre; one email per person;
-// the three reminder modes really behave differently; the navigation is Reminders, Plan, Handoff, Rules plus a folded More.
+// the three reminder modes really behave differently; the navigation is Reminders, Plan, Team, Handoff, Rules; Partners is temporarily archived.
 // Nothing is ever sent: no request leaves the browser. Set FB8_SHOTS=<folder> to also save screenshots of each state for a visual check.
 const SHOTS = process.env.FB8_SHOTS
 const shot = async (page: Page, name: string, isMobile: boolean) => { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}-${isMobile ? "phone" : "desktop"}.png`, fullPage: true }) }
@@ -279,32 +279,28 @@ test("an owner's same-day task reply appears against the recorded recipient and 
   expect((await demo(page)).reminderRuntime!.updates.some(u => u.ownerReply && u.actorId === "jordan" && u.sequence > delivery.sequence)).toBe(true)
 })
 
-test("navigation: Reminders, Plan, Handoff, Rules; More holds Team and Partners; Plan stays current on Tasks and carries the open-task count", async ({ page, isMobile }) => {
+test("navigation: Team is primary, Partners is archived, and Plan keeps its task count and current state", async ({ page, isMobile }) => {
   await open(page)
   await viewAs(page, "jordan")
   await closeRail(page)
   const nav = page.getByRole("navigation", { name: "Sections" })
-  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Handoff/, /^Rules/, /^Settings/, /^Help/])
-  const more = nav.getByRole("button", { name: "More" })
-  await expect(more).toHaveAttribute("aria-expanded", "false")
-  await expect(nav.getByRole("link", { name: "Team" })).toHaveCount(0)
+  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Team/, /^Handoff/, /^Rules/, /^Settings/, /^Help/])
+  await expect(nav.getByRole("button", { name: "More", exact: true })).toHaveCount(0)
+  await expect(nav.getByRole("link", { name: "Partners", exact: true })).toHaveCount(0)
+  await expect(nav.getByRole("link", { name: "Team", exact: true })).toBeVisible()
   await expect(nav.getByRole("link", { name: "Reminders" })).toHaveAttribute("aria-current", "page")
   await expect(nav.getByRole("link", { name: /^Plan/ }).getByTestId("nav-open-tasks")).toBeVisible()
   await expect(nav.getByTestId("nav-open-tasks")).toContainText("4")
   await shot(page, "nav-closed", isMobile)
-  await more.click()
-  await expect(more).toHaveAttribute("aria-expanded", "true")
-  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Handoff/, /^Rules/, /^Team/, /^Partners/, /^Settings/, /^Help/])
   expect(await scan(page)).toEqual([])
-  await shot(page, "nav-open", isMobile)
   await nav.getByRole("link", { name: "Team" }).click()
   await expect(page.locator("main h1")).toHaveText("Team")
   await expect(nav.getByRole("link", { name: "Team" })).toHaveAttribute("aria-current", "page")
-  // A link straight to a page inside More opens it by itself.
+  // The archived route returns to the main workspace, including after refresh.
   await page.goto("/#/partners")
   await page.reload()
-  await expect(nav.getByRole("button", { name: "More" })).toHaveAttribute("aria-expanded", "true")
-  await expect(nav.getByRole("link", { name: "Partners" })).toHaveAttribute("aria-current", "page")
+  await expect(page).toHaveURL(/#\/$/)
+  await expect(nav.getByRole("link", { name: "Partners" })).toHaveCount(0)
   // Plan: Events, and Tasks through the switch, both light Plan up.
   await closeRail(page)
   await nav.getByRole("link", { name: /^Plan/ }).click()
@@ -320,15 +316,14 @@ test("navigation: Reminders, Plan, Handoff, Rules; More holds Team and Partners;
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
 })
 
-test("phone: the navigation strip keeps all items reachable and the More button is a full-size target", async ({ page, isMobile }) => {
+test("phone: the primary Team link is reachable and a full-size target", async ({ page, isMobile }) => {
   test.skip(!isMobile, "phone only")
   await open(page)
   const nav = page.getByRole("navigation", { name: "Sections" })
-  const more = nav.getByRole("button", { name: "More" })
-  expect((await more.boundingBox())!.height).toBeGreaterThanOrEqual(43.5)
-  await more.click()
-  await nav.getByRole("link", { name: "Partners" }).scrollIntoViewIfNeeded()
-  await expect(nav.getByRole("link", { name: "Partners" })).toBeInViewport()
+  const team = nav.getByRole("link", { name: "Team", exact: true })
+  expect((await team.boundingBox())!.height).toBeGreaterThanOrEqual(43.5)
+  await team.scrollIntoViewIfNeeded()
+  await expect(team).toBeInViewport()
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0)
   // The person row is a full-width target inside the screen.
   const head = (await person(page).locator(".dg-person-head").boundingBox())!

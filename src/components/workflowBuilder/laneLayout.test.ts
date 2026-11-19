@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { Phase, StepTemplate, WorkflowMilestoneGraph } from "../../data/types"
-import { buildLaneLayout, laneDropTarget, LANE_HEIGHT, LANE_MAX } from "./laneLayout"
+import { buildLaneLayout, laneDropSlots, laneDropTarget, nearestDropSlot, LANE_DOT_Y, LANE_HEIGHT, LANE_MAX, MAIN_LINE } from "./laneLayout"
 
 const task = (key: string, phase: Phase = "prepare"): StepTemplate => ({ key, title: `Task ${key}`, fn: "programs", phase, estDays: 1, tier: "light", dependsOn: [], why: "Saved details", source: "Fictional test" })
 
@@ -131,5 +131,67 @@ describe("one-row lane layout", () => {
     expect(graph).toEqual(beforeGraph)
     expect(layout.unplaced.map(step => step.key)).toEqual(["orphan"])
     expect(layout.points[0].step).toBe(steps.find(step => step.key === "p0-0"))
+  })
+})
+
+describe("diamond drop slots", () => {
+  it("offers a slot before, between and after every lane dot, and one centred slot in an empty lane", () => {
+    const { steps, graph } = standardLike([3], [2])
+    graph.teamBranches.push({ id: "empty", teamId: "x", fromId: "__start__", toId: "finalcheck", stepIds: [] })
+    const layout = buildLaneLayout(steps, graph), slots = laneDropSlots(layout, "outside")
+    const full = layout.lanes.find(lane => lane.branch.id === "pre-0")!, empty = layout.lanes.find(lane => lane.branch.id === "empty")!
+    const own = slots.filter(slot => slot.branchId === "pre-0")
+    expect(own.map(slot => [slot.targetId, slot.before])).toEqual([["p0-0", true], ["p0-1", true], ["p0-2", true], ["p0-2", false]])
+    const [a, b, c] = full.points
+    expect(own[0].x).toBeLessThan(a.x)
+    expect(own[0].x).toBeGreaterThan(full.x)
+    expect(own[1]).toMatchObject({ x: (a.x + b.x) / 2, y: a.y })
+    expect(own[2]).toMatchObject({ x: (b.x + c.x) / 2, y: a.y })
+    expect(own[3].x).toBeGreaterThan(c.x)
+    expect(own[3].x).toBeLessThan(full.x + full.width)
+    expect(slots.filter(slot => slot.branchId === "empty")).toEqual([{ id: "empty:0", branchId: "empty", x: empty.x + empty.width / 2, y: empty.y + LANE_DOT_Y }])
+  })
+
+  it("puts main-line slots between consecutive stations, never before Start or after Done", () => {
+    const { steps, graph } = standardLike([3], [2])
+    const layout = buildLaneLayout(steps, graph), main = laneDropSlots(layout, "p0-1").filter(slot => slot.branchId === MAIN_LINE)
+    expect(main.map(slot => slot.targetId)).toEqual(["finalcheck", "checkin", "__event__", "headcount", "__end__"])
+    expect(main.every(slot => slot.before === true && slot.y === layout.mainY)).toBe(true)
+    const x = (id: string) => layout.stations.find(station => station.id === id)!.x
+    expect(main[0].x).toBe((x("__start__") + x("finalcheck")) / 2)
+    expect(main.every(slot => slot.x > x("__start__") && slot.x < x("__end__"))).toBe(true)
+  })
+
+  it("leaves out the no-op slots next to the dragged step, in a lane and on the main line", () => {
+    const { steps, graph } = standardLike([3], [2])
+    const layout = buildLaneLayout(steps, graph)
+    const lane = laneDropSlots(layout, "p0-1").filter(slot => slot.branchId === "pre-0")
+    expect(lane.map(slot => [slot.targetId, slot.before])).toEqual([["p0-0", true], ["p0-2", false]])
+    expect(laneDropSlots(layout, "p0-0").filter(slot => slot.branchId === "pre-0").map(slot => [slot.targetId, slot.before])).toEqual([["p0-2", true], ["p0-2", false]])
+    const main = laneDropSlots(layout, "checkin").filter(slot => slot.branchId === MAIN_LINE)
+    expect(main.map(slot => slot.targetId)).toEqual(["finalcheck", "headcount", "__end__"])
+    expect(laneDropSlots(layout, "checkin").every(slot => slot.targetId !== "checkin")).toBe(true)
+    // A lane holding only the dragged step has no useful slot.
+    const single = standardLike([1], [1]), solo = buildLaneLayout(single.steps, single.graph)
+    expect(laneDropSlots(solo, "p0-0").filter(slot => slot.branchId === "pre-0")).toEqual([])
+  })
+
+  it("follows the row direction in a wrapped lane", () => {
+    const { steps, graph } = standardLike([11], [1])
+    const layout = buildLaneLayout(steps, graph), lane = layout.lanes[0], slots = laneDropSlots(layout, "outside").filter(slot => slot.branchId === lane.branch.id)
+    expect(slots).toHaveLength(12)
+    const last = lane.points[10], end = slots.at(-1)!
+    expect(last.row).toBe(1)
+    expect(end).toMatchObject({ targetId: last.step.key, before: false, y: last.y })
+    expect(end.x).toBeLessThan(last.x)
+    const wrap = slots[10]
+    expect(wrap.y).toBe((lane.points[9].y + lane.points[10].y) / 2)
+  })
+
+  it("chooses the nearest slot within the radius only", () => {
+    const slots = [{ id: "a", branchId: "x", x: 0, y: 0 }, { id: "b", branchId: "y", x: 30, y: 0 }]
+    expect(nearestDropSlot(slots, 20, 0, 48)?.id).toBe("b")
+    expect(nearestDropSlot(slots, 4, 3, 48)?.id).toBe("a")
+    expect(nearestDropSlot(slots, 200, 0, 48)).toBeNull()
   })
 })
