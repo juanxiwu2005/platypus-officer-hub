@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
-import Settings from "../../pages/Settings"
+import { WorkflowSettings } from "../../pages/Settings"
 import { RailProvider, useRail } from "../rail/RailContext"
 import { seedDemo } from "../../data/seed"
 import { STORAGE_KEY, StoreProvider, useStore } from "../../data/store"
@@ -44,8 +44,7 @@ vi.mock("../flow/MetroChart", async () => {
 let latest: DemoState
 function Details() { latest = useStore().state; const rail = useRail(); return <><button onClick={() => rail.setOpen(false)}>Hide test details</button><output data-testid="rail-open">{String(rail.open)}</output>{rail.workflowDetail}</> }
 function show(initial = seedDemo(undefined, "v2")) {
-  render(<MemoryRouter><StoreProvider initial={initial}><RailProvider><Settings /><Details /></RailProvider></StoreProvider></MemoryRouter>)
-  fireEvent.click(screen.getByRole("button", { name: "Workflow" }))
+  render(<MemoryRouter><StoreProvider initial={initial}><RailProvider><WorkflowSettings /><Details /></RailProvider></StoreProvider></MemoryRouter>)
   fireEvent.click(screen.getByRole("button", { name: "Select budget" }))
 }
 beforeEach(() => { localStorage.clear(); operation.accepted = undefined; operation.error = undefined; operation.edits = 0 })

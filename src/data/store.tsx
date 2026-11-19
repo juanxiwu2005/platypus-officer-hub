@@ -2,7 +2,7 @@ import { changeHandoff, repairLegacyHandoff, type HandoffAction } from "./handof
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate, WorkflowBranch } from "./types"
+import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate, WorkflowBranch, WorkflowTemplateDraft, WorkflowTeam } from "./types"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
@@ -11,6 +11,8 @@ import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { clearLocalDocs } from "../lib/localDocs"
 import { applySchedule, computeSchedule, topoOrder, type Schedule } from "../engine/schedule"
 import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "../engine/playbooks"
+import { newWorkflowTemplate, saveWorkflowTemplateDraft, publishWorkflowTemplate, duplicateWorkflowTemplate, setDefaultWorkflowTemplate } from "./workflowTemplates"
+import { saveWorkflowTeams } from "./workflowTeamSettings"
 import { nextCounter } from "../lib/ids"
 import { PHASES, ancestorsOf, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
 import { cannotDelete, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, removalEdits, type FlowInsertionTarget } from "../lib/flowEdit"
@@ -75,7 +77,7 @@ function repairTaskLinks(state: DemoState): DemoState {
  * invariant template steps. This repairs a previously condition-hidden core link. */
 function repairCoreEventSteps(state: DemoState): DemoState {
   const additions = state.events.flatMap(event => {
-    if (event.checks === undefined) return []
+    if (event.checks === undefined || event.workflowRun) return []
     const existing = new Set(state.nodes.filter(node => node.eventId === event.id).map(node => node.stepKey))
     return buildEventNodes(event, state.roles, { steps: orgSteps(state) })
       .filter(node => CORE_EVENT_STEP_KEYS.includes(node.stepKey as typeof CORE_EVENT_STEP_KEYS[number]) && !existing.has(node.stepKey))
@@ -86,7 +88,7 @@ function repairCoreEventSteps(state: DemoState): DemoState {
   const checkinAnchor = { kind: "target" as const, days: 1, unit: "business" as const, label: "Check-in materials ready" }
   let repairedCheckin = false
   const nodes = state.nodes.map(node => {
-    if (!node.eventId || node.stepKey !== "checkin") return node
+    if (!node.eventId || node.stepKey !== "checkin" || state.events.find(event => event.id === node.eventId)?.workflowRun) return node
     if (node.anchor?.kind === "target" && node.anchor.days === 1 && node.anchor.unit === "business" && node.anchor.label === checkinAnchor.label) return node
     repairedCheckin = true
     return { ...node, anchor: checkinAnchor }
@@ -178,6 +180,12 @@ export type Action =
   | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number; workflow?: StepTemplate[]; workflowBranches?: WorkflowBranch[]; reminderMode?: ReminderMode | null }
   | { type: "saveWorkflow"; steps: StepTemplate[]; branches?: WorkflowBranch[] }
   | { type: "resetWorkflow" }
+  | { type: "newWorkflowTemplate"; id: string; name: string }
+  | { type: "saveWorkflowTemplateDraft"; id: string; draft: WorkflowTemplateDraft }
+  | { type: "publishWorkflowTemplate"; id: string }
+  | { type: "duplicateWorkflowTemplate"; sourceId: string; id: string; name: string }
+  | { type: "setDefaultWorkflowTemplate"; id: string }
+  | { type: "saveWorkflowTeams"; teams: WorkflowTeam[]; roleTeams: Record<string, string> }
 
 const NODE_FIELDS: (keyof NodePatch)[] = ["externalLinks", "title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "startPolicy", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
@@ -477,9 +485,17 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     }
     case "draftChanges": {
       if (state.changeSets.some(c => c.id === action.changeSet.id)) return state
-      const ops = sanitizeOps(action.changeSet.ops, commandContext(state)).filter(op => !isSmallOp(op))
+      const accepted = action.changeSet.ops.flatMap((raw, originalIndex) => {
+        const op = sanitizeOps([raw], commandContext(state))[0]
+        return op && !isSmallOp(op) ? [{ op, originalIndex }] : []
+      })
+      const ops = accepted.map(item => item.op)
       if (!ops.length) return state
-      return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, ops, status: "pending", reviews: ops.map(() => "pending") }] }
+      const workflowChoices = Object.fromEntries(accepted.flatMap(({ op, originalIndex }, index) => {
+        const choice = action.changeSet.workflowChoices?.[originalIndex]
+        return op.op === "create_event" && choice && typeof choice.templateId === "string" && Number.isInteger(choice.templateVersion) ? [[index, choice]] : []
+      }))
+      return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, workflowChoices, ops, status: "pending", reviews: ops.map(() => "pending") }] }
     }
     case "aiAutoApply": return aiAutoApply(state, action.changeSet)
     case "undoAuto": {
@@ -499,8 +515,10 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       let op = change.ops[action.index]
       if (action.decision === "applied") {
         const raw = action.op ?? op
+        const choice = change.workflowChoices?.[action.index]
+        const human = { ...(choice ? { workflowTemplateId: choice.templateId, workflowTemplateVersion: choice.templateVersion } : {}), ...action.human }
         // Editing may change fields, never the type of an already-reviewed operation.
-        if ((raw as { op?: unknown })?.op !== op.op || validateReview(state, raw, action.human)) return state
+        if ((raw as { op?: unknown })?.op !== op.op || validateReview(state, raw, human)) return state
         const clean = sanitizeOps([raw], commandContext(state))[0]
         op = clean
         switch (clean.op) {
@@ -510,7 +528,9 @@ function baseReducer(state: DemoState, action: Action): DemoState {
           case "create_event":
           case "add_node": {
             const id = `${change.id}:${action.index}`
-            next = { ...state, ...newObjects(state, clean, id, action.human ?? {}) }
+            const created = newObjects(state, clean, id, human)
+            if (clean.op === "create_event" && !created.events?.some(event => event.id === id)) return state
+            next = { ...state, ...created }
             if (clean.op === "add_node") next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
             next = applySchedule(next)
             break
@@ -603,6 +623,12 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
     case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
     case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode, action.workflowBranches)
+    case "newWorkflowTemplate": return newWorkflowTemplate(state, action.id, action.name)
+    case "saveWorkflowTemplateDraft": return saveWorkflowTemplateDraft(state, action.id, action.draft)
+    case "publishWorkflowTemplate": return publishWorkflowTemplate(state, action.id)
+    case "duplicateWorkflowTemplate": return duplicateWorkflowTemplate(state, action.sourceId, action.id, action.name)
+    case "setDefaultWorkflowTemplate": return setDefaultWorkflowTemplate(state, action.id)
+    case "saveWorkflowTeams": return saveWorkflowTeams(state, action.teams, action.roleTeams)
     case "saveWorkflow": return saveWorkflow(state, action.steps, action.branches)
     case "resetWorkflow": return resetWorkflow(state)
   }
@@ -813,6 +839,8 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "advanceClock": out = { today: s.today }; break
     case "saveBoard": out = { board: s.org.board }; break
     case "removeEventStep": out = fields(node(a.nodeId), ["title", "dependsOn", "status", "estDays", "ownerId"]); break
+    case "newWorkflowTemplate": case "saveWorkflowTemplateDraft": case "publishWorkflowTemplate": case "duplicateWorkflowTemplate": case "setDefaultWorkflowTemplate": out = { templateIds: s.org.workflowTemplates?.map(template => template.id), defaultWorkflowTemplateId: s.org.defaultWorkflowTemplateId }; break
+    case "saveWorkflowTeams": out = { workflowTeams: s.org.workflowTeams, workflowRoleTeams: s.org.workflowRoleTeams }; break
     case "saveWorkflow": case "resetWorkflow": out = { eventWorkflow: s.org.eventWorkflow }; break
     case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break
     case "saveProfile": out = fields(s.people.find(p => p.id === a.personId), Object.keys(a.patch)); break

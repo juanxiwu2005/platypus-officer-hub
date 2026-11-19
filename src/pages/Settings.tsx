@@ -1,6 +1,6 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
 import { personalBuffer } from "../engine/schedule"
-import { Fragment, useCallback, useEffect, useRef, useState } from "react"
+import { Fragment, Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
@@ -21,6 +21,8 @@ import { ClosedRoles } from "./HandoffRoleChanges"
 import { REMINDER_MODES, reminderModeTestId } from "../data/reminderMode"
 import { onboardingCopy } from "../onboarding/copy"
 import { isReminderRuntime } from "../reminders/runtime"
+
+const WorkflowLibrary = lazy(() => import("../components/workflowLibrary/WorkflowLibrary"))
 
 export function InviteLink({ code }: { code: string }) {
   const url = `${window.location.origin}${window.location.pathname}#/join?invite=${encodeURIComponent(code)}`
@@ -45,7 +47,7 @@ export default function Settings() {
     <div className="settings">
       <nav className="settings-nav" aria-label="Settings sections">{tabs.map(t => <button key={t.id} type="button" aria-current={active === t.id ? "page" : undefined} onClick={() => setTab(t.id)}>{t.label}</button>)}</nav>
       <div className="settings-body">
-        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <WorkflowSettings /> : active === "tasks" ? <TaskSettings /> : <ClubSettings tab={active} />}
+        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <Suspense fallback={<p>Loading workflows…</p>}><WorkflowLibrary /></Suspense> : active === "tasks" ? <TaskSettings /> : <ClubSettings tab={active} />}
       </div>
     </div>
   </>
@@ -127,7 +129,7 @@ function SaveStatus<T>({ status, onUndo, onRetry }: { status: { text: string; un
 }
 
 /** The club's event workflow, after setup: the same edit module. New events start from it; events already made keep their steps. */
-function WorkflowSettings() {
+export function WorkflowSettings() {
   const { state, tryDispatch } = useStore()
   const saved = { steps: withOwners(orgSteps(state), state.roles), branches: state.org.eventWorkflow?.branches }
   const [draft, setDraft] = useState<{ steps: StepTemplate[]; branches?: WorkflowBranch[] }>(saved)

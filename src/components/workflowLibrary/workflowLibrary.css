@@ -1,0 +1,5 @@
+.wfl-name { flex: 1; min-width: 0; }
+.wfl-name input { width: 100%; }
+[data-testid="workflow-template-editor"] { min-width: 0; }
+[data-testid="workflow-settings"] > .action-row { flex-wrap: wrap; }
+[data-testid="workflow-settings"] label { min-width: 0; }
