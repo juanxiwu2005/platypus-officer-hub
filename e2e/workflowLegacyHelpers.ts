@@ -1,11 +1,12 @@
 import { expect, type Page } from "@playwright/test"
 import type { StepTemplate, WorkflowBranch } from "../src/data/types"
+import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { closeRail } from "./helpers"
 
 export const readWorkflowState = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
 export async function savedWorkflow(page: Page): Promise<{ steps: StepTemplate[]; branches?: WorkflowBranch[]; teamMap?: { stepTeams: Record<string, string> } }> {
   const state = await readWorkflowState(page)
-  const template = state.org.workflowTemplates?.find((item: { id: string }) => item.id === "standard-event")
+  const template = getWorkflowTemplates(state).find(item => item.id === "standard-event")
   return template?.draft ?? template?.versions.at(-1) ?? state.org.eventWorkflow
 }
 export const savedWorkflowStep = async (page: Page, key: string) => (await savedWorkflow(page))?.steps.find(step => step.key === key)
@@ -16,11 +17,7 @@ export async function openWorkflow(page: Page) {
   await closeRail(page)
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
   await expect(page.getByTestId("workflow-builder")).toBeVisible()
-  if (!(await readWorkflowState(page)).org.workflowTeams?.length) {
-    await page.getByRole("button", { name: "Teams", exact: true }).click()
-    await page.getByRole("button", { name: "Create teams from roles", exact: true }).click()
-    await page.getByRole("button", { name: "Save teams", exact: true }).click()
-  }
+  expect((await readWorkflowState(page)).org.workflowTeams?.length).toBeGreaterThan(0)
   await page.getByRole("button", { name: "Apply role teams", exact: true }).click()
   await expect.poll(async () => Object.keys((await savedWorkflow(page))?.teamMap?.stepTeams ?? {}).length).toBeGreaterThan(0)
   return page.getByTestId("workflow-settings")

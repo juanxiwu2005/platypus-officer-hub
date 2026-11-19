@@ -44,11 +44,7 @@ async function templateByName(page: Page, name: string) {
 
 async function createTemplate(page: Page, name: string, taskNames = names) {
   await settings(page)
-  if (!(await read(page)).org.workflowTeams?.length) {
-    await page.getByRole("button", { name: "Teams", exact: true }).click()
-    await page.getByRole("button", { name: "Create teams from roles", exact: true }).click()
-    await page.getByRole("button", { name: "Save teams", exact: true }).click()
-  }
+  expect((await read(page)).org.workflowTeams?.length).toBeGreaterThan(0)
   await page.getByRole("button", { name: "New workflow", exact: true }).click()
   await page.getByLabel("Workflow name", { exact: true }).fill(name)
   const builder = page.getByTestId("workflow-builder")
@@ -119,7 +115,7 @@ test("five manually entered tasks save, instantiate as Plan dots and reopen afte
 test("the default standard workflow still shows task dots before an organization configures teams", async ({ page }) => {
   await page.goto("/#/events")
   await closeRail(page)
-  expect((await read(page)).org.workflowTeams).toBeUndefined()
+  expect((await read(page)).org.workflowTeams).toHaveLength(4)
   await page.getByTestId("new-event").click()
   const form = page.getByTestId("plan-form").last()
   await form.getByLabel("Event name", { exact: true }).fill("Standard workflow without team setup")
@@ -135,7 +131,8 @@ test("the default standard workflow still shows task dots before an organization
   expect(tasks.length).toBeGreaterThanOrEqual(31)
   expect(tasks.every(node => node.id === `${event.id}:${node.stepKey}`)).toBe(true)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(tasks.length)
-  await expect(page.getByTestId("team-execution-chart")).toHaveCount(0)
+  await expect(page.getByTestId("team-execution-chart")).toHaveCount(1)
+  await expect(page.getByTestId("team-execution-lane")).toHaveCount(4)
 })
 
 test("a second template version creates independent tasks without rewriting an existing activity", async ({ page }) => {

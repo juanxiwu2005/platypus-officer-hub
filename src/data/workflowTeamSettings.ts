@@ -11,6 +11,7 @@ export function saveWorkflowTeams(state: DemoState, teams: WorkflowTeam[], roleT
   if (Object.entries(roleTeams).some(([role, team]) => !roles.has(role) || typeof team !== "string" || (team !== "" && !ids.has(team)))) return state
   // A renamed team keeps its identity. Removing referenced teams requires a later
   // explicit reassignment flow; historical execution snapshots remain untouched.
+  if (Object.values(state.org.workflowPresetTeamIds ?? {}).some(id => !ids.has(id))) return state
   const previous = new Set(state.org.workflowTeams?.map(team => team.id) ?? [])
   const referenced = (state.org.workflowTemplates ?? []).flatMap(template => [...template.versions, ...(template.draft ? [template.draft] : [])]).flatMap(version => Object.values(version.teamMap?.stepTeams ?? {}))
   if (referenced.some(id => previous.has(id) && !ids.has(id))) return state

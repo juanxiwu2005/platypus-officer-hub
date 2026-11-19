@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react"
 import { useStore } from "../../data/store"
-import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDraft } from "../../data/types"
+import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDraft, DemoState } from "../../data/types"
 import { getWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
 import { WorkflowBuilder } from "../workflowBuilder/WorkflowBuilder"
+import { presetWorkflowStepTeams } from "../../data/workflowTeamDefaults"
 import { useRail } from "../rail/RailContext"
 import { WorkflowTeams } from "./WorkflowTeams"
 import "./workflowLibrary.css"
 
-const draftOf = (template: WorkflowTemplate): WorkflowTemplateDraft => {
-  if (template.draft) return structuredClone(template.draft)
+const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplateDraft => {
+  const grouped = (draft: WorkflowTemplateDraft): WorkflowTemplateDraft => draft.kind === "standard" ? { ...draft, teamMap: { version: 1, workflowId: template.id, stepTeams: presetWorkflowStepTeams(state, draft.steps, draft.teamMap?.stepTeams) } } : draft
+  if (template.draft) return grouped(structuredClone(template.draft))
   const version = template.versions[template.versions.length - 1]
-  return { name: version.name, description: version.description, kind: version.kind, steps: structuredClone(version.steps), branches: structuredClone(version.branches), teamMap: structuredClone(version.teamMap), baseVersion: version.version }
+  return grouped({ name: version.name, description: version.description, kind: version.kind, steps: structuredClone(version.steps), branches: structuredClone(version.branches), teamMap: structuredClone(version.teamMap), baseVersion: version.version })
 }
 
 export default function WorkflowLibrary() {
@@ -42,14 +44,14 @@ export default function WorkflowLibrary() {
 
 function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTemplate; onDuplicate: (id: string) => void; flush: MutableRefObject<() => boolean> }) {
   const { state, tryDispatch, persistenceFailed, getState } = useStore()
-  const [draft, setDraft] = useState(() => draftOf(template))
+  const [draft, setDraft] = useState(() => draftOf(template, state))
   const [status, setStatus] = useState("")
   const [error, setError] = useState("")
-  const saved = template.draft ?? draftOf(template)
+  const saved = template.draft ?? draftOf(template, state)
   const pending = JSON.stringify(draft) !== JSON.stringify(saved)
   const save = (value = draft) => {
     const fresh = getWorkflowTemplates(getState()).find(item => item.id === template.id)
-    if (fresh && JSON.stringify(value) === JSON.stringify(fresh.draft ?? draftOf(fresh))) return true
+    if (fresh && JSON.stringify(value) === JSON.stringify(fresh.draft ?? draftOf(fresh, getState()))) return true
     if (!tryDispatch({ type: "saveWorkflowTemplateDraft", id: template.id, draft: value })) { setError("Could not save. Your draft is kept here. Try Save draft."); return false }
     setStatus("Draft saved"); setError(""); return true
   }
@@ -94,7 +96,7 @@ function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTe
         if (problem) { setError(problem); return }
         if (!tryDispatch({ type: "publishWorkflowTemplate", id: template.id })) { setError("Could not save version. Your draft is kept."); return }
         const entry = getWorkflowTemplates(getState()).find(item => item.id === template.id)!
-        setDraft(draftOf(entry)); setStatus(`Version ${entry.versions[entry.versions.length - 1].version} saved`); setError("")
+        setDraft(draftOf(entry, getState())); setStatus(`Version ${entry.versions[entry.versions.length - 1].version} saved`); setError("")
       }}>Save version</button>
       <button type="button" className="btn small" onClick={() => {
         if (!save()) return

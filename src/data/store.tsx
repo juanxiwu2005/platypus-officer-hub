@@ -12,6 +12,7 @@ import { clearLocalDocs } from "../lib/localDocs"
 import { applySchedule, computeSchedule, topoOrder, type Schedule } from "../engine/schedule"
 import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "../engine/playbooks"
 import { newWorkflowTemplate, saveWorkflowTemplateDraft, publishWorkflowTemplate, duplicateWorkflowTemplate, setDefaultWorkflowTemplate } from "./workflowTemplates"
+import { ensureWorkflowPresetTeams } from "./workflowTeamDefaults"
 import { saveWorkflowTeams } from "./workflowTeamSettings"
 import { nextCounter } from "../lib/ids"
 import { PHASES, ancestorsOf, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
@@ -447,7 +448,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     }
 
     case "reset":
-      return seedDemo(undefined, "v2")
+      return ensureWorkflowPresetTeams(seedDemo(undefined, "v2"))
     case "moveTask": return moveTask(state, action.nodeId, action.status, action.beforeId ?? null)
     case "addTask": return addBoardTask(state, action.title, action.status)
     case "saveBoard": return saveBoard(state, action.board)
@@ -465,7 +466,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       return { ...state, aiEnabled: action.enabled }
     case "replace":
       return action.state && [22, 23].includes(action.state.schemaVersion) && Array.isArray(action.state.nodes) && Array.isArray(action.state.people) && Array.isArray(action.state.roles) && action.state.org
-        ? applySchedule({ ...action.state, schemaVersion: SCHEMA_VERSION }) : state
+        ? ensureWorkflowPresetTeams(applySchedule({ ...action.state, schemaVersion: SCHEMA_VERSION })) : state
     case "updateNode": {
       const node = state.nodes.find(n => n.id === action.id)
       if (!canLead(state) || !node || (action.expectedTask !== undefined && action.expectedTask !== taskDefinitionKey(node))) return state
@@ -622,7 +623,10 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     }
     case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
     case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
-    case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode, action.workflowBranches)
+    case "completeSetup": {
+      const next = startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode, action.workflowBranches)
+      return next === state ? state : ensureWorkflowPresetTeams(next)
+    }
     case "newWorkflowTemplate": return newWorkflowTemplate(state, action.id, action.name)
     case "saveWorkflowTemplateDraft": return saveWorkflowTemplateDraft(state, action.id, action.draft)
     case "publishWorkflowTemplate": return publishWorkflowTemplate(state, action.id)
@@ -675,6 +679,11 @@ function backUp(raw: string, tag: string): string | null {
  * structure version, or cannot be read, it is first copied to a backup key, and the notice says where.
  */
 export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {
+  const loaded = readStateWithNotice()
+  return { ...loaded, state: ensureWorkflowPresetTeams(loaded.state) }
+}
+
+function readStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {
   let raw: string | null = null
   try { raw = store().getItem(STORAGE_KEY) } catch { return { state: seedDemo(undefined, "v2"), notice: null } } // storage blocked: nothing to protect; a failed save will say so
   if (!raw) return { state: seedDemo(undefined, "v2"), notice: null }

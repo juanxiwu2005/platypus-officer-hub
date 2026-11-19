@@ -4,6 +4,7 @@ import { EVENT_STEPS, buildEventNodes, orgSteps } from "../engine/playbooks"
 import { MAX_STEPS, PHASE_LIST, checkWorkflow, withOwners } from "../engine/workflow"
 import { DEFAULT_WORKFLOW_BRANCHES, branchOf, isWorkflowCondition, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
 import { isAsuStep } from "../engine/workflowPolicy"
+import { presetWorkflowStepTeams } from "./workflowTeamDefaults"
 import { RULES } from "./rules"
 
 /** This built-in identity is scoped by Org.id; user-created templates use generated IDs. */
@@ -20,10 +21,12 @@ const knownRuleIds = new Set([...RULES.map(rule => rule.id), ...EVENT_STEPS.flat
 export function getWorkflowTemplates(s: DemoState): WorkflowTemplate[] {
   const templates = s.org.workflowTemplates ?? []
   if (templates.some(template => template.id === STANDARD_WORKFLOW_TEMPLATE_ID)) return copy(templates)
+  const steps = withOwners(copy(orgSteps(s)), s.roles)
+  const stepTeams = presetWorkflowStepTeams(s, steps)
   const standard: WorkflowTemplate = {
     id: STANDARD_WORKFLOW_TEMPLATE_ID,
     updatedOn: s.org.eventWorkflow?.updatedOn ?? s.today,
-    versions: [{ version: 1, savedOn: s.org.eventWorkflow?.updatedOn ?? s.today, name: "Speaker series", description: s.org.eventWorkflow?.summary ?? "Standard organization event workflow.", kind: "standard", steps: withOwners(copy(orgSteps(s)), s.roles), ...(s.org.eventWorkflow?.branches ? { branches: copy(s.org.eventWorkflow.branches) } : {}) }],
+    versions: [{ version: 1, savedOn: s.org.eventWorkflow?.updatedOn ?? s.today, name: "Speaker series", description: s.org.eventWorkflow?.summary ?? "Standard organization event workflow.", kind: "standard", steps, ...(steps.length && steps.every(step => !!stepTeams[step.key]) ? { teamMap: { version: 1, workflowId: STANDARD_WORKFLOW_TEMPLATE_ID, stepTeams } } : {}), ...(s.org.eventWorkflow?.branches ? { branches: copy(s.org.eventWorkflow.branches) } : {}) }],
   }
   return [standard, ...copy(templates)]
 }
@@ -190,7 +193,7 @@ export interface WorkflowInstantiation { event: Event; nodes: Node[]; error?: st
 function executionTeamSnapshot(s: DemoState, version: WorkflowTemplateVersion) {
   const teams = copy(s.org.workflowTeams ?? [])
   const teamIds = new Set(teams.map(team => team.id))
-  const stepTeams = { ...version.teamMap?.stepTeams }
+  const stepTeams = version.kind === "standard" ? presetWorkflowStepTeams(s, version.steps, version.teamMap?.stepTeams) : { ...version.teamMap?.stepTeams }
   // Only explicit organization metadata supplies grouping. No role-name/function guessing.
   for (const step of version.steps) if (!stepTeams[step.key] && step.ownerRoleId) {
     const team = s.org.workflowRoleTeams?.[step.ownerRoleId]
