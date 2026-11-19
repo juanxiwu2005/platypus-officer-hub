@@ -31,7 +31,7 @@ export function MilestoneDetails(props: Props) {
     <header className="wfb-detail-header"><h3>{step ? "Task details" : selected === "__new_branch__" ? "Add team branch" : selected.startsWith("branch:") ? "Team branch" : day ? "Event day" : "Workflow station"}</h3><button type="button" className="btn small btn-quiet" onClick={onClose}>Close</button></header>
     {endpoint && <>
       <label>Station name<input maxLength={120} value={graph[endpoint].title} onChange={event => patchGraph({ [endpoint]: { ...graph[endpoint], title: event.target.value } })} /></label>
-      <label>Details<textarea rows={5} maxLength={2000} value={graph[endpoint].details} onChange={event => patchGraph({ [endpoint]: { ...graph[endpoint], details: event.target.value } })} /></label>
+      <label>Details<textarea aria-label="Details" rows={5} maxLength={2000} value={graph[endpoint].details} onChange={event => patchGraph({ [endpoint]: { ...graph[endpoint], details: event.target.value } })} /></label>
       <p className="small muted">This is the workflow boundary. It stays on the main line.</p>
     </>}
     {day && <>
@@ -39,7 +39,7 @@ export function MilestoneDetails(props: Props) {
       <WholeNumber key={day.id} label="Days after Day 1" value={day.offsetDays} min={day === graph.eventDays[0] ? 0 : 1} max={365} disabled={day === graph.eventDays[0]} onCommit={offsetDays => patchGraph({ eventDays: graph.eventDays.map(item => item.id === day.id ? { ...item, offsetDays } : item) })} />
       <p className="small">{fmtLong(workflowMilestoneDates(graph, props.eventDate)[day.id])} · fixed date</p>
       {day === graph.eventDays[0] && <label>Preview event date<input type="date" value={props.eventDate} onChange={event => { if (/^\d{4}-\d{2}-\d{2}$/.test(event.target.value)) props.onEventDate(event.target.value) }} /><span className="small muted">Preview only. Each activity supplies its own Day 1 date.</span></label>}
-      <label>Details<textarea rows={5} maxLength={2000} value={day.details} onChange={event => patchGraph({ eventDays: graph.eventDays.map(item => item.id === day.id ? { ...item, details: event.target.value } : item) })} /></label>
+      <label>Details<textarea aria-label="Details" rows={5} maxLength={2000} value={day.details} onChange={event => patchGraph({ eventDays: graph.eventDays.map(item => item.id === day.id ? { ...item, details: event.target.value } : item) })} /></label>
       <p className="small muted">Unfinished work is flagged as a risk; this date does not move.</p>
     </>}
     {(selected === "__new_branch__" || selected.startsWith("branch:")) && <BranchDetails {...props} graph={graph} />}
@@ -83,14 +83,15 @@ function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, o
     <label>Task name<input value={step.title} maxLength={120} onChange={event => patch({ title: event.target.value })} /></label>
     <label>Step type<select value={workflowStepKind(step, branches)} onChange={event => patch({ stepKind: event.target.value as "core" | "situation" })}><option value="core">Core event step</option><option value="situation">Situation-based step</option></select></label>
     <label>Team branch<select value={route?.id ?? "__main__"} onChange={event => onChange(moveMilestoneTask(snapshot, step.key, event.target.value))}><option value="__main__">Main line</option>{graph.teamBranches.map(branch => <option key={branch.id} value={branch.id}>{teams.find(team => team.id === branch.teamId)?.name ?? "Choose team"} · {milestoneStationTitle(graph, steps, branch.fromId)} → {milestoneStationTitle(graph, steps, branch.toId)}</option>)}</select></label>
-    {!route && <label>Team<select value={snapshot.stepTeams[step.key] ?? ""} onChange={event => { const mapping = { ...snapshot.stepTeams }; if (event.target.value) mapping[step.key] = event.target.value; else delete mapping[step.key]; onChange({ ...snapshot, stepTeams: mapping }) }}><option value="">Choose team</option>{teams.map(team => <option value={team.id} key={team.id}>{team.name}</option>)}</select></label>}
+    <label>Team<select value={route?.teamId ?? snapshot.stepTeams[step.key] ?? ""} onChange={event => { if (route) { onChange(assignMilestoneBranchTeam(snapshot, route.id, event.target.value)); return } const mapping = { ...snapshot.stepTeams }; if (event.target.value) mapping[step.key] = event.target.value; else delete mapping[step.key]; onChange({ ...snapshot, stepTeams: mapping }) }}><option value="">Choose team</option>{teams.map(team => <option value={team.id} key={team.id}>{team.name}</option>)}</select></label>
+    {route && <p className="small muted">Team applies to every task in this branch.</p>}
     <label>Done by<select value={step.ownerRoleId ?? ""} onChange={event => { const role = state.roles.find(candidate => candidate.id === event.target.value); patch({ ownerRoleId: role?.id ?? null, ...(role ? { fn: role.fn } : {}) }) }}><option value="">Unassigned</option>{state.roles.filter(role => role.fn !== "advisor").map(role => <option value={role.id} key={role.id}>{labels.get(role.id)}</option>)}</select></label>
     <WorkflowEffortInput value={step.estDays} onCommit={patch} />
     <label>Event day<select disabled={locked} value={anchor.eventDayId} onChange={event => anchorPatch({ eventDayId: event.target.value })}>{graph.eventDays.map((day, index) => <option value={day.id} key={day.id}>Day {index + 1} · {day.title}</option>)}</select></label>
     <WholeNumber label="Finish by (T±)" value={anchor.offsetDays} min={-365} max={365} disabled={locked} onCommit={offsetDays => anchorPatch({ offsetDays })} />
     <label>Target unit<select disabled={locked} value={anchor.unit ?? "calendar"} onChange={event => anchorPatch({ unit: event.target.value as "calendar" | "business" })}><option value="calendar">Calendar days</option><option value="business">Business days</option></select></label>
     <p className="small muted">−7 is before the selected event day; +2 is after. {due ? `Preview target: ${fmtLong(due)}.` : ""} Start is calculated from workdays, buffers and prerequisites.</p>
-    <label>Details<textarea rows={4} maxLength={400} value={step.why} onChange={event => patch({ why: event.target.value })} /></label>
+    <label>Details<textarea aria-label="Details" rows={4} maxLength={400} value={step.why} onChange={event => patch({ why: event.target.value })} /></label>
     {!!definitions.length && <label>Include with<select disabled={locked || (policy === "standard" && ["finalcheck", "checkin", "headcount"].includes(step.key))} value={placementOf(step).branchId} onChange={event => {
       const definition = definitions.find(item => item.id === event.target.value)
       patch({ placement: { branchId: event.target.value, order: placementOf(step).order }, ...(definition ? { phase: definition.side === "after_event" ? "close" : "prepare" } : {}) })
