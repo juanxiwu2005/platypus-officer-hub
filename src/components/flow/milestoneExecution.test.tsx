@@ -63,7 +63,7 @@ describe("milestone execution projection", () => {
 })
 
 
-afterEach(cleanup)
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
 function StationDetails() { return <aside>{useRail().workflowDetail}</aside> }
 describe("milestone activity chart", () => {
   it("opens real task IDs and keeps event-day details separate from task actions", () => {
@@ -80,5 +80,23 @@ describe("milestone activity chart", () => {
     expect(within(details).queryByRole("button", { name: /mark done/i })).toBeNull()
     expect(onSelect).toHaveBeenCalledTimes(1)
     expect(state).toEqual(before)
+  })
+})
+
+
+describe("milestone activity viewport", () => {
+  it("centers the main line once, preserves manual scrolling after progress updates and reveals a newly selected task", () => {
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(200)
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(350)
+    const { state, event } = milestoneExecutionFixture(), onSelect = vi.fn()
+    const view = (next: DemoState, selectedId: string | null) => <RailProvider><MilestoneExecutionChart state={next} eventId={event.id} sched={{ nodes: {}, events: {} }} forecast={{ nodes: {}, events: {} }} selectedId={selectedId} onSelect={onSelect} /></RailProvider>
+    const rendered = render(view(state, null)), viewport = screen.getByTestId("flow-chart")
+    expect(viewport.scrollTop).toBeGreaterThan(0)
+    viewport.scrollTop = 40
+    const updated: DemoState = { ...state, nodes: state.nodes.map((node, index) => index ? node : { ...node, status: "in_progress" }) }
+    rendered.rerender(view(updated, null))
+    expect(viewport.scrollTop).toBe(40)
+    rendered.rerender(view(updated, "actual:between"))
+    expect(viewport.scrollTop).toBeGreaterThan(40)
   })
 })

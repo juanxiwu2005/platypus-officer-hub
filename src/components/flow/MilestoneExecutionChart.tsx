@@ -25,6 +25,7 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
   const layout = useMemo(() => graph && projection ? buildMilestoneLayout(projection.steps, graph) : null, [graph, projection])
   const [stationId, setStationId] = useState<string | null>(null)
   const viewport = useRef<HTMLDivElement>(null), [available, setAvailable] = useState(940)
+  const lastPositioned = useRef<{ eventId: string; selectedId: string | null } | null>(null)
   const rail = useRail(), styles = statusStyles(state)
   const station = layout?.stations.find(item => item.id === stationId && item.kind !== "task")
   useEffect(() => {
@@ -36,6 +37,19 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
     window.addEventListener("resize", measure)
     return () => window.removeEventListener("resize", measure)
   }, [])
+  useEffect(() => {
+    const element = viewport.current
+    if (!element || !layout || !projection) return
+    const previous = lastPositioned.current
+    if (previous?.eventId === eventId && previous.selectedId === selectedId) return
+    const key = selectedId ? [...projection.nodeByStep].find(([, node]) => node.id === selectedId)?.[0] : undefined
+    const point = key ? layout.stations.find(item => item.id === key) ?? layout.points.find(item => item.step.key === key) : undefined
+    const scale = Math.min(1, Math.max(0.86, (available - 4) / layout.width))
+    element.scrollTop = Math.max(0, (point?.y ?? layout.mainY) * scale - element.clientHeight / 2)
+    if (point) element.scrollLeft = Math.max(0, point.x * scale - element.clientWidth / 2)
+    else if (previous?.eventId !== eventId) element.scrollLeft = 0
+    lastPositioned.current = { eventId, selectedId }
+  }, [eventId, selectedId, layout, projection, available])
   useEffect(() => {
     if (!station || !event || !graph || !projection) return
     const day = graph.eventDays.find(item => item.id === station.id)
