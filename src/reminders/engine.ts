@@ -1,5 +1,6 @@
 import { addDays, daysBetween } from "../lib/dates"
-import { compareReminders, expectedInputOn, FOLLOWUP_DAYS, importantDelivery, importantReminder, isMilestone } from "./policy"
+import { allowedReminderVia, compareReminders, deliveryEmailKey, DIGEST_TASK_CAP, expectedInputOn, FOLLOWUP_DAYS, importantDelivery, importantReminder, isMilestone } from "./policy"
+import type { ReminderMailSnapshot } from "./accessContracts"
 import type {
   BlockedReminder, ReminderCandidate, ReminderDelivery, ReminderInput, ReminderPerson, ReminderPlan,
   ReminderReason, ReminderRuntime, ReminderTaskFacts, ReminderTransition, WaitingRequest,
@@ -103,7 +104,8 @@ function taskCandidate(task: ReminderTaskFacts, reason: "start" | "due" | "overd
   }
 }
 
-function limitReason(input: ReminderInput, candidate: ReminderCandidate): BlockedReminder["reason"] | null {
+/** Per-task limits: one reminder per task and person per day, and the configured reminders per task. */
+function taskLimitReason(input: ReminderInput, candidate: ReminderCandidate): BlockedReminder["reason"] | null {
   const { deliveries } = input.runtime
   if (deliveries.some(delivery => delivery.nodeId === candidate.nodeId && delivery.recipientId === candidate.recipientId && delivery.sentOn === input.today)) return "already_sent_today"
   const rawLimit = Number.isFinite(input.maxPerTask) ? Math.floor(input.maxPerTask) : 3
@@ -113,19 +115,35 @@ function limitReason(input: ReminderInput, candidate: ReminderCandidate): Blocke
   if (candidate.reason === "no_reply" ? scoped.some(d => d.reason === "no_reply") || taskLimit < 3
     : (isMilestone(candidate.reason) ? new Set(scoped.filter(d => isMilestone(d.reason)).map(d => d.reason)).size
       : scoped.filter(d => !isMilestone(d.reason) && d.reason !== "no_reply").length) >= taskLimit) return "task_limit"
+  return null
+}
+
+/**
+ * Per-person limits count EMAILS, not tasks: a recorded digest (shared digestId) is one email, a delivery without
+ * digestId is its own email, and an email is important when any task in it is. Today's ready tasks for this person are
+ * evaluated as one more email, important when any of them is: at most 6 emails a week (2 kept for important ones)
+ * and 2 a day (the second kept for an important one).
+ */
+function emailLimitReason(input: ReminderInput, recipientId: string, important: boolean): BlockedReminder["reason"] | null {
   const weekStart = addDays(input.today, -6)
-  const week = deliveries.filter(delivery => delivery.recipientId === candidate.recipientId && delivery.sentOn >= weekStart && delivery.sentOn <= input.today)
+  const emails = new Map<string, { important: boolean; today: boolean }>()
+  for (const delivery of input.runtime.deliveries) {
+    if (delivery.recipientId !== recipientId || delivery.sentOn < weekStart || delivery.sentOn > input.today) continue
+    const key = deliveryEmailKey(delivery), prior = emails.get(key)
+    emails.set(key, { important: !!prior?.important || importantDelivery(delivery), today: !!prior?.today || delivery.sentOn === input.today })
+  }
+  const week = [...emails.values()]
   if (week.length >= 6) return "weekly_limit"
-  if (!importantReminder(candidate, input.today) && week.filter(d => !importantDelivery(d)).length >= 4) return "weekly_reserved"
-  const day = week.filter(d => d.sentOn === input.today)
+  if (!important && week.filter(email => !email.important).length >= 4) return "weekly_reserved"
+  const day = week.filter(email => email.today)
   if (day.length >= 2) return "daily_limit"
-  if (!importantReminder(candidate, input.today) && day.some(d => !importantDelivery(d))) return "daily_reserved"
+  if (!important && day.some(email => !email.important)) return "daily_reserved"
   return null
 }
 
 /** Derives candidates, never derives an already-sent fact. All historical sends live in runtime.deliveries. */
 export function planReminders(input: ReminderInput): ReminderPlan {
-  const ready: ReminderCandidate[] = [], upcoming: ReminderCandidate[] = [], blocked: BlockedReminder[] = []
+  const ready: ReminderCandidate[] = [], upcoming: ReminderCandidate[] = [], blocked: BlockedReminder[] = [], pending: ReminderCandidate[] = []
   const people = new Map(input.people.map(person => [person.id, person]))
   const delivered = new Set(input.runtime.deliveries.map(delivery => delivery.candidateId))
   // Dates reject stale drafts, but never erase a milestone that was actually delivered in this assignment.
@@ -198,31 +216,70 @@ export function planReminders(input: ReminderInput): ReminderPlan {
     // A reached, unsent milestone wins over silence follow-up; never backfill an older stage.
     const selected = latest && !sent(latest) ? latest : followup && followup.scheduledOn <= input.today ? followup : undefined
     if (!selected) continue
-    const held = limitReason(input, selected)
+    const held = taskLimitReason(input, selected)
     if (held) blocked.push({ nodeId: selected.nodeId, recipientId: selected.recipientId, reason: held })
-    else ready.push(selected)
+    else pending.push(selected)
+  }
+  // One email per person today: the person's tasks pass or wait together, so the ready list is exactly what can be recorded.
+  const byRecipient = new Map<string, ReminderCandidate[]>()
+  for (const candidate of pending.sort(compareReminders(input.today))) {
+    const list = byRecipient.get(candidate.recipientId) ?? []
+    if (!list.length) byRecipient.set(candidate.recipientId, list)
+    list.push(candidate)
+  }
+  for (const [recipientId, list] of byRecipient) {
+    const email = list.slice(0, DIGEST_TASK_CAP), overflow = list.slice(DIGEST_TASK_CAP)
+    const held = emailLimitReason(input, recipientId, email.some(candidate => importantReminder(candidate, input.today)))
+    if (held) { blocked.push(...list.map(candidate => ({ nodeId: candidate.nodeId, recipientId, reason: held }))); continue }
+    ready.push(...email)
+    // Beyond the cap, tasks are not dropped: they wait for this person's next email (tomorrow at the earliest).
+    upcoming.push(...overflow.map(candidate => ({ ...candidate, scheduledOn: addDays(input.today, 1), explanation: "We will include this in the next reminder email." })))
   }
   return { ready: ready.sort(compareReminders(input.today)), upcoming: upcoming.sort(candidateOrder), blocked }
 }
 
-/** The caller owns business authorization. This function rechecks readiness, mode and all delivery limits. */
-export function confirmReminderDelivery(input: ReminderInput, candidateId: string, via: ReminderDelivery["via"]): ReminderRuntime {
-  const allowed = input.mode === "auto_email" ? ["automatic", "platypus"] : input.mode === "review_then_auto" ? ["platypus"] : ["manual"]
-  if (!allowed.includes(via)) return input.runtime
-  const candidate = planReminders(input).ready.find(value => value.id === candidateId)
-  if (!candidate) return input.runtime
+function deliveryFor(input: ReminderInput, candidate: ReminderCandidate, via: ReminderDelivery["via"], sequence: number, digestId?: string): ReminderDelivery {
   const task = input.tasks.find(value => value.nodeId === candidate.nodeId)!
   const recipient = input.people.find(person => person.id === candidate.recipientId)!
-  const sequence = input.runtime.sequence + 1
-  const delivery: ReminderDelivery = {
-    id: `reminder-delivery:${sequence}`, candidateId, nodeId: candidate.nodeId, recipientId: candidate.recipientId,
+  return {
+    id: `reminder-delivery:${sequence}`, candidateId: candidate.id, nodeId: candidate.nodeId, recipientId: candidate.recipientId,
     ownerId: candidate.ownerId, ownerVersion: candidate.ownerVersion, planKey: candidate.planKey, reason: candidate.reason,
     scheduledOn: candidate.scheduledOn, sentOn: input.today, sequence, via, recipientName: recipient.name,
     taskTitle: task.title, eventName: task.eventName, due: task.due,
     ...(candidate.waitingRequestId ? { waitingRequestId: candidate.waitingRequestId } : {}),
     outcome: via === "manual" ? "recorded_by_sender" : "simulated",
+    ...(digestId ? { digestId } : {}),
   }
-  return { ...input.runtime, sequence, deliveries: [...input.runtime.deliveries, delivery] }
+}
+
+/** The caller owns business authorization. This function rechecks readiness, mode and all delivery limits. One delivery without digestId is one email. */
+export function confirmReminderDelivery(input: ReminderInput, candidateId: string, via: ReminderDelivery["via"]): ReminderRuntime {
+  if (!allowedReminderVia(input.mode).includes(via)) return input.runtime
+  const candidate = planReminders(input).ready.find(value => value.id === candidateId)
+  if (!candidate) return input.runtime
+  const sequence = input.runtime.sequence + 1
+  return { ...input.runtime, sequence, deliveries: [...input.runtime.deliveries, deliveryFor(input, candidate, via, sequence)] }
+}
+
+/**
+ * Record one person digest: `candidateIds` must be exactly that person's ready candidates today, in plan order.
+ * All deliveries share the digest id `reminder-digest:<sequence>`; anything else records nothing (null).
+ * `messages` (one per candidate, same order) are attached unchanged; the caller validates them.
+ */
+export function confirmReminderDigest(input: ReminderInput, candidateIds: string[], via: ReminderDelivery["via"], messages?: ReminderMailSnapshot[]): { runtime: ReminderRuntime; digestId: string; deliveries: ReminderDelivery[] } | null {
+  if (!allowedReminderVia(input.mode).includes(via) || !Array.isArray(candidateIds) || !candidateIds.length) return null
+  if (messages && messages.length !== candidateIds.length) return null
+  const ready = planReminders(input).ready
+  const first = ready.find(candidate => candidate.id === candidateIds[0])
+  if (!first) return null
+  const group = ready.filter(candidate => candidate.recipientId === first.recipientId)
+  if (group.length !== candidateIds.length || group.some((candidate, index) => candidate.id !== candidateIds[index])) return null
+  const digestSequence = input.runtime.sequence + 1, digestId = `reminder-digest:${digestSequence}`
+  const deliveries = group.map((candidate, index) => ({
+    ...deliveryFor(input, candidate, via, digestSequence + 1 + index, digestId),
+    ...(messages ? { message: messages[index] } : {}),
+  }))
+  return { digestId, deliveries, runtime: { ...input.runtime, sequence: digestSequence + group.length, deliveries: [...input.runtime.deliveries, ...deliveries] } }
 }
 
 /** Automatic demo deliveries are durable and individually rechecked, including aggregate batch limits. */
