@@ -122,18 +122,24 @@ test("the task entry opens only its task, does not update on load, and supports 
   await expect(task.getByTestId("single-task-status")).toHaveText("Working on it")
 })
 
-test("tampered and reset task entries cannot update any task", async ({ page }) => {
+test("tampered and reset task entries cannot update any task", async ({ page, isMobile }) => {
   await enableUpdatedReminders(page)
-  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()
-  const link = page.getByTestId("nudge-panel").getByRole("link", { name: "Open task", exact: true })
+  // Concept F: the first person's email in the rail; each task line ends in its own "Open task" entry.
+  await page.getByTestId("rq-person").first().locator(".dg-person-head").click()
+  const link = page.getByTestId("digest-panel").getByTestId("digest-body").getByRole("link", { name: "Open task", exact: true }).first()
   await expect(link).toHaveAttribute("href", /access=/)
   const href = (await link.getAttribute("href"))!
   await page.goto(`${href}0`)
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
+  await expect(page.getByTestId("task-detail")).toHaveCount(0)
   await page.goto("/#/")
+  await expect(page.getByTestId("reminder-centre")).toBeVisible()
+  // The Plan link opened the side panel; on a phone leaving Plan closes it again (e2e/reminder-plan-entry.spec.ts).
+  if (isMobile) await expect(page.getByTestId("rail")).toBeHidden()
   await resetDemo(page)
   await page.goto(href)
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
+  await expect(page.getByTestId("task-detail")).toHaveCount(0)
 })
 
 test("table, board and timeline use the same tasks and remain usable on a phone", async ({ page }) => {

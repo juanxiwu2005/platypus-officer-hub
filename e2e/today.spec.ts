@@ -65,7 +65,10 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
   await expect(page.getByTestId("change-set")).toContainText("AI off")
   await card.getByLabel("Owner", { exact: true }).selectOption("jordan")
   await card.getByRole("button", { name: "Apply this change" }).click()
-  await expect(page.getByTestId("rq-needs-ok").locator('[data-node="t-news"]')).toContainText("Jordan")   // FB-8: the reminder centre row
+  await expect.poll(async () => (await savedDemo(page)).nodes.find(n => n.id === "t-news")?.ownerId).toBe("jordan")
+  // Concept F: the reassigned newsletter leaves Fix first and becomes a line of Jordan's email on the reminder centre.
+  await expect(page.locator('[data-testid="rq-person"][data-recipient="jordan"]').locator('[data-testid="rq-person-task"][data-node="t-news"]')).toBeVisible()
+  await expect(page.getByTestId("rq-fix").locator('[data-node="t-news"]')).toHaveCount(0)
   await ask(page, "Unassign Send the October newsletter")
   await page.getByTestId("change-item").last().getByRole("button", { name: "Reject", exact: true }).click()
   await expect(page.getByTestId("change-item").last()).toContainText("Rejected")
@@ -76,32 +79,38 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
   await expect(page.getByTestId("applied-set").last()).toContainText("Undone")
 })
 
-// FB-8: the risk list is gone; forecast-red tasks lead each reminder-centre section with a risk mark, and "Review & open draft" opens the reminder.
-test("top tasks and the reminder centre's risk marks come from the app; Review & open draft opens a rule-written reminder with one task entry", async ({ page }) => {
-  await page.route("**/api/nudge/draft", r => r.fulfill({ json: { whyItMatters: "We build a stronger club together.", source: "ai" } }))
+// FB-8: the risk list is gone; forecast-red tasks carry a risk mark on the reminder centre. Concept F: a person's email opens in the rail,
+// written by the rules (an available AI line is not used), with one task entry per task.
+test("top tasks and the reminder centre's risk marks come from the app; a person's email is a rule-written draft with one entry per task", async ({ page }) => {
+  let aiCalls = 0
+  await page.route("**/api/nudge/draft", r => { aiCalls++; return r.fulfill({ json: { whyItMatters: "We build a stronger club together.", source: "ai" } }) })
   await enableUpdatedReminders(page)
-  const risk = page.getByTestId("rq-needs-ok")
-  await expect(risk.getByTestId("rq-row").first().getByTestId("forecast").getByRole("button")).toHaveAttribute("aria-label", /At risk/)
+  const people = page.getByTestId("rq-people")
+  await expect(people.getByTestId("rq-person-task").first().getByTestId("forecast").getByRole("button")).toHaveAttribute("aria-label", /At risk/)
   await ask(page, "What are my top 5 tasks?")
   await expect(page.getByTestId("tasks-card")).toContainText("Your top")
   await closeRail(page)
-  await risk.getByRole("button", { name: "Review & open draft" }).first().click()
-  const panel = page.getByTestId("nudge-panel")
-  await expect(panel.getByTestId("nudge-body")).toContainText("Task due:")
-  await expect(panel.getByTestId("nudge-body")).toContainText("Thank you")
-  const selected = await panel.getByLabel("Preferred channel").inputValue()
-  expect(["whatsapp", "sms", "email"]).toContain(selected)
-  await expect(panel.getByRole("link", { name: "Open task", exact: true })).toHaveCount(1)
+  const person = people.getByTestId("rq-person").first()
+  const lines = await person.getByTestId("rq-person-task").evaluateAll(list => list.map(li => (li as HTMLElement).dataset.node!))
+  await person.locator(".dg-person-head").click()
+  const panel = page.getByTestId("digest-panel")
+  const body = panel.getByTestId("digest-body")
+  await expect(body).toContainText("Task due:")
+  await expect(body).toContainText("Thank you")
+  await expect(panel.getByTestId("digest-mail")).not.toContainText("We build a stronger club together.")
+  await expect(body.getByRole("link", { name: "Open task", exact: true })).toHaveCount(lines.length)
+  for (const node of lines) await expect(body.locator(`a[href*="node=${encodeURIComponent(node)}&"]`)).toHaveCount(1)
   await expect(panel.getByRole("link", { name: /^(Done|Waiting on…|Need help|Need more time)$/ })).toHaveCount(0)
-  await panel.getByLabel("Preferred channel").selectOption("email")
   const draft = panel.getByRole("link", { name: "Open Gmail draft" })
   await expect(draft).toHaveAttribute("href", /^https:\/\/mail.google.com\/mail\/\?view=cm/)
   expect(decodeURIComponent((await draft.getAttribute("href"))!)).toContain("Task due:")
-  await expect(panel.getByRole("button", { name: "I sent this reminder" })).toHaveCount(0)
-  const entry = (await panel.getByRole("link", { name: "Open task", exact: true }).getAttribute("href"))!
+  await expect(panel.getByTestId("digest-sent-self")).toHaveCount(0)
+  expect(aiCalls).toBe(0)
+  const entry = (await body.getByRole("link", { name: "Open task", exact: true }).first().getAttribute("href"))!
   await page.goto(entry)
-  await expect(page.getByTestId("single-task-page")).toBeVisible()
-  await expect(page.getByRole("button", { name: "Stuck", exact: true })).toBeVisible()
+  const task = page.getByTestId("task-detail")
+  await expect(task).toBeVisible()
+  await expect(task.getByRole("combobox", { name: "Task status", exact: true }).locator("option", { hasText: "Stuck" })).toHaveCount(1)
 })
 
 test("officers cannot prepare a reminder or approve a change", async ({ page }) => {
@@ -120,9 +129,15 @@ test("officers cannot prepare a reminder or approve a change", async ({ page }) 
 
 // FB-8 (PLAN.md §12.2): home is the reminder centre. The Events progress card, Semester goals and Superstar of the week left home
 // (goals are in Settings, the weekly star on Team); the events are one click away under Plan.
-test("Reminders: five sections in place of the risk rows, event chains, goals and the weekly star", async ({ page }) => {
-  await page.goto("/#/")
-  for (const name of ["Needs your OK", "This week", "Sent", "Replies", "No reply yet"]) await expect(page.getByRole("heading", { level: 2, name })).toBeVisible()
+// Concept F (2026-11-19): a summary card, one email per person, Fix first; the history line appears only once something is recorded.
+test("Reminders: summary, people and Fix first in place of the risk rows, event chains, goals and the weekly star", async ({ page }) => {
+  await enableUpdatedReminders(page)
+  await expect(page.getByTestId("rq-summary")).toContainText("Review 3 emails · 5 tasks · 0 sent today")
+  await expect(page.getByTestId("rq-person")).toHaveCount(3)
+  await expect(page.getByTestId("rq-fix").getByRole("heading", { level: 2, name: /^Fix first/ })).toBeVisible()
+  await expect(page.getByTestId("rq-history")).toHaveCount(0)
+  for (const id of ["rq-needs-ok", "rq-this-week", "rq-sent", "rq-replies", "rq-no-reply", "approve-all"]) await expect(page.getByTestId(id)).toHaveCount(0)
+  for (const name of ["Needs your OK", "This week", "Sent", "Replies", "No reply yet"]) await expect(page.getByRole("heading", { level: 2, name, exact: true })).toHaveCount(0)
   await expect(page.getByTestId("event-strip")).toHaveCount(0)
   await expect(page.getByRole("heading", { name: "Semester goals" })).toHaveCount(0)
   await expect(page.getByRole("heading", { name: "Superstar of the week" })).toHaveCount(0)

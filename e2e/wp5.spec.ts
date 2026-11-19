@@ -7,8 +7,8 @@ test("forecast shows colour first; reasons and percentages wait in the hover car
   await page.goto("/#/")
   await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
-  // FB-8: the risk list is gone; the reminder centre marks forecast-red tasks first in each section.
-  const risk = page.getByTestId("rq-needs-ok")
+  // FB-8: the risk list is gone; the reminder centre marks forecast-red tasks. Concept F: the marks sit on each person's task lines.
+  const risk = page.getByTestId("rq-people")
   const dot = risk.getByTestId("forecast").first().getByRole("button")
   await expect(dot).toHaveAttribute("aria-label", /At risk/)
   const card = risk.getByTestId("forecast").first().locator(".hover-card")
