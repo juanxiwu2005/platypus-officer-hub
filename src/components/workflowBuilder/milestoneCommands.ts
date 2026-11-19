@@ -150,7 +150,7 @@ export function addMilestoneTask(snapshot: BuilderSnapshot, branchId?: string, k
   if (!reference && graph.spine.indexOf(branch.fromId) >= graph.spine.indexOf(graph.eventDays.at(-1)?.id ?? WORKFLOW_DAY_ONE)) step.phase = "close"
   graph.taskAnchors[key] = anchorForStep(graph, step, branch, reference?.key)
   branch.stepIds.push(key)
-  return { ...current, steps: [...current.steps, step], stepTeams: { ...current.stepTeams, [key]: branch.teamId }, milestoneGraph: graph }
+  return { ...current, steps: [...current.steps, step], stepTeams: branch.teamId ? { ...current.stepTeams, [key]: branch.teamId } : current.stepTeams, milestoneGraph: graph }
 }
 
 export function addMilestoneCheck(snapshot: BuilderSnapshot, key = newBuilderStepId()): BuilderSnapshot {
@@ -213,14 +213,24 @@ export function moveMilestoneTask(snapshot: BuilderSnapshot, key: string, branch
   const changedInterval = target && (!source || source.fromId !== target.fromId || source.toId !== target.toId)
   const anchor = graph.taskAnchors[key]
   if (anchor && (changedInterval || branchId === "__main__")) graph.taskAnchors[key] = { ...anchor, eventDayId: isAsuStep(step) || !target ? WORKFLOW_DAY_ONE : branchAnchor(graph, target).eventDayId }
-  return { ...current, steps, stepTeams: target ? { ...current.stepTeams, [key]: target.teamId } : current.stepTeams, milestoneGraph: graph }
+  const stepTeams = target ? { ...current.stepTeams } : current.stepTeams
+  if (target) {
+    if (target.teamId) stepTeams[key] = target.teamId
+    else delete stepTeams[key]
+  }
+  return { ...current, steps, stepTeams, milestoneGraph: graph }
 }
 
 export function assignMilestoneBranchTeam(snapshot: BuilderSnapshot, branchId: string, teamId: string): BuilderSnapshot {
   const current = ensureMilestoneSnapshot(snapshot), graph = current.milestoneGraph!
   const branch = graph.teamBranches.find(item => item.id === branchId)
   if (!branch || branch.teamId === teamId) return current
-  return { ...current, stepTeams: { ...current.stepTeams, ...Object.fromEntries(branch.stepIds.map(key => [key, teamId])) }, milestoneGraph: { ...graph,
+  const stepTeams = { ...current.stepTeams }
+  for (const key of branch.stepIds) {
+    if (teamId) stepTeams[key] = teamId
+    else delete stepTeams[key]
+  }
+  return { ...current, stepTeams, milestoneGraph: { ...graph,
     teamBranches: graph.teamBranches.map(item => item.id === branchId ? { ...item, teamId } : item),
   } }
 }

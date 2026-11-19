@@ -210,6 +210,26 @@ describe("milestone authoring commands", () => {
     expect(branchFor(result, "outside")).toBe(branchFor(value, "outside"))
   })
 
+  it("clears task team-map keys instead of saving empty strings when a branch becomes unassigned", () => {
+    const value = fixture(), branch = branchFor(value, "A")
+    const result = assignMilestoneBranchTeam(value, branch.id, "")
+    expect(result.steps).toBe(value.steps)
+    expect(result.stepTeams).toEqual({ outside: "finance" })
+    expect(branchFor(result, "A").teamId).toBe("")
+    expect(Object.values(result.stepTeams)).not.toContain("")
+  })
+
+  it("does not introduce empty team-map values when adding or moving to a legacy unassigned branch", () => {
+    const value = fixture()
+    const unassigned = addMilestoneBranch(value, { teamId: "", fromId: WORKFLOW_START, toId: WORKFLOW_DAY_ONE }, "unassigned")
+    const added = addMilestoneTask(unassigned, "unassigned", "new")
+    expect(added.stepTeams.new).toBeUndefined()
+    expect(branchFor(added, "new").id).toBe("unassigned")
+    const moved = moveMilestoneTask(unassigned, "B", "unassigned")
+    expect(moved.stepTeams.B).toBeUndefined()
+    expect(Object.values(moved.stepTeams)).not.toContain("")
+  })
+
   it("syncs Quick entry additions into the actual neighbor's interval even for the same pre/post team", () => {
     let value = addMilestoneBranch(fixture(), { teamId: "ops", fromId: WORKFLOW_DAY_ONE, toId: WORKFLOW_DONE }, "post")
     value = addMilestoneTask(value, "post", "closing")
