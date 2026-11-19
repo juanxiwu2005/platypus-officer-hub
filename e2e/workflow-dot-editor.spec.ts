@@ -42,10 +42,10 @@ async function empty(page: Page, name: string) {
 }
 
 /** Use browser input, including real touch pointer events on the mobile project. */
-async function moveToTeam(page: Page, sourceKey: string, targetTeamId: string, touch: boolean) {
+async function moveToTeam(page: Page, sourceKey: string, targetBranchId: string, touch: boolean) {
   await closeRail(page)
   const source = page.getByTestId(`workflow-task-${sourceKey}`)
-  const lane = page.getByTestId(`workflow-team-${targetTeamId}`)
+  const lane = page.getByTestId(`workflow-segment-${targetBranchId}`)
   await page.getByTestId("workflow-builder").locator(".wfb-scroll").scrollIntoViewIfNeeded()
   await source.scrollIntoViewIfNeeded()
   const [a, b] = await Promise.all([source.boundingBox(), lane.boundingBox()])
@@ -90,77 +90,78 @@ async function eventFromTemplate(page: Page, template: WorkflowTemplate, name: s
   return (await read(page)).events.find(event => event.name === name)!
 }
 
-test("a blank workflow has fixed endpoints; one click adds an empty team branch and then its first task", async ({ page }) => {
-  const builder = await empty(page, "Empty dot workflow")
+async function addBranch(page: Page, teamId: string) {
+  const builder = page.getByTestId("workflow-builder")
+  await closeRail(page)
+  await builder.getByRole("button", { name: "Add branch", exact: true }).click()
+  const details = page.getByTestId("workflow-builder-details")
+  await details.getByRole("combobox", { name: "Team", exact: true }).selectOption(teamId)
+  await details.getByRole("button", { name: "Add branch", exact: true }).click()
+  return (await save(page)).milestoneGraph!.teamBranches.at(-1)!
+}
+
+test("a blank workflow has editable boundary stations and an empty branch uses an existing team", async ({ page }) => {
+  const builder = await empty(page, "Empty milestone workflow")
   await expect(builder.getByTestId("workflow-start")).toBeVisible()
   await expect(builder.getByTestId("workflow-done")).toBeVisible()
   await expect(builder.locator('[data-testid^="workflow-task-"]')).toHaveCount(0)
-  await expect(builder.getByRole("button", { name: "Start", exact: true })).toHaveCount(0)
-  await expect(builder.getByRole("button", { name: "Done", exact: true })).toHaveCount(0)
-  const before = await read(page)
-  const oldBranches = before.org.workflowTeams!
-  await builder.getByRole("button", { name: "Add branch", exact: true }).click()
-  await expect.poll(async () => (await read(page)).org.workflowTeams?.length).toBe(oldBranches.length + 1)
-  const addedTeam = (await read(page)).org.workflowTeams!.find(team => !oldBranches.some(old => old.id === team.id))!
-  await expect(builder.getByTestId(`workflow-team-${addedTeam.id}`)).toBeVisible()
-  await expect(page.getByRole("dialog", { name: "Add branch", exact: true })).toHaveCount(0)
+  const before = await read(page), team = before.org.workflowTeams![1]
+  const branch = await addBranch(page, team.id)
+  expect((await read(page)).org.workflowTeams).toEqual(before.org.workflowTeams)
   expect((await save(page)).steps).toEqual([])
-  await builder.getByRole("button", { name: "+ Task", exact: true }).click()
+  await builder.getByRole("button", { name: `Add task to branch ${branch.id}`, exact: true }).click()
   await expect(page.getByLabel("Task name", { exact: true })).toHaveValue("New task")
   const added = await save(page)
   expect(added.steps).toHaveLength(1)
-  expect(added.teamMap?.stepTeams[added.steps[0].key]).toBe(addedTeam.id)
+  expect(added.milestoneGraph!.teamBranches.find(item => item.id === branch.id)?.stepIds).toEqual([added.steps[0].key])
+  expect(added.teamMap?.stepTeams[added.steps[0].key]).toBe(team.id)
   await builder.getByRole("button", { name: "Undo edit", exact: true }).click()
   expect((await save(page)).steps).toHaveLength(0)
-  // Team identity is organizational; renaming the branch preserves that same ID after reload.
-  await page.getByRole("button", { name: "Teams", exact: true }).click()
-  await page.getByLabel(`Team name: ${addedTeam.name}`, { exact: true }).fill("Guest care")
-  await page.getByRole("button", { name: "Save teams", exact: true }).click()
-  await expect.poll(async () => (await read(page)).org.workflowTeams?.find(team => team.id === addedTeam.id)?.name).toBe("Guest care")
-  const templateId = (await current(page)).id
+  const changedTeam = before.org.workflowTeams![2]
+  await builder.getByRole("combobox", { name: `Team for ${branch.id}`, exact: true }).selectOption(changedTeam.id)
+  const saved = await save(page), templateId = (await current(page)).id
+  expect(saved.milestoneGraph!.teamBranches.find(item => item.id === branch.id)?.teamId).toBe(changedTeam.id)
   await page.reload()
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
   await page.getByRole("combobox", { name: "Saved workflow", exact: true }).selectOption(templateId)
-  await expect(builder.getByTestId(`workflow-team-${addedTeam.id}`)).toContainText("Guest care")
+  await expect(builder.getByRole("combobox", { name: `Team for ${branch.id}`, exact: true })).toHaveValue(changedTeam.id)
+  expect((await read(page)).org.workflowTeams).toEqual(before.org.workflowTeams)
   expect((await read(page)).nodes).toEqual(before.nodes)
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
 })
 
-test("Event day and Full check presets are repeatable independent tasks, not reserved endpoints", async ({ page }) => {
-  const builder = await empty(page, "Two event days")
+test("the second Event day is a date station and repeated Full checks remain independent real tasks", async ({ page }) => {
+  const builder = await empty(page, "Two event dates")
   const before = await read(page)
   await builder.getByRole("button", { name: "Event day", exact: true }).click()
   await closeRail(page)
-  await builder.getByRole("button", { name: "Event day", exact: true }).click()
-  await closeRail(page)
-  await builder.getByRole("button", { name: "Full check", exact: true }).click()
+  await expect(builder.getByRole("button", { name: "Event day", exact: true })).toBeDisabled()
+  await expect(builder.getByTestId("workflow-event-day-2")).toBeVisible()
+  expect((await save(page)).steps).toHaveLength(0)
+  for (let i = 0; i < 2; i++) { await builder.getByRole("button", { name: "Full check", exact: true }).click(); await closeRail(page) }
   let draft = await save(page)
-  expect(draft.steps.map(step => step.title)).toEqual(["Event day", "Event day", "Full check"])
-  expect(new Set(draft.steps.map(step => step.key)).size).toBe(3)
-  expect(draft.steps.every(step => !["__start__", "__event__", "__end__", "finalcheck"].includes(step.key))).toBe(true)
-  expect(draft.steps.filter(step => step.title === "Event day").every(step => step.anchor?.kind === "target" && step.anchor.days === 0)).toBe(true)
-  // Each duplicate can be edited independently before saving a reusable version.
+  expect(draft.steps).toHaveLength(2)
+  expect(new Set(draft.steps.map(step => step.key)).size).toBe(2)
+  expect(draft.steps.every(step => !["__start__", "__event__", "__event2__", "__end__", "finalcheck"].includes(step.key))).toBe(true)
   const second = draft.steps[1]
   await builder.getByTestId(`workflow-task-${second.key}`).click()
+  await page.getByRole("combobox", { name: "Event day", exact: true }).selectOption("__event2__")
   await page.getByLabel("Finish by (T±)", { exact: true }).fill("1")
   draft = await save(page)
-  expect(draft.steps[0].anchor?.kind === "target" && draft.steps[0].anchor.days).toBe(0)
-  expect(draft.steps[1].anchor?.kind === "target" && draft.steps[1].anchor.days).toBe(-1)
+  expect(draft.milestoneGraph!.taskAnchors[second.key]).toMatchObject({ eventDayId: "__event2__", offsetDays: 1 })
   const template = await publish(page)
-  expect(template.versions[0].teamExecution).toBe("dependencies")
-  const event = await eventFromTemplate(page, template, "Two-day fictional event")
-  const state = await read(page)
-  const tasks = state.nodes.filter(node => node.eventId === event.id)
-  expect(tasks).toHaveLength(3)
-  expect(tasks.filter(node => node.title === "Event day")).toHaveLength(2)
+  const event = await eventFromTemplate(page, template, "Fictional two-day event")
+  const state = await read(page), tasks = state.nodes.filter(node => node.eventId === event.id)
+  expect(tasks).toHaveLength(2)
   expect(tasks.every(node => template.versions[0].steps.some(step => step.key === node.stepKey))).toBe(true)
-  await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(3)
+  await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(2)
+  await expect(page.getByTestId("flow-event-day-2")).toHaveCount(1)
   expect(state.events.filter(event => before.events.some(old => old.id === event.id))).toEqual(before.events)
   expect(state.nodes.filter(node => before.nodes.some(old => old.id === node.id))).toEqual(before.nodes)
 })
 
-test("mouse and touch can move a node to an empty team without changing its task facts and Undo restores it", async ({ page, isMobile }) => {
-  const builder = await empty(page, "Move dots between teams")
+test("mouse and touch can move a node to an empty branch without changing task facts and Undo restores it", async ({ page, isMobile }) => {
+  const builder = await empty(page, "Move dots between branches")
   const teams = (await read(page)).org.workflowTeams!
   await builder.getByRole("button", { name: "Quick entry", exact: true }).click()
   await builder.getByLabel("Task names", { exact: true }).fill("Confirm host\nShare briefing")
@@ -169,19 +170,19 @@ test("mouse and touch can move a node to an empty team without changing its task
   await builder.getByRole("combobox", { name: "Assign role", exact: true }).selectOption(state.roles.find(role => role.holderId === state.viewerId)!.id)
   await builder.getByRole("button", { name: "Add tasks", exact: true }).click()
   await builder.getByRole("button", { name: "Flow", exact: true }).click()
-  const original = await save(page)
-  const moved = original.steps[1]
-  await moveToTeam(page, moved.key, teams[1].id, isMobile)
-  await expect.poll(async () => (await current(page)).draft?.teamMap?.stepTeams[moved.key]).toBe(teams[1].id)
+  const branch = await addBranch(page, teams[1].id)
+  const original = await save(page), moved = original.steps[1]
+  await moveToTeam(page, moved.key, branch.id, isMobile)
+  await expect.poll(async () => (await current(page)).draft?.milestoneGraph?.teamBranches.find(item => item.id === branch.id)?.stepIds).toContain(moved.key)
   let changed = await save(page)
   expect(changed.steps).toEqual(original.steps)
-  await expect(builder.getByTestId(`workflow-task-${moved.key}`)).toHaveAttribute("data-team-id", teams[1].id)
+  expect(changed.milestoneGraph!.taskAnchors).toEqual(original.milestoneGraph!.taskAnchors)
+  await expect(builder.getByTestId(`workflow-task-${moved.key}`)).toHaveAttribute("data-branch-id", branch.id)
   await builder.getByRole("button", { name: "Undo edit", exact: true }).click()
   changed = await save(page)
   expect(changed).toEqual(original)
-  // The keyboard-accessible Team control offers the same map-only reassignment.
   await builder.getByRole("button", { name: `Edit ${moved.title}`, exact: true }).click()
-  await page.getByRole("combobox", { name: "Team", exact: true }).selectOption(teams[1].id)
+  await page.getByRole("combobox", { name: "Team branch", exact: true }).selectOption(branch.id)
   changed = await save(page)
   expect(changed.steps).toEqual(original.steps)
   expect(changed.teamMap?.stepTeams[moved.key]).toBe(teams[1].id)

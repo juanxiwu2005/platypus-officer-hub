@@ -1,11 +1,11 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import type { DemoState, Event, Node, StepTemplate } from "../src/data/types"
+import type { DemoState, Event, Node, StepTemplate, WorkflowMilestoneGraph } from "../src/data/types"
 import { addDays } from "../src/lib/dates"
 import { computeSchedule } from "../src/engine/schedule"
 import { noOverflow } from "./helpers"
 
-type Version = { name: string; version: number; steps: StepTemplate[]; teamMap?: { stepTeams: Record<string, string> } }
+type Version = { name: string; version: number; steps: StepTemplate[]; milestoneGraph?: WorkflowMilestoneGraph; teamMap?: { stepTeams: Record<string, string> } }
 type Template = { id: string; draft?: Omit<Version, "version">; versions: Version[] }
 type RunEvent = Event & { workflowRun?: { id: string; templateId: string; templateVersion: number; snapshot: Version & { teams: { id: string; name: string }[] } } }
 type RunNode = Node & { teamId?: string; workflowSource?: { runId: string; templateId: string; templateVersion: number; templateStepId: string } }
@@ -216,14 +216,14 @@ test("dependency connections reject loops and double-clicking an arrow leaves th
   await builder.getByRole("button", { name: `Edit ${names[0]}`, exact: true }).click()
   await expect(builder.getByRole("alert")).toHaveText("This dependency would create a loop.")
   await builder.getByRole("button", { name: "Cancel connection", exact: true }).click()
-  const arrow = builder.getByTestId("workflow-dependency").first()
+  const arrow = builder.getByTestId("workflow-branch-track").first()
   await expect(arrow).toHaveCount(1)
   // SVG arrows intentionally have no pointer actions. Dispatch the DOM event to guard against a future delegated handler.
   await arrow.dispatchEvent("dblclick")
   await page.getByRole("button", { name: "Save draft", exact: true }).click()
   const saved = await templateByName(page, "Safe connections")
   expect((saved.draft ?? saved.versions.at(-1)!).steps).toEqual(template.versions[0].steps)
-  expect(await builder.getByTestId("workflow-dependency").count()).toBe(1)
+  expect(await builder.getByTestId("workflow-branch-track").count()).toBe(1)
 })
 
 test("custom T0 and T+ targets remain valid work on and after the activity day", async ({ page }) => {
@@ -232,11 +232,6 @@ test("custom T0 and T+ targets remain valid work on and after the activity day",
   await builder.getByRole("button", { name: "Flow", exact: true }).click()
   for (const [title, offset] of [["Host visit", "0"], ["Thank host", "2"]]) {
     await builder.getByRole("button", { name: `Edit ${title}`, exact: true }).click()
-    if (title === "Thank host") {
-      const otherTeam = (await read(page)).org.workflowTeams!.find(team => team.id !== template.versions[0].teamMap!.stepTeams[template.versions[0].steps[0].key])!
-      await page.getByRole("combobox", { name: "Team", exact: true }).selectOption(otherTeam.id)
-      await page.getByRole("button", { name: "Remove prerequisite Host visit", exact: true }).click()
-    }
     await page.getByLabel("Finish by (T±)", { exact: true }).fill(offset)
     await closeRail(page)
   }
@@ -254,7 +249,7 @@ test("custom T0 and T+ targets remain valid work on and after the activity day",
   expect(tasks.find(node => node.title === "Host visit")?.clubDeadline).toBe(event.date)
   expect(tasks.find(node => node.title === "Thank host")!.clubDeadline! > event.date).toBe(true)
   expect(tasks.flatMap(node => schedule.nodes[node.id].issues).filter(issue => issue.code === "after_event")).toEqual([])
-  expect(template.versions[0].steps.map(step => step.anchor)).not.toEqual(updated.versions[1].steps.map(step => step.anchor))
+  expect(template.versions[0].milestoneGraph?.taskAnchors).not.toEqual(updated.versions[1].milestoneGraph?.taskAnchors)
 })
 
 test("the two authoring views share saved IDs and support keyboard, dark mode and narrow screens", async ({ page }, info) => {
@@ -301,15 +296,14 @@ test("changing a target in Details preserves its task identity and dependencies 
   const builder = page.getByTestId("workflow-builder")
   await builder.getByRole("button", { name: "Flow", exact: true }).click()
   await closeRail(page)
-  const beforeDays = last.anchor?.kind === "target" ? last.anchor.days : undefined
-  expect(beforeDays).toBeDefined()
+  const beforeOffset = original.milestoneGraph?.taskAnchors[last.key].offsetDays
+  expect(beforeOffset).toBeDefined()
   await builder.getByRole("button", { name: `Edit ${last.title}`, exact: true }).click()
-  await page.getByLabel("Finish by (T±)", { exact: true }).fill(String(-(beforeDays! - 3)))
+  await page.getByLabel("Finish by (T±)", { exact: true }).fill(String(beforeOffset! + 3))
   await closeRail(page)
   await expect.poll(async () => {
-    const current = (await templateByName(page, "Drag visit timeline")).draft?.steps.find(step => step.key === last.key)
-    return current?.anchor?.kind === "target" ? current.anchor.days : undefined
-  }).toBe(beforeDays! - 3)
+    return (await templateByName(page, "Drag visit timeline")).draft?.milestoneGraph?.taskAnchors[last.key].offsetDays
+  }).toBe(beforeOffset! + 3)
   const draft = (await templateByName(page, "Drag visit timeline")).draft!
   const moved = draft.steps.find(step => step.key === last.key)!
   expect({ key: moved.key, estDays: moved.estDays, ownerRoleId: moved.ownerRoleId, dependsOn: moved.dependsOn }).toEqual({ key: last.key, estDays: last.estDays, ownerRoleId: last.ownerRoleId, dependsOn: last.dependsOn })
@@ -319,6 +313,7 @@ test("changing a target in Details preserves its task identity and dependencies 
   await page.getByLabel("Saved workflow", { exact: true }).selectOption(template.id)
   const restored = (await templateByName(page, "Drag visit timeline")).draft!.steps.find(step => step.key === last.key)!
   expect(restored.anchor).toEqual(moved.anchor)
+  expect((await templateByName(page, "Drag visit timeline")).draft!.milestoneGraph?.taskAnchors[last.key]).toEqual(draft.milestoneGraph?.taskAnchors[last.key])
 
   if (!isMobile) {
     await page.setViewportSize({ width: 1440, height: 1000 })
