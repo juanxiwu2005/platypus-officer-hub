@@ -5,8 +5,8 @@ import { webcrypto } from "node:crypto"
 import { StoreProvider, reducer, useStore } from "../data/store"
 import type { DemoState } from "../data/types"
 import { RailProvider } from "../components/rail/RailContext"
-import { planEntryFixture, PLAN_EVENT, PLAN_OTHER, PLAN_ROOM } from "../test/planEntryFixture"
-import { makeTaskAccessGrant, taskAccessToken, taskAccessUrl } from "./taskAccess"
+import { clubAgendaEntryFixture, planEntryFixture, PLAN_EVENT, PLAN_OTHER, PLAN_ROOM } from "../test/planEntryFixture"
+import { legacyTaskAccessUrl, makeTaskAccessGrant, taskAccessToken, taskAccessUrl } from "./taskAccess"
 import { planTaskPath, resolvePlanEntry } from "./planEntry"
 import { buildReminderFacts, reminderPeople } from "./facts"
 import { buildReminderMail } from "./mail"
@@ -32,7 +32,7 @@ describe("Plan entry boundaries", () => {
     const url = taskAccessUrl("https://demo.example.org", grant, facts.eventId)
     expect(url).toContain("/#/events?event=plan-speaker&node=plan-room&access=")
     const recipient = reminderPeople(state).find(p => p.id === grant.recipientId)!
-    for (const taskUrl of [url, taskAccessUrl("https://demo.example.org", grant)]) {
+    for (const taskUrl of [url, legacyTaskAccessUrl("https://demo.example.org", grant)]) {
       const mail = buildReminderMail({ today: state.today, facts, recipient, taskUrl })
       expect(mail.checked).toBe(true)
       expect(mail.body.match(/https?:\/\/\S+/g)).toEqual([taskUrl])
@@ -108,5 +108,42 @@ describe("Plan task panel", () => {
     expect(screen.getByText("40 attendees. Accessible room. Projector required.")).toBeTruthy()
     expect(screen.queryByRole("textbox", { name: "Details" })).toBeNull()
     expect(screen.queryByText("PRIVATE unsubmitted notes")).toBeNull()
+  })
+})
+
+
+describe("the reported Club task without an event", () => {
+  it("generates a Plan Tasks link and accepts its saved legacy Officer snapshot", async () => {
+    const base = clubAgendaEntryFixture(), grant = await makeTaskAccessGrant(base, "t-agenda")
+    const state = reducer(base, { type: "issueTaskAccessGrant", grant }), facts = buildReminderFacts(state, "t-agenda")!
+    expect(facts.eventId).toBeNull()
+    const taskUrl = taskAccessUrl("https://demo.example.org", grant, facts.eventId)
+    expect(taskUrl).toContain("/#/tasks?node=t-agenda&access=")
+    for (const url of [taskUrl, legacyTaskAccessUrl("https://demo.example.org", grant)]) {
+      const mail = buildReminderMail({ today: state.today, facts, recipient: reminderPeople(state).find(p => p.id === "priya")!, taskUrl: url })
+      expect(mail.checked).toBe(true)
+      expect(validatedReminderMessage(state, { ...mail, channel: "email", preparedOn: state.today, accessId: grant.id }, "t-agenda")).toBeTruthy()
+    }
+    const query = params(planTaskPath(null, "t-agenda", taskAccessToken(grant)))
+    expect(resolvePlanEntry(state, query, grant, false, "tasks")).toMatchObject({ error: null, node: { id: "t-agenda", eventId: null } })
+    expect(state.nodes.find(n => n.id === "t-agenda")?.eventId).toBeNull()
+  })
+  it("retains the agenda's scoped author while browsing another task's submitted work", async () => {
+    const base = clubAgendaEntryFixture(), grant = await makeTaskAccessGrant(base, "t-agenda")
+    const state = reducer(base, { type: "issueTaskAccessGrant", grant })
+    render(<MemoryRouter initialEntries={[planTaskPath(null, "t-agenda", taskAccessToken(grant))]}><StoreProvider initial={state}><RailProvider><PanelHost /></RailProvider></StoreProvider></MemoryRouter>)
+    await screen.findByRole("heading", { name: "Draft the meeting agenda" })
+    fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Agenda draft stays saved" } })
+    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved automatically"))
+    fireEvent.change(screen.getByLabelText("View task"), { target: { value: PLAN_OTHER } })
+    await screen.findByText("40 attendees. Accessible room. Projector required.")
+    expect(screen.queryByText("PRIVATE unsubmitted notes")).toBeNull()
+    expect(screen.queryByRole("button", { name: /Edit|Submit|Add files/ })).toBeNull()
+    fireEvent.click(screen.getByRole("link", { name: /Draft the meeting agenda/ }))
+    await waitFor(() => expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Agenda draft stays saved"))
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    await waitFor(() => expect(latest.nodes.find(n => n.id === "t-agenda")?.status).toBe("done"))
+    expect(latest.nodes.find(n => n.id === "t-agenda")?.taskWork?.submissions[0].authorId).toBe("priya")
+    expect(latest.viewerId).toBe("alex")
   })
 })

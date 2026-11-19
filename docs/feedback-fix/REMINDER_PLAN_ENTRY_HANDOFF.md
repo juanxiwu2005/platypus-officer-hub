@@ -2,19 +2,21 @@
 
 2026-11-18（America/Phoenix）· Codex · 用户已批准实施，沿用 PR #14
 
+> **本日补漏修复：** 用户实际测试的 `Draft the meeting agenda` 是 `t-agenda`，`eventId:null`。初次实现仅处理活动任务，留下的社团任务独立页分支导致复现。现已补齐：这类旧/新邮件进入 **Plan → Tasks** 并展开右列；活动任务仍进入对应活动Plan。未把社团任务硬关联活动，旧签名/任务ID/草稿保留。补充验证：17文件262项单元/组件通过；双端18个唯一浏览器用例通过，包含用户同名种子任务、旧链接/新邮件、正文/附件/刷新、其他提交只读、看板/表格/时间线选择及改派失效。首轮2项因忽略任务类型图标前缀的测试定位失败，修正定位后复验通过；产品校验未放宽。
+
 ## 问题与结果
 
 独立任务页方便回复，但成员订房时可能要先查看其他节点已提交的人数、设备或时段信息。Juanxi批准两张图表达的交互，明确指出图与真实workflow不同，因此本轮只改变入口与导航，继续使用真实 `MetroChart`/`TeamMetroChart`，没有照图重画流程。
 
-新活动任务邮件进入对应活动 Plan，并定位选中任务、打开右侧 Details。成员可点击实际节点，或用右列 **View task in this event** 切换同活动任务；浏览其他节点时可返回原邮件任务。手机保留既有全屏 Details，同时提供 **Back to Plan** 和节点选择，不强行挤入桌面三列。
+活动任务邮件进入对应活动 Plan，未关联活动的社团任务进入 Plan → Tasks；两者均定位选中任务、打开右侧 Details。成员可点击实际节点，或用右列 **View task in this event** 切换同活动任务；浏览其他节点时可返回原邮件任务。手机保留既有全屏 Details，同时提供 **Back to Plan** 和节点选择，不强行挤入桌面三列。
 
 ## 链接与导航
 
-- 新邮件：`/#/events?event=<eventId>&node=<taskId>&access=<scopedToken>`。第一次进入优先 Flow，不受上次保存的 List 或隐藏侧栏偏好影响。用户主动切换 Flow/List/Budget 后仍尊重其选择。
+- 新邮件：活动用 `/#/events?event=<eventId>&node=<taskId>&access=<scopedToken>`，社团任务用 `/#/tasks?node=<taskId>&access=<scopedToken>`。第一次进入优先 Flow，不受上次保存的 List 或隐藏侧栏偏好影响。用户主动切换 Flow/List/Budget 后仍尊重其选择。
 - 切换节点时更新 URL；`from` 保留原邮件任务，`access` 仍只属于它。刷新、前进和后退恢复选中活动/节点。点击已选节点会重新展开被手动隐藏的 Details；普通自动保存不会反复打开它。
 - 隐藏侧栏保留当前选择；Close details 清除任务/授权/返回参数。切换活动清除旧活动的任务上下文。
 - 通过图现有 `.is-selected` 状态定位真实节点，横向调整现有图滚动容器；没有改变节点布局、任务关系、日期或模板。
-- 旧可复用 `/#/officer?access=…` 活动链接核验成功且存在当前成员上下文时跳到同一 Plan；无活动的任务和不能进入 Plan 的原限定入口继续使用原独立页。旧一次性 `token` 入口不改。
+- 旧可复用 `/#/officer?access=…` 链接核验成功且存在当前成员上下文时，按实际任务关联进入 Plan Events 或 Tasks；不能进入工作区的原限定入口仍遵守原成员范围。旧一次性 `token` 入口不改。
 - 失效、签名错误、改派、错误活动/节点或伪造 `from` 明确显示错误，不打开另一个活动的首项任务，不在打开链接时修改状态。
 
 ## 身份、提交与草稿
@@ -29,7 +31,7 @@ Plan 中查看其他节点依靠当前演示工作区已有的活跃成员上下
 
 ## 文件边界
 
-- `src/pages/Events.tsx`：URL/侧栏同步、选择恢复、实际图定位与视图选择。
+- `src/pages/Events.tsx` / `Tasks.tsx`：URL/侧栏同步、选择恢复、实际图定位与视图选择；邮件进入Tasks默认Team tasks，看板、表格、时间线的点击保持原邮件上下文。
 - `src/reminders/planEntry.ts`、`useTaskAccess.ts`、`PlanTaskPanel.tsx`、`planTask.css`：目标解析、签名核验与同活动导航。
 - `taskAccess.ts`、`mail.ts`、`message.ts`、`delivery.ts`、`ReminderComposer.tsx`：生成并严格核对新 Plan 入口，保留旧快照兼容；仍只有一个任务 URL。
 - `SingleTaskPage.tsx`/`Officer.tsx`：旧链接兼容跳转、可嵌入的协助内容。
@@ -41,7 +43,7 @@ Plan 中查看其他节点依靠当前演示工作区已有的活跃成员上下
 
 - 19 文件、270 项相关单元/组件通过，覆盖规则邮件、快照、授权、任务提交、目标日、通用 Details 与两种流程图基础；新增10项包含邮件目标绑定、旧链接兼容、跨活动拒绝、成员上下文、只读成果与草稿保留。
 - 新入口桌面/手机12项先行通过；与原提交/附件/延期/撤回、批量邮件/协助、模板生成和标准流程图及包预算一起回归38项，37项通过、1项手机导航检查遇到自动关闭侧栏后的旧点击竞态。随后修正离开Plan时的Details清理，并把检查改为等待实际关闭；修正后14项全部通过，按不重复用例计38项通过，数字不重复相加。
-- lint、前端类型/生产构建、后端类型、独立CSS与9页字数预算通过；Plan153/180可见词，Settings147/150。入口494,992/550,000字节，没有调整门槛。
+- lint、前端类型/生产构建、后端类型、独立CSS与9页字数预算通过；Plan153/180可见词，Settings147/150。初次交付入口494,992/550,000字节；本次社团任务补漏为495,514/550,000字节，没有调整门槛。
 - 浏览器检查包括附件真实下载、立即输入后切换/返回、刷新/历史、失效与改派、协助作用域、严重/关键无障碍及横向溢出。首轮虚构附件 MIME 不符合现有格式导致的失败已修正测试夹具，未放宽产品校验。
 - 实际桌面/手机截图见[交付图片目录](../prototypes/reminder-plan-implemented/manifest.json)。它们来自运行的真实页面，不是上一轮图像模型效果图。
 - 0 真实产品 AI 调用/外部邮件。本轮没有重复完整全站门禁；旧阶段二四按钮等历史断言未在本轮一并迁移，不作为完整全站通过声明。
@@ -51,3 +53,6 @@ Plan 中查看其他节点依靠当前演示工作区已有的活跃成员上下
 [preview14 提醒中心](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/)：为一个活动任务准备邮件，点击 **Open task**；应进入对应活动 Plan，高亮该实际节点，右侧显示统一 Details。点击其他节点查看已经提交的内容/附件，再返回原任务检查草稿。手机使用右侧任务下拉框或 Back to Plan。
 
 提醒中心原有启用/审核/额度保持；当前没有待发活动邮件时可在 Plan 点击任务验证同样的 Details 导航。运行时代码 `3505d79`，同步同期记录后的推送为 `861431c`；GitHub对应Netlify deploy-preview已确认 **success**。本环境直接抓取站点被代理403阻止，因此不宣称已完成线上浏览器逐步验收；实际交互证据为上述生产构建的本地双端检查。继续使用原功能分支与 PR #14，不创建 PR、不合并 main。需要同步本地备份。
+
+
+社团任务修复日志：`/tmp/club-plan-final-unit.log`、`/tmp/club-plan-browser.log`、`/tmp/club-plan-browser-final.log`、`/tmp/club-plan-final-build.log`、`/tmp/club-plan-final-lint.log`、`/tmp/club-plan-words.log`。本轮代码不修改Settings/团队/模板、ASU规则、schema/store或后台发送；同期四队预设恢复已合入保留。没有复制、存储用户发来的完整授权链接。

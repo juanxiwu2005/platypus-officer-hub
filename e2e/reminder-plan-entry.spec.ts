@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { readFile } from "node:fs/promises"
-import { planEntryFixture, PLAN_EVENT, PLAN_OTHER, PLAN_ROOM } from "../src/test/planEntryFixture"
+import { clubAgendaEntryFixture, planEntryFixture, PLAN_EVENT, PLAN_OTHER, PLAN_ROOM } from "../src/test/planEntryFixture"
 import { reducer } from "../src/data/store"
 import { makeTaskAccessGrant, taskAccessToken } from "../src/reminders/taskAccess"
 import { planTaskPath } from "../src/reminders/planEntry"
@@ -9,14 +9,15 @@ import { savedDemo } from "./demo-contract"
 import { noOverflow } from "./helpers"
 
 const KEY = "platypus.v1.demo"
-async function seed(page: Page, viewerId = "alex", waiting = false) {
-  let state = planEntryFixture()
+async function seed(page: Page, viewerId = "alex", waiting = false, club = false) {
+  let state = club ? clubAgendaEntryFixture() : planEntryFixture()
+  const target = club ? "t-agenda" : PLAN_ROOM
   if (waiting) {
     state = reducer({ ...state, viewerId: "jordan" }, { type: "replyTask", nodeId: PLAN_ROOM, reply: "waiting", input: { waitingOnPersonId: "sam", waitingOn: "Please confirm the event requirements" } })
     state = { ...state, viewerId: "alex" }
   }
   const request = waiting ? state.reminderRuntime!.waitingRequests.find(item => !item.closedOn) : undefined
-  const grant = await makeTaskAccessGrant(state, PLAN_ROOM, request?.id)
+  const grant = await makeTaskAccessGrant(state, target, request?.id)
   state = { ...reducer(state, { type: "issueTaskAccessGrant", grant }), viewerId }
   await page.addInitScript(({ state, key }) => {
     if (!sessionStorage.getItem("plan-entry-seeded")) {
@@ -24,7 +25,7 @@ async function seed(page: Page, viewerId = "alex", waiting = false) {
       localStorage.setItem("platypus.v1.eventsView", "list"); localStorage.setItem("platypus.v1.railOpen", "0")
     }
   }, { state, key: KEY })
-  return { token: taskAccessToken(grant), path: `/#${planTaskPath(PLAN_EVENT, PLAN_ROOM, taskAccessToken(grant))}` }
+  return { token: taskAccessToken(grant), path: `/#${planTaskPath(club ? null : PLAN_EVENT, target, taskAccessToken(grant))}` }
 }
 const panel = (page: Page) => page.getByTestId("rail")
 const task = (page: Page) => page.getByTestId("task-detail")
@@ -149,4 +150,75 @@ test("waiting recipients retain only their help actions while browsing shared ev
   expect(state.nodes.find(node => node.id === PLAN_ROOM)?.ownerId).toBe("jordan")
   expect(state.nodes.find(node => node.id === PLAN_ROOM)?.status).toBe("waiting")
   expect(state.reminderRuntime!.waitingRequests[0]).toMatchObject({ responseBy: "sam", response: "provided" })
+})
+
+
+test("the reported agenda legacy link opens Plan Tasks, preserves files and never assigns an activity", async ({ page }, info) => {
+  const { token } = await seed(page, "priya", false, true)
+  await page.goto(`/#/officer?access=${encodeURIComponent(token)}`)
+  await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda", exact: true })).toBeVisible()
+  await expect(page).toHaveURL(/#\/tasks\?node=t-agenda&access=/)
+  await expect(page.locator("main.single-task")).toHaveCount(0)
+  await expect(page.locator("nav.sidenav")).toBeAttached()
+  await expect(page.getByTestId("task-detail")).toContainText("Club task")
+  expect((await savedDemo(page)).nodes.find(n => n.id === "t-agenda")?.eventId).toBeNull()
+  await task(page).getByLabel("Details", { exact: true }).fill("Agenda: introductions and room planning")
+  await task(page).getByLabel("Attach files").setInputFiles({ name: "agenda.txt", mimeType: "text/plain", buffer: Buffer.from("Fictional agenda attachment") })
+  await expect(task(page).getByRole("button", { name: "Download agenda.txt" })).toBeVisible()
+  await panel(page).getByLabel("View task", { exact: true }).selectOption(PLAN_OTHER)
+  await expect(task(page).getByRole("heading", { name: "Prepare meeting materials" })).toBeVisible()
+  await expect(task(page)).toContainText("40 attendees. Accessible room. Projector required.")
+  await expect(task(page)).not.toContainText("PRIVATE unsubmitted notes")
+  await expect(task(page).getByRole("button", { name: /Edit|Submit|Add files/ })).toHaveCount(0)
+  await page.goBack()
+  await expect(task(page).getByLabel("Details", { exact: true })).toHaveValue("Agenda: introductions and room planning")
+  await page.reload()
+  await expect(task(page).getByRole("button", { name: "Download agenda.txt" })).toBeVisible()
+  await page.screenshot({ path: info.outputPath("club-agenda-in-plan.png"), fullPage: !info.project.name.includes("mobile") })
+  expect((await new AxeBuilder({ page }).include('[data-testid="rail"]').analyze()).violations.filter(v => v.impact === "serious" || v.impact === "critical")).toEqual([])
+  await task(page).getByRole("button", { name: "Submit & mark done" }).click()
+  await expect.poll(async () => (await savedDemo(page)).nodes.find(n => n.id === "t-agenda")?.status).toBe("done")
+  const agenda = (await savedDemo(page)).nodes.find(n => n.id === "t-agenda")!
+  expect(agenda.eventId).toBeNull()
+  expect(agenda.taskWork!.submissions[0].authorId).toBe("priya")
+})
+
+test("a new Club-task mail targets Plan Tasks and the board can switch to another shared submission", async ({ page }) => {
+  await seed(page, "alex", false, true)
+  await page.goto("/#/")
+  const row = page.getByTestId("rq-row").filter({ hasText: "Draft the meeting agenda" }).first()
+  await row.getByRole("button", { name: /Review/ }).click()
+  const composer = page.getByTestId("nudge-panel")
+  const url = await composer.getByRole("link", { name: "Open task", exact: true }).getAttribute("href")
+  expect(url).toContain("/#/tasks?node=t-agenda&access=")
+  await page.goto(url!)
+  await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda" })).toBeVisible()
+  await panel(page).getByRole("button", { name: "← Back to Plan" }).click()
+  await expect(panel(page)).toBeHidden()
+  await expect(page.getByLabel("Task scope")).toHaveValue("team")
+  await page.getByRole("button", { name: /Prepare meeting materials$/ }).click()
+  await expect(task(page).getByRole("heading", { name: "Prepare meeting materials" })).toBeVisible()
+  await expect(task(page).getByRole("textbox")).toHaveCount(0)
+  await expect(page).toHaveURL(/node=plan-requirements/)
+  await panel(page).getByRole("link", { name: /Draft the meeting agenda/ }).click()
+  await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda" })).toBeVisible()
+  await expect(task(page).getByLabel("Task status")).toBeVisible()
+  expect((await savedDemo(page)).viewerId).toBe("alex")
+  for (const view of ["Table", "Timeline"]) {
+    await panel(page).getByRole("button", { name: "← Back to Plan" }).click()
+    await page.getByRole("button", { name: view, exact: true }).click()
+    await page.getByRole("button", { name: /Draft the meeting agenda$/ }).click()
+    await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda" })).toBeVisible()
+    await expect(task(page).getByLabel("Task status")).toBeVisible()
+  }
+})
+
+test("Club-task Plan rejects an invalid or reassigned original grant without opening another task", async ({ page }) => {
+  const { path } = await seed(page, "alex", false, true)
+  await page.goto(path)
+  await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda" })).toBeVisible()
+  await page.evaluate(key => { const state = JSON.parse(localStorage.getItem(key)!); const n = state.nodes.find((item: {id: string}) => item.id === "t-agenda"); n.ownerId = "sam"; n.ownerVersion++; localStorage.setItem(key, JSON.stringify(state)) }, KEY)
+  await page.reload()
+  await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
+  await expect(task(page)).toHaveCount(0)
 })

@@ -24,7 +24,7 @@ export default function SingleTaskPage({ token, preferPlan = false }: { token: s
   const node = state.nodes.find(n => n.id === grant?.nodeId)
   const request = grant?.scope === "waiting" && isReminderRuntime(state.reminderRuntime) ? state.reminderRuntime.waitingRequests.find(r => r.id === grant.waitingRequestId) : undefined
   const available = !checking && node && (grant?.scope !== "waiting" || !!request)
-  if (preferPlan && available && grant && node.eventId && state.events.some(event => event.id === node.eventId) && hasPlanMember(state)) return <Navigate to={planTaskPath(node.eventId, node.id, token)} replace />
+  if (preferPlan && available && grant && hasPlanMember(state)) return <Navigate to={planTaskPath(state.events.find(event => event.id === node.eventId)?.id, node.id, token)} replace />
   return <main className="single-task" aria-labelledby="single-task-heading">
     <div className="single-task-shell">
       <header className="single-task-brand"><Link to="/" aria-label="Platypus home">Platypus</Link><span>Your task</span></header>

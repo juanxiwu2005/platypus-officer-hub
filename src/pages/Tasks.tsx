@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react"
-import { useLocation, useSearchParams } from "react-router-dom"
+import { Link, useLocation, useSearchParams } from "react-router-dom"
 import { useSchedule, useStore, useViewer } from "../data/store"
 import type { Node, NodeStatus } from "../data/types"
 import { PageHead } from "../components/Page"
@@ -16,6 +16,9 @@ import { isOfficer, officers } from "../data/permissions"
 import { TaskTypeIcon } from "../components/TaskTypeIcon"
 import { defaultTaskDue } from "../engine/taskDates"
 import { TaskDueFields } from "../components/rail/TaskFields"
+
+import { resolvePlanEntry } from "../reminders/planEntry"
+import { useTaskAccess } from "../reminders/useTaskAccess"
 
 type View = "table" | "board" | "timeline"
 const BOARD_STATUSES: NodeStatus[] = ["unclaimed", "accepted", "in_progress", "waiting", "blocked", "done"]
@@ -34,17 +37,30 @@ export default function Tasks() {
   const { state, dispatch } = useStore()
   const { person } = useViewer()
   const rail = useRail()
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
+  const access = useTaskAccess(params.get("access") ?? "")
+  const entry = resolvePlanEntry(state, params, access.grant, access.checking, "tasks")
   const location = useLocation()
   const [view, setView] = useState<View>("board")
-  const [scope, setScope] = useState("mine")
+  const [scope, setScope] = useState(() => params.has("access") ? "team" : "mine")
   const [notice, setNotice] = useState("")
   // FB-5: the last task the page-head form created, so the notice can offer Undo (the same undo as the Ask form).
   const [undoId, setUndoId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const lead = canLead(state)
   const linked = params.get("node")
-  useEffect(() => { if (linked && state.nodes.some(n => n.id === linked)) rail.show({ kind: "task", id: linked, reply: params.get("reply") }) }, [linked, params.get("reply"), location.key])
+  useEffect(() => {
+    if (params.has("access") && (entry.error || entry.checking)) { if (rail.detail?.kind === "task") rail.closeDetail(); return }
+    if (linked && state.nodes.some(n => n.id === linked)) rail.show({ kind: "task", id: linked, reply: params.get("reply") })
+  }, [linked, params.get("reply"), location.key, entry.error, entry.checking])
+  const openTask = (id: string) => {
+    if (params.has("access")) {
+      const next = new URLSearchParams(params); next.set("node", id)
+      if (entry.origin) next.set("from", entry.origin.id)
+      setParams(next)
+    }
+    rail.show({ kind: "task", id })
+  }
   useEffect(() => { if (!notice) return; const t = setTimeout(() => { setNotice(""); setUndoId(null) }, undoId ? 8000 : 3200); return () => clearTimeout(t) }, [notice, undoId])
   const say = (text: string) => { setUndoId(null); setNotice(text) }
 
@@ -57,6 +73,8 @@ export default function Tasks() {
   // A teammate who is explicitly holding up a task sees it in To do as well as
   // receiving an Update. Ownership stays with the original task owner.
   const visible = state.nodes.filter(n => (scope === "team" || n.ownerId === person.id || n.waitingOnPersonId === person.id || (n.status === "unclaimed" && !n.ownerId)) && isInTaskHorizon(n, state.today))
+  if (params.has("access") && entry.checking) return <p role="status">Opening your task in Plan…</p>
+  if (params.has("access") && entry.error) return <section className="card"><h1>Check your task link</h1><p role="alert">{entry.error}</p><Link to="/tasks">Open Plan</Link></section>
   return <>
     <PageHead path="/tasks" actions={<>
       <div className="seg" role="group" aria-label="Task view">{(["board", "table", "timeline"] as View[]).map(v => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>{v === "table" ? "Table" : v === "board" ? "Board" : "Timeline"}</button>)}</div>
@@ -66,9 +84,9 @@ export default function Tasks() {
     </>} />
     {creating && <NewTaskForm onClose={() => setCreating(false)} onCreated={(text, id) => { setNotice(text); setUndoId(id) }} />}
     {notice && <p className="board-notice" role="status">{notice}{undoId && <button type="button" className="link" data-testid="new-task-undo" onClick={() => { dispatch({ type: "undoAuto", id: undoId }); say("Task removed.") }}>Undo</button>}</p>}
-    {view === "table" && <TaskTable nodes={visible} editable={lead} showOwner={scope === "team"} />}
-    {view === "board" && <Board nodes={visible} onAdd={addTask} onNotice={say} />}
-    {view === "timeline" && <TaskTimeline nodes={visible.filter(n => n.status !== "done")} onSelect={n => rail.show({ kind: "task", id: n.id })} />}
+    {view === "table" && <TaskTable nodes={visible} editable={lead} showOwner={scope === "team"} onSelect={openTask} />}
+    {view === "board" && <Board nodes={visible} onAdd={addTask} onNotice={say} onSelect={openTask} />}
+    {view === "timeline" && <TaskTimeline nodes={visible.filter(n => n.status !== "done")} onSelect={n => openTask(n.id)} />}
     <FollowupPanel />
   </>
 }
@@ -133,10 +151,9 @@ function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
 }
 
 /** monday-style table grouped by event; owner and due date are edited right in the row. */
-function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: boolean; showOwner: boolean }) {
+function TaskTable({ nodes, editable, showOwner, onSelect }: { nodes: Node[]; editable: boolean; showOwner: boolean; onSelect: (id: string) => void }) {
   const { state, dispatch } = useStore()
   const sched = useSchedule()
-  const rail = useRail()
   const [toggled, setToggled] = useState<Record<string, boolean>>({})
   const open = nodes.filter(n => n.status !== "done").sort((a, b) => (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999"))
   const groups = [...state.events.map(e => ({ id: e.id, name: e.name })), { id: "", name: "Club tasks" }].map(g => ({ ...g, rows: open.filter(n => (n.eventId ?? "") === g.id) })).filter(g => g.rows.length)
@@ -151,7 +168,7 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
         ...(folded(g) ? [] : g.rows).map(n => {
           const late = n.clubDeadline && n.clubDeadline < state.today
           return [<tr key={n.id} data-testid="task-card">
-            <td><button type="button" className="row-btn task-title" onClick={() => rail.show({ kind: "task", id: n.id })}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
+            <td><button type="button" className="row-btn task-title" onClick={() => onSelect(n.id)}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
             {showOwner && <td>{editable
               ? <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" /><select aria-label={`Owner of ${n.title}`} value={n.ownerId ?? ""} onChange={e => dispatch({ type: "updateNode", id: n.id, patch: { ownerId: e.target.value || null } })}><option value="">None</option>{officers(state).map(p => <option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>)}{state.people.filter(p => p.id === n.ownerId && !isOfficer(p)).map(p => <option key={p.id} value={p.id} disabled>{p.name.split(" ")[0]} (former)</option>)}</select></span>
               : <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />{state.people.find(p => p.id === n.ownerId)?.name.split(" ")[0] ?? ""}</span>}</td>}
@@ -171,9 +188,8 @@ function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: bo
 }
 
 /** Board: drag a card to change its status or order; details handle explicit status updates. */
-function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: string, status: NodeStatus) => void; onNotice: (text: string) => void }) {
+function Board({ nodes, onAdd, onNotice, onSelect }: { nodes: Node[]; onAdd: (title: string, status: NodeStatus) => void; onNotice: (text: string) => void; onSelect: (id: string) => void }) {
   const { state, dispatch } = useStore()
-  const rail = useRail()
   const styles = useStatusStyles()
   const [adding, setAdding] = useState<NodeStatus | null>(null)
   const [title, setTitle] = useState("")
@@ -223,7 +239,7 @@ function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: strin
             const shifted = drag !== null && drag !== n.id && insertAt >= 0 && index >= insertAt
             return <article key={n.id} className={`board-card ${drag === n.id ? "is-dragging" : ""} ${shifted ? "is-shifted" : ""}`} data-testid="board-card" {...dnd.cardProps(n.id)}>
               {/* A span, not a <button>: Chrome will not start a drag from inside a button. */}
-              <span role="button" tabIndex={0} className="row-btn board-title task-title" onClick={() => rail.show({ kind: "task", id: n.id })} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); rail.show({ kind: "task", id: n.id }) } }}><TaskTypeIcon node={n} /><span>{n.title}</span></span>
+              <span role="button" tabIndex={0} className="row-btn board-title task-title" onClick={() => onSelect(n.id)} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(n.id) } }}><TaskTypeIcon node={n} /><span>{n.title}</span></span>
               {fields.includes("tags") && !!n.tags?.length && <div className="tag-row">{n.tags.map(id => { const t = tags.find(x => x.id === id); return t && <span key={id} className="tag-chip" style={{ "--tag": t.color } as CSSProperties}>{t.label}</span> })}</div>}
               <div className="board-meta">
                 {fields.includes("owner") && <Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />}

@@ -135,7 +135,7 @@ function DetailView() {
     case "nudge": return <div ref={box} className="detail-scroll" {...region}><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
     case "task": {
       const node = state.nodes.find(n => n.id === d.id)
-      body = location.pathname === "/events" ? <PlanTaskPanel nodeId={d.id} /> : node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
+      body = (location.pathname === "/events" || (location.pathname === "/tasks" && new URLSearchParams(location.search).has("access"))) ? <PlanTaskPanel nodeId={d.id} /> : node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
       break
     }
     case "funding": body = <FundingDetail eventId={d.eventId} />; break

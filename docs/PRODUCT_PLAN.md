@@ -1,3 +1,5 @@
+> **2026-11-18 邮件Plan入口补漏：** 根据用户实际测试的无活动 `Draft the meeting agenda`，补齐社团任务新邮件与旧可复用链接进入Plan → Tasks，右列直接展开并可切换/返回；活动任务仍进对应活动Plan。不为任务伪造活动关联，保持原负责人/授权/自动草稿与只读提交边界。见[交付补充](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)，沿用PR14。
+
 > **2026-11-18（America/Phoenix）团队默认修正：** 用户要求恢复原工作流的预设团队，避免从空团队开始。沿原v3分组预置Club leadership、Operations、Marketing、Finance（46任务为1/25/8/12），自动完成默认关联；社长后续可改任意团队名称、增加团队，内部引用按稳定ID保留，已有显式设置和活动快照不被改写。此条取代上轮“先手工确认团队才使用标准模板”的当前指引；见[实施说明](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md)。
 
 > **2026-11-18 邮件进入Plan已批准实施：** 活动任务邮件直接定位对应活动和实际任务，打开右侧Details；保留真实点状workflow，可切换其他节点查看团队共享的已提交内容/附件并返回原任务。自己的正文和附件自动草稿继续保留；单任务邮件授权不扩大为工作区身份，旧链接兼容。只改入口/导航，不重画流程、不改Settings模板或提醒频率；仍为本浏览器演示，不新增真实账号/后台发送/跨设备同步。见[交付](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)，沿用PR14，不合并main。

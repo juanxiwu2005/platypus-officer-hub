@@ -4,7 +4,7 @@ import { buildReminderMail } from "./mail"
 import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
 import { planReminders } from "./engine"
 import { isReminderRuntime } from "./runtime"
-import { taskAccessUrl, usableTaskAccessGrant } from "./taskAccess"
+import { legacyTaskAccessUrl, taskAccessUrl, usableTaskAccessGrant } from "./taskAccess"
 
 /** Validate a reviewed message against the latest facts and a registered, assignment-scoped task entry. */
 export function validatedReminderMessage(s: DemoState, raw: ReminderMailSnapshot, nodeId: string, candidateId?: string): ReminderMailSnapshot | null {
@@ -15,7 +15,7 @@ export function validatedReminderMessage(s: DemoState, raw: ReminderMailSnapshot
     const grant = usableTaskAccessGrant(s, token)
     if (!grant || grant.id !== raw.accessId || grant.nodeId !== nodeId || grant.recipientId !== raw.recipientId
       || !["http:", "https:"].includes(url.protocol) || url.pathname !== "/" || url.search || url.username || url.password
-      || ![taskAccessUrl("", grant), taskAccessUrl("", grant, s.nodes.find(n => n.id === nodeId)?.eventId)].some(value => url.hash === value.slice(1))) return null
+      || ![legacyTaskAccessUrl("", grant), taskAccessUrl("", grant), taskAccessUrl("", grant, s.nodes.find(n => n.id === nodeId)?.eventId)].some(value => url.hash === value.slice(1))) return null
     const facts = buildReminderFacts(s, nodeId)
     const people = reminderPeople(s)
     const recipient = people.find(p => p.id === grant.recipientId)
