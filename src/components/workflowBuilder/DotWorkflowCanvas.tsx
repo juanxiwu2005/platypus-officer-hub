@@ -115,7 +115,7 @@ export function DotWorkflowCanvas({ steps, branches, stepTeams, teams, selected,
           <svg className="wfd-lines" width={graph.width} height={graph.height} aria-hidden="true">
             <defs><marker id={marker} markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 Z" className="wfd-arrow" /></marker></defs>
             <path className="wfd-main-track" data-testid="workflow-main-track" d={`M${graph.start.x} ${graph.start.y} H${graph.done.x}`} />
-            {graph.lanes.map(lane => <path key={lane.team.id} className="wfd-team-track" data-testid="workflow-team-track" d={lane.path} />)}
+            {graph.lanes.map(lane => <path key={lane.team.id} className="wfd-team-track" data-testid="workflow-branch-track" d={lane.path} />)}
             {graph.links.map(link => <path key={`${link.from}:${link.to}`} data-testid="workflow-dependency" data-from={link.from} data-to={link.to} d={link.path} markerEnd={`url(#${marker})`} className={`wfd-dependency${selected === link.from || selected === link.to ? " is-related" : ""}${showLinks ? " is-shown" : ""}`} />)}
           </svg>
           <div className="wfd-endpoint" data-testid="workflow-start" style={{ left: graph.start.x, top: graph.start.y }}><i /><b>Start</b></div>

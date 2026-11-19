@@ -91,7 +91,7 @@ describe("manual workflow builder", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add before" }))
     const fresh = latest.steps.find(step => !["Speaker task", "Marketing task", "Merge"].includes(step.key))!
     expect(latest.steps).toHaveLength(4)
-    expect(fresh).toMatchObject({ placement: { branchId: "main" }, dependsOn: ["Marketing task"], stepKind: "core" })
+    expect(fresh).toMatchObject({ placement: { branchId: "main" }, dependsOn: ["Speaker task", "Marketing task"], stepKind: "core" })
     expect(fresh.cond).toBeUndefined()
     expect(latest.stepTeams[fresh.key]).toBe("events")
     expect(latest.steps.find(step => step.key === "Merge")?.dependsOn).toEqual([fresh.key])
