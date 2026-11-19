@@ -46,7 +46,7 @@ describe("editable lane workflow canvas", () => {
     expect(screen.getByTestId("workflow-segment-orphan").className).toContain("wfx-tone-none")
     expect(screen.getByTestId("workflow-segment-prepare").className).toContain("wfx-tone-0")
     expect(screen.getByTestId("workflow-segment-empty").className).toContain("wfx-tone-1")
-    fireEvent.click(screen.getAllByRole("button", { name: "Edit Operations branch" })[0])
+    fireEvent.click(screen.getAllByRole("button", { name: /^Operations · .*, edit branch$/ })[0])
     expect(value.onSelect).toHaveBeenLastCalledWith("branch:prepare")
     expect(screen.queryByRole("combobox")).toBeNull()
     expect(screen.queryByRole("textbox")).toBeNull()
@@ -122,7 +122,7 @@ describe("editable lane workflow canvas", () => {
     fireEvent.click(screen.getByRole("button", { name: "Fit" }))
     expect(screen.getByRole("status").textContent).toBe("100%")
     for (let index = 0; index < 8; index++) fireEvent.click(screen.getByRole("button", { name: "Zoom out" }))
-    expect(screen.getByRole("status").textContent).toBe("60%")
+    expect(screen.getByRole("status").textContent).toBe("50%")
     expect((screen.getByRole("button", { name: "Zoom out" }) as HTMLButtonElement).disabled).toBe(true)
   })
 

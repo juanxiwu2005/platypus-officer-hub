@@ -14,8 +14,8 @@ export interface LaneDropTarget { branchId: string; targetId?: string; before?: 
 
 /** A branch stays on one horizontal row up to this many steps; only longer branches wrap. */
 export const LANE_MAX = 10
-export const COL = 120
-export const EDGE = 56
+export const COL = 108
+export const EDGE = 44
 /** Height reserved at the top of the layout for the sticky phase header. */
 export const PHASE_HEADER = 40
 export const LANE_HEIGHT = 112

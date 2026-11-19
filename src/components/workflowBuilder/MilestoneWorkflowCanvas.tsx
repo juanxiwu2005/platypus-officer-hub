@@ -19,7 +19,7 @@ export interface MilestoneWorkflowCanvasProps {
 }
 interface Gesture { pointerId: number; stepId: string; x: number; y: number; clientX: number; clientY: number; scrollLeft: number; scrollTop: number; active: boolean }
 interface Moving { stepId: string; x: number; y: number; branchId: string | null }
-const MIN_ZOOM = 0.6, MAX_ZOOM = 1.6, ZOOM_STEP = 0.15, TONES = 6
+const MIN_ZOOM = 0.5, MAX_ZOOM = 1.6, READABLE_ZOOM = 0.85, ZOOM_STEP = 0.15, TONES = 6
 /** Approximate width of one phase-label character at --fs-sm semibold, plus the label's left padding. */
 const PHASE_CHAR = 7.6, PHASE_PAD = 12
 
@@ -31,8 +31,9 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
   const [available, setAvailable] = useState(1040), [zoom, setZoom] = useState<number | null>(null), [moving, setMoving] = useState<Moving | null>(null)
   const layout = useMemo(() => buildLaneLayout(steps, graph, { availableWidth: available - 4 }), [steps, graph, available])
   const dates = useMemo(() => workflowMilestoneDates(graph, eventDate), [graph, eventDate])
+  // Fit shows the whole chart; the default opens at a readable size and scrolls sideways when the chart is wider.
   const fit = Math.min(1, Math.max(MIN_ZOOM, (available - 4) / layout.width))
-  const scale = zoom ?? fit
+  const scale = zoom ?? Math.max(READABLE_ZOOM, fit)
   // The phase header is a fixed-height strip; the scaled stage starts right under it.
   const screenY = (y: number) => PHASE_HEADER + (y - PHASE_HEADER) * scale
   // Narrow phases (one event day at a small zoom) push the next label right instead of overlapping it.
@@ -117,7 +118,7 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
         <button type="button" className="btn small" aria-label="Zoom out" disabled={scale <= MIN_ZOOM} onClick={() => setZoom(Math.max(MIN_ZOOM, scale - ZOOM_STEP))}>−</button>
         <output aria-live="polite">{Math.round(scale * 100)}%</output>
         <button type="button" className="btn small" aria-label="Zoom in" disabled={scale >= MAX_ZOOM} onClick={() => setZoom(Math.min(MAX_ZOOM, scale + ZOOM_STEP))}>+</button>
-        <button type="button" className="btn small" onClick={() => setZoom(null)}>Fit</button>
+        <button type="button" className="btn small" onClick={() => setZoom(fit)}>Fit</button>
       </div>
     </div>
     <div className="wfx-scroll" ref={viewport} role="region" tabIndex={0} aria-label="Workflow main line and team branches" style={{ "--wfx-scale": scale, "--wfx-head": `${PHASE_HEADER}px` } as CSSProperties}>
@@ -130,7 +131,7 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
             const team = teamOf(lane), count = lane.branch.stepIds.length
             return <div key={lane.branch.id} data-testid={`workflow-segment-${lane.branch.id}`} data-branch-id={lane.branch.id} role="group" aria-label={`${team.name} branch`} className={`wfx-lane wfx-tone-${team.tone}${selected === `branch:${lane.branch.id}` ? " is-selected" : ""}${moving?.branchId === lane.branch.id ? " is-drop-target" : ""}`} style={{ left: lane.x, top: lane.y, width: lane.width, height: lane.height }}>
               <div className="wfx-lane-head">
-                <button type="button" className="wfx-pill" data-testid={`workflow-branch-pill-${lane.branch.id}`} aria-label={`Edit ${team.name} branch`} aria-pressed={selected === `branch:${lane.branch.id}`} title={`${team.name} · ${count} ${count === 1 ? "step" : "steps"}`} onClick={() => onSelect(`branch:${lane.branch.id}`)}>{team.name} · {count} {count === 1 ? "step" : "steps"}</button>
+                <button type="button" className="wfx-pill" data-testid={`workflow-branch-pill-${lane.branch.id}`} aria-label={`${team.name} · ${count} ${count === 1 ? "step" : "steps"}, edit branch`} aria-pressed={selected === `branch:${lane.branch.id}`} title={`${team.name} · ${count} ${count === 1 ? "step" : "steps"}`} onClick={() => onSelect(`branch:${lane.branch.id}`)}>{team.name} · {count} {count === 1 ? "step" : "steps"}</button>
                 <button type="button" className="wfx-add" aria-label={`Add task to ${team.name} branch`} title="Add task" onClick={() => onAddTask(lane.branch.id)}>+</button>
               </div>
             </div>

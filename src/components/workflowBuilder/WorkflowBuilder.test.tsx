@@ -50,7 +50,7 @@ describe("manual workflow builder", () => {
 
   it("assigns a branch to an existing team without changing task definitions", () => {
     show()
-    fireEvent.click(screen.getAllByRole("button", { name: /^Edit branch / })[0])
+    fireEvent.click(screen.getAllByRole("button", { name: /, edit branch$/ })[0])
     const before = structuredClone(latest.steps)
     fireEvent.change(screen.getByLabelText("Team"), { target: { value: "marketing" } })
     expect(latest.stepTeams.B).toBe("marketing")
@@ -117,13 +117,13 @@ describe("manual workflow builder", () => {
     const branch = latest.milestoneGraph!.teamBranches.at(-1)!
     expect(branch.teamId).toBe("marketing")
     expect(branch.stepIds).toEqual([])
-    fireEvent.click(screen.getByRole("button", { name: `Add task to branch ${branch.id}` }))
+    fireEvent.click(within(screen.getByTestId(`workflow-segment-${branch.id}`)).getByRole("button", { name: /^Add task to / }))
     expect(latest.stepTeams[latest.steps.at(-1)!.key]).toBe("marketing")
   })
 
   it("can clear a branch team and add unassigned work without inventing mapping values", () => {
     show()
-    fireEvent.click(screen.getAllByRole("button", { name: /^Edit branch / })[0])
+    fireEvent.click(screen.getAllByRole("button", { name: /, edit branch$/ })[0])
     fireEvent.change(screen.getByLabelText("Team"), { target: { value: "" } })
     expect(latest.stepTeams).toEqual({})
     expect(latest.milestoneGraph?.teamBranches[0].teamId).toBe("")
@@ -173,10 +173,10 @@ describe("manual workflow builder", () => {
     fireEvent.click(screen.getByRole("button", { name: "+ Select steps" }))
     expect(screen.getByRole("button", { name: "Select steps" }).getAttribute("aria-pressed")).toBe("true")
     expect((screen.getByRole("button", { name: "Assign 0 steps" }) as HTMLButtonElement).disabled).toBe(true)
-    fireEvent.click(screen.getByRole("button", { name: "Edit A" }))
-    fireEvent.click(screen.getByRole("button", { name: "Edit C" }))
-    fireEvent.click(screen.getByRole("button", { name: "Edit B" }))
-    fireEvent.click(screen.getByRole("button", { name: "Edit C" }))
+    fireEvent.click(screen.getByRole("button", { name: "Select A" }))
+    fireEvent.click(screen.getByRole("button", { name: "Select C" }))
+    fireEvent.click(screen.getByRole("button", { name: "Select B" }))
+    fireEvent.click(screen.getByRole("button", { name: "Select C" }))
     expect(screen.getByText("2 steps selected")).toBeTruthy()
     fireEvent.click(screen.getByRole("button", { name: "Assign 2 steps" }))
     expect(latest.milestoneGraph!.teamBranches.find(branch => branch.id === target.id)!.stepIds).toEqual(["A", "B"])
@@ -193,7 +193,7 @@ describe("manual workflow builder", () => {
     show()
     fireEvent.click(screen.getByRole("button", { name: "Select steps" }))
     expect(screen.getByTestId("workflow-builder-details")).toBeTruthy()
-    fireEvent.click(screen.getByRole("button", { name: "Edit A" }))
+    fireEvent.click(screen.getByRole("button", { name: "Select A" }))
     expect(screen.getByText("1 step selected")).toBeTruthy()
     fireEvent.keyDown(window, { key: "Escape" })
     expect(screen.getByRole("button", { name: "Select steps" }).getAttribute("aria-pressed")).toBe("false")
@@ -208,7 +208,7 @@ describe("manual workflow builder", () => {
     const state = { ...seeded, org: { ...seeded.org, workflowRoleTeams: { "r-events": "events" } } }
     const holder = state.people.find(person => person.id === state.roles.find(role => role.id === "r-events")!.holderId)!
     show(undefined, state)
-    fireEvent.click(screen.getAllByRole("button", { name: /^Edit branch / })[0])
+    fireEvent.click(screen.getAllByRole("button", { name: /, edit branch$/ })[0])
     expect(screen.getByRole("heading", { name: "Events team path" })).toBeTruthy()
     expect(within(screen.getByRole("list", { name: "Team roster" })).getByText(`${holder.name.split(" ")[0]} · Events lead`)).toBeTruthy()
     fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Books rooms and speakers." } })

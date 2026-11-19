@@ -32,8 +32,8 @@ describe("one-row lane layout", () => {
       expect(lane.rows).toBe(1)
       expect(lane.points.map(point => point.step.key)).toEqual(lane.branch.stepIds)
       expect(lane.points.every((point, index, all) => !index || point.x > all[index - 1].x)).toBe(true)
-      for (const point of lane.points) expect(point.x - 52).toBeGreaterThanOrEqual(lane.x)
-      for (const point of lane.points) expect(point.x + 52).toBeLessThanOrEqual(lane.x + lane.width)
+      for (const point of lane.points) expect(point.x - 44).toBeGreaterThanOrEqual(lane.x)
+      for (const point of lane.points) expect(point.x + 44).toBeLessThanOrEqual(lane.x + lane.width)
     }
     const extent = (side: "above" | "below") => {
       const lanes = layout.lanes.filter(lane => lane.side === side)
@@ -83,7 +83,7 @@ describe("one-row lane layout", () => {
     expect(event.x0).toBeLessThan(day.x)
     expect(event.x1).toBeGreaterThan(day.x)
     const plan = layout.points.find(point => point.step.key === "p0-2")!
-    expect(layout.phases[0].x1).toBe(plan.x + 60)
+    expect(layout.phases[0].x1).toBe(plan.x + 54)
   })
 
   it("omits Plan without leading planning steps and names two event days", () => {
