@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><title>D · Team detail</title><link rel="stylesheet" href="shell.css"><style>.ti{display:flex;justify-content:space-between;align-items:center;padding:9px 8px;border-radius:10px;text-decoration:none;color:inherit}.ti.on{background:var(--accent-soft)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:18px}
+.sub{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.mem{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}.mem.add{border-style:dashed;justify-content:space-between;color:var(--accent-ink);font-size:14px}
+.wf{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:color-mix(in srgb,var(--t-fin) 5%,#fff)}
+.lane{display:flex;align-items:center;gap:10px;margin-top:10px;position:relative}.lane i{width:14px;height:14px;border-radius:50%;border:2px solid var(--info);background:#fff;flex-shrink:0}.lane i.y{border-color:#ba8306}</style></head><body><div class="top"><div class="logo">P</div><div class="brand"><b>Platypus</b><small>Desert Founders Society</small></div><div class="sp"></div><span class="pill demo">Demo · Sat, Oct 31</span><span class="sm muted">View as</span><select><option>Alex Rivera · President</option></select><button class="btn">Ask Platypus</button></div>
+<div class="shell"><nav class="nav"><a><span class="ico">◷</span>Reminders</a><a><span class="ico">⟨⟩</span>Plan</a><a><span class="ico">⇥</span>Handoff</a><a><span class="ico">◎</span>Team</a><a><span class="ico">≡</span>Rules</a><div class="sec">REFERENCE</div><a class="on"><span class="ico">⚙</span>Settings</a><a><span class="ico">?</span>Help</a></nav>
+<div><h1>Settings</h1><nav class="snav"><a>Club</a><a class="on">Roles &amp; teams</a><a>Workflow</a><a>Tasks</a><a>Links &amp; files</a><a>My preferences</a><a>Admin</a></nav></div><main><div class="label"><b>D · Team list + detail</b> — pick a team; see its roles and the workflow steps it owns.</div><div style="display:grid;grid-template-columns:250px 1fr;gap:16px">
+<section class="card" style="padding:14px"><div class="row between" style="padding:4px 6px 10px"><h3>Teams</h3><span class="xs" style="color:var(--accent-ink)">+ New</span></div><a class="ti"><span class="tag lead"><i></i>Club leadership</span><span class="xs muted" style="text-align:right">1 role<br>1 step</span></a><a class="ti"><span class="tag ops"><i></i>Operations</span><span class="xs muted" style="text-align:right">2 roles<br>25 steps</span></a><a class="ti"><span class="tag mkt"><i></i>Marketing</span><span class="xs muted" style="text-align:right">1 role<br>8 steps</span></a><a class="ti on"><span class="tag fin"><i></i>Finance</span><span class="xs muted" style="text-align:right">1 role<br>12 steps</span></a>
+<a class="ti"><span class="sm"><b>All roles</b></span><span class="xs muted">5</span></a><a class="ti"><span class="sm muted">Not in a team</span><span class="xs muted">0</span></a>
+<div class="xs muted" style="padding:12px 6px 0;border-top:1px solid var(--line);margin-top:8px">Teams are used by every workflow template. Renaming keeps all links.</div></section>
+<section class="card">
+<div class="row between"><div class="row"><span class="tag fin" style="font-size:15px;padding:5px 14px"><i></i>Finance</span><span class="sm muted">Team name, colour and members</span></div><div class="row"><button class="btn">Rename</button><button class="btn">Delete team</button></div></div>
+<div class="grid2">
+ <div><div class="sub">Members</div>
+  <div class="mem"><span class="av">MC</span><div style="flex:1"><b>Treasurer</b><div class="xs muted">Maya Chen · maya.chen@example.org</div></div><span class="xs muted">Reports to President</span></div>
+  <div class="mem add"><span>+ Add a role to Finance</span><select><option>Choose role…</option></select></div>
+  <div class="sub" style="margin-top:18px">Duties of this team</div>
+  <p class="sm" style="margin:0">Budgets, quotes, purchase approvals, reimbursements and the finance record for each event.</p>
+ </div>
+ <div><div class="sub">Work in workflows</div>
+  <div class="wf"><div class="row between"><b class="sm">Speaker series · v1</b><span class="xs" style="color:var(--accent-ink)">Open in Workflow →</span></div>
+   <div class="lane"><span class="xs muted" style="width:92px">Before event</span><i></i><i class="y"></i><i></i><i class="y"></i><i class="y"></i><i class="y"></i><i class="y"></i><i></i><span class="xs muted" style="white-space:nowrap">8 steps</span></div>
+   <div class="lane"><span class="xs muted" style="width:92px">After event</span><i></i><i></i><i></i><i></i><span class="xs muted">4 steps</span></div></div>
+  <div class="wf"><div class="row between"><b class="sm">Speaker series copy · draft</b><span class="xs muted">not used</span></div></div>
+  <p class="xs muted" style="margin:8px 0 0">Steps belong to the team, not to a person. When Maya hands over, the next Treasurer inherits them.</p>
+ </div>
+</div></section></div></main></div></body></html>
