@@ -12,6 +12,12 @@ const ROOM = "reminder-s3-room", POSTER = "reminder-s3-poster", TODAY = "2027-03
 const DETAILS = "Please confirm the accessible entrance and projector connection"
 const read = (page: Page): Promise<DemoState> => page.evaluate(key => JSON.parse(localStorage.getItem(key)!), KEY)
 const rows = (page: Page, section: string) => page.getByTestId(section).getByTestId("rq-row")
+/** Recorded emails, replies and no-reply rows live in the History panel of the right rail (concept F). */
+async function openHistory(page: Page) {
+  await page.getByTestId("open-history").click()
+  await expect(page.getByTestId("reminder-history")).toBeVisible()
+}
+const closeHistory = async (page: Page) => { await page.getByRole("button", { name: "Close details" }).click(); await closeRail(page) }
 const node = (state: DemoState, id = ROOM) => state.nodes.find(n => n.id === id)!
 
 /** Only saved input fixtures are installed. Enabling, confirming, assigning and sending use the real UI. */
@@ -103,14 +109,16 @@ test.afterEach(async ({ page }) => {
 test("an old save explicitly enables the plan without changing custom settings or history, and Details uses the approved universal submission layout", async ({ page }, info) => {
   const before = await openLegacy(page, "review_then_auto", { history: true })
   expect(before.reminderRuntime).toBeUndefined()
-  await expect(page.getByTestId("rq-sent")).toContainText("recipient not recorded")
+  await openHistory(page)
+  await expect(page.getByTestId("rq-sent")).toContainText("Recipient not recorded")
+  await closeHistory(page)
   await activate(page)
   const enabled = await read(page)
   expect(enabled.org.settings).toEqual(before.org.settings)
   expect(enabled.nudges).toEqual(before.nudges)
   expect(enabled.reminderRuntime!.legacyUnresolvedNodeIds).toContain(ROOM)
-  const review = page.getByTestId("rq-needs-ok").locator(`[data-node="${ROOM}"]`)
-  await expect(review).toContainText("Jordan Patel")
+  const review = page.getByTestId("rq-fix").locator(`[data-node="${ROOM}"]`)
+  await expect(review).toContainText("Check earlier reminders")
   await review.getByRole("button", { name: "I checked · allow future reminders" }).click()
   await expect.poll(async () => (await read(page)).reminderRuntime!.legacyUnresolvedNodeIds?.includes(ROOM) ?? false).toBe(false)
   expect((await read(page)).nudges).toEqual(before.nudges)
@@ -144,20 +152,25 @@ test("an old save explicitly enables the plan without changing custom settings o
   expect((await read(page)).org.settings).toEqual(before.org.settings)
 })
 
-test("Approve all persists complete unique-link snapshots, survives reload, and recognizes a same-day owner reply before reassignment", async ({ page }, info) => {
+test("Send all persists complete unique-link snapshots, survives reload, and recognizes a same-day owner reply before reassignment", async ({ page }, info) => {
   await openLegacy(page, "review_then_auto")
   await activate(page)
-  await expect(page.getByTestId("approve-all")).toHaveText("Approve all (2)")
-  await page.getByTestId("approve-all").click()
+  // Two people, so two emails.
+  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all 2 emails")
+  await page.getByTestId("send-all-digests").click()
   await expect.poll(async () => (await read(page)).reminderRuntime!.deliveries.length).toBe(2)
-  await expect(page.getByTestId("reminder-centre")).toContainText("2 reminders saved as a demo. Nothing was sent.")
+  await expect(page.getByTestId("reminder-centre")).toContainText("2 emails recorded. Demo: nothing is sent.")
   const saved = await read(page), deliveries = saved.reminderRuntime!.deliveries
   for (const delivery of deliveries) completeMail(delivery, saved)
   expect(new Set(deliveries.map(d => d.candidateId)).size).toBe(2)
+  expect(saved.reminderRuntime!.digests?.map(d => d.recipientId).sort()).toEqual(["jordan", "priya"])
+  await openHistory(page)
   await expect(rows(page, "rq-sent")).toHaveCount(2)
   await page.reload()
+  await closeRail(page)
+  await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
+  await openHistory(page)
   await expect(rows(page, "rq-sent")).toHaveCount(2)
-  await expect(page.getByTestId("approve-all")).toHaveCount(0)
   expect((await read(page)).reminderRuntime!.deliveries).toEqual(deliveries)
   await screenshot(page, info, "saved-batch")
   const roomDelivery = deliveries.find(d => d.nodeId === ROOM)!
@@ -172,6 +185,7 @@ test("Approve all persists complete unique-link snapshots, survives reload, and 
   await page.goto("/#/")
   await expect(page.getByTestId("reminder-centre")).toBeVisible()
   if ((page.viewportSize()?.width ?? 1280) < 1200) await expect(page.getByTestId("rail")).toBeHidden()
+  await openHistory(page)
   await expect(page.getByTestId("rq-replies").locator(`[data-node="${ROOM}"]`)).toContainText("Working on it")
   await expect(page.getByTestId("rq-no-reply").locator(`[data-node="${ROOM}"]`)).toHaveCount(0)
   const panel = await detail(page)
@@ -207,9 +221,14 @@ test("an ordinary owner's Waiting on automatically records Sam's email and grant
   await closeRail(page)
   await viewAs(page, "alex")
   await page.goto("/#/")
+  await expect(page.getByTestId("reminder-centre")).toBeVisible()
+  if ((page.viewportSize()?.width ?? 1280) < 1200) await expect(page.getByTestId("rail")).toBeHidden()
+  await openHistory(page)
   await expect(page.getByTestId("rq-sent").locator(`[data-node="${ROOM}"]`)).toHaveCount(2)
   await page.reload()
-  await expect(page.getByTestId("rq-sent")).toContainText("Sam Okafor")
+  await closeRail(page)
+  await openHistory(page)
+  await expect(page.getByTestId("rq-sent")).toContainText("To Sam")
   expect((await read(page)).reminderRuntime!.deliveries).toHaveLength(2)
   await page.goto(followup.message!.taskUrl)
   const request = page.getByTestId("single-task-page")
