@@ -1,3 +1,6 @@
+> **2026-11-19（America/Phoenix） · Settings → Workflow 编辑器重新设计，进行中（Claude）**
+> **范围：** 只改 Settings → Workflow（团队一行排版、时间段标题、团队标签、模板分组、工具栏主次、Team assignment 批量分配）；Plan 活动图不动，等 Juanxi 满意后再移植。只做浅色。方案见会话计划，交付文档将写在 `docs/feedback-fix/WORKFLOW_SETTINGS_REDESIGN.md`。沿用 PR14 / preview14，不合并 main，schema23 不变。
+
 > **2026-11-18（America/Phoenix） · 一日／两日里程碑工作流完成检查，待验收（Codex / Model / Canvas / Commands / Browser / 独立Review）**
 > **交付：** 仅1-day / 2-day；Start/Done、各Event day、共享检查和普通任务均可点开右Details修改。主线固定日期＋共享任务，已有组织团队分支明确保存起点/汇合点，可在活动前、两日之间、活动后分叉；同team可重复负责不同区间，画布不创建/改名组织团队。新graph版本保存独立日期锚点与真实路径前置；日期/依赖/工期不适配明确报风险，学校Day1硬限和缓冲保留。旧活动/成果/提醒历史不回写，schema23不重置；保留同期ef0d0d0提醒修复，0真实产品AI/外部邮件，不合并main。
 > **验证与验收：** 最终23文件210单元/组件，46唯一双端浏览器全部通过；最终Plan颜色/链接/浅深4项再验通过，未重复计数。包括全节点编辑刷新、真实触屏、三段分支、两日实际任务日期、旧数据、严重关键axe0与无横溢出。lint、前后端类型、build、独立CSS与9页字数通过，Settings145/150，入口498,362/550,000。运行时`7b3f5fc`已确认Netlify success。沿用[preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow；[当前交付](feedback-fix/WORKFLOW_MILESTONE_HANDOFF.md) · [截图](prototypes/workflow-milestones/manifest.json)。交互以相同生产构建本地验收，部署依据Netlify状态；无会话线上浏览器会进入原站点edge-access。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
