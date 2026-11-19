@@ -38,6 +38,9 @@ import {
  * An explicit `startPolicy: effort` keeps calibrated due dates and link semantics, but dates its start from the
  * work estimate and the full personal buffer. If a real start constraint leaves too little time, its feasible
  * finish is shown with an effort_window warning; the original target and official deadline remain available.
+ * New workflow snapshots marked teamExecution: sequential instead treat every dependency as finish-to-start.
+ * Their calibrated due offsets remain targets, while starts come from work estimates and downstream needs;
+ * calibrated start windows never prevent starting early enough. Existing snapshots retain the rules above.
  */
 
 export const DEFAULT_PERSONAL_BUFFER = 1
@@ -247,6 +250,7 @@ interface Rec {
 
 function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
   const { state } = ctx
+  const sequential = ev.workflowRun?.snapshot.teamExecution === "sequential"
   const nodes = state.nodes.filter(n => n.eventId === ev.id)
   const { order, looped } = topoOrder(nodes)
   const ids = new Set(nodes.map(n => n.id))
@@ -260,7 +264,7 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
   const rec = new Map<string, Rec>()
   for (const n of [...order].reverse()) {
     const official = officialDeadline(n, ev)
-    if (n.timing) {
+    if (n.timing && !sequential) {
       // Calibrated: its own window, not squeezed earlier by the steps after it.
       const own = timingDue(n, ev, n.timing)
       const buffered = official ? { date: shiftWork(official.date, -buffer), why: `${plural(buffer, "business day")} before the ASU deadline (club buffer)` } : null
@@ -284,11 +288,17 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     }
     const cands: { date: string; why: string }[] = []
     if (official) cands.push({ date: shiftWork(official.date, -buffer), why: `${plural(buffer, "business day")} before the ASU deadline (club buffer)` })
-    const t = targetDate(n, ev)
+    // Keep authored club due targets and official anchors, but not calibrated start windows.
+    const t = sequential && n.timing ? timingDue(n, ev, n.timing) : targetDate(n, ev)
     if (t) cands.push(t)
     for (const c of children.get(n.id)!) {
       const r = rec.get(c)
-      if (r && !loopedIds.has(c)) cands.push({ date: shiftWork(r.start, -1), why: `Must be done before “${ctx.byId.get(c)!.title}” starts (${fmtLong(r.start)})` })
+      if (r && !loopedIds.has(c)) {
+        const child = ctx.byId.get(c)!
+        const floor = sequential && child.phase === "close" ? onOrAfter(closeFloor(child, ev), effortOf(ctx, child).work) : null
+        const start = floor && floor > r.start ? floor : r.start
+        cands.push({ date: shiftWork(start, -1), why: `Must be done before “${child.title}” starts (${fmtLong(start)})` })
+      }
     }
     if (cands.length === 0) {
       cands.push(n.phase === "close" ? { date: shiftWork(ev.date, 3), why: "Three business days after the event" } : { date: shiftWork(ev.date, -1), why: "The business day before the event" })
@@ -297,7 +307,7 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     const e = effortOf(ctx, n)
     let club = best.date
     let clubWhy = best.why
-    const explicit = n.startPolicy === "effort" ? effortStart(ctx, n, club) : null
+    const explicit = sequential || n.startPolicy === "effort" ? effortStart(ctx, n, club) : null
     let start = explicit?.date ?? shiftWork(club, -e.days, e.work)
     let sWhy = explicit?.why ?? startWhy(club, n, e, start)
     if (!explicit && n.phase === "close" && start < afterEvent) {
@@ -318,12 +328,12 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     let p = { date: r0.club, why: r0.clubWhy }
     for (const u of n.dependsOn) {
       const un = ctx.byId.get(u), pu = planned.get(u)
-      if (un?.timing && pu && !loopedIds.has(u) && !loopedIds.has(n.id) && pu.date > p.date) p = { date: pu.date, why: `Finishes after “${un.title}” (${fmtLong(pu.date)}), so the steps stay in order` }
+      if (!sequential && un?.timing && pu && !loopedIds.has(u) && !loopedIds.has(n.id) && pu.date > p.date) p = { date: pu.date, why: `Finishes after “${un.title}” (${fmtLong(pu.date)}), so the steps stay in order` }
     }
     planned.set(n.id, p)
     const r = p.date === r0.club ? r0 : { ...r0, club: p.date, clubWhy: p.why }
-    if (n.startPolicy === "effort") {
-      planExplicitEffort(ctx, n, ev, r, out, loopedIds)
+    if (sequential || n.startPolicy === "effort") {
+      planExplicitEffort(ctx, n, ev, r, out, loopedIds, sequential)
       continue
     }
     if (n.timing) {
@@ -485,8 +495,8 @@ function planCalibrated(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule, loo
   }
 }
 
-/** The explicit estimate uses the final due date; moving a calibrated finish still allows overlapping work. */
-function planExplicitEffort(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule, loopedIds: Set<string>) {
+/** Explicit effort retains legacy calibrated finish order unless this execution opts into finish-to-start. */
+function planExplicitEffort(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule, loopedIds: Set<string>, sequential = false) {
   const e = effortOf(ctx, n)
   let club = n.clubDeadlineOverride ?? r.club
   let clubWhy = n.clubDeadlineOverride ? `Set by a person (Platypus recommends ${fmtLong(r.club)})` : r.clubWhy
@@ -496,7 +506,7 @@ function planExplicitEffort(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule,
   for (const id of n.dependsOn) {
     const upstream = ctx.byId.get(id), plan = out.nodes[id]
     if (!upstream || !plan || upstream.status === "done" || loopedIds.has(id)) continue
-    if (upstream.timing) {
+    if (upstream.timing && !sequential) {
       if (plan.club > club) {
         club = plan.club
         pushedBy = id
