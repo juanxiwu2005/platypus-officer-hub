@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "kind": "reminder-to-plan-continuous-flow",
+  "conceptOnly": true,
+  "productCodeChanged": false,
+  "sourceCommit": "8cc68be",
+  "generatedWith": "image_gen.imagegen",
+  "imageGenerationCalls": 2,
+  "originalsPreserved": true,
+  "report": "../../feedback-fix/REMINDER_PLAN_ENTRY_CONCEPTS.md",
+  "scenario": "Fictional Speaker Night; Jordan's room task, Maya's submitted event requirements. Same interaction in two states, not competing alternatives.",
+  "access": "Signed-in club member; read shared submitted material, not teammates' private drafts. Existing task token is not a workspace login.",
+  "images": [
+    {
+      "number": 1,
+      "title": "1 · Email opens the task in Plan",
+      "file": "01-email-opens-plan.png",
+      "original": "/workspace/generated_images/exec-4d251acf-0c33-4ee5-a117-f6d26d8d237d.png",
+      "bytes": 1495285,
+      "sha256": "b17a51f172bba3c106e02f9af2bcc4a811142f40eeb9afa20e0449850df2c2cb",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "number": 2,
+      "title": "2 · Read another member’s submission",
+      "file": "02-view-teammate-submission.png",
+      "original": "/workspace/generated_images/exec-6272fd58-b52d-4dfc-b929-29e26036d99f.png",
+      "bytes": 1592850,
+      "sha256": "02f034ad9d2761bb6b50f565a76222917801d96768d46432af6ee8a5d73db7a2",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    }
+  ]
+}

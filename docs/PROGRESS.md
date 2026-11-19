@@ -1,5 +1,6 @@
-> **2026-11-18（America/Phoenix） · 邮件进入Plan并展开任务的两张静态示意制作中（Codex）**
-> **范围：** Juanxi希望邮件跳至对应活动Plan，右侧Details直接打开目标任务，能切换节点查看其他成员已提交资料。本轮仅核对现有Plan/Details并生成两张图片，批准后才改网站；保留上一轮E邮件及通用Details/附件/自动草稿，Settings模板和同期工作流设计不动，沿用原分支/PR14，不合并main。
+> **2026-11-18（America/Phoenix） · 邮件进入Plan与跨节点资料两张静态图已交付，待审图批准（Codex）**
+> **交付：** [设计与实施边界](feedback-fix/REMINDER_PLAN_ENTRY_CONCEPTS.md) · [两张图片](prototypes/reminder-plan-entry/manifest.json)。图1邮件直达Speaker Night Plan，高亮订房节点，右侧Details自动展开，保留外部入口/统一正文附件/自动草稿；图2同图切至其他成员已提交的活动要求与附件，提供返回原任务入口。Plan沿用点状轨道，不把Settings模板编辑器带入。
+> **检查与边界：** 两图1536×1024，PNG/清单/文档本地链接及差异校验通过，原图保留；代码核对Events/Rail/TaskSubmission已有基础。仅docs/PNG/JSON，未改网站/邮件URL/规则/授权/存储，未跑产品测试、0真实邮件，2次图片生成；用户批准后才实施。已记录成员身份、他人提交只读/私人草稿隔离、刷新回退和手机适配待实施，不扩大单任务token授权。沿用PR14/原分支，保留同期资料，不合并main。需要同步本地备份。
 
 > **2026-11-18（America/Phoenix） · Settings人工编辑器与Plan点状执行方向已确定，ID/实例化建议已记录（Codex）**
 > **用户已选定：** ②时间轴/泳道主界面＋①清单快建入口，均在Settings → Workflow；Plan继续点状轨道图，点击点打开本次活动的实际任务。每team一泳道，团队归组、岗位主责、业务分支和前置关系独立。此条是后续设计约束，不是已经上线的编辑器。
@@ -563,6 +564,7 @@
 
 | 日期 | AI | 做了什么 | 下一位要知道的 |
 | --- | --- | --- | --- |
+| 2026-11-18 | Codex（邮件进入Plan两张图） | 静态图展示邮件定位活动/节点并展开右侧Details，再切换他人已提交信息/附件并返回原任务。见 `feedback-fix/REMINDER_PLAN_ENTRY_CONCEPTS.md`。仅文档/PNG/JSON，2次图片生成，未改产品/邮件/授权；保留Plan点状执行和原通用表单。 | 待Juanxi批准后实施；需要同步本地备份。 |
 | 2026-11-18 | Codex（提醒邮件研究） | 完成最新代码核对、17项来源证据表与六张独立邮件/落地页静态图；建议A＋D，未选定实施。见 `feedback-fix/REMINDER_EMAIL_RESEARCH_2026-11-18.md` 和图集manifest。只改文档/PNG/JSON，0产品AI调用/真实邮件，6生成＋5修图；保留同期工作流/团队资料，不建PR、不合并main。 | 待Juanxi比较方案；后续实施另行明确。需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（提醒整合至preview 14） | 按用户要求将提醒1–3阶段合入既有PR #14；0555fc4合并、6bb3e24最终运行时代码。保留57c7e55职责撤回、main onboarding和匹配归档，补提醒入口下旧归档认领/改派撤权回归；纯规则缓存模块保持入口542,788/550,000。381项单元/组件及分批97浏览器用例通过，1设备限定跳过；lint/类型/build/CSS/字数通过。 | 沿用preview14，不再交付推测的preview15地址。详见`feedback-fix/REMINDER_PREVIEW14_INTEGRATION.md`；已有存档显式启用，不恢复撤回的职责界面。不新增PR、不合并main、0真实AI/邮件。保留原全量门禁差异；`PRODUCT_PLAN.md`含已批准提醒增量，需要同步本地备份。 |
 | 2026-11-16（America/Phoenix） | Codex（回退） | 按用户反馈以追加提交4abc510恢复main onboarding和原任务分派，撤下新职责设置与接入；保留23读取、归档导出、备份失败保护和旧草稿。原A2/B2/C2策略整理在 `feedback-fix/MATCHING_STRATEGY_FOR_REVIEW.md`，检查及存档边界见 `MATCHING_ROLLBACK_HANDOFF.md`。 | 当前以main体验为基准，原实现5e301d9归档；保留一处64/60词预算差异，不称全部检查全绿。等用户参考/手绘再确认新交互，不恢复原界面、不扩展RACI等后续、不合并main。需要同步本地备份。 |
