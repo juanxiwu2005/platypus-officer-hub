@@ -7,9 +7,16 @@ async function pressedTransform(page: import("@playwright/test").Page) {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
+  // Concept F: in "I review, then I send" the reminder centre's primary button opens the first person's email draft.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
+    s.org.settings.reminderMode = "review_then_self"
+    localStorage.setItem("platypus.v1.demo", JSON.stringify(s))
+  })
+  await page.reload()
   await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
-  const button = page.getByRole("button", { name: "Review & open draft" }).first()   // FB-8: the reminder centre
+  const button = page.getByTestId("open-first-draft")
   await expect(button).toBeVisible()
   await button.hover()
   const idle = await button.evaluate(el => getComputedStyle(el).transform)
