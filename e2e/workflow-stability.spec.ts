@@ -1,25 +1,9 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { closeRail } from "./helpers"
+import { insertedKey, openWorkflow, openWorkflowStep, savedWorkflow, savedWorkflowStep } from "./workflowLegacyHelpers"
 
-async function workflow(page: Page) {
-  await page.goto("/#/settings")
-  await page.getByRole("button", { name: "Workflow", exact: true }).click()
-  await expect(page.getByTestId("flow-chart")).toBeVisible()
-}
-async function openStep(page: Page, key: string) {
-  await closeRail(page)
-  await page.getByTestId(`flow-node-${key}`).click()
-  if (test.info().project.name === "mobile") await page.getByTestId("flow-menu").getByRole("button", { name: "Open details" }).click()
-  return page.getByTestId("workflow-step-panel")
-}
-async function savedStep(page: Page, key: string) {
-  return page.evaluate(stepKey => {
-    const state = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
-    return state.org.eventWorkflow?.steps.find((step: { key: string }) => step.key === stepKey) as { estDays: number; startPolicy?: string; cond?: string; dependsOn?: string[]; placement?: { branchId: string; order: number } } | undefined
-  }, key)
-}
-async function coordinate(page: Page, key: string) {
+async function eventCoordinate(page: Page, key: string) {
   return page.getByTestId(`flow-node-${key}`).evaluate((element, mobile) => Number.parseFloat((element.parentElement as HTMLElement).style.getPropertyValue(mobile ? "--y" : "--x")), test.info().project.name === "mobile")
 }
 test.beforeEach(async ({ page }) => {
@@ -27,64 +11,65 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/command", route => route.fulfill({ status: 503, json: { message: "Offline workflow test" } }))
 })
 
-test("workflow move changes the visible order as well as its saved dependencies", async ({ page }) => {
-  await workflow(page)
-  expect(await coordinate(page, "promotionItems")).toBeGreaterThan(await coordinate(page, "contentCreation"))
+// The new Settings timeline places tasks by dates. Reordering dependencies by keyboard
+// remains a real-event metro operation, where that gesture still exists.
+test("event workflow keyboard move changes visible order and saved dependencies", async ({ page }) => {
+  await page.goto("/#/events?event=e-speaker")
+  await closeRail(page)
+  await page.getByTestId("flow-edit-toggle").click()
+  expect(await eventCoordinate(page, "promotionItems")).toBeGreaterThan(await eventCoordinate(page, "contentCreation"))
   const node = page.getByTestId("flow-node-promotionItems")
-  await node.focus()
-  await node.press("Alt+ArrowLeft")
-  await expect.poll(async () => await coordinate(page, "promotionItems") < await coordinate(page, "contentCreation")).toBe(true)
-  await expect.poll(async () => (await savedStep(page, "contentCreation"))?.dependsOn).toContain("promotionItems")
+  await node.focus(); await node.press("Alt+ArrowLeft")
+  await expect.poll(async () => await eventCoordinate(page, "promotionItems") < await eventCoordinate(page, "contentCreation")).toBe(true)
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((node: { id: string }) => node.id === "e-speaker:contentCreation").dependsOn)).toContain("e-speaker:promotionItems")
   await page.reload()
-  await page.getByRole("button", { name: "Workflow", exact: true }).click()
-  expect(await coordinate(page, "promotionItems")).toBeLessThan(await coordinate(page, "contentCreation"))
+  expect(await eventCoordinate(page, "promotionItems")).toBeLessThan(await eventCoordinate(page, "contentCreation"))
 })
 
 test("before the first speaker node keeps its branch and scope", async ({ page }) => {
-  await workflow(page)
-  const anchor = page.getByTestId("flow-node-partner")
-  if (test.info().project.name === "mobile") await anchor.click(); else await anchor.click({ button: "right" })
-  await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step before this one", exact: true }).click()
-  await expect.poll(async () => (await savedStep(page, "new-step"))?.placement?.branchId).toBe("speaker")
-  expect((await savedStep(page, "new-step"))?.cond).toBe("externalGuest")
-  await closeRail(page)
-  expect(await coordinate(page, "new-step")).toBeLessThan(await coordinate(page, "partner"))
+  await openWorkflow(page)
+  const keys = (await savedWorkflow(page)).steps.map(step => step.key)
+  const panel = await openWorkflowStep(page, "partner")
+  await panel.getByRole("button", { name: "Add before", exact: true }).click()
+  const key = await insertedKey(page, keys)
+  expect((await savedWorkflowStep(page, key))?.placement?.branchId).toBe("speaker")
+  expect((await savedWorkflowStep(page, key))?.cond).toBe("externalGuest")
+  expect((await savedWorkflowStep(page, "partner"))?.dependsOn).toContain(key)
 })
 
 test("workflow workdays reject empty and out of range drafts then persist an intentional edit", async ({ page }) => {
-  await workflow(page)
-  const panel = await openStep(page, "budget")
+  await openWorkflow(page)
+  const panel = await openWorkflowStep(page, "budget")
   const input = panel.getByLabel("Days of work")
   const initial = await input.inputValue()
-  const previouslySaved = await savedStep(page, "budget")
-  await input.fill("")
-  await input.blur()
+  const previouslySaved = await savedWorkflowStep(page, "budget")
+  await input.fill(""); await input.blur()
   await expect(panel.getByRole("alert")).toContainText("whole number")
   await page.waitForTimeout(650)
-  expect((await savedStep(page, "budget"))?.estDays).toBe(previouslySaved?.estDays)
+  expect((await savedWorkflowStep(page, "budget"))?.estDays).toBe(previouslySaved?.estDays)
   await input.fill("100")
   await expect(panel.getByRole("alert")).toBeVisible()
   expect(await input.inputValue()).toBe("100")
   expect(Number(initial)).toBeGreaterThan(0)
   await input.fill("10")
-  await expect.poll(async () => (await savedStep(page, "budget"))?.estDays).toBe(10)
-  expect((await savedStep(page, "budget"))?.startPolicy).toBe("effort")
-  await page.reload()
-  await page.getByRole("button", { name: "Workflow", exact: true }).click()
-  const restoredPanel = await openStep(page, "budget")
+  await expect.poll(async () => (await savedWorkflowStep(page, "budget"))?.estDays).toBe(10)
+  expect((await savedWorkflowStep(page, "budget"))?.startPolicy).toBe("effort")
+  await page.reload(); await page.getByRole("button", { name: "Workflow", exact: true }).click()
+  const restoredPanel = await openWorkflowStep(page, "budget")
   await expect(restoredPanel.getByLabel("Days of work", { exact: true })).toHaveValue("10")
 })
 
-test("Full Check stays protected in its existing details panel", async ({ page }) => {
-  await workflow(page)
-  const panel = await openStep(page, "finalcheck")
-  await expect(panel.getByRole("button", { name: "Delete this step", exact: true })).toBeDisabled()
+test("Full Check remains protected in the new details panel", async ({ page }) => {
+  await openWorkflow(page)
+  const panel = await openWorkflowStep(page, "finalcheck")
+  await expect(panel.getByRole("button", { name: "Delete task", exact: true })).toBeDisabled()
   await closeRail(page)
-  await expect(page.getByTestId("flow-node-plan")).toBeVisible()
+  await expect(page.getByTestId("workflow-task-plan")).toBeVisible()
 })
 
 test("a new conditional branch and its first task undo together", async ({ page }) => {
-  await workflow(page)
+  await openWorkflow(page)
+  const keys = (await savedWorkflow(page)).steps.map(step => step.key)
   await page.getByRole("button", { name: "Add branch", exact: true }).click()
   const dialog = page.getByRole("dialog", { name: "Add branch", exact: true })
   await dialog.getByLabel("Branch name").fill("Guest support")
@@ -95,74 +80,60 @@ test("a new conditional branch and its first task undo together", async ({ page 
   await dialog.getByLabel("First task").fill("Confirm guest arrival")
   await dialog.getByRole("button", { name: "Add branch", exact: true }).click()
   await expect(dialog).toHaveCount(0)
-  await expect.poll(async () => (await savedStep(page, "new-step"))?.placement?.branchId).toBeTruthy()
-  const branchId = (await savedStep(page, "new-step"))!.placement!.branchId
-  expect(await page.evaluate(id => {
-    const state = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
-    return state.org.eventWorkflow.branches.find((branch: { id: string }) => branch.id === id)?.conditions
-  }, branchId)).toEqual(["speaker", "travel"])
+  const key = await insertedKey(page, keys)
+  const branchId = (await savedWorkflowStep(page, key))!.placement!.branchId
+  expect((await savedWorkflow(page)).branches?.find(branch => branch.id === branchId)?.conditions).toEqual(["speaker", "travel"])
   await closeRail(page)
-  await page.getByTestId("flow-undo").click()
-  await expect(page.getByTestId("flow-node-new-step")).toHaveCount(0)
-  await expect.poll(() => page.evaluate(id => {
-    const state = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
-    return state.org.eventWorkflow?.branches?.some((branch: { id: string }) => branch.id === id) ?? false
-  }, branchId)).toBe(false)
+  await page.getByRole("button", { name: "Undo edit", exact: true }).click()
+  await expect.poll(async () => !!(await savedWorkflowStep(page, key))).toBe(false)
+  expect((await savedWorkflow(page)).branches?.some(branch => branch.id === branchId)).toBe(false)
 })
 
 test("multiple branch requirements survive reload and apply to inserted steps in that branch", async ({ page }) => {
-  await workflow(page)
+  await openWorkflow(page)
+  const keys = (await savedWorkflow(page)).steps.map(step => step.key)
   await page.getByRole("button", { name: "Add branch", exact: true }).click()
   const dialog = page.getByRole("dialog", { name: "Add branch", exact: true })
   await dialog.getByLabel("Branch name").fill("Speaker travel")
   await expect(dialog).toContainText("Leave all unchecked for every event.")
   await dialog.getByRole("checkbox", { name: "External speaker, artist, or performer", exact: true }).check()
   await dialog.getByRole("checkbox", { name: "Travel or off-site participant trip", exact: true }).check()
+  await dialog.getByLabel("Default role").selectOption("r-events")
   await dialog.getByLabel("First task").fill("Confirm guest arrival")
   await dialog.getByRole("button", { name: "Add branch", exact: true }).click()
   await expect(dialog).toHaveCount(0)
-  await expect.poll(async () => (await savedStep(page, "new-step"))?.placement?.branchId).toBeTruthy()
-  const branchId = (await savedStep(page, "new-step"))!.placement!.branchId
-  await page.reload()
-  await page.getByRole("button", { name: "Workflow", exact: true }).click()
-  await closeRail(page)
-  const anchor = page.getByTestId("flow-node-new-step")
-  if (test.info().project.name === "mobile") await anchor.click(); else await anchor.click({ button: "right" })
-  await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step before this one", exact: true }).click()
-  await expect.poll(async () => (await savedStep(page, "new-step-2"))?.placement?.branchId).toBe(branchId)
-  expect(await page.evaluate(id => {
-    const state = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
-    return state.org.eventWorkflow.branches.find((branch: { id: string }) => branch.id === id)?.conditions
-  }, branchId)).toEqual(["speaker", "travel"])
+  const key = await insertedKey(page, keys)
+  const branchId = (await savedWorkflowStep(page, key))!.placement!.branchId
+  await page.reload(); await page.getByRole("button", { name: "Workflow", exact: true }).click()
+  const before = (await savedWorkflow(page)).steps.map(step => step.key)
+  const panel = await openWorkflowStep(page, key)
+  await panel.getByRole("button", { name: "Add before", exact: true }).click()
+  const inserted = await insertedKey(page, before)
+  expect((await savedWorkflowStep(page, inserted))?.placement?.branchId).toBe(branchId)
+  expect((await savedWorkflow(page)).branches?.find(branch => branch.id === branchId)?.conditions).toEqual(["speaker", "travel"])
 })
 
 test("branch requirements explain the rule and support keyboard selection on both screen sizes", async ({ page }, info) => {
   await page.emulateMedia({ colorScheme: "dark" })
-  await workflow(page)
+  await openWorkflow(page)
   await page.getByRole("button", { name: "Add branch", exact: true }).click()
   const dialog = page.getByRole("dialog", { name: "Add branch", exact: true })
   const name = dialog.getByLabel("Branch name")
   await expect(name).toBeFocused()
   await name.press("Shift+Tab")
   await expect(dialog.getByRole("button", { name: "Cancel", exact: true })).toBeFocused()
-  await page.keyboard.press("Tab")
-  await expect(name).toBeFocused()
+  await page.keyboard.press("Tab"); await expect(name).toBeFocused()
   await expect(dialog.getByRole("group", { name: "Include this branch when", exact: true })).toBeVisible()
   await expect(dialog.getByRole("checkbox")).toHaveCount(18)
   const speaker = dialog.getByRole("checkbox", { name: "External speaker, artist, or performer", exact: true })
-  await speaker.focus()
-  await speaker.press("Space")
-  await expect(speaker).toBeChecked()
+  await speaker.focus(); await speaker.press("Space"); await expect(speaker).toBeChecked()
   await expect(dialog.getByRole("status")).toHaveText("1 selected item must be checked.")
   const rsvp = dialog.getByRole("checkbox", { name: "RSVP registration needed", exact: true })
-  await rsvp.focus()
-  await rsvp.press("Space")
-  await expect(rsvp).toBeChecked()
+  await rsvp.focus(); await rsvp.press("Space"); await expect(rsvp).toBeChecked()
   await expect(dialog.getByRole("status")).toHaveText("All 2 selected items must be checked.")
   expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
   const a11y = await new AxeBuilder({ page }).include(".workflow-branch-dialog").withTags(["wcag2a", "wcag2aa"]).analyze()
   expect(a11y.violations).toEqual([])
   await page.screenshot({ path: info.outputPath("branch-conditions.png") })
-  await page.keyboard.press("Escape")
-  await expect(dialog).toHaveCount(0)
+  await page.keyboard.press("Escape"); await expect(dialog).toHaveCount(0)
 })

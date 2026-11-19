@@ -1,41 +1,43 @@
 import { expect, test, type Page } from "@playwright/test"
 import { closeRail } from "./helpers"
+import { insertedKey, openWorkflow, openWorkflowStep, savedWorkflow, savedWorkflowStep } from "./workflowLegacyHelpers"
 
-async function workflow(page: Page) {
-  await page.goto("/#/settings")
-  await page.getByRole("button", { name: "Workflow", exact: true }).click()
-}
 const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { message: "Offline workflow check" } }))
 })
 
 test("shared Full Check requires an explicit insertion branch", async ({ page }) => {
-  await workflow(page)
-  const checkpoint = page.getByTestId("flow-node-finalcheck")
-  if (test.info().project.name === "mobile") await checkpoint.click(); else await checkpoint.click({ button: "right" })
-  const menu = page.getByTestId("flow-menu")
-  await expect(menu.getByRole("button", { name: "Add a step before this one" })).toBeDisabled()
-  await menu.getByLabel("Insert on branch").selectOption("speaker")
-  await menu.getByRole("button", { name: "Add a step before this one" }).click()
-  await expect.poll(async () => (await saved(page)).org.eventWorkflow?.steps.find((s: { key: string }) => s.key === "new-step")?.placement?.branchId).toBe("speaker")
-  const step = (await saved(page)).org.eventWorkflow.steps.find((s: { key: string }) => s.key === "new-step")
+  await openWorkflow(page)
+  const keys = (await savedWorkflow(page)).steps.map(step => step.key)
+  const panel = await openWorkflowStep(page, "finalcheck")
+  await panel.getByRole("button", { name: "Add before", exact: true }).click()
+  await expect(panel.getByRole("alert")).toContainText("Choose which incoming branch")
+  expect((await savedWorkflow(page)).steps.map(step => step.key)).toEqual(keys)
+  await panel.getByLabel("Insertion branch", { exact: true }).selectOption("speaker")
+  await panel.getByRole("button", { name: "Add before", exact: true }).click()
+  const key = await insertedKey(page, keys)
+  const step = (await savedWorkflowStep(page, key))!
+  expect(step.placement?.branchId).toBe("speaker")
   expect(step.cond).toBe("externalGuest")
+  expect((await savedWorkflowStep(page, "finalcheck"))?.dependsOn).toContain(key)
 })
 
 test("a mixed-scope template line has no double-click or double-tap action", async ({ page }) => {
-  await workflow(page)
+  await openWorkflow(page)
   const before = await saved(page)
-  const left = page.getByTestId("flow-node-foodCompliance"), right = page.getByTestId("flow-node-quotes")
-  await left.scrollIntoViewIfNeeded()
-  await right.scrollIntoViewIfNeeded()
-  const a = await left.boundingBox(), b = await right.boundingBox()
-  // Straight SVG strokes have a zero-height/width DOM box; click the painted midpoint.
-  const x = (a!.x + a!.width / 2 + b!.x + b!.width / 2) / 2, y = (a!.y + a!.height / 2 + b!.y + b!.height / 2) / 2
-  if (test.info().project.name === "mobile") { await page.touchscreen.tap(x, y); await page.touchscreen.tap(x, y) }
-  else await page.mouse.dblclick(x, y)
+  const line = page.getByTestId("workflow-dependency").first()
+  await line.scrollIntoViewIfNeeded()
+  const point = await line.evaluate(element => {
+    const path = element as SVGPathElement
+    const at = path.getPointAtLength(path.getTotalLength() / 2)
+    const point = new DOMPoint(at.x, at.y).matrixTransform(path.getScreenCTM()!)
+    return { x: point.x, y: point.y }
+  })
+  if (test.info().project.name === "mobile") { await page.touchscreen.tap(point.x, point.y); await page.touchscreen.tap(point.x, point.y) }
+  else await page.mouse.dblclick(point.x, point.y)
   await expect(page.getByTestId("flow-menu")).toHaveCount(0)
-  await expect(page.getByTestId("flow-undo")).toBeDisabled()
+  await expect(page.getByRole("button", { name: "Undo edit", exact: true })).toBeDisabled()
   expect(await saved(page)).toEqual(before)
 })
 
@@ -79,8 +81,11 @@ test("an actual event adds and undoes a complete branch snapshot", async ({ page
 
 test("pointer movement updates the real screen order", async ({ page }) => {
   test.skip(test.info().project.name === "mobile", "Desktop pointer gesture; mobile keyboard order is covered separately.")
-  await workflow(page)
+  // Date-based Settings placement replaces order dragging; the existing pointer
+  // reorder gesture is retained and verified against a real legacy Plan instance.
+  await page.goto("/#/events?event=e-speaker")
   await closeRail(page)
+  await page.getByTestId("flow-edit-toggle").click()
   const task = page.getByTestId("flow-node-promotionItems")
   await task.scrollIntoViewIfNeeded()
   const a = await page.getByTestId("flow-node-marketingNeeds").boundingBox()
