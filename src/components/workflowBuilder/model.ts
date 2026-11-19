@@ -1,4 +1,4 @@
-import type { StepTemplate, WorkflowBranch } from "../../data/types"
+import type { StepTemplate, WorkflowBranch, WorkflowMilestoneGraph } from "../../data/types"
 import { checkWorkflow, MAX_STEPS } from "../../engine/workflow"
 import { deletionReason, isAsuStep } from "../../engine/workflowPolicy"
 import { placementOf } from "../../engine/workflowBranches"
@@ -6,7 +6,7 @@ import { orderedWorkflowSteps } from "../../engine/workflowSequence"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import type { Role } from "../../data/types"
 
-export interface BuilderSnapshot { steps: StepTemplate[]; branches?: WorkflowBranch[]; stepTeams: Record<string, string> }
+export interface BuilderSnapshot { steps: StepTemplate[]; branches?: WorkflowBranch[]; stepTeams: Record<string, string>; milestoneGraph?: WorkflowMilestoneGraph }
 export type BuilderPolicy = "standard" | "custom"
 export type InsertPosition = "before" | "after" | "parallel"
 
