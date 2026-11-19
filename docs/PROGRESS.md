@@ -1,3 +1,7 @@
+> **2026-11-19（America/Phoenix） · Reminder 模块审阅与六个界面静态方案，待选择（Claude）**
+> **核对：** 本地分支 = PR #14 顶端 `4d6290e`（preview14）。实测现状 Reminders 页 2856px≈3屏；"Needs your OK 13"里8条是待修问题；"Approve all (5)"实际只记录4条——同一人一天2条上限只按已发记录算，不按同批候选算（Jordan 3条）。底层：引擎纯函数、追加式账本、确定性候选id可直接搬到服务器；发送/自动在浏览器、浏览器签名、单JSON无并发、无存储接口、无按人合并、批量重复计算、新旧两套提醒并存需在接数据库前处理。[审阅与建议](feedback-fix/REMINDER_CENTRE_REVIEW_2026-11-19.md)
+> **交付：** [现状＋A–F六方案＋三种模式附图](prototypes/reminder-centre-concepts/manifest.json)：A一键总览、B按人合并、C流水线、D一周时间轴、E表格批量、F逐封审阅；用网站真实CSS写静态页再截图，Sent/Replied数字示意。建议A首屏＋F审阅页，按人合并为任何方案的前提。仅docs/PNG/JSON/生成脚本，未改src，0产品AI/邮件，未跑全站门禁；沿用PR14，不合并main，需要同步本地备份。
+
 > **2026-11-18（America/Phoenix） · 一日／两日里程碑工作流完成检查，待验收（Codex / Model / Canvas / Commands / Browser / 独立Review）**
 > **交付：** 仅1-day / 2-day；Start/Done、各Event day、共享检查和普通任务均可点开右Details修改。主线固定日期＋共享任务，已有组织团队分支明确保存起点/汇合点，可在活动前、两日之间、活动后分叉；同team可重复负责不同区间，画布不创建/改名组织团队。新graph版本保存独立日期锚点与真实路径前置；日期/依赖/工期不适配明确报风险，学校Day1硬限和缓冲保留。旧活动/成果/提醒历史不回写，schema23不重置；保留同期ef0d0d0提醒修复，0真实产品AI/外部邮件，不合并main。
 > **验证与验收：** 最终23文件210单元/组件，46唯一双端浏览器全部通过；最终Plan颜色/链接/浅深4项再验通过，未重复计数。包括全节点编辑刷新、真实触屏、三段分支、两日实际任务日期、旧数据、严重关键axe0与无横溢出。lint、前后端类型、build、独立CSS与9页字数通过，Settings145/150，入口498,362/550,000。运行时`7b3f5fc`已确认Netlify success。沿用[preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow；[当前交付](feedback-fix/WORKFLOW_MILESTONE_HANDOFF.md) · [截图](prototypes/workflow-milestones/manifest.json)。交互以相同生产构建本地验收，部署依据Netlify状态；无会话线上浏览器会进入原站点edge-access。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
