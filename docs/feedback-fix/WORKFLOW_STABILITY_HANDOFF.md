@@ -1,5 +1,37 @@
 # 工作流模板修复交付
 
+## 静态方案：紧凑卡片与连线路由（2026-11-18，America/Phoenix）
+
+用户反馈模块太大太长、紧接/并行步骤的线过度折返，要求多张静态方案比较。本轮交付6张1536×1024图片，**仅设计研究，未修改实际编辑器、绘图引擎或模板/活动数据**。位置均为示意，不是新排程；保留四队与原任务身份/工期/依赖，Plan仍是执行圆点，不与本Settings方案混用。图片与原件SHA-256见[清单](../prototypes/workflow-compact-routing-concepts/manifest.json)，本地布局证据见[JSON](../prototypes/workflow-compact-routing-concepts/layout-analysis.json)。六次生成＋一次A2时间轴校正，原生成图均保留，未制作HTML或做产品AI调用/邮件发送。
+
+| 编号 | 静态图片 | 设计与取舍 |
+| --- | --- | --- |
+| A1 | [固定小卡片](../prototypes/workflow-compact-routing-concepts/A1-compact-cards.png) | 名称＋工期，负责人移至团队标题/详情；卡片宽度不再随长窗口扩张。尺寸为设计目标，不能把标签宽度当工期。 |
+| A2 | [文字＋细时间条](../prototypes/workflow-compact-routing-concepts/A2-thin-time-bars.png) | 文字独立于时间窗，保留跨度比较；时间条表达引擎算出的日历窗口，wd是工作日估计。 |
+| A3 | [可折叠任务组](../prototypes/workflow-compact-routing-concepts/A3-task-groups.png) | 同队内部把8步骤压为3组总览；组间连线聚合表示，展开再看具体依赖，明确不是等比例日历。分组不是新团队/业务分支/任务。 |
+| B1 | [就近端口直连](../prototypes/workflow-compact-routing-concepts/B1-direct-ports.png) | 邻近上下节点用底→顶，左右节点直接水平连；基础路由先直线、后少折弯、再必要避障。 |
+| B2 | [共享通道](../prototypes/workflow-compact-routing-concepts/B2-shared-corridors.png) | 分叉/AND汇合共用部分线段，显式接点；不能把无关交叉误画成汇合。接点不是新增业务任务。 |
+| B3 | [选中聚焦](../prototypes/workflow-compact-routing-concepts/B3-focus-connections.png) | 强调选中任务的直接前后关系，其余线保留背景；辅助阅读，不能代替B1/B2的布局与避障。 |
+
+同一示例为advisor→access→security→eams→permit，permit分出alcohol和drone，二者共同汇入schoolApproval（8节点、8边）。1/3/4/3/3/15/7/3工作日来自真实模板，均是situation-based故图中任务为琥珀色；无新规则或截止日。活动是否启用这些步骤仍由既有事实/条件过滤及依赖接续处理，不由绘图器擅自判断。A3组间边为总览抽象，不声称图中每条组线是一条可写回的任务边。
+
+### 当前代码根因（e2560f6）
+
+- `timeline.ts`用max(176,日历窗口×18)作为任务宽度，间隔100px，首次可放置的内部轨道优先；没有依赖链连续性/交叉代价。同一窗口的步骤最后按key排序，可把Back-up Plan放在Event Plan前面，制造回连。
+- `WorkflowBuilder.tsx`固定从source右侧到target左侧，中心写死y+40；目标横向重叠时强制右侧走廊再回折，未测试其他卡片/共享通道。只缩CSS还会让端口坐标错位。
+- 示例几何对的旧折返4次；面对面的底→顶候选可零折弯。该JSON只说明单对坐标，不是全图性能测试/零交叉承诺。
+
+### 待选定后落地的引擎方案
+
+1. **数据/图形分离**：模板key、dependsOn、teamId、负责人及规则引擎日期为只读输入；分别计算任务标签框、真实时间窗口和日期锚点。A1固定卡片/A2细条不允许反向覆盖工期或日期。
+2. **同队内部排轨**：保持N队N容器；相同窗口先拓扑排序，连续链优先复用轨道，并行支放邻近子轨；以高度、依赖换轨和交叉综合评分，不能为拉直线而改实际日期。
+3. **四边端口**：从实际卡片bounds取动态中心/可用投影，不再写死+40。先测试无障碍直线（包括横向投影重叠的底→顶），再测L形/短Z形；均不可行时才在膨胀障碍框间找正交路径。绕行综合长度、折弯、交叉和通道拥堵，实际碰撞为硬约束。
+4. **真实共享通道**：只将同起点分叉/同目标AND组共用线段，保留每个source→target的对应关系与箭头。接点仅是绘图对象，不生成taskId、不增加/删除依赖、不强迫并行改串行。
+5. **聚焦与稳定**：选中节点时强调邻域，不恢复已关闭的黄色线hover；双击线继续无操作。增量重算移动节点及受影响边，减小其他卡片跳动；详情始终可核对完整前置。
+6. **交互与验证**：缩放/紧凑化改变px/day时，拖动换算必须与同一时间刻度模型一致，不能继续偷用固定18。覆盖同日同窗、长工作窗、上下交错、分叉/汇合/跨队、障碍、键盘/触屏、Undo及循环保护；静态图未完成这些交互验收。
+
+建议A1作为默认卡片，B1为基础、B2处理多分叉/汇合，B3按需聚焦；A2适合要重点看时间窗的视图，A3为长流程总览备选。当前只是可比较的方案，尚未实装或测量全图缩减比例/路由性能，不改main。需要同步本地备份。
+
 ## 默认团队已沿原设置恢复（2026-11-18）
 
 用户纠正后，默认带齐Club leadership / Operations / Marketing / Finance与原46任务的1/25/8/12归属；直接打开模板就能使用，不再要求先手动建团队。名称可改，固定语义槽关联稳定teamId，旧用户显式配置/原任务及历史活动不改写。实现与验收见[编辑器交付说明](WORKFLOW_BUILDER_IMPLEMENTATION.md#团队默认修正2026-11-18)及[本轮证据](workflow-preset-teams-verification.json)。下方“首次先设置Teams”属于上轮历史流程，已被本修正取代。
