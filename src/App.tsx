@@ -30,7 +30,6 @@ const Events = lazy(() => import("./pages/Events"))
 const Tasks = lazy(() => import("./pages/Tasks"))
 const Team = lazy(() => import("./pages/Team"))
 const Handoff = lazy(() => import("./pages/Handoff"))
-const Partners = lazy(() => import("./pages/Partners"))
 const Rules = lazy(() => import("./pages/Rules"))
 const Settings = lazy(() => import("./pages/Settings"))
 const Help = lazy(() => import("./pages/Help"))
@@ -67,7 +66,8 @@ export default function App() {
         <Route path="matching" element={<Navigate to="/settings" replace />} />
         <Route path="funding" element={<Navigate to="/events" replace />} />
         <Route path="handoff" element={screen(<Handoff />, "Loading handoff…")} />
-        <Route path="partners" element={screen(<Partners />, "Loading partners…")} />
+        {/* Partners is temporarily archived; old bookmarks return to the main workspace. */}
+        <Route path="partners/*" element={<Navigate to="/" replace />} />
         <Route path="rules" element={screen(<Rules />, "Loading rules…")} />
         <Route path="settings" element={screen(<Settings />, "Loading settings…")} />
         <Route path="help" element={screen(<Help />, "Loading help…")} />

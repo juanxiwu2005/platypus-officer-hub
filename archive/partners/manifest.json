@@ -1,0 +1,41 @@
+{
+  "archivedOn": "2026-11-19",
+  "timezone": "America/Phoenix",
+  "baseCommit": "ac19513",
+  "scope": "Standalone Partners page, exclusive drag stylesheet and dedicated browser scenarios; shared CRM data and Handoff detail components stay in their existing locations.",
+  "files": [
+    {
+      "original": "src/pages/Partners.tsx",
+      "archived": "src/archive/partners/Partners.tsx",
+      "originalSha256": "5d5c6913758fd00593c515f921705876771f552a787ab94710950a78d400eea8",
+      "archivedSha256": "c2be53c8b72f5e2f767036ea82b726721b3fd7d8ca52ab5f8e70fb9174bc2d9b",
+      "changes": "Import paths updated; archived page also has an explicit title."
+    },
+    {
+      "original": "src/styles/dx-26-crm-drag.css",
+      "archived": "src/archive/partners/dx-26-crm-drag.css",
+      "originalSha256": "156d1bd29078e93d4a236250c3077711f6d0fe047edd6ac4336aa1c78b94480a",
+      "archivedSha256": "156d1bd29078e93d4a236250c3077711f6d0fe047edd6ac4336aa1c78b94480a",
+      "changes": "Byte-for-byte copy"
+    },
+    {
+      "original": "e2e/crm.spec.ts",
+      "archived": "archive/partners/e2e/crm.spec.ts",
+      "originalSha256": "d79db271b4ee08a81a07abc9215d63f98d6594e4fcd3a77e928f388c5f489161",
+      "archivedSha256": "38d2a1dca56f01a1866f97b925beefb403e923254dd5c146a13930a7753d9b46",
+      "changes": "Import paths updated; archived page also has an explicit title."
+    },
+    {
+      "original": "e2e/dx-26-crm-drag.spec.ts",
+      "archived": "archive/partners/e2e/dx-26-crm-drag.spec.ts",
+      "originalSha256": "738d1c9a9a688bf67bb4dbb9b748c6953551ee55aacb1694546c694b5491f96f",
+      "archivedSha256": "72231a525610389f564b4f8c96deb046125eb3a4a3b0997bc07195e974d65480",
+      "changes": "Import paths updated; archived page also has an explicit title."
+    }
+  ],
+  "splitScenarios": [
+    "archive/partners/e2e/dx-18-empty.spec.ts",
+    "archive/partners/e2e/a11y-contact-trigger.txt"
+  ],
+  "restoreInstructions": "../../src/archive/partners/README.md"
+}

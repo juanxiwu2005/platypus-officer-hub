@@ -1,15 +1,15 @@
 import { useState } from "react"
 import { Link } from "react-router-dom"
-import { useStore, useViewer } from "../data/store"
-import { PageHead } from "../components/Page"
-import { useRail } from "../components/rail/RailContext"
-import { canEditContact, contactTone, CONTACT_TYPES, daysSince, nextEvent, nextStep, orgName, STAGES, visibleContacts } from "../data/crm"
-import { fmtShort } from "../lib/dates"
-import { Empty, Hover } from "../components/ui"
-import { useDragSort } from "../lib/dragSort"
-import type { Contact, RelationStage } from "../data/types"
+import { useStore, useViewer } from "../../data/store"
+import { PageHead } from "../../components/Page"
+import { useRail } from "../../components/rail/RailContext"
+import { canEditContact, contactTone, CONTACT_TYPES, daysSince, nextEvent, nextStep, orgName, STAGES, visibleContacts } from "../../data/crm"
+import { fmtShort } from "../../lib/dates"
+import { Empty, Hover } from "../../components/ui"
+import { useDragSort } from "../../lib/dragSort"
+import type { Contact, RelationStage } from "../../data/types"
 
-export { PartnerDetail } from "../components/crm/ContactDetail"
+export { PartnerDetail } from "../../components/crm/ContactDetail"
 
 type View = "people" | "board" | "orgs"
 type Preset = "all" | "mine" | "overdue"
@@ -74,7 +74,7 @@ export default function Partners() {
   const addLabel = view === "orgs" ? "+ Add organization" : "+ Add contact"
 
   return <>
-    <PageHead path="/partners" actions={<>
+    <PageHead path="/partners" title="Partners" actions={<>
       <input className="select" type="search" placeholder="Search" aria-label="Search partners" value={q} onChange={e => setQ(e.target.value)} />
       <select className="select" aria-label="Partner type" value={type} onChange={e => setType(e.target.value)}><option value="all">All types</option>{types.map(t => <option key={t}>{t}</option>)}</select>
     </>} />

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { closeRail, noOverflow, viewAs } from "./helpers"
+import { closeRail, noOverflow, viewAs } from "../../../e2e/helpers"
 
 test.beforeEach(async ({ page }) => { await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: true, provider: "mock", model: "mock" } })) })
 
