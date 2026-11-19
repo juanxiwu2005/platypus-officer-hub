@@ -1,3 +1,7 @@
+> **2026-11-18（America/Phoenix） · Settings点状团队泳道编辑器，进行中（Codex 主Agent / Model / Canvas独立worktree）**
+> **用户授权：** 全面按上传截图改Settings Workflow：默认Start—Done灰线、一键Add task、Add branch团队平行线、圆点跨团队拖动，Full check/Event day可重复预设。已核对当前d5b4025与团队基础863b48a；团队基础已接入，历史“等待接入”仅作原交接。最新选择覆盖顺序小卡外观与自动串队；保留已有明确依赖、校规/条件、旧版本/实际活动、邮件入口和成果。
+> **边界与分工：** [冻结设计和文件负责人](feedback-fix/WORKFLOW_DOT_EDITOR_CONTRACT.md)。只在原功能分支/PR14交付，不新增PR、不合并main，0真实AI/邮件。完成后补交付与检查。
+
 > **2026-11-18（America/Phoenix） · Settings紧凑顺序泳道完成检查，待验收（Codex）**
 > **用户决定与交付：** 采用固定小卡＋就近直连，每团队96px一行、132×52卡，只显示一两词标题＋单个T标签；完整任务名称/Details/负责人/工期保留。团队内真正顺序执行、团队间无依赖可并行，新增前/后继承团队/类别/业务条件，拖动重排、Undo及循环保护接通，移除同队并行入口。新保存版本显式启用finish→start排程和完整缓冲；旧版本/已有活动与原四队身份不回写，Plan仍为圆点图。修复Details回调身份反馈循环导致离开Settings卡住，预览日历越界明确报错/日期—，默认参考180天，不伪造未知日期。
 > **验证与验收：** 分批按唯一用例计26文件324单元/组件通过；71项双端浏览器通过、1项既有手机鼠标专用跳过，新Settings真实触屏重排已过。旧前置删除禁用与缺省main分支两处测试预期更新并复验，未放松校规。lint、前后端类型、build、独立CSS、9页字数通过，入口495,864/550,000。[交付](feedback-fix/WORKFLOW_STABILITY_HANDOFF.md) · [证据](feedback-fix/workflow-compact-sequence-verification.json) · [真实双端截图](prototypes/workflow-compact-sequence/manifest.json)。preview14 → Settings → Workflow，点卡看Details、拖动/新增并Save version，新活动选择该版本；严格顺序可能要求更早开工，实际情况筛选后任务数会减少。沿用PR14/原分支，保留同期邮件Events工作，不合并main；schema23不重置，0真实产品AI/外部邮件。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
