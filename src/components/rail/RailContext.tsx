@@ -102,9 +102,10 @@ export function RailProvider({ children }: { children: ReactNode }) {
     openedForDetail.current = false
   }, [])
   const setWorkflowDetail = useCallback((content: ReactNode | null) => {
+    // Selecting a task explicitly calls show(). Refreshing its controlled form
+    // must not reopen a rail the person just hid (for example after autosave).
     setWorkflowDetailState(content)
-    if (content) show({ kind: "workflow" })
-  }, [show])
+  }, [])
   const ask = useCallback((text: string, send = false) => {
     setPending(p => ({ text, send, n: (p?.n ?? 0) + 1 }))
     setTab("ask")
