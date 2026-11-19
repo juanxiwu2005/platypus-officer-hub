@@ -3,6 +3,7 @@ import type { DemoState, StepTemplate, WorkflowMilestoneGraph } from "../../data
 import { roleLabels } from "../../data/structure"
 import { officers } from "../../data/permissions"
 import { isAsuStep } from "../../engine/workflowPolicy"
+import { EVENT_STEPS } from "../../engine/playbooks"
 import { branchConditions, conditionLabel, placementOf, resolveBranches } from "../../engine/workflowBranches"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { workflowMilestoneDates, workflowMilestoneTaskDate, WORKFLOW_START, WORKFLOW_DONE } from "../../engine/workflowMilestones"
@@ -107,7 +108,9 @@ function BranchDetails({ selected, snapshot, graph, teams, onChange, onSelect, o
 function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, onChange, onInsert, onClose, onConnect }: Props & { step: StepTemplate; graph: WorkflowMilestoneGraph }) {
   const { steps, branches } = snapshot
   const patch = (value: Partial<StepTemplate>) => onChange({ ...snapshot, steps: steps.map(item => item.key === step.key ? { ...item, ...value } : item) })
-  const labels = roleLabels(state.roles), locked = isAsuStep(step), cannotDelete = builderDeletionReason(step, policy)
+  const labels = roleLabels(state.roles), locked = isAsuStep(step), cannotDelete = builderDeletionReason(step, policy, steps)
+  // A step that came with the preset can be brought back by More → Restore Platypus preset.
+  const restorable = policy === "standard" && !cannotDelete && !step.custom && EVENT_STEPS.some(original => original.key === step.key)
   const waits = step.dependsOn ?? []
   const candidates = steps.filter(candidate => candidate.key !== step.key && !waits.includes(candidate.key) && !graphError(steps.map(item => item.key === step.key ? { ...item, dependsOn: [...waits, candidate.key] } : item)))
   const definitions = resolveBranches(steps, branches).filter(item => policy === "standard" || branches?.some(authored => authored.id === item.id) || steps.some(candidate => placementOf(candidate).branchId === item.id))
@@ -141,6 +144,7 @@ function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, o
     <div className="action-row"><button type="button" className="btn small" onClick={() => onInsert("before")}>Add before</button><button type="button" className="btn small" onClick={() => onInsert("after")}>Add next</button></div>
     <button type="button" className="btn small" disabled={!!cannotDelete} title={cannotDelete ?? undefined} onClick={() => { if (!cannotDelete && onChange(deleteBuilderStep(snapshot, step.key))) onClose() }}>Delete task</button>
     {cannotDelete && <p className="small muted">{cannotDelete}</p>}
+    {restorable && <p className="small muted">Restore Platypus preset brings it back.</p>}
   </>
 }
 

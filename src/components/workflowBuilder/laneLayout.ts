@@ -159,3 +159,47 @@ export function laneDropTarget(layout: LaneLayout, stepId: string, x: number, y:
   const point = lane.points.filter(item => item.step.key !== stepId).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0]
   return { branchId: lane.branch.id, ...(point ? { targetId: point.step.key, before: point.row % 2 ? x > point.x : x < point.x } : {}) }
 }
+
+/** The pseudo branch id for an insertion slot on the main line. */
+export const MAIN_LINE = "__main__"
+/** One legal insertion point while a step is dragged; `targetId`/`before` match `moveMilestoneTask`. */
+export interface LaneDropSlot { id: string; branchId: string; targetId?: string; before?: boolean; x: number; y: number }
+
+/** Every legal insertion slot for `stepId`: around each lane's dots and between consecutive main-line stations. No-op slots next to the step itself are left out. */
+export function laneDropSlots(layout: LaneLayout, stepId: string): LaneDropSlot[] {
+  const slots: LaneDropSlot[] = []
+  for (const lane of layout.lanes) {
+    const points = lane.points, branchId = lane.branch.id
+    if (!points.length) { slots.push({ id: `${branchId}:0`, branchId, x: round(lane.x + lane.width / 2), y: lane.y + LANE_DOT_Y }); continue }
+    const own = points.findIndex(point => point.step.key === stepId)
+    // Rows run alternately left-to-right and right-to-left, so "before" and "after" follow the row direction.
+    const direction = (point: LanePoint) => point.row % 2 ? -1 : 1
+    const spacing = points.length > 1 && points[0].row === points[1].row ? Math.abs(points[1].x - points[0].x) : COL
+    const half = Math.min(spacing / 2, EDGE - 8)
+    for (let gap = 0; gap <= points.length; gap++) {
+      if (own >= 0 && (gap === own || gap === own + 1)) continue
+      const next = points[gap], previous = points[gap - 1]
+      const position = !previous ? { x: next.x - direction(next) * half, y: next.y }
+        : !next ? { x: previous.x + direction(previous) * half, y: previous.y }
+        : { x: (previous.x + next.x) / 2, y: (previous.y + next.y) / 2 }
+      slots.push({ id: `${branchId}:${gap}`, branchId, ...(next ? { targetId: next.step.key, before: true } : { targetId: previous.step.key, before: false }), x: round(position.x), y: round(position.y) })
+    }
+  }
+  const stations = layout.stations, own = stations.findIndex(station => station.id === stepId)
+  for (let index = 0; index < stations.length - 1; index++) {
+    if (own >= 0 && (index === own - 1 || index === own)) continue
+    const left = stations[index], right = stations[index + 1]
+    slots.push({ id: `${MAIN_LINE}:${index}`, branchId: MAIN_LINE, targetId: right.id, before: true, x: round((left.x + right.x) / 2), y: layout.mainY })
+  }
+  return slots
+}
+
+/** The slot closest to a layout point, if it lies within `radius` layout units. */
+export function nearestDropSlot(slots: readonly LaneDropSlot[], x: number, y: number, radius: number): LaneDropSlot | null {
+  let best: LaneDropSlot | null = null, distance = radius
+  for (const slot of slots) {
+    const d = Math.hypot(slot.x - x, slot.y - y)
+    if (d <= distance) { best = slot; distance = d }
+  }
+  return best
+}

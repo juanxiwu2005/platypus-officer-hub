@@ -5,6 +5,7 @@ import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { addDays } from "../src/lib/dates"
 import { noOverflow } from "./helpers"
 import { openMenu } from "./workflowLegacyHelpers"
+import { dragToSlot } from "./workflowDrag"
 
 type Content = WorkflowTemplateContent
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
@@ -97,26 +98,9 @@ async function createEvent(page: Page, name: string, templateId: string, version
   return (await read(page)).events.find(event => event.name === name)!
 }
 
+/** Drop the task on the diamond just before the target task in the same branch. */
 async function dragBefore(page: Page, sourceKey: string, targetKey: string, touch: boolean) {
-  const source = page.getByTestId(`workflow-task-${sourceKey}`)
-  await closeRail(page)
-  await source.scrollIntoViewIfNeeded()
-  const [a, b] = await Promise.all([source.boundingBox(), page.getByTestId(`workflow-task-${targetKey}`).boundingBox()])
-  const x = a!.x + a!.width / 2, y = a!.y + a!.height / 2
-  const targetX = b!.x + b!.width / 4
-  if (touch) {
-    const cdp = await page.context().newCDPSession(page)
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] })
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: (x + targetX) / 2, y }] })
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: targetX, y }] })
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] })
-    await cdp.detach()
-  } else {
-    await page.mouse.move(x, y)
-    await page.mouse.down()
-    await page.mouse.move(targetX, y, { steps: 8 })
-    await page.mouse.up()
-  }
+  await dragToSlot(page, `workflow-task-${sourceKey}`, slot => slot.targetId === targetKey && slot.before === "true", touch)
 }
 
 test("the default 46 tasks use four compact team containers without rewriting dependencies or historical activities", async ({ page }, info) => {

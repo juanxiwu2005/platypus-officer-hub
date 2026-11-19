@@ -1,6 +1,6 @@
 import type { StepTemplate, WorkflowBranch, WorkflowMilestoneGraph } from "../../data/types"
 import { checkWorkflow, MAX_STEPS } from "../../engine/workflow"
-import { deletionReason, isAsuStep } from "../../engine/workflowPolicy"
+import { deletionReason, isAsuStep, isCoreStep } from "../../engine/workflowPolicy"
 import { placementOf } from "../../engine/workflowBranches"
 import { orderedWorkflowSteps } from "../../engine/workflowSequence"
 import { workflowStepKind } from "../../engine/workflowStepKind"
@@ -39,8 +39,10 @@ export function editError(previous: BuilderSnapshot, next: BuilderSnapshot, poli
   if (generic) return generic
   if (policy === "custom") return null
   // An unfinished draft can be repaired one edit at a time, but may not acquire a new policy violation.
-  const old = new Set(checkWorkflow(previous.steps, roles, undefined, previous.branches).filter(issue => issue.level === "blocked").map(issue => `${issue.key}:${issue.text}`))
-  return checkWorkflow(next.steps, roles, undefined, next.branches).find(issue => issue.level === "blocked" && !old.has(`${issue.key}:${issue.text}`))?.text ?? null
+  // Template authoring: the organization's own core steps may be removed or moved; ASU steps stay protected.
+  const options = { requireCoreSteps: false }
+  const old = new Set(checkWorkflow(previous.steps, roles, undefined, previous.branches, options).filter(issue => issue.level === "blocked").map(issue => `${issue.key}:${issue.text}`))
+  return checkWorkflow(next.steps, roles, undefined, next.branches, options).find(issue => issue.level === "blocked" && !old.has(`${issue.key}:${issue.text}`))?.text ?? null
 }
 
 export function createBuilderStep(title: string, reference?: StepTemplate, branches?: WorkflowBranch[], key = newBuilderStepId()): StepTemplate {
@@ -79,8 +81,15 @@ export function insertBuilderStep(snapshot: BuilderSnapshot, referenceId: string
   return { ...snapshot, steps: [...steps, fresh], stepTeams: { ...snapshot.stepTeams, ...(snapshot.stepTeams[reference.key] ? { [fresh.key]: snapshot.stepTeams[reference.key] } : {}) } }
 }
 
-export function builderDeletionReason(step: StepTemplate, policy: BuilderPolicy): string | null {
-  return policy === "standard" || isAsuStep(step) ? deletionReason(step) : null
+/**
+ * ASU-rule steps, and steps an ASU step waits for, always stay. In the preset the organization's own core
+ * steps may be removed (Restore Platypus preset brings them back); custom templates protect only ASU steps.
+ */
+export function builderDeletionReason(step: StepTemplate, policy: BuilderPolicy, steps: readonly StepTemplate[] = []): string | null {
+  if (isAsuStep(step)) return deletionReason(step)
+  if (steps.some(other => other.key !== step.key && isAsuStep(other) && other.dependsOn?.includes(step.key))) return "A school-required step waits for this step."
+  if (policy !== "standard" || isCoreStep(step)) return null
+  return deletionReason(step)
 }
 
 export function deleteBuilderStep(snapshot: BuilderSnapshot, key: string): BuilderSnapshot {

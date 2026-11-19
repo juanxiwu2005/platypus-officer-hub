@@ -101,7 +101,8 @@ export function workflowTemplateDraftError(draft: WorkflowTemplateContent, roles
   if (draft.steps.some(step => !visit(step.key))) return "Dependencies need existing tasks and must not form a loop."
   if (draft.teamMap && (draft.teamMap.version !== 1 || !text(draft.teamMap.workflowId, 100) || !draft.teamMap.stepTeams || typeof draft.teamMap.stepTeams !== "object" || Array.isArray(draft.teamMap.stepTeams) || Object.entries(draft.teamMap.stepTeams).some(([key, team]) => !keys.has(key) || !text(team, 100)))) return "Assign teams only to tasks in this workflow."
   if (draft.milestoneGraph?.teamBranches.some(branch => branch.stepIds.some(key => (draft.teamMap?.stepTeams[key] ?? "") !== branch.teamId))) return "Keep each branch task assigned to that branch's team."
-  if (draft.kind === "standard") return checkWorkflow(draft.steps, roles, undefined, draft.branches).find(issue => issue.level === "blocked")?.text ?? null
+  // The preset keeps ASU protections; its organization-standard core steps may be removed or moved (Restore Platypus preset brings them back).
+  if (draft.kind === "standard") return checkWorkflow(draft.steps, roles, undefined, draft.branches, { requireCoreSteps: false }).find(issue => issue.level === "blocked")?.text ?? null
   // Custom templates are independent workflows. They do not inherit the standard event's 31 lifecycle tasks.
   return null
 }
@@ -200,6 +201,33 @@ export function duplicateWorkflowTemplate(s: DemoState, sourceId: string, id: st
   return { ...s, org: { ...s.org, workflowTemplates: [...getWorkflowTemplates(s), template] } }
 }
 
+/** Drop the unsaved draft so the editor shows the latest saved version again. Saved versions and activities are not touched. */
+export function discardWorkflowTemplateDraft(s: DemoState, id: string): DemoState {
+  if (!canLead(s)) return s
+  const template = getWorkflowTemplate(s, id)
+  if (!template?.draft || !latestVersion(template)) return s
+  const { draft: _draft, ...rest } = template
+  return replaceTemplate(s, { ...rest, updatedOn: s.today })
+}
+
+/** The original Platypus preset as a fresh organization gets it: the standard steps with this organization's owners and preset teams. */
+export function originalWorkflowPreset(s: DemoState, baseVersion: number): WorkflowTemplateDraft {
+  const steps = withOwners(copy(EVENT_STEPS), s.roles)
+  const stepTeams = presetWorkflowStepTeams(s, steps)
+  return { name: "Speaker series", description: "Standard organization event workflow.", kind: "standard", teamExecution: "dependencies", steps, baseVersion, teamMap: { version: 1, workflowId: STANDARD_WORKFLOW_TEMPLATE_ID, stepTeams }, milestoneGraph: createWorkflowMilestoneGraph(steps, stepTeams) }
+}
+
+/** Replace the preset's draft with the original Platypus preset. It becomes a new version only when saved; saved versions and activities are not touched. */
+export function restoreWorkflowPreset(s: DemoState, id: string): DemoState {
+  if (!canLead(s) || id !== STANDARD_WORKFLOW_TEMPLATE_ID) return s
+  const template = getWorkflowTemplate(s, id)
+  if (!template) return s
+  const draft = originalWorkflowPreset(s, latestVersion(template)?.version ?? 0)
+  if (workflowTemplateDraftError(draft, s.roles) || retainedRuleError(latestVersion(template), draft)) return s
+  if (JSON.stringify(template.draft) === JSON.stringify(draft)) return s
+  return replaceTemplate(s, { ...template, draft, updatedOn: s.today })
+}
+
 export function setDefaultWorkflowTemplate(s: DemoState, id: string): DemoState {
   if (!canLead(s) || !findWorkflowTemplateVersion(s, id) || s.org.defaultWorkflowTemplateId === id) return s
   return { ...s, org: { ...s.org, defaultWorkflowTemplateId: id } }
@@ -252,7 +280,7 @@ export function instantiateWorkflowTemplate(s: DemoState, event: Event, selectio
   const { teams, teamIds, stepTeams } = executionTeamSnapshot(s, version)
   const snapshot = { ...copy(version), teams, teamMap: { version: 1 as const, workflowId: selection.templateId, stepTeams } }
   const withRun: Event = { ...event, ...(snapshot.branches ? { workflowBranches: copy(snapshot.branches) } : {}), workflowRun: { id: runId, templateId: selection.templateId, templateVersion: version.version, templateName: version.name, snapshot } }
-  const generated = buildEventNodes(withRun, s.roles, { steps: snapshot.milestoneGraph ? workflowMilestoneSteps(snapshot.steps, snapshot.milestoneGraph) : snapshot.steps, branches: snapshot.branches, mode: snapshot.kind, explicitOwnersOnly: true })
+  const generated = buildEventNodes(withRun, s.roles, { steps: snapshot.milestoneGraph ? workflowMilestoneSteps(snapshot.steps, snapshot.milestoneGraph) : snapshot.steps, branches: snapshot.branches, mode: snapshot.kind, explicitOwnersOnly: true, restoreMissingCore: false })
   const ids = new Map(generated.map(node => [node.id, `${runId}:${node.stepKey}`]))
   const nodes = generated.map(node => ({ ...node, id: ids.get(node.id)!, dependsOn: node.dependsOn.map(id => ids.get(id)!).filter(Boolean), workflowSource: { runId, templateId: selection.templateId, templateVersion: version.version, templateStepId: node.stepKey! }, ...(stepTeams[node.stepKey!] && teamIds.has(stepTeams[node.stepKey!]) ? { teamId: stepTeams[node.stepKey!] } : {}), assignedOn: s.today, ownerVersion: 0, acceptedOn: node.ownerId ? s.today : null }))
   if (nodes.some(node => s.nodes.some(old => old.id === node.id))) return fail("A task with this execution ID already exists. No tasks were added.")

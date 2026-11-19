@@ -241,7 +241,7 @@ export function roleFor(roles: Role[], fn: RoleFunction): Role | undefined {
 
 /** These are never situation-based. Checklist conditions may add routes but may never remove them. */
 /** The steps that apply to this event, with links to skipped steps passed through to their own links. */
-export function stepsFor(e: Event, steps?: StepTemplate[], branches?: readonly WorkflowBranch[], options: { requireCore?: boolean } = {}): StepTemplate[] {
+export function stepsFor(e: Event, steps?: StepTemplate[], branches?: readonly WorkflowBranch[], options: { requireCore?: boolean; restoreMissingCore?: boolean } = {}): StepTemplate[] {
   // Records saved before the structured v2 intake retain their former graph until store migration adds checks.
   // New and migrated activities always carry `checks` (including an empty object) and use the approved standard.
   const selectedSteps = steps ?? (e.checks === undefined ? LEGACY_EVENT_STEPS : EVENT_STEPS)
@@ -250,8 +250,9 @@ export function stepsFor(e: Event, steps?: StepTemplate[], branches?: readonly W
   const standard = new Map(EVENT_STEPS.map(step => [step.key, step]))
   const selected = new Map(selectedSteps.map(step => [step.key, step]))
   const requiresCore = options.requireCore ?? (selectedSteps === EVENT_STEPS || e.checks !== undefined)
+  // A saved template version is the source of truth: a core step its author removed stays removed (restoreMissingCore: false).
   if (requiresCore) for (const key of CORE_EVENT_STEP_KEYS) {
-    const step = selected.get(key) ?? standard.get(key)
+    const step = selected.get(key) ?? (options.restoreMissingCore === false ? undefined : standard.get(key))
     if (step) selected.set(key, { ...step, cond: undefined })
   }
   const normalizedSteps = [...selected.values()]
@@ -329,12 +330,12 @@ export function calibratedStep(s: StepTemplate): StepTemplate {
 
 /** Turn the playbook into nodes for one event. A normal workflow step is assigned
  * straight to its accountable officer; only work with no owner is unclaimed. */
-export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[]; branches?: readonly WorkflowBranch[]; mode?: "standard" | "custom"; explicitOwnersOnly?: boolean } = {}): Node[] {
+export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[]; branches?: readonly WorkflowBranch[]; mode?: "standard" | "custom"; explicitOwnersOnly?: boolean; restoreMissingCore?: boolean } = {}): Node[] {
   const president = roleFor(roles, "president")
   const perHead = opts.fundingAmount && e.headcount ? opts.fundingAmount / e.headcount : 0
   // The legacy graph (pre-v1.0 records without checks) is never calibrated; the standard and club workflows are (FB-6).
   const calibrate = opts.mode !== "custom" && (!!opts.steps || e.checks !== undefined)
-  return stepsFor(e, opts.steps, opts.branches ?? e.workflowBranches, { ...(opts.mode === "custom" ? { requireCore: false } : {}) }).map(step => calibrate ? calibratedStep(step) : step).map(s => {
+  return stepsFor(e, opts.steps, opts.branches ?? e.workflowBranches, { ...(opts.mode === "custom" ? { requireCore: false } : {}), ...(opts.restoreMissingCore === false ? { restoreMissingCore: false } : {}) }).map(step => calibrate ? calibratedStep(step) : step).map(s => {
     const explicitOwner = s.ownerRoleId ? roles.find(r => r.id === s.ownerRoleId) : undefined
     const role = opts.explicitOwnersOnly ? explicitOwner : explicitOwner ?? roleFor(roles, s.fn)
     const ruleIds = [...(s.ruleIds ?? [])]
