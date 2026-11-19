@@ -14,7 +14,7 @@ test("shared Full Check requires an explicit insertion branch", async ({ page })
   await panel.getByRole("button", { name: "Add before", exact: true }).click()
   await expect(panel.getByRole("alert")).toContainText("Choose which incoming branch")
   expect((await savedWorkflow(page)).steps.map(step => step.key)).toEqual(keys)
-  await panel.getByLabel("Insertion branch", { exact: true }).selectOption("speaker")
+  await panel.getByRole("combobox", { name: "Insertion branch", exact: true }).selectOption("speaker")
   await panel.getByRole("button", { name: "Add before", exact: true }).click()
   const key = await insertedKey(page, keys)
   const step = (await savedWorkflowStep(page, key))!
