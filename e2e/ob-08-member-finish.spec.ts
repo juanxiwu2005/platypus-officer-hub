@@ -20,6 +20,8 @@ const cont = (page: Page) => page.getByRole("button", { name: "Continue" }).clic
 const begin = async (page: Page) => {
   await page.goto(WELCOME_ON)
   await page.getByRole("button", { name: "Start walkthrough" }).click()
+  // The start route creates the attempt before navigating here; do not unmount it by jumping ahead.
+  await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
   await page.evaluate(() => { location.hash = "#/welcome/member/invitation" })
   await expect(page.getByTestId("role-card")).toBeVisible()
 }

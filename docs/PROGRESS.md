@@ -1,4 +1,17 @@
-# Current handoff: English repository cleanup
+# Current handoff: English repository listing
+
+> **November 20, 2026 (America/Phoenix) · Codex · Implementation verified; publishing after PR checks.** After approving and merging PR #16, the owner requested English **Last commit message** captions in the repository listing. Baseline: `main@0b9f78e`. Target: `chore/english-latest-commit-messages` → `main`; Preview 14 / PR #17 remain separate.
+>
+> **Method:** use an ordinary English maintenance commit to update the 14 root paths whose latest path-specific subjects are still Chinese. The listing edits are English maintainer comments and JSON whitespace only. GitHub derives the captions from the latest commit affecting each path; the field is not independently editable. Existing commits, IDs, signatures, tags, and branches are retained. An empty commit alone would not refresh these path captions. The scope is the repository home listing, not a rewrite of every historical commit or every nested file's history.
+>
+> **Verification:** all 5 parsed JSON files (including the complete dependency lock), the 4 comment-only JavaScript/TypeScript files emitted without comments, both HTML token streams, and both active ignore/environment configurations match the baseline exactly; Vite differs only in its CI-only test worker cap. Existing lint, production build, server TypeScript, 5 English-guard regression cases, and whitespace checks passed. The commit is checked against all 26 root entries so each latest subject is English; normal PR checks must pass before merging. No product behavior tests were added for comments/whitespace. A separate CI-only startup wait is described below. **The owner's thesis backup remains pending synchronization.**
+
+
+> **CI-only test repair:** CI #276 first hit the unchanged engine date-enumeration test's existing 5-second timeout (1186 passed / 1 failed); its focused rerun passed in 3.57 seconds without changing any threshold. The next attempt passed all 1187 unit cases, then reported 943 browser passes, 106 skips, 3 flaky recoveries, and 2 mobile failures in `ob-08-member-finish.spec.ts`. The member-preview test helper immediately changed the hash after clicking Start walkthrough, sometimes unmounting `StartWalkthrough` before its effect created the attempt. It now waits for the normal founder-name route before jumping into the preview. Every original record/profile/privacy assertion and all timeouts are retained; no application or recording code changes. Both affected scenarios passed 3 times each on desktop/mobile: **12/12, with retries disabled**. The next CI run again hit the unchanged engine timeout under the default parallel workload. Vitest now caps CI concurrency at 2 workers; local `CI=1 npm test` passed all **1187/1187** with the original engine test file and every timeout/criterion unchanged. Build and lint also passed again. Non-test Vite configuration is unchanged. The final PR checks remain required before publication.
+
+---
+
+# Previous handoff: English repository cleanup
 
 > **November 19, 2026 (America/Phoenix) · Codex · Translation/review complete; awaiting owner acceptance.** The owner selected both production and Preview 14, with separate PRs [#16](https://github.com/juanxiwu2005/platypus-officer-hub/pull/16) and [#17](https://github.com/juanxiwu2005/platypus-officer-hub/pull/17). This branch starts at `b9e7a02` (production main). English repository/GitHub policy, contributor/assistant entrypoints, templates, language guard, documentation index, and technical co-founder onboarding are included. No production merge or release was performed.
 >

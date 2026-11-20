@@ -1,3 +1,4 @@
+// Keep test configuration and failure explanations in English; use PW_* variables for local overrides.
 import { defineConfig, devices } from "@playwright/test"
 
 // Server storage (Organization Setup, Activity workspace) is hidden unless the site is built with
