@@ -1,336 +1,336 @@
-# Phase 3 导出文件数据字典
+# Phase 3 Export File Data Dictionary
 
-给研究者（Juanxi）看的说明：参与者在 Settings 页按 **Export my data** 下载的那个 JSON 文件里有什么、每个字段是什么意思、怎么从里面算出任务用时、错误次数和"有没有点开引用来源"，以及它**做不到**什么。
+To the researcher Juanxi, what's in the JSON file that participants downloaded on Settings page by **Export my Data**, what is it for each field, how to calculate the time of the task from inside, the number of errors and "does not open reference source" and what **couldn't do**.
 
-- 适用版本：`formatVersion: 3`（2026-11-07 起，加了"研究会话"，见第 1.1 节）。旧的 `formatVersion: 1`、`2` 文件也能用下面的 CSV 脚本读：1 没有界面操作记录；1 和 2 没有会话，文件里是这个浏览器里的全部记录。
-- 文件里只有虚构社团的数据和参与者在原型里的操作记录。**没有任何东西会自动上传**：文件只在参与者自己按按钮时下载到他自己的电脑，再由他（Zoom 上）发邮件给研究者。
-- 本文件和代码对应：日志结构 `src/data/types.ts` 的 `LogEntry`；界面事件 `src/lib/uiLog.ts`；写入与去噪 `src/data/store.tsx` 的 `appendUiLog`；研究会话 `src/lib/studySession.ts`；时间线 `src/lib/timeline.ts`；导出 `buildExport`；CSV 脚本 `scripts/export-to-csv.mjs`。
-- 2026-11-07 新增四项**只记行为**的记录（任务标记、离开页面、开始编辑字段、悬停卡），见第 11 节。
-- 2026-11-08（P3-H）社长流程多了一屏 **Reminders**（问提醒怎么发给干部），流程版本变成 `ob-4`；导出的会话摘要多了 `reminderModeChoice`。**没有新增记录项**：选择本身原来就会记成 `ui.change`，见第 12 节。
-- （FB-2，分支 `fix/fb-2-onboarding`，**还没上线**；Phase 3 正式网站仍是 `ob-4`）社长流程变成 Name → Team → First event → Reminders → Confirm → Invite，流程版本 `ob-5`。**去掉了 Constitution、Goals 两屏**：章程变成 Team 屏顶上的折叠区 "Fill roles from your constitution (optional)"，Mission 移到 Name 屏，目标只在 Settings 里设。所以 `ob-5` 的尝试里**不再出现** `founder.constitution`、`founder.goals` 这两个步骤 id（也就没有它们的 enter/leave/skip），Name 之后直接是 `founder.team`；Name 屏的 Continue 在交互日志里是 `to: "/welcome/founder/team"`。打开章程折叠区、选样例/上传/粘贴，记成普通的 `ui.click`（`route` 是 `/welcome/founder/team`）。Invite 后不再接社员预览、Confirm 只有一个主按钮由 FB-3 在同一次发布里完成。**没有新增记录项。**比较新旧数据时按 `flowVersion` 分组。
-- （FB-3，分支 `fix/fb-3-onboarding-b`，**还没上线**；Phase 3 正式网站仍是 `ob-4`）`ob-5` 的后两屏：Confirm 的主按钮改名 **Create my club**（原 Start workspace；记录值不变，仍是 `setupChoice: "start-workspace"`，仍写 `completeSetup`）。去掉 Keep current demo 按钮；只有已经建过社团时，替换警告下面有文字链接 **Cancel and keep the current club**，行为同原 Keep current demo（`setupChoice: "keep-demo"`，`founder.confirm` 记 `exit`，尝试以 `exited` 结束）。Invite 只有一个主按钮 **Open my workspace**（原 Go to Today：`founder.invite` 记 `complete`，尝试以 `completed` 结束，去 `/`）；去掉了 "See what your officers will see"，所以 `ob-5` 的尝试里**不再出现** `member.*` 步骤，`outcome` 只说社长流程怎么结束（在 Invite 按 Exit 仍是 `exited`）。社员预览仍可从 Demo 菜单 Test Onboarding Page Invite 打开，不写记录。Reminders 屏新增示例提醒卡、每个选项下的三步图、类比和"在 Platypus 里会怎样"一句，原来每个选项的一句说明只作读屏描述；三个选项的标题、顺序、不预选、`data-testid`、存的值和 `ui.change` 记录都不变。First event 的缓冲改成 Tight 1 / Standard 3 / Safe 5 三个选项（草稿里是 2 或 7 时显示 Custom），存的 `clubBufferBusinessDays` 数值不变；点选项记成普通的 `ui.click`（按钮名如 "Safe · 5 days"）。导出时间线里 `onboarding.setup` 的描述文字仍写 `Start workspace` / `Keep current demo`（它们是记录值的标签，没改）。**没有新增记录项。**
+- Applicable version: `formatVersion: 3` (from 2026-11-07, with "research session", see 1.1). The old `formatVersion: 1`, `2` files can also be read in the following CSV scripts: 1 has no interface operating records; 1 and 2 don't have a session, the file is all the records in this browser.
+- The file contains only data from the field station application and records of participants ' operations in the prototype. **Nothing automatically uploads**: files are downloaded to his own computer only when the participant presses the button himself, and he e-mails it to the researchers.
+- This document corresponds to the code: `LogEntry` for log structure `src/data/types.ts`; Interface event `src/lib/uiLog.ts`; `appendUiLog` for writing and decoupling `src/data/store.tsx`; Study session `src/lib/studySession.ts`; Timeline `src/lib/timeline.ts`; Export `buildExport`; CSV script `scripts/export-to-csv.mjs`.
+- For 2026-11-07 four new **records (task tags, exit pages, start editing fields, suspension cards) for behavior only**, see 11.
+- The 2026-11-08 (P3-H) president process has a screen for **Reminders** (inquire how to send a reminder to office), and the process version becomes `ob-4`; Exported session summaries more `reminderModeChoice`. **No new entry**: The selection itself would have been recorded as `ui.change`, see section 12.
+- (FB-2, branch `fix/fb-2-onboarding`, **not online**; Phase 3The official website remains `ob-4`) president process becomes process version `ob-5`。 **Removes Constitution, Goals 2 screens**: Constitution becomes a folding area on the top of Team "Fill rolls from your screen (optional)" and Mission moves to the Name Screen with only targets set in Settings. So **did not appear again in the `ob-5` attempt** `founder.constitution`, `founder.goals` id (and without their entry/ leave/skip), name followed directly by `founder.team`; Name screen's Continue is `to: "/welcome/founder/team"` in the interactive log. Opens the constitution folding area, selects samples/ uploads/ pastes as normal `ui.click` (`route` is `/welcome/founder/team`). Invite does not receive a crew preview anymore, Confurm has only one main button that FB-3 completes in the same release. **did not add a new entry.** Grouping by `flowVersion` when comparing old and new data.
+- (FB-3, branch `fix/fb-3-onboarding-b`, **not online**; 3 The official website is still `ob-4`) the last two screens of `ob-5`: Confurm's main button changed its name to **Create my club** (former Start workspace); The log value remains unchanged, it is still `setupChoice: "start-workspace"` and it is written `completeSetup`. Remove the Keep current demo button; Only when a student event has been built, replace warning with text links **Chancel and keep the current club**. The behavior is identical to that of Keep current demo (`setupChoice: "keep-demo"`, `founder.confirm` recording `exit`, trying to end with `exited`). Invite only has one main button **Open my workspace** (former Go to Today: `founder.invite` Remember `complete`, trying to end with `completed`, go to `/`); "See what your offices will see", so... `ob-5`♪ In the attempt **No more.** `member.*`Steps, `outcome`Just how the president process ends (at Invite press Exit still) `exited`）。 The staff preview can still be opened from the Demo menu Test Onboarding Page Invite without writing a record. The phrase "what happens in Platypus" to add an example card to the Reminders screen, a three-step diagram under each option and an analogy, was originally used as a screen description for each option; The titles, sequences, non-preselections, `data-testid`, values stored and records of `ui.change` remain unchanged for the three options. For first event buffer read Tight 1/ Standard 3 / Safe 5 options (as shown in the draft for 2 or 7 as Custom), with no change to the stored `clubBufferBusinessDays` value; Point options are recorded as normal `ui.click` (button names like "Safe 5 days". The description of `onboarding.setup` in the export time line is still written `Start workspace`/ `Keep current demo` (they are labels for recording values, unchanged). **did not add a new entry.**
 
 ---
 
-## 1. 一句话说清楚
+## 1.
 
-参与者在原型里做的事，按发生顺序记成一条一条（每次研究会话最多保留最新的 2000 条）。每一条都有：编号、真实时间、当时"以谁的身份查看"、做了什么、做的对象（长文字截断）、改数据时改之前的值、以及原型接受了没有。导出时再附上一份把所有记录按时间排好的"时间线"，方便直接看或转成 Excel。
+What the participants do in the prototype is recorded as an article in the order of occurrence (up to a maximum of 2000 for each study session). Each of these articles has a number, live time, then "who did it", what was done, what was done (long text cut off), the value before when the data were changed and whether the prototype was accepted. Export is accompanied by a "time line" of all records scheduled in time for easy viewing or conversion to Excel.
 
-### 1.1 研究会话（formatVersion 3 起）
+### 1.1 research session (formatVersion 3)
 
-**为什么要有：** 研究者自己在线上网站试做时发现，导出的 177 条里前 49 条是另一天（同一个浏览器之前）留下的。为了让每次测试的文件只装这一次坐下来做的东西（下面叫"这一次 sitting"），又不会因为误操作丢数据，现在有了"研究会话"。
+**Why should there be:** researchers, when they tried it on their own website, discovered that the former 49 of the exported 177 were left over another day (before the same browser). In order for the documents tested to be filled with only one sit-in at a time (hereinafter referred to as "sitting" ) and not to lose data by mistake, there is now a "study session".
 
-- **什么时候开始一个新会话：** 只要开始一次"会记录的引导"：打开研究链接 `/#/start`、欢迎页的 Start walkthrough（`/welcome/start`），或 Demo 菜单的 Replay walkthrough。Demo 菜单里的两个 Test 按钮**不会**开始会话，也不写任何记录。
-- **开始时做什么：** 生成一个会话编号（例如 `s-3f9a0c71d2e4b856`，随机的，不包含任何人名、时间或设备信息），记下开始时间。然后**只删掉更早一次 sitting 的东西**：超过 6 小时的交互日志条目和引导尝试（除非它属于 6 小时内开始的会话）。删了多少只记条数（`previousEntriesCleared`、`previousAttemptsCleared`），不留内容。**最近 6 小时内的都保留**，包括点研究链接之前那几分钟的浏览（这些条目不带会话编号）。
-- **之后：** 每一条日志都带这个会话编号（`session` 字段）。编号 `seq` 接着往下数，不重来。一个会话只管一次 sitting：开始 6 小时以后再写的条目就不带会话编号了，直到下一次打开研究链接。
-- **中途又打开了研究链接（或按了 Replay walkthrough）：** 会开始第二个会话，但前一个会话的记录**一条都不会丢**（都在 6 小时内）。导出文件里就会有两个会话，`sessions` 里各一行，每条日志用 `session` 字段分得清是哪个会话的。
-- **为什么 6 小时：** 一次测试最多 75 分钟；6 小时以前的东西基本可以肯定是另一天、另一次（可能是另一个人用了这台电脑）。删掉它们既不占 2000 条上限，也不会被误导出；条数仍在文件里，研究者能看出"之前有过东西"。
-- **2000 条上限：** 算的是浏览器里保留下来的整份日志（可能包括同一次 sitting 的几个会话），满了从最早的丢起，丢了几条见 `interactionLog.droppedEarlier`（只算上限丢的，不算 6 小时清理删的）。
-- **导出时：** 放保留下来的全部日志条目和引导尝试（再按同样的 6 小时规则过一遍，防止另一个旧标签页把旧条目写回来）；顶层有 `sessions`（每个会话一行）和 `session`（最新的那个，外加没放进文件的条数），见第 3.1 节。如果这个浏览器从来没开始过会话（例如只用 Test 按钮或直接看样例），`session` 为 `null`、`sessions` 为空，文件和以前一样放全部记录。
+- **When will a new session start:** Just start "The Guide to Record" once: Opens the research link `/#/start`, Start walkthrough (`/welcome/start`) on welcome pages, or Replay walkthrough on Demo menu. Two Test buttons in the Demo menu **No, I'm not.**Start the session and write no records.
+- **What does it do when you start doing:** produces a session number (e. g. `s-3f9a0c71d2e4b856`, randomly, without information about anyone ' s name, time or device) and records the starting time. **then only deletes the earlier little thing**: an interactive log entry over 6 hours and a guided attempt (unless it belongs to a session that starts within 6 hours). How many notes (`previousEntriesCleared`, `previousAttemptsCleared`) have been deleted without content. **has kept** for the most recent 6 hours, including a few minutes of browsing before the point research link (these entries do not have session numbers).
+- After **: This session number is taken in every** log (`session` field). No. `seq`, then count down, not again. One session only sits once: start 6 hours before writing again without a session number until the next time a research link is opened.
+- **opened up a research link (or pressed Replay walkthrough):** will start a second session, but none of the records of the previous **will be lost** (all within 6 hours). There are two sessions in the export file, one line in `sessions`, and each log is sorted with a `session` field.
+- **Why 6 hours:** up to 75 minutes for one test; 6 hours ago was basically another day and another time (possibly another person used the computer). We don't take them off. 2000A ceiling would not be misleading;  The number is still in the document, and researchers can see that something has happened before.
+- **2000 cap:** calculates the entire log left in the browser (possibly including a few sessions of the same sitting), full from the earliest to see `interactionLog.droppedEarlier` (only the upper limit, not 6 hours of clean-up and deletion).
+- **Exporting: all log entries and pilot attempts retained by** (exceeding the same 6 hour rule to prevent another old tab from writing back the old entry); At the top are `sessions` (one line for each session) and `session` (the latest one, plus the number of bars not entered in the file), see section 3.1. If this browser has never started a session (e.g. only Test buttons or direct example), `session` is empty for `null` and `sessions`, with all records as before.
 
-## 2. 怎么拿到、怎么打开
+## 2.
 
-1. 参与者：Settings → My preferences → **Export my data**。浏览器下载一个文件，名字像 `platypus-export-2026-11-07-15-04-31.json`（文件名里的时间是 UTC）。
-2. 研究者收到后，在装了 Node.js 22 的电脑上，进入仓库目录运行：
+1. Participants: Settings — My preferences — **Export my data**. The browser downloads a file with a name like `platypus-export-2026-11-07-15-04-31.json` (the time in the filename is UTC).
+2. Upon receipt, the researcher entered the repository directory on Node.js 22 computer:
 
    ```
-   node scripts/export-to-csv.mjs 路径/platypus-export-2026-11-07-15-04-31.json
+   node scripts/export-to-csv.mjs Path /platypus-export-2026-11-07-15-04-31.json
    ```
 
-   会在同一个文件夹生成同名的 `.csv`，一行一个事件，可以直接用 Excel 打开。
-   - 用 R：`readr::read_csv("….csv")` 直接读；如果用基础 R 的 `read.csv`，请加 `--no-bom` 生成（那个开头的"字节顺序标记"是给 Excel 认中文和符号用的）。
-   - 脚本只读这个文件、只写那个 CSV，不联网。
-3. 也可以直接用任何文本编辑器或浏览器打开 JSON 看 `timeline` 字段。
+   Generates a `.csv` with the same name in the same folder, an event in a row that can be opened directly by Excel.
+   - Read directly with R: `readr::read_csv("….csv")`; If you use `read.csv` for base R, add `--no-bom` (the initial byte order mark is used for Excel to recognize Chinese and symbols).
+   - Scripts read only this file, write only that CSV, not online.
+3. You can also open the `timeline` field directly with any text editor or browser.
 
-## 3. 文件最外层的字段
+## 3. Fields on the outermost layer of a file
 
-| 字段 | 意思 |
+| Fields | Meaning. |
 | --- | --- |
-| `format` | 固定是 `"platypus-export"`，用来认出这是本原型的导出文件 |
-| `formatVersion` | 文件结构版本。现在是 `3`。2 比 1 多了下面标 ★ 的字段；3 又多了标 ◆ 的字段，而且 `interactionLog`、`onboarding`、`timeline` 只含这一次 sitting（最近 6 小时，见 1.1；原有字段一个都没删） |
-| `exportedAt` | 按下导出的真实时间（ISO 格式，UTC） |
-| `schemaVersion` | 社团数据结构的版本号（开发用） |
-| `storageKey` | 数据在浏览器里存的名字（开发用） |
-| ★ `build` | 这是哪一版网站：`version`（应用版本号）、`commit`（代码提交号）、`branch`、`context`（Netlify 的 production / deploy-preview）。本地构建没有这些信息时写 `"unknown"`。用来确认每位参与者用的是同一版 |
-| ★ `demoToday` | 原型里的"演示日期"（导出那一刻）。原型的日期是假的、可以用 Demo 菜单往前拨；它和真实时间无关 |
-| ★ `onboardingFlowVersion` | 当前网站的新手引导流程版本（正式网站现在 `ob-4`：First event 之后、Confirm 之前多了 Reminders 屏；`ob-3` 没有这一屏。分支上的 `ob-5` 没有 Constitution、Goals 两屏，步骤 id `founder.constitution`、`founder.goals` 不再出现，见文件开头）。每次引导尝试里也各自记了版本 |
-| ◆ `sessions` | 文件里的每个研究会话一行，按开始时间排，见 3.1；没有会话时为空 `[]` |
-| ◆ `session` | 最新的那个会话（和 `sessions` 最后一行一样），外加没放进文件的条数，见 3.1；没有会话时为 `null` |
-| `state` | 导出那一刻整个虚构社团的数据（活动、任务、成员、设置……）。签名密钥被替换成 `"[omitted]"`。Handoff 改版起（结构版本 21）里面还有 `roleTerms`（谁在哪个岗位任职过：`status` 为 `incoming` / `active` / `former`，起止日期）、成员的 `leftOn`（交接后离任的日期）和 `incomingFor`（已被指定接任、还没正式接手）；结构版本 22 起还有 `archivedRoles`（被关闭的岗位，留作历史）、岗位的 `formerNames`（旧名）和 `startNotes`（新岗位的起步回答），都是虚构演示数据 |
-| `onboarding` | 新手引导（`/#/welcome/…`）的单独记录，见第 6 节（有会话时只含这一次 sitting 的尝试） |
-| `interactionLog` | 交互日志本体，见第 4、5 节（有会话时只含这一次 sitting）。外层还有：`limit`（2000）、`count`（现有条数）、`firstSeq` / `lastSeq`（第一条和最后一条的编号）、`droppedEarlier`（因为超过 2000 被丢掉的最早条数；0 表示一条没丢。6 小时清理删掉的不算在这里，见 `previousEntriesCleared`） |
-| ★ `timeline` | 把交互日志和新手引导记录合在一起、按时间排好的清单，每行一句英文短描述，见第 7 节 |
+| `format` | Hold on. `"platypus-export"`, to recognize this as a prototype export file |
+| `formatVersion` | File schema vension. Now. `3`。2 is more marked than 1; 3 has more field tags, and `interactionLog`、`onboarding`、`timeline` Only this time sitting (most recently 6 hours; see 1.1; I didn't delete any of the original fields. |
+| `exportedAt` | Press exported Live Time (ISO format, UTC) |
+| `schemaVersion` | Version number of the student data structure (developed) |
+| `storageKey` | Name of data stored in browser (developed) |
+| ★ `build` | What kind of website is this? `version`(Application version number), `commit`(Code submission number), `branch`、`context`(Production / deploy-preview for Netlify) Write when local construction does not contain this information `"unknown"`。The same version is used to identify each participant. |
+| ★ `demoToday` | "Date of presentation" in the prototype. The date of the prototype is false and can be dialed forward by the Demo menu; It has nothing to do with live time. |
+| ★ `onboardingFlowVersion` | New hand-led process version of the current website (the official site is now available) `ob-4`: After First event and before Confurm there are more Reminders screens; `ob-3` There's no such screen. In the branch `ob-5` No Constitution, Goals 2 screens id `founder.constitution`、`founder.goals` No more, see the beginning of the document). It's been written in every guide attempt. |
+| ◆ `sessions` | For each research session in the file, see 3.1; No session is empty `[]` |
+| ◆ `session` | The latest session. `sessions` Last line) and the number of strips that are not in the file, see 3.1; When there is no session `null` |
+| `state` | Export data from the whole fictional community at that moment.（event、Tasks、Members、Settings……）。Sign Key Replaced with `"[omitted]"`。Handoff Change start.（Structure Version 21）There's more in there. `roleTerms`（Who's been in what position?：`status` Yes. `incoming` / `active` / `former`，Start and end date）、Members `leftOn`（Date of departure after handover）and `incomingFor`（Designated to take over、It's not officially taken over.）；Structure Version 22 There's more. `archivedRoles`（Closed posts，Save for History）、Job. `formerNames`（Old name）and `startNotes`（The start of the new job.），It's all a fictional presentation. |
+| `onboarding` | Newer Guides `/#/welcome/…`For a separate record, see 6. |
+| `interactionLog` | An interactive log body, see 4 and 5 (only sitting this time when a session is available). There's more on the outer floor: `limit`（2000）、`count`(Number of existing articles), `firstSeq` / `lastSeq`(number of the first and last articles), `droppedEarlier`(Because more than 2000 was lost) 0 means one didn't lose. 6 hours cleans up and deletes are not here. See you. `previousEntriesCleared`） |
+| ★ `timeline` | A list that combines the interactive log with the newer guide, time-bound, with a short description of each line in English; see section 7 |
 
-> **Handoff 页读取日志（2026-11-09，Juanxi 决定问答记录和研究日志不分开）：** Handoff 页的新人卡会在画出来的那一刻，从本文件说的 `interactionLog` 里读出新人（被指定接任之后）问 Ask 的问题（`ui.ask` 的 `question`），给社长和新人本人看。**不新增任何记录项**，不把这些问题另存，不放进手册或档案，不发给 AI。
+> **Handoff read the log (2026-11-09, Juanxi decides that question-and-answer records and research logs will not be separated):** Handoff's incoming officer card reads questions about Ask (`question` of `ui.ask`) from `interactionLog` as described in this document at the moment it is drawn. **Do not add any new entries**, do not save these questions, do not place them in manuals or files and do not send them to AI.
 
-### 3.1 会话（`sessions` 和 `session`，formatVersion 3）
+### 3.1 Sessions (`sessions` and `session`,formatVersion 3)
 
-`sessions[]` 每个会话一行（文件里有它的条目或尝试，或者它是最新的）；`session` 就是最后一行，另加 `olderEntriesLeftOut`、`olderAttemptsLeftOut` 两个总数。时间都给三种写法：`…At` 是 UTC 的 ISO 时间，`…AtMs` 是毫秒数，`…AtAz` 是**亚利桑那时间**（America/Phoenix，UTC−7，全年不变，没有夏令时），例如 `2026-11-07 10:46:40.337`，可以直接对评分表。
+`sessions[]` A line for every session (the document contains its entry or attempt, or it's the latest); `session` is the last line, plus `olderEntriesLeftOut` and `olderAttemptsLeftOut`. Time is written in three ways: `…At` is an ISO time for UTC, `…AtMs` is a millisecond number, `…AtAz` is **Arizona time** (America/Phoenix, UTC-7, unchanged throughout the year, without summertime), e.g. `2026-11-07 10:46:40.337`, which can be directly weighed against the score sheet.
 
-| 字段 | 意思 |
+| Fields | Meaning. |
 | --- | --- |
-| `id` | 会话编号（随机） |
-| `startedAt` / `startedAtMs` / `startedAtAz` | 会话开始的时间（打开研究链接那一刻） |
-| `attempt` | 这个会话的引导尝试编号（对应 `onboarding.attempts[].id`） |
-| `outcome` | 这次引导尝试**整体**怎么结束的：`completed` / `exited` / 还没结束为 `null`。注意：`exited` 不等于"没建好社团"，见下一行 |
-| `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | 在 Confirm 屏按 **Start workspace** 或 **Keep current demo** 的时间（第一次按的）。有值 = 建社团这一步已经做完；没按过为 `null` |
-| `setupChoice` | 按的是哪个：`start-workspace`（Start workspace，建了自己的社团）或 `keep-demo`（Keep current demo，保留示例社团）。分支上的 `ob-5`（FB-3，未上线）取值不变：按钮叫 Create my club / Cancel and keep the current club |
-| `firstEventChoice` | First event 屏最后一次往前走时：`planned`（计划了一个活动）或 `skipped`（按了 Skip for now）；没走过这一屏为 `null`。只从屏幕步骤记录推出来，不看填了什么 |
-| `reminderModeChoice` | Reminders 屏（2026-11-08）最后一次往前走时的答案：`auto_email`（Send automatically）、`review_then_self`（I review, then I send）、`review_then_auto`（I review, Platypus sends），或 `skipped`（按了 Skip for now）；没往前走过这一屏为 `null`（`ob-3` 的旧文件也是 `null`）。怎么推出来的见第 12 节 |
-| `entries` | 文件里属于这个会话的日志条数 |
-| `previousEntriesCleared` | 这个会话开始时，因为超过 6 小时而从这个浏览器里删掉的旧日志条数（只有数字） |
-| `previousAttemptsCleared` | 同一时刻、同样原因删掉的旧引导尝试次数 |
-| `olderEntriesLeftOut`（只在 `session`） | 不在这个文件里的更早条目总数 = 文件里各会话的 `previousEntriesCleared` 加起来 + 导出时又过滤掉的旧条目（例如另一个还开着的旧标签页写回来的；通常是 0） |
-| `olderAttemptsLeftOut`（只在 `session`） | 同样算法的引导尝试次数 |
+| `id` | Session number (random) |
+| `startedAt` / `startedAtMs` / `startedAtAz` | The start of the session (the moment to open the research link) |
+| `attempt` | Direct attempt number for this session (comparable) `onboarding.attempts[].id`） |
+| `outcome` | **The whole** How did this end: `completed` / `exited` / Not finished yet `null`。Note: `exited` It's not like "unbuilt," see next line. |
+| `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | At the time of pressing **Start workspace** or **Keep current demo** (first press). Worthy = building solid organization has been completed; I didn't press the button. `null` |
+| `setupChoice` | Which one is it? `start-workspace`(Start workspace, built its own student organization) or `keep-demo`(Keep current demo, retain the example of student organization). In the branch `ob-5`（FB-3Create my blue / Cancel and keep the current Club  |
+| `firstEventChoice` | First event last move forward: `planned`(One activity planned) or `skipped`(Skip for now); I've never walked through this screen. `null`。Just from the screen step record, not to see what's in it. |
+| `reminderModeChoice` | The answer to the 2026-11-08 screen when it last moves forward: `auto_email`（Send automatically）、`review_then_self`（I review, then I send）、`review_then_auto`(I review, Platypus sends) or `skipped`(Skip for now); Never walked forward on this screen. `null`（`ob-3` The old papers too. `null`）。How did you get to see the 12 festival? |
+| `entries` | Number of log bars in the file belonging to this session |
+| `previousEntriesCleared` | The session begins with the number of old logs removed from this browser for more than 6 hours (numbers only) |
+| `previousAttemptsCleared` | Number of old pilot attempts deleted at the same moment, for the same reason |
+| `olderEntriesLeftOut`(only) `session`） | Number of earlier entries not in this file = session by session in the document `previousEntriesCleared` Add together + old entries that are filtered when exporting (e.g. another old tab that is open); Usually 0) |
+| `olderAttemptsLeftOut`(only) `session`） | Number of pilot attempts with the same algorithm |
 
-**例子（研究者 2026-11-07 的试做）：** 按了 Start workspace，接着去看社员预览，在那里按了 Exit。现在文件里是 `setupCompletedAt` 有值、`setupChoice: "start-workspace"`、`outcome: "exited"`。分析"有没有完成建社团"时请看 `setupCompletedAt`，不要看 `outcome`。
+**Examples (researchers) 2026-11-07TRYING:**Start workspace, then go to the staff preview and press Exit there.  The files now contain `setupCompletedAt` with value, `setupChoice: "start-workspace"`, `outcome: "exited"`. Please see `setupCompletedAt` when analysing whether there is no finished construction. Do not look at `outcome`.
 
-## 4. 交互日志里每一条（`interactionLog.entries[]`）
+## 4. Each article in the interactive log (`interactionLog.entries[]`)
 
-| 字段 | 意思 |
+| Fields | Meaning. |
 | --- | --- |
-| `seq` | 编号 1, 2, 3 …，不重复、不复用；新会话不重新编号（只有 6 小时清理把日志全删光时才从 1 开始）。开头不是 1：最早的几条被删了，是 2000 上限（`droppedEarlier`）还是 6 小时清理（`previousEntriesCleared`），文件里分开写 |
-| `at` | 真实时间，1970 年以来的毫秒数（参与者电脑的时钟） |
-| `actor` | 当时原型"View as"设成了谁（虚构人物的 id，例如 `alex`） |
-| `type` | 发生了什么。以 `ui.` 开头的是**界面操作**（第 5 节）；其余是**数据动作**（改了社团数据的操作，例如 `completeSetup`、`updateNode`） |
-| `payload` | 这件事的细节（长文字截到 200 个字符；看起来像密钥的字段不收） |
-| `before` | 只有"改已有数据"的数据动作才有：改之前那些字段的值。界面操作**没有** `before` |
-| `applied` | `true` = 原型接受了；`false` = 没接受（没权限、无效、没东西可改；界面操作里见下） |
-| `session` | 这一条属于哪次研究会话（formatVersion 3）。不在任何会话里写下的条目（研究链接之前，或会话开始 6 小时以后）没有这个字段 |
+| `seq` | No. 1, 2, 3 ..., no repetition, no reuse; The new session will not be renumbered (only when 6 hours cleans up the log and deletes all light from 1). The beginning is not 1: the earliest articles have been deleted and are capped at 2000. `droppedEarlier`) or 6 hour cleanup ( `previousEntriesCleared`It's written separately in the document. |
+| `at` | Live time, milliseconds since 1970. |
+| `actor` | Who was the prototype View as? id, for example. `alex`） |
+| `type` | What's going on? By `ui.` Started with **interface operation** (section 5); The rest are **data actions** (changed the operation of student data, for example) `completeSetup`、`updateNode`） |
+| `payload` | Details of the event (long text cut to 200 characters); It looks like a secret key field is not accepted |
+| `before` | Only the data movement "re-allocation of existing data" is available: change the values of the previous fields. Interface operation **No** `before` |
+| `applied` | `true` = prototype accepted; `false` = Unaccepted (not accepted, invalid, nothing to change); See under interface operation) |
+| `session` | This is a study session (formatVersion 3). There are no entries written in any session (before the link is studied or after 6 hours) |
 
-**两种条目在同一个编号序列里**，所以"点了哪个按钮 → 数据怎么变了"可以按顺序直接读出来。
+**two entries are in the same numbering sequence**, so "what button did you point? How did the data change?" can be read directly in order.
 
-### 4.1 常见的数据动作（不是全部）
+### 4.1 Common Data Actions (not all)
 
-| `type` | 什么时候出现 |
+| `type` | When did you show up? |
 | --- | --- |
-| `completeSetup` | 引导里按 Start workspace，社团建好（`payload` 里有参与者填的社团资料，按原规则截断） |
-| `saveProfile` | 保存个人资料（引导里社员预览的 Done 屏也会写） |
-| `draftChanges` / `aiAutoApply` | Ask 生成了一组待批准的改动 / AI 直接做的小改动 |
-| `reviewChange` | 对一组改动按了批准或拒绝（`payload.decision`） |
-| `undoAuto` | 撤销一个 AI 小改动 |
-| `createTasks`、`addTask`、`claimTask`、`moveTask`、`replyTask`、`updateNode`、`updateEvent` | 任务和活动的增改 |
-| `issueOfficerGrant`、`confirmNudgeSent` | 准备提醒时生成一次性任务链接、参与者点"I sent this reminder"。**FB-8（只在分支上，正式网站上线前不适用）：** `confirmNudgeSent` 的 `payload` 可以多一个可选的 `via`：`"president"` = 社长/副社长自己打开草稿发的（"I sent this reminder"）；`"platypus"` = 选了 "I review, Platypus sends" 的社团里按了 "Approve · Platypus sends (demo)" 或提醒中心的 "Approve all (N)"（每条一个 `confirmNudgeSent`，一次批准 N 条就有 N 条）。同一个值也存进 `state.nudges[].via`。旧文件里没有这个字段，按 `president` 理解。网站仍然**不发任何东西**；"Send automatically" 在提醒中心里显示的 "Would be sent · demo" 是推算出来的，**不写任何记录**。没有新增记录类型 |
-| `advanceClock`、`setViewer`、`setAi`、`reset` | Demo 菜单：拨日期、切换查看身份、开关 AI、重置演示 |
+| `completeSetup` | The guide is built by Start Workspace, target organisation ( `payload` Information filled out by participants, cut according to the original rules) |
+| `saveProfile` | Save personal data. |
+| `draftChanges` / `aiAutoApply` | Ask generated a set of changes to be approved / AI directly made |
+| `reviewChange` | Approval or rejection of a set of changes `payload.decision`） |
+| `undoAuto` | Undo an AI minor change |
+| `createTasks`、`addTask`、`claimTask`、`moveTask`、`replyTask`、`updateNode`、`updateEvent` | Increases in mandates and activities |
+| `issueOfficerGrant`、`confirmNudgeSent` | I send this reminder when you prepare the alarm to generate a one-time task link. **FB-8 (only branch, not applicable on the official website line):** `confirmNudgeSent` It's... `payload` There's one more. `via`：`"president"` = president / vice present ("I sent this draft"); `"platypus"` "Approve Platypus sends (demo)" or "Approve all (N)" for the reminder center. `confirmNudgeSent`There's an N rule at the time of ratification. And the same value. `state.nudges[].via`。There's no such field in the old file. Press `president` Understood. **still doesn't send anything**; "Send automatically" shows in the reminder center that "Would be sent... demo" is extrapolated, **does not write any records of**. No new record type |
+| `advanceClock`、`setViewer`、`setAi`、`reset` | Demo menu: dial date, switch to see identity, switch AI, reset demo |
 
-### 4.2 规则提醒运行时增量（2026-11-16，功能分支阶段一）
+### 4.2 rules remind running-time increment (2026-11-16, functional branch I)
 
-仅显式 `enableReminderPlan` 后存在可选的 `state.reminderRuntime`，不改变 formatVersion 或旧存档外层版本。新运行时有 `updates`（同日顺序和真正操作人）、`waitingRequests`（明确等待对象及关闭原因）、`deliveries`（不可变收件人与任务快照），均用 `sequence` 保留先后；`activatedOn`/`sentOn` 使用演示日期。`enableReminderPlan` 是启用动作；`confirmPlannedReminder` 是审核记录动作。它们沿用现有数据动作日志格式，未给旧页面添加按钮。
+Selected `state.reminderRuntime` exists only after `enableReminderPlan` and does not change formatVersion or the old archived outer layer version. `updates` (same day sequence and real operator), `waitingRequests` (clearly waiting for the object and reason for closing down), `deliveries` (unchangeable recipient and task snapshot), with `sequence` retained; `activatedOn`/ `sentOn` uses demonstration dates. `enableReminderPlan` is an enabling action; `confirmPlannedReminder` is an audit log action. They follow the existing data action log format and do not add a button to the old page.
 
-自动模式的新 `deliveries` 会持久记录 `outcome: simulated`；人工发送确认是 `recorded_by_sender`，不表示本站核实了外部投递。旧 `state.nudges`、旧 `protocolLog` 不转换成未知收件人的新发送。损坏或未来版本 runtime 保留但停用。旧页面默认尚未启用新运行时，上节 FB-8 推算记录的描述仍适用于旧路径；不能把两种版本混算为真实邮件数量。阶段二邮件与任务页增量见下节，Details/提醒中心整体接通的阶段三和真实发送服务尚未实施。
+The new `deliveries` in automatic mode will keep a lasting record of `outcome: simulated`; Manually sent confirmation is `recorded_by_sender`, which does not mean that the station verified external delivery. Old `state.nudges`, old `protocolLog` does not convert to a new message from an unknown recipient. Damaged or future version rantime retained but disabled. The description of the previous FB-8 extrapolated record is still applicable to the old path when the old page defaults that it has not been run; Could not close temporary folder: %s Phase II mail and task page additions are shown in the following section, and the Details/Alarm Centre's overall access to phase III and live distribution services have not yet been implemented.
 
-### 4.3 规则邮件与可重复任务入口（2026-11-16，功能分支阶段二）
+### 4.3 rule mail and repeatable task entry (2026-11-16, functional branch II)
 
-- `state.taskAccessGrants?`：可重复访问的本地演示授权，独立于旧一次性 `officerGrants`。含任务、当前负责人及任期版本、实际收件人、`owner`/`waiting` 范围、可选等待请求、签发/到期日及本地签名。新 URL 为 `/#/officer?access=…`；查看不改状态，同一入口可先 Working 再 Done，改派、离任、失效或重置后不可沿用。它不是服务器登录或跨设备授权。损坏授权表保留且不再追加。
-- `issueTaskAccessGrant`：日志 payload 只含任务、收件人、范围及可选等待请求 ID；不记签名和完整链接。`taskAccessAction`：日志 actor 取有效授权的实际收件人，payload 为任务、收件人、范围、操作种类。URL token 不写入动作摘要。新增业务动作使用既有数据动作日志机制，旧页面的一般 `ui.*` 行为记录照旧；本轮未改变研究引导步骤和采集流程。
-- `Node.instructions?` / `completionCriteria?`：人工填写的具体要求和完成标准；重要性沿用 `why`。事实优先读人工要求，缺信息不让 AI 补造。
-- `Nudge.message?` / `ReminderDelivery.message?`：经当前事实、收件人、模式和授权重新校验的完整规则邮件快照，含主题、正文、唯一任务链接、计划邮箱、渠道、生成日、授权 ID、词数和 `source: rules`。快照在保存记录时生成；旧记录不回填。人工草稿的实际目的地仍由用户在外部选择，本站不核验。动作日志只记快照的收件人/来源/词数等摘要，不复制正文或链接。它记录的是已批准的演示内容，并非外部投递回执。
-- `waitingRequests[].response? / respondedOn? / responseBy?`：明确等待对象的 Acknowledge / Update provided；同时在 runtime.updates 追加实际操作人及顺序，`ownerReply: false`。等待对象不能更新原任务四种状态；原负责人/状态不因响应被改写。首次请求不重复；2026-11-18增量中Acknowledge只表示承诺，仍有预计日检查，provided才停止协助催办。取消等待、换对象、改派和完成沿用原有撤销约束。
-- **2026-11-18提醒四项修正：** `waitingRequests[].expectedOn?`为协助人首次承诺时保存的人工日期；旧客户端省略时规则默认演示今天+2个自然日，旧ack记录则从其respondedOn+2判断，不补写旧事实。承诺与提供分别给原负责人一次`info`站内通知，ID为`waiting-promised:<requestId>:<ownerId>`及`waiting-provided:…`；停滞提醒为`waiting-needs-action:<requestId>:<unanswered|promised>:<ownerId>`，不是外部投递回执。
-- `ReminderDelivery.reason`新增`no_reply`（默认三阶段以外至多一次普通未回复跟进）和`waiting_followup`（等待未回复/承诺到期）。字段、实际sentOn和不可变快照仍沿用既有delivery，candidateId区分两种协助跟进阶段；不得只用candidateId判断改期后的里程碑是否发过。旧重复发送不删除，每封仍计入收件人每日/七天总量，单任务里程碑额度按不同已发阶段计数。没有新增研究引导步骤、动作类型或导出formatVersion，外层schema23不重置。完整规则见[交付](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。
+- `state.taskAccessGrants?`: Retrievable local demonstration authorization independent of the old one-time `officerGrants`. Includes task, current owner and term version, actual recipient, `owner`/ `waiting` range, optional waiting date for request, issue/due date and local signature. The new URL is `/#/officer?access=…`; The same entrance can be used first for working and then for Done, after reassignment, departure, expiry or replacement. It is not a server login or cross-equipment authorization. Damages to the authorization form are retained and not added.
+- `issueTaskAccessGrant`: Log payload contains only tasks, recipients, ranges and optional requests for IDs; No signature and no complete link. `taskAccessAction`: The actual recipient of a valid authorization by the log actor is task, recipient, range, type of operation. URL token does not write action summaries. Adding operations using existing data action log mechanisms, with the usual `ui.*` behavioural records for old pages as they are; No changes have been made to the research orientation and collection processes during this round.
+- `Node.instructions?`/`completionCriteria?`: Specific manual requirements and completion criteria; The importance of `why` is maintained. The fact that the manual requirements are given priority and no information is available to prevent AI from completing them.
+- `Nudge.message?`/ `ReminderDelivery.message?`: Full rule mail snapshot with theme, text, unique task link, planned mailbox, channel, date of generation, authorized ID, word count and `source: rules`, re-validated by current facts, addressees, mode and authorization. A snapshot is generated at the time of record-keeping; Old records are not filled out. The actual destination of the draft manual is still to be selected externally by the user and not verified at this station. Action logs only take summaries such as recipients/sources/words of snapshots and do not reproduce text or links. It records approved presentations, not external deliveries.
+- `waitingRequests[].response? / respondedOn? / responseBy?`: Accnowledge/Update requested; Adds the actual operator and order to the runtime. updates, `ownerReply: false`. The waiting person cannot update the four status of the original task; The original head/state is not rewrited by the response. (a) Non-repetition of initial requests; Acknowledge of the 2026-11- 18 increment only expressed a commitment and was expected to continue daily inspections before provided ceased to assist with the follow-up. Cancel the waiting, re-targeting, reassignment and completion of original withdrawals.
+- **2026-11-18 Reminds four amendments:** `waitingRequests[].expectedOn?`(b) The date of the labour kept for the initial commitment of the assisting person;  The default display of the rules when an old client omits is today +2 natural days, while old track records are judged by their respondOn+2 and do not fill out old facts. Commitment and provision of one `info` station notification to the former head, ID `waiting-promised:<requestId>:<ownerId>` and `waiting-provided:…`; Stagnation alert is `waiting-needs-action:<requestId>:<unanswered|promised>:<ownerId>`, not external delivery.
+- `ReminderDelivery.reason` Added `no_reply` (general non-reaction follow-up not more than once outside of three phases by default) and `waiting_followup` (waiting for non-response/commitment due). The fields, actual sentOn and immutable snapshots continue to follow the existing deliftive, CandidateId between the two stages of assistance in follow-up; CandidateId should not be used only to determine whether post-renewal milestones have been issued. Old duplicates are not deleted and each one is still counted against the recipient ' s total daily/seven-day amount, with individual mission milestones measured at different stages of issuance. No new research guide, action type or export formatVersion and outer layer schema23 is not reset. See [ delivers ](feedback-fix/REMINDER_FOLLOW_THROUGH.md) for the full rules.
 
-新单条邮件编辑器不请求 AI；旧 `?token=` 入口保持兼容。阶段二没有默认启用新计划、统一旧批量记录、接通邮件后台或改变研究流程版本。完整权限与验收边界见 `feedback-fix/REMINDER_STAGE2_CONTRACT.md`。
+New single mail editor does not request AI; The old `?token=` entrance is compatible. Phase II did not use the new plan by default, harmonize old batch records, connect to the mail backoffice or change the study process version. See `feedback-fix/REMINDER_STAGE2_CONTRACT.md` for full missions and acceptance border.
 
-### 4.4 统一规则邮件与新计划（2026-11-16，功能分支阶段三）
+### 4.4 Uniform Rules Mail and New Plan (2026-11-16, Functional Branch III)
 
-- 新建组织默认`reminderRuntime.version: 2`；旧无runtime/v1通过`upgradeReminderPlan`显式升级，保留原设置、更新、请求和发送历史。`mailRequiredAfter`为启用时0或升级时原sequence，之后新delivery必须有完整message；旧记录不补造。未知/损坏值保留并停用，不回退旧发送。外层schema/导出formatVersion未因本阶段改动。
-- `reviewLegacyReminder`记录领导核对当前任务分配，移除该任务对未来提醒的歧义阻拦，新增`ownerReply:false`的审计更新。旧nudge/protocol的收件人、正文和记录日期不改写；核对不是成员已回复。
-- `recordReminderBatch`沿用业务动作日志，payload仅via、candidateIds、count，不复制邮件、签名、链接或工作区密钥。via=automatic的actor为`system:reminders`，不冒充当前查看者或社长。准备失败不留grant；保存时逐条检查当前设置/对象/日期/归属和额度，只统计本次新delivery IDs。
-- 单条、批量、自动演示均保存同一完整规则邮件快照，自动不再由Today推算成已发送。自动失败信息和busy为当前页面状态，不是投递回执；刷新按持久记录去重，只处理仍有效的候选。
-- Replies由同任期实际ownerReply或同waitingRequest响应得出，同日按sequence；No reply从实际已存delivery起算。历史显示保存的收件人与任务快照，删任务/改派不把历史指给新负责人；旧未知收件人记录不计入新版无回复。人工记录仍是recorded_by_sender、平台记录是simulated，没有外部投递回执。
-- Retry browser saving只重试当前业务快照/日志保存，不提交尚在局部表单的草稿，也不生成发送记录；另一标签有新业务数据则暂停并保留两份副本，不提供覆盖重试。Settings、启用、批量或自动需各自明确提交/重试。
+- New organization default `reminderRuntime.version: 2`; The old rantime/v1 retains the original set-up, update, request and send history through `upgradeReminderPlan`. `mailRequiredAfter` is the original sequence at 0 or upgradation, after which the new delivery must be complete; Old records are not supplemented. The unknown/damaged value is kept and disabled, not the fallback old send. The outer layer Schema/exportformatVersion has not been changed at this stage.
+- `reviewLegacyReminder` Record leaders reconcile current assignment, remove the ambiguity of this task to future reminders and add an audit update for `ownerReply:false`. (a) The old Nudge/protocol addressees, the body and the record date are not rewritten; Check is not part of the reply.
+- `recordReminderBatch` Following the Business Action Log, payload only via, CandidateIds, Count, does not copy mail, signature, link or workspace secret key. Via=automatic actor is `system:reminders` and does not pretend to be a former viewer or presidient. We're not leaving any grant behind. When saving, check the current settings/objects/dates/ belongs and amounts on an item-by-article basis, only for this new number of dilith IDs.
+- Single lines, lots, automatic displays save the same complete rule mail snapshot and are automatically no longer extrapolated from Today as sent. Automatically failed information and Busy is the current page state, not a sendback; Refresh the record to deal only with those candidates that are still valid.
+- Replies are echoed by term actually ownerReply or by waitin'Request on the same day, in order to keep the situation; No reply starts with deliftion. History shows the memory of the recipient and the task snapshot, deleting the task/reassignment without pointing history to the new person in charge; The old unknown recipient record is not included in the new version without a reply. The manual records remain recorded_by_sender, the platform records simulated and no external deliveries were sent back.
+- Retry breaker saving only retries current business snapshots/log saves, does not submit drafts that are still in partial form and does not generate sending records; The other label has new operational data, and two copies are suspended and retained without providing coverage for retesting. Settings, enablers, batches or automatically require explicit submission/retry.
 
-旧的一次性`?token=`入口兼容保留；新邮件仍用可重复`?access=`。研究引导步骤和采集机制不变，新增业务动作使用既有日志机制；详见`feedback-fix/REMINDER_STAGE3_HANDOFF.md`。
+The old one-time `?token=` entrance compatible with the reservation; New mail can still be repeated with `?access=`. (b) Study guidance and collection mechanisms remain unchanged, with additional operations using existing log mechanisms; See `feedback-fix/REMINDER_STAGE3_HANDOFF.md` for details.
 
-## 5. 界面操作（`type` 以 `ui.` 开头）
+## 5. Interface operation (`type` starts with `ui.`)
 
-### 5.1 类型一览
+### 5.1 Type Overview
 
-| `type` | 什么时候记一条 | `payload` 里有什么 |
+| `type` | When do you write one? | `payload` What's in it? |
 | --- | --- | --- |
-| `ui.navigate` | 换了页面（包括刷新后第一次打开、浏览器后退、直接改地址） | `from`（上一页路径，第一次打开时是 `null`）、`to`（新页面路径） |
-| `ui.click` | 按了按钮、链接、标签页、菜单项、`<summary>` 展开行等可以"按"的东西 | 见 5.2 |
-| `ui.change` | 勾/取消勾选复选框、选单选按钮、在下拉框里选了一项 | 见 5.2，另加 `checked`（勾上为 true）、`group`（所在分组的标题）或 `value`（选中项的文字） |
-| `ui.ask` | 在 Ask 里发出一个问题（打字回车、按 Send、点建议问题、或从别处"Ask about this rule"送来） | `question`（问题原文，超过 200 字符截断）、`via`（`typed` 自己打的 / `suggestion` 建议按钮 / `handoff` 从别处送来）、`route`、`focus`（当时 Ask 在看什么：`node` / `event` / `page`） |
-| `ui.answer` | Ask 给出了回答（**只记回答的种类，不记回答的文字**） | 见 5.3 |
-| `ui.details` | 右栏 Details 打开了某样东西，或关上 | `action`（`open` / `close`）、`kind`（`task`、`nudge`、`event`、`partner` …）、`id`（虚构数据的 id） |
-| `ui.reminder` | 提醒编辑器（"Private reminder"）打开 | `action: "open"`、`nodeId`（哪个任务）、`channel`（默认渠道） |
-| `ui.export` | 按了 Export my data（这一条会出现在导出的文件里，是最后一条） | `entries`（导出时日志条数） |
-| `ui.task` | 参与者在 Demo 菜单按了任务开始/完成（2026-11-07，第 11.2 节） | `task`（1–6）、`event`（`start` / `done`）、`implicit`、`ms`、`route` |
-| `ui.visibility` | 离开页面满 1 秒、以及回来（2026-11-07，第 11.4 节） | `state`（`hidden` / `visible`）、`via`（`tab` / `window` / `close`）、`awayMs`、`picker`、`route` |
-| `ui.edit` | 聚焦一个输入框后第一次改动它、以及离开它（2026-11-07，第 11.5 节；**不记内容**） | `field`、`kind`、`area`、`route`、`event`（`start` / `end`）、`ms` |
-| `ui.hover` | 悬停卡（`Hover` / `Info`）开着 ≥ 0.5 秒后关上（2026-11-07，第 11.6 节） | `name`、`near`、`ms`、`via`（`mouse` / `focus` / `tap`）、`area`、`route` |
+| `ui.navigate` | Changed page (including first opening after refreshing, back of browser, directly changing address) | `from`(Previous page path, first opened) `null`）、`to`(New page path) |
+| `ui.click` | Press buttons, links, tabs, menu items, `<summary>` Expanding lines like "press" things. | See 5.2 |
+| `ui.change` | Tick/ Untick check box, select single buttons, select one in the lower frame | See 5.2, plus `checked`(Trying) `group`(head of the group under which) or `value`(Text of selected item) |
+| `ui.ask` | Question in Ask. | `question`(questions source text, more than 200 character cut), `via`（`typed` I did it myself. `suggestion` Suggested Button / `handoff` It's from somewhere else. `route`、`focus`(Ask was looking at something: `node` / `event` / `page`） |
+| `ui.answer` | Ask gave the answer (**, type of reply only, unanswered text**) | See 5.3 |
+| `ui.details` | Right column Details opens something or closes it. | `action`（`open` / `close`）、`kind`（`task`、`nudge`、`event`、`partner` …）、`id`(actional data id) |
+| `ui.reminder` | Synchronising folder | `action: "open"`、`nodeId`Which task is it? `channel`(default channel) |
+| `ui.export` | Press Export my data (this one appears in the exported document, last one) | `entries`(Number of logs at export) |
+| `ui.task` | The participants started/ finished the task on the Demo menu (2026-11-07, 11.2) | `task`（1–6）、`event`（`start` / `done`）、`implicit`、`ms`、`route` |
+| `ui.visibility` | Leave page full 1 seconds and come back (2026-11-07, sect. 11.4) | `state`（`hidden` / `visible`）、`via`（`tab` / `window` / `close`）、`awayMs`、`picker`、`route` |
+| `ui.edit` | Focus on a input box to change it for the first time and leave it (2026-11-07, sect. 11.5); **No Content**) | `field`、`kind`、`area`、`route`、`event`（`start` / `end`）、`ms` |
+| `ui.hover` | Suspend card (%1) `Hover` / `Info`*0.5 seconds to close (2026-11-07, sect. 11.6) | `name`、`near`、`ms`、`via`（`mouse` / `focus` / `tap`）、`area`、`route` |
 
-### 5.2 点击和选择的通用字段
+### 5.2 Click and select generic fields
 
-| 字段 | 意思 |
+| Fields | Meaning. |
 | --- | --- |
-| `route` | 发生在哪个页面（只有路径，例如 `/tasks`；地址里 `?` 后面的值一律不记） |
-| `role` | 控件种类：`button`、`link`、`tab`、`menuitem`、`summary`、`checkbox`、`radio`、`combobox`（下拉框）等 |
-| `name` | 控件的名字（屏幕阅读器读出来的那个：按钮文字、链接文字、`aria-label` 或标签文字），最多 80 字符。可能包含屏幕上显示的虚构数据（例如任务名、虚构人名），偶尔包含参与者之前自己输入、后来显示在按钮上的文字（例如他起的任务名），都是截断的 |
-| `testid` | 控件的内部标识（如果有），例如 `export-data`，比 `name` 稳定，适合筛选 |
-| `area` | 屏幕上的哪一块：`answer`（Ask 的某条回答里）、`reminder`（提醒编辑器里）、`ask`、`rail`（右栏）、`nav`（左侧导航）、`header`、`main`、`dialog`、`menu` |
-| `to` | 这次点击带去的页面路径（链接，或按了以后换了页的按钮，例如引导里的 Continue） |
-| `external` | `true` = 点的是**站外链接**（例如引用的 ASU 来源、Gmail/WhatsApp 草稿） |
-| `href` | 站外链接的**网站 + 路径**（例如 `eoss.asu.edu/sites/default/files/…Handbook.pdf`）；`mailto:`、`sms:` 这类只记开头。查询参数（里面会有消息正文、链接令牌）一律不记 |
-| `expanded` | 按完以后是展开（true）还是收起（false），用于菜单、`<details>`、侧栏开关 |
-| `selected` | 标签页被选中 |
-| `repeat` | 同一个控件 0.6 秒内被连续按了几次（例如双击、着急连点）。只有 ≥2 时才有 |
+| `route` | On which page (only path, for example) `/tasks`；In the address. `?` The value behind is not recorded. |
+| `role` | Control type: `button`、`link`、`tab`、`menuitem`、`summary`、`checkbox`、`radio`、`combobox`(down frame) et cetera |
+| `name` | The name of the control (the one read by the screen reader: button text, link text, `aria-label` or label text), with maximum 80 characters. It may contain field data displayed on the screen (e. g. task name, field name) and occasionally contains text previously entered by the participant himself and later shown on the button (e. g. task name), which is cut off |
+| `testid` | Internal identification of controls (if any), for example `export-data`Oh, yeah. `name` Stable, suitable for screening. |
+| `area` | Which one is on the screen: `answer`(Ask's answer to one of the answers) `reminder`(in the alarm editor) `ask`、`rail`(Right column), `nav`(Left Navigator) `header`、`main`、`dialog`、`menu` |
+| `to` | This click on the page path taken (links, or press buttons for subsequent pages, such as Continue in the guide) |
+| `external` | `true` = Point is the **site offline link** (e. g. AAU source cited, Gmail/whatsApp draft) |
+| `href` | **website with off-site links + Path** (for example) `eoss.asu.edu/sites/default/files/…Handbook.pdf`）；`mailto:`、`sms:` These are only the beginnings. Query Parameter (in which there will be message text, link sign) |
+| `expanded` | If you press "true" or "false" for menus, `<details>`Sidebar Switches |
+| `selected` | Tabs selected |
+| `repeat` | The same control 0.6 has been pressed several times in a row (e.g. double-click, fast link). Only when 2 is available. |
 
-### 5.3 回答的种类（`ui.answer`）
+### 5.3 Type of answer (`ui.answer`)
 
-| 字段 | 意思 |
+| Fields | Meaning. |
 | --- | --- |
-| `answer` | 主要的回答形式：`rule-answer`（规则回答，带引用）、`plan-form`（建活动表单）、`task-form`（建任务表单）、`change-card`（待批准的改动卡）、`change-applied`（已生效的小改动）、`event-date-form`、`task-list`、`reminder-card`、`plan-check`（新活动的计划检查）、`text`（纯文字）、`error`（出错，`applied: false`）、`timeout`（AI 第二轮没按时回来）、`stopped`（FB-1，2026-11-15：参与者在等待时按了 Ask 的 **Stop**，回答来自浏览器本地——聊天是本地兜底回答、表单保留原样、Plan check 是规则引擎自己的检查；`fallback` 为 `true`，`source` 写明 "stopped"；补填时同时有 `refine: true`、Plan check 时有 `trigger: "plan-check"`。提醒编辑器里的 **Skip AI line** 不产生 `ui.answer`，只有通用点击记录） |
-| `cards` | 这条回答里所有卡片的种类，按顺序 |
-| `citations` | 回答引用的规则/政策编号，例如 `["R06"]`（规则回答和计划检查都有） |
-| `inScope` | 规则问题是否在规则库范围内 |
-| `source` | 回答下方那行小字标签，说明是谁答的，例如 `Matched by keywords · AI unavailable`、`AI checked policy sources · …` |
-| `fallback` | `true` = 没有用到 AI（AI 关闭、服务不可用、超时，由本地规则或模板回答） |
-| `ms` | 从发问到回答出现用了多少毫秒 |
-| `changeSetId` / `autoSetId` | 这条回答生成的改动组编号，可以和后面的 `reviewChange`、`undoAuto` 对上 |
-| `refine` | `true` = 这是 AI 的"第二眼"（先出本地表单，AI 回来后补填） |
-| `trigger` | `plan-check` = 不是参与者提问，而是新活动批准后自动做的计划检查 |
+| `answer` | Main form of response: `rule-answer`(rule answer, with quotes), `plan-form`(building activity forms), `task-form`(construction of tasksheets), `change-card`(change card to be approved), `change-applied`(Slight changes in force), `event-date-form`、`task-list`、`reminder-card`、`plan-check`(Programme inspection of new activities), `text`(pure text), `error`(Errors, etc.) `applied: false`）、`timeout`I didn't get back on time. `stopped`(FB-1, 2026-11-15: Participants have been waiting to check with Ask 's **Stop** from the browser local - chat is a local quiz, form remains as it is, Plan check is an examination of rule engine; `fallback` Yes. `true`，`source` "Stopped" is written; At the time of filling `refine: true`There are times when Plan check `trigger: "plan-check"`。**Skip AI line** not generated in alarm editor `ui.answer`, only common click logs) |
+| `cards` | The type of card in this answer, in order. |
+| `citations` | Rule/policy numbers cited, for example `["R06"]`(rules answered and plans checked) |
+| `inScope` | Question of the rules within the framework of the rule bank |
+| `source` | Answer the line label below and tell me who answered it, for example. `Matched by keywords · AI unavailable`、`AI checked policy sources · …` |
+| `fallback` | `true` = not used for AI (AI closed, service unavailable, timed, answered by local rules or templates) |
+| `ms` | How many milliseconds did it take to answer the question? |
+| `changeSetId` / `autoSetId` | This answer generates a change of group number that can be added to the back. `reviewChange`、`undoAuto` Right on. |
+| `refine` | `true` == sync, corrected by elderman == |
+| `trigger` | `plan-check` = Not a question from the participants, but an automatic plan check after approval of the new activity |
 
-### 5.4 界面操作的 `applied` 和 `before`
+### 5.4 interface operating `applied` and `before`
 
-- 界面操作**没有 `before`**：它们本身不改数据；真正改数据的那一步会紧跟着出现一条数据动作，那里有 `before`。
-- `applied` 一般是 `true`（这件事确实发生了）。只有两种情况是 `false`：点到了被标成"不可用"（`aria-disabled`）的控件；`ui.answer` 的 `answer` 为 `error`。
+- Interface operation **No `before`**: they do not change the data themselves; The real change of data is followed by a data action with `before`.
+- `applied` is usually `true`. Only in two cases are `false`: point to a control marked "not available" (`aria-disabled`); `ui.answer` for `answer` is `error`.
 
-### 5.5 去噪规则（为什么条数不会爆）
+### 5.5 Noise Rule.
 
-1. 同一件事在 0.6 秒内重复出现（一次点击触发两个事件、开发模式的重复执行），只留一条。
-2. 同一个控件 0.6 秒内连续按：留一条，用 `repeat` 计次数。
-3. 点了链接或按钮后 2 秒内换了页：不再单独记 `ui.navigate`，而是把新页面写进那次点击的 `to`。（换页去的地方和点击说的不一样时——例如被重定向——仍会另记一条 `ui.navigate`。）
-4. 点在空白处、点进文本框、点标签文字：不记（选择本身会记成 `ui.change`）。
+1. The same thing happens again within 0.6 seconds (one click triggers two events, development mode repeat). Only one.
+2. The same control 0.6 for a continuous time: leave one and count it to `repeat`.
+3. 2 seconds after the link or button has been clicked: instead of recording `ui.navigate` separately, write a new page into the `to` click. (A different place to go from a click - for example, re-directed - still remembers another `ui.navigate`. ）
+4. Point in blanks, point in text boxes, point tab text: do not remember (the selection itself will be recorded as `ui.change`).
 
-**条数估计**（`src/test/uiLog.test.tsx` 的模拟，上限 2000；2026-11-07 起包含第 11 节的四项）：一般节奏（在原型里 60 分钟、平均每 8 秒操作一次）约 **650 条**；非常忙（75 分钟不停、每 4 秒一次，6 个任务标记、每 3 分钟离开一次页面、每 12 个操作里有一次打字和一次读悬停卡）约 **1560 条**（加这四项之前分别是 600 / 1500）。端到端测试里那段脚本化流程（准备一个提醒 + 引导建社团 + 点几个页面 + 规则问题 + 打开来源 + 导出，真人做大约几分钟）现在是 **40–42 条**（电脑 42、手机 40；以前 34 条，多出来的是"开始/停止打字"）。如果某个文件 `droppedEarlier` 大于 0，说明真的超了上限，最早的部分没有了。
+**Article estimate** (`src/test/uiLog.test.tsx` simulation, cap 2000; (a) 2026-11-07 containing four elements of section 11: the general rhythm (in prototype 60 minutes, on average 8 seconds) is approximately **650 Article**; Very busy. 75Every minute, every time. 4One second. 6Jobmarks, each 3Every minute leaves the page, every minute. 12There's one typing in the operation and one reading of the suspension card. **1560Article**♪ And the four before ♪ 600 / 1500）。 The scripting process in the end-to-end test (preparation of a reminder + guide to build several pages + rule questions + open source + export, real person does about minutes) is now **40–42Article**(computer) 42Cell phones. 40； Once upon a time, 34 was "start/stop typing". If a file `droppedEarlier` is greater than 0, it means that the upper limit is actually exceeded and the earliest part is gone.
 
-## 6. 新手引导记录（`onboarding`）
+## 6. Newer Guide Record (`onboarding`)
 
-这是 v1.5 起就有的单独记录（`src/lib/onboardingRecord.ts`），只记行为、不记填写内容：
+This is a separate record (`src/lib/onboardingRecord.ts`) that has been recorded since 5, but only by conduct and not by content:
 
-- `attempts[]`：每次走引导（或在欢迎页选"Explore the sample club"）一条：`id`、`entry`（`start` 走引导 / `explore` 直接看样例）、`flowVersion`、`replay`（第几次重走）、`startedAt`、`finishedAt`、`outcome`（`completed` 走完 / `exited` 中途退出 / `explored`）。
-  - formatVersion 3 起还有：`sessionId`（属于哪次会话）、`setupCompletedAt`（按 Start workspace 或 Keep current demo 的时间，毫秒）、`setupChoice`（`start-workspace` / `keep-demo`）。
-  - `outcome` 的意思没变，指**整个尝试**（包括建好以后的社员预览）怎么结束。`exited` 可能是建社团前就退出了，也可能是建好以后在社员预览里按了 Exit；两者用 `setupCompletedAt` 区分。（分支上的 `ob-5`，FB-3，未上线：没有社员预览，建好以后的 `exited` 只能是在 Invite 屏按了 Exit。）
-- `steps[]`：每屏的 `enter`（进入）、`leave`（离开）、`back`（返回）、`skip`（跳过）、`complete`（完成）、`exit`（Save & exit 退出），各带时间 `at`。步骤 id 跟着流程版本：`ob-4` 是 `founder.name`、`founder.constitution`、`founder.goals`、`founder.team`、`founder.first-event`、`founder.reminders`、`founder.confirm`、`founder.invite`；`ob-5` 没有 `founder.constitution` 和 `founder.goals`（章程在 Team 屏里，Mission 在 Name 屏里，目标不在引导里）。
-- 引导页面上的点击和换页，现在**也**会同时出现在交互日志里（`route` 以 `/welcome/` 开头），两边可以在时间线上对照。
+- `attempts[]`: Every time you go for guidance (or "Explore the welcome Club"): `id`、`entry`（`start`Guide / `explore`Let's just look at the example. `flowVersion`、`replay`(Standbacks), `startedAt`、`finishedAt`、`outcome`（`completed`Walking through / `exited`Middle exit / `explored`）。
+  - FormatVersion 3 also: `sessionId` (what session is it from), `setupCompletedAt` (in milliseconds, at the time of Start workspace or Keep current demo), `setupChoice` (`start-workspace`/ `keep-demo`).
+  - The meaning of `outcome` remains the same, which means that **is the end of the whole attempt on** (including a crew preview after construction). `exited` may have been withdrawn before the construction of a solid organization, or it may have been pressed in an exit preview after construction; The two are distinguished by `setupCompletedAt`. (branch `ob-5`, FB-3, unlined: no member preview, build later `exited` only press Exit on Invite screen. ）
+- `steps[]`: `enter` (entry), `leave` (departure), `back` (return), `skip` (skip), `complete` (completed), `exit` (save & exit) with time `at`. Step id Following Process Version: `ob-4` is `founder.name`, `founder.constitution`, `founder.goals`, `founder.team`, `founder.first-event`, `founder.reminders`, `founder.confirm`, `founder.invite`; `ob-5` does not have `founder.constitution` and `founder.goals` (constitution on Team screen, Mission in Name screen, target is not guided).
+- **and** now appear simultaneously in the interactive log (`route` starts with `/welcome/`), where both sides can be contrasted over a time line.
 
-## 7. 时间线（`timeline[]`，CSV 就是它）
+## 7. Timeline (`timeline[]`, CSV is it)
 
-| 字段 | CSV 列 | 意思 |
+| Fields | CSV Row | Meaning. |
 | --- | --- | --- |
-| （行号） | `row` | 1, 2, 3 … |
-| `time` | `time_iso` | 真实时间，ISO 格式，**UTC** |
-| `timeAz` | `time_az` | 同一时间的**亚利桑那时间**（UTC − 7 小时，全年不变），例如 `2026-11-07 10:46:40.337`。旧文件没有 `timeAz`，CSV 脚本照样算出这一列 |
-| `at` | `time_ms` | 同一时间的毫秒数 |
-| `session` | `session` | 这一行属于哪个会话；不在任何会话里为空 |
-| — | `elapsed_s` | 距**这一行所属会话的开始**过了多少秒；不在任何会话里的行为空。旧文件（没有会话）：距第一行 |
-| — | `gap_s` | 距上一行过了多少秒（看停顿、犹豫） |
-| `source` | `source` | `log`（交互日志）、`onboarding`（引导记录）或 `session`（会话开始，每个会话一行） |
-| `seq` | `seq` | 交互日志编号（引导记录行为空） |
-| `attempt` | `attempt` | 引导尝试 id（只有引导记录行有） |
-| `actor` | `actor` | "View as" 身份 |
-| `type` | `type` | 事件类型；引导记录行是 `onboarding.start` / `onboarding.enter` … / `onboarding.setup`（按了 Start workspace 或 Keep current demo；描述后面带 Reminders 的答案，例如 `Setup finished: Start workspace; reminders: review_then_auto`，没走过那一屏就不带）/ `onboarding.finish`；会话行是 `session.start` |
-| `route` | `route` | 页面路径 |
-| — | `name` | 控件名字；`ui.ask` 行是问题本身；没有这两样时用 `payload.field`（`ui.edit` 行的输入框标签，不是打的字） |
-| — | `target` | 链接去处（站外是网站+路径，站内是页面）或下拉框选中项 |
-| — | `external` | 站外链接为 `TRUE` |
-| `applied` | `applied` | `TRUE` / `FALSE`；引导记录行为空 |
-| `desc` | `description` | 一句英文短描述，例如 `Opened outside link "R06 source ↗" → eoss.asu.edu/…` |
-| — | `payload_json` / `before_json` | 这一条的完整 `payload` 和 `before`（JSON 文本），需要细节时再看 |
+| (line number) | `row` | 1, 2, 3 … |
+| `time` | `time_iso` | Live Time, ISO Format, **UTC** |
+| `timeAz` | `time_az` | **Arizona time at the same time** (UTC - 7 hours, unchanged from year to year), for example `2026-11-07 10:46:40.337`。No old file. `timeAz`, CSV script calculates this column |
+| `at` | `time_ms` | milliseconds of the same time |
+| `session` | `session` | Which session does this line belong to; Not in any session. |
+| — | `elapsed_s` | Distance **Start of the session for which this line belongs**How many seconds have passed?  Do not act empty in any session. Old file (no session): away from line 1 |
+| — | `gap_s` | How many seconds after the last line? |
+| `source` | `source` | `log`(interactive log), `onboarding`(guide record) or `session`(Photo starts with one line for each session) |
+| `seq` | `seq` | Interactive Log Number (Introduction Record Blank) |
+| `attempt` | `attempt` | Guide Attempt id (only lead log lines) |
+| `actor` | `actor` | "View ass" |
+| `type` | `type` | Type of event; The lead record line is `onboarding.start` / `onboarding.enter` … / `onboarding.setup`(Start workspace or keep crent demo;) Describe answers with Reminders on the back, for example `Setup finished: Start workspace; reminders: review_then_auto`Not without that screen. `onboarding.finish`；Session line `session.start` |
+| `route` | `route` | Page Path |
+| — | `name` | Name of the control; `ui.ask` It is the problem itself; If you don't have two of these. `payload.field`（`ui.edit` Line input box labels, not typed) |
+| — | `target` | Link to (outside is the website + path, inside is the page) or drop box selection |
+| — | `external` | Off-site Link As `TRUE` |
+| `applied` | `applied` | `TRUE` / `FALSE`；Lead record is empty. |
+| `desc` | `description` | A short description in English, for example `Opened outside link "R06 source ↗" → eoss.asu.edu/…` |
+| — | `payload_json` / `before_json` | Completeness of this article `payload` and `before`(JSON text) See if you need details. |
 
-排序规则：按时间；同一毫秒里交互日志在前（点击先被记下，它引起的引导步骤后记），交互日志之间保持编号顺序。
+(b) Sorting rules: by time; The interactive log in the same milliseconds is kept numbered between the interactive logs before (click first, and it triggers a lead step).
 
-CSV 里以 `=`、`+`、`-`、`@` 开头的文字会在前面加一个 `'`，防止 Excel 把参与者打的字当公式执行。
+CSV starts with `=`, `+`, `-` and `@` by adding a `'` before it to prevent Excel from typing participants into formulae.
 
-## 8. 怎么从文件里算研究要的数
+## 8. How do you figure out what's in the file?
 
-评分表每个任务要：是否完成、用时、错误、是否打开了引用来源。
+Each task in the score sheet is to: whether it has been completed, time spent, error, and whether the reference source has been opened.
 
-### 8.1 任务用时
+### 8.1 Task Time
 
-- **方法 A（推荐）**：研究者在 Zoom 上按"任务开始/结束"时记下时钟时间（记到秒，亚利桑那时间）。直接在 CSV 的 `time_az` 列里找这一段（不用再换算 UTC）；用时 = 结束 − 开始。这段里的行就是这个任务的全部操作。
-- **方法 B（没有手记时间时）**：取这个任务"第一条相关事件"到"最后一条相关事件"的时间差。例如：
-  - 建社团：`session.start`（或 `route` 为 `/welcome/founder/name` 的 `ui.navigate`、`onboarding.start`）→ `onboarding.setup`（即 `session.setupCompletedAt`；选了 Start workspace 时紧挨着还有 `completeSetup`）。**不要用 `onboarding.finish`**：它是整个尝试（包括社员预览）结束的时间。
-  - 规则问题：该问题的 `ui.ask` → 参与者给出答案前的最后一个操作（通常是打开来源或下一条 `ui.ask`）。
-  - 计划一个活动：第一条提到活动的 `ui.ask` → `reviewChange`（`decision` 为批准）。
-  - 准备提醒：`ui.reminder`（open）→ 点 `Open … draft`（`external` 为 TRUE、`area` 为 `reminder`）或 `confirmNudgeSent`。
-- **方法 C（2026-11-07 起）**：参与者自己在 Demo 菜单按的任务开始/完成标记（`ui.task`），`done` 行直接带用时；离开页面的时间可以减掉。见第 11.3 节。
-- `gap_s` 很大的行可以看出卡住、思考的地方；中间有 `ui.visibility` 的，是离开了页面。
+- **Method A (recommended)**: Researcher writes clock time on Zoom at "start/end of mission" (in seconds, Arizona time). Find this paragraph directly in the CSV `time_az` column (no conversion to UTC); Time = End - Start. The line in this section is the whole operation of the mission.
+- **Method B (when there is no time to remember)**: The time difference between taking this task "Article 1 related event" and "the last relevant event". For example:
+  - Create student organisation: `session.start`(or) `route`Yes. `/welcome/founder/name`It's... `ui.navigate`、`onboarding.start`）→ `onboarding.setup`(i) `session.setupCompletedAt`； Start workspace is selected right next to `completeSetup`. **Do not use `onboarding.finish`**: it's the end of the whole attempt (including a social preview).
+  - Question of the rules: `ui.ask`* Last operation before the participant gives an answer (usually open source or next entry) `ui.ask`）。
+  - One activity is planned: `ui.ask`  →  `reviewChange` (approved by `decision`) for the activities mentioned in article 1.
+  - Ready to remind: `ui.reminder` (open) →  point `Open … draft` (`external` for TRUE, `area` for `reminder`) or `confirmNudgeSent`.
+- **Method C (2026-11-07 cases)**: Participants themselves start/ finish tagging (`ui.task`) on tasks in the Demo menu, when direct to `done` lines; The time to leave the page can be reduced. See section 11.3.
+- `gap_s` is a big line that can see where it's stuck and where it's thought. There's `ui.visibility` in the middle, is leaving the page.
 
-### 8.2 错误
+### 8.2 Error
 
-可以数的"出错信号"（按需要选用，写进方法里）：
+"Errors" that you can count.
 
-1. 数据动作 `applied` 为 `FALSE`：原型拒绝了（没权限、无效）。
-2. `reviewChange` 里 `decision` 为拒绝、`undoAuto`（撤销 AI 改动）、对同一对象很快又改回去的 `updateNode` / `updateEvent`（对比 `before_json` 和前一次的值）。
-3. 引导里 `onboarding.back`（返回上一屏）、`onboarding.exit`（中途退出）、同一屏多次 `enter`。
-4. `ui.answer` 为 `error` 或 `timeout`（系统的错，不是参与者的错，分开数）。
-5. 走错页：`ui.navigate` / 带 `to` 的点击去了与任务无关的页面又回来。
-6. `repeat` ≥ 2 的点击（连点，可能是没反应或着急）；`ui.click` 的 `applied` 为 `FALSE`（点了不可用的控件）。
+1. Data action `applied` is `FALSE`: The prototype was rejected (no performances, invalid).
+2. `reviewChange`Lee. `decision`For refusing, `undoAuto`(Undo AI changes), re-entering the same object very quickly. `updateNode` / `updateEvent`(Comparation) `before_json`and the previous value).
+3. Lead `onboarding.back` (back to previous screen), `onboarding.exit` (midway exit), same screen several times `enter`.
+4. `ui.answer` is `error` or `timeout` (system error, not participant ' s fault, number of separates).
+5. Wrong page: `ui.navigate`/ Click with `to` to go back to the pages not related to the task.
+6. `repeat`  ≥  2 clicks (connected points, probably unresponsive or in a hurry); `applied` for `ui.click` is `FALSE` (points an unusable control).
 
-### 8.3 是否打开了引用来源（source checking）
+### 8.3 Whether to open the reference source (source checking)
 
-1. 找到这个任务里的 `ui.answer`，看 `citations`（例如 `R06`）。
-2. 之后找 `ui.click` 且 `external` 为 `TRUE`、`area` 为 `answer` 的行（规则回答里的"R06 source ↗"按钮；`name` 里有规则编号，`target` 是来源网页地址）。
-3. 有 → 打开过；没有 → 没打开。Rules 页上的来源链接也会记（`route` 为 `/rules`，`area` 为 `main`），可以另算"在 Rules 页查来源"。
-4. 只能知道"点开了"，不知道在外面那个网页上看了多久、看了什么。
+1. Find `ui.answer` in this task, see `citations` (e. g. `R06`).
+2. `ui.click` and `external` for `TRUE` and `area` for `answer` (the "R06 source" button in the answer to the rules); `name` has a rule number, `target` is the source web address.
+3. Yes  →  opened; No, it's not open. The source link on the Rules page is also recorded (`route` for `/rules` and `area` for `main`), which can be added as "checking sources on the Rules page".
+4. All we know is, "The light's on." I don't know how long it was on that page.
 
-### 8.4 AI 使用
+### 8.4 AI Use
 
-- `ui.ask` 的条数（`via` 区分自己打字 / 点建议）。
-- `ui.answer` 的 `fallback`：TRUE 表示这次没用到 AI；`source` 标签说明具体是谁答的。
-- `aiAutoApply`（AI 直接做的小改动）、`draftChanges`（AI 起草、待批准），以及之后的 `reviewChange` / `undoAuto`，可以看参与者对 AI 建议是接受还是拒绝。
+- Number of `ui.ask` strips (`via` separates its typing/point proposal).
+- `fallback`: TRUE of `ui.answer` indicates that this time it is useless to AI; The `source` label specifies who answered it.
+- `aiAutoApply` (a minor change made directly by AI), `draftChanges` (drafted by AI pending approval) and subsequently `reviewChange`/`undoAuto`, see whether participants accept or reject the AI recommendations.
 
-## 9. 做不到的事（写方法和局限时要说明）
+## 9. Something you can't do.
 
-1. **只记这一个浏览器。** 换浏览器、换电脑、用隐私窗口后关掉，记录都不在了；清除网站数据也会清掉。
-2. **浏览器里最多保留 2000 条**（这一次 sitting 的所有会话合起来），超了丢最早的（看 `droppedEarlier`）。
-   - **开始新会话时，超过 6 小时的旧日志和旧引导尝试会被删掉**（只留条数）。最近 6 小时的不删，所以测试中途误开研究链接不会丢数据，只是文件里多一个会话。但如果同一台电脑上两次测试相隔不到 6 小时又没清浏览器数据，前一位参与者的记录会留在后一位的文件里（每条有 `session`，分得开）：请照 runbook 每位参与者用新的无痕窗口。
-3. **不记按键、不记输入框里打的字**（文本、数字、日期、密码、文件框都不读，也不记长度）。2026-11-07 起只记"在哪个框开始打字、打了多久"（`ui.edit`，第 11.5 节），密码框连这个也不记。表单真正保存时，保存结果会作为数据动作记下（例如 `completeSetup` 里有社团名），这是原来就有的。
-4. **不记 AI 回答的文字**，只记回答种类、引用编号和标签；参与者问的问题文字会记（截断到 200 字符）。
-5. **不记滚动、鼠标移动、停留在页面某处看了多久**；看了多久只能从相邻两行的时间差推测。例外（2026-11-07）：悬停卡开着 ≥ 0.5 秒会记一条（`ui.hover`，只有时长和触发它的控件名）。
-6. **不记站外发生的事**：只知道点开了某个来源或 Gmail/WhatsApp 草稿，不知道在那边做了什么、有没有真的发出。
-7. 键盘在任务卡片上按 Enter 打开详情时，没有"点击"那一条，但有 `ui.details`（open）。Esc 关菜单等按键不记。
-8. 时间来自参与者电脑的时钟；电脑时间不准，`at` 就不准（相对顺序仍以 `seq` 为准）。
-9. 由程序（不是人）触发的点击不记，例如导出时浏览器内部的下载链接。
-10. **iOS Safari 未验证。** 下载已在桌面 Chromium 和手机尺寸（Pixel 7 模拟）上用自动测试验证过。iOS Safari 对"下载文件"的处理不同（可能直接在新页面显示 JSON，需要再用"分享 → 存储到文件"），正式测试前请用一台 iPhone 实测一次；建议参与者用电脑。
+1. **only remembers this browser.** for browsers, computers, shut down with private windows and no records left; Clearing website data will also be cleared.
+2. The **browser keeps up to 2000** (all sessions of this little session are combined) above the earliest (see `droppedEarlier`).
+   - When **starts a new session, old logs and old pilot attempts that exceed 6 hours will be deleted** (only number of notes left). More recently, 6 hours have not been deleted, so the error in testing research links does not lose data, but only one more session in the document. But if the two tests on the same computer are less than 6 hours apart and there is no clear browser data, the records of the former participant will remain in the latter file (with each `session` split): please take a runbook with a new no-trace window for each participant.
+3. **does not press keys, does not record words typed in input boxes** (text, number, date, password, file box do not read and do not remember length). 2026-11-07 marks only "in which box to start typing for how long" (`ui.edit`, sect. 11.5), not even this. When a form is actually saved, the saving result is recorded as a data action (e. g. student event name in `completeSetup`), which was originally available.
+4. **takes no account of the text of the AI answer**, except for the type of reply, reference number and label; The questions asked by the participants are written (closing to 200 characters).
+5. **No scrolling, mouse moving, how long does it stay on the page?**； The time difference between the two sides of the border can only be inferred from how long it takes to look. Exception (2026-11-07): The suspension card is open for one  ≥ 0.5 second (`ui.hover`, with only duration and control name that triggers it).
+6. **does not remember what happened outside the station**: I know only that a source or Gmail/WhatsApp draft is opened, and I don't know what was done there, whether it actually came out.
+7. When you press Enter to open the details on the task card, there is no "click" item, but there is `ui.details` (open). Keys such as the Esc off menu are not marked.
+8. Time comes from the participants' computer clocks; Computer time is not good, `at` is bad (the relative order is still based on `seq`).
+9. Click without memory triggered by a program (not a person), such as the download link within the export browser.
+10. **iOS Safari was not verified.** downloads have been validated by autotesting on desktop chromium and cellular dimensions (Pixel 7 simulation). iOS Safari handles "downloading files" differently (possibly displays JSON directly on the new page and requires another "sharing  →  to store to file"). Please use an iPhone for one time before being formally tested; Participants are advised to use computers.
 
-## 10. 和 IRB 批准文字的对照（请 Juanxi 确认）
+## Comparison of 10. and IRB approval text (please confirm Juanxi)
 
-IRB 文字说日志记"参与者在网站上的每个操作"，每条有编号、真实时间、扮演的虚构人物、操作类型、截断的参数、改动前的值、是否被接受；只存在参与者自己的浏览器里，上限 2000 条，不自动传输，参与者用 Export my data 导出一个 JSON 文件发给研究者。
+The IRB text states that the log says "every operation of the participant on the website", each article has a number, live time, role figure, type of operation, cut parameters, value before change and acceptance; Only exists in the participant ' s own browser, cap 2000, not automatically transmitted, and participants export a JSON file to the researcher using Export my data.
 
-- **一致的地方：** 界面操作和数据动作用的是同一种条目、同一个编号；存储位置、上限、导出方式、不自动上传都没变。"每个操作"现在比以前更接近字面意思（以前只记改数据的动作）。
-- **需要留意、可能要告诉 IRB 的地方（标出来供决定，代码已经按最保守的方式做）：**
-  1. 现在会记"看了什么页面、按了什么、选了哪个选项、点开了哪个外部来源网址（只记网站和路径）"。这是行为记录，没有新的个人信息；但比原来"只记改数据的动作"细。
-  2. 控件名字（`name`）可能含有屏幕上显示的文字：虚构数据，或参与者之前自己输入的内容（例如他起的任务名），截断到 80 字符。IRB 文字已允许"参与者打的字可能以截断形式出现"。
-  3. Ask 的问题原文会进日志（截断到 200 字符）。IRB 文字已举了这个例子。
-  4. 导出文件多了 `build`（网站版本号）、`demoToday`、`onboardingFlowVersion`、`timeline`。这些是关于网站版本或由已有记录整理出来的，不是关于参与者的新信息。
-     - formatVersion 3 多了 `sessions` / `session`：随机会话编号、开始时间、建社团结束的时间和选择、First event 计划还是跳过、更早记录的**条数**。会话编号不关联任何人；"Start workspace / Keep current demo 的时间"和"First event 跳过还是计划"都是已有的行为记录（按钮点击、屏幕步骤）整理出来的，不是新的个人信息。超过 6 小时的旧记录在会话开始时被删除，比以前保存得更少。
-  5. 没有记录：设备型号、浏览器型号、屏幕大小、IP、地理位置、按键、AI 回答文字。
-- AGENTS.md 第 6d 节要求"新增记录项前先问 Juanxi（研究设计，要对照 IRB）"。这一版新增了界面操作记录，**合并前需要 Juanxi 确认**，并决定是否需要告知 IRB（例如通过 Marcie）。
-- **2026-11-07 追加的四项（第 11 节）：Juanxi 于 2026-11-07 批准，作为"只记行为"的记录项**：任务开始/结束标记（`ui.task`）、离开页面的时间（`ui.visibility`）、开始编辑某个输入框及编辑时长（`ui.edit`）、悬停卡打开时长（`ui.hover`）。和 IRB 文字对照：
-  1. 仍是同一个日志、同一种条目、同一个编号；仍只存在参与者自己的浏览器里、上限 2000 条、不自动上传、由参与者自己导出。
-  2. 都不含新的个人信息：没有打的字（连长度都没有）、没有按键、没有 AI 回答、没有设备/浏览器/IP；密码框完全不记。
-  3. 新增的是**时间信息**：参与者离开了页面多久（`awayMs`）、在一个框里打了多久、一张悬停卡开了多久。"离开页面"只知道离开了、离开多久，以及是换了标签页/应用（`tab`）还是窗口失焦（`window`），**不知道去了哪里、做了什么**。
-  4. `ui.edit` 的 `field` 和 `ui.hover` 的 `name` / `near` 来自界面上的标签文字（和 `ui.click` 的 `name` 一样，可能含屏幕上显示的虚构数据，或参与者之前自己输入、后来显示在标签上的文字，截断到 80 / 60 字符）。
-  5. 是否需要告知 IRB（例如作为"日志更细"的小修改），由 Juanxi 决定；代码已按最保守的方式做（例如悬停不到 0.5 秒、离开不到 1 秒都不记）。
+- **Consistency:** interface operations and data dynamics are the same entry, number; The storage location, ceiling, export mode and non-auto upload remain unchanged. "Each operation" is now closer to the literal meaning than it used to be.
+- **Where IRB needs to be noticed and may be told (marked for decision, code is done in the most conservative way):**
+  1. Now it's going to be "Look at what pages, press what, choose which options, click which external web sites (only websites and paths) are opened." This is a record of behaviour and no new personal information; But it's smaller than the original "recording of data only."
+  2. The control name (`name`) may contain text displayed on the screen: fieldingal data, or content previously entered by the participants themselves (e. g. his task name), cutting off to 80 characters. IRB text already allows "The word of the participant may appear in cut-off form".
+  3. Ask questions source text will enter the log (closing to 200 characters). The IRB text already gives this example.
+  4. More files are exported `build` (web version number), `demoToday`, `onboardingFlowVersion`, `timeline`. These are site versions or compiled by existing records and not new information on participants.
+     - FormatVersion 3 is more than `sessions`/ `session`: Time and choice at the time of opportunity numbering, start date, end of construction student event, First event plan or kip, earlier recorded number of ****. Session numbers do not concern anyone; "Start workspace / Keep current demo" and "First event step still plan" are organized from existing behavioral records (button clicks, screen steps), not new personal information. Old records of more than 6 hours were deleted at the beginning of the session, and fewer were kept than before.
+  5. No records: Device type, Browser type, screen size, IP, geographic location, key press, AI answer text.
+- Section 6d of AGENTS.md requires that "Juanxi (research design to compare IRB) be asked before adding a new entry." This version adds an interface operating record, and Juanxi needs to confirm **before** merge and decides whether IRB should be notified (for example through Marcie).
+- **2026-11-07 adds four (sect. 11): Juanxi was approved by 2026-11-07 as a record item for "conduct only"**: the start/ end of mission mark (`ui.task`), time to leave the page (`ui.visibility`), time to begin editing an input box and time to edit it (`ui.edit`) and length of suspension card opening (`ui.hover`). IRB text contrasts:
+  1. Remains the same log, same entry, same number; There are still only participants' own browsers, capped 2000, not automatically uploaded and exported by the participants themselves.
+  2. None of the new personal information: no typed (not even length), no key pressed, no AI answer, no device/browser/IP; The password box is completely missing.
+  3. Added is **Time Info**: How long the participants left the page (`awayMs`), how long they fought in one box and how long a suspension card was open. "Leave the page" only knows how long it's gone and whether the tab/ application (`tab`) or the window is missing (`window`), **does not know where to go, what to do with**.
+  4. `field` for `ui.edit` and `ui.hover` for `name`/ `near` from the interface (as with `name` for `ui.click`), may contain data on film, or text previously entered by the participants themselves and later displayed on the label, cut off to 80/ 60.
+  5. Whether IRB needs to be notified (e.g., as a minor modification of the "record") by Juanxi; The code has been done in the most conservative way (e.g. no 0.5 seconds for suspension, no 1 seconds for departure).
 
-## 11. 2026-11-07 新增：任务标记、离开页面、开始编辑、悬停卡（只记行为）
+## 11. 2026-11-07 Add: Taskmark, Leave Page, Start Edit, Suspend Card (behavior only)
 
-Juanxi 2026-11-07 批准的四项。都写进同一个交互日志，条目结构不变（`seq`、`at`、`actor`、`type`、`payload`、`applied`，没有 `before`），`type` 以 `ui.` 开头，`applied` 都是 `true`。代码：`src/lib/uiLog.ts`（四个记录器）、`src/components/UiLogger.tsx`（装上离开页面和编辑的监听）、`src/components/chrome/DemoMenu.tsx`（任务按钮）、`src/components/ui/index.tsx` 的 `Hover`（悬停卡）、`src/lib/timeline.ts`（时间线里的英文短描述）。
+Juanxi 2026-11-07 approved four. All entries are written in the same interactive journal (`seq`, `at`, `actor`, `type`, `payload`, `applied`, no `before`), `type` starts with `ui.`, and `applied` is `true`. Codes: `src/lib/uiLog.ts` (four recorders), `src/components/UiLogger.tsx` (heavy to leave page and edit), `src/components/chrome/DemoMenu.tsx` (task button), `src/components/ui/index.tsx` `Hover` (suspension card), `src/lib/timeline.ts` (short description in English in the time line).
 
-### 11.1 一览
+### 11.1, a good look.
 
-| `type` | 什么时候记 | `payload` |
+| `type` | When? | `payload` |
 | --- | --- | --- |
-| `ui.task` | 在 Demo 菜单按 Start task N / Done | `task`（1–6）、`event`（`start` / `done`）、`route`（按的时候在哪一页）；`done` 还有 `ms`（这个任务从开始到结束的毫秒数），自动结束的还有 `implicit: true` |
-| `ui.visibility` | 离开页面满 1 秒时一条 `hidden`；回来时一条 `visible` | `state`、`via`（见 11.4）、`route`；`visible` 还有 `awayMs`（离开了多少毫秒）；离开时正在用选择器的有 `picker: true` |
-| `ui.edit` | 聚焦一个输入框后**第一次改动**它：`event: "start"`；离开这个框：`event: "end"` | `route`、`field`（框的标签）、`kind`（`text` / `textarea` / `number` / `date` / `search`）、`area`；`end` 还有 `ms` |
-| `ui.hover` | 悬停卡（`Hover` / `Info`）关上时，如果它开了 ≥ 500 毫秒 | `route`、`name`（触发它的控件名，≤ 80 字符）、`ms`、`via`（`mouse` / `focus` / `tap`）；名字太笼统（"More information"）时加 `near`（它所在的小标题）；`area` |
+| `ui.task` | Press Start task N/ Done on Demo menu | `task`（1–6）、`event`（`start` / `done`）、`route`(on which page at the time); `done` And... `ms`And there's an automatic end to it. `implicit: true` |
+| `ui.visibility` | Leave page one in 1 seconds `hidden`；One when you get back. `visible` | `state`、`via`(See 11.4), `route`；`visible` And... `awayMs`How many milliseconds left? The one that was using the selector when leaving `picker: true` |
+| `ui.edit` | Focus on an input box **first change** it: `event: "start"`；Leave this box: `event: "end"` | `route`、`field`(labels of boxes), `kind`（`text` / `textarea` / `number` / `date` / `search`）、`area`；`end` And... `ms` |
+| `ui.hover` | Suspend card (%1) `Hover` / `Info`When it's closed, if it's open ~ 500 ms | `route`、`name`♪ Trigger its control name, ♪ 80character,  `ms`、`via`（`mouse` / `focus` / `tap`）；Add when too general a name ("More information") `near`(It has a subheading); `area` |
 
-时间线里的样子（`description` 列）：
+The look in the time line (code `description`):
 
 ```
 Started study task 1 on /
@@ -344,101 +344,101 @@ Started study task 2 on /
 Finished study task 2 after 3 min 5 s
 ```
 
-### 11.2 任务标记（`ui.task`）在哪、怎么用
+### 11.2 Task Marker (`ui.task`) where and how to use it
 
-- **位置：** 顶栏的 Demo 小药丸（`Demo · 日期`）→ 菜单第一行 **Study task**：按钮 `1` … `6`（读屏名 "Start task 1" …）和 `Done`（读屏名 "Task done"）。别处界面里没有。
-- **手机：** 同一个 Demo 药丸，点开后菜单占满宽度，按钮一样。**键盘：** Tab 到 Demo 药丸 → Enter 打开 → Tab 到按钮 → Enter。
-- 按完菜单自动关上（方便读任务卡），焦点回到 Demo 药丸。药丸上显示 `· Task 3`，正在进行的那个按钮显示为按下状态；没有任务进行时 Done 是灰的。
-- 参与者开始读一张任务卡时按 Start task N，做完按 Done。**忘了按 Done 就按下一个 Start**：会先自动记一条上一个任务的 `done`，带 `implicit: true`，再记新任务的 `start`。
-- 再按正在进行的那个任务的按钮：什么都不记。
-- "正在进行哪个任务"是从日志里读出来的，所以刷新页面后还在；Reset demo 不影响它。
-- 这几个按钮**不再另记 `ui.click`**（它们自己的 `ui.task` 就是记录）；打开 Demo 菜单那一下照常记 `ui.click`。
-- **引导里没有 Demo 菜单**（`/welcome/…` 的专注外壳不显示顶栏），所以 setup 任务 (f) 不能按按钮，也不需要：它的开始/结束用引导记录（第 8.1 节方法 B：`/welcome/founder/name` 的 `ui.navigate` 或 `onboarding.start` → `completeSetup` 或 `onboarding.finish`）。
-- **编号对应（Juanxi 2026-11-08 定，写进评分表，测试中不改）：**1 = (f) setup（不按）、2–6 = 卡片 (a)–(e)；如果最后"用 Ask 新建活动"要单独计时，可以让 (e) 结束后按 Done，再用 Ask 那一段的 `ui.ask` → `reviewChange` 算。
+- **Location:** topbar Demo small pill (`Demo · date`)  →  **Study task**: button `1`... `6` (read screen names "Start task 1 " ) and `Done` (read screen names "Task done"). Not anywhere else in the interface.
+- **Mobile phone:** is the same Demo pill, with a menu full of width after pointing, like a button. **Keyboard:** Tab to Demo pills * Enter Opens * Tab to the button * Enter.
+- Press the menu to close automatically (readable task card) and focus back on the Demo pill. Displays `· Task 3` on the pill, and the button that is in progress is shown as press status; Done was ash when no task took place.
+- The participants start reading a task card and press Start task N to finish Doe. **forgot to press Done and then hit Start**: `done`, with `implicit: true`, and `start` for the new task.
+- Press the button on the task under way: remember nothing.
+- "What task is going on" was read out of the log, so it's still there after the page has been refreshed; Reset demo doesn't affect it.
+- These buttons **don't separate `ui.click`** (their own `ui.task` is the record); Opens the Demo menu as usual `ui.click`.
+- **There is no Demo menu in the guide.**（`/welcome/…`, so the setup task (f) cannot press a button and does not need: it starts/ends with an orientation record (para. 8.1Section B: `/welcome/founder/name`It's... `ui.navigate`or `onboarding.start` → `completeSetup`or `onboarding.finish`）。
+- **number corresponds (Juanxi 2026-11-08 fixed, added to rating table, tested unchanged):** 1 = (f) setup (non-consistent), 2–6 = card(a)-(e); If the last "New Activity with Ask" is to be counted separately, then you can let (e) press Done after the end and use the Ask section of `ui.ask` →  `reviewChange`.
 
-### 11.3 用任务标记算任务用时
+### 11.3 Time to calculate tasks using task tags
 
-1. 在 CSV 里筛 `type` = `ui.task`。每个任务一对：`start` 行 → `done` 行。
-2. **用时 = `done` 行的 `ms`**（等于两行 `time_ms` 之差）。
-3. `implicit` 为 TRUE 的 `done`：参与者忘了按 Done，这个结束时间其实是他开始下一个任务的时间，偏长。可以改用这段里最后一条和任务有关的操作作为结束（方法 B），或用研究者的手记时间（方法 A）。在方法里写明用的是哪种。
-4. **任务里在原型外的时间**：把这段（`start` 到 `done` 之间）所有 `ui.visibility` `visible` 行的 `awayMs` 加起来。"在原型里的用时" = 用时 − 离开时间。
-5. 这段里的其他行（点击、提问、编辑、悬停）就是这个任务的全部操作，和第 8 节的错误、来源检查一起算。
-6. 按按钮的人是参与者，会忘、会按错。和 Zoom 录像或手记时间核对一次。
+1. Screening `type` = `ui.task` in CSV. Each task is a pair: `start` lines — `done` rows.
+2. **Time spent = `done`Yeah. `ms`**(equivalent to two lines) `time_ms`It's the difference.
+3. `implicit` for TRUE `done`: The participant forgot to press Done, which is actually the time he started his next assignment. The last operation in this paragraph may be replaced by the end (method B) or the time taken by the researcher's hand (method A). What's in the method?
+4. **Time outside the prototype in a mission.**: Take this paragraph. `start`Present. `done`All of them. `ui.visibility` `visible`Yeah. `awayMs`Add it up.  "Time in prototype" = Time - time to leave.
+5. The other lines in this section (click, ask questions, edit, suspend) are all the operations of this task, together with 8 errors, source checks.
+6. The person who pushes the button is a participant, forgets and makes a mistake. And Zoom video or handwritten time check.
 
-### 11.4 离开页面（`ui.visibility`）
+### 11.4 Leave Page (`ui.visibility`)
 
-- **`via: "tab"`**：页面被隐藏——换了标签页、最小化窗口、手机切到别的应用、锁屏。原型里点开的外部来源（ASU 页面、Gmail 草稿）在新标签页打开，所以是这一种。
-- **`via: "window"`**：页面还在屏幕上，但整个浏览器窗口失去了焦点——点到了 Zoom、另一个窗口里的 ASU 网页或 PDF、文件选择框。**决定记这一种**（Juanxi 要求"有价值且不吵才记"）：Zoom 只共享一个浏览器窗口时，参与者去看别的窗口不会让页面"隐藏"，只有窗口失焦能看出来。控制噪音的办法：同样的 1 秒门槛；只看整个窗口失焦，页面里在输入框之间换焦点不算；失焦时正在用下拉框、日期或文件选择器的，标 `picker: true`（那是在选东西，不是离开）。
-- **`via: "close"`**：页面被关掉、刷新或离开（`pagehide`），立刻写，并立刻存进浏览器（不等 1 秒，页面马上就没了）。刷新后会接着一条新的 `ui.navigate`（`from` 为空）。
-- **去噪：** 离开不到 1 秒（快速 Alt-Tab、窗口闪一下）两行都不记。`hidden` 行是在离开满 1 秒时写的，所以它的时间比真正离开**晚约 1 秒**；准确的离开时长看 `visible` 行的 `awayMs`。
-- 先窗口失焦、后来又换了标签页：算一次离开，`hidden` / `visible` 的 `via` 取"更离开"的那种（`tab`）。
-- 手机浏览器会冻结后台页面，这时 `hidden` 行可能没有写上；`visible` 行仍然有完整的 `awayMs`。只关掉没回来的（`close`）没有 `visible` 行。
-- **和官方 ASU 页面对照：** 找 `external` 为 TRUE 的 `ui.click`（打开来源），紧接着的 `hidden` → `visible` 那一对的 `awayMs`，就是他在外面（多半在看那个来源）的时间。这是上限：只知道离开了多久，不知道在外面看了什么、有没有干别的。参与者自己在另一个窗口打开 ASU 网站的，表现为 `window` 或 `tab` 离开，前面没有外部链接点击。
+- **`via: "tab"`**: pages are hidden - tabs changed, windows minimized, cell phones cut to other applications, lock screens. The external source (ASU page, Gmail draft) that is left open in the prototype is opened on a new tab, so this is the one.
+- **`via: "window"`**: The page is still on the screen, but the whole browser window loses focus - points to Zoom, another ASU web page or PDF, file selection box. **decides to remember this type of** (Juanxi requires "valued and quiet"): Zoom shares only one browser window, and the participants look at another window without "hiddening", only if the window is missing. (b) Methods to control noise: the same 1 second threshold; (a) The entire window is missing focus and the page does not allow for a change of focus between input frames; Mark `picker: true` (that's something being selected, not leaving) if you are pulling a frame, date or file selection at the point of failure.
+- **`via: "close"`**: Pages are turned off, refreshed or left (`pagehide`), written immediately and stored in the browser immediately (with no difference of 1 seconds, the page is running out). This will be followed by a new `ui.navigate` (empty of `from`).
+- **Noise:** won't be able to leave 1 seconds (fast Alt-Tab, window flash). `hidden`It's all about leaving. 1It's written in seconds, so it's more time than really leaving. **Late appointment 1sec**； Look at the exact length of time you leave. `visible`Yeah. `awayMs`。
+- First the window is missing and then the tab is changed: `via` for `hidden`/ `visible` takes the type of `tab`.
+- The mobile browser freezes the back-office page, at which time `hidden` lines may not be written; `visible` lines still have complete `awayMs`. Just turn off the unreturned (`close`) no `visible` line.
+- **vs. official ASU page:** looking for `external` for TRUE `ui.click` (open source), followed by the `hidden` →  `visible` couple `awayMs`, which is his time outside (mostly looking at that source). This is the upper limit: I only know how long I've been gone, I don't know what I'm looking at out there or anything else. The participants themselves open the ASU web site in another window, as `window` or `tab` leaves without an external link click.
 
-### 11.5 开始编辑字段（`ui.edit`）
+### 11.5 Start editing fields (`ui.edit`)
 
-- 聚焦一个文本、多行文本、数字、日期或搜索框之后，**第一次真的改动内容**时记 `start`；只点进去不打字不记。同一次聚焦只记一次 `start`，打多少字都一样。
-- 离开这个框（Tab、点别处、换页、关页，**也包括切到别的窗口**——浏览器会让框失去焦点）记 `end`，`ms` = 从第一次改动到离开。再回来接着打字是新的一对。
-- **不记：** 框里的内容、长度、按键、粘贴了什么。**密码框完全不记**（`type="password"`，或 `autocomplete` 里有 password）。复选框、单选、下拉框不算编辑（它们的选择照旧记成 `ui.change`）。
-- `kind`：`text`（也包括 email、网址、电话框）、`textarea`、`number`、`date`（也包括时间框；用日期选择器选一个日期也算改动）、`search`。
-- `field` 只从框的标签来（`aria-label`、`<label>`、提示文字 placeholder），**从不读框里的文字**。标签是界面文字；少数标签里可能有参与者之前起的名字（同 `ui.click` 的 `name`）。
-- **编辑用时：** 一个任务里所有 `end` 行的 `ms` 相加。注意 `ms` 包括框还聚焦着时的停顿和思考，不是"手在打字"的时间。
-- Ask 输入框也算：发出问题后框还聚焦着，接着问下一题不会再记 `start`，离开时的 `end` 包括这几题。
-- CSV：`name` 列现在只取 `name` 或 `question`，所以 `ui.edit` 行的 `name` 列是空的，字段名在 `description` 和 `payload_json` 的 `field` 里（如果要放进 `name` 列，改 `scripts/export-to-csv.mjs` 一行）。
+- After focusing on a text, multi-line text, number, date or search box, **first real change content** timebook `start`; Just go in and don't type. The same focus is only recorded once on `start`, with the same number of words.
+- Departing from this box (Tab, dots elsewhere, page changes, shutdowns, **also includes moving to another window** - the browser loses focus on the frame) takes `end`, `ms` = from first change to departure. Come back and type again is the new couple.
+- **Discreet: What's in the** box, how long, key pressed, pasted. **The password box is completely missing.**（`type="password"`or `autocomplete`There's password in it.  Checkboxes, singles and drops are not edits (their selection is as `ui.change`).
+- `kind`: `text` (also e-mail, web site, telephone box), `textarea`, `number`, `date` (also time frame); Select a date with the date selector to count changes), `search`.
+- `field` comes only from frame labels (`aria-label`, `<label>`, hint text placeholdr), and **never reads text in the box**. The label is the interface text; A few labels may contain names previously named by the participants. `ui.click`It's... `name`）。
+- **Edit Time:** Adds `ms` for all `end` lines in a task. Note that `ms` includes pause and reflection when the frame is still focused, not "hand in typing".
+- The Ask input box also counts: the question box is still focused, and then the next question will not be counted for `start`, including these questions for `end` when leaving.
+- CSV: The `name` column now only takes `name` or `question`, so the `name` rows of `ui.edit` are empty with field names in `description` and `payload_json` `field` (if it is to be placed in `name`, then `scripts/export-to-csv.mjs`).
 
-### 11.6 悬停卡（`ui.hover`）
+### 11.6 Suspended Card (`ui.hover`)
 
-- 规则界面的"停"那一级（AGENTS.md 第 7 节）：彩色点、ⓘ 图标、进度链上的点等，鼠标停上去（或键盘焦点进去）就出现的小卡片；手机上是点一下从底部出来、点别处关上。
-- **关上时写一条**，`ms` 是开着的时间（选了"关时写"而不是"0.5 秒时先写、关时再改"：日志条目写下以后不改，和其他条目一致）。开着不到 500 毫秒（鼠标路过）不记。卡片开着时页面换了：照样写一条，`route` 是它打开时的页面。
-- `via`：`mouse`（电脑上鼠标停着）、`focus`（键盘 Tab 到它，或点了它里面的按钮后焦点留在那里——这时卡片会一直显示到焦点离开，`ms` 会偏长）、`tap`（手机）。
-- `name` 是触发它的控件名（按钮文字或读屏名），**不是卡片里的文字**。很多 ⓘ 的名字都叫 "More information"，所以加 `near` = 它所在的小标题（例如 "Needs a nudge"）。
-- **用法：** 每个任务里 `ui.hover` 的条数和 `ms` 总和 = 参与者看了多少"为什么"的解释；看具体是哪张（例如 Today 风险点的原因、Events 的经费阶段、规则来源）。只知道卡片开了多久，不知道他有没有在读。
+- The "stop" level of the rules interface (AGENTS.md Section 7): colour points, i icons, points on the progress chain etc., and small cards that appear when the mouse stops (or the keyboard focuses in); On the phone, it comes out from the bottom and closes somewhere else.
+- **closes and writes a**, `ms` is the time when it's open ( "Close when you write" instead of "0.5 seconds" instead of "COD003 seconds": log entries will not be changed after they have been written and are consistent with other entries). Less than 500 milliseconds left unattended. When the card was open, the page changed: just write one down, and `route` is the page that it opened.
+- `via`: `mouse` (the mouse on the computer stops), `focus` (Keyboard Tab to it, or click on a button inside it, and then the card will remain focused until the focus leaves, `ms` will be long), `tap` (cell phone).
+- `name` is the control name that triggers it (button text or screenname), and **is not the text in the card**. Many i are called "More information", so add `near` = its subheading (e.g. "Needs a Nudge").
+- **Usage:** The number of articles in `ui.hover` per task and the sum of `ms` = how many "why" explanations did participants see; Depending on which one it is (e.g., the cause of the Today risk point, the funding phase for Events, the source of rules). I just know how long the card's open and I don't know if he's reading it.
 
-### 11.7 条数
+### 11.7 strips
 
-见第 5.5 节：一般节奏约 650 条、非常忙约 1560 条（上限 2000）。e2e `e2e/research-events.spec.ts` 那段（开始任务 1、在 Rules 搜索框打字、读一张悬停卡、离开 2 秒、开始任务 2、键盘按 Done、导出）是 19–20 条，其中这四项共 9 条。
+See 5.5: General rhythm approximately 650, very busy about 1560 (ceiling 2000). The e2e `e2e/research-events.spec.ts` section (starting mission 1, typing in the Rules search box, reading a suspension card, leaving 2 seconds, starting task 2, keyboard pressing Done, exporting) is 19–20, of which four are 9.
 
-## 12. 2026-11-08 新增：Reminders 屏（P3-H，观察社长怎么选）
+## 12. 2026-11-08 Add: Reminders Screen (P3-H, see how to select the president)
 
-社长流程在 First event 之后、Confirm 之前多了一屏 "How should reminders go out?"（`founder.reminders`，路径 `/welcome/founder/reminders`，可跳过）。三个选项，**顺序固定**（每个参与者看到的都一样，所以文件里不另记顺序）：
+The presidient process has an extra screen "How should returns go out" (`founder.reminders`, Path `/welcome/founder/reminders`, kip) after First event. Three options, **sequences fixed** (each participant sees the same, so no order is added to the file):
 
-| 顺序 | 屏幕上的标题 | 下面一行说明 | 存的值 |
+| Order | Titles on screen | Description of the following row | Saved Values |
 | --- | --- | --- | --- |
 | 1 | Send automatically | Platypus emails the officer on that date. | `auto_email` |
 | 2 | I review, then I send | Platypus drafts it. You check and send it. | `review_then_self` |
 | 3 | I review, Platypus sends | You check the draft. Platypus sends it. | `review_then_auto` |
 
-- 屏幕上方一句 "Platypus knows each task's latest start date."，下方一句 "Demo: no email is ever sent."（IRB：测试中不会发出任何提醒）。**一开始一个都没选**，选了才能按 Continue；不想选就按 Skip for now。
-- **不会改变网站的任何行为。** 不管选哪个，网站都不发邮件，提醒仍然是"打开一个草稿、由人自己发"。选了以后，提醒编辑器（Private reminder）里多一行只读的小字，例如 "Your club chose: I review, Platypus sends (demo: nothing is sent)."，跳过就没有这一行。
-- **存在哪：** 按 Start workspace 时存进 `state.org.settings.reminderMode`；跳过（或用旧的 classic 设立页）时这个字段**不存在**。按 Keep current demo 不改社团数据，所以答案只在记录里。
-- **没有新增记录项**，下面这些原来就会记：
-  1. **选了哪个（按标签）、每一次改主意：** 每点一个选项记一条 `ui.change`：`role: "radio"`、`name` = 选项标题（例如 `I review, Platypus sends`）、`checked: true`、`group: "How should reminders go out?"`、`testid` = `reminder-mode-<值>`、`route: "/welcome/founder/reminders"`。改主意就是同一屏上连续几条 `ui.change`；时间线描述例如 `Ticked radio "Send automatically" in "How should reminders go out?" on /welcome/founder/reminders`。
-  2. **在这一屏停了多久：** `onboarding.attempts[].steps` 里 `founder.reminders` 的 `enter` 到 `leave`（或 `back`）的时间差；中途回来再进是新的一对。
-  3. **跳过：** 同一屏的 `skip` 紧接着 `leave`。
-  4. 按 Continue 那一下是 `ui.click`（`name: "Continue"`，`to: "/welcome/founder/confirm"`）。
-- **`reminderModeChoice` 怎么算（会话摘要，第 3.1 节）：** 只看 Start workspace / Keep current demo 之前的步骤。找这一屏最后一次 `leave`：前一步是 `skip` → `skipped`；否则取**离开之前、这个会话里、这一屏上最后一条勾上的 `ui.change`**，按 `testid` 换成值。日志里找不到（例如被 2000 条上限丢了）时，最新的会话再看 `state.org.settings.reminderMode`（只在按了 Start workspace 时）；都没有就是 `null`。刷新这一屏会保留草稿里的选择，刷新前那条 `ui.change` 仍在日志里，所以不影响。
-- 代码：屏幕 `src/onboarding/founder/ReminderMode.tsx`，文案 `src/onboarding/copy.ts`（`founder.reminders`），值和顺序 `src/data/reminderMode.ts`，推算 `src/lib/onboardingRecord.ts` 的 `reminderModeChoice`，时间线 `src/lib/timeline.ts`，测试 `src/test/onboardingReminderMode.test.ts`、`e2e/p3h-reminder-mode.spec.ts`。
+- "Platypus knows each task's latest start date." The following sentence reads "Demo: no email is ever sent." (IRB: No reminder will be given in the test). **Not a single** at first, not to press Continue; Press Skip for now if you don't want to.
+- **won't change any behavior on the website.** doesn't e-mail the website, whatever it is chosen. The reminder is still "open a draft and send it yourself." After this selection, the reminder editor has one more line of read-only words such as "Your Club chose: I review, Platypus sends (demo: nothing is sent."
+- Where **exists:** saves `state.org.settings.reminderMode` when Startworkspace; This field when skip (or old classic page) **Does not exist**。 Press Keep current demo to not change student data, so the answer is only in the record.
+- **No new entries**, and these will be recorded:
+  1. **Select which (by label), every change of mind:** each option takes a `ui.change`: `role: "radio"`, `name` = the title of the option (e. g. `I review, Platypus sends`), `checked: true`, `group: "How should reminders go out?"`, `testid` = `reminder-mode-<value>`, `route: "/welcome/founder/reminders"`. Change of mind is a series of `ui.change`s on the same screen; Timeline description such as `Ticked radio "Send automatically" in "How should reminders go out?" on /welcome/founder/reminders`.
+  2. **How long has this screen stopped?** `onboarding.attempts[].steps`Lee. `founder.reminders`It's... `enter`Present. `leave`(or) `back`(a) The time difference;  It's a new couple to come back midway.
+  3. **skip:** `skip` on the same screen followed immediately by `leave`.
+  4. Press Continue that's `ui.click` (`name: "Continue"`, `to: "/welcome/founder/confirm"`).
+- **`reminderModeChoice` How does it count (summary of the session, 3.1):** looks only at the steps ahead of Start workspace/ Keep current demo. Last time we look for this screen, `leave`: The first step forward is `skip`  →  `skipped`; Otherwise take the `ui.change` **from the last line on this screen before** leaves, in this session, and switch it to `testid`. When not found in the log (e.g. lost by 2000 cap), look at the latest session of `state.org.settings.reminderMode` (only when start workspace is pressed); None is `null`. Refreshing this screen will keep the choice in the draft, refreshing the previous `ui.change` is still on the log, so it doesn't matter.
+- Code: Screen `src/onboarding/founder/ReminderMode.tsx`Text `src/onboarding/copy.ts`（`founder.reminders`), value and order `src/data/reminderMode.ts`It's a calculation. `src/lib/onboardingRecord.ts`It's... `reminderModeChoice`Timeline `src/lib/timeline.ts`Test `src/test/onboardingReminderMode.test.ts`、`e2e/p3h-reminder-mode.spec.ts`。
 
-## 实际任务 Details 与通用提交（2026-11-17 增量）
+## Actual tasks Details and generic submission (2026-11-17 increment)
 
-此增量仅作用于实际 Node，不改 Settings 的 StepTemplate/EventWorkflow；外层schema仍为23。
+This increment only works for the actual Node, and does not change StepTemplate/EventWorkflow of Settings; The outer layer of Schema is still 23.
 
-| 字段/操作 | 含义与边界 |
+| Field/Operation | Meaning and boundaries |
 | --- | --- |
-| `Node.externalLinks[]` | 人工编辑的办理入口标签及http/https URL；未设置使用已知入口，显式空数组不补回；不写回模板 |
-| `Node.taskWork.version/revision` | 兼容版本1内嵌文件与版本2文件引用的通用提交及递增内容版本；保存同时核对归属任期，未知/损坏版本不自动清空 |
-| `taskWork.drafts[]` | 旧版按作者保存的正文/附件ID/业务日继续读取；新自动草稿在独立IndexedDB journal中，不据此标为完成或负责人回复 |
-| `taskWork.submissions[]` | 追加式已提交正文、作者、保存业务日、原负责人任期与附件ID；更正时保留旧提交，其他成员可在节点查看已发布结果 |
-| `taskWork.files[]` | 去重文件元数据与blobKey，原始字节在platypus.task-work/files；旧dataUrl仍可读，完整JSON导出补齐字节，下载用octet-stream，不自动送AI。最多3个当前附件、2MB/个、总计5MB，旧版本历史文件保留 |
-| `platypus.task-work/drafts` | 按工作区哈希、节点、作者、ownerId/ownerVersion隔离，正文与文件引用在同一事务自动提交；revision做跨标签页CAS，事务完成才报告已保存，切换任务不取消；不包含可直接使用的链接签名密钥 |
-| `taskDrafts`（完整导出） | 自动保存的私有未提交草稿及其实际文件字节；downloadExport异步收集，缺文件/保存失败时不输出虚假的完整副本；restoreTaskWorkArchive先暂存文件再返回小业务快照，无新增导入界面 |
-| `saveTaskWork` | 同一次持久写入保存结果与完成；财务节点只保存材料，仍由Event Budget决定完成。业务日志仅记录正文长度和附件元数据；原UI输入日志沿用全站规则 |
-| Edit | 独立面板保存任务定义，带原定义指纹，保留成员提交；Cancel不写入。旧draftLink仍可打开，不冒充新的已提交内容 |
-| `Node.targetDates` | D方案独立版本1日期变更日志：revision和追加changes。每项含id/actorId/ownerId/ownerVersion/on/previousDate/date/message/notifiedPersonIds/affectedNodeIds；随原业务导出保留，未知/损坏日志禁止覆盖；外层仍schema23 |
-| `updateTaskTarget` | 直接改社团目标并按所选成员ID合并站内通知；expectedTask核对日期/归属任期/状态/日志版本。权限从当前viewer或已签发负责人grant取得，不能借用知会人或浏览器中的社长身份；目标、记录和通知一次持久保存，原任务status/成果不变 |
-| 旧延期数据（以下两行是历史兼容） | 新D界面不显示审批按钮，也不创建ExtensionRequest；旧pending不自动应用，新目标保存后取消同节点旧pending，其他历史字段保留。原reviewExtension逻辑保留兼容，不是新D流程入口 |
-| `ExtensionRequest.requestedBy?` | 新申请记录实际操作者，与原ownerId分开；旧申请无此字段则展示原owner。reason作为可选Message，draftLink新申请可为空，旧链接仍可读；通知收件人为现任审批人与现任领导，和请求一起保存 |
-| `reviewExtension` | 当前审批岗位持有人或社长/副社长可处理；离任、改派、过期和截止日版本继续核对；持久化成功才确认，批准只改clubDeadlineOverride，不改官方学校日 |
-| Done退回 / Undo mark done | `replyTask`或负责人grant更新到todo/working/help/waiting，清除completedOn与该任务当前contribution；不删除taskWork结果和历史。Undo核对工作区、作者权限、原归属任期和本次提交revision后恢复原状态，刷新后用状态菜单重新打开；财务Done保持由Event Budget控制 |
+| `Node.externalLinks[]` | Manually edited access labels and http/https URL; No known entrances are set and the visible empty array is not restored; Do not write back templates |
+| `Node.taskWork.version/revision` | Universal submission and incremental content versions of embedded files in compatible version 1 and references to version 2 documents; Save and verify belongings while the unknown/ damaged version is not automatically empty |
+| `taskWork.drafts[]` | The old version continues to be read according to the author ' s body/annex ID/business day; New auto drafts in independent IndexedDB journal are not marked as completed or answered by the person responsible |
+| `taskWork.submissions[]` | The supplement was submitted to the body, author, saving business day, former owner term and attachment ID; Keep old submission when correcting. Other members can view published results at nodes |
+| `taskWork.files[]` | (a) To rewrite file metadata and blobkey, the original bytes at platypus.task-work/files; The old DataUrl is still readable, the full JSON exports completion bytes, downloads with Octet-stream and does not automatically send AI. Up to 3 current attachments, 2MB/total 5MB with old versions of historical files retained |
+| `platypus.task-work/drafts` | Hashi by working area、node、Author、ownerId/ownerVersionIsolation.，Automatic submission of text with reference to document；revisionDo cross tabsCAS，The report is saved after the transaction has been completed，Toggle Task Do Not Cancel；Do not contain directly usable link signature keys |
+| `taskDrafts`(complete export) | Self-saved private unsubmitted drafts and their actual files bytes; (b) DownloadExport astrologing, without file/save failed to produce a false full copy; RestoreTaskWorkArchive first saves the file and returns the small business snapshot without adding an import interface |
+| `saveTaskWork` | (a) The same sustained write-off to save results and complete them; Only material is stored at the financial node, which remains to be completed by the decision of Event Budget. The operational log records only body length and attachment metadata; The original UI input log follows the full site rule |
+| Edit | Independent panel to save the definition of the task, with the original defined fingerprint, and to keep the memory submission; Cansel doesn't write. The old dragLink can still be opened without pretending to be new to the submission |
+| `Node.targetDates` | DProject stand-alone version1Date Change Log：revisionand additionalchanges。Each inclusiveid/actorId/ownerId/ownerVersion/on/previousDate/date/message/notifiedPersonIds/affectedNodeIds；Export reservations with the original business，Unknown/Damage log is forbidden to overwrite；Outer level stillschema23 |
+| `updateTaskTarget` | Directly change target orientation and notify the selected member ID merge station; ExpectedTask reconciliation date/ belong to term/ status/log version. Missions are obtained from the current site or from the issuer, Grant, and cannot be borrowed from a president identity in the informer or browser; Targets, records and notifications maintained on a permanent basis with original tasks status/results unchanged |
+| Old extension data (the following two lines are historically compatible) | The new D interface does not display approval buttons or create ExtensionRequest; Old pending does not automatically apply, while new targets are saved and old nodes are removed. Other historical fields are kept. Original review Extension logic reservation compatible, not the new D process entrance |
+| `ExtensionRequest.requestedBy?` | New application to record the actual operator, separate from former ownerId; The old application does not have such a field to show the original owner. Reason, as an option for Message, a new application for DraftLink can be empty and old links may still be readable; The notification is to be filed by the current approving officer and the current leader, together with the request. |
+| `reviewExtension` | The current approval of the roll holder or president/ Viice presidency may be processed; Continuing reconciliation of outgoing, reassignment, expired and cut-off versions; It was only confirmed by the success of sustainability, and approvals were made only for clubDeadline Override and not for official school days. |
+| Undo mark done | `replyTask`or the head of grant to update to Todo/working/help/waiting, clear completedOn with the task currently contribution; Do not delete taskWork results and history. Undo checks the workspace, authors permissions, original belongings term and restoration status following this submission and re-opens the status menu after refreshing it; Finance Done remains controlled by Event Budget |
 
-所有日期仍由原规则引擎或演示业务时钟产生，操作时间使用原日志的`at`。当前浏览器存储不等于服务器跨设备同步；等待对象grant不能提交原任务。详情见`feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md`。
+All dates are still generated by the original rule engine or demonstration operation clock, using `at` from the log. The current browser storage does not equate to server synchronisation across devices; Could not close temporary folder: %s See `feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md` for details.

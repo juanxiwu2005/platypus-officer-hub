@@ -1,33 +1,33 @@
-# 阶段 0 补齐报告（OB-01 / OB-03 的缺口修复）
+# Phase 0 Completion Report (shortfall repair of OB-01/ OB-03)
 
-> 2026-11-02，Claude。Codex 在 11-01 交付了 OB-01、02、03 的骨架并合并；我对照 `WORK_PACKAGES.md` 和 `PROMPTS.md` 的说明书复核，发现骨架没达到验收门，补齐如下。**这是对 OB-01 和 OB-03 的修复，回滚时要先撤这一个修复提交，再撤 OB-01 / OB-03（见 ROLLBACK_LOG）。**
+> 2026-11-02，Claude。Codex delivered bones and metges of OB-01, 02, 03 at 11-01; I reviewed the instructions of `WORK_PACKAGES.md` and `PROMPTS.md` and found that the skeletons did not reach the acceptance door, as follows. **This is the restoration of OB-01 and OB-03, submitted by rollback before OB-01/OB-03 (see ROLLBACK_LOG).**
 
-## 复核发现（用实际运行验证，不是看提交信息）
+## Review findings (verified with actual operation, not submission of information)
 
-| # | 问题 | 证据 |
+| # | Problem | Evidence |
 | --- | --- | --- |
-| 1 | **入口网址不生效（最严重）：** 文档里给 Juanxi 的预览网址 `/?walkthrough=1#/` 触发不了欢迎页；只有 `/#/?walkthrough=1` 才行。应用是 HashRouter，代码只读 `#` 后面的参数。 | 本机开发服务器、新浏览器，三种网址各开一次：只有第二种进了欢迎页 |
-| 2 | **Reset demo 后欢迎页不再出现。** 重置立刻把样例数据写回浏览器，而入口把"浏览器里有数据"当成"不是第一次"。 | 新测试在修复前失败（桌面和手机） |
-| 3 | 草稿上下文只有 3 个字段，说明书要求把 `Setup.tsx` 的全部状态一次给全（否则后面并行的包没法改它）。 | 读 `draft.tsx` |
-| 4 | 没有进度链、Demo 条；文案表 1 行；`ob-04…09` 的样式空文件和 `@import` 没建；没有 `e2e/ob-helpers.ts`、没有任何 `e2e/ob-*` 页面测试。 | 文件清单；Codex 的三份报告也写了"完整浏览器流程未验证" |
-| 5 | "Replay walkthrough" 不记录；选 Start 后不标"已看过"（中途刷新会被弹回欢迎页）；步骤引擎没有接记录。 | 读代码 |
-| 6 | 外壳套着旧 Join 页会出现两个 `<main>`。 | 读代码；新测试覆盖 |
-| 7 | 样式用了不存在的 token（`--space-4`，靠回退值才没坏）。 | `grep` |
+| 1 | **entry address is not valid (most serious): Preview site for Juanxi in** document `/?walkthrough=1#/` The page was not triggered; Only. `/#/?walkthrough=1` Just do it. The app is HashRouter. Code read only. `#` The parameters that follow.  | This machine develops servers, new browsers, each of the three sites is open: only the second one has entered a welcome page. |
+| 2 | **Reet demo welcomes the page no longer appears.** Resets the sample data back to the browser immediately, and the entrance treats "data in the browser" as not the first time.  | New test failed before restoration (desktops and mobile phones) |
+| 3 | There are only 3 fields in the context of the draft, and the instructions require that the `Setup.tsx` The full state is given at once (otherwise, the parallel packages behind them cannot be changed).  | Read it. `draft.tsx` |
+| 4 | No progress chain, Demo bars; 1 rows; `ob-04…09` Styles empty files and `@import` Not built; Nothing. `e2e/ob-helpers.ts`Nothing. `e2e/ob-*` Browsertes.  | List of documents; Codex's three reports also say "full browser process not verified." |
+| 5 | "Replay walkthrough" not recorded; When you select Start, do not mark "seen" (a midway update will be returned to the welcome page); Step engines are not recorded.  | Read Code |
+| 6 | There's two of them on the page. `<main>`。 | Read the code; New Test Overwrite |
+| 7 | Style uses non-existent token ( `--space-4`, the fallback value is not bad).  | `grep` |
 
-## 做了什么
+## What did you do?
 
-- **OB-01：** `draft.tsx` 补全为完整的社长草稿（俱乐部、章程、AI 阅读状态、岗位触碰标记、工作流、缓冲、第一场活动、确认、邀请码、跳过列表；用单独的 IndexedDB 键 `onboarding-draft` 保存 7 天，不覆盖旧页面的 `setup-draft`）；`engine/flows.ts`（两条流程的步骤表和路由映射）、`engine/useFlow.ts`（由路由驱动的步骤机：next/back/skip/exit，跳过列表进草稿，事件发给记录）；进度链 `ProgressChain`（线用 `scaleX` 生长，跳过是虚线空心点，减少动效下直接出现）；`DemoStrip`；外壳加 Save & exit；`copy.ts` 补全文案表；`ob-04…ob-09` 样式空文件和 `@import`；`e2e/ob-helpers.ts`。
-- **OB-03：** 入口同时读 `#` 前后的参数（`enabled.ts`，有单元测试）；新增 `/welcome/start` 作为"开始一次受记录的 walkthrough"的唯一入口，欢迎页的 Start 和 Demo 菜单的 Replay walkthrough 都走它，选 Start 即标记已看过；`target.ts` 里一个常量 `FOUNDER_START` 决定去哪（OB-10 才切到新流程）；**重置后重新亮起**（`isRearmed()`，记录模块新增一个标记，不删记录）；欢迎页补上隐私一句话。
-- **测试（新增）：** `src/test/onboardingGate.test.ts`、`onboardingRecord.test.ts` 加一条；`e2e/ob-01-shell.spec.ts`、`e2e/ob-03-gate.spec.ts`，桌面 + 手机各 14 条，含：两种网址、关着时零变化、Explore 记住、Start 只记一次、Save & exit、Reset 重新亮起且记录保留、Replay 新记录、Export 带 `onboarding` 且不含输入文字、axe 无障碍。
+- **OB-01:** `draft.tsx` completes the full draft president (clubs, constitution, AI reading status, roll touch mark, workflow, buffer, first event, confirmation, invitation code, skip list; Save 7 days with a separate IndexedDB key `onboarding-draft`, without covering the old page `setup-draft`; `engine/flows.ts` (tables of steps and route mapping for two processes), `engine/useFlow.ts` (step machine driven by route: nett/back/skip/exit, skip list in draft, event sent to record); Progress chain `ProgressChain` (line growing with `scaleX`, skip is a dotted hollow point, direct by reduced kinetic effects); `DemoStrip`；Shell plus Save & exit; `copy.ts` completed full-text form; `ob-04…ob-09` style empty file and `@import`; `e2e/ob-helpers.ts`。
+- **OB-03: Parameters before and after reading `#` at the** entrance (`enabled.ts`, with unittes); Add `/welcome/start` as the only entrance to "starting a recorded walkthrough" and use it on both the Start and Demo menus. Start is marked; `target.ts`, a constant `FOUNDER_START` decides where to go (OB-10 before it gets to the new process); **Reloaded** (`isRearmed()`, record module with a new mark and no records removed); Welcome to the page with a word of privacy.
+- **Test (new):** `src/test/onboardingGate.test.ts`, `onboardingRecord.test.ts` plus one; `e2e/ob-01-shell.spec.ts`, `e2e/ob-03-gate.spec.ts`, desktop + cellular 14 articles, including: two web sites, zero change when closed, Excelore Remember, Start memorization only once, Save & exit, Reset re-light and record retention, Riplay new records, Export with `onboarding` without input text, axe accessibility.
 
-## 没改的
+## Nothing's changed.
 
-旧 `Setup.tsx`、`Join.tsx`、`store.tsx`（只用了 Codex 已改的两处）、`styles.css`、旧测试（一条都没动）。
+Old `Setup.tsx`, `Join.tsx`, `store.tsx` (used only two of Codex's changed), `styles.css`, old tests (none moved).
 
-## 没验证的
+## It's not verified.
 
-真机手指、Safari；`/welcome/classic` 里旧设立页走到最后一步的完整流程（沿用旧页面，没改）；深色和"减少透明度"下的外壳（只有 axe 的静态检查）；进度链动画只在减少动效模式下测过结构，没有逐帧采样（OB-04 起的屏有动效时再补）；入口"开关默认关闭"靠新测试证明，Netlify 上的环境变量 `VITE_ONBOARDING_WALKTHROUGH` 没有设置过。
+Real fingers, Safari; The complete process of `/welcome/classic` from which old pages were created to the last step (carrying with the old page, unchanged); (a) Dark colour and shell under "Reducing Transparency" (only static axe checks); Progress chain animations have been measured only in the mode of reduction of kinetic effects, and no frame-by-frame sampling has taken place (OB-04 screens are supplemented when they have kinematic effects); The portal "Switch Default Close" is certified by a new test that the environmental variable `VITE_ONBOARDING_WALKTHROUGH` on Netlify has not been set.
 
-## 回滚
+## Rollback
 
-先 `git revert` 本修复提交，再按 `ROLLBACK_LOG.md` 撤 OB-03、OB-01、OB-02。R1：不设开关即可让全站回到今天的样子。
+`git revert` Submission of this restoration, then withdrawal by `ROLLBACK_LOG.md` OB-03, OB-01 and OB-02. R1: If you don't set the switch, you can return to what you are today.

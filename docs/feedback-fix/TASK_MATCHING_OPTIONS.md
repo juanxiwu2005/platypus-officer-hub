@@ -1,206 +1,206 @@
-# 任务匹配方案比较与最小原型范围
+# Mission Matching Program Comparison and Minimal Prototype Range
 
-2026-11-16（America/Phoenix） · Codex · 基于 `claude/fervent-thompson-e2j5u2@c85764e`
+2026-11-16 (Americana/Phoenix) . Codex . Based on `claude/fervent-thompson-e2j5u2@c85764e`
 
-本文比较三个选择：社团如何建立职责库、任务如何关联职责、多人符合条件时如何选择执行人。每个选择均从用户体验、研发工作、现有技术限制、最小原型和后续扩展五个角度讨论。**Juanxi 已选定 A2 + B2 + C2，并要求使用 worktree Agent 分两到三个阶段推进；批准后才开始阶段，按明确授权范围执行。** 具体三阶段分工、兼容安排和验收见 [实施计划](TASK_MATCHING_IMPLEMENTATION_PLAN.md)，当前各开发阶段尚未启动。其余选项保留供比较。
+This paper compares three options: how to create a pool of responsibilities, how the tasks relate to responsibilities, and how to select an executor when many people qualify. Each option is discussed from the perspective of user experience, research and development work, existing technological constraints, minimal prototypes and subsequent expansion. **Juanxi has selected A2+B2+C2 and requires worktree Agent to be advanced in two to three phases; After approval, the stage is initiated and implemented within clear terms of reference.** Specific three-stage division of labour, compatibility arrangements and acceptance see [ Implementation Plan ](TASK_MATCHING_IMPLEMENTATION_PLAN.md). The current development phases have not yet been initiated. The remaining options are retained for comparison.
 
-## 已确认方向与共用规则
+## Directions and rules of sharing confirmed
 
-用户已明确：保留并增强 constitution 的 AI 岗位和职责识别；AI 识别不完整时可以人工匹配；不能把所有社团限制在 programs、secretary、marketing 等预设职能中；要支持多种工作流和未来一句话生成工作流。
+User is clear: keep and enhance the recognition of AI role; AI Artificial matching when identifying incomplete; It is not possible to limit all of the existing functions to pre-set functions such as programs, secretary and marketing; A variety of workflows are supported and a word for the future is generated.
 
-沿用 [六项工作顺序](TASK_MATCHING_REVIEW.md)：当前仅讨论任务匹配，后续再做 RACI、提醒计划、邮件编写、点开邮件的流程和后台发送，之后处理新人独立做事。
+Follow the [ six working order ](TASK_MATCHING_REVIEW.md): only task matching is currently discussed, followed by RACI, reminder plan, mail writing, emailing process and back-office dispatch, then processing incoming officer.
 
-以下规则适用于各方案：
+The following rules apply to programmes:
 
-- 岗位名称、职责名称和工作流名称都可由社团自定义，平台示例用来帮助起步。
-- AI 提取的职责保留来源，AI 根据流程提出的新职责标为建议；它们都能人工修改。AI 未找到职责时不把通用模板伪装成章程事实。
-- 一个成员可承担多项职责，同一职责允许多个候选成员。职责标签本身不授予系统权限，也不证明已持有外部账号资格。
-- 一项执行任务明确一名主要执行人。多人候选、协作和每人各做一份是三种不同安排，不能默认复制任务。
-- 无匹配结果时显示缺口。人工已确认的分派不因下一次 AI 调用、页面刷新或工作量重算而被覆盖。
-- 职责以稳定编号关联，改显示名称不破坏任务和岗位关系。
-- 职责名称可以不同，但以相同动作和交付物为边界识别重复；宽泛分组和细分职责不同时参与重复匹配。复合任务明确拆分或需要的多项能力，不能把只符合其中一项的人当作能够完成整项任务。
+- The role name, the duty name and the workflow name can be custom-defined by the student organization, and the platform example is used to help start.
+- AI Retains the source of responsibility drawn from it, and AI identifies new responsibilities based on the process as recommendations; They can be manually modified. AI does not disguise the generic template as a constitution fact when no duties are found.
+- One member may take on multiple duties, the same function allows multiple candidates. The duty label itself does not confer on the system permissions, nor does it certify holding an external account.
+- One mission identified a key implementer. The multiplicity of candidates, collaboration and each one of them are three different arrangements that do not imply duplication.
+- Shows a gap when no matching results are available. Manually confirmed assignments are not covered by the next AI call, page update or recalculation of workload.
+- The duties are linked by a stabilizing number, and the name does not disrupt the task or the role relationship.
+- (a) The name of the duty may vary, but it may be identified as a boundary by the same actions and deliverables; Broad clusters and breakdowns of responsibilities do not involve overlap matching. The combination of tasks is clearly divided or multiple capabilities are required and cannot be considered capable of performing the entire task as those who meet only one of them.
 
-## A 社团如何建立职责库
+## How to create a pool of responsibilities
 
-### A1 人工建立自定义目录
+### A1 Manually create custom directories
 
-社长看 AI 提取或自己填写的岗位，在每个岗位下点击“添加职责”，输入工作名称，或选择本社团已有泡泡。平台提供可修改的示例。原有 AI 岗位识别保留，职责库主要由人建立。
+Read AI extracts or fills itself in by clicking on "Add duties" under each role to enter the job name, or select this current orabubble. The platform provides examples that can be modified. The original AI roll identifies reservations and the job pool is largely created by people.
 
-| 角度 | 方案影响 |
+| Angle | Programme impact |
 | --- | --- |
-| 实际用户体验 | 结果可控，词语符合社团习惯；首次设置要多输入，用户也可能建立含义重复的职责 |
-| 产品研发 | 低到中：职责增改、复用选择、岗位关联、来源保存和被引用时的停用提示；不需要新增职责提取模型任务 |
-| 当前平台限制 | 当前职责是岗位上的短文字，需要增加独立职责记录；多个近义职责不能仅凭字符串相同就判断是否重复 |
-| 最简单原型 | 复用现有岗位和成员，允许添加职责、选择已有职责、预览关联关系；同名提醒，近义重复先由人合并 |
-| 未来扩展性 | 自定义记录和关联可直接扩展；以后可加 AI 起草，无需重建目录，但人工命名差异需要持续整理 |
+| Actual user experience | The result is manageable, and the words correspond to the student organization habit; The first setup is multiple input, and the user may also create a duplicate function. |
+| Product research and development | Low-to-medium: additional duties, reuse options, rale connections, source saving and deactivated tips when quoted; No additional job extraction model task required |
+| Current Platform Limits | The current function is short text on the roll and requires an additional independent record of duties; Multiple generic duties cannot be judged by the mere existence of a string. |
+| Simplest prototype | Reuse existing roles and members, allowing the addition of duties, selection of existing functions, previewing links; Reminder with the same name. |
+| Future Extensions | Customized records and connections can be expanded directly; At a later date, AI may be drafted without re-establishing the directory, but manual naming differences need to be kept up to date |
 
-### A2 AI 从章程起草 人工确认
+### A2 AI from drafting manual confirmation
 
-上传章程后先显示原岗位，再在岗位下展示 AI 建议的职责泡泡。点泡泡能看其定义、交付物及章程原文；社长保留、修改、合并或补充，再批量确认。没有章程或 AI 失败时，直接采用 A1 的操作。
+Uploads the constitution before displaying the original rolle and then displays the AI recommended job bubbles under the role. Bubbles can see their definition, delivery source text; President reserves, changes, metges or supplements and is confirmed in bulk. When no constitution or AI fails, direct A1 operations.
 
-| 角度 | 方案影响 |
+| Angle | Programme impact |
 | --- | --- |
-| 实际用户体验 | 初次输入较少，保留社团原有语言；社长要检查章程是否完整，以及 AI 是否过度概括 |
-| 产品研发 | 中：复用文件读取和现有 AI 接口流程，增加职责结构化输出、本地验证、原文引用校验、确认状态和修改保护 |
-| 当前平台限制 | 现有主应用提取的 duties 是每岗位一两句话，不能直接当成独立职责库；长文会摘录，识别可能漏项；扫描 PDF 暂无 OCR；AIR 调用受时间和输出额度限制 |
-| 最简单原型 | 只做岗位职责提取，分批运行；AI 建议立即可编辑；来源片段与人工补录并列；重试仅处理失败部分，不覆盖已确认内容 |
-| 未来扩展性 | 后续接流程文件、岗位目标及适用政策行动，沿用相同职责记录；新版本章程以差异建议更新，不整库覆盖 |
+| Actual user experience | Less initial input and retention of original language; President wants to check whether the constitution is complete and whether AI is overly general |
+| Product research and development | : re-read the file and existing AI interface processes to add responsibility structure output, local validation, source text reference check, confirm state and modify protection |
+| Current Platform Limits | Duties extracted from existing master applications are one or two sentences per rule and cannot be used directly as a separate repository of duties; The document will be excerpted to identify possible omissions; Scanning PDF for OCRs; AIR call is limited by time and output |
+| Simplest prototype | Do role job extraction only, run in batches; AI recommends immediate editing; Source snippets are listed together with manual offsets; Try again only to handle the failed part and do not overwrite confirmed content |
+| Future Extensions | Follow-up process documents, roll targets and applicable policy actions, with the same record of responsibility; New version constitution is recommended to be updated with variance, not full library overwrite |
 
-建议采用 A2，A1 是始终可用的手动路径。原型优先验证“AI 建议是否减少填写”，不追求让模型自动理解所有组织知识。
+It is recommended that A2,A1 be a manual path always available. The prototype prioritizes the validation of “AI recommendations for fewer entries” and does not seek to allow models to automatically understand all organizational knowledge.
 
-### A3 从实际工作流逐步建立目录
+### A3 Progressive establishment of catalogues from actual workflow
 
-章程仍用于识别岗位和已有职责。当社长创建第一种工作流时，系统从任务里提出所需职责，优先复用已确认职责；缺少的职责在当前任务旁补建。以后新增工作流时继续补充。
+Constitution is still used to identify role and existing duties. When the first workflow is created, the system identifies the required duties from the task and gives priority to the identified functions; The missing duties are built up alongside the current mandate. Additional workflows will continue to be added.
 
-| 角度 | 方案影响 |
+| Angle | Programme impact |
 | --- | --- |
-| 实际用户体验 | 先开始规划实际工作，不必先整理完整目录；创建工作流时会遇到职责补充和同义合并的打断 |
-| 产品研发 | 中到高：除目录外，还需要任务分析、复用建议、跨流程去重以及增量更新 |
-| 当前平台限制 | 当前创建活动主要套固定模板，尚未接通任意新工作流到统一职责库；只看活动容易漏掉年度注册等组织通用工作 |
-| 最简单原型 | 在两份示例工作流里手动标出缺少的职责，允许原地新建并指定岗位；第二份流程复用第一份的职责 |
-| 未来扩展性 | 适合未来一句话生成工作流；仍需章程和政策的独立缺口检查，不能把“最近做过的任务”当成全部组织职责 |
+| Actual user experience | (b) To begin planning actual work without having to complete the catalogue; Job streams are created with job supplement and synonym interruption. |
+| Product research and development | Mid-to-high: mission analysis, recommendations for reuse, process weighting and incremental updates are required in addition to the directory |
+| Current Platform Limits | The current creation of a major fixed template has yet to connect any new work to a single repository of duties; It's easy to miss organizations like the annual register. |
+| Simplest prototype | Manually mark the missing duties in two examples of workflows, allowing for the creation and designation of role in situ; 2nd Process Reuse First Duty |
+| Future Extensions | (a) Fits for the generation of workflows in a future sentence; There is still a need for an independent gap check of the constitution and policy, so that “recent tasks” cannot be considered as all organizational duties. |
 
-A3 可作为 A2 的后续增量入口。这里的三个选项描述首次建立目录的主路径，不要求永久互斥。
+A3 can be used as a follow-on incremental entrance to A2. The three options here describe the main path for the first creation of a directory, without requiring permanent peer-to-peer rejection.
 
-## B 任务如何关联职责
+## B. How mandates relate to responsibilities
 
-### B1 每份工作流直接绑定岗位
+### B1 Directly tied per job stream
 
-社长在模板里把“申请场地”指定给赛事负责人、“调试程序”指定给软件负责人。新活动复制模板的岗位安排，具体人选再按 C 类方案确定。
+In the template, president assigns “application space” to the event manager and the debugging programme to the software owner. The roll arrangement for reproducing the template for new activities will be followed by category C options.
 
-| 角度 | 方案影响 |
+| Angle | Programme impact |
 | --- | --- |
-| 实际用户体验 | 直观，熟悉的固定流程只需设置一次；相似任务出现在多个模板时，要分别维护 |
-| 产品研发 | 低，最接近现有 `ownerRoleId` 和流程编辑器；仍需停止从未知岗位名静默回退到预设职能 |
-| 当前平台限制 | 当前已有一个步骤对应一个岗位，支持人工修改；一个岗位多人时，现有主应用还需单独的人选选择层 |
-| 最简单原型 | 在两个可编辑模板中选择岗位、预览成员；不做自动语义匹配 |
-| 未来扩展性 | 可支持更多模板，但组织变动时修改分散；AI 新生成的工作流也需要建立本份模板的岗位关系 |
+| Actual user experience | Intuitive, familiar fixed processes only need to be set up once; Similar tasks are maintained separately when they occur in multiple templates |
+| Product research and development | Low, closest to current `ownerRoleId` and process editor; Still has to stop from unknown role name silence fallback to preset function |
+| Current Platform Limits | Currently, there is a step towards a roll to support manual modifications; The current master application also requires a separate selection layer when there are more than one roller. |
+| Simplest prototype | Select role and preview members from two editable templates; Do not automatically semantic matching |
+| Future Extensions | More templates can be supported, but modifications are decentralized when organizational changes occur; AI's newly generated workflow also needs to create a ruler relationship for this template |
 
-B1 可以验证分派交互，但不能单独验证可跨流程复用的职责库。
+B1 can verify the assignment interaction, but not separately the functional pool that can be used for re-occupation.
 
-### B2 模板任务绑定职责 再由职责找到候选人
+### B2 Template task binding duties, then the job finding a candidate.
 
-“申请会议室”和“申请比赛场地”都关联本社团的“场地协调”。改由谁承担场地协调后，未来创建的任务可以按新配置找人，已有任务保持原分派并提示需要处理的变更。新任务第一次由 AI 建议或人选择职责，确认后保存在模板。
+The “Application Room” and the “Appropriate Playground” are linked to the “Place Coordination” of this book. As a result of the change to who would take responsibility for site coordination, tasks created in the future could be identified according to new configurations, with existing assignments remaining as assigned and indications of changes that need to be addressed. For the first time, a new task is recommended by AI or selected by someone and will be stored in the template after confirmation.
 
-| 角度 | 方案影响 |
+| Angle | Programme impact |
 | --- | --- |
-| 实际用户体验 | 第一次核对任务需要什么职责，后续重复活动可以直接复用；详情可以解释职责、候选人和选择理由 |
-| 产品研发 | 中：职责引用、岗位及成员关联、模板与实例区分、确认来源和受影响范围提示；AI 可只参与初次建议 |
-| 当前平台限制 | 主应用任务依赖单一 `fn` 和 `ownerId`，要增加职责引用和候选查找；旧职能还被其他页面使用，不能直接删除后假定兼容 |
-| 最简单原型 | 每个演练任务只关联一项主要职责；需要多种专业交付物的任务先拆开；AI 不参与每次重复活动的成员选择 |
-| 未来扩展性 | 适合多个工作流共享职责；以后可加协作职责、可替代职责和流程范围内的默认人选，保持同一项职责的身份 |
+| Actual user experience | For the first time, it checks what duties are required for a task and subsequent duplication of activities can be directly reused; Details can explain duties, candidates and reasons for selection |
+| Product research and development | : functional references, role and membership links, templates to examples, identification of sources and reference to affected areas; AI may only participate in initial recommendations |
+| Current Platform Limits | Main applications rely on a single task `fn` and `ownerId`，To add reference to duties and candidate search；Old functions are also used on other pages，Can't just delete and assume compatibility |
+| Simplest prototype | Only one primary function is associated with each exercise assignment; (a) Tasks requiring multiple professional deliverables are first separated; AI does not participate in the selection of members for each repeat activity |
+| Future Extensions | (b) Be suited to multiple workflows for sharing responsibilities; At a later stage, there will be collaborative responsibilities, alternative responsibilities and defaults within processes to maintain the identity of the same duties |
 
-建议采用 B2，给已有模板维护职责关系，给新工作流提供统一入口。首版不做复杂的技能权重模型。
+It is recommended that B2 be used to maintain the functional relationship with existing templates and provide a single entry point for new workflows. The first version does not model complex skill weights.
 
-### B3 新任务创建时由 AI 按描述推荐职责
+### B3 New job created by AI recommended duties as described
 
-用户输入“组织一次机器人比赛”，AI 提出步骤，再根据当前组织职责库给每个步骤推荐已有职责。找不到时提出新职责建议，社长集中处理不明确的项。确认后仍保存任务、职责和人选，不随每次查看重新推理。
+The user inputes a “organisation of a robotic competition”, and AI proposes steps to recommend existing responsibilities for each step based on the current organizational memory. When not found, a proposal for new duties is made and the president concentrates on unclear items. After confirmation, the tasks, duties and candidates are preserved without re-examining at each time.
 
-| 角度 | 方案影响 |
+| Angle | Programme impact |
 | --- | --- |
-| 实际用户体验 | 自由输入和临时工作更方便；需要查看不确定项，结果可能受任务描述和模型判断影响 |
-| 产品研发 | 中到高：限定已有职责编号、验证模型输出、处理无匹配与复合任务、保存结果并保护人工修改 |
-| 当前平台限制 | 实际 AI 延迟和结构化结果可能失败；当前标准活动创建不逐项调用这套机制，任意工作流生成也不是主应用已完成的能力 |
-| 最简单原型 | 粘贴少量任务描述，模型一次推荐职责，人确认后冻结结果；模型失败时显示 B2 的人工选择器 |
-| 未来扩展性 | 适合临时任务和未来新工作流，依赖 B2 类职责数据基础；常用结果应保存为模板，减少重复等待 |
+| Actual user experience | (a) Free input and temporary work are easier; Need to look for uncertainties and results may be influenced by mission descriptions and model judgements |
+| Product research and development | Mid-to-High: Limiting existing functional numbers, validating model output, processing unmatched and composite tasks, saving results and protecting manual modifications |
+| Current Platform Limits | Actual AI delayed and structured results may fail; The current standard activity creates a non-line-by-line application of this mechanism, and arbitrary workflow generation is not the primary application of completed capabilities |
+| Simplest prototype | Paste a small number of job descriptions, model one recommended function and freeze the results when identified; A manual chooser to display B2 when the model fails |
+| Future Extensions | Fit for temporary assignments and future new workflows, relying on the B2 function data base; Common results should be saved as templates to reduce duplication of waiting |
 
-B3 与 B2 可以组合：B3 处理第一次，B2 负责之后可靠复用。
+B3 and B2 can be combined: B3 handles the first time, B2 is responsible for a reliable reuse.
 
-## C 同职责多人如何选执行人
+## C. How to select the executors for multiple co-operators
 
-### C1 多人符合时由社长选一人
+### C1 Select one person by the president when more people match.
 
-只有一名可承接成员时可预选；多名候选并列显示，社长在创建活动时批量确定。选人界面显示所属岗位、职责依据，以及已记录的不可用情况。
+Only one member can be preselected; Several candidates are listed in parallel, and the president is identified by lot at the time of creation. The selected interface displays the role of which you belong, the basis of your duties, and recorded non-availability.
 
-| 角度 | 方案影响 |
+| Angle | Programme impact |
 | --- | --- |
-| 实际用户体验 | 选择可解释，人知道真实分工；重复活动较多时，社长仍要处理不少人选 |
-| 产品研发 | 低：候选查找、去重、单选、未解决列表，以及保存人工决定 |
-| 当前平台限制 | 当前没有共享职责候选池；需要增加成员与职责关系，不能直接把现有多选框当成多人择一 |
-| 最简单原型 | 两个人勾同职责，任务显示两名候选；只生成一条任务、只选一个主执行人 |
-| 未来扩展性 | 可保留为所有自动策略的例外处理；人选确定和后续邮件自动发送仍可分别运行 |
+| Actual user experience | Selection can be explained, and people know the living division of labour; There's still a lot of people to handle when there's more duplication. |
+| Product research and development | Low: Candidate search, deweighting, single selection, unresolved list and depositary decision |
+| Current Platform Limits | There is currently no pool of candidates for shared responsibilities; There is a need to increase the number of members with responsibility and not consider existing multiple frames as one option. |
+| Simplest prototype | (a) Two persons with responsibilities and two candidates for assignment; Generate only one task, select only the main executor. |
+| Future Extensions | Exceptions to all automatic strategies may be retained; Can not get folder: %s: %s |
 
-### C2 每项职责设置默认承接人与备份
+### C2 Default receiver and backup for each function
 
-设置职责时，从合格成员中选主要承接人和备份。创建任务时预选默认人，允许单次修改。默认人已明确不可用时，展示备份供确认；两人都不可用则留待处理。没有默认设置的职责采用 C1。
+Sets the duties by selecting the main recipient and backup from a qualified member. Can not delete folder: %s: No such folder A backup is displayed for confirmation when the defaulter is clearly not available; Both individuals are left to be dealt with. There is no default setting of duties to use C1.
 
-| 角度 | 方案影响 |
+| Angle | Programme impact |
 | --- | --- |
-| 实际用户体验 | 设置一次后重复工作省事，适合场地、财务和对外联系；若多人应均摊工作，长期都给同一个人可能不合适 |
-| 产品研发 | 低到中：增加职责默认人选、有效性检查和实例覆盖；不需要准确估计每个人的剩余工时 |
-| 当前平台限制 | 默认人选必须与“合格候选”分开存，岗位持有人不等于所有工作的默认执行人；外部系统权限首版只能人工记录 |
-| 最简单原型 | 主要承接人、备份、手动不可用；缺少设置或产生冲突时转入 C1，确认后再保存分派 |
-| 未来扩展性 | 后续可为特定工作流设置人选偏好，或把部分职责改成 C3；这些变化不需要复制一份近义职责 |
+| Actual user experience | (a) Replication of work after one, which is cost-effective and suitable for space, finance and outreach; It may not be appropriate to give the same person a long time if more people should share their jobs. |
+| Product research and development | Low to medium: increase the number of defaults for duties, validity checks and coverage of examples; We don't need to estimate each other's remaining hours. |
+| Current Platform Limits | The default candidate must be separated from the `qualified candidate' and the roll holder does not equal all work 's default executor; External systems permissions first edition can only be manually recorded |
+| Simplest prototype | (b) Principal recipient, backup and non-functional manual; Transfer to C1 when no settings are available or conflict arises, and save the assignment after confirmation |
+| Future Extensions | Follow-up may create a preference for a particular stream of work, or change part of the function to C3; These changes don't require a copy of the exact duties. |
 
-建议最小可用版采用 C2，并保留 C1 处理例外。默认预选不等于成员已经确认接手，任务认领需与分派分别记录。
+It is recommended that the least available version be C2 and retain C1 to deal with exceptions. The default preselection does not amount to a confirmation of takeover and task recognition is recorded separately from assignment.
 
-### C3 在合格候选中按容量或轮转规则分配
+### C3 Distribution of eligible candidates according to capacity or rotation rules
 
-先排除明确不符合必要权限或不可用的候选，再按社团选定规则分配：例如轮转，或在有投入估计和容量资料时优先给剩余容量较多的人。显示选择理由，允许人工调整。
+Candidates that clearly do not meet the requirements are excluded or are not available, then allocated according to the chosen rule of student organization: e.g. rotation, or priority for those with a higher remaining capacity when input estimates and capacity information are available. Displays reasons for selection and allows manual adjustment.
 
-| 角度 | 方案影响 |
+| Angle | Programme impact |
 | --- | --- |
-| 实际用户体验 | 多人可分摊重复工作；按容量分配时，需要维护可用情况和预计实际投入，数据维护成本较高 |
-| 产品研发 | 中到高：纯轮转相对简单；容量策略还需跨工作流计算、固定同分规则、保存轮转与分派记录，避免刷新后重新换人 |
-| 当前平台限制 | 现有未完成任务数量和规划天数只是粗略指标；主应用没有完整的成员容量数据，也没有真实多人同步的分派记录 |
-| 最简单原型 | 若要比较公平性，先做明确的轮转演练；若做容量演练，使用虚构的人工填写容量，清楚显示估计依据 |
-| 未来扩展性 | 适合大量重复任务，后续可按职责选择不同策略；多用户同时操作后，需服务器处理分派的一致性 |
+| Actual user experience | (b) Multiple individuals may be assigned to duplicate work; When distributed by volume, maintenance of availability and expected actual inputs is required and data maintenance costs are higher |
+| Product research and development | Mid-to-high: pure wheeling is relatively simple; Capacity strategy also requires cross-flow calculations, fixed splitting rules, maintenance of rotation and assignment records, and avoidance of refilling after refreshing |
+| Current Platform Limits | The number of outstanding tasks and planned days available are only rough indicators; The main application does not have complete memory capacity data, and there are no live multi-person distribution records. |
+| Simplest prototype | (b) To be more equitable, a clear rotation exercise should first be performed; If you perform a capacity exercise, use the manual filling capacity of the field to clearly show the basis for the estimate |
+| Future Extensions | (a) Be suitable for a large number of overlapping tasks, and follow-up may choose different strategies according to their responsibilities; When multiple users operate simultaneously, the server is required to process the consistency of assignments |
 
-C3 不应自动把“谁任务少”当成“谁有空”。任务专业资格和操作权限是筛选条件，分摊规则只在合格候选之间应用。
+C3 The term “who has less task” should not automatically be used as “who is available”. Task professional qualifications and operations missions are screening conditions, and the rules of assessment apply only between qualified candidates.
 
-## 现有代码能复用什么
+## What can the existing code be reused?
 
-| 已有基础 | 能复用的部分 | 需要补的部分 |
+| Existing base | What can be reused | What needs to be added |
 | --- | --- | --- |
-| 主应用文件读取与章程 AI | PDF、docx、文本读取；岗位和职责分批提取；已有人工字段保护 | 独立职责记录、可核对来源、职责去重、确认状态 |
-| 主应用模板与任务 | 步骤编辑、明确岗位、任务执行人、现有日期引擎 | 职责引用、模板与任务实例的匹配来源、候选人和例外处理 |
-| 主应用成员与岗位 | 可用作演练的现有成员输入 | 新增成员与职责关系；完整的一人多岗与同岗多人管理还需单独适配 |
-| 隐藏的 Organization Setup | 自定义岗位、原文、职责数组、工作项、关联与人工字段保护等设计 | 与主应用统一的数据桥接；不能假定开启开关就完成迁移 |
-| 隐藏的 Activity workspace | 多岗位成员、多个协作成员、服务器修订与命令模式 | 多候选的实际分配策略、真实组织成员身份与主应用接入 |
+| Main Application Read with Constitution AI | PDF, docx, text reading; (a) The role and the functions are drawn in batches; Manual field protection already available | Independent record of duties, verifiable sources, re-profiling, confirmation status |
+| Main application templates and tasks | Step editing, clear role, mandate holders, current date engine | Sources, candidates and exceptions for functional references, templates and mission examples |
+| Main application member and roll | Existing memory input that can be used as an exercise | Add a new part to the function; Full multi-service and multi-person compatriot management needs to be matched separately |
+| Hide Organization Setup | Custom role, source text, job arrays, tasks, association and manual field protection | (a) Connecting data bridges to the main application; It can't be assumed that the switch will be turned on to complete the migration. |
+| Hide Workspace | Multiple role members, multiple collaborations, server revision and command mode | Multi-candidature practical distribution strategy, live group member access to identity and master applications |
 
-代码依据：[`constitution.ts`](../../src/lib/constitution.ts)、[`useReading.ts`](../../src/onboarding/founder/constitution/useReading.ts)、[`readDocument.ts`](../../src/lib/readDocument.ts)、[`types.ts`](../../src/data/types.ts)、[`organization/schema.ts`](../../src/organization/schema.ts)、[`workspace/contracts/index.ts`](../../src/workspace/contracts/index.ts)、[`runtime.mts`](../../netlify/lib/workspace/runtime.mts)。
+The code is based on: [ `constitution.ts` ](../../src/lib/constitution.ts), [ `useReading.ts` ](../../src/onboarding/founder/constitution/useReading.ts), [ `readDocument.ts` ](../../src/lib/readDocument.ts), [ `types.ts` ](../../src/data/types.ts), [ `organization/schema.ts` ](../../src/organization/schema.ts), [ `workspace/contracts/index.ts` ](../../src/workspace/contracts/index.ts) and [ `runtime.mts` ](../../netlify/lib/workspace/runtime.mts).
 
-现有主业务存在浏览器本地；另一套服务器工作区默认隐藏并保持独立。原型可在同一浏览器演练；真实多人同时编辑和跨设备分派需要后续接入服务器的组织、成员、权限与持久化，不能仅添加页面。
+(a) The existing main business has a browser site; Another set of server workspaces hides and maintains independence by default. The prototype can be rehearsed in the same browser; Live multi-person editing and cross-equipment assignment of organizations, members, missions and durability that require follow-up access to the server cannot simply add pages.
 
-目前章程读取已有 24 个岗位上限、每批最多 6 个岗位的职责读取、每岗位短文字上限；新职责记录不能被迫塞回这些短字符串。20 人的规则筛选计算量不大，主要限制是职责是否清楚、资料是否完整、AI 等待和数据是否一致，而非需要很复杂的优化算法。
+Constitution currently reads up to 24 caps, up to 6 caps for jobs per batch, up to short text ceilings per ruler; The new record of duties cannot be forced to plug back into these short strings. The rules of the 20 people screen for a small amount of calculation, which is mainly limited to clarity of duties, completeness of information, AI waiting and consistency of data, rather than requiring complex optimization algorithms.
 
-## 两个原型范围可供选择
+## Two prototype ranges available
 
-### P1 最快验证交互
+### P1
 
-采用 A1 + B1 + C1。保留现有章程识别，用人工职责和人工岗位选择演练。研发最少，能判断用户是否看懂和能否选人，但未验证跨流程职责复用和自动选人的长期价值。
+Adopt A1 + B1 + C1. Keeps the existing constitution recognition and selects rehearsals with manual duties and manual role. The least developed is the ability to determine whether users understand and can select, but it does not validate the long-term value of cross-flow responsibilities and automatic selection.
 
-### P2 验证职责框架的最小可用版
+### P2 Minimum available version of the authentication function framework
 
-建议采用 A2 + B2 + C2，并把 A1、C1 作为失败和例外处理。复用现有文件读取与 AI 适配，建立独立匹配演练入口，先与旧演示存档隔离；保留未来接入真实成员和服务器的关系结构。
+A2 + B2 + C2 is recommended, and A1 and C1 are treated as failures and exceptions. (b) Re-read existing files to fit with AI and create an independent matching exercise portal that will be isolated from the archive of old presentations; Keeps the relationship structure for future access to live members and servers.
 
-原型只需三个连续画面：
+The prototype only needs three consecutive images:
 
-1. 我的社团职责：上传或粘贴虚构章程，查看岗位、职责泡泡及来源，人工补改并确认。
-2. 这份工作需要什么：打开一份模板，为任务选择职责；再打开第二份不同工作流，复用已有职责并处理缺口。
-3. 分给谁：显示候选、默认承接人和备份，集中处理待分配项，确认后查看最终执行人和理由。
+1. My student obligation: uploading or pasting the field coordination, viewing the role, the bubbles and sources of the duties, fixing them manually and confirming them.
+2. What is needed for this job: to open a template and select responsibilities for the task; A second stream of different jobs is opened, existing duties are reused and gaps are addressed.
+3. To whom: display candidates, default receivers and backups, centralize pending assignments, and check final implementers and reasons after confirmation.
 
-最小数据需要表达职责、岗位与职责关系、成员可承接的职责、任务的主要职责、职责默认人和实际任务分派。首版复用已有成员输入，完整同岗多人管理稍后补充；计算候选时按成员身份去重，避免未来一人多岗重复出现。示例模板和职责关系存为可编辑数据，不放进固定岗位名称判断中。
+The minimum data requires the expression of duties, role and function relationship, memory functions, principal duties, defaults and actual assignment of tasks. The first version has been reprinted and will be supplemented later by full peer management; Candidates are counted in terms of membership to avoid the repetition of one person in the future. Example templates and functional relationships are stored as editable data and are not placed in a fixed line name judgement.
 
-先用 10–20 名虚构成员、两种差异明显的工作流和少量代表任务验证。之后接入首份正式模板时，逐项映射全部 46 种标准步骤，再核对适用的通用政策行动。这个代表样本不构成全部政策覆盖证明。
+First authenticated with 10–20 name field members, two distinct workflows and a small number of representative tasks. When the first official template is then accessed, all 46 standard steps are mapped item by item and the applicable generic policy actions are checked. This representative sample does not constitute full proof of policy coverage.
 
-原型验收至少包括：
+Prototype acceptance includes at least:
 
-- 自定义专业岗位不必归入现有九类职能；AI 失败、没有章程或职责缺失时，人工仍可继续。
-- 两份不同工作流复用同一项职责，不为每个流程复制同义标签；也允许增加新职责。
-- 岗位或职责改名后关联保留；被引用的职责停用时能看到影响。
-- 两名合格成员只产生一个任务的主要执行人；无候选、无人可用和无默认规则时显示待处理。
-- 人工改派后刷新或再次生成不覆盖决定；修改模板不静默改变已有任务执行人。
-- 职责符合但必要操作权限未确认时显示原因，不把标签当作已经获准的凭证。
+- Self-defined professionals rule need not be classified into nine existing categories of functions; AI can continue manually if it fails, there is no consultation or the function is missing.
+- (b) The two different workflows revert to the same duty and do not reproduce synonym labels for each process; New responsibilities are also allowed.
+- (a) The renaming of the role or the retention of the link; The impact can be seen when the duties quoted are discontinued.
+- Two qualified members produce only one principal executor of the mission; Show pending cases when no candidate, no available and no default rule exists.
+- Manual reassignments update or regenerate non-coverage decisions; Change template does not change existing mandate holders.
+- The function is consistent but necessary for the operation to show reasons when not confirmed, and labels are not treated as evidence that they have been approved.
 
-原型不同时实现真实发信、整个旧业务数据库迁移、全部工作流生成、完整技能评分、日历集成或组织交接。后续按已记录的六项顺序接通。
+The prototype does not simultaneously achieve live mail, migration of the entire old business database, full workflow generation, complete skill rating, calendar integration or organization handoff. The follow-up is provided in the six recorded order.
 
-## 未来扩展时保留的接口关系
+## Interface relationships retained in future extensions
 
-建立职责库的 A 类、任务识别的 B 类和选人的 C 类可以独立替换：人工建立的职责可由 AI 继续补充，AI 新生成的步骤也可人工绑定职责，固定承接人的职责以后可改用轮转。
+Category A of the job pool, Category B of the task identification and Category C of the selected person may be replaced separately: created responsibilities may continue to be supplemented by AI, newly generated steps may also be manually tied to duties, and the functions of the recipient may later be rotated.
 
-具体工作使用同一条关系：组织资料 → 职责 → 模板步骤要求 → 合格成员 → 本次任务执行人。AI 是输入和建议来源之一，日期继续由现有确定性引擎计算，任务写入继续经过受验证的操作。职责、技能、外部资格和系统授权分别记录；未来 RACI 在这些关系上补责任角色，当前不预先替用户决定。
+The same relationship is used for specific work: organizational information  →  duties  →  template steps are required  →  qualified members  →  mandate-holders. AI is one of the sources of input and recommendation, with dates that continue to be calculated by existing deterministic engines and task writing that continues to be validated. Responsibilities, skills, external qualifications and system authorizations are recorded separately; The future RACI complements the roles of responsibility in these relationships and does not at present predetermine for users.
 
-## 已选组合与下一步
+## Selected Group and Next
 
-已完成方案比较与代码基础核对，用户已选择 A2 + B2 + C2，保留人工路径。以 P2 的职责框架作为快速交付基础，阶段 3 的实际业务接入范围在 [实施计划](TASK_MATCHING_IMPLEMENTATION_PLAN.md) 中列明。当前仅文档更新，无新增模型调用或产品测试；等待明确阶段启动批准，再按授权范围执行。需要同步本地备份。
+Comparison of the programme with the code base has been completed and users have selected A2 + B2 + C2, retaining manual paths. Using the P2 role framework as a basis for rapid delivery, phase 3's actual business access is set out in [ Implementation Plan ](TASK_MATCHING_IMPLEMENTATION_PLAN.md). Current document updates only, no new model calls or product tests; Pending the commencement of approval at a specified stage, implementation will be carried out within the scope of the mandate. Could not close temporary folder: %s

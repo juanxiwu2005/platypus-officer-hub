@@ -11,7 +11,7 @@
     {
       "id": "A",
       "title": "Template library",
-      "caption": "模板库优先",
+      "caption": "Template library first",
       "file": "A-template-library.png",
       "original": "exec-eb53ee48-f011-448b-b848-b0d395e879b2.png",
       "bytes": 1625899,
@@ -24,7 +24,7 @@
     {
       "id": "B",
       "title": "Goal first",
-      "caption": "目标优先问答",
+      "caption": "Goal-first questions",
       "file": "B-goal-first.png",
       "original": "exec-a6baabb6-934a-4f8c-a844-0e8636eff7dc.png",
       "bytes": 1559666,
@@ -37,7 +37,7 @@
     {
       "id": "C",
       "title": "Two workspaces",
-      "caption": "成员活动与干部事务双工作台",
+      "caption": "Separate workspaces for member activities and officer work",
       "file": "C-two-workspaces.png",
       "original": "exec-c3ff1b46-6978-4def-8b19-9b23cec00687.png",
       "bytes": 1657915,
@@ -50,7 +50,7 @@
     {
       "id": "D",
       "title": "Build from modules",
-      "caption": "模块拼装",
+      "caption": "Assemble modules",
       "file": "D-modular-workflow.png",
       "original": "exec-84b4b67c-89b3-459d-bd53-5e9e2d40a7ed.png",
       "bytes": 1577228,
@@ -63,7 +63,7 @@
     {
       "id": "E",
       "title": "Club playbooks",
-      "caption": "社团流程手册与版本",
+      "caption": "Organization workflow handbook and versions",
       "file": "E-club-playbooks.png",
       "original": "exec-7d8bf2d5-b645-4e0b-af32-67db669ee720.png",
       "bytes": 1628026,
@@ -76,7 +76,7 @@
     {
       "id": "F",
       "title": "Reuse successful work",
-      "caption": "从历史计划复用",
+      "caption": "Reuse earlier plans",
       "file": "F-reuse-past-work.png",
       "original": "exec-759518fa-e75e-43b2-bb53-e2b51c0c37a2.png",
       "bytes": 1512502,

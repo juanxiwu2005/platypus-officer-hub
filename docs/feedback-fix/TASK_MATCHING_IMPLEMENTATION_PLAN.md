@@ -1,194 +1,194 @@
-# 职责匹配三阶段实施计划
+# Three-phase implementation plan for functional matching
 
-> **当前状态已变更：** Juanxi 在试用后要求先恢复 main onboarding，撤下当前职责匹配体验，阅读方案后再通过参考或手绘重新设计。三阶段实现已于本轮回退，历史实现 `5e301d9` 归档；以下保留原计划与验收记录。最新说明见 [现有策略供审阅](MATCHING_STRATEGY_FOR_REVIEW.md) 和 [回退交接](MATCHING_ROLLBACK_HANDOFF.md)。未经新的交互确认，不继续执行原界面方案。
+> **Current state has changed:** Juanxi requires, after a trial, the restoration of main duties prior to re-engineering, withdrawal of current job matching experiences and reading programmes before redesigning them by reference or handwriting. The three phases have been implemented in the current round of fallback and history has become `5e301d9` archive; The original plan and the record are kept below. For an update see ['s existing strategies, ](MATCHING_STRATEGY_FOR_REVIEW.md) and [ fallback handoff ](MATCHING_ROLLBACK_HANDOFF.md). The original interface programme will not continue without new interactive confirmation.
 
-2026-11-16（America/Phoenix） · Codex · 计划基线 `claude/fervent-thompson-e2j5u2@3a9fa94`
+2026-11-16(America/Phoenix) . Codex . Plan baseline `claude/fervent-thompson-e2j5u2@3a9fa94`
 
-Juanxi 已选定 A2、B2、C2：AI 从章程起草职责并由人确认；任务关联职责；同职责多人以默认承接人与备份为基础。本计划将这一组合分为三个可独立验收的阶段，目标是快速建立可复用的匹配架构，并接入现有任务创建流程。
+Juanxi has selected and confirmed A2, B2, C2:AI from drafting; (a) Mission-related responsibilities; Multiple persons with responsibilities are based on default receivers and backups. The plan divides this combination into three separate stages of acceptance, with the objective of quickly creating reusable matches and accessing existing task creation processes.
 
-**执行门槛来自 Juanxi 的要求：“我批准后再开始阶段”。2026-11-16 Juanxi 已分别批准三个阶段，最新授权为“继续阶段3”。** 各阶段按独立 Worktree 开发、集成和复核；阶段批准与合并 `main`、正式发布分别处理。阶段 3 的实际结果与门禁限制见 [阶段 3 交付](MATCHING_STAGE3_HANDOFF.md)。
+**Implementation threshold from Juanxi's request: “I approve before the stage begins”. 2026-11-16 Juanxi has been approved in three phases, the latest being Continuation 3. The** phases are developed, integrated and reviewed independently of the Worldtree; The stage approval is dealt with separately from the merge `main`, which is officially published. The actual results of phase 3 and the restrictions on access can be found in stage [ 3 for delivery to ](MATCHING_STAGE3_HANDOFF.md).
 
-## 选定范围与交付目标
+## Selection of scope and deliverables
 
-| 选项 | 本轮实现目标 |
+| Options | Achieving the Goals for the current round |
 | --- | --- |
-| A2 | 保留现有章程上传和 AI 岗位读取；把职责升级为带来源、可编辑、可确认的独立记录；人工始终可补充 |
-| B2 | 模板步骤关联本组织职责，再根据职责找到候选成员；复用同一职责支持不同工作流 |
-| C2 | 每项职责设置默认承接人和备份；人选不合格、不可用或不明确时集中处理，不静默选列表第一人 |
+| A2 | Keeps the existing view upload and AI rule read; (b) Upgrading responsibilities to independent records with sources, redactable and identifiable; It can always be supplemented by labour. |
+| B2 | The template steps relate to the duties of the organization and then identify candidates according to their responsibilities; Reuse the same function to support different workflows |
+| C2 | (a) The default recipient and backup for each function; Centralize when candidates are not qualified, available or unclear. No first person on the list |
 
-先完成自动提醒六项中的第一项“任务匹配”。本轮不同时建设 RACI 新规则、提醒计划、邮件、邮件跳转、后台发送或组织交接。现有确定性日期引擎、生产身份规则和现有正式网站保持各自边界。
+The first of the six automatic reminders is completed. New RACI rules, alarm plans, mail, mail jumps, backstage dispatches or organization handoff are not built at the same time in this round. Existing fixed date engines, rules for production identity and existing official websites maintain their respective borders.
 
-三阶段完成后的目标操作：上传虚构章程 → 审阅岗位与职责 → 绑定成员并设置默认人和备份 → 把工作流步骤关联职责 → 处理待分配项 → 创建实际任务并保存分派来源。重复使用已确认模板无需再次调用 AI 选择成员。
+Target operation after phase 3: Uploading field coordination  →  review file with function  →  binding member and setting defaults and backups  →  connecting workflow steps to duties  →  processing to be assigned  →  creating actual tasks and saving the assigned source. Repeating the confirmed template does not require a call from AI to select member.
 
-## 分阶段安排与批准状态
+## Phased arrangements and approval status
 
-| 阶段 | 重点 | 交付物 | 启动状态 |
+| Phase | Focus | Delivery | Activate Status |
 | --- | --- | --- | --- |
-| 1 | 数据契约与确定性匹配规则 | 职责模型、关系、候选选择、解释和离线演练结果 | 已完成技术检查与独立复核，交付待验收 |
-| 2 | 章程 AI 与职责设置 | 可操作的职责库、来源审阅、成员关联、默认人及备份界面 | 已完成开发、桌面/手机检查和独立复核，交付待验收 |
-| 3 | 接入实际任务与集成验收 | 活动和独立任务的统一适配、旧数据兼容、浏览器验收与独立复核 | 已完成接入与复核，交付待验收；完整门禁的基线超时见阶段 3 交付 |
+| 1 | Data contracts and certainty matching rules | Job model, relationships, candidate selection, interpretation and offline exercise results | Technical inspection and independent review completed, delivery |
+| 2 | Constitution AI and Job Settings | Operational Job Repository, Source Review, Member Association, Default and Backup Interface | Development, desktop/cell check and independent review completed for delivery |
+| 3 | Access to Actual Tasks and Integration | Harmonization of matching, old data compatibility, browser and independent review of activities and stand-alone missions | Access and review completed, delivering access; Baseline time-out phase for full door closures 3Delivery  |
 
-阶段 1、2 允许先通过独立入口演练新模块，阶段 3 必须接回实际任务创建。不能将只有独立演练页的结果称为三阶段全部完成。
+Stages 1, 2 allow for the first exercise of a new module through an independent entrance and phase 3 must be created back to the actual task. The results of only stand-alone exercises cannot be described as complete in all three phases.
 
-## 数据与规则的共同约定
+## Common agreement on data and rules
 
-### 独立保存的关系
+### Independently preserved relationships
 
-阶段 1 先确定 `src/matching/` 的共享契约，后续 Agent 按同一契约开发。下列是必须表达的概念，具体 TypeScript 字段和操作签名由阶段 1 的主 Agent 先提交并冻结。
+Phase 1 determines the shared compact of `src/matching/`, followed by Agent developed under the same contract. The following are the concepts that must be expressed: the TypeScript field and the operational signature are submitted and frozen by the main Agent of stage 1.
 
-| 数据 | 最小内容 | 目的 |
+| Data | Minimum Contents | Purpose |
 | --- | --- | --- |
-| 职责 | 稳定 ID、名称、定义、交付物、排除范围、来源、确认状态、修订 | 不依赖岗位名猜测；改名保留关联 |
-| 岗位与职责关系 | 现有岗位 ID、职责 ID、确认与来源 | 一个岗位可有多个职责，同职责可关联多个岗位 |
-| 成员可承接关系 | 现有成员 ID、职责或岗位关系、人工例外、必要资格确认、可用情况 | 形成去重后的合格候选，职责不自动授予管理权限 |
-| 模板步骤要求 | 工作流 ID、步骤 ID、主要职责、复合任务待处理标记 | 两种工作流可复用职责，同名步骤不会串联 |
-| 默认人选规则 | 职责 ID、主要承接人 ID、备份 ID | 默认安排与候选资格分别检查 |
-| 本次分派结果 | 任务 ID、实际执行人、匹配依据、规则修订、人工覆盖与确认 | 可以解释，不因重算覆盖已确认结果 |
+| Duties | Stable ID, name, definition, deliverer, exclusion, source, confirmation status, revision | Do not rely on roll guesses; Change Retention Link |
+| role and responsibility | Existing role ID, duties ID, confirmation and source | A role can have multiple duties, multiple functions. |
+| I'm sorry, remember. | Existing membership ID, function or roll relationship, manual exception, required qualification, availability | Qualified candidates for re-entry, responsibility not automatically delegated to management |
+| Template Step Requirements | Workstream ID, step ID, main duties, composite task pending mark | Two streams of work can be reused, and the same name moves are not linked. |
+| Default selection rule | Responsibilities ID, principal recipient ID, backup ID | Default arrangements are checked separately from candidatures |
+| Results of this assignment | Task ID, executor, matching basis, rule revision, manual coverage and confirmation | It can be explained that the confirmed result is not covered by recosting. |
 
-角色、成员和任务身份引用现有稳定 ID，不在多个地方复制整份成员名单。新关系支持一人多职责、同职责多人，并为后续完整的一人多岗、同岗多人管理保留空间。
+Roles, members and task identities refer to existing stable IDs and do not copy the entire list of members in multiple locations. The new relationship supports one person with multiple responsibilities and multiple persons with the same responsibilities, as well as managing space for the full follow-up of one person with multiple co-workers.
 
-首版复用现有成员输入，优先实现成员与职责的独立关系。当前 `Role.holderId` 和 `Person.roleId` 仍被旧权限、交接等逻辑使用，不把职责候选资格冒充成岗位管理权限，也不在本轮同时重写所有成员管理。
+The first version repeats the existing membership input, giving priority to the independent relationship between members and duties. The current `Role.holderId` and `Person.roleId` are still being used by old logics such as missions, handoff, etc., not to pretend that the candidate for duty is a roll administration permissions or to rewrite all members at the same time in this round.
 
-### 确定性的 C2 选择规则
+### C2 Selection Rule for certainty
 
-1. 保留有效且已经确认的人工分派；人选失效时提示处理，不静默换人。
-2. 从已确认职责关系中找到当前可承接成员，按成员 ID 去重；明确不满足必要资格、已离任或不可用者不作为正常可用候选。
-3. 默认承接人合格且可用时预选该人，并说明依据。
-4. 默认人不可用而备份可用时，提出备份建议并等待本次确认；不把备份偷偷写成已接手。
-5. 未配置默认人、但仅一名合格且可用候选时可预选；多人时保留待选择。
-6. 没有职责、职责未确认、没有合格候选、必要资格不明或所有人不可用时，返回明确的待处理状态和原因，不退回 `roles[0]` 或默认社长。
+1. Keeping valid and confirmed manual assignments; Can not delete folder: %s: No such folder
+2. Finds the current available member from the recognized functional relationship, press Member ID to weigh; A person who expressly fails to meet the requisite qualifications, who has left office or is not available shall not be a regular candidate.
+3. The default recipient is qualified and available to pre-select that person, with an indication of the basis.
+4. When the defaulter is not available and back-up is available, make a backup recommendation and await this confirmation; Don't whisper back-up as it has been taken over.
+5. (a) Pre-selection if the default is not configured but only one qualified candidate is available; The choice is reserved for more than one person.
+6. Returns a clear pending status and cause, not revert `roles[0]` or default president, when there are no duties, no recognized functions, no qualified candidates, unclear qualifications or no available owner.
 
-外部操作资格首版由人工确认，状态须能区分已知满足、已知不满足和未知；不假装平台已验证学校系统账号。分派、预选与成员认领是不同状态。
+The first version of the external operational qualification is manually confirmed and the state is capable of distinguishing between known satisfaction, known non-fulfilment and unknown; Do not pretend that the platform has authenticated school system accounts. Assigning, preselection and membership recognition are different states.
 
-### 职责与工作流边界
+### Duties and working-flow boundaries
 
-- 每个普通执行步骤先关联一项主要职责；复合步骤保留“需要拆分或明确统筹”的状态，不能只匹配其中一个专业就断言可以完成整项工作。
-- 现有 46 种标准步骤必须逐项有映射或明确的未解决标记；未解决项不能靠旧职能兜底变成自动分派。其余政策职责不在没有逐条核对的情况下宣称已全覆盖。
-- 可以用第二份不同的可编辑示例流程验证扩展性；本轮不建设完整的自由工作流生成器或重做流程画布。
-- 已确认的模板关联用于未来任务；模板和默认人的变化不会自动重新分派已有任务。
+- Each ordinary enforcement step first relates to a primary responsibility; The composite step retains the status of “need to be split or clearly integrated”, and cannot match only one of the professions to assert that the whole job can be accomplished.
+- Existing 46 standard steps must have an item-by-item map or a clear unresolved mark; Unresolved items cannot be automatically assigned from the background of old functions. The remaining policy responsibilities are not declared to be fully covered without article-by-article checks.
+- Extensions could be validated using a second different editable example process; The round does not build complete free workflow generators or redraw flow canvass.
+- The confirmed template association is used for future tasks; Changes in templates and defaults do not automatically reassign existing tasks.
 
-## 阶段 1 建立数据契约与匹配规则
+## 1 Establishing Data Contract and Matching Rules
 
-### 改动内容
+### Changes
 
-1. 主 Agent 先建立唯一共享契约、输入验证和模块出口，明确职责、候选、默认人、备份、未解决状态与分派来源。
-2. 建立职责创建、人工编辑、合并、停用及引用检查的纯数据操作；同义合并由人决定，已有引用通过稳定 ID 保留或明确重接。
-3. 实现统一候选解析器与 C2 选择器，不依赖九类 `RoleFunction` 进行新链路匹配。
-4. 设计有版本的匹配配置读写和导入校验；演练数据与旧业务存档隔离，不提前改写旧存档。
-5. 用 10–20 名虚构成员、两种不同工作流准备可读演练；不要求等待 AI 就能测试规则。
-6. 明确阶段 3 接入现有存档的兼容设计：字段位置、读取默认值、来源、快照及必要的外层版本迁移，随阶段 1 交付写清，不等接入时临时决定。
+1. The main Agent first establishes a single shared contract, input validation and module export with clear responsibilities, candidates, defaulters, backups, unresolved status and assignment sources.
+2. Create job creation, manual editing, merge, deactivated and quoted pure data operations; The synonym metge is a matter for decision and has been retained or expressly reconnected by the stable ID.
+3. Achieves a unified candidate parser with a C2 selection that does not rely on nine types of `RoleFunction` to match new links.
+4. Designing a version of the matching configuration for reading, writing and importing validation; The rehearsal data is isolated from the old business archive and does not rewrite the old file in advance.
+5. Preparation of readable exercises with 10–20 name field members, two different streams; You can test the rules without asking to wait for AI.
+6. Clear stage 3 access compatible designs for existing archives: field location, reading default values, source, snapshots and necessary outer-storey versions are migrated, written with stage 1 delivery, depending on when accessing.
 
-### Worktree Agent 分工
+### Worktree Agent
 
-| 工作包 | 负责范围 | 文件所有权示例 | 依赖 |
+| Work package | Scope of responsibility | Example of document title | Dependence |
 | --- | --- | --- | --- |
-| 主 Agent 契约 | 共享类型、公共出口、统一夹具与文档 | 计划新增 `src/matching/contracts.ts`、`index.ts`；共享文件仅主 Agent 修改 | 先完成并检查编译 |
-| S1 Data Agent | 职责操作、来源与确认保护、配置读写及版本验证 | 计划新增 `src/matching/library.ts`、`repository.ts`、对应测试 | 从冻结契约提交开 worktree |
-| S1 Resolver Agent | 合格候选、默认人和备份、未解决原因、保留人工选择 | 计划新增 `src/matching/resolve.ts`、对应测试 | 同一冻结契约提交 |
+| Main Agent Contract | Share types, public exports, uniform clips and documents | Planned Add `src/matching/contracts.ts`、`index.ts`；Share files only main Agent changes | Finish and check the compilation first. |
+| S1 Data Agent | Job operation, source and confirmation protection, configuration of reading and writing and version validation | Planned Add `src/matching/library.ts`、`repository.ts`The corresponding test. | Worktree from the freeze |
+| S1 Resolver Agent | Qualified candidates, defaulters and backups, unresolved reasons, retention of manual selection | Planned Add `src/matching/resolve.ts`The corresponding test. | Same frozen contract submission |
 
-两个开发 Agent 完成后由主 Agent 集成，再安排独立只读复核；有问题由原负责人或主 Agent 修复，不让复核者同时改公共文件。
+The two developments will be completed by the main Agent, which will then arrange for independent read-only reviews; Problems were repaired by the former head or master of Agent, who prevented reviewers from changing public documents at the same time.
 
-### 验收
+### Acceptance
 
-- 职责与岗位可任意命名；两份不同工作流复用同一个职责 ID。
-- 两名成员符合时结果不受数组顺序影响；一个人通过多个岗位符合时仅出现一次。
-- 主人选有效、备份建议、无人可用、资格未知和职责缺失分别给出确定结果。
-- 人工决定受保护；归档职责和已失效成员会提示，不能继续悄悄使用。
-- 保存和恢复后结果保持；旧存档没有新配置时不清空原任务或人员。
-- 交付虚构场景的输入与分派表、测试结果及阶段 3 的兼容设计，供不读代码的用户检查。
+- Job and role can be named arbitrarily; Two different jobs revert to the same duty ID.
+- Two members are not affected by the order of groups when the results match; One person through more than one role meets only once.
+- The main candidate is valid, backed up with recommendations, is not available, has no qualifications and lacks responsibility gives a separate determination.
+- (a) Protection by manual decision; Archiving duties and deactivated members alert that they cannot continue to be used quietly.
+- (a) Conservation and recovery results are maintained; The old archive did not contain new configurations without empty tasks or personnel.
+- Compatibility of the input to the distribution table, test results and stage 3 for delivery of field scenes is checked by users who do not read code.
 
-阶段 1 结束后报告结果；阶段 2 尚未获授权时等待批准，不提前开展 AI 或界面包。
+Reporting of results after phase 1; Phase 2 awaits approval before being authorized and does not carry out an AI or a Bread advance.
 
-## 阶段 2 接通章程 AI 与职责设置界面
+## Phase 2 Connect Constitution AI with Job Settings
 
-### 用户可操作流程
+### User-operated processes
 
-继续使用现有章程上传和岗位提取。岗位下显示职责泡泡；打开泡泡能看定义、交付物和来源片段。用户可新建、编辑、合并和确认职责，再从现有成员中勾选可承接者，设置默认承接人与备份。AI 失败、无章程或只识别出部分内容时，人工可继续。
+Continues to use the existing constitution upload and roll extraction. Show job bubbles below role; Opens bubbles to see definitions, deliverables and source segments. Users can create new, edit, copy and confirm functions, then tick the recipient from the existing members, and set the default receiver and backup. AI can continue manually if it fails, does not reflect or only recognizes parts of the content.
 
-### 改动内容
+### Changes
 
-1. 复用 PDF、docx 与文本读取，以及 ASU AIR 适配；增加结构化职责提取，不将当前短 `duties` 字符串当作完整目录。
-2. 复用现有 constitution 接口的兼容扩展或内部服务分支，保持旧 structure/duties 请求可用；公共请求与结果契约由主 Agent 管理。
-3. 对章程引用做原文匹配校验：找不到的引用不能标成已证实来源；人工补录和 AI 补充建议分别记录。
-4. 保留现有人工字段保护，新增局部重试、保留已确认内容、取消过期请求及无修改不重复请求。
-5. 增加职责、成员关联、默认人、备份和分派预览界面，消费阶段 1 的同一个解析器。
-6. 优先通过独立匹配入口验收界面；Team/Settings 的现有入口接线由主 Agent 统一处理。
+1. Reuse PDF, docx and text readings, and ASU AIR matching; Adds a structured function extraction that does not treat the current short `duties` string as a full directory.
+2. Reuse compatible extensions or internal service branches of the existing constitution interface to keep old structure/duties available; The public request and result contract is managed by the main Agent.
+3. (a) A source text matching check for reference to constitution: the reference not found cannot be marked as a proven source; Manual supplements and AI supplementary recommendations are recorded separately.
+4. Retain existing manual field protection, add partial retesting, retain confirmed content, cancel expired requests and do not modify non-repetition requests.
+5. Adds the responsibility, membership association, default, backup and assignment preview interface for the same solver for 1 at the consumption stage.
+6. Priority is given to the access interface through an independent matching portal; The current portal for Team/Settings is handled centrally by the main Agent.
 
-### Worktree Agent 分工
+### Worktree Agent
 
-| 工作包 | 负责范围 | 文件所有权示例 |
+| Work package | Scope of responsibility | Example of document title |
 | --- | --- | --- |
-| S2 Constitution AI Agent | 提取服务、客户端适配、来源校验及模拟接口测试 | 计划新增 `netlify/lib/matching/` 提取模块、`src/matching/constitutionClient.ts`；现有 `netlify/functions/constitution.mts` 的兼容扩展 |
-| S2 UI Agent | 职责库、来源审阅、成员关联、默认及备份组件 | 计划新增 `src/matching/ui/` 与专属样式、组件测试；不修改其他 Agent 的 AI 或公共契约 |
-| 主 Agent | 请求契约、旧页面入口、共享样式导入与配置 | `src/App.tsx`、`src/onboarding/`、Settings 等共享接线；先读设计 token |
+| S2 Constitution AI Agent | Extract service, client-end fit, source verification and simulation interface testing | Planned Add `netlify/lib/matching/` extract module, `src/matching/constitutionClient.ts`；Existing `netlify/functions/constitution.mts` Compatible Extensions |
+| S2 UI Agent | Job library, source review, membership association, default and backup components | Planned Add `src/matching/ui/` Tests with exclusive styles, components; Do not modify other Agent AI or public contracts |
+| Lord Agent | Request contracts, old page portals, shared style import and configuration | `src/App.tsx`、`src/onboarding/`, shared connections such as Settings; Read the design first token |
 
-每个开发 Agent 从相同的阶段 1 集成提交建立 worktree。UI 先使用冻结契约的模拟结果开发，服务与界面独立完成后再联合验证。
+Each development Agent submits to create worktree from the same stage of 1 integration. UI uses a simulation of frozen contracts to be developed and the service and interface are independently completed before being jointly validated.
 
-### 验收
+### Acceptance
 
-- 虚构专业社团的岗位和职责可准确呈现，且不要求归类到 programs/marketing 等固定职能。
-- AI 产物有可核对来源或明确的建议标记；修改、合并、确认和刷新后保存均可用。
-- AI 超时、格式失败、部分失败及停止等待不丢人工内容；没有 AI 也能完成设置。
-- 不合法或重复默认人、非候选备份、资格不明和不可用情况能被发现。
-- 电脑和手机可完成职责设置，键盘与基本无障碍检查通过。
-- 模拟接口验证与真实模型结果分开报告；默认不自动运行大批量真实 AI 评估。
+- The rale and duties of the professional staff organization can be accurately presented and do not require classification to fixed functions such as programs/marketing.
+- AI product has a verifiable source or clear recommendation mark; Changes, merges, confirmations and refresher saves are available.
+- AI Timeout, format failure, partial failure and stop waiting for manual content not to be lost; No AI can complete the settings.
+- Unlawful or repeated defaulters, non-candidature backups, unclear qualifications and non-availability can be detected.
+- Computers and mobile phones can complete their functional settings, and keyboards and basic accessibility checks are passed.
+- Simulation interface validation is reported separately from live model results; Default not to run a large number of live AI assessments automatically.
 
-用户验收使用功能分支预览；如需要首次草稿 PR 获取预览，该动作列入阶段 2 的批准范围并由主 Agent 执行，创建后附到本聊天，保持不合并。阶段 2 结束后报告结果；阶段 3 尚未获授权时等待批准。
+User acceptance using the function branch preview; If the first draft PR needs to be previewed, this action is included in the approved scope of stage 2 and executed by the main Agent. It is created and attached to this chat and remains unmerge. Reporting of results after phase 2; Phase 3 awaiting approval pending authorization.
 
-## 阶段 3 接入实际任务创建与集成验收
+## Phase 3 Access to Actual Job Creation and Integration
 
-### 改动内容
+### Changes
 
-1. 让新建活动、首次设置建活动及独立任务入口共同使用阶段 1 的职责解析与分派结果，接线包括 `newObjects`、`completeSetup`、模板保存和对应任务表单。
-2. 在组织数据中保存匹配配置及实际任务分派来源，职责关系引用现有岗位、成员和任务 ID；独立演练数据只经显式确认后导入，不成为第二份长期业务正本。
-3. 执行阶段 1 已确定的存档兼容方案。涉及 `DemoState`、结构版本、导出或恢复逻辑的具体变更必须在本阶段启动前的交付中列明；在阶段 3 获准范围内实施。先保存可恢复快照，不重置用户数据。
-4. 给新匹配模式明确入口：旧组织未配置时维持兼容；一旦启用，新链路缺少职责或候选时返回待处理，不偷偷落回旧的 `roleFor`。
-5. 保留现有 `fn` 供旧页面、日期和其他兼容逻辑使用，新匹配不再以它限制职责或候选。日期仍由规则引擎计算。
-6. 新匹配模式中，分派与成员确认接手分开记录。不会把已有任务状态整体改写；新任务的认领要求与选定流程一致，并验证预算等受控步骤没有因此绕过已有规则。
-7. 逐项处理 46 个标准步骤的主要职责映射、复合交付物与未解决项；记录无法自动分配的具体原因。独立任务允许显式人工指定作为一次性决定，职责缺口仍可见，不通过改派去掩盖。
-8. 用第二种不同工作流验证同一职责库和解析器；不增加第二套按名字猜岗位的分配器。
+1. The functions of 1 for the new activity, the first setup and the joint use of the separate task portal are sorted and assigned with links to `newObjects`, `completeSetup`, template saves and corresponding task forms.
+2. Save matching configurations and actual task assignment sources in organizational data, with reference to existing role, member and task ID; Independent exercise data are imported only after explicit confirmation and not as a second long-term business original.
+3. Implementation phase 1 Established archiving compatibility programme. Specific changes involving `DemoState`, schema logic, export or recovery logic must be specified in the delivery prior to this stage; Under stage 3 approval. Saves first to restore snapshots and does not replace user data.
+4. Clear access to the new matching mode: maintain compatibility when old organizations are not configured; Once enabled, the new link returns to process when it lacks responsibility or a candidate and does not sneak back into old `roleFor`.
+5. Keeps the existing `fn` for old pages, dates and other compatible logical uses and new matches no longer limit duties or candidatures with it. The date is still calculated by rule engine.
+6. In the new matching mode, assigns separate records to the memory confirmation. It does not rewrite the status of existing tasks as a whole; The recognition requirements for new tasks are consistent with the selection process and the validation of controlled steps such as budgets does not circumvent established rules.
+7. (b) The primary responsibility mapping, composite delivery and unresolved items for processing the 46 standard steps on a case-by-case basis; Specific reasons why records cannot be allocated automatically. Independent missions allow explicit manual designation as a one-time decision, and gaps in responsibility remain visible and are not concealed through reassignment.
+8. (a) Verifying the same duty library and a parser with a second different workflow; Do not add a second set of role distributors by name.
 
-### Worktree Agent 分工
+### Worktree Agent
 
-| 工作包 | 负责范围 | 文件所有权示例 |
+| Work package | Scope of responsibility | Example of document title |
 | --- | --- | --- |
-| S3 Workflow Adapter Agent | 模板步骤、职责映射、现有建图调用的匹配适配 | 计划新增 `src/matching/adapters/`；`src/engine/playbooks.ts`、`workflow.ts` 中明确限于分派的改动，不改日期规则 |
-| S3 Integration Test Agent | 多流程、多人候选、旧存档、认领和浏览器回归 | 新匹配测试、虚构夹具、`e2e/` 专属用例；相关旧测试的行为更新说明 |
-| 主 Agent | 业务状态、存档版本、创建入口和 UI 接线 | `src/data/types.ts`、`store.tsx`、`settings.ts`、`changeReview.ts`、`seed.ts`；公共文件不交叉修改 |
+| S3 Workflow Adapter Agent | Template steps, job mapping, matching for existing configurations | Planned Add `src/matching/adapters/`；`src/engine/playbooks.ts`、`workflow.ts` Changes expressly limited to assignments, no change in date rule |
+| S3 Integration Test Agent | Multiple processes, multiple candidates, old archives, recognition and browser returns | New Match Test, FieldCluster, `e2e/` (a) Exclusive examples; Up-to-date behaviour description of the relevant old test |
+| Lord Agent | Status of operations, archived versions, creation of portals and UI connections | `src/data/types.ts`、`store.tsx`、`settings.ts`、`changeReview.ts`、`seed.ts`；Public documents do not cross-modify |
 
-主 Agent 完成集成后，独立 Review Agent 从最终候选提交另开只读 worktree 复核。审阅对象必须是集成结果，不只看单个 Agent 的分支。复核问题单列修复与重测。
+After master Agent completes the integration, independent Review Agent submits a read-only worktree review from the final candidate. The review object must be an integrated result, not just a single Agent branch. The review questionnaire includes repair and re-examination.
 
-### 验收
+### Acceptance
 
-- 从现有用户入口创建实际任务，任务的主要执行人与预览、职责依据一致，候选多人不会生成重复任务。
-- 创建、重新打开、刷新、导出恢复后，已确认分派和职责关联保持；旧保存数据不丢任务、人员或历史。
-- 默认人失效、备份可用、全员不可用、无职责及人工改派均有浏览器用例。
-- 两种不同工作流可共享职责；更改模板不自动改变历史任务。
-- 新匹配模式不会因无候选而走回固定职能兜底；未完成配置有明确待处理状态。
-- 现有日期、任务权限、认领、预算与交接等相关回归检查通过，已有失败与本次新增问题区分并给证据。
-- 最终交付预览网址、简单操作步骤、变更清单、测试结果、剩余缺口与回滚入口。没有真实跨设备组织权限时，不把本地演练称为多人正式服务。
+- Create actual tasks from existing user portals, where the main implementer of a task is in line with previews and functional bases, and where multiple candidates do not generate duplicate assignments.
+- Creation, reopening, refreshing and export restoration, confirmed assignment and function association maintained; Old saved data do not lose tasks, people or history.
+- The defaulter is disabled, back-up is available, full staff is not available, there are no duties and manual reassignments are routinely used by browsers.
+- Two different streams of work could share responsibilities; Change template does not automatically change historical tasks.
+- The new matching model does not lead back to a fixed function for lack of candidates; Unfinished configuration with clear pending status.
+- Existing dates, missions, recognitions, budgets and handoff-related returns have been passed, distinguishing them from this new issue and giving evidence.
+- Final delivery preview of web sites, simple operating steps, change lists, test results, remaining gaps and rollback portals. Local exercises are not referred to as multiple official services without live cross-equipment organizations.
 
-三阶段通过仅表示本功能在分支完成，随后等待用户验收和后续发布安排，不自动进入六项工作的第二项 RACI。
+Phase 3 does not automatically enter the second RACI for six jobs by simply indicating that this function is completed in the branch and then awaiting user acceptance and subsequent release arrangements.
 
-## Worktree 协作与集成规则
+## Worktree Collaboration and Integration Rules
 
-- 每次收到阶段批准后，先核对远端分支、工作区和上阶段结果，再建立该阶段开发 worktree、派发编码；未批准的阶段不提前开始。
-- 沿用 `claude/fervent-thompson-e2j5u2` 作为目标集成分支，保留当前名称及已有预览身份，不改名、不删除。
-- 同时最多两个开发子 Agent，分别使用独立 worktree、分支与唯一文件范围；共享契约先由主 Agent 提交，禁止两边自行发明不同数据形状。
-- 子分支使用描述性名称，例如 `feat/matching-library`、`feat/matching-resolver`、`feat/matching-constitution`、`feat/matching-ui`；实际创建前检查是否重名或被其他会话使用。不借用现有 setup worktree。
-- 子 Agent 在自己的分支提交，不向目标分支推送。主 Agent 逐包审阅并用保留提交的方式集成，负责文档、冲突、共享文件和最后一次推送；不强推、不合并 main。
-- 审阅 Agent 在开发 Agent 交付后运行，保持并发预算；读最终提交并核查跨包接口、数据保护及无匹配结果。
-- 有浏览器服务时使用不同端口，测试和构建不共享生成目录；依赖仅在现有版本范围内复用，发现确需新增依赖或调整构建配置时先说明具体原因和范围。
-- 每阶段记录起始提交、包提交、改动文件、测试命令、结果及限制。提交和推送本身不代表预览部署或真实 AI 已验证。
+- The remote branch, workspace and upper stage results are checked after each receipt phase has been approved before the development of worktree, distribution code for that phase is established; The unapproved phase does not commence earlier.
+- Following `claude/fervent-thompson-e2j5u2` as an integral branch of the objective, the current name and existing preview identity will be retained without change or deletion.
+- At the same time, a maximum of two developers, Agent, using separate worktrees, branches and unique file ranges; The shared contract was first submitted by the main Agent, which prohibits both sides from inventing different data shapes.
+- Sub-branch uses descriptive names such as `feat/matching-library`, `feat/matching-resolver`, `feat/matching-constitution`, `feat/matching-ui`; Checks whether to rename or be used by another session before actually creating it. Do not borrow existing setup worktree.
+- Sub-Agent submits in his own branch, not to the target branch. (a) Main Agent, read on a case-by-case basis and integrated in the form of reserved submissions, responsible for documents, conflicts, shared documents and final delivery; Don't push, no merge main.
+- Review Agent running after development agent delivery, maintaining and distributing budgets; Read final submission and verification of cross-package interfaces, data protection and no matching results.
+- Using different ports when there is a browser service to test and build non-shared generated directories; Reuse only within the current version, with specific reasons and scope indicated when it was found that additional reliance or configuration adjustments were required.
+- Each stage of the record begins submission, package submission, document changes, test orders, results and limits. Submission and delivery does not per se represent preview deployment or live AI verified.
 
-## 检查与回滚
+## Check with rollback
 
-阶段 1 以行为单元测试、类型检查和旧存档兼容设计复核为主；阶段 2 增加模拟服务、组件和桌面/手机操作检查；阶段 3 做集成检查、相关已有回归和一次完整发布门禁。依据变更使用现有 `npm run lint`、`npm run build`、`npm run typecheck:netlify`、`npm test` 与 Playwright，完整 `npm run check` 留在最终集成后执行，不让每个 Agent 重复跑全站。
+Phase 1 Recompatible design review for behavioral unit tests, type check and old archive; Phase 2 Increased simulation services, components and desktop/cell operation inspections; Phase 3 Integrated check-ups, related returns and a full release ban. The use of existing `npm run lint`, `npm run build`, `npm run typecheck:netlify`, `npm test` and Playwright, complete `npm run check` remains after the final integration and is not allowed to repeat every Agent.
 
-真实模型调用不用于批量回归。必要的小量虚构数据排障与人工在线验收分别记录，不将模拟结果称为真实供应商表现。首次检查发现原有失败时保留相同基线的复现证据，不靠删断言、重置数据或放宽质量门槛制造通过。
+Live model is not called for batch regression. The necessary small amount of fielding data drainage is recorded separately from the manual online acceptance, and the simulation results are not referred to as live supplier performance. The first inspection found that the same baseline evidence was retained at the time of the original failure, and did not rely on the deletion of assertions, the replacement of data or a relaxation of the quality threshold.
 
-按包和阶段保留提交，以便回退。阶段 3 接入前保存兼容快照；优先关闭新匹配入口或模式，再回退相应代码，保留职责配置和已有任务，不以 Reset demo 作为回滚方式。具体版本恢复路径是阶段 1 必交付、阶段 3 必测试的内容。
+Submit it by package and stage for fallback. Stage 3 save compatible snapshots before access; Disable new matching entrances or modes as a priority, then fallback corresponding codes, retain job profiles and existing tasks, not by reset demo as rollback. The specific version of the recovery path is what phase 1 must deliver and stage 3 must test.
 
-## 当前状态与下一步
+## Current status and next steps
 
-三个阶段均已按各次批准实施。阶段 3 将职责库接入业务正本和实际任务，并实施 22→23 迁移、46 步审阅目录和跨标签页覆盖保护。[阶段 1 演练](MATCHING_STAGE1_HANDOFF.md) · [阶段 2 操作与交付](MATCHING_STAGE2_HANDOFF.md) · [阶段 3 操作、检查结果及限制](MATCHING_STAGE3_HANDOFF.md) · [已实施的存档兼容与回滚](MATCHING_COMPATIBILITY.md)。交付后等待 Juanxi 验收；不自动开始 RACI、提醒计划、邮件或新人上手，不合并 main。需要同步本地备份。
+All three phases have been implemented as approved. Phase 3 Connects the duty library to the business and actual tasks, and implements 22 →  23 migration, 46 step-by-step catalogue and cross-label page cover protection. [ stage 1 rehearsal ](MATCHING_STAGE1_HANDOFF.md). [ phase 2 operation and delivery ](MATCHING_STAGE2_HANDOFF.md) [ phase 3 operation, inspection results and restriction of the archive that ](MATCHING_STAGE3_HANDOFF.md) [ has implemented compatible with rollback ](MATCHING_COMPATIBILITY.md). Waiting for Juanxi access; Do not automatically start RACI, alarm plan, mail or incoming office. Could not close temporary folder: %s

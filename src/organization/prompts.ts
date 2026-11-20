@@ -17,7 +17,7 @@ export const PROMPTS: Record<
 > = {
   constitution: {
     title: "Read the constitution",
-    why: "优先提取已有岗位和职责；只有资料缺失时才提出可拒绝的预设，原文依据防止推测被当成事实。",
+    why: "Extract existing roles and duties first. Offer dismissible defaults only when information is missing; source excerpts distinguish evidence from assumptions.",
     system:
       POLICY +
       `
@@ -32,7 +32,7 @@ Keep summary under 80 words. Role responsibilities should be short, concrete act
   },
   responsibilities: {
     title: "Prepare the responsibility matrix",
-    why: "把已审核岗位和章程合起来预填矩阵，允许多人负责；保留社长已改过的勾选。",
+    why: "Use reviewed roles and the constitution to prefill the matrix, allow shared responsibility, and preserve the president's manual selections.",
     system:
       POLICY +
       `
@@ -44,7 +44,7 @@ Keep summary under 50 words. No final dates.`,
   },
   member_workflow: {
     title: "Build the member program workflow",
-    why: "保留机会、第一次会面、策划、Marketing 审核、Finance 审核的主线，并把可并行的执行任务画成分支。",
+    why: "Keep opportunity, first meeting, planning, Marketing review, and Finance review on the main path; branch execution tasks that can run in parallel.",
     system:
       POLICY +
       `
@@ -57,7 +57,7 @@ Keep the explanation below 60 words, descriptions below 40 words, basis below 30
   },
   board_workflow: {
     title: "Build an executive board workflow",
-    why: "根据具体目标整理分散事务：内部 social 关注安排与准备，tabling 关注人员、轮班、材料和事后记录。",
+    why: "Organize work around each goal: arrangements and preparation for an internal social; staffing, shifts, materials, and follow-up records for tabling.",
     system:
       POLICY +
       `
@@ -70,7 +70,7 @@ Keep the explanation below 60 words, descriptions below 40 words, basis below 30
   },
   guide: {
     title: "Compile the organization AI guide",
-    why: "让日后每次调用读取简短核心配置，只有确有需要才加载章程原文、详细流程和历史依据。",
+    why: "Read a compact core configuration on subsequent calls; load the constitution, detailed workflows, and historical evidence only when needed.",
     system:
       POLICY +
       `

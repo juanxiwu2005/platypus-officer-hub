@@ -1,39 +1,39 @@
-# Settings 点状团队泳道交付
+# Settings Point Team Channel Delivery
 
-2026-11-18（America/Phoenix） · Codex 主Agent、Model、Canvas、Browser及独立Review。
+2026-11-18 (America/Phoenix) . Codex Masters Agent, Model, Canvas, Brosseser and Independent Review.
 
-运行时代码 `cc1fbe9481dc3c7416b4fb1b8098f8147e88ff80`，起点 `d5b4025`，沿用原 `claude/fervent-thompson-e2j5u2` / PR14。Netlify已确认本运行时的deploy-preview为success，验收入口：[preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow。本轮没有合并main。
+Run-time code `cc1fbe9481dc3c7416b4fb1b8098f8147e88ff80`, starting point `d5b4025`, with former `claude/fervent-thompson-e2j5u2`/PR14. Netlifyy has confirmed the depooy-preview as access, access entrance: [ preview14 Settings ](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) →  Workflow. There's no more merge main in this round.
 
-## 交付行为
+## Delivery
 
-- 卡片编辑改为圆点、灰色平行轨道与半透明团队底卡。团队ID唯一，一队一个容器，包含空队；任务多于8个在同一个底卡内续行，画布最大宽924px，工期不再拉长画布。支持Fit及86%–160%缩放；最小缩放的14px节点文字视觉仍约12px，手机内部滚动而不撑宽页面。
-- Start / Done始终为固定虚拟端点，空模板也有灰线；它们不加入任务数组，不生成工时、成果或提醒，也没有预设按钮。
-- `+ Task`直接新增并打开右侧Details；每条团队分支也有`+ Add node`。Add branch直接创建组织团队和空平行轨道，默认Team N，可在团队标题直接改名；新分支后点`+ Task`会进入新团队。
-- Full check / Event day均可反复添加，每次独立UUID。Event day默认T0、零工作日，是可单独编辑的普通目标节点，不冒用唯一活动日期站点，也不创建第二个活动日期。
-- 鼠标和触屏均可把圆点拖到其他团队或空队；Team下拉提供相同操作。跨团队改派复用团队基础`assignStepsToTeam`，只改映射，保留原角色、条件分组、依赖、日期及工作量；整次操作可Undo。
-- 主动同队重排只调整该节点所在的原有简单顺序链；独立任务和分叉图保留并行，单纯原位拖放不写任何更改。显示顺序用placement.order保存，显式依赖仍优先，环和标准校规仍拒绝。
-- 新编辑草稿/版本采用`teamExecution:dependencies`，不因打开页面或改团队而串起同队所有工作。旧sequential已发布版本、既有活动、任务ID/成果/日期和提醒入口不回写。Quick entry、模板复制、默认模板、草稿保存和版本实例化保留。
-- 保留原业务条件分组，在Details的Include with中编辑；用户所说团队branch通过teamMap表达，避免拖团队同时改变任务适用场景。学校必要步骤、前置和官方日期继续受原验证保护。
+- Card editor to dots, grey parallel tracks and semi-transparent team cards. Team ID is the only one, a team of containers containing empty teams; More than eight missions continued in the same card, with a maximum width of 924 px and no longer drawn for work. Support for Fit and 86% - 160% scaling; The smallest scalable 14px node has a text visualization of about 12 px, and the inside of the cell phone is rolling without supporting a wide page.
+- Start/ Done is always a fixed virtual endpoint, and empty templates have grey lines; They do not join task arrays, generate hours, results or reminders and have no preset buttons.
+- `+ Task` Adds directly and opens rightDetails; There are also `+ Add node`s for each team branch. Addbranch directly creates an organizational team and empty parallel tracks, defaults on Team N, which can be changed directly in the headline of the team; The new branch after point `+ Task` will enter the new team.
+- Full check / Event day can be added repeatedly, each time independent UUID. Event day defaults T0 and zero working days, which are normal target nodes that can be edited separately, does not pretend to have a single active date site or create a second activity date.
+- Mouse and touch screens can drag dots to other teams or empty teams; Team drops provide the same operation. Reassigning the `assignStepsToTeam` team base across teams, remapping only to preserve the original role, grouping of conditions, reliance, date and workload; The whole operation can be Undo.
+- (b) Re-align the active co-lending line only to adjust the original simple chain of order where the node is located; Independent missions and fork maps are maintained in parallel, with no changes being written simply in situ. The display order is kept with placement.order, overt reliance remains a priority and loops and standard school rules are still rejected.
+- The new edited draft/version uses `teamExecution:dependencies` and does not co-operate with the team by opening pages or changing teams. Old language versions, existing activities, task IDs/results/dates and reminder portals have been issued without rewriting. Quick entry, template copy, default template, draft save and version executory retention.
+- Retain the original business conditions grouping, edited in Include with Details; The user referred to the teambranch, expressed through teamMap, to avoid dragging the team while changing the context of the mission. The necessary steps, prefixes and official dates of schools continue to be protected by the original certification.
 
-团队基础代码已经在当前功能分支；旧`TEAM_WORKFLOW_ADAPTER_READY`中“未正式接入”是当时的历史说明，不能再视为本轮状态。此次复用了其团队身份/映射与编译，而非用投影覆盖Role/Person全记录；People设置没有重做。
+The team base code is already in its current functional branch; “Unofficial access” in the old `TEAM_WORKFLOW_ADAPTER_READY` is a historical description of the time and can no longer be considered as the current round state. This time, his team identity/mapping and editing was repeated instead of projecting to cover all the records of Role/Person; People set no redone.
 
-## 独立复核与修复
+## Independent review and restoration
 
-1. 旧队内重排函数会把轻微原位拖动也变成全队串行。现已比较顺序并只重连原简单链；独立、兄弟和无关节点不新增依赖。独立Review通过实际保存、发布、JSON重载与生成活动复核。
-2. 已打开的Teams表单可能覆盖画布刚创建/改名的团队。保存前现比较团队及角色映射的来源快照，变化时拒绝覆盖并保留本地输入；浏览器复核团队数4→5→5、本地未保存名称保留，3项组件回归通过。
+1. The re-allocation function in the old Queue also drags a minor position into a whole line. The order has been compared and the chain has been re-established; Independence, brotherhood and irrelevant nodes do not add to the dependency. Independent Review is reviewed through physical preservation, release, and JSON reloading and generation activities.
+2. The already opened Teams forms may cover the team that the canvas has just been created/named. Save source snapshots of former and current comparison teams and role maps, refuse to overwrite and keep local input when changing; Browser review team number 4~5 →  5, local unsaved name retention and three components returned through.
 
-## 验证
+## Authentication
 
-- 最终21文件209项单元/组件通过，覆盖团队基础、模型/布局/指针、编辑器、模板存储与版本、条件/政策、旧sequential排程/预测、Rail和Teams冲突保护。
-- 3个浏览器spec，按唯一设备用例计34项通过、无跳过。最终构建上dot-editor+compact两组桌面/手机18项全过；原workflow-builder两端16项此前已过，功能路径未另行修改。最早两项容器误计来自旧构建的轨道testid前缀，最新构建已复验，不重复累计。
-- 实际鼠标及CDP触屏跨队/空队、同队重排与Undo、拒环、46任务四容器及原依赖、重复Event day到独立Plan任务、版本/活动成果隔离、草稿刷新/离页、目标/工期和浅深两主题已检查。严重/关键axe为0，无页面横向溢出或脚本错误。
-- 最终lint、前后端类型、生产构建、三个独立CSS文件及9页字数通过；Settings147/150。生产入口495,864/550,000字节，未提高门槛；未重复无关全站门禁。
-- [真实生产构建截图清单](../prototypes/workflow-dot-editor/manifest.json)：desktop-canvas为完整46节点画布；另有桌面/手机、浅/深、未选中总览和Details。均为实际页面截图，非生成示意图。交互验收基于本地相同生产构建，线上部署依据Netlify返回的success状态。
+- The final 21 documents, 209 units/components were adopted to cover team bases, models/ layouts/pointers, editors, template storage and versions, conditions/policies, old squential scheming/predictions, Rail and Teams conflict protection.
+- 3 browsersspec, 34 pass without skip according to the only device case. Final construction of two sets of desktops/cellular phones on dot-editor+compact 18 complete; The original worklow-Builder end 16 items were previously past and the functional path was not modified. The first two containers were miscalculated from the old orbital tested prefix, the latest construction having been repeated and not accumulated.
+- The actual mouse and CDP touch screen cross-lines/empties, co-lined with Undo, rejected rings, 46 task four containers and original dependence, repeated Event day to stand-alone Plan tasks, releases/activities isolated, draft updated/offline, target/working period and shallow depth were examined. A severe/key axe is zero, no page overflows or script errors.
+- Final lint, back-end type, production build, three separate CSS files and nine pages of word pass; Settings147/150。495 864/550, 000 bytes at the production entrance, without raising the threshold; Not all stop doors are forbidden without repetition.
+- [ live production screen list ](../prototypes/workflow-dot-editor/manifest.json): desktop-canvas canvassing the full 46 nodes; There are also desktop/cell phones, shallow/deep, unchecked overviews and Details. is a screenshot of the actual page. The interactive acceptance is based on the same local production, and deployment on line is based on access status returned by Netlify.
 
-## 下一位接手
+## Take over next.
 
-主要文件：`src/components/workflowBuilder/{WorkflowBuilder,DotWorkflowCanvas,dotLayout,dotModel}`、`src/components/workflowLibrary/`、`src/data/workflowTemplates.ts`及`WorkflowTemplateContent.teamExecution`。设计正本见[本轮契约](WORKFLOW_DOT_EDITOR_CONTRACT.md)，测试见`e2e/workflow-dot-editor.spec.ts`、`workflow-compact-sequence.spec.ts`与`workflow-builder.spec.ts`。
+Main documents: `src/components/workflowBuilder/{WorkflowBuilder,DotWorkflowCanvas,dotLayout,dotModel}`, `src/components/workflowLibrary/`, `src/data/workflowTemplates.ts` and `WorkflowTemplateContent.teamExecution`. The original design can be found at [. This round of contracts ](WORKFLOW_DOT_EDITOR_CONTRACT.md). Tests can be seen at `e2e/workflow-dot-editor.spec.ts`, `workflow-compact-sequence.spec.ts` and `workflow-builder.spec.ts`.
 
-灰色团队轨道只表示团队路径；真实前置关系选择节点可见，Show all prerequisites显示全部。操作团队归属不得直接调用旧按岗位换业务分支的函数。已有明确依赖不能仅为视觉紧凑而删改。新增团队是组织实体，会出现在各模板，不是单模板临时标签；旧版本的活动团队快照继续独立。
+Gray team tracks only represent team paths; Live relationship selection nodes are visible, and Show all preequisites display all. An operating team belongs to an operation that does not directly call the functions of the old line branch. There is a clear reliance that cannot be removed simply from the compactness of vision. The new team is an organizational entity that will appear in the templates, not as a temporary label for individual templates; The old version of the activity team snapshots continue to be independent.
 
-当前仍为同浏览器保存的原型，不新增真实AI、邮件、服务器账户、跨设备数据或研究日志类别。0真实产品AI/外部邮件。PRODUCT_PLAN / RULES / PROGRESS已同步；需要同步本地备份。
+Currently, it is a prototype that remains with the browser and does not add live AI, mail, server account, cross-equipment data or research log categories. 0 Live Product AI/External Mail. PRODUCT_PLAN/RULES/PROGRESS synchronised; Could not close temporary folder: %s

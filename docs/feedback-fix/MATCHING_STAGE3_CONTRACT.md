@@ -1,24 +1,24 @@
-# 职责匹配阶段 3 契约
+# Job Matching Phase 3 Contract
 
-2026-11-16（America/Phoenix）。用户已批准阶段3；基线 `dbfc47d`。独立兼容读取回滚基点 `e370361`：能读取23并保留未知matching字段，不随功能回退删除。主 Agent 负责22→23迁移及产品接线，两个开发 Agent 使用同一契约。
+2026-11-16（America/Phoenix）。Phase 3 approved by the user; Baseline `dbfc47d`. Separately compatible readrollback base `e370361`: able to read 23 and keep an unknown matching field without the function fallback being deleted. Main Agent is responsible for 22:23 migrations and product connections, with two developers using the same contract.
 
-## 唯一正本
+## Only original
 
-`DemoState.matching` 是 MatchingState；`org.matchingWorkspaceId` 与其 organizationId 相同；`org.settings.matchingMode` 未设置或 legacy 按旧流程，responsibilities 启用新匹配。`matchingContext` 存设置界面的元信息（source/reads/decisions/audit，不重复matching或完整roster）、成员资格/可用情况及一次性人工例外。实际姓名、在任情况、岗位名称仍由业务 people/roles 提供，人工资格不能让卸任/待上任者变成在任。
+`DemoState.matching` is Matching State; `org.matchingWorkspaceId` is the same as its organization Id; `org.settings.matchingMode` does not set or legacy to use the old process, responsibilies enable a new matching. `matchingContext` stores metadata for setting up interfaces (source/reads/decisions/audit, without repeating maching or complete raster), membership eligibility/availability and a one-time manual exception. The actual name, the status of service and the name of the role are still provided by the Operations People/Roles, and manual qualifications do not allow outgoing/to be performed.
 
-`Node.matching` 明确工作流/步骤/职责和原因。责任匹配的已确认回执在 matching.assignments；无职责或不合格者的明确一次性人工指定单独追加 matchingContext.overrides，显示缺口，不伪造职责或全局资格。历史人员引用可保留；实际新增分派须指向当前成员。设置预览导入须显式确认，检查当前scope/成员/岗位，导入后改用业务正本，不长期双写预览键。12人示例不能静默导入另一个团队。
+`Node.matching` Identification of work flow/steps/functions and causes. The liability matching has been confirmed in Matching.assessments; An explicit one-time manual addition to a person without duties or qualifications showing gaps and not falsifying responsibilities or global eligibility. (a) Historical references may be retained; The actual new assignment must point to the current member. Sets the preview import to be clearly confirmed, checks the current scope/ member/ rule, and then changes to a business original without long-term double-write preview keys. The 12-person example cannot be imported into another team.
 
-## Workflow Adapter Agent 唯一范围
+## Workflow Adapter Agent only range
 
-`src/matching/adapters/` 全部新文件及专属测试；允许 `src/engine/playbooks.ts` 增加仅用于分派的 `ownerMode?: "legacy" | "unassigned"` 参数，unassigned 时不得调用旧 ownerRoleId/roleFor 选择执行人（已有RACI字段仍可沿用旧规则）。不改日期、条件、锚点、依赖和预算控制。不修改data/store/类型/表单/根matching契约。导出集中 `src/matching/adapters/index.ts`。
+`src/matching/adapters/` All new files and exclusive tests; Allows `src/engine/playbooks.ts` to add `ownerMode?: "legacy" | "unassigned"` parameters only for assignment, and unasssigned cannot call the old owner RoleId/ rollFor to select an executor (the previous rule is still available in the RACI field). Do not change dates, conditions, anchors, dependency and budget control. Data/store/types/sheets/ rootmatching compacts are not modified. Export concentrated `src/matching/adapters/index.ts`.
 
-公共方法（具体参数严格按下列实现）：
+Public methods (specific parameters are strictly achieved as follows):
 
 ```ts
-matchingModeEnabled(s: DemoState): boolean // 只看显式模式；即使配置损坏也不能回退legacy
+matchingModeEnabled(s: DemoState): boolean // (b) Only visible models; You can't fallback even if the configuration is damaged. legacy
 validOrganizationMatching(s: DemoState): MatchingState | null
 organizationMatchingReferences(s: DemoState): MatchingReferences
-eventMatchingWorkflowId(s: DemoState): string // org.eventWorkflow存在为club-event，否则seo-event
+eventMatchingWorkflowId(s: DemoState): string // org.eventWorkflowExistence As club-eventOtherwise... seo-event
 prepareMatchingNodes(s: DemoState, nodes: Node[], options?: {
   workflowId?: string
   confirmation?: MatchingConfirmation
@@ -30,19 +30,19 @@ recordChangedMatchingOwners(before: DemoState, after: DemoState, actorId: string
 canClaimMatchingTask(s: DemoState, node: Node, actorId: string): boolean
 ```
 
-prepareMatchingNodes 只处理传入的新节点，旧模式直接返回原节点。启用后无确认选择时，清空旧预派owner，status=unclaimed/acceptedOn=null，返回候选原因；不因有primary/sole就自动确认为owner。确认choices用模板stepKey或独立node.id定位，提供choices时必须校验confirmation.revision=当前matching.revision，否则拒绝整组（MatchingError conflict）。有效choice只针对合格可用候选记录默认/backup/sole/manual回执；备份必须有显式choice。一次性manualOverride只对当前成员，单独留记录。不指定职责的独立任务也保留明确缺口；无显式例外不能让AI的owner字段绕过匹配。
+PrepareMatchingNodes only handles incoming new nodes and the old mode returns directly to the original node. Queued old pre-positioner, status=unclaimed/accipatedOn=null when no confirmed option becomes available; It is not automatically recognized as owner because of prism/sole. Confirms the choices' positioning using a template stepKey or an independent node.id, which must be verified by reference to Conformation.revision=current matking.revision, otherwise the whole group is rejected (MatchingError contact). Effective choice only responds to the default/backup/sole/manual for eligible available candidate records; Backup has to be visible. One-time manual Override records only for current members. Independent mandates with no assigned responsibilities also retain clear gaps; There are no explicit exceptions to allow AI ' s own field to bypass the match.
 
-独立任务workflowId=standalone、stepId=node.id；有显式responsibilityIds或choice.responsibilityId时建立该单次步骤requirement（确认职责后才confirmed）；不修改其它任务或模板。任务owner设置后：给本人可accepted，给别人unclaimed等待认领；分派回执确认不等于成员认领。
+WorklowId=standalone, stepId=node.id; Create the single step when there is a visible resonsibility Ids or school.responsibilityId (confirmed after recognition of duties); No other tasks or templates are modified. (b) Once the task owner has been set up, he may be given access to him or her and give another person an unclaimed waiting to be recognized; Assigning a confirmation of return is not the same as a recognition by member.
 
-recordChangedMatchingOwners 只为同一workspace中已有节点的真实owner变更追加依据，不给旧任务伪造过去记录；正常eligible人选追加matching回执，其余明确的人工作业追加manual override（含取消owner），不改写历史。调用方负责原有权限；预算和角色权限不变。canClaimMatchingTask：已有指定owner由其认领；无owner的匹配任务仅允许该职责合格可用候选，缺配置时不能通过认领绕过缺口；纯旧任务按旧逻辑。
+RecordChanged MatchingOwners simply changed the living owner's basis for an existing node in the same workspace and did not falsify past records for an old task; The normal eligible candidate adds matching back and the rest of the explicit manual work adds manual overrides (including cancellations) without rewriting history. Callers are responsible for the original missions; Budget and roles permissions remain unchanged. CanClaimMatchingTask: The owner has been designated by him; A matching task without an owner only allows the function to be eligible for a candidate and cannot bypass the gap if there is no configuration; The old mandates follow the old logic.
 
-46步：逐项建立显式目录（key/title/建议的职责边界/是否复合/来源），不按九类职能分配，不固定创建社团职责。导出 `STANDARD_MATCHING_STEPS`（每项 stepId,title,description,status:"draft"|"needs_split"），以及 `standardRequirementCommands(state, workflowId?, steps?)`：给缺失步骤生成 responsibilityId:null 的 draft/needs_split requirement，不覆盖已存在人工关联。提供 `WorkflowResponsibilityMap` 组件（同目录，props {state:DemoState; onCommand:(command:MatchingCommand)=>void}），让用户逐项选择自定义职责、确认或标为复合。标准与自定义模板均用稳定workflow+step标识；组件英文且token样式复用现有class。文档可新增 `docs/feedback-fix/MATCHING_STEP_COVERAGE.md` 记录46项，不声称已覆盖全部外部政策。
+Step 46: Creation of an item-by-line directory (key/title/Recommended boundaries/complexity/source), not assigned to nine categories of functions, and no fixed creation of student responsibilities. Export `STANDARD_MATCHING_STEPS` (each stepId, title, description, status: "draft"  | needs_split"), and `standardRequirementCommands(state, workflowId?, steps?)`: Generate missing steps to responsibilityId:null draw/nes_split requirement that does not cover an existing artificial connection. Provides a `WorkflowResponsibilityMap` component (the same directory, programs {state: DemoState; onCommand: (command: MatchingCommand)=>void}), allowing the user to select custom duties, confirm or mark them as composites, item by item. Standard and custom templates are marked with a stable workflow+step; component in English and token styles to repeat the existing class. Documents can add 46 `docs/feedback-fix/MATCHING_STEP_COVERAGE.md` records without claiming to have covered all external policies.
 
-## Integration Test Agent 唯一范围
+## Integration Test Agent only
 
-新 `src/matching/stage3*.test.ts(x)`、`src/matching/stage3Fixtures.ts`、`e2e/matching-stage3.spec.ts`。不编辑其他生产文件或旧测试；若旧断言需要更新先报告主 Agent。先完成纯单元/集成夹具，再按主接线验证浏览器，禁止真实AI。
+New `src/matching/stage3*.test.ts(x)`, `src/matching/stage3Fixtures.ts`, `e2e/matching-stage3.spec.ts`. Do not edit other production documents or old tests; If the old assertion is to be updated, then it will be necessary to update the previous report. Completes a pure module/integrator and then verifies the browser on the main line. Live AI is prohibited.
 
-根业务 API 将由主 Agent 实现 `src/matching/organizationMatching.ts`：
+Root API will be implemented by master Agent to achieve `src/matching/organizationMatching.ts`:
 
 ```ts
 initializeOrganizationMatching(s: DemoState): DemoState
@@ -51,10 +51,10 @@ organizationSetupDocument(s: DemoState): MatchingSetupDocument | null
 saveOrganizationSetup(s: DemoState, doc: MatchingSetupDocument, expectedRevision: number): DemoState
 ```
 
-reducer新增 action：`matchingInitialize`、`matchingImport` {preview}、`matchingMode` {enabled:boolean}、`matchingSave` {document,expectedRevision}、`matchingCommand` {command}、`matchingLinkTask` {nodeId,responsibilityId:string|null}。均由社长/VP配置；单次分派保留原入口权限。HumanInputs 增 matching?:MatchingConfirmation；NewTask 增 responsibilityId?:string|null/manualOverride?:boolean；createTasks action 增matchingRevision?:number。已启用新模式的Tasks/Ask表单一个任务只选一个实际人，候选多人不生成重复任务；legacy仍保留显式多人各一份的原行为。
+Add action: `matchingInitialize`, `matchingImport` {preview}, `matchingMode` {enabled:boolean}, `matchingSave` {documentation, expedition}, `matchingCommand` {command}, `matchingLinkTask` {nodeId, responsibleId:string | null}. All configured by president/VP; Separately assigns the original entry documents. HumanInputs add matching? NewTask, responciabilityId?:string | ull/manualOverride?: boolean; What are you doing here? The list of Tasks/Ask forms, which has been activated in the new model, selects only one actual person and multiple candidates do not generate duplicate tasks; Legacy still retains a copy of the original act.
 
-启用/导入/迁移不能改已有任务owner或状态。22→23先备份，不重建图；损坏/未来matching配置保留原值、暂停匹配而不reset组织；导出保留匹配与回执，replace恢复校验组织与结构。首次组织设置必须获得新的matchingWorkspaceId，不能沿用旧配置或回执；新模式选项由主Agent接入完成设置。所有创建路径调用同一adapter，不改日期计算。
+Can not get folder: %s: %s 22  → 23 back up without reconstructing the map; The damage/future massing configuration retains the original value, suspends matching without reset organization; Export retention matching and return, replace restoration of tissues and structures. The first organizational set-up must obtain a new matchmakingWorkspaceId and cannot follow the old configuration or return to it; The new mode option is set by the main Agent access. All creation paths call the same aadapter, without changing dates.
 
-## 主 Agent
+## Lord Agent
 
-数据类型、seed/store/settings/changeReview与UI入口（MatchingPage、useMatchingSetup、Tasks、AskPanel/ChangeCard、任务详情、首次setup）归主 Agent。新存档迁移、存储错误保护、同步保存适配、导入预览、受控资格设置与实际任务的分派编辑均由主 Agent 集成。开发包完成后独立最终Review。最终跑lint/build/backend类型、单元、相关浏览器及一次完整 `npm run check`，区分已有失败与本次新增，不运行真实模型。
+Data types,seed/store/settings/changeReview and UI portals (MatchingPage, using MatchingSetup, Tasks, Askpanel/ChengeCard, task details, first setup) are owned by Agent. The new archive migration, storage error protection, synchronization, import previews, controlled eligibility settings and assignment editors are all integrated by the main Agent. After the completion of the development package, the final independent review. Eventually run the Lint/Build/backend type, modules, associated browsers and a complete `npm run check`, distinguishing existing failures from this addition and not running live models.

@@ -1,104 +1,104 @@
-# 职责匹配方案：供重新设计界面前审阅
+# Job matching programme: for review before the redesign community
 
-2026-11-16（America/Phoenix）。Juanxi 要求先恢复 main 的 onboarding，撤回当前过于复杂的职责设置，再阅读方案，之后通过参考界面或手绘讨论新的交互。
+2026-11-16（America/Phoenix）。Juanxi requires that new interactions be discussed through reference interfaces or handwriting, after restoring the main onboarding and withdrawing the current overly complex setup of responsibilities.
 
-本文记录刚撤下版本的设计。原实现完整保存在提交 `5e301d9`，当前预览恢复原来的 onboarding 和任务分配入口。新界面暂不开发。
+This document records the design of a version that has just been withdrawn. The original complete saving is in the submission of `5e301d9`, and the current preview restores the original onboarding and task allocation entrance. The new interface is not being developed.
 
-## 想解决的问题
+## It's a problem to solve.
 
-给一个任务找到合适的人，需要先知道三件事：**这个任务属于什么工作、谁负责这种工作、多人符合时这次交给谁。** 岗位名称不能单独回答这些问题；同样叫 Vice President 的岗位，在不同社团可能做完全不同的事。
+There are three things you need to know about finding the right person for a mission: **, what it is, who's in charge of this job, and who it is when many people match. The** rule name cannot answer these questions alone; The same rule called Vice President may do something completely different in a different way.
 
-原方案因此把“岗位”“职责”“成员”分开：岗位可以任意命名；职责描述实际工作；成员是具体执行的人。一个岗位可以负责多项职责，一项职责可以由多人承接。
+The original scheme therefore separated "rolle" from "duty": "role" can be named arbitrarily; (b) A description of the actual work; I'm the one who actually executed it. A role can take on multiple duties, and one can be carried over by many.
 
-## 已选定的三个策略
+## Three strategies selected
 
-| 问题 | 选定策略 | 用普通话解释 |
+| Problem | Selected Policy | Explain in Mandarin. |
 | --- | --- | --- |
-| 社团如何建立自己的职责库 | A2：AI 起草，人确认 | 上传 constitution，AI 提取职责并给出原文依据。社长修改、补充、合并或确认；AI 读不出来也能人工建立 |
-| 任务如何关联职责 | B2：工作流步骤关联职责 | 先说明“订房间”这类任务需要什么职责，以后创建活动复用这个关联，不再每次按岗位名称猜人 |
-| 同职责多人如何选执行人 | C2：默认人和备份 | Maya 平时负责，Jordan 是备份；每次实际分派只确认一位执行人，备份接手需要明确确认 |
+| How to build your own pool of responsibilities | A2: AI Drafted, confirmed | Upload constitution, AI extracts duties and gives source text. The president modify, supplement, merge or confirm; AI, you can create it manually if you can't read it. |
+| How mandates relate to responsibilities | B2: Workstream Linking Duty | Describe what duties are required for tasks such as booking a room, and then create an activity to repeat this connection without guessing by the name of the rolle |
+| How many people with the same responsibilities choose their executors | C2: Default and backup | Maya is usually in charge. Jordan is the backup; Only one executor is identified for each actual assignment, and backup takes over requires clear confirmation |
 
-## 1. 职责库是什么
+## 1. What's the job pool?
 
-职责可以理解为工作类型的小泡泡，例如“场地预订”“活动文案”“报销材料整理”。它们由社团自己的章程、工作流和人工补充形成，不要求所有社团都采用 Secretary、Marketing 等固定岗位。
+The duties can be understood as work-type blisters, such as “site bookings” and “reimbursement files”. They are formed by student organization of its own constitution, workflow and manual supplementation and do not require all student organisation to use fixed rolls like Secretary, Marketing etc.
 
-原版本为每个职责保存以下信息：名称、负责范围、交付物、不负责的范围、来源、是否已经确认，以及必要时的专业资格。
+The original version maintains for each function the following information: name, range of responsibility, delivery, area of non-responsibility, source, confirmation and professional qualifications, if necessary.
 
-例如，“场地预订”负责提交场地申请并取得确认；不包含批准预算或实际付款。这样可以减少几个职责同时声称负责同一件事的情况。
+For example, “site bookings” are responsible for submitting and obtaining confirmation of space requests; Does not include approved budgets or actual payments. This would reduce the number of responsibilities that claim responsibility for the same matter at the same time.
 
-AI 给出的内容先作为建议。能在上传原文中找到引用的，显示原文依据；找不到依据的，明确标为建议。人工始终可以补充或修改。
+AI gives the content as a recommendation first. The reference can be found in the upload source text, showing the source text basis; If no basis is found, it is clearly marked as a recommendation. The manual can always be supplemented or modified.
 
-**仍未解决：** 写了职责边界，并不等于系统已经证明所有职责互不重叠、覆盖完整。原版本提供人工合并和审阅，但没有自动证明全社团的职责覆盖了所有工作流和政策。
+**Still outstanding:** wrote the boundaries of duties, which does not mean that the system has proven that all functions do not overlap and cover the full extent of each other. The original version provided manual merge and review, but did not automatically prove that the duties of the entire student organization covered all workflows and policies.
 
-## 2. 职责如何关联岗位和人
+## 2. How duties relate to people
 
-原设计有两条正常路径：
+The original design had two normal paths:
 
-- 岗位负责某职责，这个岗位的成员进入候选名单。
-- 某个人直接负责某职责，可作为岗位关系之外的补充。
+- Role's in charge of certain duties, and this role member is on the list.
+- A person is directly responsible for a certain function, which may be complementary to the role relationship.
 
-同一个人通过多个岗位符合条件时，只出现一次。必要的系统账号或专业资格由人确认，平台不假装已经验证学校系统的访问权限。
+When the same person passes multiple rolls eligible, only once appears. The required system accounts or professional qualifications are validated and the platform does not pretend to have verified access to the school system.
 
-某个任务的一次性人工指定，单独记录为这次的决定，不因此把该成员永久变成具备所有相关职责或资格的人。
+The one-time manual designation of a task, recorded separately as this decision, does not permanently transform the member into a person with all relevant duties or qualifications.
 
-## 3. 任务如何找到职责
+## 3. How the mission finds its duty
 
-原方案的顺序是：**工作流步骤 → 主要职责 → 合格成员 → 本次负责人。**
+The order of the original programme was: **Workstream Steps — Main responsibilities — eligible members — this person.**
 
-例如：
+For example:
 
-| 工作流里的任务 | 关联职责 | 可承接者 |
+| Tasks in the workflow | Related responsibilities | Acceptable |
 | --- | --- | --- |
-| General meeting：预订房间 | 场地预订 | Maya、Jordan |
-| Speaker event：预订报告厅 | 场地预订 | Maya、Jordan |
-| Speaker event：准备嘉宾海报 | 视觉设计 | Sam |
+| General meeting: reservation | Place reservations | Maya、Jordan |
+| Specter event: Reservation of the Reporting Room | Place reservations | Maya、Jordan |
+| Speaker event: Preparation of guest posters | Visual design | Sam |
 
-两种工作流可以共用同一职责，不需要再建一套几乎一样的岗位。通用工作也可以关联职责，不必全部放进 event planning。
+The two streams can share the same responsibilities, and there is no need to build an almost identical set of rolls. Universal jobs can also be associated with duties and need not all be placed in event planning.
 
-对于同时包含多个专业动作的步骤，例如“PPT、装饰和其他活动物料”，原版本会保留“需要拆分或明确统筹”的状态。不能因为其中一个人会做 PPT，就认定他可以完成整项工作。
+For steps that include multiple professional moves, such as “PPTs, decorations and other activity material”, the original version would retain the status of “need to split or clearly integrate”. The fact that one of them could do a PPT does not mean that he can do the whole job.
 
-原版本给现有 46 个标准步骤建立了审阅入口，其中 9 个初始标为复合工作。**这代表有审阅清单，不代表 46 项已经替每个社团完成正确关联，也不代表所有政策职责已经覆盖。**
+The original version established a review portal for the existing 46 standard steps, of which 9 was initially marked as composite work. **represents a review list and does not mean that the 46 items have been correctly linked to each of the students, nor do they represent that all policy duties are covered.**
 
-## 4. 同职责多人时如何选择
+## 4. Choosing when more than one person is in the same position
 
-以 Maya 为默认人、Jordan 为备份举例：
+Take Maya as a default, Jordan as an example of backup:
 
-| 情况 | 原方案的处理 |
+| Situation | Treatment of original programmes |
 | --- | --- |
-| Maya 合格且可用 | 预选 Maya，提交时确认 |
-| Maya 不可用，Jordan 可用 | 建议 Jordan，等待明确选择，不偷偷让他接手 |
-| 没设默认人，只有一位合格候选 | 可以预选这位成员 |
-| 多人符合，又没有默认人 | 留给社长选择，不按名单顺序挑第一人 |
-| 没有合格人选、资格不明或没有对应职责 | 保留待分配，说明缺什么，不自动丢给社长 |
-| 已经确认过负责人 | 修改模板或默认人不自动改派旧任务 |
+| Maya qualified and available | Preselection Maya, confirmed upon submission |
+| Maya is not available, Jordan is available | I suggest Jordan, wait for a clear choice and not sneak him over. |
+| No default, only one qualified candidate. | You can pre-select this member. |
+| Many people match, no defaults. | Leave president to choose, not first in the order of the list |
+| No qualified candidates, no qualifications or responsibilities | Keep to be assigned, indicate what's missing and don't throw it automatically to president |
+| I've identified the person in charge. | Change template or defaulter does not automatically reassign old tasks |
 
-分派和本人认领是两件事：给 Maya 建了任务，不代表 Maya 已经答应接手。原方案仍保留本人认领这一步。
+The assignment and my recognition are two things: the creation of a mission for Maya does not mean that Maya has agreed to take over. The original programme retained this step in my own right.
 
-## 5. 这一版界面为什么负担太重
+## 5. Why is this interface too heavy?
 
-界面直接暴露了底层配置的四个部分：章程来源、职责编辑、岗位/成员/默认人、工作流关联。用户需要先理解这些关系，再逐项填写和确认，才能看到一个任务如何分给人。
+The interface directly exposes four parts of the bottom configuration: constitution source, function editor, role/ member/ default person, workflow association. Users need to understand these relationships before completing and confirming them on a case-by-case basis in order to see how a task is assigned.
 
-它还同时展示了来源、职责边界、交付物、资格、可用情况、成员例外、默认人、备份和复合任务状态。很多信息应该在需要作决定时才出现；这一版却把它们集中变成了设置工作。
+It also displays sources, functional boundaries, deliverables, qualifications, availability, membership exceptions, defaults, backup and composite mission states. Much information should come to light when decisions are needed; This version has turned them into set-ups.
 
-主要问题是：
+The main issues are:
 
-- 社长需要先维护很多配置，才能获得第一次自动分配的收益。
-- 对每个工作流步骤逐项关联，操作量过大。
-- 正常路径与异常处理混在一起，文字多、主操作不突出。
-- 用户很难一眼回答：“系统已经替我做好了什么，现在只需要我决定哪一件事？”
+- The president needs to maintain many configurations before it can obtain the first automatic distribution of benefits.
+- There is an excessive number of operations associated with each step of the workflow.
+- Normal paths are mixed with abnormal processes, with a lot of text and little master action.
+- It's hard for users to answer at first glance: "What has the system done for me? What do I have to decide now? ”
 
-这次把底层规则直接做成了用户流程，增加了设置负担。重新设计时，应分别讨论哪些规则保留、哪些信息需要显示、哪些确认应该交给用户；无需让用户学习全部数据关系。
+This time, the bottom rule became a direct user process and added to the setting burden. When redesigning, each of the rules should be discussed separately, which information needs to be displayed and which confirmations should be given to users; Users do not need to learn all data relationships.
 
-## 6. 未来扩展的原意与实际限制
+## 6. The intention and practical limits of future expansion
 
-原意是：职责库属于社团，不属于某一份工作流。未来添加新的活动类型，或者让 AI 根据一句话提出新流程，都可以复用同一职责库和成员关系，再让用户处理不确定的部分。
+The idea is that the pool of duties belongs to a regular organization and does not belong to a job stream. Adds a new type of activity in the future, or lets AI propose a new process according to one sentence, that allows you to re-use the same job pool with the memory and then lets the user handle the uncertain parts.
 
-原型的实际限制是：主业务只有标准模板和一个自定义活动模板；自定义流程仍受现有 ASU 必须步骤约束。没有交付任意数量模板管理或自由流程生成器，也没有真实组织账号、跨设备同步或服务端多人并发。
+The actual limitation of the prototype is that only a standard template and a self-defined activity template are available for main operations; The custom process is still subject to the existing AAU step. No random number template management or free flow generator was delivered, nor were there any live organizational accounts, cross-equipment synchronization or multiple distributions at the end of the service.
 
-当前回退后，这套新职责匹配不再接入实际任务。预览使用原有分配方式；已有负责人和已保存记录保持。以后复用原实现，需要明确核对当时的团队、任务和旧记录，不能直接重新开启后自动改派。
+After the current fallback, this new set of responsibilities is no longer connected to the actual task. The preview is done using the original distribution; The responsible person and the record-keeping has been maintained. Subsequent reuse would require a clear reconciliation of the team, tasks and old records at the time and could not be re-assigned automatically after a direct reopening.
 
-## 接下来怎么讨论
+## What's next?
 
-先以 main 的 onboarding 为体验基准，等 Juanxi 阅读以上逻辑并提供参考界面或手绘，再决定新流程的入口、顺序和每屏只要求用户做的决定。可以保留需要的规则，也可以修改原策略；当前不提前做新的职责页面。
+Using the main indexing as a baseline, Juanxi will read the logic above and provide a reference interface or handwriting before deciding on the entrance to the new process, its sequencing and the decision that each screen requires only from the user. The required rules could be retained, or the original strategy could be modified; No new functional page is currently available in advance.
 
-后续讨论重点：社长第一次需要看到什么；AI 应该预先完成多少；什么时候才需要询问默认人或备份；职责缺口应在设置时集中处理，还是等某个任务实际需要时再处理。
+Focus of the follow-up discussion: what needs to be seen for the first time; How much should AI do in advance; When the default or backup needs to be asked; Gaps in responsibilities should be addressed centrally when set up or when the actual needs of a mission so warrant.

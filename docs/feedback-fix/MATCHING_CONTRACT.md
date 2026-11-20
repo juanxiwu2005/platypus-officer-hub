@@ -1,14 +1,14 @@
-# 第一阶段职责匹配开发契约
+# Phase I functional matching development compacts
 
-2026-11-16（America/Phoenix） · A2/B2/C2 阶段 1 已获 Juanxi 批准。
+2026-11-16 (America/Phoenix) A2/B2/C2 Phase 1 approved by Juanxi.
 
-共享类型的唯一正本是 `src/matching/contracts.ts`，错误类型在 `errors.ts`，公共出口由主 Agent 在 `index.ts` 维护。开发 Agent 不修改这三个文件、现有产品数据或 UI。发现缺口先向主 Agent反馈，按同一修订继续。
+The only original of the shared type is `src/matching/contracts.ts`, the wrong type in `errors.ts`, and public exports are maintained by master Agent at `index.ts`. Develop Agent does not modify the three files, existing product data or UI. Gaps were identified to be fed back to the main Agent and continued with the same revision.
 
-## Data Agent 交付
+## Data Agent Delivery
 
-文件所有权：`src/matching/library.ts`、`repository.ts`、必要的私有验证模块和对应 `.test.ts` 文件。
+Document ownership: `src/matching/library.ts`, `repository.ts`, necessary private authentication modules and corresponding `.test.ts` files.
 
-公开函数必须为：
+The public function must be:
 
 ```ts
 createEmptyMatchingState(organizationId: string): MatchingState
@@ -21,44 +21,44 @@ loadMatchingState(storage: MatchingStorage, organizationId: string): MatchingLoa
 saveMatchingState(storage: MatchingStorage, state: MatchingState, expectedStoredRevision: number | null): void
 ```
 
-`createEmptyMatchingState` 和 `applyMatchingCommand` 从 library 导出，其余从 repository 导出。错误统一为 `MatchingError`，`loadMatchingState` 返回保留原文的结果；不得读取其他浏览器键、隐式写回或在模块导入时访问 `window`。
+`createEmptyMatchingState` and `applyMatchingCommand` are exported from library, the rest from repository. Error uniform to `MatchingError`, `loadMatchingState` returns the result of saving source text; No other browser keys can be read, hidden writing back or access to `window` when the module is imported.
 
-规则：
+Rules:
 
-- 状态和命令做运行时验证，引用按当前组织查验；严格保护 ID、revision、状态与不可写字段。职责更新后转 draft 并增加职责 revision；重复确认或没有实际内容变化的更新保持不变。
-- 每次实际变更 state revision 加一，增加包含完整命令的事件，并使用传入的 actor 和审计时间，不计算任务日期。
-- 相同 operationId 与完全相同命令的网络重放返回原状态；同 ID 不同命令报冲突。新操作必须满足 expectedRevision。
-- 责任、岗位、成员、要求和策略的引用不可串组织。每个 `(workflowId, stepId)` 唯一，键不能靠易碰撞的字符串拼接；同职责策略唯一、同成员职责决定唯一，默认人和备份不可相同。备份需有主要承接人。
-- 归档保留职责、引用和历史，解析器据此停止新分配。合并归档源、设置 mergedIntoId，重接配置引用并将目标职责和受影响要求转为待确认；既有 assignment receipts 不改写。相互冲突的人选策略或 include/exclude 决定必须拒绝整次合并，不能任意选一份。
-- 分派记录为只追加的回执，记录时校验组织、任务步骤/职责引用及当前修订；候选资格的重新解析由 resolver/未来业务接线负责，library 本身不授予权限或写实际任务。
-- 存储键固定 `platypus.matching.v1:` 加 encodeURIComponent 后的组织 ID。不存在时 load 返回 empty 和新的空 state；损坏、不支持版本、组织不符、存储异常保留 raw 或相应错误，不 Reset demo。
-- 保存前校验现有存储 revision，expectedStoredRevision=null 仅适用于不存在的键。损坏或新版本数据不能覆盖；相同内容可幂等保存，不允许较旧快照覆盖较新快照。浏览器 read/check/write 不是跨标签页原子 CAS，需在交付中明确此限制。
+- Status and command are validated when running, with reference to the current organization; Strictly protects ID, reference, state and non-written fields. The function is updated and turned and the duties are added; Updates that repeat confirmations or do not have actual content changes remain unchanged.
+- For each actual change state review plus one, add an event containing the full command and use the incoming actor and audit time without calculating the date of the task.
+- Replay the same network of operations Id with exactly the same command; Conflicting with ID orders. The new operation must meet the expected review.
+- The references to responsibility, role, member, requirements and strategy cannot be organized in a coherent manner. (a) Each `(workflowId, stepId)` uniquely, keys cannot be collated by easily collapsing strings; The only thing that determines the role of a single, same member is the default and back-up. Back-up requires a primary recipient.
+- Archiving retention duties, references and history, whereby the parser ceases its new assignment. Merge archive source, set mergedIntoId, re-reference the configuration and convert the target duties and affected requirements to be confirmed; There's an assignment recips not to rewrite. A conflicting candidate strategy or an include/exclude decision to reject the entire merge is not optional.
+- (c) The assignment of a record as an additional reply, checking the organization, reference to mission steps/functions and current revisions; The re-qualification of candidatures is the responsibility of the resolver/future business interface, and Library itself does not grant missions or write actual tasks.
+- Storage key to fix the tissue ID after `platypus.matching.v1:` plus encodeuricompont. If not available, load returns empty and new empty state; Damaged, unsupported version, organizational mismatch, stored abnormally reserved raw or corresponding error, not Reset demo.
+- Only keys that do not exist are used to verify existing storage prior to saving. Damaged or new versions of data cannot be covered; The same content can be saved by the application, and older snapshots are not allowed to cover newer snapshots. The browser read/check/write is not a cross-labeled atom CAS, and this limit must be specified in the delivery.
 
-## Resolver Agent 交付
+## Resolver Agent Delivery
 
-文件所有权：`src/matching/resolve.ts`、对应 `.test.ts`。可在测试文件内使用私有虚构数据，不改其他人的模块。
+File ownership: `src/matching/resolve.ts`, corresponding to `.test.ts`. Private field data can be used in the test file, and no changes to others ' modules can be made.
 
-公开函数必须为：
+The public function must be:
 
 ```ts
 getMatchingCandidates(state: MatchingState, references: MatchingReferences, responsibilityId: string): MatchingCandidate[]
 resolveMatchingAssignment(state: MatchingState, references: MatchingReferences, request: MatchingRequest): MatchingResolution
 ```
 
-这是纯函数模块，不读写存储，不调用 AI，不计算日期，不引用旧 `RoleFunction`。
+This is a pure function module that does not read and write storage, does not call AI, does not calculate date, does not quote old `RoleFunction`.
 
-规则：
+Rules:
 
-- 仅已确认的 roleBinding + membership 或已确认的 direct include 构成资格路径。confirmed exclude 覆盖所有继承路径；按成员 ID 去重并稳定排序。丢失的成员引用不变成合格候选；失效岗位不能建立继承资格。
-- active=false、资格 missing 为不合格；availability=unavailable 单列；缺少必要资格为 unknown；availability=unknown 也不自动预选。未知不会被当作肯定信息。
-- 无有效要求、要求 draft/needs_split、职责缺失/draft/archived、组织不符或不一致的重复 ID 均明确返回未解决结果，不能随意挑成员。
-- 已确认回执按 stateRevision 找该 task 的最新 confirmed 决定；task/workflow/step 必须一起匹配，防止跨流程同名步骤串用。仍合格、可用且要求/职责修订未变时保留，不因默认策略修改而改派；失效时 ownerId=null、existingOwnerId 保留，状态 needs_review，不自动推荐替代者覆盖决定。
-- 未确认的 proposed 回执不当作已接手。没有 confirmed 回执时：有效 primary 只预选；primary 无法使用而 backup 合格可用时，返回 backup_requires_confirmation；无默认且仅一个合格可用候选时预选；多候选待选。策略自身引用失效时显示问题，不任意选择另一人。
-- suggestedOwnerId 与 ownerId 分开，只有已确认且有效的回执能得到 ownerId。备份建议 status=needs_review；primary 和 sole_candidate status=suggested。
-- 返回候选、依据 ID 和修订，输入顺序变化不能改变选择。reason 用共享枚举，候选的负面原因明确保留。
+- Only confirmed roleBinding + membership or confirmed direct path. Contributed exit covers all inheritance paths; Press member ID to weigh and stabilize the sorting. The missing member quote does not become a qualified candidate; Expiration of the role cannot create eligibility for succession.
+- Active=false, qualified missing; Availability=unavailable separate columns; (a) Lack of the necessary qualifications to unknown; It is not automatically pre-selected. Unknown is not considered positive information.
+- There are no valid requirements, drag/needs_split, missing duties/braft/archived, inconsistent or inconsistent duplicate IDs that explicitly return the unresolved result and cannot be randomly selected.
+- Confirmed to press statusRevision to find the last contact decision for this task; The task/workflow/step must be matched together to prevent cross-process collusive steps. Remains eligible, available and the requirements/function revisions remain unchanged and are not reassigned as a result of default strategy changes; Upon expiry, the owner Id=null, existing OwnerId reserves, status needs_review, does not automatically recommend a replacement to cover the decision.
+- Unidentified proposed return is not considered to have taken over. (b) No confirdback: valid prism preselection only; returns backup_requires_conference; Pre-selection if there is no default and only one eligible candidate; Multiple candidates to be elected. The strategy itself shows problems when the reference fails and does not choose another person at will.
+- Soggested OwnerId is separated from ownedId, and only confirmed and valid returns can obtain owned Id. Backup advice status=neds_review; Primari and sole_candidate status=sumgested.
+- Returns the candidate, using ID and revision, the input order changes cannot change the selection. The negative reasons for the candidacy are clearly retained with a shared list.
 
-## 主 Agent 交付
+## Main Agent Delivery
 
-维护契约与公共出口，准备 10–20 名虚构成员、两种不同工作流的可读演练和测试，编写阶段 3 接入/旧存档兼容设计。第一阶段不修改现有 `DemoState`、schemaVersion、业务入口、AI 接口、日期引擎或网页。
+Maintenance of contracts and public exports, preparation of 10–20 projectal members, readable exercises and tests for two different workflows, 3 access/old archive compatible design. Phase I does not modify existing `DemoState`, SchemaVersion, business portals, AI interfaces, date engines or web pages.
 
-阶段 2、3 尚未批准。两个开发 Agent 各自提交，不推送集成分支；主 Agent 按包集成并安排独立只读 Review。
+Phases 2, 3 not ratified. (b) Two developers, Agent, each to submit and not send integrated branches; Main Agent is integrated into the package and arranges for an independent read-only review.

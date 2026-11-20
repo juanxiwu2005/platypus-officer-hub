@@ -154,7 +154,7 @@ a_main = page_head(mode_chip()) + f'''
 </div>
 <section class="card"><div class="cx-strip"><span><b>4</b>sent this week</span><span><b>2</b>replied</span><span><b>1</b>no reply · <a class="cx-link" href="#">follow up</a></span><a class="cx-link" style="margin-left:auto" href="#">History</a></div></section>
 '''
-page("A-one-tap-summary", "方案 A · 一键总览", "首屏只回答「今天要发几封、点哪里」；问题和计划只给数字，点进去再看", a_main, a_css)
+page("A-one-tap-summary", "Option A · One-tap summary", "The first screen answers how many messages can be sent today and where to click. Issues and plans show counts; open them for details.", a_main, a_css)
 
 # ============ B. People digest ============
 b_css = """
@@ -186,7 +186,7 @@ b_main = page_head(mode_chip()) + f'''
 <section class="card cx-sec"><header><h2>Can't remind yet <span class="cx-n">8</span></h2><a class="cx-link" href="#">Fix all</a></header><div class="b-fix">{fix_chips}<span class="b-chip cx-muted">+4 more</span></div></section>
 <section class="card"><div class="cx-strip"><span><b>8</b>planned next 7 days</span><span><b>4</b>sent this week</span><span><b>2</b>replied</span><a class="cx-link" style="margin-left:auto" href="#">Week plan</a></div></section>
 '''
-page("B-people-digest", "方案 B · 按人合并", "一个人一封邮件：Jordan 的 3 个任务合成 1 封；勾选要发的人，一键发出", b_main, b_css)
+page("B-people-digest", "Option B · Group by person", "One email per person: combine Jordan’s three tasks into one email. Select recipients and send in one action.", b_main, b_css)
 
 # ============ C. Pipeline ============
 c_css = """
@@ -219,7 +219,7 @@ c_main = page_head(mode_chip()) + f'''<div class="c-board">
 <section class="c-col"><header>Waiting for reply <span class="cx-n">2</span></header>{sent_col}</section>
 <section class="c-col"><header>Replied <span class="cx-n">2</span></header>{rep_col}</section>
 </div>'''
-page("C-pipeline", "方案 C · 流水线", "从左到右：先修问题 → 可以发 → 已发 → 已回复；像流程图一样看到每个提醒走到哪一步", c_main, c_css, hide_rail=True)
+page("C-pipeline", "Option C · Pipeline", "From left to right: fix issues, ready to send, sent, replied. Follow each reminder through a workflow.", c_main, c_css, hide_rail=True)
 
 # ============ D. Week timeline (metro style) ============
 d_css = """
@@ -271,7 +271,7 @@ d_css += """
 .cx-eyebrow { margin: 0; font-size: var(--fs-sm); color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
 .cx-rd { display: grid; gap: var(--s4); } .cx-rd h3 { margin: 0; font-size: var(--fs-lg); }
 """
-page("D-week-timeline", "方案 D · 一周时间轴", "每人一条线、每天一列：实心点今天可发，空心点是计划；像 Plan 的地铁图，点一下右侧看这个人的邮件", d_main, d_css, rail=d_rail)
+page("D-week-timeline", "Option D · Weekly timeline", "One row per person and one column per day. Filled dots can be sent today; hollow dots are planned. As in the Plan metro chart, select one to see the person’s email on the right.", d_main, d_css, rail=d_rail)
 
 # ============ E. Table with bulk bar ============
 e_css = """
@@ -294,7 +294,7 @@ e_main = page_head(mode_chip()) + f'''<section class="card">
 <div class="e-filter"><span class="cx-tag mute">All people ▾</span><span class="cx-tag mute">All events ▾</span><span class="cx-tag mute">Sort: most urgent ▾</span></div>
 <table class="tbl e-tbl"><thead><tr><th><span class="cx-check">✓</span></th><th>Task</th><th>To</th><th>Due</th><th>Why now</th><th>Event</th></tr></thead><tbody>{trs}</tbody></table></section>
 <div class="e-bar"><b>5 selected</b><span>→ 3 emails (Jordan gets 1 email for 3 tasks)</span><span class="sp"></span><button class="btn btn-ghost">Preview</button><button class="btn btn-primary">Send 3 emails</button></div>'''
-page("E-table-bulk", "方案 E · 表格 + 批量操作栏", "像 Gmail：标签页切换，一行一个任务，全选后底部一条操作栏一键发；信息密度最高", e_main, e_css)
+page("E-table-bulk", "Option E · Table and bulk action bar", "Like Gmail: switch tabs, use one row per task, and select all to send from a bottom action bar. This option has the highest information density.", e_main, e_css)
 
 # ============ F. Review & send (email preview in rail) ============
 f_css = """
@@ -329,7 +329,7 @@ f_rail = rail_details("Email 2 of 3 · to Jordan", '''<div class="f-mail"><div c
 f_main = page_head(mode_chip()) + f'''<section class="card f-top"><span style="flex:1;font-size:var(--fs-base)"><b>Review 3 emails</b> <span class="cx-muted">· 5 tasks · 1 sent</span></span><span class="f-step"><i class="on"></i><i class="on"></i><i></i></span></section>
 <section class="card f-list">{lst}</section>
 <section class="card cx-sec"><header><h2>Fix first <span class="cx-n">8</span></h2><a class="cx-link" href="#">Open list</a></header><div class="cx-muted" style="font-size:var(--fs-md)">4 waiting on someone unnamed · 2 without owner · 2 stuck</div></section>'''
-page("F-review-and-send", "方案 F · 逐封审阅（右侧邮件预览）", "左边按人列出，右边直接显示要发出的那封邮件；「Send & next」一封封过，也可以一键全发", f_main, f_css, rail=f_rail)
+page("F-review-and-send", "Option F · Review each email with a right-side preview", "List people on the left and preview the outgoing email on the right. Use Send & next to review each one, or send all in one action.", f_main, f_css, rail=f_rail)
 
 # ============ G. Mode sheet: what the one-tap button means in each mode ============
 g_css = """
@@ -357,6 +357,6 @@ g_main = page_head('<span class="cx-muted">Same 5 tasks · 3 people · three sen
 <ol class="g-steps"><li>Untick anyone you want to skip.</li><li>One tap sends all.</li><li>Undo for 10 seconds.</li></ol>
 <p class="g-note">Same server outbox as Mode 1; the only difference is who presses the button.</p></section>
 </div>'''
-page("G-three-modes", "附图 · 三种发送模式下的「一键」", "同一组 5 个任务：自动模式不用按；自己发是逐封引导；Platypus 发是一键全发", g_main, g_css, hide_rail=True)
+page("G-three-modes", "Supplement · One-tap behavior in three sending modes", "The same five tasks: automatic mode needs no action; self-send guides each email; Platypus-send sends all in one action.", g_main, g_css, hide_rail=True)
 
 print("built", sorted(p.name for p in OUT.iterdir()))

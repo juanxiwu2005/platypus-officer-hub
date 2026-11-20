@@ -14,7 +14,7 @@
     {
       "number": "1",
       "title": "Task sheet",
-      "caption": "清单快建与连线预览",
+      "caption": "Quick list creation with connection preview",
       "file": "01-task-sheet.png",
       "original": "exec-1ff1de42-d4b5-44e2-8d65-e437fefa414c.png",
       "bytes": 1511613,
@@ -27,7 +27,7 @@
     {
       "number": "2",
       "title": "Connected timeline",
-      "caption": "连线时间轴与团队泳道",
+      "caption": "Connected timeline and team lanes",
       "file": "02-connected-timeline.png",
       "original": "exec-2233f25f-3604-45f7-944b-4e577a237af5.png",
       "bytes": 1430856,
@@ -40,7 +40,7 @@
     {
       "number": "3",
       "title": "Dependency canvas",
-      "caption": "依赖卡片画布",
+      "caption": "Dependency card canvas",
       "file": "03-dependency-canvas.png",
       "original": "exec-e8e0916d-f9ba-4a5c-8096-0a8634ee9509.png",
       "bytes": 1380989,
@@ -53,7 +53,7 @@
     {
       "number": "4",
       "title": "Team-first builder",
-      "caption": "团队接力板",
+      "caption": "Team handoff board",
       "file": "04-team-first.png",
       "original": "exec-935fac67-9f16-4c24-aa15-e953b5ff3e70.png",
       "bytes": 1535202,
@@ -66,7 +66,7 @@
     {
       "number": "5",
       "title": "Milestone builder",
-      "caption": "里程碑分段",
+      "caption": "Milestone sections",
       "file": "05-milestone-builder.png",
       "original": "exec-9811856e-0058-4daf-9173-794889cd974f.png",
       "bytes": 1563798,
@@ -79,7 +79,7 @@
     {
       "number": "6",
       "title": "Guided task composer",
-      "caption": "逐步任务向导",
+      "caption": "Step-by-step task wizard",
       "file": "06-guided-task-composer.png",
       "original": "exec-e9cc3262-12c6-4972-8d23-a4b0460461a1.png",
       "bytes": 1434409,

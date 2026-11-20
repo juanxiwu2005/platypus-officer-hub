@@ -1,86 +1,88 @@
-# 交给另一个 AI 的提示词（Onboarding 改版）
+> **Language policy update, November 19, 2026:** write documents, reports, comments, commits, and GitHub notes in English. This supersedes any earlier language instruction quoted in this historical file. Current `AGENTS.md` controls.
 
-> **怎么用：** 发送前只改最上面框里的两处"【发送前填写】"，然后把下面整个代码块原样贴给对方 AI。
-> **一次只交一个阶段。** 阶段做完、你验收之后，再改"本次只做"那一行，发下一个阶段。
-> **别让两个 AI 同时改同一个阶段**（包括我）：同一条分支上会互相覆盖。交出去的阶段，我这边就不再动。
-> 提示词里不含任何密钥或研究数据。它假设对方能读写这个 GitHub 仓库、能跑 Node 22 和 Playwright；如果对方做不到，它会按提示词里的"停下来"条款告诉你。
+# Hand over to another AI prompt (Onboarding)
+
+> **How do you use:** to send only two of the top boxes, and then to put the entire code block below to each other.
+> **only one stage at a time. After the** phase, after you acceptance, we'll change the line to "do only this" and send out the next one.
+> **Don't let the two AIs change to the same stage** (including me): they cover each other in the same branch. I won't move at the stage of delivery.
+> Prompt does not contain any secret key or research data. It assumes that the other can read and write this GitHub repository, run Node 22 and Playwright; If they can't, it'll press the "stop" clause in prompt to tell you.
 
 ```
-你好。你要接手 Platypus 仓库里的一项工作：Onboarding 改版。下面是你需要知道的全部。你看不到我和上一个 AI（Claude）的对话，所以不要猜，一切以仓库里的文档为准。
+Hello. You're taking over.  Platypus One job in repository: Onboarding Change it. Here's all you need to know. You can't see me and the last one.  AI（Claude) Dialogue, so don't guess, everything depends on the document in repository.
 
-【发送前填写 1】本次只做：阶段 1（可改为 阶段 2 或 阶段 3）
-【发送前填写 2】Juanxi 对策略文档第 9 节 Q2–Q6 的答复：按建议 / 改为：________
+[Pocket before sending]  1♪ This is just the stage ♪  1(may read  Phase  2 or  Phase  3）
+[Pocket before sending]  2】Juanxi Policy Document No. 1  9 Section  Q2–Q6 Response: As recommended  / was replaced by: ________
 
-## 0. 你是谁、给谁做事
-- 项目负责人 Juanxi 不写代码。和他说话用简单的中文，一次只讲一步，不用术语；需要他动手的地方写清楚点哪里。
-- 界面文字一律英文；文档、报告、给 Juanxi 的话用中文。代码标识符用英文。
-- 仓库：GitHub juanxiwu2005/platypus-officer-hub。
-- 工作分支（也是预览网址对应的 PR）：claude/determined-johnson-yrdxwf。预览：https://deploy-preview-10--platypus-officer-hub.netlify.app 。
-  这个分支名带 AI 名字，违反常规命名，但 Juanxi 已同意只在这个预览上使用，**不要改名、不要删除**（删了预览就作废）。
-- **绝对不要**：改 main、推送 main、合并 main、强制推送（--force）、改写别人的提交历史。只有 Juanxi 明确说"批准合并"才能合并到 main，而且那不是你的任务。
+## 0. Who are you, who do you work for?
+- Project Manager  Juanxi Don't write code. Speak to him in simple Chinese, one step at a time, without terminology; Where he needs to do it, write something.
+- Use English for UI copy, documentation, reports, code identifiers/comments, commits, and GitHub notes. Private conversation may follow Juanxi's preferred language.
+- Repository: GitHub juanxiwu2005/platypus-officer-hub。
+- Task Branch (also previews of web sites)  PR）：claude/determined-johnson-yrdxwf。Preview: https://deploy-preview-10--platypus-officer-hub.netlify.app 。
+  This branch belt.  AI Name, out of the ordinary, but...  Juanxi It has been agreed to be used only on this preview. **Don't change your name, don't delete it.**(The preview is deleted and will be cancelled.
+- **Absolutely not.**: Change  mainIt's a push.  main, merge  main, forced delivery ( --force), rewrite someone else's submission history. Only.  Juanxi Well, to be clear, "Ratification "♪ To merge to  mainAnd that's not your job.
 
-## 1. 开工前，先按这个顺序读（读完再动手）
-1. AGENTS.md（全部；重点是第 3 节"硬性规则"、第 4 节"轮流工作的交接规则"、第 7 和 7.1 节"界面和动效规则"）
-2. docs/PROGRESS.md 最上面几条，尤其是标题含"Onboarding"的两条
+## 1. Read it in this order before work starts.
+1. AGENTS.md(All); Focus on the first.  3 Section "Rigid rules "I'm sorry.  4 Section "Handoff Rule for Rotation Work "I'm sorry.  7 and  7.1 Section "Interfaces and action rules "）
+2. docs/PROGRESS.md A few of the top articles, especially the title. "Onboarding"Two.
 3. docs/DESIGN_TOKENS.md
-4. docs/ONBOARDING_REDESIGN_STRATEGY.md（设计依据：第 0、2、2b、3、4、5、6、7 节）
-5. docs/onboarding-redesign/WORK_PACKAGES.md（怎么拆、文件归属、记录方案、回滚）
-6. docs/onboarding-redesign/PROMPTS.md（**每个工作包的"执行口令"就是你的任务说明书**；整合人口令告诉你合并和验收的做法）
-设计已经定了，**不要重新设计**，也不要改动策略、工作包、提示词这三份文档。如果你认为它们有错，停下来在报告里写清楚，等 Juanxi 决定。
+4. docs/ONBOARDING_REDESIGN_STRATEGY.md(Designation basis: No.  0、2、2b、3、4、5、6、7 Section)
+5. docs/onboarding-redesign/WORK_PACKAGES.mdHow to open, file belonging, log program, rollback
+6. docs/onboarding-redesign/PROMPTS.md（**Every workpackage "Execute password "It's your mission statement.**；I want you to know that the integration order tells you how it works.
+The design has been finalized. **Do not redesign**, and do not change the strategy, work package, program these three documents. If you think they're wrong, stop and write in the report. Wait.  Juanxi Decision.
 
-## 2. 这项工作是什么（一句话）
-给 Platypus 做两条新的 onboarding：社长第一次设立组织；社员收到邀请后的体验。Phase 3 研究的参与者**都是社长**，他们首次打开网站时先看到一个欢迎页，可选 Start walkthrough（走社长流程，再预览社员视角）或 Explore the sample club。onboarding 过程要**记录在参与者自己的浏览器里**（独立的新 key，只记行为不记内容，只有参与者自己能导出）。参考日期 11/6，具体冻结日未定。
+## 2. What's the job?
+Here.  Platypus Make two new ones.  onboarding: first organization established; The members are invited to experience it. Phase 3 Participants in the study **It's all president.**, they first saw a welcome page when they opened the site for the first time.  Start walkthrough(go president process, preview the member's perspective) or  Explore the sample club。onboarding The process. **Recorded in the participants' own browser.**(Independent new)  key, bearing in mind that the act is silent and that only the participants themselves can export it). Reference date  11/6No specific freezing date has been set.
 
-## 3. 你的工作方式（和 PROMPTS.md 的差别，以这一节为准）
-PROMPTS.md 是为"整合人 + 并行 worktree 子 agent"写的。你是**一个** AI，所以：
-- 你同时是执行者和整合人，**按顺序一次做一个包**。顺序：
-  阶段 1：OB-01 → OB-02 → OB-03
-  阶段 2：OB-06 → OB-05 → OB-04 → OB-07 → OB-08（OB-06 最大最难，先做）
-  阶段 3：OB-09 → OB-10
-- 每个包：从工作分支开本地分支 design/ob-NN-<短名>（全小写，不带 AI 名字），在上面提交，提交信息格式 "[OB-NN][你的AI名] 做了什么"（中文）。
-  做完并通过自检后，回到工作分支用 git merge --no-ff 合并（保留合并提交，Juanxi 之后要靠它单独回滚某个包），然后推送工作分支。
-  不要 squash，不要 rebase 已经推送的提交。
-- 推送被拒（远端有新提交）：先 git fetch，再把自己的提交接在它后面（git rebase origin/<分支> 只用于你自己尚未推送的提交），不要强推。
-  远端可能有别人（Juanxi 或别的 AI）推过修复提交；不要改它们。
-- 开工第一件事：在 docs/PROGRESS.md 把 Onboarding 对应阶段标为"进行中"，写上你的 AI 名称和日期（AGENTS.md 第 4 节），提交并推送。如果看到别的 AI 已经标了"进行中"，**停下来问 Juanxi**。
-- 并行包本来互不碰对方文件。你顺序做，也要守同一条规矩：**每个包只改自己"只能改这些文件"里列出的文件**；需要改别的文件（App.tsx、store.tsx、styles.css、PROGRESS.md 以外的共用文件）而 PROMPTS.md 没授权，就停下写进报告。
-- 合并时、以及每个包提交前，都要看 git diff --stat，确认没有白名单以外的文件。
+## 3. Your way of working (and  PROMPTS.md by this section)
+PROMPTS.md Yes. "Integration of people  + Parallel  worktree Son  agent"Write. You are. **One.** AISo:
+- You're both an executor and an integrationist. **Make one bag at a time in order.**。Order:
+  Phase  1：OB-01 → OB-02 → OB-03
+  Phase  2：OB-06 → OB-05 → OB-04 → OB-07 → OB-08（OB-06 Most difficult, first done.
+  Phase  3：OB-09 → OB-10
+- For each package, create local `design/ob-NN-<short-name>` from the work branch, in lowercase without an AI name in the branch. Use an English commit message such as `[OB-NN][Codex] Describe the change`.
+  When you're done and self-checked, go back to the branch.  git merge --no-ff (Reservation merge submitted, Juanxi And then it's going to be left alone with a rollback bag, and then push the branch of work.
+  Don't.  squashDon't.  rebase Submitted.
+- Transfer denied (new submission from remote): first  git fetch, and bring your hand off behind it. git rebase origin/<Branch > Don't push it.
+  There may be someone at the far end. Juanxi Or something.  AI(b) Transferred the restoration; Don't change them.
+- First thing to do:  docs/PROGRESS.md Put it on.  Onboarding The corresponding phase is marked as "Ongoing "Write it down.  AI Name & Date ( AGENTS.md Article  4 ), submitted and pushed. If you see anything else,  AI It's already marked. "Ongoing "，**Stop and ask.  Juanxi**。
+- The parallel package would not have touched each other's documents. You have to follow the same rule. **Every bag is just one of its own. "We have to change these files. "Documents listed in the box**；Resize Files Required ( App.tsx、store.tsx、styles.css、PROGRESS.md and other than shared documents)  PROMPTS.md Without authorization, stop writing the report.
+- You have to look at merge and every bag before it's submitted.  git diff --stat, confirm that there are no documents other than the White List.
 
-## 4. 硬性规则（违反就是失败，完整版在 AGENTS.md）
-1. 不放研究数据、问卷、访谈、参与者信息；只用虚构演示数据。不放任何密钥（不要把任何 API key 写进代码、文档、提示词、提交）。
-2. 日期只由规则引擎（src/engine/）计算；AI 不能给日期。
-3. 不调用 /api/org/*、/api/workspace*，不新增 AI 接口；只用现有的 /api/setup/constitution 和 /api/command。ORG_SETUP_ENABLED 保持不设。
-4. 不改 SCHEMA_VERSION，不改 DemoState，不改任何已有的 localStorage / IndexedDB 键。记录用的是**新增**的 key（见 WORK_PACKAGES.md 第 4 节）。
-5. 样式：颜色、字号、圆角、层级、时长、曲线只用 token；新样式只写在自己的 src/styles/ob-*.css；不写 !important、transition: all、裸毫秒；
-   动画只动 transform 和 opacity，可被打断，必须有"减少动效"版本。运行 npm run lint 会拦。
-6. 旧页面和旧测试：src/pages/Setup.tsx、Join.tsx 一个字不改；旧测试一条都不能删、不能放宽断言。新开关关着时，全站要和今天一模一样。
-7. 每个新守卫（会拦违规的检查）都要附一个"故意违规会变红"的测试样本。
-8. 不要为了让测试变绿而跳过、删除或放宽测试。红了就找原因；找不到就停下来报告。
-9. 每个包的报告必须有"没验证的"一栏（真机手指、Safari 等没测的就写没测）。没验证的不要说成验证过。
+## 4. Rigid rules.  AGENTS.md）
+1. Disable research data, survey, interview, participant information; Only field presentation data. Do not release any secret key  API key Write to code, document, prompt, submission.
+2. Date by rule engine only ( src/engine/(ii) Calculation; AI Can't give date.
+3. Do Not Call  /api/org/*、/api/workspace*, do not add  AI Interfaces; Use only existing ones  /api/setup/constitution and  /api/command。ORG_SETUP_ENABLED Keep it up.
+4. I won't change.  SCHEMA_VERSIONDon't change.  DemoStateDon't change anything that already exists.  localStorage / IndexedDB key. The records are for... **Add**It's...  key(See.)  WORK_PACKAGES.md Article  4 Section ).
+5. Styles: Colours, Characters, Corners, Levels, Lengths, Curves Only  token；The new style is written only on its own.  src/styles/ob-*.css；No writing.  !important、transition: all(a) Naked millisecond;
+   Animation only  transform and  opacity, can be interrupted, must be "Reduce kinetic Effect "Version. Run  npm run lint Will stop.
+6. Old pages and old tests: src/pages/Setup.tsx、Join.tsx No change of word; The old test article cannot be deleted or relaxed. When the new switch is closed, it's the same as today.
+7. Every new guard has to attach one. "Deliberate violation turns red. "The test sample.
+8. Do not skip, delete or relax the test to make it green. If you're red, find out why. If you can't find it, stop reporting.
+9. The report must be for each package. "It's not verified. "One column (real fingers, real fingers) Safari When you can't, you can't. Don't say proof if you don't.
 
-## 5. 怎么证明一个包做完（每个包都要）
-在 Node 22 下：npm ci；npm run lint；npm run build；npm test；再跑这个包自己的 e2e（npx playwright test e2e/ob-NN-*.spec.ts）。
-端口：PW_PORT=52NN PW_STORAGE_PORT=53NN WORDS_PORT=54NN（NN 是包号，避免和别的进程抢端口）。
-没有预装浏览器时用环境变量 PW_CHROMIUM=<chromium 可执行文件路径>。
-每合并完一个包，跑一次完整 npm run check（lint + 构建 + 单元 + 全部页面测试 + 字数）。阶段结束前必须完整绿。
-起点也要先跑一次：开工前 npm run check 必须是绿的；不绿就**停下**告诉 Juanxi，不要"顺手修"。
+## 5. How do you prove one package is done?
+Yes.  Node 22 Bottom: npm ci；npm run lint；npm run build；npm test；I'll run my own bag.  e2e（npx playwright test e2e/ob-NN-*.spec.ts）。
+Port: PW_PORT=52NN PW_STORAGE_PORT=53NN WORDS_PORT=54NN（NN It's a package number, avoid other processes.
+Environment variable for no pre-installed browser  PW_CHROMIUM=<chromium Executable File Path >。
+♪ Every merge out of a bag and run through it ♪  npm run check（lint + Build  + Module  + Browsertes  + Words. The phase must be complete and green before it ends.
+We have to run first: before we start.  npm run check Must be green; It's not green. **Stop!**Tell me.  JuanxiDon't. "Take care of it. "。
 
-## 6. 什么时候必须停下来（不要绕过去）
-- 起点 npm run check 不绿。
-- 需要改"只能改这些文件"以外的文件，或改 SCHEMA_VERSION / 已有存储键 / 数据结构，或加依赖。
-- 只有削弱测试才能变绿。
-- 文档之间互相矛盾，或和代码不符。
-- 看到别的 AI 在做同一件事。
-- 推送一直失败（不要强推；告诉 Juanxi 你卡在哪条命令、输出是什么）。
-停下时：把你做到哪了、卡在哪、你的建议写进报告，并用简单中文告诉 Juanxi。
+## 6. When do you have to stop?
+- Starting point  npm run check Not green.
+- It needs to be changed. "We have to change these files. "other documents, or change  SCHEMA_VERSION / Stored keys already available  / Data structure, or reliance.
+- Only by weakening the test can it become green.
+- The document contradicts each other or does not match the code.
+- I saw something else.  AI Do the same thing.
+- (Don't push.) Tell me.  Juanxi What kind of orders are you stuck with? What's the output?
+When you stop: where did you do it, where the card was, what your proposal was in the report, and tell them in simple Chinese.  Juanxi。
 
-## 7. 本次做完之后（交付）
-1. 每个包写 docs/onboarding-redesign/reports/OB-NN.md（做了什么 / 怎么验收，点哪里 / 没验证的 / 遇到的问题 / 回滚方式）。
-2. 在 docs/onboarding-redesign/ROLLBACK_LOG.md 登记每个合并提交的 SHA（OB-01 负责新建这个文件）。
-3. 在 docs/PROGRESS.md 最上面加一条阶段交接：做了什么、预览网址和"点哪里"的三五句话、测试结果（命令和通过数）、没验证的、下一步需要 Juanxi 决定什么；
-   把工作包状态改成"待验收"；写上"需要同步本地备份"。
-4. 推送工作分支。**不要新开 PR，不要合并 main。**
-5. 最后给 Juanxi 一段简单中文总结：做完了什么（3–5 句）、他该打开哪个网址点哪里验收、有什么没做完或有风险。**然后停下，等他验收。**不要自己接着做下一个阶段。
+## 7. After this session (delivery)
+1. Each one of the bags.  docs/onboarding-redesign/reports/OB-NN.mdWhat'd you do?  / What do you mean, "acceptance"?  / It's not verified.  / Problems encountered  / Rollback mode.
+2. Yes.  docs/onboarding-redesign/ROLLBACK_LOG.md Register each merge submission  SHA（OB-01 This is a new document.
+3. Yes.  docs/PROGRESS.md Add a stage to the top: what has been done, previewing the site and "What do you want? "Thirty-five sentences, test results (orders and numbers of passes), unverified, next steps.  Juanxi (a) Decide on what;
+   Change work package status to "I'm sorry, isn't it? "；Write it down. "Need to sync local backup "。
+4. Send the branch of work. **Do Not New  PRNo, no, no.  main。**
+5. Last one.  Juanxi A simple summary in Chinese: What has been done? 3–5 ), which site he should open where it's at, what's not done or what's at risk. **And then stop waiting for him.**Don't go on the next stage by yourself.
 
-现在开始：先做第 1 节的阅读，复述一遍"本次要做的包和顺序"和"你准备改的文件范围"，再动手。
+From now on, do the first.  1 Read it again. "This is the package and order to be done. "and "You're going to change the scope of the document. "Do it again.
 ```

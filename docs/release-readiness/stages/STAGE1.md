@@ -1,31 +1,31 @@
-# 第一阶段入口 — 并行修复核心契约、交互、安全和性能
+# Phase I entrance -- restoration of core compacts, interactions, security and performance in parallel
 
-## 给阶段主 agent 的完整提示词
+## Full text for stage master
 
-在 GitHub 仓库 `juanxiwu2005/platypus-officer-hub` 执行 DP8 发布准备第一阶段。使用 GPT-6.1 High；WP07 如可单独配置，使用 XHigh。
+First phase of preparation for the launch of DP8 at GitHub repository `juanxiwu2005/platypus-officer-hub`. Using GPT-6.1 High; WP07 Use XHigh if available separately.
 
-1. 先读根目录 `AGENTS.md`、`docs/release-readiness/README.md` 和 `docs/release-readiness/manifest.json`。
-2. 读取 manifest 中第一阶段的六个完整工作包：WP01、WP02、WP03、WP04、WP07、WP09。不得依赖聊天里可能过时的摘要。
-3. 执行 `git fetch origin`，只使用最新 `origin/integration/v1.0`。报告完整和短 SHA，并验证审核基线 `7d84fa4` 是其祖先。禁止使用、修改或推送 `main`。
-4. 明确使用多 agent：创建六个 sub-agent，每个只负责一个工作包。为每个 agent 创建独立 worktree 和分支：
+1. Read root catalogues `AGENTS.md`, `docs/release-readiness/README.md` and `docs/release-readiness/manifest.json`.
+2. Read the six full work packages of the first phase in manifest: WP01, WP02, WP03, WP04, WP07, WP09. It is important not to rely on summaries that may be out of date in chatting.
+3. Execute `git fetch origin` using only the latest `origin/integration/v1.0`. The report is complete and short, and validates that the approved baseline `7d84fa4` is its ancestors. It is prohibited to use, modify or transmit `main`.
+4. Explicit use of multiagents: create six sub-agents, each responsible for only one work package. Create independent worktrees and branches for each agent:
    - `codex/rr-wp01-contract`
    - `codex/rr-wp02-events`
    - `codex/rr-wp03-tasks`
    - `codex/rr-wp04-setup`
    - `codex/rr-wp07-prod-security`
    - `codex/rr-wp09-performance`
-5. 六个 worktree 必须从同一个最新远端 SHA 创建。把 worktree 的绝对路径和对应工作包文件交给各 agent；禁止它们在共享根目录修改文件或互相合并。
-6. 阶段主 agent 在子 agent 工作期间不修改它们负责的文件。子 agent 不更新 `docs/PROGRESS.md`，也不推送 `main`。
-7. 等待六个 agent 完成。逐一审查 diff、提交 SHA、测试证据和工作包验收标准。缺少证据或用弱化测试过关时退回原 agent 修正。
-8. 从最新 `origin/integration/v1.0` 创建单独集成 worktree，按 WP01 → WP02 → WP03 → WP04 → WP07 → WP09 顺序 cherry-pick。禁止使用 `ours/theirs` 整体覆盖解决冲突；按当前产品契约逐处解决。
-9. 每集成一个包运行其目标测试。全部集成后至少执行：
+5. Six worktrees must be created from the same latest remote SHA. Hand over the absolute path of worktree and corresponding work package files to each agent; They are prohibited from sharing root folders to modify files or intermege with each other.
+6. The stage master does not modify the files for which they are responsible during the sub-agent's work. Sub-agent does not update `docs/PROGRESS.md` or send `main`.
+7. Waiting for six things to finish. Reviews diff, submission of SHA, test evidence and work package standards. Revert original agent fixes when there is no evidence available or when the decomposition test has passed.
+8. Creates a separate worktree from the latest `origin/integration/v1.0`, in the order of WP01 → WP02 → WP03 → WP04 → WP07 → WP09 The use of `ours/theirs` to cover conflict resolution as a whole is prohibited; Addressed on a case-by-case basis under the current product contract.
+9. Each package runs its target test. When all are integrated, at least:
    - `npm ci`
-   - Node 22 下 `npm run lint`、`npm run build`、`npm test`
-   - 第一阶段涉及的 Playwright spec（desktop/mobile）
+   - Node 22Down `npm run lint`、`npm run build`、`npm test`
+   - Playwright spec (desktop/mobile)
    - `npm audit --omit=dev`
-   - bundle 大小检查
+   - bindle size check
    - `git diff --check`
-10. 第一阶段不要求提前完成 WP05/WP06/WP08，因此不要通过篡改 a11y、word budget 或开发 audit 标准来让它们假绿；如顺带已通过，如实记录。
-11. 验收通过后，由阶段主 agent 在 `docs/PROGRESS.md` 添加一条第一阶段交接记录，创建一个仅含必要集成/文档更新的提交。
-12. 推送前再次 fetch；只有远端仍是集成基线或能安全 rebase 时，才快进推送 `HEAD:integration/v1.0`。绝不 force push。若远端有未知新提交或任何阶段验收失败，不推送半成品，保留分支并报告。
-13. 不自动调用真实 AIR。结束时报告：远端新 SHA、六个工作包 commit、测试结果、未解决风险和第二阶段是否可开始。
+10. Phase I does not require the early completion of WP05/WP06/WP08 and therefore do not allow them to be greened by tampering with a11y, Word Budget or developing audit standards; If so, so far as the record is concerned.
+11. After the adoption of acceptance, the master agent adds a first stage Handoff record to `docs/PROGRESS.md` and creates a submission containing only necessary integration/document updates.
+12. Before being pushed again, feel; `HEAD:integration/v1.0` can only be moved fast if the remote is still an integrated baseline or safe rebase. Never force push. If an unknown new submission or any stage fails, no semi-finished product is sent, branches are retained and reported.
+13. Do not automatically call live Air. Closing Report: New Remote SHA, six work package timescales, test results, unresolved risks and whether phase II can be started.

@@ -1,27 +1,27 @@
-# 提醒中心方案 F + 按人合并邮件：交付与验收（2026-11-19，Claude 主 Agent + Engine / UI / Review / Tests Agent）
+# Alarm Center Program F +Merge Mail: Delivery with Acceptance (2026-11-19, Claude Master Agent + Engineering / UI / Reviewew / Tests Agency)
 
-契约：`REMINDER_DIGEST_CONTRACT.md`；审阅：`REMINDER_CENTRE_REVIEW_2026-11-19.md`。
+Contract: `REMINDER_DIGEST_CONTRACT.md`; Review: `REMINDER_CENTRE_REVIEW_2026-11-19.md`.
 
-## 做了什么
+## What did you do?
 
-- **按人合并（Engine）：** 同一个人当天的提醒 = 一封邮件（`src/reminders/digest.ts`、`mail.ts` 的 `buildReminderDigestMail` / `checkReminderDigestMail`）。每封最多 8 个任务（`DIGEST_TASK_CAP`），多出的排到明天的邮件。每个任务仍有自己的链接、单封快照和发送记录（`digestId` 相同），整组要么全记要么不记（store action `recordReminderDigests`）。`runtime.digests` 保存实际邮件全文。
-- **上限按封计（修 B1）：** 每人每天 2 封、每周 6 封（重要邮件保留名额）按"封"算；种子数据一键全发 = 3 封 / 5 个任务全部记录（以前只记 4 条）。
-- **界面（UI，方案 F）：** 顶部 `Review N emails · M tasks · K sent today` + 进度；按人竖向列表（每个任务一行 + 原因色块 + "Also has N other open tasks"）；右栏 `DigestPanel` 显示真正要发的邮件，按模式：Platypus 发 = Skip / Send & next / Send all；自己发 = Open Gmail draft → I sent this email；自动 = 只读。下面列这个人的全部未完成任务。Fix first 只放能修的问题；历史收成一行，History 打开右栏。旧 "This week" 重复列表删除（B3）。
-- **独立审查后修复（128c184）：** 满 8 项后剩余任务顺延到次日不当天发第二封；被邮件上限挡住的任务不进 Fix first，改为顶部 "N tasks wait for the next email"；邮件预览在标题/日期/收件人变化时重新准备、记录失败后自动刷新；换人清除旧提示；双击不会顺带批准下一封。
-- **测试迁移（Tests）：** bts、dx-03、dx-06、fb-01、reminder-stage2、research-events、task-details-universal、tasks:125、today:59/:80/:123、wp5 改到新页面，保留原意（不发 AI、不发邮件、规则文字、篡改链接被拒）。新增 `e2e/reminder-digest-centre.spec.ts`、`src/reminders/digest.test.ts`。
+- **by person (Engine):** reminder of the same person = one email (`src/reminders/digest.ts`, `mail.ts` `buildReminderDigestMail`/ `checkReminderDigestMail`). Each maximum of 8 tasks (`DIGEST_TASK_CAP`), extra queues to tomorrow's email. Each task still has its own links, single snapshots and send records (the same `digestId`) and the whole group either keeps it in its entirety or without recording it (store action `recordReminderDigests`). `runtime.digests` Saves the full text of the actual mail.
+- **cap calculated by seal (B1):** per person per day 2 and weekly 6 (key mail reservation) as "enclosed"; Seed data one full release = 3 / 5 complete records (previously only 4 entries).
+- **interface (UI, Programme F):** top `Review N emails · M tasks · K sent today`+ progress; List by person (one line per task + cause color block + "Also has N other open tabs"); Right bar `DigestPanel` displays the real message to be sent, by mode: Platypus = Skip / Send & next / Send all; Open Gmail Draw = I sent this email; Auto = read-only. All outstanding tasks of this person are listed below. Fix first just fixable questions; History harvest line, Historia opens the right bar. Old "Tis week" repeat list deleted (B3).
+- **Rehabilitated after independent review (128c184):** completed 8 and the remaining tasks were postponed until the following day for the second time; Fix first, replace "N tasks wait for the next email" with "N tasks wait for the next email" The mail preview is automatically updated when the title/date/recipient changes and the record fails; (b) Another person clears the old hint; Double-click won't allow the next one.
+- **Test Migration (Tests):** bts, dx-03, dx-06, fb-01, reminder-stage2, research-events, task-details-universal,tasks: 125, today: 59/:80/:123, wp5 to the new page and retain its original intent (no AI, no mail, rule text, tampering links denied). New `e2e/reminder-digest-centre.spec.ts`, `src/reminders/digest.test.ts`.
 
-## 验证（2026-11-19，本地生产构建）
+## Authentication (2026-11-19, Local Production Construction)
 
-- 单元/组件：全量 2100 项中 2098 通过；2 项失败（`uiLog` Export 下载、`calibration` 5 秒超时）在改动前的 `4d6290e` 上同样失败。
-- 浏览器：桌面全量 585 通过 / 23 跳过；手机端提醒相关 15 个 spec 82 通过 / 5 设备限定跳过。桌面剩余失败与改动前基线对比：无新增由本工作引起的失败；`ob-08`、`ob-12`、`workflow-milestones:87` 单独复跑通过（并行负载下偶发）；`rehearsal:59`、`tasks:13/:60/:163/:209`（旧 Task Details 按钮）、`dx-18`、`research-log:84`、`p3a:31` 等在基线上就失败，未改。
-- tsc、lint 通过；字数全部在上限内（启用新提醒后 Today 约 179 / 271，上限 200 / 500）；页面高度 1142px（原 2856px）。
-- 截图：`docs/prototypes/reminder-digest-implemented/final/`（桌面页面、Jordan 邮件、自己发模式、Send & next 之后、手机）。
+- Modules/components: 2098 passed in full 2100; 2 failed (`uiLog` Export download, `calibration` 5 seconds time-out) as did `4d6290e` before the change.
+- Browser: desktop full 585 pass/ 23skip; Cellular end alerts about 15 spec 82 via / 5 device cap. The remaining desktop failure compared to the pre-change baseline: no additional failures caused by this exercise; `ob-08`, `ob-12`, `workflow-milestones:87` repeats alone (coherent load down incidentally); `rehearsal:59`, `tasks:13/:60/:163/:209` (old Task Details button), `dx-18`, `research-log:84` and `p3a:31` failed on the baseline without change.
+- Tsc, Lint pass; Words are all within the upper limit (about 179/ 271, cap 200/ 500 after the new alarm is enabled); Page height: 1142px (old 2856px).
+- Screenshot: `docs/prototypes/reminder-digest-implemented/final/` (desk page, Jordan mail, self-distribution mode, Send after & next, mobile phone).
 
-## 边界与已知问题
+## Borders and known issues
 
-- 0 次产品 AI、0 封真实邮件；`SCHEMA_VERSION` 未升（只加可选字段）；链接签名、授权范围、模式和 `canLead` 检查没有放宽。
-- 仍是浏览器内演示：自动模式只在页面打开时记录；真正发信、服务器定时任务和数据库见审阅报告第 2 节。
-- 单任务提醒（Ask 里的 Remind）仍按一封单独邮件计数，但顶部 "sent today" 只统计合并邮件。
-- 活动任务的邮件链接打开 Plan 任务面板，那里不显示任务的完成标准（旧单任务页显示）；从链接标 Done 需要填写内容或附件。
-- `dx-06`：顶部计数和逾期色块未使用等宽数字（小的设计差距，未改 CSS）。
-- 上面列出的基线就失败的页面测试需要各自负责的会话处理。
+- 0 subproducts AI, 0 live mail; `SCHEMA_VERSION` not promoted (optional fields only); Link signature, authorization scope, mode and `canLead` checks are not relaxed.
+- Remains in the browser presentation: automatic mode is recorded only when a page is opened; The real sender, the server timed tasks and the database are listed in section 2 of the review report.
+- The single task reminder (Ask Remind) is still counted as a stand-alone message, but the top "sent today" only counts merge messages.
+- The active task mail link opens the Plan task panel, where the completion criteria are not shown (old single task page display); The contents or attachments need to be filled out from the link mark Done.
+- `dx-06`: Wide figures such as top count and overdue colour block unused (small design gap, unchanged CSS).
+- The baselines listed above fail the browser tests that need to be handled by their respective responsible sessions.

@@ -1,62 +1,62 @@
-# Onboarding 原稿 v3：明确团队 + 工作包画板
+# Onboarding Original v3: Clear Team + Work Package
 
-2026-11-17（America/Phoenix） · 状态：可操作原稿，待 Juanxi 审阅，尚未接入实际网站。
+2026-11-17 (America/Phoenix) . Status: operational original, to be reviewed by Juanxi, with no access to the actual website.
 
-本版只修改用户选中的“部门接力板”和“整条任务包指派”。原稿在一个页面内共享 People / Work groups 设置，便于直接试验“改团队 → 整包指派”的联动。v1 五屏、v2 四个人员方案与六个工作组方案均保留；新建活动、Finance 分派、Marketing 转交、协调者改派四屏继续冻结。
+Only the selected " departmental relay panel " and " entire task package assignment " will be modified in this version. Originals share People/Work groups settings on a page to directly test the connection of " Change Team  →  Package Assigned " . v1 Five screens, four staff programmes and six working group programmes are maintained; New activities, Finance assignment, Markering transfer and coordinator reassignment of four screens continue to freeze.
 
-## 直接试用
+## Direct trial.
 
-打开 `foundation.html`，所有演示数据为虚构内容，操作不调用接口，不发送邀请或邮件。
+Opens the `foundation.html`, all presentation data are messageal content, do not call interfaces, do not send invitations or emails.
 
-1. **People**：Add team 仅创建空团队；Add role 创建岗位，可以预选团队，也可 Assign later。各团队下方的 Add role 已预选该团队。
-2. 将底部 Jamie 的 **Finance Treasurer 2** 卡片右上角 ⠿ 拖入 Finance，原来的两名成员变为三名；也能用卡片的 Team 下拉框完成同样操作。
-3. 可直接修改职位名称、姓名和邀请邮箱、团队名称。改岗位名不会产生团队；移动岗位不会重写汇报关系。移走团队负责人后，旧团队清空负责人，要求人工重选，不自动换成另一人。
-4. 切至 **Work groups**：Overview 看整体，Detail view 放大所选工作包；拖空白处平移，拖卡片顶边移动，+/− 缩放。手机以当前工作包为中心，用下方 Selected task pack 跳转，避免缩成无法阅读的全图。
-5. 放大后卡片展示包内任务；下方始终可查看全部任务与原始标题、说明及来源。在右侧选择负责团队，该包所有任务一起归到该团队；成员及团队负责人来自 People。
-6. 点击工作包输出 › 再点击另一包输入 ○ 新增连线；也可打开 Connections & sequence，用下拉框连接。循环、重复连接被阻止。新增工作包为空包，不会复制已有任务；本轮不做任务内容编辑器。
-7. Arrange 按依赖重新从左到右排列。建议连线可删除；模板原有依赖保留。Undo 可撤销结构修改。Save draft 在支持会话状态的预览中保存；直接打开文件时只保留当前页内状态，**未接网站保存或本机持久化存储**。
+1. **People**: Add team only creates empty teams; Add rule creates a role that can be pre-selected or assign later. Add line below the teams has pre-selected the team.
+2. To drag the bottom of Jamie's **Finance Treasurer 2** card to the top right corner of Finance, where the original two members became three; The same action can be done with the card's Team drop frame.
+3. The name of the post, name and invitation mailbox, team name may be changed directly. The name does not create a team; Move role won't rewrite the reporting relationship. When the team leader was removed, the old team emptied and asked for a manual re-selection without automatically replacing him with another.
+4. To **Work groups**: Overview View, Detail view zooms in the selected work package; Moves side by side, moves the top of the drag card, +/- zooms. The cell phone is centered on the current work package, and it skips from below to avoid scalding to an unread complete picture.
+5. Enlarged card display package tasks; The full task and original title, description and source are always available below. Select the responsible team on the right, and all tasks in the package will be assigned to the team together; And the team leader is from People.
+6. Click work package output  ○  and then click on another package to enter ° additional links; You can also open Connings & procedure, which is connected by a drop-down. Circulation, repetition of connections are stopped. New work package to be empty, without copying existing tasks; This round is not a task content editor.
+7. Arrange reorders from left to right by relying. Suggested links may be deleted; Templates were originally dependent on reservations. Undo can reverse structural changes. Saved in preview to support session status; Only the current page state is maintained when directly opening a file. **does not save the site or has a memory of** permanently.
 
-## 模型与用户目的
+## Model and user purpose
 
-| 对象 | 是什么 | 稳定关联 |
+| Object | What is it? | Stabilize connections |
 | --- | --- | --- |
-| Team | 一个真实团队，可有多个岗位与成员 | `team.id`，不由岗位标题或汇报线推断 |
-| Role | Treasurer、Finance Associate 等岗位 | `role.teamId`、独立的 `reportsToRoleId` |
-| Person | 姓名、邀请邮箱 | `role.personId`，编辑标题不会影响个人信息 |
-| Task pack | 一组通常适合同一团队承担的任务 | `pack.teamId`、明确 `taskIds` |
-| Connection | 工作包的前后依赖 | `from` / `to` / `origin` |
+| Team | A live team with multiple rolls and minutes | `team.id`, does not extrapolate from the roll title or reporting line |
+| Role | Treasurer, Finance Associate et al. | `role.teamId`Independent `reportsToRoleId` |
+| Person | Name, invitation mailbox | `role.personId`, edit the title without affecting personal information |
+| Task pack | A set of tasks that normally fit the same team. | `pack.teamId`Clear. `taskIds` |
+| Connection | Work package back and forth dependence | `from` / `to` / `origin` |
 
-演示默认含 Club leadership、Finance、Marketing、Operations，均为示例，不是强制岗位目录。后续自建团队仍以 ID 参与指派，不需要 AI 猜测 Finance Treasurer 2 属于哪个团队。工作包改派后显示同组的真实成员；不会把一个任务复制给团队所有人。
+The demonstration contains by default Club leadership, Finance, Marking, Operations, and is an example, not a core directory. The follow-up self-constructed team is still assigned with ID. AI does not need to guess which team Finance Treasurer 2 belongs to. Shows the same group 's live members after work package has been reassigned; Not to copy a mission to all of the team.
 
-**未来接入时的职责边界：** onboarding 保存团队结构与模板默认分组；创建活动时，社长确认每个包本次由哪个团队、哪位负责人、哪些协作者承担，保存活动自己的指派快照；具体任务的唯一执行人由该负责人后续分派或改派。这一活动层及后续四屏本轮未实施，也未更改当前网站的旧分配引擎。
+**Duty boundaries for future access:** saving team structure with template default grouping; When creating the event, president identifies which team, who is responsible for each package and who collaborates to keep its own assigned snapshot; The sole operator of a specific task is assigned or reassigned by the person in charge. This level of activity and the following four screens have not been implemented, nor has the old distribution engine for the current site changed.
 
-章程 AI 岗位/职责识别继续保留。未来可以起草 Team / Role，最终由人工确认；工作包到团队的正式指派由显式选择承担。任意工作流可以有自己的包与图，不把 Finance、Secretary 等示例写成系统固定类别。
+Constitution AI rule/ function recognition continues. In the future, Team/Role can be drafted and eventually manually confirmed; The official assignment to the team is a visible choice. Any stream may have its own packages and drawings, without writing examples such as Finance, Secretary etc. into a fixed category of the system.
 
-## 46 个任务与连线来源
+## 46 task and connection sources
 
-`workflow-data.json` 保留 v2 从 `src/engine/playbooks.ts` 提取的完整 **46 任务 / 43 原始任务依赖**快照（源提交 `e87b19c95e6eece07a3a695fdc0438de3f92fb67`），包括原名、二词短名、条件、说明、来源。这里不是当前运行时规则的新正本。
+`workflow-data.json` Reservation v2 from `src/engine/playbooks.ts` complete **46 mission/ 43 original task dependent on** snapshots (source submission `e87b19c95e6eece07a3a695fdc0438de3f92fb67`), including original name, word short name, condition, description, source. This is not a new original of the current running rules.
 
-- 每个原任务恰好出现一次，共 **13 个工作包**。把原来的 Leadership Review 分成活动前 Readiness Check（finalcheck）和活动后 Event Review（feedback），避免前后事项同在一张卡里。
-- 原任务图压缩到包层，得到 **11 条真实跨包依赖**，以实线显示。包内依赖仍完整保留在数据中。
-- 为讨论更完整的基础工作流，另画 **8 条建议连接**，以虚线显示：规划→合作方/安全/宣传、宣传→准备检查、活动→媒体归档/活动复盘、财务结项/媒体归档→社团档案。
-- 建议连接只是原稿提案，不声称现有模板已经包含，也未用于实际日期计算。新画的连接标为 draft；原图及所有日期/政策引擎没有被改写。
-- 沿用所选 v2 原稿把 feedback 归入记录工作的方向，在本版映到 Operations。示例默认 Finance 12、Marketing 8、Operations 25、Club leadership 1。这不是对运行时的分配变更。
-- 连线采用避开工作包卡片的直角路径，避免经过另一张卡片造成虚假的先后关系。连线验证不等于已完成未来完整工作流编辑器的条件/汇合执行语义。
+- Every original mission just happens to appear once. **13work package**。 Event Review (feedback) before dividing the original Leadership Review into a single Kari before and after the event.
+- The original task map was condensed to the layer and obtained **11 live across packages relying on**, which is shown in line. The inside reliance remains intact in the data.
+- In order to discuss a more complete and basic workflow, an additional **8 proposal was drawn to link**, showing in a dotted line: planning partners/security/advocacy, publicity preparation for inspection, campaign media archiving/activity rediscovery, financial closure/media archive of the student orgnification archives.
+- The proposed connection is only a original proposal and does not claim to have been included in the existing template or used for actual date calculations. The connection to the new painting is marked as draft; The original map and all dates/policy engines have not been rewritten.
+- Use the selected v2 script to place feedback in the direction of the record work, which is shown in the current version. Example by default: Finance 12, Marketing 8, Offices 25, Club lightship 1. This is not an allocation change for running.
+- The connection uses a straight angle path to avoid work card cards and avoids false sequencing by passing through another card. Wiring validation is not equivalent to the condition/convergence execution semantic for completing a complete workflow editor in the future.
 
-## 检查与限制
+## Inspections and restrictions
 
-浏览器检查覆盖：Add role / Add team 分离、真实指针拖入 Finance、岗位改名不建团队、汇报关系保留、负责人移出、整包改派、46 任务唯一覆盖、43 原依赖及 11+8 跨包连线、初始连线不穿过其他工作包、平移缩放、拖动工作包、循环拒绝、新包/连线/Undo、状态恢复、联系人不进入 modelContent、浅深色、手机布局。另查 320/736/1024 两标签无页面水平溢出。详见 verification / layout-verification。
+Browser check covers: Add rule/Add team separation, live finger drag into Finance, roll rename no team, report retention, head move out, pack reassignment, 46 mission only coverage, 43 original dependency and 11+8 cross-package, initial connection not to pass through other work package, flat move zoom, work page, drag cycle refusal, new packages/ links/ Undo, status recovery, contact not to enter modelContent, light depth, mobile phone layout. Also check 320/736/1024 for two tabs without page level overflowing. For more information, please see "Verification / Playout-Verification".
 
-`verify.cjs` 和 `layout-check.cjs` 是隔离原稿的检查脚本，需要 Playwright 和 Chromium；默认兼容本次容器安装位置。截图是这些检查中编辑和拖动后的示例状态，默认原稿仍从两个 Finance 成员 + 一张待入组卡开始。
+`verify.cjs` and `layout-check.cjs` are check scripts for the quarantine manuscript, requiring Playwright and Chromium; Default compatibility with the installation location of this container. The screenshot is the illustrative state of editing and dragging in these checks, defaulting that the original will continue to start with two Finance meeting + one group card to enter.
 
-本版不具备网站权限、多人协作、后台保存、真实邀请、活动级指派或自动调度；不新增 AI 调用、研究记录、邮件发送、数据结构升级或发布。原稿的 privateContent 可保存用户填写的联系人；modelContent 仅保存计数、实体 ID 与指派/连线，不含姓名或邮箱。预览快照上限 16 KiB，超限会提示留在当前页，不声称保存成功。
+This edition does not have a web site for missions, multi-person collaboration, backstage preservation, live invitation, activity level assignment or automatic scheduling; Do not add AI calls, research records, mail dispatch, data structure upgrades or releases. The original prevateContent can save the contact person that the user fills out; ModelContent only keeps count, entity ID and assigned/connected, without name or mailbox. The preview snapshot cap 16 KiB, the excess hints remain on the current page and does not claim success.
 
-## 文件与交接
+## File and Handoff
 
-- `foundation.html`：可操作原稿，样式/数据/交互内聚，不被应用导入。
-- `workflow-data.json`：任务快照、13 包、来源分明的 19 条连线。
-- `verification.json`、`layout-verification.json`：本轮检查结果。
-- `verify.cjs`、`layout-check.cjs`：原稿专用检查。
-- `previews/`：检查状态截图；`manifest.json`：所有归档文件 SHA-256。
+- `foundation.html`: Operational scripts, style/data/interactive grouping, are not imported.
+- `workflow-data.json`: Mission snapshots, 13 packages and clear-source 19 links.
+- `verification.json`, `layout-verification.json`: Results of this round.
+- `verify.cjs`, `layout-check.cjs`: Check exclusively for originals.
+- `previews/`: Screening status screens; `manifest.json`: All archived files SHA-256.
 
-确认方向后才把设计拆成网站组件，并确定团队、工作流模板、活动指派三层的正式存储与兼容方案。暂不把原稿存储当成业务数据基础。需要同步本地备份。
+The design was deconstructed into a website component only after the orientation had been confirmed, and a team, workflow template and activity assignment three layers of formal storage and compatibility options were identified. For the time being, the original will not be stored as an operational data base. Could not close temporary folder: %s

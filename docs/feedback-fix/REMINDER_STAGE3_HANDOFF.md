@@ -1,72 +1,72 @@
-# 提醒阶段三交付：Details、提醒中心与统一规则邮件
+# Reminder phase three delivery: Details, reminder centre and uniform rules mail
 
-2026-11-16（America/Phoenix）。Juanxi 明确要求“继续阶段3”。从 `feat/reminder-plan-v2@17b3e3c` 继续，保留职责匹配源分支 `5e301d9`；沿用 [PR #15](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15)。当前范围技术实现与独立复核完成，交付待验收；完整门禁的既有超时单列如下。
+2026-11-16（America/Phoenix）。Juanxi expressly requested “Continuing Phase 3”. Continue from `feat/reminder-plan-v2@17b3e3c`, keep the functional matching branch `5e301d9`; [ PPR #15 ](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15). The current scope of technical realization and independent review is completed and delivered; The existing timeout for the entire door is listed below.
 
-**当前交付以 [preview 14 整合交付](REMINDER_PREVIEW14_INTEGRATION.md) 为准。** 用户随后指定整合至既有 PR #14；保留 `57c7e55` 的职责匹配撤回和 main 版 onboarding，原职责匹配界面及业务链路不恢复。下面三阶段结果保留为原开发分支的检查记录。
+**Current delivery is based on [ preview 14 integrated delivery ](REMINDER_PREVIEW14_INTEGRATION.md).** users then specify integration to existing PR #14; Keeps `57c7e55` functions matching withdrawal and main version onboarding and the original functional matching interface and business links are not restored. The results of the following three phases are retained as a record of inspections in the original development branch.
 
-## 实际结果
+## Actual results
 
-| 范围 | 已实现行为 |
+| Scope | Achieved behaviour |
 | --- | --- |
-| Details三段 | 活动→任务→负责人/状态→一个Task due；具体要求/完成标准/重要性、一个适用办理入口和状态操作；提醒对象/当前原因/审核或自动演示方式与折叠历史。学校风险保留，私人规划开始日只供原权限查看 |
-| 四种状态 | Done、Working on it、Stuck、Waiting on；延期仍是单独申请。Waiting选择现任对象并填写具体协助说明，重复原样保存不重建请求；外部依赖不猜邮箱。保存失败保留输入，成功以真实写入为准 |
-| 单条/批量/自动 | 复用规则邮件、签名任务入口和快照校验。批量、自动先异步准备，再按最新候选逐条核对状态、对象、归属版本、当前模式、日期和额度，完整保存才计数；旧相同记录不代表本次成功 |
-| 自动演示 | 组织设置授权，在页面打开时处理当前候选，普通成员操作后也能为明确等待对象生成完整跟进；不切换成领导身份，日志actor为system:reminders。失败停止并可重试，StrictMode重复执行不重复记录 |
-| 五区中心 | Needs your OK / This week / Sent / Replies / No reply yet均基于真实计划和持久记录；移除would虚拟发送。实际收件人快照不随改派或删任务消失，同日回复按sequence区分，领导改标题不算成员回复 |
-| 新旧兼容 | 新组织默认runtime v2；既有无runtime/v1存档显式启用/升级。发送方式、自定义任务上限与旧成员/领导跟进设置保留；不认识或损坏的runtime不重置、不执行、不回退旧发送 |
-| 旧历史 | 不能证明收件人的旧nudge/protocol记录保留且标明未知，不猜成当前负责人。领导明确核对当前分配后才允许未来提醒，旧正文与收件人不回填，核对不算负责人回复 |
-| 恢复与冲突 | 临时写入失败可Retry browser saving，再重试未提交的表单/启用/批准；恢复仍核对真实storage，另一标签有新数据时暂停，不覆盖新副本。自动准备与Settings也各有明确重试 |
+| Details III | Activity — task — head/status — one Task due; Specific requirements/complete standards/significantness, an applicable processing access and status operation; Reminder object/current cause/review or automatic presentation and folding history. School risk retention, private planning start-up days only for original missions |
+| Four states. | Done、Working on it、Stuck、Waiting on；The extension remains a separate request. (b) Waiting selects the current candidate and fills out a specific assistance statement to preserve the non-rebuilding request in the form of rehabilitation; External dependence does not guess the mailbox. Save failed to keep input, successfully write with live |
+| Single article/batch/automatic | Repeat rule mail, signature task entrance and snapshot check-ups. (a) Bulk, automatic accelerator preparation, then checking status, object, attribution version, current pattern, date and amount by the latest candidate for full preservation only; The same old record doesn't represent this success. |
+| AutoMap | Organisation setting authorization to process the current candidate when a page is open, and normal members can also generate complete follow-up for clearly waiting objects; Instead of changing to a leadership, the log detour is system:reminders. Failed to stop and can be retryed. |
+| Sector Five Centre | Needs your OK/ This week / Sent / Replies / No reply yet based on live plans and enduring records; Removes the woold virtual sender. The actual recipient's snapshot does not disappear with the reassignment or deletion of the task, response is distinguished by reason of equality on the same day and leadership retitled is not counted as part of the reply |
+| New and old compatible | The new organization defaults on rantime v2; There is no rollime/v1 archive visible enabler/upgrade. Send mode, custom task caps and old member/leader follow-up settings maintained; Non-replaced, non-executed, no fallback old sender not known or damaged |
+| Old history | It cannot be proved that the old Nudge/protocol records of the addressee were retained and not identified as known, and are not assumed to be the current person responsible. The leader clearly checks the current assignment before allowing future reminders. Old text is not filled out with recipients and reconciliations are not counted as responsible responses |
+| Recovery and conflict | The ad hoc writing failed to retries the unsubmitted form/enablement/approval; Restores still check live store, while the other tab pauses when new data is available and does not cover new copies. Auto-preparation and Settings have a clear retry. |
 
-规则仍是开始日、任务截止日、逾期第3天；开始日使用现有引擎latestStart，不擅自改为固定减3个自然日。每任务/负责人任期/收件人最多既有设置的1–3封，每人滚动7天最多6封，同日同任务同收件人去重；迟开只处理当前最相关候选。Working保留到期检查，Waiting/Stuck暂停普通催办，Done停止候选并保留历史。学校日期算法和正式政策未改。
+The rules remain the beginning day, the end of the mandate date and the third day after the expiration; The current engine was used on start-up day and changed to a fixed reduction of three natural days. Up to one to three sets per task/leader/recipient, up to six rolls for seven days each and weighs the same tasks with the addressee on the same day; Late only to deal with the most relevant current candidates. Working keeps the check due, Waiting/Stuck suspends the usual reminders and Done ceases its candidacy and retains its history. The school date algorithm and formal policy have not been changed.
 
-次数使用新版能证明对象与任期的记录；旧未知收件人历史不猜成某人的次数，必须先明确核对才允许未来提醒。审核后平台发送与自动模式都在候选阶段要求有效邮箱，即使个人偏好WhatsApp；个人发送方式继续允许其他渠道。
+Several times a new version can be used to document objects and term records; The number of times an old unknown recipient has not been guessed in the history of a person must be clearly checked before future reminders are allowed. Both the approved platform delivery and automated models require a valid mailbox at the candidate stage, even if individuals prefer whatsApp; Individual means of transmission continue to allow other channels.
 
-## 如何验收
+## How's that?
 
-**预览入口更新（2026-11-16，America/Phoenix）：** 用户指定沿用 [preview 14](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/)。其 Netlify 自动部署连接已经由准备提交 `d47fb5f` 的成功状态和机器人部署记录确认；最终整合的提交与部署核验见 [preview 14 整合交付](REMINDER_PREVIEW14_INTEGRATION.md)。此前推测的 PR #15 地址显示 Site not found，不再交付该地址，也不要求用户另建站点。
+**Preview portal update (2026-11-16, America/ Phoenix): The** user specifies to follow [ preview 14 ](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/). Its Netlify Automated Deployment Connection has been confirmed by the successful state and robot deployment records prepared for submission to `d47fb5f`; Final integration submission and deployment validation [ preview 14 integrated delivery ](REMINDER_PREVIEW14_INTEGRATION.md). The previously presumed PR #15 address shows Site not found, no longer delivers the address and does not require a user to set up another site.
 
-在可用预览中进入提醒中心后按下列步骤验收：
+After entering the alarm centre in the available preview, press the following step:
 
-1. 已有演示存档先点 **Enable updated reminders**。原先的发送方式和设置保留；Earlier reminder仍显示原记录，只有明确核对当前对象后才允许该任务的未来提醒。
-2. 点一行任务名称打开Details，核对活动、任务、唯一Task due、具体要求与意义；滚到Reminder plan，看清正在提醒谁、为何提醒/暂停、需要谁审核。办理按钮的说明区分学校入口和具体申请，不捏造不存在的直达表。
-3. `I review, then I send`打开草稿后由人确认；`I review, Platypus sends`可逐条或Approve all；`Send automatically`生成持久的Automatic demo记录。Sent中的Recorded email可查看当时完整文字，刷新不产生第二封。
-4. 在任务页或Details选择Working on it、Waiting on或Done；刷新检查状态。Waiting on必须有对象及具体说明，对方入口只能Acknowledge/Update provided，不能完成原任务。尚未认领、财务控制、改派失效和权限限制继续有效。
-5. Settings的旧成员Reminder 1/2 days标成Legacy并保留，v2下禁用该两项编辑；领导跟进仍使用原参数。新规则摘要和实际任务上限可见。已有“查看计算依据”开关仍可开关，关闭时说明不进DOM。
+1. The demo archive pre-positioned **Enable updade returns**. (a) The original mode of transmission and the reservation of the setting; Earlier reminder still shows the original records, allowing future reminders for the task only if the current object is clearly checked.
+2. Opens Details with a one-line task name, checking activities, tasks, sole Task Due, specific requirements and meaning; Go to Reminder Plan and see who is being reminded, why reminders/suspensions and who needs a review. The instructions for handling the buttons distinguish between school entrances and specific applications and do not fabricate non-existent straight-up forms.
+3. `I review, then I send` opens the draft and is confirmed; `I review, Platypus sends` can be article by article or Approve all; `Send automatically` produces lasting Automatic demo records. Readed email from Sent can view the full text at that time and refresh without producing a second one.
+4. Selecting to work on it, Waiting on or Done on the task page or Details; Refresh the status check. Waiting on must have an object and specification, and the other party's entrance can only be Acknowledge/Update requested and cannot perform the original task. Unclaimed, financial controls, lapses of reassignments and limitations on missions continue to be valid.
+5. The old Member Representative 1/2 days of Settings marked and retained as Legacy, and the two editors are disabled under v2. The lead follow-up still uses the original parameters. A summary of the new rules and an actual mandate ceiling can be found. There is a " View basis" switch that can still be turned on, stating that DOM will not enter at the time of closure.
 
-仅有本地数据的链接仍限创建它的浏览器；演示中邮件目的地由外部草稿的用户选择，本站不核实投递。自动演示只在应用打开时运行，浏览器关闭期间不承诺定时发送。
+Links with only local data are still limited to creating its browser; The destination for the mail in the presentation is selected by the user of the external draft and this station does not verify delivery. Automation only runs when the application is open, and there is no commitment to timed out during the browser closing.
 
-## 数据、文件与分工
+## Data, documentation and division of labour
 
-运行时仍存同一业务键，外层schema v23与导出formatVersion未改。runtime v2新增mailRequiredAfter：升级前的历史可无正文，之后的新delivery必须带完整规则邮件。旧v1读取兼容，旧代码不能把v2当v1执行；快照与签名入口不自动回填。
+The same business key remains when running, and the outer layer Schema v23 is unchanged with exportformatVersion. Runtime v2 adds mailRequiredAfter: There is no text in the pre-upgrade history, and the new rule message must be accompanied by a full rule mail. Old v1 read compatible and old code cannot execute V2 as v1; Clipshots and signature entrances are not automatically filled in.
 
-主Agent负责store/版本、delivery/batch、权限与自动钩子、Settings、兼容和集成；Details/Actions与Centre分别在独立worktree开发，独立Review复核。契约见 [阶段三契约](REMINDER_STAGE3_CONTRACT.md)。界面开发后由两Agent分担新端到端和旧浏览器兼容，不互改文件。
+Main Agent is responsible for the store/version, delivery/batch, permissions and automatic hooks, Settings, compatibility and integration; Details/Actions and Centre developed independently of worktree, and independent review. The contract is set out in the [ Phase 3 Contract ](REMINDER_STAGE3_CONTRACT.md). The interface is developed with two Agents sharing the new end-to-end and old browser compatible, without modifying each other ' s files.
 
-`src/lib/reminderQueue.ts`保留历史FB-8投影导出和旧版测试；当前产品无该模块的导入，Today和Details统一读取`src/reminders/centre.ts`。不将旧辅助函数的would记录视作新版实际发送。
+`src/lib/reminderQueue.ts` Retain historical FB-8 projection export and old version testing; There is no import of this module for the current product. Today and Details read `src/reminders/centre.ts` together. Do not treat the woold record of an old auxiliary function as a new version of the actual delivery.
 
-## 验证结果
+## Validate Results
 
-最终运行时代码 `8b591e14ab48a8a4d39156524821cfd819a2c72a`，独立Review通过，无开放产品阻塞；其后只有交付文档变更。
+Final running time code `8b591e14ab48a8a4d39156524821cfd819a2c72a`, independent review passed without open product blockage; Only the delivery document changes thereafter.
 
-| 浏览器组（桌面/手机） | 最终结果 |
+| Browser Group (desktop/cell) | Final result |
 | --- | --- |
-| 新阶段三实际启用/Details/批量/自动Waiting/写失败重试，含Axe与溢出、标题纵向几何和截图检查 | 8通过 |
-| 提醒中心和阶段二任务入口兼容 | 27通过、1原有手机限定项在桌面跳过 |
-| Tasks/Today/AI等待/研究导出/入口体积 | 46通过；旧标签/显式启用前置4项先失败，改测试预期后双端原操作复验通过 |
-| 旧Details/计算依据开关/研究事件/按下动效/forecast悬停 | 35通过、3原有手机鼠标限制项跳过 |
-| 原引导/新组织样例/完整演练与键盘 | 16通过 |
-| 最后补齐普通成员计算依据与原开关、入口预算 | 6通过，其中4项与上述重叠、2项新增 |
-| 最终邮箱校验增量构建后的入口预算 | 2通过，与上述预算项重叠 |
+| The new phase three, which actually enabled/Details/Batch/AutoWaiting/Creation Failed Retry, included Axe and overflow, title vertical geometry and cross-charting | 8 Passed |
+| Reminder Center and Phase 2 Entry Compatibility | 27 Passed, 1 old cell phone restricted on desktop skip |
+| Tasks/Today/AI waiting/research export/import volume | 46 Adopted; 4 prefixes for old tabs/television failed and the expected back-end original operation was tested |
+| Old Details/calculation based on switch/research event/activities/foreclast suspension | 35 Passed, 3 Old Cell Mouse Limit |
+| Original guide/new tissue sample/full exercise and keyboard | 16 Passed |
+| Finally complete normal calculation based on the original switch, entrance budget | 6 Adopted, of which 4 overlaps with the above and 2 add |
+| Final Mailbox Validation Increment Building Import Budget | 2 Adopted, overlapping with the above budget lines |
 
-按不重复用例计134通过、4原有限制跳过。以上分批运行且包含定点复测，未运行全站Playwright，不把这些数字写成一次全站门禁。新流程和Details双端截图已经实际查看，临时输入仅虚构社团数据。
+In the non-repeated case, 134 were passed with 4 original limits. These batches run and contain a fixed point survey, did not run the entire station Playwright and did not write down these numbers as full stop doors. The new process and Details' double-end screenshot have been physically viewed, with only temporary input data.
 
-完整单元命令`npm test -- --maxWorkers=2`执行126文件、1809项：**1807通过、2个原5秒超时**。单worker定点复跑MatchingSetupView与calibration共58项为57通过/1超时：Matching18项全过，calibration逐日枚举仍超时。这个枚举在匹配交付的阶段二基线也超时，见[MATCHING_STAGE3_HANDOFF](MATCHING_STAGE3_HANDOFF.md)；本轮不改日期引擎、断言或5秒上限，不称完整check全绿。末次普通成员计算依据目标13项、最后邮箱规则/真实Provider/centre/Today目标4文件98项均通过，包含新增回归。
+Complete unit command `npm test -- --maxWorkers=2` executes 126 files, 1809: **1807 pass and 2 original 5-second timeout**. A total of 58 out-of-date 57 out-of-dates/1 were returned to MatchingSetupView and calibration on a single worker point: Matching 18 out-of-date and calibration one day-by-one. This list is also time-barred in the baseline of phase 2 for matching delivery, see [ MATCHING_STAGE3_HANDOFFF ](MATCHING_STAGE3_HANDOFF.md); This round does not change date engines, assertions or a maximum of five seconds and does not mean that the whole Cheeck is green. The last normal count of members is based on target 13 and the final mailbox rule/live Provider/centre/Today goal 4 documents 98, containing additional returns.
 
-lint、前后端类型、生产构建、新CSS检查与全站字数通过。以40字符`COMMIT_REF=8b591e14ab48a8a4d39156524821cfd819a2c72a`、`BRANCH=feat/reminder-plan-v2`、`CONTEXT=deploy-preview`构建，主入口`/assets/index-DdCS42CM.js`为**539,919 / 550,000字节**；未提高上限。首页92/200、总92/500，Settings150/150；新增说明通过精简重复内容守预算，未隐藏文本过线。TaskDetail由Rail按需加载，首页原交互保留。
+Lint, back-end type, production build, new CSS check and full site word pass. Constructed with 40 characters `COMMIT_REF=8b591e14ab48a8a4d39156524821cfd819a2c72a`, `BRANCH=feat/reminder-plan-v2`, `CONTEXT=deploy-preview`, the main entry `/assets/index-DdCS42CM.js` for **539,919/ 550, 000 byte**; No increase in the ceiling. Home page 92/200, total 92/500, Settings 150/ 150; The new narrative is budget-compliant by streamlining duplicates and does not hide text overline. TaskDetail is loaded as required by Rail and the front page has been kept interactively.
 
-独立实测覆盖StrictMode一次记录、签名准备时跨标签新写入、保存失败与重试、旧/坏runtime不自动启用、准备期间日期/要求/邮箱/成员/权限改变均不发过期邮件，及无旧grant残留。额外检查修正了旧.card header样式覆盖、成员计算依据遗漏和平台审核队列缺邮箱提前拦截；均有目标回归或双端检查。
+An independent live survey overlays a record of the StartMode, cross-labeling for signature preparation, failure to save and retry, old/bad rantime not automatically enabled, date/request/mailbox/ member/ permissions changes do not send expired mail, and there are no old grant residues. The additional check modified the old.card header style overlay, member calculation based on omissions and platform clearance queue short mailbox pre-interception; All target returns or double-end checks.
 
-没有真实AI调用、外部邮件投递或Safari/iOS真机验证。本地生产构建与截图不等同线上验证；线上预览的最新排查结果见上方“如何验收”。
+There is no live AI call, external mail delivery or Safari/iOS authenticity. (b) Local production construction and screen-checking on the same line; The most recent screening results for the online preview can be found at "How to access" above.
 
-## 已知边界
+## Known border
 
-新后台服务、服务器共享数据、跨设备身份、真实定时投递、失败退信和外部联系人邮件路由仍在后续；本轮只实现本地规则演示和完整记录。RACI、新人上手与组织交接没有扩展实施。没有真实AI调用、外部邮件投递、main合并或正式发布。需要同步本地备份。
+New back-office services, server sharing of data, cross-equipment identity, live timed delivery, failed refunds and external contact mail routes are still being followed; Only local rule presentations and complete records are realized during this round. The RACI, incoming officer hand and organization Handoff did not expand the implementation. There is no live AI call, external mail delivery, main merge or official release. Could not close temporary folder: %s

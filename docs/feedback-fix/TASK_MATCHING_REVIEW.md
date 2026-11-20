@@ -1,196 +1,196 @@
-# 自动提醒任务匹配审阅与后续安排
+# Automatic reminder task matching review and follow-up arrangements
 
-2026-11-16（America/Phoenix） · Codex · 审阅基线 `claude/fervent-thompson-e2j5u2@bea7771`
+2026-11-16(America/Phoenix) `claude/fervent-thompson-e2j5u2@bea7771`
 
-自动提醒先按六项依次推进。本轮完成现有任务匹配代码的审阅，记录职责标签和多人候选的设计要求；标签目录与分配规则仍待逐项确定。本轮仅修改文档，任务匹配、提醒、邮件和交接的产品行为均保持原样。
+Automatic reminders advance in six order. This round completes the review of existing task matching codes, records job labels and multiple candidate design requirements; The label catalogue and allocation rules are still to be determined item by item. Only the document will be modified for this round, and task matching, reminder, mail and handoff product behaviour will remain the same.
 
-> **后续明确方向（2026-11-16）：** Juanxi 要求保留并增强章程的 AI 岗位与职责识别，人工负责补充和匹配；不以现有九类职能限制所有社团，要为不同工作流和未来 AI 生成工作流建立可扩展关系。前文“评估无需 AI”保留为最初设想，不能解读为移除已有章程 AI。Juanxi 已在 [方案比较](TASK_MATCHING_OPTIONS.md) 中选定 A2 + B2 + C2，要求 worktree Agent 分阶段执行，批准后才开始阶段；[三阶段实施计划](TASK_MATCHING_IMPLEMENTATION_PLAN.md) 当前待批准，产品行为尚未调整。
+> **Follow-up Direction (2026-11-16):** Juanxi requires the retention and enhancement of functional AI rule and function recognition, which is manually supplemented and matched; Not limit all student functions to the existing nine types of function, but create scalable relationships for different workflows and future AI stream generation. The former “assessment does not require AI” to be retained as originally envisaged and cannot be read as removing existing constitution AI. Juanxi has selected A2 + B2 + C2 from the [ comparison ](TASK_MATCHING_OPTIONS.md), requiring worktree Argentina to be implemented in phases before approval begins; [ Three Phase Implementation Plan ](TASK_MATCHING_IMPLEMENTATION_PLAN.md) Currently pending approval and product behaviour has not been adjusted.
 
-## 六项工作与当前范围
+## Six jobs and current scope
 
-| 顺序 | 工作 | 当前状态 |
+| Order | Work | Current status |
 | --- | --- | --- |
-| 1 | 任务匹配 | 现状审阅已完成；讨论职责标签、覆盖范围与多人候选规则 |
-| 2 | RACI | 已记录；之后明确责任角色和各类消息的收件人 |
-| 3 | 提醒计划 | 已记录；之后确定触发条件、状态变化与 Details 展示 |
-| 4 | 邮件编写 | 已记录；之后确定简短内容、事实表述与办理链接 |
-| 5 | 点开邮件的流程 | 已记录；办理按钮尽量直达实际外部平台的具体页面，多入口需解释适用场景；状态反馈另行设计 |
-| 6 | 独立运行的后台发送服务 | 已记录；之后接通服务器数据、定时执行、发送记录与失败处理 |
+| 1 | Task Match | Status review completed; Discussion of role labels, coverage and multiple candidate rules |
+| 2 | RACI | Recorded; Then identify the responsible actors and the recipients of all kinds of messages. |
+| 3 | Synchronising folder | Recorded; Determine trigger conditions, state changes and Details display |
+| 4 | Mail Writer | Recorded; After that, a short description of the facts and a link to the process will be determined |
+| 5 | Click to open the mail process | Recorded; (c) Process the buttons as directly as possible to the specific page of the actual external platform, and multiple entrances will be required to explain the applicable scene; Status feedback is designed separately. |
+| 6 | A stand-alone backstage sender service | Recorded; Then connect to server data, timed, sent records and failed processing |
 
-新人独立做事与组织交接属于第二个核心目标，放在上述自动提醒工作之后。旧文档中的 FB 波次、三天交接安排不构成本轮同时实施的范围；这里只调整当前推进顺序，不追溯改写历史记录。
+Incoming office is the second core objective of independent work and organization, which follows the automatic reminders mentioned above. The FB wave, three-day handoff arrangement in the old document does not constitute a concurrent implementation scope for this round; Only the current sequence of pushes is adjusted here, and historical records are not rewritten retroactively.
 
-## 用户提出的任务匹配要求
+## Task matching requirements by user
 
-1. 评估不依赖 AI 处理 onboarding 和岗位匹配的方案：把已有工作流、岗位职责与适用政策工作整理成可勾选的职责小泡泡。
-2. 两个小泡泡的职责定义不能重复或让人无法区分；同时检查已知工作是否有遗漏。
-3. 覆盖当前完整工作流，也检查活动规划之外的组织通用职责。
-4. 两个人承担同一种职责时，需要明确如何选择一个任务的执行人。
-5. 先解释现有机制，再细化方案；本轮不直接实施标签、分配算法或后五项功能。
+1. The assessment does not depend on AI handling options matching onboarding and roll: collating existing workflows, role functions and applicable policy work into tickable blisters of duties.
+2. (b) The two bubbles cannot be defined in terms of functions that cannot be duplicated or made impossible to distinguish; At the same time, any known omissions are checked.
+3. Covers the current complete workflow and also examines common organizational responsibilities outside activity planning.
+4. When two persons assume the same role, there is a need for clarity on how to select the implementer of a mandate.
+5. (a) Explain the existing mechanisms before refining the programme; This round does not directly implement labels, assigned algorithms or the last five functions.
 
-“不依赖 AI”的职责标签方案是用户提出、正在评估的方向，不代表已批准最终标签清单、自动分派方式或数据迁移。此前聊天中提出的工作量、可用时间等因素，也不能当作现有系统已实现的能力。
+The " Not dependent on AI " job tag scheme is the direction that users propose and are assessing and does not represent an approved final label list, automatic assignment or data migration. The workload, time available and other factors that have been raised in previous conversations cannot be considered to be the capacity already realized by existing systems.
 
-## 现有主流程如何分配任务
+## How tasks are assigned to existing main processes
 
-主应用的基本路径是：岗位名称 → 一个宽泛职能 → 工作流步骤指定的岗位或职能匹配 → 岗位持有人 → 任务执行人。
+The basic path used by the main application is: role name — a broad function  →  job flow step designation or functional matching  →  role holder  →  mandate-holder.
 
-### 岗位归入一个职能
+### role assigned to one function
 
-[`RoleFunction`](../../src/data/types.ts) 固定为九种：president、vice_president、finance、programs、marketing、outreach、secretary、membership、advisor。一个 `Role` 只有一个 `fn` 和一个 `holderId`；当前模型没有可勾选的职责目录、多个职责标签或同岗位候选成员池。
+[ `RoleFunction` ](../../src/data/types.ts) is fixed in nine categories: president, vice_president, finance, projects, marketing, outreach, secretary, membership, avisor. One `Role` has only one `fn` and one `holderId`; The current model does not have a tickable job directory, multiple job labels or a roller candidate pool.
 
-[`fnForRole`](../../src/data/structure.ts) 主要读取岗位名称中的英文关键词。例如 Finance、Treasurer、Budget 归 finance；Marketing、Design、Media 归 marketing；Event、Logistics、Operations 归 programs。无法识别的普通岗位默认归 programs。跨职能名称按代码里的匹配先后命中一个类别，不会得到多个类别。
+[ `fnForRole` ](../../src/data/structure.ts) uses English keywords in the name of role. For example, Finance, Treasurer, Budget to finance; Marking, Designing, Media to Markating; Event, Logistics, Organisations to Programs. Unrecognisable normal role by default to process. Cross-functional names are assigned to one category by match in the code and do not receive multiple categories.
 
-当前 Team 页面允许修改岗位名、持有人、汇报关系和职责文字。改岗位名通常会重新推导其职能；职责文字保留为自由文本，不会被编译成细粒度职责标签。
+The current Team page allows changes to the rolle name, holder, reporting relationship and duty text. The name change usually results in the reprofiling of its functions; The functional text is kept as a free text and will not be compiled into a fine-scale job label.
 
-### 每个步骤携带负责职能或具体岗位
+### Each step carries the responsible function or specific role
 
-[`EVENT_STEPS`](../../src/engine/playbooks.ts) 当前共 46 个步骤定义，其中 31 个是始终保留的核心步骤，其他 15 个按活动情境决定是否出现。并非每场活动都会产生全部 46 个任务。
+[ `EVENT_STEPS` ](../../src/engine/playbooks.ts) Current definition of 46 steps, of which 31 are the core steps that have always been retained, and 15 whether or not they appear according to the circumstances of the activity. Not every activity produces all the 46 tasks.
 
-每个步骤有一个 `fn`，也可保存一个明确的 `ownerRoleId`。例如内容制作、宣传发布等多个专业上不同的步骤目前都归 marketing；场地、嘉宾、交通、安保等多个步骤都归 programs。
+There is one `fn` for each step and a clear `ownerRoleId` can also be saved. Many different professional steps, such as content production and publicity, are currently under way in the form of marketing; The site, guests, transportation, security, etc. are all part of the program.
 
-[`withOwners`](../../src/engine/workflow.ts) 的优先顺序是：显式传入的步骤岗位选择 → 步骤已保存且仍存在的岗位 → `roleFor` 的匹配结果。手动选择会生效，历史自动匹配写下的岗位也会被保留，系统没有单独区分两者的来源。
+The order of priority for [ `withOwners` ](../../src/engine/workflow.ts) is: the step of open-rolling role selection  →  the result of which matches have been saved and still exist  →  `roleFor`. The manual selection takes effect and the file written by an automatic historical match is retained, and the system does not distinguish between sources.
 
-### 没有具体岗位时按分数选择
+### Select by fraction when no specific role
 
-[`roleFor`](../../src/engine/playbooks.ts) 为每个岗位计算：
+[ `roleFor` ](../../src/engine/playbooks.ts) calculates for each role:
 
-- 岗位 `fn` 与步骤 `fn` 一致，加 100 分。
-- 岗位名称和职责文字中匹配到该职能的关键词，再加 20 分。
-- 选择总分最高的岗位；同分时选择传入列表里排在前面的岗位。
+- Role `fn` is consistent with step `fn`, plus 100 points.
+- The key word for the function is matched in the file name and function text, plus 20 points.
+- Select the highest gross score; Select the roller that will be placed in front of the list at the same time.
 
-没有正分候选时使用固定后备链：finance、marketing 可落到 president；programs 可落到 vice_president，再落到 president；其余职能也有各自后备链。仍找不到时直接返回岗位列表第一项。
+The use of a fixed reserve chain when no positive candidate is available: finance, positioning to presidient; Programs can be found at vice_president, and then at president; The remaining functions also have their own back-up chains. Returns the first line of the roll list directly when it is not found.
 
-这里不比较具体技能、必要账户权限、是否有持有人、个人忙碌周、真实可用容量或已分配任务量。`orderRoles` 在部分设置路径按汇报层级排序，因此同分时列表在前不等于实际最适合。已保存 `ownerRoleId` 的步骤会优先沿用旧岗位，并非每次建活动都会按当前列表重新匹配。
+There is no comparison of specific skills, necessary accounts, whether there are holders, personal busy weeks, live available capacity or assigned tasks. `orderRoles` Sorts the path in partial setting by reporting hierarchy, so that the same time-frame list does not actually fit best. The saved `ownerRoleId` step will prioritize the old line, and not every construction activity will be rematched to the current list.
 
-### 把岗位持有人写成具体执行人
+### Write role holder as specific executor
 
-[`buildEventNodes`](../../src/engine/playbooks.ts) 先用步骤中的有效岗位，缺少时才调用 `roleFor`；再把所选岗位的 `holderId` 写成任务的 `ownerId`。岗位无人担任，任务就无人负责。它不会因为该岗位空缺而继续寻找下一个有人的候选岗位。
+[ `buildEventNodes` ](../../src/engine/playbooks.ts) uses the active roll of steps first and calls `roleFor` when missing; Write the selected `holderId` to task `ownerId`. If no one is in charge of the job, no one will be responsible for it. It will not continue to look for the next candidate because of the role vacancy.
 
-`buildEventNodes` 仅接收活动、岗位和模板选项，没有接收完整成员技能或工作量数据。当前创建活动的这一条路径，有持有人时直接把任务设为 accepted；这与给他人创建独立任务后等待认领的规则不同。
+`buildEventNodes` receives only activity, roll and template options and does not receive complete memory skills or workload data. (a) This path of the current creation activity, with a holder setting the task directly as associated; This is different from the rule of waiting for a claim after the creation of an independent mission.
 
-## AI 与其他创建入口的实际作用
+## The practical effects of AI and other created portals
 
-| 入口 | 当前实际行为 |
+| Imports | Current actual acts |
 | --- | --- |
-| 新活动 | 创建活动后由模板和引擎生成任务，沿用步骤岗位或上述匹配规则；不是逐条调用 AI 评估成员 |
-| 可选章程读取 | AI 可提取岗位名和职责；接受建议后这些信息参与本地岗位配置，不能等同于细粒度技能匹配 |
-| 工作流 AI 分岗接口 | `netlify/functions/workflow.mts` 的 owners 分支可让模型为步骤选择一个已有岗位；静态检索未发现本分支非测试前端调用该接口，不能把服务端代码的存在说成当前 onboarding 已走该流程 |
-| Ask 新建独立任务 | 提示词要求只采用用户点名的人或岗位，不确定时留空；表单供人修改，随后走 `createTasks` |
-| 手动改负责人 | 直接使用选中的人；现有入口主要验证身份、ID 与修改权限，没有共同的职责资格匹配层 |
-| 沉默后的临时接手建议 | `suggestedOwner` 先按职能接近程度，再按未完成任务数量排序；只是特定跟进场景的建议，未成为普通创建任务的统一分配机制 |
+| New activities | Creates an activity to generate tasks from templates and engines, following a step line or the above-mentioned matching rules; Not an AI-by-article call |
+| Cannot initialise Evolution's mail component. | AI can extract a roll name and duties; After accepting the recommendation, this information is involved in local role configurations and cannot be equated with fine particle size skill matching |
+| Workstream AI job separation interface | `netlify/functions/workflow.mts` , which allows the model to select an existing ruler for a step; The static search did not detect the branch's non-test front end calling the interface, and cannot describe the existence of the service end code as the current onboarding has taken the process |
+| Ask New Independent Task | Prompt requires a user-only name or roll to leave space when it is uncertain; Form for revision, then go. `createTasks` |
+| Head of manual change | Direct use of the selected person; Existing portals mainly authenticate identity, IDs and modifications permissions. There is no common functional qualification layer |
+| After the silence, take over the proposal. | `suggestedOwner` (a) The number of tasks not completed is ranked first by functional proximity; It's just a suggestion for a specific follow-up scenario, and it doesn't become an integrated distribution mechanism for normally created tasks. |
 
-相关代码：[`structure.ts`](../../src/data/structure.ts)、[`workflow.mts`](../../netlify/functions/workflow.mts)、[`chatCards.ts`](../../src/lib/chatCards.ts)、[`changeReview.ts`](../../src/data/changeReview.ts)、[`followup.ts`](../../src/engine/followup.ts)。
+Relevant codes: [ `structure.ts` ](../../src/data/structure.ts), [ `workflow.mts` ](../../netlify/functions/workflow.mts), [ `chatCards.ts` ](../../src/lib/chatCards.ts), [ `changeReview.ts` ](../../src/data/changeReview.ts), [ `followup.ts` ](../../src/engine/followup.ts).
 
-独立任务表单选择两个人时，当前会创建两条相似任务，每人一条；它没有从两名同职责成员中选择一个人接同一项工作。未指定人时，社长可发无人负责的任务，普通干部创建的任务默认给自己；给他人的独立任务等待对方认领。
+When two individuals are selected on an independent task sheet, two similar tasks, one each, are currently created; It did not choose one person from two members of the same duty to take up the same job. _Other Organiser A separate mission for others is waiting to be claimed by each other.
 
-仓库还有一套默认隐藏的服务器 Activity workspace。其 `resolveOwners` 按成员的 `roleIds` 找候选：只有一名候选才自动设主要执行人，多名候选时主要执行人为空，其余列为协作候选。这套机制和当前浏览器主应用分离，不能混称已统一上线。
+Repository also has a default hidden server. Its `resolveOwners` is selected on the basis of membership `roleIds`: only one candidate automatically has a lead implementer, several candidates are empty and the rest are listed as collaborative candidates. The mechanism and the current browser main application are separated and cannot be confused with unified access.
 
-## 职责小泡泡的边界建议
+## A border proposal for a small bubble.
 
-小泡泡适合表示“负责哪类工作”，例如场地预订、校方活动登记、宣传文案编写、宣传视觉制作、宣传发布。岗位名称继续由社团自定义，一个岗位可勾多项职责。
+Small bubbles are appropriate to indicate “what kind of work is in charge”, such as booking of premises, registration of school events, preparation of promotional papers, promotion of visual production and publicity. The role name continues to be defined by the student organisation, and a role can tick multiple duties.
 
-需要区分职责、技能和操作权限：会 Canva 是技能；负责宣传视觉制作是职责；能提交特定系统的申请是权限。勾了职责不能自动证明有必要权限，兴趣也不能自动当成专业资格。
+The need to distinguish duties, skills and operations It is the responsibility to promote visual production; Applications that can be submitted to a specific system are missions. A cross-checking of duties does not automatically justify the need for missions and interests cannot automatically be considered professional qualifications.
 
-互斥检查应落实到每个可分派职责的动作、对象和交付物。例如：
+Refusal checks should be carried out to the actions, objects and deliverables of each assigned function. For example:
 
-| 候选职责 | 主要交付物 | 明确排除 |
+| Candidature duties | Main delivery | Clear exclusion |
 | --- | --- | --- |
-| 校方活动登记 | 活动登记记录与确认号 | 组织年度注册、房间预订 |
-| 场地预订 | 场地、容量、布置要求与预订确认 | 校方活动登记 |
-| 宣传文案编写 | 可审核的宣传文字 | 视觉成品、发布操作 |
-| 宣传视觉制作 | 可审核的海报或图像 | 文案创作、发布操作 |
-| 宣传发布 | 已在指定渠道发布的内容 | 文案和视觉成品的制作 |
+| Registering school activities | Activity log and confirmation number | Organization of annual registration, room reservations |
+| Place reservations | Site, capacity, configuration requirements and booking confirmation | Registering school activities |
+| Promotional writing | Verifiable promotional text | Visually produced, released |
+| Promotion of visual production | Verifiable posters or images | Writing, publishing. |
+| Dissemination | What has been published through the designated channel | Production of documents and visual products |
 
-这五项仅为边界示例，不是已定稿或覆盖全部工作的标签目录。上层分组可用于寻找小泡泡，不应与子项同时成为重复计数的可分派职责。
+These five are just examples of boundaries and are not labels that have been finalized or covered for all jobs. Upper grouping can be used to search for small bubbles and should not become a double-countable task at the same time as sub-items.
 
-不同小泡泡之间职责定义应清楚；不同岗位或成员勾选同一个小泡泡则允许存在。两者分别解决“工作怎么分类”和“候选人有哪些”。
+(b) The definition of duties between different bubbles should be clear; Different role or member ticks the same little bubble that allows it to exist. The two address “how jobs are classified” and “who are the candidates”.
 
-当前 `contentCreation` 同时包含文案和视觉素材，`materials`、`checkin`、`speakerPacket` 等也合并了多种交付物。若要按专业细分，就需要拆任务或明确多个必要职责和主执行人的协调责任。直接给复合任务贴多个标签，并不能保证任何一个匹配到其中一项的人都能独立完成整个任务。
+Currently, `contentCreation` contains both literature and visual material, while `materials`, `checkin` and `speakerPacket` have multiple deliveries. A professional breakdown requires the dismantling of tasks or the identification of multiple essential functions and coordination responsibilities of the principal implementers. The direct labelling of complex tasks does not guarantee that any person matching one of them will be able to perform the entire task independently.
 
-## 如何检查覆盖完整
+## How to check the full coverage
 
-覆盖核对需要分别完成两张表：
+The overlay check requires two separate forms:
 
-1. 每一个当前标准步骤、组织自定义步骤和临时任务，对应哪个主要职责；复合步骤是否需要拆分；没有映射的工作显式保留为待分类。
-2. 每一项适用的组织政策工作，对应什么触发条件、实际行动和主要职责。规则是约束、禁止事项还是需要执行的工作，应分别判断，不能把每个政策来源都自动变成一个任务。
+1. Which is the main responsibility for each current standard step, organizational self-defined step and temporary task; Whether composite steps need to be split; No work visible was mapped to be retained for classification.
+2. For each applicable organizational policy exercise, what triggers the conditions, practical actions and primary responsibilities. Rules are binding, restraining matters or work to be performed and should be judged separately and not automatically turn every source of policy into a task.
 
-当前核查得到的范围：46 个标准步骤、9 种宽泛职能、16 条简化规则，以及 64 条政策来源目录记录。下方已列全 46 个当前步骤；64 条目录记录尚未逐条提取并核对所有职责，因此没有宣称标签体系已覆盖所有 ASU 政策。
+Current scope of verification: 46 standard steps, 9 broad functions, 16 simplified rules and catalogue records of 64 policy sources. The following is a full list of 46 current steps; 64 catalogue records have not been extracted and checked by article for all duties, so there is no claim that the label system covers all ASU policies.
 
-活动之外的待核对范围包括：组织注册与年度再注册、岗位和组织资料维护、必要培训与账户访问维护、顾问及校方联络、组织档案、品牌和商标使用、适用的音乐版权核查。成员招募、例会记录等也出现在已有岗位职责模板中。这里列的是需核对的工作范围，具体义务与执行权限必须连接到适用条款和组织配置，不能仅凭来源标题认定。
+The scope to be checked outside the event includes: organizational registration and annual re-registration; maintenance of role and organizational information; necessary training and account access maintenance; liaison between consultants and school partners; organization of archives; use of brands and trademarks; and verification of applicable music copyright. Recruits, regular meeting records, etc. are also found in the existing rolle job template. The scope of work to be verified is set out here, and specific obligations and performances must be linked to applicable provisions and organizational configurations and cannot be determined by reference to the source title alone.
 
-[`R16`](../../src/data/rules.ts) 已合并了多项组织通用事项；[`POLICY_CATALOG`](../../src/data/policyCatalog.ts) 另有治理、品牌、无障碍、学院等来源。历史资料与特定学院规定不能自动当作所有组织的当前要求。
+[ `R16` ](../../src/data/rules.ts) has taken on a number of common organizational matters; [ `POLICY_CATALOG` ](../../src/data/policyCatalog.ts) has other sources of governance, brand name, accessibility, colleges, etc. Historical information and specific college requirements cannot automatically be considered as current requirements for all organizations.
 
-覆盖率应以已定义清单为分母。未来新增工作流步骤或适用政策行动后，必须重新检查；无法匹配时保留缺口，不再通过“分给第一个岗位”隐藏缺口。
+Coverage should be based on a defined list. Future new workflow steps or policy actions must be re-examined; Keeps the gap when it cannot be matched, and hides the gap no longer by " first roll " .
 
-## 两个人拥有相同职责时
+## When two people have the same duties,
 
-当前主应用在同分时选岗位列表第一项，且同一个岗位只有一个持有人；没有同职责成员池的分配策略。
+The current master application selects the first line of the roll list in the same fraction and the same rule has only one holder; There is no strategy for allocating the same duties as members of the pool.
 
-建议先让标签形成候选人集合，再为每项职责明确分配方式。至少存在两种不同场景：
+It was recommended that the labels should form a pool of candidates before a clear allocation of responsibilities. There are at least two different scenarios:
 
-- 需要连续对外沟通或固定系统权限的职责：设置主要承接人和备份。
-- 可在合格成员之间分摊的独立工作：在满足权限与时间条件的候选中分配；可用容量、已有工作与轮转顺序作为后续明确的规则。
+- Function that requires continuous external communication or a fixed system of missions: setting up the primary recipient and backup.
+- Independent work to be shared among eligible members: distribution among candidates meeting the conditions of time; Clear rules for follow-up can be used with capacity, work and rotation sequences already in place.
 
-任何方式都保留一个任务的主要执行人。协作成员不应自动收到一份重复任务。已有人工指定不能因为每天重算负荷而被悄悄改派；候选都不可用或分配策略未确定时，明确显示待分配并说明原因。
+In any way, the principal implementer of a mandate is retained. Collaboration members should not automatically receive a duplicate task. Manual designations have been made that cannot be secretly reassigned due to daily recalculation of loads; Candidates are not available or when the distribution strategy is uncertain, a clear indication of their allocation and an explanation of why.
 
-轮转、容量计算、同分规则、默认承接人及覆盖调整都尚未定稿。现有任务数量和规划天数不足以准确代表每个人的实际投入，不能直接称为真实工作量。
+Rotation, volume calculation, symmetry rules, default receivers and coverage adjustments have not yet been finalized. The number of tasks available and the number of days planned are not sufficient to accurately represent the actual input of each individual and cannot be referred to directly as live workloads.
 
-## 当前完整标准步骤清单
+## Current complete list of standard steps
 
-以下是审阅基线中的静态定义。核心列表示是否在 `CORE_EVENT_STEP_KEYS` 中；情境列描述额外步骤的创建条件。技能或职责标签尚未加入这些数据。
+Below is a review of static definitions in the baseline. The core column indicates whether it is in `CORE_EVENT_STEP_KEYS`; The scenario describes the conditions for creating additional steps. The skills or duties labels have not yet entered these data.
 
-| 步骤 ID | 当前名称 | 当前职能 | 核心 | 情境 |
+| Step ID | Current Name | Current function | Core | Situation |
 | --- | --- | --- | --- | --- |
-| plan | Event Plan | programs | 是 | — |
-| backup | Back-up Plan | programs | 是 | — |
-| venuechoice | Candidate Venue | programs | 是 | — |
-| registry | Event Registry (SDC & Special Event) | programs | 是 | — |
-| venue | Book Room & Layout | programs | 是 | — |
-| moderator | Moderator Lead Staffing | programs | 是 | — |
-| materials | Event Materials PPT Decorations | programs | 是 | — |
-| checkin | Check-in Forms Photo Release Liability | programs | 是 | — |
-| headcount | Headcount | programs | 是 | — |
-| thankyou | Thank You Note | secretary | 是 | — |
-| feedback | Feedback | vice_president | 是 | — |
-| postmarketing | Post Marketing | marketing | 是 | — |
-| photoBackup | Photo Backup | marketing | 是 | — |
-| invoice | Invoice | finance | 是 | — |
-| attendance | Attendance Submit | finance | 是 | — |
-| spending | Paid Reimbursed | finance | 是 | — |
-| financeRecord | Finance Record | finance | 是 | — |
-| documentation | Documentation | secretary | 是 | — |
-| partner | Partner Meeting | programs | 否 | externalGuest |
-| speakerPacket | Speaker SAP Headshot | programs | 否 | externalGuest |
-| travel | Partner Travel Plan | programs | 否 | externalGuest |
-| partnerReview | Partner Speaker Review | programs | 否 | externalGuest |
-| parking | Parking Validation | programs | 否 | externalGuest |
-| budget | Budget | finance | 是 | — |
-| foodCompliance | Food Exception Permit | finance | 否 | externalFood |
-| quotes | Quote Gather | finance | 是 | — |
-| budgetRequest | Budget Request | finance | 是 | — |
-| budgetApproval | Budget Approval | finance | 是 | — |
-| purchaseRequest | Purchase Request | finance | 是 | — |
-| purchaseApproval | Purchase Approval | finance | 是 | — |
-| advisor | Advisor Involved | programs | 否 | advisor |
-| access | Accessibility Check | programs | 否 | access |
-| security | Security | programs | 否 | safety |
-| eams | EAMS Plan | programs | 否 | safety |
-| permit | Permit Insurance | programs | 否 | safety |
-| alcohol | Alcohol Permit | programs | 否 | alcohol |
-| drone | Drone Approval | programs | 否 | drone |
-| schoolApproval | School Admin Approval | programs | 否 | schoolApproval |
-| marketingNeeds | Marketing Needs | marketing | 是 | — |
-| contentCreation | Content Creation | marketing | 是 | — |
-| promotionItems | Promotion Items | marketing | 是 | — |
-| rsvp | Open RSVPs | marketing | 否 | rsvp |
-| content | Content Distribution | marketing | 是 | — |
-| reminder | Event Reminder | marketing | 是 | — |
-| orderPlaced | Order Placed | finance | 是 | — |
-| finalcheck | Full Check Alert Changes | president | 是 | — |
+| plan | Event Plan | programs | Yes | — |
+| backup | Back-up Plan | programs | Yes | — |
+| venuechoice | Candidate Venue | programs | Yes | — |
+| registry | Event Registry (SDC & Special Event) | programs | Yes | — |
+| venue | Book Room & Layout | programs | Yes | — |
+| moderator | Moderator Lead Staffing | programs | Yes | — |
+| materials | Event Materials PPT Decorations | programs | Yes | — |
+| checkin | Check-in Forms Photo Release Liability | programs | Yes | — |
+| headcount | Headcount | programs | Yes | — |
+| thankyou | Thank You Note | secretary | Yes | — |
+| feedback | Feedback | vice_president | Yes | — |
+| postmarketing | Post Marketing | marketing | Yes | — |
+| photoBackup | Photo Backup | marketing | Yes | — |
+| invoice | Invoice | finance | Yes | — |
+| attendance | Attendance Submit | finance | Yes | — |
+| spending | Paid Reimbursed | finance | Yes | — |
+| financeRecord | Finance Record | finance | Yes | — |
+| documentation | Documentation | secretary | Yes | — |
+| partner | Partner Meeting | programs | No | externalGuest |
+| speakerPacket | Speaker SAP Headshot | programs | No | externalGuest |
+| travel | Partner Travel Plan | programs | No | externalGuest |
+| partnerReview | Partner Speaker Review | programs | No | externalGuest |
+| parking | Parking Validation | programs | No | externalGuest |
+| budget | Budget | finance | Yes | — |
+| foodCompliance | Food Exception Permit | finance | No | externalFood |
+| quotes | Quote Gather | finance | Yes | — |
+| budgetRequest | Budget Request | finance | Yes | — |
+| budgetApproval | Budget Approval | finance | Yes | — |
+| purchaseRequest | Purchase Request | finance | Yes | — |
+| purchaseApproval | Purchase Approval | finance | Yes | — |
+| advisor | Advisor Involved | programs | No | advisor |
+| access | Accessibility Check | programs | No | access |
+| security | Security | programs | No | safety |
+| eams | EAMS Plan | programs | No | safety |
+| permit | Permit Insurance | programs | No | safety |
+| alcohol | Alcohol Permit | programs | No | alcohol |
+| drone | Drone Approval | programs | No | drone |
+| schoolApproval | School Admin Approval | programs | No | schoolApproval |
+| marketingNeeds | Marketing Needs | marketing | Yes | — |
+| contentCreation | Content Creation | marketing | Yes | — |
+| promotionItems | Promotion Items | marketing | Yes | — |
+| rsvp | Open RSVPs | marketing | No | rsvp |
+| content | Content Distribution | marketing | Yes | — |
+| reminder | Event Reminder | marketing | Yes | — |
+| orderPlaced | Order Placed | finance | Yes | — |
+| finalcheck | Full Check Alert Changes | president | Yes | — |
 
-## 验证与交接
+## Validate and Handoff
 
-现状结论经过真实函数的离线断言核对：同分按列表顺序选择、反转列表改变未绑定步骤的候选、空缺岗位也能排在第一、未知岗位名默认 programs、缺少匹配时落到列表第一项、已保存步骤岗位被保留，以及空缺岗位产生无人负责的任务。
+The status quo conclusion is verified by the live function 's offline assertion: the same score is selected in the list order, reverses the list to change an unbound step candidate, the opening of a slot can also be ranked first, unknown roll name defaults, missing matches to list 1, saved steps are retained, and the opening of a slot creates unaccountable tasks.
 
-现有相关测试 6 个文件、114 项通过：`npm test -- src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts`。工作流接口测试使用模拟 AI，本轮没有调用真实模型。步骤清单直接从当前 `EVENT_STEPS` 与 `CORE_EVENT_STEP_KEYS` 生成，并核对共 46 行、31 项核心步骤。
+Relevant test 6 files, 114 adopted: `npm test -- src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts`. The workflow interface test uses the simulation AI, and no live model is called in this round. The list of steps is generated directly from the current `EVENT_STEPS` and `CORE_EVENT_STEP_KEYS`, and a total of 46 lines and 31 core steps are checked.
 
-本轮只记录现状、用户要求和待细化方案。下一步是逐项审阅职责目录及覆盖映射，再明确多人候选规则；不提前实施 RACI、邮件、排程、后台发送或组织交接。需要同步本地备份。
+Only the current status, user requirements and options to be refined are recorded during this round. The next step would be to review the catalogue of duties and the coverage map on a case-by-case basis, and to clarify the rules for multiple candidates; Do not execute RACI, Mail, Scheduling, Backstage Send or Division Handoff in advance. Could not close temporary folder: %s

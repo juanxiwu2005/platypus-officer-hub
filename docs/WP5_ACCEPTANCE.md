@@ -1,46 +1,46 @@
-# WP5 经费、规则、交接、关系、预测：验收与交接
+# WP5 Funding, Rules, Handoff, Relationships, Projections: Acceptance and Handoff
 
-2026-10-22 · Codex · **待验收；真实 AI 闸门未完成**。工作只在 `v1`，没有改动或推送 main。
+2026-10-22 . Codex . **considering access; Live AI gate not completed**. The job is only for `v1`, no change or thrust.
 
-> **2026-11-09 补充：** 本文里关于 Handoff（岗位手册、卸任访谈、换届）的部分已被 Handoff 改版取代（8 个阶段，见 [`HANDOFF_EXECUTION_PLAN.md`](HANDOFF_EXECUTION_PLAN.md)，在分支 `claude/tender-gates-j8ztlr` 上，Phase 3 收完前不合并）。其余部分（经费、规则、关系、预测）不受影响。
+> **2026-11-09 Supplement:** The section of this paper on Handoff (Role Manual, Outgoing Interview, Leadership Transport) has been replaced by Handoff (8 phases, see [ `HANDOFF_EXECUTION_PLAN.md` ](HANDOFF_EXECUTION_PLAN.md), in its branch `claude/tender-gates-j8ztlr`, Phase 3 not merge before it is completed). The rest (funds, rules, relationships, projections) are not affected.
 
-## 已交付
+## Delivered
 
-1. **预测与今日页**：`src/engine/forecast.ts` 为纯函数，固定种子、稳定节点顺序，每次抽样 1,000 次；每个步骤对照规则引擎算好的社团截止日计数。今日风险按按时比例排序，同概率优先直接等待/求助，再按截止日；最多三条，默认颜色与最多两个原因，展开才显示百分比和假设。活动条另显示最薄弱的未完成关键步骤；不是“整场所有步骤联合成功率”。
-2. **用时与冷启动**：轻 1–2、中 3–5、重 5–10 个学生工作日（一至两个工作周）；避开本人忙碌周、期末周与学期间假期。学校提交提前量与实际审批用时明确分开；学校等待为公开的保守排期假设，不能当实际周转统计。USG 未批的端到端冷启动范围为 42–56 个日历日（6–8 周），来源为产品计划 §9 / F3 的负责人经验。现阶段没有真实审批样本，也不显示中位数等统计。
-3. **个人缓冲**：继续只供排期；关闭后固定一天，不进入贡献公式。新增“满五条有完成日期的本社团记录后才渐进调整”；历史示例积分无完成日期的不训练。本人 Settings 可看到生效值和理由，其他人不显示数值。换届默认回到标准一天并重置学习窗口；只有本人勾选保留才保留旧人的设置，接任者始终重新开始。
-4. **规则页与问答**：六类全部显示；宣传类如实说明尚无已核实官方规则。卡片默认正文与时限，展开看全部出处和核实日期。今日页问题与 Rules 都可调用 `/api/ask`；服务器采用自己的 R01–R16，忽略客户端伪造的规则。AI 只选编号；答案由已收录原文重建，AI 自由文本、日期与未知字段丢弃。无依据则拒答并指向 Student Organizations / USG / Student Unions；每答有“Sources checked”，说明核实日期及没有现场重抓来源。规则原文未变，WP6 仍须重新核实官方页面。
-5. **报错与测试集**：“This is wrong”进入同浏览器管理员队列（Rules 底部）；仅现任社长/副社长可标记已审。规则答案、变更单、提醒和手册都有入口。40 道固定题与评估脚本已入库；CI 用模拟供应商，真实成绩未伪报，详见 `AI_TESTS.md`。
-6. **经费**：每场有经费的活动可开始六阶段记录、人工确认阶段、分配金额/已用金额/用款截止日；已批准款项距用款期限不超过 14 天仍未用完会提醒。`/api/preflight` 与浏览器共用确定性 R11/R12 检查，缺项逐条挂编号；覆盖海报、公共目的、ASU 抬头、报销 >$999、Amazon 风险、人均 ≥$25 的两份材料，以及无效人数/金额。只记材料是否已附，不上传出勤姓名。审批仍是人工记录，不是学校审批动作。
-7. **Plan B**：复用现有 `PLAN_B`。决定日取本活动最早的官方经费提交截止日，由规则引擎计算；到期尚未记录预算批准即展示无餐饮、会费和缩小规模三个选择，未经人决定不自动改活动。
-8. **换届与手册**：开始、卸任访谈、手册确认、新人第一周、30 天回顾；可改季节起止与每个岗位的开始日，派生日期只由 `schedule.ts` 生成。所有访谈示例均为新编虚构文本并标 Example (fictional)。`/api/handbook/draft` 让 AI 挑选并排序任务与示例访谈来源；每项原文摘录附 task/interview ID，原记录快照保留，未匹配内容和 AI 日期全部丢弃。输入记录变动会使旧确认失效；卸任者本人确认后，社长才可批准。按 SEO 新干部清单与 R16 完成第一周安排；第 30 天之前不能记回顾完成。完成岗位交接后，岗位负责人、未完成任务与依岗位持有的联系人一同转交，新干部重新认领任务；旧签名链接失效。
-9. **关系页**：距上次联系天数、可改建议频率、负责岗位和现任人、已关联的下一场未来活动；人工记录一次联系即可更新，不发送外部消息。没有砍任何计划页面。
+1. **Forecast and today page**: `src/engine/forecast.ts` is a pure function, fixed feed, stable node order, sample 1,000 times each; Each step is counted against the rule engine. Today ' s risks are ranked in proportion to time, with probabilities being given priority for direct waiting/recourse and closing dates; A maximum of three, the default colours and a maximum of two reasons are developed to show percentages and assumptions. The activity note also shows the weakest outstanding key steps; It is not a “combined success rate for all steps of the whole”.
+2. **Starts**: light 1–2, medium 3–5 and heavy 5–10 student working days (one to two working weeks); I'm avoiding my busy week, the end of the week and the school holidays. (a) Clear separation between the submission of advance amounts by schools and the actual time of approval; Schools are waiting for a public conservative scheduling assumption and cannot be counted as actual turnover statistics. USG's unbundled end-to-end cold starts up to 42–56 calendar days (6–8 weeks) based on product plan § 9/ F3 executive experience. No live approval sample is available at this stage, nor are statistics such as median numbers shown.
+3. **Personal buffer**: Continue to be available only for scheduling; Set a day after closure, without entering the contribution formula. Add "Five items with a completion date before progressive adjustment" Historical examples of non-training without completion date. I Settings can see the validity values and reasons, others do not show them. The standard day is returned and the learning window is reset by default; The old person ' s settings are kept only if I tick the reservation, and the successor always recommences.
+4. **Rule Page and Questions and Answers**: All six categories are shown;  The campaign is a factual illustration of the absence of verified official rules. The card defaults on the body and time frame, and expands on all source and transparency date. Today's page questions and Rules can be called `/api/ask`; The server uses its own R01-R16, ignoring the rules forged by the client. AI selects only the number; The answer is recreated by the accepted source text, AI free text, date and unknown field. (a) Reject and point to the Stuart Organisations/USG/Student Unions without a basis; Each answer is “Sources checked”, which indicates that there are no sources of recapturing. Rule source text remains unchanged and the WP6 must be reverified for official pages.
+5. **Collection of Errors and Tests**: "This is wrong" into the queue with the browser administrator (Rules bottom); Only the current president / vice president can be marked. There are entrances to rule answers, change orders, reminders and manuals. The 40 stationary question and evaluation script is in the library; CI uses model suppliers and live results are not false, as detailed in `AI_TESTS.md`.
+6. **Funding**: Six stages of recording, manual confirmation phase, amount allocated/encumbered/end date for each funded activity; Amounts approved do not exceed the period from which they were spent 14Days are still running out of reminders.  `/api/preflight` shared certainty with browser R11/R12 check, missing item-by-article numbering; Two materials covering posters, public purposes, ASU head-ups, reimbursement of > 999, Amazon risk, £25 per person, and invalid numbers/values. Only the material is attached and not the name of the attendance. Approval remains a manual record, not a school approval exercise.
+7. **Plan B**: Reuse existing `PLAN_B`. (a) The earliest official deadline for the submission of funds for this activity, calculated by rule engine; The three options of catering, contribution and downsizing were presented without budget approval being recorded and no decision was taken to change activities automatically.
+8. **leadership translation and handbook**: Start, outgoing interview, confirming the manual, coming officer week one, 30 day review; The season can be changed with the start date of each role, and the birth date is generated only by `schedule.ts`. All examples of interview are newly compiled field text and labeled Example (field). `/api/handbook/draft` allows AI to select and sort tasks and examples of interview sources; Each source text excerpt is attached to a task/interview ID and the original record is kept in snapshots without matching content and an AI date. Entering a change in the record would render old confirmations ineffective; The outsider can only approve when he has his own confirmation. Complete the first week with the SEO list and R16; 30 Days before it can't be recalled. After the roll handoff has been completed, the role leader, failed to complete the assignment is transferred with the contacts held by the role and the new officer re-claims the task; The old signature link is invalid.
+9. **Relationship page**: The number of days from last contact, the frequency with which recommendations can be changed, responsibility for roll and incumbent, connected next future event; The manual recording of a contact can be updated without sending an external message. No planned page was cut.
 
-## 本机验证与远端验证
+## Local and remote authentication
 
-- 完整执行 `npm run check`：构建成功，**233 个单元测试、90 个电脑/手机页面测试全部通过**；WP4 原有 174 个单元测试、76 个页面测试均保留。
-- 固定 40 题在实际服务处理函数上通过模拟供应商检查；不是真实 DeepSeek/AIR 成绩。
-- 行为测试覆盖固定种子、边界 50%/80%、依赖缺失/环、计时变化、私有缓冲及关闭、$999/$25 边界、资金权限、来源与日期丢弃、异步旧来源拒绝、确认顺序、联系人/任务移交、数据保存和手机排版。代表性 1,000 次预测检查小于一秒。
-- 核查了电脑/手机页面图；测试图中的 mock 明确为测试环境。构建仍有单包超过 500 KB 的提示，不影响本次功能。
-- 已推送的主体提交 `b8a6986` 的 GitHub Actions 通过；最后补充与交接提交的结果以 GitHub 当次状态为准。
+- `npm run check`: Build successfully, **233 unit sets, 90 computers/cell phones breakertes all through**; WP4 The original 174 unit sets, 76 volvesertes are retained.
+- Fixed 40 questions are checked by simulated suppliers on the actual service processing function; Not live DeepSeek/AIR achievement.
+- The behavioural tests cover fixed seeds, boundaries 50%/80%, dependency on missing/rings, timing changes, private buffers and closures, 999/$25 borders, funds permissions, sources and dates discarded, asymmetrical rejections, confirmation sequences, contact/task handovers, data preservation and mobile phone layout. Representative 1,000 predictions are less than one second.
+- Checked computer/mobile phone page maps; The mock in the test diagram is specified as the test environment. There are still single packages of more than 500 KB tips that do not affect this function.
+- (a) GitHub Actions for `b8a6986` submitted by the subject(s) that were sent; The final addition and the submission of Handoff are based on GitHub ' s next status.
 
-## Juanxi 的五步验收
+## Juanxi's five-step approach
 
-预览：[WP5](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/handoff)，保留 Netlify 登录保护。此刻不再协助或尝试登录；等你自己的可访问环境准备好再验收。
+Preview: [ WP5 ](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/handoff), keeping Netlify login protection. No more aiding or trying to login at this point. Acceptance when your own access environment is ready.
 
-1. **Today**：Reset demo，查看 Needs a nudge 的前三项；默认只有颜色、两条原因；展开 Forecast details & assumptions 才有比例、1,000 次与来源假设。Demo clock 快进后风险应重算。
-2. **Rules**：问 `What do outside caterers need?`，应出现 R06、来源和核实日期；问 `Which federal tax form must our club file?` 应拒答。点 This is wrong，Alex 在页面底部看见待审项。若出现 Live AI unavailable，不算通过真实问答验收。
-3. **Funding**：Networking Night → 展开 Pre-submission check。餐费 750、人数 30，不附 Business Meals Form/名单时应报 R12；报销额 1000 应报 R11。顶栏时钟 +10、再 +3 天，到 11/4 尚未批预算应展示 Plan B；确认预算批准后，将 Spend-by 改为近两周，应有未用完提醒。
-4. **Handoff（你要审的手册在这里）**：Start handoff season → **Treasurer handbook → Draft role handbook**。核对真实 AI 标签和每条 Source；用 View as 切 Maya → Confirm as outgoing officer，再切 Alex → Approve as president。未经过 Maya 确认时 Alex 不能批准。若是 Example extract draft，只能验来源和流程；真实 AI 手册审阅仍欠一项。
-5. **Partners / Settings**：查看负责岗位、联系间隔与下一场活动；Settings 只显示当前人的缓冲解释。可选：手册批准并完成第一周清单后 Finish role handoff，返回 Partners 应显示接任人；最后 Reset demo 恢复。
+1. **Today**: Reset demo, check the top three of Needs a Nudge; By default, there are only two reasons for colours; It is only through the expansion of Forecast details & assumptions that ratio, 1,000 times and source assumptions. Demo Clock's fast forward risk should be recalculated.
+2. **Rules**: Ask `What do outside caterers need?` for R06, source and representation date; Ask `Which federal tax form must our club file?` to refuse. This is wrong, Alex saw the pending items at the bottom of the page. Live AI unavaable, not live question and answer.
+3. **Funding**: Opening Night & Expand Pre-submission check. (a) 750, number 30, not accompanied by the list of Business Metals Form/R12; The reimbursement of 1000 shall be reported as R11. The top bar clock + 10, plus 3 days, until the 11/4 budget has not yet been approved for presentation of Plan B; After budget approval has been confirmed, replace Spend-by with nearly two weeks with an unexpended reminder.
+4. **Handoff.**：Start handoff season → **Treasurer handbook → Draft role handbook**。 Checks live AI labels and every Source; With Maya as outside officer, Alex Approve as present. Alex can't approve without Maya confirming it. In the case of Example extract process, only sources and processes can be tested; Live AI Handbook still owes one.
+5. **Partners/Settings**: View the liner, contact interval and next event; Settings shows only the current human buffer explanation. Option: After the manual approves and completes the first week ' s list, returns to Partners should show the successor; Finally reset demo restored.
 
-## 尚未完成、已知边界与 WP6
+## Not completed, known boundaries and WP6
 
-- **WP5 验收缺口：** DeepSeek 40 题的 ≥90% / 拒答 10/10，以及 Juanxi 审真实 AI 岗位手册。尚未读取部署实际模型，不清楚 AIR 是否已配；若已配还需单独跑 AIR。详见 `AI_TESTS.md`，没有用模拟成绩替代验收。
-- 用户明确要求停止登录操作，已遵守；不绕开访问保护、不改 main、不提取密钥。此项是环境访问阻塞，并非改变原验收标准。
-- 数据结构从 4 升到 **5**；旧浏览器演示会恢复种子。所有记录仍只在该浏览器，View as 是虚构角色演示，并非真实身份验证。
-- 预测是透明的假设模型，未用真实社团记录校准；同人多任务的资源争用未建模。官方“提交前多少天”不能解释为审批承诺；不声称有真实周转统计。
-- 手册为 AI 选取的可追溯原文摘录，刻意不给无证据的补充建议。服务不可用时示例草稿会明确标注，不能作为真实 AI 验收。
-- R01–R16 的政策核实日期仍是 2026-10-07；WP6 按原计划逐条重读官方原文。校历核实日期仍是 2026-10-22。没有在 WP5 改规则内容或产品计划。
-- 本地代码目录 `/private/tmp/platypus-officer-hub-wp5` 为经逐文件校对的工作快照，不能直接把独立本地 Git 历史推到远端。远端更新通过 GitHub 接口沿 v1 原父提交进行，并核对文件摘要；main 不动。
-- **已同步本地备份**：仅覆盖 Plan/ 下指定的产品计划、PROGRESS、RULES、AGENTS_repo 四个文件；没有修改 Reference/ 或研究资料。
+- **WP5 gap:** DeepSeek 40Question 90%/ Denied 10/10And the Juanxi Review Live AI rule manual.  The actual deployment model has not yet been read and it is not clear whether AIR is equipped; If you're ready, you have to run alone. For details, see `AI_TESTS.md`. No simulations have been used to replace acceptance.
+- The user explicitly requested that the login operations be discontinued and complied with; Do not bypass access protection, make no changes, do not extract secret key. This is an environmental access barrier and does not change the original standard.
+- Data structure from 4 to **5**; The old browser demonstration restores the torrent. All records are still only in this browser, View as a field character presentation, not live authentication.
+- Forecasts are transparent hypothetical models that have not been calibrated by the Live Standard Organization records; Unmodelled competition for multitask resources. The official “days before submission” cannot be interpreted as a commitment to approve; There is no claim to live turnover statistics.
+- The manual is a retrospective source text excerpt selected by AI and deliberately does not provide additional recommendations without evidence. The draft example is clearly marked when services are not available and cannot be used as live AI access.
+- The R01-R16 policy remains 2026-10-07; WP6 Reread Official Source text as originally planned. School history continues to be 2026-10-22. No changes have been made in WP5 to the content of rules or product plans.
+- Local code directory `/private/tmp/platypus-officer-hub-wp5` is a file-based snapshot of work that does not directly push the independent Git history to the far end. The remote update is done via the GitHub interface along the v1 parent submission and the summary of the document is checked; Don't move.
+- **Synchronized local backup**: only four files covering the product plan specified under Plan/ PROGRESS, RULES, AGENTS_repo; No changes to Reference/ or research information.

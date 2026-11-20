@@ -1,27 +1,27 @@
-# DX-07 页面元信息、点击高亮、滚动穿透
+# DX-07 page meta-information, click highlight, scroll through
 
-- 阶段 1　大小 S　风险 低　R 级 R2　依赖：DX-01、**DX-03**（先有按下反馈，才能去掉系统高亮）　并行伙伴：DX-04～06、08
-- 分支：`design/dx-07-shell-meta`　样式文件：`src/styles/dx-07-shell-meta.css`　对应细节：D06 D41 D42
+- Phase 1 S Risk Low R2 Reliance: DX-01, **DX-03** (reflex to remove system highlights) Parallel partners: DX-04 ~ 06, 08
+- Branch: `design/dx-07-shell-meta` Style File: `src/styles/dx-07-shell-meta.css` Corresponding Details: D06 D41 D42
 
-## 要做的事
-1. `index.html`：加 `<meta name="color-scheme" content="light dark">`；加两条 `<meta name="theme-color">`，带 `media="(prefers-color-scheme: light)"` 和 `dark`，颜色**等于** `--bg` 的浅色 #fbfaf7 和深色 #0f1312（`index.html` 不在样式检查范围，可以写 hex）。
-2. 单元测试 `src/test/dx-07-meta.test.ts`：读 `index.html` 和 `src/styles.css`，断言两个 `theme-color` 和两个 `--bg` 值一致。以后谁改了 `--bg` 而忘了改这里，测试会红。
-3. 小样式文件：
+## Something to do.
+1. `index.html`: plus `<meta name="color-scheme" content="light dark">`; Add two `<meta name="theme-color">`s with `media="(prefers-color-scheme: light)"` and `dark`, colour **equal to light color of** `--bg` #fbfaf7 and dark colour #0f1312 (`index.html` not in style check range, can write text).
+2. unit tess `src/test/dx-07-meta.test.ts`: Read `index.html` and `src/styles.css`, asserting that two `theme-color` and two `--bg` values are identical. After who changed `--bg` and forgot to change here, the test will be red.
+3. Small Style File:
    - `html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }`
    - `button, a, [role="tab"], select, summary { touch-action: manipulation; }`
-   - `-webkit-tap-highlight-color: transparent`（只给有按下反馈的那些：同 DX-03 的清单）。
+   - `-webkit-tap-highlight-color: transparent` (only for those with feedback: list with DX-03).
    - `.ask-list, .detail-scroll, .menu.wide, .m-menu { overscroll-behavior: contain; }`
 
-## 可以改的文件
-`index.html`、`src/styles/dx-07-shell-meta.css`、`src/test/dx-07-meta.test.ts`（新）。
+## Files that can be changed
+`index.html`, `src/styles/dx-07-shell-meta.css`, `src/test/dx-07-meta.test.ts` (new).
 
-## 验收
-- `npm test` 里新测试绿；`smoke.spec.ts`、`touch.spec.ts` 绿。
-- 在深色系统设置下打开预览，手机浏览器顶部颜色和页面底色一致。
-- Juanxi 怎么验：手机打开，点按钮没有灰色闪框；深色模式不再有白色闪屏。
+## Acceptance
+- The new green test in `npm test`; `smoke.spec.ts`, `touch.spec.ts` green.
+- Opens a preview under dark system settings and the top colour of the mobile browser corresponds to the bottom color of the page.
+- Juanxi Test: Cell phone open, dot buttons without grey flash frames; Dark mode no longer has white flash screens.
 
-## 回滚
-R2（改了 `index.html`，不能只靠注释样式）。
+## Rollback
+R2 (modified `index.html`, not just annotated styles).
 
-## 注意
-- 如果 DX-03 被回滚了，先把这个包也撤掉，否则点击会"没感觉"。
+## Attention.
+- If DX-03 is down by rollback, take this bag off too, or the click will be "no sense."

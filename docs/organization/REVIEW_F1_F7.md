@@ -1,21 +1,21 @@
-# F1–F7 独立 Review
+# F1-F7 Independence Review
 
-2026-10-26。Review Agent 独立于 Data、AI、UI 实施 Agent；审查原始需求、实施分工、各提交与集成代码。正式产品差异复核到 `9871a6f`，之后只改测试等待与交接文档。**开放代码阻塞：0**。不代表用户已批准上线。
+2026-10-26。Review Agent is independent of Data, AI and UI to execute Agent; Review of original needs, implementation of division of labour, submission and integration codes. The formal product differences were reviewed to `9871a6f`, and then only tested pending with the Handoff document. **Open code block: 0**. It doesn't mean the user has approved online.
 
-复核范围：
+Scope of review:
 
-- 快速内部离开、原生Back/Forward/hash保护、失败留页和完整草稿恢复。
-- 409冲突不静默覆盖；本地存储不可用时不放行未保存的聊天/表单。
-- 人工层级决定、严格匹配旧检查迁移、语义指纹、局部影响与服务器needsReview门槛。
-- 当前实体selection经过后台job并按当前私有工作区验证；近期历史只能形成待批准提案。
-- 原文先归档再解析、部分流诊断、异常关闭连接、明确格式拒绝的一次降级。
-- requestId持久去重、失败重放不重复生成，新动作仍执行当前模型/schema缓存策略。
-- 工作区唯一读取服务器approved.compiled；不读未确认draft、不猜造旧能力或审批权、不复制旧localStorage。
-- 导航dispatcher早于Router安装，inactive时不影响旧站，StrictMode与卸载清理正确。
-- 当前/历史文档、模拟/本地真实接口/线上供应商证据分别表述。
+- Rapid internal departure, original Back/Forward/hash protection, failed page retention and full draft recovery.
+- 409 Conflict does not silence overlay; Do not release unsaved chat/forms when local storage is not available.
+- Manual hierarchies, strict matching of old check migrations, semantic fingerprinting, local impact and server needsreview thresholds.
+- The current entity seletion is validated by backstage job and based on the current private workspace; Recent history can only result in proposals pending approval.
+- Once downgraded, source text is archived and parsed, partial flow diagnosis, abnormally closed connection, and clearly formatted rejection.
+- ReverseId persistently de-weighted, failed to re-recreate and the new action continues with the current model/schema cache policy.
+- The only read server available in the workspace application.compiled; Do not read unrecognisedbraft, do not guess old abilities or approval rights, and do not copy old localStorage.
+- Navigator is installed earlier than Louter, does not affect the old station when inactive, and StartMode cleans up correctly with unmounting.
+- Current/historical documents, simulations/local Live interface/line vendor evidence are presented separately.
 
-Review发现并修复的事项包括：恢复时完成态不同步、部分层级修改未标人工、当前对象接线、原文归档顺序、错误流未关闭、配额失败仍放行未发送输入，以及集成测试的旧页面定位假设。
+The issues identified and repaired by Review include: non-synchronous state of completion at the time of restoration, partial level modification of unlabelled labour, current object connections, source text archive sequence, failure of error stream, failure of quota to release unsent input, and integration testing of old page positioning assumptions.
 
-主Agent最终确认：构建、410单元、222浏览器场景通过；16项按条件跳过。另有实际本地Netlify函数/Blobs仿真/Chromium联测。真实AI速度、线上存储和远端部署尚未以这些结果证明。
+Master Agent finally confirmed that: build, 410 units and 222 browser scenes were passed; Sixteen sskips are subject to conditions. There are also actual local Netlify/Blobs simulations/Chromium combinations. Live AI speed, online storage and remote deployment have not yet been demonstrated by these results.
 
-后续：由Juanxi验收开发预览；正式合并main、生产发布、完整Board planner、真实账号与旧业务迁移仍另行决定。
+Follow-up: A preview developed by Juanxi acceptance; Official merge main, production release, complete Board planner, live account and old operations migration are still decided separately.

@@ -1,26 +1,26 @@
-# 一日／两日里程碑工作流实施契约
+# One/two-day milestone workflow implementation compact
 
-2026-11-18（America/Phoenix），Codex。用户已批准交互方案接入原preview14，仅1-day / 2-day、不做3-day；所有可见node都可点击在右侧Details修改。
+2026-11-18（America/Phoenix），Codex。Users have approved interactive program access to the original preview 14, only 1-day / 2- day, not 3-day; All visible node can click on Details to modify it on the right.
 
-## 用户批准的结果
+## Results approved by user
 
-- 主线保留Start / Done、共享真实任务与日期里程碑；分支可在主线上分出、汇合。Event day前后可有团队工作，两天之间也可有工作。
-- 每个Event day独立稳定ID、名称、相对Day1日期和说明；固定日期不会因前面任务未完成而推迟。实际日期由规则引擎用活动日期和偏移计算。
-- 每个branch引用组织里已有teamId，从下拉框选；不在画布改组织团队名称，不自动新建Team N。同团队在不同区间可重复负责多个branch。
-- Start/Done是固定边界，不是成果任务；也可点击Details编辑名称与说明。真实任务可编辑名称、负责团队/岗位、说明、工期、相对某Event day的目标与前置。共享检查任务同权。
-- Add branch选择负责团队、从何处开始和在哪里汇合；团队边界与旧业务条件branch独立。新增/插入/跨branch拖动/Undo/保存草稿与版本、刷新恢复保持。
+- The main line maintains Start/ Done, shares live tasks and date milestones; Branches can be separated and merged on the main line. Event can work as a team before and after the day, or in two days.
+- Each Event day independently stabilizes ID, name, relative Day1 date and description; The fixed date will not be postponed owing to the non-completion of previous tasks. The actual date is calculated by rule engine using the activity date and offset.
+- Each branch reference organization already has teamId, drawn from the frame; The name of a team does not exist in the canvassing organization, no new Team N is automatically created. The same team can repeat responsibility for several branchs between different sectors.
+- Start/Done is a fixed border and not a result task; You can also edit names and descriptions by clicking on Details. Live tasks can be edited by name, team/ rule, description, duration, target relative to a single Event day. Share inspection tasks with one another.
+- Addbranch selects the responsible team, where to start and where to meet; Team boundaries and old operating conditions are independent of Branch. Adds/inserts/crossbranch drag/Undo/ save drafts and versions, refreshs them to be maintained.
 
-## 数据与兼容
+## Data compatibility
 
-WorkflowTemplateContent.milestoneGraph为可选version1元数据，包括start/done说明、最多两个eventDays、spine引用、teamBranches与taskAnchors。真实任务仍在steps，不复制任务。图中每个step必须恰好出现在spine或一个团队branch，所有团队/连接引用都校验。
+WorklowTemplateContent.milestoneGraph is an optional version1 metadata, including start/done descriptions, up to two eventsDays, spine references, teambranches and taskAnchors. Live task is still in step, not copying task. Each step in the graph must appear at the spot or a teambranch, and all team/connection references are verified.
 
-taskAnchors保存eventDayId、offsetDays与可选calendar/business单位；学校官方规则继续相对Day1计算，不得通过选择Day2放宽硬限。新版graph执行有受控的独立日期路径；旧无graph和sequential活动保留旧算法。版本快照、复制及实例化保留图关系，已有活动/成果不回写，不重置schema23。里程碑不生成业务任务，不发提醒；未完成前置只报风险。
+taskAnchors saves eventDayId, offsetDays and optional calendar/business units; School official rules continue to be calculated relative to Day1 and may not be relaxed by choosing Day2. (b) The new version of graph implements the controlled independent date path; Old no graph and sequential activities retain old algorithms. The snapshot, copying and exemplifying retention of the map relationship is available without rewriting activities/outputs or replacing schema23. Milestones do not generate operational tasks and no reminders; Risk only is reported before completion.
 
-## 文件负责人
+## Documents Officer
 
-- 主Agent：Builder/Library与右侧Details、文档、集成和最终推送。
-- Model：共享types、workflowTemplates、新engine/workflowMilestones、必要schedule与针对测试。
-- Canvas：新MilestoneWorkflowCanvas、milestoneLayout与独立CSS/测试，不改Builder/Library。
-- Commands：独立worktree实现新增/移动/日期切换纯命令；Browser：Plan实际任务投影与milestone e2e、受影响回归；独立Review最终只读复核。
+- Master Agent: Builder/Library and rightDetails, documents, integration and final delivery.
+- Model: Share typers, workflyTemplates, New engine/worklowMilestones, necessary Schedule and targeting tests.
+- Canvas: New Milestone WorklowCanvas, Milestone Layout and independent CSS/test without change to Builder/Library.
+- Comands: Independent worktree to achieve new/move/date switch pure commands; Browser: Projection of Plan's actual mission with milestone e2e, affected return; Independent Review ultimately reads only reviews.
 
-普通日期、负责人和队伍仍通过既有受验证操作保存；不能把像素位置当日期。保留同期提醒修复ef0d0d0，不修改提醒/邮件/交接实现。沿用原PR14/功能分支，0真实产品AI/外部邮件，不合并main。
+Normal dates, directors and teams are still preserved through existing validated operations; Can't put pixels on date. Keep the same reminder fix ef0d0d0 and do not modify alarm/mail/handoff realized. Following the original PR14/ Function Branch, 0 Live Product AI/External Mail, no more mege main.

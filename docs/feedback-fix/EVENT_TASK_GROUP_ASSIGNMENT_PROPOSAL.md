@@ -1,83 +1,83 @@
-# 按工作流任务组分配活动负责人：供讨论的方案
+# Task force on task forces: programme for discussion
 
-2026-11-17（America/Phoenix）。状态：**方案，尚未实现**。本轮实际代码只统一两条设置入口；不把本方案加入 onboarding。
+2026-11-17（America/Phoenix）。Status: **Programme not achieved**。 Only two set-up entrances are harmonized for the actual code in this round; Do not include this programme.
 
-## 1. 用户到底需要做什么
+## 1. What exactly does the user need to do?
 
-建议采用 Juanxi 的新方向：**先把工作流中的任务归组，再在创建每次活动时，为每组选择一个实际负责人。组内任务继承这个人。**
+**first group tasks in the workflow and then select an actual head for each group at the time of creating each activity. The task within the group inherits this person.**
 
-例：社长创建 Welcome Mixer，填完日期、人数和实际情况后，看见：
+Example: President created Welcome Mixer, after filling in dates, numbers and actuals, sees:
 
-| 本次活动的任务组 | 本次负责的人 | 展开后可看见的任务 |
+| Task forces for the event | The man in charge. | Visible tasks after expansion |
 | --- | --- | --- |
-| Event coordination | Jordan | 申请场地、确认日程、现场协调等 |
-| Finance | Maya | 预算、资金申请、采购等 |
-| Promotion | Sam | 宣传物料、发布、报名推广等 |
+| Event coordination | Jordan | Application site, confirmation schedule, on-site coordination, etc. |
+| Finance | Maya | Budget, request for funds, procurement, etc. |
+| Promotion | Sam | Publicity material, distribution, registration, promotion, etc. |
 
-这些组名只是例子。别的社团可以叫 Production、Research、Volunteer coordination；不要求每个社团都有 Secretary 或 Marketing。
+These group names are just examples. Others can be called Production, Research, Volunteer Corporation; There is no requirement for each student organization to have a Security or Marketing.
 
-主界面只显示**组名、适用任务数量和选人框**。任务清单按需展开，不再让社长先读一套职责说明或技能库。创建前一眼确认“这次活动，这几组分别是谁做”。
+The main interface shows only the **group name, number of tasks applicable and frame selection**. The list of tasks is carried out as required, and presidients are not allowed to read a job description or skills bank. At the outset of the creation, it was confirmed that “this event, who did each of these groups”.
 
-设置社团仍沿用 Start：填写名字、上传章程、确认岗位和成员。章程的 AI 岗位/职责识别继续保留。它帮助组织建立自己的结构，**不代替社长决定本次活动由谁执行**。
+Set student event still follows Start: fill in name, upload constitution, confirm role and member. Ali rule/ function recognition continues to be maintained for constitution. It helps the organization build its own structure, **does not replace president to decide who will execute**.
 
-## 2. 三个问题的建议与其他选择
+## 2. Recommendations and other options for the three issues
 
-### 工作组从哪里来
+### Where did the team come from?
 
-- **推荐：跟着工作流走。** 标准工作流先人工整理出少量任务组；社团可改名、增加组、移动任务。未来一句话生成工作流时，AI 可以建议分组，用户确认。
-- 更快但受限：暂时把现有 `fn` 分类直接显示成组。适合验证想法，但固定九种职能仍会限制不同社团，不适合作长期架构。
-- 更灵活但更费操作：每次活动从零分组。社长重复劳动，不建议作为默认。
+- **Recommendation: Follow the work stream.** standard workflows are first manually organized into a small number of task forces; The name may be changed, the group added, and the task moved. When the next sentence generates workflows, AI may suggest grouping and user confirmation.
+- Faster but limited: temporarily show the existing `fn` classification directly into groups. Suits for validating ideas, but fixing nine functions will still limit different student application and is not suitable for long-term arcitecture.
+- Flexibility but more cost-effective: each activity is grouped from zero. Repeats the effort and is not recommended as default.
 
-组是“这套工作怎么分”，岗位是“社团有哪些职位”，成员是“实际的某个人”。三者分开；一个岗位可以承担多个组，一个人也可以负责多个组。
+The group is "What's the score for this job?" The role is "The position of the target organization," and the member is "the actual person." (c) Separation; A role can take on more than one group, and a person can take on more than one group.
 
-### 任务怎样关联组
+### How does the mission connect to the group?
 
-- **推荐：工作流模板里，每个任务有且只有一个主执行组。** 默认由模板配置，创建活动时通常无需逐任务设置。这个规则解决重复归属；参与协作的人另记，不复制任务。
-- 可选：一个任务多个执行组。容易出现“大家以为别人会做”，必须另外指定唯一主负责人，原型暂不采用。
-- 可选：只把组作为筛选标签，仍逐任务选人。实现简单，但没有减少本次活动的分配操作。
+- **Recommendation: In the workflow template, there is only one main executive group for each task. The** default is configured by templates, and the creation of an activity does not usually require task-by-task settings. This rule addresses double attribution; Those involved in the collaboration will be remembered separately and there will be no duplication of tasks.
+- Option: One task with more than one implementation group. It is easy to “think that others can do it”, and the sole principal has to be designated, and the prototype will not be used.
+- Optional: Only groups will be used as filter labels and selected on a task-by-mission basis. To be simple, but without reducing the allocation of operations for this activity.
 
-完整覆盖的范围是**该工作流的全部任务**，不是试图穷举世界上所有职责。未归组任务要在编辑器中明确提示；通用行政工作以后可以有单独工作流。独立任务继续直接选人。
+The full range of coverage is **, the entire task of the workflow**, not an attempt to drain all the world's duties. (b) Ungrouped tasks to be clearly hinted in the editor; General administration can be followed by a separate stream of work. The independent mission continues to select individuals directly.
 
-### 同一组有两个人，怎么决定谁做
+### There are two people in the same group. How do you decide who does it?
 
-- **推荐原型：本次活动由社长明确选一个人。** 两位财务人员都在候选名单里；这次选 Maya，下次可以选另一个人。一个人可负责多组。系统不自行按姓名、数组顺序或 AI 分数挑人。
-- 可选下一步：指定组长，由组长再改派组内个别任务。必须清楚展示哪些任务尚未下派，并补齐组长的权限。
-- 可选以后：轮流或按工作量建议分配。仍须有明确规则、可解释的工作量口径和人工覆盖；当前原型的跨设备数据也不足以可靠判断大家的真实负载。
+- **Suggested prototype: The event was specifically selected by the presidient.** two financiers are on the list; This time Maya, you can choose another one. One person may be responsible for multiple groups. The system does not select individuals by name, order of array or AI score.
+- The next possible step is the designation of a team leader, who will be reassigned to individual assignments within the group. It is important to show clearly which tasks have not yet been assigned and to complete the team leader 's missions.
+- Post-optional: rotation or recommended allocation based on workload. Clear rules, explanatory workload calibres and manual coverage are still required; The trans-equipment data of the current prototype are also insufficient to reliably judge your live load.
 
-允许明确选择 **Leave unassigned**，但创建前显示“有 X 个任务暂未分配”，留在待分配列表。不要静默塞给社长，也不要把一条任务复制给两个人。成员匹配不再依赖预先勾选资格或职责标签；候选人仍须是本组织有效且可指派的成员。
+Allows the explicit selection of **Leave unassigned**, but shows "with X tasks not yet assigned" before being created and remains on the list to be allocated. Do not silencing to president or copying a task to two people. Remember that matching no longer relies on pre-tick qualifications or job labels; Candidates must remain valid and available to the Organization.
 
-## 3. 现有代码如何工作，为什么需要修改
+## 3. How the existing code works and why it needs to be modified
 
-已对照当前分支的实际调用链：
+The current branch actually has a call chain:
 
-| 位置 | 现在的行为 | 新方案需要的调整 |
+| Location | Now's behavior. | Adjustments required for the new programme |
 | --- | --- | --- |
-| `src/data/types.ts` 的 `StepTemplate` | 有 `fn`、可选 `ownerRoleId`、`phase`，没有任务组 | 加独立 `assignmentGroupId`；工作流保存组定义 |
-| `src/engine/playbooks.ts` 的 `roleFor` | 按岗位职能加100分、标题/职责关键词加20分；同分按岗位在数组中的顺序；再按后备职能找，最后可能取第一岗位 | 新活动走明确的“本次组负责人”映射，不再用这个算法猜人；旧活动兼容读取 |
-| 同文件 `buildEventNodes` | 先找 `ownerRoleId`，否则 `roleFor(fn)`，取岗位现任的 `holderId` | 明确组 → 本次选定成员 → `node.ownerId`；未选则 null；保留现有规则日期/依赖 |
-| `src/components/rail/AskPanel.tsx` 的 `PlanForm` | 填日期、人数、情况清单，没有按组选人 | 情况确定后列出本次真正适用的组和人数选择 |
-| `src/components/rail/ChangeCard.tsx`、`src/data/changeReview.ts` | 人工输入 `HumanInputs` 只有日期/缓冲；`newObjects` 建活动并生成任务 | 加人类确认的组分配数据；在真正应用时重新检查成员和组是否合法 |
-| `src/data/settings.ts` 的 `completeSetup`、首次活动预览 | 自己调用 `buildEventNodes` | 之后若首次活动也接入分组，必须复用同一组件/服务，避免再出现两条不同设置链 |
-| `src/data/store.tsx` 的缺失任务修复、`src/lib/flowEdit.ts` 的新增任务等 | 有其他生成任务的入口；修复可能再调用旧生成器 | 使用该活动已保存的组分配；已有任务不改派，新任务不能偷偷退回旧猜人算法 |
-| `src/engine/eventBudget.ts` | 根据预算项目状态同步财务任务完成情况 | 保持预算审核与完成规则，组负责人不获得财务批准权 |
+| `src/data/types.ts` It's... `StepTemplate` | Yes. `fn`Optional `ownerRoleId`、`phase`No Task Force | Add independence `assignmentGroupId`；Workstream Save Group Definition |
+| `src/engine/playbooks.ts` It's... `roleFor` | (a) 100 points for the function and 20 minutes for the title/function keyword; (a) The order of the same score in the array; We'll go back to backup functions, and we might end up number one. | The new activity is clearly “head of the group” map, and this algorithm is no longer used to guess people; Old Activity Compatibility Reading |
+| Same document `buildEventNodes` | Let's go first. `ownerRoleId`Otherwise... `roleFor(fn)`♪ Take the role now ♪ `holderId` | Clear Group → This selected member → `node.ownerId`；Non-optional null；Date of retention of existing rules/Dependence |
+| `src/components/rail/AskPanel.tsx` It's... `PlanForm` | Date, number, status list, not selected by group | When the situation is determined, a selection of groups and numbers that are actually applicable for this time period is listed |
+| `src/components/rail/ChangeCard.tsx`、`src/data/changeReview.ts` | Manual input `HumanInputs` Only date/buffer; `newObjects` Construction activities and generation of tasks | Add human-recognized group distribution data; Recheck whether members and groups are legal when actually applied |
+| `src/data/settings.ts` It's... `completeSetup`First event preview | Call by yourself. `buildEventNodes` | Then, if the first activity is also connected to a grouping, the same component/service must be reused and two different setup chains avoided. |
+| `src/data/store.tsx` The missing task repair, `src/lib/flowEdit.ts` New Tasks, etc. | (b) Access to other generating tasks; It's possible to call the old generator again. | Use the group allocation saved for this activity; Tasks are not reassigned, new tasks cannot be surreptited. |
+| `src/engine/eventBudget.ts` | Synchronization of financial assignments according to the status of budgeted projects | Maintenance of rules for budget review and completion, with group heads not granted financial approval |
 
-**不能直接拿 `phase` 当团队。** 现有 phase 同时含 plan、prepare、marketing、money、run、close。Event coordination 的工作横跨准备、现场和收尾；阶段与执行团队不是一回事。`fn` 也继续承担旧逻辑和权限关联，不能直接改造成任意组名。
+**can't just take `phase` when the team.** Existing phase includes plan, prepare, marketing, money, run, close. Event coordination works across preparation, on-site and closing; Phases are not the same as implementation teams. `fn` also continues to assume the old logic and permissions connection, which cannot be directly changed to create an arbitrary group name.
 
-现有排序不做负载均衡，也不会因为第一名岗位空缺就自动选同职能的下一人。这不能满足“本次活动由社长自由定负责人”的体验。
+The current ranking does not balance the load, nor does it automatically select the next person for the same function because of the first slot. This does not satisfy the experience of “president freely designated officials”.
 
-因此，这个想法确实能简化产品，但需要调整数据与任务生成逻辑，单加几个下拉框是不够的。
+Thus, the idea does simplify the product, but the logic of data and task generation needs to be adjusted and it is not enough to add a few drops alone.
 
-## 4. 最小的数据设计
+## 4. Minimal data design
 
-建议采用独立字段，不复用已经撤回、以不透明数据保留的 `matching`。
+It is proposed to use a stand-alone field instead of `matching`, which has been withdrawn and retained with opaque data.
 
 ```ts
-// 工作流层：组和任务之间的关系。组 ID 只在该工作流下解释。
+// Working troposphere: relationship between groups and tasks. Group  ID Just explain it in the middle of the job.
 AssignmentGroup = { id: string; name: string }
 Workflow = { id: string; version: number; groups: AssignmentGroup[]; steps: StepTemplate[] }
 StepTemplate.assignmentGroupId?: string
 
-// 活动层：本次用哪版工作流、组名及任务归组快照、本次实际选人。
+// Level of activity: What current, group name and task-back snapshot for this session, actual selection.
 Event.assignmentPlan = {
   workflowId: string;
   workflowVersion: number;
@@ -86,35 +86,35 @@ Event.assignmentPlan = {
   owners: Record<groupId, memberId | null>;
 }
 
-// 任务层：运行时继续使用 ownerId；新增归组及分配来源，支持以后明确改派。
+// _Other Organiser  ownerId；Additional clustering and distribution sources to support a subsequent definitive reassignment.
 Node.assignmentGroupId?: string
 Node.assignmentSource?: "event-group" | "manual"
 ```
 
-上述为设计示意，字段名可在实现前收敛。`owners` 不替代 `ownerId`：活动记录“本次整组怎么定”，任务记录“现在这条实际归谁”。不长期维护两套互相争夺优先级的负责人。
+The above is an indication of design that the field name can be absorbed before it is realized. `owners` does not replace `ownerId`: The activity record “What is this whole group determined” and the task record “Whom do we actually belong to now?" Two sets of leaders competing for priority are not maintained on a permanent basis.
 
-优先级建议：**已有任务的人工改派 > 本次活动组分配 > 明确未分配**。旧活动没有 `assignmentPlan` 时继续保留原负责人；为新活动启用组模式后，不再回落到 `roleFor`。任何后来补出的任务都必须知道该活动是否采用新模式。
+Priority recommendation: **Manual reassignment of tasks already performed > This activity group allocation > > clear unallocated**. (b) To retain the former person in charge without `assignmentPlan`; When group mode is enabled for new activities, do not fall back to `roleFor`. Any tasks that are subsequently completed must know whether the activity is using a new model.
 
-工作流编辑器的新模式用任务组替换默认的 Done by 岗位选择；旧 `ownerRoleId` 留作兼容，不在同一条任务上同时显示两套分配规则。临时手动新增的任务可以直接选人，记为人工分配；模板后来补出的任务才按活动组快照继承。
+The new mode for workflow editor replaces the default Done by roll selection with a task force; The old `ownerRoleId` is reserved for compatibility and does not display two distribution rules simultaneously on the same task. Temporary additional manual tasks can be selected directly and recorded as manual assignments; Tasks that were subsequently added to the template will be inherited on a snapshot by the activity group.
 
-模板后来改名/增组/移动任务，只影响以后的活动。已创建活动有快照，不随模板悄悄变化。第一版不做“改组负责人自动重分全部旧任务”；逐任务改派使用现有操作即可。
+The template was subsequently renamed/supplemented/moveable to affect only subsequent activities. Created activities with snapshots that do not change quietly with templates. The first version does not read: “Reorganization heads automatically reassign all old tasks”; Task-by-mission reassignment of existing operations is sufficient.
 
-## 5. 技术与产品边界
+## 5. Technology and product boundaries
 
-1. **当前仍是本浏览器原型。** 可以验证社长的规划与分配体验；尚不能证明20个不同账号跨设备同时领任务、服务端鉴权和真实后台邮件已经可用。真实团队能力需后续服务器正本。
-2. 分组解决的是**谁执行**。审批人、协助人、知会人仍是另一件事；不要给 Finance 全组发同一封执行提醒。提醒的主对象仍由真实 `ownerId` 决定；RACI 与提醒收件规则另行推进。
-3. 一个人选进财务组，不等于获得 Treasurer 的预算审核或支付权限。权限继续按现有规则检查；必要时明确提示审批依赖。
-4. 现在活动生成任务有“已选现任即 accepted”的行为，独立指派给他人的任务另有认领流程。原型先维持现有状态规则；如要统一为认领制，另定范围，不能在本次组功能里暗改。
-5. 真实适用任务应来自现有 `stepsFor` 的条件筛选。改动人数、餐饮、资金等条件后重新计算组和数量；不适用的组不强迫选人，新出现的组要重新确认。
-6. UI 选择是人工输入，只能从该组织当前有效成员中选。保存时重新校验，防止停留页面期间成员离任、工作流变化、空组或重复/未知组 ID。AI 生成的任何 `ownerId` 都不能越过人工确认。
-7. 实施时需新增兼容字段与版本迁移，原件备份、存档23及历史记录都要保留；本轮方案文档**没有升级存档版本**。
+1. **is still the prototype of this browser.** can verify the planning and distribution experience of presidients; It is not yet possible to prove that 20 different account numbers are available for simultaneous tasking, service clearance and live back-office mail. Live team capabilities require follow-up server originals.
+2. Grouping is about **who executes**. Approving, assisting and informing is still another matter. Do not send the same executory reminder to Finance as a whole. The subject of the reminder is still decided by live `ownerId`; RACI is moved forward separately from the notification rule.
+3. A candidate to the Finance Group does not receive budget clearance or payment for Treasurer. Missions continue to be checked according to the existing rules; Where necessary, clear indications of reliance on approval.
+4. The activity generation task now consists of the “selected incumbent”, with separate recognition processes for tasks assigned to others. (a) The prototype should first maintain the current status rule; A different scope, if uniform as a system of recognition, cannot be modified implicitly in this group function.
+5. Live The applicable tasks shall be screened under the conditions of the existing `stepsFor`. Recalculation of groups and quantities after changes in numbers, catering, funding, etc.; Non-applicable groups do not force selection, and emerging groups need to be reconfirmed.
+6. The UI selection is a manual input that can only be selected from the current active member of the organization. Recheck when saving to prevent the departure of members, changes in workflows, empty groups or duplicate/unknown group IDs during the stay page. Any `ownerId` generated by AI cannot cross manual confirmation.
+7. New compatible field and version migration is required at the time of implementation, with original backups, archiving 23 and historical records to be retained; This round document **did not upgrade archive version**.
 
-## 6. 建议分两阶段做原型，第三阶段再扩展
+## 6. It is proposed that the prototype be developed in two phases and that phase III be expanded
 
-**阶段一：规则和数据底座。** 给标准工作流逐任务整理主执行组，保证覆盖、无重复；建立按活动保存的分配快照和唯一生成函数。旧活动、空缺成员、独立任务、预算权限、日期引擎保持原行为。验证同组多人时结果只跟人工选择有关，不跟角色顺序有关。
+**Phase I: Rules and data base. (a)** to organize the main executive group for standard tasks, ensuring coverage and non-duplication; Creates the assigned snapshot and sole generation function saved by activity. Old events, minutes of vacancies, stand-alone missions, budgets meetings, date engines remain the same. The results of the identification of multiple persons in the group were related only to manual selection and not to the sequence of roles.
 
-**阶段二：最短可用交互。** 在创建活动的审阅中增加少量组选择行；共用组件接到 Start 的首次活动与应用内创建活动，创建后能从任务看见实际负责人。Settings 工作流编辑器支持改组名/移动任务，防止框架仍被标准岗位固定。覆盖创建、修改情况、未分配、离任、保存失败、后续补任务、人工改派及双端使用。先不做正式团队管理模块。
+**Phase II: minimum available interactives.** Add a small group selection line to the review of creation activities; The common component receives start-up activities in Start's first activity and application, which can be created to see the actual person responsible from the task. Settings workflow editor supports reorganisation of name/move task to prevent framework from still being fixed by standard rule. Overwrite creation, modification, non-allocation, departure, saving failure, follow-up tasks, manual reassignment and dual-end use. Instead of a formal team management module.
 
-**阶段三（按使用反馈再决定）：多工作流和团队协作。** 同组织可选多套有版本的工作流；AI 建议任务及分组；可选默认人/上次负责人预选、组长下派、多人协作和轮转建议。界面仍要求确认本次活动的实际负责人。服务端协同、RACI 提醒规则、后台邮件分别推进。
+**Phase III (to be decided by using feedback): Multiple workflows and teamwork.** Multiple versions of the workflow available to organizations; AI Recommended tasks and clusters; The default/last head pre-selection, the lower team leader, multi-person collaboration and rotation advice are available. The interface still requires the identification of the actual persons responsible for the event. Service end coordination, RACI alarm rules and back-office mail are advanced separately.
 
-验收核心只有一句话：**社长创建两次相同活动，可以给 Finance 选两个不同的人；任务归属准确，后续补任务遵循同一次选择，旧活动和手工改派完全保留。**
+The core of acceptance has only one sentence: **presidient creates the same activity twice and can select two different people for Finance; Tasks were correctly attributed, follow-up assignments followed the same choice and old activities and manual reassignments were retained entirely.**

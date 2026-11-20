@@ -1,25 +1,25 @@
-# DX-18 空状态文案与下一步（除 Tasks、Events）
+# DX-18 empty state file and next step (except Tasks, Events)
 
-- 阶段 3　大小 S　风险 低　R 级 R2　依赖：DX-01　并行伙伴：DX-15～17、19
-- 分支：`design/dx-18-empty-states`　对应细节：D25
+- Phase 3 size S Risk Low R Level R2 Dependence: DX-01 Parallel Partners: DX-15 ~ 17, 19
+- Branch: `design/dx-18-empty-states` Corresponding Details: D25
 
-## 为什么
-现有的空状态只说"现在没有"，不说下一步。例如 `Funding.tsx`："Nothing needs action."；`Partners.tsx`："No contacts match."、"No organizations match."；`Today.tsx`："No finished steps yet this week."。Apple `writing.md` 和 Lens 5：空屏要邀请下一步。
+## Why?
+The current empty state only says "no" now, not next. For example, `Funding.tsx`: "Nothing needs action." `Partners.tsx`："No contacts match."、"No organizations match."；`Today.tsx`："No finished steps yet this week."。Apple `writing.md` and Lens 5: Empty screens to invite next steps.
 
-## 要做的事
-1. **先审计，再改**：`grep -rn "<Empty" src/pages src/components` 列出每一处空状态和它所在页面（不含 `Tasks.tsx`、`Events.tsx`，它们归 DX-16、DX-15），在报告里贴出清单。
-2. 每条改成"一句说明 + 如果有对应动作就给一个按钮或链接"。例如 "No contacts match. **Clear filters**"（点了清除筛选）。没有合适动作的就保持一句话，不要硬加。
-3. 文字用英文，沿用现有语气（短、直接）。**不增加字数**：每页 `npm run words` 的"一眼看到"和"总字数"都不能比现在多（Partners 的上限是 120/120，要先量出剩余额度）。
-4. 不加插图，不加图标。
-5. 不改任何数据结构，不改按钮行为之外的逻辑。
+## Something to do.
+1. **First audited and then modified**: `grep -rn "<Empty" src/pages src/components` lists each empty state and the page on which it is located (excluding `Tasks.tsx`, `Events.tsx`, belonging to DX-16, DX-15), with a list posted in the report.
+2. Replace each article with "A statement + Give a button or link if there's a corresponding action." For example, " No contacts match. **Clear filters** " (point clean filter). If you don't have the right action, keep a word. Don't put it in hard.
+3. The text is in English and follows the current tone (short, direct). **No additional word**: no more "see" and "total word" on every page of `npm run words` than is currently available (the ceiling for Partners is 120/120, which must be measured first).
+4. No illustrations, no icons.
+5. Do not change any data structure, do not change logic other than button behavior.
 
-## 可以改的文件
-`src/pages/Today.tsx`、`Team.tsx`、`Funding.tsx`、`Handoff.tsx`、`Partners.tsx`、`Rules.tsx`、`Settings.tsx`（仅空状态那几行）。
-**不准碰**：`Tasks.tsx`、`Events.tsx`、`ui/index.tsx` 里的 `Empty` 组件本身（如果需要加参数，写进报告）。
+## Files that can be changed
+`src/pages/Today.tsx`, `Team.tsx`, `Funding.tsx`, `Handoff.tsx`, `Partners.tsx`, `Rules.tsx`, `Settings.tsx` (lines with empty status only).
+**Don't touch it.**：`Tasks.tsx`、`Events.tsx`、`ui/index.tsx`Yeah. `Empty`The components themselves (in the report if parameters are required).
 
-## 验收
-- `today.spec.ts`、`crm.spec.ts`、`wp5.spec.ts`、`word-budgets.spec.ts`、`a11y.spec.ts` 桌面 + 手机绿；`npm run words` 前后对比表放进报告。
-- Juanxi 怎么验：在 Partners 里搜一个不存在的名字，提示里有"清除筛选"的链接。
+## Acceptance
+- `today.spec.ts`, `crm.spec.ts`, `wp5.spec.ts`, `word-budgets.spec.ts`, `a11y.spec.ts` desktop + mobile phone green; The `npm run words` comparative table is included in the report.
+- Juanxi How to Test: Search a non-existent name in Partners with a "clean filter" link in the tip.
 
-## 回滚
+## Rollback
 R2。

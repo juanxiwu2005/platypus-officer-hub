@@ -1,32 +1,32 @@
-# DX-05 风险点加形状（不再只靠颜色）
+# DX-05 risk point plus shape (no longer only color)
 
-- 阶段 1　大小 S　风险 低　R 级 R2　依赖：DX-01　并行伙伴：DX-03、04、06…08
-- 分支：`design/dx-05-risk-shapes`　样式文件：`src/styles/dx-05-risk-shapes.css`　对应细节：D26
+- Phase 1 size S Risk Low R Level R2 Dependence: DX-01 Parallel Partners: DX-03, 04, 06 ... 08
+- Branch: `design/dx-05-risk-shapes` Style File: `src/styles/dx-05-risk-shapes.css` Corresponding Details: D26
 
-## 为什么
-**看到**：Today 的"Needs a nudge"整列都是红点，活动行右边的点也只有颜色。色盲用户分不出红和绿；手机上悬停卡要点一下才看到原因。Apple Lens 1：不能只靠颜色传达信息。
+## Why?
+**Sees the entire column of**:Today's "Needs a nudge" are red points, and the point on the right side of the line is color only. (a) The lack of a distinction between red and green users in color blindness; The reason is not to be able to see the card on the phone. Apple Lens 1: Message cannot be conveyed by color alone.
 
-## 要做的事
-1. 修改 `src/components/ui/index.tsx` 里的 `RiskDot`（只改这个函数）：
-   - 三种状态三个不同形状（用内联 SVG，`currentColor`，不写 hex）：**On track**：圆里一个对勾；**Watch**：三角里一个感叹号；**At risk**：圆角方块里一个叉。
-   - 点的尺寸从 11px 提到 14px；颜色仍用现有的 `--good`、`--risk-yellow`、`--late` token。
-   - 保留所有现有的 class（`risk red|yellow|green`）、`data-testid="forecast"`、`aria-label`、`withWord` 参数。
-2. 不新增任何可见文字（字数预算）。`withWord` 保持原样。
-3. 样式写在自己的小文件里，覆盖 `.risk i` 的外观。
-4. 深色模式下同样检查对比度（图形 ≥3:1）。
+## Something to do.
+1. Modify `RiskDot` in `src/components/ui/index.tsx` (this function only):
+   - Three different shapes in three states (with an internal SVG, `currentColor`, without text: **On track**: a pair in the circle;  **Watch**: An exclamation mark in the triangle; **At rsk**: One fork in a rounded square.
+   - Point size from 11px to 14 px; Colours are still available `--good`, `--risk-yellow` and `--late` token.
+   - Keeps all existing class (`risk red|yellow|green`), `data-testid="forecast"`, `aria-label`, `withWord` parameters.
+2. Do not add any visible text (word budget). `withWord` Stay the same.
+3. Styles are written in your own little file to cover the `.risk i` appearance.
+4. The contrast is also checked in dark mode (figure  ≥ 3:1).
 
-## 可以改的文件
-`src/components/ui/index.tsx`（仅 `RiskDot`）、`src/styles/dx-05-risk-shapes.css`。
-**不准碰**：`Chain`（归 DX-25）、`Hover`（归 DX-12）、任何页面文件。
+## Files that can be changed
+`src/components/ui/index.tsx` (`RiskDot` only), `src/styles/dx-05-risk-shapes.css`.
+**Do not touch**: `Chain` (for DX-25), `Hover` (for DX-12), any page file.
 
-## 验收
-- `today.spec.ts`、`wp5.spec.ts`（里面有对 `.risk.red` 的断言）、`a11y.spec.ts`、`events.spec.ts` 桌面+手机绿。
-- 新测试 `e2e/dx-05-shapes.spec.ts`：三种状态渲染出三个互不相同的 SVG 形状（比较 `outerHTML` 的路径）。
-- 把 `dx-shots` 的 Today 图转成灰度，仍能分出三种状态（报告里贴出做法）。
-- `npm run words` 不增加。
+## Acceptance
+- `today.spec.ts`, `wp5.spec.ts` (which contains assertions about `.risk.red`), `a11y.spec.ts`, `events.spec.ts` desktop + mobile phone green.
+- New test `e2e/dx-05-shapes.spec.ts`: Three states render three different SVG shapes (comparable path for `outerHTML`).
+- Converts the `dx-shots` Today image to a greyscale, which can still be divided into three states (the practice is posted in the report).
+- `npm run words` No increase.
 
-## 回滚
-R2：`git revert -m 1 dx/dx-05-merged`。DX-25 依赖它，先撤 DX-25。
+## Rollback
+R2：`git revert -m 1 dx/dx-05-merged`。DX-25 Depends on it, first withdraws DX-25.
 
-## 注意
-- 色块里的字（状态色块 `StatusPill`）不改，它本来就有文字。
+## Attention.
+- The word in the color block (state block `StatusPill`) does not change; it has text.

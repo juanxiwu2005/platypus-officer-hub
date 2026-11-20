@@ -1,38 +1,38 @@
-# WP03 — Tasks、Board 与任务详情
+# WP03—Tasks, Board and Task Details
 
-## Agent 提示词
+## Agent prompt
 
-你负责修复 Tasks、Board、任务详情和相关 E2E。开始前读取 `AGENTS.md`、README、manifest，fetch 并确认最新阶段基线 SHA。不得使用 `main` 或修改其他工作包拥有的测试文件。
+You're in charge of repairs to Tasks, Board, details of the mission and related E2E. Read `AGENTS.md`, README, manifest, fetch before starting and confirm the updated baseline SHA. `main` should not be used or the test files owned by other work package should not be modified.
 
-### 负责范围
+### Scope of responsibility
 
 - `e2e/tasks.spec.ts`
-- `e2e/rehearsal.spec.ts` 中任务操作场景
-- Tasks、Board、任务详情、延期申请相关组件
-- 必要的 feature-scoped 样式
+- `e2e/rehearsal.spec.ts` task operating scene
+- Tasks, Board, mission details, extension request-related components
+- Necessary Feed-Scoped Styles
 
-### 必须验证
+### Must authenticate
 
-- 领取未分配任务；Waiting、Need help、Done 状态更新。
-- 延期草稿、提交和社长批准。
-- Table、Board、Timeline 使用同一任务数据。
-- Board 拖拽和键盘替代操作。
-- 自定义状态名称；新任务不能直接创建为完成。
-- 普通成员不能移动不属于自己的任务。
-- 刷新后状态保持；手机上可操作。
+- (c) To receive undistributed assignments; Waiting, Need help, Done status update.
+- Draft extension, submission and president approval.
+- Table, Board and Timeline use the same task data.
+- Board drag and keyboard replacement.
+- Custom status names; New tasks cannot be created directly for completion.
+- Ordinary members cannot move without their own task.
+- Maintain status after refreshing; The phone is operational.
 
-### 要求
+### Request
 
-- 移除对已经不存在的 `my-tasks`、旧 `move-menu` 等 DOM 契约的依赖，使用当前稳定语义。
-- 如果旧功能已经由 Activity workspace 替代，验证等价业务结果，不恢复重复 UI。
-- 不得弱化权限、持久化或状态转换断言。
-- 禁止 skip、force click、删除断言或只提高 timeout。
+- Removes the dependency on `my-tasks`, old `move-menu` and other DOM contracts that no longer exist, using the current stable semantics.
+- If the old feature has been replaced by the Activity Workspace, verify the equivalent business result and do not revert to duplicate UI.
+- It must not weaken the claims of missions, durability or state conversion.
+- Bans kip, force click, deletes assertions or increases only timeout.
 
-### 验收标准
+### Acceptance Standard
 
-1. `tasks.spec.ts` 在 desktop/mobile 全部通过。
-2. `rehearsal.spec.ts` 的任务领取、状态更新和完成路径通过。
-3. 鼠标、键盘、移动端各有至少一条状态变更路径。
-4. 状态在 reload 后保持，权限负面测试保留并通过。
-5. `npm run lint`、`npm test`、`npm run build`、`git diff --check` 通过。
-6. 创建一个 `[RR-WP03][Codex]` 提交，区分产品修复与测试迁移。
+1. `tasks.spec.ts` on desktop/ mobile all through.
+2. The `rehearsal.spec.ts` task receipt, state update and completion path is passed.
+3. Mouse, keyboard and moving end have at least one state change path.
+4. The status is maintained after reload, and the negative tests are kept and passed.
+5. `npm run lint`, `npm test`, `npm run build` and `git diff --check` were adopted.
+6. Create a `[RR-WP03][Codex]` submission to distinguish product restoration from test migration.

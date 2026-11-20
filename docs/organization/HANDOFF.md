@@ -1,72 +1,72 @@
-> **2026-10-26 Activity Workspace当前实施交接：** 用户批准A1/B1/C2与全局AI/个人任务/资金联动，详见[实施记录](ACTIVITY_WORKSPACE_IMPLEMENTATION.md)。以下F1–F7交接是本次的保留基线，Homepage只读组织职责/Recent模板入口已被本轮实际活动工作区替代。
+> **2026-10-26 Activity Workspace currently operates handoff:** User approves A1/B1/C2 association with global AI/Personal Tasks/ Funds, as detailed in [ Implementation Records ](ACTIVITY_WORKSPACE_IMPLEMENTATION.md). The following F1-F7 Handoff is the baseline for this reservation and the Homepage read-only organizational duties/Recent template portal has been replaced by a working area for actual activities in the current round.
 
-# Organization Setup 当前交接
+# Organisation Setup Current handoff
 
-2026-10-26 · Codex · Juanxi 已批准 F1–F7 审计修复。集成分支 `fix/setup-v3-completion`，基于 `feat/organization-setup-ai@54e5823`；不合并 main，不正式发布。
+2026-10-26 Codex Juanxi has approved F1-F7 audit repairs. Integrated branch `fix/setup-v3-completion`, based on `feat/organization-setup-ai@54e5823`; No, merge main, not officially.
 
-当前有效流程为 **Constitution → Your team → Responsibilities → Activity workflow → Review**。Prompt 只在开发聊天审阅，服务端正本 `netlify/lib/organization/prompts.mts`，不是旧客户端文件。模型路由 v3：Gemma 长结构、Muse 短编辑、GLM 仅主动深度检查；没有最新提速百分比结论。
+The current active process is **Constitution  →  Your team  →  Responsibilies § Activity workflow ~ Review**. Prompt only develops chat reviews with `netlify/lib/organization/prompts.mts`, which is not an old client file. Model route v3: Gemma long structure, Muse short editor, GLM only active depth check; There are no recent conclusions on the percentage increase.
 
-本轮补保存/恢复与冲突处理、人工层级保护、精细增量复核、Check 自动复用、当前对象与近期历史提案、图操作验收及错误诊断。消费端只读取服务器 **approved** 编译产物；`/phase1` 的 Home/活动显示同一组织岗位、职责、流程和部门色，不复制为旧 localStorage 配置。旧示例入口 `/#/phase1?example=1` 和 `setup-legacy` 明确保留为参考；没有批准配置时不会伪装使用示例作为新组织。
+This round save/restore and conflict resolution, manual layer protection, fine incremental review, check automatic reuse, current object and recent historical proposals, graphic operation acceptance and error diagnosis. Consumer end read only the server **applied** compiler; Home/ Activity for `/phase1` shows the same organization style, duties, processes and sector colours, without copying the old localStorage configuration. Old examples entry `/#/phase1?example=1` and `setup-legacy` are explicitly reserved for reference; The example will not be disguised as a new organization without approval of the configuration.
 
-完整 Board planner、真实组织账号、旧业务数据库迁移和跨组织共享仍未实施。`/phase1/activity/executive` 对新组织明确显示尚未生成，不复用别的虚构组织链路。
+Full Board planner, live organizational accounts, migration of old business databases and cross-organizational sharing have not yet been implemented. `/phase1/activity/executive` makes it clear to the new organization that it is not yet generated and does not re-use a separate messageal tissue link.
 
-验收与执行证据统一记录在 [F1–F7 实施记录](F1_F7_IMPLEMENTATION.md)。以下保留旧记录，**其中六章、矩阵、网页 View prompt、v2 全 Muse 及旧测试数字均不是当前有效行为或本次验收结论**。
+Acceptance is recorded in [ F1-F7 Implementation Record ](F1_F7_IMPLEMENTATION.md) with executable evidence. The following old records are maintained: **, of which six chapters, matrices, web pages View Prompt, v2 All Muse and Old Test Numbers are not currently valid acts or this Acceptance Conclusion**.
 
-## 历史交接（截至 54e5823，原文保留）
+## History Handoff (as 54e5823, source text reserved)
 
-> **v3.1 最新：** Gemma 4 31B 处理较长的章程/风险/活动结构，Muse 处理短对话编辑，GLM 5.3 仅用户主动深度检查。一次真实 Muse 结果证明：请求原生 schema 和 reasoning none 不代表网关实际遵守；现在 prompt 明确给出精确 JSON 字段，已观察字段别名做严格无歧义转换，缺失内容仍拒绝。详见 [v3 实测记录](V3_CHANGELOG.md)。新版速度尚待实测，不能把模型名称当速度保证。
+> **v3. 1 Update:** Gemma 4 31B Process long constitution/risk/activity structure, Muse Process short dialogue editor, GLM 5.3 user-only active depth check. The results of a live Muse proved that the request did not represent actual compliance by the gateway; Now Prompt clearly gives a precise JSON field, has observed a strict and unambiguous conversion of the alias of the field, and the missing content is still rejected. For more details, see [v3 physical records](V3_CHANGELOG.md)。 The speed of the new edition is yet to be measured and model names cannot be used as a guarantee of speed.
 
-> **2026-10-26 v3 增量：进行中（Codex）**
-> 五章组织图/职责条目与 Check/图内编辑/右侧 AI 审批/服务器 JSON 编译已实现；prompt 已从网页移除。重点修复 JSON 格式错误和下游数据保留。详细变更、指标含义和边界见 [V3_CHANGELOG](V3_CHANGELOG.md)。main 与旧数据保留。当前真实冒烟、发布和 CI 结果以下方最终追加为准。
+> **2026-10-26 v3 Increment: Ongoing (Codex)**
+> Five chapters of the organizational chart/function entry and the editor/right-hand AI approval/server JSON compilation have been implemented; Prompt has been removed from the web page. Focus on correcting JPON format errors and downstream data retention. For detailed changes, indicator meanings and boundaries see [ V3_CHANGELOG ](V3_CHANGELOG.md). Main retained with old data. The result of the current live smoke, release and CI is eventually added.
 
-# Organization Setup：上线交接
+# Organisation Setup: Online handoff
 
-2026-10-26 · Codex · **待 Juanxi 实操验收**。已停止新增真实 AI 测试。
+2026-10-26 . Codex **until Juanxi takes action**. New live AI test stopped.
 
-## 在线入口
+## Online portal
 
-- [最新 Organization Setup](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup)
-- [独立分支站](https://feat-organization-setup-ai--platypus-officer-hub.netlify.app/#/phase1/setup)
-- [前一版设置参考](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup-legacy)
-- [原网站](https://platypus-officer-hub.netlify.app/) 保留，main 未合并。
-- [草稿 PR #3，目标 v1](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3)，分支 feat/organization-setup-ai。前一版 Phase 1 的分支和 PR #2 保留。
+- Organization Setup ](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup)
+- [Independent branch](https://feat-organization-setup-ai--platypus-officer-hub.netlify.app/#/phase1/setup)
+- [Previous version of settings reference](https://deploy-preview-3--platypus-officer-hub.netlify.app/#/phase1/setup-legacy)
+- The [ original web site ](https://platypus-officer-hub.netlify.app/) reserves, main has not merge.
+- [ Draft PR #3, Target v1 ](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3), Branch Feat/organization-setup-ai. The previous version of the Phase 1 branch and PR #2 reservation.
 
-旧 localStorage 键和旧页面保留。新域名不自动带入原域名的浏览器数据；原地址仍可参考。没有改研究资料或 IRB 文件。
+The old localStorage key and the old page are kept. The browser data that the new domain name does not automatically bring into the original domain; The original address is still available. No changes have been made to research materials or IRB documents.
 
-## 已落实的设置改版
+## Implemented Settings Refine
 
-Constitution → Your team → Responsibilities → Member programs → Board work → Review。删除组织分类和流程偏好题；章程提取岗位/职责、直接显示自定义岗位、部门分组的多岗位复选矩阵；后台 RACI。每步 AI 准备下一屏，用户审核调整。
+Constitution → Your team → Responsibilities → Member programs → Board work → Review。Delete organizational classification and process preferences; Constitution extract role/ duties, direct display of custom role, multi-role reselection matrix for sectoral groups; Backstage RACI. Each step AI prepares the next screen and users check adjustments.
 
-上传有文本的 PDF、Word .docx、TXT/MD，或用虚构示例/粘贴文本。8 MB / PDF 50 页 / 文本 60,000 字符。扫描 PDF 暂无 OCR，旧 .doc 需另存 .docx。**从本版起保存原件与历史**，并提供 Download original、Export records；以前未保存的二进制原件无法倒补。
+Uploads text-based PDF, Word.docx, TXT/MD, or pastes text using field example/ paste. 8 MB/ PDF 50 page / Text 60,000 character. Scanning PDF has no OCR, old .doc needs to be saved. docx. **Saves the original and history** from this edition and provides Download original, Export records; Unsaved binary originals could not be replaced.
 
-成员流程包含机会/邀请两种入口、Outreach + Professional Development 首次会面、策划、Marketing→Finance 审核、并行准备、执行、反馈。可拖节点、改依赖/并行、加节点（按钮/右键）、多人负责与 AI 修改提案。拖动位置不等于改变顺序，依赖线或顺序控件才改变逻辑；手机提供竖向节点和编辑。
+The process consists of an opportunity/invite two entry points, the first meeting, planning, Marking & Finance, parallel preparation, execution, feedback. You can drag nodes, redependent/parallel, plus nodes (buttons/right keys), and several people are responsible for changing the proposal with AI. Drag position is not the same as changing order, relying on a line or sequence control to change logic; Cell phones provide vertical nodes and editors.
 
-Exec Board 按 social/tabling 等目标生成专属链路，支持保留草稿；换目标会使旧流程失效，避免拿旧 plan 进入 Review。最后生成两层组织指导、显示 prompt 审核提醒和模型生成记录。
+Exec Board produces exclusive links based on objectives such as social/tabling, supporting the retention of drafts; Change of target will disable the old process and avoid taking the old plan into Review. Finally, two layers of organizational guidance are generated to show the prompt audit alarms and model generation records.
 
-## 数据比 AI 更底层
+## Data is lower than AI
 
-新设置的操作、原件、修改历史、对话请求、AI 输入输出/错误/采用或拒绝均进入带时间戳的私有工作区档案。访问会话到期不删除历史，当前不自动跨组织共享。详见 [数据基础](DATA_FOUNDATION.md)。这是当前设置的实际实现；旧业务页未全面迁移到新组织数据库，真实账号/多人权限/跨组织分享与能效分析仍需后续建设。
+Newly installed operations, originals, modified history, dialogue requests, AI input output/ error/use or refusal to access private workspace files with time stampes. Access session expires without history being deleted and is not automatically shared across organizations. See [ data base ](DATA_FOUNDATION.md) for details. This is the actual realization of the current set-up; The old business pages were not fully migrated to the new organization ' s database, and live accounts/many people permissions/inter-organizational sharing and energy efficiency analysis still needed to be built.
 
-## 当前模型与速度
+## Current model and speed
 
-默认 `muse-glimmer-30b`，关闭额外思考；GLM 5.3 只在用户主动勾选 Use deeper reasoning 或点击 Review with stronger model 时调用。共用现有 AIR key，路由版本 v2。配置与取舍见 [Prompt/模型说明](PROMPTS.md)。
+Default `muse-glimmer-30b`, close extra thinking; GLM 5.3 is only called when the user chooses Use deeper reasoning or clicks on Review with fronter mode. Shares the existing AIR key, route version v2. Configure and choose between [ Prompt/ Model Description ](PROMPTS.md).
 
-历史实测（更换默认模型之前）：AIR auto/north-mini-code 跑通岗位、矩阵、成员流程、多人负责 AI 修改、Board social 和带两班人员的 tabling。Gemma 章程 56s、矩阵 15s；GLM 指导 56–91s、成员流程 81s，实际模型名 glm-5-3-mxfp4。一次 GLM 流程结构失败后已加入原生 JSON schema + 简短说明约束并成功复测。
+Historical reality (before the default model is replaced): AIR auto/north-mini-code runs through role, matrix, member process, multiple people in charge of AI modifications, Board social and tabling with two shifts. Gemma Constitution 56s, Matrix 15s; GLM guides 56– 91s, memory process 81s, actual model name gl-5-3- mxfp4. After a GLM process structure failed, the original JSON schema + short statement of constraints and successful re-measurement was added.
 
-这些耗时含网关等待与生成，尚不能区分模型耗时和排队耗时。按 Juanxi 最新要求，**切换 Muse 后未继续请求真实模型作测试**，不声称已测出加速比例；由 Juanxi 实操感受。后台任务解决了托管环境实际约 30 秒的同步请求上限。
+These time-consuming gateways are waiting for and generating, and it is not yet possible to distinguish between the time-consuming model and the time-consuming queue. This post is part of our special coverage Yemen Protests 2011. **Cannot continue requesting live models for testing after switching Muse**, no claim that an acceleration rate has been measured;  By Juanxi. The back-office task resolved a maximum of approximately 30 seconds for the hosting environment.
 
-## 检查与后续验收
+## Inspection and follow-up
 
-更早的完整检查通过构建、319 单元和 167 桌面/手机页面（13 原有跳过）。最新数据基础只做必要构建及 43 项离线组织/服务器/模型/档案检查，包括原件哈希、不可覆盖、事件时间戳、去重、工作区隔离、访问到期不删档案；**这些检查不调用 AIR、不消耗模型额度**。GitHub CI 独立运行；不再手动重复整套真实 AI 验收。
+Earlier complete checks are made by building, 319 units and 167 desktop/ cellular pages (old 13 krip). The most up-to-date data base is only built and 43 offline tissue/server/model/archiving checks, including original Hasi, non-coverage, event time stamp, weighting, workspace segregation, access to files that expire; **These inspections do not call AIR, no-consumption model amount**. GitHub CI runs independently; No more manual duplicates of the set.
 
-1. 在线用虚构示例或自己的虚构 PDF/Word，检查角色与矩阵。
-2. 修改流程/负责人，试一句话调整；普通模式先看等待时间，必要时才选深度检查。
-3. 试 Export records / Download original，确认记录与原件。
-4. Review 查看两层指导和全部 prompt；prompt 质量仍需 Juanxi 审核，开发完成不等于已获产品批准。
+1. Checks the role and matrix using an online fielding example or your own field PDF/Word.
+2. Modification of process/registrar(s) and adjustment of one sentence; The normal model looks first at waiting times and selects depth checks when necessary.
+3. Try Export reports/ Download original, confirm record and original.
+4. Review View Two Levels of Guidance and All Prompt; Prompt quality still needs to be cleared by Juanxi and the completion of development does not amount to an approved product.
 
-最近活动区保留，按用户要求留待下一轮修改。
+Recent areas of activity are reserved for the next round of changes, as requested by users.
 
 
-## 环境变量重新载入
+## Reload Environment Variables
 
-Juanxi 后续误改变量后，核对当前 AI_PRESET=asu_air、AI_MODEL=muse-glimmer-30b，以及 Production/Deploy Previews/Branch deploys 的 Functions key 范围，重新部署。预览和分支站 `/api/health?check=1` 的 AIR 模型目录检查均返回 200，Muse/GLM 均可用，generationPerformed=false。此检查只读取目录、不生成内容；不代表新模型生成质量已验收。未读取或输出完整 key。
+Following the correction, Juanxi collates and redeploys the current range of operations Keys for AI_PRESET=asu_air, AI_MODEL=muse-glimer-30b, and Production/Deploy Previews/Branch depoys. The AIR model directory check for preview and branch station `/api/health?check=1` returns 200, which is available to both Muse/ GLM, General Performed=file. This check only reads the directory and does not generate content; Doesn't mean the new model is generated with quality already available. Could not close temporary folder: %s

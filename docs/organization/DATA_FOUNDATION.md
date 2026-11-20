@@ -1,48 +1,48 @@
-> **2026-10-26运行数据补充：** 新Activity Workspace已将任务、审批和资金接入同源服务端运行记录、CAS/幂等/审计outbox；AI与表单共用命令通道。详见[本轮实施](ACTIVITY_WORKSPACE_IMPLEMENTATION.md)。私有演示身份仍非正式账号，旧legacy业务和真实组织数据库迁移不自动包含。
+> **2026-10- 26 Operational Data Complement:** The new Activity Workspace has posted tasks, approvals and funds access to the same source service end running records, CAS/idempotency/auditoutbox; AI shares the command channel with form. See [ for details. This round implements ](ACTIVITY_WORKSPACE_IMPLEMENTATION.md). Private presentation identity remains an informal account, and the old Legacy operation and live organization database migration are not automatically included.
 
-# 数据基础：先记录，再由 AI 理解
+# Data base: records first and AI understands
 
-2026-10-26 · Juanxi 的最新要求：**数据记录、管理、治理是最底层，AI 在它上面。** 本次将这一原则落实到最新 Organization Setup，不将其写成未来口号。
+2026-10-26. Juanxi's latest request: **Data Records, Management, Governance is at the bottom, AI above it. This time,** translates this principle into the latest Organization Setup and does not make it a slogan for the future.
 
-## 当前实现
+## Current Achieved
 
-F1–F7 补充：配置草稿还提供按 workspace 隔离的本地恢复副本，和在线保存状态分开；冲突不会静默覆盖。新版 `/phase1` 工作区直接读取服务器 approved 编译产物，草稿不影响运行中的批准配置；不复制到旧原型 localStorage。旧 Today/Tasks/Events 等仍未整体迁移。历史检索索引保留近期版本，完整追加事件另存；恢复只能提出局部变更并等待批准。详见 [实施记录](F1_F7_IMPLEMENTATION.md)。
+F1-F7 Supplement: The draft configuration also provides a copy of local recovery isolated by workspace and separate from online retention status; Conflict does not have silence overlay. A new version of the `/phase1` workspace to read directly the server approved compiler, without prejudice to the operating approval configuration; Do not copy to old prototype localStorage. The old Today/Tasks/Events etc. have not yet moved as a whole. The History Retrieval Index is kept in its most recent version and the full additional events are saved; Only partial changes can be proposed and awaiting approval. For more information, see [ Implementation Records ](F1_F7_IMPLEMENTATION.md).
 
-在线保存使用 Netlify Blobs 文档/对象存储，新增追加式事件档案。它不是已经完成的生产关系数据库或真实组织身份系统。
+Saves online storage with Netlify Blobs documents/objects, adding an additional event file. It is not a completed production relationship database or live organizational identity system.
 
-| 记录 | 保存内容 | 时间与来源 |
+| Records | Save Content | Time and source |
 | --- | --- | --- |
-| 用户操作 | 点击、字段值变化、勾选、焦点进出、图交互、提案采用/丢弃、打开工作区 | 客户端发生时间、会话/顺序、服务器接收时间、工作区、actor |
-| 配置历史 | 每次提交及保存的完整配置、修订号、批准状态、失败原因、原先批准快照 | 服务器 UTC 时间、请求/保存/批准事件 |
-| 上传资料 | PDF/DOCX/TXT/MD 原始字节、原名、类型、大小、SHA-256、各块、完成状态；粘贴与虚构示例也存原文文件 | 上传开始、分块接收与完成时间；提取文本另存，供 AI 使用 |
-| 对话与 AI | 修改请求、发送给 AI 的确切 system prompt/组织上下文、原始返回、验证结果、任务开始/完成/错误、采用/拒绝 | 服务器时间、prompt/路由版本、请求/实际模型、耗时、输入哈希 |
-| 导出/下载 | 记录导出、原件下载行为；记录 JSON 包含配置、事件及文件目录 | 导出时间与工作区边界 |
+| User operations | Click, field value changes, ticking, focus access, chart interaction, proposal adoption/discard, open workspace | Client time of occurrence, session/ordering, server receipt time, work area, actor |
+| Configure History | Full configuration, revision number, approval status, cause of failure, original approved snapshot per submission and preservation | Server UTC Time, Request/Save/ Permission Events |
+| Uploading information | PDF/DOCX/TXT/MD Original byte, original name, type, size, SHA-256, blocks, state of completion; Paste andactional examples also save source text files | (a) The time of upload start, block receipt and completion; Save extract text for AI |
+| Dialogue and AI | Modify request, send the exact system profile/ tissue context to AI, original return, validation results, start/complete/Error, adopt/reject | Server time, prompt/route version, request/actual model, time-consuming, input into Hase |
+| Export/Down | Record export and original download behaviour; Record JSON contains configurations, events and file directories | Export Time and Work Area Boundary |
 
-文件分块传输，避免 8 MB 原件超出函数单次传输限制；完成时服务器重新核对完整字节大小和 SHA-256。原件与供 AI 使用的提取文本分开。扫描 PDF 无 OCR、`.doc` 需另存 `.docx` 的限制仍然明确。
+File block transfer to avoid the original 8 MB exceeding the function single transmission limit; The server rechecks the full byte size and SHA-256 on completion. The original is separated from the extraction text used by AI. The limitations for scanning PDF without OCR, `.doc` to save `.docx` are still clear.
 
-`configuration.submitted/requested/saved/approved` 区分用户提交、服务器处理与实际保存，不能把未成功请求当作已保存。每次保存留下历史，草稿与批准快照仍分开。AI 调用前先保存操作与输入，返回后归档原始结果，再验证和显示建议；失败不应用配置。后台任务采用原子领取，避免并发重复调用。
+`configuration.submitted/requested/saved/approved` Distinguishing user submission, server processing and physical preservation cannot treat unsuccessful requests as saved. Each time the history is preserved, the draft remains separate from the approved snapshot. AI saves operations and inputs before calling, returns to archive the original results and validates and displays the recommendations; Cannot initialise Evolution's mail component. Backstage missions take atoms and avoid repeated calls.
 
-事件在应用接口中只追加，不提供普通界面覆盖/删除入口；重试同一个客户端事件 ID 不重复覆盖。原件分块同样不覆盖已有块。这是应用级追加语义，不是合规级 WORM 或防管理员篡改系统。
+The event is added to the application interface and does not provide ordinary interface coverage/delete access; Try the same client event ID to overwrite. The original fragments likewise do not cover existing blocks. This is an application-level addition to semantic, not a compliance level WORM or anti-manager tampering system.
 
-## 数据治理边界
+## Data governance boundaries
 
-- 所有归档使用服务器生成的 workspaceId 分区。读取、导出、原件下载都由服务端根据当前工作区 cookie 定位，不能通过提交别人的 ID 读取另一组织的数据。
-- 本原型仍用匿名测试工作区，actor 代表当前工作区会话；真实账号、干部身份、角色权限、跨设备恢复还未接入。不能把同浏览器隔离说成生产级多人身份管理。
-- **访问会话到期不再触发档案删除。** 当前访问凭据仍有测试会话期限，历史与原件继续保留；正式账号绑定、保留期限和恢复方式应在后续身份/治理工作中落实。
-- 输入事件的凭据字段会过滤，平台 API key/认证请求头不入档；用户主动上传的原件按原始内容私有保留，不送到其他组织。供 AI 使用的文本沿用联系方式清理和凭据检测。
-- 当前共享关闭。导出是用户在自己工作区发起的操作；没有自动将资料加入跨组织学习池。之后共享必须明确范围、授权、匿名化和撤回规则。
-- 暂无自动清除；真实资料上线前需由组织确定正式的保留/删除与访问政策。当前继续使用虚构资料。
+- All archives use the workspace Id partition generated by the server. Reads, exports, original downloads are located by the server based on the current workspace cookies and cannot read data from another organization by submitting someone 's ID.
+- This prototype still uses an anonymous test working area, acting as a session for the current workspace; Live account, officer identity, role permissions, cross-equipment restoration is not yet connected. The isolation from browsers cannot be described as multi-person identity management at the production level.
+- The **visit session is due to no longer trigger the deletion of files.** Current access documents still have a test session period and history and originals continue to be kept; Formal numbering, retention periods and recovery modalities should be implemented in the follow-up identity/governance exercise.
+- The supporting field for the input event will be filtered and the platform API key/ authentication request will not be entered; Originals uploaded by the user on its own initiative are kept privately for their original content and are not sent to other organizations. The text used by AI follows the contact approach to clean-up and verification.
+- Current share closed. Exporting an operation initiated by the user in its own workspace; Information is not automatically added to the inter-organizational learning pool. Subsequent sharing must be clear about the scope, authorization, anonymity and withdrawal rules.
+- No automatic removal at this time; Live information requires the organization to determine a formal retention/deletion and access policy before it is online. Continues to use field information.
 
-## 对交接和分析的意义
+## Signals for Handoff and Analysis
 
-这套记录可为之后的交接来源、配置变更原因、AI 建议采用/拒绝、设置耗时、等待与人工修改次数提供可核查材料。当前没有计算组织能效分数，也没有从本次 onboarding 事件推出整体组织效率。
+This set of records can provide verifiable material for subsequent handoff sources, reasons for configuration changes, AI recommendations/rejections, time-consuming settings, waiting and manual revisions. There is currently no calculation of the organizational energy efficiency score, nor is there an overall organizational efficiency from this event onboarding.
 
-下一步把同一个记录接口接入正式活动、任务、会议、经费、交接和真实对话。旧参考页原有业务状态还没有全部迁移；不能声称旧版所有历史交互已被倒补。组织间比较/经验分享是另一个有明确授权的功能，不自动发生。
+The next step is to connect the same log interface to official events, missions, meetings, funds, handoff and live dialogues. The old reference page had not been fully migrated; It cannot be claimed that all historical interactions in the old editions have been reversed. Inter-organizational comparisons/experience sharing are another function with a clear mandate and do not occur automatically.
 
-## 给后续工程的规则
+## Rules for subsequent work
 
-1. 新功能先定义要保存的原件、操作事件、状态快照、来源与时间，再接 AI。
-2. 使用服务器时间为权威，保留客户端发生时间，区分事件发生、接收、处理与批准。
-3. AI 不能删除/改写基础记录，不能把未被确认的推断当成组织事实。
-4. 数据记录失败时明确提示并重试，不能继续显示“已保存”。浏览器暂存未送达事件并按工作区恢复，离开页面时提示尚未保存的更改。
-5. 导出和分析读取已有档案，不再为“记录”额外请求模型，避免消耗 AI 额度。
+1. The new feature first defines the original to be saved, the operating event, the state snapshot, the source and time, and then connects AI.
+2. The use of server time is the authority to retain the client ' s occurrence and to distinguish between events, receipt, processing and approval.
+3. AI cannot delete/rew the underlying record or treat unconfirmed inferences as organizational facts.
+4. The data record fails with a clear hint and retry, and the " saved " cannot continue to be displayed. The browser temporarily saves the unreached event and restores it to the workspace, prompting changes that have not been saved when leaving the page.
+5. Export and analyse access to existing files, no longer provide an additional request model for “records”, and avoid consuming AI amounts.

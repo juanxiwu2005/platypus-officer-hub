@@ -1,204 +1,204 @@
-# Speaker 活动工作流模板问题记录
+# Speaker Activity Workstream Template Question Log
 
-本轮目标是先把工作流模板固定好，再推进自动提醒和组织交接。检查确认：用户列出的链接、Details、移动和新增分支问题都有对应原因；其中移动和新增问题已在浏览器复现。另有日期设置不反映到排程、条件步骤变成所有活动必做、删除后恢复以及流程消失等缺陷。现有模板尚不能作为稳定的执行流程来源。
+The objective for this round is to fix the workflow template and then advance automatic reminders and organization handoff. Check confirmation: Links listed by users, Details, moves and additional branch issues are accounted for; The moves and additional questions have been repeated on the browser. Other date settings do not reflect deficiencies such as scheduling, conditionalities becoming mandatory for all activities, recovery after deletion and process loss. The existing template is not yet a stable source of implementation processes.
 
-审查日期为 2026-11-17（America/Phoenix），代码基点为 `claude/fervent-thompson-e2j5u2@0f53577`。收口核对至 `ab7123c`，其间仅有进度文档提交，产品代码一致。本轮提交只记录审计，没有实施下述修复。截图仅作为用户提供的界面参考，未作为额外执行指令。
+The review date is 2026-11-17 (America/Phoenix) and the base code point is `claude/fervent-thompson-e2j5u2@0f53577`. Closes to `ab7123c`, during which only progress documents are submitted and the product code is identical. This round was submitted for audit purposes only, and the following repairs were not implemented. The screenshot serves only as an interface reference for users and is not used as an additional execution instruction.
 
-## 审查范围和判断方式
+## Scope and manner of review
 
-- Settings → Workflow 的模板、Step details、移动和右键菜单，以及实际 Plan 的任务办理入口。
-- 模板生成 speaker 活动任务，再进入规则排程和提醒事实的路径。
-- 浏览器操作使用仓库虚构演示数据；独立函数复现使用虚构 speaker 活动，日期 2027-04-16、60 人、校内、无餐饮、会费经费，`partner/rsvp` 开启。
-- “浏览器复现”指本地 Chromium 实际操作；“函数复现”指调用该分支原有函数，没有重写实现来证明结论；体验判断单独标明。
+- Settings  → Workfly template, Step details, moving and right-key menus, and the actual Plan task processing entrance.
+- Template to generate a speaker active task, and then enter the path to rule Scheduling and reminder facts.
+- Browser operations use repository presentation data; The independent function repeats the field speaker activity with dates 2027-04-16, 60 people, schools, non-dinners, contribution funds, `partner/rsvp` open.
+- "Browser recurrence" means local chromium operations; (a) " Function recurrence" means the call to the original function of the branch, which is not rewrited to substantiate the conclusion; Experience judgements are identified separately.
 
-当前 Settings 保存的是**一份组织通用活动模板**，speaker 活动按条件从中生成步骤，并没有独立的 speaker 模板管理器。以下先以 speaker 场景核对，修复时仍须检查其他活动是否受到影响。位置：`src/engine/playbooks.ts:30`、`src/data/settings.ts:126`。
+The current Settings save a **template for organizing generic events**, from which the Speaker activity generates steps according to conditions and does not have a stand-alone speaker template manager. As a first step, check with the speaker scene to see if other activities have been affected. Location: `src/engine/playbooks.ts:30`, `src/data/settings.ts:126`.
 
-## 问题总表
+## Summary of issues
 
-P1 表示应在模板定版前处理的执行或数据一致性问题；P2 表示会使配置难以理解或确认的体验问题。以下条目均为待修复，建议和验收标准尚未实施。
+P1 indicates that implementation or data consistency issues should be addressed prior to the template; P2 indicates that it would make the configuration difficult to understand or identify empirical problems. The following entries are to be repaired and the recommended and acceptance standards have not yet been implemented.
 
-| 编号 | 优先级 | 问题 | 查证方式 |
+| Numbering | Priority | Problem | Method of verification |
 | --- | --- | --- | --- |
-| WF-01 | P1 | 办理链接仅按固定步骤匹配，会与活动实际需要不符 | 浏览器及函数复现 |
-| WF-02 | P1 | 模板不能新增或编辑办理链接，自定义节点也没有配置路径 | 面板及数据模型核对 |
-| WF-03 | P2 | Details 的负责人、用时、时点和依赖含义缺少直观解释 | 界面事实与体验判断 |
-| WF-04 | P1 | 节点移动已改依赖并保存，流程图仍显示旧顺序 | 鼠标拖动、键盘和函数复现 |
-| WF-05 | P1 | 在原分支新增节点，节点被画到“其他”分支 | 桌面、手机及函数复现 |
-| WF-06 | P1 | 修改预计工作量后，部分标准步骤的开始日和提醒时间不变 | 函数复现 |
-| WF-07 | P1 | Details 显示的目标时点与实际排程可能不一致 | 浏览器及函数复现 |
-| WF-08 | P1 | 在 speaker 分支新增的步骤，会进入无 speaker 的活动 | 函数复现 |
-| WF-09 | P1 | 模板允许删掉的部分步骤，新建活动时又被补回 | 函数复现 |
-| WF-10 | P1 | 删除 Full Check 后，大量仍存在的活动前节点从图上消失 | 浏览器及函数复现 |
-| WF-11 | P1 | Task description 实际保存为 Why，模板缺少可复用的操作说明和完成标准 | 数据生成路径核对 |
-| WF-12 | P2 | 标准节点改名并保存后，图上仍显示固定旧简称 | 浏览器复现 |
-| WF-13 | P2 | 只改负责人、描述或目标时点时，模板摘要仍可能称为标准模板 | 函数复现及代码核对 |
+| WF-01 | P1 | Matching links only in fixed steps would be inconsistent with the actual needs of the activity | Resume Browser and Functions |
+| WF-02 | P1 | Template cannot add or edit links, custom nodes have no configuration path | Panel and data model checks |
+| WF-03 | P2 | The director of Details, the time frame, the point and the meaning of dependence lack intuitive explanation | Interface facts and experience judgements |
+| WF-04 | P1 | Node moves have been re-reliant and saved, and the flow chart still shows the old order | Mouse drag, keyboard and function recurrence |
+| WF-05 | P1 | Add nodes to the original branch where nodes are drawn to "Other" branch | Desktops, Cell phones and Functions Resume |
+| WF-06 | P1 | The start date and reminder time for some of the standard steps will remain unchanged as the projected workload is revised | Function Resume |
+| WF-07 | P1 | The target point shown by Details may not be consistent with the actual Scheduling | Resume Browser and Functions |
+| WF-08 | P1 | Adding steps to the Speaker branch will enter a non-speaker activity | Function Resume |
+| WF-09 | P1 | Some steps the template allows to be deleted and the new activity is restored | Function Resume |
+| WF-10 | P1 | After Full Check is deleted, a large number of pre-activity nodes that still exist disappear from the map. | Resume Browser and Functions |
+| WF-11 | P1 | Task description is actually saved to Why, templates lack reusable instructions and completion criteria | Data Generation Path Check |
+| WF-12 | P2 | When the standard node is changed and saved, the old acronym still appears on the chart | Browser Resume |
+| WF-13 | P2 | A template summary may still be referred to as a standard template when the head, description or target point is changed. | Function Recover and Code Check |
 
-## 用户提出的问题
+## Questions from users
 
-### WF-01 办理链接与任务场景不匹配
+### WF-01 Linking does not match the task scene
 
-实际 Plan 打开演示活动 Founder Dinner 的 Quote Gather：该活动 `food: none`，任务要求收集供应商报价，按钮却固定为 **Open ASU catering information**，跳转餐饮信息页。独立 speaker 活动无餐饮时也得到同样结果。
+Actual Plan opens the Quote Gather of Fund Dinner's demonstration: this activity `food: none`, which is required to collect offers from suppliers, but the button is fixed at **Open ASU gathering information**, skipping the catering information page. The same results were obtained when independent speaker activities were not fed.
 
-根因：`taskActionLink()` 只通过 `stepKey` 查固定表；`quotes/quote/dining` 共用餐饮地址，没有根据报价类别、经费或组织配置选择入口。当前只对校外 venue 做了特例处理。
+Roots: `taskActionLink()` only check the table by `stepKey`; `quotes/quote/dining` Shared catering address, with no choice of entrance based on type of offer, funding or organizational configuration. Only out-of-school vue is currently treated on an exceptional basis.
 
-代码：`src/reminders/actionLinks.ts:6`、`:15`、`:22`；`src/reminders/facts.ts:59`；展示位于 `src/components/TaskDetail.tsx:61`。
+Codes: `src/reminders/actionLinks.ts:6`, `:15`, `:22`; `src/reminders/facts.ts:59`；Show at `src/components/TaskDetail.tsx:61`.
 
-**影响：** 成员收到提醒后仍可能被引向与本次任务不符的入口，无法直接行动。
+**Impact:** members may still be directed to entry points that are not compatible with the task and cannot act directly after receiving a reminder.
 
-**验收标准：** 至少逐项确认 speaker 模板中需要外部办理的节点；报价入口能区分餐饮与其他供应商；登录入口、说明页和最终表单明确标注。没有稳定直达地址时给出真实入口和下一步导航说明。不能把一个通用首页当成所有任务均可直接提交的表单。
+**standard:** to at least confirm externally processed nodes in the speaker template item by item; Price entrances distinguish catering from other suppliers; Login entrances, notes and final forms are clearly marked. Give a live entry and next navigation description when no steady straight to the address. A generic home page cannot be considered a form that can be submitted directly to all tasks.
 
-本项确认的是**语义匹配问题**，没有把未经登录核验的网址宣称为失效链接。独立 speaker 样例 37 个任务中有 9 个固定办理链接；该数量仅说明现有映射覆盖，不能据此认为其余 28 项都必须有外链。
+This item confirms the **semantic matching problem** and does not declare an unincorporated site as a invalid link. Independent speaker sample 37 jobs with 9 fixed processing links; This amount merely indicates the existing map coverage, on which basis it cannot be assumed that the remaining 28 items must have an outer chain.
 
-### WF-02 模板缺少链接编辑和保存能力
+### The WF-02 template lacks the ability to edit and save links
 
-Step details 只有名称、默认岗位、用时、目标时点、描述和依赖。`StepTemplate` 与任务 `Node` 都没有办理链接配置字段；现有办理地址来自上述固定映射。Settings 的 Links & files 是组织共享资料，不能替代某一步的办理入口。
+Step details only has a name, default line, time, target point, description and dependence. `StepTemplate` does not have a link configuration field with the task `Node`; The current processing address is from the above-mentioned fixed map. Links & files of Settings are information-sharing organizations and cannot replace a processing entrance to a particular step.
 
-代码：`src/components/setup/WorkflowPanel.tsx:87`；`src/data/types.ts:66`、`:271`；`src/reminders/actionLinks.ts:22`。
+Code: `src/components/setup/WorkflowPanel.tsx:87`; `src/data/types.ts:66`、`:271`；`src/reminders/actionLinks.ts:22`。
 
-**影响：** 社长即使知道正确地址，也无法在模板内修正；新建节点不会通过现有固定表自动获得办理入口。
+**Impact:** president cannot be modified in the template even if it knows the correct address; New nodes will not automatically obtain access through existing fixed tables.
 
-**验收标准：** 标准和自定义步骤都能编辑链接名称、地址和必要说明；保存、刷新、新建活动后保留；Plan 和邮件链接打开的任务页读取一致的配置。模板变更对既有活动的适用范围需明确，避免悄悄覆盖已执行任务。
+**standard:** standards and custom steps can edit linked names, addresses and necessary instructions; Save, refresh and keep after new activities; Plan and mail links open the task page to read the same configuration. Changes in the template need to be clear on the scope of application of existing activities, so as not to cover tasks performed quietly.
 
-### WF-03 Details 含义不直观
+### WF-03 Details
 
-这是体验问题，其中可观察到的事实如下：
+This is a question of experience, among which the following can be observed:
 
-- **Done by** 选择的是岗位，例如 Events lead；没有明确这是未来活动的默认分配岗位。
-- **Days of work** 对应工作日用时；**Target timing** 没有解释是完成目标还是开始提醒，两者也没有形成可读的时间说明。
-- 空目标显示 **From dependencies**，却不能预览从哪些前置任务推得什么时间；填入 `0` 与留空的含义不同。
-- **Waits for** 展开后包含跨分支、跨活动前后阶段的大量步骤，缺少分组与依赖效果预览。
-- 没有展示该节点适用何种活动情景，也不能编辑这个条件，新增 speaker 步骤的范围尤其难判断。
+- **Done by** is chosen for rolls, e.g. Events lead; It is not clear that this is the default allocation for future activities.
+- **Days of work** for working days; **Target Timing** did not explain whether the objective was to be achieved or a reminder started, nor did it form a readable time note.
+- The empty target shows **From dependencies**, but it does not provide a preview of the time taken from which tasks are ahead. Entering `0` has a different meaning than leaving space.
+- **Waits for** was launched with a large number of steps across branches, before and after activities, without grouping and dependence previews.
+- It is not possible to edit this condition without showing the type of activity to which the node applies, and it is particularly difficult to judge the scope of the new step.
 
-代码：`src/components/setup/WorkflowPanel.tsx:78`。截图中的 Partner Speaker Review 来自同一面板；上述日期和描述还有 WF-06、WF-07、WF-11 的具体逻辑问题。
+Code: `src/components/setup/WorkflowPanel.tsx:78`. Partner Specter Review from the same panel in the screenshot; The above-mentioned dates and descriptions also include specific logical questions for WF-06, WF-07 and WF-11.
 
-**建议的验收标准：** 用户能直接读懂“谁默认负责、要做什么、怎样算完成、何时开始提醒、何时完成、等谁、去哪里做”。字段使用英文，但在相邻位置给出清楚的单位和结果说明。具体布局留待共同确认，不在本轮改版。
+**Recommended standard for access:** user can read directly who is responsible by default, what to do, how to count completion, when to start reminding, when to complete, where to wait and where to go. Fields are in English, but clear units and results statements are given at adjacent locations. The specific layout is left for joint confirmation and will not be changed during the current round.
 
-### WF-04 移动已保存但图上不更新
+### WF-04 moves saved but not updated on graph
 
-复现：把 Marketing 分支的 Promotion Items 拖到 Marketing Needs 与 Content Creation 之间。系统提示 **Moved “Promotion Items” between “Marketing Needs” and “Content Creation”.**，存档中 Content Creation 也已改为等待 Promotion Items，但图上仍然是 Content Creation 在前。
+Resume: Drag the Movement Items of the Marking branch to between Marketing Neds and Content Corporation. **Moved “Promotion Items” between “Markating Neds” and “Content Corporation”.**, which is in the archive, has also been changed to “Promotion Items”, but remains on the map ahead.
 
-鼠标拖动与 Alt+← 都复现了此问题：节点的横、纵坐标没有变化。独立函数调用也确认移动函数输出了正确的依赖修改。
+Both the mouse drag and Alt+ ←  repeats the problem: nodes are different in length and range. Independent function calls also confirm that the mobile function produces the correct relying changes.
 
-根因：移动改变的是 `dependsOn`，而绘图按 `PRE_ROUTES/POST_ROUTES` 里写死的 key 顺序排列，布局不读取实际依赖来决定顺序。因此这不只是“没有保存”：保存后的业务依赖已经与画面不一致。
+Root: The move changes `dependsOn`, and the drawings are in the order of the key written in `PRE_ROUTES/POST_ROUTES`, which determines the order without reading actual reliance. It is therefore not just “unsaved”: the operational reliance on preservation has been inconsistent with the image.
 
-代码：`src/lib/flowEdit.ts:23`；`src/components/flow/metro.ts:22`、`:36`、`:104`。
+Code: `src/lib/flowEdit.ts:23`; `src/components/flow/metro.ts:22`、`:36`、`:104`。
 
-**验收标准：** 同分支移动后，画面、依赖、刷新后的结果和新活动生成结果一致；跨分支移动时明确分支归属与负责人是否变化；排程按实际依赖重算，学校硬截止日仍受保护。不能只移动图形而不改变业务数据，也不能只改变数据却保留旧图形。
+**standard:** corresponds to the image, dependence, updating and generation of new activities after moving with the branch; (b) When moving across branches, make clear whether branch attribution and the person in charge have changed; Scheduling remains protected on the hard cut-off date of schools based on actual reliance. The graphics cannot be moved without changing the business data, nor can they simply change the data while retaining the old graphics.
 
-### WF-05 新增节点跑到另一分支
+### WF-05 New Node Runs to another branch
 
-复现：右键 Speaker SAP Headshot，选择 **Add a step after this one**。新节点依赖 Speaker SAP Headshot，Partner Travel Plan 也改成等待新节点，但新节点没有显示在这两个节点之间。桌面被放到图下方新分支，手机被放到右侧新列。
+Restore: Right-click SAP Headshot, select **Add a step after this one**. The new nodes rely on Speaker SAP Headshot, Partner Travel Plan, but the new nodes are not shown between these two nodes. The desktop is placed in a new branch below the map, and the mobile phone is placed in a new column on the right.
 
-根因：新增步骤只有 `fn/ownerRoleId/phase/dependsOn` 等信息，没有可保存的分支归属。布局发现它不在固定 key 清单后，会统一放入 `other-pre` 或 `other-close`。仅继承同一个岗位也不能解决：Event Lead 与 Speaker 的步骤都可能由 Events lead 负责。
+Roots: The new step is only information such as `fn/ownerRoleId/phase/dependsOn` and there are no branches that can be saved. Layout finds it not to be a fixed key list, which will be integrated into `other-pre` or `other-close`. Inheriting the same role will not solve: Event Lead and Speaker may be responsible for events lead.
 
-代码：`src/components/setup/WorkflowPanel.tsx:46`；`src/components/flow/metro.ts:67`。
+Code: `src/components/setup/WorkflowPanel.tsx:46`; `src/components/flow/metro.ts:67`。
 
-**验收标准：** 从某个节点或连线上插入，默认保留所在分支和前后顺序；多个新节点可按插入位置排列；刷新和新建活动仍一致。分支、负责人、阶段和依赖须能分别表达。
+**standard:** inserted from a node or line, defaulting to retain the branch and sequence; Multiple new nodes can be arranged by place of insertion; Renovation and new construction activities remain consistent. Branches, persons in charge, stages and dependency must be expressed separately.
 
-## 其他会影响模板定版的问题
+## Other questions that affect the template
 
-### WF-06 修改工作量没有相应改变开始提醒
+### WF-06 Start reminder without a corresponding change of workload
 
-函数复现：Marketing Needs 从 `estDays: 2` 改为 `10`，生成的新活动任务仍保留原 `timing: { startDays: 60, dueDays: 58 }`。前后规则结果相同：开始日 **2027-02-15**，截止日 **2027-02-17**，没有新增排程风险提示。
+Function recovery: Marking Neds changed from `estDays: 2` to `10`, generating a new active task that remains the original `timing: { startDays: 60, dueDays: 58 }`. The rules are the same: **2027-02-15**, as of date **2027-02-17**, no new risk hints for scheduling.
 
-根因：模板的工作量编辑只改 `estDays`；已有校准时窗仍决定这类步骤的默认开始日。`calibratedStep()` 在目标 anchor 未变时保留原 timing，`timingStart()` 使用 `startDays`。提醒事实随后读取实际 `latestStart`。
+Roots: `estDays` only for template workload editing; The default start date for such steps is still determined by the school-time windows already available. `calibratedStep()` Keep original texting while the target anchor remains unchanged, `timingStart()` uses `startDays`. Remind the facts and then read the actual `latestStart`.
 
-代码：`src/components/setup/WorkflowPanel.tsx:95`；`src/engine/playbooks.ts:306`；`src/engine/schedule.ts:166`；`src/reminders/facts.ts:72`。
+Code: `src/components/setup/WorkflowPanel.tsx:95`; `src/engine/playbooks.ts:306`；`src/engine/schedule.ts:166`；`src/reminders/facts.ts:72`。
 
-**验收标准：** 先明确“固定开始时窗”和“按工作量倒推”如何协同；更改工作量后，开始日应相应调整，或明确提示固定时窗及其冲突。不能让社长以为已提前提醒，而实际提醒日期完全未变。
+**standard:** to clarify how the “fixed start window” and the “inverted workload” fit together; Changes to the workload should be adjusted accordingly or a fixed time window and its conflict should be explicitly indicated on the start day. It is not possible to let the president think that an advance reminder has been made, and the actual reminder date remains unchanged.
 
-### WF-07 设置页的目标与实际截止日不一致
+### The WF-07 setup page does not have the same target as the actual deadline
 
-Check-in Forms 的 Details 显示 **Target timing = 1**。模板 anchor 为活动前 1 个工作日，但同时有 `timing.dueDays = 0`；实际生成活动后，截止日是活动当天 **2027-04-16**。开始日则由另一字段 `startDays: 5` 决定，Details 没有显示这一时窗。
+Check-in Forms' Details show **Target Timing = 1**. The template anchor is 1 working days before the event, but also has `timing.dueDays = 0`; After the actual activity is generated, the deadline is **2027-04-16** on the day of the event. The start date is decided by another field `startDays: 5`, and Details does not show this time window.
 
-此外，编辑目标数值会统一写入 `unit: calendar`，原本的 business 单位会被替换，界面没有单位选择。收尾步骤又完全隐藏目标时点输入，不能在这里调整活动后几天完成。
+In addition, the edit target values are uniformly written into `unit: calendar`, the original business unit is replaced and the interface is not selected. The closing step completely hides the target point input and cannot be completed here a few days after adjusting the activity.
 
-代码：`src/engine/playbooks.ts:41`；`src/components/setup/WorkflowPanel.tsx:96`；`src/engine/schedule.ts:151`。
+Code: `src/engine/playbooks.ts:41`; `src/components/setup/WorkflowPanel.tsx:96`；`src/engine/schedule.ts:151`。
 
-**验收标准：** 设置页显示排程实际采用的完成目标和开始规则；清楚区分工作日、自然日、活动当天及活动后；改值、清空和重新生成任务不会暗中切换单位或产生另一套日期含义。
+**standard:** setup page displays actual completion targets and starting rules used; (a) To make a clear distinction between working days, natural days, day of activity and after the event; Revalued, emptied and regenerated tasks do not implicitly change units or create another set of dates.
 
-### WF-08 speaker 新增步骤会出现在非 speaker 活动
+### WF-08 stepr appears in nonspeaker activity
 
-新增步骤未继承相邻步骤的 `cond: externalGuest`，也没有条件编辑入口。函数复现：在 Speaker SAP Headshot 后插入 New speaker check，再生成 `speaker: false`、没有 partner 的普通活动，原 speaker 步骤消失，新步骤却仍被创建。
+The new step does not inherit `cond: externalGuest` from the adjacent step, nor does it require editing of the entrance. Function repeats: Inserts New Speaker check after Speaker SAP Headshot, generating normal activities of `speaker: false` without partnerer, the original speaker step disappears and new steps are created.
 
-代码：`src/components/setup/WorkflowPanel.tsx:48`；`src/engine/playbooks.ts:245`。
+Code: `src/components/setup/WorkflowPanel.tsx:48`; `src/engine/playbooks.ts:245`。
 
-**验收标准：** 在条件分支中插入时，明确新步骤的适用范围；speaker/partner 关闭后，属于该条件分支的新步骤正确跳过，后续依赖正确接续。若用户希望所有活动都做，也能显式设置。
+**standard:** specifies the scope of application of the new step when inserted in the branch of conditions; New steps belonging to the branch of this condition are correct when speaker/partner closes, and subsequent reliance is on proper continuity. If the user wishes to do all activities, it can also be visible.
 
-### WF-09 删除步骤在新建活动时被补回
+### WF-09 Deleting steps are restored when new activity is created
 
-函数复现：从模板删除 Photo Backup 后，`validateWorkflow()` 通过，模板中也确实没有这个步骤；调用 `buildEventNodes()` 生成新活动时，Photo Backup 又存在。
+function repeats: `validateWorkflow()` is passed after photo Backup has been removed from the template and there is no such step in the template; Photo Backup exists again when calling `buildEventNodes()` to generate a new activity.
 
-根因：编辑器仅按学校规则判断部分节点不可删除；生成器另有 `CORE_EVENT_STEP_KEYS`，会为 v2 活动补回缺失的核心节点。两端的“可删”定义不同。
+Roots: The editor may not delete a part of the node which is judged only in accordance with school rules; The generator also has `CORE_EVENT_STEP_KEYS`, which will make up the missing core nodes for the v2 activity. The definition of “deletable” at both ends is different.
 
-代码：`src/components/setup/WorkflowPanel.tsx:109`；`src/engine/workflow.ts:189`；`src/engine/playbooks.ts:225`、`:240`。
+Code: `src/components/setup/WorkflowPanel.tsx:109`; `src/engine/workflow.ts:189`；`src/engine/playbooks.ts:225`、`:240`。
 
-**验收标准：** 统一哪些步骤必保留、哪些可删除。若核心步骤必须保留，编辑器应阻止删除并解释；若允许删除，生成活动时应尊重决定。不能显示删除和保存成功，随后悄悄恢复。
+**standard:** Harmonizes which steps must be retained and which can be deleted. If core steps must be retained, the editor should prevent deletion and explanation; If deletion is permitted, the decision should be respected in generating the activity. Delete and save successfully could not be shown, then quietly restored.
 
-### WF-10 删除 Full Check 会使活动前流程消失
+### WF-10 Deleting Full Check will cause preactivity processes to disappear
 
-浏览器复现：打开 Full Check 的 Details，点击 **Delete this step**；操作允许保存，图上的任务节点从 **46 个降为 11 个**，Event Plan 等活动前节点都不再显示。函数复现确认模板仍有 35 个非收尾节点，但布局只返回收尾分支。
+Browser repeats: Open Full Check's Details, click **Delete this step**; The operation allows saving, and the task nodes on the map are not shown any more than before activities such as **46 to 11** and Event Plan. function confirms the template still has 35 non-endpoints, but only the end branch is returned to the layout.
 
-根因：Full Check 没有使删除按钮禁用的 `ruleIds`，模板校验也不要求保留它；布局又以它存在为绘制所有活动前分支的前提：`if (!routeNodes.length || !final) return`。
+Root: Full Check does not disable `ruleIds` for delete buttons and template verification does not require it to be kept; The layout also uses its existence as a prerequisite for mapping all pre-activities: `if (!routeNodes.length || !final) return`.
 
-代码：`src/components/setup/WorkflowPanel.tsx:109`；`src/components/flow/metro.ts:62`、`:104`。
+Code: `src/components/setup/WorkflowPanel.tsx:109`; `src/components/flow/metro.ts:62`、`:104`。
 
-**验收标准：** 必保留的汇合点不能被误删；允许删除的情况下，布局有正确的替代连接方式，其余任务仍然可见、可选、可编辑。数据仍在却从图上消失不能视为正常删除。
+**standard:** must retain a point of convergence that cannot be deleted by mistake; Where deletion is permitted, the layout has the right alternative connections and the remaining tasks remain visible, optional and editable. Data are still missing from the map and cannot be considered to be deleted as normal.
 
-### WF-11 模板的操作说明与 Why 混用
+### Operation description for WF-11 templates mixed with why
 
-Step details 的 **Task description** 实际修改的是 `step.why`。生成任务时它进入 `node.why`，任务页和提醒事实将其解释为 **Why it matters**；具体 **Your next step** 则优先读 `node.instructions`，没有时使用固定步骤文案或任务标题。
+**Task description** of Step details was actually modified by `step.why`. It enters `node.why` when generating the task, and the task page and reminder facts interpret it as **Why it matters**; **Your next step** gives priority to `node.instructions`, using either a fixed step text or task title whenever it is not.
 
-实际任务已有可选 `instructions/completionCriteria`，但模板没有对应字段，生成器也没有从模板复制这两项。因此社长不能在模板里一次写好可复用的详细操作及完成标准；单改 Task description 不等于把内容设置成成员的下一步指引。
+The actual task already has an optional `instructions/completionCriteria`, but the template does not have a corresponding field and the generator does not copy either from the template. Therefore, the president cannot write detailed and complete standards for reuse at a time in the template; Changing Task description alone does not set content as the next guide for members.
 
-代码：`src/components/setup/WorkflowPanel.tsx:98`；`src/data/types.ts:66`、`:272`；`src/engine/playbooks.ts:327`；`src/reminders/facts.ts:16`、`:45`；`src/components/TaskDetail.tsx:57`。
+Code: `src/components/setup/WorkflowPanel.tsx:98`; `src/data/types.ts:66`、`:272`；`src/engine/playbooks.ts:327`；`src/reminders/facts.ts:16`、`:45`；`src/components/TaskDetail.tsx:57`。
 
-**验收标准：** 清楚区分做什么、怎么做、完成标准和为什么做；模板输入能进入新活动、任务页和提醒内容的正确位置。操作文档可以在任务页展开，邮件仍突出一个明确动作和一个任务入口。
+**standard:** makes a clear distinction between what to do, what to do, what to accomplish and why; Templates enter the correct location for new activities, task pages and reminders. The operating document can be expanded on the task page, and the mail still highlights a clear action and a task entry.
 
-这一项同时影响两个核心目标：提醒是否能让成员马上行动，以及新任 marketing 成员能否直接按流程完成工作。
+This at the same time affects two core objectives: a reminder of whether members can act immediately, and whether the new marketing member can do it directly according to process.
 
-### WF-12 改名后图上仍显示旧简称
+### The old acronym is still on the WF-12 rename
 
-浏览器将 Budget 改为 **Sponsor cost plan**，确认新名称已保存；图上的节点仍显示 **Budget**。
+The browser changes Budget to **Sponsor cost plan**, confirming that the new name has been saved; Node on the chart still shows **Budget**.
 
-根因：图中文字优先使用 `SHORT[stepKey]` 的固定简称，没有判断用户是否修改了标准名称。完整名称会在详情或悬停中更新，导致不同位置的信息不一致。
+Root: The text in the figure gives preference to a fixed acronym for `SHORT[stepKey]` and does not determine whether the user has changed the standard name. Complete names are updated in detail or with a standstill, resulting in inconsistent information on different locations.
 
-代码：`src/components/flow/MetroChart.tsx:30`、`:298`。
+Code: `src/components/flow/MetroChart.tsx:30`, `:298`.
 
-**验收标准：** 自定义名称立即反映到图上；需要缩写时从当前名称生成或另有显式简称字段；刷新和新建活动后仍保持一致。
+**standard:** self-defined name immediately reflected on the chart; Abbreviations are generated from the current name or are accompanied by distinct acronyms when required; Renovation and new construction activities remain consistent.
 
-### WF-13 模板摘要遗漏部分自定义设置
+### WF-13 template summary missing some custom settings
 
-函数复现：只改 Partner Speaker Review 的描述，或只改 Budget 的默认岗位，`describeWorkflow()` 仍返回 **The standard workflow.**。该函数的变更计数仅比较名称、用时、阶段和依赖，未比较负责人、描述、目标 anchor 或 timing。
+Function recovery: only the description of Partner Specter Review is changed, or only the default rule for Budget, `describeWorkflow()`Still returns **The standard workflow.**。 The function 's change count compares names, hours, stages and reliance only, without comparing the person responsible, description, target ancher or Timing.
 
-代码：`src/engine/workflow.ts:226`、`src/pages/Settings.tsx:138`。
+Code: `src/engine/workflow.ts:226`, `src/pages/Settings.tsx:138`.
 
-**验收标准：** 已保存的关键自定义设置应在摘要中计入或明确展示，使社长能够确认当前采用的是调整后的配置。
+**standard: The key custom settings maintained by** should be included or clearly displayed in the summary to enable presidients to confirm that the current configuration is adjusted.
 
-## 建议的修复顺序和定版条件
+## Suggested repair order and release freeze conditions
 
-此处仅记录后续顺序，不自动开始实施。
+Only follow-up sequences are recorded here and implementation is not automatic.
 
-1. **先统一模板与执行数据。** 明确分支、条件、依赖、必保留节点和唯一日期语义，解决 WF-04 至 WF-10。否则后续界面和邮件仍会读到互相矛盾的信息。
-2. **补齐可执行任务内容。** 解决 WF-01、WF-02、WF-11，让社长配置具体操作、完成标准、办理入口及原因，并贯通新活动和任务页。
-3. **整理 Details、图中文字和摘要。** 解决 WF-03、WF-12、WF-13，用同一套真实配置展示可读的结果。
-4. **做一条 speaker 活动完整验收。** 编辑模板 → 移动节点 → 在 speaker 分支插入步骤 → 改用时和目标 → 刷新 → 生成活动 → 核对负责人、条件、依赖、日期、链接、任务说明及提醒内容。再用关闭 speaker 的普通活动确认条件隔离。
+1. **First harmonizes the template with the execution data.** Clear branches, conditions, dependency, node and sole date synonym to resolve WF-04 to CF-10. Otherwise, the follow-up interface and mail will still read conflicting messages.
+2. **Completion of mission content.** Solves the WF-01, WF-02, WF-11, so that presidients are configured for specific operations, completion of standards, processing entrances and reasons, as well as keeping track of new activities and task pages.
+3. **Collapse Details, text and summary.** solves WF-03, WF-12, WF-13, displaying readable results with the same live configuration.
+4. **Do a full speaker activity.** Edit Template  →  Move Node  →  Insert steps in the speaker branch  →  Change time and target  →  Update generation activity  →  Check for owner, condition, dependency, date, link, job description and alarm content. Confirms the conditions for isolation by closing the normal activity of the Speaker.
 
-模板定版至少应满足：编辑结果能保存、能读懂、图与依赖一致、新活动忠实采用配置、提醒日期与任务日期一致、成员能找到真实办理入口、模板能复用操作说明。对新人上手的最终成效仍需实际使用验证，不能仅凭这些技术检查宣称已达到“三天掌握全部流程”。
+Templates release freeze should at least be satisfied: edit results can be saved, readable, consistent with reliance, new activities are faithfully configured, reminder dates match the task date, members can find a live processing entrance and templates can repeat the operation description. The ultimate effectiveness of the incoming officer will still need to be validated and cannot be claimed by these technical inspections alone as having reached a “three-day mastery of all processes”.
 
-## 已有行为和后续边界
+## Existing acts and subsequent borders
 
-- **修改模板只影响未来活动**是当前明确设计，Settings 已说明；既有活动保留自己的步骤，本轮未把它误报为缺陷。位置：`src/pages/Settings.tsx:129`、`src/data/settings.ts:126`。
-- **流程图不是按日期比例绘制**本身可以是设计选择。WF-04 的问题是页面要求用户用图编辑执行顺序，但图没有反映已保存的依赖变化。
-- **自动 email 目前仍是浏览器内演示。** `useAutomaticReminders()` 依赖应用打开和状态变化，`sendReminderBatch()` 生成邮件与本地记录，runtime 的自动投递结果为 `simulated`。真实后台定时、外部邮件投递和跨设备访问仍是后续工作，不能把本轮模板定版当成已完成无人值守发信。位置：`src/reminders/useAutomaticReminders.ts:8`、`src/reminders/delivery.ts:13`、`src/reminders/runtime.ts:35`。
-- 本轮聚焦模板，没有修改职责匹配、邮件策略、Handoff、新人培训功能或正式网站。
-- `ab7123c` 的并行工作记录表明实际活动节点的 Details、Edit 和多外链正在另一个任务中改造，明确排除 Settings 模板。实施本报告前须重新核对届时已合入的任务字段与办理入口，复用其数据模型，避免重新引入两套链接或与进行中的工作重叠。
+- **Change template only affects future activities**It is currently clearly designed, as Settings has stated;  Existing activities retain their own steps, which have not been misreported as defects in the present round. Location: `src/pages/Settings.tsx:129`, `src/data/settings.ts:126`.
+- The **flow chart is not drawn at date scale** itself can be a design choice. The WF-04 problem is that the page requires the user to edit the order in which it will be executed, but the graph does not reflect the changes in saved reliance.
+- The **auto email is still a display in the browser.** `useAutomaticReminders()` Reliance on application open and state changes, `sendReminderBatch()` generates mail and local records, runtime results are `simulated`. Live backstage scheduled, external mail delivery and cross-equipment access remain follow-up and the current template cannot be considered as completed unattended. Location: `src/reminders/useAutomaticReminders.ts:8`, `src/reminders/delivery.ts:13`, `src/reminders/runtime.ts:35`.
+- The focus template for this round does not modify the function matching, mail strategy, Handoff, incoming officer training functionality or official website.
+- `ab7123c` 's parallel working records show that Details, Editt and Multi-Foreign chains at actual activity nodes are being modified in another task to explicitly exclude Settings templates. The implementation of this report will be preceded by a re-checking of the then integrated task fields and processing portals, the reuse of their data models and the avoidance of reintroduction of two sets of links or overlap with ongoing work.
 
-## 验证和交接
+## Verify and Handoff
 
-**已有检查：** 7 个相关测试文件，共 **104 项通过**；现有 Settings workflow 浏览器用例在桌面和手机各通过 1 项，共 **2 项通过**。已有测试虽通过，但没有覆盖移动后的视觉顺序、同分支插入、工作量与提醒日期的一致性等反例，不能据此认为上述问题不存在。
+**Checked:** 7 relevant test files, **104 passed**; Existing Settings workflow browsers pass through 1 each on the desktop and cell phones, with a total of **2 passing**. Although the tests have been passed, they do not cover reverse cases of moving visual order, insertion with branch, consistency between workload and reminder dates, and cannot be considered to exist on that basis.
 
-运行命令：
+Run command:
 
 ```text
 npm exec -- vitest run src/test/workflow.test.ts src/test/workflowV2.test.ts src/test/orgWorkflow.test.ts src/test/flowEdit.test.ts src/reminders/actionLinks.test.ts
@@ -206,8 +206,8 @@ npm exec -- vitest run src/test/calibratedEngine.test.ts src/reminders/facts.tes
 npm exec -- playwright test --config=/tmp/workflow-audit-playwright.config.mjs --grep 'Settings workflow'
 ```
 
-浏览器用例复用现有 `e2e/workflow-setup.spec.ts`，临时配置使用本地 Vite 4188 端口和系统 Chromium，未修改仓库测试。另完成 **8 个浏览器场景记录**：键盘移动、鼠标拖动、桌面新增、手机新增、Check-in 目标、改名、删除 Full Check、实际 Plan 报价入口；函数反例覆盖新增条件、生成时补回、日期和布局。
+Browser repeats the existing `e2e/workflow-setup.spec.ts`, temporarily configured using local Vite 4188 ports and systems Chromium, unmodified repository test. Completing **8 browser scene records**: keyboard moves, mouse drags, desktop additions, mobile phone additions, Chuck-in targets, name change, Full Check deletion, actual Plan quotation entry; function reverses the new conditions, returns when generated, dates and layouts.
 
-工作区证据保存在 `/workspace/shared/workflow-template-audit/`：`browser-results.json`、`engine-results.json` 及截图；该目录不是仓库附件，跨机器交接以本报告的复现步骤和代码位置为准。
+`/workspace/shared/workflow-template-audit/`: `browser-results.json`, `engine-results.json` and screenshots; The directory is not a repository annex, and cross-machine handoff refers to the steps and code location of this report.
 
-未运行完整发布门禁或真实学校表单提交；没有调用真实 AI、发送真实邮件、修改产品代码、合并 main 或创建新 PR。后续接手先处理上述模板一致性问题，再推进自动提醒和组织交接。需要同步本地备份。
+(a) Failure to complete the release of a restricted door or live school form; No live AI called, live mail sent, product code modified, merge main created or new PR created. Follow-up will first address the above template consistency issues and then move forward with automatic reminders and organization handoff. Could not close temporary folder: %s

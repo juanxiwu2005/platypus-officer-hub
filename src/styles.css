@@ -827,11 +827,11 @@ tr.clickable { cursor: pointer; }
 .applied-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; font-size: var(--fs-base); }
 .applied-list li.muted { color: var(--muted); }
 
-/* ---- 保留：甘特图样式，组件已删除，等 Juanxi 决定是否恢复 ----
-   恢复时注意：下面的 .gantt-bar 依赖 --st 变量，而定义它的那组
+/* ---- Retained Gantt styles: the component was removed; restoration awaits Juanxi's decision. ----
+   Before restoring: .gantt-bar below depends on --st. The rules that defined it,
    .st-done / .st-in_progress / .st-waiting / .st-proposed / .st-blocked /
-   .st-unclaimed / .st-accepted 规则已在本次清理中删除（见 git history，
-   提交 bb50d2f 之前）。只恢复这一段，色条会全部落回 var(--edge)。 */
+   .st-unclaimed / .st-accepted, were removed during cleanup (see git history
+   before commit bb50d2f). Restoring only this block makes every bar fall back to var(--edge). */
 /* Gantt */
 .gantt { overflow: auto; max-height: 620px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); position: relative; }
 .gantt-row { display: flex; min-height: 30px; border-bottom: 1px solid var(--line); width: max-content; min-width: 100%; }

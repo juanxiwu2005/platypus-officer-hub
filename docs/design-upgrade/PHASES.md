@@ -1,135 +1,135 @@
-# 阶段、工作包与依赖
+# Phases, work package and dependencies
 
-大小：S = 半天以内，M = 约一天，L = 一天以上。风险：低 / 中 / 高。
-"R 级"见 `README.md` 的回滚表：**R1** = 纯样式，可以注释一行 `@import` 立刻关掉；**R2** = 必须用 `git revert`。所有工作包都支持 R2。
+Size: S = less than half a day, M = about one day, L = more than one day. Risk: Low/ Medium/ High.
+"R level" in `README.md` 's rollback table: **R1** = pure style, can be noted for line `@import` to be turned off immediately; **R2** = must use `git revert`. All work package supports R2.
 
-## 总览
+## Overview
 
-| 阶段 | 主题 | 包 | 能同时开几个 worktree |
+| Phase | Theme | Bag. | We can get a couple of worktree at the same time. |
 | --- | --- | --- | --- |
-| **0** | 地基（先做，做完才能并行）| DX-01、DX-02 | 2 |
-| **1** | 手感：按下反馈、触屏、字体、保护 | DX-03 … DX-08 | 6 |
-| **2** | 空间感：右栏、菜单、提示条、折叠、加载 | DX-09 … DX-14 | 6 |
-| **3** | 版面：Events、Tasks、Ask、空状态、详情切换 | DX-15 … DX-19 | 5 |
-| **4** | 手机外壳、列头、流程图动效 | DX-20 … DX-22 | 3 |
-| **5** | 材质、拖拽、完成时刻 | DX-23 … DX-25 | 3 |
-| **6** | 收尾：Partners 拖拽、文档与合并样式 | DX-26、DX-27（先 26 再 27）| 1 + 1 |
+| **0** | The foundations. | DX-01、DX-02 | 2 |
+| **1** | Hand: Press feedback, touch screen, font, protection | DX-03 … DX-08 | 6 |
+| **2** | Space sense: Right bar, menu, hint, fold, load | DX-09 … DX-14 | 6 |
+| **3** | Layout: Events, Tasks, Ask, empty state, details to switch | DX-15 … DX-19 | 5 |
+| **4** | Cellular casings, columns, flow chart dynamics | DX-20 … DX-22 | 3 |
+| **5** | Material, drag, time to finish. | DX-23 … DX-25 | 3 |
+| **6** | End: Partners drag, documents and merge style | DX-26, DX-27 (first 26 and then 27) | 1 + 1 |
 
-**阶段之间是串行的**：上一阶段合并、整合验收、Juanxi 点头，才开下一阶段。**阶段内是并行的**：同一阶段的包彼此不改同一个文件。
+The **phase is a series of**: the last stage comes with merge, integration acceptance and Juanxi noding before starting the next phase. The **phase is parallel**: the same package is not changed from one document to another.
 
-## 全部工作包
+## Work package
 
-| 包 | 名称 | 阶段 | 大小 | 风险 | R 级 | 依赖（必须先合并）|
+| Bag. | Name | Phase | Size | Risk | R Level | Reliance (must first be met) |
 | --- | --- | --- | --- | --- | --- | --- |
-| DX-01 | 地基：样式分文件、动效 token、测试端口、截图脚本、样式守卫 | 0 | M | 中 | R2 | — |
-| DX-02 | 把 `Layout.tsx` 拆成独立文件（纯搬家）| 0 | M | 中 | R2 | — |
-| DX-03 | 按下反馈与悬停过渡 | 1 | S | 低 | R1 | DX-01 |
-| DX-04 | 触屏点击区 ≥44px | 1 | S | 低 | R1 | DX-01 |
-| DX-05 | 风险点加形状（不再只靠颜色）| 1 | S | 低 | R2 | DX-01 |
-| DX-06 | 字体细节：字距、等宽数字、手机小字、折行 | 1 | S | 低 | R1 | DX-01 |
-| DX-07 | 页面元信息、点击高亮、滚动穿透 | 1 | S | 低 | R2 | DX-01、DX-03 |
-| DX-08 | 已有动画补"减少动效"保护 | 1 | S | 低 | R1 | DX-01 |
-| DX-09 | 右栏滑入滑出 + Ask 按钮 + 安全区 + `dvh` | 2 | L | 高 | R2 | DX-01、DX-02 |
-| DX-10 | 菜单进出（Demo 菜单、铃铛）| 2 | S | 低 | R2 | DX-01、DX-02 |
-| DX-11 | Toast 进出 | 2 | S | 低 | R2 | DX-01、DX-02 |
-| DX-12 | 手机悬停卡底部弹层动画 | 2 | S | 低 | R1 | DX-01 |
-| DX-13 | 折叠区展开动画 | 2 | S | 低 | R1 | DX-01 |
-| DX-14 | 加载骨架 + 延迟显示 | 2 | S | 低 | R2 | DX-01 |
-| DX-15 | Events 版面：列表收窄、边缘提示、留白审计 | 3 | M | 中 | R2 | DX-01 |
-| DX-16 | Tasks 看板版面：空列收窄、Done 列可见、卡片悬停 | 3 | M | 中 | R2 | DX-01 |
-| DX-17 | Ask 面板：空状态居中、新消息进入 | 3 | S | 低 | R2 | DX-01 |
-| DX-18 | 空状态文案与下一步（除 Tasks、Events）| 3 | S | 低 | R2 | DX-01 |
-| DX-19 | 详情切换交叉淡入 + 页面淡入 | 3 | S | 中 | R2 | DX-01、DX-09 |
-| DX-20 | 手机顶栏瘦身（20a）+ 底部导航（20b，需批准）| 4 | L | 高 | R2 | DX-02、DX-09、DX-10 |
-| DX-21 | 看板列头减饱和 | 4 | S | 中 | R1 | DX-16 |
-| DX-22 | 流程图节点改 `transform` + 弹簧落位 | 4 | M | 中 | R2 | DX-01 |
-| DX-23 | 半透明顶栏 + 阴影层级 token | 5 | M | 中 | R1 | DX-01、DX-02；若合并了 20b 则含底栏 |
-| DX-24 | 看板指针拖拽 + 让位 + 弹簧 + 键盘 | 5 | L | 高 | R2 | DX-16、**DX-22**（用它的 `src/lib/motion.ts`）|
-| DX-25 | 完成时刻：进度链生长、圆点弹一下、环形进度、角标 | 5 | M | 中 | R2 | DX-02、DX-05、**DX-22**（用它的 `src/lib/motion.ts`）|
-| DX-26 | Partners 看板拖拽（沿用 DX-24 的工具）| 6 | M | 中 | R2 | DX-24 |
-| DX-27 | 文档收口 + 样式守卫补全 + 合并小样式文件（需批准）| 6 | M | 低 | R2 | 全部 |
+| DX-01 | Foundation: Style split files, effects token, test ports, screenshot scripts, style guards | 0 | M | Medium | R2 | — |
+| DX-02 | Put it on. `Layout.tsx` Dismantled into stand-alone documents (pure moving) | 0 | M | Medium | R2 | — |
+| DX-03 | Press feedback to transition to suspension | 1 | S | Low | R1 | DX-01 |
+| DX-04 | Touch screen click area  ≥ 44px | 1 | S | Low | R1 | DX-01 |
+| DX-05 | Risk point plus shape (no longer only color) | 1 | S | Low | R2 | DX-01 |
+| DX-06 | Font Details: Length, Equivalent Numbers, Cellular Small, Wrap | 1 | S | Low | R1 | DX-01 |
+| DX-07 | Page meta-information, click Highlights, scroll through | 1 | S | Low | R2 | DX-01、DX-03 |
+| DX-08 | Animated "reduce effect" protection already exists. | 1 | S | Low | R1 | DX-01 |
+| DX-09 | Right bar slides out + Ask button + safe zone + `dvh` | 2 | L | High | R2 | DX-01、DX-02 |
+| DX-10 | Menu Access (Demo menu, bell) | 2 | S | Low | R2 | DX-01、DX-02 |
+| DX-11 | Toast In and Out | 2 | S | Low | R2 | DX-01、DX-02 |
+| DX-12 | Animation of the inner layer of a mobile suspension card. | 2 | S | Low | R1 | DX-01 |
+| DX-13 | Expand Animation in Collapse Zones | 2 | S | Low | R1 | DX-01 |
+| DX-14 | Load Bones + Delay Display | 2 | S | Low | R2 | DX-01 |
+| DX-15 | Events board: narrow list, edge tip, white audit | 3 | M | Medium | R2 | DX-01 |
+| DX-16 | Tasks board layout: empty line narrow, Done column visible, card suspended | 3 | M | Medium | R2 | DX-01 |
+| DX-17 | Ask Panel: Empty Center, New Message In | 3 | S | Low | R2 | DX-01 |
+| DX-18 | Empty Status Document and Next (except Tasks, Events) | 3 | S | Low | R2 | DX-01 |
+| DX-19 | Toggle Cross Fade + Fade Page | 3 | S | Medium | R2 | DX-01、DX-09 |
+| DX-20 | Cellular top bar thin (20a) + bottom navigation (20b, approval required) | 4 | L | High | R2 | DX-02、DX-09、DX-10 |
+| DX-21 | board row header saturation | 4 | S | Medium | R1 | DX-16 |
+| DX-22 | Flowchart Node Change `transform` + Spring Falling Position | 4 | M | Medium | R2 | DX-01 |
+| DX-23 | Semi-transparent topbar + shadow level token | 5 | M | Medium | R1 | DX-01、DX-02；20b with bottombar if the merge is gone |
+| DX-24 | Board pointer drag + Jean + spring + keyboard | 5 | L | High | R2 | DX-16, **DX-22** (with `src/lib/motion.ts`）|
+| DX-25 | Time to finish: progress chain growth, dots, loops, corner signs | 5 | M | Medium | R2 | DX-02, DX-05, **DX-22** (with its `src/lib/motion.ts`）|
+| DX-26 | Partners board drag (with DX-24 tool) | 6 | M | Medium | R2 | DX-24 |
+| DX-27 | Document shut-up + style guard completion + merge small style files (subject to approval) | 6 | M | Low | R2 | All |
 
-## 回滚顺序表（撤一个之前，先撤依赖它的）
+## Rollback Order Table
 
-| 要撤 | 要先撤（如果已合并）|
+| Get out of here. | Do you want to withdraw first (if merge already) |
 | --- | --- |
-| DX-01 | 所有其他包（它是地基。一般不撤；真要撤等于整套撤）|
+| DX-01 | All the other bags (it's the foundation. In general, there is no withdrawal; That's the whole thing. |
 | DX-02 | DX-09、10、11、20、23、25 |
 | DX-05 | DX-25 |
 | DX-09 | DX-19、DX-20 |
 | DX-10 | DX-20 |
 | DX-16 | DX-21、DX-24、DX-26 |
-| DX-22 | **DX-24、DX-25**（它们 import 了 `src/lib/motion.ts`；不先撤它们，单撤 DX-22 不会冲突但**构建会坏**，2026-11-01 演练实测）|
+| DX-22 | **DX-24, DX-25** (they're important) `src/lib/motion.ts`；Without them, without DX-22, there will be no conflict but **will fail to build**, 2026-11-01) |
 | DX-24 | DX-26 |
-| DX-20 | DX-23（如果它包含了底栏的部分）|
-| 其余 | 无 |
+| DX-20 | DX-23 (if it contains parts of the bottom bar) |
+| The rest | None |
 
-## 文件归属表（并行时谁能改什么）
+## Documentation Table (who can change what in parallel)
 
-一个文件在同一阶段里只归**一个**包。表里没列的文件，不要碰。
+One file is only for **a** package in the same period. There's no file in the table. Don't touch it.
 
-| 文件 / 选择器 | 归谁 | 说明 |
+| File/ Selector | Who's it for? | Annotations |
 | --- | --- | --- |
-| `src/styles.css`、`src/styles/index.css` | **没人**（DX-01 只改 `index.css` 一次）| DX-27 才可能合并 |
+| `src/styles.css`、`src/styles/index.css` | **No one** (DX-01 only) `index.css` (once) | DX-27 is possible |
 | `package.json`、`playwright.config.ts`、`.stylelintrc.json`、`scripts/word-count.mjs` | DX-01 | |
-| `src/main.tsx` | DX-01 | 只加一行引入 |
-| `src/components/Layout.tsx` | DX-02（拆分）→ DX-09（右栏、按钮）→ DX-19（页面淡入）→ DX-20（手机外壳）| 按阶段串行 |
+| `src/main.tsx` | DX-01 | Add only one line for introduction |
+| `src/components/Layout.tsx` | DX-02 (several) →  DX-09 (right bar, button) →  DX-19 (light page) →  DX-20 (cellular shell) | Serial by Phase |
 | `src/components/chrome/TopBar.tsx` | DX-02 → DX-20 → DX-23 | |
 | `src/components/chrome/SideNav.tsx` | DX-02 → DX-20 → DX-25 | |
 | `src/components/chrome/DemoMenu.tsx`、`Bell.tsx` | DX-02 → DX-10 → DX-20 | |
 | `src/components/chrome/Toast.tsx` | DX-02 → DX-11 | |
 | `src/components/rail/Rail.tsx`、`RailContext.tsx` | DX-09 → DX-19 | |
 | `src/components/rail/AskPanel.tsx` | DX-17 | |
-| `src/components/ui/index.tsx` | `RiskDot`：DX-05；`Hover`：DX-12（默认不改它；真需要时先写进报告）；`Chain`、`Ring`：DX-25 | 不同阶段，不同函数 |
+| `src/components/ui/index.tsx` | `RiskDot`：DX-05；`Hover`: DX-12 (default does not change it; If so, write the report first; `Chain`、`Ring`：DX-25 | Different stages, different functions |
 | `src/components/RouteLoading.tsx` | DX-14 | |
 | `src/components/flow/MetroChart.tsx`、`metro.ts` | DX-22 | |
 | `src/pages/Events.tsx` | DX-15 | |
-| `src/pages/Tasks.tsx` | DX-16 → DX-24 | 看板部分 |
-| `src/pages/Today.tsx`、`Team.tsx`、`Funding.tsx`、`Handoff.tsx`、`Rules.tsx`、`Settings.tsx` | DX-18（只改空状态那几行）| |
-| `src/pages/Partners.tsx` | DX-18（空状态）→ DX-26（拖拽）| |
-| `src/lib/dragSort.ts`（新）| DX-24 | DX-26 复用，不改它 |
+| `src/pages/Tasks.tsx` | DX-16 → DX-24 | board part |
+| `src/pages/Today.tsx`、`Team.tsx`、`Funding.tsx`、`Handoff.tsx`、`Rules.tsx`、`Settings.tsx` | DX-18 (lines converted to empty only) | |
+| `src/pages/Partners.tsx` | DX-18 (empty) →  DX-26 (trawl) | |
+| `src/lib/dragSort.ts`(new) | DX-24 | DX-26 Reuse, do not change it |
 | `index.html` | DX-07 | |
-| `.ask-fab`、`.rail`、`.rail-*` 选择器 | DX-09 | 其他包不要给它们写样式 |
-| `.menu`、`.menu-wrap`、`.badge`（铃铛）| DX-10（动效）；DX-23 只写阴影 | 属性不重叠 |
+| `.ask-fab`、`.rail`、`.rail-*` Selector | DX-09 | Don't write them styles for the rest of the bags. |
+| `.menu`、`.menu-wrap`、`.badge`(bell rings) | DX-10 (active effects); DX-23 Write only shadows | Properties do not overlap |
 | `.toast` | DX-11 | |
-| `.hover-card`（桌面）| **没人**（S3 决定零延迟）| 只有 DX-12 的 `(hover: none)` 部分 |
-| `.board-col`、`.board-card`、`.board` | DX-16（布局、悬停）；DX-21（列头 `> header`）；DX-24（拖动状态）| |
+| `.hover-card`(desktop) | **No one** | Only DX-12 `(hover: none)` Part |
+| `.board-col`、`.board-card`、`.board` | DX-16 ( layout, suspension); DX-21 (head) `> header`）；DX-24 (trawl status) | |
 | `.m-node`、`.m-gap`、`.m-ghost`、`.metro` | DX-22 | |
-| `.topbar` | DX-20（尺寸）；DX-23（背景、模糊、底线）| 属性不重叠 |
+| `.topbar` | DX-20 (size); DX-23 (background, blurry, bottom line) | Properties do not overlap |
 
-## 每个阶段的启动方式
+## How each stage begins
 
-### 阶段开始前（整合人做，一次）
+### Before stage begins (integrated, once)
 
 ```bash
 git fetch origin
 git switch claude/determined-johnson-yrdxwf && git pull
-git merge origin/main               # main 经常有新提交，每个阶段开始前合一次（用 merge，不用 rebase）
-npm ci && npm run check             # 起点必须全绿；不绿就先停下来告诉 Juanxi
+git merge origin/main               # main New submissions are frequently made, and each phase is combined (use)  mergeNo, I'm fine.  rebase）
+npm ci && npm run check             # The starting point must be completely green; If it's not green, stop and tell.  Juanxi
 git tag dx/phase-N-before
 git push origin claude/determined-johnson-yrdxwf --tags
-node scripts/dx-shots.mjs before-pN http://localhost:<端口>   # 阶段 0 之后才有这个脚本
+node scripts/dx-shots.mjs before-pN http://localhost:<Port >   # Phase  0 Then I got this script.
 ```
 
-然后给本阶段每个包各开一个 worktree（命令见 `README.md`），分别发"启动口令"。
+Then each package at this stage is given a worktree (see `README.md` for orders) and a "start password" is issued.
 
-### 对整合 agent 的口令（每阶段一份）
+### Password for integration (one at each stage)
 
 ```
-你是整合人。阶段 N。读 AGENTS.md、docs/design-upgrade/README.md、docs/design-upgrade/PHASES.md。
-1. 确认 claude/determined-johnson-yrdxwf 已合并 origin/main，npm run check 全绿，打好 dx/phase-N-before。
-2. 给本阶段每个工作包开 worktree（分支 design/dx-NN-<短名>，端口各不相同），
-   并行启动执行 agent（口令模板在 README.md）。
-3. 等它们都推送了自己的分支和 reports/DX-NN.md。逐个审阅 diff：只动了"可以改的文件"吗？
-   有没有削弱测试？有没有写裸毫秒或裸颜色？不合格的退回，不要自己默默改。
-4. 按编号从小到大 --no-ff 合并，每合并一个就打 dx/dx-NN-merged 标签，登记 ROLLBACK_LOG.md。
-5. 阶段末跑一次完整 npm run check（Node 22），再跑 dx-shots（after）。有红的：用 dx/dx-NN-merged 标签二分，
-   找出是哪个包，用 R2 撤掉它，告诉 Juanxi。不要修一个"顺手"的东西把红盖住。
-6. 在 docs/PROGRESS.md 写一条阶段交接：做了什么、预览网址和要点哪里、已知问题、每个包的回滚方式。
-   写"需要同步本地备份"。推送 claude/determined-johnson-yrdxwf。不开 PR（Juanxi 要预览时会说）。不碰 main。
-7. 停下，等 Juanxi 验收。
+You're integrating people. Phase  N。Read it.  AGENTS.md、docs/design-upgrade/README.md、docs/design-upgrade/PHASES.md。
+1. Confirm  claude/determined-johnson-yrdxwf Already Mege  origin/main，npm run check It's all green.  dx/phase-N-before。
+2. Open for each work package at this stage  worktree(branch)  design/dx-NN-<Short name >The port is different.
+   Start execution in parallel  agent( password template in )  README.md）。
+3. When they're all sending their branches and...  reports/DX-NN.md。One by one.  diff: Just moving. "Files that can be changed "I'm sorry.
+   Did you weaken the test? Did you write about naked milliseconds or naked color? Unqualified revert, don't change yourself.
+4. Numbered from small to large  --no-ff One at a time.  dx/dx-NN-merged Label, register.  ROLLBACK_LOG.md。
+5. One run at the end of the phase.  npm run check（Node 22Run again.  dx-shots（after）。Red: with  dx/dx-NN-merged Two points for the label,
+   Find out which bag. Use it.  R2 Get rid of it. Tell me.  Juanxi。Don't fix one. "Do it. "Something to cover the red.
+6. Yes.  docs/PROGRESS.md Write a stage: what has been done, where to preview the web site and highlights, what to know, how to rollback each package.
+   Write. "Need to sync local backup "。Push  claude/determined-johnson-yrdxwf。It's not open.  PR（Juanxi You'll say it when you want to preview. No touching.  main。
+7. Stop! Wait!  Juanxi Acceptance.
 ```
 
-### 预览网址
+### Preview of the Web site
 
-需要在 Netlify 上看效果时，Juanxi 对 session 说"开一个 Draft PR 做预览"。标题写「[预览·请勿合并]」，base 是 `main`（和 PR #8 一样的做法）。之后每次推送 `claude/determined-johnson-yrdxwf`，同一个预览网址会自动更新。**不要删除或改名这个分支**，否则预览编号会作废（`AGENTS.md` 第 8.2 节）。
+When you need to look at the effect on Netlify, Juanxi says to session "open a Draw PR for preview". The title reads "[ preview: do not merge ]" and the base is `main` (like PR #8). The same preview site will be automatically updated every time a `claude/determined-johnson-yrdxwf` is sent. **Do not delete or rename this branch**, otherwise the preview number will be invalidated (`AGENTS.md` section 8.2).

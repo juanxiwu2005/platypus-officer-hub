@@ -1,27 +1,27 @@
-# WP07 — 生产依赖安全
+# WP07 - Production dependent on safety
 
-## Agent 提示词
+## Agent prompt
 
-你负责生产依赖安全升级。开始前读取 `AGENTS.md`、README、manifest，fetch 最新阶段基线并报告 SHA。不得使用 `main`，不得运行不受控的 `npm audit fix --force`，不得顺便升级 WP08 负责的开发工具。
+You're responsible for the safety upgrade of production. Read the updated baseline of `AGENTS.md`, README, manifest, fetch before starting and report to SHA. No `main`, no running uncontrollable `npm audit fix --force` and no upgrade to the development tool responsible for WP08.
 
-### 审核基线中的已知问题
+### Review of known issues in baselines
 
-- `react-router-dom` 6.28.0 / `@remix-run/router`：开放重定向与 protocol-relative redirect/XSS 公告。
-- Zod 3.x：超大 constrained collections 可能导致内存耗尽。
+- `react-router-dom` 6.28.0 / `@remix-run/router`: Open Redirection and Protocol-relative redact/XSS Bulletin.
+- Zod 3. x: Super-sized constraining operations may cause RAM to run out.
 
-### 要求
+### Request
 
-- 升级 React Router 到修复且兼容的版本。
-- 升级 Zod 到安全版本；若跨 major，完整迁移客户端和服务端调用，并补解析失败、超大输入和拒绝路径测试。
-- 检查 redirect 只接受受控内部路径或明确白名单。
-- 更新并保持 `package.json`/`package-lock.json` 一致。
-- 不得使用 audit ignore 掩盖生产漏洞。
+- Upgrade React Router to a restored and compatible version.
+- Upgrade Zod to a secure version; If you cross the Major, move the client and service to complete and parse failed, super-high input and reject path tests.
+- Checking redact only accepts controlled internal paths or a clear white list.
+- Update and maintain `package.json`/ `package-lock.json` consistency.
+- Audit ignore should not be used to hide production loopholes.
 
-### 验收标准
+### Acceptance Standard
 
-1. `npm audit --omit=dev` 的 high/critical 均为 0。
-2. `npm ci`、`npm run lint`、`npm run build`、`npm test` 通过。
-3. Netlify Functions/后端库严格 TypeScript 检查通过。
-4. 路由、无效解析和超大 payload 有回归测试。
-5. `git diff --check` 通过。
-6. 创建一个 `[RR-WP07][Codex]` 提交，报告升级前后版本和 audit 结果。
+1. `npm audit --omit=dev` 's high/ criminal are 0.
+2. `npm ci`, `npm run lint`, `npm run build` and `npm test` were adopted.
+3. The Netlify Operations/ Backend library is strict TypeScript check-through.
+4. Routes, invalid parsing and super big payload have regression tests.
+5. `git diff --check` passed.
+6. Creates a `[RR-WP07][Codex]` submission, reports up-to-date version and audit results.

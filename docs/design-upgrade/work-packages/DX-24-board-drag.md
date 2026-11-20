@@ -1,33 +1,33 @@
-# DX-24 看板指针拖拽 + 让位 + 弹簧 + 键盘
+# DX-24 board pointer drag + Jean + spring + keyboard
 
-- 阶段 5　大小 L　风险 **高**　R 级 R2　依赖：DX-16　并行伙伴：DX-23、25
-- 分支：`design/dx-24-board-drag`　样式文件：`src/styles/dx-24-board-drag.css`　对应细节：D43 D44
+- Stage 5 Size L Risk **High** R Level R2 Dependence: DX-16 Parallel Partners: DX-23, 25
+- Branch: `design/dx-24-board-drag` Style File: `src/styles/dx-24-board-drag.css` Corresponding Details: D43 D44
 
-## 为什么
-**读到**：Tasks 看板用浏览器自带的拖放（`draggable`、`onDragStart`、`onDrop`），只有一个半透明虚影；落下去没有动画，其他卡片不让位；手机上是否能拖**待实测**。Emil §2（1:1 跟手、记住抓取点）、§10（8–10px 才算拖动）。
+## Why?
+**Read**: Taks board drag-and-drop (`draggable`, `onDragStart`, `onDrop`), with only a semi-transparent shadow; No animation, no other cards; Can you drag **on your cell phone for**? Emil § 2 (1:1 follow hands, remember grab points), § 10 (8– 10px is a drag).
 
-## 要做的事
-1. 新建 `src/lib/dragSort.ts`：一个小的拖拽工具（Hook），**数据层不变**：落下时仍然调用 `Tasks.tsx` 里现有的 `move(id, status, beforeId)`，**不改 store、不改 `SCHEMA_VERSION`**。
-2. 手感：
-   - `pointerdown` 之后移动 ≥8px 才算开始拖（避免和点击冲突）；用 `setPointerCapture`；卡片跟随指针 1:1，保持抓取点偏移，不跳到卡片中心。
-   - 被拖的卡片原位留一个"空位"，其他卡片用 150ms 位移让位；目标列高亮边框。
-   - 松手：落位用弹簧（`--spring-ui`，阻尼 1.0——这里没有"甩"的动作，所以不要回弹）；`Esc` 取消并原路回去。
-   - 靠近看板左右边缘时自动横向滚动（参考 `MetroChart.tsx` 的做法：边缘 40px，每帧 18px）。
-3. **触屏**：长按约 250ms 才开始拖，避免和滚动冲突；`touch-action` 只在拖动时设为 `none`。手机上原有的"下拉选择状态"的方式（`select`）保留，不拿掉。
-4. **键盘**：卡片获得焦点后，`Alt + ←/→` 移到相邻状态列（和流程图 `Alt + 方向键` 一致）；移动后用 `aria-live="polite"` 播报 "Moved X to Y"。
-5. 与 DX-16 的空列收窄配合：收窄的列必须能作为放置目标（用指针位置命中检测，不要靠 `onDragEnter`）。
-6. 保持：权限（谁能拖谁的卡）、`data-testid="board-card"`、`aria-label` 的列名。
+## Something to do.
+1. New `src/lib/dragSort.ts`: A small drag tool (Hook), the **data layer remains unchanged**: the existing `move(id, status, beforeId)` in `Tasks.tsx` is still called when falling, **does not change store or `SCHEMA_VERSION`**.
+2. Touch:
+   - `pointerdown` moves after  ≥ 8px starts to drag (avoiding and clicking conflicts); Use `setPointerCapture`; The card follows the pointer 1:1, keeps the grab point deflected and does not jump to the center of the card.
+   - (b) Leave an empty slot for the card to be dragged, and the other cards will be moved by 150ms; Targetbar Highlights the border.
+   - Loose hands: Use springs for `--spring-ui`, block 1.0 -- there is no "rolling" here, so don't bounce back; `Esc` Cancel and get back on the way.
+   - Automatically roll horizontally when close to the port margin (reference `MetroChart.tsx` practice: edge 40px, 18px per frame).
+3. **tentacles**: The long press of approximately 250 ms starts to drag, avoid and roll conflicts; `touch-action` only sets to `none` when drag. The original `select` method on the cell phone is retained and not removed.
+4. **Keyboard**: `Alt + ←/→` moved to neighbouring columns (consistent with flowchart `Alt + arrow key`) after the cards were given focus; Move and broadcast "Moved X to Y" with `aria-live="polite"`.
+5. Convergence with the empty column of DX-16: A narrow column must be capable of being placed as a target (detected by pointer location, not `onDragEnter`).
+6. Maintain: lists of missions (who can hold whose card), `data-testid="board-card"`, `aria-label`.
 
-## 可以改的文件
-`src/pages/Tasks.tsx`（看板拖放那一段）、`src/lib/dragSort.ts`（新）、`src/styles/dx-24-board-drag.css`、`src/test/dragSort.test.ts`（新，纯逻辑的单元测试）。
+## Files that can be changed
+`src/pages/Tasks.tsx` (the part where the board drags and drops), `src/lib/dragSort.ts` (new), `src/styles/dx-24-board-drag.css`, `src/test/dragSort.test.ts` (new, unit sets of pure logic).
 
-## 验收
-- `tasks.spec.ts` 里现有的 `dragTo` 断言要继续通过（Playwright 的 `dragTo` 发的是鼠标事件，新实现必须响应）；`activity-workspace.spec.ts`、`a11y.spec.ts`、`touch.spec.ts`、`word-budgets.spec.ts` 桌面 + 手机绿。**不能放宽断言，也不能给测试加 `force: true`**（WP10 刚把这类强制点击清掉）。
-- 新测试 `e2e/dx-24-drag.spec.ts`：① 拖动中被拖卡片的 `transform` 随指针变化；② 其他卡片在拖动时有位移；③ `Esc` 取消后数据不变；④ 键盘 `Alt+→` 改变状态且有播报；⑤ 拖到收窄的空列也能放下。
-- Juanxi 怎么验：电脑上拖一张卡到另一列，卡片跟着鼠标走，别的卡片让开一个位置，松手轻轻落下；键盘也能移。
+## Acceptance
+- `dragTo`, which is now available in `tasks.spec.ts` miles, asserts that it will continue to pass. (The `dragTo` from Playwright was a mouse event and the new achievement had to be responded to); `activity-workspace.spec.ts`, `a11y.spec.ts`, `touch.spec.ts`, `word-budgets.spec.ts` desktop + mobile phone green. **cannot relax assertions or add to the test `force: true`** (WP10 has just cleared out such mandatory hits).
+- New test `e2e/dx-24-drag.spec.ts`: 1 `transform` changes with the pointer of the dragged card; 2 Other cards moved when dragged; 3 `Esc` No change in data after cancellation; 4 Keyboard `Alt+→` changed state and was broadcast; 5 Drags to a narrow column can also be dropped.
+- Juanxi How to do this: the computer drags a card to another row, the cards follow the mouse, the other cards move away from one position and loose their hands; Keyboard can also be moved.
 
-## 回滚
-R2。DX-26 依赖它的工具，先撤 DX-26。
+## Rollback
+R2。DX-26 Reliance on its tools and withdraw DX-26.
 
-## 注意
-- 如果实现中发现必须改 store 才能做到，**停下来**，写进报告交给整合人。
+## Attention.
+- If you find that it has to be changed to store, **stops** and writes the report to the integration person.

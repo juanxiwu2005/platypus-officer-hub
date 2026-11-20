@@ -1,43 +1,43 @@
-# Onboarding 图形方案 v2：等待用户选择
+# Onboarding graphic scheme v2: waiting for user selection
 
-2026-11-17（America/Phoenix）。本轮仅审阅onboarding，未接入网站运行时。先前五屏的完整代码保存在`../v1/`；v1原稿和第二至第五屏均未改动。只有Juanxi明确说“可以了，进行下一步”，才继续新建活动的下一轮讨论；不自动进入开发。
+2026-11-17（America/Phoenix）。This round only looks at onboarding, without access to the website when running. The full code of the previous five screens is saved in `../v1/`; Neither the original v1 nor screens 2 to 5 have been changed. The next round of discussions in the new event will continue only if Juanxi explicitly states that “it is all right to move forward”; Do not automatically enter the development.
 
-## 两组效果图
+## Two effects diagrams
 
-### 人员：4种
+### Personnel: 4
 
-`people-options.html` 使用相同的七个虚构岗位和成员对照四种方案，均保留职位、姓名和邀请邮箱。President → Executive Vice President → Treasurer / Marketing Director / Secretary → Associates 的示例层级不是固定岗位规则；后续仍从章程识别并允许人工修改。
+`people-options.html` maintains positions, names and invitation mailboxes in relation to the four options using the same seven fields. The example level for President Executive — Exact Vice President — Treasurer/Marketing Director / Security — Associates is not a fixed rule; It is still identified and allowed to be manually modified from constitution.
 
-- **组织树名片：** 层级连线直接连接可填写姓名和邮箱的名片，最容易一眼看懂谁向谁汇报。
-- **层级通讯录：** 同样的层级改为缩进，三列直接填写，适合较大的团队批量录入。
-- **部门接力板：** 顶层领导与各部门分开，部门负责人和协作岗位上下排列，方便看整条职责链。
-- **组织图与名片编辑：** 图上保持角色、名字和邮箱就绪状态，点选后在侧面编辑完整职位、名字、邮箱和Reports to，适合长职位名或较复杂层级。
+- **Organizational Business Cards:** direct connection to the name and address card that can be filled out in a mail box. It is easy to see who reports to at first glance.
+- **Levels: The same tier for** has been indented and three columns have been filled out directly to fit the larger batch.
+- **Departmental relay plate:** top-level leadership is separated from departments, heads of departments and collaborations are arranged up and down to facilitate the entire chain of duties.
+- **Organizational Chart and Business Card Editor:** Images with roles, names and mailboxes ready to edit side-by-side full posts, names, mailboxes and reports to fit long job titles or more complex tiers.
 
-邀请开关展示未来“完成设置后发邀请”的产品意图；当前只更新本地界面稿，不实际发送邮件。用户输入不进入仓库，公开示例均为example.org。
+The switch is invited to display the product intent of future "post-set invitations"; Only local interface scripts are currently updated, and no mail is actually sent. User input does not enter repository, and the public example is example.org.
 
-### 工作流分组：6种
+### Stream groups: 6
 
-`workflow-options.html` 全部使用`workflow-data.json`同一份46项真实模板（包含条件路径）。来源为功能分支`e87b19c95e6eece07a3a695fdc0438de3f92fb67`的`src/engine/playbooks.ts`，43条原始依赖逐条保留。其他线程正在审计/修复模板，本稿不修改其规则和依赖，也不把该快照当作已修复后的模板。
+`workflow-options.html` uses all of the `workflow-data.json` same 46 live templates (including conditional paths). Source: `src/engine/playbooks.ts` of functional branch `e87b19c95e6eece07a3a695fdc0438de3f92fb67`, 43 originally relied on article-by-article retention. Other threads are being audited/repaired templates, and this draft does not modify its rules and reliance, nor does it use the snapshot as a repaired template.
 
-1. **地铁图高亮圈组：** 46个站点及43条依赖，可选Finance等组高亮其覆盖；适合保留流程上下文。排布为当前效果稿的紧凑预览，未修改生产地铁图布局引擎。
-2. **跨阶段责任泳道：** 组为行、阶段为列；展开当前组的短名，其他任务保留为逐项可点击站点，突出一组工作跨越哪些阶段。
-3. **分阶段折叠图：** 阶段可展开/收起，收起时每个圆点仍对应一个真实任务，并显示准确数量，逐段设置以减少同时阅读。
-4. **任务归属矩阵：** 46个任务各一行、一个主执行组；点击圆点即可改组，适合核查覆盖与重复责任。手机转为逐项下拉框。
-5. **整条任务包指派：** 把原46项分成12个无重复、无遗漏的审阅包，选一次改整个包；包不是新增业务任务，也没有改原始依赖。
-6. **责任涂色板：** 先选组，再点选或拖过任务设置颜色与归属，适合快速批量归类，支持撤销。
+1. (a) **subway high-light loop group:** 46 stations and 43 dependents, so that groups such as Finance can be selected to highlight its coverage; Suits for retaining the process context. The layout is a compact preview of the current effect draft, and no changes have been made to the engine producing the metro layout.
+2. **Cross-phase Responsible Swimming Channel:** in rows and stages; Expands the short name of the current group, leaving other tasks to click on the site item by item, highlighting the stages through which a group of work will cross.
+3. **A phased folding chart: Phase** can be expanded/captured, with each dot corresponding to a live task at the time of collection and showing the exact number, setting it up paragraph by paragraph to reduce simultaneous reading.
+4. **Task attribution matrix:** 46 task lines, one main implementation group; By clicking on a dot, it can be reconfigured and is appropriate to verify coverage and duplicate responsibilities. The cell phone turns to boxing down the line.
+5. **Entire task package assigned:** split the original 46 items into 12 non-repeated and uninflicted review packages, selecting one change to the entire package; The package was not an additional operational task, nor had it changed to its original reliance.
+6. **Responsibility palette:** selects first, then clicks on or drags over the task setting colours and belongings that are suitable for fast batch classification to support withdrawal.
 
-初始分组按现有职能作为可讨论的起点：Event team 22、Finance 12、Marketing 8、Records 2、Leadership 2；这些名称不是要求所有社团采用的固定部门。阶段和组是独立维度。
+(a) The initial grouping was based on existing functions as a starting point for discussion: Event team 22, Finance 12, Marking 8, Records 2, Leadership 2; These names are not required to be used in all fixed sectors. Stages and groups are independent dimensions.
 
-所有任务默认使用**唯一的两个英文词短名**，不是用截断前两个词来糊弄；完整名称、要求、规则来源、条件与依赖留在数据中，点选任务后可查看。短名显示可以在设计控件中关闭对照。分组操作只更改界面稿的归属，不改变日期、任务要求、真实审批权或生产数据。
+**is used by default for all tasks using the only two short words in English**, not with cutting the first two words; Full name, request, rule source, condition and reliance remain in the data and can be viewed after selecting a task. The short name indicates that the control can be closed in the design control. Grouping only changes the attribution of the interface draft without changing dates, task requirements, live approval rights or production data.
 
-## 检查与保存
+## Check and Save
 
-- 原v1源码SHA-256与原工作区文件逐字节一致，见`../v1/manifest.json`；本轮未覆写。
-- 10个视图在1024、736、393、320px共40个布局场景检查；无横向溢出、无浏览器脚本错误。
-- 6种工作流方案在上述每个尺寸均覆盖全部46个唯一任务；地铁图渲染43条原始依赖。
-- 邮箱编辑及保存、修改汇报关系、地铁选站改组、矩阵改组、整包改组与撤销、涂色点击检查通过；详见`verification.json`。
-- 46个短名均恰好两个英文词、无重名；12个包覆盖全部46项且互不重复。
-- 两个HTML均为对话可视化片段，包含全部样式/示例数据/本地交互；无外部API、真实AI、邮件投递或生产存档写入。不是已上线功能。
-- 未改`src/`、`public/`、服务器代码、业务schema或现有网站功能；因此未重复全站测试。
+- The original v1 source SHA-256 corresponds to the bytes of the original workspace document, see `../v1/manifest.json`; This round is not overwritten.
+- Ten viewings at 1024, 736, 393 and 320px for 40 layouts; No horizontal overflow and no browser script errors.
+- The six workflow programmes cover all 46 single tasks at each of the above dimensions; The metro charts rewrite 43 original dependencies.
+- Mailbox editing and preservation, modification of reporting relationships, metro station reshuffling, matrix restructuring, package restructuring and cancellation, colour click check pass; See `verification.json` for details.
+- The 46 short names correspond to two English-language terms and no heavy names; Twelve packages covered all 46 items and did not duplicate each other.
+- Both HTML are dialogue visual segments containing all styles/example data/local interactions; No external API, live AI, mail delivery or production archive written. Not already online.
+- No changes to `src/`, `public/`, server code, business schema or existing website functionality; Therefore, full station tests were not repeated.
 
-需要同步本地备份。
+Could not close temporary folder: %s

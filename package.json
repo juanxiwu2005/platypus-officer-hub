@@ -13,11 +13,13 @@
     "e2e": "playwright test",
     "lint:css": "stylelint \"src/styles.css\" \"src/styles/*.css\"",
     "lint:js": "eslint src && node scripts/lint-guardrails.mjs",
-    "lint": "npm run lint:css && npm run lint:js",
+    "lint": "npm run lint:english && npm run lint:css && npm run lint:js",
     "words": "node scripts/word-count.mjs",
     "check": "npm run lint && npm run build && npm test && npm run e2e && npm run words",
     "eval:rules": "node scripts/eval-rules.mjs",
-    "eval:mock": "vitest run src/test/rules-eval.test.ts"
+    "eval:mock": "vitest run src/test/rules-eval.test.ts",
+    "lint:english": "node scripts/check-english.mjs",
+    "test:english": "node --test scripts/check-english.test.mjs"
   },
   "dependencies": {
     "@netlify/blobs": "^11.1.6",

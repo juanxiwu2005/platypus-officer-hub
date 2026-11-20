@@ -1,59 +1,59 @@
-# Activity Workspace 实施交接
+# Activity Workspace execute handoff
 
-2026-10-26 · Codex · 基于 `1815be0`，用户已批准 A1/B1/C2、多 Agent Worktree 和最后两点补充：重点事项直接选择现有任务；全局 AI 通过统一命令查询、调整和创建业务对象。
+2026-10-26 . Codex . Based on `1815be0`, users have approved A1/B1/C2, more Agent Worktree and the last two additions: priorities directly select existing tasks; Global AI query, adjust and create clients through uniform command.
 
-## 当前结构
+## Current structure
 
-- 新入口 `/#/phase1`：Home、My tasks、Activities、Organization setup。Recent activities 只列真实成员活动，最多五条，不放设置模板或 Executive Board 事务。
-- Home 从现有个人任务确定性排序（默认三项，可展开），包括本人负责/共同参与、明确待其审批和管理者待分配任务。不凑无事可做的未来任务，不调用 AI 另写摘要。两块总览分别为 Member Programs 和 Executive Board。
-- Activities 是可搜索、筛选、排序的实例列表。四位置短链来自任务 DAG 与阶段投影，显示并行、真实计数和受阻。个人看板排序不改变流程；阶段折叠回环被拒绝。
-- 详情默认 Timeline，日期来自同一排程函数；任务、审批和 Funding 在活动内。My tasks 默认三个活跃列，Done 通过完成按钮进入折叠历史，重开时检查下游影响。
-- Funding 多申请分别关联任务、Gate、版本、来源和固定用款期限。提交不等于批准；预留、支出和释放分别记录，累计额度条件写入。已有财务历史不能改换来源归属。
-- Setup 五章可点击并保存，Activity Workflow 有8/7/6周设置、相对时间带、节点标签；选线删除/撤销及键盘触摸替代。受影响项集中复核，移除逐节点 Connections/all-any/Mark reviewed。Organization documents 位于 Constitution。
+- New entrance `/#/phase1`: Home, My tasks, Activities, Organization setup. Recent activities only list live members up to five, without setting templates or Executive Board.
+- Home is sorted from the existing personal task certainty (by default, three can be carried out), including tasks to be assigned by those who are personally responsible/jointly involved and clearly awaiting their approval and management. You don't have anything to do for the future, you don't call AI and write a summary. The two overviews are: Amber Programme and Exact Board.
+- Activities are a searchable, filtered and sorted list of examples. The four-position short chain is from the task DAG and phase projection, showing parallel, live count and blockage. Personal board sorting does not change process; The phase folding loop was rejected.
+- The details default Timeline, the date from the same Scheduling function; Tasks, approvals and Funding within the event. My tasks defaults on three active columns, Doe entering fold history by completing the button and checking downstream effects when restarting.
+- Funding multi-applications related to missions, Gate, version, source and fixed term. Submission does not amount to approval; Provisions, expenditures and releases are recorded separately and the cumulative amount terms are stated. Financial history does not allow for a change of origin.
+- Setup, five chapters can be clicked and saved. Activity Workflow has 8 7/ 6 weeks set, relative time bands, node labels; Select to delete/revoke and replace with keyboard touch. Affected items are reviewed centrally and removed by node. Organization documents are located in Constitution.
 
-## 同源数据与时间
+## Homogenous data and time
 
-`src/workspace/contracts/` 定义固定 ID、状态、任务、审批、资金与命令。模板与实例分别保存版本；采用新模板/默认时间前预览，保护完成历史和人工修改。名称只是标签，引用使用 ID；当前组织名称/部门色/职位来自同一来源，历史保留原样。
+`src/workspace/contracts/` Defines fixed IDs, status, tasks, approvals, funds and orders. Templates save versions separately from examples; Protects history and manual changes using a new template/default pre-time preview. The name is only a label, and the reference is an ID; The current organizational name/departmental colour/position comes from the same source and remains as it is in history.
 
-`netlify/lib/workspace/` 和 `/api/workspace` 保存运行数据。表单与 AI 走同一白名单命令。一个工作区 JSON 的 CAS 写入提交该命令对应任务/审批/资金和审计 outbox；409不覆盖，命令ID及持久凭证支持重放。不同对象的 AI 提案分段批准，不承诺任意跨平台事务。
+`netlify/lib/workspace/` and `/api/workspace` save running data. Form with AI walking on the same white list command. The CAS in a workspace for JSON is written into the task/approval/funds and audits submitted to the order; 409 does not cover, and IDs and durable vouchers are ordered to support the resetting. The AI proposal for different targets is approved in subparagraphs and does not commit to any arbitrary cross-platform matters.
 
-产品将 Waiting/Stuck 合为 Stuck，后台保留多原因及准确目标，只清除已满足的条件。未到前置的任务仍是 To Do，独立分支继续。一般审批需要明确 Gate/审批人，不凭头衔或 RACI A 猜权限；旧 Gate/旧申请不能批准当前任务。
+The product combines Waiting/Stuck with Stuck, retaining multiple causes and precise targets at the back office and only removing conditions that have been met. The outstanding task remains To Do, and the independent branch continues. General approval requires the identification of Gate/ Approving Officers, not by title or RACI A guess missions; The old Gate/old application cannot approve the current task.
 
-8/7/6周是组织偏好（56/49/42自然日的完成目标），与学校规则分开。学校期限用学校工作日，干部工期用个人可工作日。USG 明确餐饮/服务使用 R09，嘉宾使用 R10，College/其他不乱套用。R01覆盖校内及使用学校资金的校外成员活动。用款期限不随活动改期移动。当前已收录学生校历可靠范围为2026-08-20至2027-05-08，超出范围明确不给虚构排程。
+8/7/ 6 weeks is an organizational preference (the goal of completion of 56/49/ 42 natural days) separate from the school rules. The duration of the school is based on a school working day, while the workday of the office day is available to the individual. USG specifies R09 for catering/service use, and guest uses R10, College/other devices. R01 covers both inside and outside activities using school funds. The period of time spent does not change with the activity. The student 's school history is currently recorded in a reliable range of 2026-08-20-2027-05-08, which is clearly beyond the scope and does not extend to fielding.
 
-## 全局 AI 与保存
+## Global AI with Save
 
-`src/workspace/assistant/` 是唯一可见右侧对话框，跨页保留对话，窄屏默认收起但入口常驻。Setup 桥先保存当前编辑，再请求/采用组织提案，防止旧草稿覆盖。
+`src/workspace/assistant/` is the only visible right-hand dialogue box that maintains a dialogue across pages, with narrow screen defaults and permanent access points. Setup Bridge saves the current editor before requesting/using organizational proposals to prevent coverage of old drafts.
 
-`netlify/lib/workspaceAssistant/` 和两个 assistant 函数提供持久后台任务、当前对象上下文、按 ID/搜索分页读取、组织/业务提案及创建表单。可生成成员活动或 Executive Board 的专属流程草案，并使用同一表单创建。日期由人输入及引擎计算；组织变更先入草稿、确认后更新批准配置。模型不能改权限、系统时间、档案或历史批准，也不能编造外部批准证据。
+The `netlify/lib/workspaceAssistant/` and two assistant functions provide a permanent background task, the context of the current object, reading by ID/search page, organizational/business proposals and creating forms. Generates a draft exclusive process for meeting activities or Executive Board and uses the same form to create it. Dates are calculated by human input and engine; Organizational changes are pre-drafted, confirmed and approved configuration updated. Models cannot be modified for missions, system time, archives or historical approvals, nor can they construct external approval evidence.
 
-任务深链接的选中ID由路由同步识别，中央非模态任务详情不遮住右侧AI。应用AI提案前检查未提交表单；服务器变更只同步未被人工改过的字段，冲突保留并提示复核，已提交进度不作为未发内容恢复。
+The selected ID with a deep-task link is identified by synchronous route, and the central non-modular task details do not mask AI on the right. Check for non-submission of forms prior to application of AI proposal; The server changes were synchronized only for fields that had not been artificially modified, conflicts were retained and reviewed, and progress was submitted as inactive.
 
-原始模型响应/失败指标先归档再解析。阶段分组按结构缓存，不因状态/排序变化重复生成。业务提交后回应丢失，通过操作凭证恢复，不重复业务操作或重新付费请求。
+The original model response/failure indicator is archived and analysed. Phase groups are structurally cached and are not created over and over again as a result of state/sequence changes. Operations are submitted in response to loss, resumed through operating vouchers, and no duplication of operations or repayment requests.
 
-运行状态在服务器；本地仅保护未提交输入，不把新组织复制回旧演示 localStorage。成员、创建、任务/活动、资金/审批和 AI 输入按工作区/对象隔离保护，恢复后要求核对最新保存版本。全局壳与 Setup 共用导航协调器，全部检查通过才离开/重放历史。
+Active status on the server; Locally only protects unsubmitted input and does not copy the new organization back to the old presentation localStorage. Remember, create, tasks/activities, funds/approvals and AI input to separate protection by workspace/object, requiring reconciliation of the latest saving version after recovery. The global shell shares a navigation coordinater with Setup, all checked out before leaving/replaying history.
 
-本轮仍是私有测试会话。虚构成员/岗位支持绑定、兼任、共同负责，明确标注演示身份；cookie证明工作区访问，不证明真实成员。正式账号、邀请和跨设备多人权限不在本轮。
+This round is still a private testing session. Field member/ rule supports binding, dual and joint responsibility, with a clear identification of the demonstration; Cookie attests to the workspace visit and not to live memory. Official accounts, invitations and cross-equipment multiplicity of missions are not in the current round.
 
-## 验证及本地环境
+## Authentication and local environment
 
-最终产品代码：`3e9c69a`。整合完成后一次完整顺序检查通过：
+Final product code: `3e9c69a`. The complete sequence check after integration is completed was passed:
 
-- `npm run build`：TypeScript与Vite构建通过。
-- `npm test -- --maxWorkers=2 --minWorkers=1`：36文件、548项全部通过。
-- `npm run e2e -- --workers=2`：272场景，256通过、16按条件跳过、0失败；最终`.last-run.json`为passed且failedTests为空。
-- 16跳过是12个旧手机版重复a11y/键盘检查、1个触屏不适用hover、3个桌面指针/额外历史场景；新版手机基本返回/前进、恢复、Task同步、AI直接任务定位、表单保护与axe均实际通过，不代表实体手机或Safari测试。
-- 本地实际HTTP：7组、34请求，含同版本并发一成功一409；本地存储直接CAS探针3轮各8并发修复后均1成功7个412。
-- 独立Review复核至`3e9c69a`，无开放已知P0/P1；最后小增量19项定向复核通过，见[独立记录](REVIEW_ACTIVITY_WORKSPACE.md)。
+- `npm run build`: TypeScript and Vite are built through.
+- `npm test -- --maxWorkers=2 --minWorkers=1`: 36 documents, 548 all adopted.
+- `npm run e2e -- --workers=2`: 272 scenes, 256 pass, 16 condition skip, 0 fail; Eventually, `.last-run.json` was passed and filled with empty Tests.
+- 16 skip is 12 old cellular reprints a11y/keyboard check, 1 touchscreen does not apply to hoover, 3 desktop needles/additional historical scenes; The new version of the mobile phone is largely returned/exited, restored, synchronized with Task, direct task location for AI, form protection and axe, all physically passed without representing the entity ' s cellular phone or Safari testing.
+- Locally actual HTTP: 7 group, 34 requests with the same version and a successful release of 1,409; The local storage of direct CAS probes was successfully completed in 7 412 cases after 8 rounds each were repaired.
+- Independent Review review to `3e9c69a`, no known P0/P1; The final small incremental 19 orientation reviews were passed, see [ Independent Records ](REVIEW_ACTIVITY_WORKSPACE.md).
 
-日志位于集成工作区`.scratch/activity-final-build.log`、`activity-final-unit.log`、`activity-final-e2e.log`和`workspace-http-smoke-report.json`。本轮0次真实AI生成，没有模型质量/实际响应速度验收；本地通过不等于远端CI或部署通过。后续提交仅交接文档，不更改产品逻辑。
+Logs are located in integrated workspaces `.scratch/activity-final-build.log`, `activity-final-unit.log`, `activity-final-e2e.log` and `workspace-http-smoke-report.json`. No live AI generation in the current cycle, no model quality/ actual response velocity; Local pass is not equal to remote CI or deployment through. Submits only Handoff documents after submission, without changing product logic.
 
-实际本地 Functions/Blobs 仿真已验证初始化、草稿岗位绑定、模板确认、资金实例、任务/审批联动、刷新、重放、额度、401/409及并发条件写入。最终结果如上，当前检查不含线上存储或真实AI。
+The actual local Functions/Blobs simulation has been validated for initialization, draft role binding, template confirmation, financial example, task/approval connection, refreshing, resetting, amount, 401/ 409 and conditions of distribution. The end result is as above and the current check does not contain online storage or live AI.
 
-本地 `@netlify/blobs@11.1.6` 模拟器 GET/HEAD 缺 ETag，PUT条件检查也缺原子锁：首次联测触发产品503；直接并发探针发现同版本可能多次写入。仅修外部开发仿真服务器的内容 ETag 与每key写入串行队列，产品严格 CAS 不降级。可重复脚本 `/workspace/.cloud-tools/platypus/patch-local-blobs-etag.mjs --serialize-put`，不提交 node_modules/锁文件。不能把本地仿真通过称为线上 Blobs 验收。
+(a) Local `@netlify/blobs@11.1.6` simulator GET/HEAD missing ETag, and atomic lock missing for PUT condition checks: first combined trigger product 503; Direct and probes find that the same version may be written several times. Only fix the contents of an external development emulator ETag with a string queue for every key, and products are strictly CAS without downgrading. You can repeat the script `/workspace/.cloud-tools/platypus/patch-local-blobs-etag.mjs --serialize-put` and do not submit node_modules/ lock files. Could not call local simulations online.
 
-## 协作与边界
+## Collaboration and borders
 
-独立 Worktree：activity-integration/data/schedule/ui/assistant/setup/review。Data、Schedule、Workspace UI、AI、Setup UI 各有唯一文件负责人，主 Agent 维护契约/壳/成员/文档/集成，Review 独立检查方案、代码与故障恢复。
+Independent Worktree:activity-integration/data/schedule/ui/assistant/setup/review. Data, Schedule, Workspace UI, AI, Setup UI each has a single document owner who is the main Agent maintenance contract/shell/ member/document/integration, Review independent inspection programme, code and malfunction recovery.
 
-旧页、旧示例与 `/#/phase1?example=1` / setup-legacy 保留参考，不自动迁移虚构种子进新组织。开发接续 PR #3，main/正式站未改。远端 CI、部署和真实 AI 质量需另核验，不用本地结果代替。产品文档需要同步用户本地备份。
+Old pages, old examples and `/#/phase1?example=1`/setup-legacy keep reference and do not automatically migrate fieldseeds into new tissues. Development of PR #3, main/official station unchanged. Remote CI, deployment and live AI quality need to be verified separately and not replaced by local results. The product document needs to be backed up locally by the synchronised user.

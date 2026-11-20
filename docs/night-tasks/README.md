@@ -1,94 +1,94 @@
-# Night Mode 任务库
+# Night Mode Task Library
 
-这里是已经写好、随时可以投进队列的任务文件。映射表和清单都由人先算好了
-（`docs/NIGHT_MODE.md` 7c 第 1 条：调查交给人，Night Mode 只做机械改动）。
+This is a task document that has been written and can be put into the queue at any time. The map and the list are all done first.
+(`docs/NIGHT_MODE.md` 7c Article 1: Investigation handed over, Night Mode only made mechanical changes).
 
-文件名的 `N1`…`N6` 就是执行顺序 —— 队列按文件名排序跑。
+The file name `N1`... `N6` is the order of execution -- queue to run by filename.
 
-用法：
+Usage:
 
 ```bash
 cd /Users/Dirofs/AI-Projects/platypus-night-mode
 git pull
 mkdir -p .nightmode/queue
-cp docs/night-tasks/N*.md .nightmode/queue/     # 或只挑想跑的
+cp docs/night-tasks/N*.md .nightmode/queue/     # Or just trying to run.
 caffeinate -dimsu bash scripts/night-queue.sh
 ```
 
-⚠️ **队列跑起来之后，任何人（包括 Claude）都不要推送 `feat/ai-night-mode`。**
-2026-10-27 那一晚 7 个任务全军覆没，唯一原因就是 Claude 在队列运行期间推了一个
-文档提交，之后每个任务都撞在同一面墙上。见 `docs/NIGHT_MODE.md` 7b-2。
+No one (including Claude) will push `feat/ai-night-mode` after the **queues have come up.**
+2026-10-27, that night, 7 was over for the only reason Claude pushed one during the lineup.
+The document is submitted and each task then hits the same wall. See `docs/NIGHT_MODE.md` 7b-2.
 
-## 当前队列（2026-10-29 更新：Night Mode 暂停，N2–N6 由人工会话执行）
+## Current Queue (2026-10-29 Update: Night Mode Pause, N2–N6 by Human Union Talk)
 
-| 任务 | 做什么 | 视觉风险 | 预计 | 依赖 |
+| Tasks | Do what? | Visual risk | Projected | Dependence |
 | --- | --- | --- | --- | --- |
-| N1 | 间距收敛（只动奇数值）| 低（最大 ±2px）| **已完成**（`720680a`，CI 通过）| — |
-| N2 | 圆角收敛到 4 档 | 低（两处 +2px）| 人工会话执行（原预计 40 分） | — |
-| N3 | 字号收敛到 7 档 | 低（最大 ±1px）| 人工会话执行（原预计 50 分） | — |
-| N4 | 消掉死变量 `--st-now`，收敛图表蓝 | **零** | 人工会话执行（原预计 20 分） | — |
-| N5 | 对比度修复 | 中，需 Juanxi 验收 | 人工会话执行（原预计 40 分） | — |
-| N6 | 写 `docs/DESIGN_TOKENS.md` | 零（只写文档）| 人工会话执行（原预计 30 分） | N2 N3 N4 |
+| N1 | Spacing (only odd values) | Low (max.  ± 2px) | **Completed** ( `720680a`,CI passing) | — |
+| N2 | Round corner to 4 | Low (two places +2px) | Man-union speech execution (expected 40 points) | — |
+| N3 | It's coming in. 7Queu  | Low (max. ~1px) | Man-union speech execution (expected 50 points) | — |
+| N4 | Remove Death Variables `--st-now`, take the chart blue | **Zero** | Man-union speech execution (expected 20 points) | — |
+| N5 | Contrast restoration | Juanxi access | Man-union speech execution (expected 40 points) | — |
+| N6 | Write. `docs/DESIGN_TOKENS.md` | nil (writing documents only) | Man-union speech execution (expected 30 points) | N2 N3 N4 |
 
-**N1 放第一个是有意的**：它在 2026-10-27 那晚已经通过了全部闸门（当时叫 T6），
-只是推送被挡住了，所以它是已知能跑通的那一个，用来验证队列本身是通的。
+**N1's on purpose.**: It's... 2026-10-27The entire gate (then called T6) was passed that night.
+It's just a push block, so it's the one that's known to run. It's used to verify that the queue itself works.
 
-## 2026-10-27 那一晚的结果（已结算）
+## 2026-10-27 The result of that night.
 
-7 个任务，实际成功 2 个，全部死在推送上，不是死在代码上。
+7 missions, actual success of 2, all dead on push, not code.
 
-| 原任务 | 结果 | 现在在哪 |
+| Original task | Results | Where are we now? |
 | --- | --- | --- |
-| T1 z-index | 过了全部闸门（611 单元 + 276 e2e + Critic 批准）| **已落地** `55949b8` |
-| T2 圆角 | 做完了活但没过闸门 | 半成品在 `wip/T2-radius`，重写为 N2 |
-| T3 字号 | 做完了活但没过闸门 | 半成品在 `wip/T3-fontscale`，重写为 N3 |
-| T4 状态色 | **任务本身写错了**，见下 | 已删除，可做的部分重写为 N4 |
-| T5 对比度 | 依赖 T4 未成功，被正确跳过 | 解除依赖后成为 N5 |
-| T6 间距 | 过了全部闸门（修了两轮）| cherry-pick 冲突，重跑为 N1 |
-| T7 文档 | 依赖未满足，被正确跳过 | 依赖改为 N2/N3/N4，成为 N6 |
+| T1 z-index | Passed all gates (module 611 + 276 e2e + Critic approval) | **Landed** `55949b8` |
+| T2 Corner | I've finished my work, but I haven't crossed the gate. | Half-finished. `wip/T2-radius`Rewrite to N2 |
+| T3 | I've finished my work, but I haven't crossed the gate. | Half-finished. `wip/T3-fontscale`Rewrite to N3 |
+| T4 Status Color | **The mission itself was wrong.**See you later.  | Deleted, part of which can be rewrite to N4 |
+| T5 Contrast | Reliance on T4 failed, skip correct | Undepend dependency becomes N5. |
+| T6 spacing | It's past all the gates. | Cherry-Pick Conflict Rerun to N1 |
+| T7 Documentation | Reliance not satisfied, right krip | Reliance to N2/N3/N4 becomes N6 |
 
-备份：那一晚的完整提交栈在分支 `backup/2026-10-28-queue` 上，一个都没丢。
+Backup: None of the full filings were lost on branch `backup/2026-10-28-queue` that night.
 
-## T4 为什么是任务写错了，不是 Agent 失败
+## T4 why the mission was wrong, not Agent failed.
 
-T4 跑完只往 `docs/PROGRESS.md` 加了一行，`styles.css` 一个字没动。原因不是预算用尽，
-也不是信息过时（它引用的 5 处硬编码色和 `--st-now` 未定义**全部核对为真**）。
-原因是它有两项交付在语义上不成立：
+T4 ran only to `docs/PROGRESS.md` with one line, `styles.css` without a word moving. The reason is not that the budget has run out.
+Nor is the information obsolete (the 5 hard code colours cited and `--st-now` undefined **are all verified as true**).
+The reason for this is that two of its deliveries are not semantic:
 
-**「让流程图圆点跟随 Settings → Board 的颜色」—— 做不到。**
-`.now` 这个 class 来自 `nodeStop()`（`src/lib/phases.tsx:23`），返回的是
-`StopState = "done" | "now" | "todo" | "risk"` 四个**图表**状态，由排期日期和风险
-算出来。6 个用户状态是多对一压到它上面的（`in_progress`、`waiting`、`blocked`，
-甚至 `accepted` 只要 `latestStart` 过了，全都映射成 `now`）。所以根本不存在
-「对应的状态色」。而且流程图的价值正是显示时间轴位置，改成显示负责人设的状态
-会把它最有用的信息弄丢。
+**"Let flowchart dots follow Settings  → Board's colour" -- unable to do so.**
+`.now` This catch from `nodeStop()` (`src/lib/phases.tsx:23`) returns
+`StopState = "done" | "now" | "todo" | "risk"` Four **Chart** Status by scheduling date and risk
+Count it out. 6 user status is more than one-on-one on top of it (`in_progress`, `waiting`, `blocked`).
+Even `accepted`, as long as `latestStart` is passed, it's all mapd into `now`. So it doesn't exist.
+"The corresponding state colour." And the value of the flow chart is to show the time-axis position and to show the status set by the person in charge
+It'll lose its most useful information.
 
-**「消掉品牌色与状态色的同义不同色」—— 不该做。**
-那不是重复定义，是两套不同约束的系统：
+**"remove the synonyms of brand colour and state color" -- shouldn't be done.**
+That's not a double definition. It's two different systems of restraint:
 
-| | `--late / --good / --warn` | 6 个状态色 |
+| | `--late / --good / --warn` | 6 status color |
 | --- | --- | --- |
-| 用在哪 | 浅色底上的**文字**（5 处）+ 边框 + 背景 | 色块上压**白字** |
-| 深色主题 | **有**独立值（`#f08a80` `#6fcf8a` `#e7a74a`）| **没有**，是用户数据 |
+| Where do you use it? | **text on light colour background** (place 5) + border + background | **white word** on color plate |
+| Dark Theme | **has** standalone value ( `#f08a80` `#6fcf8a` `#e7a74a`）| **No** is user data |
 
-实测对比度（白字压在色上 / 它当文字配米白底 `#fbfaf7`）：
+Actual contrast (white presses on colour / when text with rice `#fbfaf7`):
 
-| 含义 | 品牌 token | 白字在它上 | 它当文字 | 状态色 | 白字在它上 | 它当文字 |
+| Meaning | Brand token | White words on it. | It's a text. | Status Color | White words on it. | It's a text. |
 | --- | --- | --- | --- | --- | --- | --- |
-| 迟了/卡住 | `#b42318` | 6.57 | 6.30 | `#c0362f` | 5.51 | 5.28 |
-| 完成 | `#1a7f37` | 5.08 | 4.87 | `#237a42` | 5.34 | 5.11 |
-| 注意/进行中 | `#8f5206` | 6.22 | 5.96 | `#b25c00` | 4.75 | 4.55 |
+| It's late. | `#b42318` | 6.57 | 6.30 | `#c0362f` | 5.51 | 5.28 |
+| Completed | `#1a7f37` | 5.08 | 4.87 | `#237a42` | 5.34 | 5.11 |
+| Note/ongoing | `#8f5206` | 6.22 | 5.96 | `#b25c00` | 4.75 | 4.55 |
 
-合并会让深色主题崩掉：深色主题的 `--late` 是 `#f08a80`，白字压在它上面只有
-**2.43:1**。而状态色没有深色版本可用 —— 它们是用户存的值，不可能随主题变。
+Merge will break down the dark theme: `--late` for the dark theme is `#f08a80`, with white on it only.
+**2.43:1**。The status color does not have a dark version available -- they are values stored by the user and cannot be changed with the theme.
 
-**教训已写进 `docs/NIGHT_MODE.md` 7c 第 5 条。**
+**Lessons have been written in `docs/NIGHT_MODE.md` 7c Article 5.**
 
-## 还没排进队列的
+## We're not in line yet.
 
-| 事项 | 为什么没排 |
+| Matters | Why aren't you in line? |
 | --- | --- |
-| `Handoff.tsx:61` 内联的 3 个状态色 | 该不该跟随用户状态色是产品语义问题，要 Juanxi 决定 |
-| 清掉未启用的 DeepSeek 供应商路径 | 碰 AI 路由，IRB 提交期间不动产品关键代码 |
-| S6 / S9 / M3 | 需要改保护文件、装依赖或做合并，**不能走 Night Mode** |
-| PR #6 的 M2b 回归 | `e2e/today.spec.ts:8` 在桌面和手机都挂；Night Mode 锁在 `feat/ai-night-mode`，修不了 |
+| `Handoff.tsx:61` 3 status color of the inner connection | Shouldn't you follow the user's status color is a semantic matter? |
+| Clear the unenabled DeepSeek vendor path | Touch AI route, IRB key code for real estate during submission |
+| S6 / S9 / M3 | You need to change your file, install your dependency or do your merge. **Night Mode**  |
+| M2b of PR #6 returns | `e2e/today.spec.ts:8` Hanging on desktops and mobile phones; Night Mode locked in `feat/ai-night-mode`I can't fix it. |

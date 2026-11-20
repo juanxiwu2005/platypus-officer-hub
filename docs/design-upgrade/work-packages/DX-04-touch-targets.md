@@ -1,30 +1,30 @@
-# DX-04 触屏点击区 ≥44px
+# DX-04 Touch Screen Click Area  ≥ 44px
 
-- 阶段 1　大小 S　风险 低　R 级 **R1 可用**　依赖：DX-01　并行伙伴：DX-03、05…08
-- 分支：`design/dx-04-touch-targets`　样式文件：`src/styles/dx-04-touch-targets.css`　对应细节：D04 D05
+- Phase 1Size S Risk Low R Level **R1 Available**Dependence: DX- 01Parallel partners: DX- 03、05…08
+- Branch: `design/dx-04-touch-targets` Style File: `src/styles/dx-04-touch-targets.css` Corresponding Details: D04 D05
 
-## 为什么
-**量到**：手机上 `.icon-btn` 高 32px；代码推算 `.btn` 约 33px、`.chip` 约 28px。Apple 移动端默认点击区 44，最小 28（`accessibility.md`）。现有 `a11y.spec.ts` 只要求 24px（WCAG 2.5.8）。
+## Why?
+**to**: mobile phone `.icon-btn` high 32px; The code calculates `.btn` about 33px, `.chip` about 28px. Apple port default click area 44, minimum 28 (`accessibility.md`). Only 24 px (WCAG 2.5.8) is required for the current `a11y.spec.ts`.
 
-## 要做的事
-全部写在 `@media (pointer: coarse)` 里，**桌面一个像素都不变**：
-1. 主要控件最小高度 44px：`.btn`、`.chip`、`.icon-btn`（宽高都要）、`.seg button`、`.crm-seg button`、`.sidenav a`、表单的 `input`/`select`（非复选框）、`.demo-pill`。
-2. 表格和卡片里密集的小控件不低于 32px：`.tbl .btn.small`、`.board-card` 里的按钮、`.owner-chip button`。
-3. 极小控件用透明伪元素把热区扩到 ≥32px，不改外观：`.swatch`（20px）、`.info`（16px）、`.chain-btn`、复选框所在的 `label` 整行可点。
-4. 相邻可点元素间距 ≥8px。
-5. 每改一处，检查 390px 宽下没有横向滚动（`noOverflow` 为 0），且 `word-budgets.spec.ts` 不受影响。
+## Something to do.
+Write all in `@media (pointer: coarse)`, **desktop with one pixel unchanged**:
+1. The primary controls have a minimum height of 44px: `.btn`, `.chip`, `.icon-btn` (for all), `.seg button`, `.crm-seg button`, `.sidenav a`, `input`/ `select` (non-check box), `.demo-pill`.
+2. The dense little controls in tables and cards are no less than the buttons in 32px: `.tbl .btn.small`, `.board-card`, `.owner-chip button`.
+3. A very small control extends the thermal area to  ≥ 32px, without changing its appearance: `.swatch` (20px), `.info` (16px), `.chain-btn`, and `label` rows where the check box is located.
+4. Neighborhood element spacing ~8px.
+5. For each change, check 390px has no horizontal roll (`noOverflow` is 0) and `word-budgets.spec.ts` is not affected.
 
-## 可以改的文件
-只有 `src/styles/dx-04-touch-targets.css`。不准碰 `.ask-fab`、`.rail`（归 DX-09）。
+## Files that can be changed
+Only `src/styles/dx-04-touch-targets.css`. No contact with `.ask-fab`, `.rail` (DX-09).
 
-## 验收
-- 新测试 `e2e/dx-04-targets.spec.ts`（只在手机项目跑）：对 Today、Tasks、Events、Team、Partners，量所有 `button, a, select, input:not([type=checkbox]), [role=tab]` 的 `getBoundingClientRect`，主要控件 ≥44，其余 ≥32；列出例外并在报告里逐个解释。
-- `a11y.spec.ts`、`touch.spec.ts` 手机项目绿。桌面项目的截图前后字节一致。
-- Juanxi 怎么验：用手机或浏览器的手机模式打开预览，按钮明显更好点，页面没有变宽。
+## Acceptance
+- New test `e2e/dx-04-targets.spec.ts` (run only on cellular items): for Today, Tasks, Events, Team, Partners, all `getBoundingClientRect` of `button, a, select, input:not([type=checkbox]), [role=tab]`, main control < 44 and the rest < 32; Exceptions are listed and explained on a case-by-case basis in the report.
+- `a11y.spec.ts`, `touch.spec.ts` mobile phone project green. The screenshot of the desktop item is consistent bytes.
+- Juanxi Test: Open previews in mobile phone or browser mode, buttons are obviously better and the page is not wide.
 
-## 回滚
-R1：注释掉 `index.css` 里 DX-04 那一行。R2：`git revert -m 1 dx/dx-04-merged`。
+## Rollback
+R1: Comment on line DX-04 in `index.css`. R2：`git revert -m 1 dx/dx-04-merged`。
 
-## 注意
-- 一些表格行高已经是 44px（`.tbl td`），里面的按钮不要再撑高行。
-- 不要用 `min-height` 把 `select` 撑得和旁边的按钮不齐。
+## Attention.
+- Some of the table row heights are already 44px (`.tbl td`), and the buttons inside are no longer high.
+- Don't use `min-height` to keep `select` off the button next to it.

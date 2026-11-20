@@ -1,9 +1,9 @@
 {
   "version": "v2-onboarding-options",
-  "status": "待用户选择；未接入网站",
+  "status": "Awaiting user selection; not connected to the website",
   "baselineFrozenSha256": "c306ca4ac21e5822b1102caae8eb4e0f02c163d5f077c7ac2664a8b5bc5934d2",
   "scope": "Only onboarding. Event creation and task handoff screens remain frozen in v1.",
-  "nextStepRequires": "可以了，进行下一步",
+  "nextStepRequires": "Approved; proceed to the next step",
   "sourceTemplateCommit": "e87b19c95e6eece07a3a695fdc0438de3f92fb67",
   "files": {
     "people-options.html": "e8518c74c2fe1a6790a9d01962d2fb1014dc67067623fb0f920c58b7b20d01db",

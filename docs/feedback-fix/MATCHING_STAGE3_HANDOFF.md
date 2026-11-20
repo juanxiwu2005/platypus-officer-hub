@@ -1,82 +1,82 @@
-# 职责匹配阶段 3 交付
+# Job Matching Phase 3 Delivery
 
-> **本交付已被用户要求回退。** 当前预览恢复 main onboarding，职责设置和业务接入撤下；本页为原提交 `5e301d9` 的历史记录。当前入口、数据保护及检查结果见 [回退交接](MATCHING_ROLLBACK_HANDOFF.md)，原策略供阅读见 [方案说明](MATCHING_STRATEGY_FOR_REVIEW.md)。不要再按下方 Enable responsibility matching 流程验收当前预览。
+> **This delivery has been requested by the user.** Recovering the current preview mainly onboarding, removing the functions and business access; This page is a historical record of the original submission of `5e301d9`. The results of the current entry, data protection and inspection can be found at [ fallback handoff ](MATCHING_ROLLBACK_HANDOFF.md). The original policy is to read [ Program Description ](MATCHING_STRATEGY_FOR_REVIEW.md). Do not press the current preview of the Energy Matching process below.
 
-2026-11-16（America/Phoenix） · Codex 主 Agent + 独立 Workflow / Integration / Review Worktree Agent。
+2026-11-16 (America/Phoenix) . Codex Master Agent + Independent Workflow / Integration / Review World Agency
 
-Juanxi 已明确授权“继续阶段3”。阶段 2 基线为 `dbfc47d`，目标仍是 `claude/fervent-thompson-e2j5u2`、草稿 PR #14；不合并 `main`。本轮完成“任务匹配”三个阶段的业务接入，等待用户验收；RACI、提醒计划、邮件、邮件跳转、后台发送和新人上手没有在本轮启动。
+Juanxi has a clear mandate to “continuing stage 3”. Phase 2 baseline is `dbfc47d`, and the goal remains `claude/fervent-thompson-e2j5u2`, PR #14; Not merge `main`. (a) Business access to complete three phases of task matching in the current round, pending user acceptance; RACI, Alarm Program, Mail, Mail Jump, Backstage Send and Incoming Office are not started in this round.
 
-## 用户现在可以做什么
+## What can the user do now?
 
-预览：<https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching>。
+Preview: <https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching>.
 
-1. 用社长/VP 查看，进入 Team 或 Settings → **Set up responsibilities**。旧组织先点 **Enable responsibility matching**；此动作不会更改已有任务、成员或岗位。
-2. 在实际组织职责库中上传虚构章程或粘贴文本，显式请求 AI 草稿并逐条核对来源；也可直接 **New responsibility**，填职责边界、交付物、必要资格，再确认。
-3. 在岗位职责泡泡、成员例外中关联现有岗位与成员，填写实际可用情况和所需资格；为每个职责设置 **Default person** 与 **Backup**。职责不会授予平台管理或学校审批权限。
-4. 到 **Workflow links** 选择工作流，给各步骤选择本组织职责并确认；复合工作先拆分或明确统筹。标准 46 步均有审阅入口，初始没有被偷偷确认为某个固定岗位。
-5. Tasks → **+ New task** 选职责和一个人；或 Events → **+ New event**，在申请活动的审阅卡中确认实际任务人选。默认人合格可用时预选；备份须明确选择；缺职责、资格未知或无人可用时保留未分配。
-6. 分给别人的任务为 **Not claimed**，由本人点 **I've got it** 接手。任务详情的 **Responsibility & assignment** 可以明确补关联或重新确认分派；旧任务不会伪造过去的回执。
+1. View with president/VP, enter Team or Settings — **Set up recsponsibilies**. **Enable ahead of**; This action does not change an existing task, member or roll.
+2. Uploading or pasting text in the actual organizational duty library, making explicit requests for draft AI and checking sources by article; It may also be confirmed directly at **New Responsibility**, filling the boundary of duties, delivery, necessary qualifications.
+3. Link the existing ruler with the member in the rolle job bubbles, members exception, fill out actual availability and required qualifications; Set up **Default person** and **Backup** for each function. The responsibilities will not be delegated to platform management or schools for approval.
+4. To **World links**, select the workflow and give each step the choice of the organization ' s duties and recognition; Complex work is split or explicitly integrated. The standard 46 step has a review entrance and is not initially identified as a fixed rule.
+5. Tasks  →  **+ New task** Selecting duties and one person; or Events — **+ New event**, identify the actual candidate in the application card. Preselection when the defaulter is qualified; The backup must have a clear choice; Keep undistributed for absence of duties, unknown qualifications or non-availability.
+6. It's a task assigned to others. **Not claimed**I'll do it myself. **I've got it**Take over.  **Responsibility & Assignment**, which details the task, can explicitly complement the connection or reconfirm the assignment; Old missions do not falsify past returns.
 
-已有阶段 2 预览可以 **Import this preview**：必须属于当前组织且引用有效，不能覆盖现有非空职责库，也不会导入示例的假想任务回执。`?example=1` 的 12 人示例仍是隔离演练；不要把示例当成当前团队。
+An existing 2 preview allows **Import this preview**: must belong to the current organization and be quoted as valid, cannot cover an existing non-empty repository of duties or import a sample scenario back into the task. The example of 12 for `?example=1` is still an isolated exercise; Don't take the example as a current team.
 
-职责库顶部可导出全业务备份、显式恢复、暂停或恢复职责匹配。恢复前备份当前数据。**Pause responsibility matching** 保留库、任务与历史；若数据保存或升级备份失败，页面会说明并保留原件。另一个标签页已保存时，本页暂停写入，可以下载本页副本再 reload。
+The top of the functional pool may lead to an operational back-up, visible recovery, suspension or restoration matching of duties. Backup current data before restoring. **Pause responsibility matching** Repository, tasks and history; If the data is saved or upgraded to a backup failed, the page indicates and retains the original. When another tab is saved, this page is suspended and a copy of the page can be downloaded and reloaded.
 
-## 这次接通的架构
+## This time it's connected.
 
-| 内容 | 结果 |
+| Contents | Results |
 | --- | --- |
-| 唯一业务正本 | `DemoState.matching` 保存职责、关系、步骤要求、规则和不可覆盖的回执；`matchingContext` 保存来源审阅、资格可用情况、导入来源和单任务人工例外。姓名和在任情况读取原 people/roles |
-| 真正创建入口 | 活动审阅、Tasks、Ask 任务表单、活动加步骤、首次组织设置及辅助建任务路径使用同一适配器；新模式不再按九类职能猜执行人 |
-| 同职责多人 | 候选去重，默认人/唯一合格人预选，备份等待选择，多人无默认则待选；确认只生成一个任务、一位实际执行人 |
-| 人工例外 | 明确勾选 **Assign manually for this task** 才可绕过本次职责资格；独立记录缺口，不授予永久职责或资格 |
-| 历史保护 | 启用、导入、配置变化不改写已有节点；旧未关联任务改派不从当前模板猜职责；已有任务保留自身工作流身份 |
-| 认领和改派 | 认领按钮、底层认领和看板拖动检查资格；改派沿用 ownerVersion 等转移内核，旧签名链接不会因改回原人而复活 |
-| 工作流拓展 | 标准和自定义流程按 workflowId + stepId 区分，可共用同一组织职责；[46 步表](MATCHING_STEP_COVERAGE.md) 明确 37 个 draft、9 个 needs_split |
-| 持久化 | 外层 22→23 原件备份后升级，保留旧任务；启用后只写业务正本。需确认的操作保存成功后才展示成功；写失败和已发生的跨标签页冲突暂停，不覆盖别页 |
+| Unique Business Original | `DemoState.matching` (a) Preservation of duties, relationships, step requirements, rules and uncoverable return; `matchingContext` Keep source reviews, availability of qualifications, imported sources and individual task manual exceptions. People/rules |
+| Really Create an entrance | The same adapter is used for the activity review, Tasks, Ask tasksheets, campaign plus steps, first-time organizational set-up and auxiliary construction mission paths; The new model no longer counts executors according to nine categories of functions |
+| Multiple people in the same position. | Candidates are downweight, defaulters/only qualified pre-selections, backups await selection, and multiple people are to be selected without default; Confirm that only one task, one actual executor is generated |
+| Manual exceptions | **Assignmanual for this task** is explicitly ticked to avoid eligibility for the function; Independently documented gaps, no permanent duties or qualifications |
+| Historical protection | Enable, import, configure changes without rewrite existing nodes; Reassignment of older unrelated tasks from the current template does not guess responsibilities; A task has been created to keep your job flow status. |
+| Recognition and reassignment | (c) Recognition buttons, bottom recognition and board drag check eligibility; Reassigned with transfer kernels such as ownerVersion, old signature links will not be restored to the original. |
+| Workstream Extension | Standard and customised processes are distinguished by workflow Id + stepId, where the same organizational duties can be shared; [ 46 stepsheet ](MATCHING_STEP_COVERAGE.md) clear 37 draft, 9 needs_split |
+| Lasting | Outer layer 22  →  Original 23 upgraded and old tasks retained; When enabled, only the original business will be written. The operation to be confirmed is saved successfully before it can be demonstrated successfully; Write failures and cross-label conflicts that have occurred are suspended and no other page is covered |
 
-原日期引擎、条件步骤、依赖、预算及现有角色权限保留。为保持原首页入口 550,000 字节门槛，构建单独拆出不依赖 store 的 matching-core 和 Zod validation；没有加依赖或提高门槛。
+The original date engine, conditionalities, dependency, budget and existing roles are maintained. To maintain the 550,000 byte threshold for the original front page, construct separate matching-core and Zod valuations that do not depend on store; No reliance or increase in the threshold.
 
-## Worktree 交付及复核
+## Worktree Delivery and Review
 
-- 主 Agent：冻结契约 `0755270`，业务接入 `89c9418`，拆包 `8335cc7`，数据/认领保护 `5aee6e6`，跨标签页保护 `f5a0c4b`，表单与有效冲突断言 `26af354`，旧设置失败不清草稿 `62ed759`；最终代码/测试候选 `8b9633d`。
-- Workflow Agent：`79a16b6` 首包，`08b788d` 历史工作流身份修复；33 项适配器测试通过，保留提交集成。
-- Integration Agent：独立创建/迁移/恢复/浏览器测试包，从真实 reducer 和网页入口验证，最终浏览器包 `3d9c87b`；没有以直接调用初始化 helper 代替实际启用流程。
-- 独立 Review：完整审阅运行时 `89c9418`，在 `f5a0c4b` 复查通过。发现的旧节点误改、坏配置崩溃、改派旧链接、认领绕过、复盘身份、模板串用、升级暂停与跨标签页覆盖均已修复。独立双 Provider 实验验证已发生外部写入后旧页被拒绝。后续窄范围复核通过表单/有效操作断言及旧 `/setup` 的保存边界修复；按照建议追加了刷新恢复 IndexedDB 草稿的浏览器断言。
+- Main Agent: freezing contracts `0755270`, business access `89c9418`, unpackaging `8335cc7`, data/recognition protection `5aee6e6`, cross-label protection `f5a0c4b`, statement of conflict with validity `26af354`, old setup failed draft `62ed759`; Final code/test candidate `8b9633d`.
+- WorldAgent: `79a16b6` first, `08b788d` historical workflow identity restoration; The 33 adaptor test was passed and the integration was retained.
+- Integration Agent: independent creation/relocation/ recovery/browser test package validated from live reducer and web portal, final browser package `3d9c87b`; No actual process was replaced by a direct call to initialize helper.
+- Independent Review: `89c9418` at full review run, reviewed through `f5a0c4b`. The old nodes detected have been altered, the bad configuration has collapsed, the old links have been reassigned, access has been recognized, the identity of the disk has been recirculated, templates have been used in a series, upgrades have been suspended and cross-label page coverage has been restored. The old page was rejected after the independent double Provider experimental validation had been externally written. Follow-up narrow scope review of preservation boundary restoration through form/operational determinations and old `/setup`; Added to the recommendation is a browser's assertion for refreshing the IndexedDB draft.
 
-## 验证记录
+## Authentication of records
 
-完整 `npm run check` 已执行：lint、生产构建通过，单元阶段 **1553 通过 / 5 超时（111 文件、1558 项）**，命令因此停止，后续浏览器和文字检查另行运行。5 项均为 5 秒超时；不删除断言、不改超时上限。
+COMPLETE `npm run check` Implemented: Lint, Production Construction Pass, Module Phase **1553 Through / 5 Timeout (111 file, 1558 item)**. The command therefore stopped and the follow-up browser and text check run separately. 5 are 5 seconds of overtime; Do not delete assertions and do not change the time limit.
 
-其中 engine 51 项与 uiLog 21 项在低并发复跑共 72 项通过；MatchingSetupView 18 项单独复跑全部通过。剩下 calibration 的逐日全量枚举在阶段 2 基线 `dbfc47d` 同命令也为 **39 通过 / 1 超时**，该条约 19.59 秒，当前分支单独运行约 19.54 秒；并未因本轮新匹配而出现功能断言差异。完整门禁不能据此称为全绿。
+Of these, engine 51 and uiLog 21 were adopted with low-combination 72; MatchingStupView 18s all through. The remaining calibrations are listed daily and in full at stage 2 baseline `dbfc47d` and the same command as **39 by / 1 overtime**, treaty 19.59 seconds, with the current branch running separately for approximately 19.54 seconds; There are no functional differences due to the new matching in this round. A complete ban cannot be called green on this basis.
 
-最终 `npm run build`（含前端类型检查）、`npm run typecheck:netlify` 通过；最大入口 **524.04 kB < 550,000 bytes**。`PW_CHROMIUM=/usr/bin/chromium WORDS_PORT=4357 npm run words` 全页通过；Settings 新增入口后曾超 3 词，已简化说明到 150/150，没有提高上限。Netlify 对代码 `26af354` 的 Deploy Preview 状态为 success；本环境代理对预览域名 CONNECT 返回 403，未把本地浏览器测试当成线上点击验证。GitHub 未返回该提交的 PR workflow run。
+Final `npm run build` (including front end type checks), `npm run typecheck:netlify` passed; Maximum entry **524.04 kB < 550,000 bytes**. `PW_CHROMIUM=/usr/bin/chromium WORDS_PORT=4357 npm run words` full page adopted; Settings has exceeded the 3 word by adding a new entry and has been simplified to 150/150, without raising the upper limit. Netlify 's Deploy Preview status for code `26af354` is access; This environment agent returns 403 to the preview domain name CONNECT and does not use local browser tests as online click validation. GitHub did not return the submitted PR workflow run.
 
-完整浏览器检查在生产构建 `26af354` 上运行 **1158 项：1038 通过 / 107 跳过 / 13 失败（22.9 分钟）**。失败逐项处理，没有删断言、改质量上限或把跳过计入通过：
+Full browser check is in production construction `26af354`Run Up **1158Item: 1038Adopted / 107Skip / 13Failed ( 22.9minutes)**。 Failed to deal with item by item, without deleting an assertion, changing the quality cap or including skip through:
 
-- 7 项菜单/提示/流程动效采样在低并发定点复跑通过。
-- 4 项失败来自测试在 Provider 挂载后直接清主存档，触发新跨标签页保护：`rehearsal`、`dx-18-empty`、`dx-25-done` 的清理移至首次文档加载前；Rules 另先等待列表实际呈现。原任务计数、完整参与者路径、空结果恢复断言保留，最终复测均通过。任务计数基线 `dbfc47d` 也单独运行通过，未将此项误记为原有失败。
-- 2 项确认页词数超出：压缩新增开关为 **Responsibility matching**，包括重复建组织的替换警告在内，桌面/手机亮暗两种主题原 40 词预算与无障碍检查全部通过。
-- 追加旧 `/setup` 保存失败回归：仅阻止主存档写入，校验原 raw、URL、活动名、确认框不变，再刷新、Restore it 并核对原社团名。桌面/手机两项通过；先保存成功才清草稿和离开的修复没有放宽旧业务校验。
+- 7 menus/tips/flow action samples are low and issued point-run through.
+- 4 failed from testing direct master archiving after the Provider has been mounted, triggering a cleanup of new cross-label protections: `rehearsal`, `dx-18-empty`, `dx-25-done` to move before initial loading; Rules waits for the list to actually appear. The original task count, the complete participant path, the results of the empty return to assert that they were retained and the final re-evaluations were carried out. The task count baseline `dbfc47d` was also run separately, and this error is not recorded as an original failure.
+- The 2 confirmed words exceed: the compressed new switch is **Responsibility Matching**, with both desktop/cell phone blackout original 40 and accessibility checks approved, including a replacement warning for repeat organizations.
+- Adds old `/setup` save failed to return: only the master archive is prevented from writing, the original raw, URL, active name, confirmation box remains unchanged, re-renewed, Restore it and collated the originaltant event name. (a) Desktop/cell phone adoption; The recovery of the drafts and departures prior to saving for success did not ease old business verification.
 
-修复后的定点检查全部通过；没有再次运行 1158 项全站检查，不将分次复测写为一次全站全绿。完整 `npm run check` 仍因原有 calibration 超时未全绿。全站原始产物保存在 `/tmp/matching-s3-full-results-26af354`，日志分别为 `/tmp/matching-s3-final-check.log`、`/tmp/matching-s3-full-e2e-final.log`、`/tmp/matching-s3-final-rerun.log`、`/tmp/matching-s3-confirm-and-count.log`、`/tmp/matching-s3-count-final.log`。
+All post-repair spot checks were passed; No full station check of 1158 is run again, no one-stop greening will be written. The complete `npm run check` is still not green due to the old calibration. The station-wide original products are kept at `/tmp/matching-s3-full-results-26af354`, with logs `/tmp/matching-s3-final-check.log`, `/tmp/matching-s3-full-e2e-final.log`, `/tmp/matching-s3-final-rerun.log`, `/tmp/matching-s3-confirm-and-count.log`, `/tmp/matching-s3-count-final.log`.
 
-已完成的针对性验证：
+_Other Organiser
 
-- 最终代码的创建/持久化/恢复、适配器、onboarding 参数保护及 Store 回归共 **6 文件 104 项通过**（`npm test -- src/matching/stage3Creation.test.ts src/matching/stage3Persistence.test.ts src/matching/stage3RecoveryUI.test.tsx src/matching/adapters/adapters.test.tsx src/test/onboardingInvite.test.ts src/test/store.test.tsx --maxWorkers=2`）。跨标签页用例先证实命令本来有效，确保拒绝不是因为命令不合法。
-- 适配器 33 项通过；认领、旧签名链接、标准与自定义流程、12 人自定义岗位、旧节点完整对象保留、导出恢复有回归。
-- 最终业务桌面 9 + 手机 9，共 18 项浏览器通过；全部 `/api/**` 模拟。实际职责库、建任务和任务详情三屏在桌面/手机共六次 Axe 检查无 critical/serious，无横向溢出。截图 `/tmp/matching-s3-{desktop,mobile}-{live-library,new-task,task-detail}.png`；主 Agent已目视，并据此调整建任务布局。
-- 真实 AI 调用 **0 次**；未做真实 Blob/AIR 联通或真实用户数据测试。
+- The final code creation/sustainability/restoration, adaptor, onboarding parameter protection and Store regression total **6 files 104 through** (`npm test -- src/matching/stage3Creation.test.ts src/matching/stage3Persistence.test.ts src/matching/stage3RecoveryUI.test.tsx src/matching/adapters/adapters.test.tsx src/test/onboardingInvite.test.ts src/test/store.test.tsx --maxWorkers=2`). Cross-labels first confirm that the order is in force and ensure that the refusal is not due to unlawfulness of the order.
+- 33 pass for adaptor; Recognition, old signature links, standard and custom processes, 12 self-defined role, former node complete object retention, export restoration return.
+- Final business desktop 9+ mobile phone 9, with a total of 18 browsers passing; All `/api/**` simulations. The physical duty library, construction tasks and task details are screened six times on the desktop/cell phone at Axe. There is no critical/serious check without horizontal spillovers. Screenshot `/tmp/matching-s3-{desktop,mobile}-{live-library,new-task,task-detail}.png`; Major Agent has seen and adjusted the configuration of the task accordingly.
+- Live AI call **0**; No live Blob/AIR connection or live user data testing.
 
-## 仍然存在的限制
+## Remaining restrictions
 
-1. 主业务仍为浏览器本地存储，没有真实组织账号、跨设备同步或服务端原子事务；跨标签页检查能拦截已发生的外部写入，不能承诺同时写入的原子 CAS。
-2. 当前主业务只有一个 `org.eventWorkflow` 自定义模板，另有标准模板；自定义流程仍受现有 ASU 必须步骤约束。本轮验证是标准流程与保留政策骨架、增加专业步骤的自定义流程，没有交付任意数量模板管理或自由流程生成器。匹配核心支持不同 workflowId；未来多模板需新增稳定模板 ID 和选择入口，复用同一职责库和解析器。一句话生成流程可产出待审阅步骤，再走相同的职责和分派接口。
-3. 本轮没有自动证明职责在语义上完全互斥或覆盖全部政策。46 个标准步骤逐项有未解决标记；所有政策和 general 工作职能的完整提取审计仍未完成。
-4. 外部系统账号与专业资格由人确认，未知仍为未知。旧 `Role.holderId` / `Person.roleId` 继续服务原权限与交接，职责多人候选不等于已经重做完整多岗任职系统。
-5. Safari/iOS、真实断电恢复、真实 AI 输出质量、私有 Blob 联通未实测；本地 Chromium 模拟结果不代表这些环境已通过。
+1. The main business is still stored locally by the browser and there are no live organizing accounts, cross-equipment synchronization or service end atomic services; Cross-label checks can intercept external writings that have occurred and cannot promise to write atom CAS simultaneously.
+2. There is only one `org.eventWorkflow` custom template for the current main business, with standard templates; The custom process is still subject to the existing AAU step. This cycle of validation is a custom-defined process for standard processes and retention of policy skeletons, adding professional steps, without delivery of any number template management or free flow generator. Match core supports different worklowId; Many future templates will need to add a stable template ID and select an entrance to the same duty library and parser. The process of generating a single sentence is an output to be reviewed step, followed by the same responsibilities and assignment interfaces.
+3. The present round does not automatically demonstrate that the duties are semantic and mutually exclusive or cover all policies. 46 standard steps with unresolved markers, item by step; The complete extraction audit of all policy and general work functions is still incomplete.
+4. External system accounts and professional qualifications are confirmed and unknown. Old `Role.holderId` / `Person.roleId` continues to serve former missions and handoff, and multi-manufacturing candidates are not equal to having re-established the full multi-service system.
+5. Safari/iOS, live power outages recovery, live AI output quality, private Blob connection not measured; Local chromium simulations do not represent the environment that has passed.
 
-## 回退和下一步
+## Fallback and next
 
-优先使用页面 **Pause responsibility matching**。如需回退代码，兼容读取基点 **`e370361`** 必须保留：能读取 23 并保留匹配和未知字段，不能直接回到只认识 22 的代码。不要改低版本号、清存档或 Reset demo。详细迁移与恢复见 [兼容说明](MATCHING_COMPATIBILITY.md)。
+Give priority to page **Pause responsibility matching**. If you need a fallback code, read the base point **`e370361`** must be retained: you can read 23 and keep matches and unknown fields. You cannot return directly to the code that only knows 22. Do not change the lower version number, file or Reset demo. Detailed migration and restoration see [ Compatibility Note ](MATCHING_COMPATIBILITY.md).
 
-等待 Juanxi 看预览并提出修改。此交付不批准合并 main，也不自动进入 RACI 等后五项工作。**需要同步本地备份。**
+Wait for Juanxi to look at the preview and propose changes. This delivery is not authorized for merge main, nor does it automatically enter the last five jobs of RACI etc. **needs to synchronize local backups.**

@@ -1,7 +1,7 @@
-# 五屏交互稿 v1：保留版本
+# Five-screen interactive text v1: retention version
 
-用户明确要求先保存这一版，逐步审阅。`five-screens.html` 为完整原件，源文件SHA-256见manifest.json；包含样式、虚构数据、五个视图和本地交互。
+Users have explicitly requested that the version be kept first and reviewed progressively. `five-screens.html` is the complete original, source document SHA-256; see manifest.json; Contains styles, pictureal data, five views and local interactions.
 
-当前只讨论onboarding：岗位层级、职位/姓名/email以及完整工作流的任务分组。新建活动、Finance批量分派、Marketing直接换人、活动统筹详情改派四屏原样保留。只有用户说“可以了，进行下一步”才推进新建活动的下一轮设计；本文件不被onboarding新稿覆盖。
+Currently, only tasks subgroups are discussed for the following levels, posts/names/emails and full workflow. New activities, Finance batch assignment, Marketing direct replacements and integration of activity details were re-allocated in four screens. The next round of design for the new activity will be advanced only if the user says "Yes, next step"; This document is not covered by the new version of this document.
 
-这是对话内可视化的HTML片段，可通过原visualize宿主恢复，不是直接部署到网站的业务代码。未接真实账号、AI调用、邮件发送或存档写入。需要同步本地备份。
+This is a visual HTML segment within the dialogue, which can be restored through the former Visualize host and not an operational code directly deployed to the website. Could not close temporary folder: %s Could not close temporary folder: %s

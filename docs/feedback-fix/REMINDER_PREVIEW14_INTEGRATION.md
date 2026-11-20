@@ -1,31 +1,31 @@
-# 提醒阶段1–3整合至 preview 14
+# Reminder phase 1-3 integrated to preview 14
 
-2026-11-16（America/Phoenix） · Codex · 用户明确要求“不需要新增pull request，把代码整合到preview14里面就可以”。
+2026-11-16 (America/Phoenix) . Codex . Users explicitly requested that “no need to add a pull recall, just integrate the code into Preview14”.
 
-## 交付范围
+## Scope of delivery
 
-沿用 [PR #14](https://github.com/juanxiwu2005/platypus-officer-hub/pull/14) 与分支 `claude/fervent-thompson-e2j5u2`，从其最新回退结果 `57c7e55` 开始；将提醒开发分支 `feat/reminder-plan-v2@9f100b3` 以保留历史的合并提交 `0555fc4` 整合进来。运行时代码最终为 `6bb3e24`，其后只补交付文档；不新开 PR、不改写分支历史、不合并或发布 main。
+Following [PR #14 ](https://github.com/juanxiwu2005/platypus-officer-hub/pull/14) and branch `claude/fervent-thompson-e2j5u2`, starting with its latest fallback result `57c7e55`; Submit `0555fc4` to the development branch `feat/reminder-plan-v2@9f100b3` to keep history. The running-time code is eventually `6bb3e24`, followed by the delivery of documents only; Do not open PR, do not rewrite branch history, do not publish merge or publish main.
 
-保留规则生成的简短邮件、一个 Task due、唯一独立任务入口、四种进展状态、Waiting on 独立收件人与权限、Details 三段、提醒中心单条/批量/自动演示、新组织默认与旧存档显式启用，以及保存失败重试和历史记录保护。提醒规则及真实后台边界沿用[阶段三交付](REMINDER_STAGE3_HANDOFF.md)。
+Keeps short mail from the rules, a Task duee, the only stand-alone mission entry, four status of progress, Waiting on Independent Recipients and Personnel, Details III, Remind Centre Single/Batch/AutoMide, new organization default and old archive display enabler, as well as save failed retry and historical record protection. The reminder rules and live backstage boundary follow the [ Phase 3 deliver ](REMINDER_STAGE3_HANDOFF.md).
 
-本次整合服从 preview 14 的最新撤回决定：`src/onboarding/`、App 路由、原任务创建页和 Team 相比 `57c7e55` 无变更；独立职责匹配模块不恢复。`matching` / `matchingContext` / 节点旧匹配字段保留为不解释的归档，移除新提醒页面对已撤下匹配模块的导入和判断。任务仍须先认领才能更新进度，改派仍使旧提醒链接失效；新增回归确认旧归档不会阻止认领，也不会被提醒更新改写。
+This integration is subject to the latest withdrawal decision by preview 14: `src/onboarding/`, App route, original job creation page and Team no change from `57c7e55`; The separate function matching module is not restored. `matching`/ `matchingContext`/ The old node matching field is retained as an unexplained archive, removing the import and judgement of the new reminder page on the removed matching module. Tasks still need to be recognized before progress can be updated, and reassignment continues to render the old reminder link ineffective; The addition of a return confirmation old archive will not prevent recognition or be reminded to update it.
 
-仅为保持既有首页入口预算，将无 store/UI 依赖的提醒引擎与运行时校验独立为可缓存的 `reminder-rules` 模块。首页正常预加载，未隐藏功能、延后判断或提高门槛。
+Check independently of store/UI-dependent alarm engines and running hours only to maintain the existing budget for the first page entrance `reminder-rules`Module.  The first page is normally preloaded without hiding the function, delaying judgement or raising the threshold.
 
-## 检查
+## Inspection
 
-- 相关单元/组件：31文件 **381项通过**，包括规则邮件、独立入口、等待对象、Provider、保存恢复、Details、设置、原 onboarding、业务工作流及职责撤回；新增归档任务的提醒入口认领/改派失效回归。
-- lint、前后端类型、生产构建、新提醒CSS检查通过。9页文字预算通过，首页92/200（总92/500）、Settings147/150。
-- 最终构建以 `COMMIT_REF=6bb3e2476c317069853d2db6a7486fa669358687`、实际 PR #14 分支及 `deploy-preview` 构建元数据生成。入口 `/assets/index-nmMIPOpH.js` 为 **542,788 / 550,000字节**；原打包首次551,793的超限已修正，没有调高预算。
-- 最终打包版：桌面/手机关键16项全部通过，包括入口体积、首页初始请求、延迟路由、PDF按需加载、Details三段与无障碍/溢出、批量完整邮件、Waiting独立跟进和写失败保留输入。桌面/手机Details截图已实际查看。
-- 首轮桌面/手机98项为95通过、1原设备限定项跳过、2入口超限失败；通过上述缓存拆分修复超限后，最终打包版关键16项全部通过（包含原失败的桌面/手机入口用例）。按不重复用例计 **97通过、1原有限制跳过**，分批验证，不称一次完整全站门禁。包括原main版onboarding确认/邀请及发送方式、职责撤回和旧归档认领、独立任务页刷新/四状态/改派撤权、三发送演示模式、批量、历史与回复、计算依据开关和无障碍。
+- Relevant modules/components: 31 documents **,381 passing through**, including rule mail, stand-alone entrances, waiting objects, Provider, preservation restoration, Details, settings, original onboarding, business workflow and withdrawal of duties; Reminder portal recognition/reassignment for new archiving tasks.
+- Lint, back-end type, production build, new reminder CSS check pass. Nine pages of the budget for text were approved, first page 92/ 200 (total 92/ 500), Settings 147/ 150.
+- Finally constructed to construct metadata generated from `COMMIT_REF=6bb3e2476c317069853d2db6a7486fa669358687`, actual PR #14 branch and `deploy-preview`. `/assets/index-nmMIPOpH.js` is **542,788/ 550, 000 bytes**; The limit of 551,793 for the first time in the original package had been amended and no budget was raised.
+- Final packaged version: all 16 critical desktop/cell phones have been adopted, including entrance volume, initial request for the first page, delayed route, PDF loading on demand, section Details and accessibility/overflow, bulk complete mail, separate Waiteng follow-up and failed retention input. A screenshot of Desktop/Cell Phone Details was actually viewed.
+- The first round of desktop/cell 98 passes with 95 passes, 1 original device limit skip and 2 entrance overlimits failed; All 16 key items of the packaged version (including original failed desktop/cell entrance examples) were finally passed after the above-mentioned cache splitting was restored beyond limit. **97 passed without repetition, 1 former limit skip** for batch verification and does not refer to a complete stopout. These include the original main version of anonboarding confirmation/invitation and transmission, withdrawal of duties and old filing recognition, independent task page updates/four states/reassignments, third distribution demonstration mode, batches, history and response, calculation of base switches and accessibility.
 
-未重复全站完整门禁、真实AI或邮件投递。职责回退交付中已记录的 First event 原文64词/60词预算差异没有修改；本轮没有运行该项并假称通过。此前 calibration 原5秒超时同样不因本轮局部检查视作解决。
+Do not repeat full stop access, live AI or mail delivery. No change to the recorded budget difference between 64 and 60 words in the responsibility fallback delivery; This round did not run the item and was falsely passed. Previously, the original five-second timeout was also not considered to have been resolved by the current round of partial inspections.
 
-## 验收与部署
+## Accessance and deployment
 
-沿用 [preview 14 提醒中心](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/)。已有存档先点 **Enable updated reminders**；从任务行打开 Details 核对一个截止日、具体要求与提醒对象。审核草稿后查看 Recorded email，通过唯一 Open task 链接检查 Working on it、Waiting on、Stuck 和 Done。原 onboarding 可从 `/#/welcome/test/president` 查看；`/#/matching` 应继续转到 Settings。
+[ preview 14 Reminder Centre ](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/). _Other Organiser **Enable updated reminders**； Opens Details from the task line to check a cut-off date, specific request and alarm object. Checked for Recorded email, checking Working on it, Waiting on, Stuck and Done through the only Open tab link. Original onboarding can be viewed from `/#/welcome/test/president`; `/#/matching` should continue to be transferred to Settings.
 
-已从 GitHub 的 Netlify 状态和机器人记录确认准备提交 `d47fb5f` 自动部署成功；整合推送沿用相同连接，以 PR #14 的 `netlify/platypus-officer-hub/deploy-preview` 检查对应分支最终提交为核验依据，再向用户交付预览地址。推测的 preview 15 地址不再使用，也不要求用户另建站点。无可用的 Netlify 直接部署连接，不影响既有 PR #14 的 Git 自动部署。
+Confirmation of readiness for submission to `d47fb5f` automatic deployment from Netlify state and robotic records in GitHub; Combining is followed by the same connection, with `netlify/platypus-officer-hub/deploy-preview` of PR #14 checking that the corresponding branch is eventually submitted as a basis for verification and the preview address is delivered to the user. The presumed preview 15 address is no longer in use and users are not required to set up another site. No direct deployment connection is available for Netlify, without affecting the Git automatic deployment of existing PR #14.
 
-本轮日志位于 `/tmp/preview14-reminders-{unit,lint-types,words,css,browser,final-browser,candidate-build}.log`。需要同步本地备份。
+This cycle log is located at `/tmp/preview14-reminders-{unit,lint-types,words,css,browser,final-browser,candidate-build}.log`. Could not close temporary folder: %s

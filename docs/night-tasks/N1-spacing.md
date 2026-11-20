@@ -1,7 +1,7 @@
 # Goal
 
-把 src/styles.css 里那些明显随手写的奇数间距值收敛到相邻的常用值。
-只动奇数值，常用的偶数值（4/8/12/16/20/24）一律不碰，所以位移最多 1px。
+Take the odd spacing values of src/stryles.css, which are clearly handwritten, to adjacent commonly used values.
+Only odd values are moved and the usual even value (4/8/12/16/20/24) is not touched, so moving to a maximum of 1 px.
 
 # Files
 
@@ -9,20 +9,20 @@
 
 # Constraints
 
-- 只使用虚构演示数据。
-- 不修改依赖、部署、GitHub Actions、密钥、研究数据或 Night Mode 安全文件。
-- 不修改或合并 main。
-- 只改 src/styles.css，不碰任何 .tsx/.ts 文件。
-- 不要碰 src/organization/、src/phase1/、src/workspace/ 下的 CSS。
-- 不改字号、圆角、颜色、z-index。这一轮只动 padding / margin / gap。
-- **改完不要回头重读文件去「核对基线」。**
-- 不确定的一律保留，并写进交接记录。
+- Only field presentation data are used.
+- Do not modify dependencies, deployments, GitHub Actions, secret key, research data or Night Mode security files.
+- Do not modify or mege main.
+- Src/ styles.css only, without touching any.tsx/.ts files.
+- Do not touch src/organisation/, src/phase1/, src/workspace/ under CSS.
+- Do not change character, corner, colour, z-index. This round only moves padding / margin / Gap.
+- **does not reread the document to "check the baseline".**
+- Undetermined retention and writing in handoff records.
 
 # Done means
 
-## 1. 只做这几个替换，其余间距值一律不动
+## 1. Just these replacements, the rest of the space remains intact.
 
-| 现值 | 换成 | 位移 |
+| Present value [p] | Change it to | Offset |
 | --- | --- | --- |
 | `1px` | `2px` | +1 |
 | `3px` | `2px` | −1 |
@@ -33,28 +33,28 @@
 | `18px` | `16px` | −2 |
 | `22px` | `24px` | +2 |
 
-**不要动**：`2px` `4px` `6px` `8px` `10px` `12px` `14px` `16px` `20px` `24px`
-`28px` `40px` `48px`。它们是高频值，动了就是改外观。
+**Hold still**: `2px` `4px` `6px` `8px` `10px` `12px` `14px` `16px` `20px` `24px`
+`28px` `40px` `48px`。They're high-frequency, they move to look.
 
-⚠️ `18px` 和 `22px` 是 ±2px 的位移，各自只有几处。在交接记录里单独列出改了哪些选择器。
+The `18px` and the `22px` are  — 2px shifts, each with only a few. Lists separately which selections have been changed in the Handoff record.
 
-## 2. 加一组间距 token（只加定义，这一轮不强制全站替换）
+## 2. Add a set of spacing token (defined only, this round is not mandatory for full station replacement)
 
 ```
 --s1: 2px;   --s2: 4px;   --s3: 6px;   --s4: 8px;
 --s5: 12px;  --s6: 16px;  --s7: 24px;
 ```
 
-在上面加一行注释说明：这是现有高频值归纳出来的，不是理想的 4px 栅格 ——
-选择保留观感优先于栅格纯粹。新写样式应该用这些 token。
+Add a line above to explain that this is the result of an existing high frequency value, not the ideal 4px grid --
+The choice of a retentionist perception over the pureness of the grid. The new writing style should use these tokens.
 
-## 3. 验收
+## 3.
 
-- `npm run check` 必须通过，原有测试一条都不能删、不能改宽松。
-- 在交接记录里写：每个奇数值各改了多少处，以及 18px / 22px 改了哪些选择器。
+- `npm run check` must be passed and the original test article cannot be deleted or reduced.
+- In the handoff record, how many changes have been made to each odd value and which selections have been changed in 18px/ 22px.
 
 # Out of scope
 
-- 不强制把全部间距换成 token（风险高、收益低）。
-- 不做字号、圆角、颜色、z-index。
-- 不碰 src/engine/、netlify/、src/data/、任何 .tsx。
+- There is no obligation to exchange all spacing for token (high risk, low return).
+- Do not make word numbers, round corners, colours, z-index.
+- Do not touch src/engine/, netlife/, src/data/, any.tsx.

@@ -1,58 +1,58 @@
-# 提醒阶段二：规则邮件与独立任务页交付
+# Reminder phase two: rule mail and stand-alone task page delivery
 
-2026-11-16（America/Phoenix）。Juanxi 明确要求“继续阶段2”。分支 `feat/reminder-plan-v2`，沿用 [PR #15](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15)，base 为 `claude/fervent-thompson-e2j5u2`；先合入其 `26af354`，收尾同步至 `5e301d9`，保留实际任务匹配、认领规则与 v23 存档保护。只解决 PROGRESS 的文档冲突，保留两项工作的交付记录。
+2026-11-16（America/Phoenix）。Juanxi expressly requested “Continuing Phase 2”. (a) Branch `feat/reminder-plan-v2`, which follows [ PPR #15 ](https://github.com/juanxiwu2005/platypus-officer-hub/pull/15), base is `claude/fervent-thompson-e2j5u2`; Combine with its `26af354`, synchronize to `5e301d9`, and retain the actual task matching, recognition rules and file protection of v23. Only resolves file conflicts with PROGRESS and keeps records of the delivery of two jobs.
 
-## 本阶段的结果
+## Results at this stage
 
-| 用户要求 | 实际交付 |
+| User Requirements | Actual delivery |
 | --- | --- |
-| 规则优先，避免等待 AI | 单条提醒编辑器完整走纯规则，不请求 AI，即使全站 AI 开关打开也不等待；问候、日期解释、要求、重要性、协作与感谢均由规则和已保存事实组成 |
-| 活动在前，项目在后 | 主题固定为 `活动 · 具体任务`，独立任务使用 Club work |
-| 一个重点截止日 | 正文突出 Task due；开始日只用于自然解释“今天到了计划开始日”等触发原因，到期和逾期按当前记录表述，避免断言现实中没有完成 |
-| 具体要求与意义 | 优先人工 Task instructions / Completion criteria / Why it matters，其次真实活动人数、步骤和依赖；缺人数不造 40 人；Details 的 Edit 中可维护这些字段 |
-| 邮件简洁 | 正文约100英文词以内，问候、任务要求、重要性、协作与感谢；校验正文只有一个 Open task 链接，不再罗列四个状态链接或原始材料网址 |
-| 点开后只看当前任务 | 新入口 `/#/officer?access=…`，单独显示对应活动/任务、一个截止日、具体要求、完成标准、重要性、一个适用的真实办理入口及状态操作 |
-| 可以持续更新 | 同一链接可以 Working on it → 刷新 → Done，完成后仍可查看；未认领任务先 I've got it，不能绕开职责匹配认领要求；Working 不冒充延期申请 |
-| Waiting on 协助 | 选现任成员并填写所需协助；新运行时中生成对该对象的独立跟进。对方的入口只有 Acknowledge / Update provided，原任务负责人和状态不因响应改变；其他外部依赖可保存说明，不猜邮箱 |
-| 防止误操作或假成功 | 重新分配、归属版本变化、离任、过期和篡改入口失效；财务控制节点不能直接 Done；保存失败保留输入并提示重试，不靠旧记录显示本次已保存 |
-| 可追溯的内容 | 记录经当前收件人、模式、要求和授权重新校验的规则邮件快照；旧历史不补造正文或收件人；动作摘要不复制 token、签名或完整邮件 |
+| Rule first, avoid waiting for AI | Single reminder editor completes the clean rules, does not request AI and does not wait even for full-stop AI switches to be opened; Queries, date explanations, requests, importance, collaboration and gratitude are made up of rules and preserved facts |
+| Activity ahead, project behind | Subject fixed as `event · specific task` , stand-alone task with Club work |
+| A priority cut-off date. | The text highlights Task due; Start date is used only for natural reasons such as “Today to the start of the plan” triggers, which are expressed in the current records as due and overdue, avoiding a claim that the reality is incomplete |
+| Specific requirements and implications | Task instructions / Complement crimeia / Why it matters, second live activity number, steps and dependence; The absence of 40; These fields can be maintained in Edit of Details |
+| Email Simple | Within the text, approximately 100 words in English: greetings, mandate requirements, importance, collaboration and thanks; Verify body only one Open tab link and no longer list four status links or original material sites |
+| Just look at the current task when you do. | New entrance `/#/officer?access=…`, showing separately the corresponding activity/task, a cut-off date, specific requirements, completion standards, materiality, an applicable live processing portal and status operation |
+| You can keep it up to date. | Working on it  →  Done, which can be viewed after completion; I've got it, cannot bypass the duty matching requirements; Working does not pretend to be an extension request |
+| Waiting on | Select the current member and fill in the required assistance; Generates independent follow-up on the object when it is running. The only entrance to the other party was Acknowledge/Update requested, and the original mandate holder and status did not change as a result of response; Other external reliance can save instructions without guessing mailboxes |
+| Prevent mishandling or false success | Redistribution, change in the attribution version, departure, expiry and alteration of entry points; Financial control nodes cannot be directly Done; Save failed to save input and prompt retry, displaying this saved instead of old records |
+| Retroactivity | (a) Record a rule mail snapshot that has been re-checked by the current recipient, mode, request and authorization; The old history does not replace the text or the addressee; Action summary does not copy token, sign or complete mail |
 
-新邮件和任务页按需加载，旧 `?token=` 一次性入口保留兼容。新访问授权仅为当前浏览器本地演示，不是服务器登录或跨设备能力。
+New mail and task pages are loaded as required, with the old `?token=` one-time entry reserved for compatibility. The new access authorization is only a local demonstration of the current browser and not a server login or cross-equipment capability.
 
-## 怎样验收
+## What do you mean, "accidentance"?
 
-预览发布后，从 Tasks 打开一项已有负责人、尚未完成的任务，在 Details 点 Remind。先核对主题的活动/任务顺序、Task due、具体要求和感谢，再点唯一 Open task 链接；在任务页选择 Working on it，刷新后再选择 Done。预览状态更正（2026-11-16，America/Phoenix）：此前推测的 PR #15 地址实际显示 Site not found，当前无有效在线预览链接；最新交付入口及部署障碍见[阶段三交付](REMINDER_STAGE3_HANDOFF.md#如何验收)。
+After the preview is released, open an uncompleted task from Tasks on Details Point Remind. Check the theme 's activity/task order, Task due, specific requirements and thanks, and only Open task links; Select Working on it, after refreshing. Preview status correction (2026-11-16, America/Phoenix): The previously presumed PR #15 address actually shows Sit not found and there are no valid online preview links; For the latest delivery portal and deployment barriers, see [ Phase III for ](REMINDER_STAGE3_HANDOFF.md#hows-that).
 
-如要对比具体要求，在原任务 Details 的 Edit 中修改 Task instructions / Completion criteria / Why it matters，保存后重新打开提醒，正文与任务页应读取最新事实。办理按钮可能是学校的申请入口；已知只有入口页时明确写适用范围，不冒充已登录后的具体申请表。
+If you want to compare a specific request, modify Task in Edit of the original task Details/Completion Crimeia/ Why it changes alarms after saving, and the body and task page should read the latest facts. The processing button may be an application entrance to the school; Only the entry page is known to have a clear scope of application and not to pretend to be a specific application form after it has been entered.
 
-Waiting on 的完整新计划候选和独立邮件需已有显式启用的新运行时；普通旧存档仍走兼容计划。本阶段浏览器验收对独立跟进使用真实持久化 runtime 夹具，确认收件人为等待对象，且其页面不能修改原任务状态。最终统一的启用入口、单条/批量/自动演示链路和 Details 重排属于阶段三。
+The full new scheme candidate and stand-alone mail on the list is required to be clearly enabled for a new run; Normal old archives are still compatible. At this stage the browser acceptance uses the Live Runtime folder for independent follow-up, confirming that the recipient is a pending object and that its page does not modify the original task status. Final uniform access, single/batch/auto-show links and Details reorder to phase III.
 
-## 独立审阅与修正
+## Independent review and revision
 
-Mail 与 Page 在各自 worktree 开发，主 Agent 独占共享类型、授权、store、消息快照、路由桥、任务说明编辑和集成检查；独立 Review 对集成候选检查，反例交原负责人修复。
+Mail and Page develop their worktrees, master Agent owns the sharing type, authorization, store, message snapshots, route bridges, job description editing and integration checks; Independent Review checks the integrated candidate and gives it to the original person responsible for repair.
 
-1. 损坏 runtime 缺少 waitingRequests 时，普通负责人保存状态会报错。现在读取前验证结构，普通任务更新不依赖损坏的等待记录，原字段仍完整保留。
-2. 同日同内容旧邮件可能被误当作本次保存成功。保存确认必须核对本次动作及新增记录，不能只搜索相同正文。
-3. 重新打开已有 Waiting on 再保存可能用人名覆盖协助说明，造成关闭/重建请求。现在预填保存的说明；不改内容不会制造新跟进。
+1. If the damage to rantime is missing waitingRequests, the normal owner ' s state of preservation will be misreported. The pre-read validation structure is now read, ordinary task updates are not dependent on damaged waiting records and the original field remains intact.
+2. The same day old messages with the same content may be mistaken for this saving success. Keep confirmations must check this action and add a record, not just the same text.
+3. Reopening of existing Waiting on/retain possible overlays to assist, resulting in closure/reconstruction requests. (b) A description that is now pre-filled; Without changing the content, there will be no new follow-up.
 
-另外补齐了损坏存档值为 null / 0 / false / 空字符串时的保护：不能覆盖启用或退回旧发送路径；普通负责人仍可更新任务，不清除原坏字段。焦点测试改为等待实际 useEffect 聚焦后核对，保留同一断言和原超时。
+In addition, protections for damage archive values of null / 0 / false / empty string were completed: could not overwrite enabler or revert old sender paths; The general officer can still update the task and not clear the original bad fields. The focus test should be changed to wait for the actual useEffect post-focus check to retain the same assertion and original timeout.
 
-## 检查结果
+## Inspection results
 
-最终运行时代码候选 `e91346484c785f5667a59cb79effae37db3d70a9`，独立 Review 通过；之后只更新交付文档。
+Final run-time code candidate `e91346484c785f5667a59cb79effae37db3d70a9`, independent review passed; . Only the delivery documents are updated thereafter.
 
-- 相关单元/组件20文件、330项通过。命令：`npm test -- src/reminders src/matching/stage3Creation.test.ts src/matching/stage3Persistence.test.ts src/matching/stage3RecoveryUI.test.tsx src/test/workflow.test.ts src/test/nudges.test.ts src/test/reminderQueue.test.ts src/test/store.test.tsx src/test/officerLinks.test.ts src/test/handoffReview.test.ts src/test/fb-04-taskDue.test.ts src/test/fb-04-taskDetail.test.tsx --maxWorkers=1`。
-- 兼容浏览器6个spec，桌面/手机共67通过、1手机限定项在桌面跳过：tasks、today、fb-01-ai-wait、fb-08-reminder-centre、research-log、reminder-stage2。最新合并候选再跑新邮件/任务页8项及首页体积2项，共10项通过。
-- 新浏览器链路覆盖：邮件单链接/无AI请求；同一入口Working、刷新、Done、完成只读；Waiting和Stuck持久化；篡改与改派撤权；等待邮件的实际收件人与只响应协助范围。包含两端WCAG检查和横向溢出检查，桌面/手机截图已查看。
-- lint、前后端类型、生产构建、全站文字预算及新增CSS的目标stylelint通过。以40字符 `COMMIT_REF=e91346484c785f5667a59cb79effae37db3d70a9`、`BRANCH=feat/reminder-plan-v2`、`CONTEXT=deploy-preview` 构建，主入口 `/assets/index-DV95VBqu.js` 为 **545,608 / 550,000 字节**；没有提高门槛。
-- 独立审阅的三个原样反例均转绿；最终页面26项加3个独立反例共29项复验通过，临时测试与依赖链接已清理。
+- Relevant modules/components 20 documents, 330 adopted. Command: `npm test -- src/reminders src/matching/stage3Creation.test.ts src/matching/stage3Persistence.test.ts src/matching/stage3RecoveryUI.test.tsx src/test/workflow.test.ts src/test/nudges.test.ts src/test/reminderQueue.test.ts src/test/store.test.tsx src/test/officerLinks.test.ts src/test/handoffReview.test.ts src/test/fb-04-taskDue.test.ts src/test/fb-04-taskDetail.test.tsx --maxWorkers=1`.
+- Compatible browser 6 specs with a total of 67 passes on desktop/cell, 1 cell phone is limited to desktop kskip: tisks, day, fb-01-ai-wait, fb-08- reminder-centre, research-log, reminder-stage2. The latest Merge candidate ran for 8 new mail/task pages and 2 first page sizes, with a total of 10 approved.
+- New browser link overlay: mail link/no AI request; Working, refreshing, Done, completing read-only; Waiting and stuck sustainability; (b) Deversion and reassignment; The actual recipients waiting for the mail respond only to the range of assistance. Includes two-end WCAG checks and horizontal overflows, and desktop/mobile phone screenshots have been viewed.
+- Lint, back-end type, production build, full-stop text budget and target stellint for the new CSS were adopted. Constructed with 40 characters `COMMIT_REF=e91346484c785f5667a59cb79effae37db3d70a9`, `BRANCH=feat/reminder-plan-v2`, `CONTEXT=deploy-preview`, the main entry `/assets/index-DV95VBqu.js` is **545,608/ 550,000 byte**; The threshold has not been raised.
+- All three of the reverse cases examined independently have been turned green; Twenty-six final pages plus three independent counterclaims were approved in 29 cases, and provisional testing and reliance links were cleared.
 
-收尾并行运行浏览器构建/文字检查时，一个原有reminderQueue测试触发原5秒超时；其它329项通过。等待浏览器结束后，以单worker完整复跑330项全部通过，未调超时或放宽断言。先前浏览器Waiting选择器改为按combobox角色查找，保留同一实际操作与状态断言；最后焦点用例等待useEffect，不删焦点检查。
+(b) A former reminder Queue test triggers the original five-second timeout when running a parallel browser build/text check; The other 329 were adopted. When the browser is completed, all 330 items are returned to full operation by single Walker without adjustment of time-consuming or relaxed assertions. (b) The former browser Waiting Selector has been searched by the combobox role, retaining the same operational and state claims; The final focus awaits the use of Effect for example and does not delete the focus check.
 
-未运行全站Playwright、真实AIR、外部邮件投递、Safari/iOS真机检查。线上预览访问被当前环境代理403拒绝；本地生产构建和截图验收不等同线上部署已验证。人工发送的目的地在外部草稿中由用户选择，保存快照不代表核实了外部地址或投递。
+Not running full station Playwright, live Air, external mail delivery, Safari/iOS real machine check. Online preview access was denied by the current environmental agent 403; Local production constructs and screenshots have been verified for deployment on the same line. The destination sent manually is selected by the user in an external draft, and maintaining a snapshot does not represent verification of an external address or delivery.
 
-## 后续范围
+## Follow-up scope
 
-阶段三仍待批准：Details 三段重排、提醒中心的单条/批量/自动演示统一接通、新运行时默认启用及设置迁移展示。当前普通旧存档的自动/批量路径不因此升级为完整规则邮件快照；不能把阶段二单条邮件交付称为整套后台已接通。
+Phase III is still to be approved: Details reordering three paragraphs, alarm centre single bar/batch/auto-show unified connection, default on new operation and setting up the migration demonstration. The automated/batch path of the current general old archive is not therefore upgraded to full rule mail snapshot; Phase II single-mail delivery cannot be described as a complete set of backstage connections.
 
-真实定时发送、服务器共享数据、跨设备身份和投递失败处理仍属六项工作中的第六项。本轮没有真实 AI 调用、没有外部邮件投递、没有合并 main 或正式发布，也未改交接行为。需要同步本地备份。
+Live time distribution, server sharing of data, cross-equipment identification and delivery failure are still the sixth in six jobs. There is no live AI call, no external mail delivery, no merge main or official release and no change in handoff behaviour. Could not close temporary folder: %s

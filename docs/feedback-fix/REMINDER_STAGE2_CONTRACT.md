@@ -1,44 +1,44 @@
-# 提醒阶段二：邮件与独立任务页冻结契约
+# Reminder Phase II: Mail and stand-alone job pages freeze compacts
 
-2026-11-16（America/Phoenix）。Juanxi 已明确要求“继续阶段2”；阶段三 Details/提醒中心整体重排、默认启用策略和真实后台发送不在本次范围。延续 `feat/reminder-plan-v2` 和 PR #15；冻结时保留职责匹配源分支实际接入到 `26af354`，收尾同步其 `5e301d9`，不回退任务认领与 v23 存档；提醒接口不变。
+2026-11-16（America/Phoenix）。Juanxi has made a clear request to “continuing stage 2”; Phase three Details/ Reminder Centre rehearsing, default enabler policy and live backstage send are not within this range. Continuation of `feat/reminder-plan-v2` and PR#15; Keep the functional matching branch physically connected to `26af354` at the time of freezing, synchronizing its `5e301d9` with no fallback task recognition and v23 archiving; Reminder interface remains unchanged.
 
-## 分工
+## Division of labour
 
-- 主 Agent：共享类型/store/taskWorkflow、`taskAccess.ts`、消息记录适配、旧 `NudgeComposer` 的 lazy bridge、`Officer.tsx` 路由桥、手工任务说明字段、e2e/验收与交付。
-- Mail Agent：`src/reminders/mail.ts`、`mail.test.ts`、`ReminderComposer.tsx`、`ReminderComposer.test.tsx`、`reminder-composer.css`。不改旧 composer、全局 styles、store 或契约。
-- Page Agent：`src/reminders/SingleTaskPage.tsx`、`SingleTaskPage.test.tsx`、`single-task.css`。不改旧 Officer、TaskActions/TaskDetail、store 或共享类型。
-- 独立 Review：最终候选只读审查，发现问题交原负责人修复。
+- Main Agent: Share type/store/taskWorkflow, `taskAccess.ts`, message log fit, old `NudgeComposer` Lazy Bridge, `Officer.tsx` Route Bridge, manual mission description field, e2e/ acceptance and delivery.
+- Mail Agent：`src/reminders/mail.ts`、`mail.test.ts`、`ReminderComposer.tsx`、`ReminderComposer.test.tsx`、`reminder-composer.css`。Do not change old composer, global styles, store or contract.
+- Page Agent：`src/reminders/SingleTaskPage.tsx`、`SingleTaskPage.test.tsx`、`single-task.css`。Do not change Officer, TaskActions/TaskDetail, store or sharing type.
+- Independent Review: Final Candidates Read-only Review found that the problem was left to the original person in charge for repair.
 
-## 共享正本与主 Agent API
+## Share original with main Agent API
 
-`accessContracts.ts` 是新邮件和可重复访问授权正本；`contracts.ts` 保留阶段一事实/候选。新增可选 Node.instructions / Node.completionCriteria，facts.requirement 优先人工 instructions，facts.completionCriteria 可选；importance 继续来自已有 why 或真实依赖。主 Agent 提供编辑入口，不让模型补事实。
+`accessContracts.ts` is the original of new mail and repeatable access authorization; `contracts.ts` Reservation phase a fact/candidature. Add optional Node.instructions/Node.completionCriteria, events. priority manual inductions, events.complificationCritria; Importance continues to come from what or live dependencies that already exist. The main Agent provides the editorial entrance and does not allow models to fill in facts.
 
-`src/reminders/taskAccess.ts` 导出：
+`src/reminders/taskAccess.ts` Export:
 
-- `makeTaskAccessGrant(state, nodeId, waitingRequestId?): Promise<TaskAccessGrant>`：没有 request 是原负责人，指定 request 则只给它的明确等待对象。使用本地签名；不是登录或跨设备服务。
-- `taskAccessToken(grant): string`、`taskAccessUrl(origin, grant): string`，新地址 `/#/officer?access=...`，没有 Done/Working 查询参数。
-- `usableTaskAccessGrant(state, token): TaskAccessGrant | undefined`、`verifyTaskAccessGrant(state, token): Promise<boolean>`：反复访问/更新不会消费链接；检查实际存储授权、签名、归属版本、当前成员及到期。完成后同一入口仍可查看，重新分配/归属变化后不能沿用旧权利。
-- `taskAccessIssueValid(state, grant): boolean`：供 store issue 动作校验。
-- 新增 Action `{type:'issueTaskAccessGrant', grant}`、`{type:'taskAccessAction', token, update:TaskAccessUpdate}`。
-- owner scope 的四按钮映射 done/working/stuck/waiting；未认领先 claim。working 是明确的新回复动作，不用申请延期冒充。
-- waiting scope 只有 acknowledge/provided，记录该请求的 respondedOn / responseBy / response（acknowledged/provided）；不改变原任务 owner 或 status，不授予源任务写权限。请求取消/换人不可再更新；完成的原任务只读。
+- `makeTaskAccessGrant(state, nodeId, waitingRequestId?): Promise<TaskAccessGrant>`: No request is the original person in charge, and the designated request only gives it a clear waiter. Use local signatures; Not login or cross-equipment services.
+- `taskAccessToken(grant): string`, `taskAccessUrl(origin, grant): string`, new address `/#/officer?access=...`, no Done/Working query parameters.
+- `usableTaskAccessGrant(state, token): TaskAccessGrant | undefined`, `verifyTaskAccessGrant(state, token): Promise<boolean>`: Repeated visits/updates without consumption links; Checks the actual storage authorization, signature, belonging version, current membership and maturity. Once completed, the same access point is still accessible and old rights cannot be used after redistribution/belonging has changed.
+- `taskAccessIssueValid(state, grant): boolean`: Check for store action.
+- Add Action `{type:'issueTaskAccessGrant', grant}`, `{type:'taskAccessAction', token, update:TaskAccessUpdate}`.
+- Four-button map for owner shop; No lead for claim. Working is a clear new response and does not require an extension as an impostor.
+- Only the request is recorded by reference On / responseBy / request; Do not change the original task owner or status, do not assign source tasks to missions. Requests for cancellations/changes are not renewable; Original task completed read-only.
 
-## Mail Agent API 与组件
+## Mail Agent API & Component
 
-`buildReminderMail(input: ReminderMailInput): ReminderMail`、`checkReminderMail(mail: ReminderMail): boolean`。默认全部规则，不能 import/call AI 或网络。主题“活动 · 任务”（独立任务可 Club work），邮件重点一个 Task due；eventDate 只在具体要求中作背景，不单列 Start by，不印最晚开始日期。触发原因按真实 today 和已有 startOn/due/candidate（未来/开始当日/到期/实际逾期）区分。
+`buildReminderMail(input: ReminderMailInput): ReminderMail`、`checkReminderMail(mail: ReminderMail): boolean`。Defaults all the rules, cannot import/calll AI or network. Theme “Activities — Tasks” (a stand-alone task for Club work), with one message focusing on Task Due; The eventDate is only background in specific requirements, not single Start by, and does not print latest start periods. The trigger causes are distinguished by live today and already startOn/due/candidate (future/date of commencement/due/actually overdue).
 
-自然问候、具体要求、重要性、协作与感谢，正文约100英文词以内，保留最重要可执行信息，完整材料在任务页。不要回到五个机械标签、步骤1打开平台/步骤2找任务；邮件 body 只有一个核心 taskUrl，移除来源文本里的其他网址。人数来自 facts，不能补造40人。沿用禁用催促/羞辱措辞。waiting 邮件说明“谁的任务正在等你协助”，不把原任务的执行责任交给收件人；waitingOn 如果只是人名，不能当成具体行动要求。
+Natural greetings, specific requests, importance, collaboration and gratitude are maintained within the text in approximately 100 English language versions, with the most important executable information and complete material on the mission page. Do not return to five mechanical labels, step 1 opens the platform/step 2 for tasks; The mail body has only one core tabskUrl and removes other sites from the source text. The number comes from facts and cannot be supplemented by 40. Continue with the prohibition of catalytic/stigmatization language. waiting e-mails indicating “who is waiting for your mission” and not giving responsibility for the execution of the original task to the addressee; Waiting On cannot be regarded as a specific action requirement if it is just a name.
 
-`ReminderComposer` 默认导出，props `{nodeId:string;onClose:()=>void}`，用现有 useStore。普通 owner 使用当前事实；启用新runtime时用 `planReminders(buildReminderInput(...))` 选择该node的当前ready（包括 waiting），受阻必须解释，不伪造发送。未启用的旧路径仍使用 nudgeBlocked，不改变既有调度；普通邮件采用新格式，waiting 对象投递只在新runtime中启用。
+`ReminderComposer` Default Export, props `{nodeId:string;onClose:()=>void}`, using existing use Street. Normal owner uses current facts; `planReminders(buildReminderInput(...))` is used to select the node 's current ready (including waiting) when enabling the new runtime, which must be explained and sent without forgery. The old uninactivated path still uses NudgeBlocked and does not change the existing schedule; Normal mail is in a new format, and waiting object delivery is only enabled in the new Runtime.
 
-获得 grant 后 dispatch issue；没有有效已存储授权不启用发送。mail=buildReminderMail，window.location.origin 生成唯一链接。没有AI等待/Skip AI按钮。保留 close/Escape/focus、渠道偏好、演示无真实投递说明。平台发送模式用email；人工方式可以开 Email/WhatsApp/SMS 草稿并在明确确认后记录。
+When you get a grant, you'll have to pick it up. Could not close temporary folder: %s Mail = Build Red ReaderMail, window.location.origin generates the only link. There is no AI waiting/Skip AI button. Keep close/ Escape/ Focus, channel preferences, no live delivery instructions. Platform distribution mode by email; The draft Email/WhatsApp/SMS can be accessed manually and recorded after clear confirmation.
 
-保存 snapshot `{...mail,channel,preparedOn:state.today,accessId:grant.id}`；旧动作 `confirmNudgeSent` 增可选 `message`；新版动作 `confirmPlannedReminder` 增可选 `message`。有runtime时必须用当前candidateId确认；无runtime时用旧动作。主 Agent重新核对当前事实/授权/收件人与模式并保存快照。`ReminderDelivery.message?` 和 `Nudge.message?` 供历史使用，旧记录不回填。提交后的成功信息应根据实际存储记录出现，不只靠本地 setConfirmed(true)。
+Save snapshot `{...mail,channel,preparedOn:state.today,accessId:grant.id}`; Old action `confirmNudgeSent` plus `message`; The new version action `confirmPlannedReminder` adds an optional `message`. If there is a rantime, you must use the current CandidateId to confirm it; Use old action when there is no runtime. Main Agent rechecks current facts/authorizations/recipients with mode and saves snapshots. `ReminderDelivery.message?` and `Nudge.message?` are for historical use and old records are not filled out. Successful information after submission should appear on the basis of actual storage records and not only locally setConfirmed (true).
 
 ## SingleTaskPage
 
-默认导出，props `{token:string}`。从 usable/verify API读授权，不从URL传来的 ownerId 推断权限。owner view：活动/任务、突出截止日、具体要求和完成标准、重要性、一个真实办理入口（带适用说明）、四个状态；最晚开始日期不抢占头部。无需完整导航、其他任务或Ask。学校截止日风险仍须保留；财务控制节点不能绕开 Event Budget 直接 Done。
+Default export, props `{token:string}`. Read permissions from userable/verefy API, not from URL homeId extrapolates permissions. (a) homeer view: activity/task, highlighting deadlines, specific requirements and completion criteria, materiality, one live processing entrance (with applicable instructions), four states; The period of latest start does not take over the head. There is no need for complete navigation, other tasks or Ask. The risk of school cut-off date must remain; Financial control nodes cannot be bypassed from Event Budget directly Done.
 
-waiting view：原负责人请求帮助的任务上下文、具体等待说明、只显示 Acknowledge / Update provided；不是原任务四种状态。显示更新成功后的当前状态；刷新/再次打开仍可继续；完成后可查看。未知/失效/改派/离任 token 有明确提示，不能误导成已更新。
+(a) waiting view: the context of the task for which the original leader requested help, a statement to be specified, showing only Acknowledge / Update requested; Not the original four-state mission. Displays the current status after a successful update; Refresh/open again to continue; After completion, you can see it. Unknown/neutralized/reassignment/departure token has a clear hint that it cannot be misled into an update.
 
-保留旧 `?token=` 一次性链接及旧状态查询参数的兼容入口；新 `?access=` 使用此页面。新页与新composer按需加载，遵守既有入口体积门槛。不新增真实身份、实际邮件服务或猜测外部等待对象的邮箱。
+(b) To maintain compatible access to the old `?token=` one-time link and old state query parameters; New `?access=` uses this page. New pages and new composer are loaded as required to comply with established import volume thresholds. Do not add live identity, actual mail service or presumably external mailboxes.

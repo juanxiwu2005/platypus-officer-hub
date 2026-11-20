@@ -29,9 +29,9 @@ function readTable(): Row[] {
 
 type Reason = "closed" | "close-phase" | "last-three"
 const REASON_TEXT: Record<Reason, string> = {
-  "closed": "文件里的日期是周末或假日：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日",
-  "close-phase": "收尾步骤不早于活动后的第一个工作日才开始（方案 7.2 第 4 条；活动 4/16 是周五，下一个工作日是 4/19 周一）",
-  "last-three": "最后三步不照抄文件的“活动后 129/132/129 天”（那是旧引擎把收尾推过期末和暑假的结果），保留原意：活动后 5 个工作日、7 个工作日、14 天",
+  "closed": "The file date falls on a weekend or holiday: move the deadline to the previous business day (the next business day for post-event work), and the start to the previous officer workday.",
+  "close-phase": "Closeout starts no earlier than the first business day after the event (plan 7.2, rule 4: Friday 4/16 is followed by Monday 4/19).",
+  "last-three": "The final three steps retain the intended offsets of 5 business days, 7 business days, and 14 days after the event, rather than the file's 129/132/129 days caused by the old engine pushing closeout past finals and summer.",
 }
 /** The only allowed differences from the file: [engine start, engine deadline, reasons]. */
 const DIFFERENCES: Record<string, { start?: string; due?: string; reasons: Reason[] }> = {
@@ -52,7 +52,7 @@ const DIFFERENCES: Record<string, { start?: string; due?: string; reasons: Reaso
 }
 /** Links that differ from the file's "Depends on" column, with the reason. */
 const LINK_DIFFERENCES: Record<string, string> = {
-  "Budget": "文件的备注写着 “Needs Event Plan as prerequisite”，所以 Budget 等 Event Plan",
+  "Budget": "The file notes say “Needs Event Plan as prerequisite”, so Budget depends on Event Plan.",
 }
 
 const CHECKS: EventChecks = { food: true, externalFood: true, funding: true }
@@ -76,16 +76,16 @@ const byTitle = new Map(s.nodes.map(n => [n.title, n]))
 const nodeFor = (title: string): Node => byTitle.get(title)!
 
 function comparisonTable(): string {
-  return table(["步骤", "文件开始", "引擎开始", "文件截止", "引擎截止", "ASU 截止（引擎）", "差异原因"], rows.map(r => {
+  return table(["Step", "File start", "Engine start", "File due", "Engine due", "ASU deadline (engine)", "Reason for difference"], rows.map(r => {
     const n = nodeFor(r.title), p = sched.nodes[n.id], diff = DIFFERENCES[r.title]
-    return [r.title, day(r.start), day(p.latestStart), day(r.due), day(p.club), day(p.official), diff ? diff.reasons.map(x => REASON_TEXT[x]).join("；") : "一致"]
+    return [r.title, day(r.start), day(p.latestStart), day(r.due), day(p.club), day(p.official), diff ? diff.reasons.map(x => REASON_TEXT[x]).join("; ") : "Matches"]
   }))
 }
 
 function conditionalTable(): string {
   const all = world(event(ALL_CHECKS, { speaker: true }))
   const plan = computeSchedule(all)
-  return table(["条件步骤", "开始", "截止", "ASU 截止", "截止日从哪来（引擎原话）"], all.nodes.filter(n => !n.timing).map(n => {
+  return table(["Conditional step", "Start", "Due", "ASU deadline", "Deadline source (engine explanation)"], all.nodes.filter(n => !n.timing).map(n => {
     const p = plan.nodes[n.id]
     return [n.title, day(p.latestStart), day(p.club), day(p.official), p.explain.club.replace(/\|/g, "/")]
   }))

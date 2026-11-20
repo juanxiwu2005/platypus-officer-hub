@@ -1,71 +1,71 @@
-# Reminder 模块审阅与界面方案（2026-11-19，Claude）
+# Reminder Module Review and Interface Program (2026-11-19, Claude)
 
-基于 PR #14 顶端 `4d6290e`（= `claude/fervent-thompson-e2j5u2` = preview14）。只做审阅和静态效果图，**没有改任何 `src/` 代码**，0 次产品 AI、0 封邮件。
+Based on PR #14 top `4d6290e` (= `claude/fervent-thompson-e2j5u2` = preview14). Only review and static effect maps, **did not change any `src/` code**, 0 products AI, 0 emails.
 
-图片：[`docs/prototypes/reminder-centre-concepts/`](../prototypes/reminder-centre-concepts/manifest.json)（现状 1 张 + 方案 A–F + 三种模式附图 G）。图是用网站真实的 CSS（同一套 token、导航、右栏）写的静态页面再截图，不是图像生成；Sent/Replied 的数字是示意。
+Picture: [ `docs/prototypes/reminder-centre-concepts/` ](../prototypes/reminder-centre-concepts/manifest.json) (Status 1 1+ Programme A-F + 3 Models with Chart G). The figure is a static page repaint using the live CSS (the same set of token, navigation, right bar) on the website and not an image creation; The number of Sent/Replied is indicative.
 
 ---
 
-## 1. 现在的界面为什么看不懂
+## 1. Why can't you read the interface?
 
-在本地生产构建里打开 Reminders（种子社团、Sat Oct 31、模式 `review_then_auto`）实测：
+Opens up Reminders in local production construction (seed torrent orgation, Sat Oct 31, mode `review_then_auto`):
 
-| 问题 | 证据 |
+| Problem | Evidence |
 | --- | --- |
-| 太长 | 整页 2856px，1440×900 屏幕上约 3 屏；5 个区块（Needs your OK / This week / Sent / Replies / No reply yet）全部展开，空区块也占位 |
-| 标题数字和按钮对不上 | "Needs your OK **13**"，但按钮是 "Approve all (**5**)"：13 里有 8 条根本不是提醒，是要先修的问题（4 条 Waiting 没选人、2 条没负责人、2 条 Stuck） |
-| 每行字太多 | 每条 3–4 行：活动名 / 任务名 / To · Task due / 原因句子；原因句子多半重复（"The planned start has passed. Can we help?"）|
-| 重复 | 同一个任务同时出现在 Needs your OK 和 This week（如 Draft the meeting agenda、Book the spring weekly meeting room）|
-| 一键全发只在模式 3 有 | 模式 1 只显示 "Awaiting automatic preparation"；模式 2 每条都要点 "Review & open draft"，再点 "I sent this reminder"，13 条要点 26 次以上 |
-| **一键全发其实发不全（bug）** | 点 "Approve all (5)" 实际只记录 **4** 条，提示 "Some reminders changed or reached a limit"。原因：Jordan 当天有 3 条，`limitReason()` 每人每天最多 2 条、且第 2 个非紧急名额保留给 due/overdue；`planReminders()` 只拿**已发**记录算上限，不拿同一批里其他候选算，所以先显示"可以发"，发的时候才被挡 |
+| Too long. | The entire page 2856px, 1440 x 900 screens approximately 3 screens; 5 blocks (Needs your OK/ This week / Sent / Replies / No reply yet) are all opened and empty blocks are in place |
+| Headline numbers don't match buttons. | "Needs your OK **13**♪ But the button is "Approve all ( **5**)"：13It's in there. 8It's not a reminder. It's a question to fix first. 4Waiting didn't pick anyone. 2No one's in charge. 2Stuck)  |
+| Too many words per line | Each 3–4 line: activity/ task name / To Task Due/ Reason sentence; The planned start has passed. |
+| Repeat | Needs your OK and this week (e.g. Draw the meeting away, Book the spring only meeting room) |
+| One full shot only in mode 3 yes | Mode 1 shows only "Awaiting automatic preparation"; Mode 2"I sent this reminder", 13Points 26No more than  |
+| **, one shot is actually incomplete.**. | Point "Approve all (5)" actually records only **4**, prompting "come reminds changed or reached a limit". Reason: Jordan had 3 on that day. `limitReason()` Up to 2 per person per day and the non-emergency number of 2 places reserved for due/overdue; `planReminders()` Only **has issued** records, not all the other candidates in the same batch. |
 
-## 2. 底层代码与"以后接数据库"的准备程度
+## 2. Level of readiness for bottom code and "post-database"
 
-### 做得好的（可以直接搬）
+### Well done.
 
-1. **规则引擎是纯函数。** `planReminders(input)` 只吃 `ReminderInput`（today、mode、people、tasks、runtime），不读时钟、不调 AI、不碰 DOM，服务器上也能原样跑。
-2. **账本是追加式的。** `ReminderRuntime` 里的 `updates` / `deliveries` / `waitingRequests` 都有 `id` + 单调 `sequence`，历史快照（收件人名字、任务名、邮件全文）不随后来的改动变 —— 正好对应三张表。
-3. **三种模式的权限在引擎里重查。** `confirmReminderDelivery()` 按 mode 只放行 `automatic/platypus/manual` 中对应的那种；`recordReminderBatch()` 每条都重新验证。
-4. **候选 id 是确定性的**（`["reminder", planKey, reason]`），天然可以当发送的幂等键（同一条不会发两次）。
-5. 旧数据（`nudges`、`protocolLog`）没有被猜测改写，`legacyUnresolvedNodeIds` 明确标出要人工确认的。
+1. **rule engine is a pure function.** `planReminders(input)` only eats `ReminderInput` (today, mode, people, tasks, rantime), does not read the clock, doesn't tune AI, does not touch DOM and can run on the server.
+2. The **book is supplementary.** `ReminderRuntime`Yeah. `updates` / `deliveries` / `waitingRequests`Both. `id`+ Single `sequence`, history snapshots (received name, task name, mail full text) change without subsequent changes - right for three tables.
+3. **'s three modes of missions rechecking in the engine.** `confirmReminderDelivery()` by mode only the corresponding type in `automatic/platypus/manual`; `recordReminderBatch()` Every article is re-validated.
+4. The **candidate id is a definitive** (`["reminder", planKey, reason]`), which naturally can be sent as an alternative key (the same one does not send twice).
+5. The old data (`nudges`, `protocolLog`) have not been falsified and `legacyUnresolvedNodeIds` clearly indicates what is to be manually confirmed.
 
-### 接数据库前必须改的（按优先级）
+### Required changes (in order of priority) before receiving the database
 
-| # | 问题 | 位置 | 以后怎么改 |
+| # | Problem | Location | How do you change it? |
 | --- | --- | --- | --- |
-| 1 | **发送和"自动"都在浏览器里。** 自动模式只在页面开着时跑（`useAutomaticReminders`），关掉网页就没人发 | `useAutomaticReminders.ts`、`delivery.ts` | 服务器定时任务（Netlify Scheduled Function）每天跑一次 `planReminders`，写进 outbox 表，再由发送器发；浏览器只读结果 |
-| 2 | **任务链接用浏览器里的 `demoLinkKey` 签名** | `taskAccess.ts` 的 `signature()` | 密钥只放服务器环境变量，签名/验证都在服务器 |
-| 3 | **整个社团是一个 JSON 大对象**，`sequence` 是这个对象里的一个计数器；两个人同时操作会互相覆盖（代码里自己也写了 localStorage 没有原子 compare-and-swap）| `store.tsx`、`ReminderRuntime.sequence` | 用数据库自增 id / 事务；deliveries 表上对 `candidateId` 建唯一约束 |
-| 4 | **没有"存储接口"这一层。** `adapter.ts`、`batch.ts`、`message.ts` 直接读写整个 `DemoState` | 同上 | 抽一个 `ReminderRepository`（读 tasks/people/runtime，写 delivery/update），浏览器版用 localStorage 实现，服务器版用数据库实现；引擎不动 |
-| 5 | **"一个人一封邮件"在引擎里不存在。** 现在一条提醒 = 一个任务 = 一封信，每人每天 2 封上限导致上面的 bug | `engine.ts` `limitReason()`、`mail.ts` | 加一步"按收件人合并"：同一人同一天的候选合成一封 digest，上限按"封"算而不是按"任务"算；delivery 记录保留每个任务一行，但共享同一个 `messageId` |
-| 6 | **重复计算。** 批量记录时每一条都会重新跑 2–3 次完整的 `planReminders`（排序、验证邮件、确认各一次）；`taskReminderSummary()` 为一个任务算整个提醒中心 | `batch.ts`、`adapter.ts`、`message.ts`、`centre.ts` | 一次请求只算一次 plan，往下传；服务器上更重要 |
-| 7 | **两套提醒系统并存。** 旧的 `nudges` / `protocolLog` / `silenceCases`（`engine/followup.ts`、`lib/reminderQueue.ts`）和新的 `reminderRuntime` 同时存在，`Today` 页还要兼容 "Enable updated reminders" | 多处 | 迁移到数据库时只迁新账本；旧记录做一次性只读导入 |
-| 8 | **日期没有时区。** `today` 是演示时钟的 `YYYY-MM-DD` | `state.today` | 服务器用社团时区（ASU = America/Phoenix）算"今天" |
-| 9 | 每次读存档都把整本账（`isReminderRuntime`）逐条校验，账本无限增长 | `runtime.ts` | 数据库里用表结构约束代替；浏览器缓存只放近期 |
+| 1 | **sent and "automatic" were in the browser.** Auto mode only runs when page is open ( `useAutomaticReminders`Turn off the website and no one will send it. | `useAutomaticReminders.ts`、`delivery.ts` | Server Timed Tasks (Netlify Scheduled Action) run once a day `planReminders`, enter the outbox table and send it by the sender; Browser Read-only Results |
+| 2 | **task link in browser `demoLinkKey` Signature** | `taskAccess.ts` It's... `signature()` | secret key only places server environment variables and signatures/certifications are on the server |
+| 3 | **The entire student organization is a big** object for JSON. `sequence` is a counter in this object; Two people do the same thing overlay each other. | `store.tsx`、`ReminderRuntime.sequence` | Self-enhancement of id/ services with database; The table's right. `candidateId` Create only constraint |
+| 4 | **doesn't have "storage interface" on this floor.** `adapter.ts`、`batch.ts`、`message.ts` Read and write the whole thing. `DemoState` | Same source as above | Take one. `ReminderRepository`(read tasks/people/runtime, write reference/update), the browser version is done with localStorage and the server version with a database; The engine's not moving. |
+| 5 | **"One One Mail" doesn't exist in the engine.** Now a reminder = One task = one letter where the cap of 2 per person per day leads to bug above | `engine.ts` `limitReason()`、`mail.ts` | Add a step "at the recipient ' s merge": the same person 's candidacy for the same day is synthesized in a digest, with an upper limit calculated by "enclosed" instead of "task"; Record record of one line for each task but share the same `messageId` |
+| 6 | **double counting.**Every single one of them runs again when the batch records. 2–3Secondary complete  `planReminders`(sort, authenticate mail, confirm each); `taskReminderSummary()` It's an entire reminder center for a mission. | `batch.ts`、`adapter.ts`、`message.ts`、`centre.ts` | (a) One request is counted only once, plan down; It's more important on the server. |
+| 7 | **two alarm systems coexist.** Old `nudges` / `protocolLog` / `silenceCases`（`engine/followup.ts`、`lib/reminderQueue.ts`and new `reminderRuntime` It's the same thing. `Today` "Enable updated references" | Multiple | Only new accounts will be moved when migrated to the database; Old records for one-time read-only import |
+| 8 | **date does not have a time zone.** `today` It's a show time clock. `YYYY-MM-DD` | `state.today` | The server calculates "Today" by using the current event time zone (ASU = America/ Phoenix) |
+| 9 | Every time you read the archive, you take the whole account. `isReminderRuntime`The books are growing indefinitely. | `runtime.ts` | Replaced by table structure in the database; Browser Cache Only Recent |
 
-结论：**引擎（算"该提醒谁、什么时候"）已经适合搬到服务器；存储、发送、签名、并发这四层还是演示写法，接数据库时要重做，但不需要重写规则。** 建议先做第 5 条（按人合并），因为它同时解决界面问题和现有 bug，也是任何新界面方案的前提。
+Conclusion: **engines ( "who should be reminded and when") are suitable for moving to the server; Storage, dispatch, signature and distribution of the four layers are still demonstration methods, which are reworked when accessing a database, but no rewriting of rules is required.** proposes to start with 5 (by person) as it addresses interface problems and existing bugs, which are also prerequisites for any new interface programme.
 
-## 3. 六个界面方案（加一张模式附图）
+## 3. Six interface options (with one model with a diagram)
 
-所有方案共用三条改动：
-- **把"能发的提醒"和"要先修的问题"分开。** 8 条问题不再叫 reminder，放进 "Fix first"，按问题类型给数字和一个修的按钮。
-- **一个人一封邮件。** 5 个任务 → 3 封（Jordan 3 个合 1 封）。按钮写"Send all 3 emails"，不写 5。
-- **空区块不显示，历史收成一行数字**（sent / replied / no reply），点 History 再看。
+All programmes share three changes:
+- **separates "alarmable" from "questions to be fixed".** 8 questions are no longer called reminder, put in "Fix first", give numbers by problem type and a fixed button.
+- **a man for an e-mail.** 5 missions  →  3 (Jordan 3 combined 1). button to write "Send all 3 emails", not 5.
+- The **empty block does not show a line number of historical harvests** (sent/ reprinted / no reply), dot History.
 
-| 图 | 方案 | 适合谁 | 优点 | 缺点 |
+| Figure | Programme | For who? | Advantages | Disadvantages |
 | --- | --- | --- | --- | --- |
-| A | 一键总览 | 只想知道"今天点哪里"的社长 | 一屏装下；最少字；按钮最明显 | 看不到具体任务，要点进去 |
-| B | 按人合并 | 习惯"提醒某个人"的社长 | 和邮件一一对应，勾掉某人就不发 | 人多（10+）时卡片会换行变长 |
-| C | 流水线 | 喜欢流程图的人 | 一眼看到每条提醒走到哪一步（修→发→等回复→已回复） | 横向占满，需要收起右栏 |
-| D | 一周时间轴 | 想看"接下来几天"的人 | 和 Plan 的地铁图一致；点点看这个人的邮件 | 只适合 7 天；问题项不在图上 |
-| E | 表格 + 批量栏 | 任务多、想筛选排序的人 | 信息密度最高，像 Gmail | 最像现在的列表，视觉吸引力最低 |
-| F | 逐封审阅 | 模式 2/3、想先看邮件再发的人 | 发出去的那封信直接显示在右栏，Send & next | 一封封过比一键慢（也给了"全部直接发"）|
-| G | 附图：三种模式 | — | 同一组任务：模式 1 不用按、只看例外并可暂停；模式 2 逐封引导打开 Gmail 草稿（浏览器不能一次开 3 个草稿窗口）；模式 3 一键全发 + 10 秒撤销 | — |
+| A | Summary of one key | I just want to know what it is today. | (a) Under a screen; At least words; Buttons are most visible | I don't see a specific mission. Let's go inside. |
+| B | Merge by person | I'm used to reminding someone. | At the same time as an e-mail, you cut off someone and don't send it. | The card becomes longer when the number of people (10+) |
+| C | Waterlines | Someone who likes flow charts. | Seeing where every reminder comes to. | Full horizontally, right column needs to be closed |
+| D | A week's axis. | I want to see the next few days. | Same as Plan's subway map; Look at this guy's e-mail. | Only for 7 days; The question is not on the map. |
+| E | Table + Bulk Bar | People who want to sort out a lot of things. | The highest information density, like Gmail | Most like the current list, with the least visual attraction. |
+| F | Reviewed by seal | Mode 2/3, someone who wants to see the mail before sending it. | The message sent is shown directly in the right column, Send & next | One seal is slower than one key. |
+| G | Annex: Three Modes | — | (a) The same group of tasks: model 1 not to press, see exceptions and may be suspended; Mode 2 to open Gmail drafts on a case-by-case basis (the browser cannot open 3 draft windows at once); Mode 3 One full-time + 10 second to undo | — |
 
-我的建议：**A 当默认首屏 + F 当"Preview emails"点进去的审阅页**；喜欢图形的话把 A 里的 "Next 7 days" 换成 D 的小时间轴。B 的"按人合并"是数据层的改动，任何方案都要做。
+My suggestion: **A when default first screen + F when "Preview emails" enter page**; If you like graphics, replace "Next 7 days" in A with a D small time axis. B's "mege by person" is a change in the data layer, and any program has to be done.
 
-## 4. 没做什么 / 下一步
+## 4. Nothing to do / next
 
-- 没改代码、没改字数预算（Today 160/450 —— 方案 A 的首屏约 90 词，在预算内）。
-- 手机版没出图；选定方案后再出手机图和交互稿。
-- 实施顺序建议：①引擎按人合并 + 修上限 bug（带单元测试）→ ②新界面 → ③服务器 outbox/定时任务（接数据库时）。①②不需要数据库，可以先在 preview14 做。
+- No code change, no word change budget. 160/450- First screen for scenario A 90in the budget).
+- There is no map of the cellular version; The selected scenario is followed by a mobile phone map and an interactive text.
+- Implement the sequenced recommendation: one engine fixes the upper limit bug (with unit tess) § 2 new interface 3 server outbox/timed task (when the database is received). There is no need for a database. You can do it first at preview14.

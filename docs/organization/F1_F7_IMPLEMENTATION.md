@@ -1,58 +1,58 @@
-# F1–F7 实施与验收记录
+# F1-F7 Implementation and record
 
-2026-10-26 · Codex · 状态：实现与本地验证完成，待 Juanxi 开发预览验收。正式站未改。
+2026-10-26 . Codex. Status: Complete with local validation, pending Juanxi development preview. The official stop has not been changed.
 
-Juanxi 在本聊天批准审计方案并回复“执行”。基线为 `feat/organization-setup-ai@54e58231e557adc8d11203b7e52373fdb3278b4e`，集成分支 `fix/setup-v3-completion`。main、原站和已有工作区保留。
+Juanxi approved the audit programme in this chat and responded to “execution”. Baseline is `feat/organization-setup-ai@54e58231e557adc8d11203b7e52373fdb3278b4e`, integrated branch `fix/setup-v3-completion`. Main, original and existing workspaces are reserved.
 
-## 分工与范围
+## Division of labour and scope
 
-Data、AI、UI 使用独立 Worktree/依赖与测试目录；主 Agent 管批准配置消费、共享契约和集成；独立 Review Agent 只读复核。没有多个 Agent 同时修改 OnlineSetup。不得把测试模拟当真实供应商或线上数据库验收。
+Data, AI, UI use independent Worktree/Reliance and Test Directory; Main Agent approves the allocation of consumption, shared contracts and integration; Independent Review Agent read-only review. There are no more Agents changing OnlineSetup at the same time. Test simulations should not be used as live suppliers or online databases.
 
-| 工作包 | 实现与验收目标 |
+| Work package | Accomplishing the target |
 | --- | --- |
-| F1 保存恢复 | 快速内部离开前保存，失败留页；完整本地草稿与未发送表单恢复；冲突明确选择 |
-| F2 增量与人工决定 | 保留层级人工字段；语义指纹；相关节点复核；服务器确认拦截未处理项 |
-| F3 助手与风险卡 | 当前选中实体、近期指定历史、自动一次Check与Skip、多风险最终批准 |
-| F4 图与可访问性 | 节点/多人/曲线增删重接、层级拖动、手机和键盘操作 |
-| F5 诊断与费用 | 原文先持久化，失败分型、每attempt指标、requestId持久去重、缓存执行版本 |
-| F6 批准配置消费 | Home/活动只读服务器approved.compiled，岗位职责和部门色一致，版本刷新 |
-| F7 文档与复核 | 现行/历史分开，测试/真实/部署证据分开，独立Review后交用户验收 |
+| F1 Preservation Restoration | Saves before fast internal departure and fails to leave a page; The complete local draft is restored to the unsent form; Conflict Clear Choices |
+| F2 Increment and Manpower Decisions | Retain tier manual fields; semantic fingerprints; Relevant nodes review; Server confirmed intercept pending |
+| F3 Assistant and Risk Card | Currently selected entity, recent designation history, automatic Check and Skip, multi-risk final approval |
+| F4 Figure and accessibility | Node/manager/curve addition/deletion, level drag, mobile phone and keyboard operation |
+| F5 Diagnosis and Costs | First sustained, failed splits, peratempt indicators, long-term deweighted and cached implementation version |
+| F6 Approve the allocation of consumption | Home/ Activity-only serverapproved.compiled, copy function and department color matching, version refresher |
+| F7 Documentation and review | Current/historical separation, test/ live/deployment evidence separation, independent review to user acceptance |
 
-## 已验证的工作区消费
+## Certified workspace consumption
 
-F6 初次检查：5个单元测试通过；新工作区6个电脑/手机检查加保留原型34项，共40项浏览器检查通过。后来新增的无障碍与setup确认贯通检查在最终集成统一运行，不能把这40项当最终总数。
+F6 Initial check: 5 unit sets passed; Six computer/cell check-ups in the new workspace and 34 prototypes were maintained, with a total of 40 browsers cleared. The added accessibility was later confirmed by Setup that the access check was running in an integrated and final manner, and that the 40 items could not be considered as the final total.
 
-无批准配置显示完成设置入口；加载失败显示重试，不静默借用虚构组织。`/#/phase1?example=1` 是显式旧示例，setup-legacy保留原检查与数据。新组织的Board页明确未生成，完整按自然语言生成planner未在本轮实现。
+No approved configuration displays completed settings entry; Loading failed to show retry, does not use the field organization. `/#/phase1?example=1` is an illustrative old example, setup-legacy keeps the original check and data. The new organization ' s Board page is clearly ungenerated and the complete natural language-based production of Planner was not realized during the current round.
 
-## 性能证据的边界
+## Boundary of performance evidence
 
-本轮不调用真实AI。不宣称Gemma已比Muse提速、不推断AIR实际排队。现有历史单次Muse765输入/1846输出tokens，首内容16.715秒、总50.396秒且结构失败；属于历史观察，不是本次模型验收。
+This round does not call live AI. It is not claimed that Gemma has moved faster than Muse and does not assume that Air actually queues. (a) The existing single Muse765 input and 1846 output tokens, with an initial content of 16.715 seconds and a total of 50.396 seconds and a structural failure; This is a historical observation, not this model.
 
-保留clientPreparationMs、本站queuedMs、headers/firstToken/total、token、finish原因、原文与失败分类；记录不等于每个供应商都会提供usage。少量样本只能报单次观察，不能伪装p50/p95统计。
+Retain clieentPreparationMs, station queuedMs, headers/firstToken/total, token, finish reasons, source text and failure classification; The records do not amount to the provision of usage by each vendor. A small number of samples can only be reported for single observation and cannot be disguised as statistics at p.50/p95.
 
-## 当前外部限制
+## Current external restrictions
 
-Git的HTTPS读写可用。GitHub API在本会话审计时返回Forbidden；当前PR/远端CI/Netlify部署结果需要独立取证，不根据本地成功杜撰。AIR绑定未注入本地机器；不要求聊天中提供密钥，不恢复额外真实评估。正式发布与合并main仍未授权。
+Git's HTTPS is available for reading and writing. GitHub API returned to Forbidden at the time of this session audit; The results of the current PR/Extreme CI/Netlify deployment require independent forensic evidence and are not based on local success. The AIR was tied to a local machine without being fed into it; Do not ask to provide secret key in chats, do not restore extra live evaluation. The official release and the merge main are still not authorized.
 
-## 最终检查与 Review
+## Final Check and Review
 
-最终产品代码基于 `9871a6f`（含本地存储失败保护）；其后仅修浏览器测试对异步持久化的等待，验证提交 `ba0ab68`。独立 Review 已完成各实施分支和集成契约检查，开放代码阻塞为0。详见 [独立复核记录](REVIEW_F1_F7.md)。
+Final product code based on `9871a6f` (including local storage failure protection); Later, only the browser test is used to verify submission of `ba0ab68` for stagger durability. Independent Review has completed the implementation branch and integration contract checks, with open code blocked at zero. See [ Independent Review Record, ](REVIEW_F1_F7.md) for details.
 
-| 检查 | 实际结果 |
+| Inspection | Actual results |
 | --- | --- |
-| `npm run build` | TypeScript/Vite成功，依赖声明与锁文件未改 |
-| `npm test -- --maxWorkers=2 --minWorkers=1` | 25文件、410测试通过 |
-| `npm run e2e -- --workers=2` | 最终同一完整运行238项：222通过、16按现有项目条件跳过、0失败 |
-| 本地Netlify dev真实HTTP与Blobs仿真 | 私有session、保存/确认、服务器JSON编译、草稿/批准分离、409拒绝覆盖、无会话401、近期历史、原件SHA-256下载均通过 |
-| Chromium直连本地实际API | 同一cookie会话读取服务器批准配置，展示正确组织和版本，不混用未批准草稿 |
-| 真实供应商/线上部署 | 本轮未调用AIR，没有新的提速百分比或线上Blobs验收结论 |
+| `npm run build` | TypeScript/Vite successful, relying on declarations and lock files unchanged |
+| `npm test -- --maxWorkers=2 --minWorkers=1` | 25 files, 410 tests passed |
+| `npm run e2e -- --workers=2` | Eventually the same full operation of 238: 222 passed, 16 failed under existing project conditions skip, 0 |
+| Local Netlify HTTP emulation with Blobs | Private session, save/recognize, server JSON compiles, draft/approval separation, 409 refuses to cover, no session 401, recent history, original SHA-256 downloads |
+| Chromium straight to local actual API | Read server approval configuration from the same cookie session, display the correct organization and version, do not mix unapproved drafts |
+| Live vendor/line deployment | AIR was not called in the current round, no new percentage of accelerations or on-line Blobs opinion |
 
-16个跳过包含旧套件12项手机重复无障碍检查+1项悬停，以及新版3项仅桌面指针/额外历史操作测试。手机通过职责/负责人/依赖等替代操作、基本浏览器Back/Forward与关键页面无障碍检查；不把它们说成物理手机或Safari实机测试。
+16 skip contains 12 mobile phone repeat accessibility checks for the old package + 1 suspension and 3 new desktop pointers/additional historical operating tests. Mobile phones are checked for access to key pages through alternative operations such as duties/leaders/reliance, basic browser Back/Forward; They're not called Physics Cell phones or Safari live machine tests.
 
-集成初轮暴露了测试仍查旧示例Home文案、把“删除Board设置章”误写成全应用不能出现Board导航；已改为稳定导航和只检查设置进度。另两条上传/粘贴测试在可见本地文件名后立刻检查远端存储，早于异步保存完成，已改成等待实际持久化结果。没有删除断言、跳过失败或以重试冒充通过；最终完整运行无失败。
+The integrated first round exposed the test to still looking for the old example Home Script and misspelled the "Deleting Board Setup" as a whole application that does not allow Board navigation; Changed to stabilize navigation and check only the progress of settings. The other two upload/paste tests, which check remote storage immediately after the local filename is visible, have been replaced by waiting for an actual sustainability result. There are no deletions of assertions, skip failures or pass as a retest; There was no failure in the final complete run.
 
-本地HTTP联测使用真实函数和开发服务器的Blobs仿真持久化，不是线上Netlify Blobs。只使用仓库虚构章程；0次真实AI生成。仓库原件解析、AI输出格式、业务数据保护的不同证据保持区分。
+The local HTTP combination uses live functions and the Blobs simulation of the development server, not Netlify Blobs on-line. Use only the repository field communication; 0 live AI generated. Repository original resolution, AI output format and operational data protection maintain a distinction between different evidences.
 
-当前集成分支将快进到既有 `feat/organization-setup-ai` 接续 [PR #3](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3) 供开发预览验收；不强推、不合并main。GitHub API访问受限，远端CI/部署状态须另行核对，不能把本地成功称为远端通过。
+The current integrated branch will fast-forward to the existing `feat/organization-setup-ai` after [PR #3 ](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3) for development preview; Don't push, no merge main. GitHub API access is limited and the remote CI/deployment status has to be verified separately and local success cannot be described as remote passage.
 
-需要同步本地备份（本Agent无法访问用户电脑）。
+Needs to synchronise local backup (Ben Agent cannot access the user computer).

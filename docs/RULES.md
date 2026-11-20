@@ -1,94 +1,86 @@
-> **2026-11-18 一日／两日工作流（本地产品规则，Juanxi最新授权，覆盖旧点状编辑说明）：** 仅带可选milestoneGraph的新保存版本使用固定日期主线。Day1等于活动日期，Day2为之后1–365个日历日；任务相对所选Event day保存calendar/business目标，开始仍包含负责人工作日与完整个人缓冲。图中的团队分支是明确的起止和顺序路径，编译到真实任务前置，保留原业务条件/校规依赖并拒绝循环；分支日期区间或依赖/工期冲突明确报风险，不暗移Event day或目标。学校官方截止与社团缓冲仍按Day1硬限计算，不能选Day2延后。Start/Done/Event day不生成业务任务、工时、成果或提醒；Full check仍为真实任务。旧无graph及旧sequential活动继续原排程/快照，不迁移既有成果。此条不是新增ASU政策。
+> **Preview application behavior, November 18, 2026; not ASU policy:** Reminder task links open the corresponding Plan event and select the actual node in Details. Validate the event, task, and original assignment grant; reusable older links redirect compatibly. The original task keeps its original authorization. Other nodes expose only submitted team details and their attachments, without private drafts or identity changes. Restore selection across refresh/history; invalid or mismatched links must not select an arbitrary task. Dates, reminder frequency, Waiting on assistance scope, school policy, and financial completion permissions remain. See [handoff](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md).
+>
+> **Four reminder corrections, November 18; internal rules:** Juanxi chose 1B/2B/4A and authorized Codex to decide item 3. Preserve sent start/due/overdue stages by task, owner, and assignment version; rescheduling does not reopen them. Old duplicate stages do not consume unsent-stage quota, but every actual email still counts against recipient limits. By default allow one no-response follow-up after two calendar days, merging it with a critical check that is already due; do not increase a lower existing task cap. Waiting commitments retain an expected-provision date, can be checked when still unprovided on that date, and notify the original owner once provided; the original task still needs that owner's confirmation. Send one action prompt to the owner when stalled. Limits: 6 emails per recipient per rolling 7 days, at most 4 ordinary; 2 daily, at most 1 ordinary. Due/overdue messages have priority; all paths recheck limits. See [full contract](feedback-fix/REMINDER_FOLLOW_THROUGH.md). These do not change school policy arrays, date algorithms, or schema 23; delivery remains a browser-local demo.
+>
+> **Option D, November 17; supersedes the earlier extension-approval process:** Juanxi selected direct internal-target updates and notification, without a fixed approver. The current owner or president may change an unfinished, claimed task's club target to a valid date no earlier than today and different from its current target; official school dates remain fixed. Recommend recipients from real dependencies; users may select, remove, add current members, or include themselves. Deduplicate people and include their related tasks in one notification. Notification access grants no task-edit rights. Save the target, original term/actor record, and selected notifications atomically; publish none on failure. Retain old approvals as history; new operations neither require nor create approval requests. Financial completion, school rules, and date algorithms are unchanged.
+>
+> **Earlier application behavior, November 17; extension approval superseded by Option D above:** Juanxi approved simpler extensions and reopening completed tasks. The earlier extension form stopped requiring a draft link, notified current approvers/leaders, and retained dates/progress until approval; official dates stayed fixed. Ordinary Done tasks can return to To do, Working, Stuck, or Waiting. Preserve submitted text, attachments, and history; revoke the completion date/current points, count a later completion once, and notify downstream work to recheck dependencies. Financial Done status is managed only in Event Budget. Owner email links keep equivalent rights; assistance links cannot extend or reopen the original task. No school rules, date algorithms, or real email dispatch changed.
+>
+> **Stage 3, November 16; not ASU policy:** Juanxi approved unified Details and Reminder Center. New organizations default to rule-email v2; older saves upgrade explicitly and retain settings/history. Single, bulk, and automatic demo paths revalidate current facts and persist complete emails before recording them. Automatic demo work runs only while the browser is open. Legacy member-reminder intervals remain reference settings and do not double-send old 3/5-day nudges with the new scheme; leader settings still apply. See [stage 3 handoff](feedback-fix/REMINDER_STAGE3_HANDOFF.md).
+>
+> **Stage 1, November 16; not ASU policy:** Juanxi approved preparation and rule-first reminders. Once explicitly enabled, the runtime derives member candidates from engine start, task due, and overdue day 3. Waiting on creates separate assistance follow-ups for the named person, respecting review modes and caps without changing the original owner. Existing saves keep the legacy path. See [plan](feedback-fix/REMINDER_IMPLEMENTATION_PLAN.md) and [frozen contract](feedback-fix/REMINDER_STAGE1_CONTRACT.md).
+>
+> **Stage 2, November 16; not ASU policy:** Juanxi approved rule emails and a separate task page. A single email no longer calls AI and has one task link. The task page retains official processing links/scopes, actual school-deadline risk, and financial completion restrictions. Waiting recipients may respond to assistance but cannot complete the original task. Policy, scheduling algorithms, and reminder frequency did not change. Default enablement and Reminder Center integration followed in stage 3. See [stage 2 contract](feedback-fix/REMINDER_STAGE2_CONTRACT.md).
 
-> **2026-11-18 点状编辑与显式依赖（本地产品规则，Juanxi最新授权）：** 新Settings编辑采用`teamExecution:dependencies`，团队归属是独立映射，不隐式创建执行前后关系；跨团队拖动不改原任务日期/条件/岗位/依赖。只有明确的前置连线影响原日期引擎。Start/Done是虚拟边界，不生成任务或提醒；重复Event day为独立普通目标节点，不创建第二个活动日期，可在Details分别编辑。已有`sequential`版本继续遵守下条旧顺序策略，旧活动不迁移、不重置schema23；学校规则和硬截止日不变。
+# ASU Rules Library v0 (official policy)
 
-> **2026-11-18 工作流团队顺序（本地产品规则，Juanxi授权）：** 仅`event.workflowRun.snapshot.teamExecution === "sequential"`的新模板执行及Settings预览采用严格顺序：同一团队的适用任务构成依赖链，下一步在前置完成后开始；跨团队仍保留真实交接，没有连接的团队可并行。工作日/个人缓冲/假期与学校官方时限均由原日期引擎计算；旧校准`timing.startDays`不再把新顺序执行锁进重叠窗口，原`dueDays`/anchor仍为目标。顺序可要求更早开工，活动后任务不能被拉到活动前；冲突显示实际可行日期及原目标。没有该标记的历史活动保留旧算法。此为社团执行策略，不是新增ASU要求，不修改下表或`src/data/rules.ts`学校规则数组。Settings布局仅呈现规则引擎日期，不用像素换算工作时长。
+The rule engine and `/api/ask` may use only the rules recorded here. Each rule has a source. The originals were checked on October 7, 2026; WP6 required a fresh item-by-item check before release, recorded below on October 23. Where two sources disagree, use the stricter requirement and show both sources. Keep `RULES` in `src/data/rules.ts` consistent when policy changes; the v0.1 copy is in `public/legacy/index.html`. `src/engine/playbooks.ts` maps steps to rules and lead times.
 
-> **2026-11-18 邮件统一Events入口（非ASU政策，取代下条Tasks路由）：** 邮件打开真实活动流程图并展开原任务Details；有关联活动时只按真实归属定位。无活动任务使用最近浏览活动供查阅且可切换，task.eventId仍为null，无活动时仍保留原任务详情。旧Tasks/officer可复用链接同样跳转Events，普通Tasks默认My tasks。原grant只作用原任务，其他节点只读已提交内容与附件、不显示私人草稿，浏览偏好不授予身份、不赋予任务活动关联；日期、通知收件人、频率和学校规则不变。
+This is a translation of the recorded policy baseline, not a new verification of ASU policy. Preserve the verification dates until the original sources are checked again.
 
-> **2026-11-18 邮件入口补漏（历史，非ASU政策）：** 未关联活动的Club task邮件进入Plan → Tasks并展开右列，旧officer?access链接同样兼容；有关联活动的任务继续进入相应活动Plan。任务卡片/表格/时间线切换保留原grant作用域，其他提交只读，任务不因入口变化获得活动关联；不改日期、频率、负责人和学校规则。
-
-> **2026-11-18 应用行为（非ASU政策）：** 活动提醒唯一任务入口进入对应Plan并展开实际节点Details；校验活动/任务/原分配授权，旧可复用链接兼容跳转。原任务按原授权更新；切到其他节点只读团队已提交内容及对应附件，不展示私人草稿，不变更成员身份。刷新/历史恢复选择，错配/失效不退回任意任务。日期、频率、Waiting on协助范围、学校政策和财务完成权限不变。见[交付](feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md)。
-
-> **2026-11-18 提醒四项修正（本地产品规则，Juanxi选择1B/2B/4A并授权Codex决定第3项）：** 已发开始/到期/逾期阶段按任务、负责人和分配版本保留，改期不重开；旧重复阶段不占未发阶段额度，实际每封仍计入收件人限额。默认另限一次两自然日无回复跟进，遇已到达的关键检查合并；原较低任务上限不增加跟进。Waiting承诺保存预计提供日，到日仍未提供可检查，提供后站内通知原负责人、原任务仍待其确认；停滞给原负责人一次处理提示。每收件人滚动七天6封/普通最多4封，每天2封/普通最多1封；到期/逾期优先，所有发送路径重查限额。详见[完整约定](feedback-fix/REMINDER_FOLLOW_THROUGH.md)。不是ASU政策，不修改学校规则数组、任务日期算法或schema23；仍是本浏览器演示。
-
-# ASU 规则库 v0（官方层）
-
-> **D方案应用行为补充（2026-11-17，取代下方新增延期审批流程，非ASU政策）：** Juanxi明确选择“更新内部目标并通知”且无固定审批人。现任负责人或社长可直接改当前未完成、已认领任务的社团目标日期；输入日期须有效、不早于今天且不同于当前目标，学校硬性日期保持不变。通知名单由规则按真实依赖推荐，可多选/取消/添加现任成员、可选自己，同一人只生成一条包含相关任务的通知；添加知会人不授予修改任务的权限。目标、原任期/操作者记录和所选通知一次保存，失败均不发布。旧审批数据保留为历史，新操作不要求或创建审批。财务完成、学校规则数组和日期计算算法未改。
-
-> **应用行为补充（2026-11-17，非ASU政策）：** 用户批准简化延期及完成退回。延期不再强制草稿链接，申请保存后给现任审批人和社长/副社长生成站内通知；当前审批人或领导可批准/拒绝，批准前保留截止日和进展，正式学校日期不改变。普通任务可从Done退回To do/Working/Stuck/Waiting；提交正文、附件及历史保留，完成日期与当前积分撤销，后续再次完成只计算一次，下游收到重新检查依赖的提示。财务节点Done只能从Event Budget管理；负责人邮件入口同权，协助入口不能延期或退回原任务。未改下列ASU规则数组、日期算法或真实邮件投递。
-
-> **阶段三应用行为（2026-11-16，非ASU政策）：** Juanxi已批准统一Details与提醒中心。新组织默认完整规则邮件v2，旧存档显式升级且保留设置/历史；单条、批量、自动演示都经当前事实校验并持久保存完整邮件才算记录，自动仅在浏览器打开时运行。Settings保留旧成员提醒天数供参考，新方案不与旧3/5天成员催办叠发；领导参数继续生效。学校日期与下列正式政策不变。见[阶段三交付](feedback-fix/REMINDER_STAGE3_HANDOFF.md)。
-
-> **应用行为补充（2026-11-16，非 ASU 政策）：** Juanxi 已批准规则优先提醒的准备与阶段一。新运行时显式启用后，成员提醒按规则引擎的开始日、任务截止日和逾期第 3 天产生候选；Waiting on 为明确等待对象生成独立跟进，遵守审核方式和限额，不改变原负责人。日期引擎与以下官方规则均未更改。旧存档保持旧路径。完整约定见 [实施方案](feedback-fix/REMINDER_IMPLEMENTATION_PLAN.md) 与 [冻结契约](feedback-fix/REMINDER_STAGE1_CONTRACT.md)。
-
-> **阶段二增量（2026-11-16，非 ASU 政策）：** Juanxi 批准继续规则邮件与独立任务页。新单条邮件不再调用 AI，只有一个任务入口；任务页保留官方办理入口及适用范围、真实学校截止风险与财务节点的完成限制。等待对象只能响应协助，不能把原任务点成完成。ASU 政策、日期算法及提醒频率未改；默认启用与提醒中心统一接通仍在阶段三。见 [阶段二契约](feedback-fix/REMINDER_STAGE2_CONTRACT.md)。
-
-规则引擎和 `/api/ask` 只能使用这里的规则。每条带出处；**2026-10-07 打开原文核对过，上线前（WP6）必须逐条重新核实并更新“核实日期”。** 同一事项两处说法不一致时，取更严格的一个，并同时显示两个出处。代码 `src/data/rules.ts` 里有一份同样内容的 `RULES` 数组（v0.1 旧版在 `public/legacy/index.html`）；改规则时两边一起改。规则引擎怎么用这些时限，见 `src/engine/playbooks.ts`（每个步骤挂哪条规则、提前几天）。
-
-| 编号 | 类别 | 规则 | 时限 | 出处 | 核实日期 |
+| ID | Category | Rule | Lead time | Source | Verified |
 | --- | --- | --- | --- | --- | --- |
-| R01 | 场地与活动 | 校内实体活动，以及用学校经费或学生费用的校外活动，须在 Event Registry 登记 | 至少 14 天；学生组织手册写 30 天（取 30 天） | [Event Registry 指南](https://eventreg.asu.edu/about-registry/event-guidelines)；[学生组织手册 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-23 |
-| R02 | 安全与合规 | 学生组织办的活动须有指导老师在场；公开或预计超过 250 人的活动须有校方代表全程在场 | — | [Event Registry 指南](https://eventreg.asu.edu/about-registry/event-guidelines) | 2026-10-23 |
-| R03 | 场地与活动 | 学生活动中心场地经 Mazevo 预约，每个社团最多 3 名选举产生的干部可以开账号 | 至少 16 天；户外摆摊至少 3 个工作日；复杂布置至少 2 周 | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-23 |
-| R04 | 场地与活动 | 场地预约须填上活动登记的 RITM 号 | 至少提前 14 天，否则可能取消并收费 | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-23 |
-| R05 | 餐饮 | Memorial Union、Student Pavilion 等场馆由 Aramark/Sun Devil Dining 独家供餐 | 至少提前 2 周安排 | [学生组织手册 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-23 |
-| R06 | 餐饮 | 使用校外餐饮须提交 Food Exception Request 和供应商保险证明（proof of insurance） | 提前 14 天 | 同上 | 2026-10-23 |
-| R07 | 餐饮 | 现场制作食物须申请临时食品许可（$85） | 至少 7 个工作日 | [Catering and Food FAQ（2023，需复核）](https://eoss.asu.edu/sites/default/files/2023-09/FAQ%20-%20Catering%20and%20Food%20Guidelines%202.pdf) | 2026-10-23 |
-| R08 | 餐饮 | 不得提供自制食物 | — | 学生组织手册 2025–26 | 2026-10-23 |
-| R09 | 经费 | USG 餐饮类和服务类（租赁、布置、灯光等）申请 | 提前 10 个工作日 | [USG Spending Guidelines](https://www.asuusgt.org/spending-guidelines) | 2026-10-23 |
-| R10 | 经费 | USG 嘉宾或表演申请，须附签好的 SAP 协议 | 提前 14 个工作日 | 同上 | 2026-10-23 |
-| R11 | 经费 | USG 采购申请须附活动海报、写明公共目的；发票抬头须为 ASU；报销上限 $999（原文紧跟在 Amazon 那句后面，可能只指 Amazon；Platypus 按 $999 提醒），Amazon 可能不予报销；报销支票约 3 周内寄出 | — | 同上 | 2026-10-23 |
-| R12 | 经费 | 人均 $25 及以上的餐饮须交 Business Meals Form 和出勤名单 | — | [USG Funding Rules](https://www.asuusgt.org/funding-rules) | 2026-10-23 |
-| R13 | 场地与活动 | 期末考试期间不得办活动 | — | 学生组织手册 2025–26 | 2026-10-23 |
-| R14 | 安全与合规 | 学生干部最好不要签有法律约束力的合同 | — | 学生组织手册 2025–26 | 2026-10-23 |
-| R15 | 安全与合规 | ASU 不能办抽奖（raffle）；参与者不付费、机会均等的门票抽奖可以 | — | 学生组织手册 2025–26 | 2026-10-23 |
-| R16 | 换届 | 换届：联系指导老师；新干部完成培训、读手册和章程；告知 Campus Liaisons；更新 Sun Devil Central 与银行账户权限；每年春季重新注册 | 春季 | 学生组织手册 2025–26 | 2026-10-23 |
+| R01 | Venues and events | Register on-campus in-person events and off-campus events using university funds or student fees in Event Registry. | At least 14 days in the guide; 30 days in the handbook. Use 30 days. | [Event Registry guidelines](https://eventreg.asu.edu/about-registry/event-guidelines); [Student Organization Handbook 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-23 |
+| R02 | Safety and compliance | An advisor must attend student organization events; public events or events expecting more than 250 attendees require a university representative throughout. | — | Event Registry guidelines above | 2026-10-23 |
+| R03 | Venues and events | Reserve student union space through Mazevo. Up to 3 elected officers per organization may request accounts. | At least 16 days; outdoor tabling at least 3 business days; complex setups at least 2 weeks. | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-23 |
+| R04 | Venues and events | Add the Event Registry RITM number to the space reservation. | At least 14 days before the event, or the reservation may be cancelled and charged. | Submit a Space Request above | 2026-10-23 |
+| R05 | Food | Aramark/Sun Devil Dining is the exclusive caterer for venues including Memorial Union and Student Pavilion. | Arrange at least 2 weeks ahead. | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R06 | Food | Outside catering requires a Food Exception Request and vendor proof of insurance. | 14 days ahead. | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R07 | Food | Preparing food on site requires a temporary food permit ($85). | At least 7 working days. | [Catering and Food FAQ, 2023; recheck required](https://eoss.asu.edu/sites/default/files/2023-09/FAQ%20-%20Catering%20and%20Food%20Guidelines%202.pdf) | 2026-10-23 |
+| R08 | Food | Do not serve homemade food. | — | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R09 | Funding | USG catering and service requests, including rentals, setup, and lighting. | 10 business days ahead. | [USG Spending Guidelines](https://www.asuusgt.org/spending-guidelines) | 2026-10-23 |
+| R10 | Funding | USG speaker or performer requests require a signed SAP agreement. | 14 business days ahead. | USG Spending Guidelines above | 2026-10-23 |
+| R11 | Funding | USG purchase requests need an event flyer and public-purpose statement; invoices must name ASU. The stated reimbursement limit is $999, but its placement after the Amazon sentence may limit its scope to Amazon. Platypus conservatively warns at $999. Amazon purchases may be ineligible for reimbursement; reimbursement checks take about 3 weeks. | — | USG Spending Guidelines above | 2026-10-23 |
+| R12 | Funding | Meals costing $25 or more per person require a Business Meals Form and attendance list. | — | [USG Funding Rules](https://www.asuusgt.org/funding-rules) | 2026-10-23 |
+| R13 | Venues and events | Do not hold events during final exams. | — | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R14 | Safety and compliance | Student officers should avoid signing legally binding contracts. | — | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R15 | Safety and compliance | ASU prohibits raffles. Free door-prize drawings with equal chances are permitted. | — | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R16 | Leadership transition | Contact the advisor; incoming officers complete training and read the handbook/constitution; notify Campus Liaisons; update Sun Devil Central and bank-account access; re-register each spring. | Spring. | Student Organization Handbook 2025–26 above | 2026-10-23 |
 
-六个类别（第 6 节规则页）：场地与活动、餐饮、经费、宣传、安全与合规、换届。“宣传”目前没有官方规则，渠道提前量见 `SEO_PLAYBOOK_REFERENCE.md`。
+The six Rules-page categories are venues/events, food, funding, publicity, safety/compliance, and leadership transition. Publicity currently has no official rule here; channel lead times are in `SEO_PLAYBOOK_REFERENCE.md`.
 
-待办：手册另有 8 月 27 日更新版，要查是否已有 2026–27 版；有疑问可发邮件问 Tempe 学生组织办公室（tempeclubs@asu.edu）——只问规则，不做研究招募。
+Pending source work: locate the handbook's August 27 update and check for a 2026–27 edition. Questions can go to the Tempe student organization office, tempeclubs@asu.edu, about policy only; this is not authorization to contact anyone or recruit research participants.
 
-## ASU 日历（规则引擎用）
+## ASU calendar used by the rule engine
 
-规则引擎按 ASU 工作日计算“官方截止日”和“社团截止日”，并让社团的工作避开期末考试周和两个学期之间的假期。数据在 `src/engine/calendar.ts`，**2026-10-22 核对过；2027 秋和 2028 春于 2026-10-27 补入。每学期开始前要重新核对。**
+The engine calculates official and club deadlines using ASU business days. Officer work also avoids finals weeks and gaps between semesters. Data is in `src/engine/calendar.ts`, checked October 22, 2026; Fall 2027 and Spring 2028 were added October 27. Recheck before each semester.
 
-| 类型 | 日期 | 出处 |
+| Type | Dates | Source |
 | --- | --- | --- |
-| 学校放假（不算工作日） | 2026：11/11 退伍军人节；11/26–27 感恩节；12/24–25 冬假闭校。2027：1/1 元旦；1/18 马丁·路德·金纪念日；5/31 阵亡将士纪念日；7/5 独立日（补休）；9/6 劳动节；11/11；11/25–26；12/24、12/27。2028（周五 2027-12-31 为元旦补休）：1/17 马丁·路德·金纪念日；5/29 阵亡将士纪念日；7/4 独立日；9/4 劳动节；11/10 退伍军人节（补休）；11/23–24 感恩节；12/25–26 冬假 | [ASU holiday schedule](https://cfo.asu.edu/holiday-schedule) |
-| 期末考试周（R13：不能办活动；社团工作也避开） | 2026 秋：12/7–12/12；2027 春：5/3–5/8；**2027 秋：12/6–12/11**；2028 春：5/1–5/6（**预计**） | [Academic Calendar](https://registrar.asu.edu/academic-calendar)（到 2027 秋为正式日期）；2028 春见 [Projected Dates for Future Semesters](https://registrar.asu.edu/projected-dates-future-semesters) |
-| 上课期间 | 2026 秋：8/20–12/12；2027 春：1/11–5/8；**2027 秋：8/19–12/11**；2028 春：1/10–5/6（**预计**）。两个学期之间不排社团工作 | 同上 |
-| 不闭校的假期（算工作日，但活动会提示“很多成员不在”） | 秋假 2026：10/10–10/13；春假 2027：3/7–3/14；**秋假 2027：10/9–10/12**；春假 2028：3/5–3/12（**预计**） | 同上 |
+| University closures, excluded from business days | 2026: Nov 11 Veterans Day; Nov 26–27 Thanksgiving; Dec 24–25 winter closure. 2027: Jan 1 New Year; Jan 18 MLK Day; May 31 Memorial Day; July 5 Independence Day observed; Sep 6 Labor Day; Nov 11; Nov 25–26; Dec 24 and 27. New Year 2028 is observed Friday, Dec 31, 2027. 2028: Jan 17 MLK Day; May 29 Memorial Day; July 4 Independence Day; Sep 4 Labor Day; Nov 10 Veterans Day observed; Nov 23–24 Thanksgiving; Dec 25–26 winter closure. | [ASU holiday schedule](https://cfo.asu.edu/holiday-schedule) |
+| Finals, excluded from events under R13 and from officer work | Fall 2026: Dec 7–12; Spring 2027: May 3–8; Fall 2027: Dec 6–11; Spring 2028: May 1–6, projected. | [Academic Calendar](https://registrar.asu.edu/academic-calendar), official through Fall 2027; [Projected Dates](https://registrar.asu.edu/projected-dates-future-semesters) for Spring 2028 |
+| Semester ranges; no officer work scheduled between semesters | Fall 2026: Aug 20–Dec 12; Spring 2027: Jan 11–May 8; Fall 2027: Aug 19–Dec 11; Spring 2028: Jan 10–May 6, projected. | Same calendar sources above |
+| Breaks without university closure; business days remain valid, but events warn that many members may be away | Fall 2026: Oct 10–13; Spring 2027: Mar 7–14; Fall 2027: Oct 9–12; Spring 2028: Mar 5–12, projected. | Same calendar sources above |
 
-注意：v0.1 的假期表把 12/31 和春假当成闭校日，这两处是错的，v1 已改正。
+The v0.1 calendar incorrectly treated December 31 and spring break as university closures; v1 corrected both.
 
-**2028 春学期是注册处公布的“预计日期”（页面写明 “projected, not official … subject to change without notice”），不是正式日历。** 正式公布后要核对并改掉 `calendar.ts` 里带 “(projected)” 的三条（学期、期末周、春假）。假日表的 2028 列是学校 CFO 办公室已公布的。
+Spring 2028 semester, finals, and spring-break dates are projected, not official, and subject to change without notice. Recheck the three `(projected)` entries in `calendar.ts` once official dates are published. The 2028 holiday column is already published by the CFO office.
 
-**日历范围与红色报错（A9，2026-10-27）：** 引擎只认识 `2026-08-20`（2026 秋开学）到 `2028-05-06`（2028 春期末周最后一天）。活动日期、或引擎算出的任何官方/社团截止日、最晚开始日落在这个范围之外时，该步骤和该活动会出现红色问题 `calendar_range`：“outside the ASU calendar Platypus knows”。以前范围外的每一天都被当成“学期之间”，倒推日期会悄悄往前跳（2027-10-15 的活动倒推 14 个学生工作日会错到 2027-04-13，正确是 2027-09-27）。续写日历时，在 `calendar.ts` 的 `TERMS / FINALS / BREAKS / HOLIDAYS` 里加新学期，范围会自动延长。
+**Calendar-range guard, A9, October 27:** the engine knows August 20, 2026 through May 6, 2028. An event date, calculated official/club deadline, or latest start outside that range creates a red `calendar_range` issue on the step and event: “outside the ASU calendar Platypus knows”. Previously, unknown days were treated as semester gaps and backward scheduling silently jumped too far: counting 14 student workdays back from October 15, 2027 incorrectly reached April 13 instead of September 27. Extend `TERMS`, `FINALS`, `BREAKS`, and `HOLIDAYS` in `calendar.ts`; the supported range extends automatically.
 
+## v1.1 short UI wording, October 23, 2026
 
-## v1.1 界面短句（2026-10-23）
+The Rules page uses `short` and `timing` from `src/data/rules.ts`; hover cards hold full wording, sources, and verification dates. Short copy is an abbreviation; the full recorded rule controls. Review both when changing policy.
 
-Rules 页每条只显示一句短句（`src/data/rules.ts` 的 `short`）和时限标签（`timing`），全文、出处和核实日期在悬停卡里。短句只是缩写，规则内容以上面的原文为准；改原文时一起检查短句。
+## Item-by-item verification, October 23, 2026 (WP6)
 
-## 2026-10-23 逐条复核（WP6 要求）
+All 16 original pages were opened and checked; their verification dates were updated to October 23. Wording was clarified without changing the recorded requirements:
 
-16 条全部打开原网页核对过，内容仍然成立，核实日期改为 2026-10-23。改动只是措辞更准确：
-- R01：Event Registry 页面写的是“学校场地上的所有实体活动，以及与学校事务相关或用学校经费/学生费用的校外活动”都要登记；该页最少 14 天，手册第 15 页写 30 天，仍取 30 天。
-- R03：原文是“最多 3 名选举产生的干部可以申请账号”，不是“前三名”。
-- R06：手册第 14 页写的是 “vendor proof of insurance”。
-- R07：FAQ 没有日期；申请交给 ASU Food Safety & Health Manager，费用通常由供应商付；时限是 “7 working days”。
-- R11：$999 那句紧跟在 Amazon 句后，可能只适用于 Amazon；Platypus 继续按 $999 提醒（偏保守）。
-- R16：手册第 12 页还要求联系 Campus Liaisons 让换届生效。
+- R01 covers physical events on university property and off-campus events related to university business or using university/student funds. The guide says 14 days, handbook page 15 says 30; use 30.
+- R03 says up to 3 elected officers may apply, rather than the top 3 officers.
+- R06 uses “vendor proof of insurance” on handbook page 14.
+- R07's FAQ has no date; submit to the ASU Food Safety & Health Manager. The vendor usually pays; the lead time is “7 working days”.
+- R11's $999 sentence follows the Amazon sentence and may apply only to Amazon; keep the conservative $999 warning.
+- R16's handbook page 12 also requires contacting Campus Liaisons to make the transition effective.
 
+## Organization timing defaults in the newer workspace, October 26, 2026
 
-## 新版工作区的组织时间默认（2026-10-26）
+Determine purchase items 8 weeks ahead, obtain quotes 7 weeks ahead, and submit budget requests 6 weeks ahead. These are owner-requested internal targets, not new ASU rules. Leaders may adjust them in Organization Setup; otherwise defaults apply. Weeks are stored as 7 calendar days, while scheduling accounts for workdays, dependencies, and effort. Official deadlines and internal targets are stored separately.
 
-8周确定采购项目、7周确定报价、6周提交预算申请是用户指定的社团内部完成目标，不是新增的ASU规则。管理层可在Organization Setup调整，未调整使用默认；周按7自然日保存，实际排程考虑工作日、依赖与用时。官方截止与内部目标分别保存。USG仅明确餐饮/服务挂R09，嘉宾挂R10，College及其它类别不冒用这些公式；用款期限是申请关联的绝对限制，不随活动改期移动。相关实现为src/workspace/schedule.ts与服务端runtime；旧演示规则保留。新学生日历未覆盖时明确无法可靠排程，不伪造未来年份日期。
+Only USG food/services use R09 and speakers use R10; do not apply those formulas to College or unrelated funding categories. The spending deadline is an absolute constraint attached to the request and does not move when the event is rescheduled. Implementation is in `src/workspace/schedule.ts` and the server runtime; legacy demo rules remain. If the student calendar lacks coverage, report that reliable scheduling is unavailable rather than inventing future dates.
 
+## Relative timing in manual templates, November 18, 2026
 
-## 人工模板的相对时间（2026-11-18）
+Settings → Workflow templates save relative targets and workday duration, not AI-generated concrete dates. T0 is the event/target day; T-7 is 7 calendar days before, and T+2 is 2 calendar days after. The scheduling engine still calculates effort using ASU calendars, officer workdays, and personal buffers.
 
-Settings → Workflow模板保存相对目标和工作日时长，不保存AI生成的具体日期。T0是活动日或目标日，T-7为之前7个日历日，T+2为之后2个日历日；工作时长仍按现有ASU日历、负责人工作日和个人缓冲由schedule引擎计算。
-
-自定义模板中明确设为T0或T+的工作可在当日/之后完成，不因沿用prepare阶段而误报“必须在活动前完成”。标准活动的原有after_event校验、学校硬性截止日、预算完成权及日历范围检查保持。任务依赖、工作量不足或负责人不可用仍会影响可行日期并显示原因；相对目标不等于保证能按时完成。此条是人工工作流排程约定，不是新增ASU政策。
+Custom-template work explicitly targeting T0 or T+ may finish on or after the event without a false “must finish before the event” error inherited from the prepare phase. Preserve the standard event's `after_event` check, official school deadlines, financial completion rights, and calendar-range guard. Dependencies, insufficient effort time, and officer availability may still shift feasible dates, with explanations. A relative target is not a guarantee of feasibility. These are manual-workflow conventions, not new ASU policy.

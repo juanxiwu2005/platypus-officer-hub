@@ -1,137 +1,137 @@
-# 提醒邮件：从收到信息到真正开展任务的证据与六种方案
+# Reminder mail: from information received to evidence of a real mission and six options
 
-2026-11-18（America/Phoenix）· Codex · 研究与静态设计，待 Juanxi 选择
+2026-11-18 (America/Phoenix) Codex . Research and static design, to be selected by Juanxi
 
-本轮核对现有代码、查阅公开论文及管理资料、交付六张独立效果图。没有修改网站、模板、提醒规则、发送服务或邮件文案。所有图中的人物、活动、日期、依赖与对话均为虚构设计情境，不是参与者资料，也不是效果测试结果。继续使用 PR #14，不创建 PR、不合并 main。
+This round checks existing codes, access to public papers and management information, and delivers six stand-alone impact maps. No changes were made to websites, templates, alarm rules, sending services or mail files. The figures, events, dates, dependence and dialogue in all the graphs are the picture of the design, not participants ' information or results of the impact tests. Continue using PR #14, do not create PPR, do not merge main.
 
-## 1. 结论与建议
+## 1. Conclusions and recommendations
 
-最值得先尝试的方向是：**用很少的文字，把事实、一个具体第一步、一个真实价值和一个清楚入口放在一起；点开后立即看到该任务及办理入口。** 默认采用 A 的行动结构，加上 D 的真实价值与感谢。C 为有意愿但此刻没空的人提供可选开始计划；E 为有障碍的人提供求助；F 只在确有真人接手时使用。
+The most worthwhile way to start is for **to put the facts, a concrete first step, a live value and a clear entry point in very few words. The mission and the processing entrance will be seen immediately upon opening.** uses the action structure A by default, plus D 's live value and thanks. c Provide an optional start-up plan for those who wish to do so but are not available at this time; E. Provides assistance to persons with disabilities; F Only when the real person has taken over.
 
-这是一项基于证据的产品推论，不能称为“科学已经证明它在学生社团里最好”。相关研究的对象、渠道和结果不同：接种疫苗、完成在线课程、帮助陌生人、日常工作体验，都不等同于社团成员马上开始订房。
+This is an evidence-based product inference, which cannot be called “science has proven itself best among students”. The subjects, channels and results of the research are different: vaccinations, completion of online courses, help for strangers, daily work experience are not equal to booking immediately.
 
-**真正的目标是工作发生了，而不是打开邮件、点击链接或把状态改成 Working on it。** 没有开始记录也不代表现实中没有做事。系统应使用“尚未记录开始更新”这样的事实语言，并允许成员补充实际进展。
+The real goal for **is to work, not to open emails, click links or change status to Working on it.** doesn't start without a record, and it doesn't mean nothing is happening. The system should use factual language such as “not yet recorded to start updating” and allow members to supplement actual progress.
 
-## 2. 最新代码实际做了什么
+## 2. What did the latest code actually do?
 
-核对基线：实际运行代码 `bebe999`；开工提交 `d848317`；随后同步至 `273222b`，新增仅为其他对话的文档和静态方案，提醒相关运行代码未变。main 只读核对为 `b9e7a02`。
+Reconciling baseline: operational code `bebe999`; Start work to submit `d848317`; Synchronizes it to `273222b`, adding only other dialogue documents and static programs, reminding the associated running code to remain unchanged. Main read-only check is `b9e7a02`.
 
-| 部分 | 当前行为及位置 | 对本次研究的意义 |
+| Part | Current act and location | Meaning of the study. |
 | --- | --- | --- |
-| 邮件生成 | `src/reminders/mail.ts`：活动名在任务名前；Hi；一个 Task due；基于实际状态的触发解释；要求、重要性、协作与感谢；一个内部任务 URL；规则生成，无 AI | 已有很好的简洁基线，不必从零重做 |
-| 内容来源 | `src/reminders/facts.ts`：优先任务 instructions / why；否则按节点类型、活动人数等规则补充；重要性可取第一个直接后续依赖，否则只有“属于活动计划” | 有时内容具体，有时只重复任务标题或给泛泛重要性；需要补足事实，而不是让 AI 编故事 |
-| 长度控制 | `mail.ts` 的 `excerpt()` 仅取首句，再按词数预算截断，全文上限 100 英文词 | 简短有用，但关键条件可能在第二句或截断部分；100 不是研究证明的最佳字数 |
-| 触发与频率 | `src/reminders/engine.ts`：未开始者的 planned start、due 当天、due 后第 3 天；同日重合取优先阶段，不补发旧阶段；每任务/人每天最多一次，同次分配/收件人最多 3 次，每人滚动 7 天最多 6 次 | 目前不是逾期每天发，也不是每次更新重新获得 3 次额度；跨任务仍可能同日收到多封 |
-| 状态分流 | Done 不提醒；Stuck 暂停负责人提醒；Waiting on 有明确对象时提醒该对象，回应后停止该请求提醒 | 已经体现“有障碍不能只催原负责人”，应保留 |
-| 邮件入口 | `src/reminders/SingleTaskPage.tsx`：任务负责人进入共享 TaskDetail；帮助对象进入特定求助页；链接选择授权，打开链接本身不提交状态 | 是一个具体任务入口，不是必须先去首页找任务 |
-| 通用任务页 | `src/components/TaskDetail.tsx`、`src/taskDetails/TaskSubmission.tsx`：活动、任务、Due、负责人/状态、要求、外部入口、统一 Details 与附件、自存草稿、提交完成及撤回 | 已符合此前选定的通用提交方向；六个方案不另造每个节点的输入表单 |
-| 外部入口 | `src/taskDetails/links.ts`：订房默认三个网站，可由具体任务覆盖；并列呈现，没有内置适用场景或首选入口 | 从“一封邮件一个入口”到“任务里选哪个平台”仍有决策成本 |
-| 发送与跨设备 | `src/reminders/useAutomaticReminders.ts` 仅应用开启期间记录本地演示；无后台定时发真实邮件；单任务页明确 Local demo，授权和草稿依赖当前浏览器 | 真实邮件到另一台设备的完整链路尚未接通。这是将来上线的前提，不能只靠文案解决 |
+| Mail Generation | `src/reminders/mail.ts`: The name of the event is given before the mission name; Hi；(a) Task due; A trigger interpretation based on the actual state of affairs; Request, importance, collaboration and gratitude; An internal task URL; Rule generation, no AI | There's a good baseline of simplicity that doesn't have to be done from zero. |
+| Content Source | `src/reminders/facts.ts`: Priorities / why; Otherwise, they are supplemented by rules such as the type of node and the number of persons involved; The first direct follow-up reliance on materiality is desirable, as otherwise only “is part of the plan of activities” | Sometimes the content is specific, sometimes merely repeats the title of the mandate or gives general importance; It needs to be filled with facts, not an AI story. |
+| Length Control | `mail.ts` It's... `excerpt()` Take only the first sentence, then budget cut by word, full cap 100 English | Shortness is useful, but key conditions may be in the second sentence or cut-off part; 100 is not the best word for study. |
+| Trigger & Frequency | `src/reminders/engine.ts`: Planned start, due day, due post-3 day; (b) Reconsolidation of the priority phase on the same day and non-renewal of the old phase; Up to one per day for each task/person and up to the same allocation/receipt 3Once, everybody rolls. 7The most important day. 6Number of times  | It's not a daily issue that is currently overdue, nor has it been regenerated every update. 3(a) Minor amounts;  Multiple letters may still be received on the same day. |
+| Distribute Status | Done do not warn; Stuck paused the supervisor's reminder; Reminding on a specified object and stopping the request after response | It has been shown that “impediments must not be merely directed to the responsible person”, which should be retained. |
+| Mail entrance | `src/reminders/SingleTaskPage.tsx`_: access of mandate-holders to shared TaskDetail; Helping objects to enter a specific help page; Links select authorization, open links without submitting status | It's a specific mission entrance. It's not necessary to go to the front page first. |
+| Common Task Page | `src/components/TaskDetail.tsx`、`src/taskDetails/TaskSubmission.tsx`_: activities, tasks, Due, head/status, requirements, external entrances, harmonization of Details and attachments, self-contained drafts, submission for completion and withdrawal | Consistent with previously selected generic submission directions; Six options do not create separate input forms for each node |
+| External entrances | `src/taskDetails/links.ts`: reservation by default of three websites, which can be covered by specific tasks; Parallel display, no built-in or preferred entrance | There are still decision costs from One Mail Entry to Which Platform in Tasks |
+| Send and Cross Device | `src/reminders/useAutomaticReminders.ts` Only record local presentations during the opening period; There is no backstage timed live email; Single task page is clear Local demo with permissions and drafts dependent on the current browser | Live mail to another device has not yet been connected. It's a premise for the future. It can't be solved by paperwork alone. |
 
-此外，D 方案的 Need more time 已是成员直接更新社团目标日并选择知会对象；本次不重新引入“审批人”、等待批准或新的审批流程。
+In addition, the Need more time is already part of the target day for direct updating of the program and selection of the person to be informed; There is no re-introduction of the “approvaler”, pending approval or new approval process.
 
-## 3. 证据：能支持什么，不能支持什么
+## 3. Evidence: What can and cannot be supported
 
-这是针对产品问题的定向文献检索，不是完整系统综述。优先原始论文、作者/大学公开版本；HBR 和书籍用于管理实践解释。论文年代本身不是筛选标准；本轮保留相关的基础研究，同时查到更贴近电子邮件的实验。检索日期为本文件日期。
+This is a targeted literature search for product issues, not a complete system overview. Priority original thesis, author/university public version; HBR and books are used to manage practice interpretation. The age of the paper itself is not a screening criterion; The basic study was retained for the current round, while experiments that were closer to e-mails were identified. The date of retrieval is the date of this document.
 
-| 来源 | 类型、研究发现 | 转化到本产品的判断与限制 |
+| Source | Type, research findings | Sensitization and restriction of conversion to the product |
 | --- | --- | --- |
-| [S1：Effect of Personalized Email-Based Reminders…，JMIR Formative Research，2023](https://formative.jmir.org/2023/1/e43977) | 39 名东非在职成人学习者，585 次邮件是重复观测，不是 585 个独立样本。随机交叉设计；加入个体应到课程位置等具体信息，模型估计按时概率高 14 个百分点，95%可信区间 3–25 | 支持用规则结合当前任务事实进行具体化；不等于只加名字，不需要生成式 AI；结果是课程进度，不是立即开始社团任务 |
-| [S2：Milkman 等，PNAS，2011](https://pubmed.ncbi.nlm.nih.gov/21670283/) | 企业接种现场实验：提醒中让人写下具体接种日期和时间，接种率比对照高 4.2 个百分点；只写日期的差异不显著 | C 的“何时、先做什么”值得试；并不能证明每封邮件加一个新日期就有效，也不能照搬效果大小 |
-| [S3：Grant 与 Gino，JPSP，2010](https://faculty.wharton.upenn.edu/wp-content/uploads/2012/05/GrantGino_A-LitteThanks.pdf) | 多项实验，包括大学募捐员的现场实验；感谢能经由感到自身受到社会重视促进帮助行为 | 保留感谢，具体说明贡献如何帮助团队；不能保证自动模板里每加一句 Thank you 都会增加行动 |
-| [S4：Harkin 等，Psychological Bulletin，2016](https://eprints.whiterose.ac.uk/id/eprint/87431/) | 138 项实验的元分析支持记录/监测目标进展与目标达成之间的正向作用 | 统一 Details、成果、附件和状态有价值；主动记录不等于强制公开，不推导出排行榜或公开催促有效 |
-| [S5：Scheibehenne 等，JCR，2010](https://edoc.unibas.ch/entities/publication/1cd7cefa-8ab9-4be8-9a0f-5412feb5350d/full) | 50 个实验的 63 个条件、5,036 人，选择过载平均效应接近零，研究间差异大 | 不能声称“科学证明链接越少越好” |
-| [S6：Chernev 等，JCP，2015](https://chernev.com/wp-content/uploads/2017/02/ChoiceOverload_JCP_2015.pdf) | 99 个观察、7,202 人的元分析指出，复杂度、任务难度、偏好不确定和决策目标影响选择过载 | 重点是入口能否被理解、是否对应不同目的；消费选项研究并未直接比较我们邮件的 1、2、3 个 URL |
-| [S7：Roghanizad 与 Bohns，JESP，2017](https://ecommons.cornell.edu/entities/publication/eeb6c49d-2293-4ff6-b640-332366495fb3) | 两项研究比较向陌生人当面/邮件提出直接请求；邮件请求者高估对方配合，信任和视角差异是解释之一 | 真人沟通与电子请求不能等同。但陌生人的帮忙请求不同于熟人团队的自动提醒，不能套用流行文章中的倍率 |
-| [S8：Mohr、Cuijpers 与 Lehman，JMIR，2011](https://www.jmir.org/2011/1/e30/) | Supportive Accountability 理论模型：可信、善意且能提供帮助的人，协商清楚的过程期望，可能支持持续参与 | F 需要真实回应能力；这是待验证的理论模型，主要讨论健康干预使用依从性，不是证明社长跟进能提高订房率的试验 |
-| [S9：Ryan 与 Deci，American Psychologist，2000](https://www.selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf) | 自我决定理论综述：自主、胜任、关系需要有助理解动机 | 对志愿社团采用尊重选择、减少控制感的沟通；并非没有截止日或没有责任 |
-| [S10：Michie 等，Implementation Science，2011](https://link.springer.com/article/10.1186/1748-5908-6-42) | COM-B 将能力、机会、动机作为行为分析条件 | 区分不会做、缺资源/权限、此刻没空、看不到价值；它是设计诊断框架，不是已证明的最佳邮件模板 |
-| [S11：Stanford Behavior Design Lab 的 Fogg Behavior Model](https://behaviordesign.stanford.edu/resources/fogg-behavior-model) | 动机、执行容易程度和提示需要在行动时刻结合的设计模型 | 重复 Prompt 无法自动补足缺失的能力和机会；模型不是提醒成功率的计算公式 |
-| [S12：David Allen，Getting Things Done 官方项目管理说明](https://gettingthingsdone.com/2010/02/managing-projects-tips-from-david-allen/) | 管理方法：把项目转成可见、具体的下一行动 | A 把“完成订房”拆成“查指定时段的可用房间”；这是实务方法，不伪装为邮件随机试验 |
-| [S13：Amabile 与 Kramer，《The Progress Principle》，2011，作者介绍](https://progressprinciple.com/progress-principle/) | 基于工作日记的管理研究与书籍，强调有意义工作的进展、明确目标、支持条件 | 提醒应帮助成员产生小进展、解除障碍；观察性工作研究不能单独证明某种 CTA 更有效 |
-| [S14：HBR，The Power of Small Wins，2011](https://hbr.org/2011/05/the-power-of-small-wins) | 管理阅读：关注小进展 | 与 S13 是同一研究脉络，不能作为第二份独立因果证据 |
-| [S15：HBR，A Face-to-Face Request Is 34 Times More Successful Than an Email，2017](https://hbr.org/2017/04/a-face-to-face-request-is-34-times-more-successful-than-an-email) | 管理阅读：渠道值得重视 | 原始研究见 S7；标题里的数值不预测本产品效果 |
-| [S16：Oreopoulos 与 Petronijevic，NBER/IZA 工作论文，2019](https://www.iza.org/publications/dp/12460/the-remarkable-unresponsiveness-of-college-students-to-nudging-and-what-we-can-learn-from-it) | 汇报近 25,000 名学生、多校多年线上/短信干预；某些辅导改善心理或学习时间，所评估干预未显著改善学业结果 | 对“提醒必然促进结果”形成反证；也不能据此声称所有社团任务提醒无效。学业结果不是订房行为 |
-| [S17：Behavioural Insights Team，EAST，2014/2024 更新版](https://www.bi.team/publications/east-four-simple-ways-to-apply-behavioural-insights/) | Easy、Attractive、Social、Timely 的实务框架 | 用来逐项检查减少阻力、突出重点、真实团队价值和发送时机；不是给六个方案排名的试验 |
+| [S1：Effect of Personalized Email-Based Reminders…，JMIR Formative Research，2023](https://formative.jmir.org/2023/1/e43977) | 39 active East African adult learners, 585 mails are duplicate observations and not stand-alone samples of 585. Random cross-design; Add specific information such as where the individual should be in the course, model estimates high probability of 14 percentage points on time, 95% trusted zone 3–25 | Supports the use of rules to concretize current mission facts; Not equal to a name, no generator AI; The result is course progress, not start immediately |
+| [ S2: Milkman et al., PNAS, 2011 ](https://pubmed.ncbi.nlm.nih.gov/21670283/) | (a) On-site inoculation experiments at enterprises: the reminder gives a specific date and time of the vaccination, with a higher rate of 4.2 percentage points compared to the comparison; Date-only differences are not significant | C “When, what to do first” is worth trying; It doesn't prove that every mail with a new date is valid, nor can it be replicated. |
+| [ S3: Grant and Gino, JPSP, 2010 ](https://faculty.wharton.upenn.edu/wp-content/uploads/2012/05/GrantGino_A-LitteThanks.pdf) | Several experiments, including on-site experiments with university fund raisers; Thank you for helping people by feeling that they're valued by society. | Retain thanks and specify how contributions help the team; There's no guarantee that every word added to the automatic template will add action. |
+| [ S4: Harkin et al., Psychological Bulletin, 2016 ](https://eprints.whiterose.ac.uk/id/eprint/87431/) | The meta-analysis of 138 experiments supports the recording/monitoring of positive roles between progress and achievement of targets | Harmonization of Details, results, annexes and status is valuable; Proactive records do not amount to mandatory disclosure, do not extrapolate rankings or publicly urge validity |
+| [ S5: Scheibehenne et al., JCR, 2010 ](https://edoc.unibas.ch/entities/publication/1cd7cefa-8ab9-4be8-9a0f-5412feb5350d/full) | 50 experimental 63 conditions, 5,036 people, opting to overload average effect close to zero, with wide differences between studies | It cannot be claimed that "the fewer the links to scientific evidence, the better." |
+| [ S6: Chernev et al., JCP, 2015 ](https://chernev.com/wp-content/uploads/2017/02/ChoiceOverload_JCP_2015.pdf) | The meta-analysis of 99 observations and 7,202 indicates that complexity, mission difficulty, preference uncertainty and decision target impact selection are overloaded | The focus is on whether the portal can be understood and adapted to different purposes; Consumption options studies do not directly compare the 1, 2 and 3 URLs of our mail |
+| [ S7: Roghanizad and Bohns, JeSP, 2017 ](https://ecommons.cornell.edu/entities/publication/eeb6c49d-2293-4ff6-b640-332366495fb3) | Two studies compare direct requests to strangers in person/mail; Mail requests overestimate each other's collaboration, and trust and perspective differences are one of the explanations. | Real communication cannot be equated with electronic requests. But a stranger's request for help is different from an acquaintance's automatic reminder. |
+| [ S8: Mohr, Cuijpers and Lehman, JMIR, 2011 ](https://www.jmir.org/2011/1/e30/) | Supportive Accountability theoretical model: people who are credible, well-meaning and able to help, with clear process expectations that may support sustained engagement | F Need to live responsiveness; This is a theoretical model to be tested, which focuses on the dependence of health interventions and does not prove that the follow-up of presidients has led to an increase in booking rates. |
+| [ S9: Ryan and Deci, American Psychologist, 2000 ](https://www.selfdeterminationtheory.org/SDT/documents/2000_RyanDeci_SDT.pdf) | Overview of the self-determination theory: autonomy, competence and relationship require assistant motivation | (a) Communication that respects choices and reduces the sense of control for volunteer volunteers; Not without a deadline or no liability. |
+| [ S10: Michie et al., Application Science, 2011 ](https://link.springer.com/article/10.1186/1748-5908-6-42) | COM-B Capability, opportunity, motivation as a condition for behavioural analysis | Distinguishing does not do, lacks resources/ services, is empty at this point and does not see value. It's a diagnostic framework. It's not the best mail template that has been proven. |
+| [ S11: Fog Behavior Model ](https://behaviordesign.stanford.edu/resources/fogg-behavior-model) of Stanford Behavion Design Lab | Design models for motivation, ease of implementation and reminder of the need to combine operational moments | Repeat Prompt does not automatically fill missing capabilities and opportunities; The model is not a calculation formula for warning success rates. |
+| [S12:David Allen, Getting Things Done Official Project Management Note](https://gettingthingsdone.com/2010/02/managing-projects-tips-from-david-allen/)  | Management approach: transforming projects into visible, concrete next actions | A. Dismantling the “completed booking” to “check available rooms for specified time periods”; It's a practical method. It doesn't pretend to be a random mail experiment. |
+| [ S13: Amabile and Kramer, The Progress Princile, 2011, author of ](https://progressprinciple.com/progress-principle/) | Management studies and books based on work journals, highlighting progress, clear objectives, supporting conditions for meaningful work | Reminders should help remember to make small progress and remove obstacles; Observational work studies don't alone prove some CTA to be more effective. |
+| [S14：HBR，The Power of Small Wins，2011](https://hbr.org/2011/05/the-power-of-small-wins) | Management Reading: Focusing on Small Progress | It's the same line of study as S13. It can't be a second independent causal evidence. |
+| [S15：HBR，A Face-to-Face Request Is 34 Times More Successful Than an Email，2017](https://hbr.org/2017/04/a-face-to-face-request-is-34-times-more-successful-than-an-email) | Managing reading: channels worthy of attention | See S7 for original study; The values in the title do not predict the effects of this product |
+| [ S16: Oreopoulos and Petronijevic, NBER/IZA working paper, 2019 ](https://www.iza.org/publications/dp/12460/the-remarkable-unresponsiveness-of-college-students-to-nudging-and-what-we-can-learn-from-it) | Reporting on 25,000 students, multi-year online/sMS intervention; Some counselling improves psychological or learning time, and the interventions assessed do not significantly improve academic outcomes | (a) Counter-substantiation of the “regarding necessarily facilitates the outcome”; Nor can all missions alerts be declared invalid on this basis. School results are not bookings. |
+| [ S17: Behavioural Insights Team, EAST, 2014/2024 Update ](https://www.bi.team/publications/east-four-simple-ways-to-apply-behavioural-insights/) | Practical framework for Easy, Attracive, Social, Timely | (a) To reduce resistance, sharpen focus, live team value and timing for individual checks; It's not a six-program test. |
 
-上表对每个来源只作简短转述，不复制文章或书籍全文。部分期刊站点抓取受限，采用作者公开稿、大学库或原始摘要交叉核对；未以营销厂商的点击率宣传作为因果结论。没有找到能可靠指定“这类社团提醒邮件恰好放几个链接最优”的直接研究。
+The table above reproduces each source only briefly and does not reproduce the full text of articles or books. (b) Limited access to selected periodical sites and cross-checking using author ' s public manuscripts, university libraries or original digests; There is no causality conclusion based on the sales vendor ' s hits rate. No direct study has been found that can reliably specify "Student event of this kind which alerts the mail just to put a few links best".
 
-## 4. 成员需要收到什么
+## 4.
 
-建议顺序是：活动与任务 → 唯一突出的 Due → 当前事实及为何此刻收到 → 一个可以开始的具体动作 → 必要条件/真实价值 → 清楚入口 → 支持与感谢。问候保持短；主题保持活动在前。
+The order of the proposal is: the only thing that stands out in terms of activity and task — the fact of the moment and why it was received at this point — a specific action that can be started – the necessary conditions/ live value — clear portals — support and thanks. Keep the greeting short; The theme remains on the move.
 
-- **第一步必须产出进展。** “打开服务器/打开 Plus/点 Task”是导航说明。“查看 Apr 16、6–8 pm 能容纳 40 人的无障碍房间是否可订”才是做事。不要未经测量就声称“只需两分钟”。
-- **截止日与活动时间不同。** 只突出一个任务 Due；后台开始触发日不作为第二个截止日显示。订房所需活动时段仍须在任务上下文提供，不为追求一个日期而删除办事必要事实。
-- **说明发信原因。** 开始提醒、截止日提醒、逾期提醒和求助通知分别用不同规则；已有 Working 记录时，不再说“没有开始更新”。不要把系统没有记录写成对成员事实的指责。
-- **价值需要可核对。** “确认场地后，Sam 才能发布地点”只在该任务确有此依赖时使用；否则用保存的 why 或诚实的简短说明。不能自动制造“大家都在等你”。
-- **语气有边界。** 欣赏成员贡献，并具体给出可获得的协作。“谢谢”不能替代任务事实，也不应配合羞耻、夸大紧急、虚假稀缺或伪造真人关心。
+- **The first step must be to produce progress.** "Open the server/open the Plus/point Task" is a navigational description. The task is to see whether the accessible rooms of Apr 16, 6–8 pm can be reserved for 40 people. Do not claim to be “only two minutes” without being measured.
+- The **cut-off date is different from the time of the event.** highlights only one task, Due; The trigger date from backstage is not shown as the second cut-off date. The period of activity required for booking must still be provided in the context of the mission, without deleting the fact that it is necessary to pursue a date.
+- **Explains why it was sent.** starts with different rules for reminders, end-of-date reminders, overdue reminders and requests for help; When working records are available, do not say “no update started”. Don't make the system unrecorded as an accusation of the truth.
+- The **value needs to be verifiable.** "Sam can only publish the site after confirmation of the site" is used only when the mission does so; Otherwise, use saved why or honest short descriptions. There can be no automatic “everyone is waiting for you”.
+- **tone has boundaries.** appreciates the contribution of members and specifies what collaboration is available. “Thanks” cannot substitute for the fact of a mission, nor should it be accompanied by shame, exaggeration of urgency, false scarcity or falsifying human interests.
 
-当前 100 词硬截断建议将来改为“必要事实不能丢、冗余句优先去掉”的优先级，但这是待批准建议。本轮没有改变现有 100 词校验。
+The current 100 word hard cut proposal is to be replaced in the future with a priority of “necessary facts cannot be thrown aside and redundant sentences prioritized”, but this recommendation is pending approval. The current round does not change the existing 100 word verification.
 
-## 5. 链接与点开后的连续体验
+## 5. Continuous experience after connecting to point
 
-| 邮件入口 | 优点 | 代价与适用条件 |
+| Mail entrance | Advantages | Costs and applicable conditions |
 | --- | --- | --- |
-| 1 个：内部具体任务 | 保留上下文、权限、状态、成果；与现有结构最接近 | 多一次到外部网站的导航；内部页面必须足够聚焦 |
-| 2 个：主外部办理 + 次内部任务 | 已知唯一合适平台时可能更快到实际工作 | 可能丢上下文、忘记回来提交；需要明确主次、说明外部登录，不能假设已接通自动回传 |
-| 3 个：开始 / 安排 / 求助 | 面向不同阻碍，提供自主选择 | 增加阅读与决策，熟练且已准备行动的人可能被分心；所有链接只导航/预选视图，必须明确确认才发消息或改状态 |
+| 1: specific internal tasks | Retain context, performances, status, outcome; The closest to the existing structure | (b) Navigation to an external site more frequently; The internal page must be sufficiently focused |
+| 2: Main external processing + sub-internal tasks | When the only suitable platform is known, it may go faster to work. | (b) May have left the context and forgotten to return; Need to identify mains, indicate external login and do not assume automatic return |
+| 3: Start/ Arrange/ Help | It is oriented towards different obstacles and provides for autonomous choices | Increased reading and decision-making, and people who are skilled and ready to act may be distracted; All links are navigational/preselection view only. Messages must be clearly confirmed or changed |
 
-默认建议一个内部任务入口。若任务内部确需两三个外部平台，每个入口应说明适用场景；只在负责人已确定首选路径时突出它，不能由系统任意选择一个。把其他入口折叠是待测方案，不能隐藏完成该任务必需的选项。
+Could not close temporary folder: %s If it is true that two or three external platforms are required within the mission, each entry point should include a description of the applicable scene; It is only highlighted when the lead person has identified a preferred path and cannot be selected at any rate by the system. Collapse of other entry points is an ad hoc option and does not hide the options necessary to accomplish this task.
 
-点开后的首屏仍是此前选定的通用任务页：活动/任务、一个 Due、负责人、状态、具体要求、相关外部入口、一个 Details 大文本框与附件。已存在的保存内容要能继续；不能要求从邮件回来重新找活动或重填。保存私人开始计划、点击外部网站、发送求助、提交完成是四种不同事实，不互相冒充。
+The initial screen will remain the previously selected generic task page: activity/task, one Due, head, status, specific requirements, relevant external entrances, a Details large text box and attachment. Existing preservations should continue; It is not possible to request a return from the mail to retrace or refill activities. The preservation of private start-up plans, access to external websites, sending help and submission are four different facts that do not pretend to be mutually exclusive.
 
-邮件链接的安全扫描/预取不能触发业务动作。点击链接不自动标为 Working/Done，不自动发求助，不自动更新日期。链接失效或换负责人时诚实解释并提供恢复路径；真实上线还需解决当前仅本浏览器可用的演示限制。
+The secure scanning/pre-emption of mail links cannot trigger a business action. Clicking on a link does not automatically mark as Working/Done, does not call for help and does not update the date automatically. (b) An honest explanation and recovery path when the link fails or when the person in charge is replaced; Live is also required to solve the presentation limits currently available only for this browser.
 
-## 6. 自动信息和真人跟进的分工
+## 6. Division of labour for automated information and follow-up
 
-自动系统擅长一致地带上任务事实、日期、上下文和办理入口，避免遗漏；真人的额外价值是理解具体障碍、澄清、协调资源、共同调整安排，并对回复真正作出回应。两者不是只差一个口吻。
+Automated systems are good at matching mission facts, dates, context and processing entry points to avoid omissions; The added value of the real person is to understand specific obstacles, clarify, coordinate resources, align arrangements together and respond truly to responses. The two are not the only words missing.
 
-建议自动邮件明确标识 Platypus。成员回复障碍后，转给选定的真实协作对象，并避免继续重复同一催办文字。重复未回应时可以提出真人查看建议，但是否采用此流程、时点和频率仍需决定；不自动扩大收件人，不公开点名。
+It is recommended that automated mail clearly identify Platypus. When you respond to an obstacle, you transfer it to the selected live collaborator and avoid continuing to repeat the same catalytic text. Repeated failure to respond may result in a recommendation for real-person review, but the use of this process, timing and frequency still needs to be decided; No automatic extension of the addressee, no public roll call.
 
-只有社长或成员确实查看并发送，且回复确实会到其收件箱时，才显示“Alex via Platypus / reviewed and sent by Alex”。否则仍是自动邮件，不能捏造社长已阅读、承诺马上帮忙或冒充个人撰写。
+"Alex via Platypus / reviewed and sent by Alex" is shown only when the president or member does view and send it, and the reply does reach its inbox. If not, it's still automatic mail, and you can't make up the president who has read, promised to help immediately or pretend to be a writer.
 
-## 7. 六张独立效果图
+## 7. Six independent effects maps
 
-图集：[文件目录](../prototypes/reminder-email-research-2026-11-18/manifest.json)。每张左侧为邮件，右侧为点开后的目的地；白色邮件与深绿任务页用于区分渠道，并非要求真实邮件强制深色主题。示例统一：Jordan，Speaker Night，任务 Reserve a room，Due Mar 31；活动 Apr 16、6–8 pm；40 人无障碍场地。日期只用于设计比较，不是当前演示业务日期或真实规则计算结果。
+Atlas: [ file directory ](../prototypes/reminder-email-research-2026-11-18/manifest.json). Each left is e-mail and the right is where the point opens; White mail and deep green task pages are used to separate channels and do not require live messages to compel dark themes. Uniform examples: Jordan, Specter Night, Task Reserve a room, Due Mar 31; Activity Apr 16, 6–8 pm; 40 people ' s accessibility. The date is only used to design comparisons, not the current presentation business date or live rule calculation.
 
-| 方案 | 解决的主要障碍、入口 | 依据 | 必须观察的代价 |
+| Programme | Main obstacles addressed, entry points | Basis | The price of having to watch. |
 | --- | --- | --- | --- |
-| [A：一个明确第一步](../prototypes/reminder-email-research-2026-11-18/A-next-action.png) | 不知道从哪里着手；1 个内部任务链接 | S1、S10–S12、S17 | 第一动作若过于普通或错误，会再次变成“打开某个平台” |
-| [B：直接进入办理](../prototypes/reminder-email-research-2026-11-18/B-direct-booking.png) | 减少到实际网站的操作；1 主外部 + 1 次内部 | S10、S11、S17 的设计推论 | 外部登录和回传摩擦；不可假称抓到了预订结果 |
-| [C：安排自己的开始时机](../prototypes/reminder-email-research-2026-11-18/C-choose-a-moment.png) | 有意愿但此刻不方便；1 个入口，落地页可选私人计划 | S2、S9 | 额外输入也可能阻挡已经准备开始的人；可跳过、不改 Due、不自动 Working |
-| [D：看见真实团队价值](../prototypes/reminder-email-research-2026-11-18/D-purpose-and-peer.png) | 不明白为什么重要；1 个任务入口，依赖与感谢 | S3、S9、S13、S14 | 不把依赖写成人情压力；不重复长篇使命宣言 |
-| [E：先移除阻碍](../prototypes/reminder-email-research-2026-11-18/E-remove-a-barrier.png) | 信息、等待对象或时间不足；3 个导航入口，点开后确认求助 | S8、S10、S11 | 入口增加；求助必须有真实接收对象；图中的求助面板是建议，并非当前已接通服务 |
-| [F：真正有人可以协作](../prototypes/reminder-email-research-2026-11-18/F-real-human-support.png) | 自动提醒反复无效、需要协调；1 个任务 URL + 邮件原生 Reply | S7、S8、S16 | 真人时间成本与回复处理；必须真实人工查看发送，不能伪装自动邮件 |
+| [A: A clear first step ](../prototypes/reminder-email-research-2026-11-18/A-next-action.png)  | I don't know where to start. 1 internal task links | S1、S10–S12、S17 | If the first action is too ordinary or wrong, it becomes "opens a platform" again. |
+| [ B: Direct Access Processing ](../prototypes/reminder-email-research-2026-11-18/B-direct-booking.png) | Reduction to actual website operations; 1 Main External + 1 Internal | Design inferences for S10, S11 and S17 | (a) External login and back-mail friction; You can't pretend you got the booking results. |
+| [C: Make your own start. ](../prototypes/reminder-email-research-2026-11-18/C-choose-a-moment.png)  | If you have the will, but it's not convenient at the moment. 1 entrances, landfall options for private plans | S2、S9 | Additional input may also block people who are ready to start; Skip, No Due, Not Automatic |
+| [D: See live team value](../prototypes/reminder-email-research-2026-11-18/D-purpose-and-peer.png)  | I don't understand why it matters. 1 task portal, dependencies and thanks | S3、S9、S13、S14 | (a) Not to put pressure on the writing of adult relationships; Do not repeat the Long Mission Declaration |
+| [E: remove obstacles first](../prototypes/reminder-email-research-2026-11-18/E-remove-a-barrier.png)  | Insufficient information, waiting persons or time; 3 navigational portals, confirm help when you click | S8、S10、S11 | Additional entrances; There must be a live recipient for help; The help panel in the figure is a recommendation, not currently connected |
+| [ F: There are real people who can collaborate ](../prototypes/reminder-email-research-2026-11-18/F-real-human-support.png) | Automatic reminders are invalid and require coordination; 1 tasks URL + mail origin Reply | S7、S8、S16 | (a) Real time costs and response processing; Live must manually view the delivery and cannot disguise automatic mail |
 
-**建议先讨论 A+D 的组合。** E 的障碍分流可以留在点开后的任务页，C 为可选，F 为实际有人承接的支持方式。B 和 E 的多入口邮件保留作比较，不建议未验证就替换所有单入口邮件。六图是不同机制的方案，并非已证实效果的六级排名。
+**proposes to discuss the A+D combination first. The**E barrier stream can be left on the post-set task page, C for option and F for actual support received. B and E are compared to multiple-entry mails, and it is not recommended that all single-entry mail be replaced without authentication. The six figures represent programmes for different mechanisms and are not the six-level ranking of proven results.
 
-视觉中没有展示所有旧功能，并不代表删去它们：通用 Edit 仍按现有权限；Need more time 沿用 D 的更新日期与选择知会对象；状态可改回，误完成可撤回；附件仍 3 个、每个 2 MiB、总 5 MiB；新方案没有授权改 Settings 模板。图中的自动保存只体现既有体验，不承诺跨设备云存储已实现。
+The absence of all old functions from the visual display does not mean that they are deleted: Universal Edit is still based on existing missions; Need more time to follow D 's update date and select the informer; The state may be restored and withdrawn by error; The annexes remain 3, each of 2 MiB and a total of 5 MiB; The new scheme does not authorize changes to the Settings template. Auto-storage in the figure reflects only existing experiences and does not commit to inter-equipment cloud storage being achieved.
 
-## 8. 规则与 AI 的边界
+## 8. Rules and borders of AI
 
-| 内容 | 默认生成方式 |
+| Contents | Default Generation |
 | --- | --- |
-| 活动、任务、Due、当前状态、开始/到期/逾期原因、负责人、收件人、链接、频率 | 读取保存事实并按规则处理；不交给 AI |
-| 问候、感谢、协作、不同状态的简短表达 | 人工审核过的固定句库 + 规则选择 |
-| 具体要求与第一步、为什么重要、平台适用范围 | 优先读取任务创建者保存内容；已确认节点类型可用规则模板；缺失时如实显示并提供完善入口 |
-| 任务依赖、真实受影响成员 | 读取工作流/人员关系后按规则汇总，避免夸大或泄露无权限信息 |
-| 可选开始计划、求助信息 | 成员自己输入/选择；规则保存与路由，不需要 AI |
-| 旧的冗长任务说明 | 将来可选在编辑阶段一次性用 AI 帮忙压缩，由人确认保存；提醒发送时不等待 AI |
+| Activity, task, Due, current status, start/due/late cause, responsible person, recipient, link, frequency | (a) Read and rule-based preservation of facts; Leave it to AI. |
+| Brief expression of greetings, thanks, collaboration, different situations | Manually reviewed fixed library + rule selection |
+| Specific requirements and first steps, why they matter, scope of application of the Platform | Give priority to reading job creators for saving content; The type of node has been identified and a rule template is available; Show and improve access when missing |
+| Task dependency, live affected | Read workflow/personal relationships to aggregate by rules and avoid exaggeration or disclosure of non-missions |
+| Selectable to start planning and help with information | Remember to enter/choice itself; No AI is required to save the rules and routes |
+| Old, lengthy mission statement | In the future, it is optional to use AI as a one-time tool during the editing phase to help compress and be identified for preservation; Alarm sent without waiting AI |
 
-本轮六张图由图像模型制作。这不意味着产品每次发邮件需要调用 AI。当前发信内容生成路径本来就是规则实现。
+The six maps for this round are modelled on images. It doesn't mean the product needs to call AI every time it e-mails. The current communication content generation path is already a rule.
 
-## 9. 将来如何判断是否更好
+## 9. How to judge better in the future
 
-本轮不开展成员试验，不发真实邮件。若以后批准验证，先观察成员是否能看懂活动、任务、Due、第一步和入口，再进行规模合适的试用。
+This round does not run membership experiments, no live emails. If later approved for validation, it will be possible to see whether members can understand activities, tasks, Due, first steps and entrances before undertaking tests of a suitable scale.
 
-主要指标应是“到第一个有意义工作记录的时间”、在预定观察窗内是否出现实际进展、是否按要求完成。房间申请提交、可核对的预订进度/确认信息比单独的 Working 状态更有意义；草稿里随便输入一个字不应算真实开展。外部平台无回传时承认不可观测，使用成员确认或成果记录，不能从点击猜测完成。
+The main indicators should be “time to the first meaningful work record”, whether real progress has been made within the intended observation window and whether it has been completed as required. (b) Room requests for verifiable booking progress/recognizing information are more meaningful than a separate Worlding status; Enter any word in the draft that is not live to do. External platforms recognize non-observables when they do not return, using members to confirm or record results, and cannot complete speculation by clicking.
 
-辅助看任务质量、延期后的协作、求助是否有人回应、放弃/退订及打扰负担。打开率、点击率只反映链路，不作为任务推进的替代指标，也不需要为此先加入邮件追踪像素。
+This is supported by the quality of tasks, collaboration after an extension, whether or not there is a response to the request for help, abandonment/revision, and disruption of the burden. Open and click rates reflect only the links, do not serve as an alternative indicator for mission advancement, nor do they need to be added to mail-trace pixels.
 
-若专门比较 1/2/3 个入口，应固定其他条件：任务类型和难度、正文、发送者、发送时机、页面和收件人分组；链接功能本身不同仍会影响解释。六张图同时改变了内容和路径，不能把它们的结果单独归因为链接数量。小社团样本有限，优先定性理解障碍，不许诺显著性或把一次偶然点击当作胜出。
+If a specific comparison of 1/2/3 entrances is made, other conditions should be fixed: type and difficulty of task, text, sender, timing, page and recipient group; The fact that the link function itself is different still affects interpretation. The six maps changed both content and path, and their results could not be attributed separately to the number of links. A small sample of student orgation is limited, gives priority to qualitative understanding barriers and does not promise visibility or treat an occasional click as a victory.
 
-## 10. 交付与后续
+## 10. Delivery and follow-up
 
-本轮交付是本研究记录、六张独立 PNG、图片 manifest。没有新增产品测试：仅文档/静态图片，验收看来源可追溯、六图完整、编号与核心入口准确、仓库差异不含产品运行文件。待 Juanxi 选择后，再写具体分阶段实施方案。
+This round of delivery is a research record, six separate PNGs, and pictures of manifest. No new product test: Only document/static pictures, access view source retroactive, six figures complete, number accurate from the core entry, repository discrepancies do not contain a product running file. Once Juanxi has chosen to do so, a specific phased implementation programme will be written.
 
-尚待逐项确认：默认邮件采用哪种结构；首步和价值字段如何编辑；多平台如何选择首选/说明适用场景；是否提供私人开始计划；求助/真人回复由谁承接；将来后台真实发送和跨设备访问。它们不是本次已批准的开发范围。
+Pending confirmation on a case-by-case basis: which structure is used for default mail; How to edit the first step and value field; How multi-platforms choose the preferred/indicate the applicable scenario; The availability of private start-up plans; (a) Who will receive the help/real response; Live distribution and cross-equipment access to future backstages. They are not the approved scope of development.

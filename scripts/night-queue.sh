@@ -1,25 +1,25 @@
 #!/bin/bash
-# Night Mode 任务队列 —— 一个任务失败不拖垮整晚
+# Night Mode task queue: one failed task does not stop independent tasks.
 #
-# 用法：
-#   bash scripts/night-queue.sh                     # 跑 .nightmode/queue/ 里的全部任务
-#   caffeinate -dimsu bash scripts/night-queue.sh   # 过夜跑（Mac 不睡）
+# Usage:
+#   bash scripts/night-queue.sh                     # Run every task in .nightmode/queue/.
+#   caffeinate -dimsu bash scripts/night-queue.sh   # Keep a Mac awake overnight.
 #
-# 任务文件放在 .nightmode/queue/，按文件名排序执行，例如：
+# Put task files in .nightmode/queue/; execution follows filename order, for example:
 #   T1-zindex.md  T2-radius.md  T3-fontscale.md
 #
-# 一个任务可以在正文任意位置声明依赖（可多行）：
+# A task can declare dependencies anywhere in its body, on multiple lines:
 #   # Depends on: T1-zindex.md
-# 被依赖的任务失败或被跳过时，这个任务也会被跳过，不会在坏地基上继续。
-# 没有声明依赖的任务一律照常执行 —— 这正是「一个走不通，换下一个」。
+# If a dependency fails or is skipped, skip this task instead of building on unverified changes.
+# Run tasks without declared dependencies normally; continue with the next independent task.
 #
-# 失败后的半成品：存到单独的分支 wip/<任务名>，工作分支退回这个任务开跑前的位置。
-#   2026-10-28 的第一版把半成品直接提交在工作分支上，结果 T2 未经验证的改动成了
-#   T3 的地基，一个失败污染后面每一个任务。现在不会了。
-#   处理半成品见 docs/NIGHT_MODE.md「中断后的进度分流」。
+# Preserve unfinished work on wip/<task-name>; restore the working branch to its pre-task commit.
+#   The first version on 2026-10-28 committed unfinished work on the working branch, so unverified T2
+#   changes became the base for T3 and every later task. Separate WIP branches prevent this.
+#   See the interrupted-work recovery section in docs/NIGHT_MODE.md.
 #
-# 安全：存半成品前会自己查一遍保护文件。控制器的保护文件检查只在它自己提交时跑，
-#   这里补上同一道检查，避免队列把本应被拒绝的改动偷偷存进任何分支。
+# Safety: check protected files before preserving WIP. The controller checks them only when it commits;
+#   repeat that check here so the queue cannot preserve prohibited changes on any branch.
 
 set -uo pipefail
 
@@ -32,8 +32,8 @@ FAILED="$ROOT/.nightmode/failed"
 LOGS="$ROOT/.nightmode/logs"
 mkdir -p "$QUEUE" "$DONE" "$FAILED" "$LOGS"
 
-# 和 scripts/night-mode.mjs 的 PROTECTED_PATHS / PROTECTED_PREFIXES 保持一致。
-# 改那边就要改这边。
+# Keep this aligned with PROTECTED_PATHS / PROTECTED_PREFIXES in scripts/night-mode.mjs.
+# Update both places when the protected-file list changes.
 protected_changed() {
   git diff --name-only HEAD | while read -r f; do
     case "$f" in
@@ -52,23 +52,23 @@ done_count=0
 branch="$(git branch --show-current)"
 
 echo "════════════════════════════════════════════════"
-echo "Night Mode 队列  $(date '+%Y-%m-%d %H:%M:%S')"
-echo "分支 $branch"
+echo "Night Mode queue  $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Branch $branch"
 echo "════════════════════════════════════════════════"
 
 shopt -s nullglob
 tasks=("$QUEUE"/*.md)
 if [ ${#tasks[@]} -eq 0 ]; then
-  echo "队列是空的：把任务文件放进 $QUEUE"
+  echo "The queue is empty: put task files in $QUEUE"
   exit 0
 fi
-echo "排队中：${#tasks[@]} 个任务"
+echo "Queued: ${#tasks[@]} tasks"
 
 for task in "${tasks[@]}"; do
   name="$(basename "$task" .md)"
   base="$(git rev-parse HEAD)"
 
-  # 依赖检查：被依赖的任务失败或被跳过，这个任务就不跑
+  # Dependency check: do not run a task whose dependency failed or was skipped.
   blocked=""
   while IFS= read -r dep; do
     dep="$(basename "${dep}" .md)"
@@ -77,46 +77,46 @@ for task in "${tasks[@]}"; do
 
   if [ -n "$blocked" ]; then
     echo ""
-    echo "──── $(ts)  跳过  $name  （依赖的 $blocked 没成功）"
+    echo "──── $(ts)  SKIP  $name  (dependency $blocked did not succeed)"
     mv "$task" "$FAILED/$name.skipped.md"
     skipped_names="$skipped_names $name"
     continue
   fi
 
   echo ""
-  echo "════ $(ts)  开始  $name ════"
+  echo "════ $(ts)  START  $name ════"
 
   if node scripts/night-mode.mjs --task-file "$task" 2>&1 | tee "$LOGS/$name.log"; then
-    echo "════ $(ts)  完成  $name ════"
+    echo "════ $(ts)  DONE  $name ════"
     mv "$task" "$DONE/$name.md"
     done_count=$((done_count + 1))
     continue
   fi
 
-  echo "════ $(ts)  失败  $name ════"
+  echo "════ $(ts)  FAILED  $name ════"
   mv "$task" "$FAILED/$name.md"
   failed_names="$failed_names $name"
 
-  # 控制器可能已经提交但推送失败（例如别人同时推了同一分支）。那种提交通过了
-  # 全部闸门，绝对不能丢。留在工作分支上，早上由人决定推还是改。
+  # The controller may have committed but failed to push (for example, after a concurrent push).
+  # Those commits passed all gates. Preserve them for a person to review and push or revise.
   if [ "$(git rev-parse HEAD)" != "$base" ]; then
-    echo "   ⚠️ 工作分支上多了提交 —— 控制器提交过但没推成功，已保留："
+    echo "   Warning: the controller committed but could not push. Preserved commits:"
     git log --oneline "$base"..HEAD | sed 's/^/     /'
-    echo "   这些提交是过了测试和 Critic 的，早上先处理它们。"
+    echo "   These commits passed tests and Critic review. Resolve them before continuing."
     continue
   fi
 
-  # 未提交的半成品：存到单独分支，工作分支退回起跑点，不污染下一个任务
+  # Preserve uncommitted WIP on a separate branch; keep it out of the next task's base.
   if [ -z "$(git status --porcelain)" ]; then
-    echo "   工作区干净，没有半成品要存。"
+    echo "   The working tree is clean; no unfinished work to preserve."
     continue
   fi
 
   bad="$(protected_changed)"
   if [ -n "$bad" ]; then
-    echo "⛔ 工作区里有保护文件被改动，拒绝保存，队列停止："
+    echo "STOP: protected files were modified. Refusing to preserve WIP:"
     echo "$bad" | sed 's/^/   /'
-    echo "   请人工检查后再继续。"
+    echo "   Review these changes manually before continuing."
     break
   fi
 
@@ -126,37 +126,37 @@ for task in "${tasks[@]}"; do
      && git checkout -q "$wip" \
      && git stash pop -q \
      && git add -A \
-     && git commit -q -m "[WIP-UNVERIFIED][queue] $name 中断时的半成品
+     && git commit -q -m "[WIP-UNVERIFIED][queue] $name: unfinished work at interruption
 
-这个提交没有通过本地测试、独立 Critic 或 GitHub CI。
-它在单独的分支上，不会成为后面任务的地基。
+This commit has not passed local tests, independent Critic review, or GitHub CI.
+It is on a separate branch and will not become the base for later tasks.
 
-处理办法见 docs/NIGHT_MODE.md「中断后的进度分流」。
-失败日志：.nightmode/logs/$name.log" \
+See the interrupted-work recovery section in docs/NIGHT_MODE.md.
+Failure log: .nightmode/logs/$name.log" \
      && git checkout -q "$branch"; then
-    echo "   半成品已存到分支 $wip（未验证）；工作分支回到 ${base:0:8}，继续下一个任务。"
+    echo "   Unverified WIP saved on $wip; working branch restored to ${base:0:8}. Continuing."
   else
-    echo "⛔ 保存半成品失败，工作区状态不明，队列停止。请人工检查 git status。"
+    echo "STOP: could not preserve WIP; working-tree state is uncertain. Review git status manually."
     break
   fi
 done
 
 echo ""
 echo "════════════════════════════════════════════════"
-echo "队列结束 $(date '+%Y-%m-%d %H:%M:%S')"
-echo "完成 $done_count 个"
-[ -n "$failed_names" ]  && echo "失败：$failed_names"
-[ -n "$skipped_names" ] && echo "跳过（依赖未成功）：$skipped_names"
-echo "剩余未跑：$(count_queue) 个"
+echo "Queue finished $(date '+%Y-%m-%d %H:%M:%S')"
+echo "Completed: $done_count"
+[ -n "$failed_names" ]  && echo "Failed: $failed_names"
+[ -n "$skipped_names" ] && echo "Skipped (dependency did not succeed): $skipped_names"
+echo "Not yet run: $(count_queue)"
 echo ""
 wips="$(git branch --list 'wip/*' | sed 's/^/   /')"
 if [ -n "$wips" ]; then
-  echo "有半成品分支，按 docs/NIGHT_MODE.md「中断后的进度分流」处理："
+  echo "Unfinished branches exist. Follow interrupted-work recovery in docs/NIGHT_MODE.md:"
   echo "$wips"
 fi
 ahead="$(git log --oneline "@{upstream}"..HEAD 2>/dev/null | sed 's/^/   /')"
 if [ -n "$ahead" ]; then
-  echo "工作分支上有还没推送的提交："
+  echo "The working branch has unpushed commits:"
   echo "$ahead"
 fi
 echo "════════════════════════════════════════════════"
