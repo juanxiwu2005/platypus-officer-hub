@@ -1,64 +1,64 @@
-# WP3 任务与干部端：验收与交接
+# WP3 Tasks andends: access and handoff
 
-2026-10-22 · ChatGPT · 状态：待 Juanxi 验收
+2026-10-22 ChhatGPT State: Pending
 
-## 已完成
+## Completed
 
-1. **任务页**：默认“我的任务”，可切团队范围、五列看板或甘特时间条；任务详情有 Why、三个日期、前后依赖、材料链接；社长/副社长可在任务上打开提醒草稿。
-2. **认领握手**：拟定负责人点“I've got it”才算接手；无主任务可以由当前干部认领。别人不能替已指定的负责人认领或回报。48 小时未认领进入风险与社长私下收件箱。
-3. **四个状态**：Done、Waiting on…、Need help、Need more time。等待要选对象；求助路由给咨询人和社长；完成会停止当前跟进并记贡献，重复点击不重复记分。
-4. **带草稿延期**：必须提供有效的 http/https 当前草稿链接和更晚的日期；申请时截止日不动。只有社长/副社长可批准或拒绝；批准后交规则引擎重排，学校截止日不动，违反学校期限仍标红。任务完成或换负责人会取消旧申请；过期申请不能批准，可拒绝后重新申请。
-5. **干部手机页**：`/#/officer?token=…`，只显示对应任务，无侧栏和管理员操作。链接用浏览器运行时随机生成的演示密钥做 HMAC-SHA256 签名，绑定任务、负责人、负责人版本和有效期；一次成功的认领/回报后失效。篡改、重放、过期、换负责人或 Reset demo 都会令链接失效。打开页面本身不改状态，防止消息预览触发误操作。
-6. **私下跟进与模拟时钟**：顶部 Demo clock 可加 1、3、10 天。第 3/5 天给负责人模拟提醒；第 7 天给社长私聊与 24 小时期限；第 8 天提出临时负责人，需人批准且新人重新认领；第 10 天给出恢复时间线提案并建立 7 天内复盘任务。恢复时间线仍需人批准。
-7. **RACI 通知**：所有前置步骤都完成，才通知下游负责人可以开始；等待或延期给下游变动提示；求助给咨询人和社长；延期申请给批准人/社长；其他知会按角色路由。收件箱只显示当前角色自己的通知，升级记录只给社长/副社长。
+1. **Task Page**: Default to "My Mission " , can cut the team range, rows of board or Gant timer; Task details include why, three dates, back-to-back reliance, material links; The draft reminder can be opened on the task.
+2. **Handshake**: "I've got it" to take over. Unowned task can be claimed by the current officer. No one else can claim or repay for the designated person in charge. 48 hours did not recognize risk and president inboxes.
+3. **Four Status**: Done, Waiting on... Need help, Ned more time. Waiting for the object to be selected; (b) Access to consultants and presidients; Completion will stop the current follow-up and recording of contributions, and repeat clicks without repeating points.
+4. **with draft extension**: it is necessary to provide a valid link to the current draft and later dates of http/https; The deadline for applications remains unchanged. Only the president / vice present may approve or refuse; After approval, the rule engine is rescheduled and the school ' s deadline remains unchanged. Old applications are cancelled by the completion of a mission or by a change of authority; Overdue applications cannot be granted and can be rejected and reapplyed.
+5. The **officer mobile phone page**: `/#/officer?token=…` shows only the corresponding tasks, no sidebars and admin operations. Links to randomly generated demonstration key when running from a browser for HMAC-SHA256 signatures that bind tasks, directors, directors and validity periods; A successful claim/reward will lapse. A tampering, resetting, expiry, change of authority or Reset demo will render the link invalid. Opens the page itself without changing its status to prevent a message preview from triggering misaction.
+6. **Private follow-up and simulation clock**: The top Demo Block can add 1, 3, 10 days. 3/5 Days of Simulation Reminder for Heads; 7 Days for private chats and 24 hours; 8 Days to nominate a temporary head, who needs approval and re-acknowledged incoming officer; 10 Days give a proposal to restore the time line and set up a 7 task. The restoration of the time line still requires approval.
+7. **RACI Notification**: All pre-steps are completed before the head of a downstream authority is notified that it can begin; Waiting or deferring to give a hint of downstream change; (a) To a consultant and a president; Extension request to approver/ president; Others will follow role lines. Inbox displays only notifications of the current role itself, and upgrade records are given to president/ vice president.
 
-## 十天演示的固定例子
+## A regular example of a 10-day demonstration.
 
-种子数据多了一项虚构任务 **Confirm the workshop checklist**，负责人 Jordan；演示起点 2026-10-22，最晚开始日也为 10/22。
+Seed data has one more field task **Consulm the workshop checklist**, Jordan; Demonstration starting 2026-10-22, latest start is also 10/22.
 
-| 阶段 | 日期 | 谁看到 | 应发生什么 |
+| Phase | Date | Who saw it? | What should have happened? |
 | --- | --- | --- | --- |
-| 第 3 天 | 10/25 | Jordan | 私下模拟提醒 |
-| 第 5 天 | 10/27 | Jordan | 第二条模拟提醒 |
-| 第 7 天 | 10/29 | Alex / 副社长 | 私聊建议；给到 10/30 的 24 小时回复期限 |
-| 第 8 天 | 10/30 | Alex / 副社长 | 建议临时接手人；没有批准前不换人 |
-| 第 10 天 | 11/1 | Alex 与临时接手人（未指定时为当前负责人） | 恢复时间线提案与复盘任务 |
+| 3 Days | 10/25 | Jordan | Simulate reminders in private |
+| 5 Days | 10/27 | Jordan | Second Simulation Reminder |
+| 7 Days | 10/29 | Alex / Vice present | (c) Private conversation on recommendations; 24-hour response period for 10/30 |
+| 8 Days | 10/30 | Alex / Vice present | (b) Recommending temporary takeovers; Don't change until it's approved. |
+| 10 Days | 11/1 | Alex and the temporary receiver (current head, if not designated) | Resume time line proposal and revisit task |
 
-复盘的期限由规则引擎计算为 11/6（11/1 后七个日历日落在周末，提前到工作日），不是让 AI 写日期。连续按十次 +1 day 与一次 +10 days 应生成相同的记录；继续加天不会重复生成同一阶段。
+The duration of the disk is calculated by rule engine as 11/6 (seven calendar days after 11/1 fall on weekends, advance to working days), not an AI writing date. The same records shall be generated 10 times in a row + 1 day and once + 10 days; The same phase will not be repeated if the increase continues.
 
-跟进从最近一次负责人回应/派发开始；还没有到最晚开始日的待认领或已认领任务，沉默阶段等到工作窗口开始才计时，避免催促远期工作。48 小时认领检查仍独立从派发日计算。回复关闭当前一轮；之后如果再次沉默，可以开始新一轮，但所有轮次和手动提醒共用“每任务最多三次、每人最近七天最多六次”的上限。模拟提醒也使用 WP2 的五段结构、禁用说法和 100 词检查。
+Follow-up begins with the most recent response/distribution from the responsible person; The silence phase is not counted until the work window starts and avoids pushing forward. The 48 hour recognition check is still counted independently from the day of assignment. Reply to close the current round; A new round could then be initiated if there was renewed silence, but all rounds and manual reminders shared a ceiling of “three times per mission, six times in the last seven days”. Simulation alarms also use five paragraphs of the WP2 structure, deactivated narrative and 100 words for checking.
 
-## Juanxi 的五步验收
+## Juanxi's five-step approach
 
-预览：https://deploy-preview-1--platypus-officer-hub.netlify.app/#/tasks （仍需 Netlify 登录）。
+Preview: https://deploy-preview-1--platypus-officer-hub.netlify.app/#/tasks (netlify login still needed).
 
-1. **认领与状态**：Reset demo → View as 选 Jordan → Tasks 的 Available to claim 点“Publish the event and open RSVPs…” → I've got it。应该变成 Claimed，并出现四个状态按钮。Waiting on… 要选对象；Need help 后应显示 Stuck；Done 后不再显示回报按钮，刷新仍保留。
-2. **延期**：Reset demo → View as 选 Maya → Tasks 找 Networking Night 的“Submit the USG food request”（也可直接打开 `/#/tasks?node=e-night%3Ausg`）。Need more time：没填草稿链接不能申请；填 `https://example.org/current-draft` 和 2026-11-06 后申请。切 Alex，在 Private follow-up & approvals 批准：社团截止日变 11/6，学校截止日仍 11/4，因此风险仍会标红。
-3. **十天快进**：Reset demo → Alex → Tasks → 顶部 Demo clock → +10 days。下方 Follow-up walkthrough 默认选演示 checklist；应有 Day 3/5/7/8/10 五项，分别标明收件人。接手人建议与恢复时间线都有单独批准按钮。换 Maya 不应看到这些私下升级记录。
-4. **手机页**：Reset demo → 今日页首条风险的 Draft reminder → 点四个状态入口之一。应该打开只有该任务的手机页，不会仅因打开就改状态；点 Need help 或 Done 才保存，随后同一链接显示“Update saved”，不能再次提交。请直接在手机浏览器打开预览并生成这条链接，用同一个浏览器完成测试。
-5. **视图与通知**：Tasks 切 List / Board / Gantt，看同一批任务；切 View as 看各自的 Your private updates。完成一个前置步骤后，所有前置都完成的下游负责人会看到可以开始的通知。
+1. **recognition status**: Reset demo  →  View as Available to select to film "Publish the event and open RSVPs..." * I've got it. It should be Claimed and four state buttons appear. Waiting on... to select objects; Net help should be displayed; Done does not show the return button anymore, and refreshing remains.
+2. **Extension**: Reset demo → View as choose Maya  →  Tasks looking for the Submit the USG food request (also directly open `/#/tasks?node=e-night%3Ausg`). Net more time: Can't apply without a draft link; After completing applications for `https://example.org/current-draft` and 2026-11-06. Alex, approved in Private Follow-up & Approvals: club deadline becomes 11/6 and the school is still on 11/4 as of the deadline, so the risk remains red.
+3. **Ten Days Expedition:**: Reset demo  →  Alex  →  Tasks  →  Top Demo crack  →  10 days. Downlow-up walkthrough default demonstration checklist; There should be five Day 3/5/7/8/10, each indicating the recipient. There are separate approval buttons for both the receiver's proposal and the recovery time line. In exchange, Maya should not see these private upgrades.
+4. **mobile phone page**: Reset demo — one of the four status entrances to the first risk of Drawt reminder on today's page. The mobile phone page should be opened only for the task and not changed simply by opening it; Points Need help or Done save only, and the same link displays " Update saved " , which cannot be submitted again. Open the preview and generate this link directly on the mobile browser, and use the same browser to complete the test.
+5. **View and Notification**: Tasks Cut List / Board / Gantt, for the same task; Cut as your private upgrades. Once a pre-step has been completed, all pre-completed downstream managers will see the start-up notice.
 
-## 验证结果
+## Validate Results
 
-- 本机 `npm run check`：构建成功，**146 个单元测试、62 个页面测试全部通过**。
-- WP2 原有 120 个单元测试和 50 个页面测试均保留；只调整了结构版本检查和原先“WP3 尚未实现”的预览断言。
-- 新增测试覆盖认领权限、四种状态、草稿与日期校验、批准/拒绝/过期、重分配、贡献去重、十天阶段和收件人、逐日/跳日一致性、提醒次数合并、RACI、签名篡改/过期/重放/重置，以及电脑和手机两种尺寸的实际操作。
-- 已检查手机宽度的实际页面排版。没有发送真实邮件、短信或 WhatsApp。
+- Host `npm run check`: Successfully constructed, **146 unit sets, 62 volsertes all through**.
+- WP2 original 120 unit tests and 50 browser tests are retained; Only schema verification checks and the original "WP3 not realized" preview assertion have been adjusted.
+- The additional tests cover recognition permissions, four states, draft and date validation, approval/refusal/expired, redistribution, contribution weighting, 10-day phase and recipient, day-by-day/jump consistency, reminder number, RACI, signature tampering/expiring/reset/replacement, and actual operation of both computer and mobile sizes.
+- The actual page layout of the cellular width has been checked. No live mail, no text messages or whatsApp.
 
-## 当前边界
+## Current Border
 
-- **一次性链接是同一浏览器内的演示。** v1 数据只存在当前浏览器；从电脑生成的链接复制到另一部手机，手机没有对应记录和演示签名密钥，会拒绝访问。界面已明确标出这一点。真实跨设备的登录、签名验证和同步仍需 v1.5 的服务器存储/身份验证；当前签名不能当作真实数据的安全边界。
-- **模拟提醒不是外部自动发送。** 第 3/5 天在虚构干部的私下收件箱演示；实际外部发送仍需人打开草稿并按发送。模拟时钟按日推进，不模拟具体小时；手动草稿继续显示早/晚偏好和 8:00–22:00 提示。
-- **没有真实 AI 供应商实测。** WP3 状态、签名和跟进均由程序处理，不需要 AI；WP2 的供应商边界保持不变。
-- **结构版本从 2 升到 3。** 旧版浏览器演示会恢复种子数据。Reset demo 会重置所有状态、申请、通知、跟进和链接，并更换演示密钥。
-- **贡献分数**：轻/中/重为 1/2/3 分，按时另加 1 分，只记一次。新增贡献记录实际完成日；旧种子例子继续用原有更新日。计分依据在今日页公开，月度导出留到 v1.5。
-- GitHub 的 v1 是唯一正本。本地 `/private/tmp/platypus-officer-hub-wp3` 为已核对的快照，其本地历史独立；不要直接推该本地历史覆盖远程分支。代码中没有研究资料或供应商密钥。
+- The **one-time link is a demonstration in the same browser.**V1 data only exists for the current browser; From computer-generated links to another cell phone, the cell phone has no corresponding record and display signature secret key, which is denied access. This is clearly indicated in the interface. Live login, signature authentication and synchronization across devices still require server storage/identification for v1. 5; The current signature cannot be considered a secure boundary for live data.
+- The **analogue alarm is not automatically sent from outside.** private inbox demonstration on day 3/5 at field officer; The actual external dispatch still needs to be opened and sent. (a) Simulation clocks are pushed by day and not specific hours; Manual drafts continue to show morning/night preferences and 8:00–22:00 tips.
+- **does not live AI supplier reality. The** WP3 status, signature and follow-up are handled by a process that does not require AI; The supplier boundary of WP2 remains unchanged.
+- **schema promotion from 2 to 3. The** old version browser demonstration restores the feed data. Reset demo will reset all status, application, notification, follow-up and links, and replace the demo set key.
+- **Contribution score**: light/medium/heavy to 1/2/3 minutes, plus 1 points on time and only once. Add a date of actual completion of the contribution record; Old seed examples continue to be used as old updates. The score is made public on today 's page and the monthly export is left to v1. 5.
+- GitHub's v1 is the only original. Local `/private/tmp/platypus-officer-hub-wp3` is a verified snapshot of its local historical independence; Do not directly push the local history to cover remote branches. There is no research in the code or supplier secret key.
 
-## 下一位接 WP4
+## Next on WP4.
 
-- 状态与审批：`src/data/taskWorkflow.ts`、store 的 `claimTask` / `replyTask` / `reviewExtension`。
-- 跟进：`src/engine/followup.ts`；恢复日期计算仍在 `schedule.ts`。修改协议配置时要保证阈值顺序与测试对应。
-- 私下通知与阶段记录：`notifications`、`silenceCases`、`protocolLog`。界面筛选不是服务器权限，v1.5 才接正式身份验证。
-- 手机链接：`src/lib/officerLinks.ts`；`NudgeComposer` 生成一次性链接，`Officer.tsx` 验证并显示；不要把 `demoLinkKey` 发到 AI 接口。
-- 任务页组件：`TaskDetail`、`TaskActions`、`PrivateInbox`、`FollowupPanel`。WP4 可以复用人员和岗位映射，更新这些选择器。
-- 只改社团规则配置，不改本次已通过的 ASU R01–R16；正式规则复核仍在 WP6。
+- Status and approval: `src/data/taskWorkflow.ts`, store `claimTask`/ `replyTask`/ `reviewExtension`.
+- Follow-up: `src/engine/followup.ts`; The recovery date calculation is still `schedule.ts`. When modifying a protocol configuration, ensure that the threshold order corresponds to the test.
+- Private notification and record: `notifications`, `silenceCases`, `protocolLog`. The interface filter is not a server missions, v1. 5 for official authentication.
+- Cellular links: `src/lib/officerLinks.ts`; `NudgeComposer` produces a one-time link, `Officer.tsx` authenticates and displays; Do not send `demoLinkKey` to the AI interface.
+- Task page components: `TaskDetail`, `TaskActions`, `PrivateInbox`, `FollowupPanel`. WP4 can reuse people and roll maps to update the selections.
+- Reconfiguration of the current rules only, not ASU R01-R16 as adopted; The formal rule review is still in WP6.

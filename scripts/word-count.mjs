@@ -1,4 +1,4 @@
-// Word count per page (AGENTS.md §7.5). Usage: npm run build && npm run words [-- --report-only] [outDir]
+// Word count per page (see the configured LIMITS below and docs/DESIGN_TOKENS.md). Usage: npm run build && npm run words [-- --report-only] [outDir]
 // Counts the words in the page's main area (not the nav, top bar or side panel).
 // It prints two numbers per page:
 //   all     = every word in the page's HTML, including hover cards, closed <details> and other hidden text.

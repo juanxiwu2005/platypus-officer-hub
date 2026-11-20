@@ -1,33 +1,31 @@
-# AI 验证记录
+# AI verification record
 
-2026-10-22 · Codex · WP5
+October 22, 2026 · Codex · WP5 historical acceptance record
 
-## 状态
+> **Live-provider acceptance was incomplete. Do not claim at least 90% live accuracy or perfect live refusal behavior from these mocks.** Later AIR-only policy, DeepSeek removal, and restrictions on paid tests supersede the old testing sequence below. This record does not authorize new live calls or login attempts.
 
-**WP5 的真实供应商验收尚未完成，不能宣称达到 ≥90% 或拒答全对。**
-
-| 日期（Arizona） | 对象 / 模型 | 方式 | 结果 | 是否满足真实 AI 闸门 |
+| Date, Arizona | Provider/model | Method | Recorded result | Satisfies live AI gate? |
 | --- | --- | --- | --- | --- |
-| 2026-10-22 | mock（模拟供应商，不是真实模型） | 固定 40 题：30 道库内题、10 道应拒答题；每题调用实际 `/api/ask` 处理函数 | 40/40 接口约束检查通过，含拒答 10/10；另有 3 项恶意输出/接口检查 | 否；模拟值按预期答案构造，只证明接口和护栏，不证明模型理解 |
-| 2026-10-22 | DeepSeek，实际部署模型未读取 | 预览的真实测试 | **未运行；无分数** | 否 |
-| 2026-10-22 | ASU AIR，是否已配置及模型未知 | 尚未获得可访问的部署环境 | **未运行；无分数** | 否 |
-| 2026-10-22 | mock 手册 | 真实手册处理函数与电脑/手机流程；AI 输出夹带假内容、日期、假来源 | 仅保留原记录摘录；来源检查、卸任确认与社长批准通过 | 不代表真实供应商手册已验收 |
+| 2026-10-22 | Mock provider, not a real model | 40 fixed cases: 30 in-scope and 10 refusal cases through the actual `/api/ask` handler | 40/40 interface constraints, including 10/10 refusals; 3 additional malicious-output/interface checks | No. Constructed expected replies verify the interface/guardrails, not model comprehension. |
+| 2026-10-22 | DeepSeek; deployed model was not inspected | Intended live preview test | Not run; no score | No |
+| 2026-10-22 | ASU AIR; configuration/model unknown | Deployment environment was inaccessible | Not run; no score | No |
+| 2026-10-22 | Mock handbook | Actual handbook handler and desktop/mobile flow with fabricated content/dates/source IDs injected into model output | Retained original source extracts only; source checks, outgoing confirmation, and president approval passed | No live-provider handbook acceptance established |
 
-预览受到 Netlify 团队登录保护。已登录的 ASU 账号无法访问项目；Juanxi 随后明确要求停止尝试登录。已停止，没有关闭保护、读取密钥、修改供应商配置或改动 main，也没有用正式站旧接口冒充新版本的验证。
+The preview required Netlify team login. The signed-in ASU account lacked project access; Juanxi explicitly requested stopping login attempts, and they stopped. Access protection was not disabled, keys were not read, provider configuration and `main` were not changed, and an older production endpoint was not substituted as evidence for the new revision.
 
-## 固定测试集与判分
+## Fixed evaluation set and scoring
 
-- `evals/rules.json`：40 题；每题固定正确规则编号，或明确 `shouldRefuse: true`。只含虚构/通用政策问题，无研究数据或个人信息。
-- 库内题要求：`inScope: true`、规则编号与预期一致、答案包含对应编号，且返回来源及核实日期。服务器只显示规则原文，AI 只选规则。
-- 拒答题要求：`inScope: false`、引用数组为空；模型给出相关但不能回答的问题也应拒答。
-- **通过线：至少 36/40，且拒答 10/10；必须记录实际模型与实际供应商。** 这套分数验证固定题的选规则/拒答表现，不是对任何开放问题的正确率保证。
-- CI 和 `npm test` 使用模拟 AI；不会在 CI 调用收费供应商。可单独运行 `npm run eval:mock`。
-- 可访问预览后运行：`npm run eval:rules -- --base-url https://deploy-preview-1--platypus-officer-hub.netlify.app --output <本地结果文件>`。登录重定向或接口错误会记失败，不会回退成“通过”。脚本不接收或打印供应商 key。
-- `--input <结果文件>` 支持对在已登录浏览器里逐题收集的真实接口回执统一判分；不能把界面演示结果或模拟结果标成供应商实测。
-- 每次换模型前后都要重跑；拿到可访问环境后先测 DeepSeek；若已配 AIR，再分别测 AIR，并把日期、模型、分数和回执路径补到本表。
+- `evals/rules.json` contains 40 fictional/general policy questions. Each expects specific rule IDs or `shouldRefuse: true`, without research data or personal information.
+- In-scope cases require `inScope: true`, matching rule IDs, corresponding IDs in the answer, sources, and verification dates. The server displays stored rule wording; AI selects IDs only.
+- Refusal cases require `inScope: false` and an empty citation array. Related questions unsupported by the library must also be declined.
+- The original gate is at least 36/40 overall and 10/10 refusals, with the actual provider/model recorded. This measures the fixed set's selection/refusal behavior, not correctness on arbitrary open questions.
+- CI and `npm test` use mocks, without paid-provider requests. Run `npm run eval:mock` for the offline evaluation.
+- The historical live command was `npm run eval:rules -- --base-url https://deploy-preview-1--platypus-officer-hub.netlify.app --output <local-results-file>`. Use only an authorized accessible deployment and current testing approval. Login redirects/interface errors count as failures, without a passing fallback. The script does not accept or print a provider key.
+- `--input <results-file>` scores actual per-question responses collected in an authenticated browser. UI examples and mocks are not measured provider results.
+- The original plan called for before/after model-change evaluation, beginning with DeepSeek and separately testing AIR if configured, recording date/model/score/result path. DeepSeek was subsequently removed; current AI_SETUP and owner restrictions govern any future evaluation.
 
-## 真实岗位手册仍需 Juanxi 审阅
+## Live role handbook still required owner review
 
-预览 → **Handoff → Start handoff season → Treasurer handbook → Draft role handbook**。
+The historical acceptance path was Handoff → Start handoff season → Treasurer handbook → Draft role handbook. Only an output labelled “AI-selected source extracts” with provider/model identifies a live-provider selection. “Example extract draft · live AI unavailable or off” is a local source-extract example and does not complete live-handbook acceptance.
 
-只有标为 **AI-selected source extracts · 供应商 · 模型** 的才是真实供应商生成。若显示 **Example extract draft · live AI unavailable or off**，只是本地来源摘录示例，不能算完成了“审 AI 手册”的验收。每一条点 Source 可核查；先切 Maya 确认，再切 Alex 批准。
+Open Source on each item to verify evidence; switch to Maya for outgoing confirmation, then Alex for president approval. Later Handoff design and acceptance records supersede the original screen sequence where they differ.

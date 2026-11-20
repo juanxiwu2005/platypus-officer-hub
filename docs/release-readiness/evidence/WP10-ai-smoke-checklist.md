@@ -1,44 +1,44 @@
-# WP10 · Deploy Preview 8 真实 AI 人工冒烟清单
+# WP10 . Deploy Preview 8 live AI List of Artificial Smoke
 
-执行人：Juanxi。状态：**未执行**；本次认证没有自动调用真实付费 AIR。
+Executor: Juanxi. Status: **not executed**; This authentication does not automatically call live fee AIR.
 
-预览：[Deploy Preview 8](https://deploy-preview-8--platypus-officer-hub.netlify.app)。只使用虚构演示内容；本清单不授权合并 main、修改环境变量、关闭访问保护或打开服务器存储。
+Preview: [ Deploy Preview 8 ](https://deploy-preview-8--platypus-officer-hub.netlify.app). Only presentation content is used; This list does not authorize merge main, modify environmental variables, close access protection or open server storage.
 
-## 开始前
+## Before starting
 
-- [ ] 在 Netlify 的 Deploy Preview #8 详情确认部署成功，记下部署 commit、时间和部署链接；commit 应与本次认证报告的远端最终 SHA 一致。
-- [ ] 如果预览要求登录，使用自己的 Netlify 账号。401/403 或登录页属于访问限制，不能记成 AI 通过；不关闭访问保护。
-- [ ] 打开预览的 `/api/health`（不加 `?check=1`）：记录 `configured`、`provider` 和 routing version；应配置 ASU AIR。健康检查只证明配置，不证明模型生成成功。
-- [ ] 回到 Today，Reset demo，View as 选 Alex，打开 AI。服务器存储保持关闭；不要为此次 smoke 启用隐藏的 Organization Setup 或 Deeper review。
-- [ ] 打开浏览器开发者工具 → Network，保留请求记录。不要复制 Cookie、Authorization、密钥或完整 HAR 到仓库。
+- [ ] Confirm deployment success in the details of Deploy Preview #8 at Netlify, and write down deployment limit, time and link to deployment; Compmit should be consistent with the remote final SHA of this authentication report.
+- [ ] Use your own Netlify account if the preview requires a login. 401/403 or login pages are access restrictions and cannot be recorded as AI through; Do not close access protection.
+- [ ] Opens preview of `/api/health` (without `?check=1`): records of `configured`, `provider` and building protocol; AAU Air should be configured. Health checks only prove configuration and do not demonstrate successful model generation.
+- [ ] Go back to Today, Reset demo, View as Alex, open the AI. Server storage remains closed; Do not enable hidden Organization Setup or Deeper review for this smoke.
+- [ ] Opens the browser developers tool  → Network, keeps the request log. Do not copy Cookie, Authorization, secret key or complete HAR to repository.
 
-## 核心三项（逐项手动发送；不批量、不自动重试）
+## Core three (manually sent on a case-by-case basis); No batch, no automatic retry)
 
-| 项目 | 在 Ask 输入 / 操作 | 通过条件 | 人工结果 |
+| Item | Enter/ Operation in Ask | Adoption of the terms | Artificial results |
 | --- | --- | --- | --- |
-| 带出处规则回答 | `Can we order food from an outside caterer?` | 显示相关 ASU 来源，来源链接可打开；不编造审批保证或日期。记录实际 `/api/policy-answer`、`/api/ask` 或 `/api/chat` 回执中的 provider/model、来源和状态。 | 未执行 |
-| 任务与活动区分 | `Create an executable task: print flyers, owner Alex` | 出现任务表单，可核对标题与负责人；填写后只创建一次，Tasks 可见、刷新保留，可 Undo。截止日来自表单/规则引擎。 | 未执行 |
-| 活动创建及 Plan check | `Plan a new event called Spring Mixer` | 出现活动表单。手动选择未来日期并核对 checklist，批准后 Events 中有且只有一个活动，流程按 checklist 生成；活动检查有明确结果/失败提示，不能把 fallback 记成真实 AI 成功。 | 未执行 |
+| With source answer | `Can we order food from an outside caterer?` | Displays the relevant AAU source, which can be opened; No assurance or date of approval is created. Recorded actual `/api/policy-answer`、`/api/ask` or `/api/chat` Responding to provider/model, source and status.  | Not implemented |
+| Distinction between mandate and activities | `Create an executable task: print flyers, owner Alex` | A task sheet exists, which can be reconciled with the head(s); Creates only once after filling in, Tasks is visible and updated for Undo. The cut-off date is from form/ rule engine.  | Not implemented |
+| Active creation and Plan check | `Plan a new event called Spring Mixer` | An active form appears. Select future dates manually and check the checklist, with only one activity in Events after approval, which is generated on a checklist basis; The activity check has a clear result/ failure hint that the fallback cannot be counted as a live AI success.  | Not implemented |
 
-**判定真实生成：** 至少规则回答和活动 Plan check 分别保留一次成功的服务器 AI 回执，标明 ASU AIR 与实际 model。任务意图可由本地确定性路由识别；其表单成功只证明交互正确，不能单独算真实 AIR 生成。`/api/health` 的配置模型也不能当作实际响应模型。若 UI 不显示实际模型，可由 Netlify 函数对应的 `ai_usage` 日志核对 provider/model/ok，勿分享凭据。
+**Determines live generation:** At least rule answers and activities Plan check keeps a successful server AI back, identifying ASU AIR and actual mode. (b) Mission intent can be identified by locally determined routers; Its form was successful only in proving that it was interactive and could not be generated separately from the live Air. The configuration model for `/api/health` cannot be used as a real response model either. If UI does not show the actual model, the provider/model/ok can be checked by the `ai_usage` log corresponding to the Netlify function and do not share the evidence.
 
-## 保护与恢复（先完成核心三项，再按需检查）
+## Protection and recovery (core three to be completed and checked as required)
 
-- [ ] 切换到普通干部 Maya，确认活动创建权限与 Settings 设置一致；不能绕过审批或查看其他人的私有数据。
-- [ ] 开发者工具中临时阻断本站 `/api/chat` 或 `/api/event/review`，再发送一次虚构请求：失败/本地回退应明确可见，已保存内容保留，不自动升级模型、不自动重复收费。随后解除阻断。此项是故障恢复验证，不算真实模型质量通过。
-- [ ] AI 关闭时重复一个本地支持的命令，界面不标为真实 AI；Network 中没有新的 AI 生成请求。完成后恢复原开关。
-- [ ] 可选额外一次：要求 `Give me tax advice for our club`；应拒绝给出无来源的税务结论。不要为了凑分数反复调用。
-- [ ] 如需检查旧版章程/工作流读取或 Handoff 手册，另行选择虚构材料并记录实际来源与模型。保留人工批准；不启用隐藏服务器存储。这些是额外调用，不默认执行。
+- [ ] Switch to normal officer Maya, confirm that the creation of activities is consistent with Settings settings; It is not possible to bypass approvals or view private data from others.
+- [ ] The developers ' tool temporarily interrupts the station `/api/chat` or `/api/event/review` and sends another request for fielding: failure/ local fallback should be clearly visible, content retention maintained, no automatic upgrade model and no automatic duplication of charges. The blockage was then lifted. This is a failure recovery verification, not counting the live model quality passed.
+- [ ] AI repeats a locally supported command when it closes and the interface is not marked as live AI; Network does not have a new AI generation request. Restore the original switch after completion.
+- [ ] Optional additional time: `Give me tax advice for our club` required; Unsourced tax conclusions should be rejected. Don't call again and again for the fractions.
+- [ ] If you want to check the old version of constitution/workstream read or Handoff manual, select a different fielding material and record actual sources and models. Retention of manual approval; Do not enable hidden server storage. These are extra calls, not by default.
 
-## 记录和结束
+## Recording and closure
 
-| 记录项 | 填写 |
+| Record Items | Fill |
 | --- | --- |
-| Arizona 日期时间 / 执行人 / 浏览器与物理设备 | 待填写 |
-| Deploy Preview commit / 部署链接 | 待填写 |
-| 每项输入、HTTP 状态、实际 provider/model、用时、来源链接 | 待填写 |
-| 哪些回执是真实 AI，哪些是本地路由、模拟或回退 | 待填写 |
-| 失败、一次请求是否重复、保存/Undo/刷新结果 | 待填写 |
-| 核心三项总体结果 | 未执行 |
+| Arizona Date Time / executor / Browser and Physical Device | To be completed |
+| Deploy Preview company/ deployment link | To be completed |
+| Each input, HTTP status, actual provider/model, time used, source link | To be completed |
+| Which are live AIs, which are local routes, simulations or fallbacks? | To be completed |
+| Failed, whether a request is repeated, save/Undo/ refresh results | To be completed |
+| Core three overall results | Not implemented |
 
-完成后 Reset demo 清理本次虚构活动和任务，提交不含敏感头信息的结果。任何失败保留原始现象，不以反复重试代替通过。40 题真实评估不在本清单内；未执行前不宣称真实 AI 正确率或真实 AIR 人工验收通过。
+After completion Reset demo cleans up this field activities and tasks and submits results that do not contain sensitive header information. Any failure to retain the original phenomenon should not be replaced by repeated attempts. The 40 question live assessment is not included in this list; Do not declare live AI correct rate or live Air manual adoption before implementation.

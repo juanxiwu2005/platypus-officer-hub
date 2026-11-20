@@ -1,318 +1,318 @@
-# Onboarding 改版：三个阶段的提示词
+# Onboarding Refinement: Three Phases Prompt
 
-> 配套文件：[`WORK_PACKAGES.md`](WORK_PACKAGES.md)（拆分与并行）、[`../ONBOARDING_REDESIGN_STRATEGY.md`](../ONBOARDING_REDESIGN_STRATEGY.md)（设计）。
-> 沿用 v1.6 的"整合人口令 + 执行 agent 口令"结构（`../design-upgrade/PHASES.md` 末尾）。
+> Supporting documents: [ `WORK_PACKAGES.md` ](WORK_PACKAGES.md) (several and parallel), [ `../ONBOARDING_REDESIGN_STRATEGY.md` ](../ONBOARDING_REDESIGN_STRATEGY.md) (design).
+> The structure of the 6 "Integrational Population Order + Implementation of the Agent Password" (at the end of `../design-upgrade/PHASES.md`).
 
-## 0. 先说清楚：提示词给谁用
+## 0. Let's get this straight: who's it for?
 
-| 谁 | 用什么 | 长什么样 |
+| Who? | With what? | What do you look like? |
 | --- | --- | --- |
-| **Juanxi → 我（整合人，这个对话）** | **阶段口令**，第 1 节：每阶段一小段，Juanxi 贴给我 | 短。只说"开始哪个阶段、前提是什么"，细节全在仓库文档里 |
-| **我 → 执行 agent（worktree 里的子 agent）** | **执行口令**，第 2–4 节：由我生成并发出，Juanxi 不需要写 | 长。一个包一份，必须自给自足，因为子 agent 一开始什么都不知道 |
+| **Juanxi, me.**  | **stage password**, section 1: A small segment of each phase, Juanxi to me | Short. Just say, "What stage to start and what to suppose," details are in the document repository. |
+| **I'm executing** | **Execution password**, sect. 2–4: Generated and sent by me, Juanxi does not need to write | Long. One bag, and you have to be self-sufficient because the son of an agent doesn't know anything at first. |
 
-**为什么不是 Juanxi 开多个窗口各发一份：** 工作包分支只存在本机的 worktree 里，靠整合人用 `--no-ff` 合并；多个独立会话彼此看不到对方的本地分支，而这个会话又推不了别的分支（`design-upgrade/ROLLBACK_LOG.md`）。所以执行 agent 必须由整合人在同一个环境里用 worktree 开出来。
+**Why not Juanxi open multiple windows and send one each:** work package only in the workingtree branch where it exists, by integrating people using `--no-ff` merge; Several independent sessions do not see each other 's local branches, and this session does not push another branch (`design-upgrade/ROLLBACK_LOG.md`). So executing agent must be driven by an integrated person using worktree in the same environment.
 
-**三个阶段对应：** 阶段 1 = 波 0（OB-01、02、03）；阶段 2 = 波 1（OB-04…08）；阶段 3 = 波 2 + 3（OB-09、OB-10）。
+**corresponds to three phases:** stage 1 = Bo-0 (OB-01, 02, 03); Phase 2 = wave 1 (OB-04... 08); Stage 3 = wave 2 + 3 (OB-09, OB-10).
 
-## 提示词怎么写（七条原则）
+## Prompt how to write it.
 
-1. **自给自足。** 子 agent 不知道任何上下文：说清它是谁、读哪几个文件、在哪个 worktree、什么端口。
-2. **指路，不复制。** 规则和设计写在仓库文档里，口令只写"读哪一节"；这样文档改了，口令不用改。
-3. **文件白名单。** 明确写"只能改这些文件"。越界要停下来问，不要默默改——这是并行不冲突的根基。
-4. **把接口钉死。** 并行的包要对同一个接口编程（比如记录模块的函数名），所以接口写进口令，而不是让每个 agent 自己猜。
-5. **用证据定义"做完"。** 不写"做好看一点"，写"这几条命令全绿 + 这个新测试存在 + 反向验证会变红"。
-6. **写明什么时候停。** 需要改共用文件、要改数据结构、要加依赖、测试削弱才能过——一律停下来写进报告。
-7. **只要诚实的报告。** 报告必须有"没验证的"一栏；最终回复只给分支、提交、测试结果、报告路径。
-
----
-
-## 1. 阶段口令（Juanxi 贴给整合人）
-
-### 阶段 1（波 0：地基）
-
-```
-开始 Onboarding 阶段 1：OB-01 外壳与路由、OB-02 记录、OB-03 首次进入入口。
-Q2–Q6 按策略文档的建议。11/6 是参考日。
-你是整合人。先读 CLAUDE.md 要求的文件，再读 docs/ONBOARDING_REDESIGN_STRATEGY.md、
-docs/onboarding-redesign/WORK_PACKAGES.md 和 PROMPTS.md。
-按 PROMPTS.md 的"阶段 1 整合人口令"执行：OB-01 和 OB-02 各开一个 worktree 并行，
-合并后再做 OB-03。做完停下，给我欢迎页的预览网址和三句话验收说明。
-```
-
-### 阶段 2（波 1：流程 A 与社员预览）
-
-```
-开始 Onboarding 阶段 2：OB-04…OB-08。阶段 1 我已验收（或：阶段 1 的反馈是 …）。
-按 PROMPTS.md 的"阶段 2 整合人口令"执行：同时最多 4 个 worktree，OB-06 最先开。
-每合并一个包就登记 ROLLBACK_LOG。做完停下，给我"走一遍社长流程"的预览网址。
-```
-
-### 阶段 3（波 2 + 3：衔接、切换、收口）
-
-```
-开始 Onboarding 阶段 3：OB-09、OB-10。阶段 2 的反馈已处理（或：反馈是 …）。
-按 PROMPTS.md 的"阶段 3 整合人口令"执行。OB-10 里"切换哪一条"以我这次说的为准：
-社长流程 A：<切 / 不切>；社员预览 B：<切 / 不切>。
-做完停下，给我最终验收清单。
-```
+1. **Self-sufficiency.** sub-agent doesn't know anything about it: who it is, what documents it reads, which worktree and what port.
+2. **points the way, not copy.** rules and designs are written in repository documents, with passwords only "read which section"; That's how the file is changed. The password doesn't have to be changed.
+3. **White List of Documents.** makes it clear "can only change these documents." Crossing the border and asking not to change it — this is the foundation of a parallel non-conflict.
+4. **nail the interface to death. The** parallel package is programmed for the same interface (e.g., function name of the record module), so the interface writes an import order instead of allowing each agent to guess for itself.
+5. **defines "finished" with evidence.** doesn't write "Take a good look" and says, "These orders are all green + this new test exists + reverse certification will turn red."
+6. **says when to stop.** needs to change the common document, structure the data, depend on it and test it less — all stops to write the report.
+7. **as long as the report is honest. The** report must have an unverified column; The final response is for branches, submission, test results and reporting lines only.
 
 ---
 
-## 2. 阶段 1 的口令
+## 1. Stage password (Juanxi to integrationist)
 
-### 2.1 整合人口令（阶段 1）
-
-```
-你是整合人。Onboarding 阶段 1。读 AGENTS.md、docs/ONBOARDING_REDESIGN_STRATEGY.md（第 0、2b、5、7 节）、
-docs/onboarding-redesign/WORK_PACKAGES.md、本文件。
-1. 确认 claude/determined-johnson-yrdxwf 已合并 origin/main，npm ci && npm run check 全绿。
-   不绿就停下告诉 Juanxi，不要自己"顺手修"。打本地标签 ob/phase-1-before。
-2. 为 OB-01、OB-02 各开一个 worktree（../platypus-ob-01、../platypus-ob-02，
-   分支 design/ob-01-shell、design/ob-02-record，从集成分支开出），用第 2.2、2.3 节的口令并行启动执行 agent。
-3. 等两个都交付。逐个审 diff：只动了"可以改的文件"吗？有没有削弱旧测试？有没有裸颜色、裸毫秒、!important？
-   不合格就退回，不要自己默默改。
-4. 先合 OB-02，再合 OB-01（--no-ff，打 ob/ob-NN-merged 本地标签，登记 docs/onboarding-redesign/ROLLBACK_LOG.md，
-   OB-01 负责新建这个文件）。合并后跑完整 npm run check。
-5. 自己做 OB-03（口令见 2.4，不需要子 agent，它很小）。在 worktree ../platypus-ob-03 里做，同样 --no-ff 合并。
-6. 阶段末完整 npm run check（Node 22）。有红的：用标签二分，找出是哪个包，R2 撤掉，告诉 Juanxi。
-7. 写 docs/PROGRESS.md 一条阶段交接：做了什么、预览网址（带参数的）和点哪里、没验证的、每个包的回滚方式。
-   写"需要同步本地备份"。推送 claude/determined-johnson-yrdxwf。不碰 main，不推别的分支。
-8. 停下，等 Juanxi 验收。
-```
-
-### 2.2 执行口令：OB-01 外壳与路由
+### Stage 1 (wave 0: foundations)
 
 ```
-你是执行 agent，只做一个工作包：OB-01「外壳与路由」。
+Action.  Onboarding Phase  1：OB-01 Shells and routes, OB-02 Records, OB-03 First entry.
+Q2–Q6 Recommendations by strategy document. 11/6 It's a reference day.
+You're integrating people. Read first.  CLAUDE.md File requested. Read it again.  docs/ONBOARDING_REDESIGN_STRATEGY.md、
+docs/onboarding-redesign/WORK_PACKAGES.md and  PROMPTS.md。
+Press  PROMPTS.md It's... "Phase  1 Integration of population orders "Implementation: OB-01 and  OB-02 One each.  worktree In parallel,
+Merge, we'll do it later.  OB-03。And when you're done, give me a preview of the page and three words of access.
+```
 
-## 先读（按顺序，读完再动手）
-1. AGENTS.md 第 3、7、7.1 节；docs/DESIGN_TOKENS.md（全部）
-2. docs/ONBOARDING_REDESIGN_STRATEGY.md 第 2、3.2、3.4、4.2、5 节
-3. docs/onboarding-redesign/WORK_PACKAGES.md 第 2、5 节和 OB-01 那一行
-4. src/pages/Setup.tsx（看它持有哪些状态）、src/pages/Join.tsx、src/App.tsx、src/components/Layout.tsx
+### Stage 2 (wave 1: Process A and member preview)
 
-## 你在哪里
-worktree ../platypus-ob-01；分支 design/ob-01-shell；先 npm ci。
-端口：PW_PORT=5201 PW_STORAGE_PORT=5301 WORDS_PORT=5401。没有预装浏览器时用 PW_CHROMIUM。
-**不推送**（推不上去）。在分支上提交，提交信息 "[OB-01][Claude] …"，整合人会合并。
+```
+Action.  Onboarding Phase  2：OB-04…OB-08。Phase  1 I'm already acceptance (or: phase)  1 The feedback is...  …）。
+Press  PROMPTS.md It's... "Phase  2 Integration of population orders "Implementation: maximum at the same time  4 One.  worktree，OB-06 It's first.
+Every single bag is registered.  ROLLBACK_LOG。Give it to me. "Walk through the president process "_Other Organiser
+```
 
-## 任务
-1. 专注外壳 src/onboarding/shell/：没有侧栏、没有 Ask 右栏、没有 View as 和 AI 开关；顶栏有进度链、Exit（Save & exit）；
-   手机上主按钮贴底（浮层用半透明，减少透明度下回退实心）。
-2. 步骤状态机 src/onboarding/engine/：纯函数——前进、返回、跳过、恢复；跳过的步骤可点回去；
-   **引擎只通过一个可注入的 onEvent(step, event) 回调报告 enter/leave/back/skip/complete/exit，
-   不要 import 任何记录模块**（OB-02 并行在做，OB-03 负责把两者接起来）。单元测试覆盖。
-3. 进度链指示器：用现有 Chain 的样子；走过的线用 scaleX 长出来、圆点用 --spring-pop；跳过的点是空心虚线；
-   只在前进时动，减少动效下直接出现。
-4. 社长草稿的共享上下文 src/onboarding/draft.tsx：把 Setup.tsx 现在持有的状态（step、ClubDraft、steps、buffer、sentence、
-   constitution doc、reading、event、date、inviteCode 等，**逐个核对，一个都不能漏**）收成一个，所有屏只读写它。
-   沿用现有的 7 天恢复（IndexedDB，键 setup-draft 的做法）。**之后别的包不准改这个文件，所以字段要一次给全。**
-5. Demo 条（"Previewing as 某某 · Change"，琥珀色，和全站 Demo 小标同一个样子）。
-6. 文案表 src/onboarding/copy.ts：策略第 3、4、6 节里出现的所有英文文案，先放进去（后面的包只引用、可以追加自己的 key 到自己的区块）。
-7. 路由：在 src/App.tsx 一次建好 /welcome（入口，先放空壳）、/welcome/classic（旧 Setup 包进外壳）、
-   /welcome/classic-join（旧 Join 包进外壳）、以及后面每个屏的路由；**每个屏建一个空壳文件**
+### Phase 3 (wave 2 + 3: connecting, switching, closing)
+
+```
+Action.  Onboarding Phase  3：OB-09、OB-10。Phase  2 feedback has been processed (or: feedback is  …）。
+Press  PROMPTS.md It's... "Phase  3 Integration of population orders "Implementation. OB-10 Lee. "Which one? "According to what I said this time:
+President Process  A：<Cut.  / No, no, no. >；Members' preview  B：<Cut.  / No, no, no. >。
+When you're done, stop and give me the final list.
+```
+
+---
+
+## 2. Stage 1 password
+
+### 2.1 Integration Order (Phase 1)
+
+```
+You're integrating people. Onboarding Phase  1。Read it.  AGENTS.md、docs/ONBOARDING_REDESIGN_STRATEGY.md(Para. )  0、2b、5、7 Sections,
+docs/onboarding-redesign/WORK_PACKAGES.md. This document.
+1. Confirm  claude/determined-johnson-yrdxwf Already Mege  origin/main，npm ci && npm run check All green.
+   If it's not green, stop telling.  JuanxiDon't do it yourself. "Take care of it. "。Local tab  ob/phase-1-before。
+2. Yes.  OB-01、OB-02 One each.  worktree（../platypus-ob-01、../platypus-ob-02，
+   Branch  design/ob-01-shell、design/ob-02-record, from an integrated branch)  2.2、2.3 The section's password starts in parallel.  agent。
+3. Wait for both to be delivered. Case by case  diff: Just moving. "Files that can be changed "I'm sorry. Did you weaken the old test? There's no color, no milliseconds. !important？
+   If you're not qualified, don't change yourself.
+4. Let's go first.  OB-02Let's go again.  OB-01（--no-ffFight!  ob/ob-NN-merged Local tab, register  docs/onboarding-redesign/ROLLBACK_LOG.md，
+   OB-01 This is a new document. Merge, back to full.  npm run check。
+5. Do it yourself.  OB-03See you at the password.  2.4Don't need a son.  agentIt's very small. Yes.  worktree ../platypus-ob-03 The same thing.  --no-ff Merge.
+6. End of phase complete.  npm run check（Node 22）。It's red: two points on the label, find out which package it is. R2 Get out of here. Tell me.  Juanxi。
+7. Write.  docs/PROGRESS.md A stage handoff: what has been done, preview the site (with parameters) and dots, unverified rollback for each package.
+   Write. "Need to sync local backup "。Push  claude/determined-johnson-yrdxwf。No touching.  mainDon't push another branch.
+8. Stop! Wait!  Juanxi Acceptance.
+```
+
+### 2.2 Enforcement password: OB-01 shell and route
+
+```
+You're doing it.  agent, work package: OB-01Shells and Routes.
+
+## Read it first. Read it first.
+1. AGENTS.md Article  3、7、7.1 Section; docs/DESIGN_TOKENS.md(All)
+2. docs/ONBOARDING_REDESIGN_STRATEGY.md Article  2、3.2、3.4、4.2、5 Section
+3. docs/onboarding-redesign/WORK_PACKAGES.md Article  2、5 Sections and  OB-01 That line.
+4. src/pages/Setup.tsx(Look what it holds) src/pages/Join.tsx、src/App.tsx、src/components/Layout.tsx
+
+## Where are you?
+worktree ../platypus-ob-01；Branch  design/ob-01-shell；First.  npm ci。
+Port: PW_PORT=5201 PW_STORAGE_PORT=5301 WORDS_PORT=5401。When no preview browser is available  PW_CHROMIUM。
+**Don't push**(PULLS UP) Submitting in branch, submitting information  "[OB-01][Claude] …", integrate the person will merge.
+
+## Tasks
+1. Focus on the shell.  src/onboarding/shell/: No sidebar, no  Ask Right column, no.  View as and  AI Switches; There's a progress chain in the top bar. Exit（Save & exit）；
+   The main button on the mobile phone is bottomed (the surface is semi-transparent and less transparent, fallback solid).
+2. Step state machine  src/onboarding/engine/: Pure function ——Forwards, returns,skip, restoration; skip steps can be counted back;
+   **The engine only goes through one thing that can be injected.  onEvent(step, event) Report back.  enter/leave/back/skip/complete/exit，
+   Don't.  import Any Record Modules **（OB-02 In parallel, OB-03 It's responsible for bringing them together. Unittes overwrite.
+3. Progress chain indicator: using existing  Chain The look; It's for walking lines.  scaleX Grow up, dots.  --spring-pop；skip points are empty hollow lines;
+   Only move as it moves forward, directly with reduced force effects.
+4. shared context for the president draft  src/onboarding/draft.tsx: Put  Setup.tsx Existing State(s) step、ClubDraft、steps、buffer、sentence、
+   constitution doc、reading、event、date、inviteCode Wait. **One by one, not one.**One harvest, all screens only read and write it.
+   Continue with existing  7 Day Restoration (Cyber) IndexedDBkey  setup-draft I'm sorry, but I don't know what to do. **No change to this document is permitted in the other packages thereafter, so the field will be given at once.**
+5. Demo Article(s) "Previewing as Some.  · Change"Amber, and the whole station.  Demo It's the same thing.
+6. List  src/onboarding/copy.tsStrategy No. 1  3、4、6 In all the English cases that appear in this section, put them in first.  key Go to your own block.
+7. Route: in  src/App.tsx It's built at once.  /welcome♪ Into the entrance, empty shell first ♪ /welcome/classic(old)  Setup "Into the outer shell,"
+   /welcome/classic-join(old)  Join (b) the outer shell, and the route of each screen behind it; **Create an empty shell file per screen**
    （founder/Name、Constitution、Goals、Team、FirstEvent、Confirm、Invite；member/Invitation、You、Reminders、BusyWeeks、About、Done；
-   gate/Welcome），每个文件只导出一个"Coming soon"组件。这样后面的包只替换自己的文件，永远不碰 App.tsx。
-8. 样式：src/styles/ob-00-shell.css 写外壳；再建空文件 ob-04…ob-09 的 css（各一个，名字见 WORK_PACKAGES），
-   并在 src/styles/index.css 里按顺序 @import。
-9. e2e/ob-helpers.ts：给后面的包用的测试助手（打开 /welcome、走到某一步、清空本机数据）。
+   gate/Welcome), each file is exported only one "Coming soon"Component. That way the bag in the back will only replace its own files and never touch them.  App.tsx。
+8. Style: src/styles/ob-00-shell.css Write the shell; Respace File  ob-04…ob-09 It's...  cssOne each. See your name.  WORK_PACKAGES），
+   And  src/styles/index.css Inside in order  @import。
+9. e2e/ob-helpers.ts: Test assistant for the back bag (open)  /welcomeI'm going to take a step and empty my own data.
 
-## 只能改这些文件
-src/onboarding/**（新）、src/App.tsx、src/styles/ob-*.css（新）、src/styles/index.css（只加 @import）、
-e2e/ob-helpers.ts（新）、e2e/ob-01-*.spec.ts（新）、src/test/onboarding*.test.ts（新）、
-docs/onboarding-redesign/ROLLBACK_LOG.md（新）、docs/onboarding-redesign/reports/OB-01.md（新）。
-**不要改：** 旧的 Setup.tsx / Join.tsx（只能被引用）、store.tsx（OB-02 的）、Layout.tsx、DemoMenu.tsx（OB-03 的）、
+## We have to change these files.
+src/onboarding/**(new), src/App.tsx、src/styles/ob-*.css(new), src/styles/index.css(only added)  @import）、
+e2e/ob-helpers.ts(new), e2e/ob-01-*.spec.ts(new), src/test/onboarding*.test.ts(new),
+docs/onboarding-redesign/ROLLBACK_LOG.md(new), docs/onboarding-redesign/reports/OB-01.md(new).
+**Do not change:** Old  Setup.tsx / Join.tsx(Only quoted), store.tsx（OB-02 and the rest of the world) Layout.tsx、DemoMenu.tsx（OB-03 and the rest of the world)
 styles.css、PROGRESS.md、AGENTS.md、DESIGN_TOKENS.md、playwright.config.ts。
 
-## 不能做
-界面英文；颜色、字号、圆角、层级、时长、曲线只用 token；不写 !important、transition: all、裸毫秒；只动 transform 和 opacity；
-动画可打断、有减少动效版本；不调用 /api/org/*、/api/workspace*，不新增 AI 接口；不放真实数据和密钥；不改 SCHEMA_VERSION 和任何已有 localStorage 键。
+## Can't do it.
+English interface; Colours, character numbers, angles, layers, lengths, curves only  token；No writing.  !important、transition: all(a) Naked millisecond; Just move.  transform and  opacity；
+Animation can be interrupted with a less dynamic version; Do Not Call  /api/org/*、/api/workspace*, do not add  AI Interfaces; do not release live data and secret key; I won't change.  SCHEMA_VERSION And any existing  localStorage key.
 
-## 怎么证明做完
-- npm run lint、npm run build、npm test 全绿。
-- 旧页面零变化：npm run e2e 里 setup、join、a11y 相关的 spec 桌面 + 手机仍绿（断言不能放宽）。
-- 新测试 e2e/ob-01-shell.spec.ts：外壳里没有侧栏和 Ask；/welcome/classic 能走完旧设立；Back/Skip/恢复；
-  无障碍（axe）；深色；减少动效下无位移。每个新守卫附"故意违规会变红"的样本。
-- 用 git diff --stat 自查：没有白名单以外的文件。
+## How can we prove it?
+- npm run lint、npm run build、npm test All green.
+- Old page zero change: npm run e2e Lee.  setup、join、a11y Related  spec Desktop  + The mobile phone is still green (alleged that it cannot be relaxed).
+- New Test  e2e/ob-01-shell.spec.ts: no sidebar and  Ask；/welcome/classic (a) It can be built after it has been established; Back/Skip/Rehabilitation;
+  Accessibility ( axe）；(a) Dark colour; Reducing the immobility of dynamic effects. Every new guard. "Deliberate violation turns red. "A sample.
+- Use  git diff --stat Self-examination: No documents other than the white list.
 
-## 停下来的条件
-需要改白名单以外的文件；发现 Setup.tsx 的状态没法干净地收进一个上下文；需要加依赖；只有削弱旧测试才能过。
-遇到就停，写进报告，不要绕。
+## The conditions for stopping.
+Documents other than the list need to be changed; Found  Setup.tsx The state is not clean enough to fit into a context; Reliance is needed; It's only possible to weaken old tests.
+Just stop when you meet, write in the report, and don't go around.
 
-## 交付
-docs/onboarding-redesign/reports/OB-01.md：做了什么 / 怎么验收（点哪里）/ 没验证的（真机、Safari）/ 遇到的问题 / 回滚方式。
-最终回复只写：分支名、提交列表、测试结果、报告路径。
+## Delivery
+docs/onboarding-redesign/reports/OB-01.md: What has been done?  / What? Acceptance. / Not authenticated. Safari）/ Problems encountered  / Rollback way.
+The final response only reads: branch name, submission list, test results, reporting path.
 ```
 
-### 2.3 执行口令：OB-02 记录
+### 2.3 Enforcement password: OB-02 Record
 
 ```
-你是执行 agent，只做一个工作包：OB-02「记录」。
+You're doing it.  agent, work package: OB-02"Record."
 
-## 先读
-1. AGENTS.md 第 3 节；docs/ONBOARDING_REDESIGN_STRATEGY.md 第 2b、7 节
-2. docs/onboarding-redesign/WORK_PACKAGES.md 第 2、4、5 节
-3. src/data/store.tsx 里的 LOG_KEY、loadLog、saveLog、buildExport、downloadExport、reset，以及 src/data/types.ts 的 LogEntry
+## Read first.
+1. AGENTS.md Article  3 Section; docs/ONBOARDING_REDESIGN_STRATEGY.md Article  2b、7 Section
+2. docs/onboarding-redesign/WORK_PACKAGES.md Article  2、4、5 Section
+3. src/data/store.tsx Yeah.  LOG_KEY、loadLog、saveLog、buildExport、downloadExport、resetand  src/data/types.ts It's...  LogEntry
 
-## 你在哪里
-worktree ../platypus-ob-02；分支 design/ob-02-record；PW_PORT=5202 PW_STORAGE_PORT=5302 WORDS_PORT=5402。
-不推送；提交 "[OB-02][Claude] …"。
+## Where are you?
+worktree ../platypus-ob-02；Branch  design/ob-02-record；PW_PORT=5202 PW_STORAGE_PORT=5302 WORDS_PORT=5402。
+Do not push; Submit  "[OB-02][Claude] …"。
 
-## 任务：本机 onboarding 记录模块（纯逻辑，没有界面）
-- 新 key（例如 platypus.v1.onboarding），和现有 platypus.v1.log 分开；Reset demo 不清它；SCHEMA_VERSION 和 DemoState 不动。
-- **接口已约定，不要改名**（OB-03 会按它调用）：
+## _Other Organiser  onboarding Record module (pure logic, no interface)
+- New  key(e.g.,  platypus.v1.onboarding) and existing  platypus.v1.log Separation; Reset demo I don't know about it. SCHEMA_VERSION and  DemoState Don't move.
+- **The interface has been agreed. Do not change the name.**（OB-03 Will press it to:
   ```ts
   // src/lib/onboardingRecord.ts
   export type OnboardingEvent = "enter" | "leave" | "back" | "skip" | "complete" | "exit"
   export function hasSeenWelcome(): boolean
   export function markWelcomeSeen(): void
-  export function rearm(): void                          // Reset demo 调用：重新亮起入口，不删记录
-  export function startAttempt(entry: "start" | "explore", flowVersion: string): string   // 返回 attemptId
+  Export fun action rearm(): void/ /Reset demo call: relight the entrance without deleting the record
+  Export function startattempt (entry: "start", flyVersion: string): String/ / returns attachmentId
   export function recordStep(attemptId: string, step: string, event: OnboardingEvent): void
   export function finishAttempt(attemptId: string, outcome: "completed" | "exited" | "explored"): void
-  export function loadOnboardingRecord(): OnboardingRecord  // 供导出和测试
+  Export function loadingRecord(): Onboarding Read/ / for export and testing
   ```
-- 只记行为：attemptId、flowVersion、入口选择、每一屏的事件 + 毫秒时间戳、是否走完、从哪一屏退出、第几次重播。
-  **不记任何输入的文字。** 条数设上限（防止撑爆 localStorage），旧的先丢。
-- 浏览器屏蔽存储时：所有函数不抛错，hasSeenWelcome 退化为"本次会话内"的内存标记。
-- store.tsx 里**只改两处**：buildExport 多一个顶层字段 onboarding（formatVersion 保持 1）；reset 里调用 rearm()。
-  你是唯一允许改 store.tsx 的包。
+- Only act: attemptId、flowVersionAccess selection, every screen event.  + A millisecond pamphlet, whether or not it's finished, from which screen it exited, and the first replay.
+  **Do not remember any text entered.** Maximum number of articles (prevent blasts)  localStorageThe old one's gone first.
+- Browser block storage: all functions do not drop by mistake, hasSeenWelcome Degradation to "In this session "is the memory mark.
+- store.tsx Lee. **Just two places.**：buildExport One more top-level field  onboarding（formatVersion Hold  1）；reset Incoming  rearm()。
+  You're the only one allowed to change.  store.tsx The bag.
 
-## 只能改这些文件
-src/lib/onboardingRecord.ts（新）、src/test/onboardingRecord.test.ts（新）、src/data/store.tsx（仅上述两处）、
-现有导出相关测试里**必要的**期望更新（改成同样严格地测新字段，并在报告里写明）、
-docs/onboarding-redesign/reports/OB-02.md（新）。
+## We have to change these files.
+src/lib/onboardingRecord.ts(new), src/test/onboardingRecord.test.ts(new), src/data/store.tsx(Only the two above),
+Existing export tests **Yes.**(a) The expectation of updating (changed to a similarly rigorous new field, as indicated in the report),
+docs/onboarding-redesign/reports/OB-02.md(new).
 
-## 不能做
-同 OB-01 的"不能做"；另外：不上报任何数据到任何地方，不加网络请求。
+## Can't do it.
+Same.  OB-01 It's... "Can't do it. "；In addition, no data are reported anywhere and no web request is made.
 
-## 怎么证明做完
-lint / build / npm test 全绿；单元测试覆盖：多次尝试、重播计数、条数上限、存储被屏蔽、导出里有 onboarding、
-Reset demo 后记录还在而 hasSeenWelcome 为 false、记录里搜不到任何输入文本。
-反向验证：故意把某个事件写进文字内容，测试要变红。
+## How can we prove it?
+lint / build / npm test Full green; unittes overwrite: multiple attempts, recounts, bar ceilings, storage blocked, exported  onboarding、
+Reset demo The records are still in place.  hasSeenWelcome Yes.  false, no input text can be found in the record.
+Reverse authentication: intentionally writing an event into the text and testing it to become red.
 
-## 停下来的条件
-需要改 store.tsx 其他部分；发现导出格式有外部使用者；需要改已有 key。
+## The conditions for stopping.
+It needs to be changed.  store.tsx Other parts; Finds that the export format has an external user; It needs to be changed.  key。
 
-## 交付：同 OB-01（报告 OB-02.md，最终回复只写分支、提交、测试结果、报告路径）。
+## Delivery: same as  OB-01(Report)  OB-02.md, the final response is only for branches, submission, test results, reporting path).
 ```
 
-### 2.4 OB-03 首次进入入口（整合人自己做）
+### 2.4 OB-03 First entry (integrated person)
 
 ```
-任务：OB-03「首次进入入口」。worktree ../platypus-ob-03，分支 design/ob-03-gate，端口 5203/5303/5403。
-前提：OB-01、OB-02 已合并。
-1. 欢迎页 src/onboarding/gate/Welcome.tsx：策略 2b 的线框；Start walkthrough（主）/ Explore the sample club（次）。
-   Start → startAttempt("start", flowVersion) → /welcome/classic（先指向旧设立，OB-10 才切新流程）；
+Tasks: OB-03First-time entrance. worktree ../platypus-ob-03Branch  design/ob-03-gatePort  5203/5303/5403。
+Preconditions: OB-01、OB-02 Already metge.
+1. Welcome Page  src/onboarding/gate/Welcome.tsx: Strategy  2b ; the frame of the line; Start walkthrough(Major) / Explore the sample club(twice).
+   Start → startAttempt("start", flowVersion) → /welcome/classicIt's the first time I've ever seen a woman in my life. OB-10 It's just a new process.
    Explore → startAttempt("explore") + finishAttempt("explored") + markWelcomeSeen → /。
-2. 判断首次：开关打开 && 没有保存过演示数据 && !hasSeenWelcome()。开关默认关；打开方式：构建环境变量（Netlify）+ 网址参数 ?walkthrough=1 覆盖（预览用）。
-   在 / 的最前面拦截，不动 Layout；存储被屏蔽时只在本次会话弹一次。
-3. 把 OB-01 的引擎 onEvent 接到 OB-02 的 recordStep。
-4. DemoMenu.tsx："Replay setup" 改名 "Replay walkthrough"，指向 /welcome/classic；重播也记录。
-5. 欢迎页在记录告知上留一个位置，**默认不显示那句话**；是否显示等 Juanxi 对照 IRB 材料决定。
-测试：开关关着时旧页面零变化（现有 spec 全绿）；开关开着：首次→欢迎页；选 Explore 后刷新不再弹；Reset demo 后再弹；
-记录里有对应事件；桌面 + 手机 + 无障碍 + 深色。
+2. First judgement: Switch on  && No demo data saved  && !hasSeenWelcome()。Switch default switch; Open with: Build Environment Variables (Build) Netlify）+ Website parameters  ?walkthrough=1 Overwrite (for preview).
+   Yes.  / Stop at the front. Don't move.  Layout；Storage is blocked only once in this session.
+3. Put it on.  OB-01 The engine.  onEvent Got it.  OB-02 It's...  recordStep。
+4. DemoMenu.tsx："Replay setup" Change of name  "Replay walkthrough"Point  /welcome/classic；The replay is also recorded.
+5. Welcoming the fact that there is a place on the page for the record, **Default does not show that sentence**；Whether or not to show wait  Juanxi Contrast  IRB Material decision.
+Test: Old page zero change when the switch is closed (existing)  spec (a) Full green; Switch on: first time →Welcome page; Selection  Explore (b) Refurbishment no more bullets; Reset demo Then play it again;
+(a) The corresponding event is recorded; Desktop  + Cell phone.  + Accessibility  + Dark.
 ```
 
 ---
 
-## 3. 阶段 2 的口令
+## 3. Stage 2 password
 
-### 3.1 整合人口令（阶段 2）
-
-```
-你是整合人。Onboarding 阶段 2。读 AGENTS.md、WORK_PACKAGES.md、本文件、docs/onboarding-redesign/ROLLBACK_LOG.md。
-1. 确认阶段 1 已合并且 npm run check 全绿；打 ob/phase-2-before。
-2. 为 OB-04…OB-08 开 worktree（../platypus-ob-NN，分支 design/ob-NN-<短名>），**同时最多 4 个**；OB-06 最先开，
-   最后一个等任意一个交付后再开。用第 3.2 节的模板和表格生成各自的口令。
-3. 每个交付都审：diff 是否只在白名单里？旧测试是否被削弱？是否写了裸颜色/裸毫秒/!important？
-   新守卫是否带"故意违规会变红"的样本？不合格退回。
-4. 按编号从小到大 --no-ff 合并，打本地标签，登记 ROLLBACK_LOG.md。每合并一个先跑 lint + build + 单元，
-   波末跑一次完整 npm run check。
-5. 写 PROGRESS 阶段交接，推送，停下。预览网址必须能"走一遍社长流程"：给出点哪里的步骤。
-```
-
-### 3.2 执行口令模板（OB-04…OB-08 共用，填空）
+### 3.1 Integration Order (Phase 2)
 
 ```
-你是执行 agent，只做一个工作包：OB-{NN}「{名字}」。
-
-## 先读
-1. AGENTS.md 第 3、7、7.1 节；docs/DESIGN_TOKENS.md
-2. docs/ONBOARDING_REDESIGN_STRATEGY.md 第 {章节}、5、6 节
-3. docs/onboarding-redesign/WORK_PACKAGES.md 第 2、5 节和 OB-{NN} 那一行
-4. src/onboarding/（OB-01 已建好：外壳、引擎、draft.tsx、copy.ts、你的空壳文件）
-5. {参考的旧代码}
-
-## 你在哪里
-worktree ../platypus-ob-{NN}；分支 design/ob-{NN}-{短名}；先 npm ci。
-PW_PORT=52{NN} PW_STORAGE_PORT=53{NN} WORDS_PORT=54{NN}。不推送；提交 "[OB-{NN}][Claude] …"。
-
-## 任务
-{任务}
-
-## 只能改这些文件
-{独占文件}
-你的空壳文件已经由 OB-01 建好并挂了路由：直接替换它的内容，**不要改 App.tsx、draft.tsx、copy.ts 的已有部分**
-（copy.ts 只能在你自己的区块里追加 key）。需要 draft 里没有的字段：停下，写进报告。
-
-## 不能做 / 怎么证明做完 / 停下来的条件 / 交付
-同 OB-01 口令的对应四节，再加：
-- 每屏"一眼看到的"英文词 ≤40（{特殊上限}）。
-- 流程里每个"可跳过"的屏必须有 Skip for now + 一行"以后在哪找回"。
-- 引擎的 onEvent 由外壳统一调用，你的屏不要自己写记录。
-- 自己的 e2e：最快路径、完整路径、返回/跳过/恢复、桌面 + 手机、axe、深色、减少动效；
-  动效测试要把减少动效切回"不减少"并逐帧采样（参考现有 dx-*.spec.ts），看到中间值才算动画存在。
-
-最终回复只写：分支、提交、测试结果、报告路径。
+You're integrating people. Onboarding Phase  2。Read it.  AGENTS.md、WORK_PACKAGES.mdThe present document, docs/onboarding-redesign/ROLLBACK_LOG.md。
+1. Identification phase  1 Mege already and  npm run check Full green; Fight!  ob/phase-2-before。
+2. Yes.  OB-04…OB-08 Open.  worktree（../platypus-ob-NNBranch  design/ob-NN-<Short name >），**At most.  4 One.**；OB-06 It's first.
+   The last one waits for any delivery. Use the first.  3.2 Sections templates and tables generate their own passwords.
+3. Each delivery will be reviewed: diff Is it only in the white list? Was the old test weakened? Did you write the naked color? /Naked milliseconds /!important？
+   Are the new guards carrying them? "Deliberate violation turns red. "A sample? Unqualified revert.
+4. Numbered from small to large  --no-ff Merge, hit the local tab, register.  ROLLBACK_LOG.md。Every merge, one runs first.  lint + build + Unit,
+   We're gonna run all over the port.  npm run check。
+5. Write.  PROGRESS Stage Handoff, push, stop. Preview of web sites must be able "Walk through the president process ": Give us a few steps.
 ```
 
-| 包 | 名字 / 短名 | 策略章节 | 任务（填进"任务"） | 独占文件 | 参考旧代码 | 特殊 |
+### 3.2 Execution password template (OB-04 ... OB-08 shared, empty)
+
+```
+You're doing it.  agent, work package: OB-{NN}「{Name }」。
+
+## Read first.
+1. AGENTS.md Article  3、7、7.1 Section; docs/DESIGN_TOKENS.md
+2. docs/ONBOARDING_REDESIGN_STRATEGY.md Article  {Chapter }、5、6 Section
+3. docs/onboarding-redesign/WORK_PACKAGES.md Article  2、5 Sections and  OB-{NN} That line.
+4. src/onboarding/（OB-01 Set up: shell, engine, draft.tsx、copy.tsYour shell file)
+5. {Old code reference }
+
+## Where are you?
+worktree ../platypus-ob-{NN}；Branch  design/ob-{NN}-{Short name }；First.  npm ci。
+PW_PORT=52{NN} PW_STORAGE_PORT=53{NN} WORDS_PORT=54{NN}。Do not push; Submit  "[OB-{NN}][Claude] …"。
+
+## Tasks
+{Tasks }
+
+## We have to change these files.
+{Monopoly File }
+Your shell file has been filed by  OB-01 It was built and hung up: directly replacing its content. **Don't change.  App.tsx、draft.tsx、copy.ts The existing part.**
+（copy.ts It can only be added to your own block.  key）。Yes.  draft : Stop and write the report.
+
+## Can't do it.  / How can we prove it?  / The conditions for stopping.  / Delivery
+Same.  OB-01 The password corresponds to four sections, plus:
+- Every Screen "I saw it at first glance. "English  ≤40（{Special ceiling }）。
+- Each in the process "kskip "The screen has to be.  Skip for now + One line. "Where to find it from now on? "。
+- Engine.  onEvent It's called from the shell, and you don't write your own records.
+- Your own.  e2e: Fastest path, full path, return /Skip /Restore, Desktop  + Cell phones, axe(b) Darkness, reduced kinetic effects;
+  The kinetic test is going to cut it back. "No reduction "and sampled by frame (reference to existing)  dx-*.spec.ts), if you see the median value, it is animated.
+
+The final response is written only: branch, submission, test results, reporting path.
+```
+
+| Bag. | Name / Short name | Policy Chapter | Tasks (filled with "task") | Monopoly File | Reference to Old Code | Special |
 | --- | --- | --- | --- | --- | --- | --- |
-| OB-04 | Name + Constitution / `name-constitution` | 3.1 第 1–2 屏 | 社团名一个输入框 + 只读学校标；三个选项行（Use sample 在前 / Upload / Paste）+ Skip；复用现有读取逻辑，结果以"AI suggested"进 draft | `founder/Name.tsx`、`Constitution.tsx`、`ob-04-*.css`、`e2e/ob-04-*.spec.ts` | `ConstitutionStep.tsx`、`Setup.tsx` 的 `startReading`、`lib/constitution.ts` | AI 失败文案按策略第 6 节（去掉状态码） |
-| OB-05 | Goals + Team / `goals-team` | 3.1 第 3–4 屏 | 建议目标可开关 + 步进器；两格岗位行（Role / Person，可留空）；组织图；职责折叠；**不问邮箱、电话、ASU ID**（邮箱用 `fillEmails`） | `founder/Goals.tsx`、`Team.tsx`、`ob-05-*.css`、测试 | `SettingsForms.tsx`、`OrgChart.tsx`、`data/structure.ts` | 页面高度目标 ≤ 一屏半（桌面） |
-| OB-06 | First event / `first-event` | 3.1 第 5 屏、3.2、5（见证时刻） | 一句话 + 示例按钮 → 进度链画出来（日期来自 `schedule.ts`）→ 缓冲分段控件（日期当场变）→ "Event details" 折叠；**只出一次演出，可打断，减少动效下整张直接出现** | `founder/FirstEvent.tsx`、`ob-06-*.css`、测试 | `Setup.tsx` 的 `prepare`、`data/settings.ts` 的 `completeSetup`、`lib/commands.ts` | **最大最难，先开**；上限 60 词；日期只来自规则引擎，AI 不给日期 |
-| OB-07 | 社员预览前半 / `member-invitation` | 4.1 第 0–2 屏、4.2 | Invitation 落地屏（角色卡放大）、You（预填确认）、Reminders（渠道选项行 + Morning/Evening + 示例气泡）；Demo 条 | `member/Invitation.tsx`、`You.tsx`、`Reminders.tsx`、`ob-07-*.css`、测试 | `Join.tsx`、`SettingsForms.tsx` 的 `ProfileForm`/`RoleCard`、`data/settings.ts` 的 `saveProfile` | 开发用样例社团的邀请码；**ASU ID 不问**；电话只在选 WhatsApp/SMS 后出现并写用途 |
-| OB-08 | 社员预览后半 / `member-finish` | 4.1 第 3–5 屏 | 周条（期末周/假期来自校历）、建议标签三问合一屏（可跳过）、Done：名字加入组织图 + 第一件事卡片 | `member/BusyWeeks.tsx`、`About.tsx`、`Done.tsx`、`ob-08-*.css`、测试 | `engine/calendar.ts`、`ProfileForm` | 忙碌周必须是周一（`validateProfile` 规则）；可砍包，砍时改用旧 `ProfileForm` |
+| OB-04 | Name + Constitution / `name-constitution` | 3.1 1–2 | (a) a text box for the name of the student orgation + a school-only symbol; Three option lines (Use sample before / Upload/ Paste)+Skip; Repeats the current reading logic and ends with "AI selected" | `founder/Name.tsx`、`Constitution.tsx`、`ob-04-*.css`、`e2e/ob-04-*.spec.ts` | `ConstitutionStep.tsx`、`Setup.tsx` It's... `startReading`、`lib/constitution.ts` | AI Failed text following policy section 6 (de-state code) |
+| OB-05 | Goals + Team / `goals-team` | 3.1 3–4 | Suggested target to switch + walker; Two rows (Role / Person, available); Organizational chart; (a) Folding of duties; **Do not ask for mailboxes, telephones, ASU ID** (mailbox) `fillEmails`） | `founder/Goals.tsx`、`Team.tsx`、`ob-05-*.css`Test | `SettingsForms.tsx`、`OrgChart.tsx`、`data/structure.ts` | Page height target  ≤  1/2 screen (desktop) |
+| OB-06 | First event / `first-event` | 3.1 5, 3.2, 5 (times of sight) | One sentence + Example button  →  Progress chain drawn (date from) `schedule.ts`• Buffer segment control (date change on the spot)  →  "Event details" folding; **Just one show, you can interrupt. The whole thing's coming up with less power.**  | `founder/FirstEvent.tsx`、`ob-06-*.css`Test | `Setup.tsx` It's... `prepare`、`data/settings.ts` It's... `completeSetup`、`lib/commands.ts` | **Maximum Hardest, start with**; The cap 60 word; Date from rule engine only, AI does not give date |
+| OB-07 | First half of the crew preview / `member-invitation` | 4.1 0–2 screen, 4.2 | (a) Invitation (magnification of role cards), You (prefill confirmation), Reminders (channel options + Morning/Evening + example bubbles); Rule Demo | `member/Invitation.tsx`、`You.tsx`、`Reminders.tsx`、`ob-07-*.css`Test | `Join.tsx`、`SettingsForms.tsx` It's... `ProfileForm`/`RoleCard`、`data/settings.ts` It's... `saveProfile` | Develop an invitation code for sample cases; **ASU ID does not ask**; Phones only appear and write after whatsApp/SMS |
+| OB-08 | Back half of the crew preview / `member-finish` | 4.1 3–5 | Weeks (end week/ vacation from school calendar), recommended tag three questions of skip, Done: name added to tissue chart + first thing card | `member/BusyWeeks.tsx`、`About.tsx`、`Done.tsx`、`ob-08-*.css`Test | `engine/calendar.ts`、`ProfileForm` | The busy week must be Monday. `validateProfile` Rules; But you can chop it and use the old ones. `ProfileForm` |
 
 ---
 
-## 4. 阶段 3 的口令
+## 4. Stage 3 password
 
-### 4.1 整合人口令（阶段 3）
-
-```
-你是整合人。Onboarding 阶段 3。读 AGENTS.md、WORK_PACKAGES.md、本文件、ROLLBACK_LOG.md。
-1. 确认阶段 2 已合并、npm run check 全绿；打 ob/phase-3-before。
-2. 先做 OB-09（整合型，串行；可开一个 worktree 的子 agent，用 4.2 的口令，但你要在它交付后逐行审）。
-3. 合并 OB-09 后做 OB-10（4.3，由你亲自做，不交给子 agent）。
-4. 切换以 Juanxi 本次口令为准：A、B 各一个开关，没被点名切的那条继续指向旧屏。
-5. 阶段末：完整 npm run check（Node 22）；dx-shots 前后对比（旧页面应逐像素一致，只有 /welcome 下的新页面是新的）；
-   回滚演练（先撤 OB-10 再撤 OB-09……，tsc 通过，与阶段开始前逐字一致）。
-6. 写 PROGRESS 阶段交接 + AGENTS.md 增加一小节"onboarding 入口和记录"（只有整合人能改这两个文件）。
-   写"需要同步本地备份"。推送，停下，给 Juanxi 最终验收清单和冻结说明（冻结那一刻开着的组合是什么、版本号 flowVersion 是多少）。
-```
-
-### 4.2 执行口令：OB-09 确认 + 邀请 + 衔接 + 提示
+### 4.1 Integration Order (Phase 3)
 
 ```
-（用 3.2 的模板，OB-09，分支 design/ob-09-confirm-invite，端口 5209/5309/5409。依赖：OB-06、OB-07 已合并。）
-任务：① Confirm 屏：一句话总结 + Start workspace / Keep current demo；首次进入时**不出现**"这会替换当前演示"的警告，只在从 Demo 菜单重播时出现；
-② Invite 屏（邀请时刻）：Copy link / WhatsApp / Email（只是打开写好的消息，什么都不自动发，界面写明）+ 权限一句话 + Invited/Joined 列表；
-③ 首次进入时主按钮 "See what your officers will see" → 进入社员预览（OB-07、08 的屏），结束回 Today；
-④ Today 的一次性小提示 ≤3 条（贴着它说的东西、点一下消失、不再出现；放在 src/onboarding/tips/，通过自己的一个挂载点，
-   不要改 Today.tsx 以外的页面；**改 Today.tsx 前先停下问整合人**，字数上限 npm run words 不能超）。
-独占文件：founder/Confirm.tsx、Invite.tsx、src/onboarding/tips/**、ob-09-*.css、测试。
-可砍：④。
+You're integrating people. Onboarding Phase  3。Read it.  AGENTS.md、WORK_PACKAGES.mdThe present document, ROLLBACK_LOG.md。
+1. Identification phase  2 Mege, npm run check Full green; Fight!  ob/phase-3-before。
+2. Do it first.  OB-09(integrated, rows;) One of them.  worktree The son.  agentHere.  4.2 The password, but you have to go on trial after it is delivered."
+3. Merge.  OB-09 Do it later.  OB-10（4.3You'll do it yourself, not give it to him.  agent）。
+4. Toggle  Juanxi The password will read as follows: A、B One switch each, and the unnamed one continues to point to the old screen.
+5. End of phase: complete  npm run check（Node 22）；dx-shots Contrast (old pages should be identical to pixels, only  /welcome The new page below is new;
+   Rollback  OB-10 Again.  OB-09……，tsc Adopted, word by word, before the beginning of the phase).
+6. Write.  PROGRESS Stage Handoff  + AGENTS.md Add a subsection "onboarding Entrances and records "(The two documents can be changed only by the integrated person).
+   Write. "Need to sync local backup "。Push it. Stop it. Here.  Juanxi Final list and freeze description (what's the combination, version number that was open at the moment of freezing)  flowVersion How much is it?
 ```
 
-### 4.3 OB-10 切换、加固、收口（整合人自己做）
+### 4.2 Execution password: OB-09 Confirms + Invitation + Link + Hint
 
 ```
-1. 切换：A、B 各一个开关（构建环境变量 + ?walkthrough=1 覆盖），按 Juanxi 口令设置；R1 关入口即回到今天。
-2. flowVersion：给流程一个版本号写进记录（例如 ob-1），冻结时写进 PROGRESS。
-3. 全套：桌面 + 手机 + 浅/深 + 减少动效 + 减少透明度；axe；word budgets；旧 spec 全绿且没有被放宽。
-4. 记录的端到端：走完整流程后 Export my data 里 onboarding 字段完整、没有输入文本；Reset demo 后记录还在、入口重新亮起。
-5. 守门：整个新流程对 /api/org、/api/workspace 的请求数为 0（沿用现有断言写法）。
-6. 回滚演练、前后截图、文档、冻结说明（见 4.1 第 5–6 条）。
+Use  3.2 the template, OB-09Branch  design/ob-09-confirm-invitePort  5209/5309/5409。Dependence: OB-06、OB-07 Already metge. ）
+Tasks: ① Confirm Screen: Summing up a sentence  + Start workspace / Keep current demo；On first entry **No, it doesn't.**"This will replace the current presentation "A warning only from  Demo When the menu is replayed;
+② Invite Screen (invited moment): Copy link / WhatsApp / EmailJust open up the written message, don't send anything automatically. + ...permissions, a word.  + Invited/Joined Lists;
+③ Main button on first entry  "See what your officers will see" → Entering membership previews (%) OB-07、08 , finish back  Today；
+④ Today A one-time tip.  ≤3 (As it says, a little bit disappears and does not appear again); Put it on  src/onboarding/tips/, through one of your own mount points,
+   Don't change.  Today.tsx Pages outside; **Change  Today.tsx Let's stop and ask for integration first.**, maximum word count  npm run words Can't be over.
+Monopoly file: founder/Confirm.tsx、Invite.tsx、src/onboarding/tips/**、ob-09-*.cssTest.
+Cutable: ④。
+```
+
+### 4.3 OB-10 Switching, strengthening and closing (integrated by the person)
+
+```
+1. Switch: A、B One switch each (building environment variable)  + ?walkthrough=1 Overwrite, press  Juanxi (a) Password settings; R1 Close the entrance and go back to today.
+2. flowVersion: write a version number into the record of the process (e. g.  ob-1Write when freezing  PROGRESS。
+3. Full set: desktop  + Cell phone.  + Light /Deep  + Reduce kinetic Effect  + Reducing transparency; axe；word budgets；Old  spec It's green and not relaxed.
+4. Record end to end: after complete process  Export my data Lee.  onboarding The field is complete and no text has been entered; Reset demo After that, the records were still in place and the entrances resurfaced.
+5. Doorkeeper: The whole new process is right  /api/org、/api/workspace Number of requests  0(Refer to existing accusatorial formulation).
+6. Rollback rehearsal, back-to-back screens, documents, freeze notes (see above)  4.1 Article  5–6 Article ).
 ```

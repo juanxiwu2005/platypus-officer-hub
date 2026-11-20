@@ -1,35 +1,35 @@
-# DX-09 右栏滑入滑出 + Ask 按钮 + 安全区 + `dvh`
+# DX-09 Right Bar Slide Out + Ask Button + Safe Zone + `dvh`
 
-- 阶段 2　大小 L　风险 **高**　R 级 R2　依赖：DX-01、DX-02　并行伙伴：DX-10～14
-- 分支：`design/dx-09-rail-motion`　样式文件：`src/styles/dx-09-rail-motion.css`　对应细节：D03 D07 D08 D09
+- Phase 2 Size L Risk **High** R Level R2 Dependence: DX-01, DX-02 Parallel Partners: DX-10 ~ 14
+- Branch: `design/dx-09-rail-motion` Style File: `src/styles/dx-09-rail-motion.css` Corresponding Details: D03 D07 D08 D09
 
-## 为什么
-**读到**：`Layout.tsx` 里是 `{rail.open && <Rail />}`，直接挂载和卸载；小于 1200px 时它是固定在右侧的浮层，也是"啪"一下出现。这是整个应用里最大的一块会"动"的东西，也是最影响"手感"的一处。Emil §3（可打断）、§7（进出同一条路径）；Apple `motion.md`（"if someone reveals a view by sliding it down from the top, they don't expect to dismiss the view by sliding it to the side"）。
+## Why?
+**read**: `Layout.tsx` is `{rail.open && <Rail />}`, which is directly mounted and unmounted; Less than 1200 px when it's fixed to the right of the float, and it's "beep" a little bit. It's the biggest piece of the application that moves, and it's the one that most affects the feeling. Emil § 3 (interruptible), § 7 (in and out of the same path); Apple `motion.md`（"if someone reveals a view by sliding it down from the top, they don't expect to dismiss the view by sliding it to the side"）。
 
-## 要做的事
-1. **进出**（`Layout.tsx`、`Rail.tsx`、`RailContext.tsx`）：
-   - 关闭时不要立刻卸载：先把 `data-state` 设为 `closing`，等 `transitionend`（兜底：`--dur-base` + 50ms 的定时器）再卸载。减少动效时时长为 1ms，几乎立即卸载。
-   - **≤1199px（浮层）**：从右边 `translateX(100%)` 滑到 0，`var(--dur-base)` + `var(--ease-out)`；退场沿同一路径滑回。阴影随之淡入淡出。
-   - **≥1200px（并排）**：右栏淡入 + 8px 位移；中间内容列**直接改变宽度**（不做网格列过渡，避免整页每帧重排）。如果实测列宽过渡不卡，可以在报告里提出作为 A/B 方案，由 Juanxi 选；默认用直接改变宽度。
-   - **可打断**：打开过程中再点关闭，要从当前位置反向，不要先播完。用 CSS 过渡切换 `data-state` 自然就能做到；不要用 `@keyframes`。
-2. **Ask 圆按钮 `.ask-fab`**：关闭右栏时淡入 + 轻微放大；打开右栏时淡出。加 `:active` 缩小。底部位置改成 `calc(18px + env(safe-area-inset-bottom))`。
-3. **`100vh` 改 `100dvh`**：`.rail` 的高度（`calc(100vh - var(--topbar-h) - 28px)`）。
-4. **保持不变的行为（高风险点，逐条回归）**：
-   - 小于 1200px 时的焦点处理：打开时焦点进右栏、关闭时回到打开它的按钮；Tab 陷阱；Escape 关闭；页面背景 `inert`；点页面外面关闭（平板）。
-   - **关闭一开始就要解除背景的 `inert`**，不要等动画结束，否则退场的 200ms 里页面点不动。
-   - `data-testid="rail"`、`tab-ask`、`tab-details`、`ask-toggle`、`.ask-fab` 不变。
+## Something to do.
+1. **In and out of** (`Layout.tsx`, `Rail.tsx`, `RailContext.tsx`);
+   - Do not unload immediately when closing: set `data-state` as `closing` and then unmount `transitionend` (`--dur-base`+50ms timer). Reduction of the dynamic effect is 1 ms long and almost immediately unloaded.
+   - **§ 1199px (troop)**: From right `translateX(100%)` to 0, `var(--dur-base)` + `var(--ease-out)`; Get out of the field and slide back along the same path. The shadow fades.
+   - **~1200px (coherent)**: Right Bar Lighting + 8px Offset; Intermediate content column **Directly changes width** (no grid transition, avoids rehearsing the entire page). If a wide-cut transition is measured, it can be proposed in the report as an A/B option to be selected by Juanxi; By default, the width is changed directly.
+   - **Interrupts**: Do not finish playback from the current position. The CSS transition to `data-state` is naturally possible. Do not use `@keyframes`.
+2. **Ask round button `.ask-fab`**: Fade when closing right bar + slightly magnified; Fade out when you open the right bar. Add `:active` shrinks. Change bottom position to `calc(18px + env(safe-area-inset-bottom))`.
+3. **`100vh` Replace `100dvh`**: `.rail` height (`calc(100vh - var(--topbar-h) - 28px)`).
+4. **Conduct that remains constant (high risk point, return article by article)**：
+   - Focus treatment less than 1200 px: Focus on open in the right bar and return to the button that opens it when closed; Tab traps; Escape closes; Page background `inert`; The point page is closed (plate).
+   - **Disables background `inert`** from the start and does not wait for animation to be finished, otherwise 200ms of the exit page do not move.
+   - `data-testid="rail"`, `tab-ask`, `tab-details`, `ask-toggle` and `.ask-fab` remain unchanged.
 
-## 可以改的文件
+## Files that can be changed
 `src/components/Layout.tsx`、`src/components/rail/Rail.tsx`、`src/components/rail/RailContext.tsx`、`src/styles/dx-09-rail-motion.css`。
-`.ask-fab`、`.rail`、`.rail-*` 的样式**只**归这个包。
+The `.ask-fab`, `.rail`, `.rail-*` style **only** is included in this package.
 
-## 验收
-- 完整回归：`smoke`、`today`、`tasks`、`events`、`touch`、`a11y`、`m2b`、`feel`、`bts`、`recovery` 在桌面 + 手机项目全绿，**包括那些关心右栏是否可见的断言**（在默认减少动效模式下行为必须和以前一致）。
-- 新测试 `e2e/dx-09-rail.spec.ts`（`reducedMotion: "no-preference"`）：① 打开后 `.rail` 的 `transform` 在过渡中间值不是 `none` 也不是终点值；② 打开中途点关闭，最终卸载且没有残留的 `inert`；③ 平板宽度下关闭的过程中点页面也能响应；④ 减少动效时直接出现。
-- Juanxi 怎么验：电脑上点右上角 "Ask Platypus"，右栏平滑出现；窄窗口或手机上，圆形按钮点开后面板从右边滑入，点 ✕ 滑回去。
+## Acceptance
+- Full return: `smoke`、`today`、`tasks`、`events`、`touch`、`a11y`、`m2b`、`feel`、`bts`、`recovery`On desktop + cellular items are completely green, **That includes claims that concern whether the right column is visible.**(The conduct must be consistent with the previous one in the default mode of reduction of kinetic effects).
+- New test `e2e/dx-09-rail.spec.ts` (`reducedMotion: "no-preference"`): 1 `transform` after `.rail` has been opened is not a `none` or the end value in the transition median; 2 Opens a halfway point to close, eventually unmounting and no residual `inert`; 3 The closing of the process point page under the flat-bed width is also responsive; 4 Direct effects when reduced.
+- Juanxi How to Test: Top right corner of the top of the computer "Ask Platypus" with a smooth surface in the right bar; Narrow windows or mobile phones, circle buttons open the backboard from the right, dots slide back.
 
-## 回滚
-R2：`git revert -m 1 dx/dx-09-merged`。DX-19、DX-20 依赖它，要先撤它们。
+## Rollback
+R2：`git revert -m 1 dx/dx-09-merged`。DX-19, DX-20 rely on it and withdraw them first.
 
-## 注意
-- 这是整个计划里最容易出问题的包。如果实现里发现必须改很多测试才能通过，**停下来**，把原因写进报告交给整合人，不要硬改测试。
+## Attention.
+- This is the most problematic package of the whole plan. If it turns out that a lot of tests have to be changed in order to pass, **stop** and send the reason into the report to the integrated person. Don't change the test.

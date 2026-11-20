@@ -1,212 +1,212 @@
-# Night Mode V1 — 多 Agent 自动开发手册
+# Night Mode V1 — More Agent Autodevelopment Manual
 
-Night Mode 让一组 ASU AIR Agent 在受保护的功能分支完成一个**已经批准、范围明确**的任务，并经过本地测试、独立 Review 和 GitHub CI。它不会合并 `main`，也不会部署 Production。
+Night Mode allows a group of ASU AIR Agency to perform a **mission in the protected functional branch, which has been approved with a clear scope for** and is locally tested, independent and GitHub CI. It's not gonna merge `main`, it's not going to deploy.
 
-## 1. 当前状态（2026-10-28 快照）
+## 1. Current state (2026-10-28 snapshot)
 
-| 项目 | 已验证事实 |
+| Item | Verified facts |
 | --- | --- |
-| GitHub 仓库 | `juanxiwu2005/platypus-officer-hub` |
-| Production 分支 | `main`，基线 `4dc55ba`（本文件涉及的任何改动都还没进 `main`）|
-| 自动开发分支 | `feat/ai-night-mode`，**已并入 DP5**（`integration/dp3-dp4-merge`），所以它包含 S1/S2/S3 和 M1 的全部成果 |
-| 人工闸门 | Draft PR [#7](https://github.com/juanxiwu2005/platypus-officer-hub/pull/7)，预览 https://deploy-preview-7--platypus-officer-hub.netlify.app |
-| 控制器 | `scripts/night-mode.mjs`（单任务）、`scripts/night-queue.sh`（队列，见 7d）|
-| 项目权限 | `opencode.json` |
-| 运行环境 | Node 22；GitHub CLI 已登录；OpenCode；本地依赖已安装 |
-| 编码主力 | `backend-coder`（ASU `glm-5-3`）。原来是 `orchestrator`，它被禁止编辑文件，详见第 2 节的变更记录 |
-| 预算 | 300 步 / 45 分钟 / 5 轮，详见 **7b 运行环境预算卡** |
-| **端到端** | **2026-10-28 首次完整跑通**：编码 → `npm run check` → 独立 Critic `APPROVED` → 提交推送 → GitHub CI `pass`（7 分 3 秒）→ Deploy Preview → PR 评论 `READY_FOR_CLAUDE` |
-| 分支顶端 | `55949b8`（T1 z-index 已落地，2026-10-28 从那一晚的提交栈里救回）|
-| 待办任务库 | `docs/night-tasks/`，文件名 `N1`…`N6` 即执行顺序，见那里的 README |
-| 事故备份 | `backup/2026-10-28-queue` 保留 2026-10-27 那晚的完整提交栈；`wip/T2-radius`、`wip/T3-fontscale` 是未验证的半成品 |
+| GitHub recall | `juanxiwu2005/platypus-officer-hub` |
+| Process Branch | `main`, baseline `4dc55ba`(Any changes to this document have not yet been made) `main`）|
+| Autodevelop Branch | `feat/ai-night-mode`, **has been merged into DP5** ( `integration/dp3-dp4-merge`So it contains all the results of S1/S2/S3 and M1 |
+| Artificial gates. | Draft PR [ #7 ](https://github.com/juanxiwu2005/platypus-officer-hub/pull/7), Preview https://deploy-preview-7--platypus-officer-hub.netlify.app |
+| controller | `scripts/night-mode.mjs`(single task), `scripts/night-queue.sh`(Queue, see 7d) |
+| Projects | `opencode.json` |
+| Operating environment | Node 22；GitHub CLI is registered; OpenCode；Local dependence installed |
+| Encoding Main Force | `backend-coder`（ASU `glm-5-3`）。So it is. `orchestrator`, it's forbidden to edit the file, see 2 Change Record for details |
+| Budget | 300 Step / 45 min / 5 Round, see **7b Operational Environment Budget Card** |
+| **End-to-end**  | **2026-10-28First full run.**: Encoding  `npm run check` ♪ Independent Crime `APPROVED` *Submitting for transmission ** GitHub CI `pass`(7 minutes 3 seconds) `READY_FOR_CLAUDE` |
+| Top of Branch | `55949b8`T1 z-index has landed, 2026-10-28 from that night's submission. |
+| To-dos library | `docs/night-tasks/`Filename `N1`…`N6` That's the order of execution, see README there. |
+| Accident backup | `backup/2026-10-28-queue` Keep the 2026-10-27 full deposit for that night; `wip/T2-radius`、`wip/T3-fontscale` It's an unverified semi-finished product. |
 
-这是带日期的快照，不是永久承诺。每次运行都必须重新执行 `--doctor`，完成后重新检查 PR 和 CI。
+This is a snapshot with dates, not a permanent commitment. Every run must be re-executed for `--doctor`, rechecking PR and CI after completion.
 
-### 2026-10-28 首次端到端成功之后发现的两个问题（都还没修）
+### 2026-10-28 Two questions after the first-end success (not fixed)
 
-1. **`review.patch` 可能不完整。** 如果改动在本轮开始前就已经提交，控制器生成的
-   `review.patch` 只剩下本轮新增的部分，Critic 会收到一份残缺的 diff。
-   这次 Critic 自己察觉了并改为直接读工作区，所以结论仍然正确 —— **但那是运气，不是设计**。
-   Critic 的原话建议：控制器应保证 `review.patch` 始终包含真实代码 diff 以便审计。
+1. **`review.patch` may not be complete.** Control generated if changes were submitted before the start of this round
+   `review.patch` leaves only the new part of this round, and Critic will receive a missing diff.
+   This time, Critic detected himself and changed to a direct reading area, so the conclusion is still correct -- **, but it's luck, not design**.
+   Critic's original recommendation: The controller should ensure that `review.patch` always contains live code diff for audit purposes.
 
-2. **可能存在绕过 shell 白名单的代码执行入口。** 本次运行中 `code-critic` 尝试通过一个
-   `execute` 工具跑 `require('child_process').execSync(...)`，而 `opencode.json` 的
-   `bash` 白名单只管 `shell` 这个 action。它随后改用 Read/Grep 完成了工作，
-   但**这条路径是否真的被拦住，没有验证过**。
-   → 下次检查 `opencode debug agents` 输出里除 `shell` 之外有没有别的可执行 action
-   （如 `execute`、`code`、`run`），有就一并 deny。
+2. **may have a code implementation portal that bypasses the shell white list.** This running `code-critic` tries to pass one
+   `execute` tool running `require('child_process').execSync(...)`, while `opencode.json`
+   `bash`White list only. `shell`This action.  It then finished its work using Read/Grep.
+   But... **Whether this path was actually stopped has not been verified.**。
+   Next time check `opencode debug agents` output for anything other than `shell` to execute action
+   (e.g. `execute`, `code`, `run`), together with peny.
 
-### 2026-10-29 补记：N1 成功后发现的问题（只记录，没修；Juanxi 批准的维护者修改，不改 `scripts/`）
+### 2026-10-29 Recapitulation: N1 problems after success (records only, unrepaired); Juanxi approved maintainer modification, no change `scripts/`）
 
-1. **`scripts/night-mode.mjs` 的 `waitForCi` 会误判 CI 失败。** 推送后立刻运行
-   `gh pr checks --watch`，GitHub 还没注册检查时返回 "no checks reported"，被当成失败。
-   同时 `latestCiFailure` 会拿到**上一次的成功运行**当失败原因（日志里写出 "GitHub CI success."）。
-   N1 其实通过了 CI，就是这样被误判后白跑两轮返工。
-   → 修法方向：推送后先等检查出现（轮询到至少有一条）再 watch；失败原因只取 conclusion 为 failure 的运行。
-2. **`scripts/night-queue.sh`：失败任务如果已经留下提交，就不会处理剩下没提交的改动**，
-   工作区变脏，下一个任务的 doctor 因"工作区不干净"而失败。
-3. **`scripts/night-queue.sh` 第 137 行 `"$wip（"`：** macOS 自带的 bash 3.2 会把中文括号的字节当成变量名的一部分，
-   `set -u` 下报 `wip?: unbound variable`，整个队列退出。修法：写成 `${wip}`。
-4. **code-critic 的运行环境时常读不到文件**，这时它只能给 `REJECTED`（不是代码真有问题）。
+1. `waitForCi` of **`scripts/night-mode.mjs` will misjudge CI for failure.** run as soon as it is pushed.
+   `gh pr checks --watch`, GitHub returns "no checks reported" when it is not registered.
+   Concurrently, `latestCiFailure` will get **for the last successful running** when it fails (the log says "GitHub CI access.").
+   N1 actually passed the CIA, and that's how he was misjudged and returned to work for nothing.
+   • Legal orientation: waiting for the examination (at least one round of questioning) and watch; Reason for failure only takes conclusion to run for proof.
+2. **`scripts/night-queue.sh`: Failed tasks will not address the remaining unsubmitted changes if they are submitted**，
+   The workspace's dirty, the next job doctor's failed because it was "unclean."
+3. **`scripts/night-queue.sh`Article 137Okay. `"$wip（"`：**macos self-carrying bash 3.2The infra-blank bytes are used as part of the variable name.
+   `set -u` reports `wip?: unbound variable` and the whole queue exits. Reform: Written as `${wip}`.
+4. The **code-critic operating environment often does not read the file**, which can only be given to `REJECTED` (not because there is a problem with the code).
 
-## 2. 谁负责什么
+## 2 who's in charge of what?
 
-| 层 | 责任 | 不能做什么 |
+| Layer | Responsibility | Can't do anything. |
 | --- | --- | --- |
-| Juanxi | 批准任务范围；最后验收；决定是否合并 | 不需要写代码 |
-| Claude / 人工 Reviewer | 在 `READY_FOR_CLAUDE` 后检查 diff、预览和风险 | 不能把自动通过等同于合并批准 |
-| 编码 Agent（`CODING_AGENT`，当前 `backend-coder`） | 读取任务，自己改源代码和测试，跑白名单内的测试 | 不能 commit、push、merge、改保护文件，不能访问项目外目录、密钥、部署或依赖配置 |
-| `code-critic` | 独立只读 Review，输出 `APPROVED` 或 `REJECTED` | 不能修改文件 |
-| Night Mode 控制器 | 自检、完整测试、生成 review patch、最多三轮返工、commit、push、等待 CI、写 PR 评论 | 不能 merge 或部署 Production |
-| GitHub CI | 在 Ubuntu 24.04 / Node 22 上重新安装依赖并运行构建、单元和 Playwright 测试 | 不调用真实收费/ASU 模型，不证明模型回答质量 |
+| Juanxi | Approval of the terms of reference; Finally acceptance; I don't know, merge. | There's no need to write code. |
+| Claude / Manual Reviewer | Yes. `READY_FOR_CLAUDE` Post-check diff, preview and risk | Could not close temporary folder: %s |
+| Encoding `CODING_AGENT`Current `backend-coder`） | Read the task, change the source code and test itself, run the white list. | Unable to attach, push, merge, change protective files, cannot access the exterior directory, secret key, deploy or rely on configuration |
+| `code-critic` | Read only Review, output `APPROVED` or `REJECTED` | Could not close temporary folder: %s |
+| Night Mode controller | Self-censorship, complete testing, generation of review catch, maximum three rounds back to work, comemit, push, wait for CI, PR comments | Cannot merge or deploy |
+| GitHub CI | Reinstallation and running of build, module and Playwright tests on Ubuntu 24.04/ Node 22 | Do not call live fee/ASU models, do not demonstrate the quality of model responses |
 
-### 2026-10-28 变更：编码主力从 `orchestrator` 换成 `backend-coder`
+### 2026-10-28 Change: code main from `orchestrator` to `backend-coder`
 
-**原因（实测，不是推测）：** 2026-10-27 晚两次运行都停在编码阶段，报错一致：
+**Reasons (actual, not speculative):** 2026-10-27 both running at night is suspended at the coding stage.
 
 ```
 ✗ Dead CSS cleanup + Empty swap failed
 Error: Subagent session not found: ses
 ```
 
-`opencode debug agents` 显示 `orchestrator` 的权限里 `edit: * → deny`、`shell: * → deny`，
-它的系统提示词也写明「you never write code, edit files or run commands yourself」。
-也就是说**它在设计上只能派活**，而在这台机器上派活必定失败（子 Agent 会话建不起来，
-错误里的 `ses` 是被截断的会话 ID）。改任务文件绕不过去。
+`opencode debug agents` displays `edit: * → deny`, `shell: * → deny` in `orchestrator` permissions,
+Its system is also written by "you never write code, etc. or run companies yourself".
+In other words, **, it's only designed to send**, and it must fail on this machine.
+The wrong `ses` is the interdicted session ID. The change of mandate document cannot be bypassed.
 
-**改了什么：** `scripts/night-mode.mjs` 新增常量 `CODING_AGENT`，初次编码和返工两处
-（原 298、353 行）改用它；默认值 `backend-coder`（mode `all`，可作主 Agent，
-模型 ASU `glm-5-3`）。两处提示词里的「delegate」改成「自己做，不要委派」。
+**Changed what:** `scripts/night-mode.mjs` New Constant `CODING_AGENT`, initial encoding and back to work
+(former 298, 353 row) to use it; Default value `backend-coder` (mode `all`), to be owned by Agent,
+Model ASU `glm-5-3`). The word "delegate" in both prompts is changed to "do it yourself, don't assign it."
 
-**没有改什么：** `code-critic` 仍由控制器在第 341 行单独调用，**独立审查这道闸门完整保留**。
-保护文件禁改、九条命令的 shell 白名单、完整 `npm run check`、三轮上限、GitHub CI、
-永不 merge/部署 —— 全部不变。
+**Nothing changed:** `code-critic` is still called separately by the controller in line 341, and **independently reviews this gate to keep** intact.
+Protecting documents, nine orders' white list, complete `npm run check`, three rounds of cap, GitHub CI,
+Never merge/ deploy -- no change to all.
 
-**代价：** 失去多 Agent 分工（但它在这个环境里本来就不工作）；`backend-coder` 的系统
-提示词偏后端，做前端/CSS 任务属于用错工种，靠任务文件写具体来弥补。这是权宜之计。
-长期应修复 OpenCode 的委派问题，或在用户级配置里加一个通用的 primary 编码 Agent，
-届时只需改 `CODING_AGENT` 一个常量。
+**Cost:** lost much of the Agent division of labour (it does not work in this environment); `backend-coder` System
+Prompt is a backend, making the front end/CSS task is a wrong type of work and is made up by task document writing. This is a stopgap measure.
+OpenCode assignment problems should be repaired over time, or a generic Primary code added to the user-level configuration.
+Then just change `CODING_AGENT` a constant.
 
-**谁批准的：** Juanxi，2026-10-28，按本文件第 10 节要求由人明确提出。
+**Who approved it:** Juanxi, 2026-10-28, as requested in section 10 of this document.
 
-### 2026-10-28 变更：放开预算，不放开安全边界
+### 2026-10-28 Change: Unleashing the budget and not opening secure borders
 
-**原因：** 换成 `backend-coder` 之后编码阶段确实跑起来了（自己读文件、自己跑 `git status`、
-自己 Grep），但连续两次仍然停在编码阶段，原因是**预算**不是安全：
+**Reason:**Change it to `backend-coder`Then the coding phase did run. `git status`、
+**Budget** is not safe:
 
 ```
 "backend-coder": { "steps": 15 }
 ```
 
-而控制器的提示词要求它开工前先读 `AGENTS.md`、`PROGRESS.md`、`PRODUCT_PLAN.md`、
-`RULES.md`、`NIGHT_MODE.md`、`TASK.md` —— 六步没了，只剩九步干活。而"把 14 处手写空状态
-换成 `<Empty>`"光是每个文件读一次改一次就要 20 步以上。**任务在 15 步里装不下。**
+The controller's prompt requires it to read `AGENTS.md`, `PROGRESS.md`, `PRODUCT_PLAN.md`, before starting work.
+`RULES.md`, `NIGHT_MODE.md`, `TASK.md` -- six steps down, nine steps to work. And "Put the 14 out of handwriting."
+Replace `<Empty>` with more than 20 steps for a single reading of each document. The **mission cannot be installed in the 15 step.**
 
-**改了什么：**
+**Changed what?**
 
-| 文件 | 改动 | 为什么不是安全问题 |
+| Documentation | Change | Why not safety? |
 | --- | --- | --- |
-| `opencode.json` | 五个编码 Agent 的 `steps`：15 → **300** | 步数只决定能干多少活，不决定能干什么 |
-| `opencode.json` | shell 白名单新增只读与测试命令：`ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `git grep` `git ls-files` `npx tsc` `npx vitest` `npm run lint` | 全是只读或跑项目自己的测试，不写文件、不联网、不改系统 |
-| `scripts/night-mode.mjs` | `COMMAND_TIMEOUT_MS`：20 → **45 分钟** | 300 步配 20 分钟会被时间掐死，等于没放开 |
-| `scripts/night-mode.mjs` | `MAX_CYCLES`：3 → **5** | 返工次数，不是权限 |
+| `opencode.json` | Five encoded by Agent `steps`：15 → **300** | The number of steps depends only on how much work you can do, not what you can do. |
+| `opencode.json` | The new read-only and test command for the shell white list: `ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `git grep` `git ls-files` `npx tsc` `npx vitest` `npm run lint` | It's all a read-only or run-on project, no document, no network, no system change. |
+| `scripts/night-mode.mjs` | `COMMAND_TIMEOUT_MS`：20 → **45min**  | 300 paces 20 will be strangled by time, which means it won't let go. |
+| `scripts/night-mode.mjs` | `MAX_CYCLES`：3 → **5** | Number of return hours, not missions |
 
-**明确没有改的（安全边界，一条都没动）：**
+**Unchanged (safe border, no movement):**
 
-- 保护文件禁改：`.env*`、`.git/**`、`.gitignore`、`AGENTS.md`、`docs/NIGHT_MODE.md`、
+- Protection documents are prohibited: `.env*`, `.git/**`, `.gitignore`, `AGENTS.md`, `docs/NIGHT_MODE.md`,
   `package.json`、`package-lock.json`、`opencode.json`、`scripts/night-mode.mjs`、
   `.nightmode/**`、`.github/**`、`netlify.toml`
-- 禁止 `node` / `curl` / `wget` / `brew` 等任意命令（白名单仍然默认 deny）
-- `external_directory` 仍为 deny
-- Agent 不能 commit、push、merge、部署
-- 独立 `code-critic` 审查
-- 完整 `npm run check`
+- Prohibition of arbitrary orders such as `node` / `curl` / `wget` / `brew` (the white list still defaults deny)
+- `external_directory` Still Deny
+- Agent cannot come, push, merge, deploy.
+- Independent `code-critic` review
+- Complete `npm run check`
 - GitHub CI
-- 永不自动合并 `main`，永不部署 Production
+- Never automatically merge `main`, never deploy
 
-**保留了强制读文档的提示词。** 曾考虑砍掉它来省步数，被 Juanxi 否决，理由正确：
-每次 `opencode run` 都是全新会话，模型没有上一次的记忆，必须自己把规则读进来。
-病根是步数太低，不是读文档太多。
+**retains the prompt for mandatory reading of documents.** considered cutting it down to save a few steps and was rejected by Juanxi for the correct reason:
+Every time `opencode run` is a whole new session, the model has no memory of the last time and must read the rules itself.
+The root of the disease is that the number of steps is too low, not too many reading documents.
 
-**代价：** 300 步 + 45 分钟意味着单次运行可能消耗更多 ASU 额度，也可能跑更久。
-这是刻意的取舍——与其反复在半路被掐断、什么都没产出，不如让它一次做完。
+**Cost:** 300 steps + 45 minutes means that single operations may consume more ASUs or run longer.
+This is a deliberate trade-off — rather than being cut off repeatedly and without any output, let it be done once and for all.
 
-**谁批准的：** Juanxi，2026-10-28。
+**Who approved:** Juanxi, 2026-10-28.
 
 ---
 
-当前 Agent/模型映射来自用户级 OpenCode 配置，未来可能更换。项目只依赖角色名称，不应依赖某个模型永远存在。运行时用下面的命令查看实际映射：
+The current Agent/Model Map is from the user level OpenCode configuration and may be replaced in the future. Projects rely only on role names and should not depend on the permanent existence of a model. The following command is used to view the actual map when running:
 
 ```bash
 opencode debug agents
 ```
 
-2026-10-27 的主要映射记录在根目录 `AGENTS.md` 第 0 节。
+The main map of 2026-10-27 is recorded in the Root Catalogue `AGENTS.md` Section 0.
 
-## 3. 一次运行的完整流程
+## 3. Complete process running at once
 
 ```text
-Juanxi 批准 TASK.md
+Juanxi Approved  TASK.md
         ↓
-doctor 检查仓库 / 分支 / Draft PR / Node / 权限 / 依赖
+doctor Check  / Branch  / Draft PR / Node / missions  / Dependence
         ↓
-编码 Agent（backend-coder）→ 直接改代码和测试 → 产生未提交改动
+Encoding  Agent（backend-coder）→ Change code and test directly.  → Unsubmitted changes
         ↓
 npm run check（build + unit + desktop/mobile Playwright）
         ↓
-独立 code-critic 只读审查 diff
+Independence  code-critic Read-only review  diff
         ↓
-失败：把真实错误交回编码 Agent，最多共 3 轮
+Could not close temporary folder: %s  AgentAt most.  3 Wheel
         ↓
-通过：控制器 commit + push
+Pass: controller  commit + push
         ↓
-GitHub CI 重新检查
+GitHub CI Recheck
         ↓
-通过：PR 评论 READY_FOR_CLAUDE
+Adopted: PR Comments  READY_FOR_CLAUDE
         ↓
-Claude + Juanxi 人工检查；只有 Juanxi 可批准合并
+Claude + Juanxi Manual inspection; Only.  Juanxi Approved merge
 ```
 
-任何环节失败都会停止或进入受限返工。不会自动绕过测试、降低断言、换分支、合并或部署。
+Any failure of the link will stop or enter restricted return work. There is no automatic circumvention of testing, lowering assertions, switching branches, merges or deployments.
 
-## 4. 网络和密钥到底怎么工作
+## 4. Networks and secret key exactly how to work
 
-- OpenCode 通过本地环境变量 `ASU_AIR_API_KEY` 调用 ASU AIR 模型。密钥值永远不进入任务、提示词、日志、Git 或 PR。
-- Agent 的 shell 权限默认拒绝。它们只可以运行白名单里的构建、测试、Playwright 和只读 Git 命令。
-- 因此，Agent **不能把 shell 当成任意联网终端**，不能自行运行 `curl`、`wget`、`brew`，也不能访问项目外文件。
-- 控制器不是编码 Agent。它单独调用 `git` 和 `gh` 完成 commit、push、查看 PR 与等待 CI。
-- “能调用 ASU AIR”不等于“能随意浏览互联网”。若任务需要外部资料，必须先由人类明确批准来源与范围，并在 Night Mode 之外准备好经过核对的输入。
-- 产品网站自己的 AI 由 Netlify `AI_PRESET`、`AI_MODEL`、`AI_API_KEY` 等变量控制；与 Night Mode 的本地 `ASU_AIR_API_KEY` 相互独立。
+- OpenCode calls the ASU AIR model via local environment variable `ASU_AIR_API_KEY`. Set key value will never enter the task, prompt, log, Git or PR.
+- The shell missions of Agent refused by default. They can only run the build, test, Playwright and read-only Git commands in the white list.
+- Thus, Agent **cannot treat shell as an arbitrary network terminal**, cannot run `curl`, `wget`, `brew`, or have access to extra-project files.
+- The controller is not Agent. It calls `git` and `gh` individually to complete the timescale, push, view PR and wait for CI.
+- "Asu AIR can be called" does not mean "free access to the Internet." If the mission requires external information, the source and range must first be clearly approved by humans and verified input must be prepared outside Night Mode.
+- The product website's own AI is controlled by variables like Netlify `AI_PRESET`, `AI_MODEL` and `AI_API_KEY`; Independent with Night Mode's local `ASU_AIR_API_KEY`.
 
-## 5. 启动前必须满足
+## 5. Must be satisfied before starting
 
-控制器会拒绝不安全的启动条件：
+The controller rejects unsafe start-up conditions:
 
-- 当前目录必须是这个仓库。
-- 当前分支必须正好是 `feat/ai-night-mode`。
-- 工作区必须干净。
-- `origin` 必须是 `juanxiwu2005/platypus-officer-hub`。
-- 必须有从该分支到 `main` 的 Open Draft PR。
-- Node 主版本必须是 22。
-- `git`、`gh`、`node`、`npm`、`opencode` 必须可用，GitHub CLI 必须已登录。
-- `node_modules` 必须已经存在；Night Mode 不自动安装或升级依赖。
-- `opencode.json` 必须默认拒绝外部目录和未知 shell 命令；关键权限必须通过动态检查。
+- The current directory must be this repository.
+- The current branch must happen to be `feat/ai-night-mode`.
+- The workspace must be clean.
+- `origin` must be `juanxiwu2005/platypus-officer-hub`.
+- There must be an Open Draw PR from this branch to `main`.
+- The Node master version must be 22.
+- `git`, `gh`, `node`, `npm`, `opencode` must be available and GitHub CLI must be registered.
+- `node_modules` must already exist; Night Mode does not automatically install or upgrade dependent.
+- `opencode.json` must reject the external directory and unknown shell command by default; Critical missions must pass dynamic check.
 
-如果在非交互环境找不到 OpenCode，但用户终端可以使用，确认其可执行文件目录已在 `PATH` 中。当前安装位置是 `~/.opencode/bin/opencode`；不要把 API key 写进命令。
+If OpenCode cannot be found in a non-interactive environment, the user terminal can use it to confirm that its executable directory is in `PATH`. The current installation location is `~/.opencode/bin/opencode`; Do not write API key into the command.
 
-## 6. 安全边界
+## 6. Secure borders
 
-- 只允许仓库 `juanxiwu2005/platypus-officer-hub` 和分支 `feat/ai-night-mode`。
-- 任务只能使用虚构演示数据；不得放入研究资料、参与者信息或真实成员数据。
-- Agent 不得读取或修改 `.env*`、`.git/**`、`.github/**`、`.nightmode/**`、依赖文件、Netlify 设置或 Night Mode 自身安全文件。
-- 保护文件包括 `AGENTS.md`、`docs/NIGHT_MODE.md`、`opencode.json`、`scripts/night-mode.mjs`、`package*.json` 和 `netlify.toml`。
-- 控制器在 commit 前会再次检查保护路径；检测到保护文件变化就拒绝提交。
-- 每轮命令最长 20 分钟；本地验证或 CI 失败最多共 3 轮。
-- 永远不自动 merge，不修改 `main`，不触发 Production 部署。
+- Only repository `juanxiwu2005/platypus-officer-hub` and branch `feat/ai-night-mode` are allowed.
+- Tasks can only use field presentation data; Research materials, participant information or live memory data are not allowed.
+- Agent may not read or modify `.env*`, `.git/**`, `.github/**`, `.nightmode/**`, relying on files, Netlify settings or Night Mode own secure files.
+- Protective documents include `AGENTS.md`, `docs/NIGHT_MODE.md`, `opencode.json`, `scripts/night-mode.mjs`, `package*.json` and `netlify.toml`.
+- The controller will check the protection path again before coming in; If a change in the protective document is detected, the submission is refused.
+- (a) maximum 20 minutes per round of orders; Could not close temporary folder: %s 3Round.
+- Never AutoMerge, don't modify `main`, don't trigger implementation deployment.
 
-## 7. 每次怎么运行
+## 7.
 
-在仓库目录执行：
+Execute in repository directory:
 
 ```bash
 mkdir -p .nightmode
@@ -214,35 +214,35 @@ cp docs/NIGHT_MODE_TASK_TEMPLATE.md .nightmode/TASK.md
 nano .nightmode/TASK.md
 ```
 
-任务必须写清楚 Goal、Files、Constraints 和 Done means。不要写 API key、研究材料或参与者信息。
+The mission must be clear about Goal, Files, Constraints and Done means. Do not write API key, research material or participant information.
 
-先运行只读自检：
+Run read-only self-checks first:
 
 ```bash
 node scripts/night-mode.mjs --doctor
 ```
 
-只有看到 `DOCTOR PASS` 才开始：
+Only when you see `DOCTOR PASS` begins:
 
 ```bash
 node scripts/night-mode.mjs --task-file .nightmode/TASK.md
 ```
 
-## 7b. 运行环境预算卡（2026-10-28 实测）
+## 7b. Operational environmental budget card (2026-10-28 on-site)
 
-**写任何任务文件之前先看这张卡。** 2026-10-27 晚连续五次失败里有四次，根因都是
-「给一个没量过的运行环境写指令」—— 任务要求的东西超出了 Agent 实际能做的范围。
-这张卡就是那份测量结果。
+**read this card before writing any task documents.** 2026-10-27. Four out of five failures in the evening.
+"Creating instructions to an unquantified operating environment" -- the task requires things beyond what Agent actually can do.
+This card is the measurement.
 
-| 项目 | 当前值 | 在哪里改 |
+| Item | Current value | Where do I change it? |
 | --- | --- | --- |
-| 单次运行步数 | **300** | `opencode.json` 各 agent 的 `steps` |
-| 单条命令超时 | **45 分钟** | `scripts/night-mode.mjs` `COMMAND_TIMEOUT_MS` |
-| 返工轮数 | **5** | `scripts/night-mode.mjs` `MAX_CYCLES` |
-| 编码主力 | **`backend-coder`**（ASU `glm-5-3`） | `scripts/night-mode.mjs` `CODING_AGENT` |
-| 开工前固定开销 | **约 6 步**（控制器要求先读 AGENTS / PROGRESS / PRODUCT_PLAN / RULES / NIGHT_MODE / TASK） | 控制器 prompt |
+| Number of single running steps | **300** | `opencode.json` Each agent's `steps` |
+| Single command timeout | **45min**  | `scripts/night-mode.mjs` `COMMAND_TIMEOUT_MS` |
+| Number of return rounds | **5** | `scripts/night-mode.mjs` `MAX_CYCLES` |
+| Encoding Main Force | **`backend-coder`**（ASU `glm-5-3`） | `scripts/night-mode.mjs` `CODING_AGENT` |
+| Fixed expenses before start of work | **about 6 step** ( controller requires AGENTS/PROGRESS/ PRODUCT_PLAN/RULES/ NIGHT_MODE/ TASK) | Control |
 
-**Agent 能跑的 shell 命令（其余一律拒绝）：**
+**Agent's Runable Shell Command (all others rejected):**
 
 ```
 git status*   git diff*   git log*   git show*   git branch --show-current*
@@ -252,123 +252,123 @@ npx playwright test*   npx tsc*   npx vitest*
 ls*  cat*  head*  tail*  wc*  grep*  rg*  find*
 ```
 
-**不能跑** `node`、`npx`（上面三个除外）、`curl`、`wget`、`brew`、`python`，
-也**不能跑复合命令**（带 `&&` 的会被拒，要拆成单条）。
+**can't run** `node`, `npx` (except for the three above), `curl`, `wget`, `brew`, `python`,
+Yeah. **You can't run a compound order.**♪ With `&&`They'll be rejected and they'll have to break it into a single piece.
 
-**Agent 不能编辑：** `.env*`、`.git/**`、`.gitignore`、`AGENTS.md`、`docs/NIGHT_MODE.md`、
+**Agent cannot edit:** `.env*`, `.git/**`, `.gitignore`, `AGENTS.md`, `docs/NIGHT_MODE.md`,
 `package.json`、`package-lock.json`、`opencode.json`、`scripts/night-mode.mjs`、
 `.nightmode/**`、`.github/**`、`netlify.toml`。
 
-→ 所以**需要装依赖、改 CI、改 AGENTS.md 的任务不能走 Night Mode**（例如加 stylelint/eslint、
-定版改文档）。那些走普通会话。
+Therefore, **cannot go on tasks that require the installation of dependence, modification of CI and AGENTS.md (e.g. styllint/eslint, etc.) Night Mode**
+Release freeze changes the document). Those walk plain-talking.
 
 ---
 
-## 7b-2. ⚠️ 队列运行期间，任何人都不要推送这个分支
+## 7b-2.  ⚠  Do not send this branch while the queue is running
 
-**2026-10-28 的教训，代价是整晚七个任务全军覆没。**
+The lesson of **2026-10-28 is that the seven missions were wiped out all night long.**
 
-那一晚 T1 实际上**完全成功**了：611 个单元测试 + 276 个页面测试通过，
-`code-critic` 给了 `STATUS: APPROVED`，控制器也提交了。然后：
+T1 actually **was a complete success for**: 611 unit sets plus 276 breakers adopted,
+`code-critic` gave it to `STATUS: APPROVED` and the controller submitted. Then:
 
 ```
 ! [rejected]  feat/ai-night-mode -> feat/ai-night-mode (fetch first)
 NIGHT MODE STOPPED: git push origin feat/ai-night-mode failed with exit code 1
 ```
 
-原因：**Claude 在队列运行期间往同一个分支推了一个文档提交。** 本地落后于远端，
-推送被拒，控制器把推送失败当致命错误，任务算失败。后面每个任务撞同一面墙。
+Reason: **Claude pushed a document to the same branch during the queue run.** is far behind.
+The transport is rejected, the controller treats it as a fatal error and mission failure. Each mission in the back hit the same wall.
 
-### 结算（2026-10-28 核对本地提交栈后）
+### Settlement (2026-10-28 check local submission post)
 
-7 个任务里，**2 个过了全部闸门**（T1 z-index、T6 间距），两个都是因为推送被拒
-才被判失败 —— `.nightmode/done/` 是空的，这两个任务的文件却躺在 `failed/` 里。
-另外 T2、T3 做完了活但没过闸门，T4 是任务本身写错了（见 7c 第 7 条），
-T5、T7 因依赖未满足被**正确**跳过。
+Of the 7 missions, **2 crossed all gates** (T1 z-index, T6 spacing), both of which were rejected for pushback.
+The `.nightmode/done/` was empty, and the files for both missions were laid in `failed/`.
+Also, T2 and T3 have finished their work without passing the gate, and T4 was miswritten by the mission itself (see Article 7c 7).
+T5, T7 is correctly ****skip for non-satisfactory dependence.
 
-救回的办法：那些提交还在本地分支上，`cherry-pick` 到更新后的远端顶端，
-重跑一遍完整检查，通过就推。T1 这样救回来了（611 单元 + 276 e2e，数字和原跑一致）。
-T6 的 cherry-pick 冲突 —— 它的 diff 是在 T2/T3 未验证的改动之上算出来的，
-地基一撤就对不上，只能重跑。
+The way to get it back: those submissions are still on the local branch, `cherry-pick` to the top of the updated far end.
+Rerun the full check and push. T1 was saved this way (611 module + 276 e2e, numbers match the original run).
+T6's chrry-nick conflict - its diff is calculated on unverified changes in T2/T3
+Once the foundations had been withdrawn, they would not be right but would have to run again.
 
-**所以旧版队列脚本把半成品提交在工作分支上这件事，代价不只是污染下一个任务的地基，
-还让已经成功的任务没法单独救回。** 新版把半成品放到 `wip/<任务名>` 侧分支。
+**, so the old Queue Script submitted semi-finished products to the branch of work at a cost not just to pollute the foundations of the next mission.
+It also prevents successful missions from recovering on their own. ** New edition puts semi-finished products on the `wip/<task-name>` side branch.
 
-### 规矩
+### Rules.
 
-1. **队列跑起来之后，不要再往 `feat/ai-night-mode` 推任何东西** —— 包括只改文档的提交。
-   要改就等队列结束，或者推到别的分支。
-2. 开跑前先 `git pull`，确保本地就是远端最新。
-3. 云端会话（Claude）尤其要注意：它看不到你本地在跑什么。**开跑前告诉它一声。**
+1. **Don't go any further after the line runs. `feat/ai-night-mode`Push anything.**— Includes the submission of re-document only.
+   You have to wait for the queue to end or move to another branch.
+2. `git pull` before running, make sure the locals are up to date.
+3. The cloud session is especially important: it can't see what you are running locally. **Tell it before running.**
 
-### 控制器这边也已经加固（2026-10-28）
+### The controller has been reinforced. 2026-10-28）
 
-推送被拒不再直接判死。现在会：`fetch` → `rebase` 到新的远端顶端 →
-**重新跑一遍完整检查**（测试是在旧基础上过的，换了地基必须重验）→ 再推。
+He was pushed to refuse a direct sentence of death. Now will: `fetch`  →  `rebase` to the new remote top
+**reruns the full check** (tested on an old basis and must be re-examined) and then push.
 
-rebase 冲突或重验失败就停下，**提交留在原地交给人**，永不 force-push，
-也永不推送没在落地位置上验证过的代码。
-
----
-
-## 7c. 任务文件怎么写（踩过的坑）
-
-1. **调查交给人，Night Mode 只做机械改动。**
-   「先查出哪些 CSS 没人用，再删掉」会把 300 步全花在查上。正确做法是人先查好，
-   任务里直接给清单。2026-10-27 晚两次失败都是这个。
-
-2. **不要在任务里描述文件的当前状态。**
-   写了「styles.css 共 718 行」，Agent 改完变成 626 行，再回头一读就认为出了问题，
-   于是停下来查 git 而不是继续干活。只写要达到什么结果。
-
-3. **明确禁止改完回头「核对基线」。** 直接写进 Constraints。
-
-4. **别让它读用不到的大文件。** 不需要改 `styles.css` 的任务就写明「不要读 styles.css」。
-
-5. **人给的清单也可能错 —— 让它有权质疑。**
-   我给的死代码清单里 `b1/b2/b3` 是错的：`Team.tsx` 用 `` `band b${BAND[...]}` ``
-   动态拼类名，字符串 `"b1"` 在源码里出现 0 次，文本搜索查不到。
-   是 `backend-coder` 动手前发现并报告的。
-   → 任务里保留「不确定的一律保留并写进交接记录」这类出口，不要逼它盲从。
-
-6. **动态拼接的类名是反复出现的陷阱。** 核对「某个 class 还有没有人用」时，
-   除了搜字面量，还要扫源码里所有 `` `前缀${...}` `` 模板，看能拼出什么。
-   已知点：`Team.tsx` 的 `` band b${...} ``、`MetroChart.tsx` 的 `` m-${key} `` 和
-   `` has-${severity} ``、`WorkDetail.tsx` 的 `` aw-task-${status} ``。
-
-7. **写任务前先确认它在语义上做得到 —— 不只是事实对不对。**（2026-10-28 加）
-   T4 的事实全部核对为真（`--st-now` 确实从未定义、5 处硬编码色确实存在），
-   但它有两项交付在语义上不成立，Agent 跑完只写了一行交接记录就停下。
-
-   - 「让流程图圆点跟随 Settings 的状态色」：`.now` 来自 `nodeStop()`
-     （`src/lib/phases.tsx:23`），返回 `done/now/todo/risk` 四个**图表**状态，
-     6 个用户状态多对一压到它上面。不存在一一对应的状态色。
-   - 「消掉品牌色与状态色的同义不同色」：那是两套不同约束的系统。品牌 token
-     用在浅色底的**文字**上、有独立的深色主题值；状态色用在色块上压**白字**、
-     没有深色版本（是用户数据）。合并会让深色主题下白字对比度掉到 2.43:1。
-
-   → 下笔前对每一项交付问一遍：**这件事在当前的数据模型里成立吗？**
-     一个 class 由什么算出来、一个 token 用在文字还是背景、有没有深色版本。
-     弄错了的任务 Agent 做不出来，而且它停下来是对的。
-
-8. **一个任务只装一件事。**（2026-10-28 加）
-   T4 一个任务塞了 6 项交付、4 个文件、6 个颜色的对比度重算、一个新 Playwright
-   测试，还要替人做 3 个取舍决定。这违反了本节下面「估一下步数」那条
-   （超过 100 步该拆开）—— 而那条规则是我自己写的。
-   → 任务里出现「顺带」「另外」「同时」，就是该拆的信号。
-
-9. **纯重命名的任务要写明「不需要新增测试」。**（2026-10-28 加）
-   否则 Agent 会为了凑交付去发明测试，把预算花在没有行为变化可测的地方。
+If the conflict or re-test fails, it will stop. **Submit it and leave it to the people.**Never force-push,
+And never send the code that has not been verified at the landing position.
 
 ---
 
-## 7d. 任务队列：一个走不通，换下一个
+## 7c. How do you write the mission documents?
 
-单跑 `night-mode.mjs` 一次只做一个任务，失败就整晚停在那里。队列解决这个。
+1. The **investigation was handed over, and Night Mode only made mechanical changes.**
+   "Find which CSS is empty and then delete" will cost 300 all the steps. The right thing to do is check it out first.
+   The task is to give the list directly. 2026-10-27 twice a night failed with this.
+
+2. **Do not describe the current status of files in the task.**
+   "Styles.css, all 718 lines" is written, and Agent changed to 626 line, and then went back to the first reading and thought something was wrong.
+   So stop looking for git instead of continuing to work. Just write about what results are to be achieved.
+
+3. **explicitly forbids retrenchment of the baseline.** written directly into Constraints.
+
+4. **Don't let it read the big files that don't work.** does not need to change the task for `styles.css` to say "don't read styles.css".
+
+5. The list given by the **people could also be wrong -- let it have the right to question.**
+   In the list of dead codes I gave you. `b1/b2/b3`Wrong: `Team.tsx`Use `` `band b${BAND[...]}` ``
+   Dynamic spell names, string `"b1"` appears in the source code 0. Text search is not available.
+   It's `backend-coder` found and reported before he did it.
+   • Keep exports such as "unsurely always keep and write down the handoff record" in the mission, and do not force it to follow.
+
+6. The **dynamic synthing is a recurring trap.** checks out "some class and no one else."
+   In addition to the literal search, we'll clean up all `` ` prefix ${} ` `` templates in the source code and see what you can spell out.
+   Known point: `Team.tsx`It's... `` band b${...} ``、`MetroChart.tsx`It's... `` m-${key} ``and
+   `` has-${severity} ``, `WorkDetail.tsx` `` aw-task-${status} ``.
+
+7. **confirms before writing a mission that it can do semanticly -- not just facts, right?** (2026-10-28 plus)
+   The fact that T4 is fully verified as true (the `--st-now` has never been defined and the 5 hard code colours do exist)
+   But it had two deliveries that were not semantic, and Agent stopped writing a line of books.
+
+   - "Let flowchart dots follow Settings' state colour": `.now` from `nodeStop()`
+     (`src/lib/phases.tsx:23`), returns `done/now/todo/risk` 4 **Chart**,
+     6 user status one-on-one press on top of it. There is no equivalent status color.
+   - "Delete the synonyms of brand colour and state colour": these are two different systems that are bound differently. Brand token
+     It's in light color. **Text**Top, with stand-alone dark thematic values;  State colour is used to press **white words**,
+     No dark version (user data). Merge causes white contrasts under dark themes to drop to 2.43:1.
+
+   * Let's ask each delivery before we go: **, is this happening in the current data model?**
+     A catch from what, a token in text or background, no dark version.
+     The wrong task Agent couldn't do, and it stopped right.
+
+8. **One task only for one thing.** (2026-10-28 plus)
+   T4 One task plugged in 6 deliveries, 4 files, 6 contrasts, a new Playwright
+   Tests, and make 3 trade-offs. That's a violation of the step estimate under this section.
+   (over) 100And I wrote that rule myself.
+   • The fact that the mission was accompanied by an "other" is a signal to be deactivated.
+
+9. The **task with a purely renaming is to state that "no additional tests are required".** (2026-10-28 plus)
+   Otherwise, Agent would have spent his budget on inventive testing to make it happen, where no behavioral changes could be measured.
+
+---
+
+## 7d. Task Queuing: one down, next
+
+Run alone `night-mode.mjs` do only one job at a time and stop there all night. Queue this.
 
 ```bash
 mkdir -p .nightmode/queue
-# 把任务文件放进去，按文件名排序执行
+# Put the task files in and sort them by file name
 #   .nightmode/queue/01-fontscale.md
 #   .nightmode/queue/02-spacing.md
 #   .nightmode/queue/03-radius-z.md
@@ -376,122 +376,122 @@ mkdir -p .nightmode/queue
 caffeinate -dimsu bash scripts/night-queue.sh
 ```
 
-`caffeinate` 让 Mac 不睡；队列跑完它自己退出。
+`caffeinate` to keep Mac up; Queue after it's out.
 
-**失败隔离：** 任务失败不停队列，继续下一个。只有**声明了依赖**的任务才会被跳过：
+**Failed Separation: The** mission failed constantly queued to continue next. Only **declares that the task of relying on** will be skip:
 
 ```markdown
 # Depends on: 01-fontscale.md
 ```
 
-被依赖的任务失败或被跳过时，这个任务也跳过 —— 不在坏地基上继续。没声明依赖的照常跑。
+When a dependent task fails or is skiped, the job also sskip -- it doesn't continue on bad foundations. There is no stated reliance on running as usual.
 
-**结果去向：**
+**The result goes to:**
 
-| 目录 | 内容 |
+| Contents | Contents |
 | --- | --- |
-| `.nightmode/done/` | 跑通的任务 |
-| `.nightmode/failed/` | 失败的（`.md`）和被跳过的（`.skipped.md`） |
-| `.nightmode/logs/` | 每个任务的完整输出 |
-| `wip/<任务名>` 分支 | 失败任务留下的未验证半成品 |
+| `.nightmode/done/` | Run-through mission. |
+| `.nightmode/failed/` | Failed ( `.md`) and by the sskip ( `.skipped.md`） |
+| `.nightmode/logs/` | Full output of each task |
+| `wip/<task-name>`  Branch | Uncertified semi-finished from failed task |
 
-**半成品不会污染下一个任务。** 失败时队列把未提交的改动存到 `wip/<任务名>` 分支，
-然后把工作分支**退回这个任务开跑前的位置**，下一个任务从已知良好的状态起跑。
+**semi-finished products will not pollute the next mission.** failed by queued unsubmitted changes to the `wip/<task-name>` branch.
+And then put the branch of work, **revert, the position before this mission runs,**, and the next one starts with what's known to be good.
 
-> 2026-10-28 的第一版不是这样：它把半成品直接提交在工作分支上，于是 T2 未经验证的
-> 改动成了 T3 的地基，T3 的又成了 T4 的。**一个失败会污染后面每一个任务。** 已修。
+> The first version of 2026-10-28 is not like this: it submits semi-finished products directly to the branch, so T2 is unverified.
+> Changed to T3 base, T3 to T4. **a failure will contaminate every mission behind.** has been repaired.
 
-**控制器提交过但没推成功的，队列不会动它。** 那种提交是过了全部闸门的，
-会留在工作分支上并在结束时单独列出来，早上由人决定推还是改。
+The **controller was submitted but did not push, and the queue won't move it.**'s kind of submitted through all the gates.
+It will remain in the branch and be listed separately at the end, and it will be decided whether to push or change in the morning.
 
-**队列不会绕过任何安全闸门。** 每个任务仍然各自走完整的 doctor → 编码 → 测试 →
-Critic → CI。队列只决定「下一个跑哪个」。
+The **queue will not bypass any security gates.** Each task still has a complete doctor * encoding  →  Test
+Critic → CI。Queuing only determines which to run next.
 
-**队列自己也查保护文件。** 控制器的保护文件检查只在它自己提交时生效；队列存 WIP
-提交时会再查一遍（见下），发现保护文件被改就**停下整个队列**，不偷偷存进分支。
+**queues itself to search for protective files.** control protection document checks only take effect when it itself is submitted; Queue WIP
+When submitted, it will be checked again (see below) and the protective file has been changed to **to stop the entire queue of** without sneaking into the branch.
 
 ---
 
-## 7e. 中断后的进度分流：哪些留，哪些重做
+## 7e. Progress stream after interruption: which to leave and which to redecorate
 
-控制器只在全部闸门通过后才提交。**所以失败时改动留在工作区** —— 它没丢，但也没验证过。
+Controls are submitted only after all gates have passed. **So if you fail, leave it in the workspace** -- it's not lost, but it hasn't been verified.
 
-而下一个任务的 doctor 要求工作区干净。队列的做法是先把半成品存成一个提交：
+And the next task doctor requires a clean workspace. The choreography is based on the deposit of semi-finished products into one submission:
 
 ```
-[WIP-UNVERIFIED][queue] <任务名> 中断时的半成品
+[WIP-UNVERIFIED][queue] <Task Name > Half-finished at break
 ```
 
-**这个提交没过测试、没过 Critic、没过 CI。它只是「存着别丢」。**
+**This submission hasn't been tested, critic or CI. It's just "save and don't lose."**
 
-### 第二天怎么分流
+### How do you split the next day?
 
-**第一步：看它到底改了什么**
+**Step one: Let's see what it changes.**
 
 ```bash
 git log --oneline --grep='^\[WIP-UNVERIFIED\]'
-git show --stat <那个提交>
+git show --stat <The submission. >
 ```
 
-**第二步：对照任务文件的 Done means 逐条判断**
+**Step two:** by Article against Tasks
 
-| 情况 | 怎么办 |
+| Situation | What should we do? |
 | --- | --- |
-| 某一条已完整做完，且和别的条目互不依赖 | **留**。单独挑出来，补测试，正常提交 |
-| 做到一半（比如 14 处只换了 6 处） | **留着当起点**，写一个新任务「剩下 8 处在这几个文件」，比重做快 |
-| 改动和失败原因直接相关（例如它为了绕过报错改坏了测试） | **丢**。这类改动的前提本身是错的 |
-| 看不出它想干什么 | **丢**。看不懂的半成品不值得留 —— 重跑一次比读懂它便宜 |
+| One article is complete and not dependent on the other. | **Leave**. Pick it out separately, take the test and submit as you wish. |
+| Make half of it. (For example, 14 has been replaced by 6) | **Keep it as a starting point.**♪ Write a new job ♪ 8We're in these files." Make it fast.  |
+| The change is directly related to the cause of failure (e.g., it changed the test in order to bypass reporting errors) | **Drop**. The premise of such changes is inherently wrong. |
+| Can't see what it wants. | **Drop**. A half-finished product that you can't read is not worth saving -- it's cheaper to rerun than to read it. |
 
-**第三步：执行**
+**Step 3: Implementing**
 
 ```bash
-# 全部留下 → 把 WIP 提交改成正常提交（先补测试、先跑 npm run check）
-npm run check && git commit --amend -m "[S4][Night Mode] <说清楚做了什么>"
+# All of them.  → Put it on.  WIP Submitting to normal submission (test first, run first)  npm run check）
+npm run check && git commit --amend -m "[S4][Night Mode] <Tell me what you did. >"
 
-# 全部丢弃 → 回退那个提交，保留在 reflog 里可找回
-git revert --no-edit <那个提交>
+# Discard All  → Fallback, that submission. Keep it on.  reflog Retrieve it.
+git revert --no-edit <The submission. >
 
-# 部分留 → 回到那个提交之前，只挑想要的改动，其余不要
-git reset --soft <那个提交>^    # 改动回到暂存区，逐个挑
+# Partially retained  → Go back to that submission and pick the changes you want. The rest don't.
+git reset --soft <The submission. >^    # Change back to the reserve, one by one.
 ```
 
-⚠️ **不要用 `git checkout -- . ; git clean -fd` 来「重新开始」。** 那会把上一次的
-全部成果一起扔掉。2026-10-27 晚我们差点因此丢掉一次已经做完的 CSS 清理。
-**保存进度的办法是提交，不是清空。**
+⚠️ **Don't use it. `git checkout -- . ; git clean -fd`Here's to a "new start".**. It'll be the last time.
+All the results are thrown out together. 2026-10-27 Lately we almost threw away the CSS cleanup that was already done.
+**saves progress by submitting, not emptying.**
 
-### 一条经验
+### An experience.
 
-中断**不等于**白干。2026-10-27 晚最后一次「失败」的运行，其实已经把 14 处
-`<Empty>` 替换全部做完了 —— 它只是在收尾时被自己改过的文件绕晕、提前结束了回合。
-那些改动完整保留在工作区，提交之后下一轮运行发现没活可干，直接通过了全部闸门。
+Disruption of **does not amount to** for nothing. 2026-10-27 The last "failure" run at night has actually taken 14
+The `<Empty>` replacement is all done -- it's only finished with the file that was changed by itself and ended early.
+Those changes were kept in their entirety in the work area, and the next round of operations after submission found that no work was done and went straight through all the gates.
 
-**所以：失败之后，先看 `git status` 和 `git diff`，再决定要不要重做。**
+**So, when you fail, look at `git status` and `git diff` and decide whether to redo it.**
 
-## 8. 如何理解结果
+## 8. How to understand the results
 
-1. `READY_FOR_CLAUDE`：本地完整检查、独立 Critic 和 GitHub CI 都通过；等待 Claude 和 Juanxi 检查。**不是合并许可。**
-2. `NIGHT MODE STOPPED`：安全条件不满足，或三轮内没有通过。没有尝试 merge 或 Production 部署。
-3. 安全检查失败：在编码前停止，不产生应用代码。
+1. `READY_FOR_CLAUDE`: Local integrity checks, independent critic and GitHub CI passed; Wait for Claude and Juanxi to check. **is not a merge license.**
+2. `NIGHT MODE STOPPED`: Unsatisfactory security conditions or three failed rounds. There is no attempt on merge or implementation deployment.
+3. Security check failed: stop before encoding and no application code is generated.
 
-运行日志保存在被 Git 忽略的 `.nightmode/`，包括 `check.log`、`review.patch`、`review.txt`、`last-failure.log` 和 `ready-comment.md`。它们用于本地诊断，不应提交。
+The running logs are stored in `.nightmode/`, which is ignored by Git, including `check.log`, `review.patch`, `review.txt`, `last-failure.log` and `ready-comment.md`. They are used for local diagnostic purposes and should not be submitted.
 
-## 9. 当前明确不包含
+## 9. Exactly not included at present
 
-- Claude 自动 Review。
-- 自动创建 PR、把 Draft 转为 Ready、合并 PR 或删除分支。
-- 自动 Production 部署。
-- 自动安装或升级依赖。
-- 修改保护文件（`AGENTS.md`、`package.json`、`.github/**`、`netlify.toml` 等），
-  所以需要装依赖或改 CI 的任务必须走普通会话，不能走 Night Mode。
-- 修改 GitHub Secrets、Netlify 环境变量或系统设置。
-- 任意网页浏览或自动采集外部资料。
-- 使用真实研究数据进行测试。
+- Claude AutoReview.
+- Automatically creates PR, converts Draft to Ready, merge PR or deletes branches.
+- AutoProduction deployment.
+- Auto-installation or upgrade dependent.
+- `AGENTS.md`, `package.json`, `.github/**`, `netlify.toml`, etc.)
+  So the task that needs to be dependent on or modified for CI must go into plain language and not go Night Mode.
+- Modifys GitHubSecrets, Netlify environment variables or system settings.
+- Any page viewing or automatic collection of external information.
+- Test using live research data.
 
-## 10. 修改这套工作流时的规则
+## 10. Modifying the rules for working streams
 
-Night Mode 自己不能修改自己的安全边界。只有人类明确要求后，受信任的控制器/维护者才可以修改 `AGENTS.md`、本文件、`opencode.json`、`scripts/night-mode.mjs` 或 `.github/**`。每次修改后至少要：
+Night Mode cannot modify its own secure borders. The trusted controller/maintainer can modify `AGENTS.md`, this document, `opencode.json`, `scripts/night-mode.mjs` or `.github/**` only if the humans so request. At least after each modification:
 
-1. 重新运行 `node scripts/night-mode.mjs --doctor`。
-2. 检查 `git diff`，确认没有密钥和范围外文件。
-3. 推送到 Draft PR，等待 GitHub CI。
-4. 更新带日期的状态快照；不要把一次通过写成永久保证。
+1. Rerun `node scripts/night-mode.mjs --doctor`.
+2. Checks `git diff` and confirms that there are no secret key files.
+3. Push to Draft PR, waiting for GitHub CI.
+4. Update the status snapshot with date; Don't write one through as a permanent guarantee.

@@ -1,12 +1,12 @@
-新版工作区原先主要展示组织职责和流程模板，无法把具体活动、个人任务与经费审批一起推进。本次接入同一份服务端运行数据，让首页重点事项、个人看板、活动短流程链和时间轴同步更新。
+The new version of the workspace was originally primarily a display of organizational responsibilities and process templates, and it was not possible to move forward with specific activities, individual tasks and funding approvals. This access is linked to the same service-end running data, which synchronizes priority items on the front page, personal board, activity short flow chains and time axes.
 
-- 按已批准A1/B1/C2实现首页、可搜索活动列表、默认活动时间轴和个人三列Board；重点事项直接从既有任务选择排序，默认三项、可展开。
-- Funding并入活动，分别记录提交/批准、采购、预算版本、承诺和支出；保留多人职责、精确阻塞条件及完成历史。
-- Setup五章自由跳转，8/7/6周组织时间设置与流程联动；简化连线、集中复核和文件入口。
-- 全局右侧AI读取当前页面和固定对象，按需查询、提出校验后的修改或调用成员活动/Executive Board创建表单；保护未提交输入并恢复已提交但回应丢失的操作。
+- Based on the approved A1/B1/C2 implementation front page, searchable list of activities, default activity timeline and individual three columns Board; The priorities are sorted directly from the selection of existing tasks, defaulting on three open-ended issues.
+- Funding consolidates activities, recording submissions/approvals, procurement, budget versions, commitments and expenditures separately; Reservation of multiple duties, precise blocking of conditions and completion of history.
+- Setup Five-Chapter Free Jump, 8/7/ 6 weeks of organizing time settings and process connections; Simplified connectivity, centralized review and document access.
+- (a) Global right AI reads the current page and fixed object, querying it as necessary, proposing a check-up modification or calling members activity/Executive Board to create forms; Protects the unsubmitted input and resumes the submitted response lost.
 
-验证：构建通过；548项单元测试通过；256项桌面/手机浏览器场景通过，16条件跳过、0失败；实际本地HTTP7组34请求与并发CAS检查通过。独立Review无开放已知P0/P1。本轮0次真实AI生成。
+Validation: built through; 548 units adopted; 256 desktop/cell browser scenes were passed, 16 condition skip, 0 failed; The actual local HTTP7 group 34 requested and issued CAS checks for clearance. Independent Review is not open to P0/P1. No live AI is generated during this round.
 
-本次是私有测试工作区，未实施正式多人登录、实际采购/支付或合并main。线上部署、线上Blobs和真实模型质量尚未核验。本地Blobs模拟器兼容修复仅在外部开发工具，不进入生产应用。
+This is a private test workspace, with no official multiple login, actual purchase/payment or merge main. The quality of online deployments, on-line Blobs and live models has not yet been verified. Local Blobs simulator compatible restoration is developed only externally and does not enter production applications.
 
-交接：docs/organization/ACTIVITY_WORKSPACE_IMPLEMENTATION.md；独立复核：docs/organization/REVIEW_ACTIVITY_WORKSPACE.md。
+Handoff: docs/organization/ACTIVTY_WONKSPACE_IMPLEMENTATION.md; Independent review: docs/organization/REVIEW_ACTITY_WONKSPACE.md

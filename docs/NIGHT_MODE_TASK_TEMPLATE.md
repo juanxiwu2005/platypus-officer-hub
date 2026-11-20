@@ -1,66 +1,68 @@
+> **Language policy update, November 19, 2026:** write documents, reports, comments, commits, and GitHub notes in English. This supersedes any earlier language instruction quoted in this historical file. Current `AGENTS.md` controls.
+
 # Goal
 
-用 1–3 句话说明这次唯一要完成的用户结果。
+Use 1–3 to describe the only user result to be completed this time.
 
 # Files
 
-- 允许修改的页面、组件、源文件或测试目录。
-- 如果不知道文件名，写清楚允许涉及的功能区域。
-- 用不到的大文件要明确写「不要读」（例如不改样式的任务写「不要读 src/styles.css」）。
+- Allows a modified page, component, source file or test directory.
+- If the name of the document is not known, clearly define the functional area to be covered.
+- If you can’t use a big document, you must clearly state “do not read” (e.g. do not change the style of the task and write “don’t read src/styles.css).
 
 # Depends on
 
-（可选，只在用 `scripts/night-queue.sh` 跑队列时有意义）
+(optional, meaningful only when running in `scripts/night-queue.sh`)
 
 ```
-# Depends on: 01-上一个任务.md
+# Depends on: 01-Previous mission .md
 ```
 
-被依赖的任务失败或被跳过时，这个任务也会被跳过。没有依赖就删掉这一节。
+When a dependent task fails or is skiped, the task will also be skip. Delete the section without reliance.
 
 # Constraints
 
-- 只使用虚构演示数据。
-- 不修改依赖、部署、GitHub Actions、密钥、研究数据或 Night Mode 安全文件。
-- 不修改或合并 `main`。
-- 保留现有产品规则、权限、日期引擎和人工确认闸门。
-- 不在这里粘贴任何 API key、参与者信息或真实成员数据。
-- **改完不要回头重读文件去「核对基线」。** 文件和任务描述不一致是正常的 —— 那是你刚改的。
-- 不确定的一律保留，并写进交接记录；不要为了完成任务而猜。
+- Only field presentation data are used.
+- Do not modify dependencies, deployments, GitHub Actions, secret key, research data or Night Mode security files.
+- Do not modify or mege `main`.
+- Keep existing product rules, missions, date engines and manual locks.
+- Do not paste any API key, participant information or live memory data here.
+- **does not reread the document to "check the baseline".** files and job descriptions that are inconsistent are normal -- that's what you just changed.
+- Undetermined retention and writing in handoff records; Don't guess to do the job.
 
 # Done means
 
-- 用户在界面上能看到或完成什么。
-- 哪些边界情况必须工作。
-- 应新增或更新哪些单元测试和 Playwright 测试。
-- `npm run check` 必须通过。
+- The user can see or complete anything on the interface.
+- Which border situations must work.
+- What unit sets and Playwright tests should be added or updated.
+- `npm run check` must pass.
 
 # Out of scope
 
-- 明确列出这次不做的相邻功能，防止 Agent 擅自扩大范围。
+- A clear list of the adjacent functions that were not done this time to prevent Agent from expanding the scope.
 
 ---
 
-## 写任务前必读（2026-10-27 晚五次失败换来的）
+## Read before writing a task 2026-10-27Five times a night.
 
-**先读 `docs/NIGHT_MODE.md` 的 7b（运行环境预算卡）和 7c（任务怎么写）。**
-五次失败里有四次，根因都是任务要求的东西超出了 Agent 实际能做的范围。
+**read `docs/NIGHT_MODE.md` 7b (run environmental budget card) and 7c (how to write the task).**
+Four out of five failures, the root cause is that what the mission requires is beyond what Agent actually can do.
 
-写之前对照这四条自查：
+Before writing, I checked against these four articles:
 
-1. **调查交给人，任务只给结论。**
-   ❌「先查出哪些 CSS 没人用，再删掉」—— 预算会全花在查上。
-   ✅「删掉下面这 51 个 class」+ 清单。
+1. The **investigation was handed over to the person and the task was only to draw conclusions.**
+   "Find which CSS is empty and then delete it" -- all the budgets will be spent.
+   "Delete the list of 51 class"+.
 
-2. **不要描述文件的当前状态。**
-   ❌「styles.css 共 718 行」—— 改完变成 626 行，Agent 会以为出错了然后停下来。
-   ✅ 只写要达到什么结果。
+2. **does not describe the current status of the file.**
+   "Styles.css on a total 718 line" -- changed to 626 line, and Agent would think it was wrong and then stop.
+   Just write what results are to be achieved.
 
-3. **确认它跑得起来。**
-   任务需要的每条命令都要在 7b 的白名单里。`node 脚本`、`curl`、复合命令（带 `&&`）都会被拒。
-   需要装依赖或改 `.github/**` 的任务**不能走 Night Mode**。
+3. **confirm it can run up.**
+   Every order the mission requires is placed on a white list of 7b. `node script`, `curl` and combined orders (with `&&`) were rejected.
+   Task **that requires reliance or modification of `.github/**` cannot go Night Mode **.
 
-4. **估一下步数。**
-   预算 300 步，开工前固定花掉约 6 步读文档。
-   「读一个文件 + 改一个文件」算 2 步，跨 11 个文件就是 22 步往上。
-   超过 100 步的任务应该拆开。
+4. **estimate the number of steps.**
+   Budgeted 300 steps, which are fixed to cost approximately 6 steps before work starts.
+   "Reading a file + Change a file" counts as 2 moves, with 11 files being 22 steps up.
+   More than 100 steps should be removed.

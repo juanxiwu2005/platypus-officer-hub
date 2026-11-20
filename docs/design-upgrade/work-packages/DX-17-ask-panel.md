@@ -1,23 +1,23 @@
-# DX-17 Ask 面板：空状态居中、新消息进入
+# DX-17 Ask Panel: Empty Center, New Message In
 
-- 阶段 3　大小 S　风险 低　R 级 R2　依赖：DX-01　并行伙伴：DX-15、16、18、19
-- 分支：`design/dx-17-ask-panel`　样式文件：`src/styles/dx-17-ask-panel.css`　对应细节：D17 D24
+- Stage 3 size S Risk Low R Level R2 Dependence: DX-01 Parallel Partners: DX-15, 16, 18, 19
+- Branch: `design/dx-17-ask-panel` Style File: `src/styles/dx-17-ask-panel.css` Corresponding Details: D17 D24
 
-## 要做的事
-1. **空状态**（还没有任何消息时）：把问候语（"Hi Alex. What do you need?"）和下方的建议问题 chip 成组，垂直居中在对话区；有消息以后恢复原来的"贴底"布局。**不改任何文案**。
-2. **新消息进入**：只有"面板已经打开之后新增的"气泡才播放：`translateY(6px)→0` + 淡入，`var(--dur-fast)`。重新打开面板、切换标签、重新挂载时**不重播**历史消息（在组件里用"已渲染过的消息数"判断，不要靠 CSS 动画对所有 `.bubble` 生效）。
-3. **AI 等待卡片 `.ai-wait`**：出现时淡入；被答案替换时 120ms 交叉淡入，不跳。
-4. 发送按钮的按下反馈沿用 DX-03，不重复写。
-5. 减少动效：只淡入淡出，或者不动。
-6. 新增的输出只在英文界面文字之外**不加任何新文案**；右栏不计入页面字数预算，但仍然不要增加。
+## Something to do.
+1. **Empty Status** (when there is no news): Grouping greeting notes ("Hi Alex. What do you need?") and sub-recommendations of chip into dialogue areas vertically; I'll get back to the original "post-down" layout after news. **does not change any case**.
+2. **New Message Enter**: Only bubbles added after the panel has been opened will be played: `translateY(6px)→0`+ Fade in, `var(--dur-fast)`. Reopen the panel, switch tabs, reload **without replaying** historical messages (in components, judging by "number of rendered messages", do not use CSS animation to take effect for all `.bubble`).
+3. **AI Waiting for Card `.ai-wait`**: Fade when appearing; When the answer is replaced 120ms cross-drawn, do not jump.
+4. The feedback on the buttons sent is followed by DX-03 and does not repeat.
+5. Reduction of kinetic effects: Fade or do not move.
+6. New output only **without any new text** in English interface text; The right column is not included in the page word budget, but does not add.
 
-## 可以改的文件
+## Files that can be changed
 `src/components/rail/AskPanel.tsx`、`src/styles/dx-17-ask-panel.css`。
 
-## 验收
-- `m2b.spec.ts`、`today.spec.ts`、`smoke.spec.ts`、`a11y.spec.ts`（右栏焦点）桌面 + 手机绿；用 `ask()` 助手发一个问题，答案可见。
-- 新测试 `e2e/dx-17-ask.spec.ts`：发送一条消息，新气泡有进入过渡；关闭再打开面板，历史气泡没有进入过渡。
-- Juanxi 怎么验：新打开 Ask 时欢迎语和建议在面板中间；发一条消息，气泡轻轻升起。
+## Acceptance
+- `m2b.spec.ts`, `today.spec.ts`, `smoke.spec.ts`, `a11y.spec.ts` (right column focus) desktop + mobile phone green; Send a question with the `ask()` assistant, the answer is clear.
+- `e2e/dx-17-ask.spec.ts`: Send a message that the new bubble is in transition; Turn off and open the panel, and history bubbles are not in transition.
+- Juanxi How to Test: Welcome Words and Suggestions on New Ask are in the middle of the panel; Send a message that the bubbles rise lightly.
 
-## 回滚
+## Rollback
 R2。

@@ -1,6 +1,6 @@
 # Goal
 
-修 src/styles.css 里对比度不达标的几处，让颜色在弱视和色弱条件下也能读。
+Repairs to src/stryles.css where contrasts are below the standards so that colours can be read under weak vision and color.
 
 # Files
 
@@ -8,51 +8,51 @@
 
 # Constraints
 
-- 只使用虚构演示数据。
-- 不修改依赖、部署、GitHub Actions、密钥、研究数据或 Night Mode 安全文件。
-- 不修改或合并 main。
-- 只改 src/styles.css，不碰任何 .tsx/.ts 文件。
-- 不要碰 src/organization/、src/phase1/、src/workspace/ 下的 CSS。
-- 不改布局、字号、间距、圆角。
-- **改完不要回头重读文件去「核对基线」。**
-- 不确定的一律保留，并写进交接记录。
+- Only field presentation data are used.
+- Do not modify dependencies, deployments, GitHub Actions, secret key, research data or Night Mode security files.
+- Do not modify or mege main.
+- Src/ styles.css only, without touching any.tsx/.ts files.
+- Do not touch src/organisation/, src/phase1/, src/workspace/ under CSS.
+- Do not change layout, fonts, spacing, corner.
+- **does not reread the document to "check the baseline".**
+- Undetermined retention and writing in handoff records.
 
 # Done means
 
-## 1. 文字对比度（WCAG AA 要求 4.5:1）
+## 1. Text contrast (WCAG AA requires 4.5:1)
 
-`--good` 配在 `--good-soft` 背景上是 **4.44:1**，差 0.06 就达标。
-用在 `.tag.good`（变更卡的 Approved 标签）和 `.save-status.ok`（Settings 的 Saved 提示）。
+`--good` is attached to `--good-soft` in the context of **4.44:1**, which is met by 0.06.
+Use `.tag.good` (Approved tag for changing cards) and `.save-status.ok` (Saved hint for Settings).
 
-→ **改 token 本身**，不要像现在这样用硬编码值单独补某一处。
-→ 改完把 styles.css 里那个用硬编码深绿单独修 `.days.good` 的补丁删掉。
+**Change token itself**, do not fill a place with hard code value as it is now.
+→  Delete the patch in the styles.css that fixed `.days.good` alone with a hard code.
 
-## 2. 非文字对比度（WCAG 1.4.11 要求 3:1）
+## 2. Non-text contrast (WCAG 1.4.11 requires 3:1)
 
-| 元素 | 现在 | 目标 |
+| Elements | Now. | Objective |
 | --- | --- | --- |
-| 黄色风险点 `#e3a008` 配白底 | 2.26:1 | ≥3:1 |
-| Team 工作量中档条（`.band.b2 i` 的黄）| 1.74:1 | ≥3:1 |
-| 流程图主线未完成段 `.m-line.main` | 1.85:1 | ≥3:1 |
-| 进度链/流程图空心点边框 `--edge` | 2.59:1 | ≥3:1 |
+| Yellow risk point `#e3a008` With white bottom | 2.26:1 | ≥3:1 |
+| Team Medium Workload (%1) `.band.b2 i` (Yellow) | 1.74:1 | ≥3:1 |
+| Unfinished segment of flowchart mainline `.m-line.main` | 1.85:1 | ≥3:1 |
+| Progress chain/flow chart empty-minded border `--edge` | 2.59:1 | ≥3:1 |
 
-⚠️ 黄色是三色风险系统里唯一不达标的一档，而黄色恰好是色弱用户最依赖的，优先修。
+Yellow is the only part of the three-colour risk system that does not meet the standards, while yellow happens to be the most relied upon and prioritized by weak users.
 
-## 3. 全站 1px 边框 `--line` 先不要动
+## 3. Full Station 1px Borders `--line`Don't move.
 
-它配白底只有 1.29:1，但加深会让整个界面明显变「重」，和 Juanxi 要的
-「简洁、高级」相反。
+It's only got 1.29:1 on the white bottom, but deepening will make the interface obviously "heavy" and what Juanxi wants.
+"Simple, advanced" is the opposite.
 
-→ **不要改 `--line`。** 如果你认为某处必须靠边框传达状态或可点击性，
-  在交接记录里写出来，建议用粗细或背景区分，交给 Juanxi 决定。
+**Don't change `--line`.** If you think that somewhere must be bordered to convey state or clickability,
+  Write it down in the Handoff record and suggest a rough or background distinction to Juanxi for decision.
 
-## 4. 验收
+## 4.
 
-- `npm run check` 必须通过，a11y 测试必须继续通过。
-- 在交接记录里列出改前改后的对比度数字（每一条都要有数）。
+- `npm run check` must pass, a11y test must continue to pass.
+- List the contrast figures (numbers for each item) that have been changed before the change in the Handoff record.
 
 # Out of scope
 
-- 不改 `--line`。
-- 不做字号、间距、圆角、z-index。
-- 不碰 src/engine/、netlify/、src/data/、任何 .tsx。
+- Do not change `--line`.
+- Do not spell, spacing, corner, z-index.
+- Do not touch src/engine/, netlife/, src/data/, any.tsx.

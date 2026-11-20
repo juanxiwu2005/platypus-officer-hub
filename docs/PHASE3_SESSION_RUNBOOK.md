@@ -1,40 +1,40 @@
-# Phase 3 测试当天步骤（给 Juanxi）
+# Phase 3 Test Day Step (to Juanxi)
 
-每一场都按这份走。依据：IRB 协议 HRP-503A Part 3（第 6 节步骤 1–6、第 11.4 节）。字段说明见 `PHASE3_DATA_DICTIONARY.md`。
+Every game goes this way. Based on: IRB Agreement HRP-503A Part 3 (Sections 6 Step 1–6, 11.4). Field description can be found in `PHASE3_DATA_DICTIONARY.md`.
 
-## 测试前（每天一次）
+## Prior to testing (one per day)
 
-1. 打开 https://platypus-officer-hub.netlify.app/api/health ，确认写着 `"provider": "ASU AIR"` 和 `"configured": true`。不是的话先别开始。
-2. 自己用无痕窗口走一遍测试链接，确认能直接进 "Name your club"。
+1. Open https://platypus-officer-hub.netlify.app/api/health, confirm `"provider": "ASU AIR"` and `"configured": true`. If not, don't start.
+2. Check the link with your own markless window to confirm that you can enter " Name your blue " .
 
-## 测试中
+## Testing
 
-1. **先确认资格、签同意书、给 study ID（E01、E02…）。** 这些都在网站外面做。
-2. **让参与者打开一个无痕窗口**（Chrome：Incognito；Safari：Private）。在线测试时，请他只共享这个浏览器窗口。
-3. **发测试链接：** `https://platypus-officer-hub.netlify.app/#/start`
-   - 打开后直接进 setup，不经过欢迎页。
-   - 测试中途不要重新打开链接（会开始新的一次记录、setup 重新从空白开始）；如果打开了，数据不会丢，导出文件里会有两个 session。
-   - 不小心刷新没关系，填的内容会留着。
-4. **任务 (f)：setup。** 让他按组织卡片填一个虚构社团。First event 那一屏可以计划一场，也可以按 "Skip for now" 跳过；这是观察点，不要提示他选哪个。Reminders 那一屏是观察点，不要提示他选哪个；网站不会真的发邮件。
-5. Start workspace 之后，社团里会有他计划的活动（如果有）加上三个示例活动（Networking Night、Spring Speaker Night、Founder Dinner）和示例任务。接着做任务卡片 (a)–(e)。
-   - **任务编号（Juanxi 2026-11-08 定）：** 任务 1 = (f) setup，不用按，系统自己记；任务 2–6 = (a)–(e)。
-   - **请参与者每读完一张任务卡就按一下：** 点顶栏的 Demo 小标 → "Study task" 那一行按对应的数字（2–6）；做完最后一个任务按 "Done"。直接按下一个数字时，上一个任务会自动记为结束。顶栏小标上会显示当前是第几个任务，可以顺便核对。
-   - 他忘了按也没关系：评分表上的时间是主要依据，这些按钮只是让导出文件里的分界更准。
-6. **提醒参与者：** 写提醒、邀请时可以点 Gmail / WhatsApp 看看草稿，**但不要真的发出去**。
-7. 最后引导他用右边 Ask 新建一个活动（例如点 "Plan a new event"）。
+1. **confirms eligibility, signs consent, gives study ID (E01, E02...).**, these are all done outside the site.
+2. **allows participants to open a traceless window** (Chrome:Incognito); Safari：Private）。When an online test is conducted, he is asked to share only this browser window.
+3. **Sending test link:** `https://platypus-officer-hub.netlify.app/#/start`
+   - Opens it straight into the setup, without going through the welcome page.
+   - Test not to reopen the link (a new record will be started, setup will start again from a blank); If it is open, the data will not be lost. There will be two sessions in the export file.
+   - It doesn't matter if it's a little refreshing. The fillout will be kept.
+4. **task (f): setup.** lets him fill out a field card. First event can be planned for a game or press "Skip for now" skip; This is an observation point. Don't tell him which to choose. The screen of Reminders is an observation point. Don't tell him which to choose; The website doesn't really e-mail.
+5. After Start Workspace, his planned activities (if any) will be added to the list of three examples (Networking Night, Spring Speaker Night, Funder Dinner) and an example mission. The task card (a)-(e) is then made.
+   - **Task No. (Juanxi 2026-11-08 determined):** Mission 1 = (f) setup, without pressing, the system itself; Task 2–6 = (a)-(e).
+   - **Participants are asked to press a task card every time they read it:**Demo subscript for the top of the pointbar  →  "Study task" by corresponding number ( 2–6）； Finish the last job and press "Done". When the next number is pressed, the previous task will automatically be concluded. The topbar sub-marks show that the current task is the first one, which can be checked by passing.
+   - He forgets that it is okay to press: the time on the score sheet is the main basis, and these buttons only allow for a more accurate demarcation of the export file.
+6. **Reminds participants:** writes reminders, asks Gmail/ WhatsApp to look at the draft, **, but don't send it to**.
+7. Finally, he was directed to create a new activity (e.g. "Plan a new event") with the right Ask.
 
-## 结束时
+## At the end
 
-1. 参与者点 **Settings → My preferences → Export my data**，浏览器会下载一个 `platypus-export-….json` 文件。
-   - 当面测试：文件直接存在你的电脑上。
-   - 在线测试：请他把文件发到你的 ASU 邮箱。发完后他可以删掉自己那份。
-   - 他不愿意交文件也可以，这场就只用评分表和录像。
-2. **关掉无痕窗口。** 网站在这个浏览器里的数据就全部清掉了（协议第 6 步要求当着参与者的面清掉）。
-3. 你把文件改名为只带 study ID（例如 `E01.json`），存到 ASU 的存储里，再删掉邮件里的那份。
-4. 想把文件转成表格：`node scripts/export-to-csv.mjs E01.json`，会生成 `E01.csv`，可以直接用 Excel 打开。
+1. **Settings — My preferences — Export my data**, and the browser downloads a `platypus-export-….json` file.
+   - In person test: The file is directly on your computer.
+   - Online test: Ask him to send files to your ASU mailbox. He can delete his share when he's done.
+   - He did not wish to submit documents, but only scoring tables and videos were used.
+2. **Close the no-smug window.**The site's data in this browser is all cleared out. 6In a post titled "The Right to Life" (Advanced in English and French) , the blogger says:
+3. You change the name of the file to a study ID (e. g. `E01.json`), save it in ASU storage, and delete that part of the mail.
+4. You want to convert the file into a table: `node scripts/export-to-csv.mjs E01.json`, which generates `E01.csv` and opens it directly with Excel.
 
-## 万一
+## What if...
 
-- **AI 没反应或出错：** 网站会自动改用内置的回答，答案旁边会写 "AI unavailable"。在评分表上记一下，继续做下一项。
-- **参与者用手机：** 也能用，但优先用电脑。
-- **Demo 菜单里的 Test Onboarding 按钮：** 那是给你自己测试用的，不会写记录，不要让参与者用。
+- **AI did not react or make a mistake:** will automatically use built-in answers, which next to "AI unavailable". Take note of the score sheet and proceed to the next item.
+- **Participants use mobile phones:** can also be used, but priority is given to computers.
+- The Test Onboarding button in the **Demo menu:** is for your own tests, not records, not participants.

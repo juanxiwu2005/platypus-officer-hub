@@ -1,63 +1,66 @@
-# ASU 规则库 v0（官方层）
+# ASU Rules Library v0 (official policy)
 
-规则引擎和 `/api/ask` 只能使用这里的规则。每条带出处；**2026-10-07 打开原文核对过，上线前（WP6）必须逐条重新核实并更新“核实日期”。** 同一事项两处说法不一致时，取更严格的一个，并同时显示两个出处。代码 `src/data/rules.ts` 里有一份同样内容的 `RULES` 数组（v0.1 旧版在 `public/legacy/index.html`）；改规则时两边一起改。规则引擎怎么用这些时限，见 `src/engine/playbooks.ts`（每个步骤挂哪条规则、提前几天）。
+The rule engine and `/api/ask` may use only the rules recorded here. Each rule has a source. The originals were checked on October 7, 2026; WP6 required a fresh item-by-item check before release, recorded below on October 23. Where two sources disagree, use the stricter requirement and show both sources. Keep `RULES` in `src/data/rules.ts` consistent when policy changes; the v0.1 copy is in `public/legacy/index.html`. `src/engine/playbooks.ts` maps steps to rules and lead times.
 
-| 编号 | 类别 | 规则 | 时限 | 出处 | 核实日期 |
+This is a translation of the recorded policy baseline, not a new verification of ASU policy. Preserve the verification dates until the original sources are checked again.
+
+| ID | Category | Rule | Lead time | Source | Verified |
 | --- | --- | --- | --- | --- | --- |
-| R01 | 场地与活动 | 校内实体活动，以及用学校经费或学生费用的校外活动，须在 Event Registry 登记 | 至少 14 天；学生组织手册写 30 天（取 30 天） | [Event Registry 指南](https://eventreg.asu.edu/about-registry/event-guidelines)；[学生组织手册 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-23 |
-| R02 | 安全与合规 | 学生组织办的活动须有指导老师在场；公开或预计超过 250 人的活动须有校方代表全程在场 | — | [Event Registry 指南](https://eventreg.asu.edu/about-registry/event-guidelines) | 2026-10-23 |
-| R03 | 场地与活动 | 学生活动中心场地经 Mazevo 预约，每个社团最多 3 名选举产生的干部可以开账号 | 至少 16 天；户外摆摊至少 3 个工作日；复杂布置至少 2 周 | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-23 |
-| R04 | 场地与活动 | 场地预约须填上活动登记的 RITM 号 | 至少提前 14 天，否则可能取消并收费 | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-23 |
-| R05 | 餐饮 | Memorial Union、Student Pavilion 等场馆由 Aramark/Sun Devil Dining 独家供餐 | 至少提前 2 周安排 | [学生组织手册 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-23 |
-| R06 | 餐饮 | 使用校外餐饮须提交 Food Exception Request 和供应商保险证明（proof of insurance） | 提前 14 天 | 同上 | 2026-10-23 |
-| R07 | 餐饮 | 现场制作食物须申请临时食品许可（$85） | 至少 7 个工作日 | [Catering and Food FAQ（2023，需复核）](https://eoss.asu.edu/sites/default/files/2023-09/FAQ%20-%20Catering%20and%20Food%20Guidelines%202.pdf) | 2026-10-23 |
-| R08 | 餐饮 | 不得提供自制食物 | — | 学生组织手册 2025–26 | 2026-10-23 |
-| R09 | 经费 | USG 餐饮类和服务类（租赁、布置、灯光等）申请 | 提前 10 个工作日 | [USG Spending Guidelines](https://www.asuusgt.org/spending-guidelines) | 2026-10-23 |
-| R10 | 经费 | USG 嘉宾或表演申请，须附签好的 SAP 协议 | 提前 14 个工作日 | 同上 | 2026-10-23 |
-| R11 | 经费 | USG 采购申请须附活动海报、写明公共目的；发票抬头须为 ASU；报销上限 $999（原文紧跟在 Amazon 那句后面，可能只指 Amazon；Platypus 按 $999 提醒），Amazon 可能不予报销；报销支票约 3 周内寄出 | — | 同上 | 2026-10-23 |
-| R12 | 经费 | 人均 $25 及以上的餐饮须交 Business Meals Form 和出勤名单 | — | [USG Funding Rules](https://www.asuusgt.org/funding-rules) | 2026-10-23 |
-| R13 | 场地与活动 | 期末考试期间不得办活动 | — | 学生组织手册 2025–26 | 2026-10-23 |
-| R14 | 安全与合规 | 学生干部最好不要签有法律约束力的合同 | — | 学生组织手册 2025–26 | 2026-10-23 |
-| R15 | 安全与合规 | ASU 不能办抽奖（raffle）；参与者不付费、机会均等的门票抽奖可以 | — | 学生组织手册 2025–26 | 2026-10-23 |
-| R16 | 换届 | 换届：联系指导老师；新干部完成培训、读手册和章程；告知 Campus Liaisons；更新 Sun Devil Central 与银行账户权限；每年春季重新注册 | 春季 | 学生组织手册 2025–26 | 2026-10-23 |
+| R01 | Venues and events | Register on-campus in-person events and off-campus events using university funds or student fees in Event Registry. | At least 14 days in the guide; 30 days in the handbook. Use 30 days. | [Event Registry guidelines](https://eventreg.asu.edu/about-registry/event-guidelines); [Student Organization Handbook 2025–26](https://eoss.asu.edu/sites/default/files/2025-04/ASU%20Student%20Organization%20-%2025_26%20Handbook.pdf) | 2026-10-23 |
+| R02 | Safety and compliance | An advisor must attend student organization events; public events or events expecting more than 250 attendees require a university representative throughout. | — | Event Registry guidelines above | 2026-10-23 |
+| R03 | Venues and events | Reserve student union space through Mazevo. Up to 3 elected officers per organization may request accounts. | At least 16 days; outdoor tabling at least 3 business days; complex setups at least 2 weeks. | [Submit a Space Request](https://eoss.asu.edu/student-unions/submit-a-space-request) | 2026-10-23 |
+| R04 | Venues and events | Add the Event Registry RITM number to the space reservation. | At least 14 days before the event, or the reservation may be cancelled and charged. | Submit a Space Request above | 2026-10-23 |
+| R05 | Food | Aramark/Sun Devil Dining is the exclusive caterer for venues including Memorial Union and Student Pavilion. | Arrange at least 2 weeks ahead. | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R06 | Food | Outside catering requires a Food Exception Request and vendor proof of insurance. | 14 days ahead. | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R07 | Food | Preparing food on site requires a temporary food permit ($85). | At least 7 working days. | [Catering and Food FAQ, 2023; recheck required](https://eoss.asu.edu/sites/default/files/2023-09/FAQ%20-%20Catering%20and%20Food%20Guidelines%202.pdf) | 2026-10-23 |
+| R08 | Food | Do not serve homemade food. | — | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R09 | Funding | USG catering and service requests, including rentals, setup, and lighting. | 10 business days ahead. | [USG Spending Guidelines](https://www.asuusgt.org/spending-guidelines) | 2026-10-23 |
+| R10 | Funding | USG speaker or performer requests require a signed SAP agreement. | 14 business days ahead. | USG Spending Guidelines above | 2026-10-23 |
+| R11 | Funding | USG purchase requests need an event flyer and public-purpose statement; invoices must name ASU. The stated reimbursement limit is $999, but its placement after the Amazon sentence may limit its scope to Amazon. Platypus conservatively warns at $999. Amazon purchases may be ineligible for reimbursement; reimbursement checks take about 3 weeks. | — | USG Spending Guidelines above | 2026-10-23 |
+| R12 | Funding | Meals costing $25 or more per person require a Business Meals Form and attendance list. | — | [USG Funding Rules](https://www.asuusgt.org/funding-rules) | 2026-10-23 |
+| R13 | Venues and events | Do not hold events during final exams. | — | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R14 | Safety and compliance | Student officers should avoid signing legally binding contracts. | — | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R15 | Safety and compliance | ASU prohibits raffles. Free door-prize drawings with equal chances are permitted. | — | Student Organization Handbook 2025–26 above | 2026-10-23 |
+| R16 | Leadership transition | Contact the advisor; incoming officers complete training and read the handbook/constitution; notify Campus Liaisons; update Sun Devil Central and bank-account access; re-register each spring. | Spring. | Student Organization Handbook 2025–26 above | 2026-10-23 |
 
-六个类别（第 6 节规则页）：场地与活动、餐饮、经费、宣传、安全与合规、换届。“宣传”目前没有官方规则，渠道提前量见 `SEO_PLAYBOOK_REFERENCE.md`。
+The six Rules-page categories are venues/events, food, funding, publicity, safety/compliance, and leadership transition. Publicity currently has no official rule here; channel lead times are in `SEO_PLAYBOOK_REFERENCE.md`.
 
-待办：手册另有 8 月 27 日更新版，要查是否已有 2026–27 版；有疑问可发邮件问 Tempe 学生组织办公室（tempeclubs@asu.edu）——只问规则，不做研究招募。
+Pending source work: locate the handbook's August 27 update and check for a 2026–27 edition. Questions can go to the Tempe student organization office, tempeclubs@asu.edu, about policy only; this is not authorization to contact anyone or recruit research participants.
 
-## ASU 日历（规则引擎用）
+## ASU calendar used by the rule engine
 
-规则引擎按 ASU 工作日计算“官方截止日”和“社团截止日”，并让社团的工作避开期末考试周和两个学期之间的假期。数据在 `src/engine/calendar.ts`，**2026-10-22 核对过；2027 秋和 2028 春于 2026-10-27 补入。每学期开始前要重新核对。**
+The engine calculates official and club deadlines using ASU business days. Officer work also avoids finals weeks and gaps between semesters. Data is in `src/engine/calendar.ts`, checked October 22, 2026; Fall 2027 and Spring 2028 were added October 27. Recheck before each semester.
 
-| 类型 | 日期 | 出处 |
+| Type | Dates | Source |
 | --- | --- | --- |
-| 学校放假（不算工作日） | 2026：11/11 退伍军人节；11/26–27 感恩节；12/24–25 冬假闭校。2027：1/1 元旦；1/18 马丁·路德·金纪念日；5/31 阵亡将士纪念日；7/5 独立日（补休）；9/6 劳动节；11/11；11/25–26；12/24、12/27。2028（周五 2027-12-31 为元旦补休）：1/17 马丁·路德·金纪念日；5/29 阵亡将士纪念日；7/4 独立日；9/4 劳动节；11/10 退伍军人节（补休）；11/23–24 感恩节；12/25–26 冬假 | [ASU holiday schedule](https://cfo.asu.edu/holiday-schedule) |
-| 期末考试周（R13：不能办活动；社团工作也避开） | 2026 秋：12/7–12/12；2027 春：5/3–5/8；**2027 秋：12/6–12/11**；2028 春：5/1–5/6（**预计**） | [Academic Calendar](https://registrar.asu.edu/academic-calendar)（到 2027 秋为正式日期）；2028 春见 [Projected Dates for Future Semesters](https://registrar.asu.edu/projected-dates-future-semesters) |
-| 上课期间 | 2026 秋：8/20–12/12；2027 春：1/11–5/8；**2027 秋：8/19–12/11**；2028 春：1/10–5/6（**预计**）。两个学期之间不排社团工作 | 同上 |
-| 不闭校的假期（算工作日，但活动会提示“很多成员不在”） | 秋假 2026：10/10–10/13；春假 2027：3/7–3/14；**秋假 2027：10/9–10/12**；春假 2028：3/5–3/12（**预计**） | 同上 |
+| University closures, excluded from business days | 2026: Nov 11 Veterans Day; Nov 26–27 Thanksgiving; Dec 24–25 winter closure. 2027: Jan 1 New Year; Jan 18 MLK Day; May 31 Memorial Day; July 5 Independence Day observed; Sep 6 Labor Day; Nov 11; Nov 25–26; Dec 24 and 27. New Year 2028 is observed Friday, Dec 31, 2027. 2028: Jan 17 MLK Day; May 29 Memorial Day; July 4 Independence Day; Sep 4 Labor Day; Nov 10 Veterans Day observed; Nov 23–24 Thanksgiving; Dec 25–26 winter closure. | [ASU holiday schedule](https://cfo.asu.edu/holiday-schedule) |
+| Finals, excluded from events under R13 and from officer work | Fall 2026: Dec 7–12; Spring 2027: May 3–8; Fall 2027: Dec 6–11; Spring 2028: May 1–6, projected. | [Academic Calendar](https://registrar.asu.edu/academic-calendar), official through Fall 2027; [Projected Dates](https://registrar.asu.edu/projected-dates-future-semesters) for Spring 2028 |
+| Semester ranges; no officer work scheduled between semesters | Fall 2026: Aug 20–Dec 12; Spring 2027: Jan 11–May 8; Fall 2027: Aug 19–Dec 11; Spring 2028: Jan 10–May 6, projected. | Same calendar sources above |
+| Breaks without university closure; business days remain valid, but events warn that many members may be away | Fall 2026: Oct 10–13; Spring 2027: Mar 7–14; Fall 2027: Oct 9–12; Spring 2028: Mar 5–12, projected. | Same calendar sources above |
 
-注意：v0.1 的假期表把 12/31 和春假当成闭校日，这两处是错的，v1 已改正。
+The v0.1 calendar incorrectly treated December 31 and spring break as university closures; v1 corrected both.
 
-**2028 春学期是注册处公布的“预计日期”（页面写明 “projected, not official … subject to change without notice”），不是正式日历。** 正式公布后要核对并改掉 `calendar.ts` 里带 “(projected)” 的三条（学期、期末周、春假）。假日表的 2028 列是学校 CFO 办公室已公布的。
+Spring 2028 semester, finals, and spring-break dates are projected, not official, and subject to change without notice. Recheck the three `(projected)` entries in `calendar.ts` once official dates are published. The 2028 holiday column is already published by the CFO office.
 
-**日历范围与红色报错（A9，2026-10-27）：** 引擎只认识 `2026-08-20`（2026 秋开学）到 `2028-05-06`（2028 春期末周最后一天）。活动日期、或引擎算出的任何官方/社团截止日、最晚开始日落在这个范围之外时，该步骤和该活动会出现红色问题 `calendar_range`：“outside the ASU calendar Platypus knows”。以前范围外的每一天都被当成“学期之间”，倒推日期会悄悄往前跳（2027-10-15 的活动倒推 14 个学生工作日会错到 2027-04-13，正确是 2027-09-27）。续写日历时，在 `calendar.ts` 的 `TERMS / FINALS / BREAKS / HOLIDAYS` 里加新学期，范围会自动延长。
+**Calendar-range guard, A9, October 27:** the engine knows August 20, 2026 through May 6, 2028. An event date, calculated official/club deadline, or latest start outside that range creates a red `calendar_range` issue on the step and event: “outside the ASU calendar Platypus knows”. Previously, unknown days were treated as semester gaps and backward scheduling silently jumped too far: counting 14 student workdays back from October 15, 2027 incorrectly reached April 13 instead of September 27. Extend `TERMS`, `FINALS`, `BREAKS`, and `HOLIDAYS` in `calendar.ts`; the supported range extends automatically.
 
+## v1.1 short UI wording, October 23, 2026
 
-## v1.1 界面短句（2026-10-23）
+The Rules page uses `short` and `timing` from `src/data/rules.ts`; hover cards hold full wording, sources, and verification dates. Short copy is an abbreviation; the full recorded rule controls. Review both when changing policy.
 
-Rules 页每条只显示一句短句（`src/data/rules.ts` 的 `short`）和时限标签（`timing`），全文、出处和核实日期在悬停卡里。短句只是缩写，规则内容以上面的原文为准；改原文时一起检查短句。
+## Item-by-item verification, October 23, 2026 (WP6)
 
-## 2026-10-23 逐条复核（WP6 要求）
+All 16 original pages were opened and checked; their verification dates were updated to October 23. Wording was clarified without changing the recorded requirements:
 
-16 条全部打开原网页核对过，内容仍然成立，核实日期改为 2026-10-23。改动只是措辞更准确：
-- R01：Event Registry 页面写的是“学校场地上的所有实体活动，以及与学校事务相关或用学校经费/学生费用的校外活动”都要登记；该页最少 14 天，手册第 15 页写 30 天，仍取 30 天。
-- R03：原文是“最多 3 名选举产生的干部可以申请账号”，不是“前三名”。
-- R06：手册第 14 页写的是 “vendor proof of insurance”。
-- R07：FAQ 没有日期；申请交给 ASU Food Safety & Health Manager，费用通常由供应商付；时限是 “7 working days”。
-- R11：$999 那句紧跟在 Amazon 句后，可能只适用于 Amazon；Platypus 继续按 $999 提醒（偏保守）。
-- R16：手册第 12 页还要求联系 Campus Liaisons 让换届生效。
+- R01 covers physical events on university property and off-campus events related to university business or using university/student funds. The guide says 14 days, handbook page 15 says 30; use 30.
+- R03 says up to 3 elected officers may apply, rather than the top 3 officers.
+- R06 uses “vendor proof of insurance” on handbook page 14.
+- R07's FAQ has no date; submit to the ASU Food Safety & Health Manager. The vendor usually pays; the lead time is “7 working days”.
+- R11's $999 sentence follows the Amazon sentence and may apply only to Amazon; keep the conservative $999 warning.
+- R16's handbook page 12 also requires contacting Campus Liaisons to make the transition effective.
 
+## Organization timing defaults in the newer workspace, October 26, 2026
 
-## 新版工作区的组织时间默认（2026-10-26）
+Determine purchase items 8 weeks ahead, obtain quotes 7 weeks ahead, and submit budget requests 6 weeks ahead. These are owner-requested internal targets, not new ASU rules. Leaders may adjust them in Organization Setup; otherwise defaults apply. Weeks are stored as 7 calendar days, while scheduling accounts for workdays, dependencies, and effort. Official deadlines and internal targets are stored separately.
 
-8周确定采购项目、7周确定报价、6周提交预算申请是用户指定的社团内部完成目标，不是新增的ASU规则。管理层可在Organization Setup调整，未调整使用默认；周按7自然日保存，实际排程考虑工作日、依赖与用时。官方截止与内部目标分别保存。USG仅明确餐饮/服务挂R09，嘉宾挂R10，College及其它类别不冒用这些公式；用款期限是申请关联的绝对限制，不随活动改期移动。相关实现为src/workspace/schedule.ts与服务端runtime；旧演示规则保留。新学生日历未覆盖时明确无法可靠排程，不伪造未来年份日期。
+Only USG food/services use R09 and speakers use R10; do not apply those formulas to College or unrelated funding categories. The spending deadline is an absolute constraint attached to the request and does not move when the event is rescheduled. Implementation is in `src/workspace/schedule.ts` and the server runtime; legacy demo rules remain. If the student calendar lacks coverage, report that reliable scheduling is unavailable rather than inventing future dates.

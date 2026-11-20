@@ -1,29 +1,29 @@
-# WP06 — 页面字数与信息密度门禁
+# WP06 - Words and Information Density Restricted
 
-## Agent 提示词
+## Agent prompt
 
-你负责恢复页面字数门禁并保留信息可发现性。本包属于第二阶段，必须基于已经集成 WP02 的最新 `origin/integration/v1.0`。开始前读取 `AGENTS.md`、README、manifest，fetch、报告基线 SHA，不得使用 `main`。
+You are responsible for restoring the page word bar and preserving the detectability of information. This package is the second stage and must be based on the latest `origin/integration/v1.0` that has been integrated into WP02. Reading `AGENTS.md`, README, manifest, fetch, reporting baseline SHA before starting, cannot use `main`.
 
-### 审核基线中的已知失败
+### Known failures in the review baseline
 
-- `/events`：总字数 614/420
-- `/rules`：可见 324/170，总字数 1671/560
-- `/team`：可见 138/130
-- `/funding`：已重定向 Events，却仍按旧 Funding 160 总字数上限统计
+- `/events`: Total Words 614/420
+- `/rules`: Visible 324/170, total word 1671/560
+- `/team`: Visible 138/130
+- `/funding`: Redirected Events, but still counting according to the old Funding 160 overall word cap
 
-### 要求
+### Request
 
-- `/funding` 从独立页面门禁移除或明确作为 `/events` alias，不得恢复重复页面。
-- Events 默认只渲染当前需要的信息；次要详情按需展开或选中后渲染，不得删除预算、来源或关键截止日。
-- Rules 的分类、搜索或 tabs 只渲染当前选中内容，同时保留全部政策来源可发现。不得只用 CSS 隐藏仍在 DOM 的大段文字作弊。
-- Team 精简重复说明但保持角色和责任清楚。
-- 除非有明确批准，不得简单提高 LIMITS；不得修改脚本忽略普通用户实际看到的内容。
+- `/funding` Disables removal from the stand-alone page door or explicitly as `/events` alias and does not restore duplicate pages.
+- Events Default to render only the information currently needed; Minor details are rendered as necessary or selected and no budget, source or key cut-off date should be removed.
+- Rules ' classification, search or tabs only render the current selection while retaining all policy sources that can be found. It is important not to cheat only with the large text that CSS hides while still in DOM.
+- Team streamlines duplicate statements but maintains clarity of roles and responsibilities.
+- LIMITS may not be simply upgraded unless expressly authorized; Scripts should not be modified to ignore what is actually seen by ordinary users.
 
-### 验收标准
+### Acceptance Standard
 
-1. `npm run words` 完全通过并报告各页面修复前后计数。
-2. Funding 不再作为不存在的独立页面重复统计。
-3. 政策来源、事件预算和责任信息仍可通过键盘/读屏操作访问。
-4. Rules/Events/smoke 相关 Playwright 测试通过。
-5. `npm run lint`、`npm test`、`npm run build`、`git diff --check` 通过。
-6. 创建一个 `[RR-WP06][Codex]` 提交。
+1. `npm run words` Completely adopts and reports the number of pages before and after restoration.
+2. Funding no longer repeats statistics as a stand-alone page that does not exist.
+3. Policy sources, event budgets and accountability information are still accessible via keyboard/read screen.
+4. The Rules/Events/SMoke related Playwright test was passed.
+5. `npm run lint`, `npm test`, `npm run build` and `git diff --check` were adopted.
+6. Creates a `[RR-WP06][Codex]` submission.

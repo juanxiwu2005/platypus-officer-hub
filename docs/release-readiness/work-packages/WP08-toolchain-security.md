@@ -1,29 +1,29 @@
-# WP08 — 开发与 CI 工具链安全
+# WP08 - Development and CI Tool Chain Security
 
-## Agent 提示词
+## Agent prompt
 
-你负责开发和 CI 工具链中的 high/critical 漏洞。本包属于第二阶段，必须从已经集成 WP07 的最新 `origin/integration/v1.0` 创建 worktree。开始前读取 `AGENTS.md`、README、manifest，fetch 并报告 SHA。不得使用 `main`，不得无审查运行 `npm audit fix --force`。
+You are responsible for the development of high/critical holes in the CI tool chain. This package is the second stage and must be created from the latest `origin/integration/v1.0` that has been integrated into WP07. Read `AGENTS.md`, README, manifest, fetch before starting and report to SHA. `main` may not be used or can run `npm audit fix --force` without review.
 
-### 重点依赖
+### Focused reliance
 
 - Vitest / tinypool
 - Vite / esbuild
 - ESLint / minimatch
-- 完整 `npm audit` 报告中的其他开发依赖
+- Other development dependence in the complete `npm audit` report
 
-### 要求
+### Request
 
-- 逐项升级到受支持的安全版本，处理配置/API/测试兼容性变化。
-- 保持 Node 22 CI 兼容。
-- 不得删除 lint 规则、测试文件或测试覆盖来换取通过。
-- 若 advisory 确无上游修复，必须证明不进入 production bundle，并记录依赖链、风险和解除条件；仍优先消除。
+- Upgrades to a supported security version, processing configuration/API/test compatibility changes.
+- Keep Node 22 CI compatible.
+- Lint rules, test files or test overlays may not be removed in exchange for passage.
+- If there is no upstream restoration, it must be proved not to enter the process bindle and record the chain of dependence, risk and release conditions; Priority remains to be given to elimination.
 
-### 验收标准
+### Acceptance Standard
 
-1. 完整 `npm audit` critical 为 0，原则上 high 也为 0。
-2. `npm audit --omit=dev` 保持 high/critical 为 0。
-3. `npm ci` 通过。
-4. Node 22 下 `npm run lint`、`npm run build`、`npm test` 通过。
-5. Playwright 配置能列出并运行测试，测试数量未减少。
-6. `git diff --check` 通过。
-7. 创建一个 `[RR-WP08][Codex]` 提交，报告 audit 前后结果及任何例外。
+1. The complete `npm audit` criminal is 0 and, in principle, high is 0.
+2. `npm audit --omit=dev` Keep high/ criminal to 0.
+3. `npm ci` passed.
+4. `npm run lint`, `npm run build` and `npm test` under Node 22 were adopted.
+5. Playwright configuration can list and run tests, the number of tests is not reduced.
+6. `git diff --check` passed.
+7. Creates a `[RR-WP08][Codex]` submission, reports results before and after audit and any exceptions.

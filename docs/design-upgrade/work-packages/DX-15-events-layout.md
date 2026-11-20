@@ -1,27 +1,27 @@
-# DX-15 Events 版面：列表收窄、边缘提示、留白审计
+# DX-15 Events: narrow list, edge tip, white audit
 
-- 阶段 3　大小 M　风险 中　R 级 R2　依赖：DX-01　并行伙伴：DX-16～19
-- 分支：`design/dx-15-events-layout`　样式文件：`src/styles/dx-15-events-layout.css`　对应细节：D18 D19
+- Stage 3 size M Risk Medium R Level R2 Dependence: DX-01 Parallel Partner: DX-16 ~ 19
+- Branch: `design/dx-15-events-layout` Style File: `src/styles/dx-15-events-layout.css` Corresponding Details: D18 D19
 
-## 为什么
-**看到**：1440 宽、右栏打开时 Events 是四列（导航 196 + 活动列表 220 + 内容 + 右栏 380），流程图只剩约 550px，右侧标签被切掉。
-**约束（不能违反）**：① **活动名称列表必须保留**（Juanxi 2026-10-31 明确要求）；② 流程图顶部的留白是**有意**留给悬停卡的（PROGRESS 2026-10-31），不能直接删；③ 不动 AI 右栏的默认行为（见 `DETAIL_LIST.md` K-3）。
+## Why?
+**Sees four columns (navigation 196+ active list 220 + content + right column 380) when**: 1440 is wide and the right bar is open, leaving a flow chart of about 550 px with the right label cut off.
+**Constraint (indefensible)**: 1 **activity name list must be maintained** (the explicit requirement of Juanxi 2026-10-31); 2 The text left at the top of the flow chart is from **intended for** (PROGRESS 2026-10-31), which cannot be deleted directly; 3 Do not move the default behaviour of the AI right column (see `DETAIL_LIST.md` K-3).
 
-## 要做的事
-1. **列表收窄**：`.events-layout` 在"右栏打开且视口 <1500px"时，把活动列表列从 220px 收到约 168px（只改列宽，名称仍然完整可读，过长用省略号 + `title`）。
-2. **流程图"还有更多"的提示**：`.metro` 横向可滚动时，在右边缘加一条渐隐遮罩（用 `mask-image`，不用颜色），滚到尽头自动消失。需要一小段脚本检测滚动位置（只改 `Events.tsx` 里 Flow 视图的外壳，不进 `MetroChart.tsx`，那个归 DX-22）。
-3. **留白审计**（只测量，再决定）：量出悬停卡（`.m-card`，宽 250、`bottom: 18px`）弹出时需要的顶部高度；如果现在的顶部留白比它多出 >24px，就把多余的收掉；**不确定就不改**，把测量结果写进报告。顺便量切换条（Flow/List/Budget）和图之间那 ~58px 的间距来自哪个规则。
-4. 使用 `100dvh` 替换 `.event-nav` 的 `max-height: calc(100vh - …)`。
-5. 手机（<860px）的活动选择器不变。
+## Something to do.
+1. The **list narrows**: `.events-layout` receives about 168 px from 220px when it is "opened in the right bar and seen at mouth < 1500px" (renumber only in width, the name remains readable, too long with an ellipsis + `title`).
+2. **Flowchart "There's more" hint**: When `.metro` is rolling horizontally, add a shade to the right edge (with `mask-image`, without color) and roll to the end automatically disappears. A small script is required to detect the rolling position (change only the shell of the `Events.tsx` milelow view, not `MetroChart.tsx`, which belongs to DX-22).
+3. **Leave White Audit** (measured only, determined): The height of the top needed to eject a suspended card (`.m-card`, wide 250, `bottom: 18px`); If the top leaves more white than it does now > 24px, take away the excess; **Unsurely does not change** to write the measurements in the report. Which rule does the distance ~58px come from between the random switch (Flow/List/Budget) and the graph?
+4. Use `100dvh`Replace `.event-nav`It's... `max-height: calc(100vh - …)`。
+5. The mobile phone (<860px) active selector remains unchanged.
 
-## 可以改的文件
-`src/pages/Events.tsx`（只动列表/Flow 外壳）、`src/styles/dx-15-events-layout.css`。**不准碰**：`MetroChart.tsx`、`metro.ts`、`.m-*` 选择器。
+## Files that can be changed
+`src/pages/Events.tsx` (move list/Flow shell), `src/styles/dx-15-events-layout.css`. **No contact with**: `MetroChart.tsx`, `metro.ts`, `.m-*` selections.
 
-## 验收
-- `events.spec.ts`、`flow-edit.spec.ts`、`feel.spec.ts`（流程图悬停卡）、`today.spec.ts`、`a11y.spec.ts`、`word-budgets.spec.ts` 桌面 + 手机绿。
-- 新测试 `e2e/dx-15-events.spec.ts`：1440 宽右栏打开时，活动列表宽度 ≤180 且全部活动名可见；流程图右边出现渐隐遮罩，滚到最右后消失。
-- `dx-shots`：1440 宽 Events（右栏开/关）前后对比。
-- Juanxi 怎么验：Events 页右栏打开时，中间的流程图更宽；右边缘有渐隐提示表示还能往右拖；活动列表还在。
+## Acceptance
+- `events.spec.ts`, `flow-edit.spec.ts`, `feel.spec.ts` (flow chart suspension card), `today.spec.ts`, `a11y.spec.ts`, `word-budgets.spec.ts` desktop + mobile phone green.
+- New test `e2e/dx-15-events.spec.ts`: When the wide right column of 1440 is opened, the active list has a width of  ≤ 180 and all active names are visible; The flow chart appears to be gradually masked to the right, rolling to the right and disappearing.
+- `dx-shots`: 1440 Wide Events (right bar on/off) contrasts before and after.
+- Juanxi Test: The middle flow chart is wider when the right bar on Events page is opened; There's a hint on the right edge that you can still drag to the right. The active list is still in place.
 
-## 回滚
+## Rollback
 R2。

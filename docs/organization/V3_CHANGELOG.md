@@ -1,31 +1,31 @@
 # Organization Setup v3 · 2026-10-26
 
-Juanxi 本轮要求已记录，优先于旧六步矩阵方案。main、旧站、setup-legacy 和旧归档保留。
+Juanxi This round has been documented and takes precedence over the old six-step matrix. Main, old station, setup-legacy and old archive reservations.
 
-## 交互与数据
+## Interaction and data
 
-五章：章程 → 团队 → 职责 → 活动流程 → Review。团队先核对部门，再编辑组织图；支持部门颜色、岗位描述、上下级连接、拖动和顶栏添加岗位。职责按部门/岗位列可编辑条目，最后 Check；重大风险逐题选解决方案，支持自定义指引，最终审阅后批量应用；可以明确跳过。所有步骤右侧 AI 知道当前屏幕、选择项和本组织配置，修改先预览再批准。
+Chapter 5: Constitution — Team — Duty — Activity Flow — Review. Teams first check the department and then edit the organization chart; Supports sector colour, role description, top-down connection, drag and top-bar addition. Job editable entries by department/ line, last check; Critical risk-specific solutions to support self-defined guidance and final review of batch applications; Could specify the skip. All steps to the right AI knows the current screen, selection and configuration of the organization and changes are previewed before approval.
 
-活动图在节点内改标题和多人负责人，+ 添加步骤，曲线连接支持新增/删除/重接，环路被拒绝。部门颜色贯穿团队、职责和图。Board work 不预先固定流程；当前仅保存日后按具体请求生成的模式和 social/tabling 模板名称，不声称完整 board planner 已实现。
+The activity chart is retitled and multi-persons in charge within nodes, + steps are added, curve connections support the addition/deletion/reconnection, and loops are rejected. Sector colours cut across teams, responsibilities and maps. Board work without prefixing process; Currently only save the model and the name of the social/tabling template that will subsequently be generated on specific requests. It is not claimed that complete board planner has been achieved.
 
-Review 展示实际配置。确认时服务器验证并编译 JSON，保存 alwaysRead 和 onDemand 两层、内部职责路由、来源指针、版本和时间；Python 可直接读取 JSON。不能把模型写的任意 Python 当可执行配置。
+Review displays the actual configuration. (a) The server authenticates and compiles JSON, saves always Read and on-Demand floors, in-house routing, source guidelines, versions and time; Python can read JSON directly. Can't take any Python of the model as an executable configuration.
 
-无修改返回/前进不请求 AI。稳定岗位 ID 和 manualFields 保护手动职责；章程重读按 ID/标题合并，不删掉整套后续数据。岗位删除有确认，只清理对应引用；相关流程节点标记需复核。AI 输入按任务缩减，缓存按内容和 prompt/mode 隔离于私有工作区。历史检索索引保留最近 20 个实质配置版本，AI 只在用户要求历史/恢复时读取最近 6 个；完整追加归档不因此删除。
+No changes to return/go without requesting AI. Stable rale ID and manualfields to protect manual duties; Reread ID/ Title merge without deleting the follow-up data set. delete confirmations and clean the corresponding references only; Relevant process node markers need to be reviewed. AI input is downsized by task and the cache is separated from the private workspace by content and prompt/mode. The History Retrieval Index retains the most recent 20 substantive configuration version, and AI only reads the most recent 6 when users request history/ recovery; The full additional archive is not deleted.
 
-## JSON 错误与速度
+## JSON Error and Speed
 
-此前适配器丢弃 finish_reason，且原始回复在解析成功后才归档。报错无法区分截断、空输出和格式污染。现先保存回复/结束原因/输入输出量/首字与总耗时，再解析。支持 JSON fences、一个完整对象前后说明和闭合 think 标签；拒绝截断、多个歧义对象、未完成流。没有模型自动补写或未审阅数据覆盖。AIR 使用原生 schema；明确拒绝时最多一次降级到 JSON object。
+Previously, the adaptor abandoned finish_reason and the original response was only archived after successful resolution. Wrong reporting does not distinguish between cut-off, empty output and format contamination. Saves/ends the answer/ enter output/first word and total time before parsing it. Supports JSON events, exterior description of a complete object and contour tab; It's a refusal to cut off, multiple objects of ambiguity and unfinished flow. There is no model automatically completed or data overlayed. AIR uses native schema; Degrades to JSON object at most once when explicitly rejected.
 
-2026-10-26 改版前的一次真实虚构章程提取成功，Muse 用时约 65s；未复现用户那次 JSON 错误，旧档案缺少细分指标，不能认定是排队。v3 改为流式读取指标，首字等待仍包含网络、预填充、可能排队等，不能单独证明某一种原因。去掉重复上下文、坐标和长 RACI/Review 文档生成；Review 编译和无变化导航为零 AI 调用。上线后的少量冒烟结果在 HANDOFF / PROGRESS 追加。
+2026-10-26 has been successfully extracted from a live picture study before re-reprogramming, using approximately 65s; The failure of the user ' s JSON error and the lack of disaggregated indicators for the old file could not be considered a queue. v3 Change to a flow reading indicator, with the first word waiting to still include networks, prefills, possible queues, etc., which does not alone justify a particular cause. Remove repeat context, coordinates and long RACI/Review document generation; Review compiles and does not change navigation to zero AI call. A small amount of smoke from online is added to HANDOFFF/ PROGRESS.
 
-## 边界
+## Border
 
-新存储仅覆盖 Organization Setup。真实身份、跨设备组织账户、跨组织共享、效率分析和正式 Handoff 尚未实现。私有匿名工作区访问 7 天，归档不自动清除；仅虚构测试资料。模型仍可能给出错误建议，格式校验通过不等于内容正确。
+New storage only covers Organization Setup. Live identity, cross-equipment organization accounts, cross-organizational sharing, efficiency analysis and formal Handoff have not yet been achieved. Access to private anonymous workspaces 7 days, archive not automatically removed; Only complete test data. The model may still make a recommendation for error, and the format validation is not equal to the correct content.
 
-## 真实冒烟发现与修复（v3.1）
+## Live smoke discovery and repair (v3. 1)
 
-79e352f 的一次隔离虚构章程请求：Muse 输入765 tokens、输出1846 tokens；headers3.872s、首内容16.715s、总50.396s，finish=stop。请求 reasoning none，网关返回 served low。接口接受 json_schema 但回复仍用 organization 包装、role.name/department_id/duties/quotes，说明不能把“请求 schema”当作“供应商保证 schema”。本次结果被校验拦截，配置未覆盖。
+79e352f One isolated request: Muse input 765 tokens, output 1846 tokens; Headers 3.872s, headline 16.715s, 50.396s, finish=stop. Asking none, gateway returned served low. The interface accepts json_schema, but the response is still packaged in organization, rule.name/departure_id/duties/quates, which indicates that “request for schema” cannot be used as a “schema of suppliers”. The results were verified and intercepted, but the configuration was not covered.
 
-v3.1 在系统 prompt 中增加精确 JSON 字段示例和禁止 wrapper/alias。对已观察到、无歧义的章程 wrapper/字段别名做确定性翻译，原始结果仍归档；缺失的职责不猜补，仍拒绝。Schema/Zod/引用/环路检查继续独立执行。新增一次读取 latest_ai 诊断，避免诊断时必须导出整个档案。
+v3. 1 Adds a precise JSON field example and bans wrapper/alias to the system prompt. (b) A definitive translation of observed and non-prejudiced observation slipper/field aliases, with the original results still archived; The missing duties are not mere and remain rejected. The Schema/Zod/Quote / Ring Check continues to be carried out independently. Add a new reading of the latest_ai diagnosis, which must be exported from the entire file.
 
-路由v3选择三款：Gemma 4 31B 负责较长的结构化设置任务；Muse 负责短对话/编辑；GLM 5.3 只在用户主动 Deeper review。选型不是已证明的性能排名；新版实测另行追加。记录请求与实际推理级别差异，首字等待不能单独证明排队。操作归档改成每批25条、每组5条独立追加，保持事件ID/时间/顺序，降低保存前等待，不删除记录。
+Router V3 selects three paragraphs: Gemma 4 31B for longer structural setting tasks; Muse for short dialogue/editor; GLM 5.3 is only active on the user Deeper review. The selection is not a proven performance ranking; The new version of the results is additional. The recording of requests differs from the actual level of reasoning, and the first word cannot be shown separately as queued. The operation archive is changed to 25 articles per batch, with 5 separate additions for each group, maintaining event ID/time/ordering and reducing pre-storage waiting without deleting records.

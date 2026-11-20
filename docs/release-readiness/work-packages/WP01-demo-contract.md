@@ -1,12 +1,12 @@
-# WP01 — Demo 日期、种子与路由契约
+# WP01 — Demo Dates, Seeds and Routes
 
-## Agent 提示词
+## Agent prompt
 
-你负责修复因 Demo 日期、种子事件和 Funding 路由变化导致的陈旧测试契约。
+You are responsible for repairing outdated test contracts caused by Demo dates, seed events and Funding route changes.
 
-开始前读取 `AGENTS.md`、本目录 README 和 manifest。执行 `git fetch origin`，确认 worktree 从阶段主 agent 指定的最新 `origin/integration/v1.0` SHA 创建，报告短 SHA。不得使用 `main` 或其他 agent 的 worktree。
+Read `AGENTS.md`, this directory README and manifest before starting. Execute `git fetch origin`, confirm that worktree is created by the latest `origin/integration/v1.0` SHA designated by the master of the phase. No worktree of `main` or other agent.
 
-### 负责范围
+### Scope of responsibility
 
 - `e2e/smoke.spec.ts`
 - `e2e/recovery.spec.ts`
@@ -14,23 +14,23 @@
 - `e2e/m2b.spec.ts`
 - `e2e/bts.spec.ts`
 - `e2e/today.spec.ts`
-- 必要的测试 helper/fixture
+- Necessary tests
 
-### 要求
+### Request
 
-- 不得把生产种子改回 2026-10-22。
-- 测试应从当前种子、页面状态或共享 fixture 推导日期，避免再次硬编码 Demo 日期。
-- `/funding` 已重定向到 `/events`；验证新契约，不得恢复独立 Funding 页面。
-- 修正事件数量、默认截止日、导出状态、模拟时钟和 Reset demo 的预期。
-- 保留真正的业务断言：时钟推进/重置、导出前后状态、默认任务截止日、AI-off fallback、页面无运行错误。
-- 若发现真实产品缺陷，可以修复，但必须加入回归测试并在交付报告中区分“测试漂移”和“产品缺陷”。
-- 禁止 skip、删除断言、盲目增加 timeout 或放宽到无意义 locator。
+- The seed must not be returned to 2026-10-22.
+- The test should be derived from the current feed, page status or shared fixture date, avoiding a hard encoding of Demo date again.
+- `/funding` has been redirected to `/events`; Verifys a new contract and cannot restore an independent Funding page.
+- Fixes the number of events, default cut-off dates, export status, simulation clocks and Reset demo expectations.
+- Keeps a true business assertion: clock push/replace, pre- and post export status, default job cut-off date, AI-off fallback, no running error on the page.
+- If a live product defect is detected, it can be repaired but must be added to the regression test and distinguished between “test drift” and “product defect” in the delivery report.
+- Ban skip, delete assertions, add blind timeout or relax to meaningless locator.
 
-### 验收标准
+### Acceptance Standard
 
-1. 上述六个 spec 在 desktop 和 mobile 项目全部通过。
-2. owned tests 不再无理由硬编码旧日期 `2026-10-22`、`2026-10-23`、`2026-10-27`、`2026-10-29`。
-3. `/funding` 重定向行为有明确断言。
-4. `npm run lint`、`npm test`、`git diff --check` 通过。
-5. 不减少测试数量或覆盖的业务行为。
-6. 创建一个 `[RR-WP01][Codex]` 提交，返回 commit SHA、修改文件、测试命令和结果。
+1. The six specs above have all been adopted in the desktop and mobile projects.
+2. The old `2026-10-22`, `2026-10-23`, `2026-10-27`, `2026-10-29` are no longer hard-coded for any reason.
+3. `/funding` Redirectional acts have clear assertions.
+4. `npm run lint`, `npm test`, `git diff --check` were adopted.
+5. There is no reduction in the number of tests or operational behaviour covered.
+6. Creates a `[RR-WP01][Codex]` submission, returns the committee SHA, changes files, test commands and results.

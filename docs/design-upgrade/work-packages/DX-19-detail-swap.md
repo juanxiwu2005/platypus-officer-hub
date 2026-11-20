@@ -1,22 +1,22 @@
-# DX-19 详情切换交叉淡入 + 页面淡入
+# DX-19 Toggle Cross Fade + Leak Page
 
-- 阶段 3　大小 S　风险 中　R 级 R2　依赖：DX-01、**DX-09**（它们改同一批文件，必须在 DX-09 之后）　并行伙伴：DX-15～18
-- 分支：`design/dx-19-detail-swap`　样式文件：`src/styles/dx-19-detail-swap.css`　对应细节：D14 D15
+- Stage 3 size S Risk R2 Reliance: DX-01, **DX-09** (they have to be in the same batch after DX-09) Parallel partners: DX-15 - 18
+- Branch: `design/dx-19-detail-swap` Style File: `src/styles/dx-19-detail-swap.css` Corresponding Details: D14 D15
 
-## 要做的事
-1. **右栏详情切换**（`Rail.tsx` 的 `DetailView`）：`key` 变化时，新内容 120ms 淡入（只用透明度）；不做退场、不动布局、不影响滚动位置重置和焦点移动（现有的 `scrollTo` 和 `focus()` 逻辑保持）。
-2. **页面淡入**（`Layout.tsx` 的 `<main>`）：路由变化时，`main` 的直接子元素 140ms 淡入。**只做淡入，不做滑动、不做退场**，不能让导航"变慢"（Apple `motion.md`：常用操作不要让人等动画）。
-   - 实现方式：用路径作为 `key` 重新挂载，或者给 `main > *` 一个只在路由变化时添加的 class。**不要**对所有 `main > *` 永久写动画（页面内部有条件渲染的卡片出现时也会跟着闪）。
-3. 减少动效：两者都不动。
-4. 保持：`<main id="main" tabIndex={-1}>`、跳转到主内容的焦点管理、`lastPath` 的右栏收起逻辑。
+## Something to do.
+1. **The details of the right bar are changed to** (`DetailView` for `Rail.tsx`): 120ms were faded when changes occurred in `key` (transparency only); Do not exit, do not move layouts, do not affect rolling position replacement and focus shifts (existing `scrollTo` and `focus()` logical maintenance).
+2. The **page fades into** (`Layout.tsx` `<main>`): when the route changes, the direct sub-elements of `main` fade into 140ms. **does nothing less, doesn't slide, doesn't quit**, doesn't "slow" the navigation (Apple `motion.md`: Common operations don't make people animated).
+   - Means of implementation: Remount as `key` with a path, or give `main > *` a class that is only added when the route changes. **Don't** write permanent animations of all `main > *` (and flash when conditionally rendered cards appear inside the page).
+3. Reduction of kinetic effects: neither move.
+4. Keep: `<main id="main" tabIndex={-1}>`, jump to focus management of main content, `lastPath` right bar closes the logic.
 
-## 可以改的文件
-`src/components/Layout.tsx`、`src/components/rail/Rail.tsx`（仅 `DetailView`）、`src/styles/dx-19-detail-swap.css`。
+## Files that can be changed
+`src/components/Layout.tsx`, `src/components/rail/Rail.tsx` (`DetailView` only), `src/styles/dx-19-detail-swap.css`.
 
-## 验收
-- `smoke`、`today`、`tasks`、`events`、`a11y`、`recovery` 桌面 + 手机绿；任何页面快速连点导航不卡、不闪白。
-- 新测试 `e2e/dx-19-swap.spec.ts`：切换导航后新页面内容的 `opacity` 在过渡中、300ms 内到 1；在 Today 里点不同的任务，右栏详情有淡入。
-- Juanxi 怎么验：点左侧导航换页，新页面柔和地出现（不是滑动）；点不同任务，右栏内容淡入。
+## Acceptance
+- `smoke`, `today`, `tasks`, `events`, `a11y`, `recovery` desktop + mobile phone green; Any page with fast link points is uncracked and white.
+- New test `e2e/dx-19-swap.spec.ts`: `opacity` for switching the content of new pages after navigation to 1 in transition, 300ms; The right column details are diluted when you point a different task in Today.
+- Juanxi Test: Point left navigation page change, new pages appear softly (not slide); Point different tasks, right column down.
 
-## 回滚
+## Rollback
 R2。

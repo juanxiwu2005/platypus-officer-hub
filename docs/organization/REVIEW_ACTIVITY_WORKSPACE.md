@@ -1,23 +1,23 @@
-# Activity Workspace 独立复核
+# ActivityWorkspace Independent Review
 
-2026-10-26 · Reviewer：独立 Review Agent。最终产品代码复核提交：`3e9c69a`。
+2026-10-26. Reviewer: Independent Review Agency. Final product code review submission: `3e9c69a`.
 
-本轮先复核执行方案，再分批检查 Data、Schedule、Workspace UI、Setup UI、全局 AI 和主 Agent 整合。Reviewer 不承担功能开发，未调用真实 AI。
+This round begins with a review of the implementation programme, followed by a series of inspections of Data, Schedule, Workspace UI, Setup UI, Global AI and Main Agent integration. Reviewer does not carry the function development, does not call live AI.
 
-已发现并修复的主要问题：
+The main problems identified and repaired are:
 
-- 不适用分支不能冒充已经完成的 any 前置；阶段分组回环不能伪造线性进度。
-- Stuck 按明确任务/审批目标解除，不能清掉其它未解决条件。
-- 一般审批需要明确 Gate 和审批人；过期 Gate/申请不能批准当前任务。
-- 资金记录按来源/申请版本隔离；累计支出和承诺不能超额，带历史的申请不能串换来源。
-- 内部时间目标与学校官方期限并存，USG 规则按明确类别使用，固定用款期限不随活动改期漂移。
-- 业务提交后 AI 提案应答丢失，通过持久凭证恢复；未完成回应不重复生成或重复业务写入。
-- AI 使用有界只读工具覆盖当前工作区的任务、资金、岗位、章程和历史，不能把截断列表称为完整数据访问。
-- 多导航保护共用一个协调器；连续 Back/hash 手势先稳定再保存，不能跳过检查或误取消保存。
-- 深链接选中的任务由路由同步识别；中央任务详情不遮住独立右栏。AI 应用前保护未发送表单，已发送进度不被恢复为未提交内容。
+- Non-applicable branches cannot pretend to be completed any prefix; Phases of loops cannot falsify linear progress.
+- Stuck was removed from the target with a clear mandate/approval and other unresolved conditions could not be cleared.
+- General approval requires the identification of Gate and Approving Officers; The late Gate/application cannot approve the current task.
+- Financial records are segregated by source/application version; Cumulative expenditures and commitments must not exceed those levels, and historical applications cannot be exchanged for sources.
+- Internal time targets coexist with the school ' s official term, and the USG rule is used in defined categories and fixed-term periods do not drift away from the activity.
+- The AI proposal was lost after the submission of the business and resumed through a durable certificate; Incomplete responses do not generate or duplicate operations.
+- AI uses a community-only tool to cover tasks, funds, role, constitution and history of the current workspace. The cut list cannot be called full data access.
+- (a) Multi-navigation protection with a single coordination device; Continuous Back/Hash gestures are stabilized before saving. You cannot skip check or wrongly cancel saving.
+- _Other Organiser The central task details do not hide the right column of independence. AI Protects unsent forms prior to application and sent progress is not restored to non-submission.
 
-最终小增量的19项独立定向测试通过，包括 route context 3项及 Workspace 页面16项。此前独立检查覆盖任务/资金规则、日期、导航和持久层故障恢复；没有重复启动整套模型或浏览器评估。
+The 19 independent orientation tests for the final small increment were passed, including 3 root context and 16 workspace pages. Previous independent inspections covered mission/fund rules, dates, navigation and persistent layer failure recovery; No model set or browser evaluation was repeated.
 
-最终结论：`3e9c69a` 无开放的已知 P0/P1 代码阻塞。最终构建、全单元与桌面/手机完整回归以主 Agent 的最终日志和[实施记录](ACTIVITY_WORKSPACE_IMPLEMENTATION.md)为准。
+Final conclusion: `3e9c69a` unopened known P0/P1 code blockage. The final build, full module and complete return to the desktop/phone are based on the master Agent 's final log and [ implementation log ](ACTIVITY_WORKSPACE_IMPLEMENTATION.md).
 
-此复核不代表真实 AI 质量/速度、线上 Netlify 持久化、正式成员身份或生产发布已经验收。后续只填写交接文档与验证数量，不修改产品逻辑时无需重跑产品测试；正式站仍须另获授权。
+This review does not represent live AI quality/ speed, online Netlify sustainability, official membership status or production release already available. Only handoff documents and certified quantities will be filled out, and there will be no need to run the product test without modifying the product logic; Official stations are still subject to additional authorization.

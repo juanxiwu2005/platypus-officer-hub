@@ -1,26 +1,26 @@
-# DX-22 流程图节点改 `transform` + 弹簧落位
+# DX-22 Flowchart Node Reposition `transform`+ Springfall
 
-- 阶段 4　大小 M　风险 中　R 级 R2　依赖：DX-01　并行伙伴：DX-20、21
-- 分支：`design/dx-22-flow-motion`　样式文件：`src/styles/dx-22-flow-motion.css`　对应细节：D46 D47
+- Stage 4 size M Risk Medium R2 Reliance: DX-01 Parallel Partners: DX-20, 21
+- Branch: `design/dx-22-flow-motion` Style File: `src/styles/dx-22-flow-motion.css` Corresponding Details: D46 D47
 
-## 为什么
-**读到**：`.metro .m-node { transition: left .3s ease, top .3s ease }`——`left/top` 会触发重新布局，普通缓动；而连线是直接跳的，所以节点在滑、线在跳，不同步。Emil §11：只动 `transform` 和 `opacity`。
-**要保留的优点（不要重写）**：`setPointerCapture`、6px 起拖阈值、边缘自动滚动、Alt+方向键移动、右键菜单、撤销。
+## Why?
+**reads**: `.metro .m-node { transition: left .3s ease, top .3s ease }` - `left/top` triggers a re-programming, normal buffer; And the connection is straight, so the nodes are slipping, the lines are jumping, they're not synchronizing. Emil § 11: Only `transform` and `opacity`.
+**Strengths to retain (do not rewrite)**: `setPointerCapture`, 6px drag threshold, edge autorolling, Alt+ arrow key movement, right-key menu, unrevoke.
 
-## 要做的事
-1. 节点定位：`MetroChart.tsx` 里给 `.m-node` 的内联样式从 `left/top` 改成 CSS 变量 `--x`、`--y`（ESLint 允许 `--` 开头的变量）；CSS 里 `left: 0; top: 0; transform: translate(var(--x), var(--y))`。节点本身宽高为 0，里面的点和标签相对它定位，不受影响。
-2. 落位过渡：`transition: transform var(--dur-slow) var(--spring-ui)`（节点位置变化只有"落位"这一种来源）；`prefers-reduced-motion` 时无过渡。
-3. 连线：落位期间 `<svg>` 里的路径用 150ms 淡出再淡入（或者整个 svg 在落位 `--dur-slow` 内保持 `opacity: .6`），让线和点"同时换位"，而不是点在滑线在跳。选一种方案，在报告里写理由。
-4. 拖动中 `.m-gap.is-near` 的吸附：`transform: scale` 过渡 `var(--dur-press)`，不再瞬变大小（现在是直接改 `width/height`，改成固定大小 + `scale`）。
-5. 不改 `metro.ts` 的布局计算；不改任何 `data-testid`。
+## Something to do.
+1. Node positioning: The inner condensed style of `.m-node` in `MetroChart.tsx` is changed from `left/top` to CSS variables `--x`, `--y` (ESLint allows the beginning of `--`); CSS `left: 0; top: 0; transform: translate(var(--x), var(--y))`. The node itself is wide as 0, and the points and labels are not affected by its positioning.
+2. `transition: transform var(--dur-slow) var(--spring-ui)` (change of position in node is only a source of "fall position"); No transition for `prefers-reduced-motion`.
+3. Connection: The path within `<svg>` over time is faded by 150ms (or the whole svg keeps `opacity: .6` in the drop slot `--dur-slow`) so that the line and the dot "convert at the same time" instead of the slider. Choose one option, with reasons given in the report.
+4. Draging `.m-gap.is-near` adsorption: `transform: scale` transition `var(--dur-press)`, no more instantaneous size (now `width/height` is changed to fixed size + `scale`).
+5. Do not change `metro.ts` layout calculations; Do not change any `data-testid`.
 
-## 可以改的文件
-`src/components/flow/MetroChart.tsx`（只动定位和样式变量）、`src/styles/dx-22-flow-motion.css`。`.m-node`、`.m-gap`、`.m-ghost`、`.metro` 只归这个包。
+## Files that can be changed
+`src/components/flow/MetroChart.tsx` (only positioning and style variables), `src/styles/dx-22-flow-motion.css`. `.m-node`, `.m-gap`, `.m-ghost` and `.metro` only belong to this package.
 
-## 验收
-- `flow-edit.spec.ts`、`events.spec.ts`、`feel.spec.ts`（流程图悬停卡）、`a11y.spec.ts`、`src/test/flowEdit.test.ts`、`metro` 布局的单元测试桌面 + 手机绿；**图测试里"真实曲线命中点击"（WP10 刚改好）必须保持**。
-- 新测试 `e2e/dx-22-flow.spec.ts`：拖一个步骤到另一个缝隙后，节点在过渡中的 `transform` 不是终点值；稳定后位置正确；减少动效时直接到位。
-- Juanxi 怎么验：Events → Edit flow，拖一个点到别的位置，松手后点平滑落位，线不会"跳一下"。
+## Acceptance
+- `flow-edit.spec.ts`, `events.spec.ts`, `feel.spec.ts` (flow chart suspension card), `a11y.spec.ts`, `src/test/flowEdit.test.ts` and unit tests + mobile phone green on layout `metro`; **"live curve hit" in the image test must keep**.
+- `e2e/dx-22-flow.spec.ts`: After dragging one step to another, node in transition `transform` is not the end value; The position is right after stabilization; Directly in place when operational effects are reduced.
+- Juanxi How to Test: Events  → Edit follow, drag one dot to another position and smooth it down a bit after you let go, the line doesn't "jump."
 
-## 回滚
+## Rollback
 R2。

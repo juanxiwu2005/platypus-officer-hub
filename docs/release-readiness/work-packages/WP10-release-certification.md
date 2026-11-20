@@ -1,40 +1,40 @@
-# WP10 — 最终集成与发布认证
+# WP10 - Final Integration and Publication Authentication
 
-## Agent 提示词
+## Agent prompt
 
-你负责全部工作包合并后的最终发布认证。原则上不增加新功能，只修复集成回归。本包属于第三阶段，必须从最新 `origin/integration/v1.0` 创建干净 worktree。开始前读取 `AGENTS.md`、README、manifest 和前两阶段交接，fetch，确认 HEAD 与远端一致并报告完整/短 SHA。不得使用或修改 `main`。
+You are responsible for the final release of all work package merges. In principle, no new functions will be added and only integrated returns will be repaired. This package is the third stage and must be created clean worktree from the latest `origin/integration/v1.0`. Read `AGENTS.md`, README, manifest and first two stages Handoff, fetch before starting, confirm that HEAD is consistent with the remote and report complete/short SHA. `main` cannot be used or modified.
 
-### 禁止事项
+### Prohibitions
 
-- 不得用 skip、提高 timeout、删除测试、force click、降低字数/安全/包体标准获取绿色结果。
-- 不得自动调用真实付费 AIR；只准备人工 smoke checklist。
-- 不得在存在失败门禁时声称可合并 main。
+- The green result should not be obtained by skip, timeout, delete tests, force click, lower word/safe/package standards.
+- Do not automatically call live AIR; Only handy smoke checklist.
+- It may not be claimed that a failure is prohibited.
 
-### 必须执行
+### It has to be done.
 
 1. `npm ci`
 2. Node 22：`npm run lint`、`npm run build`、`npm test`
-3. Netlify Functions 与后端库严格 TypeScript 检查
+3. Strict TypeScript check for Netlify Operations and back-end libraries
 4. `npm run words`
-5. 完整 Playwright：desktop、mobile、desktop-storage、mobile-storage
+5. Full Playwright: desktop, mobile, desktop-storage, mobile-storage
 6. `npm audit --omit=dev`
-7. 完整 `npm audit`
+7. Complete `npm audit`
 8. `git diff --check HEAD`
 9. `git fsck --no-reflogs --connectivity-only`
-10. Secret/private-key 扫描
-11. 构建产物大小和 lazy loading 检查
-12. 权限允许时读取当前 GitHub Checks
+10. Secret/ private-key scan
+11. Build product size and lazy loading check
+12. Read the current GitHub Checks when permitted
 
-### 验收标准
+### Acceptance Standard
 
-- lint/build/unit 全部通过。
-- Playwright 0 失败；所有 skip 都是既有、明确、有记录的条件跳过，不能新增无理由 skip。
-- `npm run words` 通过。
-- 生产 audit 0 high/critical；完整 audit 0 critical，原则上 0 high。
-- 主入口 chunk 低于 500 kB。
-- 工作区干净，HEAD 与最新 `origin/integration/v1.0` 一致。
-- 无 secret 泄漏。
-- 输出按底层逻辑、数据架构、前端、后端、安全、交互、无障碍、性能分类的发布报告，以及真实 AI 人工 smoke checklist。
-- 只有全部硬门禁通过后才能给出“可以申请合并 main”的结论；真正合并 main 仍需 Juanxi 另行明确批准。
+- Lint/Build/unit All adopted.
+- Playwright 0 failed; All sskip is an established, well-defined and documented condition kskip cannot add no justification skip.
+- `npm run words` passed.
+- Production of audit 0 high/critical; Complete audit 0 criminal, in principle 0 high.
+- The main entrance hunk is below 500 kB.
+- The workspace's clean, the HEAD is consistent with the latest `origin/integration/v1.0`.
+- No secret leak.
+- Output release reports classified by bottom logic, data arcitecture, front end, backend, security, interaction, accessibility, performance, and live AI manual smoke checklist.
+- The conclusion that "merge main" can only be given after all the hard doors have been passed. The real merge main still needs another explicit approval from Juanxi.
 
-如需修复集成回归，创建一个 `[RR-WP10][Codex]` 提交；若无需修改，明确报告无 commit。
+Create a `[RR-WP10][Codex]` submission if integrated returns need to be repaired; If no change is required, report explicitly no limit.

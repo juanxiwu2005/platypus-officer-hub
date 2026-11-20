@@ -1,12 +1,12 @@
-# DP8 第二阶段集成验收
+# DP8 Phase II Integration
 
-2026-11-01（UTC）。本记录为三个独立工作包集成后的最终证据；各工作包证据里的源分支计数、版本及包体属于集成前记录。
+2026-11-01（UTC）。This record is the final evidence of three independent work packages; Source branch numbers, versions and packages in work package evidence are pre-integrated records.
 
-## 基线、隔离与提交
+## Baseline, separation and submission
 
-首先执行 `git fetch origin`；因 origin 默认 fetch refspec 只覆盖默认分支，随后显式 fetch `refs/heads/integration/v1.0:refs/remotes/origin/integration/v1.0`。唯一基线为最新远端 **1975bc122f5823e033c29493a5d20ce84b85ec23 / 1975bc1**。已逐一用祖先检查确认第一阶段六包在该远端内：
+First execution of `git fetch origin`; Only the default branch is overridden by the orgin default fetch refspec, and then the obvious fetch `refs/heads/integration/v1.0:refs/remotes/origin/integration/v1.0`. The only baseline is the latest remote **1975bc122f5823e033c29493a5d20ce84b85ec23/ 1975bc1**. The first six bags have been identified by an ancestor examination on a case-by-case basis in the far end:
 
-| 第一阶段包 | 已集成 commit |
+| First-stage package | Integrated Contribut |
 | --- | --- |
 | WP01 | 2f3c922787fccf12ad4144e8d1c829c2486027c8 |
 | WP02 | a653a4c290ed5c5d819e8bbfa1526030076ddc15 |
@@ -15,59 +15,59 @@
 | WP07 | 707eb195d1423557d622362d49cc0228f52ee129 |
 | WP09 | 83a699521fac28fb4c4a597e7ef3b7abab3c8243 |
 
-按要求完整阅读 AGENTS、README、manifest、STAGE2 与最新第一阶段交接；按 manifest 自动读取 WP05/06/08。三个 sub-agent 的 worktree、分支和源 commit 独立，均从上述同一基线出发，每包一个 commit；主 agent 在第四个 worktree 按 WP05 → WP06 → WP08 cherry-pick -x。
+Read AGENTS, README, manifest, STAGE2 and the latest phase Handoff as requested; Automatically read WP05/ 06/08 by pressing manifest. Three sub-agents worktree, branch and source committee independence from the same baseline as above, one package per package; The main agent in the fourth worktree press WP05  → WP06  →  WP08cher-nick-x.
 
-| 包 | 源分支 / worktree | 独立源 commit | 集成 commit |
+| Bag. | Source / worktree | Independent Source | Integrated committee |
 | --- | --- | --- | --- |
 | WP05 | codex/rr-wp05-a11y / rr-wp05-a11y | a383c06738011b4ea5660d6e024ba5f8aff51038 | 76f3f2a3bbc131bdfecc9db49a4daf8ab1147ee7 |
 | WP06 | codex/rr-wp06-words / rr-wp06-words | 4a23825e57e6f56067178f141ce96e5b6402414a | 817582daf44d7b1bd001e2e287ab868d5285dc1c |
 | WP08 | codex/rr-wp08-toolchain / rr-wp08-toolchain | 85687dccfe10917f1eba849ef5aa5c45a8f56a60 | 5540c66bda560c2ab2826cae4e662b68b09922e6 |
 
-集成分支 `codex/rr-stage2-integration`，worktree `rr-stage2-integration`。MetroChart 唯一冲突逐行合并，保留 WP05 的触摸/键盘区分、焦点管理与 WP06 的按需 tooltip、aria-describedby，不采用整文件覆盖。每包后验证：WP05 的 a11y/flow-edit/m2b 90 通过、6 原有设备排除；WP06 的 Rules/Events/wp5/smoke/word-budgets 62 通过，words 通过；WP08 后执行下述完整阶段门禁。
+Integrated branch `codex/rr-stage2-integration`, worktree `rr-stage2-integration`. MetroChart is the only conflict line-by-line merge that retains WP05's touch/keyboard distinction, focus management and WP06's tooltip, aria-describedby, without full file coverage. (a) 11y/low-edit/m2b 90 from WP05, excluding former equipment from 6; Rules/Events/wp5/smoke/word-budgets 62 of WP06 were adopted, Words were passed; WP08 will be followed by the following full phase of closure.
 
-主 agent 进一步发现并修复只读 Budget 焦点陷阱：候选元素使用原生 :disabled（含禁用 fieldset），包含 summary；Sam/Jordan 双向 Tab 与 Escape 桌面/手机均覆盖。该修正已进入最终 WP05 源 commit 后重新集成。
+Main agent further discovers and fixes the read-only Budget focus trap: candidate elements use primary: disabled fieldset, including submary; Both the Sam/Jordan and Escape desktops/phones are covered. The correction has been re-integrated after entering the final WP05 source.
 
-新版 Axe 4.14 暴露品牌与 Handoff 的真实 label-content-name-mismatch。主 agent 在 **ccaf517fd54cccd629927eba74e428c2eafe49c4** 与 **6e9be85292554cebd978b818e40c237f5bf31616** 分别移除覆盖可见内容的冗余 aria-label，使用原生内容命名；品牌加入文本空格，交接卡补充读屏用途 handbook 并保留头像、进度与阶段。品牌新增测试验证修改组织名、原始 Axe 扫描及键盘回首页（6 目标项通过）；Handoff 扫描与完整签署业务 4 项通过，另经 WP05 agent 只读复核。
+A new version of Axe 4.14 exposed brands and Handoff's live label-content-name-mismatch. Main agent removes redundancies covering visible content from **ccaf517fd54cccd629927eba74e428c2eafe49c4** and **6e9be85292554cebd978b818e40c237f5bf31616** respectively Aria-label, using original content for naming; Brands add text spaces, handoff cards supplement screen viewing and keep the header, progress and phase. The branding test validates the change of organizational name, original Axe scan and keyboard return to the first page (6 target adopted); Handoff Scanning and Complete Signing Operation 4 was passed and reviewed by WP05 agent read-only.
 
-## 最终门禁
+## Last door is closed.
 
-环境：Node **v22.23.4**，`/usr/bin/chromium`（154）。npm 命令通过 `npm exec --yes --package=node@22 -- sh -c '…'` 执行。先完成生产构建，再启动浏览器；运行期间不重建其 dist。原始 Playwright 配置不改，workers=2、retries=0。
+Environment: Node **v22. 23.4**, `/usr/bin/chromium` (154). The npm command is executed through `npm exec --yes --package=node@22 -- sh -c '…'`. (b) Completion of the production construction and start of the browser; Do not re-establish its list during the operation. Original Playwright configuration unchanged, workers = 2, retries = 0.
 
-| 门禁 | 最终结果 |
+| Restricted. | Final result |
 | --- | --- |
-| npm ci | 通过，439 包；锁文件与独立源包一致 |
-| npm run lint | 通过；Stylelint、ESLint，另 20 JSX/style 样例、4 原有排除、66 matcher API 断言通过 |
-| npm run build | 通过；TypeScript 和 Vite，未提高包体阈值 |
-| npm test -- --maxWorkers=2 | 56 文件 / **809 通过**，0 失败、0 skip |
-| npm run typecheck:netlify | 通过，strict 保留 |
-| npm run words | 全部 9 个真实路由通过；Funding 已重定向到 Events，删除重复别名条目，未提高任何阈值或修改统计方法 |
-| a11y desktop/mobile | **63 通过**、3 原有设备排除，0 原始 Axe 违规（66 项） |
-| 阶段目标 E2E | **350 通过 / 10 原有设备排除 / 0 失败 / 0 flaky / 0 重试**，共 360 项，4.6 分钟 |
-| npm audit --omit=dev | critical/high/moderate/low 均 0 |
-| 完整 npm audit | critical/high/moderate/low 均 0（基线 17 项 → 0） |
-| Playwright --list | **464 项 / 28 文件**，基线 440 项 / 27 文件，无测试删除 |
-| git diff --check | 通过 |
+| npm ci | Adopted, 439 packages; Lock file to stand-alone package |
+| npm run lint | Adopted; Stylelint, ESLint, also 20 JSX/ style sample, 4 original exclusion, 66 matcher API assertion adopted |
+| npm run build | Adopted; TypeScript and Vite, without raising the package threshold |
+| npm test -- --maxWorkers=2 | 56 File / **809 through**, 0 failed, 0skip |
+| npm run typecheck:netlify | Pass,stric reservation |
+| npm run words | All 9 live routes through; Funding reoriented to Events, deleting duplicate alias entries, without raising any threshold or modifying statistical methods |
+| a11y desktop/mobile | **63Through**、3It's not like the original equipment is here. 0Original Axe Infractions 66(Items)  |
+| Phase objective E2E | **350 Failed by / 10 excluding the original device / 0 / 0 flaky / 0 retry** with a total of 360, 4.6 minutes |
+| npm audit --omit=dev | Critical/high/moderate/low 0  |
+| Full npm audio | 0 (baseline 17 item  →  0) |
+| Playwright --list | **464 item / 28 document**, Baseline 440 item / 27 file, deleted without testing |
+| git diff --check | Passed |
 
-最终 word count（visible / all；阈值保持原样）：Today 109/404，Events 149/171，Rules 50/166，Tasks 56/56，Team 129/259，Handoff 39/71，Partners 79/99，Settings 120/120，Help 442/442（原有信息页宽限）。Rules 64 条原始来源仍可通过搜索、分类和真实分页全部访问；新增测试遍历 All/9 分类共 27 个分页视图，最宽 74/268，仍低于 170/560。Event owner/status/三个日期和规则来源保留于按需 hover/focus 卡片及详情，没有用 CSS 隐藏全文来凑字数。
+Final word count/all; Threshold remains the same: Today 109/404, Events 149/171, Rules 50/166, Tasks 56/56, Team 129/259, Handoff 39/71, Partners 79/99, Settings 120/120, Help 442/442 (old information page width). The Rules 64 original sources are still fully accessible through search, classification and live pages; Adds a total of 27 page break views for the All/ 9 classification with the widest 74/268, which is still below 170/560. Event owned/status/3 dates and rule sources are kept on the over/focus cards and details as required, without using CSS to hide the whole text count.
 
-最终入口 `index-NvA6n9JZ.js` **364,430 字节**（本地 gzip 115,194），react-runtime **142,530**（gzip 45,815），首屏两份 JS 总计 **506,960** 字节。500,000 字节门禁针对入口，未把总和误报为入口。Rollup AST：入口仅静态引用 runtime，runtime 无 import/export-from 回引。桌面与手机实际网络附件均确认仅请求上述两份 JS，未提前请求 PhaseOne/OnlineSetup/PDF。保留 lazy loading、可见 loading、单 main、polite status、直接访问/刷新/Back/Forward、PDF 实现与 worker 仅在选择 PDF 后请求。
+Final entrance `index-NvA6n9JZ.js` **364,430 byte** (local gzip 115,194), real-runme **142,530** (gzip 45,815), with two JS screens totalling **506,960** bytes. The 500,000 byte door is restricted to the entrance and the sum is not reported as an entry. Rollup AST: The entrance is staticly quoted only by Runtime, rantime without import/export-from quotes. The desktop and cellular network attachments confirm that only the above-mentioned two JS requests have been made, without having requested PhaseOne/OnlineSetup/PDF in advance. Keep lazy drawing, visible loating, single main, polite status, direct access/renewal/Back/Forward, PDF realization and worker requests only after selecting a PDF.
 
-最终矩阵完整运行 a11y、word-budgets、smoke、recovery、safety、m2b、bts、today、events、flow-edit、feel、touch、wp5、tasks、rehearsal、setup-team、workflow-setup、phase1、production-security、bundle-performance、bundle-organization-setup；另选择 organization-setup 的来源、PDF/Word/TXT 真文件读取归档、草稿恢复与导航/保存失败/冲突目标场景。项目分布 desktop=162、mobile=162、desktop-storage=18、mobile-storage=18。全部 API 离线模拟，0 次真实付费 AIR。
+The final matrix is fully operational a11y, Word-budgets, smoke, recovery, safety, m2b, bts, today, events, fly-edit, feel, touch, wp5, tasks, rehearsal, setup-team, workfly-setup, phase1, implementation-security, bindle-performance, bindle-organization-setup; Select also the source of orniation-setup, PDF/Word/TXT real files to read archive, draft restoration and navigation/save failed/conflict target scene. Project distributions desktop = 162, mobile = 162, desktop-storage = 18, mobile-storage = 18. All API offline simulations, 0 live fees AIR.
 
-10 项排除均为原有明确设备适用性：a11y 3（desktop 不跑手机整页覆盖，mobile 不重复平板2）、feel 2（手机不跑 hover/桌面焦点样式）、flow-edit 3（手机不跑鼠标拖动/宽布局连线）、touch 2（desktop 不跑手机触摸）。无新增 skip/fixme、删除断言、force click、增加 timeout、禁用 Axe/过滤违规、提高字数/包体限制或 audit ignore。旧 flow-edit target-size 过滤已移除。
+10 exclusions are clearly applicable to the original equipment: a11y 3 (desktop not running full-page coverage, mobile not repeating tablet 2), Feel 2 (mobile not running over/desk focus style), fly-edit 3 (cell not running mouse drag/width layout link), touch 2 (desktop not running mobile phone touch). No skip/fixme was added, no assertions were deleted, force click, timeout was increased, Axe/filtration violations were disabled, word numbers/packages were raised or audit objectre was removed. The old fly-edit target-size filter has been removed.
 
-本地保留 `/tmp/rr-stage2-final-{lint-build,unit-backend,words,e2e}.log`、`final-e2e.json`、完整/生产 audit JSON、bundle JSON、E2E inventory 与浏览器网络附件。发现失败的轮次也保留：新版 Axe 品牌问题；其后 347 pass /10 原有排除 /3 失败（Handoff 桌面/手机及并行重建时一次 HTTP 导航错误）。修复真实命名并停止并行重建后完整重跑，以下最终结论仅依据最新成功轮次；未只跑失败项就宣称整个阶段通过。曾误写不存在的 typecheck:backend 命令，报 Missing script；随后使用仓库正确 typecheck:netlify 独立及最终复跑均通过，未把命令错误当作成功。
+Locally retain `/tmp/rr-stage2-final-{lint-build,unit-backend,words,e2e}.log`, `final-e2e.json`, complete/production audit JSON, bindle JSON, E2E inventory and browser network attachments. The cycle of finding failures is also retained: the new Axe branding problem; After 347 pass /10Original exclusion / 3Failed (Handoff desktop/cell and a HTTP navigation error during parallel reconstruction).  (a) Rehabilitate live naming and stop full rerun after parallel reconstruction, with the following final conclusions based only on the most recent successful rounds; The whole phase is declared to have been adopted without merely running the failed item. misspelled the non-existent typecheck:backend command, reporting missing copy; Both independence and eventual recovery were then adopted using repository correct typecheck:netlify, without considering the error of command as a success.
 
-## 剩余风险与第三阶段条件
+## Remaining risk and phase III conditions
 
-- WP08 对 ESLint、config-array、typescript-estree 的三条 minimatch 11.0.3 override 是真实升级，未忽略漏洞。上游直接采用安全版本后应逐条解除，并复跑 matcher 对照与 lint。原生产依赖运行时版本未改，仅两项 React 类型包更新；生产链仍有两条已有 OpenTelemetry 弃用提示，audit 为 0。
-- 当前是第二阶段目标验收；完整 464 项四项目认证、fsck、secret/private-key 扫描、当前 GitHub Checks、真实 AIR 人工 smoke checklist 仍由 **WP10** 执行。部分未纳入本阶段的旧 storage 图测试仍有 force click，第三阶段须按禁用捷径要求审查并修正可操作性，不得沿用以获取通过。
-- 仅本地 Chromium 桌面/模拟手机；物理设备、Safari、线上 DP8 预览/部署尚未新验收；未调用真实 AIR，不宣称线上 AI 或正式发布已认证。需要同步本地备份。
-- 第二阶段所有门禁已通过，具备开始第三阶段 WP10 的条件；尚不具备最终发布认证或申请合并的结论。推送前必须再次 fetch，远端仍为基线且能安全 fast-forward 才执行 `git push origin HEAD:integration/v1.0`。不使用、修改、推送或合并 main，绝不 force push。
+- WP08 Three minimatch 11.0.3 overrides for ESLint, config-array, typescript-estrere are live upgrades and do not ignore loopholes. Upstream direct use of the safe version should be removed article by article and a match between watcher and Lint should be repeated. (a) The original production was dependent on running version unchanged, with only two React type packages updated; Two of the production chains still have OpenTelemetry discarded the hint, audit 0.
+- Current phase II target; The full 464 four project authentication, fsck, secret/ private-key scan, currently GitHub Checks, live Air manual smoke checklist is still executed by **WP10**. The old charting test, which was not partially included at this stage, still has force click and phase III is subject to review and correction of operationality as required by the disabling shortcuts and cannot be used to obtain passage.
+- Local Chromium desktop/simulating cell phones only; Physical equipment, Safari, online DP8 preview/deployment not yet new; Unable to call live Air, do not declare online AI or officially publish authentication. Could not close temporary folder: %s
+- (b) All phase II doors have been closed and the conditions for starting phase III WP10 are in place; The final release of the authentication or application for merge is not yet possible. The feed must again be sent before the remote is a baseline and safe fast-forward to execute `git push origin HEAD:integration/v1.0`. Do not use, modify, push or merge main, never force push.
 
-## 最终浏览器矩阵复现命令
+## Recover Command for Final Browser Matrix
 
-先在 Node 22 下完成 `npm ci && npm run build`，保证运行期间没有其他进程重建 dist。以下命令同样在 Node 22 的 shell 内执行，沿用正式四项目配置与既有 timeout：
+First completes `npm ci && npm run build` under Node 22, ensuring that there is no other process to re-establish the list during its operation. The following command is also implemented in Node 22's shell, using the formal four item configuration and existing timeout:
 
 ```sh
 CI=1 PW_CHROMIUM=/usr/bin/chromium npx playwright test \

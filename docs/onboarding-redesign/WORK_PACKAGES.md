@@ -1,106 +1,106 @@
-# Onboarding 改版：工作包与 worktree 工作流
+# Onboarding Reverse: work stream and worktree
 
-> **状态：待 Juanxi 说"开始"。** 设计依据在 [`../ONBOARDING_REDESIGN_STRATEGY.md`](../ONBOARDING_REDESIGN_STRATEGY.md)（先读它的第 0、2b、3、4、5、7 节）；本文件只讲"怎么拆、怎么并行、怎么回滚"。
-> 做法沿用 v1.6（`../design-upgrade/README.md`）：每个包一个 worktree、独占文件、`--no-ff` 合并、可单独回滚。
+> **Status: Wait until Juanxi says "start."** is designed on the basis of [ `../ONBOARDING_REDESIGN_STRATEGY.md` ](../ONBOARDING_REDESIGN_STRATEGY.md) (read first its sections 0, 2b, 3, 4, 5, 7); This paper only says, "How to open it, how to parallel it, how to rollback."
+> This follows v1. 6 (`../design-upgrade/README.md`): one worktree per package, exclusive file, `--no-ff` merge, alone rollback.
 
-## 1. 已定的前提（Juanxi 2026-11-01）
+## 1. Established premises (Juanxi 2026-11-01)
 
-| 项 | 决定 |
+| Item | Resolves |
 | --- | --- |
-| 日期 | 以 **11/6** 为参考，尽量在 11/6 之前做完（Phase 3 和冻结的确切日期还没定）。 |
-| 参与者 | **都是社长。** 首次进入默认走社长流程 A；社员流程 B 只作为"预览"，在 A 之后看（看的是自己刚建的社团）。**没有"我是社员"的入口。** |
-| 记录 | **onboarding 过程要记在参与者自己的浏览器里**（见第 4 节）。 |
-| 未回答的 | Strategy 第 9 节 Q2–Q6 还没有明确答复；**开始前请你说一句"Q2–Q6 按建议"**（或指出哪条不同意）。 |
+| Date | Using **11/6** as a reference, try to finish it before 11/6 (Phase 3 and the exact date of the freeze have not yet been set).  |
+| Participants | **is president.** Enter default process A for the first time; Process B is just a preview, after A (see your newly built student organization). **doesn't have the entrance to "I'm a member".** |
+| Records | The **onboarding process is recorded in the participant's own browser** (see section 4).  |
+| Unanswered | Strategy... 9Section Q2– Q6 does not provide a clear response;  **Before you start, please say "Q2-Q6 as suggested"** (or indicate which one does not agree).  |
 
-## 2. 分支、worktree 与一个限制
+## 2. Branch, worktree and a limit
 
-- **集成分支 = `claude/determined-johnson-yrdxwf`（PR #10，预览 10）。** 这个会话只能推这一条分支（推别的分支和标签会 403，见 `design-upgrade/ROLLBACK_LOG.md`），所以 onboarding **和 v1.6 在同一个预览里**。因为入口默认关闭，预览 10 里原有页面不会变；要看新流程要用第 6 节的网址。合并到 `main` 时仍选 **Create a merge commit**，不要 Squash。
-- 每个包一个本地分支 `design/ob-NN-<短名>`、一个 worktree `../platypus-ob-NN`，从集成分支开出（只在本机存在，靠合并提交进入集成分支）。
-- **端口错开**（`playwright.config.ts` 已支持）：`PW_PORT=52NN PW_STORAGE_PORT=53NN WORDS_PORT=54NN`，NN 是包号。
-- 并行包只跑 `npm run lint`、`npm run build`、`npm test` 和自己的 `e2e/ob-NN-*.spec.ts`；**完整 `npm run check` 由整合人每一波合并后跑一次。**
-- **并行包不改的文件**（只有整合人改）：`docs/PROGRESS.md`、`AGENTS.md`、`docs/DESIGN_TOKENS.md`、`src/styles.css`、`src/styles/index.css`、`src/App.tsx`、`src/data/store.tsx`（OB-02 例外）、`e2e/helpers.ts`、`playwright.config.ts`。
-- 每个包完成后写一份 `docs/onboarding-redesign/reports/OB-NN.md`（自己的文件，不碰别人的）。
-- 旧的 `src/pages/Setup.tsx`、`Join.tsx` 及它们的测试**不改一个字**（只是被包进新外壳）。
+- **Integrated Branch = `claude/determined-johnson-yrdxwf` (PR #10, preview of 10).** This session can only push this branch (subsequent branch and label 403, see `design-upgrade/ROLLBACK_LOG.md`), so onboarding **and v1. 6 is in the same preview**. The original page in 10 will not change because the entrance is closed by default; The new process is based on the web site of 6. Merge to `main`_Other Organiser **Create a merge commit**Don't squaash.
+- Each package is a local branch `design/ob-NN-<short-name>`, a worktree `../platypus-ob-NN` from an integrated branch (only exists on this plane and by merge refers to an integrated branch).
+- **port staggered** (`playwright.config.ts` supported): `PW_PORT=52NN PW_STORAGE_PORT=53NN WORDS_PORT=54NN`, n is the package number.
+- Parallel packages run only `npm run lint`, `npm run build`, `npm test` and their own `e2e/ob-NN-*.spec.ts`; The **complete `npm run check` run after each wave of merge by the integrated person.**
+- **Document No.** (only for integration): `docs/PROGRESS.md`, `AGENTS.md`, `docs/DESIGN_TOKENS.md`, `src/styles.css`, `src/styles/index.css`, `src/App.tsx`, `src/data/store.tsx` (except for OB-02), `e2e/helpers.ts`, `playwright.config.ts`.
+- Once each package is finished, write a `docs/onboarding-redesign/reports/OB-NN.md` (your own file, no touching).
+- The old `src/pages/Setup.tsx`, `Join.tsx` and their tests **do not change the word** (just wrapped into a new shell).
 
-## 3. 工作包总览（含 worktree 适配）
+## 3. Work package overview (including worktree fit)
 
-**读法：** "并行"= 能和谁同时开 worktree；"独占文件"= 只有这个包能改的文件；"适配"= 对 Agent + worktree 工作流的评价。
+**Reading:** "parallel" = who can worktree at the same time; "Secret document" = only this package can be changed; "According" = Evaluation of the Agent + Worktree workflow.
 
-| 波 | 包 | 内容 | 依赖 | 并行 | 独占文件 | worktree 适配 | 大小 | 回滚 |
+| Wave. | Bag. | Contents | Dependence | Parallel | Monopoly File | Worktree Fits | Size | Rollback |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **0** | **OB-01 外壳与路由** | 专注外壳（无侧栏/Ask）；步骤状态机（前进/返回/跳过/恢复，纯函数 + 单测）；进度链指示器；Demo 条；**社长草稿的共享上下文**（把现有 `Setup.tsx` 的 15 个状态收成一个，所有屏只读写它）；文案表；**所有新屏的路由和空壳文件一次建好**；`ob-NN-*.css` 空文件一次建好；旧 setup/join 包进外壳（`/#/welcome/classic`）。 | 无 | 只和 OB-02 | `src/onboarding/shell/**`、`engine/**`、`draft.tsx`、`copy.ts`、`src/App.tsx`、`src/styles/ob-*.css`、`index.css` 的 `@import`、`e2e/ob-helpers.ts` | ✅ **专门为后面并行铺路**：它一次性建好所有"会冲突的共用文件"，之后每个包只改自己的空壳。**它自己必须串行**（碰共用文件）。 | M | R2 |
-| **0** | **OB-02 记录** | 本机记录模块（第 4 节）：`src/lib/onboardingRecord.ts` + 单测；Export 里带出；Reset demo 不清记录、重新亮起入口。 | 无 | 只和 OB-01 | `src/lib/onboardingRecord.ts`、`src/test/onboardingRecord.test.ts`、`src/data/store.tsx`（只改 `buildExport` 和 `reset`） | ✅ **完全独立**，纯逻辑，最适合交给一个 Agent 单独做；唯一允许碰 `store.tsx` 的包，避免别人撞它。 | S | R2 |
-| **0** | **OB-03 首次进入入口** | 欢迎页（Start walkthrough / Explore the sample club）；"是不是首次"判断；开关（默认关）；入口先指向 `/#/welcome/classic`；Demo 菜单 "Replay setup" → "Replay walkthrough"；记录接上。 | OB-01、OB-02 | 否（串行） | `src/onboarding/gate/**`、`src/components/chrome/DemoMenu.tsx`、`e2e/ob-03-gate.spec.ts` | ⚠️ 依赖前两个包的接口，**不并行**；但它小，串行不耽误。 | S | R2；R1 关开关 |
-| **1** | **OB-04 Name + Constitution** | 流程 A 第 1–2 屏。复用 `ConstitutionStep` 和 `startReading` 的逻辑（只换界面）。 | OB-03 | 与 05、06、07、08 | `src/onboarding/founder/Name.tsx`、`Constitution.tsx`、`ob-04-*.css`、`e2e/ob-04-*.spec.ts` | ✅ 目录独占，只通过 `draft` 和 `copy` 与外界交互。 | M | R1 + R2 |
-| **1** | **OB-05 Goals + Team** | 第 3–4 屏：建议目标 + 两格岗位行（Role / Person）+ 组织图（复用 `OrgChart`）+ 职责折叠。 | OB-03 | 同上 | `founder/Goals.tsx`、`Team.tsx`、`ob-05-*.css`、测试 | ✅ 同上。 | M | R1 + R2 |
-| **1** | **OB-06 First event（见证时刻）** | 第 5 屏：一句话 → 进度链画出来 → 缓冲分段控件；复用 `parseCommand`/`prepare` 和 `completeSetup`；日期只来自规则引擎。 | OB-03 | 同上 | `founder/FirstEvent.tsx`、`ob-06-*.css`、测试 | ✅ 独立，但**最大最难**，**第一个开**，给它最长的时间。 | L | R1 + R2 |
-| **1** | **OB-07 社员预览：Invitation + You + Reminders** | 流程 B 第 0–2 屏（Demo 条写 "Previewing as 某某"）；示例提醒气泡。 | OB-03 | 同上 | `src/onboarding/member/Invitation.tsx`、`You.tsx`、`Reminders.tsx`、`ob-07-*.css`、测试 | ✅ 独立；开发时用样例社团的邀请码，不依赖 A 的屏幕。 | M | R1 + R2 |
-| **1** | **OB-08 社员预览：Busy weeks + About you + Done** | 周条（校历标好期末周/假期）、建议标签、"加入组织图"的一次动作、第一件事卡片。 | OB-03 | 同上 | `member/BusyWeeks.tsx`、`About.tsx`、`Done.tsx`、`ob-08-*.css`、测试 | ✅ 独立。 | M | R1 + R2 |
-| **2** | **OB-09 确认 + 邀请 + A→B 衔接 + 提示** | 确认屏、邀请时刻（Copy/WhatsApp/Email + Invited/Joined 列表）、"See what your officers will see" 接到 B、Today 的 ≤3 条一次性小提示。 | OB-06、OB-07 | 否（整合型） | `founder/Confirm.tsx`、`Invite.tsx`、`src/onboarding/tips/**`、`ob-09-*.css`、测试 | ❌ **不适合并行**：要读 06 和 07 的成果、串起两条流程。串行，由整合人或一个 Agent 做。 | M | R1 + R2 |
-| **3** | **OB-10 切换、加固、收口** | 把入口从旧屏指向新流程（A 和 B 各一个开关）；桌面+手机+深色+减少动效+减少透明度全套；记录的端到端测试；回滚演练；前后截图对比；文档；冻结说明。 | 前面全部 | 否 | 文档、开关、全局测试 | ❌ **必须串行，整合人亲自做**（全局检查）。 | M | R2 |
+| **0** | **OB-01Shells and Routes**  | Focus on the shell (no sidebar/Ask); Step state machine (ahead/back/skip/ recovery, pure function + single measure); (a) Progress chain indicators; Article Demo; **shared context for the president draft**♪ Put the existing ♪  `Setup.tsx` 15 state harvest one, all screens read and write only it; (a) Lists; **Routes and shell files for all new screens are constructed at once**; `ob-NN-*.css` (a) An empty document is constructed once; Old setup/join wrapped in outer shell ( `/#/welcome/classic`）。 | None | OB-02 only | `src/onboarding/shell/**`、`engine/**`、`draft.tsx`、`copy.ts`、`src/App.tsx`、`src/styles/ob-*.css`、`index.css` It's... `@import`、`e2e/ob-helpers.ts` | **is dedicated to paving the back parallel**: it builds all the "conflicting common documents" one at a time, and then each bag changes only its shell. **, it has to collide**.  | M | R2 |
+| **0** | **OB-02 Record** | Host log module (Section 4): `src/lib/onboardingRecord.ts` + (a) Single measure; Bring out of Export; Reset demo has no record, re-lighted the entrance.  | None | OB-01 only | `src/lib/onboardingRecord.ts`、`src/test/onboardingRecord.test.ts`、`src/data/store.tsx`(changed only) `buildExport` and `reset`） | (a) **fully independent**, pure logic, best placed to be left to an Agent alone; Only allowed to touch. `store.tsx` The bag, avoid anyone crashing it.  | S | R2 |
+| **0** | **OB-03First entrance.**  | Welcome page (Start walkthrough /Explore the screen Club); "Isn't the first time" to judge; Switches (default switch); The entrance points first. `/#/welcome/classic`；Demo menu "Replay setup" — "Replay walkthrough"; The record's on.  | OB-01、OB-02 | No (single) | `src/onboarding/gate/**`、`src/components/chrome/DemoMenu.tsx`、`e2e/ob-03-gate.spec.ts` | Reliance on interfaces of the first two packages,** without parallel **; But it's small, chained without delay.  | S | R2；R1 Switches |
+| **1** | **OB-04 Name + Constitution** | Process A 1–2 screen. Reuse `ConstitutionStep` and `startReading` logic (interface only).  | OB-03 | With 05, 06, 07, 08 | `src/onboarding/founder/Name.tsx`、`Constitution.tsx`、`ob-04-*.css`、`e2e/ob-04-*.spec.ts` | ✅  Directory exclusive, only through `draft` and `copy` Interact with the outside world.  | M | R1 + R2 |
+| **1** | **OB-05 Goals + Team** | 3–4 Screen: Suggested target + two rows (Role/ Person) + tissue chart (reuse) `OrgChart`) + Responsibility folds.  | OB-03 | Same source as above | `founder/Goals.tsx`、`Team.tsx`、`ob-05-*.css`Test | Ibid.  | M | R1 + R2 |
+| **1** | **OB-06First event**  | 5 screen: One sentence  →  progress chain drawn  →  buffer section control; Reuse `parseCommand`/`prepare` and `completeSetup`；Date from rule engine only.  | OB-03 | Same source as above | `founder/FirstEvent.tsx`、`ob-06-*.css`Test | Independent, but **is the most difficult**, **the first to open** and give it the longest possible time.  | L | R1 + R2 |
+| **1** | **OB-07 member preview: Investment + You + Reminders** | Process B 0–2 screen (Demo rule "Previewing as a certain"); Example: Bubbles.  | OB-03 | Same source as above | `src/onboarding/member/Invitation.tsx`、`You.tsx`、`Reminders.tsx`、`ob-07-*.css`Test | Independence; The invitation number for the development example of student organization is not dependent on the A screen.  | M | R1 + R2 |
+| **1** | **OB-08 Board member preview: Busy weeks + About you + Done** | Weeks (end of school calendar week/leave), suggested tags, a move to join the tissue map, first thing card.  | OB-03 | Same source as above | `member/BusyWeeks.tsx`、`About.tsx`、`Done.tsx`、`ob-08-*.css`Test | Independence.  | M | R1 + R2 |
+| **2** | **OB-09 Confirms + Invitation + A ≤ B Link + Hint** | Confirm screens, invitations (Copy/WhatsApp/Email+Invited/Joined list), See what your offices will see) get a one-time tip from B. Today to 3.  | OB-06、OB-07 | No (integrated) | `founder/Confirm.tsx`、`Invite.tsx`、`src/onboarding/tips/**`、`ob-09-*.css`Test | ≤** Discomfort line **: to read the results of 06 and 07, two processes are organized. Serial, done by an integrated person or a Agent.  | M | R1 + R2 |
+| **3** | **OB-10Switch, strengthen, shut up.**  | Point the entrance from the old screen to the new process (one switch each for A and B); Desktop + mobile phone + dark colour + action reduction + transparency package; (b) End-to-end testing of records; Rollback rehearsal; (a) Cross-references to cross-sections; documents; Note on freezing.  | All ahead. | No | Document, switch, global test | The **must be a combination of individuals who do the** (global inspection).  | M | R2 |
 
-**可砍的（时间不够时按这个顺序，不影响入口和主线）：** ① OB-09 里的 Today 小提示 → ② OB-08（B 预览的后半段，改用旧的 `ProfileForm` 放进外壳）→ ③ OB-07 的示例提醒气泡 → ④ OB-04 的 Constitution 屏（用"样例章程一键"）。**不砍：** OB-01、02、03（入口 + 记录 + 外壳），和 A 流程的 OB-05、06。
+**decapitable (in this order, without prejudice to the entrance and main line when time is insufficient): Today's small hint in** 1 OB-09  →  2 OB-08 (the second half of the B preview with the old `ProfileForm` placed into the outer shell)  →  3 OB-07 example reminder bubble 4 OB-04 Constitution screen (with "Stamp Constitution One"). **Do not cut:** OB-01, 02, 03 (entry + record + shell), OB-05 and 06 of the A process.
 
-### 并行图
+### Parallel Charts
 
 ```
-波0   OB-01 ─┐
+Wave. 0   OB-01 ─┐
       OB-02 ─┴→ OB-03
                    │
-波1   ┌────────────┼────────────┬────────────┬────────────┐
-    OB-04       OB-05       OB-06 ★最大    OB-07       OB-08        ← 同时 ≤4 个 worktree，第 5 个等一个先结束
+Wave. 1   ┌────────────┼────────────┬────────────┬────────────┐
+    OB-04       OB-05       OB-06 ★Max     OB-07       OB-08        ← In the meantime  ≤4 One.  worktreeNo, no, no.  5 We're done here.
       └────────────┴──────┬─────┴─────┬──────┘
-波2                     OB-09 ←───────┘（要 06 + 07）
+Wave. 2                     OB-09 ←───────┘Yes.  06 + 07）
                           │
-波3                     OB-10
+Wave. 3                     OB-10
 ```
 
-**为什么同时 ≤4 个：** 每个 worktree 要自己 `npm ci` 并开浏览器跑测试，机器会吃紧；v1.6 最多同时 6 个，但这次有 3 个包较重（06、09、10）。
+**Why at the same time is 4:** every worktree wants to run `npm ci` and run tests with browsers, machines are tight; v1. 6 has a maximum of 6 at the same time, but this time 3 bags are heavier (06, 09, 10).
 
-## 4. "记录"怎么做（Juanxi："Onboarding 流程也要记录在浏览器里面"）
+## 4. What about "recording"?
 
-- **放哪：** 一个**新的**本机 key，例如 `platypus.v1.onboarding`，和现有交互记录（`platypus.v1.log`）分开。理由：现有记录最多留 2000 条、旧的会被挤掉，onboarding 在最开头，容易先丢；而且 Reset demo 一直不碰记录，这条也一样。
-- **不改数据结构：** `SCHEMA_VERSION` 不变，`DemoState` 不变，现有的 key 一个都不动；多一个**新** key，回滚时忽略它就行（`design-upgrade` 规则 4 只对"已有数据"，这里是纯新增，请你确认）。
-- **记什么（只记行为，不记内容）：** 每次尝试一条：`attemptId`、`flowVersion`、入口选择（Start / Explore）、每一屏的 进入 / 返回 / 跳过 / 完成 + 时间（毫秒）、是否走完、从哪一屏退出、第几次重播。**不记输入的文字**（社团名、姓名等）——这些本来就在导出的 state 里。
-- **怎么看：** Settings → **Export my data** 的 JSON 里多一个顶层字段 `onboarding`（`formatVersion` 保持 1，是新增字段）。和现在一样，**只有参与者自己能导出**；没有任何自动上报。
-- **失败时：** 浏览器屏蔽存储就不记，页面照常工作（和现有存储的处理一致）。
-- **默认就开**（你已要求记录）。要不要在欢迎页写一句 "Your steps in this walkthrough are saved in this browser"：我建议写，一句话，诚实（Responsibility）。**这是研究告知的问题，请你对照 IRB 材料决定写不写、怎么写。**
+- **Place:** A **new** server key, e. g. `platypus.v1.onboarding`, separate from existing interactive records (`platypus.v1.log`). Reason: Up to 2000 records available, old ones will be squeezed and emptying at the beginning is easy to throw first; And Reet demo hasn't touched the record, and so has this.
+- **No change in data structure:** `SCHEMA_VERSION` no change, `DemoState` no change, existing key no change; One more. **New**Key, dropback ignores it ( `design-upgrade`Rules 4Only for "data available", here is a purely new one, please confirm.
+- **What do you remember (recording actions only, without content):** each attempt one: `attemptId`, `flowVersion`, access selection (Start/ Explore), entry/ return/skip/ completion + time (ms), completion, exit from which screen, first replay. **does not take into account the text entered** (student name, name, etc.) - these are already in exported state.
+- **What do you think:** Setings — **Export my data** with an extra top field of `onboarding` (`formatVersion` keeping 1, new fields). **, as it is now, only the participants themselves can export**; There is no automatic reporting.
+- **Failed: The** browser blocked storage and the pages worked as usual (consistency with existing storage).
+- **by default opens** (you have requested records). "Your steps in this welcome page are saved in this crowder": I suggest, a word of honesty. **, this is a question of research. Please decide how to write it against the IRB material.**
 
-## 5. 每个包的通用要求
+## 5. Common requirements per package
 
-1. **只改自己的独占文件。** 需要改共用文件？停下来，写进报告交给整合人。
-2. **所有颜色、字号、圆角、层级、时长、曲线只用 token；** 新样式写在自己的 `ob-NN-*.css`；不写 `!important`、`transition: all`、裸毫秒数；只动 `transform` 和 `opacity`；动画可打断；有减少动效版本。
-3. **界面英文。** 文案从 `copy.ts` 取（OB-01 建好），不在组件里散落字符串。
-4. **日期只来自规则引擎；AI 不给日期；不调用任何 `/api/org/*`、`/api/workspace*`，不新增 AI 接口。** 只用现有的 `/api/setup/constitution`、`/api/command`。
-5. **不放真实数据、不放密钥。**
-6. **测试：** 单元 + 桌面和手机各一个 `e2e/ob-NN-*.spec.ts`（最快路径、完整路径、返回/跳过/恢复、无障碍、深色、减少动效）；**每个新守卫附一个"故意违规会变红"的样本**；旧测试一条不删、不放宽。
-7. **字数：** 每屏"一眼看到的"英文词 ≤40（见证屏、邀请屏 ≤60）。
-8. **每包写报告：** 做了什么、怎么验收（点哪里）、没验证什么（真机手指、Safari…）。**没验证的不说成验证过。**
+1. **changed only its own exclusive document.** Need to change common files? Stop and put in a report to the Integration.
+2. **All colours, fonts, corneres, layers, lengths, curves only token;** New style written in its own `ob-NN-*.css`; No `!important`, `transition: all`, nudity milliseconds; Only `transform` and `opacity`; Animation can be interrupted; There is a less dynamic version.
+3. **interface English.** files are taken from `copy.ts` (OB-01 constructed) and do not scatter strings in components.
+4. **dates from rule engine only; AI not given date; Do not call any `/api/org/*`, `/api/workspace*` or add an AI interface.** only uses existing `/api/setup/constitution`, `/api/command`.
+5. **does not release live data, sets key.**
+6. **Test:** module + one `e2e/ob-NN-*.spec.ts` each for desktop and mobile phones (fast path, full path, return/skip/ recovery, accessibility, dark colour, reduced kinetic effects); **Each new guard carries a sample of "intentional violation makes it red"**; The old test article is not deleted or relaxed.
+7. **Words:** Every screen "seen at first glance" English word 40 (witness screen, invite screen 60).
+8. **per pack of reports:** did what, how acceptance (point), nothing to verify (real fingers, Safari...). **doesn't mean it didn't.**
 
-## 6. 你怎么看（预览）
+## 6. What do you think?
 
-- 开关关着时（默认）：预览 10 的所有旧页面不变。
-- 看新流程：OB-03 合并后，我会给你一个**带参数的预览网址**（例如在网址后加 `?walkthrough=1`），打开就是欢迎页；用隐身窗口打开等于"第一次来"。OB-01、02 合并后你看不到新东西（它们是地基），我会在报告里说明。
-- 切换：OB-10 里，A 和 B 各一个开关，你验收一条切一条；**没验收通过的一条继续用旧的。**
+- When the switch is closed (default): Previews all old pages of 10 remain unchanged.
+- Look at the new process: OB-03 merge, I'll give you a preview of **with parameters.** (e.g. insert `?walkthrough=1` after the web site). Open is a welcome page; Opening with a invisible window is like "first time." You don't see anything new after OB-01, 02 merge. I'll tell you in the report.
+- Switch: one switch for each A and B in OB-10, one cut for you; **didn't adopt an article to continue with the old one.**
 
-## 7. 时间线（以 11/6 为参考，今天 11/1）
+## 7. Timeline (for 11/6 reference, today 11/1)
 
-| 日 | 做什么 | 你要做什么 |
+| Day | Do what? | What are you doing? |
 | --- | --- | --- |
-| **11/1（今天）** | 你说"开始" → 我开 OB-01 与 OB-02（两个 worktree 并行）→ 合并 → OB-03 | 说"开始"和"Q2–Q6 按建议" |
-| **11/2** | OB-03 合并，给你欢迎页预览；同时开波 1（OB-06 最先，04/05/07 随后） | 看欢迎页（1 分钟） |
-| **11/3** | 波 1 陆续合并；给你社长流程 A 的预览 | 走一遍 A，回"可以/改哪里" |
-| **11/4** | OB-08、OB-09；按你的反馈修 A | 走一遍 A→B |
-| **11/5** | OB-10：切换、全套检查、回滚演练、截图对比 | 最终验收 |
-| **11/6** | **缓冲日**：只修你点名的问题，不加新东西 | 确认冻结 |
+| **11/1(Today)**  | You said "start." I'm driving OB-- 01With OB- 02(two worktrees in parallel) 03  | Say "start" and "Q2-Q6 follow the advice." |
+| **11/2** | OB-03 merge, welcome page preview for you; 1 (OB-06 first, 04/05/07 second) | Look at the welcome page (1 minutes) |
+| **11/3** | 1 successive merges; A preview of your president process A | Let's go, A. Go back to "Where can we change?" |
+| **11/4** | OB-08、OB-09；Fix it with your feedback. | Let's go. A-B. |
+| **11/5** | OB-10: Switch, full set, rollback exercise, screenshot comparison | Final |
+| **11/6** | **Buffer Day**: Only you call questions, nothing new  | Confirm freezing |
 
-**诚实的风险：** 这个节奏假设你每次验收在**一天内**回复；任何一次拖一天，11/6 就要靠"砍单顺序"。v1.6 的 27 个包在一天里做完过，所以拆分和并行本身是可行的，瓶颈是验收往返，不是写代码。**如果 Phase 3 提前或冻结早于 11/6，请马上告诉我。**
+**The risk of honesty:**This rhythm assumes that every time you're on **One day.**Response;  Every time you drag a day, 11/6 will have to be by "several order". v1. The 6 package of 27 was completed in one day, so split and parallel are feasible per se. The bottleneck is acceptance round trip, not writing code. **If Phase 3 is frozen earlier than 11/6, please let me know immediately.**
 
-## 8. 回滚
+## 8. rollback.
 
-- 每个包用 `git merge --no-ff design/ob-NN-xxx` 进集成分支，登记到 `docs/onboarding-redesign/ROLLBACK_LOG.md`（OB-01 建），记下合并提交 SHA（标签在这个会话里推不上去，沿用 v1.6 的做法，`ob/*` 标签只在本地）。
-- 你只需要说一句 **"回滚 OB-06"** 或 **"整个入口关掉"**。
-  - **R1（最快）：** 关入口开关 → 全站回到今天的样子；或在 `index.css` 注释掉某个包的 `@import`。
-  - **R2：** `git revert -m 1 <合并提交>`。
-  - 有修复提交的包，先撤修复再撤包；依赖先撤（06、07 → 09 → 10）。
-- 所有包不改 `DemoState`，所以回滚不会弄坏浏览器里的旧数据；记录的新 key 回滚后被忽略。
+- Each package is registered to `docs/onboarding-redesign/ROLLBACK_LOG.md` (IB-01) using an integrated branch of `git merge --no-ff design/ob-NN-xxx`, recording the merge submitted to SHA (the label cannot be inserted in this session, following the v1. 6 approach, and the `ob/*` tag is only local).
+- All you have to do is say **" rollback OB-06 "** " or **"Close the whole entrance"**.
+  - **R1 (quickest):** off the entrance switch and all stand back to today. or `index.css`It's an annotation. `@import`。
+  - **R2:** `git revert -m 1 <merge-commit>`.
+  - (b) The repair package was submitted and the repairs were withdrawn before it was removed; Reliance on withdrawal (06, 07, 09, 10).
+- All packages do not change `DemoState` so rollback doesn't break old data from the browser; The new key rollback is ignored after recording it.

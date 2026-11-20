@@ -1,0 +1,176 @@
+[
+  {
+    "path": "evals/intent.json",
+    "line": "  { \"id\": \"I05\", \"viewer\": \"alex\", \"message\": \"\u5e2e\u6211\u5efa\u4e00\u4e2a\u4efb\u52a1\uff1a\u8ba2\u540d\u724c\uff0c\u7ed9 Jordan\", \"path\": \"local\", \"expect\": { \"card\": \"task\", \"titleIncludes\": \"\u8ba2\u540d\u724c\", \"owners\": [\"jordan\"], \"eventId\": null }, \"expectAi\": \"add_task form, owners [jordan], reply in Chinese.\", \"teaches\": \"Chinese task words\" },",
+    "count": 1,
+    "reason": "Existing Chinese-language intent-evaluation input and expected result; preserve multilingual coverage."
+  },
+  {
+    "path": "src/test/m2b.test.ts",
+    "line": "    expect(CHAT_SYSTEM).toMatch(/1\\. The user says task, to-do, step, \u4efb\u52a1 or \u5f85\u529e \u2192 TASK/)",
+    "count": 1,
+    "reason": "Existing Chinese-language parser input and prompt assertion; preserve behavior."
+  },
+  {
+    "path": "src/test/m2b.test.ts",
+    "line": "    [\"\u5e2e\u6211\u5efa\u4e00\u4e2a\u4efb\u52a1\uff1a\u8ba2\u540d\u724c\uff0c\u7ed9 Jordan\", \"\u8ba2\u540d\u724c\", [\"jordan\"]],",
+    "count": 1,
+    "reason": "Existing Chinese-language parser input and prompt assertion; preserve behavior."
+  },
+  {
+    "path": "src/lib/chatCards.ts",
+    "line": "  1. The user says task, to-do, step, \u4efb\u52a1 or \u5f85\u529e \u2192 TASK. Never open the event form, whatever else the sentence says.",
+    "count": 1,
+    "reason": "Existing bilingual intent prompt and input/output example, required functional prompt data."
+  },
+  {
+    "path": "src/lib/chatCards.ts",
+    "line": "  Verbs such as plan, organize, set up, create, schedule, \u529e or \u5b89\u6392 never decide it; the thing being made decides it. Never guess EVENT.",
+    "count": 1,
+    "reason": "Existing bilingual intent prompt and input/output example, required functional prompt data."
+  },
+  {
+    "path": "src/lib/chatCards.ts",
+    "line": "User: \"\u5e2e\u6211\u52a0\u4e2a\u4efb\u52a1\uff1a\u8ba2\u540d\u724c\uff0c\u7ed9 Jordan\" \u2192 [{\"kind\":\"form\",\"intent\":\"add_task\",\"prefill\":{\"title\":\"\u8ba2\u540d\u724c\",\"owners\":[\"<Jordan's person id>\"],\"eventId\":null}},{\"kind\":\"text\",\"text\":\"\u7ed9 Jordan \u7684\u4efb\u52a1\u51c6\u5907\u597d\u4e86\uff0c\u786e\u8ba4\u622a\u6b62\u65e5\u671f\u540e\u521b\u5efa\u3002\"}]",
+    "count": 1,
+    "reason": "Existing bilingual intent prompt and input/output example, required functional prompt data."
+  },
+  {
+    "path": "src/lib/eventReview.ts",
+    "line": "const words = (t: string) => t.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff ]/g, \" \").replace(/\\s+/g, \" \").trim()",
+    "count": 1,
+    "reason": "Existing Unicode character range used to normalize multilingual input."
+  },
+  {
+    "path": "src/lib/commands.ts",
+    "line": "export const GATHERING = /\\b(?:events?|night|dinner|workshop|mixer|panel|talk|social|meetup|meeting|party|fundraiser|lunch|breakfast|showcase|hackathon|session|conference|competition|trip|tour|visit|gala|banquet|festival|fair|tournament)\\b|\u6d3b\u52a8|\u805a\u4f1a|\u665a\u4f1a|\u8bb2\u5ea7|\u5de5\u4f5c\u574a/i",
+    "count": 1,
+    "reason": "Existing Chinese-language command patterns, separators, or assignment keywords."
+  },
+  {
+    "path": "src/lib/commands.ts",
+    "line": "export const TASK_WORD = /\\b(?:tasks?|to-?dos?|steps?|nodes?|reminders?)\\b|\u4efb\u52a1|\u5f85\u529e/i",
+    "count": 1,
+    "reason": "Existing Chinese-language command patterns, separators, or assignment keywords."
+  },
+  {
+    "path": "src/lib/commands.ts",
+    "line": "  const food = /\\bno food\\b|without food|\u4e0d\u63d0\u4f9b(?:\u98df\u7269|\u9910)/i.test(s) ? \"none\" : specific ?? (/\\b(?:food|snacks?|pizza|catering|meal|drinks|refreshments)\\b|\u5403|\u9910/i.test(s) ? \"tbd\" : \"none\")",
+    "count": 1,
+    "reason": "Existing Chinese-language command patterns, separators, or assignment keywords."
+  },
+  {
+    "path": "src/lib/commands.ts",
+    "line": "    headcount: Math.max(1, Math.min(5000, Number(s.match(/(\\d+)\\s*(?:people|attendees|students|guests|members|\u4eba)/i)?.[1] ?? 30))),",
+    "count": 1,
+    "reason": "Existing Chinese-language command patterns, separators, or assignment keywords."
+  },
+  {
+    "path": "src/lib/commands.ts",
+    "line": "    speaker: /speaker|panel|performer|fireside|keynote|guest|\u5609\u5bbe|\u8868\u6f14/i.test(s),",
+    "count": 1,
+    "reason": "Existing Chinese-language command patterns, separators, or assignment keywords."
+  },
+  {
+    "path": "src/lib/commands.ts",
+    "line": "    checks: cleanChecks({ food: food !== \"none\", externalFood: food === \"offsite\", onsiteFood: food === \"onsite\", funding: /\\busg\\b|student government|college funding|dues|sponsor/i.test(s), speaker: /speaker|panel|performer|fireside|keynote|guest|\u5609\u5bbe|\u8868\u6f14/i.test(s) }),",
+    "count": 1,
+    "reason": "Existing Chinese-language command patterns, separators, or assignment keywords."
+  },
+  {
+    "path": "src/lib/commands.ts",
+    "line": "  const zh = en ? null : s.match(/^(?:\u8bf7|\u5e2e\u6211|\u6211\u60f3|\u6211\u8981)?\\s*(?:\u52a0|\u6dfb\u52a0|\u5efa|\u65b0\u5efa|\u521b\u5efa|\u5f00)(?:\u4e00)?(?:\u4e2a)?(?:\u65b0\u7684?)?(?:\u4efb\u52a1|\u5f85\u529e)\\s*[:\uff1a]?\\s*(.*)$/)",
+    "count": 1,
+    "reason": "Existing Chinese-language command patterns, separators, or assignment keywords."
+  },
+  {
+    "path": "src/lib/commands.ts",
+    "line": "  for (const m of lowerBody.matchAll(/\\s+(?:for|to|assigned to)\\s+(?:the\\s+)?|[,\uff0c\u3001]?\\s*(?:give it to|assign(?:ed)? to|\u7ed9|\u4ea4\u7ed9)\\s*/g)) {",
+    "count": 1,
+    "reason": "Existing Chinese-language command patterns, separators, or assignment keywords."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "export const PLAN_RE = /\\b(?:plan|organi[sz]e|host|throw|set up|put on|create|schedule|hold|run|arrange)\\s+(?:(?:a|an|our|the|another|new|next|big|small|first)\\s+)*(?:[\\w'&-]+\\s+){0,3}?(?:events?|night|dinner|workshop|mixer|panel|talk|social|meetup|meeting|party|fundraiser|lunch|breakfast|showcase|hackathon|session|conference|competition|trip|tour|visit|gala|banquet|festival|fair|tournament)\\b|^plan (a |an )?(new )?event|\u7b56\u5212|\u529e.*\u6d3b\u52a8/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "  if (/\\b(?:weekly|biweekly|monthly|every (?:week|month|day)|recurring)\\b|\u6bcf\u5468|\u6bcf\u6708/i.test(t) || MEET_ONE_RE.test(t)) return null",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "const TOP_TASK_RE = /\\btop\\s*\\d*\\s*tasks?\\b|\\b(?:my|our|team)\\s+(?:tasks?|priorities)\\b|\\b(?:show|list)\\s+(?:my|our|team)?\\s*(?:tasks?|priorities)\\b|(?:\u6211\u7684|\u56e2\u961f\u7684)?(?:\u4efb\u52a1|\u5f85\u529e).*(?:\u524d\\s*\\d+|\u4f18\u5148)/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "const POLICY_REFERENCE_RE = /\\b(?:asu|rules?|polic(?:y|ies)|regulation|compliance|official\\s+source|source|database|event\\s+registry)\\b|(?:\u89c4\u5219|\u653f\u7b56|\u6cd5\u89c4|\u6570\u636e\u5e93|\u6765\u6e90)/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "const NUDGE_RE = /\\bneeds? a nudge\\b|\\bwho (needs|should).*(nudge|remind|push)|\\bat risk\\b|\\bbehind\\b|\u98ce\u9669|\u50ac/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "const STUCK_RE = /\\bstuck\\b|\\bblocked\\b|\\bneed(s)? help\\b|\u5361\u4f4f/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "const NEXT_RE = /\\bup next\\b|\\bnext steps?\\b|\\bwhat'?s next\\b|\u4e0b\u4e00\u6b65/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "const OVERLOAD_RE = /\\boverload|\\bworkload\\b|\\btoo much\\b|\\bbusiest\\b|\u5de5\u4f5c\u91cf/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "const PARTNER_RE = /\\bpartners?\\b.*\\b(touch|contact|reach)|\\bneeds? a touch\\b|\\bwho should (we|i) (contact|call|email)\\b|\u8054\u7cfb/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "const WEEKONE_RE = /\\bweek one\\b|\\bfirst week\\b|\\bnew officer\\b|\u65b0\u5e72\u90e8|\u4ea4\u63a5/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "src/lib/assistant.ts",
+    "line": "const EVENT_DATE_RE = /\\b(?:change|move|reschedule|push|shift|set|update)\\b.*\\b(?:date|event|it|to)\\b|\u6539.*(?:\u65e5\u671f|\u65f6\u95f4)|\u63a8\u8fdf|\u5ef6\u671f\u5230/i",
+    "count": 1,
+    "reason": "Existing Chinese-language intent recognition patterns."
+  },
+  {
+    "path": "netlify/functions/org-ai.mts",
+    "line": "      /histor|previous|restore|earlier|\u4ee5\u524d|\u5386\u53f2|\u6062\u590d/i.test(instruction)",
+    "count": 1,
+    "reason": "Existing Chinese-language history/restore intent matching."
+  },
+  {
+    "path": "netlify/lib/workspaceAssistant/jobs.mts",
+    "line": "    if(/histor|previous|restore|earlier|\u4ee5\u524d|\u5386\u53f2|\u6062\u590d/i.test(job.instruction))Object.assign(packet,{history:await historicalContext(entry.workspaceId,historyRevision(job.instruction))});",
+    "count": 1,
+    "reason": "Existing Chinese-language history/grouping intent matching."
+  },
+  {
+    "path": "netlify/lib/workspaceAssistant/jobs.mts",
+    "line": "    const groupCacheKey=selected&&/summari[sz]|group|collapse|phase|stage|\u5206\u7ec4|\u6c47\u603b|\u5f52\u7eb3|\u9636\u6bb5/i.test(job.instruction)?`workspace-assistant-groups/${entry.workspaceId}/${digest(stable({version:ASSISTANT_VERSION,instruction:job.instruction.trim().toLowerCase(),workItemId:selected.id,structure,provider:config.provider,baseUrl:config.baseUrl,configuredModel:config.model,route}))}`:null;",
+    "count": 1,
+    "reason": "Existing Chinese-language history/grouping intent matching."
+  }
+]

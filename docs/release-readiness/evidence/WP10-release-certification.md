@@ -1,14 +1,14 @@
-# DP8 第三阶段 · WP10 最终发布认证
+# DP8 Phase III. Final release of the certification
 
-2026-10-31（America/Phoenix；执行环境为 2026-11-01 UTC）。本报告只认证 integration/v1.0 的发布准备；真实 AI 人工结果另列。
+2026-10-31（America/Phoenix；The implementing environment is 2026-11-01 UTC. This report certifies only the release of integration/v1. 0; Live AI Manual Results are listed separately.
 
-## 基线与范围
+## Baseline and scope
 
-先执行 `git fetch origin`。origin 原有 refspec 仅跟踪默认分支，因此再显式执行 `git fetch origin refs/heads/integration/v1.0:refs/remotes/origin/integration/v1.0`。从远端创建全新、干净 worktree `dp8-stage3-certification-20261101`；起始完整 SHA **1e19af560daaf9ca10ee40670877c5c1b41665d8**，短 SHA **1e19af5**，HEAD 与 origin/integration/v1.0 相等。工作分支为 `release/dp8-final-certification`。
+Execute `git fetch origin` first. The original refspec track only the default branch, so perform `git fetch origin refs/heads/integration/v1.0:refs/remotes/origin/integration/v1.0` in a more visible way. Create a new, clean worktree `dp8-stage3-certification-20261101` from the far side; The start-up complete IS **1e19af560daaf9ca10ee40670877c5c1b41665d8**, short SHA **1e19af5**, HEAD equals orogen/integration/v1. 0. The working branch is `release/dp8-final-certification`.
 
-按用户顺序完整读取 AGENTS、release-readiness README、manifest、STAGE3、WP10 和 PROGRESS 中最新两阶段交接；再核对两阶段证据。对以下九项逐一执行 `git merge-base --is-ancestor <commit> HEAD`，全部退出 0：
+Read the last two phases of AGENTS, release-readines README, manifest, STAGE3, WP10 and PROGRESS in full order; Reconciling two stages of evidence. Execute `git merge-base --is-ancestor <commit> HEAD` for each of the following nine items and withdraw from 0:
 
-| 包 | 已集成提交 |
+| Bag. | Submitted as integrated |
 | --- | --- |
 | WP01 | 2f3c922787fccf12ad4144e8d1c829c2486027c8 |
 | WP02 | a653a4c290ed5c5d819e8bbfa1526030076ddc15 |
@@ -20,45 +20,45 @@
 | WP08 | 5540c66bda560c2ab2826cae4e662b68b09922e6 |
 | WP09 | 83a699521fac28fb4c4a597e7ef3b7abab3c8243 |
 
-本包仅修正两份旧 storage 测试中的五处强制点击：共用 `clickCurve` 在真实 SVG 曲线上找可命中位置，普通 click 保留 Playwright 可操作性检查，并断言选中。汇报关系测试先真实拖到父节点建立关系，再真实拖回空白位置，新增关系不变断言，随后保留重接、删除、manualFields、循环拒绝和 Undo 检查。没有产品行为改动，没有删除断言、增加 timeout、force click、放宽门槛或新增 skip。
+This package amends only five mandatory hits in two old version tests: sharing `clickCurve` to find a shot-in position on the live SVG curve, normal click to keep Playwright operational check and to assert that it is selected. The reporting relationship test first drags to the parent ' s node to establish a relationship and then drags back to the blank position, adding new relationships without any further assertions, and subsequently retains reconnecting, deleting, significant Fields, circular rejections and Undo checks. No product behaviour changes, no affirmations, timeout additions, force click, liberalization of thresholds or new skip were deleted.
 
-一次只读子 agent 负责分析并复核上述测试改动；所有文件改动、复验及最终提交都在同一个认证 worktree。
+A read-only agent is responsible for analysing and reviewing the above test changes; All file changes, repeats and final submission are certified worktree.
 
-## 按类别的结果
+## Outcomes by category
 
-| 类别 | 证据与边界 |
+| Category | Evidence and boundaries |
 | --- | --- |
-| 底层逻辑 | Node 22 单元测试 56 文件 / 809 项通过，包含日期引擎、v2 工作流、权限、预测、AI 日期过滤与任务状态；未将模型日期作为排程依据。 |
-| 数据架构 | 完整四项目矩阵覆盖普通本地演示及显式开启的模拟 storage 构建；包含保存/恢复、409 冲突、不覆盖未保存内容、归档、批准快照、导出和 CRM 可见性。测试使用虚构数据及模拟 API；没有把隐藏服务器存储称为正式多人数据库。 |
-| 前端 | Stylelint、ESLint、TypeScript/Vite build、九个实际路由 words 通过；保留 Router 重定向、异常恢复、按需页面与 loading。 |
-| 后端 | `npm run typecheck:netlify` 通过；`tsc --showConfig -p tsconfig.netlify.json` 确认 strict=true，覆盖 18 Functions 与 15 个后端库文件。 |
-| 安全 | 生产/完整 audit 均 0 漏洞；Gitleaks 扫描当前源文件及 HEAD 可达 267 个历史提交，只有下节的公开 localStorage 键误报；额外私钥标记检查为 0。保留输入大小、白名单、内部重定向与隐藏端点边界。 |
-| 交互 | 实际鼠标/键盘/触屏、表单、预算、Owner 选择、Escape、菜单、Undo、Reset、刷新和图重接/删除均保留检查。五处历史强制点击已移除。 |
-| 无障碍 | 完整矩阵执行 Axe 与键盘场景，包括普通/只读 Budget 焦点、手机全屏 Rail、平板、品牌与手册名称、懒加载 status。a11y.spec.ts 为 63 通过 / 3 原有设备排除，原始 Axe 违规为 0；其他图/懒加载/设置无障碍检查同样执行。原始 Axe 违规不被过滤。 |
-| 性能 | 主入口 364,430 字节（gzip 115,194），低于 500,000；React runtime 142,530（gzip 45,815），首页 JS 合计 506,960。AST 确认入口仅静态引用 runtime，runtime 无 import/export-from 回引。浏览器检查首次不请求 PhaseOne/OnlineSetup/PDF，选择 PDF 后才请求实现与 worker；未改变包体门槛。 |
-| 测试和 CI | 最终完整四项目 451 通过 / 13 原有设备排除 / 0 失败 / 0 flaky / 0 重试；共 28 文件、464 项，6.1 分钟。当前远端 Checks 见下节。 |
-| 真实 AI 人工验收 | **未执行，0 次真实付费 AIR 调用**。已提供 [DP8 人工清单](WP10-ai-smoke-checklist.md)，区分真实模型响应、本地路由、模拟和 fallback；不把离线结果当成真实 AI 质量认证。 |
+| Bottom logic | Node 22 unit tests 56 files/ 809 were adopted, containing date engines, v2 workflows, missions, forecasts, AI date filtering and task status; The model date was not used as the basis for Scheduling.  |
+| Data | The complete four-project matrix covers general local presentations and visual start-up simulation structure; Includes saving/recovering, 409 conflicts, non-covering unsaved content, archiving, approval of snapshots, export and CRM visibility. Test using field data and simulation API; The hidden server is not stored as an official multi-person database.  |
+| Frontend | Stylelint, ESLint, TypeScript/Vite Build, nine practical ways through Words; Keep Router reoriented, abnormally restored, page as required and moving.  |
+| Backend | `npm run typecheck:netlify` Adopted; `tsc --showConfig -p tsconfig.netlify.json` Confirms rule=true over 18 Operations and 15 backend library files.  |
+| Security | Production/complete audit 0 leaks; Gitleaks scans the current source file and HEAD up to 267 historical submissions, except for public localStoreage misreported in the following section; Additional private key tag check is 0. Keeps input size, white list, internal redirection and hidden endpoint boundaries.  |
+| Interactive | The actual mouse/keyboard/touch screens, forms, budgets, Owner selection, Escape, menus, Undo, Reset, refresh and reset/delete are checked. Five historical forced clicks removed.  |
+| Accessibility | Full matrix execution Axe With keyboard scenes，Includes normal/Read-only Budget Focus、All phones on screen. Rail、Flatbed、Name of brand and manual、Lazy load. status。a11y.spec.ts Yes. 63 Through / 3 Exclusion of existing equipment，Original Axe Infringement As 0；Other figures/Lazy load./Set accessibility check to do the same.。Original Axe Infractions are not filtered。 |
+| Performance | Main entrance 364,430 bytes (gzip 115,194), below 500,000; React rantime 142,530 (gzip 45,815), front page JS total 506,960. AST confirms that the entrance is static only with reference to rantime, runtime and no rebuttal for import/export-from. Browser check not to request PhaseOne/OnlineSetup/PDF for the first time, select PDF before requesting implementation and worker; No change to the package threshold.  |
+| Test and CI | The final complete four projects 451 by / 13 failed / 0 / 0 flaky / 0 retry; 28 files, 464 items, 6.1 minutes. For the current remote Checks see next section.  |
+| Live AI manual | **Not implemented, 0 live fee AIR call**. [ DP8 manual list ](WP10-ai-smoke-checklist.md) has been provided to distinguish live model responses, local routes, simulations and fallback; Do not treat offline results as live AI quality authentication.  |
 
-## 执行命令与完整门禁
+## Execute command and complete lockdown
 
-环境：Node **v22.23.4**，Chromium `/usr/bin/chromium`。所有 npm/Playwright 命令通过 `npm exec --yes --package=node@22 -- sh -c '…'` 执行。生产构建完成后才启动浏览器，运行期间不重建 dist；使用正式 playwright.config.ts，仅指定 workers=2、retries=0 与日志 reporter。
+Environment: Node **v22. 23.4**, Chromium `/usr/bin/chromium`. All npm/ Playwright commands are executed through `npm exec --yes --package=node@22 -- sh -c '…'`. The browser is activated after completion of the production construction and is not reconstructed during operation; Use formal playwright.config.ts to specify only workers=2, records=0 and log reporter.
 
-| 命令 / 检查 | 最终结果 |
+| Command / Check | Final result |
 | --- | --- |
-| `npm ci` | 通过，439 包；未改 package.json/lockfile。 |
-| `npm run lint` | 通过；含 20 JSX/style 样例、4 原有排除和 66 matcher 检查。 |
-| `npm run build` | 通过；TypeScript/Vite，生产 source maps 关闭。 |
-| `npm test -- --maxWorkers=2` | 56 文件 / 809 通过，0 失败、0 skip。 |
-| `npm run typecheck:netlify` | 通过，strict 保留。 |
-| `PW_CHROMIUM=/usr/bin/chromium npm run words` | 全部真实路由通过，详见下表。 |
-| `CI=1 PW_CHROMIUM=/usr/bin/chromium PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/rr-stage3-final-e2e.json npx playwright test --workers=2 --retries=0 --reporter=line,json` | **451 通过 / 13 原有设备排除 / 0 失败 / 0 flaky / 0 重试**，28 文件 / 464 项，363.9 秒。 |
-| `npm audit --omit=dev` / `npm audit` | 两者 info/low/moderate/high/critical/total 全为 0。 |
-| `git diff --check HEAD` | 通过；最终提交前后另行复核。 |
-| `git fsck --no-reflogs --connectivity-only` | 通过，退出 0。 |
-| Gitleaks 8.24.3 / private-key 扫描 | 见下节原始结果及判定。 |
-| 构建体积 / AST / 真实首次加载 | 静态检查通过；真实网络检查包含在完整矩阵的 bundle 两份 spec 中。 |
+| `npm ci` | Adopted, 439 packages; No change to package.json/lockfile.  |
+| `npm run lint` | Adopted; Includes 20 JSX/style sample, 4 original exclusion and 66 matcher check.  |
+| `npm run build` | Adopted; TypeScript/Vite, production source maps off.  |
+| `npm test -- --maxWorkers=2` | 56 File/ 809 passed, 0 failed, 0skip.  |
+| `npm run typecheck:netlify` | Pass, block reserves.  |
+| `PW_CHROMIUM=/usr/bin/chromium npm run words` | All live route passes, as detailed in the table below.  |
+| `CI=1 PW_CHROMIUM=/usr/bin/chromium PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/rr-stage3-final-e2e.json npx playwright test --workers=2 --retries=0 --reporter=line,json` | **451 Failed by excluding / 13 equipment / 0 / 0 flaky / 0 retesting**, 28 files / 464, 363.9 seconds.  |
+| `npm audit --omit=dev` / `npm audit` | Both are 0 for information/low/moderate/ high/critical/total.  |
+| `git diff --check HEAD` | Adopted; Final submission and subsequent review.  |
+| `git fsck --no-reflogs --connectivity-only` | Pass, exit 0.  |
+| Gitleaks 8.24.3/ private-key scan | See the original results and findings in the following section.  |
+| Build volume / AST / live first load | (a) Static inspection pass; Live network check is contained in two specs of the complete matrix.  |
 
-| Words 路由 | visible / all | 未改变的门槛 |
+| Words Route | visible / all | Unchanged threshold |
 | --- | --- | --- |
 | Today | 109 / 404 | 160 / 450 |
 | Events | 149 / 171 | 180 / 420 |
@@ -68,49 +68,49 @@
 | Handoff | 39 / 71 | 120 / 120 |
 | Partners | 79 / 99 | 120 / 120 |
 | Settings | 120 / 120 | 150 / 150 |
-| Help | 442 / 442 | 原有信息页宽限 9999 / 9999 |
+| Help | 442 / 442 | Original message page width 9999/ 9999 |
 
-Funding 为 Events 的重定向，延续 WP06 只统计一次的契约。
+Funding is the reorientation of Events, continuing WP06 with only one-time statistics.
 
-## Secret/private-key 扫描原始结果
+## Scret/ private-key scan original results
 
-- `gitleaks git --log-opts=HEAD --redact --report-format json …`：267 个 HEAD 可达提交、约 5.19 MB，原始 **1 条告警、退出 1**。
-- 使用 `git ls-files --cached --others --exclude-standard` 导出当前源文件后 `gitleaks dir … --redact --report-format json …`：原始 **1 条告警、退出 1**。不扫描安装的第三方包或构建产物来混入无关测试凭据。
-- 两条均为 `generic-api-key` 对公开 `LOG_KEY` 常量（值为 `platypus.v1.log`）的误报。历史位置为 `d1e80c72cfebc193432b4e82ddfb90f832243df2:src/data/store.tsx:250`；当前为该文件第 442 行。上下文明确只用于 localStorage 交互日志读写，未作为 API 凭据或私钥。**确认的 secret 泄漏为 0**；不伪称扫描器原始零告警，也不添加 ignore/allowlist 或重写历史。
-- 逐个源文件额外检查 `BEGIN … PRIVATE KEY` 标记，结果 0。扫描输出均脱敏；没有读取环境 secret 或输出凭据。
+- `gitleaks git --log-opts=HEAD --redact --report-format json …`: 267 can be submitted by approximately 5.19 MB, original **1 warning and withdrawal from 1**.
+- `gitleaks dir … --redact --report-format json …` after exporting the current source file using `git ls-files --cached --others --exclude-standard`: original **1 alerts and exits 1**. The unscanned third-party packages or construction products to mix irrelevant test evidence.
+- Both are `generic-api-key` erroneously reported to the public `LOG_KEY` constant (value `platypus.v1.log`). The historical location is `d1e80c72cfebc193432b4e82ddfb90f832243df2:src/data/store.tsx:250`; Currently is line 442 of this document. The context is clearly used only for reading and writing the localStorage interactive log, not as API support or private key. The **confirmed leak is 0**; Do not pretend to be the original zero alarm for scanners, or add ignore/allowlist or rewrite history.
+- Check extra `BEGIN … PRIVATE KEY` tags per source file, resulting in 0. Scanning output allergies; There is no environment secret or output document to read.
 
-## 失败分类与未认证部分
+## Failed classification and uncertified part
 
-第一次替换强制点击后，目标图测试 3 通过 / 2 原有排除 / 1 失败，原因为测试先把两个节点放在完全相同的位置，连线没有可命中点；归类为旧测试步骤漂移。加入真实移回空白处及关系不变断言后，目标矩阵 **4 通过 / 2 原有排除 / 0 失败**。之后重新运行 lint/build/unit/strict/words/两类 audit 与完整四项目门禁；保留失败轮次日志。
+The target map test 3 failed after the first forced click replacement / 2 with the original exclusion / 1 because the test placed two nodes in exactly the same position, and the link had no hits; Classify as old test steps drifting. Target matrix after adding live move back to the blanks and relationship no change **4Adopted / 2Original exclusion / 0Failed**。 (b) Rerun the Lint/Build/unit/strict/words/types audit and complete four project doors; Keeps failed rotation logs.
 
-未进行真实 AIR 生成、物理设备/Safari、线上人工操作、规则原文人工复核或 Phase 3 研究验收；这些不能由 Chromium 模拟或 mock 替代。没有关闭 Netlify 访问保护，也没有启用线上服务器存储。
+No live Air generation, physical equipment/Safari, manual on-line operation, rules source text manual review or Phase 3 study acceptance; These cannot be replaced by chromium simulation or mock. Netlify access protection was not closed, nor was online server storage enabled.
 
-全部本地硬门禁已通过；允许在 fetch 确认远端未前进后普通快进推送 `HEAD:integration/v1.0`。本包采用一个 `[RR-WP10][Codex]` 提交，包含测试修正、认证报告、人工清单及统一交接。远端最终完整 SHA 与推送后的 Checks 状态由主 agent 在最终聊天报告中给出，并验证工作区干净、HEAD 与最新 origin/integration/v1.0 一致；本文件不预先声称尚未完成的远端 CI 通过。
+All local hard doors have passed; Allow normal `HEAD:integration/v1.0` fast-forwards after the feed confirms that the remote is not moving. This package is submitted using a `[RR-WP10][Codex]` and contains test amendments, authentication reports, manual lists and harmonized handoff. The remote final complete SHA and the pushed Checks state is given by the main agent in the final chat report and verified that the workspace is clean and the HEAD is consistent with the latest orgin/integration/v1. 0; This document does not advance the claim for adoption of the uncompleted remote CI.
 
-main 未检出、修改、推送或合并；没有使用 force push。需要同步本地备份。
+Main is undetected, modified, pushed or merged; No force push. Could not close temporary folder: %s
 
-## 四项目、排除原因与 Checks 快照
+## Four projects, exclusion of reasons and Checks snapshot
 
-| 项目 | 通过 | 既有设备条件排除 | 失败/重试 |
+| Item | Passed | Existing equipment conditions excluded | Failed/Retry |
 | --- | ---: | ---: | ---: |
 | desktop | 169 | 3 | 0 / 0 |
 | mobile | 165 | 7 | 0 / 0 |
 | desktop-storage | 60 | 0 | 0 / 0 |
 | mobile-storage | 57 | 3 | 0 / 0 |
-| 合计 | 451 | 13 | 0 / 0 |
+| Total | 451 | 13 | 0 / 0 |
 
-13 项排除的条件均在基线已存在，本包没有新增或修改 skip：
+13 exclusions already exist in the baseline and no new or modified package:
 
-- a11y 3：desktop 不运行手机全屏 Rail，mobile 不重复两项由 desktop 调整视口完成的平板检查。
-- feel 2：手机不重复鼠标 hover 和桌面 Ask 焦点样式。
-- flow-edit 3：手机不执行鼠标拖动与宽布局连线操作；触屏/键盘路径另有覆盖。
-- touch 2：desktop 不执行手机专用触摸行为。
-- organization-setup 3：mobile-storage 不重复桌面额外侧栏历史条目与两项鼠标连接/重接手势；正常 Back/Forward、选择器及无障碍连接在两种尺寸均运行。
+- a11y 3: desktop does not run the full screen of cell phones
+- feel 2: The cell does not repeat the mouse over and desktop Ask focus style.
+- Slow-edit 3: The mobile phone does not perform mouse drag and wide layout connections; Touch screen/keyboard path is also overwrite.
+- Touch 2: Desktop does not perform mobile phone touch behavior.
+- (a) orniation-setup 3: mobile-storage does not repeat the desktop extra sidebar history entry with two mouse links/retakes; Normal Back/Forward, selections and accessibility connections run in both dimensions.
 
-提交前读取基线 `1e19af560daaf9ca10ee40670877c5c1b41665d8` 的 GitHub Checks：Netlify deploy-preview **success**；[CI #205](https://github.com/juanxiwu2005/platypus-officer-hub/actions/runs/41261214605) **in_progress**，步骤 npm ci/lint/build/unit/浏览器安装已 success，E2E 仍在运行。不能把本地成功或旧提交检查标为最终新提交的 CI 成功；推送后必须重新查询新 SHA。
+GitHub Checks for reading baseline `1e19af560daaf9ca10ee40670877c5c1b41665d8`: Netlify deploy-preview **access**; [ CI #205 ](https://github.com/juanxiwu2005/platypus-officer-hub/actions/runs/41261214605) **in_progress**, step npm ci/lint/build/unit/ browser installed with access, E2E is still active. The local successful or old submission cannot be marked as the final new submission of CI successfully; A new SHA has to be retraced after the push.
 
-## 日志与复现附件
+## Log & Recover attachment
 
-本地运行产物：`/tmp/rr-stage3-ci.log`、`/tmp/rr-stage3-final-gates.log`、`/tmp/rr-stage3-final-e2e.log`、`/tmp/rr-stage3-final-e2e.json`、`/tmp/rr-stage3-final-summary.json`、`/tmp/rr-stage3-audit-{production,full}.json`、`/tmp/rr-stage3-bundle.json`、`/tmp/rr-stage3-fsck.log`、`/tmp/rr-stage3-secrets-{current,history}.{json,log}`、`/tmp/rr-stage3-private-keys.json`。曲线首次失败与成功轮次分别为 `/tmp/rr-stage3-curves*` 和 `/tmp/rr-stage3-curves-final*`。浏览器逐项 trace/网络附件在 worktree 的 `test-results/`，这些生成文件不提交为源码。
+`/tmp/rr-stage3-ci.log`, `/tmp/rr-stage3-final-gates.log`, `/tmp/rr-stage3-final-e2e.log`, `/tmp/rr-stage3-final-e2e.json`, `/tmp/rr-stage3-final-summary.json`, `/tmp/rr-stage3-audit-{production,full}.json`, `/tmp/rr-stage3-bundle.json`, `/tmp/rr-stage3-fsck.log`, `/tmp/rr-stage3-secrets-{current,history}.{json,log}`, `/tmp/rr-stage3-private-keys.json`. For the first time, the curve failed and for the successful rounds. `/tmp/rr-stage3-curves*`and `/tmp/rr-stage3-curves-final*`。 The browser tracks/ network-by-line attachment at worktree `test-results/`, and these generated files are not submitted to the source code.
 
-桌面/手机 initial-network.json 均实测首页仅请求入口和 runtime 两份 JS，总计 506,960 字节；PDF 延迟加载与两种 storage loading 附件随完整矩阵保留。生产目录 33 个 JS chunk 中最大 437,615 字节，source map 0；PDF worker 是按选择加载的独立 mjs 资源，不混报为主入口。
+Desktop/Cell Phone Intical-Network.json only requests entrances and two JSs for 506,960 bytes; PDF late loads and two schedule drawing attachments are kept with the complete matrix. Max 437,615 bytes, source cap 0 of the production catalogue 33 jS chink; PDF worker is a stand-alone mjs resource that has been selected for loading and does not duplicate the main entry.

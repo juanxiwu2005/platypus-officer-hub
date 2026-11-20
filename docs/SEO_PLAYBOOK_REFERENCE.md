@@ -1,52 +1,52 @@
-# SEO 流程参考（流程模板的来源）
+# SEO process reference (source of the process template)
 
-Platypus v1.0 的默认流程模板、沉默协议和入职清单来自 ASU 学生创业组织（SEO）自己的制度文件。下面是摘要；原件在 Juanxi 本地文件夹 `05_Phase3_Prototype/Reference/`，不放进仓库。这里不含任何成员姓名或联系方式。
+The default process template for Platypus v1. 0, the silence protocol and the entry list are from the ASU Student Enterprise (SEO) ' s own system file. The following is a summary: Original in Juanxi local folder `05_Phase3_Prototype/Reference/`, not repository. This does not contain any members ' names or contact details.
 
-## OA101 活动立项流程（泳道：社长、外联、活动策划、宣传、财务、EVP）
+## OA101 Activity development process (swipeways: president, outreach, campaign planning, publicity, finance, EVP)
 
-| 步骤 | 负责 | 做什么 |
+| Steps | Responsible. | Do what? |
 | --- | --- | --- |
-| 00 Start · 机会进入 | 社长 | 所有外部机会先给社长，判断是否符合使命、优先级和现有人力；不符合就尽早拒绝 |
-| 10 联系合作方 | 外联（VP External / Outreach） | 和活动策划一起约合作方初次会议，明确双方目标、受众、形式和对成员的价值 |
-| 20 起草活动方案 | 活动策划（Professional Development / Programs） | 预计人数、场地、人手与志愿者、餐饮、初步宣传方向 |
-| 30 宣传评审与预算估计 | 宣传（Marketing） | 海报、线上内容、摆摊、赠品等需求和初步费用 |
-| 40 预算评审 | 财务（Finance） | 估算总成本（场地、人手、餐饮、宣传），列出经费来源，砍掉非必要项 |
-| 50 方案批准 | 社长 | 检查使命契合度、可行性、战略价值；需要修改就退回 |
-| 60 执行 | 全体 | 按 OA102 执行 |
-| 70 活动反馈 | EVP | 活动后 3 天内收集反馈，写简短复盘 |
-| 80 End · 归档 | EVP | 方案、宣传物料、出勤、预算记录、合作方笔记、反馈和经验全部归档 |
+| 00 Start . Access | I don't think so. | All external opportunities are given to presidients to determine whether they meet their mission, priorities and available manpower; If you don't agree, say no. |
+| 10 Associate collaborators | Outreach (VP External / Outreach) | An initial meeting of partners to identify the objectives, audience, format and value to members |
+| 20 Drafting programme of activities | Activity Development / Programs | Projected number, venue, manpower and volunteers, catering, initial orientation |
+| 30 Evaluation of Publicity and Budget Estimates | Advocacy | Needs and initial costs for posters, online content, stand-up, gifts, etc. |
+| 40 Budget Evaluation | Finance | Estimated total cost (site, staff, catering, public information), listing sources of funding and cutting off non-essential items |
+| 50 Programme approval | I don't think so. | (c) Examining mission alignment, feasibility and strategic values; Revert if changes are required |
+| 60 Execution | All of you. | Press OA102 to execute |
+| 70 activity feedback | EVP | 3 days after activity gathers feedback and writes a short copy |
+| 80 End. Archiving | EVP | Programme, promotional material, attendance, budget records, partner notes, feedback and experience are fully archived |
 
-## OA102 执行流程
+## OA102 Implementation Process
 
-61 活动策划发出活动计划 → 62 宣传准备物料 / 63 财务准备预算 / 64 EVP 准备后勤（场地、设备、Special Event Registry、Sun Devil Central 活动） → 65 外联同步信息并让合作方审核宣传物料 → 66 预算就绪 / 67 物料发布 / 68 后勤就绪 → 69 活动开始。
+61 Planning and dispatching of activities  →  62 Public information preparation materials / 63 Financial preparation budget / 64 EVP Logistics preparation (sites, equipment, specialevent activity, Sun Devil Central activities)  →  65 Outreach synchronization information and review of promotional material by partners  →  66 Budget readiness / 67 Material release / 68 Logistics readiness  →  69 Activities started.
 
-## OA201 经费流程（财务）
+## OA201 Funding process (finance)
 
-建预算清单 → 是否超预算？（是 → 删减后重算）→ 申请经费（完成经费申请）→ 建采购单 → 收货或收服务 → 定稿预算清单。
+Budget list  →  Is it over-budget? • Finalize the budget list for requests for funds (completed request for funds) — purchase orders — receipt of goods or services
 
-学院经费的严格步骤（Juanxi，L5）：预算申请 → 预算批准 → 采购申请 → 采购批准 → 下单或报销 → 提交出勤名单。核心是追踪“走到哪一步”和“有没有用完”，不是记总账。
+Strict steps for the funding of the College (Juanxi, L5): budget requests  →  budget approvals  →  procurement approvals  →  billing or reimbursement of fees  →  attendance lists. The core is to track “where to” and “have you run out of use”, not the general ledger.
 
-## 活动策划模板的时间清单（T-90 / T-60 / T-30 / T-14）
+## Timelist for activity planning templates (T-90/ T-60/ T-30/ T-14)
 
-- **T-90：** 与合作方第一次会议（我们是谁、目标、互惠、话题草案）；餐饮计划；经费计划（餐饮、宣传、停车等）；Special Event Registry；Sun Devil Central 活动登记；场地预约。
-- **T-60：** 受众调研；宣传物料与设计；主持人；备用方案（Plan B）。
-- **T-30：** 采购单（餐饮、宣传等）；PPT 审核；与合作方第二次会议；人手安排；停车许可申请。
-- **T-14：** 执行宣传计划；全面复核（场地、餐饮、宣传、后勤、人手）；对讲者和合作方的质量闸门。
+- **T-90: First meeting of** partners (who are we, objectives, reciprocity, draft topics); (a) Catering programmes; Funding plans (catering, publicity, parking, etc.); Special Event Registry；Registration of Sun Devil Central activities; Place appointment.
+- **T-60:** audience research; Promotion of materials and design; Facilitator; Plan B.
+- **T-30:** purchase order (catering, publicity, etc.); PPT audit; Second meeting of cooperating parties; Personnel arrangements; Applications for parking permits.
+- **T-14：**(c) Implementation of an awareness-raising plan;  Comprehensive review (space, catering, public information, logistics, staffing); Quality gates for presenters and collaborators.
 
-模板其余部分：价值交换图（我们有什么 / 他们要什么 / 我们要什么 / 他们有什么）、会议记录、活动流程（分钟级）、预算清单、宣传计划（Level 1–3，渠道与截止）、场地候选、人手安排（签到、主持、摄影、成员互动）。
+The rest of the template: value swap maps (what we have/ what they want/ what we want), meeting minutes, movement processes (minutes), budget lists, promotional plans (Lvel 1–3, channels and deadlines), space candidates, manual arrangements (signing, hosting, photography, meeting interactions).
 
-## Ghost Owner Protocol（→ Platypus“沉默协议”默认值）
+## Ghost Owner Protocol ( → Platypus "Silence Agreement" default value)
 
-触发：负责人连续 7 天没有任何更新，或错过两个关键节点。第 3、5 天轻提醒；第 7 天社长设 24 小时回复期限；第 8 天指定临时负责人并记录；第 10 天临时负责人发布新时间线，并在 7 天内做复盘。全程私下进行。
+Trigger: The person in charge has no update of 7 days, or missed two key nodes. 3, 5 Day Light reminder; 7 day president sets a response period of 24 hours; 8 Days for designation and recording of temporary persons; The 10 day temporary director issues a new time line and performs a redisk within 7 days. The whole trip was conducted in private.
 
-## 风险登记表（摘要）
+## Risk registration form (summary)
 
-负责人消失（最高影响）· 经费延误（最常见的外部约束，要当一等依赖管理，在约定检查点前没批就提前启动 Plan B）· 报名太少（看报名速度，必要时尽早取消或改期）· 范围过大（暂停低影响项目）· 换届（每个项目 7 天内更新 SOP、合作方记录和复盘）。
+• Delays in funding (most common external constraints, first degree reliance on management, early start of Plan B without approval before the agreed check-point) 7Updates the SOP, partner records and disks within days.
 
-## 新干部入职清单（→ 交接页“第一周清单”）
+## New officer job entry list ( →  handoff page “First week list”)
 
-0 入职确认（3 天内：签 offer、交联系方式、进群、指定 buddy）· 1 使命、目标与期望对齐（7 天内：讲清使命、记录个人需求和兴趣、1–3 个学期成果、规则边界、可用资源、评估标准与汇报节奏、后果说明、签一页“托付协议”）· 2 领导力课程 6 个模块（1 个月内）· 3 技术与系统设置（7 天内：组织邮箱、日历同步、内部系统、能订场地、能登记活动、懂 ASU 经费政策、懂文件存放规则）· 4 跟进（第 2 周检查、第 30 天 1:1 回顾）。
+0Induction recognition (Admission confirmation) 3Days: signature offer, contact details, inbound group, designated buddy) 1Mission, objectives and expectations aligned ( 7Days: clear mission, documentation of individual needs and interests, 1–3The results of the semester, rule boundaries, available resources, assessment criteria and reporting rhythms, consequence statements, a page on “tender agreements”) 2Leadership course 6Modules ( 1Within months) . 3Technology and System Settings (Systems) 7Days: Organization of mailboxes, calendar synchronization, internal systems, space booking, registration activities, knowledge of ASU funding policy, rules for document storage) 4Follow-up 2Weekly check-ups. 30Jesus. 1:1Recall).
 
-## 团队章程里的学期目标示例（→ 首次设置第 2 步的建议目标）
+## An example of a term goal in the team constitution ( →  first time set recommended target for step 2)
 
-每周一场活动、成员满意度 8 分、30 位忠实成员；统一品牌形象；每周至少 1 条 Instagram reel；外部收入 $1,000。
+A weekly event, member satisfaction 8, 30 faithful members; Harmonization of brand image; At least 1 instagram reel per week; External income $ 1,000.

@@ -1,25 +1,25 @@
-# IRB 交接包 · 2026-10-28
+# IRB handoff bag. 2026-10-28
 
-给另一个对话用的核对材料。研究编号 STUDY00024727，Platypus Phase 3 prototype 测试。
+Checklist for another dialogue. Research No. STUDY00024727, Platypus Phase 3 test.
 
-**这份文件里的每一条都在仓库里核对过**，核对时的分支是 `feat/ai-night-mode`
-（提交 `55949b8`），和 `main` 在这些方面没有差异。下面每条都写了来源文件和行号，
-另一个对话可以自己去查。
+**, every single item in this document is checked for** in repository. The branch of the check is `feat/ai-night-mode`.
+(Submitting `55949b8`), and `main` do not differ in these respects. Each of the following articles has a source document and line number.
+Another conversation can be looked into on its own.
 
-**最后一节「我无法核对的事」必须读。** 有一件事只有 Juanxi 本人能确认。
+**must read the last section, "What I can't check."** has one thing only Juanxi can confirm himself.
 
-> **2026-10-29 复核（`integration/v1.0`，提交 `afe0b5b`）：**
-> - 第 1、2 节的事实仍然成立：日志结构 `LogEntry` 和 2026-10-28 时完全一样，上限仍是 2000 条，仍只存在浏览器 localStorage 里，导出按钮还在 Settings；服务器存储开关和守着它的测试都还在。只是行号变了：`types.ts` 第 379 行、`store.tsx` 第 297 / 306 行、`Settings.tsx` 第 119 行。
-> - **第 3 节已过时：DeepSeek 的代码路径已于 2026-10-29（IRB 批准之后）删除**，`AI_PRESET=deepseek` 现在会被直接拒绝。已交的材料写的是「保留了一条未启用的旧路径」，现在实际情况比这更严格；要不要告知 IRB，由 Juanxi 问 Marcie 决定。
-> - 新功能「Edit steps」（排序题）的改动也会照常记进同一份交互日志（同样带 `before` 值），没有新增任何上传或服务器存储。
+> **2026-10-29 Review (`integration/v1.0`, submitted to `afe0b5b`):**
+> - The facts of sections 1, 2 are still valid: the log structure `LogEntry` and 2026-10-28 were exactly the same at the time. The upper limit remains 2000, only in the browser localStoreage and the export button is still in Settings; The server stored the switch and the test to hold it was still in place. Only the lines have changed: `types.ts` line 379, `store.tsx` line 297/306, `Settings.tsx` line 119.
+> - **Article 3Section is outdated: DeepSeek's code path already exists 2026-10-29(IRB after approval) Delete**，`AI_PRESET=deepseek`Now it's going to be rejected directly.  (a) The material submitted, which is written as "maintaining an uninvited old path", is now more stringent than this; Should I inform IRB that Juanxi asks Marcie for a decision?
+> - Changes to the new feature Edit steps (sorting) will also be recorded in the same interactive log (with the same `before` value), without adding any upload or server storage.
 
 ---
 
-## 1. 收集什么数据（要写进 Protocol）
+## 1. What data to collect (to write into Protocol)
 
-参与者在原型里的每一步操作都会被记下来。这是研究数据，Protocol 必须写。
+Each step of the participants in the prototype will be recorded. This is research data, Protocol has to write.
 
-**可以直接粘进 IRB 表格的英文：**
+**The English language where IRB forms can be glued directly:**
 
 > Participant interaction logs are recorded locally in the participant's own
 > browser using browser localStorage, capped at 2,000 entries (oldest dropped
@@ -38,40 +38,40 @@
 > organization and member information supplied by the researcher, so no real
 > names, real contact details, or real organizational records are captured.
 
-**来源（另一个对话可以核对）：**
+**Source (another dialogue can be checked):**
 
-| 事实 | 文件 | 位置 |
+| Facts | Documentation | Location |
 | --- | --- | --- |
-| 日志字段结构 | `src/data/types.ts` | 第 367 行 `interface LogEntry` |
-| 上限 2000 条 | `src/data/store.tsx` | 第 252 行 `LOG_LIMIT = 2000` |
-| 存在 localStorage | `src/data/store.tsx` | 第 261 行 `const store = () => window.localStorage` |
-| 导出按钮 | `src/pages/Settings.tsx` | 第 109 行 `data-testid="export-data"` |
+| Log field structure | `src/data/types.ts` | 367 Line `interface LogEntry` |
+| cap 2000 | `src/data/store.tsx` | 252 Line `LOG_LIMIT = 2000` |
+| Exists LocalStorage | `src/data/store.tsx` | 261 Line `const store = () => window.localStorage` |
+| Export Button | `src/pages/Settings.tsx` | 109 Line `data-testid="export-data"` |
 
-字段逐条（`LogEntry`，源文件里的注释原文）：
+Fields by article (`LogEntry`, comment source text):
 
-- `seq` —— 1, 2, 3 … 不复用；开头有缺口说明最旧的几条在 2000 上限处被丢掉了
-- `at` —— 动作被派发的真实时间，1970 以来的毫秒数（`Date.now()`）
-- `actor` —— 动作执行时 app 的「View as」设成了谁
-- `type` —— 动作类型，例如 `updateNode`、`moveTask`
-- `payload` —— 动作的参数，已缩短（长文本截断，密钥和臃肿对象不收）
-- `before` —— 动作之前那些字段的值，只对「改动已存在的东西」的动作记录
-- `applied` —— `false` 表示 app 忽略了这个动作（没权限、无效、或没东西可改）
+- `seq` - 1, 2, 3 ... not reused; There's a gap at the beginning, which means that the oldest ones were lost at the 2000 cap.
+- `at` - Live time when actions are assigned, milliseconds since 1970 (`Date.now()`)
+- `actor` --who did the app "View as" set when the action was executed?
+- `type` - Action type, e. g. `updateNode`, `moveTask`
+- `payload` - Action parameters reduced (long text cut, secret key and swollen objects unaccepted)
+- `before` - The values of those fields before the action are recorded only for actions that "change existing things"
+- `applied` - `false` indicates an app ignores this action (no performances, no validity or nothing to change)
 
-**对 IRB 有意义的一点：** `before` 字段意味着日志能还原「参与者把什么改成了什么」，
-不只是「参与者点了什么」。这比一般的点击流更细，Protocol 里最好写明，不要含糊成
+**means something to IRB: the** `before` field means that the log can restore "what has been changed by the participants."
+It's not just what the participants ordered. It's thinner than the usual click flow. Protocol better say it, don't be vague.
 "usage analytics"。
 
 ---
 
-## 2. 不要写「服务器端存储组织配置」
+## 2. Do not write "Serviceend Storage Organization Configuration"
 
-Protocol 里**不要**出现服务器保存组织配置这件事。它在 M1（2026-10-27）被彻底关掉了，
-研究用的构建不会启用。写了反而会让 IRB 追问数据保留期和删除流程，而那套流程没有东西要管。
+**in Protocol does not want** to have the server save tissue configuration. It was completely shut down at M1 (2026-10-27).
+The building for the study will not be enabled. Instead, it would allow IRB to follow the data retention period and delete process, which has nothing to do with it.
 
-**关掉的程度（有测试守着）：**
+**Degree of shutdown (tested)**
 
-`ORG_SETUP_ENABLED` 不等于字符串 `"true"` 时，下面 7 个端点全部返回 404，
-且存储层 `getStore` 的调用次数为 0：
+When `ORG_SETUP_ENABLED` does not equal the string `"true"`, all of the lower 7 endpoints return to 404,
+`getStore` is called by 0:
 
 ```
 /api/org/setup              /api/org/archive
@@ -80,41 +80,41 @@ Protocol 里**不要**出现服务器保存组织配置这件事。它在 M1（2
 /api/workspace/assistant-run
 ```
 
-- 开关逻辑：`vite.config.ts` 第 11 行，`process.env.ORG_SETUP_ENABLED === "true"`
-- 前端侧：`src/phase1/serverStorage.ts` —— 用到存储的画面在**构建时**就被排除，不是运行时隐藏
-- 守着它的测试：`src/test/serverStorageHidden.test.ts`
-  - 7 个端点各自断言 404 + `getStore` 零调用
-  - 专门有一条断言只有**精确的字符串 `"true"`** 能打开它（`""`、`"false"`、`"1"`、`"TRUE"`、`"yes"` 全部仍是 404）
-  - 还有一条反向对照：打开后同样的请求**确实**会到存储层，证明这个测试不是空转
-- e2e 侧还有一条断言整轮访问产生 0 个存储请求
+- Switch logic: `vite.config.ts` Line 11, `process.env.ORG_SETUP_ENABLED === "true"`
+- Front side: `src/phase1/serverStorage.ts` - **is excluded, not hidden while running, when stored images are built in**
+- `src/test/serverStorageHidden.test.ts`.
+  - 7 endpoints each assert 404 + `getStore` zero call
+  - There's a special one claiming that only the **precise string `"true"`** can open it (`""`, `"false"`, `"1"`, `"TRUE"`, `"yes"` are all still 404).
+  - And there's a reverse contrast: the same request when opened **does** go to the storage layer to prove that this test is not empty.
+- On the side of e2e is an assertion that round visits result in 0 storage requests
 
-**如果 IRB 问「原型会不会把数据存到服务器」**，准确的回答是：
-研究用的构建里不会，有自动化测试每次 CI 都在验证这一点；代码里存在这条路径，
-但在未启用的状态下，相关端点返回 404、相关界面不被打包进去。
+**If IRB asks if the prototype will send data to the server**, the exact answer is:
+This is not done in the construction for research, and there are automating tests to verify this at every CI; There is this path in the code.
+However, the relevant endpoint returns 404 and the interface is not packaged.
 
 ---
 
-## 3. AI 供应商（这一节容易写错）
+## 3. AI supplier (this section is easily misspelled)
 
-> **2026-10-29 更新（`[AI]` 提交）：DeepSeek 的代码路径已经删除。** 下面"不要写 DeepSeek has been removed"的警告和那条守着它的测试（`adapter.test.ts` 的 "keeps DeepSeek behavior unchanged…"）都已过时；DeepSeek 现在确实不在代码里，`AI_PRESET=deepseek` 会被拒绝（不发任何请求）。**下面那句英文表述仍然准确**，因为代码里还保留着 OpenAI、Anthropic 两个未启用的供应商预设（"an unselected legacy provider code path"）。要不要把它们也删掉、要不要改材料措辞，由 Juanxi 决定。
+> **2026-10-29 Update (submitted `[AI]`): The code path for DeepSeek has been deleted.**, the warning "DeepSeek has been removed" and the test that holds it for `adapter.test.ts` is out of date; DeepSeek is not in the code now, and `AI_PRESET=deepseek` will be rejected (no request). **The following English expression is still accurate**, as two uninvited suppliers preset in the code ("an unsolecated legacy provider code path") are also retained. Whether or not to delete them, or to change the wording of the material, is left to Juanxi.
 
-**要写的：** 所有 AI 调用都走 **ASU AIR**（学校内部网关）。路由 v3：
+**To write:** All AI calls go **ASU AIR** (school internal gateway). Route v3:
 
-- Gemma 4 31B —— 较长的结构化设置任务
-- Muse —— 短对话和编辑
-- GLM 5.3 —— 只在用户主动要求 deeper review 时
+- Gemma 4 31B - Long Structural Settings Task
+- Muse — Short Dialogue and Editor
+- GLM 5.3 - Only when the user requests deeper review
 
-**⚠️ 不要写 "DeepSeek has been removed"，那不是真的。**
+**⚠  don't write "DeepSeek has been removed", that's not true.**
 
-仓库里**还有**一条 DeepSeek 的供应商代码路径，只是在研究用的配置下不会被选中。
-有一条测试正在守着它的行为：
+**in repository and** a supplier code path for DeepSeek which is not selected only under the configuration used for research.
+There's a test that's holding on to its behavior:
 
 ```
 src/organization/adapter.test.ts
   → "AIR provider routing > keeps DeepSeek behavior unchanged when AIR is not selected"
 ```
 
-**准确的英文写法：**
+**Exact English:**
 
 > All AI requests in the study configuration are routed to ASU's AIR gateway,
 > which is operated by Arizona State University. No participant data is sent to
@@ -122,87 +122,87 @@ src/organization/adapter.test.ts
 > unselected legacy provider code path that the study configuration does not
 > use.
 
-**为什么这条重要：** 如果 Protocol 说 DeepSeek 已移除，而 IRB 或 IT 安全审查去看代码
-发现它还在，那是一个事实错误，可能触发对整份 Protocol 可信度的质疑。
-写「保留了一条未启用的旧路径」没有任何坏处，写「已移除」有。
+**Why this is important:** if Protocol says DeepSeek has been removed and IRB or IT security review to see the code
+And finding it still is, it's a factual error that could trigger a question about the credibility of Protocol as a whole.
+There is no harm in writing "a unused path has been retained" or "removed".
 
-把那条死代码彻底清掉这件事已经排进了后续任务，但**今天提交前来不及做**，
-所以今天的 Protocol 要按现状写。
-
----
-
-## 4. 参与者看到的数据
-
-仓库里只有虚构的演示社团数据。参与者用研究者提供的虚构组织和成员信息操作。
-真实姓名、真实联系方式、真实社团记录都不进入系统。
-
-这条是仓库的硬规则（`AGENTS.md` 第 3 节第 1 条）：不提交问卷原始回答、访谈转写、
-录音、参与者姓名或引语，也不把这些资料贴给任何 AI。
+The clean-up of that dead code has been assigned to the follow-up, but **was submitted today in time to do**.
+So today's Protocol is going to be written on the status quo.
 
 ---
 
-## 5. 参与者招募与分组（Juanxi 2026-10-27 的决定）
+## 4. Data seen by participants
 
-- **包含 B 组**，理由是需要观察参与者对 onboarding 过程本身的反馈
-- 时间线：周四前后提交 IRB → 下周一或周二获批 → 周三发 recruitment email → 再下一周开始真正的原型测试
+Repository contains only the demo student event data. The participants use the knowledgeal and membrane information provided by the researchers.
+Live name, live contact information, live listed records are not entered.
 
-（这一节是 Juanxi 自己的安排，不是从代码核对出来的。另一个对话如果要核对，
-应该问 Juanxi 本人或看 IRB 系统里的记录。）
-
----
-
-## 6. 我无法核对的事 —— 需要 Juanxi 本人确认
-
-**`ORG_SETUP_ENABLED` 在 Netlify 的环境变量里有没有被设成 `true`。**
-
-`netlify.toml` 里没有设它，所以默认是关的。但 Netlify 的网站设置界面里也可以设环境变量，
-那个界面我在这个会话里看不到。
-
-**第 2 节的全部结论都建立在「它没有被设成 true」之上。**
-
-请在提交前自己确认一次：
-
-> Netlify → 选 platypus 这个站点 → Site configuration → Environment variables
-> → 确认列表里**没有** `ORG_SETUP_ENABLED`，或者它的值不是 `true`
-
-如果发现它被设成了 `true`，立刻告诉我，第 2 节要整段重写，
-因为那意味着服务器存储是开着的，Protocol 必须写数据保留和删除流程。
+This is the hard rule of repository (`AGENTS.md`, sect. 3, 1): do not submit original answer for survey, interview transliteration,
+The recording, the names of participants or quotations are not posted to any AI.
 
 ---
 
-## 7. 给另一个对话的核对清单
+## 5. Participant recruitment and grouping (Decision of Juanxi 2026-10-27)
 
-逐条过：
+- **contains group B** on the basis of the need to observe feedback from participants onboarding process itself
+- Timeline: IRB submitted around Thursday, approved on Monday or Tuesday.
 
-- [ ] Protocol 的数据收集一节有没有写交互日志，而且写法和第 1 节的英文一致
-- [ ] 有没有写明日志是**参与者自己导出**交给研究者，不是自动上传
-- [ ] 有没有写明日志含 `before` 值（能还原改动前后），不要含糊成 usage analytics
-- [ ] Protocol 里**没有**服务器端存储组织配置的描述
-- [ ] AI 供应商一节写的是 ASU AIR，三个模型的分工对得上
-- [ ] AI 供应商一节**没有**声称 DeepSeek 已被移除
-- [ ] 分组里包含 B 组
-- [ ] Juanxi 已经确认过 Netlify 的 `ORG_SETUP_ENABLED`（第 6 节）
-- [ ] 数据保留：日志在参与者自己的浏览器里，上限 2000 条，清浏览器数据即消失 —— Protocol 的保留期描述要和这个一致
+(This section is Juanxi's own arrangement, not from the code. The other conversation is to be checked.
+Juanxi should be asked about himself or the IRB records. ）
 
 ---
 
-## 8. 如果 IRB 回来追问
+## 6. Something I can't check -- need Juanxi to confirm it himself.
 
-几个大概率会被问到的，和准确答案：
+**`ORG_SETUP_ENABLED` has been set up as `true` in the Environmental Variables of Netlify.**
 
-**「数据存在哪里，保存多久？」**
-参与者自己的浏览器（localStorage），上限 2000 条最新记录。研究者手上的副本是参与者
-主动导出并交付的 JSON 文件，保留期按 Protocol 里研究者承诺的期限。参与者清除浏览器
-数据，本地那份就没了。
+`netlify.toml` didn't set it up, so the default is off. However, there are also environmental variables in the web settings interface of Netlify.
+I can't see that interface in this session.
 
-**「能不能撤回？」**
-参与者在交出 JSON 文件之前，随时清掉浏览器数据即可，不留痕迹。交出之后按 Protocol
-的撤回条款处理。
+The conclusions of **, section 2, are based on the fact that "it has not been set as true."**
 
-**「AI 会看到参与者数据吗？」**
-会 —— 参与者在原型里输入的内容会发给 ASU AIR 网关以生成回应。那些内容是虚构的社团
-信息。不经过任何第三方 AI 供应商。
+Please confirm for yourself before submitting:
 
-**「有没有密钥泄露风险？」**
-产品网站的 API key 只在 Netlify 的环境变量里，不在代码、文档、提示词或提交记录里
-（`AGENTS.md` 第 3 节第 2 条）。
+> == sync, corrected by elderman ==
+> The **on the confirmation list does not have** `ORG_SETUP_ENABLED`, or its value is not `true`.
+
+If you find it's set up as `true`, tell me immediately that section 2 has to be rewritten.
+Because that means the server's storage is open, Protocol has to write the data retention and deletion process.
+
+---
+
+## 7. Checklist for another dialogue
+
+Article by article:
+
+- [ ] Does Protocol's data collection section have an interactive log and is written in the English version of 1?
+- [ ] Does it say that the log is **that the participants themselves export** to the researchers, not automatically upload it?
+- [ ] Do you have a log containing `before` values (recovering both before and after the changes) without being vaguely identified as using analytics
+- [ ] **in Protocol does not have a description of the** serverend storage tissue configuration
+- [ ] AI Vendor section says AAU Air, the division of work across the three models.
+- [ ] AI Vendor Section **No** Claim DeepSeek has been removed
+- [ ] Include group B in the group
+- [ ] Juanxi has confirmed `ORG_SETUP_ENABLED` for Netlify (section 6)
+- [ ] Data retention: Logs in participants ' own browser, capped 2000, clearer data disappear - Protocol 's retention period description is consistent with this
+
+---
+
+## 8. If IRB comes back for questioning,
+
+A few approximates will be asked, and the exact answer:
+
+**, "Where does the data exist and how long does it last? 」**
+Participants ' own browser (localStorage), capping 2000 up-to-date records. The studyer has a copy of the participant.
+The active export and delivery of a JSON file, with the retention period set at the time promised by the researcher in Protocol. Participants clear browsers
+The data, the locals are gone.
+
+**, "Can you pull it back? 」**
+The participants will be able to clear the browser data at any time before handing over the JSON file without leaving a trace. Press Protocol after surrender
+The withdrawal clause is dealt with.
+
+**"AI will see the participant's data?" 」**
+Session - The contents entered by the participants in the prototype will be sent to the ASU AIR gateway to generate a response. The contents of the project are student organisation
+Information. No third party AI supplier.
+
+**"Is there a risk of leak? 」**
+API key for the product website is only in Netlify 's environment variable and not in code, document, prompt or submission records
+（`AGENTS.md`Article 3Section 2Article ).

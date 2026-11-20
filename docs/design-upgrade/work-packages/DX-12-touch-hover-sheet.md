@@ -1,24 +1,24 @@
-# DX-12 手机悬停卡底部弹层动画
+# DX-12 Mobile Phone Suspension Card
 
-- 阶段 2　大小 S　风险 低　R 级 **R1 可用**　依赖：DX-01　并行伙伴：DX-09～11、13、14
-- 分支：`design/dx-12-touch-hover-sheet`　样式文件：`src/styles/dx-12-touch-hover-sheet.css`　对应细节：D12
+- Stage 2 Size S Risk Low R Level **R1 Available** Dependence: DX-01 Parallel Partners: DX-09 ~ 11, 13, 14
+- Branch: `design/dx-12-touch-hover-sheet` Style File: `src/styles/dx-12-touch-hover-sheet.css` Corresponding Details: D12
 
-## 为什么
-手机上点开悬停卡，它以底部弹层出现（S8），但是"啪"一下。**桌面上的悬停卡不能动**：S3（2026-10-27）已经决定零延迟，`e2e/feel.spec.ts` 守着。
+## Why?
+On the cell phone, it's on the bottom layer of the bullet, but "Pick." The suspension card on the **desktop cannot move**: S3 (2026-10-27) has decided on a zero delay and `e2e/feel.spec.ts` is guarded.
 
-## 要做的事
-1. **只在 `@media (hover: none)` 里**给 `.hover[data-open="true"] > .hover-card` 加进入动画：`translateY(12px)→0` + 淡入，`var(--dur-fast)`、`var(--ease-out)`；退场反向。
-2. 不加遮罩（它是说明，不是模态；Emil §12 "separate to keep flow"）。
-3. 减少动效：只淡入淡出。
-4. 不改 `Hover` 组件的逻辑（`ui/index.tsx`）。如果必须改（比如要让退场能播），把需求写进报告交给整合人，不要自己动。
+## Something to do.
+1. **Only in `@media (hover: none)`** added to `.hover[data-open="true"] > .hover-card` animated: `translateY(12px)→0`+ Fade, `var(--dur-fast)`, `var(--ease-out)`; Back off.
+2. (a) without mask (i.e. a description, not a model); Emil §12 "separate to keep flow"）。
+3. Reduction of kinetic effects: Only fade out.
+4. Do not change the logic of `Hover` components (`ui/index.tsx`). If it is necessary to change (e.g. to allow exits to be aired) to send the needs into the report to the integrated person, do not move on its own.
 
-## 可以改的文件
-只有 `src/styles/dx-12-touch-hover-sheet.css`。
+## Files that can be changed
+Only `src/styles/dx-12-touch-hover-sheet.css`.
 
-## 验收
-- `touch.spec.ts`（手机）、`feel.spec.ts`（桌面，尤其是"悬停卡无延迟"）、`bts.spec.ts` 绿。
-- 桌面项目里 `.hover-card` 的计算 `transition-delay` 仍是 `0s, 0s`。
-- Juanxi 怎么验：手机上点进度链的小圆点，说明卡从屏幕底部滑上来。
+## Acceptance
+- `touch.spec.ts` (cell phone), `feel.spec.ts` (desktop, especially "suspension card without delay"), `bts.spec.ts` green.
+- The computation of `.hover-card` in the desktop item `transition-delay` is still `0s, 0s`.
+- Juanxi How to Test: A small dot in the progress chain on a mobile phone, which shows that the card slides from the bottom of the screen.
 
-## 回滚
-R1 或 R2。
+## Rollback
+R1 or R2.
