@@ -34,6 +34,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Limit CPU contention on shared CI runners without changing test coverage or timeouts.
+    maxWorkers: process.env.CI ? 2 : undefined,
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
