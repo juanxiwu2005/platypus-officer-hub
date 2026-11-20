@@ -1,27 +1,29 @@
-# DX-07 页面元信息、点击高亮、滚动穿透
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- 阶段 1　大小 S　风险 低　R 级 R2　依赖：DX-01、**DX-03**（先有按下反馈，才能去掉系统高亮）　并行伙伴：DX-04～06、08
-- 分支：`design/dx-07-shell-meta`　样式文件：`src/styles/dx-07-shell-meta.css`　对应细节：D06 D41 D42
+# DX-07 Page metadata, tap highlighting, scroll containment
 
-## 要做的事
-1. `index.html`：加 `<meta name="color-scheme" content="light dark">`；加两条 `<meta name="theme-color">`，带 `media="(prefers-color-scheme: light)"` 和 `dark`，颜色**等于** `--bg` 的浅色 #fbfaf7 和深色 #0f1312（`index.html` 不在样式检查范围，可以写 hex）。
-2. 单元测试 `src/test/dx-07-meta.test.ts`：读 `index.html` 和 `src/styles.css`，断言两个 `theme-color` 和两个 `--bg` 值一致。以后谁改了 `--bg` 而忘了改这里，测试会红。
-3. 小样式文件：
+- Stage 1; size S; risk low; rollback R2; depends DX-01, **DX-03** (press feedback before removing native highlight); parallel DX-04–06,08.
+- Branch `design/dx-07-shell-meta`; styles `src/styles/dx-07-shell-meta.css`; details D06 D41 D42.
+
+## Work
+1. `index.html`: add `<meta name="color-scheme" content="light dark">`; two `<meta name="theme-color">` with `media="(prefers-color-scheme: light)"` and dark, colors **equal** to light `--bg` #fbfaf7 and dark #0f1312 (`index.html` outside style checks, hex allowed).
+2. `src/test/dx-07-meta.test.ts`: read `index.html`, `src/styles.css`; assert both `theme-color` values match respective `--bg`. Later changing `--bg` without metadata fails.
+3. Small stylesheet:
    - `html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }`
    - `button, a, [role="tab"], select, summary { touch-action: manipulation; }`
-   - `-webkit-tap-highlight-color: transparent`（只给有按下反馈的那些：同 DX-03 的清单）。
+   - `-webkit-tap-highlight-color: transparent` only where press feedback exists (DX-03 list).
    - `.ask-list, .detail-scroll, .menu.wide, .m-menu { overscroll-behavior: contain; }`
 
-## 可以改的文件
-`index.html`、`src/styles/dx-07-shell-meta.css`、`src/test/dx-07-meta.test.ts`（新）。
+## Allowed files
+`index.html`, `src/styles/dx-07-shell-meta.css`, new `src/test/dx-07-meta.test.ts`.
 
-## 验收
-- `npm test` 里新测试绿；`smoke.spec.ts`、`touch.spec.ts` 绿。
-- 在深色系统设置下打开预览，手机浏览器顶部颜色和页面底色一致。
-- Juanxi 怎么验：手机打开，点按钮没有灰色闪框；深色模式不再有白色闪屏。
+## Acceptance
+- New `npm test` test, `smoke.spec.ts`, `touch.spec.ts` green.
+- With dark system theme, phone browser chrome matches page background.
+- Juanxi: mobile buttons have no gray flash; dark mode no white flash.
 
-## 回滚
-R2（改了 `index.html`，不能只靠注释样式）。
+## Rollback
+R2 (`index.html` changed, commenting styles insufficient).
 
-## 注意
-- 如果 DX-03 被回滚了，先把这个包也撤掉，否则点击会"没感觉"。
+## Notes
+- If reverting DX-03, revert this first; otherwise taps lose feedback.

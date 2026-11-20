@@ -1,137 +1,131 @@
-> **2026-10-26 Activity Workspace已批准实施：** A1/B1/C2、个人三列Board、活动短链、Funding并入活动、8/7/6周组织时间默认、全局AI及稳定ID。首页重点事项直接从个人任务排序，不另生成摘要。详见 [本轮唯一实施范围](organization/ACTIVITY_WORKSPACE_PLAN.md)。不含main合并/正式发布/正式多人账号。
+> **Current guidance:** all repository records and GitHub collaboration must be in English. Read current `AGENTS.md` and PROGRESS before interpreting the dated decisions below.
 
-> **2026-10-26 F1–F7（Juanxi 在审计方案后回复“执行”）：** 批准独立 Worktree 多 Agent 补保存恢复、增量复核、图与风险卡交互、性能诊断，并将服务器批准组织配置接通新版工作区。旧原型保留独立示例入口；不扩张完整 Board planner/真实账号/旧业务迁移，不合并 main 或正式发布。当前交接见 [实施记录](organization/F1_F7_IMPLEMENTATION.md)，以下更早记录保留为历史。
+> **October 26, 2026 — Activity Workspace approved:** implement A1 home/B1 event list/C2 timeline, a personal three-column board, short activity workflow chains, funding within events, 8/7/6-week organization timing defaults, global AI, and stable IDs. Home priorities rank existing personal tasks directly; do not generate a separate summary. [Approved scope](organization/ACTIVITY_WORKSPACE_PLAN.md). This approval excludes merging `main`, production release, and real multi-user accounts.
+>
+> **October 26 — F1–F7:** after the audit plan, Juanxi authorized independent worktrees and package-specific parallel implementation of save/recovery, incremental review, graph/risk-card interaction, performance diagnostics, and consuming server-approved organization configuration in the new workspace. Keep a separate old-prototype example. Exclude full Board planner, real accounts, old-business migration, `main` merge, and production release. [Implementation record](organization/F1_F7_IMPLEMENTATION.md). These are historical package-specific approvals.
+>
+> **October 26 — v3:** replace the six-step matrix/Board setup with five chapters. Departments precede the organization chart; review duties by role, with skippable material-risk flashcards. Edit the activity graph inline, support multiple owners and department colors, and require approval of contextual AI proposals. Review shows actual inputs; the server compiles JSON. No-op navigation makes no AI call; small edits preserve later manual work. Keep prompts out of the product UI and review them in development conversation. Limited fictional-data live smoke calls were allowed specifically to diagnose JSON errors. [Changelog](organization/V3_CHANGELOG.md).
+>
+> **October 26 — data foundation before AI:** preserve timestamped operations/configuration history, originals, interaction, model input/output, and decisions. Workspaces are private with no automatic cross-organization sharing. Muse is the fast default; GLM is explicitly requested deep review. Juanxi handles live acceptance; stop additional quota consumption. [Data foundation](organization/DATA_FOUNDATION.md).
+>
+> **October 25 — Organization Setup increment:** after prototype feedback, Juanxi authorized real AI and online saving for constitution extraction, grouped multi-role duties, editable workflows, background RACI, and an organization AI guide. AI prefills each step for president review, with a final prompt-review reminder. Preserve existing pages/data; use a separate branch, without changing `main`. [Handoff](organization/HANDOFF.md) and [prompt notes](organization/PROMPTS.md).
+>
+> **October 25 — AI-native Phase 1:** activity-centered, organization-context-driven design supersedes conflicting old navigation/fixed-role/setup assumptions only within this increment. Accept three high-fidelity screens before deciding production integration. Preserve old pages and `main`. [Architecture and migration boundaries](phase1/ARCHITECTURE.md), [acceptance handoff](phase1/HANDOFF.md).
 
-> **2026-10-26 v3（Juanxi 明确要求）：** 五章替代旧六步矩阵/Board setup。先部门再组织图；职责按岗位条目审阅、Check 重大风险 flashcard，可跳过；活动图内编辑与多人负责人、部门色；右侧上下文 AI 先提变更后批准。Review 显示实际输入并由服务端编译 JSON。无修改返回不跑 AI，小改动尽量保留后续手动数据。Prompt 隐藏于产品，只在开发聊天审核；为修复 JSON 错误允许少量真实冒烟。见 [v3 修改记录](organization/V3_CHANGELOG.md)。
+# Platypus Product Plan v1.0
 
-> **2026-10-26 底层原则（Juanxi 明确要求）：数据记录、管理、治理与受控共享先于 AI。** 新版 Organization Setup 已建立操作/配置历史、原件、交互、AI 输入输出与决定的时间戳归档。当前以私有工作区保存，不自动跨组织共享；详见 [数据基础](organization/DATA_FOUNDATION.md)。默认 Muse 快速模型，GLM 仅主动深度检查；真实 AI 验收交给 Juanxi，停止额外额度消耗。
+October 22, 2026 · Juanxi (Steve) Wu · Drafted by Claude
 
-> **Organization Setup 增量（2026-10-25，Juanxi 已授权）：** 原型验收反馈后继续接入真实 AI 与线上保存；以 constitution 提取、分组多岗位职责矩阵、可编辑活动流程、后台 RACI 和组织 AI 指导文档为准。每步 AI 预填，社长审阅调整；最终增加 prompt 审核提醒。旧页面与数据保留，独立分支上线，不改 main。详见 [实现交接](organization/HANDOFF.md) 与 [Prompt 说明](organization/PROMPTS.md)。
+> **Approved baseline:** Juanxi approved all 10 decisions in section 16 on October 22. Section 6 was updated October 23 to reflect the approved v1.1 interface simplification. Later dated decisions and current `AGENTS.md` take precedence over obsolete provider, schedule, or interface details below. This English edition preserves the original plan as a plan; it does not claim all roadmap features are implemented.
+>
+> **Source of truth:** `docs/PRODUCT_PLAN.md` in `juanxiwu2005/platypus-officer-hub`. The owner's thesis backup is under `05_Phase3_Prototype/Plan/`; its original filename is `Platypus_\u4ea7\u54c1\u8ba1\u5212_v1.0.md` (Unicode escapes identify the existing filename). The [Claude review artifact](https://claude.ai/artifact/U9kHk73F9eYmPhJYbZBjES) is frozen at approval and is not synchronized afterward. Read `AGENTS.md` and `docs/PROGRESS.md` before work. References such as C2, E7, and M3 refer to Juanxi's president interview outline, held locally; they are not instructions to retrieve research files.
 
-> **2026-10-25 新方向（Juanxi 已确认）：** 当前增量工作为 AI-native Phase 1，Activity-centered、Organization Context driven。下文 v1.0/v1.1 为保留的历史基线；与本次提示冲突的导航、固定岗位与设置方式以新设计为准。先验收三个高保真画面，再决定正式接入。目标模型、复用与迁移边界见 [Phase 1 底层设计](phase1/ARCHITECTURE.md)，验收见 [交接](phase1/HANDOFF.md)。不改 main，不删除旧页。
+Platypus evolves from an event-reminder website into a team AI chief of staff. A president describes work in one sentence; Platypus turns it into a workflow with one responsible owner per step, three dates, dependency warnings, and reminders in the team's existing channels. Compared with v0.2, the homepage becomes a composer/risk queue/event flow; reminders become short, explain why, and arrive at the right time/channel; handoff knowledge accumulates during work rather than being reconstructed at departure.
 
-# Platypus 产品计划 v1.0
+The original four-stage plan was v1.0 frozen November 8 for Phase 3, v1.5 for a December SEO pilot and Juanxi's transition, v2 for a Spring 2027 EOSS multi-organization pilot, and later multiple campuses. The 10 decisions at the end were approved for execution through section 13's packages, subject to later decisions.
 
-2026-10-22 · Juanxi (Steve) Wu · 起草：Claude
+## 1. Positioning: a team AI chief of staff for student organizations
 
-> **状态：已批准（2026-10-22，Juanxi 批准第 16 节全部 10 个决定）。2026-10-23 按批准的《简化改版方案》更新第 6 节（v1.1 界面）。**
-> **唯一正本：** GitHub 仓库 `juanxiwu2005/platypus-officer-hub` 的 `docs/PRODUCT_PLAN.md`。本地备份：Honors Thesis 文件夹 `05_Phase3_Prototype/Plan/Platypus_产品计划_v1.0.md`。审阅用的 Claude 文档（https://claude.ai/artifact/U9kHk73F9eYmPhJYbZBjES）停在批准时的版本，之后不再同步。
-> **给接手的 AI：** 先读仓库根目录的 `AGENTS.md`，再看 `docs/PROGRESS.md` 了解做到哪了。题号（如 C2、E7、M3）指 Juanxi 对《社长深访提纲》的回答，原件只在他的本地文件夹里。
+Platypus knows school rules, remembers organization history, sees each dependency, and reminds the right person before work breaks down.
 
+1. Organizations need someone watching the whole operation. The president currently spends 2–3 hours weekly chasing progress yet often discovers problems only 5–10 days before the deadline (A3, B4).
+2. Personal AI is common, while team AI remains an opportunity. Only 6% of surveyed teams named AI assistants among their usual collaboration tools; this does not mean students do not use AI. It points to missing shared context about ownership and cross-organization experience (N3).
+3. Add a coordination layer over existing tools: keep documents in Drive, publicity/dues in Sun Devil Central, and chat in WhatsApp. Track dependencies, warn early, and make follow-through easy (L2, L3, L6).
 
-Platypus 从“活动提醒网站”升级为学生社团的团队型 AI 幕僚长：社长用一句话布置，Platypus 把它变成一张有唯一负责人、三个截止日和依赖链的流程图，提前预测哪一环会掉链子，并让社长一键把提醒发到干部常用的 WhatsApp、短信或邮件。和 v0.2 相比有三个根本变化：首页从文字清单改成“对话框 + 风险队列 + 活动流程图”；提醒从“写得完整”改成“短、先讲 Why、在对的时间推到对的渠道”；交接从卸任时补写改成平时自动积累。计划分四个版本：11/8 冻结 v1.0 用于 Phase 3；12 月 v1.5 在 SEO 真实试用，并支撑你自己的换届；2027 年春 v2 与 EOSS 做多社团试点；之后走向多校。文末有 10 个需要你批准的决定，批准后由 Claude Code 按第 13 节的工作包执行。
-
-## 1. 定位：社团的团队型 AI 幕僚长
-
-**一句话：** Platypus 是学生社团的团队型 AI 幕僚长（chief of staff）。它懂学校规则、记得社团历史、看得见每一环的进度，并在事情掉链子之前提醒对的人。
-
-产品论点有三条：
-
-1. **社团缺的不是工具，而是“有人一直盯着全局”。** 现在这个人是社长：你每周花 2–3 小时追进度，却往往在截止前 5–10 天才发现问题（A3、B4）。
-2. **个人 AI 已经普及，团队型 AI 还是空白。** 问卷里只有 6% 的团队把 AI 助手列为社团的常用协作工具。这不是说学生不用 AI，而是说没有一个 AI 知道“谁在做什么”，也没有一个 AI 能汇总跨社团的经验（N3）。
-3. **所以 Platypus 叠在现有工具之上，不替换它们。** 文件留在 Drive，宣传和会费留在 Sun Devil Central，聊天留在 WhatsApp。Platypus 只做一件现在没人做的事：盯住每一环、提前预警、一键推动（L2、L3、L6）。
-
-| 需求 | 个人 ChatGPT | Notion / Airtable | 学生自建工具 | Platypus |
+| Need | Personal ChatGPT | Notion/Airtable | Student-built tools | Platypus goal |
 | --- | --- | --- | --- | --- |
-| 知道本学期 ASU 规则并给出处 | 泛泛而谈，可能过时 | 只有自己存的 | 看作者 | 每条带出处和核实日期 |
-| 知道谁在做什么 | 不知道 | 要人手动维护 | 部分 | 一句话布置、一键认领、自动记录 |
-| 提前知道哪一环会晚 | 不会 | 不会 | 不会 | 依赖链加预测 |
-| 推到干部真正会看的渠道 | 不会 | 邮件通知 | 不一定 | WhatsApp、短信、邮件，一键发出 |
-| 跨社团的经验 | 没有 | 没有 | 没有 | 匿名回报汇总（v2） |
-| 换届不清零 | 没有 | 取决于有没有人读文档 | 作者毕业就停 | 平时自动积累，到点推送 |
+| Current-semester ASU rules with sources | General answers, possibly outdated | Only saved information | Depends on author | Sources and verification dates |
+| Who owns which work | Lacks shared state | Manual maintenance | Partial | Natural-language assignment, claiming, automatic records |
+| Which dependency may run late | No built-in chain prediction | No built-in chain prediction | Cannot | Dependency forecasts |
+| Reach channels officers check | No direct team workflow | Email notifications | Variable | Prepared WhatsApp/text/email reminders |
+| Cross-organization experience | None | None | None | Anonymous reports from v2 |
+| Knowledge survives leadership change | Not automatic | Depends on readership | Often stops when author graduates | Accumulate continuously and surface at transition |
 
-**名字：** 问卷里 Lasso 得票最高（28%），但 lasso 有“套住”的意思，和“支持而不是控制”的定位冲突；Platypus 可爱、好记。论文如实报告得票，并写明这个理由。
+Lasso won 28% in the name survey, but its “roping in” implication conflicts with support rather than control. Platypus was chosen as memorable and approachable; the thesis should report both the vote and this rationale.
 
-## 2. 访谈结论：8 个假设的判定
+## 2. Interview conclusions: eight hypotheses
 
-8 个假设里 5 个成立、2 个被扩展、1 个被修正。括号里是深访提纲的题号。
+Five hypotheses were supported, two expanded, and one revised. Question IDs refer to the interview outline.
 
-| # | 假设 | 判定 | 你的回答 | 产品后果 |
+| # | Hypothesis | Finding | Evidence | Product consequence |
 | --- | --- | --- | --- | --- |
-| 1 | “管控”是看得见，不是管得住 | 修正 | 二选一时你选“一键让落后的人动起来”，前提是系统先算出哪一环落后（C2） | 首页是“风险队列 + 一键提醒”。看得见是输入，推得动是输出 |
-| 2 | 拖延主要是“排在后面”和“等别人” | 成立并细化 | 常规任务多是忘了，创新任务是不会，还有考试周和上游卡住（E1） | 按原因分四种干预：及时提醒、教程与帮助、避开忙碌周、依赖链预警 |
-| 3 | 干部不会主动打开网站 | 成立 | 首选 WhatsApp，其次 Drive 里的表，最后才是邮件（E7） | 提醒推到 WhatsApp、短信、邮件；干部端只是一张从消息点开的手机页 |
-| 4 | 社长只愿输入一句话 | 成立 | 入口散在私聊、群聊、表格、会议和转发邮件里；手动维护让你放弃了任务表（D1–D2） | 对话框是最显眼的入口，支持打字和语音（v1.1 起放在每一页的右栏 Ask） |
-| 5 | 用“被看见的贡献”换状态更新 | 成立 | 积分制失败是因为人工录入太麻烦；自动记录、每月报告会让激励“轻松很多”（H1–H2） | 贡献记录自动生成；公开“本周之星” |
-| 6 | 交接靠平时顺手记录 | 成立并扩展 | Why 最难留，strategy document“基本上没人读”；人脉绑定组织，靠活动频率维系（I1–I4） | Why 跟着步骤出现，不写进长文档；联系人和活动日历联动 |
-| 7 | AI 的信任来自可核查 | 成立 | “本周没有待办”很难相信，除非解释来源；错了可以继续用，但要有反馈渠道（J1–J3） | 每个结论带来源；发提醒前核对最新状态；一键报错 |
-| 8 | 护城河是跨社团流程经验 | 扩展 | 你列了四条：ASU 规则整合、跨社团数据、与 EOSS 合作、预测预警（N4） | 四条都进路线图；跨社团数据从 v2 开始积累 |
+| 1 | Control means visibility rather than enforcement | Revised | Juanxi preferred one-action follow-through once the delayed dependency is identified (C2) | Risk queue with ready-to-send nudges; visibility is an input to action |
+| 2 | Delay is mainly low priority and waiting on others | Supported and refined | Routine work is forgotten; novel work lacks know-how; exams and upstream blocks also matter (E1) | Timely reminders, guidance/help, busy-week avoidance, dependency warnings |
+| 3 | Officers will not open another website proactively | Supported | WhatsApp first, then Drive tables, email last (E7) | Push to existing channels; a mobile task page behind the message |
+| 4 | Presidents want one-sentence entry | Supported | Requests arrive through chats, forms, meetings, and forwarded email; upkeep killed earlier task tables (D1–D2) | Prominent composer and voice; v1.1 places Ask in the shared rail |
+| 5 | Visible contribution can encourage updates | Supported | Manual points failed; automatic records and monthly reports reduce effort (H1–H2) | Automatic contributions and a weekly recognition feature |
+| 6 | Handoff must be collected during ordinary work | Supported and expanded | Why is hardest to retain, long strategy documents go unread, and relationships belong to the organization and depend on contact frequency (I1–I4) | Put Why alongside steps; link contacts to the activity calendar |
+| 7 | AI trust requires verification | Supported | Even “nothing due this week” needs sources; errors need reporting (J1–J3) | Traceable answers, fresh-state reminder checks, error feedback |
+| 8 | Cross-organization workflow experience is the moat | Expanded | ASU rules, shared data, EOSS partnership, and prediction (N4) | Put all four on the roadmap; shared evidence begins in v2 |
 
-三条改变设计最多的新发现：
+Three major implications: prediction plus easy follow-through is the core; an officer update should take roughly 0.1 minutes and happen from a message or a reliable inference; president notifications should report urgent risks, without a daily message when nothing needs attention (K7).
 
-1. **Platypus 的心脏是“预测 + 一键推动”。** 你要的不是更漂亮的进度表，而是在来得及的时候知道该推谁，并且推一下不用花力气。
-2. **干部更新状态的成本必须接近零。** 你的快问快答是“0.1 分钟”。状态只能从消息里一键回复，或由系统推断，绝不能要求他们打开网站填表。
-3. **Platypus 必须主动找社长，而且只在重要时找。** 你不会为一个固定的日历提醒打开它，只在“紧急又重要”时才看（K7）。所以每天给社长的推送只报风险，没有风险就不发。
+## 3. Core loop
 
-## 3. 核心闭环
-
-Platypus 的每个功能都挂在一个六步闭环上；不服务这个闭环的功能，v1 不做。
+Features outside this six-step loop are outside v1.
 
 ```mermaid
 flowchart LR
-  A["1 捕捉<br/>社长：一句话、语音或转发邮件"] --> B["2 规划<br/>AI 起草，规则算日期，社长审核"]
-  B --> C["3 认领<br/>干部一键“我来”，交接才算完成"]
-  C --> D["4 推进<br/>到最晚开始日，推一条短提醒"]
-  D --> E["5 预测<br/>挑出前 3 个风险，社长一键推动"]
-  E --> F["6 沉淀<br/>贡献、手册、实际用时自动入库"]
-  F -->|下一场更准、更省力| A
+  A["1 Capture: sentence, voice, or forwarded email"] --> B["2 Plan: AI drafts, engine dates, president reviews"]
+  B --> C["3 Claim: the officer accepts ownership"]
+  C --> D["4 Advance: short reminder at latest start"]
+  D --> E["5 Predict: top three risks and one-action follow-through"]
+  E --> F["6 Retain: contributions, handbook, actual effort"]
+  F -->|Better next event and next term| A
 ```
-图：核心闭环。社长只在 1、2、5 三步出手（说一句话、审核变更单、一键推动）。
 
-粗框是社长要出手的三步，其余由 AI、规则引擎和干部完成。
+The president acts at capture, approval, and follow-through (1, 2, 5); rules, AI, and officers handle the rest.
 
-1. **捕捉：** 社长用一句话、语音、粘贴的聊天记录或转发的邮件告诉 Platypus 一件事。
-2. **规划：** AI 判断它是活动、干部任务还是成员事务，按流程模板拆成节点；规则引擎算出三个截止日；社长审核这张“变更单”后才生效。
-3. **认领：** 每个节点发给唯一负责人，对方一键认领后，任务才算真正交出去。
-4. **推进：** 到“最晚开始日”推一条短提醒；干部在消息里一键回状态；一直沉默就按协议升级。
-5. **预测：** 每天重算依赖链，算出每场活动按时完成的把握，把最危险的 3 件事放进社长的风险队列。
-6. **沉淀：** 完成的节点自动变成贡献记录、岗位手册条目和“实际用时”，下一场活动和下一任干部直接用。
+1. Capture a sentence, voice transcription, pasted conversation, or forwarded email.
+2. Distinguish an event, officer task, or member matter; draft template steps; let the rule engine calculate dates; review the change card before applying it.
+3. Send each node to one responsible owner; assignment is complete only when that person claims it.
+4. Remind at the latest start; accept one-action status replies and escalate sustained silence privately.
+5. Recompute dependencies daily and estimate on-time completion; show the three greatest risks.
+6. Turn completed work into contributions, role-handbook evidence, and actual-duration history for future events and officers.
 
-## 4. 八个核心机制
+## 4. Eight core mechanisms
 
-这八个机制把你在访谈里描述的管理习惯变成产品规则，是 Platypus 和普通任务工具最大的不同。
+Illustrative USG catering request for a November 19 event:
 
-| 日期（示例：USG 餐饮申请，活动 11/19） | 名称 | 触发的动作 |
+| Date | Meaning | Action |
 | --- | --- | --- |
-| 周三 10/28 | 最晚开始日 | 推送短提醒，按个人偏好的渠道和时间 |
-| 周五 10/30 | 社团截止日 | 逾期：当天通知社长；私下处理，按沉默协议升级 |
-| 周三 11/4 | 官方截止日（学校） | 进入 Plan B：改期、换经费来源或缩小规模 |
+| Wed Oct 28 | Latest start | Short reminder at the officer's preferred time/channel |
+| Fri Oct 30 | Club deadline | Notify the president that day; handle privately and follow silence rules |
+| Wed Nov 4 | Official deadline | Use Plan B: reschedule, change funding, or reduce scope |
 
-最晚开始日 → 社团截止日 = 预计用时 1 天 + 个人缓冲 1 天；社团截止日 → 官方截止日 = 社团缓冲 3 个工作日。日期为示意。
+The illustrated latest-start-to-club gap is 1 estimated workday plus 1 personal buffer day; club-to-official is a 3-business-day organization buffer. These are examples, not authoritative event dates. Officers are prompted at latest start, the president is called after the club deadline, and the official deadline protects Plan B.
 
-干部收到的是“最晚开始日”，社长只在“社团截止日”过了才被叫到；学校的官方截止日留给 Plan B。
-
-| 机制 | 怎么运作 | 依据 | 版本 |
+| Mechanism | Behavior | Basis | Planned version |
 | --- | --- | --- | --- |
-| 1. 三个截止日 | 每个节点显示官方截止日（学校）、社团截止日（官方减去社团缓冲，默认 3 个工作日）、最晚开始日（社团截止日减去预计用时、个人缓冲和忙碌周）。“逾期”指过了社团截止日，当天通知社长；过了官方截止日就进入 Plan B | 快问 7；E2 你算的“10/26 最晚开始” | v1.0 |
-| 2. 认领握手 | 任务发出后，对方点“我来”才算交接完成；48 小时没认领，回到社长的风险队列 | D2：写下任务反而成了你自己的任务 | v1.0 |
-| 3. 一键状态与“带草稿延期” | 消息里四个按钮：完成、在等别人（选等谁）、需要帮助、申请延期。申请延期必须附上当前草稿，社长一键批准或拒绝 | C3 你的规则：拿不出草稿就不能延期；快问 5：更新状态约 0 分钟 | v1.0 |
-| 4. 风险队列与一键提醒 | 首页最多显示 3 件最危险的事，每件写清原因；旁边一个按钮，用对方偏好的渠道发一条写好的提醒 | C2：一键让人动起来 | v1.0 |
-| 5. 沉默协议 | 沿用 SEO 的 Ghost Owner Protocol：第 3、5 天自动轻提醒；第 7 天提示社长私聊并设 24 小时期限；第 8 天建议临时接手人；第 10 天生成新时间线和复盘任务。全程私下进行，天数可改 | SEO Strategy 4.4；C4 私聊而不是公开批评 | v1.0 演示 / v1.5 真实计时 |
-| 6. RACI 自动路由 | 每个节点有一个 R（负责）、一个 A（批准）、若干 C（咨询）和 I（知会）。节点完成或延误时，系统按 RACI 决定通知谁：下游收到“可以开始了”或“顺延提示”，批准人收到审批请求，社长只在有风险时被打扰 | F5：教授推荐的 RACI | v1.0 |
-| 7. 贡献记录 | 完成的节点按难度档（轻、中、重）和是否按时自动记分；每月生成贡献报告，社长批准后可转给指导老师；首页显示“本周之星”和完成榜；干部自己提出并完成的提案额外加分 | H1–H2、H5、H6 | v1.0 显示 / v1.5 导出报告 |
-| 8. Plan B 库 | 每类活动预置 2–3 个降级方案（无餐饮版、会费出资版、缩小规模版）；经费到“决定日”还没批，系统自动把选项摆给社长 | F6；SEO 案例：Marc Lore 活动在两周前才启动 Plan B | v1.0 |
+| 1. Three dates | Official deadline; club deadline, normally 3 business days earlier; latest start, subtracting effort, personal buffer, and busy-week effects. Club lateness notifies the president; official lateness triggers Plan B. | Quick question 7; E2 “10/26 latest start” example | v1.0 |
+| 2. Claim handshake | Owner explicitly claims; after 48 hours unclaimed, return to the president's risk queue. | D2: assignment otherwise becomes the president's own tracking task | v1.0 |
+| 3. One-action status and draft-backed extension | Done, Waiting on a named person, Need help, Need more time. The original extension design required a current draft and president approval. Later branch decisions can supersede this. | C3; quick question 5 | v1.0 |
+| 4. Risk queue and nudge | At most three highest risks, each explained, with a prepared reminder using recipient preferences. | C2 | v1.0 |
+| 5. Silence protocol | SEO Ghost Owner Protocol: light reminders on days 3/5; private president outreach with a 24-hour limit on day 7; suggested temporary owner day 8; revised timeline and review task day 10. Configurable and private. | SEO Strategy 4.4; C4 | v1.0 simulation; v1.5 real timing |
+| 6. RACI routing | One Responsible, one Accountable, and relevant Consulted/Informed roles. Notify downstream owners of readiness/delay, approvers of requests, and the president only of risks. | F5 | v1.0 |
+| 7. Contributions | Score completed work by light/medium/heavy difficulty tier and timeliness; monthly reports need president approval before sharing with an advisor. Show weekly recognition and completions; add credit for self-proposed completed work. | H1–H2, H5, H6 | v1.0 display; v1.5 report export |
+| 8. Plan B library | Two or three fallback variants per event type, such as no food, dues-funded, or smaller scale. Surface them if funding is still pending at its decision date. | F6; SEO Marc Lore example, where Plan B began only two weeks before the event | v1.0 |
 
-忙碌周和个人缓冲都来自首次设置（第 7 节），并随历史记录调整（第 9 节）。
+Initial busy weeks and personal buffers come from setup and adjust using history as described in section 9.
 
-## 5. 提醒的写法
+## 5. Reminder writing
 
-提醒从“写得完整”改为“分点短行、先讲 Why、只给一个动作”。问卷已经证明详细提醒更清楚（78%），却没有明显让人更早开始（55%）；你的答案指出缺的是后果和意义，不是步骤（E2–E3、E8、J1）。
+Use short lines, explain Why first, and request one action. Survey results favored detailed reminders for clarity (78%) but less strongly for starting earlier (55%); the interview emphasized consequences and meaning over additional steps (E2–E3, E8, J1).
 
-| 规则 | 内容 |
+| Rule | Requirement |
 | --- | --- |
-| 长度 | 正文约 100 个英文单词以内，用分点短行，不写成一整段。主题行就写动作、用时和截止日；更长的材料放进点开的任务页 |
-| 结构 | 固定分段：Why now（后果和谁在等，用依赖链里的真实日期）→ What → When（建议时段和截止日）→ How（最多 3 步）→ Why it matters（意义），最后是四个状态按钮。顺序沿用你的“三明治”和黄金圈 |
-| 语气 | 用 “we”，支持而不是命令；不评价对方的能力和用时 |
-| 禁用说法 | “Is it done yet?”、“ASAP”、“This should only take an hour”、“Just use AI”、全大写的 URGENT、公开点名。AI 生成后由程序再检查一遍，命中就重写 |
-| 时机 | 按个人偏好在早上或晚上发；复杂或用时波动大的任务提前；忙碌周提前发或避开；晚 10 点到早 8 点不发 |
-| 次数 | 同一任务最多 3 次；一旦标为完成或对方回复，立刻停止。重复提醒已完成的事，是你在 J1 特别点名的问题 |
-| 新鲜度 | 状态超过 3 天没更新时，第一句改为“如果已经完成，点这里告诉我”：先确认，不假设对方没做 |
-| 渠道 | 按个人偏好排序，默认 WhatsApp → 短信 → 邮件（E7、快问 11） |
+| Length | About 100 English words or fewer, in short sections. Subject: action, effort, deadline. Put longer material on the task page. |
+| Structure | Why now, using actual dependency consequences/dates → What → When, including suggested slot and deadline → How, at most 3 steps → Why it matters → four status controls. Follows the owner's sandwich/Golden Circle approach. |
+| Tone | Use “we”; support rather than order. Do not judge ability or how long someone should take. |
+| Forbidden | “Is it done yet?”, “ASAP”, “This should only take an hour”, “Just use AI”, all-caps URGENT, public naming/shaming. Check generated text and regenerate if needed. |
+| Timing | Preferred morning/evening; earlier for complex/variable work; anticipate or avoid busy weeks; no messages 10pm–8am. |
+| Frequency | Original limit: 3 per task; stop immediately after completion or reply. Never keep reminding about completed work. Later reminder contracts may refine these limits. |
+| Freshness | After more than 3 days without an update, begin by checking whether it is already done rather than assuming it is not. |
+| Channels | Recipient preference, default WhatsApp → text → email (E7, quick question 11). |
 
-示例（分点结构，正文约 100 个单词，发给财务）：
+Original example for the treasurer, approximately 100 words:
 
-> **Subject:** Start today: USG food request for Networking Night (\~30 min, due Fri Oct 30)
+> **Subject:** Start today: USG food request for Networking Night (~30 min, due Fri Oct 30)
 >
 > Hi Maya,
 >
@@ -141,380 +135,287 @@ flowchart LR
 >
 > **When:** Suggested slot Wed Oct 28, 7:00–7:30 pm (on your calendar). Club deadline Fri Oct 30; official deadline Wed Nov 4.
 >
-> **How (about 30 min):**
->
-> 1. Open the USG funding form \[link\]
-> 2. Paste the ready-made answers \[copy\]
-> 3. Attach the caterer quote and the flyer, then submit
+> **How (about 30 min):** Open the USG funding form [link]; paste the ready-made answers [copy]; attach the caterer quote and flyer, then submit.
 >
 > **Why it matters:** This is what makes the night work for our members. Thanks for carrying it.
 >
-> &#91;Done\] \[Waiting on…\] \[Need help\] \[Need more time\]
+> [Done] [Waiting on…] [Need help] [Need more time]
 
-这是按你的意见改成的分点版本。M2（改写提醒）你说后续再讨论，我们在工作包 WP2 的评审里用你自己的版本定稿。
+The owner requested this sectional version. Final M2 reminder wording was deferred to WP2 review using his own rewritten example.
 
-## 6. 页面与信息架构（v1.1，2026-10-23 更新）
+## 6. Pages and information architecture (v1.1, October 23)
 
-> 本节按《Platypus 简化改版方案》（https://claude.ai/artifact/QhCthf71crEC62bBua5zJD，2026-10-23 批准，8 个决定见 `docs/PROGRESS.md` 决定记录）重写。界面规则的正本是 `AGENTS.md` 第 7 节。
+Based on the [approved simplification plan](https://claude.ai/artifact/QhCthf71crEC62bBua5zJD), with eight decisions recorded in PROGRESS. Current interface instructions are in `AGENTS.md`.
 
-**一句话：** 用颜色、形状和位置说话，文字只在鼠标停下或点开时出现。借鉴 monday.com（一种容器、颜色即状态、原地编辑、AI 侧栏）和 Trainual（内容切小块、流程图少写字）。
+Convey status through color, shape, and position; reveal explanations on hover/selection. References: monday.com for containers, status colors, inline editing, and AI rail; Trainual for smaller content units and low-text workflows.
 
-**三栏布局：** 左边导航（8 页 + 设置、帮助）；中间内容；右栏有两个标签——**Ask**（全站唯一的 AI 入口）和 **Details**（点任何东西打开的详情）。手机上右栏是全屏面板，从右下角按钮打开。演示控制（日期、模拟时钟、重放设置、重置）收进顶栏的 “Demo” 小标，私下更新收进铃铛。
+Three columns: left navigation for eight pages plus settings/help; central work; right Ask/Details rail. Mobile uses a full-screen rail opened from the lower-right button. Put demo date/clock/replay/reset in the top-bar Demo menu and private updates in the bell.
 
-**5 个通用组件：** 状态色块（6 色：Not claimed 灰、To do 蓝、Working on it 橙、Waiting 紫、Stuck 红、Done 绿）、进度链（像查快递）、表格、悬停卡、右栏详情。**三级交互：** 看颜色 → 停在上面看悬停卡（最多 3 行）→ 点开右栏。
+Five shared primitives: status pills, progress chains, tables, hover cards, and rail details. Status semantics: Not claimed gray, To do blue, Working on it orange, Waiting purple, Stuck red, Done green. Interaction: glance at color → hover for at most three lines → select for full details.
 
-| 页面 | 回答的问题（导航悬停提示） | 主要视觉 |
+| Page | User question | Main presentation |
 | --- | --- | --- |
-| Today | 今天该推谁？ | 风险前三行（圆点颜色 + Remind 按钮）；每场活动一条阶段进度链；学期目标圆环；本周之星 |
-| Events | 这场活动走到哪、下一步谁来？ | **单主线流程图**：主线是到活动当天最长的依赖链，平行工作分叉再汇回；节点只有圆点、短名、负责人；悬停看截止日和原因，点开改负责人和社团截止日。另有列表视图 |
-| Tasks | 我该做什么？ | 表格（按活动分组，远期组折叠，负责人和截止日原地改）；看板（拖拽改状态和顺序，状态名称颜色、标签、卡片字段可自定义）；Timeline |
-| Team | 谁超载、谁该被表扬、什么时候能开会？ | 工作量档位条；贡献表；一周空闲热力图 + 会议时段 |
-| Funding | 每笔钱走到哪一步？ | 每场活动一行的物流链表（6 站），顶部三个合计；点一行在右栏填金额、做提交前检查、看 Plan B |
-| Handoff | 换届怎样不清零？ | 换届季进度链；每个岗位一张接力卡（卸任人 → 新任人、进度环）；点开是分步手册 |
-| Partners | 哪些关系该联系了？ | 可搜索、可筛选的表格，距上次联系天数带颜色，可直接新增 |
-| Rules | 学校怎么规定？ | 一行一条短句 + 时限标签 + 直达官网按钮 + 问 AI 按钮；全文和核实日期在悬停卡 |
-| Settings | Platypus 怎样为这个社团工作？ | 分 5 块（Club、Roles、Links & files、My preferences、Admin），改了就自动保存，可撤销 |
+| Today | Who needs a nudge today? | Top three risks, colored dots and Remind; event stage chains; semester-goal rings; weekly recognition |
+| Events | Where is this event, and who acts next? | One longest dependency spine to event day, parallel branches that rejoin; dots/short names/owners; hover dates/reasons; edit owner and club target in Details; alternative list |
+| Tasks | What should I do? | Event-grouped table with distant groups collapsed and inline owner/due edits; draggable customizable board; Timeline |
+| Team | Who is overloaded, who deserves recognition, when can we meet? | Workload bands, contributions, weekly availability heatmap and meeting slots |
+| Funding | Where is each funding request? | Six-stop chain per event, three totals, rail for amounts/preflight/Plan B |
+| Handoff | How do we avoid starting from zero? | Transition-season chain, outgoing-to-incoming role cards and progress rings, stepwise handbook |
+| Partners | Which relationships need contact? | Search/filter table, colored time-since-contact, direct add |
+| Rules | What does the school require? | Short rule, timing label, official source and AI question actions; full text/date on hover |
+| Settings | How should Platypus work for this organization? | Club, Roles, Links & files, My preferences, Admin; autosave and undo |
 
-**Ask 面板的 6 种回复卡片：** 文字、补信息表单（例如策划活动时让你填日期、人数、地点、餐饮、经费）、任务清单、变更单（逐条批准）、提醒草稿、规则答案（带出处）。明确的请求由应用自己处理，不用等 AI；其余交给 `/api/chat`。服务器和浏览器都会过滤卡片，AI 写的日期一律丢弃。
+Ask returns six card types: text, missing-information form, task list, individually reviewed change card, reminder draft, and sourced rule answer. Handle explicit common requests locally; otherwise call `/api/chat`. Server/browser both filter cards and discard AI-generated dates.
 
-**字数上限（主区可见文字）：** Today 160、Events 180、Rules 170、Tasks 130、Team 130、Settings 每块 125。2026-10-23 实测：105 / 95 / 134 / 111 / 108 / 89，比改版前少 60–75%。
+Original main-area word caps: Today 160, Events 180, Rules 170, Tasks 130, Team 130, Settings 125 per section. October 23 measured counts were 105/95/134/111/108/89, 60–75% below the previous interface. Later approved budgets supersede these figures.
 
-设计原则（沿用 v1.0）：
+Use visuals where useful; place explanation in Help/hover. Officer entry is mobile-first through a signed single-use task link; the prototype's actual authentication limits still apply. Numbers expose sources. Do not show login/online-time surveillance; focus on timely results (C6). Progress is visible to officers, escalations stay private, and only the president, VP, and administrator may send reminders under this historical rule (C5–C7).
 
-- **图优先于字。** 能用节点、条形或颜色表达的，不写段落；解释和免责声明放在帮助页或悬停卡里。
-- **干部端手机优先。** 从消息点开就是自己的任务页，不需要密码（带签名的一次性链接）。
-- **每个数字都能点开看来源。**
-- **不显示监控类数据。** 没有登录记录和在线时长，只看成果是否按时（C6）。
-- **进度对干部公开，升级只在私下。** 发提醒的权限只给社长、副社长和管理员（C5–C7）。
+## 7. First setup: five minutes for presidents, two for officers
 
-## 7. 首次设置：社长 5 分钟，干部 2 分钟
+Show the first workflow within five minutes (K2, quick question 6). Ask relevant questions only; officers supply their own information.
 
-目标是 5 分钟内看到第一张流程图（K2、快问 6）。不问与社团无关的问题；干部的信息由他们自己填。
+Original president steps:
 
-社长的五步：
+1. Organization, 30 seconds: name, school with ASU Tempe rules/calendar, optional one-sentence mission.
+2. Semester goals, 60 seconds: choose 2–3 numeric goals, such as weekly events, 30 loyal members, or $1,000 external revenue, based on SEO's charter.
+3. Roles, 60 seconds: choose/rename templates and map to generic functions; optionally paste an officer table.
+4. Invitations, 30 seconds: create a link for the officer group.
+5. First work item, 60 seconds: describe the next event and see its workflow immediately.
+6. An owner-added setup requirement proposed Calendar plus Gmail/WhatsApp connections, a fuller explanation of the organization's planning/responsibility practices, and uploads of existing planning files. Drive files would use a connector; otherwise download and upload files. This was an intended requirement, not evidence those integrations shipped.
 
-1. **社团（30 秒）：** 名称、学校（自动套用 ASU Tempe 规则包和校历）、一句话使命（可跳过）。
-2. **学期目标（60 秒）：** 从建议里选 2–3 个并填数字，例如每周一场活动、30 位忠实成员、$1,000 外部收入（来自 SEO Team Charter）。
-3. **岗位（60 秒）：** 从模板选岗位，名称可改，每个岗位映射到一个通用职能；也可以从表格粘贴干部名单。
-4. **邀请干部（30 秒）：** 生成一个邀请链接，发到干部群里。
-5. **第一件事（60 秒）：** 用一句话说出下一场活动，Platypus 立刻画出流程图。第一次使用就看到价值。
-6. 这里要多加一个设置步骤，应该在首次设置的时候就配置好：
-   1. 连接系统（必须配置的连接器）：
+Optional Drive-folder link: explain that task materials and handbooks can link back to originals. Officers answer five groups on mobile: name/role, channel/contact details, morning/evening, busy weeks, and career goals/interests/expectations (G4).
 
-   (a) Google Calendar 系统
-
-   (b) Gmail 或 WhatsApp
-   1. 社团介绍与规划说明：
-
-   跟 AI 解释一下社团平时是怎么规划活动的（不一定只用一句话），讲一下具体的职责分工，或者在之前那一步怎么进行调整。这样 AI 就可以自动匹配我们的通用模板。
-   1. 上传社团现有的规划文件：
-   - 如果全部放在 Google Drive 里，连接器会自动访问。
-   - 如果放在其他储存系统，希望社长能先把 schedule 系统的文件下载下来，再上传到我们首次测试的平台里。
-
-可选一步：粘贴社团 Drive 文件夹链接。页面会写明原因：让每个节点直接带上材料，交接手册也能链到原文件（K2）。
-
-干部的五个问题（在手机上完成）：确认姓名和岗位；提醒渠道和号码；早上还是晚上收提醒；本学期的忙碌周（考试、出行）；你入团时一定会问的三件事——职业目标、兴趣、对这个岗位的期望（G4）。
-
-| 设置数据 | 之后影响什么 |
+| Setup input | Effect |
 | --- | --- |
-| 渠道与时间偏好 | 提醒发到哪里、几点发 |
-| 忙碌周 | 最晚开始日自动提前；分配时避开考试周（B2） |
-| 职业目标与兴趣 | AI 建议负责人时优先匹配；贡献报告突出与目标相关的工作 |
-| 岗位映射 | 流程模板自动把节点分给对应岗位；跨社团经验可以对齐 |
-| 学期目标 | 今日页的进度条；新活动挂到对应目标下 |
-| Drive 链接 | 节点材料和交接手册的链接 |
+| Channel/time | Reminder destination and timing |
+| Busy weeks | Earlier latest start; avoid exams when assigning work (B2) |
+| Career goals/interests | Suggested ownership and relevant contribution highlights |
+| Role/function mapping | Template assignment and future cross-organization alignment |
+| Semester goals | Today progress and event association |
+| Drive link | Task materials and handbooks |
 
-演示版不会每次弹出设置，只在顶栏放一个“重新体验设置”按钮（你在 M4 的要求）。v1.5 再加“从 SEO ERP 表格导入”，让 SEO 试用不用重新录入。
+Do not show setup repeatedly in the demo; provide Replay setup as requested in M4. SEO ERP import is planned for v1.5 to avoid duplicate pilot entry.
 
-## 8. AI 的角色与护栏
+## 8. AI roles and guardrails
 
-AI 是起草员和观察员，不是决策者：它起草变更单、提醒、答案和手册，日期由规则引擎计算，生效由人批准。
+AI drafts and observes; it does not decide. Rules calculate dates, and people approve consequential changes.
 
-| AI 任务 | 输入 | 输出 | 谁批准 |
+| Task | Input | Output | Approval |
 | --- | --- | --- | --- |
-| 理解一句话 | 社长的句子、语音转文字、粘贴的聊天或邮件 | 一张变更单：要新建或修改的活动、节点和负责人，并注明是干部任务还是成员事务 | 社长逐条通过或修改 |
-| 起草提醒 | 任务、依赖链、收件人偏好 | 分点、正文约 100 词以内的提醒，已通过禁用说法检查 | 默认社长；v1.5 起可选自动 |
-| 回答规则问题 | 问题和规则库 | 1–3 句答案，每句带规则编号；找不到就拒答，并给出该问的办公室 | 不需要 |
-| 经费提交前检查 | 申请包里有哪些材料 | 缺什么、依据哪条规则 | 财务负责人 |
-| 理解干部回复 | 一句回复 | 完成、在等、要帮助、其他；把握不够就交给社长 | 自动，低把握转人 |
-| 交接访谈与手册 | 任务记录和访谈回答 | 岗位手册草稿 | 卸任干部确认，社长批准 |
-| 外部会议邮件（v1.5） | 内部共同空闲时间 | 附 3 个时间的邮件草稿 | 社长 |
+| Understand a request | Sentence, voice transcript, pasted chat/email | Change card with events/nodes/owners; distinguish officer tasks and member work | President reviews each item |
+| Draft reminder | Task, dependencies, recipient preferences | Sectional reminder, about 100 words, forbidden-language check | President by default; optional automation from v1.5 |
+| Answer policy question | Question and rule library | 1–3 sentences with rule IDs; decline unsupported questions and identify the right office | None |
+| Funding preflight | Submitted-material inventory | Missing items and rule references | Treasurer |
+| Classify reply | One sentence | Done/waiting/help/other | Automatic; uncertainty goes to a person |
+| Handoff interview/handbook | Task evidence and interview answers | Role-handbook draft | Outgoing officer confirms; president approves |
+| External meeting email, v1.5 | Shared internal availability | Draft with 3 time options | President |
 
-AI 绝不做的五件事（前三条是你定的，J1）：
+Never invent facts, contact outsiders without consent, use hostile reminder language, calculate/change dates, or read member rosters/student personal information. Say when the library lacks evidence (J1).
 
-1. 编造事实。找不到依据就说“规则库里没有”。
-2. 未经同意联系社团以外的任何人。
-3. 用不友善的语气提醒成员。
-4. 计算或修改任何日期。
-5. 读取成员名单或学生个人信息。
+Review-before-send is the default: AI drafts, and the president or VP presses send. Planned v1.5 automatic mode is president-enabled, internal, email-only; external contact always needs approval. v1.0 opens prepared WhatsApp/text/Gmail drafts for a person to send.
 
-**两种发送模式（快问 8：给用户选）：** “审核后发送”是默认，AI 起草，社长或副社长点一下发出。“自动发送”从 v1.5 开始提供，只限社团内部提醒、只走邮件，由社长在设置里开启；对外联系永远要人批准。v1.0 的“发送”是一键打开已写好的 WhatsApp、短信或 Gmail，由人按发送。
+List sources for conclusions, including “nothing due this week” (J2), and offer “This is wrong” feedback to an admin queue (J3). The original evaluation plan was 30–50 rule questions including out-of-scope cases, 20 commands, and 20 reminder-tone cases around model changes. Later restrictions on live tests take precedence. The original plan used AIR for Phase 3, asserting that data stays at ASU, and DeepSeek for fictional development; DeepSeek was subsequently removed. President-only read-only mailbox/Drive access was deferred to v2; do not connect every member's mailbox in v1 because of capacity, call volume, security, and open-model integration complexity (J5). Keep a rules-only setting without a separate page (J6).
 
-**准确性与反馈：**
+## 9. Prediction and risk
 
-- 每个答案、每句“本周没有待办”都列出查了哪些来源（J2）。
-- 每条 AI 输出旁有“这不对”按钮，进入管理员队列（J3）。
-- 固定测试集：30–50 道规则题（含故意超出范围的题）、20 句命令、20 条提醒的语气检查。每次换模型前后各跑一遍。
-- 模型：Phase 3 用 ASU AIR（数据留在 ASU）；开发阶段用现在已接通的 DeepSeek，只处理虚构数据。切换只改 Netlify 的环境变量。
-- 读取邮箱和 Drive：只考虑社长自己的账号、只读、v2 再做。接入每位成员邮箱的顾虑（容量、调用量、安全、开源模型接入复杂度）你已经列出，v1 不碰（J5）。
-- “只用规则”模式：你认为必要性不大（J6）。保留为设置里的一个开关，不再为它单独设计页面。
+Simulate the dependency chain 1,000 times and estimate how often it finishes by the club deadline, with explicit assumptions, rather than asking AI to guess (E2). The cited design example was a 33% probability of causing a downstream deadline to be missed; simulation assumptions must explain such a figure.
 
-## 9. 预测与风险
+1. Effort ranges by difficulty: light 1–2 days, medium 3–5 days, heavy 1–2 weeks, adjustable; school approval steps use official lead time plus an experience margin.
+2. Personal buffers start equally and adjust gradually with the officer's own on-time history; add busy-week effects.
+3. Sample the chain 1,000 times each day to estimate critical-node completion.
+4. Default display: green at least 80%, yellow 50–80%, red below 50%, plus two main reasons such as an unresolved venue or upcoming exams. Show percentages/assumptions only on request.
 
-Platypus 用模拟而不是猜测来回答“这场活动会不会出事”：把依赖链随机跑 1,000 次，看有多少次能在社团截止日前完成。这就是你在 E2 里设想的“33% 的概率导致后续错过截止日”，而且每个数字都能说清楚假设。
+Cold start uses official lead times, the owner's 6–8-week funding guidance (F3), and SEO T-90/T-60/T-30/T-14 templates.
 
-**怎么算：**
+Personal buffers infer habits and must be transparent and controllable: visible with reasons only to the person; private and absent from rankings; scheduling-only; based only on this organization's work; reset at transition unless the person chooses retention; switchable to defaults. Call it “personal buffer”, never a procrastination score. The thesis can discuss appropriate reliance (Lee & See, 2004) and autonomy-supportive language (Deci et al., 1994).
 
-1. **用时范围：** 每个节点按难度档给一个范围（轻 1–2 天、中 3–5 天、重 1–2 周，可调）；涉及学校审批的节点按官方时限加经验余量。
-2. **个人缓冲：** 每位干部起点相同，之后按他自己过去按时完成的比例慢慢调整；忙碌周再加一段。
-3. **模拟：** 每天把整条链抽样 1,000 次，得到每个关键节点按时完成的比例。
-4. **显示：** 默认只显示颜色和原因——绿色（至少 80% 的模拟按时）、黄色（50–80%）、红色（低于 50%），旁边写最大的两个原因，例如“上游场地确认还在等”、“负责人下周有考试”。点开才显示百分比和假设。
+Cross-organization signals (M5): after approval, one-action reporting of how many weeks it took; 68% reported willingness. Show a workflow aggregate only after 5 reports, for example a 3-week median from 12 organizations. Begin in v2. A weekly check for changed rule-source pages, followed by admin verification, was proposed for v1.5.
 
-**冷启动：** 没有历史数据之前，用官方时限、你给的“经费至少提前 6–8 周”（F3）和 SEO 活动模板的 T-90 / T-60 / T-30 / T-14 节奏。
+## 10. Metrics
 
-**个人缓冲的伦理边界：** 它在推断一个人的习惯，所以必须透明、可控。
+North star: proportion of weekly due critical-path nodes completed by their club deadline. It reflects avoiding missed deadlines (N7), cannot be inflated by minor tasks, and supports within/across-organization comparison.
 
-- 干部本人能看到自己的缓冲和理由。
-- 不公开，不进排行榜；只用于排期，不用于评价。
-- 只用本社团的任务记录；换届时清零，或由本人决定是否保留。
-- 本人可以关闭，改用默认值。
-- 叫“个人缓冲”，不叫“拖延分”。
-
-这也是论文里可以写的设计贡献：用透明的预测建立恰当的信任（Lee & See，2004），用自主支持的措辞保护动机（Deci 等，1994）。
-
-**跨社团信号（你的“魔法棒”，M5）：** 每次审批后，干部一键回报“这次批了几周”（68% 愿意回答）。同一流程满 5 条才显示，例如“最近 USG 审批中位数 3 周（12 个社团回报）”。另加一个规则变化检测：每周检查规则来源页面有没有更新，变了就提醒管理员核实。前者从 v2 开始，后者 v1.5 就能做。
-
-## 10. 指标体系
-
-**北极星指标：关键节点按时率**——每周到期的关键路径节点中，在社团截止日前完成的比例。它直接对应你说的“核心还是不错过 deadline”（N7）；只算关键路径，靠刷小任务刷不上去；每个社团都能算，跨社团也可比较。
-
-| 类型 | 指标 | 定义 | 为什么要它 |
-| --- | --- | --- | --- |
-| 驱动 | 按时开工率 | 在最晚开始日或之前被认领并开始的节点比例 | 直接衡量“更早开始”，即问卷里最弱的 55% |
-| 驱动 | 提醒到行动的时间 | 提醒发出到对方点任何状态按钮的中位小时数 | 你提的“任务流转效率” |
-| 驱动 | 沉默节点数 | 7 天以上没有任何更新的节点 | Ghost Owner 的早期信号 |
-| 驱动 | 经费一次通过率 | 提交后没有被退回补材料的申请比例 | F1：最大的风险是提交时不合规 |
-| 驱动 | 社长每周行政时间 | 每周日一键自报（0–1、2–3、4–6、7 小时以上） | 你的“每周行政时长” |
-| 驱动 | 每周活跃干部比例 | 一周内至少回过一次状态的干部比例 | 采用的真实信号 |
-| 护栏 | 每人每周收到的提醒数 | 上限 6 条 | 超过就是在“轰炸” |
-| 护栏 | 静音或退出率 | 关掉提醒的干部比例 | 提醒是否让人反感 |
-| 护栏 | 压力感 | 每月一键评分“提醒让我有压力” | 守住“支持而不是控制” |
-| 护栏 | AI 错误报告数 | “这不对”按钮的次数和类型 | 信任的底线 |
-| Phase 3 | 任务成功率与用时 | T1–T6 逐项记录 | 实验室里可测，不依赖长期使用 |
-| Phase 3 | SUS、NASA-TLX 原始版 | 标准量表；SUS 68 分常被当作平均线 | 可用性和负荷 |
-| Phase 3 | 信任校准 | 参与者有没有点开来源核对 | 是否“恰当地”信任 AI |
-
-Phase 3 只能测实验室里的指标；北极星和驱动指标从 v1.5 的 SEO 真实试用开始积累，写进论文的“未来研究”。
-
-## 11. 技术方案
-
-> **v1.2 补充（2026-10-23，Juanxi 批准）：AI 的数据权限。** 读：AI 能看到当前查看者在页面上能看到的全部数据（别人的个人缓冲和私信除外），以及服务器上的共享池（v1.0 为虚构演示，只读；v2 换成各社团自愿共享的真实数据）。写：只能改本社团的数据，权限和查看者本人一样；改状态、改名、标签、难度、记录联系这类小改动立即生效并可撤销，换负责人、加任务、改活动、改经费、加伙伴等仍要社长或副社长确认。共享池任何人和 AI 都不能通过 AI 修改。日期仍只由规则引擎计算，AI 只能复述已有日期。
-
-继续用方案 C 的骨架（Netlify 静态网站 + 服务器函数 + 可替换的 AI 供应商），但前端从单个 HTML 文件升级为正式的应用工程。仓库里已经有 5 个服务器接口（AI 部分已接通 DeepSeek），全部保留。
-
-```mermaid
-flowchart LR
-  P["社长<br/>下命令、审核、一键推动"] --> W
-  subgraph W["Platypus 网站（在浏览器里运行）"]
-    W1["页面：今日、活动、任务等 8 页"]
-    W2["规则引擎：工作日、三个截止日、依赖重排"]
-    W3["预测：依赖链模拟 1,000 次，挑出风险"]
-  end
-  W --> D["数据：v1.0 存在浏览器 → v1.5 Supabase"]
-  W --> F["服务器函数 /api/*<br/>command · nudge/draft · ask · preflight · handbook · classify · digest(v1.5)<br/>AI key 只存在这里"]
-  F --> AI["AI 供应商<br/>ASU AIR（Phase 3）/ DeepSeek（开发，只用虚构数据）"]
-  W --> CH["发送渠道<br/>v1.0：一键打开写好的 WhatsApp · 短信 · Gmail<br/>v1.5：自动邮件和每日摘要"]
-  CH -->|消息里带任务页链接| O["干部<br/>手机上点开、一键回状态"]
-  O --> W
-```
-图：系统架构。AI key 只在服务器上，日期只由规则引擎算。
-
-规则引擎和预测都在浏览器里运行，所以演示不依赖网络；AI 只通过服务器函数调用，换供应商只改环境变量。
-
-| 层 | v1.0（11/8） | v1.5（12 月） | 理由 |
-| --- | --- | --- | --- |
-| 前端 | React + TypeScript + Vite；React Flow 画流程图；手机自适应 | 同左 | 现在的单文件已有约 13.7 万字符，流程图、拖动编辑和 8 个页面在单文件里难以维护 |
-| 托管 | Netlify，推送即部署。开发在 v1 分支的预览网址进行，11/8 再合并到 main | 同左 | 开发期间正式网址保持稳定，委员会随时可看 |
-| 数据 | 只存在浏览器里：虚构演示组织，可一键重置，每位 Phase 3 参与者一份 | Supabase（Postgres 免费层）+ 邮件一次性链接登录 | Phase 3 不在服务器存任何参与者数据，IRB 最简单；真实试用才需要多人同步 |
-| AI | 现有适配器；开发用 DeepSeek，Phase 3 用 ASU AIR | 同左 | 已经接通，换供应商只改环境变量 |
-| 发送 | 一键打开写好的 WhatsApp、短信、Gmail，由人按发送；日历链接 | 邮件自动发送（smtp.asu.edu 或免费发信服务）；每日风险摘要 | WhatsApp 商业接口需要企业认证和模板审批，放到 v2 |
-| 定时 | 演示用“模拟时钟”，可快进几天看沉默协议和预测的变化 | Netlify 定时函数：每天早上算风险、发摘要 | Phase 3 是 60 分钟的会话，需要快进 |
-| 测试 | 规则引擎单元测试、Playwright 端到端测试、AI 测试集 | 加上线上错误监控 | 你不写代码，测试就是你的质量保障 |
-
-数据模型（v1.0 和 v1.5 共用，只有存放位置不同）：
-
-| 对象 | 主要字段 |
-| --- | --- |
-| Org 社团 | 名称、学校、使命、学期目标、设置（社团缓冲天数、沉默协议天数、发送模式） |
-| Role 岗位 | 显示名称、通用职能、现任者 |
-| Person 干部 | 姓名、岗位、渠道与号码、提醒时间偏好、忙碌周、职业目标与兴趣、个人缓冲 |
-| Event 活动 | 名称、日期、类型、人数、场地、餐饮、经费来源、关联目标、流程模板 |
-| Node 节点（任务） | 标题、所属活动或事务、R/A/C/I、依赖、难度档、三个截止日、规则编号、状态、认领时间、等待对象、草稿链接、Why |
-| Playbook 流程模板 | 节点模板、默认提前量（T-90/60/30/14）、默认 RACI、Plan B 选项 |
-| Nudge 提醒 | 节点、渠道、文本、发送人、时间、回应 |
-| Contribution 贡献 | 人、节点、分数、是否按时 |
-| Contact 联系人 | 姓名、组织、关系、上次联系、建议频率、负责岗位、关联活动 |
-| Funding 经费 | 活动、阶段、金额、提交前检查结果、用款截止日 |
-| Rule 规则 | 编号、类别、内容、时限、出处、核实日期 |
-| Handoff 换届季 | 时间窗、岗位、访谈、手册版本 |
-| ChangeSet 变更单 | AI 提议的操作列表、状态（待审、已应用、已拒绝） |
-
-AI 接口：
-
-| 接口 | 状态 | 作用 |
+| Type | Metric | Definition/purpose |
 | --- | --- | --- |
-| `/api/health`、`/api/replies/classify` | 已有，保留 | 检查 AI 是否可用；理解干部回复 |
-| `/api/ask` | 已有，升级 | 加上规则类别，并返回“查了哪些来源” |
-| `/api/parse-brief`、`/api/plan/draft` | 已有，并入 `/api/command` | 保留为内部步骤 |
-| `/api/command` | 新 | 一句话 → 变更单。只允许白名单里的操作（新建活动、加节点、指定负责人、设难度档、连依赖、提议提醒、回答问题）；输出中出现日期字段一律丢弃 |
-| `/api/nudge/draft` | 新 | 提醒草稿，附禁用说法检查 |
-| `/api/preflight` | 新 | 经费申请提交前检查，每条缺项带规则编号 |
-| `/api/handbook/draft` | 新 | 从任务记录和卸任访谈生成岗位手册草稿 |
-| `/api/digest` | v1.5 | 每日风险摘要：没有风险就不发 |
+| Driver | On-time start | Claimed and started by latest start; measures the weaker 55% earlier-start outcome |
+| Driver | Reminder-to-action time | Median hours until any status action; task flow efficiency |
+| Driver | Silent nodes | No update for more than 7 days; early Ghost Owner signal |
+| Driver | First-pass funding acceptance | No request to resubmit missing material; F1 compliance risk |
+| Driver | President admin hours | Sunday self-report: 0–1, 2–3, 4–6, 7+ hours |
+| Driver | Weekly active officers | At least one status response per week |
+| Guardrail | Reminders per person | Maximum 6 weekly under the original plan |
+| Guardrail | Mute/opt-out | Proportion disabling reminders |
+| Guardrail | Perceived pressure | Monthly one-action “reminders make me feel pressured” rating |
+| Guardrail | AI error reports | Count and type from feedback |
+| Phase 3 | Task success/time | Record T1–T6 separately |
+| Phase 3 | SUS and raw NASA-TLX | Standard usability/workload measures; SUS 68 is commonly used as an average reference |
+| Phase 3 | Trust calibration | Whether participants open sources to verify |
 
-## 12. 版本路线图
+Phase 3 measures laboratory outcomes only. Collect north-star/driver metrics from a real v1.5 SEO pilot and describe them as future research in the thesis.
 
-四个版本各有一个明确的用户和闸门：论文版给 Phase 3 参与者，SEO 真实版给你自己的团队和换届，多社团版给 EOSS 试点，多校版给学校采购。
+## 11. Technical design
 
-闸门（进入下一阶段的条件）：
+**v1.2 addition, October 23:** AI reads what the current viewer can see, excluding other people's personal buffers/private messages, plus the then-fictional read-only shared pool. The historical v2 plan replaced its examples with real data voluntarily shared by organizations. It writes only this organization's data under the viewer's permissions. Small status/name/tag/difficulty/contact-history changes apply immediately with undo; consequential owner/task/event/funding/partner changes originally required president/VP review. Later task/approval decisions supersede these specifics. Nobody modifies the pool through AI. Dates remain deterministic; AI may repeat existing dates only.
 
-1. v1.0 → v1.1：11/8 定版，T1–T6 在正式网址上走通。
-2. v1.1 → Phase 3：IRB 获批，AI 测试集答对率 ≥ 90%。
-3. v1.5 → v2：SEO 试用中关键节点按时率上升，每周活跃干部 ≥ 60%。
-4. v2 → v3：EOSS 试点社团留下来继续用。
+Continue option C: Netlify static frontend, server functions, replaceable AI adapter; replace the growing single HTML frontend with an application project. The original plan required retaining all five existing server endpoints; later endpoint removals belong to their separate dated decisions. The original diagram described browser rule/prediction engines, server-only AI keys, v1 browser storage then planned v1.5 Supabase, prepared channel drafts then automated email/digest, and officers updating from linked mobile pages. These were planned stages, not a claim of production accounts or storage.
 
-每个闸门都有可以检查的条件；过不了就停在当前阶段修，而不是继续加功能。
-
-| 版本 | 时间 | 给谁用 | 重点 |
+| Layer | Original v1.0 plan, Nov 8 | Original v1.5 plan, December | Rationale |
 | --- | --- | --- | --- |
-| v1.0 论文版 | 10/23–11/8 | Phase 3 参与者、委员会 | 完整闭环、全部八个机制、虚构演示社团、数据只在浏览器 |
-| v1.1 | 11/9–11/15 | 一位不参与研究的同学试跑 | 修问题、切换 ASU AIR、AI 测试集过线 |
-| Phase 3 | 11/16–12/4 | 4–6 位参与者 | 评估，代码冻结，只修阻塞性问题 |
-| v1.5 SEO 真实版 | 12 月 | SEO 干部、你的换届 | 数据存储与登录、自动邮件和每日摘要、从 SEO ERP 导入、规则变化检测、贡献报告导出。SEO 试用只算开发测试，不进论文数据 |
-| v2 多社团版 | 2027 年春 | EOSS 合作的 5–10 个社团 | 跨社团匿名回报、WhatsApp 商业接口、Google 日历忙闲、会议录音变任务、用真实数据校准预测 |
-| v3 多校版 | 2027–28 | 其他学校 | 每校一个规则包（AI 抓取加学校合作）、学校付费、团队 AI 与个人 AI 协作 |
+| Frontend | React/TypeScript/Vite, React Flow, responsive mobile | Same | Roughly 137,000-character single file was hard to maintain with graphs/dragging/eight pages; later graph decisions supersede React Flow |
+| Hosting | Netlify; develop on `v1` preview, merge November 8 after approval | Same | Keep committee-facing production stable |
+| Data | Browser-only fictional organization, resettable, one per participant | Supabase Postgres free tier and email magic links | Avoid server participant data in the original Phase 3 plan; shared persistence needed for real use |
+| AI | Existing adapter; originally DeepSeek development/AIR study | Same original adapter plan | Later AIR-only policy supersedes DeepSeek |
+| Sending | Prepared WhatsApp/text/Gmail drafts and calendar links | Automatic email via the historical `smtp.asu.edu`/free-service option and daily risk digest | WhatsApp business verification/templates deferred to v2 |
+| Timing | Fast-forward demo clock | Daily Netlify scheduled risk/digest work | Support a 60-minute study session |
+| Tests | Rule units, Playwright, fixed AI cases | Add online error monitoring | Provide quality evidence for a non-coding owner |
 
-你在 M3 的取舍表落到各版本：
+| Entity | Main fields |
+| --- | --- |
+| Org | Name, school, mission, goals, buffers, silence timing, sending mode |
+| Role | Display name, generic function, current holder |
+| Person | Name, role, channel/contact, time preferences, busy weeks, career goals/interests, personal buffer |
+| Event | Name/date/type/attendance/venue/food/funding/goal/playbook |
+| Node | Title, parent event/work, RACI, dependencies, difficulty tier, three dates, rule IDs, status, claim time, waiting person, draft link, Why |
+| Playbook | Node templates, T-90/60/30/14 defaults, RACI, Plan B |
+| Nudge | Node, channel, text, sender, time, response |
+| Contribution | Person, node, points, timeliness |
+| Contact | Name, organization, relationship, last contact, frequency, owning role, events |
+| Funding | Event, stage, amount, preflight results, spending deadline |
+| Rule | ID, category, text, timing, source, verification date |
+| Handoff | Window, role, interviews, handbook version |
+| ChangeSet | Proposed operations and pending/applied/rejected state |
 
-| 模块 | 你的判断 | v1.0 | 之后 |
+| Endpoint | Original status | Purpose |
+| --- | --- | --- |
+| `/api/health`, `/api/replies/classify` | Retain | AI configuration and reply classification |
+| `/api/ask` | Extend | Rule category and sources checked |
+| `/api/parse-brief`, `/api/plan/draft` | Fold into command flow | Retain as internal compatibility steps |
+| `/api/command` | Add | Sentence → whitelisted event/node/owner/effort/dependency/nudge/answer operations; discard all date fields |
+| `/api/nudge/draft` | Add | Reminder with forbidden-language check |
+| `/api/preflight` | Add | Missing funding items with rule IDs |
+| `/api/handbook/draft` | Add | Task/outgoing-interview-based handbook |
+| `/api/digest` | v1.5 | Daily risk summary; send nothing without risk |
+
+## 12. Roadmap
+
+Each stage has a specific audience and gate. Stay at the current stage to fix failed gates instead of adding features.
+
+Original gates: v1.0→v1.1 after the November 8 freeze and T1–T6 on production; v1.1→Phase 3 after IRB approval and at least 90% AI test-set accuracy; v1.5→v2 after improved critical-node timeliness and at least 60% weekly officer activity; v2→v3 after EOSS pilot organizations continue using the product.
+
+| Version | Original window | Audience | Focus |
 | --- | --- | --- | --- |
-| 任务、唯一负责人与提醒 | 必须 | 完整 | v1.5 自动邮件；v2 WhatsApp 接口 |
-| 活动倒推时间线 | 必须 | 单主线流程图（v1.1；时间轴视图在 Tasks 的 Timeline） | v2 用跨社团用时校准 |
-| AI 一句话拆解 | 必须 | 打字和浏览器语音输入 | v1.5 粘贴聊天、转发邮件 |
-| 经费申请状态追踪 | 必须 | 阶段条、提交前检查、用款进度 | v2 跨社团审批用时 |
-| 合作伙伴与联系人 | 必须 | 联系人和联系间隔提醒 | v1.5 前任引荐邮件 |
-| 宣传排期 | 必须 | 作为流程模板里的宣传节点，各渠道提前量取自 SEO 的 Marketing 表 | — |
-| 会议时间协调 | 必须 | 干部在设置里填空闲时段，系统找共同时间 | v1.5 外部会议邮件；v2 Google 日历忙闲 |
-| 文件搜索与整理 | 必须 | 节点和岗位挂 Drive 链接 | v2 Drive 只读搜索 |
-| 岗位手册与交接 | 必须 | 完整 | v1.5 用于你的真实换届 |
-| AI 政策问答 | 必须 | 完整 | v1.5 规则变化检测 |
-| 跨社团经验库 | 必须 | 框架和明确标注“示例”的内容 | v2 真实匿名回报 |
-| 工作量看板 | 更好 | 档位条 | — |
-| 贡献记录与激励 | 更好 | 榜单和本周之星 | v1.5 月度报告导出 |
-| 预算总账 | 更好 | 只做用款进度 | — |
-| 成员名单与出勤 | 更好 | 不做 | v2，且不重复 Sun Devil Central |
-| 会议录音 → 任务 | 更好 | 不做 | v2 |
-| 库存 | 不要碰 | 不做 | 不做 |
+| v1.0 thesis | Oct 23–Nov 8 | Study participants/committee | Full loop, eight mechanisms, fictional organization, browser data |
+| v1.1 | Nov 9–15 | One non-participant student rehearsal | Fixes, AIR switch, AI gate |
+| Phase 3 | Nov 16–Dec 4 | 4–6 participants | Evaluation, frozen code except blockers |
+| v1.5 SEO | December | SEO officers and owner's transition | Accounts/storage, email/digest, ERP import, source-change detection, contribution export; development pilot excluded from thesis data |
+| v2 | Spring 2027 | 5–10 EOSS organizations | Anonymous experience, WhatsApp business, Calendar free/busy, meeting-audio tasks, real-data forecast calibration |
+| v3 | 2027–28 | Other campuses | Per-campus rule packages using AI retrieval and school cooperation, school payment, team/personal AI cooperation |
 
-v1.0 的范围很大。如果进度落后，按这个顺序砍：合作伙伴页 → 会议时间查找 → 甘特图切换 → 语音输入。闭环本身（第 3 节）和 Phase 3 要用到的页面不砍。
+| Module | Priority | v1.0 scope | Later |
+| --- | --- | --- | --- |
+| Tasks, one owner, reminders | Required | Complete core | Email v1.5; WhatsApp v2 |
+| Backward event timeline | Required | Single-spine event flow; Tasks Timeline | Shared-duration calibration v2 |
+| Natural-language breakdown | Required | Text/browser voice | Pasted chat/forwarded mail v1.5 |
+| Funding progress | Required | Stages/preflight/spending progress | Shared approval durations v2 |
+| Partners/contacts | Required | Contacts and cadence | Outgoing-officer introductions v1.5 |
+| Publicity | Required | Template nodes and SEO channel lead times | No separate added module |
+| Meetings | Required | Entered availability and common slots | External scheduling email v1.5; Calendar free/busy v2 |
+| Files | Required | Drive links on nodes/roles | Read-only search v2 |
+| Handbook/handoff | Required | Complete core | Real transition v1.5 |
+| AI policy Q&A | Required | Complete core | Rule-change detection v1.5 |
+| Shared experience | Required | Explicitly labelled examples/framework | Real anonymous reports v2 |
+| Workload | Desirable | Workload bands | — |
+| Contributions | Desirable | Rankings/weekly recognition | Monthly export v1.5 |
+| Budget ledger | Desirable | Spending progress only | — |
+| Member rosters/attendance | Desirable | Excluded | v2 without duplicating Sun Devil Central |
+| Audio-to-tasks | Desirable | Excluded | v2 |
+| Inventory | Do not pursue | Excluded | Excluded |
 
-## 13. Claude Code 执行计划
+If late, cut in order: Partners page → meeting finder → Gantt switching → voice input. Do not cut the core loop or Phase 3 screens.
 
-v1.0 分 7 个工作包，每个 2–3 天，都有可以检查的验收标准。每个工作包结束时，我发一个预览网址和一段 1 分钟能看完的变化说明；你只需要回“可以”或“改哪里”。
+## 13. Claude Code execution plan
 
-| 工作包 | 日期 | 交付物 | 验收标准 | 你要做的事 |
+Seven original work packages, nominally 2–3 days each. After each, provide a preview and a one-minute change explanation; Juanxi accepts or identifies changes.
+
+| Package | Original dates | Deliverable | Acceptance | Owner action |
 | --- | --- | --- | --- | --- |
-| WP0 地基 | 10/23–10/24 | v1 分支；React + TypeScript + Vite 工程；沿用现在的配色和字体；本地演示数据与一键重置；8 个页面的导航和帮助页；本计划存入仓库 docs/；自动测试和预览网址 | 预览网址能打开；每次推送自动构建并跑测试；正式网址不受影响 | 10/23 RTO 咨询后，告诉我 AIR 的 key 和可用模型 |
-| WP1 引擎与流程图 | 10/24–10/27 | 规则引擎移植到 TypeScript（工作日、ASU 假期、三个截止日、依赖）；流程模板（SEO 的 OA101 立项、OA102 执行、OA201 经费，加 T-90/60/30/14 清单和 R01–R16）；活动页泳道流程图、侧栏编辑、甘特图切换 | 单元测试覆盖示例活动的全部日期；改一个节点的日期，下游自动重排，违反规则的地方标红 | 10/27 看一次预览，确认流程图的样子 |
-| WP2 今日页与提醒 | 10/27–10/30 | 对话框和 `/api/command` 变更单审核；风险队列和一键提醒（WhatsApp、短信、Gmail）加 `/api/nudge/draft`；活动条；学期目标；本周之星 | 20 句测试命令里至少 17 句生成正确的变更单；提醒全部通过禁用说法检查且正文不超过 100 词 | 用你自己的话改写一条提醒（M2），作为范例 |
-| WP3 任务与干部端 | 10/30–11/2 | 任务页（我的优先、看板、甘特）；认领握手；干部手机页；四个状态按钮和带草稿延期；沉默协议和模拟时钟；RACI 通知 | 用模拟时钟快进 10 天，沉默协议的每一步都出现在正确的人面前 | 用手机走一遍干部页 |
-| WP4 设置与团队 | 11/2–11/4 | 首次设置（社长 5 步、干部 5 问）和“重新体验设置”按钮；设置页；团队页（工作量档位、贡献榜、会议时间查找） | 计时走完设置不超过 5 分钟；改岗位名称后，流程图和手册同步改名 | 计时走一遍设置 |
-| WP5 经费、规则、交接、关系、预测 | 11/4–11/7 | 经费阶段条、提交前检查、用款进度；规则六类卡片和问答；换届季、卸任访谈、手册、第一周清单（基于 SEO 的新人入职清单）；联系人页；预测模拟与原因 | 规则测试集答对率不低于 90%，该拒答时全部拒答；手册每条内容都能追溯到任务记录或访谈 | 审一份 AI 生成的岗位手册 |
-| WP6 定版 | 11/7–11/8 | 全站检查（手机、键盘操作、深色模式）；切到 AIR 跑测试集；合并到 main；打 v1.0 标签；更新 README 和帮助页 | 自动测试全部通过；你在正式网址上走完 Phase 3 的 T1–T6 | 11/8 批准合并 |
+| WP0 foundations | Oct 23–24 | `v1`, React/TS/Vite, existing visual style, fictional/resettable data, eight-page nav/help, repository plan, tests/preview | Preview opens; pushes build/test; production stable | After Oct 23 RTO consultation, configure AIR credentials/models securely |
+| WP1 engine/flow | Oct 24–27 | TS calendars/three dates/dependencies; SEO OA101/OA102/OA201 and T-90/60/30/14/R01–R16 templates; event lanes/details/Gantt | All sample dates tested; changes reschedule downstream work and expose violations | Review graph Oct 27 |
+| WP2 Today/reminders | Oct 27–30 | Composer/command review, risk queue/channel drafts/nudge endpoint, event bars/goals/recognition | At least 17/20 commands correct; all reminders pass tone/100-word checks | Rewrite one M2 reminder as example |
+| WP3 tasks/officers | Oct 30–Nov 2 | My tasks/board/Gantt, claiming, mobile task page, four statuses/extensions, clock/silence/RACI | Fast-forward 10 days; each escalation reaches the correct person | Try the officer page on a phone |
+| WP4 setup/team | Nov 2–4 | Five-step president/five-question officer setup and replay; settings/workload/contribution/meeting tools | Setup within five minutes; role rename propagates to flow/handbook | Time setup |
+| WP5 funding/rules/handoff/contacts/forecast | Nov 4–7 | Funding stages/preflight/usage, six-category rules/Q&A, interviews/handbook/first-week checklist based on SEO onboarding, contacts, forecasts | At least 90% rule accuracy; all unsupported questions declined; every handbook item traceable | Review one AI handbook |
+| WP6 release | Nov 7–8 | Mobile/keyboard/dark-mode checks, AIR evaluation, approved merge/tag, README/help | Automated checks and owner's production T1–T6 | Approve release explicitly |
 
-工作规则：
+Original working rules: keep v0.1 production stable until approved release; no research data or keys; fictional names/organization only; re-open and verify R01–R16 sources before launch; each new assistant session reads plans and updates progress to preserve context. The original dates are historical, not a new schedule.
 
-- 11/8 之前，正式网址保持现在的 v0.1，委员会看到的永远是可用版本。
-- 仓库里不放任何研究数据和 API key；演示组织和人名全部虚构。
-- 规则 R01–R16 上线前逐条打开原文复核，并记下核实日期。
-- 每个工作包可以是一次独立的 Claude Code 会话：会话开头读仓库里的计划副本，结束时更新进度。这样即使换了会话，上下文也不会丢。
+## 14. Thesis and Phase 3
 
-## 14. 论文与 Phase 3
+The redesign added T5/T6 to examine follow-through and adoption. The original plan called for IRB modification material to Marcie October 27 and submission by October 30.
 
-新设计让 Phase 3 多了两个能直接检验“管控”和“采用”的任务（T5、T6）。IRB 材料需要在 10/27 交给 Marcie，10/30 前提交。
-
-| 任务 | 参与者做什么 | 测量 | 成功标准（建议） |
+| Task | Participant action | Measure | Proposed success |
 | --- | --- | --- | --- |
-| T1 新上任 | 以新活动负责人的身份打开手机页，说出未来两周要做的事和第一件事的 Why | 用时、正确率 | 2 分钟内全对 |
-| T2 一句话规划 | 用一句话描述一场有校外餐饮、USG 出资的活动，审核 AI 的变更单，说出所有 ASU 必要步骤和日期；对照条件用 ASU 网站，限时 10 分钟 | 关键步骤召回率、错误日期数、用时 | 召回率不低于 90% 且高于对照 |
-| T3 提醒对比 | 读新提醒和一条简短的社长提醒，分别说出做什么、何时、为什么现在要做 | 正确率、NASA-TLX 原始版、“会不会更早开始”意向 | “更早开始”明显高于简短提醒 |
-| T4 问规则 | 问一个政策问题，并判断答案可不可信 | 是否答对、是否点开来源 | 答案正确且附出处；记录核查行为 |
-| T5 管控（新） | 在今日页找出最危险的事，并把提醒发给对的人 | 用时、是否选对人和渠道 | 60 秒内完成 |
-| T6 设置（新） | 从零完成首次设置 | 用时、卡住的步骤 | 不超过 5 分钟 |
+| T1 new officer | On mobile, explain next two weeks and Why of the first task | Time/accuracy | Correct within two minutes |
+| T2 plan in a sentence | Describe outside-catered USG event, review changes, identify ASU steps/dates; compare with ASU-site condition, ten minutes | Required-step recall, wrong dates, time | At least 90% recall and above comparison |
+| T3 reminder comparison | Read new and short-president reminders; identify what/when/why now | Accuracy, raw NASA-TLX, earlier-start intention | Clearly higher earlier-start intention than the short reminder |
+| T4 policy question | Ask and judge trustworthiness | Correctness/source opening | Correct sourced answer; record verification |
+| T5 follow-through | Find greatest risk on Today and remind the right person | Time/recipient/channel | Within 60 seconds |
+| T6 setup | Complete first setup | Time/blockers | Within five minutes |
 
-结束时填 SUS，再做 5 分钟访谈。样本 4–6 人，只做描述统计。
+Finish with SUS and a five-minute interview. Use 4–6 participants and descriptive statistics only. Later study scripts and task numbering supersede this original task table.
 
-10/27 交给 Marcie 的 IRB modification 要点：
+Original IRB points: fictional prototype data only; browser-local participant actions cleared after sessions, without server research storage; AIR processing asserted to keep data at ASU, with written RTO confirmation that original prompts are not retained; any fallback provider disclosed and limited to fictional inputs; no real messages/addresses, only opened drafts; 60-minute Zoom/study-room evaluation with scripts/rubrics/SUS/raw NASA-TLX; clarify optional screen/audio recording and use approved Phase 1 transcription procedures; retain approved recruitment/compensation channels and exclude all SEO officers as participants to avoid undue influence.
 
-1. **原型：** Platypus v1.0，只用虚构的演示社团；参与者不输入真实社团数据。
-2. **数据：** 参与者的操作只存在自己的浏览器里，会话结束就清除；服务器不保存。
-3. **AI：** 参与者输入的问题和句子由 ASU AIR 处理（数据留在 ASU）；请 RTO 书面确认不保存提示原文。AIR 如果来不及，在材料里写明备用供应商，并说明只处理虚构数据。
-4. **不发送真实消息：** WhatsApp、短信、Gmail 链接只打开草稿，演示里没有真实号码和地址。
-5. **流程与附件：** 60 分钟任务式评估（Zoom 或自习室）；任务脚本、评分表、SUS、NASA-TLX 原始版。
-6. **录制：** 屏幕和音频是否录制、是否可选；转写沿用 Phase 1 已获准的做法。
-7. **招募与报酬：** 沿用已批准渠道；SEO 干部不作为参与者，避免上下级关系带来的不当影响。
+Ask Marcie whether the thesis title's “cloud-Excel-based” should change, since the new database is not a spreadsheet, and whether the designer's own reflective interview may inform design without being treated as study data.
 
-要问 Marcie 的两件事：论文题目里的“cloud-Excel-based”是否要改（v1.0 不再以表格为数据库）；这次深访是设计者自己的反思，论文里可以作为设计依据描述，但不作为研究数据——这个写法是否合适。
+## 15. Risks and responses
 
-## 15. 风险与对策
-
-最大的风险是 v1.0 范围太大；每个风险都配了一个能提前看到的信号和一条退路。
-
-| 风险 | 早期信号 | 对策 |
+| Risk | Early signal | Response |
 | --- | --- | --- |
-| v1.0 在 11/8 交不出 | 10/30 WP2 结束时对话框和风险队列还没接通 | 按第 12 节的顺序砍功能；闭环和 Phase 3 用到的页面不砍 |
-| 前端框架迁移拖慢进度 | WP0 超过 2 天 | 退回单文件方案，只重做今日页和流程图 |
-| IRB 获批晚于 11/13 | 10/30 前没有提交 | Phase 3 顺延到 12 月第一周或 1 月，结果补进 1/30 修订稿 |
-| ASU AIR 来不及或质量不够 | 10/23 咨询后拿不到 key；规则测试集答对率低于 90% | IRB 里写明备用供应商且只处理虚构数据；或用规则模板代替 AI 起草 |
-| AI 生成错误的变更单 | 测试命令通过率低于 85% | 白名单操作、日期由规则算、社长逐条审核；必要时把命令范围收窄到“新建活动”和“指定负责人” |
-| 预测显得不可信 | 试跑的同学问“这个数怎么来的” | 默认只显示颜色和原因，点开才有百分比和假设 |
-| 提醒被当成监视 | 压力感评分或静音率上升 | 个人缓冲只有本人可见；升级只在私下；每人每周提醒有上限 |
-| 干部仍然不回状态 | v1.5 试用中每周活跃干部低于 60% | 加强从消息一键回复；v2 用 Drive 文件变化和邮件信号推断状态 |
-| 规则过时或出错 | 来源页面变化；“这不对”报告 | 每条带核实日期；v1.5 自动检测来源变化；两处说法不一致时取更严格的 |
-| 你的时间不够（问卷、论文、换届同时进行） | 连续两次没回评审 | 每次评审控制在 10 分钟；没回复时按计划默认继续，但不合并到 main、不做不可逆的事 |
-| 有人想导入成员名单 | — | v1 不收成员数据，只存干部信息 |
+| Miss November 8 | Composer/risk queue unconnected after WP2 Oct 30 | Cut section 12 extras, preserve core/study screens |
+| Framework migration delay | WP0 exceeds two days | Return to single-file plan for Today/flow only |
+| IRB after Nov 13 | Not submitted Oct 30 | Move study to first December week or January; add results to Jan 30 revision |
+| AIR unavailable/insufficient | No key after RTO; rule accuracy below 90% | Approved/disclosed fictional-data fallback or deterministic drafts; later provider policy governs |
+| Wrong AI changes | Command pass rate below 85% | Whitelist, deterministic dates, item review; narrow to event creation/owner assignment if needed |
+| Untrusted prediction | Rehearsal user asks where the number comes from | Default to colors/reasons; reveal assumptions/percentage |
+| Reminders feel like surveillance | Pressure/mute rate rises | Private buffers/escalations and weekly caps |
+| No officer updates | v1.5 weekly activity below 60% | Improve message-based updates; consider Drive/mail signals in v2 |
+| Outdated/wrong rules | Source change or error report | Verification dates, v1.5 change detection, stricter conflicting rule |
+| Owner overloaded | Two missed reviews | Keep reviews under ten minutes; continue reversible approved work without response, never merge/deploy or take irreversible action |
+| Roster import requests | Request arises | No member rosters in v1; officer configuration only |
 
-停止标准：如果 v1.5 在 SEO 试用一个月后，关键节点按时率没有高于试用前，而且每周活跃干部低于 50%，就先停下 v2，重新访谈干部而不是继续加功能。
+Stop criterion: after one month of the v1.5 SEO pilot, if critical-node timeliness has not improved and weekly active officers are below 50%, pause v2 and interview officers again.
 
-## 16. 需要你批准的 10 个决定
+## 16. Ten approved decisions
 
-在同意的项前打勾，或在聊天里说“全部批准”“除了第 X 项都批准”。批准后 Claude Code 从 WP0 开始。每项后面是我的建议。
+All were approved October 22, 2026. These historical approvals do not override later scope/provider/release decisions.
 
-- [x] **1. 定位：** 用“学生社团的团队型 AI 幕僚长”作为产品定位和网站标题。建议：批准。
-- [x] **2. 前端升级：** 改用 React + TypeScript + Vite + React Flow，在 v1 分支开发，11/8 合并。建议：批准。
-- [x] **3. 数据：** v1.0 只存在浏览器（虚构演示社团），v1.5 再上服务器存储和登录。建议：批准。
-- [x] **4. 发送：** v1.0 用“一键打开写好的 WhatsApp、短信、Gmail”；自动发送从 v1.5 开始且只走邮件；WhatsApp 商业接口放到 v2。建议：批准。
-- [x] **5. AI 供应商：** Phase 3 用 ASU AIR；DeepSeek 只用于开发和虚构数据。建议：批准，最终取决于 10/23 的 RTO 咨询。
-- [x] **6. 个人缓冲：** 按第 9 节的伦理边界做（本人可见、不公开、可关闭、不叫拖延分）。建议：批准。
-- [x] **7. 沉默协议：** 默认沿用 SEO 的天数（第 3、5、7、8、10 天），全程私下执行，可在设置里改。建议：批准。
-- [x] **8. 北极星指标：** 定为“关键节点按时率”。建议：批准。
-- [x] **9. v1.0 范围：** 按第 12 节的范围和砍单顺序。建议：批准。
-- [x] **10. Phase 3：** 任务改为 T1–T6，并按第 14 节在 10/27 把 IRB 材料交给 Marcie。建议：批准。
+- [x] Use the student organization's team AI chief of staff as both product positioning and website title.
+- [x] Upgrade to React/TypeScript/Vite/React Flow on `v1`, with the originally planned November 8 integration.
+- [x] Browser-only fictional v1.0 data; server persistence/login in v1.5.
+- [x] Prepared WhatsApp/text/Gmail in v1.0; automatic email v1.5; WhatsApp business v2.
+- [x] Originally AIR for Phase 3 and fictional-only DeepSeek development, subject to RTO; subsequently superseded by AIR-only policy and DeepSeek removal.
+- [x] Personal-buffer privacy, transparency, opt-out, and neutral naming under section 9.
+- [x] Private configurable SEO silence days 3/5/7/8/10.
+- [x] Critical-path on-time completion as north star.
+- [x] Section 12 scope and cut order.
+- [x] Original T1–T6 and October 27 IRB preparation under section 14, later refined by study decisions.
 
-## 17. 依据的资料
+## 17. Source material
 
-全部来自 Honors Thesis 文件夹和 GitHub 仓库。访谈引语来自机器转写，只用于设计。
+These are references already cited by the original plan, not authorization to open, upload, or send private research files. Original-language filenames remain recoverable from Git history. Interview quotations were machine-transcribed and used for design only.
 
-- `05_Phase3_Prototype/Reference/Platypus 社长深访提纲.docx`：你对 92 个问题和 15 道快问快答的回答（本计划的主要依据，题号如 C2、E7）
-- `05_Phase3_Prototype/Reference/SEO Learning Center - SEO Strategy`：OA101 工作流、Ghost Owner Protocol、风险登记表、成功与失败案例
-- `05_Phase3_Prototype/Reference/OA101 Program Flow.drawio.html`：OA101 立项、OA102 执行、OA201 经费的泳道流程图
-- `05_Phase3_Prototype/Reference/XXXX-2026XXXX [Make A Copy].docx`：SEO 活动策划模板（T-90/60/30/14 清单、价值交换图、流程、人力安排）
-- `05_Phase3_Prototype/Reference/SEO New Member Onboarding Checklist.xlsx`：新干部入职清单（确认、使命与期望、领导力课程、系统设置、复盘）
-- `05_Phase3_Prototype/Reference/SEO Team Charter.docx`：学期目标示例
-- `05_Phase3_Prototype/Reference/SEO ERP 2026-2027.xlsx`：SEO 现有管理表格（哪些页签活下来了）
-- `04_Phase2_Survey/Analysis/Phase2_Interim_Findings_and_Next_Steps_2026-10-21`：问卷中期发现（86 位合格干部）
-- `03_Phase1_Interviews/Transcripts`：P1–P6 社长访谈
-- `05_Phase3_Prototype/Plan/Prototype 打造计划（草稿）`：v0.2（规则库 R01–R16、方案 C、旧的评估设计）
-- GitHub `juanxiwu2005/platypus-officer-hub`：现在的前端 v0.1 和 5 个已接通 DeepSeek 的接口
+- `05_Phase3_Prototype/Reference/Platypus \u793e\u957f\u6df1\u8bbf\u63d0\u7eb2.docx` (president interview outline): 92 questions and 15 quick questions, the main design basis for IDs such as C2/E7.
+- `05_Phase3_Prototype/Reference/SEO Learning Center - SEO Strategy`: OA101, Ghost Owner Protocol, risk register, success/failure examples.
+- `05_Phase3_Prototype/Reference/OA101 Program Flow.drawio.html`: OA101 initiation, OA102 execution, OA201 funding lanes.
+- `05_Phase3_Prototype/Reference/XXXX-2026XXXX [Make A Copy].docx`: T-90/60/30/14 planning, value exchange, workflow, staffing.
+- `05_Phase3_Prototype/Reference/SEO New Member Onboarding Checklist.xlsx`: confirmation, mission/expectations, leadership course, systems, review.
+- `05_Phase3_Prototype/Reference/SEO Team Charter.docx`: sample semester goals.
+- `05_Phase3_Prototype/Reference/SEO ERP 2026-2027.xlsx`: surviving management-table tabs.
+- `04_Phase2_Survey/Analysis/Phase2_Interim_Findings_and_Next_Steps_2026-10-21`: interim findings from 86 eligible officers.
+- `03_Phase1_Interviews/Transcripts`: P1–P6 president interviews.
+- `05_Phase3_Prototype/Plan/Prototype \u6253\u9020\u8ba1\u5212\uff08\u8349\u7a3f\uff09` (earlier draft prototype plan): v0.2 rules R01–R16, option C, earlier evaluation design.
+- GitHub `juanxiwu2005/platypus-officer-hub`: original v0.1 frontend and five then-DeepSeek-enabled endpoints.
 
-引用文献：Lee, J. D., & See, K. A. (2004). Trust in automation: Designing for appropriate reliance. *Human Factors, 46*(1), 50–80；Deci, E. L., Eghrari, H., Patrick, B. C., & Leone, D. R. (1994). Facilitating internalization: The self-determination theory perspective. *Journal of Personality, 62*(1), 119–142。写进论文前对照原文核实。
+References to verify against originals before thesis citation: Lee, J. D., & See, K. A. (2004). Trust in automation: Designing for appropriate reliance. *Human Factors, 46*(1), 50–80. Deci, E. L., Eghrari, H., Patrick, B. C., & Leone, D. R. (1994). Facilitating internalization: The self-determination theory perspective. *Journal of Personality, 62*(1), 119–142.

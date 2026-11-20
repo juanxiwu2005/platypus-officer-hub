@@ -1,189 +1,188 @@
-# Activity 平台执行方案（已批准实施）
+# Activity Platform Execution Plan (Approved for Implementation)
 
-日期：2026-10-26（America/Phoenix）。本轮只读核对与方案评审；未实施产品变更、未调用真实 AI。
+2026-10-26 (America/Phoenix). This round: read-only verification/plan review, no product changes or live AI calls.
 
-## 1. 已确定方向与范围
+## 1. Agreed direction and scope
 
-用户选择 A1（日常管理首页）＋B1（成员活动列表）＋C2（活动详情以时间轴为主）。个人任务以 Board 为主；活动列表使用短流程链；Funding 成为活动工作流中的分支。纳入上一轮明确要求：全局右侧 AI、稳定 ID 和名称同步、五章自由跳转、流程线点击删除、移除 Connections 和逐节点 Mark reviewed、文件入口说明与导航去重。
+User selected A1 daily-management home + B1 member-activity list + C2 timeline-centered activity details. Personal tasks center on Board; activity lists use short workflow chains; Funding becomes an activity branch. Include prior explicit requests: global right-side AI, stable IDs/name synchronization, free navigation across five chapters, click-delete workflow edges, remove Connections/per-node Mark reviewed, clarify file entry/deduplicate navigation.
 
-本方案获批后才开始 Worktree 实施。完成后交开发预览验收；不合并 main、不正式发布。界面英文、文档中文；不读取研究原始访谈、不把其内容提交仓库，不做额外收费模型评比。
+Begin worktree implementation only after approval; deliver development preview for acceptance, without main merge/production release. English UI, Chinese docs [historical documentation rule; superseded by current English policy]. No raw research interviews read/committed or extra paid model comparisons.
 
-## 2. 当前代码事实
+## 2. Current code facts
 
-- 已核对 GitHub 两个开发分支均为 `1815be02d83bc67ed35eb6970d14f0ed6a3023c6`，main 为 `4dc55ba`。实施开始前重新 fetch，确认最新共同基线。
-- `src/pages/Tasks.tsx`、`src/data/board.ts`：已有拖动、排序、个人筛选、键盘状态菜单。默认仍是 Table，六列含 Not claimed/Waiting/Done，可新建无活动任务。
-- 旧 Tasks 和 Events 使用同一 `DemoState.nodes`。旧看板修改会反映旧活动节点，但保存在浏览器 localStorage。
-- `src/phase1/ApprovedWorkspace.tsx` 读取服务器已批准组织配置，目前是模板消费；没有真实活动实例和个人任务写入链路。不能把旧看板挂到新页面就称为已经联动。
-- 新模板支持 `dependencyMode=all/any`；旧 `taskWorkflow.ts` 和 `schedule.ts` 主要按 all 处理，必须显式适配。
-- `src/pages/Funding.tsx` 与 `src/data/store.tsx` 的 Funding 六阶段独立于任务节点；现有 next 操作不能充当真实审批。
-- 旧 `playbooks.ts` 有 ASU 规则、社团惯例和预算/报价步骤，但没有完整的 8/7/6 周锚点。该默认值以本次用户明确给出的信息新增为组织偏好，不能标成校方规则。
-- 既有日历仅覆盖明确收录的学期；新增时间轴要检查覆盖范围，不能把未知学期当作假期或虚构排程。
+- Both GitHub development branches verified at 1815be02d83bc67ed35eb6970d14f0ed6a3023c6; main 4dc55ba. Refetch before implementation to confirm latest shared baseline.
+- src/pages/Tasks.tsx/src/data/board.ts already support dragging/order/personal filters/keyboard status menus. Default remains Table; six columns include Not claimed/Waiting/Done; standalone tasks possible.
+- Old Tasks/Events share DemoState.nodes; board edits affect event nodes, persisted in browser localStorage.
+- src/phase1/ApprovedWorkspace.tsx consumes server-approved organization templates, without actual activity instances/personal-task write path. Mounting old board in new page is not integration.
+- New templates support dependencyMode=all/any; old taskWorkflow.ts/schedule.ts mainly all, requiring explicit adaptation.
+- `src/pages/Funding.tsx`/`src/data/store.tsx` six funding stages independent of task nodes; next is not real approval.
+- playbooks.ts includes ASU rules/club practices/budget-quotes, but lacks complete 8/7/6-week anchors. Add these user-specified organization defaults, never label school rules.
+- Existing calendar covers explicitly listed semesters only; timeline must check coverage, never treat unknown semesters as holidays or invent schedules.
 
-## 3. 页面与布局
+## 3. Pages and layout
 
-### 3.1 统一导航与首页 A1
+### 3.1 Unified navigation and A1 home
 
-左侧固定 Home、My tasks、Activities、Organization setup；Recent activities 只保留最多五个近期成员活动和 View all。Executive Board 事务从首页对应看板进入独立列表/详情，不混入 Recent activities，也不再把 Board workflow 当作设置入口。
+Fixed left Home, My tasks, Activities, Organization setup; Recent activities contains at most five recent member activities plus View all. Executive Board work has its own list/details from home, excluded from Recent; Board workflow no longer setup entry.
 
-中间为当前页面，右侧为常驻 Ask Platypus。桌面右栏可调宽并可收起；图表使用剩余空间平移/缩放，不压扁节点。窄屏使用可随时打开的对话抽屉，保持同一对话与未发送输入。
+Center current page; persistent Ask Platypus right. Desktop resizable/collapsible rail; chart pans/zooms in remaining space without flattening nodes. Narrow screens use always-available chat drawer, preserving conversation/unsent input.
 
-首页顺序：
-1. 最多三条确实需要当前用户处理的事，包含重要受阻、待批准、期限风险。
-2. My next actions 精简个人任务入口，不在首页复制完整看板。
-3. Member Programs 看板：未来活动总数、最近三场的日期/状态/短流程链。
-4. Executive Board 看板：正在推进的管理事务、负责人、下一行动、受阻情况。两块都保留，无数据时显示真实空状态和创建入口。
+Home order:
+1. At most three items actually requiring current user's action: important blocks/approvals/deadline risks.
+2. Compact My next actions entry, not duplicate full board.
+3. Member Programs board: future count, next three dates/status/short chains.
+4. Executive Board board: active management work/owner/next action/blocks. Retain both boards; honest empty states/create entries.
 
-组织架构和职责只放组织设置。移除活动页 Edit organization。固定页面标签由统一 label key 定义；Activity Workflow 是设置里的模板名称，Activities 是实际活动入口。
+Structure/duties only in organization settings; remove Edit organization from activity pages. Shared label keys; Activity Workflow is template name within setup, Activities opens actual instances.
 
-### 3.2 Activities B1 与短流程链
+### 3.2 B1 Activities and short chains
 
-所有成员活动在同一可搜索列表中，默认按未来活动日期升序，可切换最近修改；支持学期、负责人、活动状态筛选，已结束活动收起。未定日期活动单列，不伪造日期。
+One searchable member-activity list, upcoming-date ascending by default, switch to recently modified; semester/owner/status filters; completed collapsed. Undated separate, never fake dates.
 
-桌面每行分为：活动身份区约 25%、四位置短流程链约 50%、日期/关键风险/入口约 25%。这是布局起点，实际按可用宽度验收；空间不足时改为两行，不缩小文字。手机第一行活动名/日期，第二行当前阶段与后续动作，可展开完整短链。
+Desktop starting proportions: identity about 25%, four-position chain 50%, date/key risk/entry 25%; accept at actual width, wrap to two lines rather than shrink text. Phone row 1 name/date, row 2 current stage/next actions, expandable full short chain.
 
-短链展示最近一个已完成阶段、当前阶段、后续两个阶段。界面写实际阶段名称和 Completed/Now/Next，不直接显示 T−1/T/T+1，避免与活动日期锚点 T 混淆。开始前/全部结束/不足四个阶段有明确边界状态。
+Show last completed/current/next two stages. Actual names plus Completed/Now/Next, no T−1/T/T+1 confused with event anchor T. Explicit pre-start/all-complete/fewer-than-four boundaries.
 
-存在并行工作时，不能选一条线假装整个活动只有一个当前步骤。使用可展开的阶段组，例如 Prepare event，附 2/4 complete、2 branches active、Finance blocked 等真实提示。阶段组包含固定 leafTaskIds；只有本阶段全部必需分支与审批条件满足才完成。关键受阻不能被“Execute event”标签掩盖。
+For parallel work, never pick one line as sole current step. Expandable stage groups, e.g. Prepare event with actual 2/4 complete, 2 branches active, Finance blocked. Fixed leafTaskIds per group; complete only when all required branches/approvals satisfy. Execute event label cannot hide critical blocks.
 
-AI 只在创建或调整工作流时提出简洁阶段名与分组，校验引用、无环和顺序后供批准，按工作流版本缓存。状态/完成数/当前阶段由程序实时计算；打开列表或拖任务不会重新调用 AI。AI 不可用时，用模板阶段或确定性分组正常显示。
+AI proposes concise stage names/groups only during workflow creation/adjustment; validate references/cycles/order, approve, cache by version. Program computes live status/count/current stage; list opening/task dragging never reinvokes AI. Template stages/deterministic grouping work offline.
 
-### 3.3 活动详情 C2
+### 3.3 C2 activity details
 
-顶部只放活动名、日期、总负责人、整体状态；紧接当前风险和待批准事项。主区为日期时间轴：横轴实际日期与今天线，纵向按可折叠阶段分组，支持部门/个人筛选；默认展开当前阶段和受阻阶段，其他阶段概括显示。
+Top name/date/overall owner/status, then risks/pending approvals. Main dated timeline: actual date axis/today line, collapsible stage groups, department/person filters, current/blocked expanded by default, others summarized.
 
-时间轴显示任务时段、里程碑、负责人和依赖；Funding 是其中一个分支，与宣传/场地准备并行。点击任务在中央详情区或弹层编辑，右侧 AI 不被详情挤走。预算金额、材料和历史按需打开。提供紧凑工作流视图辅助查看依赖，默认仍是时间轴，不新增15个活动tab。
+Show intervals/milestones/owners/dependencies; Funding parallel with marketing/venue. Edit tasks centrally or in overlay, never displace right AI. Budget/materials/history on demand; compact dependency view secondary, timeline default, no 15 activity tabs.
 
-## 4. 统一数据与个人 Board
+## 4. Unified data and personal Board
 
-### 4.1 数据契约
+### 4.1 Contract
 
-组织模板 → 活动/管理事务实例 → 可执行任务。模板和实例分别有版本。每个实例保存创建所用模板版本；用户自定义修改与历史不被后续模板更新覆盖。
+Organization template → activity/management-work instance → executable tasks. Template/instance separately versioned; instance snapshots creation version, preserving customization/history from later template updates.
 
-所有对象有不可变 ID；显示名称是字段，不作主键。组织、岗位、部门、成员、工作项、阶段、任务、申请、操作均可准确定位。部门色、当前名称从共同来源读取；历史快照保留当时名称。
+All objects immutable IDs; names fields, never keys. Precisely identify organizations/roles/departments/members/work items/stages/tasks/applications/actions. Shared current names/department colors; historical snapshots retain old names.
 
-每个 Task 有唯一 parentWorkItemId 与所属可执行节点；个人 Board、事件时间轴、短链都读取这份 Task，而非维护三份状态。一个普通可执行节点对应一个 Task；汇总阶段只是多个 Task 的投影。审批节点由审批动作推进，不是可任意拖 Done 的普通卡片。
+Every Task has one parentWorkItemId/executable node; Board/timeline/short chain share it, not three states. Ordinary executable node = one Task; summary stage is projection. Approval nodes advance by approvals, not freely dragged Done.
 
-保留模板的全部`roleIds`，不把多人共同负责强行缩成一个岗位。共享任务仍是一条记录，保存主负责人及协作岗位/成员，在相关成员看板出现同一任务，只有指定主负责人或有权限的管理者能确认整体完成；协作者可提交本人进展。若确实有多个独立交付，显式拆为多个必需子任务并保留来源节点关联，全部必要交付满足后才完成该阶段。主负责人不明确时列入待分配，不随机丢掉其余岗位。
+Preserve all template roleIds, never collapse shared responsibility into one role. Shared task remains one record with primary owner/collaborating roles-members, visible on their boards. Only designated owner/authorized manager confirms whole completion; collaborators submit own progress. Independent deliverables become explicit required subtasks retaining source-node link; stage completes after all required deliverables. Ambiguous owner remains unassigned, never randomly discard other roles.
 
-所有 Task 必须归属成员活动或 Executive Board 事务。这落实“没有活动就没有无归属 Task”，同时允许经费申请、招新筹备等 Board 工作有自己的父项目，不伪装成面向成员的活动。
+Every Task belongs to member activity or Executive Board work, implementing no unowned Task while allowing funding/recruitment parent projects without disguising them as public events.
 
-### 4.2 Board 规则
+### 4.2 Board rules
 
-默认 My tasks，只显示当前成员被分配的工作；三个活跃列：To Do、Working on it、Stuck。完成按钮将任务标记 Done，移入可展开 Completed 历史，支持撤销；Done 是持久状态，但不是常驻第四列。保留拖动、同列排序及手机/键盘操作。卡片显示任务、所属活动/事务、截止日和简短阻塞原因。
+Default My tasks, current member's assignments only; To Do/Working on it/Stuck. Done button moves into expandable Completed history, undoable. Done persists but is not a permanent fourth column. Preserve drag/same-column order/mobile/keyboard. Card: task/parent/deadline/short blocker.
 
-去掉 Not claimed 列和 Board 上无归属 Add task。创建工作项时根据已批准的岗位职责提出 ownerRoleId，并在已绑定任职成员中确定 assigneeId；已明确的分配由创建审批一并确认。不靠职位文字猜权限，也不为凑齐分配任意指定某人。岗位空缺或责任不明进入管理层待分配提示，保留草稿/明确问题，不让任务悄悄消失。
+Remove Not claimed and unowned Add task. Creation proposes ownerRoleId from approved duties and assigneeId from bound incumbents, confirmed within creation approval. Never infer permissions from titles or assign randomly. Vacant/unclear roles prompt management assignment, retaining drafts/questions rather than dropping tasks.
 
-在Your team提供紧凑的测试成员与任职绑定入口：成员ID独立于岗位ID，同一成员可兼任多个岗位，同一岗位多人任职时必须明确主负责人或细分分工。成员绑定保存为工作区运行数据，不篡改章程职责；无任职绑定的岗位明确显示空缺。测试成员只使用虚构资料，并在身份切换处明确标为Demo；不因角色名称相同自动授予领导权限。
+Your team provides compact fictional members/role bindings: member IDs separate, multiple roles per person, multiple people per role require explicit primary or divided work. Runtime bindings do not alter constitution duties; unbound roles vacant. Identity switch marked Demo; same role name never grants leadership.
 
-本轮个人视图绑定明确成员 ID。现有系统只有私有测试会话，没有正式组织账号/多人认证；可在该工作区用明确标识的测试成员验收，不能把 View as 当成真实登录。cookie仅证明对这个私有测试工作区的访问，不能证明真实成员身份；演示actor从服务端会话解析并校验演示操作规则，不以请求body的memberId作为授权依据。正式账号、邀请和跨设备成员权限是另一个需单独批准的范围，不宣传本轮具有真实个人审批授权。
+Personal view binds explicit member ID. Only private test sessions, no formal organization accounts/multi-user authentication; use labeled test members, never call View as login. Cookie grants private workspace access, not real identity. Server session resolves demo actor and validates demo rules; request-body memberId is not authorization. Real accounts/invitations/cross-device permissions require separate approval; do not claim real individual approvals.
 
-### 4.3 Stuck 与依赖规则
+### 4.3 Stuck and dependencies
 
-UI 合并 Waiting/Stuck，后端保留结构化原因：waiting_approval、waiting_dependency、external_response、needs_help，以及阻塞对象、发生时间、解决条件和进入前状态。移动到 Stuck 时就近选择原因；有可推断审批时自动带出待确认原因，不自动向外部发消息。
+UI combines Waiting/Stuck; backend structured waiting_approval/waiting_dependency/external_response/needs_help plus target/time/resolution/prior state. Select nearby on Stuck; inferred approval reasons prefilled for confirmation, no external auto-messages.
 
-- 普通未来任务尚未满足前置时，留在 To Do 并显示等待前置/不可开始；可折叠较远工作，不把整个下游都拖成红色 Stuck。
-- 已经开始或当前应处理的任务遇到阻碍，进入 Stuck。受阻不会被视为完成；仅它真实依赖的下游受影响，独立分支继续。
-- all 依赖需全部满足；any/条件分支遵循已批准结构。UI 不暴露术语下拉框，但服务端保留语义和校验。
-- 阶段完成分母使用明确的active/required任务集合，全部必需且适用任务完成才算完成。any只是门禁可由任一前置满足，不自动取消其他分支；排他条件选择和不适用分支必须有独立决定记录，才能排除其完成分母。可选任务不阻止完成，但仍可见；AI摘要不能自行跳过任务。
-- 上游完成只改变下游是否可开始，不自动把下游变为 Working on it 或 Done。
-- 条件解除时，只清理由该条件造成的阻塞并回到合适状态；手工求助/多重未解原因不可误清。
-- 任务 Done → 活动节点和阶段完成度、列表短链、首页、时间轴同时更新。新开窗口读取同一修订；活动改名/换负责人也更新同源视图。
-- 重开已完成任务需授权并重新检查下游，保留既有完成与审批历史；已执行采购不会因重开自动撤销，下游受影响项明确待复核，未开始依赖恢复门禁。
-- 期限仍由排程引擎计算；拖到 Stuck 不等于自动延期。只重算影响与风险，不悄悄挪动活动日或官方期限。
+- Unready future tasks stay To Do with prerequisite/not-startable note; distant work collapsible, never turn all downstream red Stuck.
+- Started/currently actionable blocked work becomes Stuck, never complete; only actual dependents affected, independent branches continue.
+- all requires every prerequisite; any/conditional follow approved structure. No jargon dropdown in UI; server retains semantics/validation.
+- Completion denominator explicit active/required set; all applicable required tasks complete. any only satisfies a gate with one prerequisite, never cancels others. Exclusive/nonapplicable branches need separate decision records before exclusion. Optional work visible but nonblocking; AI summaries never skip tasks.
+- Upstream completion only unlocks eligibility, never auto-starts/completes downstream.
+- Resolved conditions clear only their own blocks; preserve manual help/multiple unresolved reasons.
+- Done updates node/stage/list chain/home/timeline together; new windows read same revision; names/owners update shared views.
+- Reopening completed work requires authorization/downstream checks/history preservation. Executed purchases not automatically undone; affected downstream marked for review, unstarted dependencies regated.
+- Rule engine computes deadlines. Stuck does not imply extension; recompute risk only, never silently move event/official dates.
 
-## 5. Funding 并入活动工作流
+## 5. Funding within activity workflow
 
-保留预算信息与审计能力，移除新版独立 Funding 主导航。默认分支：确定采购项目 → 确定报价 → 提交预算申请 → 等待/记录预算批准 → 提交采购申请 → 等待/记录采购批准 → 下单或报销 → 出勤/票据/结项。按经费来源选择适用步骤；无经费活动不生成完整经费链。
+Preserve budget/audit, remove new standalone Funding navigation. Default branch: confirm items → quotes → submit budget request → wait/record approval → submit purchase request → wait/record approval → order/reimburse → attendance/receipts/close-out. Choose applicable steps by source; unfunded activities get no full chain.
 
-提交预算申请的 Task 完成，只代表 submitted；预算批准是独立 Gate，满足后才能解锁依赖经费的采购。内部批准由相应有权限成员完成；校外/校方批准由授权人员记录结果和依据，不伪造外部系统回执。批准和拒绝均有记录；拒绝形成修订/重提路径，不用循环依赖图。
+Submission-task Done means submitted only; separate budget Gate unlocks funding-dependent purchases. Authorized members approve internally; authorized people record external/school results/evidence, never fabricate receipts. Approval/rejection recorded; rejection leads revision/resubmission, not graph cycles.
 
-Funding 的阶段显示从同一组任务与 Gate 投影得到；金额/来源/报价/材料仍为关联数据，没有另一套“Next”按钮绕开流程。采购不能超过已批准金额，金额修改可能要求重新批准。对不依赖资金批准的宣传准备、场地信息收集等保持并行。存在多个来源时各申请有独立 ID，不让一笔已批资金假装覆盖全部采购。
+Funding display projects same Tasks/Gates; amounts/sources/quotes/materials linked, no bypassing Next buttons. Cannot exceed approved amount; revisions may need reapproval. Independent marketing/venue collection remains parallel. Separate IDs per funding source; one approval cannot cover all purchases.
 
-批准绑定申请ID、申请版本、来源、用途范围和币种，本轮默认USD，不静默换算其他币种。校验额度时计入累计已发生和已承诺金额，同一工作项内以CAS同时校验并预留，防止多笔各自低于总额却累计超支。金额/来源/用途等实质修订必须形成新申请版本，旧批准保留历史但不能自动批准新范围；已执行支出不被抹除，待执行承诺的释放/调整应可追溯且幂等。这是工作流额度管理，不执行真实付款或搭建财务总账。
+Approval binds application ID/version/source/purpose/currency, default USD, no silent conversion. Limits include cumulative spent/committed amounts; same-WorkItem CAS validates/reserves together, preventing aggregate overspend across individually small requests. Material amount/source/purpose changes create new application versions; old approvals remain history, not approval for new scope. Executed spending preserved; commitment release/adjustment traceable/idempotent. Workflow limits only, no real payments/general ledger.
 
-不能把现有 `budget`（编制初步预算）当作 `submit_budget_request`（提交申请）。建立独立的 items/quotes/submit_budget_request 里程碑，并明确初步方案批准与对外预算申请的关系；旧 draft→budget→approve→quote 链按真实阶段转换，不能仅给旧节点贴8/7/6周导致时间倒置或循环。
+Do not confuse budget (draft initial budget) with submit_budget_request. Separate items/quotes/submit_budget_request milestones, define initial-plan approval versus external request. Convert old draft→budget→approve→quote by real stage; blindly attaching 8/7/6 weeks would invert time/create cycles.
 
-旧示例 Funding 页与数据保留独立 legacy 参考，不自动导入新组织。需要导入时另做显式预览和转换，不能混入虚构种子。
+Old Funding page/data remain separate legacy reference, never auto-import into new organization or mix with fictional seeds. Import requires explicit preview/conversion.
 
-## 6. Setup 中的时间设置
+## 6. Timing in Setup
 
-仍保留五章。在 Activity Workflow 同屏提供一个紧凑 Timing 区，与节点相对时间标签直接联动，不增加章节或第二套时间规则。
+Keep five chapters; compact Timing within Activity Workflow, linked directly to relative node labels, no new chapter/second rules system.
 
-| 默认里程碑 | 相对活动开始日 | 来源 |
+| Default milestone | Relative to event start | Source |
 | --- | --- | --- |
-| Confirm items | 8 weeks before（56自然日前） | 本次用户指定组织惯例 |
-| Confirm quotes | 7 weeks before（49自然日前） | 本次用户指定组织惯例 |
-| Submit budget request | 6 weeks before（42自然日前） | 本次用户指定组织惯例 |
+| Confirm items | 8 weeks before (56 calendar days) | User-specified organization practice |
+| Confirm quotes | 7 weeks before (49 calendar days) | User-specified organization practice |
+| Submit budget request | 6 weeks before (42 calendar days) | User-specified organization practice |
 
-每行可调整提前周数/天数，未调整使用默认，可恢复默认。只在适用的采购/经费分支生成这些任务，不让无采购的小活动承担完整预算流程。关联稳定 milestoneKey 和节点ID，而不是匹配AI生成的标题。8/7/6是完成目标，不是任务开始时间；开始时间还需减去预计用时与缓冲。
+Adjust weeks/days per row, default/restorable. Generate only applicable procurement/funding tasks; small non-purchase events avoid full chain. Stable milestoneKey/node IDs, never AI title matching. 8/7/6 are completion targets, not starts; subtract duration/buffer for starts.
 
-时间配置至少保存相对锚点、偏移数量、单位、组织默认/人工覆盖、来源及版本。周=7自然日；遇非工作日的内部目标默认移到前一个可工作日，界面显示实际调整原因。ASU官方规则与内部目标并存，取满足官方限制和依赖的安排；用户不能通过把内部目标改晚而修改官方截止日。
+Save anchor/offset quantity/unit/default-or-override/source/version. Week=7 calendar days; non-working-day internal targets shift to previous workable day with explanation. Official constraints coexist and cannot be postponed by later internal targets.
 
-新排程契约分别保存 `relativeTarget` 与 `applicableOfficialRules`，不能复用旧的单选 `Anchor` 直接覆盖掉官方限制。学校规则按学校工作日计算，干部工期按个人可工作日计算；审批预计用时只是估计，不把官方提交截止当作学校承诺批准日。保留适用的材料/费用规则检查；修正旧R01校外活动使用学校资金时登记节点遗漏的适用条件。
+Separate relativeTarget/applicableOfficialRules; old single-choice Anchor must not overwrite official limits. School rules use school working days, officer duration personal working days. Estimated approval time is not a school promise to approve by submission deadline. Preserve materials/fee checks; fix missing old R01 registration applicability for off-campus events using school funds.
 
-具体活动填日期后，程序结合任务用时、依赖、组织缓冲和已知学校日历生成计划，展示预计开始、内部目标和适用的官方期限。日历不覆盖时明确不可可靠排程并要求补充支持数据；不输出看似精确的未知日期。活动只剩三周时显示准备窗口不足，不把8周工作悄悄塞到未来。
+After human event date, compute using duration/dependencies/club buffer/known calendar; show estimated start/internal target/official deadline. Unsupported calendar explicitly unschedulable pending data, never precise-looking unknown dates. Three-week lead time shows insufficient preparation, never silently compresses eight-week work into future.
 
-活动改期：预览受影响未完成任务；保留已完成历史、明确人工固定日期并提示冲突，经费绝对用款期限不自动平移。模板时间修改：默认仅影响以后创建的实例，现有活动可选择采用并逐项预览；不能全量覆盖人工调整。
+Rescheduling previews unfinished impacts, preserves completed history/manual fixed dates/conflict notices; absolute funding-use deadlines do not shift automatically. Template timing changes apply to future instances by default; existing events opt in with per-item preview, preserving manual adjustments.
 
-## 7. 全局 AI、保存与迁移
+## 7. Global AI, persistence, migration
 
-全局 AI 请求包含当前组织/页面/选中对象/版本；跨页问题按需读取同一工作区相关数据与历史，避免每次发送全库。支持查询、解释、改名、调整负责人/节点/依赖、创建活动或Board事务草案、调整相对时间的白名单提案。模型不直接写数据库，不直接生成生效日期。批准后服务端校验与提交，界面定位目标并同步；歧义先问，不凭名字猜对象。
+Requests include organization/page/selection/version; cross-page questions retrieve relevant shared workspace data/history as needed, not whole database every time. Allowlisted proposals for queries/explanations/rename/owners/nodes/dependencies/new activity-or-Board drafts/relative timing. Model never writes DB/effective dates directly. Server validates/commits after approval; UI locates/syncs. Ask ambiguity, never guess from names.
 
-所有新运行数据持久化到服务端私有工作区；不复制回旧 localStorage。采用版本化工作项整体提交或具备提交标记的等效机制，一次变更中的任务/审批/预算更新不能半成功。命令ID去重、修订号冲突检查、操作者/来源/服务器时间和可追溯事件记录。失败保留本地未提交输入，409显式冲突处理。审计与快照的一致性要有恢复路径，不能只有“已保存”文案。
+Persist new runtime to private server workspace, never copy to old localStorage. Versioned whole-work-item commit or equivalent commit marker prevents partial task/approval/budget success. Command-ID dedup/revision conflicts/actor/source/server time/traceable events. Preserve unsent local input on failure, explicit 409 handling, recoverable audit/snapshot consistency beyond Saved copy.
 
-原子边界限定同一WorkItem聚合内的Task/Gate/Funding，由单次CAS或等效提交指针保证；事件归档采用可恢复outbox，防止状态已提交但档案永久缺失。Blobs不提供任意跨对象事务；同时修改组织模板和多个工作项的AI提案按对象分段列出、分别确认/记录结果，展示已应用与未应用项和恢复入口，不声称全平台任意变更都能一次原子提交。
+Atomic boundary is Task/Gate/Funding within one WorkItem via CAS/commit pointer; recoverable outbox prevents committed state with permanently missing archives. Blobs lacks arbitrary cross-object transactions. AI proposals spanning templates/multiple work items are segmented, separately confirmed/results recorded, with applied/unapplied/recovery entries; no platform-wide atomicity claim.
 
-旧浏览器示例数据不静默迁移。现有已批准组织配置增加版本兼容与默认Timing；迁移不得重新跑AI或清空手动配置。对名称、状态、all/any、历史配置逐项验证；旧Waiting与Stuck可映射显示但保留原阻塞信息。
+No silent migration of browser demos. Version compatibility/default Timing for approved configuration without rerunning AI/clearing manual data. Verify names/states/all-any/history individually; display-map old Waiting/Stuck while preserving blockers.
 
-Files入口改为Organization documents，放Constitution内；粘贴文本单独注明来源。五章可点击跳转、切换自动保存、未修改零AI调用。移除 Connections、all/any选择框和逐节点 Mark reviewed，保留服务端依赖语义与集中受影响项复核。线选中显示删除/撤销，补手机和键盘方式。
+Rename Files to Organization documents within Constitution; pasted text source explicit. Free chapter navigation/autosave, zero AI without edits. Remove Connections/all-any selector/per-node Mark reviewed, preserving server semantics/central impact review. Selected edge delete/undo with mobile/keyboard alternatives.
 
-## 8. Worktree 与 Agent 分工（获批后建立）
+## 8. Worktree/agent assignments after approval
 
-从确认后的最新开发提交建立集成分支 `feat/activity-workspace-v1`，按依赖分批集成。主Agent先冻结共享契约；每文件唯一负责人，其他Agent通过消息提出改动，不跨工作区覆盖他人文件。各worktree独立依赖安装/端口，小提交经测试后cherry-pick至集成分支。
+Create feat/activity-workspace-v1 from verified latest development commit; integrate in dependency waves. Main agent freezes shared contracts, one owner per file; others request changes by message, never overwrite across worktrees. Separate installs/ports; tested small commits cherry-picked into integration.
 
-| Agent | Worktree/分支示意 | 唯一负责范围 | 主要交付 |
+| Agent | Worktree / branch | Exclusive scope | Delivery |
 | --- | --- | --- | --- |
-| 主Agent/集成 | activity-integration / feat/activity-workspace-v1 | 共享schema、页面路由、旧新边界、迁移版本、文档与集成 | ID/状态/审批/时间/AI契约，阶段集成与验收 |
-| Data Agent | activity-data / feat/activity-data | 新运行数据存储/API、命令校验、任务/Gate/Funding联动 | 同源状态、CAS/幂等、权限接口、归档 |
-| Schedule Agent | activity-schedule / feat/activity-schedule | 新相对时间排程适配、日历覆盖、规则测试 | 8/7/6默认、依赖排程、改期/覆盖保护 |
-| Workspace UI Agent | activity-ui / feat/activity-ui | Home、Activities、活动详情/时间轴、个人Board组件 | A1/B1/C2、短链、三列看板与完成历史 |
-| AI Agent | activity-assistant / feat/activity-assistant | 全局assistant上下文/工具/提案、阶段摘要缓存、右栏组件 | 跨页对象定位与批准变更，移出页面内重复聊天 |
-| Setup UI Agent | activity-setup / feat/activity-setup | OnlineSetup/SetupCharts及其样式 | 自由跳章、Timing设置、连线删除、集中复核、文件文案 |
-| 独立Review Agent | activity-review / review/activity-workspace | 不参与功能开发；评审集成提交、差异与测试证据 | 分批审查、阻塞清单、最终签收 |
+| Main/integration | activity-integration / feat/activity-workspace-v1 | Shared schema/routes/old-new boundary/migration/docs/integration | ID/state/approval/timing/AI contracts, staged acceptance |
+| Data | activity-data / feat/activity-data | Runtime storage/API/command validation/Task-Gate-Funding | Shared state/CAS/idempotency/permission API/archives |
+| Schedule | activity-schedule / feat/activity-schedule | Relative scheduling adapter/calendar coverage/rule tests | 8/7/6 defaults/dependencies/reschedule-override protection |
+| Workspace UI | activity-ui / feat/activity-ui | Home/Activities/details-timeline/personal Board | A1/B1/C2/short chain/three columns/completion history |
+| AI | activity-assistant / feat/activity-assistant | Context/tools/proposals/stage cache/rail | Cross-page targeting/approved changes, remove duplicate page chat |
+| Setup UI | activity-setup / feat/activity-setup | OnlineSetup/SetupCharts/styles | Free navigation/Timing/edge deletion/central review/file copy |
+| Independent Review | activity-review / review/activity-workspace | No feature development; review integration/diffs/evidence | Staged review/blockers/final signoff |
 
-并发上限七个（含主Agent）；Review和其他Agent按阶段交替运行。新任务运行引擎与新版UI放新目录，尽量保留旧实现作为明确参考；可抽取既有拖动/规则纯逻辑，不直接复用旧store和固定八岗位映射。
+Maximum seven including main; Review alternates by stage. New engine/UI directories preserve explicit legacy reference; extract drag/rule pure logic as useful, never directly reuse old store/fixed eight-role mapping.
 
-建议代码边界在P0冻结：主Agent独占`src/workspace/contracts/`、`PhaseOne.tsx`路由接线及迁移版本；Data独占`netlify/lib/workspace/`和运行API；Schedule独占新排程适配器与相关纯函数测试；Workspace UI独占`src/workspace/pages/`及组件；AI独占`src/workspace/assistant/`与相应服务端工具；Setup独占现有`OnlineSetup.tsx`/`SetupCharts.tsx`与样式。跨目录行为变更先通知负责人；共用fixture/API样例由主Agent统一管理。单元测试随所属模块，浏览器测试分文件且分端口，集成后再统一运行。
+Freeze P0 ownership: main src/workspace/contracts/, PhaseOne.tsx route wiring/migration versions; Data netlify/lib/workspace/ and runtime APIs; Schedule adapter/pure tests; UI src/workspace/pages/components; AI src/workspace/assistant/server tools; Setup existing OnlineSetup.tsx/SetupCharts.tsx/styles. Notify owners before cross-directory behavior changes. Main manages shared fixtures/API samples. Module-local unit tests, separate browser files/ports, unified run after integration.
 
-## 9. 实施顺序与交付门槛
+## 9. Sequence and gates
 
-1. P0 契约与基线：确认开发SHA、文件所有权、固定ID、Task状态/Gate、时间锚点、版本/迁移与授权边界。独立Review先审。
-2. P1 底层闭环：并行做持久化/API和时间引擎；先跑通创建工作项→按岗位分配→Task更新→同源活动投影→保存/重载。
-3. P2 页面与Setup：UI/Setup/AI在冻结契约上并行；接A1/B1/C2、个人Board、Funding内嵌、全局对话和Timing。
-4. P3 端到端：同一活动完成从8周前准备到审批/执行/结项的离线模型流程；覆盖并行、拒绝、改期、多人视角和故障恢复，修复所有阻塞。
-5. P4 独立Review与开发预览：Reviewer复核数据/流程/代码与证据；通过后推送开发分支并交预览验收。核对远端CI和部署提交，无法核验则明确标注；main保持不变。
+1. P0 contracts/baseline: SHA/ownership/stable IDs/Task state/Gates/anchors/version-migration/auth boundaries; independent Review first.
+2. P1 foundation: storage/API and schedule parallel; create work item→role assignment→Task update→shared activity projection→save/reload first.
+3. P2 pages/Setup: UI/Setup/AI parallel on frozen contract; A1/B1/C2/Board/embedded Funding/global chat/Timing.
+4. P3 end-to-end: offline mocked eight-week preparation through approval/execution/close-out; parallelism/rejection/reschedule/multiple views/recovery; fix all blockers.
+5. P4 independent Review/development preview: reviewer checks data/flow/code/evidence; after pass push feature branch/preview acceptance; verify remote CI/deployment commit or explicitly mark unverified. Main unchanged.
 
-## 10. 验收清单
+## 10. Acceptance
 
-- 15场成员活动在一个列表可查找，不产生15个常驻tab；Executive Board事务不进入Recent activities。
-- 首页同时有两类看板、最多三项重点；个人任务入口清楚。
-- 短链包含已完成/当前/后续两阶段；并行当前与受阻可见，完成数字不由AI编造。
-- Task拖动/完成/撤销在Board、事件时间轴、首页、短链及重载后保持一致；一部分Task完成不能错误完成整个阶段。
-- Stuck原因保留、all/any正确、解除一项阻塞不清空其他阻塞；上游完成不自动代做后续。
-- 提交预算后采购仍锁定，批准后才解锁；拒绝/重提、超额、多个资金来源不绕过审批。
-- 8/7/6默认及覆盖有效，工作日/期末周/日历未知/短筹备窗口有明确结果；旧官方规则不因内部调整被覆盖。
-- 改期和更新模板保留已完成/手动数据；重开完成任务不撤销已经真实发生的采购记录。
-- 同名对象不串改；一次改名更新当前引用并保留历史；跨页AI修改仍需批准且不越权。
-- 409、断网、重复请求、刷新、内部跳章、手机返回不吞输入或重复生成/重复支付模型调用。
-- 构建、相关单元/集成、桌面/手机浏览器与键盘检查；最后一次必要全量回归。真实AI质量与性能由用户后续实操验收，不以模拟测试代替。
+- Fifteen member activities searchable in one list, no 15 permanent tabs; Board excluded from Recent.
+- Both home boards, at most three priorities, clear personal entry.
+- Short chain last/current/next two, visible parallel/blocked work, no invented AI counts.
+- Board/timeline/home/chain/reload agree on drag/Done/Undo; partial completion never completes whole stage.
+- Preserve Stuck reasons/all-any; clearing one never clears other blocks; upstream never performs downstream.
+- Submitted budget keeps procurement locked until approval; rejection/resubmit/overspend/multiple sources cannot bypass.
+- 8/7/6 overrides/workdays/finals/unknown calendar/short lead time explicit; internal changes preserve official rules.
+- Reschedule/templates preserve completed/manual data; reopening never erases actual procurement.
+- Same names never cross-edit; rename updates current references/history; cross-page AI needs approval/permissions.
+- 409/offline/duplicates/refresh/chapter jumps/mobile Back preserve input and prevent duplicate generation/paid calls.
+- Build/related unit-integration/desktop-mobile/keyboard checks, final necessary full regression. User later verifies real AI quality/performance; mocks do not substitute.
 
-## 11. 审批范围
+## 11. Approval scope
 
-批准即按上述闭环实施、用独立Worktree协作和独立Review，完成开发预览。不包含正式发布、main合并、真实组织账号体系、外部采购/支付/邮件自动执行、财务总账或研究资料迁移。若未来需要正式多人登录，把身份/邀请/组织权限作为明确工作包接在同一稳定ID和命令接口上。
+Approval authorizes this complete flow with independent worktrees/Review and development preview, excluding production/main, real organization accounts, external procurement/payments/email automation, general ledger, research migration. Future formal multi-user login should be a separate identity/invitation/organization-permissions package on stable IDs/commands.
 
-独立方案Review已完成：初次提出的四项规则和两处承诺边界均已补清，更新稿开放方案阻塞为0。详见[独立方案复核](独立方案复核.md)。这是方案可提交审批的结论，正式实施仍需用户批准，不能等同于代码已经完成或测试通过。
+Independent plan review completed: four initial rule issues and two commitment boundaries clarified, zero open plan blockers; [independent review](REVIEW_ACTIVITY_WORKSPACE.md). This means the plan is reviewable for approval, not implementation authorization or completed/tested code.
 
+## 12. Implementation authorization and final annotations
 
-## 12. 实施授权与最后批注
-
-2026-10-26，用户明确表示最后批注后即可修改代码。首页重点事项必须从当前成员现有任务中提取并排序，默认展示前三项，可展开全部重要任务，禁止AI另生成一份摘要/任务清单。所有业务数据通过相同已验证命令供AI提出调整，支持组织设置、成员/岗位、成员活动和Executive Board事务的创建表单/创建工作流，不给模型任意数据库写权限。
+2026-10-26: user explicitly authorized code changes after final annotations. Home priorities must derive/sort from current member's existing tasks, top three by default, expandable all important tasks; no separate AI summary/task list. All business changes exposed to AI through the same validated commands, supporting organization setup/members-roles/member activities/Executive Board creation forms/workflows, never arbitrary database writes.

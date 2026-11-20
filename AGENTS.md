@@ -1,356 +1,81 @@
-# AGENTS.md — 给任何接手的 AI（Claude、ChatGPT、DeepSeek……）
+# Agent instructions for Platypus
 
-这个仓库是 **Platypus** 的代码和计划：一个给学生社团用的“团队型 AI 幕僚长”网站，也是 Juanxi (Steve) Wu 的 ASU Barrett 荣誉论文（STUDY00024727）第 3 阶段的原型。几个 AI 会轮流在这里工作，所以**每次开始前先读这份文件，结束时按第 4 节交接**。
+This is the canonical instruction file for every coding assistant. Read it before working, then read `docs/PROGRESS.md`, `docs/PRODUCT_PLAN.md`, and task-specific guidance. `CLAUDE.md`, `GEMINI.md`, and `.github/copilot-instructions.md` are entrypoints to these rules.
 
-## 0. 当前仓库与 Agent 工作流事实（`main` 与 PR 部分 2026-11-01 重新核对；Night Mode 部分仍是 2026-10-29）
+## 1. English is required
 
-- GitHub 正本：`juanxiwu2005/platypus-officer-hub`。
-- `main` 是 Production。任何 AI 都不得直接修改、推送或合并 `main`；只有 Juanxi 说「批准合并」才合并。
-- **`main` 的事实（2026-11-01 用 git 和 GitHub 核对）：** 顶端是 `c3c9394`（2026-11-01，共 107 个提交）。
-  v1.0 已经上线：PR #8（`integration/v1.0`）于 2026-11-01 02:10 UTC 合并，合并提交 `5b0eb96`（父提交 `4dc55ba` 和 `b7eb268`）。
-  `4dc55ba` 是 `main` 的祖先，**不再是当前基线**。PR #4–#7 的内容随 PR #8 一起进入了 `main`，GitHub 上这四个 PR 已关闭。
-  这条每次开工前要重新核对，不要沿用：`git fetch origin main && git log origin/main -3 --format='%h %ad %s' --date=short`。
-- **当前开着的 PR（2026-11-01）：**
+**Write all repository content and GitHub collaboration in English:** documentation, code comments/docstrings, TODO/FIXME notes, developer-facing messages, commit messages, new branch names, issues, PR titles and descriptions, reviews, and discussion notes. This owner instruction supersedes the former requirement to write documentation in Chinese, including instructions quoted in historical plans or task prompts.
 
-  | PR | 分支 | 是什么 |
-  | --- | --- | --- |
-  | #2 | `feat/ai-native-phase1` | AI-native 三画面原型（Draft，base `v1`）|
-  | #3 | `feat/organization-setup-ai` | DP3：Organization Setup v3 + workspace（Draft，base `v1`）|
-  | #10 | `claude/determined-johnson-yrdxwf` | **v1.6 界面与动效升级预览**，base `main`，标题「[预览·请勿合并]」，预览 https://deploy-preview-10--platypus-officer-hub.netlify.app 。取代已关闭的 PR #9（`integration/v1.6`）。合并时选 **Create a merge commit**，不要 Squash，否则不能按工作包回滚（`docs/design-upgrade/`）|
+Private conversation with Juanxi may use his preferred language. Explain technical decisions plainly. Record the resulting repository decision in English so all collaborators can follow it. Existing multilingual parser literals and test inputs are functional data; preserve their behavior and document exceptions in English. See `CONTRIBUTING.md` and run `npm run lint:english`.
 
-  PR #1（`v1` → `main`）已在 2026-10-23 合并并关闭。
+## 2. Verify the working version
 
-  ⚠️ 这些分支**不能改名也不能删**：删 head 或 base 分支都会关闭 PR，重开会拿到新编号，
-  旧预览网址永远回不来。`v1` 是 PR #2/#3 的 base，同样不能动。命名规则见第 8 节。
-  已合并 PR 的分支（`integration/v1.0` 等）还在 GitHub 上；能不能删，见 `docs/LAUNCH_STEPS.md` 第 5 节，由 Juanxi 决定。
-- ⏸ **Night Mode 自 2026-10-28 起暂停**，开发改由人工会话完成。恢复之前先修
-  `docs/NIGHT_MODE.md` 第 1 节记下的脚本问题（推送后立刻查 CI 会误判失败、队列不处理残留改动、
-  macOS bash 3.2 的变量名问题）。下面关于 Night Mode 的条目保留作为恢复时的说明；它们是 2026-10-29 写的，**2026-11-01 没有逐条重新核对**，恢复之前先核对。
-- `scripts/night-mode.mjs` 是唯一可以代表 Night Mode 做 commit、push、读取 CI 和写 PR 评论的控制器；
-  OpenCode Agent 自己不能做这些动作。`scripts/night-queue.sh` 是多任务队列（见 `docs/NIGHT_MODE.md` 7d）。
-- **编码主力是 `backend-coder`（ASU `glm-5-3`），不是 `orchestrator`。** orchestrator 被配置为
-  禁止编辑文件和跑命令，只能派活，而派活在当前环境里会报 `Subagent session not found`。
-  原因与取舍记在 `docs/NIGHT_MODE.md` 第 2 节的变更记录里。
-- 当前预算：**300 步 / 单条命令 45 分钟 / 5 轮返工**。Agent 能跑的 shell 命令是一份白名单
-  （只读命令 + 项目自己的测试），`node`、`curl`、`python` 和复合命令一律拒绝。
-  完整清单见 `docs/NIGHT_MODE.md` **7b 运行环境预算卡 —— 写任务文件之前必须先看它**。
-- Agent 不能编辑的保护文件：`.env*`、`.git/**`、`.gitignore`、`AGENTS.md`、`docs/NIGHT_MODE.md`、
-  `package.json`、`package-lock.json`、`opencode.json`、`scripts/night-mode.mjs`、
-  `.nightmode/**`、`.github/**`、`netlify.toml`。
-  → **需要装依赖或改 CI 的任务不能走 Night Mode**，必须走普通会话。
-- Agent 的模型映射来自用户级 OpenCode 配置，项目级 `opencode.json` 收紧权限并设置 `steps`。
-  每次运行以 `opencode debug agents` 为准，不要假设某个模型永远存在。
-- Night Mode Agent 通过 OpenCode 调用 ASU AIR；这不等于拥有任意网页访问。控制器单独使用
-  GitHub CLI 完成 GitHub 操作。
-- 本地 `ASU_AIR_API_KEY` 只存在终端环境中；产品网站使用 Netlify 的 `AI_*` 环境变量。
-  两者不能混为一谈，也都不能写进仓库。
-- **2026-10-28，Night Mode 首次完整端到端跑通**：编码 → `npm run check` → 独立 Critic
-  `APPROVED` → 提交推送 → GitHub CI 通过 → Deploy Preview → `READY_FOR_CLAUDE`。
-  在此之前连续五次停在编码阶段，根因与修法全部记在 `docs/NIGHT_MODE.md`。
-  未来 AI 必须重新验证，不能假设状态仍然相同。
-- ⚠️ **队列运行期间，任何人都不要推送 `feat/ai-night-mode`，包括只改文档的提交。**
-  2026-10-27 那一晚 7 个任务全军覆没，唯一原因就是 Claude 在队列运行期间推了一个
-  文档提交，本地落后于远端，推送被拒，之后每个任务撞同一面墙。
-  云端会话看不到本地在跑什么 —— **开跑前要告诉它一声**。详见 `docs/NIGHT_MODE.md` 7b-2。
-- `feat/ai-night-mode` 当前顶端 `94e2882`（N6）。`backup/2026-10-28-queue` 和 `wip/*` 分支
-  只存在于 Juanxi 的 Mac 本地，GitHub 上没有。任务库 `docs/night-tasks/` 的 N1–N6 已全部完成。
-- 写 Night Mode 任务文件之前，除了 7b 预算卡，还必须看 **`docs/NIGHT_MODE.md` 7c 第 7–9 条**：
-  任务的事实对不对不等于它在语义上做得到；一个任务只装一件事；纯重命名要写明不需要新增测试。
-- 状态冲突时，先检查 Git/PR/CI，再更新文档；不要用聊天记忆覆盖仓库事实。
+Start with read-only checks:
 
-## 1. 先读什么（按顺序）
-
-1. `docs/PROGRESS.md` —— 现在做到哪了、谁在做、下一步是什么。
-2. `docs/PRODUCT_PLAN.md` —— 已批准的产品计划 v1.0（唯一正本）。工作包和验收标准在第 13 节，范围和砍单顺序在第 12 节。
-3. 若任务使用自动开发，读 `docs/NIGHT_MODE.md` 和任务文件 `.nightmode/TASK.md`。
-   **写任务文件之前必须先读 `docs/NIGHT_MODE.md` 的 7b（运行环境预算卡）和 7c（任务怎么写）** ——
-   2026-10-27 晚五次失败里有四次，根因都是给没量过的运行环境写指令。
-4. 按任务再读：`docs/RULES.md`（ASU 规则库）、`docs/SEO_PLAYBOOK_REFERENCE.md`（流程模板来源）、`docs/AI_SETUP.md`（产品 AI 供应商怎么切换）。
-5. 若任务是界面/动效升级（工作包名字以 `DX-` 开头），读 `docs/design-upgrade/README.md` 和你那个工作包的说明；计划状态以 `docs/PROGRESS.md` 最上面那条为准。
-
-## 2. 关于项目负责人
-
-- Juanxi 不写代码。用简单的中文向他解释，一次只讲一步，不用术语；需要他动手的地方写清楚点哪里。
-- 他通过**预览网址**验收每个工作包，只回答“可以”或“改哪里”。
-- 计划的任何改动都要他同意，并记在 `docs/PROGRESS.md` 的“决定记录”里。
-
-## 3. 硬性规则（不能破）
-
-1. **不放研究数据。** 不提交问卷原始回答、访谈转写、录音、参与者姓名或引语。仓库里只有虚构的演示社团数据。也不要把这些资料贴给任何 AI。
-2. **不放密钥。** 产品网站的 API key 只放在 Netlify 环境变量里（见 `docs/AI_SETUP.md`）；Night Mode 的 `ASU_AIR_API_KEY` 只放在本地终端环境里。任何密钥都绝不写进代码、文档、任务文件、提示词或提交记录。
-3. **日期只由规则引擎计算。** AI 只能通过白名单操作改数据（见计划第 11 节）、起草提醒、答案和手册；AI 输出里的日期字段一律丢弃。v1.2 起（Juanxi 2026-10-23 批准）：AI 文字里只保留和社团数据里已有日期完全一致的日期，其余遮掉；小改动（改状态、改名、标签、难度、记录联系）以当前查看者的权限立即生效并可撤销，其余改动仍要社长或副社长批准。2026-10-27 M2b（Juanxi 批准）：**任务对所有人开放**——给自己或给别人建任务立即生效、可撤销（给别人的要对方认领）；**建活动**默认只限社长、副社长，社长可在 Settings 开放给指定干部或所有人；新任务的截止日由规则引擎按「今天 + 设置的天数」和社团缓冲计算（`src/engine/taskDates.ts`），AI 仍然不能给任何日期。详见 `docs/PROMPT_STRATEGY.md` 第 0 节。
-4. **`main` 分支就是正式网站。** 每次推送到 `main`，Netlify 都会自动上线。当前 Night Mode 工作只在 `feat/ai-night-mode`；其他工作也必须使用 Juanxi 批准的功能分支（命名规则见第 8 节）。**只有 Juanxi 明确批准后才能合并到 `main`。**
-5. **AI 供应商（2026-10-27 更新，Juanxi 批准）：**
-   - **产品网站**：所有 AI 调用都走 ASU AIR（只在服务器上调用，key 只在 Netlify 环境变量里），只在模型上做选择。路由 v3：Gemma 4 31B 负责较长的结构化设置任务；Muse 负责短对话和编辑（主应用的 Ask、规则、提醒、手册都用它）；GLM 5.3 只在用户主动要求 Deeper review 时使用。**DeepSeek 已移除**（2026-10-29，Juanxi 批准）：代码里没有它的路径，`AI_PRESET=deepseek` 会被直接拒绝；AIR 不可用时，应用用内置的本地回答，不调用任何其他 AI 供应商。模型分工是设计选择，不是已验证的性能排名。详见 `docs/AI_SETUP.md`。
-   - **Night Mode 开发 Agent**：同样走 ASU AIR，用本地终端环境里的 `ASU_AIR_API_KEY`。这和产品网站的 Netlify `AI_*` 变量是两套，不能混为一谈。角色与模型映射见第 0 节，以 `opencode debug agents` 为准。
-   - 任何有真实参与者的 Phase 3 会话必须使用 ASU AIR（或 IRB 批准的供应商）。
-6. **界面文字用英文**（用户是美国学生）；文档用中文。
-7. 不做计划第 12 节标为“不做”的功能（例如库存、成员名单）。
-
-## 4. 轮流工作的交接规则
-
-**开始前：**
-
-1. 先运行只读检查：`git status --short --branch`、`git remote -v`，再确认用户批准的目标分支。不要自动切换到 `main`。
-2. 如果是 Night Mode：保持在 `feat/ai-night-mode`，读 `docs/NIGHT_MODE.md`，由控制器执行；Agent 不提交、不推送。
-3. 如果是普通人工开发：拉取用户批准的功能分支，读 `docs/PROGRESS.md`。若某项写着“进行中”且标了别的 AI，就不要碰它。
-4. 普通人工开发开始时，在 `docs/PROGRESS.md` 把任务标为“进行中”，写上 AI 名称和日期，然后在获准分支提交并推送。
-
-**工作中：**
-
-- 小步提交。提交信息格式：`[WP1][ChatGPT] 规则引擎：加入三个截止日`。
-- 改了行为就补测试；改了规则就同时改 `docs/RULES.md` 和代码里的规则数组。
-
-**结束时：**
-
-1. 在 `docs/PROGRESS.md` 写清楚：做完了什么、还剩什么、怎么验收（预览网址、要点哪里）、已知问题。
-2. 把工作包状态改成“待验收”或“已完成”，在“交接记录”加一行。
-3. 推送。如果改了 `docs/PRODUCT_PLAN.md`，在交接记录里注明“需要同步本地备份”。
-
-**没有仓库权限的 AI（例如只在聊天窗口里的 DeepSeek）：** 让 Juanxi 把这份文件和相关章节贴给它，它只输出完整的文件内容或补丁，再由有权限的 AI 提交，并在交接记录里注明来源。
-
-## 5. 本地备份
-
-GitHub 是唯一正本。Juanxi 电脑上的 Honors Thesis 文件夹 `05_Phase3_Prototype/Plan/` 里有一份备份（`Platypus_产品计划_v1.0.md`、`PROGRESS.md`、`RULES.md`，以及本文件的副本 `AGENTS_repo.md`）。能访问他电脑的 AI（目前是 Claude）在每个工作包结束时同步一次；其他 AI 只要在交接记录里写“需要同步本地备份”。
-
-## 6. 现在的代码
-
-`v1` 分支（WP0 之后）：
-
-- **前端：** React 18 + TypeScript + Vite，入口 `src/main.tsx`，用 HashRouter（网址形如 `/#/tasks`，这样 Netlify 不需要通配跳转，不会挡住 `/api/*` 和 `/legacy/`）。
-  - `src/routes.ts`：10 个页面和每页要回答的那一个问题。`src/components/Layout.tsx`：顶栏（View as、AI 开关）、演示条（Reset demo）、侧边导航。
-  - `src/pages/*.tsx`：每页一个文件。还没做的部分用 `<Coming wp="WPx">` 虚线卡片标出来，做完就删掉对应条目。
-  - `src/data/types.ts`（数据模型，计划第 11 节）、`seed.ts`（虚构社团 Desert Founders Society）、`store.tsx`（只存在浏览器 localStorage，键 `platypus.v1.demo`，改了数据结构就把 `SCHEMA_VERSION` 加 1）、`rules.ts`（R01–R16，必须和 `docs/RULES.md` 一起改）。
-  - `src/lib/dates.ts`：日期工具。
-- **规则引擎（WP1，`src/engine/`）：** 只有这里能算日期，AI 不能。
-  - `calendar.ts`：ASU 工作日、假期、期末周、学期（数据和出处见 `docs/RULES.md` 末尾）；干部的“工作日”还要去掉期末周、学期之间和本人的忙碌周。
-  - `playbooks.ts`：活动流程模板。来自 SEO 的 OA101/OA102/OA201、T-90/60/30/14 清单和 R01–R16。每个步骤有负责职能、锚点（`rule` = ASU 规则给出官方截止日；`target` = 社团惯例时点）、预计用时、依赖和适用条件；`buildEventNodes()` 把模板变成节点。
-  - `schedule.ts`：`computeSchedule(state)` 先倒推（官方截止日 − 社团缓冲、社团时点、下游最晚开始日的前一个工作日，取最早的），再顺推（人设的社团截止日；上游没完成就把下游往后推），最后给出问题：红色 = 赶不上 ASU 截止日或排到活动之后；黄色 = 过了社团截止日或最晚开始日、被上游推迟、没有负责人。每个日期都有一句“为什么”。`applySchedule()` 把日期写回节点，store 每次改动后都会调用。
-  - 演示从固定日期 **2026-10-22（周四）** 开始（`DEMO_TODAY`），所以示例活动的日期对每个人都一样；WP3 的模拟时钟从这里往后走。
-- **活动页（WP1）：** `src/pages/Events.tsx`，三种视图：流程图（`src/components/flow/FlowChart.tsx`，React Flow，按岗位分泳道，横轴是日期）、甘特图（`Gantt.tsx`）、列表；点步骤打开 `src/components/NodePanel.tsx` 侧栏，可改负责人、社团截止日、用时、RACI、Why、材料链接。
-- **测试：** `npm test`（Vitest 单元测试，`src/test/`）；`npm run e2e`（Playwright，`e2e/`，桌面和手机两种尺寸）；`npm run check` 三样一起跑。GitHub Actions（`.github/workflows/ci.yml`）每次推送都会跑。
-- **旧版：** v0.1 单文件原型移到了 `public/legacy/index.html`，网址 `/legacy/`，保留不动。
-- **WP2 今日页：** `CommandBar.tsx` 逐条审核白名单变更单；`src/lib/commands.ts` 双重过滤 AI 日期。`NudgeComposer.tsx` 和 `src/lib/nudges.ts` 生成并检查五段提醒；`command.mts`、`nudge-draft.mts` 沿用现有供应商适配器。
-- **WP3 任务与干部端：** `src/data/taskWorkflow.ts` 管认领、四种状态、带草稿延期、贡献和 RACI 通知；`src/engine/followup.ts` 管逐日模拟、3/5/7/8/10 天私下跟进；恢复排程仍由 `schedule.ts` 计算。Tasks 有列表/看板/甘特，通知只显示当前角色自己的记录。
-  - `src/lib/officerLinks.ts` 与 `src/pages/Officer.tsx` 提供一次性签名的**同浏览器演示链接**；只绑定一个任务和负责人，一次操作后失效。`demoLinkKey` 是运行时随机的本地演示密钥，不是供应商 key，不发到 AI。跨设备验证和真实身份验证留到 v1.5。
-  - WP3 当时的演示结构版本为 3（WP4 已升到 4）；旧版浏览器数据恢复种子。Reset demo 清空状态、通知、申请和链接。验收与下一位说明见 `docs/WP3_ACCEPTANCE.md`；本机已通过 146 个单元测试和 62 个页面测试，原有测试保留。
-- **WP4 设置与团队：** `Setup.tsx` 五步设置，`Join.tsx` 五问同浏览器邀请，`Settings.tsx` 编辑社团和本人偏好；`src/data/settings.ts` 统一验证与写入，`src/engine/team.ts` 计算工作量、贡献和会议交集。`org.workspace` 只保存演示渠道、链接、说明与小型虚构附件，不连接真实账户，附件不发给 AI。个人缓冲关闭后用默认一天，仅本人可见数值解释。
-  - 岗位名称沿用同一个 role ID，流程道和 Handoff 手册目录同步；完整手册和换届仍为 WP5。结构版本 **4**；本机通过 **174 个单元测试 + 76 个页面测试**，原测试保留。验收和后续入口见 `docs/WP4_ACCEPTANCE.md`。
-- **WP5 经费、规则、交接、关系、预测：** `src/engine/forecast.ts` 为固定种子 1,000 次纯函数；日期继续走 `schedule.ts`，包括预测完成日期、换届派生日期和经费决定日。Today 按预测概率排前三项，默认颜色/两条原因，展开才有比例。`personalBuffer()` 只用有完成日期的本社团记录渐进调整，Settings 只给本人解释；可关闭，换届默认重置。
-  - `/api/ask` 只让 AI 选服务器 R01–R16，正文从真实规则记录重建；`RuleQuestion` 在 Rules/Today 共用。`/api/preflight` 与浏览器共用 `src/lib/preflight.ts` 的确定性 R11/R12 检查。`Feedback` 报错存在本浏览器，Rules 底部管理员队列查看。
-  - `src/data/handoff.ts` / `src/lib/handbook.ts` 管换届和来源：AI 只选 task/interview ID，逐条显示来源原文；保存来源快照，变更后必须重审；卸任干部本人确认，再由社长批准。只用新编虚构示例访谈，不能读研究资料。完成交接转移未完成任务，联系人保留岗位 ID，个人缓冲不传给新人。
-  - **Handoff 改版总览（2026-11-09，8 个阶段，在分支 `claude/tender-gates-j8ztlr` 做；**2026-11-09 经 Claude 审查修复后，Juanxi 批准直接合并到 `main`**，结构版本 22）：** 计划和决定见 `docs/HANDOFF_EXECUTION_PLAN.md`（第 10 节和原方案的差别、第 11 节合并清单、第 12 节回滚表、第 13 节已知问题）。**文件地图：** 规则和数据 `src/data/handoff.ts`（交接动作）、`roleTerms.ts`（任期对齐）、`roleChanges.ts`（移动工作/关闭岗位/起步回答）、`permissions.ts`（`isOfficer`/`officers`）；纯函数 `src/lib/handbook.ts`（手册来源）、`roleDossier.ts`（岗位档案）、`handoffQuestions.ts`（缺口题、read-back）、`handbookDraft.ts` / `handoffRisk.ts` / `firstQuestions.ts`（只有 Handoff 页用，**不要**让 store 引用它们，否则首页入口文件变大）；界面 `src/pages/Handoff.tsx`、`HandoffNewOfficer.tsx`、`HandoffRoleChanges.tsx`；服务器 `netlify/functions/handbook-draft.mts`。测试 `src/test/handoffStage1–7.test.ts`、`e2e/handoff-stage1–7.spec.ts`。**硬边界：** 读研究日志的代码只能在 `firstQuestions.ts`（守护测试 `handoffStage7.test.ts`）；日期只来自规则引擎；AI 只回编号。下面是各阶段的细节：
-  - **Handoff 改版第 1 阶段（2026-11-08，`docs/HANDOFF_EXECUTION_PLAN.md`）：** 卸任人交接后带 `Person.leftOn`（前任），仍留在 `people` 里供历史记录使用；所有"列出干部"的地方（View as、Team、指派、Settings、`aiSnapshot`、`commandContext`）改用 `officers(s)`（`src/data/permissions.ts`），校验也只算现任。新人自动得到 example.org 邮箱。换届季开着时新增岗位由 `syncSeasonRoles()` 自动加入。新开的季访谈为空（不再预填示例）。结构版本**没有**升（只加可选字段）。
-  - **Handoff 改版第 2 阶段（2026-11-08）：** 交接最后一步可选三种接手人（`Successor`，`src/data/handoff.ts`）：新的人 / 已在社团里的人（现任或前任干部，不会复制出第二个人；他原来的岗位变成空缺，总统岗位不能被拿走）/ 暂时空着（总统岗位不行）。**转给新人的未完成任务变成"Not claimed"并指给新人，新人点 "I've got it" 才算接手**（空着时没有负责人）；新人收到一条通知。没有人担任的岗位由社长代替卸任人写访谈、确认手册（`speaks`）。新动作 `startRole` 只为一个岗位开交接（`HandoffSeason.partial`；"Start handoff season" 把它变成整季，`syncSeasonRoles` 不给部分换届季自动加岗位）；岗位空着时再点 "Hand over to someone" 会保留已有访谈和手册重新打开。`handbookSources` 不再给没人担任的岗位拉进所有无负责人任务。结构版本仍**没有**升。
-  - **Handoff 改版第 3 阶段（2026-11-08，结构版本升到 21）：** "人"和"岗位任期"分开。`RoleTerm`（`src/data/types.ts`）记谁在哪个岗位当过 `incoming` / `active` / `former`；`src/data/roleTerms.ts` 的 `normalizeTerms` 在**每个动作之后**（`reducer` 外层）和每次读取存档时把任期和 `Role.holderId`、`RoleHandoff.incomingId`、`Person.leftOn` 对齐，没变化时返回同一个对象，所以别的代码不用写任期。社长可以在交接完成前先**指定接任人**（`setIncoming` / `clearIncoming`）：新的人当场建出来，带 `Person.incomingFor`（`isOfficer` 为假：不在干部名单、没有岗位权限、不能被指派，但出现在 View as，能读手册和未完成任务，不能改任务）；已在社团的人只多一个 incoming 任期。Finish 用指定的人（已指定时不能再传别的接手人）。**第一周清单改到移交之后**，由新任干部或社长勾，移交本身不再要求勾完。旧存档（v14–v20）读取时自动补任期。**违反 Phase 3 "不改 `SCHEMA_VERSION`" 的边界，所以 Handoff 改版整条分支在 Phase 3 收完数据前不合并到 `main`。**
-  - **Handoff 改版第 4 阶段（2026-11-08）：** `src/lib/roleDossier.ts` 是**岗位档案**（纯函数，不用 AI，不升结构版本）：四块 Calendar（接手后 30 天内的截止日 + 这个岗位在每场活动里负责的标准步骤）/ In flight（未完成任务）/ People（岗位名下的联系人，不含邮箱电话）/ Lessons（延期理由、静默记录、迟交），每行带来源 ID 并能点开原记录。**交接手册的来源**（`handbookSources`）现在 = 任务 + 档案行（`deadline:` `step:` `contact:` `lesson:`）+ 访谈；**仅干部可见的联系人不进手册**（`publicOnly`），所以手册对每个人都一样、不会因为换人看而变"过期"；档案页本身仍按查看者的权限显示。手册按 6 个小节显示（`HANDBOOK_SECTIONS`、`sectionOf`），AI 仍然只回编号，本地兜底手册（`localHandbook`）轮流从每个小节各取一条。`/api/handbook/draft` 接受新的来源类型。`handoffRisk()` 用简单计数给每个岗位的交接风险（open/ASU 截止日/逾期/卡住/记录缺口）打分，Handoff 页接力卡按风险排序（红黄绿图形，读屏朗读原因），详情里写出三条主要原因。**没做：** 把交接风险放进 Today 的 "Needs a nudge"（那一栏是"最可能赶不上的 3 个步骤"，混进岗位会改变含义和 Phase 3 的页面，留给 Juanxi 决定）。
-  - **Handoff 改版第 5 阶段（2026-11-09）：** 新人流程和缺口提问，全是规则、**不用 AI**（Q2：AI 不写导读句；"AI 出缺口题"没做）。`src/lib/handoffQuestions.ts`：`questionCandidates` 从岗位档案的缺口（没写目的的任务、没写理由的延期、静默记录、从没联系过的联系人）加 2–3 个通用题生成最多 6 题，每题有稳定 id，仅干部可见的联系人不被问；卸任人在访谈卡里回答，**答案变成一行访谈**（`Q: … A: …`，会撤回已写的手册，要重新起草）或跳过（留作"未解决"）；没人担任的岗位由社长回答。新人（`record.incomingId`）逐小节点 "Got it" / "Unclear"（Unclear 变成给卸任人的问题），用自己的话回答 3 个固定问题（read-back，`readBackFlags` 只粗略查"手册里有没有出现这些词"，**不打分**），卸任人选 "Add to handbook" 或 "Fine as it is"。社长可挑一个轻量任务让新人旁观（`startShadow`，任务仍归卸任人，新人收到通知）。第 7 天和第 30 天的回看（`review` 带 `day`）：新人给清晰度、信心、被接纳三个 1–5 分和"手册缺了什么"，**只有社长、副社长和新人本人看得到分数**（Q5）；社长点 "Add to dossier" 后，那句话成为岗位档案的 Lessons 行（`lesson:review:`），并带进下一轮交接。旧的无分数 `review` 仍可用（社长记第 30 天）。`RoleHandoff` 多了可选字段（`questions`、`reading`、`readBack`、`shadowNodeId`、`reviews`、`completedOn`），结构版本不变。界面在 `src/pages/HandoffNewOfficer.tsx`。首页入口文件上限已提到 520,000（决定记录 2026-11-09）。
-  - **Handoff 改版第 6 阶段（2026-11-09，结构版本升到 22）：** 岗位变动。①**改名历史**：`Role.formerNames`（旧名 + 停用日期）、`renamedOn`；`saveClubSettings` 记录，**同一天内连续改名（自动保存会在打字停顿时存）只记第一次的真旧名，改回去就删掉**；历史永远不从表单读（防篡改）。②**新岗位起步**：`Role.startNotes` 存社长对 3 个固定问题（`ROLE_START_PROMPTS`）的回答；档案里多一行 `step:duties`（章程/职责原文）和 `lesson:start:`（社长的回答），没有历史的岗位在详情里自动展开提问。③**移动工作 / 关闭岗位**（`src/data/roleChanges.ts`，动作 `roleChange`，仅社长/副社长）：`moveWork` 把岗位的未完成任务（变 Not claimed，指给对方岗位的现任，没人就无负责人）和联系人转给另一个岗位；`closeRole` 要求岗位**没有现任**（先交接给 "Nobody yet"）、不能是总统岗位，把剩余任务、联系人、RACI 里的岗位 ID、俱乐部流程步骤的 `ownerRoleId` 都转给指定岗位，下属岗位改为汇报给它的上级，然后把它从 `roles` **移到 `archivedRoles`**（带关闭日期和 `closedInto`）——**存档，不删除**（D-6a，Juanxi）：名字、任期、交接记录、改名历史都在，同名可以再用。拆分 = 在 Settings 加新岗位 + `moveWork`；合并 = `moveWork` 全部 + `closeRole`。界面：Handoff 详情里的 "Change this role"、Settings 的 "Closed roles"（`src/pages/HandoffRoleChanges.tsx`）。旧存档（v14–v21）读取时自动补 `archivedRoles: []`。
-  - **Handoff 改版第 7 阶段（2026-11-09，Juanxi 决定 Q3：产品的问答记录和研究日志完全不分开）：** **没有新建任何问答记录**（没有新增记录项，不用再为此告知 IRB）。`src/lib/firstQuestions.ts` 只在 Handoff 页画出来的那一刻，通过 `getLog()` **读**现有研究日志里新人（`record.incomingId`）在被指定之后问 Ask 的问题（`ui.ask`，起点是日志里该岗位最近一次 `setIncoming`，没有就用 `complete`），标出手册没覆盖的（和 read-back 同一个"有没有出现这些词"检查），显示在新人卡里的 "Questions asked in Ask"，**只有社长、副社长和新人本人看得到**。**硬边界（`src/test/handoffStage7.test.ts` 守护）：** 结果不存进社团数据、不进手册和档案、**不发给 AI**；`handoff.ts`、`roleChanges.ts`、`roleTerms.ts`、`handbook.ts`、`handbookDraft.ts`、`roleDossier.ts`、`handoffQuestions.ts`、`handoffRisk.ts` 和 `netlify/functions/handbook-draft.mts` 里出现 `getLog` / `interactionLog` / `LogEntry` / `"ui.ask"` 测试就变红，只有 `HandoffNewOfficer.tsx` 可以用 `firstQuestions`。这不改变"研究数据不进模型提示词"的硬规则（第 3 节规则 1）。**没做：** 把 Ask 聊天记录改成按 View as 的人分开存（`platypus.v1.chat` 仍是所有人共用的一份，只存最后 60 条；会动 Phase 3 的 Ask 行为，需要时另外决定）；"这个岗位常被问的问题"汇总。
-  - **Handoff 审查修复（2026-11-09，Claude，合并到 `main` 前）：** ①再次交接同一岗位时，上一轮记录移到 `DemoState.handoffHistory`（可选字段），不再被覆盖；②`leaders()` 只算现任社长/副社长的持有人，跟进引擎的临时负责人（`suggestedOwner`）只从 `officers()` 里选；③**候任新人和前任在被 View as 时只读**：`reducer` 外层只放行 `READ_ONLY_OK` 里的动作（交接动作、切换视角、AI 开关、Reset、时钟、已读、报错），认领/建任务/改任务等一律拒绝（D-3a）；④读取 v14–v21 旧存档时 `repairLegacyHandoff` 给旧版完成交接的人补 `leftOn` 和 example.org 邮箱；v20/v21 不再跑 `completeDemoSpeakerPlan`；⑤交接完成后岗位档案、风险看新持有人（`dossierOwner`）；⑥同一天多次改名不丢原名；⑦换下一任时清空旁观任务、阅读标记、回述，新人 id 永不复用；⑧**手册过期规则改为 `handbookFresh`：只有手册引用的那几条记录变了或没了才算过期**（Juanxi 同意），新增记录不算；⑨起草请求访谈排最前（`draftPayload`，服务器只收 100 条），同一任务多次"静默"只算一条 Lessons；⑩Tasks 表格、AI 变更单、活动 Plan check、本地助手"谁忙"、会议时间只列现任；⑪新人只能标记手册里真有的小节；⑫Q4：新人卡里能看到前任的名字、邮箱和电话（只在页面上，不发给 AI）。测试 `src/test/handoffReview.test.ts`。
-  - 结构版本 **5**，本机完整检查通过 **233 个单元测试 + 90 个页面测试**。原有测试保留；`evals/rules.json` 为 40 题，`scripts/eval-rules.mjs` 支持真实接口评估，CI 用模拟供应商。**真实 AI 验收未完成**：Netlify 访问受阻，Juanxi 要求停止登录尝试，已停止。不要把模拟 40/40 或本地示例手册称为 DeepSeek/AIR 验收；详见 `docs/AI_TESTS.md` / `docs/WP5_ACCEPTANCE.md`。
-- **服务器：** `netlify/functions/*.mts`：`/api/health`、`/api/ask`、`/api/parse-brief`、`/api/plan/draft`、`/api/replies/classify`；`netlify/lib/ai.mts` 是 AI 供应商适配器，换供应商只改环境变量。
-- **部署：** `netlify.toml` 构建命令 `npm run build`，发布目录 `dist`，Node 22。
-- 正式网址：https://platypus-officer-hub.netlify.app （`main`，核对时的顶端提交见第 0 节）。Night Mode 的 Draft PR #7 预览是 https://deploy-preview-7--platypus-officer-hub.netlify.app；每次使用前重新检查 PR 和预览状态。
-
-## 6b. v1.1 改版后的代码地图（2026-10-23，覆盖上面关于页面的旧描述）
-
-- 外框：`src/components/Layout.tsx`（顶栏、Demo 小标、铃铛、导航）+ `src/components/rail/`（`RailContext.tsx` 右栏状态；`Rail.tsx` 两个标签和详情分发；`AskPanel.tsx` 对话；`ChangeCard.tsx` 变更单审核）。
-- 组件：`src/components/ui/`。AI：`src/lib/assistant.ts`（浏览器）、`src/lib/chatCards.ts`（共用过滤）、`netlify/functions/chat.mts`（`/api/chat`）。v1.2：`src/lib/aiContext.ts` 把“当前查看者能看到的全部数据”整理给 AI（不含别人的个人缓冲、私信、文件、演示密钥）；`src/data/sharedPool.ts` 是虚构共享池，只读（`/api/pool` 端点已在 S2 删除）；小改动走 store 的 `aiAutoApply` / `undoAuto`，大改动走 `reviewChange`。旧的 `/api/command`、`/api/ask`、`/api/nudge/draft` 仍在用。
-- 设置流程（M4 的一部分）：`src/pages/Setup.tsx` 五步（Your club → Semester goals → Officer roles → Invite & workspace → First event）；没有部门，任务按岗位分配，AI 读所有岗位的职责；`src/components/setup/ConstitutionStep.tsx` 上传/粘贴/示例章程；`src/lib/constitution.ts`（提示词 `CONSTITUTION_SYSTEM`、`sanitizeRead` 过滤、`readLocally` 浏览器内规则读取、`structureFromRead` 变成岗位）；`src/data/structure.ts`（汇报关系、职责模板、由岗位名推出活动功能，纯函数）；`src/engine/orgChart.ts` + `src/components/setup/OrgChart.tsx`（自动组织架构图，只有岗位名和汇报线）；`src/lib/localDocs.ts`（浏览器 IndexedDB，存章程文字，Reset demo 时清空）；`netlify/functions/constitution.mts`（`/api/setup/constitution`，不存储、不碰 `serverStorage`）。数据：`Role.reportsToId/duties`、`Person.asuId`（虚构，9999 开头，不发给 AI）。
-- 组织自己的活动工作流（设置第 5 步 + Settings → Workflow）：`src/engine/workflow.ts`（应用/撤销改动、检查是否违反 ASU 规则、分配岗位、纯函数）、`src/lib/workflowAi.ts`（提示词和回答清洗）、`netlify/functions/workflow.mts`（`/api/setup/workflow`，不存储）、`src/components/setup/WorkflowPanel.tsx`（同一张可编辑地铁图 `MetroChart` 的模板模式 + 步骤详情）/ `WorkflowReview.tsx`；存在 `org.eventWorkflow`，新建活动用 `orgSteps(state)`。AI 只提建议，ASU 规则步骤不能被改（`isLocked`）。
-- 会议时间（Team 页）：`src/components/MeetingFinder.tsx`，When2meet 样式——左边涂自己每周的空闲时间（存到 `freeSlots`），右边按人数着色并可点选；计算在 `src/engine/team.ts`（`whoIsFree`、`cellsToSlots`、`availabilityGrid`）。Google Calendar 连接留到以后。
-- 流程图原地编辑（Events → Flow → Edit flow）：`src/lib/flowEdit.ts`（拖到两步之间、断线、删除，纯函数，只改“等待哪些步骤”）+ `MetroChart.tsx` 的编辑模式 + store 的 `addEventStep` / `removeEventStep` / `restoreEventNodes`。不用 React Flow。
-- 流程图：`src/components/flow/metro.ts`（纯布局，有单元测试）+ `MetroChart.tsx`。看板：`src/data/board.ts`。
-- 页面测试：`e2e/helpers.ts` 有 `resetDemo`、`demoClock`、`ask`。本机没有下载浏览器时用 `PW_CHROMIUM=<chromium 路径>`。
-
-## 6c. v1.0 新增的部分（2026-10-29，`integration/v1.0`）
-
-- **设计 token 与护栏：** token 都在 `src/styles.css` 的 `:root`，说明见 `docs/DESIGN_TOKENS.md`。`.stylelintrc.json` 只管 `src/styles.css`；`eslint.config.js` 禁止行内 style（CSS 变量注入和数据驱动的 left/top/width/height 除外）；`src/organization/`、`src/phase1/`、`src/workspace/` 的 CSS 和行内样式暂时排除在外。`npm run check` = lint + build + 单元测试 + 页面测试 + `npm run words`（字数上限见第 7 节第 5 条）。
-- **Behind the scenes 开关：** `src/components/Bts.tsx`，开关在顶栏 Demo 小标的菜单里，状态存 localStorage；关闭时来源说明不进 DOM。测试 `e2e/bts.spec.ts`。
-- **触屏：** `src/components/ui/index.tsx` 的 `Hover` 在没有鼠标的设备上改为点一下展开。测试 `e2e/touch.spec.ts`。
-- **M2b（Ask 分清任务与活动）：** 表单在 `src/components/rail/AskPanel.tsx`、`TaskFields.tsx`；任务的社团截止日由 `src/engine/taskDates.ts` 算；活动 Plan check 是 `src/lib/eventReview.ts` + `netlify/functions/event-review.mts`（`/api/event/review`）；提示词 `src/lib/chatCards.ts`，策略 `docs/PROMPT_STRATEGY.md`。
-- **改步骤顺序（原 M3 Edit steps，已删除）：** 现在直接在 Events → Flow 的地铁图上编辑（`MetroChart` + `src/lib/flowEdit.ts`：拖点、双击点/线、右键菜单、Undo）。界面只写步骤的 `dependsOn`、`estDays`、`phase`、`phaseOrder`，通过 store 的 `applyStepEdits` / `addEventStep` / `removeEventStep` / `restoreEventNodes` 写入（进交互日志）；日期仍由 `schedule.ts` 算。图在电脑上从左到右，只有手机（视口 ≤700px）竖排。测试 `e2e/flow-edit.spec.ts`、`src/test/flowEdit.test.ts`。
-- **其他：** 新记录的 id 由 `src/lib/ids.ts` 生成（不再用数组长度）。AI 只走 ASU AIR，`AI_PRESET=deepseek` 会被拒绝（`netlify/lib/ai.mts`）。两套 onboarding 合一的方案 `docs/M4_ONBOARDING_PLAN.md` **还在等 Juanxi 审核，没有实施**。
-## 6c. v1.3 社团 CRM（Partners 页，2026-10-29，Juanxi 批准）
-
-- 借鉴开源 CRM Twenty 的数据设计（人和机构分开、时间线、标签、看板），**没有**引入它的代码（它是 AGPL 的完整后端系统）。
-- 数据（`src/data/types.ts`，结构版本 **6**）：`Organization`（机构）、`Contact`（联系人，含职位、联系方式、阶段 Cold/Warm/Active/Dormant、来源、引荐人、标签、可见范围）、`Interaction`（互动时间线：谁、何时、做了什么、结果、下一步和日期、关联活动）。联系人仍属于**岗位**（`ownerRoleId`），换届跟岗位走。**没有做 Deal（赞助进度）**，等核心稳了再加。
-- 逻辑全在 `src/data/crm.ts`（纯函数，有 `src/test/crm.test.ts`）；权限放 `src/data/permissions.ts`（`canLead` 从 `changeReview.ts` 移到这里，旧位置仍可导入）。
-- 权限：任何人能添加联系人/机构和写互动记录；负责人或社长/副社长改资料；只有社长/副社长能删除、改负责岗位。`visibility: "leads"` 的联系人只有社长/副社长、负责人和创建者能看到——**AI 看到的也一样**（`aiContext.ts`、`commandContext` 都用 `visibleContacts`）。演示里没有普通社员账号，所以“仅干部可见”实际是“社长/副社长 + 负责人”。
-- 界面：`src/pages/Partners.tsx`（People 表 / Board 看板 / Organizations 三个视图；All·Mine·Overdue 预设；类型、负责人、标签筛选；搜索含标签和邮箱）；右栏详情 `src/components/crm/ContactDetail.tsx`、`OrgDetail.tsx`（`useRail().show({ kind: "partner" | "org", id })`）；共用小部件 `crm/parts.tsx`（失焦自动保存的 Field、互动表单、时间线）。
-- AI 的 `add_contact` 和 `mark_contacted` 仍然可用（机构名按名字查找或新建）。
-
-## 6d. Onboarding 入口与记录（2026-11-02，Juanxi 批准；设计依据 `docs/ONBOARDING_REDESIGN_STRATEGY.md`，工作包 `docs/onboarding-redesign/`）
-
-- **首次进入入口：** 没有保存过演示数据的浏览器（或用过 Reset demo 且还没看过欢迎页）打开 `/`，会先到 `/#/welcome`：Start walkthrough（走社长新流程，最后看一遍社员预览）或 Explore the sample club（直接看 Today）。**默认关闭**：构建环境变量 `VITE_ONBOARDING_WALKTHROUGH=true`，或网址带 `?walkthrough=1`（`?` 写在 `#` 前或后都认，见 `src/onboarding/gate/enabled.ts`；应用用 HashRouter，别只读 router 的 search）。开关关着时全站和以前完全一样。
-- **测试按钮：** Demo 菜单里有 Replay walkthrough（会记录）、Test Onboarding Page President、Test Onboarding Page Invite（后两个**不写记录**，也不需要 `?walkthrough=1`；路由 `/welcome/test/president`、`/welcome/test/invite`，见 `src/onboarding/gate/TestWalkthrough.tsx`）。验收和调试用它们，不要用会污染研究记录的入口。
-- **流程：** 社长 8 屏（`src/onboarding/founder/`：Name、Constitution、Goals、Team、FirstEvent、Reminders、Confirm、Invite），社员预览 6 屏（`member/`）。步骤表和路由映射在 `engine/flows.ts`，步骤机在 `engine/useFlow.ts`（路由驱动，next/back/skip/exit，事件发给记录）；社长草稿的全部状态在 `draft.tsx`（单独的 IndexedDB 键 `onboarding-draft`，不是旧页面的 `setup-draft`）；文案都在 `copy.ts`。`/welcome/classic` 是旧设立页（包在专注外壳里），留作兜底。Start 去哪由 `src/onboarding/target.ts` 的 `FOUNDER_START` 一个常量决定。
-- **参与者都是社长**（Juanxi 2026-11-01）：社员流程只是社长流程之后的"预览"，看的是自己刚建的社团；预览不验证身份。**Done 屏才把预览资料存进数据**（`saveProfile`），之前的选择只暂存在 sessionStorage（`platypus.v1.onboarding.member` 与 `.extra`）。社员流程里不问 ASU ID；社长不填电话/ASU ID/邮箱（邮箱自动生成）。
-- **记录（只记行为，不记内容）：** `src/lib/onboardingRecord.ts`，浏览器本机的**新 key** `platypus.v1.onboarding`（另有 `.seen`、`.rearmed` 标记和 sessionStorage 里的当前尝试）；每次尝试一条：入口选择、流程版本（`FLOW_VERSION`，现为 `ob-4`：ob-3 First event 可跳过，ob-4 新增 Reminders 屏；改流程就要改它）、每屏 进入/返回/跳过/完成/退出 的时间、结果。Reset demo **不清记录**，只重新亮起入口。Settings → Export my data 的 JSON 里有顶层字段 `onboarding`。没有任何自动上报。**不新增记录项之前先问 Juanxi（研究设计，要对照 IRB）。**
-- **Phase 3 研究入口与数据（2026-11-07，Juanxi 批准）：** 测试链接 `https://platypus-officer-hub.netlify.app/#/start`（`/start` 不带 `#` 由 `public/start/index.html` 跳转；旧的 `?walkthrough=1#/welcome/start` 仍可用），直接进社长流程并开始一次记录。First event 可 Skip for now。草稿在同一次尝试内刷新会恢复；新尝试从空白开始；Name 等不再预填样例（样例干部名保留，避免参与者把真人姓名发给 AI）。Start workspace 走 `startWorkspace`（`src/data/settings.ts` + `src/data/sampleScenario.ts`）：参与者的社团 + 三个示例活动、任务、风险、经费、联系人、交接季，按岗位职能重映射。交互日志现在也记界面操作（`ui.*`：换页、点击、选择、Ask 问题、回答种类与引用、来源链接、导出；不记打字和 AI 回答原文，`src/lib/uiLog.ts`），导出 `formatVersion: 2` 带 `timeline`；字段说明见 `docs/PHASE3_DATA_DICTIONARY.md`，测试当天步骤见 `docs/PHASE3_SESSION_RUNBOOK.md`。
-- **Reminders 屏（2026-11-08，Juanxi 批准）：** First event 之后、Confirm 之前，可跳过，不预选，顺序固定：Send automatically / I review, then I send / I review, Platypus sends，底部 "Demo: no email is ever sent."（IRB：测试中不发任何提醒）。选择存 `org.settings.reminderMode`（`auto_email`/`review_then_self`/`review_then_auto`，可缺省），导出 `session.reminderModeChoice`；网站任何地方都不真的发邮件。代码 `src/data/reminderMode.ts`、`src/onboarding/founder/Reminders.tsx`。
-- **边界：** 不调用 `/api/org/*`、`/api/workspace*`，不新增 AI 接口（只用 `/api/setup/constitution`、`/api/command`）；日期只来自规则引擎；不改已有存储键（`SCHEMA_VERSION`/`DemoState` 在 2026-11-09 Handoff 改版合并时由 Juanxi 批准升到 22；以后再改仍要先问）；新样式在 `src/styles/ob-NN-*.css`（样式守卫已覆盖它们：禁 `!important`、`transition: all`、裸毫秒）。
-- **已知限制：** 缓冲控件在标准流程里不会让进度链上的日期变（每一步的目标日都比"官方截止日减缓冲"早），所以旁边有一行由引擎现算的例子；刷新会恢复草稿（同一次尝试），章程阅读中刷新会重新读一次；Today 的一次性小提示没做（按砍单顺序砍掉）；身份不验证、邀请链接只在同一浏览器有效（真实账号留到 v1.5）。
-
-## 7. 界面规则（2026-10-23 简化改版，Juanxi 批准）
-
-改任何页面前先读这一节，**再读 `docs/DESIGN_TOKENS.md`**（字号、圆角、层级、颜色都只能用 token）。写完先跑 `npm run lint`（Stylelint 管 `src/styles.css`，ESLint 管行内样式），CI 也会跑。依据：《Platypus 简化改版方案》（https://claude.ai/artifact/QhCthf71crEC62bBua5zJD）。
-
-1. **三栏布局：** 左导航、中间内容、右栏。右栏有两个标签：**Ask**（唯一的 AI 入口，`src/components/rail/`）和 **Details**（点任何东西打开的详情）。不要在页面里再放 AI 输入框。
-2. **只用 5 个组件拼页面**（`src/components/ui/`）：状态色块 `StatusPill`、进度链 `Chain`、表格 `.tbl`、悬停卡 `Hover`/`Info`、右栏详情（`useRail().open(...)`）。
-3. **三级交互：** 看（颜色）→ 停（悬停卡，最多 3 行）→ 点（右栏详情）。不再新增 ▶ 展开和选项卡。
-4. **文字：** 页面标题 1–2 个词；一张卡最多“标题 1 行 + 信息 1 行 + 状态色块”；原因、假设、出处放进悬停或 Help；字号不小于 14px。
-5. **字数上限（主区，`npm run words` 量，Juanxi 2026-10-29 批准改为两个数，超任何一个 CI 就红）：** 每页两个上限——"一眼看到的"和"页面总字数（含悬停卡、折叠内容）"。Today 160 / 450、Events 180 / 420、Rules 340 / 1700（2026-11-01：电脑上一次列出全部 64 条来源、不分页，Juanxi 要求；手机仍分页，每页 6 条）、Tasks 130 / 130、Team 130 / 290、Funding 160 / 160、Handoff 120 / 120、Partners 120 / 120、Settings 150 / 150。新增内容超了就先删别的，不要靠把文字藏起来过线。
-6. **6 种任务状态与颜色全站统一：** Not claimed 灰、To do 蓝、Working on it 橙、Waiting 紫、Stuck 红、Done 绿（名称和颜色可在 Settings → Board 改，含义不变）。
-
-### 7.1 动效规则（v1.6，Juanxi 2026-11-01 批准计划；细节见 `docs/DESIGN_TOKENS.md` 第 9–11 节）
-
-1. **时长和曲线只用 token**（`--dur-press/fast/base/slow`、`--ease-*`、`--spring-*`），不写 `150ms` 这样的数字；样式检查会拦。
-2. **每个动效都要有"减少动效"版本**：token 在 `prefers-reduced-motion: reduce` 下会变成 1ms，只引用 token 就自动满足；用脚本做的动画先看 `prefersReducedMotion()`，再用 `tokenMs()` 读时间（`src/lib/motion.ts`）。
-3. **只动 `transform` 和 `opacity`。** 不给 `left/top/width/height/margin/padding` 加过渡，不写 `transition: all`，不写 `!important`。
-4. **可以被打断。** 动画进行时再点一下要立刻响应，不能排队、不能锁住界面。
-5. **常用操作不加动画。** 每天点很多次的（切页面、展开一行、点按钮）最多只有 `--dur-press` 的按下反馈或纯淡入，不加位移。
-6. **桌面悬停卡零延迟**（S3，`e2e/feel.spec.ts`）。手机上的底部卡片（`@media (hover: none)`）可以有自己的出入动画，但开始前也不等。
-7. **新写的东西放进自己的小文件** `src/styles/dx-NN-*.css`，不要改别的包的文件；新守卫都要附一个"故意违规会变红"的测试。
-
-## 8. 分支命名与 Deploy Preview（2026-10-27 定，Juanxi 批准）
-
-改分支之前**必读这一节**。之前分支名字五花八门（`claude/platypus-perf-ui-polish-74k1ul`、`fix/setup-v3-completion`、`feat/activity-workspace-v1` 和 `feat/organization-setup-ai` 还是同一个提交的两个名字），导致没人说得清哪个分支是哪个预览。
-
-### 8.1 命名格式
-
-```
-<类型>/<短横线英文描述>
-```
-
-| 类型 | 用途 | 例子 |
-| --- | --- | --- |
-| `feat/` | 新功能 | `feat/organization-setup-ai` |
-| `fix/` | 修 bug | `fix/task-create-entry` |
-| `design/` | 视觉、设计系统、token | `design/token-scale` |
-| `docs/` | 只改文档 | `docs/audit-report` |
-| `chore/` | 依赖、CI、脚本 | `chore/stylelint` |
-| `integration/` | 集结分支，会开 PR 做预览 | `integration/v1.1-fix` |
-| `release/` | 定版候选 | `release/v1.0` |
-| `archive/` | 冻结留档，不再改 | `archive/v0.1-2026-10-21` |
-
-**硬性要求：**
-
-1. 全小写，单词之间用 `-`。不用下划线、不用中文、不用大写字母。
-2. **不准带 AI 的名字，不准带随机串。** `claude/xxx-74k1ul` 这种是反面教材。
-3. 一个分支只做一件事。做完就合并、然后删掉。
-4. 描述用名词或动词短语，三到五个词，让人一眼看出在做什么。
-
-### 8.2 ⚠️ 开着 PR 的分支不准改名，也不准删
-
-**Deploy Preview 的编号就是 PR 的编号**（`deploy-preview-3` ↔ PR #3）。
-
-在 GitHub 上，**改名 = 新建 + 删除**。而删掉一个分支会连带关闭用到它的 PR：
-
-- 删掉 PR 的 **head 分支** → 那个 PR 被关闭
-- 删掉 PR 的 **base 分支** → 那个 PR 也被关闭
-
-PR 一关，它的 Deploy Preview 网址就作废，而且**重开会拿到一个新编号，旧网址回不来**。
-
-**所以：先合并或关闭 PR，再改名或删除。** 顺序反了就救不回来。
-
-每次动分支前先跑一遍，确认它没有被任何 PR 用到：
-
-```
-gh api "repos/juanxiwu2005/platypus-officer-hub/pulls?state=open" \
-  --jq '.[] | "PR #\(.number): head=\(.head.ref)  base=\(.base.ref)"'
-```
-
-### 8.3 当前的分支（2026-10-29）
-
-| 分支 | 是什么 | 能不能动 |
-| --- | --- | --- |
-| `main` | 正式网站。推上去就上线 | 只有 Juanxi 批准才能合并（见第 3 节规则 4）|
-| `v1` | 内容和 `main` 相同 | ❌ **不能删不能改名** —— 它是 PR #2 和 #3 的 base，删了会关掉 Deploy Preview 3 |
-| `integration/v1.1-fix` | **Deploy Preview 4**（PR #4）= main + S1/S2/S3 修复 | ❌ 改名会毁掉 DP4 |
-| `feat/organization-setup-ai` | **Deploy Preview 3**（PR #3）= v1 + `src/phase1/` + `src/organization/` + `src/workspace/` | ❌ 改名会毁掉 DP3 |
-| `feat/ai-native-phase1` | Deploy Preview 2（PR #2）| ❌ 改名会毁掉 DP2 |
-| `feat/ai-night-mode` | **Deploy Preview 7**（PR #7）= DP5 + Night Mode 工具链 + N1–N6 设计 token | ❌ 改名会毁掉 DP7 |
-| `integration/dp3-dp4-merge` | **Deploy Preview 5**（PR #5）= DP4 + DP3 合并版（M1）：AI 走 AIR、服务器存储隐藏 | ❌ 改名会毁掉 DP5 |
-| `feat/m2b-ai-intake` | **Deploy Preview 6**（PR #6，base `main`）= DP5 + M2a + M2b：Ask 分清任务与活动、AI 预填表单、活动 Plan check | ❌ 改名会毁掉 DP6 |
-| `integration/v1.0` | **Deploy Preview 8**（PR #8，base `main`）= PR #7 + PR #6 合并版，再加 S6–S9、M3 排序题、删除 DeepSeek。预览 https://deploy-preview-8--platypus-officer-hub.netlify.app | ❌ 改名会毁掉 DP8 |
-
-**v1.0（DP8）已经合并进 `main`（2026-11-01，见第 0 节）；** 上表里 DP4–DP8 的分支内容现在都在 `main` 里，只剩 PR 的历史意义。
-上线后哪些 PR 可以关、关了之后哪些分支可以删，见 `docs/LAUNCH_STEPS.md` 第 5 节。
-
-2026-10-29 核对：以前记的冗余分支（`fix/s1-ux-bugs`、`fix/s2-safety`、`fix/s3-perf`、
-`claude/platypus-perf-ui-polish-74k1ul`、`fix/setup-v3-completion`、`feat/activity-workspace-v1`、
-`docs/m2a-prompt-strategy`）在 GitHub 上都已经不存在了，不用再处理。
-
-### 8.4 以后新开分支
-
-v1.0 已经合并，新的开发从 `main` 开分支（开之前先 `git fetch origin main`，不要用本地过期的 `main`）：
-
-```
+```bash
+git status --short --branch
+git remote -v
 git fetch origin main
-git checkout -b fix/<描述> origin/main
+git log origin/main -3 --format='%h %ad %s' --date=short
 ```
 
-v1.6 界面与动效升级是例外：它的工作包都合并进 `claude/determined-johnson-yrdxwf`（PR #10），分支和回滚规则见 `docs/design-upgrade/README.md`。
+The canonical repository is `juanxiwu2005/platypus-officer-hub`. At the November 19, 2026 (America/Phoenix) audit, production `main` is `b9e7a02`; the active PR #14 branch `claude/fervent-thompson-e2j5u2` is `13f4527`. Production has 3 commits absent from that preview, and the preview has 431 absent from production. Earlier draft PR #2 and #3 target `v1`. These are dated facts: recheck remote refs, PRs, and CI before work.
 
-做完推自己的分支，**不要自己合并**。Juanxi 在 GitHub 上看过再合。
+Use a separate branch or worktree for the intended baseline. Preserve existing edits and work owned by another person or assistant. Do not combine production and preview as a side effect of maintenance. New names use `<type>/<short-lowercase-english-description>`, where type is `feat`, `fix`, `design`, `docs`, `chore`, `integration`, `release`, or `archive`; avoid AI names and random suffixes. Existing preview branches keep their current names.
 
-## 9. AI-native Phase 1 设计检查点（2026-10-25，Juanxi 明确确认）
+**`main` deploys production. Do not directly change, push to, or merge `main`, or deploy production, without Juanxi's explicit approval.** Passing checks, a preview, or `READY_FOR_CLAUDE` is not release approval. Open a reviewable PR against the correct baseline. Never delete or rename a branch supporting an active PR or preview without an explicit request and a verified impact assessment.
 
-本次新架构为 AI-native、Activity-centered、Organization Context driven。用户最新要求优先于第 7 节旧界面规则；例外仅用于 `/phase1/*`，旧页保留原行为。新壳允许中心 AI composer、内容块与渐进显示，主要视觉参考仅 Apple HIG / monday / Notion Projects。
+## 3. Product, research, and data boundaries
 
-分支 `feat/ai-native-phase1` 从最新 v1 创建。只做三个可点击高保真画面、虚构 Constitution 建议审核、自定义岗位能力映射、两类流程预览与底层设计说明。`src/phase1/` 是隔离的前端演示，不是正式业务模型。保持确定性日期引擎与所有旧测试，不删除旧页、不改 main。
+- Platypus is a student organization AI chief of staff and Juanxi (Steve) Wu's ASU Barrett Phase 3 honors thesis prototype, STUDY00024727. Examples must be fictional.
+- Do not commit or send to AI any research data, raw survey responses, interview transcripts/recordings, participant identities/quotes, real membership lists, or secrets. Do not read unrelated research files to implement product examples.
+- Keep product API keys in approved server environment variables. Product Netlify `AI_*` configuration and the local Night Mode `ASU_AIR_API_KEY` are separate. Never copy either into files, prompts, issues, or commits.
+- Product AI uses ASU AIR server-side; no new provider or automatic live evaluation is authorized by ordinary development. Model routing and bounded retry exceptions are documented in `docs/AI_SETUP.md`. A passing mocked test does not verify live model quality. Preserve local fallbacks.
+- Only the deterministic rule engine computes dates and scheduling. Discard AI date fields and apply the existing date-text filtering. AI writes only through validated commands and the applicable actor permissions, review/approval rules, and undo behavior. Follow the current branch's approved behavior for task creation, reminders, and target-date changes; do not overwrite later decisions with an older plan.
+- Keep visibility filtering consistent between UI and AI context. Demo role switching and same-browser officer links do not establish real authentication or server-enforced multi-user authorization.
+- Main application browser storage and optional isolated organization/workspace server storage are different systems. Preserve feature flags; disabled organization endpoints must remain disabled. Do not claim that the main product has been migrated to a production database or real accounts.
+- Preserve input/original/configuration/decision history where the current subsystem requires it. A current snapshot is not an archive; session expiry does not authorize deleting history. No implicit cross-organization sharing.
+- Scope changes and changes to study behavior require Juanxi's agreement and an English decision record. Do not implement deferred roadmap items just because a historical plan mentions them.
 
-**画面完成后必须停止等 Juanxi 验收；不得自动接正式 API/数据模型、完整 planner、生产数据库、真实账户、长期 Conversation storage 或正式 Handoff。** 详见 `docs/phase1/ARCHITECTURE.md` 和 `HANDOFF.md`。旧独立任务、固定 RoleFunction 及聊天存储仍有设计债，不能把新壳中的检查当作整个旧应用已改造。
+## 4. Working and handing off
 
+Record the task, assistant, date, and baseline in `docs/PROGRESS.md`. Mark it in progress, then complete or awaiting acceptance. Keep commits small and in English, for example `[WP1][Codex] Add deterministic deadline validation`.
 
-## 10. Organization Setup AI 增量（2026-10-25，覆盖第 9 节本次范围的停止条件）
+For behavior changes, add meaningful regression coverage and run affected checks. Keep school rule data and `docs/RULES.md` consistent. Documentation-only work needs language, link, reference, and command review; do not add tests that merely repeat prose.
 
-Juanxi 在检查原型后明确要求继续实施并上线：章程/岗位/职责驱动的 AI onboarding，PDF/Word/粘贴/虚构示例，部门分组多岗位矩阵，隐藏 RACI，可编辑成员与 Exec Board 流程，真实 AI、每步线上保存、组织指导文档和 prompt 审核。该授权覆盖此增量所需的 API 与线上存储，不代表批准合并 main、真实身份系统、完整 planner、长期对话存储或 Handoff。
+At handoff, record changes, checks, remaining limits, target PR/preview, and concrete acceptance steps in `docs/PROGRESS.md`. Push the feature branch and leave production approval to Juanxi. If `docs/PRODUCT_PLAN.md` changed, note that the owner's local thesis backup needs synchronization. GitHub remains the source of truth; assistants with authorized local access can update the existing backup, otherwise record the pending sync. Do not claim to have synced an inaccessible machine.
 
-- 分支 `feat/organization-setup-ai`，草稿 PR #3（base v1）；main 与旧分支保留。
-- `/phase1/setup` 使用 `src/organization/` + `/api/org/setup`、`/api/org/ai`；`/phase1/setup-legacy` 保留前一版设置，旧数据键不迁移或重置。
-- Netlify Blobs 保存隔离的测试工作区；HttpOnly 随机 cookie、修订号与 ETag 防覆盖；草稿与已批准快照分开。仅虚构测试数据；访问会话有效期与归档保留分离，到期不删除历史，跨设备组织账户尚未实现。
-- 提示词正本 `src/organization/prompts.ts`，五阶段带版本；前端可查看精确 prompt，最终 Review 明确提醒 Juanxi 审阅。具体数据包/原因见 `docs/organization/PROMPTS.md`。
-- 旧测试完整保留；前一版 Phase 1 设置检查转到 setup-legacy，新行为单独测试。区分自动模拟、真实文件解析与线上真实模型结果。
-- 详细交接与已验证限制见 `docs/organization/HANDOFF.md`。不得把新 onboarding 的数据存储称为整个旧应用已经迁移数据库。
-- **2026-10-27 M1（Juanxi 决定）：这套服务器存储（含 Activity workspace）默认隐藏**，开关 `ORG_SETUP_ENABLED`（不设 = 关）：端点返回 404 且不执行存储代码，`/#/phase1/` 只剩本地示例。代码和测试保留，见 `docs/AI_SETUP.md` 第 4 节。
+## 5. Code and verification map
 
+Use `README.md` and `docs/README.md` as the current reading map. Key code:
 
-## 11. 数据基础优先与测试节制（2026-10-26，Juanxi 最新要求）
+- `src/main.tsx`, `src/routes.ts`, `src/pages/`, `src/components/`: React interface with HashRouter and the shared Ask/Details rail.
+- `src/data/types.ts`, `seed.ts`, `store.tsx`, and `permissions.ts`: domain, fictional seed, browser persistence/migration, permissions, and state transitions. Preserve supported saved data when changing schema.
+- `src/engine/calendar.ts`, `playbooks.ts`, `schedule.ts`, `taskDates.ts`, `team.ts`, `forecast.ts`: deterministic calendars, workflows, schedules, personal buffers, and forecasts. Use the existing demo clock instead of inserting wall-clock dates into deterministic examples.
+- `src/lib/aiContext.ts`, `commands.ts`, `chatCards.ts`, `assistant.ts`: AI visibility, classification, filtering, and validated actions.
+- `netlify/functions/`, `netlify/lib/ai.mts`: server endpoints and provider adapter. Never expose provider credentials to the browser.
+- `src/organization/`, `src/workspace/`, `src/phase1/`: separate experiments and optional server workspaces. Read `docs/organization/HANDOFF.md` and `DATA_FOUNDATION.md` before changing their contracts, archive, stable IDs, or revision/conflict handling.
+- `src/data/handoff.ts`, `roleTerms.ts`, `roleChanges.ts`, `src/lib/handbook.ts`, `roleDossier.ts`, `handoffQuestions.ts`, `firstQuestions.ts`: leadership transitions. Keep page-only handbook/dossier code out of the startup store bundle. The existing `firstQuestions.ts` study-log read boundary is guarded by `src/test/handoffStage7.test.ts`; never send those records to AI or save them into handbook/dossier state.
+- `src/test/`, `e2e/`, `.github/workflows/ci.yml`, `netlify.toml`: tests, browser configuration, CI, and deployment. Use project scripts and their actual current versions.
 
-**数据记录/管理/治理是底层；组织配置在其上；AI 是读取、提出建议的上层。** 新功能必须先持久化输入与操作，再调用 AI；操作、原件、交互/对话、AI 请求与结果、采用或拒绝、错误、配置历史均应带服务器时间戳与来源并可归档。不要把最新快照等同于历史，不得因会话到期自动清除档案。共享应是受控功能，当前私有工作区不自动对外或跨组织共享。
+`npm run check` runs lint, frontend build, unit tests, browser tests, and word budgets. Run `npm run typecheck:netlify` separately for server types. Use relevant offline checks first and avoid unnecessary full-suite repeats or paid API calls. Record baseline failures accurately; do not weaken assertions or raise a budget to make work pass.
 
-当前范围为新版 Organization Setup：`org-archive.mts`、`storage.mts` 的追加式事件、客户端 `archive.ts`、AI job/input/result 记录、分块原件与 SHA-256 校验、导出与原件下载。旧业务页为参考，尚未全面迁移成新组织数据库；真实账号、组织成员权限、跨组织共享/分析及正式交接仍需后续实施，不能谎称已上线。
+## 6. Interface rules
 
-速度优先的新默认模型是 `muse-glimmer-30b`；`glm-5-3` 仅在用户主动选择 Deep review/stronger model 时调用，路由版本 v2。不要自动升级慢模型或启动额外 AI 评估。Juanxi 要求停止新增真实 AI 测试，主要由他实操验收；必要构建和小范围离线/模拟检查不消耗 AIR 额度。保留 GitHub CI，不重复无必要的全量测试。最新交接见 docs/organization/HANDOFF.md 与 DATA_FOUNDATION.md。
+Before UI work, read `docs/DESIGN_TOKENS.md` and any applicable package plan. Existing main-interface rules include:
 
-## 12. Organization Setup v3（2026-10-26，Juanxi 最新反馈优先）
+- Left navigation, central content, and the shared right rail. Ask is the main AI entry; Details shows the selected item. Keep experimental `/phase1/*` exceptions scoped to those pages.
+- Reuse `src/components/ui/` primitives, status pills, dependency chains, tables, hover/help, and rail details. Keep routine copy short; put explanations in the appropriate help surface and respect measured page word budgets.
+- Use design tokens for type, color, spacing, radii, layers, duration, and easing. Follow the current CSS/lint scope; do not exempt new code to avoid a guard.
+- Motion supports reduced motion, responds immediately to interruption, and uses transform/opacity; avoid layout-property transitions, `transition: all`, and `!important`. Routine actions need at most press feedback; desktop hover opens without delay.
+- Preserve desktop/mobile navigation, keyboard access, touch behavior, and status meanings. Check the current scripts/tests for effective budgets rather than trusting a historical number.
 
-- 五章：Constitution → Your team（部门、组织架构图）→ Responsibilities（部门/岗位职责、Check）→ Activity workflow → Review。移除 Board work 设置章，原字段和历史保留。右侧 AI 必须先提出白名单变更，用户批准后才应用。
-- Prompt 不属于产品 UI：服务端正本 `netlify/lib/organization/prompts.mts`；在开发聊天中交给 Juanxi 审核。`src/organization/prompts.ts` 仅用于旧客户端兼容，不得重新导入网页。
-- `setupLogic.ts` 负责稳定 ID、手动字段保护、局部引用修复和确定性 JSON 编译。JSON 是机器可读配置，可由 Python 读取；不执行模型生成的 Python。确认时服务器重新编译，不能信任客户端提交的 compiled。
-- 返回/前进无修改应为零 AI 调用；已有职责/流程不得整段清空。上游职责变化只标记相关节点；删除岗位须提示、只移除失效引用。所有变更、请求、错误、批准与原件继续归档。
-- JSON 失败必须区分输出上限、空内容、流未完成和语法错误。服务端先归档原始回复及 finish reason/字数/token/首字/总耗时，再解析和验证；不得静默补全缺失语义，不自动重复收费请求。原生 schema 被明确拒绝时最多降级一次。
-- Juanxi 最新恢复授权：允许少量虚构数据的真实 AI 冒烟测试，以诊断格式错误；不恢复整套真实评估。默认 Muse，只有明确 Deeper review 使用 GLM。测试与排队推断必须区分，不能把首字等待直接称为供应商排队。
+## 7. Paused Night Mode
 
-### v3.1 实测补充
-AIR 接受 json_schema 仍可能不遵循形状；必须在 prompt 给精确字段，并在本地验证。Muse 请求 none 实际返回 low，不能把配置等同于执行。路由v3：Gemma 长结构任务、Muse 短编辑、GLM 主动深度。已观察到的 organization/name/department_id/duties/quotes 别名可严格翻译；不能补造缺失职责。详见 V3_CHANGELOG。
+Night Mode has been paused since October 28, 2026. A normal coding session is not a Night Mode agent, and Night Mode's shell/file restrictions do not prevent this owner-authorized repository maintenance.
 
-## 13. F1–F7 审计修复（2026-10-26，Juanxi 已批准执行）
+Before writing or running a Night Mode task, read `docs/NIGHT_MODE.md`, especially the environment budget, task-authoring rules, known controller/queue issues, and protected-file policy. Only its controller may commit, push, inspect CI, and write readiness comments for that workflow. Do not resume the queue or modify its active branch while it is running without coordinating with the operator. Do not treat a historical successful run as proof that the environment still works.
 
-用户批准独立 Worktree 多 Agent 实施审计方案；本次从 feat/organization-setup-ai@54e5823 在 fix/setup-v3-completion 集成，不改 main。数据/AI/UI 各有唯一文件负责人，主 Agent 维护共享契约、文档和批准配置的工作区消费；独立 Review 复核。当前事实以 docs/organization/F1_F7_IMPLEMENTATION.md 为准，旧六章、页面 prompt 与 v2 路由描述仅历史。
+## 8. Historical context
 
-- 未保存完整草稿按私有 workspace 本地保护；内部导航保存成功才离开。409 必须保留本地副本并由人决定，不能自动用新 revision 覆盖远端。不要把操作事件当成能直接恢复的完整草稿。
-- 层级重接/断开也属于人工决定。纯展示字段不使职责检查无谓失效；语义变化只复核实际相关节点。确认前必须明确处理 needsReview；允许保留未分配步骤，但必须记录未解决项。
-- Check 按语义输入复用，包括空风险；进入后自动一次，明确 Skip 不谎称取消已开始计费的请求。所有 AI 变更仍需批准。
-- selection 是服务器验证的 screen/entityType/entityId 数据；不能据它授予权限。requestId 标识一个显式用户动作，网络重放复用；新ID才代表主动重试。
-- 原文和失败 transport 指标先归档，再解析模型 JSON。区分本站任务等待和供应商等待，不能从首字直接断言排队。不得为本轮回归自动调用真实AI或做额外收费比较。
-- `/phase1` 消费服务器 approved.compiled，不读取未确认 draft，不把配置写入旧 localPreviewRepository。示例只能显式在 `?example=1` 或 setup-legacy 使用；旧 Today/Tasks 等仍是独立旧业务。
-- 完整 Board planner、真实账号、跨组织共享和旧业务数据库迁移仍超出本轮；不把模板名称称为已实现规划器。正式合并/发布仍需 Juanxi 批准。
-
-
-## 14. Activity Workspace（2026-10-26，用户已授权实施）
-
-用户选A1首页/B1活动列表/C2时间轴，批准独立Worktree多Agent全方案，见docs/organization/ACTIVITY_WORKSPACE_PLAN.md。共享schema和路由由主Agent拥有，Data/Schedule/UI/AI/Setup分别维护唯一文件，独立Review；先契约后并行。首页重点事项必须从现有任务确定性排序、默认3项可展开，不做AI摘要。AI通过同一受验证命令操作业务数据/调表单/创建Member和Executive工作项；不能直写数据库。私有测试actor不等于真实登录。保留旧演示；不改main，不自动真实AI评测。
+Detailed earlier implementation notes, staged approvals, old branch tables, and automation incidents are preserved in `docs/history/AGENT_HISTORY.md` and the dated plans/reports. Those records are evidence of their stated version, not current instructions or new authorization for deployment, delegation, paid calls, or a scope change. Current owner instructions take precedence.

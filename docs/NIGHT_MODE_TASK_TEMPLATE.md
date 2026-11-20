@@ -1,66 +1,68 @@
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
+
 # Goal
 
-用 1–3 句话说明这次唯一要完成的用户结果。
+Describe the single user outcome to achieve in 1–3 sentences.
 
 # Files
 
-- 允许修改的页面、组件、源文件或测试目录。
-- 如果不知道文件名，写清楚允许涉及的功能区域。
-- 用不到的大文件要明确写「不要读」（例如不改样式的任务写「不要读 src/styles.css」）。
+- Pages, components, source files, or test directories that may be modified.
+- If filenames are unknown, specify the permitted functional area.
+- Explicitly mark unnecessary large files "do not read" (for example, "do not read src/styles.css" when no styling changes are needed).
 
 # Depends on
 
-（可选，只在用 `scripts/night-queue.sh` 跑队列时有意义）
+(Optional; meaningful only when running a queue with `scripts/night-queue.sh`.)
 
 ```
-# Depends on: 01-上一个任务.md
+# Depends on: 01-previous-task.md
 ```
 
-被依赖的任务失败或被跳过时，这个任务也会被跳过。没有依赖就删掉这一节。
+If the prerequisite fails or is skipped, this task is also skipped. Remove this section if there is no dependency.
 
 # Constraints
 
-- 只使用虚构演示数据。
-- 不修改依赖、部署、GitHub Actions、密钥、研究数据或 Night Mode 安全文件。
-- 不修改或合并 `main`。
-- 保留现有产品规则、权限、日期引擎和人工确认闸门。
-- 不在这里粘贴任何 API key、参与者信息或真实成员数据。
-- **改完不要回头重读文件去「核对基线」。** 文件和任务描述不一致是正常的 —— 那是你刚改的。
-- 不确定的一律保留，并写进交接记录；不要为了完成任务而猜。
+- Use fictional demo data only.
+- Do not modify dependencies, deployment, GitHub Actions, secrets, research data, or Night Mode safety files.
+- Do not modify or merge `main`.
+- Preserve existing product rules, permissions, date engine, and human-confirmation gates.
+- Do not paste API keys, participant information, or real member data here.
+- **After editing, do not reread files to "verify the baseline."** Differences from the task description are normal: you just changed the files.
+- Preserve anything uncertain and record it in the handoff; do not guess to finish the task.
 
 # Done means
 
-- 用户在界面上能看到或完成什么。
-- 哪些边界情况必须工作。
-- 应新增或更新哪些单元测试和 Playwright 测试。
-- `npm run check` 必须通过。
+- What users can see or do in the interface.
+- Which edge cases must work.
+- Which unit and Playwright tests should be added or updated.
+- `npm run check` must pass.
 
 # Out of scope
 
-- 明确列出这次不做的相邻功能，防止 Agent 擅自扩大范围。
+- Explicitly list adjacent features excluded from this task to prevent unauthorized scope expansion.
 
 ---
 
-## 写任务前必读（2026-10-27 晚五次失败换来的）
+## Read before writing tasks (lessons from five failures on the evening of 2026-10-27)
 
-**先读 `docs/NIGHT_MODE.md` 的 7b（运行环境预算卡）和 7c（任务怎么写）。**
-五次失败里有四次，根因都是任务要求的东西超出了 Agent 实际能做的范围。
+**First read sections 7b (runtime environment budget card) and 7c (task authoring) in `docs/NIGHT_MODE.md`.**
+Four of five failures were caused by tasks demanding more than the agent could actually do.
 
-写之前对照这四条自查：
+Check these four points before writing:
 
-1. **调查交给人，任务只给结论。**
-   ❌「先查出哪些 CSS 没人用，再删掉」—— 预算会全花在查上。
-   ✅「删掉下面这 51 个 class」+ 清单。
+1. **Humans investigate; tasks provide conclusions.**
+   ❌ "Find unused CSS, then delete it" — investigation consumes the budget.
+   ✅ "Delete these 51 classes" + a list.
 
-2. **不要描述文件的当前状态。**
-   ❌「styles.css 共 718 行」—— 改完变成 626 行，Agent 会以为出错了然后停下来。
-   ✅ 只写要达到什么结果。
+2. **Do not describe files' current state.**
+   ❌ "styles.css has 718 lines" — after editing it has 626, so the agent thinks something went wrong and stops.
+   ✅ State only the desired outcome.
 
-3. **确认它跑得起来。**
-   任务需要的每条命令都要在 7b 的白名单里。`node 脚本`、`curl`、复合命令（带 `&&`）都会被拒。
-   需要装依赖或改 `.github/**` 的任务**不能走 Night Mode**。
+3. **Confirm the task can run.**
+   Every required command must be on the 7b allowlist. `node script`, `curl`, and compound commands (with `&&`) are rejected.
+   Tasks requiring dependency installation or `.github/**` changes **cannot use Night Mode**.
 
-4. **估一下步数。**
-   预算 300 步，开工前固定花掉约 6 步读文档。
-   「读一个文件 + 改一个文件」算 2 步，跨 11 个文件就是 22 步往上。
-   超过 100 步的任务应该拆开。
+4. **Estimate steps.**
+   The budget is 300 steps, with about 6 spent reading documentation before work starts.
+   "Read one file + edit one file" costs 2 steps; across 11 files that is at least 22.
+   Split tasks that exceed 100 steps.

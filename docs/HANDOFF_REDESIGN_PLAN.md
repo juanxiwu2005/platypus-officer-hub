@@ -1,246 +1,246 @@
-# Handoff 模块调整方案
+# Handoff module redesign plan
 
-> **状态（2026-11-09）：已按 [`HANDOFF_EXECUTION_PLAN.md`](HANDOFF_EXECUTION_PLAN.md) 分 8 个阶段在分支 `claude/tender-gates-j8ztlr` 上做完，待 Juanxi 验收；Phase 3 收完数据之前不合并到 `main`。** 实际做法和这份方案的差别见执行方案第 10 节。下面是原方案，保留作依据。
+> **Status (2026-11-09): Completed in 8 stages on branch `claude/tender-gates-j8ztlr` under [`HANDOFF_EXECUTION_PLAN.md`](HANDOFF_EXECUTION_PLAN.md), awaiting Juanxi's acceptance; do not merge into `main` before Phase 3 data collection ends.** See execution-plan section 10 for differences from this proposal. The original proposal is retained below as the rationale.
 
-> 2026-11-08 · Claude · 只写方案，**没有改任何代码**。
-> 依据：`main` 顶端 `fc9eccd`（PR #12 合并后）。其他远端分支都没有改过 Handoff 代码（逐个核对过：`claude/keen-gauss-ye3gvr` 只多一个文档提交，`integration/v1.0`、`integration/v1.6`、`claude/quirky-noether-x8jtj3`、`feat/ai-native-phase1` 都和 Handoff 无关）。
-> 读过的代码：`src/data/handoff.ts`、`src/lib/handbook.ts`、`src/pages/Handoff.tsx`、`netlify/functions/handbook-draft.mts`、`src/data/types.ts`、`src/data/settings.ts`、`src/pages/Join.tsx`、`src/components/rail/AskPanel.tsx`、`src/lib/uiLog.ts`、`src/data/sampleScenario.ts`。
-> 第 2 节的 bug 都用临时单元测试在 `seedDemo()` 上跑过（测试没有提交）。
-
----
-
-## 0. 一句话结论
-
-现在的 Handoff 是"**卸任时补一份文档**"：卸任人写几行访谈 → AI 从这个人的任务标题里挑 12 句重排 → 两人签字 → 勾 6 条通用清单 → 系统造一个新名字接手。
-它**没有用上平台最大的优势**（全部任务、联系人、互动、延期、卡点、AI 问答都存着），而且有几处逻辑是反的或会卡死（第 2 节）。
-
-建议改成"**平时自动积累，交接时只补缺口**"：
-
-1. 系统平时就为每个岗位自动整理一份**岗位档案**（不用 AI，从记录直接算出来）。
-2. 交接时，AI 只做一件事：**看档案缺什么，问卸任人针对性的问题**，而不是让卸任人对着空白框回忆。
-3. 新人不是被动收文档，而是**读 → 回述 → 跟做一件真事 → 正式接手 → 第 7/30 天回看**，回看时发现的缺口写回档案，下一届更好。
-4. 数据上把"**人**"和"**岗位任期**"分开，这样现有社员转岗、连任、空缺补位、学期中换人、新增或改名岗位都能处理。
+> 2026-11-08 · Claude · Proposal only; **no code changed**.
+> Basis: `main` tip `fc9eccd` (after merging PR #12). No other remote branch changed Handoff code (checked individually: `claude/keen-gauss-ye3gvr` has only one additional documentation commit; `integration/v1.0`, `integration/v1.6`, `claude/quirky-noether-x8jtj3`, and `feat/ai-native-phase1` are unrelated to Handoff).
+> Code read: `src/data/handoff.ts`, `src/lib/handbook.ts`, `src/pages/Handoff.tsx`, `netlify/functions/handbook-draft.mts`, `src/data/types.ts`, `src/data/settings.ts`, `src/pages/Join.tsx`, `src/components/rail/AskPanel.tsx`, `src/lib/uiLog.ts`, `src/data/sampleScenario.ts`.
+> The bugs in section 2 were tested against `seedDemo()` with temporary unit tests (not committed).
 
 ---
 
-## 1. 现在的代码是怎么走的
+## 0. Main conclusion
 
-| 步骤 | 谁做 | 代码 | 实际效果 |
+Handoff currently means "**write a document when leaving office**": the outgoing officer writes a few interview lines → AI selects and rearranges 12 lines from that person's task titles → two people sign off → check 6 generic items → the system creates a new name to take over.
+It **does not use the platform's greatest advantage** (all tasks, contacts, interactions, delays, blockers, and AI questions are stored), and some logic is reversed or can deadlock (section 2).
+
+Proposed approach: "**accumulate continuously; fill only the gaps at handoff**":
+
+1. The system continuously builds a **role dossier** for every role (directly from records, without AI).
+2. At handoff, AI does one thing: **inspect the dossier for gaps and ask the outgoing officer targeted questions**, instead of requiring recall in an empty box.
+3. New officers actively **read → read back → shadow a real task → formally take over → review on days 7/30**. Gaps found during reviews feed back into the dossier, improving the next transition.
+4. Separate "**person**" from "**role term**" in the data model to support existing members changing roles, reelection, vacancies, midsemester replacements, and new or renamed roles.
+
+---
+
+## 1. How the current code works
+
+| Step | Actor | Code | Actual effect |
 | --- | --- | --- | --- |
-| 开始换届季 | 社长/副社长 | `changeHandoff` `start` | 给**当时存在的所有岗位**各建一条记录，访谈框预填两句 "Example (fictional)…" |
-| 1 Interview | 卸任人本人 | `interview` | 一行一条，最多 20 行。**因为预填了示例，一开季第 1 步就算完成** |
-| 2 Handbook | 卸任人或社长 | `draft` + `/api/handbook/draft` | 来源只有两类：这个人名下的任务（"标题 + why + 状态"一句）和访谈行。AI 只能回编号，最多挑 12 条重排；AI 失败时本地按"访谈→未完成任务→已完成任务"排 |
-| 3 Sign-off | 卸任人确认 → 社长批准 | `confirm` / `approve` | 来源一变（任何任务改了 why/状态）就要重做 |
-| 4 First week | 社长、卸任人或新人 | `check` | 6 条 SEO 通用清单，所有岗位一样 |
-| 5 Hand over | 社长 | `complete` | 输入一个**新名字**，系统复制卸任人的资料造一个新人，转走未完成任务（状态改成 accepted），联系人因为挂在岗位上自动跟着走 |
-| Day 30 | 社长或新人 | `review` | 只是一个按钮，点了就算 |
+| Start handoff season | President/VP | `changeHandoff` `start` | Creates one record for **every role existing at that time**, prefilling two "Example (fictional)…" interview lines |
+| 1 Interview | Outgoing officer themselves | `interview` | One entry per line, at most 20 lines. **Prefilled examples make step 1 complete as soon as the season starts** |
+| 2 Handbook | Outgoing officer or president | `draft` + `/api/handbook/draft` | Only two source types: that person's tasks (one "title + why + status" sentence each) and interview lines. AI can return only numbered references, selecting and reordering at most 12 entries; on failure, local ordering is "interview → unfinished tasks → completed tasks" |
+| 3 Sign-off | Outgoing officer confirms → president approves | `confirm` / `approve` | Must be repeated whenever sources change (any task's why/status changes) |
+| 4 First week | President, outgoing officer, or newcomer | `check` | 6 generic SEO checklist items, identical for every role |
+| 5 Hand over | President | `complete` | Enter a **new name**; the system copies the outgoing officer's profile to create a newcomer and transfers unfinished tasks (status becomes accepted). Contacts follow automatically because they belong to the role |
+| Day 30 | President or newcomer | `review` | Just a button; clicking counts as completion |
 
-页面：顶部一条换届季进度链（5 个日期点，`handoffDates` 算），下面每个岗位一张"接力卡"（卸任人 → 新人、7 格进度环），点开右栏是上面 5 步。
+Page: a season progress chain at the top (5 date stops calculated by `handoffDates`), then one "relay card" per role (outgoing → incoming, 7-segment progress ring). Opening a card shows the 5 steps above in the right rail.
 
 ---
 
-## 2. 发现的问题（先列 bug，再列设计问题）
+## 2. Findings (bugs first, then design problems)
 
-### 2.1 确认存在的 bug
+### 2.1 Confirmed bugs
 
-| # | 问题 | 怎么验证的 | 影响 |
+| # | Problem | Verification | Impact |
 | --- | --- | --- | --- |
-| B1 | **交接完成一次之后，Settings 的社团设置再也存不了。** 新人邮箱是空的（校验要求 example.org 邮箱）；补上邮箱后又报 "Match every officer to their own role"，因为卸任人还在名单里、`roleId` 还指着原岗位，但岗位的 `holderId` 已经是新人 | 临时测试：完成 Treasurer 交接后 `validateClub(clubDraft(s))` 先报邮箱错，补邮箱后报岗位不匹配 | 社长交接完任何一个岗位，改社团名、目标、加岗位都会失败 |
-| B2 | **现有社员不能接任。** `complete` 要求新名字不能和现有任何人重名 | 临时测试：用 Sam 的名字接 Treasurer，`completed` 仍是 false | 内部提拔、转岗（如 Secretary → VP）做不到 |
-| B3 | **第一周清单在新人出现之前就要勾满。** `complete` 要求 6 条都勾完才能交接，但新人是 `complete` 那一刻才被造出来的（之前 `incomingId` 是 null） | 临时测试：开季后 `incomingId === null` | "新人第一周"实际只能由社长或卸任人代勾，顺序是反的 |
-| B4 | **开季之后新增的岗位不会进入换届。** 再点 Save dates 也不补 | 临时测试：开季后加 "Events Chair"，roles 6 个、换届记录仍 5 个 | 新岗位的详情一直显示 "Start the handoff season…"，但季已经开了 |
-| B5 | **空缺岗位无法交接。** 没有卸任人 → 没人能写访谈、能确认；`complete` 要求有旧人 | 读代码（`self = outgoingId === viewerId`，`complete` 里 `if(!old) return s`） | 新岗位、有人退出后的岗位永远补不上人 |
-| B6 | 第 1 步因为预填示例而"开季即完成"，进度环多算一格 | 读代码（`interview.length > 0`） | 社长看到的进度虚高 |
+| B1 | **After one completed handoff, club settings in Settings can never be saved again.** The newcomer's email is empty (validation requires an example.org email); adding one then produces "Match every officer to their own role" because the outgoing officer remains listed with `roleId` pointing to the original role, whose `holderId` now points to the newcomer | Temporary test: after Treasurer handoff, `validateClub(clubDraft(s))` first reports an email error, then a role mismatch after adding an email | Once the president hands over any role, changing the club name, goals, or adding roles fails |
+| B2 | **Existing members cannot take over.** `complete` requires a new name that differs from every existing person's name | Temporary test: use Sam's name to take over Treasurer; `completed` stays false | Internal promotion and role changes (such as Secretary → VP) are impossible |
+| B3 | **The first-week checklist must be complete before the newcomer exists.** `complete` requires all 6 items checked before handoff, yet creates the newcomer only at that moment (`incomingId` is null beforehand) | Temporary test: `incomingId === null` after starting the season | The "newcomer's first week" can only be checked off by the president or outgoing officer; the order is reversed |
+| B4 | **Roles added after the season starts do not enter handoff.** Clicking Save dates again does not add them | Temporary test: add "Events Chair" after season start; 6 roles but still 5 handoff records | New-role details always say "Start the handoff season…" even though it has started |
+| B5 | **Vacant roles cannot be handed over.** No outgoing officer → nobody can write or confirm an interview; `complete` requires a predecessor | Code reading (`self = outgoingId === viewerId`; `if(!old) return s` in `complete`) | New roles and roles vacated by departing members can never be filled |
+| B6 | Prefilled examples make step 1 "complete at season start," adding a false segment to the progress ring | Code reading (`interview.length > 0`) | The president sees overstated progress |
 
-### 2.2 设计上的问题
+### 2.2 Design problems
 
-| # | 问题 | 为什么重要 |
+| # | Problem | Why it matters |
 | --- | --- | --- |
-| D1 | **手册来源太窄。** 只读"这个人名下任务的标题 + why + 状态"和访谈。没读：联系人和互动时间线、活动和经费阶段、延期申请和理由、静默/卡住记录、提醒、准时率、变更单、反馈、AI 问答 | 平台的最大优势完全没用上；新人拿到的是一串任务标题 |
-| D2 | **手册就是 12 句原文重排。** 没有章节（这个岗位一年的节奏、正在进行的事、找谁、踩过的坑），看不出重点 | 新人读完还是不知道"下周我要干什么、找谁" |
-| D3 | **访谈是空白文本框。** 没有问题引导，靠卸任人凭记忆写 | 研究上最难留下的就是"为什么、跟谁、坑在哪"（隐性知识），空白框最抓不住这些 |
-| D4 | **第一周清单所有岗位一样**，没有这个岗位接下来 30 天真实的截止日 | 新人最需要的是"我接手后第一个硬截止日是哪天" |
-| D5 | **新人是被动的。** 没有"读完后自己复述、提问"的步骤，没有跟做（shadow）期，没有新人自己的入口 | 医疗交接研究里，接收方复述是减少差错最关键的一步（见第 3 节） |
-| D6 | **社长看不到风险。** 只有进度环，没有"哪个岗位交接最危险"（比如：手头未完成任务多、两周内有 ASU 硬截止、卸任人已经不回消息） | 社长的注意力应该放在最危险的一两个岗位上 |
-| D7 | **只能整季一起换。** 学期中有人退出、单个岗位补人，都要开一整个季 | 学生社团学期中换人很常见 |
-| D8 | **岗位变动支持不全。** 改名没问题（岗位 ID 不变，记录跟着走）；新增岗位不进换届（B4）、没有起步资料；拆分、合并、删除岗位都不支持 | 社团每年都在调整架构 |
-| D9 | **AI 问答记录现在不能直接用。** Ask 聊天只存在浏览器里最后 60 条、所有 View as 共用一份（键 `platypus.v1.chat`）；完整的问题原文在**研究日志**（`ui.ask`）里，那是 IRB 研究数据 | 想用"问 AI 的记录"做交接，必须新建一份产品自己的问答记录，**不能读研究日志** |
+| D1 | **Handbook sources are too narrow.** It reads only "title + why + status" for that person's tasks and interviews. Missing: contacts and interaction timelines, event and funding stages, extension requests and reasons, silence/stuck records, reminders, on-time rates, change requests, feedback, and AI questions | The platform's greatest advantage is unused; newcomers receive a string of task titles |
+| D2 | **The handbook is just 12 rearranged source sentences.** No chapters (the role's yearly rhythm, work in progress, who to contact, lessons learned), so priorities are unclear | Newcomers still do not know "what do I do next week, and whom do I contact?" |
+| D3 | **The interview is an empty text box.** No guiding questions; outgoing officers rely on memory | "Why, with whom, and what pitfalls" (tacit knowledge) is hardest to preserve in research; an empty box captures it poorly |
+| D4 | **Every role gets the same first-week checklist**, without its actual deadlines over the next 30 days | Newcomers most need to know "what is my first hard deadline after taking over?" |
+| D5 | **Newcomers are passive.** No step to read back or ask questions, no shadowing period, no personal entry point | Healthcare handoff research identifies receiver read-back as a critical error-reduction step (section 3) |
+| D6 | **The president cannot see risk.** Progress rings do not show "which role's handoff is riskiest" (many unfinished tasks, an ASU hard deadline within two weeks, or an outgoing officer no longer responding) | The president should focus on the one or two riskiest roles |
+| D7 | **Only whole-season transitions are supported.** A midsemester departure or single vacancy requires a whole season | Midsemester replacements are common in student organizations |
+| D8 | **Role changes are incompletely supported.** Renaming works (role ID remains stable, so records follow); new roles do not enter handoff (B4) or receive starter material; splitting, merging, and deleting roles are unsupported | Clubs reorganize every year |
+| D9 | **Current AI question records cannot be used directly.** Ask chat stores only the last 60 browser messages, shared by all View as identities (`platypus.v1.chat`); complete question text is in the **research log** (`ui.ask`), which is IRB research data | Using AI questions for handoff requires a separate product question record; **do not read the research log** |
 
 ---
 
-## 3. 研究：交接怎样做才有效
+## 3. Research: effective handoff practices
 
-下面是交接和新人上岗研究里比较成熟、和我们相关的几条，后面的设计都对应到这里。
+These are established findings from handoff and newcomer-onboarding research relevant to us. The design below maps to them.
 
-| 来源 | 核心结论 | 我们怎么用 |
+| Source | Main finding | Application |
 | --- | --- | --- |
-| **I-PASS 医院交班程序**（Starmer 等，*NEJM* 2014，9 家医院） | 交班用固定结构（病情、摘要、待办、应急预案），**接收方用自己的话复述**。实施后医疗差错下降约 23%，可预防的不良事件下降约 30%，交班时间没有变长 | 手册用固定章节；新人必须做"回述"（Read-back）这一步 |
-| **隐性知识与 SECI 模型**（Polanyi；Nonaka & Takeuchi 1995） | 能写下来的是显性知识；"怎么做、为什么、找谁"多是隐性的，要靠一起做、对话来传 | 文档之外加"跟做一件真事"；访谈问"为什么"而不是"做了什么" |
-| **知识流失研究**（DeLong, *Lost Knowledge*, 2004；Leonard & Swap, *Deep Smarts*, 2005） | 离职时才做的离职访谈收获很低；有效做法是**平时持续记录**，交接时做**有针对性的提问**和**有指导的实践** | 平时自动积累档案；AI 按档案缺口出题，而不是空白访谈 |
-| **美军 AAR 与"左座/右座"交接**（Relief in Place） | 新人先坐右座跟着做，再换到左座主导、旧人旁观，最后正式移交指挥权；每次任务后做简短复盘 | 跟做期：新人先当某个真实任务的协作者（C），再当负责人（R）；第 30 天做复盘 |
-| **新人社会化研究**（Bauer 等 2007 元分析，*J. Applied Psychology*；Bauer 的 4C 框架） | 新人适应好不好，最直接看三样：**岗位清晰度、自我效能感、被团队接纳**。框架分 Compliance（规则）、Clarification（职责）、Culture（文化）、Connection（人脉） | 手册四块内容对应 4C；第 7/30 天回看问这三样 |
-| **Watkins, *The First 90 Days*** | 新人要和上级尽早谈清楚：现状、期望、工作方式、资源、成长；先争取一个"早期小胜" | 第一周和社长的对齐会；第一个"小胜任务"由系统从档案里挑 |
-| **TWI 工作指导法**（二战美国训练法） | 准备 → 示范 → 让新人试做 → 跟进 | 对应 读 → 跟做 → 主导 → 回看 |
+| **I-PASS hospital handoff program** (Starmer et al., *NEJM* 2014, 9 hospitals) | Fixed handoff structure (illness severity, summary, actions, contingencies), with **the receiver synthesizing in their own words**. Medical errors fell about 23% and preventable adverse events about 30%, without longer handoffs | Fixed handbook chapters; a required newcomer Read-back step |
+| **Tacit knowledge and the SECI model** (Polanyi; Nonaka & Takeuchi 1995) | Written knowledge is explicit; "how, why, and whom to contact" is often tacit and transmitted through shared work and dialogue | Add "shadow a real task" beyond documentation; interviews ask "why," not just "what happened" |
+| **Knowledge-loss research** (DeLong, *Lost Knowledge*, 2004; Leonard & Swap, *Deep Smarts*, 2005) | Exit interviews conducted only at departure yield little; effective practice combines **continuous recording**, **targeted questions**, and **guided practice** at handoff | Build dossiers continuously; AI asks about dossier gaps rather than presenting a blank interview |
+| **U.S. Army AAR and "left-seat/right-seat" transition** (Relief in Place) | Newcomers first observe from the right seat, then lead from the left while predecessors observe, before formal transfer of command; short reviews follow each mission | During shadowing, newcomers first collaborate (C) on a real task, then become responsible (R); review on day 30 |
+| **Newcomer socialization research** (Bauer et al. 2007 meta-analysis, *J. Applied Psychology*; Bauer's 4C framework) | Adjustment is most directly reflected in **role clarity, self-efficacy, and social acceptance**. The framework comprises Compliance, Clarification, Culture, and Connection | Four handbook sections map to 4C; days 7/30 reviews ask about these three outcomes |
+| **Watkins, *The First 90 Days*** | Newcomers should clarify the situation, expectations, working style, resources, and development with their supervisor early, then seek an "early win" | First-week alignment meeting with the president; the system selects an "early win" task from the dossier |
+| **TWI Job Instruction** (U.S. WWII training method) | Prepare → demonstrate → let the newcomer try → follow up | Read → shadow → lead → review |
 
-**综合成同岗位或新岗位交接的 7 个步骤：**
+**7 steps for handoff into an existing or new role:**
 
-1. **盘点**：系统自动生成岗位档案（不用 AI，不用人写）。
-2. **补缺口**：AI 看档案，只问卸任人档案里回答不了的问题。
-3. **成册**：档案 + 访谈答案 → 固定章节的手册，每句有出处。
-4. **交接会**：卸任人和新人按手册过一遍；新人用自己的话回述、提问。
-5. **跟做**：新人在卸任人还在的时候，先协作完成一件真实任务。
-6. **移交**：一次性转移任务、联系人归属、权限；卸任人变成"前任"（可被咨询），不是消失。
-7. **回看**：第 7 天和第 30 天，新人反馈手册哪里不够、哪里有错，写回档案；社长看三项指标（清晰度、信心、被接纳）。
+1. **Inventory:** automatically generate a role dossier (no AI or manual writing).
+2. **Fill gaps:** AI asks the outgoing officer only questions the dossier cannot answer.
+3. **Compile:** dossier + interview answers → handbook with fixed chapters and a source for every sentence.
+4. **Handoff meeting:** outgoing and incoming officers walk through the handbook; the newcomer reads back in their own words and asks questions.
+5. **Shadow:** complete a real task collaboratively while the outgoing officer is still available.
+6. **Transfer:** transfer tasks, contact ownership, and permissions together; the outgoing officer becomes a consultable predecessor rather than disappearing.
+7. **Review:** on days 7 and 30, newcomers report missing or incorrect handbook material, feeding the dossier; the president sees three measures (clarity, confidence, acceptance).
 
 ---
 
-## 4. 新设计
+## 4. New design
 
-### 4.1 三个底层调整
+### 4.1 Three foundational changes
 
-**(1) 把"人"和"岗位任期"分开（数据模型）**
+**(1) Separate people from role terms (data model)**
 
-现在一个人只能有一个岗位（`Person.roleId` + `Role.holderId`），交接靠"复制旧人造新人"。改成：
+Currently a person can hold only one role (`Person.roleId` + `Role.holderId`), and handoff "copies the old person to create a new one." Replace this with:
 
 ```
-RoleTerm（岗位任期）
-  roleId      哪个岗位
-  personId    谁
-  status      incoming（候任/跟做中）| active（在任）| former（前任）
-  from / to   起止日期（规则引擎写）
-  handoffId   这次任期是哪次交接产生的
+RoleTerm (role term)
+  roleId      Which role
+  personId    Who
+  status      incoming (designate/shadowing) | active (in office) | former (predecessor)
+  from / to   Start/end dates (written by the rule engine)
+  handoffId   The handoff that created this term
 ```
 
-- 一个岗位同时可以有 1 个 active + 1 个 incoming（跟做期重叠）。
-- 卸任后变 former，人还在社团里（可以是普通社员、可以接别的岗位），也可以被标"已离开社团"。
-- `Role.holderId` 保留，作为"当前在任者"的快捷方式，由任期计算，旧代码不用大改。
-- 这一步会让结构版本 +1。
+- A role may have 1 active + 1 incoming simultaneously (overlap during shadowing).
+- On departure from office, the term becomes former; the person remains in the club (as a regular member or in another role), or may be marked "left the club."
+- Retain `Role.holderId` as a shortcut to the current active holder, derived from terms, avoiding extensive old-code changes.
+- Increment the schema version by 1.
 
-**解决：** B1、B2、B3、B5、D7。
+**Resolves:** B1, B2, B3, B5, D7.
 
-**(2) 岗位档案（Role dossier）：平时自动积累，不用 AI**
+**(2) Role dossier: continuous automatic accumulation without AI**
 
-每个岗位一个档案页，全部从已有记录**确定性计算**，任何时候都能看（不只是换届季）。分 4 块，对应 4C：
+Each role gets a dossier page **computed deterministically** from existing records, available anytime (not only during handoff season). 4 sections correspond to 4C:
 
-| 块 | 内容 | 来自哪些记录 |
+| Section | Content | Source records |
 | --- | --- | --- |
-| **Calendar**（这个岗位的一年） | 这个岗位在每类活动里负责的步骤和通常的提前量；接下来 30 天的真实截止日（尤其 ASU 硬截止） | 活动流程模板里 `fn` / `ownerRoleId` 是这个岗位的步骤、`schedule.ts` 算出的日期、历史 `completedOn` |
-| **In flight**（正在进行的事） | 未完成任务、等待中的事（在等谁）、经费卡在哪个阶段、待批的延期 | `nodes`、`waitingOnPersonId`、`funding`、`extensionRequests` |
-| **People**（找谁） | 这个岗位的联系人、最近一次互动、下一步和日期；经常要协作的其他岗位（RACI 里的 A/C/I） | `contacts`（`ownerRoleId`）、`interactions`、节点的 `approverRoleId` / `consultedRoleIds` |
-| **Lessons**（坑在哪） | 哪些任务曾经延期、为什么；哪些曾被静默协议接管；哪些步骤准时率低；常被问的问题 | `extensionRequests.reason`、`silenceCases`、`protocolLog`、`contributions.onTime`、产品问答记录（见下） |
+| **Calendar** (the role's year) | Steps assigned to this role in each event type and typical lead times; actual deadlines for the next 30 days (especially ASU hard deadlines) | Workflow-template steps with this role's `fn` / `ownerRoleId`, dates calculated by `schedule.ts`, historical `completedOn` |
+| **In flight** (ongoing work) | Unfinished tasks, waiting items (who is being waited on), funding stage blockers, pending extension requests | `nodes`, `waitingOnPersonId`, `funding`, `extensionRequests` |
+| **People** (whom to contact) | Role contacts, latest interaction, next action and date; frequent collaborator roles (RACI A/C/I) | `contacts` (`ownerRoleId`), `interactions`, node `approverRoleId` / `consultedRoleIds` |
+| **Lessons** (pitfalls) | Delayed tasks and reasons; silence-protocol takeovers; steps with low on-time rates; frequent questions | `extensionRequests.reason`, `silenceCases`, `protocolLog`, `contributions.onTime`, product question records (below) |
 
-- 档案的每一行都能点开看原记录，和现在手册的"Source"一样。
-- 遵守现有规则：日期只来自规则引擎；仅干部可见（`visibility: "leads"`）的联系人，档案里也按同样的规则隐藏。
+- Every dossier row opens its original record, like the current handbook's "Source."
+- Follow existing rules: dates come only from the rule engine; officer-only contacts (`visibility: "leads"`) are hidden from unauthorized dossier viewers by the same rules.
 
-**解决：** D1、D2、D4，也是"交接从卸任时补写改成平时自动积累"（计划书第 1 节的原话）真正落地。
+**Resolves:** D1, D2, D4, and implements "replace departure-time writing with continuous accumulation" (the proposal's original wording in section 1).
 
-**(3) 产品自己的问答记录（和研究日志分开）**
+**(3) Product question records (separate from research logs)**
 
-- 新建一份**产品数据**：谁、在哪个岗位任上、问了什么、AI 引用了哪些记录、有没有采用。存在社团数据里，按人区分（不再所有 View as 共用一份 60 条）。
-- **研究日志（`interactionLog` / `ui.ask`）不动，手册绝不读它。** 这是 IRB 边界。
-- 档案的 Lessons 块里显示"这个岗位常被问的问题"（只显示问题聚类和 AI 引用的规则/记录，不显示别人的原话，除非提问人选择公开）。
-- **需要你决定**：是否新增这份记录、是否需要告知 IRB（见第 6 节 Q3）。
+- Create **product data** recording who asked, during which role term, the question, AI's cited records, and whether it was adopted. Store in club data per person (no longer one shared 60-message history for all View as identities).
+- **Leave research logs (`interactionLog` / `ui.ask`) untouched; the handbook must never read them.** This is the IRB boundary.
+- The dossier's Lessons section shows "frequent questions for this role" (only question clusters and AI-cited rules/records, not other people's exact wording unless the questioner chooses to share).
+- **Your decision required:** whether to add these records and whether IRB notification is needed (section 6 Q3).
 
-### 4.2 社长视角的工作流
+### 4.2 President workflow
 
-**入口：** Handoff 页（页面字数上限 120，不加长段文字，靠颜色和悬停卡）。
+**Entry:** Handoff page (120-word page budget; use colors and hover cards, not long paragraphs).
 
-1. **开季或单岗位交接。** 两个按钮：Start handoff season（整季）/ Hand over one role（单个岗位，学期中补位用）。开季时只选要换的岗位（连任的岗位不选，就不进流程）。开季之后新增的岗位自动进入（修 B4）。
-2. **指定新人**（每个岗位）：三选一
-   - 选一个现有社员（内部提拔/转岗，修 B2）；
-   - 发邀请链接给新招的人（新人自己填资料，见 4.3 B）；
-   - 暂时留空（岗位空缺，见下）。
-3. **看风险排序。** 每个岗位一张接力卡，按"交接风险"排序（规则算，不用 AI）：未完成任务数、30 天内的 ASU 硬截止、卸任人最近有没有更新、档案缺口数。最危险的排最上面，并进入 Today 的风险队列。
-4. **批准手册。** 和现在一样：卸任人确认 → 社长批准。区别是社长看到的是"有章节的手册 + 缺口清单"，而不是 12 句重排。
-5. **主持交接会**（可选但推荐）：系统生成一页议程（手册章节 + 新人回述 + 遗留问题），社长可以只是勾"开过了"。
-6. **点 Hand over 完成移交。** 系统一次性：任期 incoming → active、旧任期 active → former；未完成任务转给新人（新人仍要"I've got it"认领，不是直接 accepted，保持全站的认领规则）；联系人跟岗位走（现在已经是）；权限跟岗位走。
-7. **第 30 天看回看结果**：三个分数（清晰度、信心、被接纳）+ 新人写的"手册缺了什么"，社长一键把补充写回档案。
+1. **Start a season or a single-role handoff.** Two buttons: Start handoff season (whole season) / Hand over one role (midsemester vacancy). Select only roles changing holders (reelected roles are excluded). Roles added after season start enter automatically (fix B4).
+2. **Choose a newcomer** for each role, one of three options:
+   - Select an existing member (promotion/role change, fixing B2).
+   - Send an invitation link to a recruit (they fill in their own details; 4.3 B).
+   - Leave vacant for now (below).
+3. **View risk ranking.** One relay card per role, sorted by handoff risk (rules, no AI): unfinished task count, ASU hard deadlines within 30 days, recent outgoing-officer updates, and dossier gap count. Riskiest first, also in Today's risk queue.
+4. **Approve the handbook.** Same order: outgoing officer confirms → president approves. The president now sees chapters + a gap list, rather than 12 rearranged lines.
+5. **Chair a handoff meeting** (optional but recommended): the system generates a one-page agenda (chapters + newcomer read-back + open issues); the president may simply check "held."
+6. **Click Hand over to transfer.** In one operation: incoming term → active, old active term → former; unfinished tasks transfer to the newcomer (who still claims them with "I've got it," rather than receiving accepted directly, preserving site-wide claiming rules); contacts follow the role (as now); permissions follow the role.
+7. **Review day-30 results:** three scores (clarity, confidence, acceptance) + the newcomer's "what the handbook missed." The president can add the supplement to the dossier with one click.
 
-**空缺岗位**（没有卸任人）：社长自己扮演"卸任人"——回答 AI 根据档案（多半是空的）提的问题；或者选"Start from a template"（见 4.4）。
+**Vacant roles** (no outgoing officer): the president acts as the predecessor, answering AI questions based on the mostly empty dossier, or chooses "Start from a template" (4.4).
 
-### 4.3 社员视角的工作流
+### 4.3 Member workflow
 
-**A. 已经在组织里的社员**
+**A. Members already in the organization**
 
-| 情况 | 流程 |
+| Situation | Flow |
 | --- | --- |
-| **卸任人**（要交出岗位） | ① 收到通知 "Your Treasurer handbook is ready to review"；② 打开档案，系统已经填好 80%；③ 回答 AI 根据缺口提的 5–8 个问题（每题可跳过，跳过的写进"未解决"）；④ 确认手册；⑤ 和新人开交接会、带新人跟做一件事；⑥ 移交后变成"前任"，在新人的档案里显示为 "Ask your predecessor"（可选，可关） |
-| **转岗/被提拔的社员**（同时是一个岗位的卸任人、另一个岗位的新人） | 两条流程同时出现在他的 Today：交出旧岗位 + 接新岗位。系统检查两边的硬截止日有没有撞在同一周，撞了提醒社长 |
-| **连任** | 不进流程。但仍可以在季内"更新档案"（回答缺口问题），为以后做准备 |
+| **Outgoing officer** (handing over a role) | ① Notification: "Your Treasurer handbook is ready to review"; ② open the dossier, already 80% filled by the system; ③ answer 5–8 AI gap questions (each can be skipped; skipped questions become "unresolved"); ④ confirm the handbook; ⑤ meet the newcomer and guide a real task; ⑥ after transfer, become a predecessor shown in the newcomer's dossier as "Ask your predecessor" (optional, can be disabled) |
+| **Member changing roles/being promoted** (outgoing in one role, incoming in another) | Both flows appear in Today: hand over the old role + take over the new. The system checks whether their hard deadlines fall in the same week and alerts the president if so |
+| **Reelection** | No handoff flow. Can still "update dossier" (answer gap questions) during the season to prepare for a later transition |
 
-**B. 新招进来的社员（新人）**
+**B. Newly recruited member (newcomer)**
 
-1. 点邀请链接（链接里带岗位）→ 填资料（沿用现有 Join / 社员 onboarding 的屏，不另做一套）。
-2. **读手册**：按 4 块读；每块读完点 "Got it" 或 "Unclear"（Unclear 自动变成一个给卸任人的问题）。
-3. **回述**（Read-back）：回答 3 个固定问题——"接下来 30 天最重要的一件事是什么？"、"遇到 X 你会先找谁？"、"这个岗位最容易出错的地方是什么？"。AI 只对照手册标出"和手册不一致或手册里没有"的地方，交给卸任人确认，**不打分、不判对错**。
-4. **跟做**：系统从档案里挑一件近期、难度轻、有人带的任务（"早期小胜"），新人做协作者（C），卸任人是负责人（R）。
-5. **移交后的第一周**：岗位专属清单 = 通用 6 条（SEO / R16，保留）+ 这个岗位接下来 30 天的真实截止日（规则引擎算）。这时新人已经存在，可以自己勾（修 B3）。
-6. **第 7 天、第 30 天回看**：三道 1–5 分的题（清晰度、信心、被接纳）+ 一句"手册缺了什么"。
-7. **新人前 30 天问 AI 的问题**：如果问的东西手册里有，说明手册不好找；如果手册里没有，就是缺口。两种都在第 30 天汇总给社长和卸任人（只给问题主题，不给原话，除非新人同意）。
+1. Open the invitation link (includes the role) → fill in details (reuse existing Join / member-onboarding screens).
+2. **Read handbook:** read its 4 sections, choosing "Got it" or "Unclear" after each (Unclear automatically becomes a question for the outgoing officer).
+3. **Read-back:** answer 3 fixed questions: "What is the most important thing in the next 30 days?", "Who would you contact first if X happens?", and "What is most likely to go wrong in this role?" AI flags only content inconsistent with or absent from the handbook for outgoing-officer confirmation; **no scoring or judgments of right/wrong**.
+4. **Shadow:** select a near-term, easy task with guidance available from the dossier (an "early win"); newcomer is consulted/collaborating (C), outgoing officer responsible (R).
+5. **First week after transfer:** role-specific checklist = the retained 6 generic items (SEO / R16) + actual role deadlines over the next 30 days (rule engine). The newcomer now exists and can check items themselves (fix B3).
+6. **Days 7 and 30 reviews:** three 1–5 ratings (clarity, confidence, acceptance) + a sentence about "what the handbook missed."
+7. **AI questions during the first 30 days:** if the answer is in the handbook, it is hard to find; if absent, it is a gap. Summarize both for the president and outgoing officer on day 30 (question themes only, not exact wording unless the newcomer consents).
 
-### 4.4 岗位变动
+### 4.4 Role changes
 
-| 变动 | 现在 | 建议 |
+| Change | Current | Proposal |
 | --- | --- | --- |
-| **改名** | 可以，岗位 ID 不变，记录跟着走 | 保持。另外记一条"改名历史"（某天起 Treasurer 改名为 Treasurer & Sponsorship），档案和旧手册里显示当时的名字，避免新人对不上旧文件 |
-| **新增岗位** | 能加，但不进换届（B4），没有任何起步资料 | 新增时生成"**起步包**"：①章程/职责里关于这个岗位的原文；②相同职能（`fn`）在标准流程里的步骤；③从其他岗位**移交过来**的任务和联系人（见下一行）；④社长回答 3 个问题（为什么设这个岗位、成功是什么样、要和谁配合）。没有历史时 Lessons 块显示 "No history yet"，不编造 |
-| **拆分岗位**（如 Marketing → Social Media + Design） | 不支持 | 一个向导：列出旧岗位名下的未完成任务、联系人、流程步骤，逐条（或按标签批量）选归属。旧岗位的档案和手册作为两个新岗位的共同"前身"可读 |
-| **合并岗位** | 不支持 | 反向向导：两个档案合并，联系人和步骤归到新岗位，旧岗位存档 |
-| **删除岗位** | Settings 不允许删 | 先跑一次"移交"把东西分给别的岗位，再存档（不真删，历史还在） |
-| **换职能**（`fn` 变了） | 可以改，影响流程分配 | 保持，但在档案顶部提示 "This role's function changed on …, steps before that came from …" |
+| **Rename** | Works; stable role ID keeps records attached | Retain. Also record rename history (from a given date, Treasurer became Treasurer & Sponsorship); show the historical name in dossiers and old handbooks so newcomers can match old documents |
+| **New role** | Can be added, but excluded from handoff (B4) with no starter material | Generate a **starter pack**: ① verbatim role clauses from the constitution/responsibilities; ② standard-workflow steps with the same function (`fn`); ③ tasks and contacts **transferred from other roles** (next row); ④ president answers 3 questions (why create it, what success looks like, whom to work with). Without history, Lessons shows "No history yet"; do not invent it |
+| **Split role** (e.g. Marketing → Social Media + Design) | Unsupported | Wizard lists old-role unfinished tasks, contacts, and workflow steps; assign individually or in tag-based batches. Old dossier and handbook remain readable as a shared predecessor for both new roles |
+| **Merge roles** | Unsupported | Reverse wizard: combine two dossiers, assign contacts and steps to the new role, archive old roles |
+| **Delete role** | Settings prohibits deletion | First transfer its items to other roles, then archive (no actual deletion; retain history) |
+| **Change function** (`fn` changes) | Allowed; affects workflow assignment | Retain, with a dossier-top notice: "This role's function changed on …, steps before that came from …" |
 
-### 4.5 AI 在里面做什么、不做什么
+### 4.5 AI responsibilities and boundaries
 
-| AI 做 | AI 不做 |
+| AI does | AI does not |
 | --- | --- |
-| 看档案，给卸任人出 5–8 个针对缺口的问题（例："Budget Request 延期过 2 次，原因记录是空的——当时卡在哪？"） | 不写任何日期（沿用规则 3） |
-| 从档案里挑、排手册内容（沿用现在的"只回编号"做法） | 不读研究日志 |
-| 对照手册检查新人的回述，标出不一致的地方 | 不给新人打分，不判"合格/不合格" |
-| （**需要你决定**，Q2）每章写一两句导读，每句必须引用档案记录，日期按规则 3 遮掉 | 不在没有记录的地方编"经验" |
+| Inspect dossiers and ask outgoing officers 5–8 targeted gap questions (e.g. "Budget Request was extended 2 times, but the reasons are empty. What blocked it?") | Write any dates (retain rule 3) |
+| Select and order dossier material for the handbook (retain the current numbered-reference-only response) | Read research logs |
+| Compare newcomer read-back with the handbook and flag inconsistencies | Score newcomers or judge pass/fail |
+| (**Your decision required**, Q2) Write one or two introductory sentences per chapter, each citing dossier records, with dates masked under rule 3 | Invent "experience" unsupported by records |
 
-AI 失败或关着时：问题用规则生成的模板题（"这一项的延期原因是空的，补一句？"）；手册用本地排序（现在已经有）。不会卡住。
+When AI fails or is disabled: use rule-generated template questions ("This extension reason is empty; add a sentence?") and local handbook ordering (already available). The flow does not block.
 
-### 4.6 怎么知道变好了（指标）
+### 4.6 How to measure improvement
 
-- **新人第一个任务按时完成所需天数**（移交日到第一个 `completedOn`）。
-- **新人前 30 天的准时率** vs 卸任人同期。
-- **回述一致率**：新人回述里和手册一致的比例（只做参考，不给人看分）。
-- **手册缺口数**：新人"Unclear"的次数 + 前 30 天问 AI 但手册里没有的问题数，季与季对比，应该下降。
-- **第 30 天三项分数**（清晰度、信心、被接纳）。
+- **Days until the newcomer's first on-time task completion** (transfer date to first `completedOn`).
+- **Newcomer's first-30-day on-time rate** versus the outgoing officer over the corresponding period.
+- **Read-back consistency:** proportion matching the handbook (reference only; do not show personal scores).
+- **Handbook gap count:** newcomer "Unclear" selections + first-30-day AI questions absent from the handbook; should decrease between seasons.
+- **Three day-30 scores** (clarity, confidence, acceptance).
 
-这些都能从现有记录算出来；如果要进论文分析，需要对照 IRB（Q3）。
+All can be calculated from existing records; use in thesis analysis requires checking IRB coverage (Q3).
 
 ---
 
-## 5. 分阶段实施（建议顺序）
+## 5. Phased implementation (recommended order)
 
-**时间建议：Phase 3 正在收数据，Handoff 是示例社团的一部分（`sampleScenario.ts` 带换届季）。runbook 里的任务卡 (a)–(e) 我看不到原文，没法确认有没有一题用到 Handoff。建议 H1 以外的改动都在 Phase 3 结束后再合并到 `main`，避免参与者中途看到不一样的页面。**
+**Timing recommendation: Phase 3 is collecting data, and Handoff is part of the sample club (`sampleScenario.ts` includes a handoff season). I cannot access the original runbook task cards (a)–(e), so cannot confirm whether any uses Handoff. Merge changes beyond H1 into `main` only after Phase 3 ends, to avoid changing pages midway through participation.**
 
-| 包 | 内容 | 大小 | 解决 | 依赖 |
+| Package | Content | Size | Resolves | Dependencies |
 | --- | --- | --- | --- | --- |
-| **H1 修 bug（可以先做）** | 交接后 Settings 能存（新人生成合法的 example.org 邮箱；卸任人改为"无岗位"状态，校验放行）；开季后新增岗位自动进入；访谈不再预填示例（改成占位提示文字），进度不虚高 | 小，1 个会话 | B1、B4、B6 | 无 |
-| **H2 任期模型** | `RoleTerm`、结构版本 +1、旧数据迁移；现有社员接任；空缺岗位；单岗位交接；新人在移交前就存在（incoming），能自己勾第一周 | 中 | B2、B3、B5、D7 | H1 |
-| **H3 岗位档案** | 4 块档案页（纯计算）+ 单元测试；接力卡按风险排序、接入 Today 风险队列；手册改成按 4 块分章 | 中 | D1、D2、D4、D6 | H2 |
-| **H4 缺口访谈 + 新人回述** | AI 出缺口题（新接口，22 秒预算，失败用模板题）；新人读手册、Unclear、回述、跟做任务、第 7/30 天回看 | 中 | D3、D5 | H3 |
-| **H5 岗位变动** | 改名历史；新增岗位起步包；拆分/合并/删除向导 | 中 | D8 | H2 |
-| **H6 问答记录** | 产品自己的问答记录（按人、可见范围）；档案显示常问问题；新人前 30 天的问题汇总 | 中 | D9 | H3；**需要 Q3 答复** |
+| **H1 Bug fixes (can start first)** | Settings saves after handoff (generate valid example.org newcomer emails; outgoing officer becomes "no role," allowed by validation); new roles enter an active season automatically; replace prefilled interview examples with placeholders so progress is accurate | Small, 1 session | B1, B4, B6 | None |
+| **H2 Term model** | `RoleTerm`, schema version +1, old-data migration; existing-member takeover; vacancies; single-role handoffs; incoming newcomer exists before transfer and can check first-week items | Medium | B2, B3, B5, D7 | H1 |
+| **H3 Role dossiers** | 4-section dossier page (pure calculation) + unit tests; risk-ranked relay cards connected to Today's queue; handbook split into 4 chapters | Medium | D1, D2, D4, D6 | H2 |
+| **H4 Gap interview + newcomer read-back** | AI gap questions (new endpoint, 22-second budget, template fallback); handbook reading, Unclear, read-back, shadowing task, days 7/30 reviews | Medium | D3, D5 | H3 |
+| **H5 Role changes** | Rename history; new-role starter packs; split/merge/delete wizards | Medium | D8 | H2 |
+| **H6 Question records** | Product question records (per person, visibility scope); frequent dossier questions; newcomer first-30-day summary | Medium | D9 | H3; **Q3 answer required** |
 
-每个包：新行为有单元测试 + 页面测试；Handoff 页字数仍在 120 / 120 以内；做完在预览网址给你验收。
-
----
-
-## 6. 需要 Juanxi 决定的问题
-
-- **Q1 先做哪几个包？** 我建议：H1 现在做（纯修 bug，不改页面样子）；H2–H6 等 Phase 3 结束后，按 H2 → H3 → H4 → H5 → H6 的顺序。
-- **Q2 AI 能不能写"导读句"？** 现在手册是纯摘录（每个字都是原记录）。允许 AI 每章写 1–2 句带引用的导读，读起来会顺很多，但不再是"每个字都可追溯原文"，而是"每句都有引用"。我倾向**允许，但每句必须引用记录、日期按规则 3 遮掉、界面上标出哪句是 AI 写的**。
-- **Q3 产品问答记录（H6）要不要做、要不要告诉 IRB？** 它是新的数据记录（问题原文、按人存）。我倾向做，但和研究日志严格分开；要不要告知 IRB 由你对照材料决定。
-- **Q4 卸任人移交后还能不能被新人"咨询"？** 我倾向默认可以（显示为 "Ask your predecessor"），卸任人可以关掉。
-- **Q5 第 7/30 天的三项分数谁能看？** 我倾向只有社长和新人本人能看，不进贡献分。
-- **Q6 Phase 3 任务卡 (a)–(e) 里有没有用到 Handoff 页？** 如果有，H1 也要等 Phase 3 结束（或者你确认改动不影响那一题）。
+Each package: unit + page tests for new behavior; Handoff stays within 120 / 120 words; provide a preview URL for your acceptance.
 
 ---
 
-## 7. 参考
+## 6. Decisions for Juanxi
+
+- **Q1 Which packages first?** Recommend H1 now (bug fixes without visual changes), H2–H6 after Phase 3 in order H2 → H3 → H4 → H5 → H6.
+- **Q2 May AI write introductory sentences?** The handbook currently contains only exact extracts. Allowing 1–2 cited introductions per chapter improves readability but changes "every word traceable to source text" to "every sentence has citations." I favor **allowing this with record citations for every sentence, dates masked under rule 3, and AI-written sentences identified in the UI**.
+- **Q3 Build product question records (H6), and notify IRB?** These are new data records (original question text stored per person). I favor building them with strict separation from research logs; you must compare the materials to decide IRB notification.
+- **Q4 May newcomers consult predecessors after transfer?** I favor enabling "Ask your predecessor" by default, with outgoing officers able to disable it.
+- **Q5 Who sees the three days 7/30 scores?** I favor only the president and the newcomer, excluded from contribution scores.
+- **Q6 Do Phase 3 task cards (a)–(e) use Handoff?** If so, H1 must also wait until Phase 3 ends (unless you confirm the changes do not affect that task).
+
+---
+
+## 7. References
 
 - Starmer, A. J., et al. (2014). Changes in medical errors after implementation of a handoff program. *New England Journal of Medicine*, 371(19), 1803–1812.
 - Nonaka, I., & Takeuchi, H. (1995). *The Knowledge-Creating Company*. Oxford University Press.
@@ -250,7 +250,7 @@ AI 失败或关着时：问题用规则生成的模板题（"这一项的延期�
 - Bauer, T. N., Bodner, T., Erdogan, B., Truxillo, D. M., & Tucker, J. S. (2007). Newcomer adjustment during organizational socialization: A meta-analytic review. *Journal of Applied Psychology*, 92(3), 707–721.
 - Bauer, T. N. (2010). *Onboarding New Employees: Maximizing Success*. SHRM Foundation.
 - Watkins, M. D. (2013). *The First 90 Days* (updated ed.). Harvard Business Review Press.
-- U.S. Army. *A Leader's Guide to After-Action Reviews* (TC 25-20); Relief in Place 程序。
-- Training Within Industry (1945). *Job Instruction* 手册。
+- U.S. Army. *A Leader's Guide to After-Action Reviews* (TC 25-20); Relief in Place procedures.
+- Training Within Industry (1945). *Job Instruction* manual.
 
-以上是我根据已知文献整理的，没有在本会话联网逐条核对页码和数字；I-PASS 的 23% / 30% 是论文摘要里的数字。如果要写进论文，请再核对原文。
+These references were compiled from known literature; page numbers and figures were not individually checked online in this session. I-PASS's 23% / 30% figures come from the abstract. Check the original sources before using them in the thesis.

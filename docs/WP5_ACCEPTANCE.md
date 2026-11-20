@@ -1,46 +1,46 @@
-# WP5 经费、规则、交接、关系、预测：验收与交接
+# WP5 funding, rules, handoff, relationships, and forecasts: acceptance and handoff
 
-2026-10-22 · Codex · **待验收；真实 AI 闸门未完成**。工作只在 `v1`，没有改动或推送 main。
+October 22, 2026 · Codex · **Awaiting acceptance; live AI gate incomplete.** Work was confined to `v1`; `main` was neither changed nor pushed.
 
-> **2026-11-09 补充：** 本文里关于 Handoff（岗位手册、卸任访谈、换届）的部分已被 Handoff 改版取代（8 个阶段，见 [`HANDOFF_EXECUTION_PLAN.md`](HANDOFF_EXECUTION_PLAN.md)，在分支 `claude/tender-gates-j8ztlr` 上，Phase 3 收完前不合并）。其余部分（经费、规则、关系、预测）不受影响。
+> **Historical November 9 addendum:** this document's Handoff material—role handbooks, outgoing-officer interviews, and leadership transitions—was superseded by the eight-stage redesign in [`HANDOFF_EXECUTION_PLAN.md`](HANDOFF_EXECUTION_PLAN.md), on `claude/tender-gates-j8ztlr`. The addendum's plan was to hold merging until Phase 3 collection finished; later progress/approval records determine the actual merge status. Other funding/rules/relationship/forecast material was unaffected.
 
-## 已交付
+## Delivered
 
-1. **预测与今日页**：`src/engine/forecast.ts` 为纯函数，固定种子、稳定节点顺序，每次抽样 1,000 次；每个步骤对照规则引擎算好的社团截止日计数。今日风险按按时比例排序，同概率优先直接等待/求助，再按截止日；最多三条，默认颜色与最多两个原因，展开才显示百分比和假设。活动条另显示最薄弱的未完成关键步骤；不是“整场所有步骤联合成功率”。
-2. **用时与冷启动**：轻 1–2、中 3–5、重 5–10 个学生工作日（一至两个工作周）；避开本人忙碌周、期末周与学期间假期。学校提交提前量与实际审批用时明确分开；学校等待为公开的保守排期假设，不能当实际周转统计。USG 未批的端到端冷启动范围为 42–56 个日历日（6–8 周），来源为产品计划 §9 / F3 的负责人经验。现阶段没有真实审批样本，也不显示中位数等统计。
-3. **个人缓冲**：继续只供排期；关闭后固定一天，不进入贡献公式。新增“满五条有完成日期的本社团记录后才渐进调整”；历史示例积分无完成日期的不训练。本人 Settings 可看到生效值和理由，其他人不显示数值。换届默认回到标准一天并重置学习窗口；只有本人勾选保留才保留旧人的设置，接任者始终重新开始。
-4. **规则页与问答**：六类全部显示；宣传类如实说明尚无已核实官方规则。卡片默认正文与时限，展开看全部出处和核实日期。今日页问题与 Rules 都可调用 `/api/ask`；服务器采用自己的 R01–R16，忽略客户端伪造的规则。AI 只选编号；答案由已收录原文重建，AI 自由文本、日期与未知字段丢弃。无依据则拒答并指向 Student Organizations / USG / Student Unions；每答有“Sources checked”，说明核实日期及没有现场重抓来源。规则原文未变，WP6 仍须重新核实官方页面。
-5. **报错与测试集**：“This is wrong”进入同浏览器管理员队列（Rules 底部）；仅现任社长/副社长可标记已审。规则答案、变更单、提醒和手册都有入口。40 道固定题与评估脚本已入库；CI 用模拟供应商，真实成绩未伪报，详见 `AI_TESTS.md`。
-6. **经费**：每场有经费的活动可开始六阶段记录、人工确认阶段、分配金额/已用金额/用款截止日；已批准款项距用款期限不超过 14 天仍未用完会提醒。`/api/preflight` 与浏览器共用确定性 R11/R12 检查，缺项逐条挂编号；覆盖海报、公共目的、ASU 抬头、报销 >$999、Amazon 风险、人均 ≥$25 的两份材料，以及无效人数/金额。只记材料是否已附，不上传出勤姓名。审批仍是人工记录，不是学校审批动作。
-7. **Plan B**：复用现有 `PLAN_B`。决定日取本活动最早的官方经费提交截止日，由规则引擎计算；到期尚未记录预算批准即展示无餐饮、会费和缩小规模三个选择，未经人决定不自动改活动。
-8. **换届与手册**：开始、卸任访谈、手册确认、新人第一周、30 天回顾；可改季节起止与每个岗位的开始日，派生日期只由 `schedule.ts` 生成。所有访谈示例均为新编虚构文本并标 Example (fictional)。`/api/handbook/draft` 让 AI 挑选并排序任务与示例访谈来源；每项原文摘录附 task/interview ID，原记录快照保留，未匹配内容和 AI 日期全部丢弃。输入记录变动会使旧确认失效；卸任者本人确认后，社长才可批准。按 SEO 新干部清单与 R16 完成第一周安排；第 30 天之前不能记回顾完成。完成岗位交接后，岗位负责人、未完成任务与依岗位持有的联系人一同转交，新干部重新认领任务；旧签名链接失效。
-9. **关系页**：距上次联系天数、可改建议频率、负责岗位和现任人、已关联的下一场未来活动；人工记录一次联系即可更新，不发送外部消息。没有砍任何计划页面。
+1. **Forecast and Today:** `src/engine/forecast.ts` is a pure function with fixed seed, stable node order, and 1,000 samples per run. Each step is measured against its engine-calculated club deadline. Today ranks risks by on-time proportion, then direct waiting/help at equal probability, then due date. At most three, showing color and no more than two reasons by default; expansion reveals percentage/assumptions. Event strips identify the weakest unfinished critical step, not a joint success probability for every event step.
+2. **Effort and cold start:** light 1–2, medium 3–5, heavy 5–10 student workdays, meaning one to two workweeks; avoid personal busy weeks, finals, and semester gaps. School submission lead times are separate from actual approval turnaround. School waiting is an explicitly conservative scheduling assumption, not measured processing statistics. Unapproved USG end-to-end cold start is 42–56 calendar days (6–8 weeks), based on owner experience in product-plan section 9 / F3. There are no real approval samples or displayed medians.
+3. **Personal buffers:** scheduling only; disabled means one fixed day, excluded from contribution scoring. Gradual adjustment begins only after five completed records with completion dates from this organization. Old example scores lacking completion dates do not train it. Only the person sees the effective value/reason in Settings. Transition defaults to one day and resets learning; the outgoing person's settings persist only if they explicitly choose retention, while the incoming officer always starts fresh.
+4. **Rules/Q&A:** all six categories appear; publicity accurately says it has no verified official rule yet. Cards show rule text/timing and expand for all sources/verification dates. Today/Rules can use `/api/ask`. The server uses its own R01–R16 and ignores forged client rules. AI selects IDs only; answers are rebuilt from stored source wording, discarding AI prose, dates, and unknown fields. Unsupported questions are declined and directed to Student Organizations / USG / Student Unions. Sources checked identifies verification dates and explains that sources were not freshly fetched. Rule wording did not change; WP6 still requires rechecking official pages.
+5. **Feedback/evaluation:** “This is wrong” enters a same-browser admin queue at the bottom of Rules. Only current president/VP mark items reviewed. Rule answers, change cards, reminders, and handbooks expose feedback. The 40-question set and evaluation script are committed. CI uses mocks; no live score is fabricated. See `AI_TESTS.md`.
+6. **Funding:** each funded event can start a six-stage record with manually confirmed stages, allocation/spending amounts, and spend-by date. Approved money still unspent within 14 days of spend-by triggers a warning. `/api/preflight` shares deterministic R11/R12 checks with the browser, attaching rule IDs to missing items. Covers flyer, public purpose, ASU invoice name, reimbursement >$999, Amazon risk, the two required documents for meals at ≥$25 per person, and invalid people/amount inputs. Only attachment presence is recorded; attendance names are not uploaded. Approval is a manual record, not a university approval action.
+7. **Plan B:** reuses `PLAN_B`. The engine chooses the earliest official funding-submission deadline for that event as decision day. If approval is still unrecorded, offer no food, dues funding, or reduced scale. No automatic event change without a person's decision.
+8. **Transition/handbooks:** start season, outgoing interview, handbook confirmation, incoming first week, and day-30 review. Season bounds/role start days are editable; derived dates come only from `schedule.ts`. Every interview example is newly fictional and labelled Example (fictional). `/api/handbook/draft` selects/orders task and fictional-interview sources. Each original extract has task/interview ID and a retained source snapshot; discard unmatched content and AI dates. Source changes invalidate confirmation. The outgoing officer must confirm before president approval. First-week work follows SEO/R16; day-30 review cannot complete early. Completing a role transfers holder, unfinished tasks, and role-owned contacts; the incoming officer reclaims tasks and old signed links expire.
+9. **Relationships:** days since contact, editable suggested cadence, owning role/current holder, and the next linked future event. Manual contact records update the view without external messaging. No planned page was cut.
 
-## 本机验证与远端验证
+## Local and remote verification
 
-- 完整执行 `npm run check`：构建成功，**233 个单元测试、90 个电脑/手机页面测试全部通过**；WP4 原有 174 个单元测试、76 个页面测试均保留。
-- 固定 40 题在实际服务处理函数上通过模拟供应商检查；不是真实 DeepSeek/AIR 成绩。
-- 行为测试覆盖固定种子、边界 50%/80%、依赖缺失/环、计时变化、私有缓冲及关闭、$999/$25 边界、资金权限、来源与日期丢弃、异步旧来源拒绝、确认顺序、联系人/任务移交、数据保存和手机排版。代表性 1,000 次预测检查小于一秒。
-- 核查了电脑/手机页面图；测试图中的 mock 明确为测试环境。构建仍有单包超过 500 KB 的提示，不影响本次功能。
-- 已推送的主体提交 `b8a6986` 的 GitHub Actions 通过；最后补充与交接提交的结果以 GitHub 当次状态为准。
+- Full local `npm run check`: build succeeded, **233 unit and 90 desktop/mobile browser tests passed**. All WP4 174 unit / 76 browser tests remain.
+- The actual service handler passed the fixed 40 cases using mocked provider output, not measured DeepSeek/AIR results.
+- Coverage includes fixed seed, 50%/80% thresholds, missing dependencies/cycles, timing changes, private/disabled buffers, $999/$25 boundaries, funding permissions, source/date rejection, stale asynchronous sources, confirmation order, contact/task transfers, persistence, and mobile layout. A representative 1,000-sample forecast check took under one second.
+- Desktop/mobile screenshots were inspected; mocked content was labelled as test-environment output. Build still warns about a bundle exceeding 500 KB; it did not block this package.
+- GitHub Actions passed for main implementation commit `b8a6986`. Later supplemental/handoff commits depend on their own GitHub status.
 
-## Juanxi 的五步验收
+## Juanxi's five-step acceptance
 
-预览：[WP5](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/handoff)，保留 Netlify 登录保护。此刻不再协助或尝试登录；等你自己的可访问环境准备好再验收。
+Preview: [WP5](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/handoff), retaining Netlify login protection. Login assistance/attempts had stopped at the owner's request; acceptance waits for his accessible environment.
 
-1. **Today**：Reset demo，查看 Needs a nudge 的前三项；默认只有颜色、两条原因；展开 Forecast details & assumptions 才有比例、1,000 次与来源假设。Demo clock 快进后风险应重算。
-2. **Rules**：问 `What do outside caterers need?`，应出现 R06、来源和核实日期；问 `Which federal tax form must our club file?` 应拒答。点 This is wrong，Alex 在页面底部看见待审项。若出现 Live AI unavailable，不算通过真实问答验收。
-3. **Funding**：Networking Night → 展开 Pre-submission check。餐费 750、人数 30，不附 Business Meals Form/名单时应报 R12；报销额 1000 应报 R11。顶栏时钟 +10、再 +3 天，到 11/4 尚未批预算应展示 Plan B；确认预算批准后，将 Spend-by 改为近两周，应有未用完提醒。
-4. **Handoff（你要审的手册在这里）**：Start handoff season → **Treasurer handbook → Draft role handbook**。核对真实 AI 标签和每条 Source；用 View as 切 Maya → Confirm as outgoing officer，再切 Alex → Approve as president。未经过 Maya 确认时 Alex 不能批准。若是 Example extract draft，只能验来源和流程；真实 AI 手册审阅仍欠一项。
-5. **Partners / Settings**：查看负责岗位、联系间隔与下一场活动；Settings 只显示当前人的缓冲解释。可选：手册批准并完成第一周清单后 Finish role handoff，返回 Partners 应显示接任人；最后 Reset demo 恢复。
+1. **Today:** Reset demo, inspect the top three Needs a nudge items. Default: color/two reasons; Forecast details & assumptions reveals proportions, 1,000 runs, and source assumptions. Advancing Demo clock recalculates risk.
+2. **Rules:** `What do outside caterers need?` should return R06/source/verification date; `Which federal tax form must our club file?` should be declined. This is wrong creates an item Alex can review below. Live AI unavailable does not pass live Q&A acceptance.
+3. **Funding:** Networking Night → Pre-submission check. Food cost 750 / attendance 30 without Business Meals Form/list should flag R12; reimbursement 1000 flags R11. Advance +10, then +3 days to 11/4; unapproved funding should show Plan B. After recording approval, set Spend-by within two weeks to see the unspent-money warning.
+4. **Handoff, handbook review:** Start handoff season → **Treasurer handbook → Draft role handbook**. Check live-AI labels and each Source. View as Maya → Confirm as outgoing officer; Alex → Approve as president. Alex cannot approve before Maya confirms. Example extract draft can verify sources/flow only; live handbook review remains outstanding.
+5. **Partners/Settings:** inspect owning role, contact cadence, next event; Settings exposes only the current person's buffer explanation. Optionally approve the handbook, complete the first-week checklist, and Finish role handoff; Partners should show the successor. Reset demo afterward.
 
-## 尚未完成、已知边界与 WP6
+## Outstanding work, limits, and WP6
 
-- **WP5 验收缺口：** DeepSeek 40 题的 ≥90% / 拒答 10/10，以及 Juanxi 审真实 AI 岗位手册。尚未读取部署实际模型，不清楚 AIR 是否已配；若已配还需单独跑 AIR。详见 `AI_TESTS.md`，没有用模拟成绩替代验收。
-- 用户明确要求停止登录操作，已遵守；不绕开访问保护、不改 main、不提取密钥。此项是环境访问阻塞，并非改变原验收标准。
-- 数据结构从 4 升到 **5**；旧浏览器演示会恢复种子。所有记录仍只在该浏览器，View as 是虚构角色演示，并非真实身份验证。
-- 预测是透明的假设模型，未用真实社团记录校准；同人多任务的资源争用未建模。官方“提交前多少天”不能解释为审批承诺；不声称有真实周转统计。
-- 手册为 AI 选取的可追溯原文摘录，刻意不给无证据的补充建议。服务不可用时示例草稿会明确标注，不能作为真实 AI 验收。
-- R01–R16 的政策核实日期仍是 2026-10-07；WP6 按原计划逐条重读官方原文。校历核实日期仍是 2026-10-22。没有在 WP5 改规则内容或产品计划。
-- 本地代码目录 `/private/tmp/platypus-officer-hub-wp5` 为经逐文件校对的工作快照，不能直接把独立本地 Git 历史推到远端。远端更新通过 GitHub 接口沿 v1 原父提交进行，并核对文件摘要；main 不动。
-- **已同步本地备份**：仅覆盖 Plan/ 下指定的产品计划、PROGRESS、RULES、AGENTS_repo 四个文件；没有修改 Reference/ 或研究资料。
+- **Acceptance gap:** live DeepSeek evaluation at ≥90% with 10/10 refusals, plus Juanxi's review of a live AI handbook. The deployed model had not been inspected and AIR configuration was unknown. The original plan called for separate AIR testing if configured. Later provider/testing decisions supersede that old sequence; no mock result substituted for acceptance. See `AI_TESTS.md`.
+- The explicit request to stop login attempts was obeyed. No bypass of access controls, `main` edits, or key extraction. This was an environment-access blocker, not a lowered gate.
+- Schema **4 → 5**; older browser demos restore seed data. All records remain browser-local, and View as uses fictional roles, not real authentication.
+- Forecasts are transparent assumptions, uncalibrated on real organizations. Contention among multiple tasks owned by one person is not modelled. Official submission lead time is not a promise of approval duration; no measured turnaround statistics are claimed.
+- Handbooks deliberately contain traceable AI-selected source extracts without unsupported advice. Labelled local fallback drafts are not live acceptance.
+- At this historical snapshot, the recorded R01–R16 verification date was still 2026-10-07 and calendar verification 2026-10-22; WP6 was to reread every official policy source. WP5 changed neither rule wording nor the product plan. Consult later verification entries for newer dates.
+- `/private/tmp/platypus-officer-hub-wp5` was a file-verified work snapshot with independent Git history; do not push that history directly. Remote updates used GitHub APIs along `v1`'s original parents with file-digest checks. `main` stayed unchanged.
+- **Historical backup sync completed:** only PRODUCT_PLAN, PROGRESS, RULES, and AGENTS_repo under Plan/ were overwritten. Reference/ and research materials were untouched. This records the WP5 sync, not a new sync during translation.

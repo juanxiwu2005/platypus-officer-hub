@@ -1,27 +1,29 @@
-# DX-15 Events 版面：列表收窄、边缘提示、留白审计
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- 阶段 3　大小 M　风险 中　R 级 R2　依赖：DX-01　并行伙伴：DX-16～19
-- 分支：`design/dx-15-events-layout`　样式文件：`src/styles/dx-15-events-layout.css`　对应细节：D18 D19
+# DX-15 Events layout: narrower list, edge cue, whitespace audit
 
-## 为什么
-**看到**：1440 宽、右栏打开时 Events 是四列（导航 196 + 活动列表 220 + 内容 + 右栏 380），流程图只剩约 550px，右侧标签被切掉。
-**约束（不能违反）**：① **活动名称列表必须保留**（Juanxi 2026-10-31 明确要求）；② 流程图顶部的留白是**有意**留给悬停卡的（PROGRESS 2026-10-31），不能直接删；③ 不动 AI 右栏的默认行为（见 `DETAIL_LIST.md` K-3）。
+- Stage 3 · Size M · Medium risk · Rollback R2 · Depends on: DX-01 · Parallel partners: DX-16–19
+- Branch: `design/dx-15-events-layout` · Styles: `src/styles/dx-15-events-layout.css` · Details: D18 D19
 
-## 要做的事
-1. **列表收窄**：`.events-layout` 在"右栏打开且视口 <1500px"时，把活动列表列从 220px 收到约 168px（只改列宽，名称仍然完整可读，过长用省略号 + `title`）。
-2. **流程图"还有更多"的提示**：`.metro` 横向可滚动时，在右边缘加一条渐隐遮罩（用 `mask-image`，不用颜色），滚到尽头自动消失。需要一小段脚本检测滚动位置（只改 `Events.tsx` 里 Flow 视图的外壳，不进 `MetroChart.tsx`，那个归 DX-22）。
-3. **留白审计**（只测量，再决定）：量出悬停卡（`.m-card`，宽 250、`bottom: 18px`）弹出时需要的顶部高度；如果现在的顶部留白比它多出 >24px，就把多余的收掉；**不确定就不改**，把测量结果写进报告。顺便量切换条（Flow/List/Budget）和图之间那 ~58px 的间距来自哪个规则。
-4. 使用 `100dvh` 替换 `.event-nav` 的 `max-height: calc(100vh - …)`。
-5. 手机（<860px）的活动选择器不变。
+## Why
+**Observed: ** at 1440 width with rail open, Events has four columns (navigation 196 + event list 220 + content + rail 380), leaving about 550px for the chart and clipping right-hand labels.
+**Constraints (mandatory): ** ① **Keep the event-name list** (Juanxi explicitly requested on 2026-10-31); ② top whitespace above the chart is **intentional** space for hover cards (PROGRESS 2026-10-31), so do not simply delete it; ③ preserve default AI-rail behavior (see `DETAIL_LIST.md` K-3).
 
-## 可以改的文件
-`src/pages/Events.tsx`（只动列表/Flow 外壳）、`src/styles/dx-15-events-layout.css`。**不准碰**：`MetroChart.tsx`、`metro.ts`、`.m-*` 选择器。
+## Tasks
+1. **Narrow list: ** when rail is open and viewport<1500px, reduce `.events-layout`'s event-list column from 220px to about 168px (column width only; names remain fully readable, excessively long ones use ellipsis + `title`).
+2. **Chart "more content" cue: ** when `.metro` scrolls horizontally, add a right-edge fade mask (`mask-image`, no color) that disappears at the end. A small script detects scroll position (change only Flow wrapper in `Events.tsx`, not `MetroChart.tsx`, owned by DX-22).
+3. **Whitespace audit** (measure before deciding): measure top space needed by `.m-card` (width 250, `bottom: 18px`); if current space exceeds it by>24px, remove excess; **if uncertain, leave unchanged** and report measurements. Also identify the rule causing the roughly 58px Flow/List/Budget switcher-to-chart gap.
+4. Replace `.event-nav`'s `max-height: calc(100vh - …)` with `100dvh`.
+5. Mobile (<860px) event selector unchanged.
 
-## 验收
-- `events.spec.ts`、`flow-edit.spec.ts`、`feel.spec.ts`（流程图悬停卡）、`today.spec.ts`、`a11y.spec.ts`、`word-budgets.spec.ts` 桌面 + 手机绿。
-- 新测试 `e2e/dx-15-events.spec.ts`：1440 宽右栏打开时，活动列表宽度 ≤180 且全部活动名可见；流程图右边出现渐隐遮罩，滚到最右后消失。
-- `dx-shots`：1440 宽 Events（右栏开/关）前后对比。
-- Juanxi 怎么验：Events 页右栏打开时，中间的流程图更宽；右边缘有渐隐提示表示还能往右拖；活动列表还在。
+## Allowed files
+`src/pages/Events.tsx` (list/Flow wrapper only), `src/styles/dx-15-events-layout.css`. **Forbidden: ** `MetroChart.tsx`, `metro.ts`, `.m-*` selectors.
 
-## 回滚
-R2。
+## Acceptance
+- `events.spec.ts`, `flow-edit.spec.ts`, `feel.spec.ts` (flowchart hovers), `today.spec.ts`, `a11y.spec.ts`, `word-budgets.spec.ts`, desktop/mobile green.
+- New `e2e/dx-15-events.spec.ts`: at 1440 width with rail open, list≤180 wide with all event names visible; chart right-edge fade disappears when fully scrolled right.
+- `dx-shots`: before/after Events at 1440, rail open/closed.
+- Juanxi: Events with rail open has a wider central chart; right-edge fade indicates more horizontal content; event list remains.
+
+## Rollback
+R2.

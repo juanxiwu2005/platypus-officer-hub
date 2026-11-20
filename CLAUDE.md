@@ -1,16 +1,9 @@
 # Claude repository entrypoint
 
-Before reviewing or changing anything, read these repository sources of truth in order:
+Read `AGENTS.md`, `docs/PROGRESS.md`, and the relevant parts of `docs/PRODUCT_PLAN.md` before work. For Night Mode, also read `docs/NIGHT_MODE.md`; it remains paused unless explicitly resumed.
 
-1. `AGENTS.md`
-2. `docs/PROGRESS.md`
-3. `docs/PRODUCT_PLAN.md`
-4. `docs/NIGHT_MODE.md` when the task involves automated Agent work
+**Write every repository document, code comment, commit message, issue, PR, review, and GitHub note in English.** This supersedes the former Chinese-documentation rule. Private conversation with Juanxi may follow his preferred language; record decisions in English. See `CONTRIBUTING.md`.
 
-Do not create a separate rule set in this file. The hard rules in `AGENTS.md` apply to Claude as well.
+Do not create a separate rule set here. Follow `AGENTS.md`, preserve fictional-data and secret boundaries, deterministic dates, existing permissions, and human approval gates. Never change, push to, merge, or deploy `main` without Juanxi's explicit approval. `READY_FOR_CLAUDE` means automated checks passed, not release approval.
 
-For Night Mode, Claude is the post-automation reviewer. `READY_FOR_CLAUDE` means the automated gates passed; it is not approval to merge. Recheck the branch, diff, preview, CI, security boundaries, and user acceptance. Never merge or modify `main` without Juanxi's explicit approval.
-
-Use simple Chinese with Juanxi. Keep UI copy in English. Never put API keys, research data, participant information, or real member data in the repository or in model prompts.
-
-If the Claude session is connected to Juanxi's computer, keep the existing local-backup handoff: at the end of a product work package, sync `docs/PRODUCT_PLAN.md`, `docs/PROGRESS.md`, `docs/RULES.md`, and `AGENTS.md` (as `AGENTS_repo.md`) to the Honors Thesis `05_Phase3_Prototype/Plan/` backup, and record the sync in `docs/PROGRESS.md`. GitHub remains the source of truth.
+When authorized access to Juanxi's computer exists, synchronize the established thesis backup at the end of product work and record it in `docs/PROGRESS.md`; otherwise note that synchronization is pending. GitHub is the source of truth.

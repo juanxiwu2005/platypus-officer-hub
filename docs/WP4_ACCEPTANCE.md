@@ -1,42 +1,42 @@
-# WP4 设置与团队：验收与交接
+# WP4 setup and team: acceptance and handoff
 
-2026-10-22，ChatGPT。工作分支为 `v1`，`main` 和 `/legacy/` 未改。
+October 22, 2026 · ChatGPT. Work branch: `v1`; `main` and `/legacy/` were not changed.
 
-## 已完成
+## Completed
 
-- 社长五步设置：社团与 ASU Tempe、2–3 个数字目标、岗位模板与通用职能、邀请与演示配置、第一场活动。支持增减岗位与改名；干部姓名可逐项填写（表格导入留到 v1.5）。
-- 第四步按 Juanxi 本次确认，保存 Calendar 链接、Gmail/WhatsApp 渠道、规划说明、文件夹链接和小型虚构规划文件。没有登录、读取账户或连接器授权。文件只作为本地附件，AI 不读文件；说明与岗位映射由人审核。
-- 第五步复用 `/api/command` 和本地回退，只接受一条新建活动操作；AI 日期丢弃。人确认活动日期和属性，再用 `buildEventNodes()` / `applySchedule()` 预览与生成。取消不写数据；最终按钮清楚说明会替换本地演示工作区，需勾选确认。完成后目标归零，旧任务、记录、申请和邀请失效。
-- 干部独立手机页 `/#/join?invite=…`：五项信息、职业目标/兴趣/期望，附可选每周空闲时段。邀请仅限同浏览器虚构身份演示；不代表真实登录或跨设备身份验证。
-- 设置页可以修改社团目标、岗位名称和职能、演示配置、社团缓冲与跟进天数；只有社长/副社长可改。每个人只编辑自己的偏好、忙碌周和个人缓冲；关闭个性化后改用标准一天缓冲。日期重算仍只走规则引擎，ASU 官方日期不变。其他人查看任务时隐藏个人缓冲的数值解释。
-- 团队页：未来 14 天的工作量档位及逐项依据、贡献榜与来源、会议空闲时段交集。轻/中/重工作量计 1/2/3 点，0–3 为 Light、4–7 为 Balanced、8+ 为 Heavy；不显示工时，不以个人缓冲评分。贡献沿用 WP3 完成记录，去重并显示并列名次；旧演示分数已与既有公式对齐（轻任务按时完成为 2 点）；原去重检查只更新演示分数期望值，测试行为保留。
-- 会议查找只取干部自己填的每周空闲时段，避开忙碌周、ASU 关闭日、期末周和学期间假期。最多显示三个不重叠时段；Calendar 按钮只打开 Arizona 时间的日历草稿，不发送邀请。
-- 岗位改名同步到活动流程道、角色菜单、团队页、设置页和 Handoff 的岗位手册目录。完整 AI 手册与换届季仍为 WP5；没有把目录说成完整手册。
+- Five-step president setup: organization/ASU Tempe, 2–3 numeric goals, role templates/generic functions, invitations/demo configuration, and the first event. Roles can be added/removed/renamed and officer names entered individually; spreadsheet import remains v1.5 work.
+- As Juanxi confirmed for this package, step 4 saves a Calendar link, Gmail/WhatsApp channel, planning notes, folder link, and small fictional planning files. It performs no login, account reading, or connector authorization. Files stay local and are not read by AI; people review notes and role mappings.
+- Step 5 reuses `/api/command` and local fallback, accepting one create-event operation only and discarding AI dates. A person confirms date/properties before `buildEventNodes()` / `applySchedule()` previews/generates the event. Cancelling writes nothing. The final button explains that it replaces the local demo workspace and requires a confirmation checkbox. Completion resets goal progress to zero and invalidates old tasks, records, requests, and invitations.
+- Separate officer mobile page `/#/join?invite=…`: five information groups, including career goals/interests/expectations, plus optional weekly availability. Invitations demonstrate fictional identities within the same browser; they are not real login or cross-device authentication.
+- Settings allows leaders to edit organization goals, role names/functions, demo configuration, club buffers, and follow-up days. Only president/VP can change these. Each person edits only their own preferences, busy weeks, and personal buffer. Disabling personalization uses the standard one-day buffer. Only the rule engine recalculates dates; official ASU dates remain fixed. Other viewers do not see the numerical personal-buffer explanation on tasks.
+- Team shows workload bands for the next 14 days with itemized evidence, contribution rankings/sources, and common meeting availability. Light/medium/heavy work counts 1/2/3 points: 0–3 Light, 4–7 Balanced, 8+ Heavy. It does not display hours or score personal buffers. Contributions reuse WP3 completion records, deduplicate, and show ties. Seed scores were aligned with the existing formula: an on-time light task earns 2 points. Existing deduplication tests retain their behavior; only expected seed scores changed.
+- Meeting search uses officers' self-reported weekly availability, excluding busy weeks, ASU closures, finals, and semester gaps. Show at most three non-overlapping slots. Calendar opens an Arizona-time draft without sending invitations.
+- Role renaming propagates to event lanes, role menus, Team, Settings, and Handoff's handbook directory. Full AI handbooks and transition seasons remain WP5; the directory is not presented as a complete handbook.
 
-## 怎么验收（约 5 分钟）
+## Acceptance, approximately five minutes
 
-预览：[WP4 设置页](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/settings)，需要登录 Netlify。
+Preview: [WP4 Settings](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/settings), requiring Netlify login.
 
-1. 点顶栏 **Replay setup** 并开始计时；改社团名，逐步 Continue。第四步看渠道、链接和虚构规划附件；第五步点 **Prepare first workflow**，确认日期，再勾选并点 **Approve & start workspace**。应该进入 Events 看见第一张流程图。此操作替换演示数据；可随时 Reset demo 恢复。请记录你第一次走完是否少于五分钟；程序速度不能替代真实首次使用计时。
-2. Settings → 将第二个 Role title 改为 **VP of Finance** → **Save club settings**。去 Events 应看到新泳道名，去 Handoff 应看到 **VP of Finance handbook**。
-3. Settings → **Invite officers** → **Try officer setup**。选 Maya，改渠道/早晚/忙碌周，保存五问。点 **View my tasks as Maya Chen**；再回 Settings 应只看到 Maya 的个人偏好。确认手机完成是否少于两分钟。
-4. Team → 展开工作量、贡献来源。底部默认 2026-10-22，全部干部应共享 18:30 起的三个半小时时段。改为 2026-12-08 应说明期末周等原因而没有结果。不要发送邀请。
-5. 最后点 **Reset demo**。不应每次刷新都弹设置；旧设置邀请会失效。
+1. Select **Replay setup** and start timing. Change the organization name and Continue through the steps. Inspect channels, links, and fictional planning attachments in step 4. In step 5 select **Prepare first workflow**, confirm the date, check confirmation, and select **Approve & start workspace**. Events should show the first workflow. This replaces demo data; Reset demo restores it. Record whether a first-time walkthrough takes under five minutes; automated speed does not substitute for a person's first-use measurement.
+2. Settings → rename the second Role title to **VP of Finance** → **Save club settings**. Events should show the renamed lane, and Handoff should show **VP of Finance handbook**.
+3. Settings → **Invite officers** → **Try officer setup**. Choose Maya, update channel/morning-evening/busy weeks, and save the five questions. Select **View my tasks as Maya Chen**. Back in Settings, only Maya's personal preferences should be editable. Check whether the mobile flow takes under two minutes.
+4. Team → expand workload/contribution sources. On the default 2026-10-22 date, all officers should share three half-hour slots starting at 18:30. Set 2026-12-08: it should explain finals-related unavailability and return no slots. Do not send an invitation.
+5. Finish with **Reset demo**. Refresh should not reopen setup each time, and old setup invitations should be invalid.
 
-## 验证结果与限制
+## Verification and limits
 
-- 本机 `npm run check`：构建、174 个单元测试、76 个电脑/手机页面测试全部通过；原有 146 个单元测试和 62 个页面测试保留。新增检查覆盖设置权限、规则日期、AI 日期丢弃、私有缓冲、邀请重置、文件限制、会议交集、五步流程与岗位改名。
-- 页面检查脚本在两种尺寸下走完五步与五问，并有五分钟/两分钟上限；这只证明流程可完成，尚未证明第一次使用的人也达到时间目标。
-- 规划文件最多三份、每份 512 KB、合计 1 MB；保存在当前浏览器，清空浏览器或 Reset demo 会移除。不要放研究资料或真实个人信息。
-- 当前是本地演示：View as 可以切换虚构身份；隐私显示规则不是服务器账户权限。邀请和任务链接均不支持跨浏览器/设备；真实账户读取未做，符合本次决定。
-- AI 接口用模拟响应和失败回退测试，真实 DeepSeek/AIR 自由表达质量仍需部署环境验证；供应商配置方式没有变化。
-- 会议时间只依赖自报空闲时段，不知道实际日历冲突。默认学校为 ASU Tempe。
-- 构建通过；有单个文件超过 500 KB 的体积提示，不影响功能。后续可按页面拆分资源。
+- Local `npm run check`: build and all 174 unit / 76 desktop-mobile browser tests passed. All previous 146 unit / 62 browser tests remain. Added checks cover setup permissions, rule-calculated dates, AI-date rejection, private buffers, invitation reset, file limits, meeting intersection, the five steps, and role renaming.
+- Automated desktop/mobile walkthroughs complete the five steps/questions within five-/two-minute caps. This establishes flow completion, not first-time human performance.
+- At most three planning files, 512 KB each and 1 MB total, stored in the current browser. Clearing browser data or Reset demo removes them. Never use research material or real personal information.
+- Local demo only: View as switches fictional identities; UI privacy rules are not server-account authorization. Invitations/task links are not cross-browser/device. Real account access was not implemented, as agreed.
+- AI tests use mocked replies and failure fallback. Live DeepSeek/AIR freeform quality still needs deployed validation; provider configuration did not change.
+- Meeting results use reported availability and cannot detect actual calendar conflicts. Default campus: ASU Tempe.
+- Build passed with a warning for one file exceeding 500 KB. This did not block the feature; later page-level splitting can address it.
 
-## WP5 从这里接
+## WP5 starting points
 
-- 演示结构版本为 **4**，旧结构会恢复种子。入口 `src/pages/Setup.tsx`、`Join.tsx`、`Settings.tsx`、`Team.tsx`；共享表单在 `src/components/SettingsForms.tsx`。
-- 设置验证及写入在 `src/data/settings.ts`；统一走 store 的 `saveClubSettings` / `saveProfile` / `completeSetup`。不要直接往 AI 传整个状态，里面有个人设置、本地附件和演示签名密钥。
-- `org.workspace` 保存演示配置；`org.inviteCode` 在重置或完成新设置时替换。Handoff 当前只有随岗位同步的手册目录，WP5 继续完整换届与手册。
-- `src/engine/team.ts` 管工作量、贡献汇总和会议交集。会议日期是人选择的日期，任务截止日依旧由 `schedule.ts` 算。没有新增 ASU 规则，因此 `docs/RULES.md` 不变。
-- 本机代码副本 `/private/tmp/platypus-officer-hub-wp4` 不是 GitHub 原始历史；已核验远端文件后用 GitHub 提交接口沿 `v1` 父提交推送。不要把这个临时仓库的独立历史推上远端。
+- Demo schema **4**; older schemas restore seed data. Pages: `src/pages/Setup.tsx`, `Join.tsx`, `Settings.tsx`, `Team.tsx`; shared forms: `src/components/SettingsForms.tsx`.
+- Validation/writes: `src/data/settings.ts`, through store `saveClubSettings` / `saveProfile` / `completeSetup`. Never send the full state to AI: it includes private settings, local attachments, and demo signing keys.
+- `org.workspace` holds demo configuration. Reset/new setup rotates `org.inviteCode`. Handoff currently has the role-linked directory; WP5 supplies the full transition/handbook.
+- `src/engine/team.ts` handles workload, contributions, and meeting intersection. People choose meeting dates; `schedule.ts` still calculates task deadlines. No ASU rules were added, so `docs/RULES.md` was unchanged.
+- `/private/tmp/platypus-officer-hub-wp4` is not GitHub's original history. After remote-file verification, changes were sent through the GitHub commit API along `v1`'s existing parent. Do not push the temporary repository's independent history over the remote.
