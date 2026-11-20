@@ -1,43 +1,43 @@
-# Onboarding 图形方案 v2：等待用户选择
+# Onboarding visual concepts v2: awaiting user choice
 
-2026-11-17（America/Phoenix）。本轮仅审阅onboarding，未接入网站运行时。先前五屏的完整代码保存在`../v1/`；v1原稿和第二至第五屏均未改动。只有Juanxi明确说“可以了，进行下一步”，才继续新建活动的下一轮讨论；不自动进入开发。
+2026-11-17 (America/Phoenix). Onboarding review only, not integrated into runtime. Complete earlier five-screen code preserved in `../v1/`; v1 originals/screens2–5 unchanged. Continue next new-event discussion only after Juanxi explicitly says “accepted, proceed”; no automatic development.
 
-## 两组效果图
+## Two sets of mockups
 
-### 人员：4种
+### People: 4 options
 
-`people-options.html` 使用相同的七个虚构岗位和成员对照四种方案，均保留职位、姓名和邀请邮箱。President → Executive Vice President → Treasurer / Marketing Director / Secretary → Associates 的示例层级不是固定岗位规则；后续仍从章程识别并允许人工修改。
+`people-options.html` compares the same seven fictional roles/members, retaining title/name/invite email. Example President→Executive Vice President→Treasurer/Marketing Director/Secretary→Associates hierarchy is not fixed policy; future constitution extraction/manual edits remain.
 
-- **组织树名片：** 层级连线直接连接可填写姓名和邮箱的名片，最容易一眼看懂谁向谁汇报。
-- **层级通讯录：** 同样的层级改为缩进，三列直接填写，适合较大的团队批量录入。
-- **部门接力板：** 顶层领导与各部门分开，部门负责人和协作岗位上下排列，方便看整条职责链。
-- **组织图与名片编辑：** 图上保持角色、名字和邮箱就绪状态，点选后在侧面编辑完整职位、名字、邮箱和Reports to，适合长职位名或较复杂层级。
+- **Organization-tree cards:** hierarchical connectors between editable name/email cards, clearest reporting at a glance.
+- **Hierarchical directory:** indented hierarchy, direct three-column entry, suited to bulk entry for larger teams.
+- **Department relay Board:** top leadership separated from departments, department leads/collaborators vertically arranged, showing whole responsibility chain.
+- **Chart/card editor:** chart shows role/name/email readiness; select to edit full title/name/email/Reports to in side panel, suited to long titles/complex hierarchies.
 
-邀请开关展示未来“完成设置后发邀请”的产品意图；当前只更新本地界面稿，不实际发送邮件。用户输入不进入仓库，公开示例均为example.org。
+Invitation toggle illustrates future post-setup invitations; currently local mockup only, no mail. User input never enters repository; public examples use example.org.
 
-### 工作流分组：6种
+### Workflow grouping: 6 options
 
-`workflow-options.html` 全部使用`workflow-data.json`同一份46项真实模板（包含条件路径）。来源为功能分支`e87b19c95e6eece07a3a695fdc0438de3f92fb67`的`src/engine/playbooks.ts`，43条原始依赖逐条保留。其他线程正在审计/修复模板，本稿不修改其规则和依赖，也不把该快照当作已修复后的模板。
+`workflow-options.html` uses the same 46-item actual template (conditional paths included) in `workflow-data.json`, from `src/engine/playbooks.ts` at feature commit `e87b19c95e6eece07a3a695fdc0438de3f92fb67`; all 43 original dependencies retained. Other chats audit/fix templates; this design changes no rules/dependencies and does not represent snapshot as fixed template.
 
-1. **地铁图高亮圈组：** 46个站点及43条依赖，可选Finance等组高亮其覆盖；适合保留流程上下文。排布为当前效果稿的紧凑预览，未修改生产地铁图布局引擎。
-2. **跨阶段责任泳道：** 组为行、阶段为列；展开当前组的短名，其他任务保留为逐项可点击站点，突出一组工作跨越哪些阶段。
-3. **分阶段折叠图：** 阶段可展开/收起，收起时每个圆点仍对应一个真实任务，并显示准确数量，逐段设置以减少同时阅读。
-4. **任务归属矩阵：** 46个任务各一行、一个主执行组；点击圆点即可改组，适合核查覆盖与重复责任。手机转为逐项下拉框。
-5. **整条任务包指派：** 把原46项分成12个无重复、无遗漏的审阅包，选一次改整个包；包不是新增业务任务，也没有改原始依赖。
-6. **责任涂色板：** 先选组，再点选或拖过任务设置颜色与归属，适合快速批量归类，支持撤销。
+1. **Subway-map highlighted groups:**46 stops/43 dependencies, select Finance etc. to highlight coverage, retaining context. Compact mockup layout, production layout engine unchanged.
+2. **Cross-phase responsibility lanes:** groups as rows/phases as columns; selected group short names expanded, others individually clickable stops, showing span across phases.
+3. **Collapsible phases:** expand/collapse, every collapsed dot still one real task, accurate counts, configure in sections to reduce simultaneous reading.
+4. **Task ownership matrix:**46 rows, one primary group/task; click dot to reassign, inspect coverage/duplicate ownership. Mobile dropdown per task.
+5. **Whole-package assignment:**46 tasks partitioned into 12 review packages, no duplicates/omissions; one selection assigns package. Packages are not new business tasks/dependency changes.
+6. **Responsibility paint Board:** choose group, click/drag tasks to color/assign, fast bulk classification, Undo.
 
-初始分组按现有职能作为可讨论的起点：Event team 22、Finance 12、Marketing 8、Records 2、Leadership 2；这些名称不是要求所有社团采用的固定部门。阶段和组是独立维度。
+Initial functional grouping as discussion starting point: Event team 22, Finance 12, Marketing 8, Records 2, Leadership 2; not mandatory departments. Phases/groups independent dimensions.
 
-所有任务默认使用**唯一的两个英文词短名**，不是用截断前两个词来糊弄；完整名称、要求、规则来源、条件与依赖留在数据中，点选任务后可查看。短名显示可以在设计控件中关闭对照。分组操作只更改界面稿的归属，不改变日期、任务要求、真实审批权或生产数据。
+All tasks default to **unique two-English-word short names**, not careless first-two-word truncation; full names/requirements/rule sources/conditions/dependencies retained/viewable on selection. Toggle short names off for comparison. Grouping changes mockup ownership only, not dates/requirements/real approvals/production data.
 
-## 检查与保存
+## Checks/preservation
 
-- 原v1源码SHA-256与原工作区文件逐字节一致，见`../v1/manifest.json`；本轮未覆写。
-- 10个视图在1024、736、393、320px共40个布局场景检查；无横向溢出、无浏览器脚本错误。
-- 6种工作流方案在上述每个尺寸均覆盖全部46个唯一任务；地铁图渲染43条原始依赖。
-- 邮箱编辑及保存、修改汇报关系、地铁选站改组、矩阵改组、整包改组与撤销、涂色点击检查通过；详见`verification.json`。
-- 46个短名均恰好两个英文词、无重名；12个包覆盖全部46项且互不重复。
-- 两个HTML均为对话可视化片段，包含全部样式/示例数据/本地交互；无外部API、真实AI、邮件投递或生产存档写入。不是已上线功能。
-- 未改`src/`、`public/`、服务器代码、业务schema或现有网站功能；因此未重复全站测试。
+- v1 source SHA-256 byte-identical to original workspace; `../v1/manifest.json`, not overwritten.
+- 10 views×1024, 736, 393, and 320 px=40 layout checks, no horizontal overflow/script errors.
+- All 6 workflow options cover 46 unique tasks at every size; subway renders 43 original dependencies.
+- Email editing/saving, reporting changes, subway reassignment, matrix reassignment, whole-package reassignment/Undo, paint clicking passed; `verification.json`.
+- 46 unique exactly-two-word names; 12 disjoint packages cover 46.
+- Both HTMLs self-contained chat visualization fragments with styles/examples/local interactions; no external API/real AI/mail/production-save writes, not deployed features.
+- No src/public/server/business-schema/current-site changes; full-site tests not repeated.
 
-需要同步本地备份。
+Local backup needs synchronization.

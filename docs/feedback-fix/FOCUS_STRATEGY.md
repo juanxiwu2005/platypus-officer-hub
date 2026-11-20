@@ -1,146 +1,146 @@
-# Platypus 聚焦策略：只做两件事（2026-11-15）
+# Platypus focus strategy: only two things (2026-11-15)
 
-> 给 Juanxi 看的总纲。技术细节和每个阶段的验收标准在 [`PLAN.md`](PLAN.md)（第 12 节是最终范围）。
-> **Phase 3 仍在测试中**：这里的所有改动只在分支 `claude/fervent-thompson-e2j5u2` 上做，**不上正式网站**，等你说可以才合并。
+> Overview for Juanxi. Technical details and per-stage acceptance criteria: [`PLAN.md`](PLAN.md) (Section 12 defines final scope).
+> **Phase 3 testing is ongoing**: all these changes stay on `claude/fervent-thompson-e2j5u2`, **off production**, until you approve merging.
 
-## 1. 一句话
+## 1. In one sentence
 
-**Platypus 只做两件事：到点替社长提醒对的人；换届时三天内把岗位交到下一个人手上。**
-其他功能只有在为这两件事提供数据时才保留，否则收起来、不再打磨。
+**Platypus does only two things: remind the right people for the president at the right time, and hand a role to its successor within three days during leadership transitions.**
+Keep other features only as data sources for those goals; otherwise tuck them away and stop polishing them.
 
-## 2. 判断标准：每个改动先过三问
+## 2. Three questions for every change
 
-1. 它让**一条提醒**更早、更准、更省事地到达对的人吗？
-2. 它让**一个岗位**更快、更完整地交给下一个人吗？
-3. 如果都不是：它是不是这两件事**离不开的数据来源**（谁负责、哪天截止、岗位做过什么）？
+1. Does it get **one reminder** to the right person earlier, more accurately, with less effort?
+2. Does it hand **one role** to its successor faster and more completely?
+3. If neither: is it an **essential data source** for those goals (who owns work, when it is due, what a role has done)?
 
-三个都答"不是"的，不做。以后我提任何建议都会先标明它服务哪一条。
+If all three answers are no, do not do it. Future suggestions will identify which goal they serve.
 
-## 3. 目标一：提醒社团成员工作
+## 3. Goal one: remind organization members to work
 
-### 现在的问题
+### Current problems
 
-| 问题 | 事实 |
+| Problem | Fact |
 | --- | --- |
-| 发一条提醒太费事 | 要点 5 次：Today → Remind → 选渠道 → 打开草稿并离开网站 → 回来点 "I sent this" |
-| AI 写的那一句每次失败 | 线上实测两次都在 4 秒内失败，提醒永远显示 "AI unavailable" |
-| 选了提醒方式也没用 | Onboarding 的三个选项只是存下来，不改变任何行为 |
-| 看不到全局 | 没有地方能看到"这周会发哪些提醒、谁回了、谁没回" |
-| 日期让人糊涂 | 一个任务三个日期（Start by、Club deadline、ASU deadline）|
-| 被提醒的人点开链接后找不到该按哪 | 详情里主操作排在 6 个按钮后面 |
+| Sending one reminder takes too much effort |5 clicks: Today → Remind → choose channel → open draft/leave site → return and press "I sent this" |
+| The AI sentence fails every time | Both live attempts failed within 4 seconds; reminders always show "AI unavailable" |
+| Reminder-mode choice does nothing | Three onboarding choices are saved without changing behavior |
+| No overview | Nowhere shows this week's reminders, replies, and nonresponders |
+| Confusing dates | Three dates per task (Start by, Club deadline, ASU deadline) |
+| Link recipients cannot find the action | Main detail action follows 6 buttons |
 
-### 做完以后社长的一天（目标体验）
+### A president's day afterward (target experience)
 
-> 周一早上打开 Platypus，首页就是提醒中心。
-> **Needs your OK** 里有 3 条写好的提醒，点 "Approve all"，10 秒做完。
-> **Replies** 里 Maya 回了 "Done"，Sam 回了 "Waiting on the caterer"。
-> **No reply yet** 里 Jordan 两天没动静，点 "Follow up"。
-> **This week** 里能看到周三、周五还会发出哪几条。
-> 社长一个人都不用去追。
+> Open Platypus Monday morning: homepage is the reminder center.
+> **Needs your OK** has 3 prepared reminders; "Approve all" finishes in 10 seconds.
+> **Replies**: Maya says "Done", Sam says "Waiting on the caterer".
+> **No reply yet**: Jordan silent for two days; press "Follow up".
+> **This week** shows what will go out Wednesday/Friday.
+> The president need not chase anyone.
 
-### 要做什么
+### Work
 
-| 阶段 | 内容 | 解决什么 |
+| Stage | Content | Solves |
 | --- | --- | --- |
-| FB-1 | 修好 AI 写的那一句；等待时显示秒数，可以 Stop / Skip | 提醒的内容 |
-| FB-6 | 日期引擎按你的时间表校准 | 提醒哪天发、截止日是哪天 |
-| FB-4 | 界面只有一个 Due；任务详情只有一个主按钮 | 被提醒的人看到什么、怎么回 |
-| FB-8 | **首页变成提醒中心**；三种提醒方式真的走不同流程；导航收到 4 项 | 发提醒这件事本身 |
-| FB-5 | 建任务时指定人；+ New event | 每个任务都有人可提醒 |
-| FB-3 | Onboarding 的 Reminders 屏加例子、三步图、类比 | 社长第一次就懂这是什么 |
+| FB-1 | Fix AI sentence; show elapsed seconds and Stop / Skip | Reminder content |
+| FB-6 | Calibrate date engine to your schedule | Send dates and due dates |
+| FB-4 | One Due and one primary task-detail button | Recipient view and reply |
+| FB-8 | **Homepage becomes reminder center**; three modes have distinct flows; 4 navigation items | Reminder operation itself |
+| FB-5 | Select owner during task creation; + New event | Every task has someone to remind |
+| FB-3 | Onboarding Reminders examples, three-step diagram, analogy | President understands on first encounter |
 
-三种提醒方式做完后的样子（演示里都**不真发**，IRB 的要求不变）：
+Three modes afterward (all **simulate sending**; IRB requirements unchanged):
 
-| 方式 | 到了发提醒的日子 |
+| Mode | On reminder day |
 | --- | --- |
-| Send automatically | 直接出现在 Sent，标 "Would be sent · demo"，社长什么都不用做 |
-| I review, then I send | 进 Needs your OK，社长打开草稿自己发 |
-| I review, Platypus sends | 进 Needs your OK，社长点一下批准，可以 "Approve all" |
+| Send automatically | Appears directly in Sent, "Would be sent · demo"; no presidential action |
+| I review, then I send | Needs your OK; president opens/sends draft |
+| I review, Platypus sends | Needs your OK; president approves once, with "Approve all" available |
 
-### 怎么算做到了
+### Success criteria
 
-- 批准一条提醒：从 5 次点击降到 **1 次**；一次批准多条：1 次。
-- 提醒里的 AI 句子：成功率从 0 到大多数时候成功（失败时仍有模板兜底）。
-- 首页一眼能回答："谁该被提醒？谁还没回？"
-- 每个任务只有一个日期。
+- Approving one reminder drops from 5 clicks to **1**; approving many takes 1.
+- AI sentence success rises from 0 to succeeding most times (template fallback remains).
+- Homepage immediately answers “who needs reminding?” and “who has not replied?”
+- One date per task.
 
-## 4. 目标二：Organization succession（三天交接）
+## 4. Goal two: Organization succession (three-day handoff)
 
-### 现在的问题
+### Current problems
 
-| 问题 | 事实 |
+| Problem | Fact |
 | --- | --- |
-| 太慢 | 8 个阶段：访谈 → AI 起草手册 → 前任确认 → 社长批准 → 指定接任人 → 新人回述 → 旁观 → 第 7/30 天回看。每一步都要等人，走完要几周 |
-| 被手册卡住 | 手册没起草、没批准，就不能完成交接 |
-| 最有用的东西被埋着 | 岗位档案（未完成任务、未来 30 天截止日、联系人、经验）是自动汇总的，不用等任何人，但它只是详情里的一个折叠区 |
+| Too slow |8 stages: interview → AI handbook draft → predecessor confirmation → presidential approval → successor designation → teach-back → shadowing → day 7/30 review. Each waits for people, taking weeks |
+| Blocked by handbook | Cannot finish without drafting/approving it |
+| Most useful material buried | Role dossier (unfinished tasks, next 30-day deadlines, contacts, lessons) is automatic with no waiting, but only a collapsed detail section |
 
-### 做完以后的三天（目标体验）
+### Three days afterward (target experience)
 
-> 社长点 "Hand over this role"，**清单立刻生成**，不用 AI，不用等人。
-> **Day 1（约 30 分钟）· What's on fire：** 新任看到手上没做完的任务和 Due、未来 30 天的截止日、要用的链接。
-> **Day 2 · Learn the role：** 读 5 条前任留下的经验，认识 3 个联系人；系统挑出 3 个记录里的缺口问前任，前任答完自动打勾。
-> **Day 3 · Take over：** 新任点 "Accept all" 接下全部任务，社长点 Finish。从这一刻起，提醒发给新任。
-> 顶上一直显示 "Handoff 60% · Day 2 of 3"。
+> President selects "Hand over this role"; **checklist appears immediately**, no AI or waiting.
+> **Day 1 (about 30 minutes) · What's on fire: ** successor sees unfinished tasks/Due, next 30-day deadlines, necessary links.
+> **Day 2 · Learn the role: ** read 5 predecessor lessons, meet 3 contacts; system asks predecessor about 3 record gaps, automatically checking answers off.
+> **Day 3 · Take over: ** successor chooses "Accept all" tasks, president selects Finish. Reminders now go to the successor.
+> Header always shows "Handoff 60% · Day 2 of 3".
 
-### 要做什么
+### Work
 
-| 阶段 | 内容 |
+| Stage | Content |
 | --- | --- |
-| FB-9 | 三天交接包：清单、进度、Accept all；只要指定了接任人就能完成交接 |
-| FB-9 | 原来的访谈、手册、回述、回看全部保留，收进 "Go deeper (optional)" |
-| FB-9 | 提醒中心里出现交接提醒：催前任回答问题、催新任接任务、第 3 天没完成提醒社长 |
-| FB-2 | Onboarding 的 Team 屏：每个岗位就是以后要交接的单位；Advisor（换届时唯一不换的人）用虚线连到 President |
+| FB-9 | Three-day package: checklist, progress, Accept all; successor designation alone enables finishing |
+| FB-9 | Retain interviews, handbook, teach-back, reviews under "Go deeper (optional)" |
+| FB-9 | Reminder-center handoff notices: predecessor questions, successor task acceptance, president if unfinished on day 3 |
+| FB-2 | Onboarding Team: each role is a future handoff unit; Advisor (only person unchanged across terms) connects to President by dashed line |
 
-### 怎么算做到了
+### Success criteria
 
-- 从点 "Hand over this role" 到新任看到第一份清单：**0 等待**。
-- 完成交接不需要任何人写手册。
-- 三个工作日内可以走完；没走完的项目有人被提醒。
+- "Hand over this role" to successor's first checklist: **0 waiting**.
+- No handbook writing required to complete handoff.
+- Finish within three business days; unfinished items trigger reminders to someone.
 
-## 5. 两个目标互相带动
+## 5. Goals reinforce each other
 
-- **平时的提醒记录就是交接的内容。** 每条提醒、每次回复、每次延期都进岗位档案，换届时不用另外写。
-- **交接本身由提醒推动。** 前任没回答问题、新任没接任务，都会出现在提醒中心。
-- **交接完成，提醒自动换人。** 任务跟着岗位走，不跟着人走。
+- **Routine reminder records become handoff content.** Every reminder, reply, extension enters the role dossier; no separate writing at transition.
+- **Reminders drive handoff.** Unanswered predecessor questions/unaccepted successor tasks appear in the center.
+- **Finished handoff automatically redirects reminders.** Tasks follow roles rather than people.
 
-## 6. 其他功能怎么处理
+## 6. Other features
 
-| 处理 | 功能 | 原因 |
+| Treatment | Features | Reason |
 | --- | --- | --- |
-| **留在主导航** | Reminders（首页）、Plan（Events 和 Tasks）、Handoff、Rules | 两个核心，加上它们的数据来源和新人要查的规则 |
-| **收进 More，不删** | Team、Partners | Partners 的联系人是岗位档案的来源；Team 不是核心 |
-| **移出 onboarding** | Goals 屏（留在 Settings）、单独的 Constitution 屏（变成 Team 屏里的可选项）| 不产生提醒，也不进交接 |
-| **不再打磨** | 目标环、本周之星、预测百分比、看板改名改色、会议时间、预算明细、Partners 看板 | 三问都答"不是" |
-| **取消** | Goals 的 SMART 句子 | 同上 |
+| **Main navigation** | Reminders (homepage), Plan (Events/Tasks), Handoff, Rules | Two goals plus data sources and rules for newcomers |
+| **More, retained** | Team, Partners | Partners contacts feed dossiers; Team is not core |
+| **Remove from onboarding** | Goals (keep in Settings), separate Constitution screen (optional within Team) | Neither creates reminders nor enters handoff |
+| **Stop polishing** | Goal rings, weekly stars, forecast percentages, board renaming/colors, meeting times, budget details, Partners board | All three questions answer no |
+| **Cancel** | SMART Goal sentences | Same reason |
 
-Onboarding 从 8 屏变成：**Name → Team → First event → Reminders → Create**（加一屏邀请链接）。每屏标题下一句 Why，都落到"提醒谁"或"交接什么"。
+Onboarding changes from 8 screens to **Name → Team → First event → Reminders → Create** (plus an invitation-link screen). One Why sentence below each heading links to “whom to remind” or “what to hand off.”
 
-## 7. Phase 3 还在测试，怎么办
+## 7. While Phase 3 testing continues
 
-1. **所有改动只在分支上，不合并 `main`。** 正式网站保持参与者现在看到的样子，前后数据可比。
-2. Phase 3 收完数据后（或你决定的时间），一次性上线；上线前我会把任务卡和测试当天步骤里的页面名字（Today → Reminders 等）一起改好。
-3. **有一项你可以考虑现在就单独上线：** 修 AI 输出额度（FB-1 的第一部分）。它只改服务器，不改任何页面、流程和记录格式；现在参与者写提醒时 AI 那一句每次都失败。
-   - 上线的好处：后面的参与者看到的是能用的 AI。
-   - 代价：前后参与者的 AI 体验不一样，写论文时要说明。
-   - 不上线也可以：那就在论文里如实写"测试期间提醒的 AI 句子不可用，用的是模板"。
-   - **这要你决定，我不会自己上线。**
+1. **All changes stay on the branch, without merging `main`.** Production remains as participants currently see it, keeping before/after data comparable.
+2. After Phase 3 data collection (or your chosen time), release together; before release I will also update task cards/test-day page names (Today → Reminders, etc.).
+3. **One candidate for a separate release now: ** AI output allowance fix (first part of FB-1). Server-only, no page/flow/log-format changes; currently the reminder AI sentence fails every time.
+   - Benefit: later participants get working AI.
+   - Cost: participant AI experience differs before/after and needs disclosure in the thesis.
+   - Keeping it unreleased is acceptable: accurately report “reminder AI sentence unavailable during testing; templates used.”
+   - **You decide; I will not release it myself.**
 
-## 8. 执行顺序
+## 8. Execution order
 
-一次最多两个子 agent（多了会撞用量上限），每一波合并后再开下一波。
+At most two subagents at once (more hit usage limits); merge each wave before starting the next.
 
-| 波次 | 阶段 | 状态 |
+| Wave | Stages | Status |
 | --- | --- | --- |
-| A | FB-1 AI 修复 · FB-6 日期引擎 | 进行中 |
-| B | FB-4 详情和一个 Due · FB-2 Onboarding 精简 | 等 A |
-| C | FB-8 提醒中心和导航 · FB-3 Reminders 屏和最后一步 | 等 B |
-| D | FB-9 三天交接包 · FB-5 新建入口 | 等 C |
-| 最后 | FB-7 合并、整体回归、文档 | 等 D |
+| A | FB-1 AI fixes · FB-6 date engine | In progress |
+| B | FB-4 Details/one Due · FB-2 simpler onboarding | Await A |
+| C | FB-8 reminder center/navigation · FB-3 Reminders/final screen | Await B |
+| D | FB-9 three-day handoff · FB-5 creation entries | Await C |
+| Final | FB-7 integration, full regression, docs | Await D |
 
-每一波做完我会告诉你做了什么、哪些测试过了、哪些没验证。全部做完后给你一个预览网址和验收步骤（预览要开 PR，开之前会先问你）。
+After each wave I will report changes, passing tests, and unverified items. After all work, provide a preview URL/acceptance steps (preview requires a PR; I will ask before opening it).
 
-## 9. 这一轮不做、留到以后的
+## 9. Deferred beyond this round
 
-- **真的发出去**（邮件 / WhatsApp）：需要登录、服务器存数据、定时任务，还要对照 IRB。这是产品计划里 v1.5 的事。这一轮做到"流程完全是自动的，只差最后不真发"。
-- 章程阅读、手册起草的 Stop 按钮。
-- Size / Lead time（任务算一天还是 15 分钟）：你还没决定，日期引擎这次按你时间表里的天数走。
+- **Real delivery** (email/WhatsApp): needs login, server data, scheduled jobs, and IRB review; v1.5 scope. This round fully automates the flow except actual sending.
+- Stop buttons for constitution reading/handbook drafting.
+- Size / Lead time (one day vs 15 minutes per task): undecided; this date engine uses your schedule's day counts.

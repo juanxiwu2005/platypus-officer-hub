@@ -1,84 +1,84 @@
-# 邮件进入真实 Plan 与跨节点 Details：实施交付
+# Email entry into actual Plan and cross-node Details: implementation handoff
 
-2026-11-18（America/Phoenix）· Codex · 用户已批准实施，沿用 PR #14
+2026-11-18 (America/Phoenix) · Codex · Implementation approved by user, continuing PR #14
 
-## 当前交付：以活动流程图作为邮件入口
+## Current delivery: event flowchart as email destination
 
-用户再次验收后明确：不能落在Team tasks或自己的Tasks集合，应是截图中的**Plan → Events流程图，右侧展开对应任务Details**。前轮“无活动任务进入Tasks/Team tasks”只解决了独立页遗漏，却选错了左侧工作区，本次取代该路由。
+After another acceptance review, the user clarified: do not land in Team tasks or personal Tasks; use the screenshot's **Plan → Events flowchart with the corresponding task Details expanded on the right**. The previous “eventless tasks enter Tasks/Team tasks” fixed the standalone-page omission but selected the wrong left workspace. This routing supersedes it.
 
-- **真实活动任务：** 新邮件、旧officer入口、上轮生成的Tasks邮件入口均进入`/events`，按任务真实eventId打开活动、选中实际节点并展开Details。即使最近看过另一活动，也不能替换真实归属；沿用现有MetroChart/TeamMetroChart，不改图布局。
-- **无活动Club task：** 新链接为`/events?node=<id>&access=<grant>`。右列仍是原任务，左侧使用本工作区最近查看的活动（无偏好时首个活动）供查阅。进入后将浏览event补入当前URL供刷新/历史还原；切换活动保留原任务入口，点击图中其他节点后可以返回。明确提示任务尚未关联活动，绝不改task.eventId或声称它属于当前图；工作区无活动时显示空Events及原任务详情。
-- **普通Tasks入口：** 默认恢复My tasks；Team tasks仍可手动选择。邮件不再进入任务看板。
-- **共享信息与自动草稿：** 原任务保留同一grant的更新范围、操作者与草稿/附件；其他节点只读团队已提交的正文与对应附件，不能修改或读取私有草稿。Waiting on只可回复协助。Back to Plan隐藏Details供点图，返回原任务、刷新和前进/后退保留任务选择及已自动保存内容。
-- **浏览偏好：** 最近活动仅为sessionStorage中的工作区隔离UI偏好，不写入业务状态、任务归属或授权。无效/删除活动忽略；显式错配、过期/改派或伪造链接仍显示错误。
+- **Actual event tasks:** New emails, old officer entry, and Tasks email entries generated last round all enter `/events`, opening the task's real eventId, selecting the actual node, and expanding Details. A recently viewed different event never overrides real ownership; reuse MetroChart/TeamMetroChart without layout changes.
+- **Eventless Club task:** New link `/events?node=<id>&access=<grant>`. Original task stays in right rail; left shows this workspace's last-viewed event (first event if no preference) for reference. Add browsing event to current URL for refresh/history; switching events retains original task entry, with return after viewing other nodes. Explicitly state task has no event; never alter task.eventId or claim membership in the displayed diagram. No events: empty Events plus original task details.
+- **Ordinary Tasks entry:** Restore My tasks default; Team tasks remains manually available. Emails no longer enter task board.
+- **Shared information/autodrafts:** Original task retains grant scope, actor, drafts/attachments; other nodes show only team-submitted body and corresponding attachments, with no editing/private-draft access. Waiting on permits help responses only. Back to Plan hides Details for diagram use; return, refresh, Back/Forward retain task selection and autosaved content.
+- **Browsing preference:** Last event is workspace-isolated sessionStorage UI preference, not business state, task ownership, or authorization. Ignore invalid/deleted events; explicit mismatch, expiry/reassignment, forgery still show errors.
 
-本轮文件：Events、Tasks入口，planEntry/PlanTaskPanel/planEventPreference、邮件URL生成和历史快照校验，以及相关单元/浏览器夹具。未改Settings模板、图渲染器、日期算法、schema/store、业务收件人或服务器发送；保留同期四队默认和静态布局研究。
+Files this round: Events/Tasks entry, planEntry/PlanTaskPanel/planEventPreference, email URL generation/historical snapshot validation, related unit/browser fixtures. Settings templates, renderers, date algorithms, schema/store, business recipients, server sending unchanged; concurrent four-team defaults/static-layout research retained.
 
-### 本轮验证与部署
+### This round's verification and deployment
 
-276项相关单元/组件（19文件）、前后端类型、生产构建、lint和9页字数均通过；入口495,809/550,000字节，普通Tasks为84/130词。双端浏览器按唯一用例计32通过：22项Plan入口、8项已有邮件/通用提交/默认工作流兼容、2项入口预算。首轮20项19过/1手机脚本用了桌面活动按钮；改用已有手机下拉后复验通过。补充14项中12过/2新种子检查误将三个视觉汇合点计作任务；按真实flow-node按钮计数后完整38任务场景及入口预算4项复验通过，未为测试改图或放宽产品校验。
+276 related unit/component tests across 19 files, frontend/backend types, production build, lint, 9-page words passed; entry 495,809/550,000 bytes, ordinary Tasks 84/130 words. Unique desktop/mobile browser count 32 passed: 22 Plan entry, 8 existing email/universal-submission/default-workflow compatibility, 2 entry budget. First 20: 19 passed/1 mobile script used desktop event button; switched to existing mobile dropdown, rerun passed. Supplemental 14: 12 passed/2 new seed checks mistook three visual joins for tasks; counting actual flow-node buttons yielded full 38-task scenario and 4 entry-budget rechecks passed, without changing diagram or relaxing validation for tests.
 
-[真实桌面Networking流程图](../prototypes/reminder-events-entry/networking-event-desktop.png)、[手机Details](../prototypes/reminder-events-entry/networking-event-mobile.png)、[无活动任务与图并列](../prototypes/reminder-events-entry/club-task-with-event-desktop.png)、[证据清单](../prototypes/reminder-events-entry/manifest.json)已保存并查看。完整种子检查用实际e-night/moderator/venue和全部38任务，非单节点夹具；另覆盖最近活动、真实归属优先、旧Tasks入口、My tasks默认、自动草稿/附件、改派失效和只读资料。
+[Actual desktop Networking diagram](../prototypes/reminder-events-entry/networking-event-desktop.png), [mobile Details](../prototypes/reminder-events-entry/networking-event-mobile.png), [eventless task beside diagram](../prototypes/reminder-events-entry/club-task-with-event-desktop.png), [evidence manifest](../prototypes/reminder-events-entry/manifest.json) saved and inspected. Full seed check uses actual e-night/moderator/venue and all 38 tasks, not a single-node fixture; also covers last event, real ownership priority, old Tasks entry, My tasks default, autodrafts/attachments, reassignment invalidation, read-only records.
 
-当前仍沿用PR14和preview14，不新建PR、不合并main；运行时代码`c0fbf9f60fd90cb7cfc078575d2380bc555f09a7`的`netlify/platypus-officer-hub/deploy-preview`已确认success，继续使用[preview14](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/events)。本轮交互证据来自本地生产构建，线上核对部署状态，未另做线上逐步浏览器验收。测试使用本地重新签发grant，无真实产品AI或外部邮件，无用户完整授权链接归档。日志`/tmp/events-entry-{unit,related,browser,browser-final,browser-seed,build,lint,netlify-types,words}.log`，未重复全站门禁。
+Continues PR 14/preview 14, no new PR/main merge; `netlify/platypus-officer-hub/deploy-preview` for runtime `c0fbf9f60fd90cb7cfc078575d2380bc555f09a7` confirmed success; use [preview 14](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/events). Interaction evidence is local production build; online deployment status checked, no separate online browser walkthrough. Tests use locally reissued grants; no real product AI/external email, no archived full user authorization link. Logs `/tmp/events-entry-{unit,related,browser,browser-final,browser-seed,build,lint,netlify-types,words}.log`; full-site gates not repeated.
 
-## 以下为前轮记录：保留历史，路由以上述当前交付为准
+## Previous round below: retained history; current routing above takes precedence
 
-> **本日补漏修复：** 用户实际测试的 `Draft the meeting agenda` 是 `t-agenda`，`eventId:null`。初次实现仅处理活动任务，留下的社团任务独立页分支导致复现。现已补齐：这类旧/新邮件进入 **Plan → Tasks** 并展开右列；活动任务仍进入对应活动Plan。未把社团任务硬关联活动，旧签名/任务ID/草稿保留。补充验证：17文件262项单元/组件通过；双端18个唯一浏览器用例通过，包含用户同名种子任务、旧链接/新邮件、正文/附件/刷新、其他提交只读、看板/表格/时间线选择及改派失效。首轮2项因忽略任务类型图标前缀的测试定位失败，修正定位后复验通过；产品校验未放宽。
+> **Same-day omission fix:** User's actual `Draft the meeting agenda` task is `t-agenda`, `eventId:null`. Initial implementation handled event tasks only, leaving the club-task standalone branch and reproducing the problem. Fixed: old/new emails for these tasks enter **Plan → Tasks** with expanded right rail; event tasks still enter their event Plan. Club tasks never forcibly linked to events; old signatures/task IDs/drafts retained. Supplemental checks: 262 unit/component tests across 17 files passed; 18 unique desktop/mobile browser cases passed, including original same-name seed task, old/new links, body/attachments/refresh, others' submissions read-only, board/table/timeline selection, reassignment invalidation. Two initial locator failures ignored task-type icon prefixes; fixed locators and reran successfully; product validation not relaxed.
 
-## 问题与结果
+## Problem and result
 
-独立任务页方便回复，但成员订房时可能要先查看其他节点已提交的人数、设备或时段信息。Juanxi批准两张图表达的交互，明确指出图与真实workflow不同，因此本轮只改变入口与导航，继续使用真实 `MetroChart`/`TeamMetroChart`，没有照图重画流程。
+Standalone pages make responses easy, but booking may require reading attendance, equipment, or timing already submitted at other nodes. Juanxi approved the two concepts' interaction, noting their diagrams differ from the real workflow; only entry/navigation changed, reusing actual `MetroChart`/`TeamMetroChart` rather than redrawing from mockups.
 
-活动任务邮件进入对应活动 Plan，未关联活动的社团任务进入 Plan → Tasks；两者均定位选中任务、打开右侧 Details。成员可点击实际节点，或用右列 **View task in this event** 切换同活动任务；浏览其他节点时可返回原邮件任务。手机保留既有全屏 Details，同时提供 **Back to Plan** 和节点选择，不强行挤入桌面三列。
+Event emails enter matching event Plan; eventless club tasks enter Plan → Tasks; both select the task/open right Details. Members click actual nodes or **View task in this event** in the rail to switch same-event tasks; return to original email task afterward. Mobile retains fullscreen Details, **Back to Plan**, and node selection, rather than squeezing desktop's three columns in.
 
-## 链接与导航
+## Links and navigation
 
-- 新邮件：活动用 `/#/events?event=<eventId>&node=<taskId>&access=<scopedToken>`，社团任务用 `/#/tasks?node=<taskId>&access=<scopedToken>`。第一次进入优先 Flow，不受上次保存的 List 或隐藏侧栏偏好影响。用户主动切换 Flow/List/Budget 后仍尊重其选择。
-- 切换节点时更新 URL；`from` 保留原邮件任务，`access` 仍只属于它。刷新、前进和后退恢复选中活动/节点。点击已选节点会重新展开被手动隐藏的 Details；普通自动保存不会反复打开它。
-- 隐藏侧栏保留当前选择；Close details 清除任务/授权/返回参数。切换活动清除旧活动的任务上下文。
-- 通过图现有 `.is-selected` 状态定位真实节点，横向调整现有图滚动容器；没有改变节点布局、任务关系、日期或模板。
-- 旧可复用 `/#/officer?access=…` 链接核验成功且存在当前成员上下文时，按实际任务关联进入 Plan Events 或 Tasks；不能进入工作区的原限定入口仍遵守原成员范围。旧一次性 `token` 入口不改。
-- 失效、签名错误、改派、错误活动/节点或伪造 `from` 明确显示错误，不打开另一个活动的首项任务，不在打开链接时修改状态。
+- New email: event `/#/events?event=<eventId>&node=<taskId>&access=<scopedToken>`, club `/#/tasks?node=<taskId>&access=<scopedToken>`. First entry prefers Flow over saved List/hidden-rail preference; later explicit Flow/List/Budget choices respected.
+- Node switches update URL; `from` retains original email task and `access` authorizes only it. Refresh/Back/Forward restore event/node. Clicking selected node reopens manually hidden Details; ordinary autosave does not repeatedly reopen it.
+- Hiding rail retains selection; Close details clears task/authorization/return parameters. Switching events clears previous event task context.
+- Locate actual node through existing `.is-selected`, scroll current diagram container horizontally; no node-layout, relationships, dates, templates changed.
+- Reusable legacy `/#/officer?access=…`, once verified with current member context, routes by real task association to Plan Events/Tasks; existing restricted entry unable to enter workspace retains member scope. Old single-use `token` unchanged.
+- Expired, bad-signature, reassigned, wrong-event/node, forged `from` links show errors; never open another event's first task or mutate status on opening.
 
-## 身份、提交与草稿
+## Identity, submission, drafts
 
-原任务继续通过原 assignment-scoped grant 更新，保留既有有效操作者、重复更新、延期知会、撤回完成和财务限制；不会把当前浏览器的社长误记为邮件中的负责人。`viewerId` 不因链接改变。
+Original assignment-scoped grant still updates the original task, preserving valid actor, repeat updates, extension notifications, completion undo, finance limits; browser president never falsely recorded as email owner. Link never changes `viewerId`.
 
-Plan 中查看其他节点依靠当前演示工作区已有的活跃成员上下文，**不是用单任务 token 建立全社团身份**。邮件浏览期间，非原任务强制只读：显示最新已提交 Details 和对应附件，隐藏编辑、状态修改、提交按钮及私人未提交草稿。只有原任务获得该 token 的更新能力；Waiting on 收件人在原节点仍只有确认/提供协助操作，不能改原任务状态、目标或负责人。
+Viewing other Plan nodes relies on existing active-member context in the local demo, **not organization-wide identity from a single-task token**. Other tasks forced read-only while browsing email: latest submitted Details/corresponding attachments shown; edit/status/submit/private unsent drafts hidden. Only original task has token update rights; Waiting on recipient can confirm/provide help there, not change status, target, owner.
 
-统一表单继续使用现有正文与文件自动草稿。切换/返回/刷新保留文字和附件，不需要 Save draft；未修改附件限额、IndexedDB 隔离、历史成果、完成撤回、学校日期或消息收件人规则。
+Universal form retains body/file autodrafts. Switching/return/refresh preserve text/attachments without Save draft; attachment limits, IndexedDB isolation, historical outcomes, completion undo, school dates, message-recipient rules unchanged.
 
-当前仍是本浏览器演示数据及成员切换模型，没有新增真实登录、后台发信或跨设备同步。将来生产身份/服务器接入不能把这个本地成员检查当作服务端认证。
+Still same-browser demo data/member switching; no real login, background sending, cross-device sync. Future production identity/server integration must not treat local member checks as server authentication.
 
-## 文件边界
+## File boundaries
 
-- `src/pages/Events.tsx` / `Tasks.tsx`：URL/侧栏同步、选择恢复、实际图定位与视图选择；邮件进入Tasks默认Team tasks，看板、表格、时间线的点击保持原邮件上下文。
-- `src/reminders/planEntry.ts`、`useTaskAccess.ts`、`PlanTaskPanel.tsx`、`planTask.css`：目标解析、签名核验与同活动导航。
-- `taskAccess.ts`、`mail.ts`、`message.ts`、`delivery.ts`、`ReminderComposer.tsx`：生成并严格核对新 Plan 入口，保留旧快照兼容；仍只有一个任务 URL。
-- `SingleTaskPage.tsx`/`Officer.tsx`：旧链接兼容跳转、可嵌入的协助内容。
-- `Layout.tsx`、`Rail.tsx` 与共享任务组件：选择具体 Plan 任务、离开任务链接时清理Details、关闭参数清理、明确只读显示。
+- `src/pages/Events.tsx` / `Tasks.tsx`: URL/rail sync, selection recovery, actual diagram positioning/view choice; email Tasks defaults Team tasks, preserving email context across board/table/timeline clicks.
+- `src/reminders/planEntry.ts`, `useTaskAccess.ts`, `PlanTaskPanel.tsx`, `planTask.css`: target resolution, signature checks, same-event navigation.
+- `taskAccess.ts`, `mail.ts`, `message.ts`, `delivery.ts`, `ReminderComposer.tsx`: generate/strictly validate Plan entry, retain old snapshots; still one task URL.
+- `SingleTaskPage.tsx`/`Officer.tsx`: old-link redirects, embeddable help content.
+- `Layout.tsx`, `Rail.tsx`, shared task components: select Plan task, clear Details when leaving links, clear close parameters, explicit read-only display.
 
-以最新工作流交付 `a2f4dd8` 开始；未修改 Settings、模板库/版本、团队归组、实际图渲染器、任务ID、store/schema、规则数组或日期引擎。同期工作流交付保持。
+Started at latest workflow delivery `a2f4dd8`; no changes to Settings, template library/versions, team grouping, actual renderers, task IDs, store/schema, rule arrays, date engine. Concurrent workflow delivery retained.
 
-## 验证
+## Verification
 
-- 19 文件、270 项相关单元/组件通过，覆盖规则邮件、快照、授权、任务提交、目标日、通用 Details 与两种流程图基础；新增10项包含邮件目标绑定、旧链接兼容、跨活动拒绝、成员上下文、只读成果与草稿保留。
-- 新入口桌面/手机12项先行通过；与原提交/附件/延期/撤回、批量邮件/协助、模板生成和标准流程图及包预算一起回归38项，37项通过、1项手机导航检查遇到自动关闭侧栏后的旧点击竞态。随后修正离开Plan时的Details清理，并把检查改为等待实际关闭；修正后14项全部通过，按不重复用例计38项通过，数字不重复相加。
-- lint、前端类型/生产构建、后端类型、独立CSS与9页字数预算通过；Plan153/180可见词，Settings147/150。初次交付入口494,992/550,000字节；本次社团任务补漏为495,514/550,000字节，没有调整门槛。
-- 浏览器检查包括附件真实下载、立即输入后切换/返回、刷新/历史、失效与改派、协助作用域、严重/关键无障碍及横向溢出。首轮虚构附件 MIME 不符合现有格式导致的失败已修正测试夹具，未放宽产品校验。
-- 实际桌面/手机截图见[交付图片目录](../prototypes/reminder-plan-implemented/manifest.json)。它们来自运行的真实页面，不是上一轮图像模型效果图。
-- 0 真实产品 AI 调用/外部邮件。本轮没有重复完整全站门禁；旧阶段二四按钮等历史断言未在本轮一并迁移，不作为完整全站通过声明。
+- 270 related unit/component tests across 19 files passed: rule emails, snapshots, authorization, submission, target dates, universal Details, both diagram foundations; 10 new cases cover target binding, legacy links, cross-event rejection, member context, read-only outcomes, draft retention.
+- First 12 desktop/mobile entry cases passed; combined regression with existing submission/attachments/extensions/undo, batch emails/help, template generation, standard diagram, bundle budgets: 38 cases, 37 passed/1 mobile navigation hit old click race after automatic rail close. Fixed leaving-Plan Details cleanup and waited for actual closure; all 14 rechecks passed, 38 unique cases total, not cumulative duplicates.
+- lint, frontend types/production build, backend types, standalone CSS, 9-page words passed; Plan153/180 visible words, Settings 147/150. Initial entry 494,992/550,000 bytes; club-task omission fix495,514/550,000; threshold unchanged.
+- Browser checks include actual attachment downloads, immediate typing/switch/return, refresh/history, expiry/reassignment, help scope, serious/critical accessibility, horizontal overflow. Initial fictional-attachment MIME failure fixed in fixture, not validation.
+- Actual desktop/mobile screenshots:[manifest](../prototypes/reminder-plan-implemented/manifest.json); real running pages, not prior image-model mockups.
+- 0 real product AI calls/external emails. Full-site gates not repeated; historical assertions such as stage-two four buttons not all migrated, so no full-site pass claim.
 
-## 验收
+## Acceptance
 
-[preview14 提醒中心](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/)：为一个活动任务准备邮件，点击 **Open task**；应进入对应活动 Plan，高亮该实际节点，右侧显示统一 Details。点击其他节点查看已经提交的内容/附件，再返回原任务检查草稿。手机使用右侧任务下拉框或 Back to Plan。
+[preview 14 reminder center](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/): prepare an event-task email, click **Open task**; matching event Plan should highlight the actual node and show universal Details. Browse another node's submitted content/attachments, return and check draft. Mobile: right task dropdown or Back to Plan.
 
-提醒中心原有启用/审核/额度保持；当前没有待发活动邮件时可在 Plan 点击任务验证同样的 Details 导航。运行时代码 `3505d79`，同步同期记录后的推送为 `861431c`；GitHub对应Netlify deploy-preview已确认 **success**。本环境直接抓取站点被代理403阻止，因此不宣称已完成线上浏览器逐步验收；实际交互证据为上述生产构建的本地双端检查。继续使用原功能分支与 PR #14，不创建 PR、不合并 main。需要同步本地备份。
+Existing reminder-center enablement/review/quotas retained; if no pending event email, click a Plan task to test identical Details navigation. Runtime `3505d79`, push after concurrent records `861431c`; GitHub Netlify deploy-preview confirmed **success**. Direct site fetching blocked by proxy403, so no online browser walkthrough claim; interaction evidence is local production-build desktop/mobile checks. Continues original feature branch/PR #14, no new PR/main merge. Local backup needs synchronization.
 
 
-社团任务修复日志：`/tmp/club-plan-final-unit.log`、`/tmp/club-plan-browser.log`、`/tmp/club-plan-browser-final.log`、`/tmp/club-plan-final-build.log`、`/tmp/club-plan-final-lint.log`、`/tmp/club-plan-words.log`。本轮代码不修改Settings/团队/模板、ASU规则、schema/store或后台发送；同期四队预设恢复已合入保留。没有复制、存储用户发来的完整授权链接。
+Club-task fix logs: `/tmp/club-plan-final-unit.log`, `/tmp/club-plan-browser.log`, `/tmp/club-plan-browser-final.log`, `/tmp/club-plan-final-build.log`, `/tmp/club-plan-final-lint.log`, `/tmp/club-plan-words.log`. This code changes no Settings/teams/templates, ASU rules, schema/store, background sending; concurrent four-team preset restoration integrated/retained. Full user authorization link never copied/stored.
 
-社团任务真实页面证据：[桌面](../prototypes/reminder-plan-club-fix/club-agenda-desktop.png)、[手机](../prototypes/reminder-plan-club-fix/club-agenda-mobile.png)、[清单](../prototypes/reminder-plan-club-fix/manifest.json)。使用原始种子t-agenda与本地重新签发的测试grant，没有复制用户token。运行时代码 `76cd2df`，合并同期布局研究后为 `84ee1fd`。
+Actual club-task evidence:[desktop](../prototypes/reminder-plan-club-fix/club-agenda-desktop.png), [mobile](../prototypes/reminder-plan-club-fix/club-agenda-mobile.png), [manifest](../prototypes/reminder-plan-club-fix/manifest.json). Original seed t-agenda with locally reissued test grant, no copied user token. Runtime `76cd2df`, after concurrent layout-research merge `84ee1fd`.
 
-**社团任务补漏部署：** GitHub已确认 `84ee1fd74feb93b258f9c635d9c7c0f2d907f30e` 的 `netlify/platypus-officer-hub/deploy-preview` 为success，仍使用preview14。最终截图夹具改为只取原始议程节点，去除继承的订房说明；12单元与2双端取证复验通过，截图和运行时都不改用户实际说明。以上复验不重复加入262/18计数。
+**Club-task omission deployment:** GitHub confirmed `netlify/platypus-officer-hub/deploy-preview` success for `84ee1fd74feb93b258f9c635d9c7c0f2d907f30e`, still preview 14. Final screenshot fixture uses only original agenda node, removing inherited booking instructions; 12 unit/2 desktop-mobile capture rechecks passed, without altering user instructions in screenshots/runtime. Not added again to 262/18 counts.

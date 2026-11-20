@@ -1,91 +1,93 @@
-# 职责匹配阶段 1 交付
+# Responsibility matching stage 1 handoff
 
-2026-11-16（America/Phoenix） · Codex · 目标分支 `claude/fervent-thompson-e2j5u2`
+2026-11-16 (America/Phoenix) · Codex · Target branch `claude/fervent-thompson-e2j5u2`
 
-## 这次建立了什么
+> **Historical code links:** responsibility matching was later rolled back. The code links below point to the preserved stage-1 commit `3ad168d`, rather than claiming those files remain in the current tree.
 
-社团可以拥有自己的职责记录，每项写明“做什么、交付什么、不包括什么、来源是什么”。岗位与职责分开保存；一个岗位可以承担多个职责，同一职责也可以交给多个岗位或成员。任务步骤关联职责，解析器再找出合适的人。新模块不要求岗位叫 Secretary、Marketing 或其他预设名称。
+## What was built
 
-职责可人工创建、修改、确认、合并和归档。编辑后须重新确认；合并保留旧 ID 的去向，相关步骤回到待确认，历史分派记录保留。职责重叠与覆盖是否完整，仍需后续的 AI 检查及人工审阅；本阶段没有声称能自动保证所有职责互斥、覆盖所有政策。
+Clubs can maintain responsibility records stating “what to do, what to deliver, what is excluded, and sources.” Roles and responsibilities are separate; a role may carry several responsibilities, and one responsibility may belong to multiple roles/members. Workflow steps reference responsibilities; the resolver identifies suitable people. The module does not require preset role names such as Secretary or Marketing.
 
-多人有同一职责时，规则顺序是：保留有效的已确认分派 → 检查默认承接人 → 提出备份建议并等待确认 → 未设默认人且只有一个合格可用者时预选 → 其余情况说明原因并等待处理。同一人从岗位和直接关联两条路径进入时，只出现一次。
+Responsibilities support manual creation, editing, confirmation, merge, and archive. Edits require reconfirmation; merge preserves old-ID destinations, returns affected steps to awaiting confirmation, and retains assignment history. Overlap and complete coverage still require later AI checks/human review; this stage does not claim automatic mutual exclusivity or coverage of every policy.
 
-**“预选”还没有成为任务负责人；“已经确认”也不等于成员已认领。** 主负责人失效或职责发生变化后，记录原负责人并提示复核，不自动换人。现有正式任务入口仍使用原有逻辑，实际接入属于阶段 3。
+For multiple members with a responsibility: retain valid confirmed assignment → check primary → suggest backup awaiting confirmation → if no primary and exactly one eligible available candidate, preselect → otherwise explain and await action. A member linked via both role and direct association appears once.
 
-## 可阅读的演练输入
+**“Preselected” is not yet the task owner; “confirmed” does not mean the member has claimed it.** When primary becomes invalid or responsibility changes, retain original owner in records and request review; no automatic reassignment. Existing production task entry points still use old logic; actual integration belongs to stage 3.
 
-全部为虚构机器人社团数据，12 名成员、7 项职责、两种工作流（例会、竞赛）。示例由正式数据操作逐步建立，包含 45 次修订；额外一份第 46 次修订的快照用于验证修改默认人不会改派已有任务。[输入代码](../../src/matching/examples.ts) · [演练断言](../../src/matching/examples.test.ts)。
+## Readable exercise inputs
 
-| 成员 | 关联的职责 | 当前情况 |
+Entirely fictional robotics club: 12 members, 7 responsibilities, two workflows (regular meeting, competition). Built step by step with actual data operations, 45 revisions; an additional revision 46 snapshot checks that changing primary does not reassign existing tasks. [Input code](https://github.com/juanxiwu2005/platypus-officer-hub/blob/3ad168d2fb5ee45bf562cc48319ec011c5034054/src/matching/examples.ts) · [Exercise assertions](https://github.com/juanxiwu2005/platypus-officer-hub/blob/3ad168d2fb5ee45bf562cc48319ec011c5034054/src/matching/examples.test.ts).
+
+| Member | Responsibilities | Current situation |
 | --- | --- | --- |
-| Morgan | 仅为示例操作人，未关联执行职责 | 不会因担任 Team Captain 就被当作兜底负责人 |
-| Riley | 场地协调，经岗位继承和人工直接关联 | 资格确认、可用；场地默认承接人 |
-| Casey | 场地协调 | 资格确认、可用；场地备份 |
-| Jordan | 场地协调 | 学校系统资格未知 |
-| Taylor / Skyler | 固件测试 | 两人都可用；初始无默认人 |
-| Quinn / Drew | 视觉制作 | Quinn 是默认人但不可用；Drew 是可用备份 |
-| Sam | 机器人演示 | 唯一合格可用人 |
-| Alex | 飞行演示 | 外部授权未知 |
-| Robin | 场地协调、器材运输 | 场地资格确认，但可用情况未知 |
-| Jamie | 场地协调 | 已不在任 |
+| Morgan | Example operator only, no execution responsibility | Team Captain status does not make them fallback owner |
+| Riley | Venue coordination, through role inheritance and direct manual link | Qualifications confirmed, available; venue primary |
+| Casey | Venue coordination | Qualifications confirmed, available; venue backup |
+| Jordan | Venue coordination | School-system qualification unknown |
+| Taylor / Skyler | Firmware testing | Both available; initially no primary |
+| Quinn / Drew | Visual production | Quinn primary but unavailable; Drew available backup |
+| Sam | Robot demonstration | Sole eligible available person |
+| Alex | Flight demonstration | External authorization unknown |
+| Robin | Venue coordination, equipment transport | Venue qualification confirmed, availability unknown |
+| Jamie | Venue coordination | No longer active |
 
-## 实际运行结果
+## Actual results
 
-下表来自调用同一个 `resolveMatchingAssignment` 的离线运行；不是 AI 编写的预测。
+Offline calls to the same `resolveMatchingAssignment`; these are not AI-written predictions.
 
-| 工作流与任务 | 本次结果 | 原因 |
+| Workflow/task | Result | Reason |
 | --- | --- | --- |
-| 例会：订会议室 | 预选 Riley | 默认人合格且可用；另外三名关联成员分别资格未知、可用情况未知或已离任 |
-| 竞赛：订场地 | 预选 Riley | 两种流程复用同一项场地职责，无需再创建同名职责 |
-| 竞赛：制作海报 | 建议 Drew，等待确认 | 默认人 Quinn 不可用，Drew 是备份 |
-| 竞赛：测试固件，新任务 | 待选择 Taylor 或 Skyler | 两人均可用，未设置默认人；交换成员排列不会改变结果 |
-| 竞赛：准备机器人演示 | 预选 Sam | 唯一合格可用人 |
-| 例会：社团注册续期 | 待配置人员 | 有职责，但没有关联成员；不会回退给社长 |
-| 竞赛：飞行演示 | 待核实资格 | Alex 的飞行授权尚未确认 |
-| 例会：器材运输 | 待核实可用情况 | Robin 的可用情况未知 |
-| 竞赛：同时写文案并做设计 | 待拆分或明确统筹 | 步骤标记为复合任务，不能只凭视觉制作职责完成分配 |
-| 例会：新增但未关联职责的工作 | 待关联职责 | 工作流步骤尚未配置 |
-| 竞赛：此前人工确认给 Skyler 的固件任务 | 继续由 Skyler 负责 | 已确认结果保留 |
-| 同一任务，随后将默认人设置为 Taylor | 仍由 Skyler 负责 | 默认规则只影响新的建议，不覆盖已确认结果 |
+| Regular meeting: book meeting room | Preselect Riley | Eligible available primary; three other linked members have unknown qualifications, unknown availability, or have left |
+| Competition: book venue | Preselect Riley | Both workflows reuse one venue responsibility; no duplicate responsibility needed |
+| Competition: create poster | Suggest Drew, await confirmation | Primary Quinn unavailable, Drew backup |
+| Competition: test firmware, new task | Await Taylor/Skyler selection | Both available, no primary; member order does not change result |
+| Competition: prepare robot demonstration | Preselect Sam | Sole eligible available candidate |
+| Regular meeting: renew club registration | Await member configuration | Responsibility exists, no linked members; no fallback to president |
+| Competition: flight demonstration | Await qualification verification | Alex flight authorization unconfirmed |
+| Regular meeting: equipment transport | Await availability verification | Robin availability unknown |
+| Competition: write copy and design together | Await split or explicit coordination | Composite step cannot be assigned using visual-production responsibility alone |
+| Regular meeting: new work with no responsibility link | Await responsibility link | Workflow step not configured |
+| Competition: firmware task previously manually confirmed to Skyler | Keep Skyler | Confirmed result retained |
+| Same task, then primary set to Taylor | Still Skyler | Default rules affect only new suggestions, not confirmed results |
 
-场地任务的候选解释会列出 Riley、Casey、Jordan、Robin、Jamie，并说明可否承接。Riley 虽有两条关联路径，只计算一次。资格与可用情况由输入数据确认；平台没有自动登录学校网站验证账号。
+Venue candidate explanations list Riley, Casey, Jordan, Robin, Jamie and reasons for eligibility/ineligibility. Riley counts once despite two paths. Qualifications/availability come from input; platform does not log into school websites to verify accounts.
 
-## 数据与扩展边界
+## Data and extension boundaries
 
-- 公共接口集中在 [src/matching/index.ts](../../src/matching/index.ts)，共享约定见 [MATCHING_CONTRACT.md](MATCHING_CONTRACT.md)。职责、工作流、步骤、成员均使用稳定 ID。
-- 每次实际修改记录操作 ID、操作人、时间、命令和修订号；相同操作的重试不会重复修改。事件并不包含当时的完整外部成员名单，不能声称仅凭事件就可重建所有外部状态。
-- 分派记录只追加，保存所依据的职责、步骤及默认规则修订。解析器返回建议与原因，由未来业务入口负责授权、确认和真正写入任务。
-- 独立配置键为 `platypus.matching.v1:<组织ID的编码>`；存档带版本。损坏、其他组织或不支持版本的数据保留原文，不覆盖成示例数据。不同组织 ID 不是登录或权限系统。
-- 保存会检查已读取的修订，能拒绝常见的过期覆盖；浏览器 read/check/write 不是跨标签或跨设备的原子锁，不能称为多人并发服务。
-- 现有 `DemoState`、旧存档键和外层结构版本未修改。阶段 3 的唯一正本、导入、版本升级与回滚设计见 [MATCHING_COMPATIBILITY.md](MATCHING_COMPATIBILITY.md)。
+- Public interface [src/matching/index.ts](https://github.com/juanxiwu2005/platypus-officer-hub/blob/3ad168d2fb5ee45bf562cc48319ec011c5034054/src/matching/index.ts), shared contract [MATCHING_CONTRACT.md](MATCHING_CONTRACT.md). Responsibilities, workflows, steps, members use stable IDs.
+- Every actual change records operation ID, actor, time, command, revision; retries do not duplicate changes. Events lack the complete historical external membership list, so cannot alone reconstruct all external state.
+- Assignment receipts append-only, retaining responsibility, step, and default-rule revisions. Resolver returns suggestions/reasons; future business entry points authorize, confirm, and write actual tasks.
+- Separate configuration key `platypus.matching.v1:<encoded-organization-ID>`; versioned saves. Corrupt, wrong-organization, unsupported data retain raw text, never overwritten with demo. Different organization IDs do not establish login or authorization.
+- Saves check read revision and reject common stale overwrites; browser read/check/write is not an atomic cross-tab/cross-device lock or multiuser concurrency service.
+- Existing `DemoState`, old storage keys, outer schema version unchanged. Stage 3 source-of-truth/import/version/rollback design:[MATCHING_COMPATIBILITY.md](MATCHING_COMPATIBILITY.md).
 
-## 开发与验证记录
+## Development and verification
 
-基线 `22cb3cc`；共享契约 `886ccf7`。两个开发 Agent 从同一契约建立独立 worktree，主 Agent 保留包提交集成：
+Baseline `22cb3cc`; shared contract `886ccf7`. Two development Agents used independent worktrees from the same contract; lead Agent retained package commits during integration:
 
-| 包 | 分支与提交 | 文件范围 |
+| Package | Branch/commit | File scope |
 | --- | --- | --- |
-| Data Agent | `feat/matching-library` · `307b5d0` | library、validation、repository 及 29 项测试 |
-| Resolver Agent | `feat/matching-resolver` · `c5bb56c` | resolve 及 45 项测试 |
-| 主 Agent | 集成分支 | 契约、公共出口、12 人演练、旧数据隔离测试及文档 |
+| Data Agent | `feat/matching-library` · `307b5d0` | library, validation, repository, 29 tests |
+| Resolver Agent | `feat/matching-resolver` · `c5bb56c` | resolve, 45 tests |
+| Lead Agent | Integration branch | Contracts, public exports, 12-person exercise, old-data isolation tests, documentation |
 
-集成演练与隔离测试另有 17 项，合计 91 项。最终检查：
+Another 17 integration exercise/isolation tests, total 91. Final checks:
 
-| 检查 | 结果 |
+| Check | Result |
 | --- | --- |
-| 新模块 91 项 + 原有相关链路 114 项 | 10 个文件、205 项全部通过 |
-| `npm run lint` | 通过，包含 CSS、ESLint 和项目 guardrails |
-| `npm run build` | 通过，包含前端 TypeScript 和生产构建 |
-| `npm run typecheck:netlify` | 通过 |
-| 虚构演练实际调用 | 上述 12 个场景与期望一致 |
-| 独立只读 Review | 对最终代码候选 `3ad168d` 复核通过，无需修复项；另验证编辑、重新确认、合并及保存恢复后的历史保护 |
+| New module 91 + existing related paths 114 | All 205 passed across 10 files |
+| `npm run lint` | Passed, CSS, ESLint, project guardrails |
+| `npm run build` | Passed, frontend TypeScript/production build |
+| `npm run typecheck:netlify` | Passed |
+| Actual fictional exercise calls | All 12 scenarios match expectations |
+| Independent read-only Review | Final code candidate `3ad168d` passed, no fixes needed; also checked history protection after editing, reconfirming, merging, save/restore |
 
-测试命令：`npm test -- src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts src/matching`。
+Test command: `npm test -- src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts src/matching`.
 
-首次集成类型检查发现演练资格对象的联合类型推断问题，已补充明确的成员及资格对象类型，再次构建通过；未放宽数据契约。构建输出有依赖注释和大 chunk 提示，没有构建错误。此次无页面改动，没有重复全站 Playwright 或完整 `npm run check`；没有把这些检查记为已通过。
+Initial integration type check found union-type inference in exercise qualification objects; explicit member/qualification types added, build then passed; contract not relaxed. Build emitted dependency-comment and large-chunk notices, no errors. No page changes, so full-site Playwright/full `npm run check` not repeated or reported as passed.
 
-## 后续阶段
+## Later stages
 
-阶段 2 仍待批准：把现有章程 AI 的结果适配为职责草稿，核验引用原文，增加职责泡泡、成员关联、默认人与备份界面。阶段 3 仍待批准：接入实际任务创建，逐项处理 46 个标准步骤映射，迁移存档并做浏览器验收。
+Stage 2 awaits approval: adapt existing constitution-AI output into responsibility drafts, verify source quotes, add responsibility bubbles, member links, primary/backup UI. Stage 3 awaits approval: connect actual task creation, map 46 standard steps individually, migrate saves, and browser acceptance.
 
-这次没有新页面或可点击演示；使用上面的分配表验收底层规则。未调用真实模型、未发送邮件、未合并 main。需要同步本地备份。
+No new page/clickable demo this round; accept foundation using assignment table above. No real-model calls, no emails, no main merge. Local backup needs synchronization.

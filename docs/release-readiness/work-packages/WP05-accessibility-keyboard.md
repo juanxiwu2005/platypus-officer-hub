@@ -1,30 +1,32 @@
-# WP05 — 跨应用无障碍与键盘操作
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-## Agent 提示词
+# WP05 — Application-wide accessibility/keyboard operation
 
-你负责跨应用无障碍、焦点管理和键盘交互。本包属于第二阶段，必须从已经集成 WP02、WP03、WP04 的最新 `origin/integration/v1.0` 创建 worktree。开始前读取 `AGENTS.md`、README、manifest，fetch、报告基线 SHA，不得使用 `main`。
+## Agent prompt
 
-### 负责范围
+Own application-wide accessibility, focus management, keyboard interaction. Stage 2 package: worktree from latest `origin/integration/v1.0` with WP02/03/04 integrated. Read `AGENTS.md`, README, manifest, fetch/report baseline SHA; never use `main`.
+
+### Scope
 
 - `e2e/a11y.spec.ts`
-- 通用详情面板、dialog/right rail、导航和焦点管理
-- 必要的全局或组件级无障碍样式
+- Shared Details/dialog/right rail/navigation/focus
+- Necessary global/component accessibility styles
 
-### 要求
+### Requirements
 
-- 将测试更新到当前产品结构，不得恢复旧 DOM。
-- 打开详情后焦点进入详情；Escape 关闭并返回触发元素。
-- Tab 顺序符合视觉和阅读顺序；被 modal/right rail 覆盖的页面不能获得焦点。
-- 流程节点和主要控件满足触控目标尺寸；Board 有无需拖拽的键盘路径。
-- `/` 快捷键聚焦 Ask 时不能劫持正在输入的文本框。
-- Axe 不得有 serious/critical violation。不得禁用 target-size 或其他规则来过关。
-- 禁止 force click、skip、删除键盘断言或无意义放宽 locator。
+- Update tests for current product, never restore old DOM.
+- Opening Details moves focus inside; Escape closes/restores trigger.
+- Tab order follows visual/reading order; modal/rail-covered page cannot receive focus.
+- Workflow nodes/main controls meet touch targets; Board keyboard path without drag.
+- `/` Ask shortcut must not intercept typing in text inputs.
+- Axe 0 serious/critical violations; never disable target-size/other rules to pass.
+- No force click/skip/deleted keyboard assertions/meaninglessly broad locators.
 
-### 验收标准
+### Acceptance
 
-1. `e2e/a11y.spec.ts` 在 desktop/mobile 全部通过。
-2. 主要页面 Axe serious/critical 为 0。
-3. 流程节点不再报告 target-size violation。
-4. right rail/dialog 的打开、Escape、焦点恢复和手机焦点 trap 均有断言。
-5. `npm run lint`、`npm test`、`npm run build`、`git diff --check` 通过。
-6. 创建一个 `[RR-WP05][Codex]` 提交，报告修复的 WCAG/交互问题。
+1. `e2e/a11y.spec.ts` all desktop/mobile passed.
+2. Main pages Axe 0 serious/critical.
+3. Nodes no target-size violations.
+4. Assertions for rail/dialog open/Escape/focus restoration/mobile focus trap.
+5. `npm run lint`, `npm test`, `npm run build`, `git diff --check` pass.
+6. One `[RR-WP05][Codex]` commit, report WCAG/interaction fixes.

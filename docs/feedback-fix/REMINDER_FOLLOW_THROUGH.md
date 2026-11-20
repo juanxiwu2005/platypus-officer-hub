@@ -1,35 +1,35 @@
-# 提醒四项修正：决定、规则与交付
+# Four reminder corrections: decisions, rules, and delivery
 
-2026-11-18（America/Phoenix）。用户选择第1项B、第2项B、第4项A，并授权Codex决定第3项；第3项采用B：未回复时安排一次有界跟进，与已到达的到期/逾期检查合并。基于`claude/fervent-thompson-e2j5u2@d66d15a`，沿用PR14；不合并main。
+November 18, 2026 (America/Phoenix). The owner chose 1B, 2B, and 4A and authorized Codex to decide item 3. Item 3 uses B: one bounded no-response follow-up, merged with a due/overdue check that has already become eligible. Baseline: `claude/fervent-thompson-e2j5u2@d66d15a`; continue PR14 without merging `main`.
 
-## 本轮确定的规则
+## Rules established in this iteration
 
-- 同一任务、负责人和分配版本内，开始/到期/逾期三个阶段各至多一次。日期仍用于计算候选和拒绝过期草稿，但不重置已发阶段；旧发送按真实快照保留并参与阶段判断。重大改期也不自动重开阶段，现有Update date & notify负责通知所选成员。
-- 普通任务发送后两个自然日无负责人有效回复，可以额外跟进一次；当前已到达且尚未发送的到期/逾期检查优先，只发一条。该附加跟进不挤占三个里程碑额度，仍计入每日和七天限额；已有maxRemindersPerTask设为1或2时不增加附加跟进，保留较低限制。任何完成/换人/暂停/有效回复立即使旧候选失效。
-- Waiting请求保留独立身份。首次请求两个自然日未回复可跟进一次；答应协助需要预计提供日（旧客户端省略时由规则默认今天+2个自然日），该日仍未提供可再跟进一次。一个请求最多首次、未回复、承诺到期三条，受已有更低任务限制及每日/七天限制。承诺日期在首次确认后固定，不能反复修改来重开催办。
-- 提供材料后给原负责人站内通知，任务保持Waiting，只有原负责人/获准领导的正常状态操作才能恢复或完成；不替协助人生成递归任务。到期仍未提供、或跟进后仍停滞时给原负责人一次站内处理提示，避免等待事项永久消失。真实外部邮件和RACI收件人扩展不在本轮。
-- 收件人滚动七个自然日仍最多六封，其中普通提醒最多四封，为到期/逾期保留两个名额；每天最多两封，其中普通提醒最多一封。到期、逾期以及已逾期任务的协助请求优先，随后按实际截止日、计划日和稳定ID排序。审核批量、单条和自动演示都在记录时重查同样限制，不突破上限。
-- 新增原因、预计提供日均为可选增量，不重置schema23或存档，不推断旧邮件的未知收件人；旧v1/损坏runtime沿用显式升级/停用保护。全部时间仍由规则引擎和人工保存日期决定，不调用产品AI。
+- For the same task, owner, and assignment version, each start/due/overdue stage may be sent at most once. Dates still determine candidates and invalidate stale drafts, but do not reset sent stages. Preserve old sends using their actual snapshots and include them in stage checks. Even a major reschedule does not automatically reopen stages; Update date & notify informs the selected members.
+- After an ordinary task reminder, two calendar days without a valid owner reply may produce one additional follow-up. An eligible, unsent due/overdue check takes priority, and only one message is sent. This additional follow-up does not consume the three milestone-stage allowances, but does count toward daily/seven-day caps. Do not add it when an existing `maxRemindersPerTask` is 1 or 2; preserve that lower cap. Completion, reassignment, pause, or a valid reply immediately invalidates old candidates.
+- Waiting requests keep separate identities. An initial request may receive one follow-up after two calendar days without a reply. A commitment to help requires an expected input date; if an old client omits it, rules default to today + 2 calendar days. If nothing has been provided by that date, one more follow-up is allowed. At most three messages per request: initial, no reply, and commitment due, all subject to lower existing task limits and daily/seven-day caps. Fix the promised date after the first acknowledgement; repeatedly editing it must not restart nudges.
+- Providing the input creates an in-app notification for the original task owner. The task stays Waiting until a normal status action by its owner/authorized leader resumes or completes it; do not create recursive tasks for helpers. If input is still missing when promised, or progress remains stalled after follow-up, give the original owner one in-app action prompt so the waiting item cannot disappear indefinitely. Real external email and wider RACI recipient routing are outside this iteration.
+- Recipient caps remain six emails per rolling seven calendar days, at most four ordinary, reserving two places for due/overdue checks; daily caps are two total and at most one ordinary. Due, overdue, and assistance requests for overdue tasks have priority, then sort by actual due date, planned day, and stable ID. Reviewed bulk, individual, and automatic demo recording recheck the same caps at record time and cannot exceed them.
+- Added reasons/expected input dates are optional increments. Do not reset schema23 or archives, or infer unknown recipients of old messages. Old v1/corrupt runtime retains explicit-upgrade/disabled-state protections. Time comes from the rule engine and manually saved dates; no product AI call.
 
-协助人承诺时也会把预计日一次性站内通知原负责人，便于对照任务截止日决定是否另行协调；不会只把日期藏在协助入口里。重复确认不产生第二条通知。
+When a helper commits, notify the original owner in-app of the expected date once, allowing comparison against the task deadline and a decision about further coordination. Do not hide the date only in the helper entrypoint. Repeated acknowledgement does not create a second notification.
 
-## 验证与交付
+## Verification and delivery
 
-已完成本轮实施与Codex自查，待Juanxi验收；未调用独立Agent。
+Implementation and Codex self-review are complete, awaiting Juanxi's acceptance. No independent agent was used for that implementation.
 
-- 单元/组件19文件336项通过：`npm test -- src/reminders src/pages/Today.reminders.test.tsx src/test/workflow.test.ts src/test/reminderQueue.test.ts src/test/nudges.test.ts src/test/handoffReview.test.ts --maxWorkers=2`。包含21个新增规则/集成用例、真实协助日期UI刷新/提供通知、倒序批量入口；最终修正测试类型参数后SingleTaskPage 28项复验通过，不重复计数。
-- 桌面/手机浏览器共14个不同用例通过：新增`e2e/reminder-follow-through.spec.ts`每端3项，原`reminder-stage3.spec.ts`每端4项。首轮12过/2失败是旧存储失败测试的宽泛`role=status`同时匹配原有自动保存提示；保留原成功文字、数据和失败重试断言，收窄定位后两端2项复验通过。协助面板严重/关键无障碍0，手机横向溢出0。
-- lint、前后端类型、最终生产构建和diff检查通过。9页文字预算通过，Settings145/150；入口498,362/550,000字节，未提高预算。浏览器检查针对本地生产构建，不把它称作线上验收；未重复无关全站门禁或真实AI/外部发送。
+- 19 unit/component files, 336 cases passed: `npm test -- src/reminders src/pages/Today.reminders.test.tsx src/test/workflow.test.ts src/test/reminderQueue.test.ts src/test/nudges.test.ts src/test/handoffReview.test.ts --maxWorkers=2`. Includes 21 new rule/integration cases, actual assistance-date UI refresh/provision notifications, and reverse-order bulk entry. After fixing a test's type parameter, SingleTaskPage's 28 cases passed again without double-counting.
+- 14 unique desktop/mobile browser cases passed: 3 per device in new `e2e/reminder-follow-through.spec.ts`, plus 4 per device in `reminder-stage3.spec.ts`. Initial results were 12 passes/2 failures because an old save-failure test's broad `role=status` also matched the existing autosave notice. Narrowing the locator retained the original success text, data, and failure/retry assertions; both device reruns passed. Assistance panel: 0 serious/critical accessibility findings; mobile: 0 horizontal overflow.
+- Lint, frontend/server types, final production build, and diff checks passed. All 9 page word budgets passed; Settings 145/150, entry 498,362/550,000 bytes, with no budget increase. Browser checks used a local production build, not online acceptance. No unrelated full-site gate, live AI, or external send was repeated.
 
-## 怎样验收
+## Acceptance
 
-沿用PR14和原preview14。旧存档先显式Enable updated reminders；以下均为演示记录。
+Continue the existing PR14 and Preview14. Older saves must explicitly Enable updated reminders first. All records below are demo records.
 
-1. 普通任务先记录开始提醒；用演示时钟前进两个自然日，No reply yet应可Follow up。记录后再前进，两天未回复不再产生第二次附加催办，仍可Review task并看下一次关键检查或受限原因。
-2. 到期提醒记录后改开始日、或开始提醒记录后改截止日，不重发已发生阶段；Update date & notify仍按所选名单通知新目标。历史不变。
-3. 原负责人选择Waiting on现任成员；协助邮件Open task后填写Expected input date并Acknowledge，刷新仍显示承诺和待提供。承诺到日未提供时中心出现独立协助跟进；Update provided后原负责人收到站内通知，原任务仍Waiting。原负责人或获准领导确认进展后才继续。
-4. 同人多项待发时，批量和自动优先逾期/到期；当天最多2条，其中普通最多1条。七天普通满4条仍给关键检查保留名额；总量6条后继续显示限制并可查看任务，不能承诺无限任务都按日发出。
+1. Record a task's start reminder; advance the demo clock two calendar days. No reply yet should offer Follow up. After recording it, advancing again must not generate another additional two-day no-response nudge. Review task still shows the next critical check or limiting reason.
+2. Changing the start date after a due reminder, or the due date after a start reminder, must not resend an already recorded stage. Update date & notify still informs the chosen people of the new target. History is unchanged.
+3. The original owner chooses Waiting on a current member. In the assistance email's Open task, enter Expected input date and Acknowledge; refresh preserves the commitment/pending input. If the date arrives without input, the center offers a separate assistance follow-up. Update provided notifies the original owner in-app, while the original task remains Waiting until its owner/authorized leader confirms progress.
+4. With several pending messages for one person, bulk/automatic paths prioritize overdue/due. At most 2 daily, including at most 1 ordinary. Four ordinary messages in seven days still leave room for critical checks; after six total, show the cap and retain task inspection. Do not promise daily delivery for an unlimited number of tasks.
 
-## 边界与后续
+## Boundaries and follow-up
 
-这些天数和额度是按所选方案细化的本轮默认值。小于3的旧自定义任务上限保留，不偷偷添加普通未回复跟进；Waiting对象仍只支持明确现任成员，外部审批保留文本，不猜邮箱。提供与停滞通知是站内通知，不宣称外部邮件已送达；自动仍只在本浏览器开页时演示，后台、真实投递、跨设备、RACI扩展另做。未恢复职责设置、未改Settings工作流或学校日期、未重置schema23。`PRODUCT_PLAN.md`与`RULES.md`已补本轮增量，需要同步本地备份。
+These intervals/caps refine the selected defaults. Preserve old per-task limits below 3 without quietly adding an ordinary no-response follow-up. Waiting recipients are explicit current members only; external approval remains text, without guessed email addresses. Provision/stall notifications are in-app, not external delivery receipts. Automatic behavior remains a demonstration while the browser is open. Background delivery, real sending, cross-device behavior, and RACI expansion are separate work. Responsibility setup was not restored; Settings workflows/school dates were not changed; schema23 was not reset. `PRODUCT_PLAN.md` and `RULES.md` include this increment and need local-backup synchronization.

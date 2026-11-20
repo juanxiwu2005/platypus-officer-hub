@@ -1,35 +1,37 @@
-# DX-09 右栏滑入滑出 + Ask 按钮 + 安全区 + `dvh`
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- 阶段 2　大小 L　风险 **高**　R 级 R2　依赖：DX-01、DX-02　并行伙伴：DX-10～14
-- 分支：`design/dx-09-rail-motion`　样式文件：`src/styles/dx-09-rail-motion.css`　对应细节：D03 D07 D08 D09
+# DX-09 Rail Slide Motion + Ask Button + Safe Area + dvh
 
-## 为什么
-**读到**：`Layout.tsx` 里是 `{rail.open && <Rail />}`，直接挂载和卸载；小于 1200px 时它是固定在右侧的浮层，也是"啪"一下出现。这是整个应用里最大的一块会"动"的东西，也是最影响"手感"的一处。Emil §3（可打断）、§7（进出同一条路径）；Apple `motion.md`（"if someone reveals a view by sliding it down from the top, they don't expect to dismiss the view by sliding it to the side"）。
+- Stage 2; size L; **high** risk; R2; depends DX-01, DX-02; parallel DX-10–14
+- Branch `design/dx-09-rail-motion`; CSS `src/styles/dx-09-rail-motion.css`; details D03 D07 D08 D09
 
-## 要做的事
-1. **进出**（`Layout.tsx`、`Rail.tsx`、`RailContext.tsx`）：
-   - 关闭时不要立刻卸载：先把 `data-state` 设为 `closing`，等 `transitionend`（兜底：`--dur-base` + 50ms 的定时器）再卸载。减少动效时时长为 1ms，几乎立即卸载。
-   - **≤1199px（浮层）**：从右边 `translateX(100%)` 滑到 0，`var(--dur-base)` + `var(--ease-out)`；退场沿同一路径滑回。阴影随之淡入淡出。
-   - **≥1200px（并排）**：右栏淡入 + 8px 位移；中间内容列**直接改变宽度**（不做网格列过渡，避免整页每帧重排）。如果实测列宽过渡不卡，可以在报告里提出作为 A/B 方案，由 Juanxi 选；默认用直接改变宽度。
-   - **可打断**：打开过程中再点关闭，要从当前位置反向，不要先播完。用 CSS 过渡切换 `data-state` 自然就能做到；不要用 `@keyframes`。
-2. **Ask 圆按钮 `.ask-fab`**：关闭右栏时淡入 + 轻微放大；打开右栏时淡出。加 `:active` 缩小。底部位置改成 `calc(18px + env(safe-area-inset-bottom))`。
-3. **`100vh` 改 `100dvh`**：`.rail` 的高度（`calc(100vh - var(--topbar-h) - 28px)`）。
-4. **保持不变的行为（高风险点，逐条回归）**：
-   - 小于 1200px 时的焦点处理：打开时焦点进右栏、关闭时回到打开它的按钮；Tab 陷阱；Escape 关闭；页面背景 `inert`；点页面外面关闭（平板）。
-   - **关闭一开始就要解除背景的 `inert`**，不要等动画结束，否则退场的 200ms 里页面点不动。
-   - `data-testid="rail"`、`tab-ask`、`tab-details`、`ask-toggle`、`.ask-fab` 不变。
+## Why
+**Read:** Layout.tsx uses `{rail.open && <Rail />}`, instantly mounting/unmounting; below 1200px its right overlay also appears abruptly. This is the app's largest moving surface and major interaction-feel factor. Emil §3 interruptibility, §7 same entry/exit path; Apple motion.md: "if someone reveals a view by sliding it down from the top, they don't expect to dismiss the view by sliding it to the side".
 
-## 可以改的文件
-`src/components/Layout.tsx`、`src/components/rail/Rail.tsx`、`src/components/rail/RailContext.tsx`、`src/styles/dx-09-rail-motion.css`。
-`.ask-fab`、`.rail`、`.rail-*` 的样式**只**归这个包。
+## Work
+1. **Entry/exit** (Layout.tsx, Rail.tsx, RailContext.tsx):
+   - Do not unmount immediately on close; set data-state closing, wait for transitionend, with fallback --dur-base + 50ms timer. Reduced-motion duration 1ms, near-immediate unmount.
+   - **≤1199px overlay:** translateX(100%) → 0, var(--dur-base) + var(--ease-out); reverse path on exit, shadow fading with it.
+   - **≥1200px side-by-side:** fade + 8px movement. Center column **changes width immediately**, no grid-column transition/reflow each frame. If measured width transition is smooth, report as A/B choice for Juanxi; immediate is default.
+   - **Interruptible:** close during opening reverses from current position. CSS data-state transitions do this naturally; no @keyframes.
+2. **Circular Ask `.ask-fab`:** fade/slight scale up when rail closes, fade out when opened; `:active` shrink; bottom `calc(18px + env(safe-area-inset-bottom))`.
+3. **100vh → 100dvh** for rail height `calc(100vh - var(--topbar-h) - 28px)`.
+4. **Preserve high-risk behavior, regress individually:**
+   - Below 1200px: focus enters rail on open/returns to trigger on close; Tab trap; Escape; inert background; outside/page dismissal on tablet.
+   - **Remove inert as closing starts**, not after exit, so page stays clickable during 200ms exit.
+   - Preserve data-testid="rail", tab-ask, tab-details, ask-toggle, .ask-fab.
 
-## 验收
-- 完整回归：`smoke`、`today`、`tasks`、`events`、`touch`、`a11y`、`m2b`、`feel`、`bts`、`recovery` 在桌面 + 手机项目全绿，**包括那些关心右栏是否可见的断言**（在默认减少动效模式下行为必须和以前一致）。
-- 新测试 `e2e/dx-09-rail.spec.ts`（`reducedMotion: "no-preference"`）：① 打开后 `.rail` 的 `transform` 在过渡中间值不是 `none` 也不是终点值；② 打开中途点关闭，最终卸载且没有残留的 `inert`；③ 平板宽度下关闭的过程中点页面也能响应；④ 减少动效时直接出现。
-- Juanxi 怎么验：电脑上点右上角 "Ask Platypus"，右栏平滑出现；窄窗口或手机上，圆形按钮点开后面板从右边滑入，点 ✕ 滑回去。
+## Allowed files
+`src/components/Layout.tsx`, `src/components/rail/Rail.tsx`, `src/components/rail/RailContext.tsx`, `src/styles/dx-09-rail-motion.css`.
+This package exclusively owns `.ask-fab`, `.rail`, `.rail-*` styles.
 
-## 回滚
-R2：`git revert -m 1 dx/dx-09-merged`。DX-19、DX-20 依赖它，要先撤它们。
+## Acceptance
+- Full desktop/phone regression: smoke, today, tasks, events, touch, a11y, m2b, feel, bts, recovery, **including rail-visibility assertions**; default reduced-motion behavior matches before.
+- New `e2e/dx-09-rail.spec.ts`, `reducedMotion: "no-preference"`: ① Intermediate rail transform is neither none nor final. ② Closing mid-open unmounts with no inert residue. ③ Tablet page responds during closing. ④ Reduced motion appears immediately.
+- Juanxi: desktop "Ask Platypus" opens smoothly; narrow/mobile circular button slides rail from right, ✕ slides back.
 
-## 注意
-- 这是整个计划里最容易出问题的包。如果实现里发现必须改很多测试才能通过，**停下来**，把原因写进报告交给整合人，不要硬改测试。
+## Rollback
+R2: `git revert -m 1 dx/dx-09-merged`; revert dependent DX-19/DX-20 first.
+
+## Notes
+- Most failure-prone package. If many test changes seem necessary, **stop**, document why for integrator, and do not force tests through.

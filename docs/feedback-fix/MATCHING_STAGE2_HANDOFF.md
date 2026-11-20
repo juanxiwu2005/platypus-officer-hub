@@ -1,98 +1,98 @@
-# 职责匹配阶段 2 交付
+# Responsibility Matching Stage 2 Delivery
 
-2026-11-16（America/Phoenix） · Codex · `claude/fervent-thompson-e2j5u2` · PR #14 预览
+2026-11-16 (America/Phoenix) · Codex · `claude/fervent-thompson-e2j5u2` · PR #14 preview
 
-## 用户现在可以做什么
+## What users can do now
 
-从 Team 或 Settings 点击 **Set up responsibilities**，进入独立的职责设置预览 `/#/matching`。页面分四块：来源 → 职责库 → 人员与默认人 → 分派预览。
+Select **Set up responsibilities** in Team or Settings to open isolated preview `/#/matching`: source → responsibility library → people/defaults → assignment preview.
 
-1. 上传 PDF、Word、文本文件，或粘贴虚构章程；也可以直接手工创建职责。
-2. 点击 **Draft responsibilities**，查看 AI 建议的职责定义、交付物、排除范围、关联岗位和引用。原文中能找到的引用标为 **Quote found in source**；其余标为建议。这个标记只证明引用确实存在，不等于解释已获批准。
-3. 点击 **Use as draft** 后才加入职责库。可以逐条采用或拒绝同一批建议；采用后仍需编辑、确认职责，并确认岗位关联。
-4. 勾选岗位的职责泡泡与成员；给个别人设置直接包含或排除，人工确认可用情况和必要资格，再设置默认人与备份。
-5. 把工作流步骤关联到职责，查看建议人和原因。同一职责可跨工作流复用；复合步骤可标记为需要拆分或明确统筹。
+1. Upload PDF, Word, text, or paste a fictional constitution; alternatively create responsibilities manually.
+2. **Draft responsibilities** shows AI-proposed definitions, deliverables, exclusions, roles, quotes. Exact source matches show **Quote found in source**; others are suggestions. This proves the quote exists, not that its interpretation is approved.
+3. Only **Use as draft** adds an item to the library. Accept/reject suggestions individually; adopted responsibilities and role links still need editing/confirmation.
+4. Select role responsibility bubbles/members; direct-include/exclude individuals, manually confirm availability/qualifications, then defaults/backups.
+5. Link workflow steps to responsibilities and inspect suggested people/reasons. Reuse responsibilities across workflows; flag composite steps for splitting or explicit coordination.
 
-职责支持新建、编辑、确认、合并和归档，岗位名称可自定义。平台没有强迫社团选择 Secretary、Marketing 等固定岗位，也没有自动授予外部学校系统的资格。
+Responsibilities support create/edit/confirm/merge/archive, with custom role names. No forced Secretary/Marketing role choices or automatic external-school-system qualifications.
 
-**本阶段保存的是独立设置预览，尚不改变现有任务或真实团队记录。** 任务创建、旧存档升级以及 46 个标准步骤的逐项适配，仍属于未批准的阶段 3。原有章程岗位结构读取与短职责读取继续保留；新版职责读取作为兼容扩展新增。
+**Stage 2 saves an isolated setup preview; existing tasks and actual team records are unchanged.** Task creation, old-save upgrades, and per-step adaptation of 46 standard steps remain unapproved stage 3. Original constitution structure/short-duty readers remain; new responsibility reading is a compatible extension.
 
-## 怎样验收
+## Acceptance
 
-预览入口：
+Preview entries:
 
-- [当前团队设置预览](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching)
-- [12 人机器人社团示例](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching?example=1)
+- [Current-team setup preview](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching)
+- [12-person robotics club example](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/matching?example=1)
 
-使用社长或副社长身份编辑；其他成员可以查看。页面里的 **Try 12-person example** 使用独立空间，保留当前手工配置。示例完全离线，不会因为打开、返回或刷新而调用 AI。
+President/VP edit; others view. **Try 12-person example** uses a separate space, preserving manual configuration. Entirely offline; entry/back/refresh never invokes AI.
 
-| 在示例里选择 | 应看到的结果 |
+| Example choice | Expected result |
 | --- | --- |
-| Book a meeting room / Reserve a competition space | 两种流程复用场地职责，均预选 Demo Riley |
-| Prepare the competition poster | 默认人不可用，建议 Demo Drew，明确需要确认备份 |
-| Test the firmware | 多名候选、没有默认人，等待选择 |
-| Prepare a flight demonstration | 资格未知，先核实资格 |
+| Book a meeting room / Reserve a competition space | Both reuse venue responsibility, preselect Demo Riley |
+| Prepare the competition poster | Default unavailable; suggest Demo Drew, explicitly confirm backup |
+| Test the firmware | Multiple candidates, no default; await selection |
+| Prepare a flight demonstration | Qualifications unknown; verify first |
 
-人工流程：新建职责 → 填定义与交付物 → Save draft → Confirm responsibility → 在岗位下勾职责 → 确认成员可用情况 → 设置默认人和备份 → 新建步骤并确认职责关联。刷新后配置应保持。导出使用 **Export preview**。
+Manual path: new responsibility → definition/deliverables → Save draft → Confirm responsibility → select under role → confirm member availability → default/backup → new step/confirm responsibility link. Refresh preserves configuration. **Export preview** exports it.
 
-AI 流程请仅使用虚构章程。开发验证使用模拟回复；没有自动执行真实 AIR 调用，因此实际模型质量、耗时和本次预览的 Blob/AIR 联通状况尚未实测。若 AI 或归档服务不可用，界面会明确报错，人工设置仍可继续。
+Use fictional constitutions only for AI. Development used mocked responses, without automatic live AIR calls; actual model quality, latency, and preview Blob/AIR connectivity remain untested. AI/archive failures show explicit errors; manual setup continues.
 
-## 保留人工内容与请求的规则
+## Preserving manual content and requests
 
-- 新建议只新增草稿，不覆盖人工内容或确认记录。同一条建议只能采用或拒绝一次；一批建议可逐条处理。
-- 确认本批刚采用的职责不会让其余建议过期；人工改写或归档它、修改原文或岗位后，剩余相关建议进入 stale，不能继续直接采用。
-- 原文和完整请求先在浏览器保存成功，才发起 AI；保存失败不会发起收费请求。无变化时再次点击整份读取会复用当前完成结果，指定岗位或 general 的重试属于显式新请求。
-- 刷新、离开页面及编辑输入会阻止过期回复被采用。中断请求不会自动重发；普通成员切回可编辑身份时，也能恢复中断状态。
-- **Stop waiting** 停止等待和采用，不承诺供应商已停止执行或计费。全局 AI 开关关闭时，手工设置仍可用。
-- 写入失败时保留未保存的预览供导出，并停止后续覆盖；修订冲突提示导出和重新读取。损坏或不支持版本的原文可下载，不用 Reset demo 代替恢复。
-- 团队来自进入此独立设置时的副本；预览中的自定义岗位、资格、成员关系不回写旧业务。重新完成组织设置使用新的既有邀请标识隔离上一轮预览；该标识只作本地作用域，不能作为正式权限凭据。
+- Suggestions add drafts without overwriting manual content/confirmation. Each suggestion can be accepted or rejected once; process batches individually.
+- Confirming a newly adopted responsibility does not stale remaining suggestions. Manually rewriting/archiving it, changing source or roles, marks related remaining suggestions stale and blocks direct adoption.
+- Save source/full request in browser before AI; save failure prevents paid calls. An unchanged full read reuses the completed result; role/general retry is an explicit new request.
+- Refresh, departure, input edits block stale adoption; interrupted requests never automatically resend. Returning from member to editable identity can recover interrupted state.
+- **Stop waiting** ends waiting/adoption without promising provider execution/billing stopped. Manual setup works with global AI off.
+- Write failure preserves unsaved preview for export and stops later overwrites; revision conflicts prompt export/reload. Corrupt/unsupported originals remain downloadable; Reset demo is not recovery.
+- Team is a copy from entry into isolated setup. Custom roles/qualifications/member links never write back to old business state. Completing organization setup again uses a new existing invitation identifier to isolate the prior preview; local scope only, not a real authorization credential.
 
-## 技术交接
+## Technical handoff
 
-共享契约见 [MATCHING_STAGE2_CONTRACT.md](MATCHING_STAGE2_CONTRACT.md)。主要入口：
+Shared contract: [MATCHING_STAGE2_CONTRACT.md](MATCHING_STAGE2_CONTRACT.md). Main entries:
 
-- `src/matching/MatchingPage.tsx`、`setupContext.ts`：旧团队只读适配、上下文隔离、路由入口。
-- `setupWorkspace.ts`、`useMatchingSetup.ts`：受验证操作、保存、历史、请求与采用/拒绝控制。
-- `src/matching/ui/`：组件只通过控制器操作，不直接写旧 store 或持久化。
-- `constitutionClient.ts`：请求/响应二次校验、取消和超时。
-- `netlify/functions/constitution.mts`：新增 `part: responsibilities`；原 structure/duties 分支保持兼容。
-- `netlify/lib/matching/`：服务器提示词、条目校验、原文引用核对及私有归档。
+- `src/matching/MatchingPage.tsx`, setupContext.ts: read-only old-team adaptation, context isolation, route.
+- setupWorkspace.ts, useMatchingSetup.ts: validated actions, persistence/history, requests/adoption/rejection.
+- `src/matching/ui/`: controller-only operations; no direct old-store/persistence writes.
+- constitutionClient.ts: request/response revalidation, cancellation, timeout.
+- `netlify/functions/constitution.mts`: adds part: responsibilities; preserves structure/duties compatibility.
+- `netlify/lib/matching/`: server prompts, item validation, exact-source checks, private archives.
 
-本地预览文档使用 `platypus.matching.setup.v1:<编码后的上下文>`，包含源草稿、完整请求、已校验回复、采用/拒绝和操作历史。原有业务键、`DemoState` 与外层版本 22 均未修改。浏览器检查后写入不是原子事务，也不是跨设备数据库；阶段 3 必须按 [MATCHING_COMPATIBILITY.md](MATCHING_COMPATIBILITY.md) 统一正本，不能长期双写。
+Local preview key `platypus.matching.setup.v1:<encoded-context>` includes source drafts, complete requests, validated responses, adoption/rejection/history. Existing business keys, DemoState, outer version 22 unchanged. Browser check-then-write is neither atomic nor cross-device storage. Stage 3 must unify authority per [MATCHING_COMPATIBILITY.md](MATCHING_COMPATIBILITY.md), never indefinite dual writes.
 
-新 AI 请求使用独立私有 Netlify Blob store `platypus-matching-constitution-v1`：调用前保存输入与确切提示词；`chatJSON.onResponse` 在解析前保存原始回复和诊断；结果或失败另行归档。原子 `onlyIfNew` 认领同一个请求 ID，防止重复收费；已完成重放返回缓存，pending/failed 不自动再次调用。归档不可用时在新调用前失败。没有公开的归档列表或读取接口；客户端 ID 与 actor 不是正式账号体系。
+New requests use private Netlify Blob store `platypus-matching-constitution-v1`: save input/exact prompt before invocation; chatJSON.onResponse saves raw response/diagnostics before parse; archive result/failure separately. Atomic onlyIfNew claims same request ID, preventing duplicate charges; completed replay returns cache, pending/failed never automatically reinvoke. Unavailable archive fails before new calls. No public archive list/read endpoint; client IDs/actors are not accounts.
 
-这里的重放保护针对本站重复收到同一请求。供应商层保留此前 Juanxi 已批准的输出截断重试：在剩余时间足够时最多额外重试一次，所有尝试均进入原始诊断。因此不能把“一次点击”或“一个请求 ID”承诺为仅一次供应商计费；本阶段没有更改这项共享策略。
+Replay protection covers this site receiving the same request repeatedly. Provider-level output-truncation retry remains as Juanxi previously approved: at most one extra attempt with sufficient remaining time, all attempts in raw diagnostics. Therefore neither one click nor one request ID guarantees one provider charge. This shared policy is unchanged.
 
-首版限制：原文最多 60,000 字符、100 个岗位、500 个已有职责；超过时明确提示，不静默截断。提示词每次建议最多 12 项以控制耗时，验证最多接受 40 项完整条目；部分失败逐项警告，不猜测补全。职责语义重叠、工作流及政策是否全覆盖仍须人工审阅，AI 不宣称已经证明完整覆盖。
+Initial limits: 60,000 source characters, 100 roles, 500 existing responsibilities; explicit errors, no silent truncation. Prompt asks at most 12 suggestions for latency; validation accepts at most 40 complete items. Partial failures get per-item warnings, no guessed completion. Human review remains necessary for semantic overlap/workflow/policy coverage; AI does not claim proof of completeness.
 
-## Worktree 与检查记录
+## Worktrees and verification
 
-阶段 1 基线 `b883107`；阶段 2 契约 `8a5d0f4`。两个开发 Agent 从同一契约启动，保留包提交集成：
+Stage-1 baseline b883107; stage-2 contract 8a5d0f4. Both development agents started from that contract; package commits retained:
 
-| 工作包 | 提交 | 内容 |
+| Package | Commit | Content |
 | --- | --- | --- |
-| AI Agent | `4f31c58` | 提取服务、客户端、私有归档与 25 项模拟检查 |
-| UI Agent | `805ef2a` | 职责设置组件、token 样式与 18 项组件检查 |
-| 主 Agent | `3380d41`、`ccea818` | 保存控制器、入口、上下文、集成与复核修复 |
+| AI Agent | `4f31c58` | Extraction/client/private archive, 25 mocked checks |
+| UI Agent | `805ef2a` | Setup components/token CSS, 18 component checks |
+| Main Agent | `3380d41`, `ccea818` | Persistence controller, entry/context, integration/review fixes |
 
-独立 Review 对最终运行时代码 `ccea818` 通过。发现的 3 项 P2 均已修复并复查：已采用职责改写后的建议过期、身份切换后的 pending 恢复、相同社团重新设置的隔离。另完成浏览器页面离开时的中断记录。
+Independent Review approved final runtime ccea818. All three P2 findings fixed/rechecked: stale suggestions after adopted-responsibility rewrite, pending recovery after identity switch, isolation after resetting the same club. Also recorded interruption on page departure.
 
-| 检查 | 结果 |
+| Check | Result |
 | --- | --- |
-| 新旧相关单元/组件测试 | 15 个文件、276 项通过（阶段 2 新增 71 + 阶段 1 的 91 + 旧链路 114） |
-| `npm run lint` | 通过 |
-| `npm run build` | 通过，包含前端类型检查 |
-| `npm run typecheck:netlify` | 通过 |
-| `e2e/matching-stage2.spec.ts` | 桌面 9 + 手机 9，共 18 项通过 |
-| 响应式与无障碍 | 两种尺寸无横向溢出，WCAG 2.0/2.1/2.2 A/AA 扫描通过，截图已目视检查 |
-| 独立只读 Review | 通过，修复项已复查 |
+| Related new/old unit/component tests | 15 files, 276 passed (71 new stage 2 + 91 stage 1 + 114 old paths) |
+| npm run lint | Passed |
+| npm run build | Passed, including frontend types |
+| npm run typecheck:netlify | Passed |
+| e2e/matching-stage2.spec.ts | 9 desktop + 9 phone = 18 passed |
+| Responsive/accessibility | No horizontal overflow at either size; WCAG 2.0/2.1/2.2 A/AA scans passed; screenshots visually inspected |
+| Independent read-only Review | Passed; fixes rechecked |
 
-单元命令：`npm test -- --maxWorkers=2 src/matching src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts`。
+Unit command: `npm test -- --maxWorkers=2 src/matching src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts`.
 
-浏览器命令：`PW_PORT=4312 PW_STORAGE_PORT=4313 PW_CHROMIUM=/usr/bin/chromium npx playwright test e2e/matching-stage2.spec.ts --project=desktop --project=mobile --workers=2`。所有 API 都拦截为模拟响应；本地生产构建执行测试。
+Browser command: `PW_PORT=4312 PW_STORAGE_PORT=4313 PW_CHROMIUM=/usr/bin/chromium npx playwright test e2e/matching-stage2.spec.ts --project=desktop --project=mobile --workers=2`. All APIs intercepted with mocks; tested local production build.
 
-初轮浏览器检查揭示：旧业务读取器首次 reopen 会补 `waitingOnPersonId: null`，因此保留断言从正常 reopen 后的完整业务对象开始比较；没有删除字段断言或修改旧读取器。刷新时浏览器可能先中断 fetch，现已在离开事件记录 interrupted。并行构建/浏览器负载下，一项组件用例曾超时；改用与该用例有关的精简团队夹具、保留原有全部断言，并以两 worker 复跑。没有提高超时或降低检查门槛。
+Initial browser checks showed legacy reader adds waitingOnPersonId: null on first reopen, so preservation comparison starts after normal reopen with the complete business object; no field assertions removed or legacy-reader changes. Browser may abort fetch before refresh processing; departure now records interrupted. One component test timed out under parallel build/browser load; used a smaller relevant team fixture, preserved every assertion, reran with two workers. No timeout increases or relaxed gates.
 
-本阶段没有重复全站 Playwright 或完整 `npm run check`。真实 AIR/Blob、Safari/iOS 和正式多人账号未验证，不能把模拟验证称为这些服务已实测。仅更新功能分支与 PR #14 预览，未合并 main。阶段 3 仍待批准。需要同步本地备份。
+No repeat of full-site Playwright/full npm run check. Real AIR/Blob, Safari/iOS, formal multi-user accounts unverified; mocks do not establish those services work. Feature branch/PR #14 only, no main merge; stage 3 awaits approval. Local backup sync required.
 
-部署核对：GitHub 上 Netlify 的 deploy-preview 状态对 `09dd532` 返回 success，目标为上述 PR #14 链接；当前云环境浏览器返回 `ERR_TUNNEL_CONNECTION_FAILED`，同 URL 的 curl 返回代理 CONNECT 403，因此没有把线上页面点击记为通过。18 项浏览器检查在本地生产构建完成，AI 真实服务仍由后续人工使用虚构章程验收。后续本交付文档的补充不改变已验收运行时代码。
+Deployment check: GitHub Netlify deploy-preview status for 09dd532 was success, targeting PR #14 above. Cloud browser returned ERR_TUNNEL_CONNECTION_FAILED; curl to same URL returned proxy CONNECT 403, so online clicking is not marked passed. All 18 browser checks used local production build; actual AI service requires later human acceptance with a fictional constitution. Later document additions do not change accepted runtime code.

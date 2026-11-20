@@ -1,34 +1,36 @@
-# WP04 — Setup、Team、Settings 与移动端遮挡
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-## Agent 提示词
+# WP04 — Setup, Team, Settings, mobile obstruction
 
-你负责组织 Setup、Team、Settings 及移动端控件被遮挡的问题。开始前读取 `AGENTS.md`、README、manifest，fetch 并确认最新阶段基线 SHA。不得使用 `main`。
+## Agent prompt
 
-### 负责范围
+Fix organization Setup/Team/Settings/mobile obstructed controls. Read `AGENTS.md`, README, manifest, fetch/confirm latest stage baseline SHA. No `main`.
+
+### Scope
 
 - `e2e/setup-team.spec.ts`
 - `e2e/workflow-setup.spec.ts`
-- `e2e/phase1.spec.ts` 中 setup/team 场景
-- Settings、组织图、角色管理、邀请成员、meeting finder 相关组件和样式
+- setup/team cases in `e2e/phase1.spec.ts`
+- Settings/org chart/role management/officer invitations/meeting-finder components/styles
 
-### 已知真实问题
+### Known actual issue
 
-移动端 Settings 中 `org-canvas`、`roles-manager`、settings nav 或顶部栏会拦截 Undo、Invite officers、Try officer setup 等控件的 pointer events。
+Mobile Settings `org-canvas`, `roles-manager`, settings nav/top bar intercept pointer events for Undo/Invite officers/Try officer setup.
 
-### 要求
+### Requirements
 
-- 找出布局高度、sticky、z-index、overflow、transform 或滚动定位中的真实根因。
-- 保证 375px、390px 和 768px 宽度下可见控件都能真实点击/触控；禁止 force click。
-- 更新旧种子数量、旧角色名称、旧流程节点和 meeting finder 日期假设。
-- 保持隐私与一致性：私人 buffer/文件/profile 不进入共享请求；批准后才创建 workspace；AI 失败仍可手工完成；保存失败不能伪装成功；过期或篡改邀请不能修改状态。
-- 禁止删除移动测试、skip 或提高 timeout 掩盖布局问题。
+- Find actual layout-height/sticky/z-index/overflow/transform/scroll-position cause.
+- Actual clicks/touch on all visible controls at 375px/390px/768px; no force click.
+- Update obsolete seed counts/role names/workflow nodes/meeting-finder date assumptions.
+- Preserve privacy/consistency: no private buffers/files/profiles in shared requests; workspace created only after approval; manual completion on AI failure; no false save success; expired/tampered invitations cannot change state.
+- No removed mobile tests/skips/timeout increases hiding layout defects.
 
-### 验收标准
+### Acceptance
 
-1. `setup-team.spec.ts`、`workflow-setup.spec.ts` 全部通过。
-2. `phase1.spec.ts` 的 setup/team 场景通过。
-3. 375/390/768px 下 Undo、Invite officers、Settings 分区和组织图均可操作。
-4. 日志中不再出现目标控件被 `intercepts pointer events` 阻挡。
-5. request-body 隐私断言保留并通过。
-6. `npm run lint`、`npm test`、`npm run build`、`git diff --check` 通过。
-7. 创建一个 `[RR-WP04][Codex]` 提交，报告根因和验证 viewport。
+1. All `setup-team.spec.ts`, `workflow-setup.spec.ts` pass.
+2. setup/team cases in `phase1.spec.ts` pass.
+3. Undo/Invite officers/Settings sections/org chart usable at 375/390/768px.
+4. No target-control `intercepts pointer events` obstruction in logs.
+5. Request-body privacy assertions retained/passing.
+6. `npm run lint`, `npm test`, `npm run build`, `git diff --check` pass.
+7. One `[RR-WP04][Codex]` commit, reporting root cause/verified viewports.

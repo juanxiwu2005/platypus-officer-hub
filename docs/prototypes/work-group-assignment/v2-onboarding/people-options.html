@@ -1,8 +1,8 @@
-<div id="platypus-people-options" class="viz-carousel" aria-label="岗位、层级与邀请邮箱的四种设计" data-previous-label="上一方案" data-next-label="下一方案">
-<section data-variant="组织树名片" aria-label="组织树名片"><div class="po" data-view="tree"></div></section>
-<section data-variant="层级通讯录" aria-label="层级通讯录" hidden><div class="po" data-view="outline"></div></section>
-<section data-variant="部门接力板" aria-label="部门接力板" hidden><div class="po" data-view="departments"></div></section>
-<section data-variant="组织图与名片编辑" aria-label="组织图与名片编辑" hidden><div class="po" data-view="inspector"></div></section>
+<div id="platypus-people-options" class="viz-carousel" aria-label="Four designs for roles, hierarchy, and invitation email" data-previous-label="Previous option" data-next-label="Next option">
+<section data-variant="Organization tree cards" aria-label="Organization tree cards"><div class="po" data-view="tree"></div></section>
+<section data-variant="Hierarchical directory" aria-label="Hierarchical directory" hidden><div class="po" data-view="outline"></div></section>
+<section data-variant="Department handoff board" aria-label="Department handoff board" hidden><div class="po" data-view="departments"></div></section>
+<section data-variant="Organization chart and card editor" aria-label="Organization chart and card editor" hidden><div class="po" data-view="inspector"></div></section>
 </div>
 <style>
 #platypus-people-options .po{--po-bg:light-dark(#fbfaf7,#0f1312);--po-paper:light-dark(#fff,#171c1b);--po-muted:light-dark(#f3f1ec,#1d2322);--po-ink:light-dark(#1b1f1d,#eceeed);--po-sub:light-dark(#5b625e,#a2aaa6);--po-line:light-dark(#e5e2da,#2a312f);--po-accent:light-dark(#0f766e,#3fb8a8);--po-soft:light-dark(#e4f1ef,#14302c);--po-on:light-dark(#fff,#06201d);--po-warn:light-dark(#8f5206,#e7a74a);--po-serif:ui-serif,Georgia,"Times New Roman",serif;--po-height:1040px;color:var(--po-ink);background:var(--po-bg);font:400 14px/1.5 system-ui,-apple-system,"Segoe UI",Arial,sans-serif;min-height:var(--po-height);padding-bottom:28px;overflow-wrap:anywhere;position:relative}
@@ -62,6 +62,6 @@ root.addEventListener('change',function(e){const el=e.target;if(el.dataset.paren
 root.addEventListener('click',function(e){const select=e.target.closest('[data-select-role],[data-outline-select]');if(select){state.selected=select.dataset.selectRole||select.dataset.outlineSelect;state.outlineEditor=!!select.dataset.outlineSelect;render();save();return;}const b=e.target.closest('[data-action]');if(!b)return;if(b.dataset.action==='save')state.message='Team saved for review. '+ready()+' invitation emails prepared.';if(b.dataset.action==='add'){const id='role-'+(state.roles.length+1);state.roles.push({id:id,role:'New role',name:'',email:'',parent:'evp'});state.selected=id;state.message='New position added under Executive Vice President.';}render();save();});
 window.addEventListener('openai:set_globals',function(e){hydrate(e.detail&&e.detail.globals&&e.detail.globals.widgetState);render();});
 render();const ro=new ResizeObserver(drawEdges);ro.observe(root);new MutationObserver(function(){requestAnimationFrame(drawEdges);}).observe(root,{subtree:true,attributes:true,attributeFilter:['hidden']});window.addEventListener('resize',drawEdges);
-if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:function(){render();save();}});tweak.addSelect(design,'theme',{label:'界面外观',options:[{label:'跟随系统',value:'Follow device'},{label:'浅色',value:'Light'},{label:'深色',value:'Dark'}]});tweak.addToggle(design,'emails',{label:'名片直接显示邮箱'});}
+if(globalThis.Tweak){const tweak=new Tweak({container:root,onChange:function(){render();save();}});tweak.addSelect(design,'theme',{label:'Appearance',options:[{label:'Follow device',value:'Follow device'},{label:'Light',value:'Light'},{label:'Dark',value:'Dark'}]});tweak.addToggle(design,'emails',{label:'Show email on cards'});}
 })();
 </script>

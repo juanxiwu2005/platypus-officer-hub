@@ -1,26 +1,28 @@
-# DX-22 流程图节点改 `transform` + 弹簧落位
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- 阶段 4　大小 M　风险 中　R 级 R2　依赖：DX-01　并行伙伴：DX-20、21
-- 分支：`design/dx-22-flow-motion`　样式文件：`src/styles/dx-22-flow-motion.css`　对应细节：D46 D47
+# DX-22 Flowchart nodes: `transform` + spring placement
 
-## 为什么
-**读到**：`.metro .m-node { transition: left .3s ease, top .3s ease }`——`left/top` 会触发重新布局，普通缓动；而连线是直接跳的，所以节点在滑、线在跳，不同步。Emil §11：只动 `transform` 和 `opacity`。
-**要保留的优点（不要重写）**：`setPointerCapture`、6px 起拖阈值、边缘自动滚动、Alt+方向键移动、右键菜单、撤销。
+- Stage 4; size M; risk medium; rollback R2; depends DX-01; parallel DX-20,21.
+- Branch `design/dx-22-flow-motion`; styles `src/styles/dx-22-flow-motion.css`; details D46 D47.
 
-## 要做的事
-1. 节点定位：`MetroChart.tsx` 里给 `.m-node` 的内联样式从 `left/top` 改成 CSS 变量 `--x`、`--y`（ESLint 允许 `--` 开头的变量）；CSS 里 `left: 0; top: 0; transform: translate(var(--x), var(--y))`。节点本身宽高为 0，里面的点和标签相对它定位，不受影响。
-2. 落位过渡：`transition: transform var(--dur-slow) var(--spring-ui)`（节点位置变化只有"落位"这一种来源）；`prefers-reduced-motion` 时无过渡。
-3. 连线：落位期间 `<svg>` 里的路径用 150ms 淡出再淡入（或者整个 svg 在落位 `--dur-slow` 内保持 `opacity: .6`），让线和点"同时换位"，而不是点在滑线在跳。选一种方案，在报告里写理由。
-4. 拖动中 `.m-gap.is-near` 的吸附：`transform: scale` 过渡 `var(--dur-press)`，不再瞬变大小（现在是直接改 `width/height`，改成固定大小 + `scale`）。
-5. 不改 `metro.ts` 的布局计算；不改任何 `data-testid`。
+## Why
+**Read:** `.metro .m-node { transition: left .3s ease, top .3s ease }`; `left/top` relayout with standard easing, while lines jump immediately, so moving nodes/lines are unsynchronized. Emil §11: animate only `transform`/`opacity`.
+**Keep these strengths (do not rewrite):** `setPointerCapture`, 6px drag threshold, edge autoscroll, Alt+arrows, context menu, undo.
 
-## 可以改的文件
-`src/components/flow/MetroChart.tsx`（只动定位和样式变量）、`src/styles/dx-22-flow-motion.css`。`.m-node`、`.m-gap`、`.m-ghost`、`.metro` 只归这个包。
+## Work
+1. Node positioning: replace `.m-node` inline `left/top` in `MetroChart.tsx` with CSS `--x`, `--y` (ESLint permits `--` variables); CSS `left: 0; top: 0; transform: translate(var(--x), var(--y))`. Zero-size node anchors retain relatively positioned dots/labels unchanged.
+2. Placement: `transition: transform var(--dur-slow) var(--spring-ui)` (placement is the only position-change source); no transition with `prefers-reduced-motion`.
+3. Lines: fade `<svg>` paths out/in over 150ms during placement (or keep SVG `opacity: .6` throughout `--dur-slow`), making lines/dots move together rather than jumping lines/sliding dots. Choose and explain in report.
+4. Drag snap `.m-gap.is-near`: `transform: scale` transition `var(--dur-press)`; replace direct `width/height` jumps with fixed size + scale.
+5. No `metro.ts` layout or `data-testid` changes.
 
-## 验收
-- `flow-edit.spec.ts`、`events.spec.ts`、`feel.spec.ts`（流程图悬停卡）、`a11y.spec.ts`、`src/test/flowEdit.test.ts`、`metro` 布局的单元测试桌面 + 手机绿；**图测试里"真实曲线命中点击"（WP10 刚改好）必须保持**。
-- 新测试 `e2e/dx-22-flow.spec.ts`：拖一个步骤到另一个缝隙后，节点在过渡中的 `transform` 不是终点值；稳定后位置正确；减少动效时直接到位。
-- Juanxi 怎么验：Events → Edit flow，拖一个点到别的位置，松手后点平滑落位，线不会"跳一下"。
+## Allowed files
+`src/components/flow/MetroChart.tsx` (position/style variables only), `src/styles/dx-22-flow-motion.css`. Exclusive ownership of `.m-node`, `.m-gap`, `.m-ghost`, `.metro`.
 
-## 回滚
-R2。
+## Acceptance
+- Desktop+mobile `flow-edit.spec.ts`, `events.spec.ts`, `feel.spec.ts` (flow hover cards), `a11y.spec.ts`, `src/test/flowEdit.test.ts`, metro layout unit tests green; **retain actual curve-hit clicks in graph tests (just fixed by WP10)**.
+- New `e2e/dx-22-flow.spec.ts`: after dragging a step into another gap, intermediate node `transform` differs from endpoint; correct settled position; immediate reduced-motion placement.
+- Juanxi: Events → Edit flow, drag dot elsewhere; smooth settling, no line jump.
+
+## Rollback
+R2.

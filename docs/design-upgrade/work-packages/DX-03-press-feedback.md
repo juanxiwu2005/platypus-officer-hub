@@ -1,32 +1,34 @@
-# DX-03 按下反馈与悬停过渡
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- 阶段 1　大小 S　风险 低　R 级 **R1 可用**　依赖：DX-01　并行伙伴：DX-04…08
-- 分支：`design/dx-03-press-feedback`　样式文件：`src/styles/dx-03-press-feedback.css`　对应细节：D01 D02
+# DX-03 Press feedback and hover transitions
 
-## 为什么
-**量到**：按钮、导航、卡片的 transition 都是 `all 0s`，样式表里没有 `:active`。按下去没有任何反馈，界面显得"不跟手"。Emil §1：按下的那一刻就要有反应，不要等松手。
+- Stage 1 · Size S · Low risk · Rollback **R1 available** · Depends on: DX-01 · Parallel partners: DX-04…08
+- Branch: `design/dx-03-press-feedback` · Styles: `src/styles/dx-03-press-feedback.css` · Details: D01 D02
 
-## 要做的事
-1. 用 `:active` 做按下反馈（`transition: transform var(--dur-press) var(--ease-out)`）：
-   - 有背景的按钮类：`.btn`、`.chip`、`.icon-btn`、`.demo-pill`、`.seg button`、`.crm-seg button`、`.rail-tabs [role="tab"]`、`.settings-nav button`、`.event-nav button`、`.board-add-btn`、`.relay`、`.owner-chip button`：`transform: scale(.97)`。
-   - 文字型：`.row-btn`、`.link`、`.group-btn`：用 `opacity: .7`，不缩放（缩放文字行很怪）。
-   - `.sidenav a`：按下只变背景（它是高频操作，不加位移）。
-   - 禁用的元素（`[disabled]`、`aria-disabled="true"`）不响应。
-2. 悬停过渡：`.btn`、`.sidenav a`、`.event-nav button`、`.settings-nav button`、`.crm-seg button`、`.tbl .row-btn` 的背景/颜色用 `var(--dur-fast)` 过渡，全部包在 `@media (hover: hover)` 里。
-3. 减少动效：`@media (prefers-reduced-motion: reduce)` 里去掉 `transform`，保留颜色变化。
-4. **不要碰** `.ask-fab`（归 DX-09）、`.board-card`（归 DX-16/24）、`.hover-card`（S3 决定）。
+## Why
+**Measured: ** button/navigation/card transitions are all `all 0s`, with no `:active` in the stylesheet. Presses give no feedback, making the interface feel unresponsive. Emil §1: respond at the instant of pressing, not on release.
 
-## 可以改的文件
-只有 `src/styles/dx-03-press-feedback.css`。
+## Tasks
+1. Use `:active` press feedback (`transition: transform var(--dur-press) var(--ease-out)`):
+   - Filled-button classes: `.btn`, `.chip`, `.icon-btn`, `.demo-pill`, `.seg button`, `.crm-seg button`, `.rail-tabs [role="tab"]`, `.settings-nav button`, `.event-nav button`, `.board-add-btn`, `.relay`, `.owner-chip button`: `transform: scale(.97)`.
+   - Text controls: `.row-btn`, `.link`, `.group-btn`: `opacity: .7`, no scale (scaling a text row looks odd).
+   - `.sidenav a`: background only on press (frequent action; no displacement).
+   - Disabled elements (`[disabled]`, `aria-disabled="true"`) do not respond.
+2. Hover transitions: background/color on `.btn`, `.sidenav a`, `.event-nav button`, `.settings-nav button`, `.crm-seg button`, `.tbl .row-btn` use `var(--dur-fast)`, all inside `@media (hover: hover)`.
+3. Reduced motion: remove `transform` inside `@media (prefers-reduced-motion: reduce)`, retaining color changes.
+4. **Do not touch** `.ask-fab` (DX-09), `.board-card` (DX-16/24), `.hover-card` (S3 decision).
 
-## 验收
-- 新测试 `e2e/dx-03-press.spec.ts`：`mouse.down()` 之后（不松手）读取 `.btn` 的计算样式，`transform` 不为 `none`；松手后回到 `none`。减少动效模式下 `transform` 始终为 `none`。
-- 桌面和手机：`today.spec.ts`、`tasks.spec.ts`、`touch.spec.ts`、`a11y.spec.ts` 绿。
-- Juanxi 怎么验：在预览里按住任何一个按钮不放，会轻轻缩小一下；松手回弹。导航栏点击时不会缩，只是背景变深。
+## Allowed files
+Only `src/styles/dx-03-press-feedback.css`.
 
-## 回滚
-R1：注释掉 `src/styles/index.css` 里 DX-03 那一行。R2：`git revert -m 1 dx/dx-03-merged`。
+## Acceptance
+- New `e2e/dx-03-press.spec.ts`: after `mouse.down()` (without release), `.btn` computed `transform` is not `none`; after release it returns to `none`. Reduced motion keeps `transform` `none` throughout.
+- Desktop/mobile: `today.spec.ts`, `tasks.spec.ts`, `touch.spec.ts`, `a11y.spec.ts` green.
+- Juanxi: hold any preview button; it shrinks gently and springs back on release. Navigation clicks change background only, without shrinking.
 
-## 注意
-- 缩放用在 `inline-flex` 且 `overflow: hidden` 的元素上可能裁切阴影；逐个看。
-- 不要写 `transition: all`（守卫会拦）。
+## Rollback
+R1: comment out the DX-03 line in `src/styles/index.css`. R2: `git revert -m 1 dx/dx-03-merged`.
+
+## Notes
+- Scaling `inline-flex` elements with `overflow: hidden` may clip shadows; inspect each.
+- No `transition: all` (guard rejects it).

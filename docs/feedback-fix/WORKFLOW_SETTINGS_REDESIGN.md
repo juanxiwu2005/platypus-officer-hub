@@ -1,95 +1,95 @@
-# Settings → Workflow 编辑器重新设计
+# Settings → Workflow editor redesign
 
-2026-11-19（America/Phoenix），Claude（主会话 + 三个 worktree Agent：A 画布、B 页面框架和右侧面板、C 页面测试）。沿用 PR #14 / preview14，不合并 `main`，schema 23 不变，0 次真实 AI，0 封邮件。
+2026-11-19 (America/Phoenix), Claude (main chat + three worktree agents: A canvas, B page shell/right panel, C browser tests). Retain PR #14 / preview14; no `main` merge, schema 23 unchanged, 0 real AI calls, 0 emails.
 
-## 用户决定
+## User decisions
 
-1. 先只改 Settings → Workflow；Juanxi 确认满意后，再把新排版移植到 Plan 活动图。
-2. 这一轮只做浅色；深色只用 token，没有验收。
-3. 这一轮就做批量分配（Select steps → Assign N steps）。
+1. Change only Settings → Workflow first; port layout to Plan after Juanxi accepts.
+2. Light mode only this round; dark uses tokens but is not accepted/tested.
+3. Include bulk assignment now (Select steps → Assign N steps).
 
-## 改之前的问题
+## Previous problems
 
-- 每个团队每 4 个步骤就折行，蛇形往返；标准 46 步模板挤成左边一根高柱子，右边空着，主线和 Start 跑出首屏。
-- 团队名是表单下拉框，三个 Operations 看不出区别，没有步骤数，底色太淡。
-- 两行 13 个同样大小的按钮，模板动作和画布动作混在一起。
-- 模板选择器看不出哪个是 Platypus 预设、哪个是本社团的、哪个是默认。
-- 步骤名从单词中间断开（Accessibili ty、Attendanc e）。
-- 没有 Plan / Prepare / Event day / Close 的时间方位。
-- 内容区限宽 1180px。
+- Every 4 team steps wrapped in a snake pattern, squeezing the 46-step standard template into a tall left column, leaving right blank; mainline/Start outside initial viewport.
+- Team names were dropdowns, three Operations indistinguishable, no step counts, backgrounds too faint.
+- 13 same-size buttons in two rows mixed template/canvas actions.
+- Template picker did not distinguish Platypus preset, club-owned, default.
+- Midword title breaks (Accessibili ty, Attendanc e).
+- No Plan / Prepare / Event day / Close temporal orientation.
+- Content capped at 1180px.
 
-## 交付
+## Delivery
 
-**模板层（页面头部）**
-- `Saved workflow` 分成 `Platypus preset` 和 `Your organization` 两组，旁边有 Preset / Default / Draft / Version N 标签。
-- `New workflow ▾`：Blank workflow / Copy of preset。
-- 大号名称输入框 + 自动保存状态；`Save draft`、唯一主按钮 `Save version`、`More ▾`（Duplicate workflow / Use by default / Apply role teams / Teams）。
-- Workflow 这一页内容区放宽到 1600px。
+**Template layer (page header)**
+- `Saved workflow` groups `Platypus preset` / `Your organization`, with Preset / Default / Draft / Version N badges.
+- `New workflow ▾`: Blank workflow / Copy of preset.
+- Large name input + autosave status; `Save draft`, sole primary `Save version`, `More ▾` (Duplicate workflow / Use by default / Apply role teams / Teams).
+- Workflow content width expanded to 1600px.
 
-**画布工具栏**
-- 左：`Undo`｜`Flow | Quick entry`｜`1-day | 2-day`。
-- 右：`Select steps`、`+ Task`（主按钮）、`Add ▾`（Team branch / Full check / Event day）、缩放 `− 85% + Fit`。
-- `Connect` 搬到任务 Details 里，叫 `Connect on canvas`。
+**Canvas toolbar**
+- Left: `Undo` | `Flow | Quick entry` | `1-day | 2-day`.
+- Right: `Select steps`, primary `+ Task`, `Add ▾` (Team branch / Full check / Event day), zoom `− 85% + Fit`.
+- `Connect` moved into task Details as `Connect on canvas`.
 
-**画布（新文件 `laneLayout.ts`、`lane-editor.css`，类名 `wfx-`）**
-- 每个团队一行；超过 10 个步骤才折行。标准模板最长一行 8 个，不折行。
-- 每一行放到“总高度增长最少”的一边，能复用空行就复用，主线保持在中间。
-- 顶部固定的时间段标题：Plan → Prepare → Event day → Close。
-- 团队卡片左上角是标签按钮 “Operations · 7 steps”，右边一个 `+`；6 种固定团队颜色。
-- 步骤名两行截断，不再从单词中间断开；完整名字在提示和读屏名称里。
-- 图例：Core step / Conditional step / Team area / Event day。
-- 打开时默认 85%（不够宽就在画布里左右滚动）；`Fit` 看全图。
+**Canvas (new `laneLayout.ts`, `lane-editor.css`, `wfx-` classes)**
+- One row per team; wrap only above 10 steps. Standard template longest row is 8, no wrapping.
+- Place each row on the side with least total-height growth, reusing empty rows, mainline centered.
+- Fixed top temporal headings: Plan → Prepare → Event day → Close.
+- Team-card top-left label button "Operations · 7 steps", `+` at right; 6 fixed team colors.
+- Two-line truncated step titles, no midword breaks; full names in tooltips/accessible names.
+- Legend: Core step / Conditional step / Team area / Event day.
+- Default 85% (horizontal canvas scroll if needed); `Fit` shows all.
 
-**右侧 Team assignment 面板（点团队标签打开）**
-- 标题 “Finance path” + 步骤数；Team 下拉；Team roster（映射到这个团队的岗位的现任干部名字，只在页面上显示）；Starts at / Joins at。
-- `+ Select steps` → 在画布上点选步骤 → `Assign N steps`，一次 Undo 撤回整批；Escape 退出。
-- Description（新的可选字段 `details`，最多 400 字）；`Delete team branch`（有步骤时不能删）。
+**Right Team assignment panel (team-label click)**
+- "Finance path" + step count; Team dropdown; Team roster (current officers in roles mapped to this team, display only); Starts at / Joins at.
+- `+ Select steps` → choose canvas steps → `Assign N steps`; one Undo reverses entire batch; Escape exits.
+- Description (new optional `details`, maximum 400 characters); `Delete team branch` disabled while it contains steps.
 
-**数据**
-- 团队分支多了可选字段 `details`；旧数据没有这个字段也能正常读写。
-- 新命令 `moveMilestoneTasks`：批量移动，真实任务 ID、条件、岗位、工期都不变。
+**Data**
+- Optional team-branch `details`; old data without it reads/writes normally.
+- New `moveMilestoneTasks` bulk command preserves real task IDs, conditions, roles, durations.
 
-## Plan 没有变
+## Plan unchanged
 
-`src/components/flow/`、`milestoneLayout.ts`、`milestoneLayout.test.ts`、`milestone-editor.css` 和 `4d6290e` 相比没有任何改动；Plan 继续用旧排版。
+`src/components/flow/`, `milestoneLayout.ts`, `milestoneLayout.test.ts`, `milestone-editor.css` are identical to `4d6290e`; Plan retains old layout.
 
-## 验证
+## Validation
 
-- 单元/组件：相关 15 个文件 139 项全过；全套 2051 项中 2049 过，失败的 `calibration.test.ts`（超时）和 `uiLog.test.tsx` 在 `4d6290e` 上同样失败。
-- lint（含样式守卫）、前后端类型、生产 build 通过；入口 498,36x / 550,000 字节，没有变（Workflow 是懒加载）。
-- 页面测试（Playwright，桌面 + 手机）：Settings 工作流相关 11 个文件，桌面 52 过，手机 51 过 + 1 个原有的仅桌面跳过；其中新增 `e2e/workflow-settings-layout.spec.ts` 5 项（每个团队一行、时间段顺序、步骤名不断词、批量分配 + 一次 Undo 复原、菜单与焦点、手机无横向溢出、axe 严重/关键 0）。
-- Plan 那一侧的 10 个页面测试文件：169 过、15 跳过、18 失败；在 `4d6290e` 上跑同样的文件，同样 17 项失败；多出的 `a11y.spec.ts:286`（手机）在两边都是 3 次里只过 1 次（不稳定的旧测试）。所以这次没有让 Plan 变坏，但这些旧失败需要以后另外处理。
-- 截图：`docs/prototypes/workflow-settings-redesign/`（改前 `before-desktop.png`；改后 `desktop-default.png`、`desktop-fit.png`、`desktop-team-assignment.png`、`mobile-default.png`）。
+- Related unit/component: 15 files, 139 passed; full 2051: 2049 passed, `calibration.test.ts` timeout and `uiLog.test.tsx` also fail on `4d6290e`.
+- Lint/style guards, frontend/backend types, production build passed; entry unchanged 498,36x / 550,000 bytes (Workflow lazy-loaded).
+- Playwright desktop/mobile: 11 Settings workflow files; desktop 52 passed, mobile 51 passed + 1 existing desktop-only skip. New `e2e/workflow-settings-layout.spec.ts`: 5 cases covering one row/team, temporal order, no midword breaks, bulk assignment/single Undo, menus/focus, mobile no horizontal overflow, 0 serious/critical axe violations.
+- Plan-side 10 browser files: 169 passed, 15 skipped, 18 failed; same files on `4d6290e`: same 17 failures. Additional mobile `a11y.spec.ts:286` passes only 1 of 3 runs on both (old flaky test). No Plan regression from this change; existing failures need separate work.
+- Screenshots: `docs/prototypes/workflow-settings-redesign/` (`before-desktop.png`; after: `desktop-default.png`, `desktop-fit.png`, `desktop-team-assignment.png`, `mobile-default.png`).
 
-**测试改写说明（Agent C）：** 按新界面改了找按钮的方式，没有删除或跳过任何行为检查。另外有几项测试检查的界面在这次之前就已经没有了（Details 第一项是 Task name；Settings 画布不再画依赖箭头；Remove prerequisite 不再禁用，而是点了以后被 ASU 规则拒绝；条件分支对话框只在 Plan 的 Edit flow 里），这些测试改成检查现在真实的行为；三项条件分支测试移到了 Plan 的 `e-speaker` 活动上。
+**Test updates (Agent C):** button locators follow new UI; no behavior checks removed/skipped. Some assertions targeted UI already absent before this change: Task name first in Details; no dependency arrows on Settings canvas; Remove prerequisite now rejected by ASU rules rather than disabled; conditional-branch dialog only in Plan Edit flow. Updated to actual behavior; three conditional-branch tests moved to Plan `e-speaker`.
 
-## 第二轮修正（2026-11-19，Juanxi 反馈；worktree Agent D）
+## Second-round corrections (2026-11-19, Juanxi feedback; worktree Agent D)
 
-1. **菱形放置提示加回来：** 拖动时，在每个团队行的步骤之间、行首行尾、主轴相邻节点之间都显示菱形；最近的那个放大。只有放在菱形上才移动，放在别处不改动，并提示 “Drop a step on a diamond.”（`laneDropSlots`、`.wfx-slot`）。
-2. **主轴可以调整：** 主轴上的任务（Full check、Check-in Forms、Headcount）可以拖到团队行或主轴的其他位置；团队行的任务也能拖上主轴。从被移动或被删除的主轴任务出发/汇合的分支，会自动接到旁边的节点。
-   - 预设模板里，只有 ASU 学校规则要求的步骤、以及学校规则步骤要等它的步骤（如 Venue、Budget、Budget Approval）仍然不能删；其他 core 步骤（包括 Check-in Forms）可以删除，Details 提示 “Restore Platypus preset brings it back.”。这放宽了原来“预设 core 步骤不能删”的规则（`checkWorkflow` 新选项 `requireCoreSteps`，只在模板编辑和模板保存时关掉，其他地方不变）。
-   - 用这样的版本建活动时，删掉的步骤不会被悄悄补回来（`restoreMissingCore` 只在 `instantiateWorkflowTemplate` 关掉）。
-3. **恢复按钮（More 菜单，先确认）：** “Restore Platypus preset”（只对预设；把草稿换回原始预设，名称也恢复成 Speaker series，要点 Save version 才成为新版本）和 “Discard draft”（回到最近保存的版本）。已保存的版本和已有活动都不变。
+1. **Restore diamond drop hints:** during drag, diamonds between steps, at team-row ends, between adjacent mainline nodes; nearest enlarged. Move only on a diamond; elsewhere unchanged with "Drop a step on a diamond." (`laneDropSlots`, `.wfx-slot`).
+2. **Editable mainline:** tasks (Full check, Check-in Forms, Headcount) move to team rows/other mainline positions; team tasks move to mainline. Branches starting/joining at moved/deleted mainline tasks reconnect to adjacent nodes.
+   - In presets, only ASU-required steps and prerequisites awaited by school-rule steps (e.g. Venue, Budget, Budget Approval) remain undeletable. Other core steps, including Check-in Forms, may be deleted; Details: "Restore Platypus preset brings it back." This relaxes the old no-preset-core-deletion rule (`checkWorkflow` option `requireCoreSteps` off only for template edit/save; unchanged elsewhere).
+   - Events created from such versions do not silently restore deleted steps (`restoreMissingCore` off only in `instantiateWorkflowTemplate`).
+3. **Restore actions (More, confirmation required):** "Restore Platypus preset" (presets only; replace draft with original preset/name Speaker series; Save version required for a new version), "Discard draft" (last saved version). Saved versions/existing events unchanged.
 
-验证：lint、build 通过；单元测试 2088 项中 2086 过（2 项旧失败同上）；新 `e2e/workflow-main-line.spec.ts` 桌面+手机 8/8；`workflow-main-line`、`workflow-settings-layout`、`workflow-stability` 合并后复验 32/32。全部 Workflow 页面测试在干净运行中桌面 56/56、手机 55/55（+1 原有跳过）；`workflow-milestones` 和 `workflow-builder` 各有 1 项在全量并行时偶尔失败、单独运行通过，在改动前的代码上同样偶发。截图：`drag-diamonds.png`、`restore-preset-dialog.png`。
+Validation: lint/build passed; 2088 units, 2086 passed (same 2 old failures); new `e2e/workflow-main-line.spec.ts` desktop/mobile 8/8; combined `workflow-main-line`, `workflow-settings-layout`, `workflow-stability` 32/32. All Workflow browser tests in clean run: desktop 56/56, mobile 55/55 (+1 existing skip). 1 case each in `workflow-milestones`/`workflow-builder` intermittently fails full parallel runs and passes alone, also intermittent before changes. Screenshots: `drag-diamonds.png`, `restore-preset-dialog.png`.
 
-验收：拖一个团队行的步骤，看到菱形，把它放到主轴的菱形上；把 Check-in Forms 拖进团队行，或在 Details 里 Delete task；然后 More → Restore Platypus preset 恢复；More → Discard draft 回到上次保存的版本。
+Acceptance: drag a team step to a mainline diamond; move Check-in Forms to a team or Delete task in Details; More → Restore Platypus preset; More → Discard draft returns to last saved version.
 
-## 怎么验收
+## Acceptance
 
-1. 打开 preview14 → Settings → Workflow（模板 Speaker series）。
-2. 看整体：每个团队一行，主线在中间，顶部有 Plan / Prepare / Event day / Close；点 `Fit` 看全图。
-3. 点 Finance 的标签 → 右边出现 Finance path、成员名字。
-4. 点 `+ Select steps`，在图上点 3 个别的团队的步骤 → `Assign 3 steps` → 这 3 个步骤移到 Finance 行。
-5. 点 `Undo` → 3 个步骤回到原来的位置。
-6. 打开 `More` 和 `Add` 两个菜单，看按钮是否找得到。
+1. preview14 → Settings → Workflow (Speaker series template).
+2. One row per team, centered mainline, Plan / Prepare / Event day / Close headings; Fit for whole graph.
+3. Click Finance label → Finance path/member names on right.
+4. `+ Select steps`, select 3 other-team steps → `Assign 3 steps`, all 3 move to Finance.
+5. Undo restores all 3 positions.
+6. Check discoverability in More/Add menus.
 
-## 没做 / 已知限制
+## Not done / known limitations
 
-- Plan 活动图还是旧排版；等 Juanxi 确认后移植。
-- 深色没有验收。
-- 批量分配如果违反学校规则（例如 R06：Food Exception Permit 要等 Budget），会被拒绝，错误显示在画布上方，但右侧面板里的 “N steps selected” 没有提示原因。
-- 打开预设模板约 0.5 秒后会自动存一份 Draft（原有行为）。
-- 1440 宽的屏幕上，标准模板在 85% 时要左右滚动；`Fit` 时可以看全图，但字比较小。
-- 两个单元测试（`calibration.test.ts` 超时、`uiLog.test.tsx`）在改动之前的 `4d6290e` 上就失败，和这次无关。
-- 这次没有连到 Juanxi 的电脑，**需要同步本地备份**。
+- Plan retains old layout until Juanxi accepts the port.
+- Dark mode not accepted/tested.
+- Bulk assignment violating school rules (e.g. R06 Food Exception Permit waits for Budget) is rejected; error above canvas, but right-panel "N steps selected" gives no reason.
+- Preset opening autosaves a Draft after about 0.5 seconds (existing behavior).
+- At 1440px, standard template at 85% needs horizontal scroll; Fit shows all with smaller text.
+- Two units (`calibration.test.ts` timeout, `uiLog.test.tsx`) already fail at `4d6290e`, unrelated.
+- No connection to Juanxi's computer; **local backup needs synchronization**.

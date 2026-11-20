@@ -1,21 +1,21 @@
-# F1–F7 独立 Review
+# F1–F7 independent Review
 
-2026-10-26。Review Agent 独立于 Data、AI、UI 实施 Agent；审查原始需求、实施分工、各提交与集成代码。正式产品差异复核到 `9871a6f`，之后只改测试等待与交接文档。**开放代码阻塞：0**。不代表用户已批准上线。
+2026-10-26. Review agent independent of Data/AI/UI implementation agents, reviewing original requirements, ownership, commits, integrated code. Product diff reviewed through `9871a6f`; later edits only test waits/handoff docs. **Open code blockers: 0**. Does not mean user release approval.
 
-复核范围：
+Scope:
 
-- 快速内部离开、原生Back/Forward/hash保护、失败留页和完整草稿恢复。
-- 409冲突不静默覆盖；本地存储不可用时不放行未保存的聊天/表单。
-- 人工层级决定、严格匹配旧检查迁移、语义指纹、局部影响与服务器needsReview门槛。
-- 当前实体selection经过后台job并按当前私有工作区验证；近期历史只能形成待批准提案。
-- 原文先归档再解析、部分流诊断、异常关闭连接、明确格式拒绝的一次降级。
-- requestId持久去重、失败重放不重复生成，新动作仍执行当前模型/schema缓存策略。
-- 工作区唯一读取服务器approved.compiled；不读未确认draft、不猜造旧能力或审批权、不复制旧localStorage。
-- 导航dispatcher早于Router安装，inactive时不影响旧站，StrictMode与卸载清理正确。
-- 当前/历史文档、模拟/本地真实接口/线上供应商证据分别表述。
+- Fast internal navigation, native Back/Forward/hash guards, stay-on-failure, full draft recovery.
+- No silent 409 overwrites; unavailable local storage cannot release unsaved chat/forms.
+- Human hierarchy decisions, strict matching of migrated old checks, semantic fingerprints, localized impact, server needsReview gate.
+- Current-entity selection passes through background job and current private-workspace validation; recent history produces pending proposals only.
+- Archive originals before parsing, partial-stream diagnostics, abnormal-connection closure, one fallback for explicit format rejection.
+- Persistent requestId deduplication; failed replay generates no duplicates; new actions retain current model/schema cache policy.
+- Workspace reads only server approved.compiled, never unconfirmed drafts, invented old capabilities/approval authority, or copied old localStorage.
+- Navigation dispatcher installed before Router; inactive leaves old site unaffected; correct StrictMode/unmount cleanup.
+- Clearly distinguish current/historical docs and mock/local-real-interface/live-provider evidence.
 
-Review发现并修复的事项包括：恢复时完成态不同步、部分层级修改未标人工、当前对象接线、原文归档顺序、错误流未关闭、配额失败仍放行未发送输入，以及集成测试的旧页面定位假设。
+Found/fixed: recovery completion-state desync, some hierarchy edits not marked human, current-entity wiring, original-archive order, unclosed error streams, quota failures allowing unsent input to leave, old-page locator assumptions in integration tests.
 
-主Agent最终确认：构建、410单元、222浏览器场景通过；16项按条件跳过。另有实际本地Netlify函数/Blobs仿真/Chromium联测。真实AI速度、线上存储和远端部署尚未以这些结果证明。
+Lead confirmed build, 410 units, 222 browser cases passed; 16 conditional skips. Also actual local Netlify functions/Blobs emulator/Chromium integration. These do not prove real AI speed, online storage, remote deployment.
 
-后续：由Juanxi验收开发预览；正式合并main、生产发布、完整Board planner、真实账号与旧业务迁移仍另行决定。
+Next: Juanxi accepts development preview; main merge, production release, complete Board planner, real accounts, legacy migration remain separate decisions.

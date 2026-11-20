@@ -1,26 +1,26 @@
-# 一日／两日里程碑工作流实施契约
+# One-day/two-day milestone workflow implementation contract
 
-2026-11-18（America/Phoenix），Codex。用户已批准交互方案接入原preview14，仅1-day / 2-day、不做3-day；所有可见node都可点击在右侧Details修改。
+2026-11-18 (America/Phoenix), Codex. User approved integrating the interaction into original preview 14, 1-day/2-day only, no 3-day; every visible node clickable/editable in right-side Details.
 
-## 用户批准的结果
+## Approved outcome
 
-- 主线保留Start / Done、共享真实任务与日期里程碑；分支可在主线上分出、汇合。Event day前后可有团队工作，两天之间也可有工作。
-- 每个Event day独立稳定ID、名称、相对Day1日期和说明；固定日期不会因前面任务未完成而推迟。实际日期由规则引擎用活动日期和偏移计算。
-- 每个branch引用组织里已有teamId，从下拉框选；不在画布改组织团队名称，不自动新建Team N。同团队在不同区间可重复负责多个branch。
-- Start/Done是固定边界，不是成果任务；也可点击Details编辑名称与说明。真实任务可编辑名称、负责团队/岗位、说明、工期、相对某Event day的目标与前置。共享检查任务同权。
-- Add branch选择负责团队、从何处开始和在哪里汇合；团队边界与旧业务条件branch独立。新增/插入/跨branch拖动/Undo/保存草稿与版本、刷新恢复保持。
+- Main spine retains Start/Done, shared actual tasks/date milestones; branches split/rejoin spine. Team work can occur before/after each Event day and between days.
+- Each Event day has independent stable ID/name/date relative to Day1/description; fixed date never delayed by unfinished predecessors. Rule engine computes actual date from event date/offset.
+- Each branch references existing organizational teamId selected by dropdown; no team renaming on canvas, no automatic Team N creation. Same team may own multiple branches in different intervals.
+- Start/Done fixed boundaries, not deliverable tasks, but names/descriptions editable in Details. Actual/shared-check tasks equally editable: name, responsible team/role, description, duration, target relative to Event day, prerequisites.
+- Add branch chooses team/start/join point; team boundaries separate from old business-condition branches. Preserve add/insert/cross-branch drag/Undo/draft/version saves/refresh recovery.
 
-## 数据与兼容
+## Data/compatibility
 
-WorkflowTemplateContent.milestoneGraph为可选version1元数据，包括start/done说明、最多两个eventDays、spine引用、teamBranches与taskAnchors。真实任务仍在steps，不复制任务。图中每个step必须恰好出现在spine或一个团队branch，所有团队/连接引用都校验。
+Optional version 1 `WorkflowTemplateContent.milestoneGraph` metadata includes start/done descriptions, up to two eventDays, spine references, teamBranches/taskAnchors. Real tasks remain in steps, without duplication. Each step appears exactly once in spine or one branch; all team/connection references validated.
 
-taskAnchors保存eventDayId、offsetDays与可选calendar/business单位；学校官方规则继续相对Day1计算，不得通过选择Day2放宽硬限。新版graph执行有受控的独立日期路径；旧无graph和sequential活动保留旧算法。版本快照、复制及实例化保留图关系，已有活动/成果不回写，不重置schema23。里程碑不生成业务任务，不发提醒；未完成前置只报风险。
+taskAnchors stores eventDayId/offsetDays/optional calendar/business units; school rules remain relative to Day 1, never relaxed by Day 2 selection. New graph execution has controlled separate date path; legacy graphless/sequential events keep old algorithm. Version snapshots/copies/instantiation preserve relations; no rewriting existing events/deliverables, no schema 23 reset. Milestones create no business tasks/reminders; unfinished prerequisites only flag risk.
 
-## 文件负责人
+## Ownership
 
-- 主Agent：Builder/Library与右侧Details、文档、集成和最终推送。
-- Model：共享types、workflowTemplates、新engine/workflowMilestones、必要schedule与针对测试。
-- Canvas：新MilestoneWorkflowCanvas、milestoneLayout与独立CSS/测试，不改Builder/Library。
-- Commands：独立worktree实现新增/移动/日期切换纯命令；Browser：Plan实际任务投影与milestone e2e、受影响回归；独立Review最终只读复核。
+- Lead: Builder/Library/right-side Details, docs/integration/final push.
+- Model: shared types/workflowTemplates/new engine/workflowMilestones, necessary schedule/tests.
+- Canvas: new MilestoneWorkflowCanvas/milestoneLayout/dedicated CSS/tests; no Builder/Library edits.
+- Commands: independent-worktree pure add/move/date-switch commands; Browser: actual Plan task projection/milestone e2e/affected regressions; independent Review final read-only check.
 
-普通日期、负责人和队伍仍通过既有受验证操作保存；不能把像素位置当日期。保留同期提醒修复ef0d0d0，不修改提醒/邮件/交接实现。沿用原PR14/功能分支，0真实产品AI/外部邮件，不合并main。
+Ordinary dates/owners/teams still saved through validated existing operations; pixels never dates. Preserve concurrent reminder fix ef0d0d0, no reminder/email/handoff implementation changes. Existing PR14/feature branch, 0 real product AI/external email, no main merge.

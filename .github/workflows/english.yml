@@ -1,0 +1,37 @@
+name: English collaboration
+on:
+  push:
+    branches: [main, v1]
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created, edited]
+  pull_request_review:
+    types: [submitted, edited]
+  pull_request_review_comment:
+    types: [created, edited]
+  discussion:
+    types: [created, edited]
+  discussion_comment:
+    types: [created, edited]
+permissions:
+  contents: read
+jobs:
+  language:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check the language guard
+        run: node --test scripts/check-english.test.mjs
+      - name: Check repository text
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
+        run: node scripts/check-english.mjs
+      - name: Check GitHub collaboration text
+        if: github.event_name != 'push'
+        run: node scripts/check-english.mjs --event

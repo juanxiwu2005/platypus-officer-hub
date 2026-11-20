@@ -1,12 +1,12 @@
-新版工作区原先主要展示组织职责和流程模板，无法把具体活动、个人任务与经费审批一起推进。本次接入同一份服务端运行数据，让首页重点事项、个人看板、活动短流程链和时间轴同步更新。
+The new workspace previously mainly displayed organizational duties/workflow templates, without coordinating actual events, personal tasks, funding approvals. Shared server runtime now synchronizes homepage priorities/personal board/event short chain/timeline.
 
-- 按已批准A1/B1/C2实现首页、可搜索活动列表、默认活动时间轴和个人三列Board；重点事项直接从既有任务选择排序，默认三项、可展开。
-- Funding并入活动，分别记录提交/批准、采购、预算版本、承诺和支出；保留多人职责、精确阻塞条件及完成历史。
-- Setup五章自由跳转，8/7/6周组织时间设置与流程联动；简化连线、集中复核和文件入口。
-- 全局右侧AI读取当前页面和固定对象，按需查询、提出校验后的修改或调用成员活动/Executive Board创建表单；保护未提交输入并恢复已提交但回应丢失的操作。
+- Approved A1/B1/C2: homepage/searchable events/default event timeline/three-column personal Board; priorities directly rank existing tasks, three default, expandable.
+- Funding inside activities records submission/approval/procurement/budget versions/commitments/spend separately; retains multiple-person duties/precise blockers/completion history.
+- Five freely navigable Setup chapters, linked 8/7/6-week preferences/workflow, simplified connections/central review/document entry.
+- Global right-side AI reads current page/stable objects, queries on demand, proposes validated edits or member-event/Executive Board forms; protects unsent input, recovers submitted operations with lost responses.
 
-验证：构建通过；548项单元测试通过；256项桌面/手机浏览器场景通过，16条件跳过、0失败；实际本地HTTP7组34请求与并发CAS检查通过。独立Review无开放已知P0/P1。本轮0次真实AI生成。
+Verification: build/548 units/256 desktop-mobile scenarios passed, 16 conditional skips/0 failed; actual local HTTP 7 groups/34 requests and concurrent CAS passed. Independent Review no known open P0/P1. 0 real AI generations.
 
-本次是私有测试工作区，未实施正式多人登录、实际采购/支付或合并main。线上部署、线上Blobs和真实模型质量尚未核验。本地Blobs模拟器兼容修复仅在外部开发工具，不进入生产应用。
+Private test workspace; no production multiuser login/actual purchasing-payment/main merge. Online deploy/Blobs/real-model quality unverified. Local Blobs compatibility fixes external development tooling only, excluded from production app.
 
-交接：docs/organization/ACTIVITY_WORKSPACE_IMPLEMENTATION.md；独立复核：docs/organization/REVIEW_ACTIVITY_WORKSPACE.md。
+Handoff: docs/organization/ACTIVITY_WORKSPACE_IMPLEMENTATION.md; independent review: docs/organization/REVIEW_ACTIVITY_WORKSPACE.md.

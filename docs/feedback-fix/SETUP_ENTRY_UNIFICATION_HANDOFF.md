@@ -1,57 +1,57 @@
-# Start 与再次设置共用一条流程
+# One shared flow for Start and repeated setup
 
-2026-11-17（America/Phoenix），Codex。实现提交：`d616bb1`；检查与部署结果见文末。
+2026-11-17 (America/Phoenix), Codex. Implementation `d616bb1`; checks/deployment below.
 
-## 改了什么
+## Changes
 
-问题原因是两套页面同时存在：Start 使用 founder 八步流程，Settings → Replay setup 和旧地址 `/setup` 仍渲染 `pages/Setup.tsx` 的六步大表单。因此仅恢复 main 代码，仍不能让两个入口一致。
+Two coexisting page sets caused the issue: Start used the eight-step founder flow, but Settings → Replay setup and `/setup` still rendered the six-step `pages/Setup.tsx` form. Restoring main alone therefore could not unify entries.
 
-现在旧六步页面已删除，所有社长设置入口最终共用同一套页面、进度条、校验和草稿：
+The old six-step page is deleted; all president setup entries share pages, progress, validation, and draft:
 
-**Name → Constitution → Goals → Team → First event → Reminders → Confirm → Invite。**
+**Name → Constitution → Goals → Team → First event → Reminders → Confirm → Invite.**
 
-| 入口 | 现在进入哪里 |
+| Entry | Destination |
 | --- | --- |
-| `/#/start`、Welcome → Start、Demo → Replay walkthrough | 同一组 founder 页面；按原规则开始一次研究记录 |
-| Settings → Replay setup | `/#/welcome/setup` → 同一组 founder 页面，不创建研究尝试 |
-| 原 `/#/setup`、`/#/welcome/classic` | 兼容跳转到同一个设置入口 |
-| Demo → Test onboarding as president | 同一组 founder 页面；维持原来的不记录测试规则 |
+| `/#/start`, Welcome → Start, Demo → Replay walkthrough | Shared founder pages; starts a study record under existing rules |
+| Settings → Replay setup | `/#/welcome/setup` → shared founder pages, no study attempt |
+| Old `/#/setup`, `/#/welcome/classic` | Compatibility redirect to shared setup entry |
+| Demo → Test onboarding as president | Shared founder pages, retaining unrecorded test behavior |
 
-Team 直接展示 Role、Person、Reports to，职责由 Edit duties 展开；不再在设置中要求社长逐人填写 Email、Phone、ASU ID。新成员加入时填写自身资料的既有链条保留。章程上传、AI 岗位/职责识别、手动修改、首次活动与提醒问题均保留 Start 当前行为。
+Team directly shows Role, Person, Reports to; Edit duties expands duties. Presidents no longer enter everyone's Email/Phone/ASU ID during setup. Existing member self-profile flow remains. Constitution upload, AI role/duty extraction, manual editing, first event, reminder questions retain current Start behavior.
 
-隐藏的服务器工作区实验 `/phase1/setup*` 属于另一原型，未改动。提醒阶段 1–3 整合、预算权限、日期引擎、组织交接也未改动。
+Hidden server-workspace experiment `/phase1/setup*` belongs to another prototype and is unchanged, as are reminder stage-1–3 integration, budget permissions, date engine, organizational handoff.
 
-## 旧草稿怎么继续
+## Continuing old drafts
 
-有旧 `setup-draft` 时先出现 Continue your setup，可选 Continue saved setup，进入对应的共享页面。有效草稿中的岗位、成员资料、职责、章程、组织工作区链接、已编辑工作流、缓冲和原活动描述一起保留。
+An old `setup-draft` first shows Continue your setup; Continue saved setup opens the corresponding shared page. Valid drafts retain roles, member profiles, duties, constitution, organization-workspace links, edited workflow, buffer, original event description.
 
-替换当前 founder 草稿时，在**同一个 IndexedDB 事务**中先归档原草稿，再写入新草稿；只有事务完成才继续。失败不替换、不留下半份备份，仍在原页供重试。旧六步草稿原件始终保留，完成导入以源时间戳标记，不会每次重放都再次提示。退出期间完成的异步操作不会把人拉回设置。
+Replacing a founder draft archives the original then writes the new draft in **one IndexedDB transaction**; continue only after completion. Failure neither replaces nor leaves a partial backup; stay for retry. Keep old six-step originals, marking completed import by source timestamp so replays do not repeatedly prompt. Async work finishing during exit cannot pull the user back into setup.
 
-恢复的岗位和职责不自动重新调用章程 AI；刷新也不触发。旧版本从未保存已经准备好的活动和日期，因此旧第4–6步恢复到 First event，要求重新审阅活动。无法安全读取的旧记录原样保留并提示，用户也可以打开当前设置指南；不清理或猜测坏数据。
+Restored roles/duties do not automatically rerun constitution AI, including on refresh. Old versions never saved prepared events/dates, so old steps 4–6 resume at First event for review. Preserve unreadable old records unchanged with a notice; allow current setup guide, without clearing/guessing corrupt data.
 
-现有业务存档仍为23版，未知/已撤回匹配字段保留。导入和预览不修改现有组织，只有 Confirm → Start workspace 才执行既有替换演示工作区操作；拒绝写入时保留确认页与草稿。
+Business archive stays 23, unknown/withdrawn matching fields retained. Import/preview leaves current organization unchanged; only Confirm → Start workspace performs existing demo-workspace replacement. Rejected writes retain Confirm/draft.
 
-## 用户怎么检查
+## User checks
 
-1. 打开 [preview 14 的再次设置入口](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/setup)。如有旧草稿，点 Continue saved setup。
-2. 用虚构名字继续，上传章程或选 Skip — use standard roles；填写 Mission，再进入 Team。
-3. 与 [Start 入口](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/start) 比较：应该是相同的八步和 Team 布局；电脑、手机都可检查。
-4. 从 Settings 点 Replay setup 再检查一次；旧 `/welcome/classic` 地址也应进入同一流程。只验界面可在 Team 点 Exit，不需要点最后的 Start workspace。
+1. Open [Preview 14 repeated setup](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/setup); Continue saved setup if applicable.
+2. Continue with fictional names, upload constitution or Skip — use standard roles; fill Mission, then Team.
+3. Compare [Start](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/start): same eight steps/Team layout, desktop and mobile.
+4. Repeat via Settings → Replay setup; old `/welcome/classic` also uses this flow. To inspect UI only, Exit on Team without final Start workspace.
 
-已有正式研究尝试的浏览器不要为了比较界面反复使用研究 Start；可用 Demo 的 Test onboarding as president 或另一个测试浏览器。研究 Start 原有新建记录行为保持。
+Browsers with formal study attempts should not repeatedly use research Start for comparison. Use Demo → Test onboarding as president or another test browser. Original research Start recording remains.
 
-## 新的任务分组方向
+## New task-group direction
 
-[按工作流任务组分配负责人：供讨论方案](EVENT_TASK_GROUP_ASSIGNMENT_PROPOSAL.md) 已结合代码整理：模板定义任务组，每次活动选每组一名具体负责人，任务继承，个别任务允许人工改派。组不固定为标准岗位，不依赖 AI 选人；多工作流、版本快照、后续补任务和旧活动兼容已有设计说明。
+[Workflow task-group owner assignment proposal](EVENT_TASK_GROUP_ASSIGNMENT_PROPOSAL.md), grounded in code: templates define groups; choose one concrete owner per group per event; tasks inherit, with individual manual reassignment. Groups are not fixed standard roles; no AI person selection. Multiple workflows, version snapshots, later-added tasks, old-event compatibility are documented.
 
-**此项只有方案，没有接入新界面或分配引擎。**
+**Proposal only; no new UI or assignment-engine integration.**
 
-## 检查与部署
+## Checks and deployment
 
-- 相关单元/组件18文件156项通过，含章程、Team、首次活动、研究记录、职责回退、设置与工作流。
-- 最后一轮设置/记录/刷新/旧入口/角色/工作流/体积浏览器检查：131通过、1项仅手机适用而在桌面跳过。另两端逐步无障碍检查2项通过，共133通过、1跳过。前轮移植旧测试时发现的选择器及草稿尚未保存便刷新等问题均在最终原样流程重验；没有放宽产品预算。
-- lint、前端类型与生产构建、服务器类型、9页文字预算通过；Settings 147/150。入口542,460/550,000字节。
-- 桌面与手机深色截图已人工查看。所有AI接口使用模拟或本地回退；0真实AI、0外部邮件。
-- 代码`d616bb105abda4b376cd9ccb98f82b95c2e6f476`已推送原功能分支，GitHub上的Netlify deploy-preview状态为success，目标为既有preview 14。PR #14保持草稿，不新建PR，不合并main；main仍为`b9e7a02`。
+- 18 related unit/component files, 156 passed: constitution, Team, first event, study records, responsibility rollback, setup, workflow.
+- Final setup/record/refresh/old-entry/role/workflow/bundle browser checks: 131 passed, 1 mobile-only desktop skip. Two additional device-specific stepwise accessibility checks passed: total 133 passed, 1 skip. Earlier selector and refresh-before-draft-save issues from porting tests were retested in final unchanged flows; no product budgets weakened.
+- Lint, frontend types/production build, server types, 9-page words passed; Settings 147/150. Entry 542,460/550,000 bytes.
+- Desktop/mobile dark screenshots manually reviewed. All AI mocked/local fallback; 0 real AI, 0 external emails.
+- `d616bb105abda4b376cd9ccb98f82b95c2e6f476` pushed to original feature branch; GitHub Netlify deploy-preview success, existing Preview 14. PR #14 remains draft, no new PR/main merge; main stays `b9e7a02`.
 
-本轮未重复全站门禁。保留main First event原文的64/60词旧预算差异及calibration既有超时，仍按前次交付记录处理，不声称全站全绿。新任务组分配仅有方案，待讨论。需要同步本地备份。
+No full-site gate rerun. Retain main First event's 64 words against a 60-word budget and existing calibration timeout under previous delivery; do not claim full-site green. New task-group assignment remains a proposal for discussion. Local backup needs synchronization.
