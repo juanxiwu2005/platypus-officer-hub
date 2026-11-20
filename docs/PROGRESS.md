@@ -1,4 +1,14 @@
-# Current handoff: English repository cleanup
+# Current handoff: English repository listing
+
+> **November 20, 2026 (America/Phoenix) · Codex · Implementation verified; publishing after PR checks.** After approving and merging PR #16, the owner requested English **Last commit message** captions in the repository listing. Baseline: `main@0b9f78e`. Target: `chore/english-latest-commit-messages` → `main`; Preview 14 / PR #17 remain separate.
+>
+> **Method:** use an ordinary English maintenance commit to update the 14 root paths whose latest path-specific subjects are still Chinese. Changes are English maintainer comments and JSON whitespace only. GitHub derives the captions from the latest commit affecting each path; the field is not independently editable. Existing commits, IDs, signatures, tags, and branches are retained. An empty commit alone would not refresh these path captions. The scope is the repository home listing, not a rewrite of every historical commit or every nested file's history.
+>
+> **Verification:** all 5 parsed JSON files (including the complete dependency lock), all 5 affected JavaScript/TypeScript outputs emitted without comments, both HTML token streams, and both active ignore/environment configurations match the baseline exactly. Existing lint, production build, server TypeScript, 5 English-guard regression cases, and whitespace checks passed. The commit is checked against all 26 root entries so each latest subject is English; normal PR checks must pass before merging. No new behavior tests are needed for comments/whitespace. **The owner's thesis backup remains pending synchronization.**
+
+---
+
+# Previous handoff: English repository cleanup
 
 > **November 19, 2026 (America/Phoenix) · Codex · Translation/review complete; awaiting owner acceptance.** The owner selected both production and Preview 14, with separate PRs [#16](https://github.com/juanxiwu2005/platypus-officer-hub/pull/16) and [#17](https://github.com/juanxiwu2005/platypus-officer-hub/pull/17). This branch starts at `b9e7a02` (production main). English repository/GitHub policy, contributor/assistant entrypoints, templates, language guard, documentation index, and technical co-founder onboarding are included. No production merge or release was performed.
 >

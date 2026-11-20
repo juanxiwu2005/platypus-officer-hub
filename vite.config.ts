@@ -1,3 +1,4 @@
+// Keep build configuration notes in English; provider settings are documented in docs/AI_SETUP.md.
 import { defineConfig } from "vitest/config"
 import react from "@vitejs/plugin-react"
 import { readFileSync } from "node:fs"
