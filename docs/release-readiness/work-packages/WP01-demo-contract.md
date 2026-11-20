@@ -1,36 +1,38 @@
-# WP01 — Demo Dates, Seeds and Routes
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
+
+# WP01 — Demo Date, Seed, and Route Contracts
 
 ## Agent prompt
 
-You are responsible for repairing outdated test contracts caused by Demo dates, seed events and Funding route changes.
+Repair stale test contracts caused by Demo dates, seed events, Funding route changes.
 
-Read `AGENTS.md`, this directory README and manifest before starting. Execute `git fetch origin`, confirm that worktree is created by the latest `origin/integration/v1.0` SHA designated by the master of the phase. No worktree of `main` or other agent.
+Read AGENTS.md, directory README, manifest first. git fetch origin; verify worktree starts at stage main agent's designated latest origin/integration/v1.0 SHA and report short SHA. Never use main or another agent's worktree.
 
-### Scope of responsibility
+### Scope
 
-- `e2e/smoke.spec.ts`
-- `e2e/recovery.spec.ts`
-- `e2e/safety.spec.ts`
-- `e2e/m2b.spec.ts`
-- `e2e/bts.spec.ts`
-- `e2e/today.spec.ts`
-- Necessary tests
+- e2e/smoke.spec.ts
+- e2e/recovery.spec.ts
+- e2e/safety.spec.ts
+- e2e/m2b.spec.ts
+- e2e/bts.spec.ts
+- e2e/today.spec.ts
+- Necessary test helpers/fixtures
 
-### Request
+### Requirements
 
-- The seed must not be returned to 2026-10-22.
-- The test should be derived from the current feed, page status or shared fixture date, avoiding a hard encoding of Demo date again.
-- `/funding` has been redirected to `/events`; Verifys a new contract and cannot restore an independent Funding page.
-- Fixes the number of events, default cut-off dates, export status, simulation clocks and Reset demo expectations.
-- Keeps a true business assertion: clock push/replace, pre- and post export status, default job cut-off date, AI-off fallback, no running error on the page.
-- If a live product defect is detected, it can be repaired but must be added to the regression test and distinguished between “test drift” and “product defect” in the delivery report.
-- Ban skip, delete assertions, add blind timeout or relax to meaningless locator.
+- Never revert production seed to 2026-10-22.
+- Derive dates from current seed/page/shared fixtures; avoid hardcoding Demo dates again.
+- /funding redirects to /events; assert this contract, never restore separate Funding page.
+- Correct event counts/default deadlines/export state/demo clock/Reset expectations.
+- Preserve real business assertions: clock advance/reset, export-state preservation, default task deadlines, AI-off fallback, no runtime errors.
+- Real product defects may be fixed with regressions; distinguish test drift from product defects in handoff.
+- No skip/assertion deletion/blind timeout increases/meaningless locators.
 
-### Acceptance Standard
+### Acceptance
 
-1. The six specs above have all been adopted in the desktop and mobile projects.
-2. The old `2026-10-22`, `2026-10-23`, `2026-10-27`, `2026-10-29` are no longer hard-coded for any reason.
-3. `/funding` Redirectional acts have clear assertions.
-4. `npm run lint`, `npm test`, `git diff --check` were adopted.
-5. There is no reduction in the number of tests or operational behaviour covered.
-6. Creates a `[RR-WP01][Codex]` submission, returns the committee SHA, changes files, test commands and results.
+1. All six specs pass desktop/mobile.
+2. No unjustified old dates 2026-10-22, 2026-10-23, 2026-10-27, 2026-10-29 hardcoded in owned tests.
+3. Explicit /funding redirect assertion.
+4. npm run lint, npm test, git diff --check pass.
+5. No reduction in test count/business coverage.
+6. Create [RR-WP01][Codex] commit; return SHA/files/commands/results.

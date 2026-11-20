@@ -1,23 +1,25 @@
-# DX-21 board row header saturation
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Stage 4 size S Risk Medium R **R1 Available** Dependence: DX-16 Parallel Partners: DX-20, 22
-- Branch: `design/dx-21-board-headers` Style File: `src/styles/dx-21-board-headers.css` Corresponding Details: D22
+# DX-21 Desaturate Board column headers
 
-## Why?
-**saw**: 6 saturated on top of the board, and the product called "Mille Line" (Apple Craft lens: "Courage is spent only in one place."
+- Stage 4　Size S　Risk medium　Rollback level **R1 available**　Dependency: DX-16　Parallel partners: DX-20, 22
+- Branch: `design/dx-21-board-headers`　Style file: `src/styles/dx-21-board-headers.css`　Detail: D22
 
-## Something to do.
-1. `.board-col > header`: The background is changed to `--surface` (or `--surface-2`), the text is used as `--ink`, a coloured dot on the left (the color still comes from `--pill` in each column, i.e. the user-set colour in Settings  →  Board) and the digital logo is used at the bottom of `--surface-2`.
-2. **Stuck** keeps a little warning: the dots add a circle of `--late-soft` light dizziness and the text remains unchanged.
-3. **`StatusPill` (state) does not change**, which remains a tannery block of monday style in tables and cards.
-4. The **dark color mode has to recalculate contrast**: the user state colour does not have a dark color version (`DESIGN_TOKENS.md` 5.2). A dot is a graphic that requires  ≥ 3:1. I estimate that #5f6763 of Not filmed presses on dark `--surface-2` (#1d2322) about 2.8:1, **not meeting the target**. Method: The dot plus the 1. 5px light-coloured edge, or keep the original solid line in dark mode. Writes the calculation (light 6 + dark 6) into the report.
+## Why
+**Observed:** 6 saturated blocks across Board compete with the product's signature "metro line" (Apple Craft lens: "spend boldness in one place").
 
-## Files that can be changed
+## Work
+1. `.board-col > header`: background `--surface` (or `--surface-2`), text `--ink`, colored dot at left (still each column's `--pill`, user color from Settings → Board); count badge background `--surface-2`.
+2. **Stuck** retains some warning: dot gets a `--late-soft` halo, text unchanged.
+3. **Leave `StatusPill` unchanged**: solid monday-style status blocks remain in tables/cards.
+4. **Recalculate dark-mode contrast:** user status colors have no dark variants (`DESIGN_TOKENS.md` 5.2). Dots are graphics requiring ≥3:1. Estimated Not claimed #5f6763 on dark `--surface-2` (#1d2322) is about 2.8:1, **failing**. Add a 1.5px light outline, or retain solid column headers in dark mode. Report calculations for all 6 light + 6 dark colors.
+
+## Allowed files
 Only `src/styles/dx-21-board-headers.css`.
 
 ## Acceptance
-- `tasks.spec.ts`, `a11y.spec.ts` (colour contrast) desktop + cellular green.
-- Juanxi: The top of the board is no longer a row of colored blocks, it's well-listed and only small dots are coloured. **doesn't like to rollback DX-21 without prejudice to others.**
+- `tasks.spec.ts`, `a11y.spec.ts` (including contrast) green on desktop/mobile.
+- Juanxi: Board no longer has a row of large colored blocks; clean column names, only small dots colored. **If disliked, revert DX-21 independently.**
 
 ## Rollback
-R1: Comment on line DX-21 in `index.css`.
+R1: comment the DX-21 line in `index.css`.

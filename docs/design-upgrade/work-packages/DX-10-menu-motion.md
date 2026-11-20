@@ -1,21 +1,23 @@
-# DX-10 menu access (Demo menu, bell)
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Phase 2 size S Risk Low R Level R2 Dependence: DX-01, DX-02 Parallel Partners: DX-09, 11 - 14
-- Branch: `design/dx-10-menu-motion` Style File: `src/styles/dx-10-menu-motion.css` Corresponding Details: D10
+# DX-10 Menu entrance/exit (Demo menu, bell)
 
-## Something to do.
-1. `src/components/chrome/DemoMenu.tsx`, `Bell.tsx`: replace `hidden={!open}` with `data-state="open|closed"`; The `hidden` will be installed after the end of the exit (`transitionend` or the bottom timer) so that `display: none` will keep the reading screen and Tab order as usual.
-2. Style: `.menu` enters `opacity 0→1` + `scale(.96)→1` + `translateY(-4px)→0`, `var(--dur-fast)` + `var(--ease-out)`; Stand down. `var(--dur-press)`(Quicker than entering)  `transform-origin: top right` (trigger button); The menu on the cell phone is a fixed line (`max-width: 600px`) full of width, using `top center`.
-3. Reduction of kinetic effects: Fade out only, not scalable.
-4. No change: 3 seconds timeout and `data-testid` for clicking on external closures, Escape closes, "Reset demo point twice".
+- Stage 2 · Size S · Low risk · Rollback R2 · Depends on: DX-01, DX-02 · Parallel partners: DX-09,11–14
+- Branch: `design/dx-10-menu-motion` · Styles: `src/styles/dx-10-menu-motion.css` · Detail: D10
 
-## Files that can be changed
-`src/components/chrome/DemoMenu.tsx`、`Bell.tsx`、`src/styles/dx-10-menu-motion.css`。`.menu`、`.menu-wrap`It's... **Activate Properties**Only this bag (shadowed by DX-) 23）。
+## Tasks
+1. `src/components/chrome/DemoMenu.tsx`, `Bell.tsx`: replace `hidden={!open}` with `data-state="open|closed"`; set `hidden` only after exit (`transitionend` or fallback timer), preserving `display: none` control over screen readers and Tab order.
+2. Styles: `.menu` enters with `opacity 0→1` + `scale(.96)→1` + `translateY(-4px)→0`, `var(--dur-fast)` + `var(--ease-out)`; exits using faster `var(--dur-press)`. `transform-origin: top right` near trigger; mobile menu is a full-width fixed strip (`max-width: 600px`), using `top center`.
+3. Reduced motion: fade only, no scaling/translation.
+4. Preserve outside-click close, Escape close, 3-second "Reset demo requires two clicks" timeout, `data-testid`.
+
+## Allowed files
+`src/components/chrome/DemoMenu.tsx`, `Bell.tsx`, `src/styles/dx-10-menu-motion.css`. Only this package owns `.menu`/`.menu-wrap` **motion properties** (shadows belong to DX-23).
 
 ## Acceptance
-- `smoke`, `today`, `touch`, `a11y`, `bts` desktop + mobile phones green (they use `demo-menu` and `reset-demo` heavily).
-- New test `e2e/dx-10-menu.spec.ts`: `opacity` at the moment of opening between 0 and 1; Close 200ms after `hidden` is true; Quick dots don't get stuck in the middle.
-- Juanxi, how to test: "Demo..." small sign and bell at the top of the bar, the menu grows lightly from under the button.
+- `smoke`, `today`, `touch`, `a11y`, `bts`, desktop/mobile green (heavy `demo-menu`/`reset-demo` use).
+- New `e2e/dx-10-menu.spec.ts`: opening `opacity` between 0 and 1; 200ms after close, `hidden` true; rapid double-click does not leave it half-open.
+- Juanxi: click top-bar "Demo · …" and bell; menus grow gently below the trigger.
 
 ## Rollback
-R2。DX-20 Depends on it, first withdraws DX-20.
+R2. DX-20 depends on it; revert DX-20 first.

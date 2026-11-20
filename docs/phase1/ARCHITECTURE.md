@@ -1,120 +1,120 @@
-# Platypus AI-native Phase 1: Bottom Design
+# Platypus AI-native Phase 1: foundational design
 
-2026-10-25 Codex Juanxi has confirmed the production of prototypes; Formal access awaits.
+2026-10-25 · Codex · Juanxi approved the prototype; formal integration waits for visual acceptance.
 
-## This Border
+## Scope
 
-It's a paper, Phase. 3Prototype One Product Reconstructing, Phase of this paper 1This is the development phase.
+This is a product redesign of the thesis's Phase 3 prototype; Phase 1 here means this development stage.
 
-This delivers `/#/phase1` with three clickable images and two type of process preview. `src/phase1/model.ts` is an independent front-end demonstration model, **is not a formal data model that has access to old applications**. Do not add live APIs, accounts, databases, remove old pages and change main. All information messageal; No research data were read or submitted.
+Deliver three clickable screens and two workflow previews at `/#/phase1`. `src/phase1/model.ts` is an independent frontend demo model, **not the formal model already integrated into the old app**. No real APIs, accounts, databases, old-page deletion, main changes. All materials fictional; no research data read/committed.
 
-The order of complete realization and testing of models, APIs, migrations, etc. in the original reminder and " image finishes and stops " , is based on Design-First Checkpoint: description of the target model first, validation of the interaction with a local presentation logic first, image acceptance before official storage/API migration with old data. The demonstration validation report should not be used to produce acceptance.
+Where the original prompt orders “complete implementation/tests of model, API, migration” versus “stop when screens are done, ”the Design-First Checkpoint governs: explain target model, validate interactions with local demo logic, then implement formal storage/APIs/migration after visual acceptance. Demo verification is not production acceptance.
 
-## Six-tier target structure.
+## Six-layer target structure
 
-| Layer | Responsibility | Status at this stage |
+| Layer | Responsibility | Stage status |
 |---|---|---|
-| Data Governance & Safety | Organisational segregation, accounts, minimization, sources, auditing, retention and private data boundaries | Design; Local storage policy demonstration |
-| AI Core | AIR, router, organizational search, tool call, ChangeSet, missions, audit, uncertainty | Design; No new vendor calls |
-| Organization Intelligence | Standard processes, ASU rules, Constitution, custom role, capability mapping, process variations | Frontend Presentation |
-| Activity-centered model | (a) The sole operational base of the job; Tasks, funds, materials, approvals, evidence, decisions and handoff summaries | TwoFictional Preview |
-| Activity kinds | member_activity / executive_obligation | Shared workspace with different process lengths |
-| Single AI Entry | Target input, one question at a time, recommendation review, implementation tracking | The home page shares the same composer with the workspace; Each image shows only one. |
+| Data Governance & Safety | Organization isolation, account permissions, minimization, provenance, audit, retention, private-data boundaries | Design; local retention-policy demo |
+| AI Core | AIR, routing, organization retrieval, tools, ChangeSet, permissions, review, uncertainty | Design; no new provider calls |
+| Organization Intelligence | Standard workflows, ASU rules, Constitution, custom roles, capability mapping, workflow differences | Frontend demo |
+| Activity-centered model | Sole business root for work; contains tasks, funding, materials, approvals, evidence, decisions, handoff summary | Two fictional previews |
+| Activity kinds | member_activity / executive_obligation | Shared workspace, different flow lengths |
+| Single AI Entry | Goal input, one question at a time, suggestion review, execution tracking | Same composer type on homepage/workspace, only one visible per screen |
 
-## Target data model (design specifications before formal access)
+## Target data model (design specification before formal integration)
 
-All organizational business records must carry `organizationId` or be capable of validating the organization without prejudice to the necessary parent. The account access is judged by the organization ' s membership relationship and cannot be trusted with the request for self-filling. Information versions must be consistent with those at the time of review, and outdated recommendations need to be re-examined.
+Every organization business record must carry `organizationId` or unambiguously validate it through a required parent. Access derives from authenticated account membership, not self-declared request organizationId. Source and review versions must match; stale suggestions need rereview.
 
-| Object | Fields and Constraints |
+| Object | Fields/constraints |
 |---|---|
-| Capability | id、canonicalName、description、status(active/deprecated)、mergedIntoId、aliases（Press organizationId）；Steady number does not change by name；Addable、Merge、Change name and disable，Disable non-delete history references |
-| Role | id、organizationId、title、holderAccountIds、status；Freedom of job name，RoleFunction Just... legacy adapter Exists |
-| RoleCapabilityAssignment | id、organizationId、roleId、capabilityId、responsibility(owner/approver/support/informed)、scope、source(manual/constitution/ai_suggestion)、confirmedByUser、confirmedBy、confirmedAt、evidenceSourceId、confidence、notes；Detailed role duties are not equal to account management |
-| OrganizationContext | organizationId、profile、mission、customRoles、confirmedRoleCapabilityMap、standardProcessPreferences、workflowVariations、constitutionSourceIds、approvedMemoryIds、contextVersion、lastReviewedAt、reviewedBy、status(draft/confirmed/superseded) |
-| KnowledgeSource | id、organizationId、type、fileName、text、accessScope、createdAt、retentionPolicy、checksum、status；Private sources are not automatically made public to organizations |
-| ConstitutionSuggestion | id, eventId, sourceId, sourceChecksum, raleId/title, capabilityId, reponsibility, scope, event (source text and start/end), contact, review Status, reviewer, reviewedAt, editedfields; AI output does not contain writeable final dates |
-| Activity | id、organizationId、kind(member_activity/executive_obligation)、origin(user_request/recurring/school_notice/ai_suggestion)、title、goal、context、contextVersion、status、tasks、fundingNeeds、materials、approvals、evidence、contacts、decisions、handoffSummary |
-| Task | id、organizationId、activityId（You have to fill it out, Father. Activity Must exist and belong to the same organization.）、title、requiredCapability、scope、ownerRoleId、ownerAccountId、approverRoleId、supportRoleIds、informedRoleIds、status、risk、dependencies、scheduleAnchor、computedSchedule；Scheduled fields are written by the rule engine only |
-| FundingNeed | id、activityId、source、estimatedAmount、currency、approvalRequirement、applicationStatus、evidenceIds；Record only in Activity, no bank calls, no balance/general/cross-account tracking |
-| ApprovedOrganizationMemory | id、organizationId、kind、text/structuredValue、sourceIds、activityId、decisionId、confirmedBy、confirmedAt、contextVersion、accessScope；You can't access the handoff without confirmation or failure of source |
-| ConversationLog | id、organizationId、accountId、accessScope、createdAt、expiresAt、messages、retentionPolicy；Separated from Source/Memory; Do not add a permanent dialogue saving at this stage |
-| AuditEntry | id、organizationId、actorAccountId、action、recordId、beforeVersion、afterVersion、sourceId、changeSetId、timestamp；Log does not copy sensitive source text |
+| Capability | id, canonicalName, description, status(active/deprecated), mergedIntoId, aliases scoped by organizationId; stable IDs survive rename; add/merge/rename/deactivate, without deleting historical references |
+| Role | id, organizationId, title, holderAccountIds, status; free titles, RoleFunction only in legacy adapter |
+| RoleCapabilityAssignment | id, organizationId, roleId, capabilityId, responsibility(owner/approver/support/informed), scope, source(manual/constitution/ai_suggestion), confirmedByUser, confirmedBy, confirmedAt, evidenceSourceId, confidence, notes; detailed duties do not grant account administration |
+| OrganizationContext | organizationId, profile, mission, customRoles, confirmedRoleCapabilityMap, standardProcessPreferences, workflowVariations, constitutionSourceIds, approvedMemoryIds, contextVersion, lastReviewedAt, reviewedBy, status(draft/confirmed/superseded) |
+| KnowledgeSource | id, organizationId, type, fileName, text, accessScope, createdAt, retentionPolicy, checksum, status; private sources do not become organization-public automatically |
+| ConstitutionSuggestion | id, organizationId, sourceId, sourceChecksum, roleId/title, capabilityId, responsibility, scope, evidence (verbatim text/start/end), confidence, reviewStatus, reviewer, reviewedAt, editedFields; no writable final AI dates |
+| Activity | id, organizationId, kind(member_activity/executive_obligation), origin(user_request/recurring/school_notice/ai_suggestion), title, goal, context, contextVersion, status, tasks, fundingNeeds, materials, approvals, evidence, contacts, decisions, handoffSummary |
+| Task | id, organizationId, activityId (required, parent Activity must exist in same organization), title, requiredCapability, scope, ownerRoleId, ownerAccountId, approverRoleId, supportRoleIds, informedRoleIds, status, risk, dependencies, scheduleAnchor, computedSchedule; scheduling fields written only by rule engine |
+| FundingNeed | id, activityId, source, estimatedAmount, currency, approvalRequirement, applicationStatus, evidenceIds; Activity-contained only, no bank, balance/general-ledger/cross-account tracking |
+| ApprovedOrganizationMemory | id, organizationId, kind, text/structuredValue, sourceIds, activityId, decisionId, confirmedBy, confirmedAt, contextVersion, accessScope; unconfirmed/invalid-source memories excluded from handoff |
+| ConversationLog | id, organizationId, accountId, accessScope, createdAt, expiresAt, messages, retentionPolicy; separate from Source/Memory; no new long-term chat retention this stage |
+| AuditEntry | id, organizationId, actorAccountId, action, recordId, beforeVersion, afterVersion, sourceId, changeSetId, timestamp; logs do not duplicate sensitive source text |
 
-The tasks in ACT are relationships: officially storeable sub-watches and ID references to avoid saving an independently modified task separately on ACT and Tasksheet.
+Activity's tasks, etc. express ownership; formal storage may use child tables/ID references, avoiding independently mutable duplicate tasks in Activity and task tables.
 
-### Who's in charge of external communication?
+### Who handles external relationships
 
-Capable `relationships` has a default value of `all` using structured scope: `campus` and `companies`.
+`relationships` capability uses structured scope:`campus`,`companies`, optionally default `all`.
 
-- Organization A: Marking is the owner of two categories.
-- Organization B: Outreach is capus owner, External Relations owner.
-- Each active range must be capable of deciphering the only main owner; Multiple owners, no owners, conflicts of origin all create a problem, not revert first rule.
-- Approver, support, informed records separately. The head of operations does not automatically get back-office administration because of his or her name; Live missions are generated from account authorization.
-- Changes in the division of labour need to be confirmed; The prototype retains an approved context snapshot, the editor's draft will not cover it.
+- Organization A: Marketing owns both scopes.
+- Organization B: Outreach owns campus, External Relations owns companies.
+- Each valid scope resolves exactly one primary owner; multiple owners, no owner, source conflicts produce a question, never fallback to first role.
+- Store approver, support, informed separately. President title does not automatically grant backend administration; real rights come from account authorization.
+- Responsibility changes require confirmation; prototype retains approved context snapshots, not overwritten by draft edits.
 
-### Changes in Constitution status
+### Constitution state transitions
 
-Uploading/ pasting the field source parsing the candidate * field check and source text location * Accept/Edit/Reject  →  Final summary.
+Upload/paste fictional source → parse candidates → field validation/source location → Accept/Edit/Reject → resolve each conflict → final summary → Confirm organization.
 
-Accept accepts only the candidate and does not directly turn the whole extraction into a fact. The source text reference must accurately correspond to the character range of the same source; It is not a factual correctness to express only the certainty of drawing judgement. (b) Manual identification of results as a priority; Users can explicitly change to recommendation. The old recommendation and the source-based review lapsed as a result of the change in content.
+Accept accepts a candidate only, not the whole extraction as fact. Quotes must match exact character ranges in the same source; confidence measures extraction judgment, not factual accuracy. Human confirmations take precedence; users may explicitly switch to constitution suggestions. Changed source invalidates old suggestions/reviews derived from it.
 
-The current prototype uses **Local Conservative Matcher** to demonstrate only supported textual clauses; The semantic understanding of arbitrary Constitution is not supported. UI Displays Local demo interpretation. Supports .txt/.md/ paste, does not claim to support PDF, Word or OCR. Contacts with secret key shape fields are rejected; This is just a demonstration filter and cannot be used to prove that all live sensitive data are recognized.
+Current prototype uses a **conservative local matcher** for supported fictional clause patterns, not arbitrary Constitution semantics. UI says Local demo extraction. Supports .txt/.md/paste, not claimed PDF, Word, OCR. Contact/key-shaped fields are rejected; demo filtering does not prove exhaustive sensitive-data detection.
 
-## Onboarding
+## Onboarding interaction
 
-- Five steps: Basics — Constitution — Roles — Responsibilies — Review.
-- Only one basic path must be filled in with an open text: a tissue name (show prefill). Mission/target has been recommended and modified in Advanced; New roles and other options are optional.
-- The default question is only organizational type and process preferences; Conflict shows one at a time, and only when candidates have been accepted. (a) No more than six questions on the necessary path to non-conflict information; Complex Live Constitution should not be allowed to close the conflict for patches.
-- Options are A/B/C, Big Click Area, Not Sure, Add another option; Set up for Skip.
-- Save steps and drafts and the current equipment can be restored; Saves a clear hint of failure.
-- Five minutes with at least 80% click completion is the test target. No first user time results, no claims to have met standards or reduced cognitive burden.
-- Seven high-level competency groups are shown to be in the division of labour process; Read more on approver/support/informed in Advanced.
+- Five steps: Basics → Constitution → Roles → Responsibilities → Review.
+- Basic path has one required open-text field: organization name, prefilled in demo. Suggested mission/goals editable under Advanced; new roles/other options optional.
+- Default questions only organization type/workflow preference; one conflict at a time, only among accepted candidates. Necessary conflict-free path≤six questions; never silently drop complex real-constitution conflicts to meet a count.
+- A/B/C options, large targets, Not sure, Add another option; setup may Skip.
+- Save steps/drafts for current-device restoration; clearly report failure.
+- Five minutes/≥80% click completion are test targets. No first-use timings, no claim achieved/reduced cognitive load.
+- Seven high-level capability groups in assignment; detailed approver/support/informed under Advanced.
 
-## Category Preview
+## Two Activity previews
 
-Member: extraction of standard steps from existing `buildEventNodes()`, as recommended by capability map; Only the old fn is used as a template to migrate metadata. The default fallback name, rule allocation does not use `roleFor()`. The current example is Finder Operationss, which are not complete natural languages.
+Member: extract standard steps from existing `buildEventNodes()`, suggest owners from capability map; old fn is migration metadata only. Never use `roleFor()` defaults for people/roles. Example Founder Connections, not a complete natural-language planner.
 
-Exact: short chain of notification: verification requirements  →  confirmation of two representatives  →  briefing issued  →  recording of evidence. The preview shows a four-step template; Automatic generation that has not yet achieved the goal of openness.
+Executive: fictional-notice short chain: check requirements → confirm two representatives → issue briefing → record evidence. Four-step template preview, no open-goal automatic generation.
 
-All dates call unmodified `computeSchedule()`. The date anchor for an active activity is from the field of actional examples; The fixed requirements for the officer service are from the field notification/manual anchoring point. AI suggests that the object be discarded by allowlist dates and unknown fields. Timemarks such as CreatedAt are metadata recording, not task scheduling.
+All dates use unchanged `computeSchedule()`. Member anchors come from fictional events; executive fixed requirements from fictional notice/manual anchors. AI suggestion allowlist discards dates/unknown fields. createdAt and similar timestamps are record metadata, not scheduling.
 
-Review / Reject / Approve and status changes in the workspace only operate front-end previews with a clear hint on the page; Do not write to the old Store, do not treat it as a full implementation of the official ChangeSet backend.
+Workspace Review / Reject / Approve/status changes affect frontend preview only, explicitly labeled; no writes to old Store, no claim of complete formal ChangeSet backend.
 
-## Repository with reserved boundary
+## Repository and retention boundaries
 
-`PreviewRepository` Read drafts, saves, approves snapshots and clears first with a localStorage demonstration. Key grouping separates the demo account, draft and approved. The retention period is... **Since last time saved 7Jesus.**, delete when reading an expired record.  There is no new persistent chat log.
+`PreviewRepository` uses localStorage adapter to demonstrate draft reads, saves, approved snapshots, clearing. Keys separate organizations/demo accounts, draft/approved. Retention **7 days since last save**; expired records deleted on read. No persistent chat log added.
 
-This is the strategy test for field data; The browser View as, MayManage and localStorage are not production authentication or security isolation. Live online requires service-end authentication, organization of members missions, object-to-person access control, encryption and deletion policy, AIR data processing written confirmation, and IRB allowed range. These external access is not implemented at this stage.
+Fictional-data policy exercise only; browser View as, mayManage, localStorage are not production authentication/security isolation. Real deployment needs server auth, membership permissions, per-object access, encryption/deletion policies, written AIR-processing confirmation, IRB-permitted scope. No such integrations this stage.
 
-Future `/api/org/extract-constitution`, `suggest-capabilities`, `preview-workflow`: Authentication organisations permissions  →  Minimization/ Filter  →  Read source version  →  Output schema verification  →  Return to processations+evidence+uncertative, without writing operational status. ChangeSet review/apply completed; Apply check the latest missions and contactVersion.
+Future `/api/org/extract-constitution`,`suggest-capabilities`,`preview-workflow`: authentication → organization permission → minimization/filtering → read source version → validate output schema → return suggestions+evidence+uncertainty, without business-state writes. Separate ChangeSet review/apply modifies state; apply rechecks current rights/contextVersion.
 
-## Old Code Processing
+## Existing code treatment
 
-| Processing | Contents |
+| Treatment | Content |
 |---|---|
-| Reservations | React18/TS/Vite；All available tests; School Calendar, Schedule, Forecast, Job Recognition/State Logic |
-| Reuse with Modified | Playbooks (for fn assignment read capability/scope); aiContext (reconfirmed by permissions); ChangeSet/Review/Undo (add tissue and version verification); Accessible UI controls |
-| Redesign | Setup And job editor；AI Entry and new navigation；nullable eventId Task Creation；RoleFunction Operational constraints；Formal repository And migration |
-| Keep Legacy | Today/Events/Tasks/Funding/Handoff/Team/Rules/Settings/Partners；Keeps old route and old data keys as they are. New shells only Home, Organization setup and Recent Activity |
-| Not yet. | Full plans, live login, production database, official Handoff, new dialogue storage, old page delete, main merge |
+| Keep | React 18/TS/Vite; all tests; academic calendar, schedule, forecast, claim/status logic |
+| Adapt/reuse | playbooks (fn assignment→capability/scope); aiContext (permission-filtered confirmed context); ChangeSet/Review/Undo (organization/version validation); accessible UI controls |
+| Redesign | Setup/role editing; AI entry/navigation; nullable eventId task creation; RoleFunction restrictions; formal repository/migration |
+| Retain legacy | Today/Events/Tasks/Funding/Handoff/Team/Rules/Settings/Partners; old routes/data keys unchanged. New shell only Home, Organization setup, recent Activity |
+| Defer | Full planners, real login, production DB, formal Handoff, new chat storage, old-page deletion, main merge |
 
-Old limitations such as repository "three columns + AI fixed right bar + primarily dependent on Hover" do not apply to this new route; This is the direction Juanxi clearly confirmed this time. New route is isolated from the old frame to avoid changing already acceptance page.
+Old “three columns + fixed AI rail + mainly Hover” constraints do not apply to these new routes; Juanxi explicitly confirmed this direction. Isolate new routes from old chrome, preserving accepted pages.
 
-## Migration strategy (design and pure preview inspection); No live migration performed)
+## Migration strategy (design/pure-preview checks; no real migration)
 
-1. Read only the old version of the original package, calculate the checksum, and make a back-up snapshot with schemaVersion. It can't be recovered directly by structural upgrading.
-2. Old Event keeps the original ID or records steady map, and turns the memory_activity; The associated task belt needs to be active Id, retaining source, state, date anchor and dependency.
-3. The independent task of determining attribution is placed in the corresponding exact_obligation; The same date cannot be the reason. The original retention package could not be identified for target/attribution, Legacy+neds_review, not discarded.
-4. Old fn produces only unconfirmed capacity advice; Do not extrapolate Live Account Manager missions. Funding sub-records; Old Handoff reserved source, unconfirmed text cannot enter Approved Memory.
-5. Use a steady migration ID and the migration version to create objects without repeating them; Cross-activities rely on individual reviews. (b) Atoms to switch new storage fingers after the map is confirmed; Failure restores the old snapshot.
-6. Read and write the old package after the image. This `inspectMigration()` only validates classification, original record retention and pending marking.
+1. Read original legacy package only, checksum, recoverable schemaVersion snapshot. Never reset to seed merely for schema upgrade.
+2. Preserve Event IDs or stable mapping, convert to member_activity; linked tasks require activityId, preserving provenance, status, anchors, dependencies.
+3. Place attributable standalone tasks in corresponding executive_obligation; shared dates alone never justify merging. Unclear goals/ownership retain original package as legacy+needs_review, not discarded.
+4. Old fn yields unconfirmed capability suggestions only, no inferred real admin rights. Funding becomes Activity children; old Handoff retains sources, unconfirmed text cannot enter Approved Memory.
+5. Stable migration IDs/version prevent duplicate objects on rerun; review cross-activity dependencies separately. Atomically switch storage pointer only after mapping confirmation; restore old snapshot on failure.
+6. Formal adapter/actual legacy read-write after visual acceptance. `inspectMigration()` only verifies classification, original retention, pending-review marks.
 
-## Visual reference
+## Visual references
 
-Only three main references specified by the user are used:
+Use only the user's three primary references:
 
-- Apple HIG: Tier, White, Standard Controls, Keyboard and Touchability: https://developer.apple.com/design/human-interface-guidelines/
-- Monday: Task status, header, risk and scanable work view: https://monday.com/new-product
-- Option Projects: Both tasks, materials, decisions and multiple views in ACTity: https://www.notion.com/product/projects
+- Apple HIG: hierarchy, whitespace, standard controls, keyboard/touch accessibility:https://developer.apple.com/design/human-interface-guidelines/
+- monday: task status, owners, risk, scannable work views:https://monday.com/new-product
+- Notion Projects: tasks, materials, decisions, multiple views within Activity:https://www.notion.com/product/projects
 
-Do not copy brands or icons. icon is a simple SVG in this item. Text at least 14 px; The supporting labels may be smaller; (a) Interactive target of at least 44 px; No key Hover-only operation. The mobile phone is replaced by a top-down streamlined navigation, and the composer does not cover content in the document stream.
+No copied branding/icons; simple project SVGs. Body≥14px, auxiliary labels may be smaller, targets about≥44px, no essential Hover-only actions. Mobile uses simplified top navigation; composer in document flow, not covering content.

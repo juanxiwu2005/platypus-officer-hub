@@ -1,29 +1,31 @@
-# WP06 - Words and Information Density Restricted
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
+
+# WP06 — Page word-count/information-density gates
 
 ## Agent prompt
 
-You are responsible for restoring the page word bar and preserving the detectability of information. This package is the second stage and must be based on the latest `origin/integration/v1.0` that has been integrated into WP02. Reading `AGENTS.md`, README, manifest, fetch, reporting baseline SHA before starting, cannot use `main`.
+Restore word gates while preserving discoverability. Stage 2, latest `origin/integration/v1.0` with WP02. Read `AGENTS.md`, README, manifest; fetch/report baseline SHA, no `main`.
 
-### Known failures in the review baseline
+### Known audit-baseline failures
 
-- `/events`: Total Words 614/420
-- `/rules`: Visible 324/170, total word 1671/560
-- `/team`: Visible 138/130
-- `/funding`: Redirected Events, but still counting according to the old Funding 160 overall word cap
+- `/events`: total 614/420
+- `/rules`: visible 324/170, total 1671/560
+- `/team`: visible 138/130
+- `/funding`: redirects Events, still measured against old Funding total 160
 
-### Request
+### Requirements
 
-- `/funding` Disables removal from the stand-alone page door or explicitly as `/events` alias and does not restore duplicate pages.
-- Events Default to render only the information currently needed; Minor details are rendered as necessary or selected and no budget, source or key cut-off date should be removed.
-- Rules ' classification, search or tabs only render the current selection while retaining all policy sources that can be found. It is important not to cheat only with the large text that CSS hides while still in DOM.
-- Team streamlines duplicate statements but maintains clarity of roles and responsibilities.
-- LIMITS may not be simply upgraded unless expressly authorized; Scripts should not be modified to ignore what is actually seen by ordinary users.
+- Remove independent `/funding` gate or explicitly alias `/events`; do not restore duplicate page.
+- Events initially renders current needs only; secondary details on expansion/selection, without removing budgets/sources/key dates.
+- Rules categories/search/tabs render selected content only, keeping all policy sources discoverable; no cheating with CSS-hidden large DOM text.
+- Team removes repetition, retains clear roles/responsibilities.
+- No simple LIMITS increases without explicit approval; scripts must count ordinary users' visible content.
 
-### Acceptance Standard
+### Acceptance
 
-1. `npm run words` Completely adopts and reports the number of pages before and after restoration.
-2. Funding no longer repeats statistics as a stand-alone page that does not exist.
-3. Policy sources, event budgets and accountability information are still accessible via keyboard/read screen.
-4. The Rules/Events/SMoke related Playwright test was passed.
-5. `npm run lint`, `npm test`, `npm run build` and `git diff --check` were adopted.
-6. Creates a `[RR-WP06][Codex]` submission.
+1. `npm run words` passes; report before/after per page.
+2. Funding no longer double-counted as nonexistent page.
+3. Sources/event budgets/responsibilities keyboard/screen-reader accessible.
+4. Relevant Rules/Events/smoke Playwright passed.
+5. `npm run lint`, `npm test`, `npm run build`, `git diff --check` pass.
+6. One `[RR-WP06][Codex]` commit.

@@ -1,83 +1,81 @@
-> **Language policy update, November 19, 2026:** write documents, reports, comments, commits, and GitHub notes in English. This supersedes any earlier language instruction quoted in this historical file. Current `AGENTS.md` controls.
+# Stage 2 prompt (for another AI)
 
-# Phase 2 prompt (to another AI)
-
-> Usage: Change only the top two places before sending [to be completed] and paste the following code block to each other. Stage 2. After you complete the stage, hand over phase 3.
-> At the same time, only one AI does stage 2 (including me), otherwise it will cover each other on the same branch.
+> Usage: edit only the two [fill before sending] fields at the top, then paste the entire code block. Hand over stage 3 only after stage 2 is complete and accepted.
+> Only one AI may work on stage 2 at a time (including me), or they will overwrite each other on the same branch.
 
 ```
-Hello. You're taking over.  Platypus Repository  Onboarding It's a revised version. **Phase  2**。You can't see the conversation before, so everything depends on the document and code in repository. Don't guess.
+Hello. You are taking over **stage 2** of the Platypus Onboarding redesign. You cannot see earlier chats; repository documents/code are authoritative. Do not guess.
 
-[Pocket before sending]  1】Juanxi Policy Document  docs/ONBOARDING_REDESIGN_STRATEGY.md Article  9 Section  Q2–Q6 Response: As recommended  / was replaced by: ________
-[Pocket before sending]  2Phase  1 Acceptance: Juanxi _Other Organiser  / The feedback is: ________
+[Fill before sending 1] Juanxi's answers to Q2–Q6 in docs/ONBOARDING_REDESIGN_STRATEGY.md section 9: follow recommendations / change to:________
+[Fill before sending 2] Stage 1 acceptance: Juanxi accepted / feedback:________
 
-## 0. Background and rules.
-- Juanxi does not code. Explain plainly in his preferred conversation language, one step at a time, with exact UI instructions when needed. UI, documentation, reports, code comments, commits, and GitHub notes must be in English.
-- I'm sorry, repository.  GitHub juanxiwu2005/platypus-officer-hub, Task Branch  claude/determined-johnson-yrdxwfIt's also a preview.  10 It's...  PR）。Don't change the name, don't delete it.
-- Absolutely not: change  main, transport or merge  main, forced delivery and rewriting of others' submissions. Merge to  main It's not your mission.
-- Reference date  11/6。All attendees are presidents, default first steps  A；Worker process  B Just...  A After that. "Preview "。
+## 0. Background/rules
+- Project lead Juanxi does not code. Speak simple Chinese, one step at a time, no jargon; clearly say where he must click. All UI copy English. Historical documentation/report requirement was Chinese; current English policy supersedes it.
+- GitHub juanxiwu2005/platypus-officer-hub, working branch claude/determined-johnson-yrdxwf (also preview 10 PR). Never rename/delete.
+- Never: modify, push, merge main; force-push; rewrite others' commits. Merging main is not your task.
+- Reference date 11/6. All participants are presidents; default founder flow A, member flow B only a preview after A.
 
-## 1. Read it first. Read it first.
-1. AGENTS.md(Para. )  3、4、7、7.1 Section)
-2. docs/PROGRESS.md The top few, especially.  2026-11-02 That one. "Phase  0 Completion "
+## 1. Read first, in order, before edits
+1. AGENTS.md (sections 3, 4, 7, 7.1)
+2. Top docs/PROGRESS.md entries, especially 2026-11-02 “stage 0 gaps completed”
 3. docs/DESIGN_TOKENS.md
-4. docs/ONBOARDING_REDESIGN_STRATEGY.md(Para. )  2、3、4、5、6、7 Section)
-5. docs/onboarding-redesign/WORK_PACKAGES.md、PROMPTS.md（**Article  3.2 Templates and tables are mission statements for each package.**）、ROLLBACK_LOG.md
-6. docs/onboarding-redesign/reports/OB-04-prep-stage0-gap-fix.md(Phase)  0 What did you do, why?
-Designed, do not re-engineer, and do not change the strategy, work package, process document; They stopped to write the report because they thought they were wrong.
+4. docs/ONBOARDING_REDESIGN_STRATEGY.md (sections 2, 3, 4, 5, 6, 7)
+5. docs/onboarding-redesign/WORK_PACKAGES.md, PROMPTS.md (**section 3.2 template/table specifies each package**), ROLLBACK_LOG.md
+6. docs/onboarding-redesign/reports/OB-04-prep-stage 0-gap-fix.md (stage 0 changes/rationale)
+Design settled: no redesign or edits to strategy, packages, prompts documents; if wrong, stop and report.
 
-## 2. Phase  0 I've got something for you.
-- Route: src/App.tsx Lee.  /welcome/founder/* and  /welcome/member/* All roads have been built. **Each screen is an empty shell file with only a placeholder content.**（src/onboarding/founder/*.tsx、member/*.tsx）。You will replace only the empty shell of your own bag. **Never change.  App.tsx**。
-- src/onboarding/draft.tsx: complete president draft context (clubs, constitution, AI Reading status, role, workflow, buffer, first event, date, invitation number, skipped # And wait # Only by screen  useOnboardingDraft() It's...  draft / patch / update Read and write. **Need a field not in it: stop writing the report and don't change the document.**
-- src/onboarding/engine/flows.ts + useFlow.ts: step sheet and route-driven step machine. Use in screen  const flow = useFlow()I'll do it.  flow.next() / back() / skip() / exit()；skip just right.  optional The steps are effective; It's the only way to get a record of events. **Don't write your own records on the screen.**。
-- src/onboarding/shell/(Hells, ProgressChain、DemoStrip）、src/onboarding/copy.ts(Text of documents). The text can only be quoted, or **My own block.**Reload  keyDon't change people's blocks.
-- Style: src/styles/ob-04-name-constitution.css、ob-05-goals-team.css、ob-06-first-event.css、ob-07-member-invitation.css、ob-08-member-finish.css、ob-09-confirm-invite.css Built and completed  @import；Every bag is just one of its own. No change.  index.css and  styles.css。
-- Records: src/lib/onboardingRecord.ts(Browser active, with behavior-free content). You don't need to call it.
-- (a) the entrance switch default; Open with: Website Add  ?walkthrough=1。Start walkthrough The old set-up page is still in place. src/onboarding/target.ts It's...  FOUNDER_START），**Cut to the new process is stage.  3 Don't change it.**。Look at your new screen and open it.  /#/welcome/founder/name Or something like that.
-- Test Assistant  e2e/ob-helpers.ts；References  e2e/ob-01-shell.spec.ts、ob-03-gate.spec.ts It's written.
+## 2. Stage 0 foundations (do not redo/change)
+- Routes: all /welcome/founder/*, /welcome/member/* in src/App.tsx exist; **each screen is a placeholder shell**(src/onboarding/founder/*.tsx, member/*.tsx). Replace only your package's shells, **never edit App.tsx**.
+- src/onboarding/draft.tsx: complete founder draft context (club, constitution, AI reading state, roles, workflow, buffer, first event, dates, invite code, skipped, etc.). Screens use only useOnboardingDraft () draft / patch / update. **Missing needed field: stop/report; do not edit this file.**
+- src/onboarding/engine/flows.ts + useFlow.ts: step table/route-driven state machine. Use const flow = useFlow (), flow.next () / back () / skip () / exit (); skip only optional steps; machine emits records centrally, **screens never log themselves**.
+- src/onboarding/shell/(shell, ProgressChain, DemoStrip), src/onboarding/copy.ts (copy table). Reference copy or add keys only in **your package's block**, not others.
+- Styles: src/styles/ob-04-name-constitution.css, ob-05-goals-team.css, ob-06-first-event.css, ob-07-member-invitation.css, ob-08-member-finish.css, ob-09-confirm-invite.css exist/imported; edit only your own, not index.css/styles.css.
+- Records: src/lib/onboardingRecord.ts (local browser, behavior only, no content). No calls needed from you.
+- Gateway off by default; ?walkthrough=1 enables. Start walkthrough still goes old setup (FOUNDER_START in src/onboarding/target.ts); **stage 3 switches flows, do not edit it**. Open new screens directly, e.g./#/welcome/founder/name.
+- Helpers: e2e/ob-helpers.ts; examples: e2e/ob-01-shell.spec.ts, ob-03-gate.spec.ts.
 
-## 3. Your job: 5 One bag, in this order, one at a time.
-Mission statement  = PROMPTS.md Article  3.2 Template for Sections  + That filled-out form. Key points:
-- **OB-06 First event(first done, most difficult):** One word.  + Example button  → The progress chain itself.  src/engine/schedule.ts，AI No Dates) → Buffer part control ( 1·2·3·5·7Call the date and change the scene. → Collapse  Event details。Reuse  Setup.tsx It's...  prepare Logical, data/settings.ts It's...  completeSetup、lib/commands.ts。**Draws a performance that can be interrupted and the whole thing shows up directly with less dynamic effects.** Documents: src/onboarding/founder/FirstEvent.tsx、ob-06 Styles, e2e/ob-06-*.spec.ts。
-- **OB-05 Goals + Team：** Suggested target (switch)  + (c) Steprs; Rory, there's only one thing  Role / Person Two. Person Leave empty  = Open position), organizational chart reuse  OrgChartand the overlapping of responsibilities; **No phone calls. ASU IDMailbox**(Postboxing)  data/structure.ts It's...  fillEmails）。Documents: founder/Goals.tsx、Team.tsx、ob-05 Styles, tests.
-- **OB-04 Name + Constitution：** Student event name  + (a) School-only titles; Three Options Lines ( Use sample In front.  / Upload / Paste）+ Skip；Reuse  ConstitutionStep and  Setup.tsx It's...  startReading (a) Logical; AI Failed documentation  copy.ts The one that's already written in the inside. Documents: founder/Name.tsx、Constitution.tsx、ob-04 Styles, tests.
-- **OB-07 First half of the crew preview:** Invitation( Role card magnified, three benefits, trusting a word), You(pre-fill confirmation), Reminders(channel options line)  + Morning/Evening + An example that changes with the selection reminds bubbles; The phone's only on the menu.  WhatsApp/SMS The subsequent occurrence and writing of the purpose; **Don't ask.  ASU ID**）、Demo Artic  "Previewing as Some. "。Develop a sample example of student application and its invitation code. Documents: member/Invitation.tsx、You.tsx、Reminders.tsx、ob-07 Styles, tests.
-- **OB-08 The last half of the crew preview:** Weeks (end of week) /The holidays are from  engine/calendar.ts；The busy week must be Monday, Wednesday in a single screen, Done(name added to organizational chart)  + First card. Documents: member/BusyWeeks.tsx、About.tsx、Done.tsx、ob-08 Styles, tests. **It's a cutable bag.**: Stop and tell if there's not enough time  JuanxiDon't steal jobs.
-Every screen. "kskip "There has to be.  Skip for now + One line. "Where to find it from now on? "；Every Screen "I saw it at first glance. "English  ≤40（OB-06 ≤60）。Q2–Q6 It's called strategy number one.  9 Section; If it's empty, "Recommendation ", press every single one of the documents "Recommendations "Column execution.
+## 3. Work: 5 packages, in order, one at a time
+Specification=PROMPTS.md section 3.2 template + filled table. Essentials:
+- **OB-06 First event (first, biggest/hardest):** sentence/example buttons → chain draws itself (dates only src/engine/schedule.ts, no AI dates) → segmented buffer (1·2·3·5·7, immediate date changes) → collapsed Event details. Reuse Setup.tsx prepare, data/settings.ts completeSetup, lib/commands.ts. **One interruptible reveal; reduced motion shows whole chain immediately.** Files: src/onboarding/founder/FirstEvent.tsx, ob-06 CSS, e2e/ob-06-*.spec.ts.
+- **OB-05 Goals + Team:** suggested goals (toggles/steppers); Role / Person only (Person blank=Open position), reuse OrgChart, collapsed duties; **no phone, ASU ID, email questions**(data/structure.ts fillEmails). Files: founder/Goals.tsx, Team.tsx, ob-05 CSS, tests.
+- **OB-04 Name + Constitution:** club name/read-only school badge; three options (Use sample first / Upload / Paste) + Skip; reuse ConstitutionStep/Setup.tsx startReading; AI failure uses existing copy.ts sentence (no status codes). Files: founder/Name.tsx, Constitution.tsx, ob-04 CSS, tests.
+- **OB-07 Member preview first half:** Invitation (larger role card, three benefits, one trust sentence), You (prefilled confirmation), Reminders (channel rows + Morning/Evening + selection-dependent example bubble; phone only after WhatsApp/SMS, explain purpose; **no ASU ID**), Demo strip “Previewing as <name>.” Develop with sample club/invite. Files: member/Invitation.tsx, You.tsx, Reminders.tsx, ob-07 CSS, tests.
+- **OB-08 Member preview second half:** week strip (finals/holidays from engine/calendar.ts; busy weeks Monday-only), three questions on one skippable screen, Done (name joins chart + first-action card). Files: member/BusyWeeks.tsx, About.tsx, Done.tsx, ob-08 CSS, tests. **May be cut:** if time insufficient, stop/tell Juanxi; no shortcuts.
+Every skippable screen needs Skip for now + where to find it later; immediately visible English words≤40/screen (OB-06≤60). Q2–Q6: strategy section 9; if filled “follow recommendations,” use each recommendation column.
 
-## 4. Working methods
-- Act as implementer and integrator, one package at a time. Create local `design/ob-NN-<short-name>` from the work branch, lowercase without AI names. Commit in English, for example `[OB-NN][Codex] Describe the change`; after self-check, return to the work branch and use `git merge --no-ff` to preserve package rollback. Update ROLLBACK_LOG and push the work branch. Do not squash or rebase pushed commits.
-- Passion denied: first  git fetch, to push yourself back behind the far end, not to push; At the far end, there may be someone else's restoration. Don't change them.
-- First thing to do:  docs/PROGRESS.md Put it on. "Onboarding Phase  2"Mark As "Ongoing "Write it down.  AI Name and date; If there's something else,  AI Marking in progress. Stop asking questions.  Juanxi。
-- Every bag is just one of its own. "We have to change these files. "(a) The document in the column; Look before submission and Mege.  git diff --stat。Documents other than the list that need to be changed ( App.tsx、draft.tsx、store.tsx、styles.css、index.cssThe old one.  Setup.tsx/Join.tsx Wait: Stop writing the report.
+## 4. Workflow
+- You execute and integrate, one package at a time: branch locally design/ob-NN-<short-name>(lowercase, no AI names) from working branch; commit format “[OB-NN][your-AI-name] What changed.” Historical requirement for Chinese commit messages is superseded by current English policy. After self-check, git merge --no-ff into working branch (Juanxi needs per-package merge rollback), record ROLLBACK_LOG.md, push working branch. No squash or rebasing pushed commits.
+- Push rejected: git fetch, place your unpushed commits after remote, no force; others' remote fixes must remain unchanged.
+- First action: mark “Onboarding stage 2” in progress in docs/PROGRESS.md with AI/date; if another AI already doing it, stop/ask Juanxi.
+- Edit only each package's permitted files; inspect git diff --stat before commit/merge. Need outside files (App.tsx, draft.tsx, store.tsx, styles.css, index.css, old Setup.tsx/Join.tsx, etc.): stop/report.
 
-## 5. Hard rules (violation is a failure, see full version)  AGENTS.md）
-1. Disable research data, participant information, secret key; Only field@actional data.
-2. Dates are calculated only by rule engine. AI Can't give date.
-3. Do Not Call  /api/org/*、/api/workspace*, do not add  AI Interfaces; Use only what's available.  /api/setup/constitution、/api/command。
-4. I won't change.  SCHEMA_VERSION、DemoStateDon't change what you already have.  localStorage / IndexedDB key.
-5. Styles only  token；Just write your own.  ob-NN Documentation; No writing.  !important、transition: all(a) Naked milliseconds, naked colour; Just move.  transform and  opacity；Animation can be interrupted with a less dynamic version. npm run lint Will stop.
-6. Old pages and old tests remain unchanged and not relaxed; The entrance switch is closed as it is today.
-7. One for each new guard. "Deliberate violation turns red. "test samples; No skip, no deletes, no relaxing tests to turn green.
-8. There must be a report. "It's not verified. "One column (real fingers, real fingers) SafariAnd don't say anything that has not been verified.
+## 5. Hard rules (violation=failure; AGENTS.md full text)
+1. No research data, participant information, secrets; fictional only.
+2. Dates only rule engine, no AI dates.
+3. No /api/org/* or /api/workspace*, no new AI endpoints; only existing /api/setup/constitution, /api/command.
+4. Do not change SCHEMA_VERSION, DemoState, existing localStorage/IndexedDB keys.
+5. Token styles only, in own ob-NN file; no !important, transition: all, bare milliseconds/colors; transform/opacity only; interruptible/reduced motion. npm run lint enforces.
+6. Old pages/tests unchanged, not relaxed; flag off means whole site unchanged.
+7. Each new guard needs deliberate-failure sample; never skip/delete/weaken tests to pass.
+8. Reports require “unverified”(physical fingers, Safari, dark mode, etc.if untested); never claim verification without it.
 
-## 6. How do you prove a package is done?
-Node 22。npm ci；npm run lint；npm run build；npm test；Run for your own.  e2e(desktops and cell phones)  project）：
-PW_PORT=52NN PW_STORAGE_PORT=53NN WORDS_PORT=54NN npx playwright test e2e/ob-NN-*.spec.ts（NN It's a package. Cannot initialise Evolution's mail component.  PW_CHROMIUM=<chromium Path >(This environment is common: /opt/pw-browsers/chromium-1243/chrome-linux64/chrome）。
-Tests for each package include at least: fastest path, full path, return /Skip /It's restored. axe (a) Accessibility, dark colour and reduction of kinetic effects; We're going to have to cut back the power. "No reduction "and sample by frame (reference)  e2e/dx-*.spec.ts）。
-Every merge, one pack full.  npm run check；The phase must be complete and green before it ends.
-**The starting point is to run first:** Before we start.  npm run check Must be green. An old test known to be fragile: src/test/engine.test.ts Lee.  "no change ever makes a step start after its own club deadline" It's going to pass on the slow machine.  5 The second limit fails, plus  --testTimeout=30000 A single rerun is a known problem and states in the report that it should not be modified.
-Note: No use.  pkill -f To kill the development server.  shell We're going to kill them together.  PID。
+## 6. Proving completion
+Node 22. npm ci; npm run lint; npm run build; npm test; then own e2e (desktop/mobile projects):
+PW_PORT=52NN PW_STORAGE_PORT=53NN WORDS_PORT=54NN npx playwright test e2e/ob-NN-*.spec.ts (NN=package number). No preinstalled browser: set PW_CHROMIUM=<chromium-path>(common here:/opt/pw-browsers/chromium-1243/chrome-linux64/chrome).
+Each package at least: fast/full paths, back/skip/resume, axe, dark, reduced motion; for motion, switch reduced motion off and sample frames (see e2e/dx-*.spec.ts).
+Full npm run check after every package merge; all green before stage end.
+**Check baseline first too:** npm run check must pass before edits. Known fragile old test: “no change ever makes a step start after its own club deadline” in src/test/engine.test.ts may exceed 5-second limit on slow machines; if isolated --testTimeout=30000 rerun passes, report known issue, do not edit test.
+Do not pkill -f development servers (command matching can kill your shell); use port/PID.
 
-## 7. We have to stop the situation.
-(a) The starting point is not green; Documents other than the white list, data structure, stored keys already available or dependent on them; Only by weakening the test can it become green. The document contradicts the code; I saw something else.  AI At the same stage; Pushing has been a failure. When you stop, write in the report where it's done, where the card is, what your advice is, and tell them in simple Chinese.  Juanxi。
+## 7. Mandatory stops
+Failing baseline; need outside files/schema/storage-key/dependency changes; only weakened tests pass; docs/code contradiction; another AI on same stage; persistent push failure. Report progress, blocker, recommendation, and explain simply in Chinese to Juanxi.
 
-## 8. Delivery
-1. Each one of the bags.  docs/onboarding-redesign/reports/OB-NN.mdWhat'd you do?  / What do you mean, "acceptance"?  / It's not verified.  / Problems encountered  / Rollback mode.
-2. ROLLBACK_LOG.md Register each merge submission  SHA。
-3. docs/PROGRESS.md Add a stage to the top: what has been done, previewing the web site (with  ?walkthrough=1 and "Do what you want to do, president process. "A few words, test results, unverified, next steps.  Juanxi (a) Decide on what; Change Status "I'm sorry, isn't it? "；Write. "Need to sync local backup "。
-4. Send the branch of work. No new  PRNo, merge.  main。
-5. Here.  Juanxi A simple sum up in Chinese.  3–5 And then stop waiting for him. **Don't go on the stage.  3**。
+## 8. Handoff
+1. Each package: docs/onboarding-redesign/reports/OB-NN.md (changes/click-by-click acceptance/unverified/issues/rollback).
+2. ROLLBACK_LOG.md records each merge SHA.
+3. Top docs/PROGRESS.md stage handoff: changes, preview URL (with ?walkthrough=1), few founder-flow click instructions, tests, unverified, next Juanxi decisions; status awaiting acceptance; “Local backup needs synchronization.”
+4. Push working branch, no new PR/main merge.
+5. Simple Chinese summary to Juanxi (3–5 sentences on completed work, URL/clicks, unfinished/risk), then stop for acceptance; **do not continue stage 3**.
 
-From now on, do the first.  1 Section reading, and recapitulating. "This is the package and order to be done. "and "Scope of the document to be changed for each package "Do it again.
+Begin: read section 1, then restate packages/order and intended file scope for each, before editing.
 ```

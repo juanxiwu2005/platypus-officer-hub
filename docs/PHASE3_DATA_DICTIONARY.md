@@ -1,305 +1,305 @@
-# Phase 3 Export File Data Dictionary
+# Phase 3 export data dictionary
 
-To the researcher Juanxi, what's in the JSON file that participants downloaded on Settings page by **Export my Data**, what is it for each field, how to calculate the time of the task from inside, the number of errors and "does not open reference source" and what **couldn't do**.
+A guide for the researcher (Juanxi): what is in the JSON file participants download by pressing **Export my data** in Settings, what each field means, how to calculate task duration, error counts, and whether cited sources were opened, and what it **cannot** establish.
 
-- Applicable version: `formatVersion: 3` (from 2026-11-07, with "research session", see 1.1). The old `formatVersion: 1`, `2` files can also be read in the following CSV scripts: 1 has no interface operating records; 1 and 2 don't have a session, the file is all the records in this browser.
-- The file contains only data from the field station application and records of participants ' operations in the prototype. **Nothing automatically uploads**: files are downloaded to his own computer only when the participant presses the button himself, and he e-mails it to the researchers.
-- This document corresponds to the code: `LogEntry` for log structure `src/data/types.ts`; Interface event `src/lib/uiLog.ts`; `appendUiLog` for writing and decoupling `src/data/store.tsx`; Study session `src/lib/studySession.ts`; Timeline `src/lib/timeline.ts`; Export `buildExport`; CSV script `scripts/export-to-csv.mjs`.
-- For 2026-11-07 four new **records (task tags, exit pages, start editing fields, suspension cards) for behavior only**, see 11.
-- The 2026-11-08 (P3-H) president process has a screen for **Reminders** (inquire how to send a reminder to office), and the process version becomes `ob-4`; Exported session summaries more `reminderModeChoice`. **No new entry**: The selection itself would have been recorded as `ui.change`, see section 12.
+- Applicable version: `formatVersion: 3` (since 2026-11-07, adding "study sessions"; see Section 1.1). The CSV script below can also read older `formatVersion: 1` and `2` files: version 1 has no interface interaction records; versions 1 and 2 have no sessions, and contain all records in that browser.
+- The file contains only fictional student-organization data and participants' prototype interactions. **Nothing uploads automatically**: a file downloads to the participant's own computer only when they press the button, then they email it to the researcher (during Zoom).
+- Code references for this document: log structure `LogEntry` in `src/data/types.ts`; interface events `src/lib/uiLog.ts`; writing and noise filtering `appendUiLog` in `src/data/store.tsx`; study sessions `src/lib/studySession.ts`; timeline `src/lib/timeline.ts`; export `buildExport`; CSV script `scripts/export-to-csv.mjs`.
+- Four **behavior-only** records were added on 2026-11-07 (task markers, leaving the page, starting field edits, hover cards); see Section 11.
+- On 2026-11-08 (P3-H), the president flow gained a **Reminders** screen (asking how reminders should reach officers), changing the flow version to `ob-4`; exported session summaries gained `reminderModeChoice`. **No new record types were added**: the choice was already recorded as `ui.change`; see Section 12.
 
 ---
 
-## 1.
+## 1. In one sentence
 
-What the participants do in the prototype is recorded as an article in the order of occurrence (up to a maximum of 2000 for each study session). Each of these articles has a number, live time, then "who did it", what was done, what was done (long text cut off), the value before when the data were changed and whether the prototype was accepted. Export is accompanied by a "time line" of all records scheduled in time for easy viewing or conversion to Excel.
+Participant actions in the prototype are recorded in occurrence order (at most the latest 2000 per study session). Each entry contains an ID, real time, the current View as identity, action, target (long text truncated), pre-change values when modifying data, and whether the prototype accepted the action. Export adds a chronological "timeline" of all records for direct reading or conversion to Excel.
 
-### 1.1 research session (formatVersion 3)
+### 1.1 Research sessions (from formatVersion 3)
 
-**Why should there be:** researchers, when they tried it on their own website, discovered that the former 49 of the exported 177 were left over another day (before the same browser). In order for the documents tested to be filled with only one sit-in at a time (hereinafter referred to as "sitting" ) and not to lose data by mistake, there is now a "study session".
+**Why sessions exist:** while trying the live site, the researcher found the first 49 of 177 exported entries came from another day in the same browser. Study sessions ensure each test file contains only the current sitting, without losing data through accidental actions.
 
-- **When will a new session start:** Just start "The Guide to Record" once: Opens the research link `/#/start`, Start walkthrough (`/welcome/start`) on welcome pages, or Replay walkthrough on Demo menu. Two Test buttons in the Demo menu **No, I'm not.**Start the session and write no records.
-- **What does it do when you start doing:** produces a session number (e. g. `s-3f9a0c71d2e4b856`, randomly, without information about anyone ' s name, time or device) and records the starting time. **then only deletes the earlier little thing**: an interactive log entry over 6 hours and a guided attempt (unless it belongs to a session that starts within 6 hours). How many notes (`previousEntriesCleared`, `previousAttemptsCleared`) have been deleted without content. **has kept** for the most recent 6 hours, including a few minutes of browsing before the point research link (these entries do not have session numbers).
-- After **: This session number is taken in every** log (`session` field). No. `seq`, then count down, not again. One session only sits once: start 6 hours before writing again without a session number until the next time a research link is opened.
-- **opened up a research link (or pressed Replay walkthrough):** will start a second session, but none of the records of the previous **will be lost** (all within 6 hours). There are two sessions in the export file, one line in `sessions`, and each log is sorted with a `session` field.
-- **Why 6 hours:** up to 75 minutes for one test; 6 hours ago was basically another day and another time (possibly another person used the computer). We don't take them off. 2000A ceiling would not be misleading;  The number is still in the document, and researchers can see that something has happened before.
-- **2000 cap:** calculates the entire log left in the browser (possibly including a few sessions of the same sitting), full from the earliest to see `interactionLog.droppedEarlier` (only the upper limit, not 6 hours of clean-up and deletion).
-- **Exporting: all log entries and pilot attempts retained by** (exceeding the same 6 hour rule to prevent another old tab from writing back the old entry); At the top are `sessions` (one line for each session) and `session` (the latest one, plus the number of bars not entered in the file), see section 3.1. If this browser has never started a session (e.g. only Test buttons or direct example), `session` is empty for `null` and `sessions`, with all records as before.
+- **When a new session starts:** whenever a recorded walkthrough begins: opening the study link `/#/start`, Start walkthrough on the welcome page (`/welcome/start`), or Replay walkthrough in Demo. The two Test buttons in Demo **do not** start sessions or write records.
+- **At the start:** generate a session ID (for example, `s-3f9a0c71d2e4b856`, random and containing no name, time, or device information) and record the start time. Then **remove only earlier-sitting material**: interaction entries and walkthrough attempts older than 6 hours, unless they belong to a session started within the last 6 hours. Retain only deletion counts (`previousEntriesCleared`, `previousAttemptsCleared`), not content. **Keep everything from the last 6 hours**, including browsing minutes before the study link was opened (those entries have no session ID).
+- **Afterward:** every log entry has this session ID (`session`). Continue `seq` numbering without restarting. A session covers one sitting only: entries written more than 6 hours after it began have no session ID until the study link is opened again.
+- **Opening the study link again mid-session (or Replay walkthrough):** starts a second session, but **loses none** of the previous session's records (they are within 6 hours). The export contains both sessions, one row each in `sessions`; each entry's `session` identifies its session.
+- **Why 6 hours:** a test lasts at most 75 minutes. Material older than 6 hours almost certainly belongs to another day or sitting (possibly another person using the computer). Removing it avoids consuming the 2000-entry limit or mistakenly exporting it; retained counts still tell the researcher that earlier material existed.
+- **2000-entry limit:** applies to the entire retained browser log (possibly several sessions in the same sitting). Drop the oldest when full; `interactionLog.droppedEarlier` counts these removals only, excluding the 6-hour cleanup.
+- **On export:** include all retained entries and walkthrough attempts, applying the same 6-hour rule again to prevent an old tab from writing old entries back. Top-level `sessions` has one row per session; `session` contains the latest plus counts excluded from the file (section 3.1). If this browser has never started a session (for example, only Test buttons or direct sample browsing), `session` is `null`, `sessions` is empty, and the file contains all records as before.
 
-## 2.
+## 2. How to obtain and open the file
 
-1. Participants: Settings — My preferences — **Export my data**. The browser downloads a file with a name like `platypus-export-2026-11-07-15-04-31.json` (the time in the filename is UTC).
-2. Upon receipt, the researcher entered the repository directory on Node.js 22 computer:
+1. Participant: Settings → My preferences → **Export my data**. The browser downloads a file named something like `platypus-export-2026-11-07-15-04-31.json` (the filename time is UTC).
+2. After receiving it, the researcher runs the following from the repository directory on a computer with Node.js 22:
 
    ```
-   node scripts/export-to-csv.mjs Path /platypus-export-2026-11-07-15-04-31.json
+   node scripts/export-to-csv.mjs path/platypus-export-2026-11-07-15-04-31.json
    ```
 
-   Generates a `.csv` with the same name in the same folder, an event in a row that can be opened directly by Excel.
-   - Read directly with R: `readr::read_csv("….csv")`; If you use `read.csv` for base R, add `--no-bom` (the initial byte order mark is used for Excel to recognize Chinese and symbols).
-   - Scripts read only this file, write only that CSV, not online.
-3. You can also open the `timeline` field directly with any text editor or browser.
+   This creates a `.csv` with the same name in the same folder, one event per row, ready to open in Excel.
+   - In R: read directly with `readr::read_csv("….csv")`; for base R's `read.csv`, generate it with `--no-bom` (the initial "byte order mark" helps Excel recognize Chinese text and symbols).
+   - The script reads only this file and writes only that CSV; it does not access the network.
+3. You can also open the JSON in any text editor or browser and inspect `timeline`.
 
-## 3. Fields on the outermost layer of a file
+## 3. Top-level file fields
 
-| Fields | Meaning. |
+| Field | Meaning |
 | --- | --- |
-| `format` | Hold on. `"platypus-export"`, to recognize this as a prototype export file |
-| `formatVersion` | File schema vension. Now. `3`。2 is more marked than 1; 3 has more field tags, and `interactionLog`、`onboarding`、`timeline` Only this time sitting (most recently 6 hours; see 1.1; I didn't delete any of the original fields. |
-| `exportedAt` | Press exported Live Time (ISO format, UTC) |
-| `schemaVersion` | Version number of the student data structure (developed) |
-| `storageKey` | Name of data stored in browser (developed) |
-| ★ `build` | What kind of website is this? `version`(Application version number), `commit`(Code submission number), `branch`、`context`(Production / deploy-preview for Netlify) Write when local construction does not contain this information `"unknown"`。The same version is used to identify each participant. |
-| ★ `demoToday` | "Date of presentation" in the prototype. The date of the prototype is false and can be dialed forward by the Demo menu; It has nothing to do with live time. |
-| ★ `onboardingFlowVersion` | New Hand-led Process Version of the current website (now) `ob-4`: After First event and before Confurm there are more Reminders screens; `ob-3` There is no such screen. It's been written in every guide attempt. |
-| ◆ `sessions` | For each research session in the file, see 3.1; No session is empty `[]` |
-| ◆ `session` | The latest session. `sessions` Last line) and the number of strips that are not in the file, see 3.1; When there is no session `null` |
-| `state` | Export data from the whole fictional community at that moment.（event、Tasks、Members、Settings……）。Sign Key Replaced with `"[omitted]"`。Handoff Change start.（Structure Version 21）There's more in there. `roleTerms`（Who's been in what position?：`status` Yes. `incoming` / `active` / `former`，Start and end date）、Members `leftOn`（Date of departure after handover）and `incomingFor`（Designated to take over、It's not officially taken over.）；Structure Version 22 There's more. `archivedRoles`（Closed posts，Save for History）、Job. `formerNames`（Old name）and `startNotes`（The start of the new job.），It's all a fictional presentation. |
-| `onboarding` | Newer Guides `/#/welcome/…`For a separate record, see 6. |
-| `interactionLog` | An interactive log body, see 4 and 5 (only sitting this time when a session is available). There's more on the outer floor: `limit`（2000）、`count`(Number of existing articles), `firstSeq` / `lastSeq`(number of the first and last articles), `droppedEarlier`(Because more than 2000 was lost) 0 means one didn't lose. 6 hours cleans up and deletes are not here. See you. `previousEntriesCleared`） |
-| ★ `timeline` | A list that combines the interactive log with the newer guide, time-bound, with a short description of each line in English; see section 7 |
+| `format` | Always `"platypus-export"`, identifying an export from this prototype |
+| `formatVersion` | File structure version, currently `3`. Version 2 added ★ fields to version 1; version 3 adds ◆ fields, and `interactionLog`, `onboarding`, `timeline` contain only this sitting (last 6 hours, see 1.1; no original fields removed) |
+| `exportedAt` | Actual export-button time (ISO, UTC) |
+| `schemaVersion` | Club data schema version (development) |
+| `storageKey` | Browser storage name for data (development) |
+| ★ `build` | Website version: `version` (app version), `commit` (code commit), `branch`, `context` (Netlify production / deploy-preview). Local builds lacking metadata use `"unknown"`. Confirms all participants use the same version |
+| ★ `demoToday` | Prototype's "demo date" at export. Fictional date, advanceable via Demo menu; unrelated to real time |
+| ★ `onboardingFlowVersion` | Current onboarding version (`ob-4`: Reminders added after First event, before Confirm; `ob-3` lacks it). Every onboarding attempt also records its own version |
+| ◆ `sessions` | One row per research session, ordered by start time; see 3.1; `[]` when none |
+| ◆ `session` | Latest session (same as last `sessions` row), plus counts omitted from file; see 3.1; `null` when none |
+| `state` | Entire fictional club state at export (events, tasks, members, settings…). Signing key replaced by `"[omitted]"`. Since Handoff redesign (schema 21), includes `roleTerms` (who held each role: `status` `incoming` / `active` / `former`, start/end dates), members' `leftOn` (departure date after handoff), `incomingFor` (designated successor, not yet active); since schema 22 also `archivedRoles` (closed roles retained as history), roles' `formerNames` (old names), `startNotes` (new-role starting answers). All fictional demo data |
+| `onboarding` | Separate onboarding records (`/#/welcome/…`), Section 6 (when sessions exist, only this sitting's attempts) |
+| `interactionLog` | Interaction log itself, Sections 4 and 5 (when sessions exist, only this sitting). Wrapper also contains `limit` (2000), `count` (current entries), `firstSeq` / `lastSeq` (first/last sequence numbers), `droppedEarlier` (oldest entries discarded after exceeding 2000; 0 means none lost. Excludes six-hour cleanup removals; see `previousEntriesCleared`) |
+| ★ `timeline` | Interaction logs and onboarding records merged and time-sorted, each row with a brief English description; Section 7 |
 
-> **Handoff read the log (2026-11-09, Juanxi decides that question-and-answer records and research logs will not be separated):** Handoff's incoming officer card reads questions about Ask (`question` of `ui.ask`) from `interactionLog` as described in this document at the moment it is drawn. **Do not add any new entries**, do not save these questions, do not place them in manuals or files and do not send them to AI.
+> **Handoff log reading (2026-11-09; Juanxi decided not to separate Q&A records from study logs):** when rendered, the newcomer's Handoff card reads questions the newcomer asked Ask after being named successor (`ui.ask`'s `question`) from this document's `interactionLog`, for the president and newcomer themselves. **Add no records**, save no separate copy, put no questions in the handbook or dossier, and send none to AI.
 
-### 3.1 Sessions (`sessions` and `session`,formatVersion 3)
+### 3.1 Sessions (`sessions` and `session`, formatVersion 3)
 
-`sessions[]` A line for every session (the document contains its entry or attempt, or it's the latest); `session` is the last line, plus `olderEntriesLeftOut` and `olderAttemptsLeftOut`. Time is written in three ways: `…At` is an ISO time for UTC, `…AtMs` is a millisecond number, `…AtAz` is **Arizona time** (America/Phoenix, UTC-7, unchanged throughout the year, without summertime), e.g. `2026-11-07 10:46:40.337`, which can be directly weighed against the score sheet.
+`sessions[]` has one row per session (when it has entries or attempts in the file, or is latest); `session` is the final row plus totals `olderEntriesLeftOut` and `olderAttemptsLeftOut`. Times have three forms: `…At` is UTC ISO, `…AtMs` is milliseconds, `…AtAz` is **Arizona time** (America/Phoenix, UTC−7 year-round, no daylight saving), for example `2026-11-07 10:46:40.337`, directly comparable to the scoring sheet.
 
-| Fields | Meaning. |
+| Field | Meaning |
 | --- | --- |
-| `id` | Session number (random) |
-| `startedAt` / `startedAtMs` / `startedAtAz` | The start of the session (the moment to open the research link) |
-| `attempt` | Direct attempt number for this session (comparable) `onboarding.attempts[].id`） |
-| `outcome` | **The whole** How did this end: `completed` / `exited` / Not finished yet `null`。Note: `exited` It's not like "unbuilt," see next line. |
-| `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | At the time of pressing **Start workspace** or **Keep current demo** (first press). Worthy = building solid organization has been completed; I didn't press the button. `null` |
-| `setupChoice` | Which one is it? `start-workspace`(Start workspace, built its own student organization) or `keep-demo`(Keep current demo, reserve example) |
-| `firstEventChoice` | First event last move forward: `planned`(One activity planned) or `skipped`(Skip for now); I've never walked through this screen. `null`。Just from the screen step record, not to see what's in it. |
-| `reminderModeChoice` | The answer to the 2026-11-08 screen when it last moves forward: `auto_email`（Send automatically）、`review_then_self`（I review, then I send）、`review_then_auto`(I review, Platypus sends) or `skipped`(Skip for now); Never walked forward on this screen. `null`（`ob-3` The old papers too. `null`）。How did you get to see the 12 festival? |
-| `entries` | Number of log bars in the file belonging to this session |
-| `previousEntriesCleared` | The session begins with the number of old logs removed from this browser for more than 6 hours (numbers only) |
-| `previousAttemptsCleared` | Number of old pilot attempts deleted at the same moment, for the same reason |
-| `olderEntriesLeftOut`(only) `session`） | Number of earlier entries not in this file = session by session in the document `previousEntriesCleared` Add together + old entries that are filtered when exporting (e.g. another old tab that is open); Usually 0) |
-| `olderAttemptsLeftOut`(only) `session`） | Number of pilot attempts with the same algorithm |
+| `id` | Random session ID |
+| `startedAt` / `startedAtMs` / `startedAtAz` | Session start time (when the study link opened) |
+| `attempt` | This session's onboarding-attempt ID (matches `onboarding.attempts[].id`) |
+| `outcome` | How the **whole** onboarding attempt ended: `completed` / `exited` / `null` while unfinished. `exited` does not mean "club creation failed"; see next row |
+| `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | First press of **Start workspace** or **Keep current demo** on Confirm. A value means club setup is complete; `null` if never pressed |
+| `setupChoice` | Button chosen: `start-workspace` (Start workspace, created a club) or `keep-demo` (Keep current demo, retained the sample club) |
+| `firstEventChoice` | Last forward action on First event: `planned` (planned an event) or `skipped` (Skip for now); `null` if never visited. Derived only from screen-step records, not entered content |
+| `reminderModeChoice` | Last forward answer on Reminders (2026-11-08): `auto_email` (Send automatically), `review_then_self` (I review, then I send), `review_then_auto` (I review, Platypus sends), or `skipped` (Skip for now); `null` if never advanced from that screen (also `null` in older `ob-3` files). Derivation in section 12 |
+| `entries` | Number of this session's log entries in the file |
+| `previousEntriesCleared` | Number only: older log entries removed from this browser at session start because they exceeded 6 hours |
+| `previousAttemptsCleared` | Older onboarding attempts removed at the same time for the same reason |
+| `olderEntriesLeftOut` (only in `session`) | Total older entries absent from this file = sum of its sessions' `previousEntriesCleared` + older entries filtered again at export (e.g. written back by another old tab still open; usually 0) |
+| `olderAttemptsLeftOut` (only in `session`) | Onboarding-attempt count calculated the same way |
 
-**Examples (researchers) 2026-11-07TRYING:**Start workspace, then go to the staff preview and press Exit there.  The files now contain `setupCompletedAt` with value, `setupChoice: "start-workspace"`, `outcome: "exited"`. Please see `setupCompletedAt` when analysing whether there is no finished construction. Do not look at `outcome`.
+**Example (researcher's trial on 2026-11-07):** clicked Start workspace, then opened member preview and clicked Exit there. File now has populated `setupCompletedAt`, `setupChoice: "start-workspace"`, `outcome: "exited"`. To analyze "was club setup completed?", use `setupCompletedAt`, not `outcome`.
 
-## 4. Each article in the interactive log (`interactionLog.entries[]`)
+## 4. Each interaction-log entry (`interactionLog.entries[]`)
 
-| Fields | Meaning. |
+| Field | Meaning |
 | --- | --- |
-| `seq` | No. 1, 2, 3 ..., no repetition, no reuse; The new session will not be renumbered (only when 6 hours cleans up the log and deletes all light from 1). The beginning is not 1: the earliest articles have been deleted and are capped at 2000. `droppedEarlier`) or 6 hour cleanup ( `previousEntriesCleared`It's written separately in the document. |
-| `at` | Live time, milliseconds since 1970. |
-| `actor` | Who was the prototype View as? id, for example. `alex`） |
-| `type` | What's going on? By `ui.` Started with **interface operation** (section 5); The rest are **data actions** (changed the operation of student data, for example) `completeSetup`、`updateNode`） |
-| `payload` | Details of the event (long text cut to 200 characters); It looks like a secret key field is not accepted |
-| `before` | Only the data movement "re-allocation of existing data" is available: change the values of the previous fields. Interface operation **No** `before` |
-| `applied` | `true` = prototype accepted; `false` = Unaccepted (not accepted, invalid, nothing to change); See under interface operation) |
-| `session` | This is a study session (formatVersion 3). There are no entries written in any session (before the link is studied or after 6 hours) |
+| `seq` | Sequence 1, 2, 3 …, never duplicated or reused; a new session does not restart numbering (only the 6-hour cleanup deleting the entire log restarts at 1). If it does not begin at 1, the earliest entries were deleted; the file separately records whether this was the 2000-entry cap (`droppedEarlier`) or the 6-hour cleanup (`previousEntriesCleared`) |
+| `at` | Real time, milliseconds since 1970 (participant computer's clock) |
+| `actor` | Who the prototype's "View as" was set to at the time (a fictional person's id, e.g. `alex`) |
+| `type` | What happened. Entries starting with `ui.` are **interface operations** (section 5); others are **data actions** (operations changing club data, such as `completeSetup`, `updateNode`) |
+| `payload` | Details of the event (long text truncated to 200 characters; fields resembling secrets are not collected) |
+| `before` | Present only for data actions that "modify existing data": the prior values of those fields. Interface operations have **no** `before` |
+| `applied` | `true` = accepted by the prototype; `false` = not accepted (no permission, invalid, nothing to change; see below for interface operations) |
+| `session` | Which research session this entry belongs to (formatVersion 3). Entries written outside a session (before the research link, or more than 6 hours after session start) have no such field |
 
-**two entries are in the same numbering sequence**, so "what button did you point? How did the data change?" can be read directly in order.
+**Both entry types share one sequence**, so "which button was clicked → how data changed" can be read directly in order.
 
-### 4.1 Common Data Actions (not all)
+### 4.1 Common data actions (not exhaustive)
 
-| `type` | When did you show up? |
+| `type` | When it appears |
 | --- | --- |
-| `completeSetup` | The guide is built by Start Workspace, target organisation ( `payload` Information filled out by participants, cut according to the original rules) |
-| `saveProfile` | Save personal data. |
-| `draftChanges` / `aiAutoApply` | Ask generated a set of changes to be approved / AI directly made |
-| `reviewChange` | Approval or rejection of a set of changes `payload.decision`） |
-| `undoAuto` | Undo an AI minor change |
-| `createTasks`、`addTask`、`claimTask`、`moveTask`、`replyTask`、`updateNode`、`updateEvent` | Increases in mandates and activities |
-| `issueOfficerGrant`、`confirmNudgeSent` | I sent this reminder |
-| `advanceClock`、`setViewer`、`setAi`、`reset` | Demo menu: dial date, switch to see identity, switch AI, reset demo |
+| `completeSetup` | Start workspace in the walkthrough creates the club (`payload` includes the participant's club details, truncated by existing rules) |
+| `saveProfile` | Saving a profile (also written by Done in the member-preview walkthrough) |
+| `draftChanges` / `aiAutoApply` | Ask generates changes awaiting approval / AI directly applies a small change |
+| `reviewChange` | Approving or rejecting a set of changes (`payload.decision`) |
+| `undoAuto` | Undoing a small AI change |
+| `createTasks`, `addTask`, `claimTask`, `moveTask`, `replyTask`, `updateNode`, `updateEvent` | Creating/updating tasks and events |
+| `issueOfficerGrant`, `confirmNudgeSent` | Creating a one-time task link while preparing a reminder; participant clicks "I sent this reminder" |
+| `advanceClock`, `setViewer`, `setAi`, `reset` | Demo menu: advance the date, change viewer, toggle AI, reset demo |
 
-## 5. Interface operation (`type` starts with `ui.`)
+## 5. UI actions (`type` starts with `ui.`)
 
-### 5.1 Type Overview
+### 5.1 Type overview
 
-| `type` | When do you write one? | `payload` What's in it? |
+| `type` | When an entry is recorded | Contents of `payload` |
 | --- | --- | --- |
-| `ui.navigate` | Changed page (including first opening after refreshing, back of browser, directly changing address) | `from`(Previous page path, first opened) `null`）、`to`(New page path) |
-| `ui.click` | Press buttons, links, tabs, menu items, `<summary>` Expanding lines like "press" things. | See 5.2 |
-| `ui.change` | Tick/ Untick check box, select single buttons, select one in the lower frame | See 5.2, plus `checked`(Trying) `group`(head of the group under which) or `value`(Text of selected item) |
-| `ui.ask` | Question in Ask. | `question`(questions source text, more than 200 character cut), `via`（`typed` I did it myself. `suggestion` Suggested Button / `handoff` It's from somewhere else. `route`、`focus`(Ask was looking at something: `node` / `event` / `page`） |
-| `ui.answer` | Ask gave the answer (**, type of reply only, unanswered text**) | See 5.3 |
-| `ui.details` | Right column Details opens something or closes it. | `action`（`open` / `close`）、`kind`（`task`、`nudge`、`event`、`partner` …）、`id`(actional data id) |
-| `ui.reminder` | Synchronising folder | `action: "open"`、`nodeId`Which task is it? `channel`(default channel) |
-| `ui.export` | Press Export my data (this one appears in the exported document, last one) | `entries`(Number of logs at export) |
-| `ui.task` | The participants started/ finished the task on the Demo menu (2026-11-07, 11.2) | `task`（1–6）、`event`（`start` / `done`）、`implicit`、`ms`、`route` |
-| `ui.visibility` | Leave page full 1 seconds and come back (2026-11-07, sect. 11.4) | `state`（`hidden` / `visible`）、`via`（`tab` / `window` / `close`）、`awayMs`、`picker`、`route` |
-| `ui.edit` | Focus on a input box to change it for the first time and leave it (2026-11-07, sect. 11.5); **No Content**) | `field`、`kind`、`area`、`route`、`event`（`start` / `end`）、`ms` |
-| `ui.hover` | Suspend card (%1) `Hover` / `Info`*0.5 seconds to close (2026-11-07, sect. 11.6) | `name`、`near`、`ms`、`via`（`mouse` / `focus` / `tap`）、`area`、`route` |
+| `ui.navigate` | Page changes (including first opening after refresh, browser Back, direct address changes) | `from` (previous route, `null` on first opening), `to` (new route) |
+| `ui.click` | Pressing a button, link, tab, menu item, `<summary>` disclosure, or another pressable control | See 5.2 |
+| `ui.change` | Checking/unchecking a checkbox, selecting a radio button, or choosing a dropdown item | See 5.2, plus `checked` (true when checked), `group` (group heading), or `value` (selected item's text) |
+| `ui.ask` | Sending a question in Ask (typing Enter, pressing Send, selecting a suggested question, or receiving "Ask about this rule" from elsewhere) | `question` (original question, truncated beyond 200 characters), `via` (`typed` / `suggestion` / `handoff` from elsewhere), `route`, `focus` (what Ask was focused on: `node` / `event` / `page`) |
+| `ui.answer` | Ask returns an answer (**only the answer type is recorded, not its text**) | See 5.3 |
+| `ui.details` | Right-rail Details opens an item or closes | `action` (`open` / `close`), `kind` (`task`, `nudge`, `event`, `partner` …), `id` (fictional data ID) |
+| `ui.reminder` | Reminder editor ("Private reminder") opens | `action: "open"`, `nodeId` (task), `channel` (default channel) |
+| `ui.export` | Pressing Export my data (this appears in the exported file as its final entry) | `entries` (log count at export) |
+| `ui.task` | Participant presses task start/done in Demo menu (2026-11-07, section 11.2) | `task` (1–6), `event` (`start` / `done`), `implicit`, `ms`, `route` |
+| `ui.visibility` | Leaving the page for 1 second, and returning (2026-11-07, section 11.4) | `state` (`hidden` / `visible`), `via` (`tab` / `window` / `close`), `awayMs`, `picker`, `route` |
+| `ui.edit` | First edit after focusing an input, and leaving it (2026-11-07, section 11.5; **contents not recorded**) | `field`, `kind`, `area`, `route`, `event` (`start` / `end`), `ms` |
+| `ui.hover` | Hover card (`Hover` / `Info`) closes after ≥ 0.5 seconds open (2026-11-07, section 11.6) | `name`, `near`, `ms`, `via` (`mouse` / `focus` / `tap`), `area`, `route` |
 
-### 5.2 Click and select generic fields
+### 5.2 Common fields for clicks and selections
 
-| Fields | Meaning. |
+| Field | Meaning |
 | --- | --- |
-| `route` | On which page (only path, for example) `/tasks`；In the address. `?` The value behind is not recorded. |
-| `role` | Control type: `button`、`link`、`tab`、`menuitem`、`summary`、`checkbox`、`radio`、`combobox`(down frame) et cetera |
-| `name` | The name of the control (the one read by the screen reader: button text, link text, `aria-label` or label text), with maximum 80 characters. It may contain field data displayed on the screen (e. g. task name, field name) and occasionally contains text previously entered by the participant himself and later shown on the button (e. g. task name), which is cut off |
-| `testid` | Internal identification of controls (if any), for example `export-data`Oh, yeah. `name` Stable, suitable for screening. |
-| `area` | Which one is on the screen: `answer`(Ask's answer to one of the answers) `reminder`(in the alarm editor) `ask`、`rail`(Right column), `nav`(Left Navigator) `header`、`main`、`dialog`、`menu` |
-| `to` | This click on the page path taken (links, or press buttons for subsequent pages, such as Continue in the guide) |
-| `external` | `true` = Point is the **site offline link** (e. g. AAU source cited, Gmail/whatsApp draft) |
-| `href` | **website with off-site links + Path** (for example) `eoss.asu.edu/sites/default/files/…Handbook.pdf`）；`mailto:`、`sms:` These are only the beginnings. Query Parameter (in which there will be message text, link sign) |
-| `expanded` | If you press "true" or "false" for menus, `<details>`Sidebar Switches |
-| `selected` | Tabs selected |
-| `repeat` | The same control 0.6 has been pressed several times in a row (e.g. double-click, fast link). Only when 2 is available. |
+| `route` | Page where it occurred (path only, e.g. `/tasks`; all values after `?` are excluded) |
+| `role` | Control type: `button`, `link`, `tab`, `menuitem`, `summary`, `checkbox`, `radio`, `combobox` (dropdown), etc. |
+| `name` | Accessible control name (as read by a screen reader: button/link text, `aria-label`, or label text), up to 80 characters. May contain fictional data displayed on screen (e.g., task names, fictional names), occasionally text participants entered earlier that later appears on a button (e.g., their task title); all truncated |
+| `testid` | Internal control ID, if present, e.g., `export-data`; more stable than `name`, useful for filtering |
+| `area` | Screen region: `answer` (inside an Ask answer), `reminder` (reminder editor), `ask`, `rail` (right rail), `nav` (left navigation), `header`, `main`, `dialog`, `menu` |
+| `to` | Destination route of this click (link, or button that changes pages, e.g., onboarding Continue) |
+| `external` | `true` = **external link** clicked (e.g., cited ASU source, Gmail/WhatsApp draft) |
+| `href` | External link's **host + path** (e.g., `eoss.asu.edu/sites/default/files/…Handbook.pdf`); only the prefix for `mailto:`, `sms:`, etc. Query parameters (which may contain message text or link tokens) are excluded |
+| `expanded` | Expanded (true) or collapsed (false) after pressing, for menus, `<details>`, sidebar toggles |
+| `selected` | Tab selected |
+| `repeat` | Number of consecutive presses on the same control within 0.6 seconds (e.g., double-click or impatient repeated clicks). Present only when ≥2 |
 
-### 5.3 Type of answer (`ui.answer`)
+### 5.3 Answer types (`ui.answer`)
 
-| Fields | Meaning. |
+| Field | Meaning |
 | --- | --- |
-| `answer` | Main form of response: `rule-answer`(rule answer, with quotes), `plan-form`(building activity forms), `task-form`(construction of tasksheets), `change-card`(change card to be approved), `change-applied`(Slight changes in force), `event-date-form`、`task-list`、`reminder-card`、`plan-check`(Programme inspection of new activities), `text`(pure text), `error`(Errors, etc.) `applied: false`）、`timeout`I'm not back on time. |
-| `cards` | The type of card in this answer, in order. |
-| `citations` | Rule/policy numbers cited, for example `["R06"]`(rules answered and plans checked) |
-| `inScope` | Question of the rules within the framework of the rule bank |
-| `source` | Answer the line label below and tell me who answered it, for example. `Matched by keywords · AI unavailable`、`AI checked policy sources · …` |
-| `fallback` | `true` = not used for AI (AI closed, service unavailable, timed, answered by local rules or templates) |
-| `ms` | How many milliseconds did it take to answer the question? |
-| `changeSetId` / `autoSetId` | This answer generates a change of group number that can be added to the back. `reviewChange`、`undoAuto` Right on. |
-| `refine` | `true` == sync, corrected by elderman == |
-| `trigger` | `plan-check` = Not a question from the participants, but an automatic plan check after approval of the new activity |
+| `answer` | Main response form: `rule-answer` (rule answer with citations), `plan-form` (event creation form), `task-form` (task creation form), `change-card` (change card awaiting approval), `change-applied` (small change applied), `event-date-form`, `task-list`, `reminder-card`, `plan-check` (new-event plan check), `text` (plain text), `error` (error, `applied: false`), `timeout` (AI second pass did not return in time) |
+| `cards` | Types of all cards in the response, in order |
+| `citations` | Cited rule/policy IDs, e.g. `["R06"]` (in both rule answers and plan checks) |
+| `inScope` | Whether the rule question falls within the rule library's scope |
+| `source` | Small label below the answer identifying the responder, e.g. `Matched by keywords · AI unavailable`, `AI checked policy sources · …` |
+| `fallback` | `true` = no AI used (AI off, unavailable, or timed out; local rules or templates answered) |
+| `ms` | Milliseconds from question to displayed answer |
+| `changeSetId` / `autoSetId` | Change-set ID generated by this response, matchable to later `reviewChange`, `undoAuto` |
+| `refine` | `true` = AI's "second look" (local form first, then AI fills fields when it returns) |
+| `trigger` | `plan-check` = automatic plan check after approval of a new event, rather than a participant question |
 
-### 5.4 interface operating `applied` and `before`
+### 5.4 `applied` and `before` for interface actions
 
-- Interface operation **No `before`**: they do not change the data themselves; The real change of data is followed by a data action with `before`.
-- `applied` is usually `true`. Only in two cases are `false`: point to a control marked "not available" (`aria-disabled`); `ui.answer` for `answer` is `error`.
+- Interface actions **have no `before`**: they do not themselves change data. The actual data change appears immediately afterward as a data action containing `before`.
+- `applied` is usually `true` (the action occurred). It is `false` only for a click on a control marked unavailable (`aria-disabled`), or `ui.answer` with `answer: error`.
 
-### 5.5 Noise Rule.
+### 5.5 Noise reduction (why entry counts stay bounded)
 
-1. The same thing happens again within 0.6 seconds (one click triggers two events, development mode repeat). Only one.
-2. The same control 0.6 for a continuous time: leave one and count it to `repeat`.
-3. 2 seconds after the link or button has been clicked: instead of recording `ui.navigate` separately, write a new page into the `to` click. (A different place to go from a click - for example, re-directed - still remembers another `ui.navigate`. ）
-4. Point in blanks, point in text boxes, point tab text: do not remember (the selection itself will be recorded as `ui.change`).
+1. The same event repeated within 0.6 seconds (one click triggers two events, duplicate development-mode execution): retain one entry.
+2. Repeated presses on the same control within 0.6 seconds: retain one entry, count with `repeat`.
+3. Navigation within 2 seconds of clicking a link/button: omit separate `ui.navigate` and record the destination in the click's `to`. (If the actual destination differs from the click's destination — for example, a redirect — still record a separate `ui.navigate`.)
+4. Clicking blank space, focusing an input, clicking label text: not recorded (the selection itself is recorded as `ui.change`).
 
-**Article estimate** (`src/test/uiLog.test.tsx` simulation, cap 2000; (a) 2026-11-07 containing four elements of section 11: the general rhythm (in prototype 60 minutes, on average 8 seconds) is approximately **650 Article**; Very busy. 75Every minute, every time. 4One second. 6Jobmarks, each 3Every minute leaves the page, every minute. 12There's one typing in the operation and one reading of the suspension card. **1560Article**♪ And the four before ♪ 600 / 1500）。 The scripting process in the end-to-end test (preparation of a reminder + guide to build several pages + rule questions + open source + export, real person does about minutes) is now **40–42Article**(computer) 42Cell phones. 40； Once upon a time, 34 was "start/stop typing". If a file `droppedEarlier` is greater than 0, it means that the upper limit is actually exceeded and the earliest part is gone.
+**Estimated entry counts** (`src/test/uiLog.test.tsx` simulation, 2000 cap; includes the four section 11 additions from 2026-11-07): normal pace (60 minutes in the prototype, one action every 8 seconds on average) about **650 entries**; very busy (75 continuous minutes, every 4 seconds, 6 task markers, leaving every 3 minutes, one typing action and one hover-card read per 12 actions) about **1560 entries** (previously 600 / 1500 before these additions). The scripted e2e flow (prepare reminder + onboarding club setup + visit a few pages + rule question + open source + export, taking a human a few minutes) now produces **40–42 entries** (desktop 42, mobile 40; previously 34, with additions for “start/stop typing”). A file with `droppedEarlier` greater than 0 actually exceeded the cap and lost its earliest portion.
 
-## 6. Newer Guide Record (`onboarding`)
+## 6. Onboarding records (`onboarding`)
 
-This is a separate record (`src/lib/onboardingRecord.ts`) that has been recorded since 5, but only by conduct and not by content:
+This separate record has existed since v1.5 (`src/lib/onboardingRecord.ts`); it records behavior only, not entered contents:
 
-- `attempts[]`: Every time you go for guidance (or "Explore the welcome Club"): `id`、`entry`（`start`Guide / `explore`Let's just look at the example. `flowVersion`、`replay`(Standbacks), `startedAt`、`finishedAt`、`outcome`（`completed`Walking through / `exited`Middle exit / `explored`）。
-  - FormatVersion 3 also: `sessionId` (what session is it from), `setupCompletedAt` (in milliseconds, at the time of Start workspace or Keep current demo), `setupChoice` (`start-workspace`/ `keep-demo`).
-  - The meaning of `outcome` remains the same, which means that **is the end of the whole attempt on** (including a crew preview after construction). `exited` may have been withdrawn before the construction of a solid organization, or it may have been pressed in an exit preview after construction; The two are distinguished by `setupCompletedAt`.
-- `steps[]`: `enter` (entry), `leave` (departure), `back` (return), `skip` (skip), `complete` (completed), `exit` (save & exit) with time `at`.
-- **and** now appear simultaneously in the interactive log (`route` starts with `/welcome/`), where both sides can be contrasted over a time line.
+- `attempts[]`: one entry per onboarding run (or "Explore the sample club" on welcome): `id`, `entry` (`start` walkthrough / `explore` sample directly), `flowVersion`, `replay` (replay number), `startedAt`, `finishedAt`, `outcome` (`completed` finished / `exited` left midway / `explored`).
+  - Since formatVersion 3: `sessionId` (owning session), `setupCompletedAt` (Start workspace or Keep current demo time, milliseconds), `setupChoice` (`start-workspace` / `keep-demo`).
+  - `outcome` still describes the **whole attempt** (including the post-setup member preview). `exited` may mean leaving before club setup or pressing Exit in the member preview afterward; distinguish using `setupCompletedAt`.
+- `steps[]`: each screen's `enter`, `leave`, `back`, `skip`, `complete`, `exit` (Save & exit), each with timestamp `at`.
+- Clicks and navigation on onboarding pages **also** appear in interaction logs (`route` starts `/welcome/`), allowing timeline comparison.
 
-## 7. Timeline (`timeline[]`, CSV is it)
+## 7. Timeline (`timeline[]`, the basis of CSV)
 
-| Fields | CSV Row | Meaning. |
+| Field | CSV column | Meaning |
 | --- | --- | --- |
-| (line number) | `row` | 1, 2, 3 … |
-| `time` | `time_iso` | Live Time, ISO Format, **UTC** |
-| `timeAz` | `time_az` | **Arizona time at the same time** (UTC - 7 hours, unchanged from year to year), for example `2026-11-07 10:46:40.337`。No old file. `timeAz`, CSV script calculates this column |
-| `at` | `time_ms` | milliseconds of the same time |
-| `session` | `session` | Which session does this line belong to; Not in any session. |
-| — | `elapsed_s` | Distance **Start of the session for which this line belongs**How many seconds have passed?  Do not act empty in any session. Old file (no session): away from line 1 |
-| — | `gap_s` | How many seconds after the last line? |
-| `source` | `source` | `log`(interactive log), `onboarding`(guide record) or `session`(Photo starts with one line for each session) |
-| `seq` | `seq` | Interactive Log Number (Introduction Record Blank) |
-| `attempt` | `attempt` | Guide Attempt id (only lead log lines) |
-| `actor` | `actor` | "View ass" |
-| `type` | `type` | Type of event; The lead record line is `onboarding.start` / `onboarding.enter` … / `onboarding.setup`(Start workspace or keep crent demo;) Describe answers with Reminders on the back, for example `Setup finished: Start workspace; reminders: review_then_auto`Not without that screen. `onboarding.finish`；Session line `session.start` |
-| `route` | `route` | Page Path |
-| — | `name` | Name of the control; `ui.ask` It is the problem itself; If you don't have two of these. `payload.field`（`ui.edit` Line input box labels, not typed) |
-| — | `target` | Link to (outside is the website + path, inside is the page) or drop box selection |
-| — | `external` | Off-site Link As `TRUE` |
-| `applied` | `applied` | `TRUE` / `FALSE`；Lead record is empty. |
-| `desc` | `description` | A short description in English, for example `Opened outside link "R06 source ↗" → eoss.asu.edu/…` |
-| — | `payload_json` / `before_json` | Completeness of this article `payload` and `before`(JSON text) See if you need details. |
+| (row number) | `row` | 1, 2, 3 … |
+| `time` | `time_iso` | Real time, ISO, **UTC** |
+| `timeAz` | `time_az` | Same instant in **Arizona time** (UTC − 7 hours year-round), e.g. `2026-11-07 10:46:40.337`. CSV script calculates this column even for older files lacking `timeAz` |
+| `at` | `time_ms` | Same instant in milliseconds |
+| `session` | `session` | Session this row belongs to; empty outside sessions |
+| — | `elapsed_s` | Seconds since **this row's session began**; empty outside sessions. Older files (no sessions): since first row |
+| — | `gap_s` | Seconds since previous row (for pauses/hesitation) |
+| `source` | `source` | `log` (interaction log), `onboarding` (onboarding records), or `session` (session start, one per session) |
+| `seq` | `seq` | Interaction-log sequence number (empty for onboarding rows) |
+| `attempt` | `attempt` | Onboarding attempt id (onboarding rows only) |
+| `actor` | `actor` | "View as" identity |
+| `type` | `type` | Event type; onboarding rows use `onboarding.start` / `onboarding.enter` … / `onboarding.setup` (clicked Start workspace or Keep current demo; description appends Reminders answer, e.g. `Setup finished: Start workspace; reminders: review_then_auto`; omitted if screen not visited) / `onboarding.finish`; session rows use `session.start` |
+| `route` | `route` | Page route |
+| — | `name` | Control name; for `ui.ask`, the question itself; if neither, `payload.field` (`ui.edit` input label, not typed text) |
+| — | `target` | Link destination (external: website + path; internal: page), or selected dropdown option |
+| — | `external` | `TRUE` for external links |
+| `applied` | `applied` | `TRUE` / `FALSE`; empty for onboarding rows |
+| `desc` | `description` | Brief English description, e.g. `Opened outside link "R06 source ↗" → eoss.asu.edu/…` |
+| — | `payload_json` / `before_json` | Full `payload` and `before` (JSON text); consult when details are needed |
 
-(b) Sorting rules: by time; The interactive log in the same milliseconds is kept numbered between the interactive logs before (click first, and it triggers a lead step).
+Sort by time; within the same millisecond, interaction-log entries come first (the click is recorded before the walkthrough step it causes). Preserve sequence-number order between interaction entries.
 
-CSV starts with `=`, `+`, `-` and `@` by adding a `'` before it to prevent Excel from typing participants into formulae.
+CSV text beginning with `=`, `+`, `-`, or `@` is prefixed with `'` to prevent Excel executing participant-entered text as a formula.
 
-## 8. How do you figure out what's in the file?
+## 8. Calculating research measures from the file
 
-Each task in the score sheet is to: whether it has been completed, time spent, error, and whether the reference source has been opened.
+The scoring sheet needs, for each task: completion, elapsed time, errors, and whether cited sources were opened.
 
-### 8.1 Task Time
+### 8.1 Task duration
 
-- **Method A (recommended)**: Researcher writes clock time on Zoom at "start/end of mission" (in seconds, Arizona time). Find this paragraph directly in the CSV `time_az` column (no conversion to UTC); Time = End - Start. The line in this section is the whole operation of the mission.
-- **Method B (when there is no time to remember)**: The time difference between taking this task "Article 1 related event" and "the last relevant event". For example:
-  - Create student organisation: `session.start`(or) `route`Yes. `/welcome/founder/name`It's... `ui.navigate`、`onboarding.start`）→ `onboarding.setup`(i) `session.setupCompletedAt`； Start workspace is selected right next to `completeSetup`. **Do not use `onboarding.finish`**: it's the end of the whole attempt (including a social preview).
-  - Question of the rules: `ui.ask`* Last operation before the participant gives an answer (usually open source or next entry) `ui.ask`）。
-  - One activity is planned: `ui.ask`  →  `reviewChange` (approved by `decision`) for the activities mentioned in article 1.
-  - Ready to remind: `ui.reminder` (open) →  point `Open … draft` (`external` for TRUE, `area` for `reminder`) or `confirmNudgeSent`.
-- **Method C (2026-11-07 cases)**: Participants themselves start/ finish tagging (`ui.task`) on tasks in the Demo menu, when direct to `done` lines; The time to leave the page can be reduced. See section 11.3.
-- `gap_s` is a big line that can see where it's stuck and where it's thought. There's `ui.visibility` in the middle, is leaving the page.
+- **Method A (recommended):** researcher notes clock time when marking task start/end on Zoom (to the second, Arizona time). Find that interval directly in CSV `time_az` (no UTC conversion needed); duration = end − start. Rows in that interval are all actions for that task.
+- **Method B (without handwritten times):** difference between the task's first and last relevant events. For example:
+  - Create club: `session.start` (or `ui.navigate` with `route` `/welcome/founder/name`, `onboarding.start`) → `onboarding.setup` (i.e., `session.setupCompletedAt`; Start workspace also has adjacent `completeSetup`). **Do not use `onboarding.finish`**: it ends the whole attempt, including member preview.
+  - Rule question: that question's `ui.ask` → final action before the participant answers (usually opening a source or the next `ui.ask`).
+  - Plan event: first `ui.ask` mentioning the event → `reviewChange` (`decision` approval).
+  - Prepare reminder: `ui.reminder` (open) → click `Open … draft` (`external` TRUE, `area` `reminder`) or `confirmNudgeSent`.
+- **Method C (from 2026-11-07):** participants mark task start/done in the Demo menu (`ui.task`); `done` directly includes duration, from which time away can be subtracted. See section 11.3.
+- Rows with large `gap_s` can reveal sticking points or thinking time; intervening `ui.visibility` means the participant left the page.
 
-### 8.2 Error
+### 8.2 Errors
 
-"Errors" that you can count.
+Countable "error signals" (choose as needed and document in the methods):
 
-1. Data action `applied` is `FALSE`: The prototype was rejected (no performances, invalid).
-2. `reviewChange`Lee. `decision`For refusing, `undoAuto`(Undo AI changes), re-entering the same object very quickly. `updateNode` / `updateEvent`(Comparation) `before_json`and the previous value).
-3. Lead `onboarding.back` (back to previous screen), `onboarding.exit` (midway exit), same screen several times `enter`.
-4. `ui.answer` is `error` or `timeout` (system error, not participant ' s fault, number of separates).
-5. Wrong page: `ui.navigate`/ Click with `to` to go back to the pages not related to the task.
-6. `repeat`  ≥  2 clicks (connected points, probably unresponsive or in a hurry); `applied` for `ui.click` is `FALSE` (points an unusable control).
+1. Data action `applied` is `FALSE`: the prototype rejected it (no permission or invalid).
+2. A rejection `decision` in `reviewChange`, `undoAuto` (undo AI changes), or `updateNode` / `updateEvent` quickly reverting the same object (compare `before_json` with the prior value).
+3. In onboarding, `onboarding.back` (previous screen), `onboarding.exit` (exit midway), or repeated `enter` for the same screen.
+4. `ui.answer` is `error` or `timeout` (system errors rather than participant errors; count separately).
+5. Wrong-page navigation: `ui.navigate` / clicks with `to` visit an unrelated page and return.
+6. Clicks with `repeat` ≥ 2 (repeated clicks, possibly due to no response or impatience); `ui.click` with `applied` `FALSE` (an unavailable control was clicked).
 
-### 8.3 Whether to open the reference source (source checking)
+### 8.3 Whether cited sources were opened (source checking)
 
-1. Find `ui.answer` in this task, see `citations` (e. g. `R06`).
-2. `ui.click` and `external` for `TRUE` and `area` for `answer` (the "R06 source" button in the answer to the rules); `name` has a rule number, `target` is the source web address.
-3. Yes  →  opened; No, it's not open. The source link on the Rules page is also recorded (`route` for `/rules` and `area` for `main`), which can be added as "checking sources on the Rules page".
-4. All we know is, "The light's on." I don't know how long it was on that page.
+1. Find this task's `ui.answer` and inspect `citations` (e.g. `R06`).
+2. Then find `ui.click` rows with `external` = `TRUE` and `area` = `answer` (the "R06 source ↗" button in a rules answer; `name` contains the rule number, `target` the source URL).
+3. Present → opened; absent → not opened. Source links on Rules also log (`route: /rules`, `area: main`), allowing a separate "checked sources on Rules" measure.
+4. This establishes only that the link was opened, not what was read or for how long on the external page.
 
-### 8.4 AI Use
+### 8.4 AI use
 
-- Number of `ui.ask` strips (`via` separates its typing/point proposal).
-- `fallback`: TRUE of `ui.answer` indicates that this time it is useless to AI; The `source` label specifies who answered it.
-- `aiAutoApply` (a minor change made directly by AI), `draftChanges` (drafted by AI pending approval) and subsequently `reviewChange`/`undoAuto`, see whether participants accept or reject the AI recommendations.
+- Number of `ui.ask` entries (`via` distinguishes typing from clicking suggestions).
+- `fallback` in `ui.answer`: TRUE means no AI was used; `source` identifies who actually answered.
+- `aiAutoApply` (small changes AI applies directly), `draftChanges` (AI drafts awaiting approval), and subsequent `reviewChange` / `undoAuto` show whether participants accept or reject AI suggestions.
 
-## 9. Something you can't do.
+## 9. Limitations (state in methods and limitations)
 
-1. **only remembers this browser.** for browsers, computers, shut down with private windows and no records left; Clearing website data will also be cleared.
-2. The **browser keeps up to 2000** (all sessions of this little session are combined) above the earliest (see `droppedEarlier`).
-   - When **starts a new session, old logs and old pilot attempts that exceed 6 hours will be deleted** (only number of notes left). More recently, 6 hours have not been deleted, so the error in testing research links does not lose data, but only one more session in the document. But if the two tests on the same computer are less than 6 hours apart and there is no clear browser data, the records of the former participant will remain in the latter file (with each `session` split): please take a runbook with a new no-trace window for each participant.
-3. **does not press keys, does not record words typed in input boxes** (text, number, date, password, file box do not read and do not remember length). 2026-11-07 marks only "in which box to start typing for how long" (`ui.edit`, sect. 11.5), not even this. When a form is actually saved, the saving result is recorded as a data action (e. g. student event name in `completeSetup`), which was originally available.
-4. **takes no account of the text of the AI answer**, except for the type of reply, reference number and label; The questions asked by the participants are written (closing to 200 characters).
-5. **No scrolling, mouse moving, how long does it stay on the page?**； The time difference between the two sides of the border can only be inferred from how long it takes to look. Exception (2026-11-07): The suspension card is open for one  ≥ 0.5 second (`ui.hover`, with only duration and control name that triggers it).
-6. **does not remember what happened outside the station**: I know only that a source or Gmail/WhatsApp draft is opened, and I don't know what was done there, whether it actually came out.
-7. When you press Enter to open the details on the task card, there is no "click" item, but there is `ui.details` (open). Keys such as the Esc off menu are not marked.
-8. Time comes from the participants' computer clocks; Computer time is not good, `at` is bad (the relative order is still based on `seq`).
-9. Click without memory triggered by a program (not a person), such as the download link within the export browser.
-10. **iOS Safari was not verified.** downloads have been validated by autotesting on desktop chromium and cellular dimensions (Pixel 7 simulation). iOS Safari handles "downloading files" differently (possibly displays JSON directly on the new page and requires another "sharing  →  to store to file"). Please use an iPhone for one time before being formally tested; Participants are advised to use computers.
+1. **Records only this browser.** Switching browser/computer or closing a private window loses access to those records; clearing site data also removes them.
+2. **Browser retains at most 2000 entries** across all sessions in this sitting; oldest are dropped beyond that (see `droppedEarlier`).
+   - **Starting a new session deletes logs and onboarding attempts older than 6 hours** (retaining counts only). Recent six-hour data remains, so accidentally opening a study link mid-test loses no data, merely adds a session. But two tests on the same computer less than 6 hours apart without clearing browser data place the previous participant's records in the next file (each has `session`, so separable): follow the runbook and use a new private window per participant.
+3. **No keystrokes or typed input text** (text, number, date, password, file inputs are neither read nor length-logged). Since 2026-11-07, logs record only "which field editing began in and for how long" (`ui.edit`, 11.5); passwords do not even record that. Actual form saves still log saved results as data actions (e.g. club name in `completeSetup`), as before.
+4. **No AI response text**; only answer kind, citation IDs, and tags. Participant question text is recorded (truncated to 200 characters).
+5. **No scrolling, mouse movement, or time spent reading a page region**; reading time can only be inferred from adjacent timestamps. Exception (2026-11-07): hover cards open ≥ 0.5 seconds produce one entry (`ui.hover`, duration and trigger control name only).
+6. **No activity outside the site**: knows only that a source or Gmail/WhatsApp draft was opened, not what happened there or whether anything was actually sent.
+7. Pressing Enter on a task card to open details produces no "click" entry, but does produce `ui.details` (open). Keys such as Esc closing menus are not logged.
+8. Time comes from the participant's computer clock; an inaccurate clock makes `at` inaccurate (relative ordering still uses `seq`).
+9. Programmatic clicks are not logged, such as the browser's internal export download link.
+10. **iOS Safari is unverified.** Automated tests verified downloads on desktop Chromium and mobile size (Pixel 7 emulation). iOS Safari handles downloads differently (may display JSON on a new page, requiring "Share → Save to Files"); test on an actual iPhone before formal testing; recommend computers to participants.
 
-## Comparison of 10. and IRB approval text (please confirm Juanxi)
+## 10. Comparison with IRB-approved wording (Juanxi to confirm)
 
-The IRB text states that the log says "every operation of the participant on the website", each article has a number, live time, role figure, type of operation, cut parameters, value before change and acceptance; Only exists in the participant ' s own browser, cap 2000, not automatically transmitted, and participants export a JSON file to the researcher using Export my data.
+IRB wording says logs record “every participant action on the website,” each with sequence number, real timestamp, fictional actor, action type, truncated arguments, before-values, and acceptance status; they remain only in participants' own browsers, capped at 2000 entries, with no automatic transmission. Participants use Export my data to export one JSON file and send it to the researcher.
 
-- **Consistency:** interface operations and data dynamics are the same entry, number; The storage location, ceiling, export mode and non-auto upload remain unchanged. "Each operation" is now closer to the literal meaning than it used to be.
-- **Where IRB needs to be noticed and may be told (marked for decision, code is done in the most conservative way):**
-  1. Now it's going to be "Look at what pages, press what, choose which options, click which external web sites (only websites and paths) are opened." This is a record of behaviour and no new personal information; But it's smaller than the original "recording of data only."
-  2. The control name (`name`) may contain text displayed on the screen: fieldingal data, or content previously entered by the participants themselves (e. g. his task name), cutting off to 80 characters. IRB text already allows "The word of the participant may appear in cut-off form".
-  3. Ask questions source text will enter the log (closing to 200 characters). The IRB text already gives this example.
-  4. More files are exported `build` (web version number), `demoToday`, `onboardingFlowVersion`, `timeline`. These are site versions or compiled by existing records and not new information on participants.
-     - FormatVersion 3 is more than `sessions`/ `session`: Time and choice at the time of opportunity numbering, start date, end of construction student event, First event plan or kip, earlier recorded number of ****. Session numbers do not concern anyone; "Start workspace / Keep current demo" and "First event step still plan" are organized from existing behavioral records (button clicks, screen steps), not new personal information. Old records of more than 6 hours were deleted at the beginning of the session, and fewer were kept than before.
-  5. No records: Device type, Browser type, screen size, IP, geographic location, key press, AI answer text.
-- Section 6d of AGENTS.md requires that "Juanxi (research design to compare IRB) be asked before adding a new entry." This version adds an interface operating record, and Juanxi needs to confirm **before** merge and decides whether IRB should be notified (for example through Marcie).
-- **2026-11-07 adds four (sect. 11): Juanxi was approved by 2026-11-07 as a record item for "conduct only"**: the start/ end of mission mark (`ui.task`), time to leave the page (`ui.visibility`), time to begin editing an input box and time to edit it (`ui.edit`) and length of suspension card opening (`ui.hover`). IRB text contrasts:
-  1. Remains the same log, same entry, same number; There are still only participants' own browsers, capped 2000, not automatically uploaded and exported by the participants themselves.
-  2. None of the new personal information: no typed (not even length), no key pressed, no AI answer, no device/browser/IP; The password box is completely missing.
-  3. Added is **Time Info**: How long the participants left the page (`awayMs`), how long they fought in one box and how long a suspension card was open. "Leave the page" only knows how long it's gone and whether the tab/ application (`tab`) or the window is missing (`window`), **does not know where to go, what to do with**.
-  4. `field` for `ui.edit` and `ui.hover` for `name`/ `near` from the interface (as with `name` for `ui.click`), may contain data on film, or text previously entered by the participants themselves and later displayed on the label, cut off to 80/ 60.
-  5. Whether IRB needs to be notified (e.g., as a minor modification of the "record") by Juanxi; The code has been done in the most conservative way (e.g. no 0.5 seconds for suspension, no 1 seconds for departure).
+- **What is consistent: ** interface interactions and data actions use the same entry type and numbering; storage location, limits, export, and no automatic upload are unchanged. "Every action" is now more literal (previously only data-changing actions were recorded).
+- **Points to consider and potentially tell IRB (flagged for a decision; code already takes the most conservative approach): **
+  1. Records now include "which page was viewed, what was pressed, which option was selected, and which external source URL was opened (site and path only)." These are behavior records with no new personal information, but more detail than the former "data-changing actions only."
+  2. Control names (`name`) may contain on-screen text: fictional data or participants' previous input (such as a task name they chose), truncated to 80 characters. The IRB text already allows "participant-entered text may appear in truncated form."
+  3. Original Ask questions enter the log (truncated to 200 characters). The IRB text already gives this example.
+  4. Export adds `build` (site version), `demoToday`, `onboardingFlowVersion`, and `timeline`. These describe the site version or reorganize existing records, rather than new participant information.
+     - formatVersion 3 adds `sessions` / `session`: random session ID, start time, student-organization setup completion time and choices, First event planned or skipped, and the **count** of earlier records. The session ID identifies no person; "Start workspace / Keep current demo time" and "First event skipped or planned" derive from existing behavior records (button clicks and screen steps), rather than new personal information. Records older than 6 hours are deleted at session start, retaining less than before.
+  5. Not recorded: device model, browser model, screen size, IP, location, keystrokes, or AI response text.
+- AGENTS.md Section 6d requires "ask Juanxi before adding record types (study design; check against IRB)." This version adds interface interaction records; **Juanxi must confirm before merging**, and decide whether IRB needs notification (for example through Marcie).
+- **Four additions on 2026-11-07 (Section 11), approved by Juanxi on 2026-11-07 as "behavior-only" records**: task start/end markers (`ui.task`), time away from the page (`ui.visibility`), starting an input edit and its duration (`ui.edit`), and hover-card open duration (`ui.hover`). Compared with the IRB text:
+  1. Still the same log, entry type, and numbering; still only in the participant's browser, capped at 2000 entries, never uploaded automatically, and exported by the participant.
+  2. No new personal information: no entered text (not even its length), keystrokes, AI responses, or device/browser/IP; password inputs are completely excluded.
+  3. The addition is **timing information**: how long participants leave the page (`awayMs`), type in a field, or keep a hover card open. "Leaving the page" reveals only that they left, for how long, and whether it was a tab/app switch (`tab`) or window blur (`window`); **it does not reveal where they went or what they did**.
+  4. `ui.edit`'s `field` and `ui.hover`'s `name` / `near` come from interface labels (like `ui.click`'s `name`, these may contain displayed fictional data or text previously entered by a participant and later shown in a label, truncated to 80 / 60 characters).
+  5. Juanxi decides whether to notify IRB (for example as a minor "more detailed logs" amendment); code already takes the most conservative approach (e.g. hovers under 0.5 seconds and absences under 1 second are not recorded).
 
-## 11. 2026-11-07 Add: Taskmark, Leave Page, Start Edit, Suspend Card (behavior only)
+## 11. Added 2026-11-07: task markers, leaving the page, starting edits, hover cards (behavior only)
 
-Juanxi 2026-11-07 approved four. All entries are written in the same interactive journal (`seq`, `at`, `actor`, `type`, `payload`, `applied`, no `before`), `type` starts with `ui.`, and `applied` is `true`. Codes: `src/lib/uiLog.ts` (four recorders), `src/components/UiLogger.tsx` (heavy to leave page and edit), `src/components/chrome/DemoMenu.tsx` (task button), `src/components/ui/index.tsx` `Hover` (suspension card), `src/lib/timeline.ts` (short description in English in the time line).
+The four items approved by Juanxi on 2026-11-07. All use the same interaction log and unchanged entry structure (`seq`, `at`, `actor`, `type`, `payload`, `applied`, no `before`); `type` starts with `ui.`, and `applied` is always `true`. Code: `src/lib/uiLog.ts` (four recorders), `src/components/UiLogger.tsx` (page-leave and editing listeners), `src/components/chrome/DemoMenu.tsx` (task buttons), `Hover` in `src/components/ui/index.tsx` (hover cards), and `src/lib/timeline.ts` (short English timeline descriptions).
 
-### 11.1, a good look.
+### 11.1 Overview
 
-| `type` | When? | `payload` |
+| `type` | When recorded | `payload` |
 | --- | --- | --- |
-| `ui.task` | Press Start task N/ Done on Demo menu | `task`（1–6）、`event`（`start` / `done`）、`route`(on which page at the time); `done` And... `ms`And there's an automatic end to it. `implicit: true` |
-| `ui.visibility` | Leave page one in 1 seconds `hidden`；One when you get back. `visible` | `state`、`via`(See 11.4), `route`；`visible` And... `awayMs`How many milliseconds left? The one that was using the selector when leaving `picker: true` |
-| `ui.edit` | Focus on an input box **first change** it: `event: "start"`；Leave this box: `event: "end"` | `route`、`field`(labels of boxes), `kind`（`text` / `textarea` / `number` / `date` / `search`）、`area`；`end` And... `ms` |
-| `ui.hover` | Suspend card (%1) `Hover` / `Info`When it's closed, if it's open ~ 500 ms | `route`、`name`♪ Trigger its control name, ♪ 80character,  `ms`、`via`（`mouse` / `focus` / `tap`）；Add when too general a name ("More information") `near`(It has a subheading); `area` |
+| `ui.task` | Press Start task N / Done in the Demo menu | `task` (1–6), `event` (`start` / `done`), `route` (page at time of pressing); `done` also has `ms` (milliseconds from task start to finish), and automatic completion also has `implicit: true` |
+| `ui.visibility` | One `hidden` after leaving for a full 1 second; one `visible` on return | `state`, `via` (see 11.4), `route`; `visible` also has `awayMs` (milliseconds away); `picker: true` if a picker was in use when leaving |
+| `ui.edit` | **First change** after focusing an input: `event: "start"`; leaving that input: `event: "end"` | `route`, `field` (input label), `kind` (`text` / `textarea` / `number` / `date` / `search`), `area`; `end` also has `ms` |
+| `ui.hover` | When a hover card (`Hover` / `Info`) closes, if it was open ≥ 500 milliseconds | `route`, `name` (trigger control's name, ≤ 80 characters), `ms`, `via` (`mouse` / `focus` / `tap`); add `near` (the nearby subheading) if the name is generic ("More information"); `area` |
 
-The look in the time line (code `description`):
+Appearance in the timeline (`description` column):
 
 ```
 Started study task 1 on /
@@ -313,77 +313,77 @@ Started study task 2 on /
 Finished study task 2 after 3 min 5 s
 ```
 
-### 11.2 Task Marker (`ui.task`) where and how to use it
+### 11.2 Where to find and how to use task markers (`ui.task`)
 
-- **Location:** topbar Demo small pill (`Demo · date`)  →  **Study task**: button `1`... `6` (read screen names "Start task 1 " ) and `Done` (read screen names "Task done"). Not anywhere else in the interface.
-- **Mobile phone:** is the same Demo pill, with a menu full of width after pointing, like a button. **Keyboard:** Tab to Demo pills * Enter Opens * Tab to the button * Enter.
-- Press the menu to close automatically (readable task card) and focus back on the Demo pill. Displays `· Task 3` on the pill, and the button that is in progress is shown as press status; Done was ash when no task took place.
-- The participants start reading a task card and press Start task N to finish Doe. **forgot to press Done and then hit Start**: `done`, with `implicit: true`, and `start` for the new task.
-- Press the button on the task under way: remember nothing.
-- "What task is going on" was read out of the log, so it's still there after the page has been refreshed; Reset demo doesn't affect it.
-- These buttons **don't separate `ui.click`** (their own `ui.task` is the record); Opens the Demo menu as usual `ui.click`.
-- **There is no Demo menu in the guide.**（`/welcome/…`, so the setup task (f) cannot press a button and does not need: it starts/ends with an orientation record (para. 8.1Section B: `/welcome/founder/name`It's... `ui.navigate`or `onboarding.start` → `completeSetup`or `onboarding.finish`）。
-- **number corresponds (Juanxi 2026-11-08 fixed, added to rating table, tested unchanged):** 1 = (f) setup (non-consistent), 2–6 = card(a)-(e); If the last "New Activity with Ask" is to be counted separately, then you can let (e) press Done after the end and use the Ask section of `ui.ask` →  `reviewChange`.
+- **Location:** top-bar Demo pill (`Demo · date`) → menu's first row **Study task**: buttons `1` … `6` (screen-reader names "Start task 1" …) and `Done` ("Task done"). Nowhere else in the UI.
+- **Mobile:** same Demo pill, opening a full-width menu with the same buttons. **Keyboard:** Tab to Demo → Enter → Tab to a button → Enter.
+- The menu closes after a press (to read task cards), returning focus to Demo. The pill shows `· Task 3`; the active task button is pressed; Done is disabled when no task is active.
+- Press Start task N when beginning to read a task card, Done when finished. **Starting another task without Done** first records the previous task's `done` with `implicit: true`, then the new `start`.
+- Pressing the currently active task button records nothing.
+- The active task is derived from logs, survives refresh, and is unaffected by Reset demo.
+- These buttons **do not additionally log `ui.click`** (`ui.task` is their record); opening the Demo menu still logs `ui.click` normally.
+- **No Demo menu in onboarding** (the focused `/welcome/…` shell has no top bar), so setup task (f) cannot and need not use these buttons: use onboarding records for start/end (section 8.1 method B: `ui.navigate` to `/welcome/founder/name` or `onboarding.start` → `completeSetup` or `onboarding.finish`).
+- **Number mapping (set by Juanxi on 2026-11-08, recorded in the scoring sheet, unchanged during testing):** 1 = (f) setup (no button press), 2–6 = cards (a)–(e). To time the final "create an event with Ask" separately, press Done after (e), then calculate that Ask segment from `ui.ask` → `reviewChange`.
 
-### 11.3 Time to calculate tasks using task tags
+### 11.3 Calculate task duration using task markers
 
-1. Screening `type` = `ui.task` in CSV. Each task is a pair: `start` lines — `done` rows.
-2. **Time spent = `done`Yeah. `ms`**(equivalent to two lines) `time_ms`It's the difference.
-3. `implicit` for TRUE `done`: The participant forgot to press Done, which is actually the time he started his next assignment. The last operation in this paragraph may be replaced by the end (method B) or the time taken by the researcher's hand (method A). What's in the method?
-4. **Time outside the prototype in a mission.**: Take this paragraph. `start`Present. `done`All of them. `ui.visibility` `visible`Yeah. `awayMs`Add it up.  "Time in prototype" = Time - time to leave.
-5. The other lines in this section (click, ask questions, edit, suspend) are all the operations of this task, together with 8 errors, source checks.
-6. The person who pushes the button is a participant, forgets and makes a mistake. And Zoom video or handwritten time check.
+1. Filter CSV to `type` = `ui.task`. Each task is a pair: `start` → `done`.
+2. **Duration = `ms` on the `done` row** (the difference between the two `time_ms` values).
+3. `done` with `implicit` = TRUE means the participant forgot Done; its end is actually the next task's start, overestimating duration. Instead use the last task-related action in the segment (method B) or researcher notes (method A). State which method was used.
+4. **Time outside the prototype during a task:** sum `awayMs` across `ui.visibility` `visible` rows between `start` and `done`. "Time in prototype" = duration − time away.
+5. Other rows in the segment (clicks, questions, edits, hovers) are all task actions; combine with section 8's error and source-check measures.
+6. Participants can forget or press the wrong button. Cross-check against Zoom recordings or notes.
 
-### 11.4 Leave Page (`ui.visibility`)
+### 11.4 Leaving the page (`ui.visibility`)
 
-- **`via: "tab"`**: pages are hidden - tabs changed, windows minimized, cell phones cut to other applications, lock screens. The external source (ASU page, Gmail draft) that is left open in the prototype is opened on a new tab, so this is the one.
-- **`via: "window"`**: The page is still on the screen, but the whole browser window loses focus - points to Zoom, another ASU web page or PDF, file selection box. **decides to remember this type of** (Juanxi requires "valued and quiet"): Zoom shares only one browser window, and the participants look at another window without "hiddening", only if the window is missing. (b) Methods to control noise: the same 1 second threshold; (a) The entire window is missing focus and the page does not allow for a change of focus between input frames; Mark `picker: true` (that's something being selected, not leaving) if you are pulling a frame, date or file selection at the point of failure.
-- **`via: "close"`**: Pages are turned off, refreshed or left (`pagehide`), written immediately and stored in the browser immediately (with no difference of 1 seconds, the page is running out). This will be followed by a new `ui.navigate` (empty of `from`).
-- **Noise:** won't be able to leave 1 seconds (fast Alt-Tab, window flash). `hidden`It's all about leaving. 1It's written in seconds, so it's more time than really leaving. **Late appointment 1sec**； Look at the exact length of time you leave. `visible`Yeah. `awayMs`。
-- First the window is missing and then the tab is changed: `via` for `hidden`/ `visible` takes the type of `tab`.
-- The mobile browser freezes the back-office page, at which time `hidden` lines may not be written; `visible` lines still have complete `awayMs`. Just turn off the unreturned (`close`) no `visible` line.
-- **vs. official ASU page:** looking for `external` for TRUE `ui.click` (open source), followed by the `hidden` →  `visible` couple `awayMs`, which is his time outside (mostly looking at that source). This is the upper limit: I only know how long I've been gone, I don't know what I'm looking at out there or anything else. The participants themselves open the ASU web site in another window, as `window` or `tab` leaves without an external link click.
+- **`via: "tab"`**: the page becomes hidden through tab switching, minimizing, switching mobile apps, or locking the screen. External sources opened by the prototype (ASU pages, Gmail drafts) open in new tabs and use this category.
+- **`via: "window"`**: the page remains on screen, but the entire browser window loses focus to Zoom, an ASU page or PDF in another window, or a file picker. **We chose to record this** (Juanxi requested "valuable and quiet" logging): when sharing only one browser window in Zoom, viewing another window does not hide the page; window blur is the only signal. Noise controls: the same 1-second threshold; count only whole-window blur, not moving between in-page inputs; mark `picker: true` if a dropdown, date picker, or file picker was active at blur (selection rather than departure).
+- **`via: "close"`**: closing, refreshing, or leaving the page (`pagehide`); write and persist immediately (do not wait 1 second; the page is about to disappear). Refresh is followed by a new `ui.navigate` with empty `from`.
+- **Noise filtering:** record neither row for departures shorter than 1 second (quick Alt-Tab or window flicker). The `hidden` row is written after 1 second away, so its timestamp is **about 1 second later** than departure. Use `awayMs` on the `visible` row for accurate duration.
+- If the window blurs before a tab switch, count one departure and use the more complete departure category (`tab`) on both `hidden` / `visible`.
+- Mobile browsers freeze background pages, so `hidden` may be missing; `visible` still contains the full `awayMs`. Closing without returning (`close`) has no `visible` row.
+- **Compare with official ASU pages:** locate a `ui.click` with `external` TRUE (opening a source), then the following `hidden` → `visible` pair's `awayMs`: this is time away, probably viewing that source. It is an upper bound: we know only how long the participant was away, not what they viewed or whether they did something else. Opening ASU manually in another window creates a `window` or `tab` departure without a preceding external-link click.
 
-### 11.5 Start editing fields (`ui.edit`)
+### 11.5 Starting a field edit (`ui.edit`)
 
-- After focusing on a text, multi-line text, number, date or search box, **first real change content** timebook `start`; Just go in and don't type. The same focus is only recorded once on `start`, with the same number of words.
-- Departing from this box (Tab, dots elsewhere, page changes, shutdowns, **also includes moving to another window** - the browser loses focus on the frame) takes `end`, `ms` = from first change to departure. Come back and type again is the new couple.
-- **Discreet: What's in the** box, how long, key pressed, pasted. **The password box is completely missing.**（`type="password"`or `autocomplete`There's password in it.  Checkboxes, singles and drops are not edits (their selection is as `ui.change`).
-- `kind`: `text` (also e-mail, web site, telephone box), `textarea`, `number`, `date` (also time frame); Select a date with the date selector to count changes), `search`.
-- `field` comes only from frame labels (`aria-label`, `<label>`, hint text placeholdr), and **never reads text in the box**. The label is the interface text; A few labels may contain names previously named by the participants. `ui.click`It's... `name`）。
-- **Edit Time:** Adds `ms` for all `end` lines in a task. Note that `ms` includes pause and reflection when the frame is still focused, not "hand in typing".
-- The Ask input box also counts: the question box is still focused, and then the next question will not be counted for `start`, including these questions for `end` when leaving.
-- CSV: The `name` column now only takes `name` or `question`, so the `name` rows of `ui.edit` are empty with field names in `description` and `payload_json` `field` (if it is to be placed in `name`, then `scripts/export-to-csv.mjs`).
+- After focusing a text, multiline, number, date, or search field, record `start` on the **first actual content change**; focusing without typing records nothing. Only one `start` per focus period, regardless of text volume.
+- On leaving the field (Tab, clicking elsewhere, navigation, closing the page, **including switching windows** — the browser blurs the field), record `end`; `ms` = time from first change to leaving. Returning to type starts a new pair.
+- **Never record:** Field content, length, keystrokes, or pasted material. **Password fields are entirely excluded** (`type="password"`, or password in `autocomplete`). Checkboxes, radio buttons, and dropdowns are not edits (their selections remain `ui.change`).
+- `kind`: `text` (also email, URL, phone), `textarea`, `number`, `date` (also time fields; choosing a date with a date picker counts as a change), `search`.
+- `field` comes only from labels (`aria-label`, `<label>`, placeholder), **never from field content**. Labels are UI text; a few may contain names participants previously entered (as with `name` in `ui.click`).
+- **Editing time:** Sum `ms` for all `end` rows within a task. Note that `ms` includes pauses and thinking while the field remains focused; it is not "time spent physically typing."
+- Ask input is included: if it remains focused after a question is sent, typing the next question does not record another `start`; the eventual `end` includes those questions.
+- CSV: `name` currently uses only `name` or `question`, so `ui.edit` rows have an empty `name`; the field name is in `description` and `field` within `payload_json` (one-line change in `scripts/export-to-csv.mjs` to put it in `name`).
 
-### 11.6 Suspended Card (`ui.hover`)
+### 11.6 Hover cards (`ui.hover`)
 
-- The "stop" level of the rules interface (AGENTS.md Section 7): colour points, i icons, points on the progress chain etc., and small cards that appear when the mouse stops (or the keyboard focuses in); On the phone, it comes out from the bottom and closes somewhere else.
-- **closes and writes a**, `ms` is the time when it's open ( "Close when you write" instead of "0.5 seconds" instead of "COD003 seconds": log entries will not be changed after they have been written and are consistent with other entries). Less than 500 milliseconds left unattended. When the card was open, the page changed: just write one down, and `route` is the page that it opened.
-- `via`: `mouse` (the mouse on the computer stops), `focus` (Keyboard Tab to it, or click on a button inside it, and then the card will remain focused until the focus leaves, `ms` will be long), `tap` (cell phone).
-- `name` is the control name that triggers it (button text or screenname), and **is not the text in the card**. Many i are called "More information", so add `near` = its subheading (e.g. "Needs a Nudge").
-- **Usage:** The number of articles in `ui.hover` per task and the sum of `ms` = how many "why" explanations did participants see; Depending on which one it is (e.g., the cause of the Today risk point, the funding phase for Events, the source of rules). I just know how long the card's open and I don't know if he's reading it.
+- The "hover" level of the interface rules (AGENTS.md section 7): small cards shown when hovering or focusing colored dots, ⓘ icons, progress-chain points, etc.; on mobile, tap to open from the bottom and tap elsewhere to close.
+- **Write one entry on close**; `ms` is the open duration (chosen over "write at 0.5 seconds, then modify on close": entries remain immutable, consistent with other entries). Do not record openings shorter than 500 milliseconds (passing mouse). If navigation occurs while open, still write an entry; `route` is the page where it opened.
+- `via`: `mouse` (desktop hover), `focus` (keyboard Tab, or focus retained after clicking a button inside — the card stays until focus leaves, so `ms` may be inflated), `tap` (mobile).
+- `name` is the triggering control's name (button text or accessible name), **not card content**. Many ⓘ controls are named "More information, " so add `near` = containing subheading (e.g. "Needs a nudge").
+- **Use:** Per-task `ui.hover` count and summed `ms` show how many "why" explanations a participant opened and for how long; inspect which cards (e.g. Today risk reasons, Events funding stages, rule sources). This measures open duration, not whether they were reading.
 
-### 11.7 strips
+### 11.7 Entry count
 
-See 5.5: General rhythm approximately 650, very busy about 1560 (ceiling 2000). The e2e `e2e/research-events.spec.ts` section (starting mission 1, typing in the Rules search box, reading a suspension card, leaving 2 seconds, starting task 2, keyboard pressing Done, exporting) is 19–20, of which four are 9.
+See section 5.5: about 650 entries at a normal pace, about 1560 when very busy (cap 2000). The sequence in `e2e/research-events.spec.ts` (start task 1, type in Rules search, read a hover card, leave for 2 seconds, start task 2, press Done by keyboard, export) yields 19–20 entries, including 9 for these four additions.
 
-## 12. 2026-11-08 Add: Reminders Screen (P3-H, see how to select the president)
+## 12. Added 2026-11-08: Reminders screen (P3-H, observing the president's choice)
 
-The presidient process has an extra screen "How should returns go out" (`founder.reminders`, Path `/welcome/founder/reminders`, kip) after First event. Three options, **sequences fixed** (each participant sees the same, so no order is added to the file):
+The president flow adds "How should reminders go out?" after First event and before Confirm (`founder.reminders`, `/welcome/founder/reminders`, skippable). Three options in **fixed order** (identical for all participants, so order is not separately recorded):
 
-| Order | Titles on screen | Description of the following row | Saved Values |
+| Order | Screen title | One-line explanation below | Stored value |
 | --- | --- | --- | --- |
 | 1 | Send automatically | Platypus emails the officer on that date. | `auto_email` |
 | 2 | I review, then I send | Platypus drafts it. You check and send it. | `review_then_self` |
 | 3 | I review, Platypus sends | You check the draft. Platypus sends it. | `review_then_auto` |
 
-- "Platypus knows each task's latest start date." The following sentence reads "Demo: no email is ever sent." (IRB: No reminder will be given in the test). **Not a single** at first, not to press Continue; Press Skip for now if you don't want to.
-- **won't change any behavior on the website.** doesn't e-mail the website, whatever it is chosen. The reminder is still "open a draft and send it yourself." After this selection, the reminder editor has one more line of read-only words such as "Your Club chose: I review, Platypus sends (demo: nothing is sent."
-- Where **exists:** saves `state.org.settings.reminderMode` when Startworkspace; This field when skip (or old classic page) **Does not exist**。 Press Keep current demo to not change student data, so the answer is only in the record.
-- **No new entries**, and these will be recorded:
-  1. **Select which (by label), every change of mind:** each option takes a `ui.change`: `role: "radio"`, `name` = the title of the option (e. g. `I review, Platypus sends`), `checked: true`, `group: "How should reminders go out?"`, `testid` = `reminder-mode-<value>`, `route: "/welcome/founder/reminders"`. Change of mind is a series of `ui.change`s on the same screen; Timeline description such as `Ticked radio "Send automatically" in "How should reminders go out?" on /welcome/founder/reminders`.
-  2. **How long has this screen stopped?** `onboarding.attempts[].steps`Lee. `founder.reminders`It's... `enter`Present. `leave`(or) `back`(a) The time difference;  It's a new couple to come back midway.
-  3. **skip:** `skip` on the same screen followed immediately by `leave`.
-  4. Press Continue that's `ui.click` (`name: "Continue"`, `to: "/welcome/founder/confirm"`).
-- **`reminderModeChoice` How does it count (summary of the session, 3.1):** looks only at the steps ahead of Start workspace/ Keep current demo. Last time we look for this screen, `leave`: The first step forward is `skip`  →  `skipped`; Otherwise take the `ui.change` **from the last line on this screen before** leaves, in this session, and switch it to `testid`. When not found in the log (e.g. lost by 2000 cap), look at the latest session of `state.org.settings.reminderMode` (only when start workspace is pressed); None is `null`. Refreshing this screen will keep the choice in the draft, refreshing the previous `ui.change` is still on the log, so it doesn't matter.
-- Code: Screen `src/onboarding/founder/ReminderMode.tsx`Text `src/onboarding/copy.ts`（`founder.reminders`), value and order `src/data/reminderMode.ts`It's a calculation. `src/lib/onboardingRecord.ts`It's... `reminderModeChoice`Timeline `src/lib/timeline.ts`Test `src/test/onboardingReminderMode.test.ts`、`e2e/p3h-reminder-mode.spec.ts`。
+- Top line: "Platypus knows each task's latest start date." Bottom line: "Demo: no email is ever sent." (IRB: no reminders are sent during testing). **Initially nothing is selected**; select one to enable Continue, or choose Skip for now.
+- **No website behavior changes.** Whatever the choice, the site sends no emails; reminders still mean “open a draft for a human to send.” After selection, the reminder editor (Private reminder) gains a read-only line such as "Your club chose: I review, Platypus sends (demo: nothing is sent)." Skipping omits it.
+- **Storage:** Start workspace saves it in `state.org.settings.reminderMode`; skipping (or using old classic setup) leaves this field **absent**. Keep current demo does not change club data, so the answer exists only in the record.
+- **No new record types**; these were already recorded:
+  1. **Selection (by label), and every change of mind:** each option click records `ui.change`: `role: "radio"`, `name` = option title (e.g., `I review, Platypus sends`), `checked: true`, `group: "How should reminders go out?"`, `testid` = `reminder-mode-<value>`, `route: "/welcome/founder/reminders"`. Changing one's mind produces consecutive `ui.change` entries on the same screen; example timeline text: `Ticked radio "Send automatically" in "How should reminders go out?" on /welcome/founder/reminders`.
+  2. **Time on this screen:** time from `enter` to `leave` (or `back`) for `founder.reminders` in `onboarding.attempts[].steps`; returning starts a new pair.
+  3. **Skipping:** `skip` immediately followed by `leave` on that screen.
+  4. Continue is `ui.click` (`name: "Continue"`, `to: "/welcome/founder/confirm"`).
+- **Deriving `reminderModeChoice` (session summary, section 3.1):** consider only steps before Start workspace / Keep current demo. Find this screen's last `leave`: if preceded by `skip` → `skipped`; otherwise take **the last checked `ui.change` on this screen in this session before leaving**, mapping `testid` to value. If absent from logs (e.g., dropped at the 2000 cap), the latest session can fall back to `state.org.settings.reminderMode` (only for Start workspace); otherwise `null`. Refresh preserves the draft choice and the pre-refresh `ui.change` remains in the log, so it has no effect.
+- Code: screen `src/onboarding/founder/ReminderMode.tsx`, copy `src/onboarding/copy.ts` (`founder.reminders`), values/order `src/data/reminderMode.ts`, derivation `reminderModeChoice` in `src/lib/onboardingRecord.ts`, timeline `src/lib/timeline.ts`, tests `src/test/onboardingReminderMode.test.ts`, `e2e/p3h-reminder-mode.spec.ts`.

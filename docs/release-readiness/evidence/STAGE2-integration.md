@@ -1,12 +1,12 @@
-# DP8 Phase II Integration
+# DP8 stage 2 integration acceptance
 
-2026-11-01（UTC）。This record is the final evidence of three independent work packages; Source branch numbers, versions and packages in work package evidence are pre-integrated records.
+2026-11-01 (UTC). Final evidence after integrating three independent packages; source-branch counts, versions, bundle sizes in individual evidence are pre-integration records.
 
-## Baseline, separation and submission
+## Baseline, isolation, commits
 
-First execution of `git fetch origin`; Only the default branch is overridden by the orgin default fetch refspec, and then the obvious fetch `refs/heads/integration/v1.0:refs/remotes/origin/integration/v1.0`. The only baseline is the latest remote **1975bc122f5823e033c29493a5d20ce84b85ec23/ 1975bc1**. The first six bags have been identified by an ancestor examination on a case-by-case basis in the far end:
+First `git fetch origin`; default fetch refspec covered only default branch, so explicitly fetched `refs/heads/integration/v1.0:refs/remotes/origin/integration/v1.0`. Sole baseline latest remote **1975bc122f5823e033c29493a5d20ce84b85ec23 /1975bc1**. Ancestry checks confirmed all six stage 1 packages present:
 
-| First-stage package | Integrated Contribut |
+| Stage 1 package | Integrated commit |
 | --- | --- |
 | WP01 | 2f3c922787fccf12ad4144e8d1c829c2486027c8 |
 | WP02 | a653a4c290ed5c5d819e8bbfa1526030076ddc15 |
@@ -15,59 +15,59 @@ First execution of `git fetch origin`; Only the default branch is overridden by 
 | WP07 | 707eb195d1423557d622362d49cc0228f52ee129 |
 | WP09 | 83a699521fac28fb4c4a597e7ef3b7abab3c8243 |
 
-Read AGENTS, README, manifest, STAGE2 and the latest phase Handoff as requested; Automatically read WP05/ 06/08 by pressing manifest. Three sub-agents worktree, branch and source committee independence from the same baseline as above, one package per package; The main agent in the fourth worktree press WP05  → WP06  →  WP08cher-nick-x.
+Read AGENTS, README, manifest, STAGE2, latest stage 1 handoff fully as required; discovered WP05/06/08 via manifest. Three subagents used independent worktrees, branches, source commits from same baseline, one commit/package; lead cherry-picked -x in fourth worktree, WP05 → WP06 → WP08.
 
-| Bag. | Source / worktree | Independent Source | Integrated committee |
+| Package | Source branch/worktree | Independent source commit | Integration commit |
 | --- | --- | --- | --- |
 | WP05 | codex/rr-wp05-a11y / rr-wp05-a11y | a383c06738011b4ea5660d6e024ba5f8aff51038 | 76f3f2a3bbc131bdfecc9db49a4daf8ab1147ee7 |
 | WP06 | codex/rr-wp06-words / rr-wp06-words | 4a23825e57e6f56067178f141ce96e5b6402414a | 817582daf44d7b1bd001e2e287ab868d5285dc1c |
 | WP08 | codex/rr-wp08-toolchain / rr-wp08-toolchain | 85687dccfe10917f1eba849ef5aa5c45a8f56a60 | 5540c66bda560c2ab2826cae4e662b68b09922e6 |
 
-Integrated branch `codex/rr-stage2-integration`, worktree `rr-stage2-integration`. MetroChart is the only conflict line-by-line merge that retains WP05's touch/keyboard distinction, focus management and WP06's tooltip, aria-describedby, without full file coverage. (a) 11y/low-edit/m2b 90 from WP05, excluding former equipment from 6; Rules/Events/wp5/smoke/word-budgets 62 of WP06 were adopted, Words were passed; WP08 will be followed by the following full phase of closure.
+Integration branch `codex/rr-stage2-integration`, worktree `rr-stage2-integration`. Only MetroChart conflict resolved line-by-line, retaining WP05 touch/keyboard distinction/focus management and WP06 on-demand tooltip/aria-describedby, never whole-file overwrite. Per-package verification: WP05 a11y/flow-edit/m2b 90 passed, 6 existing device exclusions; WP06 Rules/Events/wp5/smoke/word-budgets 62 passed, words passed; after WP08, full stage gates below.
 
-Main agent further discovers and fixes the read-only Budget focus trap: candidate elements use primary: disabled fieldset, including submary; Both the Sam/Jordan and Escape desktops/phones are covered. The correction has been re-integrated after entering the final WP05 source.
+Lead also found/fixed read-only Budget focus trap: candidate selection uses native :disabled (including disabled fieldsets), includes summary; Sam/Jordan bidirectional Tab/Escape covered desktop/mobile. Included in final WP05 source commit before reintegration.
 
-A new version of Axe 4.14 exposed brands and Handoff's live label-content-name-mismatch. Main agent removes redundancies covering visible content from **ccaf517fd54cccd629927eba74e428c2eafe49c4** and **6e9be85292554cebd978b818e40c237f5bf31616** respectively Aria-label, using original content for naming; Brands add text spaces, handoff cards supplement screen viewing and keep the header, progress and phase. The branding test validates the change of organizational name, original Axe scan and keyboard return to the first page (6 target adopted); Handoff Scanning and Complete Signing Operation 4 was passed and reviewed by WP05 agent read-only.
+Axe 4.14 exposed genuine brand/Handoff label-content-name-mismatch. Lead commits **ccaf517fd54cccd629927eba74e428c2eafe49c4** and **6e9be85292554cebd978b818e40c237f5bf31616** remove redundant aria-label overriding visible content, use native content names; brand adds text space, handoff card adds screen-reader “handbook” while retaining avatar/progress/stage. 6 brand checks passed: renamed organization, raw Axe, keyboard home navigation; 4 Handoff scan/full signing-flow checks passed, plus WP05 agent read-only review.
 
-## Last door is closed.
+## Final gates
 
-Environment: Node **v22. 23.4**, `/usr/bin/chromium` (154). The npm command is executed through `npm exec --yes --package=node@22 -- sh -c '…'`. (b) Completion of the production construction and start of the browser; Do not re-establish its list during the operation. Original Playwright configuration unchanged, workers = 2, retries = 0.
+Environment: Node **v22.23.4**, `/usr/bin/chromium` (154). npm via `npm exec --yes --package=node@22 -- sh -c '…'`. Production build finished before browser start; no dist rebuild during tests. Original Playwright config unchanged, workers=2, retries=0.
 
-| Restricted. | Final result |
+| Gate | Final result |
 | --- | --- |
-| npm ci | Adopted, 439 packages; Lock file to stand-alone package |
-| npm run lint | Adopted; Stylelint, ESLint, also 20 JSX/ style sample, 4 original exclusion, 66 matcher API assertion adopted |
-| npm run build | Adopted; TypeScript and Vite, without raising the package threshold |
-| npm test -- --maxWorkers=2 | 56 File / **809 through**, 0 failed, 0skip |
-| npm run typecheck:netlify | Pass,stric reservation |
-| npm run words | All 9 live routes through; Funding reoriented to Events, deleting duplicate alias entries, without raising any threshold or modifying statistical methods |
-| a11y desktop/mobile | **63Through**、3It's not like the original equipment is here. 0Original Axe Infractions 66(Items)  |
-| Phase objective E2E | **350 Failed by / 10 excluding the original device / 0 / 0 flaky / 0 retry** with a total of 360, 4.6 minutes |
-| npm audit --omit=dev | Critical/high/moderate/low 0  |
-| Full npm audio | 0 (baseline 17 item  →  0) |
-| Playwright --list | **464 item / 28 document**, Baseline 440 item / 27 file, deleted without testing |
+| npm ci | Passed, 439 packages; lockfile matches independent source package |
+| npm run lint | Passed; Stylelint, ESLint, plus 20 JSX/style samples, 4 existing exclusions, 66 matcher API assertions |
+| npm run build | Passed; TypeScript/Vite, no bundle-threshold increase |
+| npm test -- --maxWorkers=2 | 56 files / **809 passed**, 0 failed, 0 skip |
+| npm run typecheck:netlify | Passed, strict retained |
+| npm run words | All 9 actual routes passed; Funding redirects Events, duplicate alias removed, no threshold/counting changes |
+| a11y desktop/mobile | **63 passed**, 3 existing device exclusions, 0 raw Axe violations (66 cases) |
+| Stage target E2E | **350 passed / 10 existing device exclusions / 0 failed / 0 flaky / 0 retries**, 360 total, 4.6 minutes |
+| npm audit --omit=dev | critical/high/moderate/low all 0 |
+| Full npm audit | critical/high/moderate/low all 0 (baseline 17→0) |
+| Playwright --list | **464 cases / 28 files**, baseline 440 cases / 27 files, no deleted tests |
 | git diff --check | Passed |
 
-Final word count/all; Threshold remains the same: Today 109/404, Events 149/171, Rules 50/166, Tasks 56/56, Team 129/259, Handoff 39/71, Partners 79/99, Settings 120/120, Help 442/442 (old information page width). The Rules 64 original sources are still fully accessible through search, classification and live pages; Adds a total of 27 page break views for the All/ 9 classification with the widest 74/268, which is still below 170/560. Event owned/status/3 dates and rule sources are kept on the over/focus cards and details as required, without using CSS to hide the whole text count.
+Final word counts (visible/all, thresholds unchanged): Today 109/404, Events 149/171, Rules 50/166, Tasks 56/56, Team 129/259, Handoff 39/71, Partners 79/99, Settings 120/120, Help 442/442 (existing information-page allowance). All 64 original Rules sources remain accessible via search, categories, real pagination; new test traverses All/9 categories, 27 paginated views, widest 74/268, below 170/560. Event owner/status/three dates/rule sources retained in on-demand hover/focus cards/details, no CSS-hidden full text to game counts.
 
-Final entrance `index-NvA6n9JZ.js` **364,430 byte** (local gzip 115,194), real-runme **142,530** (gzip 45,815), with two JS screens totalling **506,960** bytes. The 500,000 byte door is restricted to the entrance and the sum is not reported as an entry. Rollup AST: The entrance is staticly quoted only by Runtime, rantime without import/export-from quotes. The desktop and cellular network attachments confirm that only the above-mentioned two JS requests have been made, without having requested PhaseOne/OnlineSetup/PDF in advance. Keep lazy drawing, visible loating, single main, polite status, direct access/renewal/Back/Forward, PDF realization and worker requests only after selecting a PDF.
+Final entry `index-NvA6n9JZ.js` **364,430 bytes**(local gzip 115,194), react-runtime **142,530**(gzip 45,815), two initial JS files total **506,960**. 500,000-byte gate applies to entry, total not misreported as entry. Rollup AST: entry statically references runtime only, runtime has no import/export-from back-reference. Actual desktop/mobile network attachments confirm only these two JS requests, no early PhaseOne/OnlineSetup/PDF. Retains lazy loading, visible loading, single main, polite status, direct access/refresh/Back/Forward, PDF implementation/worker requested only after choosing PDF.
 
-The final matrix is fully operational a11y, Word-budgets, smoke, recovery, safety, m2b, bts, today, events, fly-edit, feel, touch, wp5, tasks, rehearsal, setup-team, workfly-setup, phase1, implementation-security, bindle-performance, bindle-organization-setup; Select also the source of orniation-setup, PDF/Word/TXT real files to read archive, draft restoration and navigation/save failed/conflict target scene. Project distributions desktop = 162, mobile = 162, desktop-storage = 18, mobile-storage = 18. All API offline simulations, 0 live fees AIR.
+Final matrix fully ran a11y, word-budgets, smoke, recovery, safety, m2b, bts, today, events, flow-edit, feel, touch, wp5, tasks, rehearsal, setup-team, workflow-setup, phase1, production-security, bundle-performance, bundle-organization-setup; also targeted organization-setup sources, real PDF/Word/TXT reading/archive, draft recovery/navigation/save failures/conflicts. Projects: desktop=162, mobile=162, desktop-storage=18, mobile-storage=18. All API calls offline mocks, 0 real paid AIR.
 
-10 exclusions are clearly applicable to the original equipment: a11y 3 (desktop not running full-page coverage, mobile not repeating tablet 2), Feel 2 (mobile not running over/desk focus style), fly-edit 3 (cell not running mouse drag/width layout link), touch 2 (desktop not running mobile phone touch). No skip/fixme was added, no assertions were deleted, force click, timeout was increased, Axe/filtration violations were disabled, word numbers/packages were raised or audit objectre was removed. The old fly-edit target-size filter has been removed.
+All 10 exclusions preexisting explicit device applicability: a11y 3 (desktop omits mobile full-page case, mobile omits 2 tablet cases), feel 2 (mobile omits hover/desktop focus), flow-edit 3 (mobile omits mouse drag/wide-layout links), touch 2 (desktop omits mobile touch). No new skip/fixme, deleted assertions, force clicks, timeout increases, Axe disable/filter, word/bundle-limit increase, audit ignore. Removed old flow-edit target-size filter.
 
-Locally retain `/tmp/rr-stage2-final-{lint-build,unit-backend,words,e2e}.log`, `final-e2e.json`, complete/production audit JSON, bindle JSON, E2E inventory and browser network attachments. The cycle of finding failures is also retained: the new Axe branding problem; After 347 pass /10Original exclusion / 3Failed (Handoff desktop/cell and a HTTP navigation error during parallel reconstruction).  (a) Rehabilitate live naming and stop full rerun after parallel reconstruction, with the following final conclusions based only on the most recent successful rounds; The whole phase is declared to have been adopted without merely running the failed item. misspelled the non-existent typecheck:backend command, reporting missing copy; Both independence and eventual recovery were then adopted using repository correct typecheck:netlify, without considering the error of command as a success.
+Local `/tmp/rr-stage2-final-{lint-build,unit-backend,words,e2e}.log`, `final-e2e.json`, full/production audit JSON, bundle JSON, E2E inventory, browser network attachments retained. Failed runs retained too: new Axe brand issue; then 347 pass / 10 existing exclusions / 3 failed (Handoff desktop/mobile and one HTTP navigation error during concurrent rebuild). Fixed naming, stopped concurrent rebuild, reran entire suite; final conclusions use latest successful run only, no whole-stage pass from failure-only rerun. Mistyped nonexistent typecheck:backend returned Missing script; correct repository typecheck:netlify passed isolated/final reruns, command error never counted as success.
 
-## Remaining risk and phase III conditions
+## Remaining risks/stage 3 conditions
 
-- WP08 Three minimatch 11.0.3 overrides for ESLint, config-array, typescript-estrere are live upgrades and do not ignore loopholes. Upstream direct use of the safe version should be removed article by article and a match between watcher and Lint should be repeated. (a) The original production was dependent on running version unchanged, with only two React type packages updated; Two of the production chains still have OpenTelemetry discarded the hint, audit 0.
-- Current phase II target; The full 464 four project authentication, fsck, secret/ private-key scan, currently GitHub Checks, live Air manual smoke checklist is still executed by **WP10**. The old charting test, which was not partially included at this stage, still has force click and phase III is subject to review and correction of operationality as required by the disabling shortcuts and cannot be used to obtain passage.
-- Local Chromium desktop/simulating cell phones only; Physical equipment, Safari, online DP8 preview/deployment not yet new; Unable to call live Air, do not declare online AI or officially publish authentication. Could not close temporary folder: %s
-- (b) All phase II doors have been closed and the conditions for starting phase III WP10 are in place; The final release of the authentication or application for merge is not yet possible. The feed must again be sent before the remote is a baseline and safe fast-forward to execute `git push origin HEAD:integration/v1.0`. Do not use, modify, push or merge main, never force push.
+- Three minimatch 11.0.3 overrides for ESLint, config-array, typescript-estree in WP08 are actual upgrades, not ignored vulnerabilities. Remove individually once upstream uses safe versions, rerun matcher comparisons/lint. Production dependency runtime versions unchanged, only two React type packages updated; two existing OpenTelemetry deprecation notices remain, audit 0.
+- This is stage 2 target acceptance; full 464-case/four-project certification, fsck, secret/private-key scans, current GitHub Checks, real AIR manual smoke checklist belong to **WP10**. Some old storage graph tests excluded here still use force click; stage 3 must review/fix operability under no-shortcuts rules, not reuse forced passes.
+- Local Chromium desktop/emulated mobile only; physical devices, Safari, online DP8 preview/deployment not newly accepted; no real AIR, no live-AI/final-release certification claim. Local backup needs synchronization.
+- All stage 2 gates passed, ready for stage 3 WP10; not yet final release certification or merge-request conclusion. Fetch again before push; only if remote remains baseline and safe fast-forward, `git push origin HEAD:integration/v1.0`. Never use, modify, push, merge main or force-push.
 
-## Recover Command for Final Browser Matrix
+## Reproduce final browser matrix
 
-First completes `npm ci && npm run build` under Node 22, ensuring that there is no other process to re-establish the list during its operation. The following command is also implemented in Node 22's shell, using the formal four item configuration and existing timeout:
+First complete `npm ci && npm run build` in Node 22; ensure no other process rebuilds dist during tests. Run below in Node 22 shell, official four-project config/existing timeouts:
 
 ```sh
 CI=1 PW_CHROMIUM=/usr/bin/chromium npx playwright test \

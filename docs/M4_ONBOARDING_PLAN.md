@@ -1,148 +1,148 @@
-# M4 Programmes: Two sets of onboarding synthesis (to be reviewed by Juanxi)
+# M4 plan: combine two onboarding flows into one (awaiting Juanxi's review)
 
-**Status: Programs only, no code changes.** Drafting: Claude, 2026-10-29, Branch `integration/v1.0`.
-M3 is now sorted, so it's called **M4**. ）
-Based on: execution programmes 8.6, 9.1, 9.2, 9.4, 9.6, 10.4; `AGENTS.md` Section 10–12; `docs/IRB_HANDOFF_2026-10-28.md` Section 2; The code only looks at structures: `src/pages/Setup.tsx`, `Join.tsx`, `src/organization/` (file list and type `schema.ts`), `src/phase1/serverStorage.ts`, `vite.config.ts`, `netlify/functions/`.
+**Status: proposal only; no code changed.** Drafted by Claude, 2026-10-29, branch `integration/v1.0`.
+(The execution plan called this "M3"; M3 now means the ordering task, so this is renamed **M4**.)
+Basis: execution plan 8.6, 9.1, 9.2, 9.4, 9.6, 10.4; `AGENTS.md` §§10–12; `docs/IRB_HANDOFF_2026-10-28.md` §2; code inspection covered structure only: `src/pages/Setup.tsx`, `Join.tsx`, `src/organization/` (file list and `schema.ts` types), `src/phase1/serverStorage.ts`, `vite.config.ts`, `netlify/functions/`.
 
-## 0.
+## 0. Recommendation first
 
 | | |
 | --- | --- |
-| **Recommendation** | Do not do merge before **Phase 3 (11/9) until after the Phase 3. The** programme is now finalized and frozen; Do a little "invisible" before at most 11/9 (see 6 B) or do nothing. |
-| Why? | 4–5 sessions, plus each time you complete acceptance, 11 days is not enough and at least 3 days of "freezing" code are left before testing; Two, it'll change. `Role`、`Person` It's all about 37. `holderId`, the risk of moving forward is too high; 3 participants using field information, DP3's most valuable "readconstitution auto-build role" is not necessary for research tasks. |
-| Now the participants have a set of useful settings. | Main application `/#/setup`(5 moves) plus `/#/join`(5 questions); DP3 5AI set in the building for research **It's not gonna happen.**  |
+| **Recommendation** | **Do not merge before Phase 3 (11/9); defer until after Phase 3.** Finalize and freeze the plan now; at most, do one small “invisible” item before 11/9 (option B in section 6), or do nothing |
+| Why | ① Completion takes 4–5 sessions, plus your acceptance reviews; 11 days is insufficient, and code must be frozen for at least 3 days before testing; ② it changes the `Role`/`Person` relationship, and `holderId` is used in 37 places across the app—too risky before testing; ③ participants use fictional information, so DP3's most valuable feature, “read a constitution and automatically create roles,” is not essential to study tasks |
+| Participants already have usable setup | The main app's `/#/setup` (5 steps) plus `/#/join` (5 questions); DP3's 5-chapter AI setup is **completely unreachable** in the study build |
 
-## 1. Phase 3, what do the participants see? So what's it look like after the merger?
+## 1. What do Phase 3 participants see now? What would unification look like?
 
 ### 1.1 Now (verified)
 
-- **research constructs** (`ORG_SETUP_ENABLED` not created, i.e. closed): participants can only go to the primary application of **`/#/setup`**: Your club  →  Semester Goals  →  Office rules  →  Invite & workspace  →  First event (5 moves with data in browsers only); **`/#/join`** (5 questions, presentation links to the same browser).
-- The 5 chapter for DP3 AI settings (Constitution — Your Team — Responsibilies — Activity workworklow — Review) in `/#/phase1/`. When `SERVER_STORAGE = false` is constructed, these images of **are not packaged to** and `/#/phase1/` has only one local example. It's AI to walk `/api/org/ai` and wait for 7 endpoints to return to 404 when not open.
-- So it's "one can work, the other can be turned off", not "two can use."
+- **Study build** (`ORG_SETUP_ENABLED` unset, therefore off): participants can only use the main app's **`/#/setup`**: Your club → Semester goals → Officer roles → Invite & workspace → First event (5 steps, data stored only in the browser); officers use **`/#/join`** (5 questions, demo links for the same browser).
+- DP3's 5-chapter AI setup (Constitution → Your team → Responsibilities → Activity workflow → Review) is at `/#/phase1/`. With build-time `SERVER_STORAGE = false`, those screens **are not bundled**, leaving only a local example at `/#/phase1/`. Its AI uses `/api/org/ai` and the other 7 endpoints, all returning 404 when disabled.
+- The current state is therefore “one usable flow, the other disabled,” not “both usable.”
 
-### 1.2 After One (draft text)
+### 1.2 After unification (text sketch)
 
-There is only one path: `/#/setup` (president/ vice president) and `/#/join` (officer). The content of DP3 becomes a few new steps in Setup, using the main application of its own components, and data is still only available on browsers.
+Only one route: `/#/setup` (president/VP) and `/#/join` (officers). DP3 content becomes additional Setup steps, built with the main app's components, with data still stored only in the browser.
 
 ```
-Set up your fictional club                         ● ● ● ○ ○ ○ ○    (Progress Chain  Chain)
+Set up your fictional club                         ● ● ● ○ ○ ○ ○    (progress Chain)
 ─────────────────────────────────────────────────────────────────────────────
 1 Club        name · mission · school
-              [ Use our sample constitution ]  [ Choose a file ]  [ Paste text ]   ← optional, skip
-              (Points  "Read it with AI" → It's down there. "AI suggestion · check it"line, line by line  Add / Skip)
-2 Goals       (Existing 2–3 Target )
-3 Team        Table  (.tbl): One per row "People. " —— Name · Email · Role · Department
-              Sectors are small colour labels; Role It's a drop; Top Right  "+ Add person"
-              One line.  → Right Bar  Details: This person's role Duties）
-4 Duties      List of duties by rale column (editable tabs) + Default  R/A/C/IWho's in charge, who's approved, who's consulted and who's informed?
-5 Event steps Above standard flow "Gabin student organisation own steps ": Name  · Which one?  · A few days.  · After which step?
-              Use  M3 It's...  Edit steps Same set of rules, not another flow chart)
-6 Invite      (Existing: invitation links  + Channels in the workspace )
-7 First event (Existing: One sentence  → Form  → Confirm ) + A page overview of all above, confirm only to save
+              [ Use our sample constitution ]  [ Choose a file ]  [ Paste text ]   ← Optional; may be skipped
+              (Click "Read it with AI" → role rows labeled "AI suggestion · check it" appear below, with Add / Skip per row)
+2 Goals       (Existing: 2–3 goals)
+3 Team        Table (.tbl): one “person” per row—Name · Email · Role · Department
+              Departments are colored tags; Role is a dropdown; "+ Add person" at top right
+              Click a row → right-rail Details: this person's role responsibilities (Duties)
+4 Duties      Duties by role (editable tags) + default R/A/C/I (responsible, accountable, consulted, informed)
+5 Event steps Add “this club's own steps” to the standard workflow: name · role · days · which step it follows
+              (Same rules as M3's Edit steps, not another flowchart)
+6 Invite      (Existing: invitation links + workspace channels)
+7 First event (Existing: one sentence → form → confirmation) + one-page overview of everything above; save only on confirmation
 ─────────────────────────────────────────────────────────────────────────────
 Back  Next      "Nothing is saved until you approve the first workflow."
 ```
 
-- 7 takes a lot of steps, but **1, 4, 5 are** (“Skip - use the standard plan”), so the fastest route is still the same as 5.
-- Participants use field information, AI is **optional accelerator**: Turn off the AI (top-column AI feeds) process as it works.
+- 7 steps look like many, but **1, 4, and 5 can all be skipped** ("Skip — use the standard plan"), so the fastest path remains the original 5 steps.
+- Participants use fictional information; AI is an **optional accelerator**: the entire flow still works with AI off (top-bar AI features toggle).
 
-## 2. DP3 Chapter 5 which moves in and reworks with the primary application of 5 components
+## 2. Which DP3 chapters to bring over, and how to rebuild them with the main app's 5 components
 
-The main application of 5 components (AGENTS.md § 7.2): state color block `StatusPill`, progress chain `Chain`, table `.tbl`, suspended card `Hover`/ `Info`, details in the right column (`useRail().show`). AI only has one entrance in the right column Ask (§ 7.1).
+The main app's 5 components (AGENTS.md §7.2): status blocks `StatusPill`, progress `Chain`, table `.tbl`, hover cards `Hover`/`Info`, and right-rail details (`useRail().show`). The only AI entry is right-rail Ask (§7.1).
 
-| DP3 Chapter | Do what? | Are you moving? | How do you redo it in the main app? |
+| DP3 chapter | What it does | Bring over? | Rebuild in the main app |
 | --- | --- | --- | --- |
-| **1 Constitution** | Upload PDF/Word or paste  →  AI to read the name, mission, role, role belonging to department, unsure | **Moving (optional)** | Setup 1 step line button; **only reads** (in browser) `readConstitution` Use pdfjs/mammoth, not available; Point "Read it with AI" to send **text** to a new **interface that does not store** (section 5); The result is a line-by-line Add/Skip (imitating the change card); AI, put it somewhere uncertain. `Info` Suspend card |
-| **2 Your team** | Department, role, organisation arcitecture `SetupCharts.tsx` 958 Lines, remember | **Move half.**. | **Moving:** department, roll, person (code 3 step table). **Not moving:** organization arcitecture (you chose a simple style); You can do it later in the subway style. Man becomes the main character of the form (Section 4) |
-| **3 Responsibilities** | Department/ roll duty, Check (AI risk check) | **move duty, not check**. | Step 4: each role has an edited set of job labels; Right column Details. `Check`（`risk_check`Plan check. |
-| **4 Activity workflow** | Member Flowchart + Council Flowchart `FlowEditor.tsx`, drag nodes manually) | **. Just custom steps**. | Do not move flowcharts (9.42: do not flyEditor). Article 5Step: on the standard process **Add this standardisation your own steps**(becomes)  `StepTemplate` An additional step of style, created with a standard step; Order/days with M3 editing rules. **Council Process (boardFlow) not to move** |
-| **5 Review** | approval, `guide`(student event description for AI), translated into machine readable JSON, risk summary | **Masters, not gide/JSON** | An overview of the one page of step 7; `guide` Do not need to read live data (the AI used by the main application, `aiContext.ts`）；JSON can be part of "Export my Data" |
+| **1 Constitution** | Upload PDF/Word or paste → AI extracts club name, mission, roles, departments for roles, and uncertainties | **Yes (optional)** | A row of buttons in Setup step 1; files **read only in the browser** (`readConstitution` uses pdfjs/mammoth; no upload); clicking "Read it with AI" sends only **text** to a **new stateless** endpoint (section 5); results become suggestion rows with Add/Skip per row (like change cards); AI uncertainties go in `Info` hover cards |
+| **2 Your team** | Departments, roles, organization chart (`SetupCharts.tsx`, 958 lines), members | **Half** | **Bring:** departments, roles, people (step 3 table). **Leave:** organization chart (you chose a simple style; a subway-map style could be used later). People become the table's focus (section 4) |
+| **3 Responsibilities** | Department/role duties, Check (AI risk review) | **Duties yes, Check no** | Step 4: editable duty tags for each role, viewable in right-rail Details. Defer `Check` (`risk_check`); the main app already has event Plan check |
+| **4 Activity workflow** | Member flowchart + executive-board flowchart (`FlowEditor.tsx`, manually dragged nodes) | **Only custom steps** | No flowchart (9.4②: no FlowEditor). Step 5: **add this club's own steps** to the standard workflow (extra steps in the style of `StepTemplate`, generated with standard steps when creating events); ordering/days follow M3 editing rules. **Defer executive-board workflow (boardFlow)** |
+| **5 Review** | Approval, `guide` (club instructions for AI), machine-readable JSON compilation, risk summary | **Overview yes, guide/JSON no** | One-page overview in step 7; no `guide` needed (main-app AI reads actual data directly through `aiContext.ts`); JSON can later become part of "Export my data" |
 
-**No one moves:** server storage, original archiving (`archive.ts`, `client.ts`), AI mission records and diagnostics, chat records, `src/workspace/`, `organization.css`/`setupV3.css` / `phase1.css` (third design system for 4,567), `FlowEditor.tsx`, `SetupCharts.tsx`. **Reusable:** pure logic file `setupLogic.ts` (Stabilized ID, manual field protection, partial reference restoration); 592 line, there are tests) but only re-use functions and not package the `src/organization/` interface.
+**Bring none of these:** server storage, original-file archive (`archive.ts`, `client.ts`), AI task records and diagnostics, chat history, `src/workspace/`, `organization.css` / `setupV3.css` / `phase1.css` (4,567 lines of a third design system), `FlowEditor.tsx`, `SetupCharts.tsx`. **Reusable:** pure logic in `setupLogic.ts` (stable IDs, manual-field protection, local-reference repair; 592 lines, tested), but reuse functions only, without bundling `src/organization/` UI.
 
-## 3. Field map, and five conflicts in 9.4
+## 3. Field mapping and handling the five conflicts in 9.4
 
-### 3.1 field map (DP3 — master application)
+### 3.1 Field mapping (DP3 → main app)
 
-| DP3 | Main application | Practice |
+| DP3 | Main app | Approach |
 | --- | --- | --- |
-| `OrgRole.id` | `Role.id` | Direct (stable ID) |
-| `OrgRole.title` | `Role.displayName` | Direct |
-| `OrgRole.departmentId` | **Add optional fields `Role.departmentId`** | Sectors are merely labeled and used to group and color; **`Role.fn`（`RoleFunction`** (see conflict 1) |
-| `OrgRole.description` | **Add optional `Role.description`** | Low risk |
-| `OrgRole.responsibilities[]` | **Add optional `Role.duties?: string[]`** | Enter Handoff Manual, AI context |
-| `OrgRole.source/quote/confidence/manualFields/position/parentRoleId` | — | Do not move ( `position` Response to conflict 2; Organisation |
-| Sector `Department{id,name,color}` | **Add optional `org.departments`** | Colour is user data, same as status colour (changeable, not token) |
-| `RaciRow.responsible` | `Node.ownerId` | By "rolle — the current person" |
+| `OrgRole.id` | `Role.id` | Use directly (stable ID) |
+| `OrgRole.title` | `Role.displayName` | Use directly |
+| `OrgRole.departmentId` | **New optional `Role.departmentId`** | Department is only an additional grouping/color tag; **`Role.fn` (`RoleFunction`) remains the engine's primary key** (conflict ①) |
+| `OrgRole.description` | **New optional `Role.description`** | Low risk |
+| `OrgRole.responsibilities[]` | **New optional `Role.duties?: string[]`** | Included in Handoff handbook and AI context |
+| `OrgRole.source/quote/confidence/manualFields/position/parentRoleId` | — | Omit (`position` relates to conflict ②; no organization chart) |
+| Department `Department{id,name,color}` | **New optional `org.departments`** | Colors are user data, in the same category as status colors (editable, outside tokens) |
+| `RaciRow.responsible` | `Node.ownerId` | Resolve a person through “role → current holder” |
 | `RaciRow.accountable` | `Node.approverRoleId` | Direct correspondence |
-| `RaciRow.consulted / informed` | `Node.consultedRoleIds / informedRoleIds` | Direct correspondence (nearly one to one) |
-| `OrgAction`(Duties entry, no date) | **`StepTemplate` Additional steps of style**No, it's not.  `Node` | 9.4 Decision: Action is better suited to become process template |
-| `FlowNode.title / description` | `title` / `why` | Direct |
-| `FlowNode.dependsOn` | `Node.dependsOn` | For "additional steps" only; `dependencyMode:"any"` See conflict 3 |
-| `FlowNode.timing` | `Node.anchor`（rule/target/fixed） | See conflict 4 |
-| `Assignment`(action #role) | Responsibility for additional steps | Parsing as Manager |
-| `guide`、`aiRuns`、`messages`、`generated`、`compiled`、`approvals` | — | I'm not moving. |
+| `RaciRow.consulted / informed` | `Node.consultedRoleIds / informedRoleIds` | Direct correspondence (this group is almost one-to-one) |
+| `OrgAction` (undated duty item) | **Extra step in `StepTemplate` style**, not `Node` | 9.4 decided: Action fits better as a workflow template |
+| `FlowNode.title / description` | `title` / `why` | Use directly |
+| `FlowNode.dependsOn` | `Node.dependsOn` | For extra steps only; `dependencyMode:"any"` covered by conflict ③ |
+| `FlowNode.timing` | `Node.anchor` (rule/target/fixed) | See conflict ④ |
+| `Assignment` (action → role) | Responsible role for an extra step | Resolve to an owner |
+| `guide`, `aiRuns`, `messages`, `generated`, `compiled`, `approvals` | — | Omit |
 
-### 3.2 Five Conflicts (decisions taken by 9.4, adopted)
+### 3.2 Five conflicts (reuse decisions already made in 9.4)
 
-1. **`departmentId` vs `RoleFunction`: both remain.** `RoleFunction` remains the main key to process templates, swimming lanes and manuals; `departmentId` just group labels. A map of "departmental functions" is required: Programs & Planning & Programs, Event Losistics & Projects, Finance & Purchasing & finance, Marking & Communication & marking, Outreach, Leadership & Records § president / vice_president / interface (in the name of rule, it is not possible to judge on secretary and can be changed at the interface). **more than one, so it has to be manual.**
-2. **`FlowNode.position{x,y}`: Discard** on import and use `metro.ts` automatically. The drag node editor for DP3 is not migrated; Later the user changed "Order and Dependence" (M3 already done).
-3. **`dependencyMode:"any"`: Only `"all"` is accepted.** refused when confronted with `any` and explicitly told the user "This worklow uses an 'any' link, which Platypus does not support yet." Don't pretend all. **does not change `src/engine/` for this.**
-4. **`timing`: Only** can be translated into the `Node.anchor`+ process and handed over to `schedule.ts`. **cannot be written directly into three date fields in any case. The date appearing in** AI or constitution is discarded (AGENTS.md Rule 3).
-5. **DP3 There is no "person": after** joining **must have the step of "who holds each rule"**, i.e. step 3 Team table (the row, line). Saved the whole Tasks / Team / Today no data.
+1. **`departmentId` vs `RoleFunction`: keep both.** `RoleFunction` remains the primary key for workflow templates, swimlanes, and handbooks; `departmentId` is only a grouping tag. A “department → function” mapping is needed: Programs & Planning → programs, Event Logistics → programs, Finance & Purchasing → finance, Marketing & Communication → marketing, Outreach & Partnerships → outreach, Leadership & Records → president / vice_president / secretary (infer from role title; if unclear, use secretary and show that it can be changed). **Many-to-one, so manual changes must be allowed.**
+2. **`FlowNode.position{x,y}`: discard on import**, always use `metro.ts` automatic layout. Do not migrate DP3's node-dragging editor; users will edit “order and dependencies” instead (already implemented in M3).
+3. **`dependencyMode:"any"`: accept only `"all"`.** Reject `any` with the explicit message "This workflow uses an 'any' link, which Platypus does not support yet."; never silently treat it as all. **Do not modify `src/engine/` for this.**
+4. **`timing`: translate only into `Node.anchor` + workflow lead times**, then let `schedule.ts` calculate. **Never write it directly into the three date fields.** Discard all dates from AI or constitutions (AGENTS.md rule 3).
+5. **DP3 has no people:** unified onboarding **must ask “who holds each role”**, in step 3's Team table (people as rows, roles as a column). Without it, Tasks / Team / Today have no data.
 
-## 4. The "human" hierarchy (Project A for 10.4)
+## 4. People-first hierarchy (option A in 10.4)
 
-**Scope: Only data modelling, not live login. Phase 3 still uses field information, live account number to v1. 5.**
+**Scope: data modeling only, no real login. Phase 3 still uses fictional information; real accounts wait until v1.5.**
 
-- Levels: **`Person` * `Role` § `Department`**.
-- **`Person.roleId` is the only truth.** `Role.holderId`Now repeat it. 37I don't know what to do with it. **No, no, no. Change to "divine value."**: add a function `syncHolders(state)`, in Setup completes, saves settings, saves personal data, completes a call for each of these places `holderId`Always equals " `roleId`It's the man."  Benefits: No change in the use of 37; The risk is concentrated in a function and an "always consistent" test.
-- **One roll individual** (consistent with the present); A man with a role. Multiple people with role are not in this range.
-- `canLead` is still president/ vice present.
-- **don't do account codes.** invitation remains the "show link to the same browser" (existing `InviteLink` + `Join.tsx`); The participants got us the full figure.
-- **A new tip.**Real steps are planned for a later procedure.
+- Hierarchy: **`Person` → `Role` → `Department`**.
+- **`Person.roleId` is the sole source of truth.** `Role.holderId` currently duplicates it (37 uses across the app); **retain it as a derived value**: add `syncHolders(state)`, called consistently on Setup completion, settings save, profile save, and handoff completion, so every role's `holderId` always equals “the person whose `roleId` is this role.” Benefit: none of the 37 uses needs changing; risk is concentrated in one function and one “always consistent” test.
+- **One person per role** (as today); one role per person. Multiple people in a role are out of scope.
+- Permissions unchanged: `canLead` still means president/VP.
+- **No usernames/passwords.** Invitations remain same-browser demo links (existing `InviteLink` + `Join.tsx`); participants receive fictional people supplied by us.
+- **New one-sentence notice** in the Team step: "Fictional names only. Real accounts are planned for a later version."
 
-## 5.  ⚠  IRB: Server storage must be kept closed and programme does not need it
+## 5. ⚠️ IRB: server storage must remain disabled; this plan does not need it
 
-**Hard Rule: The** process **does not call any `/api/org/*`, `/api/workspace*`** and `ORG_SETUP_ENABLED` continues to be open. IRB materials still contain **without** "Service Storage Organization Configuration" (`docs/IRB_HANDOFF_2026-10-28.md`, sect. 2).
+**Hard rule:** the unified flow **calls no `/api/org/*` or `/api/workspace*` endpoints**; leave `ORG_SETUP_ENABLED` unset (off). IRB materials still **must not** describe “server storage of organization configuration” (`docs/IRB_HANDOFF_2026-10-28.md` §2).
 
-| Data | Where? | Annotations |
+| Data | Location | Notes |
 | --- | --- | --- |
-| Drafts in settings | **Only** localStorage (deleted when single key, complete or reset demo) | No touching. `src/organization/` Draft/archive code for |
-| Constitution File | **Read** only in browser (pdfjs/ Mammoth running on browser) | (b) Never reach them; And don't keep the originals. |
-| Contents to AI | "Read it with AI" only. **Extracted Text**Send one. **New, unstored**Server Functions  | The function transmits only to AI (ASU AIR) and returns the result. **does not need Blobs, no writing log text**; and existing `/api/chat`、`/api/event/review` Same category |
-| Content filled out by participants | Allactional (following Handoff's hint "Fictional example only") | Never past a real view or members details." |
-| Default entrance | **"Use our sample condition"**  | Participants don't need to find their own files. |
+| Setup drafts | **Browser only**, localStorage (separate key, deleted on completion or Reset demo) | Leave `src/organization/` draft/archive code untouched |
+| Constitution file | **Read only in browser** (pdfjs/mammoth run in the browser) | Never uploaded; original not saved |
+| Content sent to AI | Only when the user clicks "Read it with AI": **extracted text** sent to a **new stateless** server function | Function only forwards to AI (ASU AIR) and returns the result; **no Blobs, no text bodies in logs**; same category as existing `/api/chat` and `/api/event/review` |
+| Participant input | All fictional (reuse Handoff's "Fictional example only" notice) | Beside the paste box explicitly show "Fictional example only. Never paste a real constitution or member details." |
+| Default entry | One-click **"Use our sample constitution"** | Participants need not find a file themselves |
 
-**The "gatekeeper" test to add:**
-1. The new server function **does not import `serverStorage`**, calling `getStore` is 0 (the same way as `serverStorageHidden.test.ts`).
-2. **requests for any `/api/org/` or `/api/workspace` are 0** (repeal with "0 storage requests" using the existing e2e).
-3. Add an AI result filter: all date fields are discarded; Only live fields remain; Maximum number of words/bars.
-4. Construction inspection: no `/api/org/setup` string of this type can be found in the study (optional, with a unit text reading product).
+**Guarding tests to add:**
+1. The new server function **does not import `serverStorage`** and makes 0 `getStore` calls (same approach as `serverStorageHidden.test.ts`).
+2. Page test: complete the unified flow with **0 requests to any `/api/org/` or `/api/workspace` endpoint** (reuse the existing e2e zero-storage-requests assertion).
+3. New AI-result filtering: discard all date fields; retain only actual supported fields; cap word and item counts.
+4. Build check: strings such as `/api/org/setup` absent from study build (optional unit test reading build output).
 
-## 6. Workload, can you finish by 11/9?
+## 6. Effort and feasibility before 11/9
 
 | Session | Contents | Size |
 | --- | --- | --- |
-| **M4a Data Base** (no interface) | New Optional Fields ( `Role.departmentId/description/duties`、`org.departments`- additional steps; `syncHolders` And the "always consistent" test; DP3 — Conversion pure function for master applications `src/lib/orgAdapter.ts` and map tests; • Functional mapping | 1 Sessions |
-| **M4b Settings Interface**  | Team tables, Duties, Event steps, overviews with 5 components; Join synchronisation; Words/accessibility/cell phones | 1.5–2 Sessions |
-| **M4c Read constitution (optional accelerator)**  | Browser Read File + Non-storage Server Function + Prompt + Filter + Suggested Line Interface + Simulate AI Test + Door Watch Test | 1 Sessions |
-| **M4d End** | e2e (desktop + cell phone), a11y, documents (AGENTS.md, PROGRESS, DESIGN_TOKENS if new token), your acceptance modification | 1 Sessions |
+| **M4a Data foundation** (no UI) | New optional fields (`Role.departmentId/description/duties`, `org.departments`, extra steps); `syncHolders` and “always consistent” test; DP3 → main-app pure converter `src/lib/orgAdapter.ts` and mapping-table tests; department → function mapping | 1 session |
+| **M4b Setup UI** | Team table, Duties, Event steps, overview using 5 components; synchronize Join; word counts/accessibility/mobile | 1.5–2 sessions |
+| **M4c Read constitution (optional accelerator)** | Browser file reading + stateless server function + prompt + filtering + suggestion-row UI + mocked AI tests + guarding tests | 1 session |
+| **M4d Finish** | e2e (desktop+mobile), a11y, documentation (AGENTS.md, PROGRESS, DESIGN_TOKENS if new tokens), changes from your acceptance review | 1 session |
 
-**4–5 Sessions** plus each step of your acceptance round-trip.
+Total **4–5 sessions**, plus back-and-forth acceptance review at each step.
 
-**Can you finish by 11/9? Not recommended.**
-- From today (10/29) to 11/9 for 11 days; The pre-test freeze period was removed (at least 3 days without code change, 11/6 cases) with only about 8 days left.
-- 4–5 Sessions + 9–11 days as soon as you change every time after acceptance, and M4b, M4c will modify the `Role`/ `Person` relationships shared on all pages and there's no time to check them.
-- Research missions do not need to read "constitution " : participants have access to the field club.
+**Finish before 11/9? Not recommended.**
+- Today (10/29) to 11/9 is 11 days; subtract the pre-test freeze (at least 3 days without code changes, starting 11/6), leaving about 8 days.
+- 4–5 sessions + changes after each acceptance review take at least 9–11 days, and M4b/M4c change the `Role`/`Person` relationship shared by all pages; there is no time for prolonged debugging.
+- Study tasks do not require constitution reading: participants receive fictional clubs.
 
-**Three Options:**
-- **A (Recommendation):** 11/9 did nothing before and the programme was frozen. Press M4a → M4b → M4c → M4d after Phase 3.
-- **B:** 11/9 formerly only **M4a** (invisible database: optional fields, `syncHolders` and testing). The benefit of the same interface and the lowest risk is that a new field is already in the Phase 3 data. I still recommend staying after the test because "zero risk" will cost you one more time.
-- **C:** all done. No, for the reasons given above.
+**Three options:**
+- **A (recommended):** do nothing before 11/9; freeze the plan. After Phase 3, implement M4a → M4b → M4c → M4d.
+- **B:** do only **M4a** before 11/9 (invisible data foundation: optional fields, `syncHolders`, tests). No UI change, lowest risk; benefit: Phase 3 data already includes the new fields. I still recommend waiting until after testing, because even “zero risk” costs an acceptance review.
+- **C:** do everything. Not recommended, for the reasons above.
 
-## 7. The question of Juanxi's tablet
+## 7. Decisions Juanxi needs to make
 
-1. **, now or after Phase 3?** Recommendation **A: Phase 3 After**. (B do only M4a can, but with no obvious benefit. ）
-2. **, "read communication + AI" want to do it?** It is M4c, **optional**. If Phase 3 only uses the sample club of fielding, participants will not upload communication, but may first do M4a + M4b (persons, departments, duties, extra steps) and leave AI reading consultation to v1. 5. Recommendation: **not to do M4c**.
-3. **, do you want to go to the first edition of extra steps?** is step 5, where the standard process adds its own. It lengthens the process of Phase 3 participants; If not, M4b can be reduced to **Team + Duties two steps**, save about half a session. Recommendation: The first version of **is only for Team+Duties, with additional steps left after**.
+1. **Now or after Phase 3?** Recommend **A: after Phase 3**. (B, M4a only, is possible but offers no clear benefit.)
+2. **Include “read constitution + AI”?** This is M4c, **optional**. If Phase 3 uses only fictional example clubs, participants will not upload constitutions; start with M4a + M4b (people, departments, duties, extra steps) and defer AI constitution reading to v1.5. Recommendation: **defer M4c**.
+3. **Include extra steps in version one?** Step 5 lets clubs add their own steps beyond the standard workflow. This lengthens the flow for Phase 3 participants; if unnecessary, reduce M4b to **Team + Duties only**, saving about half a session. Recommendation: **Team + Duties only in version one; extra steps later**.

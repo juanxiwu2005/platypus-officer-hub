@@ -1,48 +1,48 @@
-> **2026-10- 26 Operational Data Complement:** The new Activity Workspace has posted tasks, approvals and funds access to the same source service end running records, CAS/idempotency/auditoutbox; AI shares the command channel with form. See [ for details. This round implements ](ACTIVITY_WORKSPACE_IMPLEMENTATION.md). Private presentation identity remains an informal account, and the old Legacy operation and live organization database migration are not automatically included.
+> **2026-10-26 runtime-data update:** new Activity Workspace connects tasks, approvals, funding to same-origin server runtime records with CAS/idempotency/audit outbox; AI/forms share command channel. See [implementation](ACTIVITY_WORKSPACE_IMPLEMENTATION.md). Private demo identities are not real accounts; old legacy business/real organization-database migration is not automatically included.
 
-# Data base: records first and AI understands
+# Data foundation: record first, then let AI understand
 
-2026-10-26. Juanxi's latest request: **Data Records, Management, Governance is at the bottom, AI above it. This time,** translates this principle into the latest Organization Setup and does not make it a slogan for the future.
+2026-10-26 · Juanxi's latest requirement: **data recording, management, and governance are the foundation; AI sits above.** Implement this in current Organization Setup, not as a future slogan.
 
-## Current Achieved
+## Current implementation
 
-F1-F7 Supplement: The draft configuration also provides a copy of local recovery isolated by workspace and separate from online retention status; Conflict does not have silence overlay. A new version of the `/phase1` workspace to read directly the server approved compiler, without prejudice to the operating approval configuration; Do not copy to old prototype localStorage. The old Today/Tasks/Events etc. have not yet moved as a whole. The History Retrieval Index is kept in its most recent version and the full additional events are saved; Only partial changes can be proposed and awaiting approval. For more information, see [ Implementation Records ](F1_F7_IMPLEMENTATION.md).
+F1–F7: workspace-isolated local recovery copies separate from online save status; conflicts never silently overwrite. New `/phase1` workspace reads server-approved compiled output directly; drafts do not affect approved running configuration or copy to old localStorage. Today/Tasks/Events etc. have not fully migrated. Historical search indexes retain recent versions; complete append-only events stored separately; recovery proposes local changes requiring approval. See [implementation](F1_F7_IMPLEMENTATION.md).
 
-Saves online storage with Netlify Blobs documents/objects, adding an additional event file. It is not a completed production relationship database or live organizational identity system.
+Online saving uses Netlify Blobs document/object storage plus append-only event archives, not a completed production relational database or real organization identity system.
 
-| Records | Save Content | Time and source |
+| Record | Contents | Time/provenance |
 | --- | --- | --- |
-| User operations | Click, field value changes, ticking, focus access, chart interaction, proposal adoption/discard, open workspace | Client time of occurrence, session/ordering, server receipt time, work area, actor |
-| Configure History | Full configuration, revision number, approval status, cause of failure, original approved snapshot per submission and preservation | Server UTC Time, Request/Save/ Permission Events |
-| Uploading information | PDF/DOCX/TXT/MD Original byte, original name, type, size, SHA-256, blocks, state of completion; Paste andactional examples also save source text files | (a) The time of upload start, block receipt and completion; Save extract text for AI |
-| Dialogue and AI | Modify request, send the exact system profile/ tissue context to AI, original return, validation results, start/complete/Error, adopt/reject | Server time, prompt/route version, request/actual model, time-consuming, input into Hase |
-| Export/Down | Record export and original download behaviour; Record JSON contains configurations, events and file directories | Export Time and Work Area Boundary |
+| User actions | Clicks, field-value changes, checks, focus entry/exit, graph interactions, proposal adoption/discard, workspace opening | Client occurrence time, session/order, server receipt time, workspace, actor |
+| Configuration history | Complete submitted/saved configurations, revision, approval state, failure reason, prior approved snapshot | Server UTC, request/save/approval events |
+| Uploaded material | Original PDF/DOCX/TXT/MD bytes, name/type/size/SHA-256/chunks/completion; pasted/fictional samples also stored as original-text files | Upload start/chunk receipt/completion; extracted AI text separate |
+| Conversations/AI | Change requests, exact system prompt/organization context sent, raw response, validation, task start/completion/error, adoption/rejection | Server time, prompt/routing version, requested/actual model, duration, input hash |
+| Export/download | Export/original-download actions; JSON includes configuration/events/file catalog | Export time/workspace boundary |
 
-File block transfer to avoid the original 8 MB exceeding the function single transmission limit; The server rechecks the full byte size and SHA-256 on completion. The original is separated from the extraction text used by AI. The limitations for scanning PDF without OCR, `.doc` to save `.docx` are still clear.
+Chunked files avoid exceeding function transfer limits with 8 MB originals; server rechecks full byte size/SHA-256 on completion. Originals separate from AI-extracted text. Scanned PDFs lack OCR; `.doc` must be saved as `.docx`.
 
-`configuration.submitted/requested/saved/approved` Distinguishing user submission, server processing and physical preservation cannot treat unsuccessful requests as saved. Each time the history is preserved, the draft remains separate from the approved snapshot. AI saves operations and inputs before calling, returns to archive the original results and validates and displays the recommendations; Cannot initialise Evolution's mail component. Backstage missions take atoms and avoid repeated calls.
+`configuration.submitted/requested/saved/approved` distinguishes submission, server processing, actual save; failed requests are not saved. Every save retains history, draft/approved snapshots separate. Before AI, save action/input; after return, archive raw response, then validate/show suggestions. Failure applies nothing. Background jobs use atomic claims to avoid duplicate concurrent calls.
 
-The event is added to the application interface and does not provide ordinary interface coverage/delete access; Try the same client event ID to overwrite. The original fragments likewise do not cover existing blocks. This is an application-level addition to semantic, not a compliance level WORM or anti-manager tampering system.
+App interfaces append events only, with no ordinary overwrite/delete UI; retrying a client event ID does not overwrite duplicates. File chunks also never overwrite existing chunks. These are application-level append semantics, not compliance WORM or administrator-tamper prevention.
 
-## Data governance boundaries
+## Governance boundaries
 
-- All archives use the workspace Id partition generated by the server. Reads, exports, original downloads are located by the server based on the current workspace cookies and cannot read data from another organization by submitting someone 's ID.
-- This prototype still uses an anonymous test working area, acting as a session for the current workspace; Live account, officer identity, role permissions, cross-equipment restoration is not yet connected. The isolation from browsers cannot be described as multi-person identity management at the production level.
-- The **visit session is due to no longer trigger the deletion of files.** Current access documents still have a test session period and history and originals continue to be kept; Formal numbering, retention periods and recovery modalities should be implemented in the follow-up identity/governance exercise.
-- The supporting field for the input event will be filtered and the platform API key/ authentication request will not be entered; Originals uploaded by the user on its own initiative are kept privately for their original content and are not sent to other organizations. The text used by AI follows the contact approach to clean-up and verification.
-- Current share closed. Exporting an operation initiated by the user in its own workspace; Information is not automatically added to the inter-organizational learning pool. Subsequent sharing must be clear about the scope, authorization, anonymity and withdrawal rules.
-- No automatic removal at this time; Live information requires the organization to determine a formal retention/deletion and access policy before it is online. Continues to use field information.
+- All archives partition by server-generated workspaceId. Server resolves reads/exports/downloads from current workspace cookie; submitting another ID cannot access another organization.
+- Anonymous test workspaces remain; actor is current workspace session. Real accounts/officer identity/role permissions/cross-device recovery not integrated. Same-browser isolation is not production multi-user identity management.
+- **Access-session expiry no longer deletes archives.** Credentials still expire on test-session terms; history/originals remain. Account binding, retention, recovery await identity/governance work.
+- Credential fields filtered from input events; platform API keys/auth headers excluded. User originals retained privately verbatim, not sent to other organizations. AI text retains contact cleaning/credential detection.
+- Sharing off. Exports are user-initiated within own workspace; no automatic cross-organization learning-pool inclusion. Future sharing needs explicit scope, authorization, anonymization, withdrawal rules.
+- No automatic clearing; organizations must define retention/deletion/access before real materials launch. Continue fictional materials.
 
-## Signals for Handoff and Analysis
+## Handoff and analysis
 
-This set of records can provide verifiable material for subsequent handoff sources, reasons for configuration changes, AI recommendations/rejections, time-consuming settings, waiting and manual revisions. There is currently no calculation of the organizational energy efficiency score, nor is there an overall organizational efficiency from this event onboarding.
+Records support verifiable handoff sources, configuration-change reasons, AI adoption/rejection, setup time, waiting/manual-edit counts. No organization-efficiency score or overall-efficiency conclusion from these onboarding events.
 
-The next step is to connect the same log interface to official events, missions, meetings, funds, handoff and live dialogues. The old reference page had not been fully migrated; It cannot be claimed that all historical interactions in the old editions have been reversed. Inter-organizational comparisons/experience sharing are another function with a clear mandate and do not occur automatically.
+Next integrate the same interface with formal events/tasks/meetings/funding/handoff/real conversations. Old reference-page business state is not fully migrated; do not claim complete backfill of historical interactions. Cross-organization comparison/sharing is a separate explicitly authorized feature, never automatic.
 
-## Rules for subsequent work
+## Rules for future engineering
 
-1. The new feature first defines the original to be saved, the operating event, the state snapshot, the source and time, and then connects AI.
-2. The use of server time is the authority to retain the client ' s occurrence and to distinguish between events, receipt, processing and approval.
-3. AI cannot delete/rew the underlying record or treat unconfirmed inferences as organizational facts.
-4. The data record fails with a clear hint and retry, and the " saved " cannot continue to be displayed. The browser temporarily saves the unreached event and restores it to the workspace, prompting changes that have not been saved when leaving the page.
-5. Export and analyse access to existing files, no longer provide an additional request model for “records”, and avoid consuming AI amounts.
+1. Define originals, action events, snapshots, provenance, timestamps before AI.
+2. Server time authoritative, client occurrence retained; distinguish occurrence/receipt/processing/approval.
+3. AI cannot delete/rewrite foundation records or treat unconfirmed inference as fact.
+4. Record failures explicitly and retry; never continue showing saved. Browser queues undelivered events per workspace and warns of unsaved changes on leaving.
+5. Exports/analysis read archives without extra model calls merely to record, preserving AI allowance.

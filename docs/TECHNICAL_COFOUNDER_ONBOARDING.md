@@ -41,7 +41,7 @@ Start with a two-to-four-week trial project before making a founder commitment. 
 | Architecture, implementation, code review, technical reliability, engineering estimates | Technical co-founder |
 | Scope/effort tradeoffs, releases, access to sensitive systems, and company commitments | Both; current production approval stays with Juanxi until explicitly changed |
 
-Evaluate whether the candidate can explain tradeoffs in plain language, maintain existing work, deliver a small tested change, handle feedback, and identify what should wait. Strong React/TypeScript and backend/auth/data experience matter more here than adding another model integration. US location can help with users and time zones; nationality is not a substitute for technical ownership or a working relationship.
+Evaluate whether the candidate can explain tradeoffs in plain language, maintain existing work, deliver a small tested change, handle feedback, and identify what should wait. Strong React/TypeScript and backend/auth/data experience matter more here than adding another model integration. For a US-based partner, agree on user-facing responsibilities, availability, and time-zone overlap alongside technical ownership.
 
 ## Proposed first month
 

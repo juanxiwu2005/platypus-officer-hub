@@ -1,92 +1,92 @@
-# Rollback Registration Form
+# Rollback register
 
-Integration of one work pack for each man; Every rollback, update that line of "state" and write the reason.
-Rollback is available from `README.md` for R0-R5. `dx/dx-NN-merged` tag points to "Merge Submit".
+The integrator adds a row for each merged package; every rollback updates its status and records a reason.
+See R0–R5 in `README.md` for rollback methods. Tags `dx/dx-NN-merged` point to merge commits.
 
-| Work package | Status | Merge Commit | Label | Merge Date | Rollback Command (R2) | Rollback Date / Reason |
+| Package | Status | Merge commit | Tag | Merge date | Rollback command (R2) | Rollback date / reason |
 | --- | --- | --- | --- | --- | --- | --- |
-| DX-01 | **Already Mege** (Phase 0) | `9d5a9f0` | `dx/dx-01-merged` | 2026-11-01 | `git revert -m 1 dx/dx-01-merged` | |
-| DX-02 | **Already Mege** (Phase 0) | `f1dbd24` | `dx/dx-02-merged` | 2026-11-01 | `git revert -m 1 dx/dx-02-merged` | |
-| DX-03 | **Already Mege** (Phase 1) | `055af30` | `dx/dx-03-merged` | 2026-11-01 | `git revert -m 1 dx/dx-03-merged` | |
-| DX-04 | **Already Mege** (Phase 1) | `39aab5a` | `dx/dx-04-merged` | 2026-11-01 | `git revert -m 1 dx/dx-04-merged` | |
-| DX-05 | **Already Mege** (Phase 1) | `b5ee333` | `dx/dx-05-merged` | 2026-11-01 | `git revert -m 1 dx/dx-05-merged` | |
-| DX-06 | **Already Mege** (Phase 1) | `0187d36` | `dx/dx-06-merged` | 2026-11-01 | `git revert -m 1 dx/dx-06-merged` | |
-| DX-07 | **Already Mege** (Phase 1) | `775264a` | `dx/dx-07-merged` | 2026-11-01 | `git revert -m 1 dx/dx-07-merged` | |
-| DX-08 | **Already Mege** (Phase 1) | `eb55e5a` | `dx/dx-08-merged` | 2026-11-01 | `git revert -m 1 dx/dx-08-merged` | |
-| DX-09 | **Already Mege** (Phase 2) | `d419447` | `dx/dx-09-merged` | 2026-11-01 | `git revert -m 1 dx/dx-09-merged` | |
-| DX-10 | **has merge** (phase 2); Merge has been submitted for restoration. `6f62b17`And when the DX-10 is gone, it's going to go together. | `5a32bf7` | `dx/dx-10-merged` | 2026-11-01 | `git revert -m 1 dx/dx-10-merged` | |
-| DX-11 | **Already Mege** (Phase 2) | `b54de9b` | `dx/dx-11-merged` | 2026-11-01 | `git revert -m 1 dx/dx-11-merged` | |
-| DX-12 | **Already Mege** (Phase 2) | `e8ff3ec` | `dx/dx-12-merged` | 2026-11-01 | `git revert -m 1 dx/dx-12-merged` | |
-| DX-13 | **Already Mege** (Phase 2) | `4b118e7` | `dx/dx-13-merged` | 2026-11-01 | `git revert -m 1 dx/dx-13-merged` | |
-| DX-14 | **Already Mege** (Phase 2) | `d83af1f` | `dx/dx-14-merged` | 2026-11-01 | `git revert -m 1 dx/dx-14-merged` | |
-| DX-15 | **Already Mege** (Phase 3) | `d89d959` | `dx/dx-15-merged` | 2026-11-01 | `git revert -m 1 dx/dx-15-merged` | |
-| DX-16 | **Already Mege** (Phase 3) | `e6618b8` | `dx/dx-16-merged` | 2026-11-01 | `git revert -m 1 dx/dx-16-merged` | |
-| DX-17 | **Already Mege** (Phase 3) | `8613954` | `dx/dx-17-merged` | 2026-11-01 | `git revert -m 1 dx/dx-17-merged` | |
-| DX-18 | **Already Mege** (Phase 3) | `12f079e` | `dx/dx-18-merged` | 2026-11-01 | `git revert -m 1 dx/dx-18-merged` | |
-| DX-19 | **Already Mege** (Phase 3) | `a5fcff5` | `dx/dx-19-merged` | 2026-11-01 | `git revert -m 1 dx/dx-19-merged` | |
-| DX-20 | **Already Mege** (Phase 4, only 20a) | `cc6a3d6` | `dx/dx-20-merged` | 2026-11-01 | `git revert -m 1 dx/dx-20-merged` | |
-| DX-21 | **Already Mege** (Phase 4) | `f6bd79a` | `dx/dx-21-merged` | 2026-11-01 | `git revert -m 1 dx/dx-21-merged` | |
-| DX-22 | **Already Mege** (Phase 4) | `bfafc89` | `dx/dx-22-merged` | 2026-11-01 | `git revert -m 1 dx/dx-22-merged` | |
-| DX-23 | **Already Mege** (Phase 5) | `0e93cd6` | `dx/dx-23-merged` | 2026-11-01 | `git revert -m 1 dx/dx-23-merged` | |
-| DX-24 | **Already Mege** (Phase 5) | `8ac5b82` | `dx/dx-24-merged` | 2026-11-01 | `git revert -m 1 dx/dx-24-merged` | |
-| DX-25 | **Already Mege** (Phase 5) | `7ef5a87` | `dx/dx-25-merged` | 2026-11-01 | `git revert -m 1 dx/dx-25-merged` | |
-| DX-26 | **Already Mege** (Phase 6) | `255c009` | `dx/dx-26-merged` | 2026-11-01 | `git revert -m 1 dx/dx-26-merged` | DX-24 `dragSort.ts`: To evacuate DX-24, we must withdraw it first. |
-| DX-27 | **Already Mege** (phase 6, step 3 not done) | `7c27bea` | `dx/dx-27-merged` | 2026-11-01 | `git revert -m 1 dx/dx-27-merged` | It only contains documents, `.stylelintrc.json`、`dxStyleGuard.test.ts`；When we're gone, `AGENTS.md` Section 0 goes back to the old version. |
+| DX-01 | **Merged**（stage 0）| `9d5a9f0` | `dx/dx-01-merged` | 2026-11-01 | `git revert -m 1 dx/dx-01-merged` | |
+| DX-02 | **Merged**（stage 0）| `f1dbd24` | `dx/dx-02-merged` | 2026-11-01 | `git revert -m 1 dx/dx-02-merged` | |
+| DX-03 | **Merged**（stage 1）| `055af30` | `dx/dx-03-merged` | 2026-11-01 | `git revert -m 1 dx/dx-03-merged` | |
+| DX-04 | **Merged**（stage 1）| `39aab5a` | `dx/dx-04-merged` | 2026-11-01 | `git revert -m 1 dx/dx-04-merged` | |
+| DX-05 | **Merged**（stage 1）| `b5ee333` | `dx/dx-05-merged` | 2026-11-01 | `git revert -m 1 dx/dx-05-merged` | |
+| DX-06 | **Merged**（stage 1）| `0187d36` | `dx/dx-06-merged` | 2026-11-01 | `git revert -m 1 dx/dx-06-merged` | |
+| DX-07 | **Merged**（stage 1）| `775264a` | `dx/dx-07-merged` | 2026-11-01 | `git revert -m 1 dx/dx-07-merged` | |
+| DX-08 | **Merged**（stage 1）| `eb55e5a` | `dx/dx-08-merged` | 2026-11-01 | `git revert -m 1 dx/dx-08-merged` | |
+| DX-09 | **Merged**（stage 2）| `d419447` | `dx/dx-09-merged` | 2026-11-01 | `git revert -m 1 dx/dx-09-merged` | |
+| DX-10 | **Merged**（stage 2; post-merge fix `6f62b17` must also be reverted with DX-10）| `5a32bf7` | `dx/dx-10-merged` | 2026-11-01 | `git revert -m 1 dx/dx-10-merged` | |
+| DX-11 | **Merged**（stage 2）| `b54de9b` | `dx/dx-11-merged` | 2026-11-01 | `git revert -m 1 dx/dx-11-merged` | |
+| DX-12 | **Merged**（stage 2）| `e8ff3ec` | `dx/dx-12-merged` | 2026-11-01 | `git revert -m 1 dx/dx-12-merged` | |
+| DX-13 | **Merged**（stage 2）| `4b118e7` | `dx/dx-13-merged` | 2026-11-01 | `git revert -m 1 dx/dx-13-merged` | |
+| DX-14 | **Merged**（stage 2）| `d83af1f` | `dx/dx-14-merged` | 2026-11-01 | `git revert -m 1 dx/dx-14-merged` | |
+| DX-15 | **Merged**（stage 3）| `d89d959` | `dx/dx-15-merged` | 2026-11-01 | `git revert -m 1 dx/dx-15-merged` | |
+| DX-16 | **Merged**（stage 3）| `e6618b8` | `dx/dx-16-merged` | 2026-11-01 | `git revert -m 1 dx/dx-16-merged` | |
+| DX-17 | **Merged**（stage 3）| `8613954` | `dx/dx-17-merged` | 2026-11-01 | `git revert -m 1 dx/dx-17-merged` | |
+| DX-18 | **Merged**（stage 3）| `12f079e` | `dx/dx-18-merged` | 2026-11-01 | `git revert -m 1 dx/dx-18-merged` | |
+| DX-19 | **Merged**（stage 3）| `a5fcff5` | `dx/dx-19-merged` | 2026-11-01 | `git revert -m 1 dx/dx-19-merged` | |
+| DX-20 | **Merged**（stage 4, 20a only）| `cc6a3d6` | `dx/dx-20-merged` | 2026-11-01 | `git revert -m 1 dx/dx-20-merged` | |
+| DX-21 | **Merged**（stage 4）| `f6bd79a` | `dx/dx-21-merged` | 2026-11-01 | `git revert -m 1 dx/dx-21-merged` | |
+| DX-22 | **Merged**（stage 4）| `bfafc89` | `dx/dx-22-merged` | 2026-11-01 | `git revert -m 1 dx/dx-22-merged` | |
+| DX-23 | **Merged**（stage 5）| `0e93cd6` | `dx/dx-23-merged` | 2026-11-01 | `git revert -m 1 dx/dx-23-merged` | |
+| DX-24 | **Merged**（stage 5）| `8ac5b82` | `dx/dx-24-merged` | 2026-11-01 | `git revert -m 1 dx/dx-24-merged` | |
+| DX-25 | **Merged**（stage 5）| `7ef5a87` | `dx/dx-25-merged` | 2026-11-01 | `git revert -m 1 dx/dx-25-merged` | |
+| DX-26 | **Merged**（stage 6）| `255c009` | `dx/dx-26-merged` | 2026-11-01 | `git revert -m 1 dx/dx-26-merged` | Uses DX-24 `dragSort.ts`: revert this before DX-24 |
+| DX-27 | **Merged**（stage 6, step 3 not done）| `7c27bea` | `dx/dx-27-merged` | 2026-11-01 | `git revert -m 1 dx/dx-27-merged` | Only docs, `.stylelintrc.json`, `dxStyleGuard.test.ts`; reverting restores stale AGENTS.md section 0 |
 
-## Phase Label
+## Stage tags
 
-| Label | Meaning | Called |
+| Tag | Meaning | Created |
 | --- | --- | --- |
-| `dx/baseline` | plan document before any code changes ( `77c94ee`）| Local only (can't push up) |
-| `dx/phase-0-before` | Phase 0 before start (= baseline) | Local only |
-| `dx/phase-1-before` | stage 1 before starting ( `8c70057`）| Local only |
-| `dx/phase-2-before` | stage 2 before starting ( `17af284`）| Local only |
-| `dx/phase-3-before` | stage 3 before starting ( `a13f037`）| Local only |
-| `dx/phase-4-before` | stage 4 before starting ( `8e7cdf3`）| Local only |
-| `dx/phase-5-before` | stage 5 before starting ( `d4bcbda`）| Local only |
-| `dx/phase-6-before` | stage 6 before starting ( `d8b0cbb`）| Local only |
+| `dx/baseline` | After plan-document commit, before any code changes（`77c94ee`）| Local only (push blocked)|
+| `dx/phase-0-before` | stage 0  before starting(= baseline)| Local only |
+| `dx/phase-1-before` | stage 1  before starting（`8c70057`）| Local only |
+| `dx/phase-2-before` | stage 2  before starting（`17af284`）| Local only |
+| `dx/phase-3-before` | stage 3  before starting（`a13f037`）| Local only |
+| `dx/phase-4-before` | stage 4  before starting（`8e7cdf3`）| Local only |
+| `dx/phase-5-before` | stage 5  before starting（`d4bcbda`）| Local only |
+| `dx/phase-6-before` | stage 6  before starting（`d8b0cbb`）| Local only |
 
-## There's a "follow-up delivery" package: **to be evacuated first, then**.
+## ⚠ Packages with follow-up fixes: **revert fixes before the package**
 
-Merge subsequently identified problems during a consolidation check or a screenshot and completed the repair package, which was submitted to the same line. The **conflict** (actually: DX-10, DX-16). In the correct order, **withdraws the restoration submission and then withdraws the merge**:
+For packages with post-merge fixes found during integration checks or screenshot review, those fixes edit the same lines. Reverting the merge directly causes **conflicts** (confirmed for DX-10 and DX-16). **Revert fix commits first, then the merge**:
 
-| The bag to be removed. | Departure from these repairs first (new in advance) | Again. |
+| Package to revert | Revert these fixes first (newest first) | Then revert |
 | --- | --- | --- |
 | DX-10 | `git revert --no-edit 6f62b17` | `git revert -m 1 dx/dx-10-merged` |
 | DX-15 | `git revert --no-edit a8775e6` | `git revert -m 1 dx/dx-15-merged` |
-| DX-16 | `git revert --no-edit 3972412`Again. `git revert --no-edit a8775e6`It changed the DX-16 style at the same time. | `git revert -m 1 dx/dx-16-merged` |
+| DX-16 | `git revert --no-edit 3972412`, then `git revert --no-edit a8775e6`(also changes DX-16 styles)| `git revert -m 1 dx/dx-16-merged` |
 
-(`a8775e6` simultaneous repair of DX-15 and DX-16, so withdrawing any of them first; The withdrawal of DX-15 but the retention of DX-16 requires that the DX-16 component be retained manually. ）
+(`a8775e6` fixes both DX-15 and DX-16, so revert it before either. To revert DX-15 while retaining DX-16, manually preserve the DX-16 portion; the integrator must handle that case separately.)
 
-## Rollback Exercise Record
+## Rollback drill records
 
-| Date | Exercise | Results |
+| Date | Drill | Result |
 | --- | --- | --- |
-| 2026-11-01 | Execute the top of the integrated branch in a temporary worktree `git revert -m 1 dx/dx-02-merged`、`git revert -m 1 dx/dx-01-merged`Run after every step. `tsc` | Both steps are clean and conflict-free. After DX-02 `Layout.tsx` Back to the 168 line; Both of them are retreating. `src`、`package.json`、`playwright.config.ts`、`.stylelintrc.json`、`scripts`、`.gitignore` and `77c94ee` **Word-by-word.**（ `git diff` It's empty. Temporary worktree abandoned, not pushed |
-| 2026-11-01 | Phase 1: Implementation of post-mege history from behind in temporary worktree `git revert -m 1 dx/dx-08-merged` … `dx-03-merged`(six) | All six steps are clean and conflict-free. `tsc` Adopted; When we're done, `src`、`package.json`、`playwright.config.ts`、`.stylelintrc.json`、`scripts`、`index.html`、`.gitignore`、`e2e` and `dx/phase-1-before` **word-for-word**. Another DX-05: Clean. `tsc` Through, `RISK_SHAPE` Disappeared. Temporary worktree abandoned |
-| 2026-11-01 | Phase 2: Implementation of post-mege history from behind in temporary worktree `git revert -m 1 dx/dx-14-merged` … `dx-09-merged`(six) | Six steps clean. `tsc` Adopted; When we're done, `src`, configurations, `scripts`、`index.html`、`e2e` and `dx/phase-2-before` **word-for-word**. Just DX-09 is clean. **Note**: This exercise was done before the DX-10 restoration was submitted; Fix submission only `dx-10-menu-motion.css` and `e2e/helpers.ts`We're going to go with DX-10. `aria-expanded` Change will stay, no harm) |
-| 2026-11-01 | Stage 3: Two restorations to the history after metge, then forward `dx-19-merged` … `dx-15-merged`(five) | All clean; `tsc` Adopted; ♪ Once we're done with `dx/phase-3-before` **word-for-word**. DX-17 is clean. **also found that**: direct withdrawal of DX-16 without first withdrawing the repairs would be in conflict. Retrovert DX-10 also conflicts (table above) |
-| 2026-11-01 | Stage 4: The history of the post-merge is moving forward. `dx-22-merged`、`dx-21-merged`、`dx-20-merged` | Three steps clean. `tsc` Adopted; ♪ Once we're done with `dx/phase-4-before` **Word-by-word.**(inclusive)  `e2e/helpers.ts` and 12 test files replaced by machines. DX-21 is clean. At this stage, **has not been submitted for restoration after** metge |
-| 2026-11-01 | Stage 5: The history of the post-merge is moving forward. `dx-25-merged`、`dx-24-merged`、`dx-23-merged` | Three steps clean. `tsc` Adopted; ♪ Once we're done with `dx/phase-5-before` **word-for-word**. DX-24 is clean. **Reliance on finding**: single DX-22 git not conflicted, but `tsc` Report to 3, "Cannot find mode '..../lib/motion" (DX-24, DX-25) - so the withdrawal of DX-22 must be preceded by DX-24, DX-25 (refilled). `PHASES.md` (b) The dependency table). No post-merge restoration submission at this stage |
-| 2026-11-01 | Phase 6: The history of the post-Merge `dx-27-merged`Again. `dx-26-merged`(Temporary worktree) | Both steps are clean. `tsc` Adopted; ♪ Once we're done with `dx/phase-6-before` **Word-by-word.**（ `git diff --name-only` is 0 files). DX-26 (DX-27) is clean. `tsc` Through.  |
+| 2026-11-01 | In a temporary worktree at the integration tip, ran `git revert -m 1 dx/dx-02-merged`, then `git revert -m 1 dx/dx-01-merged`, running `tsc` after each | Both clean, conflict-free; after DX-02, Layout.tsx returned to 168 lines; after both, `src`, `package.json`, `playwright.config.ts`, `.stylelintrc.json`, `scripts`, `.gitignore` were **byte-identical** to `77c94ee` (empty `git diff`). Temporary worktree discarded, no push |
+| 2026-11-01 | stage 1：In a temporary worktree, reverted merged history in reverse order: `git revert -m 1 dx/dx-08-merged` … `dx-03-merged`(six)| All six clean, conflict-free; `tsc` passed; afterward `src`, `package.json`, `playwright.config.ts`, `.stylelintrc.json`, `scripts`, `index.html`, `.gitignore`, `e2e` were **byte-identical** to `dx/phase-1-before`. Standalone DX-05 revert also clean, `tsc` passed, `RISK_SHAPE` removed. Temporary worktree discarded |
+| 2026-11-01 | stage 2：In a temporary worktree, reverted merged history in reverse order: `git revert -m 1 dx/dx-14-merged` … `dx-09-merged`(six)| All six clean; `tsc` passed; afterward `src`, configuration, `scripts`, `index.html`, `e2e` were **byte-identical** to `dx/phase-2-before`. Standalone DX-09 revert clean too. **Note:** drill predates DX-10 fix; that fix only edits `dx-10-menu-motion.css` and `e2e/helpers.ts`, and must accompany DX-10 rollback (otherwise the harmless helpers `aria-expanded` change remains)|
+| 2026-11-01 | stage 3：Reverted two fixes first, then merged history in reverse order: `dx-19-merged` … `dx-15-merged`(five)| All clean; `tsc` passed; **byte-identical** to `dx/phase-3-before` afterward. Standalone DX-17 revert clean. **Also found:** reverting DX-16 without fixes first conflicts; subsequently confirmed the same for DX-10 (table above)|
+| 2026-11-01 | stage 4：Reverted merged history in reverse order: `dx-22-merged`、`dx-21-merged`、`dx-20-merged` | All three clean; `tsc` passed; **byte-identical** to `dx/phase-4-before` afterward (including `e2e/helpers.ts` and 12 mechanically updated test files). Standalone DX-21 revert clean. **No** post-merge fixes in this stage |
+| 2026-11-01 | stage 5：Reverted merged history in reverse order: `dx-25-merged`、`dx-24-merged`、`dx-23-merged` | All three clean; `tsc` passed; **byte-identical** to `dx/phase-5-before` afterward. Standalone DX-24 revert clean. **Dependency found:** standalone DX-22 revert has no git conflict, but `tsc` reports 3 "Cannot find module '../../lib/motion'" errors (DX-24/DX-25 use it), so revert DX-24/DX-25 before DX-22 (added to PHASES.md dependency table). No post-merge fixes this stage |
+| 2026-11-01 | stage 6：Reverted `dx-27-merged`, then `dx-26-merged` from merged history (temporary worktree)| Both clean; `tsc` passed; **byte-identical** to `dx/phase-6-before` afterward (`git diff --name-only`: 0 files). Standalone DX-26 revert retaining DX-27 also clean, `tsc` passed. |
 
-## Why can't this session push the other branches and labels? 2026-11-01Investigations)
+## Why this session cannot push other branches/tags (2026-11-01 investigation)
 
-| Try what? | Results |
+| Attempt | Result |
 | --- | --- |
-| `git push -u origin <new-branch> --tags`  | `HTTP 403`Remote hang up. |
-| Alone. `git push origin dx/baseline`(one label only) | The same failure. **, so it's not the label special**, it's any ref that doesn't belong to this session. |
-| Push Session Branch `claude/determined-johnson-yrdxwf` | It's been a success. |
-| GitHub Tool (MCP) `create_branch` | Success (with another set of vouchers). `integration/v1.6` That's how it was built. |
-| Current Agent Status `__agentproxy/status` Failed records | It's not about anything. `mcp.uk.definely.com`**no github.com**, which means it's not an export agent. |
+| `git push -u origin <new-branch> --tags` | `HTTP 403`, remote disconnected |
+| Only `git push origin dx/baseline`(one tag only)| Same failure. **Tags are not special**; any ref outside this session is rejected |
+| Push this session branch `claude/determined-johnson-yrdxwf` | Consistently succeeds |
+| GitHub tool (MCP)`create_branch` | Succeeds (separate credentials). This created `integration/v1.6` |
+| Failures in local proxy status `__agentproxy/status` | Only unrelated `mcp.uk.definely.com`, **no github.com**, indicating no outbound-proxy block |
 
-**Conclusion (inference, not GitHub Official Note):** The git of this session is authorized to write only its own branch. The GitHub tool has separate documents that can build branches, open PRs, but there is no "upgrading" or "labelling" tool, so I can't push it when the branch is built.
+**Conclusion (inference, not an official GitHub explanation):** this session's git push credentials authorize only its own branch. GitHub tools have separate credentials and can create branches/PRs, but lack tools to update existing branches or create tags, so I cannot push into a branch after creating it.
 
-### Reconstruct command (need account or session for missions, executed in repository)
+### Commands to create missing refs (run in the repository with an authorized account/session)
 
 ```bash
 git fetch origin claude/determined-johnson-yrdxwf
-# 1. Label (Red)  git revert -m 1 dx/dx-NN-merged Yes.  GitHub I can use it.
+# 1. Tags (make git revert -m 1 dx/dx-NN-merged available from GitHub too)
 git tag dx/baseline 77c94ee732cb07ab7ecda635d2814f6da37b6947
 git tag dx/phase-0-before 77c94ee732cb07ab7ecda635d2814f6da37b6947
 git tag dx/dx-01-merged 9d5a9f0a2f35ca88371a8b0204f866325a6adebb
@@ -123,7 +123,7 @@ git tag dx/phase-6-before d8b0cbb9c9d8405da93519dc3b43f9857c07ed73
 git tag dx/dx-26-merged 255c00964616ee604bb2bda0a0b831b5ec2e66aa
 git tag dx/dx-27-merged 7c27beac87c6baa48e960dcdade28dc4fc3dd91c
 git push origin dx/baseline dx/phase-0-before dx/phase-1-before dx/phase-2-before dx/phase-3-before dx/phase-4-before dx/phase-5-before dx/phase-6-before dx/dx-01-merged dx/dx-02-merged dx/dx-03-merged dx/dx-04-merged dx/dx-05-merged dx/dx-06-merged dx/dx-07-merged dx/dx-08-merged dx/dx-09-merged dx/dx-10-merged dx/dx-11-merged dx/dx-12-merged dx/dx-13-merged dx/dx-14-merged dx/dx-15-merged dx/dx-16-merged dx/dx-17-merged dx/dx-18-merged dx/dx-19-merged dx/dx-20-merged dx/dx-21-merged dx/dx-22-merged dx/dx-23-merged dx/dx-24-merged dx/dx-25-merged dx/dx-26-merged dx/dx-27-merged
-# 2. Work package branch (optional); These submissions are already in progress.  claude/determined-johnson-yrdxwf In history)
+# 2. Package branches (optional; commits already in claude/determined-johnson-yrdxwf history)
 git push origin 8a941e68f9039cd90230d88fa169e1ee26138ad7:refs/heads/design/dx-01-foundation
 git push origin 84f29c19f84c85363fcd08a36d5bd26b68106564:refs/heads/design/dx-02-split-layout
 git push origin 2fd91d65c0b7ce173ca4aea4e4e79d822cced8d8:refs/heads/design/dx-03-press-feedback

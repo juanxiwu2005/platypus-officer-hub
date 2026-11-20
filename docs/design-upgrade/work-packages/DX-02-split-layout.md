@@ -1,32 +1,34 @@
-# DX-02 Dismantling `Layout.tsx` into stand-alone documents (pure moving)
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Stage 0 size M Risk Medium R Level R2 Dependence: No Parallel Partner: DX-01
-- Branch: `design/dx-02-split-layout` Corresponding Details: D52
+# DX-02 Split Layout.tsx into Files (Move Only)
 
-## Why?
-`Layout.tsx` contains both the top bar, the Demo menu, the bell, Toast, navigation, right-bar mount and circle buttons. At least 6 bags have to be changed in different parts of it, and they'll crash if you don't open them. **just move and don't change anything.**
+- Stage 0; size M; medium risk; R2; no dependencies; parallel partner DX-01
+- Branch: `design/dx-02-split-layout`; detail D52
 
-## Something to do.
-Move the following to a new file, leaving only "combined" in `Layout.tsx`:
-- `src/components/chrome/TopBar.tsx`: `<header className="topbar">…</header>` whole block (brand + control area). The required data is passed through the props.
-- `src/components/chrome/SideNav.tsx`: `<nav className="sidenav">…</nav>`, including the unread number of Tasks.
-- `src/components/chrome/DemoMenu.tsx`: Original `DemoMenu` function, moved as it is.
-- `src/components/chrome/Bell.tsx`: Original `Bell` function, moved as it is.
-- `src/components/chrome/Toast.tsx`: Export `useToast()`, returns `[toastNode, showToast]`; Keeps the markings as they are for hours (2400ms) and `role="status"`.
-- `Layout.tsx` Reservation: `Layout`, `Frame`, mount and round Ask button in the right bar, the "right bar closes on page change" segment.
+## Why
+Layout.tsx contains top bar, Demo menu, bell, Toast, navigation, rail mounting, and circular button. At least 6 later packages edit different parts, causing conflicts unless split. **Move only, without behavior changes.**
 
-## Files that can be changed
-`src/components/Layout.tsx`, `src/components/chrome/*` (new).
-**Do not touch**: any style file; Any `data-testid`, `aria-label`, `className`; Any text.
+## Work
+Move to new files, leaving composition in Layout.tsx:
+- `src/components/chrome/TopBar.tsx`: entire `<header className="topbar">…</header>` (brand + controls), data passed via props.
+- `src/components/chrome/SideNav.tsx`: `<nav className="sidenav">…</nav>`, including Tasks unread count.
+- `src/components/chrome/DemoMenu.tsx`: existing DemoMenu function unchanged.
+- `src/components/chrome/Bell.tsx`: existing Bell function unchanged.
+- `src/components/chrome/Toast.tsx`: export `useToast()`, returning `[toastNode, showToast]`; preserve 2400ms timing and role="status" markup.
+- Keep in Layout.tsx: Layout, Frame, rail mounting, circular Ask, page-change rail-closing effect.
+
+## Allowed files
+`src/components/Layout.tsx`, new `src/components/chrome/*`.
+**Do not touch:** styles, any data-testid/aria-label/className, or copy.
 
 ## Acceptance
-- `npm run lint`, `build`, `test` All green; `e2e/smoke.spec.ts`, `today.spec.ts`, `touch.spec.ts`, `a11y.spec.ts` and `feel.spec.ts` are green on the desktop and mobile phone items.
-- The PNG byte is consistent before and after the `dx-shots` (dX-01 script, if not yet met, manually compares `dist` rendering before and after `npm run build`).
-- `git diff --stat`, the content of almost all new documents is cut from `Layout.tsx`; The report contains evidence of "no change in behaviour" (e.g., the percentage of movers seen with `git diff --color-moved`).
+- `npm run lint`, build, and test pass; `e2e/smoke.spec.ts`, `today.spec.ts`, `touch.spec.ts`, `a11y.spec.ts`, `feel.spec.ts` pass desktop/phone.
+- dx-shots PNG bytes identical before/after (if DX-01 unmerged, manually compare dist renderings in worktree around npm run build).
+- New-file contents in git diff --stat are almost entirely cut from Layout.tsx; report evidence of no behavior change, e.g. moved-code proportion from git diff --color-moved.
 
 ## Rollback
-R2。The package that depends on it has to be withdrawn (see the dependency table).
+R2; revert dependents first (dependency table).
 
-## Attention.
-- Don't "optimize" the code. The change will make it difficult for rollback and review.
-- The 3 seconds for `armed` in the Demo menu are timed out, click on external shutdown, Escape closed, `platypus:reset` events kept as they were.
+## Notes
+- No incidental optimization; it complicates rollback/review.
+- Preserve Demo armed 3-second timeout, outside/Escape dismissal, and platypus:reset event exactly.

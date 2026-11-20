@@ -1,68 +1,68 @@
-> **Language policy update, November 19, 2026:** write documents, reports, comments, commits, and GitHub notes in English. This supersedes any earlier language instruction quoted in this historical file. Current `AGENTS.md` controls.
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
 # Goal
 
-Use 1–3 to describe the only user result to be completed this time.
+Describe the single user outcome to achieve in 1–3 sentences.
 
 # Files
 
-- Allows a modified page, component, source file or test directory.
-- If the name of the document is not known, clearly define the functional area to be covered.
-- If you can’t use a big document, you must clearly state “do not read” (e.g. do not change the style of the task and write “don’t read src/styles.css).
+- Pages, components, source files, or test directories that may be modified.
+- If filenames are unknown, specify the permitted functional area.
+- Explicitly mark unnecessary large files "do not read" (for example, "do not read src/styles.css" when no styling changes are needed).
 
 # Depends on
 
-(optional, meaningful only when running in `scripts/night-queue.sh`)
+(Optional; meaningful only when running a queue with `scripts/night-queue.sh`.)
 
 ```
-# Depends on: 01-Previous mission .md
+# Depends on: 01-previous-task.md
 ```
 
-When a dependent task fails or is skiped, the task will also be skip. Delete the section without reliance.
+If the prerequisite fails or is skipped, this task is also skipped. Remove this section if there is no dependency.
 
 # Constraints
 
-- Only field presentation data are used.
-- Do not modify dependencies, deployments, GitHub Actions, secret key, research data or Night Mode security files.
-- Do not modify or mege `main`.
-- Keep existing product rules, missions, date engines and manual locks.
-- Do not paste any API key, participant information or live memory data here.
-- **does not reread the document to "check the baseline".** files and job descriptions that are inconsistent are normal -- that's what you just changed.
-- Undetermined retention and writing in handoff records; Don't guess to do the job.
+- Use fictional demo data only.
+- Do not modify dependencies, deployment, GitHub Actions, secrets, research data, or Night Mode safety files.
+- Do not modify or merge `main`.
+- Preserve existing product rules, permissions, date engine, and human-confirmation gates.
+- Do not paste API keys, participant information, or real member data here.
+- **After editing, do not reread files to "verify the baseline."** Differences from the task description are normal: you just changed the files.
+- Preserve anything uncertain and record it in the handoff; do not guess to finish the task.
 
 # Done means
 
-- The user can see or complete anything on the interface.
-- Which border situations must work.
-- What unit sets and Playwright tests should be added or updated.
+- What users can see or do in the interface.
+- Which edge cases must work.
+- Which unit and Playwright tests should be added or updated.
 - `npm run check` must pass.
 
 # Out of scope
 
-- A clear list of the adjacent functions that were not done this time to prevent Agent from expanding the scope.
+- Explicitly list adjacent features excluded from this task to prevent unauthorized scope expansion.
 
 ---
 
-## Read before writing a task 2026-10-27Five times a night.
+## Read before writing tasks (lessons from five failures on the evening of 2026-10-27)
 
-**read `docs/NIGHT_MODE.md` 7b (run environmental budget card) and 7c (how to write the task).**
-Four out of five failures, the root cause is that what the mission requires is beyond what Agent actually can do.
+**First read sections 7b (runtime environment budget card) and 7c (task authoring) in `docs/NIGHT_MODE.md`.**
+Four of five failures were caused by tasks demanding more than the agent could actually do.
 
-Before writing, I checked against these four articles:
+Check these four points before writing:
 
-1. The **investigation was handed over to the person and the task was only to draw conclusions.**
-   "Find which CSS is empty and then delete it" -- all the budgets will be spent.
-   "Delete the list of 51 class"+.
+1. **Humans investigate; tasks provide conclusions.**
+   ❌ "Find unused CSS, then delete it" — investigation consumes the budget.
+   ✅ "Delete these 51 classes" + a list.
 
-2. **does not describe the current status of the file.**
-   "Styles.css on a total 718 line" -- changed to 626 line, and Agent would think it was wrong and then stop.
-   Just write what results are to be achieved.
+2. **Do not describe files' current state.**
+   ❌ "styles.css has 718 lines" — after editing it has 626, so the agent thinks something went wrong and stops.
+   ✅ State only the desired outcome.
 
-3. **confirm it can run up.**
-   Every order the mission requires is placed on a white list of 7b. `node script`, `curl` and combined orders (with `&&`) were rejected.
-   Task **that requires reliance or modification of `.github/**` cannot go Night Mode **.
+3. **Confirm the task can run.**
+   Every required command must be on the 7b allowlist. `node script`, `curl`, and compound commands (with `&&`) are rejected.
+   Tasks requiring dependency installation or `.github/**` changes **cannot use Night Mode**.
 
-4. **estimate the number of steps.**
-   Budgeted 300 steps, which are fixed to cost approximately 6 steps before work starts.
-   "Reading a file + Change a file" counts as 2 moves, with 11 files being 22 steps up.
-   More than 100 steps should be removed.
+4. **Estimate steps.**
+   The budget is 300 steps, with about 6 spent reading documentation before work starts.
+   "Read one file + edit one file" costs 2 steps; across 11 files that is at least 22.
+   Split tasks that exceed 100 steps.

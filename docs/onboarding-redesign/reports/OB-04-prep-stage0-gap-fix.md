@@ -1,33 +1,33 @@
-# Phase 0 Completion Report (shortfall repair of OB-01/ OB-03)
+# Stage-0 completion report (OB-01 / OB-03 gaps)
 
-> 2026-11-02，Claude。Codex delivered bones and metges of OB-01, 02, 03 at 11-01; I reviewed the instructions of `WORK_PACKAGES.md` and `PROMPTS.md` and found that the skeletons did not reach the acceptance door, as follows. **This is the restoration of OB-01 and OB-03, submitted by rollback before OB-01/OB-03 (see ROLLBACK_LOG).**
+> 2026-11-02, Claude. Codex delivered/merged OB-01, OB-02, OB-03 skeletons on 11-01. Review against `WORK_PACKAGES.md`/`PROMPTS.md` found acceptance gaps, filled below. **This fixes OB-01 and OB-03: revert this fix before OB-01 / OB-03 (ROLLBACK_LOG).**
 
-## Review findings (verified with actual operation, not submission of information)
+## Findings (verified by running, not commit messages)
 
-| # | Problem | Evidence |
+| # | Issue | Evidence |
 | --- | --- | --- |
-| 1 | **entry address is not valid (most serious): Preview site for Juanxi in** document `/?walkthrough=1#/` The page was not triggered; Only. `/#/?walkthrough=1` Just do it. The app is HashRouter. Code read only. `#` The parameters that follow.  | This machine develops servers, new browsers, each of the three sites is open: only the second one has entered a welcome page. |
-| 2 | **Reet demo welcomes the page no longer appears.** Resets the sample data back to the browser immediately, and the entrance treats "data in the browser" as not the first time.  | New test failed before restoration (desktops and mobile phones) |
-| 3 | There are only 3 fields in the context of the draft, and the instructions require that the `Setup.tsx` The full state is given at once (otherwise, the parallel packages behind them cannot be changed).  | Read it. `draft.tsx` |
-| 4 | No progress chain, Demo bars; 1 rows; `ob-04…09` Styles empty files and `@import` Not built; Nothing. `e2e/ob-helpers.ts`Nothing. `e2e/ob-*` Browsertes.  | List of documents; Codex's three reports also say "full browser process not verified." |
-| 5 | "Replay walkthrough" not recorded; When you select Start, do not mark "seen" (a midway update will be returned to the welcome page); Step engines are not recorded.  | Read Code |
-| 6 | There's two of them on the page. `<main>`。 | Read the code; New Test Overwrite |
-| 7 | Style uses non-existent token ( `--space-4`, the fallback value is not bad).  | `grep` |
+| 1 | **Entry URL fails (most severe):** documented `/?walkthrough=1#/` does not open welcome; only `/#/?walkthrough=1` works. HashRouter code reads only parameters after `#` | Local dev server/new browser, three URL variants: only second reached welcome |
+| 2 | **Welcome does not return after Reset demo.** Reset immediately rewrites sample data; gate treats stored data as a returning visit | New test failed before fix on desktop/mobile |
+| 3 | Draft context only 3 fields, but specification requires all Setup.tsx state at once for later parallel packages | Read `draft.tsx` |
+| 4 | No progress chain/Demo strip; 1 copy-table row; no ob-04…09 empty styles/`@import`, `e2e/ob-helpers.ts`, or `e2e/ob-*` tests | File list; Codex's three reports also note full browser flow unverified |
+| 5 | Replay walkthrough unrecorded; Start does not mark seen (refresh midway returns to welcome); step engine not wired to recording | Code reading |
+| 6 | Shell around old Join produces two `<main>` elements | Code/new test |
+| 7 | Nonexistent token `--space-4`, working only via fallback | `grep` |
 
-## What did you do?
+## Changes
 
-- **OB-01:** `draft.tsx` completes the full draft president (clubs, constitution, AI reading status, roll touch mark, workflow, buffer, first event, confirmation, invitation code, skip list; Save 7 days with a separate IndexedDB key `onboarding-draft`, without covering the old page `setup-draft`; `engine/flows.ts` (tables of steps and route mapping for two processes), `engine/useFlow.ts` (step machine driven by route: nett/back/skip/exit, skip list in draft, event sent to record); Progress chain `ProgressChain` (line growing with `scaleX`, skip is a dotted hollow point, direct by reduced kinetic effects); `DemoStrip`；Shell plus Save & exit; `copy.ts` completed full-text form; `ob-04…ob-09` style empty file and `@import`; `e2e/ob-helpers.ts`。
-- **OB-03: Parameters before and after reading `#` at the** entrance (`enabled.ts`, with unittes); Add `/welcome/start` as the only entrance to "starting a recorded walkthrough" and use it on both the Start and Demo menus. Start is marked; `target.ts`, a constant `FOUNDER_START` decides where to go (OB-10 before it gets to the new process); **Reloaded** (`isRearmed()`, record module with a new mark and no records removed); Welcome to the page with a word of privacy.
-- **Test (new):** `src/test/onboardingGate.test.ts`, `onboardingRecord.test.ts` plus one; `e2e/ob-01-shell.spec.ts`, `e2e/ob-03-gate.spec.ts`, desktop + cellular 14 articles, including: two web sites, zero change when closed, Excelore Remember, Start memorization only once, Save & exit, Reset re-light and record retention, Riplay new records, Export with `onboarding` without input text, axe accessibility.
+- **OB-01:** full president draft in `draft.tsx` (club, constitution, AI reading state, role-touch flags, workflow, buffer, first event, confirmation, invite code, skipped steps; separate IndexedDB `onboarding-draft`, 7 days, no overwrite of old `setup-draft`); `engine/flows.ts` step tables/route mapping; `engine/useFlow.ts` route-driven next/back/skip/exit state machine with skipped draft list/recorded events; `ProgressChain` scaleX-growing lines, hollow dashed skipped dots, immediate reduced motion; `DemoStrip`; Save & exit shell; complete `copy.ts`; ob-04…ob-09 empty styles/`@import`; `e2e/ob-helpers.ts`.
+- **OB-03:** `enabled.ts` reads parameters before/after `#`, unit-tested; `/welcome/start` is sole recorded-walkthrough start for welcome Start/Demo Replay, immediately marking seen; `target.ts` constant `FOUNDER_START` controls destination until OB-10 switches it. **Reset rearms** via `isRearmed()`/new record-module flag without deleting records; welcome gains privacy sentence.
+- **New tests:** `src/test/onboardingGate.test.ts`, one addition to `onboardingRecord.test.ts`; `e2e/ob-01-shell.spec.ts`, `e2e/ob-03-gate.spec.ts`, 14 each desktop/mobile: both URLs, no changes when disabled, remembered Explore, one Start record, Save & exit, reset rearm/preserved records, new Replay record, export `onboarding` without entered text, axe.
 
-## Nothing's changed.
+## Unchanged
 
-Old `Setup.tsx`, `Join.tsx`, `store.tsx` (used only two of Codex's changed), `styles.css`, old tests (none moved).
+Old Setup.tsx, Join.tsx, store.tsx (used only Codex's two existing changes), styles.css, all old tests.
 
-## It's not verified.
+## Unverified
 
-Real fingers, Safari; The complete process of `/welcome/classic` from which old pages were created to the last step (carrying with the old page, unchanged); (a) Dark colour and shell under "Reducing Transparency" (only static axe checks); Progress chain animations have been measured only in the mode of reduction of kinetic effects, and no frame-by-frame sampling has taken place (OB-04 screens are supplemented when they have kinematic effects); The portal "Switch Default Close" is certified by a new test that the environmental variable `VITE_ONBOARDING_WALKTHROUGH` on Netlify has not been set.
+Real fingers/Safari; complete `/welcome/classic` setup through final step (old unchanged page); dark/reduced-transparency shell (static axe only); progress-chain animation only structurally checked under reduced motion, no frame sampling (add with animated OB-04+ screens). Disabled-by-default gate proven in new tests; Netlify `VITE_ONBOARDING_WALKTHROUGH` never set.
 
 ## Rollback
 
-`git revert` Submission of this restoration, then withdrawal by `ROLLBACK_LOG.md` OB-03, OB-01 and OB-02. R1: If you don't set the switch, you can return to what you are today.
+First `git revert` this fix, then OB-03, OB-01, OB-02 under `ROLLBACK_LOG.md`. R1: leave flag unset to retain today's site appearance.

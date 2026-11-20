@@ -1,32 +1,34 @@
-# WP02 – Events, Funding Mege Interact with Rules
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
+
+# WP02 — Events/Funding Integration and Rules Interactions
 
 ## Agent prompt
 
-You are responsible for repairing Events, the Funding process that has been incorporated into Events, the Rules page and associated browser tests. Read the latest remotes of `AGENTS.md`, README, manifest, fetch before starting, confirm worktree baselines and report short SHA. `main` should not be used.
+Repair Events, integrated Funding flow, Rules, and related browser tests. Read AGENTS.md/README/manifest, fetch latest remote, verify worktree baseline/report short SHA. Never use main.
 
-### Scope of responsibility
+### Scope
 
-- `e2e/events.spec.ts`
-- `e2e/flow-edit.spec.ts`
-- `e2e/feel.spec.ts`
-- Events/Funding scene in `e2e/touch.spec.ts`
-- `e2e/wp5.spec.ts`
-- Events, Rules, incident budget-related production components
+- e2e/events.spec.ts
+- e2e/flow-edit.spec.ts
+- e2e/feel.spec.ts
+- Events/Funding cases in e2e/touch.spec.ts
+- e2e/wp5.spec.ts
+- Events/Rules/Event Budget production components
 
-### Request
+### Requirements
 
-- Replace failed `node-panel`, old flow node ID, old event date and old Funding page compacts against current product intent.
-- Funding is no longer an independent page; Budget viewing, application status, Plan B and manual progress should be available in Events.
-- Validate process nodes to be opened by mouse, touch and keyboard; (b) Changes in the date of the event will recalculate the plan; Lower/List uses the same data; Budget tables are available on the desktop and mobile phones; Edit, Undo, Refresh Lasting and Reset Normal.
-- A similar "Ask Platypus" operation in Rules must have a unique, stable and accessible name. Duplicate names should not be masked with vague locator.
-- Priority is given to roll, accessible name and stabilization operation test id.
-- It is forbidden to repeat the Funding page, force click, kip, delete assertions or simply add timeout.
+- Align with current intent; replace obsolete node-panel, old workflow node IDs/event dates/Funding-page contracts.
+- Funding is integrated; budget view/request status/Plan B/manual progress available in Events.
+- Verify mouse/touch/keyboard opening, rescheduling after event-date changes, shared Flow/List data, desktop/mobile budgets, editing/Undo/refresh persistence/Reset.
+- Similar Rules "Ask Platypus" actions need unique stable accessible names; do not hide duplicates with vague locators.
+- Prefer role/accessible name/stable business test ID.
+- No duplicate Funding page, force click, skip, assertion deletion, or timeout-only fixes.
 
-### Acceptance Standard
+### Acceptance
 
-1. `events.spec.ts`, `flow-edit.spec.ts`, `feel.spec.ts` and `wp5.spec.ts` were all adopted.
-2. `touch.spec.ts`'s Events/Funding scene was passed in mobile.
-3. Both desktop/mobile validates date recalculation, budget, process editing, durability and Reset.
-4. Rule type button accessible name only.
-5. `npm run lint`, `npm test`, `npm run build` and `git diff --check` were adopted.
-6. Creates a `[RR-WP02][Codex]` to submit and return evidence.
+1. events.spec.ts/flow-edit.spec.ts/feel.spec.ts/wp5.spec.ts pass.
+2. Events/Funding touch.spec.ts passes mobile.
+3. Both devices verify rescheduling/budget/workflow editing/persistence/Reset.
+4. Similar Rules buttons have unique accessible names.
+5. npm run lint/npm test/npm run build/git diff --check pass.
+6. Create [RR-WP02][Codex] commit and return evidence.

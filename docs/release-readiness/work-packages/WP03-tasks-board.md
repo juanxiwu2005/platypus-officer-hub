@@ -1,38 +1,40 @@
-# WP03—Tasks, Board and Task Details
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
+
+# WP03 — Tasks, Board, task details
 
 ## Agent prompt
 
-You're in charge of repairs to Tasks, Board, details of the mission and related E2E. Read `AGENTS.md`, README, manifest, fetch before starting and confirm the updated baseline SHA. `main` should not be used or the test files owned by other work package should not be modified.
+Fix Tasks/Board/task details/related E2E. Read `AGENTS.md`, README, manifest, fetch/confirm latest stage baseline SHA. No `main` or other packages' tests.
 
-### Scope of responsibility
+### Scope
 
 - `e2e/tasks.spec.ts`
-- `e2e/rehearsal.spec.ts` task operating scene
-- Tasks, Board, mission details, extension request-related components
-- Necessary Feed-Scoped Styles
+- Task scenarios in `e2e/rehearsal.spec.ts`
+- Tasks/Board/details/extension components
+- Necessary feature-scoped styles
 
-### Must authenticate
+### Required verification
 
-- (c) To receive undistributed assignments; Waiting, Need help, Done status update.
-- Draft extension, submission and president approval.
-- Table, Board and Timeline use the same task data.
-- Board drag and keyboard replacement.
-- Custom status names; New tasks cannot be created directly for completion.
-- Ordinary members cannot move without their own task.
-- Maintain status after refreshing; The phone is operational.
+- Claim unassigned tasks; Waiting/Need help/Done updates.
+- Extension draft/submission/president approval.
+- Table/Board/Timeline share task data.
+- Board dragging/keyboard alternatives.
+- Custom status names; no new task created completed.
+- Ordinary members cannot move others' tasks.
+- State survives refresh, mobile operable.
 
-### Request
+### Requirements
 
-- Removes the dependency on `my-tasks`, old `move-menu` and other DOM contracts that no longer exist, using the current stable semantics.
-- If the old feature has been replaced by the Activity Workspace, verify the equivalent business result and do not revert to duplicate UI.
-- It must not weaken the claims of missions, durability or state conversion.
-- Bans kip, force click, deletes assertions or increases only timeout.
+- Replace obsolete `my-tasks`/old `move-menu` DOM assumptions with current stable semantics.
+- Where Activity workspace replaces old features, verify equivalent outcomes without restoring duplicate UI.
+- Never weaken permission/persistence/status-transition assertions.
+- No skip/force click/assertion deletion/timeout-only increases.
 
-### Acceptance Standard
+### Acceptance
 
-1. `tasks.spec.ts` on desktop/ mobile all through.
-2. The `rehearsal.spec.ts` task receipt, state update and completion path is passed.
-3. Mouse, keyboard and moving end have at least one state change path.
-4. The status is maintained after reload, and the negative tests are kept and passed.
-5. `npm run lint`, `npm test`, `npm run build` and `git diff --check` were adopted.
-6. Create a `[RR-WP03][Codex]` submission to distinguish product restoration from test migration.
+1. All desktop/mobile `tasks.spec.ts` pass.
+2. `rehearsal.spec.ts` claiming/status/completion pass.
+3. At least one mouse/keyboard/mobile status-change path each.
+4. Reload persistence, retained/passing negative permission tests.
+5. `npm run lint`, `npm test`, `npm run build`, `git diff --check` pass.
+6. One `[RR-WP03][Codex]` commit distinguishes product fixes/test migration.

@@ -1,125 +1,125 @@
-# Platypus Design token
+# Platypus design tokens
 
-Read this document before **changes any interface. The new style can only use token, and no dead values are allowed in CSS.** All tokens are defined in the `:root` (light colour) and two dark themes of `src/styles.css`; 6 status color exception, at `src/components/ui/statusDefaults.ts`.
+**Read this document before changing any interface. New styles must use tokens; do not hardcode values in CSS.** All tokens are defined in `:root` (light) and the two dark-theme blocks in `src/styles.css`, except the 6 status colors in `src/components/ui/statusDefaults.ts`.
 
-All values are actually read from 2026-10-29 in both files; The contrast figure is calculated using the WCAG formula script (the "reverse" of N5 from the `docs/PROGRESS.md` log of N5. Text line 4.5:1, graphic (circles, lines, colour bars) line 3:1.
+All values here were read directly from these two files on 2026-10-29. Contrast ratios were calculated by a script using the WCAG formula (N5's before/after figures come from its handoff record in `docs/PROGRESS.md`). Text requires 4.5:1; graphics (dots, lines, and color bars) require 3:1.
 
 ---
 
-## 1. `--fs-*`
+## 1. Font sizes `--fs-*`
 
-| token | Value | When? |
+| Token | Value | When to use |
 | --- | --- | --- |
-| `--fs-xs` | 12px | Minimal helpwords: label, logo, corner note |
+| `--fs-xs` | 12px | Smallest supporting text: labels, badges, footnotes |
 | `--fs-sm` | 13px | Tables, secondary information, small buttons |
-| `--fs-md` | 14px | General Body, Input Box (AGENTS.md § 7.4: not less than 14px is the target and 12–13 only gives auxiliary text) |
-| `--fs-base` | 15px | Page Basic Characters |
-| `--fs-lg` | 18px | Subheading |
-| `--fs-xl` | 21px | Block Title |
-| `--fs-2xl` | 26px | Big number, emphasis |
+| `--fs-md` | 14px | Regular body text, inputs (AGENTS.md §7.4: at least 14px is the goal; 12–13 is only for supporting text) |
+| `--fs-base` | 15px | Base page font size |
+| `--fs-lg` | 18px | Small headings |
+| `--fs-xl` | 21px | Section headings |
+| `--fs-2xl` | 26px | Large numbers, emphasis |
 
-Page header `h1` with fixed `var(--fs-2xl)` (26px) and `.page-head h1` on mobile phone with `var(--fs-xl)`; **no longer changes continuously with the width of the screen** (`clamp(26px, 3.2vw, 34px)`, as previously written in the document, is no longer in the code. DX-27 corrects the document by code; If you want a version of the clamp, you need Juanxi to decide separately. `font:`A short word. `body`It's... `15px/1.55`、`.board-col > header h2`It's... `600 13.5px/1.3`Not replaced by token is the known exception.
+Page titles `h1` use a fixed `var(--fs-2xl)` (26px); on mobile, `.page-head h1` uses `var(--fs-xl)`. **They no longer scale continuously with viewport width** (the previously documented `clamp(26px, 3.2vw, 34px)` has long differed from the code; DX-27 corrected the documentation to match. A clamp version requires a separate decision from Juanxi). Sizes in `font:` shorthands (`15px/1.55` on `body`, `600 13.5px/1.3` on `.board-col > header h2`) have not been tokenized and are known exceptions.
 
-## 2. Corner `--r-*`
+## 2. Corner radii `--r-*`
 
-| token | Value | On what element? |
+| Token | Value | Elements |
 | --- | --- | --- |
-| `--r-xs` | 4px | Small pieces: Gantt strips, tip of conversation bubbles, little labels |
-| `--r-sm` | 8px | Input boxes, tabs, colour sections, menu items, focus boxes |
-| `--r-md` | 12px | Buttons, navigation items, cards (taskcards, board cards, suspension cards, flowcharting cards), hints |
-| `--r-lg` | 14px | The largest panel; Equivalent to old variable `--radius`(Reservation, don't delete) |
-| `--r-pill` | 999px | The shape of the pill. |
-| `--r-circle` | 50% | Positive circle (nodes, heads) |
+| `--r-xs` | 4px | Very small blocks: Gantt bars, sharp corners of chat bubbles, small tags |
+| `--r-sm` | 8px | Inputs, small tags, color swatches, menu items, focus outlines |
+| `--r-md` | 12px | Buttons, navigation items, cards (task, Board, hover, flowchart), notification bars |
+| `--r-lg` | 14px | Largest panels; equivalent to the old `--radius` variable (retain it; do not delete) |
+| `--r-pill` | 999px | Pill shapes |
+| `--r-circle` | 50% | Circles (dots, avatars) |
 
-`0` No token, direct to `0`.
+`0` needs no token; write `0` directly.
 
-## 3. Level `--z-*`.
+## 3. Layers `--z-*` (higher numbers appear in front)
 
-From low to high:
+Lowest to highest:
 
-| token | Value | Annotations |
+| Token | Value | Description |
 | --- | --- | --- |
 | `--z-base` | 0 | Base |
-| `--z-raised` | 1 | Lift up a little bit. |
-| `--z-sticky` | 2 | Tops. |
-| `--z-sticky-hi` | 3 | Higher tops. |
-| `--z-local` | 4 | Partial overlay (e.g. Gant) |
-| `--z-dropdown` | 5 | Drop-down recommendation box (in form) `.owner-suggest`, M2b's choice of head) **New Reason:** It was written dead `z-index: 5`, there is no semantic closest in token ( `--z-local` 4 is the top of the watch, `--z-topbar` 20It's too high. 4It's going to be on the same level as it is. 20It'll cover things that shouldn't be covered up, so just stick to the original. 5I'll put it in a separate compartment. It doesn't look the same.  |
-| `--z-topbar` | 20 | Top Bar |
-| `--z-overlay` | 40 | Layer |
-| `--z-fab` | 45 | Suspended Button (Ask) |
-| `--z-toast` | 50 | Toast tip. |
-| `--z-rail` | 55 | Right Bar |
+| `--z-raised` | 1 | Slightly raised |
+| `--z-sticky` | 2 | Sticky |
+| `--z-sticky-hi` | 3 | Higher sticky layer |
+| `--z-local` | 4 | Local overlays (such as Gantt headers) |
+| `--z-dropdown` | 5 | Form suggestion dropdown (`.owner-suggest`, M2b owner picker). **Why added:** it previously hardcoded `z-index: 5`, and no existing token was semantically close (`--z-local` 4 is for sticky headers; `--z-topbar` 20 is too high). Changing to 4 would put them on the same layer; 20 would cover elements it should not. A separate level retains the original 5 and the same appearance. |
+| `--z-topbar` | 20 | Top bar |
+| `--z-overlay` | 40 | Overlay |
+| `--z-fab` | 45 | Floating action button (Ask) |
+| `--z-toast` | 50 | Toast notification |
+| `--z-rail` | 55 | Right rail |
 | `--z-menu` | 60 | Menu |
-| `--z-tip` | 70 | Suspended card (highest) |
+| `--z-tip` | 70 | Hover card (highest) |
 
-## 4Spacing `--s*`
+## 4. Spacing `--s*`
 
-| token | Value | token | Value |
+| Token | Value | Token | Value |
 | --- | --- | --- | --- |
 | `--s1` | 2px | `--s5` | 12px |
 | `--s2` | 4px | `--s6` | 16px |
 | `--s3` | 6px | `--s7` | 24px |
 | `--s4` | 8px | | |
 
-**is not the ideal 4px grid.** This 7 file is summarized from the values that are already most commonly used in interfaces, and it is more important to keep the existing look than to get the fence up. New style with these token; The old rules do not impose relocations (and the old 10px, 14px, 20px, 28px etc.).
+**This is not an ideal 4px grid.** These 7 levels were derived from the values most commonly used in the existing interface; retaining its appearance matters more than a regular grid. New styles use these tokens; existing rules are not required to migrate (even values such as 10px, 14px, 20px, and 28px remain in old rules).
 
-## 5. Colour
+## 5. Colors
 
-### 5.1 brands and semantics (light ~ dark)
+### 5.1 Brand and semantic colors (light → dark)
 
-| token | Light | Dark | Annotations |
+| Token | Light | Dark | Description |
 | --- | --- | --- | --- |
-| `--bg` | #fbfaf7 | #0f1312 | Page Bottom Colour |
-| `--surface` | #ffffff | #171c1b | Card Bottom |
-| `--surface-2` | #f3f1ec | #1d2322 | Sub Background |
-| `--lane` | #f6f4ef | #141918 | Swimming/orbiting bottom |
-| `--ink` | #1b1f1d | #eceeed | Text |
-| `--muted` | #5b625e | #a2aaa6 | Secondary Text |
-| `--line` | #e5e2da | #2a312f | 1px border (deliberately light, **do not deepen**) |
-| `--accent` | #0f766e | #3fb8a8 | Brand colour |
-| `--accent-ink` | #0b5a54 | #7fd6ca | Brand Text |
-| `--accent-soft` | #e4f1ef | #14302c | It's a low brand. |
-| `--on-accent` | #ffffff | #06201d | Words on brand colour |
-| `--warn` / `--warn-soft` | #8f5206 / #fbf0dc | #e7a74a / #33270f | Note (text/floor) |
-| `--late` / `--late-soft` | #b42318 / #fbe7e5 | #f08a80 / #3a1c19 | Late/cracked (text/floor) |
-| `--good` / `--good-soft` | #197d36 / #e3f4e7 | #6fcf8a / #15301d | Completed (text/floor) |
-| `--edge` | #878f8b | #5f6965 | Blank, dotted head, side of Gant vertical. |
-| `--risk-yellow` | #ba8306 | #e3a008 | Risked yellow spot, Team medium slot |
-| `--mline-main` | #888e8b | #b9c0bc | Unfinished segment of flowchart mainline |
-| `--warn-line` | #e8cf9c | Same light. | Amber Demo border (S6 added, original dead) |
-| `--on-solid` | #ffffff | Same light. | Words pressed on solid color block: state colour, corner, board column (S6 added, original #fff) |
-| `--on-dark-warn` | #ffb4ab | Same light. | It's always a dark S6 warning. |
-| `--info` / `--info-glow` | #3a6fd8 / rgba(58,111,216,.18) | Same light. | Blue of the time axis, see 5.3 |
+| `--bg` | #fbfaf7 | #0f1312 | Page background |
+| `--surface` | #ffffff | #171c1b | Card background |
+| `--surface-2` | #f3f1ec | #1d2322 | Secondary background |
+| `--lane` | #f6f4ef | #141918 | Swimlane/track background |
+| `--ink` | #1b1f1d | #eceeed | Body text |
+| `--muted` | #5b625e | #a2aaa6 | Secondary text |
+| `--line` | #e5e2da | #2a312f | 1px border (intentionally subtle; **do not darken**) |
+| `--accent` | #0f766e | #3fb8a8 | Brand color |
+| `--accent-ink` | #0b5a54 | #7fd6ca | Brand-colored text |
+| `--accent-soft` | #e4f1ef | #14302c | Soft brand background |
+| `--on-accent` | #ffffff | #06201d | Text on the brand color |
+| `--warn` / `--warn-soft` | #8f5206 / #fbf0dc | #e7a74a / #33270f | Caution (text/background) |
+| `--late` / `--late-soft` | #b42318 / #fbe7e5 | #f08a80 / #3a1c19 | Late/stuck (text/background) |
+| `--good` / `--good-soft` | #197d36 / #e3f4e7 | #6fcf8a / #15301d | Done (text/background) |
+| `--edge` | #878f8b | #5f6965 | Edges of hollow dots, dashed avatars, and Gantt vertical lines |
+| `--risk-yellow` | #ba8306 | #e3a008 | Yellow risk dots, medium-level Team bars |
+| `--mline-main` | #888e8b | #b9c0bc | Unfinished segments of the main flowchart line |
+| `--warn-line` | #e8cf9c | Same as light | Border of the amber Demo badge (added in S6; previously hardcoded) |
+| `--on-solid` | #ffffff | Same as light | Text on solid color blocks: status blocks, badges, Board column headers (added in S6; previously hardcoded #fff) |
+| `--on-dark-warn` | #ffb4ab | Same as light | Warning text in hover cards that are always dark (added in S6) |
+| `--info` / `--info-glow` | #3a6fd8 / rgba(58,111,216,.18) | Same as light | Timeline blue; see 5.3 |
 
-Contrast (text pair, light / dark):
+Contrast (text pairs, light / dark):
 
-| Match | Light | Dark |
+| Pair | Light | Dark |
 | --- | --- | --- |
-| `--ink` Match `--bg` | 15.96 | 16.06 |
-| `--muted` Match `--bg` | 6.00 | 7.87 |
-| `--accent` Match `--bg` | 5.24 | 7.69 |
-| `--warn` Match `--warn-soft` | 5.51 | 6.97 |
-| `--late` Match `--late-soft` | 5.53 | 6.36 |
-| `--good` Match `--good-soft` | 4.56 | 7.45 |
-| `--on-accent` Match `--accent` | 5.47 (white) | 7.01 |
+| `--ink` on `--bg` | 15.96 | 16.06 |
+| `--muted` on `--bg` | 6.00 | 7.87 |
+| `--accent` on `--bg` | 5.24 | 7.69 |
+| `--warn` on `--warn-soft` | 5.51 | 6.97 |
+| `--late` on `--late-soft` | 5.53 | 6.36 |
+| `--good` on `--good-soft` | 4.56 | 7.45 |
+| `--on-accent` on `--accent` | 5.47 (white) | 7.01 |
 
-The graphic contrast (N5) has been modified to take the lowest of `--bg`, `--surface` and `--lane`; Reaching line 3:1:
+Graphic contrast (after N5; minimum across the `--bg`, `--surface`, and `--lane` backgrounds; required ratio 3:1):
 
-| Item | ♪ Before the light color changes ♪ | Dark (no change) |
+| Item | Light before → after | Dark (unchanged) |
 | --- | --- | --- |
-| `--good` Match `--good-soft`(Text) | #1a7f37 → #197d36，4.44 → **4.56** | #6fcf8a，7.45 |
-| Risk Yellow `--risk-yellow` | #e3a008 → #ba8306，2.05 → **3.01** | #e3a008, 8.29 (with bg) |
-| Flowchart Main Line `--mline-main` | #b9c0bc → #888e8b，1.69 → **3.04** | #b9c0bc, 10.1 (with bg) |
-| `--edge` | #9aa39e → #878f8b，2.36 → **3.02** | #5f6965, 3.29 (with bg)/ 3.03 (with surface) |
+| `--good` on `--good-soft` (text) | #1a7f37 → #197d36, 4.44 → **4.56** | #6fcf8a, 7.45 |
+| Risk yellow `--risk-yellow` | #e3a008 → #ba8306, 2.05 → **3.01** | #e3a008, 8.29 (on bg) |
+| Main flowchart line `--mline-main` | #b9c0bc → #888e8b, 1.69 → **3.04** | #b9c0bc, 10.1 (on bg) |
+| `--edge` | #9aa39e → #878f8b, 2.36 → **3.02** | #5f6965, 3.29 (on bg) / 3.03 (on surface) |
 
-Yellow and main lines were deliberately retained in the dark theme: they were already clear on the dark bottom, but deepening was worse.
+Yellow and the main line intentionally retain their original dark-theme values: they are already clear against dark backgrounds, and darkening would reduce clarity.
 
-### 5.2 6 status color (not styles. css, in `statusDefaults.ts`)
+### 5.2 The 6 status colors (in `statusDefaults.ts`, not styles.css)
 
-Here's the name and color that users can change from Settings to Board. **Default value**。 There is no dark version of each state coloured white word (which is user data and does not change subject).
+These are the **defaults** users can rename and recolor in Settings → Board. Each status color carries white text, with no dark variant (it is user data and does not change with the theme).
 
-| Status (interface text) | Default Color | The white word's on it. | ♪ It's the text that goes with it ♪ `--bg` | ♪ It's the text that goes with it ♪ `--surface` |
+| Status (UI label) | Default color | White text on it | As text on `--bg` | As text on `--surface` |
 | --- | --- | --- | --- | --- |
 | Not claimed | #5f6763 | 5.82 | 5.58 | 5.82 |
 | To do | #3a6fd8 | 4.72 | 4.53 | 4.72 |
@@ -128,97 +128,97 @@ Here's the name and color that users can change from Settings to Board. **Defaul
 | Stuck | #c0362f | 5.51 | 5.28 | 5.51 |
 | Done | #237a42 | 5.34 | 5.11 | 5.34 |
 
-The `PALETTE` (optional 10 colours) of `statusDefaults.ts` requires each to keep the white word 4.5:1 or more before adding a new color.
+Every color in `PALETTE` in `statusDefaults.ts` (10 user-selectable colors) must maintain at least 4.5:1 with white text. Calculate contrast before adding a color.
 
-### 5.3 Important: `--late/--good/--warn` and status color are two systems, **not merge**
+### 5.3 Important: `--late/--good/--warn` and status colors are separate systems; **do not merge them**
 
-They appear to be repeated (both red, green, orange and slightly different colour values), but they are different:
+They look redundant (two reds, greens, and oranges, with slightly different values), but their constraints differ:
 
-| | `--late` / `--good` / `--warn` | 6 status color |
+| | `--late` / `--good` / `--warn` | 6 status colors |
 | --- | --- | --- |
-| Where do you use it? | **text on light colour background**, and border, shallow bottom | **white word** on color plate |
-| Dark Theme | **has** stand-alone values (#f08a80, #6fcf8a, #e7a74a) | **No**, data stored by the user |
+| Usage | **Text** on light backgrounds, plus borders and soft backgrounds | **White text** on color blocks |
+| Dark theme | **Has** separate values (#f08a80, #6fcf8a, #e7a74a) | **None**; stored user data |
 
-Merge will cause the dark theme to collapse: Dark `--late` is #f08a80, with only **2.43:1** on it; There is no dark version of the state color, and it is not possible to change with the theme. For the full reason, see `docs/night-tasks/README.md` for "T4 why the task was wrong and not Agent failed."
+Merging breaks the dark theme: dark `--late` is #f08a80, giving white text only **2.43:1**. Status colors have no dark variants and cannot change with the theme. See "Why T4 was an incorrectly written task, not an agent failure" in `docs/night-tasks/README.md` for the full rationale.
 
-Similarly, **`--info` blue is not the status color**. `.now` dots for flow charts and progress chains are derived from the chart status calculated by `nodeStop()` (done / now / todo / risk), which is rolled out by scheduling and risk; 6 user status is more than one-on-one on it, so there are no corresponding state colours, and don't let it change with Settings → Board. It intentionally has no dark colour cover value (underground shared #3a6fd8: with `--bg` 4.53, with deep color background 3.96, all of which are graphic 3:1).
+Likewise, **`--info` blue is not a status color**. The `.now` dots in flowcharts and progress chains use the chart state calculated by `nodeStop()` (done / now / todo / risk), derived from scheduling and risk. The 6 user statuses map onto it many-to-one, so it has no corresponding status color and must not change with Settings → Board. It intentionally has no dark override (both themes use #3a6fd8: 4.53 against `--bg`, 3.96 against the dark background, both above the 3:1 graphics requirement).
 
-> There is another outstanding: `src/pages/Handoff.tsx` line 61 connects 3 status colours (#237a42/#3a6fd8/#5f6763), should it follow the user's status color as a product issue and wait for Juanxi to decide.
+> One question remains: line 61 of `src/pages/Handoff.tsx` inlines 3 status colors (#237a42 / #3a6fd8 / #5f6763). Whether these should follow user status colors is a product decision awaiting Juanxi.
 
 ---
 
-## 6. Why these values?
+## 6. Why these values
 
-These brackets are **, which is extracted from the existing interface, not to push back to**. The characters used to be 20, Corner 12, Tier 12 and odd spacing. They now yield a few rows, each of which is essentially within  ± 1px (the corner has two types of +2px: 6px → 8px, 10px → 12px); It has a 10px → 12px. The goal is that the interface **can be described and evaluated**, not the way it looks. The contrast round (N5) is the only one that intentionally changes its appearance to bring graphic and green text to WCAG AA.
+These levels were **derived from the existing interface, rather than designed from scratch**. Previously there were 20 font sizes, 12 radii, 12 layer levels, and various odd spacing values. They are now consolidated into a few levels, with almost every shift within ±1px (two radius categories increased by +2px: 6px→8px and 10px→12px; one font size changed 10px→12px). The goal is to make the interface **possible to describe and evaluate**, not to change its appearance. The contrast pass (N5) was the only deliberate visual change, bringing graphics and green text to WCAG AA.
 
-## 7. Give it to someone who'll change the interface.
+## 7. For future interface changes
 
-1. Only token can be used for **new styles.** colours, fonts, corneres, layers, spacing are all the same.
-2. If **does require a new value, then use it in `:root` plus token (and decide whether to cover it in two dark segments); Don't write death.**
-3. Colored token before contrast: text  ≥  4.5:1, graphics  ≥  3:1, light and dark colour separately, light-coloured bottom three (`--bg`, `--surface`, `--lane`), lowest.
-4. Do not deepen `--line`, do not add color to the two colours in the merge 5.3, and do not add color to `--info`.
-5. **Dark Color Mode:** now follows the system (`prefers-color-scheme: dark`). CSS already supports mandatory coverage with `data-theme="light"`/ `data-theme="dark"`, but no switch **has been switched on the** interface. Two dark colours (from `@media` and `:root[data-theme="dark"]`) need to be synchronized when new token is added.
-6. Change the AGENTS. md running `npm run check`.
+1. **New styles must use tokens.** This applies to colors, font sizes, radii, layers, and spacing.
+2. **If a new value is truly needed, first add a token in `:root` (deciding whether to override it in both dark-theme blocks), then use it; do not hardcode it.**
+3. Calculate contrast before adding color tokens: text ≥ 4.5:1, graphics ≥ 3:1. Calculate light and dark separately; check all three light backgrounds (`--bg`, `--surface`, `--lane`) and use the minimum.
+4. Do not darken `--line`, merge the two color systems in 5.3, or give `--info` a user-status meaning.
+5. **Dark mode:** currently follows the system (`prefers-color-scheme: dark`). CSS already supports forced overrides with `data-theme="light"` / `data-theme="dark"`, but **there is no UI toggle yet**. When adding tokens, update both dark blocks together (the `@media` block and `:root[data-theme="dark"]`).
+6. After changes, run `npm run check` as directed by AGENTS.md.
 
-## 8. Autoguard (S6, 2026-10-29)
+## 8. Automated guardrails (S6, since 2026-10-29)
 
-From now on, the rules are automatically checked by tools, and `npm run check` and GitHub CI run away.
+These rules are now checked automatically by both `npm run check` and GitHub CI; violations fail:
 
-| Inspection | Command | Stop what? |
+| Check | Command | What it blocks |
 | --- | --- | --- |
-| Stylelint | `npm run lint:css`(THUNTING) `src/styles.css` and `src/styles/*.css`）| `font-size` It's just... `var(--fs-*)`(plus) `inherit`）；`border-radius` It's just... `0`、`inherit`、`var(--radius)`、`var(--r-*)`；`z-index` It's just... `var(--z-*)`；`:root` **is not allowed to write text colour**; **No repeat selection**; `font:` Briefly release only 3 (see below) |
-| ESLint | `npm run lint:js`（`src/` (ts/tsx) | Inline `style={{...}}` Just put it on. CSS Variables（`--xxx`）It's based on data. `left/top/width/height`，The rest is written. `styles.css` Yeah. class |
-| Words | `npm run words` | Only the **report** live words per page (including suspension cards, folding content) will not fail due to over-limits or require deletion; The upper limit is set by Juanxi. `--enforce` |
-| Accessibility | `e2e/a11y.spec.ts`(desktop + cell phone) | WCAG 2.0/2.1/2.2 A/AA with touch target 24 x 24; Right Bar Focus Management |
+| Stylelint | `npm run lint:css` (covers `src/styles.css` and `src/styles/*.css`) | `font-size` must be `var(--fs-*)` (or `inherit`); `border-radius` must be `0`, `inherit`, `var(--radius)`, or `var(--r-*)`; `z-index` must be `var(--z-*)`; **no hex colors** outside the three `:root` theme blocks; **no duplicate selectors**; only 3 `font:` shorthand forms allowed (see below) |
+| ESLint | `npm run lint:js` (ts/tsx under `src/`) | Inline `style={{...}}` may contain only CSS variables (`--xxx`) and data-derived `left/top/width/height`; everything else must use a class in `styles.css` |
+| Word count | `npm run words` | Only **reports** actual words per page (including hover cards and collapsed content); does not fail for exceeding a limit or require deleting words. Enable `--enforce` after Juanxi decides the limits. |
+| Accessibility | `e2e/a11y.spec.ts` (desktop + mobile) | WCAG 2.0/2.1/2.2 A/AA, including 24×24 touch targets; right-rail focus management |
 
-**(a) Exceptions to the intentional release (article by article reason):**
+**Intentional exceptions (with individual reasons):**
 
-1. `border-radius: 0`: A straight angle is not a "circle slot", and token has no meaning.
-2. (Deleted, DX-27) `clamp` exception for `h1`: This is no longer used in the code and the rules of release in `.stylelintrc.json` are removed and it becomes red again.
-3. `font-size: inherit`, `border-radius: inherit`: Inherit the fatherhood, no new values are introduced.
-4. `font:` Shortcuts will be released only for `inherit`, `15px/1.55 var(--sans)` (`body`), `600 13.5px/1.3 var(--sans)` (`.board-col > header h2`): In both short words, the numbers are intentionally retained and the meetings will change their height and remain unified until later.
-5. The definition of hex:token in `:root` is meant to write colour values.
-6. This time **does not force** to use token (the old rules include 10 px, 14 px, etc.), so there is no space rule.
-7. **does not check the CSS and line styles of** `src/organization/`, `src/phase1/`, `src/workspace/`: they are another older code (approximately 4,500 lines) which will be integrated later.
+1. `border-radius: 0`: a square corner is not a radius level; a token serves no purpose.
+2. (Removed in DX-27) The `clamp` exception for `h1`: this form no longer exists in the code, and the allowance in `.stylelintrc.json` was also removed. Reintroducing it will fail.
+3. `font-size: inherit`, `border-radius: inherit`: inherit the parent without introducing a new value.
+4. `font:` shorthands allow only `inherit`, `15px/1.55 var(--sans)` (`body`), and `600 13.5px/1.3 var(--sans)` (`.board-col > header h2`): the sizes in these two shorthands are intentionally retained; splitting them changes line height, so consolidation is deferred.
+5. Hex inside `:root`: token definitions necessarily contain color values.
+6. Spacing tokens are **not enforced** in this pass (old rules still contain 10px, 14px, etc.), so there is no spacing rule.
+7. CSS and inline styles in `src/organization/`, `src/phase1/`, and `src/workspace/` are **not checked**: these are a separate, older codebase (about 4,500 CSS lines), to be included during later consolidation.
 
-When **adds a new style:**, see where the `npm run lint` red is, token or glass, **does not want** bypassed by `stylelint-disable`/ `eslint-disable`; It is true that an exception should be added here, along with a justification.
+**When adding styles:** first inspect the `npm run lint` failures and use tokens or classes. **Do not** bypass them with `stylelint-disable` / `eslint-disable`. If an exception is necessary, add it here with a reason.
 
-## 9. Token `--dur-*` `--ease-*` `--spring-*` (v1. 6 interface and activation upgrade, DX-01)
+## 9. Motion tokens `--dur-*` `--ease-*` `--spring-*` (v1.6 interface and motion upgrade, from DX-01)
 
-Defined in `src/styles/dx-00-tokens.css` (only this document can be written at a specific time). **can only quote token and not write numbers like `150ms`.**
+Defined in `src/styles/dx-00-tokens.css` (the only file allowed to contain explicit durations). **Motion must reference tokens; do not write numbers such as `150ms`.**
 
-| token | Value | Where do you use it? |
+| Token | Value | Usage |
 | --- | --- | --- |
-| `--dur-press` | 100ms | Press the feedback. "Now." |
-| `--dur-fast` | 150ms | Suspend color, fade out, menus appear. |
-| `--dur-base` | 220ms | Panel, drawer in |
-| `--dur-slow` | 320ms | Something bigger is falling into place. |
-| `--ease-out` | `cubic-bezier(.2, .8, .2, 1)` | : Start fast, end soft |
-| `--ease-in-out` | `cubic-bezier(.4, 0, .2, 1)` | Move one place to the other. |
-| `--spring-ui` + `--spring-ui-dur` | `linear(...)`，450ms | Drag Cards Down ( `src/lib/dragSort.ts`), flowchart node change (DX-22) |
-| `--spring-pop` + `--spring-pop-dur` | `linear(...)`，480ms | Step to Done Dot. 25） |
+| `--dur-press` | 100ms | Press feedback, perceived as immediate |
+| `--dur-fast` | 150ms | Hover color changes, small fades, menu appearance |
+| `--dur-base` | 220ms | Panels and drawers sliding in |
+| `--dur-slow` | 320ms | Larger elements settling into place |
+| `--ease-out` | `cubic-bezier(.2, .8, .2, 1)` | Appearance: fast start, soft finish |
+| `--ease-in-out` | `cubic-bezier(.4, 0, .2, 1)` | Movement between locations |
+| `--spring-ui` + `--spring-ui-dur` | `linear(...)`, 450ms | Dragged cards settling (`src/lib/dragSort.ts`), flowchart node reordering (DX-22) |
+| `--spring-pop` + `--spring-pop-dur` | `linear(...)`, 480ms | Dot "pop" when a step becomes Done (DX-25) |
 
-- Two spring curves are generated by `scripts/spring-linear.mjs` (don't change the values manually).
-- **Reduction effects: When the** system set-up started with `prefers-reduced-motion: reduce`, all of the time up there was changed to `1ms` and the spring to `linear`, so only reference to to token 's effect automatically became "almost instantaneous". It takes time to use in the script. `src/lib/motion.ts`It's... `tokenMs()`(read token) and `prefersReducedMotion()`Don't write your own numbers.
-- Only `transform` and `opacity` (DX-08, style check stops: `transition: all`, time of writing, transition to `left/top/right/bottom/width/height/margin/padding`).
+- Both spring curves are generated by `scripts/spring-linear.mjs` (do not edit their values manually).
+- **Reduced motion:** when the system's reduced-motion setting is enabled (`prefers-reduced-motion: reduce`), all durations above become `1ms` and springs become `linear`, so motion using only tokens automatically becomes almost instantaneous. Scripts needing durations must use `tokenMs()` (reads tokens) and `prefersReducedMotion()` from `src/lib/motion.ts`, rather than writing numbers themselves.
+- Animate only `transform` and `opacity` (since DX-08, style checks block `transition: all`, hardcoded durations, and transitions on `left/top/right/bottom/width/height/margin/padding`).
 
-## 10. Shadow level `--elev-1/2/3` (DX-23)
+## 10. Shadow levels `--elev-1/2/3` (DX-23)
 
-Defined in `src/styles/dx-23-glass-topbar.css`, one set of light/deep colours (deeper weight, two dark synchronous):
+Defined in `src/styles/dx-23-glass-topbar.css`, with light/dark variants (dark is stronger; keep both dark blocks synchronized):
 
-| token | Light | Where do you use it? |
+| Token | Light | Usage |
 | --- | --- | --- |
-| `--elev-1` | `0 1px 2px / .06` + `0 2px 6px / .05` | The lightest one. **has no place to use**. Keep it. `grep -rn "var(--elev-1" src`）|
-| `--elev-2` | `0 4px 12px / .10` + `0 12px 28px / .08` | Menu (%1) `.menu`、`.m-menu`), recommendation box of the head(s), `.panel`, towed cards (Tasks, Partners) |
-| `--elev-3` | `0 12px 40px / .18` | Toast. `.toast`；Width 1199px next to right bar on page |
+| `--elev-1` | `0 1px 2px / .06` + `0 2px 6px / .05` | Lightest level. **Currently unused**; retained for now (verify with `grep -rn "var(--elev-1" src`) |
+| `--elev-2` | `0 4px 12px / .10` + `0 12px 28px / .08` | Menus (`.menu`, `.m-menu`), owner suggestions, `.panel`, lifted cards (Tasks, Partners) |
+| `--elev-3` | `0 12px 40px / .18` | `.toast`; the right rail when floating over the page below 1199px width |
 
-Pick these three new lines before adding them here. Don't write `box-shadow: 0 8px ...` in the component.
+Choose among these three levels for new shadows. If they are insufficient, add a level here first; do not write `box-shadow: 0 8px ...` in components.
 
-## 11. Structure and attribution of small style files (DX-01 cases)
+## 11. Structure and ownership of small style files (since DX-01)
 
-- `src/styles.css` is still the original; v1. Each work package of 6 has written its own style on **'s own little file** `src/styles/dx-NN-<name>.css` by `src/styles/index.css` after `styles.css` in order `@import` (`src/main.tsx` was introduced by `index.css`).
-- **One file belongs to only one package**, the other one cannot change it. Wants to turn off the style of a package (R1 Quick Close): decrypt the `index.css` line `@import`.
-- `styles.css` must adopt `npm run lint:css` (`font-size`/Circular/Standard/hex Rules), as well as several more after `dx-01`: `transition: all`, no time to write death, no transition to layout properties, **not `!important`**; `.hover-card` on the desktop is not allowed any delay (a sample of intentional violations in `src/test/dxStyleGuard.test.ts` proves that these guards are really red).
-- `dx-00-tokens.css` is the exception: it's where token is defined and allowed to be written at a specific time.
-- `docs/design-upgrade/README.md` and `docs/design-upgrade/ROLLBACK_LOG.md`.
-- `styles.css` is step 3 of DX-27, **requires the explicit consent of Juanxi to**, and currently **does not do**; After metge, R1 can't close fast.
+- `src/styles.css` remains canonical. Each v1.6 work package writes its styles in **its own small file**, `src/styles/dx-NN-<name>.css`, imported in order after `styles.css` by `src/styles/index.css` (`src/main.tsx` imports `index.css`).
+- **Each file belongs to one package**; other packages may not edit it. To disable a package's styles (R1 quick disable), comment out its `@import` line in `index.css`.
+- Small files must pass `npm run lint:css` like `styles.css` (`font-size`/radius/layer/hex rules). Files after `dx-01` also prohibit `transition: all`, hardcoded durations, transitions on layout properties, and **`!important`**. Desktop `.hover-card` must have no delay (`src/test/dxStyleGuard.test.ts` contains intentionally invalid samples proving these guards fail as expected).
+- `dx-00-tokens.css` is the exception: it defines tokens, so explicit durations are allowed.
+- Package changes and rollback instructions: `docs/design-upgrade/README.md` and `docs/design-upgrade/ROLLBACK_LOG.md`.
+- Merging these small files back into `styles.css` is step 3 of DX-27, **requires Juanxi's explicit agreement**, and **has not been done**. R1 quick disable will no longer work after consolidation.

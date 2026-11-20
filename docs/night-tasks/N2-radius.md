@@ -1,6 +1,8 @@
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
+
 # Goal
 
-Take the scattered corner values from src/ styles.css to 4 token, plus pills and square shapes.
+Consolidate scattered src/styles.css radii into 4 token levels plus pill/circle shapes.
 
 # Files
 
@@ -8,53 +10,53 @@ Take the scattered corner values from src/ styles.css to 4 token, plus pills and
 
 # Constraints
 
-- Only field presentation data are used.
-- Do not modify dependencies, deployments, GitHub Actions, secret key, research data or Night Mode security files.
-- Do not modify or mege main.
-- Src/ styles.css only, without touching any.tsx/.ts files.
-- Do not touch src/organisation/, src/phase1/, src/workspace/ under CSS.
-- Do not change fonts, spacing, colours, z-index. This round only moves border-radius.
-- **does not reread the document to "check the baseline".**
-- Undetermined retention and writing in handoff records.
+- Fictional demo data only.
+- No dependencies/deployment/GitHub Actions/secrets/research-data/Night Mode safety-file changes.
+- Do not modify/merge main.
+- Only src/styles.css; no .tsx/.ts.
+- No CSS under src/organization/, src/phase1/, src/workspace/.
+- No typography/spacing/color/z-index changes; border-radius only.
+- **After editing, do not reread to “verify baseline.”**
+- Retain uncertainties and note in handoff.
 
 # Done means
 
-## 1. In: root Riga, this 6 token
+## 1. Add these 6 tokens in `:root`
 
 ```
 --r-xs: 4px;      --r-sm: 8px;      --r-md: 12px;     --r-lg: 14px;
 --r-pill: 999px;  --r-circle: 50%;
 ```
 
-The existing `--radius: 14px` remains static (many places are in use) and indicates next to it that it is equivalent to `--r-lg`.
+Keep existing `--radius: 14px` (widely used), comment beside it that it equals `--r-lg`.
 
-## 2. Replace every place with this table
+## 2. Replace every border-radius by table
 
-| Present value [p] | Change it to | Offset |
+| Current | Replacement | Change |
 | --- | --- | --- |
-| `0` | Hold `0`♪ Don't change token | — |
-| `3px` | `var(--r-xs)` | +1px |
-| `4px` | `var(--r-xs)` | 0 |
-| `5px` | `var(--r-xs)` | −1px |
-| `6px` | `var(--r-sm)` | **+2px** |
-| `8px` | `var(--r-sm)` | 0 |
-| `9px` | `var(--r-sm)` | −1px |
-| `10px` | `var(--r-md)` | **+2px** |
-| `12px` | `var(--r-md)` | 0 |
-| `14px` | `var(--r-lg)` | 0 |
-| `var(--radius)` | Stay where you are. | 0 |
-| `999px` | `var(--r-pill)` | 0 |
-| `50%` | `var(--r-circle)` | 0 |
+| `0` | Keep `0`, no token | — |
+| `3px` | `var(--r-xs)` | +1 px |
+| `4px` | `var(--r-xs)` |0|
+| `5px` | `var(--r-xs)` | −1 px |
+| `6px` | `var(--r-sm)` | **+2 px** |
+| `8px` | `var(--r-sm)` |0|
+| `9px` | `var(--r-sm)` | −1 px |
+| `10px` | `var(--r-md)` | **+2 px** |
+| `12px` | `var(--r-md)` |0|
+| `14px` | `var(--r-lg)` |0|
+| `var(--radius)` | Unchanged |0|
+| `999px` | `var(--r-pill)` |0|
+| `50%` | `var(--r-circle)` |0|
 
-⚠  Only two places in the table are offset by +2px (`6px` and `10px`). The rest is within  ± 1px, it's not clear.
-**in the Handoff log shows how many**s have been changed by 6px and 10px separately to allow Juanxi to focus on these places.
+⚠️ Only `6px`/`10px` move+2 px; others within±1 px, imperceptible.
+**Separately count changed `6px` / `10px` locations** in handoff for Juanxi's focused review.
 
-## 3.
+## 3. Acceptance
 
-- `npm run check` must be passed and the original test article cannot be deleted or reduced.
-- Writes in the handoff log: how many changes have been made to the original corner values, what are now, 6px and 10px.
+- `npm run check` passes; no existing test deletion/weakening.
+- Handoff: original/current distinct radius counts, 6px/10px replacement counts.
 
 # Out of scope
 
-- Do not make letters, spacing, colours, z-index.
-- Do not touch src/engine/, netlife/, src/data/, any.tsx.
+- Typography/spacing/color/z-index.
+- src/engine/, netlify/, src/data/, any .tsx.

@@ -43,7 +43,7 @@ Routing version: `air-task-routing-v3`.
 | `POST /api/nudge/draft` | One sentence in a reminder draft | `nudge_draft` | Muse |
 | `POST /api/handbook/draft` | Select sources for a role handbook | `handbook_draft` | Muse |
 | `/api/setup/constitution` | Read roles, reporting lines, and duties after Continue in setup step 1; no server storage | `constitution_read` | Muse. Send structure and duties requests sequentially; AIR processes one at a time, so parallel requests queue. Each must return within 21 seconds; duties batches contain at most 6 items. Gemma took 56 seconds on a real constitution and is not used here. |
-| `/api/setup/workflow` | Compare planning notes/files with the standard workflow; propose edits/conflicts and assign roles by duties; no server storage | `workflow_read` | Muse. Send `changes` and `owners` requests sequentially, each within 21 seconds. |
+| `/api/setup/workflow` | In setup step 5, compare planning notes/files with the standard workflow; propose edits/conflicts and assign roles by duties; no server storage | `workflow_read` | Muse. Send `changes` and `owners` requests sequentially, each within 21 seconds. |
 | `/api/org/ai` | Longer structured Organization Setup tasks; currently hidden | `setup.*` | Gemma, `gemma4-31b-it` |
 | Same endpoint, explicit Deeper review | User-requested stronger review | `setup.*` with deep mode | GLM, `glm-5-3` |
 
@@ -95,7 +95,7 @@ These entries preserve earlier decisions and do not override the current section
 - `POST /api/command` accepts `sentence` and minimal event/node/officer ID/display-name context. Common explicit patterns parse locally; others use `chatJSON()`. It returns `ops`, `source`, and `model`. Both server and browser whitelist operations and discard dates. A person confirms the date of a new event in the change card.
 - `POST /api/nudge/draft` accepts the node title, three engine-calculated dates, actual downstream steps, and reminder window. AI rewrites only a meaning sentence of at most 10 words; code builds five sections and checks forbidden wording and the 100-word limit. The browser rebuilds against current state before opening the draft, avoiding stale dates.
 - No new secrets/provider configuration is required. Disabled AI or endpoint failure is labelled local fallback.
-- `parse-brief` retains compatibility while discarding AI dates; legacy files were unchanged by WP2.
+- `parse-brief` retains compatibility while discarding AI dates; files in `public/legacy/` were unchanged by WP2.
 - Fixed-command and mocked-provider checks passed. Freeform live AIR quality still required deployed validation; older references to DeepSeek are obsolete. See `WP2_ACCEPTANCE.md`.
 
 ## Organization Setup and AIR, October 26 snapshot

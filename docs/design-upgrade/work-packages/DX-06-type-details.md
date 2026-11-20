@@ -1,28 +1,30 @@
-# DX-06 font details: word length, square number, cell phone small, folding
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Stage 1 Size S Risk Low R Level **R1 Available** Dependence: DX-01 Parallel Partners: DX-03 ~ 05, 07, 08
-- Branch: `design/dx-06-type-details` Style File: `src/styles/dx-06-type-details.css` Corresponding Details: D28D29D30D31
+# DX-06 typography details: spacing, tabular numbers, mobile small text, wrapping
 
-## Why?
-Title spacing is now harmonized with `-.01em`. Emil § 15 and Apple `typography.md`: Word spacing changes with the word number - bigger word is tighter, smaller word close to 0. The combination of line and unlined lines is the most recognizable part of this product.
+- Stage 1 · SizeS · Low risk · R level **R1 available** · Dependency: DX-01 · Parallel: DX-03–05/07/08
+- Branch: `design/dx-06-type-details` · Styles: `src/styles/dx-06-type-details.css` · Details: D28 D29 D30 D31
 
-## Something to do.
-1. Word length: `h1` (26px) about `-.02em`; `h2` (18px) approximately `-.015em`; `h3`（15px）`0`；`.panel h2`, `.funding-detail h2` by their respective names. Write as selector overwrite, no `styles.css`.
-2. Equivalent: Date, amount, count, percentage unified plus `font-variant-numeric: tabular-nums`. Today, Events, Team, Funding, Handoff lists all these elements (other than `.num`, e.g. dates in `td.nowrap`, `.stat-row b`, `.days`, `.timing`, `.count`) and then covers them uniformly.
-3. Cell phone (`max-width: 600px`): `.chain-label`, `.m-tick`, `.m-label span`, `.gantt-tick`, etc. 12– 13px refers to `var(--fs-md)`. **can only use token**, which is not allowed to write nudity pixels; The check refers to a 14px label that does not overlap and does not support horizontal rolling.
-4. `p`、`.small`、`.muted`、`.empty`、`.hover-card`：`text-wrap: pretty`。
-5. Do not change fonts, characters, row heights. Do not change the name of h1 (see details D32 for DX-27).
+## Why
+Heading letter-spacing is uniformly `-.01em`. Emil §15/Apple `typography.md`: spacing should vary with size—tighter for large text, near 0 for small. The serif/sans pairing is the product's most recognizable feature; refine details, do not replace fonts.
 
-## Files that can be changed
+## Work
+1. Letter-spacing: `h1`26 px about `-.02em`; `h2`18 px about `-.015em`; `h3`15 px `0`; `.panel h2`/`.funding-detail h2` by their sizes. Selector overrides; do not change `styles.css`.
+2. Tabular numbers: add `font-variant-numeric: tabular-nums` to dates, amounts, counts, percentages. Inventory Today/Events/Team/Funding/Handoff elements first (beyond `.num`, e.g. dates in `td.nowrap`, `.stat-row b`, `.days`, `.timing`, `.count`), then override consistently.
+3. Mobile (`max-width: 600px`): raise 12–13 px small text such as `.chain-label`, `.m-tick`, `.m-label span`, `.gantt-tick` to `var(--fs-md)`. **Tokens only**; style checks forbid raw pixels; after raising to 14 px verify no overlapping labels/horizontal scrolling.
+4. `p`, `.small`, `.muted`, `.empty`, `.hover-card`: `text-wrap: pretty`.
+5. Do not change font family, weight, line height, or h1 size (D32, DX-27).
+
+## Allowed files
 Only `src/styles/dx-06-type-details.css`.
 
 ## Acceptance
-- New test `e2e/dx-06-type.spec.ts`: read the calculation of h1/h2/h3 `letter-spacing`, with three values different and h1 < h2 < h3 (tighter); The date cell calculation style in Today contains `tabular-nums`.
-- Mobile phone 390 wide: `word-budgets.spec.ts`, `noOverflow` green for 0 and `a11y.spec.ts`.
-- Juanxi How to Test: The title looks more compact and precise. (a) The date, amount and downward alignment of the matrix; The progress chain tag on the phone is better read.
+- New `e2e/dx-06-type.spec.ts`: computed h1/h2/h3 `letter-spacing` all distinct, h1<h2<h3 (tighter); Today date-cell computed style contains `tabular-nums`.
+- Mobile 390: `word-budgets.spec.ts`, `noOverflow`0, `a11y.spec.ts` green.
+- Juanxi checks: more compact/refined headings; aligned table dates/amounts; more readable mobile chain labels.
 
 ## Rollback
 R1 or R2.
 
-## Attention.
-- The label referring to 14px reduces layout spacing instead of narrowing the word if it causes a two-line break.
+## Note
+- If 14 px labels wrap to two lines, tighten layout spacing before reducing text size.

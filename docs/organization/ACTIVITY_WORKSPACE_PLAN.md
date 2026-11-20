@@ -1,189 +1,188 @@
-# Activity Platform Implementation Programme (approved for implementation)
+# Activity Platform Execution Plan (Approved for Implementation)
 
-Date: 2026-10-26 (America/Phoenix). This round of read-only checks and programme reviews; No product changes implemented, no live AI called.
+2026-10-26 (America/Phoenix). This round: read-only verification/plan review, no product changes or live AI calls.
 
-## 1. Directions and scope defined
+## 1. Agreed direction and scope
 
-Users select A1 (the day-to-day management front page) + B1 (member active list) +C2 (the activity details are time-axis). (a) Individual assignments are based on Board; The active list uses short flow chains; Funding becomes a branch of the active workflow. Include explicit requirements for the previous round: global right AI, stable ID and synchronisation of name, free five-chapter jumping, process line click removal, removal of Connections and node by node Mark reviewed, file entry description and navigation weighting.
+User selected A1 daily-management home + B1 member-activity list + C2 timeline-centered activity details. Personal tasks center on Board; activity lists use short workflow chains; Funding becomes an activity branch. Include prior explicit requests: global right-side AI, stable IDs/name synchronization, free navigation across five chapters, click-delete workflow edges, remove Connections/per-node Mark reviewed, clarify file entry/deduplicate navigation.
 
-Start worktree implementation only after this plan is approved. Deliver a development preview for acceptance; do not merge `main` or release production. Write UI text, documentation, comments, commits, and GitHub notes in English. Do not read raw research interviews, commit their contents, or run additional paid model comparisons.
+Begin worktree implementation only after approval; deliver development preview for acceptance, without main merge/production release. English UI, Chinese docs [historical documentation rule; superseded by current English policy]. No raw research interviews read/committed or extra paid model comparisons.
 
 ## 2. Current code facts
 
-- The GitHub development branches are `1815be02d83bc67ed35eb6970d14f0ed6a3023c6` and main is `4dc55ba`. Re-establish the fetch prior to implementation, confirming an updated common baseline.
-- `src/pages/Tasks.tsx`, `src/data/board.ts`: Drag, sort, personal filter, keyboard status menu already exists. The default remains Table, with six columns including Not cleared/Waiting/Done, to create a new inactive task.
-- Old Tasks and Events use the same `DemoState.nodes`. Old board changes reflect old active nodes but are stored in the browser localStorage.
-- The `src/phase1/ApprovedWorkspace.tsx` read server has been approved for organizational configuration and is currently consumed by templates; There are no live examples of activities and individual tasks included in the links. The old board cannot be hung on a new page as if it had been connected.
-- The new template supports `dependencyMode=all/any`; The old `taskWorkflow.ts` and `schedule.ts` are mainly treated as all and must be clearly adapted.
-- Funding for `src/pages/Funding.tsx` and `src/data/store.tsx` six stages independent of task nodes; The current next operation cannot be a live approval.
-- The old `playbooks.ts` has ASU rules, standard application and budget/price steps, but there is no complete 8/7/6 anchor. The default value is added to the organization ' s preference for the information that this user has clearly given and cannot be marked as a school rule.
-- (a) The calendar covers only the term of a specified intake; Adds a time frame to check the coverage and cannot use an unknown term as a holiday or fielding.
+- Both GitHub development branches verified at 1815be02d83bc67ed35eb6970d14f0ed6a3023c6; main 4dc55ba. Refetch before implementation to confirm latest shared baseline.
+- src/pages/Tasks.tsx/src/data/board.ts already support dragging/order/personal filters/keyboard status menus. Default remains Table; six columns include Not claimed/Waiting/Done; standalone tasks possible.
+- Old Tasks/Events share DemoState.nodes; board edits affect event nodes, persisted in browser localStorage.
+- src/phase1/ApprovedWorkspace.tsx consumes server-approved organization templates, without actual activity instances/personal-task write path. Mounting old board in new page is not integration.
+- New templates support dependencyMode=all/any; old taskWorkflow.ts/schedule.ts mainly all, requiring explicit adaptation.
+- `src/pages/Funding.tsx`/`src/data/store.tsx` six funding stages independent of task nodes; next is not real approval.
+- playbooks.ts includes ASU rules/club practices/budget-quotes, but lacks complete 8/7/6-week anchors. Add these user-specified organization defaults, never label school rules.
+- Existing calendar covers explicitly listed semesters only; timeline must check coverage, never treat unknown semesters as holidays or invent schedules.
 
-## 3. Page and layout
+## 3. Pages and layout
 
-### 3.1 Unified Navigation and Homepage A1
+### 3.1 Unified navigation and A1 home
 
-Home, My tasks, Activities, Organization setup; Recent activities only keep up to five recent events and view all. Executive Board services enter a stand-alone list/detail from the front page, without mixing with Recentactivities, and no longer using Board workflow as a set-up portal.
+Fixed left Home, My tasks, Activities, Organization setup; Recent activities contains at most five recent member activities plus View all. Executive Board work has its own list/details from home, excluded from Recent; Board workflow no longer setup entry.
 
-medium is the current page and right is resident in Ask Platypus. Desktop right bar is wide and can be closed; The chart uses the remaining space to flatten/scaling and does not crush nodes. The narrow screen uses a dialogue drawer that can be opened at any time to maintain the same dialogue and do not send input.
+Center current page; persistent Ask Platypus right. Desktop resizable/collapsible rail; chart pans/zooms in remaining space without flattening nodes. Narrow screens use always-available chat drawer, preserving conversation/unsent input.
 
 Home order:
-1. A maximum of three items do require current users to deal with, including significant blockages, pending approval and time-frame risks.
-2. My next actions streamlines the personal task portal without copying the full board on the front page.
-3. Members Programme board: Total number of future activities, date/state/short flow chain for the last three.
-4. Executive Board board: Management services, managers, next action, blockage in progress. Keeps both. Shows the live empty state and creates an entrance when no data are available.
+1. At most three items actually requiring current user's action: important blocks/approvals/deadline risks.
+2. Compact My next actions entry, not duplicate full board.
+3. Member Programs board: future count, next three dates/status/short chains.
+4. Executive Board board: active management work/owner/next action/blocks. Retain both boards; honest empty states/create entries.
 
-Organisation arcitecture and responsibilities only place organizational settings. Removes the active page Edit event. Fixed page labels are defined by a uniform label key; Activity Workflow is the template name in the setup and ACTies are the physical activity portals.
+Structure/duties only in organization settings; remove Edit organization from activity pages. Shared label keys; Activity Workflow is template name within setup, Activities opens actual instances.
 
-### 3.2Activities B1 and Short Flow Chain
+### 3.2 B1 Activities and short chains
 
-All members activities in the same searchable list, defaulting to the date of future activity ascending and switching to the most recent changes; Support for term, director, campaign status screening and closure of completed activities. Undated activities are listed separately and no false dates are available.
+One searchable member-activity list, upcoming-date ascending by default, switch to recently modified; semester/owner/status filters; completed collapsed. Undated separate, never fake dates.
 
-Each row of the desktop is divided into approximately 25 per cent for active identification areas, about 50 per cent for short-flow chains at four locations, and about 25 per cent for date/critical risks/entry points. This is the starting point of the layout, actually according to available width; When space is insufficient, replace it with two rows without narrowing the text. The first line of mobile phones has an active name/date and the current phase and follow-up actions in the second line can be extended to complete short chains.
+Desktop starting proportions: identity about 25%, four-position chain 50%, date/key risk/entry 25%; accept at actual width, wrap to two lines rather than shrink text. Phone row 1 name/date, row 2 current stage/next actions, expandable full short chain.
 
-Short chains show the most recent completed phase, the current one and two subsequent phases. The interface sets the actual phase name and Completed/ Now/ Next, does not directly display T-1/ T/ T+ 1 and avoids confusion with active date anchor point T. There is a clear state of borders in four phases, before starting/completely ending/under.
+Show last completed/current/next two stages. Actual names plus Completed/Now/Next, no T−1/T/T+1 confused with event anchor T. Explicit pre-start/all-complete/fewer-than-four boundaries.
 
-When parallel work exists, a line cannot be chosen to pretend that there is only one current step for the entire activity. Use e.g. Prepare event, with live tips for 2/4 complete, 2 branches active, Finance blocked, etc. Phase groups include fixed leafTaskIds; Only at this stage will all the necessary branches and approval requirements be met. The key blockage cannot be concealed by the "Execute event" label.
+For parallel work, never pick one line as sole current step. Expandable stage groups, e.g. Prepare event with actual 2/4 complete, 2 branches active, Finance blocked. Fixed leafTaskIds per group; complete only when all required branches/approvals satisfy. Execute event label cannot hide critical blocks.
 
-AI only presents a simple phase name and group when creating or adjusting the workflow, verifies references, no rings and sequences for approval, and caches as a workflow version. Status/completion/current phase is calculated by process in real time; Opens the list or drag tasks without re-calling AI. If not available to AI, the template phase or deterministic grouping is normally displayed.
+AI proposes concise stage names/groups only during workflow creation/adjustment; validate references/cycles/order, approve, cache by version. Program computes live status/count/current stage; list opening/task dragging never reinvokes AI. Template stages/deterministic grouping work offline.
 
-### 3.3 Activity Details C2
+### 3.3 C2 activity details
 
-(b) Only the name of the event, date, head of office, overall status at the top; Immediate to current risks and pending approval. (a) The main area is the date axis: the actual dates of the cross-axis and today ' s line, organized vertically under a foldable phase to support sectoral/individual screening; By default, the current phase and the blocking phase are rolled out, while the other phases are summarized.
+Top name/date/overall owner/status, then risks/pending approvals. Main dated timeline: actual date axis/today line, collapsible stage groups, department/person filters, current/blocked expanded by default, others summarized.
 
-Time frames, milestones, responsible persons and reliance; Funding is one of the branches, parallel to advocacy/site preparation. Click to edit the task in a central detail area or layer, and AI on the right is not squeezed by details. Budget amounts, materials and history are opened as required. Provides compact workflow view aided view dependency, which by default remains the timeline and does not add 15 active tabs.
+Show intervals/milestones/owners/dependencies; Funding parallel with marketing/venue. Edit tasks centrally or in overlay, never displace right AI. Budget/materials/history on demand; compact dependency view secondary, timeline default, no 15 activity tabs.
 
-## 4. Harmonizing data with individuals
+## 4. Unified data and personal Board
 
-### 4.1 Data Contract
+### 4.1 Contract
 
-Organizational template Examples of activities/management services Templates and examples are available separately. Save the template version used for creating each instance; User custom changes and history are not covered by subsequent template updates.
+Organization template → activity/management-work instance → executable tasks. Template/instance separately versioned; instance snapshots creation version, preserving customization/history from later template updates.
 
-All objects have immutable IDs; Displays a name that is a field, not the main key. Organisations, role, departments, members, tasks, stages, missions, applications, operations can be accurately located. Sector colour, current name read from common source; Historic snapshots retain the name of the time.
+All objects immutable IDs; names fields, never keys. Precisely identify organizations/roles/departments/members/work items/stages/tasks/applications/actions. Shared current names/department colors; historical snapshots retain old names.
 
-Each Task has a single parentWorkItemID with its enforceable node; This Task is read by the individual Board, the event axis, and the short chain instead of maintaining three states. A generic executable node corresponds to a Task; The aggregation phase is just more than one projection of Task. The approval node is driven by the approval action and is not a normal card that can be dragged randomly to Done.
+Every Task has one parentWorkItemId/executable node; Board/timeline/short chain share it, not three states. Ordinary executable node = one Task; summary stage is projection. Approval nodes advance by approvals, not freely dragged Done.
 
-Keep all `roleIds` templates and do not co-manage multiples to force a roll. Sharing tasks remain a record, keeping the principal and collaborating role / member, with the same task appearing at the relevant part of the meeting board, which can only be confirmed by the designated head or the manager who has the mandate; The collaborators may submit their own progress. If it is true that there are multiple independent deliveries, the apparent breakdown into several essential sub-tasks and the retention of source nodes, all necessary deliveries will be met before the stage is completed. When the header is not clear, include to be assigned and do not randomly discard the remaining role.
+Preserve all template roleIds, never collapse shared responsibility into one role. Shared task remains one record with primary owner/collaborating roles-members, visible on their boards. Only designated owner/authorized manager confirms whole completion; collaborators submit own progress. Independent deliverables become explicit required subtasks retaining source-node link; stage completes after all required deliverables. Ambiguous owner remains unassigned, never randomly discard other roles.
 
-All Task must be part of the activity or Executive Board. This is implemented “without activity and without belonging to Task”, while allowing Board to apply for funding, recruit new preparation, etc. with their own parent projects and not to pretend to be an activity directed towards members.
+Every Task belongs to member activity or Executive Board work, implementing no unowned Task while allowing funding/recruitment parent projects without disguising them as public events.
 
-### 4.2 Board Rules
+### 4.2 Board rules
 
-My tasks, show only the current part assigned; Three active columns: To Do, Working on it, Stuck. Finish buttons to move the task tag to expand Completed history to support undrawn; Done is permanent, but not permanently in column 4. Keeps drag, line sorting and mobile phone/keyboard operations. The cards show the tasks, activities/services to which they belong, date of closure and short reasons for blocking.
+Default My tasks, current member's assignments only; To Do/Working on it/Stuck. Done button moves into expandable Completed history, undoable. Done persists but is not a permanent fourth column. Preserve drag/same-column order/mobile/keyboard. Card: task/parent/deadline/short blocker.
 
-Not removed column and Board do not belong to Add task. The creation of the task is based on the approved role function, and the assignment is determined in the bound member; The allocation is clearly established and approved by creation. It does not depend on post-text guesses, nor is it possible to assign a person at any time for the purpose of saturation. Rolle vacancies or unclear responsibilities are to be assigned to management alerts, drafts/specific questions retained and tasks not quietly disappeared.
+Remove Not claimed and unowned Add task. Creation proposes ownerRoleId from approved duties and assigneeId from bound incumbents, confirmed within creation approval. Never infer permissions from titles or assign randomly. Vacant/unclear roles prompt management assignment, retaining drafts/questions rather than dropping tasks.
 
-Provides a compact test on your team: members ID are independent of the rule ID, members may also serve as multiple rollers, and when more than one person is in office, it is necessary to identify the principal or a breakdown of the division of labour. Remember to bind and save as working area running data, without tampering with the function constitution; The unposted role clearly indicates the vacancy. Tests member only using field information and clearly labels it as Demo at the identity switch; Do not automatically grant leadership permissions with the same character name.
+Your team provides compact fictional members/role bindings: member IDs separate, multiple roles per person, multiple people per role require explicit primary or divided work. Runtime bindings do not alter constitution duties; unbound roles vacant. Identity switch marked Demo; same role name never grants leadership.
 
-This round of personal views is clearly tied to member ID. The existing system has only private testing sessions and does not have a formal organizing account/multiple authentication; This workspace can be tested with a clearly marked test. View as live login is not allowed. Cookie merely attests to the visit to this private test workspace and does not prove live memory status; A demonstration of the actingor parsing and verifying presentation rules from a server session does not use the member Id request as a basis for authorization. Official accounts, invitations and cross-equipment meetings are another range that requires separate approvals and does not promote live personal clearance authorizations for the current round.
+Personal view binds explicit member ID. Only private test sessions, no formal organization accounts/multi-user authentication; use labeled test members, never call View as login. Cookie grants private workspace access, not real identity. Server session resolves demo actor and validates demo rules; request-body memberId is not authorization. Real accounts/invitations/cross-device permissions require separate approval; do not claim real individual approvals.
 
-### 4.3 Stuck and Dependence Rules
+### 4.3 Stuck and dependencies
 
-UI megewaiting/Stuck, reasons for the backend to be structurally maintained: waiting_approval, waiting_dependency, external_response, needs_help, as well as blocking objects, time of occurrence, resolution conditions and pre-entry status. Select the cause when moving to Stuck; There is an inference that the reasons for approval are automatically brought out and not sent to external sources.
+UI combines Waiting/Stuck; backend structured waiting_approval/waiting_dependency/external_response/needs_help plus target/time/resolution/prior state. Select nearby on Stuck; inferred approval reasons prefilled for confirmation, no external auto-messages.
 
-- Stay in To Do when ordinary future tasks are not pre-satisfactory and show wait/not startable; Foldable to work further away, not to drag the whole downstream into red Stuck.
-- Tasks already under way or currently to be dealt with are blocked into Stuck. Obstruction is not considered to be complete; Only it live depends on downstream affected and independent branches continue.
-- All dependence needs to be fully met; The branches of any conditions follow the approved structure. UI does not expose terminology to frame, but retains synonyms and verifications at the service end.
-- The stage completes the denominator using a clear pool of active/required tasks, all of which are necessary and applicable to the completion of the task. (a) any of the prohibitions may only be satisfied by either front and no other branch is automatically cancelled; The selection and exclusion of branches must be recorded by an independent decision in order to exclude them from completing the denominator. The optional task does not prevent completion, but it is still visible; The AI summary cannot be skip task by itself.
-- Upstream completion changes only whether downstream can start and does not automatically convert downstream to Working on it or Done.
-- When the condition is lifted, only the blockage caused by that condition shall be cleared and returned to its proper state; Manual recourse/multiple unresolved reasons cannot be mistaken.
-- Task Done  →  Completion of Active Nodes and Stages, List Short Chains, First Page, Time Axes are updated simultaneously. New window to read the same revision; The same source view is updated by changing the name of the activity/regulator.
-- Reopening completed tasks requires authorization and re-checking downstream to preserve established completion and clearance history; The implemented procurement will not be automatically cancelled due to reopening, the downstream affected items are clearly pending review and no reliance has been placed on the restoration of closures.
-- The term is still calculated by the scheduling engine; Drag to Stuck does not automatically extend. Recalculating impacts and risks only, without quietly moving activity days or official deadlines.
+- Unready future tasks stay To Do with prerequisite/not-startable note; distant work collapsible, never turn all downstream red Stuck.
+- Started/currently actionable blocked work becomes Stuck, never complete; only actual dependents affected, independent branches continue.
+- all requires every prerequisite; any/conditional follow approved structure. No jargon dropdown in UI; server retains semantics/validation.
+- Completion denominator explicit active/required set; all applicable required tasks complete. any only satisfies a gate with one prerequisite, never cancels others. Exclusive/nonapplicable branches need separate decision records before exclusion. Optional work visible but nonblocking; AI summaries never skip tasks.
+- Upstream completion only unlocks eligibility, never auto-starts/completes downstream.
+- Resolved conditions clear only their own blocks; preserve manual help/multiple unresolved reasons.
+- Done updates node/stage/list chain/home/timeline together; new windows read same revision; names/owners update shared views.
+- Reopening completed work requires authorization/downstream checks/history preservation. Executed purchases not automatically undone; affected downstream marked for review, unstarted dependencies regated.
+- Rule engine computes deadlines. Stuck does not imply extension; recompute risk only, never silently move event/official dates.
 
-## 5. Funding
+## 5. Funding within activity workflow
 
-Keep budget information and audit capability and remove the new independent Funding main navigation. Default branch: Identification of procurement items — Determination of quotations — Submission of budget requests  →  Waiting/recording of budget approval  →  Submission of procurement requests  →  Waiting/recording of procurement approvals Billing or reimbursement of travel/instruments/conclusions. (a) Selection of applicable steps by source of funding; Unfunded activities do not generate a complete funding chain.
+Preserve budget/audit, remove new standalone Funding navigation. Default branch: confirm items → quotes → submit budget request → wait/record approval → submit purchase request → wait/record approval → order/reimburse → attendance/receipts/close-out. Choose applicable steps by source; unfunded activities get no full chain.
 
-Task, who submitted the budget request, was completed and represented only submitted; Budget approvals are independent, Gate, and will be met before funding-dependent procurement can be unlocked. Internal approval is done by the corresponding missions member; Out-of-school/school authorities authorize the recording of results and bases by authorized personnel, without falsifying external systems. Both approvals and refusals are recorded; Refusal to form a modified/re-routed path without circular reliance.
+Submission-task Done means submitted only; separate budget Gate unlocks funding-dependent purchases. Authorized members approve internally; authorized people record external/school results/evidence, never fabricate receipts. Approval/rejection recorded; rejection leads revision/resubmission, not graph cycles.
 
-The Funding phase is shown from the same set of tasks and Gate projection; Amounts/sources/prices/materials remain linked data, and there is no other “Next” button to bypass the process. Procurement could not exceed the amount approved, and changes in that amount might require re-approval. Preparations for advocacy, collection of site information, etc. that do not depend on funding approvals are maintained in parallel. When multiple sources exist, each application has an independent ID and does not allow an approved fund to pretend to cover all procurements.
+Funding display projects same Tasks/Gates; amounts/sources/quotes/materials linked, no bypassing Next buttons. Cannot exceed approved amount; revisions may need reapproval. Independent marketing/venue collection remains parallel. Separate IDs per funding source; one approval cannot cover all purchases.
 
-Approve the binding of applications ID, application version, source, use range and currency. This round defaults on USD and does not translate silence into other currencies. The verification level is taken into account in the cumulative amounts incurred and committed, while the same work line is checked and reserved with CAS to prevent a number of accumulated overexpenditures below total. Substantive amendments, such as amounts/sources/uses, must result in a new version of the application and old approvals to retain history but cannot automatically approve the new scope; Executed expenditures are not eliminated, release/adjustment of pending commitments should be retroactive and applicable. This is work flow line management, which does not carry out live payments or build up the financial master record.
+Approval binds application ID/version/source/purpose/currency, default USD, no silent conversion. Limits include cumulative spent/committed amounts; same-WorkItem CAS validates/reserves together, preventing aggregate overspend across individually small requests. Material amount/source/purpose changes create new application versions; old approvals remain history, not approval for new scope. Executed spending preserved; commitment release/adjustment traceable/idempotent. Workflow limits only, no real payments/general ledger.
 
-Existing `budget` (preliminary budget preparation) cannot be considered `submit_budget_request` (application submission). (a) The establishment of a stand-alone milestones item/quates/submit_budget_request and the clarification of the relationship between initial programme approval and external budget requests; The old draft → budget → approvequate chain is converted to live phase and cannot be used only for 8 7/ 6 weeks, which leads to a reversal of time or circulation.
+Do not confuse budget (draft initial budget) with submit_budget_request. Separate items/quotes/submit_budget_request milestones, define initial-plan approval versus external request. Convert old draft→budget→approve→quote by real stage; blindly attaching 8/7/6 weeks would invert time/create cycles.
 
-Old example Funding page and data reserve independent legacy reference and do not automatically import a new organization. If you want to import, do a different preview and conversion. You cannot mix the field feed.
+Old Funding page/data remain separate legacy reference, never auto-import into new organization or mix with fictional seeds. Import requires explicit preview/conversion.
 
-## 6. Setup in Setup
+## 6. Timing in Setup
 
-Five chapters remain. Provides a compact Timing area with a tight link to the node time label, without adding a chapter or second set of time rules.
+Keep five chapters; compact Timing within Activity Workflow, linked directly to relative node labels, no new chapter/second rules system.
 
-| Default milestones | Relative to the start of activity | Source |
+| Default milestone | Relative to event start | Source |
 | --- | --- | --- |
-| Confirm items | 8 weeks before (56 natural days) | This user-assigned organizational practice |
-| Confirm quotes | 7 weeks before 49 days ago | This user-assigned organizational practice |
-| Submit budget request | 6 weeks before (42 natural days) | This user-assigned organizational practice |
+| Confirm items | 8 weeks before (56 calendar days) | User-specified organization practice |
+| Confirm quotes | 7 weeks before (49 calendar days) | User-specified organization practice |
+| Submit budget request | 6 weeks before (42 calendar days) | User-specified organization practice |
 
-Each row adjusts the number of weeks/days in advance, and the default is restored without adjusting the default. These tasks are generated only in the applicable procurement/funding branch, which does not allow small non-procurement activities to undertake the full budget process. Link stabilizes the millestonekey and node ID, instead of matching an AI-generated title. 8/7/ 6 is the target, not the start of the mission; The start time would also need to be reduced by the expected duration and buffer.
+Adjust weeks/days per row, default/restorable. Generate only applicable procurement/funding tasks; small non-purchase events avoid full chain. Stable milestoneKey/node IDs, never AI title matching. 8/7/6 are completion targets, not starts; subtract duration/buffer for starts.
 
-Time configuration saves at least the relative anchor, number of deviations, units, organizational default/manual overlays, source and version. Week = 7 natural days; The internal target in case of a non-working day is moved by default to the previous working day, where the interface shows the reasons for the actual adjustment. AAU official rules coexist with internal objectives and access to arrangements that meet official restrictions and dependencies; The user cannot modify the internal target by making it late.
+Save anchor/offset quantity/unit/default-or-override/source/version. Week=7 calendar days; non-working-day internal targets shift to previous workable day with explanation. Official constraints coexist and cannot be postponed by later internal targets.
 
-The new Scheduling contract saves `relativeTarget` and `applicableOfficialRules`, respectively, without reusing the old single option `Anchor` to directly overwrite official restrictions. School rules are calculated on the basis of school working days and office hours on the basis of an individual working day; Approvals are expected to take place only on an estimated basis and official submission is not considered as a commitment date for the school. (c) Maintenance of the applicable material/costs rule checks; Amend the applicable conditions for registration nodes when old R01 out-of-school activities are spent on school funds.
+Separate relativeTarget/applicableOfficialRules; old single-choice Anchor must not overwrite official limits. School rules use school working days, officer duration personal working days. Estimated approval time is not a school promise to approve by submission deadline. Preserve materials/fee checks; fix missing old R01 registration applicability for off-campus events using school funds.
 
-Once a specific activity date has been filled out, the process combines time use, reliance, organizational buffers and known school calendar generation plans to demonstrate expected start, internal targets and applicable official deadlines. Clear unreliability when the calendar does not cover Scheduling and requests additional supporting data; Do not output an unknown date that appears to be accurate. With only three weeks left, the campaign showed that there was a shortage of preparatory windows and that eight weeks of work would not be snuck into the future.
+After human event date, compute using duration/dependencies/club buffer/known calendar; show estimated start/internal target/official deadline. Unsupported calendar explicitly unschedulable pending data, never precise-looking unknown dates. Three-week lead time shows insufficient preparation, never silently compresses eight-week work into future.
 
-Rescheduled activities: a preview of the outstanding tasks affected; Retention of completed history, clear manual fixed dates and warning of conflict, with the absolute duration of the provision not automatically reversed. Template time change: the default affects only subsequent examples, and existing activities are selected and previewed item by item; The manual adjustment cannot be fully covered.
+Rescheduling previews unfinished impacts, preserves completed history/manual fixed dates/conflict notices; absolute funding-use deadlines do not shift automatically. Template timing changes apply to future instances by default; existing events opt in with per-item preview, preserving manual adjustments.
 
-## 7. Global AI, Save and Migration
+## 7. Global AI, persistence, migration
 
-Global AI request contains the current organization/page/target selected/version; Cross-page questions read relevant data and history of the same workspace on demand, avoiding sending a full library at each time. Support inquiries, explanations, renamings, adjustment of head/node/reliance, creation activities or draft Board services, and proposal for a white list to adjust relative time. The model does not directly write the database and does not directly generate the effective date. Post-approved service end validation and submission, interface targeting and synchronisation; Dictionary, not by name.
+Requests include organization/page/selection/version; cross-page questions retrieve relevant shared workspace data/history as needed, not whole database every time. Allowlisted proposals for queries/explanations/rename/owners/nodes/dependencies/new activity-or-Board drafts/relative timing. Model never writes DB/effective dates directly. Server validates/commits after approval; UI locates/syncs. Ask ambiguity, never guess from names.
 
-(a) All new operating data are permanently transferred to the service end private workspace; Do not copy old localStorage. A modified task/approval/budget update is not half-successful, using an equivalent mechanism for the presentation of the entire version item or with a submission mark. The ID is ordered to weigh, revise the conflict number check, operator/source/server time and retrospective event record. Failed to reserve local input submission, 409 overt conflict resolution. The consistency between the audit and the snapshot requires a recovery path, which cannot be limited to “maintained” cases.
+Persist new runtime to private server workspace, never copy to old localStorage. Versioned whole-work-item commit or equivalent commit marker prevents partial task/approval/budget success. Command-ID dedup/revision conflicts/actor/source/server time/traceable events. Preserve unsent local input on failure, explicit 409 handling, recoverable audit/snapshot consistency beyond Saved copy.
 
-(a) The atomic boundary is limited to Task/Gate/Funding within the same WorkItem polymer, with a single CAS or equivalent submission of guidance guarantees; The event archive was used to restore the unbox, preventing the status of the file from being submitted but permanently missing. Blobs does not provide arbitrary cross-client matters; The AI proposal, which also amends the organizational template and multiple tasks, identifies/records results by object, displays applications and unapplications and restores entry points, without claiming that any change across the platform can be submitted at once.
+Atomic boundary is Task/Gate/Funding within one WorkItem via CAS/commit pointer; recoverable outbox prevents committed state with permanently missing archives. Blobs lacks arbitrary cross-object transactions. AI proposals spanning templates/multiple work items are segmented, separately confirmed/results recorded, with applied/unapplied/recovery entries; no platform-wide atomicity claim.
 
-Old browser example data does not migrate. An additional version of the existing approved organizational configuration is compatible with default Timing; The relocation shall not be allowed to rerun AI or empty manual configurations. Authentication of name, state, all/any, historical configurations item by item; The old Waiting and Stuck can map but retain the original blocking information.
+No silent migration of browser demos. Version compatibility/default Timing for approved configuration without rerunning AI/clearing manual data. Verify names/states/all-any/history individually; display-map old Waiting/Stuck while preserving blockers.
 
-(b) The Files entrance should be changed to Organization documents, which will be placed in Constitution; Paste text indicates the source separately. Five chapters can be clicked to jump, toggle automatic saving, and zero AI calls unmodified. Remove Connections, all/any selection boxes and node by node Mark reviewed to keep the service end dependent on semantic and centralized impact reviews. line selection displays deletion/cancellation, to complement the cell phone and keyboard mode.
+Rename Files to Organization documents within Constitution; pasted text source explicit. Free chapter navigation/autosave, zero AI without edits. Remove Connections/all-any selector/per-node Mark reviewed, preserving server semantics/central impact review. Selected edge delete/undo with mobile/keyboard alternatives.
 
-## 8. Worktree division of labour with Agent (established after approval)
+## 8. Worktree/agent assignments after approval
 
-Submitting the latest developments to establish an integrated branch, `feat/activity-workspace-v1`, based on dependent batches. Major Agent first freezes the share contract; The only person responsible for each document is the other Agent, who proposes changes via message and does not cover documents of others across the workspace. Worktrees rely independently on the installation/port, and small submissions are tested for cherry-nick to integrated branches.
+Create feat/activity-workspace-v1 from verified latest development commit; integrate in dependency waves. Main agent freezes shared contracts, one owner per file; others request changes by message, never overwrite across worktrees. Separate installs/ports; tested small commits cherry-picked into integration.
 
-| Agent | Worktree/ Branch Ideas | Single area of responsibility | Main delivery |
+| Agent | Worktree / branch | Exclusive scope | Delivery |
 | --- | --- | --- | --- |
-| Main Agent/Integrator | activity-integration / feat/activity-workspace-v1 | Share schema, page route, old and new boundary, migration version, document and integration | ID/status/approval/time/AI compact, stage integration with acceptance |
-| Data Agent | activity-data / feat/activity-data | New running data storage/API, command validation, task/Gate/Funding connection | Congener Status, CAS/ idempulation, permissions interface, archive |
-| Schedule Agent | activity-schedule / feat/activity-schedule | New relative time Scheduling fit, calendar overlay, rule test | 8/7/6 Default, relying on scheduling, rescheduling/cover protection |
-| Workspace UI Agent | activity-ui / feat/activity-ui | Home, Activities, Activity Details/axis, Personal Board Component | A1/B1/C2, short chain, three rows board and completion history |
-| AI Agent | activity-assistant / feat/activity-assistant | Global context/tools/proposals, phase summary cache, right column component | Positioning and approving changes across objects, moving out of the page and repeating conversations |
-| Setup UI Agent | activity-setup / feat/activity-setup | Online Setup/SetupCharts and their Styles | Free Jumps, Timing Settings, Connection Deleting, Central Review, Documents |
-| Independent Review Agent | activity-review / review/activity-workspace | Non-participation in functional development; Evaluation of integrated submissions, discrepancies and test evidence | Batch review, block lists, final signature and receipt |
+| Main/integration | activity-integration / feat/activity-workspace-v1 | Shared schema/routes/old-new boundary/migration/docs/integration | ID/state/approval/timing/AI contracts, staged acceptance |
+| Data | activity-data / feat/activity-data | Runtime storage/API/command validation/Task-Gate-Funding | Shared state/CAS/idempotency/permission API/archives |
+| Schedule | activity-schedule / feat/activity-schedule | Relative scheduling adapter/calendar coverage/rule tests | 8/7/6 defaults/dependencies/reschedule-override protection |
+| Workspace UI | activity-ui / feat/activity-ui | Home/Activities/details-timeline/personal Board | A1/B1/C2/short chain/three columns/completion history |
+| AI | activity-assistant / feat/activity-assistant | Context/tools/proposals/stage cache/rail | Cross-page targeting/approved changes, remove duplicate page chat |
+| Setup UI | activity-setup / feat/activity-setup | OnlineSetup/SetupCharts/styles | Free navigation/Timing/edge deletion/central review/file copy |
+| Independent Review | activity-review / review/activity-workspace | No feature development; review integration/diffs/evidence | Staged review/blockers/final signoff |
 
-A maximum of seven (including master Agent); The Review and other Agent operate in alternating phases. The new task running engine and the new UI to keep the old implementation as a clear reference, to the extent possible; The simple logic of the drag/rule can be extracted without directly reverting to the old store and fixed eight roll maps.
+Maximum seven including main; Review alternates by stage. New engine/UI directories preserve explicit legacy reference; extract drag/rule pure logic as useful, never directly reuse old store/fixed eight-role mapping.
 
-The proposed code boundary is frozen at P0: the main Agent takes exclusive possession of `src/workspace/contracts/`, `PhaseOne.tsx` route connections and migration versions; Data monopolizes `netlify/lib/workspace/` and runs API; Schedule takes exclusive possession of the new scheduling adapter and associated pure function tests; Worldspace UI exclusive of `src/workspace/pages/` and components; AI owns `src/workspace/assistant/` and the corresponding service end tool; Setup owns the existing `OnlineSetup.tsx`/ `SetupCharts.tsx` with styles. The person responsible is notified of changes in cross-catalog behaviour; The shared fixture/API sample is managed centrally by the main Agent. Unit tests with its own module, the browser tests sub-files and sub-ports and integrates them into a unified operation.
+Freeze P0 ownership: main src/workspace/contracts/, PhaseOne.tsx route wiring/migration versions; Data netlify/lib/workspace/ and runtime APIs; Schedule adapter/pure tests; UI src/workspace/pages/components; AI src/workspace/assistant/server tools; Setup existing OnlineSetup.tsx/SetupCharts.tsx/styles. Notify owners before cross-directory behavior changes. Main manages shared fixtures/API samples. Module-local unit tests, separate browser files/ports, unified run after integration.
 
-## 9. Order of implementation and delivery threshold
+## 9. Sequence and gates
 
-1. P0 Compacts and baselines: confirmation of development of SHA, document ownership, fixed ID, Task state/Gate, time anchor, version/relocation and authorized boundary. Independent Review first.
-2. P1 Bottom closed: parallel durability/API and time engines; Start by creating the task item and update the homogeneity project to save/heavy  → Task.
-3. P2 Pages are parallel to Setup:UI/Setup/AI on freezing contracts; A1/B1/C2, Personal Board, Funding embedded, global dialogue and Timing.
-4. P3 End-to-end: The process of offline modelling of the same activity from preparation to approval/execution/conclusion eight weeks ago is completed; Covering parallels, denials, reschedulings, multi-person perspectives and malfunction recovery to repair all obstructions.
-5. P4 Independent Review and Development Preview: Reviewer Review of Data/Process/Codes and Evidence; After it is sent to the development branch and previewed. Reconciling remote CI and deployment submissions, which cannot be verified and are clearly marked; Main remains unchanged.
+1. P0 contracts/baseline: SHA/ownership/stable IDs/Task state/Gates/anchors/version-migration/auth boundaries; independent Review first.
+2. P1 foundation: storage/API and schedule parallel; create work item→role assignment→Task update→shared activity projection→save/reload first.
+3. P2 pages/Setup: UI/Setup/AI parallel on frozen contract; A1/B1/C2/Board/embedded Funding/global chat/Timing.
+4. P3 end-to-end: offline mocked eight-week preparation through approval/execution/close-out; parallelism/rejection/reschedule/multiple views/recovery; fix all blockers.
+5. P4 independent Review/development preview: reviewer checks data/flow/code/evidence; after pass push feature branch/preview acceptance; verify remote CI/deployment commit or explicitly mark unverified. Main unchanged.
 
-## 10. List
+## 10. Acceptance
 
-- 15 sessions are searchable in a list, without 15 permanent tabs; Exact Board does not enter Recent activities.
-- The home page has two categories of board, with a maximum of three priorities; The personal mission entrance is clear.
-- Short chains include completed/current/follow-up phases; The parallels are visible, and the completion of figures is not fabricated by AI.
-- (b) Task drags/finishes/records after Board, event axis, headline, short chain and reload; A portion of Task was completed without an error in completing the entire phase.
-- Stuck's reasons are retained, all/any is correct and one block is removed from the other; Upstream completion is not automatically followed up.
-- Procurement remains locked after budget submissions and unlocked after approval; Refusal/restatement, excess, multiple funding sources do not bypass approval.
-- The 8/7/6 default and coverage is valid, with clear results from the working day/end week/calendar unknown/short lead window; Old official rules are not covered by internal adjustments.
-- Reschedule and update templates to maintain completed/manual data; Reopening the task does not remove procurement records that have already occurred in live.
-- The same name is not changed; (a) A change of name to update the current reference and preserve history; Changes across the page AI still need to be approved and not ultra vires.
-- 409, offline, repeated requests, refreshing, internal jumps, return of cell phones for non-alcoholic input or duplicate generation/repayment model calls.
-- Build, associated modules/integrations, desktop/cell browsers and keyboard checks; The last necessary full return. Live AI quality and performance is followed up by user acceptance, not replaced by simulation tests.
+- Fifteen member activities searchable in one list, no 15 permanent tabs; Board excluded from Recent.
+- Both home boards, at most three priorities, clear personal entry.
+- Short chain last/current/next two, visible parallel/blocked work, no invented AI counts.
+- Board/timeline/home/chain/reload agree on drag/Done/Undo; partial completion never completes whole stage.
+- Preserve Stuck reasons/all-any; clearing one never clears other blocks; upstream never performs downstream.
+- Submitted budget keeps procurement locked until approval; rejection/resubmit/overspend/multiple sources cannot bypass.
+- 8/7/6 overrides/workdays/finals/unknown calendar/short lead time explicit; internal changes preserve official rules.
+- Reschedule/templates preserve completed/manual data; reopening never erases actual procurement.
+- Same names never cross-edit; rename updates current references/history; cross-page AI needs approval/permissions.
+- 409/offline/duplicates/refresh/chapter jumps/mobile Back preserve input and prevent duplicate generation/paid calls.
+- Build/related unit-integration/desktop-mobile/keyboard checks, final necessary full regression. User later verifies real AI quality/performance; mocks do not substitute.
 
-## 11. Scope of approval
+## 11. Approval scope
 
-The approval will be implemented as described above in closed loops, with an independent Worktree collaboration and a separate Review to complete the development preview. Does not include official issuance, main mege, live organizational account system, external procurement/payment/mail automatic execution, financial master record or study migration. If an official multiple login is required in the future, the identity/invite/organizations will be placed on the same stable ID and command interface as a clear work package.
+Approval authorizes this complete flow with independent worktrees/Review and development preview, excluding production/main, real organization accounts, external procurement/payments/email automation, general ledger, research migration. Future formal multi-user login should be a separate identity/invitation/organization-permissions package on stable IDs/commands.
 
-The independent programme Review has been completed: the first four rules and two commitment boundaries have been cleared, while the updated version of the open programme is blocked at zero. For more details, see [ Independent Programme Review ](REVIEW_ACTIVITY_WORKSPACE.md). This is the conclusion that the programme can be submitted for approval and that formal implementation still requires user approval, which cannot be equated with code completion or test adoption.
+Independent plan review completed: four initial rule issues and two commitment boundaries clarified, zero open plan blockers; [independent review](REVIEW_ACTIVITY_WORKSPACE.md). This means the plan is reviewable for approval, not implementation authorization or completed/tested code.
 
+## 12. Implementation authorization and final annotations
 
-## 12. Enforcement authorization and final comment
-
-2026-10-26, the code can be modified when the user makes clear its final comment. The focus on the front page must be extracted and sorted from the current part of the task, displaying the first three by default, performing all important tasks and prohibiting AI from generating another summary/task list. All business data support the creation of forms/ creating workflows for organizational settings, members / rule, meeting activities and Exact Board through the same validated command for AI to propose adjustments, without writing permissions to any model database.
+2026-10-26: user explicitly authorized code changes after final annotations. Home priorities must derive/sort from current member's existing tasks, top three by default, expandable all important tasks; no separate AI summary/task list. All business changes exposed to AI through the same validated commands, supporting organization setup/members-roles/member activities/Executive Board creation forms/workflows, never arbitrary database writes.

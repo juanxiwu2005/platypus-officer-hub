@@ -1,40 +1,40 @@
-# Phase 3 Test Day Step (to Juanxi)
+# Phase 3 test-day procedure (for Juanxi)
 
-Every game goes this way. Based on: IRB Agreement HRP-503A Part 3 (Sections 6 Step 1–6, 11.4). Field description can be found in `PHASE3_DATA_DICTIONARY.md`.
+Follow this for every session. Basis: IRB protocol HRP-503A Part 3 (section 6 steps 1–6, section 11.4). Field definitions: `PHASE3_DATA_DICTIONARY.md`.
 
-## Prior to testing (one per day)
+## Before testing (once per day)
 
-1. Open https://platypus-officer-hub.netlify.app/api/health, confirm `"provider": "ASU AIR"` and `"configured": true`. If not, don't start.
-2. Check the link with your own markless window to confirm that you can enter " Name your blue " .
+1. Open https://platypus-officer-hub.netlify.app/api/health and confirm `"provider": "ASU AIR"` and `"configured": true`. If not, do not begin.
+2. Walk through the study link yourself in a private window and confirm it goes directly to "Name your club."
 
-## Testing
+## During testing
 
-1. **confirms eligibility, signs consent, gives study ID (E01, E02...).**, these are all done outside the site.
-2. **allows participants to open a traceless window** (Chrome:Incognito); Safari：Private）。When an online test is conducted, he is asked to share only this browser window.
-3. **Sending test link:** `https://platypus-officer-hub.netlify.app/#/start`
-   - Opens it straight into the setup, without going through the welcome page.
-   - Test not to reopen the link (a new record will be started, setup will start again from a blank); If it is open, the data will not be lost. There will be two sessions in the export file.
-   - It doesn't matter if it's a little refreshing. The fillout will be kept.
-4. **task (f): setup.** lets him fill out a field card. First event can be planned for a game or press "Skip for now" skip; This is an observation point. Don't tell him which to choose. The screen of Reminders is an observation point. Don't tell him which to choose; The website doesn't really e-mail.
-5. After Start Workspace, his planned activities (if any) will be added to the list of three examples (Networking Night, Spring Speaker Night, Funder Dinner) and an example mission. The task card (a)-(e) is then made.
-   - **Task No. (Juanxi 2026-11-08 determined):** Mission 1 = (f) setup, without pressing, the system itself; Task 2–6 = (a)-(e).
-   - **Participants are asked to press a task card every time they read it:**Demo subscript for the top of the pointbar  →  "Study task" by corresponding number ( 2–6）； Finish the last job and press "Done". When the next number is pressed, the previous task will automatically be concluded. The topbar sub-marks show that the current task is the first one, which can be checked by passing.
-   - He forgets that it is okay to press: the time on the score sheet is the main basis, and these buttons only allow for a more accurate demarcation of the export file.
-6. **Reminds participants:** writes reminders, asks Gmail/ WhatsApp to look at the draft, **, but don't send it to**.
-7. Finally, he was directed to create a new activity (e.g. "Plan a new event") with the right Ask.
+1. **First confirm eligibility, obtain signed consent, and assign a study ID (E01, E02…).** Do these outside the website.
+2. **Have the participant open a private window** (Chrome: Incognito; Safari: Private). For remote tests, ask them to share only that browser window.
+3. **Send the study link:** `https://platypus-officer-hub.netlify.app/#/start`
+   - Opens setup directly, bypassing Welcome.
+   - Do not reopen the link during testing (it starts a new record and blank setup); if reopened, data is retained and the export has two sessions.
+   - Accidental refresh is fine; entered content remains.
+4. **Task (f): setup.** Have them enter a fictional club using the organization card. On First event, they may plan an event or choose "Skip for now"; this is an observation point, so do not steer their choice. Reminders is also an observation point; do not steer their choice. No real email is sent.
+5. After Start workspace, the club contains their planned event (if any), three sample events (Networking Night, Spring Speaker Night, Founder Dinner), and sample tasks. Continue with task cards (a)–(e).
+   - **Task numbering (Juanxi, 2026-11-08):** Task 1 = (f) setup, recorded automatically with no button press; tasks 2–6 = (a)–(e).
+   - **Ask the participant to press a number after reading each task card:** top-bar Demo badge → corresponding number (2–6) in "Study task"; press "Done" after the last task. Pressing the next number automatically ends the previous task. The top badge shows the current task number for checking.
+   - Forgetting is fine: scoring-sheet times are primary; these buttons only improve boundaries in the export.
+6. **Remind the participant:** When composing reminders/invitations, they may open Gmail / WhatsApp to inspect drafts, **but must not actually send them**.
+7. Finally, guide them to create an event with Ask on the right (e.g. click "Plan a new event").
 
 ## At the end
 
-1. **Settings — My preferences — Export my data**, and the browser downloads a `platypus-export-….json` file.
-   - In person test: The file is directly on your computer.
-   - Online test: Ask him to send files to your ASU mailbox. He can delete his share when he's done.
-   - He did not wish to submit documents, but only scoring tables and videos were used.
-2. **Close the no-smug window.**The site's data in this browser is all cleared out. 6In a post titled "The Right to Life" (Advanced in English and French) , the blogger says:
-3. You change the name of the file to a study ID (e. g. `E01.json`), save it in ASU storage, and delete that part of the mail.
-4. You want to convert the file into a table: `node scripts/export-to-csv.mjs E01.json`, which generates `E01.csv` and opens it directly with Excel.
+1. Participant clicks **Settings → My preferences → Export my data**; browser downloads `platypus-export-….json`.
+   - In-person: the file is already on your computer.
+   - Remote: ask them to send it to your ASU email; they may delete their copy afterward.
+   - They may decline to provide the file; use only scoring sheet and recording for that session.
+2. **Close the private window.** This clears all website data in that browser (protocol step 6 requires clearing it in front of the participant).
+3. Rename the file using only the study ID (e.g. `E01.json`), store in ASU storage, then delete the emailed copy.
+4. To convert to a spreadsheet: `node scripts/export-to-csv.mjs E01.json` generates `E01.csv`, ready for Excel.
 
-## What if...
+## If something goes wrong
 
-- **AI did not react or make a mistake:** will automatically use built-in answers, which next to "AI unavailable". Take note of the score sheet and proceed to the next item.
-- **Participants use mobile phones:** can also be used, but priority is given to computers.
-- The Test Onboarding button in the **Demo menu:** is for your own tests, not records, not participants.
+- **AI unresponsive or errors:** Website automatically uses built-in answers, labeled "AI unavailable." Note it on the scoring sheet and continue to the next item.
+- **Participant uses a phone:** Supported, but prefer a computer.
+- **Test Onboarding button in Demo menu:** For your own testing; it creates no records. Do not let participants use it.

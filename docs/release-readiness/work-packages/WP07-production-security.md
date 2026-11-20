@@ -1,27 +1,29 @@
-# WP07 - Production dependent on safety
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
+
+# WP07 — Production dependency security
 
 ## Agent prompt
 
-You're responsible for the safety upgrade of production. Read the updated baseline of `AGENTS.md`, README, manifest, fetch before starting and report to SHA. No `main`, no running uncontrollable `npm audit fix --force` and no upgrade to the development tool responsible for WP08.
+Own production security upgrades. Read AGENTS.md/README/manifest, fetch latest stage baseline, report SHA. No main, uncontrolled `npm audit fix --force`, or incidental WP08 dev-tool upgrades.
 
-### Review of known issues in baselines
+### Known audit-baseline issues
 
-- `react-router-dom` 6.28.0 / `@remix-run/router`: Open Redirection and Protocol-relative redact/XSS Bulletin.
-- Zod 3. x: Super-sized constraining operations may cause RAM to run out.
+- `react-router-dom` 6.28.0 / `@remix-run/router`: open-redirect and protocol-relative redirect/XSS advisories.
+- Zod 3.x: oversized constrained collections may exhaust memory.
 
-### Request
+### Requirements
 
-- Upgrade React Router to a restored and compatible version.
-- Upgrade Zod to a secure version; If you cross the Major, move the client and service to complete and parse failed, super-high input and reject path tests.
-- Checking redact only accepts controlled internal paths or a clear white list.
-- Update and maintain `package.json`/ `package-lock.json` consistency.
-- Audit ignore should not be used to hide production loopholes.
+- Upgrade React Router to a fixed compatible version.
+- Upgrade Zod securely; major-version changes require complete client/server migration plus parsing-failure, oversized-input, rejection-path tests.
+- Redirects accept only controlled internal paths or explicit allowlists.
+- Keep `package.json`/`package-lock.json` synchronized.
+- No audit ignore masking production vulnerabilities.
 
-### Acceptance Standard
+### Acceptance
 
-1. `npm audit --omit=dev` 's high/ criminal are 0.
-2. `npm ci`, `npm run lint`, `npm run build` and `npm test` were adopted.
-3. The Netlify Operations/ Backend library is strict TypeScript check-through.
-4. Routes, invalid parsing and super big payload have regression tests.
-5. `git diff --check` passed.
-6. Creates a `[RR-WP07][Codex]` submission, reports up-to-date version and audit results.
+1. `npm audit --omit=dev` high/critical both 0.
+2. `npm ci`, `npm run lint`, `npm run build`, `npm test` pass.
+3. Strict Netlify Functions/backend-library TypeScript passes.
+4. Routing/invalid parsing/oversized-payload regression coverage.
+5. `git diff --check` passes.
+6. One `[RR-WP07][Codex]` commit; report before/after versions and audit results.
