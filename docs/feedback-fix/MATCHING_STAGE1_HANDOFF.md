@@ -1,91 +1,93 @@
-# Job Matching Phase 1 Delivery
+# Responsibility matching stage 1 handoff
 
-2026-11-16(America/Phoenix) `claude/fervent-thompson-e2j5u2`
+2026-11-16 (America/Phoenix) · Codex · Target branch `claude/fervent-thompson-e2j5u2`
 
-## What did you build this time?
+> **Historical code links:** responsibility matching was later rolled back. The code links below point to the preserved stage-1 commit `3ad168d`, rather than claiming those files remain in the current tree.
 
-It is possible to maintain a record of its duties, each stating “what it does, what it delivers, what it doesn't include, and what it comes from”. role is saved separately from duties; A role can take on multiple duties, and the same functions can be assigned to more than one role or member. Mission steps relate to duties and the parser identifies the right person. The new module does not require a roll to be called Secretary, Marketing or other predefined names.
+## What was built
 
-The duties can be created, modified, confirmed, merged and archived manually. Edited and reconfirmed; Merge retains the location of the old ID, steps back to confirmation and history assigns record retention. The integrity of the overlapping and coverage of duties still requires follow-up AI inspections and manual review; At this stage, no claim has been made to automatically guarantee that all responsibilities are mutually exclusive and cover all policies.
+Clubs can maintain responsibility records stating “what to do, what to deliver, what is excluded, and sources.” Roles and responsibilities are separate; a role may carry several responsibilities, and one responsibility may belong to multiple roles/members. Workflow steps reference responsibilities; the resolver identifies suitable people. The module does not require preset role names such as Secretary or Marketing.
 
-When more than one person has the same responsibility, the rule order is: to retain valid confirmed assignments  →  to check with default recipients to make backup recommendations and await confirmation  →  to preselect if there is no default and there is only one qualified available person § The remaining cases indicate the reasons and are pending. When the same person enters from a role and directly related two paths, it only appears once.
+Responsibilities support manual creation, editing, confirmation, merge, and archive. Edits require reconfirmation; merge preserves old-ID destinations, returns affected steps to awaiting confirmation, and retains assignment history. Overlap and complete coverage still require later AI checks/human review; this stage does not claim automatic mutual exclusivity or coverage of every policy.
 
-**“Pre-selection” has not yet become a mandate holder; "Acknowledging" is not the same as being recognized.** After the principal has lapsed or his/her duties have changed, he/she is recorded and asked for review without automatic change. The current official mission entrance still uses the original logic, and physical access is stage 3.
+For multiple members with a responsibility: retain valid confirmed assignment → check primary → suggest backup awaiting confirmation → if no primary and exactly one eligible available candidate, preselect → otherwise explain and await action. A member linked via both role and direct association appears once.
 
-## Readable exercise input
+**“Preselected” is not yet the task owner; “confirmed” does not mean the member has claimed it.** When primary becomes invalid or responsibility changes, retain original owner in records and request review; no automatic reassignment. Existing production task entry points still use old logic; actual integration belongs to stage 3.
 
-All data on the fielding of robots, 12 members, 7 duties, two streams (regular meetings, competitions). The example is gradually developed by the official data operation and includes 45 revisions; An additional 46 revision snapshot is used to verify that the changer will not reassign an existing task. The [ input code ](../../src/matching/examples.ts). [ exercise asserts ](../../src/matching/examples.test.ts).
+## Readable exercise inputs
 
-| I'm sorry. | Associated duties | Current situation |
+Entirely fictional robotics club: 12 members, 7 responsibilities, two workflows (regular meeting, competition). Built step by step with actual data operations, 45 revisions; an additional revision 46 snapshot checks that changing primary does not reassign existing tasks. [Input code](https://github.com/juanxiwu2005/platypus-officer-hub/blob/3ad168d2fb5ee45bf562cc48319ec011c5034054/src/matching/examples.ts) · [Exercise assertions](https://github.com/juanxiwu2005/platypus-officer-hub/blob/3ad168d2fb5ee45bf562cc48319ec011c5034054/src/matching/examples.test.ts).
+
+| Member | Responsibilities | Current situation |
 | --- | --- | --- |
-| Morgan | Example operator only, not associated with performance of duties | I don't think that being Team Captain is gonna be the head of this operation. |
-| Riley | Site coordination, directly linked by roll inheritance and manual | (b) Eligibility recognition, available; The default recipient of the site |
-| Casey | Site coordination | (b) Eligibility recognition, available; Backup site |
-| Jordan | Site coordination | Unqualified school system |
-| Taylor / Skyler | Solid Test | Both available; No default initial |
-| Quinn / Drew | Visual production | Quinn is the default but not available; Drew is a backup. |
-| Sam | Robot demonstration | Only qualified available |
+| Morgan | Example operator only, no execution responsibility | Team Captain status does not make them fallback owner |
+| Riley | Venue coordination, through role inheritance and direct manual link | Qualifications confirmed, available; venue primary |
+| Casey | Venue coordination | Qualifications confirmed, available; venue backup |
+| Jordan | Venue coordination | School-system qualification unknown |
+| Taylor / Skyler | Firmware testing | Both available; initially no primary |
+| Quinn / Drew | Visual production | Quinn primary but unavailable; Drew available backup |
+| Sam | Robot demonstration | Sole eligible available person |
 | Alex | Flight demonstration | External authorization unknown |
-| Robin | Site coordination, equipment transportation | Site accreditation, but availability is unknown |
-| Jamie | Site coordination | Not anymore. |
+| Robin | Venue coordination, equipment transport | Venue qualification confirmed, availability unknown |
+| Jamie | Venue coordination | No longer active |
 
-## Actual operational results
+## Actual results
 
-The following table is derived from the call for the same `resolveMatchingAssignment` offline operation; Not a forecast prepared by AI.
+Offline calls to the same `resolveMatchingAssignment`; these are not AI-written predictions.
 
-| Workstream and Tasks | This results | Reason |
+| Workflow/task | Result | Reason |
 | --- | --- | --- |
-| Regular meetings: reservation of conference rooms | Preselection Riley | (a) The default person is qualified and available; Three other associated members with unknown qualifications, unknown availability or departure. |
-| Competition: booking of venue | Preselection Riley | Reuse the same site duty for both processes without creating the same name |
-| Competition: production of posters | Recommendation Drew, awaiting confirmation | Default Quinn is not available. Drew is backup. |
-| Competition: Test Solids, New Task | To be selected Taylor or Skyler | Both are available without defaults; The table doesn't change the result. |
-| Competition: Preparing Robot Demonstrations | Preselection Sam | Only qualified available |
-| Regular sessions: renewal of registration | To be staffed | Have duties but are not connected; No, fallback to present. |
-| Competition: Flight demonstration | Pending verification of eligibility | Alex's flight authorization has not yet been confirmed. |
-| Regular meetings: transport of equipment | Availability to be verified | The availability of Robin is unknown |
-| Competition: both writing and designing | To be split or explicitly integrated | Steps are marked as complex tasks and cannot be assigned solely on the basis of visual production duties |
-| Regular sessions: new jobs that do not relate to duties | To be associated duties | Workstream steps not configured |
-| Competition: Manual confirmation of a solid task to Skyler | Keep Skyler in charge. | Retention of confirmed result |
-| Same task, then set the default to Taylor | Still Skyler in charge. | Default rules affect only new recommendations and do not cover confirmed results |
+| Regular meeting: book meeting room | Preselect Riley | Eligible available primary; three other linked members have unknown qualifications, unknown availability, or have left |
+| Competition: book venue | Preselect Riley | Both workflows reuse one venue responsibility; no duplicate responsibility needed |
+| Competition: create poster | Suggest Drew, await confirmation | Primary Quinn unavailable, Drew backup |
+| Competition: test firmware, new task | Await Taylor/Skyler selection | Both available, no primary; member order does not change result |
+| Competition: prepare robot demonstration | Preselect Sam | Sole eligible available candidate |
+| Regular meeting: renew club registration | Await member configuration | Responsibility exists, no linked members; no fallback to president |
+| Competition: flight demonstration | Await qualification verification | Alex flight authorization unconfirmed |
+| Regular meeting: equipment transport | Await availability verification | Robin availability unknown |
+| Competition: write copy and design together | Await split or explicit coordination | Composite step cannot be assigned using visual-production responsibility alone |
+| Regular meeting: new work with no responsibility link | Await responsibility link | Workflow step not configured |
+| Competition: firmware task previously manually confirmed to Skyler | Keep Skyler | Confirmed result retained |
+| Same task, then primary set to Taylor | Still Skyler | Default rules affect only new suggestions, not confirmed results |
 
-The candidate explanation for the site assignment will list Riley, Casey, Jordan, Robin and Jamie, with an indication of acceptance. Riley calculates only once, although there are two associated paths. Eligibility and availability are confirmed by input data; The platform does not automatically access the school website to verify accounts.
+Venue candidate explanations list Riley, Casey, Jordan, Robin, Jamie and reasons for eligibility/ineligibility. Riley counts once despite two paths. Qualifications/availability come from input; platform does not log into school websites to verify accounts.
 
-## Data and Extension Borders
+## Data and extension boundaries
 
-- The public interface is concentrated in [ src/matching/index. ts ](../../src/matching/index.ts) and shared by [ MATCHING_CONTRANT. md ](MATCHING_CONTRACT.md). Responsibilities, workflows, steps, members use stable IDs.
-- (a) The ID, operator, time, command and amendment number for each actual change of the record; Retrying the same operation will not be repeated. The incident did not contain the complete list of external members at that time, and could not be claimed to have allowed all external situations to be rebuilt by the event alone.
-- The records are assigned only with amendments to the duties, steps and default rules on which the record is maintained. The parser returns the recommendations and reasons, with the future operations portal responsible for authorizing, confirming and actually writing to the task.
-- Independent configuration key is `platypus.matching.v1:<OrganizationsIDEncoding>`; Archived tape version. Damage, other organization or non-support of version data retention source text does not overwrite as illustrative data. The ID of the different organization is not a login or permissions system.
-- The save will check the changes that have been read and can reject common expired overlays; The browser read/check/write is not an atomic lock across labels or devices and cannot be called multi-person co-service.
-- The existing `DemoState`, the old archive keys and the outer layer schema version have not been modified. The only original, import, version upgrade and rollback design for stage 3 can be found in [ MATCHING_COMPATIBILTY. md ](MATCHING_COMPATIBILITY.md).
+- Public interface [src/matching/index.ts](https://github.com/juanxiwu2005/platypus-officer-hub/blob/3ad168d2fb5ee45bf562cc48319ec011c5034054/src/matching/index.ts), shared contract [MATCHING_CONTRACT.md](MATCHING_CONTRACT.md). Responsibilities, workflows, steps, members use stable IDs.
+- Every actual change records operation ID, actor, time, command, revision; retries do not duplicate changes. Events lack the complete historical external membership list, so cannot alone reconstruct all external state.
+- Assignment receipts append-only, retaining responsibility, step, and default-rule revisions. Resolver returns suggestions/reasons; future business entry points authorize, confirm, and write actual tasks.
+- Separate configuration key `platypus.matching.v1:<encoded-organization-ID>`; versioned saves. Corrupt, wrong-organization, unsupported data retain raw text, never overwritten with demo. Different organization IDs do not establish login or authorization.
+- Saves check read revision and reject common stale overwrites; browser read/check/write is not an atomic cross-tab/cross-device lock or multiuser concurrency service.
+- Existing `DemoState`, old storage keys, outer schema version unchanged. Stage 3 source-of-truth/import/version/rollback design:[MATCHING_COMPATIBILITY.md](MATCHING_COMPATIBILITY.md).
 
-## Development and validation of records
+## Development and verification
 
-Baseline `22cb3cc`; Shared compact `886ccf7`. Two developments Agent created a separate worktree from the same contract, the main Agent reserve package submission:
+Baseline `22cb3cc`; shared contract `886ccf7`. Two development Agents used independent worktrees from the same contract; lead Agent retained package commits during integration:
 
-| Bag. | Branch and Submission | Scope of documentation |
+| Package | Branch/commit | File scope |
 | --- | --- | --- |
-| Data Agent | `feat/matching-library` · `307b5d0` | Library, valuation, repository and 29 tests |
-| Resolver Agent | `feat/matching-resolver` · `c5bb56c` | Resolve and 45 tests |
-| Lord Agent | Integrated Branch | Contract, public exports, 12 exercises, old data isolation tests and files |
+| Data Agent | `feat/matching-library` · `307b5d0` | library, validation, repository, 29 tests |
+| Resolver Agent | `feat/matching-resolver` · `c5bb56c` | resolve, 45 tests |
+| Lead Agent | Integration branch | Contracts, public exports, 12-person exercise, old-data isolation tests, documentation |
 
-Integration exercises and isolation tests were also conducted on 17, totalling 91. Final inspection:
+Another 17 integration exercise/isolation tests, total 91. Final checks:
 
-| Inspection | Results |
+| Check | Result |
 | --- | --- |
-| New module 91 + former relevant links 114 | 10 files, 205 all adopted |
-| `npm run lint` | Adopted, with CSS, ESLint and Project Guardrails |
-| `npm run build` | By, containing the front end TypeScript and production construction |
+| New module 91 + existing related paths 114 | All 205 passed across 10 files |
+| `npm run lint` | Passed, CSS, ESLint, project guardrails |
+| `npm run build` | Passed, frontend TypeScript/production build |
 | `npm run typecheck:netlify` | Passed |
-| Actional Exercise Actual Call | The above-mentioned 12 scenes match expectations |
-| Read-only Independent Review | Can not open message `3ad168d` (a) The review was adopted without the need for restoration; Also authenticate editing, reconfirming, merge and save restored historical protection |
+| Actual fictional exercise calls | All 12 scenarios match expectations |
+| Independent read-only Review | Final code candidate `3ad168d` passed, no fixes needed; also checked history protection after editing, reconfirming, merging, save/restore |
 
 Test command: `npm test -- src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts src/matching`.
 
-The first integrator type check revealed joint typologies of the subjects eligible for the exercise, which have been supplemented with a clear list of members and categories of qualification objects and are again constructed; Data compacts were not liberalized. The build output is based on notes and large cunk hints, and no construction error. No page changes at this time, no Playwright or complete `npm run check`; These inspections were not recorded as having been adopted.
+Initial integration type check found union-type inference in exercise qualification objects; explicit member/qualification types added, build then passed; contract not relaxed. Build emitted dependency-comment and large-chunk notices, no errors. No page changes, so full-site Playwright/full `npm run check` not repeated or reported as passed.
 
-## Subsequent phase
+## Later stages
 
-Phase 2 is still to be approved: matching the results of the existing Constitution AI with draft duties, checking references source text, adding job bubbles, membership connections, defaults and backup interfaces. Phase 3 is still to be approved: access to actual task creation, processing of 46 standard step maps on a case-by-case basis, migrating the archive and being a browser acceptance.
+Stage 2 awaits approval: adapt existing constitution-AI output into responsibility drafts, verify source quotes, add responsibility bubbles, member links, primary/backup UI. Stage 3 awaits approval: connect actual task creation, map 46 standard steps individually, migrate saves, and browser acceptance.
 
-There is no new page or clickable demonstration this time; Use the bottom rule for the distribution table above. No live model called, no mail sent, no merge main. Could not close temporary folder: %s
+No new page/clickable demo this round; accept foundation using assignment table above. No real-model calls, no emails, no main merge. Local backup needs synchronization.

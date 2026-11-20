@@ -1,146 +1,146 @@
-# Platypus Focus Policy: Do only two things (2026-11-15)
+# Platypus focus strategy: only two things (2026-11-15)
 
-> Show Juanxi the general outline. The technical details and the criteria for each stage are [ `PLAN.md` ](PLAN.md) (section 12 is final).
-> **Phase 3 is still being tested**: all changes are made here only on branch `claude/fervent-thompson-e2j5u2`, **does not go to the official website**, but only when you say so.
+> Overview for Juanxi. Technical details and per-stage acceptance criteria: [`PLAN.md`](PLAN.md) (Section 12 defines final scope).
+> **Phase 3 testing is ongoing**: all these changes stay on `claude/fervent-thompson-e2j5u2`, **off production**, until you approve merging.
 
-## 1.
+## 1. In one sentence
 
-**Platypus does only two things: to warn the right person at the point; Leadership transfer to the next person in three days.**
-Other functions will be retained only if data are provided for both events, otherwise they will be put away and no more grinding.
+**Platypus does only two things: remind the right people for the president at the right time, and hand a role to its successor within three days during leadership transitions.**
+Keep other features only as data sources for those goals; otherwise tuck them away and stop polishing them.
 
-## 2. Jurisprudence criteria: three questions before each change
+## 2. Three questions for every change
 
-1. It's got **a reminder that** gets to the right person sooner, better and easier?
-2. Does it make **a roll** deliver faster and more complete to the next person?
-3. If it's not, is it two things that **has to do with the source of data**?
+1. Does it get **one reminder** to the right person earlier, more accurately, with less effort?
+2. Does it hand **one role** to its successor faster and more completely?
+3. If neither: is it an **essential data source** for those goals (who owns work, when it is due, what a role has done)?
 
-All three answer no, do not. Any suggestion I make later will indicate which one it serves.
+If all three answers are no, do not do it. Future suggestions will identify which goal they serve.
 
-## 3. Target one: reminder event member
+## 3. Goal one: remind organization members to work
 
-### Now's the problem.
+### Current problems
 
-| Problem | Facts |
+| Problem | Fact |
 | --- | --- |
-| It's too hard to send a reminder. | 5: Today  →  Remind  →  Open draft and leave the site  →  Come back with "I sent this" |
-| AI, every time it fails. | On-line measurements failed twice in 4 seconds. Reminders always show "AI unavaable" |
-| It doesn't help to pick a reminder. | Onboarding's three options are just to save and not change any behavior. |
-| I can't see the whole picture. | There's no place to see "what kind of reminders this week, who's back and who's not." |
-| The date's confusing. | Three dates for one task (Start by, Club Deadline, ASU Deadline) |
-| I can't find where to press when the reminded person clicks a link. | The main operation in the details is behind 6 buttons |
+| Sending one reminder takes too much effort |5 clicks: Today → Remind → choose channel → open draft/leave site → return and press "I sent this" |
+| The AI sentence fails every time | Both live attempts failed within 4 seconds; reminders always show "AI unavailable" |
+| Reminder-mode choice does nothing | Three onboarding choices are saved without changing behavior |
+| No overview | Nowhere shows this week's reminders, replies, and nonresponders |
+| Confusing dates | Three dates per task (Start by, Club deadline, ASU deadline) |
+| Link recipients cannot find the action | Main detail action follows 6 buttons |
 
-### One day after you're done, president.
+### A president's day afterward (target experience)
 
-> Monday morning, you open Platypus. The first page is the reminder center.
-> **Needs your OK** with 3 reminders written, point "Approve all", 10 seconds.
-> **Replies** miles Maya returns "Done", Sam returns "Waiting on the caper".
-> **No reply yet** mile Jordan hasn't moved for two days, do "Follow up".
-> **This week** can see how many more will be sent on Wednesdays and Fridays.
-> There's no need to go after anyone.
+> Open Platypus Monday morning: homepage is the reminder center.
+> **Needs your OK** has 3 prepared reminders; "Approve all" finishes in 10 seconds.
+> **Replies**: Maya says "Done", Sam says "Waiting on the caterer".
+> **No reply yet**: Jordan silent for two days; press "Follow up".
+> **This week** shows what will go out Wednesday/Friday.
+> The president need not chase anyone.
 
-### To do what?
+### Work
 
-| Phase | Contents | Work out what? |
+| Stage | Content | Solves |
 | --- | --- | --- |
-| FB-1 | Fix the sentence AI wrote; Show seconds while waiting, can Stop / Skip | Contents of the reminder |
-| FB-6 | Date engine calibrated according to your schedule. | Reminds me of the day when it's sent and the deadline. |
-| FB-4 | Only one Due interface; There's only one main button for task details. | People who are reminded of what they see and how to return. |
-| FB-8 | **homepage becomes**; The three alerts actually follow different processes; Navigation received 4 | Reminds the story itself. |
-| FB-5 | Designated person at the time of task creation; + New event | There's a reminder for every mission. |
-| FB-3 | Onboarding 'Reminders screen plus example, three-step diagram, analogue | The first time I knew what it was. |
+| FB-1 | Fix AI sentence; show elapsed seconds and Stop / Skip | Reminder content |
+| FB-6 | Calibrate date engine to your schedule | Send dates and due dates |
+| FB-4 | One Due and one primary task-detail button | Recipient view and reply |
+| FB-8 | **Homepage becomes reminder center**; three modes have distinct flows; 4 navigation items | Reminder operation itself |
+| FB-5 | Select owner during task creation; + New event | Every task has someone to remind |
+| FB-3 | Onboarding Reminders examples, three-step diagram, analogy | President understands on first encounter |
 
-After the three alarms have been completed (both **and**, IRB requirements remain unchanged):
+Three modes afterward (all **simulate sending**; IRB requirements unchanged):
 
-| Modalities | It's the day of the reminder. |
+| Mode | On reminder day |
 | --- | --- |
-| Send automatically | "Would be sent... demo", direct to Sent, no need to do anything. |
-| I review, then I send | Needs your OK, send the draft yourself. |
-| I review, Platypus sends | Needs your OK, request approval. "Approve all." |
+| Send automatically | Appears directly in Sent, "Would be sent · demo"; no presidential action |
+| I review, then I send | Needs your OK; president opens/sends draft |
+| I review, Platypus sends | Needs your OK; president approves once, with "Approve all" available |
 
-### How did you do it?
+### Success criteria
 
-- Approved a reminder: from 5 hits to **1**; Multiple ratifications at once: 1.
-- AI sentence in the reminder: The success rate is from 0 to most of the time (there are templates left behind when you fail).
-- The first page says, "Who should be reminded? Who hasn't? "
-- Each task has only one date.
+- Approving one reminder drops from 5 clicks to **1**; approving many takes 1.
+- AI sentence success rises from 0 to succeeding most times (template fallback remains).
+- Homepage immediately answers “who needs reminding?” and “who has not replied?”
+- One date per task.
 
-## 4. Goal two: Organization access (three days handoff)
+## 4. Goal two: Organization succession (three-day handoff)
 
-### Now's the problem.
+### Current problems
 
-| Problem | Facts |
+| Problem | Fact |
 | --- | --- |
-| Too slow. | 8 Stages: interview  →  AI drafting manual  →  confirmation by the predecessor of approval  →  designation of a successor  →  incoming officer recapitulating  →  observation of 7/30 day. We'll have to wait for each step. It's gonna take weeks. |
-| It's stuck in the manual. | The manual can't be finished without drafting and approval. |
-| The most useful thing is buried. | The file (unfinished, future 30 days, contacts, experience) is automatically aggregated without waiting for anyone, but it's only a folding area in the details. |
+| Too slow |8 stages: interview → AI handbook draft → predecessor confirmation → presidential approval → successor designation → teach-back → shadowing → day 7/30 review. Each waits for people, taking weeks |
+| Blocked by handbook | Cannot finish without drafting/approving it |
+| Most useful material buried | Role dossier (unfinished tasks, next 30-day deadlines, contacts, lessons) is automatic with no waiting, but only a collapsed detail section |
 
-### Three days after it's done.
+### Three days afterward (target experience)
 
-> The president point "Hand over this rule", the **list immediately generates**, no AI, no waiter.
-> **Day 1(approximately) 30What's on fire:**The new one sees unfinished business and Due, the future. 30The day's cut-off date, the link to use.
-> **Day 2 . Learn the rule:** reading lessons from 5 predecessors and knowing 3 contacts; The system picks out gaps in 3 records to ask the predecessor, who automatically ticks after answering.
-> **Day 3 over:** new dot "Accept All", president Finish. From this moment on, the reminder is sent to the new one.
-> " Handoff 60 %. Day 2 of 3 " has been shown on top.
+> President selects "Hand over this role"; **checklist appears immediately**, no AI or waiting.
+> **Day 1 (about 30 minutes) · What's on fire: ** successor sees unfinished tasks/Due, next 30-day deadlines, necessary links.
+> **Day 2 · Learn the role: ** read 5 predecessor lessons, meet 3 contacts; system asks predecessor about 3 record gaps, automatically checking answers off.
+> **Day 3 · Take over: ** successor chooses "Accept all" tasks, president selects Finish. Reminders now go to the successor.
+> Header always shows "Handoff 60% · Day 2 of 3".
 
-### To do what?
+### Work
 
-| Phase | Contents |
+| Stage | Content |
 | --- | --- |
-| FB-9 | Three days handoff package: list, progress, Accept all; If you have a replacement, you can do it. |
-| FB-9 | Original interview, manual, reply, review all reservations in "Go Deeper (optional)" |
-| FB-9 | Reminder center has a handoff reminder: press your predecessor to answer the question, press your new pick-up, 3 not completed in days |
-| FB-2 | Onboarding's Team screen: Every role is the unit to handle later; Advisor (the only person not to change at the time) connects it with a dotted line |
+| FB-9 | Three-day package: checklist, progress, Accept all; successor designation alone enables finishing |
+| FB-9 | Retain interviews, handbook, teach-back, reviews under "Go deeper (optional)" |
+| FB-9 | Reminder-center handoff notices: predecessor questions, successor task acceptance, president if unfinished on day 3 |
+| FB-2 | Onboarding Team: each role is a future handoff unit; Advisor (only person unchanged across terms) connects to President by dashed line |
 
-### How did you do it?
+### Success criteria
 
-- From the point "Hand over this rule" to the first new list: **0 waits for**.
-- Finish Handoff without anyone writing the manual.
-- (b) May be completed within three working days; The unfinished project was reminded.
+- "Hand over this role" to successor's first checklist: **0 waiting**.
+- No handbook writing required to complete handoff.
+- Finish within three business days; unfinished items trigger reminders to someone.
 
-## 5.
+## 5. Goals reinforce each other
 
-- The **regular alarm record is the content of the handoff.** Every reminder, every response, every extension is entered into the file, and no other note is required for leaving translation.
-- **handoff itself is driven by reminders.** The former does not answer questions, the new ones do appear at the reminder centre.
-- **Handoff completes, reminder automatic change. The** mission follows the role, not the people.
+- **Routine reminder records become handoff content.** Every reminder, reply, extension enters the role dossier; no separate writing at transition.
+- **Reminders drive handoff.** Unanswered predecessor questions/unaccepted successor tasks appear in the center.
+- **Finished handoff automatically redirects reminders.** Tasks follow roles rather than people.
 
-## 6. What about the other functions?
+## 6. Other features
 
-| Processing | Functions | Reason |
+| Treatment | Features | Reason |
 | --- | --- | --- |
-| **Stay in Main Navigation** | Reminders (headline), Plan (Events and Tasks), Handoff, Rules | Two cores, plus their data sources and the rules to be checked incoming officer |
-| **In More, without deleting** | Team、Partners | The partnerers' contact is the source of the roll file; Team, not the core. |
-| **onboarding** | Goals screen (remaining in Settings), stand-alone Constitution screen (to options in Team screen) | No reminder, no handoff. |
-| **No more grinding.**  | Target ring, star of the week, forecast percentage, board name change, meeting time, budget breakdown, partners board | All three questions. "No." |
-| **Cancel** | SMART sentences for Goals | Same source as above |
+| **Main navigation** | Reminders (homepage), Plan (Events/Tasks), Handoff, Rules | Two goals plus data sources and rules for newcomers |
+| **More, retained** | Team, Partners | Partners contacts feed dossiers; Team is not core |
+| **Remove from onboarding** | Goals (keep in Settings), separate Constitution screen (optional within Team) | Neither creates reminders nor enters handoff |
+| **Stop polishing** | Goal rings, weekly stars, forecast percentages, board renaming/colors, meeting times, budget details, Partners board | All three questions answer no |
+| **Cancel** | SMART Goal sentences | Same reason |
 
-Onboarding from 8 screens to: **Name  →  Team  →  First event  → Reminders {Create** (with an invitation link). Why, the next sentence of every screen title drops to "a reminder of who" or "handoff"?
+Onboarding changes from 8 screens to **Name → Team → First event → Reminders → Create** (plus an invitation-link screen). One Why sentence below each heading links to “whom to remind” or “what to hand off.”
 
-## 7. Phase 3 is still testing.
+## 7. While Phase 3 testing continues
 
-1. **All changes are only on branch, not merge `main`.** The official website maintains what participants are now seeing, with comparable data.
-2. (a) Phase 3, once the data have been collected (or at a time to be decided by you), on-line; Before I get online, I'm going to change the task card along with the name of the page that tested the day's steps.
-3. **There's one thing you can think of doing alone now:**Repair AI Output Amount (FB- 1Part I of the report).  It changes only the server and does not change any page, process or record format; Now the participants write reminders that AI always fails.
-   - The benefits of being online: the players at the back are looking for a useful AI.
-   - Cost: The AI experience of the participants before and after is different.
-   - Or offline: "Al sentences that were reminded during the test are not available, using a template."
-   - **It's up to you to decide that I won't be on the line myself.**
+1. **All changes stay on the branch, without merging `main`.** Production remains as participants currently see it, keeping before/after data comparable.
+2. After Phase 3 data collection (or your chosen time), release together; before release I will also update task cards/test-day page names (Today → Reminders, etc.).
+3. **One candidate for a separate release now: ** AI output allowance fix (first part of FB-1). Server-only, no page/flow/log-format changes; currently the reminder AI sentence fails every time.
+   - Benefit: later participants get working AI.
+   - Cost: participant AI experience differs before/after and needs disclosure in the thesis.
+   - Keeping it unreleased is acceptable: accurately report “reminder AI sentence unavailable during testing; templates used.”
+   - **You decide; I will not release it myself.**
 
-## 8. Order of execution
+## 8. Execution order
 
-Up to two at a time, each wave of merge and the next.
+At most two subagents at once (more hit usage limits); merge each wave before starting the next.
 
-| Bodi | Phase | Status |
+| Wave | Stages | Status |
 | --- | --- | --- |
-| A | FB-1 AI Repair . FB-6 Date Engine | Ongoing |
-| B | FB-4 Details and a Due. FB-2 Onboarding | A. |
-| C | FB-8 Alarm Center and Navigation . FB-3 Reminders Screen and Last Step | Waiting for B |
-| D | FB-9 Three days handoff package . FB-5 New entrance | Waiting for C |
-| And finally... | FB-7 merge, whole return, document | Wait for D. |
+| A | FB-1 AI fixes · FB-6 date engine | In progress |
+| B | FB-4 Details/one Due · FB-2 simpler onboarding | Await A |
+| C | FB-8 reminder center/navigation · FB-3 Reminders/final screen | Await B |
+| D | FB-9 three-day handoff · FB-5 creation entries | Await C |
+| Final | FB-7 integration, full regression, docs | Await D |
 
-After each wave, I'll tell you what you did, what tests were passed and what wasn't verified. When all is done, you will be given a preview of the site and acceptance step (the preview should open PR and ask you before it starts).
+After each wave I will report changes, passing tests, and unverified items. After all work, provide a preview URL/acceptance steps (preview requires a PR; I will ask before opening it).
 
-## 9. This round won't be done until later.
+## 9. Deferred beyond this round
 
-- **does send to** (mail/ whatsApp): requires login, server data storage, time task and IRB. This is product plan v1. 5. This round will be "procedures are completely automatic, only to end up imprinting."
-- Stop button for reading and manual drafting.
-- Size/Lead time (task day or 15 minutes): You haven't decided that the date engine will go this time according to your schedule.
+- **Real delivery** (email/WhatsApp): needs login, server data, scheduled jobs, and IRB review; v1.5 scope. This round fully automates the flow except actual sending.
+- Stop buttons for constitution reading/handbook drafting.
+- Size / Lead time (one day vs 15 minutes per task): undecided; this date engine uses your schedule's day counts.

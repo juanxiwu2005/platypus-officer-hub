@@ -1,212 +1,212 @@
-# Night Mode V1 — More Agent Autodevelopment Manual
+# Night Mode V1 — Multi-agent automated development manual
 
-Night Mode allows a group of ASU AIR Agency to perform a **mission in the protected functional branch, which has been approved with a clear scope for** and is locally tested, independent and GitHub CI. It's not gonna merge `main`, it's not going to deploy.
+Night Mode lets ASU AIR agents complete an **already approved, clearly scoped** task on a protected feature branch, with local tests, independent review, and GitHub CI. It does not merge `main` or deploy Production.
 
-## 1. Current state (2026-10-28 snapshot)
+## 1. Current status (2026-10-28 snapshot)
 
-| Item | Verified facts |
+| Item | Verified fact |
 | --- | --- |
-| GitHub recall | `juanxiwu2005/platypus-officer-hub` |
-| Process Branch | `main`, baseline `4dc55ba`(Any changes to this document have not yet been made) `main`）|
-| Autodevelop Branch | `feat/ai-night-mode`, **has been merged into DP5** ( `integration/dp3-dp4-merge`So it contains all the results of S1/S2/S3 and M1 |
-| Artificial gates. | Draft PR [ #7 ](https://github.com/juanxiwu2005/platypus-officer-hub/pull/7), Preview https://deploy-preview-7--platypus-officer-hub.netlify.app |
-| controller | `scripts/night-mode.mjs`(single task), `scripts/night-queue.sh`(Queue, see 7d) |
-| Projects | `opencode.json` |
-| Operating environment | Node 22；GitHub CLI is registered; OpenCode；Local dependence installed |
-| Encoding Main Force | `backend-coder`（ASU `glm-5-3`）。So it is. `orchestrator`, it's forbidden to edit the file, see 2 Change Record for details |
-| Budget | 300 Step / 45 min / 5 Round, see **7b Operational Environment Budget Card** |
-| **End-to-end**  | **2026-10-28First full run.**: Encoding  `npm run check` ♪ Independent Crime `APPROVED` *Submitting for transmission ** GitHub CI `pass`(7 minutes 3 seconds) `READY_FOR_CLAUDE` |
-| Top of Branch | `55949b8`T1 z-index has landed, 2026-10-28 from that night's submission. |
-| To-dos library | `docs/night-tasks/`Filename `N1`…`N6` That's the order of execution, see README there. |
-| Accident backup | `backup/2026-10-28-queue` Keep the 2026-10-27 full deposit for that night; `wip/T2-radius`、`wip/T3-fontscale` It's an unverified semi-finished product. |
+| GitHub repository | `juanxiwu2005/platypus-officer-hub` |
+| Production branch | `main`, baseline `4dc55ba` (none of the changes covered here is in `main` yet) |
+| Automated-development branch | `feat/ai-night-mode`, **with DP5 merged in** (`integration/dp3-dp4-merge`), so it includes all S1/S2/S3 and M1 work |
+| Human gate | Draft PR [#7](https://github.com/juanxiwu2005/platypus-officer-hub/pull/7), preview https://deploy-preview-7--platypus-officer-hub.netlify.app |
+| Controller | `scripts/night-mode.mjs` (single task), `scripts/night-queue.sh` (queue; see 7 d) |
+| Project permissions | `opencode.json` |
+| Runtime | Node 22; GitHub CLI authenticated; OpenCode; local dependencies installed |
+| Main coder | `backend-coder` (ASU `glm-5-3`). Previously `orchestrator`, which cannot edit files; see the change log in section 2 |
+| Budget | 300 steps / 45 minutes / 5 cycles; see **7 b Runtime budget card** |
+| **End to end** | **First complete success on 2026-10-28**: coding → `npm run check` → independent Critic `APPROVED` → commit/push → GitHub CI `pass` (7 minutes 3 seconds) → Deploy Preview → PR comment `READY_FOR_CLAUDE` |
+| Branch tip | `55949b8` (T1 z-index landed, recovered from that night's commit stack on 2026-10-28) |
+| Task backlog | `docs/night-tasks/`; filenames `N1`…`N6` give execution order; see its README |
+| Incident backup | `backup/2026-10-28-queue` retains the entire commit stack from the night of 2026-10-27; `wip/T2-radius` and `wip/T3-fontscale` are unverified partial work |
 
-This is a snapshot with dates, not a permanent commitment. Every run must be re-executed for `--doctor`, rechecking PR and CI after completion.
+This is a dated snapshot, not a permanent promise. Run `--doctor` again before every run, and recheck the PR and CI afterward.
 
-### 2026-10-28 Two questions after the first-end success (not fixed)
+### Two problems found after the first end-to-end success on 2026-10-28 (neither fixed yet)
 
-1. **`review.patch` may not be complete.** Control generated if changes were submitted before the start of this round
-   `review.patch` leaves only the new part of this round, and Critic will receive a missing diff.
-   This time, Critic detected himself and changed to a direct reading area, so the conclusion is still correct -- **, but it's luck, not design**.
-   Critic's original recommendation: The controller should ensure that `review.patch` always contains live code diff for audit purposes.
+1. **`review.patch` may be incomplete.** If changes were committed before the current cycle began, the controller's
+   `review.patch` contains only additions from this cycle, so Critic receives an incomplete diff.
+   This time Critic noticed and read the workspace directly, so its conclusion remained correct—**but that was luck, not design**.
+   Critic's own recommendation: the controller should ensure `review.patch` always contains the actual code diff for auditability.
 
-2. **may have a code implementation portal that bypasses the shell white list.** This running `code-critic` tries to pass one
-   `execute` tool running `require('child_process').execSync(...)`, while `opencode.json`
-   `bash`White list only. `shell`This action.  It then finished its work using Read/Grep.
-   But... **Whether this path was actually stopped has not been verified.**。
-   Next time check `opencode debug agents` output for anything other than `shell` to execute action
-   (e.g. `execute`, `code`, `run`), together with peny.
+2. **A code-execution entry point may bypass the shell allowlist.** During this run, `code-critic` tried to use an
+   `execute` tool to run `require('child_process').execSync(...)`, while the `bash` allowlist in `opencode.json`
+   governs only the `shell` action. It then completed the work with Read/Grep,
+   but **whether this path was actually blocked has not been verified**.
+   → Next time, inspect `opencode debug agents` for executable actions beyond `shell`
+   (such as `execute`, `code`, `run`), and deny any found.
 
-### 2026-10-29 Recapitulation: N1 problems after success (records only, unrepaired); Juanxi approved maintainer modification, no change `scripts/`）
+### 2026-10-29 addendum: problems found after N1 succeeded (recorded only, not fixed; Juanxi-approved maintainer changes, no `scripts/` changes)
 
-1. `waitForCi` of **`scripts/night-mode.mjs` will misjudge CI for failure.** run as soon as it is pushed.
-   `gh pr checks --watch`, GitHub returns "no checks reported" when it is not registered.
-   Concurrently, `latestCiFailure` will get **for the last successful running** when it fails (the log says "GitHub CI access.").
-   N1 actually passed the CIA, and that's how he was misjudged and returned to work for nothing.
-   • Legal orientation: waiting for the examination (at least one round of questioning) and watch; Reason for failure only takes conclusion to run for proof.
-2. **`scripts/night-queue.sh`: Failed tasks will not address the remaining unsubmitted changes if they are submitted**，
-   The workspace's dirty, the next job doctor's failed because it was "unclean."
-3. **`scripts/night-queue.sh`Article 137Okay. `"$wip（"`：**macos self-carrying bash 3.2The infra-blank bytes are used as part of the variable name.
-   `set -u` reports `wip?: unbound variable` and the whole queue exits. Reform: Written as `${wip}`.
-4. The **code-critic operating environment often does not read the file**, which can only be given to `REJECTED` (not because there is a problem with the code).
+1. **`waitForCi` in `scripts/night-mode.mjs` can falsely report CI failure.** It runs
+   `gh pr checks --watch` immediately after pushing; before GitHub registers checks, "no checks reported" is treated as failure.
+   Meanwhile `latestCiFailure` retrieves **the previous successful run** as the failure reason (logging "GitHub CI success.").
+   N1 actually passed CI; this misclassification caused two needless rework cycles.
+   → Fix direction: after pushing, wait until checks appear (poll until at least one exists), then watch; only use runs with conclusion failure as failure reasons.
+2. **`scripts/night-queue.sh`: if a failed task already left a commit, remaining uncommitted changes are not handled**,
+   leaving a dirty workspace that causes the next task's doctor to fail for an “unclean workspace.”
+3. **`scripts/night-queue.sh` line 137, `"$wip\uff08"` (escaped original opening parenthesis):** macOS's built-in bash 3.2 treats the bytes of the Chinese parenthesis as part of the variable name,
+   producing `wip?: unbound variable` under `set -u` and exiting the entire queue. Fix: use `${wip}`.
+4. **The code-critic runtime often cannot read files**, forcing `REJECTED` (rather than indicating a real code defect).
 
-## 2 who's in charge of what?
+## 2. Responsibilities
 
-| Layer | Responsibility | Can't do anything. |
+| Layer | Responsibility | Cannot do |
 | --- | --- | --- |
-| Juanxi | Approval of the terms of reference; Finally acceptance; I don't know, merge. | There's no need to write code. |
-| Claude / Manual Reviewer | Yes. `READY_FOR_CLAUDE` Post-check diff, preview and risk | Could not close temporary folder: %s |
-| Encoding `CODING_AGENT`Current `backend-coder`） | Read the task, change the source code and test itself, run the white list. | Unable to attach, push, merge, change protective files, cannot access the exterior directory, secret key, deploy or rely on configuration |
-| `code-critic` | Read only Review, output `APPROVED` or `REJECTED` | Could not close temporary folder: %s |
-| Night Mode controller | Self-censorship, complete testing, generation of review catch, maximum three rounds back to work, comemit, push, wait for CI, PR comments | Cannot merge or deploy |
-| GitHub CI | Reinstallation and running of build, module and Playwright tests on Ubuntu 24.04/ Node 22 | Do not call live fee/ASU models, do not demonstrate the quality of model responses |
+| Juanxi | Approve task scope; final acceptance; decide whether to merge | No coding required |
+| Claude / human reviewer | Check diff, preview, and risks after `READY_FOR_CLAUDE` | Treat automated passage as merge approval |
+| Coding agent (`CODING_AGENT`, currently `backend-coder`) | Read task, edit source/tests itself, run allowlisted tests | Commit, push, merge, change protected files, or access outside-project directories, secrets, deployment or dependency configuration |
+| `code-critic` | Independent read-only review; output `APPROVED` or `REJECTED` | Modify files |
+| Night Mode controller | Self-check, full tests, review patch, at most three rework cycles, commit, push, wait for CI, PR comment | Merge or deploy Production |
+| GitHub CI | Reinstall dependencies on Ubuntu 24.04 / Node 22 and run build, unit, and Playwright tests | Call real paid/ASU models or prove model-response quality |
 
-### 2026-10-28 Change: code main from `orchestrator` to `backend-coder`
+### 2026-10-28 change: main coder switched from `orchestrator` to `backend-coder`
 
-**Reasons (actual, not speculative):** 2026-10-27 both running at night is suspended at the coding stage.
+**Reason (measured, not inferred):** two runs on the night of 2026-10-27 stopped during coding with the same error:
 
 ```
 ✗ Dead CSS cleanup + Empty swap failed
 Error: Subagent session not found: ses
 ```
 
-`opencode debug agents` displays `edit: * → deny`, `shell: * → deny` in `orchestrator` permissions,
-Its system is also written by "you never write code, etc. or run companies yourself".
-In other words, **, it's only designed to send**, and it must fail on this machine.
-The wrong `ses` is the interdicted session ID. The change of mandate document cannot be bypassed.
+`opencode debug agents` shows `orchestrator` permissions `edit: * → deny` and `shell: * → deny`,
+and its system prompt explicitly says “you never write code, edit files or run commands yourself.”
+In other words, **it is designed only to delegate**, and delegation always fails on this machine (subagent sessions cannot be created;
+`ses` in the error is a truncated session ID). Task-file changes cannot work around this.
 
-**Changed what:** `scripts/night-mode.mjs` New Constant `CODING_AGENT`, initial encoding and back to work
-(former 298, 353 row) to use it; Default value `backend-coder` (mode `all`), to be owned by Agent,
-Model ASU `glm-5-3`). The word "delegate" in both prompts is changed to "do it yourself, don't assign it."
+**Changed:** added constant `CODING_AGENT` in `scripts/night-mode.mjs`, used for initial coding and rework
+(previously lines 298 and 353); default `backend-coder` (mode `all`, usable as a primary agent,
+model ASU `glm-5-3`). Both prompts replace “delegate” with “do it yourself; do not delegate.”
 
-**Nothing changed:** `code-critic` is still called separately by the controller in line 341, and **independently reviews this gate to keep** intact.
-Protecting documents, nine orders' white list, complete `npm run check`, three rounds of cap, GitHub CI,
-Never merge/ deploy -- no change to all.
+**Unchanged:** the controller still invokes `code-critic` separately at line 341; **the independent-review gate remains intact**.
+Protected-file restrictions, the nine-command shell allowlist, full `npm run check`, three-cycle limit, GitHub CI,
+and never merging/deploying—all unchanged.
 
-**Cost:** lost much of the Agent division of labour (it does not work in this environment); `backend-coder` System
-Prompt is a backend, making the front end/CSS task is a wrong type of work and is made up by task document writing. This is a stopgap measure.
-OpenCode assignment problems should be repaired over time, or a generic Primary code added to the user-level configuration.
-Then just change `CODING_AGENT` a constant.
+**Tradeoff:** no multi-agent division of labor (which did not work here anyway); `backend-coder` has a backend-focused system
+prompt, so frontend/CSS tasks are outside its specialty, compensated for with specific task instructions. This is a workaround.
+Long term, repair OpenCode delegation or add a general-purpose primary coding agent in user-level configuration;
+then only the `CODING_AGENT` constant needs changing.
 
-**Who approved it:** Juanxi, 2026-10-28, as requested in section 10 of this document.
+**Approved by:** Juanxi, 2026-10-28, explicitly requested by a human as required by section 10.
 
-### 2026-10-28 Change: Unleashing the budget and not opening secure borders
+### 2026-10-28 change: expand budget without expanding safety boundaries
 
-**Reason:**Change it to `backend-coder`Then the coding phase did run. `git status`、
-**Budget** is not safe:
+**Reason:** after switching to `backend-coder`, coding actually started (it read files, ran `git status`,
+and used Grep itself), but two consecutive runs still stopped during coding because of **budget**, not safety:
 
 ```
 "backend-coder": { "steps": 15 }
 ```
 
-The controller's prompt requires it to read `AGENTS.md`, `PROGRESS.md`, `PRODUCT_PLAN.md`, before starting work.
-`RULES.md`, `NIGHT_MODE.md`, `TASK.md` -- six steps down, nine steps to work. And "Put the 14 out of handwriting."
-Replace `<Empty>` with more than 20 steps for a single reading of each document. The **mission cannot be installed in the 15 step.**
+The controller prompt requires reading `AGENTS.md`, `PROGRESS.md`, `PRODUCT_PLAN.md`,
+`RULES.md`, `NIGHT_MODE.md`, and `TASK.md` before starting—six steps gone, leaving nine for work. Simply replacing 14 handwritten empty states
+with `<Empty>` requires over 20 steps to read and edit each file. **The task cannot fit into 15 steps.**
 
-**Changed what?**
+**Changed:**
 
-| Documentation | Change | Why not safety? |
+| File | Change | Why it is not a safety issue |
 | --- | --- | --- |
-| `opencode.json` | Five encoded by Agent `steps`：15 → **300** | The number of steps depends only on how much work you can do, not what you can do. |
-| `opencode.json` | The new read-only and test command for the shell white list: `ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `git grep` `git ls-files` `npx tsc` `npx vitest` `npm run lint` | It's all a read-only or run-on project, no document, no network, no system change. |
-| `scripts/night-mode.mjs` | `COMMAND_TIMEOUT_MS`：20 → **45min**  | 300 paces 20 will be strangled by time, which means it won't let go. |
-| `scripts/night-mode.mjs` | `MAX_CYCLES`：3 → **5** | Number of return hours, not missions |
+| `opencode.json` | Five coding agents' `steps`: 15 → **300** | Steps control how much work is possible, not which actions are allowed |
+| `opencode.json` | Add read-only/test shell commands: `ls` `cat` `head` `tail` `wc` `grep` `rg` `find` `git grep` `git ls-files` `npx tsc` `npx vitest` `npm run lint` | All read-only or project tests; no file writes, networking, or system changes |
+| `scripts/night-mode.mjs` | `COMMAND_TIMEOUT_MS`: 20 → **45 minutes** | 300 steps with 20 minutes would still time out, negating the increase |
+| `scripts/night-mode.mjs` | `MAX_CYCLES`: 3 → **5** | Rework count, not permissions |
 
-**Unchanged (safe border, no movement):**
+**Explicitly unchanged (every safety boundary preserved):**
 
-- Protection documents are prohibited: `.env*`, `.git/**`, `.gitignore`, `AGENTS.md`, `docs/NIGHT_MODE.md`,
-  `package.json`、`package-lock.json`、`opencode.json`、`scripts/night-mode.mjs`、
-  `.nightmode/**`、`.github/**`、`netlify.toml`
-- Prohibition of arbitrary orders such as `node` / `curl` / `wget` / `brew` (the white list still defaults deny)
-- `external_directory` Still Deny
-- Agent cannot come, push, merge, deploy.
+- Protected-file prohibition: `.env*`, `.git/**`, `.gitignore`, `AGENTS.md`, `docs/NIGHT_MODE.md`,
+  `package.json`, `package-lock.json`, `opencode.json`, `scripts/night-mode.mjs`,
+  `.nightmode/**`, `.github/**`, `netlify.toml`
+- Arbitrary commands such as `node` / `curl` / `wget` / `brew` prohibited (allowlist still defaults to deny)
+- `external_directory` still deny
+- Agents cannot commit, push, merge, or deploy
 - Independent `code-critic` review
-- Complete `npm run check`
+- Full `npm run check`
 - GitHub CI
-- Never automatically merge `main`, never deploy
+- Never automatically merge `main` or deploy Production
 
-**retains the prompt for mandatory reading of documents.** considered cutting it down to save a few steps and was rejected by Juanxi for the correct reason:
-Every time `opencode run` is a whole new session, the model has no memory of the last time and must read the rules itself.
-The root of the disease is that the number of steps is too low, not too many reading documents.
+**Mandatory document-reading prompts were retained.** Removing them to save steps was considered and rejected by Juanxi, correctly:
+every `opencode run` is a fresh session with no memory of the previous one, so the model must read the rules itself.
+The root cause was too few steps, not too much documentation.
 
-**Cost:** 300 steps + 45 minutes means that single operations may consume more ASUs or run longer.
-This is a deliberate trade-off — rather than being cut off repeatedly and without any output, let it be done once and for all.
+**Tradeoff:** 300 steps + 45 minutes may consume more ASU quota per run and run longer.
+This is deliberate: let it finish once rather than repeatedly interrupting halfway with nothing produced.
 
-**Who approved:** Juanxi, 2026-10-28.
+**Approved by:** Juanxi, 2026-10-28.
 
 ---
 
-The current Agent/Model Map is from the user level OpenCode configuration and may be replaced in the future. Projects rely only on role names and should not depend on the permanent existence of a model. The following command is used to view the actual map when running:
+Current agent/model mappings come from user-level OpenCode configuration and may change. The project relies only on role names, not permanent model availability. Inspect actual runtime mappings with:
 
 ```bash
 opencode debug agents
 ```
 
-The main map of 2026-10-27 is recorded in the Root Catalogue `AGENTS.md` Section 0.
+The main mappings from 2026-10-27 are recorded in root `AGENTS.md` section 0.
 
-## 3. Complete process running at once
+## 3. Complete flow of one run
 
 ```text
-Juanxi Approved  TASK.md
+Juanxi approves TASK.md
         ↓
-doctor Check  / Branch  / Draft PR / Node / missions  / Dependence
+doctor checks repository / branch / Draft PR / Node / permissions / dependencies
         ↓
-Encoding  Agent（backend-coder）→ Change code and test directly.  → Unsubmitted changes
+Coding agent (backend-coder) → directly edits code and tests → uncommitted changes
         ↓
-npm run check（build + unit + desktop/mobile Playwright）
+npm run check (build + unit + desktop/mobile Playwright)
         ↓
-Independence  code-critic Read-only review  diff
+Independent code-critic reviews diff read-only
         ↓
-Could not close temporary folder: %s  AgentAt most.  3 Wheel
+Failure: actual errors returned to coding agent, at most 3 total cycles
         ↓
-Pass: controller  commit + push
+Pass: controller commit + push
         ↓
-GitHub CI Recheck
+GitHub CI rechecks
         ↓
-Adopted: PR Comments  READY_FOR_CLAUDE
+Pass: PR comment READY_FOR_CLAUDE
         ↓
-Claude + Juanxi Manual inspection; Only.  Juanxi Approved merge
+Claude + Juanxi inspect manually; only Juanxi can approve merging
 ```
 
-Any failure of the link will stop or enter restricted return work. There is no automatic circumvention of testing, lowering assertions, switching branches, merges or deployments.
+Failure at any stage stops the run or enters bounded rework. It never automatically bypasses tests, weakens assertions, changes branches, merges, or deploys.
 
-## 4. Networks and secret key exactly how to work
+## 4. How networking and secrets work
 
-- OpenCode calls the ASU AIR model via local environment variable `ASU_AIR_API_KEY`. Set key value will never enter the task, prompt, log, Git or PR.
-- The shell missions of Agent refused by default. They can only run the build, test, Playwright and read-only Git commands in the white list.
-- Thus, Agent **cannot treat shell as an arbitrary network terminal**, cannot run `curl`, `wget`, `brew`, or have access to extra-project files.
-- The controller is not Agent. It calls `git` and `gh` individually to complete the timescale, push, view PR and wait for CI.
-- "Asu AIR can be called" does not mean "free access to the Internet." If the mission requires external information, the source and range must first be clearly approved by humans and verified input must be prepared outside Night Mode.
-- The product website's own AI is controlled by variables like Netlify `AI_PRESET`, `AI_MODEL` and `AI_API_KEY`; Independent with Night Mode's local `ASU_AIR_API_KEY`.
+- OpenCode calls ASU AIR models through local environment variable `ASU_AIR_API_KEY`. The key value never enters tasks, prompts, logs, Git, or PRs.
+- Agent shell permissions default to deny. Agents can run only allowlisted build, test, Playwright, and read-only Git commands.
+- Therefore agents **cannot use shell as an arbitrary network terminal**, run `curl`, `wget`, or `brew` themselves, or access files outside the project.
+- The controller is separate from the coding agent. It invokes `git` and `gh` to commit, push, inspect PRs, and wait for CI.
+- “Can call ASU AIR” does not mean “can freely browse the internet.” If a task needs external material, a human must explicitly approve sources and scope first, and verified inputs must be prepared outside Night Mode.
+- The product site's AI is controlled by Netlify `AI_PRESET`, `AI_MODEL`, `AI_API_KEY`, etc., independently of Night Mode's local `ASU_AIR_API_KEY`.
 
-## 5. Must be satisfied before starting
+## 5. Startup requirements
 
-The controller rejects unsafe start-up conditions:
+The controller rejects unsafe startup conditions:
 
-- The current directory must be this repository.
-- The current branch must happen to be `feat/ai-night-mode`.
-- The workspace must be clean.
+- Current directory must be this repository.
+- Current branch must be exactly `feat/ai-night-mode`.
+- Workspace must be clean.
 - `origin` must be `juanxiwu2005/platypus-officer-hub`.
-- There must be an Open Draw PR from this branch to `main`.
-- The Node master version must be 22.
-- `git`, `gh`, `node`, `npm`, `opencode` must be available and GitHub CLI must be registered.
-- `node_modules` must already exist; Night Mode does not automatically install or upgrade dependent.
-- `opencode.json` must reject the external directory and unknown shell command by default; Critical missions must pass dynamic check.
+- An open Draft PR must exist from that branch to `main`.
+- Node major version must be 22.
+- `git`, `gh`, `node`, `npm`, and `opencode` must be available; GitHub CLI must be authenticated.
+- `node_modules` must already exist; Night Mode does not install or upgrade dependencies automatically.
+- `opencode.json` must default to denying external directories and unknown shell commands; key permissions must pass dynamic checks.
 
-If OpenCode cannot be found in a non-interactive environment, the user terminal can use it to confirm that its executable directory is in `PATH`. The current installation location is `~/.opencode/bin/opencode`; Do not write API key into the command.
+If OpenCode is unavailable noninteractively but works in the user's terminal, ensure its executable directory is on `PATH`. Current location: `~/.opencode/bin/opencode`; do not put the API key into commands.
 
-## 6. Secure borders
+## 6. Safety boundaries
 
 - Only repository `juanxiwu2005/platypus-officer-hub` and branch `feat/ai-night-mode` are allowed.
-- Tasks can only use field presentation data; Research materials, participant information or live memory data are not allowed.
-- Agent may not read or modify `.env*`, `.git/**`, `.github/**`, `.nightmode/**`, relying on files, Netlify settings or Night Mode own secure files.
-- Protective documents include `AGENTS.md`, `docs/NIGHT_MODE.md`, `opencode.json`, `scripts/night-mode.mjs`, `package*.json` and `netlify.toml`.
-- The controller will check the protection path again before coming in; If a change in the protective document is detected, the submission is refused.
-- (a) maximum 20 minutes per round of orders; Could not close temporary folder: %s 3Round.
-- Never AutoMerge, don't modify `main`, don't trigger implementation deployment.
+- Tasks use fictional demo data only; no research materials, participant information, or real membership data.
+- Agents must not read or modify `.env*`, `.git/**`, `.github/**`, `.nightmode/**`, dependency files, Netlify settings, or Night Mode's own safety files.
+- Protected files include `AGENTS.md`, `docs/NIGHT_MODE.md`, `opencode.json`, `scripts/night-mode.mjs`, `package*.json`, and `netlify.toml`.
+- The controller rechecks protected paths before committing; protected-file changes block the commit.
+- Commands have a 20-minute limit per cycle; local verification or CI failures allow at most 3 total cycles.
+- Never automatically merge, modify `main`, or trigger Production deployment.
 
-## 7.
+## 7. Running each time
 
-Execute in repository directory:
+In the repository directory:
 
 ```bash
 mkdir -p .nightmode
@@ -214,35 +214,35 @@ cp docs/NIGHT_MODE_TASK_TEMPLATE.md .nightmode/TASK.md
 nano .nightmode/TASK.md
 ```
 
-The mission must be clear about Goal, Files, Constraints and Done means. Do not write API key, research material or participant information.
+Tasks must clearly specify Goal, Files, Constraints, and Done means. Do not include API keys, research materials, or participant information.
 
-Run read-only self-checks first:
+First run the read-only self-check:
 
 ```bash
 node scripts/night-mode.mjs --doctor
 ```
 
-Only when you see `DOCTOR PASS` begins:
+Start only after `DOCTOR PASS`:
 
 ```bash
 node scripts/night-mode.mjs --task-file .nightmode/TASK.md
 ```
 
-## 7b. Operational environmental budget card (2026-10-28 on-site)
+## 7 b. Runtime budget card (measured 2026-10-28)
 
-**read this card before writing any task documents.** 2026-10-27. Four out of five failures in the evening.
-"Creating instructions to an unquantified operating environment" -- the task requires things beyond what Agent actually can do.
-This card is the measurement.
+**Read this card before writing any task file.** Four of five consecutive failures on the night of 2026-10-27 were caused by
+“writing instructions for an unmeasured runtime”—the task required more than the agent could actually do.
+This card records those measurements.
 
-| Item | Current value | Where do I change it? |
+| Item | Current value | Where to change |
 | --- | --- | --- |
-| Number of single running steps | **300** | `opencode.json` Each agent's `steps` |
-| Single command timeout | **45min**  | `scripts/night-mode.mjs` `COMMAND_TIMEOUT_MS` |
-| Number of return rounds | **5** | `scripts/night-mode.mjs` `MAX_CYCLES` |
-| Encoding Main Force | **`backend-coder`**（ASU `glm-5-3`） | `scripts/night-mode.mjs` `CODING_AGENT` |
-| Fixed expenses before start of work | **about 6 step** ( controller requires AGENTS/PROGRESS/ PRODUCT_PLAN/RULES/ NIGHT_MODE/ TASK) | Control |
+| Steps per run | **300** | Each agent's `steps` in `opencode.json` |
+| Command timeout | **45 minutes** | `scripts/night-mode.mjs`, `COMMAND_TIMEOUT_MS` |
+| Rework cycles | **5** | `scripts/night-mode.mjs`, `MAX_CYCLES` |
+| Main coder | **`backend-coder`** (ASU `glm-5-3`) | `scripts/night-mode.mjs`, `CODING_AGENT` |
+| Fixed startup overhead | **About 6 steps** (controller requires AGENTS / PROGRESS / PRODUCT_PLAN / RULES / NIGHT_MODE / TASK first) | Controller prompt |
 
-**Agent's Runable Shell Command (all others rejected):**
+**Allowed agent shell commands (everything else denied):**
 
 ```
 git status*   git diff*   git log*   git show*   git branch --show-current*
@@ -252,123 +252,123 @@ npx playwright test*   npx tsc*   npx vitest*
 ls*  cat*  head*  tail*  wc*  grep*  rg*  find*
 ```
 
-**can't run** `node`, `npx` (except for the three above), `curl`, `wget`, `brew`, `python`,
-Yeah. **You can't run a compound order.**♪ With `&&`They'll be rejected and they'll have to break it into a single piece.
+**Cannot run** `node`, `npx` (except the three above), `curl`, `wget`, `brew`, or `python`,
+and **cannot run compound commands** (`&&` is rejected; split into individual commands).
 
-**Agent cannot edit:** `.env*`, `.git/**`, `.gitignore`, `AGENTS.md`, `docs/NIGHT_MODE.md`,
-`package.json`、`package-lock.json`、`opencode.json`、`scripts/night-mode.mjs`、
-`.nightmode/**`、`.github/**`、`netlify.toml`。
+**Agents cannot edit:** `.env*`, `.git/**`, `.gitignore`, `AGENTS.md`, `docs/NIGHT_MODE.md`,
+`package.json`, `package-lock.json`, `opencode.json`, `scripts/night-mode.mjs`,
+`.nightmode/**`, `.github/**`, `netlify.toml`.
 
-Therefore, **cannot go on tasks that require the installation of dependence, modification of CI and AGENTS.md (e.g. styllint/eslint, etc.) Night Mode**
-Release freeze changes the document). Those walk plain-talking.
+→ Therefore **tasks requiring dependency installation, CI changes, or AGENTS.md edits cannot use Night Mode** (e.g., adding stylelint/eslint,
+finalizing documentation). Use ordinary sessions for those.
 
 ---
 
-## 7b-2.  ⚠  Do not send this branch while the queue is running
+## 7 b-2. ⚠️ Nobody should push this branch while the queue is running
 
-The lesson of **2026-10-28 is that the seven missions were wiped out all night long.**
+**The 2026-10-28 lesson cost an entire night's seven tasks.**
 
-T1 actually **was a complete success for**: 611 unit sets plus 276 breakers adopted,
-`code-critic` gave it to `STATUS: APPROVED` and the controller submitted. Then:
+T1 actually **succeeded completely** that night: 611 unit tests + 276 page tests passed,
+`code-critic` returned `STATUS: APPROVED`, and the controller committed. Then:
 
 ```
 ! [rejected]  feat/ai-night-mode -> feat/ai-night-mode (fetch first)
 NIGHT MODE STOPPED: git push origin feat/ai-night-mode failed with exit code 1
 ```
 
-Reason: **Claude pushed a document to the same branch during the queue run.** is far behind.
-The transport is rejected, the controller treats it as a fatal error and mission failure. Each mission in the back hit the same wall.
+Cause: **Claude pushed a documentation commit to the same branch while the queue was running.** Local was behind remote,
+so push was rejected; the controller treated that as fatal and failed the task. Every subsequent task hit the same wall.
 
-### Settlement (2026-10-28 check local submission post)
+### Accounting (after checking the local commit stack on 2026-10-28)
 
-Of the 7 missions, **2 crossed all gates** (T1 z-index, T6 spacing), both of which were rejected for pushback.
-The `.nightmode/done/` was empty, and the files for both missions were laid in `failed/`.
-Also, T2 and T3 have finished their work without passing the gate, and T4 was miswritten by the mission itself (see Article 7c 7).
-T5, T7 is correctly ****skip for non-satisfactory dependence.
+Of 7 tasks, **2 passed every gate** (T1 z-index, T6 spacing), both marked failed only because
+push was rejected—`.nightmode/done/` was empty while their task files sat in `failed/`.
+T2 and T3 completed their work but did not pass gates; T4's task itself was wrong (7 c item 7);
+T5 and T7 were **correctly** skipped for unmet dependencies.
 
-The way to get it back: those submissions are still on the local branch, `cherry-pick` to the top of the updated far end.
-Rerun the full check and push. T1 was saved this way (611 module + 276 e2e, numbers match the original run).
-T6's chrry-nick conflict - its diff is calculated on unverified changes in T2/T3
-Once the foundations had been withdrawn, they would not be right but would have to run again.
+Recovery: those commits remained on the local branch; `cherry-pick` onto the updated remote tip,
+rerun full checks, and push on passage. T1 was recovered this way (611 unit + 276 e2e, matching the original run).
+T6's cherry-pick conflicted—its diff was based on unverified T2/T3 changes,
+so removing that foundation made it inapplicable; it must be rerun.
 
-**, so the old Queue Script submitted semi-finished products to the branch of work at a cost not just to pollute the foundations of the next mission.
-It also prevents successful missions from recovering on their own. ** New edition puts semi-finished products on the `wip/<task-name>` side branch.
+**Thus the old queue script's practice of committing partial work to the working branch did more than contaminate the next task's foundation:
+it also prevented successful tasks from being recovered independently.** The new version puts partial work on `wip/<task-name>` side branches.
 
-### Rules.
+### Rules
 
-1. **Don't go any further after the line runs. `feat/ai-night-mode`Push anything.**— Includes the submission of re-document only.
-   You have to wait for the queue to end or move to another branch.
-2. `git pull` before running, make sure the locals are up to date.
-3. The cloud session is especially important: it can't see what you are running locally. **Tell it before running.**
+1. **Once the queue starts, push nothing to `feat/ai-night-mode`**, including documentation-only commits.
+   Wait until the queue ends, or push to another branch.
+2. Before starting, `git pull` so local matches the latest remote.
+3. Cloud sessions (Claude) need particular care: they cannot see local activity. **Tell them before starting.**
 
-### The controller has been reinforced. 2026-10-28）
+### Controller hardened too (2026-10-28)
 
-He was pushed to refuse a direct sentence of death. Now will: `fetch`  →  `rebase` to the new remote top
-**reruns the full check** (tested on an old basis and must be re-examined) and then push.
+A rejected push no longer immediately fails. It now: `fetch` → `rebase` onto the new remote tip →
+**rerun full checks** (tests passed on the old foundation; a changed foundation requires revalidation) → push again.
 
-If the conflict or re-test fails, it will stop. **Submit it and leave it to the people.**Never force-push,
-And never send the code that has not been verified at the landing position.
-
----
-
-## 7c. How do you write the mission documents?
-
-1. The **investigation was handed over, and Night Mode only made mechanical changes.**
-   "Find which CSS is empty and then delete" will cost 300 all the steps. The right thing to do is check it out first.
-   The task is to give the list directly. 2026-10-27 twice a night failed with this.
-
-2. **Do not describe the current status of files in the task.**
-   "Styles.css, all 718 lines" is written, and Agent changed to 626 line, and then went back to the first reading and thought something was wrong.
-   So stop looking for git instead of continuing to work. Just write about what results are to be achieved.
-
-3. **explicitly forbids retrenchment of the baseline.** written directly into Constraints.
-
-4. **Don't let it read the big files that don't work.** does not need to change the task for `styles.css` to say "don't read styles.css".
-
-5. The list given by the **people could also be wrong -- let it have the right to question.**
-   In the list of dead codes I gave you. `b1/b2/b3`Wrong: `Team.tsx`Use `` `band b${BAND[...]}` ``
-   Dynamic spell names, string `"b1"` appears in the source code 0. Text search is not available.
-   It's `backend-coder` found and reported before he did it.
-   • Keep exports such as "unsurely always keep and write down the handoff record" in the mission, and do not force it to follow.
-
-6. The **dynamic synthing is a recurring trap.** checks out "some class and no one else."
-   In addition to the literal search, we'll clean up all `` ` prefix ${} ` `` templates in the source code and see what you can spell out.
-   Known point: `Team.tsx`It's... `` band b${...} ``、`MetroChart.tsx`It's... `` m-${key} ``and
-   `` has-${severity} ``, `WorkDetail.tsx` `` aw-task-${status} ``.
-
-7. **confirms before writing a mission that it can do semanticly -- not just facts, right?** (2026-10-28 plus)
-   The fact that T4 is fully verified as true (the `--st-now` has never been defined and the 5 hard code colours do exist)
-   But it had two deliveries that were not semantic, and Agent stopped writing a line of books.
-
-   - "Let flowchart dots follow Settings' state colour": `.now` from `nodeStop()`
-     (`src/lib/phases.tsx:23`), returns `done/now/todo/risk` 4 **Chart**,
-     6 user status one-on-one press on top of it. There is no equivalent status color.
-   - "Delete the synonyms of brand colour and state colour": these are two different systems that are bound differently. Brand token
-     It's in light color. **Text**Top, with stand-alone dark thematic values;  State colour is used to press **white words**,
-     No dark version (user data). Merge causes white contrasts under dark themes to drop to 2.43:1.
-
-   * Let's ask each delivery before we go: **, is this happening in the current data model?**
-     A catch from what, a token in text or background, no dark version.
-     The wrong task Agent couldn't do, and it stopped right.
-
-8. **One task only for one thing.** (2026-10-28 plus)
-   T4 One task plugged in 6 deliveries, 4 files, 6 contrasts, a new Playwright
-   Tests, and make 3 trade-offs. That's a violation of the step estimate under this section.
-   (over) 100And I wrote that rule myself.
-   • The fact that the mission was accompanied by an "other" is a signal to be deactivated.
-
-9. The **task with a purely renaming is to state that "no additional tests are required".** (2026-10-28 plus)
-   Otherwise, Agent would have spent his budget on inventive testing to make it happen, where no behavioral changes could be measured.
+A rebase conflict or failed revalidation stops execution, **leaving commits in place for a human**, never force-pushing
+or pushing code unverified at its final location.
 
 ---
 
-## 7d. Task Queuing: one down, next
+## 7 c. Writing task files (lessons learned)
 
-Run alone `night-mode.mjs` do only one job at a time and stop there all night. Queue this.
+1. **Humans investigate; Night Mode makes mechanical changes.**
+   “Find unused CSS, then delete it” spends all 300 steps investigating. Humans should investigate first
+   and provide the list in the task. Two failures on the night of 2026-10-27 came from this.
+
+2. **Do not describe files' current state in the task.**
+   “styles.css has 718 lines” led the agent, after reducing it to 626, to reread the task, think something was wrong,
+   and investigate git instead of continuing. State only the desired result.
+
+3. **Explicitly prohibit going back to “verify the baseline” after making changes.** Put this directly in Constraints.
+
+4. **Do not require reading unused large files.** If a task need not change `styles.css`, explicitly say “Do not read styles.css.”
+
+5. **Human-provided lists can be wrong—allow the agent to question them.**
+   My dead-code list incorrectly included `b1/b2/b3`: `Team.tsx` dynamically builds classes with `` `band b${BAND[...]}` ``,
+   and literal `"b1"` appears 0 times in source, so text search misses it.
+   `backend-coder` found and reported this before editing.
+   → Retain an escape route such as “keep anything uncertain and note it in the handoff”; do not force blind obedience.
+
+6. **Dynamically constructed class names are a recurring trap.** To check whether a class is used,
+   search literals and also scan all `` `prefix${...}` `` templates to determine what they can generate.
+   Known cases: `Team.tsx`'s `` band b${...} ``, `MetroChart.tsx`'s `` m-${key} `` and
+   `` has-${severity} ``, `WorkDetail.tsx`'s `` aw-task-${status} ``.
+
+7. **Before writing a task, verify semantic feasibility, not just factual accuracy.** (Added 2026-10-28)
+   T4's facts were all verified (`--st-now` really was never defined; 5 hardcoded colors really existed),
+   but two deliverables were semantically invalid; after running, the agent wrote one handoff line and stopped.
+
+   - “Make flowchart dots follow Settings status colors”: `.now` comes from `nodeStop()`
+     (`src/lib/phases.tsx:23`), which returns four **chart** states, `done/now/todo/risk`,
+     into which 6 user statuses collapse many-to-one. There is no one-to-one status-color mapping.
+   - “Eliminate different colors for synonymous brand and status colors”: these are systems with different constraints. Brand tokens
+     appear as **text** on light backgrounds and have separate dark-theme values; status colors sit behind **white text**,
+     with no dark variants (they are user data). Combining them drops white-text contrast to 2.43:1 in dark theme.
+
+   → For every deliverable, ask first: **does this make sense in the current data model?**
+     What computes a class, whether a token colors text or background, whether a dark variant exists.
+     An agent cannot complete an invalid task, and stopping is the correct response.
+
+8. **One task, one thing.** (Added 2026-10-28)
+   T4 packed in 6 deliverables, 4 files, recalculating contrast for 6 colors, a new Playwright
+   test, and 3 tradeoff decisions for the human. That violated this section's “estimate steps” rule below
+   (split tasks over 100 steps)—a rule I wrote myself.
+   → “While you're at it,” “also,” or “at the same time” signals a task should be split.
+
+9. **Pure rename tasks must explicitly say “no new tests required.”** (Added 2026-10-28)
+   Otherwise agents invent tests to fill deliverables, spending budget where no behavior changed to test.
+
+---
+
+## 7 d. Task queue: if one cannot proceed, try the next
+
+A single `night-mode.mjs` run handles one task; failure otherwise stops the entire night. The queue solves that.
 
 ```bash
 mkdir -p .nightmode/queue
-# Put the task files in and sort them by file name
+# Place task files here; execution follows filename order
 #   .nightmode/queue/01-fontscale.md
 #   .nightmode/queue/02-spacing.md
 #   .nightmode/queue/03-radius-z.md
@@ -376,122 +376,122 @@ mkdir -p .nightmode/queue
 caffeinate -dimsu bash scripts/night-queue.sh
 ```
 
-`caffeinate` to keep Mac up; Queue after it's out.
+`caffeinate` keeps the Mac awake and exits when the queue finishes.
 
-**Failed Separation: The** mission failed constantly queued to continue next. Only **declares that the task of relying on** will be skip:
+**Failure isolation:** a failed task does not stop the queue; the next runs. Only tasks with **declared dependencies** are skipped:
 
 ```markdown
 # Depends on: 01-fontscale.md
 ```
 
-When a dependent task fails or is skiped, the job also sskip -- it doesn't continue on bad foundations. There is no stated reliance on running as usual.
+If a dependency fails or is skipped, this task is skipped too—no building on broken foundations. Tasks without declared dependencies still run.
 
-**The result goes to:**
+**Result locations:**
 
-| Contents | Contents |
+| Directory | Contents |
 | --- | --- |
-| `.nightmode/done/` | Run-through mission. |
-| `.nightmode/failed/` | Failed ( `.md`) and by the sskip ( `.skipped.md`） |
-| `.nightmode/logs/` | Full output of each task |
-| `wip/<task-name>`  Branch | Uncertified semi-finished from failed task |
+| `.nightmode/done/` | Successful tasks |
+| `.nightmode/failed/` | Failed (`.md`) and skipped (`.skipped.md`) tasks |
+| `.nightmode/logs/` | Full output per task |
+| `wip/<task-name>` branch | Unverified partial work from failed tasks |
 
-**semi-finished products will not pollute the next mission.** failed by queued unsubmitted changes to the `wip/<task-name>` branch.
-And then put the branch of work, **revert, the position before this mission runs,**, and the next one starts with what's known to be good.
+**Partial work cannot contaminate the next task.** On failure, the queue saves uncommitted changes on a `wip/<task-name>` branch,
+then **resets the working branch to its position before the task started**, so the next task starts from a known-good state.
 
-> The first version of 2026-10-28 is not like this: it submits semi-finished products directly to the branch, so T2 is unverified.
-> Changed to T3 base, T3 to T4. **a failure will contaminate every mission behind.** has been repaired.
+> The first version on 2026-10-28 did not do this: it committed partial work directly to the working branch, making T2's unverified
+> changes the foundation for T3, and T3's for T4. **One failure contaminated every subsequent task.** Fixed.
 
-The **controller was submitted but did not push, and the queue won't move it.**'s kind of submitted through all the gates.
-It will remain in the branch and be listed separately at the end, and it will be decided whether to push or change in the morning.
+**The queue leaves controller commits whose pushes failed alone.** Those commits passed all gates;
+they stay on the working branch and are listed separately at the end for a human to decide whether to push or revise in the morning.
 
-The **queue will not bypass any security gates.** Each task still has a complete doctor * encoding  →  Test
-Critic → CI。Queuing only determines which to run next.
+**The queue bypasses no safety gates.** Every task still follows the entire doctor → coding → tests →
+Critic → CI process. The queue only chooses what runs next.
 
-**queues itself to search for protective files.** control protection document checks only take effect when it itself is submitted; Queue WIP
-When submitted, it will be checked again (see below) and the protective file has been changed to **to stop the entire queue of** without sneaking into the branch.
+**The queue also checks protected files.** The controller's protected-file check applies only to its own commits; the queue checks again
+when saving WIP commits (below), and **stops the entire queue** if protected files changed, without secretly saving them to a branch.
 
 ---
 
-## 7e. Progress stream after interruption: which to leave and which to redecorate
+## 7 e. Triage after interruption: what to keep and what to redo
 
-Controls are submitted only after all gates have passed. **So if you fail, leave it in the workspace** -- it's not lost, but it hasn't been verified.
+The controller commits only after all gates pass. **On failure, changes remain in the workspace**—not lost, but not verified either.
 
-And the next task doctor requires a clean workspace. The choreography is based on the deposit of semi-finished products into one submission:
+The next task's doctor requires a clean workspace. The queue first saves partial work as a commit:
 
 ```
-[WIP-UNVERIFIED][queue] <Task Name > Half-finished at break
+[WIP-UNVERIFIED][queue] <task-name> partial work at interruption
 ```
 
-**This submission hasn't been tested, critic or CI. It's just "save and don't lose."**
+**This commit passed neither tests, Critic, nor CI. It only means “saved so it is not lost.”**
 
-### How do you split the next day?
+### Triage the next day
 
-**Step one: Let's see what it changes.**
+**Step 1: inspect what actually changed**
 
 ```bash
 git log --oneline --grep='^\[WIP-UNVERIFIED\]'
-git show --stat <The submission. >
+git show --stat <that-commit>
 ```
 
-**Step two:** by Article against Tasks
+**Step 2: assess each Done means item against the task file**
 
-| Situation | What should we do? |
+| Situation | Action |
 | --- | --- |
-| One article is complete and not dependent on the other. | **Leave**. Pick it out separately, take the test and submit as you wish. |
-| Make half of it. (For example, 14 has been replaced by 6) | **Keep it as a starting point.**♪ Write a new job ♪ 8We're in these files." Make it fast.  |
-| The change is directly related to the cause of failure (e.g., it changed the test in order to bypass reporting errors) | **Drop**. The premise of such changes is inherently wrong. |
-| Can't see what it wants. | **Drop**. A half-finished product that you can't read is not worth saving -- it's cheaper to rerun than to read it. |
+| One item is fully complete and independent of the others | **Keep**. Extract it, add tests, commit normally |
+| Half done (e.g., only 6 of 14 replacements) | **Keep as a starting point**, write a new task specifying “the remaining 8 locations in these files”; faster than starting over |
+| Changes directly tied to the failure (e.g., breaking tests to bypass an error) | **Discard**. Their underlying premise is wrong |
+| Intent is unclear | **Discard**. Incomprehensible partial work is not worth keeping—rerunning costs less than deciphering it |
 
-**Step 3: Implementing**
+**Step 3: execute**
 
 ```bash
-# All of them.  → Put it on.  WIP Submitting to normal submission (test first, run first)  npm run check）
-npm run check && git commit --amend -m "[S4][Night Mode] <Tell me what you did. >"
+# Keep all → turn WIP into a normal commit (add tests and run npm run check first)
+npm run check && git commit --amend -m "[S4][Night Mode] <describe-what-changed>"
 
-# Discard All  → Fallback, that submission. Keep it on.  reflog Retrieve it.
-git revert --no-edit <The submission. >
+# Discard all → revert that commit, retaining recoverability through reflog
+git revert --no-edit <that-commit>
 
-# Partially retained  → Go back to that submission and pick the changes you want. The rest don't.
-git reset --soft <The submission. >^    # Change back to the reserve, one by one.
+# Keep some → return before that commit and select desired changes only
+git reset --soft <that-commit>^    # Changes return to staging; select individually
 ```
 
-⚠️ **Don't use it. `git checkout -- . ; git clean -fd`Here's to a "new start".**. It'll be the last time.
-All the results are thrown out together. 2026-10-27 Lately we almost threw away the CSS cleanup that was already done.
-**saves progress by submitting, not emptying.**
+⚠️ **Do not use `git checkout -- . ; git clean -fd` to “start over.”** That discards
+all the previous work too. We nearly lost a completed CSS cleanup this way on the night of 2026-10-27.
+**Commit to save progress; do not clear it.**
 
-### An experience.
+### A lesson
 
-Disruption of **does not amount to** for nothing. 2026-10-27 The last "failure" run at night has actually taken 14
-The `<Empty>` replacement is all done -- it's only finished with the file that was changed by itself and ended early.
-Those changes were kept in their entirety in the work area, and the next round of operations after submission found that no work was done and went straight through all the gates.
+Interruption **does not mean** wasted work. The last “failed” run on the night of 2026-10-27 had actually completed all 14
+`<Empty>` replacements—it merely became confused by files it had changed during wrap-up and ended its turn early.
+Those changes remained intact in the workspace; after committing them, the next run found no remaining work and passed every gate directly.
 
-**So, when you fail, look at `git status` and `git diff` and decide whether to redo it.**
+**So after failure, inspect `git status` and `git diff` before deciding to redo anything.**
 
-## 8. How to understand the results
+## 8. Interpreting results
 
-1. `READY_FOR_CLAUDE`: Local integrity checks, independent critic and GitHub CI passed; Wait for Claude and Juanxi to check. **is not a merge license.**
-2. `NIGHT MODE STOPPED`: Unsatisfactory security conditions or three failed rounds. There is no attempt on merge or implementation deployment.
-3. Security check failed: stop before encoding and no application code is generated.
+1. `READY_FOR_CLAUDE`: full local checks, independent Critic, and GitHub CI passed; awaiting Claude and Juanxi's inspection. **Not merge permission.**
+2. `NIGHT MODE STOPPED`: safety conditions unmet or no passage within three cycles. No merge or Production deployment attempted.
+3. Safety-check failure: stops before coding; produces no application code.
 
-The running logs are stored in `.nightmode/`, which is ignored by Git, including `check.log`, `review.patch`, `review.txt`, `last-failure.log` and `ready-comment.md`. They are used for local diagnostic purposes and should not be submitted.
+Run logs live in Git-ignored `.nightmode/`, including `check.log`, `review.patch`, `review.txt`, `last-failure.log`, and `ready-comment.md`. They are local diagnostics and should not be committed.
 
-## 9. Exactly not included at present
+## 9. Explicitly excluded
 
-- Claude AutoReview.
-- Automatically creates PR, converts Draft to Ready, merge PR or deletes branches.
-- AutoProduction deployment.
-- Auto-installation or upgrade dependent.
-- `AGENTS.md`, `package.json`, `.github/**`, `netlify.toml`, etc.)
-  So the task that needs to be dependent on or modified for CI must go into plain language and not go Night Mode.
-- Modifys GitHubSecrets, Netlify environment variables or system settings.
-- Any page viewing or automatic collection of external information.
-- Test using live research data.
+- Automatic Claude review.
+- Automatic PR creation, Draft-to-Ready conversion, PR merging, or branch deletion.
+- Automatic Production deployment.
+- Automatic dependency installation or upgrades.
+- Protected-file edits (`AGENTS.md`, `package.json`, `.github/**`, `netlify.toml`, etc.);
+  tasks needing dependency installation or CI changes must use ordinary sessions, not Night Mode.
+- GitHub Secrets, Netlify environment-variable, or system-setting changes.
+- Arbitrary web browsing or automatic collection of external material.
+- Testing with real research data.
 
-## 10. Modifying the rules for working streams
+## 10. Rules for changing this workflow
 
-Night Mode cannot modify its own secure borders. The trusted controller/maintainer can modify `AGENTS.md`, this document, `opencode.json`, `scripts/night-mode.mjs` or `.github/**` only if the humans so request. At least after each modification:
+Night Mode cannot change its own safety boundaries. Only after an explicit human request may a trusted controller/maintainer change `AGENTS.md`, this file, `opencode.json`, `scripts/night-mode.mjs`, or `.github/**`. After every change, at minimum:
 
 1. Rerun `node scripts/night-mode.mjs --doctor`.
-2. Checks `git diff` and confirms that there are no secret key files.
-3. Push to Draft PR, waiting for GitHub CI.
-4. Update the status snapshot with date; Don't write one through as a permanent guarantee.
+2. Inspect `git diff` for secrets and out-of-scope files.
+3. Push to the Draft PR and wait for GitHub CI.
+4. Update the dated status snapshot; never portray one successful run as a permanent guarantee.

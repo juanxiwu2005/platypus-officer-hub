@@ -1,62 +1,62 @@
-# Onboarding Original v3: Clear Team + Work Package
+# Onboarding prototype v3: explicit teams + task-pack canvas
 
-2026-11-17 (America/Phoenix) . Status: operational original, to be reviewed by Juanxi, with no access to the actual website.
+2026-11-17 (America/Phoenix) · Interactive prototype, awaiting Juanxi review, not integrated into actual site.
 
-Only the selected " departmental relay panel " and " entire task package assignment " will be modified in this version. Originals share People/Work groups settings on a page to directly test the connection of " Change Team  →  Package Assigned " . v1 Five screens, four staff programmes and six working group programmes are maintained; New activities, Finance assignment, Markering transfer and coordinator reassignment of four screens continue to freeze.
+Changes only selected “department relay board” and “whole task-pack assignment.” Shared People / Work groups settings on one page enable “change team → assign pack” experiments. v1 five screens, v2 four people concepts/six work-group concepts retained; new-event, Finance assignment, Marketing handoff, coordinator reassignment screens remain frozen.
 
-## Direct trial.
+## Try directly
 
-Opens the `foundation.html`, all presentation data are messageal content, do not call interfaces, do not send invitations or emails.
+Open `foundation.html`; all fictional demo data, no API calls, invitations, emails.
 
-1. **People**: Add team only creates empty teams; Add rule creates a role that can be pre-selected or assign later. Add line below the teams has pre-selected the team.
-2. To drag the bottom of Jamie's **Finance Treasurer 2** card to the top right corner of Finance, where the original two members became three; The same action can be done with the card's Team drop frame.
-3. The name of the post, name and invitation mailbox, team name may be changed directly. The name does not create a team; Move role won't rewrite the reporting relationship. When the team leader was removed, the old team emptied and asked for a manual re-selection without automatically replacing him with another.
-4. To **Work groups**: Overview View, Detail view zooms in the selected work package; Moves side by side, moves the top of the drag card, +/- zooms. The cell phone is centered on the current work package, and it skips from below to avoid scalding to an unread complete picture.
-5. Enlarged card display package tasks; The full task and original title, description and source are always available below. Select the responsible team on the right, and all tasks in the package will be assigned to the team together; And the team leader is from People.
-6. Click work package output  ○  and then click on another package to enter ° additional links; You can also open Connings & procedure, which is connected by a drop-down. Circulation, repetition of connections are stopped. New work package to be empty, without copying existing tasks; This round is not a task content editor.
-7. Arrange reorders from left to right by relying. Suggested links may be deleted; Templates were originally dependent on reservations. Undo can reverse structural changes. Saved in preview to support session status; Only the current page state is maintained when directly opening a file. **does not save the site or has a memory of** permanently.
+1. **People:** Add team creates empty team only; Add role creates role, team preselection or Assign later. Add role under a team preselects it.
+2. Drag top-right ⠿ on Jamie's **Finance Treasurer 2** card at bottom into Finance: two members become three; Team dropdown does same.
+3. Edit role/person/invitation email/team names directly. Role rename never creates team; moving role never rewrites reporting. Moving team lead clears old lead, requires manual choice, no automatic replacement.
+4. **Work groups:** Overview for whole, Detail view enlarges selected pack; drag blank area to pan, card top edge to move, +/− zoom. Mobile centers current pack with Selected task pack below, instead of illegibly shrinking whole graph.
+5. Zoomed cards show tasks; all original task titles/descriptions/sources always accessible below. Select responsible team on right to assign entire pack; members/leads come from People.
+6. Click output › then another input ○ to connect, or Connections & sequence dropdowns. Cycles/duplicates blocked. New packs empty, no task copies; no task-content editor this round.
+7. Arrange reorders left-to-right by dependencies. Suggested links deletable, template dependencies retained. Undo structural edits. Save draft works in session-state-capable preview; direct-file mode retains current page only, **no website save/local persistence connected**.
 
-## Model and user purpose
+## Model/user purpose
 
-| Object | What is it? | Stabilize connections |
+| Object | Meaning | Stable reference |
 | --- | --- | --- |
-| Team | A live team with multiple rolls and minutes | `team.id`, does not extrapolate from the roll title or reporting line |
-| Role | Treasurer, Finance Associate et al. | `role.teamId`Independent `reportsToRoleId` |
-| Person | Name, invitation mailbox | `role.personId`, edit the title without affecting personal information |
-| Task pack | A set of tasks that normally fit the same team. | `pack.teamId`Clear. `taskIds` |
-| Connection | Work package back and forth dependence | `from` / `to` / `origin` |
+| Team | Actual team, multiple roles/members possible | `team.id`, never inferred from title/reporting |
+| Role | Treasurer, Finance Associate, etc. | `role.teamId`, separate `reportsToRoleId` |
+| Person | Name, invite email | `role.personId`, title edits leave person unchanged |
+| Task pack | Tasks generally suited to one team | `pack.teamId`, explicit `taskIds` |
+| Connection | Pack prerequisites | `from` / `to` / `origin` |
 
-The demonstration contains by default Club leadership, Finance, Marking, Operations, and is an example, not a core directory. The follow-up self-constructed team is still assigned with ID. AI does not need to guess which team Finance Treasurer 2 belongs to. Shows the same group 's live members after work package has been reassigned; Not to copy a mission to all of the team.
+Defaults Club leadership, Finance, Marketing, Operations illustrative, not mandatory roles. Custom teams assigned by ID, no AI guessing Finance Treasurer 2's team. Reassigned packs show actual team members; never copy a task to everyone.
 
-**Duty boundaries for future access:** saving team structure with template default grouping; When creating the event, president identifies which team, who is responsible for each package and who collaborates to keep its own assigned snapshot; The sole operator of a specific task is assigned or reassigned by the person in charge. This level of activity and the following four screens have not been implemented, nor has the old distribution engine for the current site changed.
+**Future integration boundaries:** Onboarding saves team structure/template default grouping; on event creation, president confirms team, lead, collaborators per pack, saving event-specific assignment snapshot; lead later assigns/reassigns each task's sole executor. Event layer/four later screens unimplemented; existing site allocation engine unchanged.
 
-Constitution AI rule/ function recognition continues. In the future, Team/Role can be drafted and eventually manually confirmed; The official assignment to the team is a visible choice. Any stream may have its own packages and drawings, without writing examples such as Finance, Secretary etc. into a fixed category of the system.
+Constitution AI role/duty extraction retained; future Team / Role drafts need human confirmation; formal pack→team assignments explicit. Any workflow may have its own packs/graph; Finance, Secretary examples never fixed system categories.
 
-## 46 task and connection sources
+## Sources for 46 tasks/connections
 
-`workflow-data.json` Reservation v2 from `src/engine/playbooks.ts` complete **46 mission/ 43 original task dependent on** snapshots (source submission `e87b19c95e6eece07a3a695fdc0438de3f92fb67`), including original name, word short name, condition, description, source. This is not a new original of the current running rules.
+`workflow-data.json` retains v2 full **46 tasks / 43 original task dependencies** extracted from `src/engine/playbooks.ts` (source `e87b19c95e6eece07a3a695fdc0438de3f92fb67`), including original/two-word names, conditions, descriptions, sources. Not a new runtime-rule source of truth.
 
-- Every original mission just happens to appear once. **13work package**。 Event Review (feedback) before dividing the original Leadership Review into a single Kari before and after the event.
-- The original task map was condensed to the layer and obtained **11 live across packages relying on**, which is shown in line. The inside reliance remains intact in the data.
-- In order to discuss a more complete and basic workflow, an additional **8 proposal was drawn to link**, showing in a dotted line: planning partners/security/advocacy, publicity preparation for inspection, campaign media archiving/activity rediscovery, financial closure/media archive of the student orgnification archives.
-- The proposed connection is only a original proposal and does not claim to have been included in the existing template or used for actual date calculations. The connection to the new painting is marked as draft; The original map and all dates/policy engines have not been rewritten.
-- Use the selected v2 script to place feedback in the direction of the record work, which is shown in the current version. Example by default: Finance 12, Marketing 8, Offices 25, Club lightship 1. This is not an allocation change for running.
-- The connection uses a straight angle path to avoid work card cards and avoids false sequencing by passing through another card. Wiring validation is not equivalent to the condition/convergence execution semantic for completing a complete workflow editor in the future.
+- Every task appears exactly once across **13 packs**. Leadership Review split into pre-event Readiness Check (finalcheck) and post-event Event Review (feedback), separating before/after work.
+- Compressing task graph gives **11 actual cross-pack dependencies**, solid lines; all internal dependencies retained in data.
+- Another **8 suggested links**, dashed, for discussion: planning→partners/safety/publicity, publicity→readiness, event→media archive/review, finance closeout/media archive→club archive.
+- Suggestions are prototype proposals, not existing-template claims or date-calculation inputs. New connections draft; original graph/date/policy engines unchanged.
+- Retains selected v2 direction of feedback as record work, mapped Operations here. Defaults Finance 12, Marketing 8, Operations 25, Club leadership 1; not runtime reassignment.
+- Orthogonal connections avoid pack cards to prevent false implied precedence. Connection validation does not establish full future condition/join execution semantics.
 
-## Inspections and restrictions
+## Checks/limits
 
-Browser check covers: Add rule/Add team separation, live finger drag into Finance, roll rename no team, report retention, head move out, pack reassignment, 46 mission only coverage, 43 original dependency and 11+8 cross-package, initial connection not to pass through other work package, flat move zoom, work page, drag cycle refusal, new packages/ links/ Undo, status recovery, contact not to enter modelContent, light depth, mobile phone layout. Also check 320/736/1024 for two tabs without page level overflowing. For more information, please see "Verification / Playout-Verification".
+Browser checks: Add role/team separation, actual pointer drag into Finance, role renaming without team creation, reporting retention, lead departure, whole-pack reassignment, unique 46-task coverage, 43 original dependencies, 11+8 cross-pack links, initial links avoid other packs, pan/zoom, pack drag, cycle rejection, new packs/connections/Undo, state recovery, contacts absent from modelContent, light/dark, mobile. Also both tabs at 320/736/1024 without horizontal overflow. See verification / layout-verification.
 
-`verify.cjs` and `layout-check.cjs` are check scripts for the quarantine manuscript, requiring Playwright and Chromium; Default compatibility with the installation location of this container. The screenshot is the illustrative state of editing and dragging in these checks, defaulting that the original will continue to start with two Finance meeting + one group card to enter.
+`verify.cjs`, `layout-check.cjs` isolate prototype checks, require Playwright/Chromium, default-compatible with container installation. Screenshots show edited/dragged test states; default still starts two Finance members +one unassigned card.
 
-This edition does not have a web site for missions, multi-person collaboration, backstage preservation, live invitation, activity level assignment or automatic scheduling; Do not add AI calls, research records, mail dispatch, data structure upgrades or releases. The original prevateContent can save the contact person that the user fills out; ModelContent only keeps count, entity ID and assigned/connected, without name or mailbox. The preview snapshot cap 16 KiB, the excess hints remain on the current page and does not claim success.
+No website permissions, multiuser collaboration, backend saving, real invitations, event-level assignment, automatic scheduling; no new AI calls, research records, email, schema upgrade, deployment. privateContent may retain entered contacts; modelContent only counts, entity IDs, assignments/connections, no names/emails. Preview snapshot cap 16 KiB; overflow warns/remains on page, never claims save success.
 
-## File and Handoff
+## Files/handoff
 
-- `foundation.html`: Operational scripts, style/data/interactive grouping, are not imported.
-- `workflow-data.json`: Mission snapshots, 13 packages and clear-source 19 links.
-- `verification.json`, `layout-verification.json`: Results of this round.
-- `verify.cjs`, `layout-check.cjs`: Check exclusively for originals.
-- `previews/`: Screening status screens; `manifest.json`: All archived files SHA-256.
+- `foundation.html`: self-contained interactive prototype, not imported by app.
+- `workflow-data.json`: task snapshot, 13 packs, 19 links with clear sources.
+- `verification.json`, `layout-verification.json`: checks.
+- `verify.cjs`, `layout-check.cjs`: prototype-only checks.
+- `previews/`: test-state screenshots; `manifest.json`: SHA-256 for all archived files.
 
-The design was deconstructed into a website component only after the orientation had been confirmed, and a team, workflow template and activity assignment three layers of formal storage and compatibility options were identified. For the time being, the original will not be stored as an operational data base. Could not close temporary folder: %s
+Only after direction confirmed, split into product components and define formal storage/compatibility for teams, templates, event assignments. Prototype storage is not business-data foundation. Local backup needs synchronization.

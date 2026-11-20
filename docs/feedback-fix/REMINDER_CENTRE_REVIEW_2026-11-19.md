@@ -1,71 +1,71 @@
-# Reminder Module Review and Interface Program (2026-11-19, Claude)
+# Reminder-module review and UI concepts (2026-11-19, Claude)
 
-Based on PR #14 top `4d6290e` (= `claude/fervent-thompson-e2j5u2` = preview14). Only review and static effect maps, **did not change any `src/` code**, 0 products AI, 0 emails.
+Based on PR #14 tip `4d6290e` (= `claude/fervent-thompson-e2j5u2` = preview 14). Review/static mockups only, **no `src/` changes**, 0 product-AI calls/emails.
 
-Picture: [ `docs/prototypes/reminder-centre-concepts/` ](../prototypes/reminder-centre-concepts/manifest.json) (Status 1 1+ Programme A-F + 3 Models with Chart G). The figure is a static page repaint using the live CSS (the same set of token, navigation, right bar) on the website and not an image creation; The number of Sent/Replied is indicative.
+Images: [`docs/prototypes/reminder-centre-concepts/`](../prototypes/reminder-centre-concepts/manifest.json) (1 current-state +A–F +mode appendixG). Screenshots of static pages using actual site CSS (same tokens/navigation/rail), not image generation; Sent/Replied counts illustrative.
 
 ---
 
-## 1. Why can't you read the interface?
+## 1. Why the current interface is hard to understand
 
-Opens up Reminders in local production construction (seed torrent orgation, Sat Oct 31, mode `review_then_auto`):
+Measured in local production build, Reminders (seed club, Sat Oct 31, `review_then_auto`):
 
 | Problem | Evidence |
 | --- | --- |
-| Too long. | The entire page 2856px, 1440 x 900 screens approximately 3 screens; 5 blocks (Needs your OK/ This week / Sent / Replies / No reply yet) are all opened and empty blocks are in place |
-| Headline numbers don't match buttons. | "Needs your OK **13**♪ But the button is "Approve all ( **5**)"：13It's in there. 8It's not a reminder. It's a question to fix first. 4Waiting didn't pick anyone. 2No one's in charge. 2Stuck)  |
-| Too many words per line | Each 3–4 line: activity/ task name / To Task Due/ Reason sentence; The planned start has passed. |
-| Repeat | Needs your OK and this week (e.g. Draw the meeting away, Book the spring only meeting room) |
-| One full shot only in mode 3 yes | Mode 1 shows only "Awaiting automatic preparation"; Mode 2"I sent this reminder", 13Points 26No more than  |
-| **, one shot is actually incomplete.**. | Point "Approve all (5)" actually records only **4**, prompting "come reminds changed or reached a limit". Reason: Jordan had 3 on that day. `limitReason()` Up to 2 per person per day and the non-emergency number of 2 places reserved for due/overdue; `planReminders()` Only **has issued** records, not all the other candidates in the same batch. |
+| Too long |2856 px, about 3 screens at 1440×900; all 5 blocks (Needs your OK/This week/Sent/Replies/No reply yet) expanded, even empty blocks occupy space |
+| Heading/button counts disagree | "Needs your OK **13**", but "Approve all (**5**)": 8 of 13 are issues, not reminders (4 Waiting without recipient, 2 unassigned, 2 Stuck) |
+| Too much text per row |3–4 lines: event/task/To · Task due/reason, mostly repeated ("The planned start has passed. Can we help?") |
+| Duplication | Same task in Needs your OK and This week (Draft the meeting agenda, Book the spring weekly meeting room) |
+| Send-all only in mode 3 | Mode 1 only "Awaiting automatic preparation"; mode 2 requires "Review & open draft" then "I sent this reminder" per item, 26+ clicks for 13 |
+| **Send-all misses items (bug)** | "Approve all (5)" records only **4**, showing "Some reminders changed or reached a limit". Jordan has 3 today, `limitReason()` caps2/person/day and reserves second nonurgent slot for due/overdue; `planReminders()` counts only **sent** records, not other same-batch candidates, so initially allows them then blocks on send |
 
-## 2. Level of readiness for bottom code and "post-database"
+## 2. Backend structure and readiness for a future database
 
-### Well done.
+### Good parts (portable directly)
 
-1. **rule engine is a pure function.** `planReminders(input)` only eats `ReminderInput` (today, mode, people, tasks, rantime), does not read the clock, doesn't tune AI, does not touch DOM and can run on the server.
-2. The **book is supplementary.** `ReminderRuntime`Yeah. `updates` / `deliveries` / `waitingRequests`Both. `id`+ Single `sequence`, history snapshots (received name, task name, mail full text) change without subsequent changes - right for three tables.
-3. **'s three modes of missions rechecking in the engine.** `confirmReminderDelivery()` by mode only the corresponding type in `automatic/platypus/manual`; `recordReminderBatch()` Every article is re-validated.
-4. The **candidate id is a definitive** (`["reminder", planKey, reason]`), which naturally can be sent as an alternative key (the same one does not send twice).
-5. The old data (`nudges`, `protocolLog`) have not been falsified and `legacyUnresolvedNodeIds` clearly indicates what is to be manually confirmed.
+1. **Pure rule engine:** `planReminders(input)` consumes only `ReminderInput` (today, mode, people, tasks, runtime), no clock/AI/DOM, runs unchanged server-side.
+2. **Append-only ledger:** `ReminderRuntime` `updates`/`deliveries`/`waitingRequests` have `id` +monotonic `sequence`; historical recipient/task/full-email snapshots do not change with later edits—naturally three tables.
+3. **Mode permissions rechecked in engine:** `confirmReminderDelivery()` allows only corresponding `automatic/platypus/manual`; `recordReminderBatch()` revalidates each item.
+4. **Deterministic candidate IDs** (`["reminder", planKey, reason]`) naturally support send idempotency (no double sends).
+5. Legacy `nudges`/`protocolLog` not guessed/rewritten; `legacyUnresolvedNodeIds` explicitly flags manual review.
 
-### Required changes (in order of priority) before receiving the database
+### Required before database integration (priority order)
 
-| # | Problem | Location | How do you change it? |
+| # | Problem | Location | Future change |
 | --- | --- | --- | --- |
-| 1 | **sent and "automatic" were in the browser.** Auto mode only runs when page is open ( `useAutomaticReminders`Turn off the website and no one will send it. | `useAutomaticReminders.ts`、`delivery.ts` | Server Timed Tasks (Netlify Scheduled Action) run once a day `planReminders`, enter the outbox table and send it by the sender; Browser Read-only Results |
-| 2 | **task link in browser `demoLinkKey` Signature** | `taskAccess.ts` It's... `signature()` | secret key only places server environment variables and signatures/certifications are on the server |
-| 3 | **The entire student organization is a big** object for JSON. `sequence` is a counter in this object; Two people do the same thing overlay each other. | `store.tsx`、`ReminderRuntime.sequence` | Self-enhancement of id/ services with database; The table's right. `candidateId` Create only constraint |
-| 4 | **doesn't have "storage interface" on this floor.** `adapter.ts`、`batch.ts`、`message.ts` Read and write the whole thing. `DemoState` | Same source as above | Take one. `ReminderRepository`(read tasks/people/runtime, write reference/update), the browser version is done with localStorage and the server version with a database; The engine's not moving. |
-| 5 | **"One One Mail" doesn't exist in the engine.** Now a reminder = One task = one letter where the cap of 2 per person per day leads to bug above | `engine.ts` `limitReason()`、`mail.ts` | Add a step "at the recipient ' s merge": the same person 's candidacy for the same day is synthesized in a digest, with an upper limit calculated by "enclosed" instead of "task"; Record record of one line for each task but share the same `messageId` |
-| 6 | **double counting.**Every single one of them runs again when the batch records. 2–3Secondary complete  `planReminders`(sort, authenticate mail, confirm each); `taskReminderSummary()` It's an entire reminder center for a mission. | `batch.ts`、`adapter.ts`、`message.ts`、`centre.ts` | (a) One request is counted only once, plan down; It's more important on the server. |
-| 7 | **two alarm systems coexist.** Old `nudges` / `protocolLog` / `silenceCases`（`engine/followup.ts`、`lib/reminderQueue.ts`and new `reminderRuntime` It's the same thing. `Today` "Enable updated references" | Multiple | Only new accounts will be moved when migrated to the database; Old records for one-time read-only import |
-| 8 | **date does not have a time zone.** `today` It's a show time clock. `YYYY-MM-DD` | `state.today` | The server calculates "Today" by using the current event time zone (ASU = America/ Phoenix) |
-| 9 | Every time you read the archive, you take the whole account. `isReminderRuntime`The books are growing indefinitely. | `runtime.ts` | Replaced by table structure in the database; Browser Cache Only Recent |
+|1| **Sending/automatic behavior live in browser.** `useAutomaticReminders` runs only while page open | `useAutomaticReminders.ts`, `delivery.ts` | Daily server schedule (Netlify Scheduled Function) runs `planReminders`, writes outbox, sender delivers; browser reads results |
+|2| **Task links signed with browser `demoLinkKey`** | `taskAccess.ts` `signature()` | Server-only environment secret/signing/verification |
+|3| **Whole club is one JSON object**, `sequence` an internal counter; simultaneous users overwrite each other (code acknowledges no localStorage atomic compare-and-swap) | `store.tsx`, `ReminderRuntime.sequence` | Database generated IDs/transactions; unique `candidateId` constraint on deliveries |
+|4| **No storage-interface layer.** `adapter.ts`/`batch.ts`/`message.ts` directly read/write whole `DemoState` | Same | Extract `ReminderRepository` (read tasks/people/runtime, write delivery/update), localStorage/browser and database/server implementations; engine unchanged |
+|5| **One email per person absent from engine.** One reminder =one task =one email; 2/day cap causes bug above | `engine.ts` `limitReason()`, `mail.ts` | Group same-person/day candidates into digest; caps per email, not task; delivery row per task sharing `messageId` |
+|6| **Repeated calculation.** Batch items rerun full `planReminders`2–3 times (sorting/mail validation/confirmation); `taskReminderSummary()` calculates entire center for one task | `batch.ts`, `adapter.ts`, `message.ts`, `centre.ts` | Compute one plan/request and pass down; more important server-side |
+|7| **Two reminder systems coexist.** Old `nudges`/`protocolLog`/`silenceCases` (`engine/followup.ts`, `lib/reminderQueue.ts`) and new `reminderRuntime`; `Today` retains "Enable updated reminders" compatibility | Multiple | Migrate only new ledger; one-time read-only legacy import |
+|8| **No date time zone.** `today` is demo-clock `YYYY-MM-DD` | `state.today` | Server computes today in club time zone (ASU=America/Phoenix) |
+|9| Every save read validates entire indefinitely growing ledger (`isReminderRuntime`) | `runtime.ts` | Database table constraints; browser cache recent data only |
 
-Conclusion: **engines ( "who should be reminded and when") are suitable for moving to the server; Storage, dispatch, signature and distribution of the four layers are still demonstration methods, which are reworked when accessing a database, but no rewriting of rules is required.** proposes to start with 5 (by person) as it addresses interface problems and existing bugs, which are also prerequisites for any new interface programme.
+Conclusion: **engine (who/when to remind) is server-ready; storage, sending, signatures, concurrency remain demo implementations needing replacement, without rewriting rules.** Do item 5 (person grouping) first: solves UI and bug, prerequisite to every concept.
 
-## 3. Six interface options (with one model with a diagram)
+## 3. Six UI concepts (plus mode appendix)
 
-All programmes share three changes:
-- **separates "alarmable" from "questions to be fixed".** 8 questions are no longer called reminder, put in "Fix first", give numbers by problem type and a fixed button.
-- **a man for an e-mail.** 5 missions  →  3 (Jordan 3 combined 1). button to write "Send all 3 emails", not 5.
-- The **empty block does not show a line number of historical harvests** (sent/ reprinted / no reply), dot History.
+All share three changes:
+- **Separate sendable reminders from issues.**8 issues no longer called reminders; Fix first groups by issue type with count/fix button.
+- **One email per person.**5 tasks→3 emails (Jordan's3 combine). Button "Send all 3 emails", not 5.
+- **Hide empty blocks, condense history to one count row** (sent/replied/no reply); History opens details.
 
-| Figure | Programme | For who? | Advantages | Disadvantages |
+| Image | Concept | Best for | Benefit | Cost |
 | --- | --- | --- | --- | --- |
-| A | Summary of one key | I just want to know what it is today. | (a) Under a screen; At least words; Buttons are most visible | I don't see a specific mission. Let's go inside. |
-| B | Merge by person | I'm used to reminding someone. | At the same time as an e-mail, you cut off someone and don't send it. | The card becomes longer when the number of people (10+) |
-| C | Waterlines | Someone who likes flow charts. | Seeing where every reminder comes to. | Full horizontally, right column needs to be closed |
-| D | A week's axis. | I want to see the next few days. | Same as Plan's subway map; Look at this guy's e-mail. | Only for 7 days; The question is not on the map. |
-| E | Table + Bulk Bar | People who want to sort out a lot of things. | The highest information density, like Gmail | Most like the current list, with the least visual attraction. |
-| F | Reviewed by seal | Mode 2/3, someone who wants to see the mail before sending it. | The message sent is shown directly in the right column, Send & next | One seal is slower than one key. |
-| G | Annex: Three Modes | — | (a) The same group of tasks: model 1 not to press, see exceptions and may be suspended; Mode 2 to open Gmail drafts on a case-by-case basis (the browser cannot open 3 draft windows at once); Mode 3 One full-time + 10 second to undo | — |
+|A| One-click overview | Presidents asking “where do I click today?” | One screen, least text, clearest button | Task details require click |
+|B| Group by person | Presidents thinking “remind this person” | One-to-one with emails, uncheck person to omit |10+ people produce wrapped/longer cards |
+|C| Pipeline | Flowchart users | See progress at a glance (fix→send→await reply→replied) | Uses full width, rail must collapse |
+|D| Weekly timeline | Users looking ahead | Matches Plan subway map; click dot for person's email |7 days only; issues off graph |
+|E| Table +bulk bar | Many tasks/filter/sort | Highest density, Gmail-like | Closest to current list, least visual appeal |
+|F| Review email by email | Modes2/3, users reading before sending | Actual outgoing email in rail, Send & next | Slower than one click (send-all also provided) |
+|G| Appendix: three modes | — | Same tasks: mode 1 no click, exceptions/pause only; mode 2 guided Gmail drafts (browser cannot open 3 windows at once); mode 3 send-all +10-second undo | — |
 
-My suggestion: **A when default first screen + F when "Preview emails" enter page**; If you like graphics, replace "Next 7 days" in A with a D small time axis. B's "mege by person" is a change in the data layer, and any program has to be done.
+Recommendation: **A default landing +F review via Preview emails**; for visuals, replace A Next 7 days with D small timeline. B's grouping is data-layer work required by all.
 
-## 4. Nothing to do / next
+## 4. Exclusions/next
 
-- No code change, no word change budget. 160/450- First screen for scenario A 90in the budget).
-- There is no map of the cellular version; The selected scenario is followed by a mobile phone map and an interactive text.
-- Implement the sequenced recommendation: one engine fixes the upper limit bug (with unit tess) § 2 new interface 3 server outbox/timed task (when the database is received). There is no need for a database. You can do it first at preview14.
+- No code/word-budget changes (Today 160/450; conceptA first screen ~90 words, within budget).
+- No mobile mockup; after selection, create mobile/interactive designs.
+- Suggested order: ①engine person grouping/cap bug +unit tests →②UI →③server outbox/schedule with database.①②can happen on preview 14 without database.

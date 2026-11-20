@@ -1,14 +1,14 @@
-# Phase I functional matching development compacts
+# Stage 1 responsibility-matching development contract
 
-2026-11-16 (America/Phoenix) A2/B2/C2 Phase 1 approved by Juanxi.
+2026-11-16 (America/Phoenix) · Juanxi approved A2/B2/C2 stage 1.
 
-The only original of the shared type is `src/matching/contracts.ts`, the wrong type in `errors.ts`, and public exports are maintained by master Agent at `index.ts`. Develop Agent does not modify the three files, existing product data or UI. Gaps were identified to be fed back to the main Agent and continued with the same revision.
+The sole source of truth for shared types is `src/matching/contracts.ts`; error types are in `errors.ts`; the lead Agent maintains public exports in `index.ts`. Development Agents must not edit those three files, existing product data, or UI. Report gaps to the lead Agent first and continue against the same revision.
 
-## Data Agent Delivery
+## Data Agent deliverables
 
-Document ownership: `src/matching/library.ts`, `repository.ts`, necessary private authentication modules and corresponding `.test.ts` files.
+File ownership: `src/matching/library.ts`, `repository.ts`, necessary private validation modules, and corresponding `.test.ts` files.
 
-The public function must be:
+Required public functions:
 
 ```ts
 createEmptyMatchingState(organizationId: string): MatchingState
@@ -21,44 +21,44 @@ loadMatchingState(storage: MatchingStorage, organizationId: string): MatchingLoa
 saveMatchingState(storage: MatchingStorage, state: MatchingState, expectedStoredRevision: number | null): void
 ```
 
-`createEmptyMatchingState` and `applyMatchingCommand` are exported from library, the rest from repository. Error uniform to `MatchingError`, `loadMatchingState` returns the result of saving source text; No other browser keys can be read, hidden writing back or access to `window` when the module is imported.
+Export `createEmptyMatchingState` and `applyMatchingCommand` from library; the rest from repository. Use `MatchingError` consistently; `loadMatchingState` returns a result preserving raw input. Do not read other browser keys, write back implicitly, or access `window` on module import.
 
 Rules:
 
-- Status and command are validated when running, with reference to the current organization; Strictly protects ID, reference, state and non-written fields. The function is updated and turned and the duties are added; Updates that repeat confirmations or do not have actual content changes remain unchanged.
-- For each actual change state review plus one, add an event containing the full command and use the incoming actor and audit time without calculating the date of the task.
-- Replay the same network of operations Id with exactly the same command; Conflicting with ID orders. The new operation must meet the expected review.
-- The references to responsibility, role, member, requirements and strategy cannot be organized in a coherent manner. (a) Each `(workflowId, stepId)` uniquely, keys cannot be collated by easily collapsing strings; The only thing that determines the role of a single, same member is the default and back-up. Back-up requires a primary recipient.
-- Archiving retention duties, references and history, whereby the parser ceases its new assignment. Merge archive source, set mergedIntoId, re-reference the configuration and convert the target duties and affected requirements to be confirmed; There's an assignment recips not to rewrite. A conflicting candidate strategy or an include/exclude decision to reject the entire merge is not optional.
-- (c) The assignment of a record as an additional reply, checking the organization, reference to mission steps/functions and current revisions; The re-qualification of candidatures is the responsibility of the resolver/future business interface, and Library itself does not grant missions or write actual tasks.
-- Storage key to fix the tissue ID after `platypus.matching.v1:` plus encodeuricompont. If not available, load returns empty and new empty state; Damaged, unsupported version, organizational mismatch, stored abnormally reserved raw or corresponding error, not Reset demo.
-- Only keys that do not exist are used to verify existing storage prior to saving. Damaged or new versions of data cannot be covered; The same content can be saved by the application, and older snapshots are not allowed to cover newer snapshots. The browser read/check/write is not a cross-labeled atom CAS, and this limit must be specified in the delivery.
+- Runtime-validate states/commands and check references within the current organization; strictly protect IDs, revision, status, and nonwritable fields. Updating responsibility content returns it to draft and increments its revision; reconfirming or updating without actual content changes is a no-op.
+- Every actual mutation increments state revision by one and appends an event containing the full command, using supplied actor/audit time; do not calculate task dates.
+- Network replay of the same operationId with exactly the same command returns original state; same ID with different command conflicts. New operations must satisfy expectedRevision.
+- Responsibility, role, member, requirement, and policy references must not cross organizations. Each `(workflowId, stepId)` is unique; do not form collision-prone concatenated-string keys. One policy per responsibility, one member-responsibility decision per pair; primary and backup must differ; a backup requires a primary.
+- Archive retains responsibilities, references, history; resolver stops new assignments accordingly. Merge archives source, sets mergedIntoId, reconnects configuration references, and returns target responsibility/affected requirements to awaiting confirmation; existing assignment receipts unchanged. Conflicting candidate policies or include/exclude decisions reject the entire merge; never arbitrarily choose one.
+- Assignment records are append-only receipts; validate organization, task-step/responsibility references, and current revisions when recording. Resolver/future business integration reevaluates eligibility; library itself grants no permissions and writes no actual tasks.
+- Storage key is fixed `platypus.matching.v1:` plus encodeURIComponent organization ID. Missing key loads empty with a fresh empty state; corrupt, unsupported-version, wrong-organization, or storage-error cases retain raw or corresponding error; never Reset demo.
+- Before saving, check stored revision; expectedStoredRevision=null only for absent key. Never overwrite corrupt/future-version data; identical content may save idempotently; older snapshots cannot overwrite newer. Browser read/check/write is not atomic cross-tab CAS; explicitly document that limit in handoff.
 
-## Resolver Agent Delivery
+## Resolver Agent deliverables
 
-File ownership: `src/matching/resolve.ts`, corresponding to `.test.ts`. Private field data can be used in the test file, and no changes to others ' modules can be made.
+File ownership: `src/matching/resolve.ts`, corresponding `.test.ts`. Private fictional test data allowed; do not edit others' modules.
 
-The public function must be:
+Required public functions:
 
 ```ts
 getMatchingCandidates(state: MatchingState, references: MatchingReferences, responsibilityId: string): MatchingCandidate[]
 resolveMatchingAssignment(state: MatchingState, references: MatchingReferences, request: MatchingRequest): MatchingResolution
 ```
 
-This is a pure function module that does not read and write storage, does not call AI, does not calculate date, does not quote old `RoleFunction`.
+Pure functions: no storage access, AI, date calculation, or old `RoleFunction` references.
 
 Rules:
 
-- Only confirmed roleBinding + membership or confirmed direct path. Contributed exit covers all inheritance paths; Press member ID to weigh and stabilize the sorting. The missing member quote does not become a qualified candidate; Expiration of the role cannot create eligibility for succession.
-- Active=false, qualified missing; Availability=unavailable separate columns; (a) Lack of the necessary qualifications to unknown; It is not automatically pre-selected. Unknown is not considered positive information.
-- There are no valid requirements, drag/needs_split, missing duties/braft/archived, inconsistent or inconsistent duplicate IDs that explicitly return the unresolved result and cannot be randomly selected.
-- Confirmed to press statusRevision to find the last contact decision for this task; The task/workflow/step must be matched together to prevent cross-process collusive steps. Remains eligible, available and the requirements/function revisions remain unchanged and are not reassigned as a result of default strategy changes; Upon expiry, the owner Id=null, existing OwnerId reserves, status needs_review, does not automatically recommend a replacement to cover the decision.
-- Unidentified proposed return is not considered to have taken over. (b) No confirdback: valid prism preselection only; returns backup_requires_conference; Pre-selection if there is no default and only one eligible candidate; Multiple candidates to be elected. The strategy itself shows problems when the reference fails and does not choose another person at will.
-- Soggested OwnerId is separated from ownedId, and only confirmed and valid returns can obtain owned Id. Backup advice status=neds_review; Primari and sole_candidate status=sumgested.
-- Returns the candidate, using ID and revision, the input order changes cannot change the selection. The negative reasons for the candidacy are clearly retained with a shared list.
+- Only confirmed roleBinding + membership or confirmed direct include provides an eligibility path. Confirmed exclude overrides every inherited path; deduplicate by member ID, sort stably. Missing member references never become eligible candidates; invalid roles cannot confer inherited eligibility.
+- active=false or qualification missing means ineligible; availability=unavailable is separate; missing required qualification means unknown; availability=unknown is not automatically preselected. Unknown is never affirmative evidence.
+- No valid requirement, draft/needs_split requirement, missing/draft/archived responsibility, organization mismatch, or inconsistent duplicate IDs explicitly returns unresolved; never arbitrarily choose a member.
+- For confirmed receipts, find this task's latest confirmed decision by stateRevision; task/workflow/step must all match to prevent same-named steps crossing workflows. Retain if still eligible, available, and requirement/responsibility revisions unchanged; default-policy changes do not reassign. If invalid, ownerId=null, retain existingOwnerId, status needs_review; do not automatically suggest a replacement over the decision.
+- Unconfirmed proposed receipts do not mean takeover. With no confirmed receipt: valid primary is only preselected; if primary unusable and backup eligible/available, return backup_requires_confirmation; with no default and exactly one eligible available candidate, preselect; multiple candidates await selection. Invalid policy references show a problem rather than arbitrarily choosing someone else.
+- Keep suggestedOwnerId separate from ownerId; only a valid confirmed receipt produces ownerId. Backup suggestions have status=needs_review; primary and sole_candidate have status=suggested.
+- Return candidates, evidence IDs, and revisions; input order must not affect selection. reason uses shared enum; retain explicit negative candidate reasons.
 
-## Main Agent Delivery
+## Lead Agent deliverables
 
-Maintenance of contracts and public exports, preparation of 10–20 projectal members, readable exercises and tests for two different workflows, 3 access/old archive compatible design. Phase I does not modify existing `DemoState`, SchemaVersion, business portals, AI interfaces, date engines or web pages.
+Maintain contracts/public exports; prepare readable exercises/tests using 10–20 fictional members and two distinct workflows; write stage 3 integration/old-save compatibility design. Stage 1 does not modify existing `DemoState`, schemaVersion, business entry points, AI endpoints, date engine, or pages.
 
-Phases 2, 3 not ratified. (b) Two developers, Agent, each to submit and not send integrated branches; Main Agent is integrated into the package and arranges for an independent read-only review.
+Stages 2/3 are not approved. Both development Agents commit independently without pushing the integration branch; lead Agent integrates packages and arranges independent read-only Review.

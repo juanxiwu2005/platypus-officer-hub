@@ -1,42 +1,42 @@
-# WP4 Settings and Teams:
+# WP4 setup and team: acceptance and handoff
 
-2026-10-22，ChatGPT。The working branches are `v1`, `main` and `/legacy/` unchanged.
+October 22, 2026 · ChatGPT. Work branch: `v1`; `main` and `/legacy/` were not changed.
 
 ## Completed
 
-- President Five-Step Settings: Standing Organization and ASU Tempe, 2–3 digital targets, roll templates and generic functions, invitation and presentation configurations, first event. Support for increase or decrease of role and change of name; Officer name can be filled in item by item (form import left to v1. 50).
-- Step 4 saves Calendar links, Gmail/WhatsApp channels, planning instructions, folder links and small projectal files as confirmed by Juanxi. Could not close temporary folder: %s Documents are local attachments only, AI does not read files; The description and the roll map are checked.
-- `/api/command` and local fallback are used in step five to accept only one new active operation; AI date discarded. A person confirms the date and properties of the activity and uses a `buildEventNodes()`/ `applySchedule()` preview and generation. Cancel the non-writing of data; The final button clearly indicates that you will replace the local presentation workspace, which is checked for confirmation. After completion, the objectives are zero and old tasks, records, applications and invitations lapse.
-- Office of the Independent Mobile Phone Page `/#/join?invite=…`: Five messages, career goals/interests/desirations with optional weekly free time. Invitations are limited to the site identity demonstration of the browser; Does not represent live login or cross-equipment authentication.
-- The setup page can modify the target target, role name and function, presentation configuration, student buffer and follow-up days; Only the president/ vice present may be changed. Each person only edits his or her preferences, his or her busy schedule and personal buffers. Turn off the personality and switch to a standard one-day buffer. The date re-counting remains with the rule engine, and the official ASU date remains unchanged. Others hide a numerical explanation for their personal buffer when looking at the task.
-- Team page: Future 14 day workload slots and block-by-item basis, contribution list and source, meeting space. Light/medium/heavy workload counts 1/2/3 points, 0–3 for Light, 4–7 for Balanced, 8+ for Heavy; Do not show working hours, do not rate with personal buffers. The contribution follows WP3 to complete the record and to re-examine and display and list it; The old demo scores are aligned to the established formula (the light task is completed on time with 2 points); The original recheck only updates the presentation score expectations and tests behaviour retention.
-- The meeting searches only for the weekly free hours filled out by the office itself, avoiding busy weeks, ASU closing days, end-of-cycle weeks and school holidays. Displays a maximum of three non-overlapping time periods; Calendar button opens only the draft calendar of Arizona time and does not send invitations.
-- Role Synchronizes the name to the action flow lanes, role menus, group pages, setup pages and Handoff 's role manual directory. The full AI manual and leadship translation are still WP5; The catalogue was not described as a full manual.
+- Five-step president setup: organization/ASU Tempe, 2–3 numeric goals, role templates/generic functions, invitations/demo configuration, and the first event. Roles can be added/removed/renamed and officer names entered individually; spreadsheet import remains v1.5 work.
+- As Juanxi confirmed for this package, step 4 saves a Calendar link, Gmail/WhatsApp channel, planning notes, folder link, and small fictional planning files. It performs no login, account reading, or connector authorization. Files stay local and are not read by AI; people review notes and role mappings.
+- Step 5 reuses `/api/command` and local fallback, accepting one create-event operation only and discarding AI dates. A person confirms date/properties before `buildEventNodes()` / `applySchedule()` previews/generates the event. Cancelling writes nothing. The final button explains that it replaces the local demo workspace and requires a confirmation checkbox. Completion resets goal progress to zero and invalidates old tasks, records, requests, and invitations.
+- Separate officer mobile page `/#/join?invite=…`: five information groups, including career goals/interests/expectations, plus optional weekly availability. Invitations demonstrate fictional identities within the same browser; they are not real login or cross-device authentication.
+- Settings allows leaders to edit organization goals, role names/functions, demo configuration, club buffers, and follow-up days. Only president/VP can change these. Each person edits only their own preferences, busy weeks, and personal buffer. Disabling personalization uses the standard one-day buffer. Only the rule engine recalculates dates; official ASU dates remain fixed. Other viewers do not see the numerical personal-buffer explanation on tasks.
+- Team shows workload bands for the next 14 days with itemized evidence, contribution rankings/sources, and common meeting availability. Light/medium/heavy work counts 1/2/3 points: 0–3 Light, 4–7 Balanced, 8+ Heavy. It does not display hours or score personal buffers. Contributions reuse WP3 completion records, deduplicate, and show ties. Seed scores were aligned with the existing formula: an on-time light task earns 2 points. Existing deduplication tests retain their behavior; only expected seed scores changed.
+- Meeting search uses officers' self-reported weekly availability, excluding busy weeks, ASU closures, finals, and semester gaps. Show at most three non-overlapping slots. Calendar opens an Arizona-time draft without sending invitations.
+- Role renaming propagates to event lanes, role menus, Team, Settings, and Handoff's handbook directory. Full AI handbooks and transition seasons remain WP5; the directory is not presented as a complete handbook.
 
-## What? Acceptance (approximately 5 minutes)
+## Acceptance, approximately five minutes
 
-Preview: [ WP4 settings page ](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/settings), requires login to Netlify.
+Preview: [WP4 Settings](https://deploy-preview-1--platypus-officer-hub.netlify.app/#/settings), requiring Netlify login.
 
-1. **Replay setup** and start timing; Change the name of student organization, gradually Continue. The fourth step is to look at the channels, links and plan attachments to the field; Step 5 **Prepare first workworkflow**, confirm date, check and click **Approve & start workspace**. Should go into Events and see the first flow chart. This operation replaces the demonstration data; Reset demo at any time. Please record whether your first departure is less than five minutes; The speed of the program cannot be a substitute for the live first time.
-2. Settings: Replace the second Rowe Title with **VP of Finance** **Save club settings**. Events should see the name of the new swimming lane, Handoff should see **VP of Finance handbook**.
-3. Settings → **Invite officers** → **Try officer setup**。Choose Maya, rechannel/morning/ busy week, save five questions. **View my tasks as Maya Chen**; Back to Settings should only see Maya's personal preferences. Confirm if the cell phone has been completed in less than two minutes.
-4. Team — Workload, source of contributions. Bottom default 2026-10-22, all officers should share three and a half hours from 18:30. Changed to 2026-12-08 should state that the end of the week etc. was inconclusive. Don't send invitations.
-5. **Reset demo**. Shouldn't be used for each update; The old setting invitation will expire.
+1. Select **Replay setup** and start timing. Change the organization name and Continue through the steps. Inspect channels, links, and fictional planning attachments in step 4. In step 5 select **Prepare first workflow**, confirm the date, check confirmation, and select **Approve & start workspace**. Events should show the first workflow. This replaces demo data; Reset demo restores it. Record whether a first-time walkthrough takes under five minutes; automated speed does not substitute for a person's first-use measurement.
+2. Settings → rename the second Role title to **VP of Finance** → **Save club settings**. Events should show the renamed lane, and Handoff should show **VP of Finance handbook**.
+3. Settings → **Invite officers** → **Try officer setup**. Choose Maya, update channel/morning-evening/busy weeks, and save the five questions. Select **View my tasks as Maya Chen**. Back in Settings, only Maya's personal preferences should be editable. Check whether the mobile flow takes under two minutes.
+4. Team → expand workload/contribution sources. On the default 2026-10-22 date, all officers should share three half-hour slots starting at 18:30. Set 2026-12-08: it should explain finals-related unavailability and return no slots. Do not send an invitation.
+5. Finish with **Reset demo**. Refresh should not reopen setup each time, and old setup invitations should be invalid.
 
-## Validation Results and Limits
+## Verification and limits
 
-- `npm run check`: build, 174 unit tests, 76 computers/cellbrowser tests The original 146 unit tests and 62 browser tests retained. Adds a check to overwrite settings, rule dates, AI date discards, private buffers, invitations to reset, file limits, meeting overlaps, five-step process and roll rename.
-- The page check script is five steps and five questions in two dimensions, with a maximum of five minutes/two minutes; This only proves that the process can be completed and that those who have not yet used it for the first time also meet their time targets.
-- (a) Up to three per 512 KB, total 1 MB; Saves the current browser, emptys the browser or Reset demo and removes it. Do not release research data or live personal information.
-- Currently is a local presentation: View as can be used to switch field identities; Privacy display rules are not server accounts. Neither invitations nor task links support cross-browser/equipment; Live account read but not done, in accordance with this decision.
-- AI interface tested with analogue response and failure fallback, live DeepSeek/AIR free expression quality still needs to deploy environmental validation; There has been no change in the way suppliers are configured.
-- Meeting time was based on self-reported spare time and was not aware of actual calendar conflicts. The default school is ASU Tempe.
-- Build through; There are volume tips for individual files that exceed 500 KB and do not affect functionality. The resources can then be split by page.
+- Local `npm run check`: build and all 174 unit / 76 desktop-mobile browser tests passed. All previous 146 unit / 62 browser tests remain. Added checks cover setup permissions, rule-calculated dates, AI-date rejection, private buffers, invitation reset, file limits, meeting intersection, the five steps, and role renaming.
+- Automated desktop/mobile walkthroughs complete the five steps/questions within five-/two-minute caps. This establishes flow completion, not first-time human performance.
+- At most three planning files, 512 KB each and 1 MB total, stored in the current browser. Clearing browser data or Reset demo removes them. Never use research material or real personal information.
+- Local demo only: View as switches fictional identities; UI privacy rules are not server-account authorization. Invitations/task links are not cross-browser/device. Real account access was not implemented, as agreed.
+- AI tests use mocked replies and failure fallback. Live DeepSeek/AIR freeform quality still needs deployed validation; provider configuration did not change.
+- Meeting results use reported availability and cannot detect actual calendar conflicts. Default campus: ASU Tempe.
+- Build passed with a warning for one file exceeding 500 KB. This did not block the feature; later page-level splitting can address it.
 
-## WP5. Pick it up from here.
+## WP5 starting points
 
-- The demonstration schema vension is **4**, and the old structure restores the seeds. `src/pages/Setup.tsx`, `Join.tsx`, `Settings.tsx`, `Team.tsx`; Share forms on `src/components/SettingsForms.tsx`.
-- Set authentication and writing in `src/data/settings.ts`; `saveClubSettings`/ `saveProfile`/ `completeSetup` of the store. Do not send the entire state directly to AI. It contains personal settings, local attachments and a demonstration signature.
-- `org.workspace` save demonstration configuration; `org.inviteCode` Replace when reset or complete new settings. Handoff currently has only a directory of manuals synchronised with rale, and WP5 continues to complete the manual translation and handbook.
-- `src/engine/team.ts` Management of workload, aggregation of contributions and cross-fertilization of meetings. The date of the meeting is a date selected by the person and the end-of-mission date is still calculated by `schedule.ts`. There are no new ASU rules, so `docs/RULES.md` remains unchanged.
-- `/private/tmp/platypus-officer-hub-wp4` is not GitHub original history; The remote file has been verified and submitted to the parent on the `v1` mouth with GitHub up the handoff. Don't push this temporary repository independent history to the far end.
+- Demo schema **4**; older schemas restore seed data. Pages: `src/pages/Setup.tsx`, `Join.tsx`, `Settings.tsx`, `Team.tsx`; shared forms: `src/components/SettingsForms.tsx`.
+- Validation/writes: `src/data/settings.ts`, through store `saveClubSettings` / `saveProfile` / `completeSetup`. Never send the full state to AI: it includes private settings, local attachments, and demo signing keys.
+- `org.workspace` holds demo configuration. Reset/new setup rotates `org.inviteCode`. Handoff currently has the role-linked directory; WP5 supplies the full transition/handbook.
+- `src/engine/team.ts` handles workload, contributions, and meeting intersection. People choose meeting dates; `schedule.ts` still calculates task deadlines. No ASU rules were added, so `docs/RULES.md` was unchanged.
+- `/private/tmp/platypus-officer-hub-wp4` is not GitHub's original history. After remote-file verification, changes were sent through the GitHub commit API along `v1`'s existing parent. Do not push the temporary repository's independent history over the remote.

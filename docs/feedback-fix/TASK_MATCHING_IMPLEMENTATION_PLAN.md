@@ -1,194 +1,194 @@
-# Three-phase implementation plan for functional matching
+# Three-stage duty-matching implementation plan
 
-> **Current state has changed:** Juanxi requires, after a trial, the restoration of main duties prior to re-engineering, withdrawal of current job matching experiences and reading programmes before redesigning them by reference or handwriting. The three phases have been implemented in the current round of fallback and history has become `5e301d9` archive; The original plan and the record are kept below. For an update see ['s existing strategies, ](MATCHING_STRATEGY_FOR_REVIEW.md) and [ fallback handoff ](MATCHING_ROLLBACK_HANDOFF.md). The original interface programme will not continue without new interactive confirmation.
+> **Status changed:** after trying it, Juanxi requested restoring main onboarding, removing the current matching experience, and redesigning from references/sketches after reading the proposal. All three stages rolled back this round; historical implementation `5e301d9` archived. Original plan/acceptance record retained below. Latest: [strategy for review](MATCHING_STRATEGY_FOR_REVIEW.md), [rollback handoff](MATCHING_ROLLBACK_HANDOFF.md). Do not continue the original UI without renewed interaction confirmation.
 
-2026-11-16(America/Phoenix) . Codex . Plan baseline `claude/fervent-thompson-e2j5u2@3a9fa94`
+2026-11-16 (America/Phoenix) · Codex · Plan baseline `claude/fervent-thompson-e2j5u2@3a9fa94`
 
-Juanxi has selected and confirmed A2, B2, C2:AI from drafting; (a) Mission-related responsibilities; Multiple persons with responsibilities are based on default receivers and backups. The plan divides this combination into three separate stages of acceptance, with the objective of quickly creating reusable matches and accessing existing task creation processes.
+Juanxi selected A2/B2/C2: AI drafts duties from constitution for human confirmation; tasks link to duties; multiple people per duty use defaults/backups. Three independently reviewable stages quickly establish reusable matching architecture and connect existing creation flows.
 
-**Implementation threshold from Juanxi's request: “I approve before the stage begins”. 2026-11-16 Juanxi has been approved in three phases, the latest being Continuation 3. The** phases are developed, integrated and reviewed independently of the Worldtree; The stage approval is dealt with separately from the merge `main`, which is officially published. The actual results of phase 3 and the restrictions on access can be found in stage [ 3 for delivery to ](MATCHING_STAGE3_HANDOFF.md).
+**Execution gate is Juanxi's instruction: “Start each stage after I approve.” On 2026-11-16 Juanxi separately approved all three; latest “continue stage 3.”** Independent-worktree development/integration/review per stage; stage approval separate from `main` merge/formal release. Actual stage 3 results/gate limits: [handoff](MATCHING_STAGE3_HANDOFF.md).
 
-## Selection of scope and deliverables
+## Selected scope/goals
 
-| Options | Achieving the Goals for the current round |
+| Option | Goal |
 | --- | --- |
-| A2 | Keeps the existing view upload and AI rule read; (b) Upgrading responsibilities to independent records with sources, redactable and identifiable; It can always be supplemented by labour. |
-| B2 | The template steps relate to the duties of the organization and then identify candidates according to their responsibilities; Reuse the same function to support different workflows |
-| C2 | (a) The default recipient and backup for each function; Centralize when candidates are not qualified, available or unclear. No first person on the list |
+| A2 | Retain constitution upload/AI role extraction; promote duties to independent sourced/editable/confirmable records; always allow manual additions |
+| B2 | Template steps link to organizational duties, then candidate members; same duties reusable across workflows |
+| C2 | Default assignee/backup per duty; central handling of unqualified/unavailable/ambiguous people, never silently first in list |
 
-The first of the six automatic reminders is completed. New RACI rules, alarm plans, mail, mail jumps, backstage dispatches or organization handoff are not built at the same time in this round. Existing fixed date engines, rules for production identity and existing official websites maintain their respective borders.
+First complete “task matching,” first of six automatic-reminder items. No concurrent new RACI rules, reminder plans, emails, email links, background sending, or organizational handoff. Existing deterministic date engine, production identity rules, and live site keep their boundaries.
 
-Target operation after phase 3: Uploading field coordination  →  review file with function  →  binding member and setting defaults and backups  →  connecting workflow steps to duties  →  processing to be assigned  →  creating actual tasks and saving the assigned source. Repeating the confirmed template does not require a call from AI to select member.
+Target flow: fictional constitution→review roles/duties→link members/default/backup→link workflow steps→resolve unassigned items→create actual tasks/save assignment provenance. Reusing confirmed templates requires no AI member selection.
 
-## Phased arrangements and approval status
+## Stages/approval status
 
-| Phase | Focus | Delivery | Activate Status |
+| Stage | Focus | Deliverables | Start status |
 | --- | --- | --- | --- |
-| 1 | Data contracts and certainty matching rules | Job model, relationships, candidate selection, interpretation and offline exercise results | Technical inspection and independent review completed, delivery |
-| 2 | Constitution AI and Job Settings | Operational Job Repository, Source Review, Member Association, Default and Backup Interface | Development, desktop/cell check and independent review completed for delivery |
-| 3 | Access to Actual Tasks and Integration | Harmonization of matching, old data compatibility, browser and independent review of activities and stand-alone missions | Access and review completed, delivering access; Baseline time-out phase for full door closures 3Delivery  |
+|1| Data contract/deterministic matching | Duty model, relations, candidates, explanations, offline scenarios | Technical checks/independent review complete, awaiting acceptance |
+|2| Constitution AI/duty setup | Working library, source review, member links, defaults/backups UI | Development/desktop/mobile/independent review complete, awaiting acceptance |
+|3| Actual tasks/integrated acceptance | Unified event/standalone adapter, compatibility, browser acceptance/review | Integration/review complete, awaiting acceptance; baseline full-gate timeouts in handoff |
 
-Stages 1, 2 allow for the first exercise of a new module through an independent entrance and phase 3 must be created back to the actual task. The results of only stand-alone exercises cannot be described as complete in all three phases.
+Stages 1 and 2 may use isolated practice entry; stage 3 must reconnect actual creation. An isolated practice page alone is not all three stages complete.
 
-## Common agreement on data and rules
+## Shared data/rule agreements
 
-### Independently preserved relationships
+### Independently stored relations
 
-Phase 1 determines the shared compact of `src/matching/`, followed by Agent developed under the same contract. The following are the concepts that must be expressed: the TypeScript field and the operational signature are submitted and frozen by the main Agent of stage 1.
+Stage 1 establishes shared `src/matching/` contract for later agents. Required concepts below; stage 1 lead commits/freezes actual TypeScript fields/operation signatures first.
 
-| Data | Minimum Contents | Purpose |
+| Data | Minimum | Purpose |
 | --- | --- | --- |
-| Duties | Stable ID, name, definition, deliverer, exclusion, source, confirmation status, revision | Do not rely on roll guesses; Change Retention Link |
-| role and responsibility | Existing role ID, duties ID, confirmation and source | A role can have multiple duties, multiple functions. |
-| I'm sorry, remember. | Existing membership ID, function or roll relationship, manual exception, required qualification, availability | Qualified candidates for re-entry, responsibility not automatically delegated to management |
-| Template Step Requirements | Workstream ID, step ID, main duties, composite task pending mark | Two streams of work can be reused, and the same name moves are not linked. |
-| Default selection rule | Responsibilities ID, principal recipient ID, backup ID | Default arrangements are checked separately from candidatures |
-| Results of this assignment | Task ID, executor, matching basis, rule revision, manual coverage and confirmation | It can be explained that the confirmed result is not covered by recosting. |
+| Duty | Stable ID, name, definition, deliverables, exclusions, source, confirmation, revision | No role-title guessing; rename preserves links |
+| Role/duty relation | Existing role ID, duty ID, confirmation/source | Multiple duties/role, multiple roles/duty |
+| Member eligibility | Existing member ID, duty/role relation, manual exceptions, required qualification confirmation, availability | Deduplicated qualified candidates; duties do not grant administration |
+| Template-step requirements | Workflow ID, step ID, primary duty, unresolved composite-task marker | Shared duties across workflows, no same-name step crossover |
+| Default rules | Duty ID, primary assignee ID, backup ID | Default arrangement checked separately from eligibility |
+| Assignment result | Task ID, actual assignee, matching basis, rule revision, manual override/confirmation | Explainable, recalculation does not overwrite confirmed results |
 
-Roles, members and task identities refer to existing stable IDs and do not copy the entire list of members in multiple locations. The new relationship supports one person with multiple responsibilities and multiple persons with the same responsibilities, as well as managing space for the full follow-up of one person with multiple co-workers.
+Roles/members/tasks reference existing stable IDs; no duplicate full membership lists. Relations support multiple duties/person, multiple people/duty, leaving room for future full multiple-role appointments.
 
-The first version repeats the existing membership input, giving priority to the independent relationship between members and duties. The current `Role.holderId` and `Person.roleId` are still being used by old logics such as missions, handoff, etc., not to pretend that the candidate for duty is a roll administration permissions or to rewrite all members at the same time in this round.
+Version one reuses member input, prioritizing independent member/duty relations. `Role.holderId`/`Person.roleId` remain in legacy permission/handoff logic; duty eligibility is not role administration, and full member management is not rebuilt here.
 
-### C2 Selection Rule for certainty
+### Deterministic C2 selection
 
-1. Keeping valid and confirmed manual assignments; Can not delete folder: %s: No such folder
-2. Finds the current available member from the recognized functional relationship, press Member ID to weigh; A person who expressly fails to meet the requisite qualifications, who has left office or is not available shall not be a regular candidate.
-3. The default recipient is qualified and available to pre-select that person, with an indication of the basis.
-4. When the defaulter is not available and back-up is available, make a backup recommendation and await this confirmation; Don't whisper back-up as it has been taken over.
-5. (a) Pre-selection if the default is not configured but only one qualified candidate is available; The choice is reserved for more than one person.
-6. Returns a clear pending status and cause, not revert `roles[0]` or default president, when there are no duties, no recognized functions, no qualified candidates, unclear qualifications or no available owner.
+1. Preserve valid confirmed manual assignments; invalid assignee prompts resolution, no silent replacement.
+2. Current eligible members from confirmed duty relations, deduplicated by member ID; known unqualified, departed, unavailable people excluded from normally available candidates.
+3. Qualified/available default preselected with explanation.
+4. Unavailable default/available backup: suggest backup, await confirmation; never silently mark accepted.
+5. No default but sole qualified/available candidate may be preselected; multiple await choice.
+6. Missing/unconfirmed duty, no qualified candidates, unknown required qualifications, all unavailable: explicit unresolved state/reason; no `roles[0]`/president fallback.
 
-The first version of the external operational qualification is manually confirmed and the state is capable of distinguishing between known satisfaction, known non-fulfilment and unknown; Do not pretend that the platform has authenticated school system accounts. Assigning, preselection and membership recognition are different states.
+External-action qualifications human-confirmed initially, distinguishing known qualified/unqualified/unknown; never pretend school-account verification. Assignment, preselection, claiming are distinct.
 
-### Duties and working-flow boundaries
+### Duty/workflow boundaries
 
-- Each ordinary enforcement step first relates to a primary responsibility; The composite step retains the status of “need to be split or clearly integrated”, and cannot match only one of the professions to assert that the whole job can be accomplished.
-- Existing 46 standard steps must have an item-by-item map or a clear unresolved mark; Unresolved items cannot be automatically assigned from the background of old functions. The remaining policy responsibilities are not declared to be fully covered without article-by-article checks.
-- Extensions could be validated using a second different editable example process; The round does not build complete free workflow generators or redraw flow canvass.
-- The confirmed template association is used for future tasks; Changes in templates and defaults do not automatically reassign existing tasks.
+- One primary duty per ordinary execution step; composite steps remain “split or define coordination,” not declared fully executable by matching one specialty.
+- Individually map all 46 standard step types or mark unresolved; unresolved cannot autoassign via legacy functions. No full policy-duty coverage claim without itemwise review.
+- Second different editable example validates extension; no complete freeform generator/canvas rebuild.
+- Confirmed template links apply to future tasks; template/default changes never automatically reassign existing tasks.
 
-## 1 Establishing Data Contract and Matching Rules
+## Stage 1: data contract/matching rules
 
 ### Changes
 
-1. The main Agent first establishes a single shared contract, input validation and module export with clear responsibilities, candidates, defaulters, backups, unresolved status and assignment sources.
-2. Create job creation, manual editing, merge, deactivated and quoted pure data operations; The synonym metge is a matter for decision and has been retained or expressly reconnected by the stable ID.
-3. Achieves a unified candidate parser with a C2 selection that does not rely on nine types of `RoleFunction` to match new links.
-4. Designing a version of the matching configuration for reading, writing and importing validation; The rehearsal data is isolated from the old business archive and does not rewrite the old file in advance.
-5. Preparation of readable exercises with 10–20 name field members, two different streams; You can test the rules without asking to wait for AI.
-6. Clear stage 3 access compatible designs for existing archives: field location, reading default values, source, snapshots and necessary outer-storey versions are migrated, written with stage 1 delivery, depending on when accessing.
+1. Lead establishes sole shared contract, input validation, exports: duties/candidates/defaults/backups/unresolved/provenance.
+2. Pure create/edit/merge/deactivate/reference-check operations; humans decide synonym merges; stable references retained or explicitly reconnected.
+3. Shared candidate resolver/C2 selector independent of nine `RoleFunction` categories.
+4. Versioned configuration read/write/import validation; practice isolated from business saves, no premature rewrite.
+5. Readable scenarios with 10–20 fictional members/two workflows; rules testable without AI.
+6. Stage 3 compatibility design—field locations, defaults, provenance, snapshots, necessary outer-version migration—document with stage 1, not improvised during integration.
 
-### Worktree Agent
+### Worktree split
 
-| Work package | Scope of responsibility | Example of document title | Dependence |
+| Package | Scope | Example ownership | Dependency |
 | --- | --- | --- | --- |
-| Main Agent Contract | Share types, public exports, uniform clips and documents | Planned Add `src/matching/contracts.ts`、`index.ts`；Share files only main Agent changes | Finish and check the compilation first. |
-| S1 Data Agent | Job operation, source and confirmation protection, configuration of reading and writing and version validation | Planned Add `src/matching/library.ts`、`repository.ts`The corresponding test. | Worktree from the freeze |
-| S1 Resolver Agent | Qualified candidates, defaulters and backups, unresolved reasons, retention of manual selection | Planned Add `src/matching/resolve.ts`The corresponding test. | Same frozen contract submission |
+| Lead contract | Shared types/exports/fixtures/docs | Planned `src/matching/contracts.ts`, `index.ts`; lead alone edits shared files | Complete/compile first |
+| S1 Data | Duty operations/source-confirmation protection/configuration/version validation | Planned `src/matching/library.ts`, `repository.ts`, tests | Worktree from frozen contract |
+| S1 Resolver | Eligibility/default/backup/unresolved/manual-choice preservation | Planned `src/matching/resolve.ts`, tests | Same frozen commit |
 
-The two developments will be completed by the main Agent, which will then arrange for independent read-only reviews; Problems were repaired by the former head or master of Agent, who prevented reviewers from changing public documents at the same time.
+Lead integrates both, then independent read-only review; original owner/lead fixes issues, reviewer does not simultaneously edit shared files.
 
 ### Acceptance
 
-- Job and role can be named arbitrarily; Two different jobs revert to the same duty ID.
-- Two members are not affected by the order of groups when the results match; One person through more than one role meets only once.
-- The main candidate is valid, backed up with recommendations, is not available, has no qualifications and lacks responsibility gives a separate determination.
-- (a) Protection by manual decision; Archiving duties and deactivated members alert that they cannot continue to be used quietly.
-- (a) Conservation and recovery results are maintained; The old archive did not contain new configurations without empty tasks or personnel.
-- Compatibility of the input to the distribution table, test results and stage 3 for delivery of field scenes is checked by users who do not read code.
+- Arbitrary duty/role names; two workflows reuse duty ID.
+- Two eligible members' results independent of array order; same person eligible through multiple roles appears once.
+- Deterministic valid-default/backup/no-availability/unknown-qualification/missing-duty results.
+- Manual decisions protected; archived duties/invalid members prompt rather than silent use.
+- Save/restore consistent; old saves lacking configuration retain tasks/people.
+- Readable fictional inputs/assignment table, test results, stage 3 compatibility design for noncoders.
 
-Reporting of results after phase 1; Phase 2 awaits approval before being authorized and does not carry out an AI or a Bread advance.
+Report after stage 1; await ungranted stage 2 approval, no early AI/UI work.
 
-## Phase 2 Connect Constitution AI with Job Settings
+## Stage 2: constitution AI/duty setup UI
 
-### User-operated processes
+### User flow
 
-Continues to use the existing constitution upload and roll extraction. Show job bubbles below role; Opens bubbles to see definitions, deliverables and source segments. Users can create new, edit, copy and confirm functions, then tick the recipient from the existing members, and set the default receiver and backup. AI can continue manually if it fails, does not reflect or only recognizes parts of the content.
+Reuse constitution upload/role extraction. Duty bubbles below roles open definition/deliverables/source. Users create/edit/merge/confirm duties, select eligible existing members, defaults/backups. Manual continuation on AI failure/no constitution/partial extraction.
 
 ### Changes
 
-1. Reuse PDF, docx and text readings, and ASU AIR matching; Adds a structured function extraction that does not treat the current short `duties` string as a full directory.
-2. Reuse compatible extensions or internal service branches of the existing constitution interface to keep old structure/duties available; The public request and result contract is managed by the main Agent.
-3. (a) A source text matching check for reference to constitution: the reference not found cannot be marked as a proven source; Manual supplements and AI supplementary recommendations are recorded separately.
-4. Retain existing manual field protection, add partial retesting, retain confirmed content, cancel expired requests and do not modify non-repetition requests.
-5. Adds the responsibility, membership association, default, backup and assignment preview interface for the same solver for 1 at the consumption stage.
-6. Priority is given to the access interface through an independent matching portal; The current portal for Team/Settings is handled centrally by the main Agent.
+1. Reuse PDF/docx/text reading/ASU AIR adapter; structured duty extraction, not short current `duties` strings as complete catalog.
+2. Compatible extension/internal branch of existing constitution endpoint; old structure/duties requests remain; lead owns public request/result contract.
+3. Match quotes to original; unmatched cannot be verified source; distinguish manual additions/AI suggestions.
+4. Retain manual-field protection; local retries/confirmed-content preservation/stale-request cancellation/no repeat requests without changes.
+5. Duty/member/default/backup/assignment-preview UI consumes stage 1 resolver.
+6. Prefer independent matching entry for UI acceptance; lead wires Team/Settings consistently.
 
-### Worktree Agent
+### Worktree split
 
-| Work package | Scope of responsibility | Example of document title |
+| Package | Scope | Example ownership |
 | --- | --- | --- |
-| S2 Constitution AI Agent | Extract service, client-end fit, source verification and simulation interface testing | Planned Add `netlify/lib/matching/` extract module, `src/matching/constitutionClient.ts`；Existing `netlify/functions/constitution.mts` Compatible Extensions |
-| S2 UI Agent | Job library, source review, membership association, default and backup components | Planned Add `src/matching/ui/` Tests with exclusive styles, components; Do not modify other Agent AI or public contracts |
-| Lord Agent | Request contracts, old page portals, shared style import and configuration | `src/App.tsx`、`src/onboarding/`, shared connections such as Settings; Read the design first token |
+| S2 Constitution AI | Extraction/client/source validation/mocked endpoint tests | Planned `netlify/lib/matching/`, `src/matching/constitutionClient.ts`; compatible `netlify/functions/constitution.mts` extension |
+| S2 UI | Library/source review/member/default/backup components | Planned `src/matching/ui/`, dedicated styles/component tests; no others' AI/shared contracts |
+| Lead | Request contract/legacy entries/shared style imports/config | `src/App.tsx`, `src/onboarding/`, Settings wiring; read design tokens first |
 
-Each development Agent submits to create worktree from the same stage of 1 integration. UI uses a simulation of frozen contracts to be developed and the service and interface are independently completed before being jointly validated.
+Both worktrees from same stage 1 integration commit; UI starts with frozen mocked results, then joint verification.
 
 ### Acceptance
 
-- The rale and duties of the professional staff organization can be accurately presented and do not require classification to fixed functions such as programs/marketing.
-- AI product has a verifiable source or clear recommendation mark; Changes, merges, confirmations and refresher saves are available.
-- AI Timeout, format failure, partial failure and stop waiting for manual content not to be lost; No AI can complete the settings.
-- Unlawful or repeated defaulters, non-candidature backups, unclear qualifications and non-availability can be detected.
-- Computers and mobile phones can complete their functional settings, and keyboards and basic accessibility checks are passed.
-- Simulation interface validation is reported separately from live model results; Default not to run a large number of live AI assessments automatically.
+- Fictional specialist club roles/duties accurately shown without programs/marketing classification requirements.
+- AI output has checkable sources or explicit suggestion labels; edit/merge/confirm/refresh persistence works.
+- Timeout/format/partial failure/stop preserves manual content; setup works without AI.
+- Invalid/duplicate defaults, ineligible backups, unknown qualifications/unavailability detected.
+- Desktop/mobile setup, keyboard/basic accessibility passed.
+- Report mocks separately from real model results; no automatic large live evaluation by default.
 
-User acceptance using the function branch preview; If the first draft PR needs to be previewed, this action is included in the approved scope of stage 2 and executed by the main Agent. It is created and attached to this chat and remains unmerge. Reporting of results after phase 2; Phase 3 awaiting approval pending authorization.
+Acceptance uses feature preview; if initial Draft PR needed, include creation in stage 2 approval and lead posts it here, leaving unmerged. Report after stage 2; wait for ungranted stage 3 approval.
 
-## Phase 3 Access to Actual Job Creation and Integration
+## Stage 3: actual creation/integrated acceptance
 
 ### Changes
 
-1. The functions of 1 for the new activity, the first setup and the joint use of the separate task portal are sorted and assigned with links to `newObjects`, `completeSetup`, template saves and corresponding task forms.
-2. Save matching configurations and actual task assignment sources in organizational data, with reference to existing role, member and task ID; Independent exercise data are imported only after explicit confirmation and not as a second long-term business original.
-3. Implementation phase 1 Established archiving compatibility programme. Specific changes involving `DemoState`, schema logic, export or recovery logic must be specified in the delivery prior to this stage; Under stage 3 approval. Saves first to restore snapshots and does not replace user data.
-4. Clear access to the new matching mode: maintain compatibility when old organizations are not configured; Once enabled, the new link returns to process when it lacks responsibility or a candidate and does not sneak back into old `roleFor`.
-5. Keeps the existing `fn` for old pages, dates and other compatible logical uses and new matches no longer limit duties or candidatures with it. The date is still calculated by rule engine.
-6. In the new matching mode, assigns separate records to the memory confirmation. It does not rewrite the status of existing tasks as a whole; The recognition requirements for new tasks are consistent with the selection process and the validation of controlled steps such as budgets does not circumvent established rules.
-7. (b) The primary responsibility mapping, composite delivery and unresolved items for processing the 46 standard steps on a case-by-case basis; Specific reasons why records cannot be allocated automatically. Independent missions allow explicit manual designation as a one-time decision, and gaps in responsibility remain visible and are not concealed through reassignment.
-8. (a) Verifying the same duty library and a parser with a second different workflow; Do not add a second set of role distributors by name.
+1. New events, first-setup events, standalone tasks share stage 1 resolution/assignment, including `newObjects`, `completeSetup`, template save/forms.
+2. Store config/actual provenance in organization data, referencing existing role/member/task IDs; explicit import of isolated practice only, no second long-term business source.
+3. Implement stage 1 compatibility; exact `DemoState`/schema/export/restore changes listed in prior handoff before stage start, within approved stage 3. Save recoverable snapshot first, no data reset.
+4. Explicit new-mode entry: legacy organizations without config remain compatible; enabled mode missing duties/candidates returns unresolved, never silently legacy `roleFor`.
+5. Keep `fn` for old pages/dates/compatibility, no new eligibility constraints from it. Rule engine still calculates dates.
+6. Separate assignment/claim confirmation in new mode; do not mass-rewrite existing states; new claims match selected flow, controlled budget steps preserve rules.
+7. Review primary duties/composite deliverables/unresolved reasons for all 46 standard steps. Standalone explicit manual assignment allowed as one-time decision, duty gap visible, not hidden by reassignment.
+8. Validate same library/resolver with second workflow, no second name-guessing allocator.
 
-### Worktree Agent
+### Worktree split
 
-| Work package | Scope of responsibility | Example of document title |
+| Package | Scope | Example ownership |
 | --- | --- | --- |
-| S3 Workflow Adapter Agent | Template steps, job mapping, matching for existing configurations | Planned Add `src/matching/adapters/`；`src/engine/playbooks.ts`、`workflow.ts` Changes expressly limited to assignments, no change in date rule |
-| S3 Integration Test Agent | Multiple processes, multiple candidates, old archives, recognition and browser returns | New Match Test, FieldCluster, `e2e/` (a) Exclusive examples; Up-to-date behaviour description of the relevant old test |
-| Lord Agent | Status of operations, archived versions, creation of portals and UI connections | `src/data/types.ts`、`store.tsx`、`settings.ts`、`changeReview.ts`、`seed.ts`；Public documents do not cross-modify |
+| S3 Workflow Adapter | Template requirements/mapping/existing graph-creation adapter | Planned `src/matching/adapters/`; assignment-only changes in `src/engine/playbooks.ts`, `workflow.ts`, no date rules |
+| S3 Integration Test | Multiple workflows/candidates/legacy saves/claims/browser regressions | Dedicated matching tests/fictional fixtures/`e2e/`; explain related old-test behavior updates |
+| Lead | Business state/schema/creation/UI wiring | `src/data/types.ts`, `store.tsx`, `settings.ts`, `changeReview.ts`, `seed.ts`; exclusive shared-file edits |
 
-After master Agent completes the integration, independent Review Agent submits a read-only worktree review from the final candidate. The review object must be an integrated result, not just a single Agent branch. The review questionnaire includes repair and re-examination.
+After integration, independent Review worktree from final candidate, read-only; review integrated result, not individual branches alone. Findings separately fixed/retested.
 
 ### Acceptance
 
-- Create actual tasks from existing user portals, where the main implementer of a task is in line with previews and functional bases, and where multiple candidates do not generate duplicate assignments.
-- Creation, reopening, refreshing and export restoration, confirmed assignment and function association maintained; Old saved data do not lose tasks, people or history.
-- The defaulter is disabled, back-up is available, full staff is not available, there are no duties and manual reassignments are routinely used by browsers.
-- Two different streams of work could share responsibilities; Change template does not automatically change historical tasks.
-- The new matching model does not lead back to a fixed function for lack of candidates; Unfinished configuration with clear pending status.
-- Existing dates, missions, recognitions, budgets and handoff-related returns have been passed, distinguishing them from this new issue and giving evidence.
-- Final delivery preview of web sites, simple operating steps, change lists, test results, remaining gaps and rollback portals. Local exercises are not referred to as multiple official services without live cross-equipment organizations.
+- Actual creation through existing entries, assignee agrees with preview/duty basis; multiple candidates do not duplicate tasks.
+- Creation/reopen/refresh/export-restore preserve confirmed links/assignment; old tasks/people/history retained.
+- Browser cases for invalid default/available backup/all unavailable/no duty/manual reassignment.
+- Two workflows share duties; template edits do not alter history.
+- No fixed-function fallback without candidates; incomplete setup explicitly unresolved.
+- Relevant date/permissions/claim/budget/handoff regressions passed; baseline/new failures distinguished with evidence.
+- Final preview, simple steps, changes, tests, limits, rollback. Local practice not represented as formal multiuser service without real cross-device organizational permissions.
 
-Phase 3 does not automatically enter the second RACI for six jobs by simply indicating that this function is completed in the branch and then awaiting user acceptance and subsequent release arrangements.
+Three stages passing means feature complete on branch; await acceptance/release arrangements, no automatic RACI (second of six items).
 
-## Worktree Collaboration and Integration Rules
+## Worktree collaboration/integration
 
-- The remote branch, workspace and upper stage results are checked after each receipt phase has been approved before the development of worktree, distribution code for that phase is established; The unapproved phase does not commence earlier.
-- Following `claude/fervent-thompson-e2j5u2` as an integral branch of the objective, the current name and existing preview identity will be retained without change or deletion.
-- At the same time, a maximum of two developers, Agent, using separate worktrees, branches and unique file ranges; The shared contract was first submitted by the main Agent, which prohibits both sides from inventing different data shapes.
-- Sub-branch uses descriptive names such as `feat/matching-library`, `feat/matching-resolver`, `feat/matching-constitution`, `feat/matching-ui`; Checks whether to rename or be used by another session before actually creating it. Do not borrow existing setup worktree.
-- Sub-Agent submits in his own branch, not to the target branch. (a) Main Agent, read on a case-by-case basis and integrated in the form of reserved submissions, responsible for documents, conflicts, shared documents and final delivery; Don't push, no merge main.
-- Review Agent running after development agent delivery, maintaining and distributing budgets; Read final submission and verification of cross-package interfaces, data protection and no matching results.
-- Using different ports when there is a browser service to test and build non-shared generated directories; Reuse only within the current version, with specific reasons and scope indicated when it was found that additional reliance or configuration adjustments were required.
-- Each stage of the record begins submission, package submission, document changes, test orders, results and limits. Submission and delivery does not per se represent preview deployment or live AI verified.
+- After each approval, verify remote/workspace/prior results, then create worktrees/delegate; no early unapproved stages.
+- Retain target `claude/fervent-thompson-e2j5u2` name/preview identity; no rename/delete.
+- At most two coding subagents, independent worktrees/branches/exclusive scopes; lead commits shared contract first, no competing data shapes.
+- Descriptive subbranches, e.g., `feat/matching-library`, `feat/matching-resolver`, `feat/matching-constitution`, `feat/matching-ui`; check collisions/other-session use first. Do not borrow existing setup worktree.
+- Subagents commit own branches, never push target; lead reviews/integrates preserving commits, owns docs/conflicts/shared files/final push; no force-push/main merge.
+- Reviewer follows development delivery, respecting concurrency budget; final commit/interfaces/data protection/no-match behavior reviewed.
+- Separate browser ports/generated directories for tests/builds; reuse existing dependency versions; explain exact reason/scope before necessary new dependency/build-config change.
+- Record baseline/package commits/files/commands/results/limits each stage. Commit/push does not itself verify preview or real AI.
 
-## Check with rollback
+## Checks/rollback
 
-Phase 1 Recompatible design review for behavioral unit tests, type check and old archive; Phase 2 Increased simulation services, components and desktop/cell operation inspections; Phase 3 Integrated check-ups, related returns and a full release ban. The use of existing `npm run lint`, `npm run build`, `npm run typecheck:netlify`, `npm test` and Playwright, complete `npm run check` remains after the final integration and is not allowed to repeat every Agent.
+Stage 1 emphasizes behavior unit/types/compatibility-design review; stage 2 adds mocked services/components/desktop/mobile; stage 3 integration/related regressions/one full release gate. Use relevant `npm run lint`, `npm run build`, `npm run typecheck:netlify`, `npm test`, Playwright; full `npm run check` after final integration, not repeated by every agent.
 
-Live model is not called for batch regression. The necessary small amount of fielding data drainage is recorded separately from the manual online acceptance, and the simulation results are not referred to as live supplier performance. The first inspection found that the same baseline evidence was retained at the time of the original failure, and did not rely on the deletion of assertions, the replacement of data or a relaxation of the quality threshold.
+No live-model batch regressions. Necessary small fictional diagnostics/manual online acceptance recorded separately; mocks are not provider performance. Preserve same-baseline reproduction for preexisting failures; no deleted assertions/resets/weaker gates to manufacture passage.
 
-Submit it by package and stage for fallback. Stage 3 save compatible snapshots before access; Disable new matching entrances or modes as a priority, then fallback corresponding codes, retain job profiles and existing tasks, not by reset demo as rollback. The specific version of the recovery path is what phase 1 must deliver and stage 3 must test.
+Preserve commits per package/stage. Snapshot before stage 3; prefer disabling entry/mode then code rollback, retaining config/tasks; never Reset demo as rollback. Concrete version-recovery path required in stage 1 and tested stage 3.
 
-## Current status and next steps
+## Status/next
 
-All three phases have been implemented as approved. Phase 3 Connects the duty library to the business and actual tasks, and implements 22 →  23 migration, 46 step-by-step catalogue and cross-label page cover protection. [ stage 1 rehearsal ](MATCHING_STAGE1_HANDOFF.md). [ phase 2 operation and delivery ](MATCHING_STAGE2_HANDOFF.md) [ phase 3 operation, inspection results and restriction of the archive that ](MATCHING_STAGE3_HANDOFF.md) [ has implemented compatible with rollback ](MATCHING_COMPATIBILITY.md). Waiting for Juanxi access; Do not automatically start RACI, alarm plan, mail or incoming office. Could not close temporary folder: %s
+All three implemented under individual approvals. Stage 3 connects library to business source/actual tasks, 22→23 migration, 46-step review catalog, cross-tab overwrite protection. [Stage 1 practice](MATCHING_STAGE1_HANDOFF.md) · [Stage 2 operation/delivery](MATCHING_STAGE2_HANDOFF.md) · [Stage 3 operation/checks/limits](MATCHING_STAGE3_HANDOFF.md) · [Implemented compatibility/rollback](MATCHING_COMPATIBILITY.md). Await Juanxi acceptance; no automatic RACI/reminder plans/email/newcomer onboarding/main merge. Local backup needs synchronization.

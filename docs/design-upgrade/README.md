@@ -1,67 +1,65 @@
-> **Language policy update, November 19, 2026:** write documents, reports, comments, commits, and GitHub notes in English. This supersedes any earlier language instruction quoted in this historical file. Current `AGENTS.md` controls.
+# Interface and Motion Upgrade Plan (design-upgrade)
 
-# Interface and dynamic upgrade plan (design-upgrade)
+> **Status: approved by Juanxi on 2026-11-01** (see `docs/PROGRESS.md` decision log). Integration branch `claude/determined-johnson-yrdxwf` created. Approval excludes merging `main`, DX-20 part 20b, and DX-27's stylesheet consolidation.
+> Source: 2026-11-01 review of `main@c3c9394`, using Apple Design Skills `dickwu/apple-design-skill` and `emilkowalski/skills`'s `apple-design`.
+> Evidence: actual screenshots (desktop 1440, phone 390, dark mode), browser-measured computed styles, line-by-line review of `src/styles.css` and related components.
 
-> **Status: Juanxi approved** at 2026-11-01 (see record of decision `docs/PROGRESS.md`). Integrated branch `claude/determined-johnson-yrdxwf` has been built. Approvals do not include "merge small style files" of 20b and DX-27 from metge to `main`, DX-20.
-> Source: 2026-11-01 review of `main@c3c9394` (with two Skills in Apple Design: `dickwu/apple-design-skill` and `emilkowalski/skills` `apple-design`).
-> Based on: live screenshots (desktop 1440, cell phone 390, dark colour), computational styles from browsers, line-by-line reading of `src/styles.css` and related components.
+## Current branch situation (2026-11-01, Juanxi's decision)
 
-## Current branch status (2026-11-01, Juanxi decision)
+- **Integration branch = `claude/determined-johnson-yrdxwf`**, not `integration/v1.6`: this session's credentials can push only this branch; other branches and all tags return 403 (see ROLLBACK_LOG.md's "Why pushes fail"). Juanxi approved using it directly for the v1.6 preview. The exception to AGENTS.md 8.1's no-AI-name branch rule is recorded.
+- Preview is **PR #10** (`claude/determined-johnson-yrdxwf` → `main`, Draft). PR #9 (`integration/v1.6`) is closed; GitHub cannot delete PRs or reuse numbers.
+- Because only this branch is pushable, **package branches (`design/dx-NN-…`) exist only in working worktrees**. Their commits enter the integration branch via `--no-ff` merges, preserving complete GitHub history and enabling `git revert -m 1 <merge-commit>`. To publish those branch names and `dx/*` tags, an authorized account can run ROLLBACK_LOG.md's restoration commands.
+- All references below to "integration branch" mean this branch.
 
-- **Integrated branch = `claude/determined-johnson-yrdxwf`** (not `integration/v1.6`). Reason: The git certificate for this session can only push the branch and push the other branches and all labels back to 403 (see "Why couldn't it?" by `ROLLBACK_LOG.md`). Juanxi agrees to use it directly for v1. 6 previews. This is a violation of `AGENTS.md` 8.1's "branch name without an AI" which has been recorded in the record of the decision.
-- The preview is **PR #10** (`claude/determined-johnson-yrdxwf`  →  `main`, Draft). PR #9 (`integration/v1.6`) is closed and GitHub cannot delete the PR, nor can he repeat the number.
-- Because this branch is the only one that can be pushed, **work page (`design/dx-NN-…`) exists only in** of the worktree working. Their submission was submitted via `--no-ff` merge into `claude/determined-johnson-yrdxwf`, so GitHub has a complete history and can always be used for `git revert -m 1 <merge-commit>`. To have these branch names and `dx/*` tags appear on GitHub, execute the "creative order" in `ROLLBACK_LOG.md` with a account number of persons.
-- Anything that says "integrated branch" below, now refers to this branch.
+## Reading map
 
-## Which file first?
-
-| Documentation | Contents |
+| File | Contents |
 | --- | --- |
-| `DETAIL_LIST.md` | The full list of details (58, each with the status quo, evidence, recommendations, work package) |
-| `PHASES.md` | 7 stages, 27 work package, dependencies, file tabs, "start passwords" for each stage |
-| `work-packages/DX-NN-*.md` | One note for each work package (agent only read your own copy + this document) |
-| `ROLLBACK_LOG.md` | Rollback registration form: one work pack for every merge |
-| `reports/` | Each work package is executed by an agent to write a short report (do what, evidence, known problems) |
+| `DETAIL_LIST.md` | All 58 details, each with current state, evidence, recommendation, package |
+| `PHASES.md` | 7 stages, 27 packages, dependencies, file ownership, stage start prompts |
+| `work-packages/DX-NN-*.md` | One package description; agents read their own plus this file |
+| `ROLLBACK_LOG.md` | One register row per package merge |
+| `reports/` | Short report from each implementation agent: changes, evidence, known issues |
 
-## A word plan.
+## Approach
 
-1. **Foundation** (Phase 0): Break the style into "each work package a small file" and open `Layout.tsx` to test ports. After that, the work package at the back will hardly change the same file and many people can start working simultaneously in their respective gitworktrees.
-2. **Hands, space floors, cell phone casings, materials and gestures, shut down**. Work package at each stage is independent and can be launched once.
-3. Each work package allows **alone to rollback**, without prejudice to other work package.
+1. Build the **foundation** first (stage 0): one small stylesheet per package, split `Layout.tsx`, configure test ports. Subsequent packages mostly avoid shared files and can run concurrently in separate worktrees.
+2. Progress through **interaction feel → spatial continuity → layout → mobile shell → materials and gestures → closeout**. Packages within each stage are independent and can start together.
+3. Every package supports **independent rollback** without affecting others.
 
-## Hard rules (inheritance) `AGENTS.md`Here's what I want to say.
+## Hard rules (inherited from AGENTS.md and reiterated)
 
-1. Do not touch `main`. No push, no more `main`. Only Juanxi said "approve the merge."
-2. Use English for UI, documentation, comments, commits, and GitHub notes. Do not include secrets, research data, or real member records.
-3. Only token **(`docs/DESIGN_TOKENS.md`) can be used for** colours, fonts, round angles and layers. Additional dynamic time and curves can only be phased 0Added `--dur-*`、`--ease-*`、`--spring-*`Token, CSS is not allowed to write naked milliseconds.
-4. **No change in data structure**: do not move `SCHEMA_VERSION`, do not move the localStorage key. So the rollback never lets the old data in the browser go wrong. If some work package really needs to be changed, we have to stop and ask Juanxi.
-5. Do not exceed the word limit of `npm run words`. Not by hiding text.
-6. Do not touch `src/organization/`, `src/phase1/`, `src/workspace/` (old code, style check doesn't care about them).
-7. **on the desktop with zero delay** (S3 decision, `e2e/feel.spec.ts` guarded). Events Left Activity Name List **Keep** (Juanxi 2026-10-31 request).
-8. Only `transform` and `opacity` are animated. Do not do animations that can loop indefinitely (except for existing load points, and have a "reduce effect" version).
-9. Every move must have a "reduce effect" version: shift and zoom to fade out, or simply remain silent.
-10. Animation has to be interrupted: the user will order it at the middle of the animated and will have to move from the current position without having to finish broadcasting first.
+1. Do not touch, push, or merge `main`; merge only after Juanxi says "approve merge".
+2. English interface text, Chinese documentation [historical language rule; superseded by the current English policy]. No keys, research data, or real member data.
+3. **Use tokens only for colors, font sizes, radii, layers** (`docs/DESIGN_TOKENS.md`). Motion durations/curves also require stage-0 `--dur-*`, `--ease-*`, `--spring-*` tokens; no bare milliseconds in CSS.
+4. **No schema changes:** leave `SCHEMA_VERSION` and localStorage keys untouched so rollback preserves old browser data. If a package truly needs changes, stop and ask Juanxi first.
+5. Stay within `npm run words` budgets; do not hide text to pass.
+6. Do not touch `src/organization/`, `src/phase1/`, `src/workspace/` (legacy code outside style guards).
+7. Desktop hover cards **retain zero delay** (S3; `e2e/feel.spec.ts`). **Keep** Events' left event-name list (Juanxi, 2026-10-31).
+8. Animate only `transform` and `opacity`. No infinite animations except existing loading dots with reduced-motion versions.
+9. Every moving element needs reduced-motion behavior: replace movement/scaling with fades or no motion.
+10. Motion must be interruptible: another click reverses from the current position rather than waiting for completion.
 
-## Step 0: Integrated branch (only once after approval)
+## Step 0: create integration branch (once, after approval)
 
-The document of the plan is currently on branch `claude/determined-johnson-yrdxwf` (= `main` plus these documents without any code changes). After approval, allow a session to form an integrated branch:
+These plan documents currently live on `claude/determined-johnson-yrdxwf` (= main plus docs, no code changes). After approval, have one session establish integration:
 
 ```bash
 git fetch origin
 git switch -c claude/determined-johnson-yrdxwf origin/claude/determined-johnson-yrdxwf
-git merge origin/main        # main There's always a new submission (programming data, etc.) that comes in first.
-npm ci && npm run check      # The starting point must be all green.
+git merge origin/main        # Bring in frequent main updates such as demo data first
+npm ci && npm run check      # Baseline must pass
 git tag dx/baseline
 git push -u origin claude/determined-johnson-yrdxwf --tags
 ```
 
-All work packages are released from `origin/claude/determined-johnson-yrdxwf`. **Do not execute** on `claude/determined-johnson-yrdxwf`. `main` ALWAYS DON'T MOVE.
+Start every package from `origin/claude/determined-johnson-yrdxwf`. **Do not** implement work directly on integration. `main` remains untouched.
 
-## Branch and Worktree
+## Branch and worktree conventions
 
-- Integrated branch: `claude/determined-johnson-yrdxwf` (from `origin/main`, **is not** `main`).
-- Each work package has a branch from an integrated branch: `design/dx-NN-<short-english-name>`. Full lower case, no AI name, no random string (`AGENTS.md` section 8).
-- Work package one worktree, directory next to repository:
+- Integration: `claude/determined-johnson-yrdxwf`, branched from `origin/main`, **not** main itself.
+- One package branch from integration: `design/dx-NN-<short-english-name>`, lowercase, no AI names/random suffixes (AGENTS.md section 8).
+- One adjacent worktree per package:
 
 ```bash
 git fetch origin
@@ -70,89 +68,89 @@ cd ../platypus-dx-03
 npm ci
 ```
 
-- **port staggers** (DX-01 for stage 0 after environmental variables are done): each worktree uses a different port, otherwise Playwright will "reuse" someone else's service and detect another person's code.
+- **Use distinct ports** after DX-01 adds environment variables; otherwise Playwright can reuse another agent's server and test their code.
 
 ```bash
-# Example: DX-03 Use  5103 Let's start.
+# Example: DX-03 starts at 5103
 PW_PORT=5103 PW_STORAGE_PORT=5203 WORDS_PORT=5303 npx playwright test e2e/feel.spec.ts --project=desktop
-npx vite --port 5103   # When looking at the page manually
+npx vite --port 5103   # Manual preview
 ```
 
-- `PW_CHROMIUM=<chromium path>` when no preview browser is available.
-- We're going to have to do something about it. **Just run.**：`npm run lint`、`npm run build`、`npm test`, add the number of browsersertes listed in this work package note.  The complete `npm run check` is run by the integration person once at the end of each phase.
-- **Parallel agent does not modify these files** (conflicting): `docs/PROGRESS.md`, `AGENTS.md`, `docs/DESIGN_TOKENS.md`, `src/styles.css`, `src/styles/index.css`. Progress and handoff are written by the integrated person.
+- Without a preinstalled browser, set `PW_CHROMIUM=<chromium-path>`.
+- Package agents run **only** `npm run lint`, `npm run build`, `npm test`, plus their listed browser tests. Integrator runs full `npm run check` once per stage.
+- **Parallel agents do not edit** shared files: `docs/PROGRESS.md`, `AGENTS.md`, `docs/DESIGN_TOKENS.md`, `src/styles.css`, `src/styles/index.css`. Integrator records progress/handoffs centrally.
 
-## How to Play Styles (DX-01)
+## Styles after DX-01
 
-- The style of each work package is written in **'s own little file**: `src/styles/dx-NN-<name>.css` (DX-01 will build empty files in advance).
-- These documents are from `src/styles/index.css`Introduction by Numbering, in `src/styles.css` **After**Load, so you can overwrite the old rules.
-- **Do not change `src/styles.css`**. To change the rules, you have to overwrite them with the same selection in your own little file. So, rollback is "delete the contents of this little document."
-- The same selection can be used to write a different **attribute,**, but the same **attribute belongs only to one work package** (belonging table at `PHASES.md`).
-- After the adoption of acceptance, DX-27 can (with Juanxi 's consent) combine small files with the master files and the images must be aligned to pixels.
+- Each package writes **its own small file**: `src/styles/dx-NN-<name>.css` (empty files prepared by DX-01).
+- `src/styles/index.css` imports them numerically **after** `src/styles.css`, allowing overrides.
+- **Do not edit `src/styles.css`.** Override old rules with the same selectors in your file, making rollback equivalent to clearing that file.
+- Different packages may set **different properties** on one selector, but **each property has one owner** (`PHASES.md`).
+- After acceptance, DX-27 may consolidate files into main CSS with Juanxi's agreement; output must be pixel-identical.
 
 ## Rollback (most important)
 
-### Merge Method (let each work package alone rollback)
+### Merge method for independent package rollback
 
-**has to** when integrating work packs into an integrated branch:
+Integrator **must** merge as follows:
 
 ```bash
 git switch claude/determined-johnson-yrdxwf
-git tag dx/phase-N-before            # One fight before the stage begins. N It's phase number.
-git merge --no-ff design/dx-NN-xxx -m "[DX-NN][Integration ] Merge.  xxx"
-git tag dx/dx-NN-merged              # Point to this merge submission
+git tag dx/phase-N-before            # Once before stage N
+git merge --no-ff design/dx-NN-xxx -m "[DX-NN][Integration] Merge xxx"
+git tag dx/dx-NN-merged              # Points to this merge commit
 git push origin claude/determined-johnson-yrdxwf --tags
 ```
 
-- `--no-ff` leaves a "merge submission", and when rollback removes it, the whole work package is removed.
-- Then register a row at `ROLLBACK_LOG.md` (work package, merge submission,tag, date).
-- When the integrated branch merges to `main`, Juanxi selects **Create a new company** on GitHub and **does not choose Squash**. Squash will press all work package into one submission, and it won't be able to rollback alone.
+- `--no-ff` retains a merge commit whose reversal removes the whole package.
+- Add a ROLLBACK_LOG.md row with package, merge commit, tag, date.
+- When integrating to main, Juanxi selects GitHub **Create a merge commit**, **never Squash**; squashing combines packages and prevents independent rollback.
 
-### Juanxi, just say one thing.
+### Juanxi needs only one sentence
 
-> "rollback DX-12" or "rollback phase 2" or "never, go back before it's changed."
+> "Roll back DX-12", "Roll back stage 2", or "Discard the whole upgrade and return to the previous version."
 
-Angent executes as follows (Juanxi does not need to understand these orders).
+The agent follows the table; Juanxi need not understand the commands.
 
-| Yes. | Practice | Who can do it? |
+| Request | Method | Actor |
 | --- | --- | --- |
-| **R0, I'm not satisfied yet.**  | No, merge, that branch, just throw it away. `git worktree remove ../platypus-dx-NN` | Integration of people |
-| **R1 Quick Off (work package for pure style only)**  | Yes. `src/styles/index.css` It's the same line. `@import` Use `/* ... */` Comment dropped and submitted for push. One line changes and the page returns immediately. Work cardage says "R1" for use. | Integration of people |
-| **R2 Undo a work package** | `git revert -m 1 dx/dx-NN-merged`And push. This will create a new "reverse submission", historical reservation, which can be withdrawn at any time. | Integration of people |
-| **R3 Revocation of a phase**  | Do R2 for each tab at this stage, in the order of **and then forward** | Integration of people |
-| **R4 The whole set is back before it's changed.**  | All `dx/dx-*-merged` Forward R2; Or (Juanxi is required to specify that "may be forced to reset") `git reset --hard dx/phase-1-before` Again. `git push --force-with-lease`。Default R2 without reset | Integration of people |
-| **R5 on-line. `main`** | Select the previous version from the Deploys page of Netlify, punctuation deploy (required Juanxi personally in Netliffy); Then re-open the automatic release. Then we'll use R2 to cancel it in the code. | Juanxi |
+| **R0 Reject before merge** | Do not merge; remove worktree: `git worktree remove ../platypus-dx-NN` | Integrator |
+| **R1 Quick disable (CSS-only packages)** | Comment the relevant `@import` in `src/styles/index.css` with `/* ... */`, commit/push. One-line change immediately restores appearance. Only where package explicitly says R1 supported | Integrator |
+| **R2 Revert a package** | `git revert -m 1 dx/dx-NN-merged`, push. Creates a reverse commit, preserving history and allowing reversal of the revert | Integrator |
+| **R3 Revert a stage** | Apply R2 to every stage tag in **reverse order** | Integrator |
+| **R4 Restore everything** | R2 all `dx/dx-*-merged` in reverse order; alternatively, only with Juanxi's explicit "force reset allowed", `git reset --hard dx/phase-1-before` then `git push --force-with-lease`. Default is R2, not reset | Integrator |
+| **R5 Production emergency after main release** | Netlify Deploys → pre-change version → Publish deploy (Juanxi personally, then re-enable automatic publishing). Follow with formal R2 code reversal | Juanxi |
 
-**The repair package submitted has to be repaired:** metge then completed the restoration package (see table in `ROLLBACK_LOG.md`), which must be withdrawn before it is released, otherwise it will conflict.
+**Revert fixes first:** packages with post-merge fix commits (ROLLBACK_LOG.md) require reversing those fixes before the merge, to avoid conflicts.
 
-**Reliance has to be withdrawn:**, look at the `PHASES.md` dependency table before withdrawing a work package. If the other work package depends on it, you have to withdraw those (from behind).
+**Revert dependents first:** consult PHASES.md; reverse dependent packages before their prerequisites, in reverse order.
 
-**Do it again:** wants to come back after it's withdrawn, just one more `git revert` for that "reverse submission."
+**Restore a reverted package:** `git revert` its reverse commit.
 
-### Why? Rollback is safe.
+### Why rollback is safe
 
-- All work packages do not change the data structure (rule 4), so rollback does not allow errors to be made in old data from the user browser.
-- Each phase starts with a `dx/phase-N-before` label, each work package merge with a `dx/dx-NN-merged` tag.
-- At the end of each phase, the integrater sends the results of a screenshot script "before/after" to Juanxi (available from `node scripts/dx-shots.mjs <label> <url>`, DX-01), which is viewed on the preview site.
+- No package changes schema (rule 4), protecting existing browser data.
+- Each stage has `dx/phase-N-before`; each merged package has `dx/dx-NN-merged`.
+- At each stage end, integrator sends before/after screenshot results (`node scripts/dx-shots.mjs <tag> <url>`, provided by DX-01); Juanxi reviews the preview.
 
-## Common coverage for each work package (no repetition in the note)
+## Shared package acceptance
 
-1. `npm run lint`, `npm run build`, `npm test` All green.
-2. The work package lists browser tests that are green, and **claims cannot weaken**; When a change is needed, it can only be replaced by the words "an equally rigorous detection of new behaviour" and clearly stated in the report.
-3. In Playwright default "reduce effects" mode, page behaviour is exactly the same as before (DX-01 will set it as default, so old tests do not become unstable by animation).
-4. There's another special test file. `e2e/dx-NN-*.spec.ts`Here. `test.use({ reducedMotion: "no-preference" })`Validate Dynamics **It does exist.**； Verify **downgrade version** with `reduce`. A small change in a pure style can be measured only by calculating the style.
-5. Desktop 1440, cell phone 390, light color, dark colour with four combinations cutting one "front/ back" map (`scripts/dx-shots.mjs`). **Determines whether the image has changed to see the number of pixels that change, not just the bytes.**: The same construction takes twice and mobile phone maps have a noise of approximately 9,500 pixels ( ≈ 0.7%), with a ceiling of about 15,000 pixels already seen. The desktop map should change the 0 package.
-6. Axis inspection: `npm run words` No increase; `e2e/a11y.spec.ts` No new violations; `noOverflow` is 0 (no horizontal rolling of mobile phones).
-7. Write `reports/DX-NN.md`: What was changed, submitted to SHA, test results (live numbers), known problems, how rollback(Rs).
+1. `npm run lint`, `npm run build`, `npm test` all pass.
+2. Listed browser tests pass; **never weaken assertions**. Updates must test new behavior equally strictly and be explained in the report.
+3. Behavior under Playwright's default reduced-motion mode stays identical (DX-01 sets this default so old tests remain stable).
+4. Separate `e2e/dx-NN-*.spec.ts` with `test.use({ reducedMotion: "no-preference" })` verifies motion **exists**; `reduce` verifies **fallbacks**. Small CSS changes may check computed styles only.
+5. Capture before/after for desktop 1440, phone 390, light/dark (four combinations, `scripts/dx-shots.mjs`). **Assess changed pixels, not merely byte equality**: repeated captures of the same build can produce up to about 9,500 mobile noise pixels (≈0.7%), observed maximum about 15,000. Packages requiring no change should have 0 changed desktop images.
+6. Cross-cutting checks: no `npm run words` increase, no new `e2e/a11y.spec.ts` violations, `noOverflow` = 0 (no mobile horizontal scrolling).
+7. Write `reports/DX-NN.md`: changes, commit SHA, actual test counts, known issues, rollback R level.
 
-## Start password (template) for each workpackage agent
+## Package-agent start prompt template
 
 ```
-You are.  Platypus Execute repository  agent。Work package: DX-NN（<Name >）。
-Read first: AGENTS.md、docs/design-upgrade/README.md、docs/design-upgrade/work-packages/DX-NN-*.md。
-You're on your own.  git worktree Lee, branch.  design/dx-NN-<Short name >(from  origin/claude/determined-johnson-yrdxwf Open up.
-Change only work package in the description "Files that can be changed "。No touching.  mainDon't change.  docs/PROGRESS.md / AGENTS.md / src/styles.css。
-Finish: Run work checkout list, write  docs/design-upgrade/reports/DX-NN.md, submit (format)  [DX-NN][Claude] I don't know what to say.
-Push your own branch, then stop and take a summary of the report and  R Level rollback is the way to tell integration people. No, merge, don't drive.  PR。
-Report in simple Chinese. The interface text is in English.
+You are an implementation agent in the Platypus repository. Package: DX-NN (<name>).
+Read AGENTS.md, docs/design-upgrade/README.md, and docs/design-upgrade/work-packages/DX-NN-*.md first.
+Use your own git worktree, branch design/dx-NN-<short-name>, from origin/claude/determined-johnson-yrdxwf.
+Edit only the package's allowed files. Do not touch main or edit docs/PROGRESS.md / AGENTS.md / src/styles.css.
+Finish by running listed checks, writing docs/design-upgrade/reports/DX-NN.md, committing as [DX-NN][Claude] One sentence,
+pushing your branch, and stopping. Give the integrator a report summary and R-level rollback method. Do not merge or open a PR.
+Report in simple Chinese [historical instruction; superseded by current English policy]. Interface text is English.
 ```

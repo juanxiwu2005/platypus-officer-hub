@@ -1,30 +1,32 @@
-# DX-23 Semitransparent Topbar + Shadow Level token
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Stage 5 Size M Risks R **R1 Available** Dependence: DX-01, DX-02 (including bottom bar if metge 20b) Parallel partners: DX-24, 25
-- Branch: `design/dx-23-glass-topbar` Style File: `src/styles/dx-23-glass-topbar.css` Corresponding Details: D34 D35 D36
+# DX-23 Translucent top bar + elevation shadow tokens
 
-## Why?
-**Read**: The top bar is solid `--surface` plus 1px bottom line; At least 6 types of handwritten rgba shadow with only one `--shadow` token. Emil § 12: The navigation and toolbars use semi-transparent material, the content slips from below, replacing the hard partition line with edge gradients; "The bigger side is thicker: a stronger shadow of blurry and deeper darkness." Apple `materials.md`: Only for **floating functional layer**, not on content or translucent semi-transparent.
+- Stage 5 · Size M · Risk medium · R level **R1 available** · Depends on: DX-01, DX-02 (include bottom bar if 20b merged) · Parallel partners: DX-24, 25
+- Branch: `design/dx-23-glass-topbar` · Stylesheet: `src/styles/dx-23-glass-topbar.css` · Details: D34 D35 D36
 
-## Something to do.
-1. **Top column material**: `.topbar { background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(16px) saturate(1.4); }`. Bottom line `border-bottom` appears only after page scrolling (`is-scrolled`: with a 1px sentry element plus `IntersectionObserver`, or `animation-timeline: scroll()` when supported; It's easy to pick and write in the report.
-2. **fallback**:
-   - `@supports not (backdrop-filter: blur(1px))`: Solid `--surface`.
-   - `@media (prefers-reduced-transparency: reduce)`: Solid, not fuzzy.
-   - `@media (prefers-contrast: more)`: Solid + Visible Border (`--ink`'s 30%).
-3. **shadow token** (`:root` in small files, without hex, with `rgb(0 0 0 / .x)`): `--elev-1` (card lifts, light), `--elev-2` (menu, suspension card), `--elev-3` (right column float, Toast, dialogue box). Darker patterns cast a heavier shadow and less transparent.
-4. **Replaces only the shadow of**: `.menu`, `.m-menu`, `.owner-suggest`, `.toast`, `.rail` (surface state), `.panel`. **Non-replacement of** `.ask-fab` (for DX-09), `.hover-card` (Dark colour solid card, maintained).
-5. **Do not allow** to blur menus, suspension cards, content cards (they are solid and avoid overlaying).
-6. If 20b bottom navigation is already merge: it uses the same material.
-7. Dark mode check: Blank text contrast still  ≥  4.5:1 (crypted by scrolling to the middle of a page with colored blocks below the top bar).
+## Why
+**Observed:** Top bar is solid `--surface` plus 1px bottom line; at least 6 hand-authored rgba shadows, only one `--shadow` token. Emil§12: translucent navigation/toolbars, content scrolling beneath, edge gradient instead of hard separators; “larger surfaces are thicker: stronger blur, deeper shadows.” Apple `materials.md`: only on **floating functional layers**, not content; do not stack translucency.
 
-## Files that can be changed
-`src/components/chrome/TopBar.tsx` (rolling only), `src/styles/dx-23-glass-topbar.css`. The background and bottom line of `.topbar` is only this package.
+## Work
+1. **Top-bar material:** `.topbar { background: color-mix(in srgb, var(--surface) 80%, transparent); backdrop-filter: blur(16px) saturate(1.4); }`. `border-bottom` appears only after scrolling (`is-scrolled`:1px sentinel + `IntersectionObserver`, or `animation-timeline: scroll()` where supported; choose simplest, explain in report).
+2. **Fallbacks:**
+   - `@supports not (backdrop-filter: blur(1px))`: solid `--surface`.
+   - `@media (prefers-reduced-transparency: reduce)`: solid, no blur.
+   - `@media (prefers-contrast: more)`: solid + clear border (30% `--ink`).
+3. **Shadow tokens**(small file `:root`, no hex, use `rgb(0 0 0 / .x)`): `--elev-1` (subtle raised cards), `--elev-2` (menus, hover cards), `--elev-3` (rail overlays, Toast, dialogs). Stronger, higher-opacity shadows in dark mode.
+4. **Replace shadows only for:** `.menu`, `.m-menu`, `.owner-suggest`, `.toast`, `.rail` (overlay), `.panel`. **Do not replace** `.ask-fab` (DX-09), `.hover-card` (solid dark card, retain).
+5. **Do not** blur menus, hover cards, or content cards (they are solid; avoid stacking).
+6. If 20b bottom navigation merged, use same material there.
+7. Dark mode: text contrast after blur still≥4.5:1 (verify screenshots mid-scroll with colored content beneath top bar).
+
+## Permitted files
+`src/components/chrome/TopBar.tsx` (scroll state only), `src/styles/dx-23-glass-topbar.css`. `.topbar` background/bottom border exclusively this package.
 
 ## Acceptance
-- `a11y.spec.ts` (conversation), `smoke`, `today`, `touch` desktop + mobile phone green.
-- (a) New test `e2e/dx-23-glass.spec.ts`: pre-roll `.topbar` without bottom line, after scrolling; The background of `emulateMedia({ reducedTransparency: "reduce" })` (if Playwright is supported otherwise checked with style) is solid.
-- Juanxi How to Test: Today rolls down, the card slips under the semi-transparent top bar and there is a fine line in the top. The system turned the top of the "detransparent" bar into reality.
+- `a11y.spec.ts` (including contrast), `smoke`, `today`, `touch` desktop+mobile green.
+- New `e2e/dx-23-glass.spec.ts`: `.topbar` has no bottom border before scroll, has one after; solid background under `emulateMedia({ reducedTransparency: "reduce" })` (if Playwright supports, otherwise inspect styles).
+- Juanxi: scroll Today, cards pass beneath translucent top bar and thin line appears. System reduced transparency makes top bar solid.
 
 ## Rollback
 R1 or R2.

@@ -1,27 +1,29 @@
-# Second stage entrance - accessibility, word-barrel and tool chain security
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-## Full text for stage master
+# Stage 2 entry — accessibility, word gates, toolchain security
 
-Second phase of preparation for the launch of DP8 at GitHub repository `juanxiwu2005/platypus-officer-hub`. Using GPT-6.1 High; XHigh can be used when the large version of the tool chain is complex.
+## Complete stage-lead prompt
 
-1. Read `AGENTS.md`, release-readines README, manifest and the latest handoff of phase I at `docs/PROGRESS.md`.
-2. Read the three full work packages of the second stage of a manifest: WP05, WP06, WP08.
-3. `git fetch origin`, reporting complete/short SHA using only the latest `origin/integration/v1.0`. Confirms that the first six `[RR-WPxx]` work package has been integrated; If incomplete, stop and report without speculation.
-4. Creates three sub-agents and three separate worktrees:
+Execute DP8 release-readiness stage 2 in GitHub `juanxiwu2005/platypus-officer-hub`. Use GPT-6.1 High; XHigh allowed for complex major toolchain migrations.
+
+1. Read `AGENTS.md`, release-readiness README, manifest, latest stage 1 handoff in `docs/PROGRESS.md`.
+2. Read full stage 2 packages from manifest: WP05, WP06, WP08.
+3. `git fetch origin`, use only latest `origin/integration/v1.0`, report full/short SHA. Verify all six stage 1 `[RR-WPxx]` packages integrated; if incomplete, stop/report, no guessed completion.
+4. Create three subagents/independent worktrees/branches:
    - `codex/rr-wp05-a11y`
    - `codex/rr-wp06-words`
    - `codex/rr-wp08-toolchain`
-5. Three worktrees were created from the same latest remote SHA. Each agent executes only the corresponding work package, does not update `docs/PROGRESS.md`, does not update other branches and does not use `main`.
-6. Wait for and review the diff, committee and acceptance evidence. It is prohibited to falsify results by banning Axe, increasing word/package limits, audit ignore, kip or timeout.
-7. Create an independent integrated worktree from the most recent remote, in the order of WP05 → WP06 → WP08 chrry-nick; Conflict resolution on a case-by-case basis and running target testing after each package.
-8. When all are integrated, at least:
+5. All from same latest remote SHA. Each agent only its package, no `docs/PROGRESS.md`, other-branch merges, or `main`.
+6. Wait/review each diff, commit, evidence. No fake results via disabled Axe, raised word/bundle limits, audit ignore, skip, timeout.
+7. Independent integration worktree from latest remote, cherry-pick WP05 → WP06 → WP08; resolve conflicts individually, target tests after each.
+8. After all integrated, at least:
    - `npm ci`
-   - Node 22Down `npm run lint`、`npm run build`、`npm test`
+   - Node 22 `npm run lint`, `npm run build`, `npm test`
    - `npm run words`
    - `e2e/a11y.spec.ts` desktop/mobile
-   - Rules/Events/smoke related Playwright
-   - `npm audit --omit=dev` and Complete `npm audit`
+   - Rules/Events/smoke Playwright
+   - `npm audit --omit=dev`, full `npm audit`
    - `git diff --check`
-9. `docs/PROGRESS.md` is updated centrally by the master of the phase, which records the second stage of submission, testing, audit results and any justified exceptions.
-10. Put it out front, fetch. Only `HEAD:integration/v1.0` can be sent when safe and fast progress is passed; Never force push, never push. Keep branch and report when failure occurs.
-11. Don't call live Air. At the end, report on a new remote SHA, three packages, test results and whether conditions for entering WP10 are in place.
+9. Stage lead centrally updates `docs/PROGRESS.md`: stage 2 commits, tests, audit, evidenced exceptions.
+10. Fetch before push. Only safe fast-forward plus acceptance permits `HEAD:integration/v1.0`; never force-push/main push. On failure retain branch/report.
+11. No real AIR. End with new remote SHA, three package commits, test results, readiness for WP10.

@@ -1,36 +1,36 @@
-# FB-6 Calibration Report: Date Engine updated according to your schedule
+# FB-6 calibration report: date engine updated to your timing table
 
-> Write to Juanxi. The next two tables are not handwritten: they're measured by the test `src/test/calibration.test.ts` using the engine, compared to your file `event-workflow-calibrated-2027-04-16.tsv` line-by-line. The test turns red when the date does not match and is not included in the list of permitted differences.
+> For Juanxi. The two tables below are not handwritten: `src/test/calibration.test.ts` calculates them with the engine and compares every row against `event-workflow-calibrated-2027-04-16.tsv`. A date mismatch outside the allowed-differences list fails the test.
 
-## 1.
+## 1. Conclusion
 
-For the same campaign (2027-04-16 Fridays, 60 people, external catering, USG funds, default settings), 32 steps start and end of **18 and your files are exactly the same as**; There are three reasons for the difference between 14 and:
+For the same event—Friday, 2027-04-16, 60 people, outside catering, USG funding, default settings—**18 of 32 steps match both the start and due dates in your file exactly**. The other 14 differ for only three reasons:
 
-1. The date in the **document falls on weekends** (5 moves): the cut-off day is moved to the previous working day (post-event move to the last working day) and the start day is moved to the preceding working day for the person in charge. Example: Budget file 2/20 (Sunday), engine to 2/19 (Friday).
-2. **Closing Steps do not start on the day of the event** (6 Step: Thank You Note, Feedback, Post Marking, Photo Backup, Invivoice, Attendance Submit): Document writing 4/16 (Activities Day) starts and engine 4/19 (First working day after the event, Monday). It's an implementation program. 7.2Article 4Article X.  **requires your confirmation of** (see article 1, section 6).
-3. **Last Three Steps** (Paid Reimbursed, Finance Report, Documentation) did not copy the document “post-event 129/132/129 days”. Those three numbers are the output of old engines (activities for 4 months, which were pushed through the end and summer vacations and dropped to 8). It is now 5 working days, 7 working days and 14 days after the event. **needs you to confirm**.
+1. **The file date falls on a weekend** (5 steps): move a deadline to the previous business day, or the next business day for post-event work; move a start to the previous day the owner can work. Example: Budget is 2/20, Saturday, in the file and 2/19, Friday, in the engine.
+2. **Closeout does not start on event day** (6 steps: Thank You Note, Feedback, Post Marketing, Photo Backup, Invoice, Attendance Submit): the file starts them on 4/16, while the engine uses Monday 4/19, the first business day after the event. This follows execution-plan section 7.2, rule 4. **Needs your confirmation**, section 6, item 1.
+3. **The final three steps**—Paid Reimbursed, Finance Record, Documentation—do not copy the file's 129 / 132 / 129 days after the event. Those were old-engine results that pushed an April event's closeout past finals/summer into August. They now use 5 business days, 7 business days, and 14 days after the event. **Needs your confirmation.**
 
-Also: each step of the workload (Effort days) and the three ASUs of legal documents are consistent with the document; The reliance between the steps is also consistent with the document, except for one: Budget et al. Event Plan (the note to the document reads “Needs Event Plan as preequisite”).
+Every step's Effort days and all three official ASU deadlines match the file. Dependencies also match except Budget waits for Event Plan, because the file notes “Needs Event Plan as prerequisite”.
 
-## 2.
+## 2. How the engine reads your table
 
-- One more "time window" per standard step: **start date = day of activity - number of days of activity, end of day = day of activity - end of date**. The day of commencement is the day of the reminder.
-- **cut-off date** = your cut-off days, and the "ASU cut-down target buffer" earlier. The preceding working day (one working day after the event) is used for landing on weekends or holidays.
-- **Start Day** falls on days when the person in charge is unable to work (weeks of weekends, holidays, end weeks, semesters, busy weeks of his own) and moves forward to the day he can work. The individual buffer is only the part that exceeds the default 1 day: the result under the default setting is the same as your file; Someone set the personal buffer to 3 days, and he starts early on 2 workdays.
-- **“Depends on” indicates only the sequence of completion**: the previous step was not completed and the deadline was later than that before moving back and marked “Moved later”. The same day may be closed. The window can overlap (e. g. five steps are 2/10  →  2/15).
-- **Closing Steps**: Head Count can start and close on the day of the event; The remaining closing steps are not earlier than the start of the first post-event work.
-- **Someone changed the deadline.**: a date fixed by the user;  The start date is earlier than the “old start date” and the “new cut-off date”.
-- Steps without a window of time (manual tasks, conditionality steps, previously established activities): exactly the same as before.
+- Each standard step gains a time window: **start date = event date − start offset; due date = event date − due offset**. The start date is the reminder day.
+- **Due date:** choose the earlier of the date calculated from your due offset and the official ASU deadline minus the club buffer. If it falls on a weekend/holiday, use the previous business day, or the next business day for post-event work.
+- **Start date:** if the owner cannot work that day—weekend, holiday, finals, semester gap, or personal busy week—move backward to an available workday. Only personal buffer above the default 1 day is additional: defaults match the file, while a 3-day personal buffer starts 2 workdays earlier.
+- **Depends on means completion order only:** move a step later only when its predecessor is unfinished and its due date is later than this step's; show yellow “Moved later”. Same-day due dates are allowed. Windows may overlap, such as five Plan/Prepare steps all running 2/10 → 2/15.
+- **Closeout:** Headcount may start/finish on event day; other closeout starts no earlier than the next business day.
+- **Manual due-date edits:** use the person's date; choose the earlier of the original start and new due date minus effort.
+- Steps without a window—manual tasks, conditional steps, and existing events—retain their previous behavior.
 
-In order not to have false yellow warnings on the new activity, three more things were done by the engine (not written in the programme, found when realized, see 6 section 3):
+Three additional rules were needed to avoid false yellow warnings on newly created events. These were discovered during implementation rather than specified in the plan; see section 6, item 3:
 
-- The latter step is the ASU cut-off date, and when the buffer has been completed earlier than the previous one (for example: 12Month 3Day event, R09. Request for purchase. 11/12The advance, Budget Approval. 11/12Finish before, not before. 11/13）。
-- Chronology of the template itself (examples: weekend events, after event) 7"Attendance" compared to "after Action." 5Paid Reimbursed is included directly in the recommended date and does not mark yellow;  Only real delays (some late dates, steps not completed on time) will be marked yellow.
-- When the condition steps are mixed between two calibration steps (e. g. Open RSVPs between Promotion Items and Content Distribution), it only requires completion, and does not push a later step beyond the activity.
+- If a downstream step's official deadline/club buffer requires completion earlier than its predecessor, move the predecessor earlier too. Example: for a December 3 event, R09 purchase submission is due by 11/12, so Budget Approval also finishes by 11/12, rather than 11/13.
+- Build the template's inherent order into recommended dates without a yellow warning. For a weekend event, Attendance at 7 days after the event can fall after Paid Reimbursed at 5 business days. Yellow is for actual delay, such as a manually postponed date or late completion.
+- A conditional step between calibrated steps, such as Open RSVPs between Promotion Items and Content Distribution, enforces completion order without pushing the next step past event day.
 
-The test tested every day from 2026-11 to 2028-04 as an event day (standard activity + activities that open all conditions): no calibration steps were postponed, ASU cut-off date was missed or after the event.
+The original verification tested every day from 2026-11 through 2028-04 as event day, for both a standard event and all conditions enabled, and recorded no calibrated step delayed, missing an ASU deadline, or scheduled after the event. Current CI's exhaustive-enumeration timeout is recorded separately in the English-cleanup handoff; this historical result is not a claim that the current full suite is green.
 
-## 3. Gradual comparison (engine generation)
+## 3. Step-by-step comparison, generated by the engine
 
 <!-- comparison:start -->
 | Step | File start | Engine start | File due | Engine due | ASU deadline (engine) | Reason for difference |
@@ -69,9 +69,9 @@ The test tested every day from 2026-11 to 2028-04 as an event day (standard acti
 | Documentation | 2027-08-19 (Thu) | 2027-04-19 (Mon) | 2027-08-23 (Mon) | 2027-04-30 (Fri) | — | The final three steps retain the intended offsets of 5 business days, 7 business days, and 14 days after the event, rather than the file's 129/132/129 days caused by the old engine pushing closeout past finals and summer. |
 <!-- comparison:end -->
 
-## 4. Date of condition step (the same event, opening all conditions, engine generation)
+## 4. Conditional-step dates, same event with all conditions enabled, generated by the engine
 
-You do not have these steps in your documents (speaker, addressr, security, alcohol, drone, RSVP etc.). They **don't have a time window**, and dates are still being rolled out by step. The following table is for your subsequent calibration; Opening these conditions does not change any date of the above 32 step (test check).
+These steps—speaker, advisor, safety, alcohol, drones, RSVP, etc.—are absent from your file. They **have no time window** and retain dates derived from neighboring steps. This table is for later calibration. Enabling them does not change any of the 32 dates above; the tests check that.
 
 <!-- conditional:start -->
 | Conditional step | Start | Due | ASU deadline | Deadline source (engine explanation) |
@@ -92,30 +92,30 @@ You do not have these steps in your documents (speaker, addressr, security, alco
 | Open RSVPs | 2027-03-24 (Wed) | 2027-03-26 (Fri) | — | RSVPs open three weeks ahead |
 <!-- conditional:end -->
 
-## 5. What does it have to do with the data that already exist?
+## 5. Effects on existing data
 
-- **New Activity** (subsequently built on the website) uses a new time window.
-- **Activities that have been built do not automatically change**: They take steps without a window of time and date is calculated according to the original rules. There is only one exception: when a certain step is missing from the old archive, this step will be completed on reading and this step will be filled with a new window of time.
-- **student organization Process** (Settings — World, FB-6) saved by itself: when building a new activity, standard steps are filled with time windows by name (key); If the workload remains an old default value, then the value in your table is replaced. The modified workload or target time of the organization was retained, and the steps added by the organization were not sufficient.
-- The very old archive (schema file 6–11) would have been re-established by standard process, so they would have a new window of time.
-- ♪ Chema version ♪ **Nothing.**Upgrade (new field is optional).
+- **New events** created afterward use the new windows.
+- **Existing events do not change automatically:** their steps lack windows and use the old rules. Exception: if an older save lacks a required step, loading repairs it by adding that step with its new window.
+- **Previously saved club workflows**, Settings → Workflow before FB-6: when creating a new event, standard steps receive windows by matching names/keys. If effort still equals the old default, replace it with the table's value. Preserve club-edited effort/target timing; do not add windows to custom steps.
+- Very old saves, schema versions 6–11, already rebuild events from the standard workflow when loaded, so they receive new windows.
+- **No schema-version increase:** the new fields are optional.
 
-## Example:
+## 5b. Effects on the sample club, Desert Founders Society
 
-Example The three activities of the standard event are currently built using templates when opening a website, so all dates change. Both demonstration days (2026-10-31, Saturday) and activity dates are **without change to**.
+The three sample events are generated from templates when the site opens, so their schedules change. Neither demo day, Saturday 2026-10-31, nor event dates changed.
 
-- **Networking Night (3/25) and Spring Speaker Night (3/18)**: Both windows were opened after 2027 1, so that they did not fall due or have a risk on the day of presentation (as before). Before, every last step had a yellow "Moved later", and now it's gone.
-- **Founder Dinner (12/3)**: Almost all previous steps have been completed, some after the new deadline. Rescheduled to the new window: planning steps were completed at 9/29–10/2 (all in the window) and the funding process was completed as usual (table cards have been placed); **This week**: Moderator Lead Staffing is doing it and 11/6 (Friday) ends; The reminder day for Partner Specter Review is 11/6; Event Materials' window 10/1 is open and shows yellow "Shoud have started"; Parking Valiation, Content Distribution, Event Redender is in the middle of mid-month 11. Full Check follows the old example to keep "completed" (president has done a preliminary check) so that the president task board has a recently completed card; Press your table and its window is 11/19–12/2, strictly finished too early.
-- **Today's “Needs a Nudge”** remains the same three articles (Send the October newsletter, Chase the USG reimbursement, Reconcile Security dates) because they are manual tasks with no change in date.
-- **Forecasts (Forecast) have been modified a little bit by** (`src/engine/forecast.ts`): both windows of the calibrated steps are counted as working days, defaulting that the 1 day personal buffer is contained in your watch and closing steps start simulation from its own window. If you don't change, Head Count, which ends on the day of the event, will always be 0%, and close little dots in Close will always be red. After this change, the end-of-stage step of the type “is due on the day or the next day” is approximately 50 per cent (yellow or red edge); Founder Dinner's claims and financial records are at the end of the month of 12 and students do not work, so there is a risk - this is a live reminder, but you need to see if it makes sense.
+- **Networking Night (3/25) and Spring Speaker Night (3/18):** their windows open after January 2027, so neither has a due/at-risk step on demo day, as before. Closeout steps no longer all show yellow “Moved later”.
+- **Founder Dinner (12/3):** formerly almost every step was complete, sometimes after its new deadline. The sample now follows the windows: planning finished 9/29–10/2, within the windows; funding remains complete and table cards ordered. **This week:** Moderator Lead Staffing is in progress, due Friday 11/6; Partner Speaker Review's reminder is 11/6; Event Materials opened 10/1 but has not started, showing yellow “Should have started”. Parking Validation, Content Distribution, and Event Reminder fall in mid/late November. Full Check stays complete from the old sample, representing a preliminary president check and providing a recently completed board card. Its actual window is 11/19–12/2, so strictly it was completed too early.
+- **Today's Needs a nudge** still contains Send the October newsletter, Chase the USG reimbursement, and Reconcile September receipts: these manual tasks retain their dates.
+- **Forecast adjustment**, `src/engine/forecast.ts`: count both ends of a calibrated window as workdays; the table already includes the default 1-day buffer; simulate closeout from its own window. Without this, same-day steps such as Headcount always get 0%, leaving all three Close dots red. Afterward, same-/next-day closeout is around 50%, at the yellow/red boundary. Founder Dinner reimbursement/financial records fall in December finals, when student work is not scheduled, and show risk. This is a scheduling warning that still needs your judgment about whether it is reasonable.
 
-## 6. Need you to confirm. / Unsolved
+## 6. Confirmation needed and unresolved items
 
-1. **Start date of closing steps**: Program 7.2 Article 4 states that “except for Head Count, the closing step is not earlier than the first working day after the event”, so thank You Note, Feedback etc. are sent on Monday after the event and your document writing day. If you want to remind me on the day of the event, just change the rules.
-2. **Last three steps**: Post-activities 5 working days (reimbursement), 7 working days (financial records), 14 days (archived). Give me a new number if you disagree.
-3. Three rules, **(the end of section 2), which are not part of the** programme, are designed to ensure that no false warning arises from new construction activities. The third of these and the option “to follow existing rules when one party is not a calibration step” are slightly different: uncalibrated steps followed by the calibration step are dealt with “in order of completion”; The calibration steps followed after the non-calibration step were still to be completed not earlier than the previous step, but the deadline would not be pushed back without delay.
-4. The **workload has changed and the difficulty labels have not changed**: for example, the Moder Lead Staffing workload changed from 1 to 10 days, but it remains “light”. The difficulty label affects the time-use and contribution points for predictions, which have not changed this time.
-5. **Date on which the workload is not moved**: The date of the calibrated step is from the time window, so that a change in workload (no change to target time) will not change the date;  Settings  →  Workflow rewording "Target Timing" will still change (engine is recalculated according to the number of days you give, window length remains unchanged).
-6. **Check-in target time**:Settings — Check-in in Workflow still shows old ' 1(one working day before the event) The actual deadline is your schedule for the day after the event.  The display has not changed because an old restoration code was read in the archive to change the value back.
-7. **Activities at the beginning of the term**: For example 1In the middle of the month, many start-up days are off. Engines move them forward. 12By the end of month.  This is the old rule of “no student work between semesters”, and it turns out you need to look at it.
-8. **Conditional Steps without a window of time**: The table in section 4 is the result. Open all conditions and move on 2026-11-02or 11-03At the time, the safety chain (Advisor ...) School Admin Approval, 40(a) A working day is postponed because it starts before the beginning of the autumn term;  This is the old rule of un calibrated steps.
+1. **Closeout start:** plan section 7.2, rule 4 says closeout other than Headcount starts no earlier than the first business day after the event. Thank You Note/Feedback reminders therefore go out the following Monday, while your file says event day. If event-day reminders are intended, one rule can change that.
+2. **Final three offsets:** 5 business days for reimbursement, 7 business days for finance records, and 14 days for documentation. Supply different numbers if these are not intended.
+3. **Three implementation additions** at the end of section 2 avoid false warnings on new events. The third slightly differs from the plan's instruction to retain old behavior whenever one side is uncalibrated. An uncalibrated step following a calibrated one uses completion order; a calibrated step following an uncalibrated one still cannot start before it completes, but an on-time predecessor does not push its due date later.
+4. **Effort changed, difficulty did not:** Moderator Lead Staffing rose from 1 to 10 days but remains “light”. Difficulty affects simulated effort and contribution points; this iteration did not change it.
+5. **Changing effort no longer moves calibrated dates:** dates come from windows, so effort alone does not change them. Editing Target timing in Settings → Workflow still recalculates the dates from the chosen offset while retaining window length.
+6. **Check-in target display:** Settings → Workflow still shows the old “1”, one business day before the event, while the actual deadline follows your table on event day. An older load-repair routine restores that value, so the display has not changed.
+7. **Events near semester start:** for a mid-January event, many starts fall during winter break and move back before December finals. This follows the old no-student-work-between-semesters rule; you need to judge the result.
+8. **Conditional steps lack windows:** section 4 shows current results. With all conditions enabled and event day 2026-11-02 or 11-03, the roughly 40-workday Advisor → … → School Admin Approval chain is pushed because it would need to start before Fall classes. This is the old behavior for uncalibrated steps.

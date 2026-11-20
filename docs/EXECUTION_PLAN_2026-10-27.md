@@ -1,35 +1,33 @@
-> **Language policy update, November 19, 2026:** write documents, reports, comments, commits, and GitHub notes in English. This supersedes any earlier language instruction quoted in this historical file. Current `AGENTS.md` controls.
+# Platypus execution plan (post-audit)
 
-# Platypus Implementation Programme (after audit)
-
-**wrote:** 2026-10-27 (Tuesday)
-**Based:** `docs/AUDIT_2026-10-27.md`
-**Precondition:** Juanxi 2026-10-27 Three decisions (see section 1)
-**Status:** to start when Juanxi confirms
+**Written: ** 2026-10-27 (Tuesday)
+**Based on: ** `docs/AUDIT_2026-10-27.md`
+**Prerequisites: ** Juanxi's three decisions on 2026-10-27 (see Section 1)
+**Status: ** Awaiting Juanxi's confirmation before execution
 
 ---
 
-## Three answers from 1. Juanxi, and what have they changed?
+## Section 1 · Juanxi's three answers and what they change
 
-### 1.1, "I miss the second edition of response speed. It's really quick.
+### 1.1 "What I miss most about the second version is its response speed. It was really fast; there was no waiting."
 
-**, which refers performance to first priority from "again" and finds the exact reason.**
+**→ This moves performance from "later" to the top priority and identifies the exact cause.**
 
-Section 9 of the audit report originally stated that "The 1000 version of `forecast.ts` is not a problem on its current scale, and it is now a waste of time to optimize". **, this conclusion is now to amend** -- it's only for "mechanical speed" to be established and not for "people feeling fast."
+Section 9 of the audit originally stated that "the 1000 iterations in `forecast.ts` are not a problem at the current scale; optimizing them now would waste time." **That conclusion now needs correction**: it holds only for "whether the machine computes quickly, " not for "whether it feels quick to a person."
 
-Two proven reasons:
+Two verified causes:
 
-**One, wait for every suspension. 300milliseconds**
+**① Every hover requires a 300-millisecond wait**
 
 ```css
-/* src/styles.css:471(suspended card) and  :572(flowchart node card) */
+/* src/styles.css:471 (hover card) and :572 (flowchart node card) */
 transition: opacity .12s ease .3s, visibility 0s linear .42s;
-                              ↑ 300ms Delay
+                              ↑ 300ms delay
 ```
 
-The mouse stops on the **et cetera 300ms** while 120ms faded into **,420ms** before it sees anything. There's 420ms before it disappears.
+Hover → **wait 300ms** → another 120ms fade-in → a total of **420ms** before anything is visible. Moving away also takes 420ms before it disappears.
 
-And the second edition. 1The whole transition is... `.15s` / `.2s`，**Not a single delay.**：
+All transitions in the second version (v0.1, the one you liked) were `.15s` / `.2s`, with **no delays at all**:
 
 ```
 $ grep transition public/legacy/index.html
@@ -39,262 +37,262 @@ transition: transform .15s
 transition: none
 ```
 
-`git log -S`Confirm: That 300ms delay is **`5bde479`「v1.1Simplified adaptations."**Incorporated **It's just the one you didn't like.**。
+`git log -S` confirms that the 300ms delay was introduced by **`5bde479`, "v1.1 simplification redesign"**: **exactly the version you began to dislike**.
 
-**This is 1 line CSS repair.**
+**This is a 1-line CSS fix.**
 
-**2 Projections double-counted 3–5Number of times**
+**② Forecasts are recalculated 3–5 times**
 
 ```
 src/pages/Today.tsx:19     useMemo(() => computeForecast(state), [state])
-src/pages/Events.tsx:28    useMemo(() => computeForecast(state), [state])   ← Each one of them.
-src/lib/aiContext.ts:18    computeForecast(s)        ← One at a time.  Ask Message
-src/lib/assistant.ts:72    computeForecast(s)        ← In the same answer,
-src/lib/assistant.ts:82    computeForecast(s)        ← Again.
+src/pages/Events.tsx:28    useMemo(() => computeForecast(state), [state])   ← separate caches
+src/lib/aiContext.ts:18    computeForecast(s)        ← every Ask message
+src/lib/assistant.ts:72    computeForecast(s)        ← within the same answer
+src/lib/assistant.ts:82    computeForecast(s)        ← once again
 ```
 
-5 call points without sharing caches with each other. Every time you run a full schemuling, you simulate 1000 times. **Sends an Ask message = 3 complete prediction.** plus store has to write the whole data package `JSON.stringify` into the browser every time you change it.
+There are 5 call sites with no shared cache. Each first runs the entire schedule, then performs 1,000 simulations. **Sending one Ask message = 3 complete forecasts.** On top of that, every store change runs `JSON.stringify` on the entire data bundle and writes it to browser storage.
 
-Method: A `useForecast()` is collected and the whole application of state changes is counted only once.
+Fix: consolidate into one `useForecast()` so the entire app calculates it only once per state change.
 
-### 1.2, "The blue frame is too guiding. It's like a guided visit. Get rid of it."
+### 1.2 "The blue outline draws too much attention, like Guided Access. Remove it first."
 
-**→  2026-10-27 Juanxi has confirmed by providing a screenshot: it's not our painting, it's the original focus ring of the browser.**
+**→ Confirmed after Juanxi supplied a screenshot on 2026-10-27: we did not draw that outline; it is the browser's native focus ring.**
 
-Screenshot: Settings page `Submit budget request`'s digital input box, with a circle of bright blues outside the focus.
+Screenshot: the numeric input for `Submit budget request` on Settings has a bright blue ring around it when focused.
 
-Key evidence -- **That blue is not the color of this project.**：
+Key evidence: **that blue is not one of this project's colors**:
 
 ```css
-/* src/styles.css:53 —— The only focus style for this item  */
+/* src/styles.css:53 — the project's only focus style */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
-/* --accent = #0f766eCyan green, not blue.  */
+/* --accent = #0f766e, teal, not blue */
 ```
 
-Also verified: ** Full repository does not have any focus style for input/ selext/ texttarea and no treatment
-** (`grep -n "webkit|focus-ring|outline: *none" src/styles.css`)
-`.task-detail h2:focus`, `.panel h2:focus` and two unrelated `-webkit-` properties.
+Also verified: **the entire repository contains no focus styles for input / select / textarea and no code handling
+native browser focus rings** (`grep -n "webkit|focus-ring|outline: *none" src/styles.css`
+only matches `.task-detail h2:focus`, `.panel h2:focus`, and two unrelated `-webkit-` properties).
 
-• Conclusion: It's the original focus ring that the browser itself draws for the form control. Juanxi says it's an apple, probably literally.
-  The meaning is -- macos / Safari has a blue focus ring on form controls, and the author `outline` can't cover it.
+→ Conclusion: this is the browser's native focus ring for form controls. When Juanxi calls it "Apple's," he may mean that literally:
+  macOS / Safari draws its own blue focus ring on form controls, which the author's `outline` does not override.
 
-⚠ **to be confirmed: Juanxi uses Safari or Chrome.** has a slightly different approach, and S3 is asked before starting work.
+⚠️ **To confirm: whether Juanxi uses Safari or Chrome.** The fixes differ slightly; ask before starting S3.
 
-### This one can't just be deleted.
+### This rule cannot simply be deleted
 
-v0. 1 (including `:focus-visible`) is exactly the same today, and Juanxi likes both. Furthermore:
-- `:focus-visible` **shows only** to keyboard users, and mouse clicks do not trigger (except text/digital input frames),
-  It's standard to match them when they click -- that's exactly what happened in the screenshot.
-- It's a WCAG 2.4.7 "Focus Visible" requirement, deleting `e2e/a11y.spec.ts` for direct failure.
-- ASU has accessibility policy, and we can't write in the paper "We deleted the keyboard visibility."
+v0.1 (including its use of `:focus-visible`) is exactly the same as today, and Juanxi likes both. Also:
+- `:focus-visible` **appears only for keyboard users**; mouse clicks do not trigger it (text/number inputs are an exception:
+  the specification also matches them on click, which is exactly what appeared in the screenshot).
+- It is a hard requirement of WCAG 2.4.7 "Focus Visible"; removing it immediately fails `e2e/a11y.spec.ts`.
+- ASU has an accessibility policy; the thesis cannot say "we removed keyboard focus visibility."
 
-### Change the law correctly.
+### Correct fix
 
 ```css
-/* 1. Turn off the original ring for form control.  */
+/* 1. Remove native rings from form controls */
 input:focus, select:focus, textarea:focus { outline: none; }
 
-/* 2. Replace with our own low-key rings (only for keyboards and text input)  */
+/* 2. Replace it with our own subtle ring (only for keyboard and text input) */
 input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 2px solid var(--accent);   /* Green, not blue.  */
+  outline: 2px solid var(--accent);   /* Teal, not blue */
   outline-offset: 1px;
 }
 ```
 
-Safari may also need to process extra spinners for `-webkit-appearance`/ digital input boxes. In Juanxi
-Browsers are measured.
+Safari may also need handling for `-webkit-appearance` / number-input spinners. Use Juanxi's
+actual browser test as the reference.
 
-### Select State to be handled with
+### Also address the "selected state"
 
-v1. The two new 1s are also biased, contrary to Juanxi’s “simplified, advanced” message:
+These two additions in v1.1 are also heavy and conflict with Juanxi's request for "simple and refined":
 
 | Location | Code | Problem |
 |---|---|---|
-| `styles.css:560` | `.m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px }` | An outside circle of 20 px with 3 px thick, 3px miles away, the ring is almost as big as a dot. |
-| `styles.css:686` | `.heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px }` | Team, the heat. |
-| `styles.css:240` | `.flow-step.is-selected { box-shadow: ... }` | **Dead Code** (swipe map deleted), directly deleted |
+| `styles.css:560` | `.m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px }` | A 20px dot has a 3px-thick ring 3px away; the ring is almost as large as the dot |
+| `styles.css:686` | `.heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px }` | Team heatmap |
+| `styles.css:240` | `.flow-step.is-selected { box-shadow: ... }` | **Dead code** (the swimlane diagram was removed); delete it |
 
-* Crude outer ring for light background + 1px border (Linear / Notion / monday practice).
+→ Replace the thick outer ring with a subtle background + 1px border (as Linear / Notion / monday do).
 
-### 1.3 "Use false data before Supabase"
+### 1.3 "Use fictional data; do not add Supabase yet"
 
-The **→ D line (data layer) is cancelled. It saves a lot of work and makes IRB much simpler.** was right about this decision.
+**→ Cancel all of Track D (the data layer). This saves substantial work and makes IRB much simpler.** This is the right decision.
 
-But there are three attendant consequences that must be addressed:
+But three consequences must be addressed:
 
-The priority of **1 browser data protection has increased.** Now that the localStorage is the only storage, the audit report A7 ("Reshaping Data Structures = All User Data Without Voice Zero") has changed from "Hide" to "Participant 60 Minute Sessions may disappear after you push the code." **A7 must do it before Thursday.**
+**① Browser data protection now has higher priority.** Since localStorage is the only storage, audit item A7 ("one data-structure change silently wipes every user's data") changes from a "potential issue" to "everything a participant did in a 60-minute session could disappear after one code push." **A7 must be done, before Thursday.**
 
-The **2 clock problem doesn't need to be fixed. The** time clock, which was fixed in the `2026-10-22` demonstration, was a problem, but your plan says "Phase 3 every participant sees the same date" (10/22 Decision Record). **so it's Feature not bug, stay still.** (but the calendar of 2027-05-08 is overdue for half an hour, and now it's cheaper than later. ）
+**② The clock no longer needs fixing.** The demo clock fixed at `2026-10-22` originally looked like a problem, but your plan already says "every Phase 3 participant sees the same date" (10/22 decision record). **So this is a feature, not a bug; leave it unchanged.** (The calendar expiring on 2027-05-08 still needs extending, though. That takes half an hour, and doing it now is cheaper than doing it later.)
 
-**3 but your data government still gets it and doesn't need a server.**, this is my new idea:
+**③ You can still have data governance without a server.** Here is an approach I just thought of:
 
-Add a **only extra event log to that reducer incision (`store.tsx:104-245`, one switch covers all 40 operations) and write the same localStorage**. At the end of the session, participants order "Export Session" and hand over JSON to you.
+Add an **append-only event log in the same localStorage** at the reducer integration point (`store.tsx:104-245`, one switch covering all 40 action types). At the end of a session, the participant clicks "Export session" and gives you the JSON.
 
-You've got it: who, what, what, what, what before. **Zero Servers, Zero Superbases, Zero Databases, but the paper "data government as bottom" has live evidence.**
+You then have: who did what, at which second, and the value before the change. **Zero servers, zero Supabase, zero databases, but real evidence for the thesis's claim that "data governance is the foundation."**
 
-The **thing has to be written into the IRB submission on Thursday. The** export document does not contain a live name (participant uses false information from you), but the "collecting participant's interactive log" is in itself a collection of data, protocol. **is now written free of charge; After approval, you'll have to go and change it, and you'll be stuck with the 11/9 plan to start testing.**
+⚠️ **This must be included in the IRB materials submitted on Thursday.** The export contains no real names (participants use the fictional details you provide), but "collecting participants' interaction logs" is itself data collection and must appear in the protocol. **Adding it now costs nothing; adding it after approval requires an amendment that could derail your plan to begin testing on 11/9.**
 
-### 1.4【2026-10-27♪ Juanxi likes it ♪ **This is the current edition.**It's not the old version.
+### 1.4 [Correction, 2026-10-27] Juanxi likes **the current version**, not the old one
 
-Juanxi sent a screenshot of what he said, "What I like is this version." ** v1. 2 (Main)
-**:
+Juanxi sent a screenshot saying, "This is the version I like." Checking each element shows that it is **dark mode in v1.2 (the version currently
+running on main)**:
 
-| Elements in the screenshot. | Code Position | Include Version |
+| Element in the screenshot | Code location | Introduced in |
 |---|---|---|
-| Right Bar `Ask \| Details` Two labels, "Looking at: Today x" | `src/components/rail/AskPanel.tsx` | v1.1 |
-| Plan/Prep/Money/Promo/Run/Wrap Dot Chain | `Chain`（`ui/index.tsx`）| v1.1 |
-| "Waiting" purple / "Not cleared" | `ui/statusDefaults.ts` 6 Colors | v1.1 |
-| " Demo Thu, Oct 22 " pills | `DemoMenu` | v1.1 |
-| The line between Rules and Settings | `Layout.tsx:79` empty grouping div | v1.1 |
-| Timester goals | `Ring`（`ui/index.tsx`）| v1.1 |
+| Right-rail `Ask \| Details` tabs and "Looking at: Today ×" | `src/components/rail/AskPanel.tsx` | v1.1 |
+| Plan/Prep/Money/Promo/Run/Wrap dot chain | `Chain` (`ui/index.tsx`) | v1.1 |
+| Purple "Waiting" / gray "Not claimed" | 6 colors in `ui/statusDefaults.ts` | v1.1 |
+| "Demo · Thu, Oct 22" pill | `DemoMenu` | v1.1 |
+| Horizontal line between Rules and Settings | Empty group div in `Layout.tsx:79` | v1.1 |
+| Semester goals ring | `Ring` (`ui/index.tsx`) | v1.1 |
 
-v0. 1 and WP0-WP5 both generations of **have no** right column, Chain, StatusPill, so can be excluded.
+Neither v0.1 nor WP0–WP5 **had** a right rail, Chain, or StatusPill, so those two generations can be ruled out.
 
-**The extrapolation of section 7.4 of the audit report ( "He missed the second edition of a card with an explanatory caption") was rejected.**
-The article in the report was marked “inference” and now has a counter-prosecution, which is followed by a counter-evidence.
+**→ The inference in audit section 7.4 ("he misses the second version's card layout with headings and explanatory text") has been disproved.**
+That statement was marked as an "inference" in the report. We now have contrary evidence and should follow it.
 
-### What's changed?
+### What this changes
 
-| Planned | Change to | Rationale |
+| Original plan | Change to | Reason |
 |---|---|---|
-| C4 Navigator back to action. | **Delete** | He likes the navigation now. |
-| C5 restore Gantchat | **Delete** | He never asked. |
-| C1 Behind-the-scenes switch | Reservation, **For a change of scenery.**  | It's not "get back what you miss," it's a paper that explains why 2 touch screen users don't see the suspension card. |
-| C2 Problem becomes subheading | ⚠️ **Downgrade to Juanxi.**  | He hasn't complained that he can't read. It's an improvement, not a bug. |
-| Positioning of S5 | ⚠️ **Change from "building design systems" to "fixing the current situation."**  | Here you go. |
+| C4 Return navigation to an action-oriented structure | ❌ **Remove** | He likes the current navigation |
+| C5 Restore the Gantt chart | ❌ **Remove** | He never requested it |
+| C1 Behind-the-scenes switch | ✅ Retain, **with a different rationale** | No longer "recovering something he misses, " but ① the thesis's explainability argument and ② touch users cannot see hover-card content |
+| C2 Turn questions into visible subtitles | ⚠️ **Downgrade to asking Juanxi first** | He has not complained that he cannot understand it; this is an improvement, not a bug fix |
+| S5's purpose | ⚠️ **Change from "establish a design system" to "formalize the current appearance"** | See below |
 
-### S5 Repositioning (important)
+### Change in S5's purpose (important)
 
-Juanxi can **like this deep green look**, and the code under **is really messy** -- these two things don't conflict.
+Juanxi can **like this dark green appearance** while the underlying code **really is a mess**—those two things do not conflict.
 
-23, 4 colours, 19.7% death CSS is not a question of "look ugly" but of "no one can change it safely".
+23 font sizes, 4 color systems, and 19.7% dead CSS are a problem of "no one can safely change it," beyond simply "it looks ugly."
 
-**So what S5 has to do is not redesign, but restate the current situation with a set of rules.  When you're done, the interface should...
-It looks almost exactly the same **, but from "23 random" to "6 slots". S5 must be written dead in prompt
-This one, otherwise Opus would have been unable to "improve" the vision.
+**S5 therefore needs to express the current appearance through a consistent set of rules, rather than redesign it. The interface should
+look almost identical afterward**, changing only from "23 arbitrary font sizes" to "6 levels." The S5 prompt must make
+this explicit, or Opus will be tempted to "improve" the visuals.
 
-### 1.5【2026-10-27Juanxi actually prefers it. **Light Color Mode**And I can't choose now.
+### 1.5 [Further correction, 2026-10-27] Juanxi actually prefers **light mode**, and currently cannot select it
 
-Juanxi adds: "I don't really like dark patterns, I prefer white ones. 」
+Juanxi added: "Actually, I don't really like dark mode. I still prefer light mode."
 
-So the screenshot of 1.4 is dark, just because ** his computer system was dark, and this app didn't give him.
-Select the scope **. "Deep green version," he says, refers to brand green. `--accent #0f766e`No, it's not.
-Dark mode.
+So the screenshot in §1.4 is dark simply because **his computer's system theme is dark, and this app gives him
+no choice**. His “dark green version” refers to the brand's teal (`--accent #0f766e`), not
+dark mode.
 
-**, the previous version of the program "S5 uses dark colour as a first scene" is dead. Light color is home.**
+**→ The previous plan's "S5: treat dark mode as the primary context" is superseded. Light mode comes first.**
 
-### Verified: Subject switch is missing, but CSS has already written it.
+### Verified: the theme switch is missing, but the CSS has long been ready
 
 ```css
-src/styles.css:27   color-scheme: light;                              /* Default Light Colors  */
+src/styles.css:27   color-scheme: light;                              /* Light by default */
 src/styles.css:29   @media (prefers-color-scheme: dark) {
-src/styles.css:30     :root:not([data-theme="light"]) { ... }          /* Follow the system, unless light colour is forced.  */
-src/styles.css:39   :root[data-theme="dark"] { ... }                   /* Force Dark Color  */
+src/styles.css:30     :root:not([data-theme="light"]) { ... }          /* Follow the system unless light is forced */
+src/styles.css:39   :root[data-theme="dark"] { ... }                   /* Force dark */
 ```
 
-CSS **fully supports both mandatory coverage of** `data-theme="light"`/ `data-theme="dark"`.
+The CSS **fully supports** both forced overrides, `data-theme="light"` / `data-theme="dark"`.
 
-**but no single line code will set `data-theme`.**
-(`grep -rn "theme|Theme" src/components/ src/pages/Settings.tsx` THROUGH)
+**But no line of code anywhere in the repository sets `data-theme`.**
+(`grep -rn "theme|Theme" src/components/ src/pages/Settings.tsx` returns zero matches.)
 
-Consequences: **This app can only follow the operating system and the user cannot choose.** Juanxi's Mac is dark.
-  So he's been seeing only dark versions.
+→ Consequence: **this app can only follow the operating system; the user cannot choose.** Juanxi's Mac uses dark mode,
+  so he has only ever been able to see the dark version.
 
-Amendment: Set up `document.documentElement.dataset.theme` on `<html>`, stored in localStorage.
-  **doesn't need a new line CSS**, the hook is already there. About 20 line.
+→ Fix: set `document.documentElement.dataset.theme` on `<html>` and save it to localStorage.
+  **No CSS changes are needed**; the hook is already there. About 20 lines.
 
-• Affiliation: This only needs to move `Layout.tsx` and `main.tsx`, both of which are **S1 files**,
-  And don't touch `styles.css` (S3 Monopoly). So to S1 do, **A11**.
+→ Ownership: this only requires changes to `Layout.tsx` and `main.tsx`, both **S1 files**,
+  without touching `styles.css` (exclusive to S3). Assign it to S1 as **A11**.
 
-### The effect of this on the Phase 3 (more important than what it looks)
+### How this affects Phase 3 (more than it appears)
 
-Participants will see the themes decided by **of their respective computer systems**. If half are dark and half light:
-- Unsymmetrical conditions for research (compared to Plan No. 16In the decision of this section, "each participant sees the same date" is precisely for consistency.
-- And audit section 8.2 found that **6 colours had no dark color variant** for dark background
-  Only 2.96–3.65:1, `--line`, and only 1.30:1 -- it's obviously worse in dark mode.
+Participants will see a theme determined by **their own computer's system settings**. If half use dark and half light:
+- Research conditions differ (while the decision in section 16 of the plan specifies "every participant sees the same dates" precisely for consistency).
+- Audit section 8.2 also found that **6 status colors have no dark variants**, with only 2.96–3.65:1 against surface on a dark background,
+  and `--line` only 1.30:1. Dark mode looks noticeably worse.
 
-* **recommends that Phase 3 by default compel light**, but this is a product decision to be made by Juanxi.
-→  S5 still has to fix the contrasts of dark colour mode (which are objective and bad) but **is next to light color**,
-  Not the first scene.
-
----
+→ **Recommend forcing light mode by default for Phase 3**, but this is a product decision for Juanxi.
+→ S5 must still fix those dark-mode contrast issues (they are objectively broken), but **after light mode**;
+  they are no longer the primary focus.
 
 ---
 
-## Section 2 New timetable
+---
 
-| Date | Week | Events | To finish what? |
+## Section 2 · Revised schedule
+
+| Date | Day | Event | What must be completed |
 |---|---|---|---|
-| **10/27** | Tuesday | Today | Confirmation of the programme; Audit report submitted to GitHub |
-| 10/28 | Wednesday | Implementation | **Phase 1** (3 sessions in parallel) |
-| **10/29** | **Thursday**  | **Submitted IRB** | Full function, no visible bug, quick response. **IRB materials with an interactive log export** |
-| 10/30–11/1 | Five or six days. | IRB Waiting | **Phase 2** (Design system, sequenced execution) |
-| **11/2–11/3** | Monday and Tuesday. | IRB approval | Phase two continues. |
-| **11/4** | **Wednesday**  | Sending of recruitment mail | Turn off Netlify access protection (**must finish**) |
-| 11/5–11/8 | Four or five days. | End | **Phase 3** (explanatory) + release freeze |
-| **11/9** | **Monday** | Start Live Test | v1. 0 Freezing, labelling |
+| **10/27** | Tuesday | Today | Confirm this plan; submit the audit report to GitHub |
+| 10/28 | Wednesday | Implementation | **Stage 1** (3 parallel chats) |
+| **10/29** | **Thursday** | **Submit IRB** | Complete functionality, no obvious bugs, fast response. **Include interaction-log export in the IRB materials** |
+| 10/30–11/1 | Friday–Sunday | Waiting for IRB | **Stage 2** (design system, executed sequentially) |
+| **11/2–11/3** | Monday–Tuesday | IRB approval | Continue Stage 2 |
+| **11/4** | **Wednesday** | Send recruitment email | Disable Netlify access protection (**rate limiting must be completed first**) |
+| 11/5–11/8 | Thursday–Sunday | Final work | **Stage 3** (explainability) + finalize |
+| **11/9** | **Monday** | Begin real testing | Freeze and tag v1.0 |
 
-**The boundaries of the three phases are hard:**
+**The boundaries between the three stages are firm:**
 
-- **Phase 1 (Friday) = Useable, data-free, feeling fast.** doesn't touch the visual system.
-- **Phase 2 (Tursday) = Design system.** This phase changes only CSS and Lint configurations without functionality.
-- **Phase 3 (11/5  →  11/8) = Bring back the word "can read". The most valuable part of the** paper is put to the end because it builds on the first two phases.
+- **Stage 1 (today → Thursday) = usable, no data loss, feels fast.** Leave the visual system alone.
+- **Stage 2 (Thursday → Sunday) = design system.** Change only CSS and lint configuration in this stage; add no features.
+- **Stage 3 (11/5 → 11/8) = restore comprehensibility.** The part with the most thesis value comes last because it depends on the first two stages.
 
-**11/4 has a hard reliance:** sending recruitment mail means turning off Netlify's access to protection, and at that moment your AI Key was exposed on the public web. **So A8 (stream limit + delete redundant endpoint) must finish** before 11/4 and cannot be postponed.
+**11/4 has a hard dependency:** sending recruitment emails means disabling Netlify access protection, at which point your AI key is exposed to the public internet. **So A8 (rate limiting + removal of redundant endpoints) must be completed before 11/4**. It cannot slip.
 
 ---
 
-## Section 3 - List of Sessions (9 Sessions)
+## Section 3 · Session list (9 sessions)
 
-### Answer "How many dialogues are expected": **9** in three batches.
+### Answer to "how many chats will this take?": **9**, in three batches.
 
-| # | Session Name | Phase | Model | Branch | Could it be parallel? | Unique Files |
+| # | Session name | Stage | Model | Branch | Can run in parallel? | Exclusively owned files |
 |---|---|---|---|---|---|---|
-| **S1** | Organisation | One. | **Sonnet 5.5** | `fix/s1-ux-bugs` | ✅  Parallel to S2/S3 | `NodePanel.tsx` `Tasks.tsx` `board.ts` `Layout.tsx` `main.tsx` `TaskDetail.tsx` |
-| **S2** | Security, engines, data protection | One. | **Sonnet 5.5** | `fix/s2-safety` | ✅  Parallel to S1/S3 | `netlify/**` `calendar.ts` `schedule.ts` `store.tsx` `seed.ts` `public/legacy/` |
-| **S3** | Speed and quality of response | One. | **Opus 5.5** | `fix/s3-perf` | ✅  in parallel with S1/S2 | `styles.css` `Today.tsx` `Events.tsx` `aiContext.ts` `assistant.ts` `forecast.ts` |
-| **S4** | Delete Dead Code | Two. | **Sonnet 5.5** | `design/s4-deadcode` | ❌  must be behind S3 merge | `styles.css` `helpers.tsx` |
-| **S5** | Token Table (Design System) | Two. | **Opus 5.5** | `design/s5-tokens` | ❌  Must be after S4 | `styles.css` `statusDefaults.ts` `MetroChart.tsx` `Handoff.tsx` |
-| **S6** | Guardrail (lint + CI + accessibility) | Two. | **Sonnet 5.5** | `design/s6-guardrails` | ❌  Must be after S5 | `package.json` `.stylelintrc` `.eslintrc` `ci.yml` `a11y.spec.ts` `word-count.mjs` |
-| **S7** | Explanatory switch + Visible subtitle | III | **Opus 5.5** | `feat/s7-explain` | ❌  Must be after S6 | `Page.tsx` `Layout.tsx` `routes.ts` + Comment points for each page |
-| **S8** | Touch screen down + Navigation Reassemble | III | **Sonnet 5.5** | `feat/s8-touch-nav` | ❌  Must be after S7 | `ui/index.tsx` `Layout.tsx` `styles.css` |
-| **S9** | release freeze, document, merge online | III | **Opus 5.5** | `release/v1.0` | ♪ Finally ♪ | `README.md` `AGENTS.md` `PROGRESS.md` `PRODUCT_PLAN.md` |
+| **S1** | Permissions and entry-point fixes | 1 | **Sonnet 5.5** | `fix/s1-ux-bugs` | ✅ With S2/S3 | `NodePanel.tsx` `Tasks.tsx` `board.ts` `Layout.tsx` `main.tsx` `TaskDetail.tsx` |
+| **S2** | Security, engine, and data protection | 1 | **Sonnet 5.5** | `fix/s2-safety` | ✅ With S1/S3 | `netlify/**` `calendar.ts` `schedule.ts` `store.tsx` `seed.ts` `public/legacy/` |
+| **S3** | Responsiveness and polish | 1 | **Opus 5.5** | `fix/s3-perf` | ✅ With S1/S2 | `styles.css` `Today.tsx` `Events.tsx` `aiContext.ts` `assistant.ts` `forecast.ts` |
+| **S4** | Remove dead code | 2 | **Sonnet 5.5** | `design/s4-deadcode` | ❌ Only after S3 merges | `styles.css` `helpers.tsx` |
+| **S5** | Token table (design system) | 2 | **Opus 5.5** | `design/s5-tokens` | ❌ After S4 | `styles.css` `statusDefaults.ts` `MetroChart.tsx` `Handoff.tsx` |
+| **S6** | Guardrails (lint + CI + accessibility) | 2 | **Sonnet 5.5** | `design/s6-guardrails` | ❌ After S5 | `package.json` `.stylelintrc` `.eslintrc` `ci.yml` `a11y.spec.ts` `word-count.mjs` |
+| **S7** | Explainability toggle + visible subtitles | 3 | **Opus 5.5** | `feat/s7-explain` | ❌ After S6 | `Page.tsx` `Layout.tsx` `routes.ts` + explanatory insertion points in each page |
+| **S8** | Touch fallback + navigation reorganization | 3 | **Sonnet 5.5** | `feat/s8-touch-nav` | ❌ After S7 | `ui/index.tsx` `Layout.tsx` `styles.css` |
+| **S9** | Finalize, document, merge, and launch | 3 | **Opus 5.5** | `release/v1.0` | ❌ Last | `README.md` `AGENTS.md` `PROGRESS.md` `PRODUCT_PLAN.md` |
 
-### Why this split?
+### Why this division
 
-**S1/S2/S3 can be parallel because their file collection is checked and there is no overlap.**, that's not a guess -- I've got an exclusive list of documents, and it says, "Don't touch anybody else's files." The only intersection is `styles.css`: **, and only S3 can change it**, so S1 must revert to the existing `.btn .btn-primary` when adding a new button. No new styles are allowed.
+**S1/S2/S3 can run in parallel because their file sets were checked and do not overlap at all.** This is not a guess: I listed each exclusively owned file, and the prompts will explicitly say "do not touch other sessions' files." The sole potential overlap is `styles.css`: **only S3 may modify it**, so S1 must reuse the existing `.btn .btn-primary` when adding buttons and may not write new styles.
 
-**S4 must be before S5, which is contrary to the order of audit reports — I changed it.** original report B1(token) → B2 (deleted code). **Deletes and builds more savings.**: After 19.7% of the death of CSS, S5 will be missing a large fraction of the number/ spacing to map, and the audit found that most of the duplicated conflicts in 23 were dead -- before it was deleted, the conflict itself disappeared.
+**S4 must precede S5. This reverses the audit report's order; I have changed it.** The original report specified B1 (tokens) → B2 (remove dead code). **Removing before building is less work**: once the 19.7% unused CSS is gone, S5 has far fewer font sizes and spacing values to map. Also, in most of the 23 "conflicting duplicate declarations" found by the audit, one duplicate is already unused; removing it resolves the conflict automatically.
 
-**Phases 2 and 3 are not parallel because they all have to move `styles.css`.** Two agents to the same 714 CSS file = inevitable merge conflict, and you can't solve it without writing code. **series is much safer than parallel lines.**
+**Stages two and three are sequential because both edit `styles.css`.** Two agents editing the same 714-line CSS file at once inevitably creates merge conflicts, and you do not write code or resolve those conflicts. **Sequential work is much safer here.**
 
-### Answer "What model to use"?
+### Answer to "which model should we use?"
 
-Principle: **is chosen according to the nature of the mission, not by "as expensive as possible".**
+Principle: **choose for the nature of the task, not on the assumption that more expensive is better.**
 
-- **Opus 5.5 uses** (S3 S5 S7 S9):
-  - S3 To judge which box is his blue frame, and how to call it "simple" -- this is aesthetic and trade-off.
-  - S5 To map 23 characters into 6 files, each is a judgment question (this 13px should be xs or sm? ）
-  - S7 is a new interactive from Zero Design.
-  - S9. Make up your mind about being online.
-- **Sonnet 5.5 uses** (S1 S2 S4 S6 S8): with precise files, line numbers, standards, just do it.
-- **Haiku**. These missions are heavy and not recommended.
+- **Use Opus 5.5 where judgment is required** (S3 S5 S7 S9):
+  - S3 must determine "which box he means by the blue box" and "what change would feel simple and polished": aesthetic judgment and tradeoffs
+  - S5 must map 23 font sizes into 6 levels; each mapping needs judgment (does this 13px belong in xs or sm?)
+  - S7 designs a new interaction from scratch
+  - S9 decides whether the product can launch
+- **Use Sonnet 5.5 where specifications are clear** (S1 S2 S4 S6 S8): exact files, line numbers, and acceptance criteria; follow the specification
+- **Haiku** is not recommended; all these tasks are relatively demanding
 
 ---
 
-## Section 4: Answer "How to use git worktree"
+## Section 4 · Answering "how to use git worktree"
 
-### Let's start with a judgment that'll help you out.
+### First, a judgment that can save you work
 
-**If you're opening a new conversation on the web (claude.ai/code this cloud session), you don't need worktree.**
+**If you open a new chat on the web (a cloud session such as claude.ai/code), you do not need a worktree.**
 
-Each cloud session will open a brand-new container and recode a cLone code. **Segregation is already free of charge** — it's physically impossible for two sessions to cover each other. Worktree solves the problem of "the same machine on multiple anent grabs the same folder", and you don't have that problem.
+Each cloud session starts a fresh container and clones a fresh copy of the code. **Isolation is already free**: two sessions physically cannot overwrite each other's files. Worktrees solve "multiple agents competing for the same folder on one machine, " which is not a problem you have.
 
-**so you just need a branch, not worktree.**, every session starts by checking out its own branch. You don't have to learn what worktree is.
+**So you only need branches, not worktrees.** Each session can check out its branch at the start. You do not need to learn what a worktree is.
 
-### Scenario A (recommended) Cloud Session + Branch
+### Option A (recommended) · Cloud sessions + branches
 
-One-time preparation (to today):
+One-time setup (do this today):
 
 ```bash
 git checkout main && git pull
@@ -302,1324 +300,1325 @@ git checkout -b integration/v1.1-fix
 git push -u origin integration/v1.1-fix
 ```
 
-`integration/v1.1-fix` is the **assembly area**. The result of all the sessions comes first to merge, **is only Thursday and two nodes 11/9 to `main`** (following AGENTS.md 3 rule 4:main is the official website that requires your approval).
+`integration/v1.1-fix` is the **integration point**. All sessions merge their work here first; **merge to `main` only at the two checkpoints, Thursday and 11/9** (following AGENTS.md Section 3, rule 4: main is the production site and requires your approval).
 
-The first sentence of each session (written in pampt):
+The first statement in each chat (already included in the prompts):
 
 ```bash
 git fetch origin
 git checkout -b fix/s1-ux-bugs origin/integration/v1.1-fix
 ```
 
-End of each session: Push your own branch, **don't take its own merge**. You take a look at GitHub and press the merge button.
+At the end of each chat: push its own branch; **do not merge it yourself**. You review it on GitHub, then click the merge button.
 
-Merge order (**, one at a time and wait for the CI green light to merge next**):
+Merge order (**one at a time; wait for green CI before merging the next**):
 
 ```
-S1 → S2 → S3  →  Merge.  integration/v1.1-fix Present.  mainThursday, you approve.
+S1 → S2 → S3  →  Merge integration/v1.1-fix into main (Thursday, with your approval)
 S4 → S5 → S6
 S7 → S8
-S9                →  Merge to  main + Fight!  v1.0 Label ( 11/9You approve?
+S9                →  Merge into main + tag v1.0 (11/9, with your approval)
 ```
 
-### Scheme B. If you run off on your own Mac, Claude Code
+### Option B · If you run local Claude Code on your own Mac
 
-At this point, worktree makes sense -- it allows three people to have an independent directory of jobs each, but shares the same `.git`, so they don't interfere with each other without having three:
+This is where worktrees become useful: each of the three agents gets a separate working directory while sharing the same `.git`, avoiding interference without cloning three copies:
 
 ```bash
 cd ~/platypus-officer-hub
 git fetch origin && git checkout -b integration/v1.1-fix origin/main && git push -u origin integration/v1.1-fix
 
-# Open a work directory for each of the three sessions in phase one.
+# Create one working directory for each of the three Stage 1 sessions
 git worktree add ../pl-s1 -b fix/s1-ux-bugs integration/v1.1-fix
 git worktree add ../pl-s2 -b fix/s2-safety  integration/v1.1-fix
 git worktree add ../pl-s3 -b fix/s3-perf    integration/v1.1-fix
 
-# Each directory has to be dependent on each of them. node_modules (Do not share)
+# Install dependencies separately in each directory (node_modules is not shared)
 cd ../pl-s1 && npm ci
 cd ../pl-s2 && npm ci
 cd ../pl-s3 && npm ci
 ```
 
-Then we'll split up between the three terminals. `cd ../pl-s1`Claude Code again.
+Then run `cd ../pl-s1` in each of the three terminals and start Claude Code.
 
-_Other Organiser
+Clean up when finished:
 
 ```bash
-git worktree remove ../pl-s1    # The changes have to be submitted or discarded first.
-git worktree list               # Look what's left.
+git worktree remove ../pl-s1    # Commit or discard changes first
+git worktree list               # See which worktrees remain
 ```
 
-**Two pits:**
-1. `node_modules` No shared, each worktree to separate `npm ci` (three dependents on disk)
-2. The same branch can't be detected in two worktrees at the same time. Git will simply refuse.
+**Two pitfalls:**
+1. `node_modules` is not shared; each worktree needs its own `npm ci` (three copies of dependencies, consuming disk space)
+2. The same branch cannot be checked out in two worktrees at once; git will refuse
 
-**My Proposal: With Option A.** You don't write code, worktree benefits are much less than its cognitive costs.
+**My recommendation: use option A.** Since you do not code, the benefit of a worktree (saving one clone) is far smaller than its cognitive cost.
 
 ---
 
-## Section 5 . 9 propt (direct replicable)
+## Section 5 · Nine prompts (ready to copy)
 
-> Use: open a new dialogue to confirm the model and glue the following corresponding segment. Each paragraph already contains branch operations, file boundaries, standards and handoff requirements. You do not have to add any additional information.
+> Usage: open a new chat → confirm the model → paste the corresponding complete prompt below. Each already includes branch operations, file boundaries, acceptance criteria, and handoff requirements; you need not add anything.
 
 ---
 
-### S1 --permissions and portal restoration  ｜ Sonnet 5.5  ｜  can be paralleled to S2/S3
+### S1 · Permissions and entry-point fixes | Sonnet 5.5 | Can run alongside S2/S3
 
 ```
-You're...  Platypus Officer Hub Make a defined work patchage in repository. This is...  ASU It's an honorary thesis.
-Phase 3 Prototype, Project Manager  Juanxi Don't write code.
+You are implementing a clearly scoped repair package in the Platypus Officer Hub repository. This is a
+Phase 3 prototype for an ASU honors thesis; the project lead, Juanxi, does not code.
 
-Read first (in order of course):
-1. AGENTS.md —— All  AI All the hard rules that apply, especially rule number one.  3 Sections and  7 Section
-2. docs/AUDIT_2026-10-27.md —— Code audit report. You're gonna fix all the questions.  5、6 Section
-3. docs/EXECUTION_PLAN_2026-10-27.md Article  3 Section  —— You are.  S1
+Read first (required, in order):
+1. AGENTS.md: hard rules for all AI assistants, especially Sections 3 and 7.
+2. docs/AUDIT_2026-10-27.md: the code audit report; all issues you must fix are in Sections 5 and 6.
+3. Section 3 of docs/EXECUTION_PLAN_2026-10-27.md: you are S1.
 
-_Other Organiser
+Before starting:
   git fetch origin
   git checkout -b fix/s1-ux-bugs origin/integration/v1.1-fix
   npm ci
 
-## Six things you have to do.
+## Your six tasks
 
-A1. src/styles.css:472 —— Suspended card not restored when shown  pointer-eventsThe one that caused the suspension of Kari
-    Buttons don't click and keyboards don't come. src/pages/Team.tsx:39 This is why you're using the bottom line of your contribution.
-    100% Not available.
-    ⚠️ Exceptions: styles.css By  S3 Monopoly, you can't change it.
-    → Please change it to  TSX We'll take care of it at all levels, or we'll put this in the handoff.  S3, and
-      e2e Riga a test mark that will fail. test.fixmeI'm going to put the problem on hold. Option one. Justification.
+A1. src/styles.css: 472 — pointer-events is not restored when the hover card appears, so its
+    buttons cannot be reached by mouse or keyboard. This makes the contribution leaderboard
+    drill-down in src/pages/Team.tsx: 39 100% unusable.
+    ⚠️ Exception: styles.css is exclusive to S3; you must not edit it.
+    → Solve this at the TSX layer, or document it in the handoff for S3 and add
+      an expected-failure marker (test.fixme) in e2e to pin down the problem. Choose one and explain why.
 
-A2. src/components/NodePanel.tsx:52,62,85,92,96,103,105,106 —— These edit controls are correct.
-    ♪ Everybody rewrite but ♪  src/data/store.tsx:155 It's...  updateNode Yes.  !canLead(state) Hours
-    Direct  return state。The user changed and did not respond, and did not have any hint.
-    → Change to  disabled={!canLead(state)}, and add a note to the panel.
-    → Documentation and interaction must be combined  src/components/rail/ChangeCard.tsx:111-113 Exactly.
-      That's the only place that is right, copy it.
-    ⚠️ Don't change.  store.tsx（S2 (single), change only  NodePanel.tsx。
+A2. src/components/NodePanel.tsx:52,62,85,92,96,103,105,106: these editing controls
+    render for everyone, but updateNode at src/data/store.tsx:155 immediately
+    returns state when !canLead(state). Users make changes with no effect or explanation.
+    → Use disabled={!canLead(state)} and add an explanatory sentence to the panel.
+    → Copy and interaction must exactly match src/components/rail/ChangeCard.tsx:111-113
+      (the only place in the repository that handles this correctly; follow it).
+    ⚠️ Do not edit store.tsx (exclusive to S2); edit only NodePanel.tsx.
 
-A3. src/pages/Tasks.tsx:28-32 —— ♪ The only one standing ♪ + Add task* Buttons are *  :125, only exists
-    Board Views the bottom of each column. Default View is  Table（:20) so the user opens  Tasks I can't see.
-    Any new entrance will assume that it does not have a mandate.
-    → Yes.  PageHead It's...  actions "Ricah" one. + New task, the main button, all three viewings.
-    → Reuse Existing  dispatch({ type: "addTask", title, status })。
-    → Attention.  src/data/board.ts:60-71 It's...  addBoardTask We don't check the missions, so this.
-      button should be available for all characters.
-    ⚠️ Must reuse the existing ones.  .btn .btn-primary Classes, do not add any  CSS。
+A3. src/pages/Tasks.tsx:28-32 — The site's only "+ Add task" button is at :125, at the very bottom
+    of each column in Board view. The default is Table (:20), so users opening Tasks see
+    no creation entry and may assume they lack permission.
+    → Add a primary "+ New task" button to PageHead actions, visible in all three views.
+    → Reuse the existing dispatch({ type: "addTask", title, status }).
+    → Note that addBoardTask at src/data/board.ts:60-71 already has no permission check, so this
+      button should be available to all roles.
+    ⚠️ Reuse the existing .btn .btn-primary classes; do not add any CSS.
 
-A4. src/data/board.ts:64-67 —— Two.  bug：
-    (a) Not  lead Yes.  "Not claimed" New column point, the card will show up  "To do" Columns.
-        → Replace it with a clear indication of what happened to the user (text in English, interface in English, see).  AGENTS.md §7）。
-    (b) :69 Yes.  "Done" The new column will be created directly  status=done and  completedOn=today The mission,
-        Any officer can create a "finished" from an empty space.  canMoveTask(:22) But it's set to reboot.
-        Tasks to be approved by president  —— The approval model is bypassed by creating a path.
-        → Block it. New task does not allow direct  done。
-    → Both entries are to be completed.
+A4. src/data/board.ts:64-67 — Two bugs:
+    (a) When a non-lead creates a task in "Not claimed", the card silently appears in "To do".
+        → Explicitly tell the user what happened (use English copy; all interface text must be English, see AGENTS.md §7).
+    (b) :69 Creating a task in "Done" immediately produces status=done and completedOn=today.
+        Any officer can invent a "completed" task, while canMoveTask(:22) requires the president's approval
+        to reopen a completed task: the creation path bypasses the approval model.
+        → Close this loophole. Newly created tasks must not start as done.
+    → Add unit tests for both.
 
-A5. src/components/Layout.tsx:123 —— Reset demo One key emptys all the data without any confirmation,
-    And it's right next to the top bar menu.  "+1 day / +3 days / +10 days"。_Other Organiser  0 Branch  confirm()。
-    → Add confirmation. Don't use originals.  confirm()♪ Will be ♪  Playwright And the mobile browser. Use it.
-      A two-step click.  "Click again to reset"，3 Resume in second).
-    → Update affected  e2e Test.
+A5. src/components/Layout.tsx:123—Reset demo clears all data in one click without any confirmation,
+    right beside "+1 day / +3 days / +10 days" in the top-bar menu. There are 0 confirm() calls in the repository.
+    → Add confirmation. Do not use native confirm() (blocked by Playwright and mobile browsers); use
+      a two-click action (the first click changes it to "Click again to reset", reverting after 3 seconds).
+    → Update the affected e2e tests.
 
-A6. src/main.tsx —— _Other Organiser  0 Branch  ErrorBoundary。Any Rendering Error  = The whole application of white screen, and
-    localStorage The data in it that is damaged will lead to a white screen for each update. The participants would be stuck straight to death.
-    → Add one.  ErrorBoundaryPack it up.  App。
-    → Show when error occurred: A statement in English  + Two buttons ( Reload / Reset demo data）。
-    → Reset Buttons need to be able  store Working in a broken condition.  localStorage，
-      Don't go.  store It's...  action）。
+A6. src/main.tsx—there are 0 ErrorBoundary instances in the repository. Any rendering error = a blank app,
+    and corrupt localStorage data will cause a blank screen on every refresh. Participants will be completely stuck.
+    → Add an ErrorBoundary around App.
+    → On error, show one sentence in English + two buttons (Reload / Reset demo data).
+    → The Reset button must work even when the store is broken (clear localStorage directly,
+      without using a store action).
 
-A11【2026-10-27 Add Light  / Dark toggle.
-    Verified: src/styles.css It's...  CSS **Fully supported**Theme Overwrite  ——
-      :27  color-scheme: light                      (default light color)
-      :30  :root:not([data-theme="light"])          (Follow the system, unless light colour is imposed)
-      :39  :root[data-theme="dark"]                 (compulsory dark color)
-    **But there's no one line to set it up.  data-theme**
-    （grep -rn "theme|Theme" src/components/ src/pages/Settings.tsx Zero hit.
-    → Consequences: app You can only follow the operating system and the user cannot choose. Juanxi It's...  Mac It's dark, so he...
-      It's always dark, and he says he prefers light.
-    → Practice: in  <html> Up Settings  document.documentElement.dataset.themeSave  localStorage。
-      Third stage: Auto(Follow the system, no setting)  data-theme）/ Light / Dark。
-    → ⚠️ **There's no need to change the line.  CSS**The hook is already there. styles.css Yes.  S3 Monopoly, you can't touch.
-    → Place: The top bar already exists  5 Controls (audit number)  8.6 ♪ And say ♪  60% Don't turn into a scaffolding.
-      Article  6 One. Suggested input  Settings Page or page  Demo menu. You judge and give reasons in your report.
-    → When first load, avoid "spill the dark color before it becomes light."  main.tsx Lee.  React Just before the mount.
-      Put it on.  data-theme Write it down.
-    → To supplement test: cut to  Light Renovated, still.  Light。
-    → Ask in the Handoff log.  Juanxi One question: **Phase 3 Do you want to compel light color by default?**
-      Reason: Participants will see topics decided by their respective systems and half the depths of the study will lead to inconsistent research conditions.
-      And...  6 No dark color variant for a state colour (Deep Color Contrast only)  2.96–3.65:1）。It's a product decision.
-      It's up to him, you don't decide by yourself.
+A11 [Added 2026-10-27] Light / dark theme switching.
+    Verified: the CSS in src/styles.css **already fully supports** theme overrides:
+      :27  color-scheme: light                      (light by default)
+      :30  :root:not([data-theme="light"])          (follow the system unless light is forced)
+      :39  :root[data-theme="dark"]                 (force dark)
+    **But no line of code in the entire repository sets data-theme**
+    (grep -rn "theme|Theme" src/components/ src/pages/Settings.tsx returns zero matches).
+    → Consequence: the app can only follow the operating system; users cannot choose. Juanxi's Mac uses dark mode,
+      so he has only ever seen the dark version, although he says he prefers light.
+    → Approach: set document.documentElement.dataset.theme on <html> and persist it in localStorage.
+      Three settings: Auto (follow the system, omit data-theme) / Light / Dark.
+    → ⚠️ **No CSS changes are needed**; the hooks already exist. styles.css belongs exclusively to S3; do not touch it.
+    → Placement: the top bar already has 5 controls (audit Section 8.6 says 60% are demo scaffolding); do not add
+      a sixth. Consider Settings or the Demo menu. Use your judgment and explain your reasoning in the report.
+    → Prevent a "dark flash before switching to light" on initial load (set data-theme in main.tsx before
+      mounting React).
+    → Add a test: after switching to Light and refreshing, it remains Light.
+    → Ask Juanxi in the handoff record: **Should Phase 3 force light mode by default?**
+      Reason: participants otherwise see themes determined by their own systems; half dark and half light creates
+      inconsistent study conditions. The 6 status colors also lack dark variants (dark-mode contrast is only
+      2.96–3.65:1). This is a product decision for him; do not decide it yourself.
 
-## Document boundary (hard)
+## File boundaries (mandatory)
 
-You can only change:
+You may modify only:
   src/components/NodePanel.tsx
   src/components/TaskDetail.tsx
   src/pages/Tasks.tsx
   src/data/board.ts
   src/components/Layout.tsx
   src/main.tsx
-  src/test/**and  e2e/** It's the inside test.
-  docs/PROGRESS.md(Handoff records only)
+  The corresponding tests in src/test/** and e2e/**
+  docs/PROGRESS.md (handoff entries only)
 
-You can't change it.
-  src/styles.css        ← S3 Monopoly
-  src/data/store.tsx    ← S2 Monopoly
-  netlify/**            ← S2 Monopoly
-  src/engine/**         ← S2/S3 Monopoly
+You must never modify:
+  src/styles.css        ← Exclusively owned by S3
+  src/data/store.tsx    ← Exclusively owned by S2
+  netlify/**            ← Exclusively owned by S2
+  src/engine/**         ← Exclusively owned by S2/S3
   src/lib/assistant.ts, src/lib/aiContext.ts, src/pages/Today.tsx,
-  src/pages/Events.tsx  ← S3 Monopoly
+  src/pages/Events.tsx  ← Exclusively owned by S3
 
-If something has to be changed to someone else's file, don't change it.  —— Write in.  docs/PROGRESS.md _Other Organiser
-Note: S1 Found  XYes, I do.  S3/S2 Yes.  <Documentation > Do it.  Y」。
+If something requires modifying another session's files, do not modify them: put it in the handoff entry in docs/PROGRESS.md,
+explaining "S1 found X; S3/S2 needs to do Y in <file>."
 
 ## Acceptance
 
-- npm run check All Green (Golden) tsc + vitest + playwright）
-- The original test article cannot be deleted or reduced. If a test is supposed to change because of your changes,
-  It's an article-by-article explanation in the handoff record.
-- There are tests for new behaviors.
-- Don't change.  AGENTS.md、PRODUCT_PLAN.md、RULES.md
+- npm run check must be entirely green (tsc + vitest + playwright)
+- Do not delete or weaken any existing test. If your changes legitimately require a test to change,
+  explain each such change and its reason in the handoff entry.
+- All new behavior needs tests
+- Do not modify AGENTS.md, PRODUCT_PLAN.md, or RULES.md
 
-## At the end
+## At completion
 
-1. Yes.  docs/PROGRESS.md _Other Organiser
-   What's done?  / What's left?  / What? Acceptance. / Known problem  / Handoff to whom?
-2. Form of submission: [S1][Claude] Brief description
+1. Add a row at the top of the handoff log in docs/PROGRESS.md, following its existing format:
+   completed / remaining / acceptance steps (where to click) / known issues / next owner
+2. Commit message format: [S1][Claude] Short description
 3. git push -u origin fix/s1-ux-bugs
-4. Don't merge to any branch. Don't touch it.  main。Juanxi I'll be there by myself.  GitHub Up metge.
-5. Finally in simple Chinese  Juanxi Report: What's changed, where's his point at, what's not done.
-   One step at a time, don't use terminology.
+4. Do not merge into any branch. Do not touch main. Juanxi will merge on GitHub himself.
+5. Finally, report to Juanxi in simple Chinese [historical instruction; superseded by the current English policy]: what changed, where to click for acceptance, and what remains unfinished.
+   Explain one step at a time without jargon.
 ```
 
 ---
 
-### S2 - Security, Engines, Data Protection  ｜  Sonnet 5.5  ｜  can be paralleled to S1/S3
+### S2 · Security, engine, and data protection | Sonnet 5.5 | Can run alongside S1/S3
 
 ```
-You're...  Platypus Officer Hub Make a defined work patchage in repository. This is...  ASU It's an honorary thesis.
-Phase 3 Prototype, Project Manager  Juanxi Don't write code.
+You are implementing a clearly scoped repair package in the Platypus Officer Hub repository. This is a
+Phase 3 prototype for an ASU honors thesis; the project lead, Juanxi, does not code.
 
-Read first (in order of course):
-1. AGENTS.md —— Especially the first one.  3 Coercive rules
-2. docs/AUDIT_2026-10-27.md —— You have to fix it.  3 Section (three emergencies) and  10 Section
-3. docs/EXECUTION_PLAN_2026-10-27.md Article  1.3 Sections and  3 Section  —— You are.  S2
+Read first (in order, all required):
+1. AGENTS.md — especially the hard rules in section 3
+2. docs/AUDIT_2026-10-27.md — your repairs are in section 3 (three urgent items) and section 10
+3. docs/EXECUTION_PLAN_2026-10-27.md sections 1.3 and 3 — you are S2
 
-Key background: Juanxi It's decided.  Phase 3 Don't.  Supabase, the participants use the messageal information we provide.
-So...  localStorage is the only storage, data protection ( A7The priority has therefore been raised.
+Important context: Juanxi has decided that Phase 3 will not use Supabase, and participants will use fictional information we provide.
+localStorage is therefore the only storage, raising the priority of data protection (A7).
 
-_Other Organiser
+Before starting:
   git fetch origin
   git checkout -b fix/s2-safety origin/integration/v1.1-fix
   npm ci
 
-## Four things you have to do.
+## Four things you need to do
 
-A7Data protection. src/data/store.tsx:247-258：
-    schemaVersion It's just a matter of time.  seedDemo(), no migration, no backup, no hint, no export.
-    This version has been changed.  3 Second ( 3→4→5), every time means that all users enter silent disappears.
-    Same.  catch（:254-256Give it back.  JSON The failure to deconstruct was also swallowed.
-    :260-266 Save failed (%1) QuotaExceededErrorIt's also silence.
-    → (a) Save old data to one with version number when the version does not match  keyDon't lose it.
-    → (b) Shows a hint (not sileence) on the interface when saving failed.
-    → (c) Add a "" Export my data"button to download current status as  JSON。
-         Put it on  Settings Page, do not put the top bar.
+A7 [Most important] Data protection. src/data/store.tsx:247-258:
+    A schemaVersion mismatch directly calls seedDemo(), with no migration, backup, notice, or export.
+    This version has changed 3 times already (3→4→5), each silently erasing all user input.
+    The same catch (: 254-256) also swallows JSON parsing failures.
+    Save failures (QuotaExceededError) at : 260-266 are silent too.
+    → (a) On a version mismatch, preserve the old data unchanged under a separate versioned key; do not discard it.
+    → (b) Explicitly show save failures in the interface (never silently).
+    → (c) Add an “Export my data” button to download the current state as JSON.
+         Put it on Settings, not the top bar.
 
-A7b[New, Juanxi 2026-10-27 [Decision] interactive log.
-    src/data/store.tsx:104-245 It's one.  switch, overwrite all about  40 , the only writing point.
-    → Add an extra event log here and write it in the same one.  localStorage：
-      { seq, at (Live time stamp  Date.now()), actor (viewerId), type (action Type ),
-        payload (Streamlined parameters ), before (Changed old value of field only for operations with old value ) }
-    → Note: This is the only place where you can use live clocks. The date shown on the interface still has to go
-      state.todayDon't mix it.
-    → Upper limit: retain recent  2000 The one with the old ones. localStorage Quotas are limited).
-    → Let's go up.  A7(c) It's...  Export button to export this log together.
-    → This is...  Juanxi In the paper.  data governance So the field is complete and can be re-established.
-    → unit tess: do  5 It's a different operation.  5 Article, order and order. before Value is correct.
+A7b [Added by Juanxi's 2026-10-27 decision] Interaction log.
+    src/data/store.tsx:104-245 is one switch covering approximately 40 action types, the only write point.
+    → Add an append-only event log here, stored in the same localStorage:
+      { seq, at (real timestamp from Date.now()), actor (viewerId), type (action type),
+        payload (trimmed parameters), before (old values of changed fields, only for actions with old values) }
+    → Note: this is the only place in the repository allowed to use the real clock. Dates displayed
+      in the interface must still use state.today (the fixed demo clock); do not mix them.
+    → Limit: retain the latest 2000 entries, dropping the oldest when exceeded (localStorage has limited capacity).
+    → Include this log in the export from A7(c)'s Export button above.
+    → This is evidence for data governance in Juanxi's thesis, so preserve every field and allow the order to be reconstructed.
+    → Add a unit test: perform 5 different actions and assert 5 log entries, correct order, and correct before values.
 
-A8 Server port closes. 11/4 We have to turn it off.  Netlify Access to protection e-mails, that moment.  /api/* It's exposed.
-    The Internet, and now it's out of control, out of bounds, out of order.  400KB。
-    → (a) netlify/functions/chat.mts:29 It's...  body Upper limit  400_000 → 40_000
-    → (b) Delete the four endpoints: netlify/functions/pool.mts(total dead code, SPA Never calling,
-          parse-brief.mts、plan-draft.mts、classify.mts(only abandoned)  /legacy/ Call)
-    → (c) Delete it.  public/legacy/ The whole directory. It's half broken.  6 I'm not sure if it's the end of the world.
-          But it's still publicly accessible and will burn the same one.  AI key。
-          ⚠️ Before deleting it, confirm: git log In which it's historically intact. Juanxi Could be reference.  v0.1 Designed,
-          S7 We'll use it. Write in handoff's record v0.1 The code can be used.
-          `git show 49b0b89:public/index.html` "Return" and verify that the order can really run.
-    → (d) Press  IP The limit of the flow. Priority  Netlify Ability to carry itself (in)  netlify.toml (a) The Declaration of the Libyan Arab Jamahiriya;
-          If the current program doesn't support it, it is.  netlify/lib/http.mts A simple flow limit within a Riga process.
-          And honestly explain its limitations in the handoff record (the function example restarts to zero).
-    → (e) Yes.  netlify/lib/ai.mts Use log for each call to book:
-          provider / model / Enter Output  token(if the supplier returns) / Timetime  / peer name.
-          ai.mts:110,118,131 It's timed out.
-          ⚠️ You can't appear in a log.  key、token, user content.
+A8 Server-side containment. Netlify access protection is due to be disabled on 11/4 to send recruitment emails. At that point /api/* becomes
+    public, with no authentication, no rate limiting, and requests accepting 400KB.
+    → (a) Change the body limit at netlify/functions/chat.mts:29 from 400_000 → 40_000.
+    → (b) Delete these four endpoints: netlify/functions/pool.mts (entirely dead code, never called by the SPA),
+          parse-brief.mts, plan-draft.mts, classify.mts (called only by the abandoned /legacy/).
+    → (c) Delete the entire public/legacy/ directory. It is already partly broken (calling 6 nonexistent endpoints),
+          yet remains publicly accessible and can incur charges against the same AI key.
+          ⚠️ Before deleting, confirm its complete history remains in git log (Juanxi may need the v0.1 design
+          as a reference; S7 will use it). State in the handoff that "v0.1 code can be recovered with
+          `git show 49b0b89:public/index.html`" and verify that this command actually works.
+    → (d) Add per-IP rate limiting. Prefer Netlify's built-in capability (declared in netlify.toml);
+          if the current plan does not support it, add a simple in-process limiter in netlify/lib/http.mts
+          and honestly document its limitations in the handoff (counters reset when the function instance restarts).
+    → (e) In netlify/lib/ai.mts, log one usage line for each call:
+          provider / model / input and output token counts (if returned by the provider) / duration / endpoint name.
+          ai.mts:110,118,131 already measures duration.
+          ⚠️ Logs must never contain keys, credential tokens, or user content.
 
-A9 Calendar expired. src/engine/calendar.ts:15-60 It's...  ASU The school year data are only available.  2027-05-08。
-    When we're done,  studentOffReason(:80-86) It's going to be "between semesters," so it's going to be a reverse date.
-    Jump all the way forward. Verifyed: 2027-10-15 Inverted activity  14 A student's day will tell.
-    2027-04-13"The right answer."  2027-09-27That's not true.  6 and does not report any error.
-    → (a) To complete  2027–2028 School year  TERMS / FINALS / HOLIDAYS / BREAKS。
-          Every one of them has to have an official source.  URL, and keep it up to date  docs/RULES.md Last Calendar Source
-          （AGENTS.md Article  4 Section requires the same rules and documents).
-          If we don't find the official...  2027-2028 Calendar, do not compile  —— Just do it.  (b), and in the handoff record.
-    → (b)Yes.  src/engine/schedule.ts It's...  issue List (%1) :290-324、:326-343Lee!
-          Add a new one.  error Level  issue: Any calculation involving a date outside the scope of the known calendar,
-          Clear reporting of errors. Make it worse than quiet.
-    → (c) Supplement unit tess: Raise date beyond known calendar, assert  issue Come on.
+A9 Calendar expiry. ASU academic-year data in src/engine/calendar.ts:15-60 ends on 2027-05-08.
+    Beyond that, studentOffReason(:80-86) classifies every day as "between semesters," making the backward
+    date calculation keep jumping backward. Recalculation verified that subtracting 14 student working days
+    from an event on 2027-10-15 returns 2027-04-13 (the correct answer is 2027-09-27, a full 6-month error),
+    without reporting any error.
+    → (a) Add TERMS / FINALS / HOLIDAYS / BREAKS for the 2027–2028 academic year.
+          Every entry needs an official source URL; update the calendar-source section at the end of
+          docs/RULES.md as well (AGENTS.md Section 4 requires rules and documentation to change together).
+          If the official 2027-2028 calendar cannot be found, do not invent it: do only (b) and explain in the handoff.
+    → (b) [Required] Add a new error-level issue to the issue lists in src/engine/schedule.ts
+          (:290-324, :326-343): explicitly report an error whenever a calculation involves a date outside
+          the known calendar range. Make the failure visible rather than silent.
+    → (c) Add a unit test: move a date outside the known calendar and assert that the issue appears.
 
-## Document boundary (hard)
+## File boundaries (mandatory)
 
-You can only change:
+You may modify only:
   src/data/store.tsx, src/data/seed.ts, src/data/types.ts
   src/engine/calendar.ts, src/engine/schedule.ts
   netlify/**
   netlify.toml
-  public/legacy/(deleted)
-  src/pages/Settings.tsx(In thousands of US dollars)  Export buttons; Reuse Existing  .btn Classes, no new  CSS）
-  docs/RULES.md(Reassigned to calendar source only)
-  src/test/**and  e2e/** It's the inside test.
-  docs/PROGRESS.md(Handoff records only)
+  public/legacy/ (delete)
+  src/pages/Settings.tsx (only to add the Export button; reuse the existing .btn class, with no new CSS)
+  docs/RULES.md (calendar-source section only)
+  Corresponding tests in src/test/** and e2e/**
+  docs/PROGRESS.md (append handoff record only)
 
-You can't change it.
-  src/styles.css           ← S3 Monopoly
-  src/components/**        ← S1 Monopoly ( Settings.tsx _buttons are exceptions, but only buttons will be added)
-  src/pages/Tasks.tsx, src/data/board.ts, src/main.tsx  ← S1 Monopoly
+You must not change:
+  src/styles.css           ← S3 exclusive ownership
+  src/components/**        ← S1 exclusive ownership (except a button in Settings.tsx; adding a button only)
+  src/pages/Tasks.tsx, src/data/board.ts, src/main.tsx  ← S1 exclusive ownership
   src/lib/assistant.ts, src/lib/aiContext.ts, src/engine/forecast.ts,
-  src/pages/Today.tsx, src/pages/Events.tsx             ← S3 Monopoly
+  src/pages/Today.tsx, src/pages/Events.tsx             ← S3 exclusive ownership
 
 ## Acceptance
 
-- npm run check All green.
-- You can't delete the original test. You can't change it.
-- A7 _Other Organiser
-- A9(b) _Other Organiser
-- After deleting the peer, e2e If there's a test to quote them, they'll be cleared together.
+- npm run check all green
+- Do not delete any existing test or loosen its assertions
+- A7 tests must cover: preserving old data on version mismatch, and showing a notice on save failure
+- A9(b) tests must cover: an error when outside the calendar range
+- After deleting endpoints, remove and explain any e2e tests that reference them
 
-## At the end
+## At completion
 
-1. docs/PROGRESS.md Handoff, add a line to the record.  / What's left?  / What? Acceptance?  / (Issues known)
-2. Submission of information: [S2][Claude] Brief description
+1. Add a handoff entry to docs/PROGRESS.md (what is complete / what remains / how to accept / known issues).
+2. Commit message: [S2][Claude] Brief description
 3. git push -u origin fix/s2-safety
-4. Don't merge. Don't touch it.  main。
-5. In plain Chinese  Juanxi Reporting. In particular, two things must be made clear:
-   (a) What's the format for exporting the interactive log?  IRB (materials)
-   (b) What's the limit? What's the limit?
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese (historical instruction; repository and GitHub reporting must now use English under the current policy). Be especially clear about:
+   (a) What the exported interaction-log format looks like (he needs it for Thursday's IRB materials).
+   (b) What the rate limiting actually achieves and its limitations.
 ```
 
 ---
 
-### S3 . Respond speed and quality 5.5|  may be paralleled to S1/S2
+### S3 · Responsiveness and polish | Opus 5.5 | Can run in parallel with S1/S2
 
 ```
-You're...  Platypus Officer Hub Repository is responsible for work package: let interface "Feels fast. "，
-And deal with the project leader.  Juanxi An explicit visual requirement. Juanxi Don't write code.
+You own a work package in the Platypus Officer Hub repository that requires judgment: make the interface “feel fast,”
+and address a visual requirement explicitly raised by project owner Juanxi. Juanxi does not code.
 
-Read first (in order of course):
-1. AGENTS.md —— Especially the first one.  7 Interface Rules
-2. docs/AUDIT_2026-10-27.md —— Full text, focus section  4、8 Section
-3. docs/EXECUTION_PLAN_2026-10-27.md Article  1.1 and  1.2 Section  —— That's...  Juanxi The exact words and
-   Verified evidence. You are.  S3。
+Read first (in order, mandatory):
+1. AGENTS.md — especially section 7, interface rules.
+2. docs/AUDIT_2026-10-27.md — all of it, especially sections 4 and 8.
+3. Sections 1.1 and 1.2 of docs/EXECUTION_PLAN_2026-10-27.md — Juanxi's own words and
+   verified evidence. You are S3.
 
-Juanxi The exact words: "I miss the second edition of the response, which is really quick and does not need to wait." 」
-And: "The blue frame is too guiding. Feels like a guide to access or ancillary functions, drop it first. I need more brevity.
-High, no mistake. 」
+Juanxi's exact words: "What I miss most about the second version is its response speed. It was really fast, with no waiting."
+Also: "The blue border is too directive; it feels like Guided Access or an accessibility feature. Remove it first. I need something simpler,
+more polished, and error-free."
 
-_Other Organiser
+Before starting:
   git fetch origin
   git checkout -b fix/s3-perf origin/integration/v1.1-fix
   npm ci
 
-## P1 · Get rid of it.  300 A millisecond suspension delay. 1 Okay.
+## P1 · Remove the 300-millisecond hover delay [confirmed work; 1 line]
 
-src/styles.css:471 and  :572：
+src/styles.css:471 and :572:
   transition: opacity .12s ease .3s, visibility 0s linear .42s;
-The mouse stops and waits.  300ms It's just starting to fade. Total.  420ms Just saw it. Move it too.  420ms。
+Hovering waits 300ms before fading in, and 420ms total before it is visible. Moving away also takes 420ms.
 
-Verifyed: v0.1（Juanxi The whole transition is...  .15s / .2sNot a single delay.
-git log -S Make sure the delay is...  5bde479「v1.1 It's a simplified version.  —— It's just that he didn't like it.
-That's the version.
+Verified: all transitions in v0.1 (the version Juanxi liked) were .15s / .2s, with no delays.
+git log -S confirms that this delay was introduced by 5bde479, "v1.1 simplification redesign":
+exactly the version he started to dislike.
 
-→ For Delay read  0 or very short ( ≤80ms"Asynchronous" and lighten time alignment.  v0.1 It's...  .15s。
-→ At the same time, check everything. Anything else?  transition-delay Or too long animated to deal with.
-→ Attention.  e2e There are suspended tests, and they may rely on this delay (waiting time to die). Change it together.
+→ Set the delay to 0 or very short (≤80 ms to prevent accidental activation), and align the fade-in duration with v0.1's .15 s.
+→ Check the entire repository for other transition-delay values or overly long animations and address them too.
+→ Note that e2e hover tests may depend on this delay (hardcoded waits). Update them as well.
 
-## P2 · Predictions only count once.
+## P2 · Calculate the forecast only once [Confirmed]
 
-computeForecast Yes.  5 A no-shared cache call point:
+computeForecast has 5 call sites with no shared cache:
   src/pages/Today.tsx:19     useMemo(..., [state])
   src/pages/Events.tsx:28    useMemo(..., [state])
   src/lib/aiContext.ts:18
   src/lib/assistant.ts:72
-  src/lib/assistant.ts:82    ← Same time.  AI Twice in the answer.
-You have to run all over each time.  computeSchedule, and simulate  1000 Second. Send one.  Ask Message  = 3 Second.
+  src/lib/assistant.ts:82    ← calculated twice within the same AI answer
+Each first runs a full computeSchedule, then 1000 simulations. One Ask message = 3 calculations.
 
-→ Collection from a single source (recommendation: hanging on)  store It's...  context Go, press.  state Memorize once.
-→ Call point for pure function ( assistant.ts / aiContext.ts He's not here.  React In the trees, you have to be able to use it again.
-  It turns out, don't just fix it.  React Those two.
-→ Let's see what we can do.  store Every change  JSON.stringify Cost(s) store.tsx:262,278 (a) Full sequence).
-  If clear, do the flow (but not lose data)  —— page is closed.
-→ ⚠️ forecast.ts is the pure function of a fixed torrent, and the output must be the same in place as it is now.
-  src/test/forecast.test.ts The certainty assertion must continue to be adopted. Don't change the algorithm, just the way you call.
-→ Add a test to prove it.  state Change only triggers once.  computeForecast♪ We can use it ♪  spy Count.
+→ Consolidate into one source (suggestion: expose it through the store context and memoize once per state).
+→ Pure-function call sites (assistant.ts / aiContext.ts are outside the React tree) must reuse the same
+  result too; do not fix only the two React sites.
+→ Also measure the JSON.stringify cost on every store change (full serialization at store.tsx:262,278).
+  If significant, throttle it (without losing data: persist before the page closes).
+→ ⚠️ forecast.ts is a pure function with a fixed seed. Its output must remain bit-for-bit identical.
+  Determinism assertions in src/test/forecast.test.ts must keep passing. Change only the call pattern, not the algorithm.
+→ Add a test showing that one state change triggers computeForecast only once (a spy counter is acceptable).
 
-## P3 · Blue Box Juanxi Screenshot provided, located.
+## P3 · Blue border [Juanxi supplied a screenshot; located]
 
-Screenshot: Settings Page  `Submit budget request` , you get a bright blue circle outside the focus.
+Screenshot: the numeric input for `Submit budget request` on Settings has a bright blue ring around it when focused.
 
-⚠️ The facts that have been verified must be read before action is taken:
+⚠️ Verified facts: understand these before making changes:
 
-**That blue is not the color of this project.**
-  src/styles.css:53 It is the only focus style for this project:
-    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
-  --accent = #0f766eCyan green, not blue.
-  And there's nothing to do with it.  input / select / textarea , nor do you have any treatment
-  The code for the original focus ring of the browser ( grep webkit|focus-ring|outline: *none Two hits.  h2:focus）。
+**That blue is not a project color.**
+  src/styles.css:53 is the project's only focus style:
+    : focus-visible { outline: 2 px solid var(--accent); outline-offset: 2 px; border-radius: 6 px; }
+  --accent = #0 f766 e, teal, not blue.
+  And there are no focus styles for input / select / textarea anywhere in the repository, nor any code handling
+  native browser focus rings (grep webkit|focus-ring|outline: *none matches only two h2: focus locations).
 
-Exhausted checks already made 2026-10-27）：
-  - _Other Organiser  *.css There's only one.  13 Branch  :focus/outline/accent-color The rules, **The color is everywhere.
-    var(--accent)(#0f766e Cyan Green ) or  var(--late)/var(--accent-ink)**There's no blue focus.
-  - There's nothing against it.  input / select / textarea Focus Styles
-  - The only blue  #3a6fd8 Only in the presence  4 Places: statusDefaults.ts It's...  "To do" Status color,
-    PALETTE Palettes, .chain .dot.now、.m-dot.now —— All of them. **Background Color**Not the focus ring.
-  - There's nothing in the history of submission.  Apple / Apple.  / HIG Records
+Exhaustive checks already performed (2026-10-27):
+  - Across all *.css files, only 13 rules concern :focus/outline/accent-color, and **every color is
+    var(--accent) (#0f766e teal) or var(--late)/var(--accent-ink)**; there are no blue focus rings.
+  - No focus styles specifically target input / select / textarea.
+  - The sole blue, #3a6fd8, appears in only 4 places: the "To do" status in statusDefaults.ts,
+    the PALETTE palette, .chain .dot.now, and .m-dot.now. All are **background colors**, not focus rings.
+  - No commit-history entry mentions Apple or HIG (including the Chinese name for Apple).
 
-→ Juanxi This is what we added to our "Reference Apple Design Manual". The evidence doesn't support this judgment, but... **Oh, no.
-  We need to make some noise first. ** —— The following changes are effective in both cases, as it visibly takes over the focus style of form controls.
+→ Juanxi believes we added this while "following Apple's design guide." The evidence does not support that, but **there is
+  no need to settle the argument first**: the change below works in either case because it explicitly controls form-control focus styles.
 
-**First thing: ask.  Juanxi With...  Safari Or...  Chrome**The two are slightly different, and ask him to do one.
-10 : Opens the same input box in another browser. If the color or shape of the blue frame changes, it's a browser.
-drawings; If it's the same, it's what we missed and come back to check.
+**First: ask Juanxi whether he uses Safari or Chrome** (the fixes differ slightly), and ask him to perform a
+10-second check: open the same input in another browser. If the blue ring's color or shape changes, the browser
+is drawing it; if it is identical, we missed something and need to investigate again.
 
-### Do not simply delete the focus style
+### Do not simply delete focus styles
 
-- :focus-visible Only for keyboard users, mouse clicks do not trigger (text) /The digital entry box is an exception to the norm.
-  They match when they click.  —— That's exactly what happened in the screenshot.
-- It is.  WCAG 2.4.7 It's a hard request. It's deleted.  e2e/a11y.spec.ts Direct failure
-- ASU There's a policy of accessibility. We can't write in the paper, "We deleted the keyboard visibility."
+- : focus-visible is displayed for keyboard users; mouse clicks do not trigger it (text/number inputs are exceptions in the specification:
+  they also match on click — exactly what happened in the screenshot)
+- It is required by WCAG 2.4.7; removing it makes e2e/a11y.spec.ts fail immediately
+- ASU has an accessibility policy; the thesis cannot say "we removed keyboard focus visibility"
 
-### Reform
+### How to change it
 
-  /* 1. Turn off the original ring for form control.  */
-  input:focus, select:focus, textarea:focus { outline: none; }
+  /* 1. Remove native rings from form controls */
+  input: focus, select: focus, textarea: focus { outline: none; }
 
-  /* 2. In exchange for our own low-key rings.  */
-  input:focus-visible, select:focus-visible, textarea:focus-visible {
-    outline: 2px solid var(--accent);
+  /* 2. Replace them with our own understated ring */
+  input: focus-visible, select: focus-visible, textarea: focus-visible {
+    outline: 2px solid var (--accent);
     outline-offset: 1px;
   }
 
-Safari It may still need to be dealt with.  -webkit-appearance / Number Input Box  spinner。By  Juanxi Browser
-Assumptions  —— After the change, ask him to order that input box for confirmation in his own browser.
+Safari may also require handling -webkit-appearance / number-input spinners. Use actual checks in Juanxi's browser
+as the authority — after the change, ask him to click that input again in his own browser to confirm.
 
-### Handle preferred "choice"
+### Also soften the heavy selected state
 
   styles.css:560  .m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px }
-                  ← 20px Dotsets  3px Crude, separated.  3px A long ring, almost as big as a dot.
+                  ← A 20px dot with a 3px-thick ring offset by 3px; the ring is almost as large as the dot
   styles.css:686  .heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px }
-  styles.css:240  .flow-step.is-selected { box-shadow: ... }   ← Dead Code (swipe map deleted), directly deleted
+  styles.css:240  .flow-step.is-selected { box-shadow: ... }   ← Dead code (the swimlane diagram was removed); delete it
 
-→ Rough outer rings for light background.  + 1px Borders ( Linear / Notion / monday I'm sorry, but I don't know what to do.
+→ Replace the thick outer ring with a subtle background + 1px border (as Linear / Notion / monday do).
 
-### Authentication (compulsory)
+### Verification (required)
 
-Change Only Keyboard  Tab Let's go again.  Today / Tasks / Events / SettingsEvery step of the way, you have to see where the focus is.
-It doesn't look like it's broken. And then run again.  e2e/a11y.spec.ts。
+After the change, use only Tab to go through Today / Tasks / Events / Settings. The focus must be visible at every step.
+If it is not, the change is broken. Then rerun e2e/a11y.spec.ts.
 
-## P4 · Qualitative problems with handy hands.
+## P4 · Additional polish (only if capacity remains after the three items above)
 
-- styles.css:340 There's a dead code.  .forecast { margin: .5rem 0 }, from removed components,
-  That's why today every risk dot is on its back.  8px Top-down outer margin. Delete it.
-- styles.css:489 Quoted a variable that has never been defined  --st-now, so the flow chart "Current "
-  The dots always fall back hard-coded blue. Settings The color changes do not take effect.
-  ⚠️ This formal restoration belongs to  S5（token Tables). Just write it down in the handoff record and don't move.
+- styles.css:340 contains dead code, .forecast { margin: .5rem 0 }, from a deleted component,
+  giving every current risk dot 8px top and bottom margins. Delete it.
+- styles.css:489 references --st-now, a variable never defined anywhere in the repository, so the flowchart's "current"
+  dot always falls back to hardcoded blue; changing colors in Settings has no effect.
+  ⚠️ The formal fix belongs to S5 (token table). Document it clearly in the handoff; do not change it.
 
-## Document boundary (hard)
+## File boundaries (mandatory)
 
-You're the one.  src/styles.css —— S1 and  S2 It's forbidden to change it. If they left it in the Handoff records,
-styles.css needs, for example  S1 It's...  A1 pointer-eventsYou take over.
+You have exclusive ownership of src/styles.css — S1 and S2 are both prohibited from editing it. If they leave
+styles.css requests in their handoffs (such as S1's A1 pointer-events), you take them over.
 
-You can only change:
+You may edit only:
   src/styles.css
   src/pages/Today.tsx, src/pages/Events.tsx
   src/lib/assistant.ts, src/lib/aiContext.ts
-  src/engine/forecast.ts(redeployment only) /Memory, no algorithms)
-  src/data/store.tsx Rim.  forecast context Relevant part
-    ⚠️ store.tsx By  S2 Monopoly. If you have to change it, look first.  S2 There's no push.
-       Conflict in handoff records, let  Juanxi Order it up, don't force it.
-  src/test/**and  e2e/** It's the inside test.
-  docs/PROGRESS.md(Handoff records only)
+  src/engine/forecast.ts (change only calling patterns/memoization, not the algorithm)
+  forecast-context-related portions of src/data/store.tsx
+    ⚠️ store.tsx is exclusive to S2. If you must edit it, first check whether S2 has pushed;
+       if there is a conflict, record it in the handoff and let Juanxi arrange the order. Do not force the change.
+  Corresponding tests in src/test/** and e2e/**
+  docs/PROGRESS.md (add handoff notes only)
 
-You can't change it.
+You must not modify:
   src/components/NodePanel.tsx, src/pages/Tasks.tsx, src/data/board.ts,
-  src/components/Layout.tsx, src/main.tsx   ← S1 Monopoly
-  netlify/**, src/engine/calendar.ts, src/engine/schedule.ts  ← S2 Monopoly
-  src/components/ui/statusDefaults.ts        ← S5 Monopoly ( token (I)
+  src/components/Layout.tsx, src/main.tsx   ← exclusively owned by S1
+  netlify/**, src/engine/calendar.ts, src/engine/schedule.ts  ← exclusively owned by S2
+  src/components/ui/statusDefaults.ts        ← exclusively owned by S5 (token unification)
 
 ## Acceptance
 
-- npm run check All green.
-- forecast The certainty test has to be passed place-by-place.
-- Add a test certificate  forecast Every time  state It's only one change.
-- Manual: Desktops and mobile phones, one by one  Today / Events / TasksThe suspension must react immediately.
-- ⚠️ Juanxi It's always the day. **Dark Mode**All manual checks must be performed in dark mode.
-- Keyboard  Tab Full focus is visible
+- npm run check fully passes
+- Forecast determinism tests must pass bit for bit
+- Add a test showing that forecast computes only once per state change
+- Manual: walk through Today / Events / Tasks on desktop and phone; hover must respond immediately
+- ⚠️ Juanxi normally uses **dark mode**; repeat every manual check in dark mode
+- Focus remains visible throughout keyboard Tab navigation
 
-## At the end
+## At completion
 
-1. docs/PROGRESS.md Handoff log plus one line
-2. Submission of information: [S3][Claude] Brief description
+1. Add a handoff entry to docs/PROGRESS.md
+2. Commit message: [S3][Claude] Brief description
 3. git push -u origin fix/s3-perf
-4. Don't merge. Don't touch it.  main。
-5. In plain Chinese  Juanxi Reporting. In particular, make it clear:
-   (a) It's suspended. /How much faster did you click?
-   (b) What did you find out about the blue frame, what you changed, why didn't you delete it?  :focus-visible
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese. [Historical language instruction; current English repository/collaboration policy supersedes it.] Be especially clear about:
+   (a) How much faster hover/click is now (specific milliseconds)
+   (b) What you found about the blue border, what you changed, and why you did not remove :focus-visible
 ```
 
 ---
 
-### S4 . Delete the code. 5.5|  must be after S3 merge
+### S4 · Remove dead code | Sonnet 5.5 | Must follow the S3 merge
 
 ```
-You're...  Platypus Officer Hub Repository does a pure cleanup. This is...  ASU It's an honorary thesis.  Phase 3
-Prototype, Project Manager  Juanxi Don't write code. This work package does not change any user visible behavior.
+You are doing a cleanup-only task in the Platypus Officer Hub repository. This is a Phase 3
+ASU honors thesis prototype; project owner Juanxi does not code. This work package changes no user-visible behavior.
 
 Read first:
 1. AGENTS.md
-2. docs/AUDIT_2026-10-27.md Article  4.1、4.2 Section (full list of dead code)
-3. docs/EXECUTION_PLAN_2026-10-27.md Article  3 Section  —— You are.  S4
+2. docs/AUDIT_2026-10-27.md §§4.1, 4.2 (complete dead-code list)
+3. docs/EXECUTION_PLAN_2026-10-27.md §3—you are S4
 
-Background: src/styles.css By  11 Sub-submission, every time.  diff It's all " +N / −0* Never in history
-Delete any line  CSS。The one called "Simplified Reprint" 5bde479I got it.  341 All right, delete it.  0 Okay.  ——
-It's deleted the swimmers and Gantchat.  React code, but leave all their styles behind.
+Background: src/styles.css was built through 11 commits, each with a "+N / −0" diff. Not a single CSS line
+had ever been deleted. The commit called "simplification redesign" (5bde479) added 341 lines and removed 0 —
+it deleted the React code for the swimlane and Gantt charts but left all their styles.
 
-⚠️ I'll confirm it.  S3 It's...  fix/s3-perf ♪ I'm in ♪  integration/v1.1-fixOr you and it will.
-styles.css Up conflict. No, Merge, just stop and tell.  Juanxi。
+⚠️ First confirm that S3's fix/s3-perf has merged into integration/v1.1-fix, otherwise your changes will conflict
+with it in styles.css. If it has not merged, stop and tell Juanxi.
 
-_Other Organiser
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # Confirmed.  [S3] Submission
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm that [S3] commits are present
   git checkout -b design/s4-deadcode origin/integration/v1.1-fix
   npm ci
 
-## You're gonna do it.
+## What to do
 
-1. Recheck the dead code and don't copy the list of audit reports.  S1-S3 I've changed it.
-   Method: extraction  src/styles.css In everything.  class Selector, one by one.  src/**/*.{ts,tsx} and
-   public/**/*.html Search by word boundary. Leave the script.  scripts/ Now, this way we can run again.
+1. Measure dead code again yourself; do not copy the audit report's list (S1–S3 may have changed the code).
+   Method: extract every class selector from src/styles.css, then search for each with word boundaries in src/**/*.{ts, tsx} and
+   public/**/*.html. Keep the script under scripts/ so it can be rerun.
 
-2. Delete the rule block confirming that there is no reference. The audit report detected  62 Oh, my God.  class / 84 Rule block  /
-   329 Declaration (approach)  16% It's...  CSSIntergenerational distribution:
-     - v1 Swimming Charts flow-* / react-flow*，14 (numbers) —— FlowChart.tsx Deleted
-     - v1 Gantchart gantt-*，10 (numbers) —— Gantt.tsx Deleted
-     - v1 First-generation status colour (in millions of euros) st-*，9 (numbers) —— Has been  StatusPill Replace
-     - WP0/WP2 Legacy ( coming / demo-strip / step-strip / star-card Wait. 14 (numbers)
-     - WP3/WP4/WP5 Legacy ( task-list / board-column / funding-pipeline Wait. 12 (numbers)
-     - Other  3 One.
-   ⚠️ If...  Juanxi Later on, he said he'd resume Gantchat.  C5），gantt-* The style may still be useful.
-     → Do not just delete it.  gantt-*, move the entire paragraph to one at the end of the document
-       /* ---- Reservation: Gantchart style, etc.  C5 Resolves  ---- */ , in the Note block and in the Handoff log.
-     → Delete the rest.
+2. Delete rule blocks confirmed to have no references. The audit measured 62 dead classes / 84 rule blocks /
+   329 declarations (about 16% of the CSS), by generation:
+     - v1 swimlane (flow-* / react-flow*, 14)—FlowChart.tsx deleted
+     - v1 Gantt (gantt-*, 10)—Gantt.tsx deleted
+     - v1 first-generation status colors (st-*, 9)—replaced by StatusPill
+     - WP0/WP2 leftovers (coming / demo-strip / step-strip / star-card, etc., 14)
+     - WP3/WP4/WP5 leftovers (task-list / board-column / funding-pipeline, etc., 12)
+     - 3 others
+   ⚠️ If Juanxi later asks to restore the Gantt chart (execution plan C5), gantt-* styles may still be useful.
+     → Do not delete gantt-* directly. Move the entire section to the end of the file inside a
+       /* ---- Retained: Gantt styles, pending the C5 decision ---- */ comment block, and explain this in the handoff.
+     → Delete the rest as planned.
 
-3. Delete it.  src/pages/helpers.tsx Quoted dead export:
-   STATUS_LABEL(:6-13)、statusOf(:16)、statusClass(:21)、personName(:33)、
-   initials(:35)。Let's split up.  grep Confirm that there is really no reference.
-   Attention.  statusOf/statusClass It's "second-generation semantics" and deletes them from the audit report.
-   Article  4.3 The festival.  4 The first in the colored language  2 A condom.
+3. Remove these unreferenced dead exports from src/pages/helpers.tsx:
+   STATUS_LABEL(:6-13), statusOf(:16), statusClass(:21), personName(:33),
+   initials(:35). First search for each to confirm it truly has zero references.
+   Note that statusOf/statusClass are the "second generation of status semantics"; deleting them removes
+   color language 2 of the 4 in Section 4.3 of the audit.
 
-4. Reverse problem: yes  7 One of them.  TSX It's written but...  CSS There's no rules at all.  class：
-   card-text（src/components/rail/AskPanel.tsx:123，AI A container for each text reply,
-   No style at all) nudge-panel、task-gantt、info-wrap、todo、m-start、m-end。
-   → One by one: it's a missing style.  bug, put the handoff on the record  S5It's redundant.  class
-     ♪ Then from  TSX Delete it. Don't add new styles  —— That's...  S5 Something.
+4. The reverse problem: 7 classes appear in TSX but have no CSS rules at all:
+   card-text (src/components/rail/AskPanel.tsx:123, the container for every AI text reply,
+   completely unstyled), nudge-panel, task-gantt, info-wrap, todo, m-start, m-end.
+   → Assess each: is styling missing (a bug; record it in the handoff for S5), or is the class unnecessary
+     (remove it from TSX)? Do not add new styles yourself; that belongs to S5.
 
-5. src/components/ui/index.tsx:93 Export one.  Empty Component, but  16 All pages are handwritten.
-   <p className="empty">。
-   → Change these handwritings to...  <Empty>。Organisation Today.tsx:41,81 / Tasks.tsx:70,136 /
+5. src/components/ui/index.tsx:93 exports an Empty component, but 16 pages all handwrite
+   <p className="empty">.
+   → Replace these handwritten instances with <Empty>. Locations: Today.tsx:41,81 / Tasks.tsx:70,136 /
      Events.tsx:34 / Funding.tsx:67,76 / Partners.tsx:58,68 / Rules.tsx:38 /
      Handoff.tsx:73 / Settings.tsx:126 / rail/Rail.tsx:61 / FollowupPanel.tsx:18 /
      BoardSettings.tsx:18
-   → Just this one replacement, and don't change it.
+   → Make only this replacement; do not change anything else along the way.
 
-## Rigid requirements
+## Hard requirements
 
-- **Do not change the visible behavior of any user.** It's pure deletion.  + One-time equivalent replacement.
-- Cut each one. Run once.  npm run check。Delete the next group in full green.
-- It's submitted several times, it's submitted one at a time, so the fallback problem is good.
-- After deletion of the report: styles.css From  714 How many lines down, how many repeat conflicts have been eliminated
-  (Audit reports detected)  23 The majority of those who repeat them are dead and should be eliminated automatically).
-- ⚠️ Run once before it's deleted.  npm run build && npx playwright test, record the baseline. Delete the comparison.
-- ⚠️ Visual regression: The project does not have a visual regression test. That's why you have to cross-reference it manually when you delete it.
-  10 Page ( Desktop)  + Cell phones. Use  scripts/word-count.mjs:30 I'm not sure if you're going to be able to get a screenshot.
-  Or write a temporary script for yourself.  scratchpad, do not submit).) Anything that seems to have changed is a mistake.
+- **Do not change any user-visible behavior.** This is deletion only + one equivalent replacement.
+- Run npm run check after deleting each group. Continue to the next only when all checks are green.
+- Make separate commits, one per group, for easy rollback if problems arise.
+- After deletion, report: how many lines styles.css has after starting at 714, and how many conflicting duplicate declarations were eliminated
+  (the audit found 23; most of the duplicate halves are dead, so a number should disappear automatically).
+- ⚠️ Run npm run build && npx playwright test before deleting anything and record the baseline. Compare afterward.
+- ⚠️ Visual regression: this project has no visual regression tests. After deletion, you must manually compare screenshots of
+  10 pages (desktop + mobile). Use the existing screenshot capability at scripts/word-count.mjs:30,
+  or write a temporary script (in scratchpad; do not commit it). Any visual change means something was deleted incorrectly.
 
-## File boundary
+## File boundaries
 
-You can only change:
+You may change only:
   src/styles.css
   src/pages/helpers.tsx
-  Each  page and  component Rigs.  <p className="empty"> Change it to  <Empty> The lines.
-  Awarded redundant.  class The lines.  TSX
-  scripts/(Death Code Test Script)
-  docs/PROGRESS.md(Handoff records only)
+  The lines in pages and components replacing <p className="empty"> with <Empty>
+  TSX lines containing classes determined to be redundant
+  scripts/ (add a dead-code detection script)
+  docs/PROGRESS.md (add handoff entries only)
 
-Do not change: any logic, any  netlify/**, any  src/engine/**Any test claims.
+Do not change: any logic, any netlify/**, any src/engine/**, or any test assertions
 
-## At the end
+## At completion
 
-1. docs/PROGRESS.md Handoff records plus one line must contain:
-   - How many lines, which intergenerationals?
-   - gantt-* Where's the reservation?
-   - Article  4 List of missing styles found (to)  S5）
-2. Submission of information: [S4][Claude] Brief description
+1. Add a handoff entry to docs/PROGRESS.md, including:
+   - How many lines were removed and from which generations.
+   - Where gantt-* remains.
+   - The "missing styles" list found in item 4 (for S5).
+2. Commit message: [S4][Claude] Brief description
 3. git push -u origin design/s4-deadcode
-4. Don't merge. Don't touch it.  main。
-5. In plain Chinese  Juanxi Reporting, emphasising that the interface should not see any change if he sees a change
-   That's me deleting the wrong page, please.
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese (historical instruction; repository and GitHub reporting must now use English under the current policy). Emphasize: the interface should look unchanged; if he sees a change,
+   I removed something incorrectly, and he should identify the page.
 ```
 
 ---
 
-### S5. Token Table (Design System)  ｜  Opus 5.5  ｜  must be after S4
+### S5 · Token table (design system) | Opus 5.5 | Must follow S4
 
 ```
-You're...  Platypus Officer Hub Repository fills a piece that has never happened to this project: the design system
-Minimum delivery. This is...  ASU It's an honorary thesis.  Phase 3 Prototype, Project Manager  Juanxi No code, no code.
-I don't know how to design a terminology.
+In the Platypus Officer Hub repository, add something this project has never had: the minimum
+deliverables for a design system. This is a Phase 3 prototype for an ASU honors thesis. Project owner Juanxi does not code
+or understand design terminology.
 
-Read first (all necessary):
-1. AGENTS.md —— Especially the first one.  7 Interface Rules
-2. docs/AUDIT_2026-10-27.md —— Full text. Article  4 Section is your statement of work, No.  8 Section is the contrast.
-3. docs/EXECUTION_PLAN_2026-10-27.md Article  1.2 Section  —— Juanxi The only explicit requirement for vision.
-4. docs/PROGRESS.md Up top.  S4 _Other Organiser  —— He left you a list of missing styles.
+Read first (all required):
+1. AGENTS.md — especially Section 7, interface rules
+2. docs/AUDIT_2026-10-27.md — all of it. Section 4 defines your work; Section 8 contains contrast data
+3. docs/EXECUTION_PLAN_2026-10-27.md Section 1.2 — Juanxi's only explicit visual requirement
+4. The S4 handoff entry at the top of docs/PROGRESS.md — it leaves you a list of "missing styles"
 
-## Why are you doing this?
+## Why this is needed
 
-This item skip the first of a standard process  3 Step (Visual direction) and  4 Step (design system and component specifications).
-AGENTS.md Article  7 The festival.  6 An "interface rule" is  2026-10-23 After all the pages have been written, we will be able to identify them.
-It's only three columns.  / 5 Component  / This list does not have any colour order, word scale, spacing order or hierarchy.
+This project skipped step 3 (visual direction) and step 4 (design system and component specifications) of the standard process.
+The six "interface rules" in AGENTS.md section 7 were added retroactively on 2026-10-23 after all pages were written.
+They list only things such as "three columns / 5 components / word limits," with no color scale, type scale, spacing scale, or hierarchy.
 
-Results (audit evidence): 23 Typenames, 22 Spacing value, 14 a rounded corner, 14 Naked.  z-index，
-And the word, the spacing, the hierarchy.  token Not a single one. The same numbers running.  4 A non-connected state color.
+Results (measured in the audit): 23 font sizes, 22 spacing values, 14 border radii, and 14 raw z-index values,
+with no tokens at all for typography, spacing, or layers. The same data uses 4 disconnected status-color systems.
 
-Juanxi He said, "I can't say anything good or bad." —— Because there's nothing in the interface that can be...
-Rule of presentation. Your job is to make it have.
+Juanxi says he "cannot say what is good or bad" because the interface really has no rule that can be
+stated clearly. Your job is to give it those rules.
 
-Juanxi The only explicit requirement for vision is: **It's simple, sophisticated and right.** Don't guide too much stuff.
+Juanxi's only explicit visual requirements: **simple, refined, and reliable.** Avoid overly directive elements.
 
-⚠️ I'll confirm it.  S4 It's...  design/s4-deadcode ♪ I'm in ♪  integration/v1.1-fix。No merge, just stop.
-   Delete the dead code and build it.  token It saves most of the work. 19.7% It's...  CSS It's dead, don't map.
+⚠️ First confirm that S4's design/s4-deadcode has merged into integration/v1.1-fix. Stop if it has not.
+   Removing dead code before creating tokens saves more than half the work (19.7% of the CSS is dead and needs no mapping).
 
-_Other Organiser
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # Confirmed.  [S4] Submission
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm [S4] commits exist
   git checkout -b design/s5-tokens origin/integration/v1.1-fix
   npm ci
 
-## ⚠️ The most important constraint: don't change the way it is.
+## ⚠️ Most important constraint: preserve the current appearance
 
-2026-10-27 Juanxi Send a screenshot to confirm: **He likes the way it looks right now.**（v1.2 Dark mode.
-See section of the programme  1.4 Section.
+On 2026-10-27, Juanxi sent a screenshot confirming **he likes the current appearance** (v1.2 dark mode).
+See section 1.4 of this plan.
 
-That's your mission. **It's not a redesign. It's a restatement of the way it is.**。
-When it's done, the interface should look like... **Almost exactly the same.**♪ Just from ♪ 23 "Standing random numbers" becomes 6 It's a class."
+Your task, therefore, is **to express the current appearance through a consistent set of rules, rather than redesign it**.
+Afterward, the interface should look **almost identical**, with "23 random font sizes" replaced by "6 levels."
 
-- Don't. "Improvements "Color, don't adjust layout density, don't change fonts, don't change corner style
-- Every map should be the closest one, not the better one.
-- The only place that allows for a significant change in vision: the points where contrast is not qualified.  3 Article) and
-  10px / 10.5px It's a little too small. AGENTS.md §7.4 Request is not less than  14pxIt's a very serious violation now.
-- If a map can make the interface significantly different, **Let's start with a screenshot.  Juanxi**Don't decide for yourself.
+- Do not "improve" the palette, change layout density, replace fonts, or change the corner-radius style
+- Every mapping should use the closest existing tier, not the tier you personally prefer
+- Noticeable visual changes are allowed only for failing contrast (item 3) and
+  undersized text such as 10px / 10.5px (AGENTS.md §7.4 requires at least 14px, currently violated extensively)
+- If a mapping would visibly change the interface, **show Juanxi a screenshot and ask first**; do not decide yourself
 
-## ⚠️ Number two: Light color is home, dark colour is second.
+## ⚠️ Second rule: light mode comes first, dark mode second
 
-【2026-10-27 Corrections should be submitted to the original languages only.  1.5 FLIGHT Juanxi “I don’t really like dark patterns,” he says.
-I still prefer white mode. He sent a dark screenshot just because his system was dark, and this.  app
-There was no theme switch at the time. S1 It's...  A11 It'll add.
+[2026-10-27 correction; see section 1.5 of this plan] Juanxi said, "Actually, I don't like dark mode very much;
+I still prefer white mode." His earlier dark screenshots simply reflected his system theme, because the app
+had no theme switch at that point (S1's A11 will add it).
 
-→ Each set of changes **Look in light mode first.**Look at the dark color.
-→ But the dark contrasts still need to be addressed.  8.2 Section: 6 The color of the state is not dark.
-  On a dark background.  surface Only.  2.96–3.65:1；--line Only.  1.30:1。
-  Phase 3 Participants may use dark colours, which are objective defects, but only after light colour.
+→ Review each group of changes **in light mode first**, then dark mode.
+→ Still fix the dark-mode contrast problems (audit Section 8.2): 6 status colors lack dark variants,
+  with only 2.96–3.65:1 contrast against the surface on dark backgrounds; --line is only 1.30:1.
+  Phase 3 participants may use dark mode. These are objective defects, simply lower priority than light mode.
 
-## You're gonna do it.
+## What to do
 
-### 1. Fill the missing three steps  + Level
+### 1. Complete the three missing scales and layers
 
-Existing  :root（styles.css:3-27 and  :357There is already.  18 Colours  token、3 Font family, 1 A shadow.
-1 Round corner, 3 A layout width. What's missing is:
+The existing : root (styles.css: 3-27 and :357) already has 18 color tokens, 3 font families, 1 shadow,
+1 radius, and 3 layout widths. What is missing:
 
-- **Letters  6 Level**：--fs-xs:12 / --fs-sm:13 / --fs-base:15 / --fs-lg:17 / --fs-xl:20 / --fs-2xl:26
-  Take the existing one.  23 _Other Organiser 10 / 10.5 / 11 / 11.5 / 12 / 12.5 / 13 / 13.5 / 14 / 14.5 /
-  15 / 16 / 17 / 18 / 19 / 20 / 21 / 22 / 26 / 28px / clamp / .8rem / .95rem）
-  It's one-by-one. Every one of them is a question of judgment, not mechanically rounded.  —— 10px and  10.5px This.
-  It's too small. AGENTS §7.4 Require not less than  14pxI'm in a lot of trouble now.
-  Go up.  --fs-xs Instead of opening a new line.
-  ⚠️ This one changes vision. Change the page-by-page screenshot to  Juanxi Look.
+- **6-level type scale**: --fs-xs: 12 / --fs-sm: 13 / --fs-base: 15 / --fs-lg: 17 / --fs-xl: 20 / --fs-2 xl: 26
+  Map the existing 23 font sizes (10 / 10.5 / 11 / 11.5 / 12 / 12.5 / 13 / 13.5 / 14 / 14.5 /
+  15 / 16 / 17 / 18 / 19 / 20 / 21 / 22 / 26 / 28 px / clamp / .8 rem / .95 rem)
+  individually. Each requires judgment, not mechanical rounding—10 px and 10.5 px
+  are already too small (AGENTS §7.4 requires at least 14 px, a rule now heavily violated);
+  raise them to --fs-xs rather than adding another level.
+  ⚠️ This item changes the visuals. Afterward, send Juanxi screenshots of every page.
 
-- **Spacing Order  6 Level**：--s1:4 / --s2:8 / --s3:12 / --s4:16 / --s5:24 / --s6:32
-  Existing  22 Entrenchment value (%1) 1,2,3,4,5,6,7,8,9,10,11,12,14,16,18,19,20,22,24,28,40,48）
-  Adsorption to the nearest slot. 5/7/9/11/19 These shits.  4px The grid needs special attention.
-  padding Yes.  69 It's a different way of writing. gap Yes.  24 Seeds  —— Take it together.
+- **6 spacing levels**: --s1:4 / --s2:8 / --s3:12 / --s4:16 / --s5:24 / --s6:32
+  Snap the 22 existing values (1,2,3,4,5,6,7,8,9,10,11,12,14,16,18,19,20,22,24,28,40,48)
+  to the nearest level. Pay special attention to 5/7/9/11/19, which break the 4px grid.
+  There are 69 distinct padding forms and 24 gap forms; consolidate these together.
 
-- **Round Corner  3 Level**：--r-sm:8 / --r-md:12 / --r-lg:14（+ 999px Pills.  + 50% circle)
-  Take it off.  3/4/5/6/9/10px。The only one we have.  --radius token It's only used.  7 And then...  8px It's written.
-  16 Sub-paragraphs 10px 15 Second.
+- **3 corner-radius tiers**: --r-sm:8 / --r-md:12 / --r-lg:14 (+ 999px pills + 50% circles)
+  Eliminate 3/4/5/6/9/10px. The only existing --radius token is used just 7 times, while 8px is hardcoded
+  16 times and 10px 15 times.
 
-- **Level  5 Level**：--z-sticky:20 / --z-overlay:40 / --z-rail:55 / --z-menu:60 / --z-tip:70
-  Existing  14 A nudity. 0,1,2,3,4,5,6,20,40,45,50,55,60,70It's in the brain.
+- **5 layer levels**: --z-sticky: 20 / --z-overlay: 40 / --z-rail: 55 / --z-menu: 60 / --z-tip: 70
+  The existing 14 raw numbers (0, 1, 2, 3, 4, 5, 6, 20, 40, 45, 50, 55, 60, 70) rely on human memory.
 
-### 2. The status is one.
+### 2. Unify status colors [the most important item]
 
-Audit report number  4.3 Festival: Brand  token It's not about the color, it's about the color.  3 "Synonyms of different colours":
+Audit Section 4.3: brand tokens and status colors are two unrelated palettes, with 3 pairs of "same meaning, different color":
 
-| Meaning  | Brand  token | Status Color  |
+| Meaning | Brand token | Status color |
 |---|---|---|
-| It's late. /It's stuck  | --late #b42318 | blocked #c0362f |
-| Completed  | --good #1a7f37 | done #237a42 |
-| Attention. /Ongoing  | --warn #8f5206 | in_progress #b25c00 |
-| To-do  | (non-existent) | accepted #3a6fd8 ← Blue all over.  token It's not in the table.  |
+| Late/stuck | --late #b42318 | blocked #c0362f |
+| Done | --good #1a7f37 | done #237a42 |
+| Caution/in progress | --warn #8f5206 | in_progress #b25c00 |
+| To do | (absent) | accepted #3a6fd8 ← blue is absent from the entire token table |
 
-And...  git show 3d68221 Show this  6 The color of the state was...  monday.com It's...
-#7d8682 #d97b06 #d23f37 #2b9550，2026-10-23 For the sake of comparison, it's been turned into a current value.
-**They're taken from outside products.  + It's fine-tuned. It never happened to the color system of this project.  #0f766e) Align.**
+Also, git show 3d68221 shows that these 6 status colors originally used monday.com's
+#7d8682 #d97b06 #d23f37 #2b9550, then were individually darkened on 2026-10-23 to pass contrast checks.
+**They were copied from another product and adjusted afterward; they were never aligned with this project's palette (teal #0f766e).**
 
-→ (a) Get rid of this.  3 Repeat: Only one value is left for each meaning.
-   ⚠️ You can't just take one.  —— 6 All status colours now pass.  WCAG AA（4.72–5.82:1，
-   Audit report number  8.1 And the three brand colours don't necessarily. We need to recalculate the contrasts after every change.
-   and to list the numbers in the handoff log. Below  4.5:1 It's not working.
-→ (b) One for the blue.  token（--info Or something like that. Don't let it go away.  #3a6fd8。
-   ♪ The same blue is now written ♪  4 Places: statusDefaults.ts:7、styles.css:489、:554、:556。
-→ (c) Here.  6 Each state color fills a dark mode variant. Now they're on the dark interface.  surface
-   Only.  2.96–3.65:1(Audit)  8.2 is a set of deep-coloured solid pieces designed for the white bottom.
-→ (d) Definitions  --st-now（styles.css:489 Quote it, but all repository never defined) and let
-   src/components/flow/MetroChart.tsx _Other Organiser  useStatusStyles() Not.  CSS。
-   Now.  Juanxi Yes.  Settings → Board Reaper. To doThe color of the ‘sweeper’. Today progress chain and flow chart
-   The dots don't change.  —— It's a demonstration.  bug。
-→ (e) src/pages/Handoff.tsx:61 Put it on.  #237a42 / #3a6fd8 / #5f6763 Hard encoding for internal styles,
-   So the name change doesn't sync up to the handoff relay card. Let's go.  token。
+→ (a) Remove these 3 duplicate pairs: retain one value per meaning.
+   ⚠️ Do not simply choose one arbitrarily: all 6 status colors currently pass WCAG AA (4.72–5.82:1;
+   measured values are in audit section 8.1), whereas the three brand colors may not. Recalculate contrast
+   for every changed color and list the numbers in the handoff. Values below 4.5:1 are prohibited.
+→ (b) Add a token for blue (--info or similar), rather than leaving #3a6fd8 outside the system.
+   The same blue is hardcoded in 4 places: statusDefaults.ts:7, styles.css:489, :554, :556.
+→ (c) Add a dark-mode variant for each of the 6 status colors. They currently provide only
+   2.96–3.65:1 against surface in the dark interface (audit section 8.2): dark solid blocks designed for white backgrounds.
+→ (d) Define --st-now (referenced at styles.css:489 but never defined anywhere in the repository), and make
+   src/components/flow/MetroChart.tsx use useStatusStyles() for dot colors instead of CSS.
+   Currently, when Juanxi changes the "To do" color in Settings → Board, neither Today's progress-chain dots
+   nor the flowchart dots change. This is a demonstrable bug.
+→ (e) src/pages/Handoff.tsx:61 hardcodes #237a42 / #3a6fd8 / #5f6763 in inline styles,
+   so name/color changes do not reach the handoff relay cards. Use tokens instead.
 
-### 3. Where contrasts are not qualified.
+### 3. Fix failing contrast
 
-Audit opinion  8.2 Factories, text class  1 Qualifying:
-  --good #1a7f37 on --good-soft #e3f4e7 = 4.44:1(deficit)  0.06）
-  Use it.  .tag.good（ChangeCard It's...  "Approved" labels) and  .save-status.ok
-  styles.css:707 It's hard-coded.  #146c2e I fixed it alone.  .days.good An example.  ——
-  **That's it.  23 Source of repeated statements: fixed symptoms.  token。**
-→ Change  tokenAnd then delete it.  :707 That single patch.
+Audit section 8.2 measured one failing text-color combination:
+  --good #1a7f37 on --good-soft #e3f4e7 = 4.44:1 (short by 0.06)
+  Used in .tag.good (ChangeCard's "Approved" label) and .save-status.ok
+  styles.css:707 already patches one .days.good instance with hardcoded #146c2e:
+  **This is exactly how the 23 duplicate declarations arose: fixing the symptom instead of the token.**
+→ Fix the token, then remove the one-off patch at :707.
 
-Non-Text Class(s) WCAG 1.4.11Request  3:1Yes.  5 Qualifying:
-  Yellow risk point  #e3a008 on White  = 2.26:1   ← The three-colour risk system is only yellow.
-                                        And yellow is the one where we're most dependent on weak users.
-  Team Medium-load bars  = 1.74:1
-  Metro Main not completed session  = 1.85:1
-  Chain/Metro Empty Borders  = 2.59:1
-  All stations.  1px Borders  --line on White  = 1.29:1
-→ The first four must be fixed.  ≥3:1。
-→ Last ( --lineBe careful: Deepening it will change the interface. "Heavy "and  Juanxi Yes.
-  "Simple, advanced" is the opposite. Recommendation: The border remains light, but any border conveys by borders /Where it's interactive,
-  Adds an additional non-colour thread (brough, background, icon). Show your trade-offs in the handoff record.
+There are 5 non-text failures (WCAG 1.4.11, 3:1 required):
+  Yellow risk dot #e3a008 on white = 2.26:1   ← Only yellow fails in the three-color risk system,
+                                             and yellow is the level users with impaired color vision rely on most.
+  Team medium-workload bar = 1.74:1
+  Metro main line, incomplete segment = 1.85:1
+  Chain/Metro hollow-dot border = 2.59:1
+  Sitewide 1px border --line on white = 1.29:1
+→ The first four must reach ≥3:1.
+→ Treat the last (--line) carefully: darkening it makes the entire interface feel "heavy," conflicting with
+  Juanxi's request for "simple and refined." Recommendation: keep borders light, but wherever a border conveys
+  status/interactivity, add a non-color cue (thickness, background, icon). Explain the tradeoff in the handoff.
 
-### 4. Write a book that one can read.  token Document
+### 4. Write human-readable token documentation
 
-Create `docs/DESIGN_TOKENS.md` in English for all collaborators, including Juanxi:
-- How many steps do you have? When do you use it?
-- 6 Meaning of a state color, colour values, contrast numbers
-- One rule: "Any new style can only be used  token"Don't write death values."
-This document is the missing part of this project.  4 "Step delivery." Every one from now on.  AI Read it in front of the world.
+Create docs/DESIGN_TOKENS.md (historically requested in Chinese for Juanxi; that language instruction is superseded by the current English policy):
+- The levels in each scale and when to use each.
+- The meanings, values, and contrast ratios of the 6 status colors.
+- One rule: "All new styles must use tokens; do not hardcode values."
+This document is the project's missing "stage 4 deliverable." Every future AI must read it before changing the interface.
 
-## Rigid requirements
+## Hard requirements
 
-- ⚠️ This work package will change vision. **Each one of these is a page-by-page screenshot.**（10 Pages  × Desktop /Cell phone.  ×
-  Light /"Dark colour" is used to match the background.  Juanxi。He's the only acceptance person.
-- Change in principle only  CSS。Except for:  statusDefaults.ts / MetroChart.tsx / Handoff.tsx These three.
-  To make the color go away.  token Must move somewhere. Don't recreate anything else.  TSX。
-- Don't change any layout, don't move the component level, don't change the text.
-- npm run check Green. a11y Tests must continue to pass.
-- Multiple submissions: one step at a time (word order)  / Spacing Order  / Round Corner  / Level  / Status Color  / I'm sorry, but I'm not sure what to do.
-  It's good to have a fallback problem.
+- ⚠️ This work package changes the visuals. **Take screenshots page by page after each group of changes** (10 pages × desktop/mobile ×
+  light/dark), then give Juanxi the before/after comparison. He is the sole acceptance reviewer.
+- Change CSS only as a rule. The exceptions are statusDefaults.ts / MetroChart.tsx / Handoff.tsx, which
+  must change to route colors through tokens. Do not refactor other TSX along the way.
+- Do not change layout structure, component hierarchy, or copy.
+- npm run check must be fully green, and a11y tests must continue to pass.
+- Use multiple commits: one per scale/category (type / spacing / radius / stacking / status colors / contrast),
+  making rollback easier if something goes wrong.
 
-## File boundary
+## File boundaries
 
-You can only change:
+You may change only:
   src/styles.css
   src/components/ui/statusDefaults.ts
-  src/components/flow/MetroChart.tsx(Change source only)
-  src/pages/Handoff.tsx(renumbered only)  61 All three hard code colors)
-  docs/DESIGN_TOKENS.md(New)
-  docs/PROGRESS.md(Handoff records only)
-  S4 Handoff 's missing style (e.g.) named in the record  AskPanel It's...  card-text）
+  src/components/flow/MetroChart.tsx (color sources only)
+  src/pages/Handoff.tsx (only the three hardcoded colors on line 61)
+  docs/DESIGN_TOKENS.md (new)
+  docs/PROGRESS.md (add handoff entries only)
+  "Missing styles" identified in S4's handoff (such as AskPanel's card-text)
 
-Do not change: any logic, netlify/**、src/engine/**、src/data/**Test assertion.
+Do not change: any logic, netlify/**, src/engine/**, src/data/**, or test assertions.
 
-## At the end
+## At completion
 
-1. docs/PROGRESS.md Handoff record plus one line, must contain a modified contrast numeric table
-2. Submission of information: [S5][Claude] Brief description
+1. Add a handoff row to docs/PROGRESS.md; it must include the post-change contrast figures in a table
+2. Commit message: [S5][Claude] brief description
 3. git push -u origin design/s5-tokens
-4. Don't merge. Don't touch it.  main。
-5. In plain Chinese  Juanxi Reporting and must be accompanied by cross-references. Ask him a specific question:
-   "Does it look more neat now, or just different? 」—— If he says so. "It just changed. ", describe the map
-   It's not right. We have to go back.
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese, including before/after screenshots. Ask one specific question:
+   "Does this look more consistent now, or merely different?" If he says "merely different, " the mapping
+   is wrong and needs adjustment. [Historical reporting-language instruction; current repository and GitHub policy requires English.]
 ```
 
 ---
 
-### S6 . guardrail (lint + CI + accessibility)  ｜  Sonnet 5.5  ｜  must be after S5
+### S6 · Guardrails (lint + CI + accessibility) | Sonnet 5.5 | Must follow S5
 
 ```
-You're...  Platypus Officer Hub Repository load guardrail. This is the most important part of the plan.  ——
-Not because it changed something, but because it prevented the next one.  AI Repeat what has happened in the last three days.
+You are installing guardrails in the Platypus Officer Hub repository. This is the most important package in the plan —
+because it prevents the next AI from repeating what happened over the past three days, regardless of the changes it makes.
 
 Read first:
-1. AGENTS.md
-2. docs/AUDIT_2026-10-27.md Article  4.1 sections (historical of stylesheets) and  8.3、8.4 Section
-3. docs/DESIGN_TOKENS.md（S5 It's just written. This is what you have to enforce.
-4. docs/EXECUTION_PLAN_2026-10-27.md Article  3 Section  —— You are.  S6
+1. AGENTS.md.
+2. Section 4.1 (stylesheet history) and sections 8.3 and 8.4 of docs/AUDIT_2026-10-27.md.
+3. docs/DESIGN_TOKENS.md (just written by S5; this is what you must enforce).
+4. Section 3 of docs/EXECUTION_PLAN_2026-10-27.md — you are S6.
 
-## Why are you doing this?
+## Why this is needed
 
-src/styles.css By  11 Sub-submission, every time.  diff It's all " +N / −0"and never deleted anything.
-A line. Five.  AI Each adds its own generation style to the end of the document, covering the first layer by "write below " .
-The result is...  23 A restatement selector, 62 Oh, my God.  class、4 Coloured language.
+src/styles.css was built through 11 commits, each with a "+N / −0" diff, without ever deleting
+one line. Five AIs each appended their generation's styles to the end, overriding earlier layers by appearing lower down.
+The result is 23 repeated selector declarations, 62 dead classes, and 4 color systems.
 
-S4 and  S5 Just clean these up. **If you don't load it, next.  AI It'll be back in a week.**
+S4 and S5 have just cleaned this up. **Without guardrails, the next AI will undo that work within a week.**
 
-And now.  CI I can't control this. .github/workflows/ci.yml Just run.  build / test / e2e，
-Nothing.  ESLintNo, I didn't.  Stylelint。GitHub Actions and  Netlify Two separate waterlines.  ——
-Push.  main On the line, failure of testing will not prevent deployment.
+Current CI cannot enforce any of this: .github/workflows/ci.yml runs only build / test / e2e,
+with no ESLint or Stylelint. GitHub Actions and Netlify are still independent pipelines:
+pushing main deploys it, even when tests fail.
 
-⚠️ I'll confirm it.  S5 It's...  design/s5-tokens ♪ I'm in ♪  integration/v1.1-fix。
-   Nothing.  token Table linter The rules cannot be written.
+⚠️ First confirm that S5's design/s5-tokens has been merged into integration/v1.1-fix.
+   Without the token table, there is no basis for writing the linter rules.
 
-_Other Organiser
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # Confirmed.  [S5] Submission
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm [S5] commits are present
   git checkout -b design/s6-guardrails origin/integration/v1.1-fix
   npm ci
 
-## You're gonna do it.
+## What to do
 
-### 1. Stylelint + 3 Rule
+### 1. Stylelint + 3 rules
 
-Load.  stylelint, configure at least three:
-- font-size / border-radius / z-index **It's only for use.  token**
-  （declaration-property-value-allowed-list or Equivalence)
-- Divide  :root Outside **Ban  hex Colours**（color-no-hex (with exceptions)
-- **Disable Repeating Selector**（no-duplicate-selectors）—— That's a straight line.  23 We're back from conflict.
+Install stylelint and configure at least these three rules:
+- font-size / border-radius / z-index **must use tokens**
+  (declaration-property-value-allowed-list or equivalent).
+- **Prohibit hex colors** outside :root (color-no-hex with an exception).
+- **Prohibit duplicate selectors** (no-duplicate-selectors), directly preventing those 23 conflicts from returning.
 
-→ Run and see how many violations there are. S5 It should be clean by now. If there's any left, fix it.
-  Don't use it.  ignore Go around.
-→ There are reasonable exceptions (e.g. data-driven internal variables), in line  disable Notes and justifications.
+→ Run it once to see how many violations remain. S5 should have left things quite clean; fix any leftovers
+  instead of bypassing them with ignore.
+→ For a truly justified exception (such as a data-driven inline variable), use an inline disable comment and explain why.
 
-### 2. ESLint + Ban In-line  style
+### 2. ESLint + ban inline style
 
-Audit findings  21 Inline  style={{...}}, of which about  8 It's used to overthrow the front.  CSS Temporary patches
-（Help.tsx:23、NodePanel.tsx:125、AskPanel.tsx:144、TaskDetail.tsx:34、
-Team.tsx:39、BoardSettings.tsx:27 # And wait #
+The audit found 21 inline style={{...}} instances, about 8 of which are temporary patches overriding earlier CSS
+(Help.tsx:23, NodePanel.tsx:125, AskPanel.tsx:144, TaskDetail.tsx:34,
+Team.tsx:39, BoardSettings.tsx:27, etc.).
 
-→ Load.  eslint + typescript-eslint + eslint-plugin-react
-→ Ban In-line  style，**But let it be legal.  CSS Variable Injection**（--pill / --tag / --a / --label-w /
-  Data-driven  left/width These are proper usages, about.  10 (Values)
-→ That's all.  8 Temporary patches: change to real  class。
-  ⚠️ This needs to move.  styles.cssAnd...  S5 Just standing up.  token。Newly added  class We have to use only.  token。
+→ Install eslint + typescript-eslint + eslint-plugin-react
+→ Prohibit inline style, **but allow legitimate CSS variable injection** (--pill / --tag / --a / --label-w /
+  data-driven left/width are legitimate uses, about 10 locations)
+→ Convert the remaining 8 ad hoc patches into real classes.
+  ⚠️ This requires changing styles.css, where S5 just established tokens. New classes must use tokens exclusively.
 
-### 3. Word ceiling becomes real
+### 3. Make word limits a real constraint
 
-scripts/word-count.mjs He's not here.  CI Lee, so...  AGENTS.md §7.5 There's no word ceiling at this time.
-Auto-constraint.
+scripts/word-count.mjs is not in CI, so the word limits in AGENTS.md §7.5 currently have no
+automated enforcement.
 
-And more importantly,  scripts/word-count.mjs:13-15 Explicitly wrote "skip hidden suspension card and closed card
-details」。**Which means, "The number of words per page is reduced."  60%*A part of the score is a product of measurement *  ——
-The amount of information has not decreased, but has moved to places that are not visible to the users of the tentacle screen. **
+More significantly, scripts/word-count.mjs:13-15 explicitly says “skip hidden hover cards and closed
+details.” **So part of the “60% fewer words per page” result is a product of the measurement method—
+the amount of information did not decrease; it moved somewhere touch-screen users cannot see.**
 
-→ (a) Change this skip behavior and count all text
-→ (b) Add  npm run check and  CI
-→ (c) ⚠️ It's almost certain that the word number will exceed.  AGENTS.md §7.5 upper limit
-      （Today ≤160 / Events ≤180 / Rules ≤170 / Tasks ≤130 / Team ≤130 /
-       Settings Each piece.  ≤125）。
-      **Don't delete words just to cross the line.** —— That's why the explanation was hidden.  Juanxi Now.
-      The complaint is that "I can't see what every piece is."
-      → Good practice: Count live numbers and write them in handoff records, recommend  Juanxi Up ceiling or
-        Change of caliber. It's a product decision, not a technical one. Let him decide.
+→ (a) Remove this skipping behavior and count all text
+→ (b) Add it to npm run check and CI
+→ (c) ⚠️ Afterward, word counts will almost certainly exceed AGENTS.md §7.5 limits
+      (Today ≤160 / Events ≤180 / Rules ≤170 / Tasks ≤130 / Team ≤130 /
+       Settings ≤125 per section).
+      **Do not delete text just to pass**—that is why explanations were hidden in the first place, while Juanxi's current
+      complaint is “I cannot tell what each section is.”
+      → Correct approach: measure the real counts, record them in the handoff, and suggest Juanxi raise the limits or
+        change the measurement definition. This is a product decision, not a technical one; let him decide.
 
-### 4. Accessibility screening for blind areas
+### 4. Cover accessibility blind spots
 
-e2e/a11y.spec.ts There are now two blind areas:
-- :7 It's just for me.  wcag2a + wcag2aa Label, **Not included  wcag21aa**# And so # 1.4.11 Non-text contrasts”
-  And 2.5.8 The two rules are never running.  —— Audit findings  5 A contrast failure and  6 One.
-  It's all in this blind area.
-- :9 Yes.  test.skip(project !== "desktop")，**The moving end has never been swept.**♪ And the moving end is exactly
-  hover It's not available. The most troublesome part of the layout.
+e2e/a11y.spec.ts currently has two blind spots:
+- : 7 uses only wcag 2 a + wcag 2 aa tags, **excluding wcag 21 aa**, so “1.4.11 Non-text Contrast”
+  and “2.5.8 Target Size” have never run—all 5 contrast failures and 6 undersized touch targets
+  found in the audit fall in this blind spot
+- : 9 has test.skip(project !== "desktop"), **so mobile has never been scanned**, even though mobile is precisely
+  where hover is unavailable and layouts are most likely to break
 
-→ (a) Add  wcag21a / wcag21aa Label
-→ (b) Take off the moving end.  skip
-→ (c) Fix the problem. Touch the target at least to fix it.  6 All of them  ≥24×24）：
-      .m-dot 20×20（styles.css:552，Events (Major interaction)
-      .heat-cell High  14px（:685，Team ♪ I'm trying ♪ ♪ I'm trying ♪
-      .swatch 20×20（:615，60 Colours Button)
-      .move-menu max-width 26px（:605, keyboard user only change state)
-      .info ≈20×20（:476）
-      .chain .dot 16×16 / compact 12×12（:487,493）
-      ⚠️ It’s not the first time I’ve seen it, but it’s the first time I've ever seen it. Prefer transparent click area extension
-        （::after Counterfeit elements  / padding + Negative  margin(b) Keeping sight low and shooting high.
-→ (d) The keyboard test is now only authenticated.  3 One thing. / Focus  Ask、Enter Nodes, nodes. Escape Close.
-      Add: Tab Order, focus management when the right bar is open, board change state.
-      ⚠️ The focus management in the right column is now semi-finished.  4 Section: 7 There's only one detail.  3 The kind that moves the focus.
-        No focus trap, no focus return after closing, and  ≤1199px when the right bar is a masked float,
-        Keyboard  Tab It will go through the masked contents. **All fixes may be beyond this work package.** ——
-        Write down the test first.  test.fixme It's fixed. The rest is in the handoff record.
+→ (a) Add wcag 21a / wcag 21aa tags
+→ (b) Remove the mobile skip
+→ (c) Fix the issues found. At minimum, fix these 6 touch targets (all must be ≥24×24):
+      .m-dot 20×20 (styles.css:552, the primary interaction in Events)
+      .heat-cell height 14px (:685, Team heatmap)
+      .swatch 20×20 (:615, 60 color-picker buttons)
+      .move-menu max-width 26px (:605, the only way keyboard users can change status)
+      .info ≈20×20 (:476)
+      .chain .dot 16×16 / compact 12×12 (:487,493)
+      ⚠️ Enlarging the visible elements conflicts with "simplicity." Prefer expanding the transparent hit area
+        (:: after pseudo-element / padding + negative margin), keeping the visible element small and the hit area large.
+→ (d) Keyboard tests currently check only 3 things (/ focuses Ask, Enter opens a node, Escape closes it).
+      Add: Tab order, focus management when the right rail opens, and keyboard status changes on the board.
+      ⚠️ Right-rail focus management is currently incomplete (audit Section 4): only 3 of the 7 detail types move focus;
+        there is no focus trap or focus restoration on close, and at ≤1199px the rail becomes an overlay,
+        while Tab can reach obscured content. **Fixing all of this may exceed this work package's scope**:
+        write the tests first (pin failing ones with test.fixme), fix what you can, and record the rest in the handoff.
 
-### 5. CI Restricted.
+### 5. CI gates
 
-Now push.  main → Netlify Get on the line right away. GitHub Actions A parallel run test. **Failure does not prevent deployment.**。
+Currently, pushing main → immediate Netlify deployment, while GitHub Actions runs tests in parallel; **failures do not block deployment**.
 
-→ Put it on.  stylelint / eslint / word-count All in.  npm run check and  ci.yml
-→ Write this down in Handoff's record.  Juanxi _Other Organiser  GitHub Repository On Settings
-  branch protection + required status checksHe wants to order himself, you don't have missions.
-  Do not use terminology as a step towards "where".
+→ Add stylelint / eslint / word-count to npm run check and ci.yml
+→ In the handoff, give Juanxi clear steps to enable
+  branch protection + required status checks in the GitHub repository settings (he must click them himself; you lack permission).
+  Write step-by-step “where to click” instructions, without jargon.
 
-## Rigid requirements
+## Hard requirements
 
-- npm run check All green (should include now)  5 (Items)
-- Don't use it.  ignore / disable Surrounding live problems. It's an exception. Just state the reason.
-- Do not change any logic or text.
+- npm run check must be entirely green (it should now contain 5 checks)
+- Do not bypass real problems with ignore / disable. Justify any unavoidable exceptions individually
+- Do not change any logic or copy
 
-## File boundary
+## File boundaries
 
-You can only change:
+You may modify only:
   package.json, package-lock.json
-  .stylelintrc*, .eslintrc*(New)
+  .stylelintrc*, .eslintrc* (new files)
   .github/workflows/ci.yml
   scripts/word-count.mjs
-  e2e/a11y.spec.ts and others  e2e Test
-  src/styles.css♪ Just to get inside the line ♪  style Change it to  class, touch the target)
-  There.  8 There's a temporary line.  style components (delete only)  style Properties, Change to  class）
-  docs/PROGRESS.md(Handoff records only)
+  e2e/a11y.spec.ts and other e2e tests
+  src/styles.css (only to replace inline styles with classes and fix touch targets)
+  The 8 components with temporary inline styles (only remove style attributes and replace them with classes)
+  docs/PROGRESS.md (handoff entries only)
 
-Do not change: any business logic, netlify/**、src/engine/**、src/data/**
+Do not modify: any business logic, netlify/**, src/engine/**, src/data/**
 
-## At the end
+## At completion
 
-1. docs/PROGRESS.md Handoff records plus one line must contain:
-   - Live number of words  vs AGENTS.md §7.5 And what do you suggest?
-   - What's in the right column focus management and what's the use?  test.fixme It's nailed.
-   - Here.  Juanxi It's...  branch protection Operational Steps
-2. Submission of information: [S6][Claude] Brief description
+1. Add a handoff row in docs/PROGRESS.md that includes:
+   - Actual word counts vs. AGENTS.md §7.5 limits, and your recommendation
+   - Right-rail focus-management fixes and issues pinned with test.fixme
+   - Branch protection setup steps for Juanxi
+2. Commit message: [S6][Claude] Short description
 3. git push -u origin design/s6-guardrails
-4. Don't merge. Don't touch it.  main。
-5. In plain Chinese  Juanxi Reporting. Highlights: From now on, any  AI I want to go.  CSS There's one in it.
-   numeric or colour, CI It'll stop directly.
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese [historical instruction; superseded by the current English policy]. Emphasize: from now on, if any AI tries to hardcode
+   a value or color in CSS, CI will block it.
 ```
 
 ---
 
-### S7 - Explanatory Switch + Visible Subtitle  ｜  Opus 5.5  ｜  must be after S6
+### S7 · Explainability switch + visible subtitles | Opus 5.5 | Must follow S6
 
 ```
-You're...  Platypus Officer Hub Repository brings back one of the most valuable essays on this project.
-Project Manager  Juanxi Don't write code.
+You are restoring one of the interactions with the greatest thesis value in the Platypus Officer Hub repository.
+Project owner Juanxi does not code.
 
-Read first (all necessary):
+Read first (all required):
 1. AGENTS.md
-2. docs/AUDIT_2026-10-27.md Article  7.3、7.4 Section  —— v0.1 Where is it?  3 A design that's been thrown out.
-3. docs/DESIGN_TOKENS.md —— S5 Stand up.  token Rules. You have to follow them.
-4. docs/EXECUTION_PLAN_2026-10-27.md —— You are.  S7
+2. docs/AUDIT_2026-10-27.md sections 7.3 and 7.4 — the 3 good v0.1 designs that were discarded
+3. docs/DESIGN_TOKENS.md — you must follow the token rules established by S5
+4. docs/EXECUTION_PLAN_2026-10-27.md — you are S7
 
-## Background: What do you want to recover?
+## Background: what you are restoring
 
-v0.1 Prototype (Photo) Juanxi There's a global switch.  **"Behind the scenes"**
-(old code: public/legacy/index.html It's...  :396 Input Boxes, :925 It's...  bts() helper、
-:1669 It's...  html.show-bts Switch.
+The v0.1 prototype (Juanxi's favorite version) had a global **"Behind the scenes"** toggle
+(old code: public/legacy/index.html : 396 input, : 925 bts() helper,
+: 1669 html.show-bts toggle).
 
-Open it. On the interface. **Every number, every date, every single one.  AI The output points to where it came from.**：
+When enabled, **every number, every date, and every AI output in the interface is labeled with its source in place**:
 
   "Rule engine / startBy = finish-by date minus 2–3 business days"
   "Computed / sum(task.minutes) for open tasks starting within 14 days"
   "AIR Verdicts / choice: done|waiting|help|other · POST /api/replies/classify"
 
-Today, this mechanism has been dismantled.  15 One.  details Collapse  + Dozens of suspended cards.  + One.  Help Page
+Today, this single mechanism has been scattered across 15 details collapsibles, dozens of hover cards, and a Help page.
 
-**It's an argument.  AI In the case of interpretable honorary papers, it is precisely the interaction that is most valuable.**
+**For an honors thesis arguing for AI explainability, the lost interaction is precisely the one with the greatest thesis value.**
 
-⚠️【2026-10-27 Correct, read only) The audit report originally extrapolated " Juanxi It's an old version of the layout that I miss." And then he...
-Send a screenshot to confirm.  **That's what he likes.**(See section II of this programme.  1.4 So that inference was denied.
+⚠️ [Correction, 2026-10-27; required reading] The audit originally inferred that "Juanxi misses the old layout." He later
+sent screenshots confirming that **he likes the current version** (see Section 1.4 of this plan), disproving that inference.
 
-→ You do.  C1 The reasons for this change: **It's not "get what he misses."**, but:
-   ① The paper needs explanatory evidence.
-   ② The contents of the suspension of Kari are not visible to touch screen users (audit No.  8.4 Sections, 4 Branch  hover-only）
-→ So...  C1 Yes. **Increment Add**, not fallback. Do not change any vision of the current layout.
+→ The rationale for C1 therefore changes: **it is not about "bringing back what he misses,"** but:
+   ① The thesis needs evidence of explainability.
+   ② Touchscreen users cannot see hover-card content (audit section 8.4: 4 hover-only locations).
+→ C1 is therefore **an addition**, not a rollback. Do not change any visual aspect of the current layout.
 
-⚠️ public/legacy/ Could have been.  S2 Delete. Use  git Retrieval reference:
+⚠️ S2 may already have deleted public/legacy/. Retrieve a reference with git:
     git show 49b0b89:public/index.html > /tmp/v01-reference.html
-  Check this out first.  commit And the path is right. If not, use it.  git log --all --oneline -- public/
-   Find it yourself. S2 The handoff record should have written the right order. ）
+  (First verify this commit and path; if incorrect, use git log --all --oneline -- public/
+   to find them. S2's handoff should contain the correct command.)
 
-## Good news: the material is all there.
+## Good news: all the material already exists
 
-The data structure of today already contains all the explanatory text and does not need to be regenerated:
+Today's data structures already contain all explanation text; it need not be regenerated:
   node.why
-  sched.nodes[id].explain.{latestStart, club, official}   ← schedule.ts:44And every date comes with a "Why"?
-  forecast.reasons + FORECAST_ASSUMPTIONS（forecast.ts:6-12）
+  sched.nodes[id].explain.{latestStart, club, official}   ← schedule.ts:44; every date has a "why" sentence
+  forecast.reasons + FORECAST_ASSUMPTIONS (forecast.ts:6-12)
   change.source
   rule.sources + rule.checkedOn
-  contribution Source
-All you have to do is show them on the ground.
+  Contribution sources
+You only need to display them in place.
 
-_Other Organiser
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # Confirmed.  [S6] Submission
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm [S6] commits exist
   git checkout -b feat/s7-explain origin/integration/v1.1-fix
   npm ci
 
-## C1 · Behind-the-scenes Global Switches
+## C1 · Global Behind-the-scenes toggle
 
-→ Add a switch to the top bar src/components/Layout.tsx）。
-  ⚠️ The top bar already exists.  5 A control, of which  3 This is a demonstration of the scaffolding. Demo Menu, View as、AI features），
-    Audit opinion  8.6 The section says: 60% The global interface is a presentation tool." Don't make it the first.  6 One.
-    Recommendations: and  AI features Switch to the same menu, or put in.  Demo Little Bill. You judge.
-→ Every number when opened /Date /AI Show source (source) next to output  + (a) A line description).
-  References  v0.1 It's...  bts() Write, but use today's.  token And components.
-→ When it's closed, it doesn't take any space and no access.  DOM♪ Don't just  visibility: hidden —— That'll make
-  The screen readers read it, and they'll get it.  word-count Count it down.
-→ The status of this switch.  localStorage, refreshed and kept.
+→ Add a toggle to the top bar (src/components/Layout.tsx).
+  ⚠️ The top bar already has 5 controls, 3 of which are demo scaffolding (Demo menu, View as, AI features).
+    Audit section 8.6 notes that "60% of the global interface is demo tooling." Do not make this a sixth control.
+    Suggestion: group it with the AI features toggle in one menu, or place it in the Demo badge. Use your judgment.
+→ When enabled, show each number/date/AI output's source in place (source + one-line algorithm explanation).
+  Refer to v0.1's bts() implementation, using current tokens and components.
+→ When disabled, it must take no space and be absent from the DOM (do not merely use visibility: hidden;
+  screen readers would still read it and word-count would still include it).
+→ Persist the toggle state in localStorage across refreshes.
 
-**This article addresses three issues simultaneously:**
-1. The contents of the suspension of Kari are not visible to touch screen users (audit No.  8.4 Sections, 4 Branch  hover-only）
-2. Juanxi Say, "I can't see what every piece is."
-3. Explanatory arguments for the paper
+**This addresses three problems at once:**
+1. Touch users cannot see hover-card content (audit section 8.4, 4 hover-only locations)
+2. Juanxi said, "I can't tell what each part is"
+3. The thesis's explainability argument
 
-## C2 · Put it on.  10 "Question" becomes visible text [downgrade: first question]  Juanxi】
+## C2 · Make the 10 "questions" visible text [Downgraded: ask Juanxi first]
 
-⚠️ Juanxi I've never complained about "I can't read the page." —— This is an improvement recommended by the auditors, not in progress.  bug。
-And he's confirmed to like the way it looks.
+⚠️ Juanxi never complained that he “could not understand the pages”—this is an auditor's improvement suggestion, not a bug fix.
+And he has confirmed that he likes the current appearance.
 
-→ **Ask him before you do it.**: Show him an effect map with subheadings (which could be hand-painted or a new page as a demonstration).
-  Ask him if he wants to. He said he'd do it again.  C1。
-→ Do not default to start work.
+→ **Ask him before doing this**: show a mockup with subtitles (a sketch or a one-page implementation is fine),
+  and ask whether he wants it. Proceed if he says yes; otherwise skip it and do only C1.
+→ Do not start by default.
 
-src/routes.ts:13-24 Each page is defined as "the question answered on this page." This is the item.  IA Bones.
-But...  src/components/Page.tsx:4 The note says: The page's question is the nav tooltip」，
-src/components/Layout.tsx:75,81 Put it in.  title={p.question} —— **Browser Native  tooltip，
-Hold it.  1 The second comes in, the touch screen doesn't exist at all. **
+src/routes.ts:13-24 defines “the one question this page answers” for every page, forming the backbone of the project's IA.
+But the comment at src/components/Page.tsx:4 says “The page's question is the nav tooltip,”
+and src/components/Layout.tsx:75, 81 puts it in title={p.question}—**a native browser tooltip
+that takes 1 second of hovering to appear and does not exist on touch screens.**
 
-IA The bones were downgraded to an invisible attribute. And...  Page.tsx:9 Only the page title of one word is rendered.
+The IA framework was reduced to an invisible attribute. Meanwhile, Page.tsx:9 renders only a one-word page title.
 
-→ Put it on.  question becomes visible subtitles: PageHead Heading for the next row.
-→ Use  --fs-sm + --mutedDon't grab the main title.
-→ ⚠️ It'll increase the number of words, and it could crash.  S6 Just added  CI .
-  S6 There should be a recommendation on how to adjust the cap. If it's not decided, **Stop and ask.  Juanxi**，
-  Don't change it yourself.  AGENTS.md §7.5 Numbers (which is the rule he has approved and which he would agree to).
-→ Take care of it.  IA One question: routes.ts It's in there.  3 The "Question" on the page is...  2–3 A question.
-  （/team"Who's overloaded, who's supposed to be recognized and when can we meet?" = Page  3 An unrelated card;
-   /funding and  /events In the same way.
-  → Do not reconfigure the page. Just rewrite the question into a really single one, and tell it in the handoff record.  Juanxi
-    Here.  3 The page should actually be unbundled and left for later.
+→ Turn question into a visible subtitle: one line beneath the PageHead title.
+→ Use --fs-sm + --muted; do not compete with the main heading.
+→ ⚠️ This adds words and may exceed the word limits S6 just added to CI.
+  S6's handoff should recommend how to adjust the limits. If this is still undecided, **stop and ask Juanxi**;
+  do not change the figures in AGENTS.md §7.5 yourself (he approved that rule, and changing it needs his agreement).
+→ Also fix one IA problem: 3 pages in routes.ts actually ask 2–3 questions instead of "one question"
+  (/team's "who is overloaded, who deserves recognition, and when can we meet" = 3 unrelated cards on the page;
+   /funding and /events have the same issue).
+  → Do not restructure the pages. Just rewrite each question into one genuinely single question and tell Juanxi
+    in the handoff that these 3 pages should eventually be split.
 
-## Rigid requirements
+## Hard requirements
 
-- Compliance  docs/DESIGN_TOKENS.md。Do not write down any values or colours ( S6 It's...  stylelint I'll stop you.
-- npm run check Green, including the new ones.  stylelint / eslint / word-count
-- New interaction needs to be...  e2e Test: Switch is open, can be turned off, kept after refreshing and closed without content  DOM Lee.
-- a11y Test continues, both desktop and mobile end
-- Don't change.  AGENTS.md / PRODUCT_PLAN.md / RULES.mdQuestion first.  Juanxi）
+- Follow docs/DESIGN_TOKENS.md. Do not hardcode any values or colors (S6's stylelint will block them)
+- npm run check all green, including the new stylelint / eslint / word-count
+- New interactions need e2e tests: toggle on, toggle off, persistence after refresh, content absent from the DOM when off
+- Accessibility tests must continue to pass on both desktop and mobile
+- Do not change AGENTS.md / PRODUCT_PLAN.md / RULES.md (ask Juanxi first if changes are needed)
 
-## File boundary
+## File boundaries
 
-You can only change:
+You may modify only:
   src/components/Layout.tsx, src/components/Page.tsx
   src/routes.ts
-  src/styles.css(New)  bts associated styles, use only  token）
-  Each  page / component Riga's line of comment on the ground.
-  src/test/**and  e2e/**
-  docs/PROGRESS.md(Handoff records only)
+  src/styles.css (add bts-related styles, using tokens only)
+  Lines in individual pages / components that add in-place annotations
+  src/test/** and e2e/**
+  docs/PROGRESS.md (append handoff record only)
 
-Do not change: netlify/**、src/engine/**(Except reading)  explain Fields, src/data/** Structure
+Do not modify: netlify/**, src/engine/** (except to read explain fields), or the structure of src/data/**
 
-## At the end
+## At completion
 
-1. docs/PROGRESS.md Handoff log plus one line
-2. Submission of information: [S7][Claude] Brief description
+1. Add a line to the handoff record in docs/PROGRESS.md
+2. Commit message: [S7][Claude] Brief description
 3. git push -u origin feat/s7-explain
-4. Don't merge. Don't touch it.  main。
-5. In plain Chinese  Juanxi Report and tell him to turn on the switch and look.  Today Page  ——
-   He'll be told next to each date how it was calculated. Ask him to make sure he doesn't miss it.
-   That feeling.
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese and tell him: turn on the switch, then look at Today —
+   each date will explain how it was calculated. Ask him whether this is the
+   feeling he misses.
 ```
 
 ---
 
-### S8. Touch screen downgrade + navigational reorganization  ｜  Sonnet 5.5  ｜  must be after S7
+### S8 · Touch fallback + navigation reorganization | Sonnet 5.5 | Must follow S7
 
 ```
-You're...  Platypus Officer Hub Repository for two end-of-life interactive modifications. Project Manager  Juanxi Don't write code.
+Make two final interaction improvements in the Platypus Officer Hub repository. Project owner Juanxi does not code.
 
 Read first:
-1. AGENTS.md —— Especially the first one.  7 Section
-2. docs/AUDIT_2026-10-27.md Article  8.4 Section(s) hover-only List) and  7.4 Section(s) v0.1 _Other Organiser
+1. AGENTS.md—especially §7
+2. docs/AUDIT_2026-10-27.md §8.4 (hover-only list) and §7.4 (v0.1 navigation)
 3. docs/DESIGN_TOKENS.md
-4. docs/EXECUTION_PLAN_2026-10-27.md —— You are.  S8
+4. docs/EXECUTION_PLAN_2026-10-27.md—you are S8
 
-_Other Organiser
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # Confirmed.  [S7] Submission
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm there is an [S7] commit
   git checkout -b feat/s8-touch-nav origin/integration/v1.1-fix
   npm ci
 
-## C3 · The suspense is downgraded on the tentacle screen to enable it to be expanded.
+## C3 · Fall back to tap-to-expand hover cards on touch screens
 
-AGENTS.md §7.3 The third level of interaction is: look. → Stop (suspension card) → dots (details in the right column).
-**Article  2 The level doesn't exist at all on the touch screen.**Because there's no touch screen.  hover。
+The "three-level interaction" in AGENTS.md §7.3 is: look (color) → pause (hover card) → click (right-rail details).
+**Level 2 is completely absent on touchscreens**, because touchscreens have no hover.
 
-Oh, shit.  :focus-within The prerequisite for recovery is that the trigger element itself can be focused. Audit inventory  4 Keyboards
-I can't make it.  hover-only）：
-  src/pages/Funding.tsx:54,60   6 Station logistics chain  —— None  onClickRendering  <span role="img">
-                                 There's a line on the phone.  6 One.  12px No label dots, no text,
-                                 There is no interesting explanation. **That's the worst part.**
-  src/pages/Handoff.tsx:33-37,46  Quarterly Progress Chain
-  src/pages/Handoff.tsx:116       First week inventory source
-  src/pages/Funding.tsx:54        Phase  hint（showLabels={false} compact）
+Using : focus-within works only if the trigger itself is focusable. The audit identified 4 locations that
+cannot even be reached by keyboard (strictly hover-only):
+  src/pages/Funding.tsx: 54, 60   6-station logistics chain — no onClick; rendered as <span role="img">
+                                 On mobile, a row of 6 unlabeled 12px dots with no text
+                                 or tappable explanation. **This is the worst case.**
+  src/pages/Handoff.tsx: 33-37, 46  Leadership-transition season progress chain
+  src/pages/Handoff.tsx: 116       First-week checklist sources
+  src/pages/Funding.tsx: 54        Stage hint (showLabels={false} compact)
 
-→ Yes.  @media (hover: none) Down, take it.  Hover Component rendering as clickable to expand  disclosure。
-→ ⚠️ S7 I just added it.  Behind-the-scenes Switch, it uses the same explanatory text.
-  **Reuse  S7 No more second set of mechanisms.** Read first.  S7 . Handoff records and codes.
-→ Events There is also a related issue in the flow chart (audit No.  8.4 Section: On Touch screen  tap Open the right bar immediately.
-  The card never appears, but the message is unique to Kari. ASU It's a complete deadline.  + Rules  ID、
-  We've got one in the right column.  details Collapse.
-  → More cell phones.  2 The next time you see what a desktop user can see is suspended. Handle it together.
+→ Under @media (hover: none), render the Hover component as a tappable disclosure.
+→ ⚠️ S7 just added the Behind-the-scenes switch, using the same explanatory text.
+  **Reuse S7's mechanism; do not build a second one.** Read S7's handoff and code first.
+→ The Events flowchart has a related issue (audit section 8.4): on touchscreens, a tap immediately opens the right rail,
+  so the hover card never appears, while information unique to that card (ASU official deadline + rule ID,
+  scheduling conflicts, and whom the task is waiting on) is buried inside a details disclosure in the right rail.
+  → Mobile users need 2 extra taps to see what desktop users see on hover. Address this too.
 
-## C4 · Navigator 2026-10-27 Canceled, only one small item retained.
+## C4 · Navigation [Cancelled 2026-10-27; one small item retained]
 
-⚠️ **The planned "navigation back to action orientation" has been cancelled.** Juanxi 2026-10-27 Send a screenshot to make sure he likes it.
-The current version, including the current navigation (see Programme No. 1)  1.4 Section ). **Don't change any navigation labels.**
+⚠️ **The original plan to "restore action-oriented navigation" is canceled.** Juanxi's 2026-10-27 screenshots confirmed that he likes
+this version, including its current navigation (see section 1.4 of this plan). **Do not change any navigation labels.**
 
-Only two uncontroversial little things remain:
+Retain only two small, uncontroversial items:
 
-→ (a) src/components/Layout.tsx:79 There is an empty, untitled breakup line:
+→ (a) src/components/Layout.tsx:79 has an empty, unlabeled group divider:
      <div className="group" aria-hidden="true" />
-     And...  styles.css Lee.  .sidenav .group It also retains the style of uppercase label text, but it never contains anything.
-     → Give it a title.  "Reference", the interface text in English). It's a half-finished product.
-       Not a design change.
-     → ≤860px It's time.  display:none, the navigation becomes horizontally rolling  pill Article  —— It's the same as it is.
-       A narrow screen that does not show group headings is reasonable.
+     Meanwhile .sidenav .group in styles.css retains styles for an uppercase label, but never has content.
+     → Give it a title (such as "Reference"; UI text must be English). This completes unfinished work
+       rather than changing the design.
+     → At ≤860px it is currently display:none and navigation becomes a horizontally scrolling pill strip. Keep this:
+       omitting group headings on narrow screens is reasonable.
 
-→ (b) Restores the unread count of the navigation item. v0.1 Yes, not today. styles.css Lilian.  .sidenav .count
-     The styles are gone. Data source: Unread notifications for the current role, Layout.tsx:132 It's already gone.
-     → ⚠️ This will add visual elements. Let's start with a screenshot.  Juanxi Do you want to open it up to another entry?
+→ (b) Restore unread counts on navigation items. v0.1 had them; today they are gone (even .sidenav .count
+     styles are gone from styles.css). Source: unread notifications for the current role, already calculated in Layout.tsx:132.
+     → ⚠️ This adds visual elements. Implement one first, take a screenshot, and ask Juanxi whether to extend it to other items.
 
-**Don't do it.**: re-route navigation labels, re-order navigation, change navigation icons, plus secondary navigation.
+**Do not** change navigation labels, navigation order, navigation icons, or add secondary navigation.
 
-## Rigid requirements
+## Hard requirements
 
-- Compliance  docs/DESIGN_TOKENS.md
-- npm run check Full green (including)  stylelint / eslint / word-count / a11y Desktop +Move)
-- Touchdown must have a moving end  e2e Test
-- Don't change.  AGENTS.md / PRODUCT_PLAN.mdQuestion first.  Juanxi）
+- Follow docs/DESIGN_TOKENS.md.
+- npm run check must be fully green (including stylelint / eslint / word-count / desktop+mobile a11y).
+- Touch fallbacks require mobile e2e tests.
+- Do not modify AGENTS.md / PRODUCT_PLAN.md (ask Juanxi first if a change is needed).
 
-## File boundary
+## File boundaries
 
-You can only change:
-  src/components/ui/index.tsx（Hover Component)
+You may modify only:
+  src/components/ui/index.tsx (Hover component)
   src/components/Layout.tsx
   src/components/flow/MetroChart.tsx
   src/pages/Funding.tsx, src/pages/Handoff.tsx
-  src/styles.css(Use only)  token）
-  src/test/**and  e2e/**
-  docs/PROGRESS.md(Handoff records only)
+  src/styles.css (tokens only)
+  src/test/** and e2e/**
+  docs/PROGRESS.md (append handoff record only)
 
-## At the end
+## At completion
 
-1. docs/PROGRESS.md Handoff log plus one line
-2. Submission of information: [S8][Claude] Brief description
+1. Add a line to the handoff record in docs/PROGRESS.md
+2. Commit message: [S8][Claude] Brief description
 3. git push -u origin feat/s8-touch-nav
-4. Don't merge. Don't touch it.  main。
-5. In plain Chinese  Juanxi Report with old and new control tables attached to the navigation label for selection.
-   And ask him to use his cell phone.  Funding It is confirmed that:  6 A dot can now be opened.
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese, including a before/after comparison of navigation labels for him to choose from.
+   Also ask him to open Funding on his phone and confirm that the 6 dots now open explanations when tapped.
 ```
 
 ---
 
-### S9. release freeze, document, merge online  ｜ opus 5.5  ｜
+### S9 · Finalize, document, merge, and launch | Opus 5.5 | Last
 
 ```
-You're in charge.  Platypus v1.0 Release freeze. This is...  ASU Honorary papers  Phase 3 The last work package of the prototype,
-When you're done, live participants will use it. Project Manager  Juanxi Don't write code.
+You are responsible for finalizing Platypus v1.0. This is the last work package for the ASU honors thesis Phase 3 prototype;
+real participants will use it afterward. Project owner Juanxi does not code.
 
-Read first (all necessary):
-1. AGENTS.md —— Full text
-2. docs/AUDIT_2026-10-27.md —— Full text
-3. docs/EXECUTION_PLAN_2026-10-27.md —— Full text
-4. docs/PROGRESS.md —— S1 Present.  S8 All handoff records. Here's your check list.
-5. docs/DESIGN_TOKENS.md
+Read first (all mandatory):
+1. AGENTS.md — in full.
+2. docs/AUDIT_2026-10-27.md — in full.
+3. docs/EXECUTION_PLAN_2026-10-27.md — in full.
+4. docs/PROGRESS.md — all S1 through S8 handoff records. These are your checklist.
+5. docs/DESIGN_TOKENS.md.
 
-_Other Organiser
+Before starting:
   git fetch origin
   git checkout -b release/v1.0 origin/integration/v1.1-fix
   npm ci
-  npm run check     # It has to be green for it to continue.
+  npm run check     # Continue only if everything passes
 
-## 1. Check  S1–S8 _Other Organiser
+## 1. Check the S1–S8 handoff records
 
-Article by article, listing:
-- What does it say to do but not actually do it?
-- What's the matter?  test.fixme It's nailed.
-- What do you need?  Juanxi He hasn't decided yet.
-Give me the list.  JuanxiLet him decide which ones have to.  Phase 3 We'll fix it. What can we keep?
+Review each item and list:
+- Things promised but not actually done.
+- Things marked with test.fixme.
+- Things requiring Juanxi's decision that he has not decided yet.
+Give Juanxi this list so he can decide what must be resolved before Phase 3 and what can remain.
 
-## 2. Repair of documentation (old in the audit appendix)
+## 2. Fix documentation (stale items in the audit appendix)
 
-- README.md:7 —— Still describing  v0.1（"the whole app in one file"、
-  "Data storage is still in-memory"）。Change to the current live situation.
-- AGENTS.md:81 —— Still writes: "The official web site remains  v0.1* And *  v1 Already  10/23 The merge's online.
-- AGENTS.md:76 —— Say it.  Feedback The team's on the list.  Rules Bottom, actually moved to  Settings。
-- AGENTS.md Article  6/6b Section  —— Overall outmoded (swipe map) /Gantchart deleted, peer deleted, new  token Table
-  and  lint）。Change to the current code map.
-- AGENTS.md Article  7 Section  —— Add the following sentence:  docs/DESIGN_TOKENS.md，
-  It's only for use.  token」。
-  ⚠️ AGENTS.md Yes.  Juanxi Rules document ratified. We have to change it first.  diff Show him, he agrees to change.
-- docs/PRODUCT_PLAN.md —— Article  6 interface description and  11 section may need to be updated
-  (Data layer continues to be  localStorage，Supabase Has been  Juanxi 2026-10-27 Decision to defer).
-  He was also asked to agree.
-- ⚠️ docs/PROGRESS.md Quoted in 253 unit tess  + 107 Numbers like "browser tests" **I'm not running.
-  Authentication **(Audit)  9 Appendix to section ). Run once, replace it with live numbers.
-  **These figures may be included in the paper and cannot be estimated.**
+- README.md:7 still describes v0.1 ("the whole app in one file",
+  "Data storage is still in-memory"). Update it to reflect the current implementation.
+- AGENTS.md:81 still says "the production site is still v0.1", although v1 was merged and launched on 10/23.
+- AGENTS.md:76 says the Feedback queue is at the bottom of Rules; it has moved to Settings.
+- AGENTS.md sections 6/6b are outdated overall (swimlane/Gantt charts and endpoints removed; token table
+  and lint added). Replace them with the current code map.
+- AGENTS.md section 7: add "Read docs/DESIGN_TOKENS.md before interface changes;
+  use tokens only."
+  ⚠️ AGENTS.md contains Juanxi-approved rules. Show him the diff and obtain agreement before changing it.
+- docs/PRODUCT_PLAN.md: the interface description in section 6 and architecture diagram in section 11 may need updates
+  (the data layer remains localStorage; Juanxi deferred Supabase on 2026-10-27).
+  His agreement is also required.
+- ⚠️ Figures quoted in docs/PROGRESS.md, such as "253 unit tests + 107 page tests," **have not been verified
+  by running them** (audit section 9 appendix). Run them once and replace the figures with actual results.
+  **These numbers may appear in the thesis; they must not be estimates.**
 
-## 3. Clean-up of remnants
+## 3. Clean up leftovers
 
-- Delete  ax.tmp.mjs(repository root directory, 11 Debug temporary files, hard encode the browser path of a machine,
-  Function Already  e2e/a11y.spec.ts Overwrite)
-- vite.config.ts:8 It's...  sourcemap: true —— Full release of production environment  source map。
-  It is suggested to turn off (the code itself is publicly repository, not a bug, but a configuration that should not be opened by default).
-- id The ones that increase themselves in the length of arrays. store.tsx:107 It's...  report:${length}、
-  taskWorkflow.ts:79、store.tsx:205）—— You'll crash if you support deletion in the future.  ID。Change to stability.  id。
-- Confirm  netlify/lib/ai.mts It's...  AI_TIMEOUT_MS Default  25000ms Whether to exceed  Netlify Synchronization function
-  Implementation ceiling (audit No.  4.5 (a) The extract is an inference and needs to be measured). I'm fine.
+- Delete ax.tmp.mjs (an 11-line temporary debugging file in the repository root, hardcoding one machine's browser path;
+  its functionality is covered by e2e/a11y.spec.ts)
+- sourcemap: true at vite.config.ts: 8 — publishes full source maps in production.
+  Recommend disabling it (the code itself is in a public repository, so this is not a vulnerability, but the setting should not be enabled by default).
+- Locations that generate IDs from array length (report:${length} at store.tsx: 107,
+  taskWorkflow.ts: 79, store.tsx: 205) — deletions will cause ID collisions once supported. Use stable IDs.
+- Confirm whether the default AI_TIMEOUT_MS of 25000ms in netlify/lib/ai.mts exceeds Netlify's synchronous-function
+  execution limit (marked as an inference in audit section 4.5; requires actual testing). Adjust if it does.
 
-## 4. A hard check before getting on the line.
+## 4. Required pre-launch checks
 
-- [ ] npm run check Full green, record live test numbers
-- [ ] Do it manually: 10 Pages  × Desktop /Cell phone.  × Light /Dark
-- [ ] Keyboard Walk Through: Use Only  Tab / Enter / Escape Finish 'Acquire a job'  → Change Status  → Done"
-- [ ] Participant path exercise: Reset demo → Five-step settings  → Construction of an activity  → Create a mission.  →
-      Question  AI It's a rule.  → Export data. We can't be stuck, we can't be white.
-- [ ] S2 interactive log: do  10 Operation, Export, Check  JSON Lee.  10 It's all in order.
-- [ ] S2 : confirmation effective and recording actual thresholds
-- [ ] Hey, live.  DeepSeek Actual (not simulation): Ask Panel  + WP5 It's...  40 Question-rule assessment.
-      ⚠️ docs/AI_TESTS.md Explicitly states that the simulation or local fallback cannot be described as live  AI Acceptance.
-      If you can't get away with it because of the interview, **If actually recorded as incomplete**Don't be vague.
+- [ ] npm run check is fully green; record actual test counts.
+- [ ] Manually check: 10 pages × desktop/mobile × light/dark.
+- [ ] Keyboard walkthrough: use only Tab / Enter / Escape to "claim a task → change status → complete."
+- [ ] Rehearse the participant flow: Reset demo → five-step setup → create an event → create a task →
+      ask AI a rules question → export data. No stalling or blank screens anywhere.
+- [ ] S2 interaction log: perform 10 actions, export, and verify all 10 JSON entries exist in the correct order.
+- [ ] S2 rate limiting: confirm it takes effect and record the actual threshold.
+- [ ] Test real DeepSeek (not mocks): Ask panel + WP5's 40-question rules evaluation.
+      ⚠️ docs/AI_TESTS.md explicitly prohibits presenting mocked results or local fallbacks as real AI acceptance.
+      If access protection prevents the run, **record it honestly as incomplete**; do not be vague.
 
-## 5. About  Netlify Access protection (%1) 11/4 Before, yes.  Juanxi Operation)
+## 5. Netlify access protection (before 11/4; requires action by Juanxi)
 
-The official station is now full.  401Just log him in.  Netlify The account can open. It has to be turned off before sending out a recruitment e-mail.
-**But that moment...  /api/* It's just that it's exposed to the internet.**
+The entire official site currently returns 401; only someone logged into his Netlify account can open it. This must be disabled before recruitment emails go out.
+**But at that moment, /api/* becomes exposed to the public internet.**
 
-→ Confirm  S2 The current's in effect before he closes it.
-→ Write a step-by-step note to him.  Netlify I don't know.
-→ Also remind him to check.  AI_API_KEY Yes.  Production / Deploy Previews / Branch deploys
-  It's filled in three places. docs/PROGRESS.md It's only filled out.  Production, which leads to the preview being simulated reply).
+→ Confirm S2's rate limiting is effective before asking him to turn protection off.
+→ Write step-by-step "where to click" instructions for him (you do not have his Netlify access).
+→ Also remind him to check that AI_API_KEY is set for Production / Deploy Previews / Branch deploys
+  (docs/PROGRESS.md records that it was set only for Production, leaving previews with simulated responses).
 
-## 6. merge with tagging (need)  Juanxi Explicit "approval")
+## 6. Merge and tag (requires Juanxi to explicitly say "approved to merge")
 
-AGENTS.md Article  3 Section rules  4：main It's the official website. Just...  Juanxi Approval for merge.
+AGENTS.md section 3, rule 4: main is the production site; merging requires Juanxi's approval.
 
-→ Give him the results.
-→ After he said "approved merge":  release/v1.0 Present.  mainFight!  v1.0 Label
-→ Confirm  Netlify Successful deployment, /api/health Show live vendor connected
-→ Yes.  docs/PROGRESS.md Write Final Handoff Records
+→ Give him the check results
+→ After he says "approve the merge": merge release/v1.0 into main and tag v1.0
+→ Confirm Netlify deployed successfully and /api/health shows the live provider is connected
+→ Write the final handoff entry in docs/PROGRESS.md
 
-## At the end
+## At completion
 
-In plain Chinese  Juanxi Reporting:
-- Which ones have been checked, which ones have not.
-- How many things does he have to do on his own? Netlify Settings, branch protectionLet's get something straight.
-- Live numbers that can be quoted in the paper (number, contrast, performance)
-- There's nothing left to do.  v1.5
+Report to Juanxi in simple Chinese [historical instruction; superseded by the current English policy]:
+- Which checks passed and which failed
+- What he must do himself (Netlify settings, branch protection), with step-by-step click instructions
+- Actual figures that may be cited in the thesis (test counts, contrast, performance)
+- What remains unfinished and is recommended for v1.5
 ```
 
 ---
 
-## 6. What you're doing now.
+## Section 6 · What you need to do now
 
 ### Today (10/27, Tuesday)
 
-1. **confirms this program**, in particular: Is there a rational division of conversation? Can you keep up with the schedule?
-2. **intercepts an image that can see the blue frame and sends me** (point flow chart node or board card, full screen). S3 needs to be able to change things.
-3. **Submits the audit report and this programme to GitHub**, otherwise 9 sessions will not be read later.
-   Both documents are pure documents and do not affect the website. I can do that for you, but press AGENTS.md rules 4 needs to say "yes".
-4. **Build the assembly branch** (I can do it for you):
+1. **Confirm this plan**, especially: are the session divisions reasonable, and is the timetable achievable?
+2. **Send me a screenshot showing the blue border** (click a flowchart node or Board card, then capture the full screen). S3 needs it to fix the right thing.
+3. **Commit the audit report and this plan to GitHub**, or the next 9 sessions cannot read them.
+   Both are documentation only and do not affect the site. I can help, but AGENTS.md rule 4 requires you to say “yes.” [Historical approval rule; current owner policy supersedes it.]
+4. **Create the integration branch** (I can help):
    ```
    git checkout -b integration/v1.1-fix main && git push -u origin integration/v1.1-fix
    ```
 
 ### Wednesday (10/28)
 
-Opens three **S1/ S2/S3** sessions (may be simultaneously). Sticks the entire section of 5 corresponding to the prompt.
+Open three sessions, **S1 / S2 / S3** (they may run simultaneously). Paste the entire corresponding prompt from section 5 into each.
 
-### Thursday (10/29) . Submission of IRB
+### Thursday (10/29) · Submit IRB
 
-- S2 S3 to `integration/v1.1-fix` and then `main`.
-- **IRB materials with "collect participants' interactive log and export"** (see 1.3, sect. 3). It's free to write about it now, and then we'll have to change it after approval, and we'll cut off your 11/9 test plan.
+- Merge S1 → S2 → S3 into `integration/v1.1-fix`, then merge into `main`
+- **Add “collect and export participant interaction logs” to the IRB materials** (see §1.3 ③). Adding it now costs nothing; adding it after approval requires an amendment and could block your 11/9 testing plan.
 
-### After Thursday.
+### After Thursday
 
-In the S4 → S5 → S6 → S7 → S8 → S9, one at a time. **11/4 must confirm that the S2 current is valid** before turning off Netlify's access to protection mail for recruitment.
-
----
-
-## Section 7. My judgment on the schedule.
-
-To be honest: **Thursday ( 2The goal itself needs to be clarified.**
-
-The **function is actually done with** -- WP0 to WP5 work package in 10/22. What we're going to do before Thursday is not "compensation," but **, which allows us to be able to do it without being ugly.**: Buttons can be found, reacting, non-white screens, data don't drop, no point and so on.
-
-This is the content of S1+S2+S3, **2, which is realistic** because three sessions can be held in parallel and each with a precise file and line number.
-
-But one thing to remind you is that **live DeepSeek has never been measured. Both** `docs/PROGRESS.md` and `docs/AI_TESTS.md` clearly remember this gap - the key of Netlify's preview was filled in by Production, so the preview was always a mock answer, and 40 rule evaluation ran only over the model supplier.
-
-If AI is really going to answer the student's question in the Phase 3 session, **has to be measured before 11/9 and cannot use simulations as** (`AI_TESTS.md` makes its own rules). I put it in S9, but **it may need to have a single session** because it depends on you filling key on Netlify and redeploying and possibly finding new problems.
-
-Recommendation: **do live AI** as soon as the 11/4 access protection is turned off. Do not leave it to 11/8. If an AI is found at that time answering quality questions, you have 4 days to adjust prompt.
+Proceed S4 → S5 → S6 → S7 → S8 → S9, opening one session at a time. **Confirm S2 rate limiting works before 11/4**, then disable Netlify access protection and send recruitment emails.
 
 ---
 
-# Section 8. DP3 x DP4 mege (addition of 2026-10-27, current focus specified by Juanxi)
+## Section 7 · My assessment of this schedule
 
-## 8.1, what are the two previews?
+Frankly, **the goal of having "all features working" by Thursday (2 days away) itself needs clarification.**
 
-**Deploy Preview Number = PR Number.**
+The functionality is actually **already complete** — all five work packages from WP0 to WP5 were completed in one day on 10/22. The work before Thursday is **to make existing features presentable**: discoverable buttons, responsive changes, no blank screens, no data loss, and no waiting after a click.
 
-| | PR | Branch | Contents | Relative `main` |
+That is exactly the scope of S1 + S2 + S3. **Finishing in 2 days is realistic**, because the three sessions can run in parallel and every item has exact files and line numbers.
+
+One reminder: **real DeepSeek has never been tested.** Both `docs/PROGRESS.md` and `docs/AI_TESTS.md` explicitly record this gap—the Netlify preview key was configured only for Production, so previews have always used mocked responses, and the 40-question rule evaluation has only run against a mock provider.
+
+If AI is to actually answer student questions in Phase 3 sessions, **this must be tested live before 11/9; mock results cannot stand in for it** (`AI_TESTS.md` itself sets this rule). I placed it in S9, but **it may need a separate session**, because it depends on you configuring the key in Netlify and redeploying, and it may uncover new issues.
+
+→ Recommendation: **test the real AI immediately after disabling access protection on 11/4**; do not leave it until 11/8. If response quality is poor, you will still have 4 days to tune the prompts.
+
+---
+
+# Section 8 · DP3 × DP4 merge (added 2026-10-27; Juanxi's designated current priority)
+
+## 8.1 What the two previews are
+
+**Deploy Preview number = PR number.**
+
+| | PR | Branch | Contents | Relative to `main` |
 | --- | --- | --- | --- | --- |
-| **DP4** | #4 | `integration/v1.1-fix` | Main + S1/S2/S3 restoration (permissions portal, security data, performance quality) | +2,446 Rows |
-| **DP3** | #3 | `feat/organization-setup-ai` | v1 + `src/phase1/` + `src/organization/`（Setup v3）+ `src/workspace/` | +29,773 Rows |
+| **DP4** | #4 | `integration/v1.1-fix` | main + S1/S2/S3 fixes (permission entry points, security/data, performance/polish) | +2,446 lines |
+| **DP3** | #3 | `feat/organization-setup-ai` | v1 + `src/phase1/` + `src/organization/` (Setup v3) + `src/workspace/` | +29,773 lines |
 
-DP3 is "pure white" because its 4,567 line independence CSS (`phase1.css`/ `organization.css`/ `setupV3.css`) **does not achieve dark color mode**. Juanxi says he prefers light color (section 1.5), so it's a coincidence to add sub-items, not designs.
+DP3 is "pure white" because its 4,567 lines of separate CSS (`phase1.css` / `organization.css` / `setupV3.css`) **do not implement dark mode**. Juanxi said he prefers light mode (section 1.5), so this is an accidental advantage, not a design decision.
 
-`v1` has the same content as `main`, so the common ancestors of **DP3 and DP4 are main**.
+`v1` has the same content as `main`, so **main is the common ancestor of DP3 and DP4**.
 
-## Live result of 8.2 test merge (2026-10-27 running)
+## 8.2 Actual trial-merge results (run on 2026-10-27)
 
-Link DP3 to DP4:
+Merge DP3 into DP4:
 
 ```
-130 AutoMerge Success for File
- 11 File Conflict
+130 files merged automatically
+ 11 files conflicted
 ```
 
-**Conflicts are all small conflicts.** Checks one by one:
+**All conflicts are minor.** Check them individually:
 
-| Documentation | Conflict block | Nature | Cost |
+| File | Conflict blocks | Nature | Effort |
 | --- | --- | --- | --- |
-| `netlify/functions/{ask,chat,command,handbook-draft,nudge-draft}.mts` | 1 places | **Two names for the same parameter**: S2 plus  `endpoint: "ask"`(useage log)vs DP3 `task: "ask"`(Model route) | Every line. |
-| `netlify/functions/{classify,parse-brief,plan-draft}.mts` | 0 | **Delete/modify Conflict**:S2 deletes them, DP3 just changed the line above. Verifyed DP3 `src/` and `public/` **No reference to the three endpoints of** | Directly accept deletion |
-| `netlify/lib/ai.mts` | 2 Branch | DP3 `ChatJSONArgs` / `ChatJSONResult` S2 version **Strict Superset**  | Select the type of DP3 to call S2 logs back on |
-| `src/main.tsx` | 1 Branch | ErrorBoundary + theme switch for S1 vs DP3 `phase1` Route import. **Both of them. We'll just have to stagger it.**  | 10 minutes |
-| `docs/PROGRESS.md` | 1 Branch | Each side added a handoff record. | Both of them. |
+| `netlify/functions/{ask,chat,command,handbook-draft,nudge-draft}.mts` | 1 each | **Two names for the same parameter**: S2's `endpoint: "ask"` (usage logging) vs DP 3's `task: "ask"` (model routing) | One line each |
+| `netlify/functions/{classify,parse-brief,plan-draft}.mts` | 0 | **Delete/modify conflict**: S2 deleted them; DP 3 only changed the line above. Verified that DP 3's `src/` and `public/` **do not reference** any of these three endpoints | Accept deletion directly |
+| `netlify/lib/ai.mts` | 2 | DP 3's `ChatJSONArgs` / `ChatJSONResult` are **strict supersets** of S2's versions | Use DP 3's types and reattach S2's logging calls |
+| `src/main.tsx` | 1 | S1's ErrorBoundary + theme switching vs DP 3's `phase1` route import. **Keep both; interleave them** | 10 minutes |
+| `docs/PROGRESS.md` | 1 | Each side appended its own handoff entry | Keep both |
 
-## 8.3, a discovery of "get back and forth."
+## 8.3 A finding about combining their strengths
 
-S2 does A8(e) user logs with only provider / model / time-consuming -- because at the time `ChatJSONResult` did not have token numbers.
+When S2 implemented A8 (e) usage logging, it could record only provider / model / elapsed time, because `ChatJSONResult` did not include token counts then.
 
-`ChatJSONResult` for **DP3 already has all the fields S2 wants and cannot get:**
+**DP3's `ChatJSONResult` already has every field S2 wanted but could not obtain:**
 
 ```ts
 inputTokens, outputTokens, finishReason, headersMs,
@@ -1627,175 +1626,175 @@ requestedModel, reasoningEffort, servedReasoningEffort, routingVersion,
 inputChars, outputChars
 ```
 
-After **metge, S2 cost monitoring will directly complete** without extra work. This is one of DP3 supplement to DP4.
+→ **After merging, S2's cost monitoring will become complete automatically**, without extra work. This is one way DP3 fills a gap in DP4.
 
-In turn, DP4 supplement DP3: ErrorBoundary, Data Export and Interactive Logs, Limit Flows, Theme Switches, Zero Delayed Suspends, Forecasts only once, Form Focus Style - DP3 none.
+Conversely, DP 4 adds what DP 3 lacks: ErrorBoundary, data export and interaction logging, rate limiting, theme switching, zero-delay hover, computing forecasts only once, and form focus styles. DP 3 has none of these.
 
-## 8.4 Conclusion: This is a session that can be done.
+## 8.4 Conclusion: this merge can be completed in one session; it is not a multiday project
 
-Of the 11 conflicts, **8 are one-line or zero-line**, and only `ai.mts` (two type definitions) and `main.tsx` (two staggered code).
+Of the 11 conflicts, **8 are one line or zero lines**. Only `ai.mts` (two type definitions) and `main.tsx` (interleaving two code blocks) require real thought.
 
-**Expected 2–4 hours, a session.**
+**Estimated 2–4 hours, one session.**
 
-⚠ but merge only solves **code**. The interface to DP3 after metge remains its own 4,567 line CSS, and the main application is not a visual set. Visual integration is another thing, see 8.6.
+⚠️ Merging resolves only the **code**. After merging, DP3's interface still uses its own 4,567 lines of CSS and differs visually from the main application. Visual unification is separate; see 8.6.
 
-## Prompt (M1) for 8.5 merge sessions
+## 8.5 Prompt for the merge session (M1)
 
 ```
-You take care of it.  Platypus Two.  Deploy Preview The merge becomes a version. Project Manager  Juanxi Don't write code.
+You are responsible for combining Platypus's two Deploy Previews into one version. Project owner Juanxi does not write code.
 
 Read first (required):
-1. AGENTS.md —— Full text, in particular the first  3 Rigid rules and regulations **Article  8 Section Subdirectorate**
-2. docs/EXECUTION_PLAN_2026-10-27.md Article  8 Section  —— Try the full result of metge, your job description.
-3. docs/AUDIT_2026-10-27.md —— Background
-4. docs/organization/V3_CHANGELOG.md(In )  DP3 (on branch) —— DP3 What did you do?
+1. AGENTS.md: in full, especially Section 3's hard rules and **Section 8's branch conventions**.
+2. Section 8 of docs/EXECUTION_PLAN_2026-10-27.md: the complete trial-merge results and your work instructions.
+3. docs/AUDIT_2026-10-27.md: background.
+4. docs/organization/V3_CHANGELOG.md (on the DP3 branch): what DP3 did.
 
 ## Background
 
-DP4 = integration/v1.1-fix（PR #4）= main + S1/S2/S3 Repair
-DP3 = feat/organization-setup-ai（PR #3）= v1 + src/phase1/ + src/organization/ + src/workspace/
+DP4 = integration/v1.1-fix (PR #4) = main + S1/S2/S3 fixes
+DP3 = feat/organization-setup-ai (PR #3) = v1 + src/phase1/ + src/organization/ + src/workspace/
 
-Run-off merge: 130 Automege success for a file 11 A conflict, all small.
+A trial merge was actually run: 130 files merged automatically, with 11 conflicts, all small.
 
-⚠️ Article  8.2 It contains the nature and direction of each conflict, following its course and not rejuvenating itself.
+⚠️ Section 8.2 explains each conflict and how to resolve it. Follow those directions rather than reassessing them yourself.
 
-_Other Organiser
+Before starting:
   git fetch origin
   git checkout -b integration/dp3-dp4-merge origin/integration/v1.1-fix
   npm ci
   git merge --no-ff origin/feat/organization-setup-ai
 
-⚠️ Never rename or delete.  integration/v1.1-fix、feat/organization-setup-ai、
-  feat/ai-native-phase1、v1 These four branches. They're carrying them.  PR #2/#3/#4，
-  If you move, it'll shut down.  PR And it's forever destroyed.  Deploy Preview Website (%1) AGENTS.md Article  8.2 Section ).
+⚠️ Never rename or delete these four branches: integration/v1.1-fix, feat/organization-setup-ai,
+  feat/ai-native-phase1, and v1. They support PR #2/#3/#4;
+  changing them would close the PRs and permanently destroy Deploy Preview URLs (AGENTS.md §8.2).
 
-## Conflict resolution on a case-by-case basis
+## Resolve the conflicts individually
 
-1. 5 One.  netlify Function  `endpoint:` vs `task:` ——
-   **Uniform  DP3 It's...  `task`**(It is.)  AiTask Type, Participation Model Routes, More Information)
-   And then...  S2 _Other Organiser  `task`。
+1. `endpoint:` vs `task:` in 5 Netlify functions —
+   **Standardize on DP3's `task`** (it uses the AiTask type, participates in model routing, and carries more information),
+   then update S2 usage logging to read `task`.
 
-2. classify.mts / parse-brief.mts / plan-draft.mts Delete /Modify Conflict  ——
-   **Accept  S2 Delete**。Verified  DP3 It's...  src/ and  public/ None of these endpoints are quoted at all.
-   After it's deleted, repository.  grep There was a confirmation that there were no references to residues.
+2. Delete/modify conflicts in classify.mts / parse-brief.mts / plan-draft.mts:
+   **Accept S2's deletions.** Verified: DP3's src/ and public/ do not reference these three endpoints at all.
+   After deletion, search the whole repository again to confirm no references remain.
 
-3. netlify/lib/ai.mts ——
-   **Take  DP3 It's...  ChatJSONArgs / ChatJSONResult**Yes.  S2 This post is part of our special coverage Egypt Protests 2011.
-   Again.  S2 The user log calls back.
-   → By way of completion: DP3 The return value has been brought.  inputTokens / outputTokens /
-     finishReason / headersMs，S2 I couldn't get it. Now, remember that.
-   → ⚠️ You can't appear in a log.  key、token Strings, user content.
+3. netlify/lib/ai.mts —
+   **Take DP3's ChatJSONArgs / ChatJSONResult** (a strict superset of S2's version),
+   then reconnect S2's usage-log call.
+   → Complete the logs as well: DP3 returns inputTokens / outputTokens /
+     finishReason / headersMs, which S2 could not obtain originally. Log them now.
+   → ⚠️ Logs must never contain keys, token strings, or user content.
 
-4. src/main.tsx ——
-   S1 It's...  ErrorBoundary + clearSavedDemo + Theme Switch ( A11and  DP3 It's...  phase1 Routes
-   **Both of them.**。Scrabble, don't choose.
-   → ErrorBoundary It has to be covered.  phase1 Routes ( DP3 I didn't.  ErrorBoundary）。
+4. src/main.tsx —
+   Keep **both** S1's ErrorBoundary + clearSavedDemo + theme switching (A11) and DP 3's phase 1 routes.
+   Interleave them; do not choose one side.
+   → ErrorBoundary must wrap the phase 1 routes (DP 3 has no ErrorBoundary of its own).
 
-5. docs/PROGRESS.md —— Handoff records on both sides are kept in reverse order of date.
+5. docs/PROGRESS.md — retain both sets of handoff records, in reverse chronological order.
 
-## I'll do it later.
+## Required after merging
 
-- npm run check All green. ⚠️ DP3 Take your own test. organization.test.ts、setupV3.test.ts、
-  phase1.test.ts、server.test.ts They're going to be all over now.
-- We'll go through it manually.  **Two lines.**：
-  (a) Main application: Today / Events / Tasks / Team / Funding / Handoff / Partners / Rules / Settings
-  (b) DP3 Lines: /#/phase1/ Five chapters.  onboarding(constitution)  → Team  → Duties  → Activity Process  → Review）
-- ⚠️ Juanxi I prefer it. **Light Color Mode**。Both lines have to be examined under light colour.
-- Confirm  S1 Theme Switching Right  /#/phase1/ Also in force; If not in force ( DP3 He's got his own.  CSS，
-  Probably not.  data-theme I don't know. **Write Handoff Records**Don't change now.  —— That's visual unity work.
+- npm run check must be fully green. ⚠️ DP3 includes its own tests (organization.test.ts, setupV3.test.ts,
+  phase1.test.ts, server.test.ts, etc.); these must all pass too.
+- Manually walk through **both paths**:
+  (a) Main application: Today / Events / Tasks / Team / Funding / Handoff / Partners / Rules / Settings.
+  (b) DP3: five-chapter onboarding at /#/phase1/ (constitution → team → responsibilities → event workflow → Review).
+- ⚠️ Juanxi prefers **light mode**. Check both paths in light mode.
+- Confirm S1's theme switch also works at /#/phase1/. If it does not (DP3 has its own CSS and
+  may not connect to the data-theme hooks), **record it in the handoff**; do not fix it now. That belongs to visual unification.
 
-## To  Juanxi Three things in the report.
+## Three things to report to Juanxi
 
-1. **Server storage**：DP3 Yes.  netlify/lib/organization/storage.mts(Service-based storage organization configuration,
-   Private workspaces reserved  7 Oh, God. This is different from the main application of data only on browsers.
-   → Make it clear.  Juanxi：**There's something about it.  IRB Meaning, he has to know before he delivers the material on Thursday.**
-2. **Two sets.  onboarding Simultaneous**: master application has  src/pages/Setup.tsx(five-step settings),
-   DP3 There are five chapters.  onboarding, overlapping functions. **I can't give you both.  Phase 3 Participants look.**
-   Listing the differences between the two, let  Juanxi Choose one.
-3. **AI Vendors**：DP3 It's...  modelPolicy Use  Gemma 4 31B / Muse / GLM 5.3 Three roads.
-   And the main application  DeepSeek。Which do you actually use after metge? How does the environment variable fit?
-   → Find out and write it in.  docs/AI_SETUP.md。
+1. **Server storage**: DP3 has netlify/lib/organization/storage.mts (stores organization configuration
+   server-side, with private workspaces retained for 7 days). This differs from the main application's "browser-only data" premise.
+   → Tell Juanxi clearly: **this has IRB implications, and he must know before submitting Thursday's materials.**
+2. **Two coexisting onboarding flows**: the main application has src/pages/Setup.tsx (five-step setup),
+   while DP3 has five-chapter onboarding, with overlapping functionality. **Phase 3 participants cannot see both.**
+   List the differences and let Juanxi choose one.
+3. **AI provider**: DP3's modelPolicy routes among Gemma 4 31B / Muse / GLM 5.3,
+   while the main application uses DeepSeek. Which will actually be used after merging? How should environment variables be configured?
+   → Establish this and document it in docs/AI_SETUP.md.
 
-## At the end
+## At completion
 
-1. docs/PROGRESS.md Handoff log plus one line
-2. Submission of information: [M1][Claude] Brief description
+1. Add a handoff row in docs/PROGRESS.md
+2. Commit message: [M1][Claude] Short description
 3. git push -u origin integration/dp3-dp4-merge
-4. **New one.  draft PR**（base Use  mainHere's the thing.  Juanxi I can get a new one.  Deploy Preview
-   And see what happens after the metge. **Do not close or modify  PR #2 / #3 / #4。**
-5. Don't merge to  main。
-6. In plain Chinese  Juanxi Report back to him, tell him about the site of the new preview and the three above-mentioned items that he was asked to decide.
+4. **Open a new draft PR** (base: main), giving Juanxi a new Deploy Preview
+   where he can see the combined result. **Do not close or modify PR #2 / #3 / #4.**
+5. Do not merge into main.
+6. Report to Juanxi in simple Chinese [historical instruction; superseded by the current English policy], giving him the new preview URL and the three decisions listed above.
 ```
 
-## What's left after 8.6 metge?
+## 8.6 What remains after merging (visual consistency)
 
-Merge only solves code co-existence. The DP3 interface is still its own 4,567 line CSS.
+The merge only makes the code coexist. DP3's interface still uses its own 4,567 lines of CSS.
 
-**Cheap Practices (Proposal):** and S5 token Tables are completed, so three CSS files for DP3 can be replaced with one set of consumption token
-(number, spacing, rounding, state color, light-deep colour). Don't touch that 5,200 line TSX. The results don't match the pixels, but they do.
-It's obviously the same product. This should be **S5b** after S5.
+**Lower-cost approach (recommended):** Once S5's token table is complete, make DP3's three CSS files consume the same tokens
+(font sizes, spacing, radii, status colors, light/dark modes). Do not touch those 5,200 lines of TSX. The result will not be pixel-identical, but will
+clearly look like the same product. Schedule this as **S5b**, after S5.
 
-**(Phase 3 later):** writes about the configuration of the DP3 organization and the adaptor for the main application `DemoState`.
-Redone five chapters onboarding with the primary application of 5 components. This is v1. 5 workload.
+**Higher-cost approach (discuss after Phase 3):** Write an adapter from DP3 organization configuration → the main application's `DemoState`,
+and rebuild the five-chapter onboarding using the main application's 5 components. That is v1.5-scale work.
 
 ---
 
-# 9 Four decisions of Juanxi and DP3/DP4 integration (2026-10-27 evening)
+# Section 9 · Juanxi's four decisions and DP3→DP4 integration (evening of 2026-10-27)
 
-## 9.1 Four Decisions
+## 9.1 Four decisions
 
-| # | Resolves | Impact |
+| # | Decision | Impact |
 | --- | --- | --- |
-| 1 | **The server for DP3 is stored without deletion, hidden**  | `netlify/lib/organization/storage.mts` and `org-*` function is reserved, but the participant path cannot be reached. **See 9.2 IRB Request** |
-| 2 | **Onboarding Two sets of**: Integration of DP3 onboarding into DP4 | The biggest piece, see 9.4. |
-| 3 | **AI instead of DeepSeek, switch to DP3 route** (Gemma 4 31B/ Muse/ GLM 5.3). Juanxi: tested and returned fastest. | See 9.3 |
-| 4 | **Keeps the subway route map for DP4,**, not the flow chart for DP3. Juanxi: "It's neat, like a subway route map. It's better than DP3." | It's a direct decision on how to solve a 9.4 conflict. |
+| 1 | **Keep DP3's server storage, but hide it** | Retain `netlify/lib/organization/storage.mts` and `org-*` functions, but make them unreachable from participant paths. **See IRB requirements in 9.2** |
+| 2 | **Unify the two onboarding flows**: integrate DP3's onboarding into DP4 | Largest piece of work; see 9.4 |
+| 3 | **Replace DeepSeek with DP3's AI routing** (Gemma 4 31B / Muse / GLM 5.3). Juanxi: already tested; fastest responses | See 9.3 |
+| 4 | **Keep DP4's metro map**, rather than DP3's flowchart. Juanxi: "Very neat, like a metro map; better than DP3's" | Directly determines how one conflict in 9.4 is resolved |
 
-Juanxi's future plan (**not now**): lets setting and onboarding also use the same metro pattern style and allow users to adapt themselves.
+Juanxi's future plan (**not for now**): use the same metro-map style for setting and onboarding, and let users edit it themselves.
 
-## 9.2 "hidden" must be defined, otherwise IRB will have problems.
+## 9.2 ⚠️ Define "hidden" precisely to avoid IRB problems
 
-"Hide" can't just be "no entrance on the interface." As long as `org-setup.mts`/ `org-archive.mts` is alive on the public web, it is still a **server that can receive and store data**.
+"Hidden" cannot mean merely "no entry point in the interface." As long as endpoints such as `org-setup.mts` / `org-archive.mts` remain live on the public internet, this is still a **server capable of receiving and storing data**.
 
-**Hide = Three simultaneous:**
+**Hidden = all three conditions met together:**
 
-1. **There's no path to it on the interface.**(Participant missing)
-2. **Endpoint directly rejects** in the production environment: read an environmental variable (e. g. `ORG_SETUP_ENABLED`), returns 404 or 403 without opening, and does not execute any storage logic
-3. **code and test to keep all**. You can bring it back anytime you want.
+1. **No interface path reaches it** (participants cannot navigate to it)
+2. **Endpoints reject requests in production**: read an environment variable (for example, `ORG_SETUP_ENABLED`); if disabled, return 404 or 403 without running any storage logic
+3. **Keep all code and tests**, ready to re-enable at any time
 
-To do this, the IRB material of Juanxi does not require **to write** "Service Storage Organization Configuration" -- because participants do not really have data on the server.
+With these three conditions met, Juanxi's IRB materials **do not need** to state "organization configuration is stored on the server," because participant data genuinely will not reach the server.
 
-It's not enough just to do 1. In that case, the protocol must write on the server 's storage, otherwise it would be a protocol and actual discrepancy.
+❌ Item 1 alone is insufficient. In that case, the protocol must describe server storage, or the protocol will not match actual behavior.
 
-**this one must be confirmed before IRB is delivered Thursday.**
+**This must be confirmed complete before Thursday's IRB submission.**
 
-## 9.3 AI Vendor to DP3 Route
+## 9.3 Switch AI provider routing to DP3's
 
-The `src/organization/modelPolicy.ts` definition for DP3 is based on:
-- **Gemma 4 31B** - Longer Structural Settings Task
-- **Muse** - Short Dialogue and Editor
-- **GLM 5.3** - Only when the user requests the Deeper review
+DP3's `src/organization/modelPolicy.ts` defines three routing tiers:
+- **Gemma 4 31B** — longer structured setup tasks
+- **Muse** — short conversations and edits
+- **GLM 5.3** — only when the user explicitly requests Deeper review
 
-⚠  DP3’s own document (`docs/organization/V3_CHANGELOG.md`) says, "The selection is not a proven performance ranking." Juanxi says that the fastest return was measured, **based on his measurements**, but does not write it as a "certified performance ranking" in the paper.
+⚠️ DP3's own documentation (`docs/organization/V3_CHANGELOG.md`) says: “This selection is not a proven performance ranking.” Juanxi says it returned fastest in his tests; **use his actual results as the reference**, but do not describe it in the thesis as a “validated performance ranking.”
 
-**To do:**
-- The main applications of `/api/chat`, `/api/ask`, `/api/nudge/draft` and `/api/handbook/draft` are all rerouted to DP3
-- Bring the `task` parameter (`AiTask`) to these four endpoints so that routers can choose the model.
-- Update `docs/AI_SETUP.md`: How to match the environment variable and how to replace DeepSeek
-- ⚠  `AGENTS.md` Section 3 Rule 5 states that "Phase 3 with DeepSeek for development and live participants must use ASU Air (or IRB-approved supplier)".
-  The **supplier is to confirm whether the new model is within IRB approval. It's something Juanxi and Marcie are going to confirm, not that AI can decide.**
+**Work needed:**
+- Route all main-app `/api/chat`, `/api/ask`, `/api/nudge/draft`, and `/api/handbook/draft` calls through DP3's routing.
+- Wire the `task` parameter (`AiTask`) into these four endpoints so routing selects the right model.
+- Update `docs/AI_SETUP.md`: environment-variable configuration and switching back to DeepSeek.
+- ⚠️ Rule 5 in section 3 of `AGENTS.md` states, "Use DeepSeek during development; Phase 3 with real participants must use ASU AIR (or an IRB-approved provider)."
+  **Before switching providers, confirm whether the new model is covered by IRB approval. Juanxi must confirm this with Marcie; AI cannot decide.**
 
-## 9.4 The core question: Are the two data models right or not?
+## 9.4 ⭐ Core question: can the two data models actually align?
 
-Juanxi asks, "What's most important is whether the variables and components of the merge are fit." Field-by-field reconciliation results:
+Juanxi asked, “The key question is whether those variables and components can really be adapted properly during the merge.” Field-by-field findings:
 
-### It's clean to the top.
+### ✅ Clean matches (direct mapping)
 
-| DP3 | Main application | Annotations |
+| DP3 | Main application | Notes |
 | --- | --- | --- |
-| `OrgRole.id` | `Role.id` | DP3 specializing in stable ID, just in time. |
+| `OrgRole.id` | `Role.id` | DP3 specifically implemented stable role IDs, which fits perfectly |
 | `OrgRole.title` | `Role.displayName` | ✅ |
-| `OrgRole.description` | (New field) | Low risk |
+| `OrgRole.description` | (new field) | Low risk |
 | `RaciRow.responsible` | `Node.ownerId` | ✅ |
 | `RaciRow.accountable` | `Node.approverRoleId` | ✅ |
 | `RaciRow.consulted` | `Node.consultedRoleIds` | ✅ |
@@ -1803,217 +1802,217 @@ Juanxi asks, "What's most important is whether the variables and components of t
 | `FlowNode.dependsOn` | `Node.dependsOn` | ✅ |
 | `FlowNode.title` | `Node.title` | ✅ |
 
-The group of **RACI is close to one, and that's the best news.**
+**The RACI fields map almost one-to-one; that is the best news.**
 
-### Five real conflicts, one decision for each.
+### ⚠️ Five actual conflicts, each requiring a decision
 
-**① `departmentId` vs `RoleFunction`- Two different axes.**
+**① `departmentId` vs `RoleFunction`: two different classification axes**
 
-DP3 According to **Sector** (Programs & Planning / Event Losistics / Finance / Marking & Community / Outreach & Partners / Leadership & Records, 6).
-Main Apply Press **Function Enumeration**min ( `RoleFunction`：president / vice_president / treasurer / …）。
+DP3 groups by **department** (Programs & Planning / Event Logistics / Finance / Marketing & Communication / Outreach & Partnerships / Leadership & Records; 6 total).
+The main app groups by **function enum** (`RoleFunction`: president / vice_president / treasurer / …).
 
-The **process template, flowcharting swimming lanes, roll manual catalogue** is all attached to `RoleFunction`.
+The main application's **workflow templates, flowchart swimlanes, and role-handbook table of contents** all depend on `RoleFunction`.
 
-→  **is not a corresponding**, requires a map and will be more than one.
-Decision: **reserves `RoleFunction` as the main key** (engine relies on it) and stores `departmentId` as an additional tab for group displays and colours. Keep both, don't choose one.
+→ **There is no one-to-one correspondence**; a mapping table is needed, with some many-to-one mappings.
+→ Decision: **keep `RoleFunction` as the primary key** (the engine depends on it), and store `departmentId` as an additional tag for grouped display and colors. Keep both; do not choose one over the other.
 
-**2 `FlowNode.position{x,y}` Manual coordinates vs subway map automatic layout -- Juanxi has selected**
+**② Manual `FlowNode.position{x,y}` coordinates vs automatic subway-map layout—Juanxi has already chosen**
 
-The main application of the metro map `src/components/flow/metro.ts` is the **pure layout algorithm** (with unittes), without coordinates.
-The `FlowEditor.tsx` (code 397) of DP3 allows users to drag nodes and store x/y in data.
+The main application's Metro diagram, `src/components/flow/metro.ts`, is a **pure layout algorithm** (with unit tests); it does not store coordinates.
+DP3's `FlowEditor.tsx` (397 lines) lets users drag nodes and stores x/y in the data.
 
-**Juanxi explicitly likes the subway map and not the DP3 flow chart.**
+**Juanxi explicitly said he likes the metro map and does not want DP 3's flowchart.**
 
-Decision: Discard `position` on **import using `metro.ts` automatic layout**. DP3 `FlowEditor.tsx` does not migrate.
-He said, "The future allows the user to change itself," not by going back to manual coordinates, but by **to reorder and depend on the user, the layout still automatically counts as**. Put it in the future plan, not now.
+→ Decision: **discard `position` on import and use `metro.ts` for automatic layout**. Do not migrate DP3's `FlowEditor.tsx`.
+→ His request to "let users edit it themselves in the future" should mean **letting users change order and dependencies while layout is still computed automatically**, rather than returning to manual coordinates. Record this in the future plan; do not implement it now.
 
-**3 `dependencyMode: "all" | "any"` -- engine doesn't know "any"**
+**③ `dependencyMode: "all" | "any"`: the engine does not recognize "any"**
 
-The main applications of `topoOrder()` and `computeSchedule()` only support "all upstream completions to start".
+The main app's `topoOrder()` and `computeSchedule()` support only "start after all upstream tasks are complete."
 
-Decides: **Accept only when importing `all`**。 When you meet `any`, you reject and clearly tell the user not to pretend to be `all`.
-→ ⚠️ **Don't change engines for this.** `src/engine/` is the closest and most prosthesis-value code tested throughout the project, and the risk of changing it far outweighs the benefits.
+→ Decision: **accept only `all` on import**. Reject `any` with a clear explanation; do not silently treat it as `all`.
+→ ⚠️ **Do not change the engine for this.** `src/engine/` has the project's densest test coverage and greatest thesis value; changing it carries far more risk than benefit.
 
-**Date: `FlowNode.timing`vs. "Only the engine counts the date."**
+**④ Dates: `FlowNode.timing` vs the hard rule that "only the engine computes dates"**
 
-`AGENTS.md` Section 3 Rule 3 is the core principle of the entire project. DP3 `timing: RelativeTargetSchema` is the relative target.
+Rule 3 in Section 3 of `AGENTS.md` is the entire project's core principle. DP3's `timing: RelativeTargetSchema` represents relative targets.
 
-Decision: The `timing` for DP3 can only be translated into the **`Node.anchor` (rule/target/fixed/followup)+ process template of the main application** and then handed over to `schedule.ts`.
-→  **cannot write the DP3 text directly into three date fields under any circumstances.**
+→ Decision: DP3's `timing` may only be translated into the main app's **`Node.anchor` (rule/target/fixed/followup) + lead times in the workflow template**, then passed to `schedule.ts` for calculation.
+→ **DP3 timing must never be written directly into the three date fields.**
 
-**5 DP3 No "human" concept**
+**⑤ DP3 has no concept of a "person"**
 
-The output of DP3 onboarding is **roll** (`OrgRole`), not human.
-and the main application(s) `canLead`), circulars, workloads, reminders, contribution lists **Hang on to them all. `Person`Let's go.**。
+DP3 onboarding produces **roles** (`OrgRole`), not people.
+The main app's permissions (`canLead`), notifications, workload, reminders, and contribution leaderboard **all attach to `Person`**.
 
-Decision: integration must take **more than one step to "who acts as each ruler"**. You can use the existing `Join.tsx` five questions from the main application, or add a screen after the "team" chapter of DP3.
-It's not a step to be saved. There are no data on Tasks / Team / Today after that.
+→ Decision: integrated onboarding must **add a "who holds each role" step**. Reuse the main application's existing five questions in `Join.tsx`, or add a screen after DP3's "Team" chapter.
+→ This step cannot be omitted: without it, Tasks / Team / Today have no data.
 
-### Non-movement
+### ❌ What will not be migrated
 
-| PDP3 stuff. | Why not? |
+| DP3 item | Why it will not migrate |
 | --- | --- |
-| `FlowEditor.tsx`(manual drag flow chart) | Juanxi chose the subway map. |
-| `phase1.css` / `organization.css` / `setupV3.css`(4,567 line) | Third design system. UI Redo with the primary application of 5 components |
-| `src/workspace/`（Activity workspace）| Juanxi did not request and overlaps with Events/Tasks page responsibilities. **, hold still. Stay on branch**. |
-| `OrgAction` → `Node` | The concept is different: Action is the job entry without a date, and Node is the task of three cut-off dates. Action is better suited to become **process template**, not task |
+| `FlowEditor.tsx` (manually dragged flowchart) | Juanxi chose the metro diagram |
+| `phase1.css` / `organization.css` / `setupV3.css` (4,567 lines) | A third design system. Rebuild the UI using the main app's 5 components |
+| `src/workspace/` (Activity workspace) | Juanxi never requested it, and its responsibilities overlap Events/Tasks. **Leave it untouched on the branch for now** |
+| `OrgAction` → `Node` | Different concepts: Action is a responsibility item without dates; Node is a task with three deadlines. An Action fits better as a **workflow template**, not a task |
 
-## 9.5 The exact reason why AI is "so stupid."
+## 9.5 The exact reason AI is “unintelligent” (identified)
 
-Juanxi: "I want to set up an excutable task, and it doesn't understand, and it helps me completely with the event workflow. 」
+Juanxi: "I wanted to set up an executable task, but it couldn't understand me and applied the entire event workflow instead."
 
-**has three layers, all in prompt and regulars, not models.**
+**There are three layers of causes, all in prompts and regular expressions; this is not a model-capability problem.**
 
-**1 System prompt activity** (`src/lib/chatCards.ts`)
+**① The system prompt is heavily biased toward events** (`src/lib/chatCards.ts`)
 
 ```
 {"kind":"form","intent":"plan_event", ...} whenever the user wants to
    plan, host or organize a NEW event.
 ```
-The word "organize" is too broad. While `add_node` (building a single task) is buried in the list of "Sown for application first", **has absolutely no indication when to use it or when to use activity form**.
+The word "organize" is too broad. Meanwhile, `add_node` (create a single task) is buried in the "Shown for approval first" list, with **no explanation of when to use it versus the event form**.
 
-**2. Of the four examples, zero is a single task.**.
+**② None of the four examples creates a single task**
 
-The first example is the "I want to plan a mixer" activity form. All the examples that the model sees are teaching it "Users want to do something = run an event."
+The very first example is "I want to plan a mixer" → event form. Every example the model sees teaches it "the user wants to do something = organize an event."
 
-**3 Locally unable to connect** (`src/lib/commands.ts:143`)
+**③ The local regex cannot handle it** (`src/lib/commands.ts:143`)
 
 ```js
-/^(?:add|create) (?:a )?(?:task|node|step)\s*[:：]?\s*(.+)/i
+/^(?:add|create) (?:a )?(?:task|node|step)\s*[:\uFF1A]?\s*(.+)/i
 ```
-It must start with `add` or `create` and follow closely the task/node/step.
-So `I want to set up an executable task…` **doesn't match**, directs it to AI, and AI's a priori is active.
+It must begin with `add` or `create`, immediately followed by task/node/step.
+So `I want to set up an executable task…` **does not match** and goes straight to the AI, whose prior assumption is an event. The `\uFF1A` escape preserves the full-width colon from the original pattern.
 
-**4 There is also a hidden**: `src/data/changeReview.ts:18` which requires that `add_node` **without `eventId` must first confirm a date**, while the default date is empty. So even if AI was right, the user point Apple would still be wrong.
+**④ Another hidden hurdle**: `src/data/changeReview.ts:18` requires an `add_node` without an `eventId` to **have a confirmed date first**, but the default date is empty. Even if AI understands correctly, clicking Apply still produces an error.
 
-### It's all cheap.
+### Fixes (all inexpensive)
 
-1. Prompt Ric added a **clear alternative judgement**:
-   - The user's gonna do it. **Activities with dates, venue and budget** → `plan_event`Form
-   - The user wants it. **It's an independent thing.**(not in any activity) `add_node`，`eventId: null`
-   - I'm not sure. Ask a question under 2, don't guess.
-2. **Make it two. `add_node`Example:**Prompt, one of which is clearly a stand-alone mission
-3. **Exploiting local norms**: Catching `set up a task`/`I want to create a task` / `new task` / `make a task` / `add an executable task`
-4. **Give a default date to an independent task**(e.g., `addDays(today, 7)`) Do not allow users to face a blank
+1. Add an **explicit choice between two cases** to the prompt:
+   - The user wants **an event with a date, venue, and budget** → `plan_event` form.
+   - The user wants **a standalone task** (not part of any event) → `add_node`, `eventId: null`.
+   - Uncertain → ask one question under rule 2; do not guess.
+2. **Add two `add_node` examples** to the prompt, one explicitly showing a standalone task.
+3. **Broaden local regexes** to handle `set up a task` / `I want to create a task` / `new task` / `make a task` / `add an executable task`.
+4. **Give standalone tasks a default date** (for example, `addDays(today, 7)`), instead of presenting an empty required field.
 
-## 9.6, do it in three sessions, not once.
+## 9.6 Use three sessions; do not do everything at once
 
-| Session | Do what? | Model | When? |
+| Chat | Work | Model | When |
 | --- | --- | --- | --- |
-| **M1** | Mechanical merge + cut AI route + hidden server storage | **Opus 5.5** | Now, by Thursday. |
-| **M2** | Fix AI comprehension (independent tasks vs activities) | **Opus 5.5** | After M1, Thursday. |
-| **M3** | Onboarding Unit I (write adapter + redo UI with main application component) | **Opus 5.5** | **After Thursday**, IRB Waiting |
+| **M1** | Mechanical merge + switch AI routing + hide server storage | **Opus 5.5** | Now, before Thursday |
+| **M2** | Improve AI understanding (standalone task vs event) | **Opus 5.5** | After M1, before Thursday |
+| **M3** | Unify onboarding (write adapter + rebuild UI with main-application components) | **Opus 5.5** | **After Thursday**, while waiting for IRB |
 
-**Why M3 is scheduled after Thursday:**, it's going to write a adapter for two data models and deal with five conflicts in 9.4, then redo five chapters onboarding with the components of the main application. It's not a two-day job, it'll be worse to get out than it is now.
+**Why M3 is scheduled after Thursday:** it requires an adapter spanning two data models, resolution of the five conflicts in 9.4, and rebuilding all five onboarding chapters using main-app components. This is more than two days' work; rushing would produce something worse than either current version.
 
-And IRB materials describe **to study how to do**, not every pixel. When M1 + M2 is completed, the prototype is functionally complete, not ugly, responsive and sufficient to deliver material.
+IRB materials describe **how the research is conducted**, not every pixel. After M1 + M2, the prototype will be functionally complete, presentable, and responsive enough to submit the materials.
 
 ---
 
-# 10 . Juanxi 2026-10-27, second set of guidelines for the evening
+# Section 10 · Juanxi's second round of guidance, evening of 2026-10-27
 
-## 10.1 AI Vendors: problems clarified, but `AGENTS.md` Rules 5 expired
+## 10.1 AI provider: the issue is clarified, but rule 5 in `AGENTS.md` is outdated
 
-Juanxi: All interfaces go straight to ASU AIR, where the data are in ASU servers and databases, only on models; The project will no longer be used by DeepSeek.
+Juanxi: all API calls go directly through ASU AIR; data is stored on ASU's servers and databases, and we only choose the model. This project will no longer use DeepSeek in the future.
 
-The records in **support this statement. `AGENTS.md` of**:DP3 has written `muse-glimmer-30b`, `glm-5-3`, route v3 (Gemma Long Structure Task / Muse Short Editor / GLM Active Depth) and refers to "no consumption of the AIR amount" - these models have been adjusted through AIR.
+**Repository records support this claim**: DP3's `AGENTS.md` already records `muse-glimmer-30b`, `glm-5-3`, and routing v3 (Gemma for long structured tasks / Muse for short edits / GLM for explicitly requested deeper review), and mentions "no AIR quota used": these models are called through AIR.
 
-**The data processing layer is no longer an open issue and should not be repeated.**
+**→ The data-processing layer is no longer an open question. Stop bringing it up repeatedly.**
 
-### But there's a real problem: `AGENTS.md` contradicts itself.
+### ⚠️ But there is one real problem: `AGENTS.md` contradicts itself
 
 ```
-Article  23 Lines (both branches):
-  5. **AI Vendors:** Development  DeepSeek, processing only field data;
-     Live participant  Phase 3 Sessions must be used  ASU AIR(or)  IRB (a) Approved suppliers).
+Line 23 (both branches):
+  5. **AI provider:** Use DeepSeek during development, with fictional data only;
+     Phase 3 sessions involving real participants must use ASU AIR (or an IRB-approved provider).
 
-Article  128 / 137 / 140 Lines (only)  DP3 Yes:
-  The new default model for speed priority is  muse-glimmer-30b；glm-5-3 Only active selection by the user …
-  Default  MuseOnly clear.  Deeper review Use  GLM。
-  Routes v3：Gemma Long-term structural tasks, Muse Short editing, GLM Active depth.
+Lines 128 / 137 / 140 (DP3 only):
+  The new speed-first default model is muse-glimmer-30b; glm-5-3 is used only when the user explicitly selects…
+  Muse by default; use GLM only for explicit Deeper review.
+  Routing v3: Gemma for long structured tasks, Muse for short edits, GLM for explicitly requested depth.
 ```
 
-**line 23 has never been updated. In the same document,** says "with DeepSeek" in the hard rule of 3, and the code map of 6 says "with Muse/GLM/Gemma". `AGENTS.md` Section 1 requires every recipient of AI **to read section 3**.
+**Line 23 was never updated.** In the same file, the hard rule in section 3 says "use DeepSeek," while the code map in section 6 says "use Muse/GLM/Gemma." AGENTS.md section 1 requires every incoming AI to **read section 3 first**.
 
-• **M1 must change line 23 to**, otherwise the next AI will follow outdated rules.
+→ **M1 must change line 23**, or the next AI will follow outdated rules.
 
-## 10.2⭐  Sorting interactive and date variables: the good news is **The date logic has been fully realized.**
+## 10.2 ⭐ Ranking interaction and date variables: the good news is **all date logic already exists**
 
-The interactive design proposed by Juanxi:
-- Do not drag nodes on the road map (too hard to operate)
-- Change to survey 'sorting question' format: drag icon with three crosslines on the left, drag order
-- Two tiers: **Large Order** (large process that needs to be carried out separately)/ **Small Sorting** (set in large order, one big below which can put 5 small)
-- One day for each big and small option to the right.
-- Right road map automatically calculated and updated in real time
-- Date cannot be a single cut-off date, must be broken down: school cut-off day / club deadline / everyone's different latest start
-- Organisation requires advance N days to apply all tasks as a variable
-- Organisational reminder days + time required to process
-- Users can adjust to create a new alarm date (e.g. 2 Day Reminder)
+Juanxi's proposed interaction design:
+- Do not drag nodes on the roadmap (too difficult).
+- Use a survey-style ranking question: a three-line drag handle on the left; drag the entire row to reorder.
+- Two levels: **major ordering** (large workflows that need their own groups) / **minor ordering** (nested within major groups; one major group can contain 5 minor items).
+- Show "days needed to process" to the right of every major and minor option.
+- The roadmap on the right recalculates automatically and updates live.
+- Dates cannot be a single deadline; split them into official deadline / club deadline / each person's individual latest start.
+- The organization's required N-day lead time → a variable applied to all tasks.
+- Organization reminder lead days + processing time → latest start date.
+- Users can adjust relative to latest start (such as "remind me 2 days earlier") → produce a new reminder date.
 
-### Check the existing code on a line-by-line basis: **It's not a bad logic. It's all in the engine.**
+### Existing code checked item by item: **every part of this logic is already in the engine, without exception**
 
-| Juanxi describes it | It's already in the code. |
+| Juanxi's description | Already in the code |
 | --- | --- |
-| Number of days required to process | `Node.effort` — Since text: "Working days of effort, used for the least start date" |
-| Organization requirements advance N days | `OrgSettings.clubBufferBusinessDays`(default 3 working days) |
-| School closing date | `Node.officialDeadline` |
+| Days needed to process | `Node.effort`; original comment: "Working days of effort, used for the latest start date" |
+| Organization requires N days of lead time | `OrgSettings.clubBufferBusinessDays` (default: 3 business days) |
+| Official deadline | `Node.officialDeadline` |
 | Club deadline | `Node.clubDeadline` |
-| Everyone's different. | `Node.latestStart` |
-| What's the count? | `schedule.ts` Document comment: "Latest start = Club deadline minutes effort days and the owner's personal buffer, on the owner's working days" |
-| The user adjusts on latest start | `Person.personalBufferDays` + `personalBufferEnabled` |
-| Inverted from target date | `schedule.ts` Inverted Pass |
-| Order of impact date | `Node.dependsOn` + Pick when pushing backwards"One working day prior to the start day of downstream swim" |
-| **Large Sort / Small Sort** | **`Phase`(plan / prepare / money / marketing / run / close, 6) = large order; In the same Phase `Node` ♪ Small Sorting** |
+| Each person's individual latest start | `Node.latestStart` |
+| How latest start is computed | `schedule.ts` documentation: "Latest start = club deadline minus effort days and the owner's personal buffer, on the owner's working days" |
+| User adjustments to latest start | `Person.personalBufferDays` + `personalBufferEnabled` |
+| Work backward from target date | Backward pass in `schedule.ts` |
+| Sequence affects dates | `Node.dependsOn` + using "the working day before the downstream latest start" in the backward pass |
+| **Major / minor ordering** | **`Phase` (plan / prepare / money / marketing / run / close, 6 total) = major ordering; `Node` within the same Phase = minor ordering** |
 
-**Conclusion: All you have to do is edit the interface, and you don't have to write a date math line.** and "big order" just happens to be the station on the subway map at 6.
+**→ Conclusion: only the editing interface needs work; no date mathematics needs to be written.** And the "overall ordering" is precisely those 6 stops on the metro map.
 
-### So the M3's hard constraints
+### Therefore, M3's hard constraints
 
-1. Sorts UI **with only two fields**: `Node.dependsOn` (order) and `Node.effort` (days), plus `Node.phase` (large sorting belonging).
-2. **UI cannot write any date field at all.** Change `applySchedule()` to allow `schedule.ts` to recalculate three dates. This is the iron law of `AGENTS.md` 3 rule 3.
-3. Real-time update of the right subway map = rerun `computeSchedule()` + `metro.ts` layout, **not storage coordinates**.
-4. Do not change `src/engine/` for this function.
+1. The ordering UI **may write only two fields**: `Node.dependsOn` (sequence) and `Node.effort` (days), plus `Node.phase` (major-group membership).
+2. **The UI must never write any date field.** After editing, call `applySchedule()` so `schedule.ts` recalculates all three dates. This is the hard requirement of rule 3 in `AGENTS.md` Section 3.
+3. Live updates to the right-hand metro map = rerun `computeSchedule()` + `metro.ts` layout, **not saved coordinates**.
+4. Do not modify `src/engine/` for this feature.
 
-## 10.3 Conflict 3 `dependencyMode: "any"` - Juanxi empowers me to decide
+## 10.3 Conflict ③ `dependencyMode: "any"`—Juanxi authorized me to decide
 
-**Decision: Only `all` is accepted at the time of import, `any` expressly rejects and tells the user not to change the engine.**
+**Decision: accept only `all` on import; explicitly reject `any` and tell the user. Do not change the engine.**
 
-Rationale: `topoOrder()` and `computeSchedule()` are the closest and most prosthesis-value codes tested throughout the project (`engine.test.ts` for illustrative activity 20 step by step to assert three dates). For a DP3 to modify it with characteristics that have been used but never required by the main application, risks are much greater than benefits. When there is a real need for "any upstream completion is sufficient", it can be expressed in a condensed node, without the need to change the algorithm.
+Reason: `topoOrder()` and `computeSchedule()` are the project's most thoroughly tested code and have the greatest thesis value (`engine.test.ts` asserts all three dates individually for the example event's 20 steps). Changing them for a feature used by DP3 but never needed by the main application brings far more risk than benefit. If "any upstream completion is sufficient" is truly needed, a join node can express it without changing the algorithm.
 
-## 10.4 people, rule, sector level: change to "human"
+## 10.4 People, roles, and departments: make people the primary focus
 
-Juanxi: Each member has its own account number, logs it in; Remember assigned position, position belonging to department. The **level is dominated by "persons", not positions.** sends a link to members, members register with their own account code, not a common account number.
+Juanxi: each member has their own account and signs in themselves; members are assigned positions, and positions belong to departments. **The hierarchy centers on people, not positions.** Send members a link; they register with their own username and password, rather than sharing one account.
 
-### This one has to be broken in two.
+### This point needs to be considered in two parts
 
-**1 Data modelling (can be done now, low risk)**
+**① Data modeling (can be done now, low risk)**
 
-Target level: `Person` — `Role/Position` — `Department`
+Target hierarchy: `Person` → `Role/Position` → `Department`
 
-Status: `Person.roleId` has pointed to `Role`, so "people have roll" has been established. What's missing is:
-- `Role` does not have `departmentId` (DP3 has 6 departments, just to add, see 9.41)
-- `Role.holderId` and `Person.roleId` are **two-way redundant**, which is easily inconsistent. **`Person.roleId` is the only truth.**, `Role.holderId` should be changed to derivative value or deleted.
+Current state: `Person.roleId` already references `Role`, so "people have roles" is already implemented. What is missing:
+- `Role` has no `departmentId` (DP3 has 6 departments that fill this gap; see 9.4①)
+- `Role.holderId` and `Person.roleId` are **redundant references in opposite directions**, risking inconsistency. A people-first model means **`Person.roleId` is the single source of truth**; derive or remove `Role.holderId`
 
-This is part of **M3**, and onboarding.
+→ This belongs to **M3**, alongside onboarding.
 
-**2 Live Account Password Login**
+**② Real account/password login (⚠️ an entirely different scale of work, requiring another decision from Juanxi)**
 
-"Each member registers with its own account number and password" means:
-- Live Identification
-- Live user account on server
-- That's the kind of work that was postponed (section 10 of the audit report, line D of the execution programme)
+"Each member registers with their own account and password" implies:
+- Real authentication
+- Real user accounts stored on the server
+- The kind of Supabase work previously deferred (audit Section 10, execution plan Track D)
 
-And the earlier decision of Juanxi 10/27 was: **Phase 3 using field data, not Supabase, participants using false information we have provided**.
+But Juanxi's decision earlier on 10/27 was: **Phase 3 uses fictional data, no Supabase, and participants use the fake information we provide**.
 
-The **decisions are in conflict with each other.** needs to be clear:
-- **A：Phase 3Still using false information**, live account number to v1. 5♪ M3 Just do one, level becomes man-centred and doesn't log in
-- **B: Phase 3 takes live account**  →  Reboot of the D line (Supabase+ authentication) and **IRB scope needs to be changed to**, conflicting time with his 10/29 submission
+**These two decisions conflict.** He must clarify:
+- **A: Phase 3 still uses fictional information**, with real accounts deferred to v1.5 → M3 implements only ①, reorganizes the hierarchy around people, and adds no login.
+- **B: Phase 3 requires real accounts** → restart track D (Supabase + authentication), and **change the IRB scope**, conflicting with his 10/29 submission date.
 
-• Recommendation A of **.** Level Modelling and Certification is two things: modeling is done first, and certification can be added at any time.
+→ **Recommend A.** Hierarchical modeling and authentication are separate; get the modeling right first, and authentication can be added later.
 
-## 10.5 M2 changed to two steps: pre-prompt strategy, audit and then implementation
+## 10.5 Split M2 into two steps: propose the prompting strategy, then implement after review approval
 
-Juanxi requests that M2 first repeat the strategy and structure of Prompt, which he will verify before it is implemented.
+Juanxi requires the prompt strategy and structure to be reviewed before M2, with implementation beginning only after his approval.
 
-- **M2a (Research and Programs, No Code Change)**: Read `docs/PRODUCT_PLAN.md`, section 2 "Interview Conclusions: Determination of 8 Assumptions" (repository's only live pain record); In accordance with `AGENTS.md`, section 3 rule 1, the original research materials are not and cannot be found in the report) together with the four-tier diagnosis of 9.5, produce a prompt strategy document for review by Juanxi.
-- **M2b (execution)**: `chatCards.ts`/ `commands.ts`/ `changeReview.ts` after approval.
+- **M2a (research and planning, no code changes)**: read `docs/PRODUCT_PLAN.md` section 2, "Interview findings: assessment of 8 hypotheses" (the repository's only record of actual pain points; under `AGENTS.md` section 3, rule 1, raw research material is neither present nor allowed in the repository). Combine it with the four-layer diagnosis in 9.5 and produce a prompt-strategy document for Juanxi's review.
+- **M2b (implementation)**: change `chatCards.ts` / `commands.ts` / `changeReview.ts` only after approval.

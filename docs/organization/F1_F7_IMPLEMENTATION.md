@@ -1,58 +1,58 @@
-# F1-F7 Implementation and record
+# F1–F7 implementation/acceptance record
 
-2026-10-26 . Codex. Status: Complete with local validation, pending Juanxi development preview. The official stop has not been changed.
+2026-10-26 · Codex · Implementation/local verification complete, awaiting Juanxi's deploy-preview acceptance. Live site unchanged.
 
-Juanxi approved the audit programme in this chat and responded to “execution”. Baseline is `feat/organization-setup-ai@54e58231e557adc8d11203b7e52373fdb3278b4e`, integrated branch `fix/setup-v3-completion`. Main, original and existing workspaces are reserved.
+Juanxi approved audit proposal in this chat and said “execute.” Baseline `feat/organization-setup-ai@54e58231e557adc8d11203b7e52373fdb3278b4e`, integration `fix/setup-v3-completion`. main/original site/existing workspaces retained.
 
-## Division of labour and scope
+## Division/scope
 
-Data, AI, UI use independent Worktree/Reliance and Test Directory; Main Agent approves the allocation of consumption, shared contracts and integration; Independent Review Agent read-only review. There are no more Agents changing OnlineSetup at the same time. Test simulations should not be used as live suppliers or online databases.
+Data/AI/UI use independent worktrees/dependencies/test directories; lead owns approved-config consumption/shared contract/integration; independent read-only Review. No concurrent OnlineSetup edits. Mocks are not provider/live-database acceptance.
 
-| Work package | Accomplishing the target |
+| Package | Implementation/acceptance goal |
 | --- | --- |
-| F1 Preservation Restoration | Saves before fast internal departure and fails to leave a page; The complete local draft is restored to the unsent form; Conflict Clear Choices |
-| F2 Increment and Manpower Decisions | Retain tier manual fields; semantic fingerprints; Relevant nodes review; Server confirmed intercept pending |
-| F3 Assistant and Risk Card | Currently selected entity, recent designation history, automatic Check and Skip, multi-risk final approval |
-| F4 Figure and accessibility | Node/manager/curve addition/deletion, level drag, mobile phone and keyboard operation |
-| F5 Diagnosis and Costs | First sustained, failed splits, peratempt indicators, long-term deweighted and cached implementation version |
-| F6 Approve the allocation of consumption | Home/ Activity-only serverapproved.compiled, copy function and department color matching, version refresher |
-| F7 Documentation and review | Current/historical separation, test/ live/deployment evidence separation, independent review to user acceptance |
+| F1 Save/recover | Save before quick internal exit, stay on failure; complete local draft/unsent-form recovery; explicit conflict choice |
+| F2 Incremental/manual decisions | Hierarchical manual-field preservation, semantic fingerprints, affected-node review, server confirmation blocks unresolved |
+| F3 Assistant/risk cards | Current entity, selected recent history, automatic one-time Check/Skip, multiple-risk final approval |
+| F4 Graph/accessibility | Add/delete/reconnect nodes/people/curves, hierarchy drag, mobile/keyboard |
+| F5 Diagnostics/cost | Persist raw first, classify failures, per-attempt metrics, persistent requestId deduplication, cached execution version |
+| F6 Approved-config consumption | Home/events read only server approved.compiled, consistent duties/department colors/version refresh |
+| F7 Docs/review | Current/history separate; mock/live/deploy evidence separate; user acceptance after independent Review |
 
-## Certified workspace consumption
+## Verified workspace consumption
 
-F6 Initial check: 5 unit sets passed; Six computer/cell check-ups in the new workspace and 34 prototypes were maintained, with a total of 40 browsers cleared. The added accessibility was later confirmed by Setup that the access check was running in an integrated and final manner, and that the 40 items could not be considered as the final total.
+Initial F6:5 unit tests; 6 new workspace desktop/mobile +34 retained prototype =40 browser passes. Later a11y/setup-confirmation integration ran in final suite; 40 is not final total.
 
-No approved configuration displays completed settings entry; Loading failed to show retry, does not use the field organization. `/#/phase1?example=1` is an illustrative old example, setup-legacy keeps the original check and data. The new organization ' s Board page is clearly ungenerated and the complete natural language-based production of Planner was not realized during the current round.
+No approved config→setup-completion entry; load failure→retry, no silent fictional fallback. `/#/phase1?example=1` explicit legacy sample, setup-legacy retains original checks/data. New-organization Board explicitly not generated; full natural-language planner not implemented.
 
-## Boundary of performance evidence
+## Performance-evidence limits
 
-This round does not call live AI. It is not claimed that Gemma has moved faster than Muse and does not assume that Air actually queues. (a) The existing single Muse765 input and 1846 output tokens, with an initial content of 16.715 seconds and a total of 50.396 seconds and a structural failure; This is a historical observation, not this model.
+No real AI this round. No claim Gemma faster than Muse/inference of AIR queues. Historical single Muse 765 input/1846 output tokens, first content16.715s/total50.396s/structure failure—historical observation, not current acceptance.
 
-Retain clieentPreparationMs, station queuedMs, headers/firstToken/total, token, finish reasons, source text and failure classification; The records do not amount to the provision of usage by each vendor. A small number of samples can only be reported for single observation and cannot be disguised as statistics at p.50/p95.
+Retain clientPreparationMs/site queuedMs/headers-firstToken-total/tokens/finish reason/raw/failure class; recording does not guarantee provider usage. Small samples only single observations, not p50/p95 statistics.
 
-## Current external restrictions
+## External limits
 
-Git's HTTPS is available for reading and writing. GitHub API returned to Forbidden at the time of this session audit; The results of the current PR/Extreme CI/Netlify deployment require independent forensic evidence and are not based on local success. The AIR was tied to a local machine without being fed into it; Do not ask to provide secret key in chats, do not restore extra live evaluation. The official release and the merge main are still not authorized.
+Git HTTPS read/write available. GitHub API Forbidden at audit; PR/remote CI/Netlify need independent evidence, no invention from local success. AIR binding absent locally; do not request keys in chat/resume extra live evaluations. Formal release/main merge unauthorized.
 
-## Final Check and Review
+## Final checks/Review
 
-Final product code based on `9871a6f` (including local storage failure protection); Later, only the browser test is used to verify submission of `ba0ab68` for stagger durability. Independent Review has completed the implementation branch and integration contract checks, with open code blocked at zero. See [ Independent Review Record, ](REVIEW_F1_F7.md) for details.
+Final product `9871a6f` includes local-storage-failure protection; afterward only browser waits for async persistence fixed, verification `ba0ab68`. Independent branch/integration-contract Review complete, 0 open code blockers. [Independent review](REVIEW_F1_F7.md).
 
-| Inspection | Actual results |
+| Check | Actual result |
 | --- | --- |
-| `npm run build` | TypeScript/Vite successful, relying on declarations and lock files unchanged |
-| `npm test -- --maxWorkers=2 --minWorkers=1` | 25 files, 410 tests passed |
-| `npm run e2e -- --workers=2` | Eventually the same full operation of 238: 222 passed, 16 failed under existing project conditions skip, 0 |
-| Local Netlify HTTP emulation with Blobs | Private session, save/recognize, server JSON compiles, draft/approval separation, 409 refuses to cover, no session 401, recent history, original SHA-256 downloads |
-| Chromium straight to local actual API | Read server approval configuration from the same cookie session, display the correct organization and version, do not mix unapproved drafts |
-| Live vendor/line deployment | AIR was not called in the current round, no new percentage of accelerations or on-line Blobs opinion |
+| `npm run build` | TypeScript/Vite passed, dependency manifests/lock unchanged |
+| `npm test -- --maxWorkers=2 --minWorkers=1` |25 files 410 passed|
+| `npm run e2e -- --workers=2` | Final complete run: 238 cases, 222 passed/16 existing conditional skips/0 failed |
+| Local Netlify dev actual HTTP/Blobs emulation | Private session/save-confirm/server JSON compilation/draft-approved separation/409 overwrite rejection/no-session401/recent history/original SHA-256 download passed |
+| Chromium→actual local API | Same-cookie session reads approved server config, correct organization/version, no unapproved draft mixing |
+| Real provider/live deployment | No AIR this round, no new speed percentages/live Blobs certification |
 
-16 skip contains 12 mobile phone repeat accessibility checks for the old package + 1 suspension and 3 new desktop pointers/additional historical operating tests. Mobile phones are checked for access to key pages through alternative operations such as duties/leaders/reliance, basic browser Back/Forward; They're not called Physics Cell phones or Safari live machine tests.
+16 skips: legacy 12 mobile duplicate a11y+1 hover, new 3 desktop-only pointer/extra-history tests. Mobile alternatives for duties/owners/dependencies, basic Back/Forward/key-page a11y passed; not real devices/Safari.
 
-The integrated first round exposed the test to still looking for the old example Home Script and misspelled the "Deleting Board Setup" as a whole application that does not allow Board navigation; Changed to stabilize navigation and check only the progress of settings. The other two upload/paste tests, which check remote storage immediately after the local filename is visible, have been replaced by waiting for an actual sustainability result. There are no deletions of assertions, skip failures or pass as a retest; There was no failure in the final complete run.
+Initial integration tests expected old sample Home copy and misread “remove Board setup chapter” as no Board navigation anywhere; changed stable navigation/setup-progress-only assertions. Two upload/paste tests checked remote storage immediately after local filename, before async save; now await actual persistence. No removed assertions/skipped failures/retries passed off as success; final full run 0 failures.
 
-The local HTTP combination uses live functions and the Blobs simulation of the development server, not Netlify Blobs on-line. Use only the repository field communication; 0 live AI generated. Repository original resolution, AI output format and operational data protection maintain a distinction between different evidences.
+Local HTTP uses real functions/dev Blobs-emulated persistence, not live Netlify Blobs. Repository fictional constitution only, 0 real AI generation. Keep parsing/AI-format/business-protection evidence distinct.
 
-The current integrated branch will fast-forward to the existing `feat/organization-setup-ai` after [PR #3 ](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3) for development preview; Don't push, no merge main. GitHub API access is limited and the remote CI/deployment status has to be verified separately and local success cannot be described as remote passage.
+Integration will fast-forward existing `feat/organization-setup-ai`/[PR #3](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3) for preview acceptance; no force-push/main merge. GitHub API limited, remote CI/deploy separately verified; local success is not remote passage.
 
-Needs to synchronise local backup (Ben Agent cannot access the user computer).
+Local backup needs synchronization (agent cannot access user's computer).

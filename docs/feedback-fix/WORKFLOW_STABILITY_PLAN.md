@@ -1,84 +1,84 @@
-# Workstream template phased restoration programme
+# Staged workflow-template repair plan
 
-2026-11-17（America/Phoenix）。Base `b18ee3c`, ready to submit `e87b19c`. Users have made a clear choice: both the number of working days and the Scheduling date are checked, and all phases are implemented continuously after the programme is completed. (b) No repetition of requests for confirmation at the stage covered; No merge main, no new PR.
+2026-11-17 (America/Phoenix). Base `b18ee3c`, preparation `e87b19c`. User explicitly selected checking both work durations/scheduled dates and continuous implementation of all stages after planning. Do not request repeated confirmation within scope; no main merge/new PR.
 
-## Objective and scope
+## Goals and scope
 
-Repair of node movements without updating, addition of the original branch to a new branch, workload data anomalies, Full Check deletions leading to process loss, release of additional tasks from the conditional branch and provision of a clear parallel branch before/after operating with the new branch. Corresponding to audit of WF-04/05/06/08/09/10, workload processing with value input and start alarm; WF-09 deals only with uniform mandatory rules and avoids tension between the editor and the generator.
+Fix moves not updating, additions to existing branches creating new ones, incorrect effort data, Full Check deletion hiding workflows, conditional-task leakage; provide explicit same-branch before/after and Add branch. Covers WF-04/05/06/08/09/10; effort covers numeric input/start reminders; WF-09 only unifies mandatory-preservation rules against editor/generator disagreement.
 
-The WF-01/02/03/11/12/13 is delayed for links and details easy to use. Existing panels only have access to the required value check, remove protection and add operations. Parallel changes to the actual mandate Details/Edit must be retained. Dates are calculated only by rule engine and do not call live AI or live mail.
+Defer processing links/Details usability; do not additionally implement WF-01/02/03/11/12/13. Existing panels receive only needed numeric validation, deletion protection, new operations. Preserve parallel actual-task Details/Edit changes. Dates from deterministic engine only; no live AI/email services.
 
-## Operating rules
+## Operation rules
 
-| User Actions | Rehabilitated behaviour |
+| User action | Fixed behavior |
 | --- | --- |
-| Move the same branch node | At the same time, local orders and associated reliance are changed and updated immediately; Save, refresh, new activity with consistent results |
-| Add before or after a node | (b) To explicitly use the branch to which the node has been clicked and by default to succeed to the applicable conditions of that node; The end of the branch applies as well. |
-| Add an online paragraph | (a) The branch using the segment; If two-end conditions are inconsistent, the range is clear and no left node condition is stolen |
-| Add before Full Check and other shared convergence points | (c) Explicitly opting to enter its branch, or using the link of that branch; Can not use first line as default |
-| Move across branches | (a) Retention of the head and workload; Displays a change in scope of application that cannot be changed. Drag the cross-section between activity and end of session to reject and explain |
-| Add branch | A stand-alone Addbranch, choosing name, pre/post activity, scope of application, default rule and first task; Create a full branch at once |
-| Modify working days | The legal integer is saved and the empty value does not become zero; Clear input 0 is still valid; Manually modified to start reminders based on workload |
-| Delete Full Check | All entrances were consistently rejected and explained structural requirements; Show all remaining tasks when old data are missing |
+| Move within branch | Update local order/related dependencies immediately; save/refresh/new-event results agree |
+| Add before/after node | Explicitly use clicked node's branch, inherit applicability by default, including ends |
+| Add on edge | Use edge's branch; if endpoint conditions differ, explicitly select scope, never steal left-node condition |
+| Add before shared join such as Full Check | Explicit incoming-branch selection or its edge; no default first incoming edge |
+| Move across branches | Preserve owner/effort; visibly show applicability changes; reject/explain pre-event↔wrap-up cross-segment dragging this round |
+| Add branch | Independent Add branch: name, pre/post-event, scope, default role, first task; create complete branch once |
+| Edit business days | Save valid integers only; blank is not 0; explicit 0 valid; manual effort determines start reminders |
+| Delete Full Check | All entries reject/explain structural requirement; old missing data still displays every remaining task |
 
-The key to the prefix is a clear command for `branchId` and `referenceId`. Even if the left is Start or the right is Full Check, the clicked branch nodes are used; Branches, role, stages, reliance are expressed separately.
+Before-insertion commands require explicit `branchId`,`referenceId`. Even beside Start/Full Check, use clicked branch node; branch, role, phase, dependencies are independent.
 
-Add a new branch to support the security structure in line with the existing map: pre-activities start — new branch — Full Check; After the event Head Count — New Branch — Done. Do not do any nesting branch or edit any convergence point. Start/Done is a virtual site, not dependent on forged tasks; Live Full Check is dependent on the last step of the new branch before the event, and the final step depends on the first step is live Head Count, with Done deriving from actual completion status.
+Supported safe structure matches existing chart: pre-event Start → new branch → Full Check; post-event Headcount → new branch → Done. No arbitrary nesting/join editing. Start/Done are virtual stations, not fake task dependencies. Pre-event last step joins real Full Check dependencies; wrap-up first step depends on real Headcount; Done derives from actual completion.
 
-## Data-sharing and implementation rules
+## Shared data/execution rules
 
-1. **Saves branches and locations.**New Templates and Tasks Optional `placement: { branchId, order }`； Templates store branch definitions, new activities keep their own branch snapshots and subsequent template changes do not change existing activities.
-2. The **position does not amount to dependence.** Grouped by Branch, relying on top-tops to determine the order of order to be preserved as parallel nodes; It does not impose a chain of all adjacent steps, nor does it depend on the date to determine the location of the map. Moves only to reconnect the relevant branch order, retaining manual cross-branch dependency and refusing all times when a ring occurs.
-3. **condition stratification.** Practical application = branch condition AND node condition. Re-use of existing white list conditions; Speaker, catering, RSVP, security, etc. Federation/Marking/Special Internal Mixing Conditions that do not blindly give the entire branch conditions to duplicate neighbours.
-4. **Uniform protection rules.** ASU requirements, existing CORE pools, structural anchors and actual activity completed unified nodes verification; Organizational standards do not pretend to be school rules. No nodes can be kept hidden by the branch of conditionality.
-5. **operates one time to save.** branch definitions, steps, reliance, location and conditions are verified together, sustained and withdrawn. The failure of invalid references, trans-activity IDs, unknown branches, loops and saves does not leave half the result, nor does it show success.
-6. **Old data maintained.** Schema 23 does not reset. Standard key compatibility map for missing fields only; The old self-defined nodes did not depend on neighbours guessing the scope of application, and the observable compatible branches were retained in ambiguity. Read not to regenerate historical tasks, keeping responsible persons, status, content, attachments and reminder history. The old Full Check/ Head Count does not automatically create a history task by using a graphical backup anchor when missing.
+1. **Persist branch/position.** Optional `placement: { branchId, order }` on templates/tasks; template branch definitions, event-specific snapshots, future template changes do not alter existing events.
+2. **Position is not dependency.** Group by branch, use dependency topology for sequence, stored order as stable parallel ordering. Never force adjacent tasks serial or position by dates. Moves reconnect only relevant branch-order edges, preserving cross-branch manual dependencies; reject whole operation on cycles.
+3. **Layer conditions.** Applicability=branch condition AND node condition. Existing allowlist; validate Speaker, food, RSVP, security separately. Finance/Marketing/Special contain mixed conditions; never copy a neighbor's condition over the whole branch blindly.
+4. **Unified protection.** Validate ASU requirements, existing CORE, structural anchors, completed actual tasks together; organization standards are not school rules. Conditional branches cannot hide mandatory nodes.
+5. **One operation, one save.** Validate, persist, undo branch definitions, steps, dependencies, positions, conditions together. Invalid references, cross-event IDs, unknown branches, cycles, save failures leave no partial result/success claim.
+6. **Preserve old data.** No Schema 23 reset. Standard keys only provide missing-field compatibility; never guess custom applicability from neighbors, retain visible compatibility branches on ambiguity. Reads do not regenerate historical tasks; preserve owners, status, content, attachments, reminder history. Missing Full Check/Headcount uses graphical fallback anchors, not fabricated historical tasks.
 
-## Workload and Scheduling Rules
+## Effort and scheduling
 
-Section 6 of the existing `CALIBRATION_REPORT.md` lists “modification of workload without changing date of calibration” as known differences to be confirmed; This is not a fault that has been resolved, nor is it a condition of ratification that must be followed. This round selects compatible default tables, while allowing future well-defined human workload editing to produce an interpretable scheduling effect.
+`CALIBRATION_REPORT.md` Section 6 lists “effort edits do not alter calibrated dates” as an unresolved difference, not a fixed defect or required approved constraint. Preserve default-table compatibility while making future explicit effort edits affect schedules explainably.
 
-- Numerical boxes keep draft local strings; Only the legal integer 0-30 returns and the empty, negative, decimal or excess limit is changed to another number.
-- Add an optional `startPolicy: window | effort`. Existing compatible behaviours should be followed when there are no fields; Set-up when clearly changing workloads; Undo/Recovery standard is accompanied by a recovery strategy.
-- Effort uses final cut-off days, working days and complete personal buffers to push the start day, taking into account weekends, holidays and busy weeks. Retains the deadline and semantic content of Timing, which cannot be simply deleted.
-- The standard steps and historical activities were not edited using the original time window; There is no natural day-to-day backloading and no automatic modification of the difficulty, contribution formula or predictive model.
-- (c) Official hard-cut deadlines are not subject to drag or ease of work; The end cannot be pushed back to the event, reporting live conflicts when there is a shortage of time.
-- Manually confirmed workloads are accompanied by a clear strategy to avoid using the old Pre_FB6 values guessing it back to its old default.
+- Numeric inputs keep local string drafts; only integers 0–30 write back. Blanks, negative, fractional, over-limit values never silently become another number.
+- Optional `startPolicy: window | effort`; absent retains compatibility. Explicit effort edit sets effort; Undo/restore-standard restores policy too.
+- effort calculates backward from final deadline, business-day duration, full personal buffer, including weekends, holidays, busy weeks. Preserve timing targets/dependency semantics, not simply delete timing.
+- Unedited standard steps/historical events keep windows; never infer effort from calendar span or change difficulty, contribution formula, forecast model automatically.
+- Drag/effort never relax official hard deadlines; wrap-up cannot start before event; insufficient windows report real conflicts.
+- Explicit policy protects confirmed effort from old PRE_FB6 guessing reverting defaults.
 
-## Phase with Worktree
+## Stages and worktrees
 
-Phase 0 has completed an independent analysis of three Agents; The following is done on a dependency basis and the same phase does not alter each other ' s documents. Each phase freezes the interface and begins to rely on its packages.
+Stage 0's three independent analyses are complete. Implement by dependency; same-stage agents never edit each other's files. Freeze interfaces before dependent packages.
 
-| Phase | Work package and sole file responsibility | Delivery and thresholds |
+| Stage | Packages/exclusive ownership | Delivery/gate |
 | --- | --- | --- |
-| 1 Bottom Contract Compatibility | Main Agent maintains type/store/settings/read and write contracts; DataAgent maintains branch definitions, applicable conditions, generation, protection and old data compatibility. Graph Agent at this stage first achieves a pure recombinable map operation without an incomplete UI | (b) The branches, conditions, location and cancellation contracts that may be preserved; Harmonizing Full Check/CORE protection; The old archive went backwards and the task was not recreated |
-| 2 Graphics Operation and Workload | Graph Agent maintains metro, MetroChart,lowEdit,stepOrder; UI Agent maintains WorldPanel, Settings, new branch small windows and draft values; Timing Agent maintains the schedule and stand-alone workload support functions. Playbooks are written by DataAgent only and Timing requires generation changes to be integrated by Data | Move, before/after, add new links, add additional branches, separate conditions, time editor/date all connected; Modules and components cross-examining |
-| 3 Integration and independent review | Main Agent integration; Independent Review Agent recommences nonvariable, compatible and unauthorised ranges; Browser double-end validation and check build, type, lint and associated returns | Relevant examples are adopted; The source check confirms that the links and the Decails layout have not been changed; Retain existing PR14 and functional branches, check remote new submission and forward |
+|1 Contracts/compatibility | Lead: types/store/settings/read-write contracts; Data: branches, conditions, generation, protection, compatibility; Graph: reusable pure operations first, no incomplete UI | Persistable branch/condition/position/undo contracts; unified Full Check/CORE; old-archive counterexamples, no task regeneration |
+|2 Graph/effort | Graph: metro, MetroChart, flowEdit, stepOrder; UI: WorkflowPanel, Settings, Add branch dialog, numeric drafts; Timing: schedule, separate effort helpers. Only Data writes playbooks, integrating Timing generation needs | Moves, before/after, edge addition, branches, condition isolation, effort/dates connected; unit/component counterexamples pass |
+|3 Integration/independent review | Lead integrates; Review rechecks invariants, compatibility, scope; desktop/mobile browser/build/types/lint/regressions | Related cases pass; source confirms links/Details unchanged; retain PR 14/branch, check new remote commits before push |
 
-Implementing worktree naming: `workflow-integration`, `workflow-data`, `workflow-graph`, `workflow-timing`, `workflow-ui`, `workflow-review`. The `workflow-graph-plan`, `workflow-timing-plan` and `workflow-scope-plan` have been used for planning analysis, and the three catalogues have not changed products. Agent only submits his own package, does not send the shared preview branch separately and is integrated by master Agent in sequence.
+Implementation worktrees:`workflow-integration`,`workflow-data`,`workflow-graph`,`workflow-timing`,`workflow-ui`,`workflow-review`. Planning used `workflow-graph-plan`,`workflow-timing-plan`,`workflow-scope-plan`, without product changes. Agents commit their packages only; lead integrates sequentially, instead of each pushing shared preview.
 
-The only writeer who shares the files is particularly important: `types.ts/store.tsx/settings.ts` Main Agent; `playbooks.ts/workflow.ts` Data；`stepOrder.ts/flowEdit.ts` Graph；`WorkflowPanel.tsx/Settings.tsx` UI。Cross-package requirements are delivered to the person in charge by freezing interfaces or patches and do not cover each other. The actual mission Details/Edit has additional work in progress, which was previously reviewed and maintained at an incremental rate.
+Single writers are essential:`types.ts/store.tsx/settings.ts` lead;`playbooks.ts/workflow.ts` Data;`stepOrder.ts/flowEdit.ts` Graph;`WorkflowPanel.tsx/Settings.tsx` UI. Cross-package needs go through frozen interfaces/owner patches, not overwrites. Actual-task Details/Edit is concurrently active; review/preserve increments before merging.
 
-## Rebuttals and Users Required
+## Required counterexamples and user acceptance
 
-| Category | Counterfeit |
+| Category | Counterexamples |
 | --- | --- |
-| Move | Mouse and keyboard movePromotion Items; It is asserted that live displays order, dependence, preservation, refreshing. Do not lose upstream/downstream across branches; Undependable adjoining tasks are not colluded |
-| Add Original Branch | First node before, middle node before/affer, last node aafter, line inserted; The same role was still in charge of both branches. Share Full Check doesn't guess the line |
-| Condition | Speaker/partner switches, catering switches, RSVP switches, security conditions respectively; Add correct task after closing sskip and rely on noghost ID |
-| New Branch | Previous/post-branch, constant/conditional scope, continuous additions, generation of new activities, updating, Undo and cancellation; There's no overlap in the new branch of the cell phone. |
-| Delete | Fuld Check refused at the entrance; (b) The saveable template is consistent with the necessary reserve pool of the generator; Old Full Check or Head Count displays all original tasks |
-| Workload | Empty, 0, 10, negative, decimal, excess, toggle nodes, undo, refresh; 2 ~10 The day of the start of the correct impact on manual strategy; The official date remains unchanged. |
-| Calendar | Weekends, holidays, busy weeks, buffer 0/ 1/3; (b) The lack of end-of-life time for conflict; No standard date sample edited without drifting |
-| Save Restore | Unknown ID, expired gap, looped, written to failed atom rejection; Template snapshots and activity snapshots are completely withdrawn; Historical content/state/head/alert not recreated |
-| Exclusion | Handle links, Details layouts, actual task submission/Edit, difficulty/ contribution and live delivery not to be redecorated |
+| Move | Mouse/keyboard Promotion Items; assert real display order, dependencies, save, refresh. Preserve cross-branch upstream/downstream; unrelated neighbors never forced serial |
+| Existing-branch additions | Before first, before/after middle, after last, edge insert; correct with same role on two branches; shared Full Check never guesses incoming edge |
+| Conditions | Independently toggle speaker/partner, food, RSVP, security; disabled additions skipped correctly, no ghost dependency IDs |
+| New branch | Pre/post, always/conditional, repeated addition, new events, refresh, Undo, cancel; no mobile overlap |
+| Delete | Full Check rejected everywhere; editor/generator mandatory sets agree; old missing Full Check/Headcount still shows all tasks |
+| Effort | Blank, 0,10, negative, fraction, over-limit, switch, undo, refresh; 2→10 changes manual-policy start, official date unchanged |
+| Calendar | Weekends, holidays, busy weeks, buffers 0/1/3; insufficient wrap-up conflict; unedited standard dates stable |
+| Save/restore | Unknown IDs, stale gaps, cycles, write failures atomically rejected; complete template/event snapshot Undo; no rebuilding historical content/status/owners/reminders |
+| Exclusions | No incidental processing-link, Details, actual submission/Edit, difficulty/contribution, real-delivery rewrite |
 
-Eventually edits a speaker process from Settings: Move  →  Insert  →  New Conditional Branch  →  Change of Working Day  →  Update New Speaker Activity  →  Check date and reminder facts against normal activity. Each conclusion needs to correspond to the branch's actual code and test and cannot be replaced by `all old tests passed'.
+Final walkthrough from Settings: speaker workflow move → insert before → add conditional branch → edit workdays → refresh → create speaker event → compare ordinary event → verify dates/reminder facts. Tie conclusions to actual branch code/tests; “all old tests pass” cannot replace these counterexamples.
 
-## Rollback and Risk
+## Rollback and risks
 
-Each package is submitted independently, consolidating the reserved boundary. Packages involving new metadata cannot remove only UI and discard existing fields; Rollback first closes the new operation, saves to parsing and exporting. At any stage, it is not clear that the empty browser is archived, does not modify main or call fee AI.
+Separate commits retain package boundaries. Metadata packages cannot roll back UI while discarding saved fields; disable new operations first, retain parsing/export. No browser-archive clearing, main edits, paid AI at any stage.
 
-The main risks were that the old self-defined range of steps could not be reversed, cross-branch reliance was wrongly deleted by mobile operations, default dates were recalculated in one size and one size, Undo only restored nodes but missed branches, common changes to shared documents and existing visual convergences did not amount to actual waiting. The programme is handled through explicit attribution, stratification conditions, partial reliance on operations, compatible strategies, complete snapshots and sole document owner; Not all existing visual convergences will be quietly replaced by new mandatory dependence during this round.
+Risks: unrecoverable custom applicability, moves deleting cross-branch dependencies, blanket default-date recomputation, Undo restoring nodes without branches, shared-file collisions, visual joins not equal actual waits. Address through explicit ownership, layered conditions, local dependency edits, compatibility, complete snapshots, single owners; do not silently turn all existing visual joins into mandatory dependencies.
 
-Phases 1, 2, 3 have been completed and the running-time code 18d7316; Results, compatible boundaries and acceptance see [ restoration delivery ](WORKFLOW_STABILITY_HANDOFF.md). Could not close temporary folder: %s
+Stages 1/2/3 complete, runtime 18d7316; results, compatibility, acceptance:[repair handoff](WORKFLOW_STABILITY_HANDOFF.md). Local backup synchronization is needed.

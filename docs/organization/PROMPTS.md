@@ -1,87 +1,87 @@
-# Current Prompt-Mouse Contract
+# Current prompts and model contract
 
-2026-10-26。The current server is [ programs. mts ](../../netlify/lib/organization/prompts.mts), version `organization-setup-v3.1`. The product page is not available as View Prompt or Review AI instructions. The current four groups of accurate Prompt have developed chat attachments to be delivered to Juanxi; Changes continue to be reviewed during chats and are not displayed on the product page.
+2026-10-26. Server source of truth:[prompts.mts](../../netlify/lib/organization/prompts.mts), version `organization-setup-v3.1`. Product offers neither View prompt nor Review AI instructions. Four exact prompt sets delivered to Juanxi as development-chat attachments; continue reviewing changes in chat, not product pages.
 
-| Tasks | Current Input Range | Output and Constraints |
+| Task | Current input scope | Output/constraints |
 | --- | --- | --- |
-| constitution | Constitution Text, Existing Organisation/ Department/ Rule | Department/ rule/function with evidence; (a) Presumption of marking; Manual field retention |
-| risk_check | Organizational mission and audited role duties | Up to four major risks, two-three programmes per issue; Do not repeat general form details as an omission |
-| member_workflow | Organisation, role duties, related consultation snippets | Streamlining nodes/dependency/regimes; Do not generate coordinates and final dates |
-| edit | Current organizational configuration, screens and valid selected entities, recent dialogues; Selected History Version | Clarifications or partial proposals for the white list; Zero applications before approval |
+| constitution | Constitution text, current organization/departments/roles | Evidenced departments/roles/duties; mark inference; retain manual fields |
+| risk_check | Mission/reviewed role duties | At most 4 major risks, 2–3 options each; do not repeat ordinary form details as omissions |
+| member_workflow | Organization, duties, relevant constitution excerpts | Compact nodes/dependencies/owners; no coordinates/final dates |
+| edit | Current configuration, screen, valid selection, recent dialogue; explicitly selected history version | Clarification or allowlisted local proposal; zero application before approval |
 
-No changes in navigation, Review compiles, layouts and general manual changes to non-call models. The change of duties and processes does not allow silence to overwrite other fields. History is evidence and choosing a particular version does not automatically restore it. All input as data is not granted for additional missions.
+Unchanged navigation, Review compilation, graph layout, ordinary manual edits use no model. Duty/workflow edits cannot silently overwrite other fields. History is evidence; selecting a version does not restore it automatically. All inputs are data, granting no extra permissions.
 
-[ MOdelPolicy.ts ](../../src/organization/modelPolicy.ts): `air-task-routing-v3`; Gemma `gemma4-31b-it` long structure, Muse `muse-glimmer-30b` short editor, GLM `glm-5-3` user-specific depth check only. Request none does not guarantee that the gateway actually works. Retain the actual level of reasoning and model return name. JSON schema still needs local validation.
+Routing source:[modelPolicy.ts](../../src/organization/modelPolicy.ts), `air-task-routing-v3`; Gemma `gemma4-31b-it` for long structure, Muse `muse-glimmer-30b` short edits, GLM `glm-5-3` explicit deeper review only. Requested none does not guarantee gateway none; retain actual reasoning level/original returned model name. Local JSON-schema validation remains required.
 
-History Muse input 765 a single time to 1846 output tokens, first content 16.715 seconds, total 50.396 seconds and shape validation failed. This figure cannot be called Gemma speed evidence, nor can it wait to be identified as a supplier from the beginning. AIR is not consumed during this round of offline inspections and does not automatically regenerate or perform multi-model assessments. Diagnosis and acceptance see [ Implementation Record ](F1_F7_IMPLEMENTATION.md).
+Historical Muse call: 765 input/1846 output tokens, first content 16.715 seconds, total 50.396 seconds, shape validation failed. Not evidence of Gemma speedup; first-content wait does not establish provider queueing. Offline checks consume no AIR, no automatic regeneration/multimodel evaluation. [Implementation record](F1_F7_IMPLEMENTATION.md) for diagnostics/acceptance.
 
-## History Note (Surce text retained below, not current UI or route)
+## Historical explanation (original material below retained, not current UI/routing)
 
-> **v3. 1 Update:** Gemma 4 31B Process long constitution/risk/activity structure, Muse Process short dialogue editor, GLM 5.3 user-only active depth check. The results of a live Muse proved that the request did not represent actual compliance by the gateway; Now Prompt clearly gives a precise JSON field, has observed a strict and unambiguous conversion of the alias of the field, and the missing content is still rejected. For more details, see [v3 physical records](V3_CHANGELOG.md)。 The speed of the new edition is yet to be measured and model names cannot be used as a guarantee of speed.
+> **Latest v3.1:** Gemma 4 31B for longer constitution/risk/event structures, Muse short conversation edits, GLM 5.3 user-requested depth only. One real Muse result showed native-schema/reasoning-none requests do not ensure gateway compliance; prompts now specify exact JSON fields, observed aliases get strict unambiguous conversion, missing content still rejected. [v3 live record](V3_CHANGELOG.md). New speed awaits measurement; model names guarantee none.
 
-> **v3 Original:** `netlify/lib/organization/prompts.mts`. Prompt is hidden at the service end and not displayed in products; Sending development chats directly to Juanxi for modification. The old document is kept for historical compatibility with `src/organization/prompts.ts`'s v2 stage V.
-> New four tasks: Constitution (department/ rule/function), Risk check (significant risk only), Member workflow (curve structure), Edit (local changes to the white list, explicit approval). Coordinates, final machine configuration and unaltered navigation are completed by program and no model is called.
-> Muse Glimer 30B + reading none; Deeper review only calls GLM 5.3 low. Original JSON schema + Zod/map/ID/level check; Records output caps and original responses. Allows a small number of field data live smoke, and other returns are simulated. See [ v3 Modify Record ](V3_CHANGELOG.md).
+> **v3 canonical source:** `netlify/lib/organization/prompts.mts`. Server-only prompts, not product UI; given directly to Juanxi in development chat for editing. Old docs/`src/organization/prompts.ts` v2 five stages retained for historical compatibility.
+> Four tasks: Constitution (departments/roles/duties), Risk check (major only), Member workflow (compact structure), Edit (allowlisted local changes, explicit approval). Coordinates, final machine config, unchanged navigation handled programmatically, no model.
+> Default Muse Glimmer 30B +reasoning none; Deeper review uses GLM 5.3 low. Native JSON schema +Zod/graph/ID/hierarchy validation; record output cap/raw response. Small fictional live smoke allowed, other regressions mocked. [v3 changes](V3_CHANGELOG.md).
 
-# Organization Setup: Actual Prompt and Audit
+# Organization Setup: actual prompts and review
 
-**pending review by Juanxi.** Quality clearance is a product process; The completion of the development does not amount to a product approval. Final Review has the "Review AI instructions" portal and clearance alarms, and steps can also be expanded to view accurate system progress. The only original that is officially operational is [ `src/organization/prompts.ts` ](../../src/organization/prompts.ts), not the summary in this note; Version is recorded in each successfully generated server AI record.
+**Awaiting Juanxi review.** Quality review is product acceptance; development completion is not prompt approval. Final Review has “Review AI instructions” and reminder; each step can expand exact system prompt. Sole runtime source:[`src/organization/prompts.ts`](../../src/organization/prompts.ts), not this overview; version recorded in each successful server AI generation record.
 
-## Every step of the way, give the model what it wants to do.
+## What each step gives the model and requests
 
-| Phase | Read Organizational Content | Specific output and cause |
+| Stage | Organization input | Output/rationale |
 | --- | --- | --- |
-| Basic → Constitution | Organisation name, text/check values, action directory; No organizational category | Draws the live roll title, duties and word-for-word quotations, extrapolating that missing items must be named Suggested; To avoid filling out and taking speculation as a fact |
-| Team → Responsibilities | Editd role, comment, action directory, ticked | Multiple role arrays for all actions; Manual ticking (including deliberately left blank) priority, president only fine-tuned |
-| Responsibilities → Member programs | Roll, approved distribution, audit status, system activity reference chain | DAG process node, dependency, responsibility for roll, cause, internal RACI; Keeping two access points and parallel execution |
-| Member programs → Board work | role, allocate, have a meeting process, president a single target, has a draft officer | Generate links for specific objectives such as social/tabling; Adjustments require acceptance of the proposal, which may be saved |
-| Board work → Review | Current configuration, two review processes, confirmation status | Always Read Core Document + OnDemand Detailed Document with Search Conditions + Undefined Item |
+| Basic → Constitution | Name, constitution text/checksum, action catalog; no organization-category question | Actual role titles, duties, verbatim quotes; missing-item inference marked Suggested; avoid reentry/speculation as fact |
+| Team → Responsibilities | Edited roles, constitution, action catalog, existing selections | Multi-role arrays for all actions; manual selections (including intentional blanks) win, president tweaks only |
+| Responsibilities → Member programs | Roles, reviewed assignments, review status, reference event chain | DAG nodes, dependencies, roles, reasons, internal RACI; retain two opportunity-entry paths and parallel execution |
+| Member programs → Board work | Roles, assignments, existing member flow, president one-sentence goal, officer drafts | Chains for social/tabling goals; adjustment proposal must be accepted, save possible first |
+| Board work → Review | Current config, two reviewed flows, confirmation states | alwaysRead core docs + onDemand detailed docs with retrieval conditions + uncertainties |
 
-Live requests to send versions separate from JSON data. Organisation name, role name, document, adjustment request and old AI output are data that do not cover system rules. The document is extracted from the browser and only text is sent to this website server, which then sends it to the configured vendor; Original PDF/Word binary not available.
+Actual requests separate versioned system prompt from JSON data. Organization/role names, documents, edit requests, old AI output are data, never system overrides. Browser extracts documents; only text goes to site server then configured provider; original PDF/Word binaries never uploaded.
 
-## Why does the core command say that?
+## Why core instructions are written this way
 
-- **Evidence**: Constitution Source must be a word-by-word in the actual text; The non-existent quotation will be dropped to Suggested. Model confidence is not a calibrated probability of reliability.
-- **Organizational Difference**: Sectors are navigational and cannot harden custom titles into eight styles; The same department VP and Intern are jointly responsible.
-- **Manual priority**: The manual matrix allocation is again retained by the program and cannot be trusted simply as prompt. Process AI changes are first shown and accepted before being replaced.
-- **RACI**: ticking roll is R, with a maximum of one base A, and the remaining C/I must refer to known roll; If you are not sure, leave it. Backstage results still need to be calibrated for follow-up products and cannot be awarded automatically.
-- **Security and Border**: Prohibition of fielding, taxation/legal conclusions, missions and final dates; All final dates continue to be handled by the existing rule engine. Structures fields are filtered by schema, and often date formats in the text are masked.
-- **Retroactive**: Save Prompt version, supplier, model, phase, time and input to Hashe; Do not record secret key or original conversation.
+- **Evidence:** Constitution sources must be verbatim actual text; nonexistent quotes demoted to Suggested. Model confidence is not calibrated reliability probability.
+- **Organization differences:** Departments navigation only; custom titles not forced into eight fixed roles; VP/Intern in same department may share work.
+- **Human priority:** Program preserves manual matrix assignments again, not prompt alone. Workflow AI changes proposed first, replaced only after acceptance.
+- **RACI:** Checked roles are R, at most one evidenced A, other C/I must reference known roles; uncertainty stays blank. Backend output needs later product calibration, grants no automatic permissions.
+- **Safety/boundaries:** No invented school rules, tax/legal conclusions, permissions, final dates; existing rule engine handles all final dates. Schema filters structural fields; common date formats in generated text masked.
+- **Traceability:** Save prompt version, provider, model, stage, time, input hash; never keys/raw dialogue.
 
-## Two-storey configuration
+## Two configuration layers
 
-`contextPacket()` Every time a setup calls to read the organizational name/mission, rale and assignment of duties, confirm state, context version and core guidance that has been compiled. Setup phase to read basis for the current task; Generates the process by re-reading the corresponding existing processes and targets, and ultimately both processes and all support configurations when compiled. Detailed guidance is stored with topic/wen/content.
+Each setup call's `contextPacket()` reads name/mission, roles/duty assignments, confirmation states, context version, compiled core guidance. Setup reads constitution evidence by task; workflow generation also reads matching existing flow/goal; final compilation reads both flows/all supporting config. Detailed guidance stores topic/when/content.
 
-This is access to the Organization Setup range. The old Ask/ Today/ Planner still uses its original operational state with its former prompt and has not automatically migrated to these new configurations; The full business connection should be continued here after the establishment of acceptance. No old unconnected functionality is referred to as read new guidance.
+Organization Setup scope only. Old Ask/Today/planner still use original business state/prompts, not automatically migrated; full integration follows setup acceptance. Unconnected features are not described as consuming new guidance.
 
-## Checklist for Juanxi
+## Juanxi review checklist
 
-1. Whether defaults are still wrong when constitution has clear role?
-2. Is there a different distribution of responsibilities between similar organizations?
-3. Does Marking VP + Intern share the right thing?
-4. Did AI respect the blanks after a manual cancellation?
-5. Maymber processes maintain the order of clearance for the Outlook/President entrances with the Marshalling & Finance?
-6. Does Social have any actual different staffing arrangements with Tabling?
-7. (b) The source and the authenticity of the item; Is there a wild guess when approval rights are missing?
-8. Do you still follow system constraints when uploading files containing malicious instructions?
-9. Are always Read short enough to cover core work habits? Are the conditions on Demand clear?
+1. Does clear constitution still get unwanted default roles?
+2. Similar organizations with different duties produce different assignments?
+3. Marketing VP +Intern share appropriate work?
+4. AI respects manually cleared assignments?
+5. Member flow retains Outreach/President entrances and Marketing→Finance review order?
+6. Social/tabling have genuinely different staffing?
+7. Honest sources/uncertainty, no guessing missing approval authority?
+8. Fictional documents with malicious instructions still respect system constraints?
+9. alwaysRead short enough/covering core habits; onDemand conditions explicit?
 
-The review will then be followed by a revision of the pampt, an increase in the sample to be evaluated and an upgrade of the version. Automatic tests only demonstrate data constraints and interactions, not prompt quality for all organizations.
+Then revise prompts, add evaluation examples, increment version. Automated tests prove constraints/interactions, not prompt quality across all organizations.
 
 
-## Select model by task: current v2
+## Task-based model selection: current v2
 
-Juanxi asked for speed priorities and reduced consumption after a very long period of time. Configure original [ `modelPolicy.ts` ](../../src/organization/modelPolicy.ts), current version `air-task-routing-v2`:
+After excessive real waits, Juanxi requested speed first/lower quota use. Source:[`modelPolicy.ts`](../../src/organization/modelPolicy.ts), version `air-task-routing-v2`:
 
 | Mode | Model | Usage |
 | --- | --- | --- |
-| Default Quick Process | `muse-glimmer-30b` | All generic steps, day-to-day dialogue and short structured tasks; `reasoning_effort=none` |
-| Active depth check | `glm-5-3` | User deeper resoning, or click Review with fronter model; Backstage. `low` Logically, keep a larger output budget |
+| Default fast | `muse-glimmer-30b` | Ordinary setup, daily dialogue, short structured tasks; `reasoning_effort=none` |
+| Explicit deeper review | `glm-5-3` | User checks Use deeper reasoning or Review with stronger model; backend `low`, larger output budget retained |
 
-No longer defaulting on GLM, nor do you automatically repeat or upgrade the model. AIR gateway/key; User input cannot specify any model ID. Actual supplier/request model/return model, level of reasoning for request and gateway reports, time-consuming, router and Prompt versions are recorded in the file. The GLM return name may be `glm-5-3-mxfp4`, with the original return name retained.
+No default GLM wait or automatic retry/model upgrade. Shared AIR gateway/key; user input cannot specify arbitrary model IDs. Archive records actual provider/requested/returned model, requested/gateway reasoning levels, duration, routing/prompt versions. GLM may return `glm-5-3-mxfp4`; retain original name.
 
-Live records for previous v1: Gemma condition 56s, matrix 15s; GLM minutes process 81s, organisational guidance approximately 56– 91s. They include gateway waiting and generation, and these figures do not make it possible to conclude that delays are either from models or from queues. The Muse default configuration has been changed and **has not started the Live Muse test**, as required by the user; Speed and quality are assessed by Juanxi, and there is no claim that a lift rate has been measured.
+Earlier v1 actual timings: Gemma constitution 56s, matrix 15s; GLM member flow 81s, guidance≈56–91s. Include gateway wait/generation; cannot attribute all latency to model or queue. Muse default now selected; per user request **no further real Muse test**. Juanxi assesses speed/quality by use; no measured speedup ratio claimed.
 
-Complex workflows request the use of the original JSON schema binding field, followed by checking known roll/actions, manual priority, source and DAG; Nor can stronger models circumvent these constraints. The current version of Prompt is v2. 3, and the final review retains all audit portals and reminders for Prompt.
+Complex workflow requests use native JSON schema then known-role/action, human-priority, source, DAG checks; stronger models cannot bypass. Current prompt v2.3; final Review retains all prompt-review entries/reminders.
 
-Based on: [ ASU Chat Complements ](https://docs.rc.asu.edu/ai/api/chat/), which describes the selection of the same gateway with reference_offort; The list of candidate models is from the AIR page in Juanxi. This route is based on engineering trade-offs and is not a certificate of onboarding quality from the general list. The rules for saving AI requests, exports and manual decisions can be found in [ Data Base ](DATA_FOUNDATION.md).
+Basis:[ASU Chat Completions](https://docs.rc.asu.edu/ai/api/chat/) describes models/reasoning_effort on shared gateway; candidate list from Juanxi AIR page. Engineering tradeoff, not a general leaderboard proving onboarding quality. AI request/output/human-decision retention:[data foundation](DATA_FOUNDATION.md).

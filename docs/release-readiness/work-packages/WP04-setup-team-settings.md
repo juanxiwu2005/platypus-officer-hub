@@ -1,34 +1,36 @@
-# WP04 — Setup, Team, Settings and the Mobile End Cover
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
+
+# WP04 — Setup, Team, Settings, mobile obstruction
 
 ## Agent prompt
 
-You are responsible for organizing Setup, Team, Settings and the blocking of mobile controls. Read `AGENTS.md`, README, manifest, fetch before starting and confirm the updated baseline SHA. `main` should not be used.
+Fix organization Setup/Team/Settings/mobile obstructed controls. Read `AGENTS.md`, README, manifest, fetch/confirm latest stage baseline SHA. No `main`.
 
-### Scope of responsibility
+### Scope
 
 - `e2e/setup-team.spec.ts`
 - `e2e/workflow-setup.spec.ts`
-- Setup/team scene in `e2e/phase1.spec.ts`
-- Settings, organisational charts, role management, invitations to members, meeting Finder-related components and styles
+- setup/team cases in `e2e/phase1.spec.ts`
+- Settings/org chart/role management/officer invitations/meeting-finder components/styles
 
-### Known Live Problem
+### Known actual issue
 
-The port agents of `org-canvas`, `roles-manager`, settings nav or the top bar will intercept controls such as Undo, Invite Offices, Tre officer setup.
+Mobile Settings `org-canvas`, `roles-manager`, settings nav/top bar intercept pointer events for Undo/Invite officers/Try officer setup.
 
-### Request
+### Requirements
 
-- Finds the active root in layout height, sticky, z-index, overflow, transform or rolling positioning.
-- Ensure that 375 px, 390 px and 768 px width visible controls can live click/touch; Force click is prohibited.
-- Updates the number of old torrents, old role names, old process nodes and meeting date assumptions.
-- Privacy and consistency: private buffer/file/profile do not enter shared requests; Create workspace after approval; AI failure can still be accomplished manually; Failure to save cannot be disguised as success; Expired or altered invitations cannot modify the status.
-- It is prohibited to delete mobile tests, skip or increase the timeout to mask layout problems.
+- Find actual layout-height/sticky/z-index/overflow/transform/scroll-position cause.
+- Actual clicks/touch on all visible controls at 375px/390px/768px; no force click.
+- Update obsolete seed counts/role names/workflow nodes/meeting-finder date assumptions.
+- Preserve privacy/consistency: no private buffers/files/profiles in shared requests; workspace created only after approval; manual completion on AI failure; no false save success; expired/tampered invitations cannot change state.
+- No removed mobile tests/skips/timeout increases hiding layout defects.
 
-### Acceptance Standard
+### Acceptance
 
-1. `setup-team.spec.ts`, `workflow-setup.spec.ts` were all adopted.
-2. `phase1.spec.ts` setup/team scene passed.
-3. Undo, Invite Offices, Settings Divisions and Organization charts can be operated under 375/390/ 768px.
-4. No more target controls in the log were blocked by `intercepts pointer events`.
-5. Reverse-body privacy claims to be retained and adopted.
-6. `npm run lint`, `npm test`, `npm run build` and `git diff --check` were adopted.
-7. Creates a `[RR-WP04][Codex]` submission, reports root and validates viewport.
+1. All `setup-team.spec.ts`, `workflow-setup.spec.ts` pass.
+2. setup/team cases in `phase1.spec.ts` pass.
+3. Undo/Invite officers/Settings sections/org chart usable at 375/390/768px.
+4. No target-control `intercepts pointer events` obstruction in logs.
+5. Request-body privacy assertions retained/passing.
+6. `npm run lint`, `npm test`, `npm run build`, `git diff --check` pass.
+7. One `[RR-WP04][Codex]` commit, reporting root cause/verified viewports.

@@ -2,6 +2,8 @@
 
 This English index replaces the duplicated implementation narrative formerly embedded in `AGENTS.md`. Detailed work records remain in the dated plans and `docs/PROGRESS.md`; the exact former instruction file remains in Git history at production baseline `b9e7a02` and preview baseline `13f4527`. Current `AGENTS.md`, the English collaboration policy, and later owner decisions take precedence. A historical approval is not authorization to repeat a deployment, paid evaluation, delegation workflow, or scope change.
 
+The [complete English baseline snapshot](AGENTS_BASELINE_SNAPSHOT.md) preserves the former guidance, including detailed code identifiers, version-specific constraints, and dated approval conditions. Use this index for orientation and the snapshot for the full historical record.
+
 ## Repository and release snapshots
 
 The former November 1 snapshot recorded `main` at `c3c9394`, 107 commits. v1.0 entered production through PR #8, merged November 1 at 02:10 UTC as `5b0eb96`, with parents `4dc55ba` and `b7eb268`. `4dc55ba` ceased to be the baseline. Work from PRs #4–#7 entered `main` with #8; their PRs closed. PR #1 (`v1` → `main`) merged October 23.

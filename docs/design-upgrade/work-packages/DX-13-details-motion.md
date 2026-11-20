@@ -1,24 +1,26 @@
-# Animation of the DX-13 folding area
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Stage 2 Size S Risk Low R Level **R1 Available** Dependence: DX-01 Parallel Partners: DX-09 ~ 12, 14
-- Branch: `design/dx-13-details-motion` Style File: `src/styles/dx-13-details-motion.css` Corresponding Details: D13
+# DX-13 Expandable-section animation
 
-## Something to do.
-1. `<details>` currently appears in `ChangeCard`, `NudgeComposer`, `OrgDetail`, `ContactDetail`, `FollowupPanel`, `SettingsForms`, `NodePanel`, `TaskDetail`, `Handoff`, `Setup`, `Funding`; Put every one of them in the report.
-2. Progressively enhanced (`@supports (selector(details::details-content))`):
+- Stage 2 · Size S · Low risk · Rollback **R1 available** · Depends on: DX-01 · Parallel partners: DX-09–12,14
+- Branch: `design/dx-13-details-motion` · Styles: `src/styles/dx-13-details-motion.css` · Detail: D13
+
+## Tasks
+1. Inventory first: `<details>` appears in `ChangeCard`, `NudgeComposer`, `OrgDetail`, `ContactDetail`, `FollowupPanel`, `SettingsForms`, `NodePanel`, `TaskDetail`, `Handoff`, `Setup`, `Funding`; list every class in the report.
+2. Progressive enhancement (`@supports (selector(details::details-content))`):
    - `details::details-content { block-size: 0; overflow: clip; transition: block-size var(--dur-base) var(--ease-out), content-visibility var(--dur-base) allow-discrete; }`
-   - `details[open]::details-content { block-size: auto; }` and set `interpolate-size: allow-keywords`.
-   - The unsupported browser keeps the current "simultaneous" without misinforming.
-3. Rotates the little arrow next to the caption (`summary`) when it is expanded 90° (if it is painted with a false element); If the browser carries its own triangle, don't move.
-4. Reducing kinetic effects: No high transition.
+   - `details[open]::details-content { block-size: auto; }`, with `interpolate-size: allow-keywords`.
+   - Unsupported browsers retain instant expansion without errors.
+3. Rotate the small arrow beside `summary`90° on expansion if drawn with a pseudo-element; leave browser-native triangles alone.
+4. Reduced motion: no height transition.
 
-## Files that can be changed
-Only `src/styles/dx-13-details-motion.css`. Do not change any `.tsx`.
+## Allowed files
+Only `src/styles/dx-13-details-motion.css`. No `.tsx` changes.
 
 ## Acceptance
-- Opens the test of the folding area ( "More" in `events`, `today`, `m2b` and `bts`) desktop + mobile phone green.
-- In the supported browser (Playwright self-titling chromium): Expanding `::details-content` for instantaneous `block-size` in transition.
-- Juanxi How to Test: Events point a step, right column "More" opens and the content is smooth.
+- Expandable-section tests (`events`, `today`, `m2b`, "More" in `bts`) desktop/mobile green.
+- Supported browser (bundled Playwright Chromium): opening `::details-content` has a transitioning `block-size`.
+- Juanxi: open an Events step and select "More" in the rail; content expands smoothly.
 
 ## Rollback
 R1 or R2.

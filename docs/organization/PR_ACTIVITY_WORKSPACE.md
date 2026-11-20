@@ -1,12 +1,12 @@
-The new version of the workspace was originally primarily a display of organizational responsibilities and process templates, and it was not possible to move forward with specific activities, individual tasks and funding approvals. This access is linked to the same service-end running data, which synchronizes priority items on the front page, personal board, activity short flow chains and time axes.
+The new workspace previously mainly displayed organizational duties/workflow templates, without coordinating actual events, personal tasks, funding approvals. Shared server runtime now synchronizes homepage priorities/personal board/event short chain/timeline.
 
-- Based on the approved A1/B1/C2 implementation front page, searchable list of activities, default activity timeline and individual three columns Board; The priorities are sorted directly from the selection of existing tasks, defaulting on three open-ended issues.
-- Funding consolidates activities, recording submissions/approvals, procurement, budget versions, commitments and expenditures separately; Reservation of multiple duties, precise blocking of conditions and completion of history.
-- Setup Five-Chapter Free Jump, 8/7/ 6 weeks of organizing time settings and process connections; Simplified connectivity, centralized review and document access.
-- (a) Global right AI reads the current page and fixed object, querying it as necessary, proposing a check-up modification or calling members activity/Executive Board to create forms; Protects the unsubmitted input and resumes the submitted response lost.
+- Approved A1/B1/C2: homepage/searchable events/default event timeline/three-column personal Board; priorities directly rank existing tasks, three default, expandable.
+- Funding inside activities records submission/approval/procurement/budget versions/commitments/spend separately; retains multiple-person duties/precise blockers/completion history.
+- Five freely navigable Setup chapters, linked 8/7/6-week preferences/workflow, simplified connections/central review/document entry.
+- Global right-side AI reads current page/stable objects, queries on demand, proposes validated edits or member-event/Executive Board forms; protects unsent input, recovers submitted operations with lost responses.
 
-Validation: built through; 548 units adopted; 256 desktop/cell browser scenes were passed, 16 condition skip, 0 failed; The actual local HTTP7 group 34 requested and issued CAS checks for clearance. Independent Review is not open to P0/P1. No live AI is generated during this round.
+Verification: build/548 units/256 desktop-mobile scenarios passed, 16 conditional skips/0 failed; actual local HTTP 7 groups/34 requests and concurrent CAS passed. Independent Review no known open P0/P1. 0 real AI generations.
 
-This is a private test workspace, with no official multiple login, actual purchase/payment or merge main. The quality of online deployments, on-line Blobs and live models has not yet been verified. Local Blobs simulator compatible restoration is developed only externally and does not enter production applications.
+Private test workspace; no production multiuser login/actual purchasing-payment/main merge. Online deploy/Blobs/real-model quality unverified. Local Blobs compatibility fixes external development tooling only, excluded from production app.
 
-Handoff: docs/organization/ACTIVTY_WONKSPACE_IMPLEMENTATION.md; Independent review: docs/organization/REVIEW_ACTITY_WONKSPACE.md
+Handoff: docs/organization/ACTIVITY_WORKSPACE_IMPLEMENTATION.md; independent review: docs/organization/REVIEW_ACTIVITY_WORKSPACE.md.

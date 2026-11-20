@@ -1,69 +1,69 @@
-# Job matching access to existing archive and rollback
+# Integrating responsibility matching with existing archives and rollback
 
-> **Currently completed experience fallback:** new mechanism has been removed and the old Pause button is no longer displayed; The application is still reading/writing 23 and retaining a non-run archive field, without resetting the task or downgrading it. The following are the compatible design records for phase 3, with current behaviour based on [ fallback handoff ](MATCHING_ROLLBACK_HANDOFF.md).
+> **Experience rollback is complete:** the new responsibility mechanism is withdrawn and the old Pause button hidden. The current app still reads/writes 23 and retains inactive archive fields without resetting tasks or downgrading archives. The original stage-3 compatibility design follows; current behavior is governed by the [rollback handoff](MATCHING_ROLLBACK_HANDOFF.md).
 
-2026-11-16 (America/Phoenix) Phase 1 Design, phase 3 has been implemented in accordance with Juanxi “Continuing Stage 3”.
+2026-11-16 (America/Phoenix) · Stage-1 design, implemented in stage 3 after Juanxi said "continue stage 3."
 
-The first stage data operation and parser is still read-only for member and role references and does not import the old store. Stage 3 is connected by `organizationMatching.ts` and adaptations, which are physically organized separately from independent exercises. There is only one matching original in the operation, not two-time.
+Stage-1 data operations/parser still read only injected member/role references, without importing the old store. Stage 3 integrates business through `organizationMatching.ts` and adapters, keeping real organizations separate from isolated practice. There is one canonical business matching record, without long-term dual writes.
 
-## Current actual limits
+## Current limitations
 
-Main business use `src/data/store.tsx`It's... `loadStateWithNotice`、`saveState`and `buildExport`Phase 3Take the outer layer. `SCHEMA_VERSION`From 22Raise to **23**。 `saveState` sequences the full business object to one key; An old reader that only knows 22 cannot be used for functionality fallback.
+Main business uses `loadStateWithNotice`, `saveState`, and `buildExport` in `src/data/store.tsx`. Stage 3 raises outer `SCHEMA_VERSION` 22→**23**. `saveState` serializes the complete business object into one key; old readers supporting only 22 cannot serve as feature rollback.
 
-`Org.id` is currently often from demonstration seeds. The same ID may still be used when re-completed onboarding, so it cannot alone prove that the new configuration belongs to the same organizational workspace. Personnel `Role.holderId`, `Person.roleId` continue to serve old missions, handoff and pages and cannot rewrite these fields in batches for the pool of qualifications.
+`Org.id` often comes from demo seeds. Repeating onboarding may reuse that ID, so it alone cannot establish that new configuration belongs to the same organization workspace. `Role.holderId` and `Person.roleId` still support old permissions, handoff, and pages; do not mass-rewrite them to form eligibility pools.
 
-## Implemented Storage Layouts
+## Implemented storage layout
 
-Existing clients add optional matching namespaces, as well as local workspace identities that are generated and saved separately. Match configurations refer only to existing roles, members, steps and task IDs and do not copy their complete list.
+The existing business object gains an optional matching namespace and a separately generated/persisted local workspace identity. Matching configuration references existing role/member/step/task IDs without copying complete rosters.
 
-- `Org.matchingWorkspaceId`: a stable local identity created at the first visible launch of the new matching; Create a new identity when creating an organizational workspace. It's not a login or organisational documents.
-- `DemoState.matching`: `MatchingState` corresponding to this identity, using its own `schemaVersion: 1`.
-- `DemoState.matchingContext`: Source review, input/operation history, membership availability and qualifications, manual exceptions to a task, preview of import identity; Can not delete folder: %s: No such folder
-- `Node.matching`: The actual task is its own worklow/step/responsibility identity and the reasons to be addressed; History nodes will not be completed by enabling them.
-- Whether the organizational setting record matching mode is enabled; No old business compatibility is set to run. The function parser does not rely on `RoleFunction`, the old `fn` is reserved only for non-removable displays, missions and dates.
-- The assignment of specific tasks remains with `MatchingState.assignments` and is co-located through tasks, workflows and steps; The actual executor is still included in the current task `ownerId`. In a single operation, tasks and returns are generated at the same time and stored uniformly.
+- `Org.matchingWorkspaceId`: stable local identity created on first explicit enablement; a new organization workspace gets a new identity. It is not a login or organization authorization credential.
+- `DemoState.matching`: `MatchingState` for that identity, with independent `schemaVersion: 1`.
+- `DemoState.matchingContext`: source review, constitution input/action history, member availability/qualifications, one-task manual exceptions, preview-import identity; no duplicate matching state or member names.
+- `Node.matching`: this actual task's workflow/step/responsibility identity and pending reasons; enabling does not backfill historical nodes.
+- Organization settings record whether matching mode is enabled; unset follows legacy compatibility. Responsibility parsing does not depend on `RoleFunction`; old `fn` remains only for unmigrated display, permission, and date code.
+- Specific-task assignment receipts remain in `MatchingState.assignments`, located jointly by task/workflow/step; actual executor remains the task's `ownerId`. Generate task and receipt in one business operation and save together.
 
-`platypus.matching.v1:<organization identity>` for stage 1 and 2 for phase `platypus.matching.setup.v1:<context>` are still isolated exercises. Phase 2 preview can only import the current tissue in a visible way, checking references to context, rule and membership, examples or external references being rejected; Can not get folder: %s: %s Imports no copying of scenario tasks. Keeps the import source and repeats the import without repeating additions. The original preview key is kept, and subsequent actual changes are only written in the business original.
+Stage-1 `platypus.matching.v1:<organization-identity>` and stage-2 `platypus.matching.setup.v1:<context>` remain isolated practice. Stage-2 preview can only explicitly import the current organization after checking context/role/member references; reject sample or other-organization references. Preview cannot overwrite a nonempty responsibility library. Import excludes hypothetical task receipts, preserves provenance, and does not append duplicates on repeat. Keep original preview keys; subsequent actual edits write only the canonical business record.
 
-Provider compares the actual master archive with the last reading of this page by raw before normal operations, confirmation operations that need to be sustained and app/log autosave; The main key storage event also immediately suspends the old tab. Keeps a copy of the memory for download when an external write is finished and must reload before using the latest data. This check detects a conflict of coverage that has occurred and still fails to provide a cross-label atomic service; Cross-equipment and live multi-person collaboration requires server authorization and atom revision control.
+Before ordinary operations, confirmation operations requiring persistence, and app/log autosaves, Provider compares the actual main archive's complete raw value with the page's last read/write. Main-key storage events immediately pause stale tabs. On a completed external write, retain the in-memory copy for download and require reload to use latest data. This detects completed overwrite conflicts but cannot provide atomic cross-tab transactions; cross-device/real multi-user work needs server authorization and atomic revision control.
 
-## Outer version migration
+## Outer-version migration
 
-Reconciled stage 2 baseline `dbfc47d` is 22 and phase 3 uses 23. Submits the compatible reading base **`e370361`** before submitting functional writing.
+Stage-2 baseline `dbfc47d` confirmed as 22; stage 3 uses 23. Commit compatibility-reader point **`e370361`** before feature-writing commits.
 
-The actual migration was divided into two layers:
+Migration has two layers:
 
-1. Save original raw to `platypus.v1.demo.backup.v22` before the outer layer 22 is upgraded. Shows the reasons for failure of backup and suspends writing, and reloads after downloading the original; Do not overwrite the old archive. Regular upgrades retain organizational, personnel, tasks, status, reminders and history, do not give rise to responsibilities, do not reassign tasks and do not rebuild activity maps. The 23 archive only regulates the existing term and does not recreate the map.
-2. Match profile migration: independently authenticated on `MatchingState.schemaVersion`. Supported configuration access; In the event of damage, inconsistent organizational identity or a higher version, retain original configurations and recoverable copies, suspend new matches, show reasons, do not delete the whole organization or restore examples.
+1. Before upgrading an outer-22 archive, save original raw to `platypus.v1.demo.backup.v22`. Backup failure shows the reason and pauses business writes; downloading the original still requires reload/retry. Never overwrite first. Normal upgrade preserves organization, people, tasks, statuses, reminders, history without inferring responsibilities, reassigning tasks, or rebuilding event graphs. Version 23 only normalizes existing terms, without rebuilding graphs.
+2. Matching migration validates independently by `MatchingState.schemaVersion`. Supported configuration integrates unchanged; corrupt, identity-mismatched, or higher-version configuration retains original data/recoverable copies, pauses new matching, and shows the reason; do not delete the organization or restore samples.
 
-Every layer of migration should be idmmotency. Opens again. You cannot repeat duties, create members relationships or import returns. Save original recoverable copies before moving and importing; You cannot report success when saving failed, nor can you delete source text or copy first.
+Each migration must be idempotent. Reopening must not duplicate responsibilities, membership relationships, or imported receipts. Preserve original recoverable copies before migration/import; save failure cannot report success or first delete originals/copies.
 
-The duties, role relationships and membership qualifications for the first time must be checked by the user. Old free text, template default duties and old role names cannot automatically be taken as confirmed facts in the context. The default for necessary external qualifications is unknown; A school system account is not extrapolated by the name of the post.
+Initial responsibilities, role relationships, and member qualifications require user review. Old free text, template defaults, and old role names are not automatically constitution-confirmed facts. Required external qualifications default to unknown; role names do not prove school-system accounts.
 
-## _Other Organiser
+## Existing and new tasks
 
-| Situation | Access behaviour |
+| Situation | Integration behavior |
 | --- | --- |
-| Tasks in progress, no returns. | Keep existing owner and status; Indicate that the old assignment has not been linked to duties and do not falsify past manual confirmations |
-| Users clearly connect existing tasks to new mechanisms | Show duties, candidates and existing executors with confirmation of additional live returns |
-| New activity or stand-alone task | Resolution of confirmed requests; Only clearly identified assignments are included in the actual tasks; Preselection and backup advice not disguised as taken over |
-| New matching enabled but missing duties or candidates | Leave to process, not revert nine functions or list first person |
-| Change template or change default | (b) To influence future tasks; Confirmation of retention and review of failed candidate |
-| Old page manual changes | Record actual reassignments. Old unconnected tasks leave only one-time manual exceptions and responsibilities remain empty; Workstreams the original activity playbookId, while this task identity is used unknown and not based on the current template. (a) The task has been undertaken to retain its own connection; Effective confirmation of return is separated from unqualified manual exceptions |
-| One step in two streams. | Use a clear workflow/step composite identity that is not combined by title or simple separator |
+| Existing task without matching receipt | Preserve owner/status; identify legacy assignment as unlinked to responsibilities, without inventing past human confirmation |
+| User explicitly connects an existing task | Show responsibility, candidates, current executor; append a genuine new receipt after confirmation |
+| New event or standalone task | Resolve confirmed requirements; only explicitly confirmed assignments enter actual tasks; preselection/backup suggestions do not mean acceptance |
+| Matching enabled but responsibility/candidates missing | Leave pending; do not fall back to nine functions or first-listed person |
+| Template/default-person change | Affects future tasks; confirmed receipts remain; invalid candidates prompt review |
+| Manual owner change on old pages | Record actual reassignment. Legacy unlinked tasks keep only a one-time manual exception, responsibility empty; workflow uses original event playbookId, otherwise task identity, never current-template inference. Existing tasks retain own links; distinguish valid confirmation receipts from unqualified manual exceptions |
+| Same step in two workflows | Use explicit compound workflow/step identity, not titles or ambiguous delimiter concatenation |
 
-Mission recognition continues to be handled by business processes. Assigning to others is still unclamed; My own claim matches with the existing mandates. The same protection is used for task buttons, kernels and board drags. The old signature link cannot be re-activated once the same person has been restored. Budget steps, dates and existing roles maintained.
+Business logic still handles claiming. Assignments to others remain unclaimed; self-claiming checks matching grounds and existing permissions. Task buttons, core transitions, and Board dragging share protection. Reassignment uses the original owner-transfer core to advance ownerVersion, assignedOn, etc.; old signed links cannot revive after reassigning back to the same person. Budget steps, dates, existing role permissions remain unchanged.
 
-## Reset Organisation Export and Restore
+## Organization reset, export, recovery
 
-Creates a new matching identity when the workspace is recreated and provides a retention or export path for the old configuration to avoid reading back to the old when the old task ID is repeated. (b) The ordinary role change name and the change of duties keep stable ID; Role deactivates, members departs and the job archive displays specific reasons for failure and does not reset data.
+Recreating a workspace explicitly generates a new matching identity and provides retention/export for old configuration, preventing old receipts from matching reused task IDs. Ordinary role/responsibility renames retain stable IDs; role deactivation, member departure, responsibility archival show specific invalidation reasons without resetting data.
 
-Existing complete business exports need to include matching configurations, revisions and returns. The separate matching profile export represents only that configuration and does not amount to an organization ' s full backup; Verifys the current identity and external references before import. The higher version is exported to keep downloadable source text without deleting an unknown field.
+Full business export must include matching configuration, revisions, receipts. Standalone matching export represents only that configuration, not a full organization backup; validate current identity/external references before import. Higher-version exports remain downloadable verbatim; do not silently downgrade by deleting unknown fields.
 
-## Rollback must keep compatible readings
+## Rollback must retain compatible readers
 
-The archive of the outer layer 23 cannot be sent directly to an old reader that only knows 22. Compatibility base **`e370361`** can read 23 and keep matching and unknown sub-fields, nodes and history as they are; It can't be removed with functionality. Full Business Export/Recovery contains Matching and context, backups the current configuration before restoring it.
+Do not feed outer-23 archives to readers supporting only 22. Compatibility point **`e370361`** reads 23 and preserves matching, unknown nested fields, nodes, history unchanged; it must not be reverted with the feature. Full business export/explicit restore includes matching/context; back up current configuration before restore.
 
-Priority is given to **Pause responsibility matchping**, which retains configuration and existing tasks. Back to Compatibility Base Point `e370361` if fallback code is required. This round did not deliver a low-form projectile recovery tool and does not claim to be free to return to 22. The lower version number must not be changed directly, without Reset demo, clean localStorage or discarding matching data as rollback.
+Prefer **Pause responsibility matching** on the responsibility-library page, retaining configuration/tasks. For code rollback, use compatibility point `e370361`. No lower-version projection/recovery tool was delivered; arbitrary return to 22 is unsupported. Do not lower version numbers directly, Reset demo, clear localStorage, or discard matching data as rollback.
 
-The necessary returns have been incorporated into the 3 creation, durability, restoration of UI and adapters for example: 22 backup failed to protect, duplicated migration, damaged/higher sub-version retention, separate workspaces, live enabled/inbound non-changed nodes, full export re-restoration, template switching unmodified historical association, closing mode, signature link failure, cross-label page writing conflict. The results of the check-by-check and the undetected range can be found in [ stage 3 delivery ](MATCHING_STAGE3_HANDOFF.md). These inspections do not amount to live power outages, service end simultaneous or cross-equipment validation.
+Required regressions are in stage-3 creation/persistence/recovery UI/adapter cases: 22-backup failure protection, repeated migration, corrupt/higher nested-version preservation, workspace isolation, real enable/import without old-node edits, full export/restore, historical links surviving template switches, disabled mode, signed-link invalidation, completed cross-tab write conflicts. Itemized results/unverified scope: [stage-3 delivery](MATCHING_STAGE3_HANDOFF.md). These do not establish real power-loss, server-concurrency, or cross-device behavior.

@@ -1,24 +1,26 @@
-# DX-12 Mobile Phone Suspension Card
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Stage 2 Size S Risk Low R Level **R1 Available** Dependence: DX-01 Parallel Partners: DX-09 ~ 11, 13, 14
-- Branch: `design/dx-12-touch-hover-sheet` Style File: `src/styles/dx-12-touch-hover-sheet.css` Corresponding Details: D12
+# DX-12 mobile hover-card bottom-sheet animation
 
-## Why?
-On the cell phone, it's on the bottom layer of the bullet, but "Pick." The suspension card on the **desktop cannot move**: S3 (2026-10-27) has decided on a zero delay and `e2e/feel.spec.ts` is guarded.
+- Stage 2 · SizeS · Low risk · R level **R1 available** · Dependency: DX-01 · Parallel: DX-09–11/13/14
+- Branch: `design/dx-12-touch-hover-sheet` · Styles: `src/styles/dx-12-touch-hover-sheet.css` · Detail: D12
 
-## Something to do.
-1. **Only in `@media (hover: none)`** added to `.hover[data-open="true"] > .hover-card` animated: `translateY(12px)→0`+ Fade, `var(--dur-fast)`, `var(--ease-out)`; Back off.
-2. (a) without mask (i.e. a description, not a model); Emil §12 "separate to keep flow"）。
-3. Reduction of kinetic effects: Only fade out.
-4. Do not change the logic of `Hover` components (`ui/index.tsx`). If it is necessary to change (e.g. to allow exits to be aired) to send the needs into the report to the integrated person, do not move on its own.
+## Why
+Tapping hover cards on mobile opens a bottom sheet (S8), but abruptly. **Desktop hover cards must remain untouched:** S3 (2026-10-27) established zero delay, guarded by `e2e/feel.spec.ts`.
 
-## Files that can be changed
+## Work
+1. **Only within `@media (hover: none)`**, animate `.hover[data-open="true"] > .hover-card` entry: `translateY(12px)→0` + fade-in, `var(--dur-fast)`, `var(--ease-out)`; reverse for exit.
+2. No backdrop (explanation, not modal; Emil §12 "separate to keep flow").
+3. Reduced motion: fade only.
+4. Do not change `Hover` logic (`ui/index.tsx`). If necessary (e.g., to enable exit animation), record requirement for integrator in report, without editing yourself.
+
+## Allowed files
 Only `src/styles/dx-12-touch-hover-sheet.css`.
 
 ## Acceptance
-- `touch.spec.ts` (cell phone), `feel.spec.ts` (desktop, especially "suspension card without delay"), `bts.spec.ts` green.
-- The computation of `.hover-card` in the desktop item `transition-delay` is still `0s, 0s`.
-- Juanxi How to Test: A small dot in the progress chain on a mobile phone, which shows that the card slides from the bottom of the screen.
+- `touch.spec.ts` mobile, `feel.spec.ts` desktop (especially zero-delay hover), `bts.spec.ts` green.
+- Desktop `.hover-card` computed `transition-delay` remains `0s, 0s`.
+- Juanxi checks: mobile progress-chain dots open explanation card sliding from bottom.
 
 ## Rollback
 R1 or R2.

@@ -18,7 +18,7 @@
 >
 > **November 18, America/Phoenix — manual workflow editor authorization:** Juanxi chose connected timeline/team lanes as the main editor and a list for quick creation, with package-specific worktree/parallel implementation. The library stores stable IDs, immutable versions, and team/role references. New events instantiate independent tasks from a chosen saved version. Plan retains task dots and actual `taskId` navigation. Separate drafts/publication; do not rebuild old events/tasks/links. Start with manual editing and the existing Speaker template; other presets/AI expansion come later. Preserve schema 23; add no study-collection fields; no `main` merge. [Implementation and verification](feedback-fix/WORKFLOW_BUILDER_IMPLEMENTATION.md).
 
-> **October 26, 2026 — Activity Workspace approved:** implement A1 home/B1 event list/C2 timeline, a personal three-column board, activity short links, funding within events, 8/7/6-week organization timing defaults, global AI, and stable IDs. Home priorities rank existing personal tasks directly; do not generate a separate summary. [Approved scope](organization/ACTIVITY_WORKSPACE_PLAN.md). This approval excludes merging `main`, production release, and real multi-user accounts.
+> **October 26, 2026 — Activity Workspace approved:** implement A1 home/B1 event list/C2 timeline, a personal three-column board, short activity workflow chains, funding within events, 8/7/6-week organization timing defaults, global AI, and stable IDs. Home priorities rank existing personal tasks directly; do not generate a separate summary. [Approved scope](organization/ACTIVITY_WORKSPACE_PLAN.md). This approval excludes merging `main`, production release, and real multi-user accounts.
 >
 > **October 26 — F1–F7:** after the audit plan, Juanxi authorized independent worktrees and package-specific parallel implementation of save/recovery, incremental review, graph/risk-card interaction, performance diagnostics, and consuming server-approved organization configuration in the new workspace. Keep a separate old-prototype example. Exclude full Board planner, real accounts, old-business migration, `main` merge, and production release. [Implementation record](organization/F1_F7_IMPLEMENTATION.md). These are historical package-specific approvals.
 >
@@ -36,7 +36,7 @@ October 22, 2026 · Juanxi (Steve) Wu · Drafted by Claude
 
 > **Approved baseline:** Juanxi approved all 10 decisions in section 16 on October 22. Section 6 was updated October 23 to reflect the approved v1.1 interface simplification. Later dated decisions and current `AGENTS.md` take precedence over obsolete provider, schedule, or interface details below. This English edition preserves the original plan as a plan; it does not claim all roadmap features are implemented.
 >
-> **Source of truth:** `docs/PRODUCT_PLAN.md` in `juanxiwu2005/platypus-officer-hub`. The owner's thesis backup is under `05_Phase3_Prototype/Plan/`; its original filename is preserved in Git history. The [Claude review artifact](https://claude.ai/artifact/U9kHk73F9eYmPhJYbZBjES) is frozen at approval and is not synchronized afterward. Read `AGENTS.md` and `docs/PROGRESS.md` before work. References such as C2, E7, and M3 refer to Juanxi's president interview outline, held locally; they are not instructions to retrieve research files.
+> **Source of truth:** `docs/PRODUCT_PLAN.md` in `juanxiwu2005/platypus-officer-hub`. The owner's thesis backup is under `05_Phase3_Prototype/Plan/`; its original filename is `Platypus_\u4ea7\u54c1\u8ba1\u5212_v1.0.md` (Unicode escapes identify the existing filename). The [Claude review artifact](https://claude.ai/artifact/U9kHk73F9eYmPhJYbZBjES) is frozen at approval and is not synchronized afterward. Read `AGENTS.md` and `docs/PROGRESS.md` before work. References such as C2, E7, and M3 refer to Juanxi's president interview outline, held locally; they are not instructions to retrieve research files.
 
 Platypus evolves from an event-reminder website into a team AI chief of staff. A president describes work in one sentence; Platypus turns it into a workflow with one responsible owner per step, three dates, dependency warnings, and reminders in the team's existing channels. Compared with v0.2, the homepage becomes a composer/risk queue/event flow; reminders become short, explain why, and arrive at the right time/channel; handoff knowledge accumulates during work rather than being reconstructed at departure.
 
@@ -54,7 +54,7 @@ Platypus knows school rules, remembers organization history, sees each dependenc
 | --- | --- | --- | --- | --- |
 | Current-semester ASU rules with sources | General answers, possibly outdated | Only saved information | Depends on author | Sources and verification dates |
 | Who owns which work | Lacks shared state | Manual maintenance | Partial | Natural-language assignment, claiming, automatic records |
-| Which dependency may run late | No built-in chain prediction | No built-in chain prediction | Variable | Dependency forecasts |
+| Which dependency may run late | No built-in chain prediction | No built-in chain prediction | Cannot | Dependency forecasts |
 | Reach channels officers check | No direct team workflow | Email notifications | Variable | Prepared WhatsApp/text/email reminders |
 | Cross-organization experience | None | None | None | Anonymous reports from v2 |
 | Knowledge survives leadership change | Not automatic | Depends on readership | Often stops when author graduates | Accumulate continuously and surface at transition |
@@ -72,7 +72,7 @@ Five hypotheses were supported, two expanded, and one revised. Question IDs refe
 | 3 | Officers will not open another website proactively | Supported | WhatsApp first, then Drive tables, email last (E7) | Push to existing channels; a mobile task page behind the message |
 | 4 | Presidents want one-sentence entry | Supported | Requests arrive through chats, forms, meetings, and forwarded email; upkeep killed earlier task tables (D1–D2) | Prominent composer and voice; v1.1 places Ask in the shared rail |
 | 5 | Visible contribution can encourage updates | Supported | Manual points failed; automatic records and monthly reports reduce effort (H1–H2) | Automatic contributions and a weekly recognition feature |
-| 6 | Handoff must be collected during ordinary work | Supported and expanded | Why is hardest to retain, long strategy documents go unread, and relationships depend on contact frequency (I1–I4) | Put Why alongside steps; link contacts to the activity calendar |
+| 6 | Handoff must be collected during ordinary work | Supported and expanded | Why is hardest to retain, long strategy documents go unread, and relationships belong to the organization and depend on contact frequency (I1–I4) | Put Why alongside steps; link contacts to the activity calendar |
 | 7 | AI trust requires verification | Supported | Even “nothing due this week” needs sources; errors need reporting (J1–J3) | Traceable answers, fresh-state reminder checks, error feedback |
 | 8 | Cross-organization workflow experience is the moat | Expanded | ASU rules, shared data, EOSS partnership, and prediction (N4) | Put all four on the roadmap; shared evidence begins in v2 |
 
@@ -115,18 +115,30 @@ The illustrated latest-start-to-club gap is 1 estimated workday plus 1 personal 
 
 | Mechanism | Behavior | Basis | Planned version |
 | --- | --- | --- | --- |
-| 1. Three dates | Official deadline; club deadline, normally 3 business days earlier; latest start, subtracting effort, personal buffer, and busy-week effects. Club lateness notifies the president; official lateness triggers Plan B. | Quick question 7; E2 latest-start example | v1.0 |
+| 1. Three dates | Official deadline; club deadline, normally 3 business days earlier; latest start, subtracting effort, personal buffer, and busy-week effects. Club lateness notifies the president; official lateness triggers Plan B. | Quick question 7; E2 “10/26 latest start” example | v1.0 |
 | 2. Claim handshake | Owner explicitly claims; after 48 hours unclaimed, return to the president's risk queue. | D2: assignment otherwise becomes the president's own tracking task | v1.0 |
 | 3. One-action status and draft-backed extension | Done, Waiting on a named person, Need help, Need more time. The original extension design required a current draft and president approval. Later branch decisions can supersede this. | C3; quick question 5 | v1.0 |
 | 4. Risk queue and nudge | At most three highest risks, each explained, with a prepared reminder using recipient preferences. | C2 | v1.0 |
 | 5. Silence protocol | SEO Ghost Owner Protocol: light reminders on days 3/5; private president outreach with a 24-hour limit on day 7; suggested temporary owner day 8; revised timeline and review task day 10. Configurable and private. | SEO Strategy 4.4; C4 | v1.0 simulation; v1.5 real timing |
 | 6. RACI routing | One Responsible, one Accountable, and relevant Consulted/Informed roles. Notify downstream owners of readiness/delay, approvers of requests, and the president only of risks. | F5 | v1.0 |
-| 7. Contributions | Score completed work by light/medium/heavy effort and timeliness; monthly reports need president approval before sharing with an advisor. Show weekly recognition and completions; add credit for self-proposed completed work. | H1–H2, H5, H6 | v1.0 display; v1.5 report export |
-| 8. Plan B library | Two or three fallback variants per event type, such as no food, dues-funded, or smaller scale. Surface them if funding is still pending at its decision date. | F6; SEO Marc Lore example | v1.0 |
+| 7. Contributions | Score completed work by light/medium/heavy difficulty tier and timeliness; monthly reports need president approval before sharing with an advisor. Show weekly recognition and completions; add credit for self-proposed completed work. | H1–H2, H5, H6 | v1.0 display; v1.5 report export |
+| 8. Plan B library | Two or three fallback variants per event type, such as no food, dues-funded, or smaller scale. Surface them if funding is still pending at its decision date. | F6; SEO Marc Lore example, where Plan B began only two weeks before the event | v1.0 |
 
 Initial busy weeks and personal buffers come from setup and adjust using history as described in section 9.
 
 ## 5. Reminder writing
+
+> **2026-11-18 reminder-plan correction (user chose 1B/2B/4A; delegated item 3 to Codex):** Completed sending stages do not resend after rescheduling; reschedule notifications use Update date & notify. By default, add one follow-up after two calendar days without a reply, separate from the start/due/overdue stages; a lower custom cap does not gain an extra message. Waiting distinguishes a commitment from assistance provided: save the promised date and check it when due; after assistance is provided, notify the original owner in-app to confirm continuation, with one further handling prompt if progress stalls. Per recipient, at most 6 messages in seven days, of which at most 4 are ordinary; at most 2 daily, of which at most 1 is ordinary. Critical checks take priority; single, batch, and automatic sending all recheck limits. Exhausted capacity can still delay later messages: the center explains why and offers Review task; it cannot guarantee on-date sending for arbitrarily many tasks. [Rules, compatibility, verification](feedback-fix/REMINDER_FOLLOW_THROUGH.md). Current Details retains the latest universal submission layout; do not restore its removed reminder section. Stage 3 layout descriptions below are historical only. Update the existing branch/PR14 only; no main merge or real delivery.
+>
+> **2026-11-17 increment (Juanxi approved implementation):** All actual event nodes and owner-email entries use concise task details and the Edit right rail. Work results use one Details text box and multiple attachments, without separate room/SAP-specific fields. Drafts are independent; actual submission/completion save atomically. Event Budget still controls financial-node completion. Tasks may configure multiple external action links; Settings workflow templates explicitly remain unchanged. [Universal details/submission handoff](feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md).
+>
+> **Same-day addition (attachments and automatic drafts):** At most 3 attachments, 2MB each, 5MB combined for current attachments. Details and attachment selection/removal save automatically; Save draft is no longer needed, and the original draft continues saving after switching tasks. Raw bytes/drafts save transactionally in browser IndexedDB; formal submission/completion still require separate confirmation. Full export includes drafts/file bytes. Same-browser only, not server upload or cross-device sync.
+>
+> **Same-day addition (extensions and reversing completion):** Need more time asks only Requested club deadline and optional Message, no Current draft link. Saving a request automatically notifies its current approver plus president/VP; notification opens approval inside the task. Before approval, deadline/progress do not change. Completed ordinary tasks offer Undo mark done and may also return through Task status to To do, Working on it, Stuck, or Waiting on at any time. Preserve text, attachments, submission history; clear completion flag/points. Financial completion remains under Event Budget. Same-browser in-app notifications only, no external delivery.
+>
+> **Option D supersedes the date-approval flow above (Juanxi selected it and requested implementation):** Replace new extension requests with Update the team. The current owner or president directly sets New target date, optional Message, multiselect Notify others, and Add teammate; Update date & notify saves target/notifications together, without a fixed approver or waiting for approval. Default recommendations are current leaders and actual dependent downstream owners; deduplicate each person. Self is not notified by default but may be selected, and all recipients may be deselected. Preserve official hard dates, task status, existing work, financial completion permissions. Old requests remain historical and never apply automatically; a new save cancels related old pending requests. Recommendations/impact calculations are rule-based; still a same-browser in-app demo.
+>
+> **2026-11-16 increment (Juanxi approved through stage 3; technical delivery awaiting acceptance):** Rules generate the whole reminder, subject “event · task”, one prominent Task due, with start embedded in trigger explanation. Use actual requirements/importance, collaboration/thanks, and one repeatable task entry. Details has task/action/reminder-plan sections. Single/batch/automatic demos count a record only after persisting a complete validated email, never projecting virtual sent records. Waiting on creates a separate follow-up for an explicit current member, who can respond only to assistance; original owner unchanged. New organizations default v2, old saves explicitly upgrade preserving settings/history; automatic processing runs only while app open. [Implementation plan](feedback-fix/REMINDER_IMPLEMENTATION_PLAN.md), [stage 3 handoff](feedback-fix/REMINDER_STAGE3_HANDOFF.md). Real backend, cross-device identity, scheduled delivery, external-contact routing remain future work. Old templates below are historical, not the new interface.
 
 Use short lines, explain Why first, and request one action. Survey results favored detailed reminders for clarity (78%) but less strongly for starting earlier (55%); the interview emphasized consequences and meaning over additional steps (E2–E3, E8, J1).
 
@@ -187,7 +199,7 @@ Ask returns six card types: text, missing-information form, task list, individua
 
 Original main-area word caps: Today 160, Events 180, Rules 170, Tasks 130, Team 130, Settings 125 per section. October 23 measured counts were 105/95/134/111/108/89, 60–75% below the previous interface. Later approved budgets supersede these figures.
 
-Use visuals where useful; place explanation in Help/hover. Officer entry is mobile-first through a signed single-use task link; the prototype's actual authentication limits still apply. Numbers expose sources. Do not show login/online-time surveillance; focus on timely results (C6). Progress is visible to officers, escalations stay private, and reminder permissions follow the approved leader/admin rules (C5–C7).
+Use visuals where useful; place explanation in Help/hover. Officer entry is mobile-first through a signed single-use task link; the prototype's actual authentication limits still apply. Numbers expose sources. Do not show login/online-time surveillance; focus on timely results (C6). Progress is visible to officers, escalations stay private, and only the president, VP, and administrator may send reminders under this historical rule (C5–C7).
 
 ## 7. First setup: five minutes for presidents, two for officers
 
@@ -196,7 +208,7 @@ Show the first workflow within five minutes (K2, quick question 6). Ask relevant
 Original president steps:
 
 1. Organization, 30 seconds: name, school with ASU Tempe rules/calendar, optional one-sentence mission.
-2. Semester goals, 60 seconds: choose 2–3 numeric goals, such as weekly events, 30 returning members, or $1,000 external revenue, based on SEO's charter.
+2. Semester goals, 60 seconds: choose 2–3 numeric goals, such as weekly events, 30 loyal members, or $1,000 external revenue, based on SEO's charter.
 3. Roles, 60 seconds: choose/rename templates and map to generic functions; optionally paste an officer table.
 4. Invitations, 30 seconds: create a link for the officer group.
 5. First work item, 60 seconds: describe the next event and see its workflow immediately.
@@ -231,13 +243,13 @@ AI drafts and observes; it does not decide. Rules calculate dates, and people ap
 
 Never invent facts, contact outsiders without consent, use hostile reminder language, calculate/change dates, or read member rosters/student personal information. Say when the library lacks evidence (J1).
 
-Review-before-send is the default. Planned v1.5 automatic mode is president-enabled, internal, email-only; external contact always needs approval. v1.0 opens prepared WhatsApp/text/Gmail drafts for a person to send.
+Review-before-send is the default: AI drafts, and the president or VP presses send. Planned v1.5 automatic mode is president-enabled, internal, email-only; external contact always needs approval. v1.0 opens prepared WhatsApp/text/Gmail drafts for a person to send.
 
-List sources for conclusions, including “nothing due this week” (J2), and offer “This is wrong” feedback to an admin queue (J3). The original evaluation plan was 30–50 rule questions including out-of-scope cases, 20 commands, and 20 reminder-tone cases around model changes. Later restrictions on live tests take precedence. The original plan used AIR for Phase 3 and DeepSeek for fictional development; DeepSeek was subsequently removed. President-only read-only mailbox/Drive access was deferred to v2; do not connect every member's mailbox in v1 (J5). Keep a rules-only setting without a separate page (J6).
+List sources for conclusions, including “nothing due this week” (J2), and offer “This is wrong” feedback to an admin queue (J3). The original evaluation plan was 30–50 rule questions including out-of-scope cases, 20 commands, and 20 reminder-tone cases around model changes. Later restrictions on live tests take precedence. The original plan used AIR for Phase 3, asserting that data stays at ASU, and DeepSeek for fictional development; DeepSeek was subsequently removed. President-only read-only mailbox/Drive access was deferred to v2; do not connect every member's mailbox in v1 because of capacity, call volume, security, and open-model integration complexity (J5). Keep a rules-only setting without a separate page (J6).
 
 ## 9. Prediction and risk
 
-Simulate the dependency chain 1,000 times and estimate how often it finishes by the club deadline, with explicit assumptions, rather than asking AI to guess (E2).
+Simulate the dependency chain 1,000 times and estimate how often it finishes by the club deadline, with explicit assumptions, rather than asking AI to guess (E2). The cited design example was a 33% probability of causing a downstream deadline to be missed; simulation assumptions must explain such a figure.
 
 1. Effort ranges by difficulty: light 1–2 days, medium 3–5 days, heavy 1–2 weeks, adjustable; school approval steps use official lead time plus an experience margin.
 2. Personal buffers start equally and adjust gradually with the officer's own on-time history; add busy-week effects.
@@ -274,9 +286,9 @@ Phase 3 measures laboratory outcomes only. Collect north-star/driver metrics fro
 
 ## 11. Technical design
 
-**v1.2 addition, October 23:** AI reads what the current viewer can see, excluding other people's personal buffers/private messages, plus the then-fictional read-only shared pool. It writes only this organization's data under the viewer's permissions. Small status/name/tag/difficulty/contact-history changes apply immediately with undo; consequential owner/task/event/funding/partner changes originally required president/VP review. Later task/approval decisions supersede these specifics. Nobody modifies the pool through AI. Dates remain deterministic; AI may repeat existing dates only.
+**v1.2 addition, October 23:** AI reads what the current viewer can see, excluding other people's personal buffers/private messages, plus the then-fictional read-only shared pool. The historical v2 plan replaced its examples with real data voluntarily shared by organizations. It writes only this organization's data under the viewer's permissions. Small status/name/tag/difficulty/contact-history changes apply immediately with undo; consequential owner/task/event/funding/partner changes originally required president/VP review. Later task/approval decisions supersede these specifics. Nobody modifies the pool through AI. Dates remain deterministic; AI may repeat existing dates only.
 
-Continue option C: Netlify static frontend, server functions, replaceable AI adapter; replace the growing single HTML frontend with an application project. The original five endpoints remain conceptually compatible. The original diagram described browser rule/prediction engines, server-only AI keys, v1 browser storage then planned v1.5 Supabase, prepared channel drafts then automated email/digest, and officers updating from linked mobile pages. These were planned stages, not a claim of production accounts or storage.
+Continue option C: Netlify static frontend, server functions, replaceable AI adapter; replace the growing single HTML frontend with an application project. The original plan required retaining all five existing server endpoints; later endpoint removals belong to their separate dated decisions. The original diagram described browser rule/prediction engines, server-only AI keys, v1 browser storage then planned v1.5 Supabase, prepared channel drafts then automated email/digest, and officers updating from linked mobile pages. These were planned stages, not a claim of production accounts or storage.
 
 | Layer | Original v1.0 plan, Nov 8 | Original v1.5 plan, December | Rationale |
 | --- | --- | --- | --- |
@@ -284,7 +296,7 @@ Continue option C: Netlify static frontend, server functions, replaceable AI ada
 | Hosting | Netlify; develop on `v1` preview, merge November 8 after approval | Same | Keep committee-facing production stable |
 | Data | Browser-only fictional organization, resettable, one per participant | Supabase Postgres free tier and email magic links | Avoid server participant data in the original Phase 3 plan; shared persistence needed for real use |
 | AI | Existing adapter; originally DeepSeek development/AIR study | Same original adapter plan | Later AIR-only policy supersedes DeepSeek |
-| Sending | Prepared WhatsApp/text/Gmail drafts and calendar links | Automatic email via approved SMTP/service and daily risk digest | WhatsApp business verification/templates deferred to v2 |
+| Sending | Prepared WhatsApp/text/Gmail drafts and calendar links | Automatic email via the historical `smtp.asu.edu`/free-service option and daily risk digest | WhatsApp business verification/templates deferred to v2 |
 | Timing | Fast-forward demo clock | Daily Netlify scheduled risk/digest work | Support a 60-minute study session |
 | Tests | Rule units, Playwright, fixed AI cases | Add online error monitoring | Provide quality evidence for a non-coding owner |
 
@@ -294,7 +306,7 @@ Continue option C: Netlify static frontend, server functions, replaceable AI ada
 | Role | Display name, generic function, current holder |
 | Person | Name, role, channel/contact, time preferences, busy weeks, career goals/interests, personal buffer |
 | Event | Name/date/type/attendance/venue/food/funding/goal/playbook |
-| Node | Title, parent event/work, RACI, dependencies, effort, three dates, rule IDs, status, claim time, waiting person, draft link, Why |
+| Node | Title, parent event/work, RACI, dependencies, difficulty tier, three dates, rule IDs, status, claim time, waiting person, draft link, Why |
 | Playbook | Node templates, T-90/60/30/14 defaults, RACI, Plan B |
 | Nudge | Node, channel, text, sender, time, response |
 | Contribution | Person, node, points, timeliness |
@@ -319,7 +331,7 @@ Continue option C: Netlify static frontend, server functions, replaceable AI ada
 
 Each stage has a specific audience and gate. Stay at the current stage to fix failed gates instead of adding features.
 
-Original gates: v1.0→v1.1 after the November 8 freeze and T1–T6 on production; v1.1→Phase 3 after IRB approval and at least 90% rule-set accuracy; v1.5→v2 after improved critical-node timeliness and at least 60% weekly officer activity; v2→v3 after EOSS pilot organizations continue using the product.
+Original gates: v1.0→v1.1 after the November 8 freeze and T1–T6 on production; v1.1→Phase 3 after IRB approval and at least 90% AI test-set accuracy; v1.5→v2 after improved critical-node timeliness and at least 60% weekly officer activity; v2→v3 after EOSS pilot organizations continue using the product.
 
 | Version | Original window | Audience | Focus |
 | --- | --- | --- | --- |
@@ -328,7 +340,7 @@ Original gates: v1.0→v1.1 after the November 8 freeze and T1–T6 on productio
 | Phase 3 | Nov 16–Dec 4 | 4–6 participants | Evaluation, frozen code except blockers |
 | v1.5 SEO | December | SEO officers and owner's transition | Accounts/storage, email/digest, ERP import, source-change detection, contribution export; development pilot excluded from thesis data |
 | v2 | Spring 2027 | 5–10 EOSS organizations | Anonymous experience, WhatsApp business, Calendar free/busy, meeting-audio tasks, real-data forecast calibration |
-| v3 | 2027–28 | Other campuses | Per-campus rule packages, school partnerships/payment, team/personal AI cooperation |
+| v3 | 2027–28 | Other campuses | Per-campus rule packages using AI retrieval and school cooperation, school payment, team/personal AI cooperation |
 
 | Module | Priority | v1.0 scope | Later |
 | --- | --- | --- | --- |
@@ -363,7 +375,7 @@ Seven original work packages, nominally 2–3 days each. After each, provide a p
 | WP2 Today/reminders | Oct 27–30 | Composer/command review, risk queue/channel drafts/nudge endpoint, event bars/goals/recognition | At least 17/20 commands correct; all reminders pass tone/100-word checks | Rewrite one M2 reminder as example |
 | WP3 tasks/officers | Oct 30–Nov 2 | My tasks/board/Gantt, claiming, mobile task page, four statuses/extensions, clock/silence/RACI | Fast-forward 10 days; each escalation reaches the correct person | Try the officer page on a phone |
 | WP4 setup/team | Nov 2–4 | Five-step president/five-question officer setup and replay; settings/workload/contribution/meeting tools | Setup within five minutes; role rename propagates to flow/handbook | Time setup |
-| WP5 funding/rules/handoff/contacts/forecast | Nov 4–7 | Funding stages/preflight/usage, six-category rules/Q&A, interviews/handbook/first week, contacts, forecasts | At least 90% rule accuracy; all unsupported questions declined; every handbook item traceable | Review one AI handbook |
+| WP5 funding/rules/handoff/contacts/forecast | Nov 4–7 | Funding stages/preflight/usage, six-category rules/Q&A, interviews/handbook/first-week checklist based on SEO onboarding, contacts, forecasts | At least 90% rule accuracy; all unsupported questions declined; every handbook item traceable | Review one AI handbook |
 | WP6 release | Nov 7–8 | Mobile/keyboard/dark-mode checks, AIR evaluation, approved merge/tag, README/help | Automated checks and owner's production T1–T6 | Approve release explicitly |
 
 Original working rules: keep v0.1 production stable until approved release; no research data or keys; fictional names/organization only; re-open and verify R01–R16 sources before launch; each new assistant session reads plans and updates progress to preserve context. The original dates are historical, not a new schedule.
@@ -376,14 +388,14 @@ The redesign added T5/T6 to examine follow-through and adoption. The original pl
 | --- | --- | --- | --- |
 | T1 new officer | On mobile, explain next two weeks and Why of the first task | Time/accuracy | Correct within two minutes |
 | T2 plan in a sentence | Describe outside-catered USG event, review changes, identify ASU steps/dates; compare with ASU-site condition, ten minutes | Required-step recall, wrong dates, time | At least 90% recall and above comparison |
-| T3 reminder comparison | Read new and short-president reminders; identify what/when/why now | Accuracy, raw NASA-TLX, earlier-start intention | Higher earlier-start intention |
+| T3 reminder comparison | Read new and short-president reminders; identify what/when/why now | Accuracy, raw NASA-TLX, earlier-start intention | Clearly higher earlier-start intention than the short reminder |
 | T4 policy question | Ask and judge trustworthiness | Correctness/source opening | Correct sourced answer; record verification |
 | T5 follow-through | Find greatest risk on Today and remind the right person | Time/recipient/channel | Within 60 seconds |
 | T6 setup | Complete first setup | Time/blockers | Within five minutes |
 
 Finish with SUS and a five-minute interview. Use 4–6 participants and descriptive statistics only. Later study scripts and task numbering supersede this original task table.
 
-Original IRB points: fictional prototype data only; browser-local participant actions cleared after sessions, without server research storage; AIR processing with written RTO clarification about prompt retention; any fallback provider disclosed and limited to fictional inputs; no real messages/addresses, only opened drafts; 60-minute Zoom/study-room evaluation with scripts/rubrics/SUS/raw NASA-TLX; clarify optional screen/audio recording and use approved Phase 1 transcription procedures; retain approved recruitment/compensation channels and exclude SEO subordinates to avoid undue influence.
+Original IRB points: fictional prototype data only; browser-local participant actions cleared after sessions, without server research storage; AIR processing asserted to keep data at ASU, with written RTO confirmation that original prompts are not retained; any fallback provider disclosed and limited to fictional inputs; no real messages/addresses, only opened drafts; 60-minute Zoom/study-room evaluation with scripts/rubrics/SUS/raw NASA-TLX; clarify optional screen/audio recording and use approved Phase 1 transcription procedures; retain approved recruitment/compensation channels and exclude all SEO officers as participants to avoid undue influence.
 
 Ask Marcie whether the thesis title's “cloud-Excel-based” should change, since the new database is not a spreadsheet, and whether the designer's own reflective interview may inform design without being treated as study data.
 
@@ -409,7 +421,7 @@ Stop criterion: after one month of the v1.5 SEO pilot, if critical-node timeline
 
 All were approved October 22, 2026. These historical approvals do not override later scope/provider/release decisions.
 
-- [x] Position as the student organization's team AI chief of staff.
+- [x] Use the student organization's team AI chief of staff as both product positioning and website title.
 - [x] Upgrade to React/TypeScript/Vite/React Flow on `v1`, with the originally planned November 8 integration.
 - [x] Browser-only fictional v1.0 data; server persistence/login in v1.5.
 - [x] Prepared WhatsApp/text/Gmail in v1.0; automatic email v1.5; WhatsApp business v2.
@@ -424,16 +436,16 @@ All were approved October 22, 2026. These historical approvals do not override l
 
 These are references already cited by the original plan, not authorization to open, upload, or send private research files. Original-language filenames remain recoverable from Git history. Interview quotations were machine-transcribed and used for design only.
 
-- Local president interview outline under `05_Phase3_Prototype/Reference/`: 92 questions and 15 quick questions, the main design basis for IDs such as C2/E7.
-- SEO Learning Center – SEO Strategy: OA101, Ghost Owner Protocol, risk register, success/failure examples.
-- `OA101 Program Flow.drawio.html`: OA101 initiation, OA102 execution, OA201 funding lanes.
-- `XXXX-2026XXXX [Make A Copy].docx`: T-90/60/30/14 planning, value exchange, workflow, staffing.
-- `SEO New Member Onboarding Checklist.xlsx`: confirmation, mission/expectations, leadership course, systems, review.
-- `SEO Team Charter.docx`: sample semester goals.
-- `SEO ERP 2026-2027.xlsx`: surviving management-table tabs.
+- `05_Phase3_Prototype/Reference/Platypus \u793e\u957f\u6df1\u8bbf\u63d0\u7eb2.docx` (president interview outline): 92 questions and 15 quick questions, the main design basis for IDs such as C2/E7.
+- `05_Phase3_Prototype/Reference/SEO Learning Center - SEO Strategy`: OA101, Ghost Owner Protocol, risk register, success/failure examples.
+- `05_Phase3_Prototype/Reference/OA101 Program Flow.drawio.html`: OA101 initiation, OA102 execution, OA201 funding lanes.
+- `05_Phase3_Prototype/Reference/XXXX-2026XXXX [Make A Copy].docx`: T-90/60/30/14 planning, value exchange, workflow, staffing.
+- `05_Phase3_Prototype/Reference/SEO New Member Onboarding Checklist.xlsx`: confirmation, mission/expectations, leadership course, systems, review.
+- `05_Phase3_Prototype/Reference/SEO Team Charter.docx`: sample semester goals.
+- `05_Phase3_Prototype/Reference/SEO ERP 2026-2027.xlsx`: surviving management-table tabs.
 - `04_Phase2_Survey/Analysis/Phase2_Interim_Findings_and_Next_Steps_2026-10-21`: interim findings from 86 eligible officers.
 - `03_Phase1_Interviews/Transcripts`: P1–P6 president interviews.
-- Earlier prototype plan under `05_Phase3_Prototype/Plan/`: v0.2 rules R01–R16, option C, earlier evaluation design.
+- `05_Phase3_Prototype/Plan/Prototype \u6253\u9020\u8ba1\u5212\uff08\u8349\u7a3f\uff09` (earlier draft prototype plan): v0.2 rules R01–R16, option C, earlier evaluation design.
 - GitHub `juanxiwu2005/platypus-officer-hub`: original v0.1 frontend and five then-DeepSeek-enabled endpoints.
 
 References to verify against originals before thesis citation: Lee, J. D., & See, K. A. (2004). Trust in automation: Designing for appropriate reliance. *Human Factors, 46*(1), 50–80. Deci, E. L., Eghrari, H., Patrick, B. C., & Leone, D. R. (1994). Facilitating internalization: The self-determination theory perspective. *Journal of Personality, 62*(1), 119–142.

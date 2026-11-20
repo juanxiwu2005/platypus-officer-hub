@@ -1,7 +1,7 @@
-# Five-screen interactive text v1: retention version
+# Five-Screen Interaction Prototype v1: Preserved Version
 
-Users have explicitly requested that the version be kept first and reviewed progressively. `five-screens.html` is the complete original, source document SHA-256; see manifest.json; Contains styles, pictureal data, five views and local interactions.
+User explicitly requested saving this version first for gradual review. five-screens.html is the complete original; SHA-256 in manifest.json. Includes styles, fictional data, five views, local interactions.
 
-Currently, only tasks subgroups are discussed for the following levels, posts/names/emails and full workflow. New activities, Finance batch assignment, Marketing direct replacements and integration of activity details were re-allocated in four screens. The next round of design for the new activity will be advanced only if the user says "Yes, next step"; This document is not covered by the new version of this document.
+Current discussion covers onboarding only: role hierarchy, position/name/email, task grouping for the complete workflow. Four screens—new event, Finance bulk assignment, Marketing direct reassignment, event-coordinator Details reassignment—remain unchanged. Advance the next new-event design only after user says "approved, proceed to the next step"; later onboarding drafts must not overwrite this file.
 
-This is a visual HTML segment within the dialogue, which can be restored through the former Visualize host and not an operational code directly deployed to the website. Could not close temporary folder: %s Could not close temporary folder: %s
+This is an in-chat visualization HTML fragment recoverable through its original visualize host, not deployable business code. No real accounts/AI/email/archive writes connected. Local backup sync required.

@@ -1,26 +1,26 @@
-# One/two-day milestone workflow implementation compact
+# One-day/two-day milestone workflow implementation contract
 
-2026-11-18（America/Phoenix），Codex。Users have approved interactive program access to the original preview 14, only 1-day / 2- day, not 3-day; All visible node can click on Details to modify it on the right.
+2026-11-18 (America/Phoenix), Codex. User approved integrating the interaction into original preview 14, 1-day/2-day only, no 3-day; every visible node clickable/editable in right-side Details.
 
-## Results approved by user
+## Approved outcome
 
-- The main line maintains Start/ Done, shares live tasks and date milestones; Branches can be separated and merged on the main line. Event can work as a team before and after the day, or in two days.
-- Each Event day independently stabilizes ID, name, relative Day1 date and description; The fixed date will not be postponed owing to the non-completion of previous tasks. The actual date is calculated by rule engine using the activity date and offset.
-- Each branch reference organization already has teamId, drawn from the frame; The name of a team does not exist in the canvassing organization, no new Team N is automatically created. The same team can repeat responsibility for several branchs between different sectors.
-- Start/Done is a fixed border and not a result task; You can also edit names and descriptions by clicking on Details. Live tasks can be edited by name, team/ rule, description, duration, target relative to a single Event day. Share inspection tasks with one another.
-- Addbranch selects the responsible team, where to start and where to meet; Team boundaries and old operating conditions are independent of Branch. Adds/inserts/crossbranch drag/Undo/ save drafts and versions, refreshs them to be maintained.
+- Main spine retains Start/Done, shared actual tasks/date milestones; branches split/rejoin spine. Team work can occur before/after each Event day and between days.
+- Each Event day has independent stable ID/name/date relative to Day1/description; fixed date never delayed by unfinished predecessors. Rule engine computes actual date from event date/offset.
+- Each branch references existing organizational teamId selected by dropdown; no team renaming on canvas, no automatic Team N creation. Same team may own multiple branches in different intervals.
+- Start/Done fixed boundaries, not deliverable tasks, but names/descriptions editable in Details. Actual/shared-check tasks equally editable: name, responsible team/role, description, duration, target relative to Event day, prerequisites.
+- Add branch chooses team/start/join point; team boundaries separate from old business-condition branches. Preserve add/insert/cross-branch drag/Undo/draft/version saves/refresh recovery.
 
-## Data compatibility
+## Data/compatibility
 
-WorklowTemplateContent.milestoneGraph is an optional version1 metadata, including start/done descriptions, up to two eventsDays, spine references, teambranches and taskAnchors. Live task is still in step, not copying task. Each step in the graph must appear at the spot or a teambranch, and all team/connection references are verified.
+Optional version 1 `WorkflowTemplateContent.milestoneGraph` metadata includes start/done descriptions, up to two eventDays, spine references, teamBranches/taskAnchors. Real tasks remain in steps, without duplication. Each step appears exactly once in spine or one branch; all team/connection references validated.
 
-taskAnchors saves eventDayId, offsetDays and optional calendar/business units; School official rules continue to be calculated relative to Day1 and may not be relaxed by choosing Day2. (b) The new version of graph implements the controlled independent date path; Old no graph and sequential activities retain old algorithms. The snapshot, copying and exemplifying retention of the map relationship is available without rewriting activities/outputs or replacing schema23. Milestones do not generate operational tasks and no reminders; Risk only is reported before completion.
+taskAnchors stores eventDayId/offsetDays/optional calendar/business units; school rules remain relative to Day 1, never relaxed by Day 2 selection. New graph execution has controlled separate date path; legacy graphless/sequential events keep old algorithm. Version snapshots/copies/instantiation preserve relations; no rewriting existing events/deliverables, no schema 23 reset. Milestones create no business tasks/reminders; unfinished prerequisites only flag risk.
 
-## Documents Officer
+## Ownership
 
-- Master Agent: Builder/Library and rightDetails, documents, integration and final delivery.
-- Model: Share typers, workflyTemplates, New engine/worklowMilestones, necessary Schedule and targeting tests.
-- Canvas: New Milestone WorklowCanvas, Milestone Layout and independent CSS/test without change to Builder/Library.
-- Comands: Independent worktree to achieve new/move/date switch pure commands; Browser: Projection of Plan's actual mission with milestone e2e, affected return; Independent Review ultimately reads only reviews.
+- Lead: Builder/Library/right-side Details, docs/integration/final push.
+- Model: shared types/workflowTemplates/new engine/workflowMilestones, necessary schedule/tests.
+- Canvas: new MilestoneWorkflowCanvas/milestoneLayout/dedicated CSS/tests; no Builder/Library edits.
+- Commands: independent-worktree pure add/move/date-switch commands; Browser: actual Plan task projection/milestone e2e/affected regressions; independent Review final read-only check.
 
-Normal dates, directors and teams are still preserved through existing validated operations; Can't put pixels on date. Keep the same reminder fix ef0d0d0 and do not modify alarm/mail/handoff realized. Following the original PR14/ Function Branch, 0 Live Product AI/External Mail, no more mege main.
+Ordinary dates/owners/teams still saved through validated existing operations; pixels never dates. Preserve concurrent reminder fix ef0d0d0, no reminder/email/handoff implementation changes. Existing PR14/feature branch, 0 real product AI/external email, no main merge.

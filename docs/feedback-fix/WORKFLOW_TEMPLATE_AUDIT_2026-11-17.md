@@ -1,204 +1,204 @@
-# Speaker Activity Workstream Template Question Log
+# Speaker-event workflow-template findings
 
-The objective for this round is to fix the workflow template and then advance automatic reminders and organization handoff. Check confirmation: Links listed by users, Details, moves and additional branch issues are accounted for; The moves and additional questions have been repeated on the browser. Other date settings do not reflect deficiencies such as scheduling, conditionalities becoming mandatory for all activities, recovery after deletion and process loss. The existing template is not yet a stable source of implementation processes.
+This round first aims to stabilize workflow templates before automatic reminders and organizational handoff. Review found causes for all reported link, Details, movement, and branch-addition issues; movement/addition were reproduced in-browser. Further defects include date settings not affecting schedules, conditional steps becoming mandatory for all events, deleted steps returning, and disappearing flows. Templates are not yet a stable source for executable workflows.
 
-The review date is 2026-11-17 (America/Phoenix) and the base code point is `claude/fervent-thompson-e2j5u2@0f53577`. Closes to `ab7123c`, during which only progress documents are submitted and the product code is identical. This round was submitted for audit purposes only, and the following repairs were not implemented. The screenshot serves only as an interface reference for users and is not used as an additional execution instruction.
+Reviewed 2026-11-17 (America/Phoenix), baseline `claude/fervent-thompson-e2j5u2@0f53577`, checked through `ab7123c`; intervening commits changed progress documentation only, product code identical. This commit records the audit only; none of the fixes below was implemented. User screenshots served as interface references, not additional execution instructions.
 
-## Scope and manner of review
+## Scope and evidence
 
-- Settings  → Workfly template, Step details, moving and right-key menus, and the actual Plan task processing entrance.
-- Template to generate a speaker active task, and then enter the path to rule Scheduling and reminder facts.
-- Browser operations use repository presentation data; The independent function repeats the field speaker activity with dates 2027-04-16, 60 people, schools, non-dinners, contribution funds, `partner/rsvp` open.
-- "Browser recurrence" means local chromium operations; (a) " Function recurrence" means the call to the original function of the branch, which is not rewrited to substantiate the conclusion; Experience judgements are identified separately.
+- Settings → Workflow templates, Step details, movement/context menus, actual Plan task action links.
+- Path from template-generated speaker tasks to rule scheduling/reminder facts.
+- Browser used fictional repository demo data; isolated function reproduction used a fictional speaker event on 2027-04-16, 60 people, on-campus, no food, membership-dues funding, `partner/rsvp` enabled.
+- "Browser reproduction" means actual local Chromium operation; "function reproduction" calls existing branch functions without rewriting implementation to prove a conclusion. Experience judgments are identified separately.
 
-The current Settings save a **template for organizing generic events**, from which the Speaker activity generates steps according to conditions and does not have a stand-alone speaker template manager. As a first step, check with the speaker scene to see if other activities have been affected. Location: `src/engine/playbooks.ts:30`, `src/data/settings.ts:126`.
+Settings currently saves **one organization-wide event template**; speaker events conditionally generate steps from it, without a separate speaker-template manager. This audit starts with speaker scenarios, but fixes must check other event types. Locations: `src/engine/playbooks.ts:30`, `src/data/settings.ts:126`.
 
-## Summary of issues
+## Findings overview
 
-P1 indicates that implementation or data consistency issues should be addressed prior to the template; P2 indicates that it would make the configuration difficult to understand or identify empirical problems. The following entries are to be repaired and the recommended and acceptance standards have not yet been implemented.
+P1 means execution/data-consistency work needed before template finalization; P2 means usability issues impeding understanding/confirmation. All remain pending; recommendations/acceptance criteria are not implemented.
 
-| Numbering | Priority | Problem | Method of verification |
+| ID | Priority | Issue | Evidence |
 | --- | --- | --- | --- |
-| WF-01 | P1 | Matching links only in fixed steps would be inconsistent with the actual needs of the activity | Resume Browser and Functions |
-| WF-02 | P1 | Template cannot add or edit links, custom nodes have no configuration path | Panel and data model checks |
-| WF-03 | P2 | The director of Details, the time frame, the point and the meaning of dependence lack intuitive explanation | Interface facts and experience judgements |
-| WF-04 | P1 | Node moves have been re-reliant and saved, and the flow chart still shows the old order | Mouse drag, keyboard and function recurrence |
-| WF-05 | P1 | Add nodes to the original branch where nodes are drawn to "Other" branch | Desktops, Cell phones and Functions Resume |
-| WF-06 | P1 | The start date and reminder time for some of the standard steps will remain unchanged as the projected workload is revised | Function Resume |
-| WF-07 | P1 | The target point shown by Details may not be consistent with the actual Scheduling | Resume Browser and Functions |
-| WF-08 | P1 | Adding steps to the Speaker branch will enter a non-speaker activity | Function Resume |
-| WF-09 | P1 | Some steps the template allows to be deleted and the new activity is restored | Function Resume |
-| WF-10 | P1 | After Full Check is deleted, a large number of pre-activity nodes that still exist disappear from the map. | Resume Browser and Functions |
-| WF-11 | P1 | Task description is actually saved to Why, templates lack reusable instructions and completion criteria | Data Generation Path Check |
-| WF-12 | P2 | When the standard node is changed and saved, the old acronym still appears on the chart | Browser Resume |
-| WF-13 | P2 | A template summary may still be referred to as a standard template when the head, description or target point is changed. | Function Recover and Code Check |
+| WF-01 | P1 | Fixed step-based action links can mismatch actual event needs | Browser/functions |
+| WF-02 | P1 | Templates cannot add/edit action links; no custom-node configuration | Panel/data-model review |
+| WF-03 | P2 | Details lacks intuitive owner/effort/timing/dependency explanation | Observable UI/experience judgment |
+| WF-04 | P1 | Movement saves changed dependencies but graph keeps old order | Mouse/keyboard/functions |
+| WF-05 | P1 | Inserting into a branch draws the node under Other | Desktop/mobile/functions |
+| WF-06 | P1 | Effort changes leave some standard-step start/reminder dates unchanged | Functions |
+| WF-07 | P1 | Displayed target timing can disagree with actual scheduling | Browser/functions |
+| WF-08 | P1 | Steps added to speaker branch appear in nonspeaker events | Functions |
+| WF-09 | P1 | Some editor-deletable steps return during event creation | Functions |
+| WF-10 | P1 | Deleting Full Check hides many surviving pre-event nodes | Browser/functions |
+| WF-11 | P1 | Task description saves as Why; templates lack reusable instructions/completion criteria | Data-generation review |
+| WF-12 | P2 | Renamed standard nodes retain hardcoded short labels | Browser |
+| WF-13 | P2 | Owner/description/target-only edits may still produce a standard-template summary | Functions/code |
 
-## Questions from users
+## User-reported issues
 
-### WF-01 Linking does not match the task scene
+### WF-01 Action links mismatch task context
 
-Actual Plan opens the Quote Gather of Fund Dinner's demonstration: this activity `food: none`, which is required to collect offers from suppliers, but the button is fixed at **Open ASU gathering information**, skipping the catering information page. The same results were obtained when independent speaker activities were not fed.
+In actual Plan, Founder Dinner's Quote Gather has `food: none` and asks for supplier quotes, but its fixed **Open ASU catering information** button opens catering information. An isolated no-food speaker event gives the same result.
 
-Roots: `taskActionLink()` only check the table by `stepKey`; `quotes/quote/dining` Shared catering address, with no choice of entrance based on type of offer, funding or organizational configuration. Only out-of-school vue is currently treated on an exceptional basis.
+Cause: `taskActionLink()` looks up only `stepKey`; `quotes/quote/dining` share a catering URL without considering quote category, funding, organization configuration. Only off-campus venue has special handling.
 
-Codes: `src/reminders/actionLinks.ts:6`, `:15`, `:22`; `src/reminders/facts.ts:59`；Show at `src/components/TaskDetail.tsx:61`.
+Code: `src/reminders/actionLinks.ts:6`, `:15`, `:22`; `src/reminders/facts.ts:59`; UI `src/components/TaskDetail.tsx:61`.
 
-**Impact:** members may still be directed to entry points that are not compatible with the task and cannot act directly after receiving a reminder.
+**Impact:** reminder recipients may land at irrelevant services and cannot act directly.
 
-**standard:** to at least confirm externally processed nodes in the speaker template item by item; Price entrances distinguish catering from other suppliers; Login entrances, notes and final forms are clearly marked. Give a live entry and next navigation description when no steady straight to the address. A generic home page cannot be considered a form that can be submitted directly to all tasks.
+**Acceptance:** individually review at least speaker-template nodes requiring external action; distinguish catering/other supplier quote entries; label login portals, information pages, final forms. Without stable deep links, provide a real entry and next navigation step. Do not present one generic home page as a direct submission form for every task.
 
-This item confirms the **semantic matching problem** and does not declare an unincorporated site as a invalid link. Independent speaker sample 37 jobs with 9 fixed processing links; This amount merely indicates the existing map coverage, on which basis it cannot be assumed that the remaining 28 items must have an outer chain.
+This establishes **semantic mismatch**, not unverified claims that login-protected URLs are broken. The isolated speaker example has 9 fixed links among 37 tasks; that measures mapping coverage, not a requirement for external links on all other 28.
 
-### The WF-02 template lacks the ability to edit and save links
+### WF-02 No template link editing/persistence
 
-Step details only has a name, default line, time, target point, description and dependence. `StepTemplate` does not have a link configuration field with the task `Node`; The current processing address is from the above-mentioned fixed map. Links & files of Settings are information-sharing organizations and cannot replace a processing entrance to a particular step.
+Step details offers only title, default role, effort, target timing, description, dependencies. Neither `StepTemplate` nor task `Node` has action-link configuration; addresses come from fixed mapping. Settings Links & files are shared organization materials, not step-specific action entries.
 
-Code: `src/components/setup/WorkflowPanel.tsx:87`; `src/data/types.ts:66`、`:271`；`src/reminders/actionLinks.ts:22`。
+Code: `src/components/setup/WorkflowPanel.tsx:87`; `src/data/types.ts:66`, `:271`; `src/reminders/actionLinks.ts:22`.
 
-**Impact:** president cannot be modified in the template even if it knows the correct address; New nodes will not automatically obtain access through existing fixed tables.
+**Impact:** presidents cannot correct known URLs in templates; new nodes do not automatically gain links through the fixed table.
 
-**standard:** standards and custom steps can edit linked names, addresses and necessary instructions; Save, refresh and keep after new activities; Plan and mail links open the task page to read the same configuration. Changes in the template need to be clear on the scope of application of existing activities, so as not to cover tasks performed quietly.
+**Acceptance:** standard/custom steps support link labels, addresses, necessary notes; survive save/refresh/event creation; Plan and email-linked task pages read the same configuration. Explicitly define effects on existing events, avoiding silent overwrite of executed tasks.
 
-### WF-03 Details
+### WF-03 Details is unclear
 
-This is a question of experience, among which the following can be observed:
+Experience issue, with observable facts:
 
-- **Done by** is chosen for rolls, e.g. Events lead; It is not clear that this is the default allocation for future activities.
-- **Days of work** for working days; **Target Timing** did not explain whether the objective was to be achieved or a reminder started, nor did it form a readable time note.
-- The empty target shows **From dependencies**, but it does not provide a preview of the time taken from which tasks are ahead. Entering `0` has a different meaning than leaving space.
-- **Waits for** was launched with a large number of steps across branches, before and after activities, without grouping and dependence previews.
-- It is not possible to edit this condition without showing the type of activity to which the node applies, and it is particularly difficult to judge the scope of the new step.
+- **Done by** selects a role such as Events lead without explaining default assignment for future events.
+- **Days of work** means business-day effort; **Target timing** does not explain completion target versus start reminder, nor combine them into readable timing.
+- Empty target **From dependencies** cannot preview which prerequisites produce which date; `0` differs from blank.
+- Expanded **Waits for** lists many cross-branch/pre/post-event steps without grouping/dependency-effect previews.
+- Node applicability is neither shown nor editable; new speaker-step scope is especially unclear.
 
-Code: `src/components/setup/WorkflowPanel.tsx:78`. Partner Specter Review from the same panel in the screenshot; The above-mentioned dates and descriptions also include specific logical questions for WF-06, WF-07 and WF-11.
+Code: `src/components/setup/WorkflowPanel.tsx:78`. Screenshot's Partner Speaker Review uses this panel; WF-06, WF-07, WF-11 cover specific date/description logic defects.
 
-**Recommended standard for access:** user can read directly who is responsible by default, what to do, how to count completion, when to start reminding, when to complete, where to wait and where to go. Fields are in English, but clear units and results statements are given at adjacent locations. The specific layout is left for joint confirmation and will not be changed during the current round.
+**Suggested acceptance:** users can directly understand default owner, work, completion criteria, reminder start, completion date, prerequisites, action entry. English fields with nearby clear units/results. Layout awaits joint confirmation; no redesign this round.
 
-### WF-04 moves saved but not updated on graph
+### WF-04 Movement persists but graph does not update
 
-Resume: Drag the Movement Items of the Marking branch to between Marketing Neds and Content Corporation. **Moved “Promotion Items” between “Markating Neds” and “Content Corporation”.**, which is in the archive, has also been changed to “Promotion Items”, but remains on the map ahead.
+Reproduction: drag Marketing's Promotion Items between Marketing Needs and Content Creation. Message: **Moved “Promotion Items” between “Marketing Needs” and “Content Creation”.** Saved Content Creation now waits for Promotion Items, but graph still puts Content Creation first.
 
-Both the mouse drag and Alt+ ←  repeats the problem: nodes are different in length and range. Independent function calls also confirm that the mobile function produces the correct relying changes.
+Both mouse and Alt+← reproduce unchanged x/y coordinates. Isolated functions confirm correct dependency changes.
 
-Root: The move changes `dependsOn`, and the drawings are in the order of the key written in `PRE_ROUTES/POST_ROUTES`, which determines the order without reading actual reliance. It is therefore not just “unsaved”: the operational reliance on preservation has been inconsistent with the image.
+Cause: movement changes `dependsOn`, but graph orders by hardcoded keys in `PRE_ROUTES/POST_ROUTES`, ignoring actual dependencies. This is more than failure to save: persisted dependencies conflict with visuals.
 
-Code: `src/lib/flowEdit.ts:23`; `src/components/flow/metro.ts:22`、`:36`、`:104`。
+Code: `src/lib/flowEdit.ts:23`; `src/components/flow/metro.ts:22`, `:36`, `:104`.
 
-**standard:** corresponds to the image, dependence, updating and generation of new activities after moving with the branch; (b) When moving across branches, make clear whether branch attribution and the person in charge have changed; Scheduling remains protected on the hard cut-off date of schools based on actual reliance. The graphics cannot be moved without changing the business data, nor can they simply change the data while retaining the old graphics.
+**Acceptance:** same-branch movement agrees in visuals, dependencies, refresh, generated events; cross-branch moves explicitly define branch/owner changes; actual dependencies reschedule while protecting school hard deadlines. Neither graphics-only nor data-only movement suffices.
 
-### WF-05 New Node Runs to another branch
+### WF-05 New node appears in another branch
 
-Restore: Right-click SAP Headshot, select **Add a step after this one**. The new nodes rely on Speaker SAP Headshot, Partner Travel Plan, but the new nodes are not shown between these two nodes. The desktop is placed in a new branch below the map, and the mobile phone is placed in a new column on the right.
+Reproduction: right-click Speaker SAP Headshot → **Add a step after this one**. New step waits for Speaker SAP Headshot, Partner Travel Plan waits for new step, but graph does not put it between them: a new bottom branch on desktop, new right column on mobile.
 
-Roots: The new step is only information such as `fn/ownerRoleId/phase/dependsOn` and there are no branches that can be saved. Layout finds it not to be a fixed key list, which will be integrated into `other-pre` or `other-close`. Inheriting the same role will not solve: Event Lead and Speaker may be responsible for events lead.
+Cause: new steps store `fn/ownerRoleId/phase/dependsOn` etc., but no persistent branch identity. Unknown keys go to `other-pre`/`other-close`. Same-role inheritance cannot solve it: Event Lead/Speaker steps may both belong to Events lead.
 
-Code: `src/components/setup/WorkflowPanel.tsx:46`; `src/components/flow/metro.ts:67`。
+Code: `src/components/setup/WorkflowPanel.tsx:46`; `src/components/flow/metro.ts:67`.
 
-**standard:** inserted from a node or line, defaulting to retain the branch and sequence; Multiple new nodes can be arranged by place of insertion; Renovation and new construction activities remain consistent. Branches, persons in charge, stages and dependency must be expressed separately.
+**Acceptance:** node/edge insertion defaults to the same branch/order; multiple inserts follow insertion position; refresh/new events agree. Branch, owner, phase, dependencies must be independently expressible.
 
-## Other questions that affect the template
+## Other template-finalization issues
 
-### WF-06 Start reminder without a corresponding change of workload
+### WF-06 Effort changes do not adjust start reminders
 
-Function recovery: Marking Neds changed from `estDays: 2` to `10`, generating a new active task that remains the original `timing: { startDays: 60, dueDays: 58 }`. The rules are the same: **2027-02-15**, as of date **2027-02-17**, no new risk hints for scheduling.
+Function reproduction: Marketing Needs `estDays: 2`→`10`; new task keeps `timing: { startDays: 60, dueDays: 58 }`. Both yield start **2027-02-15**, due **2027-02-17**, without new scheduling-risk warning.
 
-Roots: `estDays` only for template workload editing; The default start date for such steps is still determined by the school-time windows already available. `calibratedStep()` Keep original texting while the target anchor remains unchanged, `timingStart()` uses `startDays`. Remind the facts and then read the actual `latestStart`.
+Cause: effort editing changes only `estDays`; calibrated windows still determine these starts. `calibratedStep()` keeps timing when anchor unchanged, `timingStart()` uses `startDays`; reminder facts read actual `latestStart`.
 
-Code: `src/components/setup/WorkflowPanel.tsx:95`; `src/engine/playbooks.ts:306`；`src/engine/schedule.ts:166`；`src/reminders/facts.ts:72`。
+Code: `src/components/setup/WorkflowPanel.tsx:95`; `src/engine/playbooks.ts:306`; `src/engine/schedule.ts:166`; `src/reminders/facts.ts:72`.
 
-**standard:** to clarify how the “fixed start window” and the “inverted workload” fit together; Changes to the workload should be adjusted accordingly or a fixed time window and its conflict should be explicitly indicated on the start day. It is not possible to let the president think that an advance reminder has been made, and the actual reminder date remains unchanged.
+**Acceptance:** define interplay of fixed start windows/effort-based backward scheduling. Changed effort adjusts starts or explicitly warns of fixed windows/conflicts. Do not imply earlier reminders while dates remain unchanged.
 
-### The WF-07 setup page does not have the same target as the actual deadline
+### WF-07 Settings target disagrees with actual deadline
 
-Check-in Forms' Details show **Target Timing = 1**. The template anchor is 1 working days before the event, but also has `timing.dueDays = 0`; After the actual activity is generated, the deadline is **2027-04-16** on the day of the event. The start date is decided by another field `startDays: 5`, and Details does not show this time window.
+Check-in Forms Details shows **Target timing = 1**. Anchor is 1 business day before event, but `timing.dueDays = 0`; generated deadline is event day **2027-04-16**. Another field, `startDays: 5`, controls start; Details hides that window.
 
-In addition, the edit target values are uniformly written into `unit: calendar`, the original business unit is replaced and the interface is not selected. The closing step completely hides the target point input and cannot be completed here a few days after adjusting the activity.
+Editing target always writes `unit: calendar`, replacing business units without a selector. Closing steps hide target inputs entirely, preventing edits to post-event timing.
 
-Code: `src/engine/playbooks.ts:41`; `src/components/setup/WorkflowPanel.tsx:96`；`src/engine/schedule.ts:151`。
+Code: `src/engine/playbooks.ts:41`; `src/components/setup/WorkflowPanel.tsx:96`; `src/engine/schedule.ts:151`.
 
-**standard:** setup page displays actual completion targets and starting rules used; (a) To make a clear distinction between working days, natural days, day of activity and after the event; Revalued, emptied and regenerated tasks do not implicitly change units or create another set of dates.
+**Acceptance:** show actual completion/start rules; distinguish business/calendar days, event day, post-event. Editing, clearing, regeneration must not silently switch units/date meaning.
 
-### WF-08 stepr appears in nonspeaker activity
+### WF-08 New speaker steps appear without speakers
 
-The new step does not inherit `cond: externalGuest` from the adjacent step, nor does it require editing of the entrance. Function repeats: Inserts New Speaker check after Speaker SAP Headshot, generating normal activities of `speaker: false` without partnerer, the original speaker step disappears and new steps are created.
+New steps do not inherit adjacent `cond: externalGuest` and no condition editor exists. Function reproduction: insert New speaker check after Speaker SAP Headshot, create ordinary `speaker: false` event without partner: old speaker steps disappear, new step remains.
 
-Code: `src/components/setup/WorkflowPanel.tsx:48`; `src/engine/playbooks.ts:245`。
+Code: `src/components/setup/WorkflowPanel.tsx:48`; `src/engine/playbooks.ts:245`.
 
-**standard:** specifies the scope of application of the new step when inserted in the branch of conditions; New steps belonging to the branch of this condition are correct when speaker/partner closes, and subsequent reliance is on proper continuity. If the user wishes to do all activities, it can also be visible.
+**Acceptance:** conditional-branch insertion explicitly defines scope; speaker/partner off skips new conditional steps with correct dependency reconnection. All-event applicability remains explicitly selectable.
 
-### WF-09 Deleting steps are restored when new activity is created
+### WF-09 Deleted steps return during event creation
 
-function repeats: `validateWorkflow()` is passed after photo Backup has been removed from the template and there is no such step in the template; Photo Backup exists again when calling `buildEventNodes()` to generate a new activity.
+Function reproduction: delete Photo Backup; `validateWorkflow()` passes and template truly lacks it; `buildEventNodes()` restores it in the new event.
 
-Roots: The editor may not delete a part of the node which is judged only in accordance with school rules; The generator also has `CORE_EVENT_STEP_KEYS`, which will make up the missing core nodes for the v2 activity. The definition of “deletable” at both ends is different.
+Cause: editor blocks some deletions based on school rules; generator separately uses `CORE_EVENT_STEP_KEYS` to restore missing v2 core nodes. Definitions of deletable differ.
 
-Code: `src/components/setup/WorkflowPanel.tsx:109`; `src/engine/workflow.ts:189`；`src/engine/playbooks.ts:225`、`:240`。
+Code: `src/components/setup/WorkflowPanel.tsx:109`; `src/engine/workflow.ts:189`; `src/engine/playbooks.ts:225`, `:240`.
 
-**standard:** Harmonizes which steps must be retained and which can be deleted. If core steps must be retained, the editor should prevent deletion and explanation; If deletion is permitted, the decision should be respected in generating the activity. Delete and save successfully could not be shown, then quietly restored.
+**Acceptance:** unify mandatory/deletable steps. Mandatory means block/explain deletion; permitted deletion means respect it on generation. Do not report successful delete/save then silently restore.
 
-### WF-10 Deleting Full Check will cause preactivity processes to disappear
+### WF-10 Deleting Full Check hides pre-event flow
 
-Browser repeats: Open Full Check's Details, click **Delete this step**; The operation allows saving, and the task nodes on the map are not shown any more than before activities such as **46 to 11** and Event Plan. function confirms the template still has 35 non-endpoints, but only the end branch is returned to the layout.
+Browser: Full Check Details → **Delete this step**, save allowed; graph nodes drop **46→11**, hiding Event Plan and other pre-event work. Functions confirm 35 non-closing nodes remain, but layout returns only closing branches.
 
-Root: Full Check does not disable `ruleIds` for delete buttons and template verification does not require it to be kept; The layout also uses its existence as a prerequisite for mapping all pre-activities: `if (!routeNodes.length || !final) return`.
+Cause: Full Check has no deletion-disabling `ruleIds`, validation does not require it, yet layout requires it to draw every pre-event branch: `if (!routeNodes.length || !final) return`.
 
-Code: `src/components/setup/WorkflowPanel.tsx:109`; `src/components/flow/metro.ts:62`、`:104`。
+Code: `src/components/setup/WorkflowPanel.tsx:109`; `src/components/flow/metro.ts:62`, `:104`.
 
-**standard:** must retain a point of convergence that cannot be deleted by mistake; Where deletion is permitted, the layout has the right alternative connections and the remaining tasks remain visible, optional and editable. Data are still missing from the map and cannot be considered to be deleted as normal.
+**Acceptance:** protect mandatory joins from accidental deletion; permitted deletion has alternate connections with remaining tasks visible/selectable/editable. Surviving data disappearing from graph is not normal deletion.
 
-### Operation description for WF-11 templates mixed with why
+### WF-11 Instructions conflated with Why
 
-**Task description** of Step details was actually modified by `step.why`. It enters `node.why` when generating the task, and the task page and reminder facts interpret it as **Why it matters**; **Your next step** gives priority to `node.instructions`, using either a fixed step text or task title whenever it is not.
+Step details **Task description** edits `step.why`, becoming `node.why`, interpreted as **Why it matters** in tasks/reminder facts. **Your next step** prefers `node.instructions`, then fixed step copy/title.
 
-The actual task already has an optional `instructions/completionCriteria`, but the template does not have a corresponding field and the generator does not copy either from the template. Therefore, the president cannot write detailed and complete standards for reuse at a time in the template; Changing Task description alone does not set content as the next guide for members.
+Actual tasks have optional `instructions/completionCriteria`, but templates lack these fields and generators do not copy them. Presidents cannot write reusable detailed operations/completion criteria once in a template; changing Task description does not configure member next-step guidance.
 
-Code: `src/components/setup/WorkflowPanel.tsx:98`; `src/data/types.ts:66`、`:272`；`src/engine/playbooks.ts:327`；`src/reminders/facts.ts:16`、`:45`；`src/components/TaskDetail.tsx:57`。
+Code: `src/components/setup/WorkflowPanel.tsx:98`; `src/data/types.ts:66`, `:272`; `src/engine/playbooks.ts:327`; `src/reminders/facts.ts:16`, `:45`; `src/components/TaskDetail.tsx:57`.
 
-**standard:** makes a clear distinction between what to do, what to do, what to accomplish and why; Templates enter the correct location for new activities, task pages and reminders. The operating document can be expanded on the task page, and the mail still highlights a clear action and a task entry.
+**Acceptance:** distinguish what, how, completion criteria, why; template inputs populate correct event/task/reminder fields. Detailed instructions may expand on task pages; emails emphasize one action/one task entry.
 
-This at the same time affects two core objectives: a reminder of whether members can act immediately, and whether the new marketing member can do it directly according to process.
+This affects both cores: immediately actionable reminders and new marketing members working directly from the process.
 
-### The old acronym is still on the WF-12 rename
+### WF-12 Renamed nodes retain old short labels
 
-The browser changes Budget to **Sponsor cost plan**, confirming that the new name has been saved; Node on the chart still shows **Budget**.
+Browser: rename Budget to **Sponsor cost plan**, save confirmed; graph still says **Budget**.
 
-Root: The text in the figure gives preference to a fixed acronym for `SHORT[stepKey]` and does not determine whether the user has changed the standard name. Complete names are updated in detail or with a standstill, resulting in inconsistent information on different locations.
+Cause: labels prefer fixed `SHORT[stepKey]` without checking custom standard names. Full name updates in details/hover, creating inconsistency.
 
 Code: `src/components/flow/MetroChart.tsx:30`, `:298`.
 
-**standard:** self-defined name immediately reflected on the chart; Abbreviations are generated from the current name or are accompanied by distinct acronyms when required; Renovation and new construction activities remain consistent.
+**Acceptance:** custom names immediately reach graph; shorten from current names or explicit short-name fields; consistent after refresh/new events.
 
-### WF-13 template summary missing some custom settings
+### WF-13 Summary misses custom configuration
 
-Function recovery: only the description of Partner Specter Review is changed, or only the default rule for Budget, `describeWorkflow()`Still returns **The standard workflow.**。 The function 's change count compares names, hours, stages and reliance only, without comparing the person responsible, description, target ancher or Timing.
+Function reproduction: change only Partner Speaker Review description or Budget default role; `describeWorkflow()` still returns **The standard workflow.** Change counts compare only title, effort, phase, dependencies, excluding owners/descriptions/anchor/timing.
 
 Code: `src/engine/workflow.ts:226`, `src/pages/Settings.tsx:138`.
 
-**standard: The key custom settings maintained by** should be included or clearly displayed in the summary to enable presidients to confirm that the current configuration is adjusted.
+**Acceptance:** count or explicitly show key saved custom settings so presidents can confirm adjusted configuration is active.
 
-## Suggested repair order and release freeze conditions
+## Suggested order and finalization conditions
 
-Only follow-up sequences are recorded here and implementation is not automatic.
+Records future order only; does not start implementation.
 
-1. **First harmonizes the template with the execution data.** Clear branches, conditions, dependency, node and sole date synonym to resolve WF-04 to CF-10. Otherwise, the follow-up interface and mail will still read conflicting messages.
-2. **Completion of mission content.** Solves the WF-01, WF-02, WF-11, so that presidients are configured for specific operations, completion of standards, processing entrances and reasons, as well as keeping track of new activities and task pages.
-3. **Collapse Details, text and summary.** solves WF-03, WF-12, WF-13, displaying readable results with the same live configuration.
-4. **Do a full speaker activity.** Edit Template  →  Move Node  →  Insert steps in the speaker branch  →  Change time and target  →  Update generation activity  →  Check for owner, condition, dependency, date, link, job description and alarm content. Confirms the conditions for isolation by closing the normal activity of the Speaker.
+1. **Unify template/execution data:** branches, conditions, dependencies, mandatory nodes, single date meaning; WF-04 through WF-10, otherwise UI/mail keep conflicting facts.
+2. **Complete actionable content:** WF-01, WF-02, WF-11; configure operations, completion criteria, entries, rationale, connecting new events/task pages.
+3. **Clarify Details, labels, summaries:** WF-03, WF-12, WF-13, readable results from one real configuration.
+4. **Full speaker-event acceptance:** edit → move → insert speaker step → effort/target edits → refresh → create event → verify owners/conditions/dependencies/dates/links/instructions/reminders; nonspeaker event verifies condition isolation.
 
-Templates release freeze should at least be satisfied: edit results can be saved, readable, consistent with reliance, new activities are faithfully configured, reminder dates match the task date, members can find a live processing entrance and templates can repeat the operation description. The ultimate effectiveness of the incoming officer will still need to be validated and cannot be claimed by these technical inspections alone as having reached a “three-day mastery of all processes”.
+At minimum: edits persist/read clearly, graph matches dependencies, new events honor configuration, reminder/task dates agree, real action entries available, reusable instructions. Actual newcomer outcomes need use testing; technical checks cannot prove "master all workflows in three days."
 
-## Existing acts and subsequent borders
+## Existing behavior and boundaries
 
-- **Change template only affects future activities**It is currently clearly designed, as Settings has stated;  Existing activities retain their own steps, which have not been misreported as defects in the present round. Location: `src/pages/Settings.tsx:129`, `src/data/settings.ts:126`.
-- The **flow chart is not drawn at date scale** itself can be a design choice. The WF-04 problem is that the page requires the user to edit the order in which it will be executed, but the graph does not reflect the changes in saved reliance.
-- The **auto email is still a display in the browser.** `useAutomaticReminders()` Reliance on application open and state changes, `sendReminderBatch()` generates mail and local records, runtime results are `simulated`. Live backstage scheduled, external mail delivery and cross-equipment access remain follow-up and the current template cannot be considered as completed unattended. Location: `src/reminders/useAutomaticReminders.ts:8`, `src/reminders/delivery.ts:13`, `src/reminders/runtime.ts:35`.
-- The focus template for this round does not modify the function matching, mail strategy, Handoff, incoming officer training functionality or official website.
-- `ab7123c` 's parallel working records show that Details, Editt and Multi-Foreign chains at actual activity nodes are being modified in another task to explicitly exclude Settings templates. The implementation of this report will be preceded by a re-checking of the then integrated task fields and processing portals, the reuse of their data models and the avoidance of reintroduction of two sets of links or overlap with ongoing work.
+- **Template edits affect future events only**, explicitly designed/documented in Settings; existing events retain own steps, not a defect here. `src/pages/Settings.tsx:129`, `src/data/settings.ts:126`.
+- **Graph not proportional to dates** may be valid design. WF-04 instead concerns editing execution order while graph ignores saved dependencies.
+- **Automatic email remains browser demo.** `useAutomaticReminders()` requires open app/state changes; `sendReminderBatch()` generates mail/local records; runtime delivery is `simulated`. Real background scheduling, external delivery, cross-device access remain future; template finalization does not complete unattended sending. `src/reminders/useAutomaticReminders.ts:8`, `src/reminders/delivery.ts:13`, `src/reminders/runtime.ts:35`.
+- Template-focused; no matching/mail-policy/Handoff/newcomer-training/production-site changes.
+- Parallel-work record at `ab7123c` shows actual-task Details/Edit/multiple links being changed elsewhere, explicitly excluding Settings templates. Before implementation, recheck integrated fields/action entries and reuse their model to avoid duplicate link systems/overlap.
 
-## Verify and Handoff
+## Validation and handoff
 
-**Checked:** 7 relevant test files, **104 passed**; Existing Settings workflow browsers pass through 1 each on the desktop and cell phones, with a total of **2 passing**. Although the tests have been passed, they do not cover reverse cases of moving visual order, insertion with branch, consistency between workload and reminder dates, and cannot be considered to exist on that basis.
+**Existing checks:** 7 related files, **104 passed**; existing Settings workflow browser case passed 1 each desktop/mobile, **2 passed**. These omit counterexamples for visual ordering after moves, same-branch insertion, effort/reminder-date consistency, so passing does not disprove findings.
 
-Run command:
+Commands:
 
 ```text
 npm exec -- vitest run src/test/workflow.test.ts src/test/workflowV2.test.ts src/test/orgWorkflow.test.ts src/test/flowEdit.test.ts src/reminders/actionLinks.test.ts
@@ -206,8 +206,8 @@ npm exec -- vitest run src/test/calibratedEngine.test.ts src/reminders/facts.tes
 npm exec -- playwright test --config=/tmp/workflow-audit-playwright.config.mjs --grep 'Settings workflow'
 ```
 
-Browser repeats the existing `e2e/workflow-setup.spec.ts`, temporarily configured using local Vite 4188 ports and systems Chromium, unmodified repository test. Completing **8 browser scene records**: keyboard moves, mouse drags, desktop additions, mobile phone additions, Chuck-in targets, name change, Full Check deletion, actual Plan quotation entry; function reverses the new conditions, returns when generated, dates and layouts.
+Browser reuses `e2e/workflow-setup.spec.ts`, temporary local Vite port 4188/system Chromium configuration, no repository-test changes. Also **8 recorded browser scenarios**: keyboard move, mouse drag, desktop/mobile insertion, Check-in target, rename, Full Check deletion, actual Plan quote entry. Function counterexamples cover conditional additions, generation restoration, dates, layout.
 
-`/workspace/shared/workflow-template-audit/`: `browser-results.json`, `engine-results.json` and screenshots; The directory is not a repository annex, and cross-machine handoff refers to the steps and code location of this report.
+Workspace evidence `/workspace/shared/workflow-template-audit/`: `browser-results.json`, `engine-results.json`, screenshots. Not repository attachments; cross-machine handoff relies on these documented reproductions/code locations.
 
-(a) Failure to complete the release of a restricted door or live school form; No live AI called, live mail sent, product code modified, merge main created or new PR created. Follow-up will first address the above template consistency issues and then move forward with automatic reminders and organization handoff. Could not close temporary folder: %s
+No full release gate, real school-form submission, real AI/email, product-code changes, main merge, or new PR. Address template consistency first, then automatic reminders/organizational handoff. Local backup needs synchronization.

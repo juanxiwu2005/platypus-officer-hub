@@ -1,22 +1,24 @@
-# DX-08 Animated "minus kinetic" protection already available
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Phase 1 Size S Risk Low R Level **R1 Available** Dependence: DX-01 Parallel Partners: DX-03 ~ 07
-- Branch: `design/dx-08-motion-guards` Style File: `src/styles/dx-08-motion-guards.css` Corresponding Details: D37
+# DX-08 Add reduced-motion protection to existing animations
 
-## Why?
-**Read**：`.typing i`and `.ai-wait-mark i`It's... `blink`It's an infinite loop. Only in the main style sheet. 2Branch `prefers-reduced-motion`（`.spin`、`.m-node`）。 Apple `accessibility.md › Be cautious with fast-moving and blinking animations`: Turned on "reduced kinetic effects" to reduce repeat animation.
+- Stage 1 · Size S · Risk low · R level **R1 available** · Depends on: DX-01 · Parallel partners: DX-03–07
+- Branch: `design/dx-08-motion-guards` · Stylesheet: `src/styles/dx-08-motion-guards.css` · Detail: D37
 
-## Something to do.
-1. `@media (prefers-reduced-motion: reduce)`: `.typing i`, `.ai-wait-mark i` stopped as static (`animation: none; opacity: .6`), and the texttip "Platypus is working" (available in `AskPanel.tsx`) remains visible.
-2. Replace these old transitions with token (almost constant appearance): `.switch input` (15s  →  `--dur-fast`), `.board-col` (12s  →  `--dur-fast`). **Do not touch** `.hover-card`, `.m-card` (S3 Decision), `.m-node` (DX-22).
-3. `e2e/dx-08-reduced-motion.spec.ts`: Using `reducedMotion: "reduce"` through Today, Events, Tasks, Ask waiting status, no `iterations === Infinity` animation can be found in `document.getAnimations()`; `blink` still exists when using `no-preference` (evidence of no injury).
+## Why
+**Observed:** `.typing i` and `.ai-wait-mark i` `blink` infinitely; main stylesheet has only 2 `prefers-reduced-motion` rules (`.spin`, `.m-node`). Apple `accessibility.md › Be cautious with fast-moving and blinking animations`: reduce repetition when reduced motion enabled.
 
-## Files that can be changed
+## Work
+1. Under `@media (prefers-reduced-motion: reduce)`, make `.typing i`, `.ai-wait-mark i` static (`animation: none; opacity: .6`); keep "Platypus is working" text (already in `AskPanel.tsx`) visible.
+2. Replace old transition durations with tokens (almost unchanged appearance): `.switch input` (.15s → `--dur-fast`), `.board-col` (.12s → `--dur-fast`). **Do not touch** `.hover-card`, `.m-card` (S3 decisions), `.m-node` (DX-22).
+3. New `e2e/dx-08-reduced-motion.spec.ts`: under `reducedMotion: "reduce"`, visit Today, Events, Tasks, Ask waiting; no animation in `document.getAnimations()` may have `iterations === Infinity`; under `no-preference`, `blink` remains (proves no unintended suppression).
+
+## Permitted files
 `src/styles/dx-08-motion-guards.css`, `e2e/dx-08-reduced-motion.spec.ts` (new).
 
 ## Acceptance
-- (a) Green new tests; `feel.spec.ts` (suspension card zero delay) green.
-- Juanxi how to test: "Reducing Dynamic Effects" by setting the computer, leaving Ask to wait for a reply and not flashing the dots.
+- New test and `feel.spec.ts` (zero hover-card delay) green.
+- Juanxi: set computer reduced motion, make Ask wait; dots stop blinking.
 
 ## Rollback
 R1 or R2.

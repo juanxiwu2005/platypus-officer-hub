@@ -1,38 +1,38 @@
-# DP8 Release of pre-repair plan
+# DP8 release-readiness repair plan
 
-This directory is the original restoration task before `integration/v1.0` (Deploy Preview 8) entered `main`. It breaks down the 2026-10-31 audit findings into 10 work package that can be independently executed and accessible, and provides a three-stage portal.
+Canonical repair tasks before `integration/v1.0` (Deploy Preview 8) enters `main`. Splits 2026-10-31 review findings into 10 independently executable, verifiable packages and provides three stage entry points.
 
-## Automatically discover entrances
+## Automatic discovery
 
-Any new Codex/ChhatGPT sessions should be read in the following order:
+Every new Codex/ChatGPT session reads, in order:
 
-1. Repository Root Directory `AGENTS.md`
+1. Repository-root `AGENTS.md`
 2. `docs/release-readiness/manifest.json`
-3. Document for the current phase:
-   - Phase I: `docs/release-readiness/stages/STAGE1.md`
-   - Phase II: `docs/release-readiness/stages/STAGE2.md`
-   - Phase III: `docs/release-readiness/stages/STAGE3.md`
-4. Work package proposal listed in phase files
+3. Current stage:
+   - Stage 1: `docs/release-readiness/stages/STAGE1.md`
+   - Stage 2: `docs/release-readiness/stages/STAGE2.md`
+   - Stage 3: `docs/release-readiness/stages/STAGE3.md`
+4. Package prompts listed by stage
 
-`manifest.json` is a machine readable index; The complete scope of the work package and criteria for acceptance are based only on the corresponding document under `work-packages/`.
+`manifest.json` is the machine-readable index; full package scope/acceptance criteria come only from corresponding `work-packages/` files.
 
-## Stages and dependency
+## Stages/dependencies
 
-| Phase | Work package | Parallel |
+| Stage | Packages | Parallel work |
 | --- | --- | --- |
-| 1 | WP01、WP02、WP03、WP04、WP07、WP09 | Six separate worktree parallels. |
-| 2 | WP05、WP06、WP08 | After the first stage of integration, three worktree in parallel |
-| 3 | WP10 | Single release authentication worktree |
+| 1 | WP01, WP02, WP03, WP04, WP07, WP09 | Six isolated worktrees |
+| 2 | WP05, WP06, WP08 | Three isolated worktrees after stage 1 integration |
+| 3 | WP10 | One release-certification worktree |
 
-Only `integration/v1.0` can be modified at all stages. `main` is Production and no agent can modify, push or send merge `main` without the specific approval of Juanxi alone.
+All stages may modify only `integration/v1.0`. `main` is Production; no agent may modify, push, merge `main` without Juanxi's separate explicit approval.
 
-## Common hard rules
+## Shared hard rules
 
-- `git fetch origin`, with the latest `origin/integration/v1.0` as a baseline and short SHA.
-- Do not overwrite GitHub facts with old worktree, old agent branch or chat memory.
-- Parallel tasks must use different worktrees and different branches.
-- It is prohibited to falsify green results with `skip`, `fixme`, delete assertions, blindly improve timeout, `force` click, raise the word/pack threshold or audit ignore.
-- Do not automatically call live fee AIR; Live AI as manual step.
-- Each work package produces only one clear-range submission, the test and `git diff --check` to execute the package requirements prior to submission.
-- Sub-agent does not update `docs/PROGRESS.md`, is updated uniformly by phase masters after integration has been completed and avoids parallel conflicts.
-- `origin/integration/v1.0` for fast-tracking only after the stage is adopted; In case of failure, the branch of work is retained and reported without semi-completed integration.
+- Start with `git fetch origin`, latest `origin/integration/v1.0` baseline, report short SHA.
+- Do not override GitHub facts with old worktrees, agent branches, chat memory.
+- Parallel tasks require distinct worktrees/branches.
+- Never manufacture green results through `skip`, `fixme`, deleted assertions, blind timeout increases, `force` click, raised word/bundle limits, audit ignore.
+- No automatic real paid AIR calls; real AI acceptance remains manual.
+- One clearly scoped commit per package; run required tests and `git diff --check` before commit.
+- Subagents do not update `docs/PROGRESS.md`; lead updates centrally after integration to avoid conflicts.
+- Lead may fast-forward push `origin/integration/v1.0` only after stage acceptance; on failure retain branch/report, never push partial integration.

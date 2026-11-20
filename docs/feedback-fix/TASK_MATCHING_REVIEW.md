@@ -1,144 +1,144 @@
-# Automatic reminder task matching review and follow-up arrangements
+# Automatic-reminder task-matching review and next steps
 
-2026-11-16(America/Phoenix) `claude/fervent-thompson-e2j5u2@bea7771`
+2026-11-16 (America/Phoenix) · Codex · Baseline `claude/fervent-thompson-e2j5u2@bea7771`
 
-Automatic reminders advance in six order. This round completes the review of existing task matching codes, records job labels and multiple candidate design requirements; The label catalogue and allocation rules are still to be determined item by item. Only the document will be modified for this round, and task matching, reminder, mail and handoff product behaviour will remain the same.
+Advance automatic reminders through six priorities in order. This round reviewed existing task-matching code and recorded design requirements for responsibility tags/multiple candidates; catalog/allocation rules still need item-by-item decisions. Documentation only; task matching, reminders, email, handoff behavior unchanged.
 
-> **Follow-up Direction (2026-11-16):** Juanxi requires the retention and enhancement of functional AI rule and function recognition, which is manually supplemented and matched; Not limit all student functions to the existing nine types of function, but create scalable relationships for different workflows and future AI stream generation. The former “assessment does not require AI” to be retained as originally envisaged and cannot be read as removing existing constitution AI. Juanxi has selected A2 + B2 + C2 from the [ comparison ](TASK_MATCHING_OPTIONS.md), requiring worktree Argentina to be implemented in phases before approval begins; [ Three Phase Implementation Plan ](TASK_MATCHING_IMPLEMENTATION_PLAN.md) Currently pending approval and product behaviour has not been adjusted.
+> **Subsequent explicit direction (2026-11-16):** Juanxi requires retaining/enhancing AI constitution role/duty extraction, supplemented/matched manually; do not restrict all clubs to nine existing functions. Build extensible relationships for varied/future AI-generated workflows. Earlier "evaluate without AI" remains initial thinking, never authorization to remove existing constitution AI. Juanxi selected A2 + B2 + C2 in [option comparison](TASK_MATCHING_OPTIONS.md), requesting staged worktree agents with approval before stages begin; [three-stage plan](TASK_MATCHING_IMPLEMENTATION_PLAN.md) currently awaits approval, product unchanged.
 
-## Six jobs and current scope
+## Six priorities and current scope
 
-| Order | Work | Current status |
+| Order | Work | Status |
 | --- | --- | --- |
-| 1 | Task Match | Status review completed; Discussion of role labels, coverage and multiple candidate rules |
-| 2 | RACI | Recorded; Then identify the responsible actors and the recipients of all kinds of messages. |
-| 3 | Synchronising folder | Recorded; Determine trigger conditions, state changes and Details display |
-| 4 | Mail Writer | Recorded; After that, a short description of the facts and a link to the process will be determined |
-| 5 | Click to open the mail process | Recorded; (c) Process the buttons as directly as possible to the specific page of the actual external platform, and multiple entrances will be required to explain the applicable scene; Status feedback is designed separately. |
-| 6 | A stand-alone backstage sender service | Recorded; Then connect to server data, timed, sent records and failed processing |
+| 1 | Task matching | Current-state review complete; discuss responsibility tags/coverage/multiple-candidate rules |
+| 2 | RACI | Recorded; later clarify responsible roles/message recipients |
+| 3 | Reminder plans | Recorded; later triggers/status changes/Details |
+| 4 | Email writing | Recorded; later concise wording/facts/action links |
+| 5 | Flow after opening email | Recorded; action links should reach specific real external pages, explaining multiple entries; status feedback separate |
+| 6 | Independent background sending service | Recorded; later server data/scheduling/send history/failures |
 
-Incoming office is the second core objective of independent work and organization, which follows the automatic reminders mentioned above. The FB wave, three-day handoff arrangement in the old document does not constitute a concurrent implementation scope for this round; Only the current sequence of pushes is adjusted here, and historical records are not rewritten retroactively.
+Independent newcomer work/organization handoff is the second core goal, after automatic reminders. Older FB waves/three-day handoff plans do not authorize concurrent implementation; this changes current order only, preserving history.
 
-## Task matching requirements by user
+## User's task-matching requirements
 
-1. The assessment does not depend on AI handling options matching onboarding and roll: collating existing workflows, role functions and applicable policy work into tickable blisters of duties.
-2. (b) The two bubbles cannot be defined in terms of functions that cannot be duplicated or made impossible to distinguish; At the same time, any known omissions are checked.
-3. Covers the current complete workflow and also examines common organizational responsibilities outside activity planning.
-4. When two persons assume the same role, there is a need for clarity on how to select the implementer of a mandate.
-5. (a) Explain the existing mechanisms before refining the programme; This round does not directly implement labels, assigned algorithms or the last five functions.
+1. Evaluate onboarding/role matching without AI: organize existing workflows/duties/applicable policy actions into selectable responsibility bubbles.
+2. No duplicate/indistinguishable responsibility definitions; check for missing known work.
+3. Cover complete current workflow and general organizational duties beyond events.
+4. Define task executor selection when two people share a responsibility.
+5. Explain current mechanism before refining proposal; no tags/algorithm/later five features implemented now.
 
-The " Not dependent on AI " job tag scheme is the direction that users propose and are assessing and does not represent an approved final label list, automatic assignment or data migration. The workload, time available and other factors that have been raised in previous conversations cannot be considered to be the capacity already realized by existing systems.
+"Without AI" tags are a proposed direction under evaluation, not approval of final catalog/automatic allocation/migration. Workload/availability ideas from chat are not already implemented capabilities.
 
-## How tasks are assigned to existing main processes
+## Current main-flow allocation
 
-The basic path used by the main application is: role name — a broad function  →  job flow step designation or functional matching  →  role holder  →  mandate-holder.
+Role name → broad function → workflow step's explicit role or function match → role holder → task executor.
 
-### role assigned to one function
+### A role maps to one function
 
-[ `RoleFunction` ](../../src/data/types.ts) is fixed in nine categories: president, vice_president, finance, projects, marketing, outreach, secretary, membership, avisor. One `Role` has only one `fn` and one `holderId`; The current model does not have a tickable job directory, multiple job labels or a roller candidate pool.
+[`RoleFunction`](../../src/data/types.ts) has nine fixed values: president, vice_president, finance, programs, marketing, outreach, secretary, membership, advisor. Each `Role` has one `fn`, one `holderId`; no selectable responsibility catalog, multiple tags, or member pool for a role.
 
-[ `fnForRole` ](../../src/data/structure.ts) uses English keywords in the name of role. For example, Finance, Treasurer, Budget to finance; Marking, Designing, Media to Markating; Event, Logistics, Organisations to Programs. Unrecognisable normal role by default to process. Cross-functional names are assigned to one category by match in the code and do not receive multiple categories.
+[`fnForRole`](../../src/data/structure.ts) mainly reads English title keywords. Finance/Treasurer/Budget → finance; Marketing/Design/Media → marketing; Event/Logistics/Operations → programs. Unknown ordinary roles default programs. Cross-functional titles match the first code-ordered category, never multiple.
 
-The current Team page allows changes to the rolle name, holder, reporting relationship and duty text. The name change usually results in the reprofiling of its functions; The functional text is kept as a free text and will not be compiled into a fine-scale job label.
+Team edits role name/holder/reporting/duty text. Renaming usually recalculates function; duties remain free text, never compiled into fine-grained tags.
 
-### Each step carries the responsible function or specific role
+### Each step carries function or explicit role
 
-[ `EVENT_STEPS` ](../../src/engine/playbooks.ts) Current definition of 46 steps, of which 31 are the core steps that have always been retained, and 15 whether or not they appear according to the circumstances of the activity. Not every activity produces all the 46 tasks.
+[`EVENT_STEPS`](../../src/engine/playbooks.ts) defines 46 steps: 31 always-retained core, 15 conditional. Not every event creates all 46 tasks.
 
-There is one `fn` for each step and a clear `ownerRoleId` can also be saved. Many different professional steps, such as content production and publicity, are currently under way in the form of marketing; The site, guests, transportation, security, etc. are all part of the program.
+Each has `fn`, optionally explicit `ownerRoleId`. Distinct content/marketing publishing specialties currently share marketing; venue/guest/transport/security share programs.
 
-The order of priority for [ `withOwners` ](../../src/engine/workflow.ts) is: the step of open-rolling role selection  →  the result of which matches have been saved and still exist  →  `roleFor`. The manual selection takes effect and the file written by an automatic historical match is retained, and the system does not distinguish between sources.
+[`withOwners`](../../src/engine/workflow.ts) prioritizes explicit passed step-role choice → saved still-existing role → `roleFor`. Manual selections work, but historic automatic role bindings are also retained, with no provenance distinction.
 
-### Select by fraction when no specific role
+### Score-based choice without explicit role
 
-[ `roleFor` ](../../src/engine/playbooks.ts) calculates for each role:
+[`roleFor`](../../src/engine/playbooks.ts) scores each role:
 
-- Role `fn` is consistent with step `fn`, plus 100 points.
-- The key word for the function is matched in the file name and function text, plus 20 points.
-- Select the highest gross score; Select the roller that will be placed in front of the list at the same time.
+- Matching role `fn`/step `fn`: +100.
+- Function keyword in role name/duties: +20.
+- Highest wins; ties choose earlier input-list role.
 
-The use of a fixed reserve chain when no positive candidate is available: finance, positioning to presidient; Programs can be found at vice_president, and then at president; The remaining functions also have their own back-up chains. Returns the first line of the roll list directly when it is not found.
+No positive candidate uses fixed fallbacks: finance/marketing → president; programs → vice_president → president; others have their own chains. If none found, returns first role.
 
-There is no comparison of specific skills, necessary accounts, whether there are holders, personal busy weeks, live available capacity or assigned tasks. `orderRoles` Sorts the path in partial setting by reporting hierarchy, so that the same time-frame list does not actually fit best. The saved `ownerRoleId` step will prioritize the old line, and not every construction activity will be rematched to the current list.
+No comparison of specific skills, required account access, occupied/vacant role, personal busy weeks, actual capacity, assigned workload. `orderRoles` sorts some setup paths by reporting hierarchy, so list order does not imply suitability. Saved `ownerRoleId` takes precedence; new events do not always rematch current list.
 
-### Write role holder as specific executor
+### Role holder becomes executor
 
-[ `buildEventNodes` ](../../src/engine/playbooks.ts) uses the active roll of steps first and calls `roleFor` when missing; Write the selected `holderId` to task `ownerId`. If no one is in charge of the job, no one will be responsible for it. It will not continue to look for the next candidate because of the role vacancy.
+[`buildEventNodes`](../../src/engine/playbooks.ts) uses valid step role first, calling `roleFor` only if missing; chosen role's `holderId` becomes `ownerId`. Vacant role produces unowned task, without searching next occupied candidate.
 
-`buildEventNodes` receives only activity, roll and template options and does not receive complete memory skills or workload data. (a) This path of the current creation activity, with a holder setting the task directly as associated; This is different from the rule of waiting for a claim after the creation of an independent mission.
+Inputs are event/roles/template options, not complete member skills/workload. This creation path immediately sets occupied-role tasks accepted, unlike standalone tasks assigned to others awaiting claim.
 
-## The practical effects of AI and other created portals
+## AI and other creation entries
 
-| Imports | Current actual acts |
+| Entry | Actual behavior |
 | --- | --- |
-| New activities | Creates an activity to generate tasks from templates and engines, following a step line or the above-mentioned matching rules; Not an AI-by-article call |
-| Cannot initialise Evolution's mail component. | AI can extract a roll name and duties; After accepting the recommendation, this information is involved in local role configurations and cannot be equated with fine particle size skill matching |
-| Workstream AI job separation interface | `netlify/functions/workflow.mts` , which allows the model to select an existing ruler for a step; The static search did not detect the branch's non-test front end calling the interface, and cannot describe the existence of the service end code as the current onboarding has taken the process |
-| Ask New Independent Task | Prompt requires a user-only name or roll to leave space when it is uncertain; Form for revision, then go. `createTasks` |
-| Head of manual change | Direct use of the selected person; Existing portals mainly authenticate identity, IDs and modifications permissions. There is no common functional qualification layer |
-| After the silence, take over the proposal. | `suggestedOwner` (a) The number of tasks not completed is ranked first by functional proximity; It's just a suggestion for a specific follow-up scenario, and it doesn't become an integrated distribution mechanism for normally created tasks. |
+| New event | Template/engine generate tasks using bound roles/matching above; no per-task AI member evaluation |
+| Optional constitution reading | AI extracts roles/duties; accepted suggestions enter local role configuration, not fine-grained skill matching |
+| Workflow AI owner endpoint | owners branch in `netlify/functions/workflow.mts` lets model choose existing role per step; static search found no non-test frontend caller on this branch, so server code does not establish active onboarding usage |
+| Ask standalone task | Prompt uses only explicitly named people/roles, otherwise blank; editable form then `createTasks` |
+| Manual reassignment | Uses selected person; entries validate identity/IDs/edit permission, with no common responsibility-qualification layer |
+| Temporary takeover after silence | `suggestedOwner` sorts function proximity, then unfinished-task count; special follow-up suggestion, not unified ordinary-task allocator |
 
-Relevant codes: [ `structure.ts` ](../../src/data/structure.ts), [ `workflow.mts` ](../../netlify/functions/workflow.mts), [ `chatCards.ts` ](../../src/lib/chatCards.ts), [ `changeReview.ts` ](../../src/data/changeReview.ts), [ `followup.ts` ](../../src/engine/followup.ts).
+Code: [`structure.ts`](../../src/data/structure.ts), [`workflow.mts`](../../netlify/functions/workflow.mts), [`chatCards.ts`](../../src/lib/chatCards.ts), [`changeReview.ts`](../../src/data/changeReview.ts), [`followup.ts`](../../src/engine/followup.ts).
 
-When two individuals are selected on an independent task sheet, two similar tasks, one each, are currently created; It did not choose one person from two members of the same duty to take up the same job. _Other Organiser A separate mission for others is waiting to be claimed by each other.
+Selecting two people in standalone form creates two similar tasks, one each; it does not choose one of two same-responsibility members for one job. Without assignee, president can post unowned work; ordinary officers default to self; assignments to others await claim.
 
-Repository also has a default hidden server. Its `resolveOwners` is selected on the basis of membership `roleIds`: only one candidate automatically has a lead implementer, several candidates are empty and the rest are listed as collaborative candidates. The mechanism and the current browser main application are separated and cannot be confused with unified access.
+Repository also has default-hidden server Activity workspace. `resolveOwners` finds candidates by member `roleIds`: exactly one becomes primary; multiple leave primary blank and others as collaborator candidates. Separate from browser main app, never claim unified release.
 
-## A border proposal for a small bubble.
+## Proposed responsibility-bubble boundaries
 
-Small bubbles are appropriate to indicate “what kind of work is in charge”, such as booking of premises, registration of school events, preparation of promotional papers, promotion of visual production and publicity. The role name continues to be defined by the student organisation, and a role can tick multiple duties.
+Bubbles describe work owned, such as venue booking, official event registration, promotional writing, promotional visual creation, publishing. Club-defined role names remain, each selecting multiple duties.
 
-The need to distinguish duties, skills and operations It is the responsibility to promote visual production; Applications that can be submitted to a specific system are missions. A cross-checking of duties does not automatically justify the need for missions and interests cannot automatically be considered professional qualifications.
+Distinguish duties/skills/permissions: Canva proficiency is skill; owning visual production is responsibility; submitting a particular application is permission. A duty selection proves no required access, and interest is not professional qualification.
 
-Refusal checks should be carried out to the actions, objects and deliverables of each assigned function. For example:
+Check each allocatable duty's action/object/deliverable:
 
-| Candidature duties | Main delivery | Clear exclusion |
+| Candidate responsibility | Main deliverable | Explicit exclusions |
 | --- | --- | --- |
-| Registering school activities | Activity log and confirmation number | Organization of annual registration, room reservations |
-| Place reservations | Site, capacity, configuration requirements and booking confirmation | Registering school activities |
-| Promotional writing | Verifiable promotional text | Visually produced, released |
-| Promotion of visual production | Verifiable posters or images | Writing, publishing. |
-| Dissemination | What has been published through the designated channel | Production of documents and visual products |
+| Official event registration | Registration record/confirmation number | Annual organization registration, room booking |
+| Venue booking | Venue/capacity/layout/booking confirmation | Official event registration |
+| Promotional writing | Reviewable promotional text | Visual deliverables, publishing |
+| Promotional visual creation | Reviewable poster/image | Copywriting, publishing |
+| Promotional publishing | Content posted to specified channels | Creating text/visuals |
 
-These five are just examples of boundaries and are not labels that have been finalized or covered for all jobs. Upper grouping can be used to search for small bubbles and should not become a double-countable task at the same time as sub-items.
+These five illustrate boundaries, not final/full catalog. Parent groups aid discovery, not duplicate allocatable duties counted alongside children.
 
-(b) The definition of duties between different bubbles should be clear; Different role or member ticks the same little bubble that allows it to exist. The two address “how jobs are classified” and “who are the candidates”.
+Different bubbles need distinct definitions; different roles/members may select the same bubble. These solve work classification and candidate membership respectively.
 
-Currently, `contentCreation` contains both literature and visual material, while `materials`, `checkin` and `speakerPacket` have multiple deliveries. A professional breakdown requires the dismantling of tasks or the identification of multiple essential functions and coordination responsibilities of the principal implementers. The direct labelling of complex tasks does not guarantee that any person matching one of them will be able to perform the entire task independently.
+`contentCreation` currently combines copy/visuals; `materials`, `checkin`, `speakerPacket` also combine deliverables. Specialization requires splitting tasks or specifying multiple required duties and primary executor's coordination role. Multiple tags do not prove that someone matching one can complete the whole compound task alone.
 
-## How to check the full coverage
+## Coverage verification
 
-The overlay check requires two separate forms:
+Two separate mappings required:
 
-1. Which is the main responsibility for each current standard step, organizational self-defined step and temporary task; Whether composite steps need to be split; No work visible was mapped to be retained for classification.
-2. For each applicable organizational policy exercise, what triggers the conditions, practical actions and primary responsibilities. Rules are binding, restraining matters or work to be performed and should be judged separately and not automatically turn every source of policy into a task.
+1. Every standard/custom/ad-hoc task → main responsibility; split compound steps if needed; explicitly retain unmapped work as uncategorized.
+2. Every applicable organizational policy action → trigger, actual action, main duty. Determine whether each rule is a constraint/prohibition/action; do not turn every source into a task.
 
-Current scope of verification: 46 standard steps, 9 broad functions, 16 simplified rules and catalogue records of 64 policy sources. The following is a full list of 46 current steps; 64 catalogue records have not been extracted and checked by article for all duties, so there is no claim that the label system covers all ASU policies.
+Reviewed scope: 46 standard steps, 9 broad functions, 16 simplified rules, 64 policy-source catalog entries. All 46 steps listed below; 64 entries not yet extracted/reviewed duty by duty, so no claim of complete ASU-policy coverage.
 
-The scope to be checked outside the event includes: organizational registration and annual re-registration; maintenance of role and organizational information; necessary training and account access maintenance; liaison between consultants and school partners; organization of archives; use of brands and trademarks; and verification of applicable music copyright. Recruits, regular meeting records, etc. are also found in the existing rolle job template. The scope of work to be verified is set out here, and specific obligations and performances must be linked to applicable provisions and organizational configurations and cannot be determined by reference to the source title alone.
+Non-event scope to review: registration/annual renewal, role/org profiles, training/account access, advisor/university liaison, organizational archives, branding/trademarks, applicable music copyright. Recruitment/meeting minutes also occur in duty templates. These are review areas; specific obligations/authority need applicable clauses/configuration, not title-based assumptions.
 
-[ `R16` ](../../src/data/rules.ts) has taken on a number of common organizational matters; [ `POLICY_CATALOG` ](../../src/data/policyCatalog.ts) has other sources of governance, brand name, accessibility, colleges, etc. Historical information and specific college requirements cannot automatically be considered as current requirements for all organizations.
+[`R16`](../../src/data/rules.ts) combines general organization matters; [`POLICY_CATALOG`](../../src/data/policyCatalog.ts) includes governance/branding/accessibility/college sources. Historic materials/specific-college rules do not automatically apply currently to all organizations.
 
-Coverage should be based on a defined list. Future new workflow steps or policy actions must be re-examined; Keeps the gap when it cannot be matched, and hides the gap no longer by " first roll " .
+Coverage denominator must be a defined list. Recheck new steps/policy actions; preserve gaps instead of hiding them by assigning first role.
 
-## When two people have the same duties,
+## Two people with the same responsibility
 
-The current master application selects the first line of the roll list in the same fraction and the same rule has only one holder; There is no strategy for allocating the same duties as members of the pool.
+Main app currently breaks score ties by role-list order, one holder per role; no same-duty member-pool strategy.
 
-It was recommended that the labels should form a pool of candidates before a clear allocation of responsibilities. There are at least two different scenarios:
+Recommend tags form candidate sets, then define allocation per duty. At least two scenarios:
 
-- Function that requires continuous external communication or a fixed system of missions: setting up the primary recipient and backup.
-- Independent work to be shared among eligible members: distribution among candidates meeting the conditions of time; Clear rules for follow-up can be used with capacity, work and rotation sequences already in place.
+- Continuous external communication/fixed system permission: primary + backup.
+- Independent work shareable among qualified members: allocate among permission/time-qualified candidates; define capacity, existing work, rotation rules later.
 
-In any way, the principal implementer of a mandate is retained. Collaboration members should not automatically receive a duplicate task. Manual designations have been made that cannot be secretly reassigned due to daily recalculation of loads; Candidates are not available or when the distribution strategy is uncertain, a clear indication of their allocation and an explanation of why.
+Always one primary executor per task. Collaborators should not automatically receive duplicates. Never silently reassign manual choices during daily load recalculation; unavailable candidates/unsettled strategy should explicitly show unassigned with reason.
 
-Rotation, volume calculation, symmetry rules, default receivers and coverage adjustments have not yet been finalized. The number of tasks available and the number of days planned are not sufficient to accurately represent the actual input of each individual and cannot be referred to directly as live workloads.
+Rotation/capacity/ties/default owner/coverage adjustment remain undecided. Task counts/planning days cannot accurately represent actual effort or be called real workload.
 
-## Current complete list of standard steps
+## Complete current standard steps
 
-Below is a review of static definitions in the baseline. The core column indicates whether it is in `CORE_EVENT_STEP_KEYS`; The scenario describes the conditions for creating additional steps. The skills or duties labels have not yet entered these data.
+Static definitions at review baseline. Core means membership in `CORE_EVENT_STEP_KEYS`; context describes conditional creation. No skill/duty tags yet.
 
-| Step ID | Current Name | Current function | Core | Situation |
+| Step ID | Current name | Function | Core | Context |
 | --- | --- | --- | --- | --- |
 | plan | Event Plan | programs | Yes | — |
 | backup | Back-up Plan | programs | Yes | — |
@@ -187,10 +187,10 @@ Below is a review of static definitions in the baseline. The core column indicat
 | orderPlaced | Order Placed | finance | Yes | — |
 | finalcheck | Full Check Alert Changes | president | Yes | — |
 
-## Validate and Handoff
+## Verification and handoff
 
-The status quo conclusion is verified by the live function 's offline assertion: the same score is selected in the list order, reverses the list to change an unbound step candidate, the opening of a slot can also be ranked first, unknown roll name defaults, missing matches to list 1, saved steps are retained, and the opening of a slot creates unaccountable tasks.
+Offline assertions of real functions confirmed: list-order ties; reversing list changes unbound candidates; vacant role can rank first; unknown titles default programs; missing match falls back first role; saved bindings retained; vacant holder yields unowned task.
 
-Relevant test 6 files, 114 adopted: `npm test -- src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts`. The workflow interface test uses the simulation AI, and no live model is called in this round. The list of steps is generated directly from the current `EVENT_STEPS` and `CORE_EVENT_STEP_KEYS`, and a total of 46 lines and 31 core steps are checked.
+6 existing related files/114 tests passed: `npm test -- src/test/m4.test.ts src/test/orgWorkflow.test.ts src/test/workflowV2.test.ts src/test/m2b.test.ts src/test/onboardingTeam.test.ts src/test/fb-05-create.test.ts`. Workflow endpoint tests mock AI; no real models called. Step list generated directly from current `EVENT_STEPS`/`CORE_EVENT_STEP_KEYS`, verified 46 rows/31 core.
 
-Only the current status, user requirements and options to be refined are recorded during this round. The next step would be to review the catalogue of duties and the coverage map on a case-by-case basis, and to clarify the rules for multiple candidates; Do not execute RACI, Mail, Scheduling, Backstage Send or Division Handoff in advance. Could not close temporary folder: %s
+This round records only state, user requirements, pending refinement. Next review catalog/coverage item by item, then multiple-candidate rules; no early RACI/email/scheduling/background service/handoff implementation. Local backup sync required.

@@ -1,14 +1,14 @@
-# DP8 Phase III. Final release of the certification
+# DP8 stage 3 · WP10 final release certification
 
-2026-10-31（America/Phoenix；The implementing environment is 2026-11-01 UTC. This report certifies only the release of integration/v1. 0; Live AI Manual Results are listed separately.
+2026-10-31 (America/Phoenix; execution environment 2026-11-01 UTC). Certifies only integration/v1.0 release readiness; real-AI manual results separate.
 
-## Baseline and scope
+## Baseline/scope
 
-Execute `git fetch origin` first. The original refspec track only the default branch, so perform `git fetch origin refs/heads/integration/v1.0:refs/remotes/origin/integration/v1.0` in a more visible way. Create a new, clean worktree `dp8-stage3-certification-20261101` from the far side; The start-up complete IS **1e19af560daaf9ca10ee40670877c5c1b41665d8**, short SHA **1e19af5**, HEAD equals orogen/integration/v1. 0. The working branch is `release/dp8-final-certification`.
+Ran `git fetch origin`. Existing origin refspec tracked default only, so explicitly `git fetch origin refs/heads/integration/v1.0:refs/remotes/origin/integration/v1.0`. Created fresh clean remote-based worktree `dp8-stage3-certification-20261101`; initial full SHA **1e19af560daaf9ca10ee40670877c5c1b41665d8**, short **1e19af5**, HEAD equal origin/integration/v1.0. Branch `release/dp8-final-certification`.
 
-Read the last two phases of AGENTS, release-readines README, manifest, STAGE3, WP10 and PROGRESS in full order; Reconciling two stages of evidence. Execute `git merge-base --is-ancestor <commit> HEAD` for each of the following nine items and withdraw from 0:
+Read full AGENTS/release-readiness README/manifest/STAGE3/WP10/latest two stage PROGRESS handoffs in user order; checked both stages' evidence. `git merge-base --is-ancestor <commit> HEAD` for each of nine entries exited 0:
 
-| Bag. | Submitted as integrated |
+| Package | Integrated commit |
 | --- | --- |
 | WP01 | 2f3c922787fccf12ad4144e8d1c829c2486027c8 |
 | WP02 | a653a4c290ed5c5d819e8bbfa1526030076ddc15 |
@@ -20,45 +20,45 @@ Read the last two phases of AGENTS, release-readines README, manifest, STAGE3, W
 | WP08 | 5540c66bda560c2ab2826cae4e662b68b09922e6 |
 | WP09 | 83a699521fac28fb4c4a597e7ef3b7abab3c8243 |
 
-This package amends only five mandatory hits in two old version tests: sharing `clickCurve` to find a shot-in position on the live SVG curve, normal click to keep Playwright operational check and to assert that it is selected. The reporting relationship test first drags to the parent ' s node to establish a relationship and then drags back to the blank position, adding new relationships without any further assertions, and subsequently retains reconnecting, deleting, significant Fields, circular rejections and Undo checks. No product behaviour changes, no affirmations, timeout additions, force click, liberalization of thresholds or new skip were deleted.
+Only changed five forced clicks in two old storage tests: shared `clickCurve` finds hittable actual SVG curve point, ordinary click retains Playwright actionability, asserts selection. Reporting test actually drags onto parent, then back to blank position, adds unchanged-relationship assertion, retaining reconnect/delete/manualFields/cycle rejection/Undo. No product changes, deleted assertions, timeout increases, force clicks, weakened limits, or new skips.
 
-A read-only agent is responsible for analysing and reviewing the above test changes; All file changes, repeats and final submission are certified worktree.
+One read-only subagent analyzed/reviewed test edits; all file edits/retests/final commit in same certification worktree.
 
-## Outcomes by category
+## Results by category
 
-| Category | Evidence and boundaries |
+| Category | Evidence/boundaries |
 | --- | --- |
-| Bottom logic | Node 22 unit tests 56 files/ 809 were adopted, containing date engines, v2 workflows, missions, forecasts, AI date filtering and task status; The model date was not used as the basis for Scheduling.  |
-| Data | The complete four-project matrix covers general local presentations and visual start-up simulation structure; Includes saving/recovering, 409 conflicts, non-covering unsaved content, archiving, approval of snapshots, export and CRM visibility. Test using field data and simulation API; The hidden server is not stored as an official multi-person database.  |
-| Frontend | Stylelint, ESLint, TypeScript/Vite Build, nine practical ways through Words; Keep Router reoriented, abnormally restored, page as required and moving.  |
-| Backend | `npm run typecheck:netlify` Adopted; `tsc --showConfig -p tsconfig.netlify.json` Confirms rule=true over 18 Operations and 15 backend library files.  |
-| Security | Production/complete audit 0 leaks; Gitleaks scans the current source file and HEAD up to 267 historical submissions, except for public localStoreage misreported in the following section; Additional private key tag check is 0. Keeps input size, white list, internal redirection and hidden endpoint boundaries.  |
-| Interactive | The actual mouse/keyboard/touch screens, forms, budgets, Owner selection, Escape, menus, Undo, Reset, refresh and reset/delete are checked. Five historical forced clicks removed.  |
-| Accessibility | Full matrix execution Axe With keyboard scenes，Includes normal/Read-only Budget Focus、All phones on screen. Rail、Flatbed、Name of brand and manual、Lazy load. status。a11y.spec.ts Yes. 63 Through / 3 Exclusion of existing equipment，Original Axe Infringement As 0；Other figures/Lazy load./Set accessibility check to do the same.。Original Axe Infractions are not filtered。 |
-| Performance | Main entrance 364,430 bytes (gzip 115,194), below 500,000; React rantime 142,530 (gzip 45,815), front page JS total 506,960. AST confirms that the entrance is static only with reference to rantime, runtime and no rebuttal for import/export-from. Browser check not to request PhaseOne/OnlineSetup/PDF for the first time, select PDF before requesting implementation and worker; No change to the package threshold.  |
-| Test and CI | The final complete four projects 451 by / 13 failed / 0 / 0 flaky / 0 retry; 28 files, 464 items, 6.1 minutes. For the current remote Checks see next section.  |
-| Live AI manual | **Not implemented, 0 live fee AIR call**. [ DP8 manual list ](WP10-ai-smoke-checklist.md) has been provided to distinguish live model responses, local routes, simulations and fallback; Do not treat offline results as live AI quality authentication.  |
+| Core logic | Node 22, 56 unit files/809 passed: dates/v2 workflow/permissions/forecast/AI-date filtering/status; no model dates used for scheduling. |
+| Data architecture | Full four-project matrix covers local demo/explicit mock-storage build: save-restore/409/unsaved-input protection/archive/approved snapshots/export/CRM visibility. Fictional data/mocked APIs; hidden server storage not called production multiuser database. |
+| Frontend | Stylelint/ESLint/TypeScript-Vite/nine real-route word checks passed; redirects/error recovery/lazy pages/loading retained. |
+| Backend | `npm run typecheck:netlify` passed; `tsc --showConfig -p tsconfig.netlify.json` strict=true, 18 Functions/15 backend libraries. |
+| Security | Production/full audits 0 vulnerabilities; Gitleaks current sources/267 HEAD-reachable commits only public localStorage-key false positive below; private-key markers 0. Input-size/allowlist/internal-redirect/hidden-endpoint boundaries retained. |
+| Interaction | Actual mouse/keyboard/touch/forms/budget/Owner/Escape/menus/Undo/Reset/refresh/graph reconnect-delete checks retained. Five historical forced clicks removed. |
+| Accessibility | Full Axe/keyboard matrix: ordinary/read-only Budget focus, mobile fullscreen Rail, tablet, brand/handbook names, lazy status. a11y.spec.ts 63 passed/3 existing device exclusions, raw Axe violations 0; graph/lazy/settings checks also run. Raw Axe violations never filtered. |
+| Performance | Entry 364,430 bytes (gzip 115,194), below 500,000; React runtime 142,530 (gzip 45,815), homepage JS 506,960 total. AST confirms entry statically imports runtime only, no runtime import/export-from backreference. Initial browser load excludes PhaseOne/OnlineSetup/PDF; PDF implementation/worker only after selection; budgets unchanged. |
+| Tests/CI | Final full four projects 451 passed/13 existing device exclusions/0 failed/0 flaky/0 retries; 28 files/464 tests, 6.1 minutes. Remote Checks below. |
+| Real-AI manual acceptance | **Not run, 0 real paid AIR calls.** [DP8 manual checklist](WP10-ai-smoke-checklist.md) distinguishes real responses/local routing/mocks/fallback; offline results not real-AI quality certification. |
 
-## Execute command and complete lockdown
+## Commands/full gates
 
-Environment: Node **v22. 23.4**, Chromium `/usr/bin/chromium`. All npm/ Playwright commands are executed through `npm exec --yes --package=node@22 -- sh -c '…'`. The browser is activated after completion of the production construction and is not reconstructed during operation; Use formal playwright.config.ts to specify only workers=2, records=0 and log reporter.
+Node **v22.23.4**, Chromium `/usr/bin/chromium`. npm/Playwright through `npm exec --yes --package=node@22 -- sh -c '…'`. Browser started after production build, no dist rebuild during run; official playwright.config.ts with workers=2/retries=0/log reporters only.
 
-| Command / Check | Final result |
+| Command/check | Final result |
 | --- | --- |
-| `npm ci` | Adopted, 439 packages; No change to package.json/lockfile.  |
-| `npm run lint` | Adopted; Includes 20 JSX/style sample, 4 original exclusion and 66 matcher check.  |
-| `npm run build` | Adopted; TypeScript/Vite, production source maps off.  |
-| `npm test -- --maxWorkers=2` | 56 File/ 809 passed, 0 failed, 0skip.  |
-| `npm run typecheck:netlify` | Pass, block reserves.  |
-| `PW_CHROMIUM=/usr/bin/chromium npm run words` | All live route passes, as detailed in the table below.  |
-| `CI=1 PW_CHROMIUM=/usr/bin/chromium PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/rr-stage3-final-e2e.json npx playwright test --workers=2 --retries=0 --reporter=line,json` | **451 Failed by excluding / 13 equipment / 0 / 0 flaky / 0 retesting**, 28 files / 464, 363.9 seconds.  |
-| `npm audit --omit=dev` / `npm audit` | Both are 0 for information/low/moderate/ high/critical/total.  |
-| `git diff --check HEAD` | Adopted; Final submission and subsequent review.  |
-| `git fsck --no-reflogs --connectivity-only` | Pass, exit 0.  |
-| Gitleaks 8.24.3/ private-key scan | See the original results and findings in the following section.  |
-| Build volume / AST / live first load | (a) Static inspection pass; Live network check is contained in two specs of the complete matrix.  |
+| `npm ci` | Passed, 439 packages; package.json/lockfile unchanged. |
+| `npm run lint` | Passed, 20 JSX/style samples, 4 existing exclusions, 66 matcher checks. |
+| `npm run build` | Passed TypeScript/Vite, production source maps off. |
+| `npm test -- --maxWorkers=2` | 56 files/809 passed, 0 failed/skipped. |
+| `npm run typecheck:netlify` | Passed, strict retained. |
+| `PW_CHROMIUM=/usr/bin/chromium npm run words` | All actual routes passed, below. |
+| `CI=1 PW_CHROMIUM=/usr/bin/chromium PLAYWRIGHT_JSON_OUTPUT_NAME=/tmp/rr-stage3-final-e2e.json npx playwright test --workers=2 --retries=0 --reporter=line,json` | **451 passed/13 existing device exclusions/0 failed/0 flaky/0 retries**, 28 files/464 tests, 363.9 seconds. |
+| `npm audit --omit=dev` / `npm audit` | Both info/low/moderate/high/critical/total all 0. |
+| `git diff --check HEAD` | Passed; rechecked before/after final commit. |
+| `git fsck --no-reflogs --connectivity-only` | Passed, exit 0. |
+| Gitleaks 8.24.3 / private-key scan | Raw results/assessment below. |
+| Bundle size / AST / actual initial load | Static checks passed; real network checks in two bundle specs/full matrix. |
 
-| Words Route | visible / all | Unchanged threshold |
+| Words route | visible / all | Unchanged limits |
 | --- | --- | --- |
 | Today | 109 / 404 | 160 / 450 |
 | Events | 149 / 171 | 180 / 420 |
@@ -68,30 +68,30 @@ Environment: Node **v22. 23.4**, Chromium `/usr/bin/chromium`. All npm/ Playwrig
 | Handoff | 39 / 71 | 120 / 120 |
 | Partners | 79 / 99 | 120 / 120 |
 | Settings | 120 / 120 | 150 / 150 |
-| Help | 442 / 442 | Original message page width 9999/ 9999 |
+| Help | 442 / 442 | Existing informational-page allowance 9999 / 9999 |
 
-Funding is the reorientation of Events, continuing WP06 with only one-time statistics.
+Funding redirects Events, retaining WP06's count-once contract.
 
-## Scret/ private-key scan original results
+## Raw secret/private-key scan
 
-- `gitleaks git --log-opts=HEAD --redact --report-format json …`: 267 can be submitted by approximately 5.19 MB, original **1 warning and withdrawal from 1**.
-- `gitleaks dir … --redact --report-format json …` after exporting the current source file using `git ls-files --cached --others --exclude-standard`: original **1 alerts and exits 1**. The unscanned third-party packages or construction products to mix irrelevant test evidence.
-- Both are `generic-api-key` erroneously reported to the public `LOG_KEY` constant (value `platypus.v1.log`). The historical location is `d1e80c72cfebc193432b4e82ddfb90f832243df2:src/data/store.tsx:250`; Currently is line 442 of this document. The context is clearly used only for reading and writing the localStorage interactive log, not as API support or private key. The **confirmed leak is 0**; Do not pretend to be the original zero alarm for scanners, or add ignore/allowlist or rewrite history.
-- Check extra `BEGIN … PRIVATE KEY` tags per source file, resulting in 0. Scanning output allergies; There is no environment secret or output document to read.
+- `gitleaks git --log-opts=HEAD --redact --report-format json …`: 267 reachable commits/about 5.19 MB, raw **1 finding/exit 1**.
+- Current sources exported via `git ls-files --cached --others --exclude-standard`, then `gitleaks dir … --redact --report-format json …`: raw **1 finding/exit 1**. Excludes installed packages/build artifacts to avoid unrelated fixture credentials.
+- Both `generic-api-key` false positives on public `LOG_KEY` = `platypus.v1.log`. Historical `d1e80c72cfebc193432b4e82ddfb90f832243df2:src/data/store.tsx:250`, current file line 442. Clearly only localStorage log read/write, not API credential/private key. **0 confirmed leaked secrets**; no false claim of zero raw findings, no ignore/allowlist/history rewriting.
+- Additional per-source `BEGIN … PRIVATE KEY` search: 0. Outputs redacted; no environment secrets read/credentials printed.
 
-## Failed classification and uncertified part
+## Failure classification/uncertified areas
 
-The target map test 3 failed after the first forced click replacement / 2 with the original exclusion / 1 because the test placed two nodes in exactly the same position, and the link had no hits; Classify as old test steps drifting. Target matrix after adding live move back to the blanks and relationship no change **4Adopted / 2Original exclusion / 0Failed**。 (b) Rerun the Lint/Build/unit/strict/words/types audit and complete four project doors; Keeps failed rotation logs.
+First forced-click replacement: targeted graph 3 passed/2 existing exclusions/1 failed, because test placed nodes exactly together, leaving no hittable line; old test-step drift. Actual move back to blank/unchanged-relationship assertion fixed it: **4 passed/2 existing exclusions/0 failed**. Reran lint/build/unit/strict/words/both audits/full four-project gate, retaining failed-round logs.
 
-No live Air generation, physical equipment/Safari, manual on-line operation, rules source text manual review or Phase 3 study acceptance; These cannot be replaced by chromium simulation or mock. Netlify access protection was not closed, nor was online server storage enabled.
+No real AIR generation/physical devices-Safari/online manual operation/manual rule-source review/Phase 3 study acceptance; Chromium emulation/mocks cannot replace them. Netlify protection not disabled; online server storage not enabled.
 
-All local hard doors have passed; Allow normal `HEAD:integration/v1.0` fast-forwards after the feed confirms that the remote is not moving. This package is submitted using a `[RR-WP10][Codex]` and contains test amendments, authentication reports, manual lists and harmonized handoff. The remote final complete SHA and the pushed Checks state is given by the main agent in the final chat report and verified that the workspace is clean and the HEAD is consistent with the latest orgin/integration/v1. 0; This document does not advance the claim for adoption of the uncompleted remote CI.
+All local hard gates passed; normal fast-forward `HEAD:integration/v1.0` permitted after fetch confirms remote unchanged. One `[RR-WP10][Codex]` commit includes tests/report/manual checklist/unified handoff. Lead final chat supplies actual remote full SHA/post-push Checks, verifies clean workspace/HEAD equals latest origin/integration/v1.0. This file does not preclaim unfinished remote CI success.
 
-Main is undetected, modified, pushed or merged; No force push. Could not close temporary folder: %s
+main never checked out/modified/pushed/merged; no force push. Local backup sync required.
 
-## Four projects, exclusion of reasons and Checks snapshot
+## Four projects, exclusions, Checks snapshot
 
-| Item | Passed | Existing equipment conditions excluded | Failed/Retry |
+| Project | Passed | Existing device exclusions | Failures/retries |
 | --- | ---: | ---: | ---: |
 | desktop | 169 | 3 | 0 / 0 |
 | mobile | 165 | 7 | 0 / 0 |
@@ -99,18 +99,18 @@ Main is undetected, modified, pushed or merged; No force push. Could not close t
 | mobile-storage | 57 | 3 | 0 / 0 |
 | Total | 451 | 13 | 0 / 0 |
 
-13 exclusions already exist in the baseline and no new or modified package:
+All 13 exclusions predate package; no new/modified skips:
 
-- a11y 3: desktop does not run the full screen of cell phones
-- feel 2: The cell does not repeat the mouse over and desktop Ask focus style.
-- Slow-edit 3: The mobile phone does not perform mouse drag and wide layout connections; Touch screen/keyboard path is also overwrite.
-- Touch 2: Desktop does not perform mobile phone touch behavior.
-- (a) orniation-setup 3: mobile-storage does not repeat the desktop extra sidebar history entry with two mouse links/retakes; Normal Back/Forward, selections and accessibility connections run in both dimensions.
+- a11y 3: desktop omits mobile fullscreen Rail; mobile omits two tablet viewport cases run by desktop.
+- feel 2: mobile omits mouse hover/desktop Ask focus styles.
+- flow-edit 3: mobile omits mouse dragging/wide-layout connections; touch/keyboard covered separately.
+- touch 2: desktop omits mobile-only touch.
+- organization-setup 3: mobile-storage omits extra desktop sidebar history/two mouse connect-reconnect gestures; normal Back/Forward/pickers/accessibility connections run both sizes.
 
-GitHub Checks for reading baseline `1e19af560daaf9ca10ee40670877c5c1b41665d8`: Netlify deploy-preview **access**; [ CI #205 ](https://github.com/juanxiwu2005/platypus-officer-hub/actions/runs/41261214605) **in_progress**, step npm ci/lint/build/unit/ browser installed with access, E2E is still active. The local successful or old submission cannot be marked as the final new submission of CI successfully; A new SHA has to be retraced after the push.
+Precommit baseline `1e19af560daaf9ca10ee40670877c5c1b41665d8` GitHub Checks: Netlify deploy-preview **success**, [CI #205](https://github.com/juanxiwu2005/platypus-officer-hub/actions/runs/41261214605) **in_progress**, npm ci/lint/build/unit/browser install success, E2E still running. Local/old-commit success cannot certify final new SHA; requery after push.
 
-## Log & Recover attachment
+## Logs/reproduction artifacts
 
-`/tmp/rr-stage3-ci.log`, `/tmp/rr-stage3-final-gates.log`, `/tmp/rr-stage3-final-e2e.log`, `/tmp/rr-stage3-final-e2e.json`, `/tmp/rr-stage3-final-summary.json`, `/tmp/rr-stage3-audit-{production,full}.json`, `/tmp/rr-stage3-bundle.json`, `/tmp/rr-stage3-fsck.log`, `/tmp/rr-stage3-secrets-{current,history}.{json,log}`, `/tmp/rr-stage3-private-keys.json`. For the first time, the curve failed and for the successful rounds. `/tmp/rr-stage3-curves*`and `/tmp/rr-stage3-curves-final*`。 The browser tracks/ network-by-line attachment at worktree `test-results/`, and these generated files are not submitted to the source code.
+Local `/tmp/rr-stage3-ci.log`, `/tmp/rr-stage3-final-gates.log`, `/tmp/rr-stage3-final-e2e.log`, `/tmp/rr-stage3-final-e2e.json`, `/tmp/rr-stage3-final-summary.json`, `/tmp/rr-stage3-audit-{production,full}.json`, `/tmp/rr-stage3-bundle.json`, `/tmp/rr-stage3-fsck.log`, `/tmp/rr-stage3-secrets-{current,history}.{json,log}`, `/tmp/rr-stage3-private-keys.json`. Initial/final curve runs `/tmp/rr-stage3-curves*`, `/tmp/rr-stage3-curves-final*`. Per-case browser traces/network in worktree `test-results/`, generated artifacts not committed.
 
-Desktop/Cell Phone Intical-Network.json only requests entrances and two JSs for 506,960 bytes; PDF late loads and two schedule drawing attachments are kept with the complete matrix. Max 437,615 bytes, source cap 0 of the production catalogue 33 jS chink; PDF worker is a stand-alone mjs resource that has been selected for loading and does not duplicate the main entry.
+Desktop/mobile initial-network.json measured only entry/runtime JS at homepage, 506,960 bytes total; PDF lazy-load/both storage-loading artifacts retained with full matrix. Largest of 33 production JS chunks 437,615 bytes, 0 source maps; PDF worker separate selection-loaded mjs, never counted as entry.

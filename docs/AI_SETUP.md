@@ -27,7 +27,7 @@ Set these under Netlify → Project configuration → Environment variables. Con
 | `AI_MIN_OUTPUT_TOKENS` | Unset, 1024 | AIR request output allowance is at least this value, clamped to 256–4096. See the bounded retry rule below. |
 | `ORG_SETUP_ENABLED` | Unset | Optional server storage remains hidden; see section 4. |
 
-**Synchronous budget:** November 7 production logs showed Netlify terminating a 55-second `/api/chat` request after roughly 30 seconds, with 504/502 and no usage line. Later Netlify documentation describes 60 seconds. Keep the default 26-second budget until the actual environment is measured. Timeout returns clean 504 JSON and a labelled local fallback. Configuration changes require authorization.
+**Synchronous budget:** November 7 production logs showed Netlify terminating a 55-second `/api/chat` request after 31.2 seconds (approximately 30 seconds), with 504/502 and no usage line. Later Netlify documentation describes 60 seconds. Keep the default 26-second budget until the actual environment is measured. Timeout returns clean 504 JSON and a labelled local fallback. Configuration changes require authorization.
 
 ### Measure the actual Netlify limit (FB-1, once after an approved deployment)
 
@@ -55,7 +55,7 @@ Routing version: `air-task-routing-v3`.
 | `POST /api/nudge/draft` | One sentence in a reminder draft | `nudge_draft` | Muse |
 | `POST /api/handbook/draft` | Select sources for a role handbook | `handbook_draft` | Muse |
 | `/api/setup/constitution` | Read roles, reporting lines, and duties after Continue in setup step 1; no server storage | `constitution_read` | Muse. Send structure and duties requests sequentially; AIR processes one at a time, so parallel requests queue. Each must return within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default); duties batches contain at most 6 items. Gemma took 56 seconds on a real constitution and is not used here. |
-| `/api/setup/workflow` | Compare planning notes/files with the standard workflow; propose edits/conflicts and assign roles by duties; no server storage | `workflow_read` | Muse. Send `changes` and `owners` requests sequentially, each within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default). |
+| `/api/setup/workflow` | In setup step 5, compare planning notes/files with the standard workflow; propose edits/conflicts and assign roles by duties; no server storage | `workflow_read` | Muse. Send `changes` and `owners` requests sequentially, each within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default). |
 | `/api/org/ai` | Longer structured Organization Setup tasks; currently hidden | `setup.*` | Gemma, `gemma4-31b-it` |
 | Same endpoint, explicit Deeper review | User-requested stronger review | `setup.*` with deep mode | GLM, `glm-5-3` |
 
@@ -107,7 +107,7 @@ These entries preserve earlier decisions and do not override the current section
 - `POST /api/command` accepts `sentence` and minimal event/node/officer ID/display-name context. Common explicit patterns parse locally; others use `chatJSON()`. It returns `ops`, `source`, and `model`. Both server and browser whitelist operations and discard dates. A person confirms the date of a new event in the change card.
 - `POST /api/nudge/draft` accepts the node title, three engine-calculated dates, actual downstream steps, and reminder window. AI rewrites only a meaning sentence of at most 10 words; code builds five sections and checks forbidden wording and the 100-word limit. The browser rebuilds against current state before opening the draft, avoiding stale dates.
 - No new secrets/provider configuration is required. Disabled AI or endpoint failure is labelled local fallback.
-- `parse-brief` retains compatibility while discarding AI dates; legacy files were unchanged by WP2.
+- `parse-brief` retains compatibility while discarding AI dates; files in `public/legacy/` were unchanged by WP2.
 - Fixed-command and mocked-provider checks passed. Freeform live AIR quality still required deployed validation; older references to DeepSeek are obsolete. See `WP2_ACCEPTANCE.md`.
 
 ## Organization Setup and AIR, October 26 snapshot

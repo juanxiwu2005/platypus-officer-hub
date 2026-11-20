@@ -1,104 +1,104 @@
-# Job matching programme: for review before the redesign community
+# Responsibility-matching strategy: review before interface redesign
 
-2026-11-16（America/Phoenix）。Juanxi requires that new interactions be discussed through reference interfaces or handwriting, after restoring the main onboarding and withdrawing the current overly complex setup of responsibilities.
+2026-11-16 (America/Phoenix). Juanxi requested main onboarding first, withdrawal of overly complex responsibility settings, then reading this strategy before discussing interactions through references/sketches.
 
-This document records the design of a version that has just been withdrawn. The original complete saving is in the submission of `5e301d9`, and the current preview restores the original onboarding and task allocation entrance. The new interface is not being developed.
+This documents the just-withdrawn design. Complete implementation remains at `5e301d9`; current preview restores original onboarding/assignment entries. New UI development is paused.
 
-## It's a problem to solve.
+## Problem to solve
 
-There are three things you need to know about finding the right person for a mission: **, what it is, who's in charge of this job, and who it is when many people match. The** rule name cannot answer these questions alone; The same rule called Vice President may do something completely different in a different way.
+Finding the right person for a task requires three facts: **what work it is, who handles that kind of work, and whom to choose this time when several qualify.** Role titles alone cannot answer; Vice Presidents in different clubs may do entirely different work.
 
-The original scheme therefore separated "rolle" from "duty": "role" can be named arbitrarily; (b) A description of the actual work; I'm the one who actually executed it. A role can take on multiple duties, and one can be carried over by many.
+The proposal separates roles, responsibilities, and members: role names are arbitrary, responsibilities describe actual work, members execute it. One role may cover several responsibilities; several people may undertake one responsibility.
 
-## Three strategies selected
+## Three selected strategies
 
-| Problem | Selected Policy | Explain in Mandarin. |
+| Question | Selected strategy | Plain-language explanation |
 | --- | --- | --- |
-| How to build your own pool of responsibilities | A2: AI Drafted, confirmed | Upload constitution, AI extracts duties and gives source text. The president modify, supplement, merge or confirm; AI, you can create it manually if you can't read it. |
-| How mandates relate to responsibilities | B2: Workstream Linking Duty | Describe what duties are required for tasks such as booking a room, and then create an activity to repeat this connection without guessing by the name of the rolle |
-| How many people with the same responsibilities choose their executors | C2: Default and backup | Maya is usually in charge. Jordan is the backup; Only one executor is identified for each actual assignment, and backup takes over requires clear confirmation |
+| Build the club's responsibility library | A2: AI drafts, humans confirm | Upload constitution; AI extracts responsibilities with original evidence. President edits, adds, merges, confirms; manual creation works if AI cannot read it |
+| Associate tasks with responsibilities | B2: workflow steps link to responsibilities | Define the responsibility needed for work such as room booking, then reuse it for future events rather than guessing by role names |
+| Choose among several people | C2: default and backup | Maya normally handles it, Jordan is backup; each actual assignment confirms one executor; backup takeover needs explicit confirmation |
 
-## 1. What's the job pool?
+## 1. What a responsibility library is
 
-The duties can be understood as work-type blisters, such as “site bookings” and “reimbursement files”. They are formed by student organization of its own constitution, workflow and manual supplementation and do not require all student organisation to use fixed rolls like Secretary, Marketing etc.
+Responsibilities are work-type bubbles such as venue booking, event copywriting, reimbursement-material preparation. They come from the club's constitution/workflows/manual additions, without requiring fixed Secretary/Marketing roles across clubs.
 
-The original version maintains for each function the following information: name, range of responsibility, delivery, area of non-responsibility, source, confirmation and professional qualifications, if necessary.
+Each responsibility stores name, scope, deliverable, exclusions, source, confirmation state, and professional qualifications when necessary.
 
-For example, “site bookings” are responsible for submitting and obtaining confirmation of space requests; Does not include approved budgets or actual payments. This would reduce the number of responsibilities that claim responsibility for the same matter at the same time.
+For example, venue booking submits applications and obtains confirmation; it excludes budget approval/payment. This reduces overlapping claims to the same work.
 
-AI gives the content as a recommendation first. The reference can be found in the upload source text, showing the source text basis; If no basis is found, it is clearly marked as a recommendation. The manual can always be supplemented or modified.
+AI content starts as suggestions. Quotations found in uploaded originals show source evidence; unsupported items are explicitly suggestions. Humans may always add/edit.
 
-**Still outstanding:** wrote the boundaries of duties, which does not mean that the system has proven that all functions do not overlap and cover the full extent of each other. The original version provided manual merge and review, but did not automatically prove that the duties of the entire student organization covered all workflows and policies.
+**Unresolved:** written boundaries do not prove responsibilities are mutually exclusive or complete. Manual merge/review exists, but no automatic proof of whole-club workflow/policy coverage.
 
-## 2. How duties relate to people
+## 2. Linking responsibilities to roles and people
 
-The original design had two normal paths:
+Two normal paths:
 
-- Role's in charge of certain duties, and this role member is on the list.
-- A person is directly responsible for a certain function, which may be complementary to the role relationship.
+- A role holds a responsibility; its members become candidates.
+- A person directly holds a responsibility, supplementing role relationships.
 
-When the same person passes multiple rolls eligible, only once appears. The required system accounts or professional qualifications are validated and the platform does not pretend to have verified access to the school system.
+People qualifying through multiple roles appear once. Humans confirm required system accounts/qualifications; the platform does not pretend to verify school-system access.
 
-The one-time manual designation of a task, recorded separately as this decision, does not permanently transform the member into a person with all relevant duties or qualifications.
+A one-time manual task assignment is recorded as this decision, without permanently granting all related responsibilities/qualifications.
 
-## 3. How the mission finds its duty
+## 3. Finding a task's responsibility
 
-The order of the original programme was: **Workstream Steps — Main responsibilities — eligible members — this person.**
+Order: **workflow step → primary responsibility → qualified members → this task's owner.**
 
 For example:
 
-| Tasks in the workflow | Related responsibilities | Acceptable |
+| Workflow task | Responsibility | Candidates |
 | --- | --- | --- |
-| General meeting: reservation | Place reservations | Maya、Jordan |
-| Specter event: Reservation of the Reporting Room | Place reservations | Maya、Jordan |
-| Speaker event: Preparation of guest posters | Visual design | Sam |
+| General meeting: book a room | Venue booking | Maya, Jordan |
+| Speaker event: book auditorium | Venue booking | Maya, Jordan |
+| Speaker event: prepare speaker poster | Visual design | Sam |
 
-The two streams can share the same responsibilities, and there is no need to build an almost identical set of rolls. Universal jobs can also be associated with duties and need not all be placed in event planning.
+Two workflows can share one responsibility without near-duplicate roles. General work can also link to responsibilities without all becoming event planning.
 
-For steps that include multiple professional moves, such as “PPTs, decorations and other activity material”, the original version would retain the status of “need to split or clearly integrate”. The fact that one of them could do a PPT does not mean that he can do the whole job.
+Steps combining specialties, such as slides/decorations/other event materials, remain "split or explicitly coordinate." Someone able to make slides is not thereby able to deliver the whole task.
 
-The original version established a review portal for the existing 46 standard steps, of which 9 was initially marked as composite work. **represents a review list and does not mean that the 46 items have been correctly linked to each of the students, nor do they represent that all policy duties are covered.**
+The version provided review entries for all 46 current standard steps, 9 initially composite. **This is a review checklist, not proof that all clubs' 46 links are correct or every policy responsibility is covered.**
 
-## 4. Choosing when more than one person is in the same position
+## 4. Choosing among several people
 
-Take Maya as a default, Jordan as an example of backup:
+With Maya default and Jordan backup:
 
-| Situation | Treatment of original programmes |
+| Situation | Original handling |
 | --- | --- |
-| Maya qualified and available | Preselection Maya, confirmed upon submission |
-| Maya is not available, Jordan is available | I suggest Jordan, wait for a clear choice and not sneak him over. |
-| No default, only one qualified candidate. | You can pre-select this member. |
-| Many people match, no defaults. | Leave president to choose, not first in the order of the list |
-| No qualified candidates, no qualifications or responsibilities | Keep to be assigned, indicate what's missing and don't throw it automatically to president |
-| I've identified the person in charge. | Change template or defaulter does not automatically reassign old tasks |
+| Maya qualified/available | Preselect Maya; confirm on submission |
+| Maya unavailable, Jordan available | Suggest Jordan; wait for explicit choice, no silent takeover |
+| No default, one qualified candidate | May preselect that member |
+| Several qualify, no default | President chooses; never first-listed by default |
+| No qualified candidate, unknown qualification, or missing responsibility | Remain unassigned with missing requirements explained; no automatic president fallback |
+| Owner already confirmed | Template/default changes do not reassign old tasks |
 
-The assignment and my recognition are two things: the creation of a mission for Maya does not mean that Maya has agreed to take over. The original programme retained this step in my own right.
+Assignment and claiming differ: creating Maya's task does not mean she agreed. Self-claiming remains required.
 
-## 5. Why is this interface too heavy?
+## 5. Why this interface was burdensome
 
-The interface directly exposes four parts of the bottom configuration: constitution source, function editor, role/ member/ default person, workflow association. Users need to understand these relationships before completing and confirming them on a case-by-case basis in order to see how a task is assigned.
+The UI directly exposed four configuration layers: constitution sources, responsibility editing, roles/members/defaults, workflow associations. Users had to understand, complete, and confirm them before seeing a task assigned.
 
-It also displays sources, functional boundaries, deliverables, qualifications, availability, membership exceptions, defaults, backup and composite mission states. Much information should come to light when decisions are needed; This version has turned them into set-ups.
+It also simultaneously showed sources, boundaries, deliverables, qualifications, availability, member exceptions, defaults, backups, composite-task states. Much should appear at decision time; this version turned it all into setup work.
 
-The main issues are:
+Main issues:
 
-- The president needs to maintain many configurations before it can obtain the first automatic distribution of benefits.
-- There is an excessive number of operations associated with each step of the workflow.
-- Normal paths are mixed with abnormal processes, with a lot of text and little master action.
-- It's hard for users to answer at first glance: "What has the system done for me? What do I have to decide now? ”
+- Presidents must maintain much configuration before the first automatic-assignment benefit.
+- Associating every workflow step requires too much work.
+- Normal and exception paths mix, with excessive text and weak primary actions.
+- Users cannot quickly answer: "What has the system already done, and what one decision do I need to make now?"
 
-This time, the bottom rule became a direct user process and added to the setting burden. When redesigning, each of the rules should be discussed separately, which information needs to be displayed and which confirmations should be given to users; Users do not need to learn all data relationships.
+Turning underlying rules directly into user flows increased setup burden. Redesign must separately discuss rules to retain, information to show, and user confirmations; users need not learn every data relationship.
 
-## 6. The intention and practical limits of future expansion
+## 6. Intended expansion and actual limits
 
-The idea is that the pool of duties belongs to a regular organization and does not belong to a job stream. Adds a new type of activity in the future, or lets AI propose a new process according to one sentence, that allows you to re-use the same job pool with the memory and then lets the user handle the uncertain parts.
+The library was intended to belong to the club, not one workflow. Future event types or AI-suggested flows from a sentence could reuse the same responsibilities/member relationships, with users resolving uncertainty.
 
-The actual limitation of the prototype is that only a standard template and a self-defined activity template are available for main operations; The custom process is still subject to the existing AAU step. No random number template management or free flow generator was delivered, nor were there any live organizational accounts, cross-equipment synchronization or multiple distributions at the end of the service.
+Actual prototype: only a standard template and one custom event template; custom flows still obey mandatory ASU steps. No arbitrary-template management/free workflow generator, real organization accounts, cross-device sync, or server multi-user concurrency.
 
-After the current fallback, this new set of responsibilities is no longer connected to the actual task. The preview is done using the original distribution; The responsible person and the record-keeping has been maintained. Subsequent reuse would require a clear reconciliation of the team, tasks and old records at the time and could not be re-assigned automatically after a direct reopening.
+After rollback, new matching no longer drives actual tasks. Preview uses original assignment; existing owners/saved records remain. Reusing implementation requires explicit reconciliation of then-current teams, tasks, and old records, never reenable-and-reassign automatically.
 
-## What's next?
+## Next discussion
 
-Using the main indexing as a baseline, Juanxi will read the logic above and provide a reference interface or handwriting before deciding on the entrance to the new process, its sequencing and the decision that each screen requires only from the user. The required rules could be retained, or the original strategy could be modified; No new functional page is currently available in advance.
+Use main onboarding as the experience baseline. After Juanxi reads this logic and supplies references/sketches, decide entry, order, and the single decision each screen requests. Retain necessary rules or revise strategies; do not build new responsibility pages prematurely.
 
-Focus of the follow-up discussion: what needs to be seen for the first time; How much should AI do in advance; When the default or backup needs to be asked; Gaps in responsibilities should be addressed centrally when set up or when the actual needs of a mission so warrant.
+Discuss what presidents first see; how much AI should prepare; when defaults/backups need questions; whether responsibility gaps belong in initial setup or when actual tasks need them.

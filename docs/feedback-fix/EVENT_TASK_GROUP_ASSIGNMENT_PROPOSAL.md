@@ -1,83 +1,83 @@
-# Task force on task forces: programme for discussion
+# Assign event owners by workflow task group: proposal for discussion
 
-2026-11-17（America/Phoenix）。Status: **Programme not achieved**。 Only two set-up entrances are harmonized for the actual code in this round; Do not include this programme.
+2026-11-17 (America/Phoenix). Status: **proposal, not implemented**. Actual code this round only unifies the two setup entry points; this proposal is not added to onboarding.
 
-## 1. What exactly does the user need to do?
+## 1. What the user needs to do
 
-**first group tasks in the workflow and then select an actual head for each group at the time of creating each activity. The task within the group inherits this person.**
+Recommend Juanxi's new direction: **group workflow tasks first, then select one actual owner per group when creating each event. Tasks in the group inherit that person.**
 
-Example: President created Welcome Mixer, after filling in dates, numbers and actuals, sees:
+Example: after entering Welcome Mixer's date, headcount, and circumstances, the president sees:
 
-| Task forces for the event | The man in charge. | Visible tasks after expansion |
+| Task group for this event | Person responsible this time | Tasks visible on expansion |
 | --- | --- | --- |
-| Event coordination | Jordan | Application site, confirmation schedule, on-site coordination, etc. |
-| Finance | Maya | Budget, request for funds, procurement, etc. |
-| Promotion | Sam | Publicity material, distribution, registration, promotion, etc. |
+| Event coordination | Jordan | Venue requests, schedule confirmation, on-site coordination, etc. |
+| Finance | Maya | Budget, funding applications, purchasing, etc. |
+| Promotion | Sam | Promotional materials, publishing, registration promotion, etc. |
 
-These group names are just examples. Others can be called Production, Research, Volunteer Corporation; There is no requirement for each student organization to have a Security or Marketing.
+These group names are examples. Other organizations may use Production, Research, or Volunteer coordination; Secretary or Marketing is not required in every organization.
 
-The main interface shows only the **group name, number of tasks applicable and frame selection**. The list of tasks is carried out as required, and presidients are not allowed to read a job description or skills bank. At the outset of the creation, it was confirmed that “this event, who did each of these groups”.
+The primary interface shows only **group name, applicable task count, and person selector**. Expand task lists on demand; presidents no longer need to first read a responsibility description or skills library. Before creation, they can confirm at a glance who handles each group for this event.
 
-Set student event still follows Start: fill in name, upload constitution, confirm role and member. Ali rule/ function recognition continues to be maintained for constitution. It helps the organization build its own structure, **does not replace president to decide who will execute**.
+Organization setup still uses Start: name, constitution upload, role/member confirmation. Constitution AI role/responsibility extraction remains. It helps establish the organization's structure; **it does not choose event executors for the president**.
 
-## 2. Recommendations and other options for the three issues
+## 2. Recommendations and alternatives for three questions
 
-### Where did the team come from?
+### Where work groups come from
 
-- **Recommendation: Follow the work stream.** standard workflows are first manually organized into a small number of task forces; The name may be changed, the group added, and the task moved. When the next sentence generates workflows, AI may suggest grouping and user confirmation.
-- Faster but limited: temporarily show the existing `fn` classification directly into groups. Suits for validating ideas, but fixing nine functions will still limit different student application and is not suitable for long-term arcitecture.
-- Flexibility but more cost-effective: each activity is grouped from zero. Repeats the effort and is not recommended as default.
+- **Recommended: follow the workflow.** Manually organize the standard workflow into a few task groups; organizations can rename/add groups and move tasks. Future one-sentence workflow AI can suggest grouping for user confirmation.
+- Faster but limited: display current `fn` categories as groups. Suitable for validating the idea, but nine fixed functions still constrain different organizations and are unsuitable as the long-term architecture.
+- More flexible but more work: group from scratch for each event. Repetitive for presidents; not recommended by default.
 
-The group is "What's the score for this job?" The role is "The position of the target organization," and the member is "the actual person." (c) Separation; A role can take on more than one group, and a person can take on more than one group.
+Groups describe how work is divided; roles describe organizational positions; members are actual people. Keep these separate; one role or person can handle several groups.
 
-### How does the mission connect to the group?
+### How tasks link to groups
 
-- **Recommendation: In the workflow template, there is only one main executive group for each task. The** default is configured by templates, and the creation of an activity does not usually require task-by-task settings. This rule addresses double attribution; Those involved in the collaboration will be remembered separately and there will be no duplication of tasks.
-- Option: One task with more than one implementation group. It is easy to “think that others can do it”, and the sole principal has to be designated, and the prototype will not be used.
-- Optional: Only groups will be used as filter labels and selected on a task-by-mission basis. To be simple, but without reducing the allocation of operations for this activity.
+- **Recommended: each workflow-template task has exactly one primary execution group.** The template configures defaults, normally avoiding per-task assignment during event creation. This prevents duplicate ownership; record collaborators separately, without copying tasks.
+- Alternative: multiple execution groups per task. This invites everyone assuming someone else will do it, so still requires one primary owner; exclude from the prototype for now.
+- Alternative: groups only as filter tags, retaining per-task person selection. Simple, but does not reduce event assignment work.
 
-The full range of coverage is **, the entire task of the workflow**, not an attempt to drain all the world's duties. (b) Ungrouped tasks to be clearly hinted in the editor; General administration can be followed by a separate stream of work. The independent mission continues to select individuals directly.
+Full coverage means **all tasks in that workflow**, not every possible responsibility. Flag ungrouped tasks explicitly in the editor; generic administrative work can get a separate workflow later. Standalone tasks still select people directly.
 
-### There are two people in the same group. How do you decide who does it?
+### If two people share a group, who does the work?
 
-- **Suggested prototype: The event was specifically selected by the presidient.** two financiers are on the list; This time Maya, you can choose another one. One person may be responsible for multiple groups. The system does not select individuals by name, order of array or AI score.
-- The next possible step is the designation of a team leader, who will be reassigned to individual assignments within the group. It is important to show clearly which tasks have not yet been assigned and to complete the team leader 's missions.
-- Post-optional: rotation or recommended allocation based on workload. Clear rules, explanatory workload calibres and manual coverage are still required; The trans-equipment data of the current prototype are also insufficient to reliably judge your live load.
+- **Recommended prototype: the president explicitly selects one person for this event.** Both finance people appear; choose Maya this time and someone else next time. One person may own multiple groups. The system does not choose by name, array order, or AI score.
+- Possible next step: a group lead reassigns individual group tasks. Clearly show tasks not yet delegated and add the necessary lead permissions.
+- Future option: rotation or workload-based suggestions. Requires explicit rules, explainable workload measurement, and manual override; current cross-device data also cannot reliably establish everyone's actual workload.
 
-Allows the explicit selection of **Leave unassigned**, but shows "with X tasks not yet assigned" before being created and remains on the list to be allocated. Do not silencing to president or copying a task to two people. Remember that matching no longer relies on pre-tick qualifications or job labels; Candidates must remain valid and available to the Organization.
+Allow explicit **Leave unassigned**, showing “X tasks remain unassigned” before creation and retaining them in the unassigned list. Do not silently give them to the president or duplicate a task for two people. Member matching no longer relies on prechecked qualifications/responsibility tags; candidates must still be current, assignable members of this organization.
 
-## 3. How the existing code works and why it needs to be modified
+## 3. Current code and required changes
 
-The current branch actually has a call chain:
+Checked against this branch's actual call chain:
 
-| Location | Now's behavior. | Adjustments required for the new programme |
+| Location | Current behavior | Required adjustment |
 | --- | --- | --- |
-| `src/data/types.ts` It's... `StepTemplate` | Yes. `fn`Optional `ownerRoleId`、`phase`No Task Force | Add independence `assignmentGroupId`；Workstream Save Group Definition |
-| `src/engine/playbooks.ts` It's... `roleFor` | (a) 100 points for the function and 20 minutes for the title/function keyword; (a) The order of the same score in the array; We'll go back to backup functions, and we might end up number one. | The new activity is clearly “head of the group” map, and this algorithm is no longer used to guess people; Old Activity Compatibility Reading |
-| Same document `buildEventNodes` | Let's go first. `ownerRoleId`Otherwise... `roleFor(fn)`♪ Take the role now ♪ `holderId` | Clear Group → This selected member → `node.ownerId`；Non-optional null；Date of retention of existing rules/Dependence |
-| `src/components/rail/AskPanel.tsx` It's... `PlanForm` | Date, number, status list, not selected by group | When the situation is determined, a selection of groups and numbers that are actually applicable for this time period is listed |
-| `src/components/rail/ChangeCard.tsx`、`src/data/changeReview.ts` | Manual input `HumanInputs` Only date/buffer; `newObjects` Construction activities and generation of tasks | Add human-recognized group distribution data; Recheck whether members and groups are legal when actually applied |
-| `src/data/settings.ts` It's... `completeSetup`First event preview | Call by yourself. `buildEventNodes` | Then, if the first activity is also connected to a grouping, the same component/service must be reused and two different setup chains avoided. |
-| `src/data/store.tsx` The missing task repair, `src/lib/flowEdit.ts` New Tasks, etc. | (b) Access to other generating tasks; It's possible to call the old generator again. | Use the group allocation saved for this activity; Tasks are not reassigned, new tasks cannot be surreptited. |
-| `src/engine/eventBudget.ts` | Synchronization of financial assignments according to the status of budgeted projects | Maintenance of rules for budget review and completion, with group heads not granted financial approval |
+| `StepTemplate` in `src/data/types.ts` | `fn`, optional `ownerRoleId`, `phase`, no task group | Add independent `assignmentGroupId`; workflow stores group definitions |
+| `roleFor` in `src/engine/playbooks.ts` | +100 for role-function match, +20 for title/duty keywords; ties use role array order; then fallback functions, possibly first role | New events use explicit per-event group-owner mapping, without guessing through this algorithm; retain old-event reads |
+| `buildEventNodes` in same file | Find `ownerRoleId`, else `roleFor(fn)`, then current role's `holderId` | Explicit group → selected member for this event → `node.ownerId`; null if unselected; preserve rule dates/dependencies |
+| `PlanForm` in `src/components/rail/AskPanel.tsx` | Date, headcount, circumstances checklist; no grouped person selection | After circumstances are set, show actually applicable groups and person selectors |
+| `src/components/rail/ChangeCard.tsx`, `src/data/changeReview.ts` | `HumanInputs` has dates/buffer only; `newObjects` creates event/tasks | Add human-confirmed group assignments; revalidate members/groups when applying |
+| `completeSetup` in `src/data/settings.ts`, first-event preview | Calls `buildEventNodes` itself | If grouping reaches first event, reuse the same component/service to avoid divergent setup chains again |
+| Missing-task repair in `src/data/store.tsx`, task additions in `src/lib/flowEdit.ts`, etc. | Other task-generation paths; repairs may call old generator | Use event's saved group assignments; do not reassign existing tasks or silently use old guessing for new tasks |
+| `src/engine/eventBudget.ts` | Synchronizes finance-task completion from budget-item status | Preserve budget approval/completion rules; group ownership grants no financial approval rights |
 
-**can't just take `phase` when the team.** Existing phase includes plan, prepare, marketing, money, run, close. Event coordination works across preparation, on-site and closing; Phases are not the same as implementation teams. `fn` also continues to assume the old logic and permissions connection, which cannot be directly changed to create an arbitrary group name.
+**Do not use `phase` as the team.** Existing phases include plan, prepare, marketing, money, run, close. Event coordination spans preparation, on-site work, and wrap-up; stages and execution teams differ. `fn` still serves legacy logic/permission associations and cannot simply become an arbitrary group name.
 
-The current ranking does not balance the load, nor does it automatically select the next person for the same function because of the first slot. This does not satisfy the experience of “president freely designated officials”.
+Existing ranking does not balance load or automatically choose the next same-function person if the top role is vacant. It cannot provide free presidential selection for each event.
 
-Thus, the idea does simplify the product, but the logic of data and task generation needs to be adjusted and it is not enough to add a few drops alone.
+This idea can simplify the product, but needs data/task-generation changes; adding dropdowns alone is insufficient.
 
 ## 4. Minimal data design
 
-It is proposed to use a stand-alone field instead of `matching`, which has been withdrawn and retained with opaque data.
+Use independent fields rather than reusing withdrawn `matching`, retained as opaque data.
 
 ```ts
-// Working troposphere: relationship between groups and tasks. Group  ID Just explain it in the middle of the job.
+// Workflow: relationships between groups and tasks. Group IDs are scoped to this workflow.
 AssignmentGroup = { id: string; name: string }
 Workflow = { id: string; version: number; groups: AssignmentGroup[]; steps: StepTemplate[] }
 StepTemplate.assignmentGroupId?: string
 
-// Level of activity: What current, group name and task-back snapshot for this session, actual selection.
+// Event: workflow version, group-name/task-group snapshots, and actual people selected this time.
 Event.assignmentPlan = {
   workflowId: string;
   workflowVersion: number;
@@ -86,35 +86,35 @@ Event.assignmentPlan = {
   owners: Record<groupId, memberId | null>;
 }
 
-// _Other Organiser  ownerId；Additional clustering and distribution sources to support a subsequent definitive reassignment.
+// Task: ownerId remains authoritative at runtime; group/source support explicit later reassignment.
 Node.assignmentGroupId?: string
 Node.assignmentSource?: "event-group" | "manual"
 ```
 
-The above is an indication of design that the field name can be absorbed before it is realized. `owners` does not replace `ownerId`: The activity record “What is this whole group determined” and the task record “Whom do we actually belong to now?" Two sets of leaders competing for priority are not maintained on a permanent basis.
+Illustrative design; finalize field names before implementation. `owners` does not replace `ownerId`: the event records group allocation at creation, while the task records its current actual owner. Do not maintain competing ownership authorities long-term.
 
-Priority recommendation: **Manual reassignment of tasks already performed > This activity group allocation > > clear unallocated**. (b) To retain the former person in charge without `assignmentPlan`; When group mode is enabled for new activities, do not fall back to `roleFor`. Any tasks that are subsequently completed must know whether the activity is using a new model.
+Recommended precedence: **manual reassignment of existing task > event group allocation > explicitly unassigned**. Preserve old event owners without `assignmentPlan`; once group mode is enabled for new events, never fall back to `roleFor`. Later task repairs must know which mode the event uses.
 
-The new mode for workflow editor replaces the default Done by roll selection with a task force; The old `ownerRoleId` is reserved for compatibility and does not display two distribution rules simultaneously on the same task. Temporary additional manual tasks can be selected directly and recorded as manual assignments; Tasks that were subsequently added to the template will be inherited on a snapshot by the activity group.
+New workflow-editor mode replaces default Done by role selection with task groups; retain `ownerRoleId` for compatibility, without showing competing rules on one task. Manually added ad hoc tasks may select people directly and record manual assignment; only later template-derived tasks inherit from the event's group snapshot.
 
-The template was subsequently renamed/supplemented/moveable to affect only subsequent activities. Created activities with snapshots that do not change quietly with templates. The first version does not read: “Reorganization heads automatically reassign all old tasks”; Task-by-mission reassignment of existing operations is sufficient.
+Later template renames/new groups/task moves affect future events only. Existing events have snapshots and do not silently change. First version excludes “changing group owner reassigns all old tasks”; use existing per-task reassignment.
 
-## 5. Technology and product boundaries
+## 5. Technical and product boundaries
 
-1. **is still the prototype of this browser.** can verify the planning and distribution experience of presidients; It is not yet possible to prove that 20 different account numbers are available for simultaneous tasking, service clearance and live back-office mail. Live team capabilities require follow-up server originals.
-2. Grouping is about **who executes**. Approving, assisting and informing is still another matter. Do not send the same executory reminder to Finance as a whole. The subject of the reminder is still decided by live `ownerId`; RACI is moved forward separately from the notification rule.
-3. A candidate to the Finance Group does not receive budget clearance or payment for Treasurer. Missions continue to be checked according to the existing rules; Where necessary, clear indications of reliance on approval.
-4. The activity generation task now consists of the “selected incumbent”, with separate recognition processes for tasks assigned to others. (a) The prototype should first maintain the current status rule; A different scope, if uniform as a system of recognition, cannot be modified implicitly in this group function.
-5. Live The applicable tasks shall be screened under the conditions of the existing `stepsFor`. Recalculation of groups and quantities after changes in numbers, catering, funding, etc.; Non-applicable groups do not force selection, and emerging groups need to be reconfirmed.
-6. The UI selection is a manual input that can only be selected from the current active member of the organization. Recheck when saving to prevent the departure of members, changes in workflows, empty groups or duplicate/unknown group IDs during the stay page. Any `ownerId` generated by AI cannot cross manual confirmation.
-7. New compatible field and version migration is required at the time of implementation, with original backups, archiving 23 and historical records to be retained; This round document **did not upgrade archive version**.
+1. **Still a single-browser prototype.** It can validate planning/assignment experience, not prove that 20 distinct accounts can claim across devices, server authorization works, or background email exists. Real team operation needs a future server source of truth.
+2. Grouping answers **who executes**. Approvers, helpers, and informed people remain separate; do not send one execution reminder to all Finance members. The primary reminder recipient still derives from actual `ownerId`; RACI/recipient rules proceed separately.
+3. Selection into Finance grants neither Treasurer budget approval nor payment rights. Continue existing permission checks and explicitly indicate approval dependencies when needed.
+4. Event generation currently treats a selected incumbent as accepted; standalone assignments to others have a separate claim flow. Preserve status rules in this prototype; unifying claiming requires separate scope, not a hidden change here.
+5. Applicable tasks come from existing `stepsFor` condition filtering. Recompute groups/counts after headcount, food, funding, etc. change; do not require selection for inapplicable groups, and reconfirm newly appearing groups.
+6. UI selections are human input limited to current valid organization members. Revalidate at save against departures, workflow changes, empty groups, duplicate/unknown group IDs. AI-generated `ownerId` never bypasses human confirmation.
+7. Implementation needs compatible fields/version migration; preserve originals/backups, archive 23, and history. This proposal **does not upgrade the archive version**.
 
-## 6. It is proposed that the prototype be developed in two phases and that phase III be expanded
+## 6. Two prototype stages, then expansion
 
-**Phase I: Rules and data base. (a)** to organize the main executive group for standard tasks, ensuring coverage and non-duplication; Creates the assigned snapshot and sole generation function saved by activity. Old events, minutes of vacancies, stand-alone missions, budgets meetings, date engines remain the same. The results of the identification of multiple persons in the group were related only to manual selection and not to the sequence of roles.
+**Stage 1: rules and data foundation.** Manually assign every standard-workflow task one primary group, ensuring full nonduplicated coverage; establish event-specific snapshots and one generator. Preserve old events, vacant members, standalone tasks, budget permissions, and date engine. Verify multi-person groups depend only on human selection, not role order.
 
-**Phase II: minimum available interactives.** Add a small group selection line to the review of creation activities; The common component receives start-up activities in Start's first activity and application, which can be created to see the actual person responsible from the task. Settings workflow editor supports reorganisation of name/move task to prevent framework from still being fixed by standard rule. Overwrite creation, modification, non-allocation, departure, saving failure, follow-up tasks, manual reassignment and dual-end use. Instead of a formal team management module.
+**Stage 2: shortest usable interaction.** Add a few group-selection rows to event-creation review; share the component between Start's first event and in-app creation; created tasks show actual owners. Settings editor supports group renaming/task moves so standard roles do not lock the framework. Cover creation, circumstances changes, unassigned groups, departures, save failure, later task repair, manual reassignment, desktop/mobile. No formal team-management module yet.
 
-**Phase III (to be decided by using feedback): Multiple workflows and teamwork.** Multiple versions of the workflow available to organizations; AI Recommended tasks and clusters; The default/last head pre-selection, the lower team leader, multi-person collaboration and rotation advice are available. The interface still requires the identification of the actual persons responsible for the event. Service end coordination, RACI alarm rules and back-office mail are advanced separately.
+**Stage 3 (decide from feedback): multiple workflows and teamwork.** Multiple versioned workflows per organization; AI suggests tasks/groups; optional default/previous-owner preselection, group-lead delegation, collaboration, rotation suggestions. Still confirm actual owners for this event. Server collaboration, RACI reminders, and background email advance separately.
 
-The core of acceptance has only one sentence: **presidient creates the same activity twice and can select two different people for Finance; Tasks were correctly attributed, follow-up assignments followed the same choice and old activities and manual reassignments were retained entirely.**
+Core acceptance in one sentence: **the president can create the same event twice with different Finance owners; ownership is accurate, later-added tasks follow that event's selection, and old events/manual reassignments are fully preserved.**

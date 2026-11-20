@@ -1,44 +1,44 @@
-# Reminder Phase II: Mail and stand-alone job pages freeze compacts
+# Reminder Stage 2: Frozen Email and Standalone Task-Page Contract
 
-2026-11-16（America/Phoenix）。Juanxi has made a clear request to “continuing stage 2”; Phase three Details/ Reminder Centre rehearsing, default enabler policy and live backstage send are not within this range. Continuation of `feat/reminder-plan-v2` and PR#15; Keep the functional matching branch physically connected to `26af354` at the time of freezing, synchronizing its `5e301d9` with no fallback task recognition and v23 archiving; Reminder interface remains unchanged.
+2026-11-16 (America/Phoenix). Juanxi explicitly requested "continue stage 2". Excludes stage-3 Details/reminder-center rearrangement, default enablement, and real backend sending. Continue feat/reminder-plan-v2 and PR #15; retain matching integration through 26af354 at freeze and sync 5e301d9 at closeout, without reverting claiming/v23 saves. Reminder interfaces unchanged.
 
-## Division of labour
+## Assignments
 
-- Main Agent: Share type/store/taskWorkflow, `taskAccess.ts`, message log fit, old `NudgeComposer` Lazy Bridge, `Officer.tsx` Route Bridge, manual mission description field, e2e/ acceptance and delivery.
-- Mail Agent：`src/reminders/mail.ts`、`mail.test.ts`、`ReminderComposer.tsx`、`ReminderComposer.test.tsx`、`reminder-composer.css`。Do not change old composer, global styles, store or contract.
-- Page Agent：`src/reminders/SingleTaskPage.tsx`、`SingleTaskPage.test.tsx`、`single-task.css`。Do not change Officer, TaskActions/TaskDetail, store or sharing type.
-- Independent Review: Final Candidates Read-only Review found that the problem was left to the original person in charge for repair.
+- Main agent: shared types/store/taskWorkflow, taskAccess.ts, message-record adaptation, old NudgeComposer lazy bridge, Officer.tsx route bridge, manual task-description fields, e2e/acceptance/delivery.
+- Mail agent: src/reminders/mail.ts, mail.test.ts, ReminderComposer.tsx, ReminderComposer.test.tsx, reminder-composer.css; no old composer/global styles/store/contract changes.
+- Page agent: src/reminders/SingleTaskPage.tsx, SingleTaskPage.test.tsx, single-task.css; no old Officer/TaskActions/TaskDetail/store/shared types.
+- Independent Review: read-only final-candidate review; original owners fix findings.
 
-## Share original with main Agent API
+## Shared authority and main-agent API
 
-`accessContracts.ts` is the original of new mail and repeatable access authorization; `contracts.ts` Reservation phase a fact/candidature. Add optional Node.instructions/Node.completionCriteria, events. priority manual inductions, events.complificationCritria; Importance continues to come from what or live dependencies that already exist. The main Agent provides the editorial entrance and does not allow models to fill in facts.
+accessContracts.ts defines new email/reusable access authorization; contracts.ts retains stage-1 facts/candidates. Optional Node.instructions/Node.completionCriteria; facts.requirement prefers manual instructions; optional facts.completionCriteria; importance from existing why/actual dependencies. Main agent supplies editing, never model-invented facts.
 
-`src/reminders/taskAccess.ts` Export:
+src/reminders/taskAccess.ts exports:
 
-- `makeTaskAccessGrant(state, nodeId, waitingRequestId?): Promise<TaskAccessGrant>`: No request is the original person in charge, and the designated request only gives it a clear waiter. Use local signatures; Not login or cross-equipment services.
-- `taskAccessToken(grant): string`, `taskAccessUrl(origin, grant): string`, new address `/#/officer?access=...`, no Done/Working query parameters.
-- `usableTaskAccessGrant(state, token): TaskAccessGrant | undefined`, `verifyTaskAccessGrant(state, token): Promise<boolean>`: Repeated visits/updates without consumption links; Checks the actual storage authorization, signature, belonging version, current membership and maturity. Once completed, the same access point is still accessible and old rights cannot be used after redistribution/belonging has changed.
-- `taskAccessIssueValid(state, grant): boolean`: Check for store action.
-- Add Action `{type:'issueTaskAccessGrant', grant}`, `{type:'taskAccessAction', token, update:TaskAccessUpdate}`.
-- Four-button map for owner shop; No lead for claim. Working is a clear new response and does not require an extension as an impostor.
-- Only the request is recorded by reference On / responseBy / request; Do not change the original task owner or status, do not assign source tasks to missions. Requests for cancellations/changes are not renewable; Original task completed read-only.
+- `makeTaskAccessGrant(state, nodeId, waitingRequestId?): Promise<TaskAccessGrant>`: no request means original owner; specified request means its explicit waiting target only. Local signing, not login/cross-device service.
+- `taskAccessToken(grant): string`, `taskAccessUrl(origin, grant): string`; new /#/officer?access=..., no Done/Working query parameters.
+- `usableTaskAccessGrant(state, token): TaskAccessGrant | undefined`, `verifyTaskAccessGrant(state, token): Promise<boolean>`: repeated access/updates do not consume link; verify stored grant/signature/ownership version/current membership/expiry. Same entry viewable after completion; reassignment/ownership changes revoke previous rights.
+- `taskAccessIssueValid(state, grant): boolean` for store issue validation.
+- New Actions `{type:'issueTaskAccessGrant', grant}`, `{type:'taskAccessAction', token, update:TaskAccessUpdate}`.
+- Owner scope maps four buttons to done/working/stuck/waiting; claim first if unclaimed. working is an explicit reply action, not a disguised extension request.
+- Waiting scope only acknowledge/provided; records request respondedOn/responseBy/response (acknowledged/provided), never source owner/status or task-write permission. Cancelled/reassigned requests cannot update; completed source task read-only.
 
-## Mail Agent API & Component
+## Mail API and component
 
-`buildReminderMail(input: ReminderMailInput): ReminderMail`、`checkReminderMail(mail: ReminderMail): boolean`。Defaults all the rules, cannot import/calll AI or network. Theme “Activities — Tasks” (a stand-alone task for Club work), with one message focusing on Task Due; The eventDate is only background in specific requirements, not single Start by, and does not print latest start periods. The trigger causes are distinguished by live today and already startOn/due/candidate (future/date of commencement/due/actually overdue).
+`buildReminderMail(input: ReminderMailInput): ReminderMail`, `checkReminderMail(mail: ReminderMail): boolean`. Default entirely rule-based; no AI/network imports/calls. Subject "event · task" (standalone may use Club work); emphasize one Task due. eventDate only within requirements as context; no separate Start by or printed latest start. Explain trigger using actual today/startOn/due/candidate, distinguishing future/start day/due/actual overdue.
 
-Natural greetings, specific requests, importance, collaboration and gratitude are maintained within the text in approximately 100 English language versions, with the most important executable information and complete material on the mission page. Do not return to five mechanical labels, step 1 opens the platform/step 2 for tasks; The mail body has only one core tabskUrl and removes other sites from the source text. The number comes from facts and cannot be supplemented by 40. Continue with the prohibition of catalytic/stigmatization language. waiting e-mails indicating “who is waiting for your mission” and not giving responsibility for the execution of the original task to the addressee; Waiting On cannot be regarded as a specific action requirement if it is just a name.
+Natural greeting, concrete requirements, importance, collaboration, thanks; about 100 English words or fewer, retaining essential actionable content, full materials on task page. Avoid five mechanical labels or "step 1 open platform/step 2 find task". Body has one core taskUrl, removing other source URLs. Attendance comes from facts, never invent 40 people. Retain prohibited nagging/shaming language rules. Waiting email explains whose task needs the recipient's help without transferring execution ownership; a waitingOn name alone is not a concrete action.
 
-`ReminderComposer` Default Export, props `{nodeId:string;onClose:()=>void}`, using existing use Street. Normal owner uses current facts; `planReminders(buildReminderInput(...))` is used to select the node 's current ready (including waiting) when enabling the new runtime, which must be explained and sent without forgery. The old uninactivated path still uses NudgeBlocked and does not change the existing schedule; Normal mail is in a new format, and waiting object delivery is only enabled in the new Runtime.
+Default-export ReminderComposer, props `{nodeId:string;onClose:()=>void}`, existing useStore. Ordinary owner uses current facts; enabled runtime selects current ready candidate for node, including waiting, through planReminders(buildReminderInput(...)); explain blocking, never fabricate sending. Disabled old path still uses nudgeBlocked/existing scheduling. Ordinary emails use new format; waiting-target delivery only under new runtime.
 
-When you get a grant, you'll have to pick it up. Could not close temporary folder: %s Mail = Build Red ReaderMail, window.location.origin generates the only link. There is no AI waiting/Skip AI button. Keep close/ Escape/ Focus, channel preferences, no live delivery instructions. Platform distribution mode by email; The draft Email/WhatsApp/SMS can be accessed manually and recorded after clear confirmation.
+Dispatch issue after grant creation; disable sending until valid grant is stored. Build mail with unique URL from window.location.origin. No AI wait/Skip AI button. Preserve close/Escape/focus, channel preference, demo/no-delivery explanation. Platform modes use email; manual mode may open Email/WhatsApp/SMS drafts and record only after explicit confirmation.
 
-Save snapshot `{...mail,channel,preparedOn:state.today,accessId:grant.id}`; Old action `confirmNudgeSent` plus `message`; The new version action `confirmPlannedReminder` adds an optional `message`. If there is a rantime, you must use the current CandidateId to confirm it; Use old action when there is no runtime. Main Agent rechecks current facts/authorizations/recipients with mode and saves snapshots. `ReminderDelivery.message?` and `Nudge.message?` are for historical use and old records are not filled out. Successful information after submission should appear on the basis of actual storage records and not only locally setConfirmed (true).
+Save snapshot `{...mail,channel,preparedOn:state.today,accessId:grant.id}`. Optional message on old confirmNudgeSent/new confirmPlannedReminder. Runtime confirmation requires current candidateId; otherwise old action. Main agent revalidates current facts/grant/recipient/mode and saves snapshot. Optional ReminderDelivery.message?/Nudge.message? for history; do not backfill old records. Success must follow actual stored record, not merely local setConfirmed(true).
 
 ## SingleTaskPage
 
-Default export, props `{token:string}`. Read permissions from userable/verefy API, not from URL homeId extrapolates permissions. (a) homeer view: activity/task, highlighting deadlines, specific requirements and completion criteria, materiality, one live processing entrance (with applicable instructions), four states; The period of latest start does not take over the head. There is no need for complete navigation, other tasks or Ask. The risk of school cut-off date must remain; Financial control nodes cannot be bypassed from Event Budget directly Done.
+Default export, props `{token:string}`. Read grant via usable/verify APIs; never infer rights from URL ownerId. Owner view: event/task, prominent due date, requirements/completion criteria, importance, one genuine action destination with applicability explanation, four states. Latest start does not dominate header. No full navigation/other tasks/Ask. Preserve official-deadline risks; financially controlled steps cannot bypass Event Budget to Done.
 
-(a) waiting view: the context of the task for which the original leader requested help, a statement to be specified, showing only Acknowledge / Update requested; Not the original four-state mission. Displays the current status after a successful update; Refresh/open again to continue; After completion, you can see it. Unknown/neutralized/reassignment/departure token has a clear hint that it cannot be misled into an update.
+Waiting view: context of owner's request, specific waiting explanation, Acknowledge / Update provided only, not four source-task states. Show current state after success; refresh/reopening remains usable; completed tasks viewable. Unknown/expired/reassigned/departed-member tokens get clear messages, never imply success.
 
-(b) To maintain compatible access to the old `?token=` one-time link and old state query parameters; New `?access=` uses this page. New pages and new composer are loaded as required to comply with established import volume thresholds. Do not add live identity, actual mail service or presumably external mailboxes.
+Preserve old ?token= one-time links/status-query compatibility; new ?access= uses this page. Lazy-load page/composer within entry budget. No real identity/email service or guessed external waiting-target email addresses.

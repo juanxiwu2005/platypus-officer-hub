@@ -1,32 +1,34 @@
-# DX-03 for feedback and suspension transition
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Stage 1 Size S Risk Low R Level **R1 Available** Dependence: DX-01 Parallel Partner: DX-04 ... 08
-- Branch: `design/dx-03-press-feedback` Style File: `src/styles/dx-03-press-feedback.css` Corresponding Details: D01 D02
+# DX-03 Press feedback and hover transitions
 
-## Why?
-**measured to**: Buttons, navigations, cards for translation are `all 0s` and there is no `:active` in the stylesheet. Press it without any feedback. The interface looks "no hands." Emil § 1: Press the moment to react and don't wait to let go.
+- Stage 1 · Size S · Low risk · Rollback **R1 available** · Depends on: DX-01 · Parallel partners: DX-04…08
+- Branch: `design/dx-03-press-feedback` · Styles: `src/styles/dx-03-press-feedback.css` · Details: D01 D02
 
-## Something to do.
-1. Press feedback using `:active` (`transition: transform var(--dur-press) var(--ease-out)`):
-   - Buttons with background: `.btn`, `.chip`, `.icon-btn`, `.demo-pill`, `.seg button`, `.crm-seg button`, `.rail-tabs [role="tab"]`, `.settings-nav button`, `.event-nav button`, `.board-add-btn`, `.relay`, `.owner-chip button`: `transform: scale(.97)`.
-   - Text types: `.row-btn`, `.link`, `.group-btn`: use `opacity: .7` without scaling (scaling text is odd).
-   - `.sidenav a`: Click to change only the background (it is a high-frequency operation without displacement).
-   - Disable elements (`[disabled]`, `aria-disabled="true"`) do not respond.
-2. Suspended transition: `.btn`, `.sidenav a`, `.event-nav button`, `.settings-nav button`, `.crm-seg button`, `.tbl .row-btn` background/colour transition using `var(--dur-fast)`, all wrapped in `@media (hover: hover)`.
-3. Reduction of kinetic effects: remove `transform` from `@media (prefers-reduced-motion: reduce)` and keep color changes.
-4. **Don't touch** `.ask-fab` (DX-09), `.board-card` (DX-16/24), `.hover-card` (S3 Decision).
+## Why
+**Measured: ** button/navigation/card transitions are all `all 0s`, with no `:active` in the stylesheet. Presses give no feedback, making the interface feel unresponsive. Emil §1: respond at the instant of pressing, not on release.
 
-## Files that can be changed
+## Tasks
+1. Use `:active` press feedback (`transition: transform var(--dur-press) var(--ease-out)`):
+   - Filled-button classes: `.btn`, `.chip`, `.icon-btn`, `.demo-pill`, `.seg button`, `.crm-seg button`, `.rail-tabs [role="tab"]`, `.settings-nav button`, `.event-nav button`, `.board-add-btn`, `.relay`, `.owner-chip button`: `transform: scale(.97)`.
+   - Text controls: `.row-btn`, `.link`, `.group-btn`: `opacity: .7`, no scale (scaling a text row looks odd).
+   - `.sidenav a`: background only on press (frequent action; no displacement).
+   - Disabled elements (`[disabled]`, `aria-disabled="true"`) do not respond.
+2. Hover transitions: background/color on `.btn`, `.sidenav a`, `.event-nav button`, `.settings-nav button`, `.crm-seg button`, `.tbl .row-btn` use `var(--dur-fast)`, all inside `@media (hover: hover)`.
+3. Reduced motion: remove `transform` inside `@media (prefers-reduced-motion: reduce)`, retaining color changes.
+4. **Do not touch** `.ask-fab` (DX-09), `.board-card` (DX-16/24), `.hover-card` (S3 decision).
+
+## Allowed files
 Only `src/styles/dx-03-press-feedback.css`.
 
 ## Acceptance
-- New Test `e2e/dx-03-press.spec.ts`：`mouse.down()`Read after (no loose hands) `.btn`, the calculation style, `transform`Not `none`； Released and returned to `none`. `transform` is always `none` in the action reduction mode.
-- Desktops and mobile phones: `today.spec.ts`, `tasks.spec.ts`, `touch.spec.ts`, `a11y.spec.ts` green.
-- Juanxi How to Test: Hold on to any button in the preview and narrow it slightly; Let go of me. Navigator bar clicks do not shrink. Only the background gets deeper.
+- New `e2e/dx-03-press.spec.ts`: after `mouse.down()` (without release), `.btn` computed `transform` is not `none`; after release it returns to `none`. Reduced motion keeps `transform` `none` throughout.
+- Desktop/mobile: `today.spec.ts`, `tasks.spec.ts`, `touch.spec.ts`, `a11y.spec.ts` green.
+- Juanxi: hold any preview button; it shrinks gently and springs back on release. Navigation clicks change background only, without shrinking.
 
 ## Rollback
-R1: Comment on line DX-03 in `src/styles/index.css`. R2：`git revert -m 1 dx/dx-03-merged`。
+R1: comment out the DX-03 line in `src/styles/index.css`. R2: `git revert -m 1 dx/dx-03-merged`.
 
-## Attention.
-- Scales the elements of `inline-flex` and `overflow: hidden` that may be condensed; Look at it one by one.
-- Don't write `transition: all`.
+## Notes
+- Scaling `inline-flex` elements with `overflow: hidden` may clip shadows; inspect each.
+- No `transition: all` (guard rejects it).

@@ -1,24 +1,24 @@
-# Dialogue with the template library/manual editor: team track pre-code completed
+# For the Template-Library/Manual-Editor Chat: Team Swimlane Foundation Ready
 
-2026-11-18（America/Phoenix）。Juanxi has clearly selected P1 and requires that separate codes be written before the current template library/editor is harmonized. This Article replaces the "ongoing" recording of this task in PROGRESS.
+2026-11-18 (America/Phoenix). Juanxi explicitly chose P1 and requested separate code first, unified adaptation after current library/editor completion. Replaces this task's in-progress start entry in PROGRESS.
 
-## Where's the code?
+## Code location
 
-- Independent branch: [ `feat/team-swimlane-foundation` ](https://github.com/juanxiwu2005/platypus-officer-hub/tree/feat/team-swimlane-foundation/src/teamWorkflow)
-- [ Full Interface, Scope and Access Handoff ](https://github.com/juanxiwu2005/platypus-officer-hub/blob/feat/team-swimlane-foundation/docs/feedback-fix/TEAM_WORKFLOW_FOUNDATION_HANDOFF.md)
-- [ Check log ](https://github.com/juanxiwu2005/platypus-officer-hub/blob/feat/team-swimlane-foundation/docs/feedback-fix/team-workflow-verification.json) - [ P1 desktop/cell/deep colour screenshot ](https://github.com/juanxiwu2005/platypus-officer-hub/tree/feat/team-swimlane-foundation/docs/prototypes/team-workflow-foundation)
-- Full source submission is `2d24427` + `8d55107`, handoff supplement `863b48a`. Do not just take the previous submission; It is recommended to follow the entire branch of merge, or to explicitly introduce the final `src/teamWorkflow/` snapshot by path. Keep the latest record of the current dialogue when processing PROGRESS merge.
+- Branch: [`feat/team-swimlane-foundation`](https://github.com/juanxiwu2005/platypus-officer-hub/tree/feat/team-swimlane-foundation/src/teamWorkflow)
+- [Complete API, scope, integration handoff](https://github.com/juanxiwu2005/platypus-officer-hub/blob/feat/team-swimlane-foundation/docs/feedback-fix/TEAM_WORKFLOW_FOUNDATION_HANDOFF.md)
+- [Verification](https://github.com/juanxiwu2005/platypus-officer-hub/blob/feat/team-swimlane-foundation/docs/feedback-fix/team-workflow-verification.json) · [P1 desktop/phone/dark screenshots](https://github.com/juanxiwu2005/platypus-officer-hub/tree/feat/team-swimlane-foundation/docs/prototypes/team-workflow-foundation)
+- Complete source commits 2d24427 + 8d55107; handoff addition 863b48a. Do not take only the first commit; preferably merge whole branch later, or explicitly import final src/teamWorkflow/ snapshot by path. Preserve latest current-chat PROGRESS records on merge.
 
-The current functional branch is only synchronized with the present note and progress; Without the merge source code, no changes will be made to the editor that another dialogue is developing and no additional official entrance/storage migration has been added. No new PR in the preparatory branch, no more merge main.
+Current feature branch syncs only this note/progress; no source merge, editor changes, official entry, or storage migration. No new foundation PR or main merge.
 
-## Recent choices to follow
+## Latest required choices
 
-1. P1 Personnel card: position, name, mailbox retention; Team and Reports to be changed independently. Add direct report creates a lower level. (c) To keep the team in line with its superiors; (b) Relocation to the higher echelons and non-reform teams; Prevention of self/future cycles; When the head of office moves out, he or she shows a vacancy and does not automatically choose another person.
-2. **N team just happened to be the N track**, with an empty crew; The team can't break down into multiple group swimming lanes before, after and after the team activities, different work packs or branches. Several articles of the A reference diagram must be combined. Non-cluster tasks are to be addressed and not additional swimming lanes.
-3. The swimming lanes belong to and the business branch is independent. Departmental gradients express only teams; Blue/yellow sites continue to indicate the type of steps. Cross-teams rely on retention and complex parallels can be laid in the same team container.
-4. `compileTeamLanes` Generates a single team line and complete dependency; `assignStepsToTeam` Reverses only the sidecar map and does not alter tasks, conditions, workloads, dates, placements or practitioners.
-5. Do not bring team operations to the existing `reassignWorkflowStep`; That path changes branch by role. The new layout continues with the cross-coordinate, connection, condition/policy validation, Undo and drafting of your current editor.
-6. `directoryFromLegacy` is just a read-only projection, and **does not cover the old Rale/Person log** and loses its duty, its source, history. Constitution AI recognizes reservations, team mapping needs to be clearly identified without function/ rule guess.
-7. The future version of the template library should save the map together; `graph.ready` is only available for attribution and base references, and does not replace permissions, policy, conditional field, date check. Organization and template data migrations, official entrance loadings and assignment of the individual head of activity are all kept to a uniform fit-out stage.
+1. P1 people cards retain position/name/email; Team and Reports to independently editable; Add direct report creates subordinate. Team drag does not change manager; manager changes do not change team. Prevent self/descendant cycles. Removing lead leaves vacancy, never auto-selects another.
+2. **Exactly N lanes for N teams**, including empty teams. Before/after event work, packages, branches cannot split one team across lanes. Multiple Operations lanes in reference A must become one. Ungrouped tasks are issues, not extra lanes.
+3. Lane ownership independent of business branches. Department gradients mean team only; blue/yellow stops retain step-type meaning. Preserve cross-team dependencies; complex parallel layout can remain inside one team container.
+4. compileTeamLanes creates unique team rows/all dependencies; assignStepsToTeam changes sidecar mapping only, never source tasks/conditions/effort/dates/placement/individual assignee.
+5. Never wire team operations to existing reassignWorkflowStep, which changes branches by role. Reuse current editor x-coordinates/connections/condition-policy validation/Undo/draft transactions.
+6. directoryFromLegacy is read-only projection, **never overwrite whole old Role/Person records**, losing duties/constitution sources/history. Preserve AI constitution recognition; team mapping explicitly confirmed, never guessed from function/role name.
+7. Future template-version snapshots include mappings. graph.ready means ownership/basic references ready only, not permission/policy/condition scope/date validation. Organization/template migration, official mounting, event-person assignment await unified adaptation.
 
-28 units/components passed; Isolated browser live drag, contact and multilayer reporting, 5/ 7 and 46 missions, 320/ 390 touch control, light-deep colour, severe/critical axe and zero script errors have been checked; Station-wide lint, standalone CSS, front end type and production construction is passed. Current 46 tasks and original reliance unchanged, 0 live AI/mail. Could not close temporary folder: %s
+28 unit/component tests passed; isolated browser verified actual drag, contacts/multilevel reporting, 5/7 rows/46 tasks, 320/390 touch, light/dark, zero serious/critical axe/script errors. Full-site lint, separate CSS, frontend types, production build passed. Existing 46 tasks/dependencies unchanged; zero real AI/email. Local backup sync required.

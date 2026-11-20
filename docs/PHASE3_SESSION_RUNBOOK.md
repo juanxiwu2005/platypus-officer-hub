@@ -1,44 +1,44 @@
-# Phase 3 Test Day Step (to Juanxi)
+# Phase 3 Test-Day Steps (for Juanxi)
 
-Every game goes this way. Based on: IRB Agreement HRP-503A Part 3 (Sections 6 Step 1–6, 11.4). Field description can be found in `PHASE3_DATA_DICTIONARY.md`.
+Follow this for every session. Basis: IRB protocol HRP-503A Part 3 (section 6 steps 1–6, section 11.4). Field definitions are in `PHASE3_DATA_DICTIONARY.md`.
 
-## Prior to testing (one per day)
+## Before testing (once each day)
 
-1. Open https://platypus-officer-hub.netlify.app/api/health, confirm `"provider": "ASU AIR"` and `"configured": true`. If not, don't start.
-2. Check the link with your own markless window to confirm that you can enter " Name your blue " .
+1. Open https://platypus-officer-hub.netlify.app/api/health and confirm `"provider": "ASU AIR"` and `"configured": true`. Otherwise, do not start yet.
+2. Walk through the test link yourself in a private window and confirm it opens directly to "Name your club".
 
-## Testing
+## During testing
 
-1. **confirms eligibility, signs consent, gives study ID (E01, E02...).**, these are all done outside the site.
-2. **allows participants to open a traceless window** (Chrome:Incognito); Safari：Private）。When an online test is conducted, he is asked to share only this browser window.
-3. **Sending test link:** `https://platypus-officer-hub.netlify.app/#/start`
-   - Opens it straight into the setup, without going through the welcome page.
-   - Test not to reopen the link (a new record will be started, setup will start again from a blank); If it is open, the data will not be lost. There will be two sessions in the export file.
-   - It doesn't matter if it's a little refreshing. The fillout will be kept.
-4. **task (f): setup.** lets him fill out a field card. First event can be planned for a game or press "Skip for now" skip; This is an observation point. Don't tell him which to choose. The screen of Reminders is an observation point. Don't tell him which to choose; The website doesn't really e-mail.
-   - **Process `ob-5` (FB-2 only, not applicable on branch, official web line):** screens in turn are **Name** (standard event + mission)  →  **Team** (officer list); A folded "Fill rolls from your condition" on the top, which can be used for example as a condition, upload or paste; There's **First event**, **Reminders**, **Confirm**, **Invite**. There is no separate Constitution screen and Goals screen: Constitution is on Team screen and targets are set later in Settings. If a target is written on the tissue card, tell participants not to fill in the guide. Name and Team have a row "Why:" in the title, and welcome pages are three lines: Why/ How/ What.
-   - The second half of the **president process (FB-3, branch only and not online);** First event and Reminders also have a line "Why:". First event 's buffer has been changed to three options: Tight . 1 day / Standard 3 days (Recommended)/ Safe 5 days, with steps and two dates for the ASU cut-off date listed below. There is an example reminder card on the roof of Reminders, with three step charts, analogies and the phrase "what happens in Platybus" under each option. Confirm has only one main button **Create my club** (former Start workspace); The text link "Cancel and keep the current library" is only available when it has been built. **Open my workspace** (former Go to Today), **"See what your offices will see"**: Participants go in without a member preview. If you want to read the board's preview yourself, use "Test Onboarding Page Invite" on the Demo menu.
-5. Start workspace (Create my Club on `ob-5` branch), his planned activities (if any) will be added to the list of examples (Networking Night, Spring Speaker Night, Funder Dinner). The task card (a)-(e) is then made.
-   - **Task No. (Juanxi 2026-11-08 determined):** Mission 1 = (f) setup, without pressing, the system itself; Task 2–6 = (a)-(e).
-   - **Participants are asked to press a task card every time they read it:**Demo subscript for the top of the pointbar  →  "Study task" by corresponding number ( 2–6）； Finish the last job and press "Done". When the next number is pressed, the previous task will automatically be concluded. The topbar sub-marks show that the current task is the first one, which can be checked by passing.
-   - He forgets that it is okay to press: the time on the score sheet is the main basis, and these buttons only allow for a more accurate demarcation of the export file.
-   - **homepage and navigation (FB-8, only branch, not applicable to the official website line):** first page is no longer today but **Reminders** (Calling Centre), in five columns: **Needs your OK**, **This week**, **Sent**, **Repries**, **No reply yet**. The original front page "Needs a Nudge", Events Progress, Semester Goals, Superstar of the Week are not on the front page. Left-hand navigation is only **Reminders**, **Plan** (Events and Tasks with "Events | Tasks" switch), **Handoff**, **Rules**; Team and Partners are collected in **More** that can be expanded. **Change "Today" on the mission card to "Reminders", "Needs a Nudge" to "Needs your OK", "Tasks" to "Plan →  Tasks".**
-6. **Reminds participants:** writes reminders, asks Gmail/ WhatsApp to look at the draft, **, but don't send it to**.
-   - **FB-8 (on branch only):** followed the answer to the Reminders screen in setup (also on Settings  →  Club  →  Tasks and events). "I review, then I send" or "skip": Open the draft at your OK point **Review & open Draw** > . "I review, Platypus sends": **Review** → **Approve · Platypus sends (demo)**, or the top of the column **Approve all (N)**(a) All at one time;  Do not open any drafts. "Send automatically": Needs your OK is empty, and the daily reminder is displayed directly in Sent under the symbol "Would be sent-demo". **no way really sends it.**skip sees "Choose how participants go out" on top of your OK screens; Don't point him at nothing.
-7. Finally, he was directed to create a new activity (e.g. "Plan a new event") with the right Ask.
+1. **First confirm eligibility, obtain signed consent, and assign a study ID (E01, E02…).** Do all of this outside the website.
+2. **Ask the participant to open a private window** (Chrome: Incognito; Safari: Private). For remote sessions, ask them to share only this browser window.
+3. **Send the test link:** `https://platypus-officer-hub.netlify.app/#/start`
+   - It opens setup directly, bypassing Welcome.
+   - Do not reopen it during the test (this starts a new recording and resets setup to blank). If reopened, data is retained and the export contains two sessions.
+   - Accidental refresh is fine; entered content remains.
+4. **Task (f): setup.** Ask the participant to enter a fictional club using the organization card. On First event, they may plan an event or press "Skip for now"; this is an observation point, so do not suggest a choice. Reminders is also an observation point; do not suggest a choice. The site sends no actual email.
+   - **Flow `ob-5` (FB-2, branch only; not applicable until deployed to production):** screens are **Name** (club name + one-line Mission, both required) → **Team** (officer list, with collapsed "Fill roles from your constitution (optional)" at the top, supporting a sample constitution, upload, or paste; "Add advisor" button) → **First event** → **Reminders** → **Confirm** → **Invite**. Separate Constitution and Goals screens are gone: the constitution is within Team; goals are set later in Settings. If the organization card lists goals, tell the participant they do not need to enter them during onboarding. Name and Team each have a "Why:" line below the heading; Welcome has Why / How / What lines.
+   - **Second half of the president flow (FB-3, branch only, unreleased; not applicable until deployed to production):** First event and Reminders each also have "Why:". First event offers three buffers: Tight · 1 day / Standard · 3 days (Recommended) / Safe · 5 days, followed by steps with ASU deadlines and two dates. Reminders has an example reminder card, with a three-step diagram, analogy, and "what happens in Platypus" sentence under each option. Confirm has one primary button, **Create my club** (formerly Start workspace); only existing clubs get the text link "Cancel and keep the current club" (formerly Keep current demo). Invite has one primary button, **Open my workspace** (formerly Go to Today), and **no longer has "See what your officers will see"**: completing Invite goes to the home page, bypassing member preview. To inspect that preview yourself, use Demo → "Test Onboarding Page Invite" (no logging).
+5. After Start workspace (Create my club on the `ob-5` branch), the club contains the event they planned, if any, plus three sample events (Networking Night, Spring Speaker Night, Founder Dinner) and sample tasks. Continue with task cards (a)–(e).
+   - **Task numbering (set by Juanxi on 2026-11-08):** task 1 = (f) setup, recorded automatically with no button press; tasks 2–6 = (a)–(e).
+   - **Ask participants to press a number after reading each task card:** top-bar Demo badge → corresponding number (2–6) in "Study task"; press "Done" after the final task. Pressing the next number automatically ends the previous task. The top badge shows the current task number for cross-checking.
+   - Forgetting is fine: scoring-sheet timestamps are primary; these buttons only improve boundaries in the export.
+   - **Home and navigation (FB-8, branch only; not applicable until production deployment):** the home page is now **Reminders**, with five sections: **Needs your OK**, **This week**, **Sent**, **Replies**, **No reply yet**. "Needs a nudge", Events progress, Semester goals, and Superstar of the week are removed from the home page. Left navigation contains **Reminders**, **Plan** (Events and Tasks, toggled by "Events | Tasks" in the heading), **Handoff**, **Rules**; Team and Partners are under expandable **More**. **Before launch, change task-card references from "Today" to "Reminders", "Needs a nudge" to "Needs your OK", and "Tasks" to "Plan → Tasks".**
+6. **Remind participants:** they may open Gmail / WhatsApp drafts for reminders and invitations, **but must not actually send them**.
+   - **FB-8 (branch only):** reminder behavior follows the setup Reminders answer (also editable in Settings → Club → Tasks and events). "I review, then I send" or skipped: Needs your OK → **Review & open draft** → open draft → return → "I sent this reminder". "I review, Platypus sends": **Review** → **Approve · Platypus sends (demo)**, or section-level **Approve all (N)** to approve all at once; no draft opens. "Send automatically": Needs your OK is empty; due reminders appear directly in Sent as "Would be sent · demo". **None actually sends anything.** Participants who skipped Reminders see "Choose how reminders go out" above Needs your OK; do not suggest whether to click it.
+7. Finally, guide them to create an event through Ask on the right (for example, "Plan a new event").
 
 ## At the end
 
-1. **Settings — My preferences — Export my data**, and the browser downloads a `platypus-export-….json` file.
-   - In person test: The file is directly on your computer.
-   - Online test: Ask him to send files to your ASU mailbox. He can delete his share when he's done.
-   - He did not wish to submit documents, but only scoring tables and videos were used.
-2. **Close the no-smug window.**The site's data in this browser is all cleared out. 6In a post titled "The Right to Life" (Advanced in English and French) , the blogger says:
-3. You change the name of the file to a study ID (e. g. `E01.json`), save it in ASU storage, and delete that part of the mail.
-4. You want to convert the file into a table: `node scripts/export-to-csv.mjs E01.json`, which generates `E01.csv` and opens it directly with Excel.
+1. Participant selects **Settings → My preferences → Export my data**; the browser downloads `platypus-export-….json`.
+   - In person: the file is on your computer.
+   - Remote: ask them to send it to your ASU email. They may delete their copy afterward.
+   - They may decline to provide the file; use only the scoring sheet and recording for that session.
+2. **Close the private window.** This clears all website data from that browser (protocol step 6 requires doing this in the participant's presence).
+3. Rename the file using only the study ID (for example, `E01.json`), store it in ASU storage, then delete the email copy.
+4. To convert it to a table, run `node scripts/export-to-csv.mjs E01.json`; it generates `E01.csv`, directly readable in Excel.
 
-## What if...
+## If something goes wrong
 
-- **AI did not react or make a mistake:** will automatically use built-in answers, which next to "AI unavailable". Take note of the score sheet and proceed to the next item.
-- **Participants use mobile phones:** can also be used, but priority is given to computers.
-- The Test Onboarding button in the **Demo menu:** is for your own tests, not records, not participants.
+- **AI does not respond or errors:** the site automatically uses built-in responses, labeled "AI unavailable". Note this on the scoring sheet and continue.
+- **Participant uses a phone:** supported, but prefer a computer.
+- **Demo's Test Onboarding buttons:** for your own testing; they do not log. Do not have participants use them.

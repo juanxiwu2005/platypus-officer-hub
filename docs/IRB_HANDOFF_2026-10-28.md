@@ -1,25 +1,25 @@
-# IRB handoff bag. 2026-10-28
+# IRB handoff package · 2026-10-28
 
-Checklist for another dialogue. Research No. STUDY00024727, Platypus Phase 3 test.
+Verification materials for another chat. Study ID STUDY00024727, Platypus Phase 3 prototype testing.
 
-**, every single item in this document is checked for** in repository. The branch of the check is `feat/ai-night-mode`.
-(Submitting `55949b8`), and `main` do not differ in these respects. Each of the following articles has a source document and line number.
-Another conversation can be looked into on its own.
+**Every item in this file was checked against the repository**, on branch `feat/ai-night-mode`
+(commit `55949b8`), which does not differ from `main` in these respects. Every item below cites its source file and line numbers,
+so the other chat can check independently.
 
-**must read the last section, "What I can't check."** has one thing only Juanxi can confirm himself.
+**The final section, “What I cannot verify,” is required reading.** One item can only be confirmed by Juanxi himself.
 
-> **2026-10-29 Review (`integration/v1.0`, submitted to `afe0b5b`):**
-> - The facts of sections 1, 2 are still valid: the log structure `LogEntry` and 2026-10-28 were exactly the same at the time. The upper limit remains 2000, only in the browser localStoreage and the export button is still in Settings; The server stored the switch and the test to hold it was still in place. Only the lines have changed: `types.ts` line 379, `store.tsx` line 297/306, `Settings.tsx` line 119.
-> - **Article 3Section is outdated: DeepSeek's code path already exists 2026-10-29(IRB after approval) Delete**，`AI_PRESET=deepseek`Now it's going to be rejected directly.  (a) The material submitted, which is written as "maintaining an uninvited old path", is now more stringent than this; Should I inform IRB that Juanxi asks Marcie for a decision?
-> - Changes to the new feature Edit steps (sorting) will also be recorded in the same interactive log (with the same `before` value), without adding any upload or server storage.
+> **2026-10-29 recheck (`integration/v1.0`, commit `afe0b5b`):**
+> - The facts in sections 1 and 2 still hold: the `LogEntry` structure is exactly as it was on 2026-10-28; the limit is still 2000 entries; storage is still only in browser localStorage; and Settings still has the export button. The server-storage flag and its guarding tests remain. Only line numbers changed: `types.ts` line 379, `store.tsx` lines 297 / 306, `Settings.tsx` line 119.
+> - **Section 3 is outdated: the DeepSeek code path was deleted on 2026-10-29 (after IRB approval)**; `AI_PRESET=deepseek` is now rejected outright. The submitted materials say “an unselected legacy provider code path is retained”; actual behavior is now stricter. Juanxi should ask Marcie whether IRB needs to be informed.
+> - Changes made through the new “Edit steps” feature (the ordering task) are recorded in the same interaction log as usual (also including `before` values), with no new uploads or server storage.
 
 ---
 
-## 1. What data to collect (to write into Protocol)
+## 1. Data collected (must be in the Protocol)
 
-Each step of the participants in the prototype will be recorded. This is research data, Protocol has to write.
+Every action participants take in the prototype is recorded. This is research data and must be described in the Protocol.
 
-**The English language where IRB forms can be glued directly:**
+**English text ready to paste into the IRB form:**
 
 > Participant interaction logs are recorded locally in the participant's own
 > browser using browser localStorage, capped at 2,000 entries (oldest dropped
@@ -38,40 +38,40 @@ Each step of the participants in the prototype will be recorded. This is researc
 > organization and member information supplied by the researcher, so no real
 > names, real contact details, or real organizational records are captured.
 
-**Source (another dialogue can be checked):**
+**Sources (for the other chat to check):**
 
-| Facts | Documentation | Location |
+| Fact | File | Location |
 | --- | --- | --- |
-| Log field structure | `src/data/types.ts` | 367 Line `interface LogEntry` |
-| cap 2000 | `src/data/store.tsx` | 252 Line `LOG_LIMIT = 2000` |
-| Exists LocalStorage | `src/data/store.tsx` | 261 Line `const store = () => window.localStorage` |
-| Export Button | `src/pages/Settings.tsx` | 109 Line `data-testid="export-data"` |
+| Log field structure | `src/data/types.ts` | Line 367, `interface LogEntry` |
+| 2000-entry limit | `src/data/store.tsx` | Line 252, `LOG_LIMIT = 2000` |
+| Stored in localStorage | `src/data/store.tsx` | Line 261, `const store = () => window.localStorage` |
+| Export button | `src/pages/Settings.tsx` | Line 109, `data-testid="export-data"` |
 
-Fields by article (`LogEntry`, comment source text):
+Field by field (`LogEntry`, from the source comments):
 
-- `seq` - 1, 2, 3 ... not reused; There's a gap at the beginning, which means that the oldest ones were lost at the 2000 cap.
-- `at` - Live time when actions are assigned, milliseconds since 1970 (`Date.now()`)
-- `actor` --who did the app "View as" set when the action was executed?
-- `type` - Action type, e. g. `updateNode`, `moveTask`
-- `payload` - Action parameters reduced (long text cut, secret key and swollen objects unaccepted)
-- `before` - The values of those fields before the action are recorded only for actions that "change existing things"
-- `applied` - `false` indicates an app ignores this action (no performances, no validity or nothing to change)
+- `seq`—1, 2, 3 … never reused; a gap at the beginning means the oldest entries were dropped at the 2000-entry limit
+- `at`—the real time the action was dispatched, in milliseconds since 1970 (`Date.now()`)
+- `actor`—who the app's “View as” was set to when the action occurred
+- `type`—action type, such as `updateNode` or `moveTask`
+- `payload`—shortened action arguments (long text truncated; secrets and bulky objects excluded)
+- `before`—the fields' values before the action, recorded only for actions that “modify something that already exists”
+- `applied`—`false` means the app ignored the action (unauthorized, invalid, or nothing to change)
 
-**means something to IRB: the** `before` field means that the log can restore "what has been changed by the participants."
-It's not just what the participants ordered. It's thinner than the usual click flow. Protocol better say it, don't be vague.
-"usage analytics"。
+**A point relevant to IRB:** the `before` field means the log can reconstruct “what participants changed from and to,”
+not just “what participants clicked.” This is more detailed than ordinary clickstream data; the Protocol should state it explicitly,
+without vaguely calling it "usage analytics".
 
 ---
 
-## 2. Do not write "Serviceend Storage Organization Configuration"
+## 2. Do not describe “server-side storage of organization configuration”
 
-**in Protocol does not want** to have the server save tissue configuration. It was completely shut down at M1 (2026-10-27).
-The building for the study will not be enabled. Instead, it would allow IRB to follow the data retention period and delete process, which has nothing to do with it.
+The Protocol **must not** say that the server saves organization configuration. This was completely disabled in M1 (2026-10-27),
+and the study build will not enable it. Describing it would prompt IRB questions about retention and deletion processes for a system that has nothing to manage.
 
-**Degree of shutdown (tested)**
+**How completely it is disabled (guarded by tests):**
 
-When `ORG_SETUP_ENABLED` does not equal the string `"true"`, all of the lower 7 endpoints return to 404,
-`getStore` is called by 0:
+Unless `ORG_SETUP_ENABLED` equals the string `"true"`, all 7 endpoints below return 404,
+and the storage layer's `getStore` is called 0 times:
 
 ```
 /api/org/setup              /api/org/archive
@@ -80,41 +80,41 @@ When `ORG_SETUP_ENABLED` does not equal the string `"true"`, all of the lower 7 
 /api/workspace/assistant-run
 ```
 
-- Switch logic: `vite.config.ts` Line 11, `process.env.ORG_SETUP_ENABLED === "true"`
-- Front side: `src/phase1/serverStorage.ts` - **is excluded, not hidden while running, when stored images are built in**
-- `src/test/serverStorageHidden.test.ts`.
-  - 7 endpoints each assert 404 + `getStore` zero call
-  - There's a special one claiming that only the **precise string `"true"`** can open it (`""`, `"false"`, `"1"`, `"TRUE"`, `"yes"` are all still 404).
-  - And there's a reverse contrast: the same request when opened **does** go to the storage layer to prove that this test is not empty.
-- On the side of e2e is an assertion that round visits result in 0 storage requests
+- Flag logic: `vite.config.ts` line 11, `process.env.ORG_SETUP_ENABLED === "true"`
+- Frontend: `src/phase1/serverStorage.ts`—screens using storage are excluded **at build time**, rather than hidden at runtime
+- Guarding tests: `src/test/serverStorageHidden.test.ts`
+  - Each of the 7 endpoints asserts 404 + zero `getStore` calls
+  - A dedicated assertion proves that only **the exact string `"true"`** enables it (`""`, `"false"`, `"1"`, `"TRUE"`, and `"yes"` all still return 404)
+  - A reverse control also proves that, when enabled, the same request **does** reach the storage layer, demonstrating that the test is not vacuous
+- An e2e assertion also verifies 0 storage requests throughout the visit
 
-**If IRB asks if the prototype will send data to the server**, the exact answer is:
-This is not done in the construction for research, and there are automating tests to verify this at every CI; There is this path in the code.
-However, the relevant endpoint returns 404 and the interface is not packaged.
+**If IRB asks “Will the prototype store data on a server?”**, the accurate answer is:
+not in the study build, and automated tests verify this on every CI run. The code contains this path,
+but while disabled, the relevant endpoints return 404 and the relevant screens are excluded from the bundle.
 
 ---
 
-## 3. AI supplier (this section is easily misspelled)
+## 3. AI providers (easy to describe incorrectly)
 
-> **2026-10-29 Update (submitted `[AI]`): The code path for DeepSeek has been deleted.**, the warning "DeepSeek has been removed" and the test that holds it for `adapter.test.ts` is out of date; DeepSeek is not in the code now, and `AI_PRESET=deepseek` will be rejected (no request). **The following English expression is still accurate**, as two uninvited suppliers preset in the code ("an unsolecated legacy provider code path") are also retained. Whether or not to delete them, or to change the wording of the material, is left to Juanxi.
+> **2026-10-29 update (`[AI]` commit): the DeepSeek code path has been deleted.** The warning below against writing "DeepSeek has been removed" and the test guarding it (`adapter.test.ts`, "keeps DeepSeek behavior unchanged…") are outdated; DeepSeek is now absent from the code, and `AI_PRESET=deepseek` is rejected (without sending any request). **The English statement below remains accurate**, because two unselected provider presets, OpenAI and Anthropic, remain in the code ("an unselected legacy provider code path"). Juanxi decides whether to remove those too and whether to revise the materials.
 
-**To write:** All AI calls go **ASU AIR** (school internal gateway). Route v3:
+**What to write:** all AI requests go through **ASU AIR** (the university's internal gateway). Routing v3:
 
-- Gemma 4 31B - Long Structural Settings Task
-- Muse — Short Dialogue and Editor
-- GLM 5.3 - Only when the user requests deeper review
+- Gemma 4 31 B—longer structured setup tasks
+- Muse—short conversations and edits
+- GLM 5.3—only when the user explicitly requests deeper review
 
-**⚠  don't write "DeepSeek has been removed", that's not true.**
+**⚠️ Do not write "DeepSeek has been removed"; that is not true.**
 
-**in repository and** a supplier code path for DeepSeek which is not selected only under the configuration used for research.
-There's a test that's holding on to its behavior:
+The repository **still contains** a DeepSeek provider code path; it is simply not selected by the study configuration.
+A test guards its behavior:
 
 ```
 src/organization/adapter.test.ts
   → "AIR provider routing > keeps DeepSeek behavior unchanged when AIR is not selected"
 ```
 
-**Exact English:**
+**Accurate English wording:**
 
 > All AI requests in the study configuration are routed to ASU's AIR gateway,
 > which is operated by Arizona State University. No participant data is sent to
@@ -122,87 +122,87 @@ src/organization/adapter.test.ts
 > unselected legacy provider code path that the study configuration does not
 > use.
 
-**Why this is important:** if Protocol says DeepSeek has been removed and IRB or IT security review to see the code
-And finding it still is, it's a factual error that could trigger a question about the credibility of Protocol as a whole.
-There is no harm in writing "a unused path has been retained" or "removed".
+**Why this matters:** if the Protocol says DeepSeek was removed, but IRB or an IT security review inspects the code
+and finds it still there, that factual error could call the credibility of the entire Protocol into question.
+Saying “an unselected legacy path is retained” has no downside; saying “removed” does.
 
-The clean-up of that dead code has been assigned to the follow-up, but **was submitted today in time to do**.
-So today's Protocol is going to be written on the status quo.
-
----
-
-## 4. Data seen by participants
-
-Repository contains only the demo student event data. The participants use the knowledgeal and membrane information provided by the researchers.
-Live name, live contact information, live listed records are not entered.
-
-This is the hard rule of repository (`AGENTS.md`, sect. 3, 1): do not submit original answer for survey, interview transliteration,
-The recording, the names of participants or quotations are not posted to any AI.
+Complete removal of that dead code is already scheduled for a later task, but **cannot be done before today's submission**,
+so today's Protocol must reflect the current state.
 
 ---
 
-## 5. Participant recruitment and grouping (Decision of Juanxi 2026-10-27)
+## 4. Data participants see
 
-- **contains group B** on the basis of the need to observe feedback from participants onboarding process itself
-- Timeline: IRB submitted around Thursday, approved on Monday or Tuesday.
+The repository contains only fictional demo student-organization data. Participants work with fictional organization and member information supplied by the researcher.
+No real names, real contact details, or real student-organization records enter the system.
 
-(This section is Juanxi's own arrangement, not from the code. The other conversation is to be checked.
-Juanxi should be asked about himself or the IRB records. ）
-
----
-
-## 6. Something I can't check -- need Juanxi to confirm it himself.
-
-**`ORG_SETUP_ENABLED` has been set up as `true` in the Environmental Variables of Netlify.**
-
-`netlify.toml` didn't set it up, so the default is off. However, there are also environmental variables in the web settings interface of Netlify.
-I can't see that interface in this session.
-
-The conclusions of **, section 2, are based on the fact that "it has not been set as true."**
-
-Please confirm for yourself before submitting:
-
-> == sync, corrected by elderman ==
-> The **on the confirmation list does not have** `ORG_SETUP_ENABLED`, or its value is not `true`.
-
-If you find it's set up as `true`, tell me immediately that section 2 has to be rewritten.
-Because that means the server's storage is open, Protocol has to write the data retention and deletion process.
+This is a hard repository rule (`AGENTS.md` §3, item 1): do not commit raw survey responses, interview transcripts,
+recordings, participant names or quotes, or paste any of those materials into any AI.
 
 ---
 
-## 7. Checklist for another dialogue
+## 5. Participant recruitment and grouping (Juanxi's 2026-10-27 decision)
 
-Article by article:
+- **Include group B**, because feedback on the onboarding process itself needs to be observed
+- Timeline: submit IRB around Thursday → approval next Monday or Tuesday → recruitment email on Wednesday → actual prototype testing begins the following week
 
-- [ ] Does Protocol's data collection section have an interactive log and is written in the English version of 1?
-- [ ] Does it say that the log is **that the participants themselves export** to the researchers, not automatically upload it?
-- [ ] Do you have a log containing `before` values (recovering both before and after the changes) without being vaguely identified as using analytics
-- [ ] **in Protocol does not have a description of the** serverend storage tissue configuration
-- [ ] AI Vendor section says AAU Air, the division of work across the three models.
-- [ ] AI Vendor Section **No** Claim DeepSeek has been removed
-- [ ] Include group B in the group
-- [ ] Juanxi has confirmed `ORG_SETUP_ENABLED` for Netlify (section 6)
-- [ ] Data retention: Logs in participants ' own browser, capped 2000, clearer data disappear - Protocol 's retention period description is consistent with this
+(This section records Juanxi's own arrangements, not facts verified from code. If the other chat needs to check,
+it should ask Juanxi himself or consult the IRB system records.)
 
 ---
 
-## 8. If IRB comes back for questioning,
+## 6. What I cannot verify—Juanxi must confirm personally
 
-A few approximates will be asked, and the exact answer:
+**Whether `ORG_SETUP_ENABLED` is set to `true` in Netlify's environment variables.**
 
-**, "Where does the data exist and how long does it last? 」**
-Participants ' own browser (localStorage), capping 2000 up-to-date records. The studyer has a copy of the participant.
-The active export and delivery of a JSON file, with the retention period set at the time promised by the researcher in Protocol. Participants clear browsers
-The data, the locals are gone.
+It is not set in `netlify.toml`, so the default is off. But environment variables can also be configured in Netlify's site settings,
+which I cannot see in this session.
 
-**, "Can you pull it back? 」**
-The participants will be able to clear the browser data at any time before handing over the JSON file without leaving a trace. Press Protocol after surrender
-The withdrawal clause is dealt with.
+**Every conclusion in section 2 depends on “it has not been set to true.”**
 
-**"AI will see the participant's data?" 」**
-Session - The contents entered by the participants in the prototype will be sent to the ASU AIR gateway to generate a response. The contents of the project are student organisation
-Information. No third party AI supplier.
+Please check personally before submitting:
 
-**"Is there a risk of leak? 」**
-API key for the product website is only in Netlify 's environment variable and not in code, document, prompt or submission records
-（`AGENTS.md`Article 3Section 2Article ).
+> Netlify → select the platypus site → Site configuration → Environment variables
+> → confirm the list **does not contain** `ORG_SETUP_ENABLED`, or its value is not `true`
+
+If you find it set to `true`, tell me immediately; section 2 must be rewritten in full,
+because server storage would be enabled and the Protocol would need retention and deletion procedures.
+
+---
+
+## 7. Verification checklist for the other chat
+
+Check each item:
+
+- [ ] The Protocol's data-collection section describes interaction logs consistently with the English in section 1
+- [ ] It explicitly says **participants export the logs themselves** and hand them to the researcher; there is no automatic upload
+- [ ] It explicitly describes `before` values (which reconstruct changes), without vaguely calling them usage analytics
+- [ ] The Protocol contains **no** description of server-side organization-configuration storage
+- [ ] The AI-provider section specifies ASU AIR and correctly describes the three models' roles
+- [ ] The AI-provider section **does not** claim DeepSeek was removed
+- [ ] Group B is included
+- [ ] Juanxi has confirmed Netlify's `ORG_SETUP_ENABLED` setting (section 6)
+- [ ] Retention: logs remain in participants' own browsers, capped at 2000 entries, and disappear when browser data is cleared—the Protocol's retention description must match
+
+---
+
+## 8. If IRB asks follow-up questions
+
+Likely questions and accurate answers:
+
+**“Where is data stored, and for how long?”**
+In participants' own browsers (localStorage), limited to the latest 2000 entries. The researcher's copy is a JSON file
+that participants voluntarily export and hand over, retained for the period promised by the researcher in the Protocol. Clearing browser
+data removes the local copy.
+
+**“Can participants withdraw?”**
+Before handing over the JSON file, participants can clear browser data at any time without leaving a trace. After handover, follow the Protocol's
+withdrawal terms.
+
+**“Will AI see participant data?”**
+Yes—content participants enter in the prototype is sent to the ASU AIR gateway to generate responses. This is fictional student-organization
+information. It does not pass through any third-party AI provider.
+
+**“Is there a risk of key exposure?”**
+The product site's API key exists only in Netlify environment variables, not in code, documents, prompts, or commit history
+(`AGENTS.md` §3, item 2).

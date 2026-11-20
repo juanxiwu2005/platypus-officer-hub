@@ -1,12 +1,12 @@
-# Job-related coverage of standard workflows
+# Responsibility-link coverage for the standard workflow
 
-2026-11-16(America/Phoenix) • Job matching phase 3 · Workflow Adapter Agent
+2026-11-16 (America/Phoenix) · Responsibility matching stage 3 · Workflow Adapter Agent
 
-This table checks the current item by item `EVENT_STEPS`It's... 46Standard steps, which include the branches of conditions.  A single event produces only applicable steps, not necessarily 46 tasks. The table contains the **step duty boundary review tips**, not requiring the student organization to create 46 fixed duties, nor does it pre-set a roll like Secretary, Marketing etc. Multiple steps or different streams of work can reclaim the same responsibilities that have been identified by the Organization.
+This table individually reviews all 46 standard `EVENT_STEPS`, including conditional branches. An event creates only applicable steps, not necessarily 46 tasks. These are **review prompts for step responsibility boundaries**, not a requirement for 46 fixed club responsibilities or predefined Secretary/Marketing roles. Several steps/workflows may reuse one organization-confirmed responsibility.
 
-The original program is `src/matching/adapters/steps.ts`. `standardRequirementCommands` Adds unconnected records only to the missing workflow/step combination, and responsibility ID is null; Do not replace an existing manual connection. 37 initial Draw, 9 needs_split, all subject to review. Complex steps should be recognized as needs-allocation only after splitting or clear professional integration. The completion of the entire exercise should not be determined by a professional match.
+Canonical implementation: `src/matching/adapters/steps.ts`. `standardRequirementCommands` adds unlinked records only for missing workflow/step pairs, all responsibility IDs null; never replaces existing manual links. Initially 37 draft, 9 needs_split; all require human review. Composite steps become assignable requirements only after splitting or explicit specialist coordination. One matching specialty does not establish ability to deliver the whole task.
 
-| Step ID | Existing title | Borders of responsibility to be identified | Initial Status | Existing sources |
+| Step ID | Existing title | Responsibility boundary to confirm | Initial state | Existing source |
 | --- | --- | --- | --- | --- |
 | `plan` | Event Plan | Own the documented event purpose, scope and operating plan; coordinate specialist inputs without assuming their execution duties. | `draft` | PLAN-01 |
 | `backup` | Back-up Plan | Produce the agreed fallback plan for event disruptions; obtaining each replacement service remains a separate execution task. | `draft` | PLAN-01 |
@@ -55,10 +55,10 @@ The original program is `src/matching/adapters/steps.ts`. `standardRequirementCo
 | `orderPlaced` | Order Placed | Place an already authorized order and record confirmation; budget and purchase authorization remain separate controls. | `draft` | R09 |
 | `finalcheck` | Full Check Alert Changes | Review all active routes, coordinate readiness and notify changes; clarify the coordinator and split specialist corrective work. | `needs_split` | CLOSE-01 |
 
-## Custom workflow and scope
+## Custom workflows and scope
 
-`WorkflowResponsibilityMap` can edit standard flow `seo-event` and the existing custom process `club-event`, using workflow ID+ step ID positioning. Self-defined steps are transferred to the same initializer through actual `StepTemplate`, with no second set of rules based on a rolle guess; It has not reviewed the initial function. The full free workflow generator is not at this stage.
+`WorkflowResponsibilityMap` separately edits standard `seo-event` and existing custom `club-event`, identified by workflow ID + step ID. Actual `StepTemplate` custom steps enter the same initializer; no second role-name guessing system. Unreviewed custom responsibilities begin draft. A fully free workflow generator is outside this stage.
 
-This table only proves that the current 46 standard definitions contain a review log entry item by item and do not represent all ASU policies that have been extracted or are fully supported by semantic and complete coverage. External system accounts, professional qualifications and approval authority must be verified manually. RACI maintains the existing rules with respect to budgetary control; The responsibility bubble is not granted for budgetary, procurement or school approvals.
+This table proves only review-record entry coverage for 46 current standard definitions, not extraction of all ASU policies or semantic exclusivity/completeness of the club library. External accounts, professional qualifications, approval authority require separate human verification. Existing RACI/budget rules remain; responsibility bubbles grant no budget, purchase, or school-approval authority.
 
-`buildEventNodes` creates no executors only when adding ownerMode=unassigned; The anchors, conditions, dependence, expected time, calibration and old RACI metadata remain unchanged. The actual candidate and confirmed assignment are handled by a single function parser and fit layer, not revert old functions or list first person.
+With new ownerMode=unassigned, `buildEventNodes` generates only an ownerless graph; anchors, conditions, dependencies, estimated effort, calibration, existing RACI metadata stay unchanged. Unified resolver/adapters handle candidates/confirmed assignments, without old-function or first-person fallback.

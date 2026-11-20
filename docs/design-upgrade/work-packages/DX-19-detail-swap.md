@@ -1,22 +1,24 @@
-# DX-19 Toggle Cross Fade + Leak Page
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- Stage 3 size S Risk R2 Reliance: DX-01, **DX-09** (they have to be in the same batch after DX-09) Parallel partners: DX-15 - 18
-- Branch: `design/dx-19-detail-swap` Style File: `src/styles/dx-19-detail-swap.css` Corresponding Details: D14 D15
+# DX-19 Detail-Switch Crossfade + Page Fade-In
 
-## Something to do.
-1. **The details of the right bar are changed to** (`DetailView` for `Rail.tsx`): 120ms were faded when changes occurred in `key` (transparency only); Do not exit, do not move layouts, do not affect rolling position replacement and focus shifts (existing `scrollTo` and `focus()` logical maintenance).
-2. The **page fades into** (`Layout.tsx` `<main>`): when the route changes, the direct sub-elements of `main` fade into 140ms. **does nothing less, doesn't slide, doesn't quit**, doesn't "slow" the navigation (Apple `motion.md`: Common operations don't make people animated).
-   - Means of implementation: Remount as `key` with a path, or give `main > *` a class that is only added when the route changes. **Don't** write permanent animations of all `main > *` (and flash when conditionally rendered cards appear inside the page).
-3. Reduction of kinetic effects: neither move.
-4. Keep: `<main id="main" tabIndex={-1}>`, jump to focus management of main content, `lastPath` right bar closes the logic.
+- Stage 3; size S; medium risk; R2; depends DX-01, **DX-09** (same files; must follow it); parallel DX-15–18
+- Branch `design/dx-19-detail-swap`; CSS `src/styles/dx-19-detail-swap.css`; details D14 D15
 
-## Files that can be changed
-`src/components/Layout.tsx`, `src/components/rail/Rail.tsx` (`DetailView` only), `src/styles/dx-19-detail-swap.css`.
+## Work
+1. **Rail detail changes** (Rail.tsx DetailView): key changes fade new content in over 120ms, opacity only; no exit/layout change; preserve scrollTo/focus() logic and scroll resets.
+2. **Page fade-in** (Layout.tsx `<main>`): direct main children fade in over 140ms on route changes. **Fade-in only, no slide/exit**; navigation must not slow (Apple motion.md: do not make frequent actions wait).
+   - Key remount by path, or add a class only on route changes. **Do not permanently animate all main > ***; conditional in-page cards would flash too.
+3. Reduced motion: neither animates.
+4. Preserve `<main id="main" tabIndex={-1}>`, skip-to-main focus, and lastPath rail-closing logic.
+
+## Allowed files
+`src/components/Layout.tsx`, `src/components/rail/Rail.tsx` (DetailView only), `src/styles/dx-19-detail-swap.css`.
 
 ## Acceptance
-- `smoke`, `today`, `tasks`, `events`, `a11y`, `recovery` desktop + mobile phone green; Any page with fast link points is uncracked and white.
-- New test `e2e/dx-19-swap.spec.ts`: `opacity` for switching the content of new pages after navigation to 1 in transition, 300ms; The right column details are diluted when you point a different task in Today.
-- Juanxi Test: Point left navigation page change, new pages appear softly (not slide); Point different tasks, right column down.
+- smoke/today/tasks/events/a11y/recovery desktop/phone pass; rapid navigation stays responsive without white flashes.
+- New `e2e/dx-19-swap.spec.ts`: new page opacity passes through an intermediate value and reaches 1 within 300ms; different Today tasks fade rail details in.
+- Juanxi: sidebar navigation softly reveals pages, without sliding; task switches fade rail contents.
 
 ## Rollback
-R2。
+R2.

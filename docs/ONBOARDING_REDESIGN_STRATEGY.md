@@ -1,91 +1,91 @@
-# Onboarding Reformation Implementation Policy (to be approved by Juanxi)
+# Onboarding redesign implementation strategy (awaiting Juanxi's approval)
 
-**Status: Just a scheme, no code or interface changed.** Drafting: Claude, 2026-11-01, Branch `claude/determined-johnson-yrdxwf` (pre-reading code for 10).
-**Update of the same date:** adopts a supplement to Juanxi - Phase 3 participants go onboarding (new section 2b and changed sections 0, 7, 8, 9). The original proposal for "old immobility during the Phase 3 period" has been discarded and replaced by "entry + old screen plus shell is the smallest version, with new processes catching up to change."
-**Two processes to be undertaken:** A. presidient First Organization; B. Registration upon receipt of the invitation link.
-**Based on:** `AGENTS.md`, `docs/PROGRESS.md`, `docs/PRODUCT_PLAN.md`, sect. 7, `docs/M4_ONBOARDING_PLAN.md`, `docs/DESIGN_TOKENS.md`, `docs/design-upgrade/`; Two designs, Skill: `dickwu/apple-design-skill` (Apple Hig 123 page, installed in `~/.claude/skills/apple-design`) and `emilkowalski/skills` `apple-design` (Apple WWDC hands and effects, read); Preview of 10 code, running on this plane, desktop 1280px and mobile 390px intercept two existing processes each.
-
----
-
-## 0. Let's get to the conclusion.
-
-1. **now both processes "can be used but not like Apple."** president, which puts the 70 input frame on one page, and the member, which puts the 5 questions on one page; Both asked "what the system wants" without first being seen "what I got".
-2. There is only one sentence at the heart of **: value first, information first; All that can skip; Just do one thing each step.** president 5 saw his first flowchart (which was the goal in product plan 7) within a minute. A member. 2In minutes, you see "what I'm responsible for and what my first thing is."
-3. The **design "signature" is the progress chain**. It does three things at the same time: progress directions, flow charts for the first campaign, and "your position" after the members joined. Apple says, "Don't think of decorations as pleasure" -- this signature comes from the product itself, not the decoration.
-4. **There's a fact you have to know first: the invitation link is only valid now in the same browser.**（`Join.tsx`Article 11Okay, take the code from the link and compare it to the one stored on this machine.  So the B process is only "designed, authenticated is empty" before v1. 5 does live account numbers. I'm not going to describe it as being able to live registered.
-5. **Supplement to your 11-01 (accepted): Phase 3 participants are invited onboarding instead of falling directly into dashboard for the first time.** attendees do not log in Google, so the entrance is placed on "First Enter": a very short welcome page, selecting **Start walkthrough** (go full set-up + look at the social perspective) or **Explore the screenclub** (direct view today). From the same point of departure, each participant can be seen in a coherent manner. Designed to see new section 2b; The old `/#/setup`, `/#/join` remain as the smallest version.
-6. **because it will enter the Phase 3 and time becomes the biggest constraint**: only a few days before 11/9 (8.1). I'll divide the range into "the smallest editions that must be made before freezing" and "the full version after." The question that needs your pedal is at 9, there's a total of 8, each with my advice.
+**Status: proposal only; no code or interface changed.** Drafted by Claude on 2026-11-01, branch `claude/determined-johnson-yrdxwf` (Preview 10 code).
+**Same-day update:** adopted Juanxi's addition: Phase 3 participants enter onboarding on first visit (new section 2b, updates to sections 0, 7, 8, 9). The earlier recommendation to leave the old flow untouched during Phase 3 is superseded by "entry + a shell around existing screens is the minimum version; replace as much of the flow as is ready."
+**Two flows to build:** A. President creates an organization for the first time; B. Member registers through an invitation link.
+**Basis:** `AGENTS.md`, `docs/PROGRESS.md`, section 7 of `docs/PRODUCT_PLAN.md`, `docs/M4_ONBOARDING_PLAN.md`, `docs/DESIGN_TOKENS.md`, `docs/design-upgrade/`; two design skills: `dickwu/apple-design-skill` (123-page Apple HIG, installed at `~/.claude/skills/apple-design`) and `apple-design` in `emilkowalski/skills` (Apple WWDC interaction feel and motion, read); Preview 10 run locally, with both existing flows captured on desktop 1280px and mobile 390px.
 
 ---
 
-## 1. What do I see?
+## 0. Recommendation first (one-minute version)
 
-Method: In the order of Apple Skill, confirm that this is **web application**, so use Apple 's "Principle + Foundation" (accessibility, colour, font, layout, text), without iOS label bars or other platform rules; `onboarding.md`, `managing-accounts.md`, `entering-data.md`, `privacy.md`, `launching.md`, `collaboration-and-sharing.md`, `generative-ai.md`, `motion.md` and `writing.md` then concluded. Each article is marked by severity (Skill's writing: Critical accessibility failed, High friction, Medium sublime, Low grinding). **did not find the Critical** (accessibility check already exists in existing browser tests).
+1. **Both current flows “work, but do not feel like Apple.”** The president flow puts 70 inputs on one page; the member flow puts 5 question groups on one page. Both ask “what does the system need?” before showing “what do I get?”
+2. **The core change is one sentence: deliver value before requesting information; allow every optional step to be skipped; do one thing per step.** Presidents see their club's first flowchart within 5 minutes (already the target in product-plan section 7); members see “what am I responsible for, and what is my first task?” within 2 minutes.
+3. **This design's signature is the progress chain** (Platypus's own connected dots). It serves three purposes: progress indicator, first-event workflow for presidents, and “your place” after members join. Apple's advice is “don't mistake decoration for delight”—this signature comes from the product itself, not decoration.
+4. **One fact you must know first: invitation links currently work only in the same browser** (`Join.tsx` line 11 compares the link's code with the locally stored code). Until real accounts in v1.5, flow B can therefore only be “designed properly, with identity verification left as a placeholder.” I will not describe it as real registration.
+5. **Your 11-01 addition (adopted): Phase 3 participants enter onboarding on their first visit, rather than landing directly on the dashboard.** Participants do not sign into Google, so the entry occurs on first visit: a very short welcome page offers **Start walkthrough** (full setup + a look at the member perspective) or **Explore the sample club** (straight to Today). Each participant begins at the same point so onboarding can be observed consistently. See new section 2 b; old `/#/setup` and `/#/join` remain as the minimum fallback.
+6. **Because this enters Phase 3, time becomes the largest constraint**: only days remain before 11/9 (8.1). I divided scope into “minimum required before freeze” and “full version afterward.” Section 9 contains 8 decisions for you, each with my recommendation.
 
-### Organization set-up (`/#/setup`, 6)
+---
 
-| # | Criticality | The truth. | Apple, what do you say? |
+## 1. What I found (current-state diagnosis)
+
+Method: following the Apple Skill's sequence, first confirm this is a **web app**. Apply Apple's principles and foundations (accessibility, color, typography, layout, writing), without importing platform rules such as iOS tab bars. Then read `onboarding.md`, `managing-accounts.md`, `entering-data.md`, `privacy.md`, `launching.md`, `collaboration-and-sharing.md`, `generative-ai.md`, `motion.md`, and `writing.md` before drawing conclusions. Each finding has a severity (the Skill's definitions: Critical = accessibility failure, High = real friction, Medium = suboptimal, Low = polish). **No Critical findings** (the existing browser tests already include accessibility checks).
+
+### A. President sets up the organization (`/#/setup`, 6 steps)
+
+| # | Severity | Observed facts | Apple's guidance |
 | --- | --- | --- | --- |
-| A1 | **High** | The first user saw the **shell of the whole application**: left navigation (with Tasks horn), right Ask panel (the suggested question is "What are my top 5 tabs?", prepared for the existing application), View as well as AI switches and bells already used.  | `onboarding.md › Best practices`"Keep onboarding contact felt on the experience you offer."  |
-| A2 | **High** | 3 Step "Office Rules", for example, constitution reads 10 roles, **each role 7 input boxes (rolle names, who to report to, name, mailbox, telephone, ASU ID, duties)  ≈  70** with a page about 3, 768px.  | `entering-data.md`："Pre-gathering as much information as possible to minimize the amount of data that people need to supply"；`onboarding.md`："Postpone nonessential setup flows"。 |
-| A3 | **High** | **asked twice for the same information, or two.** president fills each officer's phone and ASU ID at 3; When officer Adds `ProfileForm`I was asked again about the phone and the ASU ID. Section 7 of the Product Plan says "officer information is filled out by them."  | `entering-data.md › Get information from the system whenever possible`；`privacy.md`"Request access only to Data that you actually need." |
-| A4 | **High** | The most valuable moment is hidden: 6 takes a word, points "Prepare first worklow", forms filled in 9 fields, ticks a confirmation box, while the **flowchart only appears in a folding block with** (Former 6 text list) `Setup.tsx` 188 Line `slice(0, 6)`）。The best thing about the product (progress chain, flow chart) isn't on "Show Time."  | `design-principles.md › Purpose / Delight`(ii) Joy is the result of matching the remaining seven; `onboarding.md`："Teach through interactivity." |
-| A5 | Medium | The link is invited to appear in the folding block of step 4, "Your Introduction after setup", which says, "Only complete step 6;" After completion, the invitation is only in the folding block of Settings  →  "Invite Offices". **'s most critical "pull the team" step, too early and too deep.** | `collaboration-and-sharing.md`："Prominently display the Collaboration button as soon as collaboration starts."；"Write succinct phrases that summarize the sharing permissions"。 |
-| A6 | Medium | Progress indicators are 6 pills of equal size, folded into two rows on the desktop; Which can skip and which must not be filled out. The product plan says 5, 5 minutes, actually 6.  | `onboarding.md`: Process should be "fast, fun, and optional".  |
-| A7 | Medium | The first action is the "Choose File" button with the browser; "Use the sample constitution" 3This is the second row of small buttons.   | `entering-data.md`："When possible, offer choices instead of requiring text entry."；`generative-ai.md`："offer diverse, predefined example inputs"。 |
-| A8 | Medium | AI Writes directly to "AI could not read it (HTTP 404)" when an error occurs. ( ⚠ ) This is what I see when I'm running the front end without a server function; It doesn't have to appear on the line, but it's written in the code and a lot of errors will come out. ） | `writing.md`："Write clear error messages… avoid blame, and be clear about what someone can do to fix it." |
+| A1 | **High** | First-time users see **the entire app shell**: left navigation (with Tasks badge), right Ask panel (suggesting "What are my top 5 tasks?", intended for clubs already using it), View as, AI toggle, bell. | `onboarding.md › Best practices`: "Keep onboarding content focused on the experience you provide." A newcomer’s first screen should not include things they cannot yet use. |
+| A2 | **High** | Step 3, "Officer roles": the sample constitution extracts 10 roles, **7 inputs each (role name, manager, name, email, phone, ASU ID, responsibilities) ≈ 70 total**; desktop page height is about 3,768px. | `entering-data.md`: "Pre-gathering as much information as possible to minimize the amount of data that people need to supply"; `onboarding.md`: "Postpone nonessential setup flows". |
+| A3 | **High** | **The same information is requested twice, from two different people.** President enters each officer's phone and ASU ID in step 3; joining officers (`ProfileForm`) are asked again. Product plan Section 7 says "officers fill in their own information." | `entering-data.md › Get information from the system whenever possible`; `privacy.md`: "Request access only to data that you actually need." (No purpose is given for ASU ID.) |
+| A4 | **High** | The most valuable moment is hidden: step 6 requires typing a sentence, clicking "Prepare first workflow", filling a 9-field form, and checking confirmation; **the flowchart appears only as a text list of the first 6 steps inside a collapsed section** (`Setup.tsx` line 188, `slice(0, 6)`). The product's best visual elements (progress chain, flowchart) are absent from its reveal moment. | `design-principles.md › Purpose / Delight`: delight follows from getting the other seven principles right; `onboarding.md`: "Teach through interactivity." |
+| A5 | Medium | Invitation link appears in step 4's collapsed "Your invitation after setup", saying it works only after step 6; after completion, invitations are only in Settings → collapsed "Invite officers". **The crucial "bring in the team" step appears too early (unusable) and is buried too deeply.** | `collaboration-and-sharing.md`: "Prominently display the Collaboration button as soon as collaboration starts."; "Write succinct phrases that summarize the sharing permissions". |
+| A6 | Medium | Progress uses 6 equal pills wrapping into two rows on desktop; required versus skippable steps are unclear. Product plan says "5 steps, 5 minutes"; there are actually 6. | `onboarding.md`: flow should be "fast, fun, and optional". |
+| A7 | Medium | First action is the browser's native "Choose File" button; "Use the sample constitution" (the primary Phase 3 path) is a small second-row button. | `entering-data.md`: "When possible, offer choices instead of requiring text entry."; `generative-ai.md`: "offer diverse, predefined example inputs". |
+| A8 | Medium | AI errors display "AI could not read it (HTTP 404)". (⚠ Observed locally with only the frontend, no server functions; may not occur online, but this text exists in code and will surface with errors.) | `writing.md`: "Write clear error messages… avoid blame, and be clear about what someone can do to fix it." |
 
-### B. Invitations received by the members (`/#/join`)
+### B. Member receives an invitation (`/#/join`)
 
-| # | Criticality | The truth. | Apple, what do you say? |
+| # | Severity | Observed fact | Apple's guidance |
 | --- | --- | --- | --- |
-| B1 | **High** | **wants information first, then gives value.** Open the link and the first screen is a "Try setup as" frame. The role of "who you are, what you're responsible for" is stuck under the frame and the word is small. There's no saying "What good is it for you"?  | `managing-accounts.md`："Explain the benefits of creating an account"；`launching.md`/`onboarding.md`: Let people experience value first.  |
-| B2 | **High** | 5 group questions **Squeeze to one page** (desktop approximately 1,,700px): name mailbox, channel phone ASU ID, reminder time, busy week + personal buffer + tick box, career goal/interest/expected text frame with a folding free slot. The objective of the product program is "on the phone." 2Minutes, five questions."   | `onboarding.md`："design a brief, enjoyable experience that doesn't require people to memorize a lot of information"。 |
-| B3 | Medium | " Busy Week" is: date input box — an "Add business week" button that looks ash, and the list says "Remove week 2026-11-09." It's like running a journal, not choosing "what few weeks I'm busy with."  | `entering-data.md`: use selection instead of input, immediate feedback; `writing.md`: In human words.  |
-| B4 | Medium | There's only one sentence at the end: "You're ready" and two links (one of which is "Back to Settings," why does a new member go back to settings? ）。**didn't tell him what the first thing was.** | `feedback.md`: Clear feedback on completion; `onboarding.md`: Let people start using it right away.  |
-| B5 | Medium | The hint for an invalid invitation is "check your setup in motion... belongs to a different crowder". There's no next step to that for live members.  | `writing.md`: Mistakes say "what can be done."  |
-| B6 | **Limitations, not defects.**  | (b) The identity is not authenticated; Another cell phone or another browser, the link must fail.  | `managing-accounts.md`："Delay sign-in for as long as possible"、"prefer using a passkey" —— v1.5It's the right thing to do.   |
+| B1 | **High** | **Asks for information before showing value.** Opening the link shows a research explanation ("same-browser demo… does not verify a real identity") and a "Try setup as" dropdown on the first screen; the "who you are and what you do" role card sits below the dropdown in small text. Nothing says "what this does for you." | `managing-accounts.md`: "Explain the benefits of creating an account"; `launching.md`/`onboarding.md`: let people experience value first. |
+| B2 | **High** | 5 groups of questions **crowded onto one page** (about 1,700px on desktop): name/email; channel/phone/ASU ID; reminder time; busy weeks + personal buffer + checkboxes; three text fields for career goals/interests/expectations; plus collapsed availability slots. The product plan targets "2 minutes on mobile, five questions." | `onboarding.md`: "design a brief, enjoyable experience that doesn't require people to memorize a lot of information." |
+| B3 | Medium | "Busy weeks" consists of a date input → an apparently disabled "Add busy week" button → a list saying "Remove week 2026-11-09." It feels like manipulating a log rather than selecting "which weeks I am busy." | `entering-data.md`: prefer selection over typing; immediate feedback; `writing.md`: use plain language. |
+| B4 | Medium | The ending has only "You're ready" and two links (one is "Back to Settings" — why should a new member return to settings?). **It does not tell them what to do first.** | `feedback.md`: provide clear completion feedback; `onboarding.md`: let people start using the product immediately. |
+| B5 | Medium | Invalid invitations say "Check your setup invitation… belongs to a different browser." For a real member, this offers no next step. | `writing.md`: errors should explain "what you can do." |
+| B6 | **Limitation, not defect** | Identity is not verified; the link will always fail on another phone or browser. | `managing-accounts.md`: "Delay sign-in for as long as possible, " "prefer using a passkey" — feasible only in v1.5. |
 
-### It's the right thing to keep.
+### What is working and must be preserved
 
-- The unfinished setup of **will be found in the browser and can restore** (`Setup.tsx` `setup-draft`) within 7 -- exactly what `launching.md` says is "Restore the previous state".
-- Constitution **reads** only in browsers, and the email phone covers it before sending AI; AI had a local cover when it was turned off; "Nothing is saved until you apply."
-- Date from rule engine only; "Fictional only".
-- Existing accessibility, mobile phones, dark colours, and action reduction tests. **new processes must be no worse than they are.**
+- **Unfinished setup is saved in the browser and can be resumed within 7 days** (`setup-draft` in `Setup.tsx`) — exactly "Restore the previous state" from `launching.md`.
+- The constitution is **read only in the browser**; email addresses and phone numbers are masked before sending to AI; there is a local fallback when AI is off; the promise is "Nothing is saved until you approve."
+- Dates come only from the rule engine; "Fictional only" research protection.
+- Existing accessibility, mobile, dark-mode, and reduced-motion tests. **The new flow must be at least as good.**
 
-### Brand Reminder (Craft's article, no change requested)
+### Brand reminder (one Craft point; no change required)
 
-Cream bottom (`--bg #fbfaf7`) with lined headlines is one of the "most common three default appearances" named by Skill (our emphasis is green, not red pottery, so it's just riming). **The program does not change the brand token**, puts "remembering things" on the progress chain instead of changing color. If the liner and the cream bottom are the brand you chose, please tell me I'll write it into the design principles.
+A cream background (`--bg #fbfaf7`) plus serif headings is close to one of the Skill's “three most common default looks” (our accent is teal, not terracotta, so it is only adjacent). **This plan leaves brand tokens unchanged**, making the progress chain the memorable feature instead of relying on a new palette. If the serif and cream background are deliberate brand choices, tell me and I will record them in the design principles.
 
 ---
 
-## 2. Design thinking: Turn eight principles of Apple into six principles of Platypus
+## 2. Design approach: translate Apple's eight principles into six Platypus onboarding principles
 
-Apple is here. 2026Year 6The month rewrites eight principles: Purpose, Agency, Responsibility, Familiarity, Flexibility, Simplicity, Craft, Delight.  On these two processes:
+Apple's eight principles, rewritten in June 2026: Purpose, Agency, Responsibility, Familiarity, Flexibility, Simplicity, Craft, Delight. Applied to these two flows:
 
-| # | Platypus Principles | Which one from Apple? | Specifically. |
+| # | Platypus principle | Apple source | Meaning |
 | --- | --- | --- | --- |
-| 1 | **Values first, information then**. | Purpose、Responsibility | Every screen says, "What you'll get," and "what I need." Write use next to each question, with active sentence ( `privacy.md` "Purpose string" writing.  |
-| 2 | **Don't ask, don't ask, just jump.**  | Agency、Simplicity | The fastest path is only a few steps necessary; The rest have "Skip for now" and tell people where to get it back. **Stop asking questions about** `onboarding.md`："don't present it again"）。 |
-| 3 | **One screen, one hand at a time.**  | Simplicity. | One problem per screen; The main button on the mobile phone is at the bottom of the thumb enough; "Back" always is. It's not hiding things, it's putting them on the lower floor.  |
-| 4 | **You do it and you see the results.**  | Craft、Delight、"teach through interactivity" | On the right, there is a live preview: you type the name of the target orgation, which grows the title; You choose the reminder time, it shows you what this reminder looks like; You change buffer days, date changes on the spot.  |
-| 5 | **familiar control, not inventing new** | Familiarity | Select the subject using a number control and an option line, without drawing boxes and text frames; Dates are on weekdays, without "ISO date + Add button"; Please use "Share" (copy link / WhatsApp / Email).  |
-| 6 | **. You can back up any minute.**. | Agency | Any step can be taken by Back; Anytime "Save & Exit"; Go back from where you came from (existing 7 days to resume retention); You can relive it in the settings.  |
+| 1 | **Give value before requesting information** | Purpose, Responsibility | Each screen first says "what you will get," then "what I need." Explain each question's purpose beside it in active voice (the "purpose string" approach in `privacy.md`). |
+| 2 | **Avoid unnecessary questions; allow skipping** | Agency, Simplicity | The fastest path contains only required steps. Everything else has "Skip for now" and explains where to find it later. **Do not ask again** about skipped items (`onboarding.md`: "don't present it again"). |
+| 3 | **One thing per screen, usable with one hand** | Simplicity (not minimalism) | One question per screen; primary mobile button at the bottom within thumb reach; "Back" always available. Move secondary content one level deeper rather than hiding it. |
+| 4 | **See results while working** | Craft, Delight, "teach through interactivity" | A live preview on the right (bottom on mobile): entering the club name produces its heading; selecting reminder timing shows the reminder; changing buffer days changes dates immediately. |
+| 5 | **Use familiar controls** | Familiarity | Use segmented controls and option rows for choices, rather than dropdowns and text fields; use a week strip for dates rather than "ISO date + Add button"; invitations should look like sharing (Copy link / WhatsApp / Email). |
+| 6 | **Leave and return at any time** | Agency | Back from every step; "Save & exit" anytime; resume where you left off (preserve the existing 7-day recovery); replay from Settings. |
 
-**Self- Criticism (Skill's request for a different product):** would also be created -- part of the Apple generality, intentional -- if it were to replace "One screen one thing + progress bar + welcome page" with another application. **really belongs to Platypus in one place: the progress chain is both a schedule and a flow chart of the first event, and the member's "You're here."** I've got "remembering things" all in this place, the rest of you keep quiet.
+**Self-critique (the Skill's "would this still work for another product?" test): ** "One thing per screen + a progress bar + a welcome screen" would work in another app too. This is Apple's general approach, intentionally so (Familiarity). **Only one element truly belongs to Platypus: the progress chain is simultaneously a progress bar, the first event's workflow, and the member's "you are here."** I am putting everything memorable into that one element and keeping the rest quiet.
 
 ---
 
-## 2b. First-time entrance (Juanxi 11-01 supplement, adopted)
+## 2b. First-entry gateway (added by Juanxi on 11-01, adopted)
 
-**Your idea:** Phase 3 Participants don't log into Google accounts, but can ask **when** first accessed the site: Shall we go full onboarding now instead of falling directly into dashboard? I think it's better -- each participant starts from the same point of departure, and it's easier to look together without looking for `/#/setup`.
+**Your idea:** Phase 3 participants do not sign in with Google, but on **their first website visit** can be asked whether they want the complete onboarding walkthrough now, rather than landing directly in the dashboard. I think this is better: everyone starts at the same point, onboarding can be observed consistently, and participants need not discover `/#/setup` themselves.
 
-**What really happened now (checked code):**
-- A browser that does not save data opens the site, entering directly into Today. It is a full-filled picture of Desert Foundations Society and its identity is Alex Rivera (president). There is no guide.
-- Creates a process hidden in the Demo menu only by "Replay setup" (only president / vice president is visible); The club member had to rely on an invitation link, which the participants could not obtain.
-- Each participant has a stand-alone data (`store.tsx`) on its own browser, so whether or not it is the first time that **can be judged by a small mark of this machine does not need an account or a server**.
+**What actually happens now (verified against the code): **
+- A browser with no saved data opens straight to Today, containing a fully populated fictional student organization, Desert Founders Society, viewed as Alex Rivera (president). There is no guidance.
+- Setup is hidden under "Replay setup" in the Demo menu (visible only to the president/VP); the member flow requires an invitation link participants cannot obtain.
+- Each participant has independent data in their own browser (`store.tsx`), so a small local flag can identify a "first visit": **no account or server required**.
 
-**what does the entrance look like?** (based on `onboarding.md`: after start-up has been completed, it's optional, it's not repeated and it's always found):
+**Entry screen** (based on `onboarding.md`: appear after launch, optional, never repeat after completion, and always retrievable later):
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -95,8 +95,8 @@ Apple is here. 2026Year 6The month rewrites eight principles: Purpose, Agency, R
 │  Set up a fictional club and see what your   │
 │  officers will see. About 5 minutes.         │
 │                                              │
-│  [ Start walkthrough ]          ← Main Button      │
-│    Explore the sample club      ← Secondary Links    │
+│  [ Start walkthrough ]          ← Primary   │
+│    Explore the sample club      ← Secondary │
 │                                              │
 │  Everything here is fictional and stays in   │
 │  this browser.                               │
@@ -104,54 +104,54 @@ Apple is here. 2026Year 6The month rewrites eight principles: Purpose, Agency, R
 ```
 
 **Rules:**
-1. **When it appears:**, there is no demonstration data saved in this browser, nor is there a "welcome page" mark (a separate key that does not appear in the presentation data). Those interviewed and those with available data will not be seen again.
-2. **Start walkthrough:**Go presidient Process A 3# One more button at the invitation hour **See what your officers will see**, enter the preview of social program B (Demo texting "Previewing as certain"), see **The one they just built.**It's not an example of how to end up back today.  It's a story that happens on both sides, and it's consistent.
-3. **Select Explore the screenclub:** straight into Today, mark down and stop playing. Replay setup on the Demo menu changed its name to **Replay walkthrough**.
-4. **does not need damaging confirmation when first set-up:** at a time when there is nothing in the participants' own workspace that needs to be protected, and the confirmation screen is just "Start workspace"; Only when "replaying" from the Demo menu comes up with a warning that "this will replace the current presentation".
-5. **Reset demo:** re-lighted the entrance after replacement (recommendation: Reset = Back to the starting point of the study).
-6. **Browser shielding storage (invisible window):** can't remember marking, only play once in this session and not loop.
-7. **Default Close. The** entry is controlled by a switch (made to build the switch or site parameter, OB-00). When closed, the site behaves exactly as it does today -- so there are now more than 600 Browners tests (which all directly open `/#/` and look forward to today) **without changing**. Phase 3's participant web site or build to open it.
-8. **It's not a login, it's not a letter of consent:** welcomes no name, no mailbox, no Google. The informed consent is completed at the recruitment stage, not here. `onboarding.md`："Avoid displaying licensing details within your onboarding flow."）。
+1. **When it appears:** this browser has neither saved demo data nor a "welcome seen" flag (a separate key outside demo data). Returning visitors and users with existing data do not see it again.
+2. **Start walkthrough:** president flow A (section 3) → at the invitation moment, an additional **See what your officers will see** button opens a preview of member flow B (Demo strip: "Previewing as [name]"). It shows **the club they just created themselves**, not the sample → finish in Today. One person experiences the complete onboarding from both sides in one coherent story.
+3. **Explore the sample club:** go directly to Today, save the flag, and do not show it again. Rename "Replay setup" in the Demo menu to **Replay walkthrough**, available anytime.
+4. **No destructive confirmation on first setup:** the participant's workspace contains nothing to protect yet, so confirmation is the ordinary "Start workspace." Only replaying from the Demo menu shows "this will replace the current demo."
+5. **Reset demo:** reenable the entry after reset (recommendation: reset returns to the research starting point).
+6. **Browser storage blocked (private browsing):** if the flag cannot persist, show it only once within the current session, without looping.
+7. **Off by default.** A switch controls entry (build flag or URL parameter, decided in OB-00). When off, website behavior is identical to today, so **none** of the 600-plus existing page tests (opening `/#/` and expecting Today) needs changing. Enable it in the Phase 3 participant URL or build.
+8. **Neither sign-in nor consent:** the welcome screen collects no name/email and does not use Google; informed consent occurs during recruitment, outside this flow (`onboarding.md`: "Avoid displaying licensing details within your onboarding flow.").
 
-**I don't judge for you at two.**The participants played the president or member of the group.  Whether to put the process onboarding into local interactive records. The entrance will change the first screen that participants see, and please confirm that the description of the "prototype task" covers this direction against the IRB scheme that has been submitted.
+**Two decisions are yours (Q7, Q8):** whether participants act as president or member, and whether to record onboarding in the local interaction log. The entry changes the first screen participants see; please also check whether the submitted IRB protocol's description of "prototype tasks" covers this guidance.
 
 ---
 
-## 3. Process A: first-time organization
+## 3. Flow A: a president sets up an organization for the first time
 
-The only mission for **: within** 5 minutes, the presenter saw **his first flow chart** and sent out an invitation.
-**Something to remember:**, you said that the progress chain was drawn in front of your eyes and the date was rule engine.
+**The only task:** within 5 minutes, the president sees **their club's first flowchart** and sends invitations.
+**The memorable moment:** say one sentence, and the progress chain draws itself before your eyes, with dates computed by the rule engine.
 
-### 3.1 Screen and Fastest Path
+### 3.1 Screens and fastest path
 
 ```
 Welcome → Name → Constitution* → Goals* → Team* → First event → Invite
-                    (*Yes, kip. )
-Fastest path: Welcome → Name → First event → Invite（4 The screen, Skip Drop it.  3 Screen, with Standard Roll and Standard Targets)
+                    (*skippable)
+Fastest path: Welcome → Name → First event → Invite (4 screens; Skip 3 screens, use standard roles and goals)
 ```
 
-| Screen | Do what? | Compared to now. | Remarks |
+| Screen | Behavior | Compared with today | Notes |
 | --- | --- | --- | --- |
-| **0 Welcome** | A screen. "Let's set up your club." Three-line commitment: about 5 minutes; You'll get a flow chart for the first event. The presentation data will not be sent anywhere. button "Get started". There's also "Try a screenclub" (Phase 3 fast path for participants).  | Add | Only once, not every time it starts. `launching.md`/`onboarding.md`）。 |
-| **1 Name** | The name of the student organization (school fixed ASU Tempe, reading only tab + Info explains why). Right preview: The title appears.  | Half of the original 1 step | An input box.  |
-| **2 Constitution*** | Three option lines: **Use sample** (recommended, first place) . **Upload a file** **Paste text**. An example of what AI does and where the text goes. After the selection, "back-office reading", the president can continue down (reserved by current practice). Bottom "Skip-use standard roles."  | Bottom of the original 1 step | AI Label, Specific Progress Talk: "Reading Office Tittles..." `generative-ai.md`："specific, reassuring feedback"）；And then in Team, there was a line called "AI Suggested" and one line could be changed.  |
-| **3 Goals*** | 3 proposed lines for switchable lines, one digital step forward in each row; The mission is just confirmation. Mission sentence by default folds "Add a mission (optional)".  | Original 2 Step | Select to replace the input.  |
-| **4 Team*** | **One screen, a "Organisation + List"**: Only two cells per row of the list - **Role** and **erson (allowable = Open position)**. The reporting relationship is brought out by default and can be modified at points above the chart; The job folds and the dots are open. (AI suggests inside) **The phone, the ASU ID and the mailbox are not here to ask.**: Mailbox Available  `fillEmails` Automatically, the rest is filled in by the officer itself.  | Original 3 step, 70 grid  →  20 grid | Page height dropped from approximately 3, 768px to about a screen half. Checked: `validateProfile`（`src/data/settings.ts`Inner telephones and ASU IDs were allowed to remain empty, only names and example.org mailboxes are required, so no re-checking is required.  |
-| **5First event**  | A big input box + 3 example sentence buttons. The dot "Plan it" — the **progress chain**, the date of each dot, rule engine counts. **Club buffer: 1 2 3 5 7 days**, president dials the date change instantaneously (this is now the question of "a few days earlier" moving to a meaningful place). The fields that must be checked (date, number, location, etc.) are in folded " Event details " , from which the default is derived.  | The buffer at the end of former 6 step + former 3 step | The standard process ( "Event workflow" former step 5) is brought in by default; "Customize Workflow" is a secondary button that opens **for the same** `WorkflowPanel`(Section 9 Q3).  |
-| **6 Confirm + Invite** | Confirmed: "This forms Desert Founders Society with 6 offices and funder Dinner on Nov 19. It places the current demo." + two buttons **Start workspace** / **Keepcurent demo** (replacing the current tickbox); This step will replace the demonstration workspace, which is devastating, so make it clear that it can be cancelled. **Exceptions: None of the participants can be replaced when** first enters the walkthrough. This warning does not appear, but only when "replay" comes from the Demo menu; see section 2b, article 4. Once confirmed, **is immediately the invitation**: see 3.3.  | End of former 6 step + add | |
+| **0 Welcome** | One screen. "Let's set up your club." 3 promises: about 5 minutes; you get a flowchart for your first event; demo data is not sent anywhere. "Get started" button. Also "Try a sample club" (fast path for Phase 3 participants). | New | Appears once, not on every launch (`launching.md`/`onboarding.md`). |
+| **1 Name** | Club name (school fixed to ASU Tempe, with a small read-only badge + Info explaining why). Preview on the right: the title appears. | Half of old step 1 | One input. |
+| **2 Constitution** *skippable* | Three option rows: **Use sample** (recommended, first) · **Upload a file** · **Paste text**. One sentence explains what AI does and where the text goes (not saved after reading). After selection, "read in the background" while the president continues (preserve existing behavior). Bottom: "Skip — use standard roles." | Lower half of old step 1 | AI label and specific progress wording: "Reading officer titles…" (`generative-ai.md`: "specific, reassuring feedback"); results later appear in Team as "AI suggested" rows, editable individually. |
+| **3 Goals** *skippable* | Three suggested goals as toggleable rows, each with a numeric stepper; users only need to confirm. Mission statement collapsed by default under "Add a mission (optional)." | Old step 2 | Selection instead of typing. |
+| **4 Team** *skippable* | **One screen with an "organization chart + list"**: each list row has just two fields — **Role** and **Person (may be blank = Open position)**. Reporting lines are prefilled and editable by clicking the chart; duties are collapsed, expandable to read (including AI suggestions). **Do not ask for phone, ASU ID, or email here**: existing `fillEmails` generates emails; officers fill in the rest when joining. | Old step 3, from 70 fields to fewer than 20 | Page height drops from about 3,768px to roughly one and a half screens. Verified: `validateProfile` (`src/data/settings.ts`) already allows phone and ASU ID to be blank, requiring only a name and example.org email, so validation needs no change. |
+| **5 First event (value moment)** | One large input + 3 sample-sentence buttons. Click "Plan it" → **the progress chain draws itself**, each point dated by the rule engine ("ASU official deadline − club buffer"). Below: segmented control **Club buffer: 1 · 2 · 3 · 5 · 7 days**; changing it updates dates immediately (moves the existing "how many days early" question to where it makes sense). Required confirmation fields (date, attendance, venue, etc.) are in collapsed "Event details, " defaulted from the sentence. | Old step 6 + buffer question from the end of old step 3 | Standard workflow (old step 5, "Event workflow") included by default; "Customize workflow" is a secondary button opening **the same** `WorkflowPanel` (section 9 Q3). |
+| **6 Confirm + Invite** | Confirmation: one-sentence summary, "This creates Desert Founders Society with 6 officers and Founder Dinner on Nov 19. It replaces the current demo." + **Start workspace** / **Keep current demo** buttons (replace the current checkbox; this step replaces the demo workspace and is destructive, so explain it clearly and allow cancellation. **Exception:** first-entry walkthrough participants have nothing to replace, so omit this warning; show it only when replayed from the Demo menu, per section 2b item 4). Confirmation leads **immediately to the invitation moment**: see 3.3. | End of old step 6 + new | |
 
-### 3.2 Progress Directions = Progress Chain (Signed)
+### 3.2 Progress indicator = progress chain (signature)
 
 ```
  ●────●────◐ ─ ─ ○ ─ ─ ○           Name · Constitution · Goals · Team · Event
- The current point of truth, the line you've taken. "Long "Past ( transform: scaleXThe point of the skip is a hollow line to go back.
+ Current dot is solid; completed lines grow across (transform: scaleX); skipped dots are hollow/dashed and can be revisited
 ```
 
-- **is not the third set of progress bars for**, as it is now `Chain`. The "growth" of the line follows the approach of DX-25 (`transform` + `--spring-pop`) and only occurs directly when **moves forward to**.
-- The skip step is shown to be a hollow point, not a red dot of "finished" -- a legitimate option.
-- On the last screen, this chain **becomes a flow chart of the first activity of**: the same point, the same line. It's the only show of the whole process.
+- Use the existing `Chain` appearance, **not a third progress-bar design**. Grow the line using DX-25's approach (`transform` + `--spring-pop`), animate only when moving **forward**, and show it immediately with reduced motion.
+- Show skipped steps as dashed hollow dots, not red "unfinished" dots: skipping is a valid choice (Agency).
+- On the last screen, this chain **becomes** the first event's workflow: the same dots and lines. This is the entire flow's only "performance."
 
-### 3.3 Invitations.
+### 3.3 Invitation moment (move it from a buried disclosure to the final screen)
 
 ```
 ┌────────────────────────────────────────────────────────┐
@@ -159,195 +159,195 @@ Fastest path: Welcome → Name → First event → Invite（4 The screen, Skip D
 │  Invite your officers.                                 │
 │                                                        │
 │  [ Copy link ]  [ WhatsApp ]  [ Email ]                │
-│  Only people with this link can join as an officer.    │   ← Words (permissions) Apple It's...  "permission summary"）
+│  Only people with this link can join as an officer.    │   ← One-sentence permission summary (Apple's "permission summary")
 │                                                        │
 │  Maya Chen · Treasurer         ○ Invited               │
-│  Priya Nair · Secretary        ○ Invited               │   ← When someone joins, it becomes...  ● Joined(same browser demo)
+│  Priya Nair · Secretary        ○ Invited               │   ← Becomes ● Joined after joining (same-browser demo)
 │  Open position · Director of Outreach                  │
 │                                                        │
-│  [ See what your officers will see ]   ← Main button on first entry, into process  B Preview of the  │
+│  [ See what your officers will see ]   ← Primary button on first visit; previews flow B │
 │  Go to Today                                           │
 └────────────────────────────────────────────────────────┘
 ```
 
-- WhatsApp / Email is "open a written message, sent by the person", consistent with what's available in the product (Section 8 "two modes of sending"), **doesn't automatically send**, which is specified on the interface.
-- After entering the Today, the right column appeared only for the first time. Today hangs up at most 3 **one-time tips** (the "context-special sessions" advocated by `onboarding.md`, is not a major lesson: every thing that it says, points out disappears and does not appear again.
+- WhatsApp / Email means "open a prewritten message, then the person presses send, " matching existing reminder sending (product plan section 8, "two sending modes"). **Nothing is sent automatically**; state this in the interface.
+- The Ask right rail appears for the first time only after entering Today. Today has at most 3 **one-time tips** (the "context-specific tips" recommended by `onboarding.md`, not a large tutorial): each sits beside the relevant item, disappears on one click, and never reappears.
 
-### 3.4 Desktops and Cell phones
+### 3.4 Desktop and mobile
 
 ```
-Desktop  1280                                        Cell phone.  390
+Desktop 1280                                    Mobile 390
 ┌────────────────────────┬────────────────┐      ┌────────────────────┐
 │ ●──●──○──○──○   Exit   │                │      │ ●──●──○ ─ ○  ⋯     │
-│                        │  Live Preview        │      │                    │
-│  Name your club        │  (Organization chart)  /     │      │  Name your club    │
-│  [ Desert Founders … ] │   progress chain)       │      │  [ Desert Founders ]│
+│                        │  Live preview  │      │                    │
+│  Name your club        │  (org chart /  │      │  Name your club    │
+│  [ Desert Founders … ] │   chain)       │      │  [ Desert Founders ]│
 │                        │                │      │                    │
-│  [Back]   [Continue]   │                │      │  Preview: a row of bars at the top   │
+│  [Back]   [Continue]   │                │      │  Preview: top strip│
 └────────────────────────┴────────────────┘      │ ┌────────────────┐ │
-  No sidebar, no sidebar.  AskNo, I didn't.  View as                 │ │   Continue     │ │ ← The bottom. The thumbs are enough.
+  No sidebar, Ask, or View as                     │ │   Continue     │ │ ← Bottom-fixed, within thumb reach
                                                   │ └────────────────┘ │
                                                   └────────────────────┘
 ```
 
 ---
 
-## 4. Process B: Members receiving invitations to link
+## 4. Flow B: member receives an invitation link
 
-The only task for **is that within** 2 minutes, the members (mostly on the phone and from whatsApp) identify who they are, know what they're responsible for, see first things about themselves.
-**Something to remember:**, the first screen to open the link is "president who you are and what you're responsible for" -- not a table.
+**The only task:** within 2 minutes, members (mostly on phones, arriving from WhatsApp) confirm their identity, understand their responsibilities, and see their first task.
+**What should stay with them:** the link's first screen says "the president invited you to this role, with these responsibilities," rather than presenting a form.
 
-### 4.1 Screen
+### 4.1 Screens
 
 ```
 Invitation → You → Reminders → Busy weeks* → About you* → Done
-                                 (*Yes, kip. )
+                                 (*skippable)
 ```
 
-| Screen | Do what? | Compared to now. | Remarks |
+| Screen | Action | Compared with current flow | Notes |
 | --- | --- | --- | --- |
-| **0 Invitation** | The header name of the main title; " Alex involved you to be **Treasurer** " ; Role card (to whom, three lines of responsibility); Three "what will you get": one thing at a time, a reminder to your chosen place and no public roll call (product principle C4); Trust a word: what is gathered here, what is not collected. button "Continue".  | Add (now role card moved to front, zoom in) | The study called "same-browser demo" describes the intake of **a small Demo rule** (see 4.2), which no longer occupies the first screen.  |
-| **1 You** | Name, Mailbox, **has prefilled** by confirming it ("Not you?" link change).  | Former group 1 | `entering-data.md`："Prefill fields with reasonable default values"。 |
-| **2 Reminders** | Channels: **WhatsApp / SMS / Email** (the first two are only available for a prewritten whatsApp message to you. Nothing is sent automatically." Time: part control **Morning/ Evening**. The following example of **Live reminds bubble** to change as it is selected. 10 pm - 8 am is written as default, not a problem.  | Former group 2, 3 | The example of bubbles is "see results while doing it." ASU ID no longer asked (see 4.3).  |
-| **3 Busy weeks*** | Weeks of the term: small squares in a row, end weeks and holidays for ASU are marked ( "from the system"), and every few weeks you're busy. "Skip — nothing busy yet"。"Platypus will plan around these weeks." | Original 4 group (date input + Add + Delete button) | The date is still counted by rule engine and the school calendar.  |
-| **4 About you*** | Three questions are synthesized: career goals, interests, expectations of the role, each with 3 suggested little labels and can also be typed. Helps match you with tasks you'll care about." | Former group 5 | Data required for product plan G4, retained, but **skip** (Section 9 Q5).  |
-| **5 Done** | His name **joins the organizational chart** (a light move); Next is his first thing: you'll see task cards here when Alex assigns one, and preview the Tasks page. Button **Open my tasks**.  | "You're ready" | The invitation list over there becomes .  |
+| **0 Invitation** | Club name as large heading; "Alex invited you to be **Treasurer**"; role card (reports to, three lines of responsibilities); three benefits: one task at a time, reminders where you choose, no public calling-out (product principle C4); one trust sentence explaining collected and uncollected data. "Continue" button. | New (move current role card to front and enlarge it) | Move research "same-browser demo" explanation into **one small Demo bar** (4.2), rather than dominating first screen. |
+| **1 You** | Name and email **prefilled by president**, requiring only confirmation ("Not you?" changes person). | Former group 1 | `entering-data.md`: "Prefill fields with reasonable default values". |
+| **2 Reminders** | Channel: three option rows **WhatsApp / SMS / Email** (phone appears only for first two, explaining purpose: "So Alex can open a prewritten WhatsApp message to you. Nothing is sent automatically."); time: segmented **Morning / Evening**. Below, **a realistic sample reminder bubble** updates immediately with choices. State quiet hours 10 pm–8 am as a default, not a question. | Former groups 2 and 3 | Bubble shows results as users act. No more ASU ID (4.3). |
+| **3 Busy weeks** *skippable* | Semester week strip: small week squares, with ASU finals and breaks premarked ("get from the system"); select busy weeks. "Skip — nothing busy yet". Outcome: "Platypus will plan around these weeks." | Former group 4 (date inputs + add + delete buttons) | Dates still computed by rule engine and academic calendar. |
+| **4 About you** *skippable* | Three questions on one screen: career goals, interests, expectations for this role; each has 3 suggestion chips and free typing. Purpose: "Helps match you with tasks you'll care about." | Former group 5 | Keep data required by product plan G4, but make it **skippable** (Section 9 Q5). |
+| **5 Done** | Their name **joins the org chart** with one gentle motion; first task below: show assigned task card, otherwise "You'll see tasks here when Alex assigns one", with Tasks preview. **Open my tasks** button. | Former "You're ready" | President's invitation list simultaneously changes to ● Joined. |
 
-**Departures from the B process:** personal buffers (default 1 days, advanced options remain for Settings →  My preferences), weekly free time periods (waiting to be asked when members first use Team 's meeting time function and with functional questions), ASU ID (see 4.3).
+**Removed from flow B:** personal buffer (default 1 day; advanced option remains in Settings → My preferences), weekly availability (ask when first using Team meeting finder, alongside the feature), ASU ID (4.3).
 
-### Article 4.2 Demo
+### 4.2 Demo strip (honest boundaries)
 
-Phase 3, participants want to "play" a field officer, so the lower frame of "choice who you are" must still be in place, but it should not be the lead on the first screen:
+In Phase 3, participants "play" a fictional officer, so the "choose who you are" dropdown must remain, but should not dominate the first screen:
 
 ```
 ┌──────────────────────────────────────────────┐
-│ DEMO  Previewing as Maya Chen · Treasurer  Change │   ← A narrow line at the top of the window, amber, and a full stop.  Demo It's the same thing.
+│ DEMO  Previewing as Maya Chen · Treasurer  Change │   ← Narrow amber strip at the top, matching the site-wide Demo badge
 └──────────────────────────────────────────────┘
 ```
 
-It says, "Fictional demo. Choosing a name does not protect an interest." **v1. When 5 has a live account, this whole one is removed and the drop frame disappears** without changing the back screen.
+The strip says "Fictional demo. Choosing a name does not verify an identity." (retain the existing research-protection wording). **When v1.5 has real accounts, remove this entire strip and its dropdown**, without changing subsequent screens.
 
-### 4.3 about AAU ID and the phone
+### 4.3 ASU ID and phone number
 
-The telephone only asks whatsApp / SMS when it selects, ASU ID in the new process **does not ask** (it is an optional field in existing data); And then where it really needs to be, it's in that function. This is a change in the privacy dimension of the programme, which is listed in section 9 Q2.
+Ask for a phone number only when WhatsApp / SMS is selected. **Do not ask for ASU ID** in the new flow (it is optional in existing data; if a feature later needs it, ask there and explain why). This proposal changes privacy behavior; see section 9 Q2.
 
-### 4.4 v1. 5 interface (do not do today but leave a location)
+### 4.4 v1.5 integration points (reserve space; do not implement now)
 
-The "You" screen of the B process is the future "Identity" screen: v1. 5, after answering Supabase's mail one-time link, becomes "Check your email". `managing-accounts.md` Recommendation "Run as late as possible and give priority to passkey" Our plan was to "exercise the value before login," so the identity screen is set after the value. **doesn't make it today and does not pretend to have done it.**
+Flow B's "You" screen is the future "identity" screen: once v1.5 integrates Supabase email one-time links, it becomes "Check your email." `managing-accounts.md` recommends "delay sign-in as long as possible and prefer passkeys"; our plan already calls for "experience value before signing in, " so placing identity after Invitation (value) fits. **Do not implement this today or pretend it is already implemented.**
 
 ---
 
-## 5. The two processes share a sense of hands (apple-design Skill from Emil)
+## 5. Shared interaction feel for both flows (from Emil's apple-design Skill)
 
-Full compliance with the `AGENTS.md` 7.1 dynamic rules; The new style is placed in its own little file `src/styles/ob-NN-*.css`, referring only to Token.
+All motion follows `AGENTS.md` 7.1; new styles go in small dedicated files `src/styles/ob-NN-*.css`, referencing tokens only.
 
-| Feel it. | Practice | Rule |
+| Interaction feel | Implementation | Rule source |
 | --- | --- | --- |
-| **Press to react immediately.**  | Follow DX-03: push down a bit and let go. option line is highlighted.  | Emil §1 Response |
-| **Change screen.**  | Moving forward new content down from right 24px to left; **uses only transform + opacity**; `--dur-base` + `--ease-out`；Animated at any time to count Back/Continue, without queueing or locking the interface. For reduced kinetic effect read pure light entry.  | Emil § 3 interruptibility, § 7 spatial consultation (to and from the same path); Apple `motion.md`："Let people cancel motion." |
-| **Progress chain growth**  | Line `scaleX` Long, dots. `--spring-pop` Play it. Only as we move forward.  | DX-25 Exists |
-| **Witnessing the moment.**  | The **chain of the first activity shows up one time at**: points appear sequentially, with very short intervals of up to 8, completed in about 0.5 seconds, **can interrupt**, **direct whole** under reduced power effects. It's the only show of the whole process.  | Emil §8 hint in direction；Apple "brevity and precision" |
-| **Where there's no animation.**  | Add a column, delete a line, change a number, cut an option: these dots are many times per minute and have no effect (rule 7.1 rule 5).  | `motion.md`："avoid adding motion to UI interactions that occur frequently" |
-| **Materials** | Translucency style for onboarding shell topbars in DX-23; The main button bar at the bottom of the cell phone is a functional layer that floats on the content, and the fuzzy is given only to it and not to the contents; Reduce transparency of fallback solid.  | Emil §12；`liquid-glass.md`: used only in floating functional layers |
-| **Font** | Use current screen captions `--fs-xl`(cell phone)/ `--fs-2xl`( Desktop)+DX-06 word spacing; Text 14px (rule 7.4); Figures are given in equal width. **no new fonts.** | Emil §15；`typography.md` |
-| **Colours**  | **No new token. The** state and emphasis colours remain as they are. Contrast before adding any colour (text  ≥ 4.5:1). Dark Synchronization.  | `docs/DESIGN_TOKENS.md` Section 7 |
-| **Touchscreen** | Options line and buttons  ≥ 44px (following DX-04); Main button bottom, Back on its left or above.  | Apple `accessibility.md`；DX-04 |
+| **Immediate response on press** | Reuse DX-03: shrink slightly on press, without waiting for release. Option rows highlight on press. | Emil §1 Response |
+| **Screen changes** | Forward content fades in from 24px to the right; backward from the left; **transform + opacity only**; `--dur-base` + `--ease-out`; Back/Continue remain clickable throughout animation, with no queue or UI lock. Reduced motion uses fade only. | Emil §3 interruptibility, §7 spatial consistency (same path in and out); Apple `motion.md`: "Let people cancel motion." |
+| **Progress-chain growth** | Grow the line with `scaleX`; dots pop with `--spring-pop`; forward only. | Already in DX-25 |
+| **Value moment** | Draw the first-event chain **once**: points appear sequentially with very short gaps, at most 8, finishing within about 0.5 seconds; **interruptible**; **show the entire chain immediately under reduced motion**. This is the flow's only performance. | Emil §8 hint in direction; Apple "brevity and precision" |
+| **Where not to animate** | Adding/removing a role row, changing a number, selecting an option: these happen many times per minute, so do not animate them (rule 7.1 item 5). | `motion.md`: "avoid adding motion to UI interactions that occur frequently" |
+| **Materials** | Onboarding shell top bar uses DX-23 translucency; mobile bottom primary-button bar is a functional layer floating above content, so blur that layer only, not content; reduced transparency falls back to solid. | Emil §12; `liquid-glass.md`: use only on floating functional layers |
+| **Typography** | Screen headings use existing `--fs-xl` (mobile)/`--fs-2xl` (desktop) + DX-06 letter spacing; body ≥14px (rule 7.4); tabular numerals. **No new fonts.** | Emil §15; `typography.md` |
+| **Colors** | **No new tokens.** Reuse existing status and accent colors. Calculate contrast before adding any color (text ≥4.5:1). Check dark mode too. | `docs/DESIGN_TOKENS.md` section 7 |
+| **Touch** | Option rows and buttons ≥44px (reuse DX-04); primary button at the bottom, with Back to its left or above. | Apple `accessibility.md`; DX-04 |
 
 ---
 
-## 6. Document.
+## 6. Copy (the interface is entirely English; direction and examples follow)
 
-Principle: Each button is a verb; Use of a sentence next to each issue (active sentence); "What can be done" is wrong. (a) Not "actional" (only on the Demo bar and the screen where the name/telephone is entered); Case follows the existing sentence ' s upper case instead of Title Case (Familianity: Consistency is more important than iOS).
+Principles: every button is a verb; one active-voice sentence beside each question explains its purpose; errors say what users can do; avoid repeating "fictional" (once in the Demo bar and once on the screen asking for name/phone); keep the app's existing sentence case rather than switching to Title Case (Familiarity: consistency with the whole site matters more than consistency with iOS).
 
-| Location | Now. | Programme |
+| Location | Current | Proposed |
 | --- | --- | --- |
-| Join Invalid Link | "Check your setup invitation. This local demo invitation has expired or belongs to a different browser." | "This intro link isn't working. "Ask Alex to send a new one." |
-| AI Read Constitution Failed | "AI could not read it (HTTP 404), so this was read in your browser. Check each line." | "We couldn't use AI just now, so we read it here in your crowder instead. Behind the reasons. ） |
-| Telephone | "Demo phone (optional)" | "Phone — so Alex can open a prewritten WhatsApp message to you. Nothing is sent automatically." |
-| Disruptive confirmation. | "I reviewed this event and want to start this demo workspace." | button "Start workspace" / "Keep current demo", the preceding sentence states what to replace.  |
-| Skip | (none) | "You can add this later in Settings." |
+| Invalid Join link | "Check your setup invitation. This local demo invitation has expired or belongs to a different browser." | "This invitation link isn't working. Ask Alex to send a new one." + a separate demo-user line: "Demo tip: open the link in the browser where setup was done." |
+| AI constitution reading fails | "AI could not read it (HTTP 404), so this was read in your browser. Check each line." | "We couldn't use AI just now, so we read it here in your browser instead. Check each line." (Remove status code; retain reason in Behind the scenes.) |
+| Phone | "Demo phone (optional)" | "Phone — so Alex can open a prewritten WhatsApp message to you. Nothing is sent automatically." |
+| Destructive confirmation | Checkbox "I reviewed this event and want to start this demo workspace." | Buttons "Start workspace" / "Keep current demo", preceded by one sentence stating what will be replaced. |
+| Skip | (None) | "Skip for now" + gray text below: "You can add this later in Settings." |
 
 ---
 
-## 7. Do not do anything.
+## 7. Out of scope (boundaries)
 
-- **does not perform live account, password, cross-equipment authentication.** Leave all v1. 5.
-- **Store without touching the server:** New processes do not call any `/api/org/*`, `/api/workspace*` (`ORG_SETUP_ENABLED` continues unset); Follow the existing door-to-door test. AI only takes the existing `/api/setup/constitution` and `/api/command`, **does not add an AI interface**.
-- **without live data, secure key**; All examples of the new interface are fielded.
-- **dates are calculated by rule engine only as**: each date of the witnessing moment comes from `schedule.ts`, which AI does not give.
-- **No change in data structure** (`SCHEMA_VERSION` unchanged): The new process is still written into the existing `completeSetup`/ `saveProfile`. The data base (`Role.departmentId`, `syncHolders` et cetera) in `M4_ONBOARDING_PLAN` is another thing that is not done here (9 Q6).
-- **Tug Editor not working on** organization arcitecture, server storage for DP3 and third design system (M4 option has decided not to move).
-- **don't change brand token.**
-- **does not add any automatic reporting or burial sites.** Existing local interactive records (`platypus.v1.log`, only in the participant ' s own browser, which is exported by Settings  →  Export my data) would have recorded the executed operation (e. g. `saveProfile` with values prior to modification). And don't you ever think about "the step to go, the step to kip, the way to start or the choice" -- it's a question of design. See 9 Q8, default. The fast budget is still in scripts.
+- **No real accounts, passwords, or cross-device verification.** All deferred to v1.5.
+- **No server-storage changes:** the new flow calls no `/api/org/*` or `/api/workspace*` (`ORG_SETUP_ENABLED` remains unset); retain the existing guard-test pattern. AI uses only existing `/api/setup/constitution` and `/api/command`; **no new AI endpoints**.
+- **No real data or secrets**; every new-interface example is fictional.
+- **Only the rule engine calculates dates**: every date at the reveal moment comes from `schedule.ts`; AI supplies no dates.
+- **No data-structure changes** (`SCHEMA_VERSION` unchanged): the flow still writes through existing `completeSetup` / `saveProfile`. The `M4_ONBOARDING_PLAN` data foundation (`Role.departmentId`, `syncHolders`, etc.) is separate and excluded here (section 9 Q6).
+- **Do not implement** an organization-chart connector editor, DP3 server storage, or a third design system (M4 already decided against importing it).
+- **Do not change brand tokens.**
+- **No new automatic reporting or telemetry.** Existing local interaction records (`platypus.v1.log`, only in the participant's browser, exported through Settings → Export my data) already log executed actions (e.g. `saveProfile`, including previous values). Recording extra details such as "step reached/skipped, Start or Explore" is a research-design decision (section 9 Q8), off by default. Performance budgets remain measured by scripts.
 
 ---
 
-## 8. Implementation plan
+## 8. Execution plan
 
-### 8.1 Preconditions and Order
+### 8.1 Prerequisites and sequence
 
-1. **The new process relies on previewing the dynamic effects of 10 token and drag/ spring code** (`dx-00-tokens.css`, `motion.ts`). These are now only `claude/determined-johnson-yrdxwf` (PR #10), **is not in `main`**. So: **Wait for your preview. 10After taking a decision (merge or not)**The new process will have a stable foundation.  Preview 10If you want merge, please follow your previous choice. **Create a merge commit**。
-2. The new process opens a new branch from `main` (including mege v1. 6) with the name `AGENTS.md`, Section 8: "`design/onboarding-flows`" (lower case without an AI name), finishes its own Draft PR grab preview, **does not touch `main`, and you say "approval the merge" is just "merge".**
-3. **Two entrances, one switch:** New processes on `/#/welcome` (president) and `/#/invite` (member); The first entry page (section 2b) points to **old** `/#/setup` and `/#/join` before the new process is completed or acceptance takes place (with an initial focus on the shell, removing sidebars and Ask). President Process A, B **, each as a whole, once you have finished one, and you pass one, pointing the entrance to the past**; The one that didn't pass goes on with the old one. The old web site and their tests are kept as they were.
-4. **The freezing date is a hard constraint.** `M4_ONBOARDING_PLAN`Write Phase 3Yes. 11/9From the freezing period 11/6Up ( 10Month 29It's written, I... **No re-check**）。 Today is 11/1, full version of 8–9 session **cannot be guaranteed to catch up with**. So there are two lines: **Minimum = OB-00 (including entrances) + Old screen plus shell**, which must be frozen before it is frozen; **president process A (OB-01 ~ 04) will not catch up depending on the live date of Phase 3 and the speed of each package of your acceptance, and I will not commit to**; Worker process B second. The combination that **started at the moment of freezing is the research tool**, and then freeze without changing anything to `main`, and I'll write the version in PROGRESS.
+1. **The new flow depends on preview 10's motion tokens and drag/spring code** (`dx-00-tokens.css`, `motion.ts`). These currently exist only on `claude/determined-johnson-yrdxwf` (PR #10), **not `main`**. Thus **your decision on preview 10 (merge or not) must come first**, establishing a stable foundation. If merging preview 10, choose **Create a merge commit** as previously discussed.
+2. Create a new branch from `main` (including merged v1.6), named under `AGENTS.md` Section 8: "`design/onboarding-flows`" (lowercase, no AI names). Open its own Draft PR for a preview when done; **do not touch `main`; merge only after you say "approved to merge."**
+3. **Two entry points, one switch:** new flows at `/#/welcome` (president) and `/#/invite` (member). Until complete and accepted, the first-visit welcome (Section 2b) points to **old** `/#/setup` and `/#/join` (first add focused shell, removing sidebar and Ask). President flow A and member flow B are **each a complete unit: switch each entry only when that entire flow is complete and accepted by you**; unaccepted flow stays old. Preserve old URLs and their tests unchanged.
+4. **Freeze date is a hard constraint.** `M4_ONBOARDING_PLAN` says Phase 3 starts 11/9, freeze starts 11/6 (written October 29; I **have not rechecked**). Today is 11/1; **I cannot guarantee** the full 8–9 chats will finish in time. Two tiers: **minimum = OB-00 (including entry) + shell around old screens**, which must precede freeze; **whether president flow A (OB-01–04) finishes depends on actual Phase 3 dates and your acceptance speed for each package; I make no promise**. Member flow B follows. **Whatever combination is active at freeze becomes the study instrument**; after freeze, merge no further changes into `main`, and record that version in PROGRESS.
 
-### 8.2 work package (following v1. 6 approach: stand-alone, `--no-ff` merge, single rollback)
+### 8.2 Work packages (following v1.6: independent packages, `--no-ff` merges, individually reversible)
 
-| Bag. | Contents | Size |
+| Package | Contents | Size |
 | --- | --- | --- |
-| **OB-00Base + First Entry**  | New onboarding shell (with no sidebar and Ask focused layout, top bar, Skip/Back/Save & exit); Step state machines (pure function: forward, return, skip, restore with unit tests); (a) Progress chain indicators; Article Demo; (a) Lists; **Welcome page and switch (section 2b, default switch)**; `/#/welcome`、`/#/invite` Air route. The entrance points first to the **old** setup/join. **Switches stand exactly the same as today, with zero change in behavior by old route.** | 1–1.5 Sessions |
-| **OB-01 A·Welcome + Name + Constitution** | 0–2 screens; Reuse `ConstitutionStep` to read logic and `startReading`(change interface only).  | 1 Sessions |
-| **OB-02 A·Goals + Team** | 3–4 screens; Two rows + tissue chart (reuse existing) `OrgChart`) + Folding of duties; Confirm `validateProfile` and `fillEmails` Relationships.  | 1 Sessions |
-| **OB-03 A·First event** | 5 screen: One sentence  →  progress chain drawn  →  buffer section control; Reuse `parseCommand`/`prepare` Logical and `completeSetup`。**, the hardest package of**.  | 1.5 Sessions |
-| **OB-04 A·Confirm + Invite** | 6 screen, invitation hour, Joaned state, one-time reminder for 3 at Today.  | 1 Sessions |
-| **OB-05 B·Invitation + You + Reminders** | 0–2 screen for members; Example: Bubbles; Article Demo.  | 1 Sessions |
-| **OB-06 B·Busy weeks + About you + Done** | Weeks, suggested labels, an action to join the tissue map, first thing card.  | 1 Sessions |
-| **OB-07Shut up.**  | Desktop + mobile phone + light/deep colour + less dynamic + less transparency full set; Document(s) `AGENTS.md`、`PROGRESS.md`、`DESIGN_TOKENS.md`）；Rollback rehearsal; A cross-section of screenshots; Your acceptance modification.  | 1 Sessions |
+| **OB-00 Foundation + first-entry gateway** | New onboarding shell (focused layout without sidebar or Ask, top bar, Skip/Back/Save & exit); step state machine (pure functions: forward, back, skip, resume, with unit tests); progress-chain indicator; Demo strip; copy table; **welcome page and flag (section 2b, off by default)**; empty `/#/welcome`, `/#/invite` routes. Gateway initially points to **old** setup/join. **With the flag off, the whole site remains exactly as today, with zero changes to old-route behavior.** | 1–1.5 sessions |
+| **OB-01 A·Welcome + Name + Constitution** | Screens 0–2; reuse `ConstitutionStep` reading logic and `startReading` (UI change only). | 1 session |
+| **OB-02 A·Goals + Team** | Screens 3–4; two-field role rows + organization chart (reuse existing `OrgChart`) + collapsed duties; verify the relationship between `validateProfile` and `fillEmails`. | 1 session |
+| **OB-03 A·First event** | Screen 5: sentence → progress-chain drawing → segmented buffer control; reuse `parseCommand`/`prepare` logic and `completeSetup`. **Hardest package** (visuals and motion for the value moment). | 1.5 sessions |
+| **OB-04 A·Confirm + Invite** | Screen 6, invitation moment, Joined status, Today's 3 one-time tips. | 1 session |
+| **OB-05 B·Invitation + You + Reminders** | Member screens 0–2; sample-reminder bubble; Demo strip. | 1 session |
+| **OB-06 B·Busy weeks + About you + Done** | Week strip, suggested tags, one "join the organization chart" action, first-action card. | 1 session |
+| **OB-07 Closeout** | Full desktop+mobile+light/dark+reduced-motion+reduced-transparency checks; documentation (`AGENTS.md`, `PROGRESS.md`, `DESIGN_TOKENS.md`); rollback rehearsal; screenshot comparisons; your acceptance revisions. | 1 session |
 
-Combining about **8–9 Sessions** with each package of your acceptance round-trip. After OB-00, OB-01 — OB-04 (president) and OB-05 — OB-06 (member of the community) do not change each other's files. **can create a worktree parallel to** as v1. 6.
+About **8–9 sessions** total, plus your acceptance feedback for each package. After OB-00, OB-01–OB-04 (president) and OB-05–OB-06 (member) do not modify the same files, so **they can run in parallel in separate worktrees, as in v1.6**.
 
-### 8.3 Acceptance door for each package (indents)
+### 8.3 Acceptance gates for every package (write into its instructions first)
 
-1. `npm run check` Full Green (lint + Build + Module + Brownsertes + Words).
-2. **Add browsertes:** desktop and cell phones each "fast path" and "complete path". Back/Skip/restoration; `/api/org`, `/api/workspace` requests are 0; `axe` Accessibility; (a) Dark colour; Reduces the effect of moving the painting unattached.
-3. **"Intentional infractions make red" reverse verification**: each new guard carries a sample that turns red (following the v1. 6 rule).
-4. **Maximum number of new screen words**: Every screen "seen word at first glance" 40English words (witness and invitation screens) 60）； We're going to delete it first. (existing `npm run words` main page, with a single budget for the new process. ）
-5. **budget (design target, not measured result):** president fastest path  ≤  12 hits/inputs, member fastest route  ≤  8; Use scripts, not real people.
-6. Every bag. **Rollback Note**And independent merge committee;  The old route test **cannot delete**.
-7. I will write in PROGRESS: What has been done, what has not been verified (real fingers, Safaris, etc.), how to access it. **didn't prove it. I wouldn't say I did.**
+1. `npm run check` fully passes (lint + build + unit + browser tests + word budgets).
+2. **New browser tests:** fastest and complete paths on desktop and phone; Back/Skip/resume; zero `/api/org` or `/api/workspace` requests; `axe` accessibility; dark mode; no movement animations under reduced motion.
+3. **Negative verification that intentional violations fail:** provide a failing sample for every new guard (following the v1.6 rule).
+4. **New-screen word limits:** ≤ 40 visible English words per screen (≤ 60 for the reveal and invitation screens); remove copy first if over budget. (Existing `npm run words` covers only main pages; add a separate budget for the new flow.)
+5. **Budgets (design targets, not measured results):** president's fastest path ≤ 12 clicks/inputs; member's ≤ 8. Count with scripts, not human participants.
+6. Each package includes **rollback instructions** and a separate merge commit; **delete none** of the existing route tests.
+7. Record in PROGRESS what changed, what remains unverified (real fingers on devices, Safari, etc.), and acceptance steps. **Never claim an unverified item was verified.**
 
-### 8.4 your approach
+### 8.4 How you will review acceptance
 
-Like v1. 6: At the end of each package or phase, I'll give you a preview of the web site and a few words from "where the dots are", and you just answer "may" or "where the dots are."
+As with v1.6: after each package or stage, I will give you the preview URL and a few sentences explaining where to click; you only need to say "approved" or "change this."
 
 ---
 
-## 9. 8 questions that you need to decide.
+## 9. Eight decisions for you (each with my recommendation)
 
-| # | Problem | My advice. |
+| # | Question | My recommendation |
 | --- | --- | --- |
-| **Q1 Time and Scope** ✅ **Reply(s) 11-01）**  | **11/6 as a reference for** and try to finish it before 11/6; Phase 3 and the exact date of the freeze have not yet been set.  | The entrance + the record + the shell must catch; New president process priority A; Split & Meet [ `onboarding-redesign/WORK_PACKAGES.md`](onboarding-redesign/WORK_PACKAGES.md)。 |
-| **Q2 president no longer fills the phone and ASU ID** | "role + name" only; Phones and ASU IDs are filled in by the office (call only when selecting whatsApp/SMS), **ASU IDs do not ask for**.  | **Ratification.** solves A3 (the same message twice) and privacy issues; Section 7 of the product plan was meant to mean that. I've checked the existing verifications: these two could have been left empty without changing them.  |
-| **Q3 Calendar/Drive Links and Process Custom is no longer a necessary step**  | Calendar links, Drive folders and custom standard processes are moved from mandatory paths: invitation channels are selected at the time of invitation; The rest is on today's "Finish Setup" list and Settings. **This is different from the decision taken by 6 in section 7 of the product plan (set with a connector for the first time) and 10-29 (the process step allows presidents to be adjusted in the graph).** | **approves** for reasons: these connections are currently only demonstration configurations and have no real access; The flowchart editor leaves a "Customize workflow" portal, which remains the same editor without loss of functionality.  |
-| **Q4 invitation to put at the end and show the list of Invited/ Joined**  | Invite time after "Create Success".  | **Ratification.** it makes the invitation appear when it's useful, not when it's useless.  |
-| **Q5 members' questions are fine.**  | Career goals/interests/desirations become a screen for kskip; Personal buffers, weekly free hours are moved from onboarding to Settings and Team pages (to be asked).  | **Ratification. The principle of** Apple is to postpone non-necessary setting; These data are still available and collected in context.  |
-| Relationship between the **Q6 and M4 programmes;** Order | This programme only handles **interfaces and processes**, without changing the data structure; `M4_ONBOARDING_PLAN` The data base (M4a) and the " Read communication " (M4c) are another line. Do you want merge as a route? And why don't you decide on a preview of 10?  | **Separate.** decides first to preview 10 and then to do this programme (OB-00); M4a does it alone when needed, and the two are not reciprocal.  |
-| **Q7 Who the participants played**  ✅  **replied (11-01)** | **attendees are president**, defaulting that everyone goes first to the president process A.  | **cancels the** portal "I'm a member" after A.  |
-| **Q8 Do you want to record the process onboarding** ✅ **Reply(s) 11-01）**  | **to record, in the browser.** | Be a stand-alone key, with no content for behavior only and be exported by the participants themselves through Export my data; Designed as WORK_PANKAGES Section 4. Whether to inform participants on the page of welcome should be checked against IRB material.  |
+| **Q1 Timing and scope** ✅ **Answered (11-01)** | Use **11/6 as a reference** and aim to finish before 11/6; exact Phase 3 and freeze dates are not yet set. | The entry point, logging, and shell must be ready; prioritize the new president flow A; see [`onboarding-redesign/WORK_PACKAGES.md`](onboarding-redesign/WORK_PACKAGES.md) for splitting and parallel work. |
+| **Q2 President no longer enters phone numbers or ASU IDs** | President enters only "role + name" (email is supplied automatically); officers enter their own phone numbers on joining (ask only for WhatsApp/SMS). **The new flow does not ask for ASU IDs.** | **Approved.** This resolves A3 (asking twice for the same information) and privacy concerns; Product Plan Section 7 already intends this. I checked existing validation: both fields can already be blank, so no change is needed. |
+| **Q3 Calendar/Drive links and workflow customization are no longer required steps** | Remove Calendar links, Drive folders, and "customize standard workflow" from the required path: select invitation channels when inviting; put the rest in Today's small "Finish setup" checklist and Settings. **This differs from Product Plan Section 7, item 6 (configure connectors during initial setup), and the 10-29 decision (let presidents edit within the diagram during the workflow step).** | **Approved**, because these connections are currently demo configuration without real integrations; retain a "Customize workflow" entry to the same editor, preserving the feature. |
+| **Q4 Put invitations last and show Invited / Joined lists** | Invite after "creation succeeded." | **Approved.** Invitations appear when they can be used, instead of being hidden before they are usable. |
+| **Q5 Member questions can be skipped** | Combine career goals/interests/expectations into one skippable screen; move personal buffers and weekly availability from onboarding to Settings and Team (ask when needed). | **Approved.** Apple's principle is to defer unnecessary setup; these data can still be collected later with context. |
+| **Q6 Relationship and sequencing with M4** | This plan covers only **interface and flow**, with no schema changes; the data foundation (M4a) and "read constitution" (M4c) in `M4_ONBOARDING_PLAN` are separate. Combine them into one roadmap? Decide preview 10 first? | **Keep separate.** Decide preview 10 first → then implement this plan (starting with OB-00); do M4a separately when needed. Neither waits for the other. |
+| **Q7 Who do participants play?** ✅ **Answered (11-01)** | **All participants are presidents**; everyone starts with president flow A by default. | Member flow B becomes only a "preview" after A (viewing the student organization just created); **remove the "I am a member" entry point**. |
+| **Q8 Log the onboarding process?** ✅ **Answered (11-01)** | **Yes, in the browser.** | Use a separate local key, record behavior only rather than content, and let participants export it through Export my data; see WORK_PACKAGES Section 4. Decide whether to notify participants on the welcome page by checking the IRB materials. |
 
-**You can answer me like this:**"All done as suggested";  Or "Q3 not approved, the rest authorized"; Or, "Do OB-00 first and look at the entrance." Live dates in Q1, Q7 and participant roles, please tell me directly.
-
----
-
-## 10.
-
-- **has not measured** with a real cell phone, a real finger, nor has it been seen in Safari; The screenshot is only the Chromium desktop 1280px and mobile phone 390px.
-- The AI reading condition in the status quo is the result that I only saw when I ran the front end (no server function started), and I did not measure on-line behaviors, nor did I consume any AI amounts.
-- **new numbers for contrasts, fonts and click areas have not yet been counted** - they are to be measured by the existing `axe` and token comparisons when each package has a live interface; No new colours have been introduced into the programme, so no new values are expected to be required.
-- "President — 5 minutes, members  ≤  2 minutes" is the product plan for **target**. How long has it been that I haven't measured (no real test); The budget for the number of hits on 8.3 is a design target.
-- Date (Phase) 3It's... 11/9、11/6From 10Month 29M4 of Japan, not re-reconciled.
-- The second Skyll, I read `skills/apple-design/SKILL.md` in `emilkowalski/skills` repository (a web page version of WWDC action notes), whose dynamic figures (combating 1.0, response 0.3–0.4, etc.) I refer only to it and the actual values are still `--dur-*` and `--spring-*` for `docs/DESIGN_TOKENS.md`.
+**You can answer in any of these ways:** "Follow all recommendations"; "Do not approve Q3, approve the rest"; or "Build OB-00 and the gateway first so I can see them." Please provide the actual dates and participant roles for Q1 and Q7 directly.
 
 ---
 
-**My first step after approval:** only does OB-00: focus on the outer shell, step state machine, **'s first entry welcome page (default closing)**, open route and switch. I'll give you a preview of the web site where you can see the page. When the switch is closed, it stands exactly as it is today and the current interface remains unchanged.
+## 10. What this plan has not verified
+
+- **Not tested with a real phone or real fingers**, nor viewed in Safari; screenshots are only Chromium desktop at 1280px and mobile at 390px.
+- The current AI constitution-reading behavior is what I observed running only the frontend locally (server functions were not running); I did not test the live behavior or consume any AI quota.
+- New contrast, font-size, and target-size numbers **have not been calculated** — measure them with existing `axe` and the token contrast table once each package has a real interface; the plan adds no new colors, so new values are not expected to be needed.
+- "President ≤5 minutes, member ≤2 minutes" are product-plan **targets**; I have not measured the current flow (no human testing). The click budget in 8.3 is a design target.
+- Dates (11/9 for Phase 3, 11/6 freeze) come from the 10/29 M4 plan and have not been rechecked.
+- The second Skill I read was `skills/apple-design/SKILL.md` in the `emilkowalski/skills` repository (a web version of WWDC motion notes). Its motion numbers (damping 1.0, response 0.3–0.4, etc.) were references only; actual values still follow `--dur-*` and `--spring-*` in `docs/DESIGN_TOKENS.md`.
+
+---
+
+**My first step after approval:** implement only OB-00: focused shell, step state machine, **first-visit welcome (off by default)**, empty routes, and switch. Give you a preview URL showing welcome; with the switch off, the whole site and existing interface remain exactly as today.

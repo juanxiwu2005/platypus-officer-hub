@@ -1,222 +1,222 @@
-# • Step-by-step implementation programme
+# Handoff redesign · Phased execution plan
 
-> 2026-11-08 Claude . Based on [ `HANDOFF_REDESIGN_PLAN.md` ](HANDOFF_REDESIGN_PLAN.md) (question numbers B1-B6 and D1-D9 refers to that document).
-> Juanxi 2026-11-08 asks: "Reconstruct all the problems above, implement the component-step programme and move forward in stages. "
-> **This document is the original: the record of implementation of section 9 is updated at each stage.**
-
----
-
-## 1. General rules (applicable at each stage)
-
-1. **only do one stage at a time.** After completing the running test  →  Write acceptance step  →  **Stop until Juanxi says "may" or "where"** starts the next phase.
-2. **Branch:** works on `claude/tender-gates-j8ztlr` (the branch designated for this session). `git fetch origin main` and merge up-to-date `main` before starting work, avoid conflict with Phase 3 changes. **does not touch `main`, only Juanxi says "approved" merge.**
-3. **rollback:** At the end of each phase, at the end of 9, we will record "submission before stage" and "last submission during phase". For a stage to be withdrawn, the paragraph `git revert` should be submitted in order (the later stage depends on the previous one, so withdraw from it).
-4. **Test:** replaces unit tests by changing behavior; If you change the page, fill the browser tests (desktop + cell phone). `npm run lint`, type check, build, whole unit sets and browserstes associated with Handoff; Last stage running full `npm run check`.
-5. (a) The constant border of **: the date of** is counted only by rule engine; AI only returns the numbering and restricted content; **handoff functions do not read research logs** (`interactionLog`, `ui.*`); Only the visible contacts of officer are also hidden from handoff pages and AI; English language interface; Handoff does not exceed 120/ 120.
-6. **Phase 3Protection during period of detention (Q6 reply: Phase) 3The task card is available on Handoff's page, so number one... 1We'll leave it all to the branch from now on, Phase. 3Not until the data is collected. `main`）：**Example: `sampleScenario.ts`)Leadership translation season and example  Schema version `SCHEMA_VERSION`In Phase 3Before closing **Not up.**, because the upgrade will allow participants to move their stored data through the old version.  The stage for which an upgrade is required (from the 3 phase) is scheduled after Phase 3.
-7. **Preview of web sites:**Acceptance needs to open a PR for this branch if you want to use a preview of the site.  **Open PR to Juanxi for consent.**
+> 2026-11-08 · Claude · Based on [`HANDOFF_REDESIGN_PLAN.md`](HANDOFF_REDESIGN_PLAN.md) (issue IDs B1–B6 and D1–D9 refer to that document).
+> Juanxi's request on 2026-11-08: "Fix all the issues above, make a step-by-step execution plan, and proceed in phases."
+> **This is the canonical file: update the execution record in section 9 after each stage.**
 
 ---
 
-## 2. Overview of all phases
+## 1. General rules (apply to every stage)
 
-| Phase | Name | What kind of problems? | You want to raise the schema vension? | We need Juanxi to decide before we start. | Can you take medge during the Phase 3 period? |
+1. **One stage at a time.** Finish → run tests → push → write acceptance steps → **stop and wait for Juanxi to say "okay" or specify changes** before starting the next stage.
+2. **Branch:** Use `claude/tender-gates-j8ztlr` throughout (the branch assigned to this session). Before starting, `git fetch origin main` and merge the latest `main` to avoid conflicts with Phase 3 changes. **Do not touch `main`; merge only when Juanxi says "merge approved."**
+3. **Rollback:** At each stage's end, record the "commit before the stage" and "last commit of the stage" in section 9. To undo a stage, `git revert` its commits in order (later stages depend on earlier ones, so undo stages from last to first).
+4. **Tests:** Add unit tests for behavior changes and page tests (desktop + mobile) for page changes. At each stage's end, run `npm run lint`, type checks, build, all unit tests, and Handoff-related page tests; run the full `npm run check` for the final stage.
+5. **Fixed boundaries:** Only the rule engine calculates dates; AI returns IDs and constrained content only; **handoff features must never read research logs** (`interactionLog`, `ui.*`); contacts visible only to officers remain hidden from both the handoff page and AI; interface copy is English; Handoff page word counts must not exceed 120 / 120.
+6. **Phase 3 protections (Q6 answered: Phase 3 task cards use Handoff, so keep everything on the branch from stage 1 onward and do not merge into `main` until Phase 3 data collection is complete):** Leave the sample club's (`sampleScenario.ts`) transition season and sample interviews unchanged; **do not increment** the schema version (`SCHEMA_VERSION`) before Phase 3 ends, since doing so runs participants' saved data through an old-version migration. Stages requiring a version increment (stage 3 onward) are scheduled for merging after Phase 3.
+7. **Preview URL:** To use a preview URL for acceptance, open a PR for this branch (title "[Preview · Do not merge]"). **Opening the PR requires Juanxi's agreement.**
+
+---
+
+## 2. All stages
+
+| Stage | Name | Issues fixed | Schema version increment? | Juanxi decision required before starting | Can merge during Phase 3? |
 | --- | --- | --- | --- | --- | --- |
-| **1** | Fix bug (no page changes) | B1、B4、B6 | No | None (Q6: Confirmed that the Phase 3 task card was not used to Handoff, merge) | Yes, confirm after Q6 |
-| **2** | Existing members take over + slot + single handoff | B2、B5、D7 | No (optional field only) | D-2a、D-2b | After recommendations |
-| **3** | Term model + incoming office | B3, and the base of stage 4–7 | **Yes** | D-3a | After |
-| **4** | Roll file (4) + risk sorting | D1、D2、D4、D6 | No | None | After |
-| **5** | Error reading + incoming officer read, rehears, follow-up, look back | D3、D5 | No | Q2、Q4、Q5 | After |
-| **6** | role changes (rename history, add, split, merge, archive) | D8 | Yes | D-6a | After |
-| **7** | Product Question and Answer Record | D9 | Yes | **Q3 (including IRB)**  | After |
-| **8** | End of story: document, complete return, local backup | — | — | Mege Timing | — |
+| **1** | Bug fixes (no visual changes) | B1, B4, B6 | No | None (Q6: merge only after confirming Phase 3 task cards do not use Handoff) | Yes, after confirming Q6 |
+| **2** | Existing member succeeds + vacant roles + single-role handoff | B2, B5, D7 | No (optional fields only) | D-2a, D-2b | Prefer afterward |
+| **3** | Role-term model + incoming person appears earlier | B3 and foundation for stages 4–7 | **Yes** | D-3a | Afterward |
+| **4** | Role dossier (4 sections) + risk ranking | D1, D2, D4, D6 | No | None | Afterward |
+| **5** | Gap interviews + incoming person reads, reads back, shadows, reviews | D3, D5 | No | Q2, Q4, Q5 | Afterward |
+| **6** | Role changes (rename history, add, split, merge, archive) | D8 | Yes | D-6a | Afterward |
+| **7** | Product Q&A records | D9 | Yes | **Q3 (including IRB)** | Afterward |
+| **8** | Closeout: documentation, full regression, local backup | — | — | Merge timing | — |
 
-The 2 phase was placed in front of the 3 stage because "the current member takes over" and "vacant rule" could be fixed without changing the data model to enable it to be used earlier; The 3 stage then moves them to the official term model.
+Stage 2 precedes stage 3 because "existing member succeeds" and "vacant roles" can be fixed without changing the data model, making them available earlier; stage 3 then moves them onto the formal role-term model.
 
 ---
 
-## 3. Phase 1: Renovation bug (B1, B4, B6)
+## 3. Stage 1 · Bug fixes (B1, B4, B6)
 
-**Target:** handoff after completion of other functions are no longer bad; Add a new line after the season to leave translation; Progress is not too high. Page layout remains the same.
+**Goal:** Other features keep working after a handoff; roles added after season start automatically join the transition; progress is not overstated. Page layout stays the same.
 
-**Change what document:**
+**Files to change:**
 
-| Documentation | Change what? |
+| File | Change |
 | --- | --- |
-| `src/data/types.ts` | `Person` Add optional fields `leftOn`(outgoing date). The person with this field is "former": the historical record is still there, but no longer the current officer. |
-| `src/data/permissions.ts` | Add `officers(s)`: Return only to the current officer |
-| `src/data/handoff.ts` | `complete`: generating incoming office generate a valid field email ( `…@example.org`）；outgoing `leftOn`；Add `syncSeasonRoles()`: add an extra log when the season is open; `start` No more pre-filled examples |
-| `src/data/settings.ts` | Verifying sskip predecessor (not reporting "Match every officer to their own rule"); The upper limit of the number of officers is currently available only; Call after saving settings `syncSeasonRoles()` |
-| `src/pages/Handoff.tsx` | Show hint text when content is not available in the interview box ("One point per line. Field examples only."), no more prefilled |
-| Listing of officer places: `TopBar`（View as）、`Team`、`TaskFields`、`NodePanel`、`Settings`（Who can create events）、`aiContext`、`commandContext` | Change `officers(s)`, the ex is no longer on the selection list, and AI will not assign a task to his predecessor. |
+| `src/data/types.ts` | Add optional `leftOn` (departure date) to `Person`. Someone with this field is "former": retained in historical records (tasks, contributions, interactions), but no longer a current officer |
+| `src/data/permissions.ts` | Add `officers(s)`: returns only current officers |
+| `src/data/handoff.ts` | `complete`: generate a valid fictional email (`…@example.org`) for the incoming person; mark the outgoing person with `leftOn`; add `syncSeasonRoles()` to create records for roles added after season start; `start` no longer prefills sample interviews |
+| `src/data/settings.ts` | Skip former officers in validation (stop reporting "Match every officer to their own role"; officer-count limit counts only current officers); call `syncSeasonRoles()` after saving settings |
+| `src/pages/Handoff.tsx` | Show placeholder text ("One point per line. Fictional examples only.") for empty interviews instead of prefilling |
+| Officer lists: `TopBar` (View as), `Team`, `TaskFields`, `NodePanel`, `Settings` (Who can create events), `aiContext`, `commandContext` | Use `officers(s)`; former officers no longer appear in selectors, and AI cannot assign tasks to them |
 
-**Test:**
+**Tests:**
 
-- Module: `validateClub(clubDraft(s))` is null and capable of saving Settings once the handoff has been completed; Incoming officer mailbox is legal; Outgoing people have `leftOn`, not `officers(s)`; View as/ Assigned list does not include the predecessor; Add a rule after the season automatically has leadership translation record; `start` after interview is empty and progress step 1 has not been completed; Example The example of student organization remains unchanged from the example of interview.
-- Page: Complete Treasurer handoff to open Settings to save by changing name; There are no outsideing people in the View as menu.
-- All original tests retained.
+- Unit: after completing a handoff, `validateClub(clubDraft(s))` is null and Settings saves; incoming email is valid; outgoing person has `leftOn` and is absent from `officers(s)`; View as / assignment lists exclude former officers; a role added after season start automatically gets a transition record; after `start`, interview is empty and progress step 1 is incomplete; sample club's sample interviews stay unchanged.
+- Page: complete Treasurer handoff → open Settings and change club name → save succeeds; View as excludes the outgoing person.
+- Retain all existing tests.
 
-**Acceptance (Juanxi):**♪ One Handoff ♪ Treasurer ♪ 5→  Finnish rule handoff;  2 Settings change the name of the target organization to see saved; 3 No Maya in View as; 4 Settings plus a new roll back to Handoff, where the new card appears and opens without saying "Start the handoff season".
+**Acceptance (Juanxi):** ① Handoff → Treasurer → complete all 5 steps → Finish role handoff; ② change club name in Settings and see it saved; ③ Maya is absent from top-bar View as; ④ add a role in Settings → return to Handoff, see its card, and opening it no longer says "Start the handoff season."
 
-**Non-doing:** Replacement of existing member, slote can handoff (stage 2); Order of the first week's list (phase 3).
-
----
-
-## 4. Phase 2: Replacement of existing members + vacancy rale + single role handoff (B2, B5, D7)
-
-**The decision has to be made:**
-
-- **D-2a Incoming officer reacknowledged?** is now directly to do. It is suggested that **not captured + specify incoming office officer**, adding office point "I've got it" to be taken over and consistent with the whole station 's rules of title (the plan "handhake”).
-- **D-2b Vacancies** suggests that **be replaced by the outgoing** (interface writing "Answering for a vacant rule”).
-
-**Do What:**
-
-1. **Current member** (Low down, only current officer and former)/ **New person** ( Type Name, same as now) / temporarily empty.
-2. The current member takes over: if he had a role, the original role became vacant and hinted that "Secretary is now vacant". `leftOn` was cleared when the predecessor took over.
-3. Vacancies rule: president can write interview, confirm, finish handoff.
-4. **single rule handoff:** Handoff added "Hand over one rule" to replace a roll without full season.
-5. `validateRoles` allows the role to be empty (now `holderId` is allowed for null, supplemental testing).
-
-**Test:** Attribution of two rolls, task transfer, Settings can still be preserved after the current members have taken over; The missing slot can go through the full process; Single roll handoff does not affect other rolls; The names are still rejected (new people).
-
-**access:** uses Sam to pick up Treasurer  →  Marking to show the vacancies  →  to fill with "new people" No season directly "Hand over one rule".
+**Excluded:** Existing members succeeding and vacant-role handoffs (stage 2); first-week checklist ordering (stage 3).
 
 ---
 
-## 5. Phase 3 . time model + incoming officer early (B3)
+## 4. Stage 2 · Existing member succeeds + vacant roles + single-role handoff (B2, B5, D7)
 
-**needs to decide first: what can you see before** **D-3a** handoff in coming office? Recommendation: When this role manual, file and unfinished tasks are available in term intercoming officer, **cannot change the** task (only comment/ question) until it is handed over.
+**Decisions needed first:**
 
-**Do What:**
+- **D-2a Must the incoming person reclaim transferred unfinished tasks?** They currently become To do directly. Recommend **Not claimed + assigned incoming person**, with takeover only after clicking "I've got it, " matching the sitewide claiming rule (the plan's "claim handshake").
+- **D-2b Who answers interviews and confirms handbooks for vacant roles?** Recommend **the president acting for the outgoing person** (explicit UI text: "Answering for a vacant role").
 
-1. New data `RoleTerm { roleId, personId, status: incoming | active | former, from, to, handoffId }` (see Programme 4.1). **Actual practice (more robust than programme):** `Role.holderId`、`Person.leftOn`、`RoleHandoff.incomingId`Data that is still written directly by the action, term by `normalizeTerms`Automatically aligns each action to a historical record, without changing the other code.
-2. **schema version + 1** for migration: existing `holderId`  →  active term; People with `leftOn`  →  former term; Ongoing leadership reservation.
-3. Selecting incoming office **The first week's list was ticked by incoming officer.**and then after the transfer (repair B3).
-4. Hand over: incoming — active, old action — former.
+**Work:**
 
-**Test: The same data before and after the migration of**, with all pages showing the same role as the person; Incoming officer cannot change tasks before handing over; The first week's list can only be ticked after the transfer. There can be no error in repeating the migration.
+1. Hand over offers three options: **existing member** (dropdown listing only current and former officers) / **new person** (enter name, as today) / leave vacant for now.
+2. Existing-member succession: if they already hold a role, that role becomes vacant, with "Secretary is now vacant" shown to the president. Clear `leftOn` when a former officer returns.
+3. Vacant roles: the president can answer the interview, confirm, and finish the handoff.
+4. **Single-role handoff:** Add "Hand over one role" to Handoff to replace one role holder without starting a whole season (midsemester vacancy).
+5. `validateRoles` allows vacant roles (`holderId` already allows null; add tests).
 
-**access:** Walk through: select incoming officer  →  View as coming officer, can read the manual and cannot change the first week of hand-over incoming officer.
+**Tests:** Ownership of both roles after existing-member succession, task transfers, Settings still saves; vacant roles complete the full process; single-role handoffs leave other roles unaffected; duplicate names remain rejected for new people.
 
----
-
-## 6. Phase 4 . file + risk ranking (D1, D2, D4, D6)
-
-**Do What:**
-
-1. `src/lib/roleDossier.ts` (pure function, no AI): Calendar / In flight / People / Lessons four pieces (see Table for Project 4.1). Each line is accompanied by an ID from which the original record can be opened.
-2. The source of the manual was expanded from "Task + Access" to four parts of the archive; The manual is divided into four chapters; Could not close temporary folder: %s
-3. First week's list = Universal 6 + this rule next live deadline of 30 days (rule engine). **Practical practice:** Universal 6 is still open; The list of "Next 30 days" (read-only, each item can open a task) on the cut-off date does not add the number of bars to be ticked.
-4. The relay card is ranked according to "handoff risk" (unfinished, 30 days ASU hard-cut, overdue, stuck, outgoing people recently updated, file gaps). **Practice:** Sorting and Colouring Only on Handoff Pages; **No** in "Needs a Nudge" today, because that column means "the most likely step to catch up with 3", and mixing role will change meaning and Phase 3 page, requiring Juanxi to decide otherwise.
-5. Only the visible contact in officer hides both the file and the contents sent to AI according to existing rules.
-
-**Test: calculation of each piece of the** archive (including empty "no history yet"); Hide contacts not appearing in files and AI requests; Risk ranking; word ceiling.
-
-**access:** Open the Treasurer file with four pieces of content, each line can be opened; Handoff's page is the most dangerous role in line first.
+**Acceptance:** Have Sam take Treasurer → Marketing shows vacant → fill Marketing with a "new person"; use "Hand over one role" without starting a season.
 
 ---
 
-## 7. Phase 5 . Gap interview + joining officer process (D3, D5)
+## 5. Stage 3 · Role-term model + incoming person appears earlier (B3)
 
-**has to decide first:** Q2 (is it possible for AI to write a guide with reference), Q4 (is it possible for the predecessor to be consulted), and Q5 (see who can see the score).
+**Decision needed first:** **D-3a** What can incoming people see before handoff? Recommend access to the role's handbook, dossier, and unfinished tasks while incoming, but **no task editing** (comments / questions only); editing permissions begin after transfer.
 
-**Do What:**
+**Work:**
 
-1. **Gap:** rule template question ("Chase the USG review" got an exception but no reason was recovered. What held it up?" Outgoing people answer questions or skip, skip in "unsolved". **AI version `/api/handoff/questions` did not do**: Juanxi hasn't answered the Q2(AI can write a sentence); AI can only select/sort a ready-to-use template question with little value, and Q2 approval and prompt clearance are required for AI to write questions.
-2. **incoming officer reading booklets:** Got it/Unclear; Unclear becomes a problem for the outgoing people.
-3. **Recapitulate:** 3A fixed problem;  The **rule** (not AI) simply says the answer "No word in the manual" and gives outgoings to choose not to add to the manual without a score.
-4. **Follow up:** president picks a light task that people are still doing, incoming officer receives notice and can look at it. **RACI** (incoming officer and outgoing are the same role when "visited" makes no sense) and the task is still left to outsiders.
-5. **7 / 30 day back:** clarity, confidence, acceptance of three questions 1–5 + "What's missing from the manual"? The president one key back to the file. The original Day 30 button for this.
+1. New data `RoleTerm { roleId, personId, status: incoming | active | former, from, to, handoffId }` (plan 4.1). **Actual implementation (more robust than the plan):** Actions still write `Role.holderId`, `Person.leftOn`, and `RoleHandoff.incomingId` directly; `normalizeTerms` automatically reconciles terms into historical records after every action, without changes to other code.
+2. **Increment schema version by 1** and write migration: existing `holderId` → active term; people with `leftOn` → former term; retain in-progress transition seasons.
+3. Create an incoming term as soon as the successor is selected (the incoming person now exists), so **the incoming person checks their own first-week checklist**, moved to after handoff (fix B3).
+4. On Hand over: incoming → active, old active → former.
 
-**Test:** template subject generated from archival certainty; AI only quotes records that exist; Restatement does not produce scores; Look back at the results only to the Q5 decision-makers.
+**Tests:** All pages show the same roles and people before and after migration of the same data; incoming person cannot edit tasks before handoff; only the incoming person after handoff can check the first-week checklist; repeated migration is safe.
 
-**Acceptance:**♪ Incoming officer read, pick one ♪ 30I read back to my file every day.
+**Acceptance:** Select incoming person → View as that person, read handbook but cannot edit tasks → hand over → incoming person checks first week.
+
+---
+
+## 6. Stage 4 · Role dossier + risk ranking (D1, D2, D4, D6)
+
+**Work:**
+
+1. `src/lib/roleDossier.ts` (pure functions, no AI): four sections, Calendar / In flight / People / Lessons (plan 4.1 table). Each row has a source ID and opens the original record.
+2. Expand handbook sources from "tasks + interviews" to all four dossier sections; organize handbook chapters accordingly; still return IDs only, with local ordering on AI failure.
+3. First-week checklist = 6 generic items + this role's real deadlines over the next 30 days (rule-engine calculation). **Actual implementation:** The 6 generic items remain checkable; real deadlines appear below under "Next 30 days" (read-only, each opens its task), without adding checkboxes.
+4. Rank relay cards by "handoff risk" (unfinished tasks, ASU hard deadlines within 30 days, overdue, blocked, outgoing person's latest update, dossier gaps). **Actual implementation:** Ranking and coloring only on Handoff; **not** included in Today's "Needs a nudge, " since that section means "the 3 steps most likely to miss their deadlines." Mixing in roles changes that meaning and the Phase 3 page, requiring a separate Juanxi decision.
+5. Contacts visible only to officers remain hidden in dossiers and AI input under existing rules.
+
+**Tests:** Calculations for each dossier section (including "No history yet" for empty roles); hidden contacts absent from dossiers and AI requests; risk ranking; word limits.
+
+**Acceptance:** Open Treasurer's dossier: all four sections have content and every row opens; the highest-risk role is first on Handoff.
+
+---
+
+## 7. Stage 5 · Gap interviews + incoming-person flow (D3, D5)
+
+**Decisions needed first:** Q2 (may AI write cited introductory sentences), Q4 (may former officers be consulted), Q5 (who sees review scores).
+
+**Work:**
+
+1. **Gap questions:** Rule-based templates (e.g. "“Chase the USG reimbursement” got an extension but no reason was recorded. What held it up?"). The outgoing person answers or skips each question; skipped questions become "unresolved." **AI version `/api/handoff/questions` was not implemented**: Juanxi has not answered Q2 (whether AI may write sentences); AI offers little value if limited to selecting/ordering existing templates, and writing questions requires Q2 approval and prompt review.
+2. **Incoming person reads handbook:** Got it / Unclear for each chapter; Unclear becomes a question for the outgoing person.
+3. **Read-back:** 3 fixed questions; **rules**, not AI, roughly flag answers containing "words absent from the handbook, " leaving the outgoing person to decide whether to add them; no scoring.
+4. **Shadowing:** President chooses a lightweight task the outgoing person is still doing; incoming person is notified and can open it; **task RACI stays unchanged** (both people share the role, so "Consulted" is meaningless), and ownership remains with the outgoing person.
+5. **Day 7 / 30 review:** Three 1–5 ratings for clarity, confidence, and feeling accepted + "what is missing from the handbook"; president writes back to the dossier in one click. Replaces the old Day 30 button.
+
+**Tests:** Deterministic template questions from dossier; AI questions cite only existing records; read-back produces no scores; review results visible only to those selected by Q5.
+
+**Acceptance:** Outgoing person answers gap questions → incoming person reads and selects one Unclear → read-back → Day 30 review written back to dossier.
 
 ---
 
 ## 8. Stages 6, 7, 8
 
-**Phase 6. Role changes (D8). D-6a:**Delete "rolle" or "archived"?  Recommendations are archived only.
-Doing what: changed name history (details show "Formerly..."); New role start (constitution / duty source text plus standard steps for functions + president 3 questions, no history to start asking questions automatically); **Mobile Work** (checking task by article and contact to another roll) and **closes the rule** (turning everything that is left, file undeleted). **split = add new rule + move work, merge = all moves + close**, there is no separate "gui" interface (one layer less than the wizard and more difficult to misoperate). **Not done:** by tag batch; The old manual shows the name of the role at that time (only the history of renaming is shown in the file details). Schema version + 1 (22).
+**Stage 6 · Role changes (D8). Decide D-6a first:** Does deleting a role mean "archive" or actual deletion? Recommend archive only.
+Work: rename history ("Formerly …" in details); new-role starting material (original constitution/duties text + standard steps for the same function + 3 president questions; automatically expand questions for roles with no history); **move work** (select tasks and contacts individually to transfer to another role) and **close role** (transfer everything remaining, archive rather than delete). **Split = add new role + move work; merge = move everything + close**, with no separate "wizard" (one less UI layer, less risk of mistakes). **Not implemented:** Bulk selection by tag; historical role names in old handbooks (rename history shown only in dossier details). Schema version +1 (22).
 
-**Phase 7 Product Questions and Answers (D9). Q3 Response received from Juanxi: question-and-answer notes and research logs are completely separate.**
-Actual practice: **do not create any new records** (no new entries, no IRB); **reads** incoming officer from the existing research log at the moment that it was painted and asks questions about Ask, indicating those not covered by the manual, only for the president and incoming officer. The result is no records, no manuals and files, no AI (test guardian). **Not doing:** Ask chats on View as separately (Ask behavior that moves Phase 3); In the file, "this role's often asked questions." Do not change schema version.
+**Stage 7 · Product Q&A records (D9). Juanxi answered Q3: Q&A records and research logs are not separated at all.**
+Actual implementation: **Create no new records** (no added logged items, no further IRB notification needed); when the incoming-person card renders on Handoff, **read** questions they asked Ask after being designated from existing research logs, flag those not covered by the handbook, and show only to the president and that incoming person. Results are not saved, included in handbooks/dossiers, or sent to AI (test guarded). **Not implemented:** Separate Ask chat storage by View as identity (would alter Phase 3 Ask behavior); dossier summary of "frequently asked questions for this role." No schema version change.
 
-**Article 8• End of period:**Update `AGENTS.md`Article 6Sectional code maps, `docs/RULES.md`(if the handoff rules change), `docs/WP5_ACCEPTANCE.md`； Complete `npm run check`; Write handoff at `PROGRESS.md`; Synchronize local backups (when connected to Juanxi computers); Please Juanxi decide the time.
+**Stage 8 · Closeout:** Update `AGENTS.md` section 6 code map, `docs/RULES.md` (if handoff rules change), `docs/WP5_ACCEPTANCE.md`; full `npm run check`; handoff in `PROGRESS.md`; sync local backup (when Juanxi's computer is accessible); ask Juanxi to decide merge timing.
 
 ---
 
-## 9. Executing records (updated at each stage)
+## 9. Execution record (update after each stage)
 
-| Phase | Status | Submission before start | Last submission | Test Results | Juanxi access |
+| Stage | Status | Commit before start | Last commit | Test results | Juanxi acceptance |
 | --- | --- | --- | --- | --- | --- |
-| 1 | **considering access** (Claude, 2026-11-08) | `de5c1f9` | `fb495dd`(document submitted to `eebd4ab`） | Lint, two sets of type checks, construction pass; Module 1060 All over (new 12 and failed 9 on old code); New browser tests 6 through (all desktop versions of 3 on old code failed); _Other Organiser 714Numbers: 656Adopted / 52Skip / 3Occasional (rerun through)/ 3Fail, this. 3One that hasn't changed.  `main` The same failure ( `workflow-setup:123` Desktop + mobile phone, `organization-setup:1381`） | Wait, Juanxi. |
-| 2 | **considering access** (Claude, 2026-11-08); D-2a, D-2b agreed by Juanxi) | `eebd4ab` | `da45e5c`(document submitted to `591c28a`） | Lint, two sets of type checks, construction pass; Module 1080 Full (new 20); (b) The new browser tests 3 (desktop + cellular phone) were passed, and the 1 phase of the browser ts were joined with 12; There are already browser tests 700: 663 failed by / 52 skip / 1 / 4, of which 3 have not changed `main` The same failure ( `workflow-setup:123` Desktop + mobile phone, `organization-setup:1381`1 are known to be random. `ob-04` Keyboard File Selection Box(s) `main` Over and over 16Second failure 3Next, this branch 16Second failure 4time)  | Wait, Juanxi. |
-| 3 | **considering access** (Claude, 2026-11-08); The term model and the D-3a have been agreed to by Juanxi; **No more `main`, wait for Phase 3 to finish**) | `591c28a` | `6414cd7`(document submitted to `309bad2`） | Lint, two sets of type checks, construction pass; Module 1095 Full (new 15); New browser tests 4 (desktop + cell phones total 8) passed; There are already a number of 794: 735 through / 52 skip / 5 (rerun through); Where to read the archive `recovery` Repeated 40 times all)/ 2 failed `workflow-setup:123` Desktop + cell phone. No change. `main` The same thing that failed. | Wait, Juanxi. |
-| 4 | **considering access** (Claude, 2026-11-08); No, merge to `main`Waiting for Phase 3 to finish) | `309bad2` | `92e060e`、`2f0e887`、`f811730` | Lint, two sets of type checks, construction pass; Module 1110 Full (new 15); New browser tests 4 (desktop + cell phone 8) passed; Existing browser tests 800 +: all adopted, divided by `workflow-setup:123`、`organization-setup:1381` It hasn't changed. `main` The same failure, and a few known incidentals. `production-security`、`ob-04`、`dx-10`、`tasks:68`，`main` It also occasionally fails. **Note: First page entry file 499,664 bytes, cap 500,000, only 336 bytes, see PROGRESS.md** | Wait, Juanxi. |
-| 5 | **considering access** (Claude, 2026-11-09); Q2/Q4/Q5 do as my suggested default, waiting for Juanxi to confirm; No, merge to `main`Waiting for Phase 3 to finish) | `42ae862` | `6dbc25f`(document submitted to `6ca4f83`） | Lint, two sets of type checks, construction pass; Module 1127 Full (new 17); New Page Length Process Test `handoff-stage5.spec.ts`( Desktop + mobile phone) pass; There are already browser tests 840: 780 failed by / 52 skip / 4 / 4, of which `workflow-setup:123`(desktop + cell phone), `organization-setup:1381` It hasn't changed. `main` The same failure was reported. `ob-12:208` and `workflow-setup:39` Yes. `main` 24 failed 4 (this branch 3). 505,418 bytes for the first page entry file (ceiling reference to 520,000) | Wait, Juanxi. |
-| 6 | **considering access** (Claude, 2026-11-09); D-6a has been confirmed by Juanxi; No, merge to `main`Waiting for Phase 3 to finish) | `6ca4f83` | `1f2da6c`(document submitted to `86be187`） | Lint, two sets of type checks, construction pass; Module 1143 Full (new 16); New Browsertes `handoff-stage6.spec.ts` 4 (desktop + cell phone 8) pass; _Other Organiser 902Numbers: 844Adopted / 53Skip / 4Occasional / 1Failed (  `m4-setup:98`, repeat 24: this branch failed 4, `main` Failed 3Next time, loads fail.  First page entry file 509,008 bytes (ceiling 520,000) | Wait, Juanxi. |
-| 7 | **considering access** (Claude, 2026-11-09); Q3 has been answered by Juanxi; No, merge to `main`Waiting for Phase 3 to finish) | `86be187` | `9d2c411`(document submitted to `b13f7e0`） | Lint, two sets of type checks, construction pass; Module 1160 Full (new 17); New Browsertes `handoff-stage7.spec.ts`(desktop+cell) Pass, repeat 30 full; There are already browser tests 920: 847 failed by / 64 skip / 5 supple / 4, both `main` The same old problems that fail or happen occasionally. First page entry file 509,017 bytes (ceiling 520,000) | Wait, Juanxi. |
-| 8 | **Completed** (Claude, 2026-11-09) | `b13f7e0` | See `git log` Latest submission | Complete `npm run check` We'll see about that. `docs/PROGRESS.md` (a) The upper one; Document collation, merge list, rollback table, all known problems in this document section 10–12 | — |
-| Review repairs | **Completed and Mege to `main`**（Claude，2026-11-09；Juanxi approves direct merge, Q2/Q4/Q5 confirms that the Q4 postbox telephones have been replaced by an expired manual rule to read only quoted entries) | `3991320`(Final submission of this branch) | See `docs/PROGRESS.md` Top one. | 13 questions and amendments `docs/PROGRESS.md` The top one and `AGENTS.md` Section 6 "Handoff review repair"; Test `src/test/handoffReview.test.ts` | Juanxi ratified merge |
+| 1 | **Awaiting acceptance** (Claude, 2026-11-08) | `de5c1f9` | `fb495dd` (documentation through `eebd4ab`) | lint, both type checks, build passed; all 1060 unit tests passed (12 new, 9 fail on old code); 6 new page tests passed (all 3 desktop cases fail on old code); 714 related existing page tests: 656 passed / 52 skipped / 3 flaky (passed on rerun) / 3 failed; those 3 also fail on unchanged `main` (`workflow-setup:123` desktop+mobile, `organization-setup:1381`) | Awaiting Juanxi |
+| 2 | **Awaiting acceptance** (Claude, 2026-11-08; Juanxi approved D-2a, D-2b) | `eebd4ab` | `da45e5c` (documentation through `591c28a`) | lint, both type checks, build passed; all 1080 unit tests passed (20 new); 3 new page cases (desktop+mobile) passed, all 12 passed combined with stage 1 page tests; 700 related existing page tests: 663 passed / 52 skipped / 1 flaky / 4 failed, including 3 also failing on unchanged `main` (`workflow-setup:123` desktop+mobile, `organization-setup:1381`) and 1 known flaky `ob-04` keyboard file picker (3 failures in 16 repeats on `main`, 4 in 16 on this branch) | Awaiting Juanxi |
+| 3 | **Awaiting acceptance** (Claude, 2026-11-08; Juanxi approved role-term model and D-3a; **do not merge into `main` until Phase 3 data collection ends**) | `591c28a` | `6414cd7` (documentation through `309bad2`) | lint, both type checks, build passed; all 1095 unit tests passed (15 new); 4 new page cases (8 desktop+mobile) passed; 794 related existing page tests: 735 passed / 52 skipped / 5 flaky (passed on rerun; archive-reading `recovery` and Demo menu passed all 40 repeats) / 2 failed (`workflow-setup:123` desktop+mobile, also fail on unchanged `main`) | Awaiting Juanxi |
+| 4 | **Awaiting acceptance** (Claude, 2026-11-08; do not merge into `main` until Phase 3 data collection ends) | `309bad2` | `92e060e`, `2f0e887`, `f811730` | lint, both type checks, build passed; all 1110 unit tests passed (15 new); 4 new page cases (8 desktop+mobile) passed; 800+ related existing page tests: all passed except `workflow-setup:123`, `organization-setup:1381`, which also fail on unchanged `main`, and several known flaky cases (`production-security`, `ob-04`, `dx-10`, `tasks:68`, also intermittent on `main`). **Note: homepage entry file 499,664 bytes against 500,000 limit, only 336 bytes left; see PROGRESS.md** | Awaiting Juanxi |
+| 5 | **Awaiting acceptance** (Claude, 2026-11-09; Q2/Q4/Q5 use my recommended defaults, awaiting Juanxi confirmation; do not merge into `main` until Phase 3 data collection ends) | `42ae862` | `6dbc25f` (documentation through `6ca4f83`) | lint, both type checks, build passed; all 1127 unit tests passed (17 new); new long-flow page test `handoff-stage5.spec.ts` (desktop+mobile) passed; 840 related existing page tests: 780 passed / 52 skipped / 4 flaky / 4 failed; `workflow-setup:123` (desktop+mobile), `organization-setup:1381` also fail on unchanged `main`; `ob-12:208` and `workflow-setup:39` failed 4 times in 24 repeats on `main` (3 on this branch). Homepage entry file 505,418 bytes (limit raised to 520,000) | Awaiting Juanxi |
+| 6 | **Awaiting acceptance** (Claude, 2026-11-09; Juanxi confirmed D-6a; do not merge into `main` until Phase 3 data collection ends) | `6ca4f83` | `1f2da6c` (documentation through `86be187`) | lint, both type checks, build passed; all 1143 unit tests passed (16 new); 4 new page cases in `handoff-stage6.spec.ts` (8 desktop+mobile) passed; 902 related existing page tests: 844 passed / 53 skipped / 4 flaky / 1 failed (`m4-setup:98`; 24 repeats: 4 failures on this branch, 3 on `main`, both fail under high load). Homepage entry file 509,008 bytes (limit 520,000) | Awaiting Juanxi |
+| 7 | **Awaiting acceptance** (Claude, 2026-11-09; Juanxi answered Q3; do not merge into `main` until Phase 3 data collection ends) | `86be187` | `9d2c411` (documentation through `b13f7e0`) | lint, both type checks, build passed; all 1160 unit tests passed (17 new); new page test `handoff-stage7.spec.ts` (desktop+mobile) passed, all 30 repeats passed; 920 related existing page tests: 847 passed / 64 skipped / 5 flaky / 4 failed, all existing failures or flaky cases also present on `main`. Homepage entry file 509,017 bytes (limit 520,000) | Awaiting Juanxi |
+| 8 | **Completed** (Claude, 2026-11-09) | `b13f7e0` | See latest commit in `git log` | Full `npm run check` results in top entry of `docs/PROGRESS.md`; documentation cleanup, merge checklist, rollback table, and known issues in sections 10–12 below | — |
+| Review fixes | **Completed and merged into `main`** (Claude, 2026-11-09; Juanxi approved direct merge, confirmed Q2/Q4/Q5, added email/phone to Q4, changed handbook staleness to consider cited entries only) | `3991320` (last commit on this branch) | See top entry of `docs/PROGRESS.md` | 13 issues and fixes in top entry of `docs/PROGRESS.md` and "Handoff review fixes" in `AGENTS.md` section 6; test `src/test/handoffReview.test.ts` | Juanxi approved merge |
 
 ---
 
-## 10. Last look, what's different from the original scheme (`HANDOFF_REDESIGN_PLAN.md`)
+## 10. Differences between the final result and original plan (`HANDOFF_REDESIGN_PLAN.md`)
 
-| Original programme | Actual | Why? |
+| Original plan | Actual result | Why |
 | --- | --- | --- |
-| B-1-B6 Six bugs. | **Completely repaired** (B1, B4, B6 stage 1; B2, B5 stage 2; B3 Phase 3) | — |
-| D1-D9 9 design issues | D1-D8 did it; D9 Replace "read existing research logs" with "read existing research logs", as decided by Juanxi 7Phase)  | Q3: The question and answer record is not separated from the research log |
-| term by `RoleTerm` Calculate `holderId` | `holderId`、`leftOn`、`incomingId` It's still written directly by the action. `normalizeTerms` Put the term after every action. **Align to History**  | The old code doesn't change, returns to the same object when it doesn't change. |
-| The first week of the manual list = generic 6 + live | The common 6 is still to be written; Live as of "Next 30 days" | Do not change the number of bars to be ticked |
-| "Needs a nudge" on Today. | **did not do**, only sorting and colouring on Handoff page | The column means "the most likely 3 step" changes the meaning and moves the Phase 3 page. |
-| AI Gaps, AI Guide & Q2 | **did not do**. Gaps are generated by rules, and every word in the manual is still recorded. | Q2 did not answer; AI Write sentence requires Juanxi to approve and review prompt |
-| Incoming officer as Consulted | Select a light task to allow incoming officer to watch and the task is still going on. | Incoming officer and outgoing are the same role when "visited" makes no sense. |
-| Restatement by AI Contrast Manual | "Does it appear in the manual?" No marks. | Ibid. (Q2) and easier to test |
-| Split / merge / Archive the Wizard | Two actions: move work, close role; Split = galle + move, merge = move + close | Less interface, less easy to misoperate |
-| Questions and answers for the product itself. | Do not create new, read existing research logs and show only | Q3；And hold on to the hard rule of "research data not entering AI prompt." |
-| Ask chat press View ass to save separately | **, not**. | Ask behavior for Phase 3 |
+| Six bugs B1–B6 | **All fixed** (B1, B4, B6 in stage 1; B2, B5 in stage 2; B3 in stage 3) | — |
+| Nine design issues D1–D9 | D1–D8 implemented; D9 changed to "read existing research logs" per Juanxi (stage 7) | Q3: no separation between Q&A records and research logs |
+| Derive `holderId` from `RoleTerm` | Actions still write `holderId`, `leftOn`, `incomingId` directly; `normalizeTerms` **reconciles terms into history** after each action | No changes to old code, same object returned if unchanged; more robust |
+| Handbook first-week checklist = 6 generic items + real deadlines | 6 generic checkboxes remain; real deadlines listed under "Next 30 days" (read-only) | Number of checkboxes unchanged |
+| Risk in Today's "Needs a nudge" | **Not implemented**; ranking and coloring on Handoff only | That section means "the 3 steps most likely to miss their deadlines"; changes its meaning and the Phase 3 page |
+| AI gap questions and introductory sentences (Q2) | **Not implemented**; rule-generated gap questions; every handbook word still comes from original records | Q2 unanswered; AI sentences require Juanxi approval and prompt review |
+| Shadowing: incoming person as Consulted | President selects a lightweight task for observation; ownership stays with outgoing person | Both hold the same role, making "Consulted" meaningless |
+| AI checks read-back against handbook | Rules roughly check whether words appear in the handbook, without scoring | Same reason (Q2), and easier to test |
+| Split / merge / archive "wizard" | Two actions: move work, close role; split = add role + move, merge = move + close | One less UI layer, less risk of mistakes |
+| Product-specific Q&A records | No new records; read existing research logs for display only | Q3; also preserves the hard rule "no research data in AI prompts" |
+| Separate Ask chat storage by View as identity | **Not implemented** | Would alter Phase 3 Ask behavior |
 
-**Juanxi's decision:**D-2a (mission to be identified for transfer into office), D-2b (vacant slot replacement outgoing), term model, D-3a (incoming officer readable), Q6 (Phase) 3Taskcard is used on Handoff page, so the whole branch is waiting. 3After closing merge), cap 500,000→520,000), D-6a (Closing file = archive, historical retention), Q3 (question and answer records and research logs are not separated).
-**, done at my suggested default value and not explicitly confirmed by Juanxi:** Q2 (AI does not write guide readings), Q4 (incoming officer can see the previous name without turning off the switch), Q5 (seeing the scores only for presidient and incoming officer).
-
----
-
-## List before 11. metge to `main`
-
-> **2026-11-09 Update:** item 1 (Phase 3) was decided by Juanxi to "directly submit to main"; 2 Divisions Q2, Q4, Q5 confirmed (Q4 plus: incoming officer can see ex-mail boxes and telephones); Numbers 4, 6 and 7 have been done (with merge company merge, no Squash). Item 5 (live ASU AIR drafting manual) **has not yet been validated**; The 3 IRB comparison still needs Juanxi's own confirmation.
-
-1. **Phase 3. Have you received the data yet?** Phase 1–7 was changed to Handoff page and Stages 3, 6 were upgraded to schema application (20 →  22) in violation of the border of Phase 3 " No change to `SCHEMA_VERSION` " . **Only Juanxi says "approved merge".**
-2. **identifies three default values:** Q2, Q4, Q5 (see section 10).
-3. **IRB: The contents of the new input box (interview answer,read-back, 7/30 day) on** 1Handoff will be entered into the research log like any other action; 2 Incoming officer card reads the log on the page asking questions about Ask (show only, no store, no AI). Please cross-reference the IRB material.
-4. **Once more updated `main`** (`git fetch origin main && git merge origin/main`), conflict resolution (most likely the top entries above `docs/PROGRESS.md` and `AGENTS.md`) and rerun of `npm run check`.
-5. **Clicks on the preview once with Live AI, Draw left handbook**. See Netlify log: there are more sources of the manual than before (many categories: line/step/confact/lesson), server functions have been changed, but **only uses analog AI to measure** and no live ASU AIR authentication.
-6. **Open PR** (to Juanxi agree): "[ preview. Do not take ] first; Choosing **Create a merge company**, instead of Squash, so that you can rollback by stage.
-7. **After the merge**Update `AGENTS.md`Section 6d. "In the border." No change. `SCHEMA_VERSION`/`DemoState`"The one. 22) and synchronize the local backup.
-8. Netlify environment variable: **does not add**, nor does it add an AI interface (`/api/handbook/draft` only accepts four source types more).
+**Juanxi's decisions:** D-2a (tasks transferred to incoming people need claiming), D-2b (president acts for outgoing person in vacant roles), role-term model, D-3a (incoming person can read but not edit), Q6 (Phase 3 task cards use Handoff, so wait until Phase 3 data collection ends to merge the whole branch), limit 500,000→520,000, D-6a (close role = archive, preserve history), Q3 (no separation between Q&A records and research logs).
+**Implemented using my recommended defaults, not yet explicitly confirmed by Juanxi:** Q2 (AI writes no introductory sentences), Q4 (incoming people see former officers' names, no opt-out switch), Q5 (review scores visible only to president and incoming person).
 
 ---
 
-## Table 12. rollback (from backwards, submitted under `git revert`; (drawn by phase at the time of submission)
+## 11. Checklist before merging into `main` (review item by item when Juanxi decides to merge)
 
-| Phase | Code Submission | Dependence | Undo it and be careful. |
+> **2026-11-09 update:** For item 1 (Phase 3), Juanxi decided "commit directly to main"; item 2 Q2, Q4, Q5 confirmed (Q4 additionally allows incoming people to see former officers' email and phone); items 4, 6, 7 completed (merged with a merge commit, not Squash). Item 5 (real ASU AIR handbook drafting) **remains unverified**; Juanxi still needs to check item 3 against the IRB materials himself.
+
+1. **Is Phase 3 data collection complete?** Stages 1–7 all changed Handoff; stages 3 and 6 incremented schema version (20→22), violating the Phase 3 "do not change `SCHEMA_VERSION`" boundary. **Merge only when Juanxi says "merge approved."**
+2. **Confirm the three defaults:** Q2, Q4, Q5 (section 10).
+3. **IRB:** ① New Handoff inputs (interview answers, read-back, Day 7/30 reviews) enter research logs like other actions; ② the incoming-person card reads their Ask questions from logs for page display (display only, no separate storage, no AI). Check against IRB materials.
+4. **Merge latest `main` again** (`git fetch origin main && git merge origin/main`), resolve conflicts (most likely top entries in `docs/PROGRESS.md` and `AGENTS.md`), rerun full `npm run check`.
+5. **Click Draft role handbook once with real AI on the preview**, and inspect Netlify logs: handbook sources expanded (four additional types: deadline/step/contact/lesson), and server functions changed, but **only mocked AI has been tested**, with no real ASU AIR validation.
+6. **Open PR** (requires Juanxi agreement): title "[Preview · Do not merge]" for the preview first; for the actual merge, choose **Create a merge commit**, not Squash, to preserve stage-by-stage rollback.
+7. **After merging**, update the "do not change `SCHEMA_VERSION`/`DemoState`" boundary in `AGENTS.md` section 6d (version is now 22), and sync local backup.
+8. Netlify environment variables: **none added**; no new AI endpoints either (`/api/handbook/draft` merely accepts four additional source types).
+
+---
+
+## 12. Rollback table (undo last to first using `git revert` on the commits; with merge commits, undo entire stages)
+
+| Stage | Code commits | Dependencies | Rollback considerations |
 | --- | --- | --- | --- |
-| 7 Read Log Display | `9d2c411` | 5 (incoming officer card) | No data changes |
-| 6 rule change | `1f2da6c` | 3 | Schema version 22  →  21: Browser data saved as 22 will walk the "Data Backup and Restore Example" path |
-| 5 incoming officer process | `6dbc25f` | 3、4 | `RoleHandoff` The extra optional fields remain in the archive without harm. |
-| 4 Archives and risks | `92e060e`、`2f0e887`、`f811730` | 3 | Server Functions `handbook-draft.mts` I'm going to go back. Fall back to the 499 KB. |
-| 3 term model | `6414cd7` | 2 | ♪ Chema version ♪ 21 → 20: Idem;  The 4–7 phase depends on it. They have to be removed first. |
-| 2 Current members take over | `da45e5c` | 1 | In the old test, "accupated" expectations have to be changed. |
-| 1 fix bug | `fb495dd` | — | — |
-| Upper limit | `42ae862` | — | The single withdrawal will make the front page entrance test red after stage 3. |
+| 7 Read and display logs | `9d2c411` | 5 (incoming-person card) | No data changes |
+| 6 Role changes | `1f2da6c` | 3 | Schema version 22 → 21: browser data already saved as 22 takes the "data backed up and sample restored" path (backup retained in browser) |
+| 5 Incoming-person flow | `6dbc25f` | 3, 4 | Additional optional `RoleHandoff` fields can harmlessly remain in saved data |
+| 4 Dossiers and risk | `92e060e`, `2f0e887`, `f811730` | 3 | Also revert server function `handbook-draft.mts`; homepage entry returns to about 499 KB |
+| 3 Role-term model | `6414cd7` | 2 | Schema version 21 → 20: same as above; stages 4–7 depend on it and must be reverted first |
+| 2 Existing-member succession | `da45e5c` | 1 | Restore old tests' "accepted" expectations |
+| 1 Bug fixes | `fb495dd` | — | — |
+| Limit | `42ae862` | — | Reverting alone makes homepage-entry tests fail after stage 3 |
 
 ---
 
-## 13. Known problems and nothing.
+## 13. Known issues and unimplemented work
 
-- **Not done:** AI with a gap, AI with a guide (Q2); Today; Ask chats are stored separately; Move tasks by tag batch; The old manual says "the name of the role at the time"; The "outgoing man can turn off the consulting switch" (Q4).
-- **Not authenticated:** live ASU AIR drafts a new version of the manual; Makoto and Safari; The screen reader actually reads (only autoa11y check).
-- **It's not stable in the browsertes. `main`It would also fail or occasionally, not this time:** `workflow-setup:123`(desktop + cell phone), `organization-setup:1381`、`m4-setup:98`、`production-security:14`、`ob-04`Keyboard File Boxes, `ob-12:208`、`workflow-setup:39`、`tasks:37/68`、`dx-10`、`dx-11`、`phase1:271`(loads and loads occasionally.)
-- **Performance budget:** first page entry file 509,017 bytes, cap 520,000, leaving about 11 KB.
+- **Not implemented:** AI gap questions and introductory sentences (Q2); handoff risk in Today; Ask chat stored separately per person; bulk task movement by tag; historical role names in old handbooks; "outgoing person can opt out of consultation" switch (Q4).
+- **Not verified:** Real ASU AIR drafting of the new handbook; physical devices and Safari; actual screen-reader speech (automated a11y checks only).
+- **Preexisting unstable page tests (also fail or flake on `main`, not introduced here):** `workflow-setup:123` (desktop+mobile), `organization-setup:1381`, `m4-setup:98`, `production-security:14`, `ob-04` keyboard file picker, `ob-12:208`, `workflow-setup:39`, `tasks:37/68`, `dx-10`, `dx-11`, `phase1:271` (intermittent under high load).
+- **Performance budget:** Homepage entry file 509,017 bytes, limit 520,000, about 11 KB remaining.
 
