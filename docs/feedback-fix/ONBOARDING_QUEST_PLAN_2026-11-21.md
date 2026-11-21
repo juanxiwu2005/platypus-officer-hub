@@ -1,177 +1,177 @@
-# 新 exec Onboarding 方案 v2：用一场"办活动探险"学会 handbook（2026-11-21，Claude）
+# New exec onboarding plan v2: learn the handbook through an "event-planning quest" (2026-11-21, Claude)
 
-上一版审阅：`HANDOFF_RAMP_REVIEW_2026-11-21.md`；研究报告：`handoff-ramp-research/`。本版按 Juanxi 2026-11-21 的决定重写。只写文档，未改代码。
+Previous review: `HANDOFF_RAMP_REVIEW_2026-11-21.md`; research reports: `handoff-ramp-research/`. This version is rewritten according to Juanxi's decisions of 2026-11-21. Documentation only; no code was changed.
 
-## 0. Juanxi 的决定（本版前提）
+## 0. Juanxi's decisions (premises of this version)
 
-1. "40 多页的文件"= **Student Club and Organization Handbook 2026–2027**（档案 ASU-R-004）。2025–26 版（ASU-R-064）只作历史对照。
-2. 情景题成绩和升级给社长的问题**可以存下来**。
-3. 社长**只看汇总，甚至可以不展示**。
-4. 核心是**教会成员做基本的 event planning**；参考 Google AI Quests 的 *Market Marshes*，做一个互动游戏，让成员"探险"一次学生活动怎么办。冲突规则按更严的教（活动登记提前 30 天、讲者提前 6 周）。
-5. Phase 3 已结束，可以进入实施规划。
+1. "The 40-plus-page document" = the **Student Club and Organization Handbook 2026–2027** (archive record ASU-R-004). The 2025–26 edition (ASU-R-064) is used only as a historical comparison.
+2. Scenario-question scores and questions escalated to the president **may be stored**.
+3. The president **sees only a summary, and the summary may not be shown at all**.
+4. The core goal is to **teach members basic event planning**. Taking Google AI Quests' *Market Marshes* as a reference, build an interactive game in which members "go on a quest" through how a student event is run. Where rules conflict, teach the stricter one (event registration 30 days in advance; speakers 6 weeks in advance).
+5. Phase 3 has ended, so implementation planning can begin.
 
 ---
 
-## 1. 参考 Market Marshes 借什么
+## 1. What to borrow from Market Marshes
 
-Market Marshes 是 Google Research 和 Stanford Accelerator for Learning 做的第一个 AI Quest（2025 年 9 月），给 11–14 岁学生，免费、浏览器里玩。学生扮演 Google 研究员，帮一个河边市场预测洪水：收集数据、清理、选特征、训练模型，结果不好就回去改。游戏里有导师角色 Professor Skye，每个 quest 30–45 分钟，配完整教案和教师指南，还有给没电脑教室用的幻灯片版。
+Market Marshes is the first AI Quest made by Google Research and the Stanford Accelerator for Learning (September 2025). It is for students aged 11–14, free, and played in the browser. Students play Google researchers helping a riverside market predict floods: they collect data, clean it, choose features, train a model, and go back to revise when results are poor. The game has a mentor character, Professor Skye. Each quest takes 30–45 minutes and comes with complete lesson plans and a teacher guide, plus a slide version for classrooms without computers.
 
-我们借的是**结构**，不照搬它的内容或画面：
+We borrow the **structure**, not its content or visuals:
 
-| Market Marshes 的做法 | Platypus 的对应 |
+| What Market Marshes does | Platypus equivalent |
 | --- | --- |
-| 扮演真实职业的人（研究员） | 扮演社团 officer，办一场真实规模的活动 |
-| 真实世界问题（洪水预测），来自真实研究 | 真实 ASU 规则，来自 handbook 和资金手册原文 |
-| 一步步做真实专业人士会做的决定 | 订场、登记、预算、供应商、宣传、当天、收尾，每一步都是真实决定 |
-| 结果不好就回去改（迭代） | 做错看到"现实中会发生什么"，回到那一步重做 |
-| 导师角色引导 | Platypus 向导（就是右栏 Ask，在游戏里只给提示） |
-| 30–45 分钟一个 quest | 一场活动分两段，每段约 30 分钟 |
-| 教师指南 | 给社长的一页"带队指南" |
-| 幻灯片版（低技术） | 可打印的"纸上版"，在 exec 会议上一起玩 |
+| Play someone in a real profession (a researcher) | Play a club officer running an event at realistic scale |
+| A real-world problem (flood prediction) drawn from real research | Real ASU rules, drawn from the source text of the handbook and the funding guide |
+| Make, step by step, the decisions a real professional would make | Booking, registration, budget, vendors, promotion, event day, wrap-up: every step is a real decision |
+| Go back and revise when results are poor (iteration) | After a wrong choice, see "what would happen in reality," then return to that step and redo it |
+| A mentor character guides | The Platypus guide (the right-panel Ask, which gives only hints inside the game) |
+| 30–45 minutes per quest | One event split into two parts of about 30 minutes each |
+| Teacher guide | A one-page "facilitator guide" for the president |
+| Slide version (low-tech) | A printable "paper version" to play together at an exec meeting |
 
-## 2. 为什么用游戏（证据，及其边界）
+## 2. Why a game (evidence and its limits)
 
-- 严肃游戏整体比普通教学学得更好，但效果中等：Wouters et al. 2013（*J. Educ. Psych.*，77 个效应量）；Clark, Tanner-Smith & Killingsworth 2016（*Rev. Educ. Res.*，g≈0.33）。
-- 给成年人的模拟游戏，提升最大的是自信（d≈0.52）和会做（程序性知识 d≈0.37）：Sitzmann 2011（*Personnel Psychology*）。这正好对应"3 天内能上手做"。
-- 三个让效果变大的条件，方案都要做到：
-  - **和其他教学配合**，不单独靠游戏（Wouters 2013）→ 游戏后接真实交接和真实任务。
-  - **多次、分段玩**比一次玩完好（Wouters 2013；Clark 2016）→ 分两天玩，第 3 天复测。
-  - **主动做决定**比看着走好；可以随时回去玩（Sitzmann 2011）→ 每步都要选择，游戏永久开放。
-- 画面简单不影响效果（Clark 2016 二手总结）→ 用现有界面组件和流程图，不需要做美术。
-- 游戏里的"做决定→看后果→看原文→再做"本身就是上一版证据最强的方法：先猜再看、测验、答错给决定性条件（Roediger & Karpicke 2006；Richland et al. 2009；Butler & Roediger 2008）。
-- **边界：** 没有研究直接测过"学生社团用游戏学校规"。上面是借来的机制，效果要在真实社团里测。
+- Serious games overall produce better learning than ordinary instruction, but the effect is moderate: Wouters et al. 2013 (*J. Educ. Psych.*, 77 effect sizes); Clark, Tanner-Smith & Killingsworth 2016 (*Rev. Educ. Res.*, g≈0.33).
+- For adults, the largest gains from simulation games were in confidence (d≈0.52) and being able to do the work (procedural knowledge, d≈0.37): Sitzmann 2011 (*Personnel Psychology*). This maps directly onto "able to start working within 3 days."
+- Three conditions make the effect larger, and the plan must meet all of them:
+  - **Combine with other instruction** rather than relying on the game alone (Wouters 2013) → the game is followed by a real handoff and real tasks.
+  - **Multiple, spaced sessions** beat one sitting (Wouters 2013; Clark 2016) → play over two days, with a retest on day 3.
+  - **Actively making decisions** beats watching; players can return at any time (Sitzmann 2011) → every step requires a choice, and the game stays open permanently.
+- Simple visuals do not reduce the effect (Clark 2016, secondhand summary) → use existing interface components and the workflow chart; no art is needed.
+- The in-game loop "decide → see the consequence → read the source text → try again" is itself the method with the strongest evidence in the previous version: guess first, then look; quizzing; when wrong, show the decisive condition (Roediger & Karpicke 2006; Richland et al. 2009; Butler & Roediger 2008).
+- **Limit:** No study has directly tested "student clubs learning university rules through a game." The above are borrowed mechanisms; the effect must be measured in real clubs.
 
 ---
 
-## 3. 游戏设计："Plan Your First Event"
+## 3. Game design: "Plan Your First Event"
 
-### 3.1 故事
+### 3.1 Story
 
-> 你刚当上 Desert Founders Society 的 officer。社团想在 Tempe 的 Memorial Union 办一场 **Spring Speaker Night**：请一位付费讲者，约 80 人，提供披萨，在 Instagram 宣传。Platypus 向导带你从今天（活动前 7 周）一路走到活动结束后一周。
+> You have just become an officer of the Desert Founders Society. The club wants to hold a **Spring Speaker Night** at the Memorial Union in Tempe: a paid speaker, about 80 people, pizza, promoted on Instagram. The Platypus guide takes you from today (7 weeks before the event) all the way to one week after the event.
 
-- 每个人**玩完整一场活动**，所以每个岗位都看到别的岗位要什么（共同基础 + 交叉依赖）。
-- 每到需要别的岗位的时候，**游戏里的同伴角色**（Treasurer、Marketing、Events、Secretary、President、Advisor）会来要东西。你给对了，事情往前走；给错或给晚了，同伴告诉你"我卡住了，因为……"。
-- 你自己的岗位那一步会标"**这是你的活**"，多一道加深题。
+- Everyone **plays one complete event**, so every role sees what the other roles need (shared foundation + cross-role dependencies).
+- Whenever another role is needed, **an in-game peer character** (Treasurer, Marketing, Events, Secretary, President, Advisor) comes to ask for something. If you hand over the right thing, the work moves forward; if you hand over the wrong thing or hand it over late, the peer tells you, "I'm stuck because…".
+- Steps belonging to your own role are marked "**this is your job**" and include an extra deeper question.
 
-### 3.2 七章，对应 handbook 目录
+### 3.2 Seven chapters, mapped to the handbook's table of contents
 
-| 章 | 游戏里发生什么（关键决定） | 做错时现实中会怎样 | Handbook / 原文 |
+| Chapter | What happens in the game (key decisions) | What happens in reality if you get it wrong | Handbook / source text |
 | --- | --- | --- | --- |
-| 1 社团准备好了吗 | 谁是 Top 3？谁要上哪种培训？名单是否 ≥10 人？ | 没有合格的 Top 3，没人能提交；名单不够，拿不到资金 | 《Registering and Reregistering》《Leadership Transitions and Roster Management》；R030、R037 |
-| 2 定日期和场地 | 先做什么：Event Registry、Mazevo、还是先发帖试水？ | 获批前宣传可能被取消；RITM 编号不在 14 天前交，订场被取消；期末活动不能拿 USG-T 资金 | 《Events and Tabling》《Event Registry》《Events During Finals》《Reserving Spaces》；R014、R015 |
-| 3 钱从哪来 | 给 Treasurer 什么（日期、地点、人数、含税运费报价，一家一张）；批了 $700，能花 $701 吗；flyers 省下的钱能给 pens 吗；能先用自己的卡买吗 | 金额必须等于获批，没有容差；分项不能挪；获批前买的不报销；迟交自动不合格 | 《Funding and Fiscal Management》＋ Tempe 资金手册与培训（R025–R029、R035、R037、R041、R047） |
-| 4 讲者、合同、食物 | 讲者合同谁来签？什么时候开始？披萨能从外面订吗？ | 学生不能签合同；讲者材料按 6 周；Union 场地是独家餐饮，外部食物要先查许可和检查记录 | 《Contracts for Vendors, Guest Speakers, or Performers》《Food at Events》；R036、R045、R049 |
-| 5 把消息传出去 | 什么时候能发 Instagram？活动名怎么写？T 恤找谁做？ | 获批前宣传风险；"at ASU"放最后、不用 ASU 标志；周边要用授权厂商 | 《Promoting an Event》《Social Media》；R009 |
-| 6 活动当天 | advisor 要不要在场？有人受伤怎么办？抽奖能收钱吗？ | 有外部参与者时 advisor 要在；紧急打 911 并报告；收费抽奖不允许 | 《Risk Management》《Raffles》 |
-| 7 收尾和交给下一任 | 收据什么时候交？超过 $999.99 怎么办？写什么留给下一任？ | 收据 10 天内交，60 天以上不报；材料缺失会撤回批准 | 《Funding and Fiscal Management》；R037、R041、R038 |
+| 1 Is the club ready? | Who are the Top 3? Who must take which training? Does the roster have ≥10 people? | Without qualified Top 3 officers, no one can submit; with too few members on the roster, no funding | "Registering and Reregistering," "Leadership Transitions and Roster Management"; R030, R037 |
+| 2 Pick a date and a place | What first: the Event Registry, Mazevo, or a test post first? | Promotion before approval can get the event cancelled; if the RITM number is not submitted 14 days ahead, the booking is cancelled; events during finals cannot receive USG-T funding | "Events and Tabling," "Event Registry," "Events During Finals," "Reserving Spaces"; R014, R015 |
+| 3 Where does the money come from? | What to give the Treasurer (date, place, attendance, quotes including tax and shipping, one per vendor); if $700 is approved, can you spend $701; can money saved on flyers go to pens; can you buy first with your own card | The amount must equal the approved amount, with no tolerance; line items cannot be moved; purchases before approval are not reimbursed; late submissions are automatically ineligible | "Funding and Fiscal Management" + the Tempe funding guide and training (R025–R029, R035, R037, R041, R047) |
+| 4 Speaker, contracts, food | Who signs the speaker contract? When to start? Can pizza be ordered from outside? | Students cannot sign contracts; speaker paperwork follows the 6-week deadline; Union spaces have exclusive catering, and outside food first requires checking permits and inspection records | "Contracts for Vendors, Guest Speakers, or Performers," "Food at Events"; R036, R045, R049 |
+| 5 Get the word out | When can you post on Instagram? How should the event name be written? Who makes the T-shirts? | Risk of promoting before approval; "at ASU" goes at the end, and no ASU logo; merchandise must use a licensed vendor | "Promoting an Event," "Social Media"; R009 |
+| 6 Event day | Does the advisor need to be there? What if someone is injured? Can a raffle charge money? | The advisor must be present when there are outside participants; in an emergency, call 911 and report it; paid raffles are not allowed | "Risk Management," "Raffles" |
+| 7 Wrap up and hand over to the next officer | When are receipts due? What if it exceeds $999.99? What to leave for the next officer? | Receipts within 10 days; nothing older than 60 days is reimbursed; missing paperwork revokes the approval | "Funding and Fiscal Management"; R037, R041, R038 |
 
-每章 4–6 分钟，**第 1–4 章约 30 分钟（第 1 天），第 5–7 章约 25 分钟（第 2 天）**。
+Each chapter takes 4–6 minutes: **chapters 1–4 about 30 minutes (day 1), chapters 5–7 about 25 minutes (day 2)**.
 
-### 3.3 一个决定长什么样（第 2 章例子）
+### 3.3 What a decision looks like (chapter 2 example)
 
-> **活动前 5 周。** Marketing 想今天就在 Instagram 发预告，"先看看多少人感兴趣"。你先做什么？
-> A. 在 Mazevo 订 Memorial Union 的房间　B. 在 Sun Devil Central 提交 Event Registry　C. 同意先发预告
-> **你有多确定？** 有点 / 很确定
+> **5 weeks before the event.** Marketing wants to post a teaser on Instagram today "to see how many people are interested first." What do you do first?
+> A. Book a Memorial Union room in Mazevo · B. Submit the Event Registry in Sun Devil Central · C. Agree to post the teaser first
+> **How sure are you?** Somewhat / Very sure
 
-- 选 **C**：同伴 Events 说"活动还没批，现在发帖可能让整个活动被取消"。显示原文："Advertising the event prior to approval may result in event cancellation, event postponement, and/or referral for conduct review."（handbook《Event Approval and Event Promotion》）。回到这一步重选。
-- 选 **A**：向导提示"订场要 RITM 编号，编号从哪来？"（提示，不给答案）。
-- 选 **B**：流程图上出现"Event Registry → RITM 编号 → Mazevo 订场"，日期由规则引擎按今天算出（**AI 不给任何日期**）。
+- Choose **C**: peer Events says, "The event isn't approved yet; posting now could get the whole event cancelled." The source text appears: "Advertising the event prior to approval may result in event cancellation, event postponement, and/or referral for conduct review." (handbook, "Event Approval and Event Promotion"). Return to this step and choose again.
+- Choose **A**: the guide hints, "Booking a room requires a RITM number. Where does that number come from?" (a hint, not the answer).
+- Choose **B**: the workflow chart shows "Event Registry → RITM number → Mazevo booking," with dates calculated by the rule engine from today (**AI gives no dates at all**).
 
-每个决定之后都有一张**"原文卡"**：2–5 句 handbook 原文、在 handbook 的哪一节、"打开 handbook 这一节"的链接。好奇心来自刚刚选错或犹豫的那一刻（信息缺口），这时候再引向原文。
+After every decision there is a **"source card"**: 2–5 sentences of handbook source text, where in the handbook it appears, and an "Open this handbook section" link. Curiosity comes from the moment of having just chosen wrongly or hesitated (an information gap); that is when the player is pointed to the source text.
 
-### 3.4 边玩边长出一张真实的活动流程图
+### 3.4 A real event workflow chart grows as you play
 
-玩家的每个正确决定都在屏幕上那张**和 Plan 页一样的流程图**上点亮一个点（复用现有 MetroChart 和 `schedule.ts` 规则引擎）。通关时，玩家手里是一张完整的 Speaker Night 计划：每一步、谁负责、最晚哪天。下次真办活动时，打开的就是同一种图，**游戏和真实工作用同一套画面**。
+Each correct decision lights up a dot on the on-screen workflow chart, **the same chart as on the Plan page** (reusing the existing MetroChart and the `schedule.ts` rule engine). On completion, the player holds a complete Speaker Night plan: every step, who is responsible, and the latest date. The next time they run a real event, they open the same kind of chart: **the game and real work use the same screens**.
 
-### 3.5 再玩一次，换个条件（变化情境）
+### 3.5 Play again with different conditions (varied scenarios)
 
-通关后解锁"换条件重玩"，每次只改一两处，专门练"条件变了答案跟着变"：活动改到校外场地、人数到 300、改成免费来访讲者、加了一个外部赞助商摆摊、日期落在期末两周。第 2 天先玩**和自己岗位最相关的那一版**，约 10 分钟。
+After completion, "replay with changed conditions" unlocks. Each replay changes only one or two things, specifically to practice "when the conditions change, the answer changes": the event moves to an off-campus venue, attendance reaches 300, the speaker becomes a free visiting speaker, an outside sponsor adds a table, or the date falls in the two weeks of finals. On day 2, players first play **the version most relevant to their own role**, about 10 minutes.
 
-### 3.6 向导（AI）在游戏里怎么说话
+### 3.6 How the guide (AI) talks in the game
 
-- **游戏里只给提示**，不直接给答案："看看订场需要哪个编号"（Bastani et al. 2025：直接给答案的 AI 让人学不会）。
-- 玩家可以随时问向导任何政策问题。回答**必须带原文段落和来源**，找不到就说"我不确定"（上一版规则 1–3）。
-- 游戏外（真实办事时）同一个 Ask 直接给带原文的答案。
+- **In the game it gives only hints**, never the answer directly: "Look at which number the room booking needs" (Bastani et al. 2025: AI that gives answers directly prevents people from learning).
+- Players may ask the guide any policy question at any time. Answers **must include the source passage and its source**; if none can be found, it says "I'm not sure" (rules 1–3 of the previous version).
+- Outside the game (when doing real work), the same Ask gives direct answers with the source text.
 
 ---
 
-## 4. 游戏之外的 3 天
+## 4. The 3 days beyond the game
 
-| 时间 | 新成员 | 前任 / buddy | President |
+| Time | New member | Predecessor / buddy | President |
 | --- | --- | --- | --- |
-| **开始前** | 填档案：校区、职位、是否 Top 3、资金来源 | 前任填**未结事项单**（进行中的申请、承诺、余额、账号、联系人、"如果 X 就 Y"） | 约 15–30 分钟：确认岗位，从模板选任务（做什么、为什么、交什么、何时交、怎样算完成），核对 Top 3、学校培训和系统访问 |
-| **第 1 天（约 75 分钟）** | 游戏第 1–4 章（30 分）→ 平台 3 个操作（10 分）→ 交第 1 项小任务 | **1:1 交接 30–45 分**：打开真实材料，问"哪次返工、哪件做对了"，最后新任复述最急 3 件事 | — |
-| **第 2 天（约 45 分钟）** | 游戏第 5–7 章（25 分）＋ 本岗位"换条件重玩"（10 分）；用 Ask 推进任务 | buddy 15 分钟 | 只处理 AI 解决不了、成员主动升级的问题 |
-| **第 3 天（约 15 分钟）** | **复测**：只出第 1–2 天答错或"很确定却错"的决定（10 分）；交其余任务 | — | 逐项审核任务：通过，或退回并写清改什么 |
-| **之后** | 第一次真做某件事时（第一次订场、第一次预算），弹出 3 个相关决定的小复测；2–4 周后复测一次 | 学期末写一页复盘给下一任 | 沿用现有第 7 / 30 天回看 |
+| **Before starting** | Fill in profile: campus, position, whether Top 3, funding sources | Predecessor fills in an **open-items list** (applications in progress, commitments, balances, accounts, contacts, "if X then Y") | About 15–30 minutes: confirm the role, choose tasks from templates (what to do, why, what to deliver, when it is due, what counts as done), and check Top 3 status, university training, and system access |
+| **Day 1 (about 75 minutes)** | Game chapters 1–4 (30 min) → 3 platform actions (10 min) → submit the first small task | **1:1 handoff, 30–45 min**: open the real materials, ask "which time required rework, and what was done right," and finish with the new officer restating the 3 most urgent items | — |
+| **Day 2 (about 45 minutes)** | Game chapters 5–7 (25 min) + this role's "replay with changed conditions" (10 min); use Ask to move tasks forward | Buddy, 15 minutes | Handles only questions the AI cannot resolve and that members actively escalate |
+| **Day 3 (about 15 minutes)** | **Retest**: only the decisions answered wrong on days 1–2 or "very sure but wrong" (10 min); submit the remaining tasks | — | Reviews tasks one by one: approve, or return with a clear note on what to change |
+| **Afterward** | The first time something is actually done (first room booking, first budget), a mini-retest of 3 related decisions pops up; one more retest after 2–4 weeks | At semester end, writes a one-page retrospective for the next officer | Keeps the existing day-7 / day-30 check-ins |
 
-- 学校要求的培训（Officer Training、hazing prevention、拨款培训 100%）在启动清单里单独跟踪，**游戏不代替学校成绩**。
-- 老成员（连任或换岗）可以**直接玩"换条件重玩"**，全对就跳过第 1–7 章。
-- **完成标准**不是"玩完"或"读完"，而是：红线决定全部做对（可以重试）＋ 本岗位那几章通过 ＋ 社长通过任务。
+- University-required training (Officer Training, hazing prevention, 100% on the appropriations training) is tracked separately in the startup checklist; **the game does not replace university scores**.
+- Returning members (re-elected or changing roles) can **go straight to "replay with changed conditions"**; if they get everything right, they skip chapters 1–7.
+- The **completion standard** is not "finished playing" or "finished reading," but: all red-line decisions answered correctly (retries allowed) + this role's chapters passed + the president approves the tasks.
 
-### 4.1 Handbook 怎么"读"
+### 4.1 How the handbook is "read"
 
-- 不要求任何人从头读到尾。游戏 7 章覆盖 handbook 里和办活动直接有关的部分；每张原文卡都链到对应小节。
-- 成员可以打开一张"**handbook 地图**"：按目录列出每一节，玩过的章节点亮。纯粹给自己看，**不计分、不排名、不给奖励**（上一版证据：奖励阅读会降低内在动机）。
-- handbook 里没进游戏的部分（创建社团、advisor 资格、旅行、银行账户、筹款等）进"随用随查"：做到相关工作时由 Ask 带原文给出。
-
----
-
-## 5. 社长怎么放心，又不用看
-
-- **默认社长什么都不用看。** 系统自己用数据：给成员安排复测、发现大家都在哪一步出错、把常被问的问题变成 FAQ。
-- 社长需要时可以打开一个**汇总**（可在 Settings 关掉）：只有"几个人完成了 / 大家最常错的 3 个决定 / 本周有几条问题等你回答"，**不显示个人分数和个人聊天**（Gnewuch et al. 2024：成员觉得有人在看，问 AI 的反而变少）。
-- 社长唯一必须处理的是**升级队列**：AI 找不到原文、遇到政策冲突、需要授权或需要经验的问题。每条自动附原问题、AI 的回答和引用、没解决的原因。社长回答后生成 FAQ 草稿，确认后下一个人直接从 AI 得到。
-- 一页**带队指南**（对应 Market Marshes 的教师指南）：社长要做的 3 件事、可以在第一次 exec 会议上用"纸上版"一起玩第 2 章（Wouters 2013：分组玩效果更好）。
+- No one is required to read it cover to cover. The 7 game chapters cover the parts of the handbook directly related to running events; every source card links to the corresponding subsection.
+- Members can open a "**handbook map**": every section listed by the table of contents, with played chapters lit up. It is purely for the member's own view: **no scores, no rankings, no rewards** (previous version's evidence: rewarding reading lowers intrinsic motivation).
+- Parts of the handbook not in the game (starting a club, advisor eligibility, travel, bank accounts, fundraising, etc.) go into "look up as needed": when related work comes up, Ask provides them with the source text.
 
 ---
 
-## 6. 存什么数据（Juanxi 已同意存）
+## 5. How the president can feel confident without having to look
 
-| 存什么 | 用途 | 谁看得到 |
+- **By default, the president does not need to look at anything.** The system uses the data itself: scheduling retests for members, finding the steps where everyone goes wrong, and turning frequently asked questions into FAQs.
+- When needed, the president can open a **summary** (can be turned off in Settings): only "how many people have finished / the 3 decisions most often answered wrong / how many questions are waiting for your answer this week," **with no individual scores and no individual chats** (Gnewuch et al. 2024: when members feel watched, they ask the AI less).
+- The only thing the president must handle is the **escalation queue**: questions where the AI cannot find the source text, runs into a policy conflict, or the question needs authorization or experience. Each item automatically includes the original question, the AI's answer and citations, and why it was not resolved. After the president answers, an FAQ draft is generated; once confirmed, the next person gets the answer directly from the AI.
+- A one-page **facilitator guide** (equivalent to Market Marshes' teacher guide): the 3 things the president needs to do, and the option of playing chapter 2 together using the "paper version" at the first exec meeting (Wouters 2013: playing in groups works better).
+
+---
+
+## 6. What data is stored (Juanxi has agreed to storage)
+
+| What is stored | Purpose | Who can see it |
 | --- | --- | --- |
-| 每个决定：第一次对/错、确定程度、重试次数、用时 | 安排复测；统计常错决定 | 成员本人；汇总（无个人）给社长 |
-| 章节完成、"换条件重玩"结果 | 完成标准、跳过判断 | 成员本人；汇总人数给社长 |
-| 升级的问题（问题、AI 回答和引用、原因、社长回答） | 升级队列、FAQ | 成员本人和社长 |
-| FAQ（社长确认的回答） | 下一位成员直接从 AI 得到 | 全社 |
+| Each decision: first-attempt right/wrong, confidence, number of retries, time taken | Schedule retests; count frequently missed decisions | The member; a summary (no individuals) for the president |
+| Chapter completion, "replay with changed conditions" results | Completion standard, skip decisions | The member; aggregate counts for the president |
+| Escalated questions (question, AI answer and citations, reason, president's answer) | Escalation queue, FAQ | The member and the president |
+| FAQ (answers confirmed by the president) | The next member gets the answer directly from the AI | The whole club |
 
-- **不存**：玩家和向导的完整对话原文（只存升级的那些）；不发给 AI 任何成员个人信息（AGENTS.md 硬规则）。
-- 研究导出要在 `docs/PHASE3_DATA_DICTIONARY.md` 新增字段说明；如果以后用于新的研究，按 IRB 要求另行确认。
-- 结构上只加**可选字段**，尽量不升 `SCHEMA_VERSION`；如果必须升，先问 Juanxi。
+- **Not stored**: the full text of conversations between the player and the guide (only escalated ones are stored); no member personal information is sent to the AI (AGENTS.md hard rule).
+- Research exports require new field descriptions in `docs/PHASE3_DATA_DICTIONARY.md`; if the data is later used for new research, it must be separately confirmed under IRB requirements.
+- Structurally, add only **optional fields** and avoid raising `SCHEMA_VERSION` where possible; if it must be raised, ask Juanxi first.
 
 ---
 
-## 7. 和现有代码的关系与实施顺序
+## 7. Relationship to existing code and implementation order
 
-**直接复用：** 流程图 `MetroChart` 和规则引擎 `schedule.ts`（游戏里的日期全部由它算）；Speaker 活动模板 `playbooks.ts`；64 条来源目录 `policyCatalog.ts` 和服务器上的 handbook 原文（`netlify/lib/policy-archive.mts`）；右栏 Ask 和引用标签；交接模块（访谈、手册、复述、第 7/30 天回看）；任务提交和附件。
+**Reuse directly:** the workflow chart `MetroChart` and the rule engine `schedule.ts` (all dates in the game are calculated by it); the Speaker event template `playbooks.ts`; the 64-entry source catalog `policyCatalog.ts` and the handbook source text on the server (`netlify/lib/policy-archive.mts`); the right-panel Ask and citation tags; the handoff module (interview, handbook, restatement, day-7/30 check-ins); task submission and attachments.
 
-**要改或新建：**
+**To change or build:**
 
-| 阶段 | 内容 | 说明 |
+| Phase | Content | Notes |
 | --- | --- | --- |
-| P1 内容 | 写 7 章约 35 个决定（每个带正确选项、错误后果、2–5 句原文和 handbook 小节），5 个"换条件重玩"；先核实冲突项 | 只用档案原文；冲突按更严的教并标注；顺带修网站过期规则 R13（期末活动）和 R01–R16 的旧手册引用 |
-| P2 游戏 | 新页面或 `/welcome` 下的 quest 流程；决定卡、原文卡、流程图点亮、换条件重玩、复测队列 | 只用现有 5 种组件和 token；界面英文；字数上限要 Juanxi 批准新页面的上限 |
-| P3 向导与升级 | Ask 在游戏里只给提示；回答必须带原文，找不到就拒答；升级队列、FAQ 草稿和确认 | `/api/policy-answer` 目前允许 AI 写自由文字，要改成"原文为主、AI 只做说明" |
-| P4 交接与任务 | 前任未结事项单＋新任复述；任务"提交→社长通过/退回"状态（现在提交即 Done） | 交接改成 3 天节奏，保留第 7/30 天回看 |
-| P5 汇总 | 社长汇总（默认可关）；成员自己的复测提醒 | 不显示个人分数 |
+| P1 Content | Write 7 chapters with about 35 decisions (each with the correct option, the consequence of a wrong choice, 2–5 sentences of source text, and the handbook subsection) and 5 "replays with changed conditions"; verify conflicting items first | Use archive source text only; teach the stricter rule on conflicts and label it; along the way, fix the website's outdated rule R13 (events during finals) and the old handbook citations in R01–R16 |
+| P2 Game | A new page, or a quest flow under `/welcome`; decision cards, source cards, workflow-chart lighting, replays with changed conditions, retest queue | Use only the existing 5 component types and tokens; English interface; the word limit for the new page requires Juanxi's approval |
+| P3 Guide and escalation | Ask gives only hints in the game; answers must include source text, and it refuses when none is found; escalation queue, FAQ drafts and confirmation | `/api/policy-answer` currently lets the AI write free text; change it to "source text first, AI only explains" |
+| P4 Handoff and tasks | Predecessor's open-items list + new officer's restatement; task status "submitted → president approves/returns" (currently, submitting marks it Done) | Change the handoff to the 3-day rhythm; keep the day-7/30 check-ins |
+| P5 Summary | President summary (optional; can be turned off); members' own retest reminders | No individual scores shown |
 
-按 Juanxi 一贯的流程：**这份方案确认后 → 先出静态效果图（游戏一个决定、原文卡、通关流程图、社长汇总、升级队列）→ 图确认后再写代码。**
+Following Juanxi's usual process: **once this plan is confirmed → first produce static mockups (one game decision, a source card, the completion workflow chart, the president summary, the escalation queue) → write code only after the mockups are confirmed.**
 
 ---
 
-## 8. 需要 Juanxi 再确认的小问题
+## 8. Small questions for Juanxi to confirm
 
-1. 3 天内要求的任务数：建议 **2–3 项**（其余可"进行中＋卡在哪"），还是坚持 3–5 项？
-2. 游戏故事用 **Speaker Night**（覆盖讲者合同、食物、资金、宣传，最全面），可以吗？以后再加"tabling""校外活动""出行"等 quest。
-3. 社长汇总**默认打开还是关闭**？
-4. 游戏放在哪：新成员第一次登录时的 onboarding 里，还是 Handoff 页里，还是两处都有入口？
+1. Number of tasks required within 3 days: the suggestion is **2–3** (the rest may be "in progress + where it is stuck"), or keep 3–5?
+2. Is it OK for the game story to use **Speaker Night** (covers speaker contracts, food, funding, and promotion; the most comprehensive)? Quests such as "tabling," "off-campus events," and "travel" can be added later.
+3. Should the president summary be **on or off by default**?
+4. Where does the game go: in the onboarding at a new member's first login, on the Handoff page, or with entry points in both?
 
-## 参考资料
+## References
 
-- Google Research，AI Quests 教师资源：https://research.google/ai-quests/intl/en_us/teacher-resources
-- Stanford Accelerator for Learning，2025-09-09：https://acceleratelearning.stanford.edu/story/stanford-and-google-develop-ai-educational-game-for-teens
-- Google for Education，Market Marshes 课程：https://edu.exceedlms.com/student/path/1978138-ai-quests-market-marshes
+- Google Research, AI Quests teacher resources: https://research.google/ai-quests/intl/en_us/teacher-resources
+- Stanford Accelerator for Learning, 2025-09-09: https://acceleratelearning.stanford.edu/story/stanford-and-google-develop-ai-educational-game-for-teens
+- Google for Education, Market Marshes course: https://edu.exceedlms.com/student/path/1978138-ai-quests-market-marshes
 - Wouters, van Nimwegen, van Oostendorp & van der Spek (2013). A meta-analysis of the cognitive and motivational effects of serious games. *Journal of Educational Psychology*, 105(2), 249–265. https://research-portal.uu.nl/en/publications/a-meta-analysis-of-the-cognitive-and-motivational-effects-of-seri/
 - Sitzmann (2011). A meta-analytic examination of the instructional effectiveness of computer-based simulation games. *Personnel Psychology*, 64(2), 489–528.
 - Clark, Tanner-Smith & Killingsworth (2016). Digital games, design, and learning. *Review of Educational Research*, 86(1), 79–122. https://doi.org/10.3102/0034654315582065
-- 其余（测验效应、先猜后看、AI 伤害学习、奖励与动机、社长汇总）见 `handoff-ramp-research/R1`–`R3`。
+- Others (testing effect, guess-then-look, AI harming learning, rewards and motivation, president summary): see `handoff-ramp-research/R1`–`R3`.
