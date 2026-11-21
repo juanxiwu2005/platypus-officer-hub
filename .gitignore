@@ -1,7 +1,10 @@
+# Local operating-system files.
 .DS_Store
+# Keep credentials local; only the example template is tracked.
 .env
 .env.*
 !.env.example
+# Generated dependencies, builds, tests, and local automation output.
 .netlify/
 node_modules/
 dist/

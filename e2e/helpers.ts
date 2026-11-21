@@ -1,3 +1,4 @@
+// Shared browser-test helpers: write scenario descriptions and assertion messages in English.
 import { expect, type Page } from "@playwright/test"
 
 /** v1.1 helpers: the demo controls live behind the Demo pill, and AI lives in the right rail. */

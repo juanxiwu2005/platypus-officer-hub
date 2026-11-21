@@ -1,3 +1,4 @@
+// Keep build configuration notes in English; provider settings are documented in docs/AI_SETUP.md.
 import { defineConfig } from "vitest/config"
 import react from "@vitejs/plugin-react"
 import { readFileSync } from "node:fs"
@@ -40,6 +41,8 @@ export default defineConfig({
     },
   },
   test: {
+    // Limit CPU contention on shared CI runners without changing test coverage or timeouts.
+    maxWorkers: process.env.CI ? 2 : undefined,
     environment: "jsdom",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },

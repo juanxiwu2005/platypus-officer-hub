@@ -1,3 +1,4 @@
+// Keep lint-policy explanations in English for all contributors.
 // Guardrail: no inline style={{...}} except CSS-variable injection and data-driven position or size.
 // Everything else belongs in src/styles.css as a class that uses design tokens (docs/DESIGN_TOKENS.md).
 // src/organization, src/phase1 and src/workspace are a separate older code base with their own CSS

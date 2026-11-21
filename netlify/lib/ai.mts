@@ -1,6 +1,7 @@
 import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/modelPolicy.ts";
 /**
  * Provider-neutral AI adapter for Platypus.
+ * Keep server configuration notes in English; never record credentials in repository documentation.
  *
  * Every AI call in the app goes through chatJSON(). Which company answers is decided
  * only by environment variables set in Netlify (Project configuration → Environment variables):
