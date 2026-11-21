@@ -191,7 +191,7 @@ export function eventFields(s: string): Omit<Extract<CommandOp, { op: "create_ev
 }
 
 /**
- * "Add an executable task: order name tags for Maya", "Set up a task to book the room", "帮我加个任务：订名牌，给 Jordan".
+ * "Add an executable task: order name tags for Maya", "Set up a task to book the room", and equivalent Chinese-language task requests.
  * Recognized only when the sentence says task/to-do/step (strategy §6). Returns null otherwise; title may be "".
  * Owners come from the words after the title, so "Ask Maya for receipts" keeps Maya in the title.
  */
@@ -208,7 +208,7 @@ export function parseTaskIntent(sentence: string, ctx: CommandContext): { title:
   const lowerBody = body.toLowerCase()
   const startsWithName = (rest: string) => ctx.people.some(p => rest.startsWith(p.name.toLowerCase()) || new RegExp(`^${p.name.split(" ")[0].toLowerCase()}\\b`).test(rest))
     || (ctx.roles ?? []).some(r => rest.startsWith(r.displayName.toLowerCase())) || ctx.events.some(e => rest.startsWith(e.name.toLowerCase()))
-  // Cut the title where "for/to/assigned to/给" introduces a person, a role or an event.
+  // Cut the title where an English or Chinese assignment phrase introduces a person, role or event.
   let cut = body.length
   for (const m of lowerBody.matchAll(/\s+(?:for|to|assigned to)\s+(?:the\s+)?|[,，、]?\s*(?:give it to|assign(?:ed)? to|给|交给)\s*/g)) {
     const rest = lowerBody.slice(m.index! + m[0].length)

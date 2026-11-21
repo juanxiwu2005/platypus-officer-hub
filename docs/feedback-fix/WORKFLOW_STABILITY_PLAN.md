@@ -1,84 +1,84 @@
-# 工作流模板分阶段修复方案
+# Staged workflow-template repair plan
 
-2026-11-17（America/Phoenix）。基点 `b18ee3c`，准备提交 `e87b19c`。用户已明确选择：工作天数和排程日期两者都检查，方案完成后连续实施所有阶段。范围内的阶段不再重复请求确认；不合并 main，不创建新 PR。
+2026-11-17 (America/Phoenix). Base `b18ee3c`, preparation `e87b19c`. User explicitly selected checking both work durations/scheduled dates and continuous implementation of all stages after planning. Do not request repeated confirmation within scope; no main merge/new PR.
 
-## 目标与范围
+## Goals and scope
 
-修复节点移动不更新、原分支新增变成新分支、工作量数据异常、Full Check 删除导致流程消失、条件分支新增任务泄漏，并提供明确的同分支 before/after 与新增分支操作。对应审计 WF-04/05/06/08/09/10，工作量同时处理数值输入与开始提醒；WF-09 只处理统一必保留规则，避免编辑器与生成器矛盾。
+Fix moves not updating, additions to existing branches creating new ones, incorrect effort data, Full Check deletion hiding workflows, conditional-task leakage; provide explicit same-branch before/after and Add branch. Covers WF-04/05/06/08/09/10; effort covers numeric input/start reminders; WF-09 only unifies mandatory-preservation rules against editor/generator disagreement.
 
-办理链接及 Details 易用性改版暂缓，WF-01/02/03/11/12/13 不顺带实施。现有面板仅接入必要数值校验、删除保护及新增操作。实际任务 Details/Edit 的并行改动必须保留。日期仅由规则引擎计算，不调用真实 AI 或真实邮件服务。
+Defer processing links/Details usability; do not additionally implement WF-01/02/03/11/12/13. Existing panels receive only needed numeric validation, deletion protection, new operations. Preserve parallel actual-task Details/Edit changes. Dates from deterministic engine only; no live AI/email services.
 
-## 操作规则
+## Operation rules
 
-| 用户动作 | 修复后的行为 |
+| User action | Fixed behavior |
 | --- | --- |
-| 移动同分支节点 | 同时改变局部顺序和相关依赖，图立即更新；保存、刷新、新活动结果一致 |
-| 在某节点前或后新增 | 明确使用被点击节点的分支，默认继承该节点的适用条件；分支首尾同样适用 |
-| 在线段新增 | 使用该线段的分支；两端条件不一致时先明确范围，不偷取左侧节点条件 |
-| 在 Full Check 等共享汇合点前新增 | 明确选择进入它的分支，或使用该分支的连线；不能取第一条入线作为默认 |
-| 跨分支移动 | 保留负责人和工作量；明确展示适用范围变化，不能静默改变。活动前与收尾之间的跨段拖动本轮拒绝并解释 |
-| 新增分支 | 图上独立 Add branch，选择名称、活动前/后、适用范围、默认岗位和首个任务；一次创建完整分支 |
-| 修改工作天数 | 合法整数才保存，空值不变成0；明确输入0仍有效；人工修改后按工作量计算开始提醒 |
-| 删除 Full Check | 所有入口统一拒绝并解释结构要求；旧数据已缺失时仍显示其余全部任务 |
+| Move within branch | Update local order/related dependencies immediately; save/refresh/new-event results agree |
+| Add before/after node | Explicitly use clicked node's branch, inherit applicability by default, including ends |
+| Add on edge | Use edge's branch; if endpoint conditions differ, explicitly select scope, never steal left-node condition |
+| Add before shared join such as Full Check | Explicit incoming-branch selection or its edge; no default first incoming edge |
+| Move across branches | Preserve owner/effort; visibly show applicability changes; reject/explain pre-event↔wrap-up cross-segment dragging this round |
+| Add branch | Independent Add branch: name, pre/post-event, scope, default role, first task; create complete branch once |
+| Edit business days | Save valid integers only; blank is not 0; explicit 0 valid; manual effort determines start reminders |
+| Delete Full Check | All entries reject/explain structural requirement; old missing data still displays every remaining task |
 
-前插的关键是命令带明确的 `branchId` 和 `referenceId`。即使左边是 Start 或右边是 Full Check，也以被点击的分支节点为准；分支、岗位、阶段、依赖分别表达。
+Before-insertion commands require explicit `branchId`,`referenceId`. Even beside Start/Full Check, use clicked branch node; branch, role, phase, dependencies are independent.
 
-新增分支本轮支持与现有图一致的安全结构：活动前 Start → 新分支 → Full Check；活动后 Headcount → 新分支 → Done。不做任意嵌套分支或任意汇合点编辑。Start/Done 是虚拟站点，不伪造任务依赖；活动前新分支末步接入真实 Full Check 依赖，收尾首步依赖真实 Headcount，Done 从实际完成状态派生。
+Supported safe structure matches existing chart: pre-event Start → new branch → Full Check; post-event Headcount → new branch → Done. No arbitrary nesting/join editing. Start/Done are virtual stations, not fake task dependencies. Pre-event last step joins real Full Check dependencies; wrap-up first step depends on real Headcount; Done derives from actual completion.
 
-## 共用数据与执行规则
+## Shared data/execution rules
 
-1. **保存分支与位置。** 模板和任务新增可选 `placement: { branchId, order }`；模板保存分支定义，新活动保存自己的分支快照，后续模板修改不改变既有活动。
-2. **位置不等于依赖。** 按分支分组，依赖拓扑决定先后，保存的 order 作为并行节点的稳定次序；不把所有相邻步骤强制串行，也不靠日期决定图位置。移动只重接相关的分支顺序边，保留跨分支人工依赖，发生环时整次拒绝。
-3. **条件分层。** 实际适用 = 分支条件 AND 节点条件。复用现有白名单条件；Speaker、餐饮、RSVP、安全等分别验证。Finance/Marketing/Special 内部混合条件，不盲目给整条分支复制邻居的条件。
-4. **保护规则统一。** ASU 要求、既有 CORE 集合、结构锚点、实际活动已完成节点统一校验；组织标准不伪称学校规则。不能借条件分支隐藏必保留节点。
-5. **一次操作一次保存。** 分支定义、步骤、依赖、位置及条件一起验证、持久化和撤销。失效引用、跨活动ID、未知分支、循环和保存失败不留下半完成结果，也不显示成功。
-6. **旧数据保留。** Schema 23 不重置。标准 key 仅作缺字段时的兼容映射；旧自定义节点不凭邻居猜适用范围，歧义时保留可见的兼容分支。读取不重新生成历史任务，保留负责人、状态、内容、附件和提醒历史。旧 Full Check/Headcount 缺失时用图形后备锚点，不自动创建历史任务。
+1. **Persist branch/position.** Optional `placement: { branchId, order }` on templates/tasks; template branch definitions, event-specific snapshots, future template changes do not alter existing events.
+2. **Position is not dependency.** Group by branch, use dependency topology for sequence, stored order as stable parallel ordering. Never force adjacent tasks serial or position by dates. Moves reconnect only relevant branch-order edges, preserving cross-branch manual dependencies; reject whole operation on cycles.
+3. **Layer conditions.** Applicability=branch condition AND node condition. Existing allowlist; validate Speaker, food, RSVP, security separately. Finance/Marketing/Special contain mixed conditions; never copy a neighbor's condition over the whole branch blindly.
+4. **Unified protection.** Validate ASU requirements, existing CORE, structural anchors, completed actual tasks together; organization standards are not school rules. Conditional branches cannot hide mandatory nodes.
+5. **One operation, one save.** Validate, persist, undo branch definitions, steps, dependencies, positions, conditions together. Invalid references, cross-event IDs, unknown branches, cycles, save failures leave no partial result/success claim.
+6. **Preserve old data.** No Schema 23 reset. Standard keys only provide missing-field compatibility; never guess custom applicability from neighbors, retain visible compatibility branches on ambiguity. Reads do not regenerate historical tasks; preserve owners, status, content, attachments, reminder history. Missing Full Check/Headcount uses graphical fallback anchors, not fabricated historical tasks.
 
-## 工作量与排程规则
+## Effort and scheduling
 
-现有 `CALIBRATION_REPORT.md` 第6节将“修改工作量不改变校准日期”列为待确认的已知差异；这不是已解决的缺陷，也不是必须沿用的批准条件。本轮选择兼容默认表，同时让今后明确的人工作量编辑产生可解释的排程效果。
+`CALIBRATION_REPORT.md` Section 6 lists “effort edits do not alter calibrated dates” as an unresolved difference, not a fixed defect or required approved constraint. Preserve default-table compatibility while making future explicit effort edits affect schedules explainably.
 
-- 数字框保留局部字符串草稿；只有0–30的合法整数写回，空值、负数、小数、超限值不静默改成另一个数字。
-- 新增可选 `startPolicy: window | effort`。无字段时沿用现有兼容行为；明确修改工作量时设置 effort；Undo/恢复标准同时恢复策略。
-- effort 使用最终截止日、工作日用时和完整个人缓冲倒推开始日，并考虑周末、假日和忙碌周。保留 timing 的截止目标与依赖语义，不能简单删 timing。
-- 未编辑标准步骤和历史活动沿用原时窗；不拿自然日跨度回填工作量，不自动改难度、贡献公式或预测模型。
-- 官方硬截止不随拖动或工作量放宽；收尾不能倒推到活动前，时段不足时报告真实冲突。
-- 人工确认的工作量带明确策略，避免旧 PRE_FB6 数值猜测把它改回旧默认。
+- Numeric inputs keep local string drafts; only integers 0–30 write back. Blanks, negative, fractional, over-limit values never silently become another number.
+- Optional `startPolicy: window | effort`; absent retains compatibility. Explicit effort edit sets effort; Undo/restore-standard restores policy too.
+- effort calculates backward from final deadline, business-day duration, full personal buffer, including weekends, holidays, busy weeks. Preserve timing targets/dependency semantics, not simply delete timing.
+- Unedited standard steps/historical events keep windows; never infer effort from calendar span or change difficulty, contribution formula, forecast model automatically.
+- Drag/effort never relax official hard deadlines; wrap-up cannot start before event; insufficient windows report real conflicts.
+- Explicit policy protects confirmed effort from old PRE_FB6 guessing reverting defaults.
 
-## 阶段与 worktree 分工
+## Stages and worktrees
 
-阶段0已完成三位Agent的独立分析；以下按依赖实施，同阶段互不改对方文件。每阶段先冻结接口，再开始依赖它的包。
+Stage 0's three independent analyses are complete. Implement by dependency; same-stage agents never edit each other's files. Freeze interfaces before dependent packages.
 
-| 阶段 | 工作包与唯一文件责任 | 交付与门槛 |
+| Stage | Packages/exclusive ownership | Delivery/gate |
 | --- | --- | --- |
-| 1 底层契约与兼容 | 主Agent维护 types/store/settings/读写契约；Data Agent维护分支定义、适用条件、生成、保护及旧数据兼容。Graph Agent在此阶段先实现可复用图操作纯函数，不接不完整UI | 可保存的分支、条件、位置与撤销契约；统一Full Check/CORE保护；旧存档反例通过，已有任务不重建 |
-| 2 图形操作与工作量 | Graph Agent维护 metro、MetroChart、flowEdit、stepOrder；UI Agent维护 WorkflowPanel、Settings、新增分支小弹窗及数值草稿；Timing Agent维护 schedule及独立工作量辅助函数。playbooks只由Data Agent写，Timing需要的生成改动由Data整合 | 移动、before/after、连线新增、新增分支、条件隔离、工时编辑/日期全部接通；单元及组件反例通过 |
-| 3 整合与独立复核 | 主Agent整合；独立Review Agent复验不变量、兼容和未授权范围；浏览器双端验证并检查构建、类型、lint和相关回归 | 相关用例通过；源码检查确认未改链接及Details布局；保留现有PR14与功能分支，核对远端新提交后推送 |
+|1 Contracts/compatibility | Lead: types/store/settings/read-write contracts; Data: branches, conditions, generation, protection, compatibility; Graph: reusable pure operations first, no incomplete UI | Persistable branch/condition/position/undo contracts; unified Full Check/CORE; old-archive counterexamples, no task regeneration |
+|2 Graph/effort | Graph: metro, MetroChart, flowEdit, stepOrder; UI: WorkflowPanel, Settings, Add branch dialog, numeric drafts; Timing: schedule, separate effort helpers. Only Data writes playbooks, integrating Timing generation needs | Moves, before/after, edge addition, branches, condition isolation, effort/dates connected; unit/component counterexamples pass |
+|3 Integration/independent review | Lead integrates; Review rechecks invariants, compatibility, scope; desktop/mobile browser/build/types/lint/regressions | Related cases pass; source confirms links/Details unchanged; retain PR 14/branch, check new remote commits before push |
 
-实施worktree命名：`workflow-integration`、`workflow-data`、`workflow-graph`、`workflow-timing`、`workflow-ui`、`workflow-review`。规划分析已用 `workflow-graph-plan`、`workflow-timing-plan`、`workflow-scope-plan`，这三个目录没有产品改动。Agent只提交自己负责的包，不各自推送共享预览分支，由主Agent顺序整合。
+Implementation worktrees:`workflow-integration`,`workflow-data`,`workflow-graph`,`workflow-timing`,`workflow-ui`,`workflow-review`. Planning used `workflow-graph-plan`,`workflow-timing-plan`,`workflow-scope-plan`, without product changes. Agents commit their packages only; lead integrates sequentially, instead of each pushing shared preview.
 
-共享文件的唯一写入者尤其重要：`types.ts/store.tsx/settings.ts` 主Agent；`playbooks.ts/workflow.ts` Data；`stepOrder.ts/flowEdit.ts` Graph；`WorkflowPanel.tsx/Settings.tsx` UI。跨包需求通过冻结接口或补丁交给负责人，不互相覆盖。实际任务Details/Edit另有进行中的工作，合并前复核并保留其增量。
+Single writers are essential:`types.ts/store.tsx/settings.ts` lead;`playbooks.ts/workflow.ts` Data;`stepOrder.ts/flowEdit.ts` Graph;`WorkflowPanel.tsx/Settings.tsx` UI. Cross-package needs go through frozen interfaces/owner patches, not overwrites. Actual-task Details/Edit is concurrently active; review/preserve increments before merging.
 
-## 必须通过的反例与用户验收
+## Required counterexamples and user acceptance
 
-| 类别 | 反例 |
+| Category | Counterexamples |
 | --- | --- |
-| 移动 | 鼠标与键盘移动Promotion Items；断言真实显示顺序、依赖、保存、刷新。跨分支上游/下游不丢失；无依赖的相邻任务不被串行化 |
-| 原分支新增 | 首节点before、中间before/after、末节点after、连线插入；同岗位负责两个分支时仍正确。共享Full Check不猜入线 |
-| 条件 | speaker/partner开关、餐饮开关、RSVP开关、安全条件各自开关；关闭后新增任务正确跳过且依赖无ghost ID |
-| 新分支 | 前/后分支、始终/条件范围、连续追加、生成新活动、刷新、Undo及取消；手机新分支不重叠 |
-| 删除 | Full Check各入口拒绝；可保存模板与生成器的必保留集合一致；旧缺Full Check或Headcount仍显示全部原任务 |
-| 工作量 | 清空、0、10、负数、小数、超限、切换节点、撤销、刷新；2→10正确影响人工策略开始日；官方日期不变 |
-| 日历 | 周末、假日、忙碌周、缓冲0/1/3；收尾时段不足给冲突；未编辑标准日期样例不漂移 |
-| 保存恢复 | 未知ID、过期gap、循环、写入失败原子拒绝；模板快照与活动快照完整撤销；历史内容/状态/负责人/提醒不重建 |
-| 排除范围 | 办理链接、Details布局、实际任务提交/Edit、难度/贡献和真实投递不被顺带重做 |
+| Move | Mouse/keyboard Promotion Items; assert real display order, dependencies, save, refresh. Preserve cross-branch upstream/downstream; unrelated neighbors never forced serial |
+| Existing-branch additions | Before first, before/after middle, after last, edge insert; correct with same role on two branches; shared Full Check never guesses incoming edge |
+| Conditions | Independently toggle speaker/partner, food, RSVP, security; disabled additions skipped correctly, no ghost dependency IDs |
+| New branch | Pre/post, always/conditional, repeated addition, new events, refresh, Undo, cancel; no mobile overlap |
+| Delete | Full Check rejected everywhere; editor/generator mandatory sets agree; old missing Full Check/Headcount still shows all tasks |
+| Effort | Blank, 0,10, negative, fraction, over-limit, switch, undo, refresh; 2→10 changes manual-policy start, official date unchanged |
+| Calendar | Weekends, holidays, busy weeks, buffers 0/1/3; insufficient wrap-up conflict; unedited standard dates stable |
+| Save/restore | Unknown IDs, stale gaps, cycles, write failures atomically rejected; complete template/event snapshot Undo; no rebuilding historical content/status/owners/reminders |
+| Exclusions | No incidental processing-link, Details, actual submission/Edit, difficulty/contribution, real-delivery rewrite |
 
-最终从Settings编辑一条speaker流程：移动 → 前插 → 新建条件分支 → 改工作天数 → 刷新 → 新建speaker活动 → 对照普通活动 → 核对日期和提醒事实。每个结论需与该分支实际代码和测试对应，不能以‘所有旧测试通过’替代上述反例。
+Final walkthrough from Settings: speaker workflow move → insert before → add conditional branch → edit workdays → refresh → create speaker event → compare ordinary event → verify dates/reminder facts. Tie conclusions to actual branch code/tests; “all old tests pass” cannot replace these counterexamples.
 
-## 回滚与风险
+## Rollback and risks
 
-每包独立提交，整合保留包边界。涉及新元数据的包不能只撤UI而丢弃已存字段；回滚先关闭新增操作，保留解析和导出。任意阶段不清空浏览器存档、不修改main、不调用收费AI。
+Separate commits retain package boundaries. Metadata packages cannot roll back UI while discarding saved fields; disable new operations first, retain parsing/export. No browser-archive clearing, main edits, paid AI at any stage.
 
-主要风险是旧自定义步骤范围无法还原、跨分支依赖被移动操作误删、默认日期被一刀切重算、Undo只恢复节点却漏分支、共同修改共享文件，以及已有视觉汇合不等于实际等待。方案通过显式归属、分层条件、局部依赖操作、兼容策略、完整快照和唯一文件负责人处理；不会在本轮悄悄把所有既有视觉汇合改成新的强制依赖。
+Risks: unrecoverable custom applicability, moves deleting cross-branch dependencies, blanket default-date recomputation, Undo restoring nodes without branches, shared-file collisions, visual joins not equal actual waits. Address through explicit ownership, layered conditions, local dependency edits, compatibility, complete snapshots, single owners; do not silently turn all existing visual joins into mandatory dependencies.
 
-阶段1、2、3均已完成，运行时代码18d7316；结果、兼容边界和验收见[修复交付](WORKFLOW_STABILITY_HANDOFF.md)。需要同步本地备份。
+Stages 1/2/3 complete, runtime 18d7316; results, compatibility, acceptance:[repair handoff](WORKFLOW_STABILITY_HANDOFF.md). Local backup synchronization is needed.

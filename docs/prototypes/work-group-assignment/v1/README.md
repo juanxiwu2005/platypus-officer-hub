@@ -1,7 +1,7 @@
-# 五屏交互稿 v1：保留版本
+# Five-Screen Interaction Prototype v1: Preserved Version
 
-用户明确要求先保存这一版，逐步审阅。`five-screens.html` 为完整原件，源文件SHA-256见manifest.json；包含样式、虚构数据、五个视图和本地交互。
+User explicitly requested saving this version first for gradual review. five-screens.html is the complete original; SHA-256 in manifest.json. Includes styles, fictional data, five views, local interactions.
 
-当前只讨论onboarding：岗位层级、职位/姓名/email以及完整工作流的任务分组。新建活动、Finance批量分派、Marketing直接换人、活动统筹详情改派四屏原样保留。只有用户说“可以了，进行下一步”才推进新建活动的下一轮设计；本文件不被onboarding新稿覆盖。
+Current discussion covers onboarding only: role hierarchy, position/name/email, task grouping for the complete workflow. Four screens—new event, Finance bulk assignment, Marketing direct reassignment, event-coordinator Details reassignment—remain unchanged. Advance the next new-event design only after user says "approved, proceed to the next step"; later onboarding drafts must not overwrite this file.
 
-这是对话内可视化的HTML片段，可通过原visualize宿主恢复，不是直接部署到网站的业务代码。未接真实账号、AI调用、邮件发送或存档写入。需要同步本地备份。
+This is an in-chat visualization HTML fragment recoverable through its original visualize host, not deployable business code. No real accounts/AI/email/archive writes connected. Local backup sync required.

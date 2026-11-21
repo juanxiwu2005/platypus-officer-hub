@@ -1,57 +1,57 @@
-# 提醒计划准备与阶段一交付
+# Reminder-plan preparation and Stage 1 handoff
 
-2026-11-16（America/Phoenix）。分支 `feat/reminder-plan-v2`，从职责匹配阶段二已交付的 `dbfc47d` 开始，期间合入源分支 `e370361` 的 v23 兼容读取基点；本任务没有更新职责匹配源分支。
+2026-11-16 (America/Phoenix). Branch `feat/reminder-plan-v2`, starting from responsibility-matching Stage 2 delivery `dbfc47d`; integrated source branch `e370361`'s v23 compatible-read baseline. This task did not update the matching source branch.
 
-## 已完成什么
+## Completed
 
-准备阶段明确了 [完整实施方案](REMINDER_IMPLEMENTATION_PLAN.md) 和 [冻结契约](REMINDER_STAGE1_CONTRACT.md)。两个开发包在独立 worktree 完成，主 Agent 接入真实 reducer，独立 Review 复核。阶段二、三仍待批准。
+Preparation defined the [full implementation plan](REMINDER_IMPLEMENTATION_PLAN.md) and [frozen contract](REMINDER_STAGE1_CONTRACT.md). Two packages completed in separate worktrees, lead integrated real reducer, independent Review checked. Stages 2/3 still await approval.
 
-| 范围 | 阶段一实际交付 |
+| Scope | Actual Stage 1 delivery |
 | --- | --- |
-| 规则与 AI | 新底层事实、日期、收件人、触发说明均为规则，0 次真实 AI 调用；问候/感谢的邮件排版在阶段二接入 |
-| 日期 | 突出一个任务截止日的数据；最晚开始日只用于触发；逾期天数由现有日期确定，不让模型算日期 |
-| 具体要求 | 读取实际活动/人数/步骤/人工 why 和依赖，生成明确要求；不把未知人数补成 40 |
-| 办理入口 | 每项最多一个已知适用入口；信息页和路由页明确说明，不冒充最终申请表 |
-| Waiting on | 自动创建针对明确现任成员的独立跟进候选；自动邮件方式持久记录模拟发送，审核方式进入待审 |
-| 身份与职责 | 原任务负责人不变，等待对象不获得完成原任务的权限；前任、自指、没有明确对象或没有有效邮箱时不假装送达 |
-| 历史 | 持久保留收件人、原负责人及分配版本、计划日期、实际记录日期、任务与活动快照；完成或切模式不删除历史 |
-| 兼容 | 可选版本化 runtime 显式启用；旧 v22 不自动改写；旧发送不猜收件人；损坏记录保留但不执行 |
+| Rules/AI | New facts, dates, recipients, triggers all rules; 0 live AI calls; greeting/thanks email formatting in Stage 2 |
+| Dates | Data highlights one task due date; latest start triggers only; existing dates determine overdue days, never model computation |
+| Requirements | Actual event/headcount/steps/human why/dependencies produce clear requirements; unknown count never becomes 40 |
+| Processing entry | At most one known applicable link per item; information/routing pages labeled, never represented as final forms |
+| Waiting on | Independent candidates for explicit current members; automatic mode persists simulated sends, review modes await review |
+| Identity/responsibility | Original owner unchanged, helper cannot complete original task; no pretend delivery for former/self/unclear recipients or invalid email |
+| History | Persist recipient, original owner/assignment version, planned date, actual record date, task/event snapshots; completion/mode changes do not delete |
+| Compatibility | Optional versioned runtime explicitly enabled; old v22 not rewritten automatically; historical recipients not guessed; damaged records retained without execution |
 
-## 可以核对的实际演练
+## Actual scenarios to inspect
 
-[离线演练输出](REMINDER_STAGE1_SCENARIOS.json) 使用真实 `reducer` 和规则引擎、虚构 Speaker Night（40 人），包含真实计算结果，不是手写结果表。
+[Offline scenario output](REMINDER_STAGE1_SCENARIOS.json) uses the real `reducer`/rule engine with fictional Speaker Night (40 people), containing computed results rather than a handwritten result table.
 
-| 场景 | 实际结果 |
+| Scenario | Actual result |
 | --- | --- |
-| 开始日首次提醒 | 规则返回 start 候选和一句解释，审核方式没有发送记录 |
-| Jordan 选择 Waiting on Sam | Sam 成为独立跟进的收件人，Jordan 仍是任务负责人 |
-| 自动方式重复提交相同等待 | 只保留一个等待请求和一次对应模拟发送 |
-| 改为等待 Maya | 原 Sam 请求关闭，待发候选变为 Maya |
-| 只有等待文字、没有明确对象 | `unresolved_waiting`，不会猜邮箱或记录发送 |
-| 任务完成 | 候选清空，已发生发送历史原样保留 |
+| First start-date reminder | Rules return start candidate/explanation; review mode has no send record |
+| Jordan selects Waiting on Sam | Sam receives independent follow-up; Jordan remains owner |
+| Automatic mode repeats identical wait | One request and one corresponding simulated send |
+| Change wait to Maya | Sam request closes; pending candidate targets Maya |
+| Wait text without explicit recipient | `unresolved_waiting`; no guessed email/send record |
+| Complete task | Candidates clear; historical sends preserved |
 
-另有真实 reducer 回归覆盖：同日 Working 更新、社长改标题、改期关闭旧计时、换人及返回原负责人、旧发送不误算、token 实际操作人、重开任务、新社团不继承原社团提醒、未知/损坏 runtime 停用。
+Real reducer regressions also cover same-day Working updates, presidential title edits, rescheduling closes old timers, reassignment/return to original owner, correct legacy-send accounting, actual token actor, reopening, new organizations not inheriting reminders, unknown/damaged runtime disabled.
 
-## 独立复核发现并修正的边界
+## Independent-review findings fixed
 
-1. 启用新方案会沿用旧 open silenceCase，可能在新开始日前生成旧升级动作。现在显式启用时关闭旧 case，保留历史，按当前日期建立后续计时。
-2. 自动邮件在个人首选 WhatsApp 时可能漏查邮箱。现在 auto_email 无论偏好渠道都要求有效邮箱。
-3. v1 runtime 中损坏的数组元素可能导致读取崩溃。现在逐记录校验，保留原值并停用，不用重置掩盖错误。
+1. Activation inherited old open silenceCase records, potentially producing legacy escalation before the new start date. Explicit activation now closes old cases, preserves history, and starts subsequent timing from current date.
+2. Automatic email might miss email validation when WhatsApp is preferred. auto_email now always requires valid email regardless of channel preference.
+3. Damaged array entries in v1 runtime could crash reads. Validate each record, preserve values and disable, without masking errors through reset.
 
-等待对象的独立跟进按实际收件人单独计算三封额度，不消耗原负责人的普通催办额度；每人七天六封和同日同任务去重仍统一执行。
+Independent helper follow-up has its own actual-recipient three-message allowance, without consuming the owner's ordinary allowance; six per seven days and same-task/day deduplication remain universal.
 
-## 验证和验收边界
+## Verification and acceptance limits
 
-最终相关检查：`npm test -- src/reminders src/test/workflow.test.ts src/test/nudges.test.ts src/test/reminderQueue.test.ts src/test/store.test.tsx src/test/officerLinks.test.ts src/test/handoffReview.test.ts src/test/fb-04-taskDue.test.ts src/matching/compatibilityReader.test.ts --maxWorkers=2`，13 文件、202 项通过；包含新模块 102 项、原链路 99 项、源分支 v23 兼容读取 1 项。lint、前后端类型检查和生产构建通过。
+Final related checks: `npm test -- src/reminders src/test/workflow.test.ts src/test/nudges.test.ts src/test/reminderQueue.test.ts src/test/store.test.tsx src/test/officerLinks.test.ts src/test/handoffReview.test.ts src/test/fb-04-taskDue.test.ts src/matching/compatibilityReader.test.ts --maxWorkers=2`:13 files, 202 passed; 102 new-module, 99 original-path, 1 source-branch v23 compatibility case. Lint, frontend/backend types, production build passed.
 
-第一次把构建与多 worker 测试同时运行时，旧 `reminderQueue` 的一个 5 秒预测测试超时；最终限制测试 worker 为 2 后全部通过，未修改原断言或超时。新增“新社团”测试的夹具邀请码曾不符合原校验，已改为合法 UUID，保留了原校验。
+Initially running build alongside multi-worker tests timed out one old 5-second `reminderQueue` forecast test; limiting workers to 2 made all pass, without assertion/timeout changes. New-organization fixture invite code initially failed existing validation; corrected to valid UUID, preserving validation.
 
-本阶段未改网页，未跑全站 Playwright、真实 AIR、外部邮件投递或真机测试。入口曾超限 493 字节，已合并重复模板和精简说明，未放宽门槛。最终以 40 字符 `COMMIT_REF=bbce88b039e208bccac36aef52036ae01ebd676f`、`BRANCH=feat/reminder-plan-v2`、`CONTEXT=deploy-preview` 构建，入口 `/assets/index-Db_Ate9l.js` 为 **549,819 / 550,000 字节**；后续 UI 阶段仍需留意入口余量，优先按需加载。
+No page changes, full-site Playwright, live AIR, external email, or physical-device testing in this stage. Entry exceeded budget by 493 bytes; deduplicated templates/shortened explanations without relaxing limits. Final build with 40-character `COMMIT_REF=bbce88b039e208bccac36aef52036ae01ebd676f`, `BRANCH=feat/reminder-plan-v2`, `CONTEXT=deploy-preview`: `/assets/index-Db_Ate9l.js` **549,819/550,000 bytes**. Later UI work must watch entry headroom and prioritize lazy loading.
 
-独立 Review 最终审查代码 `bbce88b`，无开放阻塞问题；原三项反例原样复验转绿。独立完整新模块检查为 102 项产品测试加 3 项临时反例（105 项）；最后仅对文案精简与兼容读取增量再核对并运行 58 项，全部通过。临时测试和依赖链接已清理。其后仅交付文档变更，未修改运行时代码。
+Independent Review's final code `bbce88b` has no open blockers; all three original counterexamples passed unchanged. Full independent new-module checks:102 product tests +3 temporary counterexamples (105); final copy/compatibility increment rechecked with 58 passing tests. Temporary tests/dependency links removed. Only delivery docs changed afterward, no runtime code.
 
-默认旧网页仍没有启用新运行时。旧 NudgeComposer 仍可能调用原有 AI；不能声称整个产品已停止 AI。新邮件版式、可重复任务链接、四个状态按钮和 Details 在后续阶段实施；真实后台及跨设备接通属于第六项。现阶段等待对象仅支持明确的现任 Person，外部审批人/CRM 对象还没有显式收件人输入。
+Old pages still do not enable the runtime by default. Legacy NudgeComposer may still call AI; do not claim the entire product stopped using AI. New email, reusable links, four status buttons, Details come later; real backend/cross-device integration is item 6. Helpers currently require explicit current Person members; external approvers/CRM recipients have no explicit input yet.
 
-阶段二还需记录最终渲染邮件正文、实际目标地址/渠道和任务访问入口；本阶段的候选与 delivery 不是可真实投递的完整邮件。
+Stage 2 must additionally record final rendered email body, actual destination/channel, task access entry; current candidates/delivery records are not complete deliverable emails.
 
-未合并 main、未正式发布。需要同步本地备份（本次只更新仓库文档）。
+No main merge or production release. Local backup synchronization is needed (repository docs only this round).

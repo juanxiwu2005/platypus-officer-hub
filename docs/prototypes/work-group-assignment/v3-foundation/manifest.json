@@ -1,7 +1,7 @@
 {
   "version": "v3-foundation-review",
   "date": "2026-11-17 America/Phoenix",
-  "status": "原稿待审阅；未接实际网站",
+  "status": "Draft awaiting review; not connected to the live website",
   "runtimeChanges": false,
   "preserves": [
     "v1/five-screens.html",

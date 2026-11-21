@@ -1,65 +1,65 @@
-# 界面与动效升级计划（design-upgrade）
+# Interface and Motion Upgrade Plan (design-upgrade)
 
-> **状态：Juanxi 已于 2026-11-01 批准**（见 `docs/PROGRESS.md` 决定记录）。集成分支 `claude/determined-johnson-yrdxwf` 已建。批准范围不含：合并到 `main`、DX-20 的 20b、DX-27 的"合并小样式文件"。
-> 来源：2026-11-01 对 `main@c3c9394` 的审阅（用 Apple Design 两个 Skill：`dickwu/apple-design-skill` 和 `emilkowalski/skills` 里的 `apple-design`）。
-> 依据：真实截图（桌面 1440、手机 390、深色）、浏览器里量到的计算样式、对 `src/styles.css` 和相关组件的逐行阅读。
+> **Status: approved by Juanxi on 2026-11-01** (see `docs/PROGRESS.md` decision log). Integration branch `claude/determined-johnson-yrdxwf` created. Approval excludes merging `main`, DX-20 part 20b, and DX-27's stylesheet consolidation.
+> Source: 2026-11-01 review of `main@c3c9394`, using Apple Design Skills `dickwu/apple-design-skill` and `emilkowalski/skills`'s `apple-design`.
+> Evidence: actual screenshots (desktop 1440, phone 390, dark mode), browser-measured computed styles, line-by-line review of `src/styles.css` and related components.
 
-## 当前分支现状（2026-11-01，Juanxi 决定）
+## Current branch situation (2026-11-01, Juanxi's decision)
 
-- **集成分支 = `claude/determined-johnson-yrdxwf`**（不是 `integration/v1.6`）。原因：这个会话的 git 凭证只能推这个分支，推其他分支和所有标签都返回 403（见 `ROLLBACK_LOG.md` 的"为什么推不了"）。Juanxi 同意直接用它做 v1.6 预览。这违反 `AGENTS.md` 8.1 的"分支名不带 AI 名字"，已记入决定记录。
-- 预览是 **PR #10**（`claude/determined-johnson-yrdxwf` → `main`，Draft）。PR #9（`integration/v1.6`）已关闭，GitHub 不能删除 PR，也不能复用号码。
-- 因为只能推这一个分支，**工作包分支（`design/dx-NN-…`）只存在于做事的 worktree 里**。它们的提交通过 `--no-ff` 合并提交进入 `claude/determined-johnson-yrdxwf`，所以 GitHub 上有完整历史，随时可以 `git revert -m 1 <合并提交>`。想让 GitHub 上也出现这些分支名和 `dx/*` 标签，用有权限的账号执行 `ROLLBACK_LOG.md` 里的"补建命令"。
-- 下文凡是写"集成分支"，现在都指这个分支。
+- **Integration branch = `claude/determined-johnson-yrdxwf`**, not `integration/v1.6`: this session's credentials can push only this branch; other branches and all tags return 403 (see ROLLBACK_LOG.md's "Why pushes fail"). Juanxi approved using it directly for the v1.6 preview. The exception to AGENTS.md 8.1's no-AI-name branch rule is recorded.
+- Preview is **PR #10** (`claude/determined-johnson-yrdxwf` → `main`, Draft). PR #9 (`integration/v1.6`) is closed; GitHub cannot delete PRs or reuse numbers.
+- Because only this branch is pushable, **package branches (`design/dx-NN-…`) exist only in working worktrees**. Their commits enter the integration branch via `--no-ff` merges, preserving complete GitHub history and enabling `git revert -m 1 <merge-commit>`. To publish those branch names and `dx/*` tags, an authorized account can run ROLLBACK_LOG.md's restoration commands.
+- All references below to "integration branch" mean this branch.
 
-## 先看哪个文件
+## Reading map
 
-| 文件 | 内容 |
+| File | Contents |
 | --- | --- |
-| `DETAIL_LIST.md` | 全部细节清单（58 条，每条写明现状、证据、建议、归哪个工作包）|
-| `PHASES.md` | 7 个阶段、27 个工作包、依赖关系、文件归属表、每个阶段的"启动口令" |
-| `work-packages/DX-NN-*.md` | 每个工作包一份说明（agent 只读自己这一份 + 本文件）|
-| `ROLLBACK_LOG.md` | 回滚登记表：每合并一个工作包就登记一行 |
-| `reports/` | 每个工作包做完后由执行 agent 写一份短报告（做了什么、证据、已知问题）|
+| `DETAIL_LIST.md` | All 58 details, each with current state, evidence, recommendation, package |
+| `PHASES.md` | 7 stages, 27 packages, dependencies, file ownership, stage start prompts |
+| `work-packages/DX-NN-*.md` | One package description; agents read their own plus this file |
+| `ROLLBACK_LOG.md` | One register row per package merge |
+| `reports/` | Short report from each implementation agent: changes, evidence, known issues |
 
-## 一句话方案
+## Approach
 
-1. 先做**地基**（阶段 0）：把样式拆成"每个工作包一个小文件"，把 `Layout.tsx` 拆开，改好测试端口。做完以后，后面的工作包基本不会改同一个文件，多个 agent 可以在各自的 git worktree 里同时开工。
-2. 再按阶段推进：**手感 → 空间感 → 版面 → 手机外壳 → 材质与手势 → 收口**。每个阶段里的工作包彼此独立，可以一次发起。
-3. 每个工作包都能**单独回滚**，不影响其他工作包。
+1. Build the **foundation** first (stage 0): one small stylesheet per package, split `Layout.tsx`, configure test ports. Subsequent packages mostly avoid shared files and can run concurrently in separate worktrees.
+2. Progress through **interaction feel → spatial continuity → layout → mobile shell → materials and gestures → closeout**. Packages within each stage are independent and can start together.
+3. Every package supports **independent rollback** without affecting others.
 
-## 硬性规则（继承 `AGENTS.md`，在这里再强调一遍）
+## Hard rules (inherited from AGENTS.md and reiterated)
 
-1. 不碰 `main`。不推送、不合并 `main`。只有 Juanxi 说"批准合并"才合。
-2. 界面文字用英文，文档用中文。不放密钥、研究数据、真实成员数据。
-3. **颜色、字号、圆角、层级只能用 token**（`docs/DESIGN_TOKENS.md`）。新增的动效时长和曲线也只能用阶段 0 加的 `--dur-*`、`--ease-*`、`--spring-*` token，CSS 里不准写裸的毫秒数。
-4. **不改数据结构**：不动 `SCHEMA_VERSION`、不动 localStorage 的键。这样回滚永远不会让浏览器里的旧数据出问题。如果某个工作包真的需要改，必须先停下来问 Juanxi。
-5. 不超 `npm run words` 的字数上限。不靠藏文字过线。
-6. 不碰 `src/organization/`、`src/phase1/`、`src/workspace/`（旧代码，样式检查不管它们）。
-7. 悬停卡在桌面上**保持零延迟**（S3 决定，`e2e/feel.spec.ts` 守着）。Events 左侧的活动名称列表**保留**（Juanxi 2026-10-31 要求）。
-8. 只用 `transform` 和 `opacity` 做动画。不做会无限循环的动画（已有的加载点除外，且要有"减少动效"版本）。
-9. 每个会动的东西都要有"减少动效"版本：位移和缩放换成淡入淡出，或者直接不动。
-10. 动画必须能被打断：用户在动画中途再点一下，要从当前位置走，不能先播完。
+1. Do not touch, push, or merge `main`; merge only after Juanxi says "approve merge".
+2. English interface text, Chinese documentation [historical language rule; superseded by the current English policy]. No keys, research data, or real member data.
+3. **Use tokens only for colors, font sizes, radii, layers** (`docs/DESIGN_TOKENS.md`). Motion durations/curves also require stage-0 `--dur-*`, `--ease-*`, `--spring-*` tokens; no bare milliseconds in CSS.
+4. **No schema changes:** leave `SCHEMA_VERSION` and localStorage keys untouched so rollback preserves old browser data. If a package truly needs changes, stop and ask Juanxi first.
+5. Stay within `npm run words` budgets; do not hide text to pass.
+6. Do not touch `src/organization/`, `src/phase1/`, `src/workspace/` (legacy code outside style guards).
+7. Desktop hover cards **retain zero delay** (S3; `e2e/feel.spec.ts`). **Keep** Events' left event-name list (Juanxi, 2026-10-31).
+8. Animate only `transform` and `opacity`. No infinite animations except existing loading dots with reduced-motion versions.
+9. Every moving element needs reduced-motion behavior: replace movement/scaling with fades or no motion.
+10. Motion must be interruptible: another click reverses from the current position rather than waiting for completion.
 
-## 第 0 步：建集成分支（批准之后，只做一次）
+## Step 0: create integration branch (once, after approval)
 
-这份计划的文档目前在分支 `claude/determined-johnson-yrdxwf` 上（= `main` 加上这些文档，没有任何代码改动）。批准后，让一个 session 这样建集成分支：
+These plan documents currently live on `claude/determined-johnson-yrdxwf` (= main plus docs, no code changes). After approval, have one session establish integration:
 
 ```bash
 git fetch origin
 git switch -c claude/determined-johnson-yrdxwf origin/claude/determined-johnson-yrdxwf
-git merge origin/main        # main 常有新提交（演示数据等），先合进来
-npm ci && npm run check      # 起点必须全绿
+git merge origin/main        # Bring in frequent main updates such as demo data first
+npm ci && npm run check      # Baseline must pass
 git tag dx/baseline
 git push -u origin claude/determined-johnson-yrdxwf --tags
 ```
 
-之后所有工作包都从 `origin/claude/determined-johnson-yrdxwf` 开出。**不要**在 `claude/determined-johnson-yrdxwf` 上做执行工作。`main` 一直不动。
+Start every package from `origin/claude/determined-johnson-yrdxwf`. **Do not** implement work directly on integration. `main` remains untouched.
 
-## 分支与 worktree 约定
+## Branch and worktree conventions
 
-- 集成分支：`claude/determined-johnson-yrdxwf`（从 `origin/main` 开出，**不是** `main`）。
-- 每个工作包一个分支，从集成分支开出：`design/dx-NN-<英文短名>`。全小写，不带 AI 名字，不带随机串（`AGENTS.md` 第 8 节）。
-- 每个工作包一个 worktree，目录放在仓库旁边：
+- Integration: `claude/determined-johnson-yrdxwf`, branched from `origin/main`, **not** main itself.
+- One package branch from integration: `design/dx-NN-<short-english-name>`, lowercase, no AI names/random suffixes (AGENTS.md section 8).
+- One adjacent worktree per package:
 
 ```bash
 git fetch origin
@@ -68,89 +68,89 @@ cd ../platypus-dx-03
 npm ci
 ```
 
-- **端口要错开**（阶段 0 的 DX-01 做好环境变量之后）：每个 worktree 用不同的端口，否则 Playwright 会"复用"别人的服务，测到别人的代码。
+- **Use distinct ports** after DX-01 adds environment variables; otherwise Playwright can reuse another agent's server and test their code.
 
 ```bash
-# 例：DX-03 用 5103 起头
+# Example: DX-03 starts at 5103
 PW_PORT=5103 PW_STORAGE_PORT=5203 WORDS_PORT=5303 npx playwright test e2e/feel.spec.ts --project=desktop
-npx vite --port 5103   # 手动看页面时
+npx vite --port 5103   # Manual preview
 ```
 
-- 没有预装浏览器时用 `PW_CHROMIUM=<chromium 路径>`。
-- 工作包 agent **只跑**：`npm run lint`、`npm run build`、`npm test`，再加这个工作包说明里列出的几个页面测试。完整的 `npm run check` 由整合人在每个阶段结束时跑一次。
-- **并行 agent 不改这些文件**（会冲突）：`docs/PROGRESS.md`、`AGENTS.md`、`docs/DESIGN_TOKENS.md`、`src/styles.css`、`src/styles/index.css`。进度和交接由整合人统一写。
+- Without a preinstalled browser, set `PW_CHROMIUM=<chromium-path>`.
+- Package agents run **only** `npm run lint`, `npm run build`, `npm test`, plus their listed browser tests. Integrator runs full `npm run check` once per stage.
+- **Parallel agents do not edit** shared files: `docs/PROGRESS.md`, `AGENTS.md`, `docs/DESIGN_TOKENS.md`, `src/styles.css`, `src/styles/index.css`. Integrator records progress/handoffs centrally.
 
-## 样式怎么放（DX-01 之后）
+## Styles after DX-01
 
-- 每个工作包的样式写在**自己的小文件**里：`src/styles/dx-NN-<名字>.css`（DX-01 会提前建好空文件）。
-- 这些文件由 `src/styles/index.css` 按编号顺序引入，在 `src/styles.css` **之后**加载，所以可以覆盖旧规则。
-- **不要改 `src/styles.css`**。要改旧规则，就在自己的小文件里用同样的选择器覆盖。这样回滚就是"删掉这个小文件的内容"。
-- 同一个选择器可以被不同工作包写**不同的属性**，但**同一个属性只归一个工作包**（归属表在 `PHASES.md`）。
-- 验收通过之后，DX-27 可以（经 Juanxi 同意）把小文件合回主文件，画面必须逐像素一致。
+- Each package writes **its own small file**: `src/styles/dx-NN-<name>.css` (empty files prepared by DX-01).
+- `src/styles/index.css` imports them numerically **after** `src/styles.css`, allowing overrides.
+- **Do not edit `src/styles.css`.** Override old rules with the same selectors in your file, making rollback equivalent to clearing that file.
+- Different packages may set **different properties** on one selector, but **each property has one owner** (`PHASES.md`).
+- After acceptance, DX-27 may consolidate files into main CSS with Juanxi's agreement; output must be pixel-identical.
 
-## 回滚（最重要）
+## Rollback (most important)
 
-### 合并方式（让每个工作包都能单独回滚）
+### Merge method for independent package rollback
 
-整合人把工作包合进集成分支时，**必须**这样做：
+Integrator **must** merge as follows:
 
 ```bash
 git switch claude/determined-johnson-yrdxwf
-git tag dx/phase-N-before            # 阶段开始前打一次，N 是阶段号
-git merge --no-ff design/dx-NN-xxx -m "[DX-NN][整合] 合并 xxx"
-git tag dx/dx-NN-merged              # 指向这次合并提交
+git tag dx/phase-N-before            # Once before stage N
+git merge --no-ff design/dx-NN-xxx -m "[DX-NN][Integration] Merge xxx"
+git tag dx/dx-NN-merged              # Points to this merge commit
 git push origin claude/determined-johnson-yrdxwf --tags
 ```
 
-- `--no-ff` 会留下一个"合并提交"，回滚时撤掉它就等于撤掉整个工作包。
-- 之后在 `ROLLBACK_LOG.md` 登记一行（工作包、合并提交、tag、日期）。
-- 集成分支合到 `main` 时，Juanxi 在 GitHub 上选 **Create a merge commit**，**不要选 Squash**。Squash 会把所有工作包压成一个提交，就没法单独回滚了。
+- `--no-ff` retains a merge commit whose reversal removes the whole package.
+- Add a ROLLBACK_LOG.md row with package, merge commit, tag, date.
+- When integrating to main, Juanxi selects GitHub **Create a merge commit**, **never Squash**; squashing combines packages and prevents independent rollback.
 
-### Juanxi 只需要说一句话
+### Juanxi needs only one sentence
 
-> "回滚 DX-12"　或　"回滚阶段 2"　或　"整套都不要，回到改之前"
+> "Roll back DX-12", "Roll back stage 2", or "Discard the whole upgrade and return to the previous version."
 
-agent 照下面执行（Juanxi 不需要懂这些命令）。
+The agent follows the table; Juanxi need not understand the commands.
 
-| 想要 | 做法 | 谁能做 |
+| Request | Method | Actor |
 | --- | --- | --- |
-| **R0 还没合并就不满意** | 不合并那个分支，直接丢掉 worktree：`git worktree remove ../platypus-dx-NN` | 整合人 |
-| **R1 快速关掉（仅纯样式的工作包）** | 在 `src/styles/index.css` 里把对应那一行 `@import` 用 `/* ... */` 注释掉，提交推送。一行改动，页面立刻变回去。工作包说明里写了"R1 可用"才能用 | 整合人 |
-| **R2 撤销一个工作包** | `git revert -m 1 dx/dx-NN-merged`，推送。这会生成一个新的"反向提交"，历史保留，随时能再撤销这次撤销 | 整合人 |
-| **R3 撤销一个阶段** | 按**从后往前**的顺序，对本阶段每个 tag 做一次 R2 | 整合人 |
-| **R4 整套回到改之前** | 对所有 `dx/dx-*-merged` 从后往前 R2；或者（需要 Juanxi 明确说"可以强制重置"）`git reset --hard dx/phase-1-before` 再 `git push --force-with-lease`。默认用 R2，不用重置 | 整合人 |
-| **R5 线上救急（已经上线 `main` 之后）** | 在 Netlify 网页的 Deploys 里选改之前的那个版本，点 Publish deploy（需要 Juanxi 本人在 Netlify 里点；之后要把自动发布重新打开）。然后再用 R2 在代码里正式撤销 | Juanxi |
+| **R0 Reject before merge** | Do not merge; remove worktree: `git worktree remove ../platypus-dx-NN` | Integrator |
+| **R1 Quick disable (CSS-only packages)** | Comment the relevant `@import` in `src/styles/index.css` with `/* ... */`, commit/push. One-line change immediately restores appearance. Only where package explicitly says R1 supported | Integrator |
+| **R2 Revert a package** | `git revert -m 1 dx/dx-NN-merged`, push. Creates a reverse commit, preserving history and allowing reversal of the revert | Integrator |
+| **R3 Revert a stage** | Apply R2 to every stage tag in **reverse order** | Integrator |
+| **R4 Restore everything** | R2 all `dx/dx-*-merged` in reverse order; alternatively, only with Juanxi's explicit "force reset allowed", `git reset --hard dx/phase-1-before` then `git push --force-with-lease`. Default is R2, not reset | Integrator |
+| **R5 Production emergency after main release** | Netlify Deploys → pre-change version → Publish deploy (Juanxi personally, then re-enable automatic publishing). Follow with formal R2 code reversal | Juanxi |
 
-**有修复提交的包要先撤修复：** 合并后又补了修复提交的包（见 `ROLLBACK_LOG.md` 里的表），必须先撤修复提交再撤合并，否则会冲突。
+**Revert fixes first:** packages with post-merge fix commits (ROLLBACK_LOG.md) require reversing those fixes before the merge, to avoid conflicts.
 
-**依赖要先撤：** 撤一个工作包之前，先看 `PHASES.md` 的依赖表。如果别的工作包依赖它，要先撤那些（从后往前）。
+**Revert dependents first:** consult PHASES.md; reverse dependent packages before their prerequisites, in reverse order.
 
-**再做一遍：** 撤销之后又想要回来，对那个"反向提交"再 `git revert` 一次即可。
+**Restore a reverted package:** `git revert` its reverse commit.
 
-### 为什么回滚是安全的
+### Why rollback is safe
 
-- 所有工作包都不改数据结构（规则 4），所以回滚不会让用户浏览器里的旧数据出错。
-- 每个阶段开始前有 `dx/phase-N-before` 标签，每个工作包合并后有 `dx/dx-NN-merged` 标签。
-- 每个阶段结束时，整合人把"改之前 / 改之后"截图脚本的结果发给 Juanxi（`node scripts/dx-shots.mjs <标签> <网址>`，DX-01 提供），Juanxi 在预览网址上看。
+- No package changes schema (rule 4), protecting existing browser data.
+- Each stage has `dx/phase-N-before`; each merged package has `dx/dx-NN-merged`.
+- At each stage end, integrator sends before/after screenshot results (`node scripts/dx-shots.mjs <tag> <url>`, provided by DX-01); Juanxi reviews the preview.
 
-## 每个工作包的通用验收（说明里不再重复）
+## Shared package acceptance
 
-1. `npm run lint`、`npm run build`、`npm test` 全绿。
-2. 该工作包列出的页面测试全绿，**断言不能削弱**；需要改测试时，只能改成"同样严格地测新行为"，并在报告里写清楚。
-3. 在 Playwright 默认的"减少动效"模式下，页面行为和以前完全一致（DX-01 会把它设为默认，所以旧测试不会因为动画变得不稳定）。
-4. 另有一个专门的测试文件 `e2e/dx-NN-*.spec.ts`，用 `test.use({ reducedMotion: "no-preference" })` 验证动效**真的存在**；再用 `reduce` 验证**降级版本**。纯样式的小改动可以只测计算样式。
-5. 桌面 1440、手机 390、浅色、深色，四种组合各截一张"前/后"图（`scripts/dx-shots.mjs`）。**判断"画面有没有变"看变化的像素数，不要只看字节是否一致**：同一个构建拍两次，手机图也会有最多约 9,500 像素（≈0.7%）的噪声，已见过的上限约 15,000 像素。要求"完全不变"的包，桌面图应当 0 张变化。
-6. 轴向检查：`npm run words` 不增加；`e2e/a11y.spec.ts` 无新增违规；`noOverflow` 为 0（手机不出现横向滚动）。
-7. 写 `reports/DX-NN.md`：改了什么、提交 SHA、测试结果（真实数字）、已知问题、怎么回滚（R 几）。
+1. `npm run lint`, `npm run build`, `npm test` all pass.
+2. Listed browser tests pass; **never weaken assertions**. Updates must test new behavior equally strictly and be explained in the report.
+3. Behavior under Playwright's default reduced-motion mode stays identical (DX-01 sets this default so old tests remain stable).
+4. Separate `e2e/dx-NN-*.spec.ts` with `test.use({ reducedMotion: "no-preference" })` verifies motion **exists**; `reduce` verifies **fallbacks**. Small CSS changes may check computed styles only.
+5. Capture before/after for desktop 1440, phone 390, light/dark (four combinations, `scripts/dx-shots.mjs`). **Assess changed pixels, not merely byte equality**: repeated captures of the same build can produce up to about 9,500 mobile noise pixels (≈0.7%), observed maximum about 15,000. Packages requiring no change should have 0 changed desktop images.
+6. Cross-cutting checks: no `npm run words` increase, no new `e2e/a11y.spec.ts` violations, `noOverflow` = 0 (no mobile horizontal scrolling).
+7. Write `reports/DX-NN.md`: changes, commit SHA, actual test counts, known issues, rollback R level.
 
-## 每个工作包 agent 的启动口令（模板）
+## Package-agent start prompt template
 
 ```
-你是 Platypus 仓库的执行 agent。工作包：DX-NN（<名称>）。
-先读：AGENTS.md、docs/design-upgrade/README.md、docs/design-upgrade/work-packages/DX-NN-*.md。
-你在自己的 git worktree 里，分支 design/dx-NN-<短名>（从 origin/claude/determined-johnson-yrdxwf 开出）。
-只改工作包说明里"可以改的文件"。不碰 main，不改 docs/PROGRESS.md / AGENTS.md / src/styles.css。
-做完：跑工作包列出的检查，写 docs/design-upgrade/reports/DX-NN.md，提交（格式 [DX-NN][Claude] 一句话），
-推送你自己的分支，然后停下，把报告摘要和 R 级别回滚方式告诉整合人。不要合并，不要开 PR。
-用简单的中文汇报。界面文字用英文。
+You are an implementation agent in the Platypus repository. Package: DX-NN (<name>).
+Read AGENTS.md, docs/design-upgrade/README.md, and docs/design-upgrade/work-packages/DX-NN-*.md first.
+Use your own git worktree, branch design/dx-NN-<short-name>, from origin/claude/determined-johnson-yrdxwf.
+Edit only the package's allowed files. Do not touch main or edit docs/PROGRESS.md / AGENTS.md / src/styles.css.
+Finish by running listed checks, writing docs/design-upgrade/reports/DX-NN.md, committing as [DX-NN][Claude] One sentence,
+pushing your branch, and stopping. Give the integrator a report summary and R-level rollback method. Do not merge or open a PR.
+Report in simple Chinese [historical instruction; superseded by current English policy]. Interface text is English.
 ```

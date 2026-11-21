@@ -1,222 +1,222 @@
-# Handoff 改版 · 分步执行方案
+# Handoff redesign · Phased execution plan
 
-> 2026-11-08 · Claude · 依据 [`HANDOFF_REDESIGN_PLAN.md`](HANDOFF_REDESIGN_PLAN.md)（问题编号 B1–B6、D1–D9 都指那份文档）。
-> Juanxi 2026-11-08 要求："把上面所有问题修好，做成分步执行的方案，逐步分阶段推进。"
-> **这份文件是正本：每个阶段做完都更新第 9 节的执行记录。**
-
----
-
-## 1. 总规则（每个阶段都适用）
-
-1. **一次只做一个阶段。** 做完 → 跑测试 → 推送 → 写验收步骤 → **停下来等 Juanxi 说"可以"或"改哪里"**，才开始下一个阶段。
-2. **分支：** 都在 `claude/tender-gates-j8ztlr` 上做（本会话指定的分支）。开工前先 `git fetch origin main` 并合并最新 `main`，避免和 Phase 3 的改动冲突。**不碰 `main`，只有 Juanxi 说"批准合并"才合并。**
-3. **回滚：** 每个阶段结束时在第 9 节记下"阶段开始前的提交"和"阶段最后一个提交"。要撤销某个阶段，按顺序 `git revert` 那段提交即可（后面的阶段依赖前面的，所以要从后往前撤）。
-4. **测试：** 改了行为就补单元测试；改了页面就补页面测试（桌面 + 手机）。每个阶段结束跑 `npm run lint`、类型检查、构建、全部单元测试，以及和 Handoff 相关的页面测试；最后一个阶段跑完整 `npm run check`。
-5. **不变的边界：** 日期只由规则引擎算；AI 只回编号和受限内容；**交接功能绝不读研究日志**（`interactionLog`、`ui.*`）；仅干部可见的联系人对交接页面和 AI 同样隐藏；界面文字英文；Handoff 页字数不超过 120 / 120。
-6. **Phase 3 期间的保护（Q6 已答复：Phase 3 任务卡用到了 Handoff 页，所以第 1 阶段起全部留在分支上，Phase 3 收完数据前都不合并到 `main`）：** 示例社团（`sampleScenario.ts`）的换届季和示例访谈不动；结构版本（`SCHEMA_VERSION`）在 Phase 3 结束前**不升**，因为升版本会让参与者已保存的数据走一遍旧版本迁移。需要升版本的阶段（第 3 阶段起）排在 Phase 3 之后合并。
-7. **预览网址：** 验收要用预览网址的话，需要为这个分支开一个 PR（标题写「[预览·请勿合并]」）。**开 PR 要 Juanxi 同意。**
+> 2026-11-08 · Claude · Based on [`HANDOFF_REDESIGN_PLAN.md`](HANDOFF_REDESIGN_PLAN.md) (issue IDs B1–B6 and D1–D9 refer to that document).
+> Juanxi's request on 2026-11-08: "Fix all the issues above, make a step-by-step execution plan, and proceed in phases."
+> **This is the canonical file: update the execution record in section 9 after each stage.**
 
 ---
 
-## 2. 全部阶段一览
+## 1. General rules (apply to every stage)
 
-| 阶段 | 名字 | 修哪些问题 | 要升结构版本吗 | 开工前需要 Juanxi 决定 | 能在 Phase 3 期间合并吗 |
+1. **One stage at a time.** Finish → run tests → push → write acceptance steps → **stop and wait for Juanxi to say "okay" or specify changes** before starting the next stage.
+2. **Branch:** Use `claude/tender-gates-j8ztlr` throughout (the branch assigned to this session). Before starting, `git fetch origin main` and merge the latest `main` to avoid conflicts with Phase 3 changes. **Do not touch `main`; merge only when Juanxi says "merge approved."**
+3. **Rollback:** At each stage's end, record the "commit before the stage" and "last commit of the stage" in section 9. To undo a stage, `git revert` its commits in order (later stages depend on earlier ones, so undo stages from last to first).
+4. **Tests:** Add unit tests for behavior changes and page tests (desktop + mobile) for page changes. At each stage's end, run `npm run lint`, type checks, build, all unit tests, and Handoff-related page tests; run the full `npm run check` for the final stage.
+5. **Fixed boundaries:** Only the rule engine calculates dates; AI returns IDs and constrained content only; **handoff features must never read research logs** (`interactionLog`, `ui.*`); contacts visible only to officers remain hidden from both the handoff page and AI; interface copy is English; Handoff page word counts must not exceed 120 / 120.
+6. **Phase 3 protections (Q6 answered: Phase 3 task cards use Handoff, so keep everything on the branch from stage 1 onward and do not merge into `main` until Phase 3 data collection is complete):** Leave the sample club's (`sampleScenario.ts`) transition season and sample interviews unchanged; **do not increment** the schema version (`SCHEMA_VERSION`) before Phase 3 ends, since doing so runs participants' saved data through an old-version migration. Stages requiring a version increment (stage 3 onward) are scheduled for merging after Phase 3.
+7. **Preview URL:** To use a preview URL for acceptance, open a PR for this branch (title "[Preview · Do not merge]"). **Opening the PR requires Juanxi's agreement.**
+
+---
+
+## 2. All stages
+
+| Stage | Name | Issues fixed | Schema version increment? | Juanxi decision required before starting | Can merge during Phase 3? |
 | --- | --- | --- | --- | --- | --- |
-| **1** | 修 bug（不改页面样子） | B1、B4、B6 | 否 | 无（Q6：确认 Phase 3 任务卡没用到 Handoff，才合并） | 可以，确认 Q6 后 |
-| **2** | 现有社员接任 + 空缺岗位 + 单岗位交接 | B2、B5、D7 | 否（只加可选字段） | D-2a、D-2b | 建议之后 |
-| **3** | 任期模型 + 新人提前出现 | B3，以及第 4–7 阶段的底座 | **是** | D-3a | 之后 |
-| **4** | 岗位档案（4 块）+ 风险排序 | D1、D2、D4、D6 | 否 | 无 | 之后 |
-| **5** | 缺口访谈 + 新人读、回述、跟做、回看 | D3、D5 | 否 | Q2、Q4、Q5 | 之后 |
-| **6** | 岗位变动（改名历史、新增、拆分、合并、存档） | D8 | 是 | D-6a | 之后 |
-| **7** | 产品问答记录 | D9 | 是 | **Q3（含 IRB）** | 之后 |
-| **8** | 收尾：文档、完整回归、本地备份 | — | — | 合并时机 | — |
+| **1** | Bug fixes (no visual changes) | B1, B4, B6 | No | None (Q6: merge only after confirming Phase 3 task cards do not use Handoff) | Yes, after confirming Q6 |
+| **2** | Existing member succeeds + vacant roles + single-role handoff | B2, B5, D7 | No (optional fields only) | D-2a, D-2b | Prefer afterward |
+| **3** | Role-term model + incoming person appears earlier | B3 and foundation for stages 4–7 | **Yes** | D-3a | Afterward |
+| **4** | Role dossier (4 sections) + risk ranking | D1, D2, D4, D6 | No | None | Afterward |
+| **5** | Gap interviews + incoming person reads, reads back, shadows, reviews | D3, D5 | No | Q2, Q4, Q5 | Afterward |
+| **6** | Role changes (rename history, add, split, merge, archive) | D8 | Yes | D-6a | Afterward |
+| **7** | Product Q&A records | D9 | Yes | **Q3 (including IRB)** | Afterward |
+| **8** | Closeout: documentation, full regression, local backup | — | — | Merge timing | — |
 
-第 2 阶段放在第 3 阶段前面，是因为"现有社员接任"和"空缺岗位"不需要改数据模型就能修好，能早点用上；第 3 阶段再把它们搬到正式的任期模型上。
+Stage 2 precedes stage 3 because "existing member succeeds" and "vacant roles" can be fixed without changing the data model, making them available earlier; stage 3 then moves them onto the formal role-term model.
 
 ---
 
-## 3. 第 1 阶段 · 修 bug（B1、B4、B6）
+## 3. Stage 1 · Bug fixes (B1, B4, B6)
 
-**目标：** 交接完成后其他功能不再坏；开季后新增的岗位自动进入换届；进度不虚高。页面布局不变。
+**Goal:** Other features keep working after a handoff; roles added after season start automatically join the transition; progress is not overstated. Page layout stays the same.
 
-**改哪些文件：**
+**Files to change:**
 
-| 文件 | 改什么 |
+| File | Change |
 | --- | --- |
-| `src/data/types.ts` | `Person` 加可选字段 `leftOn`（卸任日期）。有这个字段的人是"前任"：历史记录（任务、贡献、互动）里还在，但不再是现任干部 |
-| `src/data/permissions.ts` | 新增 `officers(s)`：只返回现任干部 |
-| `src/data/handoff.ts` | `complete`：新人生成一个合法的虚构邮箱（`…@example.org`）；卸任人标上 `leftOn`；新增 `syncSeasonRoles()`：季已开时给新增岗位补记录；`start` 不再预填示例访谈 |
-| `src/data/settings.ts` | 校验跳过前任（不再报 "Match every officer to their own role"；干部人数上限只算现任）；保存设置后调用 `syncSeasonRoles()` |
-| `src/pages/Handoff.tsx` | 访谈框没有内容时显示提示文字（"One point per line. Fictional examples only."），不再预填 |
-| 列出干部的地方：`TopBar`（View as）、`Team`、`TaskFields`、`NodePanel`、`Settings`（Who can create events）、`aiContext`、`commandContext` | 改用 `officers(s)`，前任不再出现在选择列表里，AI 也不会把任务派给前任 |
+| `src/data/types.ts` | Add optional `leftOn` (departure date) to `Person`. Someone with this field is "former": retained in historical records (tasks, contributions, interactions), but no longer a current officer |
+| `src/data/permissions.ts` | Add `officers(s)`: returns only current officers |
+| `src/data/handoff.ts` | `complete`: generate a valid fictional email (`…@example.org`) for the incoming person; mark the outgoing person with `leftOn`; add `syncSeasonRoles()` to create records for roles added after season start; `start` no longer prefills sample interviews |
+| `src/data/settings.ts` | Skip former officers in validation (stop reporting "Match every officer to their own role"; officer-count limit counts only current officers); call `syncSeasonRoles()` after saving settings |
+| `src/pages/Handoff.tsx` | Show placeholder text ("One point per line. Fictional examples only.") for empty interviews instead of prefilling |
+| Officer lists: `TopBar` (View as), `Team`, `TaskFields`, `NodePanel`, `Settings` (Who can create events), `aiContext`, `commandContext` | Use `officers(s)`; former officers no longer appear in selectors, and AI cannot assign tasks to them |
 
-**测试：**
+**Tests:**
 
-- 单元：完成一次交接后 `validateClub(clubDraft(s))` 为 null、能保存 Settings；新人邮箱合法；卸任人有 `leftOn`，不在 `officers(s)`；View as / 指派列表不含前任；开季后新增岗位自动有换届记录；`start` 后访谈为空、进度第 1 步未完成；示例社团的示例访谈不变。
-- 页面：完成 Treasurer 交接 → 打开 Settings 改社团名 → 能保存；View as 菜单里没有卸任人。
-- 原有测试全部保留。
+- Unit: after completing a handoff, `validateClub(clubDraft(s))` is null and Settings saves; incoming email is valid; outgoing person has `leftOn` and is absent from `officers(s)`; View as / assignment lists exclude former officers; a role added after season start automatically gets a transition record; after `start`, interview is empty and progress step 1 is incomplete; sample club's sample interviews stay unchanged.
+- Page: complete Treasurer handoff → open Settings and change club name → save succeeds; View as excludes the outgoing person.
+- Retain all existing tests.
 
-**验收（Juanxi）：** ① Handoff → Treasurer → 走完 5 步 → Finish role handoff；② Settings 改一下社团名，看到已保存；③ 顶栏 View as 里没有 Maya；④ Settings 加一个新岗位 → 回 Handoff，新岗位卡片出现，打开不再说 "Start the handoff season"。
+**Acceptance (Juanxi):** ① Handoff → Treasurer → complete all 5 steps → Finish role handoff; ② change club name in Settings and see it saved; ③ Maya is absent from top-bar View as; ④ add a role in Settings → return to Handoff, see its card, and opening it no longer says "Start the handoff season."
 
-**不做：** 现有社员接任、空缺岗位能交接（第 2 阶段）；第一周清单顺序（第 3 阶段）。
-
----
-
-## 4. 第 2 阶段 · 现有社员接任 + 空缺岗位 + 单岗位交接（B2、B5、D7）
-
-**需要先决定：**
-
-- **D-2a 转过去的未完成任务要不要新人重新认领？** 现在是直接变成 To do。建议改成 **Not claimed + 指定新人**，新人点 "I've got it" 才算接手，和全站的认领规则（计划书"认领握手"）一致。
-- **D-2b 空缺岗位谁来回答访谈、确认手册？** 建议由**社长代替卸任人**（界面写明 "Answering for a vacant role"）。
-
-**做什么：**
-
-1. Hand over 那一步可以三选一：**现有社员**（下拉，只列现任干部和前任）/ **新的人**（输入名字，和现在一样）/ 暂时空着。
-2. 现有社员接任：如果他原来有岗位，原岗位变成空缺，并提示社长"Secretary is now vacant"。前任重新接任时清掉 `leftOn`。
-3. 空缺岗位：社长可以写访谈、确认、完成交接。
-4. **单岗位交接：** Handoff 页加 "Hand over one role"，不开整季也能换一个岗位（学期中补位）。
-5. `validateRoles` 允许岗位空着（现在已允许 `holderId` 为 null，补测试）。
-
-**测试：** 现有社员接任后两个岗位的归属、任务转移、Settings 仍能保存；空缺岗位能走完全程；单岗位交接不影响其他岗位；名字重复仍被拒绝（新的人）。
-
-**验收：** 用 Sam 接 Treasurer → Marketing 显示空缺 → 用"新的人"补上 Marketing；不开季直接 "Hand over one role"。
+**Excluded:** Existing members succeeding and vacant-role handoffs (stage 2); first-week checklist ordering (stage 3).
 
 ---
 
-## 5. 第 3 阶段 · 任期模型 + 新人提前出现（B3）
+## 4. Stage 2 · Existing member succeeds + vacant roles + single-role handoff (B2, B5, D7)
 
-**需要先决定：** **D-3a** 交接前新人能看到什么？建议：候任期间新人能看到这个岗位的手册、档案和未完成任务，但**不能改**任务（只能评论 / 提问），移交后才有权限。
+**Decisions needed first:**
 
-**做什么：**
+- **D-2a Must the incoming person reclaim transferred unfinished tasks?** They currently become To do directly. Recommend **Not claimed + assigned incoming person**, with takeover only after clicking "I've got it, " matching the sitewide claiming rule (the plan's "claim handshake").
+- **D-2b Who answers interviews and confirms handbooks for vacant roles?** Recommend **the president acting for the outgoing person** (explicit UI text: "Answering for a vacant role").
 
-1. 新数据 `RoleTerm { roleId, personId, status: incoming | active | former, from, to, handoffId }`（见方案 4.1）。**实际做法（比方案更稳）：** `Role.holderId`、`Person.leftOn`、`RoleHandoff.incomingId` 仍是动作直接写的数据，任期由 `normalizeTerms` 在每个动作之后自动对齐成历史记录，别的代码不用改。
-2. **结构版本 +1**，写迁移：现有 `holderId` → active 任期；有 `leftOn` 的人 → former 任期；进行中的换届季保留。
-3. 选定新人那一刻就建 incoming 任期（新人存在了），所以**第一周清单由新人自己勾**，并且改到移交之后（修 B3）。
-4. Hand over 时：incoming → active，旧 active → former。
+**Work:**
 
-**测试：** 迁移前后同一份数据，所有页面看到的岗位和人一样；新人在移交前不能改任务；第一周清单只有移交后的新人能勾；重复迁移不出错。
+1. Hand over offers three options: **existing member** (dropdown listing only current and former officers) / **new person** (enter name, as today) / leave vacant for now.
+2. Existing-member succession: if they already hold a role, that role becomes vacant, with "Secretary is now vacant" shown to the president. Clear `leftOn` when a former officer returns.
+3. Vacant roles: the president can answer the interview, confirm, and finish the handoff.
+4. **Single-role handoff:** Add "Hand over one role" to Handoff to replace one role holder without starting a whole season (midsemester vacancy).
+5. `validateRoles` allows vacant roles (`holderId` already allows null; add tests).
 
-**验收：** 走一遍：选新人 → View as 新人，能看手册不能改任务 → 移交 → 新人勾第一周。
+**Tests:** Ownership of both roles after existing-member succession, task transfers, Settings still saves; vacant roles complete the full process; single-role handoffs leave other roles unaffected; duplicate names remain rejected for new people.
 
----
-
-## 6. 第 4 阶段 · 岗位档案 + 风险排序（D1、D2、D4、D6）
-
-**做什么：**
-
-1. `src/lib/roleDossier.ts`（纯函数，不用 AI）：Calendar / In flight / People / Lessons 四块（见方案 4.1 表格）。每一行带来源 ID，可点开原记录。
-2. 手册来源从"任务 + 访谈"扩到档案的四块；手册按四块分章；仍然只回编号、AI 失败本地排序。
-3. 第一周清单 = 通用 6 条 + 这个岗位接下来 30 天的真实截止日（规则引擎算）。**实际做法：** 通用 6 条仍是要勾的；真实截止日列在下面的 "Next 30 days"（只读，每条能点开任务），不增加要勾的条数。
-4. 接力卡按"交接风险"排序（未完成任务、30 天内 ASU 硬截止、逾期、卡住、卸任人最近更新、档案缺口）。**实际做法：** 只在 Handoff 页排序和标色；**没有**放进 Today 的 "Needs a nudge"，因为那一栏的意思是"最可能赶不上的 3 个步骤"，混进岗位会改变含义和 Phase 3 的页面，需要 Juanxi 另外决定。
-5. 仅干部可见的联系人在档案和发给 AI 的内容里都按现有规则隐藏。
-
-**测试：** 档案每块的计算（含空岗位 "No history yet"）；隐藏联系人不出现在档案和 AI 请求里；风险排序；字数上限。
-
-**验收：** 打开 Treasurer 档案，四块都有内容、每行能点开；Handoff 页最危险的岗位排第一。
+**Acceptance:** Have Sam take Treasurer → Marketing shows vacant → fill Marketing with a "new person"; use "Hand over one role" without starting a season.
 
 ---
 
-## 7. 第 5 阶段 · 缺口访谈 + 新人流程（D3、D5）
+## 5. Stage 3 · Role-term model + incoming person appears earlier (B3)
 
-**需要先决定：** Q2（AI 能否写带引用的导读句）、Q4（前任能否被咨询）、Q5（回看分数谁能看）。
+**Decision needed first:** **D-3a** What can incoming people see before handoff? Recommend access to the role's handbook, dossier, and unfinished tasks while incoming, but **no task editing** (comments / questions only); editing permissions begin after transfer.
 
-**做什么：**
+**Work:**
 
-1. **缺口题：** 规则模板题（例："“Chase the USG reimbursement” got an extension but no reason was recorded. What held it up?"）。卸任人逐题回答或跳过，跳过的进"未解决"。**AI 版 `/api/handoff/questions` 没做**：Juanxi 还没回答 Q2（AI 能否写句子）；AI 只能挑选/排序现成的模板题时价值很小，要让 AI 写问题就需要 Q2 的批准和提示词审核。
-2. **新人读手册：** 每章 Got it / Unclear；Unclear 变成给卸任人的问题。
-3. **回述：** 3 个固定问题；**规则**（不是 AI）只粗略标出"手册里没出现这些词"的回答，交卸任人决定加进手册还是不用，不打分。
-4. **跟做：** 社长挑一件卸任人还在做的轻量任务，新人收到通知、可以点开看；**不改任务的 RACI**（新人和卸任人是同一个岗位，当"被咨询"没有意义），任务仍归卸任人。
-5. **第 7 / 30 天回看：** 清晰度、信心、被接纳三题 1–5 分 + "手册缺了什么"；社长一键写回档案。原来的 Day 30 按钮换成这个。
+1. New data `RoleTerm { roleId, personId, status: incoming | active | former, from, to, handoffId }` (plan 4.1). **Actual implementation (more robust than the plan):** Actions still write `Role.holderId`, `Person.leftOn`, and `RoleHandoff.incomingId` directly; `normalizeTerms` automatically reconciles terms into historical records after every action, without changes to other code.
+2. **Increment schema version by 1** and write migration: existing `holderId` → active term; people with `leftOn` → former term; retain in-progress transition seasons.
+3. Create an incoming term as soon as the successor is selected (the incoming person now exists), so **the incoming person checks their own first-week checklist**, moved to after handoff (fix B3).
+4. On Hand over: incoming → active, old active → former.
 
-**测试：** 模板题从档案确定性生成；AI 题只引用存在的记录；回述不产生分数；回看结果只给 Q5 决定的人看。
+**Tests:** All pages show the same roles and people before and after migration of the same data; incoming person cannot edit tasks before handoff; only the incoming person after handoff can check the first-week checklist; repeated migration is safe.
 
-**验收：** 卸任人回答缺口题 → 新人读、点一个 Unclear → 回述 → 第 30 天回看写回档案。
-
----
-
-## 8. 第 6、7、8 阶段
-
-**第 6 阶段 · 岗位变动（D8）。需要先决定 D-6a：** 删除岗位是"存档"还是真删？建议只存档。
-做什么：改名历史（详情里显示 "Formerly …"）；新增岗位起步（章程/职责原文 + 同职能标准步骤 + 社长 3 个问题，没有历史的岗位自动展开提问）；**移动工作**（逐条勾选任务和联系人转给另一个岗位）和**关闭岗位**（转走剩余的一切，存档不删除）。**拆分 = 加新岗位 + 移动工作，合并 = 全部移动 + 关闭**，没有单独的"向导"界面（比向导少一层，也更不容易误操作）。**没做：** 按标签批量选择；旧手册里显示当时的岗位名（只在档案详情里显示改名历史）。结构版本 +1（22）。
-
-**第 7 阶段 · 产品问答记录（D9）。Q3 已由 Juanxi 答复：问答记录和研究日志完全不分开。**
-实际做法：**不新建任何记录**（没有新增记录项，不用再告知 IRB）；Handoff 页的新人卡在画出来的那一刻，从现有研究日志里**读**新人被指定之后问 Ask 的问题，标出手册没覆盖的，只给社长和新人本人看。结果不存、不进手册和档案、不发给 AI（测试守护）。**没做：** Ask 聊天按 View as 的人分开存（会动 Phase 3 的 Ask 行为）；档案里"这个岗位常被问的问题"汇总。不改结构版本。
-
-**第 8 阶段 · 收尾：** 更新 `AGENTS.md` 第 6 节代码地图、`docs/RULES.md`（如果交接规则有变）、`docs/WP5_ACCEPTANCE.md`；完整 `npm run check`；在 `PROGRESS.md` 写交接；同步本地备份（能连到 Juanxi 电脑时）；请 Juanxi 决定合并时机。
+**Acceptance:** Select incoming person → View as that person, read handbook but cannot edit tasks → hand over → incoming person checks first week.
 
 ---
 
-## 9. 执行记录（每个阶段做完更新）
+## 6. Stage 4 · Role dossier + risk ranking (D1, D2, D4, D6)
 
-| 阶段 | 状态 | 开始前的提交 | 最后一个提交 | 测试结果 | Juanxi 验收 |
+**Work:**
+
+1. `src/lib/roleDossier.ts` (pure functions, no AI): four sections, Calendar / In flight / People / Lessons (plan 4.1 table). Each row has a source ID and opens the original record.
+2. Expand handbook sources from "tasks + interviews" to all four dossier sections; organize handbook chapters accordingly; still return IDs only, with local ordering on AI failure.
+3. First-week checklist = 6 generic items + this role's real deadlines over the next 30 days (rule-engine calculation). **Actual implementation:** The 6 generic items remain checkable; real deadlines appear below under "Next 30 days" (read-only, each opens its task), without adding checkboxes.
+4. Rank relay cards by "handoff risk" (unfinished tasks, ASU hard deadlines within 30 days, overdue, blocked, outgoing person's latest update, dossier gaps). **Actual implementation:** Ranking and coloring only on Handoff; **not** included in Today's "Needs a nudge, " since that section means "the 3 steps most likely to miss their deadlines." Mixing in roles changes that meaning and the Phase 3 page, requiring a separate Juanxi decision.
+5. Contacts visible only to officers remain hidden in dossiers and AI input under existing rules.
+
+**Tests:** Calculations for each dossier section (including "No history yet" for empty roles); hidden contacts absent from dossiers and AI requests; risk ranking; word limits.
+
+**Acceptance:** Open Treasurer's dossier: all four sections have content and every row opens; the highest-risk role is first on Handoff.
+
+---
+
+## 7. Stage 5 · Gap interviews + incoming-person flow (D3, D5)
+
+**Decisions needed first:** Q2 (may AI write cited introductory sentences), Q4 (may former officers be consulted), Q5 (who sees review scores).
+
+**Work:**
+
+1. **Gap questions:** Rule-based templates (e.g. "“Chase the USG reimbursement” got an extension but no reason was recorded. What held it up?"). The outgoing person answers or skips each question; skipped questions become "unresolved." **AI version `/api/handoff/questions` was not implemented**: Juanxi has not answered Q2 (whether AI may write sentences); AI offers little value if limited to selecting/ordering existing templates, and writing questions requires Q2 approval and prompt review.
+2. **Incoming person reads handbook:** Got it / Unclear for each chapter; Unclear becomes a question for the outgoing person.
+3. **Read-back:** 3 fixed questions; **rules**, not AI, roughly flag answers containing "words absent from the handbook, " leaving the outgoing person to decide whether to add them; no scoring.
+4. **Shadowing:** President chooses a lightweight task the outgoing person is still doing; incoming person is notified and can open it; **task RACI stays unchanged** (both people share the role, so "Consulted" is meaningless), and ownership remains with the outgoing person.
+5. **Day 7 / 30 review:** Three 1–5 ratings for clarity, confidence, and feeling accepted + "what is missing from the handbook"; president writes back to the dossier in one click. Replaces the old Day 30 button.
+
+**Tests:** Deterministic template questions from dossier; AI questions cite only existing records; read-back produces no scores; review results visible only to those selected by Q5.
+
+**Acceptance:** Outgoing person answers gap questions → incoming person reads and selects one Unclear → read-back → Day 30 review written back to dossier.
+
+---
+
+## 8. Stages 6, 7, 8
+
+**Stage 6 · Role changes (D8). Decide D-6a first:** Does deleting a role mean "archive" or actual deletion? Recommend archive only.
+Work: rename history ("Formerly …" in details); new-role starting material (original constitution/duties text + standard steps for the same function + 3 president questions; automatically expand questions for roles with no history); **move work** (select tasks and contacts individually to transfer to another role) and **close role** (transfer everything remaining, archive rather than delete). **Split = add new role + move work; merge = move everything + close**, with no separate "wizard" (one less UI layer, less risk of mistakes). **Not implemented:** Bulk selection by tag; historical role names in old handbooks (rename history shown only in dossier details). Schema version +1 (22).
+
+**Stage 7 · Product Q&A records (D9). Juanxi answered Q3: Q&A records and research logs are not separated at all.**
+Actual implementation: **Create no new records** (no added logged items, no further IRB notification needed); when the incoming-person card renders on Handoff, **read** questions they asked Ask after being designated from existing research logs, flag those not covered by the handbook, and show only to the president and that incoming person. Results are not saved, included in handbooks/dossiers, or sent to AI (test guarded). **Not implemented:** Separate Ask chat storage by View as identity (would alter Phase 3 Ask behavior); dossier summary of "frequently asked questions for this role." No schema version change.
+
+**Stage 8 · Closeout:** Update `AGENTS.md` section 6 code map, `docs/RULES.md` (if handoff rules change), `docs/WP5_ACCEPTANCE.md`; full `npm run check`; handoff in `PROGRESS.md`; sync local backup (when Juanxi's computer is accessible); ask Juanxi to decide merge timing.
+
+---
+
+## 9. Execution record (update after each stage)
+
+| Stage | Status | Commit before start | Last commit | Test results | Juanxi acceptance |
 | --- | --- | --- | --- | --- | --- |
-| 1 | **待验收**（Claude，2026-11-08） | `de5c1f9` | `fb495dd`（文档提交到 `eebd4ab`） | lint、两套类型检查、构建通过；单元 1060 全过（新增 12 个，旧代码上 9 个失败）；新页面测试 6 个通过（旧代码上 3 个桌面版全失败）；相关已有页面测试 714 个：656 通过 / 52 跳过 / 3 偶发（重跑通过）/ 3 失败，这 3 个在没改过的 `main` 上同样失败（`workflow-setup:123` 桌面+手机、`organization-setup:1381`） | 等 Juanxi |
-| 2 | **待验收**（Claude，2026-11-08；D-2a、D-2b 已由 Juanxi 同意） | `eebd4ab` | `da45e5c`（文档提交到 `591c28a`） | lint、两套类型检查、构建通过；单元 1080 全过（新增 20 个）；新页面测试 3 个（桌面+手机）通过，和第 1 阶段的页面测试合跑 12 个全过；相关已有页面测试 700 个：663 通过 / 52 跳过 / 1 偶发 / 4 失败，其中 3 个在没改过的 `main` 上同样失败（`workflow-setup:123` 桌面+手机、`organization-setup:1381`），1 个是已知偶发的 `ob-04` 键盘文件选择框（`main` 上重复 16 次失败 3 次，本分支 16 次失败 4 次） | 等 Juanxi |
-| 3 | **待验收**（Claude，2026-11-08；任期模型和 D-3a 已由 Juanxi 同意；**不合并到 `main`，等 Phase 3 收完**） | `591c28a` | `6414cd7`（文档提交到 `309bad2`） | lint、两套类型检查、构建通过；单元 1095 全过（新增 15 个）；新页面测试 4 个（桌面+手机共 8 个）通过；相关已有页面测试 794 个：735 通过 / 52 跳过 / 5 偶发（重跑通过；其中读存档的 `recovery` 和 Demo 菜单重复 40 次全过）/ 2 失败（`workflow-setup:123` 桌面+手机，在没改过的 `main` 上同样失败） | 等 Juanxi |
-| 4 | **待验收**（Claude，2026-11-08；不合并到 `main`，等 Phase 3 收完） | `309bad2` | `92e060e`、`2f0e887`、`f811730` | lint、两套类型检查、构建通过；单元 1110 全过（新增 15 个）；新页面测试 4 个（桌面+手机 8 个）通过；相关已有页面测试 800+ 个：全部通过，除 `workflow-setup:123`、`organization-setup:1381` 在没改过的 `main` 上同样失败，以及几个已知偶发（`production-security`、`ob-04`、`dx-10`、`tasks:68`，`main` 上也会偶尔失败）。**注意：首页入口文件 499,664 字节，上限 500,000，只剩 336 字节，见 PROGRESS.md** | 等 Juanxi |
-| 5 | **待验收**（Claude，2026-11-09；Q2/Q4/Q5 按我的建议默认值做，等 Juanxi 确认；不合并到 `main`，等 Phase 3 收完） | `42ae862` | `6dbc25f`（文档提交到 `6ca4f83`） | lint、两套类型检查、构建通过；单元 1127 全过（新增 17 个）；新页面长流程测试 `handoff-stage5.spec.ts`（桌面+手机）通过；相关已有页面测试 840 个：780 通过 / 52 跳过 / 4 偶发 / 4 失败，其中 `workflow-setup:123`（桌面+手机）、`organization-setup:1381` 在没改过的 `main` 上同样失败，`ob-12:208` 和 `workflow-setup:39` 在 `main` 上重复 24 次失败 4 次（本分支 3 次）。首页入口文件 505,418 字节（上限已提到 520,000） | 等 Juanxi |
-| 6 | **待验收**（Claude，2026-11-09；D-6a 已由 Juanxi 确认；不合并到 `main`，等 Phase 3 收完） | `6ca4f83` | `1f2da6c`（文档提交到 `86be187`） | lint、两套类型检查、构建通过；单元 1143 全过（新增 16 个）；新页面测试 `handoff-stage6.spec.ts` 4 个（桌面+手机 8 个）通过；相关已有页面测试 902 个：844 通过 / 53 跳过 / 4 偶发 / 1 失败（`m4-setup:98`，重复 24 次：本分支失败 4 次、`main` 失败 3 次，负载大时都会失败）。首页入口文件 509,008 字节（上限 520,000） | 等 Juanxi |
-| 7 | **待验收**（Claude，2026-11-09；Q3 已由 Juanxi 答复；不合并到 `main`，等 Phase 3 收完） | `86be187` | `9d2c411`（文档提交到 `b13f7e0`） | lint、两套类型检查、构建通过；单元 1160 全过（新增 17 个）；新页面测试 `handoff-stage7.spec.ts`（桌面+手机）通过，重复 30 次全过；相关已有页面测试 920 个：847 通过 / 64 跳过 / 5 偶发 / 4 失败，都是 `main` 上同样会失败或偶发的老问题。首页入口文件 509,017 字节（上限 520,000） | 等 Juanxi |
-| 8 | **已完成**（Claude，2026-11-09） | `b13f7e0` | 见 `git log` 最新提交 | 完整 `npm run check` 的结果见 `docs/PROGRESS.md` 最上面一条；文档整理、合并清单、回滚表、已知问题都在本文第 10–12 节 | — |
-| 审查修复 | **已完成并合并到 `main`**（Claude，2026-11-09；Juanxi 批准直接合并，Q2/Q4/Q5 确认，Q4 加邮箱电话，手册过期规则改为只看引用条目） | `3991320`（本分支最后一个提交） | 见 `docs/PROGRESS.md` 最上面一条 | 13 个问题和修法见 `docs/PROGRESS.md` 最上面一条和 `AGENTS.md` 第 6 节"Handoff 审查修复"；测试 `src/test/handoffReview.test.ts` | Juanxi 已批准合并 |
+| 1 | **Awaiting acceptance** (Claude, 2026-11-08) | `de5c1f9` | `fb495dd` (documentation through `eebd4ab`) | lint, both type checks, build passed; all 1060 unit tests passed (12 new, 9 fail on old code); 6 new page tests passed (all 3 desktop cases fail on old code); 714 related existing page tests: 656 passed / 52 skipped / 3 flaky (passed on rerun) / 3 failed; those 3 also fail on unchanged `main` (`workflow-setup:123` desktop+mobile, `organization-setup:1381`) | Awaiting Juanxi |
+| 2 | **Awaiting acceptance** (Claude, 2026-11-08; Juanxi approved D-2a, D-2b) | `eebd4ab` | `da45e5c` (documentation through `591c28a`) | lint, both type checks, build passed; all 1080 unit tests passed (20 new); 3 new page cases (desktop+mobile) passed, all 12 passed combined with stage 1 page tests; 700 related existing page tests: 663 passed / 52 skipped / 1 flaky / 4 failed, including 3 also failing on unchanged `main` (`workflow-setup:123` desktop+mobile, `organization-setup:1381`) and 1 known flaky `ob-04` keyboard file picker (3 failures in 16 repeats on `main`, 4 in 16 on this branch) | Awaiting Juanxi |
+| 3 | **Awaiting acceptance** (Claude, 2026-11-08; Juanxi approved role-term model and D-3a; **do not merge into `main` until Phase 3 data collection ends**) | `591c28a` | `6414cd7` (documentation through `309bad2`) | lint, both type checks, build passed; all 1095 unit tests passed (15 new); 4 new page cases (8 desktop+mobile) passed; 794 related existing page tests: 735 passed / 52 skipped / 5 flaky (passed on rerun; archive-reading `recovery` and Demo menu passed all 40 repeats) / 2 failed (`workflow-setup:123` desktop+mobile, also fail on unchanged `main`) | Awaiting Juanxi |
+| 4 | **Awaiting acceptance** (Claude, 2026-11-08; do not merge into `main` until Phase 3 data collection ends) | `309bad2` | `92e060e`, `2f0e887`, `f811730` | lint, both type checks, build passed; all 1110 unit tests passed (15 new); 4 new page cases (8 desktop+mobile) passed; 800+ related existing page tests: all passed except `workflow-setup:123`, `organization-setup:1381`, which also fail on unchanged `main`, and several known flaky cases (`production-security`, `ob-04`, `dx-10`, `tasks:68`, also intermittent on `main`). **Note: homepage entry file 499,664 bytes against 500,000 limit, only 336 bytes left; see PROGRESS.md** | Awaiting Juanxi |
+| 5 | **Awaiting acceptance** (Claude, 2026-11-09; Q2/Q4/Q5 use my recommended defaults, awaiting Juanxi confirmation; do not merge into `main` until Phase 3 data collection ends) | `42ae862` | `6dbc25f` (documentation through `6ca4f83`) | lint, both type checks, build passed; all 1127 unit tests passed (17 new); new long-flow page test `handoff-stage5.spec.ts` (desktop+mobile) passed; 840 related existing page tests: 780 passed / 52 skipped / 4 flaky / 4 failed; `workflow-setup:123` (desktop+mobile), `organization-setup:1381` also fail on unchanged `main`; `ob-12:208` and `workflow-setup:39` failed 4 times in 24 repeats on `main` (3 on this branch). Homepage entry file 505,418 bytes (limit raised to 520,000) | Awaiting Juanxi |
+| 6 | **Awaiting acceptance** (Claude, 2026-11-09; Juanxi confirmed D-6a; do not merge into `main` until Phase 3 data collection ends) | `6ca4f83` | `1f2da6c` (documentation through `86be187`) | lint, both type checks, build passed; all 1143 unit tests passed (16 new); 4 new page cases in `handoff-stage6.spec.ts` (8 desktop+mobile) passed; 902 related existing page tests: 844 passed / 53 skipped / 4 flaky / 1 failed (`m4-setup:98`; 24 repeats: 4 failures on this branch, 3 on `main`, both fail under high load). Homepage entry file 509,008 bytes (limit 520,000) | Awaiting Juanxi |
+| 7 | **Awaiting acceptance** (Claude, 2026-11-09; Juanxi answered Q3; do not merge into `main` until Phase 3 data collection ends) | `86be187` | `9d2c411` (documentation through `b13f7e0`) | lint, both type checks, build passed; all 1160 unit tests passed (17 new); new page test `handoff-stage7.spec.ts` (desktop+mobile) passed, all 30 repeats passed; 920 related existing page tests: 847 passed / 64 skipped / 5 flaky / 4 failed, all existing failures or flaky cases also present on `main`. Homepage entry file 509,017 bytes (limit 520,000) | Awaiting Juanxi |
+| 8 | **Completed** (Claude, 2026-11-09) | `b13f7e0` | See latest commit in `git log` | Full `npm run check` results in top entry of `docs/PROGRESS.md`; documentation cleanup, merge checklist, rollback table, and known issues in sections 10–12 below | — |
+| Review fixes | **Completed and merged into `main`** (Claude, 2026-11-09; Juanxi approved direct merge, confirmed Q2/Q4/Q5, added email/phone to Q4, changed handbook staleness to consider cited entries only) | `3991320` (last commit on this branch) | See top entry of `docs/PROGRESS.md` | 13 issues and fixes in top entry of `docs/PROGRESS.md` and "Handoff review fixes" in `AGENTS.md` section 6; test `src/test/handoffReview.test.ts` | Juanxi approved merge |
 
 ---
 
-## 10. 最后做成的样子，和原方案（`HANDOFF_REDESIGN_PLAN.md`）有哪些不同
+## 10. Differences between the final result and original plan (`HANDOFF_REDESIGN_PLAN.md`)
 
-| 原方案 | 实际 | 为什么 |
+| Original plan | Actual result | Why |
 | --- | --- | --- |
-| B1–B6 六个 bug | **全部修好**（B1、B4、B6 第 1 阶段；B2、B5 第 2 阶段；B3 第 3 阶段） | — |
-| D1–D9 九个设计问题 | D1–D8 做了；D9 按 Juanxi 的决定改成"读现有研究日志"（第 7 阶段） | Q3：问答记录和研究日志不分开 |
-| 任期由 `RoleTerm` 算出 `holderId` | `holderId`、`leftOn`、`incomingId` 仍由动作直接写，`normalizeTerms` 在每个动作之后把任期**对齐成历史** | 旧代码不用改，没变化时返回同一个对象，更稳 |
-| 手册第一周清单 = 通用 6 条 + 真实截止日 | 通用 6 条仍要勾；真实截止日列在 "Next 30 days"（只读） | 不改要勾的条数 |
-| 风险进 Today 的 "Needs a nudge" | **没做**，只在 Handoff 页排序和标色 | 那一栏的意思是"最可能赶不上的 3 个步骤"，会改变含义，也动 Phase 3 的页面 |
-| AI 出缺口题、AI 写导读句（Q2） | **没做**，缺口题用规则生成，手册每个字仍是原记录 | Q2 没回答；AI 写句子需要 Juanxi 批准并审提示词 |
-| 跟做：新人当 Consulted | 社长挑一个轻量任务让新人旁观，任务仍归卸任人 | 新人和卸任人是同一个岗位，当"被咨询"没有意义 |
-| 回述由 AI 对照手册 | 由规则粗略检查"手册里有没有出现这些词"，不打分 | 同上（Q2），而且更容易测试 |
-| 拆分 / 合并 / 存档"向导" | 两个动作：移动工作、关闭岗位；拆分 = 加岗位 + 移动，合并 = 移动 + 关闭 | 少一层界面，更不容易误操作 |
-| 产品自己的问答记录 | 不新建，读现有研究日志，只显示 | Q3；并且守住"研究数据不进 AI 提示词"的硬规则 |
-| Ask 聊天按 View as 的人分开存 | **没做** | 会动 Phase 3 的 Ask 行为 |
+| Six bugs B1–B6 | **All fixed** (B1, B4, B6 in stage 1; B2, B5 in stage 2; B3 in stage 3) | — |
+| Nine design issues D1–D9 | D1–D8 implemented; D9 changed to "read existing research logs" per Juanxi (stage 7) | Q3: no separation between Q&A records and research logs |
+| Derive `holderId` from `RoleTerm` | Actions still write `holderId`, `leftOn`, `incomingId` directly; `normalizeTerms` **reconciles terms into history** after each action | No changes to old code, same object returned if unchanged; more robust |
+| Handbook first-week checklist = 6 generic items + real deadlines | 6 generic checkboxes remain; real deadlines listed under "Next 30 days" (read-only) | Number of checkboxes unchanged |
+| Risk in Today's "Needs a nudge" | **Not implemented**; ranking and coloring on Handoff only | That section means "the 3 steps most likely to miss their deadlines"; changes its meaning and the Phase 3 page |
+| AI gap questions and introductory sentences (Q2) | **Not implemented**; rule-generated gap questions; every handbook word still comes from original records | Q2 unanswered; AI sentences require Juanxi approval and prompt review |
+| Shadowing: incoming person as Consulted | President selects a lightweight task for observation; ownership stays with outgoing person | Both hold the same role, making "Consulted" meaningless |
+| AI checks read-back against handbook | Rules roughly check whether words appear in the handbook, without scoring | Same reason (Q2), and easier to test |
+| Split / merge / archive "wizard" | Two actions: move work, close role; split = add role + move, merge = move + close | One less UI layer, less risk of mistakes |
+| Product-specific Q&A records | No new records; read existing research logs for display only | Q3; also preserves the hard rule "no research data in AI prompts" |
+| Separate Ask chat storage by View as identity | **Not implemented** | Would alter Phase 3 Ask behavior |
 
-**Juanxi 的决定：** D-2a（转给新人的任务待认领）、D-2b（空缺岗位社长代替卸任人）、任期模型、D-3a（候任新人能读不能改）、Q6（Phase 3 任务卡用到 Handoff 页，所以整条分支等 Phase 3 收完再合并）、上限 500,000→520,000、D-6a（关闭岗位 = 存档，历史保留）、Q3（问答记录和研究日志不分开）。
-**按我的建议默认值做、Juanxi 还没明确确认的：** Q2（AI 不写导读句）、Q4（新人看得到前任名字，没有关闭开关）、Q5（回看分数只有社长和新人本人看得到）。
-
----
-
-## 11. 合并到 `main` 之前的清单（Juanxi 决定合并时一项项过）
-
-> **2026-11-09 更新：** 第 1 项（Phase 3）由 Juanxi 决定"直接提交到 main"；第 2 项 Q2、Q4、Q5 已确认（Q4 另加：新人能看到前任的邮箱和电话）；第 4、6、7 项已做（用 merge commit 合并，没有 Squash）。第 5 项（真实 ASU AIR 起草手册）**仍未验证**；第 3 项 IRB 对照仍需 Juanxi 自己确认。
-
-1. **Phase 3 收完数据了吗？** 第 1–7 阶段都改了 Handoff 页，第 3、6 阶段升了结构版本（20→22），违反 Phase 3 "不改 `SCHEMA_VERSION`" 的边界。**只有 Juanxi 说"批准合并"才合并。**
-2. **确认三个默认值：** Q2、Q4、Q5（见第 10 节）。
-3. **IRB：** ①Handoff 页新增的输入框（访谈答案、read-back、第 7/30 天回看）的内容会像其他动作一样进研究日志；②新人卡会在页面上读出日志里新人问 Ask 的问题（只显示，不另存，不发给 AI）。请对照 IRB 材料。
-4. **再合并一次最新 `main`**（`git fetch origin main && git merge origin/main`），解决冲突（最可能在 `docs/PROGRESS.md` 最上面的条目和 `AGENTS.md`），重新跑完整 `npm run check`。
-5. **用真实 AI 在预览上点一次 Draft role handbook**，看 Netlify 日志：手册来源比以前多（多了 deadline/step/contact/lesson 四类），服务器函数改过，但**只用模拟的 AI 测过**，没有真实的 ASU AIR 验证。
-6. **开 PR**（要 Juanxi 同意）：标题写"[预览·请勿合并]"先给预览；真正合并时选 **Create a merge commit**，不要 Squash，这样才能按阶段回滚。
-7. **合并后**更新 `AGENTS.md` 第 6d 节"边界"里"不改 `SCHEMA_VERSION`/`DemoState`"那一条（现在版本是 22），并同步本地备份。
-8. Netlify 环境变量：**没有新增**，也没有新增 AI 接口（`/api/handbook/draft` 只是多接受四种来源类型）。
+**Juanxi's decisions:** D-2a (tasks transferred to incoming people need claiming), D-2b (president acts for outgoing person in vacant roles), role-term model, D-3a (incoming person can read but not edit), Q6 (Phase 3 task cards use Handoff, so wait until Phase 3 data collection ends to merge the whole branch), limit 500,000→520,000, D-6a (close role = archive, preserve history), Q3 (no separation between Q&A records and research logs).
+**Implemented using my recommended defaults, not yet explicitly confirmed by Juanxi:** Q2 (AI writes no introductory sentences), Q4 (incoming people see former officers' names, no opt-out switch), Q5 (review scores visible only to president and incoming person).
 
 ---
 
-## 12. 回滚表（从后往前撤，`git revert` 那段提交；用合并提交时按阶段整段撤）
+## 11. Checklist before merging into `main` (review item by item when Juanxi decides to merge)
 
-| 阶段 | 代码提交 | 依赖 | 撤销要注意 |
+> **2026-11-09 update:** For item 1 (Phase 3), Juanxi decided "commit directly to main"; item 2 Q2, Q4, Q5 confirmed (Q4 additionally allows incoming people to see former officers' email and phone); items 4, 6, 7 completed (merged with a merge commit, not Squash). Item 5 (real ASU AIR handbook drafting) **remains unverified**; Juanxi still needs to check item 3 against the IRB materials himself.
+
+1. **Is Phase 3 data collection complete?** Stages 1–7 all changed Handoff; stages 3 and 6 incremented schema version (20→22), violating the Phase 3 "do not change `SCHEMA_VERSION`" boundary. **Merge only when Juanxi says "merge approved."**
+2. **Confirm the three defaults:** Q2, Q4, Q5 (section 10).
+3. **IRB:** ① New Handoff inputs (interview answers, read-back, Day 7/30 reviews) enter research logs like other actions; ② the incoming-person card reads their Ask questions from logs for page display (display only, no separate storage, no AI). Check against IRB materials.
+4. **Merge latest `main` again** (`git fetch origin main && git merge origin/main`), resolve conflicts (most likely top entries in `docs/PROGRESS.md` and `AGENTS.md`), rerun full `npm run check`.
+5. **Click Draft role handbook once with real AI on the preview**, and inspect Netlify logs: handbook sources expanded (four additional types: deadline/step/contact/lesson), and server functions changed, but **only mocked AI has been tested**, with no real ASU AIR validation.
+6. **Open PR** (requires Juanxi agreement): title "[Preview · Do not merge]" for the preview first; for the actual merge, choose **Create a merge commit**, not Squash, to preserve stage-by-stage rollback.
+7. **After merging**, update the "do not change `SCHEMA_VERSION`/`DemoState`" boundary in `AGENTS.md` section 6d (version is now 22), and sync local backup.
+8. Netlify environment variables: **none added**; no new AI endpoints either (`/api/handbook/draft` merely accepts four additional source types).
+
+---
+
+## 12. Rollback table (undo last to first using `git revert` on the commits; with merge commits, undo entire stages)
+
+| Stage | Code commits | Dependencies | Rollback considerations |
 | --- | --- | --- | --- |
-| 7 读日志显示 | `9d2c411` | 5（新人卡） | 无数据改动 |
-| 6 岗位变动 | `1f2da6c` | 3 | 结构版本 22 → 21：已保存成 22 的浏览器数据会走"数据已备份并恢复示例"路径（备份保留在浏览器里） |
-| 5 新人流程 | `6dbc25f` | 3、4 | `RoleHandoff` 多出的可选字段留在存档里无害 |
-| 4 档案和风险 | `92e060e`、`2f0e887`、`f811730` | 3 | 服务器函数 `handbook-draft.mts` 也要撤；撤后首页入口文件回到约 499 KB |
-| 3 任期模型 | `6414cd7` | 2 | 结构版本 21 → 20：同上；第 4–7 阶段依赖它，必须先撤它们 |
-| 2 现有社员接任 | `da45e5c` | 1 | 旧测试里 "accepted" 的期望要改回去 |
-| 1 修 bug | `fb495dd` | — | — |
-| 上限 | `42ae862` | — | 单独撤会让首页入口测试在第 3 阶段之后变红 |
+| 7 Read and display logs | `9d2c411` | 5 (incoming-person card) | No data changes |
+| 6 Role changes | `1f2da6c` | 3 | Schema version 22 → 21: browser data already saved as 22 takes the "data backed up and sample restored" path (backup retained in browser) |
+| 5 Incoming-person flow | `6dbc25f` | 3, 4 | Additional optional `RoleHandoff` fields can harmlessly remain in saved data |
+| 4 Dossiers and risk | `92e060e`, `2f0e887`, `f811730` | 3 | Also revert server function `handbook-draft.mts`; homepage entry returns to about 499 KB |
+| 3 Role-term model | `6414cd7` | 2 | Schema version 21 → 20: same as above; stages 4–7 depend on it and must be reverted first |
+| 2 Existing-member succession | `da45e5c` | 1 | Restore old tests' "accepted" expectations |
+| 1 Bug fixes | `fb495dd` | — | — |
+| Limit | `42ae862` | — | Reverting alone makes homepage-entry tests fail after stage 3 |
 
 ---
 
-## 13. 已知问题和没做的事
+## 13. Known issues and unimplemented work
 
-- **没做：** AI 出缺口题、AI 写导读句（Q2）；把交接风险放进 Today；Ask 聊天按人分开存；按标签批量移动任务；旧手册里显示"当时的岗位名"；"卸任人可以关掉被咨询"的开关（Q4）。
-- **没验证：** 真实 ASU AIR 起草新版手册；真机和 Safari；屏幕阅读器实际朗读（只有自动 a11y 检查）。
-- **页面测试里本来就不稳的（`main` 上同样会失败或偶发，不是这次引入的）：** `workflow-setup:123`（桌面+手机）、`organization-setup:1381`、`m4-setup:98`、`production-security:14`、`ob-04` 键盘文件框、`ob-12:208`、`workflow-setup:39`、`tasks:37/68`、`dx-10`、`dx-11`、`phase1:271`（负载大时偶发）。
-- **性能预算：** 首页入口文件 509,017 字节，上限 520,000，还剩约 11 KB。
+- **Not implemented:** AI gap questions and introductory sentences (Q2); handoff risk in Today; Ask chat stored separately per person; bulk task movement by tag; historical role names in old handbooks; "outgoing person can opt out of consultation" switch (Q4).
+- **Not verified:** Real ASU AIR drafting of the new handbook; physical devices and Safari; actual screen-reader speech (automated a11y checks only).
+- **Preexisting unstable page tests (also fail or flake on `main`, not introduced here):** `workflow-setup:123` (desktop+mobile), `organization-setup:1381`, `m4-setup:98`, `production-security:14`, `ob-04` keyboard file picker, `ob-12:208`, `workflow-setup:39`, `tasks:37/68`, `dx-10`, `dx-11`, `phase1:271` (intermittent under high load).
+- **Performance budget:** Homepage entry file 509,017 bytes, limit 520,000, about 11 KB remaining.
 

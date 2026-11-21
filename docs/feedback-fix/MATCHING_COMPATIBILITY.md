@@ -1,69 +1,69 @@
-# 职责匹配与现有存档的接入及回滚
+# Integrating responsibility matching with existing archives and rollback
 
-> **当前已完成体验回退：** 新职责机制已撤下，旧 Pause 按钮不再显示；现用程序仍读取/写入23并保留不参与运行的归档字段，不重置任务或降级存档。以下为原阶段3的兼容设计记录，当前行为以 [回退交接](MATCHING_ROLLBACK_HANDOFF.md) 为准。
+> **Experience rollback is complete:** the new responsibility mechanism is withdrawn and the old Pause button hidden. The current app still reads/writes 23 and retains inactive archive fields without resetting tasks or downgrading archives. The original stage-3 compatibility design follows; current behavior is governed by the [rollback handoff](MATCHING_ROLLBACK_HANDOFF.md).
 
-2026-11-16（America/Phoenix） · 阶段 1 设计，阶段 3 已按 Juanxi“继续阶段3”实施。
+2026-11-16 (America/Phoenix) · Stage-1 design, implemented in stage 3 after Juanxi said "continue stage 3."
 
-第一阶段的数据操作与解析器仍只读注入的成员和岗位引用，不导入旧 store。阶段 3 由 `organizationMatching.ts` 和 adapters 接入业务，实际组织与独立演练分开。业务内只有一个匹配正本，不长期双写。
+Stage-1 data operations/parser still read only injected member/role references, without importing the old store. Stage 3 integrates business through `organizationMatching.ts` and adapters, keeping real organizations separate from isolated practice. There is one canonical business matching record, without long-term dual writes.
 
-## 当前实际限制
+## Current limitations
 
-主业务使用 `src/data/store.tsx` 的 `loadStateWithNotice`、`saveState` 和 `buildExport`，阶段 3 将外层 `SCHEMA_VERSION` 从 22 升到 **23**。`saveState` 将完整业务对象序列化到一个键；只认识 22 的老读取器不能用于功能回退。
+Main business uses `loadStateWithNotice`, `saveState`, and `buildExport` in `src/data/store.tsx`. Stage 3 raises outer `SCHEMA_VERSION` 22→**23**. `saveState` serializes the complete business object into one key; old readers supporting only 22 cannot serve as feature rollback.
 
-`Org.id` 当前常来自演示种子。重新完成 onboarding 时仍可能沿用同一 ID，因此它不能独自证明新配置属于同一次组织工作区。人员的 `Role.holderId`、`Person.roleId` 仍服务于旧权限、交接和页面，不能为了资格池就批量改写这些字段。
+`Org.id` often comes from demo seeds. Repeating onboarding may reuse that ID, so it alone cannot establish that new configuration belongs to the same organization workspace. `Role.holderId` and `Person.roleId` still support old permissions, handoff, and pages; do not mass-rewrite them to form eligibility pools.
 
-## 已实施的存储布局
+## Implemented storage layout
 
-现有业务对象增加可选的匹配命名空间，以及单独生成并保存的本地工作区身份。匹配配置只引用现有岗位、成员、步骤和任务 ID，不复制其完整名单。
+The existing business object gains an optional matching namespace and a separately generated/persisted local workspace identity. Matching configuration references existing role/member/step/task IDs without copying complete rosters.
 
-- `Org.matchingWorkspaceId`：首次显式启用新匹配时建立的稳定本地身份；新建一个组织工作区时生成新身份。它不是登录或组织权限凭据。
-- `DemoState.matching`：与该身份对应的 `MatchingState`，使用自己的 `schemaVersion: 1`。
-- `DemoState.matchingContext`：来源审阅、章程输入/操作历史、成员可用情况与资格、一任务人工例外、预览导入身份；不再保存一份 matching 或成员名称副本。
-- `Node.matching`：该实际任务自己的 workflow/step/responsibility 身份及待处理原因；历史节点不会因启用而被补写。
-- 组织设置记录匹配模式是否启用；未设置按旧业务兼容方式运行。职责解析器不依赖 `RoleFunction`，旧 `fn` 仅保留给未迁移的显示、权限和日期等代码。
-- 具体任务的分派回执留在 `MatchingState.assignments`，通过任务、工作流、步骤共同定位；实际执行人仍写进现有任务 `ownerId`。一次业务操作中同时生成任务和回执，再统一保存。
+- `Org.matchingWorkspaceId`: stable local identity created on first explicit enablement; a new organization workspace gets a new identity. It is not a login or organization authorization credential.
+- `DemoState.matching`: `MatchingState` for that identity, with independent `schemaVersion: 1`.
+- `DemoState.matchingContext`: source review, constitution input/action history, member availability/qualifications, one-task manual exceptions, preview-import identity; no duplicate matching state or member names.
+- `Node.matching`: this actual task's workflow/step/responsibility identity and pending reasons; enabling does not backfill historical nodes.
+- Organization settings record whether matching mode is enabled; unset follows legacy compatibility. Responsibility parsing does not depend on `RoleFunction`; old `fn` remains only for unmigrated display, permission, and date code.
+- Specific-task assignment receipts remain in `MatchingState.assignments`, located jointly by task/workflow/step; actual executor remains the task's `ownerId`. Generate task and receipt in one business operation and save together.
 
-阶段 1 的 `platypus.matching.v1:<组织身份>`、阶段 2 的 `platypus.matching.setup.v1:<上下文>` 仍是隔离演练。阶段 2 预览只能显式导入当前组织，检查上下文、岗位及成员引用，示例或外组织引用被拒绝；已有非空职责库不能被预览覆盖。导入不复制假想任务回执，保留导入来源，重复导入不重复追加。原预览键保留，后续实际修改只写业务正本。
+Stage-1 `platypus.matching.v1:<organization-identity>` and stage-2 `platypus.matching.setup.v1:<context>` remain isolated practice. Stage-2 preview can only explicitly import the current organization after checking context/role/member references; reject sample or other-organization references. Preview cannot overwrite a nonempty responsibility library. Import excludes hypothetical task receipts, preserves provenance, and does not append duplicates on repeat. Keep original preview keys; subsequent actual edits write only the canonical business record.
 
-Provider 在普通操作、需持久化的确认操作以及 app/log 自动保存前，比对实际主存档与本页最近一次读写的完整 raw；主键 storage 事件也会立即暂停旧标签页。发生已完成的外部写入时，保留内存副本供下载，必须 reload 后再用最新数据。此检查能发现已发生的覆盖冲突，仍不能提供跨标签页原子事务；跨设备和真实多人协作需服务器授权与原子修订控制。
+Before ordinary operations, confirmation operations requiring persistence, and app/log autosaves, Provider compares the actual main archive's complete raw value with the page's last read/write. Main-key storage events immediately pause stale tabs. On a completed external write, retain the in-memory copy for download and require reload to use latest data. This detects completed overwrite conflicts but cannot provide atomic cross-tab transactions; cross-device/real multi-user work needs server authorization and atomic revision control.
 
-## 外层版本迁移
+## Outer-version migration
 
-已核对阶段 2 基线 `dbfc47d` 为 22，阶段 3 使用 23。先提交兼容读取基点 **`e370361`**，然后才提交功能写入。
+Stage-2 baseline `dbfc47d` confirmed as 22; stage 3 uses 23. Commit compatibility-reader point **`e370361`** before feature-writing commits.
 
-实际迁移分两层：
+Migration has two layers:
 
-1. 外层 22 存档升级前，保存原始 raw 至 `platypus.v1.demo.backup.v22`。备份失败时显示原因并暂停业务写入，下载原件后也需 reload 重试；不会先覆盖旧存档。正常升级保留已有组织、人员、任务、状态、提醒和历史，不推导职责、不重分配任务、不重建活动图。23 存档只规范现有任期，不重新建图。
-2. 匹配配置迁移：按 `MatchingState.schemaVersion` 独立验证。支持的配置原样接入；损坏、组织身份不符或更高版本时，保留原始配置和可恢复副本，暂停新匹配，显示原因，不删除整个组织或恢复示例。
+1. Before upgrading an outer-22 archive, save original raw to `platypus.v1.demo.backup.v22`. Backup failure shows the reason and pauses business writes; downloading the original still requires reload/retry. Never overwrite first. Normal upgrade preserves organization, people, tasks, statuses, reminders, history without inferring responsibilities, reassigning tasks, or rebuilding event graphs. Version 23 only normalizes existing terms, without rebuilding graphs.
+2. Matching migration validates independently by `MatchingState.schemaVersion`. Supported configuration integrates unchanged; corrupt, identity-mismatched, or higher-version configuration retains original data/recoverable copies, pauses new matching, and shows the reason; do not delete the organization or restore samples.
 
-每层迁移都应幂等。再次打开不能重复添加职责、重复创建成员关系或重复导入回执。迁移与导入前保存原始可恢复副本；保存失败时不能报告成功，也不能先删原文件或副本。
+Each migration must be idempotent. Reopening must not duplicate responsibilities, membership relationships, or imported receipts. Preserve original recoverable copies before migration/import; save failure cannot report success or first delete originals/copies.
 
-第一次启用的职责、岗位关系和成员资格必须经过用户检查。旧自由文本、模板默认职责和旧角色名不能自动被当成章程中已确认的事实。必要外部资格的缺省状态为 unknown；不根据职位名称推断已经有某个学校系统账号。
+Initial responsibilities, role relationships, and member qualifications require user review. Old free text, template defaults, and old role names are not automatically constitution-confirmed facts. Required external qualifications default to unknown; role names do not prove school-system accounts.
 
-## 已有任务与新任务
+## Existing and new tasks
 
-| 情况 | 接入行为 |
+| Situation | Integration behavior |
 | --- | --- |
-| 已有任务，没有匹配回执 | 保留现有 owner 和状态；标明旧分派尚未关联职责，不伪造过去的人工确认 |
-| 用户明确把已有任务接入新机制 | 展示职责、候选与现有执行人，确认后追加真实的新回执 |
-| 新建活动或独立任务 | 按已确认要求解析；只有明确确认的分派写入实际任务；预选和备份建议不伪装为已接手 |
-| 新匹配已启用但职责或候选缺失 | 留作待处理，不退回九类职能或列表第一人 |
-| 改模板或改默认人 | 影响未来任务；已确认回执保持，失效的人选提示复核 |
-| 旧页面手动改 owner | 记录实际改派。旧未关联任务只留一次性人工例外，职责仍空；工作流取原活动 playbookId，未知则使用本任务身份，不按当前模板推定。已有任务保留自己的关联；有效确认回执与无资格的人工例外分开 |
-| 一个步骤出现在两种工作流 | 使用明确的工作流/步骤复合身份，不按标题或简单分隔符拼接串用 |
+| Existing task without matching receipt | Preserve owner/status; identify legacy assignment as unlinked to responsibilities, without inventing past human confirmation |
+| User explicitly connects an existing task | Show responsibility, candidates, current executor; append a genuine new receipt after confirmation |
+| New event or standalone task | Resolve confirmed requirements; only explicitly confirmed assignments enter actual tasks; preselection/backup suggestions do not mean acceptance |
+| Matching enabled but responsibility/candidates missing | Leave pending; do not fall back to nine functions or first-listed person |
+| Template/default-person change | Affects future tasks; confirmed receipts remain; invalid candidates prompt review |
+| Manual owner change on old pages | Record actual reassignment. Legacy unlinked tasks keep only a one-time manual exception, responsibility empty; workflow uses original event playbookId, otherwise task identity, never current-template inference. Existing tasks retain own links; distinguish valid confirmation receipts from unqualified manual exceptions |
+| Same step in two workflows | Use explicit compound workflow/step identity, not titles or ambiguous delimiter concatenation |
 
-任务认领继续由业务流程处理。分派给别人仍为 unclaimed；本人认领同时检查匹配依据与现有权限。任务按钮、内核、看板拖动均使用相同保护。改派通过原 owner 转移内核推进 ownerVersion、assignedOn 等字段，旧签名链接不能在改回同一人后重新生效。预算步骤、日期和现有角色权限保持。
+Business logic still handles claiming. Assignments to others remain unclaimed; self-claiming checks matching grounds and existing permissions. Task buttons, core transitions, and Board dragging share protection. Reassignment uses the original owner-transfer core to advance ownerVersion, assignedOn, etc.; old signed links cannot revive after reassigning back to the same person. Budget steps, dates, existing role permissions remain unchanged.
 
-## 重新设置组织 导出与恢复
+## Organization reset, export, recovery
 
-重新创建工作区时显式建立新匹配身份，并提供旧配置的保留或导出途径，避免新旧任务 ID 重复时读到旧回执。普通的岗位改名和职责改名保留稳定 ID；岗位停用、成员离任和职责归档则显示具体失效原因，不重置数据。
+Recreating a workspace explicitly generates a new matching identity and provides retention/export for old configuration, preventing old receipts from matching reused task IDs. Ordinary role/responsibility renames retain stable IDs; role deactivation, member departure, responsibility archival show specific invalidation reasons without resetting data.
 
-现有完整业务导出需要包含匹配配置、修订与回执。独立匹配配置导出只代表该配置，不等于组织全量备份；导入前验证当前身份和外部引用。更高版本导出保持可下载原文，不能删未知字段后静默降低版本。
+Full business export must include matching configuration, revisions, receipts. Standalone matching export represents only that configuration, not a full organization backup; validate current identity/external references before import. Higher-version exports remain downloadable verbatim; do not silently downgrade by deleting unknown fields.
 
-## 回滚必须保留兼容读取
+## Rollback must retain compatible readers
 
-不能把外层 23 的存档直接交给只认识 22 的旧读取器。兼容基点 **`e370361`** 能读取 23，并原样保留 matching 及未知子字段、节点和历史；它不能与功能一起撤掉。完整业务导出/显式恢复包含 matching 与上下文，恢复前备份当前配置。
+Do not feed outer-23 archives to readers supporting only 22. Compatibility point **`e370361`** reads 23 and preserves matching, unknown nested fields, nodes, history unchanged; it must not be reverted with the feature. Full business export/explicit restore includes matching/context; back up current configuration before restore.
 
-优先在职责库页点 **Pause responsibility matching**，保留配置和已有任务。如需回退代码，退到兼容基点 `e370361`。本轮没有交付低版本投影恢复工具，不声称可任意回到 22。不得直接改低版本号，不以 Reset demo、清 localStorage 或丢弃匹配数据作为回滚。
+Prefer **Pause responsibility matching** on the responsibility-library page, retaining configuration/tasks. For code rollback, use compatibility point `e370361`. No lower-version projection/recovery tool was delivered; arbitrary return to 22 is unsupported. Do not lower version numbers directly, Reset demo, clear localStorage, or discard matching data as rollback.
 
-必要回归已纳入阶段 3 创建、持久化、恢复 UI 和 adapters 用例：22 备份失败保护、重复迁移、损坏/更高子版本保留、不同工作区隔离、真实启用/导入不改旧节点、全量导出再恢复、模板切换不改历史关联、关闭模式、签名链接失效、跨标签页已发生写入冲突。逐项检查结果与未测范围见 [阶段 3 交付](MATCHING_STAGE3_HANDOFF.md)。这些检查不等于真实断电、服务端并发或跨设备验证。
+Required regressions are in stage-3 creation/persistence/recovery UI/adapter cases: 22-backup failure protection, repeated migration, corrupt/higher nested-version preservation, workspace isolation, real enable/import without old-node edits, full export/restore, historical links surviving template switches, disabled mode, signed-link invalidation, completed cross-tab write conflicts. Itemized results/unverified scope: [stage-3 delivery](MATCHING_STAGE3_HANDOFF.md). These do not establish real power-loss, server-concurrency, or cross-device behavior.

@@ -1,12 +1,12 @@
-# 标准工作流的职责关联覆盖
+# Responsibility-link coverage for the standard workflow
 
-2026-11-16（America/Phoenix） · 职责匹配阶段 3 · Workflow Adapter Agent
+2026-11-16 (America/Phoenix) · Responsibility matching stage 3 · Workflow Adapter Agent
 
-本表逐项核对当前 `EVENT_STEPS` 的 46 种标准步骤，包含条件分支。单场活动只产生适用步骤，不一定有 46 个任务。表内是**步骤的职责边界审阅提示**，不是要求社团创建 46 个固定职责，也不预设 Secretary、Marketing 等岗位。多个步骤或不同工作流可以复用本组织确认过的同一职责。
+This table individually reviews all 46 standard `EVENT_STEPS`, including conditional branches. An event creates only applicable steps, not necessarily 46 tasks. These are **review prompts for step responsibility boundaries**, not a requirement for 46 fixed club responsibilities or predefined Secretary/Marketing roles. Several steps/workflows may reuse one organization-confirmed responsibility.
 
-程序正本为 `src/matching/adapters/steps.ts`。`standardRequirementCommands` 仅对缺少的工作流/步骤组合添加未关联记录，责任 ID 均为 null；不替换已有人工关联。37 项初始 draft、9 项 needs_split，全部须人审阅。复合步骤只有在拆分或明确专业统筹后才应确认为可分派需求。不得因某一个专业匹配就认定整项工作可完成。
+Canonical implementation: `src/matching/adapters/steps.ts`. `standardRequirementCommands` adds unlinked records only for missing workflow/step pairs, all responsibility IDs null; never replaces existing manual links. Initially 37 draft, 9 needs_split; all require human review. Composite steps become assignable requirements only after splitting or explicit specialist coordination. One matching specialty does not establish ability to deliver the whole task.
 
-| 步骤 ID | 现有标题 | 需要确认的职责边界 | 初始状态 | 现有来源 |
+| Step ID | Existing title | Responsibility boundary to confirm | Initial state | Existing source |
 | --- | --- | --- | --- | --- |
 | `plan` | Event Plan | Own the documented event purpose, scope and operating plan; coordinate specialist inputs without assuming their execution duties. | `draft` | PLAN-01 |
 | `backup` | Back-up Plan | Produce the agreed fallback plan for event disruptions; obtaining each replacement service remains a separate execution task. | `draft` | PLAN-01 |
@@ -55,10 +55,10 @@
 | `orderPlaced` | Order Placed | Place an already authorized order and record confirmation; budget and purchase authorization remain separate controls. | `draft` | R09 |
 | `finalcheck` | Full Check Alert Changes | Review all active routes, coordinate readiness and notify changes; clarify the coordinator and split specialist corrective work. | `needs_split` | CLOSE-01 |
 
-## 自定义工作流与范围
+## Custom workflows and scope
 
-`WorkflowResponsibilityMap` 可分别编辑标准流程 `seo-event` 与现有自定义流程 `club-event`，二者使用工作流 ID + 步骤 ID 定位。自定义步骤通过实际 `StepTemplate` 传入同一初始化器，没有第二套按岗位名猜人的规则；其未审核职责初始 draft。完整自由工作流生成器不在本阶段。
+`WorkflowResponsibilityMap` separately edits standard `seo-event` and existing custom `club-event`, identified by workflow ID + step ID. Actual `StepTemplate` custom steps enter the same initializer; no second role-name guessing system. Unreviewed custom responsibilities begin draft. A fully free workflow generator is outside this stage.
 
-这张表只证明当前 46 个标准定义逐项有审阅记录入口，不代表所有 ASU 政策已提取或全社团职责库已满足语义互斥和完整覆盖。外部系统账号、专业资格和审批授权必须另外人工核实。RACI 与预算控制保持现有规则；职责泡泡不授予预算、采购或校方审批权限。
+This table proves only review-record entry coverage for 46 current standard definitions, not extraction of all ASU policies or semantic exclusivity/completeness of the club library. External accounts, professional qualifications, approval authority require separate human verification. Existing RACI/budget rules remain; responsibility bubbles grant no budget, purchase, or school-approval authority.
 
-`buildEventNodes` 新增 ownerMode=unassigned 时只生成无执行人的图；锚点、条件、依赖、预计用时、校准和原有 RACI 元数据不变。实际候选与已确认分派由统一职责解析器及适配层处理，不退回旧职能或列表第一人。
+With new ownerMode=unassigned, `buildEventNodes` generates only an ownerless graph; anchors, conditions, dependencies, estimated effort, calibration, existing RACI metadata stay unchanged. Unified resolver/adapters handle candidates/confirmed assignments, without old-function or first-person fallback.

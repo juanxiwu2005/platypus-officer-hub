@@ -1,33 +1,33 @@
-# Platypus 执行方案（审计后）
+# Platypus execution plan (post-audit)
 
-**写于：** 2026-10-27（周二）
-**依据：** `docs/AUDIT_2026-10-27.md`
-**前提：** Juanxi 2026-10-27 的三个决定（见第 1 节）
-**状态：** 待 Juanxi 确认后开始执行
+**Written: ** 2026-10-27 (Tuesday)
+**Based on: ** `docs/AUDIT_2026-10-27.md`
+**Prerequisites: ** Juanxi's three decisions on 2026-10-27 (see Section 1)
+**Status: ** Awaiting Juanxi's confirmation before execution
 
 ---
 
-## 第 1 节 · Juanxi 的三个回答，以及它们改变了什么
+## Section 1 · Juanxi's three answers and what they change
 
-### 1.1 「我最怀念第二版的响应速度，真的很快，不需要等」
+### 1.1 "What I miss most about the second version is its response speed. It was really fast; there was no waiting."
 
-**→ 这条把性能从"以后再说"提到了第一优先级，而且找到了确切原因。**
+**→ This moves performance from "later" to the top priority and identifies the exact cause.**
 
-审计报告第 9 节原本写着"`forecast.ts` 的 1000 次迭代当前规模下不是问题，现在优化是浪费时间"。**这个结论现在要修正**——它只对"机器算得快不快"成立，对"人觉得快不快"不成立。
+Section 9 of the audit originally stated that "the 1000 iterations in `forecast.ts` are not a problem at the current scale; optimizing them now would waste time." **That conclusion now needs correction**: it holds only for "whether the machine computes quickly, " not for "whether it feels quick to a person."
 
-已验证的两个原因：
+Two verified causes:
 
-**① 每次悬停都要等 300 毫秒**
+**① Every hover requires a 300-millisecond wait**
 
 ```css
-/* src/styles.css:471（悬停卡）和 :572（流程图节点卡）*/
+/* src/styles.css:471 (hover card) and :572 (flowchart node card) */
 transition: opacity .12s ease .3s, visibility 0s linear .42s;
-                              ↑ 300ms 延迟
+                              ↑ 300ms delay
 ```
 
-鼠标停上去 → **等 300ms** → 再花 120ms 淡入 → 总共 **420ms** 才看见东西。移开时还有 420ms 才消失。
+Hover → **wait 300ms** → another 120ms fade-in → a total of **420ms** before anything is visible. Moving away also takes 420ms before it disappears.
 
-而第二版（你喜欢的 v0.1）的全部过渡是 `.15s` / `.2s`，**一个延迟都没有**：
+All transitions in the second version (v0.1, the one you liked) were `.15s` / `.2s`, with **no delays at all**:
 
 ```
 $ grep transition public/legacy/index.html
@@ -37,262 +37,262 @@ transition: transform .15s
 transition: none
 ```
 
-`git log -S` 确认：那个 300ms 延迟是 **`5bde479`「v1.1 简化改版」** 引入的——**正好是你开始不喜欢的那一版**。
+`git log -S` confirms that the 300ms delay was introduced by **`5bde479`, "v1.1 simplification redesign"**: **exactly the version you began to dislike**.
 
-**这是 1 行 CSS 的修复。**
+**This is a 1-line CSS fix.**
 
-**② 预测被重复计算 3–5 次**
+**② Forecasts are recalculated 3–5 times**
 
 ```
 src/pages/Today.tsx:19     useMemo(() => computeForecast(state), [state])
-src/pages/Events.tsx:28    useMemo(() => computeForecast(state), [state])   ← 各自一份缓存
-src/lib/aiContext.ts:18    computeForecast(s)        ← 每发一条 Ask 消息
-src/lib/assistant.ts:72    computeForecast(s)        ← 同一次回答里
-src/lib/assistant.ts:82    computeForecast(s)        ← 又一次
+src/pages/Events.tsx:28    useMemo(() => computeForecast(state), [state])   ← separate caches
+src/lib/aiContext.ts:18    computeForecast(s)        ← every Ask message
+src/lib/assistant.ts:72    computeForecast(s)        ← within the same answer
+src/lib/assistant.ts:82    computeForecast(s)        ← once again
 ```
 
-5 个调用点，互相不共享缓存。每次都要先跑一遍完整排程，再模拟 1000 次。**发一条 Ask 消息 = 3 次完整预测。** 加上 store 每次改动都要把整包数据 `JSON.stringify` 写进浏览器。
+There are 5 call sites with no shared cache. Each first runs the entire schedule, then performs 1,000 simulations. **Sending one Ask message = 3 complete forecasts.** On top of that, every store change runs `JSON.stringify` on the entire data bundle and writes it to browser storage.
 
-修法：收敛成一个 `useForecast()`，整个应用每次 state 变化只算一次。
+Fix: consolidate into one `useForecast()` so the entire app calculates it only once per state change.
 
-### 1.2 「蓝框太引导性了，像引导式访问，先去掉」
+### 1.2 "The blue outline draws too much attention, like Guided Access. Remove it first."
 
-**→ 2026-10-27 Juanxi 提供截图后已确认：那不是我们画的，是浏览器的原生焦点环。**
+**→ Confirmed after Juanxi supplied a screenshot on 2026-10-27: we did not draw that outline; it is the browser's native focus ring.**
 
-截图内容：Settings 页 `Submit budget request` 的数字输入框，获得焦点时外面有一圈亮蓝。
+Screenshot: the numeric input for `Submit budget request` on Settings has a bright blue ring around it when focused.
 
-关键证据 —— **那个蓝不是本项目的颜色**：
+Key evidence: **that blue is not one of this project's colors**:
 
 ```css
-/* src/styles.css:53 —— 本项目唯一的焦点样式 */
+/* src/styles.css:53 — the project's only focus style */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
-/* --accent = #0f766e，青绿色，不是蓝色 */
+/* --accent = #0f766e, teal, not blue */
 ```
 
-而且已核实：**全仓库没有任何针对 input / select / textarea 的焦点样式，也没有任何处理
-浏览器原生焦点环的代码**（`grep -n "webkit|focus-ring|outline: *none" src/styles.css`
-只命中 `.task-detail h2:focus`、`.panel h2:focus` 和两条无关的 `-webkit-` 属性）。
+Also verified: **the entire repository contains no focus styles for input / select / textarea and no code handling
+native browser focus rings** (`grep -n "webkit|focus-ring|outline: *none" src/styles.css`
+only matches `.task-detail h2:focus`, `.panel h2:focus`, and two unrelated `-webkit-` properties).
 
-→ 结论：那是浏览器自己给表单控件画的原生焦点环。Juanxi 说它是「苹果的」，很可能字面
-  意义上就是 —— macOS / Safari 对表单控件有自己的蓝色焦点环，作者的 `outline` 盖不住它。
+→ Conclusion: this is the browser's native focus ring for form controls. When Juanxi calls it "Apple's," he may mean that literally:
+  macOS / Safari draws its own blue focus ring on form controls, which the author's `outline` does not override.
 
-⚠️ **待确认：Juanxi 用的是 Safari 还是 Chrome。** 两者修法略有不同，S3 开工前要问。
+⚠️ **To confirm: whether Juanxi uses Safari or Chrome.** The fixes differ slightly; ask before starting S3.
 
-### 这一条不能简单删掉
+### This rule cannot simply be deleted
 
-v0.1（含 `:focus-visible` 的写法）和今天完全相同，而 Juanxi 喜欢两者。而且：
-- `:focus-visible` **只对键盘用户显示**，鼠标点击不触发（文本/数字输入框是例外，
-  按规范它们点击时也匹配 —— 这正是截图里那一下）
-- 它是 WCAG 2.4.7「焦点可见」的硬要求，删了 `e2e/a11y.spec.ts` 直接失败
-- ASU 有无障碍政策，论文里不能写「我们删掉了键盘可见性」
+v0.1 (including its use of `:focus-visible`) is exactly the same as today, and Juanxi likes both. Also:
+- `:focus-visible` **appears only for keyboard users**; mouse clicks do not trigger it (text/number inputs are an exception:
+  the specification also matches them on click, which is exactly what appeared in the screenshot).
+- It is a hard requirement of WCAG 2.4.7 "Focus Visible"; removing it immediately fails `e2e/a11y.spec.ts`.
+- ASU has an accessibility policy; the thesis cannot say "we removed keyboard focus visibility."
 
-### 正确改法
+### Correct fix
 
 ```css
-/* 1. 关掉表单控件的原生环 */
+/* 1. Remove native rings from form controls */
 input:focus, select:focus, textarea:focus { outline: none; }
 
-/* 2. 换成我们自己的、低调的环（只对键盘和文本输入显示） */
+/* 2. Replace it with our own subtle ring (only for keyboard and text input) */
 input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 2px solid var(--accent);   /* 青绿，不是蓝 */
+  outline: 2px solid var(--accent);   /* Teal, not blue */
   outline-offset: 1px;
 }
 ```
 
-Safari 还可能需要额外处理 `-webkit-appearance` / 数字输入框的 spinner。以 Juanxi 的
-浏览器实测为准。
+Safari may also need handling for `-webkit-appearance` / number-input spinners. Use Juanxi's
+actual browser test as the reference.
 
-### 顺带要处理的「选中态」
+### Also address the "selected state"
 
-v1.1 新增的这两条也偏重，和 Juanxi 要的「简洁、高级」相反：
+These two additions in v1.1 are also heavy and conflict with Juanxi's request for "simple and refined":
 
-| 位置 | 代码 | 问题 |
+| Location | Code | Problem |
 |---|---|---|
-| `styles.css:560` | `.m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px }` | 20px 的圆点外面套 3px 粗、离 3px 远的环，环几乎和圆点一样大 |
-| `styles.css:686` | `.heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px }` | Team 热力图 |
-| `styles.css:240` | `.flow-step.is-selected { box-shadow: ... }` | **死代码**（泳道图已删），直接删 |
+| `styles.css:560` | `.m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px }` | A 20px dot has a 3px-thick ring 3px away; the ring is almost as large as the dot |
+| `styles.css:686` | `.heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px }` | Team heatmap |
+| `styles.css:240` | `.flow-step.is-selected { box-shadow: ... }` | **Dead code** (the swimlane diagram was removed); delete it |
 
-→ 粗外环换成淡背景 + 1px 边框（Linear / Notion / monday 的做法）。
+→ Replace the thick outer ring with a subtle background + 1px border (as Linear / Notion / monday do).
 
-### 1.3 「用假数据，先不上 Supabase」
+### 1.3 "Use fictional data; do not add Supabase yet"
 
-**→ D 线（数据层）整条取消。这省掉了大量工作，而且让 IRB 简单得多。** 这个决定是对的。
+**→ Cancel all of Track D (the data layer). This saves substantial work and makes IRB much simpler.** This is the right decision.
 
-但有三个连带后果必须处理：
+But three consequences must be addressed:
 
-**① 浏览器数据保护的优先级上升了。** 既然 localStorage 是唯一的存储，审计报告 A7 那条（"改一次数据结构 = 所有用户数据无声清零"）就从"隐患"变成"参与者 60 分钟会话做的一切可能在你推一次代码后消失"。**A7 必须做，而且要在周四之前。**
+**① Browser data protection now has higher priority.** Since localStorage is the only storage, audit item A7 ("one data-structure change silently wipes every user's data") changes from a "potential issue" to "everything a participant did in a 60-minute session could disappear after one code push." **A7 must be done, before Thursday.**
 
-**② 时钟问题不用修了。** 固定在 `2026-10-22` 的演示时钟原本是个问题，但你的计划里本来就写着"Phase 3 每位参与者看到同样的日期"（10/22 决定记录）。**所以这是 feature 不是 bug，保持不动。**（但 2027-05-08 的日历过期还是要补，半小时的事，而且现在补比以后补便宜。）
+**② The clock no longer needs fixing.** The demo clock fixed at `2026-10-22` originally looked like a problem, but your plan already says "every Phase 3 participant sees the same date" (10/22 decision record). **So this is a feature, not a bug; leave it unchanged.** (The calendar expiring on 2027-05-08 still needs extending, though. That takes half an hour, and doing it now is cheaper than doing it later.)
 
-**③ 但你的 data governance 还是能拿到，而且不需要服务器。** 这是我新想到的办法：
+**③ You can still have data governance without a server.** Here is an approach I just thought of:
 
-在那个 reducer 切口上（`store.tsx:104-245`，一个 switch 覆盖全部 40 种操作）加一张**只追加的事件日志，写进同一个 localStorage**。会话结束时，参与者点一下「Export session」，把 JSON 交给你。
+Add an **append-only event log in the same localStorage** at the reducer integration point (`store.tsx:104-245`, one switch covering all 40 action types). At the end of a session, the participant clicks "Export session" and gives you the JSON.
 
-你就拿到了：谁、在第几秒、做了什么、改之前是什么值。**零服务器、零 Supabase、零数据库，但论文里"data governance 作为最底层"这个主张有了真实证据。**
+You then have: who did what, at which second, and the value before the change. **Zero servers, zero Supabase, zero databases, but real evidence for the thesis's claim that "data governance is the foundation."**
 
-⚠️ **这件事必须写进周四提交的 IRB 材料里。** 导出文件里不含真实姓名（参与者用你给的假信息），但"收集参与者的交互日志"本身就是在收集数据，protocol 里要有。**现在写进去是免费的；批准之后再加要走修改，会卡掉你 11/9 开始测试的计划。**
+⚠️ **This must be included in the IRB materials submitted on Thursday.** The export contains no real names (participants use the fictional details you provide), but "collecting participants' interaction logs" is itself data collection and must appear in the protocol. **Adding it now costs nothing; adding it after approval requires an amendment that could derail your plan to begin testing on 11/9.**
 
-### 1.4【2026-10-27 更正】Juanxi 喜欢的是**现在这一版**，不是旧版
+### 1.4 [Correction, 2026-10-27] Juanxi likes **the current version**, not the old one
 
-Juanxi 发来一张他说「我喜欢的就是这个版本」的截图。逐项核对，那是 **v1.2（main 上现在
-跑的版本）的深色模式**：
+Juanxi sent a screenshot saying, "This is the version I like." Checking each element shows that it is **dark mode in v1.2 (the version currently
+running on main)**:
 
-| 截图里的元素 | 代码位置 | 引入版本 |
+| Element in the screenshot | Code location | Introduced in |
 |---|---|---|
-| 右栏 `Ask \| Details` 两标签、"Looking at: Today ×" | `src/components/rail/AskPanel.tsx` | v1.1 |
-| Plan/Prep/Money/Promo/Run/Wrap 圆点链 | `Chain`（`ui/index.tsx`）| v1.1 |
-| "Waiting" 紫 / "Not claimed" 灰 | `ui/statusDefaults.ts` 的 6 色 | v1.1 |
-| "Demo · Thu, Oct 22" 药丸 | `DemoMenu` | v1.1 |
-| Rules 与 Settings 之间那条横线 | `Layout.tsx:79` 的空分组 div | v1.1 |
-| Semester goals 圆环 | `Ring`（`ui/index.tsx`）| v1.1 |
+| Right-rail `Ask \| Details` tabs and "Looking at: Today ×" | `src/components/rail/AskPanel.tsx` | v1.1 |
+| Plan/Prep/Money/Promo/Run/Wrap dot chain | `Chain` (`ui/index.tsx`) | v1.1 |
+| Purple "Waiting" / gray "Not claimed" | 6 colors in `ui/statusDefaults.ts` | v1.1 |
+| "Demo · Thu, Oct 22" pill | `DemoMenu` | v1.1 |
+| Horizontal line between Rules and Settings | Empty group div in `Layout.tsx:79` | v1.1 |
+| Semester goals ring | `Ring` (`ui/index.tsx`) | v1.1 |
 
-v0.1 和 WP0–WP5 那两代都**没有**右栏、Chain、StatusPill，所以可以排除。
+Neither v0.1 nor WP0–WP5 **had** a right rail, Chain, or StatusPill, so those two generations can be ruled out.
 
-**→ 审计报告第 7.4 节的推断（「他怀念的是第二版有标题有解释文字的卡片布局」）被否定了。**
-那一条在报告里标的是「推断」，现在有反证，按反证走。
+**→ The inference in audit section 7.4 ("he misses the second version's card layout with headings and explanatory text") has been disproved.**
+That statement was marked as an "inference" in the report. We now have contrary evidence and should follow it.
 
-### 这改变了什么
+### What this changes
 
-| 原计划 | 改成 | 理由 |
+| Original plan | Change to | Reason |
 |---|---|---|
-| C4 导航改回动作导向 | ❌ **删除** | 他喜欢现在的导航 |
-| C5 恢复甘特图 | ❌ **删除** | 他从未要求过 |
-| C1 Behind-the-scenes 开关 | ✅ 保留，**换理由** | 不再是「找回怀念的东西」，而是①论文可解释性论证 ②触屏用户看不到悬停卡内容 |
-| C2 问题变可见副标题 | ⚠️ **降级为先问 Juanxi** | 他没抱怨过看不懂，这是改进不是修 bug |
-| S5 的定位 | ⚠️ **从「建立设计系统」改为「把现在的样子固定下来」** | 见下 |
+| C4 Return navigation to an action-oriented structure | ❌ **Remove** | He likes the current navigation |
+| C5 Restore the Gantt chart | ❌ **Remove** | He never requested it |
+| C1 Behind-the-scenes switch | ✅ Retain, **with a different rationale** | No longer "recovering something he misses, " but ① the thesis's explainability argument and ② touch users cannot see hover-card content |
+| C2 Turn questions into visible subtitles | ⚠️ **Downgrade to asking Juanxi first** | He has not complained that he cannot understand it; this is an improvement, not a bug fix |
+| S5's purpose | ⚠️ **Change from "establish a design system" to "formalize the current appearance"** | See below |
 
-### S5 定位的改变（重要）
+### Change in S5's purpose (important)
 
-Juanxi 可以**喜欢这个深绿色的样子**，同时代码底下**确实是乱的** —— 这两件事不冲突。
+Juanxi can **like this dark green appearance** while the underlying code **really is a mess**—those two things do not conflict.
 
-23 种字号、4 套配色、19.7% 死 CSS 不是「看起来丑」的问题，是「没人能安全地改它」的问题。
+23 font sizes, 4 color systems, and 19.7% dead CSS are a problem of "no one can safely change it," beyond simply "it looks ugly."
 
-**所以 S5 要做的不是重新设计，是把现在这个样子用一套规则重新表达一遍。做完之后界面应该
-看起来几乎一模一样**，只是从「23 种随机字号」变成「6 个档位」。S5 的提示词里必须写死
-这一条，否则 Opus 会忍不住「改进」视觉。
+**S5 therefore needs to express the current appearance through a consistent set of rules, rather than redesign it. The interface should
+look almost identical afterward**, changing only from "23 arbitrary font sizes" to "6 levels." The S5 prompt must make
+this explicit, or Opus will be tempted to "improve" the visuals.
 
-### 1.5【2026-10-27 再更正】Juanxi 其实更喜欢**浅色模式**，而且现在没法选
+### 1.5 [Further correction, 2026-10-27] Juanxi actually prefers **light mode**, and currently cannot select it
 
-Juanxi 补充：「其实我不是很喜欢深色模式，我还是更喜欢白色模式。」
+Juanxi added: "Actually, I don't really like dark mode. I still prefer light mode."
 
-所以第 1.4 节那张截图是深色的，只是因为**他的电脑系统是深色，而这个 app 没有给他
-选择的余地**。他说的「深绿色的版本」指的是品牌的青绿色（`--accent #0f766e`），不是
-深色模式。
+So the screenshot in §1.4 is dark simply because **his computer's system theme is dark, and this app gives him
+no choice**. His “dark green version” refers to the brand's teal (`--accent #0f766e`), not
+dark mode.
 
-**→ 前一版方案里「S5 把深色模式当第一现场」这条作废。浅色是主场。**
+**→ The previous plan's "S5: treat dark mode as the primary context" is superseded. Light mode comes first.**
 
-### 已核实：主题切换功能缺失，但 CSS 早就写好了
+### Verified: the theme switch is missing, but the CSS has long been ready
 
 ```css
-src/styles.css:27   color-scheme: light;                              /* 默认浅色 */
+src/styles.css:27   color-scheme: light;                              /* Light by default */
 src/styles.css:29   @media (prefers-color-scheme: dark) {
-src/styles.css:30     :root:not([data-theme="light"]) { ... }          /* 跟随系统，除非强制浅色 */
-src/styles.css:39   :root[data-theme="dark"] { ... }                   /* 强制深色 */
+src/styles.css:30     :root:not([data-theme="light"]) { ... }          /* Follow the system unless light is forced */
+src/styles.css:39   :root[data-theme="dark"] { ... }                   /* Force dark */
 ```
 
-CSS **完整支持** `data-theme="light"` / `data-theme="dark"` 两种强制覆盖。
+The CSS **fully supports** both forced overrides, `data-theme="light"` / `data-theme="dark"`.
 
-**但是全仓库没有任何一行代码会去设置 `data-theme`。**
-（`grep -rn "theme|Theme" src/components/ src/pages/Settings.tsx` 零命中）
+**But no line of code anywhere in the repository sets `data-theme`.**
+(`grep -rn "theme|Theme" src/components/ src/pages/Settings.tsx` returns zero matches.)
 
-→ 后果：**这个 app 只能跟随操作系统，用户无法选择。** Juanxi 的 Mac 是深色，
-  所以他一直只能看到深色版。
+→ Consequence: **this app can only follow the operating system; the user cannot choose.** Juanxi's Mac uses dark mode,
+  so he has only ever been able to see the dark version.
 
-→ 修法：在 `<html>` 上设置 `document.documentElement.dataset.theme`，存 localStorage。
-  **不需要改一行 CSS**，钩子已经在那里了。约 20 行。
+→ Fix: set `document.documentElement.dataset.theme` on `<html>` and save it to localStorage.
+  **No CSS changes are needed**; the hook is already there. About 20 lines.
 
-→ 归属：这件事只需要动 `Layout.tsx` 和 `main.tsx`，两个都是 **S1 的文件**，
-  而且不碰 `styles.css`（S3 独占）。所以给 S1 做，编号 **A11**。
+→ Ownership: this only requires changes to `Layout.tsx` and `main.tsx`, both **S1 files**,
+  without touching `styles.css` (exclusive to S3). Assign it to S1 as **A11**.
 
-### 这件事对 Phase 3 的影响（比看上去重要）
+### How this affects Phase 3 (more than it appears)
 
-参与者会看到**各自电脑系统**决定的主题。如果一半人是深色、一半人是浅色：
-- 研究条件不一致（而计划第 16 节的决定里，"每位参与者看到同样的日期"正是为了一致性）
-- 而且审计第 8.2 节发现 **6 个状态色没有深色变体**，在深色背景上对 surface
-  只有 2.96–3.65:1，`--line` 只有 1.30:1 —— 深色模式下的观感明显更差
+Participants will see a theme determined by **their own computer's system settings**. If half use dark and half light:
+- Research conditions differ (while the decision in section 16 of the plan specifies "every participant sees the same dates" precisely for consistency).
+- Audit section 8.2 also found that **6 status colors have no dark variants**, with only 2.96–3.65:1 against surface on a dark background,
+  and `--line` only 1.30:1. Dark mode looks noticeably worse.
 
-→ **建议 Phase 3 默认强制浅色**，但这是产品决定，由 Juanxi 定。
-→ S5 仍然要修深色模式那几个对比度（它们客观是坏的），只是**排在浅色之后**，
-  不再是第一现场。
-
----
+→ **Recommend forcing light mode by default for Phase 3**, but this is a product decision for Juanxi.
+→ S5 must still fix those dark-mode contrast issues (they are objectively broken), but **after light mode**;
+  they are no longer the primary focus.
 
 ---
 
-## 第 2 节 · 新时间表
+---
 
-| 日期 | 星期 | 事件 | 要完成什么 |
+## Section 2 · Revised schedule
+
+| Date | Day | Event | What must be completed |
 |---|---|---|---|
-| **10/27** | 周二 | 今天 | 确认本方案；提交审计报告到 GitHub |
-| 10/28 | 周三 | 执行 | **第一阶段**（3 个会话并行） |
-| **10/29** | **周四** | **提交 IRB** | 功能完整、无明显 bug、响应快。**IRB 材料里写上交互日志导出** |
-| 10/30–11/1 | 五六日 | IRB 等待 | **第二阶段**（设计系统，顺序执行） |
-| **11/2–11/3** | 周一二 | IRB 批准 | 第二阶段继续 |
-| **11/4** | **周三** | 发招募邮件 | 关掉 Netlify 访问保护（**必须先做完限流**）|
-| 11/5–11/8 | 四五六日 | 收尾 | **第三阶段**（可解释性）+ 定版 |
-| **11/9** | **周一** | 开始真实测试 | v1.0 冻结、打标签 |
+| **10/27** | Tuesday | Today | Confirm this plan; submit the audit report to GitHub |
+| 10/28 | Wednesday | Implementation | **Stage 1** (3 parallel chats) |
+| **10/29** | **Thursday** | **Submit IRB** | Complete functionality, no obvious bugs, fast response. **Include interaction-log export in the IRB materials** |
+| 10/30–11/1 | Friday–Sunday | Waiting for IRB | **Stage 2** (design system, executed sequentially) |
+| **11/2–11/3** | Monday–Tuesday | IRB approval | Continue Stage 2 |
+| **11/4** | **Wednesday** | Send recruitment email | Disable Netlify access protection (**rate limiting must be completed first**) |
+| 11/5–11/8 | Thursday–Sunday | Final work | **Stage 3** (explainability) + finalize |
+| **11/9** | **Monday** | Begin real testing | Freeze and tag v1.0 |
 
-**三个阶段的分界线是硬的：**
+**The boundaries between the three stages are firm:**
 
-- **第一阶段（今天 → 周四）＝ 能用、不丢数据、感觉快。** 不碰视觉系统。
-- **第二阶段（周四 → 周日）＝ 设计系统。** 这阶段只改 CSS 和 lint 配置，不加功能。
-- **第三阶段（11/5 → 11/8）＝ 把"看得懂"拿回来。** 最有论文价值的部分放最后，因为它建立在前两阶段之上。
+- **Stage 1 (today → Thursday) = usable, no data loss, feels fast.** Leave the visual system alone.
+- **Stage 2 (Thursday → Sunday) = design system.** Change only CSS and lint configuration in this stage; add no features.
+- **Stage 3 (11/5 → 11/8) = restore comprehensibility.** The part with the most thesis value comes last because it depends on the first two stages.
 
-**11/4 有一个硬依赖：** 发招募邮件意味着要关掉 Netlify 访问保护，而那一刻你的 AI key 就暴露在公网。**所以 A8（限流 + 删掉多余端点）必须在 11/4 之前完成**，不能拖。
+**11/4 has a hard dependency:** sending recruitment emails means disabling Netlify access protection, at which point your AI key is exposed to the public internet. **So A8 (rate limiting + removal of redundant endpoints) must be completed before 11/4**. It cannot slip.
 
 ---
 
-## 第 3 节 · 会话清单（9 个会话）
+## Section 3 · Session list (9 sessions)
 
-### 回答「预计需要开多少个对话」：**9 个**，分三批。
+### Answer to "how many chats will this take?": **9**, in three batches.
 
-| # | 会话名 | 阶段 | 模型 | 分支 | 能否并行 | 独占的文件 |
+| # | Session name | Stage | Model | Branch | Can run in parallel? | Exclusively owned files |
 |---|---|---|---|---|---|---|
-| **S1** | 权限与入口修复 | 一 | **Sonnet 5.5** | `fix/s1-ux-bugs` | ✅ 与 S2/S3 并行 | `NodePanel.tsx` `Tasks.tsx` `board.ts` `Layout.tsx` `main.tsx` `TaskDetail.tsx` |
-| **S2** | 安全、引擎、数据保护 | 一 | **Sonnet 5.5** | `fix/s2-safety` | ✅ 与 S1/S3 并行 | `netlify/**` `calendar.ts` `schedule.ts` `store.tsx` `seed.ts` `public/legacy/` |
-| **S3** | 响应速度与质感 | 一 | **Opus 5.5** | `fix/s3-perf` | ✅ 与 S1/S2 并行 | `styles.css` `Today.tsx` `Events.tsx` `aiContext.ts` `assistant.ts` `forecast.ts` |
-| **S4** | 删死代码 | 二 | **Sonnet 5.5** | `design/s4-deadcode` | ❌ 必须在 S3 合并后 | `styles.css` `helpers.tsx` |
-| **S5** | Token 表（设计系统） | 二 | **Opus 5.5** | `design/s5-tokens` | ❌ 必须在 S4 之后 | `styles.css` `statusDefaults.ts` `MetroChart.tsx` `Handoff.tsx` |
-| **S6** | 护栏（lint + CI + 无障碍） | 二 | **Sonnet 5.5** | `design/s6-guardrails` | ❌ 必须在 S5 之后 | `package.json` `.stylelintrc` `.eslintrc` `ci.yml` `a11y.spec.ts` `word-count.mjs` |
-| **S7** | 可解释性开关 + 可见副标题 | 三 | **Opus 5.5** | `feat/s7-explain` | ❌ 必须在 S6 之后 | `Page.tsx` `Layout.tsx` `routes.ts` + 各 page 的注释点 |
-| **S8** | 触屏降级 + 导航重组 | 三 | **Sonnet 5.5** | `feat/s8-touch-nav` | ❌ 必须在 S7 之后 | `ui/index.tsx` `Layout.tsx` `styles.css` |
-| **S9** | 定版、文档、合并上线 | 三 | **Opus 5.5** | `release/v1.0` | ❌ 最后 | `README.md` `AGENTS.md` `PROGRESS.md` `PRODUCT_PLAN.md` |
+| **S1** | Permissions and entry-point fixes | 1 | **Sonnet 5.5** | `fix/s1-ux-bugs` | ✅ With S2/S3 | `NodePanel.tsx` `Tasks.tsx` `board.ts` `Layout.tsx` `main.tsx` `TaskDetail.tsx` |
+| **S2** | Security, engine, and data protection | 1 | **Sonnet 5.5** | `fix/s2-safety` | ✅ With S1/S3 | `netlify/**` `calendar.ts` `schedule.ts` `store.tsx` `seed.ts` `public/legacy/` |
+| **S3** | Responsiveness and polish | 1 | **Opus 5.5** | `fix/s3-perf` | ✅ With S1/S2 | `styles.css` `Today.tsx` `Events.tsx` `aiContext.ts` `assistant.ts` `forecast.ts` |
+| **S4** | Remove dead code | 2 | **Sonnet 5.5** | `design/s4-deadcode` | ❌ Only after S3 merges | `styles.css` `helpers.tsx` |
+| **S5** | Token table (design system) | 2 | **Opus 5.5** | `design/s5-tokens` | ❌ After S4 | `styles.css` `statusDefaults.ts` `MetroChart.tsx` `Handoff.tsx` |
+| **S6** | Guardrails (lint + CI + accessibility) | 2 | **Sonnet 5.5** | `design/s6-guardrails` | ❌ After S5 | `package.json` `.stylelintrc` `.eslintrc` `ci.yml` `a11y.spec.ts` `word-count.mjs` |
+| **S7** | Explainability toggle + visible subtitles | 3 | **Opus 5.5** | `feat/s7-explain` | ❌ After S6 | `Page.tsx` `Layout.tsx` `routes.ts` + explanatory insertion points in each page |
+| **S8** | Touch fallback + navigation reorganization | 3 | **Sonnet 5.5** | `feat/s8-touch-nav` | ❌ After S7 | `ui/index.tsx` `Layout.tsx` `styles.css` |
+| **S9** | Finalize, document, merge, and launch | 3 | **Opus 5.5** | `release/v1.0` | ❌ Last | `README.md` `AGENTS.md` `PROGRESS.md` `PRODUCT_PLAN.md` |
 
-### 为什么是这个分法
+### Why this division
 
-**S1/S2/S3 可以并行，是因为它们的文件集合经过核对、完全不重叠。** 这不是猜的——我逐个列了独占文件清单，提示词里会写明"不要碰别人的文件"。唯一的交叉点是 `styles.css`：**只有 S3 可以改它**，所以 S1 加新按钮时必须复用现有的 `.btn .btn-primary`，不准写新样式。
+**S1/S2/S3 can run in parallel because their file sets were checked and do not overlap at all.** This is not a guess: I listed each exclusively owned file, and the prompts will explicitly say "do not touch other sessions' files." The sole potential overlap is `styles.css`: **only S3 may modify it**, so S1 must reuse the existing `.btn .btn-primary` when adding buttons and may not write new styles.
 
-**S4 必须在 S5 之前，这一点和审计报告的顺序相反——我改了。** 原报告写 B1（token）→ B2（删死代码）。**先删后建更省事**：删掉 19.7% 的死 CSS 之后，S5 要映射的字号/间距会少掉一大块，而且审计发现的 23 处"重复声明冲突"里大部分重复的那一半本来就是死的——先删掉，冲突自己就消失了。
+**S4 must precede S5. This reverses the audit report's order; I have changed it.** The original report specified B1 (tokens) → B2 (remove dead code). **Removing before building is less work**: once the 19.7% unused CSS is gone, S5 has far fewer font sizes and spacing values to map. Also, in most of the 23 "conflicting duplicate declarations" found by the audit, one duplicate is already unused; removing it resolves the conflict automatically.
 
-**第二、三阶段不并行，是因为它们全都要动 `styles.css`。** 两个 agent 同时改同一个 714 行的 CSS 文件 = 必然的合并冲突，而你不写代码，解决不了冲突。**串行比并行安全得多。**
+**Stages two and three are sequential because both edit `styles.css`.** Two agents editing the same 714-line CSS file at once inevitably creates merge conflicts, and you do not write code or resolve those conflicts. **Sequential work is much safer here.**
 
-### 回答「用哪个模型」
+### Answer to "which model should we use?"
 
-原则：**按任务性质选，不是按"越贵越好"选。**
+Principle: **choose for the nature of the task, not on the assumption that more expensive is better.**
 
-- **Opus 5.5 用在需要判断的地方**（S3 S5 S7 S9）：
-  - S3 要判断"哪个框才是他说的蓝框"、"怎么改才叫简洁高级"——这是审美和权衡
-  - S5 要把 23 种字号映射进 6 个档位，每一个都是判断题（这个 13px 该归 xs 还是 sm？）
-  - S7 是从零设计一个新交互
-  - S9 要决定能不能上线
-- **Sonnet 5.5 用在规格明确的地方**（S1 S2 S4 S6 S8）：有确切的文件、行号、验收标准，照做就行
-- **Haiku** 这些任务都偏重，不建议用
+- **Use Opus 5.5 where judgment is required** (S3 S5 S7 S9):
+  - S3 must determine "which box he means by the blue box" and "what change would feel simple and polished": aesthetic judgment and tradeoffs
+  - S5 must map 23 font sizes into 6 levels; each mapping needs judgment (does this 13px belong in xs or sm?)
+  - S7 designs a new interaction from scratch
+  - S9 decides whether the product can launch
+- **Use Sonnet 5.5 where specifications are clear** (S1 S2 S4 S6 S8): exact files, line numbers, and acceptance criteria; follow the specification
+- **Haiku** is not recommended; all these tasks are relatively demanding
 
 ---
 
-## 第 4 节 · 回答「怎么用 git worktree」
+## Section 4 · Answering "how to use git worktree"
 
-### 先说一个能帮你省事的判断
+### First, a judgment that can save you work
 
-**如果你是在网页上开新对话（claude.ai/code 这种云端会话），你不需要 worktree。**
+**If you open a new chat on the web (a cloud session such as claude.ai/code), you do not need a worktree.**
 
-云端会话每次都会开一个全新的容器、重新 clone 一份代码。**隔离已经是免费的了**——两个会话物理上不可能互相覆盖文件。worktree 解决的是"同一台机器上多个 agent 抢同一个文件夹"，而你没有这个问题。
+Each cloud session starts a fresh container and clones a fresh copy of the code. **Isolation is already free**: two sessions physically cannot overwrite each other's files. Worktrees solve "multiple agents competing for the same folder on one machine, " which is not a problem you have.
 
-**所以你只需要分支，不需要 worktree。** 每个会话一开始检出自己的分支就行。你不用学 worktree 是什么。
+**So you only need branches, not worktrees.** Each session can check out its branch at the start. You do not need to learn what a worktree is.
 
-### 方案 A（推荐）· 云端会话 + 分支
+### Option A (recommended) · Cloud sessions + branches
 
-一次性准备（今天做）：
+One-time setup (do this today):
 
 ```bash
 git checkout main && git pull
@@ -300,1324 +300,1325 @@ git checkout -b integration/v1.1-fix
 git push -u origin integration/v1.1-fix
 ```
 
-`integration/v1.1-fix` 是**集结地**。所有会话的成果先合并到这里，**只在周四和 11/9 两个节点才合并到 `main`**（遵守 AGENTS.md 第 3 节规则 4：main 就是正式网站，需要你批准）。
+`integration/v1.1-fix` is the **integration point**. All sessions merge their work here first; **merge to `main` only at the two checkpoints, Thursday and 11/9** (following AGENTS.md Section 3, rule 4: main is the production site and requires your approval).
 
-每个会话的第一句（提示词里已经写好了）：
+The first statement in each chat (already included in the prompts):
 
 ```bash
 git fetch origin
 git checkout -b fix/s1-ux-bugs origin/integration/v1.1-fix
 ```
 
-每个会话的最后：推自己的分支，**不要自己合并**。你在 GitHub 上看一眼再按合并按钮。
+At the end of each chat: push its own branch; **do not merge it yourself**. You review it on GitHub, then click the merge button.
 
-合并顺序（**一次只合一个，合完等 CI 绿灯再合下一个**）：
+Merge order (**one at a time; wait for green CI before merging the next**):
 
 ```
-S1 → S2 → S3  →  合并 integration/v1.1-fix 到 main（周四，你批准）
+S1 → S2 → S3  →  Merge integration/v1.1-fix into main (Thursday, with your approval)
 S4 → S5 → S6
 S7 → S8
-S9                →  合并到 main + 打 v1.0 标签（11/9，你批准）
+S9                →  Merge into main + tag v1.0 (11/9, with your approval)
 ```
 
-### 方案 B · 如果你在自己 Mac 上跑本地 Claude Code
+### Option B · If you run local Claude Code on your own Mac
 
-这时候 worktree 才有意义——它让三个 agent 各有一个独立的工作目录，但共享同一个 `.git`，所以互不干扰又不用 clone 三份：
+This is where worktrees become useful: each of the three agents gets a separate working directory while sharing the same `.git`, avoiding interference without cloning three copies:
 
 ```bash
 cd ~/platypus-officer-hub
 git fetch origin && git checkout -b integration/v1.1-fix origin/main && git push -u origin integration/v1.1-fix
 
-# 给第一阶段的三个会话各开一个工作目录
+# Create one working directory for each of the three Stage 1 sessions
 git worktree add ../pl-s1 -b fix/s1-ux-bugs integration/v1.1-fix
 git worktree add ../pl-s2 -b fix/s2-safety  integration/v1.1-fix
 git worktree add ../pl-s3 -b fix/s3-perf    integration/v1.1-fix
 
-# 每个目录要各自装一次依赖（node_modules 不共享）
+# Install dependencies separately in each directory (node_modules is not shared)
 cd ../pl-s1 && npm ci
 cd ../pl-s2 && npm ci
 cd ../pl-s3 && npm ci
 ```
 
-然后在三个终端里分别 `cd ../pl-s1` 再启动 Claude Code。
+Then run `cd ../pl-s1` in each of the three terminals and start Claude Code.
 
-做完回收：
+Clean up when finished:
 
 ```bash
-git worktree remove ../pl-s1    # 要先提交或丢弃改动
-git worktree list               # 看还剩哪些
+git worktree remove ../pl-s1    # Commit or discard changes first
+git worktree list               # See which worktrees remain
 ```
 
-**两个坑：**
-1. `node_modules` 不共享，每个 worktree 要单独 `npm ci`（三份依赖，占磁盘）
-2. 同一个分支不能在两个 worktree 里同时检出，git 会直接拒绝
+**Two pitfalls:**
+1. `node_modules` is not shared; each worktree needs its own `npm ci` (three copies of dependencies, consuming disk space)
+2. The same branch cannot be checked out in two worktrees at once; git will refuse
 
-**我的建议：用方案 A。** 你不写代码，worktree 的收益（省一次 clone）远小于它的认知成本。
+**My recommendation: use option A.** Since you do not code, the benefit of a worktree (saving one clone) is far smaller than its cognitive cost.
 
 ---
 
-## 第 5 节 · 九个提示词（可直接复制）
+## Section 5 · Nine prompts (ready to copy)
 
-> 用法：开一个新对话 → 确认模型 → 把下面对应的整段粘进去。每段都已经包含了分支操作、文件边界、验收标准和交接要求，你不用额外补充。
+> Usage: open a new chat → confirm the model → paste the corresponding complete prompt below. Each already includes branch operations, file boundaries, acceptance criteria, and handoff requirements; you need not add anything.
 
 ---
 
-### S1 · 权限与入口修复 ｜ Sonnet 5.5 ｜ 可与 S2/S3 并行
+### S1 · Permissions and entry-point fixes | Sonnet 5.5 | Can run alongside S2/S3
 
 ```
-你在 Platypus Officer Hub 仓库里做一个界定清楚的修复工作包。这是 ASU 荣誉论文的
-Phase 3 原型，项目负责人 Juanxi 不写代码。
+You are implementing a clearly scoped repair package in the Platypus Officer Hub repository. This is a
+Phase 3 prototype for an ASU honors thesis; the project lead, Juanxi, does not code.
 
-先读（按顺序，必读）：
-1. AGENTS.md —— 对所有 AI 都适用的硬规则，特别是第 3 节和第 7 节
-2. docs/AUDIT_2026-10-27.md —— 代码审计报告，你要修的问题全在第 5、6 节
-3. docs/EXECUTION_PLAN_2026-10-27.md 第 3 节 —— 你是 S1
+Read first (required, in order):
+1. AGENTS.md: hard rules for all AI assistants, especially Sections 3 and 7.
+2. docs/AUDIT_2026-10-27.md: the code audit report; all issues you must fix are in Sections 5 and 6.
+3. Section 3 of docs/EXECUTION_PLAN_2026-10-27.md: you are S1.
 
-开始前：
+Before starting:
   git fetch origin
   git checkout -b fix/s1-ux-bugs origin/integration/v1.1-fix
   npm ci
 
-## 你要做的六件事
+## Your six tasks
 
-A1. src/styles.css:472 —— 悬停卡显示时没有恢复 pointer-events，导致悬停卡里的
-    按钮鼠标点不到、键盘也到不了。src/pages/Team.tsx:39 的贡献榜下钻功能因此
-    100% 不可用。
-    ⚠️ 例外：styles.css 由 S3 独占，你不能改它。
-    → 请改成在 TSX 层面解决，或者把这一条写进交接记录交给 S3，并在
-      e2e 里加一个会失败的测试标记（test.fixme）把问题钉住。二选一，说明理由。
+A1. src/styles.css: 472 — pointer-events is not restored when the hover card appears, so its
+    buttons cannot be reached by mouse or keyboard. This makes the contribution leaderboard
+    drill-down in src/pages/Team.tsx: 39 100% unusable.
+    ⚠️ Exception: styles.css is exclusive to S3; you must not edit it.
+    → Solve this at the TSX layer, or document it in the handoff for S3 and add
+      an expected-failure marker (test.fixme) in e2e to pin down the problem. Choose one and explain why.
 
-A2. src/components/NodePanel.tsx:52,62,85,92,96,103,105,106 —— 这些编辑控件对
-    所有人都渲染，但 src/data/store.tsx:155 的 updateNode 在 !canLead(state) 时
-    直接 return state。用户改了没反应、也没有任何提示。
-    → 改成 disabled={!canLead(state)}，并在面板里加一句说明。
-    → 文案和交互必须和 src/components/rail/ChangeCard.tsx:111-113 完全一致
-      （那是全仓库唯一做对的地方，照它抄）。
-    ⚠️ 不要改 store.tsx（S2 独占），只改 NodePanel.tsx。
+A2. src/components/NodePanel.tsx:52,62,85,92,96,103,105,106: these editing controls
+    render for everyone, but updateNode at src/data/store.tsx:155 immediately
+    returns state when !canLead(state). Users make changes with no effect or explanation.
+    → Use disabled={!canLead(state)} and add an explanatory sentence to the panel.
+    → Copy and interaction must exactly match src/components/rail/ChangeCard.tsx:111-113
+      (the only place in the repository that handles this correctly; follow it).
+    ⚠️ Do not edit store.tsx (exclusive to S2); edit only NodePanel.tsx.
 
-A3. src/pages/Tasks.tsx:28-32 —— 全站唯一的「+ Add task」按钮在 :125，只存在于
-    Board 视图每一列的最底部。默认视图是 Table（:20），所以用户打开 Tasks 看不到
-    任何新建入口，会以为自己没权限。
-    → 在 PageHead 的 actions 里加一个「+ New task」主按钮，三个视图都显示。
-    → 复用现有的 dispatch({ type: "addTask", title, status })。
-    → 注意 src/data/board.ts:60-71 的 addBoardTask 本来就不检查权限，所以这个
-      按钮对所有角色都应该可用。
-    ⚠️ 必须复用现有的 .btn .btn-primary 类，不准新增任何 CSS。
+A3. src/pages/Tasks.tsx:28-32 — The site's only "+ Add task" button is at :125, at the very bottom
+    of each column in Board view. The default is Table (:20), so users opening Tasks see
+    no creation entry and may assume they lack permission.
+    → Add a primary "+ New task" button to PageHead actions, visible in all three views.
+    → Reuse the existing dispatch({ type: "addTask", title, status }).
+    → Note that addBoardTask at src/data/board.ts:60-71 already has no permission check, so this
+      button should be available to all roles.
+    ⚠️ Reuse the existing .btn .btn-primary classes; do not add any CSS.
 
-A4. src/data/board.ts:64-67 —— 两个 bug：
-    (a) 非 lead 在 "Not claimed" 列点新建，卡片会静默出现在 "To do" 列。
-        → 改成显式提示用户发生了什么（文案用英文，界面文字一律英文，见 AGENTS.md §7）。
-    (b) :69 在 "Done" 列新建会直接产生 status=done 且 completedOn=today 的任务，
-        任何干部都能凭空造一个「已完成」，而 canMoveTask(:22) 却规定重开已完成
-        任务要社长批准 —— 审批模型被创建路径绕过了。
-        → 堵掉。新建的任务不允许直接是 done。
-    → 两条都要补单元测试。
+A4. src/data/board.ts:64-67 — Two bugs:
+    (a) When a non-lead creates a task in "Not claimed", the card silently appears in "To do".
+        → Explicitly tell the user what happened (use English copy; all interface text must be English, see AGENTS.md §7).
+    (b) :69 Creating a task in "Done" immediately produces status=done and completedOn=today.
+        Any officer can invent a "completed" task, while canMoveTask(:22) requires the president's approval
+        to reopen a completed task: the creation path bypasses the approval model.
+        → Close this loophole. Newly created tasks must not start as done.
+    → Add unit tests for both.
 
-A5. src/components/Layout.tsx:123 —— Reset demo 一键清空全部数据，没有任何确认，
-    而它就在顶栏菜单里紧挨着 "+1 day / +3 days / +10 days"。全仓库 0 处 confirm()。
-    → 加一次确认。不要用原生 confirm()（会被 Playwright 和手机浏览器挡），用
-      一个两步点击（第一次点变成 "Click again to reset"，3 秒后复原）。
-    → 更新受影响的 e2e 测试。
+A5. src/components/Layout.tsx:123—Reset demo clears all data in one click without any confirmation,
+    right beside "+1 day / +3 days / +10 days" in the top-bar menu. There are 0 confirm() calls in the repository.
+    → Add confirmation. Do not use native confirm() (blocked by Playwright and mobile browsers); use
+      a two-click action (the first click changes it to "Click again to reset", reverting after 3 seconds).
+    → Update the affected e2e tests.
 
-A6. src/main.tsx —— 全仓库 0 处 ErrorBoundary。任何渲染错误 = 整个应用白屏，而
-    localStorage 里损坏的数据会导致每次刷新都白屏。参与者会直接卡死。
-    → 加一个 ErrorBoundary，包住 App。
-    → 出错时显示：一句英文说明 + 两个按钮（Reload / Reset demo data）。
-    → Reset 按钮要能在 store 已经坏掉的情况下工作（直接清 localStorage，
-      不要走 store 的 action）。
+A6. src/main.tsx—there are 0 ErrorBoundary instances in the repository. Any rendering error = a blank app,
+    and corrupt localStorage data will cause a blank screen on every refresh. Participants will be completely stuck.
+    → Add an ErrorBoundary around App.
+    → On error, show one sentence in English + two buttons (Reload / Reset demo data).
+    → The Reset button must work even when the store is broken (clear localStorage directly,
+      without using a store action).
 
-A11【2026-10-27 新增】浅色 / 深色切换。
-    已核实：src/styles.css 的 CSS **已经完整支持**主题覆盖 ——
-      :27  color-scheme: light                      （默认浅色）
-      :30  :root:not([data-theme="light"])          （跟随系统，除非强制浅色）
-      :39  :root[data-theme="dark"]                 （强制深色）
-    **但全仓库没有任何一行代码会去设置 data-theme**
-    （grep -rn "theme|Theme" src/components/ src/pages/Settings.tsx 零命中）。
-    → 后果：app 只能跟随操作系统，用户无法选择。Juanxi 的 Mac 是深色，所以他
-      一直只能看到深色版，而他说他更喜欢浅色。
-    → 做法：在 <html> 上设置 document.documentElement.dataset.theme，存 localStorage。
-      三档：Auto（跟随系统，不设 data-theme）/ Light / Dark。
-    → ⚠️ **不需要改一行 CSS**，钩子已经在那里了。styles.css 是 S3 独占，你不能碰。
-    → 放哪里：顶栏已经有 5 个控件（审计第 8.6 节说 60% 是演示脚手架），不要变成
-      第 6 个。建议收进 Settings 页或 Demo 菜单。你判断，并在汇报里说明理由。
-    → 首次加载时要避免「先闪一下深色再变浅色」（在 main.tsx 里 React 挂载前就
-      把 data-theme 写上）。
-    → 补测试：切到 Light 后刷新，仍然是 Light。
-    → 在交接记录里问 Juanxi 一个问题：**Phase 3 要不要默认强制浅色？**
-      理由：参与者会看到各自系统决定的主题，一半深一半浅会让研究条件不一致，
-      而且 6 个状态色没有深色变体（深色下对比度只有 2.96–3.65:1）。这是产品决定，
-      由他定，你不要自己决定。
+A11 [Added 2026-10-27] Light / dark theme switching.
+    Verified: the CSS in src/styles.css **already fully supports** theme overrides:
+      :27  color-scheme: light                      (light by default)
+      :30  :root:not([data-theme="light"])          (follow the system unless light is forced)
+      :39  :root[data-theme="dark"]                 (force dark)
+    **But no line of code in the entire repository sets data-theme**
+    (grep -rn "theme|Theme" src/components/ src/pages/Settings.tsx returns zero matches).
+    → Consequence: the app can only follow the operating system; users cannot choose. Juanxi's Mac uses dark mode,
+      so he has only ever seen the dark version, although he says he prefers light.
+    → Approach: set document.documentElement.dataset.theme on <html> and persist it in localStorage.
+      Three settings: Auto (follow the system, omit data-theme) / Light / Dark.
+    → ⚠️ **No CSS changes are needed**; the hooks already exist. styles.css belongs exclusively to S3; do not touch it.
+    → Placement: the top bar already has 5 controls (audit Section 8.6 says 60% are demo scaffolding); do not add
+      a sixth. Consider Settings or the Demo menu. Use your judgment and explain your reasoning in the report.
+    → Prevent a "dark flash before switching to light" on initial load (set data-theme in main.tsx before
+      mounting React).
+    → Add a test: after switching to Light and refreshing, it remains Light.
+    → Ask Juanxi in the handoff record: **Should Phase 3 force light mode by default?**
+      Reason: participants otherwise see themes determined by their own systems; half dark and half light creates
+      inconsistent study conditions. The 6 status colors also lack dark variants (dark-mode contrast is only
+      2.96–3.65:1). This is a product decision for him; do not decide it yourself.
 
-## 文件边界（硬性）
+## File boundaries (mandatory)
 
-你只能改：
+You may modify only:
   src/components/NodePanel.tsx
   src/components/TaskDetail.tsx
   src/pages/Tasks.tsx
   src/data/board.ts
   src/components/Layout.tsx
   src/main.tsx
-  src/test/** 和 e2e/** 里对应的测试
-  docs/PROGRESS.md（只加交接记录）
+  The corresponding tests in src/test/** and e2e/**
+  docs/PROGRESS.md (handoff entries only)
 
-你绝对不能改：
-  src/styles.css        ← S3 独占
-  src/data/store.tsx    ← S2 独占
-  netlify/**            ← S2 独占
-  src/engine/**         ← S2/S3 独占
+You must never modify:
+  src/styles.css        ← Exclusively owned by S3
+  src/data/store.tsx    ← Exclusively owned by S2
+  netlify/**            ← Exclusively owned by S2
+  src/engine/**         ← Exclusively owned by S2/S3
   src/lib/assistant.ts, src/lib/aiContext.ts, src/pages/Today.tsx,
-  src/pages/Events.tsx  ← S3 独占
+  src/pages/Events.tsx  ← Exclusively owned by S3
 
-如果某件事必须改到别人的文件，不要改 —— 写进 docs/PROGRESS.md 的交接记录，
-说明「S1 发现 X，需要 S3/S2 在 <文件> 做 Y」。
+If something requires modifying another session's files, do not modify them: put it in the handoff entry in docs/PROGRESS.md,
+explaining "S1 found X; S3/S2 needs to do Y in <file>."
 
-## 验收
+## Acceptance
 
-- npm run check 全绿（tsc + vitest + playwright）
-- 原有测试一条都不能删、不能改宽松。如果某个测试因为你的改动而理应变化，
-  在交接记录里逐条说明为什么。
-- 新行为都要有测试
-- 不要改 AGENTS.md、PRODUCT_PLAN.md、RULES.md
+- npm run check must be entirely green (tsc + vitest + playwright)
+- Do not delete or weaken any existing test. If your changes legitimately require a test to change,
+  explain each such change and its reason in the handoff entry.
+- All new behavior needs tests
+- Do not modify AGENTS.md, PRODUCT_PLAN.md, or RULES.md
 
-## 结束时
+## At completion
 
-1. 在 docs/PROGRESS.md 的交接记录最上面加一行，格式照既有的写：
-   做完了什么 / 还剩什么 / 怎么验收（点哪里）/ 已知问题 / 交接给谁
-2. 提交信息格式：[S1][Claude] 简短说明
+1. Add a row at the top of the handoff log in docs/PROGRESS.md, following its existing format:
+   completed / remaining / acceptance steps (where to click) / known issues / next owner
+2. Commit message format: [S1][Claude] Short description
 3. git push -u origin fix/s1-ux-bugs
-4. 不要合并到任何分支。不要碰 main。Juanxi 会自己在 GitHub 上合并。
-5. 最后用简单中文向 Juanxi 汇报：改了什么、他该点哪里验收、有什么没做完。
-   一次只讲一步，不要用术语。
+4. Do not merge into any branch. Do not touch main. Juanxi will merge on GitHub himself.
+5. Finally, report to Juanxi in simple Chinese [historical instruction; superseded by the current English policy]: what changed, where to click for acceptance, and what remains unfinished.
+   Explain one step at a time without jargon.
 ```
 
 ---
 
-### S2 · 安全、引擎、数据保护 ｜ Sonnet 5.5 ｜ 可与 S1/S3 并行
+### S2 · Security, engine, and data protection | Sonnet 5.5 | Can run alongside S1/S3
 
 ```
-你在 Platypus Officer Hub 仓库里做一个界定清楚的修复工作包。这是 ASU 荣誉论文的
-Phase 3 原型，项目负责人 Juanxi 不写代码。
+You are implementing a clearly scoped repair package in the Platypus Officer Hub repository. This is a
+Phase 3 prototype for an ASU honors thesis; the project lead, Juanxi, does not code.
 
-先读（按顺序，必读）：
-1. AGENTS.md —— 特别是第 3 节硬性规则
-2. docs/AUDIT_2026-10-27.md —— 你要修的在第 3 节（三件紧急事）和第 10 节
-3. docs/EXECUTION_PLAN_2026-10-27.md 第 1.3 节和第 3 节 —— 你是 S2
+Read first (in order, all required):
+1. AGENTS.md — especially the hard rules in section 3
+2. docs/AUDIT_2026-10-27.md — your repairs are in section 3 (three urgent items) and section 10
+3. docs/EXECUTION_PLAN_2026-10-27.md sections 1.3 and 3 — you are S2
 
-重要背景：Juanxi 已决定 Phase 3 不上 Supabase，参与者使用我们提供的虚构信息。
-所以 localStorage 是唯一的存储，数据保护（A7）的优先级因此上升。
+Important context: Juanxi has decided that Phase 3 will not use Supabase, and participants will use fictional information we provide.
+localStorage is therefore the only storage, raising the priority of data protection (A7).
 
-开始前：
+Before starting:
   git fetch origin
   git checkout -b fix/s2-safety origin/integration/v1.1-fix
   npm ci
 
-## 你要做的四件事
+## Four things you need to do
 
-A7【最重要】数据保护。src/data/store.tsx:247-258：
-    schemaVersion 不等就直接 seedDemo()，没有迁移、没有备份、没有提示、没有导出。
-    这个版本号已经被改过 3 次（3→4→5），每次都意味着所有用户输入无声消失。
-    同一个 catch（:254-256）还把 JSON 解析失败也吞掉。
-    :260-266 的保存失败（QuotaExceededError）也是静默的。
-    → (a) 版本不匹配时，把旧数据原样另存到一个带版本号的 key，不要丢。
-    → (b) 保存失败时在界面上显式提示（不能静默）。
-    → (c) 加一个「Export my data」按钮，把当前状态下载成 JSON。
-         放在 Settings 页，不要放顶栏。
+A7 [Most important] Data protection. src/data/store.tsx:247-258:
+    A schemaVersion mismatch directly calls seedDemo(), with no migration, backup, notice, or export.
+    This version has changed 3 times already (3→4→5), each silently erasing all user input.
+    The same catch (: 254-256) also swallows JSON parsing failures.
+    Save failures (QuotaExceededError) at : 260-266 are silent too.
+    → (a) On a version mismatch, preserve the old data unchanged under a separate versioned key; do not discard it.
+    → (b) Explicitly show save failures in the interface (never silently).
+    → (c) Add an “Export my data” button to download the current state as JSON.
+         Put it on Settings, not the top bar.
 
-A7b【新增，Juanxi 2026-10-27 决定】交互日志。
-    src/data/store.tsx:104-245 是一个 switch，覆盖全部约 40 种操作，是唯一的写入点。
-    → 在这里加一张只追加的事件日志，写进同一个 localStorage：
-      { seq, at (真实时间戳 Date.now()), actor (viewerId), type (action 类型),
-        payload (精简后的参数), before (被改字段的旧值，只对有旧值的操作) }
-    → 注意：这是全仓库唯一可以用真实时钟的地方。界面上显示的日期仍然必须走
-      state.today（固定演示时钟），不要混。
-    → 上限：保留最近 2000 条，超了丢最旧的（localStorage 配额有限）。
-    → 让上面 A7(c) 的 Export 按钮把这份日志一起导出。
-    → 这是 Juanxi 论文里 data governance 的证据，所以字段要完整、要能重建顺序。
-    → 补单元测试：做 5 个不同操作，断言日志有 5 条、顺序对、before 值对。
+A7b [Added by Juanxi's 2026-10-27 decision] Interaction log.
+    src/data/store.tsx:104-245 is one switch covering approximately 40 action types, the only write point.
+    → Add an append-only event log here, stored in the same localStorage:
+      { seq, at (real timestamp from Date.now()), actor (viewerId), type (action type),
+        payload (trimmed parameters), before (old values of changed fields, only for actions with old values) }
+    → Note: this is the only place in the repository allowed to use the real clock. Dates displayed
+      in the interface must still use state.today (the fixed demo clock); do not mix them.
+    → Limit: retain the latest 2000 entries, dropping the oldest when exceeded (localStorage has limited capacity).
+    → Include this log in the export from A7(c)'s Export button above.
+    → This is evidence for data governance in Juanxi's thesis, so preserve every field and allow the order to be reconstructed.
+    → Add a unit test: perform 5 different actions and assert 5 log entries, correct order, and correct before values.
 
-A8 服务器端收口。11/4 要关掉 Netlify 访问保护发招募邮件，那一刻 /api/* 就暴露在
-    公网，而现在它无鉴权、无限流、单请求可塞 400KB。
-    → (a) netlify/functions/chat.mts:29 的 body 上限 400_000 → 40_000
-    → (b) 删掉这四个端点：netlify/functions/pool.mts（完全死代码，SPA 从不调用）、
-          parse-brief.mts、plan-draft.mts、classify.mts（只被废弃的 /legacy/ 调用）
-    → (c) 删掉 public/legacy/ 整个目录。它已经半坏了（在调 6 个根本不存在的端点），
-          但仍公开可访问且会烧同一把 AI key。
-          ⚠️ 删之前先确认：git log 里它的历史完整保留（Juanxi 可能要参考 v0.1 的设计，
-          S7 会用到）。在交接记录里写明「v0.1 的代码可以用
-          `git show 49b0b89:public/index.html` 取回」并核实这个命令真的能跑。
-    → (d) 加按 IP 的限流。优先用 Netlify 自带的能力（在 netlify.toml 里声明）；
-          如果当前方案不支持，就在 netlify/lib/http.mts 里加一个进程内的简单限流，
-          并在交接记录里诚实说明它的局限（函数实例重启就清零）。
-    → (e) 在 netlify/lib/ai.mts 里给每次调用记一行用量日志：
-          provider / model / 输入输出 token（如果供应商返回）/ 耗时 / 端点名。
-          ai.mts:110,118,131 已经在算耗时了。
-          ⚠️ 日志里绝对不能出现 key、token、用户内容。
+A8 Server-side containment. Netlify access protection is due to be disabled on 11/4 to send recruitment emails. At that point /api/* becomes
+    public, with no authentication, no rate limiting, and requests accepting 400KB.
+    → (a) Change the body limit at netlify/functions/chat.mts:29 from 400_000 → 40_000.
+    → (b) Delete these four endpoints: netlify/functions/pool.mts (entirely dead code, never called by the SPA),
+          parse-brief.mts, plan-draft.mts, classify.mts (called only by the abandoned /legacy/).
+    → (c) Delete the entire public/legacy/ directory. It is already partly broken (calling 6 nonexistent endpoints),
+          yet remains publicly accessible and can incur charges against the same AI key.
+          ⚠️ Before deleting, confirm its complete history remains in git log (Juanxi may need the v0.1 design
+          as a reference; S7 will use it). State in the handoff that "v0.1 code can be recovered with
+          `git show 49b0b89:public/index.html`" and verify that this command actually works.
+    → (d) Add per-IP rate limiting. Prefer Netlify's built-in capability (declared in netlify.toml);
+          if the current plan does not support it, add a simple in-process limiter in netlify/lib/http.mts
+          and honestly document its limitations in the handoff (counters reset when the function instance restarts).
+    → (e) In netlify/lib/ai.mts, log one usage line for each call:
+          provider / model / input and output token counts (if returned by the provider) / duration / endpoint name.
+          ai.mts:110,118,131 already measures duration.
+          ⚠️ Logs must never contain keys, credential tokens, or user content.
 
-A9 日历过期。src/engine/calendar.ts:15-60 的 ASU 学年数据只到 2027-05-08。
-    用完之后 studentOffReason(:80-86) 会把每一天都判成「学期之间」，于是倒推日期
-    一路往前跳。已复算验证：2027-10-15 的活动倒推 14 个学生工作日会算出
-    2027-04-13（正确答案 2027-09-27，错了整整 6 个月），而且不报任何错。
-    → (a) 补 2027–2028 学年的 TERMS / FINALS / HOLIDAYS / BREAKS。
-          每一条都要有官方来源 URL，并同步更新 docs/RULES.md 末尾的日历来源段
-          （AGENTS.md 第 4 节要求规则和文档同改）。
-          如果查不到官方 2027-2028 日历，不要编 —— 只做 (b)，并在交接记录里说明。
-    → (b)【必做】在 src/engine/schedule.ts 的 issue 列表（:290-324、:326-343）里
-          加一个新的 error 级 issue：任何计算涉及到已知日历范围之外的日期时，
-          明确报错。让它坏得明显，而不是坏得安静。
-    → (c) 补单元测试：把日期推到已知日历之外，断言 issue 出现。
+A9 Calendar expiry. ASU academic-year data in src/engine/calendar.ts:15-60 ends on 2027-05-08.
+    Beyond that, studentOffReason(:80-86) classifies every day as "between semesters," making the backward
+    date calculation keep jumping backward. Recalculation verified that subtracting 14 student working days
+    from an event on 2027-10-15 returns 2027-04-13 (the correct answer is 2027-09-27, a full 6-month error),
+    without reporting any error.
+    → (a) Add TERMS / FINALS / HOLIDAYS / BREAKS for the 2027–2028 academic year.
+          Every entry needs an official source URL; update the calendar-source section at the end of
+          docs/RULES.md as well (AGENTS.md Section 4 requires rules and documentation to change together).
+          If the official 2027-2028 calendar cannot be found, do not invent it: do only (b) and explain in the handoff.
+    → (b) [Required] Add a new error-level issue to the issue lists in src/engine/schedule.ts
+          (:290-324, :326-343): explicitly report an error whenever a calculation involves a date outside
+          the known calendar range. Make the failure visible rather than silent.
+    → (c) Add a unit test: move a date outside the known calendar and assert that the issue appears.
 
-## 文件边界（硬性）
+## File boundaries (mandatory)
 
-你只能改：
+You may modify only:
   src/data/store.tsx, src/data/seed.ts, src/data/types.ts
   src/engine/calendar.ts, src/engine/schedule.ts
   netlify/**
   netlify.toml
-  public/legacy/（删除）
-  src/pages/Settings.tsx（只为加 Export 按钮；复用现有 .btn 类，不写新 CSS）
-  docs/RULES.md（只改日历来源段）
-  src/test/** 和 e2e/** 里对应的测试
-  docs/PROGRESS.md（只加交接记录）
+  public/legacy/ (delete)
+  src/pages/Settings.tsx (only to add the Export button; reuse the existing .btn class, with no new CSS)
+  docs/RULES.md (calendar-source section only)
+  Corresponding tests in src/test/** and e2e/**
+  docs/PROGRESS.md (append handoff record only)
 
-你绝对不能改：
-  src/styles.css           ← S3 独占
-  src/components/**        ← S1 独占（Settings.tsx 的按钮是例外，但只准加按钮）
-  src/pages/Tasks.tsx, src/data/board.ts, src/main.tsx  ← S1 独占
+You must not change:
+  src/styles.css           ← S3 exclusive ownership
+  src/components/**        ← S1 exclusive ownership (except a button in Settings.tsx; adding a button only)
+  src/pages/Tasks.tsx, src/data/board.ts, src/main.tsx  ← S1 exclusive ownership
   src/lib/assistant.ts, src/lib/aiContext.ts, src/engine/forecast.ts,
-  src/pages/Today.tsx, src/pages/Events.tsx             ← S3 独占
+  src/pages/Today.tsx, src/pages/Events.tsx             ← S3 exclusive ownership
 
-## 验收
+## Acceptance
 
-- npm run check 全绿
-- 原有测试一条都不能删、不能改宽松
-- A7 的测试要包含：版本不匹配时旧数据被保留、保存失败时有提示
-- A9(b) 的测试要包含：超出日历范围时报错
-- 删端点之后，e2e 里如果有测试引用它们，一起清掉并说明
+- npm run check all green
+- Do not delete any existing test or loosen its assertions
+- A7 tests must cover: preserving old data on version mismatch, and showing a notice on save failure
+- A9(b) tests must cover: an error when outside the calendar range
+- After deleting endpoints, remove and explain any e2e tests that reference them
 
-## 结束时
+## At completion
 
-1. docs/PROGRESS.md 交接记录加一行（做完什么 / 还剩什么 / 怎么验收 / 已知问题）
-2. 提交信息：[S2][Claude] 简短说明
+1. Add a handoff entry to docs/PROGRESS.md (what is complete / what remains / how to accept / known issues).
+2. Commit message: [S2][Claude] Brief description
 3. git push -u origin fix/s2-safety
-4. 不要合并。不要碰 main。
-5. 用简单中文向 Juanxi 汇报。特别要说清楚两件事：
-   (a) 交互日志导出的格式长什么样（他要写进周四的 IRB 材料）
-   (b) 限流实际做到了什么程度、局限是什么
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese (historical instruction; repository and GitHub reporting must now use English under the current policy). Be especially clear about:
+   (a) What the exported interaction-log format looks like (he needs it for Thursday's IRB materials).
+   (b) What the rate limiting actually achieves and its limitations.
 ```
 
 ---
 
-### S3 · 响应速度与质感 ｜ Opus 5.5 ｜ 可与 S1/S2 并行
+### S3 · Responsiveness and polish | Opus 5.5 | Can run in parallel with S1/S2
 
 ```
-你在 Platypus Officer Hub 仓库里负责一个有判断成分的工作包：让界面"感觉快"，
-并处理项目负责人 Juanxi 明确提出的一个视觉要求。Juanxi 不写代码。
+You own a work package in the Platypus Officer Hub repository that requires judgment: make the interface “feel fast,”
+and address a visual requirement explicitly raised by project owner Juanxi. Juanxi does not code.
 
-先读（按顺序，必读）：
-1. AGENTS.md —— 特别是第 7 节界面规则
-2. docs/AUDIT_2026-10-27.md —— 全文，重点第 4、8 节
-3. docs/EXECUTION_PLAN_2026-10-27.md 第 1.1 和 1.2 节 —— 那是 Juanxi 的原话和
-   已经核实过的证据。你是 S3。
+Read first (in order, mandatory):
+1. AGENTS.md — especially section 7, interface rules.
+2. docs/AUDIT_2026-10-27.md — all of it, especially sections 4 and 8.
+3. Sections 1.1 and 1.2 of docs/EXECUTION_PLAN_2026-10-27.md — Juanxi's own words and
+   verified evidence. You are S3.
 
-Juanxi 的原话：「我最怀念第二版的响应速度，真的很快，不需要等。」
-以及：「蓝框太引导性了，感觉像引导式访问或者辅助功能，先去掉。我更需要简洁、
-高级、不出错。」
+Juanxi's exact words: "What I miss most about the second version is its response speed. It was really fast, with no waiting."
+Also: "The blue border is too directive; it feels like Guided Access or an accessibility feature. Remove it first. I need something simpler,
+more polished, and error-free."
 
-开始前：
+Before starting:
   git fetch origin
   git checkout -b fix/s3-perf origin/integration/v1.1-fix
   npm ci
 
-## P1 · 去掉 300 毫秒的悬停延迟【确定要做，1 行】
+## P1 · Remove the 300-millisecond hover delay [confirmed work; 1 line]
 
-src/styles.css:471 和 :572：
+src/styles.css:471 and :572:
   transition: opacity .12s ease .3s, visibility 0s linear .42s;
-鼠标停上去要等 300ms 才开始淡入，总共 420ms 才看见。移开也要 420ms。
+Hovering waits 300ms before fading in, and 420ms total before it is visible. Moving away also takes 420ms.
 
-已验证：v0.1（Juanxi 喜欢的那版）的全部过渡是 .15s / .2s，一个延迟都没有。
-git log -S 确认这个延迟是 5bde479「v1.1 简化改版」引入的 —— 正好是他开始不喜欢
-的那一版。
+Verified: all transitions in v0.1 (the version Juanxi liked) were .15s / .2s, with no delays.
+git log -S confirms that this delay was introduced by 5bde479, "v1.1 simplification redesign":
+exactly the version he started to dislike.
 
-→ 延迟改成 0 或极短（≤80ms，防误触），淡入时间对齐 v0.1 的 .15s。
-→ 同时检查全仓库还有没有别的 transition-delay 或过长的动画，一并处理。
-→ 注意 e2e 里有悬停测试，它们可能依赖这个延迟（等待时间写死）。一起改。
+→ Set the delay to 0 or very short (≤80 ms to prevent accidental activation), and align the fade-in duration with v0.1's .15 s.
+→ Check the entire repository for other transition-delay values or overly long animations and address them too.
+→ Note that e2e hover tests may depend on this delay (hardcoded waits). Update them as well.
 
-## P2 · 预测只算一次【确定要做】
+## P2 · Calculate the forecast only once [Confirmed]
 
-computeForecast 有 5 个互不共享缓存的调用点：
+computeForecast has 5 call sites with no shared cache:
   src/pages/Today.tsx:19     useMemo(..., [state])
   src/pages/Events.tsx:28    useMemo(..., [state])
   src/lib/aiContext.ts:18
   src/lib/assistant.ts:72
-  src/lib/assistant.ts:82    ← 同一次 AI 回答里算了两次
-每次都要先跑一遍完整的 computeSchedule，再模拟 1000 次。发一条 Ask 消息 = 3 次。
+  src/lib/assistant.ts:82    ← calculated twice within the same AI answer
+Each first runs a full computeSchedule, then 1000 simulations. One Ask message = 3 calculations.
 
-→ 收敛成一个单一来源（建议：挂在 store 的 context 上，按 state 记忆化一次）。
-→ 对纯函数调用点（assistant.ts / aiContext.ts 不在 React 树里）也要能复用同一份
-  结果，不要只修 React 那两处。
-→ 顺手量一下 store 每次改动的 JSON.stringify 开销（store.tsx:262,278 全量序列化）。
-  如果明显，做节流（但不能丢数据 —— 页面关闭前必须落盘）。
-→ ⚠️ forecast.ts 是固定种子的纯函数，输出必须和现在逐位相同。
-  src/test/forecast.test.ts 的确定性断言必须继续通过。不要改算法，只改调用方式。
-→ 加一个测试证明一次 state 变化只触发一次 computeForecast（可以用 spy 计数）。
+→ Consolidate into one source (suggestion: expose it through the store context and memoize once per state).
+→ Pure-function call sites (assistant.ts / aiContext.ts are outside the React tree) must reuse the same
+  result too; do not fix only the two React sites.
+→ Also measure the JSON.stringify cost on every store change (full serialization at store.tsx:262,278).
+  If significant, throttle it (without losing data: persist before the page closes).
+→ ⚠️ forecast.ts is a pure function with a fixed seed. Its output must remain bit-for-bit identical.
+  Determinism assertions in src/test/forecast.test.ts must keep passing. Change only the call pattern, not the algorithm.
+→ Add a test showing that one state change triggers computeForecast only once (a spy counter is acceptable).
 
-## P3 · 蓝框【Juanxi 已提供截图，已定位】
+## P3 · Blue border [Juanxi supplied a screenshot; located]
 
-截图内容：Settings 页 `Submit budget request` 的数字输入框，获得焦点时外面一圈亮蓝。
+Screenshot: the numeric input for `Submit budget request` on Settings has a bright blue ring around it when focused.
 
-⚠️ 已核实的事实，必须读懂再动手：
+⚠️ Verified facts: understand these before making changes:
 
-**那个蓝不是本项目的颜色。**
-  src/styles.css:53 是本项目唯一的焦点样式：
-    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
-  --accent = #0f766e，青绿色，不是蓝色。
-  而且全仓库没有任何针对 input / select / textarea 的焦点样式，也没有任何处理
-  浏览器原生焦点环的代码（grep webkit|focus-ring|outline: *none 只命中两处 h2:focus）。
+**That blue is not a project color.**
+  src/styles.css:53 is the project's only focus style:
+    : focus-visible { outline: 2 px solid var(--accent); outline-offset: 2 px; border-radius: 6 px; }
+  --accent = #0 f766 e, teal, not blue.
+  And there are no focus styles for input / select / textarea anywhere in the repository, nor any code handling
+  native browser focus rings (grep webkit|focus-ring|outline: *none matches only two h2: focus locations).
 
-已做过的穷尽检查（2026-10-27）：
-  - 全仓库 *.css 里只有 13 处 :focus/outline/accent-color 规则，**每一处的颜色都是
-    var(--accent)(#0f766e 青绿) 或 var(--late)/var(--accent-ink)**，没有任何蓝色焦点环
-  - 没有任何针对 input / select / textarea 的焦点样式
-  - 唯一的蓝 #3a6fd8 只出现在 4 个地方：statusDefaults.ts 的 "To do" 状态色、
-    PALETTE 调色板、.chain .dot.now、.m-dot.now —— 全都是**背景色**，不是焦点环
-  - 提交历史里没有任何提到 Apple / 苹果 / HIG 的记录
+Exhaustive checks already performed (2026-10-27):
+  - Across all *.css files, only 13 rules concern :focus/outline/accent-color, and **every color is
+    var(--accent) (#0f766e teal) or var(--late)/var(--accent-ink)**; there are no blue focus rings.
+  - No focus styles specifically target input / select / textarea.
+  - The sole blue, #3a6fd8, appears in only 4 places: the "To do" status in statusDefaults.ts,
+    the PALETTE palette, .chain .dot.now, and .m-dot.now. All are **background colors**, not focus rings.
+  - No commit-history entry mentions Apple or HIG (including the Chinese name for Apple).
 
-→ Juanxi 认为这是我们某次「参考苹果设计手册」时加的。证据不支持这个判断，但**不
-  需要先吵清楚** —— 下面的改法对两种情况都有效，因为它显式接管了表单控件的焦点样式。
+→ Juanxi believes we added this while "following Apple's design guide." The evidence does not support that, but **there is
+  no need to settle the argument first**: the change below works in either case because it explicitly controls form-control focus styles.
 
-**第一件事：问 Juanxi 用的是 Safari 还是 Chrome**（两者修法略有不同），并请他做一个
-10 秒的验证：在另一个浏览器里打开同一个输入框。如果蓝框的颜色或形状变了，就是浏览器
-画的；如果一模一样，那就是我们漏掉了什么，回来重查。
+**First: ask Juanxi whether he uses Safari or Chrome** (the fixes differ slightly), and ask him to perform a
+10-second check: open the same input in another browser. If the blue ring's color or shape changes, the browser
+is drawing it; if it is identical, we missed something and need to investigate again.
 
-### 不能简单删掉焦点样式
+### Do not simply delete focus styles
 
-- :focus-visible 只对键盘用户显示，鼠标点击不触发（文本/数字输入框是规范里的例外，
-  它们点击时也匹配 —— 这正是截图里那一下）
-- 它是 WCAG 2.4.7 的硬要求，删了 e2e/a11y.spec.ts 直接失败
-- ASU 有无障碍政策，论文里不能写「我们删掉了键盘可见性」
+- : focus-visible is displayed for keyboard users; mouse clicks do not trigger it (text/number inputs are exceptions in the specification:
+  they also match on click — exactly what happened in the screenshot)
+- It is required by WCAG 2.4.7; removing it makes e2e/a11y.spec.ts fail immediately
+- ASU has an accessibility policy; the thesis cannot say "we removed keyboard focus visibility"
 
-### 改法
+### How to change it
 
-  /* 1. 关掉表单控件的原生环 */
-  input:focus, select:focus, textarea:focus { outline: none; }
+  /* 1. Remove native rings from form controls */
+  input: focus, select: focus, textarea: focus { outline: none; }
 
-  /* 2. 换成我们自己的、低调的环 */
-  input:focus-visible, select:focus-visible, textarea:focus-visible {
-    outline: 2px solid var(--accent);
+  /* 2. Replace them with our own understated ring */
+  input: focus-visible, select: focus-visible, textarea: focus-visible {
+    outline: 2px solid var (--accent);
     outline-offset: 1px;
   }
 
-Safari 可能还需要处理 -webkit-appearance / 数字输入框 spinner。以 Juanxi 的浏览器
-实测为准 —— 改完请他在自己的浏览器里再点一次那个输入框确认。
+Safari may also require handling -webkit-appearance / number-input spinners. Use actual checks in Juanxi's browser
+as the authority — after the change, ask him to click that input again in his own browser to confirm.
 
-### 顺带处理偏重的「选中态」
+### Also soften the heavy selected state
 
   styles.css:560  .m-node.is-selected .m-dot { outline: 3px solid var(--accent); outline-offset: 3px }
-                  ← 20px 的圆点套 3px 粗、离 3px 远的环，环几乎和圆点一样大
+                  ← A 20px dot with a 3px-thick ring offset by 3px; the ring is almost as large as the dot
   styles.css:686  .heat-cell.all { outline: 2px solid var(--accent-ink); outline-offset: -1px }
-  styles.css:240  .flow-step.is-selected { box-shadow: ... }   ← 死代码（泳道图已删），直接删
+  styles.css:240  .flow-step.is-selected { box-shadow: ... }   ← Dead code (the swimlane diagram was removed); delete it
 
-→ 粗外环换成淡背景 + 1px 边框（Linear / Notion / monday 的做法）。
+→ Replace the thick outer ring with a subtle background + 1px border (as Linear / Notion / monday do).
 
-### 验证（必做）
+### Verification (required)
 
-改完只用键盘 Tab 走一遍 Today / Tasks / Events / Settings，每一步都要能看出焦点在哪。
-看不出来就是改坏了。然后重跑 e2e/a11y.spec.ts。
+After the change, use only Tab to go through Today / Tasks / Events / Settings. The focus must be visible at every step.
+If it is not, the change is broken. Then rerun e2e/a11y.spec.ts.
 
-## P4 · 顺手的质感问题（在上面三条做完之后，有余力再做）
+## P4 · Additional polish (only if capacity remains after the three items above)
 
-- styles.css:340 有一条死代码 .forecast { margin: .5rem 0 }，来自已删除的组件，
-  导致今天每个风险圆点都背着 8px 上下外边距。删掉。
-- styles.css:489 引用了一个全仓库从未定义过的变量 --st-now，所以流程图的"当前"
-  圆点永远落回硬编码的蓝色，Settings 里改颜色不生效。
-  ⚠️ 这一条的正式修复属于 S5（token 表）。你只要在交接记录里写清楚，不要动。
+- styles.css:340 contains dead code, .forecast { margin: .5rem 0 }, from a deleted component,
+  giving every current risk dot 8px top and bottom margins. Delete it.
+- styles.css:489 references --st-now, a variable never defined anywhere in the repository, so the flowchart's "current"
+  dot always falls back to hardcoded blue; changing colors in Settings has no effect.
+  ⚠️ The formal fix belongs to S5 (token table). Document it clearly in the handoff; do not change it.
 
-## 文件边界（硬性）
+## File boundaries (mandatory)
 
-你独占 src/styles.css —— S1 和 S2 都被禁止改它。如果他们在交接记录里留了
-styles.css 的需求（比如 S1 的 A1 pointer-events），你负责接手。
+You have exclusive ownership of src/styles.css — S1 and S2 are both prohibited from editing it. If they leave
+styles.css requests in their handoffs (such as S1's A1 pointer-events), you take them over.
 
-你只能改：
+You may edit only:
   src/styles.css
   src/pages/Today.tsx, src/pages/Events.tsx
   src/lib/assistant.ts, src/lib/aiContext.ts
-  src/engine/forecast.ts（只改调用方式/记忆化，不改算法）
-  src/data/store.tsx 里和 forecast context 相关的部分
-    ⚠️ store.tsx 由 S2 独占。如果你必须改它，先看 S2 有没有推送；
-       冲突就写进交接记录，让 Juanxi 安排顺序，不要强行改。
-  src/test/** 和 e2e/** 里对应的测试
-  docs/PROGRESS.md（只加交接记录）
+  src/engine/forecast.ts (change only calling patterns/memoization, not the algorithm)
+  forecast-context-related portions of src/data/store.tsx
+    ⚠️ store.tsx is exclusive to S2. If you must edit it, first check whether S2 has pushed;
+       if there is a conflict, record it in the handoff and let Juanxi arrange the order. Do not force the change.
+  Corresponding tests in src/test/** and e2e/**
+  docs/PROGRESS.md (add handoff notes only)
 
-你绝对不能改：
+You must not modify:
   src/components/NodePanel.tsx, src/pages/Tasks.tsx, src/data/board.ts,
-  src/components/Layout.tsx, src/main.tsx   ← S1 独占
-  netlify/**, src/engine/calendar.ts, src/engine/schedule.ts  ← S2 独占
-  src/components/ui/statusDefaults.ts        ← S5 独占（token 归一）
+  src/components/Layout.tsx, src/main.tsx   ← exclusively owned by S1
+  netlify/**, src/engine/calendar.ts, src/engine/schedule.ts  ← exclusively owned by S2
+  src/components/ui/statusDefaults.ts        ← exclusively owned by S5 (token unification)
 
-## 验收
+## Acceptance
 
-- npm run check 全绿
-- forecast 的确定性测试必须逐位通过
-- 新增一个测试证明 forecast 每次 state 变化只算一次
-- 人工：桌面和手机各走一遍 Today / Events / Tasks，悬停要立刻有反应
-- ⚠️ Juanxi 日常用的是**深色模式**，所有人工检查都要在深色模式下做一遍
-- 键盘 Tab 全程焦点可见
+- npm run check fully passes
+- Forecast determinism tests must pass bit for bit
+- Add a test showing that forecast computes only once per state change
+- Manual: walk through Today / Events / Tasks on desktop and phone; hover must respond immediately
+- ⚠️ Juanxi normally uses **dark mode**; repeat every manual check in dark mode
+- Focus remains visible throughout keyboard Tab navigation
 
-## 结束时
+## At completion
 
-1. docs/PROGRESS.md 交接记录加一行
-2. 提交信息：[S3][Claude] 简短说明
+1. Add a handoff entry to docs/PROGRESS.md
+2. Commit message: [S3][Claude] Brief description
 3. git push -u origin fix/s3-perf
-4. 不要合并。不要碰 main。
-5. 用简单中文向 Juanxi 汇报。特别说清楚：
-   (a) 现在悬停/点击比之前快了多少（给具体毫秒数）
-   (b) 蓝框那件事你查到了什么、你改了哪个、为什么没有删 :focus-visible
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese. [Historical language instruction; current English repository/collaboration policy supersedes it.] Be especially clear about:
+   (a) How much faster hover/click is now (specific milliseconds)
+   (b) What you found about the blue border, what you changed, and why you did not remove :focus-visible
 ```
 
 ---
 
-### S4 · 删死代码 ｜ Sonnet 5.5 ｜ 必须在 S3 合并之后
+### S4 · Remove dead code | Sonnet 5.5 | Must follow the S3 merge
 
 ```
-你在 Platypus Officer Hub 仓库里做一件纯粹的清理工作。这是 ASU 荣誉论文的 Phase 3
-原型，项目负责人 Juanxi 不写代码。这个工作包不改变任何用户可见的行为。
+You are doing a cleanup-only task in the Platypus Officer Hub repository. This is a Phase 3
+ASU honors thesis prototype; project owner Juanxi does not code. This work package changes no user-visible behavior.
 
-先读：
+Read first:
 1. AGENTS.md
-2. docs/AUDIT_2026-10-27.md 第 4.1、4.2 节（死代码的完整清单）
-3. docs/EXECUTION_PLAN_2026-10-27.md 第 3 节 —— 你是 S4
+2. docs/AUDIT_2026-10-27.md §§4.1, 4.2 (complete dead-code list)
+3. docs/EXECUTION_PLAN_2026-10-27.md §3—you are S4
 
-背景：src/styles.css 被 11 次提交写成，每一次的 diff 都是「+N / −0」，历史上从未
-删除过任何一行 CSS。那次叫「简化改版」的提交（5bde479）加了 341 行、删了 0 行 ——
-它删掉了泳道图和甘特图的 React 代码，但留下了它们全部的样式。
+Background: src/styles.css was built through 11 commits, each with a "+N / −0" diff. Not a single CSS line
+had ever been deleted. The commit called "simplification redesign" (5bde479) added 341 lines and removed 0 —
+it deleted the React code for the swimlane and Gantt charts but left all their styles.
 
-⚠️ 先确认 S3 的 fix/s3-perf 已经合并进 integration/v1.1-fix，否则你和它会在
-styles.css 上冲突。没合并就停下来告诉 Juanxi。
+⚠️ First confirm that S3's fix/s3-perf has merged into integration/v1.1-fix, otherwise your changes will conflict
+with it in styles.css. If it has not merged, stop and tell Juanxi.
 
-开始前：
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # 确认有 [S3] 的提交
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm that [S3] commits are present
   git checkout -b design/s4-deadcode origin/integration/v1.1-fix
   npm ci
 
-## 你要做的
+## What to do
 
-1. 自己重新测一遍死代码，不要照抄审计报告的清单（代码可能已经被 S1-S3 改过）。
-   方法：提取 src/styles.css 里所有 class 选择器，逐个在 src/**/*.{ts,tsx} 和
-   public/**/*.html 里按词边界搜索。把脚本留在 scripts/ 下面，这样以后能重跑。
+1. Measure dead code again yourself; do not copy the audit report's list (S1–S3 may have changed the code).
+   Method: extract every class selector from src/styles.css, then search for each with word boundaries in src/**/*.{ts, tsx} and
+   public/**/*.html. Keep the script under scripts/ so it can be rerun.
 
-2. 删掉确认无引用的规则块。审计报告测到的是 62 个死 class / 84 条规则块 /
-   329 条声明（约 16% 的 CSS），按代际分布：
-     - v1 泳道图（flow-* / react-flow*，14 个）—— FlowChart.tsx 已删
-     - v1 甘特图（gantt-*，10 个）—— Gantt.tsx 已删
-     - v1 第一代状态色（st-*，9 个）—— 已被 StatusPill 取代
-     - WP0/WP2 遗留（coming / demo-strip / step-strip / star-card 等，14 个）
-     - WP3/WP4/WP5 遗留（task-list / board-column / funding-pipeline 等，12 个）
-     - 其他 3 个
-   ⚠️ 如果 Juanxi 后来说要恢复甘特图（执行方案 C5），gantt-* 的样式可能还有用。
-     → 不要直接删 gantt-*，把它们整段移到文件末尾一个
-       /* ---- 保留：甘特图样式，等 C5 决定 ---- */ 的注释块里，并在交接记录里说明。
-     → 其余的照删。
+2. Delete rule blocks confirmed to have no references. The audit measured 62 dead classes / 84 rule blocks /
+   329 declarations (about 16% of the CSS), by generation:
+     - v1 swimlane (flow-* / react-flow*, 14)—FlowChart.tsx deleted
+     - v1 Gantt (gantt-*, 10)—Gantt.tsx deleted
+     - v1 first-generation status colors (st-*, 9)—replaced by StatusPill
+     - WP0/WP2 leftovers (coming / demo-strip / step-strip / star-card, etc., 14)
+     - WP3/WP4/WP5 leftovers (task-list / board-column / funding-pipeline, etc., 12)
+     - 3 others
+   ⚠️ If Juanxi later asks to restore the Gantt chart (execution plan C5), gantt-* styles may still be useful.
+     → Do not delete gantt-* directly. Move the entire section to the end of the file inside a
+       /* ---- Retained: Gantt styles, pending the C5 decision ---- */ comment block, and explain this in the handoff.
+     → Delete the rest as planned.
 
-3. 删掉 src/pages/helpers.tsx 里零引用的死导出：
-   STATUS_LABEL(:6-13)、statusOf(:16)、statusClass(:21)、personName(:33)、
-   initials(:35)。先各自 grep 确认真的零引用。
-   注意 statusOf/statusClass 是「第二代状态语义」，删掉它们是在消除审计报告
-   第 4.3 节那 4 套配色语言里的第 2 套。
+3. Remove these unreferenced dead exports from src/pages/helpers.tsx:
+   STATUS_LABEL(:6-13), statusOf(:16), statusClass(:21), personName(:33),
+   initials(:35). First search for each to confirm it truly has zero references.
+   Note that statusOf/statusClass are the "second generation of status semantics"; deleting them removes
+   color language 2 of the 4 in Section 4.3 of the audit.
 
-4. 反向问题：有 7 个在 TSX 里写了但 CSS 里完全没有规则的 class：
-   card-text（src/components/rail/AskPanel.tsx:123，AI 每条文字回复的容器，
-   完全无样式）、nudge-panel、task-gantt、info-wrap、todo、m-start、m-end。
-   → 逐个判断：是漏写样式（那就是 bug，记进交接记录给 S5），还是多余的 class
-     （那就从 TSX 里删掉）。不要擅自加新样式 —— 那是 S5 的事。
+4. The reverse problem: 7 classes appear in TSX but have no CSS rules at all:
+   card-text (src/components/rail/AskPanel.tsx:123, the container for every AI text reply,
+   completely unstyled), nudge-panel, task-gantt, info-wrap, todo, m-start, m-end.
+   → Assess each: is styling missing (a bug; record it in the handoff for S5), or is the class unnecessary
+     (remove it from TSX)? Do not add new styles yourself; that belongs to S5.
 
-5. src/components/ui/index.tsx:93 导出了一个 Empty 组件，但 16 个页面全在手写
-   <p className="empty">。
-   → 把这些手写的换成 <Empty>。位置：Today.tsx:41,81 / Tasks.tsx:70,136 /
+5. src/components/ui/index.tsx:93 exports an Empty component, but 16 pages all handwrite
+   <p className="empty">.
+   → Replace these handwritten instances with <Empty>. Locations: Today.tsx:41,81 / Tasks.tsx:70,136 /
      Events.tsx:34 / Funding.tsx:67,76 / Partners.tsx:58,68 / Rules.tsx:38 /
      Handoff.tsx:73 / Settings.tsx:126 / rail/Rail.tsx:61 / FollowupPanel.tsx:18 /
      BoardSettings.tsx:18
-   → 只做这一个替换，不要顺手改别的。
+   → Make only this replacement; do not change anything else along the way.
 
-## 硬性要求
+## Hard requirements
 
-- **不改变任何用户可见的行为。** 这是纯删除 + 一次等价替换。
-- 每删一组，跑一次 npm run check。全绿再删下一组。
-- 分多次提交，一组一个提交，这样出问题好回退。
-- 删完后报告：styles.css 从 714 行降到多少行、消掉了多少处重复声明冲突
-  （审计报告测到 23 处，其中重复的那一半大多是死的，应该会自动消掉一批）。
-- ⚠️ 删之前跑一次 npm run build && npx playwright test，记下基线。删完对比。
-- ⚠️ 视觉回归：这个项目没有视觉回归测试。所以你删完之后必须人工截图对比
-  10 个页面（桌面 + 手机）。用 scripts/word-count.mjs:30 已有的截图能力，
-  或自己写一个临时脚本（放 scratchpad，不要提交）。任何一处看起来变了就是删错了。
+- **Do not change any user-visible behavior.** This is deletion only + one equivalent replacement.
+- Run npm run check after deleting each group. Continue to the next only when all checks are green.
+- Make separate commits, one per group, for easy rollback if problems arise.
+- After deletion, report: how many lines styles.css has after starting at 714, and how many conflicting duplicate declarations were eliminated
+  (the audit found 23; most of the duplicate halves are dead, so a number should disappear automatically).
+- ⚠️ Run npm run build && npx playwright test before deleting anything and record the baseline. Compare afterward.
+- ⚠️ Visual regression: this project has no visual regression tests. After deletion, you must manually compare screenshots of
+  10 pages (desktop + mobile). Use the existing screenshot capability at scripts/word-count.mjs:30,
+  or write a temporary script (in scratchpad; do not commit it). Any visual change means something was deleted incorrectly.
 
-## 文件边界
+## File boundaries
 
-你只能改：
+You may change only:
   src/styles.css
   src/pages/helpers.tsx
-  各 page 和 component 里把 <p className="empty"> 换成 <Empty> 的那几行
-  被判定为多余 class 的那几行 TSX
-  scripts/（加死代码检测脚本）
-  docs/PROGRESS.md（只加交接记录）
+  The lines in pages and components replacing <p className="empty"> with <Empty>
+  TSX lines containing classes determined to be redundant
+  scripts/ (add a dead-code detection script)
+  docs/PROGRESS.md (add handoff entries only)
 
-不要改：任何逻辑、任何 netlify/**、任何 src/engine/**、任何测试的断言
+Do not change: any logic, any netlify/**, any src/engine/**, or any test assertions
 
-## 结束时
+## At completion
 
-1. docs/PROGRESS.md 交接记录加一行，必须包含：
-   - 删了多少行、哪些代际
-   - gantt-* 保留在哪里
-   - 第 4 条发现的「漏写样式」清单（交给 S5）
-2. 提交信息：[S4][Claude] 简短说明
+1. Add a handoff entry to docs/PROGRESS.md, including:
+   - How many lines were removed and from which generations.
+   - Where gantt-* remains.
+   - The "missing styles" list found in item 4 (for S5).
+2. Commit message: [S4][Claude] Brief description
 3. git push -u origin design/s4-deadcode
-4. 不要合并。不要碰 main。
-5. 用简单中文向 Juanxi 汇报，重点说：界面应该看不出任何变化，如果他看出变化了
-   就是我删错了，请他告诉我哪一页。
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese (historical instruction; repository and GitHub reporting must now use English under the current policy). Emphasize: the interface should look unchanged; if he sees a change,
+   I removed something incorrectly, and he should identify the page.
 ```
 
 ---
 
-### S5 · Token 表（设计系统）｜ Opus 5.5 ｜ 必须在 S4 之后
+### S5 · Token table (design system) | Opus 5.5 | Must follow S4
 
 ```
-你在 Platypus Officer Hub 仓库里补一份这个项目从来没有过的东西：设计系统的
-最小交付物。这是 ASU 荣誉论文的 Phase 3 原型，项目负责人 Juanxi 不写代码，
-也不懂设计术语。
+In the Platypus Officer Hub repository, add something this project has never had: the minimum
+deliverables for a design system. This is a Phase 3 prototype for an ASU honors thesis. Project owner Juanxi does not code
+or understand design terminology.
 
-先读（全部必读）：
-1. AGENTS.md —— 特别是第 7 节界面规则
-2. docs/AUDIT_2026-10-27.md —— 全文。第 4 节是你的工作说明书，第 8 节是对比度数据
-3. docs/EXECUTION_PLAN_2026-10-27.md 第 1.2 节 —— Juanxi 对视觉的唯一明确要求
-4. docs/PROGRESS.md 最上面 S4 的交接记录 —— 他给你留了一份「漏写样式」清单
+Read first (all required):
+1. AGENTS.md — especially Section 7, interface rules
+2. docs/AUDIT_2026-10-27.md — all of it. Section 4 defines your work; Section 8 contains contrast data
+3. docs/EXECUTION_PLAN_2026-10-27.md Section 1.2 — Juanxi's only explicit visual requirement
+4. The S4 handoff entry at the top of docs/PROGRESS.md — it leaves you a list of "missing styles"
 
-## 为什么要做这件事
+## Why this is needed
 
-这个项目跳过了标准流程的第 3 步（视觉方向）和第 4 步（设计系统与组件规范）。
-AGENTS.md 第 7 节那 6 条「界面规则」是 2026-10-23 在所有页面写完之后追认的，
-它只有「三栏 / 5 个组件 / 字数上限」这种清单，没有任何色阶、字阶、间距阶、层级。
+This project skipped step 3 (visual direction) and step 4 (design system and component specifications) of the standard process.
+The six "interface rules" in AGENTS.md section 7 were added retroactively on 2026-10-23 after all pages were written.
+They list only things such as "three columns / 5 components / word limits," with no color scale, type scale, spacing scale, or hierarchy.
 
-结果（审计实测）：23 种字号、22 种间距值、14 种圆角、14 个裸 z-index，
-而字号、间距、层级的 token 一个都没有。同一份数据上跑着 4 套互不相通的状态配色。
+Results (measured in the audit): 23 font sizes, 22 spacing values, 14 border radii, and 14 raw z-index values,
+with no tokens at all for typography, spacing, or layers. The same data uses 4 disconnected status-color systems.
 
-Juanxi 说他「说不上哪里好也说不上哪里坏」—— 因为界面里确实没有任何一条可以被
-陈述的规则。你的工作就是让它有。
+Juanxi says he "cannot say what is good or bad" because the interface really has no rule that can be
+stated clearly. Your job is to give it those rules.
 
-Juanxi 对视觉的唯一明确要求：**简洁、高级、不出错。** 不要引导性太强的东西。
+Juanxi's only explicit visual requirements: **simple, refined, and reliable.** Avoid overly directive elements.
 
-⚠️ 先确认 S4 的 design/s4-deadcode 已经合并进 integration/v1.1-fix。没合并就停下。
-   先删死代码再建 token 能省掉一大半工作（19.7% 的 CSS 是死的，不用映射）。
+⚠️ First confirm that S4's design/s4-deadcode has merged into integration/v1.1-fix. Stop if it has not.
+   Removing dead code before creating tokens saves more than half the work (19.7% of the CSS is dead and needs no mapping).
 
-开始前：
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # 确认有 [S4] 的提交
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm [S4] commits exist
   git checkout -b design/s5-tokens origin/integration/v1.1-fix
   npm ci
 
-## ⚠️ 最重要的一条约束：不要改变现在的样子
+## ⚠️ Most important constraint: preserve the current appearance
 
-2026-10-27 Juanxi 发来截图确认：**他喜欢现在这一版的外观**（v1.2 深色模式）。
-见本方案第 1.4 节。
+On 2026-10-27, Juanxi sent a screenshot confirming **he likes the current appearance** (v1.2 dark mode).
+See section 1.4 of this plan.
 
-所以你的任务**不是重新设计，是把现在这个样子用一套规则重新表达一遍**。
-做完之后界面应该看起来**几乎一模一样**，只是从「23 种随机字号」变成「6 个档位」。
+Your task, therefore, is **to express the current appearance through a consistent set of rules, rather than redesign it**.
+Afterward, the interface should look **almost identical**, with "23 random font sizes" replaced by "6 levels."
 
-- 不要"改进"配色、不要调整布局密度、不要换字体、不要改圆角风格
-- 每一次映射都应该是「最接近的那一档」，不是「我觉得更好的那一档」
-- 唯一允许明显改变视觉的地方：对比度不合格的那几处（第 3 条），以及
-  10px / 10.5px 这种过小的字号（AGENTS.md §7.4 要求不小于 14px，现在被违反得很厉害）
-- 如果某个映射会让界面明显变样，**先截图问 Juanxi**，不要自己决定
+- Do not "improve" the palette, change layout density, replace fonts, or change the corner-radius style
+- Every mapping should use the closest existing tier, not the tier you personally prefer
+- Noticeable visual changes are allowed only for failing contrast (item 3) and
+  undersized text such as 10px / 10.5px (AGENTS.md §7.4 requires at least 14px, currently violated extensively)
+- If a mapping would visibly change the interface, **show Juanxi a screenshot and ask first**; do not decide yourself
 
-## ⚠️ 第二条：浅色是主场，深色是第二位
+## ⚠️ Second rule: light mode comes first, dark mode second
 
-【2026-10-27 更正，见本方案第 1.5 节】Juanxi 说：「其实我不是很喜欢深色模式，
-我还是更喜欢白色模式。」他之前发的深色截图只是因为他的系统是深色，而这个 app
-当时还没有主题切换（S1 的 A11 会加上）。
+[2026-10-27 correction; see section 1.5 of this plan] Juanxi said, "Actually, I don't like dark mode very much;
+I still prefer white mode." His earlier dark screenshots simply reflected his system theme, because the app
+had no theme switch at that point (S1's A11 will add it).
 
-→ 每一组改动**先在浅色模式下看**，再看深色。
-→ 但深色那几个对比度问题仍然要修（审计第 8.2 节）：6 个状态色没有深色变体，
-  在深色背景上对 surface 只有 2.96–3.65:1；--line 只有 1.30:1。
-  Phase 3 参与者可能用深色，这些是客观缺陷，只是排在浅色之后。
+→ Review each group of changes **in light mode first**, then dark mode.
+→ Still fix the dark-mode contrast problems (audit Section 8.2): 6 status colors lack dark variants,
+  with only 2.96–3.65:1 contrast against the surface on dark backgrounds; --line is only 1.30:1.
+  Phase 3 participants may use dark mode. These are objective defects, simply lower priority than light mode.
 
-## 你要做的
+## What to do
 
-### 1. 补齐缺失的三个阶 + 层级
+### 1. Complete the three missing scales and layers
 
-现有 :root（styles.css:3-27 和 :357）已有 18 个颜色 token、3 个字体族、1 个阴影、
-1 个圆角、3 个布局宽度。缺的是：
+The existing : root (styles.css: 3-27 and :357) already has 18 color tokens, 3 font families, 1 shadow,
+1 radius, and 3 layout widths. What is missing:
 
-- **字阶 6 级**：--fs-xs:12 / --fs-sm:13 / --fs-base:15 / --fs-lg:17 / --fs-xl:20 / --fs-2xl:26
-  把现有 23 种字号（10 / 10.5 / 11 / 11.5 / 12 / 12.5 / 13 / 13.5 / 14 / 14.5 /
-  15 / 16 / 17 / 18 / 19 / 20 / 21 / 22 / 26 / 28px / clamp / .8rem / .95rem）
-  逐个映射进去。每一个都是判断题，不要机械四舍五入 —— 10px 和 10.5px 这种
-  本来就太小（AGENTS §7.4 要求字号不小于 14px，现在被违反得很厉害），
-  往上提到 --fs-xs 而不是新开一档。
-  ⚠️ 这一条会改变视觉。改完逐页截图给 Juanxi 看。
+- **6-level type scale**: --fs-xs: 12 / --fs-sm: 13 / --fs-base: 15 / --fs-lg: 17 / --fs-xl: 20 / --fs-2 xl: 26
+  Map the existing 23 font sizes (10 / 10.5 / 11 / 11.5 / 12 / 12.5 / 13 / 13.5 / 14 / 14.5 /
+  15 / 16 / 17 / 18 / 19 / 20 / 21 / 22 / 26 / 28 px / clamp / .8 rem / .95 rem)
+  individually. Each requires judgment, not mechanical rounding—10 px and 10.5 px
+  are already too small (AGENTS §7.4 requires at least 14 px, a rule now heavily violated);
+  raise them to --fs-xs rather than adding another level.
+  ⚠️ This item changes the visuals. Afterward, send Juanxi screenshots of every page.
 
-- **间距阶 6 级**：--s1:4 / --s2:8 / --s3:12 / --s4:16 / --s5:24 / --s6:32
-  现有 22 种值（1,2,3,4,5,6,7,8,9,10,11,12,14,16,18,19,20,22,24,28,40,48）
-  吸附到最近档位。5/7/9/11/19 这些破 4px 栅格的要特别注意。
-  padding 有 69 种不同写法，gap 有 24 种 —— 一起收。
+- **6 spacing levels**: --s1:4 / --s2:8 / --s3:12 / --s4:16 / --s5:24 / --s6:32
+  Snap the 22 existing values (1,2,3,4,5,6,7,8,9,10,11,12,14,16,18,19,20,22,24,28,40,48)
+  to the nearest level. Pay special attention to 5/7/9/11/19, which break the 4px grid.
+  There are 69 distinct padding forms and 24 gap forms; consolidate these together.
 
-- **圆角 3 级**：--r-sm:8 / --r-md:12 / --r-lg:14（+ 999px 药丸 + 50% 圆）
-  消掉 3/4/5/6/9/10px。现有唯一的 --radius token 只被用了 7 次，而 8px 被硬写
-  16 次、10px 15 次。
+- **3 corner-radius tiers**: --r-sm:8 / --r-md:12 / --r-lg:14 (+ 999px pills + 50% circles)
+  Eliminate 3/4/5/6/9/10px. The only existing --radius token is used just 7 times, while 8px is hardcoded
+  16 times and 10px 15 times.
 
-- **层级 5 级**：--z-sticky:20 / --z-overlay:40 / --z-rail:55 / --z-menu:60 / --z-tip:70
-  现有 14 个裸数字（0,1,2,3,4,5,6,20,40,45,50,55,60,70），靠人脑记。
+- **5 layer levels**: --z-sticky: 20 / --z-overlay: 40 / --z-rail: 55 / --z-menu: 60 / --z-tip: 70
+  The existing 14 raw numbers (0, 1, 2, 3, 4, 5, 6, 20, 40, 45, 50, 55, 60, 70) rely on human memory.
 
-### 2. 状态色归一【最重要的一条】
+### 2. Unify status colors [the most important item]
 
-审计报告第 4.3 节：品牌 token 和状态色是两套无关的色系，有 3 对「同义不同色」：
+Audit Section 4.3: brand tokens and status colors are two unrelated palettes, with 3 pairs of "same meaning, different color":
 
-| 含义 | 品牌 token | 状态色 |
+| Meaning | Brand token | Status color |
 |---|---|---|
-| 迟了/卡住 | --late #b42318 | blocked #c0362f |
-| 完成 | --good #1a7f37 | done #237a42 |
-| 注意/进行中 | --warn #8f5206 | in_progress #b25c00 |
-| 待办 | （不存在）| accepted #3a6fd8 ← 蓝色在整个 token 表里没有 |
+| Late/stuck | --late #b42318 | blocked #c0362f |
+| Done | --good #1a7f37 | done #237a42 |
+| Caution/in progress | --warn #8f5206 | in_progress #b25c00 |
+| To do | (absent) | accepted #3a6fd8 ← blue is absent from the entire token table |
 
-而且 git show 3d68221 显示这 6 个状态色原本是 monday.com 的
-#7d8682 #d97b06 #d23f37 #2b9550，2026-10-23 为了过对比度被逐个调暗成现在的值。
-**它们是从外部产品照抄 + 事后微调出来的，从来没和本项目的色系（青绿 #0f766e）对齐过。**
+Also, git show 3d68221 shows that these 6 status colors originally used monday.com's
+#7d8682 #d97b06 #d23f37 #2b9550, then were individually darkened on 2026-10-23 to pass contrast checks.
+**They were copied from another product and adjusted afterward; they were never aligned with this project's palette (teal #0f766e).**
 
-→ (a) 消掉这 3 对重复：每个含义只留一个值。
-   ⚠️ 不能简单取其一 —— 6 个状态色现在全部通过 WCAG AA（4.72–5.82:1，
-   审计报告第 8.1 节有实测值），而品牌色那三个未必。改完每一个都要重算对比度
-   并在交接记录里列出数字。低于 4.5:1 的不准用。
-→ (b) 给蓝色补一个 token（--info 或类似），别让它继续是个游离的 #3a6fd8。
-   同一个蓝现在被硬写在 4 处：statusDefaults.ts:7、styles.css:489、:554、:556。
-→ (c) 给 6 个状态色各补一个深色模式变体。现在它们在深色界面上对 surface
-   只有 2.96–3.65:1（审计第 8.2 节），是一组为白底设计的深色实心块。
-→ (d) 定义 --st-now（styles.css:489 引用了它，但全仓库从未定义），并让
-   src/components/flow/MetroChart.tsx 的圆点颜色走 useStatusStyles() 而不是 CSS。
-   现在 Juanxi 在 Settings → Board 里改「To do」的颜色，Today 的进度链和流程图
-   的圆点都不会跟着变 —— 这是个可演示的 bug。
-→ (e) src/pages/Handoff.tsx:61 把 #237a42 / #3a6fd8 / #5f6763 硬编码进行内样式，
-   所以改名改色不会同步到交接接力卡。改成走 token。
+→ (a) Remove these 3 duplicate pairs: retain one value per meaning.
+   ⚠️ Do not simply choose one arbitrarily: all 6 status colors currently pass WCAG AA (4.72–5.82:1;
+   measured values are in audit section 8.1), whereas the three brand colors may not. Recalculate contrast
+   for every changed color and list the numbers in the handoff. Values below 4.5:1 are prohibited.
+→ (b) Add a token for blue (--info or similar), rather than leaving #3a6fd8 outside the system.
+   The same blue is hardcoded in 4 places: statusDefaults.ts:7, styles.css:489, :554, :556.
+→ (c) Add a dark-mode variant for each of the 6 status colors. They currently provide only
+   2.96–3.65:1 against surface in the dark interface (audit section 8.2): dark solid blocks designed for white backgrounds.
+→ (d) Define --st-now (referenced at styles.css:489 but never defined anywhere in the repository), and make
+   src/components/flow/MetroChart.tsx use useStatusStyles() for dot colors instead of CSS.
+   Currently, when Juanxi changes the "To do" color in Settings → Board, neither Today's progress-chain dots
+   nor the flowchart dots change. This is a demonstrable bug.
+→ (e) src/pages/Handoff.tsx:61 hardcodes #237a42 / #3a6fd8 / #5f6763 in inline styles,
+   so name/color changes do not reach the handoff relay cards. Use tokens instead.
 
-### 3. 修对比度不合格的地方
+### 3. Fix failing contrast
 
-审计第 8.2 节实测，文字类有 1 处不合格：
-  --good #1a7f37 on --good-soft #e3f4e7 = 4.44:1（差 0.06）
-  用在 .tag.good（ChangeCard 的 "Approved" 标签）和 .save-status.ok
-  styles.css:707 已经用硬编码 #146c2e 单独修了 .days.good 一个实例 ——
-  **这正是 23 处重复声明的来源：修了症状没修 token。**
-→ 改 token，然后删掉 :707 那个单点补丁。
+Audit section 8.2 measured one failing text-color combination:
+  --good #1a7f37 on --good-soft #e3f4e7 = 4.44:1 (short by 0.06)
+  Used in .tag.good (ChangeCard's "Approved" label) and .save-status.ok
+  styles.css:707 already patches one .days.good instance with hardcoded #146c2e:
+  **This is exactly how the 23 duplicate declarations arose: fixing the symptom instead of the token.**
+→ Fix the token, then remove the one-off patch at :707.
 
-非文字类（WCAG 1.4.11，要求 3:1）有 5 处不合格：
-  黄色风险点 #e3a008 on 白 = 2.26:1   ← 三色风险系统里只有黄色不合格，
-                                        而黄色是色弱用户最依赖的那一档
-  Team 工作量中档条 = 1.74:1
-  Metro 主线未完成段 = 1.85:1
-  Chain/Metro 空心点边框 = 2.59:1
-  全站 1px 边框 --line on 白 = 1.29:1
-→ 前四个必须修到 ≥3:1。
-→ 最后一个（--line）要谨慎：把它加深会让整个界面变"重"，和 Juanxi 要的
-  「简洁、高级」相反。建议：边框保持淡，但凡是靠边框传达状态/可交互性的地方，
-  额外加一个非颜色线索（粗细、背景、图标）。在交接记录里说明你的权衡。
+There are 5 non-text failures (WCAG 1.4.11, 3:1 required):
+  Yellow risk dot #e3a008 on white = 2.26:1   ← Only yellow fails in the three-color risk system,
+                                             and yellow is the level users with impaired color vision rely on most.
+  Team medium-workload bar = 1.74:1
+  Metro main line, incomplete segment = 1.85:1
+  Chain/Metro hollow-dot border = 2.59:1
+  Sitewide 1px border --line on white = 1.29:1
+→ The first four must reach ≥3:1.
+→ Treat the last (--line) carefully: darkening it makes the entire interface feel "heavy," conflicting with
+  Juanxi's request for "simple and refined." Recommendation: keep borders light, but wherever a border conveys
+  status/interactivity, add a non-color cue (thickness, background, icon). Explain the tradeoff in the handoff.
 
-### 4. 写一份人能读的 token 文档
+### 4. Write human-readable token documentation
 
-新建 docs/DESIGN_TOKENS.md（中文，给 Juanxi 看的）：
-- 每个阶有哪几档、什么时候用哪一档
-- 6 个状态色的含义、色值、对比度数字
-- 一句话规则：「新增任何样式只能用 token，不准写死数值」
-这份文档就是这个项目缺失的「第 4 阶段交付物」。以后每个 AI 改界面前先读它。
+Create docs/DESIGN_TOKENS.md (historically requested in Chinese for Juanxi; that language instruction is superseded by the current English policy):
+- The levels in each scale and when to use each.
+- The meanings, values, and contrast ratios of the 6 status colors.
+- One rule: "All new styles must use tokens; do not hardcode values."
+This document is the project's missing "stage 4 deliverable." Every future AI must read it before changing the interface.
 
-## 硬性要求
+## Hard requirements
 
-- ⚠️ 这个工作包会改变视觉。**每改一组就逐页截图**（10 个页面 × 桌面/手机 ×
-  浅色/深色），改完把前后对比交给 Juanxi。他是唯一的验收人。
-- 原则上只改 CSS。例外是 statusDefaults.ts / MetroChart.tsx / Handoff.tsx 这三个
-  为了让颜色走 token 必须动的地方。不要顺手重构别的 TSX。
-- 不要改任何布局结构、不要动组件层级、不要改文案。
-- npm run check 全绿，a11y 测试必须继续通过。
-- 分多次提交：一个阶一个提交（字阶 / 间距阶 / 圆角 / 层级 / 状态色 / 对比度），
-  这样出问题好回退。
+- ⚠️ This work package changes the visuals. **Take screenshots page by page after each group of changes** (10 pages × desktop/mobile ×
+  light/dark), then give Juanxi the before/after comparison. He is the sole acceptance reviewer.
+- Change CSS only as a rule. The exceptions are statusDefaults.ts / MetroChart.tsx / Handoff.tsx, which
+  must change to route colors through tokens. Do not refactor other TSX along the way.
+- Do not change layout structure, component hierarchy, or copy.
+- npm run check must be fully green, and a11y tests must continue to pass.
+- Use multiple commits: one per scale/category (type / spacing / radius / stacking / status colors / contrast),
+  making rollback easier if something goes wrong.
 
-## 文件边界
+## File boundaries
 
-你只能改：
+You may change only:
   src/styles.css
   src/components/ui/statusDefaults.ts
-  src/components/flow/MetroChart.tsx（只改颜色来源）
-  src/pages/Handoff.tsx（只改第 61 行那三个硬编码色）
-  docs/DESIGN_TOKENS.md（新建）
-  docs/PROGRESS.md（只加交接记录）
-  S4 交接记录里点名的「漏写样式」（比如 AskPanel 的 card-text）
+  src/components/flow/MetroChart.tsx (color sources only)
+  src/pages/Handoff.tsx (only the three hardcoded colors on line 61)
+  docs/DESIGN_TOKENS.md (new)
+  docs/PROGRESS.md (add handoff entries only)
+  "Missing styles" identified in S4's handoff (such as AskPanel's card-text)
 
-不要改：任何逻辑、netlify/**、src/engine/**、src/data/**、测试断言
+Do not change: any logic, netlify/**, src/engine/**, src/data/**, or test assertions.
 
-## 结束时
+## At completion
 
-1. docs/PROGRESS.md 交接记录加一行，必须包含：改完后的对比度数字表
-2. 提交信息：[S5][Claude] 简短说明
+1. Add a handoff row to docs/PROGRESS.md; it must include the post-change contrast figures in a table
+2. Commit message: [S5][Claude] brief description
 3. git push -u origin design/s5-tokens
-4. 不要合并。不要碰 main。
-5. 用简单中文向 Juanxi 汇报，并且必须附上前后截图对比。问他一个具体问题：
-   「现在看起来是更整齐了，还是只是变了？」—— 如果他说"只是变了"，说明映射
-   做得不对，要回去调。
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese, including before/after screenshots. Ask one specific question:
+   "Does this look more consistent now, or merely different?" If he says "merely different, " the mapping
+   is wrong and needs adjustment. [Historical reporting-language instruction; current repository and GitHub policy requires English.]
 ```
 
 ---
 
-### S6 · 护栏（lint + CI + 无障碍）｜ Sonnet 5.5 ｜ 必须在 S5 之后
+### S6 · Guardrails (lint + CI + accessibility) | Sonnet 5.5 | Must follow S5
 
 ```
-你在 Platypus Officer Hub 仓库里装护栏。这是整个计划里最重要的一个工作包 ——
-不是因为它改了什么，而是因为它防止下一个 AI 重复过去三天发生的事。
+You are installing guardrails in the Platypus Officer Hub repository. This is the most important package in the plan —
+because it prevents the next AI from repeating what happened over the past three days, regardless of the changes it makes.
 
-先读：
-1. AGENTS.md
-2. docs/AUDIT_2026-10-27.md 第 4.1 节（样式表的历史）和第 8.3、8.4 节
-3. docs/DESIGN_TOKENS.md（S5 刚写的，这是你要强制执行的东西）
-4. docs/EXECUTION_PLAN_2026-10-27.md 第 3 节 —— 你是 S6
+Read first:
+1. AGENTS.md.
+2. Section 4.1 (stylesheet history) and sections 8.3 and 8.4 of docs/AUDIT_2026-10-27.md.
+3. docs/DESIGN_TOKENS.md (just written by S5; this is what you must enforce).
+4. Section 3 of docs/EXECUTION_PLAN_2026-10-27.md — you are S6.
 
-## 为什么要做这件事
+## Why this is needed
 
-src/styles.css 被 11 次提交写成，每一次的 diff 都是「+N / −0」，从未删除过任何
-一行。五个 AI 各自往文件尾部追加自己那一代的样式，靠「写在更下面」覆盖前一层。
-结果是 23 个重复声明的选择器、62 个死 class、4 套配色语言。
+src/styles.css was built through 11 commits, each with a "+N / −0" diff, without ever deleting
+one line. Five AIs each appended their generation's styles to the end, overriding earlier layers by appearing lower down.
+The result is 23 repeated selector declarations, 62 dead classes, and 4 color systems.
 
-S4 和 S5 刚把这些清理干净。**如果不装护栏，下一个 AI 会在一周内让它回到原样。**
+S4 and S5 have just cleaned this up. **Without guardrails, the next AI will undo that work within a week.**
 
-而且现在的 CI 完全管不住这些：.github/workflows/ci.yml 只跑 build / test / e2e，
-没有 ESLint、没有 Stylelint。GitHub Actions 和 Netlify 还是两条互不相干的流水线 ——
-推 main 就上线，测试失败也不会阻止部署。
+Current CI cannot enforce any of this: .github/workflows/ci.yml runs only build / test / e2e,
+with no ESLint or Stylelint. GitHub Actions and Netlify are still independent pipelines:
+pushing main deploys it, even when tests fail.
 
-⚠️ 先确认 S5 的 design/s5-tokens 已经合并进 integration/v1.1-fix。
-   没有 token 表，linter 规则无从写起。
+⚠️ First confirm that S5's design/s5-tokens has been merged into integration/v1.1-fix.
+   Without the token table, there is no basis for writing the linter rules.
 
-开始前：
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # 确认有 [S5] 的提交
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm [S5] commits are present
   git checkout -b design/s6-guardrails origin/integration/v1.1-fix
   npm ci
 
-## 你要做的
+## What to do
 
-### 1. Stylelint + 3 条规则
+### 1. Stylelint + 3 rules
 
-装 stylelint，配置至少这三条：
-- font-size / border-radius / z-index **只能用 token**
-  （declaration-property-value-allowed-list 或等价规则）
-- 除 :root 之外**禁止 hex 颜色**（color-no-hex 加例外）
-- **禁止重复选择器**（no-duplicate-selectors）—— 这一条直接防住那 23 处冲突回来
+Install stylelint and configure at least these three rules:
+- font-size / border-radius / z-index **must use tokens**
+  (declaration-property-value-allowed-list or equivalent).
+- **Prohibit hex colors** outside :root (color-no-hex with an exception).
+- **Prohibit duplicate selectors** (no-duplicate-selectors), directly preventing those 23 conflicts from returning.
 
-→ 先跑一遍看有多少违规。S5 做完应该已经很干净了；如果还有残留，修掉，
-  不要用 ignore 绕过。
-→ 实在有合理例外（比如数据驱动的内联变量），用行内 disable 注释并写明理由。
+→ Run it once to see how many violations remain. S5 should have left things quite clean; fix any leftovers
+  instead of bypassing them with ignore.
+→ For a truly justified exception (such as a data-driven inline variable), use an inline disable comment and explain why.
 
-### 2. ESLint + 禁止行内 style
+### 2. ESLint + ban inline style
 
-审计发现 21 处行内 style={{...}}，其中约 8 处是用来推翻前面 CSS 的临时补丁
-（Help.tsx:23、NodePanel.tsx:125、AskPanel.tsx:144、TaskDetail.tsx:34、
-Team.tsx:39、BoardSettings.tsx:27 等）。
+The audit found 21 inline style={{...}} instances, about 8 of which are temporary patches overriding earlier CSS
+(Help.tsx:23, NodePanel.tsx:125, AskPanel.tsx:144, TaskDetail.tsx:34,
+Team.tsx:39, BoardSettings.tsx:27, etc.).
 
-→ 装 eslint + typescript-eslint + eslint-plugin-react
-→ 禁止行内 style，**但放开合法的 CSS 变量注入**（--pill / --tag / --a / --label-w /
-  数据驱动的 left/width 这些是正当用法，大约 10 处）
-→ 剩下那 8 处临时补丁：改成真正的 class。
-  ⚠️ 这需要动 styles.css，而 S5 刚立好 token。新加的 class 必须只用 token。
+→ Install eslint + typescript-eslint + eslint-plugin-react
+→ Prohibit inline style, **but allow legitimate CSS variable injection** (--pill / --tag / --a / --label-w /
+  data-driven left/width are legitimate uses, about 10 locations)
+→ Convert the remaining 8 ad hoc patches into real classes.
+  ⚠️ This requires changing styles.css, where S5 just established tokens. New classes must use tokens exclusively.
 
-### 3. 字数上限变成真约束
+### 3. Make word limits a real constraint
 
-scripts/word-count.mjs 不在 CI 里，所以 AGENTS.md §7.5 的字数上限现在没有任何
-自动约束。
+scripts/word-count.mjs is not in CI, so the word limits in AGENTS.md §7.5 currently have no
+automated enforcement.
 
-更要紧的是 scripts/word-count.mjs:13-15 明确写了「跳过隐藏的悬停卡和关闭的
-details」。**也就是说那个「每页字数减 60%」的成绩有一部分是度量方式的产物 ——
-信息量没减少，只是搬到了触屏用户看不到的地方。**
+More significantly, scripts/word-count.mjs:13-15 explicitly says “skip hidden hover cards and closed
+details.” **So part of the “60% fewer words per page” result is a product of the measurement method—
+the amount of information did not decrease; it moved somewhere touch-screen users cannot see.**
 
-→ (a) 改掉这个跳过行为，统计全部文字
-→ (b) 加进 npm run check 和 CI
-→ (c) ⚠️ 改完之后字数几乎肯定会超过 AGENTS.md §7.5 的上限
-      （Today ≤160 / Events ≤180 / Rules ≤170 / Tasks ≤130 / Team ≤130 /
-       Settings 每块 ≤125）。
-      **不要为了过线去删文字** —— 那正是当初把解释藏起来的原因，而 Juanxi 现在
-      的抱怨就是「看不懂每一块是什么」。
-      → 正确做法：把真实数字量出来，写进交接记录，建议 Juanxi 调高上限或
-        改变度量口径。这是个产品决定，不是技术决定，让他定。
+→ (a) Remove this skipping behavior and count all text
+→ (b) Add it to npm run check and CI
+→ (c) ⚠️ Afterward, word counts will almost certainly exceed AGENTS.md §7.5 limits
+      (Today ≤160 / Events ≤180 / Rules ≤170 / Tasks ≤130 / Team ≤130 /
+       Settings ≤125 per section).
+      **Do not delete text just to pass**—that is why explanations were hidden in the first place, while Juanxi's current
+      complaint is “I cannot tell what each section is.”
+      → Correct approach: measure the real counts, record them in the handoff, and suggest Juanxi raise the limits or
+        change the measurement definition. This is a product decision, not a technical one; let him decide.
 
-### 4. 无障碍检查补上盲区
+### 4. Cover accessibility blind spots
 
-e2e/a11y.spec.ts 现在有两个盲区：
-- :7 只用了 wcag2a + wcag2aa 标签，**不含 wcag21aa**，所以「1.4.11 非文字对比度」
-  和「2.5.8 目标尺寸」这两条规则从未运行 —— 审计发现的 5 个对比度失败和 6 个
-  过小触摸目标全在这个盲区里
-- :9 有 test.skip(project !== "desktop")，**移动端从未被扫过**，而移动端恰恰是
-  hover 不可用、布局最容易出问题的地方
+e2e/a11y.spec.ts currently has two blind spots:
+- : 7 uses only wcag 2 a + wcag 2 aa tags, **excluding wcag 21 aa**, so “1.4.11 Non-text Contrast”
+  and “2.5.8 Target Size” have never run—all 5 contrast failures and 6 undersized touch targets
+  found in the audit fall in this blind spot
+- : 9 has test.skip(project !== "desktop"), **so mobile has never been scanned**, even though mobile is precisely
+  where hover is unavailable and layouts are most likely to break
 
-→ (a) 加 wcag21a / wcag21aa 标签
-→ (b) 去掉移动端的 skip
-→ (c) 修出来的问题。触摸目标至少要修这 6 个（都要 ≥24×24）：
-      .m-dot 20×20（styles.css:552，Events 的主交互）
-      .heat-cell 高 14px（:685，Team 热力图）
-      .swatch 20×20（:615，60 个取色按钮）
-      .move-menu max-width 26px（:605，键盘用户唯一的改状态方式）
-      .info ≈20×20（:476）
-      .chain .dot 16×16 / compact 12×12（:487,493）
-      ⚠️ 放大视觉尺寸会和「简洁」冲突。优先用透明的点击区扩展
-        （::after 伪元素 / padding + 负 margin），保持视觉小、命中区大。
-→ (d) 键盘测试现在只验证了 3 件事（/ 聚焦 Ask、Enter 开节点、Escape 关闭）。
-      补上：Tab 顺序、右栏打开时的焦点管理、看板的键盘改状态。
-      ⚠️ 右栏的焦点管理现在是半成品（审计第 4 节）：7 种详情里只有 3 种会移动焦点，
-        没有焦点陷阱、关闭后焦点不返回，而且 ≤1199px 时右栏是遮挡式浮层，
-        键盘 Tab 会穿进被遮住的内容。**全部修好可能超出这个工作包的范围** ——
-        先把测试写出来（失败的用 test.fixme 钉住），修能修的，剩下的写进交接记录。
+→ (a) Add wcag 21a / wcag 21aa tags
+→ (b) Remove the mobile skip
+→ (c) Fix the issues found. At minimum, fix these 6 touch targets (all must be ≥24×24):
+      .m-dot 20×20 (styles.css:552, the primary interaction in Events)
+      .heat-cell height 14px (:685, Team heatmap)
+      .swatch 20×20 (:615, 60 color-picker buttons)
+      .move-menu max-width 26px (:605, the only way keyboard users can change status)
+      .info ≈20×20 (:476)
+      .chain .dot 16×16 / compact 12×12 (:487,493)
+      ⚠️ Enlarging the visible elements conflicts with "simplicity." Prefer expanding the transparent hit area
+        (:: after pseudo-element / padding + negative margin), keeping the visible element small and the hit area large.
+→ (d) Keyboard tests currently check only 3 things (/ focuses Ask, Enter opens a node, Escape closes it).
+      Add: Tab order, focus management when the right rail opens, and keyboard status changes on the board.
+      ⚠️ Right-rail focus management is currently incomplete (audit Section 4): only 3 of the 7 detail types move focus;
+        there is no focus trap or focus restoration on close, and at ≤1199px the rail becomes an overlay,
+        while Tab can reach obscured content. **Fixing all of this may exceed this work package's scope**:
+        write the tests first (pin failing ones with test.fixme), fix what you can, and record the rest in the handoff.
 
-### 5. CI 门禁
+### 5. CI gates
 
-现在推 main → Netlify 立刻上线，GitHub Actions 并行跑测试，**失败也不阻止部署**。
+Currently, pushing main → immediate Netlify deployment, while GitHub Actions runs tests in parallel; **failures do not block deployment**.
 
-→ 把 stylelint / eslint / word-count 都加进 npm run check 和 ci.yml
-→ 在交接记录里写清楚给 Juanxi 的操作步骤：怎么在 GitHub 仓库设置里开
-  branch protection + required status checks（他要自己点，你没有权限）。
-  写成「点哪里」的一步一步，不要用术语。
+→ Add stylelint / eslint / word-count to npm run check and ci.yml
+→ In the handoff, give Juanxi clear steps to enable
+  branch protection + required status checks in the GitHub repository settings (he must click them himself; you lack permission).
+  Write step-by-step “where to click” instructions, without jargon.
 
-## 硬性要求
+## Hard requirements
 
-- npm run check 全绿（现在应该包含 5 项）
-- 不要用 ignore / disable 绕过真实问题。实在要例外，逐条写明理由
-- 不要改任何逻辑或文案
+- npm run check must be entirely green (it should now contain 5 checks)
+- Do not bypass real problems with ignore / disable. Justify any unavoidable exceptions individually
+- Do not change any logic or copy
 
-## 文件边界
+## File boundaries
 
-你只能改：
+You may modify only:
   package.json, package-lock.json
-  .stylelintrc*, .eslintrc*（新建）
+  .stylelintrc*, .eslintrc* (new files)
   .github/workflows/ci.yml
   scripts/word-count.mjs
-  e2e/a11y.spec.ts 和其他 e2e 测试
-  src/styles.css（只为把行内 style 换成 class、修触摸目标）
-  那 8 处有临时行内 style 的组件（只删 style 属性、换成 class）
-  docs/PROGRESS.md（只加交接记录）
+  e2e/a11y.spec.ts and other e2e tests
+  src/styles.css (only to replace inline styles with classes and fix touch targets)
+  The 8 components with temporary inline styles (only remove style attributes and replace them with classes)
+  docs/PROGRESS.md (handoff entries only)
 
-不要改：任何业务逻辑、netlify/**、src/engine/**、src/data/**
+Do not modify: any business logic, netlify/**, src/engine/**, src/data/**
 
-## 结束时
+## At completion
 
-1. docs/PROGRESS.md 交接记录加一行，必须包含：
-   - 字数的真实数字 vs AGENTS.md §7.5 的上限，以及你建议怎么办
-   - 右栏焦点管理里哪些修了、哪些用 test.fixme 钉住了
-   - 给 Juanxi 的 branch protection 操作步骤
-2. 提交信息：[S6][Claude] 简短说明
+1. Add a handoff row in docs/PROGRESS.md that includes:
+   - Actual word counts vs. AGENTS.md §7.5 limits, and your recommendation
+   - Right-rail focus-management fixes and issues pinned with test.fixme
+   - Branch protection setup steps for Juanxi
+2. Commit message: [S6][Claude] Short description
 3. git push -u origin design/s6-guardrails
-4. 不要合并。不要碰 main。
-5. 用简单中文向 Juanxi 汇报。重点说：从现在起，任何 AI 想往 CSS 里写死一个
-   数值或颜色，CI 会直接拦住。
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese [historical instruction; superseded by the current English policy]. Emphasize: from now on, if any AI tries to hardcode
+   a value or color in CSS, CI will block it.
 ```
 
 ---
 
-### S7 · 可解释性开关 + 可见副标题 ｜ Opus 5.5 ｜ 必须在 S6 之后
+### S7 · Explainability switch + visible subtitles | Opus 5.5 | Must follow S6
 
 ```
-你在 Platypus Officer Hub 仓库里把这个项目最有论文价值的一个交互拿回来。
-项目负责人 Juanxi 不写代码。
+You are restoring one of the interactions with the greatest thesis value in the Platypus Officer Hub repository.
+Project owner Juanxi does not code.
 
-先读（全部必读）：
+Read first (all required):
 1. AGENTS.md
-2. docs/AUDIT_2026-10-27.md 第 7.3、7.4 节 —— v0.1 有哪 3 个被丢掉的好设计
-3. docs/DESIGN_TOKENS.md —— S5 立的 token 规则，你必须遵守
-4. docs/EXECUTION_PLAN_2026-10-27.md —— 你是 S7
+2. docs/AUDIT_2026-10-27.md sections 7.3 and 7.4 — the 3 good v0.1 designs that were discarded
+3. docs/DESIGN_TOKENS.md — you must follow the token rules established by S5
+4. docs/EXECUTION_PLAN_2026-10-27.md — you are S7
 
-## 背景：你要恢复的是什么
+## Background: what you are restoring
 
-v0.1 原型（Juanxi 最喜欢的那版）有一个全局开关叫 **"Behind the scenes"**
-（旧代码：public/legacy/index.html 的 :396 输入框、:925 的 bts() helper、
-:1669 的 html.show-bts 切换）。
+The v0.1 prototype (Juanxi's favorite version) had a global **"Behind the scenes"** toggle
+(old code: public/legacy/index.html : 396 input, : 925 bts() helper,
+: 1669 html.show-bts toggle).
 
-打开它，界面上**每一个数字、每一个日期、每一个 AI 输出都就地标注它的来源**：
+When enabled, **every number, every date, and every AI output in the interface is labeled with its source in place**:
 
   "Rule engine / startBy = finish-by date minus 2–3 business days"
   "Computed / sum(task.minutes) for open tasks starting within 14 days"
   "AIR Verdicts / choice: done|waiting|help|other · POST /api/replies/classify"
 
-今天这一个机制被拆散成了 15 个 details 折叠 + 几十张悬停卡 + 一个 Help 页。
+Today, this single mechanism has been scattered across 15 details collapsibles, dozens of hover cards, and a Help page.
 
-**对一篇要论证 AI 可解释性的荣誉论文来说，丢掉的正是最有论文价值的那个交互。**
+**For an honors thesis arguing for AI explainability, the lost interaction is precisely the one with the greatest thesis value.**
 
-⚠️【2026-10-27 更正，必读】审计报告原本推断「Juanxi 怀念的是旧版的布局」。他后来
-发来截图确认 **他喜欢的就是现在这一版**（见本方案第 1.4 节），所以那个推断被否定了。
+⚠️ [Correction, 2026-10-27; required reading] The audit originally inferred that "Juanxi misses the old layout." He later
+sent screenshots confirming that **he likes the current version** (see Section 1.4 of this plan), disproving that inference.
 
-→ 你做 C1 的理由因此改变：**不是「找回他怀念的东西」**，而是：
-   ① 论文需要可解释性的证据
-   ② 触屏用户看不到悬停卡里的内容（审计第 8.4 节，4 处 hover-only）
-→ 所以 C1 是**增量添加**，不是回退。不要改动现有布局的任何视觉。
+→ The rationale for C1 therefore changes: **it is not about "bringing back what he misses,"** but:
+   ① The thesis needs evidence of explainability.
+   ② Touchscreen users cannot see hover-card content (audit section 8.4: 4 hover-only locations).
+→ C1 is therefore **an addition**, not a rollback. Do not change any visual aspect of the current layout.
 
-⚠️ public/legacy/ 可能已被 S2 删除。用 git 取回参考：
+⚠️ S2 may already have deleted public/legacy/. Retrieve a reference with git:
     git show 49b0b89:public/index.html > /tmp/v01-reference.html
-  （先核实这个 commit 和路径是对的；如果不对，用 git log --all --oneline -- public/
-   自己找。S2 的交接记录里应该写了正确的命令。）
+  (First verify this commit and path; if incorrect, use git log --all --oneline -- public/
+   to find them. S2's handoff should contain the correct command.)
 
-## 好消息：素材全都在
+## Good news: all the material already exists
 
-今天的数据结构里已经有全部解释文字，不需要重新生成：
+Today's data structures already contain all explanation text; it need not be regenerated:
   node.why
-  sched.nodes[id].explain.{latestStart, club, official}   ← schedule.ts:44，每个日期都带一句「为什么」
-  forecast.reasons + FORECAST_ASSUMPTIONS（forecast.ts:6-12）
+  sched.nodes[id].explain.{latestStart, club, official}   ← schedule.ts:44; every date has a "why" sentence
+  forecast.reasons + FORECAST_ASSUMPTIONS (forecast.ts:6-12)
   change.source
   rule.sources + rule.checkedOn
-  contribution 的来源
-你只需要把它们就地显示出来。
+  Contribution sources
+You only need to display them in place.
 
-开始前：
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # 确认有 [S6] 的提交
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm [S6] commits exist
   git checkout -b feat/s7-explain origin/integration/v1.1-fix
   npm ci
 
-## C1 · Behind-the-scenes 全局开关
+## C1 · Global Behind-the-scenes toggle
 
-→ 在顶栏加一个开关（src/components/Layout.tsx）。
-  ⚠️ 顶栏已经有 5 个控件，其中 3 个是演示脚手架（Demo 菜单、View as、AI features），
-    审计第 8.6 节指出「60% 的全局界面是演示工具」。不要让它变成第 6 个。
-    建议：和 AI features 开关归进同一个菜单，或者放进 Demo 小标里。你判断。
-→ 打开后，每个数字/日期/AI 输出旁边就地显示来源（来源 + 一行算法说明）。
-  参考 v0.1 的 bts() 写法，但用今天的 token 和组件。
-→ 关闭时完全不占空间，也不进 DOM（不要只是 visibility: hidden —— 那会让
-  屏幕阅读器读到，也会被 word-count 统计到）。
-→ 这个开关的状态存 localStorage，刷新后保持。
+→ Add a toggle to the top bar (src/components/Layout.tsx).
+  ⚠️ The top bar already has 5 controls, 3 of which are demo scaffolding (Demo menu, View as, AI features).
+    Audit section 8.6 notes that "60% of the global interface is demo tooling." Do not make this a sixth control.
+    Suggestion: group it with the AI features toggle in one menu, or place it in the Demo badge. Use your judgment.
+→ When enabled, show each number/date/AI output's source in place (source + one-line algorithm explanation).
+  Refer to v0.1's bts() implementation, using current tokens and components.
+→ When disabled, it must take no space and be absent from the DOM (do not merely use visibility: hidden;
+  screen readers would still read it and word-count would still include it).
+→ Persist the toggle state in localStorage across refreshes.
 
-**这一条同时解决三个问题：**
-1. 触屏用户看不到悬停卡里的内容（审计第 8.4 节，4 处 hover-only）
-2. Juanxi 说「看不懂每一块是什么」
-3. 论文的可解释性论点
+**This addresses three problems at once:**
+1. Touch users cannot see hover-card content (audit section 8.4, 4 hover-only locations)
+2. Juanxi said, "I can't tell what each part is"
+3. The thesis's explainability argument
 
-## C2 · 把 10 个「问题」变成可见文字【降级：先问 Juanxi】
+## C2 · Make the 10 "questions" visible text [Downgraded: ask Juanxi first]
 
-⚠️ Juanxi 从未抱怨过「看不懂页面」—— 这一条是审计员的改进建议，不是在修 bug。
-而且他已确认喜欢现在的外观。
+⚠️ Juanxi never complained that he “could not understand the pages”—this is an auditor's improvement suggestion, not a bug fix.
+And he has confirmed that he likes the current appearance.
 
-→ **做之前先问他**：给他看一张加了副标题的效果图（可以是手绘或改一页做示范），
-  问他要不要。他说要再做，说不要就跳过，只做 C1。
-→ 不要默认开工。
+→ **Ask him before doing this**: show a mockup with subtitles (a sketch or a one-page implementation is fine),
+  and ask whether he wants it. Proceed if he says yes; otherwise skip it and do only C1.
+→ Do not start by default.
 
-src/routes.ts:13-24 给每个页面定义了「这一页回答的那一个问题」，这是项目 IA 的骨架。
-但 src/components/Page.tsx:4 的注释说「The page's question is the nav tooltip」，
-src/components/Layout.tsx:75,81 把它放进 title={p.question} —— **浏览器原生 tooltip，
-要悬停 1 秒才出现，触屏上完全不存在。**
+src/routes.ts:13-24 defines “the one question this page answers” for every page, forming the backbone of the project's IA.
+But the comment at src/components/Page.tsx:4 says “The page's question is the nav tooltip,”
+and src/components/Layout.tsx:75, 81 puts it in title={p.question}—**a native browser tooltip
+that takes 1 second of hovering to appear and does not exist on touch screens.**
 
-IA 的骨架被降级成了一个看不见的属性。而 Page.tsx:9 只渲染一个词的页面标题。
+The IA framework was reduced to an invisible attribute. Meanwhile, Page.tsx:9 renders only a one-word page title.
 
-→ 把 question 变成可见的副标题：PageHead 的标题下面一行。
-→ 用 --fs-sm + --muted，不要抢主标题。
-→ ⚠️ 这会增加字数，可能撞 S6 刚加进 CI 的字数上限。
-  S6 的交接记录里应该有关于上限怎么调的建议。如果还没定，**停下来问 Juanxi**，
-  不要自己改 AGENTS.md §7.5 的数字（那是他批准过的规则，改要他同意）。
-→ 顺手修 IA 的一个问题：routes.ts 里有 3 页的「一个问题」其实是 2–3 个问题
-  （/team「谁超载、谁该被认可、什么时候能开会」= 页面上 3 个无关卡片；
-   /funding 和 /events 同样）。
-  → 不要重构页面。只把问句改写成一句真正单一的话，并在交接记录里告诉 Juanxi
-    这 3 页其实该拆，留给以后。
+→ Turn question into a visible subtitle: one line beneath the PageHead title.
+→ Use --fs-sm + --muted; do not compete with the main heading.
+→ ⚠️ This adds words and may exceed the word limits S6 just added to CI.
+  S6's handoff should recommend how to adjust the limits. If this is still undecided, **stop and ask Juanxi**;
+  do not change the figures in AGENTS.md §7.5 yourself (he approved that rule, and changing it needs his agreement).
+→ Also fix one IA problem: 3 pages in routes.ts actually ask 2–3 questions instead of "one question"
+  (/team's "who is overloaded, who deserves recognition, and when can we meet" = 3 unrelated cards on the page;
+   /funding and /events have the same issue).
+  → Do not restructure the pages. Just rewrite each question into one genuinely single question and tell Juanxi
+    in the handoff that these 3 pages should eventually be split.
 
-## 硬性要求
+## Hard requirements
 
-- 遵守 docs/DESIGN_TOKENS.md。不准写死任何数值或颜色（S6 的 stylelint 会拦你）
-- npm run check 全绿，包括新加的 stylelint / eslint / word-count
-- 新交互要有 e2e 测试：开关能开、能关、刷新后保持、关闭时内容不在 DOM 里
-- a11y 测试继续通过，桌面和移动端都要
-- 不要改 AGENTS.md / PRODUCT_PLAN.md / RULES.md（要改先问 Juanxi）
+- Follow docs/DESIGN_TOKENS.md. Do not hardcode any values or colors (S6's stylelint will block them)
+- npm run check all green, including the new stylelint / eslint / word-count
+- New interactions need e2e tests: toggle on, toggle off, persistence after refresh, content absent from the DOM when off
+- Accessibility tests must continue to pass on both desktop and mobile
+- Do not change AGENTS.md / PRODUCT_PLAN.md / RULES.md (ask Juanxi first if changes are needed)
 
-## 文件边界
+## File boundaries
 
-你只能改：
+You may modify only:
   src/components/Layout.tsx, src/components/Page.tsx
   src/routes.ts
-  src/styles.css（新增 bts 相关样式，只用 token）
-  各 page / component 里加就地注释的那些行
-  src/test/** 和 e2e/**
-  docs/PROGRESS.md（只加交接记录）
+  src/styles.css (add bts-related styles, using tokens only)
+  Lines in individual pages / components that add in-place annotations
+  src/test/** and e2e/**
+  docs/PROGRESS.md (append handoff record only)
 
-不要改：netlify/**、src/engine/**（除了读 explain 字段）、src/data/** 的结构
+Do not modify: netlify/**, src/engine/** (except to read explain fields), or the structure of src/data/**
 
-## 结束时
+## At completion
 
-1. docs/PROGRESS.md 交接记录加一行
-2. 提交信息：[S7][Claude] 简短说明
+1. Add a line to the handoff record in docs/PROGRESS.md
+2. Commit message: [S7][Claude] Brief description
 3. git push -u origin feat/s7-explain
-4. 不要合并。不要碰 main。
-5. 用简单中文向 Juanxi 汇报，并告诉他：打开那个开关，然后看 Today 页 ——
-   每个日期旁边都会告诉他这个日期是怎么算出来的。请他确认这是不是他怀念的
-   那个感觉。
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese and tell him: turn on the switch, then look at Today —
+   each date will explain how it was calculated. Ask him whether this is the
+   feeling he misses.
 ```
 
 ---
 
-### S8 · 触屏降级 + 导航重组 ｜ Sonnet 5.5 ｜ 必须在 S7 之后
+### S8 · Touch fallback + navigation reorganization | Sonnet 5.5 | Must follow S7
 
 ```
-你在 Platypus Officer Hub 仓库里做两件收尾的交互改造。项目负责人 Juanxi 不写代码。
+Make two final interaction improvements in the Platypus Officer Hub repository. Project owner Juanxi does not code.
 
-先读：
-1. AGENTS.md —— 特别是第 7 节
-2. docs/AUDIT_2026-10-27.md 第 8.4 节（hover-only 清单）和第 7.4 节（v0.1 的导航）
+Read first:
+1. AGENTS.md—especially §7
+2. docs/AUDIT_2026-10-27.md §8.4 (hover-only list) and §7.4 (v0.1 navigation)
 3. docs/DESIGN_TOKENS.md
-4. docs/EXECUTION_PLAN_2026-10-27.md —— 你是 S8
+4. docs/EXECUTION_PLAN_2026-10-27.md—you are S8
 
-开始前：
+Before starting:
   git fetch origin
-  git log origin/integration/v1.1-fix --oneline | head -20   # 确认有 [S7] 的提交
+  git log origin/integration/v1.1-fix --oneline | head -20   # Confirm there is an [S7] commit
   git checkout -b feat/s8-touch-nav origin/integration/v1.1-fix
   npm ci
 
-## C3 · 悬停卡在触屏上降级成可点展开
+## C3 · Fall back to tap-to-expand hover cards on touch screens
 
-AGENTS.md §7.3 的「三级交互」是：看（颜色）→ 停（悬停卡）→ 点（右栏详情）。
-**第 2 级在触屏上完全不存在**，因为触屏没有 hover。
+The "three-level interaction" in AGENTS.md §7.3 is: look (color) → pause (hover card) → click (right-rail details).
+**Level 2 is completely absent on touchscreens**, because touchscreens have no hover.
 
-能靠 :focus-within 救回来的前提是触发元素本身可聚焦。审计清点出 4 处连键盘
-也到不了（纯 hover-only）：
-  src/pages/Funding.tsx:54,60   6 站物流链 —— 无 onClick，渲染成 <span role="img">
-                                 手机上是一排 6 个 12px 无标签圆点，没文字、
-                                 没有可点的解释。**这是最糟的一处。**
-  src/pages/Handoff.tsx:33-37,46  换届季进度链
-  src/pages/Handoff.tsx:116       第一周清单来源
-  src/pages/Funding.tsx:54        阶段 hint（showLabels={false} compact）
+Using : focus-within works only if the trigger itself is focusable. The audit identified 4 locations that
+cannot even be reached by keyboard (strictly hover-only):
+  src/pages/Funding.tsx: 54, 60   6-station logistics chain — no onClick; rendered as <span role="img">
+                                 On mobile, a row of 6 unlabeled 12px dots with no text
+                                 or tappable explanation. **This is the worst case.**
+  src/pages/Handoff.tsx: 33-37, 46  Leadership-transition season progress chain
+  src/pages/Handoff.tsx: 116       First-week checklist sources
+  src/pages/Funding.tsx: 54        Stage hint (showLabels={false} compact)
 
-→ 在 @media (hover: none) 下，把 Hover 组件渲染成可点击展开的 disclosure。
-→ ⚠️ S7 刚加了 Behind-the-scenes 开关，它用的是同一批解释文字。
-  **复用 S7 的机制，不要再造第二套。** 先读 S7 的交接记录和代码。
-→ Events 流程图还有一个相关问题（审计第 8.4 节）：触屏上 tap 立即打开右栏，
-  悬停卡永远不出现，而悬停卡里独有的信息（ASU 官方截止日 + 规则 ID、
-  调度冲突、等待对象）在右栏里被埋进了一个 details 折叠。
-  → 手机用户要多点 2 次才能看到桌面用户悬停就能看到的东西。一起处理。
+→ Under @media (hover: none), render the Hover component as a tappable disclosure.
+→ ⚠️ S7 just added the Behind-the-scenes switch, using the same explanatory text.
+  **Reuse S7's mechanism; do not build a second one.** Read S7's handoff and code first.
+→ The Events flowchart has a related issue (audit section 8.4): on touchscreens, a tap immediately opens the right rail,
+  so the hover card never appears, while information unique to that card (ASU official deadline + rule ID,
+  scheduling conflicts, and whom the task is waiting on) is buried inside a details disclosure in the right rail.
+  → Mobile users need 2 extra taps to see what desktop users see on hover. Address this too.
 
-## C4 · 导航【2026-10-27 已取消，只保留一小项】
+## C4 · Navigation [Cancelled 2026-10-27; one small item retained]
 
-⚠️ **原计划的「导航改回动作导向」已取消。** Juanxi 2026-10-27 发来截图确认他喜欢
-现在这一版，包括现在的导航（见本方案第 1.4 节）。**不要改任何导航标签。**
+⚠️ **The original plan to "restore action-oriented navigation" is canceled.** Juanxi's 2026-10-27 screenshots confirmed that he likes
+this version, including its current navigation (see section 1.4 of this plan). **Do not change any navigation labels.**
 
-只保留两件无争议的小事：
+Retain only two small, uncontroversial items:
 
-→ (a) src/components/Layout.tsx:79 有一个空的、无标题的分组分隔线：
+→ (a) src/components/Layout.tsx:79 has an empty, unlabeled group divider:
      <div className="group" aria-hidden="true" />
-     而 styles.css 里 .sidenav .group 还保留着大写标签文字的样式，只是永远没内容。
-     → 给它一个标题（比如 "Reference"，界面文字用英文）。这是把一个半成品补完，
-       不是改设计。
-     → ≤860px 时现在是 display:none，导航变成横向滚动的 pill 条 —— 保持现状，
-       窄屏不显示分组标题是合理的。
+     Meanwhile .sidenav .group in styles.css retains styles for an uppercase label, but never has content.
+     → Give it a title (such as "Reference"; UI text must be English). This completes unfinished work
+       rather than changing the design.
+     → At ≤860px it is currently display:none and navigation becomes a horizontally scrolling pill strip. Keep this:
+       omitting group headings on narrow screens is reasonable.
 
-→ (b) 恢复导航项的未读计数。v0.1 有，今天没有（styles.css 里连 .sidenav .count
-     的样式都没有了）。数据源：当前角色的未读通知，Layout.tsx:132 已经在算了。
-     → ⚠️ 这个会增加视觉元素。先做一个，截图问 Juanxi 要不要铺开到其他项。
+→ (b) Restore unread counts on navigation items. v0.1 had them; today they are gone (even .sidenav .count
+     styles are gone from styles.css). Source: unread notifications for the current role, already calculated in Layout.tsx:132.
+     → ⚠️ This adds visual elements. Implement one first, take a screenshot, and ask Juanxi whether to extend it to other items.
 
-**不要做**：改导航标签、改导航顺序、改导航图标、加二级导航。
+**Do not** change navigation labels, navigation order, navigation icons, or add secondary navigation.
 
-## 硬性要求
+## Hard requirements
 
-- 遵守 docs/DESIGN_TOKENS.md
-- npm run check 全绿（含 stylelint / eslint / word-count / a11y 桌面+移动）
-- 触屏降级必须有移动端 e2e 测试
-- 不要改 AGENTS.md / PRODUCT_PLAN.md（要改先问 Juanxi）
+- Follow docs/DESIGN_TOKENS.md.
+- npm run check must be fully green (including stylelint / eslint / word-count / desktop+mobile a11y).
+- Touch fallbacks require mobile e2e tests.
+- Do not modify AGENTS.md / PRODUCT_PLAN.md (ask Juanxi first if a change is needed).
 
-## 文件边界
+## File boundaries
 
-你只能改：
-  src/components/ui/index.tsx（Hover 组件）
+You may modify only:
+  src/components/ui/index.tsx (Hover component)
   src/components/Layout.tsx
   src/components/flow/MetroChart.tsx
   src/pages/Funding.tsx, src/pages/Handoff.tsx
-  src/styles.css（只用 token）
-  src/test/** 和 e2e/**
-  docs/PROGRESS.md（只加交接记录）
+  src/styles.css (tokens only)
+  src/test/** and e2e/**
+  docs/PROGRESS.md (append handoff record only)
 
-## 结束时
+## At completion
 
-1. docs/PROGRESS.md 交接记录加一行
-2. 提交信息：[S8][Claude] 简短说明
+1. Add a line to the handoff record in docs/PROGRESS.md
+2. Commit message: [S8][Claude] Brief description
 3. git push -u origin feat/s8-touch-nav
-4. 不要合并。不要碰 main。
-5. 用简单中文向 Juanxi 汇报，并附上导航标签的新旧对照表让他选。
-   另外请他用手机打开 Funding 页确认：那 6 个圆点现在能点开看说明了。
+4. Do not merge. Do not touch main.
+5. Report to Juanxi in simple Chinese, including a before/after comparison of navigation labels for him to choose from.
+   Also ask him to open Funding on his phone and confirm that the 6 dots now open explanations when tapped.
 ```
 
 ---
 
-### S9 · 定版、文档、合并上线 ｜ Opus 5.5 ｜ 最后
+### S9 · Finalize, document, merge, and launch | Opus 5.5 | Last
 
 ```
-你负责 Platypus v1.0 的定版。这是 ASU 荣誉论文 Phase 3 原型的最后一个工作包，
-做完之后真实参与者会用它。项目负责人 Juanxi 不写代码。
+You are responsible for finalizing Platypus v1.0. This is the last work package for the ASU honors thesis Phase 3 prototype;
+real participants will use it afterward. Project owner Juanxi does not code.
 
-先读（全部必读）：
-1. AGENTS.md —— 全文
-2. docs/AUDIT_2026-10-27.md —— 全文
-3. docs/EXECUTION_PLAN_2026-10-27.md —— 全文
-4. docs/PROGRESS.md —— S1 到 S8 的全部交接记录。这是你的检查清单。
-5. docs/DESIGN_TOKENS.md
+Read first (all mandatory):
+1. AGENTS.md — in full.
+2. docs/AUDIT_2026-10-27.md — in full.
+3. docs/EXECUTION_PLAN_2026-10-27.md — in full.
+4. docs/PROGRESS.md — all S1 through S8 handoff records. These are your checklist.
+5. docs/DESIGN_TOKENS.md.
 
-开始前：
+Before starting:
   git fetch origin
   git checkout -b release/v1.0 origin/integration/v1.1-fix
   npm ci
-  npm run check     # 必须全绿才继续
+  npm run check     # Continue only if everything passes
 
-## 1. 核对 S1–S8 的交接记录
+## 1. Check the S1–S8 handoff records
 
-逐条过一遍，列出：
-- 哪些事说要做但实际没做
-- 哪些事被 test.fixme 钉住了
-- 哪些事需要 Juanxi 决定但他还没定
-把这份清单给 Juanxi，让他决定哪些必须在 Phase 3 之前解决、哪些可以留着。
+Review each item and list:
+- Things promised but not actually done.
+- Things marked with test.fixme.
+- Things requiring Juanxi's decision that he has not decided yet.
+Give Juanxi this list so he can decide what must be resolved before Phase 3 and what can remain.
 
-## 2. 修文档（审计附录里的陈旧物）
+## 2. Fix documentation (stale items in the audit appendix)
 
-- README.md:7 —— 仍在描述 v0.1（"the whole app in one file"、
-  "Data storage is still in-memory"）。改成现在的真实情况。
-- AGENTS.md:81 —— 仍写「正式网址仍是 v0.1」，而 v1 已于 10/23 合并上线。
-- AGENTS.md:76 —— 说 Feedback 队列在 Rules 底部，实际已移到 Settings。
-- AGENTS.md 第 6/6b 节 —— 整体过时（泳道图/甘特图已删、端点已删、新增了 token 表
-  和 lint）。改成现在的代码地图。
-- AGENTS.md 第 7 节 —— 加一条：「改界面前先读 docs/DESIGN_TOKENS.md，
-  只能用 token」。
-  ⚠️ AGENTS.md 是 Juanxi 批准过的规则文件。改它要先把 diff 给他看、他同意再改。
-- docs/PRODUCT_PLAN.md —— 第 6 节的界面说明和第 11 节的架构图可能需要更新
-  （数据层仍是 localStorage，Supabase 已被 Juanxi 2026-10-27 决定推迟）。
-  同样要他同意。
-- ⚠️ docs/PROGRESS.md 里引用的「253 个单元测试 + 107 个页面测试」等数字**未经实跑
-  验证**（审计第 9 节附录）。实跑一次，用真实数字替换。
-  **这些数字可能进论文，不能是估的。**
+- README.md:7 still describes v0.1 ("the whole app in one file",
+  "Data storage is still in-memory"). Update it to reflect the current implementation.
+- AGENTS.md:81 still says "the production site is still v0.1", although v1 was merged and launched on 10/23.
+- AGENTS.md:76 says the Feedback queue is at the bottom of Rules; it has moved to Settings.
+- AGENTS.md sections 6/6b are outdated overall (swimlane/Gantt charts and endpoints removed; token table
+  and lint added). Replace them with the current code map.
+- AGENTS.md section 7: add "Read docs/DESIGN_TOKENS.md before interface changes;
+  use tokens only."
+  ⚠️ AGENTS.md contains Juanxi-approved rules. Show him the diff and obtain agreement before changing it.
+- docs/PRODUCT_PLAN.md: the interface description in section 6 and architecture diagram in section 11 may need updates
+  (the data layer remains localStorage; Juanxi deferred Supabase on 2026-10-27).
+  His agreement is also required.
+- ⚠️ Figures quoted in docs/PROGRESS.md, such as "253 unit tests + 107 page tests," **have not been verified
+  by running them** (audit section 9 appendix). Run them once and replace the figures with actual results.
+  **These numbers may appear in the thesis; they must not be estimates.**
 
-## 3. 清理遗留物
+## 3. Clean up leftovers
 
-- 删 ax.tmp.mjs（仓库根目录，11 行调试临时文件，硬编码某台机器的浏览器路径，
-  功能已被 e2e/a11y.spec.ts 覆盖）
-- vite.config.ts:8 的 sourcemap: true —— 生产环境发布完整 source map。
-  建议关掉（代码本身在公开仓库，不是漏洞，但属于默认不该开的配置）。
-- id 用数组长度自增的那几处（store.tsx:107 的 report:${length}、
-  taskWorkflow.ts:79、store.tsx:205）—— 将来支持删除就会撞 ID。改成稳定 id。
-- 确认 netlify/lib/ai.mts 的 AI_TIMEOUT_MS 默认 25000ms 是否超过 Netlify 同步函数
-  的执行上限（审计第 4.5 节标为推断，需实测）。超了就调。
+- Delete ax.tmp.mjs (an 11-line temporary debugging file in the repository root, hardcoding one machine's browser path;
+  its functionality is covered by e2e/a11y.spec.ts)
+- sourcemap: true at vite.config.ts: 8 — publishes full source maps in production.
+  Recommend disabling it (the code itself is in a public repository, so this is not a vulnerability, but the setting should not be enabled by default).
+- Locations that generate IDs from array length (report:${length} at store.tsx: 107,
+  taskWorkflow.ts: 79, store.tsx: 205) — deletions will cause ID collisions once supported. Use stable IDs.
+- Confirm whether the default AI_TIMEOUT_MS of 25000ms in netlify/lib/ai.mts exceeds Netlify's synchronous-function
+  execution limit (marked as an inference in audit section 4.5; requires actual testing). Adjust if it does.
 
-## 4. 上线前的硬检查
+## 4. Required pre-launch checks
 
-- [ ] npm run check 全绿，记录真实的测试数量
-- [ ] 人工走一遍：10 个页面 × 桌面/手机 × 浅色/深色
-- [ ] 键盘走一遍：只用 Tab / Enter / Escape 完成「认领一个任务 → 改状态 → 完成」
-- [ ] 参与者路径演练：Reset demo → 五步设置 → 建一个活动 → 建一个任务 →
-      问 AI 一个规则问题 → 导出数据。全程不能卡、不能白屏。
-- [ ] S2 的交互日志：做 10 个操作，导出，检查 JSON 里 10 条都在、顺序对
-- [ ] S2 的限流：确认生效，并记录实际阈值
-- [ ] 真实 DeepSeek 实测（不是模拟）：Ask 面板 + WP5 的 40 题规则评估。
-      ⚠️ docs/AI_TESTS.md 明确规定：不能把模拟结果或本地回退说成是真实 AI 验收。
-      如果因为访问保护跑不了，**如实记录为未完成**，不要含糊。
+- [ ] npm run check is fully green; record actual test counts.
+- [ ] Manually check: 10 pages × desktop/mobile × light/dark.
+- [ ] Keyboard walkthrough: use only Tab / Enter / Escape to "claim a task → change status → complete."
+- [ ] Rehearse the participant flow: Reset demo → five-step setup → create an event → create a task →
+      ask AI a rules question → export data. No stalling or blank screens anywhere.
+- [ ] S2 interaction log: perform 10 actions, export, and verify all 10 JSON entries exist in the correct order.
+- [ ] S2 rate limiting: confirm it takes effect and record the actual threshold.
+- [ ] Test real DeepSeek (not mocks): Ask panel + WP5's 40-question rules evaluation.
+      ⚠️ docs/AI_TESTS.md explicitly prohibits presenting mocked results or local fallbacks as real AI acceptance.
+      If access protection prevents the run, **record it honestly as incomplete**; do not be vague.
 
-## 5. 关于 Netlify 访问保护（11/4 之前，需要 Juanxi 操作）
+## 5. Netlify access protection (before 11/4; requires action by Juanxi)
 
-正式站现在整站 401，只有登录他 Netlify 账号的人能打开。发招募邮件之前必须关掉。
-**但那一刻 /api/* 就暴露在公网。**
+The entire official site currently returns 401; only someone logged into his Netlify account can open it. This must be disabled before recruitment emails go out.
+**But at that moment, /api/* becomes exposed to the public internet.**
 
-→ 确认 S2 的限流已经生效，再让他关。
-→ 写一份「点哪里」的一步一步说明给他（你没有他的 Netlify 权限）。
-→ 同时提醒他检查 AI_API_KEY 在 Production / Deploy Previews / Branch deploys
-  三处都填了（docs/PROGRESS.md 记录过只填了 Production，导致预览一直是模拟回答）。
+→ Confirm S2's rate limiting is effective before asking him to turn protection off.
+→ Write step-by-step "where to click" instructions for him (you do not have his Netlify access).
+→ Also remind him to check that AI_API_KEY is set for Production / Deploy Previews / Branch deploys
+  (docs/PROGRESS.md records that it was set only for Production, leaving previews with simulated responses).
 
-## 6. 合并与打标签（需要 Juanxi 明确说「批准合并」）
+## 6. Merge and tag (requires Juanxi to explicitly say "approved to merge")
 
-AGENTS.md 第 3 节规则 4：main 就是正式网站，只有 Juanxi 批准才能合并。
+AGENTS.md section 3, rule 4: main is the production site; merging requires Juanxi's approval.
 
-→ 把检查结果交给他
-→ 他说「批准合并」之后：合并 release/v1.0 到 main，打 v1.0 标签
-→ 确认 Netlify 部署成功、/api/health 显示真实供应商已接通
-→ 在 docs/PROGRESS.md 写最终交接记录
+→ Give him the check results
+→ After he says "approve the merge": merge release/v1.0 into main and tag v1.0
+→ Confirm Netlify deployed successfully and /api/health shows the live provider is connected
+→ Write the final handoff entry in docs/PROGRESS.md
 
-## 结束时
+## At completion
 
-用简单中文向 Juanxi 汇报：
-- 哪些检查过了、哪些没过
-- 他需要自己动手做哪几件事（Netlify 设置、branch protection），一步一步写清楚点哪里
-- 论文里可以引用的真实数字（测试数量、对比度、性能）
-- 还剩什么没做，建议留到 v1.5
+Report to Juanxi in simple Chinese [historical instruction; superseded by the current English policy]:
+- Which checks passed and which failed
+- What he must do himself (Netlify settings, branch protection), with step-by-step click instructions
+- Actual figures that may be cited in the thesis (test counts, contrast, performance)
+- What remains unfinished and is recommended for v1.5
 ```
 
 ---
 
-## 第 6 节 · 你现在要做的事
+## Section 6 · What you need to do now
 
-### 今天（10/27，周二）
+### Today (10/27, Tuesday)
 
-1. **确认这份方案**，特别是：会话划分合理吗？时间表跟得上吗？
-2. **截一张能看到蓝框的图发我**（点流程图节点或看板卡片，截全屏）。S3 要靠它才能改对东西。
-3. **把审计报告和这份方案提交到 GitHub**，否则后面 9 个会话读不到。
-   两个文件都是纯文档，不影响网站。我可以帮你做，但按 AGENTS.md 规则 4 需要你说一句"可以"。
-4. **建集结分支**（我可以帮你做）：
+1. **Confirm this plan**, especially: are the session divisions reasonable, and is the timetable achievable?
+2. **Send me a screenshot showing the blue border** (click a flowchart node or Board card, then capture the full screen). S3 needs it to fix the right thing.
+3. **Commit the audit report and this plan to GitHub**, or the next 9 sessions cannot read them.
+   Both are documentation only and do not affect the site. I can help, but AGENTS.md rule 4 requires you to say “yes.” [Historical approval rule; current owner policy supersedes it.]
+4. **Create the integration branch** (I can help):
    ```
    git checkout -b integration/v1.1-fix main && git push -u origin integration/v1.1-fix
    ```
 
-### 周三（10/28）
+### Wednesday (10/28)
 
-开 **S1 / S2 / S3** 三个会话（可以同时）。把第 5 节对应的提示词整段粘进去。
+Open three sessions, **S1 / S2 / S3** (they may run simultaneously). Paste the entire corresponding prompt from section 5 into each.
 
-### 周四（10/29）· 提交 IRB
+### Thursday (10/29) · Submit IRB
 
-- 合并 S1 → S2 → S3 到 `integration/v1.1-fix`，再合并到 `main`
-- **IRB 材料里加上"收集参与者交互日志并导出"**（见第 1.3 节③）。这件事现在写是免费的，批准之后再加要走修改，会卡掉你 11/9 的测试计划。
+- Merge S1 → S2 → S3 into `integration/v1.1-fix`, then merge into `main`
+- **Add “collect and export participant interaction logs” to the IRB materials** (see §1.3 ③). Adding it now costs nothing; adding it after approval requires an amendment and could block your 11/9 testing plan.
 
-### 周四之后
+### After Thursday
 
-按 S4 → S5 → S6 → S7 → S8 → S9 顺序来，一个一个开。**11/4 之前必须确认 S2 的限流生效**，然后才能关掉 Netlify 访问保护发招募邮件。
-
----
-
-## 第 7 节 · 我对这个时间表的判断
-
-说实话：**周四（2 天后）要"所有功能都能实现"，这个目标本身就要澄清。**
-
-功能其实**已经全做完了**——WP0 到 WP5 五个工作包在 10/22 一天内全部完成。周四之前要做的不是"补功能"，而是**让已有功能不出丑**：按钮找得到、改了有反应、不白屏、数据不丢、点一下不用等。
-
-这正好是 S1 + S2 + S3 的内容，**2 天做完是现实的**，因为三个会话可以并行，而且每一件事都有确切的文件和行号。
-
-但要提醒你一件事：**真实 DeepSeek 从来没有被实测过。** `docs/PROGRESS.md` 和 `docs/AI_TESTS.md` 都明确记着这个缺口——Netlify 预览的 key 只填了 Production，所以预览里一直是模拟回答，40 题规则评估也只跑过模拟供应商。
-
-如果 Phase 3 会话里 AI 要真的回答学生的问题，**这件事必须在 11/9 之前实测，而且不能用模拟结果冒充**（`AI_TESTS.md` 自己定了这条规矩）。我把它放在 S9 里，但**它可能需要单独一个会话**，因为它依赖你在 Netlify 上补填 key 并重新部署，而且可能会发现新问题。
-
-→ 建议：**在 11/4 关掉访问保护之后立刻做真实 AI 实测**，不要留到 11/8。如果那时发现 AI 回答质量有问题，你还有 4 天可以调提示词。
+Proceed S4 → S5 → S6 → S7 → S8 → S9, opening one session at a time. **Confirm S2 rate limiting works before 11/4**, then disable Netlify access protection and send recruitment emails.
 
 ---
 
-# 第 8 节 · DP3 × DP4 合并（2026-10-27 新增，Juanxi 指定的当前重点）
+## Section 7 · My assessment of this schedule
 
-## 8.1 两个预览分别是什么
+Frankly, **the goal of having "all features working" by Thursday (2 days away) itself needs clarification.**
 
-**Deploy Preview 的编号 = PR 的编号。**
+The functionality is actually **already complete** — all five work packages from WP0 to WP5 were completed in one day on 10/22. The work before Thursday is **to make existing features presentable**: discoverable buttons, responsive changes, no blank screens, no data loss, and no waiting after a click.
 
-| | PR | 分支 | 内容 | 相对 `main` |
+That is exactly the scope of S1 + S2 + S3. **Finishing in 2 days is realistic**, because the three sessions can run in parallel and every item has exact files and line numbers.
+
+One reminder: **real DeepSeek has never been tested.** Both `docs/PROGRESS.md` and `docs/AI_TESTS.md` explicitly record this gap—the Netlify preview key was configured only for Production, so previews have always used mocked responses, and the 40-question rule evaluation has only run against a mock provider.
+
+If AI is to actually answer student questions in Phase 3 sessions, **this must be tested live before 11/9; mock results cannot stand in for it** (`AI_TESTS.md` itself sets this rule). I placed it in S9, but **it may need a separate session**, because it depends on you configuring the key in Netlify and redeploying, and it may uncover new issues.
+
+→ Recommendation: **test the real AI immediately after disabling access protection on 11/4**; do not leave it until 11/8. If response quality is poor, you will still have 4 days to tune the prompts.
+
+---
+
+# Section 8 · DP3 × DP4 merge (added 2026-10-27; Juanxi's designated current priority)
+
+## 8.1 What the two previews are
+
+**Deploy Preview number = PR number.**
+
+| | PR | Branch | Contents | Relative to `main` |
 | --- | --- | --- | --- | --- |
-| **DP4** | #4 | `integration/v1.1-fix` | main + S1/S2/S3 修复（权限入口、安全数据、性能质感）| +2,446 行 |
-| **DP3** | #3 | `feat/organization-setup-ai` | v1 + `src/phase1/` + `src/organization/`（Setup v3）+ `src/workspace/` | +29,773 行 |
+| **DP4** | #4 | `integration/v1.1-fix` | main + S1/S2/S3 fixes (permission entry points, security/data, performance/polish) | +2,446 lines |
+| **DP3** | #3 | `feat/organization-setup-ai` | v1 + `src/phase1/` + `src/organization/` (Setup v3) + `src/workspace/` | +29,773 lines |
 
-DP3 是"纯白色"的，因为它那 4,567 行独立 CSS（`phase1.css` / `organization.css` / `setupV3.css`）**没有实现深色模式**。Juanxi 说他更喜欢浅色（第 1.5 节），所以这一点是巧合的加分项，不是设计。
+DP3 is "pure white" because its 4,567 lines of separate CSS (`phase1.css` / `organization.css` / `setupV3.css`) **do not implement dark mode**. Juanxi said he prefers light mode (section 1.5), so this is an accidental advantage, not a design decision.
 
-`v1` 的内容和 `main` 相同，所以 **DP3 和 DP4 的共同祖先就是 main**。
+`v1` has the same content as `main`, so **main is the common ancestor of DP3 and DP4**.
 
-## 8.2 试合并的真实结果（2026-10-27 实跑）
+## 8.2 Actual trial-merge results (run on 2026-10-27)
 
-把 DP3 合进 DP4：
+Merge DP3 into DP4:
 
 ```
-130 个文件自动合并成功
- 11 个文件冲突
+130 files merged automatically
+ 11 files conflicted
 ```
 
-**冲突全部是小冲突。** 逐个核对：
+**All conflicts are minor.** Check them individually:
 
-| 文件 | 冲突块 | 性质 | 代价 |
+| File | Conflict blocks | Nature | Effort |
 | --- | --- | --- | --- |
-| `netlify/functions/{ask,chat,command,handbook-draft,nudge-draft}.mts` | 各 1 处 | **同一个参数两个名字**：S2 加的 `endpoint: "ask"`（用量日志）vs DP3 的 `task: "ask"`（模型路由）| 每个一行 |
-| `netlify/functions/{classify,parse-brief,plan-draft}.mts` | 0 | **删除/修改冲突**：S2 删了它们，DP3 只是改了上面那一行。已核实 DP3 的 `src/` 和 `public/` **完全不引用**这三个端点 | 直接接受删除 |
-| `netlify/lib/ai.mts` | 2 处 | DP3 的 `ChatJSONArgs` / `ChatJSONResult` 是 S2 版本的**严格超集** | 取 DP3 的类型，把 S2 的日志调用重新挂上去 |
-| `src/main.tsx` | 1 处 | S1 的 ErrorBoundary + 主题切换 vs DP3 的 `phase1` 路由 import。**两个都要，交错即可** | 10 分钟 |
-| `docs/PROGRESS.md` | 1 处 | 两边各自追加了交接记录 | 两条都留 |
+| `netlify/functions/{ask,chat,command,handbook-draft,nudge-draft}.mts` | 1 each | **Two names for the same parameter**: S2's `endpoint: "ask"` (usage logging) vs DP 3's `task: "ask"` (model routing) | One line each |
+| `netlify/functions/{classify,parse-brief,plan-draft}.mts` | 0 | **Delete/modify conflict**: S2 deleted them; DP 3 only changed the line above. Verified that DP 3's `src/` and `public/` **do not reference** any of these three endpoints | Accept deletion directly |
+| `netlify/lib/ai.mts` | 2 | DP 3's `ChatJSONArgs` / `ChatJSONResult` are **strict supersets** of S2's versions | Use DP 3's types and reattach S2's logging calls |
+| `src/main.tsx` | 1 | S1's ErrorBoundary + theme switching vs DP 3's `phase1` route import. **Keep both; interleave them** | 10 minutes |
+| `docs/PROGRESS.md` | 1 | Each side appended its own handoff entry | Keep both |
 
-## 8.3 一个"取长补短"的发现
+## 8.3 A finding about combining their strengths
 
-S2 做 A8(e) 用量日志时，只能记到 provider / model / 耗时 —— 因为当时的 `ChatJSONResult` 没有 token 数。
+When S2 implemented A8 (e) usage logging, it could record only provider / model / elapsed time, because `ChatJSONResult` did not include token counts then.
 
-**DP3 的 `ChatJSONResult` 已经带了 S2 想要而拿不到的全部字段：**
+**DP3's `ChatJSONResult` already has every field S2 wanted but could not obtain:**
 
 ```ts
 inputTokens, outputTokens, finishReason, headersMs,
@@ -1625,175 +1626,175 @@ requestedModel, reasoningEffort, servedReasoningEffort, routingVersion,
 inputChars, outputChars
 ```
 
-→ **合并之后，S2 的成本监控会直接变完整**，不用额外做事。这是 DP3 补 DP4 的一处。
+→ **After merging, S2's cost monitoring will become complete automatically**, without extra work. This is one way DP3 fills a gap in DP4.
 
-反过来 DP4 补 DP3 的：ErrorBoundary、数据导出与交互日志、限流、主题切换、零延迟悬停、预测只算一次、表单焦点样式 —— DP3 一样都没有。
+Conversely, DP 4 adds what DP 3 lacks: ErrorBoundary, data export and interaction logging, rate limiting, theme switching, zero-delay hover, computing forecasts only once, and form focus styles. DP 3 has none of these.
 
-## 8.4 结论：这是一次会话能做完的合并，不是几天的工程
+## 8.4 Conclusion: this merge can be completed in one session; it is not a multiday project
 
-11 个冲突里，**8 个是一行或零行**，真正要动脑的只有 `ai.mts`（两处类型定义）和 `main.tsx`（交错两段代码）。
+Of the 11 conflicts, **8 are one line or zero lines**. Only `ai.mts` (two type definitions) and `main.tsx` (interleaving two code blocks) require real thought.
 
-**预计 2–4 小时，一个会话。**
+**Estimated 2–4 hours, one session.**
 
-⚠️ 但合并只解决**代码**。合并之后 DP3 的界面仍然是它自己那 4,567 行 CSS，和主应用不是一套视觉。视觉统一是另一件事，见 8.6。
+⚠️ Merging resolves only the **code**. After merging, DP3's interface still uses its own 4,567 lines of CSS and differs visually from the main application. Visual unification is separate; see 8.6.
 
-## 8.5 合并会话的提示词（M1）
+## 8.5 Prompt for the merge session (M1)
 
 ```
-你负责把 Platypus 的两个 Deploy Preview 合并成一个版本。项目负责人 Juanxi 不写代码。
+You are responsible for combining Platypus's two Deploy Previews into one version. Project owner Juanxi does not write code.
 
-先读（必读）：
-1. AGENTS.md —— 全文，特别是第 3 节硬性规则和**第 8 节分支规范**
-2. docs/EXECUTION_PLAN_2026-10-27.md 第 8 节 —— 试合并的完整结果，你的工作说明书
-3. docs/AUDIT_2026-10-27.md —— 背景
-4. docs/organization/V3_CHANGELOG.md（在 DP3 分支上）—— DP3 做了什么
+Read first (required):
+1. AGENTS.md: in full, especially Section 3's hard rules and **Section 8's branch conventions**.
+2. Section 8 of docs/EXECUTION_PLAN_2026-10-27.md: the complete trial-merge results and your work instructions.
+3. docs/AUDIT_2026-10-27.md: background.
+4. docs/organization/V3_CHANGELOG.md (on the DP3 branch): what DP3 did.
 
-## 背景
+## Background
 
-DP4 = integration/v1.1-fix（PR #4）= main + S1/S2/S3 修复
-DP3 = feat/organization-setup-ai（PR #3）= v1 + src/phase1/ + src/organization/ + src/workspace/
+DP4 = integration/v1.1-fix (PR #4) = main + S1/S2/S3 fixes
+DP3 = feat/organization-setup-ai (PR #3) = v1 + src/phase1/ + src/organization/ + src/workspace/
 
-已实跑试合并：130 个文件自动合并成功，11 个冲突，全部是小冲突。
+A trial merge was actually run: 130 files merged automatically, with 11 conflicts, all small.
 
-⚠️ 第 8.2 节有每一个冲突的性质和解决方向，照着做，不要自己重新判断。
+⚠️ Section 8.2 explains each conflict and how to resolve it. Follow those directions rather than reassessing them yourself.
 
-开始前：
+Before starting:
   git fetch origin
   git checkout -b integration/dp3-dp4-merge origin/integration/v1.1-fix
   npm ci
   git merge --no-ff origin/feat/organization-setup-ai
 
-⚠️ 绝对不要改名或删除 integration/v1.1-fix、feat/organization-setup-ai、
-  feat/ai-native-phase1、v1 这四个分支。它们带着 PR #2/#3/#4，
-  动了会关闭 PR 并永久毁掉 Deploy Preview 网址（AGENTS.md 第 8.2 节）。
+⚠️ Never rename or delete these four branches: integration/v1.1-fix, feat/organization-setup-ai,
+  feat/ai-native-phase1, and v1. They support PR #2/#3/#4;
+  changing them would close the PRs and permanently destroy Deploy Preview URLs (AGENTS.md §8.2).
 
-## 逐个解决冲突
+## Resolve the conflicts individually
 
-1. 5 个 netlify 函数的 `endpoint:` vs `task:` ——
-   **统一用 DP3 的 `task`**（它是 AiTask 类型，参与模型路由，信息更多），
-   然后把 S2 的用量日志改成读 `task`。
+1. `endpoint:` vs `task:` in 5 Netlify functions —
+   **Standardize on DP3's `task`** (it uses the AiTask type, participates in model routing, and carries more information),
+   then update S2 usage logging to read `task`.
 
-2. classify.mts / parse-brief.mts / plan-draft.mts 的删除/修改冲突 ——
-   **接受 S2 的删除**。已核实 DP3 的 src/ 和 public/ 完全不引用这三个端点。
-   删完后全仓库再 grep 一次确认没有引用残留。
+2. Delete/modify conflicts in classify.mts / parse-brief.mts / plan-draft.mts:
+   **Accept S2's deletions.** Verified: DP3's src/ and public/ do not reference these three endpoints at all.
+   After deletion, search the whole repository again to confirm no references remain.
 
-3. netlify/lib/ai.mts ——
-   **取 DP3 的 ChatJSONArgs / ChatJSONResult**（是 S2 版本的严格超集），
-   再把 S2 的用量日志调用挂回去。
-   → 顺带把日志补全：DP3 的返回值带了 inputTokens / outputTokens /
-     finishReason / headersMs，S2 当初拿不到。现在记上。
-   → ⚠️ 日志里绝对不能出现 key、token 字符串、用户内容。
+3. netlify/lib/ai.mts —
+   **Take DP3's ChatJSONArgs / ChatJSONResult** (a strict superset of S2's version),
+   then reconnect S2's usage-log call.
+   → Complete the logs as well: DP3 returns inputTokens / outputTokens /
+     finishReason / headersMs, which S2 could not obtain originally. Log them now.
+   → ⚠️ Logs must never contain keys, token strings, or user content.
 
-4. src/main.tsx ——
-   S1 的 ErrorBoundary + clearSavedDemo + 主题切换（A11）和 DP3 的 phase1 路由
-   **两个都要**。交错写，不要二选一。
-   → ErrorBoundary 必须包住 phase1 路由（DP3 自己没有 ErrorBoundary）。
+4. src/main.tsx —
+   Keep **both** S1's ErrorBoundary + clearSavedDemo + theme switching (A11) and DP 3's phase 1 routes.
+   Interleave them; do not choose one side.
+   → ErrorBoundary must wrap the phase 1 routes (DP 3 has no ErrorBoundary of its own).
 
-5. docs/PROGRESS.md —— 两边的交接记录都保留，按日期倒序排。
+5. docs/PROGRESS.md — retain both sets of handoff records, in reverse chronological order.
 
-## 合并之后必做
+## Required after merging
 
-- npm run check 全绿。⚠️ DP3 带了自己的测试（organization.test.ts、setupV3.test.ts、
-  phase1.test.ts、server.test.ts 等），它们现在也要全过。
-- 人工走一遍 **两条线**：
-  (a) 主应用：Today / Events / Tasks / Team / Funding / Handoff / Partners / Rules / Settings
-  (b) DP3 的线：/#/phase1/ 的五章 onboarding（章程 → 团队 → 职责 → 活动流程 → Review）
-- ⚠️ Juanxi 更喜欢**浅色模式**。两条线都要在浅色下检查。
-- 确认 S1 的主题切换对 /#/phase1/ 也生效；如果不生效（DP3 有自己的 CSS，
-  可能没接 data-theme 钩子），**记进交接记录**，不要现在改 —— 那是视觉统一的工作。
+- npm run check must be fully green. ⚠️ DP3 includes its own tests (organization.test.ts, setupV3.test.ts,
+  phase1.test.ts, server.test.ts, etc.); these must all pass too.
+- Manually walk through **both paths**:
+  (a) Main application: Today / Events / Tasks / Team / Funding / Handoff / Partners / Rules / Settings.
+  (b) DP3: five-chapter onboarding at /#/phase1/ (constitution → team → responsibilities → event workflow → Review).
+- ⚠️ Juanxi prefers **light mode**. Check both paths in light mode.
+- Confirm S1's theme switch also works at /#/phase1/. If it does not (DP3 has its own CSS and
+  may not connect to the data-theme hooks), **record it in the handoff**; do not fix it now. That belongs to visual unification.
 
-## 要向 Juanxi 报告的三件事
+## Three things to report to Juanxi
 
-1. **服务器存储**：DP3 有 netlify/lib/organization/storage.mts（服务器端存组织配置，
-   私有工作区保留 7 天）。这和主应用「数据只在浏览器」的前提不同。
-   → 明确告诉 Juanxi：**这件事有 IRB 含义，他周四交材料前必须知道。**
-2. **两套 onboarding 并存**：主应用有 src/pages/Setup.tsx（五步设置），
-   DP3 有五章 onboarding，功能重叠。**不能两个都给 Phase 3 参与者看。**
-   列出两者的差别，让 Juanxi 选一个。
-3. **AI 供应商**：DP3 的 modelPolicy 用 Gemma 4 31B / Muse / GLM 5.3 三款路由，
-   而主应用用 DeepSeek。合并后实际会用哪个？环境变量怎么配？
-   → 查清楚并写进 docs/AI_SETUP.md。
+1. **Server storage**: DP3 has netlify/lib/organization/storage.mts (stores organization configuration
+   server-side, with private workspaces retained for 7 days). This differs from the main application's "browser-only data" premise.
+   → Tell Juanxi clearly: **this has IRB implications, and he must know before submitting Thursday's materials.**
+2. **Two coexisting onboarding flows**: the main application has src/pages/Setup.tsx (five-step setup),
+   while DP3 has five-chapter onboarding, with overlapping functionality. **Phase 3 participants cannot see both.**
+   List the differences and let Juanxi choose one.
+3. **AI provider**: DP3's modelPolicy routes among Gemma 4 31B / Muse / GLM 5.3,
+   while the main application uses DeepSeek. Which will actually be used after merging? How should environment variables be configured?
+   → Establish this and document it in docs/AI_SETUP.md.
 
-## 结束时
+## At completion
 
-1. docs/PROGRESS.md 交接记录加一行
-2. 提交信息：[M1][Claude] 简短说明
+1. Add a handoff row in docs/PROGRESS.md
+2. Commit message: [M1][Claude] Short description
 3. git push -u origin integration/dp3-dp4-merge
-4. **开一个新的 draft PR**（base 用 main），这样 Juanxi 能拿到一个新的 Deploy Preview
-   同时看到合并后的效果。**不要关闭或修改 PR #2 / #3 / #4。**
-5. 不要合并到 main。
-6. 用简单中文向 Juanxi 汇报，告诉他新预览的网址，以及上面那三件要他决定的事。
+4. **Open a new draft PR** (base: main), giving Juanxi a new Deploy Preview
+   where he can see the combined result. **Do not close or modify PR #2 / #3 / #4.**
+5. Do not merge into main.
+6. Report to Juanxi in simple Chinese [historical instruction; superseded by the current English policy], giving him the new preview URL and the three decisions listed above.
 ```
 
-## 8.6 合并之后还剩什么（视觉统一）
+## 8.6 What remains after merging (visual consistency)
 
-合并只解决代码共存。DP3 的界面仍然是它自己那 4,567 行 CSS。
+The merge only makes the code coexist. DP3's interface still uses its own 4,567 lines of CSS.
 
-**便宜的做法（建议）：** 等 S5 的 token 表做完，让 DP3 的三个 CSS 文件改成消费同一套 token
-（字号、间距、圆角、状态色、浅深色）。不碰那 5,200 行 TSX。结果不会像素级一致，但会
-明显是同一个产品。这应该排成 **S5b**，在 S5 之后。
+**Lower-cost approach (recommended):** Once S5's token table is complete, make DP3's three CSS files consume the same tokens
+(font sizes, spacing, radii, status colors, light/dark modes). Do not touch those 5,200 lines of TSX. The result will not be pixel-identical, but will
+clearly look like the same product. Schedule this as **S5b**, after S5.
 
-**贵的做法（Phase 3 之后再说）：** 写 DP3 组织配置 → 主应用 `DemoState` 的适配器，
-把五章 onboarding 用主应用的 5 个组件重做。这是 v1.5 的工作量。
+**Higher-cost approach (discuss after Phase 3):** Write an adapter from DP3 organization configuration → the main application's `DemoState`,
+and rebuild the five-chapter onboarding using the main application's 5 components. That is v1.5-scale work.
 
 ---
 
-# 第 9 节 · Juanxi 的四个决定与 DP3→DP4 整合（2026-10-27 晚）
+# Section 9 · Juanxi's four decisions and DP3→DP4 integration (evening of 2026-10-27)
 
-## 9.1 四个决定
+## 9.1 Four decisions
 
-| # | 决定 | 影响 |
+| # | Decision | Impact |
 | --- | --- | --- |
-| 1 | **DP3 的服务器存储不删，隐藏起来** | `netlify/lib/organization/storage.mts` 和 `org-*` 函数保留，但参与者路径不可达。**见 9.2 的 IRB 要求** |
-| 2 | **两套 onboarding 合一**：把 DP3 的 onboarding 整合进 DP4 | 最大的一块，见 9.4 |
-| 3 | **AI 不用 DeepSeek，改用 DP3 的路由**（Gemma 4 31B / Muse / GLM 5.3）。Juanxi：已测过，返回最快 | 见 9.3 |
-| 4 | **保留 DP4 的地铁线路图**，不要 DP3 的流程图。Juanxi：「很整洁，像地铁线路图一样，比 DP3 的更好」 | 直接决定了 9.4 的一处冲突怎么解 |
+| 1 | **Keep DP3's server storage, but hide it** | Retain `netlify/lib/organization/storage.mts` and `org-*` functions, but make them unreachable from participant paths. **See IRB requirements in 9.2** |
+| 2 | **Unify the two onboarding flows**: integrate DP3's onboarding into DP4 | Largest piece of work; see 9.4 |
+| 3 | **Replace DeepSeek with DP3's AI routing** (Gemma 4 31B / Muse / GLM 5.3). Juanxi: already tested; fastest responses | See 9.3 |
+| 4 | **Keep DP4's metro map**, rather than DP3's flowchart. Juanxi: "Very neat, like a metro map; better than DP3's" | Directly determines how one conflict in 9.4 is resolved |
 
-Juanxi 的未来计划（**不是现在做**）：让 setting 和 onboarding 也用同一套地铁线路图样式，并且让用户能自己改。
+Juanxi's future plan (**not for now**): use the same metro-map style for setting and onboarding, and let users edit it themselves.
 
-## 9.2 ⚠️「隐藏」必须定义清楚，否则 IRB 会出问题
+## 9.2 ⚠️ Define "hidden" precisely to avoid IRB problems
 
-「隐藏」不能只是「界面上不放入口」。只要 `org-setup.mts` / `org-archive.mts` 这些端点还在公网上活着，它就仍然是一个**能接收并存储数据的服务器**。
+"Hidden" cannot mean merely "no entry point in the interface." As long as endpoints such as `org-setup.mts` / `org-archive.mts` remain live on the public internet, this is still a **server capable of receiving and storing data**.
 
-**隐藏 = 三件事同时做到：**
+**Hidden = all three conditions met together:**
 
-1. **界面上没有任何路径能走到它**（参与者点不到）
-2. **端点在生产环境直接拒绝**：读一个环境变量（例如 `ORG_SETUP_ENABLED`），没开就返回 404 或 403，不执行任何存储逻辑
-3. **代码和测试全部保留**，随时能开回来
+1. **No interface path reaches it** (participants cannot navigate to it)
+2. **Endpoints reject requests in production**: read an environment variable (for example, `ORG_SETUP_ENABLED`); if disabled, return 404 or 403 without running any storage logic
+3. **Keep all code and tests**, ready to re-enable at any time
 
-做到这三条，Juanxi 的 IRB 材料里就**不需要**写「服务器存储组织配置」—— 因为参与者的数据确实不会到服务器上。
+With these three conditions met, Juanxi's IRB materials **do not need** to state "organization configuration is stored on the server," because participant data genuinely will not reach the server.
 
-❌ 只做第 1 条是不够的。那种情况下 protocol 必须写上服务器存储，否则就是 protocol 和实际不符。
+❌ Item 1 alone is insufficient. In that case, the protocol must describe server storage, or the protocol will not match actual behavior.
 
-**这一条必须在周四交 IRB 之前确认做到。**
+**This must be confirmed complete before Thursday's IRB submission.**
 
-## 9.3 AI 供应商切到 DP3 路由
+## 9.3 Switch AI provider routing to DP3's
 
-DP3 的 `src/organization/modelPolicy.ts` 定义三档路由：
-- **Gemma 4 31B** —— 较长的结构化设置任务
-- **Muse** —— 短对话和编辑
-- **GLM 5.3** —— 只在用户主动要求 Deeper review 时
+DP3's `src/organization/modelPolicy.ts` defines three routing tiers:
+- **Gemma 4 31B** — longer structured setup tasks
+- **Muse** — short conversations and edits
+- **GLM 5.3** — only when the user explicitly requests Deeper review
 
-⚠️ DP3 自己的文档（`docs/organization/V3_CHANGELOG.md`）写着：「选型不是已证明的性能排名」。Juanxi 说实测返回最快，**以他的实测为准**，但不要在论文里把它写成「已验证的性能排名」。
+⚠️ DP3's own documentation (`docs/organization/V3_CHANGELOG.md`) says: “This selection is not a proven performance ranking.” Juanxi says it returned fastest in his tests; **use his actual results as the reference**, but do not describe it in the thesis as a “validated performance ranking.”
 
-**要做的：**
-- 主应用的 `/api/chat`、`/api/ask`、`/api/nudge/draft`、`/api/handbook/draft` 全部改走 DP3 的路由
-- 把 `task` 参数（`AiTask`）接到这四个端点上，让路由能选对模型
-- 更新 `docs/AI_SETUP.md`：环境变量怎么配、怎么换回 DeepSeek
-- ⚠️ `AGENTS.md` 第 3 节规则 5 写着「开发时用 DeepSeek，有真实参与者的 Phase 3 必须用 ASU AIR（或 IRB 批准的供应商）」。
-  **换供应商要确认新模型是否在 IRB 批准范围内。这是 Juanxi 要和 Marcie 确认的事，不是 AI 能决定的。**
+**Work needed:**
+- Route all main-app `/api/chat`, `/api/ask`, `/api/nudge/draft`, and `/api/handbook/draft` calls through DP3's routing.
+- Wire the `task` parameter (`AiTask`) into these four endpoints so routing selects the right model.
+- Update `docs/AI_SETUP.md`: environment-variable configuration and switching back to DeepSeek.
+- ⚠️ Rule 5 in section 3 of `AGENTS.md` states, "Use DeepSeek during development; Phase 3 with real participants must use ASU AIR (or an IRB-approved provider)."
+  **Before switching providers, confirm whether the new model is covered by IRB approval. Juanxi must confirm this with Marcie; AI cannot decide.**
 
-## 9.4 ⭐ 核心问题：两套数据模型到底能不能对上
+## 9.4 ⭐ Core question: can the two data models actually align?
 
-Juanxi 问的「最关键的是合并时的那些变量、组件究竟能不能做好适配」。逐字段核对结果：
+Juanxi asked, “The key question is whether those variables and components can really be adapted properly during the merge.” Field-by-field findings:
 
-### ✅ 能干净对上的（直接映射）
+### ✅ Clean matches (direct mapping)
 
-| DP3 | 主应用 | 说明 |
+| DP3 | Main application | Notes |
 | --- | --- | --- |
-| `OrgRole.id` | `Role.id` | DP3 专门做了稳定岗位 ID，正好 |
+| `OrgRole.id` | `Role.id` | DP3 specifically implemented stable role IDs, which fits perfectly |
 | `OrgRole.title` | `Role.displayName` | ✅ |
-| `OrgRole.description` | （新增字段）| 低风险 |
+| `OrgRole.description` | (new field) | Low risk |
 | `RaciRow.responsible` | `Node.ownerId` | ✅ |
 | `RaciRow.accountable` | `Node.approverRoleId` | ✅ |
 | `RaciRow.consulted` | `Node.consultedRoleIds` | ✅ |
@@ -1801,217 +1802,217 @@ Juanxi 问的「最关键的是合并时的那些变量、组件究竟能不能�
 | `FlowNode.dependsOn` | `Node.dependsOn` | ✅ |
 | `FlowNode.title` | `Node.title` | ✅ |
 
-**RACI 这一组是近乎一比一的，这是最大的好消息。**
+**The RACI fields map almost one-to-one; that is the best news.**
 
-### ⚠️ 五处真冲突，每一处都要一个决定
+### ⚠️ Five actual conflicts, each requiring a decision
 
-**① `departmentId` vs `RoleFunction` —— 两条不同的分类轴**
+**① `departmentId` vs `RoleFunction`: two different classification axes**
 
-DP3 按**部门**分（Programs & Planning / Event Logistics / Finance / Marketing & Communication / Outreach & Partnerships / Leadership & Records，6 个）。
-主应用按**职能枚举**分（`RoleFunction`：president / vice_president / treasurer / …）。
+DP3 groups by **department** (Programs & Planning / Event Logistics / Finance / Marketing & Communication / Outreach & Partnerships / Leadership & Records; 6 total).
+The main app groups by **function enum** (`RoleFunction`: president / vice_president / treasurer / …).
 
-主应用的**流程模板、流程图泳道、岗位手册目录**全都挂在 `RoleFunction` 上。
+The main application's **workflow templates, flowchart swimlanes, and role-handbook table of contents** all depend on `RoleFunction`.
 
-→ **不是一一对应**，需要一张映射表，而且会有多对一。
-→ 决定：**保留 `RoleFunction` 作为主键**（引擎依赖它），把 `departmentId` 作为附加标签存下来，用于分组显示和颜色。两个都留，不要二选一。
+→ **There is no one-to-one correspondence**; a mapping table is needed, with some many-to-one mappings.
+→ Decision: **keep `RoleFunction` as the primary key** (the engine depends on it), and store `departmentId` as an additional tag for grouped display and colors. Keep both; do not choose one over the other.
 
-**② `FlowNode.position{x,y}` 手动坐标 vs 地铁图自动布局 —— Juanxi 已经选了**
+**② Manual `FlowNode.position{x,y}` coordinates vs automatic subway-map layout—Juanxi has already chosen**
 
-主应用的地铁图 `src/components/flow/metro.ts` 是**纯布局算法**（有单元测试），不存坐标。
-DP3 的 `FlowEditor.tsx`（397 行）让用户拖节点，把 x/y 存进数据。
+The main application's Metro diagram, `src/components/flow/metro.ts`, is a **pure layout algorithm** (with unit tests); it does not store coordinates.
+DP3's `FlowEditor.tsx` (397 lines) lets users drag nodes and stores x/y in the data.
 
-**Juanxi 明确说喜欢地铁图、不要 DP3 的流程图。**
+**Juanxi explicitly said he likes the metro map and does not want DP 3's flowchart.**
 
-→ 决定：**导入时丢弃 `position`，用 `metro.ts` 自动布局**。DP3 的 `FlowEditor.tsx` 不迁移。
-→ 他说的"未来让用户能自己改"，正确做法不是回到手动坐标，而是**让用户改顺序和依赖，布局仍然自动算**。记进未来计划，现在不做。
+→ Decision: **discard `position` on import and use `metro.ts` for automatic layout**. Do not migrate DP3's `FlowEditor.tsx`.
+→ His request to "let users edit it themselves in the future" should mean **letting users change order and dependencies while layout is still computed automatically**, rather than returning to manual coordinates. Record this in the future plan; do not implement it now.
 
-**③ `dependencyMode: "all" | "any"` —— 引擎不认识 "any"**
+**③ `dependencyMode: "all" | "any"`: the engine does not recognize "any"**
 
-主应用的 `topoOrder()` 和 `computeSchedule()` 只支持「全部上游完成才能开始」。
+The main app's `topoOrder()` and `computeSchedule()` support only "start after all upstream tasks are complete."
 
-→ 决定：**导入时只接受 `all`**。遇到 `any` 就拒绝并明确告诉用户，不要悄悄当成 `all`。
-→ ⚠️ **不要为此改引擎。** `src/engine/` 是全项目测试最密、最有论文价值的代码，改它的风险远大于收益。
+→ Decision: **accept only `all` on import**. Reject `any` with a clear explanation; do not silently treat it as `all`.
+→ ⚠️ **Do not change the engine for this.** `src/engine/` has the project's densest test coverage and greatest thesis value; changing it carries far more risk than benefit.
 
-**④ 日期：`FlowNode.timing` vs「只有引擎能算日期」的铁律**
+**④ Dates: `FlowNode.timing` vs the hard rule that "only the engine computes dates"**
 
-`AGENTS.md` 第 3 节规则 3 是整个项目的核心原则。DP3 的 `timing: RelativeTargetSchema` 是相对目标。
+Rule 3 in Section 3 of `AGENTS.md` is the entire project's core principle. DP3's `timing: RelativeTargetSchema` represents relative targets.
 
-→ 决定：DP3 的 `timing` 只能翻译成主应用的 **`Node.anchor`（rule/target/fixed/followup）+ 流程模板里的提前量**，然后交给 `schedule.ts` 算。
-→ **任何情况下都不能把 DP3 的 timing 直接写成三个日期字段。**
+→ Decision: DP3's `timing` may only be translated into the main app's **`Node.anchor` (rule/target/fixed/followup) + lead times in the workflow template**, then passed to `schedule.ts` for calculation.
+→ **DP3 timing must never be written directly into the three date fields.**
 
-**⑤ DP3 没有「人」的概念**
+**⑤ DP3 has no concept of a "person"**
 
-DP3 的 onboarding 产出的是**岗位**（`OrgRole`），不是人。
-而主应用的权限（`canLead`）、通知、工作量、提醒、贡献榜**全部挂在 `Person` 上**。
+DP3 onboarding produces **roles** (`OrgRole`), not people.
+The main app's permissions (`canLead`), notifications, workload, reminders, and contribution leaderboard **all attach to `Person`**.
 
-→ 决定：整合后的 onboarding 必须**多一步「谁担任每个岗位」**。可以沿用主应用现有的 `Join.tsx` 五问，或者在 DP3 的「团队」那一章后面加一屏。
-→ 这一步不能省，省了之后整个 Tasks / Team / Today 都没数据。
+→ Decision: integrated onboarding must **add a "who holds each role" step**. Reuse the main application's existing five questions in `Join.tsx`, or add a screen after DP3's "Team" chapter.
+→ This step cannot be omitted: without it, Tasks / Team / Today have no data.
 
-### ❌ 不迁移的
+### ❌ What will not be migrated
 
-| DP3 的东西 | 为什么不迁 |
+| DP3 item | Why it will not migrate |
 | --- | --- |
-| `FlowEditor.tsx`（手动拖拽流程图）| Juanxi 选了地铁图 |
-| `phase1.css` / `organization.css` / `setupV3.css`（4,567 行）| 第三套设计系统。UI 要用主应用的 5 个组件重做 |
-| `src/workspace/`（Activity workspace）| Juanxi 没要求过，和 Events/Tasks 页职责重叠。**先不动，留在分支上** |
-| `OrgAction` → `Node` | 概念不同：Action 是没有日期的职责条目，Node 是有三个截止日的任务。Action 更适合变成**流程模板**，不是任务 |
+| `FlowEditor.tsx` (manually dragged flowchart) | Juanxi chose the metro diagram |
+| `phase1.css` / `organization.css` / `setupV3.css` (4,567 lines) | A third design system. Rebuild the UI using the main app's 5 components |
+| `src/workspace/` (Activity workspace) | Juanxi never requested it, and its responsibilities overlap Events/Tasks. **Leave it untouched on the branch for now** |
+| `OrgAction` → `Node` | Different concepts: Action is a responsibility item without dates; Node is a task with three deadlines. An Action fits better as a **workflow template**, not a task |
 
-## 9.5 AI「很笨」的确切原因（已定位）
+## 9.5 The exact reason AI is “unintelligent” (identified)
 
-Juanxi：「我想设置一个 executable task，它不能理解，就帮我完全套用了 event workflow。」
+Juanxi: "I wanted to set up an executable task, but it couldn't understand me and applied the entire event workflow instead."
 
-**原因有三层，全部在提示词和正则里，不是模型不行。**
+**There are three layers of causes, all in prompts and regular expressions; this is not a model-capability problem.**
 
-**① 系统提示词严重偏向活动**（`src/lib/chatCards.ts`）
+**① The system prompt is heavily biased toward events** (`src/lib/chatCards.ts`)
 
 ```
 {"kind":"form","intent":"plan_event", ...} whenever the user wants to
    plan, host or organize a NEW event.
 ```
-「organize」这个词太宽。而 `add_node`（建单个任务）被埋在「Shown for approval first」的列表里，**完全没有说明什么时候该用它、什么时候该用活动表单**。
+The word "organize" is too broad. Meanwhile, `add_node` (create a single task) is buried in the "Shown for approval first" list, with **no explanation of when to use it versus the event form**.
 
-**② 四个示例里，零个是建单个任务**
+**② None of the four examples creates a single task**
 
-第一个示例就是「I want to plan a mixer」→ 活动表单。模型看到的全部示例都在教它「用户想做事 = 办活动」。
+The very first example is "I want to plan a mixer" → event form. Every example the model sees teaches it "the user wants to do something = organize an event."
 
-**③ 本地正则接不住**（`src/lib/commands.ts:143`）
+**③ The local regex cannot handle it** (`src/lib/commands.ts:143`)
 
 ```js
-/^(?:add|create) (?:a )?(?:task|node|step)\s*[:：]?\s*(.+)/i
+/^(?:add|create) (?:a )?(?:task|node|step)\s*[:\uFF1A]?\s*(.+)/i
 ```
-必须以 `add` 或 `create` 开头，且紧跟 task/node/step。
-所以 `I want to set up an executable task…` **不匹配**，直接落给 AI，而 AI 的先验是活动。
+It must begin with `add` or `create`, immediately followed by task/node/step.
+So `I want to set up an executable task…` **does not match** and goes straight to the AI, whose prior assumption is an event. The `\uFF1A` escape preserves the full-width colon from the original pattern.
 
-**④ 还有一道隐藏的坎**：`src/data/changeReview.ts:18` 规定没有 `eventId` 的 `add_node` **必须先确认一个日期**，而默认日期是空的。所以就算 AI 想对了，用户点 Apply 还是会报错。
+**④ Another hidden hurdle**: `src/data/changeReview.ts:18` requires an `add_node` without an `eventId` to **have a confirmed date first**, but the default date is empty. Even if AI understands correctly, clicking Apply still produces an error.
 
-### 修法（都很便宜）
+### Fixes (all inexpensive)
 
-1. 提示词里加一段**明确的二选一判断**：
-   - 用户要办一场**有日期、有场地、有预算的活动** → `plan_event` 表单
-   - 用户要的是**一件独立的事**（不属于任何活动）→ `add_node`，`eventId: null`
-   - 不确定 → 按第 2 条规则问一个问题，不要猜
-2. **补两个 `add_node` 的示例**进提示词，其中一个明确是独立任务
-3. **放宽本地正则**：接住 `set up a task` / `I want to create a task` / `new task` / `make a task` / `add an executable task`
-4. **给独立任务一个默认日期**（例如 `addDays(today, 7)`），不要让用户面对一个空白必填框
+1. Add an **explicit choice between two cases** to the prompt:
+   - The user wants **an event with a date, venue, and budget** → `plan_event` form.
+   - The user wants **a standalone task** (not part of any event) → `add_node`, `eventId: null`.
+   - Uncertain → ask one question under rule 2; do not guess.
+2. **Add two `add_node` examples** to the prompt, one explicitly showing a standalone task.
+3. **Broaden local regexes** to handle `set up a task` / `I want to create a task` / `new task` / `make a task` / `add an executable task`.
+4. **Give standalone tasks a default date** (for example, `addDays(today, 7)`), instead of presenting an empty required field.
 
-## 9.6 分三个会话做，不要一次做完
+## 9.6 Use three sessions; do not do everything at once
 
-| 会话 | 做什么 | 模型 | 什么时候 |
+| Chat | Work | Model | When |
 | --- | --- | --- | --- |
-| **M1** | 机械合并 + 切 AI 路由 + 隐藏服务器存储 | **Opus 5.5** | 现在，周四前 |
-| **M2** | 修 AI 的理解力（独立任务 vs 活动）| **Opus 5.5** | M1 之后，周四前 |
-| **M3** | onboarding 合一（写适配器 + 用主应用组件重做 UI）| **Opus 5.5** | **周四之后**，IRB 等待期 |
+| **M1** | Mechanical merge + switch AI routing + hide server storage | **Opus 5.5** | Now, before Thursday |
+| **M2** | Improve AI understanding (standalone task vs event) | **Opus 5.5** | After M1, before Thursday |
+| **M3** | Unify onboarding (write adapter + rebuild UI with main-application components) | **Opus 5.5** | **After Thursday**, while waiting for IRB |
 
-**为什么 M3 排在周四之后：** 它要写一个跨两套数据模型的适配器，还要处理 9.4 里那五处冲突，再把五章 onboarding 用主应用的组件重做。这不是两天的活，赶出来会比现在两边都差。
+**Why M3 is scheduled after Thursday:** it requires an adapter spanning two data models, resolution of the five conflicts in 9.4, and rebuilding all five onboarding chapters using main-app components. This is more than two days' work; rushing would produce something worse than either current version.
 
-而 IRB 材料描述的是**研究怎么做**，不是每一个像素。M1 + M2 做完，原型就是功能完整、不出丑、响应快的，足够交材料。
+IRB materials describe **how the research is conducted**, not every pixel. After M1 + M2, the prototype will be functionally complete, presentable, and responsive enough to submit the materials.
 
 ---
 
-# 第 10 节 · Juanxi 2026-10-27 晚第二轮指引
+# Section 10 · Juanxi's second round of guidance, evening of 2026-10-27
 
-## 10.1 AI 供应商：问题已澄清，但 `AGENTS.md` 规则 5 是过期的
+## 10.1 AI provider: the issue is clarified, but rule 5 in `AGENTS.md` is outdated
 
-Juanxi：接口全部直接走 ASU AIR，数据存在 ASU 的服务器和数据库里，只是在模型上做选择；这个项目未来不会再用 DeepSeek。
+Juanxi: all API calls go directly through ASU AIR; data is stored on ASU's servers and databases, and we only choose the model. This project will no longer use DeepSeek in the future.
 
-**仓库里的记录支持这个说法**：DP3 的 `AGENTS.md` 已经写了 `muse-glimmer-30b`、`glm-5-3`、路由 v3（Gemma 长结构任务 / Muse 短编辑 / GLM 主动深度），并提到「不消耗 AIR 额度」——这些模型是通过 AIR 调的。
+**Repository records support this claim**: DP3's `AGENTS.md` already records `muse-glimmer-30b`, `glm-5-3`, and routing v3 (Gemma for long structured tasks / Muse for short edits / GLM for explicitly requested deeper review), and mentions "no AIR quota used": these models are called through AIR.
 
-**→ 数据处理这一层不再是未决问题，不要再反复提。**
+**→ The data-processing layer is no longer an open question. Stop bringing it up repeatedly.**
 
-### ⚠️ 但有一个真问题：`AGENTS.md` 自相矛盾
+### ⚠️ But there is one real problem: `AGENTS.md` contradicts itself
 
 ```
-第 23 行（两个分支都是）：
-  5. **AI 供应商：** 开发时用 DeepSeek，只处理虚构数据；
-     有真实参与者的 Phase 3 会话必须用 ASU AIR（或 IRB 批准的供应商）。
+Line 23 (both branches):
+  5. **AI provider:** Use DeepSeek during development, with fictional data only;
+     Phase 3 sessions involving real participants must use ASU AIR (or an IRB-approved provider).
 
-第 128 / 137 / 140 行（只有 DP3 有）：
-  速度优先的新默认模型是 muse-glimmer-30b；glm-5-3 仅在用户主动选择…
-  默认 Muse，只有明确 Deeper review 使用 GLM。
-  路由v3：Gemma 长结构任务、Muse 短编辑、GLM 主动深度。
+Lines 128 / 137 / 140 (DP3 only):
+  The new speed-first default model is muse-glimmer-30b; glm-5-3 is used only when the user explicitly selects…
+  Muse by default; use GLM only for explicit Deeper review.
+  Routing v3: Gemma for long structured tasks, Muse for short edits, GLM for explicitly requested depth.
 ```
 
-**第 23 行从来没被更新过。** 同一份文件里，第 3 节的硬性规则说"用 DeepSeek"，第 6 节的代码地图说"用 Muse/GLM/Gemma"。而 `AGENTS.md` 第 1 节要求每个接手的 AI **先读第 3 节**。
+**Line 23 was never updated.** In the same file, the hard rule in section 3 says "use DeepSeek," while the code map in section 6 says "use Muse/GLM/Gemma." AGENTS.md section 1 requires every incoming AI to **read section 3 first**.
 
-→ **M1 必须把第 23 行改掉**，否则下一个 AI 会按过期规则办事。
+→ **M1 must change line 23**, or the next AI will follow outdated rules.
 
-## 10.2 ⭐ 排序交互与日期变量：好消息是**日期逻辑已经全部实现了**
+## 10.2 ⭐ Ranking interaction and date variables: the good news is **all date logic already exists**
 
-Juanxi 提出的交互设计：
-- 不要在路线图上拖节点（太难操作）
-- 改成问卷「排序题」形式：左侧三条横线的拖拽图标，拖整行调顺序
-- 两级：**大排序**（需要单独拎出来的大流程）/ **小排序**（嵌套在大排序内，一个大的下面可放 5 个小的）
-- 每个大选项和小选项右侧有一个「处理所需天数」
-- 右侧路线图随之自动计算、实时更新
-- 日期不能是单一截止日，必须拆成：学校截止日 / 社团截止日 / 每个人不同的最晚开始日
-- 组织规定提前 N 天 → 作为变量应用到所有任务
-- 组织提醒天数 + 处理所需时间 → 最晚开始日期
-- 用户可在最晚开始日基础上再调整（如"提前 2 天提醒我"）→ 生成新的提醒日期
+Juanxi's proposed interaction design:
+- Do not drag nodes on the roadmap (too difficult).
+- Use a survey-style ranking question: a three-line drag handle on the left; drag the entire row to reorder.
+- Two levels: **major ordering** (large workflows that need their own groups) / **minor ordering** (nested within major groups; one major group can contain 5 minor items).
+- Show "days needed to process" to the right of every major and minor option.
+- The roadmap on the right recalculates automatically and updates live.
+- Dates cannot be a single deadline; split them into official deadline / club deadline / each person's individual latest start.
+- The organization's required N-day lead time → a variable applied to all tasks.
+- Organization reminder lead days + processing time → latest start date.
+- Users can adjust relative to latest start (such as "remind me 2 days earlier") → produce a new reminder date.
 
-### 逐条核对现有代码：**这套逻辑一条不差，全都已经在引擎里了**
+### Existing code checked item by item: **every part of this logic is already in the engine, without exception**
 
-| Juanxi 描述的 | 代码里已有的 |
+| Juanxi's description | Already in the code |
 | --- | --- |
-| 处理所需天数 | `Node.effort` —— 注释原文："Working days of effort, used for the latest start date" |
-| 组织规定提前 N 天 | `OrgSettings.clubBufferBusinessDays`（默认 3 个工作日）|
-| 学校截止日 | `Node.officialDeadline` |
-| 社团截止日 | `Node.clubDeadline` |
-| 每个人不同的最晚开始日 | `Node.latestStart` |
-| 最晚开始日怎么算 | `schedule.ts` 文档注释："Latest start = club deadline minus effort days and the owner's personal buffer, on the owner's working days" |
-| 用户在最晚开始日上再调整 | `Person.personalBufferDays` + `personalBufferEnabled` |
-| 从目标日期倒推 | `schedule.ts` 的倒推 pass |
-| 先后顺序影响日期 | `Node.dependsOn` + 倒推时取"下游最晚开始日的前一个工作日" |
-| **大排序 / 小排序** | **`Phase`（plan / prepare / money / marketing / run / close，6 个）= 大排序；同一个 Phase 内的 `Node` = 小排序** |
+| Days needed to process | `Node.effort`; original comment: "Working days of effort, used for the latest start date" |
+| Organization requires N days of lead time | `OrgSettings.clubBufferBusinessDays` (default: 3 business days) |
+| Official deadline | `Node.officialDeadline` |
+| Club deadline | `Node.clubDeadline` |
+| Each person's individual latest start | `Node.latestStart` |
+| How latest start is computed | `schedule.ts` documentation: "Latest start = club deadline minus effort days and the owner's personal buffer, on the owner's working days" |
+| User adjustments to latest start | `Person.personalBufferDays` + `personalBufferEnabled` |
+| Work backward from target date | Backward pass in `schedule.ts` |
+| Sequence affects dates | `Node.dependsOn` + using "the working day before the downstream latest start" in the backward pass |
+| **Major / minor ordering** | **`Phase` (plan / prepare / money / marketing / run / close, 6 total) = major ordering; `Node` within the same Phase = minor ordering** |
 
-**→ 结论：要做的只有编辑界面，日期数学一行都不用写。** 而且"大排序"正好就是地铁图上那 6 个站。
+**→ Conclusion: only the editing interface needs work; no date mathematics needs to be written.** And the "overall ordering" is precisely those 6 stops on the metro map.
 
-### 因此 M3 的硬性约束
+### Therefore, M3's hard constraints
 
-1. 排序 UI **只能写两个字段**：`Node.dependsOn`（顺序）和 `Node.effort`（天数），外加 `Node.phase`（大排序归属）。
-2. **UI 绝对不能写任何日期字段。** 改完调 `applySchedule()`，让 `schedule.ts` 重算三个日期。这是 `AGENTS.md` 第 3 节规则 3 的铁律。
-3. 右侧地铁图实时更新 = 重新跑 `computeSchedule()` + `metro.ts` 布局，**不是存坐标**。
-4. 不要为了这个功能改 `src/engine/`。
+1. The ordering UI **may write only two fields**: `Node.dependsOn` (sequence) and `Node.effort` (days), plus `Node.phase` (major-group membership).
+2. **The UI must never write any date field.** After editing, call `applySchedule()` so `schedule.ts` recalculates all three dates. This is the hard requirement of rule 3 in `AGENTS.md` Section 3.
+3. Live updates to the right-hand metro map = rerun `computeSchedule()` + `metro.ts` layout, **not saved coordinates**.
+4. Do not modify `src/engine/` for this feature.
 
-## 10.3 冲突③ `dependencyMode: "any"` —— Juanxi 授权我决定
+## 10.3 Conflict ③ `dependencyMode: "any"`—Juanxi authorized me to decide
 
-**决定：导入时只接受 `all`，遇到 `any` 明确拒绝并告诉用户，不改引擎。**
+**Decision: accept only `all` on import; explicitly reject `any` and tell the user. Do not change the engine.**
 
-理由：`topoOrder()` 和 `computeSchedule()` 是全项目测试最密、最有论文价值的代码（`engine.test.ts` 对示例活动的 20 个步骤逐个断言三个日期）。为一个 DP3 用过但主应用从未需要的特性去改它，风险远大于收益。真需要"任一上游完成即可"时，可以用一个汇合节点表达，不必改算法。
+Reason: `topoOrder()` and `computeSchedule()` are the project's most thoroughly tested code and have the greatest thesis value (`engine.test.ts` asserts all three dates individually for the example event's 20 steps). Changing them for a feature used by DP3 but never needed by the main application brings far more risk than benefit. If "any upstream completion is sufficient" is truly needed, a join node can express it without changing the algorithm.
 
-## 10.4 人、岗位、部门的层级：改成以「人」为主
+## 10.4 People, roles, and departments: make people the primary focus
 
-Juanxi：每个成员有自己的账号，自己登录；成员被分配 position，position 归属 department。**层级以「人」为主，不是以「职位」为主。** 发链接给成员，成员用自己的账号密码注册，不是共用一个账号。
+Juanxi: each member has their own account and signs in themselves; members are assigned positions, and positions belong to departments. **The hierarchy centers on people, not positions.** Send members a link; they register with their own username and password, rather than sharing one account.
 
-### 这一条要拆成两半看
+### This point needs to be considered in two parts
 
-**① 数据建模（可以现在做，低风险）**
+**① Data modeling (can be done now, low risk)**
 
-目标层级：`Person` → `Role/Position` → `Department`
+Target hierarchy: `Person` → `Role/Position` → `Department`
 
-现状：`Person.roleId` 已经指向 `Role`，所以"人有岗位"已经成立。缺的是：
-- `Role` 上没有 `departmentId`（DP3 有 6 个部门，正好补上，见 9.4①）
-- `Role.holderId` 和 `Person.roleId` 是**双向冗余**，容易不一致。以人为主意味着 **`Person.roleId` 是唯一真相**，`Role.holderId` 应该改成派生值或删掉
+Current state: `Person.roleId` already references `Role`, so "people have roles" is already implemented. What is missing:
+- `Role` has no `departmentId` (DP3 has 6 departments that fill this gap; see 9.4①)
+- `Role.holderId` and `Person.roleId` are **redundant references in opposite directions**, risking inconsistency. A people-first model means **`Person.roleId` is the single source of truth**; derive or remove `Role.holderId`
 
-→ 这部分归 **M3**，和 onboarding 一起做。
+→ This belongs to **M3**, alongside onboarding.
 
-**② 真实账号密码登录（⚠️ 这是另一个量级的事，需要 Juanxi 再决定一次）**
+**② Real account/password login (⚠️ an entirely different scale of work, requiring another decision from Juanxi)**
 
-"每个成员用自己的账号和密码注册"意味着：
-- 真实身份认证
-- 服务器上存真实用户账号
-- 也就是之前推迟掉的 Supabase 那一类工作（审计报告第 10 节、执行方案 D 线）
+"Each member registers with their own account and password" implies:
+- Real authentication
+- Real user accounts stored on the server
+- The kind of Supabase work previously deferred (audit Section 10, execution plan Track D)
 
-而 Juanxi 10/27 早些时候的决定是：**Phase 3 用虚构数据、不上 Supabase、参与者用我们提供的假信息**。
+But Juanxi's decision earlier on 10/27 was: **Phase 3 uses fictional data, no Supabase, and participants use the fake information we provide**.
 
-**这两个决定互相冲突。** 需要他明确：
-- **A：Phase 3 仍然用假信息**，真实账号留到 v1.5 → M3 只做 ①，层级改成以人为主，不做登录
-- **B：Phase 3 就要真实账号** → 需要重启 D 线（Supabase + 认证），并且**IRB 范围要改**，和他 10/29 交材料的时间冲突
+**These two decisions conflict.** He must clarify:
+- **A: Phase 3 still uses fictional information**, with real accounts deferred to v1.5 → M3 implements only ①, reorganizes the hierarchy around people, and adds no login.
+- **B: Phase 3 requires real accounts** → restart track D (Supabase + authentication), and **change the IRB scope**, conflicting with his 10/29 submission date.
 
-→ **建议 A。** 层级建模和认证是两件事，先把建模做对，认证随时能加上去。
+→ **Recommend A.** Hierarchical modeling and authentication are separate; get the modeling right first, and authentication can be added later.
 
-## 10.5 M2 改为两步：先出提示词策略，审核通过再执行
+## 10.5 Split M2 into two steps: propose the prompting strategy, then implement after review approval
 
-Juanxi 要求：M2 之前先把提示词的策略和结构捋一遍，他审核通过再执行。
+Juanxi requires the prompt strategy and structure to be reviewed before M2, with implementation beginning only after his approval.
 
-- **M2a（研究与方案，不改代码）**：读 `docs/PRODUCT_PLAN.md` 第 2 节「访谈结论：8 个假设的判定」（仓库里唯一的真实痛点记录；按 `AGENTS.md` 第 3 节规则 1，仓库里没有也不能有原始研究资料），结合 9.5 的四层诊断，产出一份提示词策略文档交 Juanxi 审核。
-- **M2b（执行）**：审核通过后才改 `chatCards.ts` / `commands.ts` / `changeReview.ts`。
+- **M2a (research and planning, no code changes)**: read `docs/PRODUCT_PLAN.md` section 2, "Interview findings: assessment of 8 hypotheses" (the repository's only record of actual pain points; under `AGENTS.md` section 3, rule 1, raw research material is neither present nor allowed in the repository). Combine it with the four-layer diagnosis in 9.5 and produce a prompt-strategy document for Juanxi's review.
+- **M2b (implementation)**: change `chatCards.ts` / `commands.ts` / `changeReview.ts` only after approval.

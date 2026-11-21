@@ -1,64 +1,66 @@
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
+
 # Depends on: N2-radius.md
 # Depends on: N3-fontscale.md
 # Depends on: N4-infotoken.md
 
 # Goal
 
-写一份 docs/DESIGN_TOKENS.md，把前面几轮建立的 token 规则讲清楚，
-给不写代码的人看，也给以后改界面的 AI 当唯一依据。
+Write docs/DESIGN_TOKENS.md explaining token rules established over previous rounds,
+for people who do not code and as the sole reference for future UI-editing AIs.
 
-这是这个项目一直缺的「设计系统交付物」。
+This is the missing “design system deliverable.”
 
 # Files
 
-- docs/DESIGN_TOKENS.md（新建）
+- docs/DESIGN_TOKENS.md (new)
 
 # Constraints
 
-- 只使用虚构演示数据。
-- 不修改依赖、部署、GitHub Actions、密钥、研究数据或 Night Mode 安全文件。
-- 不修改或合并 main。
-- **只新建这一个文档，不改任何代码、不改任何 CSS。**
-- 文档用中文（AGENTS.md 第 3 节规则 6：界面文字用英文，文档用中文）。
-- **改完不要回头重读文件去「核对基线」。**
+- Fictional demo data only.
+- Do not change dependencies, deployment, GitHub Actions, secrets, research data, Night Mode safety files.
+- Do not modify/merge main.
+- **Create this document only; no code/CSS changes.**
+- Historical instruction: write documentation in Chinese (AGENTS.md section 3 rule 6: English UI, Chinese documentation). This is superseded by the current English policy.
+- **After editing, do not reread the file to “check the baseline.”**
 
 # Done means
 
-docs/DESIGN_TOKENS.md 要包含：
+Include in docs/DESIGN_TOKENS.md:
 
-## 1. 开头一句话
+## 1. Opening sentence
 
-说清楚这份文档的地位：改任何界面之前先读它，新样式只能用 token，不准写死数值。
+Explain its authority: read before any UI change; new styles use tokens only, no hardcoded values.
 
-## 2. 每一组 token 的表格
+## 2. Tables for each token group
 
-从 src/styles.css 的 `:root` 里**读出实际值**（不要凭记忆写），逐组列出：
+**Read actual values** from `:root` in src/styles.css (do not rely on memory), then list:
 
-- 字号（`--fs-*`）：每档的值 + 什么时候用哪档
-- 圆角（`--r-*`）：每档的值 + 用在什么元素上
-- 层级（`--z-*`）：每档的值 + 叠放顺序从低到高
-- 间距（`--s*`）：每档的值 + 说明它是从高频值归纳的，不是理想栅格
-- 颜色：品牌色和 6 个状态色，**每个状态色要带它的对比度数字**
-  （从 T4 和 T5 的交接记录里取，不要自己猜）
+- Font sizes (`--fs-*`): value/use of each level
+- Radii (`--r-*`): value/target elements
+- Layers (`--z-*`): value/stacking order low to high
+- Spacing (`--s*`): value/explanation that derived from frequent values, not ideal grid
+- Colors: brand plus 6 status colors, **contrast number for every status color**
+  (from T4/T5 handoffs, never guess)
 
-## 3. 一节「为什么是这些值」
+## 3. “Why these values” section
 
-简短说明：这些档位是从现有界面里归纳出来的，不是推倒重来。
-目标是让界面可以被描述和评价，而不是改变它的样子。
+Briefly explain: levels derived from existing UI, not a redesign.
+Goal: make UI describable/evaluable, not change appearance.
 
-## 4. 一节「给以后改界面的人」
+## 4. “For future UI editors” section
 
-- 新增样式只能用 token
-- 确实需要新值时，先加 token 再用，不要写死
-- 深色模式：说明现在是跟随系统（`prefers-color-scheme`），
-  CSS 已支持 `data-theme="light"` / `"dark"` 强制覆盖，但还没有界面开关
+- New styles use tokens only
+- If a new value is necessary, add token first, never hardcode
+- Dark mode: currently follows system (`prefers-color-scheme`);
+  CSS supports forced `data-theme="light"` / `"dark"`, but no UI switch yet
 
-## 5. 验收
+## 5. Acceptance
 
-- `npm run check` 必须通过（这一轮不改代码，应该直接通过）。
-- 在交接记录里写：文档里的数值都是从 styles.css 实际读出来的，不是估的。
+- `npm run check` must pass (no code changes this round, should pass directly).
+- Handoff must say: values read from actual styles.css, not estimated.
 
 # Out of scope
 
-- 不改任何 CSS 或代码。
-- 不新建别的文档。
+- No CSS/code changes.
+- No other new documents.

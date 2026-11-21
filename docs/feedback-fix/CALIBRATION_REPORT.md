@@ -1,80 +1,80 @@
-# FB-6 校准报告：日期引擎按你的时间表更新
+# FB-6 calibration report: date engine updated to your timing table
 
-> 写给 Juanxi。下面两张表不是手写的：它们由测试 `src/test/calibration.test.ts` 用引擎现算出来，再和你的文件 `event-workflow-calibrated-2027-04-16.tsv` 逐行对比。日期对不上而又不在“允许的差异”清单里，测试就会变红。
+> For Juanxi. The two tables below are not handwritten: `src/test/calibration.test.ts` calculates them with the engine and compares every row against `event-workflow-calibrated-2027-04-16.tsv`. A date mismatch outside the allowed-differences list fails the test.
 
-## 1. 一句话结论
+## 1. Conclusion
 
-同一场活动（2027-04-16 周五，60 人，外部餐饮，USG 经费，默认设置），32 个步骤里 **18 个的开始日和截止日和你的文件完全一样**；另外 14 个有差异，原因只有三种：
+For the same event—Friday, 2027-04-16, 60 people, outside catering, USG funding, default settings—**18 of 32 steps match both the start and due dates in your file exactly**. The other 14 differ for only three reasons:
 
-1. **文件里的日期落在周末**（5 步）：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日。例：Budget 文件写 2/20（周六），引擎给 2/19（周五）。
-2. **收尾步骤不在活动当天开始**（6 步：Thank You Note、Feedback、Post Marketing、Photo Backup、Invoice、Attendance Submit）：文件写 4/16（活动当天）开始，引擎给 4/19（活动后第一个工作日，周一）。这是执行方案 7.2 第 4 条的规定。**需要你确认**（见第 6 节第 1 条）。
-3. **最后三步**（Paid Reimbursed、Finance Record、Documentation）没有照抄文件的“活动后 129 / 132 / 129 天”。那三个数是旧引擎的输出（4 月的活动，收尾被推过期末和暑假，落到 8 月）。现在是活动后 5 个工作日、7 个工作日、14 天。**需要你确认**。
+1. **The file date falls on a weekend** (5 steps): move a deadline to the previous business day, or the next business day for post-event work; move a start to the previous day the owner can work. Example: Budget is 2/20, Saturday, in the file and 2/19, Friday, in the engine.
+2. **Closeout does not start on event day** (6 steps: Thank You Note, Feedback, Post Marketing, Photo Backup, Invoice, Attendance Submit): the file starts them on 4/16, while the engine uses Monday 4/19, the first business day after the event. This follows execution-plan section 7.2, rule 4. **Needs your confirmation**, section 6, item 1.
+3. **The final three steps**—Paid Reimbursed, Finance Record, Documentation—do not copy the file's 129 / 132 / 129 days after the event. Those were old-engine results that pushed an April event's closeout past finals/summer into August. They now use 5 business days, 7 business days, and 14 days after the event. **Needs your confirmation.**
 
-另外：每一步的工作量（Effort days）和三个 ASU 官方截止日都和文件一致；步骤之间的依赖也和文件一致，只有一处不同：Budget 等 Event Plan（文件的备注写着 “Needs Event Plan as prerequisite”）。
+Every step's Effort days and all three official ASU deadlines match the file. Dependencies also match except Budget waits for Event Plan, because the file notes “Needs Event Plan as prerequisite”.
 
-## 2. 引擎现在怎么读你的表
+## 2. How the engine reads your table
 
-- 每个标准步骤多了一个“时间窗”：**开始日 = 活动日 − 开始天数，截止日 = 活动日 − 截止天数**。开始日就是提醒发出的那天。
-- **截止日** = 你的截止天数，和“ASU 截止日减社团缓冲”两者取更早的。落在周末或假日就用前一个工作日（活动后的用后一个工作日）。
-- **开始日** 落在负责人不能干活的日子（周末、假日、期末周、学期之间、本人的忙碌周）就往前挪到他能干活的那天。个人缓冲只算超出默认 1 天的部分：默认设置下结果和你的文件一样；有人把个人缓冲设成 3 天，他的开始日再早 2 个工作日。
-- **“Depends on” 只表示完成的先后**：前一步没做完而且截止日比这一步晚，这一步才往后挪，并标黄 “Moved later”。同一天截止可以。窗口可以重叠（比如五个 Plan/Prepare 步骤都是 2/10 → 2/15）。
-- **收尾步骤**：Headcount 可以在活动当天开始和截止；其余收尾步骤不早于活动后的第一个工作日开始。
-- **有人改了截止日**：用人定的日期；开始日取“原来的开始日”和“新截止日减工作量”里更早的。
-- 没有时间窗的步骤（手动任务、条件步骤、以前建好的活动）：和以前完全一样。
+- Each standard step gains a time window: **start date = event date − start offset; due date = event date − due offset**. The start date is the reminder day.
+- **Due date:** choose the earlier of the date calculated from your due offset and the official ASU deadline minus the club buffer. If it falls on a weekend/holiday, use the previous business day, or the next business day for post-event work.
+- **Start date:** if the owner cannot work that day—weekend, holiday, finals, semester gap, or personal busy week—move backward to an available workday. Only personal buffer above the default 1 day is additional: defaults match the file, while a 3-day personal buffer starts 2 workdays earlier.
+- **Depends on means completion order only:** move a step later only when its predecessor is unfinished and its due date is later than this step's; show yellow “Moved later”. Same-day due dates are allowed. Windows may overlap, such as five Plan/Prepare steps all running 2/10 → 2/15.
+- **Closeout:** Headcount may start/finish on event day; other closeout starts no earlier than the next business day.
+- **Manual due-date edits:** use the person's date; choose the earlier of the original start and new due date minus effort.
+- Steps without a window—manual tasks, conditional steps, and existing events—retain their previous behavior.
 
-为了不在新建的活动上出现假的黄色警告，引擎还多做了三件事（方案里没有写，是实现时发现的，见第 6 节第 3 条）：
+Three additional rules were needed to avoid false yellow warnings on newly created events. These were discovered during implementation rather than specified in the plan; see section 6, item 3:
 
-- 后一步有 ASU 截止日、而且因为社团缓冲要比前一步更早完成时，前一步跟着提前（例：12 月 3 日的活动，R09 购买申请要在 11/12 前交，Budget Approval 也就在 11/12 前完成，而不是 11/13）。
-- 模板本身的先后（例：周末办的活动，“活动后 7 天”的 Attendance 比“活动后 5 个工作日”的 Paid Reimbursed 晚）直接算进推荐日期，不标黄；只有真的拖延（有人改晚了日期、步骤没按时完成）才标黄。
-- 条件步骤夹在两个校准步骤中间时（例：Open RSVPs 夹在 Promotion Items 和 Content Distribution 之间），它只要求完成的先后，不会把后一步推到活动之后。
+- If a downstream step's official deadline/club buffer requires completion earlier than its predecessor, move the predecessor earlier too. Example: for a December 3 event, R09 purchase submission is due by 11/12, so Budget Approval also finishes by 11/12, rather than 11/13.
+- Build the template's inherent order into recommended dates without a yellow warning. For a weekend event, Attendance at 7 days after the event can fall after Paid Reimbursed at 5 business days. Yellow is for actual delay, such as a manually postponed date or late completion.
+- A conditional step between calibrated steps, such as Open RSVPs between Promotion Items and Content Distribution, enforces completion order without pushing the next step past event day.
 
-测试把 2026-11 到 2028-04 的每一天都当作活动日试了一遍（标准活动 + 打开所有条件的活动）：没有任何校准步骤被推迟、错过 ASU 截止日或排到活动之后。
+The original verification tested every day from 2026-11 through 2028-04 as event day, for both a standard event and all conditions enabled, and recorded no calibrated step delayed, missing an ASU deadline, or scheduled after the event. Current CI's exhaustive-enumeration timeout is recorded separately in the English-cleanup handoff; this historical result is not a claim that the current full suite is green.
 
-## 3. 逐步对照（引擎生成）
+## 3. Step-by-step comparison, generated by the engine
 
 <!-- comparison:start -->
-| 步骤 | 文件开始 | 引擎开始 | 文件截止 | 引擎截止 | ASU 截止（引擎） | 差异原因 |
+| Step | File start | Engine start | File due | Engine due | ASU deadline (engine) | Reason for difference |
 | --- | --- | --- | --- | --- | --- | --- |
-| Event Plan | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | — | 一致 |
-| Back-up Plan | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | — | 一致 |
-| Candidate Venue | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | — | 一致 |
-| Event Registry (SDC & Special Event) | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-04-02 (Fri) | 一致 |
-| Book Room & Layout | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | — | 一致 |
-| Moderator Lead Staffing | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-03-22 (Mon) | 2027-03-22 (Mon) | — | 一致 |
-| Event Materials PPT Decorations | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-04-01 (Thu) | 2027-04-01 (Thu) | — | 一致 |
-| Full Check Alert Changes | 2027-04-02 (Fri) | 2027-04-02 (Fri) | 2027-04-15 (Thu) | 2027-04-15 (Thu) | — | 一致 |
-| Check-in Forms Photo Release Liability | 2027-04-11 (Sun) | 2027-04-09 (Fri) | 2027-04-16 (Fri) | 2027-04-16 (Fri) | — | 文件里的日期是周末或假日：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日 |
-| Budget | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-20 (Sat) | 2027-02-19 (Fri) | — | 文件里的日期是周末或假日：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日 |
-| Food Exception Permit | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-20 (Sat) | 2027-02-19 (Fri) | 2027-04-02 (Fri) | 文件里的日期是周末或假日：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日 |
-| Quote Gather | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-25 (Thu) | 2027-02-25 (Thu) | — | 一致 |
-| Budget Request | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-26 (Fri) | 2027-02-26 (Fri) | — | 一致 |
-| Budget Approval | 2027-03-17 (Wed) | 2027-03-17 (Wed) | 2027-03-29 (Mon) | 2027-03-29 (Mon) | — | 一致 |
-| Purchase Request | 2027-03-17 (Wed) | 2027-03-17 (Wed) | 2027-03-29 (Mon) | 2027-03-29 (Mon) | 2027-04-02 (Fri) | 一致 |
-| Purchase Approval | 2027-03-17 (Wed) | 2027-03-17 (Wed) | 2027-04-06 (Tue) | 2027-04-06 (Tue) | — | 一致 |
-| Order Placed | 2027-03-17 (Wed) | 2027-03-17 (Wed) | 2027-04-06 (Tue) | 2027-04-06 (Tue) | — | 一致 |
-| Marketing Needs | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-17 (Wed) | 2027-02-17 (Wed) | — | 一致 |
-| Content Creation | 2027-02-17 (Wed) | 2027-02-17 (Wed) | 2027-02-27 (Sat) | 2027-02-26 (Fri) | — | 文件里的日期是周末或假日：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日 |
-| Promotion Items | 2027-02-27 (Sat) | 2027-02-26 (Fri) | 2027-03-09 (Tue) | 2027-03-09 (Tue) | — | 文件里的日期是周末或假日：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日 |
-| Content Distribution | 2027-03-30 (Tue) | 2027-03-30 (Tue) | 2027-04-06 (Tue) | 2027-04-06 (Tue) | — | 一致 |
-| Event Reminder | 2027-04-12 (Mon) | 2027-04-12 (Mon) | 2027-04-13 (Tue) | 2027-04-13 (Tue) | — | 一致 |
-| Headcount | 2027-04-16 (Fri) | 2027-04-16 (Fri) | 2027-04-16 (Fri) | 2027-04-16 (Fri) | — | 一致 |
-| Thank You Note | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-17 (Sat) | 2027-04-19 (Mon) | — | 收尾步骤不早于活动后的第一个工作日才开始（方案 7.2 第 4 条；活动 4/16 是周五，下一个工作日是 4/19 周一）；文件里的日期是周末或假日：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日 |
-| Feedback | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-17 (Sat) | 2027-04-19 (Mon) | — | 收尾步骤不早于活动后的第一个工作日才开始（方案 7.2 第 4 条；活动 4/16 是周五，下一个工作日是 4/19 周一）；文件里的日期是周末或假日：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日 |
-| Post Marketing | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-17 (Sat) | 2027-04-19 (Mon) | — | 收尾步骤不早于活动后的第一个工作日才开始（方案 7.2 第 4 条；活动 4/16 是周五，下一个工作日是 4/19 周一）；文件里的日期是周末或假日：截止日挪到前一个工作日（活动后的挪到后一个工作日），开始日挪到负责人前一个工作日 |
-| Photo Backup | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-23 (Fri) | 2027-04-23 (Fri) | — | 收尾步骤不早于活动后的第一个工作日才开始（方案 7.2 第 4 条；活动 4/16 是周五，下一个工作日是 4/19 周一） |
-| Invoice | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-23 (Fri) | 2027-04-23 (Fri) | — | 收尾步骤不早于活动后的第一个工作日才开始（方案 7.2 第 4 条；活动 4/16 是周五，下一个工作日是 4/19 周一） |
-| Attendance Submit | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-23 (Fri) | 2027-04-23 (Fri) | — | 收尾步骤不早于活动后的第一个工作日才开始（方案 7.2 第 4 条；活动 4/16 是周五，下一个工作日是 4/19 周一） |
-| Paid Reimbursed | 2027-08-19 (Thu) | 2027-04-19 (Mon) | 2027-08-23 (Mon) | 2027-04-23 (Fri) | — | 最后三步不照抄文件的“活动后 129/132/129 天”（那是旧引擎把收尾推过期末和暑假的结果），保留原意：活动后 5 个工作日、7 个工作日、14 天 |
-| Finance Record | 2027-08-24 (Tue) | 2027-04-19 (Mon) | 2027-08-26 (Thu) | 2027-04-27 (Tue) | — | 最后三步不照抄文件的“活动后 129/132/129 天”（那是旧引擎把收尾推过期末和暑假的结果），保留原意：活动后 5 个工作日、7 个工作日、14 天 |
-| Documentation | 2027-08-19 (Thu) | 2027-04-19 (Mon) | 2027-08-23 (Mon) | 2027-04-30 (Fri) | — | 最后三步不照抄文件的“活动后 129/132/129 天”（那是旧引擎把收尾推过期末和暑假的结果），保留原意：活动后 5 个工作日、7 个工作日、14 天 |
+| Event Plan | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | — | Matches |
+| Back-up Plan | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | — | Matches |
+| Candidate Venue | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | — | Matches |
+| Event Registry (SDC & Special Event) | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-04-02 (Fri) | Matches |
+| Book Room & Layout | 2027-02-10 (Wed) | 2027-02-10 (Wed) | 2027-02-15 (Mon) | 2027-02-15 (Mon) | — | Matches |
+| Moderator Lead Staffing | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-03-22 (Mon) | 2027-03-22 (Mon) | — | Matches |
+| Event Materials PPT Decorations | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-04-01 (Thu) | 2027-04-01 (Thu) | — | Matches |
+| Full Check Alert Changes | 2027-04-02 (Fri) | 2027-04-02 (Fri) | 2027-04-15 (Thu) | 2027-04-15 (Thu) | — | Matches |
+| Check-in Forms Photo Release Liability | 2027-04-11 (Sun) | 2027-04-09 (Fri) | 2027-04-16 (Fri) | 2027-04-16 (Fri) | — | The file date falls on a weekend or holiday: move the deadline to the previous business day (the next business day for post-event work), and the start to the previous officer workday. |
+| Budget | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-20 (Sat) | 2027-02-19 (Fri) | — | The file date falls on a weekend or holiday: move the deadline to the previous business day (the next business day for post-event work), and the start to the previous officer workday. |
+| Food Exception Permit | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-20 (Sat) | 2027-02-19 (Fri) | 2027-04-02 (Fri) | The file date falls on a weekend or holiday: move the deadline to the previous business day (the next business day for post-event work), and the start to the previous officer workday. |
+| Quote Gather | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-25 (Thu) | 2027-02-25 (Thu) | — | Matches |
+| Budget Request | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-26 (Fri) | 2027-02-26 (Fri) | — | Matches |
+| Budget Approval | 2027-03-17 (Wed) | 2027-03-17 (Wed) | 2027-03-29 (Mon) | 2027-03-29 (Mon) | — | Matches |
+| Purchase Request | 2027-03-17 (Wed) | 2027-03-17 (Wed) | 2027-03-29 (Mon) | 2027-03-29 (Mon) | 2027-04-02 (Fri) | Matches |
+| Purchase Approval | 2027-03-17 (Wed) | 2027-03-17 (Wed) | 2027-04-06 (Tue) | 2027-04-06 (Tue) | — | Matches |
+| Order Placed | 2027-03-17 (Wed) | 2027-03-17 (Wed) | 2027-04-06 (Tue) | 2027-04-06 (Tue) | — | Matches |
+| Marketing Needs | 2027-02-15 (Mon) | 2027-02-15 (Mon) | 2027-02-17 (Wed) | 2027-02-17 (Wed) | — | Matches |
+| Content Creation | 2027-02-17 (Wed) | 2027-02-17 (Wed) | 2027-02-27 (Sat) | 2027-02-26 (Fri) | — | The file date falls on a weekend or holiday: move the deadline to the previous business day (the next business day for post-event work), and the start to the previous officer workday. |
+| Promotion Items | 2027-02-27 (Sat) | 2027-02-26 (Fri) | 2027-03-09 (Tue) | 2027-03-09 (Tue) | — | The file date falls on a weekend or holiday: move the deadline to the previous business day (the next business day for post-event work), and the start to the previous officer workday. |
+| Content Distribution | 2027-03-30 (Tue) | 2027-03-30 (Tue) | 2027-04-06 (Tue) | 2027-04-06 (Tue) | — | Matches |
+| Event Reminder | 2027-04-12 (Mon) | 2027-04-12 (Mon) | 2027-04-13 (Tue) | 2027-04-13 (Tue) | — | Matches |
+| Headcount | 2027-04-16 (Fri) | 2027-04-16 (Fri) | 2027-04-16 (Fri) | 2027-04-16 (Fri) | — | Matches |
+| Thank You Note | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-17 (Sat) | 2027-04-19 (Mon) | — | Closeout starts no earlier than the first business day after the event (plan 7.2, rule 4: Friday 4/16 is followed by Monday 4/19).; The file date falls on a weekend or holiday: move the deadline to the previous business day (the next business day for post-event work), and the start to the previous officer workday. |
+| Feedback | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-17 (Sat) | 2027-04-19 (Mon) | — | Closeout starts no earlier than the first business day after the event (plan 7.2, rule 4: Friday 4/16 is followed by Monday 4/19).; The file date falls on a weekend or holiday: move the deadline to the previous business day (the next business day for post-event work), and the start to the previous officer workday. |
+| Post Marketing | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-17 (Sat) | 2027-04-19 (Mon) | — | Closeout starts no earlier than the first business day after the event (plan 7.2, rule 4: Friday 4/16 is followed by Monday 4/19).; The file date falls on a weekend or holiday: move the deadline to the previous business day (the next business day for post-event work), and the start to the previous officer workday. |
+| Photo Backup | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-23 (Fri) | 2027-04-23 (Fri) | — | Closeout starts no earlier than the first business day after the event (plan 7.2, rule 4: Friday 4/16 is followed by Monday 4/19). |
+| Invoice | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-23 (Fri) | 2027-04-23 (Fri) | — | Closeout starts no earlier than the first business day after the event (plan 7.2, rule 4: Friday 4/16 is followed by Monday 4/19). |
+| Attendance Submit | 2027-04-16 (Fri) | 2027-04-19 (Mon) | 2027-04-23 (Fri) | 2027-04-23 (Fri) | — | Closeout starts no earlier than the first business day after the event (plan 7.2, rule 4: Friday 4/16 is followed by Monday 4/19). |
+| Paid Reimbursed | 2027-08-19 (Thu) | 2027-04-19 (Mon) | 2027-08-23 (Mon) | 2027-04-23 (Fri) | — | The final three steps retain the intended offsets of 5 business days, 7 business days, and 14 days after the event, rather than the file's 129/132/129 days caused by the old engine pushing closeout past finals and summer. |
+| Finance Record | 2027-08-24 (Tue) | 2027-04-19 (Mon) | 2027-08-26 (Thu) | 2027-04-27 (Tue) | — | The final three steps retain the intended offsets of 5 business days, 7 business days, and 14 days after the event, rather than the file's 129/132/129 days caused by the old engine pushing closeout past finals and summer. |
+| Documentation | 2027-08-19 (Thu) | 2027-04-19 (Mon) | 2027-08-23 (Mon) | 2027-04-30 (Fri) | — | The final three steps retain the intended offsets of 5 business days, 7 business days, and 14 days after the event, rather than the file's 129/132/129 days caused by the old engine pushing closeout past finals and summer. |
 <!-- comparison:end -->
 
-## 4. 条件步骤的日期（同一场活动，打开所有条件，引擎生成）
+## 4. Conditional-step dates, same event with all conditions enabled, generated by the engine
 
-你的文件里没有这些步骤（speaker、advisor、安全、酒精、无人机、RSVP 等）。它们**没有时间窗**，日期仍由前后的步骤推出来。下表供你以后校准用；打开这些条件不会改变上面 32 步的任何日期（测试检查过）。
+These steps—speaker, advisor, safety, alcohol, drones, RSVP, etc.—are absent from your file. They **have no time window** and retain dates derived from neighboring steps. This table is for later calibration. Enabling them does not change any of the 32 dates above; the tests check that.
 
 <!-- conditional:start -->
-| 条件步骤 | 开始 | 截止 | ASU 截止 | 截止日从哪来（引擎原话） |
+| Conditional step | Start | Due | ASU deadline | Deadline source (engine explanation) |
 | --- | --- | --- | --- | --- |
 | Partner Meeting | 2027-03-10 (Wed) | 2027-03-12 (Fri) | — | Must be done before “Speaker SAP Headshot” starts (Mon, Mar 15) |
 | Speaker SAP Headshot | 2027-03-15 (Mon) | 2027-03-18 (Thu) | — | Must be done before “Partner Travel Plan” starts (Fri, Mar 19) |
@@ -92,30 +92,30 @@
 | Open RSVPs | 2027-03-24 (Wed) | 2027-03-26 (Fri) | — | RSVPs open three weeks ahead |
 <!-- conditional:end -->
 
-## 5. 对已经存在的数据有什么影响
+## 5. Effects on existing data
 
-- **新建的活动**（以后在网站上建的）用新的时间窗。
-- **已经建好的活动不自动改**：它们的步骤没有时间窗，日期按原来的规则算。只有一个例外：旧存档里缺了某个必有步骤时，读取时会补上这个步骤，补上的这一步带新的时间窗。
-- **社团自己保存过的流程**（Settings → Workflow，FB-6 之前保存的）：建新活动时，标准步骤按名字（key）补上时间窗；工作量如果还是旧的默认值，也换成你表里的值。社团自己改过的工作量或目标时间保留，社团自己加的步骤不补。
-- 非常旧的存档（结构版本 6–11）读取时本来就会按标准流程重建活动，所以它们会得到新的时间窗。
-- 结构版本 **没有** 升级（新字段是可选的）。
+- **New events** created afterward use the new windows.
+- **Existing events do not change automatically:** their steps lack windows and use the old rules. Exception: if an older save lacks a required step, loading repairs it by adding that step with its new window.
+- **Previously saved club workflows**, Settings → Workflow before FB-6: when creating a new event, standard steps receive windows by matching names/keys. If effort still equals the old default, replace it with the table's value. Preserve club-edited effort/target timing; do not add windows to custom steps.
+- Very old saves, schema versions 6–11, already rebuild events from the standard workflow when loaded, so they receive new windows.
+- **No schema-version increase:** the new fields are optional.
 
-## 5b. 示例社团（Desert Founders Society）怎么跟着变
+## 5b. Effects on the sample club, Desert Founders Society
 
-示例社团的三个活动是开网站时用模板现建的，所以日期全部跟着变。演示日（2026-10-31，周六）和活动日期都**没有改**。
+The three sample events are generated from templates when the site opens, so their schedules change. Neither demo day, Saturday 2026-10-31, nor event dates changed.
 
-- **Networking Night（3/25）和 Spring Speaker Night（3/18）**：窗口都在 2027 年 1 月以后才打开，所以演示日那天它们没有到期或有风险的步骤（以前也一样）。以前每个收尾步骤都带一个黄色 “Moved later”，现在没有了。
-- **Founder Dinner（12/3）**：以前几乎所有步骤都已完成，有的完成日还在新截止日之后。现在按新窗口重新安排：规划步骤在 9/29–10/2 完成（都在窗口里），经费流程照旧已完成（桌卡已下单）；**这周**：Moderator Lead Staffing 正在做、11/6（周五）截止；Partner Speaker Review 的提醒日是 11/6；Event Materials 的窗口 10/1 就开了还没开始，显示黄色 “Should have started”；Parking Validation、Content Distribution、Event Reminder 排在 11 月中下旬。Full Check 沿用旧示例保持“已完成”（社长已做过一次初步检查），这样社长的任务看板上有一张最近完成的卡片；按你的表它的窗口是 11/19–12/2，严格说完成得太早。
-- **Today 的 “Needs a nudge”** 仍是同样三条（Send the October newsletter、Chase the USG reimbursement、Reconcile September receipts），因为它们是手动任务，日期不变。
-- **预测（Forecast）跟着改了一点**（`src/engine/forecast.ts`）：已校准步骤的窗口两头都算工作日，默认 1 天个人缓冲已经包含在你的表里，收尾步骤从它自己的窗口开始模拟。不改的话，活动当天截止的 Headcount 这类步骤永远是 0%，三个活动的 Close 小圆点会一直是红的。改了之后，这类“当天或第二天就要交”的收尾步骤大约是 50%（黄或红的边上）；Founder Dinner 的报销和财务记录在 12 月期末周，学生不排工作，所以显示有风险——这是真实的提醒，但需要你看一眼是否合理。
+- **Networking Night (3/25) and Spring Speaker Night (3/18):** their windows open after January 2027, so neither has a due/at-risk step on demo day, as before. Closeout steps no longer all show yellow “Moved later”.
+- **Founder Dinner (12/3):** formerly almost every step was complete, sometimes after its new deadline. The sample now follows the windows: planning finished 9/29–10/2, within the windows; funding remains complete and table cards ordered. **This week:** Moderator Lead Staffing is in progress, due Friday 11/6; Partner Speaker Review's reminder is 11/6; Event Materials opened 10/1 but has not started, showing yellow “Should have started”. Parking Validation, Content Distribution, and Event Reminder fall in mid/late November. Full Check stays complete from the old sample, representing a preliminary president check and providing a recently completed board card. Its actual window is 11/19–12/2, so strictly it was completed too early.
+- **Today's Needs a nudge** still contains Send the October newsletter, Chase the USG reimbursement, and Reconcile September receipts: these manual tasks retain their dates.
+- **Forecast adjustment**, `src/engine/forecast.ts`: count both ends of a calibrated window as workdays; the table already includes the default 1-day buffer; simulate closeout from its own window. Without this, same-day steps such as Headcount always get 0%, leaving all three Close dots red. Afterward, same-/next-day closeout is around 50%, at the yellow/red boundary. Founder Dinner reimbursement/financial records fall in December finals, when student work is not scheduled, and show risk. This is a scheduling warning that still needs your judgment about whether it is reasonable.
 
-## 6. 需要你确认 / 没解决的
+## 6. Confirmation needed and unresolved items
 
-1. **收尾步骤的开始日**：方案 7.2 第 4 条说“除 Headcount 外，收尾步骤不早于活动后第一个工作日”，所以 Thank You Note、Feedback 等的提醒在活动后的周一发，而你的文件写活动当天。如果你希望活动当天就提醒，告诉我，改一行规则即可。
-2. **最后三步**：活动后 5 个工作日（报销）、7 个工作日（财务记录）、14 天（存档）。不同意就给我新的数字。
-3. **方案之外的三条细则**（第 2 节末尾）是为了让新建活动不出现假警告。其中第三条和方案“一方不是校准步骤时沿用现有规则”略有不同：校准步骤后面跟着的未校准步骤，按“完成先后”处理；未校准步骤后面跟着的校准步骤，开始日仍不早于前一步完成，但前一步没有拖延时不会把截止日往后推。
-4. **工作量变了，难度标签没变**：例如 Moderator Lead Staffing 工作量从 1 天变成 10 天，但它仍标 “light”。难度标签影响预测的模拟用时和贡献分，这次没改。
-5. **用工作量不再移动日期**：已校准步骤的日期来自时间窗，所以只改工作量（不改目标时间）不会让日期变；Settings → Workflow 里改“Target timing”仍然会改（引擎按你给的天数重算，窗口长度不变）。
-6. **Check-in 的目标时间**：Settings → Workflow 里 Check-in 仍显示旧的“1”（活动前一个工作日），实际截止日按你的表是活动当天。显示没改，是因为读取存档时有一段老修复代码会把这个值改回去。
-7. **学期开头的活动**：例如 1 月中旬的活动，很多开始日落在寒假，引擎会把它们往前挪到 12 月期末前。这是“学期之间不安排学生工作”的老规则，结果对不对需要你看一眼。
-8. **条件步骤还没有时间窗**：第 4 节的表就是现在的结果。打开所有条件、而且活动在 2026-11-02 或 11-03 时，安全链条（Advisor → … → School Admin Approval，约 40 个工作日）会被推迟，因为它得在秋季学期开学前就开始；这是未校准步骤的老规则。
+1. **Closeout start:** plan section 7.2, rule 4 says closeout other than Headcount starts no earlier than the first business day after the event. Thank You Note/Feedback reminders therefore go out the following Monday, while your file says event day. If event-day reminders are intended, one rule can change that.
+2. **Final three offsets:** 5 business days for reimbursement, 7 business days for finance records, and 14 days for documentation. Supply different numbers if these are not intended.
+3. **Three implementation additions** at the end of section 2 avoid false warnings on new events. The third slightly differs from the plan's instruction to retain old behavior whenever one side is uncalibrated. An uncalibrated step following a calibrated one uses completion order; a calibrated step following an uncalibrated one still cannot start before it completes, but an on-time predecessor does not push its due date later.
+4. **Effort changed, difficulty did not:** Moderator Lead Staffing rose from 1 to 10 days but remains “light”. Difficulty affects simulated effort and contribution points; this iteration did not change it.
+5. **Changing effort no longer moves calibrated dates:** dates come from windows, so effort alone does not change them. Editing Target timing in Settings → Workflow still recalculates the dates from the chosen offset while retaining window length.
+6. **Check-in target display:** Settings → Workflow still shows the old “1”, one business day before the event, while the actual deadline follows your table on event day. An older load-repair routine restores that value, so the display has not changed.
+7. **Events near semester start:** for a mid-January event, many starts fall during winter break and move back before December finals. This follows the old no-student-work-between-semesters rule; you need to judge the result.
+8. **Conditional steps lack windows:** section 4 shows current results. With all conditions enabled and event day 2026-11-02 or 11-03, the roughly 40-workday Advisor → … → School Admin Approval chain is pushed because it would need to start before Fall classes. This is the old behavior for uncalibrated steps.

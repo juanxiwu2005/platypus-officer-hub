@@ -1,58 +1,58 @@
-# F1–F7 实施与验收记录
+# F1–F7 implementation/acceptance record
 
-2026-10-26 · Codex · 状态：实现与本地验证完成，待 Juanxi 开发预览验收。正式站未改。
+2026-10-26 · Codex · Implementation/local verification complete, awaiting Juanxi's deploy-preview acceptance. Live site unchanged.
 
-Juanxi 在本聊天批准审计方案并回复“执行”。基线为 `feat/organization-setup-ai@54e58231e557adc8d11203b7e52373fdb3278b4e`，集成分支 `fix/setup-v3-completion`。main、原站和已有工作区保留。
+Juanxi approved audit proposal in this chat and said “execute.” Baseline `feat/organization-setup-ai@54e58231e557adc8d11203b7e52373fdb3278b4e`, integration `fix/setup-v3-completion`. main/original site/existing workspaces retained.
 
-## 分工与范围
+## Division/scope
 
-Data、AI、UI 使用独立 Worktree/依赖与测试目录；主 Agent 管批准配置消费、共享契约和集成；独立 Review Agent 只读复核。没有多个 Agent 同时修改 OnlineSetup。不得把测试模拟当真实供应商或线上数据库验收。
+Data/AI/UI use independent worktrees/dependencies/test directories; lead owns approved-config consumption/shared contract/integration; independent read-only Review. No concurrent OnlineSetup edits. Mocks are not provider/live-database acceptance.
 
-| 工作包 | 实现与验收目标 |
+| Package | Implementation/acceptance goal |
 | --- | --- |
-| F1 保存恢复 | 快速内部离开前保存，失败留页；完整本地草稿与未发送表单恢复；冲突明确选择 |
-| F2 增量与人工决定 | 保留层级人工字段；语义指纹；相关节点复核；服务器确认拦截未处理项 |
-| F3 助手与风险卡 | 当前选中实体、近期指定历史、自动一次Check与Skip、多风险最终批准 |
-| F4 图与可访问性 | 节点/多人/曲线增删重接、层级拖动、手机和键盘操作 |
-| F5 诊断与费用 | 原文先持久化，失败分型、每attempt指标、requestId持久去重、缓存执行版本 |
-| F6 批准配置消费 | Home/活动只读服务器approved.compiled，岗位职责和部门色一致，版本刷新 |
-| F7 文档与复核 | 现行/历史分开，测试/真实/部署证据分开，独立Review后交用户验收 |
+| F1 Save/recover | Save before quick internal exit, stay on failure; complete local draft/unsent-form recovery; explicit conflict choice |
+| F2 Incremental/manual decisions | Hierarchical manual-field preservation, semantic fingerprints, affected-node review, server confirmation blocks unresolved |
+| F3 Assistant/risk cards | Current entity, selected recent history, automatic one-time Check/Skip, multiple-risk final approval |
+| F4 Graph/accessibility | Add/delete/reconnect nodes/people/curves, hierarchy drag, mobile/keyboard |
+| F5 Diagnostics/cost | Persist raw first, classify failures, per-attempt metrics, persistent requestId deduplication, cached execution version |
+| F6 Approved-config consumption | Home/events read only server approved.compiled, consistent duties/department colors/version refresh |
+| F7 Docs/review | Current/history separate; mock/live/deploy evidence separate; user acceptance after independent Review |
 
-## 已验证的工作区消费
+## Verified workspace consumption
 
-F6 初次检查：5个单元测试通过；新工作区6个电脑/手机检查加保留原型34项，共40项浏览器检查通过。后来新增的无障碍与setup确认贯通检查在最终集成统一运行，不能把这40项当最终总数。
+Initial F6:5 unit tests; 6 new workspace desktop/mobile +34 retained prototype =40 browser passes. Later a11y/setup-confirmation integration ran in final suite; 40 is not final total.
 
-无批准配置显示完成设置入口；加载失败显示重试，不静默借用虚构组织。`/#/phase1?example=1` 是显式旧示例，setup-legacy保留原检查与数据。新组织的Board页明确未生成，完整按自然语言生成planner未在本轮实现。
+No approved config→setup-completion entry; load failure→retry, no silent fictional fallback. `/#/phase1?example=1` explicit legacy sample, setup-legacy retains original checks/data. New-organization Board explicitly not generated; full natural-language planner not implemented.
 
-## 性能证据的边界
+## Performance-evidence limits
 
-本轮不调用真实AI。不宣称Gemma已比Muse提速、不推断AIR实际排队。现有历史单次Muse765输入/1846输出tokens，首内容16.715秒、总50.396秒且结构失败；属于历史观察，不是本次模型验收。
+No real AI this round. No claim Gemma faster than Muse/inference of AIR queues. Historical single Muse 765 input/1846 output tokens, first content16.715s/total50.396s/structure failure—historical observation, not current acceptance.
 
-保留clientPreparationMs、本站queuedMs、headers/firstToken/total、token、finish原因、原文与失败分类；记录不等于每个供应商都会提供usage。少量样本只能报单次观察，不能伪装p50/p95统计。
+Retain clientPreparationMs/site queuedMs/headers-firstToken-total/tokens/finish reason/raw/failure class; recording does not guarantee provider usage. Small samples only single observations, not p50/p95 statistics.
 
-## 当前外部限制
+## External limits
 
-Git的HTTPS读写可用。GitHub API在本会话审计时返回Forbidden；当前PR/远端CI/Netlify部署结果需要独立取证，不根据本地成功杜撰。AIR绑定未注入本地机器；不要求聊天中提供密钥，不恢复额外真实评估。正式发布与合并main仍未授权。
+Git HTTPS read/write available. GitHub API Forbidden at audit; PR/remote CI/Netlify need independent evidence, no invention from local success. AIR binding absent locally; do not request keys in chat/resume extra live evaluations. Formal release/main merge unauthorized.
 
-## 最终检查与 Review
+## Final checks/Review
 
-最终产品代码基于 `9871a6f`（含本地存储失败保护）；其后仅修浏览器测试对异步持久化的等待，验证提交 `ba0ab68`。独立 Review 已完成各实施分支和集成契约检查，开放代码阻塞为0。详见 [独立复核记录](REVIEW_F1_F7.md)。
+Final product `9871a6f` includes local-storage-failure protection; afterward only browser waits for async persistence fixed, verification `ba0ab68`. Independent branch/integration-contract Review complete, 0 open code blockers. [Independent review](REVIEW_F1_F7.md).
 
-| 检查 | 实际结果 |
+| Check | Actual result |
 | --- | --- |
-| `npm run build` | TypeScript/Vite成功，依赖声明与锁文件未改 |
-| `npm test -- --maxWorkers=2 --minWorkers=1` | 25文件、410测试通过 |
-| `npm run e2e -- --workers=2` | 最终同一完整运行238项：222通过、16按现有项目条件跳过、0失败 |
-| 本地Netlify dev真实HTTP与Blobs仿真 | 私有session、保存/确认、服务器JSON编译、草稿/批准分离、409拒绝覆盖、无会话401、近期历史、原件SHA-256下载均通过 |
-| Chromium直连本地实际API | 同一cookie会话读取服务器批准配置，展示正确组织和版本，不混用未批准草稿 |
-| 真实供应商/线上部署 | 本轮未调用AIR，没有新的提速百分比或线上Blobs验收结论 |
+| `npm run build` | TypeScript/Vite passed, dependency manifests/lock unchanged |
+| `npm test -- --maxWorkers=2 --minWorkers=1` |25 files 410 passed|
+| `npm run e2e -- --workers=2` | Final complete run: 238 cases, 222 passed/16 existing conditional skips/0 failed |
+| Local Netlify dev actual HTTP/Blobs emulation | Private session/save-confirm/server JSON compilation/draft-approved separation/409 overwrite rejection/no-session401/recent history/original SHA-256 download passed |
+| Chromium→actual local API | Same-cookie session reads approved server config, correct organization/version, no unapproved draft mixing |
+| Real provider/live deployment | No AIR this round, no new speed percentages/live Blobs certification |
 
-16个跳过包含旧套件12项手机重复无障碍检查+1项悬停，以及新版3项仅桌面指针/额外历史操作测试。手机通过职责/负责人/依赖等替代操作、基本浏览器Back/Forward与关键页面无障碍检查；不把它们说成物理手机或Safari实机测试。
+16 skips: legacy 12 mobile duplicate a11y+1 hover, new 3 desktop-only pointer/extra-history tests. Mobile alternatives for duties/owners/dependencies, basic Back/Forward/key-page a11y passed; not real devices/Safari.
 
-集成初轮暴露了测试仍查旧示例Home文案、把“删除Board设置章”误写成全应用不能出现Board导航；已改为稳定导航和只检查设置进度。另两条上传/粘贴测试在可见本地文件名后立刻检查远端存储，早于异步保存完成，已改成等待实际持久化结果。没有删除断言、跳过失败或以重试冒充通过；最终完整运行无失败。
+Initial integration tests expected old sample Home copy and misread “remove Board setup chapter” as no Board navigation anywhere; changed stable navigation/setup-progress-only assertions. Two upload/paste tests checked remote storage immediately after local filename, before async save; now await actual persistence. No removed assertions/skipped failures/retries passed off as success; final full run 0 failures.
 
-本地HTTP联测使用真实函数和开发服务器的Blobs仿真持久化，不是线上Netlify Blobs。只使用仓库虚构章程；0次真实AI生成。仓库原件解析、AI输出格式、业务数据保护的不同证据保持区分。
+Local HTTP uses real functions/dev Blobs-emulated persistence, not live Netlify Blobs. Repository fictional constitution only, 0 real AI generation. Keep parsing/AI-format/business-protection evidence distinct.
 
-当前集成分支将快进到既有 `feat/organization-setup-ai` 接续 [PR #3](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3) 供开发预览验收；不强推、不合并main。GitHub API访问受限，远端CI/部署状态须另行核对，不能把本地成功称为远端通过。
+Integration will fast-forward existing `feat/organization-setup-ai`/[PR #3](https://github.com/juanxiwu2005/platypus-officer-hub/pull/3) for preview acceptance; no force-push/main merge. GitHub API limited, remote CI/deploy separately verified; local success is not remote passage.
 
-需要同步本地备份（本Agent无法访问用户电脑）。
+Local backup needs synchronization (agent cannot access user's computer).

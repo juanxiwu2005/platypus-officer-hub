@@ -1,7 +1,7 @@
 # Gemini repository entrypoint
 
-The canonical cross-AI instructions are in `AGENTS.md`. Read `AGENTS.md`, `docs/PROGRESS.md`, and `docs/PRODUCT_PLAN.md` before work. For automated Agent tasks, also read `docs/NIGHT_MODE.md` and `.nightmode/TASK.md`.
+Read `AGENTS.md`, `docs/PROGRESS.md`, and relevant `docs/PRODUCT_PLAN.md` sections before work. `AGENTS.md` is the canonical cross-assistant instruction file. For Night Mode, also read its runbook and task file; do not resume paused automation without authorization.
 
-Do not modify or merge `main`. Do not handle secrets, research data, participant information, or real member data. Keep AI proposals reviewable and preserve the deterministic date engine and human approval gates.
+**Use English for all documentation, code comments, commits, issues, PRs, reviews, and GitHub notes.** See `CONTRIBUTING.md`. Private conversation may follow Juanxi's preference; repository decisions must be in English.
 
-This file is only an entrypoint; do not duplicate or override the canonical rules here.
+Preserve deterministic dates, data visibility, approved scope, and human approval gates. Use fictional examples only. Do not handle secrets, participant information, or research records. Never directly modify, push to, merge, or deploy `main` without Juanxi's explicit approval.

@@ -1,24 +1,26 @@
-# DX-12 手机悬停卡底部弹层动画
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- 阶段 2　大小 S　风险 低　R 级 **R1 可用**　依赖：DX-01　并行伙伴：DX-09～11、13、14
-- 分支：`design/dx-12-touch-hover-sheet`　样式文件：`src/styles/dx-12-touch-hover-sheet.css`　对应细节：D12
+# DX-12 mobile hover-card bottom-sheet animation
 
-## 为什么
-手机上点开悬停卡，它以底部弹层出现（S8），但是"啪"一下。**桌面上的悬停卡不能动**：S3（2026-10-27）已经决定零延迟，`e2e/feel.spec.ts` 守着。
+- Stage 2 · SizeS · Low risk · R level **R1 available** · Dependency: DX-01 · Parallel: DX-09–11/13/14
+- Branch: `design/dx-12-touch-hover-sheet` · Styles: `src/styles/dx-12-touch-hover-sheet.css` · Detail: D12
 
-## 要做的事
-1. **只在 `@media (hover: none)` 里**给 `.hover[data-open="true"] > .hover-card` 加进入动画：`translateY(12px)→0` + 淡入，`var(--dur-fast)`、`var(--ease-out)`；退场反向。
-2. 不加遮罩（它是说明，不是模态；Emil §12 "separate to keep flow"）。
-3. 减少动效：只淡入淡出。
-4. 不改 `Hover` 组件的逻辑（`ui/index.tsx`）。如果必须改（比如要让退场能播），把需求写进报告交给整合人，不要自己动。
+## Why
+Tapping hover cards on mobile opens a bottom sheet (S8), but abruptly. **Desktop hover cards must remain untouched:** S3 (2026-10-27) established zero delay, guarded by `e2e/feel.spec.ts`.
 
-## 可以改的文件
-只有 `src/styles/dx-12-touch-hover-sheet.css`。
+## Work
+1. **Only within `@media (hover: none)`**, animate `.hover[data-open="true"] > .hover-card` entry: `translateY(12px)→0` + fade-in, `var(--dur-fast)`, `var(--ease-out)`; reverse for exit.
+2. No backdrop (explanation, not modal; Emil §12 "separate to keep flow").
+3. Reduced motion: fade only.
+4. Do not change `Hover` logic (`ui/index.tsx`). If necessary (e.g., to enable exit animation), record requirement for integrator in report, without editing yourself.
 
-## 验收
-- `touch.spec.ts`（手机）、`feel.spec.ts`（桌面，尤其是"悬停卡无延迟"）、`bts.spec.ts` 绿。
-- 桌面项目里 `.hover-card` 的计算 `transition-delay` 仍是 `0s, 0s`。
-- Juanxi 怎么验：手机上点进度链的小圆点，说明卡从屏幕底部滑上来。
+## Allowed files
+Only `src/styles/dx-12-touch-hover-sheet.css`.
 
-## 回滚
-R1 或 R2。
+## Acceptance
+- `touch.spec.ts` mobile, `feel.spec.ts` desktop (especially zero-delay hover), `bts.spec.ts` green.
+- Desktop `.hover-card` computed `transition-delay` remains `0s, 0s`.
+- Juanxi checks: mobile progress-chain dots open explanation card sliding from bottom.
+
+## Rollback
+R1 or R2.

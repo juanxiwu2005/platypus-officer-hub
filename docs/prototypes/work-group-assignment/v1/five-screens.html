@@ -1,9 +1,9 @@
-<div id="platypus-assignment-review" class="viz-carousel" aria-label="工作组与任务分派效果图" data-previous-label="上一张" data-next-label="下一张">
-  <section data-variant="Onboarding · 设置任务组" aria-label="Onboarding 设置任务组"><div class="pg" data-screen="onboarding" aria-label="首次设置的工作组布局"></div></section>
-  <section data-variant="新建活动 · 统一选人" aria-label="新建活动统一选人" hidden><div class="pg" data-screen="create"></div></section>
-  <section data-variant="Finance · 批量分派" aria-label="Finance 批量分派" hidden><div class="pg" data-screen="finance"></div></section>
-  <section data-variant="Marketing · 直接换人" aria-label="Marketing 直接修改执行人" hidden><div class="pg" data-screen="marketing"></div></section>
-  <section data-variant="活动统筹 · 任务详情" aria-label="活动统筹从任务详情中分派" hidden><div class="pg" data-screen="coordination"></div></section>
+<div id="platypus-assignment-review" class="viz-carousel" aria-label="Work groups and task assignment mockups" data-previous-label="Previous image" data-next-label="Next image">
+  <section data-variant="Onboarding · Set up task groups" aria-label="Onboarding Set up task groups"><div class="pg" data-screen="onboarding" aria-label="Work-group layout during initial setup"></div></section>
+  <section data-variant="Create event · Shared people picker" aria-label="Create eventShared people picker" hidden><div class="pg" data-screen="create"></div></section>
+  <section data-variant="Finance · Bulk assignment" aria-label="Finance Bulk assignment" hidden><div class="pg" data-screen="finance"></div></section>
+  <section data-variant="Marketing · Change assignee" aria-label="Marketing Change assignee directly" hidden><div class="pg" data-screen="marketing"></div></section>
+  <section data-variant="Event coordination · Task details" aria-label="Event coordinator assigns from task details" hidden><div class="pg" data-screen="coordination"></div></section>
 </div>
 <style>
 #platypus-assignment-review .pg {
@@ -345,10 +345,10 @@
   renderAll();
   if(globalThis.Tweak){
     const tweak=new Tweak({container:root,onChange:function(){renderAll();persist();}});
-    tweak.addSelect(design,'theme',{label:'界面外观',options:[{label:'跟随系统',value:'Follow device'},{label:'浅色',value:'Light'},{label:'深色',value:'Dark'}]});
+    tweak.addSelect(design,'theme',{label:'Appearance',options:[{label:'Follow device',value:'Follow device'},{label:'Light',value:'Light'},{label:'Dark',value:'Dark'}]});
     const setupTweak=new Tweak({container:root.querySelector('[data-screen="onboarding"]'),onChange:function(){renderOnboarding();applyDesign();persist();}});
-    setupTweak.addSelect(design,'layout',{label:'分组呈现方式',options:[{label:'分组卡片',value:'Group cards'},{label:'紧凑分行',value:'Compact rows'}]});
-    tweak.addSlider(design,'spacing',{label:'任务行留白',min:12,max:23,step:1,unit:'px'});
+    setupTweak.addSelect(design,'layout',{label:'Group layout',options:[{label:'Group cards',value:'Group cards'},{label:'Compact rows',value:'Compact rows'}]});
+    tweak.addSlider(design,'spacing',{label:'Task row spacing',min:12,max:23,step:1,unit:'px'});
   }
 })();
 </script>

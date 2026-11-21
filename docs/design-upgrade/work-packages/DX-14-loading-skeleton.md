@@ -1,22 +1,24 @@
-# DX-14 加载骨架 + 延迟显示
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- 阶段 2　大小 S　风险 低　R 级 R2　依赖：DX-01　并行伙伴：DX-09～13
-- 分支：`design/dx-14-loading-skeleton`　样式文件：`src/styles/dx-14-loading-skeleton.css`　对应细节：D16
+# DX-14 skeleton loading + delayed display
 
-## 要做的事
-1. `src/components/RouteLoading.tsx`：
-   - 加载不到 150ms 时什么都不显示（避免"闪一下"）；超过 150ms 才显示。
-   - 显示的内容：和页面结构相似的灰色骨架块（一个标题条 + 3 张卡片条），不带文字。给读屏的 `role="status"` 文字（`label`）改成视觉隐藏（`.sr-only` 已存在），**读屏仍然能读到 "Loading…"**。
-   - 骨架块是静态的（不做闪光扫过；Apple 提醒避免慢速循环）。想要一点生命感，只允许一个 ≥1.2s 周期的透明度变化，且减少动效时停止。
-2. 保持：`fullPage` 参数、`aria-label`、两种用法（整页懒加载、右栏详情的 "Loading details…"）。
+- Stage 2 · SizeS · Low risk · R levelR 2 · Dependency: DX-01 · Parallel: DX-09–13
+- Branch: `design/dx-14-loading-skeleton` · Styles: `src/styles/dx-14-loading-skeleton.css` · Detail: D16
 
-## 可以改的文件
-`src/components/RouteLoading.tsx`、`src/styles/dx-14-loading-skeleton.css`。
+## Work
+1. `src/components/RouteLoading.tsx`:
+   - Show nothing for loads under 150 ms (avoid flash); show only after 150 ms.
+   - Gray skeleton matching page structure (one heading bar +3 card bars), no text. Make screen-reader `role="status"` text (`label`) visually hidden (existing `.sr-only`); **screen readers must still read "Loading…"**.
+   - Static skeleton (no shimmer; Apple cautions against slow loops). For liveliness, allow only opacity changes with period ≥ 1.2 s, stopped with reduced motion.
+2. Preserve `fullPage`, `aria-label`, both uses (full-page lazy loading, right-rail "Loading details…").
 
-## 验收
-- `e2e/bundle-performance.spec.ts`、`e2e/bundle-organization-setup.spec.ts`（它们检查懒加载）桌面绿，先看里面有没有断言 "Loading…" 可见，如果有，按"读屏仍可读到"重写，**不要放宽别的断言**。
-- 用网络节流（Playwright `route` 延迟 800ms）手动验证：先空白 150ms，再出现骨架；快速加载时不闪。
-- Juanxi 怎么验：用手机网络（或浏览器节流）打开 Events，先出现灰色骨架，而不是一行文字。
+## Allowed files
+`src/components/RouteLoading.tsx`, `src/styles/dx-14-loading-skeleton.css`.
 
-## 回滚
-R2。
+## Acceptance
+- Desktop `e2e/bundle-performance.spec.ts`/`e2e/bundle-organization-setup.spec.ts` (lazy loading) green; first check for visible "Loading…" assertions and rewrite for continued screen-reader accessibility, **without loosening other assertions**.
+- Manually verify throttled network (Playwright `route` delayed 800 ms): blank 150 ms, then skeleton; fast loads never flash.
+- Juanxi checks: open Events on mobile network/browser throttling, see gray skeleton instead of text line.
+
+## Rollback
+R2.

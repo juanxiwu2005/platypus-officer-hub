@@ -1,31 +1,33 @@
-# 第一阶段入口 — 并行修复核心契约、交互、安全和性能
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-## 给阶段主 agent 的完整提示词
+# Stage-1 entry — parallel core-contract, interaction, security, performance fixes
 
-在 GitHub 仓库 `juanxiwu2005/platypus-officer-hub` 执行 DP8 发布准备第一阶段。使用 GPT-6.1 High；WP07 如可单独配置，使用 XHigh。
+## Complete prompt for the stage lead agent
 
-1. 先读根目录 `AGENTS.md`、`docs/release-readiness/README.md` 和 `docs/release-readiness/manifest.json`。
-2. 读取 manifest 中第一阶段的六个完整工作包：WP01、WP02、WP03、WP04、WP07、WP09。不得依赖聊天里可能过时的摘要。
-3. 执行 `git fetch origin`，只使用最新 `origin/integration/v1.0`。报告完整和短 SHA，并验证审核基线 `7d84fa4` 是其祖先。禁止使用、修改或推送 `main`。
-4. 明确使用多 agent：创建六个 sub-agent，每个只负责一个工作包。为每个 agent 创建独立 worktree 和分支：
+Execute DP8 release-readiness stage 1 in `juanxiwu2005/platypus-officer-hub`. Use GPT-6.1 High; WP07 XHigh if individually configurable.
+
+1. Read root `AGENTS.md`, `docs/release-readiness/README.md`, `docs/release-readiness/manifest.json`.
+2. Read all six complete stage-1 packages: WP01, WP02, WP03, WP04, WP07, WP09; do not rely on potentially stale chat summaries.
+3. `git fetch origin`; use only latest `origin/integration/v1.0`. Report full/short SHA, verify audit baseline `7d84fa4` ancestor. Do not use/modify/push `main`.
+4. Explicitly use six subagents, one package each, separate worktrees/branches:
    - `codex/rr-wp01-contract`
    - `codex/rr-wp02-events`
    - `codex/rr-wp03-tasks`
    - `codex/rr-wp04-setup`
    - `codex/rr-wp07-prod-security`
    - `codex/rr-wp09-performance`
-5. 六个 worktree 必须从同一个最新远端 SHA 创建。把 worktree 的绝对路径和对应工作包文件交给各 agent；禁止它们在共享根目录修改文件或互相合并。
-6. 阶段主 agent 在子 agent 工作期间不修改它们负责的文件。子 agent 不更新 `docs/PROGRESS.md`，也不推送 `main`。
-7. 等待六个 agent 完成。逐一审查 diff、提交 SHA、测试证据和工作包验收标准。缺少证据或用弱化测试过关时退回原 agent 修正。
-8. 从最新 `origin/integration/v1.0` 创建单独集成 worktree，按 WP01 → WP02 → WP03 → WP04 → WP07 → WP09 顺序 cherry-pick。禁止使用 `ours/theirs` 整体覆盖解决冲突；按当前产品契约逐处解决。
-9. 每集成一个包运行其目标测试。全部集成后至少执行：
+5. All six from the same latest remote SHA; provide absolute worktree/package paths. No shared-root edits or mutual merges.
+6. Lead does not edit agent-owned files while they work; subagents do not update `docs/PROGRESS.md` or push main.
+7. Wait for all; review diffs/SHAs/test evidence/acceptance individually. Return missing evidence or weakened-test passes to original agent for correction.
+8. Separate integration worktree from latest `origin/integration/v1.0`; cherry-pick WP01 → WP02 → WP03 → WP04 → WP07 → WP09. No blanket `ours/theirs`; resolve each conflict against current product contracts.
+9. Run each package's targets after integration, then at least:
    - `npm ci`
-   - Node 22 下 `npm run lint`、`npm run build`、`npm test`
-   - 第一阶段涉及的 Playwright spec（desktop/mobile）
+   - Node 22 `npm run lint`, `npm run build`, `npm test`
+   - Relevant desktop/mobile Playwright specs
    - `npm audit --omit=dev`
-   - bundle 大小检查
+   - Bundle-size checks
    - `git diff --check`
-10. 第一阶段不要求提前完成 WP05/WP06/WP08，因此不要通过篡改 a11y、word budget 或开发 audit 标准来让它们假绿；如顺带已通过，如实记录。
-11. 验收通过后，由阶段主 agent 在 `docs/PROGRESS.md` 添加一条第一阶段交接记录，创建一个仅含必要集成/文档更新的提交。
-12. 推送前再次 fetch；只有远端仍是集成基线或能安全 rebase 时，才快进推送 `HEAD:integration/v1.0`。绝不 force push。若远端有未知新提交或任何阶段验收失败，不推送半成品，保留分支并报告。
-13. 不自动调用真实 AIR。结束时报告：远端新 SHA、六个工作包 commit、测试结果、未解决风险和第二阶段是否可开始。
+10. WP05/WP06/WP08 need not finish early; do not alter a11y/word/dev-audit standards for false green. Report incidental passes accurately.
+11. After acceptance, lead adds stage-1 `docs/PROGRESS.md` handoff and one commit containing necessary integration/docs only.
+12. Fetch before push; fast-forward `HEAD:integration/v1.0` only if remote remains baseline or safe rebase is possible. Never force push. Unknown remote commits/any acceptance failure: retain branch and report, no unfinished push.
+13. No automatic real AIR. Report new remote SHA, six package commits, tests, unresolved risks, whether stage 2 may start.

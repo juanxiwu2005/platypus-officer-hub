@@ -1,83 +1,83 @@
-# 上线步骤（v1.0）— 点哪里
+# Launch steps (v1.0) — Where to click
 
-写给 Juanxi。只有你在对话里明确说「批准合并」之后，才会进入第 4 步。第 1–3 步现在就可以做，不影响线上。
+For Juanxi. Step 4 begins only after you explicitly say "approve the merge" in the conversation. Steps 1–3 can be done now without affecting production.
 
-> 我（Claude）从云端环境访问不到 Netlify 预览和正式站（返回 401：访问保护），所以**下面第 1–3 步我没有亲自验证过**，需要你来点、来确认。
+> I (Claude) cannot access the Netlify preview or production site from the cloud environment (401: access protection), so **I have not personally verified steps 1–3 below**; you need to click through and confirm them.
 
-## 1. Netlify 环境变量（在 3 个范围里都要有）
+## 1. Netlify environment variables (required in all 3 contexts)
 
-1. 打开 https://app.netlify.com ，点进站点 `platypus-officer-hub`。
-2. 左边点 **Site configuration** → **Environment variables**。
-3. 找 `AI_API_KEY`，点它右边的 **Options → Edit**。
-4. 看 **Scopes / Values**：Production、Deploy Previews、Branch deploys 三项都要有值（可以是同一把 key）。没有的范围，点 **Add a different value for each deploy context** 补上。
-5. 找 `AI_PRESET`：
-   - 不存在 → 正好，默认就是 ASU AIR。
-   - 存在且是 `asu_air` → 可以保留。
-   - 存在且是 `deepseek` → **删掉**（Options → Delete）。代码里 DeepSeek 已移除，留着会让 AI 直接拒绝工作。
-6. 如果还有 DeepSeek 的旧 key（变量名带 `DEEPSEEK`），也删掉。
-7. 找 `ORG_SETUP_ENABLED`：**必须不存在，或者不是 `true`**。（IRB 要求服务器不存任何资料。）如果是 `true`，删掉。
-8. 改完后要重新部署，环境变量才会生效。**正式站和预览站要分开重来**：
-   - 正式站：**Deploys → Trigger deploy → Deploy site**。（这只会重建 `main`，不会改动正式站的内容。）
-   - 预览站（第 2 步要用）：还是在 **Deploys** 页，在列表里找最新一条 **Deploy Preview #8**，点进去，再点右上角的 **Retry**（选 *Retry with latest branch commit*）。
-     只点 Trigger deploy 的话，预览站还在用旧的变量。
+1. Open https://app.netlify.com and select `platypus-officer-hub`.
+2. On the left, select **Site configuration** → **Environment variables**.
+3. Find `AI_API_KEY`, then select **Options → Edit** on its right.
+4. Check **Scopes / Values**: Production, Deploy Previews, and Branch deploys must all have values (they may use the same key). For any missing context, use **Add a different value for each deploy context**.
+5. Find `AI_PRESET`:
+   - Absent → Fine; ASU AIR is the default.
+   - Present and `asu_air` → Keep it.
+   - Present and `deepseek` → **Delete it** (Options → Delete). DeepSeek has been removed from the code; leaving this value causes the AI to refuse to work.
+6. Also delete any old DeepSeek keys (variable names containing `DEEPSEEK`).
+7. Find `ORG_SETUP_ENABLED`: **it must be absent or not `true`**. (IRB requires no materials to be stored on the server.) If `true`, delete it.
+8. Redeploy after changes for the environment variables to take effect. **Redeploy production and the preview separately**:
+   - Production: **Deploys → Trigger deploy → Deploy site**. (This only rebuilds `main`; it does not change production site content.)
+   - Preview (needed in step 2): on **Deploys**, find the latest **Deploy Preview #8**, open it, and select **Retry** at the upper right (*Retry with latest branch commit*).
+     Clicking only Trigger deploy leaves the preview using the old variables.
 
-## 2. 用虚构数据做一次小的 AI 冒烟测试（预览站）
+## 2. Run a small AI smoke test with fictional data (preview)
 
-打开预览：https://deploy-preview-8--platypus-officer-hub.netlify.app （如果要求登录，用你的 Netlify 账号）。
+Open the preview: https://deploy-preview-8--platypus-officer-hub.netlify.app (sign into your Netlify account if prompted).
 
-只用虚构数据，不要输入真实姓名或研究资料。在 Ask 里依次试三件事：
+Use only fictional data; enter no real names or research materials. Try these three things in Ask, in order:
 
-1. 问一条规则，例如：`Can we order food from an outside caterer?` → 应该给出带出处的回答。
-2. 说：`Create an executable task: print flyers, owner Alex` → 应该出现任务表单，不是活动。
-3. 说：`Plan a new event called Spring Mixer` → 应该出现活动表单。
+1. Ask a rule question, such as `Can we order food from an outside caterer?` → It should give an answer with sources.
+2. Say `Create an executable task: print flyers, owner Alex` → It should show a task form rather than an event.
+3. Say `Plan a new event called Spring Mixer` → It should show an event form.
 
-三次都有合理回复就算通过。**这只是 3 次调用，花不了多少额度。**
+If all three receive reasonable responses, this passes. **These are only 3 calls and use little quota.**
 
-**40 道规则评估（`docs/AI_TESTS.md`）会花较多额度。要不要跑，由你决定；你说「跑」我才会准备命令。** 没跑之前，文档里不会写"真实 AI 验收通过"。
+**The 40-question rules evaluation (`docs/AI_TESTS.md`) uses more quota. You decide whether to run it; I will prepare commands only after you say "run it."** Until it runs, the documentation will not claim "live AI acceptance passed."
 
-## 3. 确认限流有效，之后才能关访问保护
+## 3. Confirm rate limiting works before disabling access protection
 
-站点现在有 Netlify 访问保护（所以外人和我都打不开）。上线给社团用之前要关掉，但关掉之前先确认限流在工作：
+The site currently has Netlify access protection (so outsiders and I cannot open it). It must be disabled before public student-organization use, but first confirm rate limiting works:
 
-- 限流规则：每个 IP 每分钟 60 次、每小时 600 次；全站每小时 3000 次。
-- 它是**每个函数实例各算各的**（存在内存里），所以是"挡住滥用"，不是精确计数。
-- 确认方法（**不花 AI 额度**）：用的是 `/api/preflight`，它只跑本地规则检查，不调用 AI，但和 Ask 共用同一个限流。
-  1. 用 Chrome 打开预览站 https://deploy-preview-8--platypus-officer-hub.netlify.app ，登录后停在 Today 页。
-  2. 按 **F12**（Mac 是 **Option + Command + J**），点上面的 **Console**。
-  3. 把下面这一行整行粘进去，按回车：
+- Limits: 60 requests per IP per minute, 600 per hour; 3000 requests site-wide per hour.
+- Counts are **separate for each function instance** (held in memory), so this "deters abuse" rather than providing precise accounting.
+- How to verify (**uses no AI quota**): use `/api/preflight`, which runs only local rule checks and makes no AI call, but shares Ask's rate limiting.
+  1. Open the preview in Chrome at https://deploy-preview-8--platypus-officer-hub.netlify.app, sign in, and stay on Today.
+  2. Press **F12** (on Mac, **Option + Command + J**) and select **Console** at the top.
+  3. Paste this entire line and press Enter:
 
      `for (let i = 1; i <= 70; i++) { const r = await fetch('/api/preflight', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }); console.log(i, r.status) }`
 
-  4. 前面会一行行打出 `200`，**到第 61 次左右应该开始出现 `429`**。看到 `429` 就说明限流在工作。
-  5. 如果 70 次都没有 `429`：可能是请求被分到了不同的服务器实例（上面说的"各算各的"）。再粘一次同一行试试；还是没有，就把屏幕截图发给我，**先不要关访问保护**。
-  - 不要用连续刷新页面或连发 Ask 的办法测：刷新页面不经过限流，连发 Ask 会白花 AI 额度。
-- 看到 429 之后，再去 **Site configuration → Access & security → Visitor access**，把保护关掉（只在你确定要公开时）。
+  4. It initially prints `200` on successive lines; **`429` should start appearing around request 61**. Seeing `429` confirms rate limiting is working.
+  5. If none of the 70 requests returns `429`, requests may have been distributed across different server instances (the separate counting described above). Paste the same line once more; if it still does not happen, send me a screenshot and **leave access protection enabled for now**.
+  - Do not test by repeatedly refreshing or sending Ask messages: refreshes bypass rate limiting, while repeated Ask messages waste AI quota.
+- After seeing 429, go to **Site configuration → Access & security → Visitor access** and disable protection (only when you are sure you want the site public).
 
-## 4. 合并后（只有你说「批准合并」才做）
+## 4. After merging (only after you say "approve the merge")
 
-我会：合并 `integration/v1.0` 到 `main` → 打 `v1.0` 标签 → 等 Netlify 部署完。然后你确认：
+I will merge `integration/v1.0` into `main` → tag `v1.0` → wait for Netlify deployment. Then confirm:
 
-1. 打开 https://platypus-officer-hub.netlify.app 能进入 Today 页。
-2. 打开 https://platypus-officer-hub.netlify.app/api/health ，应该看到 provider 是 **ASU AIR**（不是 deepseek），且没有出现 org 存储相关内容。
-3. 在正式站再做一遍第 2 步的三件事。
+1. https://platypus-officer-hub.netlify.app opens Today.
+2. https://platypus-officer-hub.netlify.app/api/health shows provider **ASU AIR** (not deepseek) and no org-storage-related content.
+3. Repeat the three actions in step 2 on production.
 
-出问题时回退：Netlify → **Deploys** → 选上一个绿色部署 → **Publish deploy**。
+If something goes wrong, roll back: Netlify → **Deploys** → select the previous green deployment → **Publish deploy**.
 
-## 5. 合并后可以关闭的 PR 和可以删的分支
+## 5. PRs that can be closed and branches that can be deleted after merging
 
-先关 PR，再删分支（AGENTS.md §8.2）。**我不会替你删。**
+Close PRs before deleting branches (AGENTS.md §8.2). **I will not delete them for you.**
 
-| PR | 处理 |
+| PR | Action |
 | --- | --- |
-| #8 | 合并后自动完成 |
-| #7（Night Mode + N1–N6） | 内容已在 v1.0 里，可以关闭 |
-| #6（M2a/M2b） | 内容已在 v1.0 里，可以关闭 |
-| #5、#4、#3、#2 | 旧的预览/集结，可以关闭 |
+| #8 | Completed automatically on merge |
+| #7 (Night Mode + N1–N6) | Contents are in v1.0; can be closed |
+| #6 (M2a/M2b) | Contents are in v1.0; can be closed |
+| #5, #4, #3, #2 | Old previews/integration; can be closed |
 
-建议**等正式站稳定运行几天、确认没问题之后**再关 PR 和删分支：关掉的 PR 预览网址就没了，删掉的分支也不好找回。
+Recommend **waiting until production has run stably for a few days and is confirmed healthy** before closing PRs and deleting branches: closed PRs lose their preview URLs, and deleted branches are harder to recover.
 
-PR 全部关闭后，这些分支可以删：`feat/ai-night-mode`、`feat/m2b-ai-intake`、`feat/organization-setup-ai`、`feat/ai-native-phase1`、`integration/dp3-dp4-merge`、`integration/v1.1-fix`、`integration/v1.0`、`v1`。保留 `main`。
+After all PRs are closed, these branches can be deleted: `feat/ai-night-mode`, `feat/m2b-ai-intake`, `feat/organization-setup-ai`, `feat/ai-native-phase1`, `integration/dp3-dp4-merge`, `integration/v1.1-fix`, `integration/v1.0`, `v1`. Keep `main`.
 
-## 6. 之后要做的（v1.5）
+## 6. Later work (v1.5)
 
-见 `docs/PROGRESS.md` 交接记录里 S9 那一行和 `docs/M4_ONBOARDING_PLAN.md`。
+See the S9 row in the handoff entries in `docs/PROGRESS.md` and `docs/M4_ONBOARDING_PLAN.md`.

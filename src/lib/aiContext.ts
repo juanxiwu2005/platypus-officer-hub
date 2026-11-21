@@ -10,7 +10,7 @@ import { officers } from "../data/permissions"
 
 /**
  * Everything the signed-in officer can see in the app, as one compact object for the assistant (v1.2,
- * Juanxi 2026-10-23: "AI 能访问当前账号下管理的所有数据"). Same visibility as the pages:
+ * Juanxi 2026-10-23: "AI can access all data managed under the current account"). Same visibility as the pages:
  * - other officers' personal buffers, private notices and private replies are left out;
  * - uploaded files, the demo signing key and officer links never leave the browser.
  * All dates here come from the rule engine or from people; the assistant may repeat them, never invent them.

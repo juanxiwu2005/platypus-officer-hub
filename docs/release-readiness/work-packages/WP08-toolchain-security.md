@@ -1,29 +1,31 @@
-# WP08 — 开发与 CI 工具链安全
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-## Agent 提示词
+# WP08 — Development and CI Toolchain Security
 
-你负责开发和 CI 工具链中的 high/critical 漏洞。本包属于第二阶段，必须从已经集成 WP07 的最新 `origin/integration/v1.0` 创建 worktree。开始前读取 `AGENTS.md`、README、manifest，fetch 并报告 SHA。不得使用 `main`，不得无审查运行 `npm audit fix --force`。
+## Agent prompt
 
-### 重点依赖
+Address high/critical development/CI vulnerabilities. Stage 2: create worktree from latest origin/integration/v1.0 including WP07. Read AGENTS.md/README/manifest, fetch/report SHA. Never use main or run npm audit fix --force without review.
+
+### Priority dependencies
 
 - Vitest / tinypool
 - Vite / esbuild
 - ESLint / minimatch
-- 完整 `npm audit` 报告中的其他开发依赖
+- Other development dependencies in full npm audit
 
-### 要求
+### Requirements
 
-- 逐项升级到受支持的安全版本，处理配置/API/测试兼容性变化。
-- 保持 Node 22 CI 兼容。
-- 不得删除 lint 规则、测试文件或测试覆盖来换取通过。
-- 若 advisory 确无上游修复，必须证明不进入 production bundle，并记录依赖链、风险和解除条件；仍优先消除。
+- Upgrade individually to supported secure versions; handle configuration/API/test compatibility.
+- Preserve Node 22 CI.
+- Never remove lint rules/test files/coverage to pass.
+- If no upstream fix exists, prove exclusion from production bundle and document dependency chain/risk/resolution conditions; removal still preferred.
 
-### 验收标准
+### Acceptance
 
-1. 完整 `npm audit` critical 为 0，原则上 high 也为 0。
-2. `npm audit --omit=dev` 保持 high/critical 为 0。
-3. `npm ci` 通过。
-4. Node 22 下 `npm run lint`、`npm run build`、`npm test` 通过。
-5. Playwright 配置能列出并运行测试，测试数量未减少。
-6. `git diff --check` 通过。
-7. 创建一个 `[RR-WP08][Codex]` 提交，报告 audit 前后结果及任何例外。
+1. Full npm audit critical = 0; high should also be 0 in principle.
+2. npm audit --omit=dev high/critical remain 0.
+3. npm ci passes.
+4. Node 22 `npm run lint`, `npm run build`, and `npm test` pass.
+5. Playwright lists/runs tests without reducing count.
+6. git diff --check passes.
+7. Create [RR-WP08][Codex] commit; report before/after audit and exceptions.

@@ -3,11 +3,11 @@
   "source": "/workspace/work/assignment-review/club-work-groups.html",
   "sha256": "c306ca4ac21e5822b1102caae8eb4e0f02c163d5f077c7ac2664a8b5bc5934d2",
   "screens": [
-    "Onboarding · 设置任务组",
-    "新建活动 · 统一选人",
-    "Finance · 批量分派",
-    "Marketing · 直接换人",
-    "活动统筹 · 任务详情"
+    "Onboarding · Set up task groups",
+    "Create event · Shared people picker",
+    "Finance · Bulk assignment",
+    "Marketing · Change assignee",
+    "Event coordination · Task details"
   ],
-  "status": "界面稿，未接入运行时；第二至第五屏冻结，等待用户说可以了，进行下一步。"
+  "status": "UI mockups, not connected to the runtime. Screens two through five are frozen pending the user’s explicit approval to continue."
 }

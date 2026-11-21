@@ -1,116 +1,123 @@
-# AI 设置：Platypus 怎么调用 AI
+# AI setup: how Platypus calls AI
 
-> **2026-10-27 起（M1，Juanxi 决定）：所有 AI 调用都走 ASU AIR，只在模型上做选择。本项目不再使用 DeepSeek，它的代码路径已于 2026-10-29 删除（Juanxi 批准）。** 下面第 1–4 节是现在的做法；第 5 节以后是历史记录，和本节冲突时以本节为准。
+> Since October 27, 2026 (M1, Juanxi's decision), product AI calls use ASU AIR with task-based model routing. DeepSeek was removed on October 29 with approval. Sections 1–4 describe the current setup for this branch; the historical section records earlier behavior.
 
-**一句话：** 网页从来不拿 API key。网页只调用本站自己的 `/api/*`（Netlify Functions），只有这些服务器函数去调 AIR。key 和所有 AI 设置都只在 Netlify 的环境变量里。
+The browser never receives the API key. It calls this site's `/api/*` Netlify Functions, and those server functions call AIR. Keys and AI settings live only in Netlify environment variables.
 
+```text
+Browser → /api/chat · /api/ask · /api/command · /api/nudge/draft · /api/handbook/draft
+        → netlify/lib/ai.mts (provider adapter; reads AI_* variables)
+        → src/organization/modelPolicy.ts (task routing v3)
+        → ASU AIR: https://openai.rc.asu.edu/v1
 ```
-浏览器  →  /api/chat · /api/ask · /api/command · /api/nudge/draft · /api/handbook/draft
-                 ↓  netlify/lib/ai.mts（唯一的适配器，读 AI_* 变量）
-                 ↓  按任务选模型：src/organization/modelPolicy.ts（routing v3）
-           ASU AIR  https://openai.rc.asu.edu/v1
-```
 
-## 1. 环境变量（Netlify → Project configuration → Environment variables）
+## 1. Environment variables
 
-| 变量 | 现在应该是 | 说明 |
+Set these under Netlify → Project configuration → Environment variables. Configuration instructions do not authorize changing production or deploying it.
+
+| Variable | Expected setting | Meaning |
 | --- | --- | --- |
-| `AI_API_KEY` | AIR 的 key（勾选 “Contains secret values”） | **唯一必填。** 只在服务器上，不会发到浏览器 |
-| `AI_PRESET` | 不填，或 `asu_air` | 不填就是 AIR（默认）。不要改成别的供应商，见第 3 节 |
-| `AI_MODEL` | 不填 | AIR 下由路由按任务选模型；只有关掉路由时才用 |
-| `AI_MODEL_ROUTING` | 不填（= 开） | 设 `off` = 所有任务都用 `AI_MODEL` 一个模型（运营方回退开关） |
-| `AI_TIMEOUT_MS` | 不填（25000） | 只给自己没设时间的调用用（后台任务）。普通（同步）接口都用下一行的 `AI_SYNC_BUDGET_MS`，改这个变量不会让它们变长 |
-| `AI_SYNC_BUDGET_MS` | 不填（26000） | FB-1（2026-11-15）：所有普通（同步）AI 接口一次调用的总时间（含格式回退或截断重试的第二次请求），夹在 10000–55000 毫秒；`/api/setup/constitution`、`/api/setup/workflow` 用它减 1 秒。超时就回一个干净的 504 JSON，浏览器改用本地表单或本地结果。`/api/health` 会显示当前值（`syncBudgetMs`），浏览器等这个值 + 4 秒（读不到时等 30 秒），不自动重试；等待时用户可以按 **Stop**（Ask）或 **Skip AI line**（提醒）。**默认 26 秒的原因：** 2026-11-07 生产日志里 `/api/chat` 设了 55 秒，Netlify 在约 30 秒就把函数杀掉（504/502，连 `ai_usage` 一行都没有）；Netlify 现在的文档写同步函数 60 秒。两者不一致，量过之前不要调高，量法见下面"量 Netlify 的真实上限" |
-| `AI_LIMIT_PROBE` | **不填** | 只有设为 `on` 时 `/api/limit-probe` 才可用，否则 404。量完立刻删掉 |
-| `AI_MIN_OUTPUT_TOKENS` | 不填（1024） | FB-1（2026-11-15）：走 AIR 时每次请求的输出额度（`max_tokens`）至少这么多，可设 256–4096，超出范围自动夹回。原因：2026-11-12 线上 `/api/nudge/draft` 只给了 120，4 秒内两次都被截断（"output limit"），提醒里的 AI 句子每次都失败。额度是"最多能用多少"，不是"要写多少"：各接口自己的长度检查（提醒那句最多 10 个词）不变。回答仍被截断（`finish_reason` 为 `length`/`max_tokens`）且接口不能保留其中完整的部分时，**自动再试一次**，额度翻倍（最多 4096），只在剩余时间 ≥ 5 秒时才试；一次调用最多 2 个请求（格式回退和这次重试共用名额）。这是 `AGENTS.md` 第 12 节"不自动重复收费请求"的明确例外（Juanxi 2026-11-14 批准） |
-| `ORG_SETUP_ENABLED` | **不填** | 服务器存储开关，见第 4 节。不填 = 隐藏 |
+| `AI_API_KEY` | AIR key, marked “Contains secret values” | The only required value; server-only. |
+| `AI_PRESET` | Unset, or `asu_air` | AIR is the default. Do not switch providers without approval; see section 3. |
+| `AI_MODEL` | Unset | AIR routing chooses by task; this value is used when routing is disabled. |
+| `AI_MODEL_ROUTING` | Unset, enabled | `off` makes all tasks use `AI_MODEL`; an explicit operator fallback. |
+| `AI_TIMEOUT_MS` | Unset, 25000 | Default for calls without their own timeout, including background work; synchronous calls use `AI_SYNC_BUDGET_MS`. |
+| `AI_SYNC_BUDGET_MS` | Unset, 26000 | Whole synchronous call budget, including a second format-fallback or truncation request, clamped to 10000–55000 ms. Constitution/workflow calls use one second less. Health reports `syncBudgetMs`; browsers wait this budget plus 4 seconds, or 30 seconds if unavailable, without automatic retry. Ask offers Stop; reminders offer Skip AI line. |
+| `AI_LIMIT_PROBE` | Unset | Only `on` enables `/api/limit-probe`; otherwise it returns 404. Remove after measurement. |
+| `AI_MIN_OUTPUT_TOKENS` | Unset, 1024 | AIR request output allowance is at least this value, clamped to 256–4096. See the bounded retry rule below. |
+| `ORG_SETUP_ENABLED` | Unset | Optional server storage remains hidden; see section 4. |
 
-改完变量要 **Deploys → Trigger deploy → Deploy project**，新变量只对新部署生效。`/api/health` 会显示当前供应商（应为 `ASU AIR`）和路由版本，从不显示 key。
+**Synchronous budget:** November 7 production logs showed Netlify terminating a 55-second `/api/chat` request after 31.2 seconds (approximately 30 seconds), with 504/502 and no usage line. Later Netlify documentation describes 60 seconds. Keep the default 26-second budget until the actual environment is measured. Timeout returns clean 504 JSON and a labelled local fallback. Configuration changes require authorization.
 
-### 量 Netlify 的真实上限（FB-1，上线后做一次）
+### Measure the actual Netlify limit (FB-1, once after an approved deployment)
 
-仓库里记的是约 30 秒（2026-11-07 线上日志：31.2 秒后 504），Netlify 现在的文档写 60 秒。用 `/api/limit-probe` 量一次，再决定 `AI_SYNC_BUDGET_MS`。这个接口只等待、返回 `{ "waited": NN }`，**不调 AI、不存任何东西**。
+`/api/limit-probe` only waits and returns `{ "waited": NN }`; it calls no AI and stores nothing.
 
-1. Netlify 里加环境变量 `AI_LIMIT_PROBE=on`，重新部署（Deploys → Trigger deploy）。
-2. 浏览器依次打开（把域名换成正式站或 Deploy Preview）：`https://<站点>/api/limit-probe?s=25`、`?s=35`、`?s=45`、`?s=55`。看到 `{"waited":NN}` = 这么久没被掐断；看到 502/504 或空白错误页 = 超过上限了。上一个成功、下一个失败，真实上限就在两者之间（想更准就在中间再试一两个数，最大 58）。
-3. 把 `AI_SYNC_BUDGET_MS` 设成 **真实上限减 8–10 秒**（留给冷启动和函数其余部分），例如：真实上限 30 秒 → 保持默认 26000 或不填；真实上限 60 秒 → 设 50000。最多只能设 55000。
-4. **删掉 `AI_LIMIT_PROBE`**，重新部署；打开 `/api/health` 确认 `syncBudgetMs` 是新值、`/api/limit-probe` 回到 404。
-5. 把量到的数字和设的值记进 `docs/PROGRESS.md`（交给主会话）。
+1. With deployment authorization, set `AI_LIMIT_PROBE=on` and redeploy.
+2. Open the site's `/api/limit-probe?s=25`, then 35, 45, and 55. JSON means that wait succeeded; 502/504 or an error page means it exceeded the limit. Refine between the last success and first failure if necessary; the maximum probe is 58 seconds.
+3. The original guidance says leave 8–10 seconds of headroom for cold start and other function work; its recorded examples are to keep 26000/unset for a 30-second limit, or use 50000 for a 60-second limit. The 30-second example leaves only 4 seconds, so resolve this discrepancy and measure before changing the budget. The maximum setting is 55000.
+4. Remove `AI_LIMIT_PROBE`, redeploy, and confirm health reports the intended `syncBudgetMs` and the probe returns 404 again.
+5. Record actual observations and settings in `docs/PROGRESS.md` for the coordinating session.
 
-## 2. 每个接口用哪个模型（routing v3，`air-task-routing-v3`）
+**Output allowance and bounded retry, FB-1, November 15:** on November 12, two live `/api/nudge/draft` calls had only 120 output tokens and were truncated within 4 seconds with “output limit”; the reminder's AI sentence failed every time. The allowance is a maximum, not a requested response length: endpoint checks, including the reminder's 10-word sentence limit, remain. If `finish_reason` is `length` or `max_tokens` and the endpoint cannot retain a complete usable part, retry once with twice the allowance, up to 4096, only with at least 5 seconds remaining. Each call has at most 2 provider requests total, shared between format fallback and truncation retry. Juanxi explicitly approved this exception to the no-automatic-paid-retry rule on November 14.
 
-| 接口 | 谁在用 | `task` | 模型 |
+After an authorized change, use Deploys → Trigger deploy → Deploy project. New values apply to new deployments. `/api/health` reports the provider, expected to be `ASU AIR`, and routing version; it never returns a key.
+
+## 2. Endpoint and model routing
+
+Routing version: `air-task-routing-v3`.
+
+| Endpoint | Use | `task` | Model |
 | --- | --- | --- | --- |
-| `POST /api/chat` | 右栏 Ask（主应用唯一 AI 入口） | `chat` | Muse（`muse-glimmer-30b`） |
-| `POST /api/ask` | Rules 页问规则 | `ask` | Muse |
-| `POST /api/command` | 一句话改数据（变更单） | `command` | Muse |
-| `POST /api/nudge/draft` | 提醒草稿里的一句话 | `nudge_draft` | Muse |
-| `POST /api/handbook/draft` | Handoff 岗位手册选来源 | `handbook_draft` | Muse |
-| `/api/setup/constitution`（设置第 1 步 Continue 后读章程，不存储） | 把章程读成岗位、汇报关系和每个岗位的职责 | `constitution_read` | Muse（快），分 structure 和 duties 两种请求，依次发（AIR 一次只处理一个，并行会排队），每个必须在 `AI_SYNC_BUDGET_MS` 减 1 秒内返回（默认 25 秒；站点实测 30 秒会被 Netlify 掐断，冷启动还占几秒），duties 每批最多 6 项。不用 Gemma：真实章程 Gemma 要 56 秒 |
-| `/api/setup/workflow`（设置第 5 步，Planning notes + 文件 对比标准活动工作流；再按职责分配岗位，不存储） | 提出增改删和冲突；分配每一步的负责岗位 | `workflow_read` | Muse（快），`changes` 和 `owners` 两个请求依次发，各在 `AI_SYNC_BUDGET_MS` 减 1 秒内必须返回（默认 25 秒） |
-| `/api/org/ai`（Organization Setup，目前隐藏） | 章程、职责、流程等较长的结构化设置 | `setup.*` | Gemma（`gemma4-31b-it`） |
-| 同上，用户主动点 Deeper review | | `setup.*` + deep | GLM（`glm-5-3`） |
+| `POST /api/chat` | Main application right-side Ask rail | `chat` | Muse, `muse-glimmer-30b` |
+| `POST /api/ask` | Rules questions | `ask` | Muse |
+| `POST /api/command` | Validated natural-language changes | `command` | Muse |
+| `POST /api/nudge/draft` | One sentence in a reminder draft | `nudge_draft` | Muse |
+| `POST /api/handbook/draft` | Select sources for a role handbook | `handbook_draft` | Muse |
+| `/api/setup/constitution` | Read roles, reporting lines, and duties after Continue in setup step 1; no server storage | `constitution_read` | Muse. Send structure and duties requests sequentially; AIR processes one at a time, so parallel requests queue. Each must return within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default); duties batches contain at most 6 items. Gemma took 56 seconds on a real constitution and is not used here. |
+| `/api/setup/workflow` | In setup step 5, compare planning notes/files with the standard workflow; propose edits/conflicts and assign roles by duties; no server storage | `workflow_read` | Muse. Send `changes` and `owners` requests sequentially, each within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default). |
+| `/api/org/ai` | Longer structured Organization Setup tasks; currently hidden | `setup.*` | Gemma, `gemma4-31b-it` |
+| Same endpoint, explicit Deeper review | User-requested stronger review | `setup.*` with deep mode | GLM, `glm-5-3` |
 
-规则：Gemma 负责较长的结构化设置任务；Muse 负责短对话和编辑；GLM 只在用户主动要求 Deeper review 时用，不会自动升级。浏览器不能指定模型，模型只由服务器按 `task` 选。
+Gemma handles longer structured setup; Muse handles short conversation/editing; GLM is used only for an explicit Deeper review request. There is no automatic upgrade. Only the server selects a model by task; the browser cannot name one.
 
-⚠️ 这套分工是 DP3 的设计选择。DP3 自己的记录写着“选型不是已证明的性能排名”。Juanxi 的实际使用感受是返回快，但**不要在论文或文档里写成“已验证最快”**，除非之后有正式测量。
+This division was a DP3 design choice, not a verified performance ranking. Juanxi reported fast responses, but do not claim “proven fastest” without a formal measurement. If configuration or a request fails, the main application labels its keyword/local fallback explicitly rather than presenting it as live AI.
 
-AI 没配好或调用失败时，主应用会明确显示本地回退（关键词模式），不会把回退标成真实 AI。
+## 3. Other providers, unused
 
-## 3. 其他供应商（不使用）
-
-| 回退到 | 设置 | 说明 |
+| Provider | Configuration | Status |
 | --- | --- | --- |
-| DeepSeek | （已移除） | **2026-10-29 起代码里没有 DeepSeek 路径。** `AI_PRESET=deepseek` 会被直接拒绝：不带 key、不发任何请求，应用显示本地回答。Netlify 里如果还留着 DeepSeek 的 key，请删掉 |
-| OpenAI / Anthropic / 其他兼容接口 | `AI_PRESET=openai` 或 `anthropic`，并填 `AI_MODEL`（其他兼容接口再填 `AI_BASE_URL`） | 代码里还保留着这两个未启用的预设；研究用构建不会选它们，数据会离开 ASU，使用前需 Juanxi 同意 |
+| DeepSeek | Removed | Since October 29, `AI_PRESET=deepseek` is rejected before attaching credentials or making requests; the application uses local replies. An operator should remove any obsolete DeepSeek key from Netlify. |
+| OpenAI / Anthropic / compatible APIs | `AI_PRESET=openai` or `anthropic`, plus `AI_MODEL`; compatible endpoints also need `AI_BASE_URL` | Inactive presets remain in code. Research builds do not select them. Data would leave ASU; use requires Juanxi's approval. |
 
-回退结束后把 `AI_PRESET` 删掉（或改回 `asu_air`）并重新部署。
+To restore the approved provider after an authorized fallback, unset `AI_PRESET` or restore `asu_air`, then redeploy with approval.
 
-## 4. 服务器存储开关 `ORG_SETUP_ENABLED`（2026-10-27，Juanxi：不删，隐藏）
+## 4. Optional server storage: `ORG_SETUP_ENABLED`
 
-DP3 带来的 Organization Setup 和 Activity workspace 会把数据存在服务器上（Netlify Blobs）。现在默认**隐藏**，三件事同时成立：
+Juanxi's October 27 decision was to hide, rather than delete, the Organization Setup/Activity Workspace server storage introduced by DP3. It uses Netlify Blobs. By default:
 
-1. **界面走不到：** 主应用没有任何入口；`/#/phase1/` 在隐藏的构建里只显示本地示例和本地设置（`setup-legacy`），不会显示在线设置、在线工作区。
-2. **服务器直接拒绝：** `/api/org/setup`、`/api/org/archive`、`/api/org/ai`、`/api/org/ai-run`、`/api/workspace`、`/api/workspace/assistant`、`/api/workspace/assistant-run` 在开关没开时一律返回 404，**一行存储代码都不执行**；`/api/health?check=1`（它会打开设置会话并存档）也不执行。
-3. **代码和测试都在：** 设 `ORG_SETUP_ENABLED=true` 并重新部署就全部回来（页面在构建时读这个变量，所以必须重新部署）。
+1. The main application has no entry. Hidden builds show only local `/phase1/` examples and `setup-legacy`, without online setup/workspaces.
+2. `/api/org/setup`, `/api/org/archive`, `/api/org/ai`, `/api/org/ai-run`, `/api/workspace`, `/api/workspace/assistant`, and `/api/workspace/assistant-run` return 404 without executing storage code. The session/archive behavior of `/api/health?check=1` is also disabled.
+3. Code and tests remain. An authorized `ORG_SETUP_ENABLED=true` change and redeploy restore the feature; the interface reads the flag at build time.
 
-只认完全等于 `true`；`1`、`TRUE`、`yes` 都算没开。
+Only the exact string `true` enables it; `1`, `TRUE`, and `yes` do not.
 
-## 用量日志（S2，M1 补全）
+## Usage logs (S2, completed in M1)
 
-每次 AI 调用在 Netlify → Logs 留一行 `ai_usage`：`task`、供应商、请求的模型和实际返回的模型、路由版本、输入/输出 token、结束原因（`finishReason`）、首包时间（`headersMs`）、总耗时、成功或失败代码。FB-1 起还有：`maxTokens`（最后一次请求的输出额度）、`reasoningTokens`（只有供应商在 `usage.completion_tokens_details.reasoning_tokens` 里给了才有，用来确认额度是不是被"思考"用掉了）、`retry`（只有被截断后自动重试过才出现，值是 `"output_limit"`）。**不记 key、提示词、用户内容或 AI 回复。**
+Each AI call writes one `ai_usage` line to Netlify Logs with task, provider, requested/returned model, route version, input/output tokens, `finishReason`, response-header latency `headersMs`, total duration, and success/failure code. Since FB-1 it also records `maxTokens` for the last request, `reasoningTokens` only when supplied in `usage.completion_tokens_details.reasoning_tokens`, and `retry: "output_limit"` only after a truncation retry. Reasoning usage can help determine whether reasoning consumed the output allowance.
 
-## 研究说明
+Do not log keys, prompts, user content, or model responses in these operational usage lines. The separately documented private workspace archive has its own scoped storage behavior.
 
-AIR 的数据处理已由 Juanxi 确认（2026-10-27），这里不再重复。OpenAI、Anthropic 等外部供应商预设只在第 3 节出现，研究用构建不选它们；DeepSeek 已删除。
+## Research configuration
+
+Juanxi confirmed AIR's data handling on October 27. Research builds do not select the inactive external presets; DeepSeek has been removed. A health response proves configuration/routing, not successful live authentication or answer quality.
 
 ---
 
-# 历史记录（2026-10-27 之前，仅供查阅）
+# Historical reference before October 27, 2026
 
-> **2026-10-26 v3：** 允许少量虚构数据真实冒烟以排查 JSON 错误；不用完整真实评估。新设置使用服务端四任务 prompt、原生 schema 和流式指标，前端不展示系统 prompt。JSON 原始输出先归档再解析，截断/空输出不应用变更。详见 [v3 记录](organization/V3_CHANGELOG.md)。
+These entries preserve earlier decisions and do not override the current sections above.
 
-> **2026-10-26 最新：** 已切换 ASU AIR；默认 `muse-glimmer-30b`，GLM 仅主动深度检查（路由 v2）。此前 Gemma/GLM 自动按阶段的 v1 已被用户的速度要求替代。新设置使用后台任务与数据归档，见 [交接](organization/HANDOFF.md)、[数据基础](organization/DATA_FOUNDATION.md)。不再发起额外真实 AI 测试。
+**October 26, v3:** a small number of fictional-data live smoke calls were allowed to diagnose JSON errors, not a full live evaluation. New setup used four server-side task prompts, native schema, and streaming metrics; system prompts stayed out of the UI. Archive raw JSON before parsing; do not apply truncated/empty output. See [v3 changelog](organization/V3_CHANGELOG.md).
 
+**October 26 update:** ASU AIR used Muse by default and GLM only for requested deep review, routing v2. This replaced v1's automatic Gemma/GLM stage routing to meet speed requirements. Setup used background jobs and archives; see [handoff](organization/HANDOFF.md) and [data foundation](organization/DATA_FOUNDATION.md). Stop additional live AI tests.
 
-## 5. WP2 接口（2026-10-22）
+## 5. WP2 endpoints, October 22
 
-- `POST /api/command`：输入 `sentence` 和最小上下文（活动、节点、干部的 ID 和显示名称）。明确匹配的常见句式由程序解析，其他句式交给同一个 `chatJSON()` 适配器。返回 `ops`、`source` 和 `model`；服务器与浏览器都做白名单过滤，丢弃任何日期字段。新活动的日期需要人在变更单中确认。
-- `POST /api/nudge/draft`：输入当前节点的标题、规则算好的三个日期、真实下游步骤和提醒时段。AI 只改写最多 10 词的意义句；程序生成完整五段草稿，检查禁用说法和 100 词上限。浏览器在打开草稿前按最新状态再生成一次，防止旧日期生效。
-- 不增加密钥或新供应商配置，继续使用上面的 `AI_*` 环境变量。AI 关闭或接口失败会明确显示本地演示回退；不会把回退标成实时 AI。
-- `parse-brief` 保留兼容接口，但现在也丢弃 AI 日期；`public/legacy/` 文件没有改动。
-- 固定命令测试和供应商模拟测试已通过，真实 AIR 自由表达质量仍需在部署环境验证（历史记录里写的 DeepSeek 已不再使用）。详情见 `WP2_ACCEPTANCE.md`。
+- `POST /api/command` accepts `sentence` and minimal event/node/officer ID/display-name context. Common explicit patterns parse locally; others use `chatJSON()`. It returns `ops`, `source`, and `model`. Both server and browser whitelist operations and discard dates. A person confirms the date of a new event in the change card.
+- `POST /api/nudge/draft` accepts the node title, three engine-calculated dates, actual downstream steps, and reminder window. AI rewrites only a meaning sentence of at most 10 words; code builds five sections and checks forbidden wording and the 100-word limit. The browser rebuilds against current state before opening the draft, avoiding stale dates.
+- No new secrets/provider configuration is required. Disabled AI or endpoint failure is labelled local fallback.
+- `parse-brief` retains compatibility while discarding AI dates; files in `public/legacy/` were unchanged by WP2.
+- Fixed-command and mocked-provider checks passed. Freeform live AIR quality still required deployed validation; older references to DeepSeek are obsolete. See `WP2_ACCEPTANCE.md`.
 
+## Organization Setup and AIR, October 26 snapshot
 
+Netlify retains its server-side AIR key. The snapshot used `AI_PRESET=asu_air`, `AI_MODEL=muse-glimmer-30b`, and gateway `https://openai.rc.asu.edu/v1`. Changing only a key does not change the provider endpoint.
 
-## Organization Setup 与 AIR（2026-10-26 当前）
+Routing v2 used Muse for default interaction and GLM for explicit deep review, with automatic slow reasoning disabled. Model selection, requested/returned variants, timing, prompt/route versions, and full input/output were archived in the private workspace. `AI_MODEL_ROUTING=off` explicitly selected a single model. See [prompt/model notes](organization/PROMPTS.md) for candidates, tradeoffs, and the limits of untested changes.
 
-Netlify 保留现有 AIR key（只在服务端）。`AI_PRESET=asu_air`，`AI_MODEL=muse-glimmer-30b`；默认网关 `https://openai.rc.asu.edu/v1`。只换 key、不换供应商参数会继续请求旧地址。
+Background `/api/org/ai-run` performs generation; `/api/org/ai` queues jobs/reads results, avoiding the observed roughly 30-second synchronous hosting limit. `/api/org/archive` saves originals, operations, conversation, and AI archives without a model call. Data foundation comes before AI; failures are not disguised as success with mock output. Existing business pages retain their own behavior.
 
-当前 `air-task-routing-v2`：Muse 负责默认交互，GLM 仅用户主动深度检查；关闭自动慢推理。模型、请求/返回变体、耗时、prompt/路由版本与完整输入输出存入私有工作区档案。`AI_MODEL_ROUTING=off` 是运营方明确回退单模型的开关。候选/权衡及当前未经新一轮真实测试的边界见 [Prompt/模型说明](organization/PROMPTS.md)。
+Official references: [ASU LLM API](https://docs.rc.asu.edu/ai/api/), [chat completions](https://docs.rc.asu.edu/ai/api/chat/), and [Netlify Background Functions](https://docs.netlify.com/build/functions/background-functions/).
 
-后台 `/api/org/ai-run` 执行生成，`/api/org/ai` 排队/读取结果，避免托管环境实际约 30 秒的同步上限。新 `/api/org/archive` 保存原件、操作与对话/AI档案，不请求模型；数据基础先于 AI。没有失败时伪装成功的模拟兜底。原业务页仍保留其原行为。
-
-官方依据：[ASU LLM API](https://docs.rc.asu.edu/ai/api/)、[Chat completions](https://docs.rc.asu.edu/ai/api/chat/)、[Netlify Background Functions](https://docs.netlify.com/build/functions/background-functions/)。/api/health 只报告配置与路由，不证明真实认证或模型质量。
-
-Juanxi 已要求停止新增真实 AI 测试；当前由他实操验收。必要离线检查及 GitHub CI 不使用模型额度。
+Juanxi requested no additional live AI tests; he performs hands-on acceptance. Required offline checks and GitHub CI consume no model quota.

@@ -1,33 +1,35 @@
-# DX-20 手机顶栏瘦身（20a）+ 底部导航（20b，需批准）
+> **Historical instruction note:** repository content and GitHub collaboration must now be in English. Former Chinese-language directions below are historical and superseded by current `AGENTS.md`. A dated approval applies only to its stated work.
 
-- 阶段 4　大小 L　风险 **高**　R 级 R2　依赖：DX-02、DX-09、DX-10　并行伙伴：DX-21、22
-- 分支：`design/dx-20-mobile-shell`　样式文件：`src/styles/dx-20-mobile-shell.css`　对应细节：D23
-- **20a 和 20b 是两个独立的提交**，可以单独撤销。**20b 默认不做**，只有 Juanxi 明确批准才开始。
+# DX-20 Slimmer mobile top bar (20a) + bottom navigation (20b, approval required)
 
-## 为什么
-**量到**：390×844 手机上，顶栏 185px，加上导航条到 247px，正文要到 271px 才开始（占屏幕 32%）。顶栏里塞着品牌、Demo 小标、View as、AI 开关、铃铛。
+- Stage 4 · Size L · **High** risk · Rollback R2 · Depends on: DX-02, DX-09, DX-10 · Parallel partners: DX-21,22
+- Branch: `design/dx-20-mobile-shell` · Styles: `src/styles/dx-20-mobile-shell.css` · Detail: D23
+- **20a and 20b are separate commits**, independently revertible. **20b is excluded by default**; begin only with Juanxi's explicit approval.
 
-## 20a：顶栏瘦身（默认做）
-1. 只在 `max-width: 860px`：顶栏收成一行（约 `var(--topbar-h)` 56px）——左边品牌（Logo + 社团名，过长省略），右边铃铛 + "⋯"（"More"）按钮。
-2. "⋯"打开的菜单（沿用 `.menu` 的样式和 DX-10 的进出动画）里放：Demo 小标的内容（日期、时钟、Replay setup、Behind the scenes、Reset demo）、**View as**、**AI features** 开关。
-3. **所有 `data-testid` 保持不变**（`demo-menu`、`view-as`、`ask-toggle`…）。需要两步才能到（先开"⋯"再选）的，更新 `e2e/helpers.ts` 里的 `openDemoMenu`，并让用到 `view-as` 的测试通过一个新助手 `openViewAs(page)`；测试的断言一个字都不能放宽。
-4. 桌面（>860px）**完全不变**。
-5. 现有的横向导航条保留（20b 不批准时仍用它）。
+## Why
+**Measured: ** on 390×844 mobile, top bar 185px and navigation through 247px push content down to 271px (32% of screen). Top bar packs brand, Demo pill, View as, AI toggle, bell.
 
-## 20b：底部导航（需要 Juanxi 批准，默认不做）
-1. 手机底部固定一条导航：Today、Events、Tasks、Team、More（More 里放 Handoff、Partners、Rules、Settings、Help）。
-2. 尊重安全区；圆形 Ask 按钮上移到导航条之上；`body` 底部留出导航条高度。
-3. 当前页高亮，Tasks 的未读数保留；每项点击区 ≥44px。
-4. 手机上去掉顶部的横向导航条，避免两套导航。
-5. 如果 Juanxi 没批准，**不要写任何 20b 的代码**。
+## 20a: Slimmer top bar (included by default)
+1. Only at `max-width: 860px`: one row (about `var(--topbar-h)`, 56px), brand (Logo + organization name, ellipsis if long) left, bell + "⋯" ("More") right.
+2. "⋯" menu (reuse `.menu` styles and DX-10 motion) holds Demo content (date, clock, Replay setup, Behind the scenes, Reset demo), **View as**, **AI features** toggle.
+3. **All `data-testid` unchanged** (`demo-menu`, `view-as`, `ask-toggle`…). For two-step access (open "⋯", then choose), update `openDemoMenu` in `e2e/helpers.ts`; tests using `view-as` use new `openViewAs(page)` helper. Do not weaken any assertion.
+4. Desktop (>860px) **entirely unchanged**.
+5. Keep existing horizontal navigation (still used without 20b approval).
 
-## 可以改的文件
-`src/components/Layout.tsx`、`src/components/chrome/TopBar.tsx`、`DemoMenu.tsx`、`SideNav.tsx`、`src/styles/dx-20-mobile-shell.css`、`e2e/helpers.ts`（只加/改助手）及用到它们的测试的**调用方式**。
+## 20b: Bottom navigation (Juanxi's approval required; excluded by default)
+1. Fixed mobile bottom navigation: Today, Events, Tasks, Team, More (More contains Handoff, Partners, Rules, Settings, Help).
+2. Respect safe areas; move circular Ask above navigation; reserve its height at `body` bottom.
+3. Highlight current page, retain Tasks unread count; hit areas≥44px.
+4. Remove mobile top horizontal navigation to avoid duplicate navigation.
+5. Without approval, **write no 20b code**.
 
-## 验收
-- 完整手机项目回归（`smoke`、`today`、`tasks`、`events`、`touch`、`a11y`、`recovery`、`m2b`、`wp5`）绿；桌面项目 `dx-shots` 前后字节一致。
-- 量：390×844，20a 之后正文起点 ≤ 130px（现状 271px）；写进报告。
-- Juanxi 怎么验：手机上顶部只剩一行，点"⋯"能找到 View as 和 AI 开关；（20b）底部有导航栏。
+## Allowed files
+`src/components/Layout.tsx`, `src/components/chrome/TopBar.tsx`, `DemoMenu.tsx`, `SideNav.tsx`, `src/styles/dx-20-mobile-shell.css`, `e2e/helpers.ts` (helpers only), and **call sites** in tests using them.
 
-## 回滚
-R2：先撤 20b 的提交（如果有），再撤 20a，或直接撤整个合并。DX-23 依赖 20b 的底栏部分。
+## Acceptance
+- Full mobile regression (`smoke`, `today`, `tasks`, `events`, `touch`, `a11y`, `recovery`, `m2b`, `wp5`) green; desktop `dx-shots` byte-identical before/after.
+- Measure 390×844: after 20a, content starts≤130px (currently 271px); record in report.
+- Juanxi: mobile top is one row, "⋯" reveals View as and AI; (20b) navigation at bottom.
+
+## Rollback
+R2: revert 20b first (if present), then 20a, or revert whole merge. DX-23 depends on 20b's bottom bar.

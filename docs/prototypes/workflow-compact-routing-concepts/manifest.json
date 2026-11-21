@@ -26,7 +26,7 @@
   "images": [
     {
       "id": "A1",
-      "title": "固定小卡片",
+      "title": "Fixed compact cards",
       "file": "A1-compact-cards.png",
       "originalSource": "/workspace/generated_images/exec-0980b8ff-73cb-4c13-84e7-d03ad6a049f8.png",
       "bytes": 1509798,
@@ -34,12 +34,12 @@
       "width": 1536,
       "height": 1024,
       "dependencyDisplay": "task-level",
-      "description": "固定宽度，名称＋工期；负责人放团队标题与详情，不随长时间窗拉长卡片。",
+      "description": "Fixed width with name and duration. Show owners in team headings and details; long time windows do not stretch the cards.",
       "visuallyReviewed": true
     },
     {
       "id": "A2",
-      "title": "文字＋细时间条",
+      "title": "Text with thin time bars",
       "file": "A2-thin-time-bars.png",
       "originalSource": "/workspace/generated_images/exec-759ee00b-2634-493d-8375-086342bc4913.png",
       "bytes": 1645176,
@@ -47,12 +47,12 @@
       "width": 1536,
       "height": 1024,
       "dependencyDisplay": "task-level",
-      "description": "标签独立于细时间窗，保留时间跨度；workday数字不等于日历窗长度。",
+      "description": "Keep labels separate from thin time bars while preserving the time span. Workday counts do not equal calendar-window lengths.",
       "visuallyReviewed": true
     },
     {
       "id": "A3",
-      "title": "可折叠任务组",
+      "title": "Collapsible task groups",
       "file": "A3-task-groups.png",
       "originalSource": "/workspace/generated_images/exec-6b9e365f-81c3-4821-b0e1-3f592622f83d.png",
       "bytes": 1585400,
@@ -60,12 +60,12 @@
       "width": 1536,
       "height": 1024,
       "dependencyDisplay": "aggregated-cross-group",
-      "description": "同一团队内按连续链分组；组间线是总览聚合，任务级关系展开核对。非等比例日历。",
+      "description": "Group consecutive task chains within each team. Lines between groups summarize connections; expand to verify task dependencies. The calendar is not drawn to scale.",
       "visuallyReviewed": true
     },
     {
       "id": "B1",
-      "title": "就近端口直连",
+      "title": "Direct connections between nearby ports",
       "file": "B1-direct-ports.png",
       "originalSource": "/workspace/generated_images/exec-c52323f5-d7b7-4156-8dc1-d028ed09ce65.png",
       "bytes": 1552779,
@@ -73,12 +73,12 @@
       "width": 1536,
       "height": 1024,
       "dependencyDisplay": "task-level",
-      "description": "上下挨近时底→顶，左右挨近时水平直连，避免固定右出左入。",
+      "description": "Connect nearby vertical nodes bottom-to-top and nearby horizontal nodes directly, instead of always routing right-to-left.",
       "visuallyReviewed": true
     },
     {
       "id": "B2",
-      "title": "共享通道分叉汇合",
+      "title": "Shared channels for branches and joins",
       "file": "B2-shared-corridors.png",
       "originalSource": "/workspace/generated_images/exec-cca67f52-0814-4b7a-b56b-2b4d3ae6decd.png",
       "bytes": 1594195,
@@ -86,12 +86,12 @@
       "width": 1536,
       "height": 1024,
       "dependencyDisplay": "junction-aggregated",
-      "description": "同源分叉/同目标AND汇合共用线段，明确接点且保留各条真实依赖。",
+      "description": "Branches from one source and AND joins at one target share segments, with explicit junctions that preserve each actual dependency.",
       "visuallyReviewed": true
     },
     {
       "id": "B3",
-      "title": "选中节点聚焦",
+      "title": "Focus selected node",
       "file": "B3-focus-connections.png",
       "originalSource": "/workspace/generated_images/exec-996dfaf2-0b02-4a31-926d-1d1ca9e252ce.png",
       "bytes": 1599683,
@@ -99,7 +99,7 @@
       "width": 1536,
       "height": 1024,
       "dependencyDisplay": "selected-neighborhood",
-      "description": "选中审批节点时强调两条必要前置线，其他线保留为背景；是阅读层，不代替避障。",
+      "description": "Selecting an approval node emphasizes both required incoming dependencies and keeps other lines in the background. This reading aid does not replace obstacle routing.",
       "visuallyReviewed": true
     }
   ],

@@ -1,280 +1,280 @@
-# 测试反馈解决方案（2026-11-12，待 Juanxi 选择）
+# Proposed fixes for testing feedback (2026-11-12, awaiting Juanxi's choices)
 
-> 状态：**只是方案，没有改任何代码。** Juanxi 选好每一项的方案后再执行。
-> 依据：Juanxi 让其他社团团长测试后提出的问题；`main` = `ee7e825` 的代码；2026-11-12 对正式网站做的 2 次最小 AI 诊断；Juanxi 上传的时间表文件 `event-workflow-calibrated-2027-04-16-3.tsv`（没有放进仓库）。
-> 每个问题给 2–3 个方案，**★ = 我的建议**。工作量是粗估，不是承诺。
+> Status: **Proposal only; no code has changed.** Implement after Juanxi chooses an option for each item.
+> Basis: issues raised after Juanxi asked other club presidents to test; code at `main` = `ee7e825`; 2 minimal AI diagnostics on the production website on 2026-11-12; Juanxi's uploaded schedule file `event-workflow-calibrated-2027-04-16-3.tsv` (not added to the repository).
+> Each issue has 2–3 options; **★ = my recommendation**. Effort estimates are rough, not commitments.
 
-## 0. 先说三个查出来的事实
+## 0. Three findings first
 
-### 0.1 AI 失败的主要原因不是 Netlify 超时
+### 0.1 The main cause of AI failures is not Netlify timeouts
 
-2026-11-12 我用完全虚构的数据调了两次正式网站上最轻的 AI 接口（提醒里那一句 "Why it matters"）：
+On 2026-11-12, I made two calls with entirely fictional data to the production website's smallest AI endpoint (the "Why it matters" sentence in reminders):
 
-| 次数 | 结果 | 用时 |
+| Attempt | Result | Time |
 | --- | --- | --- |
-| 1 | 失败：`AIR stopped before finishing the response (output limit)` | 4.1 秒 |
-| 2 | 同样失败 | 4.0 秒 |
+| 1 | Failed: `AIR stopped before finishing the response (output limit)` | 4.1 seconds |
+| 2 | Same failure | 4.0 seconds |
 
-4 秒就失败，离任何时间上限都很远。原因是**我们给 AI 的"最多能写多少字"太小**：这个接口只给 120 个 token，模型还没写完就被截断，我们的代码把截断当成失败。最可能的解释是模型先"想"了一段，把额度用掉了（`AGENTS.md` 第 12 节 v3.1 已经记过：Muse 要求不思考，实际仍会思考）。这一点我没有直接证据，要在修复时把"思考用了多少 token"记进日志确认。
+Failure after 4 seconds is far below any time limit. The cause is **our AI output allowance is too small**: this endpoint permits only 120 tokens, cutting the model off before it finishes; our code treats truncation as failure. The likeliest explanation is that the model "thinks" first and uses up the allowance (`AGENTS.md` Section 12, v3.1, already records that Muse still reasons even when asked not to). I have no direct evidence of that explanation; the fix should log "tokens used for reasoning" to confirm it.
 
-**后果：提醒里的 AI 那一句现在每次都失败**，提醒永远显示 "Checked template · AI unavailable"。这正好是我们的卖点功能。
+**Consequence: the AI sentence in reminders currently fails every time**, so reminders always display "Checked template · AI unavailable". This is one of our selling points.
 
-所以 AI 失败有两类，要分开修：
+There are therefore two classes of AI failure to fix separately:
 
-1. **输出额度太小**（必然失败，几秒内）：`nudge-draft` 120、`ask` 300、`handbook-draft` 400、`chat` 400–600、`policy-answer` 500。
-2. **AIR 本身慢**（偶发）：聊天类请求要 15–23 秒，而我们自己设的上限是 22 秒（`SYNC_AI_BUDGET_MS`），超过就放弃。
+1. **Output allowance too small** (consistent failure within seconds): `nudge-draft` 120, `ask` 300, `handbook-draft` 400, `chat` 400–600, `policy-answer` 500.
+2. **AIR itself is slow** (intermittent): chat requests take 15–23 seconds, while our own limit is 22 seconds (`SYNC_AI_BUDGET_MS`), after which we abandon the request.
 
-关于 Netlify 的时间上限：仓库里写的是"约 30 秒会切断"（2026-11-07 的线上日志：31.2 秒后 504）。Netlify 现在的文档写的是同步函数 **60 秒**（[Functions configuration](https://docs.netlify.com/build/functions/configuration/)）。两者不一致，执行时要重新量一次；如果真是 60 秒，我们的 22 秒上限可以放宽。
+For Netlify's time limit, the repository says "cut off at about 30 seconds" (production logs on 2026-11-07: 504 after 31.2 seconds). Netlify's current documentation says **60 seconds** for synchronous functions ([Functions configuration](https://docs.netlify.com/build/functions/configuration/)). These conflict; measure again during implementation. If it really is 60 seconds, our 22-second limit can increase.
 
-### 0.2 Reminders 的选择现在不起任何作用
+### 0.2 Reminder choices currently have no effect
 
-Onboarding 里选的三种提醒方式只是存下来（`org.settings.reminderMode`），**不改变任何行为**；网站任何地方都不发消息（IRB：测试中不发提醒）。真正的提醒流程是：Today → 点 Remind → 选渠道 → 打开 Gmail/WhatsApp 草稿 → 自己发 → 回来点 "I sent this reminder"。也就是说，"自动提醒"这个卖点目前是产品里做得最薄的部分。
+The three reminder modes selected in onboarding are merely saved (`org.settings.reminderMode`) and **change no behavior**; the website sends no messages anywhere (IRB: no reminders sent during testing). The actual flow is Today → click Remind → select channel → open Gmail/WhatsApp draft → send it yourself → return and click "I sent this reminder". Thus "automatic reminders," a selling point, are currently the least developed part of the product.
 
-### 0.3 上传的时间表文件有 5 处要先确认
+### 0.3 Five points in the uploaded schedule need confirmation first
 
-见第 1.3 节。
+See Section 1.3.
 
 ---
 
 ## 1. Onboarding
 
-### 1.1 Goals 时间范围不清，想按 SMART 来
+### 1.1 Goals lack clear timeframes; use SMART
 
-**现状：** `src/onboarding/founder/goals/suggestions.ts` 给三个建议：Weekly events（per week）、Active members（members）、External income（USD）。数据里一个目标只有名字、目标数、当前数、单位，**没有时间范围，也没有截止日**。屏幕标题只有 "Set goals for your club"。
+**Current state:** `src/onboarding/founder/goals/suggestions.ts` offers three suggestions: Weekly events (per week), Active members (members), External income (USD). A goal contains only a name, target amount, current amount, and unit: **no timeframe and no deadline**. The screen title is just "Set goals for your club".
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| A 只改文字 | 每个目标把时间写进名字和单位：`External income this semester (USD)`、`Events per week`、`Active members by semester end`；标题下加一句 "Goals are for this semester (ends May 8)."（日期由日历引擎给） | 半天；不动数据 | 仍然不是 SMART，只是不歧义 |
-| ★ B SMART 句子 | 每个目标显示成一句话：**"By [May 8] reach [$500] in [external income] ([this semester ▾])"**。时间范围是下拉：per week / per month / this semester；截止日由引擎按学期结束日自动填。每行下面三个小勾：Specific · Measurable · Time-bound，缺哪个哪个是灰的。屏幕顶上一句 "A good goal says what, how much, and by when." | 测试者一眼知道在定什么；之后 Today 的目标环可以写 "$120 of $500 · 6 weeks left" | 约 1.5 天；`Goal` 加可选字段 `period`（旧存档不受影响，不用升结构版本）；流程版本要升到 `ob-5` |
-| C AI 帮写 | 社长随便写一句（"多拉点赞助"），AI 改写成 SMART 并追问缺的部分 | 最省脑力 | 依赖 AI（现在不稳）；日期仍须引擎给；先不做 |
+| A Copy only | Include time in each goal's name and unit: `External income this semester (USD)`, `Events per week`, `Active members by semester end`; add "Goals are for this semester (ends May 8)." under the title (date supplied by the calendar engine) | Half a day; no data changes | Still not SMART, merely unambiguous |
+| ★ B SMART sentences | Show each goal as a sentence: **"By [May 8] reach [$500] in [external income] ([this semester ▾])"**. Timeframe dropdown: per week / per month / this semester; engine fills the deadline from semester end. Three small checkmarks under each row: Specific · Measurable · Time-bound, gray when missing. Top copy: "A good goal says what, how much, and by when." | Testers immediately understand what they are setting; Today's goal ring can later say "$120 of $500 · 6 weeks left" | About 1.5 days; add optional `period` to `Goal` (old saves unaffected, no schema-version bump); flow version must increase to `ob-5` |
+| C AI-assisted writing | President types freely ("get more sponsorship"); AI rewrites it as SMART and asks for missing details | Least mental effort | Depends on currently unreliable AI; dates must still come from the engine; defer |
 
-### 1.2 组织架构：没有 Advisor，上下级不直观
+### 1.2 Organization structure: missing Advisor and unclear reporting hierarchy
 
-**现状：** 代码其实支持 Advisor（`RoleFunction` 里有 `advisor`，组织图会把它画在社长旁边、用虚线），但新社团起步的 5 个岗位里没有它，而 "Add role" 只会加一个 "New role"；要自己把名字改成 Advisor 才会变成顾问，没人会发现。Team 屏是一张表（Role / Person / Reports to 下拉），组织图在表**下面**、只读。
+**Current state:** code actually supports Advisor (`RoleFunction` includes `advisor`; the org chart draws it beside the president with a dashed line), but it is absent from a new club's 5 initial roles. "Add role" only adds "New role"; users must rename it Advisor to make it an advisor, which nobody will discover. Team is a table (Role / Person / Reports to dropdown), with a read-only org chart **below** it.
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| A 补 Advisor | 默认多一行 **Advisor**（可空着；右边不是 Reports to 下拉，而是写 "Advises the club"）；加按钮 "Add advisor"；把组织图移到表**上面** | 半天；解决"没有 advisor" | 上下级仍靠下拉理解 |
-| B 表格做成大纲 | 在 A 的基础上，表格按上下级分组并画连接线，每行有 "← →" 把岗位升一级或降一级（像 Word 大纲）；点某一行，图上对应方框高亮 | 约 1 天；手机和键盘都好用 | 仍是两个东西对着看 |
-| ★ C 直接在图上改 | 在 A 的基础上，组织图变成可编辑：点方框改名字和人；方框下的 "+" 加一个下属；把方框拖到另一个方框上 = 改汇报对象（手机和键盘用 "Move under…" 菜单）。表格收成 "Edit as list" 备用 | 一眼看懂，所见即所得 | 约 2–3 天；可复用看板的拖拽代码（`src/lib/dragSort.ts`） |
+| A Add Advisor | Add a default **Advisor** row (may be vacant; show "Advises the club" instead of a Reports to dropdown); add "Add advisor"; move the org chart **above** the table | Half a day; solves "no advisor" | Hierarchy still understood through dropdowns |
+| B Outline table | Build on A: group table rows by hierarchy with connecting lines; each row has "← →" to promote/demote a role one level (like a Word outline); clicking a row highlights its box in the chart | About 1 day; works well on mobile and keyboard | Still requires comparing two representations |
+| ★ C Edit directly on the chart | Build on A: editable org chart; click a box to edit role/person; "+" below adds a subordinate; dragging a box onto another changes its manager (mobile/keyboard use "Move under…"). Collapse the table into an "Edit as list" alternative | Immediately understandable; direct editing | About 2–3 days; can reuse board dragging code (`src/lib/dragSort.ts`) |
 
-建议先做 A（当天能好），C 排在后面。
+Recommend A first (same-day completion), with C later.
 
-### 1.3 日期引擎更新（你上传的时间表）
+### 1.3 Date-engine update (your uploaded schedule)
 
-文件我已读完：32 个步骤和现在的模板一一对应，改的是**预计天数**（很多从 1 变成 5 或 10）、**相对活动日的时点**、和几条**依赖关系**。执行前需要你确认 5 件事：
+I have read the whole file: its 32 steps map one-to-one to the current template. Changes concern **estimated days** (many increase from 1 to 5 or 10), **timing relative to event day**, and some **dependencies**. Five confirmations are needed before implementation:
 
-1. **串联的步骤却是同一天开始、同一天截止。** Event Plan → Back-up Plan → Candidate Venue → Event Registry → Book Room 是一个等一个，但五步都是"2/10 开始、2/15 截止、各 5 天"。按现在引擎的规则（上一步做完下一步才能开始）这排不出来。你的意思是 ①这五步其实可以同时做（那就去掉它们之间的等待），还是 ②要错开？
-2. **"Event Day" 不是一个步骤。** Feedback、Post Marketing、Photo Backup、Attendance Submit 写的是等 "Event Day"。我理解成"活动当天之后就能开始"，对吗？
-3. **Paid Reimbursed、Finance Record、Documentation 落在活动后 129–132 天（8 月）。** 这是因为活动在 4/16，引擎把暑假算作"学生不工作"，所以推到了秋季开学。这是你想要的吗？还是应该在学期结束前做完？
-4. **"Effort days" 现在更像"窗口有多长"，不是"要干几天活"。** 例如 Quote Gather 10 天其实是等报价。这和第 3 节的问题是同一件事，建议一起定。
-5. **Budget 的备注 "Needs Event Plan as prerequisite"**：是否要加上"Budget 等 Event Plan"这条依赖？
+1. **Sequential steps share the same start and deadline.** Event Plan → Back-up Plan → Candidate Venue → Event Registry → Book Room each wait for the previous step, yet all five say "start 2/10, due 2/15, 5 days each." The current engine (next step starts only after the previous finishes) cannot produce this. Do you mean ①these five can run concurrently (remove their waits), or ②they should be staggered?
+2. **"Event Day" is not a step.** Feedback, Post Marketing, Photo Backup, and Attendance Submit say they wait for "Event Day." I interpret this as "can start after event day"; is that correct?
+3. **Paid Reimbursed, Finance Record, and Documentation fall 129–132 days after the event (August).** With the event on 4/16, the engine treats summer as "students not working," pushing these to fall semester. Is that intended, or should they finish before semester end?
+4. **"Effort days" now resembles "window length," not "days of work."** Quote Gather's 10 days are really waiting for quotes. This is the same issue as Section 3; decide them together.
+5. **Budget note "Needs Event Plan as prerequisite"**: should we add a "Budget waits for Event Plan" dependency?
 
-怎么落地：
+Implementation options:
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 更新标准模板 | 按文件改 `src/engine/playbooks.ts` 里每一步的时点、天数、依赖；补测试；`docs/RULES.md` 同步 | 所有新建的活动都用新时间 | 约 1 天；已经建好的活动不会自动变（要不要提供 "Recalculate with the new template" 另议） |
-| B 模板变成数据文件 | 在 A 的基础上，把时间表放进仓库里的一个表格文件，加导入/导出脚本 | 以后你改表格就能更新，不用改代码 | 多约 1 天 |
-| C 只给 SEO 用 | 只存成 SEO 自己的工作流（`org.eventWorkflow`），标准模板不动 | 不影响其他社团 | 其他测试者看到的仍是旧时间 |
+| ★ A Update standard template | Update each step's timing, days, and dependencies in `src/engine/playbooks.ts` from the file; add tests; update `docs/RULES.md` | All new events use the new timing | About 1 day; existing events do not change automatically (whether to offer "Recalculate with the new template" is a separate discussion) |
+| B Data-file template | Build on A: put the schedule in a repository table file and add import/export scripts | Future updates require editing a table instead of code | About 1 additional day |
+| C SEO only | Save only as SEO's own workflow (`org.eventWorkflow`); leave standard template unchanged | No effect on other clubs | Other testers still see old timing |
 
-### 1.4 Buffer day 没人懂；整个流程没讲 Why
+### 1.4 Nobody understands buffer days; the flow never explains why
 
-**现状：** 每屏只有一个标题，最多一句副标题（每屏 60 词上限）。Buffer 控件在 First event 屏，说明是 "Your club finishes this many working days before each official deadline."。还有一个已知问题（`AGENTS.md` 6d）：**拨动 buffer，上面进度链的日期不会变**，所以它看起来真的没用。
+**Current state:** every screen has only a title and at most one subtitle (60-word limit per screen). The Buffer control is on First event, described as "Your club finishes this many working days before each official deadline." Another known issue (`AGENTS.md` 6d): **changing buffer does not change dates in the progress chain above**, so it really appears useless.
 
-**Buffer 本身：**
+**The buffer itself:**
 
-| 方案 | 做什么 |
+| Option | Action |
 | --- | --- |
-| ★ A 移出 onboarding | 默认 3 天，onboarding 不问；Settings 里保留并配一个小时间轴解释 |
-| B 留着但讲故事 | 把 1/2/3/5/7 换成 Tight (1) / Standard (3) / Safe (5)，旁边一条小时间轴：`ASU deadline Apr 2 → your club finishes Mar 30 → Sam is reminded Mar 26`，加一句 "If a quote comes back two days late, you still make it." |
+| ★ A Remove from onboarding | Default to 3 days; do not ask during onboarding; keep it in Settings with a small explanatory timeline |
+| B Keep it, tell a story | Replace 1/2/3/5/7 with Tight (1) / Standard (3) / Safe (5); show a small timeline: `ASU deadline Apr 2 → your club finishes Mar 30 → Sam is reminded Mar 26`, plus "If a quote comes back two days late, you still make it." |
 
-**整个流程的 Why（黄金圈：Why → How → What）：**
+**The whole flow's Why (Golden Circle: Why → How → What):**
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 每屏一句 Why | 每屏标题下固定一行 "Why:"，用同一个句式。例：Constitution — "Your constitution already says who does what. Reading it saves you typing."；Goals — "So Platypus knows which events matter most."；Team — "Every task needs one owner. Reminders go to a person, not to 'the club'."；First event — "See every ASU deadline before it bites."；Reminders — "So you never have to chase people yourself." | 约半天；每屏都回答"为什么要填这个" | 每屏字数上限要从 60 提到约 80（要你批准） |
-| ★ B 开头加一屏"为什么有 Platypus" | 欢迎页后 15 秒的一屏，三行：**Why** "Clubs miss deadlines because nobody sees the whole chain, and everything resets at handoff." → **How** "Platypus watches every deadline and writes the reminder for you." → **What** "Four things to set up: your team, your first event, how reminders go out. About 5 minutes." 进度条上的词也改成结果："Who owns what" 而不是 "Team" | 先讲清楚整件事，再让人填 | 约半天；多一屏 |
-| C 边填边看效果 | 每屏右边放一个实时预览：填了什么，Platypus 会因此做什么（例如填了 Treasurer 的名字，右边立刻出现 "Maya gets the budget steps"） | 最直观，"show, don't tell" | 约 3–4 天 |
+| ★ A One Why sentence per screen | Fixed "Why:" line under each title using consistent phrasing. Examples: Constitution — "Your constitution already says who does what. Reading it saves you typing."; Goals — "So Platypus knows which events matter most."; Team — "Every task needs one owner. Reminders go to a person, not to 'the club'."; First event — "See every ASU deadline before it bites."; Reminders — "So you never have to chase people yourself." | About half a day; each screen answers "why fill this in?" | Raise screen word limit from 60 to about 80 (requires your approval) |
+| ★ B Add opening "why Platypus exists" screen | A 15-second screen after welcome, with three lines: **Why** "Clubs miss deadlines because nobody sees the whole chain, and everything resets at handoff." → **How** "Platypus watches every deadline and writes the reminder for you." → **What** "Four things to set up: your team, your first event, how reminders go out. About 5 minutes." Change progress labels to outcomes too: "Who owns what" instead of "Team" | Explain the whole purpose before asking for input | About half a day; one additional screen |
+| C Live results while filling | A preview to the right of each screen shows what Platypus will do with the input (entering the Treasurer's name immediately shows "Maya gets the budget steps") | Most intuitive; "show, don't tell" | About 3–4 days |
 
-A 和 B 可以一起做（合计约 1 天）。
+A and B can be combined (about 1 day total).
 
-### 1.5 Reminder 屏没有例子
+### 1.5 Reminder screen has no examples
 
-**现状：** `src/onboarding/founder/ReminderMode.tsx`：三个单选项，每项一句话，没有例子、没有图。
+**Current state:** `src/onboarding/founder/ReminderMode.tsx`: three radio options, one sentence each, no examples or pictures.
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 例子 + 三步图 + 类比 | 屏幕顶上先放**一条真实样子的提醒**（用测试者刚填的活动和干部名字，日期由引擎给）：*"Hi Sam — Book the room for Welcome Mixer. Start by Mar 26, due Mar 30. Reply: Done · Waiting · Need help."* 每个选项下面一行三步小图，并配一个生活类比：**Send automatically** — Platypus writes → Platypus sends（"Like a calendar alert."）；**I review, then I send** — Platypus writes → you check → you send（"Like a draft waiting in your outbox."）；**I review, Platypus sends** — Platypus writes → you approve → Platypus sends（"Like approving a scheduled post."） | 非工科学生也能懂；三个选项和顺序不变，研究数据仍可比 | 约 1 天；字数上限要提高 |
-| B 拆成两个简单问题 | 问 1："Do you want to check each reminder first?" Yes / No；问 2（选 Yes 才出现）："Who presses send?" Me / Platypus | 每题都是大白话 | 改变了研究问题的问法，前后数据不能直接比，要对照 IRB |
-| C 可以试一下 | 在 A 的基础上加 "Try it"：点一个选项，播放一小段模拟（手机收到消息的样子、社长看到什么） | 最清楚 | 多约 1.5 天 |
+| ★ A Example + three-step diagram + analogy | First show **a realistic reminder** at the top (using the event and officer names the tester just entered, with engine dates): *"Hi Sam — Book the room for Welcome Mixer. Start by Mar 26, due Mar 30. Reply: Done · Waiting · Need help."* Below each option, show a three-step mini-diagram and everyday analogy: **Send automatically** — Platypus writes → Platypus sends ("Like a calendar alert."); **I review, then I send** — Platypus writes → you check → you send ("Like a draft waiting in your outbox."); **I review, Platypus sends** — Platypus writes → you approve → Platypus sends ("Like approving a scheduled post.") | Understandable to non-engineering students; preserves all three options and their order, keeping study data comparable | About 1 day; word limit must increase |
+| B Two simple questions | Question 1: "Do you want to check each reminder first?" Yes / No; question 2 (only after Yes): "Who presses send?" Me / Platypus | Plain language in each question | Changes study-question wording; before/after data are not directly comparable; check against IRB |
+| C Try it | Build on A with "Try it": select an option to play a brief simulation (phone receiving a message, what the president sees) | Clearest | About 1.5 additional days |
 
-注意：底部 "Demo: no email is ever sent." 在 Phase 3 期间必须保留。
+Note: footer "Demo: no email is ever sent." must remain throughout Phase 3.
 
-### 1.6 最后一步的按钮让人糊涂
+### 1.6 Final-step buttons are confusing
 
-**现状：** Confirm 屏有 **Start workspace**、**Keep current demo**、Back；Invite 屏的主按钮是 **See what your officers will see**（后面是 6 屏社员预览），次按钮才是 Go to Today。
+**Current state:** Confirm has **Start workspace**, **Keep current demo**, and Back; Invite's primary button is **See what your officers will see** (followed by 6 member-preview screens), with Go to Today secondary.
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 一个主按钮，去掉预览 | Confirm 只留一个主按钮 **Create my club**；"Keep current demo" 去掉（顶上已有 Exit；只有以前建过社团时才显示一行小字 "Cancel and keep the current club"）。Invite 屏主按钮改成 **Open my workspace**，去掉 "See what your officers will see"。社员预览不删，留在 Demo 菜单（"Test Onboarding Page Invite" 已经有） | 社长设完就进入；少 6 屏 | 约半天；流程版本升 `ob-5`；研究记录里不再有社员预览那一段 |
-| B 合并成一屏 | Confirm 和 Invite 合成一屏：一句总结 + **Create my club**；点完同一屏变成 "Your club is ready"，给邀请链接和 **Open my workspace** | 8 屏变 7 屏 | 约 1 天 |
-| C 预览降级 | 保留预览，但改成主按钮下面的一行小字链接 "Preview the officer invitation (optional)" | 改动最小 | 仍可能分散注意 |
+| ★ A One primary button, remove preview from this path | Confirm keeps one primary **Create my club**; remove "Keep current demo" (Exit already exists at the top; only when a club previously exists show small text "Cancel and keep the current club"). Invite's primary becomes **Open my workspace**; remove "See what your officers will see". Keep member preview in the Demo menu ("Test Onboarding Page Invite" already exists) | President enters immediately after setup; 6 fewer screens | About half a day; flow version increases to `ob-5`; study records no longer include member preview |
+| B Merge into one screen | Combine Confirm and Invite: one summary sentence + **Create my club**; after click, the same screen becomes "Your club is ready" with invitation link and **Open my workspace** | 8 screens become 7 | About 1 day |
+| C Demote preview | Keep preview as a small text link below the primary button: "Preview the officer invitation (optional)" | Smallest change | May still distract |
 
 ---
 
-## 2. 其他模块
+## 2. Other modules
 
-### 2.1 Club deadline 和 Due date 并存
+### 2.1 Club deadline and Due date coexist
 
-**现状：** 每个步骤有三个日期：Start by、Club deadline、ASU deadline。手动建的任务第三个叫 "Due date"，而且勾了缓冲后 Club deadline 比 Due date 早几天，于是**同一个任务上出现两个"截止日"**（`src/engine/taskDates.ts` 的 `officialLabel`）。
+**Current state:** every step has three dates: Start by, Club deadline, ASU deadline. For manual tasks, the third is "Due date"; enabling buffer makes Club deadline several days earlier, so **the same task shows two "deadlines"** (`officialLabel` in `src/engine/taskDates.ts`).
 
-你的想法（去掉 ASU 的，只用社团的）我同意，但有一点要保留：**引擎内部仍然要算 ASU 截止日**，因为"会不会错过学校的硬期限"就是靠它判断的。改的只是界面。
+I agree with your idea (remove ASU's date and use only the club's), with one requirement: **the engine must still compute the official deadline internally**, because it determines whether the school's hard limit will be missed. Only the interface changes.
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 界面只有一个 Due | 所有地方只显示一个日期 **Due**（= 社团截止日）。ASU 的日期不再是并列的一栏，只出现在两处：①点开 "Why this date" 时一句话："ASU needs this by Apr 2. Your club finishes 3 working days earlier."；②有风险时的红色警告。手动任务去掉 "club deadline N working days earlier" 勾选框，只有一个日期。"Start by" 改叫 "Reminder goes out Mar 26"（它本来就是提醒的触发日） | 一个任务一个截止日 | 约 1–1.5 天；产品计划"机制 1：三个截止日"的表述要改（记进决定记录） |
-| B 留两个但讲清关系 | 改名为 **Due (club)** 和 **ASU cut-off (hard limit)**，配一条小时间轴；只有真的有 ASU 规则的步骤（32 步里 7 步）才显示第二个 | 信息不丢 | 仍是两个日期 |
-| C 按角色显示 | 干部只看到 Due；社长和副社长在 Details 里能看到 ASU cut-off | 干部最简单 | 两种人看到的不一样，演示时要解释 |
+| ★ A One Due in the interface | Everywhere, show one date **Due** (= club deadline). ASU's date is no longer a parallel field; it appears only ①when opening "Why this date": "ASU needs this by Apr 2. Your club finishes 3 working days earlier."; ②as a red risk warning. Remove manual tasks' "club deadline N working days earlier" checkbox, leaving one date. Rename "Start by" to "Reminder goes out Mar 26" (it already is the reminder trigger date) | One task, one deadline | About 1–1.5 days; change product-plan wording "Mechanism 1: three deadlines" (record the decision) |
+| B Keep two, explain relationship | Rename to **Due (club)** and **ASU cut-off (hard limit)** with a small timeline; show the second only for steps with an actual ASU rule (7 of 32) | Preserves information | Still two dates |
+| C By role | Officers see only Due; president and VP can see ASU cut-off in Details | Simplest for officers | Different people see different things; explain during demos |
 
-### 2.2 Events 页没有 Create Event 按钮
+### 2.2 Events has no Create Event button
 
-**现状：** `src/pages/Events.tsx` 没有任何新建入口，空状态写 "Ask Platypus to plan one."；只能在右栏 Ask 里打 "Plan …"。Tasks 页有 "+ New task"。
+**Current state:** `src/pages/Events.tsx` has no creation entry point; empty copy says "Ask Platypus to plan one." Users must type "Plan …" into Ask in the right rail. Tasks has "+ New task".
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 加按钮，直接出表单 | Events 页头（和 Today 的 Events 卡）加主按钮 **+ New event**，点了直接在右栏打开现有的活动表单，不用先打字。没权限的人看到灰按钮和原因 "Only the president or VP can create events." | 约半天到 1 天；复用现有表单；符合"AI 入口只有 Ask"的界面规则 | 无 |
-| B 按钮打开"一句话"小窗 | 按钮打开一个小框："Describe your event in one sentence" + 三个示例（和 onboarding 一样）→ Plan it → 表单 | 保留"一句话建活动"的亮点 | 仍依赖 AI 解析 |
-| C 两个都给 | 按钮下拉：Fill in a form / Describe it to Platypus；Ask 里再加一个建议按钮 "Plan an event" | 两类人都照顾 | 多一步选择 |
+| ★ A Button opens form directly | Add primary **+ New event** to the Events header (and Today's Events card); clicking opens the existing event form in the right rail, without typing first. Unauthorized users see a disabled button and "Only the president or VP can create events." | About half a day to 1 day; reuses existing form; follows interface rule "Ask is the only AI entry" | None |
+| B Button opens one-sentence dialog | Small dialog: "Describe your event in one sentence" + three examples (as in onboarding) → Plan it → form | Preserves the "create an event in one sentence" highlight | Still depends on AI parsing |
+| C Both | Button dropdown: Fill in a form / Describe it to Platypus; add an Ask suggestion "Plan an event" | Serves both user types | One extra choice |
 
-### 2.3 AI 每次都失败
+### 2.3 AI fails every time
 
-原因见 0.1。
+See 0.1 for causes.
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 修输出额度 | 所有短任务的输出额度提到不会被"思考"吃光的水平（例如至少 800–1000）；因为额度不够而被截断时，**用更大的额度自动再试一次**；日志里多记一项"思考用了多少 token"；加一条"故意给小额度会变红"的测试 | 约半天；直接修掉"必然失败"的那一类；提醒的 AI 句子恢复 | 自动重试会多花一次 AIR 调用（`AGENTS.md` 第 12 节写过"不自动重复收费请求"，所以这一点要你同意） |
-| ★ B 放宽时间 + 让等待看得见 | 重新量 Netlify 的真实上限（文档说 60 秒）；如果属实，把 22 秒上限提到约 45 秒，浏览器等待同步放宽；等待时显示 "Thinking… 12 s"；把"先出表单，AI 之后补填"的做法推广到所有 AI 入口 | 约 1 天；修掉"偶尔超时"的那一类 | 最长要等 45 秒，所以必须有进度显示 |
-| C 后台任务 + 轮询 | 长任务（读章程、起草手册）改成后台函数（Netlify 上限 15 分钟），页面每隔几秒问一次结果。仓库里已有这个做法的代码（`org-ai-run-background.mts`） | 彻底不受时间限制 | 约 2–3 天；需要打开服务器存储（现在是关的，`ORG_SETUP_ENABLED`），要你决定 |
-| D 换模型或供应商 | 短任务换更快的模型 | — | Phase 3 必须用 ASU AIR；现在不建议 |
+| ★ A Fix output allowances | Raise all short-task output allowances enough that "thinking" cannot consume them (for example, at least 800–1000); when truncated because of the allowance, **automatically retry once with a larger allowance**; log "tokens used for reasoning"; add a test that deliberately small allowance produces failure | About half a day; directly fixes the consistent-failure class; restores the reminder's AI sentence | Automatic retry costs another AIR call (`AGENTS.md` Section 12 says "do not automatically repeat paid requests," so your approval is needed) |
+| ★ B Increase time limit + show waiting | Remeasure Netlify's actual limit (documentation says 60 seconds); if confirmed, raise our 22-second limit to about 45 seconds and browser waiting accordingly; display "Thinking… 12 s"; extend "show form first, let AI fill it afterward" to all AI entries | About 1 day; fixes intermittent timeouts | Up to 45 seconds of waiting, so progress feedback is required |
+| C Background tasks + polling | Move long tasks (constitution reading, handbook drafting) to background functions (Netlify limit 15 minutes), with the page polling every few seconds. Existing repository example: `org-ai-run-background.mts` | Removes the time-limit problem entirely | About 2–3 days; requires enabling currently disabled server storage (`ORG_SETUP_ENABLED`), your decision |
+| D Change model or provider | Faster model for short tasks | — | Phase 3 must use ASU AIR; not recommended now |
 
-建议 A + B 一起做；做完仍不行再做 C。
+Recommend A + B together; consider C if they still fail.
 
-### 2.4 "Not claimed" 到底是什么意思
+### 2.4 What does "Not claimed" mean?
 
-**现状（读代码得出）：** "Not claimed" 这一个状态装了两种完全不同的情况：
+**Current state (from code):** this single status combines two entirely different situations:
 
-1. **指给了某个人，但他还没点 "I've got it"。** 只有这个人能认领。出现在：换届把任务转给新人、社长把任务指给别人、移动岗位的工作。
-2. **根本没有负责人，谁都可以拿。** 出现在：岗位空着、社长发了一个"谁来做"的任务。
+1. **Assigned to someone who has not clicked "I've got it".** Only that person may claim it. Occurs when transferring tasks to a successor, when the president assigns someone, or when moving a role's work.
+2. **No owner; anyone can take it.** Occurs when a role is vacant or the president posts a "who can do this?" task.
 
-"My tasks" 里这一列 = 指给我的 + 没人负责的；切到 "Team tasks" = 全社团所有没认领的，其中别人名下的你点了也认领不了（只会提示 "Only Sam can claim this task."）。卡片上看不出是哪一种。这就是测试者困惑的来源。
+This column in "My tasks" = assigned to me + unowned; "Team tasks" = all unclaimed club tasks, including those assigned to others that you cannot claim (only "Only Sam can claim this task." appears). Cards do not distinguish the cases. This causes testers' confusion.
 
-另外：新建活动时，岗位有人的步骤直接是 To do（不用认领），只有岗位空着的才是 Not claimed。
+Also, when creating events, steps for occupied roles start as To do (no claim needed); only vacant roles produce Not claimed.
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 用文字分开两种情况 | 数据不变。"My tasks" 里这一列改叫 **Waiting for you**（指给我、等我接），按钮仍是 "I've got it"，多一个 "Accept all (5)"；没人负责的单独一小组 **Open · anyone can take**。"Team tasks" 里每张卡标明 "Waiting for Sam" 或 "Open to anyone" | 约 1 天；逻辑清楚；不升结构版本 | 列名在两个视图里不同，要改 Settings → Board 里的说明 |
-| B 减少需要认领的情况 | 在 A 的基础上：换届转过来的任务不再逐个认领，新人在"接手"时一次确认全部 | 少点很多次 | 改了 Handoff 第 2 阶段你同意过的规则（D-2a） |
-| C 拆成两个状态 | 新增状态：Open（没人）和 Offered（指给某人） | 最干净 | 6 个状态变 7 个，要升结构版本、改看板颜色和 `AGENTS.md` 7.6；不建议 |
+| ★ A Distinguish with copy | Keep data unchanged. Rename the "My tasks" column **Waiting for you** (assigned to me, awaiting acceptance), retain "I've got it", add "Accept all (5)"; place unowned tasks in a separate **Open · anyone can take** group. Label each "Team tasks" card "Waiting for Sam" or "Open to anyone" | About 1 day; clear logic; no schema-version bump | Column names differ across views; update Settings → Board explanations |
+| B Fewer claims | Build on A: transferred handoff tasks are accepted together when the successor takes over | Far fewer clicks | Changes Handoff stage 2 rule you approved (D-2a) |
+| C Two statuses | Add Open (unowned) and Offered (assigned to someone) | Cleanest | 6 statuses become 7; schema-version bump, board-color changes, and `AGENTS.md` 7.6 changes; not recommended |
 
-### 2.5 Details 板块很乱
+### 2.5 Details is cluttered
 
-**现状（`src/components/TaskDetail.tsx`）：** 从上到下是：状态、标题、why、负责人、三个日期、等待、草稿链接、Where to submit、Open Event Budget、Copy All Event Details、Remind、来源、延期提示，**最后才是主操作**（I've got it / Done / Waiting on… / Need help / Need more time），再下面是 Edit。主操作之前最多有 6 个同样大小的按钮；"做这件事"和"管这件事"混在一起；负责人和日期在这里改不了（要去表格里改）。另外 `src/components/NodePanel.tsx` 是一份没人用的旧详情面板。
+**Current state (`src/components/TaskDetail.tsx`):** top to bottom: status, title, why, owner, three dates, waits, draft links, Where to submit, Open Event Budget, Copy All Event Details, Remind, sources, extension notice, **then finally primary actions** (I've got it / Done / Waiting on… / Need help / Need more time), followed by Edit. Up to 6 same-size buttons precede the primary action; doing and managing the task are mixed together; owner and dates cannot be edited here (requires the table). `src/components/NodePanel.tsx` is also an unused old details panel.
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 重排成三段 | ①**头部：** 标题、状态、负责人、Due。②**Your next step：** 一个主按钮（I've got it 或 Mark done），其余状态按钮排成一行小按钮；"Where to submit" 的链接紧跟在下面（那才是真正要做的事）。③**折叠区：** Why & dates / People / Edit（社长：名字、负责人、日期、标签都在这里改）/ Sources。Remind 只给不是负责人的人看；Copy All Event Details 移到活动自己的详情里 | 约 1.5 天；不加新功能，只是整理 | 相关页面测试要跟着改 |
-| B 按人显示 | 负责人看到 "Do" 视图（怎么做、去哪交、回状态）；社长看到 "Manage" 视图（改负责人和日期、提醒、风险） | 每个人只看到自己要的 | 约 2–3 天；演示时两种人看到的不同 |
-| C 整页任务 | 电脑上点任务打开整页，右栏只做预览 | 空间大 | 改动大，不建议现在做 |
+| ★ A Three sections | ①**Header:** title, status, owner, Due. ②**Your next step:** one primary button (I've got it or Mark done), remaining status buttons in a small row; "Where to submit" links immediately below (the actual work). ③**Collapsed sections:** Why & dates / People / Edit (president edits name, owner, dates, tags here) / Sources. Show Remind only to non-owners; move Copy All Event Details to the event's own details | About 1.5 days; reorganization, no new features | Update affected page tests |
+| B By person | Owner gets "Do" view (instructions, submission, status reply); president gets "Manage" (owner/date edits, reminders, risk) | Everyone sees only what they need | About 2–3 days; different views during demos |
+| C Full-page task | Desktop tasks open a full page, with the right rail only a preview | More space | Large change; not recommended now |
 
-顺手删掉没人用的 `NodePanel.tsx`（或把它的编辑栏位搬进 A 的 Edit 区）。
+Also delete unused `NodePanel.tsx` (or move its editing fields into A's Edit section).
 
 ---
 
-## 3. 任务到底算"一天"还是"15 分钟"
+## 3. Is a task "one day" or "15 minutes"?
 
-**现状：** 每个步骤有一个 `estDays`（"要干几个工作日"），最小是 1。手动建的任务一律 1 天。引擎用它算"最晚开始日"= 截止日 − 预计天数 − 个人缓冲。所以一封 15 分钟就能发的邮件，也会被排成"提前 2 个工作日开始"，提醒里还写着 "~1 workday"。
+**Current state:** every step has `estDays` ("working days of work"), minimum 1. Manual tasks always use 1 day. The engine computes "latest start" = deadline − estimated days − personal buffer. Thus a 15-minute email is scheduled to "start 2 working days early," and the reminder says "~1 workday".
 
-根本问题：**两个不同的东西被放进了同一个数字。**
+The underlying issue: **two different things share one number.**
 
-- **工作量**：真正要花多少时间（15 分钟 / 半天 / 好几天）。
-- **提前量**：要提前多少天开始，因为中间要等别人（等报价要 10 天，但自己只花 1 小时）。你上传的时间表里的 10 天就是提前量。
+- **Workload**: actual time spent (15 minutes / half a day / several days).
+- **Lead time**: days needed in advance because of waiting for others (quotes take 10 days, but only 1 hour of your work). The 10 days in your uploaded schedule are lead time.
 
-提醒只需要**提前量**（哪天发）；工作量只影响提醒里的那句话和 Team 页的工作量。两个都不需要精确到分钟。
+Reminders need only **lead time** (which day to send); workload affects only reminder wording and Team's workload display. Neither needs minute-level precision.
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ A 分成两个，都不用精确数字 | **Size**：Quick（半小时内）/ Half day / Multi-day —— 直接用现有的 light / medium / heavy，不加字段。**Lead time**："Start N days before due" —— 就是现有的 `estDays`，界面改名。引擎不变（仍按天，因为提醒本来就按天发）。提醒里的 "~1 workday" 改成按 Size 说 "about 15 minutes" | 约 1 天；不升结构版本；和你的时间表一致 | 模板里每一步要补一个 Size（可以和 1.3 一起做） |
-| B 加分钟 | 新增可选字段"预计分钟数"（15/30/60/120/240/480）；Quick 任务的提前量为 0（当天提醒） | 更精确 | 多一个要填的东西；学生估时间本来就不准 |
-| C 只改文字 | "Effort (working days)" 改成 "Start this many days before due"，提醒里去掉 "~1 workday" | 半天 | 没解决 15 分钟任务被提前 2 天提醒的问题 |
+| ★ A Separate them, neither requiring exact numbers | **Size**: Quick (under half an hour) / Half day / Multi-day; reuse light / medium / heavy, no new field. **Lead time**: "Start N days before due", the existing `estDays` with a new UI label. Engine unchanged (still days, as reminders are daily). Replace "~1 workday" with Size-based wording such as "about 15 minutes" | About 1 day; no schema-version bump; matches your schedule | Add Size to every template step (can combine with 1.3) |
+| B Add minutes | Optional "estimated minutes" field (15/30/60/120/240/480); Quick tasks have 0 lead time (same-day reminder) | More precise | Another input; students already estimate time poorly |
+| C Copy only | Rename "Effort (working days)" to "Start this many days before due"; remove "~1 workday" from reminders | Half a day | Does not fix 15-minute tasks being reminded 2 days early |
 
-**"有人发一个很长的任务"：** 建议定一条规则：**一个任务 = 一个负责人 + 一个交付物 + 一周内能做完。** 超过就不是任务：
+**"Someone posts a very long task":** recommend a rule: **one task = one owner + one deliverable + completable within one week.** Anything larger is not a task:
 
-| 方案 | 做什么 |
+| Option | Action |
 | --- | --- |
-| ★ A 标题短 + 备注 | 标题限 80 字符；长内容进新的 "Notes" 栏（现在任务没有备注栏，只有 why） |
-| B 提示拆分 | 在 A 的基础上，标题里有 "and / then" 或超过一行时，Ask 提示 "This looks like 3 tasks. Split it?"，拆成几个各有负责人的任务（规则判断，不靠 AI） |
-| C 子清单 | 任务里可以有勾选清单 |
+| ★ A Short title + notes | Limit titles to 80 characters; longer content goes in new "Notes" (tasks currently have only why, no notes field) |
+| B Suggest splitting | Build on A: if title contains "and / then" or exceeds one line, Ask suggests "This looks like 3 tasks. Split it?" into multiple tasks with individual owners (rule-based, no AI) |
+| C Checklist | Checklists inside tasks |
 
 ---
 
-## 4. 聚焦：两个核心，其余让路
+## 4. Focus: two core functions, everything else steps aside
 
-### 4.1 现在的功能按两个核心分类
+### 4.1 Current features grouped around two core functions
 
-| 类别 | 功能 |
+| Category | Features |
 | --- | --- |
-| **核心 1：看到风险 → 自动提醒** | 规则引擎的日期、活动流程（产生任务的来源）、Today 的 "Needs a nudge"、提醒编辑器、沉默协议（第 3/5/7/8/10 天）、认领、一键回状态、通知 |
-| **核心 2：24 小时到 3 天交接** | Handoff、岗位档案（自动汇总）、手册、岗位名下的联系人、Rules（新人要查的规则） |
-| **支撑** | Events、Tasks、Ask、Settings |
-| **外围（和两个核心关系弱）** | Team（工作量、本周之星、会议时间）、Partners 的看板和机构、Funding 和预算明细、目标环、预测百分比、看板改名改色和标签、Tasks 的时间轴视图、Deeper review、旧的 `/phase1` 页面 |
+| **Core 1: spot risk → automatic reminders** | Rule-engine dates, event workflows (task source), Today's "Needs a nudge", reminder editor, silence protocol (days 3/5/7/8/10), claiming, one-click status replies, notifications |
+| **Core 2: handoff within 24 hours to 3 days** | Handoff, automatically compiled role dossier, handbook, role contacts, Rules (for newcomers) |
+| **Supporting** | Events, Tasks, Ask, Settings |
+| **Peripheral (weak connection to either core)** | Team (workload, star of the week, meeting times), Partners board and organizations, Funding and budget details, goal rings, forecast percentages, board names/colors/tags, Tasks timeline, Deeper review, old `/phase1` pages |
 
-**最大的发现：核心 1 是现在做得最薄的。** 提醒要点 5 次、离开网站、再回来确认；AI 那一句每次失败；onboarding 的选择不起作用；没有任何地方能看到"这周会发出哪些提醒"。反而外围功能做得很细。
+**Biggest finding: Core 1 is currently the least developed.** Reminders take 5 clicks, leaving the website, and returning to confirm; the AI sentence always fails; onboarding choices do nothing; nowhere shows "which reminders go out this week." Peripheral features, meanwhile, are very detailed.
 
-### 4.2 导航和首页怎么收
+### 4.2 Simplifying navigation and the homepage
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ F1 提醒优先，其余收进 More | 左边导航从 9 项变 4 项：**Today**（风险 + 提醒队列）、**Plan**（Events 和 Tasks）、**Handoff**、**Rules**；Team、Partners、Funding 收进 "More"（不删代码）。Today 变成**提醒中心**：Going out this week（引擎按最晚开始日排好的）/ Needs your OK / Sent / Replies，一个按钮 "Review and send all (3)"。Onboarding 选的提醒方式在这里真的生效（演示里"自动发"显示为 "Would be sent · demo"） | 产品一眼看出是干什么的；卖点在首页 | 约 4–6 天；页面位置变了，会影响 Phase 3 的任务卡和已有的页面测试 |
-| F2 页面不动，加一个聚焦首页 | 所有页面留在原处；Today 顶上两张大卡 **Reminders** 和 **Handoff**，其余折成 "Tools" | 对 Phase 3 风险最小 | 功能仍然一样多，只是排了序 |
-| F3 直接砍 | 把 Partners、Team、Funding 从产品里拿掉 | 最聚焦 | 论文的取舍表里它们是"必须"；Handoff 的岗位档案要用联系人；不建议 |
+| ★ F1 Reminders first, rest under More | Left navigation drops from 9 items to 4: **Today** (risks + reminder queue), **Plan** (Events and Tasks), **Handoff**, **Rules**; Team, Partners, Funding move under "More" (code retained). Today becomes a **reminder center**: Going out this week (engine-scheduled by latest start) / Needs your OK / Sent / Replies; one "Review and send all (3)" button. Onboarding's reminder mode actually applies (demo automatic sends show "Would be sent · demo") | Product purpose is immediately clear; selling point on homepage | About 4–6 days; page moves affect Phase 3 task cards and existing page tests |
+| F2 Keep pages, add focused homepage | All pages stay; Today starts with two large **Reminders** and **Handoff** cards, with the rest collapsed under "Tools" | Lowest Phase 3 risk | Same feature count, merely reordered |
+| F3 Cut directly | Remove Partners, Team, Funding from product | Most focused | Thesis tradeoff table lists them as required; Handoff dossier needs contacts; not recommended |
 
-### 4.3 真正的"自动发送"
+### 4.3 Actual "automatic sending"
 
-现在不发任何消息，有两个原因：IRB（测试中不发提醒），以及没有账号和服务器（数据只在浏览器里）。分两步：
+No messages are sent now for two reasons: IRB (no reminders during testing), and no accounts/server (data lives only in the browser). Two steps:
 
-1. **现在能做的（演示版）：** 提醒中心 + 三种方式真的走不同流程 + 修好 AI 写的那一句。看起来和用起来就是自动的，只是最后不真的发出去。
-2. **v1.5（真实版）：** 登录、服务器存数据、定时任务每天早上检查该发的提醒、用邮件服务发出。这是产品计划里已经排在 12 月的事，要 IRB 之外单独做，也要你决定用哪个邮件服务。
+1. **Possible now (demo):** reminder center + three genuinely different mode flows + restored AI sentence. It looks and works automatically, with no actual final send.
+2. **v1.5 (real):** login, server persistence, scheduled job checks reminders every morning, email service sends them. Already scheduled for December in the product plan; do separately outside the IRB study, and you must choose the email service.
 
-### 4.4 核心 2：怎么做到 24 小时到 3 天交接
+### 4.4 Core 2: achieving handoff within 24 hours to 3 days
 
-**现状：** Handoff 有 8 个阶段（访谈、AI 起草手册、卸任人确认、社长批准、指定接任人、新人读和回述、旁观任务、第 7/30 天回看）。很完整，但每一步都要等人，实际走完要几周。其中最有价值、而且**不用等任何人**的是岗位档案（`src/lib/roleDossier.ts`）：它从平时的记录自动汇总出未完成任务、未来 30 天的截止日、联系人、经验。
+**Current state:** Handoff has 8 stages (interview, AI handbook draft, outgoing officer confirmation, president approval, successor assignment, newcomer reading and teach-back, shadow task, day 7/30 review). Comprehensive, but each step waits on people, taking weeks overall. The most valuable piece **requiring no waiting on anyone** is the role dossier (`src/lib/roleDossier.ts`): it automatically compiles unfinished tasks, deadlines within 30 days, contacts, and lessons from everyday records.
 
-| 方案 | 做什么 | 好处 | 代价 |
+| Option | Action | Benefits | Cost |
 | --- | --- | --- | --- |
-| ★ S1 三天交接包 | 点 "Hand over this role" 后**立刻**从岗位档案生成一份三天清单（不用 AI、不用等）：**Day 1（30 分钟）** 现在着火的事：未完成任务和它们的截止日、未来 30 天的截止日、要拿到的账号和链接；**Day 2** 读 5 条经验，认识 3 个联系人，向前任问 3 个系统挑出的缺口问题；**Day 3** "Accept all" 接下任务，之后提醒改发给新人。顶上显示 "Handoff 60% · 1 day left"。现有的访谈、手册、回述变成"之后再加深"，不再卡住交接。**提醒系统负责推动交接本身**：到点提醒前任回答问题、提醒新人完成当天清单 —— 两个核心互相带动 | 第一天就能接手；复用现有档案代码 | 约 4–5 天；改了 Handoff 现有流程的"必经步骤" |
-| S2 平时就在交接 | 没有"交接"这件事：每完成一个任务问一句 10 秒的话 "Anything the next person should know?"，岗位档案一直是最新的；换人 = 改名字 + 三天阅读清单 | 换届时几乎零工作 | 平时每个任务多一个问题；要较长时间才攒出内容 |
-| S3 加一个快速通道 | 保留 8 个阶段，加 "Fast track (3 days)"：跳过确认、批准、回述 | 改动最小 | 两套流程并存，更复杂 |
+| ★ S1 Three-day handoff pack | Clicking "Hand over this role" **immediately** produces a three-day checklist from the dossier (no AI, no wait): **Day 1 (30 minutes)** urgent matters: unfinished tasks/deadlines, next 30 days' deadlines, accounts/links to obtain; **Day 2** read 5 lessons, meet 3 contacts, ask predecessor 3 system-selected gap questions; **Day 3** "Accept all" tasks, then reminders switch to successor. Header: "Handoff 60% · 1 day left". Existing interview, handbook, teach-back become later enrichment instead of blocking handoff. **Reminders drive the handoff itself**: prompt predecessor to answer and newcomer to complete today's checklist; the two core functions reinforce each other | Take over on day one; reuses dossier code | About 4–5 days; changes current mandatory Handoff steps |
+| S2 Continuous handoff | No separate "handoff": after every task, a 10-second "Anything the next person should know?" keeps dossier current; personnel change = name change + three-day reading list | Almost no transition work | One extra question per task; takes time to accumulate content |
+| S3 Fast track | Retain 8 stages; add "Fast track (3 days)" skipping confirmation, approval, teach-back | Smallest change | Two coexisting flows, more complexity |
 
 ---
 
-## 5. 建议的执行顺序
+## 5. Suggested implementation order
 
-| 阶段 | 内容 | 粗估 |
+| Stage | Content | Rough estimate |
 | --- | --- | --- |
-| 0 马上能好 | 2.3 A（AI 输出额度）、2.2 A（+ New event）、1.6 A（最后一步按钮）、1.1 A 或 B（Goals）、1.2 A（Advisor） | 2–3 天 |
-| 1 讲清楚 | 1.4（Why 和 buffer）、1.5 A（Reminders 例子）、2.1 A（一个 Due）、2.4 A（Not claimed）、2.5 A（Details） | 5–6 天 |
-| 2 时间 | 1.3（时间表，先回答 5 个问题）、第 3 节（Size 和 Lead time）、2.3 B（时间上限） | 3–4 天 |
-| 3 聚焦 | 4.2（导航和提醒中心） | 4–6 天 |
-| 4 交接 | 4.4 S1（三天交接包） | 4–5 天 |
-| 5 真实发送 | 4.3 第 2 步（登录、存储、定时发送） | 另行计划 |
+| 0 Immediate improvements | 2.3 A (AI output allowance), 2.2 A (+ New event), 1.6 A (final buttons), 1.1 A or B (Goals), 1.2 A (Advisor) | 2–3 days |
+| 1 Explain clearly | 1.4 (Why and buffer), 1.5 A (Reminders examples), 2.1 A (one Due), 2.4 A (Not claimed), 2.5 A (Details) | 5–6 days |
+| 2 Timing | 1.3 (schedule; answer 5 questions first), Section 3 (Size and Lead time), 2.3 B (time limit) | 3–4 days |
+| 3 Focus | 4.2 (navigation and reminder center) | 4–6 days |
+| 4 Handoff | 4.4 S1 (three-day handoff pack) | 4–5 days |
+| 5 Real sending | 4.3 step 2 (login, storage, scheduled sending) | Plan separately |
 
-每个阶段单独一个分支、单独给你预览，你说"可以"再做下一个。
+Each stage has its own branch and preview for you; proceed to the next only after you say "yes".
 
-## 6. 需要 Juanxi 先回答的问题
+## 6. Questions Juanxi must answer first
 
-1. **Phase 3 现在处于什么状态？** 路线图写的是 11/16–12/4 评估期间代码冻结。这些"其他社团团长"的测试是 Phase 3 的正式数据，还是之前的试跑？如果正式收数据已经开始或马上开始，改 onboarding（流程版本会从 `ob-4` 变成 `ob-5`）和导航会让前后两批数据不可比，哪些现在改、哪些等收完再改要你定。
-2. **1.3 的 5 个确认点。**
-3. **会动到已批准规则的几项，要你点头：** 每屏字数上限（1.4、1.5）；"三个截止日"改成界面上一个（2.1）；AI 被截断时自动重试一次（2.3 A）；提醒方式的问法（1.5 如果选 B）；导航改动（4.2）。
-4. **要不要打开服务器存储**（2.3 C 和 4.3 第 2 步都需要）。
-5. **真实发送用什么渠道、什么时候做**（4.3）。
+1. **What is Phase 3's current status?** The roadmap freezes code during the 11/16–12/4 evaluation. Are the "other club presidents'" tests formal Phase 3 data or preliminary trials? If formal collection has begun or is imminent, changing onboarding (flow `ob-4` → `ob-5`) and navigation makes the two cohorts' data incomparable. You must decide what changes now and what waits until collection ends.
+2. **The 5 confirmations in 1.3.**
+3. **Changes to approved rules requiring your approval:** screen word limits (1.4, 1.5); three deadlines reduced to one in the UI (2.1); one automatic retry after AI truncation (2.3 A); reminder-question wording (1.5 if B); navigation changes (4.2).
+4. **Whether to enable server storage** (required by 2.3 C and 4.3 step 2).
+5. **Channels and timing for real sending** (4.3).

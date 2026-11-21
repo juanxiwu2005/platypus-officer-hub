@@ -1,284 +1,284 @@
-# 工作流模板修复交付
+# Workflow-template fix handoff
 
-## 已实施方向：同队顺序小卡（2026-11-18，America/Phoenix）
+## Implemented direction: sequential same-team small cards (2026-11-18, America/Phoenix)
 
-此节取代下方静态研究的“待选择/未实装”状态。用户明确选择B1直连与固定小卡，并补充同队内部不并行、只显示短标题＋T-minus。本轮在原Setting入口实施，保留四个默认团队及其可改名称的稳定ID，46个任务原名称、Details、链接、估时、条件和学校规则不重写。
+This supersedes the static study's "awaiting selection/not implemented" below. User explicitly chose B1 direct connectors/fixed small cards, adding no same-team parallelism and short titles + T-minus only. Implemented in original Settings entry; retain four default teams with stable renameable IDs, without rewriting 46 original task names, Details, links, estimates, conditions, or school rules.
 
-- 每团队固定96px一行、132×52卡、156px槽，卡片只取完整标题前两词和引擎T标签；完整名称及属性留在Details。横轴是任务顺序，不宣称等比例时间；团队标题固定，手机在图内横向滚动。
-- `workflowSequence.ts`用现有引擎的原日期作为初始排序参考，再按全局拓扑投影团队序列，保留全部跨团队依赖，避免初次串联制造环。首次打开仅生成新的Settings草稿；raw版本比较确保Save draft/Save version真正写入新版本，v1不被派生画面冒充已保存。
-- 新增前/后、团队＋Task与批量录入自动接入同团队顺序，保留所选节点类别/业务条件；不再要求选择汇入分支、不再提供Add parallel。条件分支仍表示启用条件（AND），不是同队并行轨道。前置的当前团队上一步不可直接移除，可拖动重排；跨队交接仍可编辑。非法环/受保护学校前置整笔拒绝，Undo恢复完整记录。
-- `routing.ts`优先直线与近邻端口，再按长度/折弯代价在卡片间走正交路径；卡片及团队标签是障碍。相邻同队箭头直连，跨团队边仍可见。线双击无操作、黄色hover保持关闭。
-- 新保存内容显式带`teamExecution:"sequential"`，仅新flag的预览/执行按finish→start、工作日与个人缓冲排程。旧校准窗口的并行完成顺序不能直接用于本策略；初测只补链会把Drone推到T+31甚至更晚，已作为必须修正的配套排程问题处理，绝不靠改显示标签伪造日期。由引擎反推更早开工、保留原目标与硬期限，实际不足仍显示冲突。已有版本/活动/成果/提醒状态不回写；新建活动套用保存版本，Plan保持圆点执行图。
+- Fixed 96px row per team, 132×52 cards, 156px slots; cards show only first two words of full title plus engine T label, with full names/properties in Details. Horizontal axis is task order, not proportional time; team headers fixed, mobile scrolls horizontally inside graph.
+- `workflowSequence.ts` initially references existing engine dates, then projects team sequences from global topological order, retaining all cross-team dependencies to avoid cycles from initial chaining. First opening creates only a new Settings draft; raw-version comparison ensures Save draft/Save version actually writes new format, never disguising derived v1 display as saved.
+- Insert before/after, team +Task, bulk entry join same-team sequence automatically, retaining selected node kind/business conditions. No join-branch selection or Add parallel; conditional branches remain AND activation conditions, not parallel same-team tracks. Current previous team step cannot be removed directly, but drag reorder works; cross-team handoffs editable. Cycles/protected official prerequisite violations reject whole transaction; Undo restores full records.
+- `routing.ts` prioritizes straight paths/nearby ports, then orthogonal paths between cards by length/bend cost; cards/team labels are obstacles. Adjacent same-team arrows direct, cross-team edges visible. Double-clicking lines does nothing; yellow hover stays disabled.
+- New saves explicitly use `teamExecution:"sequential"`; only flagged previews/execution schedule finish→start with working days/personal buffers. Old calibrated parallel completion order cannot be applied directly: initial chaining alone pushed Drone to T+31 or later, treated as required scheduling fix, never hidden by false labels. Engine back-calculates earlier starts, preserving targets/hard deadlines; real shortages remain conflicts. Existing versions/events/results/reminder states not rewritten; new events use saved version, Plan retains dot execution chart.
 
-### 配套缺陷与真实日期
+### Related defects and actual dates
 
-原默认预览仅为today＋42天，完整46情况严格顺序后超出已知学期，旧日历GUARD会返回T-16941之类不能依赖的数字。没有修改GUARD、补造未知学期或把周末当工作日：预览参考改为today＋180天，当前完整模板在已知日历内；若另选日期仍越界，明确显示supported calendar提示、日期位为—。真实活动按表单所选情况过滤；严格顺序会让一些任务明显提前，学期假期也可能推迟收尾，这些是现有工作日规则的结果，不是改写原工期。预测模块也只对新flag采用完整个人缓冲，不再套用旧窗口已含缓冲的假设。
+The original default preview used today+42 days. Strict sequencing of all 46 situations exceeded the known semester, making the old calendar GUARD return unreliable numbers such as T-16941. Without changing GUARD, inventing unknown semesters, or treating weekends as working days, the reference preview now uses today+180 days, keeping the full template within known dates. Other out-of-range selections show a supported calendar message and — for dates. Actual events filter by selected situations. Strict sequence can bring tasks substantially earlier and semester breaks delay close-out; these follow existing working-day rules without changing original durations. Forecast also uses the full personal buffer only for the new flag, dropping the old assumption that windows already include it.
 
-实际浏览器还发现打开节点后保存标准v2再进入Plan会卡在Settings。根因是Library订阅RailContext，inline update身份变化触发子Details effect反复写回同一Context，饿死路由transition；稳定受控update回调后，真实点击Plan、保存/重开/创建活动已双端通过。测试中的Details标签定位也明确限定到textbox，避免误匹配侧栏region。
+Browser testing also found that after opening a node and saving standard v2, selecting Plan remained stuck in Settings. Library subscribed to RailContext; changing inline update identity repeatedly triggered child Details effects writing back to the same Context, starving route transitions. Stabilizing the controlled update callback fixed actual Plan clicks, save/reopen/event creation on both devices. Details-label tests now explicitly target textbox to avoid matching the sidebar region.
 
-真实[双端截图](../prototypes/workflow-compact-sequence/manifest.json)与[检查证据](workflow-compact-sequence-verification.json)已保存；核心10项双端浏览器、15文件180项最终单元/组件＋12文件169项数据/政策＋1预测对照分批通过，两个重叠文件26例去重后共26文件324例，并非全站重复跑。lint、前后端类型、生产build、独立CSS和9页字数均过，入口495,864/550,000；旧编辑器48项、补充边界/团队13项双端通过，另1旧手机鼠标专用跳过；含新10项合计71唯一浏览器通过。旧测试的同队前置禁用、缺省main分支语义两处预期已修复并定向复验，不把重复复验累加。日期不足/校历范围仍明确报错，不声称任何任意日期都可容纳整份模板。
+Actual [desktop/mobile screenshots](../prototypes/workflow-compact-sequence/manifest.json) and [verification evidence](workflow-compact-sequence-verification.json) saved; core 10 desktop/mobile browser, final 180 unit/component across 15 files +169 data/policy across 12 files +1 forecast comparison passed in batches; deduplicating 26 cases in 2 overlapping files yields 26 files 324 cases, not another full-site run. lint, frontend/backend types, production build, standalone CSS, 9-page word counts passed, entry 495,864/550,000; old editor 48 and extra boundary/team13 desktop/mobile cases passed, 1 old mobile mouse-only skipped; including new 10, 71 distinct browser passes. Fixed/rechecked old expectations for same-team prerequisite disabling and default main-branch semantics; repeated checks not added to totals. Insufficient date/calendar range still errors explicitly; no claim every arbitrary date accommodates whole template.
 
-实现分别在独立worktree完成布局路由、数据编辑器与独立验收/排程审查，沿用PR14；验证与截图见上。0真实产品AI/外部邮件，schema23不变，不合并main。PRODUCT_PLAN/RULES已同步，需要同步本地备份。
+Independent worktrees handled layout/routing, data editor, and independent acceptance/scheduling review, retaining PR14; evidence/screenshots above.0 real product AI/external email, schema 23 unchanged, no main merge. PRODUCT_PLAN/RULES synchronized; local backup needs synchronization.
 
 
-## 静态方案：紧凑卡片与连线路由（2026-11-18，America/Phoenix）
+## Static concepts: compact cards and connector routing (2026-11-18, America/Phoenix)
 
-用户反馈模块太大太长、紧接/并行步骤的线过度折返，要求多张静态方案比较。本轮交付6张1536×1024图片，**仅设计研究，未修改实际编辑器、绘图引擎或模板/活动数据**。位置均为示意，不是新排程；保留四队与原任务身份/工期/依赖，Plan仍是执行圆点，不与本Settings方案混用。图片与原件SHA-256见[清单](../prototypes/workflow-compact-routing-concepts/manifest.json)，本地布局证据见[JSON](../prototypes/workflow-compact-routing-concepts/layout-analysis.json)。六次生成＋一次A2时间轴校正，原生成图均保留，未制作HTML或做产品AI调用/邮件发送。
+User found the module too large/long and serial/parallel connectors excessively folded, requesting several static comparisons. Delivered six 1536×1024 images, **design research only, no actual editor/layout engine/template/event-data changes**. Positions illustrative, not a new schedule; retain four teams and task identities/durations/dependencies. Plan stays execution dots, separate from this Settings design. Images/original SHA-256: [manifest](../prototypes/workflow-compact-routing-concepts/manifest.json); local layout evidence: [JSON](../prototypes/workflow-compact-routing-concepts/layout-analysis.json). Six generations + one A2 timeline correction; originals retained, no HTML/product AI calls/emails.
 
-| 编号 | 静态图片 | 设计与取舍 |
+| ID | Static image | Design and tradeoffs |
 | --- | --- | --- |
-| A1 | [固定小卡片](../prototypes/workflow-compact-routing-concepts/A1-compact-cards.png) | 名称＋工期，负责人移至团队标题/详情；卡片宽度不再随长窗口扩张。尺寸为设计目标，不能把标签宽度当工期。 |
-| A2 | [文字＋细时间条](../prototypes/workflow-compact-routing-concepts/A2-thin-time-bars.png) | 文字独立于时间窗，保留跨度比较；时间条表达引擎算出的日历窗口，wd是工作日估计。 |
-| A3 | [可折叠任务组](../prototypes/workflow-compact-routing-concepts/A3-task-groups.png) | 同队内部把8步骤压为3组总览；组间连线聚合表示，展开再看具体依赖，明确不是等比例日历。分组不是新团队/业务分支/任务。 |
-| B1 | [就近端口直连](../prototypes/workflow-compact-routing-concepts/B1-direct-ports.png) | 邻近上下节点用底→顶，左右节点直接水平连；基础路由先直线、后少折弯、再必要避障。 |
-| B2 | [共享通道](../prototypes/workflow-compact-routing-concepts/B2-shared-corridors.png) | 分叉/AND汇合共用部分线段，显式接点；不能把无关交叉误画成汇合。接点不是新增业务任务。 |
-| B3 | [选中聚焦](../prototypes/workflow-compact-routing-concepts/B3-focus-connections.png) | 强调选中任务的直接前后关系，其余线保留背景；辅助阅读，不能代替B1/B2的布局与避障。 |
+| A1 | [Fixed compact cards](../prototypes/workflow-compact-routing-concepts/A1-compact-cards.png) | Name + duration; owner moves to team header/details; long windows no longer widen cards. Dimensions are design targets, label width is not effort. |
+| A2 | [Text + thin time bars](../prototypes/workflow-compact-routing-concepts/A2-thin-time-bars.png) | Text independent of time window, retaining span comparison; bar expresses engine calendar window, wd is working-day estimate. |
+| A3 | [Collapsible task groups](../prototypes/workflow-compact-routing-concepts/A3-task-groups.png) | Compress 8 same-team steps into 3 overview groups; aggregate group links, expand for exact dependencies; explicitly not proportional calendar. Groups are not new teams/business branches/tasks. |
+| B1 | [Direct nearby ports](../prototypes/workflow-compact-routing-concepts/B1-direct-ports.png) | Vertical neighbors bottom→top, horizontal neighbors directly horizontal; route straight first, fewer bends next, obstacle avoidance when needed. |
+| B2 | [Shared corridors](../prototypes/workflow-compact-routing-concepts/B2-shared-corridors.png) | Splits/AND joins share segments with explicit junctions; unrelated crossings never shown as joins. Junctions are not new business tasks. |
+| B3 | [Selection focus](../prototypes/workflow-compact-routing-concepts/B3-focus-connections.png) | Emphasize selected task's direct predecessors/successors, retain other lines in background; reading aid, no substitute for B1/B2 layout/obstacle avoidance. |
 
-同一示例为advisor→access→security→eams→permit，permit分出alcohol和drone，二者共同汇入schoolApproval（8节点、8边）。1/3/4/3/3/15/7/3工作日来自真实模板，均是situation-based故图中任务为琥珀色；无新规则或截止日。活动是否启用这些步骤仍由既有事实/条件过滤及依赖接续处理，不由绘图器擅自判断。A3组间边为总览抽象，不声称图中每条组线是一条可写回的任务边。
+The same example uses advisor→access→security→eams→permit, splitting into alcohol/drone, both joining schoolApproval (8 nodes, 8 edges). The 1/3/4/3/3/15/7/3 business-day durations come from the actual template; all are situation-based and therefore amber. No new rules/deadlines. Existing fact/condition filtering and dependency reconnection decide applicability, not the renderer. A3's intergroup edges are overview abstractions, not claims that each group line is a writable task dependency.
 
-### 当前代码根因（e2560f6）
+### Root causes in current code (e2560f6)
 
-- `timeline.ts`用max(176,日历窗口×18)作为任务宽度，间隔100px，首次可放置的内部轨道优先；没有依赖链连续性/交叉代价。同一窗口的步骤最后按key排序，可把Back-up Plan放在Event Plan前面，制造回连。
-- `WorkflowBuilder.tsx`固定从source右侧到target左侧，中心写死y+40；目标横向重叠时强制右侧走廊再回折，未测试其他卡片/共享通道。只缩CSS还会让端口坐标错位。
-- 示例几何对的旧折返4次；面对面的底→顶候选可零折弯。该JSON只说明单对坐标，不是全图性能测试/零交叉承诺。
+- `timeline.ts` uses max(176, calendar window×18) for task width, 100px gaps, first available internal track; no dependency continuity/crossing cost. Same-window steps finally sort by key, potentially putting Back-up Plan before Event Plan and creating backward links.
+- `WorkflowBuilder.tsx` always routes source-right to target-left, center hardcoded y+40; overlapping targets force a right corridor and return without checking other cards/shared channels. CSS-only shrinking also misaligns ports.
+- Example geometry pair previously made 4 bends; facing bottom→top candidate needs zero. JSON demonstrates one coordinate pair, not whole-graph performance or a zero-crossing guarantee.
 
-### 待选定后落地的引擎方案
+### Engine approach to implement after selection
 
-1. **数据/图形分离**：模板key、dependsOn、teamId、负责人及规则引擎日期为只读输入；分别计算任务标签框、真实时间窗口和日期锚点。A1固定卡片/A2细条不允许反向覆盖工期或日期。
-2. **同队内部排轨**：保持N队N容器；相同窗口先拓扑排序，连续链优先复用轨道，并行支放邻近子轨；以高度、依赖换轨和交叉综合评分，不能为拉直线而改实际日期。
-3. **四边端口**：从实际卡片bounds取动态中心/可用投影，不再写死+40。先测试无障碍直线（包括横向投影重叠的底→顶），再测L形/短Z形；均不可行时才在膨胀障碍框间找正交路径。绕行综合长度、折弯、交叉和通道拥堵，实际碰撞为硬约束。
-4. **真实共享通道**：只将同起点分叉/同目标AND组共用线段，保留每个source→target的对应关系与箭头。接点仅是绘图对象，不生成taskId、不增加/删除依赖、不强迫并行改串行。
-5. **聚焦与稳定**：选中节点时强调邻域，不恢复已关闭的黄色线hover；双击线继续无操作。增量重算移动节点及受影响边，减小其他卡片跳动；详情始终可核对完整前置。
-6. **交互与验证**：缩放/紧凑化改变px/day时，拖动换算必须与同一时间刻度模型一致，不能继续偷用固定18。覆盖同日同窗、长工作窗、上下交错、分叉/汇合/跨队、障碍、键盘/触屏、Undo及循环保护；静态图未完成这些交互验收。
+1. **Separate data/graphics:** template key, dependsOn, teamId, owner, rule-engine dates are read-only inputs; calculate label boxes, real time windows, date anchors separately. A1 fixed cards/A2 thin bars cannot overwrite durations/dates.
+2. **Within-team tracks:** N teams/N containers; topological ordering within same windows, continuous chains reuse tracks first, parallel branches use adjacent subtracks. Score height, dependency track changes, crossings together; never change real dates to straighten lines.
+3. **Four-side ports:** dynamic centers/projections from actual bounds, no +40 constant. First try clear straight paths (including bottom→top with overlapping horizontal projections), then L/short-Z; only then orthogonal paths between inflated obstacles. Minimize length/bends/crossings/congestion; actual collisions are a hard constraint.
+4. **Real shared channels:** share segments only for same-source forks/same-target AND groups, retaining each source→target/arrow. Junctions are drawing objects, create no taskId, add/remove no dependencies, never force parallel work into serial.
+5. **Focus/stability:** highlight selected-node neighbors; do not restore disabled yellow-line hover; double-click remains inert. Incrementally recalculate moved nodes/affected edges to reduce other-card jumping; full prerequisites remain in details.
+6. **Interaction/validation:** when zoom/compaction changes px/day, drag conversion uses the same time-scale model, not fixed 18. Cover same-day/window, long work windows, vertical interleaving, forks/joins/cross-team, obstacles, keyboard/touch, Undo/cycle guards; static concepts do not complete interaction acceptance.
 
-建议A1作为默认卡片，B1为基础、B2处理多分叉/汇合，B3按需聚焦；A2适合要重点看时间窗的视图，A3为长流程总览备选。当前只是可比较的方案，尚未实装或测量全图缩减比例/路由性能，不改main。需要同步本地备份。
+Recommend A1 default cards, B1 foundation, B2 for multiple forks/merges, B3 optional focus. A2 suits time-window-focused views; A3 is an alternative long-workflow overview. These are comparison concepts only, unimplemented; full-diagram reduction ratio/routing performance unmeasured. No main changes. Local backup sync required.
 
-## 默认团队已沿原设置恢复（2026-11-18）
+## Default teams restored from original settings (2026-11-18)
 
-用户纠正后，默认带齐Club leadership / Operations / Marketing / Finance与原46任务的1/25/8/12归属；直接打开模板就能使用，不再要求先手动建团队。名称可改，固定语义槽关联稳定teamId，旧用户显式配置/原任务及历史活动不改写。实现与验收见[编辑器交付说明](WORKFLOW_BUILDER_IMPLEMENTATION.md#团队默认修正2026-11-18)及[本轮证据](workflow-preset-teams-verification.json)。下方“首次先设置Teams”属于上轮历史流程，已被本修正取代。
+After the user's correction, defaults include Club leadership / Operations / Marketing / Finance with the original 46 tasks mapped1/25/8/12; templates work immediately without manually creating teams first. Names editable, fixed semantic slots linked to stable teamId; old explicit configurations/original tasks/historical events unchanged. See [editor handoff](WORKFLOW_BUILDER_IMPLEMENTATION.md#team-default-correction-2026-11-18) and [this round's evidence](workflow-preset-teams-verification.json). “Set Teams first” below describes the previous round and is superseded by this correction.
 
-## 人工模板编辑器实际实现与验收（2026-11-18，America/Phoenix）
+## Manual template editor implementation and acceptance (2026-11-18, America/Phoenix)
 
-用户已明确授权worktree多Agent实施，此节取代下方历史“仅设计、未实现”的当前状态。完整[实施/交付说明](WORKFLOW_BUILDER_IMPLEMENTATION.md)与[验证证据](workflow-builder-verification.json)。Settings → Workflow已接②团队时间轴/连线与①清单批录，目录/草稿/不可变版本、明确团队、独立活动实例与Plan点图已接通。全部旧标准key/任务ID/历史保留，不改schema23，不改实际任务的链接/Details内容设计，不制作其他预设，不启用隐藏服务器工作区，不合并main。
+User explicitly authorized multiple worktree agents; this section supersedes historical “design only/unimplemented” status below. Full [implementation/handoff](WORKFLOW_BUILDER_IMPLEMENTATION.md), [evidence](workflow-builder-verification.json). Settings→Workflow now has②team timeline/connections and①bulk list entry; catalog/drafts/immutable versions, explicit teams, independent event instances, Plan dotted graph connected. All old standard keys/task IDs/history retained, schema 23 unchanged, actual-task links/Details content design unchanged, no other presets, no hidden server-workspace enabling, no main merge.
 
-当前通过368相关单元/组件、57唯一工作流浏览器用例；另外各有1旧慢枚举未跑/设备限定跳过。鼠标与真实触屏拖动修改目标，锁定规则和business日期；创建活动不用AI生成工作流，custom不自动Plan AI review。发现并修复草稿Undo拒存、分支UUID校验、保存重开侧栏、Plan无效编辑入口。截图按实际产品保存，2–3分钟仍是待真人计时的目标。当前存储仍在同一浏览器，线上预览/CI在本环境403无法核实；需要同步本地备份。
+Currently 368 related unit/component and 57 unique workflow browser cases passed; additionally 1 old slow enumeration not run and 1 device-specific skip. Mouse/real touch dragging changes targets, locking rule/business dates; event creation does not use AI workflow generation, custom does not automatically run Plan AI review. Fixed rejected draft Undo, branch UUID validation, sidebar save/reopen, invalid Plan edit entry. Screenshots capture actual product; 2–3 minutes remains a target awaiting human timing. Storage is same-browser; online preview/CI unverified due to environment 403. Local backup synchronization is needed.
 
-## 已选方向与建议：Settings编辑、Plan点状执行、模板/任务身份（2026-11-18，America/Phoenix）
+## Selected Direction and Recommendations: Settings Editing, Dotted Plan Execution, Template/Task Identity (2026-11-18, America/Phoenix)
 
-**用户已选定的界面约束：** ②连线时间轴/团队泳道为主界面、①清单为快建入口，均位于 **Settings → Workflow**。保存后供社长创建活动/工作项目时选择；**Plan保留点状轨道图**，不把矩形规划卡片作为成员执行界面。模板编辑与实际任务执行采用不同渲染器，共用可转换的任务/依赖/团队/时间数据契约。团队数仍决定泳道数，一队一泳道；模板/任务身份不由画面坐标、顺序、颜色或名称决定。
+**Selected UI constraints:** ② connected timeline/team lanes as main interface, ① list as quick creation, both in **Settings → Workflow**. Saved templates selectable for president-created events/work projects; **Plan retains dotted tracks**, not rectangular planning cards as member execution UI. Template editing/execution use different renderers sharing convertible task/dependency/team/time contracts. Team count determines lane count, one per team; template/task identity never derives from coordinates/order/colors/names.
 
-以下为根据当前`9d9ccac`代码整理的**身份与实例化建议**，不是已实现功能或用户已经逐字段批准的数据schema。本轮只记录方向和方案，不启动编辑器/模板库/迁移/团队预备分支接入。
+The following **identity and instantiation recommendations** derive from current 9d9ccac code. They are neither implemented functionality nor a field-by-field user-approved schema. This round records direction/proposals only; no editor/library/migration/team-foundation integration begins.
 
-### 当前可复用基础
+### Current reusable foundations
 
-- `StepTemplate.key`已有模板步骤身份；`buildEventNodes`用`${event.id}:${step.key}`生成本次活动Node.id，并将所有dependsOn同步重映射为活动任务ID。不同活动已有独立任务对象，不需要从零设计这一层。
-- `stepsAsNodes(steps,"wf")`是编辑器的示例投影，其节点id只是step.key；不能把用于预览的wf节点、假日期或DOM几何位置直接当作正式活动任务保存。
-- Node保存stepKey，实际任务详情/状态/成果/提醒依赖实际Node.id。Plan中的圆点可继续绑定该任务ID，无需再造独立pointId或另一套任务状态。
-- 多模板仍缺模板ID、独立版本及完整来源引用；现有key初建时来自名称slug，不能扩展为按标题查找/改名重建ID。现有标准key还承载学校规则和里程碑语义，后续适配需保留legacyKey/语义标记，不能直接换掉全部标准key。
+- `StepTemplate.key` already identifies template steps; `buildEventNodes` generates this event's Node.id as `${event.id}:${step.key}` and remaps every dependsOn to event-task IDs. Events already have independent task objects; no need to invent this layer.
+- `stepsAsNodes(steps,"wf")` is the editor's sample projection, with step.key as node id; never save preview wf nodes, fake dates, or DOM geometry directly as actual event tasks.
+- Node stores stepKey; actual Details/status/results/reminders depend on Node.id. Plan dots can keep binding to it, without a separate pointId/task-state system.
+- Multiple templates still need template IDs, independent versions, full provenance. Keys initially come from name slugs; do not extend this into title lookup/rename-based ID rebuilding. Standard keys also encode school-rule/milestone semantics; preserve legacyKey/semantic markers rather than replacing them wholesale.
 
-### 推荐身份层次
+### Recommended identity hierarchy
 
-| 标识 | 何时建立／何时保持 | 用途 |
+| Identifier | Created / retained when | Purpose |
 | --- | --- | --- |
-| templateId | 新建一份模板时自动建立；改名保持；另存为另一模板则新建 | 模板库选择、组织归属及追溯 |
-| templateVersion | 保存可用版本时形成不可变版本；编辑草稿不改既有已用版本 | 固定本次活动采用的任务定义 |
-| templateStepId | 新增任务步骤时建立稳定ID；名称、Details、主责、时间、位置变化不换ID | 模板内依赖和团队映射引用；同一模板的新版本保留未替换步骤的身份 |
-| workflowRunId | 每次将模板用于一个活动/工作项目时建立；重试同一次创建沿用 | 将一次执行与模板、父活动/工作项目关联；同一活动未来多次使用同一模板也互不冲突 |
-| taskId | 每个运行中的步骤得到一个独立任务ID；状态、成果和点状轨道图均使用它 | 打开实际任务、更新进度/负责人/成果及提醒入口 |
+| templateId | Automatically on new template; retained on rename; new when saving as another template | Library selection, organization ownership, traceability |
+| templateVersion | Immutable when saving usable version; draft edits do not alter existing used versions | Freeze this event's task definitions |
+| templateStepId | Stable ID on new step; name/Details/owner/timing/position changes retain it | In-template dependencies/team mapping; new versions retain identity of unreplaced steps |
+| workflowRunId | Each application to event/work project; retry of same creation reuses it | Connect run to template/parent event/work project; future repeated uses on same event do not conflict |
+| taskId | Independent task ID for each run step; used by status/results/dot-track chart | Open actual task, update progress/owner/results, reminder entry |
 
-模板和新步骤可用系统UUID自动生成稳定身份，用户不填写或看见长ID。taskId的推荐**语义唯一键**是`(workflowRunId, templateStepId)`，可由统一ID工厂稳定生成，参考保留工作区的stableId方式；当前旧Node.id/stepKey不改、不重新编号，保留既有任务和提醒链接。新格式须经现有长度/字符与schema约束验证，不盲目在36字符UUID前追加长前缀突破旧40字符key上限。
+System UUIDs can automatically give templates/new steps stable identities; users neither enter nor see long IDs. Recommended **semantic unique key** for taskId is `(workflowRunId, templateStepId)`, generated stably by one ID factory, following retained workspace stableId approach. Existing Node.id/stepKey remain unchanged and unrenumbered, preserving tasks/reminder links. Validate new format against existing length/character/schema constraints; do not blindly prefix 36-character UUIDs past old 40-character key limit.
 
-稳定ID本身不能代替幂等保存：同一次创建使用同一requestId/runId，固定所选版本，对run-step建立唯一约束或在现有存储中等效校验，整批创建任务与依赖；重试返回原结果，不追加重复任务，也不覆盖已经写入的进度。删除后再建同名步骤得到新身份；复制步骤/另存模板需要重建相应ID并一次重映射内部连线，可保留copiedFrom用于来源追溯。
+Stable IDs alone do not replace idempotent saving: reuse requestId/runId for one creation, pin selected version, enforce unique run-step pairs or equivalent storage validation, and create tasks/dependencies in one batch. Retries return original results, without duplicate tasks or overwriting recorded progress. Deleting/recreating a same-name step creates a new identity; copying steps/saving as another template regenerates corresponding IDs and remaps internal connections together, optionally retaining copiedFrom for provenance.
 
-### 创建活动时如何套用
+### Applying it when creating an event
 
-1. 社长选择已保存的templateId/version，并填写活动日或目标日、必要事实与岗位/团队绑定。
-2. 读取并冻结该版本的任务图、Details、条件/业务分支、团队映射、岗位引用、工作日时长和T±目标，形成执行快照。团队/岗位引用读取组织设置，解析现任执行人；没有负责人时保留明确待分配，不按姓名猜。
-3. 创建workflowRun及初始任务记录；为适用步骤建立`templateStepId → taskId`映射，依赖统一从源步骤ID改为本次任务ID。沿用现有跳过不适用节点的依赖接续机制，不能留下指向未生成步骤的关系。
-4. 规则引擎按真实日期、工作日、依赖与缓冲计算时间，不需要AI生成任务或日期。完成状态、旧活动成果、材料、通知记录不从别的执行复制过来。
-5. 一次保存该执行与任务，Plan按实际taskId画点、按团队ID画泳道，点击圆点打开现有任务详情。日期变更、提醒、进度和材料始终落在这条实际任务上。
+1. President selects saved templateId/version, enters event/target date, necessary facts, role/team bindings.
+2. Read/freeze version graph, Details, conditions/business branches, team mapping, role references, business-day durations, T± targets as execution snapshot. Resolve current people from organization team/role settings; missing owners remain explicitly unassigned, no name guessing.
+3. Create workflowRun/initial tasks; map `templateStepId → taskId` for applicable steps, rewrite dependency source-step IDs to this run's task IDs. Reuse dependency reconnection around inapplicable steps; no links to ungenerated steps.
+4. Rule engine calculates dates from actual dates, business days, dependencies, buffers; no AI tasks/dates. Do not copy completion, old-event results, materials, notifications from another run.
+5. Save run/tasks once; Plan draws actual taskId dots/team-ID lanes; dots open existing task details. Date changes/reminders/progress/materials stay on that actual task.
 
-例如模板v3中的“安排交通”是同一个来源步骤；四月参访生成任务A、五月参访生成任务B，各自状态、截止日、负责人和成果独立。改模板得到v4默认只影响以后创建的活动，既有活动继续使用v3快照。以后若提供“采用新版本”，须另做影响预览和明确合并，保留已完成与人工修改，不能实时读取可变模板而改写历史执行。
+For example, “arrange transportation” is one source step in template v3; April's visit generates task A, May's generates task B, with independent status, deadline, owner, results. Template v4 affects future events by default; existing events retain v3 snapshots. Any later “adopt new version” needs impact preview/explicit merge, preserving completed/manual edits, not live reads of mutable templates rewriting historical execution.
 
-### 复用方式与团队接口
+### Reuse and team interface
 
-高效做法是**一个规范的图数据层＋一次批量实例化＋两种渲染**：Settings方块/条形编辑模板定义，Plan圆点显示任务执行。预计算一步映射后重写节点/连线，不逐任务调用AI，不为方块和圆点分别创建业务记录。版本/执行快照负责历史稳定，内部ID负责关联；不需要为省少量模板数据而先引入复杂的共享可变对象。
+Efficient approach: **one canonical graph data layer + one batch instantiation + two renderers**. Settings rectangles/bars edit templates; Plan dots show execution. Precompute step mapping, rewrite nodes/edges; no per-task AI or separate business records for rectangles/dots. Version/run snapshots preserve history; internal IDs link records. Saving a little template data does not justify complex shared mutable objects.
 
-保留`TEAM_WORKFLOW_ADAPTER_READY.md`的独立P1/一队一泳道预备分支，统一接入时把其团队映射与模板版本一起快照、通过同一个步骤→任务映射转换到执行；团队分组、具体主责、业务分支、前置依赖仍是独立维度。不能把teamId当任务ID，也不能把团队泳道操作接到现有按岗位换业务分支的reassignWorkflowStep上。本轮未合并或改动该预备代码。
+Retain the independent P1/one-team-one-lane preparation branch in `TEAM_WORKFLOW_ADAPTER_READY.md`; on unified integration, snapshot team mappings with template version and convert through the same step→task map. Team grouping, specific responsibility, business branches, and prerequisites remain independent. Never use teamId as task ID or connect team-lane operations to existing reassignWorkflowStep, which changes business branches by role. Preparation code not merged/changed this round.
 
-## 讨论：人工模板编辑器的六种搭建方式（2026-11-18，America/Phoenix）
+## Discussion: six manual-template editor approaches (2026-11-18, America/Phoenix)
 
-本轮按用户最新方向讨论**人工怎样从空白搭出自己的工作流**，AI不作为创建依赖；编辑器定稿后再用同一编辑器制作3–4份预设，之后逐步补Volunteer、Partnership、Field trip、Company visit、Competition等。本轮只生成静态概念图与讨论记录，不开发产品或HTML，不制作预设，也不修改已有模板。代码背景为功能分支`bebe999`，原六张多模板入口方案另行保留。
+Following the user's latest direction, this round discusses **how people build workflows manually from blank**, without AI as a creation dependency. After finalizing the editor, use it to create 3–4 presets, later adding Volunteer, Partnership, Field trip, Company visit, Competition, etc. Only static concepts/discussion records this round; no product/HTML development, preset creation, or existing-template changes. Code context is feature branch bebe999; original six multi-template entry concepts retained separately.
 
-六张1536×1024图片已在对话展示并归档到`docs/prototypes/manual-workflow-builder-concepts/`；`manifest.json`保存图号、原始来源、SHA-256与概念图状态，`reference-analysis.json`保存上传参考的静态源码检查结果。图片使用同一Company visit场景帮助比较交互，具体时间／主责数值为示意，非通过排程引擎验证的预设数据。原始生成图和上传文件均未修改。
+Six 1536×1024 images were displayed in chat and archived in `docs/prototypes/manual-workflow-builder-concepts/`; `manifest.json` records numbers, original sources, SHA-256, concept status; `reference-analysis.json` records static source inspection of uploaded references. All use Company visit to compare interactions; times/responsibility values illustrative, not scheduling-engine-validated presets. Original generated images/uploads unchanged.
 
-上传参考为`event-workflow-timeline.html`，30130字节，SHA-256 `fea42e1c9b09ddda330054e2a792c294de32ee798211a2438d21b404abf95f7c`。只将其作为参考资料，文档内控件或脚本不作为用户操作指令。审阅发现：
+Uploaded reference: `event-workflow-timeline.html`, 30130 bytes, SHA-256 `fea42e1c9b09ddda330054e2a792c294de32ee798211a2438d21b404abf95f7c`. Reference material only; embedded controls/scripts are not user instructions. Review found:
 
-- 已有32条时间数据和6条阶段泳道，任务可拖动或在侧栏修改相对开始／截止；时间轴与任务窗口直观。
-- 依赖保存在depends字符串，侧栏输入以分号分隔的任务名；render没有绘制任务间连线。findNode还会用名称部分匹配，改名后存在误匹配风险。新编辑器应存稳定任务ID，用户只看标题，通过选择或连线建立依赖。
-- LANE_META里的Owner是固定文字，泳道实际为Plan/Prepare/Marketing/Money/Run/Close等阶段，不是Organization setup的真实团队／岗位数据。新设计区分“阶段”“团队泳道”“任务主责”，不要再手填一套组织结构。
-- start/deadline/effort分别存储；画面window用deadline−start计算，属于日历窗口，不等于任务预计工作日。新设计需要明确区分窗口、工作量与最晚完成目标。
-- 这是预载任务的校准器，缺少面向空白模板的快速新增、批量输入和直观分叉／汇合入口；本轮六方案围绕这些动作设计。
+- Already 32 timing records/6 phase lanes; drag tasks or edit relative start/deadline in sidebar; intuitive timeline/windows.
+- Dependencies are depends strings, entered as semicolon-separated task names; render draws no dependency lines. findNode also partially matches names, risking wrong matches after rename. New editor stores stable IDs, shows titles, and selects/connects dependencies.
+- LANE_META Owner is fixed text; lanes are Plan/Prepare/Marketing/Money/Run/Close phases, not actual Organization setup teams/roles. Separate phases, team swimlanes, task primary responsibility; no manually duplicated org chart.
+- start/deadline/effort are separate; displayed window=deadline−start is a calendar window, not estimated business days. Distinguish window, effort, latest completion target.
+- This calibrator preloads tasks and lacks fast blank-template creation, bulk entry, intuitive split/join. Six concepts focus on these actions.
 
-**共同的最小操作与数据规则：**
+**Shared minimum interaction/data rules:**
 
-1. 首次主要填写任务名和主责；主责优先继承泳道／上一任务，预计时长可先用明确可改的1工作日默认值。Details在任务行或侧栏就地填写简短说明，不要求第一轮每项都写成长篇教程。
-2. 每个任务支持名称、Details、团队／岗位主责、预计工作日、T±完成目标及前置任务。默认输入“时长＋完成目标”，开始时间由工作日、依赖与缓冲推算；固定开始／更早开放窗口放进更多时间选项，不强迫新手把三者全部手填。时长默认值不是AI或系统声称的校准结果。
-3. T0在模板中是活动日或项目目标日；T±偏移用日历日，预计工时用工作日，两者标明。模板不必先填真实年月日，可选预览日期；创建具体活动／工作项目后再按当前工作日历计算开始日期，不能简单用T-7减两天就认定T-9开始。
-4. 组织设置→主责选择器→模板引用稳定roleId／未来teamId→具体活动解析现任负责人。当前运行时已有Role.id/holderId可复用，v3团队独立模型仍是原稿，不能把团队接入画成已经完成。未来接正式团队模块时共用同一来源，不在编辑器重建团队／成员名册。团队可默认主责岗位，空岗明确待分配，不随机指派另一人。
-   并行工作`24c69c8`已记录P1与一队一泳道模块的独立接入边界。本轮保留该记录，后续正式适配按每team恰好一泳道：岗位作为队内任务主责选择，不因多岗位或活动前后段多开泳道；阶段列／里程碑与团队泳道是不同维度。概念图的标签是交互示意，实际泳道必须从同一团队清单派生。
-5. 箭头统一表示“前项完成后，后项才可开始”；并行必须明确选择，两项前置默认全部满足才通过。点击“前置任务”选择与端点连线是同一数据操作，不能只有鼠标拖线。加任务时使用“下一步／并行／汇合”，明确显示新关系，不按相邻位置偷偷推断。
-6. 拖动时间只改时间约束，跨泳道改主责不改原依赖，连线才改依赖。沿用双击连线无操作的决定。图复杂时默认淡线，选择节点强调上下游；拒绝循环并保留Undo。时间冲突先显示受影响节点和可选调整，不沿用参考里的无预览自动修复。
-7. 类别、适用条件、审批、协作岗位、精确开始约束等按需展开。依赖ID、岗位引用、时间约束是编辑器所有视图共用的一份数据；未来AI若接入，只能通过同一组受验证操作提出变更，不靠重新生成整套界面或直接写状态。
+1. Initially enter mainly task name/primary responsibility; inherit responsibility from lane/previous task where possible, with explicit editable 1-business-day duration default. Enter brief Details inline/sidebar, without requiring long tutorials for every first-pass task.
+2. Each task supports name, Details, team/role owner, estimated business days, T± completion target, prerequisites. Default “duration + completion target”; derive start from business days, dependencies, buffers. Fixed start/earlier opening windows belong in additional timing options; do not force beginners to enter all three. Default duration is not claimed as calibrated by AI/system.
+3. T0 means event day/project target day in template; T± uses calendar days, effort uses business days, label both. No real date required initially; optional preview date. Calculate starts with current work calendar only after creating the event/work item; T-7 minus two days does not automatically mean T-9 start.
+4. Organization setup→owner selector→stable roleId/future teamId template reference→resolve current holder for event. Reuse Role.id/holderId; independent v3 team model is still a draft, not completed integration. Future formal teams share one source, no duplicate team/member roster in editor. Team may default to a role; vacancies stay unassigned, not randomly reassigned.
+   Concurrent `24c69c8` records independent P1/one-team-one-lane integration boundaries. Preserve that record; formal integration uses exactly one lane per team, with roles as within-team owner choices, not extra lanes for multiple roles/pre/post-event portions. Phase columns/milestones and team lanes are separate dimensions. Concept labels illustrate interaction; actual lanes derive from the same team list.
+5. Every arrow means “finish predecessor before successor can start”; explicitly select parallel work; two prerequisites default to all required. Prerequisite selection and endpoint connections are the same operation, not mouse-only. Add tasks through “next/parallel/join, ”showing relationships explicitly, never inferring from adjacency.
+6. Time dragging changes only timing constraints; moving lanes changes ownership without dependencies; connecting changes dependencies. Retain double-click-line no-op. Complex charts default to faint lines, highlighting upstream/downstream on selection; reject cycles, retain Undo. Timing conflicts first show affected nodes/options, not the reference's automatic unpreviewed fixes.
+7. Expand category, conditions, approval, collaborator roles, precise start constraints on demand. All views share dependency IDs, role references, timing constraints. Future AI proposes changes through the same validated operations, not whole-interface regeneration/direct state writes.
 
-**六种具体编辑器方案：**
+**Six concrete editor concepts:**
 
-| 编号 | 主要搭建动作 | 如何建立依赖与时间 | 优势／取舍 |
+| Number | Main building action | Dependencies and time | Benefits/tradeoffs |
 | --- | --- | --- | --- |
-| [1 清单快建＋连线预览](../prototypes/manual-workflow-builder-concepts/01-task-sheet.png) | 粘贴多行任务名，Enter续行，在表格内选负责人／工作日／T目标，展开Details | 前置任务选项生成图；可明确将一组设为顺序或并行，图旁实时预览 | 键盘录入最快、便于批改；复杂图的空间关系不如大画布直观 |
-| [2 连线时间轴＋团队泳道](../prototypes/manual-workflow-builder-concepts/02-connected-timeline.png) | 直接在现有岗位泳道的时间位置点＋加任务，侧栏编辑其余字段 | T轴表达时间，跨泳道正交箭头表达真实前置；连接模式或前置选择器均可加关系 | 最接近上传参考，时间／分工同时清楚；节点多时需要缩放、叠放及选择性强调连线 |
-| [3 依赖卡片画布](../prototypes/manual-workflow-builder-concepts/03-dependency-canvas.png) | 用＋下一步、＋并行、汇合逐步长出任务图，自动整理位置 | 先定结构，卡片显示工作日与T目标；日期由规则引擎反推，位置本身不代表日期 | 分叉／汇合最清楚；必须保留默认自动布局，不能要求新手从零自由摆节点 |
-| [4 团队接力板](../prototypes/manual-workflow-builder-concepts/04-team-first.png) | 先从组织设置选择已有团队／岗位，生成泳道，在泳道里批量加任务 | 同队默认主责，跨队箭头就是交接；每任务T目标与工作日可内联改 | 分工最直观、少重复选人；时间精度需要辅助时间轴／字段，不让团队列冒充时间顺序 |
-| [5 里程碑分段](../prototypes/manual-workflow-builder-concepts/05-milestone-builder.png) | 先定3–4个可改名的阶段／目标，再往阶段加任务 | 阶段目标为倒排锚点，组内可并行，显示任务级箭头和全部前置汇合；单任务可覆盖T目标 | 减少逐项设日期，长流程可折叠；需要避免把整阶段强制串行或所有任务设成同一截止日 |
-| [6 逐步任务向导](../prototypes/manual-workflow-builder-concepts/06-guided-task-composer.png) | 每次只看一张任务表单，填完点“加下一步／加并行”，右侧流程逐渐长出 | 选择等待哪项，时长＋完成目标，开始Auto；继承上一次主责／时长减少重复 | 初次最不容易迷路；任务较多时反复表单会慢，应随时可切清单批量编辑 |
+| [1 Quick task sheet + connection preview](../prototypes/manual-workflow-builder-concepts/01-task-sheet.png) | Paste multiline task names, Enter for next row, select owner/business days/T target in table, expand Details | Prerequisite selections generate graph; explicitly sequence/parallelize groups, live graph preview | Fastest keyboard input/bulk edits; less spatial clarity than large canvas for complex graphs |
+| [2 Connected timeline + team lanes](../prototypes/manual-workflow-builder-concepts/02-connected-timeline.png) | Click＋at time position in existing role lane, edit other fields in rail | T axis for time, cross-lane orthogonal arrows for actual prerequisites; connect mode or prerequisite selector | Closest uploaded reference, time/division clear; many nodes require zoom, stacking, selective connection emphasis |
+| [3 Dependency-card canvas](../prototypes/manual-workflow-builder-concepts/03-dependency-canvas.png) | Grow graph with＋next, ＋parallel, join; automatic placement | Structure first; cards show business days/T target; rule engine works backward, position itself is not a date | Clearest forks/joins; retain default auto-layout, never force novices to place everything freely |
+| [4 Team relay board](../prototypes/manual-workflow-builder-concepts/04-team-first.png) | Select existing teams/roles from organization settings, create lanes, bulk-add tasks | Same-team default responsibility, cross-team arrows handoff; inline task T targets/business days | Clearest ownership, less repeated person selection; time accuracy needs timeline/fields, team columns must not imply chronology |
+| [5 Milestone sections](../prototypes/manual-workflow-builder-concepts/05-milestone-builder.png) | Define 3–4 renameable stages/targets, then add tasks | Stage targets are backward-scheduling anchors; parallel within group, task arrows/all prerequisite joins shown; individual T override | Fewer date entries, collapsible long flows; avoid serializing whole stages or one deadline for every task |
+| [6 Guided task composer](../prototypes/manual-workflow-builder-concepts/06-guided-task-composer.png) | One task form at a time, “add next/add parallel,” graph grows on right | Choose prerequisite, duration/completion target, start Auto; inherit previous responsibility/duration | Easiest first time; many repetitive forms slow, always allow switching to bulk sheet |
 
-建议**2作为主编辑视图，1作为同数据的快速录入视图**，共享Details侧栏和同一依赖模型；可借3的下一步／并行／汇合按钮，按需要再引入5的阶段折叠。4适合组织分工强的社团，6适合第一次只搭5–6项的人。六张图是六种可比较交互，并不意味着要开发六套引擎。
+Recommend **2 as primary editor, 1 as quick entry for the same data**, sharing Details rail/dependency model; borrow 3's next/parallel/join buttons, add 5's collapsible stages if needed.4 fits organizations with strong team divisions; 6 fits first-time users building 5–6 tasks. Six comparable interactions do not require six engines.
 
-**2–3分钟目标的测量范围：** 已有大致工作思路、组织岗位已设置，搭出5–8个任务、2–3个主责、1–2个并行分支的首版；包含简短Details、主责、预计时长、相对目标及依赖检查。不是在2分钟内完成46项专业模板、全部政策解释和新人教程。可设150–180秒验收任务：起名／选锚点→批量列任务→继承或调整主责→设置少量完成目标→确认分叉／汇合→保存。此为设计目标与估算，静态图没有实际交互，尚未做新手计时测试。
+**2–3-minute measurement scope:** an existing rough plan and configured roles, first version with 5–8 tasks, 2–3 primary owners, 1–2 parallel branches; includes brief Details, ownership, estimated duration, relative targets/dependency checks. Does not mean completing 46 specialist tasks/all policy explanations/newcomer tutorials in 2 minutes. A150–180-second acceptance task could be name/anchor→bulk tasks→inherit/adjust owners→set a few targets→confirm split/join→save. Design target/estimate only: static images have no interaction, no novice timing test yet.
 
-## 研究：多个工作流与六种静态方向（2026-11-17，America/Phoenix）
+## Research: multiple workflows and six static directions (2026-11-17, America/Phoenix)
 
-基于功能分支`1e0ef5a`审阅；本轮只做代码研究、离线纯函数验证及六张概念图，没有改src、表单、存储、规则或构建，也没有制作HTML原型。图片展示的是未来方案，不表示相关功能已经上线。
+Reviewed feature branch `1e0ef5a`; this round only code research, offline pure-function validation, six concept images; no src/forms/storage/rules/build changes or HTML prototype. Images are future proposals, not evidence of deployed functionality.
 
-六张1536×1024 PNG已在对话展示并原样归档到`docs/prototypes/multiple-workflow-concepts/`，`manifest.json`保存图号、说明、原始来源文件及SHA-256；`audit-evidence.json`保存下述离线验证结果。图内模板数与工作进度是布局示例，非当前运行数据；旧v1/v2/v3原稿均未改。
+Six 1536×1024 PNGs displayed in chat and archived unchanged to `docs/prototypes/multiple-workflow-concepts/`; `manifest.json` stores number/description/original source/SHA-256; `audit-evidence.json` stores offline checks below. Template counts/progress in images illustrate layout, not current runtime data; old v1/v2/v3 originals unchanged.
 
-**结论：现有任务／依赖／岗位／条件／日期计算可以复用；当前Plan并不是通用的多模板工作流系统。** 5、10、20是模板目录规模，不能与同时运行多少活动混为一谈。要保存多份模板、在创建时选择、让内部事务拥有独立规则，仍需要模板层与通用工作项实例层；性能上限本轮未基准测试。
+**Conclusion: existing tasks/dependencies/roles/conditions/date computation reusable; current Plan is not a general multiple-template workflow system.** 5, 10, and 20 describe catalog size, not simultaneous events. Saving/selecting multiple templates and independent internal-work rules require template/general work-item instance layers; no performance ceiling benchmark this round.
 
-| 问题 | 当前代码事实 | 扩展所需 |
+| Question | Current code | Extension needed |
 | --- | --- | --- |
-| 能运行多个计划吗 | `DemoState.events[]`能存多个活动，各自Node.eventId、分支快照及任务内容独立；MetroChart按eventId绘图 | 保留实例隔离，Plan列表增加工作类型与模板来源 |
-| 能任选多份模板吗 | `Org.eventWorkflow`是单个对象；Settings仅编辑这一份，newObjects创建活动统一读取orgSteps；create_event命令没有templateId，Event.playbookId目前只是写入的字符串，不是模板注册表路由 | Template列表、稳定模板ID／版本、创建入口选用与受验证命令传递、每实例定义快照 |
-| 内部Board事务是否已有基础 | 当前独立任务以eventId=null创建，能做单项任务；没有自己的workflow/project父对象，不能把一组内部任务当成有完整生命周期的独立计划管理。另一套workspace存在WorkItem与executive_work | 使用通用工作项聚合与独立项目ID，区分单任务／多步骤计划，不用虚构公众活动和人数来塞内部工作 |
-| 轻量模板能否只留几步 | stepsFor在当前创建路径有checks时补齐31个核心活动步骤，checkWorkflow也要求这些标准步骤与ASU步骤；分支、阶段、主干布局仍以活动为中心 | 分开通用图校验与各类适用的规则配置；Full Check、Headcount等仅属于需要它们的流程。适用的采购、出行、学校审批仍按事实保留 |
-| 是否只要启用另一套工作区 | src/workspace已有member_event/executive_work、任务依赖、模板快照和版本；但PhaseOne/接口默认受ORG_SETUP_ENABLED隐藏，和当前Plan是独立模型、存储及页面 | 先决定统一的数据契约与迁移／适配策略，接回现有提醒、材料提交与归档；不直接开启开关当作完成迁移，不再新建第三套引擎 |
+| Multiple plans? | `DemoState.events[]` stores multiple events, separate Node.eventId/branch snapshots/task contents; MetroChart renders by eventId | Preserve instance isolation; Plan list adds work type/template source |
+| Choose multiple templates? | `Org.eventWorkflow` single object; Settings edits it, newObjects reads orgSteps for all events; create_event has no templateId, Event.playbookId merely stored string, not registry routing | Template list/stable IDs/versions/creation selection/validated command propagation/per-instance definition snapshot |
+| Internal Board-work foundation? | Standalone tasks eventId=null, individual work only; no workflow/project parent for lifecycle-managed internal plan. Separate workspace has WorkItem/executive_work | General work-item aggregation/project ID; distinguish task/multistep plan, no invented public event/attendance for internal work |
+| Few-step lightweight templates? | Current stepsFor supplements 31 core event steps when checks present; checkWorkflow requires standard/ASU steps; branch/phase/spine layout event-centered | Separate general graph validation/applicable rule profiles; Full Check/Headcount only where needed, applicable purchasing/travel/school approvals factually retained |
+| Just enable other workspace? | src/workspace has member_event/executive_work, dependencies, template snapshots/versions, but PhaseOne/endpoints default hidden by ORG_SETUP_ENABLED; separate models/storage/pages from Plan | Decide unified contract/migration-adaptation, reconnect reminders/submissions/archive; enabling flag is not migration, no third engine |
 
-离线反例：标准EVENT_STEPS为46项、CORE_EVENT_STEP_KEYS为31项；请求只有contact-partner一步且checks={}的模板，stepsFor返回32项；该一项模板还会被checkWorkflow阻止保存。只改变Event.type由speaker到meeting而不改变事实，选出的步骤完全相同，因此type标签不能当成多模板选择器。新OrgFlow的nodes schema上限40，直接装当前46节点形状会被拒绝，说明两套结构不能无适配互换。对应源文件：`src/data/types.ts:123/145`、`src/data/changeReview.ts:60`、`src/lib/commands.ts:8`、`src/engine/playbooks.ts:244`、`src/engine/workflow.ts:192`、`src/organization/schema.ts:81`。
+Offline counterexamples: standard EVENT_STEPS46, CORE_EVENT_STEP_KEYS31; template requesting only contact-partner with checks={} returns 32 from stepsFor; checkWorkflow also blocks saving the one-step template. Changing only Event.type speaker→meeting without facts selects identical steps; type label is no multiple-template selector. New OrgFlow nodes schema cap 40 rejects current 46-node shape, proving adaptation needed. Sources: `src/data/types.ts:123/145`, `src/data/changeReview.ts:60`, `src/lib/commands.ts:8`, `src/engine/playbooks.ts:244`, `src/engine/workflow.ts:192`, `src/organization/schema.ts:81`.
 
-另一套工作区也尚无20份预设模板库：`netlify/lib/workspace/runtime.mts:161`对member_event统一取确认过的memberFlow，对executive_work接受input.flow，否则生成三步后备流程；`templateVersion`是组织contextVersion，缺少独立模板ID及各模板版本。`CreateWorkForm`没有模板库选择器。可复用其WorkItem/Task/flow快照思想，不能把已有代码说成当前网站已支持任意预设或任意工作流。
+The other workspace also lacks a 20-preset library: `netlify/lib/workspace/runtime.mts:161` uses confirmed memberFlow for all member_event, accepts input.flow for executive_work or creates three-step fallback. `templateVersion` is organization contextVersion, without separate template IDs/versions. `CreateWorkForm` has no library picker. Reuse WorkItem/Task/flow snapshot ideas, but never claim current site supports arbitrary presets/workflows based on this code.
 
-建议共有基础：内置模板与本社团副本分开；模板记录ID、名称、工作类型、版本、任务图、岗位绑定、日期锚点和适用规则；创建时复制结构与版本到实例，不复制旧负责人、日期、完成状态或成果附件。新版本默认只影响未来计划。内部事务的目标完成日与公众活动发生日分开，日期仍由规则引擎计算。不同社团独立保存自己的模板，不自动共享组织内容。
+Recommended common foundation: separate built-in templates/club copies. Templates store ID, name, work type, version, graph, role bindings, date anchors, applicable rules. Creation copies structure/version, not old owners/dates/completion/results attachments. New versions affect future plans by default. Internal-work target completion differs from public event date; rule engine still calculates dates. Clubs store templates independently, with no automatic sharing.
 
-六张静态方案体现不同的使用逻辑，均是提案，未实施：
+Six static proposals express different usage patterns; all remain unimplemented:
 
-| 方案 | 主要入口／组织方式 | 优势与取舍 |
+| Concept | Main entry / organization | Benefits and tradeoffs |
 | --- | --- | --- |
-| [A 模板库优先](../prototypes/multiple-workflow-concepts/A-template-library.png) | 搜索、分类、收藏，查看预览后使用 | 最直接，5–20份易理解；用户仍需判断选哪份 |
-| [B 目标优先问答](../prototypes/multiple-workflow-concepts/B-goal-first.png) | 先说明想做什么，回答少量事实，再确认推荐流程 | 减少选错；需要清晰可解释的匹配，不能AI暗中创建 |
-| [C 双工作台](../prototypes/multiple-workflow-concepts/C-two-workspaces.png) | Member activities和Executive Board各有计划列表及创建入口 | 清楚区分公众活动和内部事务；模板仍需A/B等入口配合 |
-| [D 模块拼装](../prototypes/multiple-workflow-concepts/D-modular-workflow.png) | 基础流程加宣传、志愿者、出行、资金等可复用模块 | 可覆盖大量变体；模块接口、重复节点和依赖合并更复杂，适合后续 |
-| [E 社团流程手册](../prototypes/multiple-workflow-concepts/E-club-playbooks.png) | 模板目录、内置起点、本社团版本、草稿／发布与岗位操作说明 | 最利于20份以上模板治理和换届；维护成本较高 |
-| [F 从成功计划复用](../prototypes/multiple-workflow-concepts/F-reuse-past-work.png) | 从历史计划提取结构与审阅过的经验，重新选日期和现任团队 | 少写模板、保留经验；必须清除旧完成状态、个人归属和历史结果 |
+| [A Template library first](../prototypes/multiple-workflow-concepts/A-template-library.png) | Search, categories, favorites; preview then use | Direct and understandable for 5–20 templates; users still choose the right one |
+| [B Goal-first Q&A](../prototypes/multiple-workflow-concepts/B-goal-first.png) | State goal, answer a few factual questions, confirm recommended workflow | Reduces wrong choices; matching must be clear/explainable, no hidden AI creation |
+| [C Two workspaces](../prototypes/multiple-workflow-concepts/C-two-workspaces.png) | Member activities and Executive Board each have plan lists/creation entry | Separates public activities/internal business; still needs template entry such as A/B |
+| [D Modular assembly](../prototypes/multiple-workflow-concepts/D-modular-workflow.png) | Base workflow plus reusable marketing/volunteer/travel/funding modules | Many variants, but harder interfaces/duplicate nodes/dependency merging; suitable later |
+| [E Club playbooks](../prototypes/multiple-workflow-concepts/E-club-playbooks.png) | Catalog, built-in starting points, club versions, draft/publish, role instructions | Best for 20+ templates and leadership transitions; more maintenance |
+| [F Reuse successful plans](../prototypes/multiple-workflow-concepts/F-reuse-past-work.png) | Extract past structure/reviewed lessons, choose new dates/current team | Fewer templates to author, preserves experience; clear old completion/ownership/results |
 
-建议先以A为创建入口、C为Plan组织结构，采用E最小的版本和快照规则；之后按实际使用补B或F，D留作更复杂变体的扩展。六个方向并非要求全部同时开发。本轮不需要用户先批准任何实施步骤，也没有自动进入实现。
+Recommend A as creation entry, C as Plan structure, E's minimal versions/snapshots; add B/F from actual usage later, D for complex variants. These six directions need not all be built. This round requires no prior implementation approval and does not automatically begin implementation.
 
-外部对照仅使用官方文档：Asana项目模板支持相对项目开始／截止日的日期，说明不同流程应有自己的锚点（https://help.asana.com/s/article/project-templates?language=en_US）；monday的模板中心组织预设与自定义模板，适合参考目录入口（https://support.monday.com/hc/en-us/articles/360001362625-monday-com-templates）；Notion数据库模板以复制结构来复用，定期重复是另一项能力（https://www.notion.com/help/database-templates）。这里只借鉴模式，不比较收费方案或声称功能等同。
+External references use official docs only: Asana templates support dates relative to project start/due date, illustrating workflow-specific anchors (https://help.asana.com/s/article/project-templates?language=en_US); monday template center organizes presets/custom templates, useful for catalog entry (https://support.monday.com/hc/en-us/articles/360001362625-monday-com-templates); Notion database templates reuse copied structures, recurring repetition separate (https://www.notion.com/help/database-templates). Pattern references only, no pricing comparison/equivalence claim.
 
-## 追加：连线简化、岗位分支与节点类别（2026-11-17，America/Phoenix）
+## Addition: simpler connections, role branches, node categories (2026-11-17, America/Phoenix)
 
-用户要求直接实施，继续由Data、UI、Graph独立worktree实现、主Agent整合及Review独立复核。运行时代码`3f731a5`，保留同期附件自动草稿保存交付与其他聊天进行中记录，沿用PR14/preview14。
+User requested direct implementation with Data/UI/Graph in independent worktrees, main-agent integration, independent Review. Runtime 3f731a5; preserve concurrent attachment auto-draft delivery and other chats' in-progress records; continue PR14/preview14.
 
-| 用户操作 | 当前行为 |
+| User action | Current behavior |
 | --- | --- |
-| 双击／双击触摸任何连线 | 无菜单、无新增、无删线、无依赖或状态写入；移除线编辑菜单及节点菜单Stop waiting快捷入口 |
-| 鼠标悬浮连线 | 不高亮，默认指针。原高亮CSS保留，由MetroChart.tsx的ENABLE_LINK_HOVER=false和link-hover-enabled类关闭；恢复开关只恢复视觉 |
-| 模板Done by改岗位 | 同时修改ownerRoleId、fn和placement，优先同侧／同适用条件的该岗位分支。无合适分支时新建绑定role ID的分支，同职能的不同岗位不会混为一个岗位 |
-| 修改共享汇合点岗位 | Full Check、Headcount等主干结构节点留在main，仍可改岗位；避免破坏活动前后汇合结构 |
-| 右侧Step details第一项 | Step type可选Core event step或Situation-based step，保存后图上颜色和可访问名称同步，刷新和Undo保留 |
-| 节点前插／后插 | 新节点继承所点击节点的有效类型和原分支；显式类型优先，旧节点可从原分类或条件推导 |
+| Double-click/double-tap any line | No menu/add/delete/dependency/status write; remove line-edit menu and node-menu Stop waiting shortcut |
+| Hover line | No highlight, default cursor. Original highlight CSS retained but disabled by MetroChart.tsx ENABLE_LINK_HOVER=false and link-hover-enabled class; restoring switch restores visuals only |
+| Change template Done by role | Updates ownerRoleId, fn, placement together, preferring same-side/same-condition role branch; absent match creates branch bound to role ID, never merges different same-function roles |
+| Change shared join's role | Full Check/Headcount and structural mainline nodes stay on main; role editable without breaking pre/post-event joins |
+| First right-side Step details item | Step type Core event step or Situation-based step; saved graph color/accessible name sync, refresh/Undo retain |
+| Insert before/after node | New node inherits clicked node's effective kind/original branch; explicit kind first, old nodes inferred from classification/conditions |
 
-岗位自动归组仅改负责人、职能及图上位置，保留全部依赖、阶段、工时、日期配置、节点类型和完整条件来源；不重写现有任务链。原有混合岗位分支不在后台全量重组，未来由明确team/role映射替换后备规则。图拖动依旧可用，前后插入从节点菜单操作；右侧既有Waits for手动依赖编辑保留。
+Automatic role grouping changes only owners/functions/graph positions, retaining dependencies, stages, effort, date settings, node types, full condition provenance without rewriting task chains. Do not globally reorganize old mixed-role branches in the background; explicit team/role maps will replace fallback rules later. Graph dragging remains; node menus insert before/after; existing right-side Waits for manual dependency editing remains.
 
-`stepKind?: "core" | "situation"`为节点和模板共享可选字段，Schema23不重置，不自动改旧活动。类别目前与激活条件、ASU必办保护独立，原branch条件AND节点cond继续决定新活动生成；仅选择类别不会擅自勾选活动表单或改已有任务。旧节点类型按原分类和条件兼容推导。独立Review发现并修复旧条件节点跨分支移动时类型丢失的P2：移动前冻结原有效类型，最终图补丁写回；Undo能恢复原来没有显式字段的状态。
+`stepKind?: "core" | "situation"` is optional on shared node/template data; no Schema23 reset or automatic old-event edits. Classification remains independent of activation conditions/ASU required-step protection. Original branch conditions AND node cond still determine new-event generation; selecting a type alone never checks event-form options or changes existing tasks. Legacy types derive compatibly from original classification/conditions. Independent Review found/fixed P2 type loss when moving old conditional nodes across branches: freeze effective type before move and write it in final graph patch; Undo restores original absence of explicit field.
 
-用户要求的后续接口备注已写入`WorkflowBranch.defaultRoleId`、`workflowRoleBranches.ts`、`workflowStepKind.ts`、`WorkflowPanel.tsx`及`eventChecklist.ts`：分支尽量单一团队／岗位，后续建立显式映射；situation类别与活动创建表单的条件对接需要明确匹配，不能把类别当作已确认的活动事实。
+Requested future interface notes added to `WorkflowBranch.defaultRoleId`, `workflowRoleBranches.ts`, `workflowStepKind.ts`, `WorkflowPanel.tsx`, `eventChecklist.ts`: prefer one team/role per branch, explicit mapping later; matching situation kinds to event-form conditions requires explicit correspondence, never treating a category as confirmed event fact.
 
-本轮分批230项相关单元/组件通过（主运行16文件229项，Review修复后5文件56项含新增1项，按唯一用例计数）。生产构建浏览器按唯一用例107通过、5项设备限定跳过；初轮112项中101通过、5跳过、6失败：新用例getByLabel精确匹配包含option文字的select，以及旧用例仍期待Full Check保护前的删除原因，均属断言前提问题。修为真实combobox可访问名称及既有必需步骤原因，并在Review修复后的最终构建重跑受影响组，45通过、3设备限定跳过。原实际节点Edit旧选择器也已随当前独立Edit drawer及Save changes流程更新，产品编辑行为未改。
+230 distinct relevant unit/component cases passed in batches (main 16 files 229, post-Review 5 files 56 including 1 new). Production browser 107 distinct passed/5 device skips; initial 112:101 passed/5 skipped/6 failed: new getByLabel exact-matched select containing option text, old test expected pre-Full-Check-protection deletion reason—assertion-premise issues. Fixed actual combobox accessible name/existing required-step reason, reran affected group on final Review-fixed build: 45 passed/3 device skips. Old actual-node Edit selectors also updated for current independent Edit drawer/Save changes; product editing unchanged.
 
-前后端类型、build、lint、独立CSS、9页文字预算通过；最终构建入口`index-BdsxrOMf.js`为544,520/550,000字节，Settings147/150，未提高预算。独立岗位原函数6项检查与旧类别移动/Undo反例复验通过，无开放P1/P2。暗色双端截图已查看。没有重复全站门禁，0真实AI/邮件；合并保留同期附件自动保存与v3隔离原稿，未修改它们的实现。
+Frontend/backend types, build, lint, separate CSS, 9-page word budgets passed; final `index-BdsxrOMf.js`544,520/550,000 bytes, Settings 147/150, no budget increase. 6 independent role-function checks and old-category move/Undo counterexamples passed recheck, no open P1/P2. Dark desktop/mobile screenshots inspected. No full-site repeat; 0 live AI/email; concurrent attachment autosave/isolated v3 drafts merged/preserved without implementation changes.
 
-日志：`/tmp/workflow-role-kind-unit.log`、`/tmp/workflow-role-kind-review-fix.log`、`/tmp/workflow-role-kind-browser.log`、`/tmp/workflow-role-kind-final-browser.log`、`/tmp/workflow-role-kind-final-build.log`、`/tmp/workflow-role-kind-words.log`。验收在[preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow：双击／悬浮连线；把Content Creation从Marketing lead改为Events lead再改回；分别在蓝色／黄色节点前后插入；更改首项Step type、刷新、Undo。
+Logs: `/tmp/workflow-role-kind-unit.log`, `/tmp/workflow-role-kind-review-fix.log`, `/tmp/workflow-role-kind-browser.log`, `/tmp/workflow-role-kind-final-browser.log`, `/tmp/workflow-role-kind-final-build.log`, `/tmp/workflow-role-kind-words.log`. Acceptance: [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow: double-click/hover connectors; move Content Creation Marketing lead→Events lead→back; insert before/after blue/yellow nodes; change first Step type, refresh, Undo.
 
-## 追加：分支启用条件多选（2026-11-17，America/Phoenix）
+## Addendum: multiple branch-enablement conditions (2026-11-17, America/Phoenix)
 
-用户反馈Add branch的Applies to不易理解，并明确要求多个checklist全部成立才启用。运行时代码`3432f52`：
+User found Add branch's Applies to unclear and explicitly required every selected checklist item to hold. Runtime 3432f52:
 
-- 改为 **Include this branch when**，原文说明：**This branch is included only when every selected item is checked for the event. Leave all unchecked for every event.** 下方显示Every event、单项或All N selected items must be checked.，可Clear selection。
-- 使用创建活动页同一份18项清单与标签，Speaker和Partner分别选择。例如Speaker＋Travel，仅在两项都成立的活动生成该分支任务；只满足一项不生成。无选中项则所有活动都包含。列表内部可滚动，键盘可操作。
-- 可选`WorkflowBranch.conditions: StepCond[]`为新配置；存在时优先，`[]`可清除旧单条件。缺少该字段才读取旧`condition`；现有节点`cond`继续与分支条件AND。Schema23及已有任务保持，模板只影响未来活动。新数组保存、活动独立快照、刷新、同分支前插与Undo均保留。
-- 新数组按实际表单事实判断：food/speaker取表单对应字段，其余checklist在checks存在时要求明确true；无checks的旧活动保留派生回退。旧单条件与节点cond原规则不变。坏数组或未知条件拒绝写入，读取时不会误启用分支。
-- 独立Review发现同名的显式checkbox与旧派生规则不能扁平去重。现scopeKey保留谓词来源，学校步骤移入会缩窄范围的分支时，模板、Graph及实际reducer均拒绝；真正同义条件仍可移动。独立7项原函数检查复验，无开放P1/P2。
+- Renamed **Include this branch when**, with exact explanation: **This branch is included only when every selected item is checked for the event. Leave all unchecked for every event.** Shows Every event, one item, or All N selected items must be checked., with Clear selection.
+- Uses the same 18 checklist items/labels as event creation; Speaker and Partner separate. Speaker＋Travel generates branch tasks only when both hold; one alone does not. No selection includes every event. Internally scrollable and keyboard accessible.
+- Optional WorkflowBranch.conditions: StepCond[] takes precedence when present; [] clears old single condition. Only absent arrays fall back to old condition; node cond still ANDed. Schema23/existing tasks unchanged, templates affect future events only. Array saving/event snapshots/refresh/before-insertion in same branch/Undo preserved.
+- Arrays use actual form facts: food/speaker use corresponding fields; other checklist items require explicit true when checks exists. Legacy events without checks retain derived fallback. Old single-condition/node-cond rules unchanged. Reject corrupt/unknown conditions on write; reads never mistakenly enable branches.
+- Independent Review found same-named explicit checkboxes and legacy derived predicates cannot be flattened/deduplicated. scopeKey now preserves predicate origin; template/Graph/actual reducer reject moving school steps into scope-narrowing branches; truly equivalent predicates remain movable. Seven independent original-function checks rerun; no open P1/P2.
 
-本轮定向171项单元/组件通过；生产构建桌面/手机按唯一用例计72通过、8设备限定跳过。覆盖多选、刷新、同分支插入、Undo、原单条件、全真/部分真、空选、坏数据、暗色、Tab/Shift+Tab/Space/Escape及axe。首轮鼠标拖动测试没有先关闭Ask并将源节点滚动到可见区域，该项失败；补足测试操作后复验通过，产品拖动代码未改。没有重复全站门禁。
+171 targeted unit/component tests passed; production-build desktop/mobile 72 unique cases passed, 8 device-specific skips. Covers multiselect, refresh, same-branch insertion, Undo, old single condition, all/partly true, empty selection, corrupt data, dark mode, Tab/Shift+Tab/Space/Escape, axe. Initial mouse-drag test failed because it neither closed Ask nor scrolled source into view; completed those steps, rerun passed, product drag code unchanged. Full-site gates not repeated.
 
-前后端类型、生产构建、lint及组件CSS通过；9页文字预算通过（Settings147/150），完整部署元数据构建入口543,387/550,000字节，未放宽上限。日志：`/tmp/workflow-conditions-unit.log`、`/tmp/workflow-conditions-browser.log`、`/tmp/workflow-conditions-pointer.log`、`/tmp/workflow-conditions-release-build.log`、`/tmp/workflow-conditions-words.log`。0真实AI/邮件，未修改实际任务Details或链接；同期附件自动保存工作仅保留其进度记录。
+Frontend/backend types, production build, lint, component CSS passed; 9-page word budgets passed (Settings 147/150), full-deployment metadata entry 543,387/550,000 bytes, limit unchanged. Logs: `/tmp/workflow-conditions-unit.log`, `/tmp/workflow-conditions-browser.log`, `/tmp/workflow-conditions-pointer.log`, `/tmp/workflow-conditions-release-build.log`, `/tmp/workflow-conditions-words.log`. 0 real AI/email, no actual-task Details/link changes; concurrent attachment autosave retains only its progress entry here.
 
-验收：[preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow → Add branch，勾选Speaker和Travel，查看全部成立说明，填写名称/首项任务并保存；刷新后在新节点前插，仍属同一条件分支。以下为此前三阶段修复的交付记录，旧单选描述以上方追加为准。
+Acceptance: [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → Workflow → Add branch; select Speaker/Travel, inspect all-must-match description, name/first task, save; refresh, insert before new node, retaining the same conditional branch. Earlier three-stage handoff follows; the addition above supersedes old single-selection descriptions.
 
 ---
 
-2026-11-17（America/Phoenix）。Codex主Agent及Data、Graph、Timing、UI、独立Review五位worktree Agent。用户明确要求工作天数与排程都检查，并在方案后连续实施全部阶段；[详细方案](WORKFLOW_STABILITY_PLAN.md)先保存后执行，三个阶段均已完成。运行时代码`18d7316cd86c1e32b606afafdeb0a94064fe364e`，沿用原功能分支、PR #14及preview14，不合并main。
+2026-11-17 (America/Phoenix). Codex lead plus five worktree agents: Data, Graph, Timing, UI, independent Review. User explicitly requested both business-day effort/schedule checks and continuous implementation of all stages after the proposal; [detailed plan](WORKFLOW_STABILITY_PLAN.md) saved before execution, all three stages complete. Runtime `18d7316cd86c1e32b606afafdeb0a94064fe364e`; original feature branch/PR #14/preview14, no main merge.
 
-## 修复与使用
+## Fixes and usage
 
-| 问题 | 当前行为 |
+| Issue | Current behavior |
 | --- | --- |
-| 移动不更新 | 同分支鼠标与键盘移动同时修改保存位置和相关依赖；按实际依赖与稳定位置重绘，刷新后保持 |
-| 插入跑新分支 | before/after/连线插入携带明确branchId与参考节点，首尾操作仍留在原分支 |
-| 工作量数据异常 | 仅保存0–30合法整数；空白不变0，100不变30。人工确认工时后按effort策略计算开始提醒 |
-| Full Check删除 | 菜单、Details删除按钮、业务写入与模板校验共用保护；旧数据缺失时其余任务仍可见 |
-| 条件泄漏 | 实际适用为分支条件AND节点条件；speaker/partner、餐饮、RSVP、安全分别验证，跳过节点后的依赖正确接续 |
-| 在原分支前插 | 点击分支节点的Add a step before this one，以被点击节点的分支和条件为准，不取左邻或Start身份 |
-| 新增分支 | 图上Add branch填写名称、活动前/后、适用范围、默认岗位及首项任务，一次创建、保存和撤销 |
+| Move does not update | Same-branch mouse/keyboard moves update saved position/dependencies; redraw from actual dependencies/stable order, refresh persists |
+| Insert enters new branch | before/after/connector insertion carries explicit branchId/reference; start/end stay original branch |
+| Invalid effort | Only valid integers 0–30 saved; blank not converted 0,100 not clamped 30. Confirmed effort drives start reminders via effort policy |
+| Full Check deletion | Menu/Details delete/business writes/template validation share protection; legacy missing node does not hide others |
+| Condition leakage | Actual applicability=branch AND node; speaker/partner, food, RSVP, safety separately verified; dependencies reconnect past skipped nodes |
+| Insert before branch | Add a step before this one uses clicked node's branch/conditions, not left neighbor/Start |
+| New branch | Graph Add branch collects name/pre-post-event/scope/default role/first task; one creation/save/undo |
 
-在Full Check等共享汇合点前插入，须先选 **Insert on branch**，也可双击目标分支的入线。两端条件不同的连线要求选 **New step applies to**。跨分支移动的适用范围改变要明确确认；负责人和工时保留。活动前与收尾间的跨段拖动本轮拒绝并解释。
+Before shared joins such as Full Check, choose **Insert on branch** first, or double-click the intended incoming line. Lines with differing endpoint conditions require **New step applies to**. Explicitly confirm applicability changes on cross-branch moves; retain owner/effort. Cross-segment dragging between preparation and closeout rejected with explanation this round.
 
-新增分支支持平行结构：活动前Start→分支→Full Check；活动后Headcount→分支→Done。前者接入真实Full Check等待，后者首项依赖真实Headcount；虚拟站点不作为任务ID保存。没有扩展任意嵌套分支。
+New branches support parallel structures: pre-event Start→branch→Full Check; post-event Headcount→branch→Done. Former connects actual Full Check wait, latter's first task depends on actual Headcount; virtual stations never saved as task IDs. No arbitrary nested branches.
 
-## 数据与兼容
+## Data and compatibility
 
-模板和任务新增可选placement、startPolicy；组织保存分支定义，新活动保存自身定义快照。外层Schema23不重置，模板保存只影响未来活动；历史任务不重建、改派或重置状态。
+Templates/tasks gain optional placement/startPolicy. Organization stores branch definitions; new events snapshot their own definitions. No outer Schema23 reset; template saves affect future events only. Historical tasks are not rebuilt, reassigned, or reset.
 
-默认标准步骤保留原校准窗口；人工工时带effort策略，按真实工作日、完整个人缓冲、假日和忙碌周倒推。保留timing的目标和依赖语义；时段不足时保留原目标和官方期限，计算可行日期并报告effort_window冲突。不改变难度标签、贡献公式或预测模型。
+Default standard steps retain original calibration windows; manual effort uses effort policy, working backward through real business days, full personal buffer, holidays, busy weeks. Preserve timing target/dependency semantics; when window insufficient, retain original target/official deadline, calculate feasible dates, and report effort_window conflict. Difficulty labels, contribution formula, forecast model unchanged.
 
-ASU步骤移动保留审批前置；跨分支移动保留其他分支及Full Check对该任务的真实等待。循环、过期目标、非法范围及最终保存失败整次拒绝，不留孤立任务或半个分支。图操作不能新增必需依赖错误；Details原有手动依赖编辑仍保留待修草稿和错误提示。
+Moving ASU steps retains approval prerequisites; cross-branch moves preserve other branches'/Full Check's actual waiting on the task. Cycles, stale targets, invalid scopes, final-save failures reject the entire operation without orphan tasks/partial branches. Graph operations cannot introduce missing-required-dependency errors; existing Details manual dependency editing retains invalid drafts/error messages for correction.
 
-删除自定义分支末步时清理该分支。图Undo和Settings保存旁Undo都恢复完整定义；已有任务后来写入的外链、草稿、正文和附件保持。旧自定义节点无法证明归属时保留在 **Legacy custom steps**，不猜适用条件；用户明确移到正确分支后采用相应范围。旧缺Full Check/Headcount用显示后备连接，不自动补历史任务。
+Deleting a custom branch's final step removes that branch. Graph Undo and Undo beside Settings save restore complete definitions while preserving external links/drafts/body/attachments added to existing tasks afterward. Legacy custom nodes with unprovable ownership remain under **Legacy custom steps**, without guessed conditions; explicitly moving to the right branch adopts its scope. Missing old Full Check/Headcount use display fallback connections, without backfilling historical tasks.
 
-## 并行交付保留
+## Concurrent deliveries preserved
 
-远端实施期间合入`5758c2d`，包含其他任务已批准的实际节点Details、Edit、通用提交及onboarding设计原稿；`e704953`完整保留。冲突只合并Node可选字段和NodePatch/NODE_FIELDS，两套字段并存。
+Merged `5758c2d` during remote implementation, including other tasks' approved actual-node Details, Edit, universal submission, onboarding prototypes; `e704953` fully retained. Conflicts combined only optional Node fields and NodePatch/NODE_FIELDS, both field sets coexist.
 
-相对于该远端提交，本轮未修改`TaskDetail.tsx`、`src/taskDetails/`、`src/reminders/actionLinks.ts`；不改模板办理链接或重设计Step details。必要数值草稿、删除保护和图操作校验属于本轮范围。旧浏览器断言随同期交付从已撤下的Why this date/Sources改为单Due、真实外部入口及官方日期数据保持，没有为旧测试恢复旧界面。
+Compared with that remote commit, this round leaves TaskDetail.tsx, src/taskDetails/, src/reminders/actionLinks.ts untouched; no template action-link changes or Step details redesign. Necessary numeric drafts/deletion protection/graph-operation validation are in scope. Legacy browser assertions follow the concurrent delivery from removed Why this date/Sources to one Due, real external entry, preserved official-date data; old UI was not restored for old tests.
 
-## 验证
+## Verification
 
-- **分批1665项单元/组件通过，1项既有全日历压力枚举未运行。** 主运行120文件1625通过、1项测试前提失效：更严格的ASU保护使该模拟移动先被纯函数拒绝。将UI事务反例改为真实“切断审批连线”，继续断言合法DAG补丁被模板必需依赖保护拒绝；修后该组件6项全过。另跑校准表39通过、1已知慢枚举跳过。数字按唯一用例统计，不重复相加；没有再次完整运行npm run check。
-- **最终整合生产构建浏览器76通过、2设备限定跳过。** 覆盖新工作流、共享汇合点、混合条件、鼠标和键盘、旧缺Full Check、实际活动完整分支Undo、原设置/Plan，以及同期通用提交、Edit、多附件和包预算。跳过手机下桌面指针手势及重复平板场景。
-- 前端TypeScript/生产构建、后端TypeScript、lint通过；九页文字预算通过，Settings147/150。以完整运行时提交、原分支及deploy-preview元数据构建，入口`index-Dd9mUpnN.js`为 **544,207/550,000字节**；流程纯规则独立缓存，没有提高上限。
-- 独立Review发现并推动修复2个P1、2个P2：核心任务移入条件分支、移动丢失Full Check等待、Settings Undo残留定义、活动Undo残留定义。原样反例复验后无开放P1/P2。增量Review用真实reducer验证新增分支后保存原任务新外链/草稿，再Undo分支，最新内容保留。
+- **1665 batched unit/component cases passed; 1 existing full-calendar stress enumeration not run.** Main run:120 files, 1625 passed, 1 invalidated test premise—stricter ASU protection rejected the simulated move in the pure function first. Changed UI transaction counterexample to actually disconnect an approval edge, still asserting template-required-dependency protection rejects a valid DAG patch; all 6 component cases then passed. Calibration table 39 passed, 1 known slow enumeration skipped. Counts are unique, not repeatedly added; no further full npm run check.
+- **Final integrated production browser 76 passed, 2 device-specific skipped.** Covers new workflows, shared joins, mixed conditions, mouse/keyboard, old missing Full Check, actual-event complete branch Undo, original Settings/Plan, concurrent generic submission/Edit/multiple files, bundle budgets. Skips mobile desktop-pointer gestures/duplicate tablet scenario.
+- Frontend TypeScript/production build, backend TypeScript, lint passed; 9-page budgets passed, Settings 147/150. Full runtime commit, original branch, deploy-preview metadata build: `index-Dd9mUpnN.js` **544,207/550,000 bytes**; pure-rule workflow cache separate, cap unchanged.
+- Independent Review found/drove fixes for 2 P1/2 P2: core task moved into conditional branch, move losing Full Check wait, Settings Undo leaving definitions, event Undo leaving definitions. Original counterexamples passed unchanged, no open P1/P2. Incremental real-reducer Review adds a branch, saves newer external links/draft on an original task, then undoes branch, verifying latest content survives.
 
-日志位于`/tmp/workflow-integrated-unit.log`、`/tmp/workflow-final-fix-unit.log`、`/tmp/workflow-integrated-browser.log`、`/tmp/workflow-integrated-build.log`、`/tmp/workflow-release-build.log`、`/tmp/workflow-integrated-lint.log`、`/tmp/workflow-word-budget.log`。本地构建和虚构数据；0真实AI/邮件。未验证Safari/iOS真机或完整全站浏览器门禁。
+Logs: `/tmp/workflow-integrated-unit.log`, `/tmp/workflow-final-fix-unit.log`, `/tmp/workflow-integrated-browser.log`, `/tmp/workflow-integrated-build.log`, `/tmp/workflow-release-build.log`, `/tmp/workflow-integrated-lint.log`, `/tmp/workflow-word-budget.log`. Local build/fictional data; 0 real AI/emails. Safari/iOS physical devices/full-site browser gates unverified.
 
-## 用户验收
+## User acceptance
 
-GitHub提交状态已确认运行时代码`18d7316`的Netlify deploy-preview为 **success**，对应下方既有preview14地址。后续文档提交不改变运行时行为。
+GitHub commit status confirmed runtime `18d7316`'s Netlify deploy-preview **success**, corresponding to existing preview 14 URL below. Later documentation commits do not change runtime behavior.
 
 [preview14 Settings](https://deploy-preview-14--platypus-officer-hub.netlify.app/#/settings) → **Workflow**：
 
-1. 把Promotion Items移到Content Creation前，刷新确认顺序保持。
-2. 在Speaker首节点前插；再从Full Check前插，明确选目标分支。
-3. Add branch建立Guest support，选Speaker/partner范围及首项任务；继续前后插入、刷新、Undo。
-4. Days of work清空/填100不能保存成0/30；填10正确保存，未来活动开始提醒按人工工时计算。
-5. Full Check不能删除；既有实际任务的提交和附件不受模板编辑影响。
+1. Move Promotion Items before Content Creation; refresh/order persists.
+2. Insert before first Speaker node, then before Full Check, explicitly selecting target branch.
+3. Add branch Guest support, Speaker/partner scope/first task; continue before/after insertion, refresh, Undo.
+4. Clearing Days of work/entering100 cannot save0/30;10 saves, future-event start reminders use manual effort.
+5. Full Check undeletable; template edits preserve existing submissions/attachments.
 
-模板链接、Details易用性及原目标时间字段的界面语义仍留待后续讨论。真实后台邮件、跨设备、任意嵌套流程及旧自定义任务自动猜分支未扩展。需要同步本地备份。
+Template links, Details usability, and UI semantics of original target-time fields remain for discussion. Real background email, cross-device, arbitrary nesting, automatic branch guesses for old custom tasks not expanded. Local backup needs synchronization.
