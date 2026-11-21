@@ -1,3 +1,6 @@
+> **2026-11-21（America/Phoenix） · Plan Your First Event 游戏完整方案，待审核（Claude）**
+> **交付：** [审核版游戏方案](feedback-fix/QUEST_GAME_SPEC_2026-11-21.md)：9个画面、7章32个决定（每个含英文情境/选项/正确答案/选错后果/档案原文与行号/主做岗位/Pip提示）＋收尾反思、13条红线、5个换条件重玩、计分与复测、Pip规则、存储字段、7个待审问题。原文均逐句对照03_Full_Rules_Archive；发现Memorial Union独家餐饮须用Sun Devil Hospitality，已设为决定4.4；报销上限四种写法未进主线。仅文档，未改src，0产品AI/邮件；审核后先出静态图。沿用PR14，不合并main，需要同步本地备份。
+
 > **2026-11-21（America/Phoenix） · 新exec Onboarding方案v2（办活动探险游戏），待确认（Claude）**
 > **Juanxi决定：** “40多页”=2026–27 Student Club and Organization Handbook（ASU-R-004）；情景题成绩与升级问题可存；社长只看汇总甚至不展示；参考Google AI Quests《Market Marshes》做互动游戏教event planning，冲突按更严的教（登记30天、讲者6周）；Phase 3已结束。
 > **方案：** [v2方案](feedback-fix/ONBOARDING_QUEST_PLAN_2026-11-21.md)：“Plan Your First Event”Speaker Night 7章≈35个决定，对应handbook目录；每人玩完整一场，同伴角色来要材料以学跨岗依赖；做错看现实后果＋2–5句原文卡＋重做；正确决定在复用的流程图上点亮，日期仅由规则引擎算；换条件重玩、第3天复测、首次真用时小测；向导只给提示、回答必带原文；社长默认不看，可开无个人分数的汇总，只处理升级队列/FAQ。分P1内容→P5汇总，确认后先出静态图再写代码。仅文档，0产品AI/邮件，沿用PR14，不合并main，需要同步本地备份。
