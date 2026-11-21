@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, render } from "@testing-library/react"
+import { act, cleanup, render, waitFor } from "@testing-library/react"
 import { seedDemo } from "../data/seed"
 import { FLOW_VERSION } from "../onboarding/record"
 import type { LogEntry } from "../data/types"
@@ -176,6 +176,8 @@ describe("the store records screen events, and the export includes the export it
     act(() => api.exportData())
     expect(api.getLog().map(e => e.type)).toEqual(["ui.navigate", "ui.click", "setAi", "ui.click", "ui.export"])
     expect(JSON.parse(window.localStorage.getItem(LOG_KEY)!).map((e: LogEntry) => e.seq)).toEqual([1, 2, 3, 4, 5])
+    // The download is assembled asynchronously (local documents are read first); wait for that one file.
+    await waitFor(() => expect(blobs).toHaveLength(1))
     const file = JSON.parse(await blobs[0].text())
     expect(file.formatVersion).toBe(3)
     expect(file.session).toBeNull()   // no study walkthrough began in this browser: everything is exported, as before

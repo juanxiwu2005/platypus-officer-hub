@@ -160,6 +160,8 @@ describe("FB-6: the engine against the owner's timing table", () => {
     for (const n of all.nodes) expect(plan.nodes[n.id].latestStart <= plan.nodes[n.id].club, n.title).toBe(true)
   })
 
+  // Exhaustive sweep: every event day from 2026-11-02 to 2028-04-28 for two check sets (about 1,090 schedules).
+  // It takes about 16 s locally, so it gets its own time limit; the range and every assertion are unchanged.
   it("on any event day, a fresh standard event has no pushed steps, no missed deadlines and keeps finish order", () => {
     const bad: string[] = []
     for (let d = "2026-11-02"; d <= "2028-04-28"; d = addDays(d, 1)) {
@@ -178,7 +180,7 @@ describe("FB-6: the engine against the owner's timing table", () => {
       }
     }
     expect(bad).toEqual([])
-  })
+  }, 90_000)
 
   it("the report's tables are the engine's output", () => {
     let text = readFileSync(REPORT, "utf8")
