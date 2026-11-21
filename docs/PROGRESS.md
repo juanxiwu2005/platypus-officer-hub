@@ -1,4 +1,16 @@
-# Current handoff: English repository listing
+# Current handoff: Preview 14 release to `main`
+
+> **November 21, 2026 (America/Phoenix) · Claude · Juanxi approved merging Preview 14 (PR #14) into `main`, and confirmed that Phase 3 data collection has ended.** Merge method: **Create a merge commit** (not squash), so each work package can still be reverted on its own.
+>
+> **Preparation:** merged PR #17 (English translation of Preview 14) into the branch, as Juanxi chose. Translated the ten documents added after PR #17's baseline (onboarding quest plan/spec, handoff ramp review and research, three November 21 progress entries) with two worktree translation agents. Merged `main` (PR #16 English policy, PR #18, November 15 AI output-allowance fix) and resolved seven conflicts. Six were documentation conflicts: kept Preview 14's newer, already-translated text, plus main's newest progress entry. One was in `netlify/lib/ai.mts`: kept the configurable `AI_SYNC_BUDGET_MS` and removed the output-allowance constants that the merge had duplicated. Rewrote PR #14's title and description in English for the English guard.
+>
+> **Verification before merge:** lint including the English guard (991 files) passed, as did the production build and Netlify server types. Unit tests: 2118 passed; 2 known baseline failures remain (`calibration.test.ts` timeout, `uiLog.test.tsx` async export). The Workflow and Roles & teams browser specs pass on desktop and mobile. Older baseline browser failures in handoff, setup-team, a11y and m4-setup are unchanged and still need separate repair. GitHub CI results are recorded on PR #14.
+>
+> **Production impact:** `SCHEMA_VERSION` 22 → 23; older saves upgrade on load without a reset. The live site gains the new Workflow editor, Roles & teams, the reminder centre/digests, universal task Details, unified setup and Team navigation (Partners archived). Dates still come only from the rule engine; no real email is sent. **The owner's local thesis backup still needs synchronization.**
+
+---
+
+# Previous handoff: English repository listing
 
 > **November 20, 2026 (America/Phoenix) · Codex · Implementation verified; publishing after PR checks.** After approving and merging PR #16, the owner requested English **Last commit message** captions in the repository listing. Baseline: `main@0b9f78e`. Target: `chore/english-latest-commit-messages` → `main`; Preview 14 / PR #17 remain separate.
 >
@@ -13,7 +25,7 @@
 
 ---
 
-# Current handoff: English repository cleanup
+# Previous handoff: English repository cleanup (Preview 14, PR #17)
 
 > **2026-11-21 (America/Phoenix) · Complete “Plan Your First Event” game specification, awaiting review (Claude)**
 > **Delivered:** [Review version of the game specification](feedback-fix/QUEST_GAME_SPEC_2026-11-21.md): 9 screens and 7 chapters with 32 decisions (each with English scenario, options, correct answer, consequence of a wrong choice, archive source text with line numbers, lead role and Pip hint), plus a closing reflection, 13 red lines, 5 changed-condition replays, scoring and retesting, Pip rules, storage fields and 7 open review questions. Every source passage was checked sentence by sentence against 03_Full_Rules_Archive. Found that Memorial Union exclusive catering must use Sun Devil Hospitality and made it decision 4.4; the four differing wordings of the reimbursement limit were kept out of the main path. Documentation only, no `src` changes, 0 product AI calls/emails; static images come first after review. Continues on PR14; no merge to main at the time. Local backup needs synchronization.

@@ -1,189 +1,189 @@
-# 新 exec 3 天上手方案：草稿审阅、研究依据与推荐方案（2026-11-21，Claude 主 Agent + 5 个研究 Agent）
+# 3-day ramp-up for new execs: draft review, research evidence and recommended plan (2026-11-21, Claude main agent + 5 research agents)
 
-**范围：** 审阅 Juanxi 用另一个 AI 写的 Handoff / Onboarding 草稿（原文：`handoff-ramp-research/00_DRAFT_from_user.md`）。依据：现有代码、上传的政策档案 `03_Full_Rules_Archive.txt`（64 条来源），以及 4 份网上文献研究。只写文档，**没有改网站代码**，0 次产品 AI、0 封邮件。
+**Scope:** Review of the Handoff / Onboarding draft that Juanxi wrote with another AI (original: `handoff-ramp-research/00_DRAFT_from_user.md`). Basis: the existing code, the uploaded policy archive `03_Full_Rules_Archive.txt` (64 sources), and 4 online literature studies. Documentation only: **no website code was changed**, 0 product AI calls, 0 emails.
 
-| 研究 | 做了什么 | 详细报告 |
+| Study | What it did | Detailed report |
 | --- | --- | --- |
-| R1 学习科学 | 长政策怎么学、测验、好奇心、激励、强制培训、新人适应 | `handoff-ramp-research/R1_learning_science.md`（约 35 篇文献） |
-| R2 交接与继任 | 跨岗知识、经验交接、医院/军队交接、学生社团换届 | `R2_handoff_succession.md`（23 篇） |
-| R3 AI 先答 | AI 助手对新人、AI 伤害学习的风险、不敢问上级、政策问答的幻觉 | `R3_ai_help_seeking.md`（24 篇） |
-| R4 政策核对 | 逐条核对草稿附录，量阅读量，提炼核心规则和岗位交接 | `R4_policy_check.md`（带原文和行号） |
-| R5 代码 | 现有交接、规则、Ask、任务提交能复用什么 | `R5_code_survey.md` |
+| R1 Learning science | How to learn long policies, testing, curiosity, incentives, mandatory training, newcomer adjustment | `handoff-ramp-research/R1_learning_science.md` (about 35 papers) |
+| R2 Handoff and succession | Cross-role knowledge, experience handoff, hospital/military handoffs, student-organization leadership turnover | `R2_handoff_succession.md` (23 papers) |
+| R3 AI answers first | AI assistants for newcomers, the risk that AI harms learning, reluctance to ask superiors, hallucination in policy Q&A | `R3_ai_help_seeking.md` (24 papers) |
+| R4 Policy check | Item-by-item check of the draft appendix, measuring the reading load, extracting core rules and role handoffs | `R4_policy_check.md` (with source quotes and line numbers) |
+| R5 Code | What the existing handoff, rules, Ask and task submission can reuse | `R5_code_survey.md` |
 
-所有文献都由 Agent 通过搜索核实过作者、年份、刊物和链接；没能核实的已删掉。preprint（未同行评审）在报告里标明。
-
----
-
-## 一、一句话结论
-
-**草稿方向是对的，但太重、太像"读完再考"。** 研究和政策档案都指向同一个更轻的做法：
-
-> 只要求每个人会**一小组红线**和**自己岗位与上下游的交接要求**，其余规则在工作触发时由 AI 带原文给出；学习靠"先猜再看"的情景题，不靠读完页数；交接靠前任填的未结事项单和一次带真实材料的面谈；社长通过"AI 答不了才升级"的队列卸下大部分重复提问。
+For every paper, an Agent verified the authors, year, venue and link by search; papers that could not be verified were removed. Preprints (not peer reviewed) are marked as such in the reports.
 
 ---
 
-## 二、草稿逐项审阅：合理 / 要改 / 不合理
+## 1. One-sentence conclusion
 
-| 草稿内容 | 判断 | 理由（证据） | 怎么改 |
+**The draft points in the right direction, but it is too heavy and too much like "read everything, then take the test."** The research and the policy archive both point to the same lighter approach:
+
+> Require everyone to know only **a small set of red lines** and **the handoff requirements of their own role and its upstream and downstream roles**. Other rules are delivered by the AI, with the source text, when work triggers them. Learning happens through "guess first, then see the answer" scenario questions, not through pages read. Handoff happens through an open-items sheet filled in by the predecessor and one meeting with real materials. The President offloads most repeated questions through a queue that escalates only what "the AI cannot answer."
+
+---
+
+## 2. Item-by-item review of the draft: sound / needs change / unsound
+
+| Draft content | Verdict | Reason (evidence) | How to change it |
 | --- | --- | --- | --- |
-| 全员（含 President）走同一套共同基础，再接岗位交接 | ✅ 合理 | 新人适应的关键是角色清晰、自信和被接纳（Bauer et al. 2007，70 个样本的 meta 分析） | 保留 |
-| 第一步：社长提前配置目标和任务；启动清单（组织、人员、培训、访问、交接） | ✅ 合理，⚠️ 分工要改 | 清单能显著减少遗漏（Haynes et al. 2009 NEJM；I-PASS，Starmer et al. 2014 NEJM，可预防不良事件 −30%，交接时间不变） | "未结申请、承诺、权限、联系人"那一栏**由前任填**，社长只核对，否则社长负担更重 |
-| Top 3、学校培训、平台访问分别核实；finance 学习者不一定是提交人；个人旅行资助另算 | ✅ 合理，档案核对属实 | R026、R035（Top 3 提交）；R038 L6671、R041 L8600（个人旅行不挂组织） | 保留；补"Mazevo 账号 advisor 不能申请"（R013） |
-| 第二步：资料只分"必须"和"选读"，**必须 = 各核心节点全部适用规则，全员学习** | ❌ 不合理 | 人基本不读长政策（Obar & Oeldorf-Hirsch 2018）；网页平均只读约 20%（Nielsen 2008）；不用的规则很快忘（Arthur et al. 1998）；办事时给支持对流程类工作有效（Nguyen & Klein 2008）。档案量：约 11.8 万词≈236 页，普通 Tempe 活动的核心部分也有约 3.6 万词≈72 页 | 改成三层（见第四节）：**红线（全员必会）→ 岗位与上下游节点（必会）→ 随用随查（必须能找到，不要求读过）** |
-| 每个节点讲清"我给下一位什么、对方受什么限制、变更影响谁" | ✅ 很好，⚠️ 只读不够 | 跨岗训练有效，层级是"知道相邻岗位的输入、输出和限制"（Volpe et al. 1996；Marks et al. 2002）；但只讲概念的跨岗训练几乎无效（Cooke et al. 2000） | 每条交接配一道**站在下游角色视角**的练习（如以 finance 身份审一份活动计划） |
-| 第三步：平台操作一次教一个，配结果示例 | ✅ 合理 | 新手看示范比自己摸索学得快（Sweller & Cooper 1985 worked example） | 控制在 10 分钟，会的人可跳过 |
-| 学校系统（Canvas、SDC、Mazevo、Event Registry）在相关节点给指引，真实结果按真实记录 | ✅ 合理 | — | 保留；补上 **Event Registry → RITM 编号 → Mazevo 订场**这条链（见第三节） |
-| 第四步：分级情景题（基础→多规则→情境变化），答错讲决定性条件再换题练 | ✅ 合理，证据最强 | 测验效应（Roediger & Karpicke 2006；Rowland 2014 g≈0.50；Adesope et al. 2017）；答错后给反馈（Butler & Roediger 2008） | 加三样：①每个节点**先猜后看**的开场题（Richland et al. 2009）；②作答前点一下"有多确定"，**很确定却答错**的第 3 天再出现（Butterfield & Metcalfe 2001）；③老成员可直接测试通过（Kalyuga et al. 2003） |
-| 三个重点案例（$700/$701、分项挪用、审批等待） | ✅ 前两个档案原文支持；⚠️ 第三个引用错 | $75 flyers/$125 pens 是 R029 原文例子；档案里没有任何"差 $1 可容忍"的规定，R037 写明金额 "MUST match" | 第三案例改引 R025、R026；补"加急费本身被禁止"（R028） |
-| 测验只给"可追溯判分依据"，有冲突的先核实再判分 | ✅ 合理，必须坚持 | 档案里确有多处冲突（见第三节） | 保留；有冲突的题先不上线 |
-| 学习里没写复习时间 | ⚠️ 缺 | 间隔复习是效果最好的两种方法之一（Dunlosky et al. 2013；Cepeda et al. 2006） | 第 1 天学 → 第 3 天复测错题 → 第一次真用到时 3 题小测 → 2–4 周后再测 |
-| 第五步：一般政策先问 AI，经验再问人 | ✅ 方向对，证据支持 | 新手用 AI 助手生产率 +34%（Brynjolfsson, Li & Raymond 2025 QJE）；员工不愿问上级怕显得依赖（Lee 1997）；对机器提问顾虑更少（Lucas et al. 2014）；大学用 AI 答流程问题有效（Page & Gehlbach 2017） | 保留 |
-| AI "先确认校区、身份、资金来源，再讲清规则、原因、依赖" | ⚠️ 要改 | 带引用的法律 AI 仍有 17–33% 幻觉（Magesh et al. 2025）；生成式搜索只有约一半句子被引用完全支持（Liu et al. 2023）；**解释会让人更相信 AI，不管对错**（Bansal et al. 2021）；直接给答案会让人"做对练习、学不会"，撤掉 AI 后考试 −17%（Bastani et al. 2025 PNAS） | ①校区、Top 3、资金来源在开始时填成**固定档案**，不靠 AI 对话中问；②每个回答**显示原文段落**＋来源、版本、校区，找不到就拒答；③已知冲突**并列两条原文**标"待确认"；④学习/测验时 AI **只给提示**，办事时才直接给答案 |
-| 一对一口头交接，按岗位准备事件式问题 | ✅ 强支持 | 围绕具体事件追问（Klein et al. 1989 Critical Decision Method）；专家泛泛的建议对新手没用（Hinds et al. 2001）；复盘用真实材料效果最好（Keiser & Arthur 2021，d=0.79） | ①**打开真实材料**谈（被退回的申请、收据）；②也问"哪件事做对了"（Ellis & Davidi 2005）；③最后新任**复述**最急的 3 件事（I-PASS）；④放到第 1–2 天，不放最后 |
-| 资源总台（谁能解决什么、怎么联系） | ✅ 合理 | 人找谁求助取决于"好不好找、可不可信"（Hofmann et al. 2009） | 在社长之前加一个**相邻岗位的 buddy**（Microsoft 2019 试点，自评数据） |
-| 第六步：3–5 项任务，**全部做完一次性提交任务包** | ⚠️ 要改 | 没有研究直接比较；但反馈研究都支持**早、多轮、针对任务**（Kluger & DeNisi 1996；Watkins 2003 early wins） | **逐项提交、逐项审核**，第 1 项在第 1 天结束前交；3 天内**要求 2–3 项**，其余可"进行中＋写明卡在哪" |
-| President 本人由前任或 advisor 审核 | ✅ 合理 | 学校交接指南：交接会在正式上任前开 | 保留 |
-| 激励①核心学习进度（掌握必会节点、纠正误区） | ✅ 合理 | 表示"你能做到了"的反馈会增强动机（Ryan & Deci 2000） | 显示成"你现在能处理 X"，不排名 |
-| 激励②跨部门经验值（读别的部门内容得 XP） | ❌ 不合理 | 按"参与/完成"给奖励会降低内在动机（Deci, Koestner & Ryan 1999，d −0.36/−0.40）；徽章和排行榜一学期后让动机下降（Hanus & Fox 2015）；积分只增加数量不提高质量（Mekler et al. 2017） | 删掉 XP；改成**下游同伴确认**"你给的材料不用返工就能用"，在团队里可见 |
-| 激励③完整政策阅读里程碑 | ❌ 不合理 | 奖励点击翻页；重读是低效方法（Dunlosky 2013）；完成培训≠行为改变（Ho et al. 2025 的 8 个月随机试验） | 删掉；换成可选的"覆盖地图"（看过哪些节点），**完成看情景题掌握，不看页数** |
-| 社长强制要求走完 | ⚠️ 要注意 | 强制、按完成打勾的培训迁移差（Gegenfurtner et al. 2016；Ho et al. 2025） | 强制的是"**掌握核心情景题＋交出任务**"，不是"看完"；公开时间预算（每天学习 ≤90 分钟） |
-| 草稿缺：社长怎么放心 | ❌ 缺最关键的一块 | 信任要和看得见的可靠度匹配（Lee & See 2004）；社长实时看聊天反而让 AI 能处理的问题变少（Gnewuch et al. 2024 ISR 田野实验） | 加：未解决问题队列、FAQ 回流、抽查、可靠性数字（见第五节） |
-| 政策内容持续提炼（适用条件、规则、原因、步骤、材料、部门、版本） | ✅ 合理 | 讲清"为什么"有中等效果（Dunlosky 2013） | 卡片以"当你要……时"开头，每张 ≤110 词 |
+| Everyone (including the President) goes through the same shared foundation, then the role handoff | ✅ Sound | The keys to newcomer adjustment are role clarity, self-efficacy and social acceptance (Bauer et al. 2007, meta-analysis of 70 samples) | Keep |
+| Step 1: the President configures goals and tasks in advance; startup checklist (organization, people, training, access, handoff) | ✅ Sound, ⚠️ division of labor needs change | Checklists significantly reduce omissions (Haynes et al. 2009 NEJM; I-PASS, Starmer et al. 2014 NEJM: preventable adverse events −30%, handoff time unchanged) | The column for "open requests, commitments, permissions, contacts" is **filled in by the predecessor**; the President only checks it. Otherwise the President's burden grows |
+| Top 3, school training and platform access are verified separately; a member learning finance is not necessarily the submitter; individual travel funding is handled separately | ✅ Sound; matches the archive | R026, R035 (Top 3 submit); R038 L6671, R041 L8600 (individual travel is not tied to the organization) | Keep; add "advisors cannot request a Mazevo account" (R013) |
+| Step 2: material is split only into "required" and "optional"; **required = all applicable rules for every core node, learned by everyone** | ❌ Unsound | People basically do not read long policies (Obar & Oeldorf-Hirsch 2018); web users read only about 20% of a page on average (Nielsen 2008); unused rules are quickly forgotten (Arthur et al. 1998); support at the moment of the task works for procedural work (Nguyen & Klein 2008). Archive size: about 118,000 words ≈ 236 pages; even the core part for an ordinary Tempe event is about 36,000 words ≈ 72 pages | Change to three tiers (see Section 4): **red lines (everyone must know) → own role plus upstream/downstream nodes (must know) → look up when needed (must be able to find, not required to have read)** |
+| Each node explains "what I give the next person, what limits they work under, and who a change affects" | ✅ Very good, ⚠️ reading alone is not enough | Cross-training works, at the level of "knowing the inputs, outputs and constraints of adjacent roles" (Volpe et al. 1996; Marks et al. 2002); but concept-only cross-training is almost ineffective (Cooke et al. 2000) | Pair every handoff with an exercise **from the downstream role's point of view** (for example, review an event plan as finance) |
+| Step 3: teach one platform operation at a time, with result examples | ✅ Sound | Novices learn faster from demonstrations than by figuring things out themselves (Sweller & Cooper 1985, worked examples) | Keep it within 10 minutes; people who already know it can skip |
+| School systems (Canvas, SDC, Mazevo, Event Registry) get guidance at the relevant node; real outcomes are recorded from real records | ✅ Sound | — | Keep; add the chain **Event Registry → RITM number → Mazevo booking** (see Section 3) |
+| Step 4: tiered scenario questions (basic → multi-rule → changed situation); after a wrong answer, explain the decisive condition, then practice with a new question | ✅ Sound, strongest evidence | Testing effect (Roediger & Karpicke 2006; Rowland 2014 g≈0.50; Adesope et al. 2017); feedback after errors (Butler & Roediger 2008) | Add three things: (1) an opening **guess-first-then-see** question for each node (Richland et al. 2009); (2) a one-tap "how sure are you" rating before answering, with **high-confidence errors** resurfacing on day 3 (Butterfield & Metcalfe 2001); (3) experienced members can test out directly (Kalyuga et al. 2003) |
+| Three key cases ($700/$701, moving money between line items, waiting for approval) | ✅ The first two are supported by archive text; ⚠️ the third cites the wrong source | $75 flyers / $125 pens is the example in the R029 source text; the archive has no rule of any kind that "a $1 difference can be tolerated", and R037 states the amount "MUST match" | Change the third case to cite R025 and R026; add "expedite fees themselves are prohibited" (R028) |
+| Quizzes give only "traceable grading grounds"; items with conflicts are verified before they are graded | ✅ Sound; must be held to | The archive does contain several conflicts (see Section 3) | Keep; questions with conflicts stay offline for now |
+| The learning plan sets no review schedule | ⚠️ Missing | Spaced review is one of the two most effective methods (Dunlosky et al. 2013; Cepeda et al. 2006) | Learn on day 1 → re-test the missed items on day 3 → a 3-question mini quiz the first time the rule is actually used → test again after 2–4 weeks |
+| Step 5: ask the AI about general policy first, then ask people about experience | ✅ Right direction, supported by evidence | AI assistants raised novice productivity by 34% (Brynjolfsson, Li & Raymond 2025 QJE); employees are reluctant to ask superiors for fear of looking dependent (Lee 1997); people have fewer concerns about asking a machine (Lucas et al. 2014); a university used AI to answer procedural questions effectively (Page & Gehlbach 2017) | Keep |
+| The AI "first confirms campus, identity and funding source, then explains the rule, reason and dependencies" | ⚠️ Needs change | Legal AI with citations still hallucinates 17–33% of the time (Magesh et al. 2025); in generative search only about half of sentences are fully supported by their citations (Liu et al. 2023); **explanations make people trust the AI more, whether it is right or wrong** (Bansal et al. 2021); giving answers directly leads people to "get the exercises right but not learn"; with the AI removed, exam scores were 17% lower (Bastani et al. 2025 PNAS) | (1) Campus, Top 3 status and funding source are filled in at the start as a **fixed profile**, not asked by the AI during the conversation; (2) every answer **shows the source passage** plus source, version and campus, and declines to answer when nothing is found; (3) known conflicts **show both source passages side by side** marked "to be confirmed"; (4) during learning and quizzes the AI **only gives hints**; it gives direct answers only when doing real work |
+| One-on-one oral handoff, with event-based questions prepared per role | ✅ Strongly supported | Probing around specific events (Klein et al. 1989, Critical Decision Method); experts' general advice does not help novices (Hinds et al. 2001); debriefs work best with real materials (Keiser & Arthur 2021, d=0.79) | (1) Talk **with the real materials open** (a returned request, receipts); (2) also ask "what went right" (Ellis & Davidi 2005); (3) at the end the new officer **reads back** the 3 most urgent items (I-PASS); (4) schedule it on day 1–2, not last |
+| Resource desk (who can solve what, how to contact them) | ✅ Sound | Whom people go to for help depends on "how accessible and how trustworthy" they are (Hofmann et al. 2009) | Add a **buddy from an adjacent role** before the President (Microsoft 2019 pilot, self-reported data) |
+| Step 6: 3–5 tasks, **submit the task pack once after all are done** | ⚠️ Needs change | No study compares this directly; but feedback research consistently supports **early, multi-round, task-focused** feedback (Kluger & DeNisi 1996; Watkins 2003 early wins) | **Submit and review item by item**, with item 1 due before the end of day 1; **require 2–3 items** within 3 days, and let the rest be "in progress + where it is stuck" |
+| The President's own handoff is reviewed by the predecessor or the advisor | ✅ Sound | School transition guides: the transition meeting happens before the official start | Keep |
+| Incentive (1): core learning progress (mastering must-know nodes, correcting misconceptions) | ✅ Sound | Feedback that says "you can do this now" strengthens motivation (Ryan & Deci 2000) | Display it as "you can now handle X"; no ranking |
+| Incentive (2): cross-department XP (earn XP for reading other departments' content) | ❌ Unsound | Rewards for "participating/completing" lower intrinsic motivation (Deci, Koestner & Ryan 1999, d −0.36/−0.40); badges and leaderboards lowered motivation after one semester (Hanus & Fox 2015); points increase quantity, not quality (Mekler et al. 2017) | Remove XP; replace it with **confirmation from a downstream peer** that "the material you gave can be used without rework", visible to the team |
+| Incentive (3): complete-policy-reading milestone | ❌ Unsound | It rewards clicking through pages; rereading is an inefficient method (Dunlosky 2013); completing training ≠ behavior change (Ho et al. 2025, 8-month randomized trial) | Remove; replace with an optional "coverage map" (which nodes have been seen); **completion is judged by mastery of scenario questions, not pages** |
+| The President makes completion mandatory | ⚠️ Caution | Mandatory, completion-checkbox training transfers poorly (Gegenfurtner et al. 2016; Ho et al. 2025) | What is mandatory is "**mastering the core scenario questions + delivering the tasks**", not "finishing the reading"; publish a time budget (≤90 minutes of learning per day) |
+| Missing from the draft: how the President can feel confident | ❌ The most critical piece is missing | Trust must match visible reliability (Lee & See 2004); a President watching chats in real time actually reduces the questions the AI can handle (Gnewuch et al. 2024 ISR field experiment) | Add: unresolved-question queue, FAQ feedback loop, spot checks, reliability numbers (the original says "see Section 5"; these rules are in Section 4, part 4) |
+| Ongoing distillation of policy content (applicable conditions, rule, reason, steps, materials, departments, version) | ✅ Sound | Explaining "why" has a moderate effect (Dunlosky 2013) | Cards start with "When you are about to…", ≤110 words each |
 
 ---
 
-## 三、草稿附录的政策事实：核对结果
+## 3. Policy facts in the draft appendix: verification results
 
-**大部分属实**（档案原文、行号见 R4 报告）：注册要 3 名 officers＋advisor＋章程；成员 ≥3 学分；Top 3 必须上 Officer Training；所有 officers 和 advisors 注册时做 hazing 培训；USG-T 拨款培训每个测验 100%；资金要 ≥10 名成员；Mazevo 最多 3 名 officer；Top 3 提交预算和采购申请；个人旅行资助不挂组织；预算内被禁止的仍被禁止；FER 与 Routine Inspection；R028 的来源层级。
+**Mostly accurate** (archive source text and line numbers are in the R4 report): registration needs 3 officers + an advisor + a constitution; members need ≥3 credit hours; Top 3 must take Officer Training; all officers and advisors complete hazing training during registration; USG-T appropriations training requires 100% on each quiz; funding requires ≥10 members; Mazevo allows at most 3 officers; Top 3 submit budget and purchase requests; individual travel funding is not tied to the organization; anything prohibited stays prohibited even when it is in the budget; FER and Routine Inspection; the source hierarchy in R028.
 
-**说得太弱或有误，要改：**
+**Too weak or wrong; needs change:**
 
-| 草稿写法 | 档案实际 |
+| Draft wording | What the archive actually says |
 | --- | --- |
-| 成员"通常"≥3 学分 | "must"（R004 L357） |
-| tabling 加外部供应商"可能"变成活动 | "will result" 变成活动（R004 L590） |
-| 期末低影响活动能否拿 USG-T 活动资金"分别判断" | 明确**不能**：最后两周不资助（R025 L4361；R038 L6576） |
-| "Top 3 的每项测验 100%" | 原文是"**a** top 3 officer"，单数，不能教成三人都要考 |
-| 审批等待案例引 R014 | R014 是订场；应引 R025、R026；并且加急费被禁止（R028 L4768） |
-| R059 "排除 student organizations" | 是社团**不能驾驶 ASU 的车**，不是排除某个项目 |
-| R036 归在"Tempe 资金" | R036 是全校食品安全页 |
-| Mazevo | 漏了"advisor 不能申请账号"（R013 L2143） |
+| Members "usually" need ≥3 credit hours | "must" (R004 L357) |
+| Tabling plus an external vendor "may" become an event | "will result" in an event (R004 L590) |
+| Whether a low-impact end-of-semester event can get USG-T event funding is "judged separately" | Explicitly **no**: nothing is funded in the last two weeks (R025 L4361; R038 L6576) |
+| "Each Top 3 officer quiz must reach 100%" | The source says "**a** top 3 officer", singular; it must not be taught as all three having to take it |
+| The approval-wait case cites R014 | R014 is about venue booking; it should cite R025 and R026; also, expedite fees are prohibited (R028 L4768) |
+| R059 "excludes student organizations" | It means organizations **may not drive ASU vehicles**; it does not exclude them from a program |
+| R036 is filed under "Tempe funding" | R036 is a university-wide food-safety page |
+| Mazevo | Omits "advisors cannot request an account" (R013 L2143) |
 
-**草稿漏掉的重要规则：**
-1. **Event Registry → RITM → Mazevo 订场这条链**：订场至少 16 天前；RITM 编号不在活动前 14 天交给 Student Unions，订场**被取消**（R015 L2438；R014 L2294）。
-2. **获批前宣传可能导致活动被取消**（R004 L598）。
-3. **获批前买的东西不报销**（R025 L4363；R038 L6625）。
-4. **学生没有签字权，不签任何合同**；发票开给 ASU（R037 L5676；R029 L4891）。
-5. 活动资金上限：每学期 $15,000，印刷宣传每场 ≤$500，讲者 ≤$5,000（R037、R038）。
-6. Business Meals Form 要 officer 和 advisor 签字；收据 10 天内交；学期间不结转；小费 ≤18%（R037）。
-7. 找供应商或做销售前要先联系 Student Organizations Team（R004 L586）。
-8. Bylaws 优先于资金平台要求的条款（R038 L6491）。
+**Important rules the draft omits:**
+1. **The Event Registry → RITM → Mazevo booking chain**: book the venue at least 16 days ahead; if the RITM number is not given to Student Unions 14 days before the event, the booking **is canceled** (R015 L2438; R014 L2294).
+2. **Advertising before approval can get the event canceled** (R004 L598).
+3. **Purchases made before approval are not reimbursed** (R025 L4363; R038 L6625).
+4. **Students have no signature authority and sign no contracts**; invoices are billed to ASU (R037 L5676; R029 L4891).
+5. Event-funding caps: $15,000 per semester, printed marketing ≤$500 per event, speakers ≤$5,000 (R037, R038).
+6. The Business Meals Form needs officer and advisor signatures; receipts are due within 10 days; no rollover between semesters; tips ≤18% (R037).
+7. Contact the Student Organizations Team before engaging vendors or running sales (R004 L586).
+8. Bylaws take precedence over terms required by the funding platform (R038 L6491).
 
-**草稿列的冲突基本属实，补充：**
-- Event Registry：14 天（R010–R016）对 30 天（R004、R037、R041、R064）。**按 30 天教**。
-- 旅行资助：R027 和 Bylaws（R038）都是 $1,000、4 周；R037、R041 是 $500、6 周。按 Bylaws 优先，但时间按更严的 6 周教，金额"向 Business Office 确认"。
-- 报销上限四种写法（$999 / $999.99 每天 / 每笔 / ≥$999.99 自动拒）。
-- 食品：R041 培训幻灯片（2021 年）要求所有即食都交 FER，和 R036 矛盾；R015 说核准餐饮名单已停用，R037 还在链接它。
-- advisor 何时必须到场：三处来源三种条件（R004、R011、R041）。
-- 讲者截止：14 个工作日 / 2 周 / 6 周。按 6 周教。
-- 申诉：不是"两种时限冲突"（两条属于不同小组），真正矛盾在同一条里——活动不足 15 个工作日不能申诉，但紧急又定义为 10 个工作日内（R038 L6638 对 L6648）。
+**The conflicts the draft lists are basically accurate. Additions:**
+- Event Registry: 14 days (R010–R016) vs 30 days (R004, R037, R041, R064). **Teach 30 days.**
+- Travel funding: R027 and the Bylaws (R038) both say $1,000 and 4 weeks; R037 and R041 say $500 and 6 weeks. The Bylaws take precedence, but teach the stricter 6-week timeline, and for the amount, "confirm with the Business Office".
+- Four different wordings of the reimbursement cap ($999 / $999.99 per day / per transaction / ≥$999.99 automatically rejected).
+- Food: the R041 training slides (2021) require FER for all ready-to-eat food, which contradicts R036; R015 says the approved catering list has been discontinued, while R037 still links to it.
+- When the advisor must be present: three sources, three different conditions (R004, R011, R041).
+- Speaker deadline: 14 business days / 2 weeks / 6 weeks. Teach 6 weeks.
+- Appeals: this is not "two conflicting deadlines" (the two clauses belong to different subcommittees). The real contradiction is inside one clause: an event less than 15 business days away cannot be appealed, yet an emergency is defined as within 10 business days (R038 L6638 vs L6648).
 
-**"40 多页的文件"是哪一份？** 档案里超过 40 页的只有两份：**R038 USG-T Bylaws（约 61 页文字）**和 **R041 资金培训幻灯片（约 53 页，但文字只有约 8 页）**。2026–27 社团手册 R004 约 19–25 页。需要你确认指的是哪一份——两份的处理方式不同（见第四节第 1 点）。
+**Which document is "the file of more than 40 pages"?** Only two documents in the archive exceed 40 pages: **R038 USG-T Bylaws (about 61 pages of text)** and **R041 funding training slides (about 53 pages, but only about 8 pages of text)**. The 2026–27 student organization handbook R004 is about 19–25 pages. You need to confirm which one is meant; the two are handled differently (see Section 4, point 1).
 
-**顺带发现的网站问题：** 网站规则 R13 "期末不能办活动"用的是 2025–26 手册（R064），2026–27 手册（R004 L625）已改为某些期末活动可以办（但仍不能拿 USG-T 资金）。另外现有 R01–R16 规则大多引用 2025–26 旧手册，代码里也没有"适用校区/学期"字段。
+**Website issues found along the way:** Website rule R13 "no events during finals" uses the 2025–26 handbook (R064); the 2026–27 handbook (R004 L625) now allows certain end-of-semester events (they still cannot get USG-T funding). In addition, most of the existing R01–R16 rules cite the old 2025–26 handbook, and the code has no "applicable campus/term" field.
 
 ---
 
-## 四、推荐方案：3 天上手，学到该学的，不读完 236 页
+## 4. Recommended plan: ramp up in 3 days, learn what matters, without reading 236 pages
 
-### 1. 政策分三层（解决问题 1、3）
+### 1. Split policy into three tiers (addresses problems 1 and 3)
 
-| 层 | 谁 | 内容 | 怎么学 | 完成标准 |
+| Tier | Who | Content | How it is learned | Completion standard |
 | --- | --- | --- | --- | --- |
-| **① 红线** | 全员（含 President） | 约 12 条一旦犯错就会被取消、不报销或违规的规则：金额必须等于获批（无容差）、分项不能挪、获批前不买不宣传、只有 Top 3 提交、学生不签合同、30 天登记、RITM 14 天、禁止项获批也不能买、最后两周不资助、不带家里自制的食物（现场烹饪要提前 7 个工作日办临时许可）、紧急情况 911 | 每条一道**先猜后看**的题，答完显示 2–5 句原文和来源链接 | 全部答对（错了换一道再答）；约 20 分钟 |
-| **② 岗位＋上下游** | 每个岗位 | R4 报告第 3 节的约 40 条核心规则里，**自己要执行的**（标 A）和**交接对象要执行、自己必须提供材料的** | 节点卡（"当你要……时"开头，≤110 词）＋情景题（基础→多规则→情境变化）＋一道"站在下游角色审材料"题 | 本岗位节点情景题通过；约 30–40 分钟 |
-| **③ 随用随查** | 用到才看 | 其余规则、特殊场景（酒精、未成年人、旅行、抽奖等）、完整原文 | 工作触发时 AI 带原文给出；想深读可打开全文；可选"覆盖地图" | 不考"读过"，考"能找到并用对"；第一次真用到时 3 题小测 |
+| **(1) Red lines** | Everyone (including the President) | About 12 rules whose violation leads to cancellation, no reimbursement or a violation: the amount must equal the approved amount (no tolerance); line items cannot be moved; nothing bought or advertised before approval; only Top 3 submit; students sign no contracts; 30-day registration; RITM 14 days; prohibited items cannot be bought even when approved; nothing funded in the last two weeks; no homemade food (on-site cooking needs a temporary permit 7 business days ahead); in an emergency, call 911 | One **guess-first-then-see** question per rule; after answering, show 2–5 sentences of source text and the source link | All answered correctly (after an error, answer a replacement question); about 20 minutes |
+| **(2) Role + upstream/downstream** | Each role | Out of the about 40 core rules in Section 3 of the R4 report, the ones **the role itself carries out** (marked A) and the ones **that its handoff partners carry out and for which the role must supply materials** | Node cards (starting with "When you are about to…", ≤110 words) + scenario questions (basic → multi-rule → changed situation) + one "review materials from the downstream role's point of view" question | Pass the scenario questions for the role's nodes; about 30–40 minutes |
+| **(3) Look up when needed** | Read only when used | All other rules, special situations (alcohol, minors, travel, raffles, etc.), complete source text | When work triggers them, the AI delivers them with source text; the full text can be opened for deeper reading; optional "coverage map" | Not tested on "having read it" but on "can find it and apply it correctly"; a 3-question mini quiz the first time it is actually used |
 
-**怎么对待 40 多页的文件：**
-- 如果是 **R041 资金培训**：这是学校要求在 Canvas 完成的，**站内不替代**。站内做法是"预习＋带着问题去读"：先做 5 道先猜题（这些题恰好对应幻灯片里最容易错的页），每题答完告诉成员"这在第几页"，好奇心来自刚答错的那道题（信息缺口理论，Loewenstein 1994）。
-- 如果是 **R038 Bylaws**：不要求任何人读完。约 61 页里大量是 USG-T 自己官员的规定。只抽出对申请社团有效的条款（截止时间、上限、自动不合格、申诉、Bylaws 优先），进入②和③。
+**How to handle the file of more than 40 pages:**
+- If it is **R041 funding training**: the school requires it to be completed in Canvas, and **the site does not replace it**. The site's approach is "preview + read with questions in mind": first answer 5 guess-first questions (which correspond exactly to the slides where people most often go wrong); after each question, tell the member "this is on page N". Curiosity comes from the question just answered wrong (information-gap theory, Loewenstein 1994).
+- If it is **R038 Bylaws**: no one is required to read all of it. Much of its roughly 61 pages governs USG-T's own officers. Extract only the clauses that matter to applying organizations (deadlines, caps, automatic disqualification, appeals, Bylaws precedence) and put them into tiers (2) and (3).
 
-### 2. 交叉依赖做成"交接约定"（解决问题 2）
+### 2. Turn cross-dependencies into "handoff agreements" (addresses problem 2)
 
-把 R4 报告里的"谁给谁什么"整理成固定的交接约定，**交接双方都必须会**（属于②层，不是选读）：
+Organize "who gives whom what" from the R4 report into fixed handoff agreements. **Both sides of each handoff must know it** (it belongs to tier (2), not optional reading):
 
-| 给出方 → 接收方 | 交什么 | 最晚何时 | 缺了会怎样 | 依据 |
+| Giver → receiver | What is handed over | Latest by | What happens if it is missing | Basis |
 | --- | --- | --- | --- | --- |
-| Events → Finance | 日期、地点、受众、含税运费的供应商报价（一家一张） | 活动前 ≥4 周（>$10k 为 5 周；讲者 6 周） | 申请迟交自动不合格 | R025、R038 L6495、R033、R035 |
-| Events → Marketing | "已获批"＋RITM 编号和场地 | 宣传开始前 | 获批前宣传可能被取消 | R004 L598 |
-| Events → 持有 Mazevo 的 officer | RITM 编号 | 活动前 14 天 | 订场被取消 | R014 L2294 |
-| Marketing → Finance | 最终宣传稿（采购申请必须附） | 采购申请前 | 采购申请不完整 | R029 L4881、R047 |
-| Secretary → Finance | 准确名单（≥10 人）、签到/出席名单 | 资金申请前；餐费报销时 | 不具备资金资格；餐费单不完整 | R030 L4955、R037 L5655 |
-| 付款人 → Finance | 逐项收据 | 10 天内（60 天以上不能报） | 不报销 | R037 L5726、R041 L8912 |
-| President → 所有人 / advisor | Top 3 名单、培训清单 | 任何提交之前 | 没人有资格提交 | R004 L475、L450 |
+| Events → Finance | Date, location, audience, vendor quotes including tax and shipping (one sheet per vendor) | ≥4 weeks before the event (5 weeks for >$10k; 6 weeks for speakers) | A late request is automatically disqualified | R025, R038 L6495, R033, R035 |
+| Events → Marketing | "Approved" + RITM number and venue | Before advertising starts | Advertising before approval can get the event canceled | R004 L598 |
+| Events → the officer who holds Mazevo | RITM number | 14 days before the event | Venue booking is canceled | R014 L2294 |
+| Marketing → Finance | Final marketing artwork (must be attached to the purchase request) | Before the purchase request | Purchase request is incomplete | R029 L4881, R047 |
+| Secretary → Finance | Accurate roster (≥10 people), sign-in/attendance list | Before the funding request; at meal reimbursement | Not eligible for funding; meal form incomplete | R030 L4955, R037 L5655 |
+| Payer → Finance | Itemized receipts | Within 10 days (cannot be reimbursed after 60 days or more) | Not reimbursed | R037 L5726, R041 L8912 |
+| President → everyone / advisor | Top 3 list, training checklist | Before any submission | No one is eligible to submit | R004 L475, L450 |
 
-练习方式：每个岗位至少做一道"我是接收方，这份材料缺什么"的找错题；任务包里有一项是**真实交给下游的材料**，由下游同伴确认"能直接用"。
+Practice: each role does at least one "I am the receiver: what is missing from this material?" error-finding question; one item in the task pack is **real material handed to the downstream role**, and a downstream peer confirms it "can be used directly".
 
-### 3. 三天安排（每天学习 ≤90 分钟，其余时间做真实任务）
+### 3. Three-day schedule (≤90 minutes of learning per day; the rest of the time goes to real tasks)
 
-| 时间 | 新成员 | 前任 / buddy | President |
+| When | New member | Predecessor / buddy | President |
 | --- | --- | --- | --- |
-| **开始前** | 填固定档案：校区、职位、是否 Top 3、资金来源 | 前任填**未结事项单**：进行中的申请（编号、状态、截止）、对外承诺、余额和分项、账号权限、关键联系人、"如果 X 就 Y" | 约 30 分钟：从模板选 2–3 项任务（做什么、为什么、交什么、何时交、怎样算完成）；核对 Top 3、学校培训、系统访问 |
-| **第 1 天** | 红线先猜题（20 分）→ 本岗位节点卡与交接约定（30 分）→ 平台 3 个操作（10 分）→ 交第 1 项小任务 | 1:1 交接 30–45 分：打开真实材料，问"哪次返工、哪件做对了、最早看到什么信号"，最后新任复述最急 3 件事 | 第 1 项任务的反馈 |
-| **第 2 天** | 情景题进阶＋"站在下游审材料"题（30 分）；用 AI 办事模式推进任务 | buddy 15 分钟沟通 | 只处理升级队列里的问题 |
-| **第 3 天** | 复测答错和"很确定却错"的题（10 分）；交其余任务 | — | 逐项审核：通过或退回并写清改什么 |
-| **之后** | 第一次真做某件事时 3 题小测；2–4 周后复测 | 期末前写一页学期复盘给下一任 | 沿用现有第 7 / 30 天回看 |
+| **Before starting** | Fill in the fixed profile: campus, position, Top 3 or not, funding source | The predecessor fills in the **open-items sheet**: requests in progress (number, status, deadline), external commitments, balances and line items, account permissions, key contacts, "if X then Y" | About 30 minutes: pick 2–3 tasks from templates (what to do, why, what to deliver, when, what counts as done); check Top 3, school training and system access |
+| **Day 1** | Red-line guess-first questions (20 min) → own role's node cards and handoff agreements (30 min) → 3 platform operations (10 min) → submit the first small task | 1:1 handoff, 30–45 min: open the real materials; ask "which time required rework, what went right, what was the earliest warning sign"; at the end the new officer reads back the 3 most urgent items | Feedback on task 1 |
+| **Day 2** | Advanced scenario questions + "review materials from the downstream point of view" questions (30 min); move tasks forward in the AI doing mode | 15-minute buddy conversation | Handle only the questions in the escalation queue |
+| **Day 3** | Re-test wrong answers and "very sure but wrong" questions (10 min); submit the remaining tasks | — | Review item by item: approve, or return with a clear note on what to change |
+| **Afterward** | A 3-question mini quiz the first time something is actually done; re-test after 2–4 weeks | Before the end of the semester, write a one-page semester review for the next officer | Keep the existing day 7 / day 30 check-ins |
 
-学校培训（Officer Training、hazing、拨款培训）在清单里单独跟踪，站内测验**不代替**学校成绩；拨款培训只需要负责提交资金申请的那位 Top 3 完成。
+School trainings (Officer Training, hazing, appropriations training) are tracked separately in the checklist; on-site quizzes **do not replace** school scores. Appropriations training only needs to be completed by the Top 3 officer responsible for submitting funding requests.
 
-### 4. "AI 先答、社长后答"：让社长放心的规则（解决问题 4）
+### 4. "AI answers first, the President answers after": rules that let the President feel confident (addresses problem 4)
 
-1. **没有原文就不答。** 每个回答显示原文段落、来源编号、版本、校区；找不到就说"无法确认"并给升级按钮。
-2. **档案不符就拒答。** 成员档案（校区、Top 3、资金来源）和条文适用范围不一致时不猜。
-3. **冲突摆出来。** 命中已知冲突时并列两条原文，标"待确认"，告诉成员问谁。
-4. **金额、资格、截止、签字权的问题**先让成员说出决定答案的条件，再看 AI 结论（Buçinca et al. 2021 认知强制，只用在高风险问题上）。
-5. **学习时只给提示，办事时给答案**（Bastani et al. 2025）。
-6. **固定升级顺序：** AI → 交接手册/前任 → buddy → 社长。升级时自动附原问题、AI 回答、引用和没解决的原因（冲突 / 缺资料 / 需要授权 / 需要经验）。
-7. **社长默认看汇总和升级队列，不实时看个人聊天**（Gnewuch et al. 2024）。
-8. **每次社长回答后生成一条 FAQ 草稿，社长确认后发布**，下一个人直接从 AI 拿到（del Rio-Chanona et al. 2024：私下问答不沉淀就丢了）。
-9. **用数字建立信任：** 带原文回答比例、拒答率、升级数、抽查错误数；第一学期每周抽查 5–10 条（Lee & See 2004）。
+1. **No source text, no answer.** Every answer shows the source passage, source ID, version and campus; if nothing is found, it says "cannot confirm" and offers an escalation button.
+2. **Profile mismatch means no answer.** When the member profile (campus, Top 3, funding source) does not match a provision's scope, the AI does not guess.
+3. **Show conflicts.** When a known conflict is hit, show both source passages side by side, mark "to be confirmed", and tell the member whom to ask.
+4. **For questions about amounts, eligibility, deadlines and signature authority**, first have the member state the condition that decides the answer, then show the AI's conclusion (Buçinca et al. 2021, cognitive forcing, used only for high-risk questions).
+5. **Hints only while learning; answers while doing** (Bastani et al. 2025).
+6. **Fixed escalation order:** AI → handoff handbook / predecessor → buddy → President. An escalation automatically attaches the original question, the AI's answer, the citations and the reason it was not resolved (conflict / missing material / needs authorization / needs experience).
+7. **By default the President sees summaries and the escalation queue, not individual chats in real time** (Gnewuch et al. 2024).
+8. **Every President answer generates an FAQ draft, published after the President confirms it**, so the next person gets it directly from the AI (del Rio-Chanona et al. 2024: private Q&A that is not captured is lost).
+9. **Build trust with numbers:** share of answers with source text, decline rate, escalation count, errors found in spot checks; in the first semester, spot-check 5–10 items per week (Lee & See 2004).
 
-社长真正要做的事只剩：开始前 30 分钟配置、回答升级队列、审 2–3 项任务。
-
----
-
-## 五、和现有代码的关系
-
-**能直接用：** 交接模块（访谈、只摘录原文的手册、新任复述、旁观任务、第 7/30 天回看、缺口提问）、64 条来源目录、服务器上的完整政策原文和检索、`/api/ask` 只返回规则编号、引用标签和核对日期、任务提交和附件、通知、Roles & teams。
-
-**和草稿/推荐方案冲突，需要改：**
-- 任务提交后自动标 Done，没有"社长审核 / 退回"状态。
-- 交接按 7/30 天排，不是 3 天。
-- `/api/policy-answer` 允许 AI 写最多 1,200 字自由文字，不符合"没有原文就不答"。
-- 两套规则编号（R01–R16 与 ASU-R-001…064），且 R01–R16 多引旧手册；R13 已过期；没有校区/学期适用字段。
-- Ask 聊天记录是所有人共用一份（最后 60 条），没有"未解决问题队列"。
-
-**完全没有：** 红线/节点卡和交接约定的数据结构、情景题引擎、任务包审核、升级队列和 FAQ 回流、启动核对清单。
-
-**限制：**
-- 现在是 Phase 3 收集数据期（11/16–12/4），按计划冻结代码。
-- 情景题成绩、升级队列、成员档案都是**新的记录项**，按 AGENTS.md 要先对照 IRB 由你决定。
-- 研究日志守护测试不允许交接模块读交互日志；升级队列要单独存，不能从研究日志拼出来。
-- `/handoff` 页面字数上限 120/120，新页面需要你批准新的上限。
+What is left for the President to do: 30 minutes of setup before the start, answering the escalation queue, and reviewing 2–3 tasks.
 
 ---
 
-## 六、需要你决定的事
+## 5. Relationship to the existing code
 
-1. "40 多页的文件"指 **R041 资金培训**还是 **R038 Bylaws**？
-2. 情景题成绩和升级的问题**要不要存下来**？（影响 IRB 和"社长看什么"）
-3. 社长能看到个人和 AI 的问答吗？我建议只看汇总和主动升级的问题。
-4. 3 天内要求 **2–3 项**任务（建议），还是坚持 3–5 项？
-5. 冲突项按"更严"的教（Event Registry 30 天、讲者 6 周、旅行 6 周＋金额向 Business Office 确认）——同意吗？
-6. 什么时候开始做：Phase 3 结束（12/4）之后，还是先只做静态效果图？
+**Can be used directly:** the handoff module (interview, source-extract-only handbook, new-officer read-back, shadow task, day 7/30 check-ins, gap questions), the 64-source catalog, the full policy source text and search on the server, `/api/ask` returning only rule IDs, citation chips and checked dates, task submission and attachments, notifications, Roles & teams.
 
-## 七、证据的边界
+**Conflicts with the draft / recommended plan; needs change:**
+- A submitted task is automatically marked Done; there is no "President review / return" status.
+- Handoff is scheduled on 7/30 days, not 3 days.
+- `/api/policy-answer` lets the AI write up to 1,200 characters of free text, which does not satisfy "no source text, no answer".
+- Two rule-ID schemes (R01–R16 and ASU-R-001…064), and R01–R16 mostly cite the old handbook; R13 is outdated; there is no campus/term applicability field.
+- The Ask chat history is a single shared log for everyone (the last 60 messages); there is no "unresolved-question queue".
 
-- 学生社团换届本身的实证研究很少（最直接的一篇只有一个组织 22 人）；大部分证据来自企业新人、医院交接、教育心理学，借鉴的是机制，不是效果大小。
-- "AI 生成的建议问题"和"自助知识库减少工单"没有找到严格的同行评审研究。
-- 红线 12 条、约 40 条核心规则、每天 90 分钟、2–3 项任务是根据证据和档案做的设计选择，**还没有在真实社团里测过**。
+**Does not exist at all:** data structures for red lines / node cards and handoff agreements, a scenario-question engine, task-pack review, an escalation queue and FAQ feedback loop, a startup checklist.
+
+**Constraints:**
+- This is currently the Phase 3 data-collection period (11/16–12/4); per plan, code is frozen.
+- Scenario-question scores, the escalation queue and member profiles are all **new record items**; per AGENTS.md, you must decide on them after checking against the IRB.
+- The research-log guard test does not allow the handoff module to read the interaction log; the escalation queue must be stored separately and must not be assembled from the research log.
+- The `/handoff` page word limit is 120/120; new pages need you to approve new limits.
+
+---
+
+## 6. Decisions needed from you
+
+1. Does "the file of more than 40 pages" mean **R041 funding training** or **R038 Bylaws**?
+2. Should scenario-question scores and escalated questions **be stored**? (This affects the IRB and "what the President sees".)
+3. Can the President see individuals' Q&A with the AI? I recommend showing only summaries and actively escalated questions.
+4. Require **2–3** tasks within 3 days (recommended), or keep 3–5?
+5. Teach conflicting items by the "stricter" reading (Event Registry 30 days, speakers 6 weeks, travel 6 weeks + confirm the amount with the Business Office): do you agree?
+6. When to start building: after Phase 3 ends (12/4), or only static mockups first?
+
+## 7. Limits of the evidence
+
+- There is very little empirical research on student-organization leadership turnover itself (the most direct paper covers a single organization with 22 people). Most evidence comes from corporate newcomers, hospital handoffs and educational psychology; what is borrowed is the mechanism, not the effect size.
+- No rigorous peer-reviewed research was found on "AI-generated suggested questions" or on "self-service knowledge bases reducing tickets".
+- The 12 red lines, about 40 core rules, 90 minutes per day and 2–3 tasks are design choices based on the evidence and the archive, and **have not yet been tested in a real student organization**.

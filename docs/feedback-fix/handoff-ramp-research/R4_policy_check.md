@@ -12,7 +12,7 @@ Status labels: **V** = verified, **P** = partly (true, but a condition is missin
 | # | Draft claim | St. | Evidence (record, line, quote) | Note |
 |---|---|---|---|---|
 | 1 | Annual registration | V | R001 L58: "registration must occur on an annual basis" | |
-| 2 | Members "通常" (usually) need at least 3 credit hours | **P** | R004 L357: "All members … must be currently enrolled in a minimum of three (3) credit hours"; R002 L136: "Club officers and members must be ASU students enrolled in at least 3 credit hours." | The source says "must", not "usually". The draft also leaves out the ABOR student definition and good conduct standing (L357: "may not be listed on a student organization's Sun Devil Central roster"). |
+| 2 | Members "usually" need at least 3 credit hours | **P** | R004 L357: "All members … must be currently enrolled in a minimum of three (3) credit hours"; R002 L136: "Club officers and members must be ASU students enrolled in at least 3 credit hours." | The source says "must", not "usually". The draft also leaves out the ABOR student definition and good conduct standing (L357: "may not be listed on a student organization's Sun Devil Central roster"). |
 | 3 | Registration needs 3 officers, an advisor and a constitution | V | R002 L135: "you will need 3 officers, 1 advisor, and a constitution." R004 L475: "a minimum of three ASU students … must serve as the top three officers" | Advisor eligibility: R004 L441 says professor ranks "with two years of experience at ASU". |
 | 4 | Top 3 are the officers on the registration form and in SDC; new titles do not add Top 3 seats | V (inference) | R004 L475 "listed on the registration form and in Sun Devil Central"; L481: "may establish additional leadership roles … however, multiple officers may not share the title 'President.'" | The archive never states "no extra Top 3 seats" in those words, but the 3 contact slots (L508, L537) support it. |
 | 5 | Top 3 must complete Officer Training; the transition guide also tells new officers to take it | V | R004 L484: "These officers must complete the Student Organization Officer Training"; L558: "Have new officers review the … Handbook and the Organization Constitution, and have them take the student officer training"; R002 L136: "The top three officers must complete the officer training course." | |
@@ -39,7 +39,7 @@ Gaps in this section:
 
 The cited record ranges match the archive topics. Two weak points:
 - R039 and R040 contribute nothing (an enrollment stub and an empty file).
-- "供应商与合同" should also cite R004 L586: "Student organizations are required to consult with the Student Organizations Team prior to engaging vendors or conducting sales activities."
+- "Vendors and contracts" should also cite R004 L586: "Student organizations are required to consult with the Student Organizations Team prior to engaging vendors or conducting sales activities."
 
 ### 1d. The 8 quiz cases
 
@@ -209,11 +209,11 @@ Each role is marked **A** (must act) or **a** (awareness).
 ## 4. Over-reach, missing conditions, campus and version mixing, omissions
 
 **Over-reaching or mis-weighted statements**
-- "通常" for 3 credit hours: the source says "must" (R004 L357).
-- The tabling-plus-vendor case and the end-of-semester funding case are written as "可能" or "分别判断". The sources give definite answers (R004 L590; R025 L4361, R038 L6576).
+- "Usually" for 3 credit hours: the source says "must" (R004 L357).
+- The tabling-plus-vendor case and the end-of-semester funding case are written as "may" or "judged separately". The sources give definite answers (R004 L590; R025 L4361, R038 L6576).
 - Case 4 cites R014. It should cite R025 L4401 and R026 L4526–28.
-- "Top 3 officer 的每项测验": the source says "a top 3 officer" (R037 L5429).
-- R059 "排除 student organizations": the source covers ASU-owned, leased and rented vehicles only.
+- "Each Top 3 officer quiz" (the Chinese draft does not mark singular or plural): the source says "a top 3 officer" (R037 L5429).
+- R059 "excludes student organizations": the source covers ASU-owned, leased and rented vehicles only.
 - The R024–038 grouping puts R036 under "Tempe funding". R036 applies university-wide.
 
 **Campus and version mixing to fix**
@@ -225,7 +225,7 @@ Each role is marked **A** (must act) or **a** (awareness).
 
 **Important omissions in the draft**
 1. The chain Event Registry → RITM → Mazevo, with 14-day cancellation and the 16-day venue minimum (R014 L2294, R015 L2438).
-2. Advertising before approval can cancel the event (R004 L598). The draft says "获批后宣传" but not the consequence.
+2. Advertising before approval can cancel the event (R004 L598). The draft says "advertising after approval" but not the consequence.
 3. Purchases made before approval are not reimbursed (R025 L4363, R038 L6625).
 4. "Students do not have signature authority" (R037 L5676). Invoices must be billed to ASU (R029 L4891).
 5. Event-funding caps: $15,000 per semester; presentations above $5k and $10k; printed marketing ≤ $500 per event; speakers ≤ $5,000 (R037 L5916–18, R038 L6552, L6556).

@@ -1,135 +1,137 @@
-# 用户提供的草稿（由另一个 AI 起草，2026-11-21 转来供审阅）
+# Draft provided by the user (drafted by another AI, forwarded on 2026-11-21 for review)
 
-## 用户的目标与要解决的问题（用户原话整理）
+_Translated from the owner's Chinese draft (Juanxi). The Chinese original is preserved in git history at commit `aa083b7f`, same path._
 
-目标：让一个新进入 exec 的成员在 3 天内马上 pick up 岗位要求他做的事情，并全面理解学校的政策。
+## The user's goal and the problems to solve (the user's own words, organized)
 
-1. 学校政策散落在很多不同的地方，如何根据网址或政策内容鼓励成员去阅读？如何激励人的好奇心去阅读长达 40 多页的文件？又或者怎样把这 40 多页的文件挑出最重要的部分，结合社团组织时必然会遇到的问题（比如资金申请、订场地）进行呈现？
-2. 有些内容根据岗位可能是选读，但必须考虑到交叉依赖：如果岗位 A 不理解岗位 B 的内容，而岗位 B 的工作又依赖岗位 A，就会出现大问题。
-3. 方案不能太繁琐，但成员该学的东西必须学到。
-4. 最重要：让社长放心：引导社员在 onboarding 的时候多问 AI 政策相关的问题，遇到实在不懂的再去问社长。这是核心痛点：帮助社长 offload 沟通和培训成本。
+Goal: let a member who has just joined the exec board pick up what their role requires within 3 days, and fully understand the school's policies.
 
-假设社长会强制要求新上任的成员走完这套方案，3 天内上手。
+1. School policies are scattered across many different places. How can we encourage members to read them, based on the URLs or the policy content? How can we spark people's curiosity to read a document of more than 40 pages? Or, how can we pick out the most important parts of that 40-plus-page document and present them together with the problems an organization is bound to run into (such as funding requests and venue booking)?
+2. Some content may be optional depending on the role, but cross-dependencies must be considered: if role A does not understand role B's content, and role B's work depends on role A, there will be serious problems.
+3. The plan cannot be too cumbersome, but members must learn what they need to learn.
+4. Most important: give the President peace of mind. Guide members to ask the AI more policy questions during onboarding, and to ask the President only when they really do not understand. This is the core pain point: help the President offload communication and training costs.
 
----
-
-## 草稿正文
-
-新流程面向全体成员和 officers，也包括 President。大家先理解办活动的核心政策和部门依赖，再熟悉平台、完成情景练习与经验交接，最后向 President 提交预先布置的 3–5 项任务。
-
-Onboarding 建立共同基础；handoff 在此基础上补齐岗位目标、未结工作、资料权限和关键联系人。目标是几小时内知道怎样推进工作，前三天交出可审阅的初步成果；任务范围与完成判断由 President 决定。
-
-### 整体流程
-President 提前配置 → 全员学习核心政策与协作 → 平台操作适应 → 循序渐进的情景练习 → AI 澄清与口头经验交接 → 任务包提交与 President 审核。
-AI 在学习和办理过程中随时可问。一般政策疑问先问 AI；一对一交接集中讨论真实经历、未结事项和仍未解决的问题。
-
-### 第一步 President 先把交接准备好
-成员开始前，President 设置岗位目标、需要接手的工作，并列出 3–5 项任务。每项任务写清：做什么、为什么、交什么、什么时候交。
-启动清单同时检查：
-- 组织：所属校区、资金路径、注册状态、章程与 advisor。
-- 人员：正式名单、现任 Top 3，以及变更应由谁办理。
-- 培训：普通 officer training、hazing prevention、适用的资金培训；advisor 自己的培训也要跟踪。
-- 访问：本平台、共享资料及岗位所需的学校系统是否可用。
-- 交接：前任或对接人、经验交接安排、未结申请和承诺。
-President 负责安排和跟踪，具体授权或学校变更由有权限的人办理；成员完成自己的培训并验证访问是否可用。缺少权限或等待学校处理时，记录负责人和下一步，成员继续其他可完成的学习与任务。
-Top 3 正式身份、学校培训完成和平台访问分别核实。学习 finance 的成员不一定是资金申请提交者；不能把所有协作者都设成 Top 3。Tempe 组织预算和采购申请与个人旅行资助也要分别判断。
-
-### 第二步 资料只分必须和选读
-| 层级 | 内容与范围 |
-| 必须 | 举办活动各个 core 节点涉及的全部适用规则，包括跨部门协作要求、办理前提、关键条件和本次活动触发的细则。全员学习核心节点；实际承办者还要掌握具体操作。 |
-| 选读 | 当前工作尚未涉及的特殊场景细则、其他岗位的深入经验、更多案例和相关治理背景。鼓励扩展阅读；工作范围变化后，适用内容转入必须清单。 |
-必须内容覆盖：组织资格与培训 → 活动方案及排期 → 场地与活动登记 → 预算与采购 → 供应商、合同与食品 → 宣传、版权与无障碍 → 现场风险 → 票据、付款和资料归档。特殊活动涉及酒精、未成年人、旅行、无人机等时，补齐对应适用细则。
-按节点逐步呈现，相关原文始终可查。校区、学期、资金来源与具体活动条件决定适用范围；旧版和其他校区资料保留来源身份。
-跨部门理解属于必须内容。每个节点讲清三件事：我给下一位同伴什么信息、对方受什么条件限制、变更会影响谁。例如活动组提供明确计划与含税运费的报价，finance 才能继续核实资金资格、额度和采购材料；宣传也要理解何时具备发布条件。
-
-### 第三步 做平台内的操作适应
-Digital platform adaptation 先教会成员使用我们自己的平台：1. 找到必须和选读资料，并向 AI 提问。2. 查看任务、保存草稿、提交成果。3. 查看办理指引、审核反馈和待确认事项。每次只教一个操作，使用简短步骤和结果示例。
-学校系统放在相关节点提供指引：Canvas 培训、Sun Devil Central 名单和资金、Mazevo 预约、Event Registry，以及当期适用的采购流程。先在本平台解释用途、资格、准备材料和操作路径，实际办理时再跳转对应入口。学校系统的提交与完成情况按真实结果记录。
-
-### 第四步 全员做有层次的情景练习
-通用测验由所有成员完成，President 也参加。题目同时训练规则精度、部门协作和认知盲区；岗位或活动所需的深入题再按适用范围加入。
-- 基础：精确识别金额、身份、状态与前提。
-- 进阶：同时满足多条规则，找出材料或流程中的缺口。
-- 应用：情境发生变化后，说明影响谁、应先做什么、找谁确认。
-题型包括找错、排序、金额计算和短答。每道题交代足够条件，提供可追溯的判分依据；存在未解决政策冲突的内容先核对，再用于正式判分。答错后解释决定性条件，并换一个相关情境再练。
-三个重点案例：1. 已获批的相应额度是 $700，拟累计支出含税运费 $701：不能预设有 $1 容差；先调整采购或取得适当变更批准。2. 总额未超、分项超了：其他分项省下的钱，不代表可自行挪用。3. 审批等待影响活动：带 request ID、时间与具体影响主动跟进，询问可用渠道；能否调整处理安排由相关人员判断。
-再加入“站在 finance 视角找出活动计划缺什么”等协作题。客观题按核实后的参考答案反馈，真实工作的完成情况交给 President 审核。学校 Canvas 培训成绩独立记录。
-
-### 第五步 先让 AI 讲清制度 再向人取得经验
-AI 先确认成员的校区、身份、资金来源和当前阶段，再把规则、原因、依赖和下一步讲清楚。一次回答尽量包括：当前可以怎么做以及决定答案的条件；为什么需要这些材料或审批，会影响哪个部门；对应政策条文和适用版本；仍不确定的事实，以及应向谁问什么。
-政策库预先按主题与活动节点整理，提问时取用相关条文及依赖。明确的制度问题先在这里解决；来源冲突、资料缺口、正式授权及实际经验转给适当的人。
-保留一对一口头交接，按岗位准备问题。例如 finance 问“上次哪类材料导致返工”；活动岗问“哪次临时变更牵动最多部门”；President 问“上届遗漏过哪些 training、名单或权限准备”。让前任讲案例，记录做法、适用条件和确认人。
-资源总台随时可用：President、前任、advisor、USG、Business Office、场地和学校相关 staff。显示他们能解决什么、怎么联系，以及已核对的办公信息。紧急安全事项直接使用学校应急渠道。
-
-### 第六步 像交作业一样提交任务包
-任务在启动时由 President 布置，成员学习过程中即可推进。平台提供任务建议，最终题目、交付内容和审核标准由 President 设置。例子：准备一份让 finance 能接手的活动计划与费用草稿；推进一个适合自己身份和权限的实际办理环节，提交结果或具体阻塞及跟进记录；整理一份岗位或跨部门交接说明。任务建议拆成成员能控制、能展示的阶段性成果，便于前三天提交。
-提交与审核：1. 成员逐项打开任务，填写内容，添加链接或附件，保存草稿。2. 完成全部 3–5 项任务后，点击一次“提交任务包”。3. President 收到通知，一并审核并逐项反馈。4. 通过，或退回指定任务并说明修改要求。5. 成员修改后再次提交，保留已通过项目和提交记录。系统负责保存、必填提示、状态和通知；通过或退回由 President 决定。President 本人的交接由组织指定的前任、advisor 或其他交接人审核。
-共同学习进度、真实任务审核、学校资格与授权分别记录。President 的站内审核不代替学校要求的培训、审批或权限办理。
-
-### 用激励鼓励完整阅读和跨部门理解
-| 机制 | 如何获得 | 鼓励什么 |
-| 核心学习进度 | 完成必须节点，并纠正相关关键误区 | 每个人掌握共同基础 |
-| 跨部门经验值 | 阅读职责外内容，完成相应情景练习，或提交经负责人认可的协作成果 | 理解 finance、活动、宣传等部门的困难 |
-| 完整政策阅读里程碑 | 读完本组织当期适用政策集，并完成相应理解检查 | 从“完成最低要求”走向“理解全流程” |
-经验值来自理解与应用，重复打开页面不重复计分。拓展阅读可以自由选择先后；新的工作触发某项规则时，该规则进入必须清单。学习徽章说明知识范围，正式办理资格仍按学校记录核实。
-拟用鼓励语：把下一位同伴需要的信息准备齐，团队就能继续往前走。
-
-### 政策内容怎样持续提炼
-每个知识点整理成：适用条件、规则、原因、办理步骤、所需材料、关联部门、来源版本。再据此生成学习卡、平台指引和分级情景题，经核实后发布。由指定维护人核对当期政策、课程和入口，优先处理影响办理资格、金额、时限和权限的变化。变化后只安排相关内容复习，保留既有学习记录。
-本轮继续审阅流程、机制和文字。文档细节确认后，再逐张生成静态图片；图片审阅完成后再写网站代码。
+Assume the President will require newly appointed members to go through this whole plan and be up to speed within 3 days.
 
 ---
 
-## 附录（草稿的政策事实部分，依据 03_Full_Rules_Archive.txt，64 条来源，2026-10-30 汇编）
+## Draft text
 
-### 身份 培训和办理资格
-| 项目 | 档案中的要求（草稿声称） | 交接中要记录什么 |
-| 组织与人员资格 | 学生社团年度注册；成员通常须符合至少 3 学分等资格；注册需要 3 名 officers、advisor 和章程 | 注册状态、当期名单、章程、advisor |
-| Top 3 身份 | 登记表及 Sun Devil Central 中的正式组织领导身份；组织内新增职称不自动增加 Top 3 名额 | 三名实际登记者、变更办理人及学校记录 |
-| Student Organization Officer Training | Top 3 须完成；交接指南也安排新任 officers 阅读手册、章程并参加 officer training | 学校课程、课程版本、完成情况及核对依据 |
-| Hazing Prevention | 2026–2027 手册写明所有 student organization officers 和 advisors 在注册过程中完成 | 不遗漏非 Top 3 的 officers 和 advisor |
-| Tempe 组织资金培训 | 申请 USG-T 组织资金前完成 appropriations training；Top 3 officer 的每项测验须达到 100%，提交资金申请时确认已完成 | 独立记录；站内 Quiz 不充当学校成绩 |
-| 组织资金资格 | Tempe 资金手册和 profile 要求还涉及 Top 3、advisor、至少 10 名成员及完整组织资料 | 组织资格与个人资格都要核实 |
-| Advisor training | 注册页面列出 hazing、Clery 和年度 advisor training | advisor 完成，President 跟踪 |
-| Mazevo 账号 | Student Unions and Centers 指引允许至多三名经学校登记的 elected officers 请求组织账号；不同校区账号分别申请 | 正式身份、对应校区、账号实际可用性分别验证 |
-依据：ASU-R-001、R-002、R-004、R-014、R-030、R-037。
+The new process is for all members and officers, including the President. Everyone first understands the core policies for running events and the dependencies between departments, then gets familiar with the platform, completes scenario practice and an experience handoff, and finally submits 3–5 pre-assigned tasks to the President.
 
-组织申请与个人资助要分开：Tempe 的组织 operation/start-up budget 指引要求 Top 3 提交，purchase 指引也要求由组织资料中列明的 Top 3 提交。个人 travel/professional development funding 面向符合条件的个人申请者，不应统一加上“必须是组织 Top 3”的门槛。依据：R-026、R-027、R-035。
+Onboarding builds a shared foundation; the handoff builds on it by filling in role goals, open work, materials and permissions, and key contacts. The goal is to know how to move the work forward within a few hours and to deliver reviewable initial results within the first three days; the President decides the task scope and what counts as done.
 
-### 活动核心节点
-| 核心节点 | 要学会的判断与交接 | 主要归档来源 |
-| 组织与人员准备 | 注册、名单、Top 3、培训、advisor、文件和账号移交 | R001–004、R030、R037、R039–041 |
-| 活动方案与排期 | 目的、受众、日期、费用、关键依赖；区分一般活动许可与某类资金的可资助条件 | R004、R010–017、R025–027、R037–038 |
-| 场地与登记 | Mazevo 与 Event Registry 各自解决什么；提交、补件与确认的区别 | R010–016、R021 |
-| 预算与采购 | 获批额度、分项额度、税运费、public purpose、供应商拆单、申请及付款阶段 | R024–035、R037–038、R041–047 |
-| 供应商与合同 | 谁在签约、谁有签字权、付款与保险要求；有偿演讲与无偿来访的适用差异 | R004、R037、R044–049、R054–055 |
-| 食品与许可 | 场地独家餐饮、FER 的适用范围、供应商许可及近期检查、现场制作的额外许可 | R015、R036–037、R041、R050 |
-| 宣传与参与体验 | 获批后宣传、品牌和制作商、音乐与影片权利、无障碍安排 | R004、R009、R018–020、R047 |
-| 执行与收尾 | advisor 参与、风险与应急、签到、票据及报销、库存和资料归档 | R004–008、R015、R037、R041、R047、R054–061 |
+### Overall flow
+President configures in advance → everyone learns core policies and collaboration → platform adaptation → progressive scenario practice → AI clarification and oral experience handoff → task-pack submission and President review.
+The AI can be asked at any time while learning and doing. General policy questions go to the AI first; the one-on-one handoff focuses on real experience, open items and questions that are still unresolved.
 
-### 测验案例（草稿）
-| $700 获批额度，累计拟支出含税运费 $701 | 没有“只差 $1”自动允许超额的规则 | R029、R047 |
-| 获批 flyers $75、pens $125，想改为 flyers $150、pens $50 | 总额没超也不能自行挪用分项 | R029 |
-| finance 成员非 Top 3 想提交 Tempe 组织采购申请 | 可准备材料，由有资格者提交 | R035、R037 |
-| 按时提交、材料齐全、审批等待、活动临近 | 可查询状态说明影响，不预设加速 | R014、R026、R038 |
-| 食物来自非独家餐饮场地的外部即食供应商 | 不一定需要 FER，但要核查经营许可与近期 Routine Inspection | R036 |
-| 被禁止的支出已列入获批预算 | 预算批准不使禁止采购变可支付；找 Business Office | R028、R037、R042 |
-| 被动 tabling 后加入外部供应商主动参与 | 活动性质可能已变，重新核对审批及 advisor 参与 | R004 |
-| 期末低影响活动获一般活动许可便推断一定能获 USG-T event funding | 获准举办与资金资格分别判断 | R004、R025、R038 |
-关于主动跟进审批：正式资助申诉针对特定拒绝决定，不是通用加速入口；Bylaws 申诉章节出现不同紧急时间窗口，需核实。
+### Step 1: The President prepares the handoff first
+Before the member starts, the President sets the role goals and the work to be taken over, and lists 3–5 tasks. Each task states: what to do, why, what to deliver, and when to deliver it.
+The startup checklist also checks:
+- Organization: campus, funding path, registration status, constitution and advisor.
+- People: official roster, current Top 3, and who should handle changes.
+- Training: general officer training, hazing prevention, applicable funding training; the advisor's own training is tracked too.
+- Access: whether this platform, shared materials and the school systems the role needs are available.
+- Handoff: predecessor or point of contact, experience-handoff arrangements, open requests and commitments.
+The President arranges and tracks; specific authorizations or school changes are handled by people with the authority to do so; members complete their own training and verify that their access works. When a permission is missing or the school is still processing something, record the owner and the next step, and the member continues with other learning and tasks that can be completed.
+Official Top 3 status, completion of school training and platform access are verified separately. A member learning finance is not necessarily the funding-request submitter; not every collaborator can be set as Top 3. Tempe organization budget and purchase requests are also judged separately from individual travel funding.
 
-### 平台适应与学校系统（草稿）：SDC（R004、R030）、SDC 与 RFF/Airtable（R031–035、R041、R047）、Canvas（R002、R037、R039）、Mazevo/Event Registry（R010–016、R021）。
+### Step 2: Material is split only into required and optional
+| Tier | Content and scope |
+| Required | All applicable rules involved in each core node of running an event, including cross-department collaboration requirements, prerequisites for getting things done, key conditions, and the detailed rules triggered by this particular event. Everyone learns the core nodes; the people actually running the event must also master the specific operations. |
+| Optional | Detailed rules for special situations the current work does not yet involve, in-depth experience from other roles, more cases and related governance background. Extended reading is encouraged; when the scope of work changes, the applicable content moves into the required list. |
+Required content covers: organization eligibility and training → event plan and scheduling → venue and event registration → budget and purchasing → vendors, contracts and food → marketing, copyright and accessibility → on-site risk → receipts, payment and record archiving. When a special event involves alcohol, minors, travel, drones and so on, add the corresponding applicable detailed rules.
+Content is presented node by node, and the relevant source text is always available. Campus, term, funding source and the specific event conditions determine the applicable scope; older versions and other campuses' materials keep their source identity.
+Cross-department understanding is part of the required content. Each node explains three things: what information I give the next teammate, what conditions limit them, and who a change will affect. For example, only when the events team provides a clear plan and quotes including tax and shipping can finance go on to verify funding eligibility, amounts and purchasing materials; marketing also needs to understand when the conditions for publishing are met.
 
-### 上线前要核对的冲突（草稿声称）
-| 注册与资金门槛 | 注册 3 officers + advisor；资金需至少 10 名成员 |
-| Event Registry 提前量 | 一般页面及 FAC 115 说 14 天；社团手册与资金培训出现 30 天 |
-| 采购入口与提交时间 | 旧 SDC 路径与 SDC→Airtable 并存；R041 出现获批后一个月和一周等说法 |
-| 旅行资助 | R027 与 R037、R041 对 $1,000/$500、4 周/6 周存在差异 |
-| 餐饮与报销金额 | 不同金额阈值、边界写法与适用情形 |
-| 期末活动 | 2025–26 历史手册与 2026–27 手册表述有变化 |
-| 机构身份 | R038 也包含 USG-T 自身官员的内部要求 |
-| ASU 合同与社团自行签约 | R049 区分 ASU 聘请与社团直接聘请 |
-R028 给出资金规则来源层级：University Administration、USG-T Bylaws、appropriations subcommittees。
+### Step 3: Platform adaptation
+Digital platform adaptation first teaches members to use our own platform: 1. Find the required and optional materials, and ask the AI questions. 2. View tasks, save drafts, submit results. 3. View procedure guidance, review feedback and items awaiting confirmation. Only one operation is taught at a time, with short steps and result examples.
+School systems get guidance at the relevant nodes: Canvas training, Sun Devil Central roster and funding, Mazevo reservations, Event Registry, and the purchasing process that applies in the current term. This platform first explains the purpose, eligibility, materials to prepare and the operating path; members jump to the corresponding portal only when actually doing it. Submissions and completion in school systems are recorded according to real outcomes.
 
-### 64 条来源用途归类（草稿）：R001–004 核心；R005–008 行为/hazing；R009 品牌；R010–012、R021 Event Registry；R013–016 场地；R017 日历；R018–020 无障碍/音乐；R022–023 West Valley/GSG；R024–038 Tempe 资金；R039–047 Canvas 资金培训导出；R048–049 签字权/SAP；R050 Catering；R051–053 酒精/赌博/raffles；R054–056 风险/保险/未成年人；R057–061 旅行/驾驶/租车/无人机；R062–063 Fulton/院系目录；R064 2025–26 历史手册。
-边界：R039 是需登录的 Canvas 入口；R040 Amazon Cart Example 无正文；R063 是院系目录；R059 Authorized Driver Program 排除 student organizations。
+### Step 4: Everyone does tiered scenario practice
+The general quiz is completed by all members, including the President. The questions train rule precision, department collaboration and cognitive blind spots at the same time; deeper questions needed for a role or event are added according to the applicable scope.
+- Basic: precisely identify amounts, identities, statuses and prerequisites.
+- Intermediate: satisfy several rules at once; find gaps in materials or processes.
+- Applied: after a situation changes, explain who is affected, what to do first, and whom to confirm with.
+Question types include error finding, ordering, amount calculation and short answer. Each question gives enough conditions and provides traceable grading grounds; content involving unresolved policy conflicts is verified first before it is used for formal grading. After a wrong answer, explain the decisive condition, then practice again with a related situation.
+Three key cases: 1. The approved amount for a category is $700, and the planned cumulative spending including tax and shipping is $701: do not assume a $1 tolerance; first adjust the purchase or obtain an appropriate change approval. 2. The total is not exceeded, but a line item is: money saved in other line items does not mean it can be moved on your own. 3. Waiting for approval affects the event: follow up proactively with the request ID, timing and specific impact, and ask which channels are available; whether the handling can be adjusted is for the relevant people to decide.
+Add collaboration questions such as "from finance's point of view, find what the event plan is missing". Objective questions get feedback based on verified reference answers; completion of real work is reviewed by the President. School Canvas training scores are recorded separately.
+
+### Step 5: Let the AI explain the rules first, then get experience from people
+The AI first confirms the member's campus, identity, funding source and current stage, then explains the rule, reason, dependencies and next step clearly. One answer should, as far as possible, include: what can be done now and the conditions that decide the answer; why these materials or approvals are needed and which department they affect; the corresponding policy provisions and applicable version; facts that remain uncertain, and whom to ask what.
+The policy library is organized in advance by topic and event node, and relevant provisions and dependencies are retrieved when a question is asked. Clear rule questions are resolved here first; source conflicts, missing material, formal authorization and practical experience are passed to the appropriate person.
+Keep the one-on-one oral handoff, with questions prepared per role. For example, finance asks "what kind of material caused rework last time"; the events role asks "which last-minute change pulled in the most departments"; the President asks "what training, roster or permission preparation did the last term miss". Let the predecessor tell cases, and record the approach, applicable conditions and who confirmed it.
+The resource desk is available at any time: the President, the predecessor, the advisor, USG, the Business Office, venue and relevant school staff. It shows what they can solve, how to contact them, and verified office information. Urgent safety matters go directly to the school's emergency channels.
+
+### Step 6: Submit the task pack like homework
+Tasks are assigned by the President at the start, and members can work on them while learning. The platform provides task suggestions; the final topics, deliverables and review standards are set by the President. Examples: prepare an event plan and cost draft that finance can take over; move forward one real procedural step suited to your own identity and permissions, and submit the result or the specific blocker and follow-up record; put together a role or cross-department handoff note. Tasks should be broken into interim results that members can control and show, so they can be submitted within the first three days.
+Submission and review: 1. The member opens each task, fills in the content, adds links or attachments, and saves a draft. 2. After completing all 3–5 tasks, the member clicks "Submit task pack" once. 3. The President is notified, reviews them together and gives feedback item by item. 4. Approve, or return specific tasks with an explanation of what to change. 5. The member revises and resubmits; approved items and the submission record are kept. The system handles saving, required-field prompts, status and notifications; approval or return is decided by the President. The President's own handoff is reviewed by a predecessor, advisor or other handoff person designated by the organization.
+Shared learning progress, real-task review, and school eligibility and authorization are recorded separately. The President's on-site review does not replace training, approvals or permission procedures required by the school.
+
+### Use incentives to encourage complete reading and cross-department understanding
+| Mechanism | How it is earned | What it encourages |
+| Core learning progress | Complete the required nodes and correct the related key misconceptions | Everyone masters the shared foundation |
+| Cross-department XP | Read content outside one's responsibilities, complete the corresponding scenario practice, or submit a collaboration result approved by the person in charge | Understanding the difficulties of finance, events, marketing and other departments |
+| Complete-policy-reading milestone | Finish reading the organization's currently applicable policy set and complete the corresponding comprehension check | Moving from "meeting the minimum requirement" to "understanding the whole process" |
+XP comes from understanding and application; opening a page again does not earn points again. Extended reading can be done in any order; when new work triggers a rule, that rule enters the required list. Learning badges describe the scope of knowledge; formal eligibility to act is still verified against school records.
+Proposed encouragement line: get the information the next teammate needs ready, and the team can keep moving forward.
+
+### How policy content is continuously distilled
+Each knowledge point is organized as: applicable conditions, rule, reason, procedure steps, required materials, related departments, source version. Learning cards, platform guidance and tiered scenario questions are then generated from it and published after verification. A designated maintainer checks the current policies, courses and portals, prioritizing changes that affect eligibility, amounts, deadlines and permissions. After a change, only the related content is scheduled for review, and existing learning records are kept.
+This round continues reviewing the process, mechanisms and wording. Once the document details are confirmed, static images will be generated one by one; after the images are reviewed, the website code will be written.
+
+---
+
+## Appendix (the draft's policy facts, based on 03_Full_Rules_Archive.txt, 64 sources, compiled 2026-10-30)
+
+### Identity, training and eligibility
+| Item | Requirement in the archive (as claimed by the draft) | What to record in the handoff |
+| Organization and member eligibility | Annual registration of student organizations; members usually must meet eligibility such as at least 3 credit hours; registration needs 3 officers, an advisor and a constitution | Registration status, current roster, constitution, advisor |
+| Top 3 status | Official organization leadership status on the registration form and in Sun Devil Central; new titles created inside the organization do not automatically add Top 3 seats | The three people actually registered, who handles changes, and the school record |
+| Student Organization Officer Training | Top 3 must complete it; the transition guide also has new officers read the handbook and constitution and take officer training | School course, course version, completion and the basis for verification |
+| Hazing Prevention | The 2026–2027 handbook states that all student organization officers and advisors complete it during registration | Do not miss officers outside the Top 3 or the advisor |
+| Tempe organization funding training | Complete appropriations training before applying for USG-T organization funding; each Top 3 officer quiz must reach 100%, and completion is confirmed when submitting a funding request | Record separately; the on-site quiz does not serve as the school score |
+| Organization funding eligibility | The Tempe funding handbook and profile requirements also involve Top 3, an advisor, at least 10 members and a complete organization profile | Verify both organization eligibility and individual eligibility |
+| Advisor training | The registration page lists hazing, Clery and annual advisor training | The advisor completes it; the President tracks it |
+| Mazevo account | Student Unions and Centers guidance allows up to three school-registered elected officers to request an organization account; accounts for different campuses are requested separately | Verify official status, the corresponding campus and actual account availability separately |
+Basis: ASU-R-001, R-002, R-004, R-014, R-030, R-037.
+
+Organization requests and individual funding must be kept apart: Tempe's organization operation/start-up budget guidance requires Top 3 to submit, and the purchase guidance also requires submission by a Top 3 listed in the organization profile. Individual travel/professional development funding is for eligible individual applicants, and the threshold "must be the organization's Top 3" should not be added across the board. Basis: R-026, R-027, R-035.
+
+### Core event nodes
+| Core node | Judgments and handoffs to learn | Main archive sources |
+| Organization and people readiness | Registration, roster, Top 3, training, advisor, transfer of documents and accounts | R001–004, R030, R037, R039–041 |
+| Event plan and scheduling | Purpose, audience, date, cost, key dependencies; distinguish general event permission from the fundable conditions of a particular type of funding | R004, R010–017, R025–027, R037–038 |
+| Venue and registration | What Mazevo and Event Registry each solve; the difference between submitting, supplementing and confirming | R010–016, R021 |
+| Budget and purchasing | Approved amount, line-item amounts, tax and shipping, public purpose, splitting orders across vendors, request and payment stages | R024–035, R037–038, R041–047 |
+| Vendors and contracts | Who signs, who has signature authority, payment and insurance requirements; how paid speaking differs from unpaid visits | R004, R037, R044–049, R054–055 |
+| Food and permits | Venue exclusive catering, the scope of FER, vendor permits and recent inspections, additional permits for on-site preparation | R015, R036–037, R041, R050 |
+| Marketing and participant experience | Advertising after approval, branding and producers, music and film rights, accessibility arrangements | R004, R009, R018–020, R047 |
+| Execution and close-out | Advisor involvement, risk and emergencies, sign-in, receipts and reimbursement, inventory and record archiving | R004–008, R015, R037, R041, R047, R054–061 |
+
+### Quiz cases (draft)
+| $700 approved amount, planned cumulative spending of $701 including tax and shipping | There is no rule that "only $1 over" is automatically allowed | R029, R047 |
+| Approved flyers $75 and pens $125; wants to change to flyers $150 and pens $50 | Even if the total is not exceeded, line items cannot be moved on your own | R029 |
+| A finance member who is not Top 3 wants to submit a Tempe organization purchase request | May prepare the materials; someone eligible submits | R035, R037 |
+| Submitted on time, materials complete, approval pending, event approaching | May check the status and explain the impact; do not assume it will be expedited | R014, R026, R038 |
+| Food from an external ready-to-eat vendor at a venue without exclusive catering | FER may not be needed, but check the business license and recent Routine Inspection | R036 |
+| A prohibited expense was included in the approved budget | Budget approval does not make a prohibited purchase payable; go to the Business Office | R028, R037, R042 |
+| Passive tabling, then an external vendor joins in active participation | The nature of the event may have changed; recheck approval and advisor involvement | R004 |
+| A low-impact end-of-semester event receives general event permission, so it is assumed that it will definitely get USG-T event funding | Permission to hold the event and funding eligibility are judged separately | R004, R025, R038 |
+On following up proactively on approvals: a formal funding appeal targets a specific denial decision and is not a general route to expedite; the Bylaws appeals section shows different emergency time windows, which need verification.
+
+### Platform adaptation and school systems (draft): SDC (R004, R030); SDC and RFF/Airtable (R031–035, R041, R047); Canvas (R002, R037, R039); Mazevo/Event Registry (R010–016, R021).
+
+### Conflicts to verify before launch (as claimed by the draft)
+| Registration and funding thresholds | Registration: 3 officers + advisor; funding needs at least 10 members |
+| Event Registry lead time | The general pages and FAC 115 say 14 days; the student organization handbook and funding training show 30 days |
+| Purchasing portal and submission timing | The old SDC path and SDC→Airtable coexist; R041 has statements such as one month after approval and one week |
+| Travel funding | R027 differs from R037 and R041 on $1,000/$500 and 4 weeks/6 weeks |
+| Catering and reimbursement amounts | Different amount thresholds, boundary wording and applicable situations |
+| End-of-semester events | The wording changed between the 2025–26 historical handbook and the 2026–27 handbook |
+| Institutional identity | R038 also contains internal requirements for USG-T's own officers |
+| ASU contracts vs organizations signing on their own | R049 distinguishes hiring by ASU from direct hiring by the organization |
+R028 gives the source hierarchy for funding rules: University Administration, USG-T Bylaws, appropriations subcommittees.
+
+### Use classification of the 64 sources (draft): R001–004 core; R005–008 conduct/hazing; R009 branding; R010–012, R021 Event Registry; R013–016 venues; R017 calendar; R018–020 accessibility/music; R022–023 West Valley/GSG; R024–038 Tempe funding; R039–047 Canvas funding training export; R048–049 signature authority/SAP; R050 Catering; R051–053 alcohol/gambling/raffles; R054–056 risk/insurance/minors; R057–061 travel/driving/car rental/drones; R062–063 Fulton/college directory; R064 2025–26 historical handbook.
+Boundaries: R039 is a Canvas entry point that requires login; R040 Amazon Cart Example has no body text; R063 is a college directory; R059 Authorized Driver Program excludes student organizations.

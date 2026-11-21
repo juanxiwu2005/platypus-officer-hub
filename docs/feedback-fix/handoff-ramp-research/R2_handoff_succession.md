@@ -1,66 +1,66 @@
-# R2：交接、团队认知与领导继任：研究依据
+# R2: Handoff, team cognition and leadership succession: research evidence
 
-审阅范围：DRAFT.md 第 1、2、5、6 步和岗位问题表。所有引用都已逐条核实来源（DOI 或官方页面）。没能核实的已排除：Google 的"经理提醒邮件，新人上手快 25%"只在二手文章里出现；Lee (2002) "social costs of seeking help" 找不到原文记录。
+Review scope: DRAFT.md steps 1, 2, 5 and 6, and the role question table. Every citation was checked against its source one by one (DOI or official page). Items that could not be verified were excluded: Google's "manager reminder emails make new hires productive 25% faster" appears only in secondary articles; no original record of Lee (2002) "social costs of seeking help" could be found.
 
-## 0. 关键结论（先看这里）
+## 0. Key conclusions (read this first)
 
-1. **跨岗理解的层级**：研究支持"知道相邻岗位的输入、输出和限制"（interpositional knowledge），不要求掌握对方的完整流程。但**只靠讲解**（概念层）效果最弱，**加上练习**（扮演对方、检查对方会收到的材料）才明显有效。
-2. **口头交接**：受支持，但要围绕**具体事件**和**真实材料**，不要泛泛的建议。专家给新手的建议往往太抽象。
-3. **交接内容**：临床交接研究支持固定结构，包括未结事项、行动清单、"如果…就…"预案，最后由**接收方复述确认**。草稿缺少"接收方复述"这一项。
-4. **任务包只提交一次**：没有研究直接比较"一次提交"和"逐项提交"。但反馈和复盘研究都支持**多轮、早期、针对任务本身**的反馈，所以建议改成逐项提交。
-5. **减轻社长负担**：最有力的低成本机制是**跨岗同伴 buddy**，加上由**前任**（而不是社长）填写交接单。
+1. **Level of cross-role understanding**: the research supports "knowing the inputs, outputs and constraints of adjacent roles" (interpositional knowledge), not mastering the other role's full process. But **explanation alone** (the conceptual level) is the weakest; it becomes clearly effective only **with practice** (playing the other role, checking the materials the other role will receive).
+2. **Oral handoff**: supported, but it should center on **specific events** and **real materials**, not general advice. Experts' advice to novices is often too abstract.
+3. **Handoff content**: clinical handoff research supports a fixed structure, including open items, an action list, and "if…then…" contingency plans, ending with **read-back confirmation by the receiver**. The draft lacks "receiver read-back".
+4. **Submitting the task pack only once**: no study directly compares "one submission" with "item-by-item submission". But feedback and debrief research both support **multi-round, early, task-focused** feedback, so changing to item-by-item submission is recommended.
+5. **Reducing the President's burden**: the strongest low-cost mechanism is a **cross-role peer buddy**, plus having the **predecessor** (not the President) fill in the handoff sheet.
 
-## 1. 草稿元素 → 证据 → 结论 → 建议
+## 1. Draft element → evidence → conclusion → recommendation
 
-| 草稿元素 | 证据 | 结论 | 建议 |
+| Draft element | Evidence | Conclusion | Recommendation |
 |---|---|---|---|
-| 第 1 步：社长预设岗位目标和 3–5 项任务（做什么、为什么、交什么、何时交） | Bauer et al. 2007 的 meta 分析（70 个样本）：role clarity、self-efficacy、social acceptance 是新人适应的中介变量，影响绩效和留任。Bauer 2010（SHRM Foundation）：提出 Compliance→Clarification→Culture→Connection 四层，并强调最初 90 天。 | **保留**，支持 | 每项任务加一行"完成标准"，直接提升 role clarity。 |
-| 第 1 步：启动清单（组织、人员、培训、访问、交接） | Haynes et al. 2009：19 项手术安全清单，死亡率 1.5%→0.8%，并发症 11.0%→7.0%。Starmer et al. 2014（I-PASS）：结构化交接后可预防不良事件减少 30%，口头交接时长不变。 | **保留**，但要改分工 | 清单的"交接"栏（未结申请、承诺、账号、联系人）由**前任填写**，社长只核对，这样减轻社长负担。 |
-| 第 2 步：分"必须"和"选读"两层 | 没有直接研究比较两层和三层。DeChurch & Mesmer-Magnus 2010：team cognition 的作用受 task interdependence 调节，依赖越强越重要。 | **保留** | 把"本岗位直接上下游的节点"明确列入必须；与本岗不相邻的节点只要求知道存在。 |
-| 第 2 步：每个节点讲清"我给下一位什么、对方受什么限制、变更会影响谁" | Volpe et al. 1996：cross-training 改善团队过程、沟通和绩效。Marks et al. 2002：cross-training 促成共享的 team-interaction 模型，再通过协调提升绩效；但需要多深的 cross-training，结果不一致。Cooke, Cannon-Bowers & Kiekel 2000：概念层 cross-training **几乎无效**，完整 cross-training 效果较弱但为正，interpositional knowledge 与绩效相关。Basinger & Silva Gutierrez 2026（学生组织调查，n=22）建议"education to better understand the roles of fellow officers"。 | **保留但修改** | 三句话的结构方向正确，层级也对（输入、输出、限制），但**只读不够**。每个节点配一道"站在下游视角"的练习，例如以 finance 身份检查一份活动计划缺什么。这相当于轻量的 positional rotation。 |
-| 第 5 步：一般政策先问 AI，经验再问人 | Hofmann, Lei & Grant 2009：人们是否求助，取决于对方是否**容易接触、值得信任**，而不只看专业程度。 | **保留**，支持 | AI 回答末尾直接给出"该问谁、怎么联系"，降低找人的成本。 |
-| 第 5 步：一对一口头交接，按岗位准备问题（"上次哪类材料导致返工"等） | Klein, Calderwood & MacGregor 1989（Critical Decision Method）：围绕一个具体事件多轮回溯，再用探针问题追问线索、判断和替代选项。Hinds, Patterson & Pfeffer 2001：专家知识抽象，向新手传授时会出问题。DeLong 2004（Lost Knowledge）：人员离开造成隐性知识流失。 | **保留**，强支持 | 草稿的问题已经是事件式，方向正确。可以补充 CDM 探针："当时最早看到什么信号？""新手最可能漏看什么？""如果重来先做什么？" |
-| 第 5 步：让前任讲案例，记录做法、适用条件和确认人 | Keiser & Arthur 2021 的 AAR meta 分析（61 项研究）：整体 d=0.79；对齐个人或团队、使用**客观的复盘材料**是稳定的有效因素。Ellis & Davidi 2005：同时复盘成功和失败的组，比只复盘失败的组进步更大。 | **修改** | ①交接时打开**真实材料**（上次被退回的申请、收据、邮件），不只靠口述。②加一个问题："哪件事做对了、下次照做？" |
-| 第 5 步：资源总台（谁能解决什么、怎么联系） | Lewis 2003：transactive memory 的核心是 specialization、credibility、coordination，也就是"谁知道什么"。Hofmann et al. 2009：可接触性。 | **保留** | 每个联系人加上"能解决的典型问题"和"上次成功联系的渠道"。 |
-| 岗位问题表 | 同 Klein 1989 和 Hinds 2001。San Diego 的学生组织交接会议指南按目标、活动、成员、干部、财务、advisor 逐项回顾。 | **保留** | 每个岗位固定 3 类问题：①未结事项和承诺；②一次真实返工或延误；③跨岗依赖（"谁最常卡住你，你又卡住过谁"）。 |
-| 第 6 步：完成全部 3–5 项后一次性提交任务包 | 没有直接比较研究。Kluger & DeNisi 1996：反馈平均有效（d=.41），但超过三分之一的反馈会降低表现，注意力被引向"自我"而不是任务时效果下降。Ellis & Davidi 2005：每天复盘。Watkins 2003：先拿小的 early wins。 | **修改** | 改为**逐项提交、逐项审核**，第一项在第 1 天结束前就提交。保留"全部完成"状态，供社长一眼查看。社长按任务标准反馈，不评价个人。 |
-| 第 6 步：社长本人由前任或 advisor 审核 | 学生组织指南（MTU）：交接会议在新干部正式上任**之前**举行。 | **保留** | — |
-| 激励和经验值 | 本次检索范围内没有找到相关证据。 | **证据空白** | 交给其他研究线。 |
+| Step 1: the President presets role goals and 3–5 tasks (what to do, why, what to deliver, when) | Bauer et al. 2007 meta-analysis (70 samples): role clarity, self-efficacy and social acceptance are mediators of newcomer adjustment and affect performance and retention. Bauer 2010 (SHRM Foundation): proposes the four levels Compliance→Clarification→Culture→Connection and stresses the first 90 days. | **Keep**, supported | Add a "done criteria" line to each task, which directly improves role clarity. |
+| Step 1: startup checklist (organization, people, training, access, handoff) | Haynes et al. 2009: a 19-item surgical safety checklist; mortality 1.5%→0.8%, complications 11.0%→7.0%. Starmer et al. 2014 (I-PASS): after structured handoffs, preventable adverse events fell 30%, with oral handoff duration unchanged. | **Keep**, but change the division of labor | The checklist's "handoff" column (open requests, commitments, accounts, contacts) is **filled in by the predecessor**; the President only checks it, which reduces the President's burden. |
+| Step 2: two tiers, "required" and "optional" | No study directly compares two tiers with three. DeChurch & Mesmer-Magnus 2010: the effect of team cognition is moderated by task interdependence; the stronger the dependence, the more it matters. | **Keep** | Explicitly list "the nodes directly upstream and downstream of this role" as required; for nodes not adjacent to the role, only knowing that they exist is required. |
+| Step 2: each node explains "what I give the next person, what limits they work under, who a change will affect" | Volpe et al. 1996: cross-training improves team process, communication and performance. Marks et al. 2002: cross-training builds a shared team-interaction model, which improves performance through coordination; but results are mixed on how deep the cross-training needs to be. Cooke, Cannon-Bowers & Kiekel 2000: conceptual-level cross-training is **almost ineffective**; full cross-training has a weaker but positive effect; interpositional knowledge correlates with performance. Basinger & Silva Gutierrez 2026 (student-organization survey, n=22) recommend "education to better understand the roles of fellow officers". | **Keep but modify** | The three-sentence structure points the right way and is at the right level (inputs, outputs, constraints), but **reading alone is not enough**. Pair each node with an exercise "from the downstream point of view", for example checking, as finance, what an event plan is missing. This amounts to a lightweight positional rotation. |
+| Step 5: ask the AI about general policy first, then ask people about experience | Hofmann, Lei & Grant 2009: whether people seek help depends on whether the other person is **accessible and trustworthy**, not only on expertise. | **Keep**, supported | End each AI answer with "whom to ask and how to contact them", which lowers the cost of finding a person. |
+| Step 5: one-on-one oral handoff with questions prepared per role ("what kind of material caused rework last time", etc.) | Klein, Calderwood & MacGregor 1989 (Critical Decision Method): multiple passes reconstructing one specific event, then probe questions about cues, judgments and alternatives. Hinds, Patterson & Pfeffer 2001: expert knowledge is abstract, which causes problems when teaching novices. DeLong 2004 (Lost Knowledge): people leaving causes loss of tacit knowledge. | **Keep**, strongly supported | The draft's questions are already event-based, which is right. CDM probes can be added: "What was the earliest signal you saw?" "What is a novice most likely to overlook?" "If you did it again, what would you do first?" |
+| Step 5: let the predecessor tell cases, and record the approach, applicable conditions and who confirmed it | Keiser & Arthur 2021 AAR meta-analysis (61 studies): overall d=0.79; alignment to the individual or team and use of **objective debrief materials** are consistent effective factors. Ellis & Davidi 2005: groups that debriefed both successes and failures improved more than groups that debriefed only failures. | **Modify** | (1) Open the **real materials** during the handoff (the last returned request, receipts, emails), instead of relying only on verbal accounts. (2) Add a question: "What went right that should be repeated next time?" |
+| Step 5: resource desk (who can solve what, how to contact them) | Lewis 2003: the core of transactive memory is specialization, credibility and coordination, i.e. "who knows what". Hofmann et al. 2009: accessibility. | **Keep** | Add "typical problems they can solve" and "the channel that worked last time" to each contact. |
+| Role question table | Same as Klein 1989 and Hinds 2001. The University of San Diego student organization transition meeting guide reviews goals, events, members, officers, finances and the advisor item by item. | **Keep** | Fix 3 kinds of questions for each role: (1) open items and commitments; (2) one real instance of rework or delay; (3) cross-role dependencies ("who blocks you most often, and whom have you blocked?"). |
+| Step 6: submit the task pack once after all 3–5 items are done | No direct comparative study. Kluger & DeNisi 1996: feedback is effective on average (d=.41), but more than a third of feedback interventions lower performance, and the effect drops when attention is directed to the "self" rather than the task. Ellis & Davidi 2005: daily debriefs. Watkins 2003: secure small early wins first. | **Modify** | Change to **item-by-item submission and item-by-item review**, with the first item submitted before the end of day 1. Keep an "all complete" status so the President can see it at a glance. The President gives feedback against the task standard, not on the person. |
+| Step 6: the President's own handoff is reviewed by the predecessor or the advisor | Student organization guide (MTU): the transition meeting is held **before** the new officers formally take office. | **Keep** | — |
+| Incentives and XP | No relevant evidence was found within the scope of this search. | **Evidence gap** | Left to another research line. |
 
-## 2. 更好或缺失的交接机制（按优先级排序）
+## 2. Better or missing handoff mechanisms (ranked by priority)
 
-**1. 结构化"未结事项交接单"＋接收方复述（I-PASS 式）**
-证据：Starmer et al. 2014，结构化交接降低错误、不增加耗时。Riesenberg et al. 2009 指出交接口诀本身的证据较弱，有效的是"固定要素加培训"，而不是哪个缩写。
-社团做法：前任在交接前填好固定栏目：进行中的申请（request ID、状态、截止日期）、对外承诺、经费余额和分项、账号和权限、关键联系人、"如果 X 发生就做 Y"。一对一交接最后，新任用自己的话复述前三项最紧急的事，前任当场纠正。
+**1. Structured "open-items handoff sheet" + receiver read-back (I-PASS style)**
+Evidence: Starmer et al. 2014: structured handoffs reduce errors without adding time. Riesenberg et al. 2009 note that the evidence for handoff mnemonics themselves is weak; what works is "fixed elements plus training", not any particular acronym.
+In the organization: before the handoff, the predecessor fills in fixed fields: requests in progress (request ID, status, deadline), external commitments, funding balances and line items, accounts and permissions, key contacts, "if X happens, do Y". At the end of the one-on-one handoff, the new officer restates the three most urgent items in their own words, and the predecessor corrects them on the spot.
 
-**2. 跨岗"交付物互审"练习（轻量 cross-training）**
-证据：Volpe 1996、Marks 2002、Cooke 2000，有练习的 cross-training 优于只讲概念。
-社团做法：新任活动负责人把一份活动计划草稿交给现任 finance，按 finance 的检查表标出缺口（含税运费、分项、提交人资格）。这份草稿可以直接算作任务包的一项。
+**2. Cross-role "deliverable peer review" exercise (lightweight cross-training)**
+Evidence: Volpe 1996, Marks 2002, Cooke 2000: cross-training with practice beats concept-only explanation.
+In the organization: the new events lead gives a draft event plan to the current finance officer, who marks the gaps using finance's checklist (tax and shipping, line items, submitter eligibility). This draft can count directly as one item in the task pack.
 
-**3. 跨岗同伴 buddy（不是社长）**
-证据：Microsoft 2019 年对约 600 名员工的试点（Young, Haspas & Klinghoffer）发现，与 buddy 见面越多，自评生产力提升越多（见 1 次 56%，见 8 次以上 97%）。注意这是自评、相关性数据。Hofmann 2009：容易接触的人更常被求助。
-社团做法：每位新任配一位相邻岗位的现任干部，前 2 周约定两次 15 分钟沟通。AI 解决不了、又不需要社长的问题先找 buddy。
+**3. Cross-role peer buddy (not the President)**
+Evidence: Microsoft's 2019 pilot with about 600 employees (Young, Haspas & Klinghoffer) found that the more often new hires met their buddy, the greater their self-reported productivity gain (56% after 1 meeting, 97% after 8 or more). Note that this is self-reported, correlational data. Hofmann 2009: accessible people are asked for help more often.
+In the organization: pair each new officer with a current officer from an adjacent role, and agree on two 15-minute conversations in the first 2 weeks. Questions the AI cannot resolve but that do not need the President go to the buddy first.
 
-**4. 新人加入后，全队更新"谁知道什么"**
-证据：Lewis et al. 2007，部分成员更换后，团队沿用旧的 TMS 结构会降低效率；老成员事先反思集体知识可以避免这个问题。
-社团做法：每次换届后，现任干部用 10 分钟更新平台上的"谁负责、谁懂、找谁"表，新人的专长也写进去。
+**4. After a newcomer joins, the whole team updates "who knows what"**
+Evidence: Lewis et al. 2007: after partial membership change, a team that keeps its old TMS structure loses efficiency; having veteran members reflect on collective knowledge beforehand avoids this.
+In the organization: after each leadership transition, current officers spend 10 minutes updating the platform's "who is responsible, who knows, whom to ask" table, including the newcomer's expertise.
 
-**5. 前任在离任前做一次学期 AAR，而不是交接当天才回忆**
-证据：Keiser & Arthur 2021；Ellis & Davidi 2005；DeLong 2004。
-社团做法：学期最后一次活动后，前任用固定 4 问（计划是什么、实际发生什么、为什么、下次怎么做）写一页，附真实材料链接。交接面谈就在这一页的基础上进行。
+**5. The predecessor does a semester AAR before leaving, instead of recalling everything on handoff day**
+Evidence: Keiser & Arthur 2021; Ellis & Davidi 2005; DeLong 2004.
+In the organization: after the last event of the semester, the predecessor writes one page using 4 fixed questions (what was planned, what actually happened, why, what to do next time), with links to real materials. The handoff meeting builds on this page.
 
-**6. 上任前的短重叠或旁观一次真实流程**
-证据：大学社团指南（San Diego、MTU）一致建议在正式上任前开交接会；关于重叠期本身，**没有找到实证研究**。
-社团做法：新任在前任离开前旁观或共同完成一次真实操作（例如一次采购申请或场地预约），用时 30 分钟以内。
+**6. A short overlap before taking office, or observing one real process**
+Evidence: university organization guides (San Diego, MTU) consistently recommend holding the transition meeting before officers formally take office; **no empirical research was found** on the overlap period itself.
+In the organization: before the predecessor leaves, the new officer observes or jointly completes one real operation (for example, a purchase request or a venue reservation), taking 30 minutes or less.
 
-**7. 逐项提交和早期审核**（见上表第 6 步）。
+**7. Item-by-item submission and early review** (see step 6 in the table above).
 
-## 3. 证据强度提醒
-- 学生组织交接领域的实证研究很少。最直接的一篇（Basinger 2026）是单一组织的横断面调查，n=22，只能作为方向参考。
-- 临床和军事研究的情境风险更高，借鉴的是"结构加复述"的机制，不是效果大小。
-- 本次检索没有找到 NASPA、ACPA、NACA 发布的官方交接指南，只找到各大学学生活动办公室的指南。
+## 3. Evidence-strength reminders
+- There is very little empirical research on student-organization handoffs. The most direct paper (Basinger 2026) is a cross-sectional survey of a single organization, n=22, usable only as a directional reference.
+- Clinical and military research involves higher-stakes settings; what is borrowed is the "structure plus read-back" mechanism, not the effect sizes.
+- This search found no official handoff guidance published by NASPA, ACPA or NACA; it found only guides from individual universities' student activities offices.
 
-## 参考文献（均已核实）
+## References (all verified)
 - Basinger, R., & Silva Gutierrez, E. (2026). Evaluation of the officer and chair transition process of a student organization at a Doctor of Pharmacy program. *Journal of Student Leadership*, 9(2), 5–13. https://ojed.org/jsl/article/download/10798/3829
 - Bauer, T. N. (2010). *Onboarding new employees: Maximizing success*. SHRM Foundation Effective Practice Guidelines. https://www.shrm.org/topics-tools/topics/onboarding
 - Bauer, T. N., Bodner, T., Erdogan, B., Truxillo, D. M., & Tucker, J. S. (2007). *J Appl Psychol*, 92(3), 707–721. https://doi.org/10.1037/0021-9010.92.3.707
@@ -83,4 +83,4 @@
 - Volpe, C. E., Cannon-Bowers, J. A., Salas, E., & Spector, P. E. (1996). *Human Factors*, 38(1), 87–100. https://doi.org/10.1518/001872096778940741
 - Watkins, M. (2003). *The First 90 Days*. Harvard Business School Press. https://hbswk.hbs.edu/item/3771.html
 - Young, C., Haspas, D., & Klinghoffer, D. (2019). Every new employee needs an onboarding buddy. Microsoft Workplace Insights. https://techcommunity.microsoft.com/blog/viva_insights_blog/every-new-employee-needs-an-onboarding-buddy/3862435
-- University of San Diego, Student Organization Officer Transition Meeting Guide: https://www.sandiego.edu/involvement/documents/Student%20Organization%20Officer%20Transition%20Meeting%20Guide1.pdf ；Michigan Tech, Officer Transitions: https://www.mtu.edu/student-leadership/student-orgs/rso-resources/transitions/index.html
+- University of San Diego, Student Organization Officer Transition Meeting Guide: <https://www.sandiego.edu/involvement/documents/Student%20Organization%20Officer%20Transition%20Meeting%20Guide1.pdf>; Michigan Tech, Officer Transitions: https://www.mtu.edu/student-leadership/student-orgs/rso-resources/transitions/index.html

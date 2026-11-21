@@ -1,74 +1,74 @@
-# R3：AI 学习/工作助手与求助行为（评估草稿第五步）
+# R3: AI learning/work assistants and help-seeking behavior (evaluating draft step 5)
 
-范围：只评估“AI 先答、社长后答”的设计。所有文献都已通过检索核实（作者、年份、刊物、DOI/URL）。有一篇没能核实（Karabenick & Knapp 1988 关于“电脑求助更私密”的 JASP 论文），已排除。标为 preprint 的是未经同行评审的工作论文。
+Scope: only the "AI answers first, the President answers after" design is evaluated. Every paper was verified by search (authors, year, venue, DOI/URL). One paper could not be verified (Karabenick & Knapp 1988, the JASP paper on "computer help-seeking being more private") and was excluded. Items marked preprint are working papers that have not been peer reviewed.
 
-## 一、核心证据（一句话结论）
+## 1. Core evidence (one-sentence conclusions)
 
-| # | 文献 | 发现 | 对草稿 |
+| # | Paper | Finding | Implication for the draft |
 |---|---|---|---|
-| A | Brynjolfsson, Li & Raymond 2025, *QJE* 140(2):889–942, https://nber.org/papers/w31161 | 5,172 名客服人员：AI 助手让生产率平均提高约 14–15%，新手和低技能员工约提高 34%，同时有学习效应 | 支持“新人先用 AI”的方向 |
-| B | Dell'Acqua et al., *Organization Science* 2025, doi:10.1287/orsc.2025.21838 | 前沿内的任务做得更快、更好；前沿外的任务正确率低 19 个百分点，错误答案反而写得更有说服力 | 政策冲突、边界条件正好属于“前沿外”，必须拒答或转人工 |
-| C | Noy & Zhang 2023, *Science* 381:187–192, doi:10.1126/science.adh2586 | 写作任务时间减少约 40%，质量提高约 18%，人与人之间的差距缩小 | 只说明效率提高，和学习无关 |
-| D | Bastani et al. 2025, *PNAS* 122(26), doi:10.1073/pnas.2422633122 | 直接用 GPT 时练习成绩上升，但撤掉 AI 后考试成绩比对照组低约 17%；只给提示的 GPT Tutor 没有这种伤害，而且学生会高估自己学到的东西 | 讲解型 AI 可能让人只拿到答案、没有学会 |
-| E | Lehmann, Cornelius & Sting 2025, arXiv:2409.09047（preprint） | 用 AI 代替自己做题，覆盖面广但理解浅；用 AI 补充解释，理解更深。学生更常选择代替 | 同上，并且说明使用方式由设计决定 |
-| F | Kestin et al. 2025, *Scientific Reports*, doi:10.1038/s41598-025-97652-6 | 按教学法设计的 AI 导师在 RCT 中学习效果优于课堂主动学习 | 结构化的 AI 导师可以有效 |
-| G | Pardos & Bhandari 2024, *PLOS ONE* 19(5):e0304013, doi:10.1371/journal.pone.0304013 | ChatGPT 提示带来的学习收益与人工提示相当，但 32% 的提示没通过质量检查 | 支持草稿“经核实后发布” |
-| H | Wang et al. 2024/25, Tutor CoPilot, arXiv:2410.03017（preprint，RCT） | AI 给导师实时建议，学生掌握率 +4 个百分点，能力较弱的导师 +9 个百分点 | AI 也可以帮社长写回复 |
-| I | Lee 1997, *OBHDP* 72(3):336–363, https://ideas.repec.org/a/eee/jobhdp/v72y1997i3p336-363.html | 员工更愿意向同事求助，而不是上级，因为求助会让人显得依赖、地位降低 | 支持在找社长之前先找 AI 或同伴 |
-| J | Brooks, Gino & Schweitzer 2015, *Mgmt Sci* 61(6):1421–1435, doi:10.1287/mnsc.2014.2054 | 在难题上求教会提高别人眼中的能力；简单题没有加分；向不懂行的人求教会减分 | 难题和经验题找人，简单题交给 AI |
-| K | Cleavenger & Munyon 2015, *Organization Studies* 36(2):221–240, https://stars.library.ucf.edu/scopus2015/544 | 匿名程度高、互助规范强、目标相互依赖时，员工会更早发起求助 | 求助渠道的设计会改变提问行为 |
-| L | Lucas et al. 2014, *Computers in Human Behavior* 37:94–100, https://ict.usc.edu/pubs/It%e2%80%99s%20only%20a%20computer%20-%20The%20impact%20of%20human-agent%20interaction%20in%20clinical%20interviews.pdf | 以为对面是电脑时，人更少顾虑形象，也更愿意说 | AI 能接住“不好意思问”的问题 |
-| M | Gnewuch et al. 2024, *ISR* 35(3):936–955, doi:10.1287/isre.2022.0152 | 田野实验：告诉用户“背后有人参与”后，用户的提问方式更像对人，机器人能自动处理的请求变少，人工工作量上升 | 不要让成员觉得社长在实时看着 |
-| N | Page & Gehlbach 2017, *AERA Open* 3(4), doi:10.1177/2332858417749220 | 校园流程和政策 AI 助手提高了新生的实际入学率 | 支持用 AI 回答学校流程问题 |
-| O | Magesh et al. 2025, *J. Empirical Legal Studies* 22(2):216–242, doi:10.1111/jels.12413 | 商用 RAG 法律工具的幻觉率仍有 17–33% 以上 | RAG 加引用不等于可靠 |
-| P | Liu, Zhang & Liang 2023, *Findings of EMNLP*, https://aclanthology.org/2023.findings-emnlp.467 | 生成式搜索只有 51.5% 的句子完全被引用支持，只有 74.5% 的引用真正支持对应句子 | 只给条文 ID 不够，要显示原文 |
-| Q | Parasuraman & Manzey 2010, *Human Factors* 52(3):381–410, doi:10.1177/0018720810376055 | 专家和新手都有自动化偏差，靠练习不能消除 | 需要设计专门的护栏 |
-| R | Buçinca, Malaya & Gajos 2021, *PACM HCI* 5(CSCW1):188, https://arxiv.org/abs/2102.09692 | 认知强制（先自己判断再看 AI）能减少过度依赖，但用户不太喜欢 | 只用在高风险问题上 |
-| S | Bansal et al. 2021, *CHI '21*, doi:10.1145/3411764.3445717 | 解释会提高用户接受 AI 建议的比例，不论 AI 是否正确 | 草稿里“讲清原因”可能加深盲信 |
-| T | Lee & See 2004, *Human Factors* 46(1):50–80, doi:10.1518/hfes.46.1.50_30392 | 信任要和系统的真实可靠度相匹配，需要让人看到系统的表现 | 社长的信任要靠可见的数据建立 |
-| U | Kamath, Jia & Liang 2020, *ACL*, https://aclanthology.org/2020.acl-main.503 | 遇到训练范围外的问题时，模型的置信度过高；单独训练拒答校准器效果更好 | 校区、版本不符时要拒答 |
-| V | Mozannar & Sontag 2020, *ICML* (PMLR 119), https://proceedings.mlr.press/v119/mozannar20b.html | 可以训练“何时交给专家”的转交策略 | 转交人工有理论依据 |
-| W | del Rio-Chanona et al. 2024, *PNAS Nexus* 3:pgae400, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11421660/ | ChatGPT 推出后，Stack Overflow 发帖下降约 25%，私下问 AI 的内容不会沉淀成公共知识 | 转给人工的答案要回流到 FAQ |
-| X | King 1992, *Educational Psychologist* 27(1):111–126, doi:10.1207/s15326985ep2701_8；Ge & Land 2003, *ETR&D* 51(1):21–38 | 引导式提问句干和问题提示能提高理解和问题解决能力 | 支持准备提问清单 |
+| A | Brynjolfsson, Li & Raymond 2025, *QJE* 140(2):889–942, https://nber.org/papers/w31161 | 5,172 customer-support agents: the AI assistant raised productivity by about 14–15% on average and by about 34% for novice and low-skill workers, with a learning effect as well | Supports the direction of "newcomers use the AI first" |
+| B | Dell'Acqua et al., *Organization Science* 2025, doi:10.1287/orsc.2025.21838 | Tasks inside the frontier were done faster and better; on tasks outside the frontier, accuracy was 19 percentage points lower, and wrong answers were written more persuasively | Policy conflicts and boundary conditions are exactly "outside the frontier"; the AI must decline or hand off to a human |
+| C | Noy & Zhang 2023, *Science* 381:187–192, doi:10.1126/science.adh2586 | On writing tasks, time fell by about 40% and quality rose by about 18%, and the gap between people narrowed | Shows only an efficiency gain; unrelated to learning |
+| D | Bastani et al. 2025, *PNAS* 122(26), doi:10.1073/pnas.2422633122 | Using GPT directly raised practice scores, but with the AI removed, exam scores were about 17% lower than the control group; a hint-only GPT Tutor did not cause this harm, and students overestimated how much they had learned | An explaining AI may leave people with the answer but without the learning |
+| E | Lehmann, Cornelius & Sting 2025, arXiv:2409.09047 (preprint) | Using AI to do the work instead of oneself gives broad but shallow understanding; using AI for supplementary explanations gives deeper understanding. Students chose substitution more often | Same as above, and shows that the mode of use is determined by design |
+| F | Kestin et al. 2025, *Scientific Reports*, doi:10.1038/s41598-025-97652-6 | An AI tutor designed according to pedagogy outperformed in-class active learning in an RCT | Structured AI tutors can be effective |
+| G | Pardos & Bhandari 2024, *PLOS ONE* 19(5):e0304013, doi:10.1371/journal.pone.0304013 | ChatGPT hints produced learning gains comparable to human hints, but 32% of the hints failed quality checks | Supports the draft's "published after verification" |
+| H | Wang et al. 2024/25, Tutor CoPilot, arXiv:2410.03017 (preprint, RCT) | AI giving tutors real-time suggestions raised student mastery by 4 percentage points, and by 9 percentage points for weaker tutors | AI can also help the President write replies |
+| I | Lee 1997, *OBHDP* 72(3):336–363, https://ideas.repec.org/a/eee/jobhdp/v72y1997i3p336-363.html | Employees are more willing to seek help from coworkers than from superiors, because seeking help makes them look dependent and lowers their status | Supports going to the AI or a peer before the President |
+| J | Brooks, Gino & Schweitzer 2015, *Mgmt Sci* 61(6):1421–1435, doi:10.1287/mnsc.2014.2054 | Asking for advice on hard problems raises others' perceptions of one's competence; easy problems earn no credit; asking someone who does not know the field lowers it | Take hard and experience-based problems to people; leave easy ones to the AI |
+| K | Cleavenger & Munyon 2015, *Organization Studies* 36(2):221–240, https://stars.library.ucf.edu/scopus2015/544 | When anonymity is high, helping norms are strong and goals are interdependent, employees seek help earlier | The design of help channels changes asking behavior |
+| L | Lucas et al. 2014, *Computers in Human Behavior* 37:94–100, https://ict.usc.edu/pubs/It%e2%80%99s%20only%20a%20computer%20-%20The%20impact%20of%20human-agent%20interaction%20in%20clinical%20interviews.pdf | When people believe a computer is on the other side, they worry less about impression management and disclose more | The AI can take the questions people are "embarrassed to ask" |
+| M | Gnewuch et al. 2024, *ISR* 35(3):936–955, doi:10.1287/isre.2022.0152 | Field experiment: after users were told "a human is involved behind the scenes", they asked questions more as if to a person, the bot could automatically handle fewer requests, and human workload rose | Do not make members feel the President is watching in real time |
+| N | Page & Gehlbach 2017, *AERA Open* 3(4), doi:10.1177/2332858417749220 | A campus process and policy AI assistant increased incoming students' actual enrollment | Supports using AI to answer school process questions |
+| O | Magesh et al. 2025, *J. Empirical Legal Studies* 22(2):216–242, doi:10.1111/jels.12413 | Commercial RAG legal tools still hallucinate at rates of 17–33% or more | RAG plus citations does not equal reliability |
+| P | Liu, Zhang & Liang 2023, *Findings of EMNLP*, https://aclanthology.org/2023.findings-emnlp.467 | In generative search, only 51.5% of sentences were fully supported by citations, and only 74.5% of citations actually supported their sentences | Giving only provision IDs is not enough; show the source text |
+| Q | Parasuraman & Manzey 2010, *Human Factors* 52(3):381–410, doi:10.1177/0018720810376055 | Both experts and novices show automation bias, and practice does not eliminate it | Dedicated guardrails must be designed |
+| R | Buçinca, Malaya & Gajos 2021, *PACM HCI* 5(CSCW1):188, https://arxiv.org/abs/2102.09692 | Cognitive forcing (judge first, then see the AI) reduces overreliance, but users do not like it much | Use it only for high-risk questions |
+| S | Bansal et al. 2021, *CHI '21*, doi:10.1145/3411764.3445717 | Explanations increase the rate at which users accept AI recommendations, whether or not the AI is correct | The draft's "explain the reason clearly" may deepen blind trust |
+| T | Lee & See 2004, *Human Factors* 46(1):50–80, doi:10.1518/hfes.46.1.50_30392 | Trust must match the system's actual reliability, which requires letting people see how the system performs | The President's trust must be built on visible data |
+| U | Kamath, Jia & Liang 2020, *ACL*, https://aclanthology.org/2020.acl-main.503 | On questions outside the training distribution, models are overconfident; a separately trained abstention calibrator works better | Decline to answer when the campus or version does not match |
+| V | Mozannar & Sontag 2020, *ICML* (PMLR 119), https://proceedings.mlr.press/v119/mozannar20b.html | A policy for "when to defer to an expert" can be trained | Handing off to humans has a theoretical basis |
+| W | del Rio-Chanona et al. 2024, *PNAS Nexus* 3:pgae400, https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11421660/ | After ChatGPT launched, Stack Overflow posts fell by about 25%; what people ask the AI privately does not accumulate as public knowledge | Answers handed to humans must flow back into the FAQ |
+| X | King 1992, *Educational Psychologist* 27(1):111–126, doi:10.1207/s15326985ep2701_8; Ge & Land 2003, *ETR&D* 51(1):21–38 | Guided question stems and question prompts improve comprehension and problem solving | Supports preparing a question list |
 
-**没有找到证据的部分：**
-- 没有找到严格研究证明“AI 自动生成的建议问题”能增加提问或促进学习。现有研究样本小，多数只测主观感受。
-- 自助知识库的工单分流（ticket deflection）也没有同行评审的田野实验。可用的只有 Alibaba 的 preprint（arXiv:2603.29888、2605.14830）：先由 AI 处理，解决不了再转人工，同时人工客服把精力转到需要判断的问题上。
+**Areas where no evidence was found:**
+- No rigorous study was found showing that "AI-generated suggested questions" increase asking or promote learning. Existing studies have small samples and mostly measure subjective impressions.
+- Ticket deflection by self-service knowledge bases also has no peer-reviewed field experiment. The only usable sources are Alibaba preprints (arXiv:2603.29888, 2605.14830): the AI handles requests first, unresolved ones go to humans, and human agents shift their effort to questions that need judgment.
 
-## 二、草稿要素 → 证据 → 结论 → 建议
+## 2. Draft element → evidence → conclusion → recommendation
 
-| 草稿要素 | 证据 | 结论 | 建议 |
+| Draft element | Evidence | Conclusion | Recommendation |
 |---|---|---|---|
-| 一般政策疑问先问 AI | A, I, J, K, L, N | **保留** | 明确写成“简单、制度类问题先问 AI；难题和经验问题找人”（J） |
-| AI 先确认校区、身份、资金来源和阶段 | O, U | **改** | 改成启动时填好的结构化档案，自动带入每次提问；档案不符或缺失时直接拒答，不靠 AI 自己猜 |
-| 回答包含条件、原因、依赖、条文和版本、待确认事项 | O, P, S | **改** | 必须显示**原文摘录**、来源 ID、版本和校区，不能只给 ID。“为什么”的解释放在原文之后，不能代替原文（S：解释会让人更盲信） |
-| “讲清制度”（隐含直接给答案） | D, E, F, G | **改** | 区分两种模式。学习/情景题模式：先让成员自己判断，AI 只给提示和原文位置。办事模式：直接给出带出处的答案 |
-| 来源冲突、资料缺口、授权和经验转给人 | B, U, V | **保留并加强** | 冲突清单由系统维护。命中冲突时，AI 必须同时列出两条原文，标明“未决”，再转给人，不能自己选一个 |
-| 一对一口头交接并按岗位准备问题 | J, X | **保留** | 问题清单采用 King 式句干（“X 会影响谁？”“上次哪里返工？”），提前写好 |
-| 资源总台 | I | **保留** | 把“前任或同岗同伴”放在社长之前，降低找上级的心理成本（I） |
-| 社长如何放心（草稿缺失） | T, O, W, H | **新增** | 增加未解决问题队列、抽样审核、FAQ 回流和可靠性指标（见下文规则） |
-| 社长能否看到提问记录（草稿未定） | L, M, K | **新增，谨慎设计** | 社长不实时查看个人对话，只看汇总和成员主动升级的问题；否则成员会少问，或把问题都推给人（M） |
-| AI 推荐“你还可以问”（草稿第三步） | X 支持人工问题提示；AI 生成的建议问题缺少证据 | **改** | 先用人工审定的每节点问题句干；AI 生成的建议问题只作为 A/B 测试 |
-| 情景题和学习卡“经核实后发布” | G | **保留** | 继续执行，AI 生成的内容必须先审核 |
+| General policy questions go to the AI first | A, I, J, K, L, N | **Keep** | State it explicitly as "simple, rule-type questions go to the AI first; hard and experience-based questions go to people" (J) |
+| The AI first confirms campus, identity, funding source and stage | O, U | **Change** | Change to a structured profile filled in at startup and automatically attached to every question; when the profile does not match or is missing, decline directly instead of relying on the AI to guess |
+| Answers include conditions, reasons, dependencies, provisions and version, items to confirm | O, P, S | **Change** | Must show the **source excerpt**, source ID, version and campus, not just the ID. The "why" explanation comes after the source text and cannot replace it (S: explanations increase blind trust) |
+| "Explain the rules clearly" (implicitly giving answers directly) | D, E, F, G | **Change** | Distinguish two modes. Learning/scenario-question mode: the member judges first, and the AI only gives hints and the location of the source text. Doing mode: give a sourced answer directly |
+| Source conflicts, missing material, authorization and experience go to people | B, U, V | **Keep and strengthen** | The system maintains the conflict list. When a conflict is hit, the AI must list both source passages, mark it "unresolved", and then hand off to a person; it cannot pick one on its own |
+| One-on-one oral handoff with questions prepared per role | J, X | **Keep** | Write the question list in advance using King-style stems ("Whom will X affect?" "Where did rework happen last time?") |
+| Resource desk | I | **Keep** | Put "the predecessor or a same-role peer" before the President, lowering the psychological cost of going to a superior (I) |
+| How the President can feel confident (missing from the draft) | T, O, W, H | **Add** | Add an unresolved-question queue, sampled audits, FAQ feedback loop and reliability metrics (see the rules below) |
+| Whether the President can see question records (undecided in the draft) | L, M, K | **Add, design carefully** | The President does not view individual conversations in real time and sees only summaries and questions members actively escalate; otherwise members ask less, or push every question to people (M) |
+| AI recommends "you can also ask" (draft step 3) | X supports human question prompts; AI-generated suggested questions lack evidence | **Change** | Start with human-approved question stems for each node; use AI-generated suggested questions only as an A/B test |
+| Scenario questions and learning cards "published after verification" | G | **Keep** | Continue doing this; AI-generated content must be reviewed first |
 
-## 三、“AI 先答、社长后答”：让社长放心的 9 条规则
+## 3. "AI answers first, the President answers after": 9 rules that let the President feel confident
 
-1. **没有原文就不回答。** 每个答案必须附上服务器规则库里的原文摘录，以及来源 ID、版本、校区和学期。找不到适用原文时，回答“我无法确认”，并给出升级按钮。依据：O（RAG 仍会幻觉），P（引用常常不支持对应句子）。
+1. **No source text, no answer.** Every answer must include a source excerpt from the server's rule library, plus the source ID, version, campus and term. When no applicable source text is found, answer "I cannot confirm" and show an escalation button. Basis: O (RAG still hallucinates), P (citations often do not support their sentences).
 
-2. **按适用范围拒答。** 成员档案（校区、Top 3 身份、资金来源）和条文适用范围不一致，或问题超出 64 条来源时，AI 直接拒答并转人工，不靠 AI 自己判断“是否适用”。依据：U（超出范围时模型过度自信），V（交给专家的转交策略）。
+2. **Decline based on applicable scope.** When the member profile (campus, Top 3 status, funding source) does not match a provision's scope, or the question goes beyond the 64 sources, the AI declines directly and hands off to a human instead of judging "whether it applies" on its own. Basis: U (models are overconfident outside their range), V (deferral policies for handing off to experts).
 
-3. **冲突要摆出来，不替用户裁决。** 系统内置“已知冲突”清单，例如 Event Registry 是 14 天还是 30 天、旅行资助的金额。命中冲突时，AI 并列两条原文，标“待确认”，并告诉成员该问谁。依据：B（前沿外的任务，AI 会给出有说服力的错误答案）。
+3. **Show conflicts; do not decide for the user.** The system has a built-in "known conflicts" list, for example whether Event Registry is 14 or 30 days, or the travel funding amount. When a conflict is hit, the AI shows both source passages side by side, marks "to be confirmed", and tells the member whom to ask. Basis: B (on tasks outside the frontier, the AI gives persuasive wrong answers).
 
-4. **高风险问题先让成员自己判断。** 涉及金额、资格、截止日期或签字权时，先让成员选出“决定答案的条件”或在原文中划出关键句，再显示 AI 的结论。只在这些问题上这样做，避免打扰其他提问。依据：R（认知强制减少过度依赖），Q（偏差靠练习消除不了），S（解释会加重盲信）。
+4. **For high-risk questions, the member judges first.** When amounts, eligibility, deadlines or signature authority are involved, first have the member choose "the condition that decides the answer" or highlight the key sentence in the source text, then show the AI's conclusion. Do this only for these questions, to avoid interrupting other questions. Basis: R (cognitive forcing reduces overreliance), Q (practice cannot eliminate the bias), S (explanations worsen blind trust).
 
-5. **学习模式只给提示，办事模式给答案。** 情景题和测验中，AI 只指出该看哪一条、应关注哪个条件，不直接给答案。真实办理中直接给出带出处的答案。依据：D（直接给答案伤害学习，提示型导师没有这种伤害），E（代替使用 vs. 补充使用），F 和 G（有教学设计的 AI 提示有效）。
+5. **Learning mode gives only hints; doing mode gives answers.** In scenario questions and quizzes, the AI only points to which provision to look at and which condition to watch, without giving the answer directly. In real work, it gives a sourced answer directly. Basis: D (direct answers harm learning; a hint-based tutor does not), E (substitution vs. supplementary use), F and G (AI hints with instructional design are effective).
 
-6. **结构化升级，并有固定梯度。** 升级顺序为：AI → 交接文档或前任、同岗同伴 → 社长（或 advisor、学校 staff）。升级单自动带上：原问题、AI 的回答和引用、为什么没解决（冲突、缺资料、需要授权、需要经验）。社长因此收到的问题更少，也更容易回答。依据：I（先找同伴的心理成本更低），J（带着难题求教能提升别人眼中的能力），K（明确的求助渠道和规范会让人更早求助）。
+6. **Structured escalation with a fixed ladder.** The escalation order is: AI → handoff document or predecessor, same-role peer → President (or advisor, school staff). The escalation ticket automatically carries: the original question, the AI's answer and citations, and why it was not resolved (conflict, missing material, needs authorization, needs experience). As a result, the President receives fewer questions, and they are easier to answer. Basis: I (going to peers first has a lower psychological cost), J (asking for help with hard problems raises perceived competence), K (clear help channels and norms make people seek help earlier).
 
-7. **保护提问隐私，只向社长展示汇总。** 个人与 AI 的对话默认不给社长实时查看。社长看到的是：主题热度、未解决问题队列、成员主动升级的问题，以及去标识化的抽样问答。依据：L（对机器提问时顾虑更少），M（感到有人在看时，交给人工的工作反而更多）。
+7. **Protect question privacy; show the President only summaries.** By default, the President cannot view individuals' conversations with the AI in real time. What the President sees: topic heat, the unresolved-question queue, questions members actively escalated, and de-identified sampled Q&A. Basis: L (fewer concerns when asking a machine), M (when people feel watched, more work ends up handed to humans).
 
-8. **每次升级都要回流成 FAQ。** 社长回答后，系统用 AI 起草一条带来源和版本的 FAQ，社长确认后发布，下一位成员就能直接从 AI 得到答案。社长回复时，AI 也可以先起草一份带引用的草稿供修改。依据：W（私下问答不沉淀就会损失公共知识），H（AI 辅助人回答的效果）。
+8. **Every escalation flows back into the FAQ.** After the President answers, the system uses AI to draft an FAQ entry with source and version, which is published after the President confirms it, so the next member can get the answer directly from the AI. When the President replies, the AI can also first draft a reply with citations for the President to edit. Basis: W (private Q&A that does not accumulate loses public knowledge), H (the effect of AI assisting humans in answering).
 
-9. **用数据建立信任，而不是靠承诺。** 社长仪表盘显示：带引用回答的比例、拒答率、升级率、抽样审核中发现的错误数、FAQ 增长数，以及按主题划分的“社长被问次数”。第一个学期，每周抽查 5–10 条问答。指标稳定后，再减少抽查。依据：T（信任要和真实可靠度相匹配），O（厂商的可靠性声明不可信，要在本地测量）。
+9. **Build trust with data, not promises.** The President's dashboard shows: the share of answers with citations, decline rate, escalation rate, errors found in sampled audits, FAQ growth, and "times the President was asked" by topic. In the first semester, spot-check 5–10 Q&A items per week. Once the metrics are stable, reduce the spot checks. Basis: T (trust must match actual reliability), O (vendors' reliability claims cannot be trusted; measure locally).
 
-**总结：** 证据支持“新人先问 AI”，在降低求助心理成本方面尤其明确（A、I、L、N）。但“讲清楚”本身有两个风险：答案可能是错的（O、P、B），成员也可能拿到答案却没学会（D、E）。草稿第五步需要加入原文展示、拒答和冲突并列、学习模式与办事模式分开，以及给社长的汇总队列与 FAQ 回流，才能真正让社长放心。
+**Summary:** The evidence supports "newcomers ask the AI first", and is especially clear on lowering the psychological cost of seeking help (A, I, L, N). But "explaining clearly" itself carries two risks: the answer may be wrong (O, P, B), and members may get the answer without learning (D, E). Draft step 5 needs source-text display, declining and side-by-side conflicts, separate learning and doing modes, and a summary queue and FAQ feedback loop for the President before it can truly give the President peace of mind.
