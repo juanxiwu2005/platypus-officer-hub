@@ -1,3 +1,7 @@
+> **2026-11-21（America/Phoenix） · Handoff／新exec 3天上手草稿审阅与研究，待讨论（Claude 主Agent＋5个研究Agent）**
+> **结论：** 草稿方向对但过重：“必须=全部适用规则、全员学习”、阅读XP和完整阅读里程碑被证据否定；情景题、跨岗三句话、事件式口头交接、President配置有证据支持。推荐三层（约12条红线全员→岗位与上下游约40条核心→随用随查）、交接约定表、前任填未结事项单＋复述、逐项提交2–3项任务、AI先答且必须带原文/冲突并列/学习只给提示、社长看升级队列与FAQ回流。[审阅与方案](feedback-fix/HANDOFF_RAMP_REVIEW_2026-11-21.md) · [草稿原文与5份研究](feedback-fix/handoff-ramp-research/)。
+> **核对：** 草稿政策事实多数属实；7处偏弱/引用错，8项重要规则遗漏（RITM 14天取消订场、获批前宣传/购买、学生不签合同等）；“40多页”可能是R041或R038待确认；发现网站R13仍按2025–26期末规则。仅文档，未改src，0产品AI/邮件；Phase 3冻结期内不实施，情景题成绩/升级队列属新记录项需对照IRB。沿用PR14，不合并main，需要同步本地备份。
+
 > **2026-11-19（America/Phoenix） · Settings → Roles & teams（方案 C）完成检查，待验收（Claude + worktree Agent E）**
 > **交付：** Roles 页改为 Roles & teams：组织图保留汇报线，Workflow 团队显示为同色色块（“Finance · 12 steps”），右侧面板编辑岗位（含 Team）或团队（改名、删除守卫）；Contact list 保留原表格并加 Team 列；Workflow → More → Teams 可跳转过来。schema 不变。单元 2118/2120（2 项旧失败），新页面测试 10/10，Settings 字数 146/150。见[方案与实现](feedback-fix/ROLES_TEAMS_CONCEPTS_2026-11-19.md)。需要同步本地备份。
 
