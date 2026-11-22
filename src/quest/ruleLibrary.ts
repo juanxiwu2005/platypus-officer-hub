@@ -435,4 +435,43 @@ export const QUEST_RULES: readonly QuestRule[] = [
     handoff: "marketing → treasurer: licensed vendor, Expense Includes Logo selection, and artwork",
     hint: "Check the vendor and the form’s artwork fields.",
   },
+  {
+    id: "6.1",
+    mission: 6,
+    redLine: false,
+    summary: "Weekday evening sound ends by 9 p.m.; maximum 75 dB measured at 30 feet.",
+    sources: [
+      { record: "ASU-R-015", line: 2376, quote: "Amplification is only permitted between the hours of 11:30am and 1:00pm and 5:00pm and 9:00pm Monday through Friday and 9:00am-9:00pm Saturday.", section: null },
+      { record: "ASU-R-015", line: 2376, quote: "Amplification may not exceed 75 decibels at a distance of 30 feet from the source of the amplification.", section: null },
+    ],
+    leads: ["events"],
+    handoff: null,
+    hint: "Which venue limits apply to the time and sound level?",
+  },
+  {
+    id: "6.2",
+    mission: 6,
+    redLine: true,
+    summary: "Call 911 for campus emergencies, identify ASU, then notify the Dean after medical transport.",
+    sources: [
+      { record: "ASU-R-004", line: 905, quote: "call 911 and tell the dispatchers you are on an ASU Campus and need to be connected to the ASU Police Department", section: "Medical Emergency Procedures" },
+      { record: "ASU-R-004", line: 914, quote: "If anyone is transported to a hospital or medical facility for treatment, please notify the ASU Dean of Students Office via this form.", section: "Medical Emergency Procedures" },
+    ],
+    leads: ["all"],
+    handoff: null,
+    hint: "Who can dispatch emergency help to the campus?",
+  },
+  {
+    id: "6.3",
+    mission: 6,
+    redLine: false,
+    summary: "Do not sell raffle tickets; free door prizes require equal chances for everyone.",
+    sources: [
+      { record: "ASU-R-004", line: 780, quote: "ASU and its departments and administrative units are NOT permitted to conduct raffles.", section: "Raffles" },
+      { record: "ASU-R-004", line: 780, quote: "Using an actual raffle ticket for a door prize is permitted, as long as attendees are not required to pay for the raffle ticket and everyone has an equal chance of receiving the prize.", section: "Raffles" },
+    ],
+    leads: ["marketing", "events"],
+    handoff: null,
+    hint: "Does anyone have to pay for a chance to win?",
+  },
 ]
