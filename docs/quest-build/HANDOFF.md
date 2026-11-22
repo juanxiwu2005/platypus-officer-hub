@@ -42,6 +42,8 @@ The rule library content is fixed: 33 scored rules with exact archive quotes and
 | P6 Full game | Missions 1, 3, 4, 6, 7, credits, day-3 retest, president summary | Mostly ASU AIR | Juanxi accepts on a preview |
 | P7 Sequels and polish | Five sequels, accessibility pass, motion review | Mostly ASU AIR | Juanxi accepts; merge needs his explicit approval |
 
+**November 22, 2026 status:** P1 passed its exit gate on `feat/onboarding-quest` (Draft PR #19): doctor passed, one GLM 5.3 / DeepSeek card completed through exact-SHA CI at `a9bee77`. See [P1_PIPELINE.md](P1_PIPELINE.md) and [TRIAL_LOG.md](TRIAL_LOG.md). The 33-rule typed library is complete; storyboard/design gates remain pending owner decisions. No merge is authorized.
+
 Use branch `feat/onboarding-quest-trial` for P0 and `feat/onboarding-quest` from P1 on (AGENTS.md naming). Open a draft PR only when there is something to preview.
 
 ## 4. Tonight: P0 runbook

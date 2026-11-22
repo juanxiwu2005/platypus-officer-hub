@@ -41,3 +41,7 @@ Only the controller stages approved task files and publishes a normal feature-br
 ## Remaining scope
 
 No dependency, GitHub Actions, product UI, date engine, real user data or production configuration change is needed. The Node pipeline regressions run locally as an authoritative controller check; the existing CI workflow continues its complete application suite. Future storyboard/game decisions remain gated by HANDOFF. User-level OpenCode defaults are unchanged. Thesis backup synchronization remains pending.
+
+## Verified live result — November 22, 2026
+
+Draft PR [#19](https://github.com/juanxiwu2005/platypus-officer-hub/pull/19); repair commit `9b2a69b`; live card commit `a9bee777823e00b7c34403bb24ae810ce034c4a1`. Doctor passed 341 permission assertions. Fifteen pipeline regressions and six quest tests passed, plus frontend types and full lint. GLM 5.3 completed in 188.97 seconds; DeepSeek APPROVED in 146.64 seconds. One cycle, no repairs, denied requests or timeouts. The controller committed/pushed the new test and verified all eight existing CI jobs on its exact SHA ([run](https://github.com/juanxiwu2005/platypus-officer-hub/actions/runs/45059244617)). Isolated missing-handbook-label verification fails only the new test. Original rule data and all five earlier tests remain byte-identical. Main and user-level defaults are unchanged; owner acceptance and thesis backup synchronization remain pending.
