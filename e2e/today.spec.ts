@@ -37,12 +37,14 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   expect(persisted.events.filter(e => e.name === "Founder Dinner Preview")).toHaveLength(1)
   expect(persisted.events.filter(e => initial.events.some(seed => seed.id === e.id))).toEqual(initial.events)
   const orderedNames = [...persisted.events].sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)).map(e => e.name)
+  const picker = page.getByRole("combobox", { name: "Choose an event" })
+  // isVisible() does not wait: after the reload, wait until one of the two event switchers has rendered.
+  await expect(eventNav.or(picker).filter({ visible: true }).first()).toBeVisible()
   if (await eventNav.isVisible()) {
     await expect(eventNav.getByRole("button")).toHaveCount(initial.events.length + 1)
     await expect(eventNav.getByRole("button")).toHaveText(orderedNames)
     await eventNav.getByRole("button", { name: "Spring Speaker Night" }).click()
   } else {
-    const picker = page.getByRole("combobox", { name: "Choose an event" })
     await expect(picker).toBeVisible()
     await expect(picker.locator("option")).toHaveCount(initial.events.length + 1)
     await expect(picker.locator("option")).toHaveText(orderedNames)
