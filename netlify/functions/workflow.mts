@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/functions"
-import { chatJSON } from "../lib/ai.mts"
+import { chatJSON, syncAiBudgetMs } from "../lib/ai.mts"
 import { BadRequest, fail, json, readJSON } from "../lib/http.mts"
 import { relevantExcerpt } from "../../src/lib/constitution.ts"
 import { EVENT_STEPS } from "../../src/engine/playbooks.ts"
@@ -16,7 +16,9 @@ import type { Role, StepTemplate } from "../../src/data/types.ts"
  * Nothing is stored here: no database, no archive, no log of the text. Fictional documents only.
  */
 const MAX_BODY = 90_000
-const TIMEOUT_MS = 21_000
+// The synchronous AI budget minus one second for reading and checking the text (FB-1: 25 s by default). If the AI is
+// slower, answer with a clear message instead of letting the platform cut the request off with an empty 502/504.
+const timeoutMs = () => syncAiBudgetMs() - 1_000
 const str = (v: unknown, max: number) => typeof v === "string" ? v.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "[email]").replace(/\b(?:\+?1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b/g, "[phone]").slice(0, max) : ""
 const asRoles = (v: unknown): Role[] => (Array.isArray(v) ? v : []).slice(0, 24).flatMap((r: unknown) => {
   const x = r && typeof r === "object" ? r as Record<string, unknown> : {}
@@ -37,7 +39,7 @@ export default async (req: Request) => {
       })
       if (!steps.length) throw new BadRequest("No steps to share out.")
       const user = JSON.stringify({ steps: steps.map(s => ({ key: s.key, title: s.title, standardOwner: s.ownerRoleId ?? null })), roles: roles.map(r => ({ title: r.displayName, duties: r.duties, reportsTo: null })) })
-      const { data, model, provider } = await chatJSON({ task: "workflow_read", system: WORKFLOW_OWNERS_SYSTEM, user, maxTokens: 900, temperature: 0.1, timeoutMs: TIMEOUT_MS })
+      const { data, model, provider } = await chatJSON({ task: "workflow_read", system: WORKFLOW_OWNERS_SYSTEM, user, maxTokens: 900, temperature: 0.1, timeoutMs: timeoutMs() })
       const owners = sanitizeOwners(data, steps, roles)
       return json({ part, owners: Object.entries(owners).map(([key, id]) => ({ key, role: roles.find(r => r.id === id)?.displayName })), model, provider })
     }
@@ -48,7 +50,7 @@ export default async (req: Request) => {
     }).filter(f => f.text.trim())
     if (!notes.trim() && !files.length) throw new BadRequest("Add planning notes or a file first.")
     const user = JSON.stringify({ notes, files, steps: stepsForPrompt(EVENT_STEPS), roles: roles.map(r => ({ title: r.displayName, duties: r.duties })), ruleBook: ruleBookForPrompt() })
-    const { data, model, provider } = await chatJSON({ task: "workflow_read", system: WORKFLOW_CHANGES_SYSTEM, user, maxTokens: 1400, temperature: 0.1, timeoutMs: TIMEOUT_MS })
+    const { data, model, provider } = await chatJSON({ task: "workflow_read", system: WORKFLOW_CHANGES_SYSTEM, user, maxTokens: 1400, temperature: 0.1, timeoutMs: timeoutMs() })
     const reading = sanitizeChanges(data, EVENT_STEPS, roles)
     return json({ part, summary: reading.summary, conflicts: reading.conflicts, changes: changesToWire(reading.changes, roles), model, provider })
   } catch (e) { return fail(e) }

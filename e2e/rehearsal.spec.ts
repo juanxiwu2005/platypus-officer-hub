@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
+import { finishSetup, savedSetupDraft, setupToConfirm } from "./setupHelpers"
 import { ask, closeRail, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
 
@@ -10,19 +11,19 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/chat", r => r.fulfill({ status: 503, json: {} }))
 })
 
-test("participant path: clean browser → six-step setup → task → event → rule question → export; nothing blank, every action logged in order", async ({ page }) => {
+test("participant path: clean browser → shared setup → task → event → rule question → export; nothing blank, every action logged in order", async ({ page }) => {
   const errors: string[] = []
   page.on("pageerror", e => errors.push(String(e)))
-  await page.goto("/#/")
-  await page.evaluate(() => window.localStorage.clear())
-  await page.goto("/#/setup")
-  const step = page.getByTestId("setup-step")
-  await step.getByLabel("Club name", { exact: true }).fill("Fictional Rehearsal Club")
-  for (let i = 0; i < 5; i++) await step.getByRole("button", { name: "Continue", exact: true }).click()
-  await step.getByRole("button", { name: "Prepare first workflow", exact: true }).click()
-  await step.getByRole("checkbox", { name: "I reviewed this event and want to start this demo workspace." }).check()
-  await step.getByRole("button", { name: "Approve & start workspace", exact: true }).click()
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Events")
+  // Establish the clean browser before the Provider reads its first snapshot; deleting a mounted tab's
+  // business key is now correctly treated as an external storage conflict, not a new empty workspace.
+  await page.addInitScript(() => {
+    if (!sessionStorage.getItem("rehearsal-clean-browser")) {
+      localStorage.clear()
+      sessionStorage.setItem("rehearsal-clean-browser", "1")
+    }
+  })
+  await setupToConfirm(page, "Fictional Rehearsal Club")
+  await finishSetup(page)
   await closeRail(page)
   // a task
   await ask(page, "Add a task: order name tags")
@@ -55,6 +56,28 @@ test("participant path: clean browser → six-step setup → task → event → 
   expect(errors).toEqual([])
 })
 
+test("a refused setup save keeps the founder draft, organization and confirmation page", async ({ page }) => {
+  await setupToConfirm(page, "Fictional unsaved club")
+  const original = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
+  await page.evaluate(() => {
+    const write = Storage.prototype.setItem
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "platypus.v1.demo") throw new Error("Fictional business save failure")
+      return write.call(this, key, value)
+    }
+  })
+  await page.getByRole("button", { name: "Start workspace", exact: true }).click()
+  await expect(page.locator("main").getByRole("alert")).toContainText("Your club could not be saved")
+  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
+  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
+  expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(original)
+  // The founder draft is written to the browser database a moment after the last change (draft.tsx, SAVE_DELAY), and this test reaches
+  // Confirm faster than a person can: reload only once the draft with this club is stored, as it is for anyone working at a human pace.
+  await expect.poll(async () => (await savedSetupDraft(page))?.club.name).toBe("Fictional unsaved club")
+  await page.reload()
+  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
+})
+
 test("keyboard only: claim a task, change its status and finish it without a mouse", async ({ page }) => {
   const id = await createUnclaimedTask(page, "Prepare the keyboard rehearsal")
   await viewAs(page, "jordan")
@@ -67,13 +90,19 @@ test("keyboard only: claim a task, change its status and finish it without a mou
   await page.keyboard.press("Enter")
   await expect(detail).toContainText("To do")
   expect(await savedTask(page, id)).toMatchObject({ status: "accepted", ownerId: "jordan" })
-  await detail.getByRole("button", { name: "Need help", exact: true }).focus()
-  await page.keyboard.press("Space")
-  await expect(detail).toContainText("Stuck")
+  // The universal task details: the status is one drop-down, changed from the keyboard by typing an option's first letter.
+  const status = detail.getByRole("combobox", { name: "Task status", exact: true })
+  await status.focus()
+  await page.keyboard.press("s")
+  await expect(status).toHaveValue("blocked")
+  await expect(detail.getByRole("status").filter({ hasText: "Your update is saved." })).toBeVisible()
   expect(await savedTask(page, id)).toMatchObject({ status: "blocked", ownerId: "jordan" })
-  await detail.getByRole("button", { name: "Done", exact: true }).focus()
+  // Finishing is a submission: a few words of result typed from the keyboard, then Submit & mark done.
+  await detail.getByLabel("Details", { exact: true }).focus()
+  await page.keyboard.type("Rehearsal room booked")
+  await detail.getByRole("button", { name: "Submit & mark done", exact: true }).focus()
   await page.keyboard.press("Enter")
-  await expect(detail).toContainText("Completed on")
+  await expect(status).toHaveValue("done")
   expect(await savedTask(page, id)).toMatchObject({ status: "done", ownerId: "jordan" })
   await page.reload()
   // The task was opened from the board rather than a historic deep link.

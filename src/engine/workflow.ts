@@ -1,7 +1,9 @@
-import type { DemoState, Event, Node, Phase, Role, StepTemplate, Tier } from "../data/types"
+import type { DemoState, Event, Node, Phase, Role, StepTemplate, Tier, WorkflowBranch } from "../data/types"
 import { addDays } from "../lib/dates"
 import { EVENT_STEPS, buildEventNodes, roleFor } from "./playbooks"
 import { computeSchedule } from "./schedule"
+import { DEFAULT_WORKFLOW_BRANCHES, branchOf, conditionsOf, isWorkflowCondition, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "./workflowBranches"
+import { CORE_EVENT_STEP_KEYS, deletionReason, isAsuStep, isCoreStep } from "./workflowPolicy"
 
 /**
  * The club's own event workflow (setup). Everything here is pure and has no dates in it: a step has an anchor and links, and the
@@ -17,7 +19,7 @@ export const PHASE_LIST: Phase[] = ["plan", "prepare", "money", "marketing", "ru
 export const presetSteps = (): StepTemplate[] => structuredClone(EVENT_STEPS)
 
 /** A step ASU rules depend on: it has a rule, or its deadline comes from one. The club cannot remove it or move its deadline. */
-export const isLocked = (s: Pick<StepTemplate, "ruleIds" | "anchor">) => !!s.ruleIds?.length || s.anchor?.kind === "rule"
+export const isLocked = (s: Pick<StepTemplate, "ruleIds" | "anchor">) => isAsuStep(s)
 export const ruleList = (s: Pick<StepTemplate, "ruleIds">) => (s.ruleIds ?? []).join(", ")
 
 export interface StepPatch {
@@ -69,7 +71,7 @@ const timing = (days: number | null | undefined, phase: Phase, current?: StepTem
 /** Take a step out and let the steps that waited for it wait for what it waited for. */
 export function removeStep(steps: StepTemplate[], key: string): StepTemplate[] {
   const gone = steps.find(s => s.key === key)
-  if (!gone) return steps
+  if (!gone || deletionReason(gone)) return steps
   return steps.filter(s => s.key !== key).map(s => (s.dependsOn ?? []).includes(key) ? { ...s, dependsOn: uniq([...(s.dependsOn ?? []).filter(d => d !== key), ...(gone.dependsOn ?? [])]) } : s)
 }
 
@@ -102,7 +104,8 @@ export function applyChanges(steps: StepTemplate[], changes: WorkflowChange[], r
     if (at < 0) { no(c, "That step is not in the workflow."); continue }
     const step = cur[at]
     if (c.op === "remove") {
-      if (isLocked(step)) { no(c, `Kept: ASU rule${(step.ruleIds?.length ?? 0) > 1 ? "s" : ""} ${ruleList(step) || "on its deadline"} require${(step.ruleIds?.length ?? 0) > 1 ? "" : "s"} this step.`); continue }
+      const reason = deletionReason(step)
+      if (reason) { no(c, `Kept: ${reason}`); continue }
       cur = removeStep(cur, c.key); applied.push(c); continue
     }
     const p = c.patch
@@ -113,6 +116,7 @@ export function applyChanges(steps: StepTemplate[], changes: WorkflowChange[], r
       ...step,
       ...(p.title ? { title: p.title } : {}), ...(p.why ? { why: p.why } : {}), ...(p.tier ? { tier: p.tier } : {}),
       phase, estDays: p.estDays === undefined ? step.estDays : clampDays(p.estDays),
+      ...(p.estDays !== undefined ? { startPolicy: "effort" as const } : {}),
       ownerRoleId: owner, fn: owner ? roles.find(r => r.id === owner)?.fn ?? step.fn : step.fn,
       dependsOn: p.dependsOn ? uniq(p.dependsOn.filter(d => d !== c.key && cur.some(s => s.key === d))) : step.dependsOn,
     }
@@ -141,7 +145,7 @@ export function revertChange(steps: StepTemplate[], change: WorkflowChange, pres
     if (p.why) back.why = was.why
     if (p.tier) back.tier = was.tier
     if (p.phase) back.phase = was.phase
-    if (p.estDays !== undefined) back.estDays = was.estDays
+    if (p.estDays !== undefined) { back.estDays = was.estDays; if (was.startPolicy) back.startPolicy = was.startPolicy; else delete back.startPolicy }
     if (p.dependsOn) back.dependsOn = [...(was.dependsOn ?? [])].filter(d => steps.some(x => x.key === d))
     if (p.ownerRoleId !== undefined) { back.ownerRoleId = was.ownerRoleId ?? null; back.fn = was.fn }
     if (p.daysBefore !== undefined) { if (was.anchor) back.anchor = was.anchor; else delete back.anchor }
@@ -163,14 +167,14 @@ export function withOwners(steps: StepTemplate[], roles: Role[], chosen: Record<
 export interface WorkflowIssue { level: "blocked" | "warning"; text: string; key?: string; rules?: string[] }
 
 /** What a new event does with these steps, against the same event with the standard steps: only NEW errors count. */
-export function simulationIssues(state: DemoState, steps: StepTemplate[], roles: Role[]): WorkflowIssue[] {
+export function simulationIssues(state: DemoState, steps: StepTemplate[], roles: Role[], branches?: readonly WorkflowBranch[]): WorkflowIssue[] {
   const event: Event = { id: "sim", name: "Sample event", date: addDays(state.today, 28), type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, goalId: null, playbookId: "seo-event" }
-  const run = (st: StepTemplate[]) => {
-    const nodes: Node[] = buildEventNodes(event, roles, { steps: st })
+  const run = (st: StepTemplate[], definitions?: readonly WorkflowBranch[]) => {
+    const nodes: Node[] = buildEventNodes(event, roles, { steps: st, branches: definitions })
     const sched = computeSchedule({ ...state, roles, people: [], events: [event], nodes })
     return { sched, nodes }
   }
-  const base = run(EVENT_STEPS), mine = run(steps)
+  const base = run(EVENT_STEPS), mine = run(steps, branches)
   const seen = new Set(Object.values(base.sched.nodes).flatMap(n => n.issues).concat(base.sched.events.sim?.issues ?? []).filter(i => i.severity === "error").map(i => `${i.code}:${i.nodeId ?? ""}`))
   const title = new Map(mine.nodes.map(n => [n.id, n.title]))
   const out: WorkflowIssue[] = []
@@ -186,27 +190,53 @@ export function simulationIssues(state: DemoState, steps: StepTemplate[], roles:
  * The checks that protect ASU policy, worked out by the engine (not by the AI). "blocked" must be fixed before setup continues;
  * "warning" is shown and the president decides.
  */
-export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: DemoState): WorkflowIssue[] {
+export interface CheckWorkflowOptions {
+  /** Default true. Template authoring passes false: the organization's own core steps may then be removed or moved off the main line. ASU steps stay protected either way. */
+  requireCoreSteps?: boolean
+}
+
+export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: DemoState, branches?: readonly WorkflowBranch[], options: CheckWorkflowOptions = {}): WorkflowIssue[] {
+  const requireCore = options.requireCoreSteps ?? true
   const out: WorkflowIssue[] = []
   const by = new Map(steps.map(s => [s.key, s]))
+  const branchError = validateBranchDefinitions(branches)
+  if (branchError) out.push({ level: "blocked", text: branchError })
+  const savedBranches = Array.isArray(branches) ? branches : undefined
+  const definitions = resolveBranches(steps, savedBranches)
+  const authoredIds = new Set([...DEFAULT_WORKFLOW_BRANCHES.map(branch => branch.id), ...(savedBranches ?? []).filter(Boolean).map(branch => branch.id), "main", "legacy-before", "legacy-after"])
+  for (const branch of savedBranches ?? []) if (branch?.defaultRoleId && !roles.some(role => role.id === branch.defaultRoleId)) out.push({ level: "blocked", text: `“${branch.title}” needs a default role that exists in this club.` })
+  for (const key of CORE_EVENT_STEP_KEYS) {
+    const step = by.get(key)
+    if (!step && !requireCore) continue
+    if (!step) out.push({ level: "blocked", text: `“${EVENT_STEPS.find(s => s.key === key)?.title ?? key}” is missing and is required by the organization event workflow. Restore it before saving.`, key })
+    else if (conditionsOf(step, definitions).length) out.push({ level: "blocked", text: `“${step.title}” is required for every event and cannot be conditional.`, key })
+  }
   for (const p of EVENT_STEPS.filter(isLocked)) {
     const s = by.get(p.key)
     if (!s) { out.push({ level: "blocked", text: `“${p.title}” is missing. ASU rule${(p.ruleIds?.length ?? 0) > 1 ? "s" : ""} ${ruleList(p) || "on its deadline"} require it.`, key: p.key, rules: p.ruleIds }); continue }
     if (JSON.stringify(s.anchor ?? null) !== JSON.stringify(p.anchor ?? null)) out.push({ level: "blocked", text: `“${s.title}” has a deadline set by ASU rule ${ruleList(p) || "R0x"}. The club cannot change it; use the club buffer instead.`, key: p.key, rules: p.ruleIds })
     if (s.cond !== p.cond) out.push({ level: "blocked", text: `“${s.title}” only applies to some events, as ASU rule ${ruleList(p) || "R0x"} says. That cannot change.`, key: p.key, rules: p.ruleIds })
+    if (scopeKey(s, definitions) !== scopeKey(p, DEFAULT_WORKFLOW_BRANCHES)) out.push({ level: "blocked", text: `The branch cannot change when ASU step “${s.title}” is required.`, key: p.key, rules: p.ruleIds })
     // A step ASU rules depend on must still come after the steps it needs (for example the speaker request waits for the signed agreement).
     for (const d of p.dependsOn ?? []) {
       if (by.has(d) && !ancestors(steps, p.key).has(d)) out.push({ level: "blocked", text: `“${s.title}” must wait for “${by.get(d)!.title}” (ASU rule ${ruleList(p) || ruleList(by.get(d)!)}).`, key: p.key, rules: p.ruleIds })
     }
   }
   for (const s of steps) {
+    const placement = placementOf(s), branch = branchOf(s, definitions)
+    if (s.placement && (typeof s.placement.branchId !== "string" || !authoredIds.has(s.placement.branchId) || !Number.isFinite(s.placement.order))) out.push({ level: "blocked", text: `“${s.title}” needs a valid branch and position.`, key: s.key })
+    if (s.cond !== undefined && !isWorkflowCondition(s.cond)) out.push({ level: "blocked", text: `“${s.title}” has an unknown event condition.`, key: s.key })
+    if (s.startPolicy !== undefined && !["window", "effort"].includes(s.startPolicy)) out.push({ level: "blocked", text: `“${s.title}” has an unknown start policy.`, key: s.key })
+    if (s.stepKind !== undefined && !["core", "situation"].includes(s.stepKind)) out.push({ level: "blocked", text: `“${s.title}” has an unknown step type.`, key: s.key })
+    if (branch && (s.phase === "close") !== (branch.side === "after_event")) out.push({ level: "blocked", text: `“${s.title}” must stay on the same side of the event as its branch.`, key: s.key })
+    if (requireCore && isCoreStep(s) && ["finalcheck", "checkin", "headcount"].includes(s.key) && (placement.branchId !== "main" || s.phase !== EVENT_STEPS.find(p => p.key === s.key)?.phase)) out.push({ level: "blocked", text: `“${s.title}” connects the workflow and must stay on the main line.`, key: s.key })
     for (const d of s.dependsOn ?? []) if (!by.has(d)) out.push({ level: "blocked", text: `“${s.title}” waits for a step that is not in the workflow.`, key: s.key })
     if (ancestors(steps, s.key).has(s.key)) out.push({ level: "blocked", text: `“${s.title}” waits for itself, through other steps.`, key: s.key })
     const owner = ownerOfStep(s, roles)
     if (owner?.fn === "advisor") out.push({ level: "warning", text: `“${s.title}” is given to the advisor, who does not take event tasks.`, key: s.key })
     if (s.ownerRoleId && !roles.some(r => r.id === s.ownerRoleId)) out.push({ level: "warning", text: `“${s.title}” is given to a role that no longer exists. The first role with the right function will take it.`, key: s.key })
   }
-  if (state && !out.some(i => i.level === "blocked")) out.push(...simulationIssues(state, steps, roles))
+  if (state && !out.some(i => i.level === "blocked")) out.push(...simulationIssues(state, steps, roles, branches))
   // One issue per key and text.
   return out.filter((i, n) => out.findIndex(x => x.text === i.text) === n)
 }
@@ -215,6 +245,8 @@ export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: Demo
 export function stepsAsNodes(steps: StepTemplate[], eventId = "workflow"): Node[] {
   return steps.map(s => ({
     id: s.key, title: s.title, eventId, stepKey: s.key, phase: s.phase, fn: s.fn, ownerId: null, approverRoleId: null, consultedRoleIds: [], informedRoleIds: [],
+    placement: placementOf(s), ...(s.startPolicy ? { startPolicy: s.startPolicy } : {}), ...(s.cond ? { cond: s.cond } : {}),
+    ...(s.stepKind ? { stepKind: s.stepKind } : {}),
     dependsOn: [...(s.dependsOn ?? [])], tier: s.tier, estDays: s.estDays, anchor: s.anchor ?? null, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null,
     ruleIds: s.ruleIds ?? [], status: "unclaimed", acceptedOn: null, waitingOn: null, draftLink: null, why: s.why, source: s.source, lastUpdate: null,
   }) as Node)

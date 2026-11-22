@@ -32,8 +32,11 @@ async function away(page: Page, ms: number) {
 
 test("task markers, a field edit, a hover card and time away are exported in order, with no typed text", async ({ page }) => {
   await page.goto("/#/")
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
+  // The sample is a legacy save: explicitly enable its reminder rows before the study session starts.
+  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   const pill = page.getByTestId("demo-menu")
 
   // 1. Start task 1 from the Demo menu; the pill shows it, and the top bar still fits on a phone.
@@ -53,10 +56,12 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   await search.press("Tab")
 
   // 3. A hover card read for about a second (a tap opens it on a phone, a tap elsewhere closes it).
-  await nav(page, /^Today/)
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await nav(page, /^Reminders/)
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
-  const info = page.getByRole("region", { name: "Needs a nudge" }).getByRole("button", { name: "More information" })
+  // FB-8: the home page is the reminder centre; its hover cards are the risk marks (the "Needs a nudge" card and its ⓘ are gone).
+  // Concept F: the marks sit on the task lines of each person's email.
+  const info = page.getByTestId("rq-people").getByTestId("rq-person-task").getByTestId("forecast").first().getByRole("button")
   if (phone(page)) { await info.tap(); await page.waitForTimeout(900); await page.locator("main h1").tap() }
   else { await info.hover(); await page.waitForTimeout(900); await page.mouse.move(2, 400) }
   // ...and a mouse pass that is too short to count.
@@ -103,9 +108,10 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   expect(p(visible).awayMs as number).toBeGreaterThanOrEqual(1900)
 
   // the hover card: one entry of at least half a second, named by its trigger and the heading it sits under; the short pass is not there
-  const hovers = log.filter(e => e.type === "ui.hover" && p(e).near === "Needs a nudge")
+  // A risk mark's trigger has its own name ("At risk: …"), so no `near` heading is added.
+  const hovers = log.filter(e => e.type === "ui.hover" && /^At risk: /.test(String(p(e).name)))
   expect(hovers).toHaveLength(1)
-  expect(p(hovers[0])).toMatchObject({ route: "/", name: "More information", via: phone(page) ? "tap" : "mouse" })
+  expect(p(hovers[0])).toMatchObject({ route: "/", via: phone(page) ? "tap" : "mouse" })
   expect(p(hovers[0]).ms as number).toBeGreaterThanOrEqual(800)
   expect(log.every(e => e.type !== "ui.hover" || (p(e).ms as number) >= 500)).toBe(true)
 

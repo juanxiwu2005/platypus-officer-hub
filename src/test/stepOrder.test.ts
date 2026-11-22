@@ -122,9 +122,10 @@ describe("M3 step editor: only dependsOn, estDays and phase are written; dates c
   it("days are whole numbers from 0 to 30, and more days means an earlier latest start", () => {
     const s = base()
     const id = step(s, "flyer").id
-    expect(apply(s, [{ id, patch: { estDays: 99 } }]).nodes.find(n => n.id === id)!.estDays).toBe(30)
-    expect(apply(s, [{ id, patch: { estDays: -4 } }]).nodes.find(n => n.id === id)!.estDays).toBe(0)
-    expect(apply(s, [{ id, patch: { estDays: 2.6 } }]).nodes.find(n => n.id === id)!.estDays).toBe(3)
+    for (const invalid of [99, -4, 2.6]) {
+      expect(apply(s, [{ id, patch: { estDays: invalid } }]).nodes.find(n => n.id === id)!.estDays).toBe(step(s, "flyer").estDays)
+      expect(setDays(evNodes(s), id, invalid)).toMatchObject({ edits: [], error: expect.stringContaining("whole number") })
+    }
     const more = apply(s, setDays(evNodes(s), id, step(s, "flyer").estDays + 3).edits)
     expect(more.nodes.find(n => n.id === id)!.latestStart! < step(s, "flyer").latestStart!).toBe(true)
     expect(setDays(evNodes(s), id, step(s, "flyer").estDays).edits).toEqual([])

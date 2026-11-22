@@ -19,17 +19,17 @@ test("the member flow has its own six steps", async ({ page }) => {
   await page.goto("/#/welcome/member/reminders")
   await expect(page.getByRole("list", { name: "Walkthrough progress" }).getByRole("listitem")).toHaveCount(6)
 })
-test("the welcome and classic pages have no progress chain, and nothing from the app frame", async ({ page }) => {
-  for (const path of ["/#/welcome", "/#/welcome/classic"]) {
+test("the welcome page has no progress chain or app frame", async ({ page }) => {
+  for (const path of ["/#/welcome"]) {
     await page.goto(path)
     await expect(page.getByRole("list", { name: "Walkthrough progress" })).toHaveCount(0)
     await expect(page.getByRole("combobox", { name: "View as" })).toHaveCount(0)
   }
 })
-test("the classic setup still finishes inside the shell, and the classic join page has one main landmark", async ({ page }) => {
+test("the classic link uses the founder shell, and classic join has one main landmark", async ({ page }) => {
   await page.goto("/#/welcome/classic")
-  await page.getByRole("button", { name: "Use the sample constitution" }).click()
-  await expect(page.getByTestId("constitution-chip")).toBeVisible()
+  await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
+  await expect(page.getByRole("list", { name: "Walkthrough progress" }).getByRole("listitem")).toHaveCount(8)
   expect(await scan(page)).toEqual([])
   await page.goto("/#/welcome/classic-join?invite=nope")
   await expect(page.locator("main")).toHaveCount(1)
@@ -44,7 +44,7 @@ test("Exit on a flow screen records the step it left from", async ({ page }) => 
   await page.goto("/#/welcome/founder/goals")
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Set goals for your club")
   await page.getByRole("button", { name: "Exit" }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   const rec = await onboardingRecord(page)
   expect(rec.attempts[0].steps).toContainEqual(expect.objectContaining({ step: "founder.goals", event: "exit" }))
 })

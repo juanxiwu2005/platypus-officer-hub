@@ -1,0 +1,48 @@
+{
+  "runtimeCommit": "7b3f5fc27d3b2b5e9ffb5c3f80cb31087494dfb4",
+  "baseCommit": "ef0d0d0",
+  "unitAndComponent": {
+    "files": 23,
+    "passed": 210
+  },
+  "browser": {
+    "uniquePassed": 46,
+    "skipped": 0,
+    "newMilestonePassed": 12,
+    "existingWorkflowPassed": 34,
+    "finalSourceAffectedRerunPassed": 4,
+    "rerunsNotAddedToUnique": true,
+    "specs": [
+      "workflow-milestones.spec.ts",
+      "workflow-builder.spec.ts",
+      "workflow-compact-sequence.spec.ts",
+      "workflow-dot-editor.spec.ts"
+    ]
+  },
+  "checks": {
+    "lint": "passed",
+    "frontendTypes": "passed",
+    "netlifyTypes": "passed",
+    "productionBuild": "passed",
+    "independentCss": "passed",
+    "wordBudgets": "9 pages passed",
+    "settingsWords": 145,
+    "settingsLimit": 150,
+    "entryBytes": 498362,
+    "entryBudget": 550000,
+    "criticalSeriousAxe": 0,
+    "productAiCalls": 0,
+    "externalEmail": 0
+  },
+  "review": {
+    "issuesFound": 5,
+    "issuesFixedAndRechecked": 5
+  },
+  "deployPreview": {
+    "url": "https://deploy-preview-14--platypus-officer-hub.netlify.app",
+    "interactionVerification": "Same production build locally; fresh cloud browser redirected to existing Netlify edge-access. Access control unchanged.",
+    "state": "success",
+    "statusContext": "netlify/platypus-officer-hub/deploy-preview"
+  },
+  "screenshots": "../prototypes/workflow-milestones/manifest.json"
+}

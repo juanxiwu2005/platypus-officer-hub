@@ -2,11 +2,13 @@
 
 A guide for the researcher (Juanxi): what is in the JSON file participants download by pressing **Export my data** in Settings, what each field means, how to calculate task duration, error counts, and whether cited sources were opened, and what it **cannot** establish.
 
-- Applicable version: `formatVersion: 3` (since 2026-11-07, adding "study sessions"; see Section 1.1). The CSV script below can also read older `formatVersion: 1` and `2` files: version 1 has no interface interaction records; versions 1 and 2 have no sessions, and contain all records in that browser.
-- The file contains only fictional student-organization data and participants' prototype interactions. **Nothing uploads automatically**: a file downloads to the participant's own computer only when they press the button, then they email it to the researcher (during Zoom).
-- Code references for this document: log structure `LogEntry` in `src/data/types.ts`; interface events `src/lib/uiLog.ts`; writing and noise filtering `appendUiLog` in `src/data/store.tsx`; study sessions `src/lib/studySession.ts`; timeline `src/lib/timeline.ts`; export `buildExport`; CSV script `scripts/export-to-csv.mjs`.
-- Four **behavior-only** records were added on 2026-11-07 (task markers, leaving the page, starting field edits, hover cards); see Section 11.
-- On 2026-11-08 (P3-H), the president flow gained a **Reminders** screen (asking how reminders should reach officers), changing the flow version to `ob-4`; exported session summaries gained `reminderModeChoice`. **No new record types were added**: the choice was already recorded as `ui.change`; see Section 12.
+- Applicable version: `formatVersion: 3` (since 2026-11-07, adding "study sessions"; section 1.1). The CSV script below also reads older `formatVersion: 1` and `2`: version 1 lacks UI operation records; versions 1 and 2 lack sessions and contain all records in that browser.
+- The file contains only fictional-club data and participant actions within the prototype. **Nothing uploads automatically**: only pressing the button downloads the file to the participant's own computer; they then email it to the researcher (over Zoom).
+- Code map: `LogEntry` in `src/data/types.ts`; UI events in `src/lib/uiLog.ts`; writing/denoising in `appendUiLog` in `src/data/store.tsx`; study sessions in `src/lib/studySession.ts`; timeline in `src/lib/timeline.ts`; export in `buildExport`; CSV script `scripts/export-to-csv.mjs`.
+- Four new **behavior-only** records added on 2026-11-07 (task markers, leaving the page, starting field edits, hover cards); see section 11.
+- On 2026-11-08 (P3-H), the president flow added a **Reminders** screen (how reminders reach officers), becoming flow version `ob-4`; exported session summaries gained `reminderModeChoice`. **No new record types**: the choice already logs as `ui.change`; section 12.
+- (FB-2, branch `fix/fb-2-onboarding`, **not live yet**; the official Phase 3 site remains `ob-4`.) The president flow becomes Name → Team → First event → Reminders → Confirm → Invite, version `ob-5`. **Constitution and Goals screens are removed**: constitution moves to the Team screen's top collapsible "Fill roles from your constitution (optional)", Mission moves to Name, and goals are set only in Settings. Thus `ob-5` attempts **no longer contain** `founder.constitution` or `founder.goals` step IDs (or their enter/leave/skip events); Name goes directly to `founder.team`. Name's Continue logs `to: "/welcome/founder/team"`. Opening the constitution section and choosing sample/upload/paste produces ordinary `ui.click` records (`route: /welcome/founder/team`). FB-3 removes the post-Invite member preview and leaves one primary Confirm button in the same release. **No new record types.** Group old/new comparisons by `flowVersion`.
+- (FB-3, branch `fix/fb-3-onboarding-b`, **not live yet**; the official Phase 3 site remains `ob-4`.) Final two `ob-5` screens: Confirm's primary button becomes **Create my club** (formerly Start workspace; stored value remains `setupChoice: "start-workspace"`, still writes `completeSetup`). Remove Keep current demo; only users with an existing club see **Cancel and keep the current club** below the replacement warning, behaving like Keep current demo (`setupChoice: "keep-demo"`, `founder.confirm` records `exit`, attempt ends `exited`). Invite has one primary **Open my workspace** button (formerly Go to Today: `founder.invite` records `complete`, attempt ends `completed`, navigates to `/`). Remove "See what your officers will see", so `ob-5` attempts **no longer contain** `member.*` steps; `outcome` describes only the president flow (Exit on Invite still yields `exited`). Member preview remains available from Demo → Test Onboarding Page Invite without recording. Reminders adds a sample reminder card, three-step diagram under each option, analogy, and one sentence about behavior in Platypus; previous one-line explanations become screen-reader descriptions only. The three option titles, order, no preselection, `data-testid`, stored values, and `ui.change` records stay unchanged. First event buffers become Tight 1 / Standard 3 / Safe 5 (draft values 2 or 7 show Custom); stored `clubBufferBusinessDays` values stay unchanged. Choosing an option produces ordinary `ui.click` (e.g. button name "Safe · 5 days"). Timeline descriptions for `onboarding.setup` still say `Start workspace` / `Keep current demo` (unchanged labels for stored values). **No new record types.**
 
 ---
 
@@ -51,7 +53,7 @@ Participant actions in the prototype are recorded in occurrence order (at most t
 | `storageKey` | Browser storage name for data (development) |
 | ★ `build` | Website version: `version` (app version), `commit` (code commit), `branch`, `context` (Netlify production / deploy-preview). Local builds lacking metadata use `"unknown"`. Confirms all participants use the same version |
 | ★ `demoToday` | Prototype's "demo date" at export. Fictional date, advanceable via Demo menu; unrelated to real time |
-| ★ `onboardingFlowVersion` | Current onboarding version (`ob-4`: Reminders added after First event, before Confirm; `ob-3` lacks it). Every onboarding attempt also records its own version |
+| ★ `onboardingFlowVersion` | Current onboarding version (production currently `ob-4`: Reminders added after First event, before Confirm; `ob-3` lacks it. Branch `ob-5` omits Constitution and Goals; step ids `founder.constitution`, `founder.goals` no longer appear; see file opening). Every onboarding attempt also records its own version |
 | ◆ `sessions` | One row per research session, ordered by start time; see 3.1; `[]` when none |
 | ◆ `session` | Latest session (same as last `sessions` row), plus counts omitted from file; see 3.1; `null` when none |
 | `state` | Entire fictional club state at export (events, tasks, members, settings…). Signing key replaced by `"[omitted]"`. Since Handoff redesign (schema 21), includes `roleTerms` (who held each role: `status` `incoming` / `active` / `former`, start/end dates), members' `leftOn` (departure date after handoff), `incomingFor` (designated successor, not yet active); since schema 22 also `archivedRoles` (closed roles retained as history), roles' `formerNames` (old names), `startNotes` (new-role starting answers). All fictional demo data |
@@ -69,17 +71,17 @@ Participant actions in the prototype are recorded in occurrence order (at most t
 | --- | --- |
 | `id` | Random session ID |
 | `startedAt` / `startedAtMs` / `startedAtAz` | Session start time (when the study link opened) |
-| `attempt` | This session's onboarding-attempt ID (matches `onboarding.attempts[].id`) |
-| `outcome` | How the **whole** onboarding attempt ended: `completed` / `exited` / `null` while unfinished. `exited` does not mean "club creation failed"; see next row |
-| `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | First press of **Start workspace** or **Keep current demo** on Confirm. A value means club setup is complete; `null` if never pressed |
-| `setupChoice` | Button chosen: `start-workspace` (Start workspace, created a club) or `keep-demo` (Keep current demo, retained the sample club) |
-| `firstEventChoice` | Last forward action on First event: `planned` (planned an event) or `skipped` (Skip for now); `null` if never visited. Derived only from screen-step records, not entered content |
-| `reminderModeChoice` | Last forward answer on Reminders (2026-11-08): `auto_email` (Send automatically), `review_then_self` (I review, then I send), `review_then_auto` (I review, Platypus sends), or `skipped` (Skip for now); `null` if never advanced from that screen (also `null` in older `ob-3` files). Derivation in section 12 |
+| `attempt` | This session's walkthrough-attempt ID (matches `onboarding.attempts[].id`) |
+| `outcome` | How the **overall** walkthrough attempt ended: `completed` / `exited`, or `null` if unfinished. Note: `exited` does not mean "club setup unfinished"; see next row |
+| `setupCompletedAt` / `setupCompletedAtMs` / `setupCompletedAtAz` | First press of **Start workspace** or **Keep current demo** on Confirm. A value means club setup is complete; `null` means neither was pressed |
+| `setupChoice` | Which button: `start-workspace` (Start workspace, created their own club) or `keep-demo` (Keep current demo, retained the sample club). Values are unchanged in branch version `ob-5` (FB-3, unreleased), where labels are Create my club / Cancel and keep the current club |
+| `firstEventChoice` | Last forward navigation from First event: `planned` (planned an event) or `skipped` (pressed Skip for now); `null` if this screen was never traversed. Derived only from step records, not entered content |
+| `reminderModeChoice` | Last forward-navigation answer on Reminders (2026-11-08): `auto_email` (Send automatically), `review_then_self` (I review, then I send), `review_then_auto` (I review, Platypus sends), or `skipped` (Skip for now). `null` if there was no forward navigation from this screen (also `null` in old `ob-3` files). Derivation is in section 12 |
 | `entries` | Number of this session's log entries in the file |
-| `previousEntriesCleared` | Number only: older log entries removed from this browser at session start because they exceeded 6 hours |
-| `previousAttemptsCleared` | Older onboarding attempts removed at the same time for the same reason |
-| `olderEntriesLeftOut` (only in `session`) | Total older entries absent from this file = sum of its sessions' `previousEntriesCleared` + older entries filtered again at export (e.g. written back by another old tab still open; usually 0) |
-| `olderAttemptsLeftOut` (only in `session`) | Onboarding-attempt count calculated the same way |
+| `previousEntriesCleared` | Number only: old log entries removed from this browser at session start because they exceeded 6 hours |
+| `previousAttemptsCleared` | Old walkthrough attempts removed at the same time for the same reason |
+| `olderEntriesLeftOut` (only in `session`) | Total earlier entries excluded from this file = sum of all sessions' `previousEntriesCleared` in the file + old entries filtered again on export (for example, restored by another still-open old tab; usually 0) |
+| `olderAttemptsLeftOut` (only in `session`) | Walkthrough-attempt count computed the same way |
 
 **Example (researcher's trial on 2026-11-07):** clicked Start workspace, then opened member preview and clicked Exit there. File now has populated `setupCompletedAt`, `setupChoice: "start-workspace"`, `outcome: "exited"`. To analyze "was club setup completed?", use `setupCompletedAt`, not `outcome`.
 
@@ -102,14 +104,43 @@ Participant actions in the prototype are recorded in occurrence order (at most t
 
 | `type` | When it appears |
 | --- | --- |
-| `completeSetup` | Start workspace in the walkthrough creates the club (`payload` includes the participant's club details, truncated by existing rules) |
-| `saveProfile` | Saving a profile (also written by Done in the member-preview walkthrough) |
-| `draftChanges` / `aiAutoApply` | Ask generates changes awaiting approval / AI directly applies a small change |
-| `reviewChange` | Approving or rejecting a set of changes (`payload.decision`) |
-| `undoAuto` | Undoing a small AI change |
-| `createTasks`, `addTask`, `claimTask`, `moveTask`, `replyTask`, `updateNode`, `updateEvent` | Creating/updating tasks and events |
-| `issueOfficerGrant`, `confirmNudgeSent` | Creating a one-time task link while preparing a reminder; participant clicks "I sent this reminder" |
-| `advanceClock`, `setViewer`, `setAi`, `reset` | Demo menu: advance the date, change viewer, toggle AI, reset demo |
+| `completeSetup` | Start workspace in onboarding creates the club (`payload` contains entered club details, truncated under existing rules) |
+| `saveProfile` | Save a personal profile (also written on member-preview Done during onboarding) |
+| `draftChanges` / `aiAutoApply` | Ask generated pending changes / AI directly applied small changes |
+| `reviewChange` | Approve or reject a change set (`payload.decision`) |
+| `undoAuto` | Undo a small AI change |
+| `createTasks`, `addTask`, `claimTask`, `moveTask`, `replyTask`, `updateNode`, `updateEvent` | Create/update tasks and events |
+| `issueOfficerGrant`, `confirmNudgeSent` | Generate a one-time task link while preparing a reminder; participant clicks "I sent this reminder". **FB-8 (branch only; inapplicable until live):** `confirmNudgeSent.payload` may additionally contain optional `via`: `"president"` = president/VP opened and sent the draft themselves ("I sent this reminder"); `"platypus"` = in a club choosing "I review, Platypus sends", clicked "Approve · Platypus sends (demo)" or reminder-center "Approve all (N)" (one `confirmNudgeSent` per reminder, so approving N creates N entries). Also stored in `state.nudges[].via`. Missing in old files means `president`. The site still **sends nothing**; "Would be sent · demo" under "Send automatically" is derived and **writes no record**. No new record types |
+| `advanceClock`, `setViewer`, `setAi`, `reset` | Demo menu: advance date, switch viewing identity, toggle AI, reset demo |
+
+### 4.2 Rule-based reminder runtime addition (2026-11-16, feature branch stage 1)
+
+Optional `state.reminderRuntime` exists only after explicit `enableReminderPlan`; formatVersion and the outer version of old saves do not change. The runtime has `updates` (same-day order and actual actor), `waitingRequests` (explicit waiting target and closure reason), and `deliveries` (immutable recipient and task snapshots), all ordered through `sequence`; `activatedOn`/`sentOn` use the demo date. `enableReminderPlan` enables it; `confirmPlannedReminder` records review. Both use the existing data-action log format; no buttons were added to old pages.
+
+New automatic-mode `deliveries` persist `outcome: simulated`; manual-send confirmation is `recorded_by_sender`, which does not mean this site verified external delivery. Old `state.nudges` and `protocolLog` are not converted into new sends with unknown recipients. Corrupt or future-version runtimes are retained but disabled. Old pages have not enabled the new runtime by default; the previous section's description of FB-8 inferred records still applies to the old path. Do not combine the two versions as real email counts. Stage-two email and task-page additions are described below; stage three connecting all Details/reminder-center surfaces and a real sending service have not yet been implemented.
+
+### 4.3 Rule emails and reusable-task entry (2026-11-16, feature-branch stage two)
+
+- `state.taskAccessGrants?`: reusable local demo grants, separate from the old one-time `officerGrants`. They contain the task, current owner and term version, actual recipient, `owner`/`waiting` scope, optional waiting request, issue/expiry dates, and a local signature. The new URL is `/#/officer?access=…`; viewing does not change state, and the same entry supports Working followed by Done. It cannot be reused after reassignment, leaving office, invalidation, or reset. This is not server sign-in or cross-device authorization. A damaged grants table is retained and no further entries are appended.
+- `issueTaskAccessGrant`: log payload contains only task, recipient, scope, and optional waiting-request ID; signatures and full links are not logged. `taskAccessAction`: the log actor is the actual recipient of the valid grant; payload contains task, recipient, scope, and action kind. URL tokens are excluded from action summaries. New business actions use the existing data-action logging mechanism; general `ui.*` logging on old pages continues unchanged. This round did not change study guidance steps or the collection process.
+- `Node.instructions?` / `completionCriteria?`: manually entered specific requirements and completion criteria; importance continues to use `why`. Human requirements take precedence as facts; AI must not invent missing information.
+- `Nudge.message?` / `ReminderDelivery.message?`: a complete rule-based email snapshot revalidated against current facts, recipient, mode, and authorization; includes subject, body, unique task link, planned email address, channel, generation date, grant ID, word count, and `source: rules`. Snapshots are generated when records are saved; old records are not backfilled. Users still select the actual destination externally for manual drafts; this site does not verify it. Action logs contain only snapshot summaries such as recipient/source/word count, without copying body or links. This records approved demo content, not an external delivery receipt.
+- `waitingRequests[].response? / respondedOn? / responseBy?`: Acknowledge / Update provided by an explicitly designated waiting recipient; also appends the actual actor and ordering to runtime.updates, with `ownerReply: false`. Waiting recipients cannot change the original task's four statuses; responding does not overwrite its original owner/status. The initial request is not duplicated; in the 2026-11-18 increment, Acknowledge means a promise only and still has an expected-date check; only provided stops helper follow-up. Canceling a wait, changing the recipient, reassigning, and completion retain existing undo constraints.
+- **Four reminder corrections on 2026-11-18: ** `waitingRequests[].expectedOn?` is the manually entered date saved when the helper first promises. If omitted by older clients, rules default to demo today+2 calendar days; old ack records are assessed from respondedOn+2, without backfilling historical facts. A promise and provision each send the original owner one `info` in-app notification, with IDs `waiting-promised:<requestId>:<ownerId>` and `waiting-provided:…`; stalled-wait notifications use `waiting-needs-action:<requestId>:<unanswered|promised>:<ownerId>`. These are not external delivery receipts.
+- `ReminderDelivery.reason` adds `no_reply` (at most one ordinary no-response follow-up outside the default three stages) and `waiting_followup` (unanswered waiting requests/overdue promises). Fields, actual sentOn, and immutable snapshots continue using existing delivery records; candidateId distinguishes the two helper-follow-up stages. Do not use candidateId alone to decide whether a rescheduled milestone has been sent. Old duplicate sends are not deleted; every message still counts toward the recipient's daily/seven-day totals, while the per-task milestone allowance counts distinct stages already sent. No new study guidance steps, action types, or export formatVersion were added, and outer schema 23 is not reset. Full rules are in the [handoff](feedback-fix/REMINDER_FOLLOW_THROUGH.md).
+
+The new single-email editor makes no AI requests; the old `?token=` entry remains compatible. Stage 2 did not enable new plans by default, unify old batch records, connect an email backend, or change the study flow version. Full permission and acceptance boundaries: `feedback-fix/REMINDER_STAGE2_CONTRACT.md`.
+
+### 4.4 Unified rule emails and new plans (2026-11-16, feature-branch stage three)
+
+- New organizations default to `reminderRuntime.version: 2`; legacy data without runtime/v1 is explicitly upgraded via `upgradeReminderPlan`, preserving original settings, updates, requests, and send history. `mailRequiredAfter` is 0 when enabling, or the original sequence when upgrading; subsequent new deliveries require a complete message; no legacy records are fabricated. Unknown/corrupt values are retained and disabled, without reverting to legacy sending. This stage did not change the outer schema/export formatVersion.
+- `reviewLegacyReminder` records leadership's review of current task assignments, removing that task's ambiguity block on future reminders and adding an audit update with `ownerReply:false`. Legacy nudge/protocol recipients, bodies, and recorded dates are unchanged; review is not a member reply.
+- `recordReminderBatch` uses the existing business-action log; payload contains only via, candidateIds, count, without copying email, signatures, links, or workspace keys. via=automatic uses actor `system:reminders`, without impersonating the current viewer or president. Preparation failure leaves no grant; saving rechecks current settings/object/date/ownership/quota per item and counts only this operation's new delivery IDs.
+- Single, batch, and automatic demos save the same complete rule-email snapshot; automatic sends are no longer inferred from Today. Automatic failure text and busy are current-page state, not delivery receipts; refresh deduplicates against persistent records and handles only still-valid candidates.
+- Replies derive from actual ownerReply in the same term or a response to the same waitingRequest, ordered by sequence within a day; No reply starts from an actually saved delivery. History displays saved recipient/task snapshots; deleting/reassigning tasks does not attribute history to a new owner. Legacy records with unknown recipients are excluded from new-version no-reply counts. Manual records remain recorded_by_sender and platform records simulated; there are no external delivery receipts.
+- Retry browser saving retries only the current business snapshot/log save, without submitting local form drafts or creating send records; if another tab has new business data, pause and retain both copies, offering no overwrite retry. Settings, enabling, batch, and automatic actions each require their own explicit submission/retry.
+
+The old one-time `?token=` entry remains compatible; new emails continue to use reusable `?access=`. Study guidance steps and collection mechanisms are unchanged, and new business actions use existing logging; see `feedback-fix/REMINDER_STAGE3_HANDOFF.md`.
 
 ## 5. UI actions (`type` starts with `ui.`)
 
@@ -150,16 +181,16 @@ Participant actions in the prototype are recorded in occurrence order (at most t
 
 | Field | Meaning |
 | --- | --- |
-| `answer` | Main response form: `rule-answer` (rule answer with citations), `plan-form` (event creation form), `task-form` (task creation form), `change-card` (change card awaiting approval), `change-applied` (small change applied), `event-date-form`, `task-list`, `reminder-card`, `plan-check` (new-event plan check), `text` (plain text), `error` (error, `applied: false`), `timeout` (AI second pass did not return in time) |
-| `cards` | Types of all cards in the response, in order |
-| `citations` | Cited rule/policy IDs, e.g. `["R06"]` (in both rule answers and plan checks) |
+| `answer` | Primary response form: `rule-answer` (rules answer with citations), `plan-form` (event creation form), `task-form` (task creation form), `change-card` (change card awaiting approval), `change-applied` (small change already applied), `event-date-form`, `task-list`, `reminder-card`, `plan-check` (new-event plan check), `text` (plain text), `error` (error, `applied: false`), `timeout` (AI's second pass did not return in time), `stopped` (FB-1, 2026-11-15: the participant pressed Ask's **Stop** while waiting; the response comes from the browser locally—chat uses a local fallback answer, forms stay as they are, and Plan check uses the rule engine's own check; `fallback` is `true`, `source` states "stopped"; refinement also has `refine: true`, and Plan check has `trigger: "plan-check"`. **Skip AI line** in the reminder editor does not produce `ui.answer`, only a generic click record) |
+| `cards` | All card kinds in this answer, in order |
+| `citations` | IDs of cited rules/policies, e.g. `["R06"]` (in both rules answers and plan checks) |
 | `inScope` | Whether the rule question falls within the rule library's scope |
-| `source` | Small label below the answer identifying the responder, e.g. `Matched by keywords · AI unavailable`, `AI checked policy sources · …` |
-| `fallback` | `true` = no AI used (AI off, unavailable, or timed out; local rules or templates answered) |
-| `ms` | Milliseconds from question to displayed answer |
-| `changeSetId` / `autoSetId` | Change-set ID generated by this response, matchable to later `reviewChange`, `undoAuto` |
-| `refine` | `true` = AI's "second look" (local form first, then AI fills fields when it returns) |
-| `trigger` | `plan-check` = automatic plan check after approval of a new event, rather than a participant question |
+| `source` | Small label beneath the answer identifying who answered, e.g. `Matched by keywords · AI unavailable`, `AI checked policy sources · …` |
+| `fallback` | `true` = AI was not used (AI disabled, service unavailable, or timeout; local rules or templates answer) |
+| `ms` | Milliseconds from asking until the answer appears |
+| `changeSetId` / `autoSetId` | Change-group ID generated by this answer; can be matched to subsequent `reviewChange` and `undoAuto` |
+| `refine` | `true` = AI's "second look" (local form appears first, then AI fills it in on return) |
+| `trigger` | `plan-check` = an automatic plan check after approving a new event, rather than a participant question |
 
 ### 5.4 `applied` and `before` for interface actions
 
@@ -179,11 +210,11 @@ Participant actions in the prototype are recorded in occurrence order (at most t
 
 This separate record has existed since v1.5 (`src/lib/onboardingRecord.ts`); it records behavior only, not entered contents:
 
-- `attempts[]`: one entry per onboarding run (or "Explore the sample club" on welcome): `id`, `entry` (`start` walkthrough / `explore` sample directly), `flowVersion`, `replay` (replay number), `startedAt`, `finishedAt`, `outcome` (`completed` finished / `exited` left midway / `explored`).
-  - Since formatVersion 3: `sessionId` (owning session), `setupCompletedAt` (Start workspace or Keep current demo time, milliseconds), `setupChoice` (`start-workspace` / `keep-demo`).
-  - `outcome` still describes the **whole attempt** (including the post-setup member preview). `exited` may mean leaving before club setup or pressing Exit in the member preview afterward; distinguish using `setupCompletedAt`.
-- `steps[]`: each screen's `enter`, `leave`, `back`, `skip`, `complete`, `exit` (Save & exit), each with timestamp `at`.
-- Clicks and navigation on onboarding pages **also** appear in interaction logs (`route` starts `/welcome/`), allowing timeline comparison.
+- `attempts[]`: one entry per walkthrough (or choosing "Explore the sample club" on Welcome): `id`, `entry` (`start` walkthrough / `explore` sample directly), `flowVersion`, `replay` (replay number), `startedAt`, `finishedAt`, `outcome` (`completed` / `exited` midway / `explored`).
+  - From formatVersion 3: `sessionId` (session it belongs to), `setupCompletedAt` (time Start workspace or Keep current demo was pressed, milliseconds), `setupChoice` (`start-workspace` / `keep-demo`).
+  - `outcome` still describes how the **whole attempt** (including post-setup member preview) ended. `exited` can mean leaving before club creation or pressing Exit in the member preview afterward; `setupCompletedAt` distinguishes them. (Branch `ob-5`, FB-3, not deployed: no member preview, so post-setup `exited` can only mean Exit on Invite.)
+- `steps[]`: `enter`, `leave`, `back`, `skip`, `complete`, `exit` (Save & exit) per screen, each with timestamp `at`. Step IDs follow flow version: `ob-4` has `founder.name`, `founder.constitution`, `founder.goals`, `founder.team`, `founder.first-event`, `founder.reminders`, `founder.confirm`, `founder.invite`; `ob-5` omits `founder.constitution` and `founder.goals` (constitution is in Team, Mission in Name, goals outside onboarding).
+- Clicks/navigation on onboarding screens now **also** appear in the interaction log (`route` starts with `/welcome/`), allowing timeline comparison.
 
 ## 7. Timeline (`timeline[]`, the basis of CSV)
 
@@ -377,13 +408,37 @@ The president flow adds "How should reminders go out?" after First event and bef
 | 2 | I review, then I send | Platypus drafts it. You check and send it. | `review_then_self` |
 | 3 | I review, Platypus sends | You check the draft. Platypus sends it. | `review_then_auto` |
 
-- Top line: "Platypus knows each task's latest start date." Bottom line: "Demo: no email is ever sent." (IRB: no reminders are sent during testing). **Initially nothing is selected**; select one to enable Continue, or choose Skip for now.
-- **No website behavior changes.** Whatever the choice, the site sends no emails; reminders still mean “open a draft for a human to send.” After selection, the reminder editor (Private reminder) gains a read-only line such as "Your club chose: I review, Platypus sends (demo: nothing is sent)." Skipping omits it.
-- **Storage:** Start workspace saves it in `state.org.settings.reminderMode`; skipping (or using old classic setup) leaves this field **absent**. Keep current demo does not change club data, so the answer exists only in the record.
-- **No new record types**; these were already recorded:
-  1. **Selection (by label), and every change of mind:** each option click records `ui.change`: `role: "radio"`, `name` = option title (e.g., `I review, Platypus sends`), `checked: true`, `group: "How should reminders go out?"`, `testid` = `reminder-mode-<value>`, `route: "/welcome/founder/reminders"`. Changing one's mind produces consecutive `ui.change` entries on the same screen; example timeline text: `Ticked radio "Send automatically" in "How should reminders go out?" on /welcome/founder/reminders`.
-  2. **Time on this screen:** time from `enter` to `leave` (or `back`) for `founder.reminders` in `onboarding.attempts[].steps`; returning starts a new pair.
-  3. **Skipping:** `skip` immediately followed by `leave` on that screen.
-  4. Continue is `ui.click` (`name: "Continue"`, `to: "/welcome/founder/confirm"`).
-- **Deriving `reminderModeChoice` (session summary, section 3.1):** consider only steps before Start workspace / Keep current demo. Find this screen's last `leave`: if preceded by `skip` → `skipped`; otherwise take **the last checked `ui.change` on this screen in this session before leaving**, mapping `testid` to value. If absent from logs (e.g., dropped at the 2000 cap), the latest session can fall back to `state.org.settings.reminderMode` (only for Start workspace); otherwise `null`. Refresh preserves the draft choice and the pre-refresh `ui.change` remains in the log, so it has no effect.
-- Code: screen `src/onboarding/founder/ReminderMode.tsx`, copy `src/onboarding/copy.ts` (`founder.reminders`), values/order `src/data/reminderMode.ts`, derivation `reminderModeChoice` in `src/lib/onboardingRecord.ts`, timeline `src/lib/timeline.ts`, tests `src/test/onboardingReminderMode.test.ts`, `e2e/p3h-reminder-mode.spec.ts`.
+- At the top: "Platypus knows each task's latest start date." Below: "Demo: no email is ever sent." (IRB: no reminders are sent during testing). **No option is initially selected**; Continue requires a selection; use Skip for now to avoid choosing.
+- **This changes no website behavior.** Whatever the choice, the site sends no email; reminders still "open a draft for a person to send." After selection, Private reminder gains a read-only line, e.g. "Your club chose: I review, Platypus sends (demo: nothing is sent)." No line if skipped.
+- **Storage:** Start workspace saves `state.org.settings.reminderMode`; when skipped (or using the old classic setup), the field **does not exist**. Keep current demo changes no club data, so the answer exists only in logs.
+- **No new log types**; these were already recorded:
+  1. **Choice (by label), and every change of mind:** Each option click records `ui.change`: `role: "radio"`, `name` = option title (e.g. `I review, Platypus sends`), `checked: true`, `group: "How should reminders go out?"`, `testid` = `reminder-mode-<value>`, `route: "/welcome/founder/reminders"`. Changes of mind appear as consecutive `ui.change` entries on that screen; timeline description e.g. `Ticked radio "Send automatically" in "How should reminders go out?" on /welcome/founder/reminders`.
+  2. **Time on screen:** Difference between `enter` and `leave` (or `back`) for `founder.reminders` in `onboarding.attempts[].steps`; returning and reentering creates another pair.
+  3. **Skip:** `skip` immediately followed by `leave` on the same screen.
+  4. Continue records `ui.click` (`name: "Continue"`, `to: "/welcome/founder/confirm"`).
+- **Calculating `reminderModeChoice` (session summary, section 3.1):** Consider only steps before Start workspace / Keep current demo. Find this screen's last `leave`: if preceded by `skip` → `skipped`; otherwise take **the last checked `ui.change` before leaving, within this session and on this screen**, mapping `testid` to the value. If missing from logs (e.g. dropped by the 2000-entry cap), the latest session may use `state.org.settings.reminderMode` (only if Start workspace was pressed); if neither exists, `null`. Refresh retains the draft selection and the prior `ui.change` remains in logs, so it does not affect this.
+- Code: screen `src/onboarding/founder/ReminderMode.tsx`, copy `src/onboarding/copy.ts` (`founder.reminders`), values/order `src/data/reminderMode.ts`, inference `reminderModeChoice` in `src/lib/onboardingRecord.ts`, timeline `src/lib/timeline.ts`, tests `src/test/onboardingReminderMode.test.ts`, `e2e/p3h-reminder-mode.spec.ts`.
+
+## Actual task Details and generic submission (2026-11-17 addition)
+
+This increment affects actual Nodes only, not Settings StepTemplate/EventWorkflow; the outer schema remains 23.
+
+| Field/action | Meaning and boundaries |
+| --- | --- |
+| `Node.externalLinks[]` | Manually edited service-entry labels and http/https URLs; unset uses known entries, explicitly empty arrays are not refilled; does not write back to templates |
+| `Node.taskWork.version/revision` | General submission format supporting version 1 embedded files and version 2 file references, plus incrementing content revision; saving also verifies owner term; unknown/corrupt versions are not automatically cleared |
+| `taskWork.drafts[]` | Legacy per-author body/attachment IDs/business-day drafts remain readable; new automatic drafts use a separate IndexedDB journal and do not count as completion or owner replies |
+| `taskWork.submissions[]` | Append-only submitted body, author, saved business day, original owner term, and attachment IDs; corrections retain earlier submissions; other members can view published results on the node |
+| `taskWork.files[]` | Deduplicated file metadata and blobKey; raw bytes in platypus.task-work/files; legacy dataUrl remains readable, complete JSON exports include bytes, downloads use octet-stream, no automatic AI transmission. At most 3 current attachments, 2MB each, 5MB total; retain historical files from old revisions |
+| `platypus.task-work/drafts` | Isolated by workspace hash, node, author, ownerId/ownerVersion; body and file references autosave in one transaction; revision provides cross-tab CAS; report saved only after transaction completion, task switches do not cancel it; contains no directly usable link-signing key |
+| `taskDrafts` (complete export) | Autosaved private unsubmitted drafts with actual file bytes; downloadExport collects asynchronously and does not emit a falsely complete copy when files are missing or saving fails; restoreTaskWorkArchive stages files before returning a small business snapshot; no new import UI |
+| `saveTaskWork` | Saves results and completion in one persistent write; finance nodes save materials only, with completion still determined by Event Budget. Business logs record only body length and attachment metadata; original UI input logs retain site-wide rules |
+| Edit | Separate panel saves task definition with its original fingerprint and preserves member submissions; Cancel writes nothing. Legacy draftLink remains openable without posing as new submitted content |
+| `Node.targetDates` | Option D's independent version 1 date-change log: revision and append-only changes. Each item contains id/actorId/ownerId/ownerVersion/on/previousDate/date/message/notifiedPersonIds/affectedNodeIds; retained in original business exports; unknown/corrupt logs cannot be overwritten; outer schema remains schema23 |
+| `updateTaskTarget` | Directly changes the club target and merges in-app notifications for selected member IDs; expectedTask checks date/owner term/status/log revision. Permissions come from the current viewer or issued owner grant, never from an informed person's grant or the browser's president identity; target, record, and notifications persist together; original task status/results unchanged |
+| Legacy extension data (next two rows are historical compatibility) | New D UI shows no approval buttons and creates no ExtensionRequest; old pending requests do not auto-apply; saving a new target cancels old pending requests for that node and retains other history. Existing reviewExtension remains for compatibility, not as a new D-flow entry |
+| `ExtensionRequest.requestedBy?` | New requests record the actual actor separately from original ownerId; old requests without it show the original owner. reason is an optional Message; draftLink may be empty for new requests, old links remain readable; recipients are current approver and current leaders, saved with the request |
+| `reviewExtension` | Current approver-role holder or president/VP may act; continue checking departure, reassignment, expiry, and deadline version; acknowledge only after persistence succeeds; approval changes only clubDeadlineOverride, never the official school deadline |
+| Reopen Done / Undo mark done | `replyTask` or owner-grant update to todo/working/help/waiting clears completedOn and the task's current contribution, preserving taskWork results/history. Undo verifies workspace, author permissions, original owner term, and this submission revision before restoring original status; after refresh, reopen through the status menu; finance Done remains controlled by Event Budget |
+
+All dates still come from the original rule engine or demo business clock; operation times use the original log's `at`. Current browser storage is not server-based cross-device synchronization; a waiting-person grant cannot submit the original task. See `feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md`.

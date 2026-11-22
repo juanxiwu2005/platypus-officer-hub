@@ -5,8 +5,7 @@ import { expect, test, type Page } from "@playwright/test"
 test.skip(({ isMobile }) => isMobile, "uses the docked panel and the side navigation")
 async function fresh(page: Page, path = "/") {
   await page.setViewportSize({ width: 1440, height: 900 })
-  await page.goto("/#/")
-  await page.evaluate(() => window.localStorage.clear())
+  await page.addInitScript(() => window.localStorage.clear())
   await page.goto(`/#${path}`)
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
 }
@@ -15,10 +14,12 @@ test.describe("with motion", () => {
   test.use({ reducedMotion: "no-preference" })
 
   test("style: a stop marked just-done grows its line and pops its dot (and a plain stop does neither)", async ({ page }) => {
-    await fresh(page)
+    await fresh(page, "/handoff")   // FB-8: the Events strip with its chains left the home page; the Handoff page has a chain
     const r = await page.evaluate(async () => {
       // Any finished stop that has a line leading to it (the first stop of a chain has none).
-      const li = [...document.querySelectorAll(".event-row .chain li")].find(x => x.classList.contains("done") && !x.matches(":first-child"))!
+      const li = [...document.querySelectorAll("main .chain li")].find(x => !x.matches(":first-child"))!
+      // The sample season has no finished stop yet: make this one look exactly as Chain draws a finished stop.
+      li.className = "past done"; li.querySelector(".dot")!.className = "dot done"
       const plain = { line: getComputedStyle(li, "::before").animationName, dot: getComputedStyle(li.querySelector(".dot")!).animationName }
       li.classList.add("just-done")
       const frames: { s: number; o: number }[] = []
@@ -36,11 +37,12 @@ test.describe("with motion", () => {
   })
 
   test("a ring moves to its new value instead of jumping", async ({ page }) => {
-    await fresh(page)
+    await fresh(page, "/handoff")   // FB-8: the goal rings left the home page; the Handoff relay cards have rings
     const r = await page.evaluate(async () => {
-      const arc = document.querySelector(".ring .ring-arc") as SVGCircleElement
-      const before = arc.getAttribute("stroke-dasharray")!
-      const [a, b] = before.split(" ").map(Number)
+      const arc = document.querySelector("main .ring .ring-arc") as SVGCircleElement
+      let [a, b] = arc.getAttribute("stroke-dasharray")!.split(" ").map(Number)
+      // A relay card at 0 of 7 has an empty arc: fill most of it first and let that settle, so there is a distance to move.
+      if (a < 4) { a = Math.round(b * 0.8); arc.setAttribute("stroke-dasharray", `${a} ${b}`); await new Promise(r => setTimeout(r, 900)) }
       arc.setAttribute("stroke-dasharray", `${a / 2} ${b}`)
       const seen: number[] = []
       const t0 = performance.now()
@@ -59,7 +61,9 @@ test.describe("with motion", () => {
     const before = await badge.innerText()
     // The president's own To do card (the sample club's Not claimed cards come first and need claiming before Done, P3-A).
     await page.getByRole("region", { name: "To do", exact: true }).getByTestId("board-card").first().getByRole("button").first().click()
-    await page.getByTestId("task-detail").getByRole("button", { name: "Done", exact: true }).click()
+    // The universal Task Details complete a task by submitting its result (docs/feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md).
+    await page.getByTestId("task-detail").getByRole("textbox", { name: "Details", exact: true }).fill("Finished.")
+    await page.getByTestId("task-detail").getByRole("button", { name: "Submit & mark done", exact: true }).click()
     await expect.poll(async () => (await page.getByTestId("nav-open-tasks").innerText().catch(() => "")) !== before).toBe(true)
     await expect(page.getByTestId("nav-open-tasks").or(page.locator(".sidenav a .count"))).toBeVisible()
   })
@@ -79,9 +83,11 @@ test("an at-risk dot on a progress chain carries an exclamation mark (the small 
 test.describe("Reduce Motion", () => {
   test.use({ reducedMotion: "reduce" })
   test("no movement: no animation on the line, dot or number", async ({ page }) => {
-    await fresh(page)
+    await fresh(page, "/handoff")
     const r = await page.evaluate(() => {
-      const li = [...document.querySelectorAll(".event-row .chain li")].find(x => x.classList.contains("done") && !x.matches(":first-child"))!
+      const li = [...document.querySelectorAll("main .chain li")].find(x => !x.matches(":first-child"))!
+      // The sample season has no finished stop yet: make this one look exactly as Chain draws a finished stop.
+      li.className = "past done"; li.querySelector(".dot")!.className = "dot done"
       li.classList.add("just-done")
       return { line: getComputedStyle(li, "::before").animationName, dot: getComputedStyle(li.querySelector(".dot")!).animationName }
     })

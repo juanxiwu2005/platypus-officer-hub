@@ -1,0 +1,13 @@
+/* FB-1: the visible AI wait (elapsed seconds, Stop). Tokens only: see docs/DESIGN_TOKENS.md and AGENTS.md 7.1.
+   It builds on the existing .ai-wait card (styles.css, DX-17 rise-in) and the existing .spin spinner, which already holds
+   still under Reduce Motion. The seconds use tabular figures so the card does not jiggle as they count up. */
+.fb-ai-wait {
+  align-self: stretch;
+  max-width: none;
+  gap: var(--s4);
+}
+.fb-ai-wait .spin { flex: none; }
+.fb-ai-wait-text { flex: 1; min-width: 0; }
+.fb-ai-wait-time { font-variant-numeric: tabular-nums; }
+.fb-ai-wait .btn { flex: none; }
+.nudge-panel .fb-ai-wait { margin-block: var(--s4); }

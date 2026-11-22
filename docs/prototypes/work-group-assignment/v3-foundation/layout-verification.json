@@ -1,0 +1,38 @@
+[
+  {
+    "width": 320,
+    "tab": "People",
+    "overflow": false,
+    "root": 304
+  },
+  {
+    "width": 320,
+    "tab": "Work groups",
+    "overflow": false,
+    "root": 304
+  },
+  {
+    "width": 736,
+    "tab": "People",
+    "overflow": false,
+    "root": 720
+  },
+  {
+    "width": 736,
+    "tab": "Work groups",
+    "overflow": false,
+    "root": 720
+  },
+  {
+    "width": 1024,
+    "tab": "People",
+    "overflow": false,
+    "root": 1008
+  },
+  {
+    "width": 1024,
+    "tab": "Work groups",
+    "overflow": false,
+    "root": 1008
+  }
+]

@@ -156,10 +156,14 @@ describe("tasks are open to everyone (Juanxi, 2026-10-27)", () => {
     const undone = reducer(next, { type: "undoAuto", id: "t-test" })
     expect(undone.nodes.some(x => x.id === "t-test:0")).toBe(false)
   })
-  it("anyone can give a standalone task to someone else; it enters To do and they are told", () => {
+  // FB-5 (PLAN 8.2, the M2b rule in AGENTS.md rule 3): a task given to someone else waits in Not claimed until they
+  // accept it. It used to enter To do at once, which skipped the claim handshake the notice asks for.
+  it("anyone can give a standalone task to someone else; it waits in Not claimed until they accept, and they are told", () => {
     const next = make(as("sam"), [{ title: "Print badges", ownerId: "jordan" }])
-    expect(next.nodes.find(x => x.id === "t-test:0")).toMatchObject({ ownerId: "jordan", status: "accepted" })
+    expect(next.nodes.find(x => x.id === "t-test:0")).toMatchObject({ ownerId: "jordan", status: "unclaimed", acceptedOn: null })
     expect(next.notifications.some(n => n.recipientId === "jordan" && /Sam gave you a new task/.test(n.text))).toBe(true)
+    expect(reducer(next, { type: "claimTask", nodeId: "t-test:0" }).nodes.find(x => x.id === "t-test:0")!.status).toBe("unclaimed") // Sam cannot claim it for Jordan
+    expect(reducer(as("jordan", next), { type: "claimTask", nodeId: "t-test:0" }).nodes.find(x => x.id === "t-test:0")).toMatchObject({ ownerId: "jordan", status: "accepted" })
   })
   it("several owners make one task each; an officer's task with no owner is their own", () => {
     expect(make(base, [{ title: "A", ownerId: "maya" }, { title: "A", ownerId: "jordan" }]).nodes.filter(n => n.id.startsWith("t-test:")).map(n => n.ownerId)).toEqual(["maya", "jordan"])

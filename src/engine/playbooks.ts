@@ -1,4 +1,8 @@
-import type { Anchor, Event, Node, Phase, Role, RoleFunction, StepCond, StepTemplate } from "../data/types"
+import type { Anchor, Event, Node, Phase, Role, RoleFunction, StepCond, StepTemplate, WorkflowBranch } from "../data/types"
+import { branchConditions, branchOf, isWorkflowCondition, placementOf, resolveBranches } from "./workflowBranches"
+import { CORE_EVENT_STEP_KEYS, isCoreStep } from "./workflowPolicy"
+import { EVENT_CHECKLIST } from "../data/eventChecklist"
+export { CORE_EVENT_STEP_KEYS } from "./workflowPolicy"
 
 /**
  * Event playbook (plan §4, §11 "Playbook"). Built from SEO's own workflows:
@@ -26,29 +30,43 @@ export const CONDITIONS: Record<StepCond, (e: Event) => boolean> = {
   content: e => e.checks?.content === true, rsvp: e => e.checks?.rsvp === true, large: e => e.headcount >= 250 || ["safety", "outdoor", "alcohol", "drone", "travel"].some(k => e.checks?.[k as keyof NonNullable<Event["checks"]>] === true),
 }
 
+const checklistConditions = new Set<StepCond>(EVENT_CHECKLIST.map(item => item.key))
+/** New selections mirror the event form; legacy branch and step conditions retain their rule semantics. */
+export function branchMatchesEvent(event: Event, branch?: WorkflowBranch): boolean {
+  const explicitSelections = branch?.conditions !== undefined
+  return branchConditions(branch).every(condition => {
+    if (!isWorkflowCondition(condition)) return false
+    if (!explicitSelections) return CONDITIONS[condition](event)
+    if (condition === "food") return event.food !== "none"
+    if (condition === "speaker") return event.speaker
+    if (event.checks !== undefined && checklistConditions.has(condition)) return event.checks[condition as keyof NonNullable<Event["checks"]>] === true
+    return CONDITIONS[condition](event)
+  })
+}
+
 /** The steps new events are built from: the club's own workflow if setup made one, else the standard one. */
 export const orgSteps = (s: { org: { eventWorkflow?: { steps: StepTemplate[] } } }): StepTemplate[] => s.org.eventWorkflow?.steps ?? EVENT_STEPS
 
 export const EVENT_STEPS: StepTemplate[] = [
   // Blue: every event gets this complete lifecycle. Names are intentionally short for the flow canvas.
-  { key: "plan", title: "Event Plan", fn: "programs", phase: "plan", estDays: 1, tier: "light", anchor: target(60, "calendar", "Event scope target"), why: "Define the purpose, operating scope and backup plan before routing work.", source: "PLAN-01" },
-  { key: "backup", title: "Back-up Plan", fn: "programs", phase: "plan", estDays: 1, tier: "light", dependsOn: ["plan"], why: "Document a workable fallback for venue, program, weather, or attendance changes.", source: "PLAN-01" },
-  { key: "venuechoice", title: "Candidate Venue", fn: "programs", phase: "plan", estDays: 1, tier: "light", dependsOn: ["backup"], why: "Choose a candidate venue with capacity, access and setup needs.", source: "VENUE-01" },
-  { key: "registry", title: "Event Registry (SDC & Special Event)", fn: "programs", phase: "prepare", anchor: rule("R01", 14, "calendar"), estDays: 3, tier: "medium", dependsOn: ["venuechoice"], ruleIds: ["R01"], why: "Events lead records the Event Registry submission and confirmation.", source: "R01" },
-  { key: "venue", title: "Book Room & Layout", fn: "programs", phase: "prepare", anchor: target(30, "calendar", "Venue planning target"), estDays: 1, tier: "light", dependsOn: ["registry"], why: "Request and confirm the permitted room, site, layout and capacity.", source: "VENUE-01" },
-  { key: "moderator", title: "Moderator Lead Staffing", fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: ["venue"], why: "Confirm the moderator, host, and required event staffing.", source: "Organization standard" },
-  { key: "materials", title: "Event Materials PPT Decorations", fn: "programs", phase: "prepare", estDays: 2, tier: "medium", dependsOn: ["moderator"], why: "Prepare the run-of-show materials, signage, slides and event items.", source: "Organization standard" },
-  { key: "checkin", title: "Check-in Forms Photo Release Liability", fn: "programs", phase: "run", anchor: target(1, "business", "Check-in materials ready"), estDays: 1, tier: "light", dependsOn: ["finalcheck"], why: "Prepare photo release, liability, and check-in forms for event day.", source: "Organization standard" },
-  { key: "headcount", title: "Headcount", fn: "programs", phase: "close", anchor: target(-1, "calendar", "Post-event count"), estDays: 1, tier: "light", dependsOn: ["checkin"], why: "Record the final attendance count after event day.", source: "Organization standard" },
-  { key: "thankyou", title: "Thank You Note", fn: "secretary", phase: "close", anchor: target(-1, "business", "Within one business day after the event"), estDays: 1, tier: "light", dependsOn: ["headcount"], why: "Send a concise thank-you to attendees, partners and contributors.", source: "Organization standard" },
-  { key: "feedback", title: "Feedback", fn: "vice_president", phase: "close", anchor: target(-3, "business", "Within three business days after the event"), estDays: 1, tier: "light", dependsOn: ["thankyou"], why: "Collect feedback and record a short reusable retrospective.", source: "CLOSE-03" },
-  { key: "postmarketing", title: "Post Marketing", fn: "marketing", phase: "close", anchor: target(-2, "business", "Post-event update"), estDays: 1, tier: "light", dependsOn: ["headcount"], why: "Publish an approved post-event recap or outcome update.", source: "Organization standard" },
-  { key: "photoBackup", title: "Photo Backup", fn: "marketing", phase: "close", anchor: target(-4, "business", "Cloud backup"), estDays: 1, tier: "light", dependsOn: ["postmarketing"], why: "Save and back up approved event photos or media in the organization record.", source: "Organization standard" },
-  { key: "invoice", title: "Invoice", fn: "finance", phase: "close", anchor: target(-2, "business", "Invoice closeout"), estDays: 1, tier: "light", dependsOn: ["headcount"], why: "Collect and verify invoices after the event.", source: "CLOSE-02" },
-  { key: "attendance", title: "Attendance Submit", fn: "finance", phase: "close", anchor: target(-3, "business", "Business meal form"), estDays: 1, tier: "light", dependsOn: ["invoice"], why: "Submit attendance and the required business meal form.", source: "CLOSE-02" },
-  { key: "spending", title: "Paid Reimbursed", fn: "finance", phase: "close", anchor: target(-5, "business", "Payment closeout"), estDays: 1, tier: "light", dependsOn: ["attendance"], why: "Confirm payment or reimbursement from the respective funding source.", source: "CLOSE-02" },
-  { key: "financeRecord", title: "Finance Record", fn: "finance", phase: "close", anchor: target(-7, "business", "Financial closeout target"), estDays: 1, tier: "light", dependsOn: ["spending"], why: "Record all event spending and income for tax-ready records.", source: "CLOSE-02" },
-  { key: "documentation", title: "Documentation", fn: "secretary", phase: "close", anchor: target(-14, "calendar", "Archive within two weeks"), estDays: 1, tier: "light", dependsOn: ["feedback"], why: "Preserve approved materials, decisions and reusable event records.", source: "CLOSE-03" },
+  { key: "plan", title: "Event Plan", fn: "programs", phase: "plan", estDays: 5, timing: { startDays: 65, dueDays: 60 }, tier: "light", anchor: target(60, "calendar", "Club timing: 60 days before the event"), why: "Define the purpose, operating scope and backup plan before routing work.", source: "PLAN-01" },
+  { key: "backup", title: "Back-up Plan", fn: "programs", phase: "plan", anchor: target(60, "calendar", "Club timing: 60 days before the event"), estDays: 5, timing: { startDays: 65, dueDays: 60 }, tier: "light", dependsOn: ["plan"], why: "Document a workable fallback for venue, program, weather, or attendance changes.", source: "PLAN-01" },
+  { key: "venuechoice", title: "Candidate Venue", fn: "programs", phase: "plan", anchor: target(60, "calendar", "Club timing: 60 days before the event"), estDays: 5, timing: { startDays: 65, dueDays: 60 }, tier: "light", dependsOn: ["backup"], why: "Choose a candidate venue with capacity, access and setup needs.", source: "VENUE-01" },
+  { key: "registry", title: "Event Registry (SDC & Special Event)", fn: "programs", phase: "prepare", anchor: rule("R01", 14, "calendar"), estDays: 5, timing: { startDays: 65, dueDays: 60 }, tier: "medium", dependsOn: ["venuechoice"], ruleIds: ["R01"], why: "Events lead records the Event Registry submission and confirmation.", source: "R01" },
+  { key: "venue", title: "Book Room & Layout", fn: "programs", phase: "prepare", anchor: target(60, "calendar", "Club timing: 60 days before the event"), estDays: 5, timing: { startDays: 65, dueDays: 60 }, tier: "light", dependsOn: ["registry"], why: "Request and confirm the permitted room, site, layout and capacity.", source: "VENUE-01" },
+  { key: "moderator", title: "Moderator Lead Staffing", fn: "programs", phase: "prepare", anchor: target(25, "calendar", "Club timing: 25 days before the event"), estDays: 10, timing: { startDays: 60, dueDays: 25 }, tier: "light", dependsOn: ["venue"], why: "Confirm the moderator, host, and required event staffing.", source: "Organization standard" },
+  { key: "materials", title: "Event Materials PPT Decorations", fn: "programs", phase: "prepare", anchor: target(15, "calendar", "Club timing: 15 days before the event"), estDays: 5, timing: { startDays: 60, dueDays: 15 }, tier: "medium", dependsOn: ["moderator"], why: "Prepare the run-of-show materials, signage, slides and event items.", source: "Organization standard" },
+  { key: "checkin", title: "Check-in Forms Photo Release Liability", fn: "programs", phase: "run", anchor: target(1, "business", "Check-in materials ready"), estDays: 1, timing: { startDays: 5, dueDays: 0 }, tier: "light", dependsOn: ["finalcheck"], why: "Prepare photo release, liability, and check-in forms for event day.", source: "Organization standard" },
+  { key: "headcount", title: "Headcount", fn: "programs", phase: "close", anchor: target(0, "calendar", "Club timing: on the event day"), estDays: 1, timing: { startDays: 0, dueDays: 0 }, tier: "light", dependsOn: ["checkin"], why: "Record the final attendance count after event day.", source: "Organization standard" },
+  { key: "thankyou", title: "Thank You Note", fn: "secretary", phase: "close", anchor: target(-1, "calendar", "Club timing: 1 day after the event"), estDays: 1, timing: { startDays: 0, dueDays: -1 }, tier: "light", dependsOn: ["headcount"], why: "Send a concise thank-you to attendees, partners and contributors.", source: "Organization standard" },
+  { key: "feedback", title: "Feedback", fn: "vice_president", phase: "close", anchor: target(-1, "calendar", "Club timing: 1 day after the event"), estDays: 1, timing: { startDays: 0, dueDays: -1 }, tier: "light", why: "Collect feedback and record a short reusable retrospective.", source: "CLOSE-03" },
+  { key: "postmarketing", title: "Post Marketing", fn: "marketing", phase: "close", anchor: target(-1, "calendar", "Club timing: 1 day after the event"), estDays: 1, timing: { startDays: 0, dueDays: -1 }, tier: "light", why: "Publish an approved post-event recap or outcome update.", source: "Organization standard" },
+  { key: "photoBackup", title: "Photo Backup", fn: "marketing", phase: "close", anchor: target(-7, "calendar", "Club timing: 7 days after the event"), estDays: 1, timing: { startDays: 0, dueDays: -7 }, tier: "light", why: "Save and back up approved event photos or media in the organization record.", source: "Organization standard" },
+  { key: "invoice", title: "Invoice", fn: "finance", phase: "close", anchor: target(-7, "calendar", "Club timing: 7 days after the event"), estDays: 1, timing: { startDays: 0, dueDays: -7 }, tier: "light", dependsOn: ["headcount"], why: "Collect and verify invoices after the event.", source: "CLOSE-02" },
+  { key: "attendance", title: "Attendance Submit", fn: "finance", phase: "close", anchor: target(-7, "calendar", "Club timing: 7 days after the event"), estDays: 1, timing: { startDays: 0, dueDays: -7 }, tier: "light", why: "Submit attendance and the required business meal form.", source: "CLOSE-02" },
+  { key: "spending", title: "Paid Reimbursed", fn: "finance", phase: "close", anchor: target(-5, "business", "Club timing: 5 business days after the event"), estDays: 1, timing: { startDays: 0, dueDays: -5, unit: "business" }, tier: "light", dependsOn: ["attendance"], why: "Confirm payment or reimbursement from the respective funding source.", source: "CLOSE-02" },
+  { key: "financeRecord", title: "Finance Record", fn: "finance", phase: "close", anchor: target(-7, "business", "Club timing: 7 business days after the event"), estDays: 1, timing: { startDays: 0, dueDays: -7, unit: "business" }, tier: "light", dependsOn: ["spending"], why: "Record all event spending and income for tax-ready records.", source: "CLOSE-02" },
+  { key: "documentation", title: "Documentation", fn: "secretary", phase: "close", anchor: target(-14, "calendar", "Club timing: 14 days after the event"), estDays: 1, timing: { startDays: 0, dueDays: -14 }, tier: "light", dependsOn: ["feedback"], why: "Preserve approved materials, decisions and reusable event records.", source: "CLOSE-03" },
 
   // Yellow: only selected situation-based routes create these tasks.
   { key: "partner", title: "Partner Meeting", fn: "programs", phase: "plan", estDays: 1, tier: "light", cond: "externalGuest", why: "Align scope, roles and commitments with the outside party.", source: "SPEND-02" },
@@ -56,13 +74,13 @@ export const EVENT_STEPS: StepTemplate[] = [
   { key: "travel", title: "Partner Travel Plan", fn: "programs", phase: "prepare", estDays: 2, tier: "medium", dependsOn: ["speakerPacket"], cond: "externalGuest", why: "Document speaker or partner travel, transport and emergency coverage.", source: "TRAVEL-01" },
   { key: "partnerReview", title: "Partner Speaker Review", fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: ["travel"], cond: "externalGuest", why: "Review partner or speaker requirements before final delivery.", source: "Organization standard" },
   { key: "parking", title: "Parking Validation", fn: "programs", phase: "prepare", estDays: 1, tier: "light", dependsOn: ["partnerReview"], cond: "externalGuest", why: "Validate guest parking, loading, shuttle or transport needs.", source: "VENUE-02" },
-  { key: "budget", title: "Budget", fn: "finance", phase: "money", estDays: 2, tier: "medium", why: "Build the budget and identify the funding source.", source: "FUND-02" },
-  { key: "foodCompliance", title: "Food Exception Permit", fn: "finance", phase: "prepare", anchor: rule("R06", 14, "calendar"), estDays: 3, tier: "medium", dependsOn: ["budget"], ruleIds: ["R06"], cond: "externalFood", why: "Resolve the food exception, permit or evidence needed before submitting a food budget.", source: "R06" },
-  { key: "quotes", title: "Quote Gather", fn: "finance", phase: "money", estDays: 3, tier: "medium", dependsOn: ["foodCompliance"], why: "Collect dated provider, speaker or vendor quotes for the budget route.", source: "FUND-04" },
-  { key: "budgetRequest", title: "Budget Request", fn: "finance", phase: "money", anchor: target(42, "calendar", "Funding planning floor"), estDays: 7, tier: "heavy", dependsOn: ["quotes", "foodCompliance"], why: "Submit the budget, public purpose and supporting quote package.", source: "FUND-02 · FUND-04" },
-  { key: "budgetApproval", title: "Budget Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["budgetRequest"], why: "Record the funding decision before any approval-dependent commitment.", source: "FUND-02" },
-  { key: "purchaseRequest", title: "Purchase Request", fn: "finance", phase: "money", anchor: rule("R09", 10, "business"), estDays: 1, tier: "light", dependsOn: ["budgetApproval"], ruleIds: ["R09"], why: "Route the approved purchase through the applicable purchasing process.", source: "R09" },
-  { key: "purchaseApproval", title: "Purchase Approval", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["purchaseRequest"], ruleIds: ["R09"], why: "Record purchase approval before ordering or reimbursement.", source: "R09" },
+  { key: "budget", title: "Budget", fn: "finance", phase: "money", anchor: target(55, "calendar", "Club timing: 55 days before the event"), estDays: 3, timing: { startDays: 60, dueDays: 55 }, tier: "medium", dependsOn: ["plan"], why: "Build the budget and identify the funding source.", source: "FUND-02" },
+  { key: "foodCompliance", title: "Food Exception Permit", fn: "finance", phase: "prepare", anchor: rule("R06", 14, "calendar"), estDays: 3, timing: { startDays: 60, dueDays: 55 }, tier: "medium", dependsOn: ["budget"], ruleIds: ["R06"], cond: "externalFood", why: "Resolve the food exception, permit or evidence needed before submitting a food budget.", source: "R06" },
+  { key: "quotes", title: "Quote Gather", fn: "finance", phase: "money", anchor: target(50, "calendar", "Club timing: 50 days before the event"), estDays: 10, timing: { startDays: 60, dueDays: 50 }, tier: "medium", dependsOn: ["foodCompliance"], why: "Collect dated provider, speaker or vendor quotes for the budget route.", source: "FUND-04" },
+  { key: "budgetRequest", title: "Budget Request", fn: "finance", phase: "money", anchor: target(49, "calendar", "Club timing: 49 days before the event"), estDays: 1, timing: { startDays: 60, dueDays: 49 }, tier: "heavy", dependsOn: ["quotes", "foodCompliance"], why: "Submit the budget, public purpose and supporting quote package.", source: "FUND-02 · FUND-04" },
+  { key: "budgetApproval", title: "Budget Approval", fn: "finance", phase: "money", anchor: target(18, "calendar", "Club timing: 18 days before the event"), estDays: 1, timing: { startDays: 30, dueDays: 18 }, tier: "light", dependsOn: ["budgetRequest"], why: "Record the funding decision before any approval-dependent commitment.", source: "FUND-02" },
+  { key: "purchaseRequest", title: "Purchase Request", fn: "finance", phase: "money", anchor: rule("R09", 10, "business"), estDays: 1, timing: { startDays: 30, dueDays: 18 }, tier: "light", dependsOn: ["budgetApproval"], ruleIds: ["R09"], why: "Route the approved purchase through the applicable purchasing process.", source: "R09" },
+  { key: "purchaseApproval", title: "Purchase Approval", fn: "finance", phase: "money", estDays: 1, timing: { startDays: 30, dueDays: 10 }, tier: "light", dependsOn: ["purchaseRequest"], ruleIds: ["R09"], why: "Record purchase approval before ordering or reimbursement.", source: "R09" },
   { key: "advisor", title: "Advisor Involved", fn: "programs", phase: "prepare", estDays: 1, tier: "light", cond: "advisor", why: "Bring in the advisor when the event needs their participation or signature.", source: "PLAN-03" },
   { key: "access", title: "Accessibility Check", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["advisor"], cond: "access", why: "Confirm disability accommodations, accessible route, seating and accessible communications.", source: "VENUE-03" },
   { key: "security", title: "Security", fn: "programs", phase: "prepare", estDays: 4, tier: "heavy", dependsOn: ["access"], cond: "safety", why: "Identify security and elevated-risk needs before preparing the event plan.", source: "RISK-01" },
@@ -71,14 +89,14 @@ export const EVENT_STEPS: StepTemplate[] = [
   { key: "alcohol", title: "Alcohol Permit", fn: "programs", phase: "prepare", anchor: rule("SPECIAL-03", 15, "calendar"), estDays: 15, tier: "heavy", dependsOn: ["permit"], ruleIds: ["SPECIAL-03"], cond: "alcohol", why: "Resolve alcohol permit, venue and insurance conditions before service.", source: "SPECIAL-03" },
   { key: "drone", title: "Drone Approval", fn: "programs", phase: "prepare", anchor: rule("SPECIAL-06", 15, "calendar"), estDays: 7, tier: "medium", dependsOn: ["permit"], ruleIds: ["SPECIAL-06"], cond: "drone", why: "Obtain the required unmanned aircraft approval before operating a drone.", source: "SPECIAL-06" },
   { key: "schoolApproval", title: "School Admin Approval", fn: "programs", phase: "prepare", estDays: 3, tier: "medium", dependsOn: ["alcohol", "drone"], cond: "schoolApproval", why: "Confirm the director, dean or college approval route for a 250+ event.", source: "PLAN-03" },
-  { key: "marketingNeeds", title: "Marketing Needs", fn: "marketing", phase: "marketing", estDays: 1, tier: "light", why: "Identify audience, channels, timeline, and promotion needs.", source: "Organization standard" },
-  { key: "contentCreation", title: "Content Creation", fn: "marketing", phase: "marketing", estDays: 2, tier: "medium", dependsOn: ["marketingNeeds"], why: "Create approved copy, graphics, and campaign assets.", source: "Organization standard" },
-  { key: "promotionItems", title: "Promotion Items", fn: "marketing", phase: "marketing", estDays: 1, tier: "light", dependsOn: ["contentCreation"], why: "Prepare promotional items, giveaways, or printed materials.", source: "Organization standard" },
+  { key: "marketingNeeds", title: "Marketing Needs", fn: "marketing", phase: "marketing", anchor: target(58, "calendar", "Club timing: 58 days before the event"), estDays: 2, timing: { startDays: 60, dueDays: 58 }, tier: "light", why: "Identify audience, channels, timeline, and promotion needs.", source: "Organization standard" },
+  { key: "contentCreation", title: "Content Creation", fn: "marketing", phase: "marketing", anchor: target(48, "calendar", "Club timing: 48 days before the event"), estDays: 10, timing: { startDays: 58, dueDays: 48 }, tier: "medium", dependsOn: ["marketingNeeds"], why: "Create approved copy, graphics, and campaign assets.", source: "Organization standard" },
+  { key: "promotionItems", title: "Promotion Items", fn: "marketing", phase: "marketing", anchor: target(38, "calendar", "Club timing: 38 days before the event"), estDays: 10, timing: { startDays: 48, dueDays: 38 }, tier: "light", dependsOn: ["contentCreation"], why: "Prepare promotional items, giveaways, or printed materials.", source: "Organization standard" },
   { key: "rsvp", title: "Open RSVPs", fn: "marketing", phase: "marketing", anchor: target(21, "calendar", "RSVPs open three weeks ahead"), estDays: 1, tier: "light", dependsOn: ["promotionItems"], cond: "rsvp", why: "Open registration and collect attendance intent.", source: "Organization standard" },
-  { key: "content", title: "Content Distribution", fn: "marketing", phase: "marketing", estDays: 2, tier: "medium", dependsOn: ["rsvp"], why: "Distribute approved campaign content through selected channels.", source: "Organization standard" },
-  { key: "reminder", title: "Event Reminder", fn: "marketing", phase: "marketing", estDays: 1, tier: "light", dependsOn: ["content"], why: "Send the final reminder to registered and intended attendees.", source: "Organization standard" },
-  { key: "orderPlaced", title: "Order Placed", fn: "finance", phase: "money", estDays: 1, tier: "light", dependsOn: ["purchaseApproval"], ruleIds: ["R09"], why: "Place approved orders and record vendor commitments.", source: "R09" },
-  { key: "finalcheck", title: "Full Check Alert Changes", fn: "president", phase: "run", anchor: target(14, "calendar", "Final readiness review"), estDays: 1, tier: "light", dependsOn: ["materials", "parking", "reminder", "orderPlaced", "schoolApproval"], why: "Check every active route, alert stakeholders to changes, and confirm readiness.", source: "CLOSE-01" },
+  { key: "content", title: "Content Distribution", fn: "marketing", phase: "marketing", anchor: target(10, "calendar", "Club timing: 10 days before the event"), estDays: 7, timing: { startDays: 17, dueDays: 10 }, tier: "medium", dependsOn: ["rsvp"], why: "Distribute approved campaign content through selected channels.", source: "Organization standard" },
+  { key: "reminder", title: "Event Reminder", fn: "marketing", phase: "marketing", anchor: target(3, "calendar", "Club timing: 3 days before the event"), estDays: 1, timing: { startDays: 4, dueDays: 3 }, tier: "light", dependsOn: ["content"], why: "Send the final reminder to registered and intended attendees.", source: "Organization standard" },
+  { key: "orderPlaced", title: "Order Placed", fn: "finance", phase: "money", estDays: 2, timing: { startDays: 30, dueDays: 10 }, tier: "light", dependsOn: ["purchaseApproval"], ruleIds: ["R09"], why: "Place approved orders and record vendor commitments.", source: "R09" },
+  { key: "finalcheck", title: "Full Check Alert Changes", fn: "president", phase: "run", anchor: target(1, "calendar", "Club timing: 1 day before the event"), estDays: 5, timing: { startDays: 14, dueDays: 1 }, tier: "light", dependsOn: ["materials", "parking", "orderPlaced", "schoolApproval"], why: "Check every active route, alert stakeholders to changes, and confirm readiness.", source: "CLOSE-01" },
 ]
 
 /* Legacy reference retained in Git history; this list is the active v1.0 standard. */
@@ -222,14 +240,8 @@ export function roleFor(roles: Role[], fn: RoleFunction): Role | undefined {
 }
 
 /** These are never situation-based. Checklist conditions may add routes but may never remove them. */
-export const CORE_EVENT_STEP_KEYS = [
-  "plan", "backup", "venuechoice", "registry", "venue", "moderator", "materials", "checkin", "headcount", "thankyou", "feedback", "postmarketing", "photoBackup", "invoice", "attendance", "spending", "financeRecord", "documentation",
-  "budget", "quotes", "budgetRequest", "budgetApproval", "purchaseRequest", "purchaseApproval", "orderPlaced",
-  "marketingNeeds", "contentCreation", "promotionItems", "content", "reminder", "finalcheck",
-] as const
-
 /** The steps that apply to this event, with links to skipped steps passed through to their own links. */
-export function stepsFor(e: Event, steps?: StepTemplate[]): StepTemplate[] {
+export function stepsFor(e: Event, steps?: StepTemplate[], branches?: readonly WorkflowBranch[], options: { requireCore?: boolean; restoreMissingCore?: boolean } = {}): StepTemplate[] {
   // Records saved before the structured v2 intake retain their former graph until store migration adds checks.
   // New and migrated activities always carry `checks` (including an empty object) and use the approved standard.
   const selectedSteps = steps ?? (e.checks === undefined ? LEGACY_EVENT_STEPS : EVENT_STEPS)
@@ -237,12 +249,15 @@ export function stepsFor(e: Event, steps?: StepTemplate[]): StepTemplate[] {
   // lifecycle or purchasing step disappear through a condition or omission.
   const standard = new Map(EVENT_STEPS.map(step => [step.key, step]))
   const selected = new Map(selectedSteps.map(step => [step.key, step]))
-  if (selectedSteps === EVENT_STEPS || e.checks !== undefined) for (const key of CORE_EVENT_STEP_KEYS) {
-    const step = selected.get(key) ?? standard.get(key)
+  const requiresCore = options.requireCore ?? (selectedSteps === EVENT_STEPS || e.checks !== undefined)
+  // A saved template version is the source of truth: a core step its author removed stays removed (restoreMissingCore: false).
+  if (requiresCore) for (const key of CORE_EVENT_STEP_KEYS) {
+    const step = selected.get(key) ?? (options.restoreMissingCore === false ? undefined : standard.get(key))
     if (step) selected.set(key, { ...step, cond: undefined })
   }
   const normalizedSteps = [...selected.values()]
-  const included = new Map(normalizedSteps.filter(s => !s.cond || CONDITIONS[s.cond](e)).map(s => [s.key, s]))
+  const definitions = resolveBranches(normalizedSteps, branches)
+  const included = new Map(normalizedSteps.filter(s => (requiresCore && isCoreStep(s)) || (branchMatchesEvent(e, branchOf(s, definitions)) && (s.cond === undefined || (isWorkflowCondition(s.cond) && CONDITIONS[s.cond](e))))).map(s => [s.key, s]))
   const all = new Map(normalizedSteps.map(s => [s.key, s]))
   const resolve = (key: string, seen = new Set<string>()): string[] => {
     if (included.has(key)) return [key]
@@ -271,13 +286,58 @@ export function stepsFor(e: Event, steps?: StepTemplate[]): StepTemplate[] {
   })
 }
 
+/**
+ * Each standard step's effort and club timing before FB-6, by key. A club workflow saved before FB-6 has no `timing`; when a new
+ * event is built from it, a standard step that still has this effort or anchor was not changed by the club, so it takes the
+ * calibrated value. A value the club chose itself is kept.
+ */
+const PRE_FB6: Record<string, [number, Anchor | null]> = {
+  plan: [1, target(60, "calendar", "Event scope target")], backup: [1, null], venuechoice: [1, null], registry: [3, rule("R01", 14, "calendar")],
+  venue: [1, target(30, "calendar", "Venue planning target")], moderator: [1, null], materials: [2, null], checkin: [1, target(1, "business", "Check-in materials ready")],
+  headcount: [1, target(-1, "calendar", "Post-event count")], thankyou: [1, target(-1, "business", "Within one business day after the event")],
+  feedback: [1, target(-3, "business", "Within three business days after the event")], postmarketing: [1, target(-2, "business", "Post-event update")],
+  photoBackup: [1, target(-4, "business", "Cloud backup")], invoice: [1, target(-2, "business", "Invoice closeout")], attendance: [1, target(-3, "business", "Business meal form")],
+  spending: [1, target(-5, "business", "Payment closeout")], financeRecord: [1, target(-7, "business", "Financial closeout target")], documentation: [1, target(-14, "calendar", "Archive within two weeks")],
+  budget: [2, null], foodCompliance: [3, rule("R06", 14, "calendar")], quotes: [3, null], budgetRequest: [7, target(42, "calendar", "Funding planning floor")],
+  budgetApproval: [1, null], purchaseRequest: [1, rule("R09", 10, "business")], purchaseApproval: [1, null], marketingNeeds: [1, null], contentCreation: [2, null],
+  promotionItems: [1, null], content: [2, null], reminder: [1, null], orderPlaced: [1, null], finalcheck: [1, target(14, "calendar", "Final readiness review")],
+}
+const anchorKey = (a: Anchor | null | undefined) => (a ? JSON.stringify(Object.entries(a).sort(([x], [y]) => x.localeCompare(y))) : "none")
+const sameAnchor = (a: Anchor | null | undefined, b: Anchor | null | undefined) => anchorKey(a) === anchorKey(b)
+
+/** The club changed a calibrated step's timing (its target): calibrate from the club's number, keeping the standard window length; no target left means "date it from the steps around it". */
+function clubTiming(s: StepTemplate, std: StepTemplate): StepTemplate {
+  const { timing: _drop, ...rest } = s
+  void _drop
+  const t = std.timing!
+  if (s.anchor?.kind !== "target" || t.dueDays <= 0 || s.anchor.days <= 0) return rest
+  return { ...rest, timing: { startDays: s.anchor.days + (t.startDays - t.dueDays), dueDays: s.anchor.days, ...(s.anchor.unit === "business" ? { unit: "business" as const } : {}) } }
+}
+
+/**
+ * The step as the rule engine should date it (FB-6). Standard steps carry their calibrated timing. A club's own steps are left alone.
+ * A standard step from a club workflow saved before FB-6 (no `timing`) takes the calibrated timing and effort, unless the club had changed them.
+ */
+export function calibratedStep(s: StepTemplate): StepTemplate {
+  const std = s.custom ? undefined : EVENT_STEPS.find(x => x.key === s.key)
+  if (!std?.timing) return s
+  if (s.timing) return sameAnchor(s.anchor, std.anchor) ? s : clubTiming(s, std)
+  const pre = PRE_FB6[s.key]
+  const estDays = !s.startPolicy && pre && s.estDays === pre[0] ? std.estDays : s.estDays
+  if (sameAnchor(s.anchor, std.anchor) || (pre && sameAnchor(s.anchor, pre[1]))) return { ...s, estDays, anchor: std.anchor, timing: { ...std.timing } }
+  return clubTiming({ ...s, estDays }, std)
+}
+
 /** Turn the playbook into nodes for one event. A normal workflow step is assigned
  * straight to its accountable officer; only work with no owner is unclaimed. */
-export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[] } = {}): Node[] {
+export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?: number; steps?: StepTemplate[]; branches?: readonly WorkflowBranch[]; mode?: "standard" | "custom"; explicitOwnersOnly?: boolean; restoreMissingCore?: boolean } = {}): Node[] {
   const president = roleFor(roles, "president")
   const perHead = opts.fundingAmount && e.headcount ? opts.fundingAmount / e.headcount : 0
-  return stepsFor(e, opts.steps).map(s => {
-    const role = (s.ownerRoleId ? roles.find(r => r.id === s.ownerRoleId) : undefined) ?? roleFor(roles, s.fn)
+  // The legacy graph (pre-v1.0 records without checks) is never calibrated; the standard and club workflows are (FB-6).
+  const calibrate = opts.mode !== "custom" && (!!opts.steps || e.checks !== undefined)
+  return stepsFor(e, opts.steps, opts.branches ?? e.workflowBranches, { ...(opts.mode === "custom" ? { requireCore: false } : {}), ...(opts.restoreMissingCore === false ? { restoreMissingCore: false } : {}) }).map(step => calibrate ? calibratedStep(step) : step).map(s => {
+    const explicitOwner = s.ownerRoleId ? roles.find(r => r.id === s.ownerRoleId) : undefined
+    const role = opts.explicitOwnersOnly ? explicitOwner : explicitOwner ?? roleFor(roles, s.fn)
     const ruleIds = [...(s.ruleIds ?? [])]
     if (s.key === "closeout" && perHead >= 25) ruleIds.push("R12")
     return {
@@ -286,6 +346,10 @@ export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?:
       eventId: e.id,
       stepKey: s.key,
       phase: s.phase,
+      placement: placementOf(s),
+      ...(s.stepKind ? { stepKind: s.stepKind } : {}),
+      ...(s.startPolicy ? { startPolicy: s.startPolicy } : {}),
+      ...(s.cond ? { cond: s.cond } : {}),
       fn: s.fn,
       ownerId: role?.holderId ?? null,
       approverRoleId: role?.id === president?.id ? null : president?.id ?? null,
@@ -295,6 +359,7 @@ export function buildEventNodes(e: Event, roles: Role[], opts: { fundingAmount?:
       tier: s.tier,
       estDays: s.estDays,
       anchor: s.anchor ?? null,
+      ...(s.timing ? { timing: { ...s.timing } } : {}),
       clubDeadlineOverride: null,
       officialDeadline: null,
       clubDeadline: null,

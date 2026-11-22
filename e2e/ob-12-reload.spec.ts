@@ -145,7 +145,7 @@ test("after a finished attempt, the study link starts a fresh draft", async ({ p
   await passReminders(page)
   await page.getByRole("button", { name: c.founder.confirm.start }).click()
   await page.getByRole("button", { name: c.founder.invite.today }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
 
   await page.goto("/#/start")
   await expect(page.getByLabel(c.founder.name.field)).toHaveValue("")
@@ -182,7 +182,7 @@ test("Exit ends the attempt and deletes the saved draft: the next start is fresh
   await page.getByLabel(c.founder.name.field).fill("Gone Club")
   await expect.poll(async () => (await saved(page))?.club.name).toBe("Gone Club")
   await page.getByRole("button", { name: c.exit }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   await expect.poll(() => saved(page)).toBeNull()
   await page.goBack()                                                      // even the browser's Back does not bring it back
   await expect(page.getByLabel(c.founder.name.field)).toHaveValue("")

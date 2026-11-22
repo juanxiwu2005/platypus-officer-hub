@@ -1,0 +1,15 @@
+{
+  "version": "v2-onboarding-options",
+  "status": "Awaiting user selection; not connected to the website",
+  "baselineFrozenSha256": "c306ca4ac21e5822b1102caae8eb4e0f02c163d5f077c7ac2664a8b5bc5934d2",
+  "scope": "Only onboarding. Event creation and task handoff screens remain frozen in v1.",
+  "nextStepRequires": "Approved; proceed to the next step",
+  "sourceTemplateCommit": "e87b19c95e6eece07a3a695fdc0438de3f92fb67",
+  "files": {
+    "people-options.html": "e8518c74c2fe1a6790a9d01962d2fb1014dc67067623fb0f920c58b7b20d01db",
+    "workflow-options.html": "9e15c9269d455e7b710022725315ceb273d29fd862eff67a3c98fa9a346e4e0b",
+    "workflow-data.json": "c290a358acfea45108d3c2e885b5ea10a7997a44fae04c9df122c07409dc5f7b",
+    "verification.json": "61a8eb0079f44347513868d665a7c86d9b069160746d21f1da6157652eff902b",
+    "README.md": "ff627716e3fccbc14999c911ae5e6ccb0a8712093de65477b3319a0b3d50adbb"
+  }
+}

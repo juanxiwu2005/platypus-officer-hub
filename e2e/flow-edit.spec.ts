@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { closeRail, resetDemo, viewAs } from "./helpers"
 
-// Editing the event's flow right on the chart: drag a step onto a spot between two steps, double-click a step or a line.
+// Editing uses node actions and drag targets. Connecting lines have no click action.
 test.beforeEach(async ({ page }, info) => {
   if (info.project.name !== "mobile") await page.setViewportSize({ width: 1700, height: 1000 })   // wide enough for the horizontal chart next to the side panel
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -66,8 +66,10 @@ test("double-click a step: add one after it (its details open on the right), nam
   await menu.getByRole("button", { name: "Add a step after this one" }).click()
   await expect(page.getByTestId("task-detail")).toContainText("New step")                                  // details open for the new step
   const panel = page.getByTestId("task-detail")
-  await panel.getByText("Edit", { exact: true }).click()
-  await panel.getByLabel("Task name").fill("Photo release check"); await panel.getByLabel("Task name").press("Tab")
+  await panel.getByRole("button", { name: "Edit", exact: true }).click()
+  const editor = page.getByRole("dialog", { name: "Edit task", exact: true })
+  await editor.getByLabel("Task name", { exact: true }).fill("Photo release check")
+  await editor.getByRole("button", { name: "Save changes", exact: true }).click()
   await expect(page.getByTestId("flow-chart")).toContainText("Photo release")
   const created = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { title: string }) => n.title === "Photo release check"))
   expect(created).toMatchObject({ eventId: "e-night", dependsOn: ["e-night:budget"], ownerId: null, estDays: 1 })
@@ -90,18 +92,22 @@ test("Reset discards flow edits and their Undo history", async ({ page }) => {
   await act(page, "budget")
   await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step after this one" }).click()
   await expect(page.getByTestId("task-detail").getByRole("heading", { name: "New step", exact: true })).toBeVisible()
+  const added = new URLSearchParams(page.url().split("?")[1]).get("node")
+  expect(added).toBeTruthy()
   await closeRail(page)
   await expect(page.getByTestId("flow-undo")).toBeEnabled()
-  await resetDemo(page)
+  await resetDemo(page)   // the step selected on this page is gone: Plan stays open instead of calling it a bad task link
   await expect(page.getByTestId("task-detail")).toHaveCount(0)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(38)
   await expect(page.getByTestId("flow-undo")).toBeDisabled()
   await page.reload()
   await closeRail(page)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(38)
+  await page.goto(`/#/events?event=e-night&node=${added}`)   // a link to a step that no longer exists is still reported
+  await expect(page.getByRole("heading", { name: "Check your task link", exact: true })).toBeVisible()
 })
 
-test("steps ASU rules need, and finished steps, cannot be deleted; the menu says why", async ({ page }) => {
+test("steps ASU rules need, and required organization steps, cannot be deleted; the menu says why", async ({ page }) => {
   await page.getByTestId("flow-edit-toggle").click()
   await act(page, "purchaseRequest")
   const menu = page.getByTestId("flow-menu")
@@ -109,31 +115,40 @@ test("steps ASU rules need, and finished steps, cannot be deleted; the menu says
   await expect(menu).toContainText("Cannot delete: ASU rule")
   await page.keyboard.press("Escape"); await expect(menu).toHaveCount(0)
   await act(page, "plan")
-  await expect(page.getByTestId("flow-menu")).toContainText("already done")
+  await expect(page.getByTestId("flow-menu").getByRole("button", { name: "Delete this step" })).toBeDisabled()
+  await expect(page.getByTestId("flow-menu")).toContainText("required organization event workflow")
 })
 
-test("double-click a line: cut the link, or join two steps that are not linked", async ({ page }, info) => {
-  test.skip(info.project.name === "mobile", "the line's position is computed for the wide layout")
+test("line double-clicks and double-taps leave the graph unchanged, with hover disabled", async ({ page }, info) => {
   await page.getByTestId("flow-edit-toggle").click()
-  let m = await lineMid(page, "plan", "backup")
-  await page.mouse.dblclick(m.x, m.y)
-  await expect(page.getByTestId("flow-menu")).toContainText("Remove the link")
-  await page.getByTestId("flow-menu").getByRole("button", { name: /Remove the link/ }).click()
-  expect(await deps(page, "backup")).toEqual([])
-  await expect(page.getByTestId("flow-edit-msg")).toContainText("no longer waits")
-  await page.getByTestId("flow-undo").click()
-  expect(await deps(page, "backup")).toEqual(["e-night:plan"])
-  // Two neighbours on a line that do not really wait for each other: the menu says so and offers to join them.
-  m = await lineMid(page, "foodCompliance", "quotes")
-  await page.mouse.dblclick(m.x, m.y)
-  await expect(page.getByTestId("flow-menu")).toContainText("Remove the link")
-  await page.getByTestId("flow-menu").getByRole("button", { name: /Remove the link/ }).click()
-  expect(await deps(page, "quotes")).toEqual([])
-  // A step can also be added right on a line.
-  m = await lineMid(page, "budget", "foodCompliance")
-  await page.mouse.dblclick(m.x, m.y)
-  await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step here" }).click()
-  await expect(page.getByTestId("task-detail")).toContainText("New step")
+  const before = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
+  for (const [from, to] of [["plan", "backup"], ["foodCompliance", "quotes"], ["finalcheck", "checkin"], ["headcount", "invoice"]]) {
+    const hit = page.getByTestId(`flow-line-e-night:${from}-e-night:${to}`)
+    await hit.evaluate(el => el.scrollIntoView({ block: "center", inline: "center" }))
+    await page.mouse.move(0, 0)
+    const paint = () => hit.evaluate(el => {
+      const overlay = getComputedStyle(el.nextElementSibling!)
+      return [overlay.stroke, overlay.strokeWidth]
+    })
+    const plain = await paint()
+    const m = await lineMid(page, from, to)
+    expect(m.x).toBeGreaterThan(0); expect(m.x).toBeLessThan(page.viewportSize()!.width)
+    expect(m.y).toBeGreaterThan(0); expect(m.y).toBeLessThan(page.viewportSize()!.height)
+    await page.mouse.move(m.x, m.y)
+    expect(await paint()).toEqual(plain)
+    await expect(hit).toHaveCSS("cursor", "default")
+    if (info.project.name === "mobile") { await page.touchscreen.tap(m.x, m.y); await page.touchscreen.tap(m.x, m.y) }
+    else await page.mouse.dblclick(m.x, m.y)
+    await expect(page.getByTestId("flow-menu")).toHaveCount(0)
+    expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(before)
+  }
+  await expect(page.getByTestId("flow-undo")).toBeDisabled()
+  await dot(page, "budget").scrollIntoViewIfNeeded()
+  await act(page, "budget")
+  const menu = page.getByTestId("flow-menu")
+  await expect(menu.getByRole("button", { name: "Add a step before this one" })).toBeEnabled()
+  await expect(menu.getByRole("button", { name: "Add a step after this one" })).toBeEnabled()
+  await expect(menu.getByText("Stop waiting for…")).toHaveCount(0)
 })
 
 test("keyboard: Alt + arrow moves a step one place; the menu key opens the actions", async ({ page }) => {

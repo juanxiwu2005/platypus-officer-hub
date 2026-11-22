@@ -1,4 +1,4 @@
-import { ApiError, callApi } from "./api"
+import { aiWaitMs, ApiError, callApi } from "./api"
 
 /** Asking again cannot help when the server refused the request outright (signed out, not allowed, not found, bad request). */
 const permanent = (e: unknown) => e instanceof ApiError && [400, 401, 403, 404].includes(e.status)
@@ -6,10 +6,10 @@ const signedOut = (e: unknown) => e instanceof ApiError && (e.status === 401 || 
 
 /**
  * One short AI request, tried up to three times with a pause between, for as long as `current()` says the answer is still wanted.
- * A request here may last only 30 seconds and the AI answers one at a time, so one slow or busy moment should not lose the whole job.
+ * Each try waits as long as the server's AI budget plus 4 s (aiWaitMs(); FB-1), and the AI answers one at a time, so one slow or busy moment should not lose the whole job.
  * A refusal such as "401 signed out" is not retried: it stops at once with that error.
  */
-export async function callRetry<T>(path: string, body: unknown, current: () => boolean = () => true, tries = 3, timeoutMs = 45_000): Promise<T> {
+export async function callRetry<T>(path: string, body: unknown, current: () => boolean = () => true, tries = 3, timeoutMs = aiWaitMs()): Promise<T> {
   let last: unknown
   for (let i = 0; i < tries && current(); i++) {
     try { return await callApi<T>(path, body, timeoutMs) } catch (e) { last = e; if (permanent(e)) break; await new Promise(r => setTimeout(r, 800 * (i + 1))) }

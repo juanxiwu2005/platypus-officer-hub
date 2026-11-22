@@ -9,8 +9,9 @@ const saved = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getIte
 
 async function addRole(page: Page, title: string) {
   await page.goto("/#/settings")
-  await page.getByRole("button", { name: "Roles", exact: true }).click()
+  await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   const settings = page.getByTestId("club-settings")
+  await settings.getByRole("button", { name: "Contact list", exact: true }).click()
   await settings.getByRole("button", { name: "Edit roles", exact: true }).click()
   await settings.getByRole("button", { name: "Add role", exact: true }).click()
   await settings.getByLabel("Role title", { exact: true }).last().fill(title)
@@ -19,8 +20,9 @@ async function addRole(page: Page, title: string) {
 
 test("a renamed role shows its former title in the dossier", async ({ page }) => {
   await page.goto("/#/settings")
-  await page.getByRole("button", { name: "Roles", exact: true }).click()
+  await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   const settings = page.getByTestId("club-settings")
+  await settings.getByRole("button", { name: "Contact list", exact: true }).click()
   await settings.getByRole("button", { name: "Edit roles", exact: true }).click()
   await settings.getByLabel("Role title", { exact: true }).nth(1).fill("Finance Chair")
   await expect(settings.getByRole("status")).toContainText("Saved")
@@ -69,6 +71,6 @@ test("closing a role keeps it in the club's history", async ({ page }) => {
   expect(s.roles.some((r: { id: string }) => r.id.includes("outreach") || r.displayName === "Outreach Chair")).toBe(false)
   expect(s.archivedRoles.map((r: { displayName: string }) => r.displayName)).toEqual(["Outreach Chair"])
   await page.goto("/#/settings")
-  await page.getByRole("button", { name: "Roles", exact: true }).click()
+  await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   await expect(page.getByTestId("closed-roles")).toContainText("Outreach Chair · closed ")
 })

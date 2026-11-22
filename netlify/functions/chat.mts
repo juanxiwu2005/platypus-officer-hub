@@ -1,5 +1,5 @@
 import type { Config } from "@netlify/functions"
-import { chatJSON, SYNC_AI_BUDGET_MS } from "../lib/ai.mts"
+import { chatJSON, syncAiBudgetMs } from "../lib/ai.mts"
 import { BadRequest, fail, json, readJSON, str } from "../lib/http.mts"
 import { parseCommand } from "../../src/lib/commands.ts"
 import { CHAT_SYSTEM, sanitizeCards } from "../../src/lib/chatCards.ts"
@@ -44,7 +44,7 @@ export default async (req: Request) => {
       temperature: 0.2,
       // Production 2026-11-07: with 55 s here Netlify killed the function at about 30 s (504, then 502, no ai_usage
       // line) and the browser waited for nothing. Stop in time and answer with a clean error; the browser falls back.
-      timeoutMs: SYNC_AI_BUDGET_MS,
+      timeoutMs: syncAiBudgetMs(),
     })
     return json({ cards: sanitizeCards(reply, ctx, allowedDates), source: "ai", model, provider })
   } catch (e) { return fail(e) }

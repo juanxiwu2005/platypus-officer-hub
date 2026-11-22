@@ -47,7 +47,7 @@ test("a reload on the name screen stays in setup and does not start a second att
 test("the study link works in a browser that already has saved demo data and a finished welcome", async ({ page }) => {
   await page.goto(WELCOME_ON)
   await page.getByRole("button", { name: c.explore }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   await expect.poll(async () => (await demo(page))?.org?.name ?? "").not.toBe("")
   await page.goto("/#/start")
   await nameScreen(page)
@@ -57,7 +57,7 @@ test("the study link works in a browser that already has saved demo data and a f
 
 test("the plain root address with no flag still opens Today and records nothing; /welcome/start still works", async ({ page }) => {
   await page.goto("/")
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   expect(await onboardingRecord(page)).toEqual({ attempts: [] })
   await page.goto("/#/welcome/start")
   await nameScreen(page)

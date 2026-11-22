@@ -60,8 +60,7 @@ describe("the chain", () => {
     for (const d of dots) expect(preview.nodes.find(n => n.id === d.id)!.clubDeadline).toBe(d.date)
   })
   it("turning the buffer re-plans the dates: a bigger buffer never makes a date later, and some date moves earlier", async () => {
-    // The standard workflow dates every step from a target, so the buffer is never the binding rule there (next test). A workflow whose steps
-    // are dated by the ASU rules alone shows the buffer at work.
+    // Keep the calibrated date engine: the rules-only variant demonstrates the effect of a larger buffer.
     const byRule = steps.map(s => s.anchor?.kind === "target" ? { ...s, anchor: undefined } : s)
     const { event, date } = await eventOf(c.examples[0].sentence)
     const at = (b: number) => previewFor(state, club, event, date, CODE, byRule, b)!.nodes.map(n => n.clubDeadline!)
@@ -70,11 +69,16 @@ describe("the chain", () => {
     expect(big.some((d, i) => d < small[i])).toBe(true)
     for (const b of BUFFER_CHOICES) expect(previewFor(state, club, event, date, CODE, byRule, b)).not.toBeNull()
   })
-  it("known engine fact: with the standard workflow the buffer does not move any club deadline (targets bind first)", async () => {
+  // FB-6 changed this engine fact: with the calibrated workflow a larger buffer can move a club deadline earlier, but only where an
+  // ASU deadline binds (a step with one, or a step that must finish before it). It never moves a deadline later.
+  it("known engine fact: with the standard workflow a larger buffer only moves club deadlines earlier, and only through ASU deadlines", async () => {
     for (const x of c.examples) {
       const { event, date } = await eventOf(x.sentence)
-      const at = (b: number) => previewFor(state, club, event, date, CODE, steps, b)!.nodes.map(n => n.clubDeadline)
-      expect(at(7), x.label).toEqual(at(1))
+      const at = (b: number) => previewFor(state, club, event, date, CODE, steps, b)!.nodes
+      const one = at(1), seven = at(7)
+      seven.forEach((n, i) => expect(n.clubDeadline! <= one[i].clubDeadline!, `${x.label}: ${n.title}`).toBe(true))
+      const moved = seven.filter((n, i) => n.clubDeadline !== one[i].clubDeadline)
+      if (moved.length) expect(moved.some(n => !!n.officialDeadline), x.label).toBe(true)
     }
   })
   it("has no chain for a missing date, a past date, an invalid date or an event that is not there", async () => {

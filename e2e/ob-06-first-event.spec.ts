@@ -38,7 +38,9 @@ const plan = async (page: Page, example = "Welcome mixer") => {
 /** A club whose workflow dates its steps by the ASU rules alone: the one case where the buffer changes dates (see the report). */
 const byRuleDemo = () => {
   const s = seedDemo(undefined, "v2")
-  const steps = orgSteps(s).map(x => x.anchor?.kind === "target" ? { ...x, anchor: undefined } : x)
+  // FB-6: standard steps are calibrated from the owner's timing table and carry its longer effort days. Marking them as the club's own
+  // (no timing) with one day of work each keeps this fixture a club whose dates come from the ASU rules alone.
+  const steps = orgSteps(s).map(({ timing: _timing, ...x }) => ({ ...(x.anchor?.kind === "target" ? { ...x, anchor: undefined } : x), estDays: 1, custom: true }))
   return { ...s, org: { ...s.org, eventWorkflow: { steps, updatedOn: s.today, summary: "Rules only (test)" } } }
 }
 
@@ -102,7 +104,7 @@ test("the buffer is a five-way control; turning it re-plans the dates (a club wh
   await expect(chain(page)).toBeVisible()      // the planned event survives the round trip
 })
 
-test("with the standard workflow the buffer is saved but moves no date (the engine dates every step from a target)", async ({ page }) => {
+test("with the retained standard workflow the buffer choice is saved and its displayed first steps remain stable", async ({ page }) => {
   await plan(page)
   const before = await dotsText(page)
   await page.getByRole("button", { name: "7 days" }).click()
@@ -299,5 +301,6 @@ test("the buffer example is computed by the engine and changes with every choice
     seen.push((await example.innerText()).trim())
   }
   expect(new Set(seen).size).toBe(5)                         // five buffers, five different club dates
-  expect(seen.every(t => /^ASU deadline \w{3}, \w{3} \d+, club deadline \w{3}, \w{3} \d+\.$/.test(t))).toBe(true)
+  // Short dates keep the planned screen within its 60-word budget: "ASU Nov 13 → club Nov 10."
+  expect(seen.every(t => /^ASU \w{3} \d+ → club \w{3} \d+\.$/.test(t))).toBe(true)
 })

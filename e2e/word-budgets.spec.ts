@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import { POLICY_CATALOG } from "../src/data/policyCatalog"
-import { fmtLong, fmtShort } from "../src/lib/dates"
+import { fmtShort } from "../src/lib/dates"
 import { savedDemo } from "./demo-contract"
 import { closeRail, noOverflow } from "./helpers"
 
@@ -95,7 +95,7 @@ test("Rules search finds archived records and keyboard controls open sources and
   await expect(page.getByTestId("rule-answer").last()).toBeVisible()
 })
 
-test("Events mounts a node description on keyboard focus and retains its source deadlines", async ({ page }) => {
+test("Events mounts one focused description and opens the shared detail without changing the official limit", async ({ page }) => {
   await page.goto("/#/events?event=e-night")
   await closeRail(page)
   await page.getByTestId("view-flow").click()
@@ -111,11 +111,13 @@ test("Events mounts a node description on keyboard focus and retains its source 
   await node.focus()
   const cardId = await node.getAttribute("aria-describedby")
   expect(cardId).toBeTruthy()
-  await expect(page.locator(`[id="${cardId}"]`)).toContainText(`ASU deadline ${fmtShort(officialDeadline!)} (R09)`)
+  // The hover card and shared detail each show one Due; the official limit remains in rule data.
+  await expect(page.locator(`[id="${cardId}"]`)).toContainText(`Due ${fmtShort(purchaseRequest!.clubDeadline!)}`)
+  await expect(page.locator(`[id="${cardId}"]`)).not.toContainText("ASU deadline")
   await expect(chart.locator(".m-card")).toHaveCount(1)
   await page.keyboard.press("Enter")
   const detail = page.getByTestId("task-detail")
-  await expect(detail.locator(".task-dates")).toContainText(fmtLong(officialDeadline!))
-  await detail.getByText("Sources and responsibilities", { exact: true }).click()
-  await expect(detail.getByRole("link", { name: "R09", exact: true })).toHaveAttribute("href", /^https:/)
+  await expect(detail.getByTestId("task-due").locator("strong")).toHaveText(fmtShort(purchaseRequest!.clubDeadline!))
+  await expect(detail.getByRole("navigation", { name: "External task links" }).getByRole("link").first()).toHaveAttribute("href", /^https:/)
+  expect((await savedDemo(page)).nodes.find(item => item.id === purchaseRequest!.id)?.officialDeadline).toBe(officialDeadline)
 })

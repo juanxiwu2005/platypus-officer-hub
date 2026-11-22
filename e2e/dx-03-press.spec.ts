@@ -7,7 +7,16 @@ async function pressedTransform(page: import("@playwright/test").Page) {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
-  const button = page.getByRole("button", { name: "Remind" }).first()
+  // Concept F: in "I review, then I send" the reminder centre's primary button opens the first person's email draft.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
+    s.org.settings.reminderMode = "review_then_self"
+    localStorage.setItem("platypus.v1.demo", JSON.stringify(s))
+  })
+  await page.reload()
+  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
+  const button = page.getByTestId("open-first-draft")
   await expect(button).toBeVisible()
   await button.hover()
   const idle = await button.evaluate(el => getComputedStyle(el).transform)
@@ -30,7 +39,7 @@ test.describe("with motion", () => {
   })
   test("the side navigation changes background only, it does not move", async ({ page }) => {
     await page.goto("/#/")
-    const link = page.locator(".sidenav a", { hasText: "Team" })
+    const link = page.locator(".sidenav a", { hasText: "Handoff" })   // FB-8: Team is folded into More
     await link.hover()
     await page.mouse.down()
     await page.waitForTimeout(250)

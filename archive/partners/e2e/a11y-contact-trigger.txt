@@ -1,0 +1,2 @@
+Archived DETAIL_TRIGGERS entry from e2e/a11y.spec.ts at ac19513:
+  ["partner", "/partners", p => p.locator("main .row-btn").first()],

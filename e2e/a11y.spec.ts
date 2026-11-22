@@ -4,7 +4,7 @@ import { ask, closeRail, viewAs } from "./helpers"
 
 // WCAG 2.0, 2.1 and 2.2 A/AA scan of every page and the main panels, on desktop and phone (S6).
 // wcag22aa is what switches on axe's target-size rule (WCAG 2.5.8, touch targets of at least 24x24).
-const PAGES = ["/", "/events", "/events?view=budget", "/tasks", "/team", "/funding", "/handoff", "/partners", "/rules", "/settings", "/help"]
+const PAGES = ["/", "/events", "/events?view=budget", "/tasks", "/team", "/funding", "/handoff", "/rules", "/settings", "/help"]
 const scan = async (page: import("@playwright/test").Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).slice(0, 3).join(" ; ")}`)
 
 for (const path of PAGES) test(`no accessibility violations on ${path}`, async ({ page }) => {
@@ -30,14 +30,23 @@ test("no accessibility violations on any setup step, with a constitution read", 
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
   await page.route("**/api/setup/constitution", r => r.fulfill({ status: 503, json: {} }))
   await page.goto("/#/setup")
-  const step = page.getByTestId("setup-step")
-  await step.getByRole("button", { name: "Use the sample constitution", exact: true }).click()
+  await page.getByLabel("Club name").fill("Fictional accessible club")
   expect(await scan(page)).toEqual([])
-  for (let i = 0; i < 5; i++) {
-    await step.getByRole("button", { name: "Continue", exact: true }).click()
-    await page.waitForTimeout(250)
+  await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await page.getByRole("button", { name: /Use sample/ }).click()
+  expect(await scan(page)).toEqual([])
+  await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await page.getByRole("textbox", { name: "Mission", exact: true }).fill("Build together.")
+  expect(await scan(page)).toEqual([])
+  for (let i = 0; i < 2; i++) {
+    await page.getByRole("button", { name: "Continue", exact: true }).click()
     expect(await scan(page)).toEqual([])
   }
+  for (let i = 0; i < 2; i++) {
+    await page.getByRole("button", { name: "Skip for now", exact: true }).click()
+    expect(await scan(page)).toEqual([])
+  }
+
 })
 test("Owners: Escape dismisses suggestions without closing the task form", async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false } }))
@@ -78,7 +87,9 @@ test("keyboard: / stays in text inputs and Ask's textarea while typing", async (
   await name.press("/")
   await expect(name).toHaveValue("/")
   await expect(name).toBeFocused()
-  await name.press("Tab")
+  // FB-5: the form now has Assign to and Due after the name (a select and a date field, where "/" also stays), so
+  // leave the fields for the form's Add button before pressing "/".
+  await page.getByTestId("new-task-form").getByRole("button", { name: "Add", exact: true }).focus()
   await page.keyboard.press("/")
   const input = page.locator("#ask-input")
   await expect(input).toBeFocused()
@@ -101,7 +112,7 @@ test("brand link includes the visible organization name after editing and opens 
   await home.focus()
   await page.keyboard.press("Enter")
   await expect(page).toHaveURL(/#\/$/)
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
 })
 
 // ---- S6: keyboard and right-rail focus ----
@@ -140,9 +151,9 @@ const DETAIL_TRIGGERS: [string, string, (p: Pg) => import("@playwright/test").Lo
   ["flow step", "/events", p => p.getByTestId("flow-node-purchaseRequest")],
   ["task", "/tasks", p => p.locator("main .board-title").first()],
   ["funding", "/events?event=e-night&view=budget", p => p.getByRole("button", { name: "Funding application", exact: true })],
-  ["partner", "/partners", p => p.locator("main .row-btn").first()],
   ["handoff", "/handoff", p => p.locator("main button.relay").first()],
-  ["workflow settings", "/settings", p => p.getByTestId("flow-node-plan")],
+  // The Settings workflow editor draws its own canvas: the Event Plan step is `workflow-task-plan` there (WORKFLOW_SETTINGS_REDESIGN).
+  ["workflow settings", "/settings", p => p.getByTestId("workflow-builder").getByTestId("workflow-task-plan")],
 ]
 for (const [name, path, trigger] of DETAIL_TRIGGERS) {
   test(`right rail: ${name} details take focus when they open and give it back on Escape`, async ({ page }) => {
@@ -263,11 +274,16 @@ test("keyboard: a board card changes status through Details without dragging", a
   await page.keyboard.press("Enter")
   const details = page.getByTestId("task-detail")
   await expect(details.getByRole("heading", { name: title, exact: true })).toBeFocused()
-  const done = details.getByRole("button", { name: "Done", exact: true })
-  for (let i = 0; i < 30 && !(await done.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press("Tab")
-  await expect(done).toBeFocused()
+  // The universal Task Details: Done comes from submitting a result, so type it in Details, then Tab on to Submit & mark done.
+  const tabTo = async (target: import("@playwright/test").Locator) => {
+    for (let i = 0; i < 30 && !(await target.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press("Tab")
+    await expect(target).toBeFocused()
+  }
+  await tabTo(details.getByRole("textbox", { name: "Details", exact: true }))
+  await page.keyboard.type("Done with the keyboard.")
+  await tabTo(details.getByRole("button", { name: "Submit & mark done", exact: true }))
   await page.keyboard.press("Enter")
-  await expect(details).toContainText("Completed")
+  await expect(details.getByRole("combobox", { name: "Task status", exact: true })).toHaveValue("done")
   await page.keyboard.press("Escape")
   await expect(page.getByRole("region", { name: "Done", exact: true }).locator(".board-title").filter({ hasText: title })).toBeVisible()
 })
@@ -292,9 +308,12 @@ test("flow actions dialog: focus enters, Tab stays inside, Escape restores its s
   await expect(opener).toBeFocused()
   if ((page.viewportSize()?.width ?? 1280) <= 700) {
     await page.keyboard.press("Shift+F10")
+    await expect.poll(() => dialog.evaluate(el => el.contains(document.activeElement))).toBe(true)
     await dialog.getByRole("button", { name: "Open details", exact: true }).focus()
     await page.keyboard.press("Enter")
     await expect(page.getByRole("region", { name: "Details", exact: true })).toBeVisible()
+    // The details take focus once they listen for keys; Escape pressed before that would race their first render.
+    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[aria-label="Details"]'))).toBe(true)
     await page.keyboard.press("Escape")
     await expect(page.getByRole("region", { name: "Details", exact: true })).toHaveCount(0)
     await expect(opener).toBeFocused()

@@ -7,7 +7,7 @@ import { sampleHandoff } from "./sampleScenario"
 import { normalizeTerms } from "./roleTerms"
 
 // v20 also completes the demo plan when saved data skipped the v18-to-v19 update.
-export const SCHEMA_VERSION = 22
+export const SCHEMA_VERSION = 23
 
 /**
  * The demo starts on a fixed date, so every participant and every test sees the same plan
@@ -63,7 +63,16 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
     plan: { status: "done", completedOn: today, lastUpdate: today },
   }
   const founderStatus: Record<string, Partial<Node> & { status: NodeStatus }> = {
-    plan: { status: "done", completedOn: "2026-09-24" }, backup: { status: "done", completedOn: "2026-09-26" }, venuechoice: { status: "done", completedOn: "2026-09-30" }, registry: { status: "done", completedOn: "2026-10-03" }, venue: { status: "done", completedOn: "2026-10-06" }, partner: { status: "done", completedOn: "2026-10-07" }, speakerPacket: { status: "done", completedOn: "2026-10-09" }, travel: { status: "done", completedOn: "2026-10-11" }, partnerReview: { status: "done", completedOn: "2026-10-13" }, parking: { status: "done", completedOn: "2026-10-15" }, budget: { status: "done", completedOn: "2026-10-02" }, quotes: { status: "done", completedOn: "2026-10-08" }, marketingNeeds: { status: "done", completedOn: "2026-10-05" }, contentCreation: { status: "done", completedOn: "2026-10-12" }, promotionItems: { status: "done", completedOn: "2026-10-16" }, rsvp: { status: "done", completedOn: "2026-10-18" }, content: { status: "done", completedOn: "2026-10-20" }, reminder: { status: "done", completedOn: "2026-10-22" }, moderator: { status: "done", completedOn: "2026-10-14" }, materials: { status: "done", completedOn: "2026-10-21" }, finalcheck: { status: "done", completedOn: "2026-10-24" },
+    // Dated against the calibrated windows (FB-6, Dec 3 event): the planning steps finished inside their windows and the money route
+    // is done (the table cards are ordered). This week the moderator is due and the partner review's
+    // reminder goes out on Friday; materials should have started; distribution and the reminder come later in November.
+    plan: { status: "done", completedOn: "2026-09-29" }, backup: { status: "done", completedOn: "2026-09-30" }, venuechoice: { status: "done", completedOn: "2026-10-01" }, registry: { status: "done", completedOn: "2026-10-02" }, venue: { status: "done", completedOn: "2026-10-02" },
+    partner: { status: "done", completedOn: "2026-10-07" }, speakerPacket: { status: "done", completedOn: "2026-10-09" }, travel: { status: "done", completedOn: "2026-10-23" },
+    budget: { status: "done", completedOn: "2026-10-02" }, quotes: { status: "done", completedOn: "2026-10-08" },
+    marketingNeeds: { status: "done", completedOn: "2026-10-05" }, contentCreation: { status: "done", completedOn: "2026-10-12" }, promotionItems: { status: "done", completedOn: "2026-10-16" }, rsvp: { status: "done", completedOn: "2026-10-18" },
+    moderator: { status: "in_progress", lastUpdate: "2026-10-28" }, materials: { status: "accepted", lastUpdate: "2026-10-28" },
+    // Kept from the earlier sample: the president already ran a first readiness check, so his board has a recently finished card.
+    finalcheck: { status: "done", completedOn: "2026-10-24" },
   }
   const nightStatus: Record<string, Partial<Node> & { status: NodeStatus }> = workflow === "v2" ? v2NightStatus : {
     draft: { status: "done" }, mktneeds: { status: "done" }, budget: { status: "done" }, approve: { status: "done" }, registry: { status: "done" }, venue: { status: "done" }, quote: { status: "done" }, ritm: { status: "in_progress" }, foodex: { status: "waiting", waitingOn: "Approval from Student Unions" }, flyer: { status: "waiting", waitingOn: "Speaker headshot from the alumni panelist" }, rsvp: { status: "unclaimed", ownerId: null },

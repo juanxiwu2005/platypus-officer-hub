@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { closeRail } from "./helpers"
+import { fmtShort } from "../src/lib/dates"
 
 // S8: hover cards cannot be hovered on a phone, so a tap opens the same card as a sheet at the bottom of the screen.
 const phoneOnly = (info: { project: { name: string } }) => test.skip(info.project.name !== "mobile", "touch behaviour is tested on the phone project")
@@ -62,10 +63,15 @@ test("Events flow steps open the shared task details with deadlines and rule sou
   const panel = page.getByTestId("task-detail")
   await expect(panel).toBeVisible()
   await expect(panel.getByRole("heading", { name: "Purchase Request" })).toBeVisible()
-  await expect(panel.locator(".task-dates")).toContainText("ASU deadline")
-  await expect(panel.locator(".task-dates")).toContainText("Thu, Mar 11")
-  await panel.getByText("Sources and responsibilities", { exact: true }).click()
-  await expect(panel.getByRole("link", { name: "R09", exact: true })).toBeVisible()
+  // The shared task details show one Due; the ASU deadline stays in the saved rule-engine output and is not a second date on the panel.
+  // The rule source is the official platform the step is filed on, linked from the details.
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { stepKey?: string; eventId?: string }) => n.stepKey === "purchaseRequest" && n.eventId === "e-night") as { clubDeadline: string; officialDeadline: string })
+  await expect(panel.getByTestId("task-due")).toContainText(`Due ${fmtShort(saved.clubDeadline)}`)
+  expect(saved.officialDeadline > saved.clubDeadline).toBe(true)
+  await expect(panel.locator(".td-head")).not.toContainText(/Start by|Club deadline|ASU/)
+  const sources = panel.getByRole("navigation", { name: "External task links" })
+  await expect(sources.getByRole("link").first()).toBeVisible()
+  await expect(sources.getByRole("link").first()).toHaveAttribute("href", /^https:/)
 })
 
 test("navigation: the second group has a title on wide screens and stays hidden on a phone", async ({ page }, info) => {
@@ -92,7 +98,7 @@ test("navigation: Tasks counts open work separately from unread private updates"
   await page.reload()
   await closeRail(page)
   await expect(count).toHaveText(initial)
-  await expect(page.getByRole("link", { name: /Tasks/ })).toContainText("open tasks")
+  await expect(page.getByRole("link", { name: /^Plan/ })).toContainText("open tasks")   // FB-8: the count moved from Tasks to Plan
   await expect(page.getByTestId("bell")).toHaveAccessibleName("Private updates, 3 unread")
   expect(await scan(page)).toEqual([])
 })

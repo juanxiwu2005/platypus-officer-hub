@@ -1,0 +1,24 @@
+{
+  "version": "v3-foundation-review",
+  "date": "2026-11-17 America/Phoenix",
+  "status": "Draft awaiting review; not connected to the live website",
+  "runtimeChanges": false,
+  "preserves": [
+    "v1/five-screens.html",
+    "v2-onboarding/*"
+  ],
+  "frozenV1Sha256": "c306ca4ac21e5822b1102caae8eb4e0f02c163d5f077c7ac2664a8b5bc5934d2",
+  "sourceTemplateCommit": "e87b19c95e6eece07a3a695fdc0438de3f92fb67",
+  "files": {
+    "README.md": "3fac96e45d974024e62235bd0ee60c22ed423a8444e2e772a2fd342e22d75272",
+    "foundation.html": "bd22421acf68699fee2afffcf8b37e74bca867dfd97dd7cb603249ccce3cb06f",
+    "layout-check.cjs": "3d9ba6469862d4f00ec59d445c0f472458350aeb91663c5a8f0e21a1069ba5a2",
+    "layout-verification.json": "f02648dceede88eccdd7d8466e8d8e63dd53001c9b8580b65e8f02aa55fdd553",
+    "previews/people-initial.png": "670f40bc6bc2d788f64ea43e45032c7d42e50b621e5ab0cb619c5cdd67f4d395",
+    "previews/workflow-finance-detail.png": "41be45ca2b3f11bf4be721f4fa9b352d393ef65f907d19793ce9af68c2b17ceb",
+    "previews/workflow-overview.png": "ff515f67e5e40493803a0002ff00dbd89232ae387103fd7a90192a7e2d3e6a4f",
+    "verification.json": "43cbc7100599eb937ac31efed496c9b6cf934b6610a5926a91b574ecf4f81132",
+    "verify.cjs": "8e86686a59457ccab47f04f546def71b4f83596a08869ce95ff5d644997d4ef3",
+    "workflow-data.json": "7c4b0d5f28b23afcd178020ffb12e828fe515bb763c210e19fd5e3ab70328caa"
+  }
+}

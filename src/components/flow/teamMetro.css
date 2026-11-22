@@ -1,0 +1,17 @@
+.team-metro-wrap { min-width: 0; }
+.events-layout:has(.team-metro-wrap) > .events-content:only-child { grid-column: 1 / -1; }
+.team-metro-help { margin-top: 0; }
+.team-metro { max-width: 100%; --label-w: 124px; }
+.team-metro-lane { position: absolute; left: 0; right: 0; pointer-events: none; }
+.team-metro-team { position: sticky; left: 0; display: grid; gap: var(--s2); width: 142px; padding: var(--s3) var(--s5); background: var(--surface); border-right: 1px solid var(--line); transform: translateY(-50%); overflow-wrap: anywhere; z-index: var(--z-local); }
+.team-metro-team b { font-size: var(--fs-sm); }
+.team-metro-team > span { color: var(--muted); font-size: var(--fs-xs); }
+.team-metro-empty { position: absolute; left: 170px; top: var(--s5); font-size: var(--fs-sm); color: var(--muted); }
+.team-metro-guide { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 6; }
+.team-metro-link { stroke-width: 2.5; pointer-events: none; }
+.team-metro-arrow { fill: var(--edge); }
+.team-metro-task { pointer-events: auto; }
+.team-metro-task .m-label { overflow-wrap: anywhere; }
+.team-metro-unassigned { display: flex; flex-wrap: wrap; gap: var(--s4); padding: var(--s5) 0; }
+.team-metro-unassigned p { flex-basis: 100%; margin: 0; }
+.team-metro-issues p { margin-bottom: 0; }

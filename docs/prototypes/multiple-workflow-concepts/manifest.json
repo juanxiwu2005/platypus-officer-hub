@@ -1,0 +1,90 @@
+{
+  "date": "2026-11-17",
+  "timezone": "America/Phoenix",
+  "sourceCommit": "1e0ef5a",
+  "kind": "static-generated-ui-concepts",
+  "generatedWith": "image_gen.imagegen",
+  "conceptOnly": true,
+  "productBehaviorChanged": false,
+  "htmlCreated": false,
+  "images": [
+    {
+      "id": "A",
+      "title": "Template library",
+      "caption": "Template library first",
+      "file": "A-template-library.png",
+      "original": "exec-eb53ee48-f011-448b-b848-b0d395e879b2.png",
+      "bytes": 1625899,
+      "sha256": "6392bd3efd047f4014026984e5f7759f4d1c9532c6b4d59193bca93474d7c59b",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "B",
+      "title": "Goal first",
+      "caption": "Goal-first questions",
+      "file": "B-goal-first.png",
+      "original": "exec-a6baabb6-934a-4f8c-a844-0e8636eff7dc.png",
+      "bytes": 1559666,
+      "sha256": "d49270b8154a8965d89b8d590a8bf66538b61c9c601f425c7463e4df2d5c6129",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "C",
+      "title": "Two workspaces",
+      "caption": "Separate workspaces for member activities and officer work",
+      "file": "C-two-workspaces.png",
+      "original": "exec-c3ff1b46-6978-4def-8b19-9b23cec00687.png",
+      "bytes": 1657915,
+      "sha256": "8058992ab60b1e46d329c79355d1c444996de7029a7fb1cd7fef14909944e9fc",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "D",
+      "title": "Build from modules",
+      "caption": "Assemble modules",
+      "file": "D-modular-workflow.png",
+      "original": "exec-84b4b67c-89b3-459d-bd53-5e9e2d40a7ed.png",
+      "bytes": 1577228,
+      "sha256": "d12afbd0d09aea2c2107f64ac905cfc2683903fa8f2a62f09edc0d204786e734",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "E",
+      "title": "Club playbooks",
+      "caption": "Organization workflow handbook and versions",
+      "file": "E-club-playbooks.png",
+      "original": "exec-7d8bf2d5-b645-4e0b-af32-67db669ee720.png",
+      "bytes": 1628026,
+      "sha256": "0116b660a924706e9b95a9c4118c09c20b4a8ced69e7dbca8b3f4703643e7e3b",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    },
+    {
+      "id": "F",
+      "title": "Reuse successful work",
+      "caption": "Reuse earlier plans",
+      "file": "F-reuse-past-work.png",
+      "original": "exec-759518fa-e75e-43b2-bb53-e2b51c0c37a2.png",
+      "bytes": 1512502,
+      "sha256": "b6a46ab390e5195993e1178dd28215ce0f9a2adaec0fb05d60eab1689463b6a0",
+      "dimensions": [
+        1536,
+        1024
+      ]
+    }
+  ]
+}

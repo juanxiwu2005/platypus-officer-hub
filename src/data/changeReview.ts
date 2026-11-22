@@ -3,10 +3,10 @@ import { canLead } from "./permissions"
 import { commandContext, sanitizeOps, validDate, type CommandOp } from "../lib/commands"
 import type { ChangeSet, Tier } from "./types"
 import { applySchedule } from "../engine/schedule"
-import { buildEventNodes, orgSteps } from "../engine/playbooks"
 import { topoOrder } from "../engine/schedule"
 import { taskAnchor } from "../engine/taskDates"
 import { addNotices } from "./taskWorkflow"
+import { findWorkflowTemplateVersion, instantiateWorkflowTemplate, publishedWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplateRunError } from "./workflowTemplates"
 
 export { canLead }
 /**
@@ -29,7 +29,23 @@ export function canApplyOp(s: DemoState, op: { op: string; eventId?: string | nu
 export const notAllowedText = (op: { op: string }) => op.op === "create_event" ? "The president chooses who can create events (Settings)." : "The president or VP approves changes."
 
 /** `date` is the event date, or a standalone task's due date; `buffered` sets its club deadline earlier. */
-export interface HumanInputs { date?: string; buffered?: boolean }
+export interface HumanInputs {
+  date?: string
+  buffered?: boolean
+  /** Chosen by the organizer, outside the AI command whitelist. The version is pinned before approval. */
+  workflowTemplateId?: string
+  workflowTemplateVersion?: number
+}
+
+function eventWorkflowChoice(s: DemoState, human: HumanInputs) {
+  if (human.workflowTemplateId !== undefined || human.workflowTemplateVersion !== undefined) {
+    return { templateId: human.workflowTemplateId ?? "", templateVersion: human.workflowTemplateVersion }
+  }
+  const published = publishedWorkflowTemplates(s)
+  const templateId = s.org.defaultWorkflowTemplateId ?? STANDARD_WORKFLOW_TEMPLATE_ID
+  const selected = published.find(template => template.id === templateId)
+  return { templateId, templateVersion: selected?.version }
+}
 
 /** Validate against fresh state before any mutation. No arbitrary patch or AI date reaches store. */
 export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = {}): string | null {
@@ -40,6 +56,13 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
   // rule-engine schedule, so it must never ask the president to invent one.
   if ((op.op === "create_event" || (op.op === "add_node" && !op.eventId)) && !validDate(human.date ?? "")) return "Choose and confirm a date before applying this change."
   if ((op.op === "create_event" || (op.op === "add_node" && !op.eventId)) && human.date! < s.today) return "Pick a date from today on."
+  if (op.op === "create_event") {
+    const choice = eventWorkflowChoice(s, human)
+    const version = Number.isInteger(choice.templateVersion) ? findWorkflowTemplateVersion(s, choice.templateId, choice.templateVersion) : undefined
+    if (!version) return "Choose a saved workflow version before creating this event."
+    const problem = workflowTemplateRunError(s, version)
+    if (problem) return problem
+  }
   if (op.op === "link_dependency") {
     const n = s.nodes.find(n => n.id === op.nodeId)!
     const upstream = s.nodes.find(n => n.id === op.dependsOnId)!
@@ -59,9 +82,15 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
 /** New objects only; all edits to existing nodes are routed through store.updateNode. */
 export function newObjects(s: DemoState, op: CommandOp, id: string, human: HumanInputs): { events?: Event[]; nodes?: Node[] } {
   if (op.op === "create_event") {
+    // Replaying the same approved request must never duplicate tasks or reset their work.
+    if (s.events.some(event => event.id === id) || s.nodes.some(node => node.eventId === id)) return {}
     const { op: _kind, ...fields } = op
     const event: Event = { ...fields, id, date: human.date!, goalId: s.org.goals[0]?.id ?? null, playbookId: "seo-event" }
-    return { events: [...s.events, event], nodes: [...s.nodes, ...buildEventNodes(event, s.roles, { steps: orgSteps(s) }).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 }))] }
+    const choice = eventWorkflowChoice(s, human)
+    if (!Number.isInteger(choice.templateVersion) || !findWorkflowTemplateVersion(s, choice.templateId, choice.templateVersion)) return {}
+    const result = instantiateWorkflowTemplate(s, event, choice)
+    if (result.error) return {}
+    return { events: [...s.events, result.event], nodes: [...s.nodes, ...result.nodes] }
   }
   if (op.op === "add_node") {
     if (op.eventId) {
@@ -89,9 +118,10 @@ export function assignedNotice(s: DemoState, node: Node): DemoState {
 
 export interface NewTask { title: string; ownerId: string | null; eventId: string | null; tier?: Tier }
 /**
- * The Ask task form (M2b): one task per owner, applied at once as the viewer, with Undo. Anyone may create
- * tasks for themselves or for anyone else (Juanxi, 2026-10-27). Standalone tasks need a due date from today on;
- * with `buffered` the club deadline comes earlier by the club buffer (engine/taskDates.ts).
+ * The Ask task form and the Tasks page form (M2b, FB-5): one task per owner, applied at once as the viewer, with Undo.
+ * Anyone may create tasks for themselves or for anyone else (Juanxi, 2026-10-27); someone else's waits in Not claimed
+ * until they accept it. Standalone tasks need a due date from today on. Both forms now send `buffered: false` (one
+ * date, Due); the parameter stays so older change records still read (engine/taskDates.ts).
  */
 export function createTasks(s: DemoState, a: { id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }): DemoState {
   if (s.changeSets.some(c => c.id === a.id) || !a.tasks.length || a.tasks.length > 10) return s
@@ -107,6 +137,9 @@ export function createTasks(s: DemoState, a: { id: string; sentence: string; tas
   ops.forEach((op, i) => {
     const id = `${a.id}:${i}`
     next = { ...next, ...newObjects(next, op, id, { date: a.date, buffered: a.buffered }) }
+    // M2b (AGENTS.md rule 3): a task given to someone else is theirs only once they accept it, so it waits in
+    // Not claimed with them as owner until they press "I've got it" (claimTask). Your own task is To do at once.
+    if (op.ownerId && op.ownerId !== s.viewerId) next = { ...next, nodes: next.nodes.map(n => n.id === id ? { ...n, status: "unclaimed", acceptedOn: null } : n) }
     next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
     createdIds.push(id)
   })

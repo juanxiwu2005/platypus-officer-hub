@@ -1,9 +1,13 @@
-import { describe, expect, it, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { afterEach, describe, expect, it, beforeEach } from "vitest"
+import { cleanup, render, screen } from "@testing-library/react"
 import { HashRouter } from "react-router-dom"
 import { reducer, loadState, loadStateWithNotice, saveState, STORAGE_KEY, StoreProvider } from "../data/store"
 import { SCHEMA_VERSION, seedDemo } from "../data/seed"
+import { ensureWorkflowPresetTeams } from "../data/workflowTeamDefaults"
 import App from "../App"
+
+// Unmount the rendered app after each test so its timers (e.g. the side-panel exit delay) do not fire after the test environment is gone.
+afterEach(cleanup)
 
 describe("store reducer", () => {
   const base = seedDemo("2026-10-22", "v2")
@@ -80,7 +84,8 @@ describe("storage", () => {
 
   it("repairs every saved v17 check-in task to the pre-event business-day deadline", () => {
     const base = seedDemo(undefined, "v2")
-    const v17 = { ...base, schemaVersion: 17, nodes: base.nodes.map(node => node.stepKey === "checkin" ? { ...node, anchor: null } : node) }
+    // A v17 save predates FB-6, so its nodes carry no calibrated timing: the check-in anchor still dates them.
+    const v17 = { ...base, schemaVersion: 17, nodes: base.nodes.map(({ timing: _timing, ...node }) => node.stepKey === "checkin" ? { ...node, anchor: null } : node) }
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(v17))
     const repaired = loadState()
     for (const node of repaired.nodes.filter(node => node.stepKey === "checkin")) {
@@ -99,7 +104,7 @@ describe("storage", () => {
     expect(state.nodes.find(node => node.id === "e-speaker:plan")).toMatchObject({ status: "done", completedOn: saved.today })
     expect(state.nodes.map(node => ({ id: node.id, title: node.title, status: node.status }))).toEqual(saved.nodes.map(node => ({ id: node.id, title: node.title, status: node.id === "e-speaker:plan" ? "done" : node.status })))
     expect(state.events).toEqual(saved.events)
-    expect(state.org).toEqual(saved.org)
+    expect(state.org).toEqual(ensureWorkflowPresetTeams(saved).org)
     expect(state.people).toEqual(saved.people)
     expect(state.viewerId).toBe("maya")
     saveState({ ...state, nodes: state.nodes.map(node => node.id === "e-speaker:plan" ? { ...node, status: "accepted" as const, completedOn: undefined } : node) })
@@ -128,8 +133,9 @@ describe("storage", () => {
 })
 
 describe("app shell", () => {
-  it("renders Today with its short page title", () => {
+  // FB-8: the home page is the reminder centre, titled Reminders.
+  it("renders the home page (Reminders) with its short page title", () => {
     render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter><App /></HashRouter></StoreProvider>)
-    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Today")
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Reminders")
   })
 })

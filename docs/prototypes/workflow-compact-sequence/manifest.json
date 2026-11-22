@@ -1,0 +1,32 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "kind": "actual production-build browser screenshots",
+  "runtimeCommit": "4427e94",
+  "route": "/#/settings → Workflow",
+  "tasks": 46,
+  "teams": 4,
+  "notes": [
+    "All situations included in the template preview; the activity form filters actual tasks.",
+    "One fixed row per team; chronological dependency order, not a proportional calendar axis.",
+    "Cards display a short task title and the schedule engine finish offset.",
+    "Raw published v1 is retained; the editor holds a sequential draft for a future saved version.",
+    "Mobile screenshot taken at page top with the side panel closed; horizontal scrolling stays within the chart."
+  ],
+  "images": [
+    {
+      "file": "settings-desktop.png",
+      "device": "desktop",
+      "width": 1440,
+      "height": 1110,
+      "sha256": "d8dce295bbda477a218a20d1745de3d8bfa3b492dd0aeb8e8afd4bfdab4cd965"
+    },
+    {
+      "file": "settings-mobile.png",
+      "device": "mobile",
+      "width": 412,
+      "height": 1448,
+      "sha256": "3ef3e47ad8b54ca3026df1f220d483ccbca3feae2e8b25036964546bdcb38762"
+    }
+  ]
+}

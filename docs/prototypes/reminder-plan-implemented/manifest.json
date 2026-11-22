@@ -1,0 +1,82 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "kind": "actual-browser-screenshots",
+  "sourceRuntimeCommit": "3505d79",
+  "generatedImage": false,
+  "fixture": "Fictional Speaker Night room task and submitted requirements",
+  "images": [
+    {
+      "file": "email-task-desktop.png",
+      "bytes": 110374,
+      "sha256": "583cdbe331d82f61c91cd497a7cfad41deaa0d3f5ae1c07768e8c7eee7f761a6",
+      "sourceTest": "test-results/reminder-plan-entry-a-newl-fcab6-actor-after-node-navigation-desktop/email-in-real-plan.png",
+      "viewport": "Desktop Chrome"
+    },
+    {
+      "file": "teammate-submission-desktop.png",
+      "bytes": 114226,
+      "sha256": "77ce79a7c144a62d463172f4335edb8527eb2dd86d45d59e22bba99b448f7321",
+      "sourceTest": "test-results/reminder-plan-entry-member-1cdc3-an-immediately-edited-draft-desktop/teammate-submission-in-plan.png",
+      "viewport": "Desktop Chrome"
+    },
+    {
+      "file": "email-task-mobile.png",
+      "bytes": 123942,
+      "sha256": "3d496dde6f1a96c78a2e97d1f77b711f8a583257e098da185366f43d042f309a",
+      "sourceTest": "test-results/reminder-plan-entry-a-newl-fcab6-actor-after-node-navigation-mobile/email-in-real-plan.png",
+      "viewport": "Pixel 7"
+    },
+    {
+      "file": "teammate-submission-mobile.png",
+      "bytes": 113344,
+      "sha256": "cce0498a6082e1c88a8e97b0a5cb24970d24d6ea89d52ba99deab0725972e352",
+      "sourceTest": "test-results/reminder-plan-entry-member-1cdc3-an-immediately-edited-draft-mobile/teammate-submission-in-plan.png",
+      "viewport": "Pixel 7"
+    }
+  ],
+  "validation": {
+    "unit": {
+      "files": 19,
+      "passed": 270
+    },
+    "browser": {
+      "uniqueCases": 38,
+      "broadRun": {
+        "passed": 37,
+        "failed": 1
+      },
+      "finalFocusedAfterFix": {
+        "passed": 14,
+        "failed": 0
+      },
+      "note": "Mobile auto-close race and stale Details on leaving Plan corrected; no duplicate case counting."
+    },
+    "lint": true,
+    "frontendTypesAndBuild": true,
+    "backendTypes": true,
+    "scopedCss": true,
+    "wordBudgets": {
+      "pages": 9,
+      "eventsVisible": 153,
+      "eventsLimit": 180,
+      "settingsVisible": 147,
+      "settingsLimit": 150
+    },
+    "entryBytes": 494992,
+    "entryLimit": 550000,
+    "realAiCalls": 0,
+    "realEmails": 0,
+    "fullSuiteRepeated": false,
+    "entryMeasure": "Local production build"
+  },
+  "report": "../../feedback-fix/REMINDER_PLAN_ENTRY_HANDOFF.md",
+  "deployment": {
+    "commit": "861431c6e2a401b367587a1e307ef9ecb3418cd5",
+    "context": "netlify/platypus-officer-hub/deploy-preview",
+    "state": "success",
+    "url": "https://deploy-preview-14--platypus-officer-hub.netlify.app",
+    "verification": "GitHub combined commit status",
+    "directSiteFetch": "Blocked by environment proxy HTTP 403; no live browser interaction claimed"
+  }
+}

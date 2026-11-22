@@ -48,9 +48,16 @@ test("a real disclosure in the app still opens and shows its content", async ({ 
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
   await page.getByTestId("view-flow").click()
+  // The shared task details keep one disclosure, Schedule notes, for a step with a real schedule problem. Moving the
+  // event this close to the demo day leaves Purchase Request with one (the dates still come from the rule engine).
+  await page.getByLabel("Event date", { exact: true }).fill("2026-11-10")
   await page.getByTestId("flow-node-purchaseRequest").click()
-  const summary = page.locator("details > summary").first()
+  const notes = page.getByTestId("task-detail").locator("details.task-schedule-notes")
+  const summary = notes.locator("> summary")
   await expect(summary).toBeVisible()
+  await expect(summary).toContainText("Schedule notes")
+  await expect(notes.locator("li").first()).toBeHidden()
   await summary.click()
-  await expect(page.locator("details[open]").first()).toBeVisible()
+  await expect(notes).toHaveAttribute("open", "")
+  await expect(notes.locator("li").first()).toBeVisible()
 })

@@ -1,0 +1,41 @@
+{
+  "runtimeCommit": "cc1fbe9481dc3c7416b4fb1b8098f8147e88ff80",
+  "baseCommit": "d5b40255adc5492ae5e37bf27fbfceca027858c5",
+  "unitAndComponent": {
+    "files": 21,
+    "passed": 209
+  },
+  "browser": {
+    "uniquePassed": 34,
+    "skipped": 0,
+    "finalBuildRerunPassed": 18,
+    "existingBuilderPassed": 16,
+    "specs": [
+      "workflow-dot-editor.spec.ts",
+      "workflow-compact-sequence.spec.ts",
+      "workflow-builder.spec.ts"
+    ]
+  },
+  "checks": {
+    "lint": "passed",
+    "frontendTypes": "passed",
+    "netlifyTypes": "passed",
+    "productionBuild": "passed",
+    "independentCss": "passed",
+    "wordBudgets": "9 pages passed",
+    "entryBytes": 495864,
+    "entryBudget": 550000,
+    "criticalSeriousAxe": 0,
+    "productAiCalls": 0,
+    "externalEmail": 0
+  },
+  "review": {
+    "issuesFound": 2,
+    "issuesFixedAndRechecked": 2
+  },
+  "deployPreview": {
+    "state": "success",
+    "url": "https://deploy-preview-14--platypus-officer-hub.netlify.app"
+  },
+  "screenshots": "../prototypes/workflow-dot-editor/manifest.json"
+}

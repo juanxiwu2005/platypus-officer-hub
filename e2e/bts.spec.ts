@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { ask, closeRail, openAsk, openDemoMenu, openMore } from "./helpers"
+import { ask, closeRail, openAsk, openDemoMenu, openMore, viewAs } from "./helpers"
+import { enableUpdatedReminders } from "./reminderHelpers"
 
 // "Behind the scenes" (S7): a switch in the Demo menu that shows where numbers, dates and AI output come from.
 // Off (the default) means the notes are not in the page at all.
@@ -24,6 +25,18 @@ test("off by default: no note is in the page, on any page", async ({ page }) => 
   await expect(page.getByTestId("bts-toggle")).not.toBeChecked()
 })
 
+test("ordinary members retain calculation notes behind the same switch", async ({ page }) => {
+  await page.goto("/#/")
+  await viewAs(page, "jordan")
+  await expect(page.getByTestId("your-reminders")).toBeVisible()
+  await switchOn(page)
+  await closeRail(page)
+  await expect(page.getByTestId("your-reminders").locator(".bts")).toContainText("Rule engine")
+  await openDemoMenu(page)
+  await page.getByTestId("bts-toggle").uncheck()
+  await expect(page.locator(NOTES)).toHaveCount(0)
+})
+
 test("the switch turns on and off, keeps its state after a reload, and removes the notes from the page when off", async ({ page }) => {
   await page.goto("/#/")
   await page.waitForTimeout(300)
@@ -31,7 +44,7 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
   expect(await setting(page)).toBe("1")
   await closeRail(page)
   await expect(page.locator(".bts").first()).toBeVisible()
-  await expect(page.getByTestId("risk-list")).toContainText("Club deadline")
+  await expect(page.getByTestId("reminder-centre")).toContainText("Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. One email per person per day.")
   await page.reload()
   await page.waitForTimeout(300)
   await expect(page.locator(".bts").first()).toBeVisible()
@@ -45,18 +58,23 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
   await expect(page.locator(NOTES)).toHaveCount(0)
 })
 
-test("when on: dates show where they come from on Today, Events and Tasks", async ({ page }) => {
-  await page.goto("/#/")
+test("when on: dates show where they come from on Reminders, Events and Tasks", async ({ page }) => {
+  await enableUpdatedReminders(page)
   await switchOn(page)
   await closeRail(page)
-  await expect(page.getByTestId("risk-list").locator(".bts").first()).toContainText("Rule engine")
-  await expect(page.getByTestId("event-strip").first().locator("xpath=following-sibling::*[1]")).toContainText("Days left = event date minus today")
+  // FB-8: the home page is the reminder centre; its send days and Due come from the rule engine (the Events strip moved off home).
+  // Concept F: the people list keeps the rule engine's order, and the page note says which dates the checks use.
+  await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Rule engine")
+  await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Tasks keep the rule engine's order: overdue, due, past due, then starts and follow-ups.")
+  await expect(page.getByTestId("reminder-centre").locator(".bts").first()).toContainText("latest start and Task due")
   await page.goto("/#/events")
   await expect(page.locator("main .bts").first()).toBeVisible()
   await page.getByTestId("view-list").click()
   const list = page.getByTestId("event-list")
-  await expect(list.locator(".bts").filter({ hasText: "Start" }).first()).toBeVisible()
-  await expect(list.locator(".bts").filter({ hasText: "ASU" }).first()).toBeVisible()
+  // FB-4: the List view's notes explain the one Due (with the ASU sentence where a rule sets one) and when the reminder goes out.
+  await expect(list.locator(".bts").filter({ hasText: "Due" }).first()).toBeVisible()
+  await expect(list.locator(".bts").filter({ hasText: "ASU needs this by" }).first()).toBeVisible()
+  await expect(list.locator(".bts").filter({ hasText: "Reminder goes out" }).first()).toBeVisible()
   await page.goto("/#/tasks")
   await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks").locator(".bts").first()).toBeVisible()
@@ -80,7 +98,7 @@ test("when on: Event Budget and Handoff say where progress and sources come from
   await expect(page.locator(NOTES)).toHaveCount(0)
 })
 
-test("when on: the new-task form explains the club deadline and the plan check says whether AI wrote it", async ({ page }) => {
+test("when on: the new-task form explains its one date and the plan check says whether AI wrote it", async ({ page }) => {
   await page.goto("/#/")
   await openMore(page)
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
@@ -88,7 +106,8 @@ test("when on: the new-task form explains the club deadline and the plan check s
   await ask(page, "Add a task: order name tags")
   const form = page.getByTestId("task-form")
   await expect(form.getByTestId("club-deadline")).toBeVisible()
-  await expect(form.locator(".bts").filter({ hasText: "working days" }).first()).toBeVisible()
+  // FB-5 (PLAN 8.3): a new task has one date, so the note explains that instead of the working-day buffer.
+  await expect(form.locator(".bts").filter({ hasText: "one date" }).first()).toBeVisible()
   await expect(form.locator(".bts").filter({ hasText: "never supplies a date" })).toBeVisible()
   await ask(page, "Plan Founders Welcome Dinner on Nov 19, 30 people, outside caterer, USG funding")
   await page.getByTestId("plan-form").getByRole("button", { name: "Continue" }).click()

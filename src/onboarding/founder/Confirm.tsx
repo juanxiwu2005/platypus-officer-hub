@@ -15,14 +15,13 @@ const FIRST_EVENT = "founder.first-event"
 const REMINDERS = "founder.reminders"
 
 /**
- * Screen 6 of the founder flow (required): one sentence says what will be created, then Start workspace creates it with exactly the arguments the
- * classic setup page uses. The warning about replacing the demo only shows when a club was already set up. A ref stops a double click (or React's
+ * Screen 6 of the founder flow (required): one sentence says what will be created, then Start workspace creates it through the shared completeSetup action. The warning about replacing the demo only shows when a club was already set up. A ref stops a double click (or React's
  * development double-run) from creating it twice. Keep current demo leaves every piece of data as it is.
  * When the president pressed Skip for now on First event, the club starts with no new event (completeSetup gets a null event and an empty date).
  * Arriving here without planning and without skipping (an address typed by hand) still asks for the first event.
  */
 export function Confirm() {
-  const { state, dispatch } = useStore()
+  const { state, tryDispatch } = useStore()
   const { draft, clear } = useOnboardingDraft()
   const flow = useFlow()
   const navigate = useNavigate()
@@ -44,8 +43,8 @@ export function Confirm() {
     const error = validateClub(draft.club)
     if (error) { setProblem(error); return }
     started.current = true
+    if (!tryDispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, workflowBranches: draft.workflowBranches, reminderMode })) { started.current = false; setProblem("Your club could not be saved. Export your current data and retry before leaving this page."); return }
     recordSetup("start-workspace")
-    dispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, reminderMode })
     clear()
     navigate("/welcome/founder/invite")
   }

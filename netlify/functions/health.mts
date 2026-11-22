@@ -3,7 +3,7 @@ import {
   MODEL_POLICY_VERSION,
 } from "../../src/organization/modelPolicy.ts";
 import type { Config } from "@netlify/functions";
-import { getConfig, isConfigured } from "../lib/ai.mts";
+import { getConfig, isConfigured, syncAiBudgetMs } from "../lib/ai.mts";
 import { json } from "../lib/http.mts";
 import { serverStorageEnabled } from "../lib/serverStorage.mts";
 import { readSession, archiveEvent } from "../lib/organization/storage.mts";
@@ -15,6 +15,8 @@ export default async (req: Request) => {
       configured: isConfigured(c),
       provider: c.label,
       model: c.model || null,
+      // FB-1: how long a synchronous AI call may take on the server; the browser waits this plus 4 s (src/lib/api.ts).
+      syncBudgetMs: syncAiBudgetMs(),
       ...(c.label === "ASU AIR"
         ? { routing: { version: MODEL_POLICY_VERSION, models: AIR_MODELS } }
         : {}),

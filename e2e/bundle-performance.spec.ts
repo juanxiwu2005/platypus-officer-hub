@@ -17,15 +17,16 @@ test("Today ships a small entry and requests no PhaseOne, organization setup or 
     if (/\.(?:js|mjs)(?:\?|$)/.test(request.url())) scripts.push(request.url())
   })
   await page.goto("/#/")
-  await expect(page.getByTestId("risk-list")).toBeVisible()
+  await expect(page.getByTestId("reminder-centre")).toBeVisible()
   await page.waitForLoadState("networkidle")
   expect(scripts.filter(url => DEFERRED.test(url))).toEqual([])
   const entryUrl = await page.locator('script[type="module"][src]').getAttribute("src")
   expect(entryUrl).toBeTruthy()
   const entry = await page.request.get(entryUrl!)
   const bytes = (await entry.body()).byteLength
-  // 520,000 since 2026-11-09 (Juanxi): the Handoff rules (role terms, successors, dossier) have to run inside the store, so they ship in this file. Was 500,000; main was 491,606.
-  expect(bytes).toBeLessThan(520_000)
+  // 550,000 since 2026-11-16 (Juanxi, option A): the reminder centre home page, the task form with an owner and the one-Due helpers ship
+  // in this file; the merged feedback-fix branch measured 534,408. 520,000 from 2026-11-09 (Handoff rules in the store); before that 500,000.
+  expect(bytes).toBeLessThan(550_000)
   const initialScripts = await Promise.all([...new Set(scripts)].map(async url => ({ url, bytes: (await (await page.request.get(url)).body()).byteLength })))
   const totalInitialJsBytes = initialScripts.reduce((total, script) => total + script.bytes, 0)
   // Home interactions remain immediately available without a route download.
@@ -72,13 +73,13 @@ test("PhaseOne supports a direct hash, refresh and browser Back/Forward", async 
   const errors: string[] = []
   page.on("pageerror", error => errors.push(error.message))
   await page.goto("/#/")
-  await expect(page.getByTestId("risk-list")).toBeVisible()
+  await expect(page.getByTestId("reminder-centre")).toBeVisible()
   await page.goto("/#/phase1")
   await expect(page.getByRole("heading", { name: /A little less coordinating/ })).toBeVisible()
   await page.reload()
   await expect(page.getByRole("heading", { name: /A little less coordinating/ })).toBeVisible()
   await page.goBack()
-  await expect(page.getByTestId("risk-list")).toBeVisible()
+  await expect(page.getByTestId("reminder-centre")).toBeVisible()
   await page.goForward()
   await expect(page.getByRole("heading", { name: /A little less coordinating/ })).toBeVisible()
   expect(errors).toEqual([])
@@ -91,8 +92,8 @@ test("PDF code and its worker load only after selecting a PDF", async ({ page },
   })
   // The file is parsed locally. No AI action is needed to read a PDF.
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { message: "Offline bundle check" } }))
-  await page.goto("/#/setup")
-  await expect(page.getByLabel("Constitution file", { exact: true })).toBeVisible()
+  await page.goto("/#/welcome/founder/constitution")
+  await expect(page.getByRole("button", { name: "Upload a file", exact: true })).toBeVisible()
   await page.waitForLoadState("networkidle")
   expect(scripts.filter(url => /\/pdf[.-]/i.test(url))).toEqual([])
   await page.getByLabel("Constitution file", { exact: true }).setInputFiles("public/organization/fictional-constitution.pdf")

@@ -1,5 +1,5 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
-import type { DemoState, Event, StepTemplate, Goal, OrgSettings, Person, ReminderMode, Role, RoleFunction, WorkspaceConfig } from "./types"
+import type { DemoState, Event, StepTemplate, Goal, OrgSettings, Person, ReminderMode, Role, RoleFunction, WorkflowBranch, WorkspaceConfig } from "./types"
 import { isReminderMode } from "./reminderMode"
 import { MAX_DUTIES, MAX_ROLES, hasReportingLoop, orderRoles } from "./structure"
 import type { CommandOp } from "../lib/commands"
@@ -38,11 +38,11 @@ export function validateWorkspace(w: WorkspaceConfig): string | null {
   return null
 }
 /** A workflow is saved only if its steps are well formed and nothing in it breaks an ASU rule (the engine's check, not the AI's). */
-export function validateWorkflow(steps: StepTemplate[], roles: Role[]): string | null {
+export function validateWorkflow(steps: StepTemplate[], roles: Role[], branches?: WorkflowBranch[]): string | null {
   if (!Array.isArray(steps) || steps.length < 1 || steps.length > MAX_STEPS) return `A workflow needs 1 to ${MAX_STEPS} steps.`
   if (new Set(steps.map(x => x.key)).size !== steps.length) return "Each step needs its own key."
   if (steps.some(x => !nonempty(x.key, 40) || !nonempty(x.title, 120) || typeof x.why !== "string" || x.why.length > 400 || !(PHASE_LIST as string[]).includes(x.phase) || !Number.isInteger(x.estDays) || x.estDays < 0 || x.estDays > 30 || !["light", "medium", "heavy"].includes(x.tier) || (x.dependsOn !== undefined && (!Array.isArray(x.dependsOn) || x.dependsOn.some(d => typeof d !== "string"))))) return "Give each step a title, a phase and 0 to 30 days of work."
-  return checkWorkflow(steps, roles).find(i => i.level === "blocked")?.text ?? null
+  return checkWorkflow(steps, roles, undefined, branches).find(i => i.level === "blocked")?.text ?? null
 }
 
 export function validateGoals(goals: Goal[]): string | null {
@@ -124,10 +124,10 @@ export function saveClubSettings(s: DemoState, d: ClubDraft, defaults: OrgSettin
 }
 
 /** The president edits the club's event workflow. It applies to events made from now on; events already made keep their steps. */
-export function saveWorkflow(s: DemoState, steps: StepTemplate[]): DemoState {
-  if (!canLead(s) || validateWorkflow(steps, s.roles)) return s
+export function saveWorkflow(s: DemoState, steps: StepTemplate[], branches = s.org.eventWorkflow?.branches): DemoState {
+  if (!canLead(s) || validateWorkflow(steps, s.roles, branches)) return s
   const owned = withOwners(steps, s.roles)
-  return { ...s, org: { ...s.org, eventWorkflow: { steps: owned, updatedOn: s.today, summary: describeWorkflow(owned) } } }
+  return { ...s, org: { ...s.org, eventWorkflow: { steps: owned, ...(branches ? { branches: structuredClone(branches) } : {}), updatedOn: s.today, summary: describeWorkflow(owned) } } }
 }
 /** Back to the standard event workflow. */
 export function resetWorkflow(s: DemoState): DemoState {
@@ -148,35 +148,47 @@ export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch,
  * `reminderMode` is the walkthrough's Reminders answer (P3-H): stored as org.settings.reminderMode, or left out (null/undefined: skipped,
  * or the classic page), so a club set up again without an answer never keeps an older one. Any other value refuses the setup.
  */
-export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null): DemoState {
+export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null, branches?: WorkflowBranch[]): DemoState {
   const planned = rawEvent !== null && rawEvent !== undefined
   if (!canLead(s) || validateClub(d) || (planned && (!validDate(eventDate) || eventDate < s.today)) || !/^[a-f0-9-]{36}$/i.test(inviteCode)) return s
   if (reminderMode !== undefined && reminderMode !== null && !isReminderMode(reminderMode)) return s
   if (taskDueDays !== undefined && !(TASK_DUE_CHOICES as readonly number[]).includes(taskDueDays)) return s
   if (clubBufferBusinessDays !== undefined && !(BUFFER_CHOICES as readonly number[]).includes(clubBufferBusinessDays)) return s
-  if (workflow && validateWorkflow(workflow, d.roles)) return s
+  if (workflow && validateWorkflow(workflow, d.roles, branches)) return s
   let event: Event | null = null
   if (planned) {
     const op = sanitizeOps([rawEvent], s)[0]
     if (op?.op !== "create_event") return s
     const { op: _kind, ...fields } = op
-    event = { ...fields, id: `setup-event-${s.org.id}`, date: eventDate, goalId: d.goals[0]?.id ?? null, playbookId: "seo-event" }
+    event = { ...fields, id: `setup-event-${s.org.id}`, date: eventDate, goalId: d.goals[0]?.id ?? null, playbookId: "seo-event", ...(branches ? { workflowBranches: structuredClone(branches) } : {}) }
   }
   const people = d.people.map(p => ({ ...p, name: p.name.trim() }))
   const roles = orderRoles(d.roles.map(r => ({ ...r, displayName: r.displayName.trim() })))
   const president = roles.find(r => r.fn === "president")!
   const steps = workflow ? withOwners(workflow, roles) : undefined
-  const nodes = event ? buildEventNodes(event, roles, steps ? { steps } : {}).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })) : []
-  const { reminderMode: _earlier, ...kept } = s.org.settings; void _earlier
-  return applySchedule({ ...s, viewerId: president.holderId!, org: { ...s.org, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, ...(reminderMode ? { reminderMode } : {}), ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  const nodes = event ? buildEventNodes(event, roles, steps ? { steps, branches } : {}).map(n => ({ ...n, assignedOn: s.today, ownerVersion: 0 })) : []
+  // A confirmed new workspace must not inherit the withdrawn prototype's archived identity.
+  // The Provider backs up the prior complete business snapshot before allowing this action.
+  const cleanWorkspace = { ...s }, cleanOrg = { ...s.org }
+  delete cleanWorkspace.matching
+  delete cleanWorkspace.matchingContext
+  delete cleanOrg.matchingWorkspaceId
+  // A deliberately new workspace starts its own template library and team IDs.
+  delete cleanOrg.workflowTemplates
+  delete cleanOrg.defaultWorkflowTemplateId
+  delete cleanOrg.workflowTeams
+  delete cleanOrg.workflowPresetTeamIds
+  delete cleanOrg.workflowRoleTeams
+  const { reminderMode: _earlier, matchingMode: _matchingMode, ...kept } = s.org.settings; void _earlier; void _matchingMode
+  return applySchedule({ ...cleanWorkspace, viewerId: president.holderId!, org: { ...cleanOrg, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, ...(branches ? { branches: structuredClone(branches) } : {}), updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, ...(reminderMode ? { reminderMode } : {}), ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
 
 /**
  * Start workspace (P3-A): the participant's club from setup, plus the sample scenario (three event templates, board tasks, risks,
  * funding, contacts, handoff season) moved onto the participant's roles and officers. A refused setup changes nothing.
  */
-export function startWorkspace(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null): DemoState {
-  const club = completeSetup(s, d, rawEvent, eventDate, inviteCode, taskDueDays, clubBufferBusinessDays, workflow, reminderMode)
+export function startWorkspace(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null, branches?: WorkflowBranch[]): DemoState {
+  const club = completeSetup(s, d, rawEvent, eventDate, inviteCode, taskDueDays, clubBufferBusinessDays, workflow, reminderMode, branches)
   return club === s ? s : withSampleScenario(club, seedDemo(club.today, "v2"))
 }
 

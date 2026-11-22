@@ -28,6 +28,24 @@ async function run<T>(mode: IDBTransactionMode, fn: (store: IDBObjectStore) => I
 /** Small JSON records in the same browser database (an unfinished setup, for example). */
 export const saveJson = async (id: string, value: unknown) => (await run("readwrite", s => s.put({ id, kind: "json", savedAt: new Date().toISOString(), value }))) !== null
 export const loadJson = async <T,>(id: string): Promise<{ savedAt: string; value: T } | null> => { const r = await run<{ savedAt: string; value: T }>("readonly", s => s.get(id)); return r ? { savedAt: r.savedAt, value: r.value } : null }
+/** Replace an explicitly restored setup only after its previous copy and the new draft commit together. */
+export async function saveJsonWithBackup(id: string, value: unknown): Promise<boolean> {
+  try {
+    const db = await open()
+    return await new Promise<boolean>(resolve => {
+      const tx = db.transaction(STORE, "readwrite"), store = tx.objectStore(STORE)
+      const old = store.get(id)
+      old.onsuccess = () => {
+        try {
+          if (old.result) store.put({ ...old.result, id: `${id}-backup-${crypto.randomUUID()}` })
+          store.put({ id, kind: "json", savedAt: new Date().toISOString(), value })
+        } catch { tx.abort() }
+      }
+      tx.oncomplete = () => { db.close(); resolve(true) }
+      tx.onabort = tx.onerror = () => { db.close(); resolve(false) }
+    })
+  } catch { return false }
+}
 export const deleteJson = (id: string) => run("readwrite", s => s.delete(id))
 
 export const saveLocalDoc = async (doc: LocalDoc) => (await run("readwrite", s => s.put(doc))) !== null

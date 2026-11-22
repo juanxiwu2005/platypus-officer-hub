@@ -1,0 +1,107 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "runtimeCommit": "4427e94",
+  "base": "22312db",
+  "preservedParallelWork": "a502792",
+  "unitBatches": [
+    {
+      "files": 12,
+      "passed": 169,
+      "scope": "workflow policy, roles, grouping, graph, storage, conditions, library and execution"
+    },
+    {
+      "files": 15,
+      "passed": 180,
+      "scope": "final compact components, sequence helper, schedule, forecasting, calendar, versions and store"
+    },
+    {
+      "files": 1,
+      "passed": 1,
+      "scope": "final sequential forecast timing/buffer control"
+    }
+  ],
+  "unitUnique": {
+    "files": 26,
+    "passed": 324,
+    "note": "Two shared version/store files contain 26 cases; overlap counted once. Separate targeted batches, not a full-site run."
+  },
+  "browserCore": {
+    "passed": 10,
+    "projects": [
+      "desktop",
+      "mobile"
+    ],
+    "spec": "e2e/workflow-compact-sequence.spec.ts",
+    "scope": [
+      "46 tasks/four single-row teams/two visible card fields/real dependency paths clear of cards",
+      "old v1, event snapshots and original nodes unchanged",
+      "new versions create independent Plan dot tasks with conditional bypass",
+      "independent teams share starting columns",
+      "real mouse and CDP touch team reordering, Undo, stable identities/targets",
+      "cross-team cycle transaction rejected",
+      "unsupported calendar shows an explicit warning and empty date markers; supported target recovers"
+    ],
+    "initialFailures": [
+      "Details label locator also matched the rail region; scoped to its textbox.",
+      "Default template selection exposed a real RailContext callback identity feedback loop that starved route transitions; stabilized the authoring callback and verified actual Plan navigation."
+    ]
+  },
+  "browserRegression": {
+    "passed": 48,
+    "projects": [
+      "desktop",
+      "mobile"
+    ],
+    "specs": [
+      "e2e/workflow-builder.spec.ts",
+      "e2e/workflow-role-kind.spec.ts",
+      "e2e/workflow-setup.spec.ts",
+      "e2e/workflow-stability.spec.ts"
+    ],
+    "initial": "46 passed, 2 stale expectations attempted to remove a now-required previous-in-team prerequisite.",
+    "final": "Updated the disabled prerequisite expectation; 8 targeted creation/version/T0/T+/policy persistence cases passed after final forecast integration. 48 unique cases have passing evidence."
+  },
+  "checks": {
+    "lint": "passed",
+    "frontendTypesAndProductionBuild": "passed",
+    "netlifyTypes": "passed",
+    "workflowCSS": "passed",
+    "wordBudgets": "9 pages passed",
+    "entryBytes": 495864,
+    "entryLimit": 550000,
+    "axeSeriousCritical": "0 in new default-template acceptance",
+    "mobileOverflow": "within 1 CSS pixel in new acceptance",
+    "diffCheck": "passed"
+  },
+  "preserved": [
+    "schemaVersion 23",
+    "original full titles, Details, links, work estimates, official anchors and rule arrays",
+    "four stable team identities and editable names",
+    "immutable previous versions and existing event/task snapshots",
+    "Plan dot renderer",
+    "no merge to main",
+    "zero real product AI calls or external emails"
+  ],
+  "limits": [
+    "Strict sequential execution can require much earlier starts and later close-out; no promise that all old targets can be retained as actual finish dates.",
+    "Preview includes all possible situations; actual activities filter applicable tasks.",
+    "No calendar dates beyond the supported ASU range are represented as trustworthy T labels in Settings.",
+    "No 2–3 minute human usability timing claim."
+  ],
+  "browserRelated": {
+    "passed": 13,
+    "skipped": 1,
+    "specs": [
+      "e2e/workflow-stability-edges.spec.ts",
+      "e2e/workflow-preset-teams.spec.ts"
+    ],
+    "initial": "11 passed, 2 test expectations compared missing legacy placement with explicit main; normalized expected default and both passed.",
+    "skip": "Existing mobile legacy Plan mouse-only gesture. New Settings CDP touch reorder is covered and passed."
+  },
+  "browserUnique": {
+    "passed": 71,
+    "skipped": 1,
+    "note": "10 new + 48 legacy authoring + 13 related; targeted reruns counted once."
+  }
+}

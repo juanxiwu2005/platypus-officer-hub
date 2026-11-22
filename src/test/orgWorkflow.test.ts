@@ -45,17 +45,19 @@ describe("org workflow · applying changes", () => {
     expect(r.steps).toEqual(presetSteps())
   })
   it("removing a step the club does not use lets later steps wait for what it waited for; locked steps are never removed", () => {
-    const r = applyChanges(presetSteps(), [ch({ op: "remove", key: "promotionItems" })], base.roles)
-    expect(r.steps.some(x => x.key === "promotionItems")).toBe(false)
-    expect(r.steps.find(x => x.key === "rsvp")!.dependsOn).toEqual(expect.arrayContaining(["contentCreation"])); expect(r.steps.find(x => x.key === "rsvp")!.dependsOn).not.toContain("promotionItems")
+    const r = applyChanges(presetSteps(), [ch({ op: "remove", key: "partnerReview" }), ch({ op: "remove", key: "promotionItems" })], base.roles)
+    expect(r.steps.some(x => x.key === "partnerReview")).toBe(false)
+    expect(r.steps.find(x => x.key === "parking")!.dependsOn).toEqual(expect.arrayContaining(["travel"])); expect(r.steps.find(x => x.key === "parking")!.dependsOn).not.toContain("partnerReview")
+    expect(r.steps.some(x => x.key === "promotionItems")).toBe(true)
+    expect(r.refused[0].reason).toMatch(/required organization/)
     expect(isLocked(EVENT_STEPS.find(x => x.key === "purchaseRequest")!)).toBe(true); expect(isLocked(EVENT_STEPS.find(x => x.key === "promotionItems")!)).toBe(false)
   })
   it("each change can be undone on its own", () => {
-    const changes = [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { dependsOn: ["plan"] }, beforeKeys: ["finalcheck"] }), ch({ op: "update", key: "contentCreation", patch: { title: "Design the flyer", estDays: 5 } }), ch({ op: "remove", key: "promotionItems" })]
+    const changes = [ch({ op: "add", key: "permission", title: "Collect permission forms", patch: { dependsOn: ["plan"] }, beforeKeys: ["finalcheck"] }), ch({ op: "update", key: "contentCreation", patch: { title: "Design the flyer", estDays: 5 } }), ch({ op: "remove", key: "partnerReview" })]
     const r = applyChanges(presetSteps(), changes, base.roles)
     expect(r.applied).toHaveLength(3)
-    let steps = revertChange(r.steps, r.applied[2]); expect(steps.some(x => x.key === "promotionItems")).toBe(true); expect(steps.find(x => x.key === "rsvp")!.dependsOn).toContain("promotionItems")
-    steps = revertChange(steps, r.applied[1]); expect(steps.find(x => x.key === "contentCreation")).toMatchObject({ title: EVENT_STEPS.find(x => x.key === "contentCreation")!.title, estDays: 2 })
+    let steps = revertChange(r.steps, r.applied[2]); expect(steps.some(x => x.key === "partnerReview")).toBe(true); expect(steps.find(x => x.key === "parking")!.dependsOn).toContain("partnerReview")
+    steps = revertChange(steps, r.applied[1]); expect(steps.find(x => x.key === "contentCreation")).toMatchObject({ title: EVENT_STEPS.find(x => x.key === "contentCreation")!.title, estDays: EVENT_STEPS.find(x => x.key === "contentCreation")!.estDays })
     steps = revertChange(steps, r.applied[0]); expect(steps.some(x => x.key === "permission")).toBe(false); expect(steps.find(x => x.key === "finalcheck")!.dependsOn).not.toContain("permission")
     expect(describeWorkflow(presetSteps())).toBe("The standard workflow.")
     expect(describeWorkflow(r.steps)).toBe("Standard workflow, 1 added, 2 changed, 1 removed.")
@@ -78,7 +80,9 @@ describe("org workflow · checks against ASU rules (the engine's, not the AI's)"
     const advisorRole = { id: "r-adv", displayName: "Club Advisor", fn: "advisor" as const, holderId: null }
     const roles = [...base.roles, advisorRole]
     expect(checkWorkflow(presetSteps().map(s => s.key === "contentCreation" ? { ...s, ownerRoleId: "r-adv" } : s), roles).some(i => i.level === "warning" && /advisor/.test(i.text))).toBe(true)
-    const slow = presetSteps().map(s => s.key === "budget" ? { ...s, estDays: 30 } : s)
+    // FB-6: a calibrated step is dated from its own timing, so effort alone no longer moves the plan. A club timing one day
+    // before the event for Quote Gather does: the funding chain after it must finish later, past the R09 purchase deadline.
+    const slow = presetSteps().map(s => s.key === "quotes" ? { ...s, anchor: { kind: "target" as const, days: 1, unit: "calendar" as const, label: "Club timing from your planning notes" } } : s)
     const issues = checkWorkflow(slow, base.roles, base)
     expect(issues.some(i => i.level === "warning" && /would miss a deadline/.test(i.text))).toBe(true)
     expect(issues.some(i => i.level === "blocked")).toBe(false)
@@ -144,7 +148,7 @@ describe("org workflow · the endpoint", () => {
     chat.mockResolvedValueOnce({ data: { summary: "One new step.", changes: [{ op: "add", key: "permission", title: "Collect permission forms", phase: "prepare", days: 2, waitsFor: ["plan"], owner: "Secretary", evidence: "permission forms" }, { op: "update", key: "ghost", days: 3 }], conflicts: [{ text: "Raffles are not allowed.", rules: ["R15"] }], evil: 1 }, model: "mock", provider: "mock" })
     const r = await (await post({ part: "changes", notes: "We collect permission forms. Call Sam at 480-555-0100 or sam@example.org", files: [{ name: "flow.pdf", text: "Step 1: Approve. Step 2: collect permission forms. " + "x ".repeat(30000) }], roles, steps: [{ key: "evil" }] })).json()
     const sent = JSON.parse(chat.mock.calls[0][0].user)
-    expect(chat.mock.calls[0][0].task).toBe("workflow_read"); expect(chat.mock.calls[0][0].timeoutMs).toBeLessThanOrEqual(22_000)
+    expect(chat.mock.calls[0][0].task).toBe("workflow_read"); expect(chat.mock.calls[0][0].timeoutMs).toBeLessThanOrEqual(25_000) // FB-1: the 26 s default budget minus 1 s (was a fixed 21 s)
     expect(sent.steps.map((s: { key: string }) => s.key)).toEqual(EVENT_STEPS.map(s => s.key))        // the server's copy, not the browser's
     expect(JSON.stringify(sent)).not.toMatch(/sam@example|555-0100/); expect(sent.files[0].text.length).toBeLessThanOrEqual(12_000)
     expect(sent.ruleBook.map((x: { id: string }) => x.id)).toContain("R15")

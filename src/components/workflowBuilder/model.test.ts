@@ -1,0 +1,147 @@
+import { describe, expect, it } from "vitest"
+import type { StepTemplate, WorkflowBranch } from "../../data/types"
+import { seedDemo } from "../../data/seed"
+import { checkWorkflow, presetSteps } from "../../engine/workflow"
+import { builderDeletionReason, createBuilderStep, deleteBuilderStep, editError, graphError, insertBuilderStep, insertTeamBuilderStep, reorderTeamBuilderStep, shiftBuilderTaskTarget, type BuilderSnapshot } from "./model"
+const ROLES = seedDemo().roles
+import { buildTimeline } from "./timeline"
+
+const branch: WorkflowBranch = { id: "speaker", title: "Speaker", order: 0, side: "before_event", conditions: ["speaker", "travel"] }
+const task = (key: string, dependsOn: string[] = []): StepTemplate => ({ key, title: key, fn: "programs", ownerRoleId: "r-events", phase: "prepare", stepKind: "situation", cond: "speaker", placement: { branchId: "speaker", order: 0 }, estDays: 2, tier: "light", dependsOn, why: "Instructions", source: "Test", custom: true, anchor: { kind: "target", days: 7, unit: "calendar", label: "Human target" } })
+const snapshot = (): BuilderSnapshot => ({ steps: [task("A"), task("B", ["A"]), task("C", ["B"])], branches: [branch], stepTeams: { A: "team-1", B: "team-1", C: "team-2" } })
+
+describe("workflow editor graph operations", () => {
+  it("inserts before a task within its scope, branch and team, retaining all previous prerequisites", () => {
+    const result = insertBuilderStep(snapshot(), "B", "before", "new")
+    const fresh = result.steps.find(step => step.key === "new")!
+    expect(fresh).toMatchObject({ dependsOn: ["A"], stepKind: "situation", cond: "speaker", ownerRoleId: "r-events", placement: { branchId: "speaker" } })
+    expect(result.stepTeams.new).toBe("team-1")
+    expect(result.steps.find(step => step.key === "B")?.dependsOn).toEqual(["new"])
+    expect(result.branches).toEqual([branch])
+  })
+
+  it("inserts after within the clicked branch without reassigning another branch's dependency", () => {
+    const current = snapshot()
+    current.steps.push({ ...task("other", ["B"]), placement: { branchId: "other-branch", order: 0 } })
+    const result = insertBuilderStep(current, "B", "after", "new")
+    expect(result.steps.find(step => step.key === "new")?.dependsOn).toEqual(["B"])
+    expect(result.steps.find(step => step.key === "C")?.dependsOn).toEqual(["new"])
+    expect(result.steps.find(step => step.key === "other")?.dependsOn).toEqual(["B"])
+  })
+
+  it("adds a parallel task with the same prerequisites, without silently rewiring later tasks", () => {
+    const result = insertBuilderStep(snapshot(), "B", "parallel", "new")
+    expect(result.steps.find(step => step.key === "new")?.dependsOn).toEqual(["A"])
+    expect(result.steps.find(step => step.key === "C")?.dependsOn).toEqual(["B"])
+  })
+
+  it("inserts into an explicitly chosen incoming branch at a merge, retaining the other branch", () => {
+    const current = snapshot()
+    current.steps = [task("speaker-end"), { ...task("marketing-end"), stepKind: "core", cond: undefined, placement: { branchId: "marketing", order: 1 } }, { ...task("finalcheck", ["speaker-end", "marketing-end"]), placement: { branchId: "main", order: 2 }, stepKind: "core", cond: undefined }]
+    current.stepTeams = { "speaker-end": "team-1", "marketing-end": "team-2", finalcheck: "team-2" }
+    const result = insertBuilderStep(current, "finalcheck", "before", "new", "speaker")
+    expect(result.steps.find(step => step.key === "new")).toMatchObject({ stepKind: "situation", cond: "speaker", placement: { branchId: "speaker" }, dependsOn: ["speaker-end"] })
+    expect(result.stepTeams.new).toBe("team-1")
+    expect(result.steps.find(step => step.key === "finalcheck")?.dependsOn).toEqual(["marketing-end", "new"])
+    expect(result.steps.find(step => step.key === "marketing-end")?.dependsOn).toEqual([])
+  })
+
+  it("rejects cycles and dangling references", () => {
+    expect(graphError([task("A", ["B"]), task("B", ["A"])])).toContain("loop")
+    expect(graphError([task("A", ["missing"])])).toContain("no longer exists")
+  })
+
+  it("keeps downstream work connected when a removable step is deleted", () => {
+    const result = deleteBuilderStep(snapshot(), "B")
+    expect(result.steps.find(step => step.key === "C")?.dependsOn).toEqual(["A"])
+    expect(result.stepTeams.B).toBeUndefined()
+    expect(builderDeletionReason(task("finalcheck"), "custom")).toBeNull()
+  })
+
+  it("lets the preset remove its organization core steps but never an ASU step or one an ASU step waits for", () => {
+    for (const key of ["finalcheck", "checkin", "headcount", "plan"]) expect(builderDeletionReason(task(key), "standard")).toBeNull()
+    const school = { ...task("registry", ["venuechoice"]), ruleIds: ["R01"] }
+    expect(builderDeletionReason(school, "standard")).toContain("R01")
+    expect(builderDeletionReason(school, "custom")).toContain("R01")
+    const steps = [task("venuechoice"), school]
+    expect(builderDeletionReason(steps[0], "standard", steps)).toBe("A school-required step waits for this step.")
+    expect(builderDeletionReason(steps[0], "custom", steps)).toBe("A school-required step waits for this step.")
+  })
+
+  it("accepts removing a preset core step in the template editor while ASU steps stay protected", () => {
+    const preset = presetSteps()
+    const before = { steps: preset, stepTeams: {} }
+    expect(editError(before, deleteBuilderStep(before, "checkin"), "standard", ROLES)).toBeNull()
+    expect(editError(before, deleteBuilderStep(before, "finalcheck"), "standard", ROLES)).toBeNull()
+    expect(editError(before, deleteBuilderStep(before, "registry"), "standard", ROLES)).toContain("ASU rule")
+    // Other callers keep the old rule: every organization core step is required.
+    expect(checkWorkflow(deleteBuilderStep(before, "checkin").steps, ROLES).some(issue => issue.level === "blocked" && issue.key === "checkin")).toBe(true)
+  })
+
+  it("generates opaque 36-character step identifiers independently of titles", () => {
+    const a = createBuilderStep("Same name"), b = createBuilderStep("Same name")
+    expect(a.key).toHaveLength(36)
+    expect(a.key).not.toBe(b.key)
+    expect(a.key).not.toContain("Same")
+  })
+
+  it("moves a calibrated window by calendar days while keeping effort, dependencies and assignment", () => {
+    const original = { ...task("Move me", ["A"]), timing: { startDays: 12, dueDays: 7 }, startPolicy: "window" as const }
+    const result = shiftBuilderTaskTarget(original, 3, -7)
+    expect(result.error).toBeNull()
+    expect(result.step).toEqual({ ...original, anchor: { ...original.anchor, days: 4 }, timing: { startDays: 9, dueDays: 4 } })
+    expect(original.timing).toEqual({ startDays: 12, dueDays: 7 })
+  })
+
+  it("refuses school-rule or business-unit dragging instead of silently reinterpreting a date", () => {
+    const official: StepTemplate = { ...task("School rule"), anchor: { kind: "rule", days: 14, ruleId: "R06", unit: "calendar" }, ruleIds: ["R06"] }
+    expect(shiftBuilderTaskTarget(official, 2, -14)).toMatchObject({ step: official, error: expect.stringContaining("locked") })
+    const business: StepTemplate = { ...task("Working days"), anchor: { kind: "target", days: 7, unit: "business", label: "Working target" } }
+    expect(shiftBuilderTaskTarget(business, 2, -14)).toMatchObject({ step: business, error: expect.stringContaining("Finish by") })
+  })
+})
+
+describe("workflow editor team timeline", () => {
+  it("renders exactly one row per team, including empty teams and both sides of the target day", () => {
+    const current = snapshot()
+    current.steps[2] = { ...current.steps[2], phase: "close", anchor: { kind: "target", days: -2, unit: "calendar", label: "After" } }
+    current.stepTeams.C = "team-1"
+    const result = buildTimeline(seedDemo(undefined, "v2"), current, [{ id: "team-1", name: "Operations" }, { id: "team-2", name: "Empty team" }])
+    expect(result.rows).toHaveLength(2)
+    expect(result.rows[0].boxes.map(box => box.step.key).sort()).toEqual(["A", "B", "C"])
+    expect(result.rows[1].boxes).toHaveLength(0)
+    expect(result.boxes.every(box => Number.isFinite(box.x) && Number.isFinite(box.y))).toBe(true)
+  })
+
+  it("reports no extra row for unmapped work and keeps the original dependency records intact", () => {
+    const current = snapshot()
+    delete current.stepTeams.B
+    const before = structuredClone(current)
+    const result = buildTimeline(seedDemo(undefined, "v2"), current, [{ id: "team-1", name: "Operations" }])
+    expect(result.rows).toHaveLength(1)
+    expect(result.boxes.map(box => box.step.key)).toEqual(["A"])
+    expect(current).toEqual(before)
+  })
+})
+
+describe("explicit team ordering", () => {
+  it("inserts before a cross-team merge in the clicked team, keeping all external handoffs", () => {
+    const current = snapshot()
+    current.steps = [task("a"), task("b"), { ...task("merge", ["a", "b"]), stepKind: "core", cond: undefined, placement: { branchId: "main", order: 1 } }]
+    current.stepTeams = { a: "ops", b: "marketing", merge: "leadership" }
+    const result = insertTeamBuilderStep(current, "merge", "before", "new")
+    expect(result.stepTeams.new).toBe("leadership")
+    expect(result.steps.find(step => step.key === "new")).toMatchObject({ stepKind: "core", placement: { branchId: "main" }, dependsOn: ["a", "b"] })
+    expect(result.steps.find(step => step.key === "merge")?.dependsOn).toEqual(["a", "b", "new"])
+  })
+
+  it("moves only one team's chain and reports a cycle when cross-team handoffs prohibit reordering", () => {
+    const current = snapshot()
+    const before = structuredClone(current)
+    current.stepTeams = { A: "ops", B: "marketing", C: "ops" }
+    const invalid = reorderTeamBuilderStep(current, "C", "A", true)
+    expect(graphError(invalid.steps)).toContain("loop")
+    expect(invalid.steps.find(step => step.key === "B")).toEqual(before.steps[1])
+    expect(current.steps).toEqual(before.steps)
+  })
+})

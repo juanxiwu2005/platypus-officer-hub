@@ -1,0 +1,35 @@
+<!doctype html><html><head><meta charset="utf-8"><title>C · Chart with team areas</title><link rel="stylesheet" href="shell.css"><style>.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px}.seg span{padding:5px 12px;border-radius:8px;font-size:14px;color:var(--muted)}.seg .on{background:#fff;color:var(--ink);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.chart{margin-top:18px;background:var(--surface-2);border-radius:14px;padding:16px}
+.zone{border-radius:14px;padding:10px;background:color-mix(in srgb,var(--c) 9%,#fff);border:1px solid color-mix(in srgb,var(--c) 25%,transparent);display:grid;gap:12px;justify-items:center}
+.z1{width:260px;margin:0 auto}.zone .tag{justify-self:start}
+.wires{display:block;width:100%;height:60px}
+.zones{display:grid;grid-template-columns:auto auto auto;justify-content:center;gap:12px}.zone{min-width:0}
+.box{background:#fff;border:2px solid var(--c);border-radius:12px;padding:8px 10px;text-align:center;min-width:104px;white-space:nowrap;font-size:14px}.box small{display:block;color:var(--muted);font-size:12px}
+.box.sel{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}
+.insp input,.insp select,.insp textarea{width:100%;box-sizing:border-box}.insp{min-width:0;display:grid;gap:12px;align-content:start}.insp label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+.insp input,.insp textarea{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--ink)}</style></head><body><div class="top"><div class="logo">P</div><div class="brand"><b>Platypus</b><small>Desert Founders Society</small></div><div class="sp"></div><span class="pill demo">Demo · Sat, Oct 31</span><span class="sm muted">View as</span><select><option>Alex Rivera · President</option></select><button class="btn">Ask Platypus</button></div>
+<div class="shell"><nav class="nav"><a><span class="ico">◷</span>Reminders</a><a><span class="ico">⟨⟩</span>Plan</a><a><span class="ico">⇥</span>Handoff</a><a><span class="ico">◎</span>Team</a><a><span class="ico">≡</span>Rules</a><div class="sec">REFERENCE</div><a class="on"><span class="ico">⚙</span>Settings</a><a><span class="ico">?</span>Help</a></nav>
+<div><h1>Settings</h1><nav class="snav"><a>Club</a><a class="on">Roles &amp; teams</a><a>Workflow</a><a>Tasks</a><a>Links &amp; files</a><a>My preferences</a><a>Admin</a></nav></div><main><div class="label"><b>C · Org chart with team areas</b> — reporting lines + coloured team areas; edit in the right panel.</div><div style="display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px">
+<section class="card">
+<div class="row between"><div><h2>Roles &amp; teams</h2><p class="sm muted" style="margin:6px 0 0">Reporting lines on top, teams as coloured areas. Select a role to edit it.</p></div><div class="row"><div class="seg"><span class="on">Chart</span><span>Contact list</span></div><button class="btn">+ Role</button><button class="btn">+ Team</button></div></div>
+<div class="chart">
+ <div class="zone lead z1"><span class="tag lead"><i></i>Club leadership · 1 step</span><div class="box sel"><b>President</b><small>Alex Rivera</small></div></div>
+ <svg class="wires" viewBox="0 0 900 120" preserveAspectRatio="none"><path d="M450 0 V50 H120 V120 M450 50 H340 V120 M450 50 H560 V120 M450 50 H780 V120" fill="none" stroke="#888e8b" stroke-width="2"/></svg>
+ <div class="zones">
+  <div class="zone ops"><span class="tag ops"><i></i>Operations · 25 steps</span><div class="row" style="gap:10px"><div class="box"><b>Events lead</b><small>Jordan Patel</small></div><div class="box"><b>Secretary</b><small>Priya Nair</small></div></div></div>
+  <div class="zone mkt"><span class="tag mkt"><i></i>Marketing · 8 steps</span><div class="box"><b>Marketing lead</b><small>Sam Okafor</small></div></div>
+  <div class="zone fin"><span class="tag fin"><i></i>Finance · 12 steps</span><div class="box"><b>Treasurer</b><small>Maya Chen</small></div></div>
+ </div>
+</div>
+<div class="row" style="margin-top:14px;gap:18px"><span class="xs muted"><b>Lines</b> = who reports to whom</span><span class="xs muted"><b>Coloured area</b> = workflow team (same colour as Settings → Workflow)</span></div>
+</section>
+<aside class="card insp">
+<div class="row between"><h3>President</h3><span class="xs muted">✕</span></div>
+<label>Officer<select><option>Alex Rivera</option></select></label>
+<label>Reports to<select><option>Nobody (top)</option></select></label>
+<label>Team<select><option>Club leadership</option></select></label>
+<p class="xs muted" style="margin:-4px 0 0">Owns 1 step in Speaker series: Full Check. <span style="color:var(--accent-ink)">Open in Workflow →</span></p>
+<label>Email<input value="alex.rivera@example.org"></label>
+<div class="row"><label style="flex:1">Phone<input value="480-555-0101"></label><label style="flex:1">ASU ID<input value="9999000001"></label></div>
+<label>Duties<textarea rows="4">Leads the club, chairs meetings, signs off events with the advisor.</textarea></label>
+</aside></div></main></div></body></html>

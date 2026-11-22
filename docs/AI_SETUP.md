@@ -21,11 +21,23 @@ Set these under Netlify → Project configuration → Environment variables. Con
 | `AI_PRESET` | Unset, or `asu_air` | AIR is the default. Do not switch providers without approval; see section 3. |
 | `AI_MODEL` | Unset | AIR routing chooses by task; this value is used when routing is disabled. |
 | `AI_MODEL_ROUTING` | Unset, enabled | `off` makes all tasks use `AI_MODEL`; an explicit operator fallback. |
-| `AI_TIMEOUT_MS` | Unset, 25000 | Default only for calls without their own timeout. Ordinary synchronous endpoints have a 22-second total budget, `SYNC_AI_BUDGET_MS` in `netlify/lib/ai.mts`; constitution/workflow setup use 21 seconds. This variable does not extend those budgets. |
+| `AI_TIMEOUT_MS` | Unset, 25000 | Default for calls without their own timeout, including background work; synchronous calls use `AI_SYNC_BUDGET_MS`. |
+| `AI_SYNC_BUDGET_MS` | Unset, 26000 | Whole synchronous call budget, including a second format-fallback or truncation request, clamped to 10000–55000 ms. Constitution/workflow calls use one second less. Health reports `syncBudgetMs`; browsers wait this budget plus 4 seconds, or 30 seconds if unavailable, without automatic retry. Ask offers Stop; reminders offer Skip AI line. |
+| `AI_LIMIT_PROBE` | Unset | Only `on` enables `/api/limit-probe`; otherwise it returns 404. Remove after measurement. |
 | `AI_MIN_OUTPUT_TOKENS` | Unset, 1024 | AIR request output allowance is at least this value, clamped to 256–4096. See the bounded retry rule below. |
 | `ORG_SETUP_ENABLED` | Unset | Optional server storage remains hidden; see section 4. |
 
-**Synchronous budget:** on November 7, production `/api/chat` requested 55 seconds, but Netlify terminated it at about 30 seconds with 504/502 and no `ai_usage` line. The 22-second budget covers the whole call, including any second request for format fallback. Timeout returns a clean 504 JSON response. The browser waits at most 25 seconds, does not retry, and uses local forms/results.
+**Synchronous budget:** November 7 production logs showed Netlify terminating a 55-second `/api/chat` request after 31.2 seconds (approximately 30 seconds), with 504/502 and no usage line. Later Netlify documentation describes 60 seconds. Keep the default 26-second budget until the actual environment is measured. Timeout returns clean 504 JSON and a labelled local fallback. Configuration changes require authorization.
+
+### Measure the actual Netlify limit (FB-1, once after an approved deployment)
+
+`/api/limit-probe` only waits and returns `{ "waited": NN }`; it calls no AI and stores nothing.
+
+1. With deployment authorization, set `AI_LIMIT_PROBE=on` and redeploy.
+2. Open the site's `/api/limit-probe?s=25`, then 35, 45, and 55. JSON means that wait succeeded; 502/504 or an error page means it exceeded the limit. Refine between the last success and first failure if necessary; the maximum probe is 58 seconds.
+3. The original guidance says leave 8–10 seconds of headroom for cold start and other function work; its recorded examples are to keep 26000/unset for a 30-second limit, or use 50000 for a 60-second limit. The 30-second example leaves only 4 seconds, so resolve this discrepancy and measure before changing the budget. The maximum setting is 55000.
+4. Remove `AI_LIMIT_PROBE`, redeploy, and confirm health reports the intended `syncBudgetMs` and the probe returns 404 again.
+5. Record actual observations and settings in `docs/PROGRESS.md` for the coordinating session.
 
 **Output allowance and bounded retry, FB-1, November 15:** on November 12, two live `/api/nudge/draft` calls had only 120 output tokens and were truncated within 4 seconds with “output limit”; the reminder's AI sentence failed every time. The allowance is a maximum, not a requested response length: endpoint checks, including the reminder's 10-word sentence limit, remain. If `finish_reason` is `length` or `max_tokens` and the endpoint cannot retain a complete usable part, retry once with twice the allowance, up to 4096, only with at least 5 seconds remaining. Each call has at most 2 provider requests total, shared between format fallback and truncation retry. Juanxi explicitly approved this exception to the no-automatic-paid-retry rule on November 14.
 
@@ -42,8 +54,8 @@ Routing version: `air-task-routing-v3`.
 | `POST /api/command` | Validated natural-language changes | `command` | Muse |
 | `POST /api/nudge/draft` | One sentence in a reminder draft | `nudge_draft` | Muse |
 | `POST /api/handbook/draft` | Select sources for a role handbook | `handbook_draft` | Muse |
-| `/api/setup/constitution` | Read roles, reporting lines, and duties after Continue in setup step 1; no server storage | `constitution_read` | Muse. Send structure and duties requests sequentially; AIR processes one at a time, so parallel requests queue. Each must return within 21 seconds; duties batches contain at most 6 items. Gemma took 56 seconds on a real constitution and is not used here. |
-| `/api/setup/workflow` | In setup step 5, compare planning notes/files with the standard workflow; propose edits/conflicts and assign roles by duties; no server storage | `workflow_read` | Muse. Send `changes` and `owners` requests sequentially, each within 21 seconds. |
+| `/api/setup/constitution` | Read roles, reporting lines, and duties after Continue in setup step 1; no server storage | `constitution_read` | Muse. Send structure and duties requests sequentially; AIR processes one at a time, so parallel requests queue. Each must return within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default); duties batches contain at most 6 items. Gemma took 56 seconds on a real constitution and is not used here. |
+| `/api/setup/workflow` | In setup step 5, compare planning notes/files with the standard workflow; propose edits/conflicts and assign roles by duties; no server storage | `workflow_read` | Muse. Send `changes` and `owners` requests sequentially, each within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default). |
 | `/api/org/ai` | Longer structured Organization Setup tasks; currently hidden | `setup.*` | Gemma, `gemma4-31b-it` |
 | Same endpoint, explicit Deeper review | User-requested stronger review | `setup.*` with deep mode | GLM, `glm-5-3` |
 

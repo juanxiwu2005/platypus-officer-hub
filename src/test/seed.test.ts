@@ -19,7 +19,14 @@ describe("demo seed", () => {
     expect(demo.events.map(event => event.date)).toEqual(["2027-03-25", "2027-03-18", "2026-12-03"])
     expect(demo.events.every(event => event.date > demo.today)).toBe(true)
     expect(Object.values(forecast.events).every(event => event.color === "green")).toBe(true)
-    expect(byId("e-founder").filter(node => node.status === "done")).toHaveLength(26)
+    // FB-6: against the calibrated windows Founder Dinner (Dec 3) has its planning and funding route done, but this week the moderator
+    // is due, the partner review's reminder goes out (Friday), materials should have started, and distribution and the final check
+    // come later in November.
+    expect(byId("e-founder").filter(node => node.status === "done")).toHaveLength(20)
+    const founder = (key: string) => byId("e-founder").find(node => node.stepKey === key)!
+    expect([founder("moderator").status, founder("moderator").clubDeadline]).toEqual(["in_progress", "2026-11-06"])
+    expect(founder("partnerReview").latestStart).toBe("2026-11-06")
+    expect(founder("materials").latestStart! < demo.today).toBe(true)
     expect(byId("e-night").filter(node => ["waiting", "blocked", "in_progress"].includes(node.status))).toHaveLength(3)
     expect(byId("e-speaker").filter(node => ["waiting", "blocked", "in_progress"].includes(node.status))).toHaveLength(0)
     expect(byId("e-speaker").find(node => node.stepKey === "plan")).toMatchObject({ status: "done", completedOn: demo.today })

@@ -5,8 +5,10 @@ test.beforeEach(async ({ page }) => { await page.route("**/api/health", r => r.f
 
 test("forecast shows colour first; reasons and percentages wait in the hover card", async ({ page }, info) => {
   await page.goto("/#/")
-  const risk = page.getByTestId("risk-list")
-  expect(await risk.locator("tr").count()).toBeLessThanOrEqual(3)
+  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
+  // FB-8: the risk list is gone; the reminder centre marks forecast-red tasks. Concept F: the marks sit on each person's task lines.
+  const risk = page.getByTestId("rq-people")
   const dot = risk.getByTestId("forecast").first().getByRole("button")
   await expect(dot).toHaveAttribute("aria-label", /At risk/)
   const card = risk.getByTestId("forecast").first().locator(".hover-card")

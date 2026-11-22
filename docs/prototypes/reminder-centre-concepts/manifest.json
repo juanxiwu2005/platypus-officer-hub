@@ -1,0 +1,64 @@
+{
+  "created": "2026-11-19",
+  "kind": "static concepts (HTML on real Platypus CSS, Playwright screenshots, no image generation)",
+  "data": "fictional seed club; Sent/Replied counts in A–F are illustrative",
+  "doc": "../../feedback-fix/REMINDER_CENTRE_REVIEW_2026-11-19.md",
+  "images": [
+    {
+      "file": "0-current-reminder-centre.png",
+      "title": "Current Preview 14 page (review_then_auto, Sat Oct 31): 2856px tall, roughly three screens",
+      "width": 1440,
+      "height": 2856,
+      "sha256": "d2a66a4324a32c6f261289ac764ebecdcc13c8a9632aa06c03a253797efc352e"
+    },
+    {
+      "file": "A-one-tap-summary.png",
+      "title": "Option A: One-tap summary",
+      "width": 2880,
+      "height": 1928,
+      "sha256": "344505a19507e7dcdd20796c0cc7b313f742e9266184404b001e972d506c7bdd"
+    },
+    {
+      "file": "B-people-digest.png",
+      "title": "Option B: Group by person",
+      "width": 2880,
+      "height": 1928,
+      "sha256": "545b81fc6e2e5d4777ab0c66b95feec5012f892ad7425a512c14f853b2da6c67"
+    },
+    {
+      "file": "C-pipeline.png",
+      "title": "Option C: Pipeline",
+      "width": 2880,
+      "height": 1928,
+      "sha256": "4a7c60ddb137c17af0bf84f4efec9d27822ff42d977746e7facb204ac2b47054"
+    },
+    {
+      "file": "D-week-timeline.png",
+      "title": "Option D: Weekly timeline",
+      "width": 2880,
+      "height": 1928,
+      "sha256": "3a6abcfb5fe86f70dc9fd5ea24fec1bf72a9b250935e446d51daa23f2fbbc19c"
+    },
+    {
+      "file": "E-table-bulk.png",
+      "title": "Option E: Table and bulk action bar",
+      "width": 2880,
+      "height": 1928,
+      "sha256": "1f92ed34f2fb9944aea8a04b2287f728074e0e1f3da69f763ce127cde1e34cd0"
+    },
+    {
+      "file": "F-review-and-send.png",
+      "title": "Option F: Review each email with a right-side preview",
+      "width": 2880,
+      "height": 1928,
+      "sha256": "1f7dddb183bec0dcea79ad6d29e02f25b94a10a16d136198f265c86d19835d27"
+    },
+    {
+      "file": "G-three-modes.png",
+      "title": "Supplement: One-tap behavior in three sending modes",
+      "width": 2880,
+      "height": 1928,
+      "sha256": "899cfffb069da3283d6f67438744ca60c95d234f71e71f4cc529157e7215daaf"
+    }
+  ]
+}

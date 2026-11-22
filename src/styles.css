@@ -138,6 +138,7 @@ p { margin: 0; }
 main { min-width: 0; display: grid; gap: 16px; max-width: 1180px; width: 100%; justify-self: center; }
 /* Events has the list of events on the left and a wide flow chart, so it sits against the navigation and may use more room; a centered 1180px column left a wide empty strip beside the navigation when the side panel was closed. */
 main:has(> .events-layout) { max-width: 1600px; justify-self: start; }
+main:has(.wfl-root) { max-width: 1600px; }
 
 /* Page parts */
 .page-head { display: flex; gap: 12px; max-width: none; align-items: center; justify-content: space-between; flex-wrap: wrap; min-height: 40px; }
@@ -292,7 +293,7 @@ progress { accent-color: var(--accent); height: 8px; }
 .roles-actions > p { margin: 0; }
 /* Contain the wide table's sticky cells inside its own scroller. Without this,
    Chromium expands the mobile layout viewport to the table's off-screen width. */
-.roles-table-wrap { min-width: 0; max-width: 100%; overflow-x: auto; contain: paint; border: 1px solid var(--line); border-radius: var(--r-md); }
+.roles-table-wrap { min-width: 0; max-width: 100%; overflow-x: auto; contain: paint; container-type: inline-size; border: 1px solid var(--line); border-radius: var(--r-md); }
 .roles-table { width: max-content; min-width: 100%; margin: 0; table-layout: auto; }
 .roles-table th, .roles-table td { white-space: nowrap; }
 .roles-table th:first-child, .roles-table td:first-child { position: sticky; left: 0; z-index: var(--z-raised); background: var(--surface); box-shadow: 1px 0 0 var(--line); }
@@ -307,7 +308,8 @@ progress { accent-color: var(--accent); height: 8px; }
 .role-actions-cell { white-space: nowrap; }
 .role-actions-cell .btn + .btn { margin-left: var(--s2); }
 .role-detail td { position: static !important; padding: 0 !important; white-space: normal; background: var(--surface-2) !important; box-shadow: none !important; }
-.role-detail > td > div { display: grid; gap: var(--s3); padding: var(--s5) var(--s6); border-top: 1px solid var(--line); }
+/* The duties panel stays in the visible part of a sideways-scrolled table: pinned left, as wide as the table window. */
+.role-detail > td > div { position: sticky; left: 0; box-sizing: border-box; width: 100cqi; display: grid; gap: var(--s3); padding: var(--s5) var(--s6); border-top: 1px solid var(--line); }
 .role-detail p { margin: 0; max-width: 78ch; }
 .role-rows { display: grid; gap: var(--s5); container-type: inline-size; }
 .form-stack fieldset.role-row { position: relative; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--s4); align-items: end; padding: var(--s5); }
@@ -563,10 +565,11 @@ div.hover { display: block; }
 .metro.editing .m-dot:not(.station) { cursor: grab; touch-action: none; }
 .metro.editing .m-dot:not(.station):active { cursor: grabbing; }
 .m-node.is-dragging { opacity: .35; }
-.m-hit { fill: none; stroke: transparent; stroke-width: 20; pointer-events: stroke; cursor: pointer; }
+.m-hit { fill: none; stroke: transparent; stroke-width: 20; pointer-events: stroke; cursor: default; }
 .m-hit-line { fill: none; stroke: transparent; stroke-width: 0; pointer-events: none; }
-.m-hit:hover + .m-hit-line { stroke: var(--good); stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round; }
-.m-hit-main:hover + .m-hit-line { stroke-width: 5px; }
+/* Visual-only link hover is retained behind ENABLE_LINK_HOVER in MetroChart.tsx. */
+.link-hover-enabled .m-hit:hover + .m-hit-line { stroke: var(--good); stroke-width: 3px; stroke-linecap: round; stroke-linejoin: round; }
+.link-hover-enabled .m-hit-main:hover + .m-hit-line { stroke-width: 5px; }
 .m-gap { position: absolute; width: 14px; height: 14px; transform: translate(-50%, -50%) rotate(45deg); background: var(--surface); border: 2px solid var(--accent); border-radius: var(--r-xs); pointer-events: none; opacity: .7; z-index: var(--z-raised); }
 .m-gap.is-near { width: 22px; height: 22px; background: var(--accent); opacity: 1; box-shadow: 0 0 0 5px var(--accent-soft); }
 .m-ghost { position: absolute; transform: translate(-50%, -140%); display: grid; gap: var(--s1); padding: var(--s3) var(--s5); border-radius: var(--r-md); background: var(--ink); color: var(--surface); font-size: var(--fs-sm); pointer-events: none; z-index: var(--z-local); max-width: 260px; }

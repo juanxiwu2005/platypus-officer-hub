@@ -1,0 +1,38 @@
+/* FB-4: the task Details panel in three zones, one Due date. Tokens only: see docs/DESIGN_TOKENS.md and AGENTS.md 7.1.
+   No motion here: the panel's arrival animation stays in dx-19-detail-swap.css. */
+
+/* 1. Header: event, title, then status · owner · Due on one wrapping line. */
+.td-head { display: grid; gap: var(--s3); }
+.td-head h2 { margin: 0; font-size: var(--fs-xl); overflow-wrap: anywhere; }
+.td-event { margin: 0; }
+.td-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s5); font-size: var(--fs-md); }
+.td-meta .who { white-space: normal; }
+.td-due { font-size: var(--fs-base); }
+.td-due b { font-weight: 700; }
+.td-remind { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+
+/* 2. Your next step: one primary button, then a row of small ones. */
+.td-zone { display: grid; gap: var(--s5); padding-top: var(--s5); border-top: 1px solid var(--line); }
+.td-zone h3 { margin: 0; font-size: var(--fs-base); }
+.td-zone .task-quick-links { padding-top: 0; border-top: 0; }
+.td-primary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s5); }
+.td-primary .btn-primary { min-height: 40px; padding-inline: var(--s6); font-weight: 600; }
+.td-secondary { display: flex; flex-wrap: wrap; gap: var(--s4); }
+.td-secondary .btn { padding-inline: var(--s4); }
+.td-secondary .btn.is-suggested { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+
+/* 3. Notices only when there are any (the shared .issues list). */
+.td-notices { margin: 0; }
+
+/* 4. Folded reference sections. */
+.td-folds { display: grid; gap: var(--s4); }
+.td-folds .more > p { margin: var(--s2) 0; }
+.td-people { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--s3) var(--s5); margin: 0; }
+.td-people dt { color: var(--muted); }
+.td-people dd { margin: 0; overflow-wrap: anywhere; }
+.td-due-edit { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+.td-due-edit input { width: auto; }
+
+/* Link buttons in "Where to submit": DX-04's touch rule for `a.small` (inline-block, negative margin) would leave their text at
+   the top of a 44px box and let wrapped rows touch. Keep them flex-centred like every other button. */
+.td-zone .task-quick-links a.btn { display: inline-flex; margin-block: 0; padding-block: var(--s3); }

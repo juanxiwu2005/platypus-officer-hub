@@ -76,12 +76,13 @@ const scan = (text: string, rules: { name: string; pattern: RegExp }[]) => rules
 describe("OB-09 guard", () => {
   const files = ["onboarding/founder/Confirm.tsx", "onboarding/founder/Invite.tsx", "onboarding/founder/confirm/summary.ts", "onboarding/founder/invite/links.ts"]
   it("keeps the screens off the server and storage, and off next()", () => { for (const f of files) expect(scan(read(f), SCREEN_RULES), f).toEqual([]) })
-  it("has Confirm create the workspace once, with the classic page's arguments, behind a ref", () => {
+  it("has Confirm create the workspace once, preserving workflow branches, behind a ref", () => {
     const confirm = read("onboarding/founder/Confirm.tsx")
-    expect(confirm.match(/dispatch\(/g)).toHaveLength(1)
-    expect(confirm).toMatch(/dispatch\(\{ type: "completeSetup", draft: \{ \.\.\.draft\.club, people: fillEmails\(draft\.club\.people\) \}, event, date, inviteCode: draft\.inviteCode, clubBufferBusinessDays: draft\.buffer, workflow: draft\.steps, reminderMode \}\)/)
+    expect(confirm.match(/tryDispatch\(/g)).toHaveLength(1)
+    expect(confirm).toMatch(/tryDispatch\(\{ type: "completeSetup", draft: \{ \.\.\.draft\.club, people: fillEmails\(draft\.club\.people\) \}, event, date, inviteCode: draft\.inviteCode, clubBufferBusinessDays: draft\.buffer, workflow: draft\.steps, workflowBranches: draft\.workflowBranches, reminderMode \}\)/)
     expect(confirm).toMatch(/if \(started\.current\) return/)
     expect(confirm).toMatch(/started\.current = true/)
+    expect(confirm).toContain("Your club could not be saved.")
   })
   it("has Invite open links in a new tab with rel=noopener noreferrer", () => { expect(read("onboarding/founder/Invite.tsx").match(/target="_blank" rel="noopener noreferrer"/g)).toHaveLength(2) })
   it("catches each violation (these samples must be flagged)", () => {

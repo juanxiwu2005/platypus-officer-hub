@@ -1424,16 +1424,32 @@ test("organization reporting lines retain manual decisions after real drag, reco
   // back into open space before exercising the now-visible curve controls.
   const linked = await node("marketing_intern").boundingBox();
   expect(linked).not.toBeNull();
+  // The move is saved, and the saved draft that comes back replaces the chart's nodes, so React Flow measures them again and draws
+  // the lines anew. Wait for that save to return and for the line to stay drawn before using it.
+  const moveSaved = page.waitForResponse(
+    (r) => r.url().endsWith("/api/org/setup") && r.request().method() === "POST",
+  );
   await page.mouse.move(linked!.x + 90, linked!.y + 10);
   await page.mouse.down();
   await page.mouse.move(from!.x + 90, from!.y + 10, { steps: 20 });
   await page.mouse.up();
+  await moveSaved;
   await expect
     .poll(() => s.read().draft.roles.find((r) => r.id === "marketing_intern")!.parentRoleId)
     .toBe("marketing");
   const edge = graph.locator(
     '.react-flow__edge[data-id="marketing-marketing_intern"]',
   );
+  await expect
+    .poll(() =>
+      edge.evaluate(
+        (el) =>
+          new Promise<boolean>((done) =>
+            requestAnimationFrame(() => requestAnimationFrame(() => done(el.isConnected))),
+          ),
+      ),
+    )
+    .toBe(true);
   await clickCurve(edge);
   await dragBetween(
     page,

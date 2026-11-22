@@ -1,0 +1,40 @@
+.single-task { min-height: 100vh; padding: var(--s7) var(--s6); }
+.single-task-shell { width: min(100%, 680px); margin: 0 auto; }
+.single-task-brand { display: flex; align-items: center; justify-content: space-between; gap: var(--s6); margin-bottom: var(--s6); color: var(--muted); font-size: var(--fs-md); }
+.single-task-brand a { color: var(--accent-ink); font-weight: 700; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; }
+.single-task-card { padding: var(--s7); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); overflow-wrap: anywhere; }
+.single-task h1 { font-size: var(--fs-2xl); text-wrap: pretty; }
+.single-task h2 { font-size: var(--fs-lg); }
+.single-task p { margin: var(--s5) 0 0; }
+.single-task-event { margin: 0 0 var(--s4); color: var(--accent-ink); font-weight: 600; }
+.single-task-current { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); color: var(--muted); font-size: var(--fs-md); }
+.single-task-badge { display: inline-block; border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink); padding: var(--s2) var(--s5); font-weight: 600; }
+.single-task-badge.is-done { color: var(--good); background: var(--good-soft); }
+.single-task-due { display: grid; gap: var(--s2); margin-top: var(--s6); padding: var(--s5) var(--s6); border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.single-task-due > span { font-size: var(--fs-md); }
+.single-task-due strong { font-size: var(--fs-xl); }
+.single-task-due.is-late { border-color: var(--late); color: var(--late); background: var(--late-soft); }
+.single-task-section { margin-top: var(--s7); padding-top: var(--s7); border-top: 1px solid var(--line); }
+.single-task-copy { white-space: pre-line; }
+.single-task-action { margin-top: var(--s6); }
+.single-task .btn { min-height: 44px; justify-content: center; max-width: 100%; white-space: normal; text-align: center; }
+.single-task-action > p, .single-task-hint, .single-task-demo { font-size: var(--fs-md); color: var(--muted); }
+.single-task-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s4); margin-top: var(--s6); }
+.single-task-risk { margin-top: var(--s7); padding: var(--s5) var(--s6); color: var(--late); background: var(--late-soft); border-radius: var(--r-sm); }
+.single-task-risk ul { padding-left: var(--s6); margin: 0; }
+.single-task-risk li + li { margin-top: var(--s4); }
+.single-task-waiting { display: grid; gap: var(--s5); margin-top: var(--s6); }
+.single-task-waiting label { display: grid; gap: var(--s3); font-weight: 600; }
+.single-task-waiting select, .single-task-waiting textarea { width: 100%; min-width: 0; min-height: 44px; border: 1px solid var(--line); border-radius: var(--r-sm); padding: var(--s5); color: var(--ink); background: var(--surface); font: inherit; font-weight: 400; }
+.single-task-waiting textarea { min-height: 96px; resize: vertical; }
+.single-task-form-actions { display: flex; flex-wrap: wrap; gap: var(--s4); }
+.single-task-saved { color: var(--good); }
+.single-task-error { color: var(--late); }
+.single-task .btn:focus-visible, .single-task a:focus-visible, .single-task select:focus-visible, .single-task textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.single-task-demo { padding: var(--s4) 0; }
+@media (max-width: 460px) {
+  .single-task { padding: var(--s5); }
+  .single-task-card { padding: var(--s6); }
+  .single-task-action > .btn { width: 100%; }
+  .single-task-form-actions > .btn { flex: 1; }
+}

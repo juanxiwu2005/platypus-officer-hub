@@ -4,18 +4,21 @@ import { useStore } from "../../data/store"
 import { useRail } from "./RailContext"
 import { AskPanel } from "./AskPanel"
 import { NudgeComposer } from "../NudgeComposer"
-import { TaskDetail } from "../TaskDetail"
 import { useViewer } from "../../data/store"
 import { Empty } from "../ui"
 import { RouteLoading } from "../RouteLoading"
 import { trapTabKey } from "../../lib/focus"
 
 // Ask, task details and reminders stay eager for Today. Auxiliary editors load when opened.
+const PlanTaskPanel = lazy(() => import("../../reminders/PlanTaskPanel"))
 const FundingDetail = lazy(() => import("../../pages/Funding").then(module => ({ default: module.FundingDetail })))
+const TaskDetail = lazy(() => import("../TaskDetail").then(module => ({ default: module.TaskDetail })))
 const PartnerDetail = lazy(() => import("../crm/ContactDetail").then(module => ({ default: module.PartnerDetail })))
 const OrgDetail = lazy(() => import("../crm/OrgDetail").then(module => ({ default: module.OrgDetail })))
 const HandoffRoleDetail = lazy(() => import("../../pages/Handoff").then(module => ({ default: module.HandoffRoleDetail })))
 const BoardSettingsPanel = lazy(() => import("../BoardSettings").then(module => ({ default: module.BoardSettingsPanel })))
+const DigestPanel = lazy(() => import("../../reminders/DigestPanel"))
+const ReminderHistoryPanel = lazy(() => import("../../reminders/DigestPanel").then(module => ({ default: module.ReminderHistoryPanel })))
 const EventDetail = lazy(() => import("../EventDetail").then(module => ({ default: module.EventDetail })))
 
 /** Right rail: Ask (the only AI box) and Details (whatever was clicked). */
@@ -42,7 +45,7 @@ export function Rail({ closing = false, shown = true }: { closing?: boolean; sho
     covered.forEach(el => el.setAttribute("inert", ""))
     const outside = (e: PointerEvent) => {
       const t = e.target as Element | null
-      if (phone || !t || aside.current?.contains(t) || t.closest("header.topbar, .ask-fab")) return
+      if (phone || !t || aside.current?.contains(t) || t.closest("header.topbar, .ask-fab, .task-edit-backdrop")) return
       rail.setOpen(false)
     }
     document.addEventListener("pointerdown", outside)
@@ -95,17 +98,22 @@ function DetailView() {
   const d = rail.detail!
   const box = useRef<HTMLDivElement>(null)
   // Every kind of detail takes focus when it opens or changes (unless it already put focus inside itself).
-  const key = d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" || d.kind === "event" ? `${d.kind}:${d.eventId}` : d.kind
+  const key = d.kind === "reminderDigest" ? `${d.kind}:${d.recipientId}` : d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" || d.kind === "event" ? `${d.kind}:${d.eventId}` : d.kind
   useEffect(() => {
     box.current?.scrollTo?.({ top: 0 })
     if (box.current && !box.current.contains(document.activeElement)) box.current.focus()
   }, [key])
   const close = () => {
     if (d.kind === "task" && location.pathname === "/tasks" && location.search.includes("node=")) navigate("/tasks", { replace: true })
+    if (d.kind === "task" && location.pathname === "/events" && new URLSearchParams(location.search).has("node")) {
+      const params = new URLSearchParams(location.search)
+      for (const key of ["node", "access", "from"]) params.delete(key)
+      navigate(`/events?${params}`, { replace: true })
+    }
     rail.closeDetail()
   }
   useEffect(() => {
-    if (d.kind === "nudge") return // NudgeComposer handles Escape itself
+    if (d.kind === "nudge" || d.kind === "reminderDigest") return // the reminder panels handle Escape themselves
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) close() }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -129,9 +137,11 @@ function DetailView() {
     case "nudge": return <div ref={box} className="detail-scroll" {...region}><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
     case "task": {
       const node = state.nodes.find(n => n.id === d.id)
-      body = node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
+      body = (location.pathname === "/events" || (location.pathname === "/tasks" && new URLSearchParams(location.search).has("access"))) ? <PlanTaskPanel nodeId={d.id} /> : node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
       break
     }
+    case "reminderDigest": return <div ref={box} className="detail-scroll" {...region}><Suspense fallback={<RouteLoading label="Preparing the email…" />}><DigestPanel recipientId={d.recipientId} onClose={close} /></Suspense></div>
+    case "reminderHistory": body = <ReminderHistoryPanel />; break
     case "funding": body = <FundingDetail eventId={d.eventId} />; break
     case "event": body = <EventDetail eventId={d.eventId} />; break
     case "partner": body = <PartnerDetail id={d.id} />; break

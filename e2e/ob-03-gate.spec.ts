@@ -6,7 +6,7 @@ import { openDemoMenu } from "./helpers"
 // OB-03: the first-visit welcome page. Off by default; on with ?walkthrough=1 (before or after the #).
 test("the switch is off by default: the first visit goes straight to Today", async ({ page }) => {
   await page.goto("/#/")
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   expect(await onboardingRecord(page)).toEqual({ attempts: [] })
 })
 for (const url of ["/?walkthrough=1#/", "/#/?walkthrough=1"]) test(`a first visit opens the welcome page (${url})`, async ({ page }) => {
@@ -20,10 +20,10 @@ for (const url of ["/?walkthrough=1#/", "/#/?walkthrough=1"]) test(`a first visi
 test("Explore the sample club: Today opens, it is remembered, and it is recorded without any typed text", async ({ page }) => {
   await page.goto(WELCOME_ON)
   await page.getByRole("button", { name: "Explore the sample club" }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   expect(await seenWelcome(page)).toBe(true)
   await page.goto(WELCOME_ON); await page.reload()
-  await expect(page.locator("main h1")).toHaveText("Today")   // not asked again
+  await expect(page.locator("main h1")).toHaveText("Reminders")   // not asked again
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
   expect(rec.attempts[0]).toMatchObject({ entry: "explore", outcome: "explored", flowVersion: "ob-4" })
@@ -39,13 +39,13 @@ test("Start walkthrough opens the new founder flow inside the focus shell and is
   expect(rec.attempts).toHaveLength(1); expect(rec.attempts[0]).toMatchObject({ entry: "start", replay: 0 })
   expect(await seenWelcome(page)).toBe(true)   // leaving halfway does not bring the welcome page back
   await page.goto(WELCOME_ON)
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
 })
 test("Exit records the exit and returns to Today", async ({ page }) => {
   await page.goto("/#/welcome/start")
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Name your club")
   await page.getByRole("button", { name: "Exit" }).click()
-  await expect(page.locator("main h1")).toHaveText("Today")
+  await expect(page.locator("main h1")).toHaveText("Reminders")
   expect((await onboardingRecord(page)).attempts[0].outcome).toBe("exited")
 })
 test("Reset demo brings the welcome page back and keeps what was recorded; Replay walkthrough records a new attempt", async ({ page }) => {

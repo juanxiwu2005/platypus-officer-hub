@@ -43,7 +43,7 @@ describe("signed, one-use local demo officer links", () => {
   })
   it("invalid waiting/extension payload does not consume a valid link", async () => {
     const { state, token } = await issued()
-    expect(reducer(state, { type: "officerAction", token, reply: "extension", input: { requestedDate: "2026-11-20" } })).toBe(state)
+    expect(reducer(state, { type: "officerAction", token, reply: "extension", input: { requestedDate: "2026-02-30" } })).toBe(state)
     expect(reducer(state, { type: "officerAction", token, reply: "waiting", input: {} })).toBe(state)
     expect(await verifyOfficerGrant(state, token)).toBe(true)
   })

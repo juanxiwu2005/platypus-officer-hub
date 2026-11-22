@@ -1,0 +1,43 @@
+/* FB-5: + New event, and assigning a person when adding a task. Tokens only: see docs/DESIGN_TOKENS.md and AGENTS.md 7.1.
+   No motion here: opening a form is an everyday action (7.1 rule 5), so it simply appears. */
+
+/* + New event: the primary button, and the reason beside it when this viewer may not create events. */
+.new-event, .new-task { display: inline-flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--s3) var(--s4); }
+.new-event-why, #new-task-why { max-width: 34ch; text-align: right; }
+.new-event-empty { display: grid; justify-items: start; gap: var(--s5); }
+.new-event-empty .new-event { justify-content: flex-start; }
+.new-event-empty .new-event-why { text-align: left; }
+
+/* The Tasks page form: Task name, Assign to, Due on one row on a wide screen, stacked on a phone. */
+.new-task-form {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s5) var(--s6);
+  margin-block: var(--s5);
+}
+.new-task-form label { display: grid; gap: var(--s2); font-size: var(--fs-md); color: var(--muted); }
+.new-task-form input, .new-task-form select {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: var(--s3) var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--fs-base);
+}
+.new-task-due { display: grid; gap: var(--s2); }
+.new-task-due > p { margin: 0; }
+.new-task-form > [role="alert"] { grid-column: 1 / -1; margin: 0; }
+.new-task-buttons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--s4); }
+.new-task-buttons .btn { min-height: 40px; }
+.board-notice .link { margin-left: var(--s4); }
+
+@media (max-width: 860px) {
+  .new-task-form { grid-template-columns: minmax(0, 1fr); }
+  .new-event, .new-task { justify-content: flex-start; }
+  .new-event-why, #new-task-why { text-align: left; }
+}

@@ -27,6 +27,8 @@ export interface Goal {
 }
 
 export interface OrgSettings {
+  /** Withdrawn prototype setting: retained for lossless export, ignored by runtime. */
+  matchingMode?: "legacy" | "responsibilities"
   /** Club deadline = official deadline minus this many business days (plan §4, mechanism 1). */
   clubBufferBusinessDays: number
   /** Silence protocol days (SEO Ghost Owner Protocol defaults). */
@@ -57,11 +59,32 @@ export type EventCheck = "funding" | "food" | "externalFood" | "onsiteFood" | "s
 export type EventChecks = Partial<Record<EventCheck, boolean>>
 export type StepCond = "campus" | "offcampus" | "speaker" | "externalGuest" | "usgFood" | "usgSpeaker" | "offsite" | "dining" | "onsite" | "tbd" | "food" | EventCheck | "large"
 
+/** Saved graph membership; order only breaks ties between independent steps. */
+export interface WorkflowPlacement { branchId: string; order: number }
+/** A step's authored category. Event intake predicates remain separate in cond/branch conditions. */
+export type WorkflowStepKind = "core" | "situation"
+export interface WorkflowBranch {
+  id: string
+  title: string
+  order: number
+  side: "before_event" | "after_event"
+  /** All selected event requirements must match. An explicit empty list means every event. */
+  conditions?: StepCond[]
+  /** Legacy single requirement, used only when conditions is absent. */
+  condition?: StepCond
+  /** Prefer one role/team per branch. TODO: replace role-routing fallback with the future explicit team/role map. */
+  defaultRoleId?: string | null
+}
+
 /**
  * One step of an event workflow. A step has no dates of its own: an anchor (an ASU rule or a club timing) and links to other
  * steps; the rule engine (schedule.ts) turns those into deadlines. Both the standard workflow and a club's own are lists of these.
  */
 export interface StepTemplate {
+  stepKind?: WorkflowStepKind
+  placement?: WorkflowPlacement
+  /** Missing preserves the calibrated defaults; an explicit effort edit opts in. */
+  startPolicy?: "window" | "effort"
   key: string
   title: string
   fn: RoleFunction
@@ -80,18 +103,81 @@ export interface StepTemplate {
   informed?: RoleFunction[]
   /** Added by the club (not from the standard workflow). */
   custom?: boolean
+  /** Calibrated club timing (FB-6). Present: the step is "calibrated" and the rule engine dates it from these offsets. */
+  timing?: StepTiming
+}
+
+/**
+ * Calibrated timing of a step (FB-6, from the owner's event timing table): whole days counted from the event day,
+ * positive before the event and negative after it. `startDays` opens the step's window (the latest start, which is
+ * the day its reminder goes out); `dueDays` is its club deadline. Never a date: the rule engine turns these into dates.
+ */
+export interface StepTiming {
+  startDays: number
+  dueDays: number
+  /** Calendar days by default; business days skip weekends and ASU holidays. */
+  unit?: "calendar" | "business"
 }
 
 /** The club's own event workflow, made in setup from its planning notes and files. New events are built from it. */
 export interface EventWorkflow {
   steps: StepTemplate[]
+  branches?: WorkflowBranch[]
   phaseOrder?: Phase[]
   updatedOn: string
   /** One line about where it came from, e.g. "Adapted from your planning notes and 1 file". */
   summary?: string
 }
 
+/** Authored task identity is its stable key within a template, never its label or position. */
+export interface WorkflowMilestoneGraph {
+  version: 1
+  eventDays: { id: string; title: string; offsetDays: number; details: string }[]
+  start: { title: string; details: string }
+  done: { title: string; details: string }
+  /** Ordered shared stations and real shared task IDs; endpoints and day markers are not executable tasks. */
+  spine: string[]
+  /** `details` is an optional author note for the team assignment (up to 400 characters). */
+  teamBranches: { id: string; teamId: string; fromId: string; toId: string; stepIds: string[]; details?: string }[]
+  taskAnchors: Record<string, { eventDayId: string; offsetDays: number; unit?: "calendar" | "business" }>
+}
+
+export interface WorkflowTemplateContent {
+  /** Optional, version-scoped one/two-day authoring graph. Historical templates remain unchanged. */
+  milestoneGraph?: WorkflowMilestoneGraph
+  /** Explicit dependencies keep team membership separate from precedence. Older sequential snapshots retain their saved behavior. */
+  teamExecution?: "sequential" | "dependencies"
+  name: string
+  description?: string
+  kind: "standard" | "custom"
+  steps: StepTemplate[]
+  branches?: WorkflowBranch[]
+  /** Kept in each version so regrouping the next draft cannot change an existing run. */
+  teamMap?: { version: 1; workflowId: string; stepTeams: Record<string, string> }
+}
+export interface WorkflowTemplateDraft extends WorkflowTemplateContent { baseVersion: number }
+export interface WorkflowTemplateVersion extends WorkflowTemplateContent { version: number; savedOn: string }
+export interface WorkflowTemplate {
+  id: string
+  versions: WorkflowTemplateVersion[]
+  draft?: WorkflowTemplateDraft
+  updatedOn: string
+  copiedFrom?: { templateId: string; templateVersion: number }
+}
+export type WorkflowPresetTeam = "leadership" | "operations" | "marketing" | "finance"
+export interface WorkflowTeam { id: string; name: string }
+export interface WorkflowRun {
+  id: string
+  templateId: string
+  templateVersion: number
+  templateName: string
+  /** Frozen definition and team names; actual work lives only on the generated Nodes. */
+  snapshot: WorkflowTemplateVersion & { teams: WorkflowTeam[] }
+}
+
 export interface Org {
+  /** Archived responsibility workspace identity; not an account or permission. */
+  matchingWorkspaceId?: string
   id: string
   name: string
   school: string
@@ -103,6 +189,14 @@ export interface Org {
   inviteCode: string
   /** The club's own event workflow. Absent: the standard workflow is used. */
   eventWorkflow?: EventWorkflow
+  /** Additive template library. Missing keeps the legacy standard workflow without a migration/reset. */
+  workflowTemplates?: WorkflowTemplate[]
+  defaultWorkflowTemplateId?: string
+  /** Explicit organization grouping, independent of reporting lines and legacy Role/Person fields. */
+  workflowTeams?: WorkflowTeam[]
+  workflowRoleTeams?: Record<string, string>
+  /** Stable defaults bind semantic work groups to editable organization team names. */
+  workflowPresetTeamIds?: Partial<Record<WorkflowPresetTeam, string>>
   /** Task board look (v1.1): renamed statuses, colours, custom tags and which fields cards show. Meanings never change. */
   board?: BoardSettings
 }
@@ -202,6 +296,9 @@ export interface Person {
 export type EventType = "speaker" | "social" | "workshop" | "meeting" | "fundraiser" | "offcampus"
 
 export interface Event {
+  workflowRun?: WorkflowRun
+  /** Snapshot for this event; later template edits must never change its graph. */
+  workflowBranches?: WorkflowBranch[]
   id: string
   name: string
   date: string
@@ -251,6 +348,22 @@ export type Anchor =
 
 /** A node is one step in an event flow, or a standalone task ("executable", plan §6). */
 export interface Node {
+  workflowSource?: { runId: string; templateId: string; templateVersion: number; templateStepId: string }
+  teamId?: string
+  stepKind?: WorkflowStepKind
+  placement?: WorkflowPlacement
+  startPolicy?: "window" | "effort"
+  /** Creation scope, retained for graph editing; existing event tasks are never filtered on read. */
+  cond?: StepCond
+  /** Actual task overrides and work only; workflow templates remain independent. */
+  externalLinks?: import("../taskDetails/contracts").TaskExternalLink[]
+  taskWork?: import("../taskDetails/contracts").TaskWork
+  targetDates?: import("../taskDetails/targetDates").TaskTargetLog
+  /** Optional human-authored instructions; reminder facts never invent missing details. */
+  instructions?: string
+  completionCriteria?: string
+  /** Archived responsibility metadata: preserve without interpreting or applying it. */
+  matching?: unknown
   id: string
   title: string
   eventId: string | null
@@ -295,9 +408,12 @@ export interface Node {
   rank?: number
   /** Custom board tag ids (v1.1). */
   tags?: string[]
+  /** Calibrated timing copied from the workflow step (FB-6). Absent on hand-made tasks and on steps built before FB-6. */
+  timing?: StepTiming
 }
 
 export interface Nudge {
+  message?: import("../reminders/accessContracts").ReminderMailSnapshot
   id: string
   nodeId: string
   channel: Channel
@@ -305,7 +421,10 @@ export interface Nudge {
   sentBy: string
   sentOn: string
   response: NodeStatus | null
+  /** FB-8: who sent it in the demo. "president" = a lead opened the draft and sent it; "platypus" = a lead approved and Platypus would send it (demo: nothing is sent). Absent on reminders recorded before FB-8. */
+  via?: NudgeVia
 }
+export type NudgeVia = "president" | "platypus"
 
 export interface Contribution {
   personId: string
@@ -320,6 +439,7 @@ export interface ExtensionRequest {
   nodeId: string
   ownerId: string
   requestedOn: string
+  requestedBy?: string
   requestedDate: string
   previousDeadline: string | null
   draftLink: string
@@ -493,6 +613,8 @@ export interface HandoffSeason {
 
 /** An AI-proposed change. Applied only after a person approves it (plan §8). */
 export interface ChangeSet {
+  /** Human-selected templates survive the trip from New event to its approval card. */
+  workflowChoices?: Record<number, { templateId: string; templateVersion: number }>
   id: string
   sentence: string
   ops: { op: string; [key: string]: unknown }[]
@@ -510,6 +632,12 @@ export interface ChangeSet {
 }
 
 export interface DemoState {
+  taskAccessGrants?: import("../reminders/accessContracts").TaskAccessGrant[]
+  /** Versioned rule reminders; legacy saves require an explicit upgrade to complete-mail delivery. */
+  reminderRuntime?: import("../reminders/contracts").ReminderRuntime
+  /** Archived prototype snapshots: retained verbatim for export and future explicit recovery. */
+  matching?: unknown
+  matchingContext?: unknown
   schemaVersion: number
   /** The date the demo treats as "today" (simulated clock, WP3). */
   today: string

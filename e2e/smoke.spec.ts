@@ -3,8 +3,8 @@ import { resetDemo, viewAs } from "./helpers"
 import { savedDemo } from "./demo-contract"
 
 const PAGES: [string, string][] = [
-  ["/", "Today"], ["/events", "Events"], ["/tasks", "Tasks"], ["/team", "Team"], ["/funding", "Events"],
-  ["/handoff", "Handoff"], ["/partners", "Partners"], ["/rules", "Rules"], ["/settings", "Settings"], ["/help", "Help"],
+  ["/", "Reminders"], ["/events", "Events"], ["/tasks", "Tasks"], ["/team", "Team"], ["/funding", "Events"],
+  ["/handoff", "Handoff"], ["/partners", "Reminders"], ["/rules", "Rules"], ["/settings", "Settings"], ["/help", "Help"],
 ]
 
 for (const [path, h1] of PAGES) {

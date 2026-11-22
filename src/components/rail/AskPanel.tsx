@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useStore, useViewer } from "../../data/store"
 import type { Event, EventCheck, EventChecks } from "../../data/types"
-import { respond, reviewEvent, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
+import { newEventForm, respond, reviewEvent, STOPPED_FORM_SOURCE, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
 import { PAGES } from "../../routes"
 import { fmtLong, fmtShort } from "../../lib/dates"
 import { FINALS, findPeriod } from "../../engine/calendar"
@@ -16,6 +16,11 @@ import { OwnerPicker, ownersToPeople, TaskDueFields } from "./TaskFields"
 import { canCreateEvent, canLead } from "../../data/changeReview"
 import { policySourceById } from "../../data/policyCatalog"
 import { answerSummary, emitUi } from "../../lib/uiLog"
+import { readAiBudget } from "../../lib/api"
+import { AiWait } from "../AiWait"
+import { EVENT_CHECKLIST } from "../../data/eventChecklist"
+import { findWorkflowTemplateVersion } from "../../data/workflowTemplates"
+import { initialWorkflowChoice, WorkflowTemplatePicker, type WorkflowChoice } from "./WorkflowTemplatePicker"
 
 const CHAT_KEY = "platypus.v1.chat"
 const load = (): ChatMsg[] => {
@@ -40,14 +45,37 @@ export function AskPanel() {
   const [focusOff, setFocusOff] = useState<string | null>(null)
   const list = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
+  // FB-1: every AI request still on its way (a message, the form's second look, a plan check) has a controller here, so
+  // Stop can end them all at once. `waiting` drives the AiWait card; `owner` is the request that currently holds `busy`.
+  const controllers = useRef(new Set<AbortController>())
+  const [waiting, setWaiting] = useState(0)
+  const [waitKey, setWaitKey] = useState(0)
+  const owner = useRef<AbortController | null>(null)
+  const track = () => {
+    const c = new AbortController()
+    setWaitKey(k => k + 1) // the count starts again for the newest request
+    controllers.current.add(c); setWaiting(controllers.current.size)
+    return c
+  }
+  const untrack = (c: AbortController) => { if (controllers.current.delete(c)) setWaiting(controllers.current.size) }
+  /** Stop: end every request now and free the input. Each request then answers from this browser (assistant.ts). */
+  function stopAll() {
+    const all = [...controllers.current]
+    controllers.current.clear(); setWaiting(0)
+    owner.current = null; setBusy(false)
+    all.forEach(c => c.abort())
+    input.current?.focus()
+  }
 
   useEffect(() => save(messages), [messages])
+  // FB-1: learn the server's AI time budget once, so the wait (and "can take up to N s") follows it.
+  useEffect(() => { void readAiBudget() }, [])
   useEffect(() => {
     const clear = () => setMessages([])
     window.addEventListener("platypus:reset", clear)
     return () => window.removeEventListener("platypus:reset", clear)
   }, [])
-  useEffect(() => { list.current?.scrollTo?.({ top: list.current.scrollHeight, behavior: "smooth" }) }, [messages.length, busy])
+  useEffect(() => { list.current?.scrollTo?.({ top: list.current.scrollHeight, behavior: "smooth" }) }, [messages.length, busy, waiting > 0])
 
   // M2b: once a new event is approved, review its plan with the organizer's own details. The request stays in the
   // rail until the result is in this panel, so a panel that closes mid-review (on a phone) runs it again on reopen.
@@ -59,14 +87,22 @@ export function AskPanel() {
     if (!toReview || reviewing.current === toReview || !state.events.some(e => e.id === toReview)) return
     reviewing.current = toReview
     setBusy(true)
+    const ctrl = track()
+    owner.current = ctrl
     const started = Date.now()
-    reviewEvent(state, toReview).then(reply => {
-      emitUi("ui.answer", { ...answerSummary(reply, Date.now() - started), trigger: "plan-check" })
+    reviewEvent(state, toReview, ctrl.signal).then(reply => {
+      // After Stop the reply is the rule engine's own check (FB-1): logged as "stopped".
+      emitUi("ui.answer", { ...answerSummary(reply, Date.now() - started), trigger: "plan-check", ...(ctrl.signal.aborted ? { answer: "stopped", fallback: true } : {}) })
       if (!mounted.current) return
       if (reply.changeSet) dispatch({ type: "draftChanges", changeSet: reply.changeSet })
       setMessages(m => [...m, { id: uid(), role: "assistant", cards: reply.cards, source: reply.source }])
       rail.takeReview()
-    }).catch(() => { emitUi("ui.answer", { answer: "error", trigger: "plan-check", ms: Date.now() - started }, false); if (mounted.current) rail.takeReview() }).finally(() => { if (mounted.current) { setBusy(false); reviewing.current = null } })
+    }).catch(() => { emitUi("ui.answer", { answer: "error", trigger: "plan-check", ms: Date.now() - started }, false); if (mounted.current) rail.takeReview() }).finally(() => {
+      untrack(ctrl)
+      if (!mounted.current) return
+      reviewing.current = null
+      if (owner.current === ctrl) { owner.current = null; setBusy(false) }
+    })
   }, [toReview, state])
 
   const focus: Focus | null = useMemo(() => {
@@ -91,22 +127,34 @@ export function AskPanel() {
     // Research log: the question (cut to 200 characters by the log) and, below, the KIND of answer — never the answer text.
     emitUi("ui.ask", { question: t, via, route: location.pathname, focus: activeFocus ? activeFocus.kind : null })
     const started = Date.now()
+    const ctrl = track()
+    owner.current = ctrl
+    let refining = false
     try {
-      const reply = await respond(t, state, person.id, activeFocus, location.pathname, messages)
-      emitUi("ui.answer", answerSummary(reply, Date.now() - started))
+      const reply = await respond(t, state, person.id, activeFocus, location.pathname, messages, ctrl.signal)
+      // After Stop the reply is the local answer (FB-1). Same kind of record, with answer "stopped".
+      emitUi("ui.answer", ctrl.signal.aborted ? { ...answerSummary(reply, Date.now() - started), answer: "stopped", fallback: true } : answerSummary(reply, Date.now() - started))
       if (reply.autoSet) dispatch({ type: "aiAutoApply", changeSet: reply.autoSet })
       if (reply.changeSet) dispatch({ type: "draftChanges", changeSet: reply.changeSet })
       const msgId = uid()
       setMessages(m => [...m, { id: msgId, role: "assistant", cards: reply.cards, source: reply.source }])
       if (reply.refine) {
-        // Why the AI had nothing: ran out of time, unavailable, or answered without a usable card ("empty").
-        const miss = () => reply.refineMiss?.why ?? "empty"
-        void reply.refine.then(r => { emitUi("ui.answer", r ? { ...answerSummary(r, Date.now() - started), refine: true } : { answer: miss(), refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, r, miss()) }, () => { emitUi("ui.answer", { answer: "unavailable", refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, null, "unavailable") })
+        // The form is showing; the AI's second look is still on its way and Stop can end it (the form stays as it is).
+        refining = true
+        // Why the AI had nothing: ran out of time, unavailable, stopped, or answered without a usable card ("empty").
+        const miss = () => ctrl.signal.aborted ? "stopped" : reply.refineMiss?.why ?? "empty"
+        void reply.refine.then(r => {
+          if (ctrl.signal.aborted) r = null // never fill the form after Stop
+          emitUi("ui.answer", r ? { ...answerSummary(r, Date.now() - started), refine: true } : { answer: miss(), refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, r, miss())
+        }, () => { emitUi("ui.answer", { answer: ctrl.signal.aborted ? "stopped" : "unavailable", refine: true, fallback: true, ms: Date.now() - started }); applyRefine(msgId, null, ctrl.signal.aborted ? "stopped" : "unavailable") }).finally(() => untrack(ctrl))
       }
     } catch {
       emitUi("ui.answer", { answer: "error", ms: Date.now() - started }, false)
       setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Something went wrong. Please try again." }], source: "Platypus" }])
-    } finally { setBusy(false) }
+    } finally {
+      if (!refining) untrack(ctrl)
+      if (owner.current === ctrl) { owner.current = null; setBusy(false) }
+    }
   }
 
   // Questions sent from elsewhere ("Ask about this rule", "Ask AI about this step").
@@ -118,12 +166,29 @@ export function AskPanel() {
     else { setText(p.text); setTimeout(() => input.current?.focus(), 30) }
   }, [rail.pending?.n])
 
+  // "+ New event" (FB-5): the empty event form, shown at once without AI, with focus on its first field. A second
+  // click while that form is still the last message and untouched only moves focus back to it.
+  const blankForm = useRef<string | null>(null)
+  const focusFirst = (formId: string) => setTimeout(() => list.current?.querySelector<HTMLElement>(`[data-form-id="${formId}"] input`)?.focus(), 30)
+  useEffect(() => {
+    const r = rail.formRequest
+    if (!r) return
+    rail.takeFormRequest()
+    const last = messagesRef.current.at(-1)
+    const open = last?.cards?.find(c => c.kind === "form" && c.id === blankForm.current && !c.done)
+    if (open && open.kind === "form") { focusFirst(open.id); return }
+    const card = newEventForm()
+    blankForm.current = card.id
+    setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Choose a saved workflow and tell me about the event." }, card], source: "Platypus" }])
+    focusFirst(card.id)
+  }, [rail.formRequest?.n])
+
   /**
    * The assistant's answer to a message whose form is already showing (M2b): it fills the form's untouched fields.
    * If it read the message as something else (a task, not an event, or a question), its reply follows as a new
    * message, unless the person already used the form.
    */
-  function applyRefine(msgId: string, refined: Reply | null, miss: "timeout" | "unavailable" | "empty" = "empty") {
+  function applyRefine(msgId: string, refined: Reply | null, miss: "timeout" | "unavailable" | "stopped" | "empty" = "empty") {
     const isForm = (c: ChatCard) => c.kind === "form" || c.kind === "taskform"
     const msg = messagesRef.current.find(x => x.id === msgId)
     const local = msg?.cards?.find(isForm) as { kind: string; done?: boolean } | undefined
@@ -132,7 +197,7 @@ export function AskPanel() {
     const same = !!local && !!aiCard && local.kind === aiCard.kind
     const update = (fn: (x: ChatMsg) => ChatMsg) => setMessages(m => m.map(x => x.id === msgId ? fn(x) : x))
     const settle = (x: ChatMsg, source = x.source) => ({ ...x, source, cards: x.cards?.map(c => isForm(c) ? { ...c, thinking: false } as ChatCard : c) })
-    if (!refined) return update(x => settle(x, miss === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : miss === "unavailable" ? "Platypus · AI unavailable, filled from your words" : "Platypus · AI had nothing to add, filled from your words"))
+    if (!refined) return update(x => settle(x, miss === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : miss === "unavailable" ? "Platypus · AI unavailable, filled from your words" : miss === "stopped" ? STOPPED_FORM_SOURCE : "Platypus · AI had nothing to add, filled from your words"))
     if (same) return update(x => ({
       ...x, source: refined.source,
       cards: x.cards?.map(c => {
@@ -150,23 +215,23 @@ export function AskPanel() {
   }
   const patchCard = (msgId: string, cardIndex: number, card: ChatCard) => setMessages(m => m.map(x => x.id === msgId ? { ...x, cards: x.cards?.map((c, i) => i === cardIndex ? card : c) } : x))
   /** The filled form becomes a change set straight away; the date is the one the person picked. */
-  function submitPlan(msgId: string, index: number, c: Extract<ChatCard, { kind: "form" }>) {
+  function submitPlan(msgId: string, index: number, c: Extract<ChatCard, { kind: "form" }>, workflowChoice?: WorkflowChoice) {
     patchCard(msgId, index, c)
     const op = sanitizeOps([{ ...c.prefill, op: "create_event" }], state)[0]
     if (!op) return
     const id = `change-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-    dispatch({ type: "draftChanges", changeSet: { id, sentence: `Plan ${c.prefill.name} on ${c.date}`, ops: [op], status: "pending", source: "Your details + the club playbook" } })
+    dispatch({ type: "draftChanges", changeSet: { id, sentence: `Plan ${c.prefill.name} on ${c.date}`, ops: [op], status: "pending", source: "Your details + the saved workflow", ...(workflowChoice ? { workflowChoices: { 0: workflowChoice } } : {}) } })
     setMessages(m => [...m,
       { id: uid(), role: "user", text: [c.prefill.name, c.date, `${c.prefill.headcount} people`, `food: ${c.prefill.food && c.prefill.food !== "none" ? FOOD[c.prefill.food] : "no"}`, c.prefill.speaker ? "guest speaker or performer" : null].filter(Boolean).join(" · ") },
-      { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Here is the draft. Approve it and I'll check the plan and open its flow chart." }, { kind: "changes", changeSetId: id }], source: "Club playbook" },
+      { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Review the details, then apply them to open the plan." }, { kind: "changes", changeSetId: id }], source: "Saved workflow" },
     ])
   }
-  /** The task form creates at once, as the viewer, with Undo: one task per owner. */
-  function submitTask(msgId: string, index: number, c: Extract<ChatCard, { kind: "taskform" }>, buffered: boolean) {
+  /** The task form creates at once, as the viewer, with Undo: one task per owner. Its one date is Due (FB-5): no buffer. */
+  function submitTask(msgId: string, index: number, c: Extract<ChatCard, { kind: "taskform" }>) {
     const id = `tasks-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
     const people = ownersToPeople(c.owners, state.people, state.roles)
     const tasks = (people.length ? people : [null]).map(ownerId => ({ title: c.title, ownerId, eventId: c.eventId }))
-    dispatch({ type: "createTasks", id, sentence: c.title, tasks, date: c.due, buffered, source: "Your task form" })
+    dispatch({ type: "createTasks", id, sentence: c.title, tasks, date: c.due, buffered: false, source: "Your task form" })
     patchCard(msgId, index, { ...c, done: true, changeSetId: id })
   }
   const suggestions = SUGGESTIONS[location.pathname] ?? SUGGESTIONS["/"]
@@ -187,10 +252,10 @@ export function AskPanel() {
       {messages.map(m => m.role === "user"
         ? <div key={m.id} className={`bubble user${alreadyThere.current.has(m.id) ? "" : " is-new"}`}>{m.text}</div>
         : <div key={m.id} className={`bubble bot${alreadyThere.current.has(m.id) ? "" : " is-new"}`} data-testid="bot-reply">
-          {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={card => submitPlan(m.id, i, card)} onTask={(card, buffered) => submitTask(m.id, i, card, buffered)} onMoved={card => patchCard(m.id, i, card)} />)}
+          {m.cards?.map((c, i) => <CardView key={i} card={c} onPlan={(card, workflowChoice) => submitPlan(m.id, i, card, workflowChoice)} onTask={card => submitTask(m.id, i, card)} onMoved={card => patchCard(m.id, i, card)} />)}
           {m.source && <span className="ask-source">{m.source}</span>}
         </div>)}
-      {busy && <Typing />}
+      {waiting > 0 && <AiWait key={waitKey} onStop={stopAll} stopTestId="ask-stop" />}
     </div>
     {messages.length > 0 && suggestionRow}
     <form className="ask-form" onSubmit={e => { e.preventDefault(); void send(text) }}>
@@ -201,7 +266,7 @@ export function AskPanel() {
   </section>
 }
 
-function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (c: Extract<ChatCard, { kind: "form" }>) => void; onTask: (c: Extract<ChatCard, { kind: "taskform" }>, buffered: boolean) => void; onMoved: (c: Extract<ChatCard, { kind: "eventdate" }>) => void }) {
+function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (c: Extract<ChatCard, { kind: "form" }>, workflowChoice?: WorkflowChoice) => void; onTask: (c: Extract<ChatCard, { kind: "taskform" }>) => void; onMoved: (c: Extract<ChatCard, { kind: "eventdate" }>) => void }) {
   const { state } = useStore()
   const rail = useRail()
   switch (card.kind) {
@@ -254,24 +319,18 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
 }
 
 const FOOD: Record<Event["food"], string> = { none: "none", dining: "Sun Devil Dining", offsite: "outside caterer", onsite: "made on site", tbd: "yes" }
-const EVENT_CHECKLIST: { key: EventCheck; label: string }[] = [
-  { key: "funding", label: "Need funding or reimbursement" }, { key: "food", label: "Food or beverage" }, { key: "externalFood", label: "External food provider" }, { key: "onsiteFood", label: "On-site food preparation or food truck" },
-  { key: "speaker", label: "External speaker, artist, or performer" }, { key: "partner", label: "Partner, sponsor, co-host, vendor, or contract" }, { key: "travel", label: "Travel or off-site participant trip" }, { key: "parking", label: "Parking, shuttle, loading, or transportation" },
-  { key: "advisor", label: "Advisor involvement required" }, { key: "access", label: "Accessibility accommodation or access support" }, { key: "safety", label: "Security, EMS, VIP, media, protest, or elevated safety risk" }, { key: "outdoor", label: "Outdoor special-use setup or equipment" },
-  { key: "alcohol", label: "Alcohol" }, { key: "drone", label: "Drone or model aircraft" }, { key: "media", label: "Music, livestream, recording, or media use" }, { key: "prize", label: "Prize, raffle, fundraising, ticket, or donation activity" },
-  { key: "schoolApproval", label: "School or college-specific approval" }, { key: "rsvp", label: "RSVP registration needed" },
-]
 
 /**
- * The event form (M2b, Juanxi 2026-10-27): only what changes the plan — name, date, people, food yes/no and a
+ * The event form: choose a saved workflow, then provide the event facts — name, date, people, food and a
  * guest speaker or performer — plus Details in the person's own words. Place, catering and funding are decided
  * later in the event and finance steps; anything the person already said is kept as it was understood.
  */
-function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>; onDone: (c: Extract<ChatCard, { kind: "form" }>) => void }) {
+export function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>; onDone: (c: Extract<ChatCard, { kind: "form" }>, workflowChoice?: WorkflowChoice) => void }) {
   const { state } = useStore()
   const allowed = canCreateEvent(state)
   const [f, setF] = useState({ name: card.prefill.name ?? "", type: card.prefill.type ?? (card.prefill.speaker ? "speaker" : "social"), headcount: card.prefill.headcount ?? 30, venue: card.prefill.venue ?? "campus", food: card.prefill.food ?? "none", funding: card.prefill.funding ?? "none", speaker: card.prefill.speaker ?? false, checks: card.prefill.checks ?? {} as EventChecks, details: card.prefill.details ?? "" })
   const [date, setDate] = useState(card.date)
+  const [workflowChoice, setWorkflowChoice] = useState(() => initialWorkflowChoice(state))
   const [error, setError] = useState("")
   // Fields the person changed are theirs; the assistant's later reading only fills the others.
   const touched = useRef(new Set<string>())
@@ -295,18 +354,20 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
   const hasFood = f.food !== "none"
   const toggleCheck = (key: EventCheck, checked: boolean) => edit({ checks: { ...f.checks, [key]: checked } })
   const finals = /^\d{4}-\d{2}-\d{2}$/.test(date) ? findPeriod(date, FINALS) : null
-  return <form className="mini-card plan-form" data-testid="plan-form" autoComplete="off" onSubmit={e => {
+  return <form className="mini-card plan-form" data-testid="plan-form" data-form-id={card.id} autoComplete="off" onSubmit={e => {
     e.preventDefault()
     if (!allowed) return setError("The president chooses who can create events (Settings).")
     if (!f.name.trim()) return setError("Give the event a name.")
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < state.today) return setError("Pick a date from today on.")
+    if (!workflowChoice || !findWorkflowTemplateVersion(state, workflowChoice.templateId, workflowChoice.templateVersion)) return setError("Choose a saved workflow version.")
     const details = f.details.trim()
-    onDone({ ...card, done: true, date, prefill: { ...f, name: f.name.trim(), details: details || undefined } })
+    onDone({ ...card, done: true, date, prefill: { ...f, name: f.name.trim(), details: details || undefined } }, workflowChoice)
   }}>
     <b>I need these details</b>
     {card.thinking && <p className="small muted" data-testid="ai-reading">AI is reading your message and will fill in what it can…</p>}
     {filled && <p className="small muted" data-testid="ai-filled">AI filled in what you told it. Check and change anything.</p>}
     <label>Event name<input name="platypus-event-title" autoComplete="off" value={f.name} maxLength={80} onChange={e => edit({ name: e.target.value })} placeholder="e.g. Founder Dinner" /></label>
+    <WorkflowTemplatePicker state={state} value={workflowChoice} onChange={setWorkflowChoice} />
     <div className="form-2">
       <label>Date<input type="date" aria-label="Date" value={date} min={state.today} onChange={e => setDate(e.target.value)} /></label>
       <label>People<input type="number" min={1} max={5000} value={f.headcount} onChange={e => edit({ headcount: Number(e.target.value) })} /></label>
@@ -322,11 +383,10 @@ function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>;
   </form>
 }
 
-/** The task form (M2b): name, owners as tags, due date, and the club deadline before it. */
-function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform" }>; onDone: (c: Extract<ChatCard, { kind: "taskform" }>, buffered: boolean) => void }) {
+/** The task form (M2b): name, owners as tags, and one date, Due (FB-5). */
+function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform" }>; onDone: (c: Extract<ChatCard, { kind: "taskform" }>) => void }) {
   const { state } = useStore()
   const [c, setC] = useState(card)
-  const [buffered, setBuffered] = useState(true)
   const [error, setError] = useState("")
   const touched = useRef(new Set<string>())
   const edit = (patch: Partial<typeof c>) => { Object.keys(patch).forEach(k => touched.current.add(k)); setC(prev => ({ ...prev, ...patch })) }
@@ -346,7 +406,7 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
     e.preventDefault()
     if (!c.title.trim()) return setError("Give the task a name.")
     if (!/^\d{4}-\d{2}-\d{2}$/.test(c.due) || c.due < state.today) return setError("Pick a due date from today on.")
-    onDone({ ...c, title: c.title.trim(), thinking: false }, buffered)
+    onDone({ ...c, title: c.title.trim(), thinking: false })
   }}>
     <b>New task</b>
     {card.thinking && <p className="small muted" data-testid="ai-reading">AI is reading your message and will fill in what it can…</p>}
@@ -355,7 +415,7 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
     <OwnerPicker value={c.owners} onChange={owners => edit({ owners })} />
     {people > 1 && <p className="small muted">Makes {people} tasks, one for each person, so everyone has their own deadline.</p>}
     {!c.owners.length && <p className="small muted">{canLead(state) ? "No owner yet: anyone can claim it." : "No owner: it will be yours."}</p>}
-    <TaskDueFields due={c.due} buffered={buffered} onDue={due => edit({ due })} onBuffered={setBuffered} />
+    <TaskDueFields due={c.due} onDue={due => edit({ due })} />
     {error && <p className="small late-text" role="alert">{error}</p>}
     <button className="btn btn-primary" type="submit">{people > 1 ? `Create ${people} tasks` : "Create task"}</button>
   </form>
@@ -381,7 +441,7 @@ function EventDateCard({ card, onDone }: { card: Extract<ChatCard, { kind: "even
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < state.today) return setError("Pick a date from today on.")
     dispatch({ type: "updateEvent", id: ev.id, patch: { date } })
     onDone({ ...card, eventId: ev.id, date, done: true })
-    rail.requestReview(ev.id)
+    if (ev.workflowRun?.snapshot.kind !== "custom") rail.requestReview(ev.id)
   }}>
     <b>Move an event</b>
     <label>Event<select aria-label="Event" value={eventId} onChange={e => setEventId(e.target.value)}>{state.events.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
@@ -395,9 +455,3 @@ function EventDateCard({ card, onDone }: { card: Extract<ChatCard, { kind: "even
   </form>
 }
 
-/** Typing dots; after a few seconds, say why it is taking a while (ASU AIR can take most of a minute). */
-function Typing() {
-  const [slow, setSlow] = useState(false)
-  useEffect(() => { const t = setTimeout(() => setSlow(true), 6000); return () => clearTimeout(t) }, [])
-  return <div className="ai-wait" aria-label="Thinking"><span className="ai-wait-mark" aria-hidden="true"><i /><i /><i /></span><span><b>Platypus is working</b><small>{slow ? "The ASU AI is still preparing a careful answer." : "Reading your question and checking the relevant context…"}</small></span></div>
-}

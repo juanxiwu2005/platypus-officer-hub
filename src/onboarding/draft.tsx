@@ -3,19 +3,18 @@ import { useLocation } from "react-router-dom"
 import { useStore } from "../data/store"
 import { stepAt } from "./engine/flows"
 import { BUFFER_CHOICES, clubDraft, type ClubDraft, type FirstEvent } from "../data/settings"
-import type { DemoState, ReminderMode, StepTemplate } from "../data/types"
+import type { DemoState, ReminderMode, StepTemplate, WorkflowBranch } from "../data/types"
 import { orgSteps } from "../engine/playbooks"
 import { withOwners } from "../engine/workflow"
 import type { ConstitutionDoc } from "../components/setup/ConstitutionStep"
 import type { ConstitutionRead } from "../lib/constitution"
-import { deleteJson, loadJson, saveJson } from "../lib/localDocs"
+import { deleteJson, loadJson, saveJson, saveJsonWithBackup } from "../lib/localDocs"
 
-/** The AI's reading of the constitution while the president keeps going. Same shapes as the classic setup page. */
+/** The AI's reading of the constitution while the president keeps going. Shared by every setup entry. */
 export type Reading = { status: "idle" } | { status: "reading" } | { status: "ready"; read: ConstitutionRead; note: string; retry: boolean; pending: number }
 
 /**
- * Everything the founder flow collects, in one place. It holds every piece of state the classic Setup page keeps, so a screen only reads and
- * writes this and never needs another field added.
+ * Everything the founder flow collects, in one place. Screens read and write this same draft regardless of which entry opened setup.
  */
 export interface OnboardingDraft {
   club: ClubDraft                 // name, mission, goals, roles, people, workspace links
@@ -25,6 +24,7 @@ export interface OnboardingDraft {
   structureTouched: boolean       // the president edited roles by hand: never overwrite them
   missionTouched: boolean
   steps: StepTemplate[]           // the club's event workflow
+  workflowBranches?: WorkflowBranch[]
   workflowTouched: boolean
   buffer: number                  // working days before the real deadline
   sentence: string                // the first event, in one sentence
@@ -44,10 +44,12 @@ interface DraftValue {
   update: (fn: (d: OnboardingDraft) => OnboardingDraft) => void
   /** A new attempt (study link, Start walkthrough, Replay, a Test button): a fresh draft, and the saved copy of the last one is gone. */
   reset: () => void
+  /** Preserve the previous saved draft before explicitly continuing a legacy setup. */
+  restore: (next: OnboardingDraft) => Promise<boolean>
   /** The walkthrough is over (Start workspace, Keep current demo, Exit): delete the saved copy and save nothing more until the next reset. */
   clear: () => void
 }
-const DRAFT_ID = "onboarding-draft"                   // not the classic page's "setup-draft", so the two never overwrite each other
+const DRAFT_ID = "onboarding-draft"                   // legacy setup-draft remains intact after an explicit import
 const TAB_KEY = "platypus.v1.onboarding.draft"        // sessionStorage: which saved draft belongs to this tab's current walkthrough
 const WEEK = 7 * 86_400_000
 const SAVE_DELAY = 250
@@ -67,7 +69,7 @@ export function freshDraft(state: DemoState): OnboardingDraft {
   const club: ClubDraft = { ...base, name: "", mission: "", goals: [], workspace: { ...base.workspace, planningNotes: "", files: [] } }
   return {
     club, doc: null, reading: { status: "idle" }, applied: false, structureTouched: false, missionTouched: false,
-    steps: withOwners(orgSteps(state), club.roles), workflowTouched: false,
+    steps: withOwners(orgSteps(state), club.roles), workflowBranches: state.org.eventWorkflow?.branches ? structuredClone(state.org.eventWorkflow.branches) : undefined, workflowTouched: false,
     buffer: (BUFFER_CHOICES as readonly number[]).includes(state.org.settings.clubBufferBusinessDays) ? state.org.settings.clubBufferBusinessDays : 3,
     sentence: "", event: null, date: "", source: "", confirmed: false, reminderMode: null,
     inviteCode: crypto.randomUUID(), skipped: [],
@@ -87,7 +89,8 @@ export function OnboardingDraftProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<OnboardingDraft>(() => freshDraft(state))
   // Only a flow screen waits for the saved copy. The welcome page and the doors that begin an attempt (start, test) show at once: they start fresh anyway.
   const { pathname } = useLocation()
-  const [ready, setReady] = useState(() => !stepAt(pathname))
+  const [ready, setReady] = useState(() => !stepAt(pathname) && !["/welcome/setup", "/welcome/classic"].includes(pathname))
+  const revision = useRef(0)
   const wasReset = useRef(false)
   const latest = useRef(draft)
   const dirty = useRef(false)
@@ -135,6 +138,7 @@ export function OnboardingDraftProvider({ children }: { children: ReactNode }) {
   const update = useCallback((fn: (d: OnboardingDraft) => OnboardingDraft) => { dirty.current = true; setDraft(fn) }, [])
   const patch = useCallback((next: Partial<OnboardingDraft>) => update(d => ({ ...d, ...next })), [update])
   const clear = useCallback(() => {
+    revision.current++
     closed.current = true; dirty.current = false
     if (pending.current) { clearTimeout(pending.current); pending.current = null }
     // Forget the tab's walkthrough first: a save already on its way can then never be restored, whatever order the browser database runs in (OB-09 race).
@@ -142,13 +146,28 @@ export function OnboardingDraftProvider({ children }: { children: ReactNode }) {
     void deleteJson(DRAFT_ID)
   }, [])
   const reset = useCallback(() => {
+    revision.current++
     if (pending.current) { clearTimeout(pending.current); pending.current = null }
     closed.current = false; dirty.current = false; wasReset.current = true
     newTab()
     void deleteJson(DRAFT_ID)
     setDraft(freshDraft(stateRef.current))
   }, [])
-  const value = useMemo(() => ({ draft, patch, update, reset, clear }), [draft, patch, update, reset, clear])
+  const restore = useCallback(async (next: OnboardingDraft) => {
+    const version = ++revision.current
+    if (pending.current) { clearTimeout(pending.current); pending.current = null }
+    closed.current = true; wasReset.current = true
+    const tab = crypto.randomUUID()
+    const { reading, ...rest } = next; void reading
+    const saved = await saveJsonWithBackup(DRAFT_ID, { ...rest, tab } satisfies Saved)
+    if (version !== revision.current) return false
+    if (!saved) { closed.current = false; return false }
+    writeTab(tab)
+    latest.current = next; dirty.current = false; closed.current = false
+    setDraft(next)
+    return true
+  }, [])
+  const value = useMemo(() => ({ draft, patch, update, reset, clear, restore }), [draft, patch, update, reset, clear, restore])
   return <DraftContext.Provider value={value}>{ready ? children : null}</DraftContext.Provider>
 }
 export function useOnboardingDraft() { const value = useContext(DraftContext); if (!value) throw new Error("OnboardingDraftProvider is required"); return value }

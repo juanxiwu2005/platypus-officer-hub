@@ -1,0 +1,110 @@
+{
+  "date": "2026-11-18",
+  "timezone": "America/Phoenix",
+  "status": "Static concepts for discussion, not product screenshots or engine implementation",
+  "codeSnapshot": "e2560f6",
+  "imageGenerationCalls": 7,
+  "originalImagesPreserved": true,
+  "aiProductCalls": 0,
+  "externalMailSent": 0,
+  "htmlCreated": false,
+  "runtimeChanged": false,
+  "commonSample": {
+    "team": "Operations",
+    "stepCount": 8,
+    "edgeCount": 8,
+    "source": "layout-analysis.json",
+    "calendarPositions": "Illustrative, not rule-engine-validated schedule output",
+    "estimates": "Original 1/3/4/3/3/15/7/3 workdays retained"
+  },
+  "recommendation": [
+    "A1 for default task labels",
+    "B1 as base routing",
+    "B2 for actual forks and AND joins",
+    "B3 optional reading focus"
+  ],
+  "images": [
+    {
+      "id": "A1",
+      "title": "Fixed compact cards",
+      "file": "A1-compact-cards.png",
+      "originalSource": "/workspace/generated_images/exec-0980b8ff-73cb-4c13-84e7-d03ad6a049f8.png",
+      "bytes": 1509798,
+      "sha256": "73f35842cb62a9b54ec2b7c4230b54cd4602227ee2afae36620b5ca5449166c6",
+      "width": 1536,
+      "height": 1024,
+      "dependencyDisplay": "task-level",
+      "description": "Fixed width with name and duration. Show owners in team headings and details; long time windows do not stretch the cards.",
+      "visuallyReviewed": true
+    },
+    {
+      "id": "A2",
+      "title": "Text with thin time bars",
+      "file": "A2-thin-time-bars.png",
+      "originalSource": "/workspace/generated_images/exec-759ee00b-2634-493d-8375-086342bc4913.png",
+      "bytes": 1645176,
+      "sha256": "1d14dbe87ac6436da1dcea05eb3cf1e095e6ae74d243af56f2279d23ce348ebf",
+      "width": 1536,
+      "height": 1024,
+      "dependencyDisplay": "task-level",
+      "description": "Keep labels separate from thin time bars while preserving the time span. Workday counts do not equal calendar-window lengths.",
+      "visuallyReviewed": true
+    },
+    {
+      "id": "A3",
+      "title": "Collapsible task groups",
+      "file": "A3-task-groups.png",
+      "originalSource": "/workspace/generated_images/exec-6b9e365f-81c3-4821-b0e1-3f592622f83d.png",
+      "bytes": 1585400,
+      "sha256": "429adee5ecb45f3224ab8bb8a43687f82f62227c6db6f8e2c454aaac93144129",
+      "width": 1536,
+      "height": 1024,
+      "dependencyDisplay": "aggregated-cross-group",
+      "description": "Group consecutive task chains within each team. Lines between groups summarize connections; expand to verify task dependencies. The calendar is not drawn to scale.",
+      "visuallyReviewed": true
+    },
+    {
+      "id": "B1",
+      "title": "Direct connections between nearby ports",
+      "file": "B1-direct-ports.png",
+      "originalSource": "/workspace/generated_images/exec-c52323f5-d7b7-4156-8dc1-d028ed09ce65.png",
+      "bytes": 1552779,
+      "sha256": "03625f3938a38665e89c5677faf8603a9120b7995fdf2ca7fdcd588bf3ebfe60",
+      "width": 1536,
+      "height": 1024,
+      "dependencyDisplay": "task-level",
+      "description": "Connect nearby vertical nodes bottom-to-top and nearby horizontal nodes directly, instead of always routing right-to-left.",
+      "visuallyReviewed": true
+    },
+    {
+      "id": "B2",
+      "title": "Shared channels for branches and joins",
+      "file": "B2-shared-corridors.png",
+      "originalSource": "/workspace/generated_images/exec-cca67f52-0814-4b7a-b56b-2b4d3ae6decd.png",
+      "bytes": 1594195,
+      "sha256": "6e9480349648ee3bb2dc8099ff48ea29bf833dd2a1f757f859e447d6c6a166a5",
+      "width": 1536,
+      "height": 1024,
+      "dependencyDisplay": "junction-aggregated",
+      "description": "Branches from one source and AND joins at one target share segments, with explicit junctions that preserve each actual dependency.",
+      "visuallyReviewed": true
+    },
+    {
+      "id": "B3",
+      "title": "Focus selected node",
+      "file": "B3-focus-connections.png",
+      "originalSource": "/workspace/generated_images/exec-996dfaf2-0b02-4a31-926d-1d1ca9e252ce.png",
+      "bytes": 1599683,
+      "sha256": "32b834257fcec8396a41a98764ed797ae190a33c6286751e52006d43e3e518c4",
+      "width": 1536,
+      "height": 1024,
+      "dependencyDisplay": "selected-neighborhood",
+      "description": "Selecting an approval node emphasizes both required incoming dependencies and keeps other lines in the background. This reading aid does not replace obstacle routing.",
+      "visuallyReviewed": true
+    }
+  ],
+  "A2Revision": {
+    "originalSource": "/workspace/generated_images/exec-e81d0a60-78d8-4796-8d14-3d553e748e74.png",
+    "reason": "Time-axis T0 moved to the far right to avoid implying the approval task is scheduled after the event; graphical positions remain illustrative."
+  }
+}

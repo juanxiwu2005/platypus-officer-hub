@@ -2,18 +2,24 @@ import { changeHandoff, repairLegacyHandoff, type HandoffAction } from "./handof
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate } from "./types"
+import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate, WorkflowBranch, WorkflowTemplateDraft, WorkflowTeam } from "./types"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
-import type { Channel } from "./types"
+import type { Channel, NudgeVia } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
 import { clearLocalDocs } from "../lib/localDocs"
-import { applySchedule, computeSchedule, type Schedule } from "../engine/schedule"
+import { applySchedule, computeSchedule, topoOrder, type Schedule } from "../engine/schedule"
 import { buildEventNodes, CORE_EVENT_STEP_KEYS, EVENT_STEPS, orgSteps } from "../engine/playbooks"
+import { newWorkflowTemplate, saveWorkflowTemplateDraft, publishWorkflowTemplate, duplicateWorkflowTemplate, setDefaultWorkflowTemplate, discardWorkflowTemplateDraft, restoreWorkflowPreset } from "./workflowTemplates"
+import { ensureWorkflowPresetTeams } from "./workflowTeamDefaults"
+import { saveWorkflowTeams } from "./workflowTeamSettings"
 import { nextCounter } from "../lib/ids"
-import { PHASES, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
-import { cannotDelete, moveBetween, newStepNode, removalEdits } from "../lib/flowEdit"
+import { PHASES, ancestorsOf, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
+import { cannotDelete, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, removalEdits, type FlowInsertionTarget } from "../lib/flowEdit"
+import { DEFAULT_WORKFLOW_BRANCHES, branchConditions, conditionsOf, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
+import { isAsuStep, isCoreStep } from "../engine/workflowPolicy"
+import { parseEffortDays } from "../lib/workflowEffort"
 import { advanceClock } from "../engine/followup"
 import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type ReplyInput, type TaskReply } from "./taskWorkflow"
 import { usableGrant } from "../lib/officerLinks"
@@ -32,6 +38,19 @@ import { BUILD_INFO } from "../lib/buildInfo"
 import { normalizeTerms } from "./roleTerms"
 import { isOfficer } from "./permissions"
 import { changeRole, type RoleChange } from "./roleChanges"
+import { advancePlannedClock, afterReminderAction, confirmLegacyPlannedReminder, confirmPlannedReminder, enableReminderPlan, remindersEnabled, upgradeReminderPlan, reviewLegacyReminder } from "../reminders/adapter"
+import { recordReminderBatch } from "../reminders/batch"
+import type { ReminderBatch } from "../reminders/deliveryContracts"
+import { applyReminderDigests, type ReminderDigestBatch } from "../reminders/digest"
+import { useAutomaticReminders } from "../reminders/useAutomaticReminders"
+import type { ReminderMailSnapshot, TaskAccessGrant, TaskAccessUpdate } from "../reminders/accessContracts"
+import { taskAccessIssueValid, usableTaskAccessGrant } from "../reminders/taskAccess"
+import { applyTaskAccessUpdate } from "../reminders/taskAccessActions"
+import { validatedReminderMessage } from "../reminders/message"
+import { saveTaskWork, taskDefinitionKey, validTaskLinks } from "../taskDetails/data"
+import { taskWorkActor } from "../taskDetails/authorization"
+import type { TaskAuthorization, TaskWorkInput } from "../taskDetails/contracts"
+import { updateTaskTarget, type TaskTargetInput } from "../taskDetails/targetDates"
 
 /**
  * Demo store (v1.0): all data lives in this browser only (plan §11, decision 3).
@@ -60,7 +79,7 @@ function repairTaskLinks(state: DemoState): DemoState {
  * invariant template steps. This repairs a previously condition-hidden core link. */
 function repairCoreEventSteps(state: DemoState): DemoState {
   const additions = state.events.flatMap(event => {
-    if (event.checks === undefined) return []
+    if (event.checks === undefined || event.workflowRun) return []
     const existing = new Set(state.nodes.filter(node => node.eventId === event.id).map(node => node.stepKey))
     return buildEventNodes(event, state.roles, { steps: orgSteps(state) })
       .filter(node => CORE_EVENT_STEP_KEYS.includes(node.stepKey as typeof CORE_EVENT_STEP_KEYS[number]) && !existing.has(node.stepKey))
@@ -71,7 +90,7 @@ function repairCoreEventSteps(state: DemoState): DemoState {
   const checkinAnchor = { kind: "target" as const, days: 1, unit: "business" as const, label: "Check-in materials ready" }
   let repairedCheckin = false
   const nodes = state.nodes.map(node => {
-    if (!node.eventId || node.stepKey !== "checkin") return node
+    if (!node.eventId || node.stepKey !== "checkin" || state.events.find(event => event.id === node.eventId)?.workflowRun) return node
     if (node.anchor?.kind === "target" && node.anchor.days === 1 && node.anchor.unit === "business" && node.anchor.label === checkinAnchor.label) return node
     repairedCheckin = true
     return { ...node, anchor: checkinAnchor }
@@ -92,7 +111,7 @@ function completeDemoSpeakerPlan(state: DemoState): DemoState {
 }
 
 /** Fields a person may edit on a node. Dates are not here: only the club deadline override, which the engine then applies. */
-export type NodePatch = Partial<Pick<Node, "title" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
+export type NodePatch = Partial<Pick<Node, "externalLinks" | "title" | "instructions" | "completionCriteria" | "tags" | "ownerId" | "clubDeadlineOverride" | "estDays" | "startPolicy" | "approverRoleId" | "consultedRoleIds" | "informedRoleIds" | "why" | "draftLink" | "tier" | "dependsOn" | "phase">>
 export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "details">>
 
 export type Action =
@@ -126,19 +145,31 @@ export type Action =
   | { type: "setViewer"; viewerId: string }
   | { type: "setAi"; enabled: boolean }
   | { type: "replace"; state: DemoState }
-  | { type: "updateNode"; id: string; patch: NodePatch }
+  | { type: "updateNode"; id: string; patch: NodePatch; expectedTask?: string }
+  | { type: "saveTaskWork"; nodeId: string; input: TaskWorkInput; authorization?: TaskAuthorization }
+  | { type: "updateTaskTarget"; nodeId: string; input: TaskTargetInput; authorization?: TaskAuthorization }
   /** The step editor (M3): a few steps' dependsOn / estDays / phase, and the display order of the phase groups. Never a date. */
   | { type: "applyStepEdits"; eventId: string; edits: StepEdit[]; phaseOrder?: Phase[] }
-  | { type: "addEventStep"; eventId: string; id: string; uId: string | null; vId: string | null }
+  | { type: "addEventStep"; eventId: string; id: string; uId: string | null; vId: string | null; target?: FlowInsertionTarget }
+  | { type: "addEventBranch"; eventId: string; id: string; branch: WorkflowBranch; title: string }
   | { type: "removeEventStep"; eventId: string; nodeId: string }
-  | { type: "restoreEventNodes"; eventId: string; nodes: Node[] }
+  | { type: "restoreEventNodes"; eventId: string; nodes: Node[]; branches?: WorkflowBranch[] }
   | { type: "updateEvent"; id: string; patch: EventPatch }
   | { type: "draftChanges"; changeSet: ChangeSet }
   | { type: "aiAutoApply"; changeSet: ChangeSet }
   | { type: "undoAuto"; id: string }
   | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
-  | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string }
+  | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia; message?: ReminderMailSnapshot }
+  | { type: "enableReminderPlan" }
+  | { type: "upgradeReminderPlan" }
+  | { type: "reviewLegacyReminder"; nodeId: string }
+  | ({ type: "recordReminderBatch" } & ReminderBatch)
+  /** Person digests (one email per person per day); each group all-or-nothing. */
+  | ({ type: "recordReminderDigests" } & ReminderDigestBatch)
+  | { type: "confirmPlannedReminder"; candidateId: string; via: "manual" | "platypus"; message?: ReminderMailSnapshot }
+  | { type: "issueTaskAccessGrant"; grant: TaskAccessGrant }
+  | { type: "taskAccessAction"; token: string; update: TaskAccessUpdate }
   | { type: "claimTask"; nodeId: string }
   | { type: "replyTask"; nodeId: string; reply: TaskReply; input?: ReplyInput }
   | { type: "reviewExtension"; id: string; approve: boolean }
@@ -150,11 +181,19 @@ export type Action =
   | { type: "officerAction"; token: string; reply: TaskReply | "claim"; input?: ReplyInput }
   | { type: "saveClubSettings"; draft: ClubDraft; defaults: OrgSettings }
   | { type: "saveProfile"; personId: string; patch: ProfilePatch; invite?: string }
-  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number; workflow?: StepTemplate[]; reminderMode?: ReminderMode | null }
-  | { type: "saveWorkflow"; steps: StepTemplate[] }
+  | { type: "completeSetup"; draft: ClubDraft; event: unknown; date: string; inviteCode: string; taskDueDays?: number; clubBufferBusinessDays?: number; workflow?: StepTemplate[]; workflowBranches?: WorkflowBranch[]; reminderMode?: ReminderMode | null }
+  | { type: "saveWorkflow"; steps: StepTemplate[]; branches?: WorkflowBranch[] }
   | { type: "resetWorkflow" }
+  | { type: "newWorkflowTemplate"; id: string; name: string }
+  | { type: "saveWorkflowTemplateDraft"; id: string; draft: WorkflowTemplateDraft }
+  | { type: "publishWorkflowTemplate"; id: string }
+  | { type: "duplicateWorkflowTemplate"; sourceId: string; id: string; name: string }
+  | { type: "setDefaultWorkflowTemplate"; id: string }
+  | { type: "discardWorkflowTemplateDraft"; id: string }
+  | { type: "restoreWorkflowPreset"; id: string }
+  | { type: "saveWorkflowTeams"; teams: WorkflowTeam[]; roleTeams: Record<string, string> }
 
-const NODE_FIELDS: (keyof NodePatch)[] = ["title", "tags", "ownerId", "clubDeadlineOverride", "estDays", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
+const NODE_FIELDS: (keyof NodePatch)[] = ["externalLinks", "title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "startPolicy", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
 
 /**
@@ -170,14 +209,34 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
   const clean: StepEdit[] = edits.filter(e => e && ids.has(e.id)).map(e => ({ id: e.id, patch: cleanPatch(e.patch, ids, e.id) })).filter(e => Object.keys(e.patch).length > 0)
   if (createsLoop(inEvent, clean)) return state
   const by = new Map(clean.map(e => [e.id, e.patch]))
+  const graphEdit = ev.checks !== undefined || clean.some(edit => edit.patch.placement !== undefined)
+  const branches = resolveBranches(inEvent, ev.workflowBranches)
   let changed = false
   const nodes = state.nodes.map(n => {
     const p = by.get(n.id)
     if (!p) return n
-    const next: Node = { ...n, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays } : {}), ...(p.phase ? { phase: p.phase } : {}) }
-    if (next.dependsOn.join() !== n.dependsOn.join() || next.estDays !== n.estDays || next.phase !== n.phase) changed = true
+    const next: Node = { ...n, ...(p.dependsOn ? { dependsOn: p.dependsOn } : {}), ...(p.estDays !== undefined ? { estDays: p.estDays, startPolicy: "effort" as const } : {}), ...(p.startPolicy ? { startPolicy: p.startPolicy } : {}), ...(p.phase ? { phase: p.phase } : {}), ...(p.placement ? { placement: p.placement } : {}), ...(p.stepKind !== undefined ? { stepKind: p.stepKind ?? undefined } : {}), ...(p.cond !== undefined ? { cond: p.cond ?? undefined } : {}) }
+    if (JSON.stringify(next) !== JSON.stringify(n)) changed = true
     return next
   })
+  if (nodes.some(n => {
+    if (n.eventId !== eventId || !by.has(n.id) || !graphEdit) return false
+    const branch = branches.find(b => b.id === n.placement?.branchId)
+    const original = inEvent.find(item => item.id === n.id)!
+    if (placementOf(original).branchId === "main" && placementOf(n).branchId !== "main") return true
+    if (ev.checks !== undefined && isCoreStep(n) && conditionsOf(n, branches).length) return true
+    if (isAsuStep(original) && scopeKey(original, branches) !== scopeKey(n, branches)) return true
+    return !!n.placement && n.placement.branchId !== "main" && (!branch || (n.phase === "close") !== (branch.side === "after_event"))
+  })) return state
+  const candidateNodes = nodes.filter(n => n.eventId === eventId)
+  for (const n of graphEdit ? candidateNodes : []) {
+    if (!isAsuStep(n)) continue
+    const required = EVENT_STEPS.find(step => step.key === n.stepKey)?.dependsOn ?? []
+    const previous = ancestorsOf(inEvent, n.id), after = ancestorsOf(candidateNodes, n.id)
+    // Historical events can use the old rule graph; refuse newly broken requirements,
+    // without silently imposing today's template on an unrelated legacy edit.
+    if (required.some(key => { const dependency = candidateNodes.find(node => node.stepKey === key); return dependency && previous.has(dependency.id) && !after.has(dependency.id) })) return state
+  }
   const order = Array.isArray(phaseOrder) && phaseOrder.length === PHASES.length && PHASES.every(p => phaseOrder.includes(p)) ? phaseOrder : undefined
   const orderChanged = !!order && phaseOrderOf(ev).join() !== order.join()
   if (!changed && !orderChanged) return state
@@ -189,17 +248,35 @@ function applyStepEdits(state: DemoState, eventId: string, edits: StepEdit[], ph
  * Add a step in the event's flow chart, between two neighbours (either can be missing). It starts with one day of work and no owner; the details panel
  * is where it gets a name, an owner and the rest. Its place comes from the same "waits for" links as every other step, so the rule engine dates it.
  */
-function addEventStep(state: DemoState, eventId: string, id: string, uId: string | null, vId: string | null): DemoState {
+function addEventStep(state: DemoState, eventId: string, id: string, uId: string | null, vId: string | null, target?: FlowInsertionTarget): DemoState {
   const ev = state.events.find(e => e.id === eventId)
   const inEvent = state.nodes.filter(n => n.eventId === eventId)
-  const ref = inEvent.find(n => n.id === (uId ?? vId))
+  const ref = inEvent.find(n => n.id === (target?.referenceId ?? uId ?? vId))
   if (!ev || typeof id !== "string" || !id.startsWith(`${eventId}:`) || state.nodes.some(n => n.id === id) || inEvent.length >= 80) return state
   if ((uId && !inEvent.some(n => n.id === uId)) || (vId && !inEvent.some(n => n.id === vId))) return state
-  const withNode: DemoState = { ...state, nodes: [...state.nodes, newStepNode(ev, id, ref, state.today)] }
-  const r = moveBetween(withNode.nodes.filter(n => n.eventId === eventId), id, uId, vId)
+  const fresh = newStepNode(ev, id, ref, state.today, resolveBranches(inEvent, ev.workflowBranches))
+  const withNode: DemoState = { ...state, nodes: [...state.nodes, fresh] }
+  const r = target ? insertFlowStep(inEvent, fresh, target, resolveBranches(inEvent, ev.workflowBranches)) : moveBetween(withNode.nodes.filter(n => n.eventId === eventId), id, uId, vId)
   if (r.error) return state
   const next = applyStepEdits(withNode, eventId, r.edits)
+  if (next === withNode && target) return state
   return applySchedule(next === withNode || next === state ? withNode : next)
+}
+
+function addEventBranch(state: DemoState, eventId: string, id: string, branch: WorkflowBranch, title: string): DemoState {
+  const ev = state.events.find(e => e.id === eventId)
+  const nodes = state.nodes.filter(n => n.eventId === eventId)
+  if (!ev || typeof id !== "string" || !id.startsWith(`${eventId}:`) || state.nodes.some(n => n.id === id) || nodes.length >= 80 || typeof title !== "string" || !title.trim() || title.length > 120) return state
+  const existing = resolveBranches(nodes, ev.workflowBranches)
+  if (!branch || existing.some(b => b.id === branch.id) || validateBranchDefinitions([...existing, branch])) return state
+  const role = branch.defaultRoleId ? state.roles.find(r => r.id === branch.defaultRoleId && r.fn !== "advisor") : undefined
+  if (branch.defaultRoleId && !role) return state
+  const fresh: Node = { ...newStepNode(ev, id, undefined, state.today), stepKind: branchConditions(branch).length ? "situation" : "core", title: title.trim(), phase: branch.side === "after_event" ? "close" : "prepare", fn: role?.fn ?? "programs", ownerId: role?.holderId ?? null, status: role?.holderId ? "accepted" : "unclaimed", acceptedOn: role?.holderId ? state.today : null }
+  const r = insertFlowBranch(nodes, fresh, branch, existing)
+  if (r.error) return state
+  const withNode = { ...state, events: state.events.map(e => e.id === eventId ? { ...e, workflowBranches: [...existing, structuredClone(branch)] } : e), nodes: [...state.nodes, fresh] }
+  const next = applyStepEdits(withNode, eventId, r.edits)
+  return next === withNode ? state : next
 }
 
 /** Delete a step the club added (or any step no ASU rule needs). Steps that waited for it wait for what it waited for. */
@@ -209,28 +286,47 @@ function removeEventStep(state: DemoState, eventId: string, nodeId: string): Dem
   if (!node || cannotDelete(node)) return state
   const patches = new Map(removalEdits(inEvent, nodeId).map(e => [e.id, e.patch.dependsOn!]))
   const gone = (x: { nodeId: string }) => x.nodeId !== nodeId
+  const remaining = state.nodes.filter(n => n.id !== nodeId).map(n => (patches.has(n.id) ? { ...n, dependsOn: patches.get(n.id)! } : n))
+  const defaults = new Set(DEFAULT_WORKFLOW_BRANCHES.map(b => b.id))
   return applySchedule({
     ...state,
-    nodes: state.nodes.filter(n => n.id !== nodeId).map(n => (patches.has(n.id) ? { ...n, dependsOn: patches.get(n.id)! } : n)),
+    nodes: remaining,
+    events: state.events.map(event => event.id === eventId && event.workflowBranches ? { ...event, workflowBranches: event.workflowBranches.filter(branch => defaults.has(branch.id) || !inEvent.some(n => placementOf(n).branchId === branch.id) || remaining.some(n => n.eventId === eventId && placementOf(n).branchId === branch.id)) } : event),
     nudges: state.nudges.filter(gone), extensionRequests: state.extensionRequests.filter(gone), notifications: state.notifications.filter(gone),
     silenceCases: state.silenceCases.filter(gone), protocolLog: state.protocolLog.filter(gone), officerGrants: state.officerGrants.filter(gone),
   })
 }
 
 /** Put the event's steps back as they were (the chart's Undo). Only this event's steps; nothing else changes. */
-function restoreEventNodes(state: DemoState, eventId: string, nodes: Node[]): DemoState {
+function restoreEventNodes(state: DemoState, eventId: string, nodes: Node[], branches?: WorkflowBranch[]): DemoState {
   if (!state.events.some(e => e.id === eventId) || !Array.isArray(nodes) || nodes.length > 80) return state
   const ids = new Set<string>()
   for (const n of nodes) { if (!n || typeof n.id !== "string" || n.eventId !== eventId || ids.has(n.id) || !Array.isArray(n.dependsOn)) return state; ids.add(n.id) }
   if (nodes.some(n => n.dependsOn.some(d => !ids.has(d)))) return state
-  return applySchedule({ ...state, nodes: [...state.nodes.filter(n => n.eventId !== eventId), ...nodes.map(n => structuredClone(n))] })
+  if (topoOrder(nodes).looped.length) return state
+  if (validateBranchDefinitions(branches)) return state
+  const existing = state.nodes.filter(n => n.eventId === eventId)
+  if (existing.some(n => !ids.has(n.id) && cannotDelete(n))) return state
+  const current = new Map(existing.map(n => [n.id, n]))
+  const restored = nodes.map(n => {
+    const live = current.get(n.id)
+    return live ? { ...live, dependsOn: [...n.dependsOn], phase: n.phase, placement: n.placement ? { ...n.placement } : undefined, cond: n.cond, stepKind: n.stepKind, estDays: n.estDays, startPolicy: n.startPolicy } : structuredClone(n)
+  })
+  return applySchedule({ ...state, events: state.events.map(e => e.id === eventId && branches !== undefined ? { ...e, workflowBranches: structuredClone(branches) } : e), nodes: [...state.nodes.filter(n => n.eventId !== eventId), ...restored] })
 }
 
 function updateNode(state: DemoState, id: string, raw: NodePatch): DemoState {
   const patch = pick(raw, NODE_FIELDS)
+  if (patch.externalLinks !== undefined && !validTaskLinks(patch.externalLinks)) return state
+  for (const field of ["instructions", "completionCriteria"] as const) if (patch[field] !== undefined) patch[field] = String(patch[field]).trim().slice(0, 1200)
   if (patch.title !== undefined) { const t = String(patch.title).trim().slice(0, 100); if (t) patch.title = t; else delete patch.title }
   if (patch.tags !== undefined) patch.tags = Array.isArray(patch.tags) ? [...new Set(patch.tags.filter(t => (state.org.board?.tags ?? []).some(x => x.id === t)))] : []
-  if (patch.estDays !== undefined) patch.estDays = Math.max(0, Math.min(30, Math.round(Number(patch.estDays) || 0)))
+  if (patch.estDays !== undefined) {
+    const days = parseEffortDays(patch.estDays)
+    if (days === null) delete patch.estDays
+    else { patch.estDays = days; if (state.nodes.find(n => n.id === id)?.estDays !== days) patch.startPolicy = "effort" }
+  }
+  if (patch.startPolicy !== undefined && !["window", "effort"].includes(patch.startPolicy)) delete patch.startPolicy
   if (patch.phase !== undefined && !(PHASES as string[]).includes(patch.phase as string)) delete patch.phase
   let next: DemoState = {
     ...state,
@@ -280,13 +376,29 @@ function cleanBudgetPatch(raw: Partial<Omit<BudgetLineItem, "id">>): Partial<Omi
 /** Every action, then keep role terms in step with who holds what (src/data/roleTerms.ts). Returns the same object when nothing changed. */
 export function reducer(state: DemoState, action: Action): DemoState {
   if (!READ_ONLY_OK.has(action.type) && state.people.some(p => p.id === state.viewerId && !isOfficer(p))) return state
-  return normalizeTerms(baseReducer(state, action))
+  const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
+  const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
+  const actorId = (action.type === "saveTaskWork" || action.type === "updateTaskTarget") ? taskWorkActor(state, action.nodeId, action.authorization) ?? state.viewerId : (action.type === "recordReminderBatch" || action.type === "recordReminderDigests") && action.via === "automatic" ? "system:reminders" : access?.recipientId ?? grant?.ownerId ?? state.viewerId
+  let next = normalizeTerms(baseReducer(state, action))
+  if (next === state) return state
+  if (action.type === "completeSetup" && (next.reminderRuntime !== undefined || next.taskAccessGrants !== undefined)) {
+    const { reminderRuntime: _previousReminders, taskAccessGrants: _previousAccess, ...workspace } = next
+    void _previousReminders; void _previousAccess
+    next = workspace
+  }
+  if (action.type === "completeSetup") return enableReminderPlan(next)
+  if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "upgradeReminderPlan", "reviewLegacyReminder", "recordReminderBatch", "recordReminderDigests", "advanceClock"].includes(action.type)) return next
+  const updated = action.type === "saveTaskWork" ? action.input.submit ? [action.nodeId] : [] : action.type === "claimTask" || action.type === "replyTask" || action.type === "updateTaskTarget" ? [action.nodeId]
+    : action.type === "officerAction" && grant ? [grant.nodeId]
+    : action.type === "taskAccessAction" && access?.scope === "owner" ? [access.nodeId]
+    : action.type === "moveTask" && state.nodes.find(n => n.id === action.nodeId)?.status !== next.nodes.find(n => n.id === action.nodeId)?.status ? [action.nodeId] : []
+  return afterReminderAction(state, next, actorId, updated)
 }
 /**
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
  * reads, works through their own handoff steps and switches view, but cannot claim, create or change tasks, contacts, events or settings.
  */
-const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput"])
+const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch", "recordReminderDigests", "saveTaskWork", "updateTaskTarget"])
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
@@ -341,7 +453,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     }
 
     case "reset":
-      return seedDemo(undefined, "v2")
+      return ensureWorkflowPresetTeams(seedDemo(undefined, "v2"))
     case "moveTask": return moveTask(state, action.nodeId, action.status, action.beforeId ?? null)
     case "addTask": return addBoardTask(state, action.title, action.status)
     case "saveBoard": return saveBoard(state, action.board)
@@ -358,13 +470,19 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "setAi":
       return { ...state, aiEnabled: action.enabled }
     case "replace":
-      return applySchedule(action.state)
-    case "updateNode":
-      return canLead(state) && state.nodes.some(n => n.id === action.id) ? applySchedule(updateNode(state, action.id, action.patch)) : state
+      return action.state && [22, 23].includes(action.state.schemaVersion) && Array.isArray(action.state.nodes) && Array.isArray(action.state.people) && Array.isArray(action.state.roles) && action.state.org
+        ? ensureWorkflowPresetTeams(applySchedule({ ...action.state, schemaVersion: SCHEMA_VERSION })) : state
+    case "updateNode": {
+      const node = state.nodes.find(n => n.id === action.id)
+      if (!canLead(state) || !node || (action.expectedTask !== undefined && action.expectedTask !== taskDefinitionKey(node))) return state
+      const next = updateNode(state, action.id, action.patch)
+      return next === state ? state : applySchedule(next)
+    }
     case "applyStepEdits": return canLead(state) ? applyStepEdits(state, action.eventId, action.edits, action.phaseOrder) : state
-    case "addEventStep": return canLead(state) ? addEventStep(state, action.eventId, action.id, action.uId, action.vId) : state
+    case "addEventStep": return canLead(state) ? addEventStep(state, action.eventId, action.id, action.uId, action.vId, action.target) : state
+    case "addEventBranch": return canLead(state) ? addEventBranch(state, action.eventId, action.id, action.branch, action.title) : state
     case "removeEventStep": return canLead(state) ? removeEventStep(state, action.eventId, action.nodeId) : state
-    case "restoreEventNodes": return canLead(state) ? restoreEventNodes(state, action.eventId, action.nodes) : state
+    case "restoreEventNodes": return canLead(state) ? restoreEventNodes(state, action.eventId, action.nodes, action.branches) : state
     case "updateEvent": {
       const patch = pick(action.patch, ["date", "name", "headcount", "details"])
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
@@ -373,9 +491,17 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     }
     case "draftChanges": {
       if (state.changeSets.some(c => c.id === action.changeSet.id)) return state
-      const ops = sanitizeOps(action.changeSet.ops, commandContext(state)).filter(op => !isSmallOp(op))
+      const accepted = action.changeSet.ops.flatMap((raw, originalIndex) => {
+        const op = sanitizeOps([raw], commandContext(state))[0]
+        return op && !isSmallOp(op) ? [{ op, originalIndex }] : []
+      })
+      const ops = accepted.map(item => item.op)
       if (!ops.length) return state
-      return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, ops, status: "pending", reviews: ops.map(() => "pending") }] }
+      const workflowChoices = Object.fromEntries(accepted.flatMap(({ op, originalIndex }, index) => {
+        const choice = action.changeSet.workflowChoices?.[originalIndex]
+        return op.op === "create_event" && choice && typeof choice.templateId === "string" && Number.isInteger(choice.templateVersion) ? [[index, choice]] : []
+      }))
+      return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, workflowChoices, ops, status: "pending", reviews: ops.map(() => "pending") }] }
     }
     case "aiAutoApply": return aiAutoApply(state, action.changeSet)
     case "undoAuto": {
@@ -395,8 +521,10 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       let op = change.ops[action.index]
       if (action.decision === "applied") {
         const raw = action.op ?? op
+        const choice = change.workflowChoices?.[action.index]
+        const human = { ...(choice ? { workflowTemplateId: choice.templateId, workflowTemplateVersion: choice.templateVersion } : {}), ...action.human }
         // Editing may change fields, never the type of an already-reviewed operation.
-        if ((raw as { op?: unknown })?.op !== op.op || validateReview(state, raw, action.human)) return state
+        if ((raw as { op?: unknown })?.op !== op.op || validateReview(state, raw, human)) return state
         const clean = sanitizeOps([raw], commandContext(state))[0]
         op = clean
         switch (clean.op) {
@@ -406,7 +534,9 @@ function baseReducer(state: DemoState, action: Action): DemoState {
           case "create_event":
           case "add_node": {
             const id = `${change.id}:${action.index}`
-            next = { ...state, ...newObjects(state, clean, id, action.human ?? {}) }
+            const created = newObjects(state, clean, id, human)
+            if (clean.op === "create_event" && !created.events?.some(event => event.id === id)) return state
+            next = { ...state, ...created }
             if (clean.op === "add_node") next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
             next = applySchedule(next)
             break
@@ -422,15 +552,51 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       const status = reviews.includes("pending") ? "pending" : reviews.every(r => r === "rejected") ? "rejected" : "applied"
       return { ...next, changeSets: next.changeSets.map(c => c.id === change.id ? { ...c, ops, reviews, status } : c) }
     }
+    case "enableReminderPlan": return canLead(state) ? enableReminderPlan(state) : state
+    case "upgradeReminderPlan": return canLead(state) ? upgradeReminderPlan(state) : state
+    case "reviewLegacyReminder": return canLead(state) ? reviewLegacyReminder(state, action.nodeId) : state
+    case "recordReminderBatch": return recordReminderBatch(state, action)
+    case "recordReminderDigests": return applyReminderDigests(state, action)
+    case "issueTaskAccessGrant": {
+      const g = action.grant
+      if ((state.taskAccessGrants !== undefined && !Array.isArray(state.taskAccessGrants)) || !taskAccessIssueValid(state, g) || state.taskAccessGrants?.some(old => old?.id === g.id)) return state
+      return { ...state, taskAccessGrants: [...(state.taskAccessGrants ?? []), g] }
+    }
+    case "taskAccessAction": return applyTaskAccessUpdate(state, action.token, action.update)
+    case "updateTaskTarget": {
+      const actor = taskWorkActor(state, action.nodeId, action.authorization)
+      if (!actor) return state
+      const next = updateTaskTarget(state, action.nodeId, actor, action.input)
+      if (next !== state && action.authorization?.kind === "legacy") {
+        const grant = usableGrant(state, action.authorization.token)
+        return { ...next, officerGrants: next.officerGrants.map(g => g.id === grant?.id ? { ...g, usedOn: state.today } : g) }
+      }
+      return next
+    }
+    case "saveTaskWork": {
+      const actor = taskWorkActor(state, action.nodeId, action.authorization)
+      if (!actor) return state
+      const next = saveTaskWork(state, action.nodeId, actor, action.input)
+      if (next !== state && action.input.submit && action.authorization?.kind === "legacy") {
+        const grant = usableGrant(state, action.authorization.token)
+        return { ...next, officerGrants: next.officerGrants.map(g => g.id === grant?.id ? { ...g, usedOn: state.today } : g) }
+      }
+      return next
+    }
+    case "confirmPlannedReminder": return canLead(state) ? confirmPlannedReminder(state, action.candidateId, action.via, action.message) : state
     case "confirmNudgeSent": {
+      if (state.reminderRuntime !== undefined) return canLead(state) ? confirmLegacyPlannedReminder(state, action.nodeId, action.via, action.message) : state
       const n = state.nodes.find(n => n.id === action.nodeId)
       if (!canLead(state) || !n || nudgeBlocked(state, n)) return state
-      return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: action.text, sentBy: state.viewerId, sentOn: state.today, response: null }] }
+      const message = action.message ? validatedReminderMessage(state, action.message, n.id) : null
+      if (action.message && (!message || message.channel !== action.channel)) return state
+      if (message && (action.via ?? "president") !== (["auto_email", "review_then_auto"].includes(state.org.settings.reminderMode ?? "") ? "platypus" : "president")) return state
+      return { ...state, nudges: [...state.nudges, { id: `nudge-${nextCounter(state.nudges.map(x => x.id), /^nudge-(\d+)-/)}-${n.id}`, nodeId: n.id, channel: action.channel, text: message?.text ?? action.text, sentBy: state.viewerId, sentOn: state.today, response: null, ...(message ? { message } : {}), ...(action.via === "president" || action.via === "platypus" ? { via: action.via } : {}) }] }
     }
     case "claimTask": return claimTask(state, action.nodeId, state.viewerId)
     case "replyTask": return replyToTask(state, action.nodeId, state.viewerId, action.reply, action.input)
     case "reviewExtension": return reviewExtension(state, action.id, action.approve)
-    case "advanceClock": return canLead(state) ? advanceClock(state, action.days) : state
+    case "advanceClock": return canLead(state) ? state.reminderRuntime !== undefined ? advancePlannedClock(state, action.days) : advanceClock(state, action.days) : state
     case "markNoticeRead": return { ...state, notifications: state.notifications.map(n => n.id === action.id && n.recipientId === state.viewerId ? { ...n, read: true } : n) }
     case "temporaryOwner": {
       if (!canLead(state)) return state
@@ -463,8 +629,19 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     }
     case "saveClubSettings": return saveClubSettings(state, action.draft, action.defaults)
     case "saveProfile": return saveProfile(state, action.personId, action.patch, action.invite)
-    case "completeSetup": return startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode)
-    case "saveWorkflow": return saveWorkflow(state, action.steps)
+    case "completeSetup": {
+      const next = startWorkspace(state, action.draft, action.event, action.date, action.inviteCode, action.taskDueDays, action.clubBufferBusinessDays, action.workflow, action.reminderMode, action.workflowBranches)
+      return next === state ? state : ensureWorkflowPresetTeams(next)
+    }
+    case "newWorkflowTemplate": return newWorkflowTemplate(state, action.id, action.name)
+    case "saveWorkflowTemplateDraft": return saveWorkflowTemplateDraft(state, action.id, action.draft)
+    case "publishWorkflowTemplate": return publishWorkflowTemplate(state, action.id)
+    case "duplicateWorkflowTemplate": return duplicateWorkflowTemplate(state, action.sourceId, action.id, action.name)
+    case "setDefaultWorkflowTemplate": return setDefaultWorkflowTemplate(state, action.id)
+    case "discardWorkflowTemplateDraft": return discardWorkflowTemplateDraft(state, action.id)
+    case "restoreWorkflowPreset": return restoreWorkflowPreset(state, action.id)
+    case "saveWorkflowTeams": return saveWorkflowTeams(state, action.teams, action.roleTeams)
+    case "saveWorkflow": return saveWorkflow(state, action.steps, action.branches)
     case "resetWorkflow": return resetWorkflow(state)
   }
 }
@@ -482,6 +659,8 @@ export type StorageNotice =
   | { kind: "restored_demo"; why: "version" | "unreadable"; fromVersion: number | null; backupKey: string | null; raw: string }
   /** Saving to this browser failed (storage full or blocked). Work since the last good save exists only on screen. */
   | { kind: "save_failed" }
+  | { kind: "migration_blocked"; fromVersion: 22; backupKey: null; raw: string }
+  | { kind: "storage_conflict" }
 
 const store = () => window.localStorage
 
@@ -508,12 +687,24 @@ function backUp(raw: string, tag: string): string | null {
  * structure version, or cannot be read, it is first copied to a backup key, and the notice says where.
  */
 export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {
+  const loaded = readStateWithNotice()
+  return { ...loaded, state: ensureWorkflowPresetTeams(loaded.state) }
+}
+
+function readStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {
   let raw: string | null = null
   try { raw = store().getItem(STORAGE_KEY) } catch { return { state: seedDemo(undefined, "v2"), notice: null } } // storage blocked: nothing to protect; a failed save will say so
   if (!raw) return { state: seedDemo(undefined, "v2"), notice: null }
   let parsed: DemoState | null = null
   try { parsed = JSON.parse(raw) as DemoState } catch { parsed = null }
-  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: normalizeTerms(repairCoreEventSteps(repairTaskLinks(parsed))), notice: null }
+  // Matching S3 rollback checkpoint: retain v23 fields verbatim. Keep this reader when rolling back feature writes.
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 23 && Array.isArray(parsed.people) && Array.isArray(parsed.roles) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) return { state: normalizeTerms(parsed), notice: null }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === 22 && Array.isArray(parsed.people) && Array.isArray(parsed.roles) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
+    if (!backUp(raw, "v22")) return { state: parsed, notice: { kind: "migration_blocked", fromVersion: 22, backupKey: null, raw } }
+    // S3 only adds optional matching fields; all existing tasks, people and history stay intact.
+    return { state: normalizeTerms({ ...parsed, schemaVersion: SCHEMA_VERSION }), notice: null }
+  }
+  if (parsed && typeof parsed === "object" && parsed.schemaVersion === SCHEMA_VERSION) return { state: normalizeTerms(repairTaskLinks(parsed)), notice: null }
   // Keep all supported saved versions on the same one-time demo-update path.
   // v20 and v21 (the live site during Phase 3) only gain the Handoff fields: no demo-plan update, so a participant's saved club is not changed.
   if (parsed && typeof parsed === "object" && [20, 21].includes(parsed.schemaVersion) && Array.isArray(parsed.events) && Array.isArray(parsed.nodes)) {
@@ -612,6 +803,14 @@ function slim(v: unknown, depth = 0): unknown {
 /** The action's arguments as they go into the log. */
 function payloadOf(a: Action): unknown {
   switch (a.type) {
+    case "updateTaskTarget": return { nodeId: a.nodeId, date: a.input.date, message: a.input.message, notifyPersonIds: a.input.notifyPersonIds }
+    case "saveTaskWork": return { nodeId: a.nodeId, submit: a.input.submit, revision: a.input.expectedRevision, detailsLength: a.input.details?.length, attachments: a.input.attachments?.map(f => ({ id: f.id, name: f.name, size: f.size })) }
+    case "recordReminderBatch": return { via: a.via, candidateIds: a.entries.map(e => e.candidateId), count: a.entries.length }
+    case "recordReminderDigests": { const digests = Array.isArray(a.digests) ? a.digests : []; return { via: a.via, count: digests.length, taskCount: digests.reduce((n, d) => n + (Array.isArray(d?.entries) ? d.entries.length : 0), 0), groupIds: digests.map(d => d?.groupId), recipientIds: digests.map(d => d?.recipientId), candidateIds: digests.map(d => Array.isArray(d?.entries) ? d.entries.map(e => e?.candidateId) : []), accessIds: digests.map(d => Array.isArray(d?.entries) ? d.entries.map(e => e?.grant?.id) : []) } }
+    case "issueTaskAccessGrant": return { nodeId: a.grant.nodeId, recipientId: a.grant.recipientId, scope: a.grant.scope, issuedOn: a.grant.issuedOn }
+    case "taskAccessAction": return { update: slim(a.update) }
+    case "confirmPlannedReminder": return { candidateId: a.candidateId, via: a.via, ...(a.message ? { message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : {}) }
+    case "confirmNudgeSent": return a.message ? { nodeId: a.nodeId, channel: a.channel, via: a.via, message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
     case "replace": return { nodes: a.state.nodes.length, events: a.state.events.length }
     case "officerAction": return { reply: a.reply, input: slim(a.input) }
     case "issueOfficerGrant": return { nodeId: a.grant.nodeId, ownerId: a.grant.ownerId, issuedOn: a.grant.issuedOn }
@@ -619,9 +818,10 @@ function payloadOf(a: Action): unknown {
     case "draftChanges":
     case "aiAutoApply": return { changeSetId: a.changeSet.id, source: a.changeSet.source ?? null, sentence: slim(a.changeSet.sentence), ops: a.changeSet.ops.map(o => o.op) }
     case "reviewChange": return { id: a.id, index: a.index, decision: a.decision, op: slim(a.op), human: slim(a.human) }
-    case "addEventStep": return { eventId: a.eventId, id: a.id, uId: a.uId, vId: a.vId }
+    case "addEventStep": return { eventId: a.eventId, id: a.id, uId: a.uId, vId: a.vId, target: a.target }
+    case "addEventBranch": return { eventId: a.eventId, id: a.id, branch: a.branch, title: a.title }
     case "removeEventStep": return { eventId: a.eventId, nodeId: a.nodeId }
-    case "restoreEventNodes": return { eventId: a.eventId, steps: Array.isArray(a.nodes) ? a.nodes.length : 0 }
+    case "restoreEventNodes": return { eventId: a.eventId, steps: Array.isArray(a.nodes) ? a.nodes.length : 0, branches: a.branches?.map(b => b.id) }
     case "applyStepEdits": return { eventId: a.eventId, edits: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, dependsOn: e?.patch?.dependsOn, estDays: e?.patch?.estDays, phase: e?.patch?.phase })), phaseOrder: a.phaseOrder }
     default: return slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
   }
@@ -635,6 +835,11 @@ function beforeOf(s: DemoState, a: Action): unknown {
   const node = (id: string) => s.nodes.find(n => n.id === id)
   let out: object | undefined
   switch (a.type) {
+    case "taskAccessAction": { const g = usableTaskAccessGrant(s, a.token); out = g ? fields(node(g.nodeId), ["status", "ownerId"]) : undefined; break }
+    case "enableReminderPlan": out = { reminderVersion: s.reminderRuntime?.version }; break
+    case "confirmPlannedReminder": out = { reminderDeliveryCount: remindersEnabled(s) ? s.reminderRuntime!.deliveries.length : undefined }; break
+    case "recordReminderDigests": out = remindersEnabled(s) ? { reminderDeliveryCount: s.reminderRuntime!.deliveries.length, reminderDigestCount: s.reminderRuntime!.digests?.length ?? 0 } : undefined; break
+    case "updateTaskTarget": out = fields(node(a.nodeId), ["clubDeadline", "clubDeadlineOverride", "targetDates"]); break
     case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
     case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount", "details"].includes(k))); break
     case "moveTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
@@ -653,6 +858,8 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "advanceClock": out = { today: s.today }; break
     case "saveBoard": out = { board: s.org.board }; break
     case "removeEventStep": out = fields(node(a.nodeId), ["title", "dependsOn", "status", "estDays", "ownerId"]); break
+    case "newWorkflowTemplate": case "saveWorkflowTemplateDraft": case "publishWorkflowTemplate": case "duplicateWorkflowTemplate": case "setDefaultWorkflowTemplate": case "discardWorkflowTemplateDraft": case "restoreWorkflowPreset": out = { templateIds: s.org.workflowTemplates?.map(template => template.id), defaultWorkflowTemplateId: s.org.defaultWorkflowTemplateId }; break
+    case "saveWorkflowTeams": out = { workflowTeams: s.org.workflowTeams, workflowRoleTeams: s.org.workflowRoleTeams }; break
     case "saveWorkflow": case "resetWorkflow": out = { eventWorkflow: s.org.eventWorkflow }; break
     case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break
     case "saveProfile": out = fields(s.people.find(p => p.id === a.personId), Object.keys(a.patch)); break
@@ -670,7 +877,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
 export function appendLog(log: LogEntry[], before: DemoState, after: DemoState, action: Action, at: number, session?: string | null): LogEntry[] {
   const prior = beforeOf(before, action)
   const entry: LogEntry = {
-    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: before.viewerId, type: action.type,
+    seq: (log[log.length - 1]?.seq ?? 0) + 1, at, actor: (action.type === "saveTaskWork" || action.type === "updateTaskTarget") ? taskWorkActor(before, action.nodeId, action.authorization) ?? before.viewerId : (action.type === "recordReminderBatch" || action.type === "recordReminderDigests") && action.via === "automatic" ? "system:reminders" : action.type === "taskAccessAction" ? usableTaskAccessGrant(before, action.token)?.recipientId ?? before.viewerId : before.viewerId, type: action.type,
     payload: payloadOf(action), ...(prior !== undefined ? { before: prior } : {}), applied: after !== before, ...(session ? { session } : {}),
   }
   return log.length >= LOG_LIMIT ? [...log.slice(log.length - LOG_LIMIT + 1), entry] : [...log, entry]
@@ -802,18 +1009,29 @@ export function downloadText(filename: string, text: string) {
 }
 
 /** Download the person's current data and interaction log as a JSON file. */
-export function downloadExport(state: DemoState, log: LogEntry[]) {
+export async function downloadExport(state: DemoState, log: LogEntry[]): Promise<{ complete: boolean }> {
   const at = Date.now()
-  downloadText(`platypus-export-${new Date(at).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`, JSON.stringify(buildExport(state, log, at), null, 2))
+  const name = `platypus-export-${new Date(at).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`
+  let archive: { state: DemoState; taskDrafts: unknown[] } | null = null
+  try {
+    const { taskWorkArchive } = await import("../taskDetails/archive")
+    archive = await taskWorkArchive(state)
+  } catch { /* Task files or drafts could not be read (blocked IndexedDB, missing file). Export everything else. */ }
+  downloadText(name, JSON.stringify({ ...buildExport(archive?.state ?? state, log, at), taskDrafts: archive?.taskDrafts ?? [] }, null, 2))
+  return { complete: !!archive }
 }
 
 /* ───────────── Provider ───────────── */
 
 interface StoreValue {
   state: DemoState
+  automaticReminders: { busy: boolean; error: string | null; retry: () => void }
   /** The current on-screen state has not been persisted to this browser. */
   persistenceFailed: boolean
   dispatch: (a: Action) => void
+  /** Configuration/AI prerequisites: persist before publishing the state; false leaves current business state intact. */
+  tryDispatch: (a: Action) => boolean
+  getState: () => DemoState
   reset: () => void
   /** The interaction log as it is right now, oldest first (read at call time, so it is never stale). */
   getLog: () => LogEntry[]
@@ -834,21 +1052,56 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   if (rootRef.current === null) rootRef.current = root
   const commit = useCallback((next: Root) => { if (next !== rootRef.current) { rootRef.current = next; setRoot(next) } }, [])
   // If the old data could not be backed up, keep it in place (do not overwrite it) until the person has downloaded it.
-  const [held, setHeld] = useState(boot.notice?.kind === "restored_demo" && boot.notice.backupKey === null)
+  const [held, setHeld] = useState(boot.notice?.kind === "migration_blocked" || (boot.notice?.kind === "restored_demo" && boot.notice.backupKey === null))
   const [notice, setNotice] = useState<StorageNotice | null>(boot.notice)
   const [saveFailed, setSaveFailed] = useState(false)
+  const [exportError, setExportError] = useState(false)
+  const [exportPartial, setExportPartial] = useState(false)
   // Data and log are saved separately: a click changes only the log, so the (larger) demo data is not rewritten for it.
   const saved = useRef({ app: true, log: true })
+  const savedApp = useRef<DemoState | null>(null)
+  const persistedRaw = useRef<{ raw: string | null } | null>(null)
+  const conflict = useRef(false)
+  if (!persistedRaw.current) {
+    try { persistedRaw.current = { raw: store().getItem(STORAGE_KEY) } } catch { /* Saving will report unavailable storage. */ }
+  }
+  // A revision in memory cannot detect another tab's completed write. Check the actual business key before every write.
+  // This detects stale tabs; localStorage still provides no atomic cross-tab compare-and-swap.
+  // When storage cannot even be read (blocked cookies/site data), there is no other tab to protect: ordinary actions
+  // may continue in memory (allowUnavailable) while the save-failed notice stays visible. tryDispatch stays strict.
+  const storageUnchanged = useCallback((allowUnavailable = false) => {
+    if (conflict.current) return false
+    try {
+      const raw = store().getItem(STORAGE_KEY)
+      if (persistedRaw.current && raw !== persistedRaw.current.raw) {
+        conflict.current = true; setHeld(true); setNotice({ kind: "storage_conflict" }); return false
+      }
+      persistedRaw.current = { raw }
+      return true
+    } catch { saved.current.app = false; setSaveFailed(true); return allowUnavailable }
+  }, [])
+  const persistApp = useCallback((app: DemoState) => {
+    if (!storageUnchanged() || !saveState(app)) return false
+    persistedRaw.current = { raw: JSON.stringify(app) }
+    return true
+  }, [storageUnchanged])
+  useEffect(() => {
+    const changed = (event: StorageEvent) => { if (event.key === STORAGE_KEY || event.key === null) storageUnchanged() }
+    window.addEventListener("storage", changed)
+    return () => window.removeEventListener("storage", changed)
+  }, [storageUnchanged])
   useEffect(() => {
     if (held) return
-    saved.current.app = saveState(root.app)
+    if (savedApp.current === root.app) return
+    saved.current.app = persistApp(root.app)
+    if (saved.current.app) savedApp.current = root.app
     setSaveFailed(!(saved.current.app && saved.current.log))
-  }, [root.app, held])
+  }, [root.app, held, persistApp])
   useEffect(() => {
-    if (held) return
+    if (held || !storageUnchanged()) return
     saved.current.log = saveLog(root.log)
     setSaveFailed(!(saved.current.app && saved.current.log))
-  }, [root.log, held])
+  }, [root.log, held, storageUnchanged])
   // The study session new entries belong to. A session runs for one sitting: after 6 hours new entries carry none, until a new one begins.
   const [bootSession] = useState(currentSession)
   const sessionRef = useRef<StudySession | null>(bootSession)
@@ -862,7 +1115,23 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
     return { cleared, kept: log.length }
   }), [commit])
   // The real clock is read here, once per action, and travels with it into the log.
-  const dispatch = useCallback((action: Action) => { const at = Date.now(); commit(loggedReducer(rootRef.current!, { action, at, session: sessionAt(at) })) }, [commit, sessionAt])
+  const dispatch = useCallback((action: Action) => {
+    if ((held && boot.notice?.kind === "migration_blocked") || !storageUnchanged(true)) return
+    const before = rootRef.current!
+    if (["completeSetup", "replace"].includes(action.type) && before.app.matching && !backUp(JSON.stringify(before.app), `matching-${before.app.org.matchingWorkspaceId ?? "prior"}`)) { setSaveFailed(true); return }
+    const at = Date.now(); commit(loggedReducer(before, { action, at, session: sessionAt(at) }))
+  }, [commit, sessionAt, held, boot.notice, storageUnchanged])
+  const tryDispatch = useCallback((action: Action) => {
+    if (held || !storageUnchanged()) return false
+    const before = rootRef.current!, at = Date.now(), next = loggedReducer(before, { action, at, session: sessionAt(at) })
+    if (["completeSetup", "replace"].includes(action.type) && before.app.matching && !backUp(JSON.stringify(before.app), `matching-${before.app.org.matchingWorkspaceId ?? "prior"}`)) { setSaveFailed(true); return false }
+    if (next.app === before.app) return false
+    if (!persistApp(next.app)) { saved.current.app = false; setSaveFailed(true); return false }
+    savedApp.current = next.app; saved.current.app = true
+    commit(next); setSaveFailed(!saved.current.log)
+    return true
+  }, [held, commit, sessionAt, storageUnchanged, persistApp])
+  const getState = useCallback(() => rootRef.current!.app, [])
   const logUi = useCallback((e: UiEvent) => {
     const r = rootRef.current!
     const at = Date.now()
@@ -871,28 +1140,42 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }, [commit, sessionAt])
   useEffect(() => onUi(logUi), [logUi])
   const getLog = useCallback(() => rootRef.current!.log, [])
+  const downloadCurrent = useCallback(() => {
+    setExportError(false); setExportPartial(false)
+    void downloadExport(rootRef.current!.app, rootRef.current!.log).then(r => { if (!r.complete) setExportPartial(true) }).catch(() => setExportError(true))
+  }, [])
   const exportData = useCallback(() => {
     logUi({ type: "ui.export", payload: { entries: rootRef.current!.log.length + 1 } })
-    downloadExport(rootRef.current!.app, rootRef.current!.log)
-  }, [logUi])
-  const reset = useCallback(() => { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) }, [dispatch])
+    downloadCurrent()
+  }, [logUi, downloadCurrent])
+  const reset = useCallback(() => { if (!held && storageUnchanged(true)) { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) } }, [dispatch, held, storageUnchanged])
   const persistenceFailed = saveFailed || held
+  const automaticReminders = useAutomaticReminders(root.app, held, getState, tryDispatch)
   // The log is left out of the value on purpose: a click must not re-render every screen that reads the store.
-  const value = useMemo(() => ({ state: root.app, persistenceFailed, dispatch, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, dispatch, reset, getLog, logUi, exportData])
-  const shown: StorageNotice | null = saveFailed ? { kind: "save_failed" } : notice
+  const value = useMemo(() => ({ state: root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
+  const shown: StorageNotice | null = notice?.kind === "storage_conflict" ? notice : saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
+    {exportPartial && <div role="status" className="save-status err">Exported without task files and private drafts; this browser could not read them. <button type="button" className="btn small" onClick={downloadCurrent}>Retry export</button></div>}
+    {exportError && <div role="alert" className="save-status err">Your full export could not be downloaded. Your saved data is kept here. <button type="button" className="btn small" onClick={downloadCurrent}>Retry export</button></div>}
     {shown && <StorageBanner notice={shown} onDownload={() => {
-      if (shown.kind === "save_failed") downloadExport(rootRef.current!.app, rootRef.current!.log)
-      else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); setHeld(false) }
-    }} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
+      if (shown.kind === "save_failed" || shown.kind === "storage_conflict") downloadCurrent()
+      else { downloadText(`platypus-previous-data-${shown.fromVersion === null ? "unreadable" : `v${shown.fromVersion}`}.json`, shown.raw); if (shown.kind !== "migration_blocked") setHeld(false) }
+    }} onRetry={shown.kind === "save_failed" && !held ? () => {
+      const current = rootRef.current!
+      saved.current.app = persistApp(current.app)
+      if (saved.current.app) { savedApp.current = current.app; saved.current.log = saveLog(current.log) }
+      setSaveFailed(!(saved.current.app && saved.current.log))
+    } : undefined} onDismiss={shown.kind === "restored_demo" && !held ? () => setNotice(null) : undefined} />}
     {children}
   </StoreContext.Provider>
 }
 
 /** Says out loud that data was restored or could not be saved. Uses existing classes only. */
-function StorageBanner({ notice, onDownload, onDismiss }: { notice: StorageNotice; onDownload: () => void; onDismiss?: () => void }) {
+function StorageBanner({ notice, onDownload, onDismiss, onRetry }: { notice: StorageNotice; onDownload: () => void; onDismiss?: () => void; onRetry?: () => void }) {
+  if (notice.kind === "storage_conflict") return <div role="alert" className="save-status err" data-testid="storage-banner">This organization changed in another tab. Changes here are paused to protect both copies. Download this tab's copy if needed, then reload to use the latest saved data. <button type="button" className="btn small" onClick={onDownload}>Download this tab's copy</button></div>
+  if (notice.kind === "migration_blocked") return <div role="alert" className="save-status err" data-testid="storage-banner">Your saved organization is intact. Its upgrade could not be backed up, so changes are paused. Download the original data, then reload to retry the upgrade. <button type="button" className="btn small" onClick={onDownload}>Download original data</button></div>
   if (notice.kind === "save_failed")
-    return <div role="alert" className="save-status err" data-testid="storage-banner">Your latest changes could not be saved in this browser (storage is full or blocked). They will be lost if you close this tab. <button type="button" className="btn small" onClick={onDownload}>Download my data</button></div>
+    return <div role="alert" className="save-status err" data-testid="storage-banner">Your latest changes could not be saved in this browser (storage is full or blocked). They will be lost if you close this tab. {onRetry && <button type="button" className="btn small" onClick={onRetry}>Retry browser saving</button>}<button type="button" className="btn small" onClick={onDownload}>Download my data</button></div>
   const what = notice.why === "version" ? `This demo was updated, so your earlier data (version ${notice.fromVersion}) could not be opened and the example club was restored.` : "Your saved data could not be read, so the example club was restored."
   const kept = notice.backupKey ? `Your earlier data is kept in this browser as "${notice.backupKey}".` : "Your earlier data could NOT be backed up in this browser, and nothing new is saved until you download it."
   return <div role="alert" className={notice.backupKey ? "notice" : "save-status err"} data-testid="storage-banner">{what} {kept} <button type="button" className="btn small" onClick={onDownload}>Download previous data</button>{onDismiss && <button type="button" className="btn small" onClick={onDismiss}>Dismiss</button>}</div>
