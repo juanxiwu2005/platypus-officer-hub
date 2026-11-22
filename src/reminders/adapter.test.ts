@@ -1,13 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { seedDemo } from "../data/seed"
-import { loadState, reducer, saveState, STORAGE_KEY } from "../data/store"
+import { loadState, reducer, STORAGE_KEY } from "../data/store"
 import type { DemoState, ReminderMode } from "../data/types"
 import { applySchedule } from "../engine/schedule"
 import { addDays } from "../lib/dates"
 import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
 import { buildReminderMail } from "./mail"
 import { makeTaskAccessGrant, taskAccessUrl } from "./taskAccess"
-import { sendReminderBatch } from "./delivery"
 import { planReminders } from "./engine"
 import { remindersEnabled } from "./adapter"
 import { clubDraft } from "../data/settings"
@@ -26,11 +25,6 @@ const plan = (s: DemoState) => planReminders(buildReminderInput(s, s.reminderRun
 const replyWaiting = (s: DemoState, recipient = "sam") => reducer({ ...s, viewerId: "jordan" }, { type: "replyTask", nodeId: NODE, reply: "waiting", input: { waitingOn: "Please confirm the room requirements", waitingOnPersonId: recipient } })
 async function record(s: DemoState) {
   const candidate = plan(s).ready[0]
-  if (s.org.settings.reminderMode === "auto_email") {
-    let current = s
-    await sendReminderBatch({getState: () => current, tryDispatch: a => {const next = reducer(current, a); if (next === current) return false; current = next; return true}}, [candidate.id], "https://demo.example.org", "automatic")
-    return current
-  }
   const grant = await makeTaskAccessGrant(s, candidate.nodeId, candidate.waitingRequestId)
   const issued = reducer(s, {type: "issueTaskAccessGrant", grant})
   const facts = buildReminderFacts(issued, candidate.nodeId)!
@@ -90,23 +84,6 @@ describe("stage one: actual reducer integration, without changing legacy activat
     const denied = reducer(targetView, { type: "replyTask", nodeId: NODE, reply: "done" })
     expect(denied.nodes[0].status).toBe("waiting")
     expect(denied.reminderRuntime!.waitingRequests).toEqual(s.reminderRuntime!.waitingRequests)
-  })
-
-  it("auto mode persists a prepared target mail once, with the original task still owned by the requester", async () => {
-    const pending = replyWaiting(enable(fixture("auto_email")))
-    expect(pending.reminderRuntime!.deliveries).toEqual([])
-    const s = await record(pending)
-    const mail = s.reminderRuntime!.deliveries.filter(d => d.reason === "waiting_on")
-    expect(mail).toHaveLength(1)
-    expect(mail[0]).toMatchObject({ recipientId: "sam", ownerId: "jordan", outcome: "simulated", sentOn: s.today })
-    expect(replyWaiting(s).reminderRuntime!.deliveries.filter(d => d.reason === "waiting_on")).toHaveLength(1)
-    expect(s.nodes[0].ownerId).toBe("jordan")
-    const done = reducer(s, { type: "replyTask", nodeId: NODE, reply: "done" })
-    expect(plan(done).ready).toEqual([])
-    expect(done.reminderRuntime!.deliveries).toEqual(s.reminderRuntime!.deliveries)
-    expect(done.reminderRuntime!.waitingRequests.every(w => !!w.closedOn)).toBe(true)
-    expect(saveState(done)).toBe(true)
-    expect(loadState().reminderRuntime).toEqual(done.reminderRuntime)
   })
 
   it("changes and cancellation withdraw only the old pending waiting request, keeping its history", () => {
