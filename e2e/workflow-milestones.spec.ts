@@ -93,14 +93,18 @@ test("only one-day and two-day workflows exist and every boundary, date and shar
   await expect(length.getByRole("button", { name: "1-day", exact: true })).toHaveAttribute("aria-pressed", "true")
   await length.getByRole("button", { name: "2-day", exact: true }).click()
   await expect(length.getByRole("button", { name: "2-day", exact: true })).toHaveAttribute("aria-pressed", "true")
-  for (const [id, name] of [["workflow-start", "Preparation starts"], ["workflow-done", "Records complete"]]) {
+  for (const [id, name, current] of [["workflow-start", "Preparation starts", "Start"], ["workflow-done", "Records complete", "Done"]]) {
     await builder.getByTestId(id).click()
+    // Details swap to the newly selected station one render later; type only once they show this station.
+    await expect(page.getByTestId("workflow-builder-details")).toHaveAttribute("aria-label", `Details: ${current}`)
     await page.getByLabel("Station name", { exact: true }).fill(name)
     await page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true }).fill(`${name} description`)
     await closeRail(page)
   }
   for (const [index, name] of [[1, "Opening day"], [2, "Closing day"]] as const) {
     await builder.getByTestId(`workflow-event-day-${index}`).click()
+    // Switching to two days keeps Day 1's name ("Event day") and adds "Day 2".
+    await expect(page.getByTestId("workflow-builder-details")).toHaveAttribute("aria-label", `Details: ${index === 1 ? "Event day" : "Day 2"}`)
     await page.getByLabel("Event day name", { exact: true }).fill(name)
     await page.getByTestId("workflow-builder-details").getByRole("textbox", { name: "Details", exact: true }).fill(`${name} program`)
     if (index === 2) await page.getByLabel("Days after Day 1", { exact: true }).fill("3")
