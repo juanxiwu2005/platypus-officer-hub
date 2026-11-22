@@ -202,9 +202,9 @@ test("See what your officers will see: the same attempt continues into the membe
   for (const id of ["founder.name", "founder.first-event", "founder.reminders", "founder.confirm", "founder.invite", "member.invitation", "member.you", "member.reminders", "member.busy-weeks", "member.about", "member.done"]) expect(steps, id).toContain(id)
 })
 
-test("Go to Today ends the walkthrough as completed", async ({ page }) => {
+test("Go to Reminders ends the walkthrough as completed", async ({ page }) => {
   await toInvite(page)
-  await page.getByRole("button", { name: "Go to Today" }).click()
+  await page.getByRole("button", { name: "Go to Reminders" }).click()
   await expect(page).toHaveURL(/#\/$/)
   expect((await onboardingRecord(page)).attempts.at(-1)!.outcome).toBe("completed")
 })

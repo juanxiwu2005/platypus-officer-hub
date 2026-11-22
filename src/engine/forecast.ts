@@ -8,7 +8,7 @@ export const FORECAST_ASSUMPTIONS = [
   "Unfinished work starts now after all dependencies; close-out starts after the event. Busy weeks, finals and semester breaks are skipped for student work.",
   "School submission lead times are R06/R07/R09/R10, not measured approval durations. When approval is still pending, the model uses those lead times plus 2–4 working days as a conservative planning assumption.",
   "USG cold start: allow at least 6–8 calendar weeks from a new funding request. Source: owner planning experience F3, PRODUCT_PLAN §9; not official turnaround data. No cross-club approval observations are claimed.",
-  "Only scheduling uses personal buffer; no rankings or performance evaluation. Percentages describe assumptions, not a guarantee. Missing owners or dependency loops are treated as unresolved.",
+  "Personal buffer is used only for scheduling, never for contributions. Percentages describe assumptions, not a guarantee. Missing owners or dependency loops are treated as unresolved.",
 ]
 export type ForecastColor = "green" | "yellow" | "red"
 export const forecastColor = (p: number): ForecastColor => p >= .8 ? "green" : p >= .5 ? "yellow" : "red"
