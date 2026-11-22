@@ -6,7 +6,7 @@ import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
 import { bufferExample } from "./firstEvent/bufferExample"
-import { fmtLong } from "../../lib/dates"
+import { fmtShort } from "../../lib/dates"
 import { EventChain } from "./firstEvent/EventChain"
 import { chainDots, prepareEvent, previewFor } from "./firstEvent/plan"
 
@@ -81,7 +81,7 @@ export function FirstEvent() {
         <div className="seg ob6-seg" role="group" aria-labelledby="ob6-buffer-label">
           {BUFFER_CHOICES.map(n => <button key={n} type="button" aria-pressed={buffer === n} aria-label={`${n} ${n === 1 ? c.day : c.days}`} onClick={() => patch({ buffer: n })}>{n}</button>)}
         </div>
-        <p className="small ob6-example" data-testid="buffer-example">{c.bufferExample.replace("{official}", fmtLong(example.official)).replace("{club}", fmtLong(example.club))}</p>
+        <p className="small ob6-example" data-testid="buffer-example">{c.bufferExample.replace("{official}", fmtShort(example.official)).replace("{club}", fmtShort(example.club))}</p>
       </div>
     </>}
 
