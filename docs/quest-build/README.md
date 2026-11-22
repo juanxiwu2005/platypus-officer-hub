@@ -9,6 +9,7 @@ Everything a new assistant needs to continue building the onboarding game *Missi
 | [AGENT_BRIEF.md](AGENT_BRIEF.md) | This is the only project document ASU AIR coding agents read (instead of `docs/PROGRESS.md` and the other large files) |
 | [prompts/](prompts/) | Exact prompts for the coder and critic runs |
 | [cards/](cards/) | Task cards, one file per run, executed in filename order |
+| [P3_DESIGN_DECISIONS.md](P3_DESIGN_DECISIONS.md) | Before storyboard production; nine owner decisions, recommendations and pending/approved status |
 | [P1_PIPELINE.md](P1_PIPELINE.md) | Before running the repaired guarded controller; setup, commands, known-failure fixes and evidence |
 | [TRIAL_LOG.md](TRIAL_LOG.md) | Record every run here: model, time, result, critic verdict, notes |
 

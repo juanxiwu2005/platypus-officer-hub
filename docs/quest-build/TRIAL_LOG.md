@@ -480,3 +480,15 @@ The controller wrote every event immediately to its ignored run journal. This co
 | 2026-11-22T12:15:05-07:00 | P1 completed | GLM 188.97 seconds, 5 steps; DeepSeek 146.64 seconds, 2 steps, APPROVED. One cycle; no repairs, denied requests, scope failures or timeouts. Controller committed/pushed a9bee777823e00b7c34403bb24ae810ce034c4a1 and all 8 required CI jobs passed on that exact SHA: https://github.com/juanxiwu2005/platypus-officer-hub/actions/runs/45059244617. | P1 exit gate achieved; Draft PR #19 awaits human acceptance. A documentation-only follow-up publishes this journal and completion handoff; its latest head/CI receipt is saved with local results. |
 | 2026-11-22T12:15:05-07:00 | P1-completion-english / start | `npm run lint:english` | Running. |
 | 2026-11-22T12:15:06-07:00 | P1-completion-english / finish | Exit 0; 0.57 seconds. Planner retained local command evidence outside the repository. | Passed. |
+
+## P3 design-confirmation preparation — 2026-11-22
+
+Owner requested simple Chinese design questions first; generate the six static storyboards only after confirmation. Baseline `b4ed1eb8c0638b4dd3e4f11b73e9b9de07e55319` on feat/onboarding-quest.
+
+| Local time | Step | Action / evidence | Result |
+| --- | --- | --- | --- |
+| 2026-11-22T12:25:31-07:00 | P3 preflight | Verified clean feature branch and matching remote head; main remains db1a0bec120cfc5883d99099fdbad90971f06bb2 and P0 remains 38c3ebb. Re-read AGENTS, current progress/product guidance, HANDOFF, full v3 design and applicable motion/accessibility guidance. | Design gate applies before artwork; no P3 worker/model/image call started. |
+| 2026-11-22T12:25:31-07:00 | Pending design register | Prepared P3_DESIGN_DECISIONS.md with D1–D9, sources, exact six pre-agreed subjects and explicit PENDING status. Reconciled the optional shorter duration with the owner-approved 33-rule total: compress presentation instead of dropping rules. | Nine proposed choices ready for simple Chinese confirmation; no choice inferred and no storyboard produced. |
+| 2026-11-22T12:26:17-07:00 | P3-questions-english / start | `npm run lint:english` | Running. |
+| 2026-11-22T12:26:17-07:00 | P3-questions-english / finish | Exit 0; 0.7 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T12:26:47-07:00 | P3 question-register verification | English check passed for 1017 tracked files; whitespace, all source links, exactly nine PENDING decisions and documentation-only scope passed. Prepared local confirmation records; publish this documentation on the existing feature branch only. | Await explicit owner choices before any of the six static storyboards. No product/image/model run or main action. |
