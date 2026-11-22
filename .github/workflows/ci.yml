@@ -17,16 +17,51 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run lint:css
-      - run: npm run lint:js
+      - run: npm run lint
       - run: npm run build
       - run: npm test
+      # The word-count check renders the built pages in Chromium.
       - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
       - run: npm run words
+
+  e2e:
+    # The browser suite is too long for one 15-minute job, so it runs in parallel shards.
+    # Each shard builds the app itself and covers a distinct slice of every Playwright project;
+    # `--list` with the same shard arguments shows exactly which tests a shard runs.
+    # Six shards keep each one well under 10 minutes on this runner; add shards if one grows past that.
+    name: e2e (${{ matrix.shard }}/${{ strategy.job-total }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --shard=${{ matrix.shard }}/${{ strategy.job-total }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-report
+          name: playwright-results-shard-${{ matrix.shard }}-of-${{ strategy.job-total }}
           path: test-results/
           retention-days: 7
+
+  e2e-result:
+    # One stable status for branch protection: it passes only when every e2e shard passed.
+    name: e2e-result
+    if: always()
+    needs: e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every e2e shard to pass
+        run: |
+          echo "e2e shards result: ${{ needs.e2e.result }}"
+          test "${{ needs.e2e.result }}" = "success"
