@@ -28,19 +28,22 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-01-sample-decisions.md": "allow",
-          "src/quest/ruleLibrary.ts": "allow",
+          "docs/quest-build/cards/P5-02A-model.md": "allow",
+          "src/quest/foundation.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
-          "src/quest/sample/decisions.test.ts": "allow"
+          "src/quest/sample/venue.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/quest/sample/model.ts": "allow",
+          "src/quest/sample/model.test.ts": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/decisions.ts": "allow",
-          "src/quest/sample/decisions.test.ts": "allow"
+          "src/quest/sample/model.ts": "allow",
+          "src/quest/sample/model.test.ts": "allow"
         },
         "bash": {
           "*": "deny",
-          "npx vitest run src/quest/sample/decisions.test.ts": "allow",
+          "npx vitest run src/quest/sample/model.test.ts": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -56,10 +59,13 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-01-sample-decisions.md": "allow",
-          "src/quest/ruleLibrary.ts": "allow",
+          "docs/quest-build/cards/P5-02A-model.md": "allow",
+          "src/quest/foundation.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
-          "src/quest/sample/decisions.test.ts": "allow"
+          "src/quest/sample/venue.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/quest/sample/model.ts": "allow",
+          "src/quest/sample/model.test.ts": "allow"
         },
         "edit": {
           "*": "deny"

@@ -3,16 +3,19 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-01-sample-decisions.md",
+  "card": "docs/quest-build/cards/P5-02A-model.md",
   "readFiles": [
-    "src/quest/ruleLibrary.ts"
+    "src/quest/foundation.ts",
+    "src/quest/sample/decisions.ts",
+    "src/quest/sample/venue.ts",
+    "src/engine/questSchedule.ts"
   ],
   "writeFiles": [
-    "src/quest/sample/decisions.ts",
-    "src/quest/sample/decisions.test.ts"
+    "src/quest/sample/model.ts",
+    "src/quest/sample/model.test.ts"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/decisions.test.ts",
+    "npx vitest run src/quest/sample/model.test.ts",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
@@ -20,7 +23,7 @@
       "npx",
       "vitest",
       "run",
-      "src/quest/sample/decisions.test.ts"
+      "src/quest/sample/model.test.ts"
     ],
     [
       "npx",
