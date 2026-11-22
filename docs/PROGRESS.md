@@ -1,4 +1,18 @@
-# Current work: S0 bug fixes from the subtraction review
+# Current work: S0 and S1 from the subtraction review
+
+> **November 22, 2026 (America/Phoenix) · Claude · S1 delivered (remove unreachable code), awaiting Juanxi's acceptance.** Juanxi asked to plan and execute S1. Same branch and draft PR as S0 ([juanxiwu2005/platypus-officer-hub#20](https://github.com/juanxiwu2005/platypus-officer-hub/pull/20), preview only, not for merging without approval). Two worktree agents ran in parallel, then a read-only review.
+>
+> **Removed (about 31,400 lines, 171 files):** `src/phase1/`, `src/workspace/`, `src/organization/` (`modelPolicy.ts` and `assets.d.ts` moved to `src/lib/`), `src/teamWorkflow/`, the old dot workflow editor files, dead components and helpers (TaskActions, ExtensionReview, flow/layout, reminderQueue, workflowAi, reminders/delivery, WorkflowSettings/Panel/Review, RolesEditor, the ConstitutionStep component, the FundingPage default export), nine Netlify functions (`/api/org/*`, `/api/workspace*`, `/api/nudge/draft`, `/api/setup/workflow`) with their libraries and Blobs storage, the `?check=1` storage branch of `/api/health`, the `ORG_SETUP_ENABLED` flag, Playwright's storage projects, seven e2e specs and the dead-code tests, and the dependencies zod, @xyflow/react and @netlify/blobs (63 packages). **Kept:** `src/archive/partners` (Juanxi's archive decision), `/api/limit-probe` (off by default; still needed to measure Netlify's synchronous limit, now with a unit test), all saved-data types, migrations and storage keys. **Docs:** old PROGRESS history through November 18 moved unchanged to [the archive](history/PROGRESS_ARCHIVE_2026-10_to_2026-11-18.md) (364 KB → 49 KB; a lossless rebuild check matched the original byte for byte); AGENTS.md, README.md and AI_SETUP.md updated.
+>
+> **Visible effect:** only a typed `/#/phase1/...` URL, which no page links to, now opens the home page. No other screen changed; word counts are identical. The main entry bundle went from 516,025 to 510,456 bytes (limit 550,000).
+>
+> **Verification:** lint, build, `typecheck:netlify` passed; `CI=1 npm test` 1,659/1,659 after merging (plus the restored auto-mode reminder test, now on the live digest path: 21/21 in its file); `npm run words` passed; the full browser suite in the S1-A worktree: 1,034 passed, 99 conditional skips, 1 failed (`ob-04-name-constitution.spec.ts:116`, known flaky: 1 of 10 runs failed both on this branch and on the base). The read-only review found no P1; its P2 findings (AGENTS.md wrongly listing the probe as removed, the `/phase1` URL effect not recorded, this missing entry) and the actionable P3s (stale routing table, removed live-path test) were fixed.
+>
+> **Open:** `recordReminderBatch` in the store has no dispatcher after S1; it is kept (harmless, saved-data neutral) for a later cleanup. Owner's local thesis backup synchronization is pending.
+
+---
+
+# S0 bug fixes from the subtraction review
 
 > **November 22, 2026 (America/Phoenix) · Claude · S0 delivered, awaiting Juanxi's acceptance.** Preview: [PR #20 Deploy Preview](https://deploy-preview-20--platypus-officer-hub.netlify.app) (draft PR [juanxiwu2005/platypus-officer-hub#20](https://github.com/juanxiwu2005/platypus-officer-hub/pull/20), titled "[Preview · do not merge]"; preview only, do not merge without Juanxi's approval). This entry replaces the in-progress note below, which is kept as the approved scope.
 >

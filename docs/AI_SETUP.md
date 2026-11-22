@@ -51,13 +51,10 @@ Routing version: `air-task-routing-v3`.
 | `POST /api/chat` | Main application right-side Ask rail | `chat` | Muse, `muse-glimmer-30b` |
 | `POST /api/ask` | Rules questions | `ask` | Muse |
 | `POST /api/command` | Validated natural-language changes | `command` | Muse |
-| `POST /api/nudge/draft` | One sentence in a reminder draft | `nudge_draft` | Muse |
 | `POST /api/handbook/draft` | Select sources for a role handbook | `handbook_draft` | Muse |
 | `/api/setup/constitution` | Read roles, reporting lines, and duties after Continue in setup step 1; no server storage | `constitution_read` | Muse. Send structure and duties requests sequentially; AIR processes one at a time, so parallel requests queue. Each must return within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default); duties batches contain at most 6 items. Gemma took 56 seconds on a real constitution and is not used here. |
-| `/api/org/ai` | Longer structured Organization Setup tasks; currently hidden | `setup.*` | Gemma, `gemma4-31b-it` |
-| Same endpoint, explicit Deeper review | User-requested stronger review | `setup.*` with deep mode | GLM, `glm-5-3` |
 
-Gemma handles longer structured setup; Muse handles short conversation/editing; GLM is used only for an explicit Deeper review request. There is no automatic upgrade. Only the server selects a model by task; the browser cannot name one.
+Muse handles every live endpoint above. The Gemma and GLM routes in `src/lib/modelPolicy.ts` served the hidden Organization Setup endpoints removed in S1 (November 22, 2026) and are no longer called; GLM remains the choice for an explicit Deeper review if one is added again. There is no automatic upgrade. Only the server selects a model by task; the browser cannot name one.
 
 This division was a DP3 design choice, not a verified performance ranking. Juanxi reported fast responses, but do not claim “proven fastest” without a formal measurement. If configuration or a request fails, the main application labels its keyword/local fallback explicitly rather than presenting it as live AI.
 

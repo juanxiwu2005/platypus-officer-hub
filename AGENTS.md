@@ -47,7 +47,7 @@ At handoff, record changes, checks, remaining limits, target PR/preview, and con
 
 ## 5. Code and verification map
 
-**November 22, 2026 (S1, approved by Juanxi):** unreachable code was removed: `src/phase1/`, `src/workspace/`, `src/organization/` (except `modelPolicy.ts`, now `src/lib/modelPolicy.ts`), `src/teamWorkflow/`, the old dot-based workflow editor files in `src/components/workflowBuilder/`, the server endpoints `/api/org/*`, `/api/workspace*`, `/api/nudge/draft`, `/api/setup/workflow`, and `/api/limit-probe` with their libraries, the `ORG_SETUP_ENABLED` build flag and storage test projects, and the zod, @xyflow/react, and @netlify/blobs dependencies. The code remains in git history and on branches `feat/ai-native-phase1` and `feat/organization-setup-ai`. Older text in this file that refers to those paths, endpoints, or flags is historical.
+**November 22, 2026 (S1, approved by Juanxi):** unreachable code was removed: `src/phase1/`, `src/workspace/`, `src/organization/` (except `modelPolicy.ts` and `assets.d.ts`, now in `src/lib/`), `src/teamWorkflow/`, the old dot-based workflow editor files in `src/components/workflowBuilder/`, the server endpoints `/api/org/*`, `/api/workspace*`, `/api/nudge/draft` and `/api/setup/workflow` with their libraries, the `ORG_SETUP_ENABLED` build flag and storage test projects, and the zod, @xyflow/react, and @netlify/blobs dependencies. The off-by-default `/api/limit-probe` was kept for measuring Netlify's synchronous limit (`docs/AI_SETUP.md`). The one visible effect: a typed `/#/phase1/...` URL, which no page links to, now opens the home page. The code remains in git history and on branches `feat/ai-native-phase1` and `feat/organization-setup-ai`. Older text in this file that refers to those paths, endpoints, or flags is historical.
 
 Use `README.md` and `docs/README.md` as the current reading map. Key code:
 
@@ -56,7 +56,7 @@ Use `README.md` and `docs/README.md` as the current reading map. Key code:
 - `src/engine/calendar.ts`, `playbooks.ts`, `schedule.ts`, `taskDates.ts`, `team.ts`, `forecast.ts`: deterministic calendars, workflows, schedules, personal buffers, and forecasts. Use the existing demo clock instead of inserting wall-clock dates into deterministic examples.
 - `src/lib/aiContext.ts`, `commands.ts`, `chatCards.ts`, `assistant.ts`: AI visibility, classification, filtering, and validated actions.
 - `netlify/functions/`, `netlify/lib/ai.mts`: server endpoints and provider adapter. Never expose provider credentials to the browser.
-- `src/organization/`, `src/workspace/`, `src/phase1/`: separate experiments and optional server workspaces. Read `docs/organization/HANDOFF.md` and `DATA_FOUNDATION.md` before changing their contracts, archive, stable IDs, or revision/conflict handling.
+- `src/lib/modelPolicy.ts`: ASU AIR model routing by task, used by `netlify/lib/ai.mts`.
 - `src/data/handoff.ts`, `roleTerms.ts`, `roleChanges.ts`, `src/lib/handbook.ts`, `roleDossier.ts`, `handoffQuestions.ts`, `firstQuestions.ts`: leadership transitions. Keep page-only handbook/dossier code out of the startup store bundle. The existing `firstQuestions.ts` study-log read boundary is guarded by `src/test/handoffStage7.test.ts`; never send those records to AI or save them into handbook/dossier state.
 - `src/test/`, `e2e/`, `.github/workflows/ci.yml`, `netlify.toml`: tests, browser configuration, CI, and deployment. Use project scripts and their actual current versions.
 
@@ -66,7 +66,7 @@ Use `README.md` and `docs/README.md` as the current reading map. Key code:
 
 Before UI work, read `docs/DESIGN_TOKENS.md` and any applicable package plan. Existing main-interface rules include:
 
-- Left navigation, central content, and the shared right rail. Ask is the main AI entry; Details shows the selected item. Keep experimental `/phase1/*` exceptions scoped to those pages.
+- Left navigation, central content, and the shared right rail. Ask is the main AI entry; Details shows the selected item.
 - Reuse `src/components/ui/` primitives, status pills, dependency chains, tables, hover/help, and rail details. Keep routine copy short; put explanations in the appropriate help surface and respect measured page word budgets.
 - Use design tokens for type, color, spacing, radii, layers, duration, and easing. Follow the current CSS/lint scope; do not exempt new code to avoid a guard.
 - Motion supports reduced motion, responds immediately to interruption, and uses transform/opacity; avoid layout-property transitions, `transition: all`, and `!important`. Routine actions need at most press feedback; desktop hover opens without delay.
