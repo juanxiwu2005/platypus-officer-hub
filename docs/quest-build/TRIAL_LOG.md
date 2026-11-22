@@ -314,3 +314,10 @@ Owner requested GLM 5.3 coding and DeepSeek review for P0-02, P0-03, P0-04 and P
 | Local time | Step | Action / evidence | Result |
 | --- | --- | --- | --- |
 | 2026-11-22T01:50:57-07:00 | Final batch publication verified | Approved P0-02/03/04/05 source commits are b36e269 / 1c66bee / cf516c2 / 2d81824. All were pushed normally to feat/onboarding-quest-trial. Remote head matched 2d818247fab20827be595cbe68fd4d27c7e93ed2; main stayed db1a0bec120cfc5883d99099fdbad90971f06bb2; local tree was clean. Exported final source, per-card snapshots, verdicts, checks and CSV/JSON results to the local outputs/quest-p0-trial folder. | Requested batch complete; follow-up documentation commit only records this confirmed publication. |
+
+## Owner clarification received after batch completion
+
+- Received at 2026-11-22T11:05:51-07:00 (America/Phoenix), through the previously pending clarification reply.
+- The owner explicitly confirmed that P0-03, P0-04 and P0-05 should be newly authored and executed for the fixed chapter-3, chapter-4 and chapter-5 rules, respectively.
+- This matches the stated interpretation used for the already completed and independently approved cards. The earlier log accurately records that execution proceeded before this reply arrived; this confirmation does not retroactively change that chronology.
+- No code, card, permission or test change, model rerun, main change or deployment is needed. Only documentation and local delivery metadata are updated.
