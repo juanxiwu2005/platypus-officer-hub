@@ -64,7 +64,7 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P0-04-rule-library-mission-4.md": "allow",
+          "docs/quest-build/cards/P0-05-rule-library-mission-5.md": "allow",
           "src/quest/ruleLibrary.ts": "allow"
         },
         "edit": {
@@ -207,7 +207,7 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P0-04-rule-library-mission-4.md": "allow",
+          "docs/quest-build/cards/P0-05-rule-library-mission-5.md": "allow",
           "src/quest/ruleLibrary.ts": "allow"
         },
         "edit": "deny",
