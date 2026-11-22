@@ -5,6 +5,9 @@ One row per run. "Steps/tokens" only if OpenCode shows them. "Rework" = repair r
 | Date | Card | Role | Model | Minutes | Steps/tokens | Checks (vitest / tsc / lint) | Critic verdict (model) | Rework | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-11-22 | P0-01 | preflight | Planned: asu/glm-5-3 | Not run | No agent steps or tokens | Card checks not run; reminder sanity 273/273 passed | Not requested; configured critic asu/muse-spark-open | 0 | STOPPED at HANDOFF section 4 step 2: alternate execution permission not denied. No coder, critic, bake-off or P0-02 run. |
+| 2026-11-22 | P0-01 | coder | asu/glm-5-3 | 5.96 | 7 CLI steps; {"input":49944,"output":2175,"reasoning":0,"cache":{"read":7424,"write":0}} | 4/4 / pass / pass | APPROVED (asu/deepseek-v4-1-flash) | 0 | Verified explicit repository binding; exact card output; two extra git-status requests were denied. |
+| 2026-11-22 | P0-01 | critic | asu/deepseek-v4-1-flash | 4.23 | 3 CLI steps; {"input":24796,"output":3826,"reasoning":0,"cache":{"read":0,"write":0}} | Planner results above; critic read-only | APPROVED | 0 | Four permitted file reads; one directory read denied; no edits or shell. |
+| 2026-11-22 | P0-01 | launch diagnosis | asu/glm-5-3 | 1.52 | 2 CLI steps; {"input":13475,"output":114,"reasoning":0,"cache":{"read":0,"write":0}} | Not run | Not run | 0 | Initial CLI launch used the outer directory; interrupted without source changes, then retried with an API-created and verified repository-bound session. |
 
 ## Planner verification (done before the trial, 2026-11-22)
 
@@ -13,9 +16,9 @@ One row per run. "Steps/tokens" only if OpenCode shows them. "Rework" = repair r
 
 ## Decisions after the trial
 
-- Coder model for P1+: not selected; the mandatory preflight gate prevented all coding runs.
-- Critic model for P1+: not selected; no independent critic run occurred.
-- Card template changes: none. Resolve the execution-permission gate in a separately approved maintenance session before retrying.
+- Coder model for the next trial: `asu/glm-5-3`, provisionally validated on P0-01. Not a comparative winner; bake-off candidates were not run.
+- Critic model for the next trial: `asu/deepseek-v4-1-flash`, explicitly selected for a different-family review and APPROVED P0-01. The user-level configured default critic remains unchanged.
+- Runbook follow-up: create and verify an explicit repository-bound OpenCode session before each run; keep default-deny role permissions scoped to the current card. Extra git-status attempts were denied; the planner, not the coder, performs working-tree verification.
 
 ## Mac P0 trial — 2026-11-22 (Codex planner/reviewer)
 
@@ -74,7 +77,7 @@ asu/qwen38-27b
 - Repository `opencode.json`, user-level OpenCode settings, protected files, tests and source code were left unchanged. Only this log and the planner progress entry are intended repository changes.
 - Main was read-only throughout. Remote main observed before recording the result: `db1a0bec120cfc5883d99099fdbad90971f06bb2`; requested baseline remained `96f101b16526286099054c0a712b0de2a17197d1`.
 
-### Outcome and next gate
+### Outcome and next gate (initial stop; superseded by the authorized continuation below)
 
 P0 is incomplete and awaiting an explicitly approved permission-maintenance step. Do not label P0-01 failed on model quality: no coding request was sent. Do not choose a winning model pair from this preflight. No protected configuration was repaired as part of this trial. Recommended P1 prerequisite: inspect and restrict alternate execution actions, verify the effective coder/critic tool boundary, then rerun P0-01 from the pinned baseline using the short brief and exact card. Local thesis backup synchronization is pending.
 
@@ -113,3 +116,62 @@ The owner explicitly authorized repairing execute permissions, verifying coder/c
 | 2026-11-22T00:38:47-07:00 | Effective permission verification | Evaluated 58 allowed/denied cases against the ordered rules returned by the reloaded OpenCode runtime. Both roles deny execute/code/run, all unlisted tools, protected edits, forbidden docs, arbitrary commands, installs and pushes. Coder allows the two task edits and exact checks; critic permits only scoped reads. | All assertions passed. Evidence saved locally as permission-verification.json. |
 | 2026-11-22T00:39:13-07:00 | 13-run-flags / start | `/Users/Dirofs/.opencode/bin/opencode run --help` | Running. |
 | 2026-11-22T00:39:13-07:00 | 13-run-flags / finish | Exit 0; 0.08 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T00:40:03-07:00 | P0-01-glm-5-3 | Start OpenCode backend-coder, explicit model asu/glm-5-3; exact prompt archived locally. | 20-minute watchdog; only card scope allowed. |
+| 2026-11-22T00:40:26-07:00 | P0-01-glm-5-3 / tool | read: {"path": "docs/quest-build/AGENT_BRIEF.md"} | error; File not found: docs/quest-build/AGENT_BRIEF.md |
+| 2026-11-22T00:41:33-07:00 | P0-01-glm-5-3 / tool | read: {"path": "docs/quest-build/cards/P0-01-rule-library-mission-1.md"} | error; File not found: docs/quest-build/cards/P0-01-rule-library-mission-1.md |
+| 2026-11-22T00:41:34-07:00 | P0-01-glm-5-3 / tool | glob: {"pattern": "**/AGENT_BRIEF.md"} | completed |
+| 2026-11-22T00:41:34-07:00 | P0-01-glm-5-3 / finish | Exit 130; 91.45 seconds; 2 steps; session ses_dfdcd5acfffeb03Y9xhTzzMrD0. | Unexpected tool: glob |
+| 2026-11-22T00:42:24-07:00 | GLM launch failure and recovery | CLI run created its session in the outer workspace despite the subprocess working directory. Two requested reads returned file-not-found; a glob call completed under that outer location's policy. The watchdog stopped the attempt (91.45 seconds, 2 steps); session interrupt returned true. No source or protected file was changed and no card check ran. | Infrastructure launch failure, not a failed implementation or a relaxed permission rule. |
+| 2026-11-22T00:42:24-07:00 | Explicit session-location repair | Created session ses_dfdcbbc4cffecyD2bYwokTY3tQ through the OpenCode API with explicit trial-repository location, coder and model, then read it back to verify the exact directory. Updated only the external trial launcher to bind and verify every future session before sending a prompt. | Continue using the verified project policy; no user-level settings changed. |
+| 2026-11-22T00:42:24-07:00 | P0-01-glm-5-3-bound | Start OpenCode backend-coder, explicit model asu/glm-5-3; verified session ses_dfdcbbc4cffecyD2bYwokTY3tQ location is the exact trial repository; prompt archived locally. | 20-minute watchdog; only card scope allowed. |
+| 2026-11-22T00:42:49-07:00 | P0-01-glm-5-3-bound / tool | read: {"path": "docs/quest-build/AGENT_BRIEF.md"} | completed |
+| 2026-11-22T00:42:49-07:00 | P0-01-glm-5-3-bound / tool | read: {"path": "docs/quest-build/cards/P0-01-rule-library-mission-1.md"} | completed |
+| 2026-11-22T00:43:06-07:00 | P0-01-glm-5-3-bound / tool | shell: {"command": "git status --short --branch"} | error; Permission denied: shell |
+| 2026-11-22T00:45:10-07:00 | P0-01-glm-5-3-bound / tool | write: {"content": "import { describe, expect, it } from \"vitest\"\nimport { QUEST_RULES } from \"./ruleLibrary\"\n\nconst words = (value: string) => value.trim().split(/\\s+/).filter(Boolean).length\n\ndescribe(\"quest rule library\", () => {\n  it(\"has unique ids that match their mission\", () => {\n    const ids = QUEST_RULES.map(rule => rule.id)\n    expect(new Set(ids).size).toBe(ids.length)\n    for (const rule of QUEST_RULES) {\n      expect(rule.id).toMatch(/^[1-7]\\.\\d{1,2}$/)\n      expect(Number(rule.id.split(\".\")[0])).toBe(rule.mission)\n    }\n  })\n\n  it(\"keeps summaries and hints short\", () => {\n    for (const rule of QUEST_RULES) {\n      expect(words(rule.summary)).toBeLes | completed |
+| 2026-11-22T00:45:10-07:00 | P0-01-glm-5-3-bound / tool | write: {"content": "/**\n * Rule library for the onboarding game \"Mission: Speaker Night\".\n * Each rule quotes the ASU rules archive (03_Full_Rules_Archive.txt) verbatim.\n * `record` is the catalog ID (src/data/policyCatalog.ts); `line` is the archive line number.\n */\nexport type QuestRole = \"all\" / \"president\" / \"treasurer\" / \"events\" / \"marketing\" / \"secretary\"\n\nexport interface QuestRuleSource {\n  record: string\n  line: number\n  quote: string\n  /** Handbook section name for ASU-R-004; null for other records. */\n  section: string / null\n}\n\nexport interface QuestRule {\n  /** \"<mission>.<number>\", for example \"1.1\". */\n  id: string\n  mission: number\n  /** Red-lin | completed |
+| 2026-11-22T00:45:26-07:00 | P0-01-glm-5-3-bound / tool | shell: {"command": "npx vitest run src/quest"} | completed |
+| 2026-11-22T00:46:19-07:00 | P0-01-glm-5-3-bound / tool | shell: {"command": "npx tsc --noEmit -p tsconfig.json"} | completed |
+| 2026-11-22T00:46:56-07:00 | 14-planner-tsc / start | `npx tsc --noEmit -p tsconfig.json` | Running. |
+| 2026-11-22T00:46:56-07:00 | 14-planner-lint / start | `npm run lint` | Running. |
+| 2026-11-22T00:46:56-07:00 | 14-planner-vitest / start | `npx vitest run src/quest` | Running. |
+| 2026-11-22T00:46:57-07:00 | 14-planner-vitest / finish | Exit 0; 1.66 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T00:47:01-07:00 | 14-planner-lint / finish | Exit 0; 5.16 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T00:47:04-07:00 | 14-planner-tsc / finish | Exit 0; 8.72 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T00:47:16-07:00 | P0-01-glm-5-3-bound / tool | shell: {"command": "git status --short"} | error; Permission denied: shell |
+| 2026-11-22T00:47:42-07:00 | Planner exact-data and scope verification | Both generated files match their card code blocks exactly (108 + 39 lines). Independent quest vitest 4/4, full frontend tsc and full lint passed. Intent-to-add made both new files visible to diff and the English guard. Saved full coder patch separately from planner log bookkeeping; only those two source files are coder output. | Pass; no test weakening or out-of-scope coder edits. |
+| 2026-11-22T00:48:21-07:00 | P0-01-glm-5-3-bound / finish | Exit 0; 357.66 seconds; 7 steps; session ses_dfdcbbc4cffecyD2bYwokTY3tQ. | Run ended; planner verification pending. |
+| 2026-11-22T00:48:44-07:00 | P0-01-deepseek-review | Start OpenCode code-critic, explicit model asu/deepseek-v4-1-flash; verified session ses_dfdc568e4ffeJmg1qly0zXh8z1 location is the exact trial repository; prompt archived locally. | 20-minute watchdog; only card scope allowed. |
+| 2026-11-22T00:48:58-07:00 | P0-01-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/docs/quest-build/AGENT_BRIEF.md"} | completed |
+| 2026-11-22T00:48:58-07:00 | P0-01-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/docs/quest-build/cards/P0-01-rule-library-mission-1.md"} | completed |
+| 2026-11-22T00:49:35-07:00 | P0-01-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/src/quest"} | error; Permission denied: read |
+| 2026-11-22T00:49:35-07:00 | P0-01-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/src/quest/ruleLibrary.test.ts"} | completed |
+| 2026-11-22T00:49:35-07:00 | P0-01-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/src/quest/ruleLibrary.ts"} | completed |
+| 2026-11-22T00:52:57-07:00 | P0-01-deepseek-review / finish | Exit 0; 253.88 seconds; 3 steps; session ses_dfdc568e4ffeJmg1qly0zXh8z1. | Run ended; planner verification pending. |
+| 2026-11-22T00:54:03-07:00 | Final source and review verification | DeepSeek returned APPROVED. Rechecked that both files still exactly match the card and that the reviewed patch equals the final coder output. Confirmed critic used read tools only; no execute call occurred in either repository-bound run. | P0-01 passed; no implementation repair or test change required. |
+| 2026-11-22T00:54:03-07:00 | Local deliverables | Saved source copies, prompts, coder/critic event logs, token/time summaries, complete review patch and permission-verification evidence under the owner's local outputs/quest-p0-trial folder. | Local artifacts available; no secrets or participant data included. |
+
+### P0-01 result
+
+- **PASS / APPROVED.** Coder: `asu/glm-5-3`, 357.66 seconds (5.96 minutes), 7 CLI step-start events. Independent critic: `asu/deepseek-v4-1-flash`, 253.88 seconds (4.23 minutes), 3 CLI step-start events.
+- Initial launch diagnosis: 91.45 seconds (1.52 minutes); excluded from implementation rework because it reached the wrong directory and produced no source files. The verified repository-bound run required zero code repairs.
+- Token counts in the table are final aggregate session values read from the OpenCode API. CLI step-finish events are also retained locally; the CLI omits the final step-finish event, so its partial usage sum is not presented as a complete total.
+- Deliverables: exactly `src/quest/ruleLibrary.ts` (108 lines) and `src/quest/ruleLibrary.test.ts` (39 lines); four mission-1 rules and four schema tests, copied exactly from the approved card.
+- Planner gates: 4/4 quest tests, full frontend TypeScript check, complete lint including English/CSS/JS guardrails, exact card-content comparison, final patch equality and scope review all passed. No assertion was weakened, removed or skipped.
+- Effective permission assertions: 58/58 passed. In real scoped runs, both extra coder git-status calls and the critic's directory listing were denied. The critic never used shell or edit tools; all actual writes were the two allowed coder files.
+- Default chat model and user-level agent mappings are unchanged. Protected-file maintenance was performed only by the owner-authorized planner in commit `289908b`, before the coder run.
+- No bake-off, P0-02, P1 controller run or UI preview was started. This completes the requested permission repair and P0-01 card, not an owner acceptance of the entire P0/P1 pipeline or a comparative model benchmark. Future cards require an explicit planner update of their file/command scope.
+- Main remains unchanged. Local thesis backup synchronization is pending.
+
+### Recommended next work
+
+Keep GLM 5.3 + DeepSeek as the provisionally validated pair. Before automating further cards, carry explicit session-location verification and scoped permission checks into the separately approved P1 controller work. Do not resume the old Night Mode queue. Further model bake-offs and P0-02 remain separate follow-up runs.
+
+### Final publication checks
+
+| Local time | Step | Action / evidence | Result |
+| --- | --- | --- | --- |
+| 2026-11-22T00:54:25-07:00 | 15-final-whitespace / start | `git diff --check` | Running. |
+| 2026-11-22T00:54:25-07:00 | 15-final-english / start | `npm run lint:english` | Running. |
+| 2026-11-22T00:54:25-07:00 | 15-final-whitespace / finish | Exit 0; 0.02 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T00:54:26-07:00 | 15-final-english / finish | Exit 0; 0.69 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T00:54:45-07:00 | Publication scope review | Final diff contains two verified quest files and two planner documents; the earlier permission repair is isolated in commit 289908b. English and whitespace checks passed. | Ready for a maintainer commit and normal fast-forward push to feat/onboarding-quest-trial only. |
