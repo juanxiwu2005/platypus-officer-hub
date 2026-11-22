@@ -14,6 +14,8 @@ One row per run. "Steps/tokens" only if OpenCode shows them. "Rework" = repair r
 | 2026-11-22 | P0-03 | critic | asu/deepseek-v4-1-flash | 3.98 | 3 steps; {"input":26153,"output":2453,"reasoning":0,"cache":{"read":0,"write":0}} | 4/4 / pass / pass | APPROVED (asu/deepseek-v4-1-flash) | 0 | Exact card output; card-specific permissions verified. |
 | 2026-11-22 | P0-04 | coder | asu/glm-5-3 | 3.39 | 6 steps; {"input":43319,"output":1551,"reasoning":0,"cache":{"read":16768,"write":0}} | 4/4 / pass / pass | APPROVED (asu/deepseek-v4-1-flash) | 0 | Exact card output; card-specific permissions verified. |
 | 2026-11-22 | P0-04 | critic | asu/deepseek-v4-1-flash | 3.84 | 3 steps; {"input":25080,"output":2763,"reasoning":0,"cache":{"read":0,"write":0}} | 4/4 / pass / pass | APPROVED (asu/deepseek-v4-1-flash) | 0 | Exact card output; card-specific permissions verified. |
+| 2026-11-22 | P0-05 | coder | asu/glm-5-3 | 3.64 | 6 steps; {"input":62964,"output":1299,"reasoning":0,"cache":{"read":0,"write":0}} | 4/4 / pass / pass | APPROVED (asu/deepseek-v4-1-flash) | 0 | Exact card output; card-specific permissions verified. |
+| 2026-11-22 | P0-05 | critic | asu/deepseek-v4-1-flash | 11.54 | 4 steps; {"input":40112,"output":6736,"reasoning":0,"cache":{"read":0,"write":0}} | 4/4 / pass / pass | APPROVED (asu/deepseek-v4-1-flash) | 0 | Exact card output; card-specific permissions verified. |
 
 ## Planner verification (done before the trial, 2026-11-22)
 
@@ -265,3 +267,49 @@ Owner requested GLM 5.3 coding and DeepSeek review for P0-02, P0-03, P0-04 and P
 | 2026-11-22T01:33:00-07:00 | P0-04 / final verification | GLM completed in 203.27 seconds (6 steps); DeepSeek APPROVED in 230.26 seconds (3 steps). Final source is unchanged from the reviewed patch and expected append. Both runs stayed within their allowed tool/path scope. | PASS; zero code repairs; ready for maintainer commit and trial-branch push. |
 | 2026-11-22T01:33:01-07:00 | Observer verdict separation | DeepSeek emitted brief pre-tool narration in earlier assistant messages, then APPROVED as the first line of its final assistant message. Preserved all raw events and separated the final message by message ID when recording the verdict. | No review text, test, source or permission was changed by this evidence-handling correction. |
 | 2026-11-22T01:33:10-07:00 | P0-05 / scoped setup | Activated the exact card and one source file; verified 62 effective permission cases after reload. Archived the exact expected append and coder prompt. Earlier content and test bytes must be preserved. | All assertions passed; explicit session binding remains mandatory. |
+| 2026-11-22T01:33:11-07:00 | P0-05-glm-5-3 | Start OpenCode backend-coder, explicit model asu/glm-5-3; verified session ses_dfd9cb620ffeMsMQ1SE7QwUhln location is the exact trial repository; prompt archived locally. | 20-minute watchdog; only card scope allowed. |
+| 2026-11-22T01:33:31-07:00 | P0-05-glm-5-3 / tool | read: {"path": "docs/quest-build/AGENT_BRIEF.md"} | completed |
+| 2026-11-22T01:33:31-07:00 | P0-05-glm-5-3 / tool | read: {"path": "docs/quest-build/cards/P0-05-rule-library-mission-5.md"} | completed |
+| 2026-11-22T01:34:25-07:00 | P0-05-glm-5-3 / tool | read: {"path": "src/quest/ruleLibrary.ts"} | completed |
+| 2026-11-22T01:35:39-07:00 | P0-05-glm-5-3 / tool | edit: {"newString": "    handoff: \"secretary → treasurer: the complete attendee list\",\n    hint: \"What records and signatures does a food purchase need?\",\n  },\n  {\n    id: \"5.1\",\n    mission: 5,\n    redLine: false,\n    summary: \"Obtain approval, the RITM number and confirmed room before promoting the event.\",\n    sources: [\n      { record: \"ASU-R-004\", line: 598, quote: \"Once an event has been approved through the appropriate university processes, including the Event Registry, student organizations can advertise, promote, and/or publish events\", section: \"Event Approval and Event Promotion\" },\n    ],\n    leads: [\"events\", \"marketing\"],\n    handoff: \"events → marketin | completed |
+| 2026-11-22T01:36:11-07:00 | P0-05-planner-tsc / start | `npx tsc --noEmit -p tsconfig.json` | Running. |
+| 2026-11-22T01:36:11-07:00 | P0-05-planner-vitest / start | `npx vitest run src/quest` | Running. |
+| 2026-11-22T01:36:11-07:00 | P0-05-planner-lint / start | `npm run lint` | Running. |
+| 2026-11-22T01:36:11-07:00 | P0-05-glm-5-3 / tool | shell: {"command": "npx vitest run src/quest", "workdir": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial"} | completed |
+| 2026-11-22T01:36:12-07:00 | P0-05-planner-vitest / finish | Exit 0; 1.19 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T01:36:15-07:00 | P0-05-planner-lint / finish | Exit 0; 4.73 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T01:36:19-07:00 | P0-05-planner-tsc / finish | Exit 0; 8.3 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T01:36:26-07:00 | P0-05 / planner gate | Exact append and unchanged tests confirmed. Independent 4/4 vitest, frontend tsc and complete lint passed; all 47 citations matched the correct archive record and LF line. Full one-file patch saved. | Pass; ready for independent DeepSeek review. |
+| 2026-11-22T01:36:27-07:00 | P0-05-glm-5-3 / tool | shell: {"command": "npx tsc --noEmit -p tsconfig.json", "workdir": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial"} | completed |
+| 2026-11-22T01:36:49-07:00 | P0-05-glm-5-3 / finish | Exit 0; 218.47 seconds; 6 steps; session ses_dfd9cb620ffeMsMQ1SE7QwUhln. | Run ended; planner verification pending. |
+| 2026-11-22T01:36:56-07:00 | P0-05-deepseek-review | Start OpenCode code-critic, explicit model asu/deepseek-v4-1-flash; verified session ses_dfd9946b7ffeyiqv3bD3OIS5po location is the exact trial repository; prompt archived locally. | 20-minute watchdog; only card scope allowed. |
+| 2026-11-22T01:37:05-07:00 | P0-05-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/docs/quest-build/AGENT_BRIEF.md"} | completed |
+| 2026-11-22T01:37:05-07:00 | P0-05-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/docs/quest-build/cards/P0-05-rule-library-mission-5.md"} | completed |
+| 2026-11-22T01:39:34-07:00 | P0-05-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/src/quest/ruleLibrary.ts", "limit": 120} | completed |
+| 2026-11-22T01:39:34-07:00 | P0-05-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/src/quest/ruleLibrary.ts", "offset": 360, "limit": 100} | completed |
+| 2026-11-22T01:41:46-07:00 | P0-05-deepseek-review / tool | read: {"path": "/Users/Dirofs/Documents/Codex/2026-11-21/opencode-asu-air/work/platypus-quest-trial/src/quest/ruleLibrary.ts", "offset": 120, "limit": 240} | completed |
+| 2026-11-22T01:48:28-07:00 | P0-05-deepseek-review / finish | Exit 0; 692.15 seconds; 4 steps; session ses_dfd9946b7ffeyiqv3bD3OIS5po. | Run ended; planner verification pending. |
+| 2026-11-22T01:49:20-07:00 | P0-05 / final verification | GLM completed in 218.47 seconds (6 steps); DeepSeek APPROVED in 692.15 seconds (4 steps). Final source is unchanged from the reviewed patch and expected append. Both runs stayed within their allowed tool/path scope. | PASS; zero code repairs; ready for maintainer commit and trial-branch push. |
+| 2026-11-22T01:50:11-07:00 | P0-05 final review | Final first line is STATUS: APPROVED. The observer accepts only anchored APPROVED or STATUS: APPROVED; rejected/prose/qualified forms are not accepted. Raw verdict is retained. Reviewer noted distinct clauses on archive line 390 and a form label spanning adjacent archive lines. | Approved without source/test changes; group related citations clearly in a future UI. |
+| 2026-11-22T01:50:11-07:00 | Final batch audit | 27 ordered rules; every append matches its card; 47 quotations match their archive record and LF line. Each card passed independent 4/4 tests, frontend tsc, complete lint and DeepSeek review. Test-file bytes are unchanged from 56e5299. | All four cards PASS; zero code repairs; 248/248 permission assertions passed. |
+
+### P0-02–05 completed batch summary
+
+| Card | GLM 5.3 coding seconds | DeepSeek review seconds | Verdict | Code repairs |
+| --- | ---: | ---: | --- | ---: |
+| P0-02 | 117.92 | 165.42 | APPROVED | 0 |
+| P0-03 | 239.24 | 238.75 | APPROVED | 0 |
+| P0-04 | 203.27 | 230.26 | APPROVED | 0 |
+| P0-05 | 218.47 | 692.15 | APPROVED | 0 |
+
+- P0-03–05 were absent and were planner-authored from the fixed chapter-3/4/5 decisions under the stated numbering interpretation. No separate owner clarification is claimed. The 17 new-card decisions and 35 new quotations were verified before coding.
+- Every worker used an explicit verified repository-bound session and the requested exact ASU model. Every append was independently approved before the maintainer commit. No protected worker edit, forbidden read, execute call, check failure or timeout occurred in this batch.
+- P0-05 review took 692.15 seconds, below the 20-minute limit, with an additional source-region verification step. This measured duration does not establish a model-wide speed difference.
+- Recommended next practice: keep scoped GLM/DeepSeek runs, explicit session binding, complete inline diffs, preserved-prefix checks and bounded optional reviewer reads. Do not resume the old Night Mode queue.
+- These are typed rule data, not playable scenes. No UI, dependency, date-engine, main merge or production deployment was added. Missions 6–7 and P1 automation remain separate work.
+- Local delivery includes source snapshots, cards, prompts/events/tokens/times, checks, verdicts, patches, citation verification and CSV/JSON results. Thesis backup synchronization remains pending.
+
+### Final batch publication
+
+| Local time | Step | Action / evidence | Result |
+| --- | --- | --- | --- |
