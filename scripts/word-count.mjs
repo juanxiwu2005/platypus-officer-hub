@@ -6,6 +6,11 @@
 //   visible = only what shows on screen at first glance (the old way of counting).
 // Each page has two limits (Juanxi 2026-10-29): [what shows at first glance, every word the page carries].
 // A page fails if it is over either. Pass --report-only to print without failing.
+// Each page is measured on its own fresh demo, in the state an officer actually uses:
+//   /          a fresh demo first shows only the "Enable updated reminders" card, so the script presses it
+//              and counts the reminder centre behind it (what a president sees from then on).
+//   /settings  the enforced row is the first tab (Club). Every other Settings tab gets an extra "info" row
+//              that is report-only and never fails the check (their budgets are not set yet).
 import { chromium } from "@playwright/test"
 import { spawn } from "node:child_process"
 
@@ -29,30 +34,67 @@ for (let i = 0; ; i++) {
 
 const exe = process.env.PW_CHROMIUM || process.env.CHROMIUM
 const browser = await chromium.launch(exe ? { executablePath: exe } : {})
-const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+
+/** Count the words in <main> as it is on screen right now. */
+const measure = page => page.evaluate(() => {
+  const m = document.querySelector("main")
+  const shown = el => { for (let e = el; e && e !== m.parentElement; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return false } return true }
+  const all = [], visible = []
+  const walk = document.createTreeWalker(m, NodeFilter.SHOW_TEXT)
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+    const el = n.parentElement
+    if (!el || el.closest("option, script, style")) continue
+    all.push(n.textContent)
+    if (shown(el) && el.getClientRects().length) visible.push(n.textContent)
+  }
+  for (const sel of m.querySelectorAll("select")) { const t = sel.selectedOptions[0]?.textContent ?? ""; all.push(t); if (shown(sel)) visible.push(t) }
+  const count = parts => parts.join(" ").split(/\s+/).filter(w => /[A-Za-z0-9$]/.test(w)).length
+  return { all: count(all), visible: count(visible), height: document.documentElement.scrollHeight }
+})
+const screens = r => `${(r.height / 900).toFixed(1)} screens`
+const shot = async (page, name) => { if (out) await page.screenshot({ path: `${out}/${name}.png`, fullPage: true }) }
+const slug = s => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+
+/** On a fresh demo the home page only offers the migration card: press it and wait for the real reminder centre. */
+async function openReminderCentre(page) {
+  const enable = page.getByRole("button", { name: "Enable updated reminders", exact: true })
+  if (!(await enable.isVisible())) return false
+  await enable.click()
+  await page.getByTestId("rq-summary").waitFor({ state: "visible", timeout: 10_000 })
+  await page.locator('[data-testid="reminder-centre"][aria-busy="false"]').waitFor({ timeout: 10_000 })
+  await page.waitForTimeout(900)
+  return true
+}
+
+/** Every Settings tab after the first (Club), opened the way a user does: with the section buttons. Report only. */
+async function reportSettingsTabs(page) {
+  const nav = page.getByRole("navigation", { name: "Settings sections" })
+  const labels = (await nav.getByRole("button").allInnerTexts()).map(s => s.trim()).slice(1)
+  for (const label of labels) {
+    await nav.getByRole("button", { name: label, exact: true }).click()
+    await page.getByText("Loading workflows…").waitFor({ state: "hidden", timeout: 10_000 })
+    await page.waitForTimeout(900)
+    const r = await measure(page)
+    console.log(`info /settings · ${label.padEnd(15)} visible ${String(r.visible).padStart(4)} · all ${String(r.all).padStart(4)} · ${screens(r)} (not enforced)`)
+    await shot(page, `settings-${slug(label)}`)
+  }
+}
+
 let over = 0
 for (const [path, [vLimit, aLimit]] of Object.entries(LIMITS)) {
+  // A fresh context per page, so pressing a button on one page cannot change what another page shows.
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const page = await context.newPage()
   await page.goto(`${base}/#${path}`)
   await page.waitForTimeout(900)
-  const r = await page.evaluate(() => {
-    const m = document.querySelector("main")
-    const shown = el => { for (let e = el; e && e !== m.parentElement; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return false } return true }
-    const all = [], visible = []
-    const walk = document.createTreeWalker(m, NodeFilter.SHOW_TEXT)
-    for (let n = walk.nextNode(); n; n = walk.nextNode()) {
-      const el = n.parentElement
-      if (!el || el.closest("option, script, style")) continue
-      all.push(n.textContent)
-      if (shown(el) && el.getClientRects().length) visible.push(n.textContent)
-    }
-    for (const sel of m.querySelectorAll("select")) { const t = sel.selectedOptions[0]?.textContent ?? ""; all.push(t); if (shown(sel)) visible.push(t) }
-    const count = parts => parts.join(" ").split(/\s+/).filter(w => /[A-Za-z0-9$]/.test(w)).length
-    return { all: count(all), visible: count(visible), height: document.documentElement.scrollHeight }
-  })
+  const enabled = path === "/" && await openReminderCentre(page)
+  const r = await measure(page)
   const isOver = r.visible > vLimit || r.all > aLimit
   if (isOver) over++
-  console.log(`${isOver ? "OVER" : "ok  "} ${path.padEnd(10)} visible ${String(r.visible).padStart(4)}/${String(vLimit).padStart(4)} · all ${String(r.all).padStart(4)}/${String(aLimit).padStart(4)} · ${(r.height / 900).toFixed(1)} screens`)
-  if (out) await page.screenshot({ path: `${out}/${path === "/" ? "today" : path.slice(1)}.png`, fullPage: true })
+  console.log(`${isOver ? "OVER" : "ok  "} ${path.padEnd(10)} visible ${String(r.visible).padStart(4)}/${String(vLimit).padStart(4)} · all ${String(r.all).padStart(4)}/${String(aLimit).padStart(4)} · ${screens(r)}${enabled ? " · after Enable updated reminders" : ""}`)
+  await shot(page, path === "/" ? "today" : path.slice(1))
+  if (path === "/settings") await reportSettingsTabs(page)
+  await context.close()
 }
 await browser.close()
 stop()
