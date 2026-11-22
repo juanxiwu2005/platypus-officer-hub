@@ -15,15 +15,17 @@ async function startWorkspace(page: Page) {
   await page.goto("/?walkthrough=1#/welcome/start")
   await page.evaluate(() => { location.hash = "#/welcome/founder/name" })
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
-  await page.getByLabel("Club name").fill("Maple Club")
-  await fillMission(page); await cont(page)                       // FB-2 (ob-5): the mission is on Name
+  await page.getByLabel("Club name").fill("Maple Club"); await cont(page)
+  await page.getByRole("button", { name: /^Skip/ }).click()                 // Constitution
+  await fillMission(page)                                                    // Goals needs a mission, even to skip
+  await page.getByRole("button", { name: "Skip for now" }).click()          // Goals
   await page.getByRole("button", { name: "Skip for now" }).click()          // Team
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: "Plan it" }).click()
   await expect(page.getByRole("region", { name: "First steps and dates" })).toBeVisible()
   await cont(page)
   await passReminders(page)                                                  // Reminders (P3-H): skipped
-  await page.getByRole("button", { name: "Create my club" }).click()
+  await page.getByRole("button", { name: "Start workspace" }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").org?.name)).toBe("Maple Club")
 }
@@ -46,10 +48,11 @@ test("Start workspace keeps the sample events, tasks, risks and handoff in the n
 
   await page.goto("/#/")
   await closeRail(page)
-  // FB-8: the home page is the reminder centre: at-risk tasks with an owner to remind lead Needs your OK (the stars card left home).
-  const risk = page.getByTestId("rq-needs-ok")
-  await expect(risk.getByTestId("rq-row").first().getByTestId("forecast")).toBeVisible()
-  await expect(risk.getByRole("button", { name: "Review & open draft" }).first()).toBeVisible()
+  // The home page is the reminder centre (the stars card left home): each owner's tasks are combined into one email, and an owner with an
+  // at-risk task has a reminder email to open.
+  const atRisk = page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").getByRole("button", { name: /^At risk:/ }) })
+  await expect(atRisk.first()).toBeVisible()
+  await expect(atRisk.first().locator(".dg-person-head")).toBeVisible()
 
   await page.goto("/#/handoff")
   await closeRail(page)

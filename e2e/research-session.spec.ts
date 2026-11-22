@@ -16,7 +16,7 @@ const next = (page: Page) => page.getByRole("button", { name: c.next, exact: tru
 const h1 = (page: Page, name: string) => expect(page.getByRole("heading", { level: 1, name })).toBeVisible()
 const OLD = 49
 
-test("an earlier day is cleared, the link opened twice keeps both sessions; Create my club then Exit on Invite: setup completed, outcome exited", async ({ page }) => {
+test("an earlier day is cleared, the link opened twice keeps both sessions; Start workspace then Exit in the preview: setup completed, outcome exited", async ({ page }) => {
   // This browser was used the day before: 49 log entries from then.
   // Seeded before the app loads: the app saves its own log when a page is left (P3-G), so writing storage under a running page and
   // reloading would be overwritten by that save — which is right for real use, and why the seed goes in first.
@@ -40,19 +40,23 @@ test("an earlier day is cleared, the link opened twice keeps both sessions; Crea
   await expect(page.locator("main h1")).toHaveText("Tasks")
   await page.getByRole("combobox", { name: "Task scope" }).selectOption({ label: "Team tasks" })
 
-  // Session 2: the link opened again; setup with First event skipped, Create my club, then Exit on Invite.
+  // Session 2: the link opened again; setup with First event skipped, Start workspace, then the officer preview and Exit.
   await page.goto("/#/start")
   await h1(page, c.founder.name.title)
   await page.getByLabel(c.founder.name.field).fill("Fictional Heron Club")
-  await fillMission(page)                                    // FB-2 (ob-5): the mission is on Name
   await next(page)
+  // The shared eight-step founder flow (docs/feedback-fix/SETUP_ENTRY_UNIFICATION_HANDOFF.md): Constitution, then Goals with its mission.
+  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
+  await fillMission(page)
+  await page.getByRole("button", { name: c.skip }).click()            // goals
   await page.getByRole("button", { name: c.skip }).click()            // team
   await page.getByTestId("first-event").getByRole("button", { name: c.skip }).click()
   await passReminders(page)                                            // Reminders (P3-H): skipped too
   await h1(page, c.founder.confirm.title)
   await page.getByRole("button", { name: c.founder.confirm.start }).click()
   await h1(page, c.founder.invite.title)
-  // FB-3 (ob-5): Invite no longer leads into the officer preview, so the attempt is left with Exit on Invite itself (setup done, outcome exited).
+  await page.getByRole("button", { name: c.founder.invite.preview }).click()
+  await expect(page).toHaveURL(/#\/welcome\/member\/invitation$/)
   await page.getByRole("button", { name: c.exit, exact: true }).click()
   await expect(page.locator("main h1")).toHaveText("Reminders")
 
@@ -68,7 +72,7 @@ test("an earlier day is cleared, the link opened twice keeps both sessions; Crea
   for (const s of file.sessions) expect(s.id).toMatch(/^s-[0-9a-f]{16}$/)
   // session 1 (left at once): no setup, cleared the day before
   expect(first).toMatchObject({ outcome: "exited", setupCompletedAt: null, setupChoice: null, previousEntriesCleared: OLD })
-  // session 2 (the latest, also as `session`): setup completed with Create my club (recorded as start-workspace), the attempt still ended "exited"; nothing more cleared
+  // session 2 (the latest, also as `session`): setup completed with Start workspace, the attempt still ended "exited"; nothing more cleared
   expect(second).toMatchObject({ outcome: "exited", setupChoice: "start-workspace", firstEventChoice: "skipped", reminderModeChoice: "skipped", previousEntriesCleared: 0 })
   expect(file.session).toMatchObject({ ...second, olderEntriesLeftOut: OLD, olderAttemptsLeftOut: 0 })
   expect(Date.parse(second.setupCompletedAt)).toBeGreaterThan(Date.parse(second.startedAt))
