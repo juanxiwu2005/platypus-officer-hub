@@ -36,4 +36,16 @@ describe("quest rule library", () => {
   it("names at least one lead role per rule", () => {
     for (const rule of QUEST_RULES) expect(rule.leads.length).toBeGreaterThan(0)
   })
+
+  it("contains all 33 approved rules and the 13 required red lines", () => {
+    const missionCounts = [4, 6, 7, 6, 4, 3, 3] as const
+    const expectedIds = missionCounts.flatMap((count, mission) =>
+      Array.from({ length: count }, (_, index) => `${mission + 1}.${index + 1}`),
+    )
+    expect(QUEST_RULES.map(rule => rule.id)).toEqual(expectedIds)
+    expect(QUEST_RULES.filter(rule => rule.redLine).map(rule => rule.id)).toEqual([
+      "1.1", "2.1", "2.2", "2.5", "3.2", "3.3", "3.4",
+      "3.5", "4.2", "4.4", "4.5", "6.2", "7.1",
+    ])
+  })
 })

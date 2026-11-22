@@ -474,4 +474,40 @@ export const QUEST_RULES: readonly QuestRule[] = [
     handoff: null,
     hint: "Does anyone have to pay for a chance to win?",
   },
+  {
+    id: "7.1",
+    mission: 7,
+    redLine: true,
+    summary: "Submit all itemized receipts to the Business Office within 10 days.",
+    sources: [
+      { record: "ASU-R-037", line: 5726, quote: "All itemized receipts need to be turned into the Business Office within 10 days", section: null },
+    ],
+    leads: ["all", "treasurer"],
+    handoff: "payer → treasurer: itemized receipts for Business Office submission",
+    hint: "Check the receipt deadline before putting paperwork aside.",
+  },
+  {
+    id: "7.2",
+    mission: 7,
+    redLine: false,
+    summary: "Unused funding cannot roll over; submit a new budget request each semester.",
+    sources: [
+      { record: "ASU-R-037", line: 5730, quote: "If funding was not used in a previous semester, it cannot be rolled over into the next semester. Therefore, a new budget request must be submitted each semester.", section: null },
+    ],
+    leads: ["treasurer", "president"],
+    handoff: null,
+    hint: "What happens to funding left from the previous semester?",
+  },
+  {
+    id: "7.3",
+    mission: 7,
+    redLine: false,
+    summary: "Missing required paperwork after approval causes the Business Office to revoke approved funding.",
+    sources: [
+      { record: "ASU-R-038", line: 6630, quote: "If a student, club, or organization fails to submit required paperwork following the approval of a Budget Request, the USG-T Business Office shall be required to rescind and deny the previously approved request.", section: null },
+    ],
+    leads: ["treasurer"],
+    handoff: null,
+    hint: "Does approval remove the obligation to submit the required paperwork?",
+  },
 ]
