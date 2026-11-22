@@ -13,7 +13,7 @@ import { useRail } from "./RailContext"
 import { AppliedCard, ChangeCard } from "./ChangeCard"
 import { Bts, BtsRow } from "../Bts"
 import { OwnerPicker, ownersToPeople, TaskDueFields } from "./TaskFields"
-import { canCreateEvent, canLead } from "../../data/changeReview"
+import { canChangeEvent, canCreateEvent, canLead } from "../../data/changeReview"
 import { policySourceById } from "../../data/policyCatalog"
 import { answerSummary, emitUi } from "../../lib/uiLog"
 import { readAiBudget } from "../../lib/api"
@@ -432,7 +432,7 @@ function EventDateCard({ card, onDone }: { card: Extract<ChatCard, { kind: "even
   const [date, setDate] = useState(card.date)
   const [error, setError] = useState("")
   const ev = state.events.find(e => e.id === eventId)
-  const allowed = canCreateEvent(state)
+  const allowed = canChangeEvent(state)
   if (card.done) return <div className="mini-card done"><b>{ev?.name ?? "Event"}</b><span className="small muted">Moved to {fmtLong(card.date)} · steps rescheduled</span></div>
   const finals = /^\d{4}-\d{2}-\d{2}$/.test(date) ? findPeriod(date, FINALS) : null
   return <form className="mini-card plan-form" data-testid="event-date" onSubmit={e => {

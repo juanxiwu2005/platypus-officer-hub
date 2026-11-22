@@ -1,5 +1,5 @@
 import type { DemoState, Event, Node } from "./types"
-import { canLead } from "./permissions"
+import { canLead, isOfficer } from "./permissions"
 import { commandContext, sanitizeOps, validDate, type CommandOp } from "../lib/commands"
 import type { ChangeSet, Tier } from "./types"
 import { applySchedule } from "../engine/schedule"
@@ -18,6 +18,11 @@ export const canCreateEvent = (s: DemoState) => {
   const mode = s.org.settings.eventCreators ?? "leads"
   return mode === "everyone" || (mode === "chosen" && (s.org.settings.eventCreatorIds ?? []).includes(s.viewerId))
 }
+/**
+ * Who may change an event's date, name and headcount (S0, Juanxi 2026-11-22): the same people who may create events,
+ * and only while they are a current officer (the reducer already makes former and incoming officers read-only).
+ */
+export const canChangeEvent = (s: DemoState) => canCreateEvent(s) && !s.people.some(p => p.id === s.viewerId && !isOfficer(p))
 /** Tasks are open to everyone: for yourself, or for anyone else in the club (Juanxi, 2026-10-27). */
 export function canApplyOp(s: DemoState, op: { op: string; eventId?: string | null }): boolean {
   // Administrative tasks are open to all officers. Altering an event workflow is a

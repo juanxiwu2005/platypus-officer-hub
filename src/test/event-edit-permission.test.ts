@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { reducer } from "../data/store"
+import { canChangeEvent } from "../data/changeReview"
 import { seedDemo } from "../data/seed"
 import type { DemoState } from "../data/types"
 
@@ -45,5 +46,16 @@ describe("updateEvent permissions", () => {
   it("with \"everyone\", any officer can change the date, name and headcount", () => {
     const next = reducer(as("sam", withMode("everyone")), { type: "updateEvent", id: "e-night", patch: { date: NEW_DATE, name: "Renamed", headcount: 42 } })
     expect(night(next)).toMatchObject({ date: NEW_DATE, name: "Renamed", headcount: 42 })
+  })
+
+  it("a former or incoming officer cannot change an event even when everyone may create events", () => {
+    const open = withMode("everyone")
+    const former = as("maya", { ...open, people: open.people.map(p => p.id === "maya" ? { ...p, leftOn: "2026-10-20" } : p) })
+    const incoming = as("maya", { ...open, people: open.people.map(p => p.id === "maya" ? { ...p, incomingFor: open.roles[0].id } : p) })
+    for (const s of [former, incoming]) {
+      expect(canChangeEvent(s)).toBe(false)
+      expect(reducer(s, { type: "updateEvent", id: "e-night", patch: { date: NEW_DATE } })).toBe(s)
+    }
+    expect(canChangeEvent(as("maya", open))).toBe(true)
   })
 })

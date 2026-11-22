@@ -57,13 +57,17 @@ const slug = s => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-
 
 /** On a fresh demo the home page only offers the migration card: press it and wait for the real reminder centre. */
 async function openReminderCentre(page) {
+  const summary = page.getByTestId("rq-summary")
+  // isVisible() does not wait: first wait until either the migration card or the real summary has rendered.
+  await page.getByTestId("reminder-plan-status").or(summary).first().waitFor({ state: "visible", timeout: 10_000 })
   const enable = page.getByRole("button", { name: "Enable updated reminders", exact: true })
-  if (!(await enable.isVisible())) return false
-  await enable.click()
-  await page.getByTestId("rq-summary").waitFor({ state: "visible", timeout: 10_000 })
+  const pressed = await enable.isVisible()
+  if (pressed) await enable.click()
+  // The home row must measure the real reminder centre; if it never appears, this throws and the check fails loudly.
+  await summary.waitFor({ state: "visible", timeout: 10_000 })
   await page.locator('[data-testid="reminder-centre"][aria-busy="false"]').waitFor({ timeout: 10_000 })
   await page.waitForTimeout(900)
-  return true
+  return pressed
 }
 
 /** Every Settings tab after the first (Club), opened the way a user does: with the section buttons. Report only. */
@@ -71,12 +75,17 @@ async function reportSettingsTabs(page) {
   const nav = page.getByRole("navigation", { name: "Settings sections" })
   const labels = (await nav.getByRole("button").allInnerTexts()).map(s => s.trim()).slice(1)
   for (const label of labels) {
-    await nav.getByRole("button", { name: label, exact: true }).click()
-    await page.getByText("Loading workflows…").waitFor({ state: "hidden", timeout: 10_000 })
-    await page.waitForTimeout(900)
-    const r = await measure(page)
-    console.log(`info /settings · ${label.padEnd(15)} visible ${String(r.visible).padStart(4)} · all ${String(r.all).padStart(4)} · ${screens(r)} (not enforced)`)
-    await shot(page, `settings-${slug(label)}`)
+    // Report only: a tab that fails to open is reported, never a reason for the check to fail.
+    try {
+      await nav.getByRole("button", { name: label, exact: true }).click()
+      await page.getByText("Loading workflows…").waitFor({ state: "hidden", timeout: 10_000 })
+      await page.waitForTimeout(900)
+      const r = await measure(page)
+      console.log(`info /settings · ${label.padEnd(15)} visible ${String(r.visible).padStart(4)} · all ${String(r.all).padStart(4)} · ${screens(r)} (not enforced)`)
+      await shot(page, `settings-${slug(label)}`)
+    } catch (error) {
+      console.log(`info /settings · ${label.padEnd(15)} not measured: ${error instanceof Error ? error.message.split("\n")[0] : error}`)
+    }
   }
 }
 

@@ -4,7 +4,7 @@ import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate, WorkflowBranch, WorkflowTemplateDraft, WorkflowTeam } from "./types"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
-import { assignedNotice, canApplyOp, canCreateEvent, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
+import { assignedNotice, canApplyOp, canChangeEvent, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
 import type { Channel, NudgeVia } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
@@ -485,7 +485,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "restoreEventNodes": return canLead(state) ? restoreEventNodes(state, action.eventId, action.nodes, action.branches) : state
     case "updateEvent": {
       // Event Details stay open to every officer; date, name and headcount follow who may create events.
-      const patch = pick(action.patch, canCreateEvent(state) ? ["date", "name", "headcount", "details"] : ["details"])
+      const patch = pick(action.patch, canChangeEvent(state) ? ["date", "name", "headcount", "details"] : ["details"])
       if (!Object.keys(patch).length) return state
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
       if (patch.details !== undefined) patch.details = String(patch.details).slice(0, 5000) || undefined
