@@ -388,7 +388,7 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
 
 /**
  * Review a newly approved event (M2b): the assistant reads the playbook's steps plus everything the organizer
- * wrote and suggests risks and extra steps. Without AI, the rule engine's own warnings are shown instead.
+ * wrote and suggests risks; it never adds steps. Without AI, the rule engine's own warnings are shown instead.
  */
 export async function reviewEvent(s: DemoState, eventId: string, signal?: AbortSignal): Promise<Reply> {
   const p = reviewPayload(s, eventId)

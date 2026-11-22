@@ -7,8 +7,8 @@ import { knownDates } from "../../src/lib/aiContext.ts"
 
 /**
  * /api/event/review — after a new event is approved, the model reads the playbook's steps and everything the
- * organizer wrote, and suggests risks and extra steps (M2b). Its reply is re-checked here and in the browser:
- * steps become ordinary add_node changes for a person to review, and any date it writes is masked.
+ * organizer wrote, and suggests risks (M2b). Its reply is re-checked here and in the browser: any steps it
+ * proposes are dropped (src/lib/eventReview.ts), and any date it writes is masked.
  * Time budget: syncAiBudgetMs() (Netlify stops a request at about 30 s); the browser then shows the rule engine's own check.
  * At most 4 risks and 6 steps fit in about 400 tokens; 700 leaves room without running past the budget.
  */
