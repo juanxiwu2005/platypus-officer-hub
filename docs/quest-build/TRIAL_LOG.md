@@ -321,3 +321,13 @@ Owner requested GLM 5.3 coding and DeepSeek review for P0-02, P0-03, P0-04 and P
 - The owner explicitly confirmed that P0-03, P0-04 and P0-05 should be newly authored and executed for the fixed chapter-3, chapter-4 and chapter-5 rules, respectively.
 - This matches the stated interpretation used for the already completed and independently approved cards. The earlier log accurately records that execution proceeded before this reply arrived; this confirmation does not retroactively change that chronology.
 - No code, card, permission or test change, model rerun, main change or deployment is needed. Only documentation and local delivery metadata are updated.
+
+## P0-06/P0-07: complete all numbered rules — 2026-11-22
+
+Owner requested cards for chapters 6 and 7, GLM 5.3 coding, DeepSeek independent review, per-card permission checks, full English step records and local results. Trial baseline: `0aeafc8860feebf4183ae04a09726beb1d63d23b`; main is read-only.
+
+| Local time | Step | Action / evidence | Result |
+| --- | --- | --- | --- |
+| 2026-11-22T11:15:52-07:00 | Source and count preflight | Verified clean trial branch and matching remote head; read current AGENTS/progress/product context and approved chapter-6/7 decisions. Main remains db1a0bec120cfc5883d99099fdbad90971f06bb2. Found six remaining scored decisions, not five: 27 + 3 + 3 = 33. | Asked the owner to resolve the count before dependent work. |
+| 2026-11-22T11:15:52-07:00 | Explicit owner count decision | Owner replied to keep every remaining rule and accept 33 total. Reflection 7.4 is unscored and excluded. Corrected current spec/handoff count references without changing any rule content. | All original numbered decisions and all 13 red lines will be retained. |
+| 2026-11-22T11:15:52-07:00 | Card authoring | P0-06 appends 3 event-day rules (39 lines). P0-07 appends 3 wrap-up rules (36 lines) and one given completeness regression test for all 33 IDs/13 red lines, preserving the existing 4 tests. Verified all 9 new quotes against the matching archive record and LF line; summaries/hints/quotes meet existing limits. | Cards fully specified; no research/design or broad filesystem access delegated. |

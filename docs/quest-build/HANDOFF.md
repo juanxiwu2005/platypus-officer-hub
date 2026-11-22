@@ -17,7 +17,7 @@ Talk to Juanxi in simple Chinese, one step at a time; he does not write code. Wr
 
 **Still open (ask Juanxi before the phase that needs it):** the eight questions in design v3 section 11 (names, art style, length, accessibility checks, sound, emergency timer, first sample scope, cutscene duration tokens), and whether to make only the Venue Builder truly 3D (Claude recommended 2D/2.5D everywhere plus a 3D Venue Builder in the sample phase).
 
-The rule library content is fixed: 32 rules with exact archive quotes and line numbers in [v2 spec section 3](../feedback-fix/QUEST_GAME_SPEC_2026-11-21.md). Every quote was checked against `03_Full_Rules_Archive.txt`. Do not invent rules; add new ones only with an exact quote, record ID and line.
+The rule library content is fixed: 33 scored rules with exact archive quotes and line numbers in [v2 spec section 3](../feedback-fix/QUEST_GAME_SPEC_2026-11-21.md). Every quote was checked against `03_Full_Rules_Archive.txt`. Do not invent rules; add new ones only with an exact quote, record ID and line.
 
 ## 2. Roles
 
@@ -35,7 +35,7 @@ The rule library content is fixed: 32 rules with exact archive quotes and line n
 | --- | --- | --- | --- |
 | **P0 Trial (tonight)** | Prove one card can go card → coder → checks → critic → commit on Juanxi's Mac; compare 2–3 coder models on the same card | You + ASU AIR | `TRIAL_LOG.md` filled; Juanxi sees the result; best coder/critic pair chosen |
 | P1 Pipeline fixes | Fix the known Night Mode controller problems (section 6) and point it at a short brief and a configurable branch | A strong model in a normal session (needs Juanxi's OK to change `scripts/` and `opencode.json`) | `--doctor` passes; one card runs end to end through the controller |
-| P2 Rule library | All 32 rules as typed data with tests (cards P0-01, P0-02, then P2-xx) | ASU AIR | Tests pass; every quote matches the archive |
+| P2 Rule library | All 33 scored rules as typed data with tests (owner-requested cards P0-01 through P0-07; pipeline work stays separately gated) | ASU AIR | Tests pass; every quote matches the archive |
 | P3 Storyboards | Six static storyboard images (design v3 section 10 step 1) | Strong model | Juanxi approves the look |
 | P4 Foundation | `/quest` route, scene and interaction interfaces, one complete reference interaction (Countdown Wall), art style kit | Strong model | Reference interaction playable on a preview; tests pass |
 | P5 Playable sample | Prologue, HQ, Mission 2, Mission 5 (Venue Builder) | ASU AIR cards copying the reference, plus a strong model for the Venue Builder geometry and any 3D | 3–5 real officers play it; Juanxi accepts |
