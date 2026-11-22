@@ -176,3 +176,15 @@ Keep GLM 5.3 + DeepSeek as the provisionally validated pair. Before automating f
 | 2026-11-22T00:54:26-07:00 | 15-final-english / finish | Exit 0; 0.69 seconds. Planner retained local command evidence outside the repository. | Passed. |
 | 2026-11-22T00:54:45-07:00 | Publication scope review | Final diff contains two verified quest files and two planner documents; the earlier permission repair is isolated in commit 289908b. English and whitespace checks passed. | Ready for a maintainer commit and normal fast-forward push to feat/onboarding-quest-trial only. |
 | 2026-11-22T00:55:34-07:00 | Publication confirmed | Maintainer committed permission repair as 289908b and approved P0-01 source/results as b2138c5155b15b1e9962e2ebf1f08e56effe2105, then pushed feat/onboarding-quest-trial successfully. Remote ref verification matched the implementation commit; main remained db1a0bec120cfc5883d99099fdbad90971f06bb2 and the local tree was clean. | Requested permission repair and P0-01 complete; this follow-up entry records the verified publication. |
+
+## Requested P0-02 through P0-05 continuation — 2026-11-22
+
+Owner requested GLM 5.3 coding and DeepSeek review for P0-02, P0-03, P0-04 and P0-05, with card-specific permissions, English step records and local results. Main remains protected. Continuation starts from trial commit `56e52999816c16ad83599f6e329bac970f2e4ef2`.
+
+| Local time | Step | Action / evidence | Result |
+| --- | --- | --- | --- |
+| 2026-11-22T01:06:38-07:00 | Resume preflight | Confirmed clean trial branch and remote trial head; main still db1a0bec120cfc5883d99099fdbad90971f06bb2. The requested source branch still points to 96f101b. | Continue on trial branch only. |
+| 2026-11-22T01:06:38-07:00 | Card inventory | Repository currently contains only P0-01 and P0-02. Asked the owner whether P0-03–05 should be newly authored from approved missions 3–5 or read from another branch. | P0-02 is independent and proceeds while clarification is pending. |
+| 2026-11-22T01:06:38-07:00 | 20-P0-02-reload / start | `/Users/Dirofs/.opencode/bin/opencode reload` | Running. |
+| 2026-11-22T01:06:38-07:00 | 20-P0-02-reload / finish | Exit 0; 0.66 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T01:07:32-07:00 | P0-02 permission and prompt check | Restricted coder edits to ruleLibrary.ts; test-file reads/edits are denied. Verified 62 effective allow/deny cases after reload. Archived exact expected append and prompt. Updated the external observer to enforce card-specific paths and detect any critic source modification. | All assertions passed; worker receives no investigation or design task. |
