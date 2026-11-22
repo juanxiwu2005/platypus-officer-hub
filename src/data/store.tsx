@@ -1009,11 +1009,16 @@ export function downloadText(filename: string, text: string) {
 }
 
 /** Download the person's current data and interaction log as a JSON file. */
-export async function downloadExport(state: DemoState, log: LogEntry[]) {
+export async function downloadExport(state: DemoState, log: LogEntry[]): Promise<{ complete: boolean }> {
   const at = Date.now()
-  const { taskWorkArchive } = await import("../taskDetails/archive")
-  const archive = await taskWorkArchive(state)
-  downloadText(`platypus-export-${new Date(at).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`, JSON.stringify({ ...buildExport(archive.state, log, at), taskDrafts: archive.taskDrafts }, null, 2))
+  const name = `platypus-export-${new Date(at).toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`
+  let archive: { state: DemoState; taskDrafts: unknown[] } | null = null
+  try {
+    const { taskWorkArchive } = await import("../taskDetails/archive")
+    archive = await taskWorkArchive(state)
+  } catch { /* Task files or drafts could not be read (blocked IndexedDB, missing file). Export everything else. */ }
+  downloadText(name, JSON.stringify({ ...buildExport(archive?.state ?? state, log, at), taskDrafts: archive?.taskDrafts ?? [] }, null, 2))
+  return { complete: !!archive }
 }
 
 /* ───────────── Provider ───────────── */
@@ -1051,6 +1056,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   const [notice, setNotice] = useState<StorageNotice | null>(boot.notice)
   const [saveFailed, setSaveFailed] = useState(false)
   const [exportError, setExportError] = useState(false)
+  const [exportPartial, setExportPartial] = useState(false)
   // Data and log are saved separately: a click changes only the log, so the (larger) demo data is not rewritten for it.
   const saved = useRef({ app: true, log: true })
   const savedApp = useRef<DemoState | null>(null)
@@ -1061,7 +1067,9 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }
   // A revision in memory cannot detect another tab's completed write. Check the actual business key before every write.
   // This detects stale tabs; localStorage still provides no atomic cross-tab compare-and-swap.
-  const storageUnchanged = useCallback(() => {
+  // When storage cannot even be read (blocked cookies/site data), there is no other tab to protect: ordinary actions
+  // may continue in memory (allowUnavailable) while the save-failed notice stays visible. tryDispatch stays strict.
+  const storageUnchanged = useCallback((allowUnavailable = false) => {
     if (conflict.current) return false
     try {
       const raw = store().getItem(STORAGE_KEY)
@@ -1070,7 +1078,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
       }
       persistedRaw.current = { raw }
       return true
-    } catch { saved.current.app = false; setSaveFailed(true); return false }
+    } catch { saved.current.app = false; setSaveFailed(true); return allowUnavailable }
   }, [])
   const persistApp = useCallback((app: DemoState) => {
     if (!storageUnchanged() || !saveState(app)) return false
@@ -1108,7 +1116,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   }), [commit])
   // The real clock is read here, once per action, and travels with it into the log.
   const dispatch = useCallback((action: Action) => {
-    if ((held && boot.notice?.kind === "migration_blocked") || !storageUnchanged()) return
+    if ((held && boot.notice?.kind === "migration_blocked") || !storageUnchanged(true)) return
     const before = rootRef.current!
     if (["completeSetup", "replace"].includes(action.type) && before.app.matching && !backUp(JSON.stringify(before.app), `matching-${before.app.org.matchingWorkspaceId ?? "prior"}`)) { setSaveFailed(true); return }
     const at = Date.now(); commit(loggedReducer(before, { action, at, session: sessionAt(at) }))
@@ -1133,20 +1141,21 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   useEffect(() => onUi(logUi), [logUi])
   const getLog = useCallback(() => rootRef.current!.log, [])
   const downloadCurrent = useCallback(() => {
-    setExportError(false)
-    void downloadExport(rootRef.current!.app, rootRef.current!.log).catch(() => setExportError(true))
+    setExportError(false); setExportPartial(false)
+    void downloadExport(rootRef.current!.app, rootRef.current!.log).then(r => { if (!r.complete) setExportPartial(true) }).catch(() => setExportError(true))
   }, [])
   const exportData = useCallback(() => {
     logUi({ type: "ui.export", payload: { entries: rootRef.current!.log.length + 1 } })
     downloadCurrent()
   }, [logUi, downloadCurrent])
-  const reset = useCallback(() => { if (!held && storageUnchanged()) { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) } }, [dispatch, held, storageUnchanged])
+  const reset = useCallback(() => { if (!held && storageUnchanged(true)) { void clearLocalDocs(); rearm(); dispatch({ type: "reset" }) } }, [dispatch, held, storageUnchanged])
   const persistenceFailed = saveFailed || held
   const automaticReminders = useAutomaticReminders(root.app, held, getState, tryDispatch)
   // The log is left out of the value on purpose: a click must not re-render every screen that reads the store.
   const value = useMemo(() => ({ state: root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
   const shown: StorageNotice | null = notice?.kind === "storage_conflict" ? notice : saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
+    {exportPartial && <div role="status" className="save-status err">Exported without task files and private drafts; this browser could not read them. <button type="button" className="btn small" onClick={downloadCurrent}>Retry export</button></div>}
     {exportError && <div role="alert" className="save-status err">Your full export could not be downloaded. Your saved data is kept here. <button type="button" className="btn small" onClick={downloadCurrent}>Retry export</button></div>}
     {shown && <StorageBanner notice={shown} onDownload={() => {
       if (shown.kind === "save_failed" || shown.kind === "storage_conflict") downloadCurrent()
