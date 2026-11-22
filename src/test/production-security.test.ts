@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import chat from "../../netlify/functions/chat.mts";
 import { BadRequest, readJSON, resetRateLimit } from "../../netlify/lib/http.mts";
-import { DraftSchema, RoleSchema } from "../organization/schema";
-import { blankDraft } from "../organization/presets";
-import { WorkspaceStateSchema } from "../workspace/contracts";
 
 beforeEach(resetRateLimit);
 afterEach(() => vi.restoreAllMocks());
@@ -67,30 +64,5 @@ describe("bounded JSON before schema validation", () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toMatchObject({ error: "bad_request" });
     expect(fetch).not.toHaveBeenCalled();
-  });
-});
-
-describe("Zod 4 production schema migration", () => {
-  it("preserves string-keyed record values and rejects invalid ones", () => {
-    const draft = { ...blankDraft(), approvals: { constitution: true }, generated: { constitution: "saved" }, compiled: { nested: { value: 1 } } };
-    expect(DraftSchema.parse(draft)).toMatchObject(draft);
-    expect(DraftSchema.safeParse({ ...draft, approvals: { constitution: "yes" } }).success).toBe(false);
-    expect(DraftSchema.safeParse({ ...draft, generated: { constitution: 42 } }).success).toBe(false);
-  });
-
-  it("retains failed parse paths without accepting an incomplete role", () => {
-    const result = DraftSchema.safeParse({ ...blankDraft(), roles: [{ id: "lead" }] });
-    expect(result.success).toBe(false);
-    if (!result.success) expect(result.error.issues.some(i => i.path.join(".") === "roles.0.title")).toBe(true);
-  });
-
-  it("rejects oversized constrained collections before evaluating any element", () => {
-    const oversized = new Array(1_000_000);
-    const readElement = vi.fn(() => { throw new Error("Oversized input must not be traversed."); });
-    Object.defineProperty(oversized, "0", { get: readElement });
-    expect(DraftSchema.safeParse({ ...blankDraft(), roles: oversized }).success).toBe(false);
-    expect(RoleSchema.shape.responsibilities.safeParse(oversized).success).toBe(false);
-    expect(WorkspaceStateSchema.shape.workItems.safeParse(oversized).success).toBe(false);
-    expect(readElement).not.toHaveBeenCalled();
   });
 });

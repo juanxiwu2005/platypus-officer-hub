@@ -35,7 +35,7 @@ export async function checkLintGuardrails() {
     assert.equal(result.fatalErrorCount, 0, fixture.name)
     assert.equal(result.errorCount, fixture.errors, `${fixture.name}: ${JSON.stringify(result.messages)}`)
   }
-  for (const filePath of ["src/organization/fixture.tsx", "src/phase1/fixture.tsx", "src/workspace/fixture.tsx", "src/test/fixture.test.tsx"]) {
+  for (const filePath of ["src/test/fixture.test.tsx"]) {
     assert.equal(await eslint.isPathIgnored(filePath), true, filePath)
   }
 
@@ -48,7 +48,6 @@ export async function checkLintGuardrails() {
     ["src/test/example.test.tsx", "src/test/**", true],
     ["src/pages/Events.tsx", "src/test/**", false],
     ["dist/assets/index.js", "dist/**", true],
-    ["dist-storage/assets/index.js", "dist-storage/**", true],
     ["src/.hidden.ts", "src/*.ts", true],
     ["config.ts", "*.ts", true],
     ["nested/config.ts", "*.ts", false],
@@ -66,7 +65,7 @@ export async function checkLintGuardrails() {
     assert.equal(negative.match("src/test/example.test.tsx"), true)
     assert.equal(negative.match("src/pages/Events.tsx"), false)
   }
-  console.log(`Lint guardrails: ${cases.length} JSX/style cases, 4 exclusions and 66 scoped matcher checks passed.`)
+  console.log(`Lint guardrails: ${cases.length} JSX/style cases, 1 exclusion and 60 scoped matcher checks passed.`)
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) await checkLintGuardrails()

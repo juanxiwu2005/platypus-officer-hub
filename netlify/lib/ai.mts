@@ -1,4 +1,4 @@
-import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/modelPolicy.ts";
+import { AIR_MODELS, routeTask, type AiTask } from "../../src/lib/modelPolicy.ts";
 /**
  * Provider-neutral AI adapter for Platypus.
  * Keep server configuration notes in English; never record credentials in repository documentation.
@@ -9,7 +9,7 @@ import { AIR_MODELS, routeTask, type AiTask } from "../../src/organization/model
  *   AI_PRESET     asu_air (default) | openai | anthropic   — fills in sensible defaults
  *   AI_API_KEY    the secret key (required; never sent to the browser)
  *   AI_MODEL      model id (optional for asu_air, required for the others)
- *   AI_MODEL_ROUTING  on (default) | off — asu_air only: pick the model per task (src/organization/modelPolicy.ts)
+ *   AI_MODEL_ROUTING  on (default) | off — asu_air only: pick the model per task (src/lib/modelPolicy.ts)
  *   AI_BASE_URL   override the API address (optional)
  *   AI_PROVIDER   openai-compatible | anthropic (optional; set by the preset)
  *   AI_JSON_MODE  json_object (default) | none   — turn off if a provider rejects response_format
