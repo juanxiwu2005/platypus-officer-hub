@@ -28,17 +28,19 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P1-01-handbook-citation-coverage.md": "allow",
+          "docs/quest-build/cards/P5-01-sample-decisions.md": "allow",
           "src/quest/ruleLibrary.ts": "allow",
-          "src/quest/ruleLibrary.handbook.test.ts": "allow"
+          "src/quest/sample/decisions.ts": "allow",
+          "src/quest/sample/decisions.test.ts": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/ruleLibrary.handbook.test.ts": "allow"
+          "src/quest/sample/decisions.ts": "allow",
+          "src/quest/sample/decisions.test.ts": "allow"
         },
         "bash": {
           "*": "deny",
-          "npx vitest run src/quest": "allow",
+          "npx vitest run src/quest/sample/decisions.test.ts": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -54,9 +56,10 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P1-01-handbook-citation-coverage.md": "allow",
+          "docs/quest-build/cards/P5-01-sample-decisions.md": "allow",
           "src/quest/ruleLibrary.ts": "allow",
-          "src/quest/ruleLibrary.handbook.test.ts": "allow"
+          "src/quest/sample/decisions.ts": "allow",
+          "src/quest/sample/decisions.test.ts": "allow"
         },
         "edit": {
           "*": "deny"
