@@ -284,7 +284,7 @@ test("navigation: Team is primary, Partners is archived, and Plan keeps its task
   await viewAs(page, "jordan")
   await closeRail(page)
   const nav = page.getByRole("navigation", { name: "Sections" })
-  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Team/, /^Handoff/, /^Rules/, /^Settings/, /^Help/])
+  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Team/, /^Handoff/, /^Rules/, /^Quest$/, /^Settings/, /^Help/])
   await expect(nav.getByRole("button", { name: "More", exact: true })).toHaveCount(0)
   await expect(nav.getByRole("link", { name: "Partners", exact: true })).toHaveCount(0)
   await expect(nav.getByRole("link", { name: "Team", exact: true })).toBeVisible()
