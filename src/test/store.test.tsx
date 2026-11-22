@@ -1,10 +1,13 @@
-import { describe, expect, it, beforeEach } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { afterEach, describe, expect, it, beforeEach } from "vitest"
+import { cleanup, render, screen } from "@testing-library/react"
 import { HashRouter } from "react-router-dom"
 import { reducer, loadState, loadStateWithNotice, saveState, STORAGE_KEY, StoreProvider } from "../data/store"
 import { SCHEMA_VERSION, seedDemo } from "../data/seed"
 import { ensureWorkflowPresetTeams } from "../data/workflowTeamDefaults"
 import App from "../App"
+
+// Unmount the rendered app after each test so its timers (e.g. the side-panel exit delay) do not fire after the test environment is gone.
+afterEach(cleanup)
 
 describe("store reducer", () => {
   const base = seedDemo("2026-10-22", "v2")
