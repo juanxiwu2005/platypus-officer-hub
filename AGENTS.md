@@ -1,6 +1,6 @@
 # Agent instructions for Platypus
 
-This is the canonical instruction file for every coding assistant. Read it before working, then read `docs/PROGRESS.md`, `docs/PRODUCT_PLAN.md`, and task-specific guidance. `CLAUDE.md`, `GEMINI.md`, and `.github/copilot-instructions.md` are entrypoints to these rules.
+This is the canonical instruction file for every coding assistant. Read it before working, then read `docs/PROGRESS.md` (current handoffs, the decision log, and open external matters), `docs/PRODUCT_PLAN.md`, and task-specific guidance. Older progress entries, through November 18, 2026, are optional history in `docs/history/PROGRESS_ARCHIVE_2026-10_to_2026-11-18.md`. `CLAUDE.md`, `GEMINI.md`, and `.github/copilot-instructions.md` are entrypoints to these rules.
 
 ## 1. English is required
 
@@ -46,6 +46,8 @@ For behavior changes, add meaningful regression coverage and run affected checks
 At handoff, record changes, checks, remaining limits, target PR/preview, and concrete acceptance steps in `docs/PROGRESS.md`. Push the feature branch and leave production approval to Juanxi. If `docs/PRODUCT_PLAN.md` changed, note that the owner's local thesis backup needs synchronization. GitHub remains the source of truth; assistants with authorized local access can update the existing backup, otherwise record the pending sync. Do not claim to have synced an inaccessible machine.
 
 ## 5. Code and verification map
+
+**November 22, 2026 (S1, approved by Juanxi):** unreachable code was removed: `src/phase1/`, `src/workspace/`, `src/organization/` (except `modelPolicy.ts`, now `src/lib/modelPolicy.ts`), `src/teamWorkflow/`, the old dot-based workflow editor files in `src/components/workflowBuilder/`, the server endpoints `/api/org/*`, `/api/workspace*`, `/api/nudge/draft`, `/api/setup/workflow`, and `/api/limit-probe` with their libraries, the `ORG_SETUP_ENABLED` build flag and storage test projects, and the zod, @xyflow/react, and @netlify/blobs dependencies. The code remains in git history and on branches `feat/ai-native-phase1` and `feat/organization-setup-ai`. Older text in this file that refers to those paths, endpoints, or flags is historical.
 
 Use `README.md` and `docs/README.md` as the current reading map. Key code:
 
