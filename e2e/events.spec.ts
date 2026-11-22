@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
-import { closeRail, noOverflow, resetDemo } from "./helpers"
+import { closeRail, noOverflow, resetDemo, viewAs } from "./helpers"
 import { savedTask } from "./taskHelpers"
-import { fmtShort } from "../src/lib/dates"
+import { fmtLong, fmtShort } from "../src/lib/dates"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -89,6 +89,26 @@ test("moving an upstream due date later reschedules its dependants and flags the
   await expect(page.getByTestId("event-issues")).toContainText("cannot finish in time")
   await resetDemo(page)
   await expect(page.getByTestId("flow-node-purchaseRequest")).not.toHaveClass(/has-error/)
+})
+
+test("only officers who may create events can change the event date", async ({ page }) => {
+  const head = page.locator("section.event-head")
+  const savedDate = () => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).events.find((e: { id: string }) => e.id === "e-night").date)
+  // The president sees the date input and can move the event.
+  await head.getByTestId("event-date").fill("2026-12-03")
+  await expect(head.getByTestId("event-date")).toHaveValue("2026-12-03")
+  expect(await savedDate()).toBe("2026-12-03")
+  await expect(head.getByTestId("event-date-text")).toHaveCount(0)
+  // A treasurer (not a lead, default "leads" setting) sees the date as text only.
+  await viewAs(page, "maya")
+  await closeRail(page)
+  await expect(head.getByTestId("event-date")).toHaveCount(0)
+  await expect(head.getByTestId("event-date-text")).toHaveText(fmtLong("2026-12-03"))
+  await expect(head.getByTestId("event-date-text")).toHaveAttribute("datetime", "2026-12-03")
+  expect(await savedDate()).toBe("2026-12-03")
+  await viewAs(page, "alex")
+  await closeRail(page)
+  await expect(head.getByTestId("event-date")).toHaveValue("2026-12-03")
 })
 
 test("changing the event date recomputes the plan and warnings in Flow and List", async ({ page }) => {
