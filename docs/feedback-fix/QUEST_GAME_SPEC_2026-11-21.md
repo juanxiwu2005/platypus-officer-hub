@@ -1,5 +1,8 @@
 # Game plan: Plan Your First Event (review version, 2026-11-21, Claude)
 
+> **Update, 2026-11-21:** the gameplay and screens are superseded by [`QUEST_GAME_DESIGN_V3_2026-11-21.md`](QUEST_GAME_DESIGN_V3_2026-11-21.md) (interactive film). Section 3 (the 32 rules with source quotes and line numbers), the sequel sources in section 4 and the data in section 7 remain v3's **rule library**; the multiple-choice format and the screens in section 2 are no longer used.
+
+
 Basis: `ONBOARDING_QUEST_PLAN_2026-11-21.md` (Juanxi has agreed to the direction). This file gives every detail for review; **no code has been written yet**.
 - Text players see in the game is in English (interface rule). The explanatory notes were originally written in Chinese and are translated here; the italic in-game English text is unchanged.
 - Every "source text" quotation has been checked sentence by sentence against `03_Full_Rules_Archive.txt` and is labeled with its record ID and line number (L).
