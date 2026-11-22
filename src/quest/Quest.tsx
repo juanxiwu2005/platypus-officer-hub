@@ -73,6 +73,8 @@ export default function Quest() {
       return `${task(value).label}: ${clock.slots[next]} days before the event.`
     },
   })
+  const activeTask = selected ?? drag.draggingId
+  const deadline = activeTask === "registry" || activeTask === "room" || activeTask === "ritm" ? clock.deadlines[activeTask] : null
   const pick = (id: TaskId) => {
     setSelected(id); const position = positionOf(state.board, id)
     setCursor(position ? clock.slots.indexOf(position.day) : 0)
@@ -128,9 +130,10 @@ export default function Quest() {
               <div className="quest-board-title"><strong>{clock.horizon} DAYS <span aria-hidden="true">→</span> EVENT DAY</strong><span>{TASKS.length - state.board.tray.length}/{TASKS.length} placed</span></div>
               <p className="quest-instruction">{scene.instruction}</p>
               <div className="quest-timeline" data-drag-scroll aria-label="Days before the event">
-                {clock.slots.map((day, index) => <div key={day} data-drop-col={slotKey(day)} className={`quest-day${drag.over?.dest === slotKey(day) ? " is-over" : ""}${selected && cursor === index ? " is-target" : ""}`}>
+                {clock.slots.map((day, index) => <div key={day} data-drop-col={slotKey(day)} className={`quest-day${drag.over?.dest === slotKey(day) ? " is-over" : ""}${selected && cursor === index ? " is-target" : ""}${deadline && day < deadline.daysBefore ? " is-late" : ""}`}>
                   <button type="button" className="quest-day-label" onClick={() => { if (selected) place(selected, slotKey(day)); else setAnnounce("Choose a task first.") }}><span className="sr-only">Place selected task</span>{" "}<strong>{day || "★"}</strong>{" "}<span>{day ? "days" : "Event"}</span>{" "}<span className="sr-only">before the event, {fmtShort(clock.dates[day])}</span></button>
                   <div className="quest-day-tasks">{state.board[slotKey(day)].map(renderTask)}</div>
+                  {deadline && day < deadline.daysBefore && <span className="quest-day-warning">Too late</span>}
                 </div>)}
               </div>
               <div data-drop-col="tray" className={`quest-tray${drag.over?.dest === "tray" ? " is-over" : ""}`} aria-label="Unscheduled tasks">{state.board.tray.map(renderTask)}{!state.board.tray.length && <span>Everyone has a place in the plan.</span>}</div>

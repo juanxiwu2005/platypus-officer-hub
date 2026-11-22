@@ -9,10 +9,12 @@ export const TASKS = [
 ] as const
 export type TaskId = typeof TASKS[number]["id"]
 export type SceneId = "hq" | "countdown"
-export interface SceneDefinition { id: SceneId; title: string; instruction: string; interaction: "timeline" | null; ruleIds: readonly string[] }
+export interface InteractionDefinition { id: "countdown-wall"; kind: "timeline"; ruleIds: readonly string[] }
+export const COUNTDOWN_WALL: InteractionDefinition = { id: "countdown-wall", kind: "timeline", ruleIds: ["2.1", "2.2", "2.4", "2.5"] }
+export interface SceneDefinition { id: SceneId; title: string; instruction: string; interaction: InteractionDefinition | null; ruleIds: readonly string[] }
 export const SCENES: Record<SceneId, SceneDefinition> = {
   hq: { id: "hq", title: "Club HQ", instruction: "Your crew. One night to bring everyone together.", interaction: null, ruleIds: [] },
-  countdown: { id: "countdown", title: "Lock the Date", instruction: "Drag each task before its deadline.", interaction: "timeline", ruleIds: ["2.1", "2.2", "2.4", "2.5"] },
+  countdown: { id: "countdown", title: "Lock the Date", instruction: "Drag each task before its deadline.", interaction: COUNTDOWN_WALL, ruleIds: COUNTDOWN_WALL.ruleIds },
 }
 export type Board = Record<string, TaskId[]>
 export interface InteractionResult { interactionId: "countdown-wall"; attempt: number; passed: boolean; failedRuleIds: string[]; taskId: TaskId | null; message: string; board: Board }

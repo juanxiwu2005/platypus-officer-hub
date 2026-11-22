@@ -56,6 +56,14 @@ describe("playable Quest reference", () => {
     expect(room.getAttribute("aria-pressed")).toBe("false")
     expect(room.closest("[data-drop-col]")?.getAttribute("data-drop-col")).toBe("tray")
   })
+  it("marks engine-derived late days for the selected task without blocking rehearsal", () => {
+    start()
+    fireEvent.click(screen.getByRole("button", { name: "RITM handoff" }))
+    expect(screen.getByRole("button", { name: /^Place selected task 14 days/ }).closest(".quest-day")?.classList.contains("is-late")).toBe(true)
+    expect(screen.getByRole("button", { name: /^Place selected task 15 days/ }).closest(".quest-day")?.classList.contains("is-late")).toBe(false)
+    fireEvent.click(screen.getByRole("button", { name: /^Place selected task 14 days/ }))
+    expect(screen.getByRole("button", { name: "RITM handoff" }).closest("[data-drop-col]")?.getAttribute("data-drop-col")).toBe("day:14")
+  })
   it("restores a partial plan on reload and uses hint-only Pip", () => {
     start(); pick("Event Registry", 42); cleanup()
     render(<MemoryRouter><Quest /></MemoryRouter>)

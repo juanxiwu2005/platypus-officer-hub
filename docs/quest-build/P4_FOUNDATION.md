@@ -13,3 +13,9 @@ Owner accepted P3 art and authorized /quest, scene/interaction framework and one
 - No new dependencies, live AI, remote writes, real organization data, research recruitment, new timing tokens or P5/3D features. Scene transitions use existing motion tokens.
 
 Validation: pure rule/deadline/transition/persistence regressions, component interaction/storage/isolation tests, full lint/types/build, relevant real browser mouse/keyboard/mobile/touch/reduced-motion flows, screenshots, and exact-head PR CI. Deliver a local runnable build, source/asset snapshot, screenshots, checks and complete TRIAL_LOG. Owner acceptance and main release remain separate.
+
+## Extending the reference
+
+A SceneDefinition links to an InteractionDefinition; COUNTDOWN_WALL declares the timeline kind and exact scored rule IDs. QuestAction drives scene/move/check/rewind/restart through one reducer. InteractionResult retains an immutable board, attempt number and scored rule IDs. Later ASU AIR cards can copy this boundary for one interaction at a time without reading the whole application or modifying existing rules. Introduce a new save version/migration before changing a supported saved shape. Keep date calculations in engine adapters and new practice capture separate from existing research logs.
+
+For acceptance: open Quest from the navigation, place the five tasks, run the night, inspect Why, Rewind and repair the plan. Task dates may match; vertical order on the same day remains causal. Selecting/dragging a timed task marks engine-derived late days in red with a text warning; a late drop remains playable. Test pointer, tap and keyboard equivalents and reload a partial plan. This reference rehearses only the four listed timing/order rules and must not unlock full Mission 2 or claim account-holder/advisor completion.
