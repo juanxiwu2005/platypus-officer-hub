@@ -32,8 +32,8 @@ import { AIR_MODELS, routeTask, type AiTask } from "../../src/lib/modelPolicy.ts
  * and the browser's own fallback instead. Background functions (15 minutes) pass their own longer budget.
  *
  * FB-1 (2026-11-15): the default is 26 s, still inside the ~30 s observed in production. Netlify's documentation now says
- * 60 s for synchronous functions; the two disagree, so the real limit is measured once with /api/limit-probe
- * (docs/AI_SETUP.md) and the budget is then raised with AI_SYNC_BUDGET_MS, without a code change. /api/health reports it,
+ * 60 s for synchronous functions; the two disagree, so once the real limit is known the budget can be raised with
+ * AI_SYNC_BUDGET_MS, without a code change. /api/health reports it,
  * and the browser waits this long plus 4 s (src/lib/api.ts).
  */
 export const SYNC_AI_BUDGET_DEFAULT_MS = 26_000;
