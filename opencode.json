@@ -64,12 +64,14 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P0-06-rule-library-mission-6.md": "allow",
-          "src/quest/ruleLibrary.ts": "allow"
+          "docs/quest-build/cards/P0-07-rule-library-mission-7.md": "allow",
+          "src/quest/ruleLibrary.ts": "allow",
+          "src/quest/ruleLibrary.test.ts": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/ruleLibrary.ts": "allow"
+          "src/quest/ruleLibrary.ts": "allow",
+          "src/quest/ruleLibrary.test.ts": "allow"
         },
         "bash": {
           "*": "deny",
@@ -207,8 +209,9 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P0-06-rule-library-mission-6.md": "allow",
-          "src/quest/ruleLibrary.ts": "allow"
+          "docs/quest-build/cards/P0-07-rule-library-mission-7.md": "allow",
+          "src/quest/ruleLibrary.ts": "allow",
+          "src/quest/ruleLibrary.test.ts": "allow"
         },
         "edit": "deny",
         "bash": "deny",
