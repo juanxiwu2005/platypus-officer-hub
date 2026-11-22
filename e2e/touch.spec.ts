@@ -63,13 +63,15 @@ test("Events flow steps open the shared task details with deadlines and rule sou
   const panel = page.getByTestId("task-detail")
   await expect(panel).toBeVisible()
   await expect(panel.getByRole("heading", { name: "Purchase Request" })).toBeVisible()
-  // FB-4: one Due on the panel; the ASU deadline is one sentence under "Why this date". Dates come from the saved engine output.
+  // The shared task details show one Due; the ASU deadline stays in the saved rule-engine output and is not a second date on the panel.
+  // The rule source is the official platform the step is filed on, linked from the details.
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { stepKey?: string; eventId?: string }) => n.stepKey === "purchaseRequest" && n.eventId === "e-night") as { clubDeadline: string; officialDeadline: string })
   await expect(panel.getByTestId("task-due")).toContainText(`Due ${fmtShort(saved.clubDeadline)}`)
-  await panel.getByText("Why this date", { exact: true }).click()
-  await expect(panel.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(saved.officialDeadline)}.`)
-  await panel.getByText("Sources", { exact: true }).click()
-  await expect(panel.getByRole("link", { name: "R09", exact: true })).toBeVisible()
+  expect(saved.officialDeadline > saved.clubDeadline).toBe(true)
+  await expect(panel.locator(".td-head")).not.toContainText(/Start by|Club deadline|ASU/)
+  const sources = panel.getByRole("navigation", { name: "External task links" })
+  await expect(sources.getByRole("link").first()).toBeVisible()
+  await expect(sources.getByRole("link").first()).toHaveAttribute("href", /^https:/)
 })
 
 test("navigation: the second group has a title on wide screens and stays hidden on a phone", async ({ page }, info) => {

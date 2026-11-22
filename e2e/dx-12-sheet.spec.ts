@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
+import { enableUpdatedReminders } from "./reminderHelpers"
 
 // DX-12: on a phone the explanation card slides up from the bottom and fades in, and slides back when closed.
 // On a computer it is unchanged: no delay, no slide (e2e/feel.spec.ts guards the no-delay part).
@@ -8,6 +9,8 @@ async function fresh(page: Page) {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
+  // A fresh demo opts in to the reminder centre through its shipped control; then the centre shows its risk marks.
+  await enableUpdatedReminders(page)
   await expect(page.locator(".risk").first()).toBeVisible()
 }
 
