@@ -36,9 +36,17 @@ export default function Events() {
   const { state, dispatch } = useStore()
   const sched = useSchedule()
   const rail = useRail()
-  const [params, setParams] = useSearchParams()
+  const [urlParams, setParams] = useSearchParams()
+  // A step selected here and then deleted (flow edit, Undo, Reset demo) is not a bad task link: drop its stale node choice.
+  // Links that were never shown on this page, or that carry an access grant or return task, are still checked strictly.
+  const shownNode = useRef<string | null>(null)
+  const staleNode = urlParams.get("node")
+  const vanished = !!staleNode && staleNode === shownNode.current && !urlParams.has("access") && !urlParams.has("from") && !state.nodes.some(n => n.id === staleNode)
+  const params = useMemo(() => { if (!vanished) return urlParams; const next = new URLSearchParams(urlParams); next.delete("node"); return next }, [urlParams, vanished])
+  useEffect(() => { if (vanished) setParams(params, { replace: true }) }, [vanished])
   const access = useTaskAccess(params.get("access") ?? "")
   const entry = resolvePlanEntry(state, params, access.grant, access.checking, "events", recentPlanEvent(state))
+  useEffect(() => { if (entry.node && !entry.error) shownNode.current = entry.node.id }, [entry.node?.id, entry.error])
   const appliedSelection = useRef<string | null>(null)
   const chart = useRef<HTMLDivElement>(null)
   const [savedView, setViewState] = useState<View>(initialView)
