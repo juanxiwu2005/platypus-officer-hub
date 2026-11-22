@@ -64,6 +64,9 @@ test("local reading retains the hierarchy and supports manual role creation/remo
   await page.getByRole("button", { name: /Use sample/ }).click()
   await expect(page.getByTestId("reading-note")).toBeVisible({ timeout: 15000 })
   await continueSetup(page); await fillMission(page); await continueSetup(page)
+  // Count the roles only once Team shows the reading's hierarchy (counting during the move from Goals read 0).
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  await expect.poll(() => page.locator(".ob-role-title").evaluateAll(els => els.map(e => (e as HTMLTextAreaElement).value))).toContain("Executive Vice President")
   const count = await page.locator(".ob-role").count()
   const vp = await setupRole(page, "Executive Vice President")
   await expect(vp.getByRole("combobox").locator("option:checked")).toHaveText("President")

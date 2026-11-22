@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
-import { finishSetup, setupToConfirm } from "./setupHelpers"
+import { finishSetup, savedSetupDraft, setupToConfirm } from "./setupHelpers"
 import { ask, closeRail, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
 
@@ -71,6 +71,9 @@ test("a refused setup save keeps the founder draft, organization and confirmatio
   await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
   await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(original)
+  // The founder draft is written to the browser database a moment after the last change (draft.tsx, SAVE_DELAY), and this test reaches
+  // Confirm faster than a person can: reload only once the draft with this club is stored, as it is for anyone working at a human pace.
+  await expect.poll(async () => (await savedSetupDraft(page))?.club.name).toBe("Fictional unsaved club")
   await page.reload()
   await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
 })
@@ -87,13 +90,19 @@ test("keyboard only: claim a task, change its status and finish it without a mou
   await page.keyboard.press("Enter")
   await expect(detail).toContainText("To do")
   expect(await savedTask(page, id)).toMatchObject({ status: "accepted", ownerId: "jordan" })
-  await detail.getByRole("button", { name: "Stuck", exact: true }).focus()
-  await page.keyboard.press("Space")
-  await expect(detail).toContainText("Stuck")
+  // The universal task details: the status is one drop-down, changed from the keyboard by typing an option's first letter.
+  const status = detail.getByRole("combobox", { name: "Task status", exact: true })
+  await status.focus()
+  await page.keyboard.press("s")
+  await expect(status).toHaveValue("blocked")
+  await expect(detail.getByRole("status").filter({ hasText: "Your update is saved." })).toBeVisible()
   expect(await savedTask(page, id)).toMatchObject({ status: "blocked", ownerId: "jordan" })
-  await detail.getByRole("button", { name: "Mark done", exact: true }).focus()
+  // Finishing is a submission: a few words of result typed from the keyboard, then Submit & mark done.
+  await detail.getByLabel("Details", { exact: true }).focus()
+  await page.keyboard.type("Rehearsal room booked")
+  await detail.getByRole("button", { name: "Submit & mark done", exact: true }).focus()
   await page.keyboard.press("Enter")
-  await expect(detail).toContainText("Completed on")
+  await expect(status).toHaveValue("done")
   expect(await savedTask(page, id)).toMatchObject({ status: "done", ownerId: "jordan" })
   await page.reload()
   // The task was opened from the board rather than a historic deep link.

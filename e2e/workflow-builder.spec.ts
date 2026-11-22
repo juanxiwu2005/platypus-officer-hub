@@ -233,6 +233,8 @@ test("custom T0 and T+ targets remain valid work on and after the activity day",
   await builder.getByRole("button", { name: "Flow", exact: true }).click()
   for (const [title, offset] of [["Host visit", "0"], ["Thank host", "2"]]) {
     await builder.getByRole("button", { name: `Edit ${title}`, exact: true }).click()
+    // Details swap to the newly selected task one render later; type only once they show this task.
+    await expect(page.getByTestId("workflow-builder-details")).toHaveAttribute("aria-label", `Details: ${title}`)
     await page.getByLabel("Finish by (T±)", { exact: true }).fill(offset)
     await closeRail(page)
   }

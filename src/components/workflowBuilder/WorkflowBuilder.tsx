@@ -59,6 +59,8 @@ export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inpu
   const openNode = (key: string) => {
     // Selection belongs to one team branch; choosing anything else ends it.
     if (selectMode && !key.startsWith("branch:")) stopSelect()
+    // The new Details mount one render later; clear the previous node's form now so fast typing can never land in it.
+    if (key !== selected) rail.setWorkflowDetail(null)
     setSelected(key); setConnectFrom(null); rail.show({ kind: "workflow" })
   }
   const spineIds = new Set(graph.spine)

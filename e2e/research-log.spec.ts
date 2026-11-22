@@ -31,8 +31,11 @@ async function session(page: Page) {
   await page.goto("/#/start")
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
   await page.getByLabel(c.founder.name.field).fill("Fictional Lantern Society")
-  await fillMission(page)                                    // FB-2 (ob-5): the mission is on Name
   await next(page)
+  // The shared eight-step founder flow (docs/feedback-fix/SETUP_ENTRY_UNIFICATION_HANDOFF.md): Constitution, then Goals with its mission.
+  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
+  await fillMission(page)
+  await page.getByRole("button", { name: c.skip }).click()            // goals
   await page.getByRole("button", { name: c.skip }).click()            // team
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
@@ -42,11 +45,12 @@ async function session(page: Page) {
   await passReminders(page, "review_then_self")
   await page.getByRole("button", { name: c.founder.confirm.start }).click()
   await expect(page.getByRole("heading", { level: 1, name: c.founder.invite.title })).toBeVisible()
-  await page.getByRole("button", { name: c.founder.invite.workspace }).click()
-  await expect(page.locator("main h1")).toHaveText("Reminders")
-  // 2. Prepare a reminder from the reminder centre (choose a channel, open the draft: the outside page is stopped)
-  await closeRail(page)
-  await page.getByTestId("rq-needs-ok").getByRole("button", { name: "Review & open draft" }).first().click()   // FB-8: the reminder centre
+  await page.getByRole("button", { name: c.founder.invite.today }).click()
+  await expect(page.locator("main h1")).toHaveText("Reminders")      // FB-8: the home page is the reminder centre
+  // 2. Prepare one reminder in the reminder composer (choose a channel, open the draft: the outside page is stopped). The home page now
+  // combines each person's tasks into one email in its own panel; a single-task reminder (ui.reminder, data dictionary §5.1) opens from Ask.
+  await ask(page, "Remind Jordan about the workshop checklist")
+  await page.getByRole("button", { name: "Open the draft" }).last().click()
   const panel = page.getByTestId("nudge-panel")
   await expect(panel).toBeVisible()
   await expect(panel.getByTestId("reminder-mode-note")).toHaveText("Your club chose: I review, then I send (demo: nothing is sent).")
@@ -121,12 +125,13 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   let i = find(0, e => e.type === "ui.navigate" && p(e).to === "/welcome/founder/name", "the walkthrough opened")
   // 2026-11-07: typing in a field is recorded as "started / stopped typing", with the field's label and never its text
   i = find(i, e => e.type === "ui.edit" && p(e).event === "start" && String(p(e).field).includes(c.founder.name.field) && p(e).kind === "text", "typing began in the club name")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/team", "Continue on the Name screen")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/constitution", "Continue on the Name screen")
   i = find(i, e => e.type === "ui.change" && p(e).route === "/welcome/founder/reminders" && p(e).role === "radio" && p(e).name === "I review, then I send" && p(e).checked === true && p(e).testid === "reminder-mode-review_then_self", "the Reminders answer")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Create my club")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Start workspace")
   i = find(i, e => e.type === "completeSetup" && e.applied, "the club was created")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.workspace && p(e).to === "/", "Open my workspace")
-  i = find(i, e => e.type === "ui.click" && p(e).name === "Review & open draft" && p(e).route === "/", "Review & open draft")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.today && p(e).to === "/", "Go to Today")
+  i = find(i, e => e.type === "ui.ask" && p(e).question === "Remind Jordan about the workshop checklist", "the reminder request")
+  i = find(i, e => e.type === "ui.click" && p(e).name === "Open the draft" && p(e).area === "answer", "Open the draft")
   i = find(i, e => e.type === "ui.details" && p(e).action === "open" && p(e).kind === "nudge", "the reminder opened in Details")
   i = find(i, e => e.type === "ui.reminder" && p(e).action === "open", "the reminder composer opened")
   i = find(i, e => e.type === "ui.change" && p(e).name === "Preferred channel" && p(e).value === "Gmail" && p(e).area === "reminder", "the channel chosen")
