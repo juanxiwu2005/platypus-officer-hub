@@ -41,7 +41,7 @@ export const onboardingCopy = {
       suggested: "AI suggested roles.", use: "Use these suggestions", sameName: "Each officer needs a different name.",
     },
     firstEvent: {
-      title: "Your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "ASU {official} → club {club}.", details: "Event details",
+      title: "Your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "Example: ASU {official} → {club}.", details: "Event details",
       sentenceLabel: "Your first event, in one sentence", examplesLabel: "Examples", planning: "Planning…", chainLabel: "First steps and dates",
       stale: "Press Plan it to update the steps.", notEvent: "Describe one event starting with Plan, then review its details.",
       dateError: "Choose a date that is today or later in Event details.", day: "day", days: "days",
@@ -64,7 +64,7 @@ export const onboardingCopy = {
     },
     confirm: { title: "Ready to start?", summary: "This creates {club} with {officers} and {event} on {date}.", officers: { one: "1 officer", many: "{n} officers" }, start: "Start workspace", keep: "Keep current demo", replaceWarning: "This replaces the current demo workspace.", missing: "Plan your first event before you start.", backToEvent: "Back to first event",
       summaryNoEvent: "This creates {club} with {officers}.", noEvent: "No first event yet. You can plan one later from Ask.", reminders: "Reminders: {mode}." },
-    invite: { title: "Your club is ready.", lead: "Invite your officers.", copy: "Copy link", copied: "Copied", copyFailed: "Press Ctrl+C to copy.", whatsapp: "WhatsApp", email: "Email", link: "Officer invitation link", permission: "Only people with this link can join.", notSent: "Nothing sends automatically. We open a message for you.", preview: "See what your officers will see", today: "Go to Today", invited: "Invited", joined: "Joined", open: "Open position", officers: "Officers", joinedNote: "Demo only: Joined appears when an officer finishes setup in this browser.", subject: "Join {club} on Platypus", message: "Join {club} on Platypus as an officer: {link}" },
+    invite: { title: "Your club is ready.", lead: "Invite your officers.", copy: "Copy link", copied: "Copied", copyFailed: "Press Ctrl+C to copy.", whatsapp: "WhatsApp", email: "Email", link: "Officer invitation link", permission: "Only people with this link can join.", notSent: "Nothing sends automatically. We open a message for you.", preview: "See what your officers will see", today: "Go to Reminders", invited: "Invited", joined: "Joined", open: "Open position", officers: "Officers", joinedNote: "Demo only: Joined appears when an officer finishes setup in this browser.", subject: "Join {club} on Platypus", message: "Join {club} on Platypus as an officer: {link}" },
   },
   // member preview (OB-07, OB-08)
   member: {
@@ -73,7 +73,7 @@ export const onboardingCopy = {
       gets: ["One thing at a time.", "Reminders where you choose.", "Never called out in public."],
       trust: "We keep your name and reminder choices. Nothing is sent automatically.",
       previewing: "Previewing as", change: "Change", changeLabel: "Preview as", demoNote: "Fictional demo. Choosing a name does not verify an identity.",
-      invalidTip: "Demo tip: open the link in the browser where the club was set up.", invalidRetry: "Use this browser's invitation", invalidHome: "Go to Today",
+      invalidTip: "Demo tip: open the link in the browser where the club was set up.", invalidRetry: "Use this browser's invitation", invalidHome: "Go to Reminders",
     },
     you: { title: "Is this you?", notYou: "Not you?", name: "Name", email: "Email", duplicate: "Choose a distinct fictional name." },
     reminders: {

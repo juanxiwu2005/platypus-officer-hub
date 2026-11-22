@@ -301,6 +301,7 @@ test("the buffer example is computed by the engine and changes with every choice
     seen.push((await example.innerText()).trim())
   }
   expect(new Set(seen).size).toBe(5)                         // five buffers, five different club dates
-  // Short dates keep the planned screen within its 60-word budget: "ASU Nov 13 → club Nov 10."
-  expect(seen.every(t => /^ASU \w{3} \d+ → club \w{3} \d+\.$/.test(t))).toBe(true)
+  // Short dates keep the planned screen within its 60-word budget: "Example: ASU Nov 13 → Nov 10."
+  // The label above already says "Club buffer", so the example marks itself as an example instead of repeating "club".
+  expect(seen.every(t => /^Example: ASU \w{3} \d+ → \w{3} \d+\.$/.test(t))).toBe(true)
 })

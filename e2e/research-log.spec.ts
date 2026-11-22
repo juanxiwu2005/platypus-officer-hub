@@ -129,7 +129,7 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   i = find(i, e => e.type === "ui.change" && p(e).route === "/welcome/founder/reminders" && p(e).role === "radio" && p(e).name === "I review, then I send" && p(e).checked === true && p(e).testid === "reminder-mode-review_then_self", "the Reminders answer")
   i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Start workspace")
   i = find(i, e => e.type === "completeSetup" && e.applied, "the club was created")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.today && p(e).to === "/", "Go to Today")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.today && p(e).to === "/", "Go to Reminders")
   i = find(i, e => e.type === "ui.ask" && p(e).question === "Remind Jordan about the workshop checklist", "the reminder request")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Open the draft" && p(e).area === "answer", "Open the draft")
   i = find(i, e => e.type === "ui.details" && p(e).action === "open" && p(e).kind === "nudge", "the reminder opened in Details")

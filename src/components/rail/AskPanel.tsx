@@ -308,7 +308,7 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
         <b>Plan check{ev ? `: ${ev.name}` : ""}</b>
         {card.risks.length ? <ul className="review-risks">{card.risks.map((r, i) => <li key={i}>{r.text}{r.rules.map(id => { const rule = ruleById(id); return rule && <a key={id} className="small" href={rule.sources[0].url} target="_blank" rel="noreferrer"> {id} ↗</a> })}</li>)}</ul> : <p className="small">Nothing stands out beyond the playbook's steps.</p>}
         <BtsRow>
-          {card.label.startsWith("AI") ? <Bts kind="ai" label={card.label}>The AI suggested these risks and extra steps from the playbook plus what you wrote. The browser keeps only rule IDs the rule book has and dates the app already knows. POST /api/event/review</Bts> : <Bts label={card.label}>No AI wrote this list. These are the schedule engine's own warnings for the event, each tied to its rule where there is one.</Bts>}
+          {card.label.startsWith("AI") ? <Bts kind="ai" label={card.label}>The AI suggested these risks from the playbook plus what you wrote. The browser keeps only rule IDs the rule book has and dates the app already knows. POST /api/event/review</Bts> : <Bts label={card.label}>No AI wrote this list. These are the schedule engine's own warnings for the event, each tied to its rule where there is one.</Bts>}
           <Bts label="Rule engine">Every step date is computed by the schedule engine; the AI never sets a date.</Bts>
         </BtsRow>
       </div>
