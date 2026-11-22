@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import health from "../../netlify/functions/health.mts"
-import probe from "../../netlify/functions/limit-probe.mts"
 import constitutionFn from "../../netlify/functions/constitution.mts"
-import nudgeFn from "../../netlify/functions/nudge-draft.mts"
+import policyFn from "../../netlify/functions/policy-answer.mts"
 import { SYNC_AI_BUDGET_DEFAULT_MS, syncAiBudgetMs } from "../../netlify/lib/ai.mts"
 import { resetRateLimit } from "../../netlify/lib/http.mts"
 import { aiBudgetMs, aiWaitMs, callApi, getHealth, readAiBudget, resetAiBudget, wasStopped } from "../lib/api"
 import { callRetry } from "../lib/aiRetry"
 
-/** FB-1 3.2 (docs/feedback-fix/PLAN.md): one adjustable time budget for synchronous AI calls, and a probe to measure Netlify's. */
+/** FB-1 3.2 (docs/feedback-fix/PLAN.md): one adjustable time budget for synchronous AI calls. */
 const get = (path: string) => new Request(`https://example.org${path}`, { method: "GET" })
 const post = (path: string, body: unknown) => new Request(`https://example.org${path}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
 function configure() {
@@ -42,7 +41,7 @@ describe("FB-1 · server time budget", () => {
     vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] })
     const { aborted } = hanging()
     const start = Date.now()
-    const pending = nudgeFn(post("/api/nudge/draft", { node: { id: "t-1", title: "Book the room" }, mission: "Help founders meet" }))
+    const pending = policyFn(post("/api/policy-answer", { question: "Can we use an outside caterer for food at our event?" }))
     await vi.advanceTimersByTimeAsync(40_000)
     const res = await pending
     expect(res.status).toBe(504)
@@ -68,37 +67,6 @@ describe("FB-1 · server time budget", () => {
     expect(JSON.stringify(body)).not.toContain("fictional-test-key")
     vi.stubEnv("AI_SYNC_BUDGET_MS", "")
     expect((await (await health(get("/api/health"))).json()).syncBudgetMs).toBe(26_000)
-  })
-})
-
-describe("FB-1 · /api/limit-probe", () => {
-  it("is 404 unless AI_LIMIT_PROBE=on", async () => {
-    vi.stubEnv("AI_LIMIT_PROBE", "")
-    expect((await probe(get("/api/limit-probe?s=5"))).status).toBe(404)
-    vi.stubEnv("AI_LIMIT_PROBE", "true")
-    expect((await probe(get("/api/limit-probe?s=5"))).status).toBe(404)
-  })
-
-  it("when on, waits the asked seconds and answers { waited }, with no AI call", async () => {
-    vi.stubEnv("AI_LIMIT_PROBE", "on")
-    const send = vi.fn()
-    vi.stubGlobal("fetch", send)
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] })
-    let done = false
-    const pending = probe(get("/api/limit-probe?s=35")).then(r => { done = true; return r })
-    await vi.advanceTimersByTimeAsync(34_999)
-    expect(done).toBe(false)
-    await vi.advanceTimersByTimeAsync(1)
-    const res = await pending
-    expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ waited: 35 })
-    expect(send).not.toHaveBeenCalled()
-  })
-
-  it("only whole seconds from 1 to 58", async () => {
-    vi.stubEnv("AI_LIMIT_PROBE", "on")
-    for (const s of ["0", "59", "abc", "1.5", "", "-3"]) expect((await probe(get(`/api/limit-probe?s=${s}`))).status).toBe(400)
-    expect((await probe(get("/api/limit-probe"))).status).toBe(400)
   })
 })
 
@@ -129,7 +97,7 @@ describe("FB-1 · the browser follows the server's budget", () => {
     vi.useFakeTimers()
     const { aborted } = hanging()
     const start = Date.now()
-    const out = callRetry("/setup/workflow", {}, () => true, 1).catch(e => e)
+    const out = callRetry("/setup/constitution", {}, () => true, 1).catch(e => e)
     await vi.advanceTimersByTimeAsync(44_000 + 1_000) // the wait, then the short pause callRetry takes after a failure
     await out
     expect(aborted[0] - start).toBe(44_000)

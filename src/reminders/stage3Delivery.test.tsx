@@ -3,15 +3,12 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { MemoryRouter } from "react-router-dom"
 import { webcrypto } from "node:crypto"
 import { seedDemo } from "../data/seed"
-import { reducer, STORAGE_KEY, StoreProvider, useStore, type Action } from "../data/store"
+import { reducer, STORAGE_KEY, StoreProvider, useStore } from "../data/store"
 import type { DemoState, ReminderMode } from "../data/types"
 import { applySchedule } from "../engine/schedule"
 import { confirmReminderDelivery, createReminderRuntime, planReminders } from "./engine"
 import { buildReminderInput } from "./facts"
 import { isReminderRuntime } from "./runtime"
-import { sendReminderBatch } from "./delivery"
-import { taskAccessToken, verifyTaskAccessGrant } from "./taskAccess"
-import { addDays } from "../lib/dates"
 
 const NODE = "t-room"
 function fixture(mode: ReminderMode = "review_then_auto", count = 1): DemoState {
@@ -24,10 +21,6 @@ function fixture(mode: ReminderMode = "review_then_auto", count = 1): DemoState 
 }
 const active = (mode?: ReminderMode, count?: number) => reducer(fixture(mode, count), {type: "upgradeReminderPlan"})
 const ids = (s: DemoState) => planReminders(buildReminderInput(s, s.reminderRuntime!)).ready.map(c => c.id)
-function memory(initial: DemoState, intercept?: (s: DemoState, a: Action) => DemoState) {
-  let state = initial
-  return { getState: () => state, tryDispatch: (a: Action) => { const next = reducer(intercept ? intercept(state, a) : state, a); if (next === state) return false; state = next; return true } }
-}
 let store: ReturnType<typeof useStore>
 function Probe() { store = useStore(); return null }
 const show = (s: DemoState) => render(<MemoryRouter><StoreProvider initial={s}><Probe /></StoreProvider></MemoryRouter>)
@@ -61,66 +54,10 @@ describe("stage three complete-mail delivery", () => {
     }
   })
 
-  it("records only complete signed rule mails and replays do not create another delivery", async () => {
-    const initial = active(), api = memory(initial), requested = ids(initial)
-    const result = await sendReminderBatch(api, requested, "https://demo.example.org", "platypus")
-    expect(result).toMatchObject({failedIds: [], error: null})
-    expect(result.recordedIds).toHaveLength(1)
-    const state = api.getState(), delivery = state.reminderRuntime!.deliveries[0]
-    expect(delivery.message).toMatchObject({source: "rules", channel: "email", recipientId: "jordan"})
-    expect(delivery.message!.body.match(/https?:\/\/\S+/g)).toEqual([delivery.message!.taskUrl])
-    expect(await verifyTaskAccessGrant(state, taskAccessToken(state.taskAccessGrants![0]))).toBe(true)
-    expect(isReminderRuntime(state.reminderRuntime)).toBe(true)
-    expect(isReminderRuntime({...state.reminderRuntime, deliveries: state.reminderRuntime!.deliveries.map(d => ({...d, message: undefined}))})).toBe(false)
-    expect((await sendReminderBatch(api, requested, "https://demo.example.org", "platypus")).recordedIds).toEqual([])
-    expect(api.getState().reminderRuntime!.deliveries).toHaveLength(1)
-  })
-
   it("v2 rejects old no-body confirmation and missing snapshots corrupt only new-format records", () => {
     const s = active(), candidateId = ids(s)[0]
     expect(reducer(s, {type: "confirmPlannedReminder", candidateId, via: "platypus"})).toBe(s)
     expect(reducer(s, {type: "confirmNudgeSent", nodeId: NODE, channel: "email", text: "Old path", via: "platypus"})).toBe(s)
-  })
-
-  it("rechecks aggregate recipient limits for each prepared entry", async () => {
-    const s = active("review_then_auto", 8), api = memory(s)
-    const result = await sendReminderBatch(api, ids(s), "https://demo.example.org", "platypus")
-    expect(result.recordedIds).toHaveLength(1)
-    expect(result.failedIds).toHaveLength(7)
-    expect(api.getState().taskAccessGrants).toHaveLength(1)
-    expect(api.getState().reminderRuntime!.deliveries.every(d => d.message?.checked)).toBe(true)
-  })
-  it("sorts both requested IDs and reversed prepared entries before consuming scarce daily slots", async () => {
-    const base = active("review_then_auto", 3)
-    const s = { ...base, nodes: base.nodes.map((n, i) => ({ ...n, clubDeadline: i === 0 ? addDays(base.today, 10) : i === 1 ? base.today : addDays(base.today, -3), latestStart: addDays(base.today, -10) })) }
-    const saved = memory(s)
-    const api = { getState: saved.getState, tryDispatch: (a: Action) => saved.tryDispatch(a.type === "recordReminderBatch" ? { ...a, entries: [...a.entries].reverse() } : a) }
-    await sendReminderBatch(api, ids(s).reverse(), "https://demo.example.org", "platypus")
-    expect(api.getState().reminderRuntime!.deliveries.map(d => d.reason)).toEqual(["overdue", "due"])
-    expect(api.getState().taskAccessGrants).toHaveLength(2)
-  })
-
-  it("does not publish a prepared grant or mail after reassignment, mode change or workspace replacement", async () => {
-    const s = active()
-    const changes = [
-      (s: DemoState) => reducer(s, {type: "updateNode", id: NODE, patch: {ownerId: "sam"}}),
-      (s: DemoState) => ({...s, org: {...s.org, settings: {...s.org.settings, reminderMode: "review_then_self" as const}}}),
-      (s: DemoState) => ({...s, demoLinkKey: "replacement-workspace-key"}),
-    ]
-    for (const change of changes) {
-      const api = memory(s, state => change(state))
-      expect((await sendReminderBatch(api, ids(s), "https://demo.example.org", "platypus")).recordedIds).toEqual([])
-      expect(api.getState().reminderRuntime!.deliveries).toEqual([])
-      expect(api.getState().taskAccessGrants ?? []).toEqual([])
-    }
-  })
-
-  it("cancellation before commit records nothing and an ordinary viewer cannot approve a review batch", async () => {
-    const s = active(), api = memory(s)
-    expect((await sendReminderBatch(api, ids(s), "https://demo.example.org", "platypus", () => false)).recordedIds).toEqual([])
-    const officer = memory({...s, viewerId: "jordan"})
-    expect((await sendReminderBatch(officer, ids(s), "https://demo.example.org", "platypus")).recordedIds).toEqual([])
-    expect(officer.getState().taskAccessGrants ?? []).toEqual([])
   })
 
   it("a lead explicitly reviews legacy ambiguity for future mail, keeping old history and settings", () => {

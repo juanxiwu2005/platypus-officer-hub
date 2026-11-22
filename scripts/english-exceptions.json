@@ -154,23 +154,5 @@
     "line": "const EVENT_DATE_RE = /\\b(?:change|move|reschedule|push|shift|set|update)\\b.*\\b(?:date|event|it|to)\\b|\u6539.*(?:\u65e5\u671f|\u65f6\u95f4)|\u63a8\u8fdf|\u5ef6\u671f\u5230/i",
     "count": 1,
     "reason": "Existing Chinese-language intent recognition patterns."
-  },
-  {
-    "path": "netlify/functions/org-ai.mts",
-    "line": "      /histor|previous|restore|earlier|\u4ee5\u524d|\u5386\u53f2|\u6062\u590d/i.test(instruction)",
-    "count": 1,
-    "reason": "Existing Chinese-language history/restore intent matching."
-  },
-  {
-    "path": "netlify/lib/workspaceAssistant/jobs.mts",
-    "line": "    if(/histor|previous|restore|earlier|\u4ee5\u524d|\u5386\u53f2|\u6062\u590d/i.test(job.instruction))Object.assign(packet,{history:await historicalContext(entry.workspaceId,historyRevision(job.instruction))});",
-    "count": 1,
-    "reason": "Existing Chinese-language history/grouping intent matching."
-  },
-  {
-    "path": "netlify/lib/workspaceAssistant/jobs.mts",
-    "line": "    const groupCacheKey=selected&&/summari[sz]|group|collapse|phase|stage|\u5206\u7ec4|\u6c47\u603b|\u5f52\u7eb3|\u9636\u6bb5/i.test(job.instruction)?`workspace-assistant-groups/${entry.workspaceId}/${digest(stable({version:ASSISTANT_VERSION,instruction:job.instruction.trim().toLowerCase(),workItemId:selected.id,structure,provider:config.provider,baseUrl:config.baseUrl,configuredModel:config.model,route}))}`:null;",
-    "count": 1,
-    "reason": "Existing Chinese-language history/grouping intent matching."
   }
 ]

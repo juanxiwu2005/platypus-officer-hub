@@ -1,8 +1,8 @@
 import { useState } from "react"
-import type { DemoState, Goal, Person, Role, WorkspaceConfig, Channel } from "../data/types"
+import type { DemoState, Goal, WorkspaceConfig, Channel } from "../data/types"
 import { validateWorkspace, type ProfilePatch } from "../data/settings"
 import { documentSource, readDocumentFile } from "../lib/readDocument"
-import { MAX_DUTIES, MAX_ROLES, dropRole, dutiesOf, newRole, orderRoles, rederiveFn, setHolder, withBelow } from "../data/structure"
+import { dutiesOf } from "../data/structure"
 import { mondayOf } from "../engine/team"
 
 export function GoalsEditor({ goals, onChange, progress = false }: { goals: Goal[]; onChange: (g: Goal[]) => void; progress?: boolean }) {
@@ -14,31 +14,6 @@ export function GoalsEditor({ goals, onChange, progress = false }: { goals: Goal
     {progress && <td><input type="number" aria-label="Current progress" min="0" value={g.current} onChange={e => change(i, { current: Number(e.target.value) })} /></td>}
     <td><button type="button" className="btn small btn-quiet" aria-label={`Remove goal ${i + 1}`} title={`Remove goal ${i + 1}`} onClick={() => onChange(goals.filter((_, j) => j !== i))}>✕</button></td>
   </tr>)}</tbody></table></div>{goals.length < 3 && <div><button type="button" className="btn small" onClick={() => onChange([...goals, { id: crypto.randomUUID(), label: "New semester goal", unit: "completed", target: 3, current: 0 }])}>Add goal</button></div>}</div>
-}
-
-/** Every officer role: title, who it reports to, duties, and the fictional person in it (name, email, phone, ASU ID). */
-export function RolesEditor({ roles, people, onChange, editablePeople = false }: { roles: Role[]; people: Person[]; onChange: (roles: Role[], people: Person[]) => void; editablePeople?: boolean }) {
-    const change = (i: number, patch: Partial<Role>, reFn = false) => onChange(roles.map((r, j) => i === j ? (reFn ? rederiveFn(roles, { ...r, ...patch }) : { ...r, ...patch }) : r), people)
-  const holder = (r: Role) => people.find(p => p.id === r.holderId)
-  const edit = (r: Role, patch: Partial<Pick<Person, "name" | "email" | "phone" | "asuId">>) => { const x = setHolder(roles, people, r.id, patch); onChange(x.roles, x.people) }
-  return <div className="role-rows" data-testid="role-rows">{roles.map((r, i) => {
-    const p = holder(r), boss = withBelow(roles, r.id)
-    return <fieldset key={r.id} className="role-row" aria-label={`Role ${i + 1}: ${r.displayName}`}>
-      <label className="role-title"><span className="cap">Role title</span><input type="text" aria-label="Role title" value={r.displayName} maxLength={60} onChange={e => change(i, { displayName: e.target.value }, true)} /></label>
-      <label><span className="cap">Reports to</span><select aria-label="Reports to" value={r.reportsToId ?? ""} onChange={e => change(i, { reportsToId: e.target.value || null })}><option value="">Nobody (top)</option>{roles.filter(x => !boss.has(x.id)).map(x => <option key={x.id} value={x.id}>{x.displayName}</option>)}</select></label>
-      {editablePeople ? <>
-        <label><span className="cap">Officer name</span><input type="text" aria-label="Officer name" placeholder={r.fn === "advisor" ? "Optional" : "Open position"} value={p?.name ?? ""} maxLength={80} onChange={e => edit(r, { name: e.target.value })} /></label>
-        <label><span className="cap">Email</span><input type="email" aria-label="Email" placeholder="name@example.org" value={p?.email ?? ""} onChange={e => edit(r, { email: e.target.value })} /></label>
-        <label><span className="cap">Phone</span><input type="tel" aria-label="Phone" placeholder="480-555-0100" value={p?.phone ?? ""} onChange={e => edit(r, { phone: e.target.value })} /></label>
-        <label><span className="cap">ASU ID</span><input type="text" inputMode="numeric" aria-label="ASU ID" placeholder="9999000001" maxLength={10} value={p?.asuId ?? ""} onChange={e => edit(r, { asuId: e.target.value.replace(/\D/g, "") })} /></label>
-      </> : <p className="role-holder small">{p?.name ?? "Open position"}</p>}
-      {editablePeople && r.fn !== "president" && <button type="button" className="btn small btn-quiet role-x" aria-label={`Remove role ${i + 1}`} title="Remove role" onClick={() => { const x = dropRole(roles, people, r.id); onChange(x.roles, x.people) }}>✕</button>}
-      <label className="role-duties"><span className="cap">Duties</span><textarea aria-label="Role duties" rows={2} maxLength={MAX_DUTIES} value={r.duties ?? ""} onChange={e => change(i, { duties: e.target.value })} /></label>
-    </fieldset>
-  })}{editablePeople && roles.length < MAX_ROLES && <div><button type="button" className="btn small" onClick={() => {
-    const pres = roles.find(r => r.fn === "president")
-    onChange(orderRoles([...roles, newRole("New role", pres?.id ?? null)]), people)
-  }}>Add role</button></div>}</div>
 }
 
 export function WorkspaceEditor({ value, onChange, showPlanningMaterials = true }: { value: WorkspaceConfig; onChange: (w: WorkspaceConfig) => void; showPlanningMaterials?: boolean }) {

@@ -6,7 +6,6 @@ import { HashRouter } from "react-router-dom"
 import App from "./App"
 import { StoreProvider } from "./data/store"
 import { UiLogger } from "./components/UiLogger"
-import { installSetupNavigationProtection } from "./organization/useSetupNavigationGuard"
 import "./styles.css"
 import "./styles/index.css"
 
@@ -52,10 +51,9 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: 
 }
 
 // Guarded so a unit test can import ErrorBoundary from here without mounting the whole app.
-// ErrorBoundary wraps App, so the main pages and /#/phase1/ are both covered.
+// ErrorBoundary wraps App, so every page is covered.
 const root = document.getElementById("root")
 if (root) {
-  installSetupNavigationProtection()
   createRoot(root).render(
     <StrictMode>
       <ErrorBoundary>

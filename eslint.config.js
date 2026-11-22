@@ -1,8 +1,6 @@
 // Keep lint-policy explanations in English for all contributors.
 // Guardrail: no inline style={{...}} except CSS-variable injection and data-driven position or size.
 // Everything else belongs in src/styles.css as a class that uses design tokens (docs/DESIGN_TOKENS.md).
-// src/organization, src/phase1 and src/workspace are a separate older code base with their own CSS
-// (about 4,500 lines) and many inline styles. They are excluded for now; unify them later.
 import parser from "@typescript-eslint/parser"
 import reactX from "eslint-plugin-react-x"
 
@@ -14,7 +12,7 @@ const STYLE_NOT_A_LITERAL =
   "JSXAttribute[name.name='style'] > JSXExpressionContainer > :not(ObjectExpression):not(TSAsExpression)"
 
 export default [
-  { ignores: ["dist/**", "dist-storage/**", "node_modules/**", "netlify/**", "scripts/**", "e2e/**", "src/organization/**", "src/phase1/**", "src/workspace/**", "src/test/**"] },
+  { ignores: ["dist/**", "node_modules/**", "netlify/**", "scripts/**", "e2e/**", "src/test/**"] },
   {
     files: ["src/**/*.{ts,tsx}"],
     languageOptions: { parser, parserOptions: { ecmaFeatures: { jsx: true } } },
