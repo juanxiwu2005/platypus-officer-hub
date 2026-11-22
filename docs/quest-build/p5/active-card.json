@@ -3,19 +3,20 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-02A-model.md",
+  "card": "docs/quest-build/cards/P5-02B-transitions.md",
   "readFiles": [
-    "src/quest/foundation.ts",
+    "src/quest/sample/model.ts",
     "src/quest/sample/decisions.ts",
     "src/quest/sample/venue.ts",
+    "src/quest/foundation.ts",
     "src/engine/questSchedule.ts"
   ],
   "writeFiles": [
-    "src/quest/sample/model.ts",
-    "src/quest/sample/model.test.ts"
+    "src/quest/sample/transitions.ts",
+    "src/quest/sample/transitions.test.ts"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/model.test.ts",
+    "npx vitest run src/quest/sample/transitions.test.ts",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
@@ -23,7 +24,7 @@
       "npx",
       "vitest",
       "run",
-      "src/quest/sample/model.test.ts"
+      "src/quest/sample/transitions.test.ts"
     ],
     [
       "npx",
