@@ -7,7 +7,7 @@ import { isBudgetControlledNode } from "../src/engine/eventBudget"
 import type { DemoState, Node } from "../src/data/types"
 
 /**
- * FB-4 (docs/feedback-fix/PLAN.md §6.2): the details an officer lands on from a reminder, in three zones, with one Due.
+ * FB-4 (docs/feedback-fix/PLAN.md §6.2): the details an officer lands on from a reminder, with one Due.
  * Every date is read from the engine's saved output, never written here: FB-6 re-times the event template.
  */
 const SHOTS = process.env.FB4_SHOTS // a folder: set it to save screenshots for a visual check
@@ -32,88 +32,90 @@ async function ruledStep(page: Page): Promise<Step> {
 }
 async function openAs(page: Page, viewer: string, id: string) {
   await page.goto(`/#/tasks?node=${encodeURIComponent(id)}`)
-  await viewAs(page, viewer)
   const detail = page.getByTestId("task-detail")
+  // Let the linked task's side panel open first: on a phone it covers the top bar, and viewAs must know whether it is there.
+  await expect(detail).toBeVisible()
+  await viewAs(page, viewer)
   await expect(detail).toBeVisible()
   return detail
 }
 const shot = async (page: Page, name: string, project: string) => { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${project}-${name}.png`, fullPage: false }) }
 const scan = async (page: Page) => (await new AxeBuilder({ page }).include("[data-testid=task-detail]").withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).join(", ")}`)
 
-test("the owner: one Task due, one primary button, four status updates, and private planning under Why this date", async ({ page }, info) => {
+// The universal Task Details (docs/feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md) replaced the three zones: one Due, a compact status
+// menu, the requirement and one submission form. Remind moved to the reminder centre; Edit is a separate drawer; planning dates stay private.
+const STATUS_OPTIONS = ["To do", "Working on it", "Stuck", "Waiting on", "Need more time\u2026"]
+
+test("the owner: one Due, one primary button, four status updates, and no private planning dates", async ({ page }, info) => {
   const { n, owner } = await ruledStep(page)
   const detail = await openAs(page, owner, n.id)
   await expect(detail.getByRole("heading", { level: 2, name: n.title })).toBeFocused()
-  await expect(detail.getByTestId("task-due")).toContainText("Task due")
-  await expect(detail.getByTestId("task-due")).toContainText(fmtShort(n.clubDeadline!))
-  await expect(detail.getByTestId("task-due")).not.toContainText(/Start by|Club deadline|ASU|Event date/)
-  const next = detail.getByRole("region", { name: "Your next step" })
-  await expect(next.locator(".btn-primary")).toHaveCount(1)
-  await expect(next.locator(".btn-primary")).toHaveText("Mark done")
-  await expect(next.getByRole("group", { name: "Update task status" }).getByRole("button")).toHaveText(["Working on it", "Stuck", "Waiting on"])
-  await expect(next.getByRole("button", { name: "Need more time", exact: true })).toBeVisible()
+  await expect(detail.getByTestId("task-due")).toHaveText(`Due ${fmtShort(n.clubDeadline!)}`)
+  await expect(detail.locator(".btn-primary")).toHaveCount(1)
+  await expect(detail.locator(".btn-primary")).toHaveText("Submit & mark done")
+  await expect(detail.getByRole("combobox", { name: "Task status", exact: true }).locator("option")).toHaveText(STATUS_OPTIONS)
   await expect(detail.getByRole("button", { name: /^Remind/ })).toHaveCount(0)
-  await expect(detail.getByTestId("task-edit")).toHaveCount(0)
+  await expect(detail.getByRole("button", { name: /Edit/ })).toHaveCount(0)
   await expect(detail.getByText("Copy All Event Details")).toHaveCount(0)
+  await expect(detail).not.toContainText(/Start by|Personal planning start|Why this date/)
   await shot(page, "owner", info.project.name)
-  await detail.getByText("Why this date", { exact: true }).click()
-  await expect(detail.getByTestId("asu-sentence")).toContainText(`ASU needs this by ${fmtShort(n.officialDeadline!)}.`)
-  await expect(detail.getByTestId("why-date")).toContainText(`Personal planning start: ${fmtShort(n.latestStart!)}.`)
   if (info.project.name === "mobile") expect(await noOverflow(page)).toBeLessThanOrEqual(0)
   await page.keyboard.press("Escape")
   await expect(detail).toHaveCount(0)
 })
 
-test("the president on an officer's task: Remind <first name>, Edit owner and Due through the store, and both can be put back", async ({ page }, info) => {
-  const { n, owner, first, other } = await ruledStep(page)
+test("the president on an officer's task: Edit owner and Due through the store, and both can be put back", async ({ page }, info) => {
+  const { n, owner, other } = await ruledStep(page)
   const detail = await openAs(page, "alex", n.id)
-  await expect(detail.getByRole("button", { name: `Remind ${first}`, exact: true })).toBeVisible()
-  await expect(detail.getByTestId("task-due")).toContainText("Task due")
-  await expect(detail.getByRole("region", { name: "Your next step" }).locator(".btn-primary")).toHaveText("Mark done")
+  await expect(detail.getByTestId("task-due")).toHaveText(`Due ${fmtShort(n.clubDeadline!)}`)
+  await expect(detail.locator(".btn-primary")).toHaveText("Submit & mark done")
+  await expect(detail.getByRole("button", { name: /^Remind/ })).toHaveCount(0)
+  await expect(detail).not.toContainText(/Personal planning start|Why this date/)
   await shot(page, "president", info.project.name)
-  await detail.getByText("Why this date", { exact: true }).click()
-  await expect(detail.getByTestId("why-date")).toContainText("private planning preferences")
-  await expect(detail.getByTestId("why-date")).not.toContainText(`Personal planning start: ${fmtShort(n.latestStart!)}`)
-  await detail.getByText("Edit", { exact: true }).click()
-  const edit = detail.getByTestId("task-edit")
-  await edit.getByTestId("owner-select").selectOption(other)
+  const edit = page.getByTestId("task-edit")
+  async function save(change: () => Promise<void>) {
+    await detail.getByRole("button", { name: "Edit", exact: true }).click()
+    await change()
+    await edit.getByRole("button", { name: "Save changes", exact: true }).click()
+    await expect(edit).toHaveCount(0)
+  }
+  await save(() => edit.getByTestId("owner-select").selectOption(other))
   await expect.poll(async () => (await savedTask(page, n.id)).ownerId).toBe(other)
-  await edit.getByTestId("owner-select").selectOption(owner)
+  await save(() => edit.getByTestId("owner-select").selectOption(owner))
   await expect.poll(async () => (await savedTask(page, n.id)).ownerId).toBe(owner)
   const later = addDays(n.clubDeadline!, 1) // later, so no unfinished earlier step pushes it
-  await edit.getByTestId("due-input").fill(later)
+  await save(() => edit.getByTestId("due-input").fill(later))
   await expect.poll(async () => (await savedTask(page, n.id)).clubDeadline).toBe(later)
   await expect(detail.getByTestId("task-due")).toContainText(fmtShort(later))
-  await edit.getByRole("button", { name: /^Use recommended \(/ }).click()
+  await save(() => edit.getByTestId("due-input").fill(n.clubDeadline!))
   await expect.poll(async () => (await savedTask(page, n.id)).clubDeadline).toBe(n.clubDeadline)
   await expect(detail.getByTestId("task-due")).toContainText(fmtShort(n.clubDeadline!))
-  await detail.getByText("People", { exact: true }).click()
-  await detail.getByText("Sources", { exact: true }).click()
   await shot(page, "president-open", info.project.name)
   expect(await scan(page)).toEqual([])
   if (info.project.name === "mobile") expect(await noOverflow(page)).toBeLessThanOrEqual(0)
 })
 
-test("another officer: the existing sentence, no buttons, no Remind and no Edit", async ({ page }, info) => {
+test("another officer: a read-only status, no buttons, no Remind and no Edit", async ({ page }, info) => {
   const { n, other } = await ruledStep(page)
   const before = await savedTask(page, n.id)
   const detail = await openAs(page, other, n.id)
-  const next = detail.getByRole("region", { name: "Your next step" })
-  await expect(next).toContainText("Only the owner or president can update this task.")
-  await expect(next.locator(".btn-primary")).toHaveCount(0)
+  await expect(detail.locator(".task-status-label")).toBeVisible()
+  await expect(detail.getByRole("combobox", { name: "Task status" })).toHaveCount(0)
+  await expect(detail.getByRole("textbox")).toHaveCount(0)
+  await expect(detail.locator(".btn-primary")).toHaveCount(0)
   await expect(detail.getByRole("button", { name: /^Remind/ })).toHaveCount(0)
-  await expect(detail.getByTestId("task-edit")).toHaveCount(0)
+  await expect(detail.getByRole("button", { name: /Edit/ })).toHaveCount(0)
   await shot(page, "officer", info.project.name)
   expect(await scan(page)).toEqual([])
   expect(await savedTask(page, n.id)).toEqual(before)
 })
 
-test("a budget step: Mark done is disabled and Event Budget is one tap away", async ({ page }) => {
+test("a budget step: Done is not offered here and Event Budget is one tap away", async ({ page }) => {
   const detail = await openAs(page, "maya", "e-night:purchaseRequest")
-  const next = detail.getByRole("region", { name: "Your next step" })
-  await expect(next.getByRole("button", { name: "Mark done", exact: true })).toBeDisabled()
-  await expect(next).toContainText("Complete this step in Event Budget.")
-  await next.getByRole("button", { name: "Open Event Budget", exact: true }).click()
+  await expect(detail.getByRole("button", { name: "Submit result", exact: true })).toBeVisible()
+  await expect(detail.getByRole("button", { name: /mark done/i })).toHaveCount(0)
+  await expect(detail).toContainText("Completion is managed in Event Budget.")
+  await detail.getByRole("link", { name: "Event Budget", exact: true }).click()
   await expect(page).toHaveURL(/events\?event=e-night&view=budget/)
 })
 

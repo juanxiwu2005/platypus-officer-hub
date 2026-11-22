@@ -164,11 +164,10 @@ test("task dates remain visible while another officer's buffer explanation stays
   await page.getByTestId("view-flow").click()
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
-  // FB-4: the one visible date is Due; someone else's reminder timing stays general. FB-6 moved the dates; they are not asserted here.
+  // FB-4: the one visible date is Due. FB-6 moved the dates; they are not asserted here. The universal Task Details
+  // (docs/feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md) dropped "Why this date", so the panel shows no planning dates or buffers at all.
   await expect(panel.getByTestId("task-due").locator("strong")).toHaveText(/^\w{3} \d+/)
-  await panel.getByText("Why this date", { exact: true }).click()
-  await expect(panel).toContainText("private planning preferences")
-  await expect(panel).not.toContainText("Maya's personal buffer")
+  await expect(panel).not.toContainText(/Maya's personal buffer|Personal planning start|Start by/)
   await closeRail(page)
   await openDemoMenu(page)
   await page.getByTestId("bts-toggle").check()

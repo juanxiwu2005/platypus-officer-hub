@@ -273,11 +273,16 @@ test("keyboard: a board card changes status through Details without dragging", a
   await page.keyboard.press("Enter")
   const details = page.getByTestId("task-detail")
   await expect(details.getByRole("heading", { name: title, exact: true })).toBeFocused()
-  const done = details.getByRole("button", { name: "Mark done", exact: true })
-  for (let i = 0; i < 30 && !(await done.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press("Tab")
-  await expect(done).toBeFocused()
+  // The universal Task Details: Done comes from submitting a result, so type it in Details, then Tab on to Submit & mark done.
+  const tabTo = async (target: import("@playwright/test").Locator) => {
+    for (let i = 0; i < 30 && !(await target.evaluate(el => el === document.activeElement)); i++) await page.keyboard.press("Tab")
+    await expect(target).toBeFocused()
+  }
+  await tabTo(details.getByRole("textbox", { name: "Details", exact: true }))
+  await page.keyboard.type("Done with the keyboard.")
+  await tabTo(details.getByRole("button", { name: "Submit & mark done", exact: true }))
   await page.keyboard.press("Enter")
-  await expect(details).toContainText("Completed")
+  await expect(details.getByRole("combobox", { name: "Task status", exact: true })).toHaveValue("done")
   await page.keyboard.press("Escape")
   await expect(page.getByRole("region", { name: "Done", exact: true }).locator(".board-title").filter({ hasText: title })).toBeVisible()
 })
