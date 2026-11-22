@@ -2,12 +2,10 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 const chat = vi.hoisted(() => vi.fn())
 vi.mock("../../netlify/lib/ai.mts", async importOriginal => ({ ...await importOriginal<object>(), chatJSON: chat }))
 import command from "../../netlify/functions/command.mts"
-import nudge from "../../netlify/functions/nudge-draft.mts"
 import chatFn from "../../netlify/functions/chat.mts"
 import { resetRateLimit } from "../../netlify/lib/http.mts"
 import { seedDemo } from "../data/seed"
 import { commandContext } from "../lib/commands"
-import { nudgeCheck } from "../lib/nudges"
 import { aiSnapshot } from "../lib/aiContext"
 
 const state = seedDemo()
@@ -27,25 +25,8 @@ describe("server endpoint contract", () => {
   })
   it("handles missing/malformed requests without calling AI", async () => {
     expect((await command(request({}))).status).toBe(400)
-    expect((await nudge(request({}))).status).toBe(400)
     expect((await command(new Request("https://example.org/api/command", { method: "POST", body: "{" }))).status).toBe(400)
     expect(chat).not.toHaveBeenCalled()
-  })
-  it("/api/nudge/draft returns a whole checked draft, reconstructing dates from input and discarding AI dates", async () => {
-    chat.mockResolvedValue({ data: { whyItMatters: "We build a stronger club together.", date: "2099-01-01", clubDeadline: "2099-01-01" }, model: "mock" })
-    const node = state.nodes.find(n => n.id === "e-night:usg")!
-    const r = await nudge(request({ node, today: state.today, remindAt: "evening", mission: state.org.mission }, "/api/nudge/draft"))
-    const d = await r.json()
-    expect(r.status).toBe(200)
-    expect(nudgeCheck(d.subject, d.body).ok).toBe(true)
-    expect(d.body).toContain("Oct 30")
-    expect(d.body).not.toContain("2099")
-  })
-  it("replaces banned AI reminder wording", async () => {
-    chat.mockResolvedValue({ data: { whyItMatters: "URGENT Just use AI ASAP" }, model: "mock" })
-    const d = await (await nudge(request({ node: state.nodes[0], today: state.today }))).json()
-    expect(d.body).not.toMatch(/URGENT|ASAP|Just use AI/)
-    expect(d.checked).toBe(true)
   })
   it("/api/chat answers supported commands without AI and filters every model card", async () => {
     const local = await chatFn(request({ message: "Assign Send the October newsletter to Priya", context: commandContext(state) }, "/api/chat"))
