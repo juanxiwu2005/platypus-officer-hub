@@ -152,7 +152,8 @@ const DETAIL_TRIGGERS: [string, string, (p: Pg) => import("@playwright/test").Lo
   ["task", "/tasks", p => p.locator("main .board-title").first()],
   ["funding", "/events?event=e-night&view=budget", p => p.getByRole("button", { name: "Funding application", exact: true })],
   ["handoff", "/handoff", p => p.locator("main button.relay").first()],
-  ["workflow settings", "/settings", p => p.getByTestId("flow-node-plan")],
+  // The Settings workflow editor draws its own canvas: the Event Plan step is `workflow-task-plan` there (WORKFLOW_SETTINGS_REDESIGN).
+  ["workflow settings", "/settings", p => p.getByTestId("workflow-builder").getByTestId("workflow-task-plan")],
 ]
 for (const [name, path, trigger] of DETAIL_TRIGGERS) {
   test(`right rail: ${name} details take focus when they open and give it back on Escape`, async ({ page }) => {
@@ -307,9 +308,12 @@ test("flow actions dialog: focus enters, Tab stays inside, Escape restores its s
   await expect(opener).toBeFocused()
   if ((page.viewportSize()?.width ?? 1280) <= 700) {
     await page.keyboard.press("Shift+F10")
+    await expect.poll(() => dialog.evaluate(el => el.contains(document.activeElement))).toBe(true)
     await dialog.getByRole("button", { name: "Open details", exact: true }).focus()
     await page.keyboard.press("Enter")
     await expect(page.getByRole("region", { name: "Details", exact: true })).toBeVisible()
+    // The details take focus once they listen for keys; Escape pressed before that would race their first render.
+    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[aria-label="Details"]'))).toBe(true)
     await page.keyboard.press("Escape")
     await expect(page.getByRole("region", { name: "Details", exact: true })).toHaveCount(0)
     await expect(opener).toBeFocused()

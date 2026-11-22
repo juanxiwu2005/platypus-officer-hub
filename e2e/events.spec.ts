@@ -116,8 +116,12 @@ test("the list view opens every step from the same event as the Flow", async ({ 
   for (let index = 0; index < count; index++) {
     const title = (await steps.nth(index).locator("span").last().innerText()).trim()
     await steps.nth(index).click()
-    await expect(page.getByTestId("task-detail").getByRole("heading", { name: title, exact: true })).toBeVisible()
+    // The details take focus once they are ready for keys; pressing Escape before that would race their first render.
+    const heading = page.getByTestId("task-detail").getByRole("heading", { name: title, exact: true })
+    await expect(heading).toBeVisible()
+    await expect(heading).toBeFocused()
     await page.keyboard.press("Escape")
+    await expect(page.getByTestId("task-detail")).toHaveCount(0)
   }
 })
 
@@ -170,8 +174,12 @@ test("every step in the second event opens", async ({ page }, info) => {
   for (let index = 0; index < await steps.count(); index++) {
     const title = (await steps.nth(index).locator("span").last().innerText()).trim()
     await steps.nth(index).click()
-    await expect(page.getByTestId("task-detail").getByRole("heading", { name: title, exact: true })).toBeVisible()
+    // The details take focus once they are ready for keys; pressing Escape before that would race their first render.
+    const heading = page.getByTestId("task-detail").getByRole("heading", { name: title, exact: true })
+    await expect(heading).toBeVisible()
+    await expect(heading).toBeFocused()
     await page.keyboard.press("Escape")
+    await expect(page.getByTestId("task-detail")).toHaveCount(0)
   }
 })
 

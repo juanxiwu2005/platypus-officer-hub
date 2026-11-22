@@ -92,15 +92,19 @@ test("Reset discards flow edits and their Undo history", async ({ page }) => {
   await act(page, "budget")
   await page.getByTestId("flow-menu").getByRole("button", { name: "Add a step after this one" }).click()
   await expect(page.getByTestId("task-detail").getByRole("heading", { name: "New step", exact: true })).toBeVisible()
+  const added = new URLSearchParams(page.url().split("?")[1]).get("node")
+  expect(added).toBeTruthy()
   await closeRail(page)
   await expect(page.getByTestId("flow-undo")).toBeEnabled()
-  await resetDemo(page)
+  await resetDemo(page)   // the step selected on this page is gone: Plan stays open instead of calling it a bad task link
   await expect(page.getByTestId("task-detail")).toHaveCount(0)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(38)
   await expect(page.getByTestId("flow-undo")).toBeDisabled()
   await page.reload()
   await closeRail(page)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(38)
+  await page.goto(`/#/events?event=e-night&node=${added}`)   // a link to a step that no longer exists is still reported
+  await expect(page.getByRole("heading", { name: "Check your task link", exact: true })).toBeVisible()
 })
 
 test("steps ASU rules need, and required organization steps, cannot be deleted; the menu says why", async ({ page }) => {
