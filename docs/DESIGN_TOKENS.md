@@ -193,6 +193,8 @@ Defined in `src/styles/dx-00-tokens.css` (the only file allowed to contain expli
 | `--dur-fast` | 150ms | Hover color changes, small fades, menu appearance |
 | `--dur-base` | 220ms | Panels and drawers sliding in |
 | `--dur-slow` | 320ms | Larger elements settling into place |
+| `--dur-quest-shot` | 10s | Owner-approved Quest-only prologue still; pause, skip and manual reduced-motion alternative |
+| `--dur-quest-arrival` | 5s | Owner-approved Quest-only guest arrival; immediate reduced-motion alternative |
 | `--ease-out` | `cubic-bezier(.2, .8, .2, 1)` | Appearance: fast start, soft finish |
 | `--ease-in-out` | `cubic-bezier(.4, 0, .2, 1)` | Movement between locations |
 | `--spring-ui` + `--spring-ui-dur` | `linear(...)`, 450ms | Dragged cards settling (`src/lib/dragSort.ts`), flowchart node reordering (DX-22) |

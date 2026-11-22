@@ -23,3 +23,9 @@ Cards cover decision contract, sample state/history, persistence, reusable timel
 ## Acceptance evidence
 
 Pure decision/geometry/history/storage boundary tests; source quote verification; per-card local checks and DeepSeek verdicts; complete frontend lint/types/build/unit/word gates; final exact-head CI; actual desktop/mobile/touch/keyboard/reload/muted/reduced-motion/3D/fallback flows; screenshot and local compiled delivery. Netlify preview stays protected: do not weaken Team protection. Local play accepted as the development preview route; hosted verification requires owner sign-in. Save full per-step TRIAL_LOG and artifacts under outputs/quest-p5-sample. Human adoption, 3–5-officer testing, P6 and main merge remain separate.
+
+## Integration boundaries
+
+The live MetroChart component depends on DemoState/useStore and exposes business editing actions. This isolated practice uses a semantic, read-only seven-chapter rail instead of importing live workflow mutations. Only the sample Date and Venue chapters light up. A real business-chart adapter is deferred to the full-game integration decision.
+
+Owner-approved Quest-only motion tokens are 10 seconds per manually skippable prologue still and 5 seconds for optional guest arrival. Reduced motion uses manual stills/immediate arrivals. The strong native geometry/rendering proposal remains pending independent DeepSeek review before final delivery.

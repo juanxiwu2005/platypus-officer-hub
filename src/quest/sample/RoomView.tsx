@@ -11,7 +11,7 @@ export default function RoomView({layout,selected,tool,onSelect,onMove,onPlace,a
   const drag=useRef<{id:string|null;x:number;y:number;floor:{x:number;z:number};moved:boolean;preview:VenueLayout|null}|null>(null)
   const announce=useRef<HTMLParagraphElement>(null)
   const say=(text:string)=>{if(announce.current)announce.current.textContent=text}
-  drawRef.current=()=>{if(renderer.current&&mode==="3d"){renderer.current.draw(drag.current?.preview??layout,camera,selected,guests);setScreen(renderer.current.project(6,.25,1.85))}}
+  drawRef.current=()=>{if(renderer.current&&mode==="3d"){renderer.current.draw(drag.current?.preview??layout,camera,selected,guests);const point=renderer.current.project(6,.25,1.85);setScreen(previous=>previous[0]===point[0]&&previous[1]===point[1]?previous:point)}}
   useEffect(()=>{
     if(!canvas.current)return
     const engine=mountRoom(canvas.current);renderer.current=engine;setAvailable(!!engine)
@@ -26,7 +26,7 @@ export default function RoomView({layout,selected,tool,onSelect,onMove,onPlace,a
   useEffect(()=>{
     if(!arrivals){setGuests(0);return}
     if(prefersReducedMotion()){setGuests(layout.headcount);return}
-    const start=performance.now(),duration=tokenMs("--quest-arrival-dur",5000);let frame=0
+    const start=performance.now(),duration=tokenMs("--dur-quest-arrival",5000);let frame=0
     const step=()=>{const progress=Math.min(1,(performance.now()-start)/duration);setGuests(Math.ceil(progress*layout.headcount));if(progress<1)frame=requestAnimationFrame(step)}
     frame=requestAnimationFrame(step);return()=>cancelAnimationFrame(frame)
   },[arrivals,layout.headcount])
