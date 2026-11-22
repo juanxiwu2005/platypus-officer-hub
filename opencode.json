@@ -1,6 +1,5 @@
 {
   "$schema": "https://opencode.ai/config.json",
-
   "permission": {
     "external_directory": "deny",
     "read": {
@@ -53,55 +52,36 @@
       "npx tsc*": "allow",
       "npx vitest*": "allow",
       "npm run lint*": "allow"
-    }
+    },
+    "execute": "deny",
+    "code": "deny",
+    "run": "deny"
   },
   "agent": {
     "backend-coder": {
       "permission": {
+        "*": "deny",
+        "read": {
+          "*": "deny",
+          "docs/quest-build/AGENT_BRIEF.md": "allow",
+          "docs/quest-build/cards/P0-01-rule-library-mission-1.md": "allow",
+          "src/quest/ruleLibrary.ts": "allow",
+          "src/quest/ruleLibrary.test.ts": "allow"
+        },
         "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
+          "*": "deny",
+          "src/quest/ruleLibrary.ts": "allow",
+          "src/quest/ruleLibrary.test.ts": "allow"
         },
         "bash": {
           "*": "deny",
-          "git status*": "allow",
-          "git diff*": "allow",
-          "git log*": "allow",
-          "git show*": "allow",
-          "git branch --show-current*": "allow",
-          "npm test*": "allow",
-          "npm run build*": "allow",
-          "npm run e2e*": "allow",
-          "npm run check*": "allow",
-          "npx playwright test*": "allow",
-          "ls*": "allow",
-          "cat*": "allow",
-          "head*": "allow",
-          "tail*": "allow",
-          "wc*": "allow",
-          "grep*": "allow",
-          "rg*": "allow",
-          "find*": "allow",
-          "git grep*": "allow",
-          "git ls-files*": "allow",
-          "npx tsc*": "allow",
-          "npx vitest*": "allow",
-          "npm run lint*": "allow"
-        }
+          "npx vitest run src/quest": "allow",
+          "npx tsc --noEmit -p tsconfig.json": "allow"
+        },
+        "execute": "deny",
+        "code": "deny",
+        "run": "deny",
+        "external_directory": "deny"
       },
       "steps": 300
     },
@@ -222,6 +202,24 @@
         }
       },
       "steps": 300
+    },
+    "code-critic": {
+      "permission": {
+        "*": "deny",
+        "read": {
+          "*": "deny",
+          "docs/quest-build/AGENT_BRIEF.md": "allow",
+          "docs/quest-build/cards/P0-01-rule-library-mission-1.md": "allow",
+          "src/quest/ruleLibrary.ts": "allow",
+          "src/quest/ruleLibrary.test.ts": "allow"
+        },
+        "edit": "deny",
+        "bash": "deny",
+        "execute": "deny",
+        "code": "deny",
+        "run": "deny",
+        "external_directory": "deny"
+      }
     }
   }
 }

@@ -96,3 +96,20 @@ Local evidence SHA-256 (raw files retained outside the repository):
 - `01-reminder-sanity.txt`: `923d42bee69a12feb283593ba8e3187dbd6593f57562e09ccb478e20dd1472d7`.
 - `02-debug-agents.txt`: `ba5eba3c9faefa2ba09a7cce1087392640e13a3da711883720b01a8051d24dfe`.
 - `02-models.txt`: `fdf2d3abd87fb8589900bab34212a6e0725c784ab2c7e15a769eb4cfcb86d7cd`.
+
+## Authorized permission repair and P0-01 continuation — 2026-11-22
+
+The owner explicitly authorized repairing execute permissions, verifying coder/critic tools and continuing P0-01. The owner also requested continued diagnosis and repair if another stop condition occurs, rather than ending the task. Main remains protected. The earlier stop entry is historical and retained. Maintainer permission changes are separate from the coding agent's protected-file boundary. No Night Mode controller or queue is authorized or used.
+
+| Local time | Step | Action | Result |
+| --- | --- | --- | --- |
+| 2026-11-22T00:38:27-07:00 | Resume and source check | Confirmed clean trial branch at 816b80a, fetched its remote, read current local configuration and recorded OpenCode v2.2.0. | Continue on feat/onboarding-quest-trial only. |
+| 2026-11-22T00:38:27-07:00 | Permission design | Read official OpenCode V2 permissions/tools docs. execute deny removes Code Mode; nested tools have their own rules. A Code Mode entry alone is not proof of unrestricted host execution. | Explicit denial is supported; no bypass was attempted. |
+| 2026-11-22T00:38:27-07:00 | Maintainer configuration repair | Added project-wide execute/code/run denies. Coder and critic now default to deny every action; read access is limited to the brief, P0-01 card and two quest files. Only coder can edit the two task files and run the card's exact vitest/tsc commands. Critic cannot edit or run shell. Delegation, media/MCP, network, browser and unknown actions inherit deny. User-level defaults are untouched. | Written to project opencode.json; effective-runtime verification follows. |
+| 2026-11-22T00:38:27-07:00 | 11-permission-reload / start | `/Users/Dirofs/.opencode/bin/opencode reload` | Running. |
+| 2026-11-22T00:38:27-07:00 | 11-permission-reload / finish | Exit 0; 0.59 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T00:38:47-07:00 | 12-effective-agents / start | `/Users/Dirofs/.opencode/bin/opencode debug agents` | Running. |
+| 2026-11-22T00:38:47-07:00 | 12-effective-agents / finish | Exit 0; 0.1 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T00:38:47-07:00 | Effective permission verification | Evaluated 58 allowed/denied cases against the ordered rules returned by the reloaded OpenCode runtime. Both roles deny execute/code/run, all unlisted tools, protected edits, forbidden docs, arbitrary commands, installs and pushes. Coder allows the two task edits and exact checks; critic permits only scoped reads. | All assertions passed. Evidence saved locally as permission-verification.json. |
+| 2026-11-22T00:39:13-07:00 | 13-run-flags / start | `/Users/Dirofs/.opencode/bin/opencode run --help` | Running. |
+| 2026-11-22T00:39:13-07:00 | 13-run-flags / finish | Exit 0; 0.08 seconds. Planner retained local command evidence outside the repository. | Passed. |
