@@ -61,7 +61,10 @@ function ReminderCentre({ q }: { q: Centre }) {
   const ready = q.runtimeState === "active"
   const n = dc.groups.length
   const history = q.sent.length + q.replies.length + q.noReply.length > 0
-  const action = !ready || !n ? null
+  // With no sending mode chosen, the next step is to choose one; it only navigates, so saving failures do not block it.
+  const action = !ready ? null
+    : q.mode === null ? <Link to="/settings?reminders=1" className="btn btn-primary small" data-testid="choose-mode">Choose how reminders go out</Link>
+    : !n ? null
     : q.mode === "review_then_auto" ? <button type="button" className="btn btn-primary small" data-testid="send-all-digests" disabled={busy || persistenceFailed} onClick={sendAll}>{busy ? "Recording…" : `Send all ${plural(n, "email")}`}</button>
     : q.mode === "review_then_self" ? <button type="button" className="btn btn-primary small" data-testid="open-first-draft" disabled={persistenceFailed} onClick={() => openPerson(dc.groups[0].recipientId)}>Open draft 1 of {n}</button>
     : null
@@ -84,8 +87,7 @@ function ReminderCentre({ q }: { q: Centre }) {
         {dc.people.length > 1 && <span className="dg-steps" aria-hidden="true">{dc.people.map(p => <i key={p.recipientId} className={p.sent && !p.group ? "on" : undefined} />)}</span>}
         {action}
       </div>
-      {q.mode === null ? <p className="dg-top-note"><Link to="/settings?reminders=1" data-testid="choose-mode">Choose how reminders go out</Link></p>
-        : q.mode === "auto_email" && n > 0 ? <p className="dg-top-note">Platypus sends these automatically. Demo: nothing is sent.</p> : null}
+      {q.mode === "auto_email" && n > 0 && <p className="dg-top-note">Platypus sends these automatically. Demo: nothing is sent.</p>}
       {dc.nextCheck && <p className="dg-top-note" data-testid="rq-next">Next check: {fmtLong(dc.nextCheck.on)} · {dc.nextCheck.count} planned this week</p>}
       {dc.held > 0 && <p className="dg-top-note" data-testid="rq-held">{plural(dc.held, "task")} wait for the next email (reminder limit).</p>}
     </section>}

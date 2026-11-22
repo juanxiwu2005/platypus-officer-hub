@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import { reducer } from "../data/store"
-import { addDays } from "../lib/dates"
+import { addDays, fmtLong } from "../lib/dates"
 import { createReminderRuntime } from "./engine"
 import { reminderCentre, taskReminderSummary } from "./centre"
 import type { DemoState } from "../data/types"
@@ -86,6 +86,16 @@ describe("shared reminder centre presentation", () => {
     for (const patch of [{ status: "done" as const }, { ownerId: "sam", ownerVersion: 1 }]) {
       expect(reminderCentre({ ...saved, today: addDays(s.today, 3), nodes: saved.nodes.map(n => n.id === NODE ? { ...n, ...patch } : n) }).noReply).toEqual([])
     }
+  })
+
+  it("shows the next planned check for a no-reply task as a readable date, not an ISO date", () => {
+    const s = base(), saved = withLedger(s, [delivery(s)])
+    const active: DemoState = { ...saved, today: addDays(s.today, 2), reminderRuntime: { ...saved.reminderRuntime!, version: 2, mailRequiredAfter: 1 } as ReminderRuntime }
+    const q = reminderCentre(active)
+    expect(q.runtimeState).toBe("active")
+    const next = q.thisWeek.find(x => x.nodeId === NODE)!.scheduledOn!
+    expect(q.noReply[0].blockedReason).toBe(`Next check: ${fmtLong(next)}. You can review the task now.`)
+    expect(q.noReply[0].blockedReason).not.toMatch(/\d{4}-\d{2}-\d{2}/)
   })
 
   it("matches helper replies only to their own waiting request and recipient", () => {

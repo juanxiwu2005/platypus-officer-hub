@@ -1,7 +1,7 @@
 import type { DemoState, NodeStatus, ReminderMode } from "../data/types"
 import { canLead } from "../data/permissions"
 import { forecastFor } from "../engine/forecast"
-import { addDays, daysBetween } from "../lib/dates"
+import { addDays, daysBetween, fmtLong } from "../lib/dates"
 import { buildReminderFacts, buildReminderInput } from "./facts"
 import { planReminders } from "./engine"
 import { isReminderRuntime } from "./runtime"
@@ -132,7 +132,7 @@ export function reminderCentre(state: DemoState): ReminderCentre {
     const block = blocked.find(x => x.nodeId === row.nodeId)
     row.candidateId = ready?.candidateId
     const next = plan?.upcoming.filter(c => c.nodeId === row.nodeId && c.recipientId === row.recipientId).sort((a, b) => a.scheduledOn.localeCompare(b.scheduledOn))[0]
-    row.blockedReason = block?.explanation ?? (!ready ? next ? `Next check: ${next.scheduledOn}. You can review the task now.` : "No further automatic follow-up is planned. Review the task to decide the next step." : undefined)
+    row.blockedReason = block?.explanation ?? (!ready ? next ? `Next check: ${fmtLong(next.scheduledOn)}. You can review the task now.` : "No further automatic follow-up is planned. Review the task to decide the next step." : undefined)
   }
   return { runtimeState: status, mode, needsOk, thisWeek: [...future.values()].sort(riskFirst), sent: sent.sort(newest),
     replies: replies.sort(newest), noReply: noReply.sort(riskFirst), blocked,
