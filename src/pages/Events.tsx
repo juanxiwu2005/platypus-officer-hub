@@ -7,7 +7,7 @@ import { MetroChart } from "../components/flow/MetroChart"
 import { hasTeamExecutionTracks } from "../components/flow/teamMetro"
 import { useRail } from "../components/rail/RailContext"
 import { forecastFor } from "../engine/forecast"
-import { daysBetween, fmtShort } from "../lib/dates"
+import { daysBetween, fmtLong, fmtShort } from "../lib/dates"
 import { topoOrder } from "../engine/schedule"
 import { Avatar, Empty, Info, NodePill } from "../components/ui"
 import { canCreateEvent, canLead } from "../data/changeReview"
@@ -154,7 +154,8 @@ export default function Events() {
           <h2 id="ev-title">{ev.name}</h2>
           {ev.workflowRun && <span className="tag" title="The saved workflow version used to create these independent tasks">{ev.workflowRun.templateName} · v{ev.workflowRun.templateVersion}</span>}
           <Info>{[ev.venue === "campus" ? "On campus" : "Off campus", FOOD[ev.food], FUNDING[ev.funding], ev.speaker ? "Guest speaker" : null, `About ${ev.headcount} people`].filter(Boolean).join(" · ")}.{ev.details ? ` ${ev.details}` : ""} Dates come from the rule engine; see Help.</Info>
-          <input type="date" aria-label="Event date" value={ev.date} data-testid="event-date" onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && dispatch({ type: "updateEvent", id: ev.id, patch: { date: e.target.value } })} />
+          {newEventBlocked(state) ? <time dateTime={ev.date} data-testid="event-date-text">{fmtLong(ev.date)}</time>
+            : <input type="date" aria-label="Event date" value={ev.date} data-testid="event-date" onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && dispatch({ type: "updateEvent", id: ev.id, patch: { date: e.target.value } })} />}
           <span className="spacer" />
           <div className="stat-row">
             <div><b className="num">${budgetTotal(ev.budgetItems).toLocaleString()}</b><span>requested</span></div>
