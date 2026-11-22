@@ -1,5 +1,7 @@
 # Night Mode V1 — Multi-agent automated development manual
 
+> **November 22, 2026 — Quest P1 maintainer revision.** Juanxi explicitly authorized necessary scripts and project OpenCode configuration changes. For the new Quest pipeline, follow [P1_PIPELINE.md](quest-build/P1_PIPELINE.md) and the committed manifest: configurable guarded feature branch, short brief/card context, verified exact GLM 5.3 / DeepSeek sessions, effective default-deny permissions, full baseline diff and exact-SHA CI. The old queue remains paused. The October snapshots and procedures below are historical and do not override this owner-approved Quest workflow.
+
 Night Mode lets ASU AIR agents complete an **already approved, clearly scoped** task on a protected feature branch, with local tests, independent review, and GitHub CI. It does not merge `main` or deploy Production.
 
 ## 1. Current status (2026-10-28 snapshot)

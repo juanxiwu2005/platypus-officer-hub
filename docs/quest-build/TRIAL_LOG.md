@@ -414,3 +414,27 @@ Owner requested cards for chapters 6 and 7, GLM 5.3 coding, DeepSeek independent
 | 2026-11-22T11:44:15-07:00 | P0-06-07-final-english / start | `npm run lint:english` | Running. |
 | 2026-11-22T11:44:16-07:00 | P0-06-07-final-english / finish | Exit 0; 0.74 seconds. Planner retained local command evidence outside the repository. | Passed. |
 | 2026-11-22T11:44:58-07:00 | Final publication and local delivery verified | P0-06 source commit c142e46c8c793381b7c89034a86853b3c1b8f637 and P0-07 source/test commit c8227f562f5a29e63d6ec5ced88656f351bd637c are pushed to feat/onboarding-quest-trial. Remote trial head matched c8227f562f5a29e63d6ec5ced88656f351bd637c; main remains db1a0bec120cfc5883d99099fdbad90971f06bb2; worktree was clean. Exported final source/tests, all step records, per-card snapshots, model evidence, checks, verdicts and CSV/JSON ledgers locally; verified exported files match repository bytes. | Requested continuation complete: 33 scored rules, 13 red lines, 56 verified quotes. This documentation-only follow-up records the confirmed publication; the local receipt will be refreshed after it is pushed. |
+
+## P1 pipeline repair and end-to-end verification — 2026-11-22
+
+Owner explicitly authorizes necessary scripts and project opencode.json maintenance. Baseline `38c3ebb353c065af385fc38d26cc6c2d2ade7b76`; new branch `feat/onboarding-quest`. Keep main read-only, the old queue paused and all user-level defaults unchanged.
+
+| Local time | Step | Action / evidence | Result |
+| --- | --- | --- | --- |
+| 2026-11-22T11:52:15-07:00 | P1 preflight | Read AGENTS, current progress/product guidance, quest README/HANDOFF and the full Night Mode manual; inspected controller, queue, project permissions and existing CI. Clean trial baseline verified; created feat/onboarding-quest without changing main. Main remote reference remains db1a0bec120cfc5883d99099fdbad90971f06bb2. | Found all handoff failure classes plus outdated agent identity lookup and missing session/model verification. An initial origin/main log lookup found no tracking ref in this narrow clone; explicit tracking fetch follows. |
+| 2026-11-22T12:01:07-07:00 | P1 implementation and regression preparation | Replaced the legacy controller with manifest-bound feature-branch execution, explicit API session/model verification, short card context, complete baseline diffs, scoped mutations and exact-SHA CI. Added Node queue recovery and a Bash 3.2 wrapper; prepared P1-01 citation-label regression card and exact permissions. Original 33 rules and five tests are unchanged. | Initial regression run: 13 passed, 1 fixture missing-dependency-directory failure; corrected only the isolated fixture environment, then 14/14 passed. Effective native role permissions verified (337 assertions before the additional protected-manifest assertion). No live card has started. |
+| 2026-11-22T12:01:40-07:00 | P1-pipeline-tests / start | `node --test scripts/night-mode.test.mjs` | Running. |
+| 2026-11-22T12:01:40-07:00 | P1-baseline-tsc / start | `npx tsc --noEmit -p tsconfig.json` | Running. |
+| 2026-11-22T12:01:40-07:00 | P1-baseline-quest-tests / start | `npx vitest run src/quest` | Running. |
+| 2026-11-22T12:01:40-07:00 | P1-baseline-lint / start | `npm run lint` | Running. |
+| 2026-11-22T12:01:42-07:00 | P1-baseline-quest-tests / finish | Exit 0; 2.02 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T12:01:43-07:00 | P1-pipeline-tests / finish | Exit 0; 2.42 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T12:01:45-07:00 | P1-baseline-lint / finish | Exit 0; 5.32 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T12:01:49-07:00 | P1-baseline-tsc / finish | Exit 0; 9.37 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T12:02:14-07:00 | P1-watchdog-regression-tests / start | `node --test scripts/night-mode.test.mjs` | Running. |
+| 2026-11-22T12:02:16-07:00 | P1-watchdog-regression-tests / finish | Exit 0; 1.89 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T12:03:20-07:00 | P1-final-pipeline-tests / start | `node --test scripts/night-mode.test.mjs` | Running. |
+| 2026-11-22T12:03:21-07:00 | P1-final-pipeline-tests / finish | Exit 0; 1.86 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T12:03:38-07:00 | P1-final-english / start | `npm run lint:english` | Running. |
+| 2026-11-22T12:03:39-07:00 | P1-final-english / finish | Exit 0; 0.52 seconds. Planner retained local command evidence outside the repository. | Passed. |
+| 2026-11-22T12:04:08-07:00 | P1 final maintainer checks and run preparation | Final 15/15 Node pipeline regressions passed, including process-watchdog cancellation and isolated Git end-to-end fixture. Baseline quest 5/5, frontend tsc, complete lint, final English check and diff whitespace check passed. Native Bash 3.2 syntax/help passed; 341/341 effective OpenCode permission assertions passed. Prepared one exact new handbook-section coverage test; original source/test bytes remain unchanged. | Ready to commit repairs, create the matching Draft PR, run the real doctor and execute one GLM/DeepSeek card. Live steps will be journaled outside the tracked worktree and imported here after completion. |

@@ -1,57 +1,16 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "permission": {
+    "*": "deny",
     "external_directory": "deny",
     "read": {
-      "*": "allow",
-      ".env": "deny",
-      ".env.*": "deny",
-      "*/.env": "deny",
-      "*/.env.*": "deny"
+      "*": "deny"
     },
     "edit": {
-      "*": "allow",
-      ".env": "deny",
-      ".env.*": "deny",
-      "*/.env": "deny",
-      "*/.env.*": "deny",
-      ".git/**": "deny",
-      ".gitignore": "deny",
-      "AGENTS.md": "deny",
-      "docs/NIGHT_MODE.md": "deny",
-      "package.json": "deny",
-      "package-lock.json": "deny",
-      "opencode.json": "deny",
-      "scripts/night-mode.mjs": "deny",
-      ".nightmode/**": "deny",
-      ".github/**": "deny",
-      "netlify.toml": "deny"
+      "*": "deny"
     },
     "bash": {
-      "*": "deny",
-      "git status*": "allow",
-      "git diff*": "allow",
-      "git log*": "allow",
-      "git show*": "allow",
-      "git branch --show-current*": "allow",
-      "npm test*": "allow",
-      "npm run build*": "allow",
-      "npm run e2e*": "allow",
-      "npm run check*": "allow",
-      "npx playwright test*": "allow",
-      "ls*": "allow",
-      "cat*": "allow",
-      "head*": "allow",
-      "tail*": "allow",
-      "wc*": "allow",
-      "grep*": "allow",
-      "rg*": "allow",
-      "find*": "allow",
-      "git grep*": "allow",
-      "git ls-files*": "allow",
-      "npx tsc*": "allow",
-      "npx vitest*": "allow",
-      "npm run lint*": "allow"
+      "*": "deny"
     },
     "execute": "deny",
     "code": "deny",
@@ -59,166 +18,52 @@
   },
   "agent": {
     "backend-coder": {
+      "steps": 300,
       "permission": {
         "*": "deny",
+        "external_directory": "deny",
+        "execute": "deny",
+        "code": "deny",
+        "run": "deny",
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P0-07-rule-library-mission-7.md": "allow",
+          "docs/quest-build/cards/P1-01-handbook-citation-coverage.md": "allow",
           "src/quest/ruleLibrary.ts": "allow",
-          "src/quest/ruleLibrary.test.ts": "allow"
+          "src/quest/ruleLibrary.handbook.test.ts": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/ruleLibrary.ts": "allow",
-          "src/quest/ruleLibrary.test.ts": "allow"
+          "src/quest/ruleLibrary.handbook.test.ts": "allow"
         },
         "bash": {
           "*": "deny",
           "npx vitest run src/quest": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
-        },
+        }
+      }
+    },
+    "code-critic": {
+      "steps": 300,
+      "permission": {
+        "*": "deny",
+        "external_directory": "deny",
         "execute": "deny",
         "code": "deny",
         "run": "deny",
-        "external_directory": "deny"
-      },
-      "steps": 300
-    },
-    "frontend-coder": {
-      "permission": {
-        "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
-        }
-      },
-      "steps": 300
-    },
-    "api-designer": {
-      "permission": {
-        "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
-        }
-      },
-      "steps": 300
-    },
-    "quick-draft": {
-      "permission": {
-        "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
-        },
-        "bash": {
-          "*": "deny",
-          "git status*": "allow",
-          "git diff*": "allow",
-          "git log*": "allow",
-          "git show*": "allow",
-          "git branch --show-current*": "allow",
-          "npm test*": "allow",
-          "npm run build*": "allow",
-          "npm run e2e*": "allow",
-          "npm run check*": "allow",
-          "npx playwright test*": "allow",
-          "ls*": "allow",
-          "cat*": "allow",
-          "head*": "allow",
-          "tail*": "allow",
-          "wc*": "allow",
-          "grep*": "allow",
-          "rg*": "allow",
-          "find*": "allow",
-          "git grep*": "allow",
-          "git ls-files*": "allow",
-          "npx tsc*": "allow",
-          "npx vitest*": "allow",
-          "npm run lint*": "allow"
-        }
-      },
-      "steps": 300
-    },
-    "docs-writer": {
-      "permission": {
-        "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
-        }
-      },
-      "steps": 300
-    },
-    "code-critic": {
-      "permission": {
-        "*": "deny",
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P0-07-rule-library-mission-7.md": "allow",
+          "docs/quest-build/cards/P1-01-handbook-citation-coverage.md": "allow",
           "src/quest/ruleLibrary.ts": "allow",
-          "src/quest/ruleLibrary.test.ts": "allow"
+          "src/quest/ruleLibrary.handbook.test.ts": "allow"
         },
-        "edit": "deny",
-        "bash": "deny",
-        "execute": "deny",
-        "code": "deny",
-        "run": "deny",
-        "external_directory": "deny"
+        "edit": {
+          "*": "deny"
+        },
+        "bash": {
+          "*": "deny"
+        }
       }
     }
   }
