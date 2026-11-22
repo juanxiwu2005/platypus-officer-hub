@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
-import { closeRail } from "./helpers"
+import { closeRail, viewAs } from "./helpers"
 
 // DX-18: an empty list that was emptied by a search or filter says how to get everything back; the Today stars say what to do.
 async function fresh(page: Page, path: string) {
@@ -22,9 +22,14 @@ test("Rules: an empty search offers Clear filters", async ({ page }) => {
 })
 
 // FB-8: the stars card left the home page (the reminder centre). Its empty sections say what is (not) there instead.
+// Concept F hides the president's empty history; an officer's own reminders keep both sections and word them when empty.
 test("Reminders: an empty section says so instead of showing nothing", async ({ page }) => {
   await fresh(page, "/")
-  await expect(page.getByTestId("rq-sent")).toContainText("None yet.")
-  await expect(page.getByTestId("rq-replies")).toContainText("None yet.")
-  await expect(page.getByTestId("rq-no-reply")).toContainText("Nobody to follow up.")
+  await viewAs(page, "maya")
+  await closeRail(page)
+  const yours = page.getByTestId("your-reminders")
+  await expect(yours.getByRole("heading", { name: "Coming up", exact: true })).toBeVisible()
+  await expect(yours).toContainText("No reminders coming up for you this week.")
+  await expect(yours.getByRole("heading", { name: "Recorded for you", exact: true })).toBeVisible()
+  await expect(yours).toContainText("No recorded reminders yet.")
 })

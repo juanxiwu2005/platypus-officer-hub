@@ -90,7 +90,11 @@ test("helper promises survive refresh, are checked on the promised day, and prov
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
   await page.screenshot({ path: info.outputPath("helper-promise.png"), fullPage: true })
   await simulateDate(page, promised)
-  await page.goto("/#/"); await closeRail(page)
+  await page.goto("/#/")
+  // The task link opened Plan with its side panel; on a phone leaving Plan closes that panel by itself (e2e/tasks.spec.ts,
+  // tampered entries). Wait for it rather than racing it: clicking "Hide side panel" while it closes waits on a detached button.
+  if (info.project.name === "mobile") await expect(page.getByTestId("rail")).toBeHidden()
+  await closeRail(page)
   await openEmail(page, "sam")
   await expect(page.getByTestId("digest-body")).toContainText("Input was expected by")
   await approve(page, 2)
