@@ -3,7 +3,7 @@
 Date: November 22, 2026 (America/Phoenix). Planner/reviewer: Codex.
 Baseline: `feat/onboarding-quest@b4ed1eb8c0638b4dd3e4f11b73e9b9de07e55319`; continue existing Draft PR #19.
 
-**Status: all nine recommended decisions APPROVED by the owner at 2026-11-22T14:12:28-07:00.** The owner explicitly selected every recommendation and requested six consistent static storyboards. This confirms the design direction and authorizes P3 image production; the resulting images still need separate owner visual acceptance.
+**Status: all nine recommended decisions APPROVED by the owner at 2026-11-22T14:12:28-07:00.** The owner explicitly selected every recommendation and requested six consistent static storyboards. This confirms the design direction and authorizes P3 image production; the resulting six images received separate owner visual acceptance before the P4 request below.
 
 Juanxi requested simple Chinese questions first and six static storyboards only after confirmation. The in-chat questionnaire is the owner-facing version; this English register preserves the exact questions and recommendation status.
 
@@ -44,3 +44,7 @@ These six approved subjects come directly from v3 section 10:
 ## Approval and current action
 
 The owner explicitly accepted all nine recommendations before production. Six consistent static storyboard images are now ready: [gallery](storyboards/p3-v1/index.html), [review notes](storyboards/p3-v1/REVIEW.md), [prompts](storyboards/p3-v1/prompts.json). One targeted Venue Builder correction was made and carried into Showtime. Finished-art visual acceptance is still pending. Do not infer P4 implementation, dependency, merge or deployment approval from the design decision approval.
+
+## Finished-art acceptance — November 22, 2026
+
+The owner explicitly accepted the six storyboard images, requested the same visual style and cast, and authorized P4 route/framework/playable Countdown Wall work. P4 still does not authorize P5, dependencies, main merge or production deployment.

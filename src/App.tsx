@@ -36,6 +36,7 @@ const Help = lazy(() => import("./pages/Help"))
 const Officer = lazy(() => import("./pages/Officer"))
 const SetupEntry = lazy(() => import("./onboarding/gate/SetupEntry"))
 const Join = lazy(() => import("./pages/Join"))
+const Quest = lazy(() => import("./quest/Quest"))
 const PhaseOne = lazy(() => import("./phase1/PhaseOne"))
 
 function screen(children: ReactNode, label: string, fullPage = false) {
@@ -55,6 +56,7 @@ export default function App() {
           Each hop replaces the history entry, so a reload on that screen or the browser's Back never starts a second attempt. */}
       <Route path="start" element={<Navigate to="/welcome/start" replace />} />
       <Route path="setup" element={<Navigate to="/welcome/setup" replace />} />
+      <Route path="quest" element={screen(<Quest />, "Opening Speaker Night…", true)} />
       <Route path="phase1/*" element={screen(<PhaseOne />, "Opening your workspace…", true)} />
       <Route path="officer" element={screen(<Officer />, "Opening your task…", true)} />
       <Route path="join" element={screen(<Join />, "Preparing your invitation…", true)} />

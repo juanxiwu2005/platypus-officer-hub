@@ -29,6 +29,7 @@ export const PAGES: PageDef[] = [
   { path: "/handoff", label: "Handoff", icon: "handoff", question: "How do we hand over without starting from zero?", group: "main" },
   { path: "/rules", label: "Rules", icon: "rules", question: "What does ASU require?", group: "main" },
   { path: "/tasks", label: "Tasks", icon: "tasks", question: "What has to happen, and who owns it?", group: "plan" },
+  { path: "/quest", label: "Quest", icon: "events", question: "Learn event planning by doing.", group: "footer" },
   { path: "/settings", label: "Settings", icon: "settings", question: "How should Platypus work for this club?", group: "footer" },
   { path: "/help", label: "Help", icon: "help", question: "How does Platypus work?", group: "footer" },
 ]

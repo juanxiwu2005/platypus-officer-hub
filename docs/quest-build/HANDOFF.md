@@ -15,7 +15,7 @@ Talk to Juanxi in simple Chinese, one step at a time; he does not write code. Wr
 | 2026-11-21 | Phase 3 data collection has ended; Preview 14 was merged into `main` | `docs/PROGRESS.md` top entry |
 | 2026-11-22 | Use free ASU AIR models through OpenCode for most coding; split work small enough for their limits; start with a trial tonight | this kit |
 
-**Design decisions approved by Juanxi on November 22, 2026:** all nine recommended choices, including the original names/cast, warm vector-style isometric direction, 55–60 minutes over two days with all 33 rules, both venue accessibility check groups, muted/captioned sound, untimed emergency by default, the prologue/HQ/missions-2-and-5 sample, later /quest-only 2–20-second cutscene tokens, and true 3D only for Venue Builder. See [decision register](P3_DESIGN_DECISIONS.md). The six [static storyboards](storyboards/p3-v1/README.md) are ready; finished-art visual acceptance and the P4 gate remain open. No dependency, token or game code is implemented by P3.
+**Design decisions approved by Juanxi on November 22, 2026:** all nine recommended choices, including the original names/cast, warm vector-style isometric direction, 55–60 minutes over two days with all 33 rules, both venue accessibility check groups, muted/captioned sound, untimed emergency by default, the prologue/HQ/missions-2-and-5 sample, later /quest-only 2–20-second cutscene tokens, and true 3D only for Venue Builder. See [decision register](P3_DESIGN_DECISIONS.md). Juanxi accepted the six [static storyboards](storyboards/p3-v1/README.md) on November 22 and explicitly authorized P4 foundation implementation in the same style/cast. No dependency, token or game code is implemented by P3.
 
 The rule library content is fixed: 33 scored rules with exact archive quotes and line numbers in [v2 spec section 3](../feedback-fix/QUEST_GAME_SPEC_2026-11-21.md). Every quote was checked against `03_Full_Rules_Archive.txt`. Do not invent rules; add new ones only with an exact quote, record ID and line.
 
@@ -42,7 +42,7 @@ The rule library content is fixed: 33 scored rules with exact archive quotes and
 | P6 Full game | Missions 1, 3, 4, 6, 7, credits, day-3 retest, president summary | Mostly ASU AIR | Juanxi accepts on a preview |
 | P7 Sequels and polish | Five sequels, accessibility pass, motion review | Mostly ASU AIR | Juanxi accepts; merge needs his explicit approval |
 
-**November 22, 2026 status:** P1 passed its exit gate on `feat/onboarding-quest` (Draft PR #19): doctor passed, one GLM 5.3 / DeepSeek card completed through exact-SHA CI at `a9bee77`. See [P1_PIPELINE.md](P1_PIPELINE.md) and [TRIAL_LOG.md](TRIAL_LOG.md). The 33-rule typed library is complete; all nine design choices are approved, and the six prepared P3 frames await owner visual acceptance. No merge is authorized.
+**November 22, 2026 status:** P1 passed its exit gate on `feat/onboarding-quest` (Draft PR #19): doctor passed, one GLM 5.3 / DeepSeek card completed through exact-SHA CI at `a9bee77`. See [P1_PIPELINE.md](P1_PIPELINE.md) and [TRIAL_LOG.md](TRIAL_LOG.md). The 33-rule typed library is complete; all nine design choices are approved, and the six P3 frames have owner visual acceptance and the P4 reference is implemented with local tests passing. Exact-head CI and playable preview verification are in progress; see P4_FOUNDATION.md and TRIAL_LOG.md. No merge is authorized.
 
 Use branch `feat/onboarding-quest-trial` for P0 and `feat/onboarding-quest` from P1 on (AGENTS.md naming). Open a draft PR only when there is something to preview.
 

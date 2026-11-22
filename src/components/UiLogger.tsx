@@ -11,6 +11,7 @@ import { emitUi, installAwayCapture, installEditCapture, installUiCapture, publi
  */
 export function UiLogger() {
   const { pathname } = useLocation()
+  const quest = pathname === "/quest" || pathname.startsWith("/quest/")
   const { getLog, persistenceFailed } = useStore()
   const last = useRef<string | null>(null)
   // Read at event time, without re-installing the listeners when it changes.
@@ -18,17 +19,18 @@ export function UiLogger() {
   store.current = { getLog, persistenceFailed }
   useEffect(() => {
     if (last.current === pathname) return            // React's development double-run, or only the query changed
+    if (quest) { last.current = pathname; return }
     emitUi("ui.navigate", { from: last.current, to: pathname })
     last.current = pathname
-  }, [pathname])
-  useEffect(() => installUiCapture(document, publishUi), [])
+  }, [pathname, quest])
+  useEffect(() => { if (!quest) return installUiCapture(document, publishUi) }, [quest])
   // Edit capture first: on pagehide it closes an open field before the page's "hidden" entry is written and saved.
-  useEffect(() => installEditCapture(document, publishUi), [])
-  useEffect(() => installAwayCapture(window, document, (e: UiEvent) => {
+  useEffect(() => { if (!quest) return installEditCapture(document, publishUi) }, [quest])
+  useEffect(() => { if (quest) return; return installAwayCapture(window, document, (e: UiEvent) => {
     publishUi(e)
     // The page may be frozen or closed right after it is hidden, before React's save effect runs: save the log now.
     // Not while the store is holding old data it could not back up (it must not be overwritten then).
     if (e.payload.state === "hidden" && !store.current.persistenceFailed) saveLog(store.current.getLog())
-  }), [])
+  }) }, [quest])
   return null
 }
