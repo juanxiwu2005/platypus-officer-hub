@@ -28,18 +28,21 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-06A-handoff.md": "allow",
+          "docs/quest-build/cards/P5-06B-promotion.md": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
           "src/lib/dragSort.ts": "allow",
           "src/styles/quest-foundation.css": "allow",
           "src/quest/sample/HandOff.tsx": "allow",
-          "src/styles/quest-handoff.css": "allow"
+          "src/quest/sample/Promotion.tsx": "allow",
+          "src/quest/sample/CommsScenes.tsx": "allow",
+          "src/styles/quest-promotion.css": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/HandOff.tsx": "allow",
-          "src/styles/quest-handoff.css": "allow"
+          "src/quest/sample/Promotion.tsx": "allow",
+          "src/quest/sample/CommsScenes.tsx": "allow",
+          "src/styles/quest-promotion.css": "allow"
         },
         "bash": {
           "*": "deny",
@@ -58,13 +61,15 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-06A-handoff.md": "allow",
+          "docs/quest-build/cards/P5-06B-promotion.md": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
           "src/lib/dragSort.ts": "allow",
           "src/styles/quest-foundation.css": "allow",
           "src/quest/sample/HandOff.tsx": "allow",
-          "src/styles/quest-handoff.css": "allow"
+          "src/quest/sample/Promotion.tsx": "allow",
+          "src/quest/sample/CommsScenes.tsx": "allow",
+          "src/styles/quest-promotion.css": "allow"
         },
         "edit": {
           "*": "deny"

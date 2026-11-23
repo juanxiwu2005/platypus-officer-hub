@@ -3,16 +3,18 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-06A-handoff.md",
+  "card": "docs/quest-build/cards/P5-06B-promotion.md",
   "readFiles": [
     "src/quest/sample/model.ts",
     "src/quest/sample/decisions.ts",
     "src/lib/dragSort.ts",
-    "src/styles/quest-foundation.css"
+    "src/styles/quest-foundation.css",
+    "src/quest/sample/HandOff.tsx"
   ],
   "writeFiles": [
-    "src/quest/sample/HandOff.tsx",
-    "src/styles/quest-handoff.css"
+    "src/quest/sample/Promotion.tsx",
+    "src/quest/sample/CommsScenes.tsx",
+    "src/styles/quest-promotion.css"
   ],
   "agentCommands": [
     "npx tsc --noEmit -p tsconfig.json"
