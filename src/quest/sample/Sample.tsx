@@ -35,7 +35,7 @@ export default function Sample() {
   const [hintOpen, setHintOpen] = useState(false)
   const [sourceDialog, setSourceDialog] = useState<readonly string[] | null>(null)
   const [timelineFocus, setTimelineFocus] = useState<TaskId | null>(null)
-  const heading = useRef<HTMLHeadingElement>(null), outcomeHeading = useRef<HTMLHeadingElement>(null), mainRef = useRef<HTMLElement>(null)
+  const heading = useRef<HTMLHeadingElement>(null), outcomeHeading = useRef<HTMLHeadingElement>(null), mainRef = useRef<HTMLElement>(null), sourceTrigger = useRef<HTMLElement | null>(null)
   const attemptStart = useRef(performance.now()), restoreFocus = useRef(false), chimed = useRef(0), soundContext = useRef<AudioContext | null>(null)
   useEffect(() => {
     if (!writable.current) return
@@ -73,6 +73,13 @@ export default function Sample() {
   useLayoutEffect(() => {
     if (restoreFocus.current && !state.outcome) { restoreFocus.current = false; mainRef.current?.querySelector<HTMLElement>("[data-rewind-focus]")?.focus({ preventScroll: true }) }
   }, [state.outcome])
+  // Native dialog close cannot focus a trigger inside the still-hidden stage; restore it after React unhides the scene.
+  useLayoutEffect(() => {
+    if (sourceDialog !== null) return
+    const trigger = sourceTrigger.current
+    sourceTrigger.current = null
+    if (trigger?.isConnected) trigger.focus({ preventScroll: true })
+  }, [sourceDialog])
   const go = useCallback((scene: SampleScene) => { if (scene === "prologue") dispatch({ type: "shot", shot: 0 }); dispatch({ type: "go", scene }) }, [])
   const onShot = useCallback((shot: number) => dispatch({ type: "shot", shot }), [])
   const finishIntro = useCallback(() => dispatch({ type: "skipIntro" }), [])
@@ -89,6 +96,11 @@ export default function Sample() {
     else restoreFocus.current = true
     dispatch({ type: "rewind" }); attemptStart.current = performance.now(); setSourceDialog(null)
   }, [state.scene, state.wall, clock])
+  // Records the trigger that opened a source dialog; native close fires while the stage is still hidden.
+  const openSources = useCallback((ids: readonly string[]) => {
+    sourceTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setSourceDialog(ids)
+  }, [])
   // Exports only the latest saved venue plan; no real event or app mutation.
   const download = useCallback(() => {
     const plan = state.plans.at(-1)
@@ -102,7 +114,7 @@ export default function Sample() {
       <button type="button" className="quest-wordmark" onClick={() => go("hq")}>Mission: Speaker Night</button>
       <div className="quest-header-controls"><button type="button" aria-pressed={sound} onClick={() => setSound(value => !value)}>{sound ? "Sound on" : "Sound off"}</button><span title="Dialogue captions always visible" aria-label="Captions on">CC</span></div>
     </header><div className="quest-body"><div className="quest-scene-heading"><div><p className="quest-kicker">{kicker}</p><h1 tabIndex={-1} ref={heading}>{SCENE_TITLES[state.scene]}</h1></div>
-        <nav aria-label="Quest scenes"><button type="button" aria-current={state.scene === "hq" ? "page" : undefined} onClick={() => go("hq")}>HQ</button>{sourceIds.length > 0 && <button type="button" onClick={() => setSourceDialog(sourceIds)} aria-expanded={sourceDialog !== null}>Why?</button>}</nav>
+        <nav aria-label="Quest scenes"><button type="button" aria-current={state.scene === "hq" ? "page" : undefined} onClick={() => go("hq")}>HQ</button>{sourceIds.length > 0 && <button type="button" onClick={() => openSources(sourceIds)} aria-expanded={sourceDialog !== null}>Why?</button>}</nav>
       </div>
       {storageNotice && <p className="quest-storage" role="status">{storageNotice}</p>}
       {state.scene === "prologue" && <section className="sample-shell-scene" aria-label="Story prologue"><Prologue shot={state.shot} clock={clock} onShot={onShot} onFinish={finishIntro} /></section>}
@@ -111,7 +123,7 @@ export default function Sample() {
         {stage === "booking" || stage === "advisor" ? <OfficerScenes stage={stage} draft={state} onEdit={edit} onCheck={check} />
           : stage === "timeline" ? <Timeline board={state.wall} clock={clock} onChange={wall => edit({ wall })} onCheck={check} focusId={timelineFocus} />
           : stage === "handoff" || stage === "promotion" ? <CommsScenes stage={stage} draft={state} onEdit={edit} onCheck={check} />
-          : <VenueEditor layout={state.venue} onChange={venue => edit({ venue })} onCheck={check} onExplain={id => setSourceDialog([`venue.${id}`])} />}
+          : <VenueEditor layout={state.venue} onChange={venue => edit({ venue })} onCheck={check} onExplain={id => openSources([`venue.${id}`])} />}
       </section>}
       {stage && outcome && (stage === "venue" ? <section className="sample-shell-outcome" aria-label="Practice outcome" hidden={sourceDialog !== null}>
         <RoomView layout={outcome.snapshot.venue} selected={null} tool={null} onSelect={() => { }} onMove={() => { }} onPlace={() => { }} arrivals={outcome.passed} />

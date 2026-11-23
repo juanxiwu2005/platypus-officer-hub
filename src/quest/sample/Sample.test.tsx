@@ -4,21 +4,35 @@ import { MemoryRouter } from "react-router-dom"
 import Sample from "./Sample"
 import { SAMPLE_KEY } from "./storage"
 import { PRACTICE_KEY } from "../foundation"
+import { questSchedule } from "../../engine/questSchedule"
 let reduced = false
 const media = (query: string) => ({ matches: reduced && query.includes("reduce"), media: query, onchange: null, addListener: vi.fn(), removeListener: vi.fn(), addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: () => true }) as MediaQueryList
 type DialogProto = Pick<HTMLDialogElement, "showModal" | "close">
 const dialogProto = Object.getPrototypeOf(document.createElement("dialog")) as DialogProto
+// jsdom has no native modal behavior; model close-time focus restoration, which browsers refuse for triggers inside a hidden subtree.
+const nativeDialog: DialogProto = { showModal: dialogProto.showModal, close: dialogProto.close }
 const prevOf = (el: object) => (el as { __prev?: HTMLElement }).__prev
 beforeEach(() => {
   reduced = false
   localStorage.clear()
   window.matchMedia = media
   Element.prototype.scrollIntoView = vi.fn()
-  // jsdom has no native modal behavior; emulate focus-return-on-close only.
-  dialogProto.showModal = function (this: HTMLDialogElement) { prevOf(this) === undefined && ((this as { __prev?: HTMLElement }).__prev = document.activeElement as HTMLElement); this.setAttribute("open", "") }
-  dialogProto.close = function (this: HTMLDialogElement) { this.dispatchEvent(new Event("close")); prevOf(this)?.focus?.() }
+  dialogProto.showModal = function (this: HTMLDialogElement) {
+    if (this.open) return
+    ;(this as { __prev?: HTMLElement }).__prev = document.activeElement as HTMLElement
+    this.setAttribute("open", "")
+    this.querySelector<HTMLElement>("select, button")?.focus()
+  }
+  dialogProto.close = function (this: HTMLDialogElement) {
+    if (!this.open) return
+    const prev = prevOf(this)
+    const canRestore = !!prev?.isConnected && !prev.closest("[hidden]")
+    this.removeAttribute("open")
+    this.dispatchEvent(new Event("close"))
+    if (canRestore) prev?.focus()
+  }
 })
-afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks() })
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); dialogProto.showModal = nativeDialog.showModal; dialogProto.close = nativeDialog.close })
 const mount = () => render(<MemoryRouter><Sample /></MemoryRouter>)
 const hq = () => fireEvent.click(screen.getByRole("button", { name: "Skip intro" }))
 /** Hands the room request to the named desk and runs the booking check. */
@@ -126,6 +140,58 @@ describe("playable Speaker Night sample shell", () => {
     expect(JSON.parse(localStorage.getItem(SAMPLE_KEY)!).attempts[0].passed).toBe(true)
   })
 
+  it("returns focus to the venue check that opened a native source dialog", () => {
+    const clock = questSchedule()
+    mount(); hq()
+    fireEvent.click(screen.getByRole("button", { name: /Countdown Wall/ }))
+    book(/Riley/)
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }))
+    // Timeline: place every task at the latest engine slot that still meets its deadline.
+    const earliest = (min: number) => [...clock.slots].sort((a, b) => a - b).find(day => day >= min)!
+    const place = (id: string, day: number) => {
+      fireEvent.click(document.querySelector(`[data-quest-task="${id}"]`) as HTMLButtonElement)
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(`Place selected task ${day === 0 ? "★" : day} ${day === 0 ? "Event" : "days"}`) }))
+    }
+    place("registry", earliest(clock.deadlines.registry.daysBefore))
+    place("approval", 21)
+    place("room", earliest(clock.deadlines.room.daysBefore))
+    place("ritm", earliest(clock.deadlines.ritm.daysBefore))
+    place("publicity", 7)
+    fireEvent.click(screen.getByRole("button", { name: /Rehearse timeline/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }))
+    fireEvent.change(screen.getByLabelText("Dr. Lee joins"), { target: { value: "0" } })
+    fireEvent.change(screen.getByLabelText("Dr. Lee leaves"), { target: { value: "2" } })
+    fireEvent.click(screen.getByRole("button", { name: /Invite Dr. Lee/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }))
+    fireEvent.click(screen.getByRole("button", { name: /Venue Table/ }))
+    for (const paper of ["Approval", "RITM number", "Confirmed room"]) {
+      fireEvent.click(screen.getByRole("button", { name: paper }))
+      fireEvent.click(screen.getByRole("button", { name: "Morgan's desk" }))
+    }
+    fireEvent.click(screen.getByRole("button", { name: "Hand over" }))
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }))
+    fireEvent.click(screen.getByRole("button", { name: "Desert Founders Society @ ASU" }))
+    fireEvent.click(screen.getByRole("button", { name: "Reserved university mark" }))
+    fireEvent.click(screen.getByRole("button", { name: "Merchandise order" }))
+    fireEvent.click(screen.getByRole("button", { name: "Licensed vendor" }))
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Print count" }), { target: { value: "100" } })
+    fireEvent.click(screen.getByRole("button", { name: "Artwork proof" }))
+    fireEvent.click(screen.getByRole("button", { name: "RFF folder" }))
+    fireEvent.click(screen.getByRole("button", { name: "Expense Includes Logo" }))
+    fireEvent.click(screen.getByRole("button", { name: "Send for review" }))
+    fireEvent.click(screen.getByRole("button", { name: /Continue/ }))
+    expect(screen.getByRole("heading", { name: "Set the Stage" })).toBeTruthy()
+    const capacity = screen.getByRole("button", { name: /Capacity: needs work/ })
+    capacity.focus()
+    fireEvent.click(capacity)
+    expect(screen.getByRole("heading", { name: "Behind the moment" })).toBeTruthy()
+    expect(document.querySelectorAll("blockquote")).toHaveLength(1)
+    expect(document.querySelector('section[aria-label="Set the Stage"]')!.hasAttribute("hidden")).toBe(true)
+    fireEvent.click(screen.getByRole("button", { name: "Back" }))
+    expect(document.querySelector("dialog")).toBeNull()
+    expect(document.querySelector('section[aria-label="Set the Stage"]')!.hasAttribute("hidden")).toBe(false)
+    expect(document.activeElement).toBe(capacity)
+  })
   it("gates the venue station and keeps attempt history across a new rehearsal", () => {
     mount(); hq()
     const venue = screen.getByRole("button", { name: /Venue Table/ }) as HTMLButtonElement
