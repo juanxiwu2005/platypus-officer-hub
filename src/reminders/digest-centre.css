@@ -49,6 +49,7 @@
 @keyframes dg-fade { from { opacity: 0; } to { opacity: 1; } }
 .dg-inline .dg-nav .btn { flex: 0 1 auto; }
 .dg-row-note { margin: var(--s3) var(--s4) 0; color: var(--ink); }
+.dg-row-note:empty { margin: 0; }
 
 /* ---- History: one quiet link, details in the rail ---- */
 .dg-history-link { margin: 0; }

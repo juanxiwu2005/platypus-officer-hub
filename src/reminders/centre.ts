@@ -153,7 +153,7 @@ export function taskReminderSummary(state: DemoState, nodeId: string): TaskRemin
     : node?.status === "waiting" ? waitingReply ?? "Ordinary owner reminders are paused while waiting for input."
     : "No reminder is due yet for this task.")
   const blockedReason = centre.runtimeState === "invalid" ? "The saved reminder plan needs review before it can run."
-    : centre.runtimeState === "legacy" ? "Enable updated reminders in the reminder centre."
+    : centre.runtimeState === "legacy" ? "Reminder plan unavailable."   // loads upgrade themselves (S2); only held-back data stays legacy
     : !node ? "This task is unavailable." : blocked?.explanation ?? (!candidate ? explanation : null)
   if (centre.runtimeState !== "active") explanation = blockedReason!
   return { runtimeState: centre.runtimeState, recipientId, recipientName: name(state, recipientId), explanation,

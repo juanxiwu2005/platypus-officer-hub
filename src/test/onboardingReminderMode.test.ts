@@ -4,7 +4,7 @@ import { join } from "node:path"
 import { seedDemo } from "../data/seed"
 import { clubDraft, completeSetup, saveClubSettings, startWorkspace } from "../data/settings"
 import { reducer } from "../data/store"
-import { REMINDER_MODES, isReminderMode } from "../data/reminderMode"
+import { REMINDER_MODES, REMINDER_MODE_COPY, isReminderMode } from "../data/reminderMode"
 import type { ReminderMode } from "../data/types"
 import { parseCommand } from "../lib/commands"
 import { FOUNDER_STEPS, stepAt } from "../onboarding/engine/flows"
@@ -16,7 +16,8 @@ import { onboardingCopy } from "../onboarding/copy"
 // P3-H (2026-11-08) introduced the screen in ob-4; older exports still carry its answer (src/test/studySession.test.tsx).
 const base = () => seedDemo("2026-10-22")
 const code = "12345678-1234-1234-1234-123456789abc"
-const c = onboardingCopy.founder.reminders
+// The labels live only in src/data/reminderMode.ts now; the onboarding copy no longer carries a founder Reminders block.
+const c = REMINDER_MODE_COPY
 const read = (f: string) => readFileSync(join(__dirname, "..", f), "utf8")
 
 describe("the founder flow without the Reminders screen (ob-5)", () => {
@@ -39,7 +40,7 @@ describe("the founder flow without the Reminders screen (ob-5)", () => {
     const confirm = read("onboarding/founder/Confirm.tsx")
     expect(confirm).not.toMatch(/reminderMode|confirm-reminders/)
     expect(confirm).toMatch(/type: "completeSetup"/)
-    expect("lead" in c || "demo" in c || "reminders" in onboardingCopy.founder.confirm).toBe(false)
+    expect("reminders" in onboardingCopy.founder || "reminders" in onboardingCopy.founder.confirm).toBe(false)
   })
   it("sends the old address on to Confirm", () => {
     expect(read("App.tsx")).toMatch(/<Route path="founder\/reminders" element=\{<Navigate to="\/welcome\/founder\/confirm" replace \/>\} \/>/)

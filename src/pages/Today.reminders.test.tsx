@@ -212,6 +212,35 @@ describe("reminder centre (concept F): one email per person", () => {
     expect(latest.reminderRuntime!.digests ?? []).toEqual([])
   })
 
+  it("review_then_auto: Send all is the one filled button; a row Send is outlined and announces who it was sent to", async () => {
+    show(seedClub("review_then_auto"))
+    const centre = screen.getByTestId("reminder-centre")
+    expect([...centre.querySelectorAll(".btn-primary")]).toEqual([screen.getByTestId("send-all-digests")])
+    const send = within(people()[1]).getByRole("button", { name: "Send to Jordan" })
+    expect(send.className.split(" ")).toEqual(["btn", "small"])
+    fireEvent.click(send, { detail: 1 })
+    const note = await within(people()[1]).findByText("Sent to Jordan.")
+    expect(note.getAttribute("role")).toBe("status")
+    expect(record).toHaveBeenCalledTimes(1)
+  })
+
+  it("review_then_auto: row Send is disabled while Send all runs", async () => {
+    let finish: (v: { recordedGroupIds: string[]; failedGroupIds: string[]; error: null }) => void = () => {}
+    sendAll.mockImplementation(() => new Promise(r => { finish = r }))
+    show(seedClub("review_then_auto"))
+    fireEvent.click(screen.getByTestId("send-all-digests"))
+    await waitFor(() => expect(screen.getByTestId("send-all-digests").textContent).toBe("Sending…"))
+    const sends = screen.getAllByTestId("rq-person-send")
+    expect(sends.length).toBeGreaterThan(0)
+    for (const b of sends) expect((b as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(sends[0], { detail: 1 })
+    expect(prepare).not.toHaveBeenCalled()
+    expect(record).not.toHaveBeenCalled()
+    finish({ recordedGroupIds: [], failedGroupIds: [], error: null })
+    await waitFor(() => expect(screen.getByTestId("send-all-digests").textContent).toBe("Send all"))
+    for (const b of screen.getAllByTestId("rq-person-send")) expect((b as HTMLButtonElement).disabled).toBe(false)
+  })
+
   it("review_then_self: each row opens in Gmail; I sent this appears only after the draft was opened, then records as manual", async () => {
     show(seedClub("review_then_self"))
     expect(screen.queryByTestId("send-all-digests")).toBeNull()
@@ -228,13 +257,17 @@ describe("reminder centre (concept F): one email per person", () => {
     await waitFor(() => expect(record).toHaveBeenCalledTimes(1))
     expect(record.mock.calls[0][2]).toBe("manual")
     expect(record.mock.calls[0][1].map(p => p.recipientId)).toEqual(["maya"])
+    expect((await maya.findByText("Sent to Maya.")).getAttribute("role")).toBe("status")
+    // No summary action in this mode, so Open in Gmail is the row's filled button.
+    expect(draft.className.split(" ")).toContain("btn-primary")
     expect(screen.queryByText(/The draft recipient is blank/)).toBeNull()
     cleanup()
     // With no mode chosen yet, the lead sends it themselves, as in the rail.
     show(seedClub(null))
     const first = within(people()[0])
     fireEvent.click(first.getByRole("button", { name: "Email to Maya Chen" }))
-    await first.findByRole("link", { name: "Open in Gmail" })
+    // Here "Choose how reminders go out" is the screen's filled button, so the row's Open in Gmail is outlined.
+    expect((await first.findByRole("link", { name: "Open in Gmail" })).className.split(" ")).toEqual(["btn", "small"])
     expect(first.queryByRole("button", { name: /^Send/ })).toBeNull()
   })
 

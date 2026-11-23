@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react"
-import { Link } from "react-router-dom"
 import { STORAGE_KEY, useStore } from "../data/store"
 import type { Channel, DemoState } from "../data/types"
 import { canLead } from "../data/permissions"
@@ -68,7 +67,8 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
     : !node || !facts ? "This task is unavailable."
     : persistenceFailed ? "This browser could not save your changes. Restore saving before preparing a reminder."
     : !recipient?.active ? "Choose an available task owner before preparing a reminder."
-    : needsUpgrade ? "Enable updated reminders in the reminder centre before preparing a message."
+    // Loads upgrade the plan themselves (S2); a legacy plan remains only in data held back for download, which nothing can fix here.
+    : needsUpgrade ? "Reminder plan unavailable."
     : state.reminderRuntime !== undefined && !enabled ? "Review the saved reminder plan before preparing another message."
     : enabled && !candidate ? queue?.blocked.find(b => b.nodeId === nodeId) ? BLOCKED[queue.blocked.find(b => b.nodeId === nodeId)!.reason] : node.status === "done" ? "This task is complete. No reminder is needed." : "No reminder is due yet for this task."
     : !enabled ? nudgeBlocked(state, node) : null
@@ -150,6 +150,5 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
       : <>{(blocked || emailProblem || linkError) && <p className="small warn-text" role="status">{blocked ?? emailProblem ?? linkError}</p>}
         {mail && !mail.checked && !blocked && <p className="small warn-text" role="status">Review the task wording or details before preparing this message.</p>}
         {attempted && <p className="small warn-text" role="status">This reminder was not recorded. Review the latest task details before trying again.</p>}</>}
-    {needsUpgrade && allowed && <Link className="btn small" to="/">Set up reminders</Link>}
   </aside>
 }
