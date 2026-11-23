@@ -51,3 +51,6 @@ A JSX style prop must itself be an object literal with named CSS-variable keys (
 Initialize each keyboard placement cursor from the paper's CURRENT destination on pick, not a stale first target. For actual reparent, restore that moved paper in a layout effect; for a same-destination click, focus the existing paper immediately and clear pending focus. Clear selection on all placements, validate drag IDs/known targets, keep one copy of each paper, and make target buttons siblings. No parent check/rewind may be assumed to change a document/vendor value.
 
 Keep React hook order stable across handoff/promotion changes, using separate stage subcomponents if their hooks differ. Do not conditionally call hooks in one component.
+
+## Planner supersession
+Unadopted combined implementation run was interrupted after about11minutes without source writes. This scope is replaced by P5-06A HandOff, P5-06B Promotion+adapter, and paired P5-06AT/P5-06BT regressions; every original behavior/case retained.
