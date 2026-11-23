@@ -143,7 +143,7 @@ test("meeting finder: paint my week on the left, see the group on the right, pic
 test("invalid defaults and expired invitations cannot change the local demo", async ({ page }) => {
   await page.goto("/#/settings")
   const settings = page.getByTestId("club-settings")
-  await settings.getByText("Deadline and follow-up defaults", { exact: true }).click()
+  await settings.getByTestId("tasks-events-settings").locator("summary").click()   // Club → More
   await settings.getByLabel("Private check day", { exact: true }).fill("4")
   await expect(settings.getByRole("status")).toContainText("must increase")
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).org.settings.silenceProtocol.presidentDay)).toBe(7)
@@ -189,7 +189,7 @@ for (const width of [375, 390, 768]) {
     await page.goto("/#/settings")
     const activate = async (target: import("@playwright/test").Locator) => info.project.name === "mobile" ? target.tap() : target.click()
     const nav = page.getByRole("navigation", { name: "Settings sections" })
-    for (const name of ["Roles & teams", "Workflow", "Links & files", "My preferences", "Admin", "Club", "Roles & teams"]) {
+    for (const name of ["Roles & teams", "Workflow", "My preferences", "Admin", "Club", "Roles & teams"]) {
       const button = nav.getByRole("button", { name, exact: true })
       await activate(button)
       await expect(button).toHaveAttribute("aria-current", "page")

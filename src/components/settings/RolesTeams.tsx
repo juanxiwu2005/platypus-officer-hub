@@ -58,7 +58,7 @@ export function RolesTeams({ roles, people, onChange, status }: { roles: Role[];
   return <div className={`rt-layout${view === "list" ? " is-list" : ""}`} onKeyDown={onKey}>
     <section className="card form-stack rt-main" aria-labelledby="rt-title">
       <header className="rt-head">
-        <div><h2 id="rt-title">Roles & teams</h2><p className="small muted">Reporting lines on top, teams as coloured areas. Select a role to edit it.</p></div>
+        <div><h2 id="rt-title">Roles & teams</h2><p className="small muted">Select a role to edit it.</p></div>
         <div className="action-row">
           <div className="seg" role="group" aria-label="Roles view"><button type="button" aria-pressed={view === "chart"} onClick={() => setView("chart")}>Chart</button><button type="button" aria-pressed={view === "list"} onClick={() => setView("list")}>Contact list</button></div>
           <button type="button" className="btn small" disabled={!canAddRole(roles)} onClick={plusRole}>+ Role</button>

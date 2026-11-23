@@ -163,7 +163,7 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
             return <button key={station.id} type="button" data-testid={stationTestId(station)} data-station-id={station.id} title={station.title} aria-label={`Edit ${station.title}`} aria-pressed={selected === station.id} className={`wfx-station is-${station.kind}${situation ? " is-situation" : ""}${selected === station.id ? " is-selected" : ""}${dragging ? " is-dragging" : ""}`} style={{ left: dragging ? moving.x : station.x, top: dragging ? moving.y : station.y }} {...(station.kind === "task" ? dragHandlers(station.id, station.x, station.y) : {})} onClick={event => station.kind === "task" ? clickStation(event, station.id) : onSelect(station.id)}>
               <i aria-hidden="true" />
               <strong>{station.title}</strong>
-              {station.kind === "day" && <><span>{dates[station.id] ? fmtShort(dates[station.id]) : "Date unavailable"}</span><small>{station.dayIndex === 0 ? "Day 1 · T0" : `Day 2 · T+${graph.eventDays[station.dayIndex ?? 0].offsetDays}`}</small></>}
+              {station.kind === "day" && <><span>{dates[station.id] ? fmtShort(dates[station.id]) : "Date unavailable"}</span><small>{station.dayIndex === 0 ? "Event day" : `Event day + ${graph.eventDays[station.dayIndex ?? 0].offsetDays}`}</small></>}
             </button>
           })}
           {layout.points.map(point => {

@@ -18,10 +18,17 @@ export async function openWorkflow(page: Page) {
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
   await expect(page.getByTestId("workflow-builder")).toBeVisible()
   expect((await readWorkflowState(page)).org.workflowTeams?.length).toBeGreaterThan(0)
-  await openMenu(page, "More", "Apply role teams")
+  await openMenu(page, "Versions", "Apply role teams")
   await expect.poll(async () => Object.keys((await savedWorkflow(page))?.teamMap?.stepTeams ?? {}).length).toBeGreaterThan(0)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   return page.getByTestId("workflow-settings")
+}
+/** Drafts save themselves 500 ms after an edit (there is no Save draft button). Waits until no save is pending. */
+export async function waitForDraftSave(page: Page) {
+  const status = page.getByTestId("workflow-template-editor").locator(".wfl-autosave")
+  await expect(status).not.toHaveText("Saving draft…")
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  await expect(status).not.toHaveText("Saving draft…")
 }
 export async function openWorkflowStep(page: Page, key: string) {
   await closeRail(page)
@@ -34,7 +41,7 @@ export async function insertedKey(page: Page, before: string[]) {
 }
 
 export const menuTrigger = (page: Page, trigger: string) => page.getByTestId("workflow-settings").getByRole("button", { name: trigger, exact: true }).and(page.locator("[aria-haspopup=menu]"))
-/** Header and toolbar actions live in disclosure menus ("New workflow", "More", "Add"); items are role="menuitem". */
+/** Header and toolbar actions live in disclosure menus ("New workflow", "Versions", "Add"); items are role="menuitem". */
 export async function openMenu(page: Page, trigger: string, item: string) {
   const settings = page.getByTestId("workflow-settings")
   await menuTrigger(page, trigger).click()

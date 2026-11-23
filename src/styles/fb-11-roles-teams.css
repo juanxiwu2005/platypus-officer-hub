@@ -57,8 +57,6 @@ button.rt-pill:hover { background: color-mix(in srgb, var(--wfx-team) 28%, var(-
 .rt-card[aria-pressed="true"] { box-shadow: 0 0 0 var(--s2) color-mix(in srgb, var(--wfx-team) 28%, var(--surface)); }
 .rt-card:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s2); }
 
-.rt-legend { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s7); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-md); }
-.rt-legend strong { color: var(--ink); font-weight: 600; }
 
 /* ---- Contact list: the read-only Team tag. ---- */
 .rt-tag { display: inline-block; max-width: 18ch; padding: var(--s1) var(--s4); border-radius: var(--r-pill); background: color-mix(in srgb, var(--wfx-team) 16%, var(--surface)); color: color-mix(in srgb, var(--wfx-team) 72%, var(--ink)); font-size: var(--fs-sm); font-weight: 600; line-height: 1.4; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
