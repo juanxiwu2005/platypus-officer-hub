@@ -67,7 +67,7 @@ export function validateProfile(p: ProfilePatch): string | null {
   if (!Array.isArray(p.channels) || !p.channels.length || new Set(p.channels).size !== p.channels.length || p.channels.some(c => !["whatsapp", "sms", "email"].includes(c)) || !["morning", "evening"].includes(p.remindAt)) return "Choose a preferred channel and morning/evening reminder time."
   if (!Array.isArray(p.busyWeeks) || p.busyWeeks.length > 20 || p.busyWeeks.some(d => !validDate(d) || new Date(d + "T12:00:00Z").getUTCDay() !== 1)) return "Choose valid busy weeks, beginning on Monday."
   if (![p.careerGoal, p.interests, p.expectations].every(v => typeof v === "string" && v.length <= 500)) return "Keep each profile note under 500 characters."
-  if (!Number.isInteger(p.personalBufferDays) || p.personalBufferDays < 0 || p.personalBufferDays > 5 || typeof p.personalBufferEnabled !== "boolean") return "Personal buffer must be between zero and five working days."
+  if (!Number.isInteger(p.personalBufferDays) || p.personalBufferDays < 0 || p.personalBufferDays > 5 || typeof p.personalBufferEnabled !== "boolean") return "Extra days must be between zero and five working days."
   if (!validFreeSlots(p.freeSlots)) return "Each free slot needs a weekday and an end time later than its start."
   if (p.availabilityOverrides !== undefined && (typeof p.availabilityOverrides !== "object" || Object.keys(p.availabilityOverrides).length > 2_000 || Object.entries(p.availabilityOverrides).some(([key, value]) => !/^\d{4}-\d{2}-\d{2}:\d{1,2}$/.test(key) || typeof value !== "boolean"))) return "Weekly exceptions need valid dates and times."
   if (p.weeklyAvailabilityHistory !== undefined && (!Array.isArray(p.weeklyAvailabilityHistory) || p.weeklyAvailabilityHistory.length > 200 || p.weeklyAvailabilityHistory.some(v => !v || !validDate(v.startsOn) || !validFreeSlots(v.freeSlots)))) return "Weekly schedule history needs valid effective dates and times."
@@ -82,7 +82,7 @@ export function validateClub(d: ClubDraft): string | null {
 
 export function validateDefaults(d: OrgSettings): string | null {
   const p = d.silenceProtocol
-  if (!Number.isInteger(d.clubBufferBusinessDays) || d.clubBufferBusinessDays < 0 || d.clubBufferBusinessDays > 10) return "Club buffer must be zero to ten working days."
+  if (!Number.isInteger(d.clubBufferBusinessDays) || d.clubBufferBusinessDays < 0 || d.clubBufferBusinessDays > 10) return "Days early must be zero to ten working days."
   if (!Array.isArray(p?.nudgeDays) || p.nudgeDays.length !== 2 || ![...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay].every(n => Number.isInteger(n) && n >= 1 && n <= 30) || !(p.nudgeDays[0] < p.nudgeDays[1] && p.nudgeDays[1] < p.presidentDay && p.presidentDay < p.reassignDay && p.reassignDay < p.retroDay)) return `Follow-up days must increase: private check (after day ${p.nudgeDays[1]}), temporary owner, recovery.`
   if (!Number.isInteger(d.maxRemindersPerTask) || d.maxRemindersPerTask < 1 || d.maxRemindersPerTask > 3) return "Keep the reminder limit between one and three."
   if (d.sendMode !== "review" || d.quietHours.from !== "22:00" || d.quietHours.to !== "08:00") return "This demo keeps review-before-send and quiet hours from 10 pm to 8 am."

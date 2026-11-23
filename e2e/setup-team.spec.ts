@@ -164,7 +164,7 @@ test("task dates remain visible while another officer's buffer explanation stays
   // FB-4: the one visible date is Due. FB-6 moved the dates; they are not asserted here. The universal Task Details
   // (docs/feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md) dropped "Why this date", so the panel shows no planning dates or buffers at all.
   await expect(panel.getByTestId("task-due").locator("strong")).toHaveText(/^\w{3} \d+/)
-  await expect(panel).not.toContainText(/Maya's personal buffer|Personal planning start|Start by/)
+  await expect(panel).not.toContainText(/Maya's personal buffer|Personal planning start|Start by|[Ee]xtra day/)   // "extra days" is the buffer's name since S7
   // S3 removed the Events List view, whose per-step reminder note was the only place a personal buffer was named.
 })
 

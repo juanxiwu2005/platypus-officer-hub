@@ -103,7 +103,7 @@ export const tLabel = (offset: number) => offset === 0 ? "T0" : `T${offset > 0 ?
 
 /** Legacy date-axis helpers; current Settings drags call reorderTeamBuilderStep and never shift a target. */
 export function taskDragBlockReason(step: StepTemplate): string | null {
-  if (isAsuStep(step)) return "School deadlines are locked. Change workdays or the club buffer instead."
+  if (isAsuStep(step)) return "School deadlines are locked. Change workdays or days early instead."
   if ((step.anchor?.kind === "target" && step.anchor.unit === "business") || step.timing?.unit === "business") return "This task uses working-day targets. Use Finish by (T±) to set a calendar-day target first."
   if (step.anchor && step.anchor.kind !== "target") return "This task uses a linked date. Use Finish by (T±) to choose a calendar-day target first."
   return null
