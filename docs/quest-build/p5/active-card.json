@@ -3,23 +3,25 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-09A-source-dialog.md",
+  "card": "docs/quest-build/cards/P5-07K-check-labels.md",
   "readFiles": [
-    "src/quest/ruleLibrary.ts",
     "src/quest/sample/venue.ts",
-    "src/data/policyCatalog.ts",
-    "src/engine/questSchedule.ts",
-    "src/lib/dates.ts",
-    "src/styles/quest-foundation.css"
+    "src/quest/sample/VenueEditor.test.tsx"
   ],
   "writeFiles": [
-    "src/quest/sample/SourceDialog.tsx",
-    "src/styles/quest-sources.css"
+    "src/quest/sample/VenueEditor.tsx"
   ],
   "agentCommands": [
+    "npx vitest run src/quest/sample/VenueEditor.test.tsx",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
+    [
+      "npx",
+      "vitest",
+      "run",
+      "src/quest/sample/VenueEditor.test.tsx"
+    ],
     [
       "npx",
       "tsc",
