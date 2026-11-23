@@ -3,21 +3,21 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-03-sample-storage.md",
+  "card": "docs/quest-build/cards/P5-04-countdown-view.md",
   "readFiles": [
-    "src/quest/sample/model.ts",
-    "src/quest/sample/decisions.ts",
-    "src/quest/sample/venue.ts",
+    "src/quest/Quest.tsx",
     "src/quest/foundation.ts",
     "src/engine/questSchedule.ts",
-    "src/quest/sample/transitions.ts"
+    "src/lib/dragSort.ts",
+    "src/lib/dates.ts",
+    "src/styles/quest-foundation.css"
   ],
   "writeFiles": [
-    "src/quest/sample/storage.ts",
-    "src/quest/sample/storage.test.ts"
+    "src/quest/sample/Timeline.tsx",
+    "src/quest/sample/Timeline.test.tsx"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/storage.test.ts",
+    "npx vitest run src/quest/sample/Timeline.test.tsx",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
@@ -25,7 +25,7 @@
       "npx",
       "vitest",
       "run",
-      "src/quest/sample/storage.test.ts"
+      "src/quest/sample/Timeline.test.tsx"
     ],
     [
       "npx",
