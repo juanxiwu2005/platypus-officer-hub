@@ -3,36 +3,17 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-10F-source-focus.md",
+  "card": "docs/quest-build/cards/P5-G3-readonly-plan.md",
   "readFiles": [
-    "src/quest/sample/SourceDialog.tsx",
-    "src/quest/sample/VenueEditor.tsx",
-    "src/quest/sample/OfficerScenes.tsx",
-    "src/quest/sample/CommsScenes.tsx",
-    "src/quest/sample/HandOff.tsx",
-    "src/quest/sample/Promotion.tsx",
-    "src/quest/sample/Timeline.tsx",
-    "src/quest/sample/model.ts",
-    "src/quest/sample/transitions.ts",
-    "src/quest/sample/storage.ts",
-    "src/quest/sample/story.ts",
-    "src/engine/questSchedule.ts"
+    "src/quest/sample/venue.ts",
+    "src/quest/sample/room3d.ts",
+    "src/styles/quest-room.css"
   ],
   "writeFiles": [
-    "src/quest/sample/Sample.tsx",
-    "src/quest/sample/Sample.test.tsx"
+    "src/quest/sample/RoomView.tsx"
   ],
-  "agentCommands": [
-    "npx vitest run src/quest/sample/Sample.test.tsx",
-    "npx tsc --noEmit -p tsconfig.json"
-  ],
+  "agentCommands": [],
   "checks": [
-    [
-      "npx",
-      "vitest",
-      "run",
-      "src/quest/sample/Sample.test.tsx"
-    ],
     [
       "npx",
       "tsc",
@@ -59,5 +40,7 @@
   "models": {
     "coder": "asu/glm-5-3",
     "critic": "asu/deepseek-v4-1-flash"
-  }
+  },
+  "reviewBaseline": "adc7b8efdbfb4fff0cd81b28338f5ed387789c8e",
+  "sizeLimit": 150
 }
